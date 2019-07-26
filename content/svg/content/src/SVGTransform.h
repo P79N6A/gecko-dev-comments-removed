@@ -4,8 +4,8 @@
 
 
 
-#ifndef MOZILLA_DOMSVGTRANSFORM_H__
-#define MOZILLA_DOMSVGTRANSFORM_H__
+#ifndef mozilla_dom_SVGTransform_h
+#define mozilla_dom_SVGTransform_h
 
 #include "DOMSVGTransformList.h"
 #include "nsAutoPtr.h"
@@ -23,51 +23,50 @@ struct gfxMatrix;
 #define MOZ_SVG_LIST_INDEX_BIT_COUNT 31 // supports > 2 billion list items
 
 namespace mozilla {
-
 namespace dom {
+
 class SVGMatrix;
-}
 
 
 
 
-class DOMSVGTransform MOZ_FINAL : public nsWrapperCache
+class SVGTransform MOZ_FINAL : public nsWrapperCache
 {
 public:
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMSVGTransform)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGTransform)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(SVGTransform)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(SVGTransform)
 
   
 
 
-  DOMSVGTransform(DOMSVGTransformList *aList,
-                  uint32_t aListIndex,
-                  bool aIsAnimValItem);
-
-  
-
-
-
-
-
-
-  explicit DOMSVGTransform();
-  explicit DOMSVGTransform(const gfxMatrix &aMatrix);
-
-  
-
-
-  explicit DOMSVGTransform(const nsSVGTransform &aMatrix);
-
-  ~DOMSVGTransform();
+  SVGTransform(DOMSVGTransformList *aList,
+               uint32_t aListIndex,
+               bool aIsAnimValItem);
 
   
 
 
 
-  DOMSVGTransform* Clone() {
+
+
+
+  explicit SVGTransform();
+  explicit SVGTransform(const gfxMatrix &aMatrix);
+
+  
+
+
+  explicit SVGTransform(const nsSVGTransform &aMatrix);
+
+  ~SVGTransform();
+
+  
+
+
+
+  SVGTransform* Clone() {
     NS_ASSERTION(mList, "unexpected caller");
-    return new DOMSVGTransform(InternalItem());
+    return new SVGTransform(InternalItem());
   }
 
   bool IsInList() const {
@@ -184,7 +183,7 @@ private:
 };
 
 nsAttrValue
-DOMSVGTransform::NotifyElementWillChange()
+SVGTransform::NotifyElementWillChange()
 {
   nsAttrValue result;
   if (HasOwner()) {
@@ -193,6 +192,7 @@ DOMSVGTransform::NotifyElementWillChange()
   return result;
 }
 
+} 
 } 
 
 #undef MOZ_SVG_LIST_INDEX_BIT_COUNT

@@ -37,7 +37,7 @@
 #ifndef mozilla_dom_SVGMatrix_h
 #define mozilla_dom_SVGMatrix_h
 
-#include "DOMSVGTransform.h"
+#include "mozilla/dom/SVGTransform.h"
 #include "gfxMatrix.h"
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -59,7 +59,7 @@ public:
   
 
 
-  SVGMatrix(DOMSVGTransform& aTransform) : mTransform(&aTransform) {
+  SVGMatrix(SVGTransform& aTransform) : mTransform(&aTransform) {
     SetIsDOMBinding();
   }
 
@@ -80,7 +80,7 @@ public:
   }
 
   
-  DOMSVGTransform* GetParentObject() const;
+  SVGTransform* GetParentObject() const;
   virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope) MOZ_OVERRIDE;
 
   float A() const { return static_cast<float>(Matrix().xx); }
@@ -123,7 +123,7 @@ private:
     return mTransform ? mTransform->IsAnimVal() : false;
   }
 
-  nsRefPtr<DOMSVGTransform> mTransform;
+  nsRefPtr<SVGTransform> mTransform;
 
   
   

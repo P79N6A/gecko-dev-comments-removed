@@ -4,7 +4,7 @@
 
 
 #include "DOMSVGTransformList.h"
-#include "DOMSVGTransform.h"
+#include "mozilla/dom/SVGTransform.h"
 #include "mozilla/dom/SVGMatrix.h"
 #include "SVGAnimatedTransformList.h"
 #include "nsSVGElement.h"
@@ -17,7 +17,7 @@
 namespace {
 
 void UpdateListIndicesFromIndex(
-  FallibleTArray<mozilla::DOMSVGTransform*>& aItemsArray,
+  FallibleTArray<mozilla::dom::SVGTransform*>& aItemsArray,
   uint32_t aStartingIndex)
 {
   uint32_t length = aItemsArray.Length();
@@ -32,6 +32,8 @@ void UpdateListIndicesFromIndex(
 } 
 
 namespace mozilla {
+
+using namespace dom;
 
 
 
@@ -78,10 +80,10 @@ DOMSVGTransformList::InternalListLengthWillChange(uint32_t aNewLength)
 {
   uint32_t oldLength = mItems.Length();
 
-  if (aNewLength > DOMSVGTransform::MaxListIndex()) {
+  if (aNewLength > SVGTransform::MaxListIndex()) {
     
     
-    aNewLength = DOMSVGTransform::MaxListIndex();
+    aNewLength = SVGTransform::MaxListIndex();
   }
 
   nsRefPtr<DOMSVGTransformList> kungFuDeathGrip;
@@ -145,8 +147,8 @@ DOMSVGTransformList::Clear(ErrorResult& error)
   }
 }
 
-already_AddRefed<DOMSVGTransform>
-DOMSVGTransformList::Initialize(DOMSVGTransform& newItem, ErrorResult& error)
+already_AddRefed<SVGTransform>
+DOMSVGTransformList::Initialize(SVGTransform& newItem, ErrorResult& error)
 {
   if (IsAnimValList()) {
     error.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
@@ -161,7 +163,7 @@ DOMSVGTransformList::Initialize(DOMSVGTransform& newItem, ErrorResult& error)
   
   
 
-  nsRefPtr<DOMSVGTransform> domItem = &newItem;
+  nsRefPtr<SVGTransform> domItem = &newItem;
   if (domItem->HasOwner()) {
     domItem = newItem.Clone();
   }
@@ -171,7 +173,7 @@ DOMSVGTransformList::Initialize(DOMSVGTransform& newItem, ErrorResult& error)
   return InsertItemBefore(*domItem, 0, error);
 }
 
-DOMSVGTransform*
+SVGTransform*
 DOMSVGTransformList::IndexedGetter(uint32_t index, bool& found,
                                    ErrorResult& error)
 {
@@ -186,8 +188,8 @@ DOMSVGTransformList::IndexedGetter(uint32_t index, bool& found,
   return nullptr;
 }
 
-already_AddRefed<DOMSVGTransform>
-DOMSVGTransformList::InsertItemBefore(DOMSVGTransform& newItem,
+already_AddRefed<SVGTransform>
+DOMSVGTransformList::InsertItemBefore(SVGTransform& newItem,
                                       uint32_t index, ErrorResult& error)
 {
   if (IsAnimValList()) {
@@ -196,12 +198,12 @@ DOMSVGTransformList::InsertItemBefore(DOMSVGTransform& newItem,
   }
 
   index = std::min(index, LengthNoFlush());
-  if (index >= DOMSVGTransform::MaxListIndex()) {
+  if (index >= SVGTransform::MaxListIndex()) {
     error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
     return nullptr;
   }
 
-  nsRefPtr<DOMSVGTransform> domItem = &newItem;
+  nsRefPtr<SVGTransform> domItem = &newItem;
   if (newItem.HasOwner()) {
     domItem = newItem.Clone(); 
   }
@@ -234,8 +236,8 @@ DOMSVGTransformList::InsertItemBefore(DOMSVGTransform& newItem,
   return domItem.forget();
 }
 
-already_AddRefed<DOMSVGTransform>
-DOMSVGTransformList::ReplaceItem(DOMSVGTransform& newItem,
+already_AddRefed<SVGTransform>
+DOMSVGTransformList::ReplaceItem(SVGTransform& newItem,
                                  uint32_t index, ErrorResult& error)
 {
   if (IsAnimValList()) {
@@ -248,7 +250,7 @@ DOMSVGTransformList::ReplaceItem(DOMSVGTransform& newItem,
     return nullptr;
   }
 
-  nsRefPtr<DOMSVGTransform> domItem = &newItem;
+  nsRefPtr<SVGTransform> domItem = &newItem;
   if (newItem.HasOwner()) {
     domItem = newItem.Clone(); 
   }
@@ -274,7 +276,7 @@ DOMSVGTransformList::ReplaceItem(DOMSVGTransform& newItem,
   return domItem.forget();
 }
 
-already_AddRefed<DOMSVGTransform>
+already_AddRefed<SVGTransform>
 DOMSVGTransformList::RemoveItem(uint32_t index, ErrorResult& error)
 {
   if (IsAnimValList()) {
@@ -299,7 +301,7 @@ DOMSVGTransformList::RemoveItem(uint32_t index, ErrorResult& error)
   
   
   mItems[index]->RemovingFromList();
-  nsRefPtr<DOMSVGTransform> result = mItems[index];
+  nsRefPtr<SVGTransform> result = mItems[index];
 
   InternalList().RemoveItem(index);
   mItems.RemoveElementAt(index);
@@ -313,14 +315,14 @@ DOMSVGTransformList::RemoveItem(uint32_t index, ErrorResult& error)
   return result.forget();
 }
 
-already_AddRefed<DOMSVGTransform>
+already_AddRefed<SVGTransform>
 DOMSVGTransformList::CreateSVGTransformFromMatrix(dom::SVGMatrix& matrix)
 {
-  nsRefPtr<DOMSVGTransform> result = new DOMSVGTransform(matrix.Matrix());
+  nsRefPtr<SVGTransform> result = new SVGTransform(matrix.Matrix());
   return result.forget();
 }
 
-already_AddRefed<DOMSVGTransform>
+already_AddRefed<SVGTransform>
 DOMSVGTransformList::Consolidate(ErrorResult& error)
 {
   if (IsAnimValList()) {
@@ -345,7 +347,7 @@ DOMSVGTransformList::Consolidate(ErrorResult& error)
   MOZ_ASSERT(!error.Failed(), "How could this fail?");
 
   
-  nsRefPtr<DOMSVGTransform> transform = new DOMSVGTransform(mx);
+  nsRefPtr<SVGTransform> transform = new SVGTransform(mx);
   return InsertItemBefore(*transform, LengthNoFlush(), error);
 }
 
@@ -356,7 +358,7 @@ void
 DOMSVGTransformList::EnsureItemAt(uint32_t aIndex)
 {
   if (!mItems[aIndex]) {
-    mItems[aIndex] = new DOMSVGTransform(this, aIndex, IsAnimValList());
+    mItems[aIndex] = new SVGTransform(this, aIndex, IsAnimValList());
   }
 }
 
@@ -376,7 +378,7 @@ DOMSVGTransformList::MaybeInsertNullInAnimValListAt(uint32_t aIndex)
                     "animVal list not in sync!");
 
   animVal->mItems.InsertElementAt(aIndex,
-                                  static_cast<DOMSVGTransform*>(nullptr));
+                                  static_cast<SVGTransform*>(nullptr));
 
   UpdateListIndicesFromIndex(animVal->mItems, aIndex + 1);
 }
