@@ -13,7 +13,12 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 function getLists(prefName) {
-  return Services.prefs.getCharPref(prefName).split(",")
+  let pref = Services.prefs.getCharPref(prefName);
+  
+  if (!pref) {
+    return [];
+  }
+  return pref.split(",")
     .filter(function(value) { return value.indexOf("test-") == -1; })
     .map(function(value) { return value.trim(); });
 }

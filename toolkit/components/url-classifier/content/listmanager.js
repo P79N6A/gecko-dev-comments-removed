@@ -188,13 +188,27 @@ PROT_ListManager.prototype.maybeStartManagingUpdates = function() {
   this.maybeToggleUpdateChecking();
 }
 
-PROT_ListManager.prototype.kickoffUpdate_ = function (tableData)
+
+
+
+PROT_ListManager.prototype.kickoffUpdate_ = function (onDiskTableData)
 {
   this.startingUpdate_ = false;
-  
-  
   var initialUpdateDelay = 3000;
-  if (tableData != "") {
+
+  
+  var diskTablesAreUpdating = false;
+  for (var tableName in this.tablesData) {
+    if (this.tablesData[tableName].needsUpdate) {
+      if (onDiskTableData.indexOf(tableName) != -1) {
+        diskTablesAreUpdating = true;
+      }
+    }
+  }
+
+  
+  
+  if (diskTablesAreUpdating) {
     
     initialUpdateDelay += Math.floor(Math.random() * (5 * 60 * 1000));
   }
