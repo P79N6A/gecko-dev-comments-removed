@@ -1063,8 +1063,7 @@ void
 IonScript::Destroy(FreeOp *fop, IonScript *script)
 {
     script->destroyCaches();
-    script->destroyBackedges(fop->runtime());
-    script->detachDependentAsmJSModules(fop);
+    script->unlinkFromRuntime(fop);
     fop->free_(script);
 }
 
@@ -1111,20 +1110,24 @@ IonScript::addDependentAsmJSModule(JSContext *cx, DependentAsmJSModuleExit exit)
 }
 
 void
-IonScript::detachDependentAsmJSModules(FreeOp *fop) {
-    if (!dependentAsmJSModules)
-        return;
-    for (size_t i = 0; i < dependentAsmJSModules->length(); i++) {
-        DependentAsmJSModuleExit exit = dependentAsmJSModules->begin()[i];
-        exit.module->detachIonCompilation(exit.exitIndex);
-    }
-    fop->delete_(dependentAsmJSModules);
-    dependentAsmJSModules = nullptr;
-}
-
-void
-IonScript::destroyBackedges(JSRuntime *rt)
+IonScript::unlinkFromRuntime(FreeOp *fop)
 {
+    
+    
+    if (dependentAsmJSModules) {
+        for (size_t i = 0; i < dependentAsmJSModules->length(); i++) {
+            DependentAsmJSModuleExit exit = dependentAsmJSModules->begin()[i];
+            exit.module->detachIonCompilation(exit.exitIndex);
+        }
+
+        fop->delete_(dependentAsmJSModules);
+        dependentAsmJSModules = nullptr;
+    }
+
+    
+    
+    
+    JSRuntime *rt = fop->runtime();
     for (size_t i = 0; i < backedgeEntries_; i++) {
         PatchableBackedge *backedge = &backedgeList()[i];
         rt->jitRuntime()->removePatchableBackedge(backedge);
@@ -2437,9 +2440,7 @@ InvalidateActivation(FreeOp *fop, uint8_t *ionTop, bool invalidateAll)
 
         
         
-        
-        
-        ionScript->destroyBackedges(fop->runtime());
+        ionScript->unlinkFromRuntime(fop);
 
         
         
@@ -2580,7 +2581,6 @@ jit::Invalidate(types::TypeZone &types, FreeOp *fop,
             continue;
 
         SetIonScript(script, executionMode, nullptr);
-        ionScript->detachDependentAsmJSModules(fop);
         ionScript->decref(fop);
         co.invalidate();
         numInvalidations--;
