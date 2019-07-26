@@ -79,8 +79,8 @@ public:
   virtual void Init();
   virtual void Shutdown();
   virtual nsIFrame* GetFrame() const;
-  virtual nsINode* GetNode() const { return mDocument; }
-  nsIDocument* DocumentNode() const { return mDocument; }
+  virtual nsINode* GetNode() const { return mDocumentNode; }
+  nsIDocument* DocumentNode() const { return mDocumentNode; }
 
   
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
@@ -122,8 +122,8 @@ public:
     
     
     
-    return mDocument && mDocument->IsVisible() &&
-      (mDocument->IsShowing() || HasLoadState(eDOMLoaded));
+    return mDocumentNode && mDocumentNode->IsVisible() &&
+      (mDocumentNode->IsShowing() || HasLoadState(eDOMLoaded));
   }
 
   
@@ -489,7 +489,7 @@ protected:
   nsDataHashtable<nsPtrHashKey<const nsINode>, Accessible*>
     mNodeToAccessibleMap;
 
-    nsCOMPtr<nsIDocument> mDocument;
+    nsCOMPtr<nsIDocument> mDocumentNode;
     nsCOMPtr<nsITimer> mScrollWatchTimer;
     uint16_t mScrollPositionChangedTicks; 
 
