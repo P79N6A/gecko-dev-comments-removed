@@ -82,6 +82,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/VisualEventTracer.h"
 
 
 
@@ -6666,6 +6667,8 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
     if(!aChannel)
         return NS_ERROR_NULL_POINTER;
     
+    MOZ_EVENT_TRACER_DONE(this, "docshell::pageload");
+
     nsCOMPtr<nsIURI> url;
     nsresult rv = aChannel->GetURI(getter_AddRefs(url));
     if (NS_FAILED(rv)) return rv;
@@ -9389,6 +9392,13 @@ nsDocShell::DoURILoad(nsIURI * aURI,
                       bool aBypassClassifier,
                       bool aForceAllowCookies)
 {
+#ifdef MOZ_VISUAL_EVENT_TRACER
+    nsAutoCString urlSpec;
+    aURI->GetAsciiSpec(urlSpec);
+    MOZ_EVENT_TRACER_NAME_OBJECT(this, urlSpec.BeginReading());
+    MOZ_EVENT_TRACER_EXEC(this, "docshell::pageload");
+#endif
+
     nsresult rv;
     nsCOMPtr<nsIURILoader> uriLoader;
 

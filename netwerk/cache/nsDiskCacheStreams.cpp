@@ -15,7 +15,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include <algorithm>
-
+#include "mozilla/VisualEventTracer.h"
 
 
 
@@ -535,6 +535,12 @@ nsDiskCacheStreamIO::OpenCacheFile(int flags, PRFileDesc ** fd)
 nsresult
 nsDiskCacheStreamIO::ReadCacheBlocks(uint32_t bufferSize)
 {
+    mozilla::eventtracer::AutoEventTracer readCacheBlocks(
+        mBinding->mCacheEntry,
+        mozilla::eventtracer::eExec,
+        mozilla::eventtracer::eDone,
+        "net::cache::ReadCacheBlocks");
+
     NS_ASSERTION(mStreamEnd == mBinding->mCacheEntry->DataSize(), "bad stream");
     NS_ASSERTION(bufferSize <= kMaxBufferSize, "bufferSize too large for buffer");
     NS_ASSERTION(mStreamEnd <= bufferSize, "data too large for buffer");
@@ -558,6 +564,12 @@ nsDiskCacheStreamIO::ReadCacheBlocks(uint32_t bufferSize)
 nsresult
 nsDiskCacheStreamIO::FlushBufferToFile()
 {
+    mozilla::eventtracer::AutoEventTracer flushBufferToFile(
+        mBinding->mCacheEntry,
+        mozilla::eventtracer::eExec,
+        mozilla::eventtracer::eDone,
+        "net::cache::FlushBufferToFile");
+
     nsresult  rv;
     nsDiskCacheRecord * record = &mBinding->mRecord;
     
