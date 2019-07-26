@@ -717,6 +717,11 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
     }
   }
 
+  LayoutDeviceToParentLayerScale layoutToParentLayerScale =
+    
+    
+    metrics.mCumulativeResolution * LayerToScreenScale(1.0) * ScreenToParentLayerScale(1.0);
+
   
   
   
@@ -725,7 +730,8 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   nsRect compositionBounds(frameForCompositionBoundsCalculation->GetOffsetToCrossDoc(aReferenceFrame),
                            frameForCompositionBoundsCalculation->GetSize());
   metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
-                                            * metrics.GetParentResolution());
+                                            * layoutToParentLayerScale);
+
 
   
   
@@ -742,7 +748,8 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
       if (nsView* view = rootFrame->GetView()) {
         nsRect viewBoundsAppUnits = view->GetBounds() + rootFrame->GetOffsetToCrossDoc(aReferenceFrame);
         ParentLayerIntRect viewBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(viewBoundsAppUnits, auPerDevPixel)
-                                                     * metrics.GetParentResolution());
+                                                     * layoutToParentLayerScale);
+
         
         
         
