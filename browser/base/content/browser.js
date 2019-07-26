@@ -1045,7 +1045,6 @@ var gBrowserInit = {
       gBrowser.selectedBrowser.focus();
 
     gNavToolbox.customizeDone = BrowserToolboxCustomizeDone;
-    gNavToolbox.customizeChange = BrowserToolboxCustomizeChange;
 
     
     this._initializeSanitizer();
@@ -1151,6 +1150,7 @@ var gBrowserInit = {
     window.addEventListener("dragover", MousePosTracker, false);
 
     gNavToolbox.addEventListener("customizationstarting", CustomizationHandler);
+    gNavToolbox.addEventListener("customizationchange", CustomizationHandler);
     gNavToolbox.addEventListener("customizationending", CustomizationHandler);
 
     
@@ -3285,11 +3285,6 @@ function BrowserCustomizeToolbar() {
 
 function BrowserToolboxCustomizeDone(aToolboxChanged) {
   gCustomizeMode.exit(aToolboxChanged);
-}
-
-function BrowserToolboxCustomizeChange(aType) {
-  gHomeButton.updatePersonalToolbarStyle();
-  BookmarksMenuButton.customizeChange();
 }
 
 
