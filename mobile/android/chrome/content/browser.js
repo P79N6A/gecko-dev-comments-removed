@@ -4154,7 +4154,7 @@ var BrowserEventHandler = {
       if (this._scrollableElement != null) {
         
         let doc = BrowserApp.selectedBrowser.contentDocument;
-        if (this._scrollableElement != doc.documentElement)
+        if (this._scrollableElement != doc.body && this._scrollableElement != doc.documentElement)
           sendMessageToJava({ type: "Panning:Override" });
       }
     }
@@ -4241,6 +4241,7 @@ var BrowserEventHandler = {
 
           let doc = BrowserApp.selectedBrowser.contentDocument;
           if (this._scrollableElement == null ||
+              this._scrollableElement == doc.body ||
               this._scrollableElement == doc.documentElement) {
             sendMessageToJava({ type: "Panning:CancelOverride" });
             return;
@@ -4615,10 +4616,11 @@ var BrowserEventHandler = {
 
 
 
+
       if (checkElem) {
         if ((elem.scrollTopMax > 0 || elem.scrollLeftMax > 0) &&
             (this._hasScrollableOverflow(elem) ||
-             elem.mozMatchesSelector("html, textarea")) ||
+             elem.mozMatchesSelector("html, body, textarea")) ||
             (elem instanceof HTMLSelectElement && (elem.size > 1 || elem.multiple))) {
           scrollable = true;
           break;
