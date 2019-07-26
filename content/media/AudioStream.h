@@ -92,6 +92,10 @@ class AudioClock
 class AudioStream
 {
 public:
+  enum LatencyRequest {
+    HighLatency,
+    LowLatency
+  };
   AudioStream();
 
   virtual ~AudioStream();
@@ -116,7 +120,8 @@ public:
   
   
   virtual nsresult Init(int32_t aNumChannels, int32_t aRate,
-                        const dom::AudioChannelType aAudioStreamType) = 0;
+                        const dom::AudioChannelType aAudioStreamType,
+                        LatencyRequest aLatencyRequest) = 0;
 
   
   virtual void Shutdown() = 0;
