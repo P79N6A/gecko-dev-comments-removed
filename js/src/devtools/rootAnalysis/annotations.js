@@ -138,6 +138,11 @@ var ignoreFunctions = {
     "PR_ErrorInstallTable" : true,
     "PR_SetThreadPrivate" : true,
     "JSObject* js::GetWeakmapKeyDelegate(JSObject*)" : true, 
+
+    
+    
+    "void js::AutoCompartment::~AutoCompartment(int32)" : true,
+    "void JSAutoCompartment::~JSAutoCompartment(int32)" : true,
 };
 
 function ignoreGCFunction(fun)
