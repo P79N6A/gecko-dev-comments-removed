@@ -24,6 +24,8 @@
 #include "nsJSEnvironment.h"
 #include "nsDOMJSUtils.h"
 #include "mozilla/Likely.h"
+#include "mozilla/dom/UnionTypes.h"
+
 #ifdef DEBUG
 
 #include "nspr.h" 
@@ -38,6 +40,7 @@ public:
 static EventListenerCounter sEventListenerCounter;
 #endif
 
+using namespace mozilla;
 using namespace mozilla::dom;
 
 
@@ -149,115 +152,98 @@ nsJSEventListener::HandleEvent(nsIDOMEvent* aEvent)
   if (!target || !mContext || !mHandler.HasEventHandler())
     return NS_ERROR_FAILURE;
 
-  nsresult rv;
-  nsCOMPtr<nsIMutableArray> iargv;
+  if (mHandler.Type() == nsEventHandler::eOnError) {
+    MOZ_ASSERT(mEventName == nsGkAtoms::onerror);
 
-  bool handledScriptError = false;
-  if (mEventName == nsGkAtoms::onerror) {
+    nsString errorMsg, file;
+    EventOrString msgOrEvent;
+    Optional<nsAString> fileName;
+    Optional<uint32_t> lineNumber;
+    Optional<uint32_t> columnNumber;
+
     NS_ENSURE_TRUE(aEvent, NS_ERROR_UNEXPECTED);
-
     nsEvent* event = aEvent->GetInternalNSEvent();
     if (event->message == NS_LOAD_ERROR &&
         event->eventStructType == NS_SCRIPT_ERROR_EVENT) {
       nsScriptErrorEvent *scriptEvent =
         static_cast<nsScriptErrorEvent*>(event);
-      
-      iargv = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
-      if (NS_FAILED(rv)) return rv;
-      
-      nsCOMPtr<nsIWritableVariant>
-          var(do_CreateInstance(NS_VARIANT_CONTRACTID, &rv));
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = var->SetAsWString(scriptEvent->errorMsg);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = iargv->AppendElement(var, false);
-      NS_ENSURE_SUCCESS(rv, rv);
-      
-      var = do_CreateInstance(NS_VARIANT_CONTRACTID, &rv);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = var->SetAsWString(scriptEvent->fileName);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = iargv->AppendElement(var, false);
-      NS_ENSURE_SUCCESS(rv, rv);
-      
-      var = do_CreateInstance(NS_VARIANT_CONTRACTID, &rv);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = var->SetAsUint32(scriptEvent->lineNr);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = iargv->AppendElement(var, false);
-      NS_ENSURE_SUCCESS(rv, rv);
+      errorMsg = scriptEvent->errorMsg;
+      msgOrEvent.SetAsString() = static_cast<nsAString*>(&errorMsg);
 
-      handledScriptError = true;
+      file = scriptEvent->fileName;
+      fileName = &file;
+
+      lineNumber.Construct();
+      lineNumber.Value() = scriptEvent->lineNr;
+    } else {
+      msgOrEvent.SetAsEvent() = aEvent;
     }
+
+    nsRefPtr<OnErrorEventHandlerNonNull> handler =
+      mHandler.OnErrorEventHandler();
+    ErrorResult rv;
+    bool handled = handler->Call(mTarget, msgOrEvent, fileName, lineNumber,
+                                 columnNumber, rv);
+    if (rv.Failed()) {
+      return rv.ErrorCode();
+    }
+
+    if (handled) {
+      aEvent->PreventDefault();
+    }
+    return NS_OK;
   }
 
-  if (!handledScriptError) {
-    iargv = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
-    if (NS_FAILED(rv)) return rv;
-    NS_ENSURE_TRUE(iargv != nullptr, NS_ERROR_OUT_OF_MEMORY);
-    rv = iargv->AppendElement(aEvent, false);
-    NS_ENSURE_SUCCESS(rv, rv);
+  if (mHandler.Type() == nsEventHandler::eOnBeforeUnload) {
+    MOZ_ASSERT(mEventName == nsGkAtoms::onbeforeunload);
+
+    nsRefPtr<BeforeUnloadEventHandlerNonNull> handler =
+      mHandler.BeforeUnloadEventHandler();
+    ErrorResult rv;
+    nsString retval;
+    handler->Call(mTarget, aEvent, retval, rv);
+    if (rv.Failed()) {
+      return rv.ErrorCode();
+    }
+
+    nsCOMPtr<nsIDOMBeforeUnloadEvent> beforeUnload = do_QueryInterface(aEvent);
+    NS_ENSURE_STATE(beforeUnload);
+
+    if (!DOMStringIsNull(retval)) {
+      aEvent->PreventDefault();
+
+      nsAutoString text;
+      beforeUnload->GetReturnValue(text);
+
+      
+      
+      
+      if (text.IsEmpty()) {
+        beforeUnload->SetReturnValue(retval);
+      }
+    }
+
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(mHandler.Type() == nsEventHandler::eNormal);
+  ErrorResult rv;
+  nsRefPtr<EventHandlerNonNull> handler = mHandler.EventHandler();
+  JS::Value retval = handler->Call(mTarget, aEvent, rv);
+  if (rv.Failed()) {
+    return rv.ErrorCode();
   }
 
   
   
-#ifdef DEBUG
-  JSContext* cx = nullptr;
-  nsCOMPtr<nsIJSContextStack> stack =
-    do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-  NS_ASSERTION(stack && NS_SUCCEEDED(stack->Peek(&cx)) && cx &&
-               GetScriptContextFromJSContext(cx) == mContext,
-               "JSEventListener has wrong script context?");
-#endif
-  nsCOMPtr<nsIVariant> vrv;
-  xpc_UnmarkGrayObject(mScopeObject);
-  rv = mContext->CallEventHandler(mTarget, mScopeObject,
-                                  mHandler.Ptr()->Callable(),
-                                  iargv, getter_AddRefs(vrv));
-
-  if (NS_SUCCEEDED(rv)) {
-    uint16_t dataType = nsIDataType::VTYPE_VOID;
-    if (vrv)
-      vrv->GetDataType(&dataType);
-
-    if (mEventName == nsGkAtoms::onbeforeunload) {
-      nsCOMPtr<nsIDOMBeforeUnloadEvent> beforeUnload = do_QueryInterface(aEvent);
-      NS_ENSURE_STATE(beforeUnload);
-
-      if (dataType != nsIDataType::VTYPE_VOID) {
-        aEvent->PreventDefault();
-        nsAutoString text;
-        beforeUnload->GetReturnValue(text);
-
-        
-        
-        
-        if ((dataType == nsIDataType::VTYPE_DOMSTRING ||
-             dataType == nsIDataType::VTYPE_CHAR_STR ||
-             dataType == nsIDataType::VTYPE_WCHAR_STR ||
-             dataType == nsIDataType::VTYPE_STRING_SIZE_IS ||
-             dataType == nsIDataType::VTYPE_WSTRING_SIZE_IS ||
-             dataType == nsIDataType::VTYPE_CSTRING ||
-             dataType == nsIDataType::VTYPE_ASTRING)
-            && text.IsEmpty()) {
-          vrv->GetAsDOMString(text);
-          beforeUnload->SetReturnValue(text);
-        }
-      }
-    } else if (dataType == nsIDataType::VTYPE_BOOL) {
-      
-      
-      
-      bool brv;
-      if (NS_SUCCEEDED(vrv->GetAsBool(&brv)) &&
-          brv == (mEventName == nsGkAtoms::onerror ||
-                  mEventName == nsGkAtoms::onmouseover)) {
-        aEvent->PreventDefault();
-      }
-    }
+  
+  if (retval.isBoolean() &&
+      retval.toBoolean() == (mEventName == nsGkAtoms::onerror ||
+                             mEventName == nsGkAtoms::onmouseover)) {
+    aEvent->PreventDefault();
   }
 
-  return rv;
+  return NS_OK;
 }
 
 
