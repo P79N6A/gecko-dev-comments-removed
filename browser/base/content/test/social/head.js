@@ -44,8 +44,37 @@ function runSocialTestWithProvider(manifest, callback) {
 
   info("runSocialTestWithProvider: " + manifests.toSource());
 
+  let finishCount = 0;
+  function finishIfDone(callFinish) {
+    finishCount++;
+    if (finishCount == manifests.length)
+      finish();
+  }
+  function removeAddedProviders(cleanup) {
+    manifests.forEach(function (m) {
+      
+      let callback = cleanup ? function () {} : finishIfDone;
+      
+      let removeProvider = SocialService.removeProvider.bind(SocialService);
+      if (cleanup) {
+        removeProvider = function (origin, cb) {
+          try {
+            SocialService.removeProvider(origin, cb);
+          } catch (ex) {
+            
+            if (ex.message == "SocialService.removeProvider: no provider with this origin exists!")
+              return;
+            info("Failed to clean up provider " + origin + ": " + ex);
+          }
+        }
+      }
+      removeProvider(m.origin, callback);
+    });
+  }
+
   let providersAdded = 0;
   let firstProvider;
+
   manifests.forEach(function (m) {
     SocialService.addProvider(m, function(provider) {
       provider.active = true;
@@ -65,23 +94,15 @@ function runSocialTestWithProvider(manifest, callback) {
         Social.provider = firstProvider;
         Social.enabled = true;
 
-        registerCleanupFunction(function () {
+        function finishSocialTest(cleanup) {
           
           
           Services.prefs.clearUserPref("social.enabled");
-          
-          
-          
-          
-          manifests.forEach(function (m) {
-            try {
-              SocialService.removeProvider(m.origin, finish);
-            } catch (ex) {}
-          });
-        });
-        function finishSocialTest() {
-          SocialService.removeProvider(provider.origin, finish);
+          removeAddedProviders(cleanup);
         }
+        registerCleanupFunction(function () {
+          finishSocialTest(true);
+        });
         callback(finishSocialTest);
       }
     });
