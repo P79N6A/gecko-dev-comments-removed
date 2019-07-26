@@ -8,6 +8,7 @@
 
 #include "xpcprivate.h"
 #include "jsprf.h"
+#include "nsCCUncollectableMarker.h"
 #include "nsCxPusher.h"
 #include "nsContentUtils.h"
 #include "nsThreadUtils.h"
@@ -49,6 +50,42 @@ using namespace mozilla;
 
 
 
+
+
+
+
+bool
+nsXPCWrappedJS::CanSkip()
+{
+    if (!nsCCUncollectableMarker::sGeneration)
+        return false;
+
+    if (IsSubjectToFinalization())
+        return true;
+
+    
+    JSObject *obj = GetJSObjectPreserveColor();
+    if (obj && xpc_IsGrayGCThing(obj))
+        return false;
+
+    
+    
+    if (!IsRootWrapper())
+        return mRoot->CanSkip();
+
+    
+    
+    if (!IsAggregatedToNative())
+        return true;
+
+    nsISupports* agg = GetAggregatedNativeObject();
+    nsXPCOMCycleCollectionParticipant* cp = nullptr;
+    CallQueryInterface(agg, &cp);
+    nsISupports* canonical = nullptr;
+    agg->QueryInterface(NS_GET_IID(nsCycleCollectionISupports),
+                        reinterpret_cast<void**>(&canonical));
+    return cp && canonical && cp->CanSkipThis(canonical);
+}
 
 NS_IMETHODIMP
 NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Traverse
@@ -102,6 +139,20 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsXPCWrappedJS)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsXPCWrappedJS)
     tmp->Unlink();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsXPCWrappedJS)
+    return true;
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsXPCWrappedJS)
+    return tmp->CanSkip();
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsXPCWrappedJS)
+    return tmp->CanSkip();
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 NS_IMETHODIMP
 nsXPCWrappedJS::AggregatedQueryInterface(REFNSIID aIID, void** aInstancePtr)
