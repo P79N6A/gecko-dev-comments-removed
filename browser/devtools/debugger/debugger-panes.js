@@ -758,7 +758,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _onBreakpointRemoved: function(aItem) {
-    dumpn("Finalizing breakpoint item: " + aItem);
+    dumpn("Finalizing breakpoint item: " + aItem.stringify());
 
     
     let contextMenu = aItem.attachment.popup;

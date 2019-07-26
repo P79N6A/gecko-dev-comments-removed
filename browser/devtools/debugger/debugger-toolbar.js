@@ -491,7 +491,7 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _onStackframeRemoved: function(aItem) {
-    dumpn("Finalizing stackframe item: " + aItem);
+    dumpn("Finalizing stackframe item: " + aItem.stringify());
 
     
     let depth = aItem.attachment.depth;

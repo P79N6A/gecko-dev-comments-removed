@@ -576,7 +576,8 @@ Item.prototype = {
 
 
 
-  toString: function() {
+
+  stringify: function() {
     return JSON.stringify({
       value: this._value,
       target: this._target + "",
