@@ -8,6 +8,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
                                   "resource://gre/modules/FormHistory.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
 
 function Sanitizer() {}
 Sanitizer.prototype = {
@@ -41,12 +43,15 @@ Sanitizer.prototype = {
 
 
 
-  sanitize: function (errorHandler)
+
+
+  sanitize: function ()
   {
+    var deferred = Promise.defer();
     var psvc = Components.classes["@mozilla.org/preferences-service;1"]
                          .getService(Components.interfaces.nsIPrefService);
     var branch = psvc.getBranch(this.prefDomain);
-    var errors = null;
+    var seenError = false;
 
     
     if (this.ignoreTimespan)
@@ -54,7 +59,12 @@ Sanitizer.prototype = {
     else
       range = this.range || Sanitizer.getClearRange();
 
-    let itemCount = this.items.length;
+    let itemCount = Object.keys(this.items).length;
+    let onItemComplete = function() {
+      if (!--itemCount) {
+        seenError ? deferred.reject() : deferred.resolve();
+      }
+    };
     for (var itemName in this.items) {
       let item = this.items[itemName];
       item.range = range;
@@ -70,25 +80,18 @@ Sanitizer.prototype = {
             if (aCanClear)
               item.clear();
           } catch(er) {
-            if (!errors)
-              errors = {};
-            errors[itemName] = er;
-            dump("Error sanitizing " + itemName + ": " + er + "\n");
+            seenError = true;
+            Cu.reportError("Error sanitizing " + itemName + ": " + er + "\n");
           }
-
-          
-          if (!--itemCount && errors) {
-            errorHandler(error);
-          }
+          onItemComplete();
         };
-
         this.canClearItem(itemName, clearCallback);
+      } else {
+        onItemComplete();
       }
     }
 
-    if (errors) {
-      errorHandler(error);
-    }
+    return deferred.promise;
   },
   
   
@@ -517,7 +520,8 @@ Sanitizer._checkAndSanitize = function()
     
     var s = new Sanitizer();
     s.prefDomain = "privacy.clearOnShutdown.";
-    let errorHandler = function() prefs.setBoolPref(Sanitizer.prefDidShutdown, true);
-    s.sanitize(errorHandler);
+    s.sanitize().then(function() {
+      prefs.setBoolPref(Sanitizer.prefDidShutdown, true);
+    });
   }
 };

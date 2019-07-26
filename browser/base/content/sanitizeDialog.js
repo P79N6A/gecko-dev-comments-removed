@@ -109,12 +109,23 @@ var gSanitizePromptDialog = {
     s.range = Sanitizer.getClearRange(this.selectedTimespan);
     s.ignoreTimespan = !s.range;
 
+    
+    
+    
+    
+    let docElt = document.documentElement;
+    let acceptButton = docElt.getButton("accept");
+    acceptButton.disabled = true;
+    acceptButton.setAttribute("label",
+                              this.bundleBrowser.getString("sanitizeButtonClearing"));
+    docElt.getButton("cancel").disabled = true;
     try {
-      s.sanitize();
+      s.sanitize().then(window.close, window.close);
     } catch (er) {
       Components.utils.reportError("Exception during sanitize: " + er);
+      return true; 
     }
-    return true;
+    return false;
   },
 
   
