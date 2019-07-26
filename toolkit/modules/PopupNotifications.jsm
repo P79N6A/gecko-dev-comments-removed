@@ -160,6 +160,20 @@ PopupNotifications.prototype = {
 
 
 
+  set transitionsEnabled(state) {
+    if (state) {
+      this.panel.removeAttribute("animate");
+    }
+    else {
+      this.panel.setAttribute("animate", "false");
+    }
+  },
+
+  
+
+
+
+
 
 
 
@@ -174,8 +188,6 @@ PopupNotifications.prototype = {
   },
 
   
-
-
 
 
 
@@ -591,15 +603,9 @@ PopupNotifications.prototype = {
   _showPanel: function PopupNotifications_showPanel(notificationsToShow, anchorElement) {
     this.panel.hidden = false;
 
-    notificationsToShow = notificationsToShow.filter(n => {
-      let dismiss = this._fireCallback(n, NOTIFICATION_EVENT_SHOWING);
-      if (dismiss)
-        n.dismissed = true;
-      return !dismiss;
-    });
-    if (!notificationsToShow.length)
-      return;
-
+    notificationsToShow.forEach(function (n) {
+      this._fireCallback(n, NOTIFICATION_EVENT_SHOWING);
+    }, this);
     this._refreshPanel(notificationsToShow);
 
     if (this.isPanelOpen && this._currentAnchorElement == anchorElement)

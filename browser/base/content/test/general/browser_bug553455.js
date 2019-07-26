@@ -879,10 +879,13 @@ function test() {
   Services.obs.addObserver(XPInstallObserver, "addon-install-failed", false);
   Services.obs.addObserver(XPInstallObserver, "addon-install-complete", false);
 
+  PopupNotifications.transitionsEnabled = false;
+
   registerCleanupFunction(function() {
     
     TESTS = [];
     PopupNotifications.panel.removeEventListener("popupshown", check_notification, false);
+    PopupNotifications.transitionsEnabled = true;
 
     AddonManager.getAllInstalls(function(aInstalls) {
       aInstalls.forEach(function(aInstall) {

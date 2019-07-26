@@ -8,6 +8,10 @@ function test() {
   ok(PopupNotifications, "PopupNotifications object exists");
   ok(PopupNotifications.panel, "PopupNotifications panel exists");
 
+  
+  
+  PopupNotifications.transitionsEnabled = false;
+
   registerCleanupFunction(cleanUp);
 
   runNextTest();
@@ -19,6 +23,7 @@ function cleanUp() {
   for (var eventName in gActiveListeners)
     PopupNotifications.panel.removeEventListener(eventName, gActiveListeners[eventName], false);
   PopupNotifications.buttonDelay = PREF_SECURITY_DELAY_INITIAL;
+  PopupNotifications.transitionsEnabled = true;
 }
 
 const PREF_SECURITY_DELAY_INITIAL = Services.prefs.getIntPref("security.notification_enable_delay");
@@ -878,7 +883,7 @@ var tests = [
       let callbackCount = 0;
       this.testNotif1 = new basicNotification();
       this.testNotif1.message += " 1";
-      this.notification1 = showNotification(this.testNotif1);
+      showNotification(this.testNotif1);
       this.testNotif1.options.eventCallback = function (eventName) {
         info("notifyObj1.options.eventCallback: " + eventName);
         if (eventName == "dismissed") {
@@ -901,16 +906,13 @@ var tests = [
           }
         }
       };
-      this.notification2 = showNotification(this.testNotif2);
+      showNotification(this.testNotif2);
     },
     onShown: function (popup) {
       is(popup.childNodes.length, 2, "two notifications are shown");
       dismissNotification(popup);
     },
-    onHidden: function () {
-      this.notification1.remove();
-      this.notification2.remove();
-    }
+    onHidden: function () {}
   },
   { 
     run: function () {
@@ -1015,10 +1017,10 @@ var tests = [
       gBrowser.selectedTab = gBrowser.addTab("about:blank");
       let notifyObj = new basicNotification();
       let originalCallback = notifyObj.options.eventCallback;
-      notifyObj.options.eventCallback = function (eventName) {
-        originalCallback(eventName);
-        return eventName == "swapping";
-      };
+        notifyObj.options.eventCallback = function (eventName) {
+          originalCallback(eventName);
+          return eventName == "swapping";
+        };
 
       showNotification(notifyObj);
       let win = gBrowser.replaceTabWithWindow(gBrowser.selectedTab);
@@ -1038,22 +1040,20 @@ var tests = [
       this.notifyObj = new basicNotification();
       this.notifyObj.options.hideNotNow = true;
       this.notifyObj.mainAction.dismiss = true;
-      this.notification = showNotification(this.notifyObj);
+      showNotification(this.notifyObj);
     },
     onShown: function (popup) {
       
       checkPopup(popup, this.notifyObj);
       triggerMainCommand(popup);
     },
-    onHidden: function (popup) {
-      this.notification.remove();
-    }
+    onHidden: function (popup) { }
   },
   { 
     run: function () {
       this.notifyObj = new basicNotification();
       this.notifyObj.mainAction.dismiss = true;
-      this.notification = showNotification(this.notifyObj);
+      showNotification(this.notifyObj);
     },
     onShown: function (popup) {
       checkPopup(popup, this.notifyObj);
@@ -1062,14 +1062,13 @@ var tests = [
     onHidden: function (popup) {
       ok(this.notifyObj.dismissalCallbackTriggered, "dismissal callback was triggered");
       ok(!this.notifyObj.removedCallbackTriggered, "removed callback wasn't triggered");
-      this.notification.remove();
     }
   },
   { 
     run: function () {
       this.notifyObj = new basicNotification();
       this.notifyObj.secondaryActions[0].dismiss = true;
-      this.notification = showNotification(this.notifyObj);
+      showNotification(this.notifyObj);
     },
     onShown: function (popup) {
       checkPopup(popup, this.notifyObj);
@@ -1078,23 +1077,6 @@ var tests = [
     onHidden: function (popup) {
       ok(this.notifyObj.dismissalCallbackTriggered, "dismissal callback was triggered");
       ok(!this.notifyObj.removedCallbackTriggered, "removed callback wasn't triggered");
-      this.notification.remove();
-    }
-  },
-  { 
-    run: function() {
-      let notifyObj = new basicNotification();
-      let originalCallback = notifyObj.options.eventCallback;
-      notifyObj.options.eventCallback = function (eventName) {
-        originalCallback(eventName);
-        return eventName == "showing";
-      };
-
-      let notification = showNotification(notifyObj);
-      ok(notifyObj.showingCallbackTriggered, "the showing callback was triggered");
-      ok(!notifyObj.shownCallbackTriggered, "the shown callback wasn't triggered");
-      notification.remove();
-      goNext();
     }
   }
 ];

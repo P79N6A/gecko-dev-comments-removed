@@ -23,6 +23,10 @@ let tests = [
     let icon = document.getElementById("UITourTooltipIcon");
     let buttons = document.getElementById("UITourTooltipButtons");
 
+    
+    
+    popup.setAttribute("animate", "false");
+
     popup.addEventListener("popupshown", function onPopupShown() {
       popup.removeEventListener("popupshown", onPopupShown);
 
@@ -150,6 +154,7 @@ let tests = [
         is(gContentWindow.callbackResult, "target", "target callback called");
         is(gContentWindow.callbackData.target, "appMenu", "target callback was from the appMenu");
         is(gContentWindow.callbackData.type, "popupshown", "target callback was from the mousedown");
+        popup.removeAttribute("animate");
         done();
       });
     });
