@@ -336,8 +336,46 @@ class MacroAssemblerARM : public Assembler
     
     
     
+    
     int32_t transferMultipleByRuns(FloatRegisterSet set, LoadStore ls,
-                                   Register rm, DTMMode mode);
+                                   Register rm, DTMMode mode)
+    {
+        if (mode == IA) {
+            return transferMultipleByRunsImpl
+                <FloatRegisterForwardIterator>(set, ls, rm, mode, 1);
+        }
+        if (mode == DB) {
+            return transferMultipleByRunsImpl
+                <FloatRegisterIterator>(set, ls, rm, mode, -1);
+        }
+        JS_NOT_REACHED("Invalid data transfer addressing mode");
+    }
+
+private:
+    
+    
+    
+    
+    template<typename RegisterIterator> int32_t
+    transferMultipleByRunsImpl(FloatRegisterSet set, LoadStore ls,
+                               Register rm, DTMMode mode, int32_t sign)
+    {
+        int32_t delta = sign * sizeof(double);
+        int32_t offset = 0;
+        RegisterIterator iter(set);
+        while (iter.more()) {
+            startFloatTransferM(ls, rm, mode, WriteBack);
+            int32_t reg = (*iter).code_;
+            do {
+                offset += delta;
+                transferFloatReg(*iter);
+            } while ((++iter).more() && (*iter).code_ == (reg += sign));
+            finishFloatTransfer();
+        }
+
+        JS_ASSERT(offset == set.size() * sizeof(double) * sign);
+        return offset;
+    }
 };
 
 class MacroAssemblerARMCompat : public MacroAssemblerARM
