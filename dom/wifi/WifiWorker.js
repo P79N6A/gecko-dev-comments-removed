@@ -164,7 +164,11 @@ var WifiManager = (function() {
 
   var driverLoaded = false;
 
-  manager.getDriverLoaded = function() { return driverLoaded; }
+  manager.checkDriverState = function(expectState) {
+    if (!unloadDriverEnabled)
+      return true;
+    return (expectState === driverLoaded);
+  }
 
   function loadDriver(callback) {
     if (driverLoaded) {
@@ -2843,7 +2847,7 @@ WifiWorker.prototype = {
 
     
     let state = this._stateRequests[0].enabled;
-    let driverLoaded = WifiManager.getDriverLoaded();
+    let driverReady = WifiManager.checkDriverState(newState);
 
     
     
@@ -2857,7 +2861,7 @@ WifiWorker.prototype = {
     
     
     
-    if (!success || (newState === driverLoaded && state === newState)) {
+    if (!success || (driverReady && state === newState)) {
       do {
         if (!("callback" in this._stateRequests[0])) {
           this._stateRequests.shift();
@@ -2873,7 +2877,7 @@ WifiWorker.prototype = {
       let self = this;
       let callback = null;
       this._callbackTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      if (newState === driverLoaded) {
+      if (driverReady) {
         
         callback = function(timer) {
           if ("callback" in self._stateRequests[0]) {
