@@ -72,8 +72,10 @@ public class GeckoThread extends Thread {
         String args = mIntent.getStringExtra("args");
 
         
-        String profile = app.getDefaultProfileName();
-        args = (args != null ? args : "") + "-P " + profile;
+        if (!(app instanceof BrowserApp)) {
+            String profile = app.getDefaultProfileName();
+            args = (args != null ? args : "") + "-P " + profile;
+        }
 
         
         Log.i(LOGTAG, "RunGecko - args = " + args);
