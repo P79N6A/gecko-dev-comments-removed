@@ -407,7 +407,7 @@ StyleSheetActor.prototype = {
     
     let parent = this.styleSheet.parentStyleSheet;
     if (parent) {
-      form.parentActor = this.parentActor._sheets.get(parent);
+      form.parentActor = this.parentActor._sheets.get(parent).form();
     }
 
     try {
