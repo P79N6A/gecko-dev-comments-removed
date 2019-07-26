@@ -381,6 +381,83 @@ DrawTargetCG::CreateGradientStops(GradientStop *aStops, uint32_t aNumStops,
   return new GradientStopsCG(aStops, aNumStops, aExtendMode);
 }
 
+static void
+UpdateLinearParametersToIncludePoint(double *min_t, double *max_t,
+                                     CGPoint *start,
+                                     double dx, double dy,
+                                     double x, double y)
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  double px = x - start->x;
+  double py = y - start->y;
+  double numerator = dx * px + dy * py;
+  double denominator = dx * dx + dy * dy;
+  double t = numerator / denominator;
+
+  if (*min_t > t) {
+    *min_t = t;
+  }
+  if (*max_t < t) {
+    *max_t = t;
+  }
+}
+
+
+
+
+
+
+static void
+CalculateRepeatingGradientParams(CGPoint *aStart, CGPoint *aEnd,
+                                 CGRect aExtents, int *aRepeatCount)
+{
+  double t_min = 0.;
+  double t_max = 0.;
+  double dx = aEnd->x - aStart->x;
+  double dy = aEnd->y - aStart->y;
+
+  double bounds_x1 = aExtents.origin.x;
+  double bounds_y1 = aExtents.origin.y;
+  double bounds_x2 = aExtents.origin.x + aExtents.size.width;
+  double bounds_y2 = aExtents.origin.y + aExtents.size.height;
+
+  UpdateLinearParametersToIncludePoint(&t_min, &t_max, aStart, dx, dy,
+                                       bounds_x1, bounds_y1);
+  UpdateLinearParametersToIncludePoint(&t_min, &t_max, aStart, dx, dy,
+                                       bounds_x2, bounds_y1);
+  UpdateLinearParametersToIncludePoint(&t_min, &t_max, aStart, dx, dy,
+                                       bounds_x2, bounds_y2);
+  UpdateLinearParametersToIncludePoint(&t_min, &t_max, aStart, dx, dy,
+                                       bounds_x1, bounds_y2);
+
+  
+  
+  
+  t_min = floor (t_min);
+  t_max = ceil (t_max);
+  aEnd->x = aStart->x + dx * t_max;
+  aEnd->y = aStart->y + dy * t_max;
+  aStart->x = aStart->x + dx * t_min;
+  aStart->y = aStart->y + dy * t_min;
+
+  *aRepeatCount = t_max - t_min;
+}
 
 static void
 DrawLinearRepeatingGradient(CGContextRef cg, const LinearGradientPattern &aPattern, const CGRect &aExtents)
@@ -389,32 +466,12 @@ DrawLinearRepeatingGradient(CGContextRef cg, const LinearGradientPattern &aPatte
   CGPoint startPoint = { aPattern.mBegin.x, aPattern.mBegin.y };
   CGPoint endPoint = { aPattern.mEnd.x, aPattern.mEnd.y };
 
-  
-  
-  double xDiff = aPattern.mEnd.x - aPattern.mBegin.x;
-  double yDiff = aPattern.mEnd.y - aPattern.mBegin.y;
-
   int repeatCount = 1;
   
-  if (xDiff || yDiff) {
-    while (startPoint.x > aExtents.origin.x
-           && startPoint.y > aExtents.origin.y
-           && startPoint.x < (aExtents.origin.x+aExtents.size.width)
-           && startPoint.y < (aExtents.origin.y+aExtents.size.height))
-    {
-      startPoint.x -= xDiff;
-      startPoint.y -= yDiff;
-      repeatCount++;
-    }
-    while (endPoint.x > aExtents.origin.x
-           && endPoint.y > aExtents.origin.y
-           && endPoint.x < (aExtents.origin.x+aExtents.size.width)
-           && endPoint.y < (aExtents.origin.y+aExtents.size.height))
-    {
-      endPoint.x += xDiff;
-      endPoint.y += yDiff;
-      repeatCount++;
-    }
+  if (aPattern.mEnd.x != aPattern.mBegin.x ||
+      aPattern.mEnd.y != aPattern.mBegin.y) {
+    CalculateRepeatingGradientParams(&startPoint, &endPoint, aExtents,
+                                     &repeatCount);
   }
 
   double scale = 1./repeatCount;
