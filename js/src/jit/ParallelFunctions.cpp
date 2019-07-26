@@ -82,8 +82,8 @@ jit::ParallelWriteGuard(ForkJoinContext *cx, JSObject *object)
 
     JS_ASSERT(ForkJoinContext::current() == cx);
 
-    if (IsTypedDatum(*object)) {
-        TypedDatum &datum = AsTypedDatum(*object);
+    if (object->is<TypedDatum>()) {
+        TypedDatum &datum = object->as<TypedDatum>();
 
         
         
@@ -93,8 +93,8 @@ jit::ParallelWriteGuard(ForkJoinContext *cx, JSObject *object)
             return true;
 
         
-        TypedDatum *owner = datum.owner();
-        return owner && cx->isThreadLocal(owner);
+        TypedDatum &owner = datum.owner();
+        return cx->isThreadLocal(&owner);
     }
 
     
@@ -112,7 +112,7 @@ jit::ParallelWriteGuard(ForkJoinContext *cx, JSObject *object)
 bool
 jit::IsInTargetRegion(ForkJoinContext *cx, TypedDatum *datum)
 {
-    JS_ASSERT(IsTypedDatum(*datum)); 
+    JS_ASSERT(datum->is<TypedDatum>()); 
     uint8_t *typedMem = datum->typedMem();
     return (typedMem >= cx->targetRegionStart &&
             typedMem <  cx->targetRegionEnd);
