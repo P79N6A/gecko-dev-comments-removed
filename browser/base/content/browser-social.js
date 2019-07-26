@@ -136,7 +136,7 @@ SocialUI = {
 
         
         case "social:ambient-notification-changed":
-          SocialStatus.updateNotification(data);
+          SocialStatus.updateButton(data);
           if (this._matchesCurrentProvider(data)) {
             SocialToolbar.updateButton();
             SocialMenu.populate();
@@ -146,9 +146,12 @@ SocialUI = {
           
           
           
+          SocialStatus.updateButton(data);
           if (this._matchesCurrentProvider(data)) {
             SocialToolbar.updateProvider();
           }
+          
+          SocialToolbar.populateProviderMenus();
           break;
         case "social:frameworker-error":
           if (this.enabled && Social.provider.origin == data) {
@@ -834,17 +837,22 @@ SocialToolbar = {
   
   updateProvider: function () {
     let provider = Social.provider;
-    if (provider) {
+    
+    
+    
+    
+    
+    if (provider && (!provider.statusURL || !Social.allowMultipleWorkers)) {
       this.button.setAttribute("label", provider.name);
       this.button.setAttribute("tooltiptext", provider.name);
       this.button.style.listStyleImage = "url(" + provider.iconURL + ")";
-
-      this.updateProfile();
     } else {
       this.button.setAttribute("label", gNavigatorBundle.getString("service.toolbarbutton.label"));
       this.button.setAttribute("tooltiptext", gNavigatorBundle.getString("service.toolbarbutton.tooltiptext"));
       this.button.style.removeProperty("list-style-image");
     }
+    if (provider)
+      this.updateProfile();
     this.updateButton();
   },
 
@@ -1432,7 +1440,7 @@ SocialStatus = {
     aButton.setAttribute("notificationFrameId", notificationFrameId);
   },
 
-  updateNotification: function(origin) {
+  updateButton: function(origin) {
     if (!Social.allowMultipleWorkers)
       return;
     let provider = Social._getProviderFromOrigin(origin);
@@ -1442,15 +1450,22 @@ SocialStatus = {
       let icons = provider.ambientNotificationIcons;
       let iconNames = Object.keys(icons);
       let notif = icons[iconNames[0]];
+
+      
+      
+      let iconURL, tooltiptext;
+      if (notif) {
+        iconURL = notif.iconURL;
+        tooltiptext = notif.label;
+      }
+      button.setAttribute("image", iconURL || provider.iconURL);
+      button.setAttribute("tooltiptext", tooltiptext || provider.name);
+
       if (!notif) {
         button.setAttribute("badge", "");
         button.setAttribute("aria-label", "");
-        button.setAttribute("tooltiptext", "");
         return;
       }
-
-      button.style.listStyleImage = "url(" + notif.iconURL || provider.iconURL + ")";
-      button.setAttribute("tooltiptext", notif.label);
 
       let badge = notif.counter || "";
       button.setAttribute("badge", badge);
