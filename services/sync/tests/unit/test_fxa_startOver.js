@@ -27,6 +27,10 @@ add_task(function* test_startover() {
   
   
   do_check_false(Service.identity instanceof BrowserIDManager);
+
+  Service.serverURL = "https://localhost/";
+  Service.clusterURL = Service.serverURL;
+
   Service.login();
   
   do_check_true(Service.clusterURL.length > 0);
