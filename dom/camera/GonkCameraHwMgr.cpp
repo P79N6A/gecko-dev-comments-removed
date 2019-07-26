@@ -218,6 +218,10 @@ GonkCameraHardware::~GonkCameraHardware()
   mCamera.clear();
   mNativeWindow.clear();
 
+  if (mClosing) {
+    return;
+  }
+
   
 
 
