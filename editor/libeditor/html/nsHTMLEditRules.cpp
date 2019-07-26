@@ -2127,7 +2127,8 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
             
 
             NS_ENSURE_STATE(mHTMLEditor);
-            res = nsWSRunObject::PrepareToDeleteNode(mHTMLEditor, otherNode);
+            nsCOMPtr<nsIContent> otherContent(do_QueryInterface(otherNode));
+            res = nsWSRunObject::PrepareToDeleteNode(mHTMLEditor, otherContent);
             NS_ENSURE_SUCCESS(res, res);
             NS_ENSURE_STATE(mHTMLEditor);
             res = mHTMLEditor->DeleteNode(otherNode);
@@ -2141,7 +2142,8 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
 
       
       NS_ENSURE_STATE(mHTMLEditor);
-      res = nsWSRunObject::PrepareToDeleteNode(mHTMLEditor, visNode);
+      nsCOMPtr<nsIContent> visContent(do_QueryInterface(visNode));
+      res = nsWSRunObject::PrepareToDeleteNode(mHTMLEditor, visContent);
       NS_ENSURE_SUCCESS(res, res);
       
       nsCOMPtr<nsIDOMNode> sibling, stepbrother;

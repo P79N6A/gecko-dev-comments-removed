@@ -189,8 +189,8 @@ class MOZ_STACK_CLASS nsWSRunObject
     
     
     
-    static nsresult PrepareToDeleteNode(nsHTMLEditor *aHTMLEd, 
-                                        nsIDOMNode *aNode);
+    static nsresult PrepareToDeleteNode(nsHTMLEditor *aHTMLEd,
+                                        nsIContent* aContent);
 
     
     
