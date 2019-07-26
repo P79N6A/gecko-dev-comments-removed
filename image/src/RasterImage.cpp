@@ -2817,7 +2817,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     
     if (!mHasSize) {
       mWantFullDecode = true;
-      return NS_ERROR_NOT_AVAILABLE;
+      return NS_OK;
     }
   }
 
@@ -3525,7 +3525,8 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     }
 
     
-    if (NS_SUCCEEDED(rv) && done && wasSize && image->mWantFullDecode) {
+    if (NS_SUCCEEDED(rv) && aIntent != eShutdownIntent_Error && done &&
+        wasSize && image->mWantFullDecode) {
       image->mWantFullDecode = false;
 
       
