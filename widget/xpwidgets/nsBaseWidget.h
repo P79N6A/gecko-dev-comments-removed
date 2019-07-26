@@ -409,6 +409,9 @@ protected:
   bool              mUseLayersAcceleration;
   bool              mForceLayersAcceleration;
   bool              mTemporarilyUseBasicLayerManager;
+  
+  
+  bool              mRequireOffMainThreadCompositing;
   bool              mUseAttachedEvents;
   bool              mContextInitialized;
   nsIntRect         mBounds;
