@@ -503,7 +503,7 @@ class nsDocument : public nsIDocument,
                    public nsIRadioGroupContainer,
                    public nsIApplicationCacheContainer,
                    public nsStubMutationObserver,
-                   public nsIDOMDocumentTouch,
+                   public nsITouchEventReceiver,
                    public nsIInlineEventHandlers,
                    public nsIObserver
 {
@@ -782,9 +782,6 @@ public:
 
   
   NS_DECL_NSITOUCHEVENTRECEIVER
-
-  
-  NS_DECL_NSIDOMDOCUMENTTOUCH
 
   
   NS_DECL_NSIINLINEEVENTHANDLERS
