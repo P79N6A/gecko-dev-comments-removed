@@ -116,6 +116,10 @@ static const char *sExtensionNames[] = {
     "GL_EXT_transform_feedback",
     "GL_NV_transform_feedback",
     "GL_ANGLE_depth_texture",
+    "GL_EXT_sRGB",
+    "GL_EXT_texture_sRGB",
+    "GL_ARB_framebuffer_sRGB",
+    "GL_EXT_framebuffer_sRGB",
     "GL_KHR_debug",
     nullptr
 };
@@ -599,7 +603,7 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             if (Renderer() == RendererAdrenoTM320) {
                 MarkUnsupported(GLFeature::standard_derivatives);
             }
-            
+
 #ifdef XP_MACOSX
             
             
@@ -1203,6 +1207,29 @@ GLContext::CanUploadSubTextures()
 
     return true;
 }
+
+
+bool
+GLContext::CanReadSRGBFromFBOTexture()
+{
+    if (!mWorkAroundDriverBugs)
+        return true;
+
+#ifdef XP_MACOSX
+    
+    
+    
+    
+    SInt32 major, minor;
+    ::Gestalt(gestaltSystemVersionMajor, &major);
+    ::Gestalt(gestaltSystemVersionMinor, &minor);
+    if (major == 10 && minor <= 6) {
+        return false;
+    }
+#endif 
+    return true;
+}
+
 
 bool GLContext::sPowerOfTwoForced = false;
 bool GLContext::sPowerOfTwoPrefCached = false;

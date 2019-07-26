@@ -250,6 +250,15 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "sRGB",
+        300, 
+        300, 
+        {
+            GLContext::EXT_sRGB,
+            GLContext::Extensions_End
+        }
+    },
+    {
         "standard_derivatives",
         200, 
         300, 
@@ -387,6 +396,18 @@ GLContext::InitFeatures()
             }
         }
     }
+
+    
+    
+    
+    const bool aresRGBExtensionsAvailable =
+        IsExtensionSupported(EXT_texture_sRGB) &&
+        (IsExtensionSupported(ARB_framebuffer_sRGB) ||
+         IsExtensionSupported(EXT_framebuffer_sRGB));
+
+    mAvailableFeatures[GLFeature::sRGB] =
+        aresRGBExtensionsAvailable &&
+        CanReadSRGBFromFBOTexture();
 }
 
 void
