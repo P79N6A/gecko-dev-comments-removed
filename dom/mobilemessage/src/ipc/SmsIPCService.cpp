@@ -17,11 +17,22 @@
 #include "mozilla/dom/MobileMessageManagerBinding.h"
 #include "mozilla/dom/MozMmsMessageBinding.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/Preferences.h"
+#include "nsString.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::dom::mobilemessage;
 
 namespace {
+
+const char* kPrefRilNumRadioInterfaces = "ril.numRadioInterfaces";
+#define kPrefMmsDefaultServiceId "dom.mms.defaultServiceId"
+#define kPrefSmsDefaultServiceId "dom.sms.defaultServiceId"
+const char* kObservedPrefs[] = {
+  kPrefMmsDefaultServiceId,
+  kPrefSmsDefaultServiceId,
+  nullptr
+};
 
 
 PSmsChild* gSmsChild;
@@ -74,15 +85,68 @@ SendCursorRequest(const IPCMobileMessageCursor& aRequest,
   actor.forget(aResult);
   return NS_OK;
 }
+
+uint32_t
+getDefaultServiceId(const char* aPrefKey)
+{
+  int32_t id = mozilla::Preferences::GetInt(aPrefKey, 0);
+  int32_t numRil = mozilla::Preferences::GetInt(kPrefRilNumRadioInterfaces, 1);
+
+  if (id >= numRil || id < 0) {
+    id = 0;
+  }
+
+  return id;
+}
+
 } 
 
-NS_IMPL_ISUPPORTS3(SmsIPCService,
+NS_IMPL_ISUPPORTS4(SmsIPCService,
                    nsISmsService,
                    nsIMmsService,
-                   nsIMobileMessageDatabaseService)
+                   nsIMobileMessageDatabaseService,
+                   nsIObserver)
+
+SmsIPCService::SmsIPCService()
+{
+  Preferences::AddStrongObservers(this, kObservedPrefs);
+  mMmsDefaultServiceId = getDefaultServiceId(kPrefMmsDefaultServiceId);
+  mSmsDefaultServiceId = getDefaultServiceId(kPrefSmsDefaultServiceId);
+}
 
 
 
+
+
+NS_IMETHODIMP
+SmsIPCService::Observe(nsISupports* aSubject,
+                       const char* aTopic,
+                       const PRUnichar* aData)
+{
+  if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
+    nsDependentString data(aData);
+    if (data.EqualsLiteral(kPrefMmsDefaultServiceId)) {
+      mMmsDefaultServiceId = getDefaultServiceId(kPrefMmsDefaultServiceId);
+    } else if (data.EqualsLiteral(kPrefSmsDefaultServiceId)) {
+      mSmsDefaultServiceId = getDefaultServiceId(kPrefSmsDefaultServiceId);
+    }
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(false, "SmsIPCService got unexpected topic!");
+  return NS_ERROR_UNEXPECTED;
+}
+
+
+
+
+
+NS_IMETHODIMP
+SmsIPCService::GetSmsDefaultServiceId(uint32_t* aServiceId)
+{
+  *aServiceId = mSmsDefaultServiceId;
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 SmsIPCService::HasSupport(bool* aHasSupport)
@@ -234,6 +298,17 @@ GetSendMmsMessageRequestFromParams(const JS::Value& aParam,
   request.subject() = params.mSubject;
 
   return true;
+}
+
+
+
+
+
+NS_IMETHODIMP
+SmsIPCService::GetMmsDefaultServiceId(uint32_t* aServiceId)
+{
+  *aServiceId = mMmsDefaultServiceId;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
