@@ -275,8 +275,8 @@ private:
 
 
 #define NS_INODE_IID \
-{ 0xe24a9ddc, 0x2979, 0x40e3, \
-  { 0x82, 0xb0, 0x9d, 0xf8, 0xb0, 0x41, 0xe5, 0x6a } }
+{ 0x77a62cd0, 0xb34f, 0x42cb, \
+  { 0x94, 0x52, 0xae, 0xb2, 0x4d, 0x93, 0x2c, 0xb4 } }
 
 
 
@@ -1075,11 +1075,8 @@ public:
 
 
 
-  virtual already_AddRefed<nsIURI> GetBaseURI() const = 0;
-  already_AddRefed<nsIURI> GetBaseURIObject() const
-  {
-    return GetBaseURI();
-  }
+  virtual already_AddRefed<nsIURI> GetBaseURI(bool aTryUseXHRDocBaseURI = false) const = 0;
+  already_AddRefed<nsIURI> GetBaseURIObject() const;
 
   
 
@@ -1552,6 +1549,11 @@ public:
                               nodeName.Length());
   }
   void GetBaseURI(nsAString& aBaseURI) const;
+  
+  
+  
+  
+  void GetBaseURIFromJS(nsAString& aBaseURI) const;
   bool HasChildNodes() const
   {
     return HasChildren();
