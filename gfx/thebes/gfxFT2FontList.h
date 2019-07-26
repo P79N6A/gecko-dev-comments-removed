@@ -130,6 +130,10 @@ protected:
                                        nsCString& aFaceList);
 
     void FindFonts();
+
+#ifdef ANDROID
+    void FindFontsInDir(const nsCString& aDir, FontNameCache* aFNC);
+#endif
 };
 
 #endif 
