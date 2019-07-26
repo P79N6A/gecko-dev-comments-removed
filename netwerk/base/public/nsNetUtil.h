@@ -2386,6 +2386,7 @@ NS_IsSrcdocChannel(nsIChannel *aChannel)
 
 
 const static uint64_t NETWORK_STATS_THRESHOLD = 65536;
+const static char NETWORK_STATS_NO_SERVICE_TYPE[] = "";
 
 #ifdef MOZ_WIDGET_GONK
 inline nsresult

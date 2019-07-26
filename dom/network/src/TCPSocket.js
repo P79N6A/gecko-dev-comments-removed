@@ -361,7 +361,7 @@ TCPSocket.prototype = {
       return;
     }
     nssProxy.saveAppStats(this._appId, this._activeNetwork, Date.now(),
-                          this._rxBytes, this._txBytes);
+                          this._rxBytes, this._txBytes, false);
 
     
     this._txBytes = this._rxBytes = 0;
