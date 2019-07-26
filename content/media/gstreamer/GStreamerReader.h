@@ -5,6 +5,8 @@
 #if !defined(GStreamerReader_h_)
 #define GStreamerReader_h_
 
+#include <map>
+
 #include <gst/gst.h>
 #include <gst/app/gstappsrc.h>
 #include <gst/app/gstappsink.h>
@@ -17,8 +19,9 @@
 #pragma GCC diagnostic ignored "-Wreserved-user-defined-literal"
 #include <gst/video/video.h>
 #pragma GCC diagnostic pop
-#include <map>
+
 #include "MediaDecoderReader.h"
+#include "MP3FrameParser.h"
 #include "nsRect.h"
 
 namespace mozilla {
@@ -51,6 +54,10 @@ public:
                         int64_t aEndTime,
                         int64_t aCurrentTime);
   virtual nsresult GetBuffered(dom::TimeRanges* aBuffered, int64_t aStartTime);
+
+  virtual void NotifyDataArrived(const char *aBuffer,
+                                 uint32_t aLength,
+                                 int64_t aOffset) MOZ_OVERRIDE;
 
   virtual bool HasAudio() {
     return mInfo.HasAudio();
@@ -128,6 +135,20 @@ private:
   
   static void EosCb(GstAppSink* aSink, gpointer aUserData);
   void Eos();
+
+  
+  nsresult ParseMP3Headers();
+
+  
+  MP3FrameParser mMP3FrameParser;
+
+  
+  
+  
+  
+  
+  bool mUseParserDuration;
+  int64_t mLastParserDuration;
 
   GstElement* mPlayBin;
   GstBus* mBus;
