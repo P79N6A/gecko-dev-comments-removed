@@ -4,6 +4,8 @@
 
 
 
+#include "nsDOMDataChannel.h"
+
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
 #endif
@@ -39,80 +41,19 @@ extern PRLogModuleInfo* GetDataChannelLog();
 
 #include "DataChannel.h"
 
-#ifdef GetBinaryType
-
-#undef GetBinaryType
-#endif
-
 using namespace mozilla;
 
-class nsDOMDataChannel : public nsDOMEventTargetHelper,
-                         public nsIDOMDataChannel,
-                         public mozilla::DataChannelListener
-{
-public:
-  nsDOMDataChannel(already_AddRefed<mozilla::DataChannel> aDataChannel)
-    : mDataChannel(aDataChannel)
-    , mBinaryType(DC_BINARY_TYPE_BLOB)
-  {}
-
-  ~nsDOMDataChannel()
-  {
-    
-    
-    
-    LOG(("Close()ing %p", mDataChannel.get()));
-    mDataChannel->SetListener(nullptr, nullptr);
-    mDataChannel->Close();
-  }
-
-  nsresult Init(nsPIDOMWindow* aDOMWindow);
-
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIDOMDATACHANNEL
-
-  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper)
-
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsDOMDataChannel,
-                                           nsDOMEventTargetHelper)
-
-  nsresult
-  DoOnMessageAvailable(const nsACString& aMessage, bool aBinary);
-
-  virtual nsresult
-  OnMessageAvailable(nsISupports* aContext, const nsACString& aMessage);
-
-  virtual nsresult
-  OnBinaryMessageAvailable(nsISupports* aContext, const nsACString& aMessage);
-
-  virtual nsresult OnSimpleEvent(nsISupports* aContext, const nsAString& aName);
-
-  virtual nsresult
-  OnChannelConnected(nsISupports* aContext);
-
-  virtual nsresult
-  OnChannelClosed(nsISupports* aContext);
-
-  virtual void
-  AppReady();
-
-private:
-  
-  nsresult GetSendParams(nsIVariant *aData, nsCString &aStringOut,
-                         nsCOMPtr<nsIInputStream> &aStreamOut,
-                         bool &aIsBinary, uint32_t &aOutgoingLength);
-
-  
-  nsRefPtr<mozilla::DataChannel> mDataChannel;
-  nsString  mOrigin;
-  enum
-  {
-    DC_BINARY_TYPE_ARRAYBUFFER,
-    DC_BINARY_TYPE_BLOB,
-  } mBinaryType;
-};
-
 DOMCI_DATA(DataChannel, nsDOMDataChannel)
+
+nsDOMDataChannel::~nsDOMDataChannel()
+{
+  
+  
+  
+  LOG(("Close()ing %p", mDataChannel.get()));
+  mDataChannel->SetListener(nullptr, nullptr);
+  mDataChannel->Close();
+}
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMDataChannel,
                                                   nsDOMEventTargetHelper)
