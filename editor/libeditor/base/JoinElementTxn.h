@@ -10,10 +10,10 @@
 #include "nsCOMPtr.h"                   
 #include "nsCycleCollectionParticipant.h"
 #include "nsID.h"                       
-#include "nsIDOMNode.h"                 
 #include "nscore.h"                     
 
 class nsEditor;
+class nsINode;
 
 
 
@@ -31,8 +31,8 @@ public:
 
 
   NS_IMETHOD Init(nsEditor   *aEditor,
-                  nsIDOMNode *aLeftNode,
-                  nsIDOMNode *aRightNode);
+                  nsINode    *aLeftNode,
+                  nsINode    *aRightNode);
 
   JoinElementTxn();
 
@@ -42,12 +42,12 @@ public:
   NS_DECL_EDITTXN
 
 protected:
-  
+
   
 
 
-  nsCOMPtr<nsIDOMNode> mLeftNode;
-  nsCOMPtr<nsIDOMNode> mRightNode;
+  nsCOMPtr<nsINode> mLeftNode;
+  nsCOMPtr<nsINode> mRightNode;
 
   
 
@@ -56,7 +56,7 @@ protected:
   uint32_t  mOffset;
 
   
-  nsCOMPtr<nsIDOMNode> mParent;
+  nsCOMPtr<nsINode> mParent;
   nsEditor*  mEditor;
 };
 

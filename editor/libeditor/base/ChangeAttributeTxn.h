@@ -9,12 +9,17 @@
 #include "EditTxn.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIDOMElement.h"
 #include "nsISupportsImpl.h"
 #include "nsString.h"
 #include "nscore.h"
 
-class nsIEditor;
+class nsEditor;
+
+namespace mozilla {
+namespace dom {
+class Element;
+}
+}
 
 
 
@@ -30,8 +35,8 @@ public:
 
 
 
-  NS_IMETHOD Init(nsIEditor      *aEditor,
-                  nsIDOMElement  *aNode,
+  NS_IMETHOD Init(nsEditor      *aEditor,
+                  mozilla::dom::Element *aNode,
                   const nsAString& aAttribute,
                   const nsAString& aValue,
                   bool aRemoveAttribute);
@@ -48,11 +53,11 @@ public:
 protected:
 
   
-  nsIEditor*  mEditor;
+  nsEditor*  mEditor;
+
   
-  
-  nsCOMPtr<nsIDOMElement> mElement;
-  
+  nsCOMPtr<mozilla::dom::Element> mElement;
+
   
   nsString mAttribute;
 

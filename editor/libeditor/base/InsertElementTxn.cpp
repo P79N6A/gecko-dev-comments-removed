@@ -8,14 +8,16 @@
 #include "InsertElementTxn.h"
 #include "nsAString.h"
 #include "nsDebug.h"                    
+#include "nsEditor.h"                   
 #include "nsError.h"                    
 #include "nsIContent.h"                 
-#include "nsIEditor.h"                  
 #include "nsINode.h"                    
 #include "nsISelection.h"               
 #include "nsMemory.h"                   
 #include "nsReadableUtils.h"            
 #include "nsString.h"                   
+
+using namespace mozilla;
 
 #ifdef DEBUG
 static bool gNoisy = false;
@@ -44,10 +46,10 @@ NS_IMPL_RELEASE_INHERITED(InsertElementTxn, EditTxn)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(InsertElementTxn)
 NS_INTERFACE_MAP_END_INHERITING(EditTxn)
 
-NS_IMETHODIMP InsertElementTxn::Init(nsIDOMNode *aNode,
-                                     nsIDOMNode *aParent,
+NS_IMETHODIMP InsertElementTxn::Init(nsINode *aNode,
+                                     nsINode *aParent,
                                      int32_t     aOffset,
-                                     nsIEditor  *aEditor)
+                                     nsEditor  *aEditor)
 {
   NS_ASSERTION(aNode && aParent && aEditor, "bad arg");
   NS_ENSURE_TRUE(aNode && aParent && aEditor, NS_ERROR_NULL_POINTER);
@@ -92,16 +94,14 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
     mOffset = count;
   }
 
-  nsIContent* refContent = parent->GetChildAt(mOffset);
   
-  nsCOMPtr<nsIDOMNode> refNode = refContent ? refContent->AsDOMNode() : nullptr;
+  nsIContent* refContent = parent->GetChildAt(mOffset);
 
   mEditor->MarkNodeDirty(mNode);
 
-  nsCOMPtr<nsIDOMNode> resultNode;
-  nsresult result = mParent->InsertBefore(mNode, refNode, getter_AddRefs(resultNode));
-  NS_ENSURE_SUCCESS(result, result);
-  NS_ENSURE_TRUE(resultNode, NS_ERROR_NULL_POINTER);
+  ErrorResult rv;
+  mParent->InsertBefore(*mNode, refContent, rv);
+  NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
 
   
   bool bAdjustSelection;
@@ -109,17 +109,17 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
   if (bAdjustSelection)
   {
     nsCOMPtr<nsISelection> selection;
-    result = mEditor->GetSelection(getter_AddRefs(selection));
-    NS_ENSURE_SUCCESS(result, result);
+    rv = mEditor->GetSelection(getter_AddRefs(selection));
+    NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
     NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
     
-    selection->Collapse(mParent, mOffset+1);
+    selection->Collapse(mParent->AsDOMNode(), mOffset+1);
   }
   else
   {
     
   }
-  return result;
+  return NS_OK;
 }
 
 NS_IMETHODIMP InsertElementTxn::UndoTransaction(void)
@@ -137,8 +137,9 @@ NS_IMETHODIMP InsertElementTxn::UndoTransaction(void)
 
   NS_ENSURE_TRUE(mNode && mParent, NS_ERROR_NOT_INITIALIZED);
 
-  nsCOMPtr<nsIDOMNode> resultNode;
-  return mParent->RemoveChild(mNode, getter_AddRefs(resultNode));
+  ErrorResult rv;
+  mParent->RemoveChild(*mNode, rv);
+  return rv.ErrorCode();
 }
 
 NS_IMETHODIMP InsertElementTxn::GetTxnDescription(nsAString& aString)
