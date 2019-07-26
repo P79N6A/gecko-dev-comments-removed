@@ -5,8 +5,8 @@
 
 "use strict";
 
-const SOURCE_URL_DEFAULT_MAX_LENGTH = 64; 
 const SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE = 1048576; 
+const SOURCE_URL_DEFAULT_MAX_LENGTH = 64; 
 const STACK_FRAMES_SOURCE_URL_MAX_LENGTH = 15; 
 const STACK_FRAMES_SOURCE_URL_TRIM_SECTION = "center";
 const STACK_FRAMES_POPUP_SOURCE_URL_MAX_LENGTH = 32; 
@@ -34,8 +34,6 @@ const DEFAULT_EDITOR_CONFIG = {
   showAnnotationRuler: true,
   showOverviewRuler: true
 };
-
-Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
 
 
 
@@ -286,7 +284,7 @@ let DebuggerView = {
     this._setEditorText(L10N.getStr("loadingText"));
     this._editorSource = { url: aSource.url, promise: deferred.promise };
 
-    DebuggerController.SourceScripts.getTextForSource(aSource).then(([, aText]) => {
+    DebuggerController.SourceScripts.getText(aSource).then(([, aText]) => {
       
       
       if (this._editorSource.url != aSource.url) {
@@ -353,11 +351,11 @@ let DebuggerView = {
     }
 
     let sourceItem = this.Sources.getItemByValue(aUrl);
-    let sourceClient = sourceItem.attachment.source;
+    let sourceForm = sourceItem.attachment.source;
 
     
     
-    return this._setEditorSource(sourceClient).then(() => {
+    return this._setEditorSource(sourceForm).then(() => {
       
       
       if (aLine < 1) {
@@ -392,17 +390,6 @@ let DebuggerView = {
     let start = this.editor.getLineStart(line);
     let end = this.editor.getLineEnd(line);
     return this.editor.getText(start, end);
-  },
-
-  
-
-
-
-
-
-  getEditorSelectionText: function() {
-    let selection = this.editor.getSelection();
-    return this.editor.getText(selection.start, selection.end);
   },
 
   
@@ -768,10 +755,11 @@ ResultsPanelContainer.prototype = Heritage.extend(WidgetMethods, {
 
   set hidden(aFlag) {
     if (aFlag) {
+      this._panel.hidden = true;
       this._panel.hidePopup();
     } else {
+      this._panel.hidden = false;
       this._panel.openPopup(this._anchor, this.position, this.left, this.top);
-      this.anchor.focus();
     }
   },
 

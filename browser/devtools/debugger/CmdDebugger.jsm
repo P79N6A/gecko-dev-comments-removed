@@ -34,7 +34,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "console",
 
 function getAllBreakpoints(dbg) {
   let breakpoints = [];
-  let sources = dbg.panelWin.DebuggerView.Sources;
+  let sources = dbg._view.Sources;
   let { trimUrlLength: trim } = dbg.panelWin.SourceUtils;
 
   for (let source in sources) {
@@ -148,7 +148,7 @@ gcli.addCommand({
         data: function(context) {
           let dbg = getPanel(context, "jsdebugger");
           if (dbg) {
-            return dbg.panelWin.DebuggerView.Sources.values;
+            return dbg._view.Sources.values;
           }
           return [];
         }
@@ -194,7 +194,7 @@ gcli.addCommand({
         name: "selection",
         lookup: function(context) {
           let dbg = getPanel(context, "jsdebugger");
-          if (dbg == null) {
+          if (!dbg) {
             return [];
           }
           return getAllBreakpoints(dbg).map(breakpoint => ({
@@ -244,8 +244,8 @@ gcli.addCommand({
   description: gcli.lookup("dbgOpen"),
   params: [],
   exec: function(args, context) {
-    return gDevTools.showToolbox(context.environment.target, "jsdebugger")
-                    .then(() => null);
+    let target = context.environment.target;
+    return gDevTools.showToolbox(target, "jsdebugger").then(() => null);
   }
 });
 
@@ -257,11 +257,11 @@ gcli.addCommand({
   description: gcli.lookup("dbgClose"),
   params: [],
   exec: function(args, context) {
-    if (!getPanel(context, "jsdebugger"))
+    if (!getPanel(context, "jsdebugger")) {
       return;
-
-    return gDevTools.closeToolbox(context.environment.target)
-                    .then(() => null);
+    }
+    let target = context.environment.target;
+    return gDevTools.closeToolbox(target).then(() => null);
   }
 });
 
@@ -389,18 +389,18 @@ gcli.addCommand({
   returnType: "dom",
   exec: function(args, context) {
     let dbg = getPanel(context, "jsdebugger");
-    let doc = context.environment.chromeDocument;
     if (!dbg) {
       return gcli.lookup("debuggerClosed");
     }
 
     let sources = dbg._view.Sources.values;
+    let doc = context.environment.chromeDocument;
     let div = createXHTMLElement(doc, "div");
     let ol = createXHTMLElement(doc, "ol");
 
-    sources.forEach(function(src) {
+    sources.forEach(source => {
       let li = createXHTMLElement(doc, "li");
-      li.textContent = src;
+      li.textContent = source;
       ol.appendChild(li);
     });
     div.appendChild(ol);
@@ -423,8 +423,8 @@ gcli.addCommand({
     clientMethod: "unblackBox",
     l10nPrefix: "dbgUnBlackBox"
   }
-].forEach(function (cmd) {
-  const lookup = function (id) {
+].forEach(function(cmd) {
+  const lookup = function(id) {
     return gcli.lookup(cmd.l10nPrefix + id);
   };
 
@@ -436,11 +436,12 @@ gcli.addCommand({
         name: "source",
         type: {
           name: "selection",
-          data: function (context) {
+          data: function(context) {
             let dbg = getPanel(context, "jsdebugger");
-            return dbg
-              ? [s for (s of dbg._view.Sources.values)]
-              : [];
+            if (dbg) {
+              return dbg._view.Sources.values;
+            }
+            return [];
           }
         },
         description: lookup("SourceDesc"),
@@ -459,7 +460,7 @@ gcli.addCommand({
       }
     ],
     returnType: "dom",
-    exec: function (args, context) {
+    exec: function(args, context) {
       const dbg = getPanel(context, "jsdebugger");
       const doc = context.environment.chromeDocument;
       if (!dbg) {
@@ -468,9 +469,7 @@ gcli.addCommand({
 
       const { promise, resolve, reject } = context.defer();
       const { activeThread } = dbg._controller;
-      const globRegExp = args.glob
-        ? globToRegExp(args.glob)
-        : null;
+      const globRegExp = args.glob ? globToRegExp(args.glob) : null;
 
       
 
@@ -498,12 +497,11 @@ gcli.addCommand({
       const blackBoxed = [];
 
       for (let source of toBlackBox) {
-        let { url } = source;
-        activeThread.source(source)[cmd.clientMethod](function ({ error }) {
+        activeThread.source(source)[cmd.clientMethod](function({ error }) {
           if (error) {
-            blackBoxed.push(lookup("ErrorDesc") + " " + url);
+            blackBoxed.push(lookup("ErrorDesc") + " " + source.url);
           } else {
-            blackBoxed.push(url);
+            blackBoxed.push(source.url);
           }
 
           if (toBlackBox.length === blackBoxed.length) {
@@ -517,8 +515,10 @@ gcli.addCommand({
       function displayResults() {
         const results = doc.createElement("div");
         results.textContent = lookup("NonEmptyDesc");
+
         const list = createXHTMLElement(doc, "ul");
         results.appendChild(list);
+
         for (let result of blackBoxed) {
           const item = createXHTMLElement(doc, "li");
           item.textContent = result;
@@ -550,7 +550,7 @@ function getPanel(context, id, options = {}) {
   let target = context.environment.target;
 
   if (options.ensureOpened) {
-    return gDevTools.showToolbox(target, id).then(function(toolbox) {
+    return gDevTools.showToolbox(target, id).then(toolbox => {
       return toolbox.getPanel(id);
     });
   } else {

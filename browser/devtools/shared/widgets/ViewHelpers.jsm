@@ -155,6 +155,11 @@ this.ViewHelpers = {
 
   togglePane: function(aFlags, aPane) {
     
+    if (!aPane) {
+      return;
+    }
+
+    
     aPane.removeAttribute("hidden");
 
     
@@ -169,7 +174,14 @@ this.ViewHelpers = {
     }
 
     
-    function set() {
+    if (aFlags.animated) {
+      aPane.setAttribute("animated", "");
+    } else {
+      aPane.removeAttribute("animated");
+    }
+
+    
+    let doToggle = () => {
       if (aFlags.visible) {
         aPane.style.marginLeft = "0";
         aPane.style.marginRight = "0";
@@ -195,18 +207,11 @@ this.ViewHelpers = {
     }
 
     
-    if (aFlags.animated) {
-      aPane.setAttribute("animated", "");
-    } else {
-      aPane.removeAttribute("animated");
-    }
-
-    
     
     if (aFlags.delayed) {
-      aPane.ownerDocument.defaultView.setTimeout(set.bind(this), PANE_APPEARANCE_DELAY);
+      aPane.ownerDocument.defaultView.setTimeout(doToggle, PANE_APPEARANCE_DELAY);
     } else {
-      set.call(this);
+      doToggle();
     }
   }
 };
@@ -493,7 +498,7 @@ Item.prototype = {
 
 
   toString: function() {
-    if (this._label && this._value) {
+    if (this._label != "undefined" && this._value != "undefined") {
       return this._label + " -> " + this._value;
     }
     if (this.attachment) {

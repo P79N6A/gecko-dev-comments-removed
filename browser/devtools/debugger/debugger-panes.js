@@ -40,6 +40,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
       showCheckboxes: true,
       showArrows: true
     });
+
     this.emptyText = L10N.getStr("noSourcesText");
     this.unavailableText = L10N.getStr("noMatchingSourcesText");
     this._blackBoxCheckboxTooltip = L10N.getStr("blackBoxCheckboxTooltip");
@@ -93,13 +94,13 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  set preferredSource(aSourceLocation) {
-    this._preferredValue = aSourceLocation;
+  set preferredSource(aUrl) {
+    this._preferredValue = aUrl;
 
     
     
-    if (this.containsValue(aSourceLocation)) {
-      this.selectedValue = aSourceLocation;
+    if (this.containsValue(aUrl)) {
+      this.selectedValue = aUrl;
     }
   },
 
@@ -474,8 +475,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
     let container = document.createElement("hbox");
     container.id = "breakpoint-" + aOptions.actor;
-    container.className = "dbg-breakpoint devtools-monospace" +
-                          " side-menu-widget-item-other";
+    container.className = "dbg-breakpoint side-menu-widget-item-other";
+    container.classList.add("devtools-monospace");
     container.setAttribute("align", "center");
     container.setAttribute("flex", "1");
 
@@ -656,7 +657,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  maybeShowBlackBoxMessage: function () {
+  maybeShowBlackBoxMessage: function() {
     let sourceForm = this.selectedItem.attachment.source;
     let sourceClient = DebuggerController.activeThread.source(sourceForm);
     this._editorDeck.selectedIndex = sourceClient.isBlackBoxed ? 1 : 0;
@@ -682,8 +683,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _onStopBlackBoxing: function() {
-    DebuggerController.SourceScripts.blackBox(DebuggerView.editorSource,
-                                              false);
+    let sourceForm = this.selectedItem.attachment.source;
+    DebuggerController.SourceScripts.blackBox(sourceForm, false);
   },
 
   
@@ -739,7 +740,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _onConditionalPopupShowing: function() {
-    this._conditionalPopupVisible = true;
+    this._conditionalPopupVisible = true; 
   },
 
   
@@ -754,7 +755,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _onConditionalPopupHiding: function() {
-    this._conditionalPopupVisible = false;
+    this._conditionalPopupVisible = false; 
   },
 
   
@@ -1334,7 +1335,7 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
 
 
   getAllStrings: function() {
-    return this.orderedItems.map((e) => e.attachment.currentExpression);
+    return this.items.map(e => e.attachment.currentExpression);
   },
 
   
@@ -1470,7 +1471,6 @@ function GlobalSearchView() {
   this._startSearch = this._startSearch.bind(this);
   this._performGlobalSearch = this._performGlobalSearch.bind(this);
   this._createItemView = this._createItemView.bind(this);
-  this._onScroll = this._onScroll.bind(this);
   this._onHeaderClick = this._onHeaderClick.bind(this);
   this._onLineClick = this._onLineClick.bind(this);
   this._onMatchClick = this._onMatchClick.bind(this);
@@ -1488,7 +1488,6 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
     this.widget.emptyText = L10N.getStr("noMatchingStringsText");
     this.widget.itemFactory = this._createItemView;
-    this.widget.addEventListener("scroll", this._onScroll, false);
   },
 
   
@@ -1496,17 +1495,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
   destroy: function() {
     dumpn("Destroying the GlobalSearchView");
-
-    this.widget.removeEventListener("scroll", this._onScroll, false);
   },
-
-  
-
-
-
-  get hidden()
-    this.widget.getAttribute("hidden") == "true" ||
-    this._splitter.getAttribute("hidden") == "true",
 
   
 
@@ -1516,6 +1505,14 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
     this.widget.setAttribute("hidden", aFlag);
     this._splitter.setAttribute("hidden", aFlag);
   },
+
+  
+
+
+
+  get hidden()
+    this.widget.getAttribute("hidden") == "true" ||
+    this._splitter.getAttribute("hidden") == "true",
 
   
 
@@ -1632,58 +1629,60 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
     
     let globalResults = new GlobalResults();
 
-    for (let [location, contents] of aSources) {
+    
+    for (let [url, text] of aSources) {
       
-      if (!contents.toLowerCase().contains(lowerCaseToken)) {
+      if (!text.toLowerCase().contains(lowerCaseToken)) {
         continue;
       }
-      let lines = contents.split("\n");
-      let sourceResults = new SourceResults();
+      
+      let sourceResults = new SourceResults(url, globalResults);
 
-      for (let i = 0, len = lines.length; i < len; i++) {
-        let line = lines[i];
-        let lowerCaseLine = line.toLowerCase();
+      
+      text.split("\n").forEach((aString, aLine) => {
+        
+        let lowerCaseLine = aString.toLowerCase();
 
         
         if (!lowerCaseLine.contains(lowerCaseToken)) {
-          continue;
+          return;
         }
+        
+        let lineResults = new LineResults(aLine, sourceResults);
 
-        let lineNumber = i;
-        let lineResults = new LineResults();
+        
+        lowerCaseLine.split(lowerCaseToken).reduce((aPrev, aCurr, aIndex, aArray) => {
+          let prevLength = aPrev.length;
+          let currLength = aCurr.length;
 
-        lowerCaseLine.split(lowerCaseToken).reduce((prev, curr, index, { length }) => {
-          let prevLength = prev.length;
-          let currLength = curr.length;
-          let unmatched = line.substr(prevLength, currLength);
+          
+          let unmatched = aString.substr(prevLength, currLength);
           lineResults.add(unmatched);
 
-          if (index != length - 1) {
-            let matched = line.substr(prevLength + currLength, tokenLength);
-            let range = {
-              start: prevLength + currLength,
-              length: matched.length
-            };
+          
+          
+          if (aIndex != aArray.length - 1) {
+            let matched = aString.substr(prevLength + currLength, tokenLength);
+            let range = { start: prevLength + currLength, length: matched.length };
             lineResults.add(matched, range, true);
-            sourceResults.matchCount++;
           }
-          return prev + token + curr;
+
+          
+          return aPrev + token + aCurr;
         }, "");
 
-        if (sourceResults.matchCount) {
-          sourceResults.add(lineNumber, lineResults);
+        if (lineResults.matchCount) {
+          sourceResults.add(lineResults);
         }
-      }
+      });
+
       if (sourceResults.matchCount) {
-        globalResults.add(location, sourceResults);
+        globalResults.add(sourceResults);
       }
     }
 
     
-    this.empty();
-
-    
-    if (globalResults.itemCount) {
+    if (globalResults.matchCount) {
       this.hidden = false;
       this._currentlyFocusedMatch = -1;
       this._createGlobalResultsUI(globalResults);
@@ -1702,15 +1701,16 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
   _createGlobalResultsUI: function(aGlobalResults) {
     let i = 0;
 
-    for (let [location, sourceResults] in aGlobalResults) {
+    for (let sourceResults in aGlobalResults) {
       if (i++ == 0) {
-        this._createSourceResultsUI(location, sourceResults, true);
+        this._createSourceResultsUI(sourceResults);
       } else {
         
         
         
         Services.tm.currentThread.dispatch({ run:
-          this._createSourceResultsUI.bind(this, location, sourceResults) }, 0);
+          this._createSourceResultsUI.bind(this, sourceResults)
+        }, 0);
       }
     }
   },
@@ -1721,18 +1721,13 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-
-
-
-
-  _createSourceResultsUI: function(aLocation, aSourceResults, aExpandFlag) {
+  _createSourceResultsUI: function(aSourceResults) {
     
-    let sourceResultsItem = this.push([aLocation, aSourceResults.matchCount], {
+    this.push([], {
       index: -1, 
       relaxed: true, 
       attachment: {
-        sourceResults: aSourceResults,
-        expandFlag: aExpandFlag
+        sourceResults: aSourceResults
       }
     });
   },
@@ -1745,14 +1740,8 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-
-
-
-
-  _createItemView: function(aElementNode, aAttachment, aLocation, aMatchCount) {
-    let { sourceResults, expandFlag } = aAttachment;
-
-    sourceResults.createView(aElementNode, aLocation, aMatchCount, expandFlag, {
+  _createItemView: function(aElementNode, aAttachment) {
+    aAttachment.sourceResults.createView(aElementNode, {
       onHeaderClick: this._onHeaderClick,
       onLineClick: this._onLineClick,
       onMatchClick: this._onMatchClick
@@ -1783,6 +1772,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
       e.preventDefault();
       e.stopPropagation();
     }
+
     let target = e.target;
     let sourceResultsItem = SourceResults.getItemForElement(target);
     let lineResultsItem = LineResults.getItemForElement(target);
@@ -1792,43 +1782,14 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
     this._scrollMatchIntoViewIfNeeded(target);
     this._bounceMatch(target);
 
-    let location = sourceResultsItem.location;
-    let lineNumber = lineResultsItem.lineNumber;
-    DebuggerView.setEditorLocation(location, lineNumber + 1, { noDebug: true });
+    let url = sourceResultsItem.instance.url;
+    let line = lineResultsItem.instance.line;
+    DebuggerView.setEditorLocation(url, line + 1, { noDebug: true });
 
     let editor = DebuggerView.editor;
     let offset = editor.getCaretOffset();
     let { start, length } = lineResultsItem.lineData.range;
     editor.setSelection(offset + start, offset + start + length);
-  },
-
-  
-
-
-  _onScroll: function(e) {
-    for (let item in this) {
-      this._expandResultsIfNeeded(item.target);
-    }
-  },
-
-  
-
-
-
-
-
-  _expandResultsIfNeeded: function(aTarget) {
-    let sourceResultsItem = SourceResults.getItemForElement(aTarget);
-    if (sourceResultsItem.instance.toggled ||
-        sourceResultsItem.instance.expanded) {
-      return;
-    }
-    let { top, height } = aTarget.getBoundingClientRect();
-    let { clientHeight } = this.widget._parent;
-
-    if (top - height <= clientHeight || this._forceExpandResults) {
-      sourceResultsItem.instance.expand();
-    }
   },
 
   
@@ -1851,7 +1812,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _bounceMatch: function(aMatch) {
-    Services.tm.currentThread.dispatch({ run: function() {
+    Services.tm.currentThread.dispatch({ run: () => {
       aMatch.addEventListener("transitionend", function onEvent() {
         aMatch.removeEventListener("transitionend", onEvent);
         aMatch.removeAttribute("focused");
@@ -1874,7 +1835,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
 
 function GlobalResults() {
-  this._store = new Map();
+  this._store = [];
   SourceResults._itemsByElement = new Map();
   LineResults._itemsByElement = new Map();
 }
@@ -1886,27 +1847,29 @@ GlobalResults.prototype = {
 
 
 
-
-
-  add: function(aLocation, aSourceResults) {
-    this._store.set(aLocation, aSourceResults);
+  add: function(aSourceResults) {
+    this._store.push(aSourceResults);
   },
 
   
 
 
-  get itemCount() this._store.size,
-
-  _store: null
+  get matchCount() this._store.length
 };
 
 
 
 
 
-function SourceResults() {
-  this._store = new Map();
-  this.matchCount = 0;
+
+
+
+
+
+function SourceResults(aUrl, aGlobalResults) {
+  this.url = aUrl;
+  this._globalResults = aGlobalResults;
+  this._store = [];
 }
 
 SourceResults.prototype = {
@@ -1916,67 +1879,51 @@ SourceResults.prototype = {
 
 
 
-
-
-  add: function(aLineNumber, aLineResults) {
-    this._store.set(aLineNumber, aLineResults);
+  add: function(aLineResults) {
+    this._store.push(aLineResults);
   },
 
   
 
 
-  matchCount: -1,
+  get matchCount() this._store.length,
 
   
 
 
   expand: function() {
-    this._target.resultsContainer.removeAttribute("hidden")
-    this._target.arrow.setAttribute("open", "");
+    this._resultsContainer.removeAttribute("hidden");
+    this._arrow.setAttribute("open", "");
   },
 
   
 
 
   collapse: function() {
-    this._target.resultsContainer.setAttribute("hidden", "true");
-    this._target.arrow.removeAttribute("open");
+    this._resultsContainer.setAttribute("hidden", "true");
+    this._arrow.removeAttribute("open");
   },
 
   
 
 
   toggle: function(e) {
-    if (e instanceof Event) {
-      this._userToggled = true;
-    }
     this.expanded ^= 1;
   },
 
   
 
 
-  alwaysExpand: true,
-
-  
-
-
 
   get expanded()
-    this._target.resultsContainer.getAttribute("hidden") != "true" &&
-    this._target.arrow.hasAttribute("open"),
+    this._resultsContainer.getAttribute("hidden") != "true" &&
+    this._arrow.hasAttribute("open"),
 
   
 
 
 
   set expanded(aFlag) this[aFlag ? "expand" : "collapse"](),
-
-  
-
-
-
-  get toggled() this._userToggled,
 
   
 
@@ -1994,27 +1941,21 @@ SourceResults.prototype = {
 
 
 
-
-
-
-
-
-
-  createView: function(aElementNode, aLocation, aMatchCount, aExpandFlag, aCallbacks) {
+  createView: function(aElementNode, aCallbacks) {
     this._target = aElementNode;
 
-    let arrow = document.createElement("box");
+    let arrow = this._arrow = document.createElement("box");
     arrow.className = "arrow";
 
     let locationNode = document.createElement("label");
     locationNode.className = "plain dbg-results-header-location";
-    locationNode.setAttribute("value", SourceUtils.trimUrlLength(aLocation));
+    locationNode.setAttribute("value", this.url);
 
     let matchCountNode = document.createElement("label");
     matchCountNode.className = "plain dbg-results-header-match-count";
-    matchCountNode.setAttribute("value", "(" + aMatchCount + ")");
+    matchCountNode.setAttribute("value", "(" + this.matchCount + ")");
 
-    let resultsHeader = document.createElement("hbox");
+    let resultsHeader = this._resultsHeader = document.createElement("hbox");
     resultsHeader.className = "dbg-results-header";
     resultsHeader.setAttribute("align", "center")
     resultsHeader.appendChild(arrow);
@@ -2022,20 +1963,17 @@ SourceResults.prototype = {
     resultsHeader.appendChild(matchCountNode);
     resultsHeader.addEventListener("click", aCallbacks.onHeaderClick, false);
 
-    let resultsContainer = document.createElement("vbox");
+    let resultsContainer = this._resultsContainer = document.createElement("vbox");
     resultsContainer.className = "dbg-results-container";
     resultsContainer.setAttribute("hidden", "true");
 
-    for (let [lineNumber, lineResults] of this._store) {
-      lineResults.createView(resultsContainer, lineNumber, aCallbacks)
+    
+    
+    
+    for (let lineResults of this._store) {
+      lineResults.createView(resultsContainer, aCallbacks);
     }
-
-    aElementNode.arrow = arrow;
-    aElementNode.resultsHeader = resultsHeader;
-    aElementNode.resultsContainer = resultsContainer;
-
-    if ((aExpandFlag || this.alwaysExpand) &&
-         aMatchCount < GLOBAL_SEARCH_EXPAND_MAX_RESULTS) {
+    if (this.matchCount < GLOBAL_SEARCH_EXPAND_MAX_RESULTS) {
       this.expand();
     }
 
@@ -2044,29 +1982,36 @@ SourceResults.prototype = {
     resultsBox.appendChild(resultsHeader);
     resultsBox.appendChild(resultsContainer);
 
-    aElementNode.id = "source-results-" + aLocation;
+    aElementNode.id = "source-results-" + this.url;
     aElementNode.className = "dbg-source-results";
     aElementNode.appendChild(resultsBox);
 
-    SourceResults._itemsByElement.set(aElementNode, {
-      location: aLocation,
-      matchCount: aMatchCount,
-      autoExpand: aExpandFlag,
-      instance: this
-    });
+    SourceResults._itemsByElement.set(aElementNode, { instance: this });
   },
 
+  url: "",
+  _globalResults: null,
   _store: null,
   _target: null,
-  _userToggled: false
+  _arrow: null,
+  _resultsHeader: null,
+  _resultsContainer: null
 };
 
 
 
 
 
-function LineResults() {
+
+
+
+
+
+function LineResults(aLine, aSourceResults) {
+  this.line = aLine;
+  this._sourceResults = aSourceResults;
   this._store = [];
+  this._matchCount = 0;
 }
 
 LineResults.prototype = {
@@ -2081,12 +2026,14 @@ LineResults.prototype = {
 
 
   add: function(aString, aRange, aMatchFlag) {
-    this._store.push({
-      string: aString,
-      range: aRange,
-      match: !!aMatchFlag
-    });
+    this._store.push({ string: aString, range: aRange, match: !!aMatchFlag });
+    this._matchCount += aMatchFlag ? 1 : 0;
   },
+
+  
+
+
+  get matchCount() this._matchCount,
 
   
 
@@ -2104,38 +2051,38 @@ LineResults.prototype = {
 
 
 
-
-
-  createView: function(aContainer, aLineNumber, aCallbacks) {
-    this._target = aContainer;
+  createView: function(aElementNode, aCallbacks) {
+    this._target = aElementNode;
 
     let lineNumberNode = document.createElement("label");
+    lineNumberNode.className = "plain dbg-results-line-number";
+    lineNumberNode.classList.add("devtools-monospace");
+    lineNumberNode.setAttribute("value", this.line + 1);
+
     let lineContentsNode = document.createElement("hbox");
+    lineContentsNode.className = "light list-widget-item dbg-results-line-contents";
+    lineContentsNode.classList.add("devtools-monospace");
+    lineContentsNode.setAttribute("flex", "1");
+
     let lineString = "";
     let lineLength = 0;
     let firstMatch = null;
 
-    lineNumberNode.className = "plain dbg-results-line-number devtools-monospace";
-    lineNumberNode.setAttribute("value", aLineNumber + 1);
-    lineContentsNode.className = "light list-widget-item devtools-monospace" +
-                                 " dbg-results-line-contents";
-    lineContentsNode.setAttribute("flex", "1");
-
-    for (let chunk of this._store) {
-      let { string, range, match } = chunk;
+    for (let lineChunk of this._store) {
+      let { string, range, match } = lineChunk;
       lineString = string.substr(0, GLOBAL_SEARCH_LINE_MAX_LENGTH - lineLength);
       lineLength += string.length;
 
-      let label = document.createElement("label");
-      label.className = "plain dbg-results-line-contents-string";
-      label.setAttribute("value", lineString);
-      label.setAttribute("match", match);
-      lineContentsNode.appendChild(label);
+      let lineChunkNode = document.createElement("label");
+      lineChunkNode.className = "plain dbg-results-line-contents-string";
+      lineChunkNode.setAttribute("value", lineString);
+      lineChunkNode.setAttribute("match", match);
+      lineContentsNode.appendChild(lineChunkNode);
 
       if (match) {
-        this._entangleMatch(aLineNumber, label, chunk);
-        label.addEventListener("click", aCallbacks.onMatchClick, false);
-        firstMatch = firstMatch || label;
+        this._entangleMatch(lineChunkNode, lineChunk);
+        lineChunkNode.addEventListener("click", aCallbacks.onMatchClick, false);
+        firstMatch = firstMatch || lineChunkNode;
       }
       if (lineLength >= GLOBAL_SEARCH_LINE_MAX_LENGTH) {
         lineContentsNode.appendChild(this._ellipsis.cloneNode());
@@ -2150,7 +2097,8 @@ LineResults.prototype = {
     searchResult.className = "dbg-search-result";
     searchResult.appendChild(lineNumberNode);
     searchResult.appendChild(lineContentsNode);
-    aContainer.appendChild(searchResult);
+
+    aElementNode.appendChild(searchResult);
   },
 
   
@@ -2158,10 +2106,9 @@ LineResults.prototype = {
 
 
 
-
-  _entangleMatch: function(aLineNumber, aNode, aMatchChunk) {
+  _entangleMatch: function(aNode, aMatchChunk) {
     LineResults._itemsByElement.set(aNode, {
-      lineNumber: aLineNumber,
+      instance: this,
       lineData: aMatchChunk
     });
   },
@@ -2173,8 +2120,9 @@ LineResults.prototype = {
 
   _entangleLine: function(aNode, aFirstMatch) {
     LineResults._itemsByElement.set(aNode, {
+      instance: this,
       firstMatch: aFirstMatch,
-      nonenumerable: true
+      ignored: true
     });
   },
 
@@ -2188,6 +2136,8 @@ LineResults.prototype = {
     return label;
   })(),
 
+  line: 0,
+  _sourceResults: null,
   _store: null,
   _target: null
 };
@@ -2227,7 +2177,7 @@ LineResults.getItemForElement = function(aElement) {
 SourceResults.getElementAtIndex =
 LineResults.getElementAtIndex = function(aIndex) {
   for (let [element, item] of this._itemsByElement) {
-    if (!item.nonenumerable && !aIndex--) {
+    if (!item.ignored && !aIndex--) {
       return element;
     }
   }
@@ -2249,7 +2199,7 @@ LineResults.indexOfElement = function(aElement) {
     if (element == aElement) {
       return count;
     }
-    if (!item.nonenumerable) {
+    if (!item.ignored) {
       count++;
     }
   }
@@ -2266,7 +2216,7 @@ SourceResults.size =
 LineResults.size = function() {
   let count = 0;
   for (let [, item] of this._itemsByElement) {
-    if (!item.nonenumerable) {
+    if (!item.ignored) {
       count++;
     }
   }
