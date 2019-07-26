@@ -521,7 +521,11 @@ AudioInitTask::Run()
   MOZ_ASSERT(mThread);
   if (NS_IsMainThread()) {
     mThread->Shutdown(); 
-    mThread = nullptr;
+    
+    
+    
+    
+    
     return NS_OK;
   }
 

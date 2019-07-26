@@ -46,7 +46,11 @@ CryptoTask::Run()
     if (mThread) {
       
       mThread->Shutdown(); 
-      mThread = nullptr;
+      
+      
+      
+      
+      
     }
   }
 

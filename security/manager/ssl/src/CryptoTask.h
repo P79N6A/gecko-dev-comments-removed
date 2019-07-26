@@ -42,6 +42,7 @@ public:
     
     nsresult rv = NS_NewNamedThread(taskThreadName, getter_AddRefs(mThread));
     if (NS_SUCCEEDED(rv)) {
+      
       rv = mThread->Dispatch(this, NS_DISPATCH_NORMAL);
     }
     return rv;
