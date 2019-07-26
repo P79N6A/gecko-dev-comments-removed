@@ -652,17 +652,19 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
                 
                 const nsIntRect& oldRect = mQueuedDrawEvent->Rect();
                 const nsIntRect& newRect = ae->Rect();
+                nsIntRect combinedRect = oldRect.Union(newRect);
+
+#if defined(DEBUG) || defined(FORCE_ALOG)
+                
+                
+                
                 int combinedArea = (oldRect.width * oldRect.height) +
                                    (newRect.width * newRect.height);
-
-                nsIntRect combinedRect = oldRect.Union(newRect);
-                
-                
-                
                 int boundsArea = combinedRect.width * combinedRect.height;
                 if (boundsArea > combinedArea * 8)
                     ALOG("nsAppShell: Area of bounds greatly exceeds combined area: %d > %d",
                          boundsArea, combinedArea);
+#endif
 
                 
                 

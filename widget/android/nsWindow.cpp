@@ -131,6 +131,7 @@ nsWindow::TopWindow()
 void
 nsWindow::LogWindow(nsWindow *win, int index, int indent)
 {
+#if defined(DEBUG) || defined(FORCE_ALOG)
     char spaces[] = "                    ";
     spaces[indent < 20 ? indent : 20] = 0;
     ALOG("%s [% 2d] 0x%08x [parent 0x%08x] [% 3d,% 3dx% 3d,% 3d] vis %d type %d",
@@ -138,6 +139,7 @@ nsWindow::LogWindow(nsWindow *win, int index, int indent)
          win->mBounds.x, win->mBounds.y,
          win->mBounds.width, win->mBounds.height,
          win->mIsVisible, win->mWindowType);
+#endif
 }
 
 void
@@ -1011,7 +1013,6 @@ nsWindow::DrawTo(gfxASurface *targetSurface, const nsIntRect &invalidRect)
 
     
     if (coveringChildIndex == -1) {
-        bool painted = false;
         nsIntRegion region = invalidRect;
 
         mWidgetListener->WillPaintWindow(this);
@@ -1026,18 +1027,8 @@ nsWindow::DrawTo(gfxASurface *targetSurface, const nsIntRect &invalidRect)
                     AutoLayerManagerSetup
                       setupLayerManager(this, ctx, mozilla::layers::BUFFER_NONE);
 
-                    painted = mWidgetListener->PaintWindow(this, region, 0);
+                    mWidgetListener->PaintWindow(this, region, 0);
                 }
-
-                
-                
-#if 0
-                if (!painted)
-                    return false;
-#endif
-
-                
-                
                 break;
             }
 
@@ -1046,7 +1037,7 @@ nsWindow::DrawTo(gfxASurface *targetSurface, const nsIntRect &invalidRect)
                 static_cast<mozilla::layers::LayerManagerOGL*>(GetLayerManager(nullptr))->
                     SetClippingRegion(nsIntRegion(boundsRect));
 
-                painted = mWidgetListener->PaintWindow(this, region, 0);
+                mWidgetListener->PaintWindow(this, region, 0);
                 break;
             }
 
@@ -1707,7 +1698,7 @@ nsWindow::OnKeyEvent(AndroidGeckoEvent *ae)
 #ifdef DEBUG_ANDROID_IME
 #define ALOGIME(args...) ALOG(args)
 #else
-#define ALOGIME(args...)
+#define ALOGIME(args...) ((void)0)
 #endif
 
 static nscolor
