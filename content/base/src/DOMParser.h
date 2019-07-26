@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsDOMParser_h_
-#define nsDOMParser_h_
+#ifndef mozilla_dom_DOMParser_h_
+#define mozilla_dom_DOMParser_h_
 
 #include "nsCOMPtr.h"
 #include "nsIDocument.h"
@@ -17,28 +17,31 @@
 
 class nsIDocument;
 
-class nsDOMParser MOZ_FINAL : public nsIDOMParser,
-                              public nsSupportsWeakReference,
-                              public nsWrapperCache
+namespace mozilla {
+namespace dom {
+
+class DOMParser MOZ_FINAL : public nsIDOMParser,
+                            public nsSupportsWeakReference,
+                            public nsWrapperCache
 {
   typedef mozilla::dom::GlobalObject GlobalObject;
 public: 
-  nsDOMParser();
-  virtual ~nsDOMParser();
+  DOMParser();
+  virtual ~DOMParser();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsDOMParser,
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(DOMParser,
                                                          nsIDOMParser)
 
   
   NS_DECL_NSIDOMPARSER
 
   
-  static already_AddRefed<nsDOMParser>
+  static already_AddRefed<DOMParser>
   Constructor(const GlobalObject& aOwner,
               mozilla::ErrorResult& rv);
 
-  static already_AddRefed<nsDOMParser>
+  static already_AddRefed<DOMParser>
   Constructor(const GlobalObject& aOwner,
               nsIPrincipal* aPrincipal, nsIURI* aDocumentURI, nsIURI* aBaseURI,
               mozilla::ErrorResult& rv);
@@ -77,7 +80,7 @@ public:
   }
 
 private:
-  nsDOMParser(nsISupports* aOwner) : mOwner(aOwner), mAttemptedInit(false)
+  DOMParser(nsISupports* aOwner) : mOwner(aOwner), mAttemptedInit(false)
   {
     MOZ_ASSERT(aOwner);
     SetIsDOMBinding();
@@ -115,5 +118,8 @@ private:
   
   bool mAttemptedInit;
 };
+
+} 
+} 
 
 #endif
