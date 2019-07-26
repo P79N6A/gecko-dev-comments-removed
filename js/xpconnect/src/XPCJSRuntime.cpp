@@ -81,7 +81,6 @@ const char* const XPCJSRuntime::mStrings[] = {
     "__exposedProps__",     
     "eval",                 
     "controllers",           
-    "realFrameElement",     
 };
 
 

@@ -58,10 +58,7 @@ let SystemAppProxy = {
 
 
 
-  _sendCustomEvent: function systemApp_sendCustomEvent(type,
-                                                       details,
-                                                       noPending,
-                                                       target) {
+  _sendCustomEvent: function systemApp_sendCustomEvent(type, details, noPending) {
     let content = this._frame ? this._frame.contentWindow : null;
 
     
@@ -83,14 +80,14 @@ let SystemAppProxy = {
     }
 
     event.initCustomEvent(type, true, false, payload);
-    (target || content).dispatchEvent(event);
+    content.dispatchEvent(event);
 
     return event;
   },
 
   
-  dispatchEvent: function systemApp_sendChromeEvent(details, target) {
-    return this._sendCustomEvent('mozChromeEvent', details, false, target);
+  dispatchEvent: function systemApp_sendChromeEvent(details) {
+    return this._sendCustomEvent('mozChromeEvent', details);
   },
 
   
