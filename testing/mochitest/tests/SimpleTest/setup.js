@@ -104,6 +104,12 @@ if (!params.quiet) {
   TestRunner.logger.addListener("dumpListener", consoleLevel + "", dumpListener);
 }
 
+
+if (params.runSlower) {
+  TestRunner.runSlower = true;
+}
+
+
 var gTestList = [];
 var RunSet = {}
 RunSet.runall = function(e) {
