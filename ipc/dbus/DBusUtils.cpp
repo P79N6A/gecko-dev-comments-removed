@@ -95,13 +95,32 @@ dbus_bool_t dbus_func_send_async(DBusConnection *conn,
   reply = dbus_connection_send_with_reply(conn, msg,
                                           &call,
                                           timeout_ms);
-  if (reply) {
+  if (!reply) {
+    goto done;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  if (dbus_pending_call_get_completed(call)) {
+    dbus_func_args_async_callback(call, pending);
+  } else {
     dbus_pending_call_set_notify(call,
                                  dbus_func_args_async_callback,
                                  pending,
                                  NULL);
   }
 
+done:
   if (msg) dbus_message_unref(msg);
   return reply;
 }
