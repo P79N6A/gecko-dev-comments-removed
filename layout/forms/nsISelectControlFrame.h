@@ -8,8 +8,6 @@
 
 #include "nsQueryFrame.h"
 
-class nsIDOMHTMLOptionElement;
-
 
 
 

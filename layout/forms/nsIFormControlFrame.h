@@ -7,10 +7,9 @@
 #define nsIFormControlFrame_h___
 
 #include "nsQueryFrame.h"
+
 class nsAString;
-class nsIContent;
 class nsIAtom;
-struct nsSize;
 
 
 

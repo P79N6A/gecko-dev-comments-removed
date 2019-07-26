@@ -7,13 +7,6 @@
 #define nsIComboboxControlFrame_h___
 
 #include "nsQueryFrame.h"
-#include "nsFont.h"
-
-class nsString;
-class nsIContent;
-class nsCSSFrameConstructor;
-
-
 
 
 
