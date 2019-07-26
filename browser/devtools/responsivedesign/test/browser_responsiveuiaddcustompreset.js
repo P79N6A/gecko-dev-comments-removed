@@ -80,6 +80,9 @@ function test() {
     mgr.once("off", restart);
 
     
+    info("document height " + document.height);
+
+    
     
     executeSoon(function() {
       EventUtils.synthesizeKey("VK_ESCAPE", {});
