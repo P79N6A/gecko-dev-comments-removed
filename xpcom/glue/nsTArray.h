@@ -22,6 +22,14 @@
 #include "nsTraceRefcnt.h"
 #include NEW_H
 
+namespace JS {
+template <class T>
+class Heap;
+} 
+
+
+
+
 
 
 
@@ -342,13 +350,13 @@ struct nsTArray_SafeElementAtHelper<nsRefPtr<E>, Derived> :
 
 
 
-template<class Alloc>
+template<class Alloc, class Copy>
 class nsTArray_base
 {
   
   
   
-  template<class Allocator>
+  template<class Allocator, class Copier>
   friend class nsTArray_base;
 
 protected:
@@ -396,7 +404,7 @@ protected:
   
   
   void ShrinkCapacity(size_type elemSize, size_t elemAlign);
-    
+
   
   
   
@@ -435,18 +443,18 @@ protected:
 protected:
   template<class Allocator>
   typename Alloc::ResultTypeProxy
-  SwapArrayElements(nsTArray_base<Allocator>& other,
+  SwapArrayElements(nsTArray_base<Allocator, Copy>& other,
                     size_type elemSize,
                     size_t elemAlign);
 
   
   class IsAutoArrayRestorer {
     public:
-      IsAutoArrayRestorer(nsTArray_base<Alloc> &array, size_t elemAlign);
+      IsAutoArrayRestorer(nsTArray_base<Alloc, Copy> &array, size_t elemAlign);
       ~IsAutoArrayRestorer();
 
     private:
-      nsTArray_base<Alloc> &mArray;
+      nsTArray_base<Alloc, Copy> &mArray;
       size_t mElemAlign;
       bool mIsAuto;
   };
@@ -473,7 +481,7 @@ protected:
   
   
   Header* GetAutoArrayBufferUnsafe(size_t elemAlign) {
-    return const_cast<Header*>(static_cast<const nsTArray_base<Alloc>*>(this)->
+    return const_cast<Header*>(static_cast<const nsTArray_base<Alloc, Copy>*>(this)->
                                GetAutoArrayBufferUnsafe(elemAlign));
   }
   const Header* GetAutoArrayBufferUnsafe(size_t elemAlign) const;
@@ -486,7 +494,7 @@ protected:
   
   Header *mHdr;
 
-  Header* Hdr() const { 
+  Header* Hdr() const {
     return mHdr;
   }
 
@@ -573,19 +581,153 @@ struct AssignRangeAlgorithm<true, true> {
 
 
 
+struct nsTArray_CopyWithMemutils
+{
+  const static bool allowRealloc = true;
+
+  static void CopyElements(void* dest, const void* src, size_t count, size_t elemSize) {
+    memcpy(dest, src, count * elemSize);
+  }
+
+  static void CopyHeaderAndElements(void* dest, const void* src, size_t count, size_t elemSize) {
+    memcpy(dest, src, sizeof(nsTArrayHeader) + count * elemSize);
+  }
+
+  static void MoveElements(void* dest, const void* src, size_t count, size_t elemSize) {
+    memmove(dest, src, count * elemSize);
+  }
+};
+
+
+
+
+
+template <class ElemType>
+struct nsTArray_CopyWithConstructors
+{
+  typedef nsTArrayElementTraits<ElemType> traits;
+
+  const static bool allowRealloc = false;
+
+  static void CopyElements(void* dest, void* src, size_t count, size_t elemSize) {
+    ElemType* destElem = static_cast<ElemType*>(dest);
+    ElemType* srcElem = static_cast<ElemType*>(src);
+    ElemType* destElemEnd = destElem + count;
+#ifdef DEBUG
+    ElemType* srcElemEnd = srcElem + count;
+    MOZ_ASSERT(srcElemEnd <= destElem || srcElemEnd > destElemEnd);
+#endif
+    while (destElem != destElemEnd) {
+      traits::Construct(destElem, *srcElem);
+      traits::Destruct(srcElem);
+      ++destElem;
+      ++srcElem;
+    }
+  }
+
+  static void CopyHeaderAndElements(void* dest, void* src, size_t count, size_t elemSize) {
+    nsTArrayHeader* destHeader = static_cast<nsTArrayHeader*>(dest);
+    nsTArrayHeader* srcHeader = static_cast<nsTArrayHeader*>(src);
+    *destHeader = *srcHeader;
+    CopyElements(static_cast<uint8_t*>(dest) + sizeof(nsTArrayHeader),
+                 static_cast<uint8_t*>(src) + sizeof(nsTArrayHeader),
+                 count, elemSize);
+  }
+
+  static void MoveElements(void* dest, void* src, size_t count, size_t elemSize) {
+    ElemType* destElem = static_cast<ElemType*>(dest);
+    ElemType* srcElem = static_cast<ElemType*>(src);
+    ElemType* destElemEnd = destElem + count;
+    ElemType* srcElemEnd = srcElem + count;
+    if (destElem == srcElem) {
+      return;  
+    } else if (srcElemEnd > destElem && srcElemEnd < destElemEnd) {
+      while (destElemEnd != destElem) {
+        --destElemEnd;
+        --srcElemEnd;
+        traits::Construct(destElemEnd, *srcElemEnd);
+        traits::Destruct(srcElem);
+      }
+    } else {
+      CopyElements(dest, src, count, elemSize);
+    }
+  }
+};
+
+
+
+
+template <class E>
+struct nsTArray_CopyElements : public nsTArray_CopyWithMemutils {};
+
+
+
+
+
+template <class E>
+struct nsTArray_CopyElements<JS::Heap<E> > : public nsTArray_CopyWithConstructors<E> {};
+
+
+
+
+
+
+template <class E, class Derived>
+struct nsTArray_TypedBase : public nsTArray_SafeElementAtHelper<E, Derived> {};
+
+
+
+
+
+
+
+
+
+
+
+
+template <class E, class Derived>
+struct nsTArray_TypedBase<JS::Heap<E>, Derived>
+ : public nsTArray_SafeElementAtHelper<JS::Heap<E>, Derived>
+{
+  operator const nsTArray<E>& () {
+    MOZ_STATIC_ASSERT(sizeof(E) == sizeof(JS::Heap<E>),
+                      "JS::Heap<E> must be binary compatible with E.");
+    Derived* self = static_cast<Derived*>(this);
+    return *reinterpret_cast<nsTArray<E> *>(self);
+  }
+
+  operator const FallibleTArray<E>& () {
+    Derived* self = static_cast<Derived*>(this);
+    return *reinterpret_cast<FallibleTArray<E> *>(self);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 template<class E, class Alloc>
-class nsTArray_Impl : public nsTArray_base<Alloc>,
-                      public nsTArray_SafeElementAtHelper<E, nsTArray_Impl<E, Alloc> >
+class nsTArray_Impl : public nsTArray_base<Alloc, nsTArray_CopyElements<E> >,
+                      public nsTArray_TypedBase<E, nsTArray_Impl<E, Alloc> >
 {
 public:
-  typedef nsTArray_base<Alloc>           base_type;
-  typedef typename base_type::size_type  size_type;
-  typedef typename base_type::index_type index_type;
-  typedef E                              elem_type;
-  typedef nsTArray_Impl<E, Alloc>        self_type;
-  typedef nsTArrayElementTraits<E>       elem_traits;
+  typedef nsTArray_CopyElements<E>                   copy_type;
+  typedef nsTArray_base<Alloc, copy_type>            base_type;
+  typedef typename base_type::size_type              size_type;
+  typedef typename base_type::index_type             index_type;
+  typedef E                                          elem_type;
+  typedef nsTArray_Impl<E, Alloc>                    self_type;
+  typedef nsTArrayElementTraits<E>                   elem_traits;
   typedef nsTArray_SafeElementAtHelper<E, self_type> safeelementat_helper_type;
 
   using safeelementat_helper_type::SafeElementAt;
@@ -716,7 +858,7 @@ public:
   const elem_type* Elements() const {
     return reinterpret_cast<const elem_type *>(Hdr() + 1);
   }
-    
+
   
   
   
@@ -1093,8 +1235,8 @@ public:
     index_type otherLen = array.Length();
     if (!Alloc::Successful(this->EnsureCapacity(len + otherLen, sizeof(elem_type))))
       return nullptr;
-    memcpy(Elements() + len, array.Elements(), otherLen * sizeof(elem_type));
-    this->IncrementLength(otherLen);      
+    copy_type::CopyElements(Elements() + len, array.Elements(), otherLen, sizeof(elem_type));
+    this->IncrementLength(otherLen);
     array.ShiftData(0, otherLen, 0, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
     return Elements() + len;
   }
@@ -1201,7 +1343,7 @@ public:
     if (newLen > oldLen) {
       return InsertElementsAt(oldLen, newLen - oldLen) != nullptr;
     }
-      
+
     TruncateLength(newLen);
     return true;
   }
@@ -1283,7 +1425,7 @@ typename Alloc::ResultType EnsureLengthAtLeast(size_type minLen) {
   
   
   
- 
+
   
   
   
@@ -1533,7 +1675,7 @@ protected:
 private:
   
   
-  template<class Allocator>
+  template<class Allocator, class Copier>
   friend class nsTArray_base;
 
   void Init() {
