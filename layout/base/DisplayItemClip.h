@@ -23,7 +23,8 @@ namespace mozilla {
 
 
 
-struct DisplayItemClip {
+class DisplayItemClip {
+public:
   struct RoundedRect {
     nsRect mRect;
     
@@ -50,9 +51,6 @@ struct DisplayItemClip {
       return !(*this == aOther);
     }
   };
-  nsRect mClipRect;
-  nsTArray<RoundedRect> mRoundedClipRects;
-  bool mHaveClipRect;
 
   
   DisplayItemClip() : mHaveClipRect(false) {}
@@ -86,10 +84,25 @@ struct DisplayItemClip {
   nsRect ApproximateIntersect(const nsRect& aRect) const;
 
   
+
+
+
+
+
+
+  bool ComputeRegionInClips(DisplayItemClip* aOldClip,
+                            const nsPoint& aShift,
+                            nsRegion* aCombined) const;
+
+  
   
   
   
   bool IsRectClippedByRoundedCorner(const nsRect& aRect) const;
+
+  
+  
+  bool IsRectAffectedByClip(const nsRect& aRect) const;
 
   
   nsRect NonRoundedIntersection() const;
@@ -115,6 +128,29 @@ struct DisplayItemClip {
   bool operator!=(const DisplayItemClip& aOther) const {
     return !(*this == aOther);
   }
+
+  bool HasClip() { return mHaveClipRect; }
+  const nsRect& GetClipRect()
+  {
+    NS_ASSERTION(HasClip(), "No clip rect!");
+    return mClipRect;
+  }
+
+  
+
+
+
+  uint32_t GetCommonRoundedRectCount(const DisplayItemClip& aOther,
+                                     uint32_t aMax) const;
+  uint32_t GetRoundedRectCount() const { return mRoundedClipRects.Length(); }
+  void AppendRoundedRects(nsTArray<RoundedRect>* aArray, uint32_t aCount) const;
+
+private:
+  nsRect mClipRect;
+  nsTArray<RoundedRect> mRoundedClipRects;
+  
+  
+  bool mHaveClipRect;
 };
 
 }
