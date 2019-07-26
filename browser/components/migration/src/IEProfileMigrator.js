@@ -224,47 +224,52 @@ Bookmarks.prototype = {
     let entries = aSourceFolder.directoryEntries;
     while (entries.hasMoreElements()) {
       let entry = entries.getNext().QueryInterface(Ci.nsIFile);
-
-      
-      
-      if (entry.isDirectory() && entry.path == entry.target) {
-        let destFolderId;
-        if (entry.leafName == this._toolbarFolderName &&
-            entry.parent.equals(this._favoritesFolder)) {
-          
-          destFolderId = PlacesUtils.toolbarFolderId;
-          if (!MigrationUtils.isStartupMigration) {
+      try {
+        
+        
+        
+        
+        if (entry.path == entry.target && entry.isDirectory()) {
+          let destFolderId;
+          if (entry.leafName == this._toolbarFolderName &&
+              entry.parent.equals(this._favoritesFolder)) {
+            
+            destFolderId = PlacesUtils.toolbarFolderId;
+            if (!MigrationUtils.isStartupMigration) {
+              destFolderId =
+                MigrationUtils.createImportedBookmarksFolder("IE", destFolderId);
+            }
+          }
+          else {
+            
             destFolderId =
-              MigrationUtils.createImportedBookmarksFolder("IE", destFolderId);
+              PlacesUtils.bookmarks.createFolder(aDestFolderId, entry.leafName,
+                                                 PlacesUtils.bookmarks.DEFAULT_INDEX);
+          }
+
+          if (entry.isReadable()) {
+            
+            this._migrateFolder(entry, destFolderId);
           }
         }
         else {
           
-          destFolderId =
-            PlacesUtils.bookmarks.createFolder(aDestFolderId, entry.leafName,
-                                               PlacesUtils.bookmarks.DEFAULT_INDEX);
-        }
-
-        if (entry.isReadable()) {
           
-          this._migrateFolder(entry, destFolderId);
-        }
-      }
-      else {
-        
-        
-        let matches = entry.leafName.match(/(.+)\.url$/i);
-        if (matches) {
-          let fileHandler = Cc["@mozilla.org/network/protocol;1?name=file"].
-                            getService(Ci.nsIFileProtocolHandler);
-          let uri = fileHandler.readURLFile(entry);
-          let title = matches[1];
+          let matches = entry.leafName.match(/(.+)\.url$/i);
+          if (matches) {
+            let fileHandler = Cc["@mozilla.org/network/protocol;1?name=file"].
+                              getService(Ci.nsIFileProtocolHandler);
+            let uri = fileHandler.readURLFile(entry);
+            let title = matches[1];
 
-          PlacesUtils.bookmarks.insertBookmark(aDestFolderId,
-                                               uri,
-                                               PlacesUtils.bookmarks.DEFAULT_INDEX,
-                                               title);
+            PlacesUtils.bookmarks.insertBookmark(aDestFolderId,
+                                                 uri,
+                                                 PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                                 title);
+          }
         }
+      } catch (ex) {
+        Components.utils.reportError("Unable to import IE favorite (" + entry.leafName + "): " + ex);
       }
     }
   }
