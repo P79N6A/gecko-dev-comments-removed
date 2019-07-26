@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef ion_MOpcodes_h
 #define ion_MOpcodes_h
@@ -86,7 +86,9 @@ namespace ion {
     _(NewCallObject)                                                        \
     _(NewStringObject)                                                      \
     _(InitElem)                                                             \
+    _(InitElemGetterSetter)                                                 \
     _(InitProp)                                                             \
+    _(InitPropGetterSetter)                                                 \
     _(Start)                                                                \
     _(OsrEntry)                                                             \
     _(Nop)                                                                  \
@@ -197,12 +199,12 @@ namespace ion {
     _(GuardThreadLocalObject)                                               \
     _(CheckInterruptPar)
 
-// Forward declarations of MIR types.
+
 #define FORWARD_DECLARE(op) class M##op;
  MIR_OPCODE_LIST(FORWARD_DECLARE)
 #undef FORWARD_DECLARE
 
-class MInstructionVisitor // interface i.e. pure abstract class
+class MInstructionVisitor 
 {
   public:
 #define VISIT_INS(op) virtual bool visit##op(M##op *) = 0;
@@ -218,7 +220,7 @@ class MInstructionVisitorWithDefaults : public MInstructionVisitor
 #undef VISIT_INS
 };
 
-} // namespace ion
-} // namespace js
+} 
+} 
 
-#endif /* ion_MOpcodes_h */
+#endif 
