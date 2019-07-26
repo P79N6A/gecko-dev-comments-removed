@@ -1,54 +1,54 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Here's the server side of the remote inspector.
+ *
+ * The WalkerActor is the client's view of the debuggee's DOM.  It's gives
+ * the client a tree of NodeActor objects.
+ *
+ * The walker presents the DOM tree mostly unmodified from the source DOM
+ * tree, but with a few key differences:
+ *
+ *  - Empty text nodes are ignored.  This is pretty typical of developer
+ *    tools, but maybe we should reconsider that on the server side.
+ *  - iframes with documents loaded have the loaded document as the child,
+ *    the walker provides one big tree for the whole document tree.
+ *
+ * There are a few ways to get references to NodeActors:
+ *
+ *   - When you first get a WalkerActor reference, it comes with a free
+ *     reference to the root document's node.
+ *   - Given a node, you can ask for children, siblings, and parents.
+ *   - You can issue querySelector and querySelectorAll requests to find
+ *     other elements.
+ *   - Requests that return arbitrary nodes from the tree (like querySelector
+ *     and querySelectorAll) will also return any nodes the client hasn't
+ *     seen in order to have a complete set of parents.
+ *
+ * Once you have a NodeFront, you should be able to answer a few questions
+ * without further round trips, like the node's name, namespace/tagName,
+ * attributes, etc.  Other questions (like a text node's full nodeValue)
+ * might require another round trip.
+ *
+ * The protocol guarantees that the client will always know the parent of
+ * any node that is returned by the server.  This means that some requests
+ * (like querySelector) will include the extra nodes needed to satisfy this
+ * requirement.  The client keeps track of this parent relationship, so the
+ * node fronts form a tree that is a subset of the actual DOM tree.
+ *
+ *
+ * We maintain this guarantee to support the ability to release subtrees on
+ * the client - when a node is disconnected from the DOM tree we want to be
+ * able to free the client objects for all the children nodes.
+ *
+ * So to be able to answer "all the children of a given node that we have
+ * seen on the client side", we guarantee that every time we've seen a node,
+ * we connect it up through its parents.
+ */
 
 const {Cc, Ci, Cu, Cr} = require("chrome");
 
@@ -84,8 +84,8 @@ exports.unregister = function(handle) {
   handle.removeTabActor(InspectorActor);
 };
 
-
-
+// XXX: A poor man's makeInfallible until we move it out of transport.js
+// Which should be very soon.
 function makeInfallible(handler) {
   return function(...args) {
     try {
@@ -97,7 +97,7 @@ function makeInfallible(handler) {
   }
 }
 
-
+// A resolve that hits the main loop first.
 function delayedResolve(value) {
   let deferred = promise.defer();
   Services.tm.mainThread.dispatch(makeInfallible(function delayedResolveHandler() {
@@ -106,10 +106,10 @@ function delayedResolve(value) {
   return deferred.promise;
 }
 
-
-
-
-
+/**
+ * We only send nodeValue up to a certain size by default.  This stuff
+ * controls that size.
+ */
 exports.DEFAULT_VALUE_SUMMARY_LENGTH = 50;
 var gValueSummaryLength = exports.DEFAULT_VALUE_SUMMARY_LENGTH;
 
@@ -121,9 +121,9 @@ exports.setValueSummaryLength = function(val) {
   gValueSummaryLength = val;
 };
 
-
-
-
+/**
+ * Server side of the node actor.
+ */
 var NodeActor = protocol.ActorClass({
   typeName: "domnode",
 
@@ -137,13 +137,13 @@ var NodeActor = protocol.ActorClass({
     return "[NodeActor " + this.actorID + " for " + this.rawNode.toString() + "]";
   },
 
-  
-
-
-
+  /**
+   * Instead of storing a connection object, the NodeActor gets its connection
+   * from its associated walker.
+   */
   get conn() this.walker.conn,
 
-  
+  // Returns the JSON representation of this object over the wire.
   form: function(detail) {
     if (detail === "actorid") {
       return this.actorID;
@@ -151,11 +151,11 @@ var NodeActor = protocol.ActorClass({
 
     let parentNode = this.walker.parentNode(this);
 
-    
+    // Estimate the number of children.
     let numChildren = this.rawNode.childNodes.length;
     if (numChildren === 0 &&
         (this.rawNode.contentDocument || this.rawNode.getSVGDocument)) {
-      
+      // This might be an iframe with virtual children.
       numChildren = 1;
     }
 
@@ -167,7 +167,7 @@ var NodeActor = protocol.ActorClass({
       nodeName: this.rawNode.nodeName,
       numChildren: numChildren,
 
-      
+      // doctype attributes
       name: this.rawNode.name,
       publicId: this.rawNode.publicId,
       systemId: this.rawNode.systemId,
@@ -183,8 +183,8 @@ var NodeActor = protocol.ActorClass({
     }
 
     if (this.rawNode.nodeValue) {
-      
-      
+      // We only include a short version of the value if it's longer than
+      // gValueSummaryLength
       if (this.rawNode.nodeValue.length > gValueSummaryLength) {
         form.shortValue = this.rawNode.nodeValue.substring(0, gValueSummaryLength);
         form.incompleteValue = true;
@@ -218,9 +218,9 @@ var NodeActor = protocol.ActorClass({
     return ret;
   },
 
-  
-
-
+  /**
+   * Returns a LongStringActor with the node's value.
+   */
   getNodeValue: method(function() {
     return new LongStringActor(this.conn, this.rawNode.nodeValue || "");
   }, {
@@ -230,9 +230,9 @@ var NodeActor = protocol.ActorClass({
     }
   }),
 
-  
-
-
+  /**
+   * Set the node's value to a given string.
+   */
   setNodeValue: method(function(value) {
     this.rawNode.nodeValue = value;
   }, {
@@ -240,19 +240,19 @@ var NodeActor = protocol.ActorClass({
     response: {}
   }),
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Modify a node's attributes.  Passed an array of modifications
+   * similar in format to "attributes" mutations.
+   * {
+   *   attributeName: <string>
+   *   attributeNamespace: <optional string>
+   *   newValue: <optional string> - If null or undefined, the attribute
+   *     will be removed.
+   * }
+   *
+   * Returns when the modifications have been made.  Mutations will
+   * be queued for any changes made.
+   */
   modifyAttributes: method(function(modifications) {
     let rawNode = this.rawNode;
     for (let change of modifications) {
@@ -279,36 +279,36 @@ var NodeActor = protocol.ActorClass({
 
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Client side of the node actor.
+ *
+ * Node fronts are strored in a tree that mirrors the DOM tree on the
+ * server, but with a few key differences:
+ *  - Not all children will be necessary loaded for each node.
+ *  - The order of children isn't guaranteed to be the same as the DOM.
+ * Children are stored in a doubly-linked list, to make addition/removal
+ * and traversal quick.
+ *
+ * Due to the order/incompleteness of the child list, it is safe to use
+ * the parent node from clients, but the `children` request should be used
+ * to traverse children.
+ */
 let NodeFront = protocol.FrontClass(NodeActor, {
   initialize: function(conn, form, detail, ctx) {
-    this._parent = null; 
-    this._child = null;  
-    this._next = null;   
-    this._prev = null;   
+    this._parent = null; // The parent node
+    this._child = null;  // The first child of this node.
+    this._next = null;   // The next sibling of this node.
+    this._prev = null;   // The previous sibling of this node.
     protocol.Front.prototype.initialize.call(this, conn, form, detail, ctx);
   },
 
-  
-
-
-
-
+  /**
+   * Destroy a node front.  The node must have been removed from the
+   * ownership tree before this is called, unless the whole walker front
+   * is being destroyed.
+   */
   destroy: function() {
-    
+    // If an observer was added on this node, shut it down.
     if (this.observer) {
       this._observer.disconnect();
       this._observer = null;
@@ -317,45 +317,45 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     protocol.Front.prototype.destroy.call(this);
   },
 
-  
+  // Update the object given a form representation off the wire.
   form: function(form, detail, ctx) {
     if (detail === "actorid") {
       this.actorID = form;
       return;
     }
-    
-    
+    // Shallow copy of the form.  We could just store a reference, but
+    // eventually we'll want to update some of the data.
     this._form = object.merge(form);
     this._form.attrs = this._form.attrs ? this._form.attrs.slice() : [];
 
     if (form.parent) {
-      
-      
-      
+      // Get the owner actor for this actor (the walker), and find the
+      // parent node of this actor from it, creating a standin node if
+      // necessary.
       let parentNodeFront = ctx.marshallPool().ensureParentFront(form.parent);
       this.reparent(parentNodeFront);
     }
   },
 
-  
-
-
+  /**
+   * Returns the parent NodeFront for this NodeFront.
+   */
   parentNode: function() {
     return this._parent;
   },
 
-  
-
-
-
-
-
+  /**
+   * Process a mutation entry as returned from the walker's `getMutations`
+   * request.  Only tries to handle changes of the node's contents
+   * themselves (character data and attribute changes), the walker itself
+   * will keep the ownership tree up to date.
+   */
   updateMutation: function(change) {
     if (change.type === "attributes") {
-      
+      // We'll need to lazily reparse the attributes after this change.
       this._attrMap = undefined;
 
-      
+      // Update any already-existing attributes.
       let found = false;
       for (let i = 0; i < this.attributes.length; i++) {
         let attr = this.attributes[i];
@@ -370,7 +370,7 @@ let NodeFront = protocol.FrontClass(NodeActor, {
           break;
         }
       }
-      
+      // This is a new attribute.
       if (!found)  {
         this.attributes.push({
           name: change.attributeName,
@@ -386,7 +386,7 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     }
   },
 
-  
+  // Some accessors to make NodeFront feel more like an nsIDOMNode
 
   get id() this.getAttribute("id"),
 
@@ -407,7 +407,7 @@ let NodeFront = protocol.FrontClass(NodeActor, {
 
   get isDocumentElement() !!this._form.isDocumentElement,
 
-  
+  // doctype properties
   get name() this._form.name,
   get publicId() this._form.publicId,
   get systemId() this._form.systemId,
@@ -443,9 +443,9 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     impl: "_getNodeValue"
   }),
 
-  
-
-
+  /**
+   * Return a new AttributeModificationList for this node.
+   */
   startModifyingAttributes: function() {
     return AttributeModificationList(this);
   },
@@ -465,11 +465,11 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     return this._attrMap[name] || undefined;
   },
 
-  
-
-
-
-
+  /**
+   * Set this node's parent.  Note that the children saved in
+   * this tree are unordered and incomplete, so shouldn't be used
+   * instead of a `children` request.
+   */
   reparent: function(parent) {
     if (this._parent === parent) {
       return;
@@ -488,7 +488,7 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     this._prev = null;
     this._parent = parent;
     if (!parent) {
-      
+      // Subtree is disconnected, we're done
       return;
     }
     this._next = parent._child;
@@ -498,9 +498,9 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     parent._child = this;
   },
 
-  
-
-
+  /**
+   * Return all the known children of this node.
+   */
   treeChildren: function() {
     let ret = [];
     for (let child = this._child; child != null; child = child._next) {
@@ -509,11 +509,11 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     return ret;
   },
 
-  
-
-
-
-
+  /**
+   * Get an nsIDOMNode for the given node front.  This only works locally,
+   * and is only intended as a stopgap during the transition to the remote
+   * protocol.  If you depend on this you're likely to break soon.
+   */
   rawNode: function(rawNode) {
     if (!this.conn._transport._serverConnection) {
       console.warn("Tried to use rawNode on a remote connection.");
@@ -521,39 +521,39 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     }
     let actor = this.conn._transport._serverConnection.getActor(this.actorID);
     if (!actor) {
-      
-      
+      // Can happen if we try to get the raw node for an already-expired
+      // actor.
       return null;
     }
     return actor.rawNode;
   }
 });
 
-
-
-
-
+/**
+ * Returned from any call that might return a node that isn't connected to root by
+ * nodes the child has seen, such as querySelector.
+ */
 types.addDictType("disconnectedNode", {
-  
+  // The actual node to return
   node: "domnode",
 
-  
+  // Nodes that are needed to connect the node to a node the client has already seen
   newParents: "array:domnode"
 });
 
 types.addDictType("disconnectedNodeArray", {
-  
+  // The actual node list to return
   nodes: "array:domnode",
 
-  
+  // Nodes that are needed to connect those nodes to the root.
   newParents: "array:domnode"
 });
 
 types.addDictType("dommutation", {});
 
-
-
-
+/**
+ * Server side of a node list as returned by querySelectorAll()
+ */
 var NodeListActor = exports.NodeListActor = protocol.ActorClass({
   typeName: "domnodelist",
 
@@ -567,22 +567,22 @@ var NodeListActor = exports.NodeListActor = protocol.ActorClass({
     protocol.Actor.prototype.destroy.call(this);
   },
 
-  
-
-
-
+  /**
+   * Instead of storing a connection object, the NodeActor gets its connection
+   * from its associated walker.
+   */
   get conn() {
     return this.walker.conn;
   },
 
-  
-
-
+  /**
+   * Items returned by this actor should belong to the parent walker.
+   */
   marshallPool: function() {
     return this.walker;
   },
 
-  
+  // Returns the JSON representation of this object over the wire.
   form: function() {
     return {
       actor: this.actorID,
@@ -590,9 +590,9 @@ var NodeListActor = exports.NodeListActor = protocol.ActorClass({
     }
   },
 
-  
-
-
+  /**
+   * Get a single node from the node list.
+   */
   item: method(function(index) {
     let node = this.walker._ref(this.nodeList[index]);
     let newParents = [node for (node of this.walker.ensurePathToRoot(node))];
@@ -605,9 +605,9 @@ var NodeListActor = exports.NodeListActor = protocol.ActorClass({
     response: RetVal("disconnectedNode")
   }),
 
-  
-
-
+  /**
+   * Get a range of the items from the node list.
+   */
   items: method(function(start=0, end=this.nodeList.length) {
     let items = [this.walker._ref(item) for (item of Array.prototype.slice.call(this.nodeList, start, end))];
     let newParents = new Set();
@@ -629,9 +629,9 @@ var NodeListActor = exports.NodeListActor = protocol.ActorClass({
   release: method(function() {}, { release: true })
 });
 
-
-
-
+/**
+ * Client side of a node list as returned by querySelectorAll()
+ */
 var NodeListFront = exports.NodeLIstFront = protocol.FrontClass(NodeListActor, {
   initialize: function(client, form) {
     protocol.Front.prototype.initialize.call(this, client, form);
@@ -645,7 +645,7 @@ var NodeListFront = exports.NodeLIstFront = protocol.FrontClass(NodeListActor, {
     return this.parent();
   },
 
-  
+  // Update the object given a form representation off the wire.
   form: function(json) {
     this.length = json.length;
   },
@@ -667,7 +667,7 @@ var NodeListFront = exports.NodeLIstFront = protocol.FrontClass(NodeListActor, {
   })
 });
 
-
+// Some common request/response templates for the dom walker
 
 let nodeArrayMethod = {
   request: {
@@ -692,17 +692,17 @@ let traversalMethod = {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * We need to know when a document is navigating away so that we can kill
+ * the nodes underneath it.  We also need to know when a document is
+ * navigated to so that we can send a mutation event for the iframe node.
+ *
+ * The nsIWebProgressListener is the easiest/best way to watch these
+ * loads that works correctly with the bfcache.
+ *
+ * See nsIWebProgressListener for details
+ * https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsIWebProgressListener
+ */
 var ProgressListener = Class({
   extends: Unknown,
   interfaces: ["nsIWebProgressListener", "nsISupportsWeakReference"],
@@ -719,7 +719,7 @@ var ProgressListener = Class({
     try {
       this.webProgress.removeProgressListener(this);
     } catch(ex) {
-      
+      // This can throw during browser shutdown.
     }
     this.webProgress = null;
   },
@@ -750,9 +750,9 @@ var ProgressListener = Class({
   onLocationChange: function() {},
 });
 
-
-
-
+/**
+ * Server side of the DOM walker.
+ */
 var WalkerActor = protocol.ActorClass({
   typeName: "domwalker",
 
@@ -762,11 +762,11 @@ var WalkerActor = protocol.ActorClass({
     }
   },
 
-  
-
-
-
-
+  /**
+   * Create the WalkerActor
+   * @param DebuggerServerConnection conn
+   *    The server connection.
+   */
   initialize: function(conn, tabActor, options) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.rootWin = tabActor.window;
@@ -777,14 +777,14 @@ var WalkerActor = protocol.ActorClass({
 
     this.layoutHelpers = new LayoutHelpers(this.rootWin);
 
-    
-    
-    
+    // Nodes which have been removed from the client's known
+    // ownership tree are considered "orphaned", and stored in
+    // this set.
     this._orphaned = new Set();
 
-    
-    
-    
+    // The client can tell the walker that it is interested in a node
+    // even when it is orphaned with the `retainNode` method.  This
+    // list contains orphaned nodes that were so retained.
     this._retainedOrphans = new Set();
 
     this.onMutations = this.onMutations.bind(this);
@@ -796,12 +796,12 @@ var WalkerActor = protocol.ActorClass({
     events.on(this.progressListener, "windowchange-start", this.onFrameUnload);
     events.on(this.progressListener, "windowchange-stop", this.onFrameLoad);
 
-    
-    
+    // Ensure that the root document node actor is ready and
+    // managed.
     this.rootNode = this.document();
   },
 
-  
+  // Returns the JSON representation of this object over the wire.
   form: function() {
     return {
       actor: this.actorID,
@@ -841,8 +841,8 @@ var WalkerActor = protocol.ActorClass({
 
     actor = new NodeActor(this, node);
 
-    
-    
+    // Add the node actor as a child of this walker actor, assigning
+    // it an actorID.
     this.manage(actor);
     this._refMap.set(node, actor);
 
@@ -852,9 +852,9 @@ var WalkerActor = protocol.ActorClass({
     return actor;
   },
 
-  
-
-
+  /**
+   * Pick a node on click.
+   */
   _pickDeferred: null,
   pick: method(function() {
     if (this._pickDeferred) {
@@ -910,9 +910,9 @@ var WalkerActor = protocol.ActorClass({
     }
   }),
 
-  
-
-
+  /**
+   * Simple highlight mechanism.
+   */
   _unhighlight: function() {
     clearTimeout(this._highlightTimeout);
     if (!this.rootDoc) {
@@ -939,14 +939,14 @@ var WalkerActor = protocol.ActorClass({
 
   }, { request: { node: Arg(0, "nullable:domnode") }}),
 
-  
-
-
-
+  /**
+   * Watch the given document node for mutations using the DOM observer
+   * API.
+   */
   _watchDocument: function(actor) {
     let node = actor.rawNode;
-    
-    
+    // Create the observer on the node's actor.  The node will make sure
+    // the observer is cleaned up when the actor is released.
     actor.observer = actor.rawNode.defaultView.MutationObserver(this.onMutations);
     actor.observer.observe(node, {
       attributes: true,
@@ -956,13 +956,13 @@ var WalkerActor = protocol.ActorClass({
     });
   },
 
-  
-
-
-
-
-
-
+  /**
+   * Return the document node that contains the given node,
+   * or the root node if no node is specified.
+   * @param NodeActor node
+   *        The node whose document is needed, or null to
+   *        return the root.
+   */
   document: method(function(node) {
     let doc = node ? nodeDocument(node.rawNode) : this.rootDoc;
     return this._ref(doc);
@@ -971,13 +971,13 @@ var WalkerActor = protocol.ActorClass({
     response: { node: RetVal("domnode") },
   }),
 
-  
-
-
-
-
-
-
+  /**
+   * Return the documentElement for the document containing the
+   * given node.
+   * @param NodeActor node
+   *        The node whose documentElement is requested, or null
+   *        to use the root document.
+   */
   documentElement: method(function(node) {
     let elt = node ? nodeDocument(node.rawNode).documentElement : this.rootDoc.documentElement;
     return this._ref(elt);
@@ -986,16 +986,16 @@ var WalkerActor = protocol.ActorClass({
     response: { node: RetVal("domnode") },
   }),
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Return all parents of the given node, ordered from immediate parent
+   * to root.
+   * @param NodeActor node
+   *    The node whose parents are requested.
+   * @param object options
+   *    Named options, including:
+   *    `sameDocument`: If true, parents will be restricted to the same
+   *      document as the node.
+   */
   parents: method(function(node, options={}) {
     let walker = documentWalker(node.rawNode, this.rootWin);
     let parents = [];
@@ -1026,23 +1026,23 @@ var WalkerActor = protocol.ActorClass({
     return null;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Mark a node as 'retained'.
+   *
+   * A retained node is not released when `releaseNode` is called on its
+   * parent, or when a parent is released with the `cleanup` option to
+   * `getMutations`.
+   *
+   * When a retained node's parent is released, a retained mode is added to
+   * the walker's "retained orphans" list.
+   *
+   * Retained nodes can be deleted by providing the `force` option to
+   * `releaseNode`.  They will also be released when their document
+   * has been destroyed.
+   *
+   * Retaining a node makes no promise about its children;  They can
+   * still be removed by normal means.
+   */
   retainNode: method(function(node) {
     node.retained = true;
   }, {
@@ -1050,10 +1050,10 @@ var WalkerActor = protocol.ActorClass({
     response: {}
   }),
 
-  
-
-
-
+  /**
+   * Remove the 'retained' mark from a node.  If the node was a
+   * retained orphan, release it.
+   */
   unretainNode: method(function(node) {
     node.retained = false;
     if (this._retainedOrphans.has(node)) {
@@ -1065,9 +1065,9 @@ var WalkerActor = protocol.ActorClass({
     response: {},
   }),
 
-  
-
-
+  /**
+   * Release actors for a node and all child nodes.
+   */
   releaseNode: method(function(node, options={}) {
     if (node.retained && !options.force) {
       this._retainedOrphans.add(node);
@@ -1075,7 +1075,7 @@ var WalkerActor = protocol.ActorClass({
     }
 
     if (node.retained) {
-      
+      // Forcing a retained node to go away.
       this._retainedOrphans.delete(node);
     }
 
@@ -1098,10 +1098,10 @@ var WalkerActor = protocol.ActorClass({
     }
   }),
 
-  
-
-
-
+  /**
+   * Add any nodes between `node` and the walker's root node that have not
+   * yet been seen by the client.
+   */
   ensurePathToRoot: function(node, newParents=new Set()) {
     if (!node) {
       return newParents;
@@ -1111,40 +1111,40 @@ var WalkerActor = protocol.ActorClass({
     while ((cur = walker.parentNode())) {
       let parent = this._refMap.get(cur);
       if (!parent) {
-        
+        // This parent didn't exist, so hasn't been seen by the client yet.
         newParents.add(this._ref(cur));
       } else {
-        
+        // This parent did exist, so the client knows about it.
         return newParents;
       }
     }
     return newParents;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Return children of the given node.  By default this method will return
+   * all children of the node, but there are options that can restrict this
+   * to a more manageable subset.
+   *
+   * @param NodeActor node
+   *    The node whose children you're curious about.
+   * @param object options
+   *    Named options:
+   *    `maxNodes`: The set of nodes returned by the method will be no longer
+   *       than maxNodes.
+   *    `start`: If a node is specified, the list of nodes will start
+   *       with the given child.  Mutally exclusive with `center`.
+   *    `center`: If a node is specified, the given node will be as centered
+   *       as possible in the list, given how close to the ends of the child
+   *       list it is.  Mutually exclusive with `start`.
+   *    `whatToShow`: A bitmask of node types that should be included.  See
+   *       https://developer.mozilla.org/en-US/docs/Web/API/NodeFilter.
+   *
+   * @returns an object with three items:
+   *    hasFirst: true if the first child of the node is included in the list.
+   *    hasLast: true if the last child of the node is included in the list.
+   *    nodes: Child nodes returned by the request.
+   */
   children: method(function(node, options={}) {
     if (options.center && options.start) {
       throw Error("Can't specify both 'center' and 'start' options.");
@@ -1154,19 +1154,19 @@ var WalkerActor = protocol.ActorClass({
       maxNodes = Number.MAX_VALUE;
     }
 
-    
-    
+    // We're going to create a few document walkers with the same filter,
+    // make it easier.
     let filteredWalker = (node) => {
       return documentWalker(node, this.rootWin, options.whatToShow);
     }
 
-    
+    // Need to know the first and last child.
     let rawNode = node.rawNode;
     let firstChild = filteredWalker(rawNode).firstChild();
     let lastChild = filteredWalker(rawNode).lastChild();
 
     if (!firstChild) {
-      
+      // No children, we're done.
       return { hasFirst: true, hasLast: true, nodes: [] };
     }
 
@@ -1181,7 +1181,7 @@ var WalkerActor = protocol.ActorClass({
 
     let nodes = [];
 
-    
+    // Start by reading backward from the starting point if we're centering...
     let backwardWalker = filteredWalker(start);
     if (start != firstChild && options.center) {
       backwardWalker.previousSibling();
@@ -1190,18 +1190,18 @@ var WalkerActor = protocol.ActorClass({
       nodes = backwardNodes;
     }
 
-    
+    // Then read forward by any slack left in the max children...
     let forwardWalker = filteredWalker(start);
     let forwardCount = maxNodes - nodes.length;
     nodes = nodes.concat(this._readForward(forwardWalker, forwardCount));
 
-    
-    
+    // If there's any room left, it means we've run all the way to the end.
+    // If we're centering, check if there are more items to read at the front.
     let remaining = maxNodes - nodes.length;
     if (options.center && remaining > 0 && nodes[0].rawNode != firstChild) {
       let firstNodes = this._readBackward(backwardWalker, remaining);
 
-      
+      // Then put it all back together.
       nodes = firstNodes.concat(nodes);
     }
 
@@ -1212,33 +1212,33 @@ var WalkerActor = protocol.ActorClass({
     };
   }, nodeArrayMethod),
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Return siblings of the given node.  By default this method will return
+   * all siblings of the node, but there are options that can restrict this
+   * to a more manageable subset.
+   *
+   * If `start` or `center` are not specified, this method will center on the
+   * node whose siblings are requested.
+   *
+   * @param NodeActor node
+   *    The node whose children you're curious about.
+   * @param object options
+   *    Named options:
+   *    `maxNodes`: The set of nodes returned by the method will be no longer
+   *       than maxNodes.
+   *    `start`: If a node is specified, the list of nodes will start
+   *       with the given child.  Mutally exclusive with `center`.
+   *    `center`: If a node is specified, the given node will be as centered
+   *       as possible in the list, given how close to the ends of the child
+   *       list it is.  Mutually exclusive with `start`.
+   *    `whatToShow`: A bitmask of node types that should be included.  See
+   *       https://developer.mozilla.org/en-US/docs/Web/API/NodeFilter.
+   *
+   * @returns an object with three items:
+   *    hasFirst: true if the first child of the node is included in the list.
+   *    hasLast: true if the last child of the node is included in the list.
+   *    nodes: Child nodes returned by the request.
+   */
   siblings: method(function(node, options={}) {
     let parentNode = documentWalker(node.rawNode, this.rootWin).parentNode();
     if (!parentNode) {
@@ -1256,40 +1256,40 @@ var WalkerActor = protocol.ActorClass({
     return this.children(this._ref(parentNode), options);
   }, nodeArrayMethod),
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Get the next sibling of a given node.  Getting nodes one at a time
+   * might be inefficient, be careful.
+   *
+   * @param object options
+   *    Named options:
+   *    `whatToShow`: A bitmask of node types that should be included.  See
+   *       https://developer.mozilla.org/en-US/docs/Web/API/NodeFilter.
+   */
   nextSibling: method(function(node, options={}) {
     let walker = documentWalker(node.rawNode, this.rootWin, options.whatToShow || Ci.nsIDOMNodeFilter.SHOW_ALL);
     let sibling = walker.nextSibling();
     return sibling ? this._ref(sibling) : null;
   }, traversalMethod),
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Get the previous sibling of a given node.  Getting nodes one at a time
+   * might be inefficient, be careful.
+   *
+   * @param object options
+   *    Named options:
+   *    `whatToShow`: A bitmask of node types that should be included.  See
+   *       https://developer.mozilla.org/en-US/docs/Web/API/NodeFilter.
+   */
   previousSibling: method(function(node, options={}) {
     let walker = documentWalker(node.rawNode, this.rootWin, options.whatToShow || Ci.nsIDOMNodeFilter.SHOW_ALL);
     let sibling = walker.previousSibling();
     return sibling ? this._ref(sibling) : null;
   }, traversalMethod),
 
-  
-
-
-
+  /**
+   * Helper function for the `children` method: Read forward in the sibling
+   * list into an array with `count` items, including the current node.
+   */
   _readForward: function(walker, count)
   {
     let ret = [];
@@ -1301,10 +1301,10 @@ var WalkerActor = protocol.ActorClass({
     return ret;
   },
 
-  
-
-
-
+  /**
+   * Helper function for the `children` method: Read backward in the sibling
+   * list into an array with `count` items, including the current node.
+   */
   _readBackward: function(walker, count)
   {
     let ret = [];
@@ -1317,19 +1317,21 @@ var WalkerActor = protocol.ActorClass({
     return ret;
   },
 
-  
-
-
-
-
-
-
+  /**
+   * Return the first node in the document that matches the given selector.
+   * See https://developer.mozilla.org/en-US/docs/Web/API/Element.querySelector
+   *
+   * @param NodeActor baseNode
+   * @param string selector
+   */
   querySelector: method(function(baseNode, selector) {
+    if (!baseNode) {
+      return {}
+    };
     let node = baseNode.rawNode.querySelector(selector);
 
     if (!node) {
-      return {
-      }
+      return {}
     };
 
     let node = this._ref(node);
@@ -1346,13 +1348,13 @@ var WalkerActor = protocol.ActorClass({
     response: RetVal("disconnectedNode")
   }),
 
-  
-
-
-
-
-
-
+  /**
+   * Return a NodeListActor with all nodes that match the given selector.
+   * See https://developer.mozilla.org/en-US/docs/Web/API/Element.querySelectorAll
+   *
+   * @param NodeActor baseNode
+   * @param string selector
+   */
   querySelectorAll: method(function(baseNode, selector) {
     return new NodeListActor(this, baseNode.rawNode.querySelectorAll(selector));
   }, {
@@ -1365,20 +1367,20 @@ var WalkerActor = protocol.ActorClass({
     }
   }),
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Add a pseudo-class lock to a node.
+   *
+   * @param NodeActor node
+   * @param string pseudo
+   *    A pseudoclass: ':hover', ':active', ':focus'
+   * @param options
+   *    Options object:
+   *    `parents`: True if the pseudo-class should be added
+   *      to parent nodes.
+   *
+   * @returns An empty packet.  A "pseudoClassLock" mutation will
+   *    be queued for any changed nodes.
+   */
   addPseudoClassLock: method(function(node, pseudo, options={}) {
     this._addPseudoClassLock(node, pseudo);
 
@@ -1446,20 +1448,20 @@ var WalkerActor = protocol.ActorClass({
     request: { node: Arg(0, "domnode") }
   }),
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Remove a pseudo-class lock from a node.
+   *
+   * @param NodeActor node
+   * @param string pseudo
+   *    A pseudoclass: ':hover', ':active', ':focus'
+   * @param options
+   *    Options object:
+   *    `parents`: True if the pseudo-class should be removed
+   *      from parent nodes.
+   *
+   * @returns An empty response.  "pseudoClassLock" mutations
+   *    will be emitted for any changed nodes.
+   */
   removePseudoClassLock: method(function(node, pseudo, options={}) {
     this._removePseudoClassLock(node, pseudo);
 
@@ -1494,10 +1496,10 @@ var WalkerActor = protocol.ActorClass({
     return true;
   },
 
-  
-
-
-
+  /**
+   * Clear all the pseudo-classes on a given node
+   * or all nodes.
+   */
   clearPseudoClassLocks: method(function(node) {
     if (node) {
       DOMUtils.clearPseudoClassLocks(node.rawNode);
@@ -1517,9 +1519,9 @@ var WalkerActor = protocol.ActorClass({
     response: {}
   }),
 
-  
-
-
+  /**
+   * Get a node's innerHTML property.
+   */
   innerHTML: method(function(node) {
     return LongStringActor(this.conn, node.rawNode.innerHTML);
   }, {
@@ -1531,9 +1533,9 @@ var WalkerActor = protocol.ActorClass({
     }
   }),
 
-  
-
-
+  /**
+   * Get a node's outerHTML property.
+   */
   outerHTML: method(function(node) {
     return LongStringActor(this.conn, node.rawNode.outerHTML);
   }, {
@@ -1545,11 +1547,11 @@ var WalkerActor = protocol.ActorClass({
     }
   }),
 
-  
-
-
-
-
+  /**
+   * Removes a node from its parent node.
+   *
+   * @returns The node's nextSibling before it was removed.
+   */
   removeNode: method(function(node) {
     if ((node.rawNode.ownerDocument &&
          node.rawNode.ownerDocument.documentElement === this.rawNode) ||
@@ -1559,7 +1561,7 @@ var WalkerActor = protocol.ActorClass({
     let nextSibling = this.nextSibling(node);
     if (node.rawNode.parentNode) {
       node.rawNode.parentNode.removeChild(node.rawNode);
-      
+      // Mutation events will take care of the rest.
     }
     return nextSibling;
   }, {
@@ -1571,9 +1573,9 @@ var WalkerActor = protocol.ActorClass({
     }
   }),
 
-  
-
-
+  /**
+   * Insert a node into the DOM.
+   */
   insertBefore: method(function(node, parent, sibling) {
     parent.rawNode.insertBefore(node.rawNode, sibling ? sibling.rawNode : null);
   }, {
@@ -1585,57 +1587,57 @@ var WalkerActor = protocol.ActorClass({
     response: {}
   }),
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Get any pending mutation records.  Must be called by the client after
+   * the `new-mutations` notification is received.  Returns an array of
+   * mutation records.
+   *
+   * Mutation records have a basic structure:
+   *
+   * {
+   *   type: attributes|characterData|childList,
+   *   target: <domnode actor ID>,
+   * }
+   *
+   * And additional attributes based on the mutation type:
+   *
+   * `attributes` type:
+   *   attributeName: <string> - the attribute that changed
+   *   attributeNamespace: <string> - the attribute's namespace URI, if any.
+   *   newValue: <string> - The new value of the attribute, if any.
+   *
+   * `characterData` type:
+   *   newValue: <string> - the new shortValue for the node
+   *   [incompleteValue: true] - True if the shortValue was truncated.
+   *
+   * `childList` type is returned when the set of children for a node
+   * has changed.  Includes extra data, which can be used by the client to
+   * maintain its ownership subtree.
+   *
+   *   added: array of <domnode actor ID> - The list of actors *previously
+   *     seen by the client* that were added to the target node.
+   *   removed: array of <domnode actor ID> The list of actors *previously
+   *     seen by the client* that were removed from the target node.
+   *
+   * Actors that are included in a MutationRecord's `removed` but
+   * not in an `added` have been removed from the client's ownership
+   * tree (either by being moved under a node the client has seen yet
+   * or by being removed from the tree entirely), and is considered
+   * 'orphaned'.
+   *
+   * Keep in mind that if a node that the client hasn't seen is moved
+   * into or out of the target node, it will not be included in the
+   * removedNodes and addedNodes list, so if the client is interested
+   * in the new set of children it needs to issue a `children` request.
+   */
   getMutations: method(function(options={}) {
     let pending = this._pendingMutations || [];
     this._pendingMutations = [];
 
     if (options.cleanup) {
       for (let node of this._orphaned) {
-        
-        
+        // Release the orphaned node.  Nodes or children that have been
+        // retained will be moved to this._retainedOrphans.
         this.releaseNode(node);
       }
       this._orphaned = new Set();
@@ -1653,11 +1655,11 @@ var WalkerActor = protocol.ActorClass({
 
   queueMutation: function(mutation) {
     if (!this.actorID) {
-      
+      // We've been destroyed, don't bother queueing this mutation.
       return;
     }
-    
-    
+    // We only send the `new-mutations` notification once, until the client
+    // fetches mutations with the `getMutations` packet.
     let needEvent = this._pendingMutations.length === 0;
 
     this._pendingMutations.push(mutation);
@@ -1667,12 +1669,12 @@ var WalkerActor = protocol.ActorClass({
     }
   },
 
-  
-
-
-
-
-
+  /**
+   * Handles mutations from the DOM mutation observer API.
+   *
+   * @param array[MutationRecord] mutations
+   *    See https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver#MutationRecord
+   */
   onMutations: function(mutations) {
     for (let change of mutations) {
       let targetActor = this._refMap.get(change.target);
@@ -1697,32 +1699,32 @@ var WalkerActor = protocol.ActorClass({
           mutation.newValue = targetNode.nodeValue;
         }
       } else if (mutation.type === "childList") {
-        
-        
+        // Get the list of removed and added actors that the client has seen
+        // so that it can keep its ownership tree up to date.
         let removedActors = [];
         let addedActors = [];
         for (let removed of change.removedNodes) {
           let removedActor = this._refMap.get(removed);
           if (!removedActor) {
-            
-            
+            // If the client never encountered this actor we don't need to
+            // mention that it was removed.
             continue;
           }
-          
+          // While removed from the tree, nodes are saved as orphaned.
           this._orphaned.add(removedActor);
           removedActors.push(removedActor.actorID);
         }
         for (let added of change.addedNodes) {
           let addedActor = this._refMap.get(added);
           if (!addedActor) {
-            
-            
-            
+            // If the client never encounted this actor we don't need to tell
+            // it about its addition for ownership tree purposes - if the
+            // client wants to see the new nodes it can ask for children.
             continue;
           }
-          
-          
-          
+          // The actor is reconnected to the ownership tree, unorphan
+          // it and let the client know so that its ownership tree is up
+          // to date.
           this._orphaned.delete(addedActor);
           addedActors.push(addedActor.actorID);
         }
@@ -1755,7 +1757,7 @@ var WalkerActor = protocol.ActorClass({
       target: frameActor.actorID,
     });
 
-    
+    // Send a childList mutation on the frame.
     this.queueMutation({
       type: "childList",
       target: frameActor.actorID,
@@ -1764,7 +1766,7 @@ var WalkerActor = protocol.ActorClass({
     })
   },
 
-  
+  // Returns true if domNode is in window or a subframe.
   _childOfWindow: function(window, domNode) {
     let win = nodeDocument(domNode).defaultView;
     while (win) {
@@ -1777,9 +1779,9 @@ var WalkerActor = protocol.ActorClass({
   },
 
   onFrameUnload: function(window) {
-    
-    
-    
+    // Any retained orphans that belong to this document
+    // or its children need to be released, and a mutation sent
+    // to notify of that.
     let releasedOrphans = [];
 
     for (let retained of this._retainedOrphans) {
@@ -1818,8 +1820,8 @@ var WalkerActor = protocol.ActorClass({
     let walker = documentWalker(doc, this.rootWin);
     let parentNode = walker.parentNode();
     if (parentNode) {
-      
-      
+      // Send a childList mutation on the frame so that clients know
+      // they should reread the children list.
       this.queueMutation({
         type: "childList",
         target: this._refMap.get(parentNode).actorID,
@@ -1828,17 +1830,17 @@ var WalkerActor = protocol.ActorClass({
       });
     }
 
-    
-    
+    // Need to force a release of this node, because those nodes can't
+    // be accessed anymore.
     this.releaseNode(documentActor, { force: true });
   }
 });
 
-
-
-
+/**
+ * Client side of the DOM walker.
+ */
 var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
-  
+  // Set to true if cleanup should be requested after every mutation list.
   autoCleanup: true,
 
   pick: protocol.custom(function() {
@@ -1860,27 +1862,27 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     protocol.Front.prototype.destroy.call(this);
   },
 
-  
+  // Update the object given a form representation off the wire.
   form: function(json) {
     this.actorID = json.actor;
     this.rootNode = types.getType("domnode").read(json.root, this);
     this._rootNodeDeferred.resolve(this.rootNode);
   },
 
-  
-
-
-
-
-
+  /**
+   * Clients can use walker.rootNode to get the current root node of the
+   * walker, but during a reload the root node might be null.  This
+   * method returns a promise that will resolve to the root node when it is
+   * set.
+   */
   getRootNode: function() {
     return this._rootNodeDeferred.promise;
   },
 
-  
-
-
-
+  /**
+   * Create the root node promise, triggering the "new-root" notification
+   * on resolution.
+   */
   _createRootNodePromise: function() {
     this._rootNodeDeferred = promise.defer();
     this._rootNodeDeferred.promise.then(() => {
@@ -1888,14 +1890,14 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     });
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * When reading an actor form off the wire, we want to hook it up to its
+   * parent front.  The protocol guarantees that the parent will be seen
+   * by the client in either a previous or the current request.
+   * So if we've already seen this parent return it, otherwise create
+   * a bare-bones stand-in node.  The stand-in node will be updated
+   * with a real form by the end of the deserialization.
+   */
   ensureParentFront: function(id) {
     let front = this.get(id);
     if (front) {
@@ -1905,26 +1907,26 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     return types.getType("domnode").read({ actor: id }, this, "standin");
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * See the documentation for WalkerActor.prototype.retainNode for
+   * information on retained nodes.
+   *
+   * From the client's perspective, `retainNode` can fail if the node in
+   * question is removed from the ownership tree before the `retainNode`
+   * request reaches the server.  This can only happen if the client has
+   * asked the server to release nodes but hasn't gotten a response
+   * yet: Either a `releaseNode` request or a `getMutations` with `cleanup`
+   * set is outstanding.
+   *
+   * If either of those requests is outstanding AND releases the retained
+   * node, this request will fail with noSuchActor, but the ownership tree
+   * will stay in a consistent state.
+   *
+   * Because the protocol guarantees that requests will be processed and
+   * responses received in the order they were sent, we get the right
+   * semantics by setting our local retained flag on the node only AFTER
+   * a SUCCESSFUL retainNode call.
+   */
   retainNode: protocol.custom(function(node) {
     return this._retainNode(node).then(() => {
       node.retained = true;
@@ -1946,8 +1948,8 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
   }),
 
   releaseNode: protocol.custom(function(node, options={}) {
-    
-    
+    // NodeFront.destroy will destroy children in the ownership tree too,
+    // mimicking what the server will do here.
     let actorID = node.actorID;
     this._releaseFront(node, !!options.force);
     return this._releaseNode({ actorID: actorID });
@@ -1971,28 +1973,28 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     }
 
     if (node.retained) {
-      
+      // Forcing a removal.
       this._retainedOrphans.delete(node);
     }
 
-    
+    // Release any children
     for (let child of node.treeChildren()) {
       this._releaseFront(child, force);
     }
 
-    
+    // All children will have been removed from the node by this point.
     node.reparent(null);
     node.destroy();
   },
 
-  
-
-
+  /**
+   * Get any unprocessed mutation records and process them.
+   */
   getMutations: protocol.custom(function(options={}) {
     return this._getMutations(options).then(mutations => {
       let emitMutations = [];
       for (let change of mutations) {
-        
+        // The target is only an actorID, get the associated front.
         let targetID;
         let targetFront;
 
@@ -2014,7 +2016,7 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
         let emittedMutation = object.merge(change, { target: targetFront });
 
         if (change.type === "childList") {
-          
+          // Update the ownership tree according to the mutation record.
           let addedFronts = [];
           let removedFronts = [];
           for (let removed of change.removed) {
@@ -2023,11 +2025,11 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
               console.error("Got a removal of an actor we didn't know about: " + removed);
               continue;
             }
-            
+            // Remove from the ownership tree
             removedFront.reparent(null);
 
-            
-            
+            // This node is orphaned unless we get it in the 'added' list
+            // eventually.
             this._orphaned.add(removedFront);
             removedFronts.push(removedFront);
           }
@@ -2039,20 +2041,20 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
             }
             addedFront.reparent(targetFront)
 
-            
-            
+            // The actor is reconnected to the ownership tree, unorphan
+            // it.
             this._orphaned.delete(addedFront);
             addedFronts.push(addedFront);
           }
-          
-          
+          // Before passing to users, replace the added and removed actor
+          // ids with front in the mutation record.
           emittedMutation.added = addedFronts;
           emittedMutation.removed = removedFronts;
           targetFront._form.numChildren = change.numChildren;
         } else if (change.type === "frameLoad") {
-          
-          
-          
+          // Nothing we need to do here, except verify that we don't have any
+          // document children, because we should have gotten a documentUnload
+          // first.
           for (let child of targetFront.treeChildren()) {
             if (child.nodeType === Ci.nsIDOMNode.DOCUMENT_NODE) {
               console.trace("Got an unexpected frameLoad in the inspector, please file a bug on bugzilla.mozilla.org!");
@@ -2063,16 +2065,16 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
             this._createRootNodePromise();
           }
 
-          
-          
+          // We try to give fronts instead of actorIDs, but these fronts need
+          // to be destroyed now.
           emittedMutation.target = targetFront.actorID;
           emittedMutation.targetParent = targetFront.parentNode();
 
-          
+          // Release the document node and all of its children, even retained.
           this._releaseFront(targetFront, true);
         } else if (change.type === "unretained") {
-          
-          
+          // Retained orphans were force-released without the intervention of
+          // client (probably a navigated frame).
           for (let released of change.nodes) {
             let releasedFront = this.get(released);
             this._retainedOrphans.delete(released);
@@ -2087,7 +2089,7 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
 
       if (options.cleanup) {
         for (let node of this._orphaned) {
-          
+          // This will move retained nodes to this._retainedOrphans.
           this._releaseFront(node);
         }
         this._orphaned = new Set();
@@ -2099,12 +2101,12 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     impl: "_getMutations"
   }),
 
-  
-
-
-
+  /**
+   * Handle the `new-mutations` notification by fetching the
+   * available mutation records.
+   */
   onMutations: protocol.preEvent("new-mutations", function() {
-    
+    // Fetch and process the mutations.
     this.getMutations({cleanup: this.autoCleanup}).then(null, console.error);
   }),
 
@@ -2112,8 +2114,8 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     return !!this.conn._transport._serverConnection;
   },
 
-  
-  
+  // XXX hack during transition to remote inspector: get a proper NodeFront
+  // for a given local node.  Only works locally.
   frontForRawNode: function(rawNode){
     if (!this.isLocal()) {
       console.warn("Tried to use frontForRawNode on a remote connection.");
@@ -2125,7 +2127,7 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     }
     let nodeActor = walkerActor._ref(rawNode);
 
-    
+    // Pass the node through a read/write pair to create the client side actor.
     let nodeType = types.getType("domnode");
     let returnNode = nodeType.read(nodeType.write(nodeActor, walkerActor), this);
     let top = returnNode;
@@ -2135,7 +2137,7 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     }
 
     if (top !== this.rootNode) {
-      
+      // Imported an already-orphaned node.
       this._orphaned.add(top);
       walkerActor._orphaned.add(this.conn._transport._serverConnection.getActor(top.actorID));
     }
@@ -2143,10 +2145,10 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
   }
 });
 
-
-
-
-
+/**
+ * Convenience API for building a list of attribute modifications
+ * for the `modifyAttributes` request.
+ */
 var AttributeModificationList = Class({
   initialize: function(node) {
     this.node = node;
@@ -2184,10 +2186,10 @@ var AttributeModificationList = Class({
   }
 })
 
-
-
-
-
+/**
+ * Server side of the inspector actor, which is used to create
+ * inspector-related actors, including the walker.
+ */
 var InspectorActor = protocol.ActorClass({
   typeName: "inspector",
   initialize: function(conn, tabActor) {
@@ -2246,17 +2248,17 @@ var InspectorActor = protocol.ActorClass({
   })
 });
 
-
-
-
-
+/**
+ * Client side of the inspector actor, which is used to create
+ * inspector-related actors, including the walker.
+ */
 var InspectorFront = exports.InspectorFront = protocol.FrontClass(InspectorActor, {
   initialize: function(client, tabForm) {
     protocol.Front.prototype.initialize.call(this, client);
     this.actorID = tabForm.inspectorActor;
 
-    
-    
+    // XXX: This is the first actor type in its hierarchy to use the protocol
+    // library, so we're going to self-own on the client side for now.
     client.addActorPool(this);
     this.manage(this);
   },
@@ -2272,8 +2274,8 @@ var InspectorFront = exports.InspectorFront = protocol.FrontClass(InspectorActor
 
   getPageStyle: protocol.custom(function() {
     return this._getPageStyle().then(pageStyle => {
-      
-      
+      // We need a walker to understand node references from the
+      // node style.
       if (this.walker) {
         return pageStyle;
       }
@@ -2290,19 +2292,19 @@ function documentWalker(node, rootWin, whatToShow=Ci.nsIDOMNodeFilter.SHOW_ALL) 
   return new DocumentWalker(node, rootWin, whatToShow, whitespaceTextFilter, false);
 }
 
-
+// Exported for test purposes.
 exports._documentWalker = documentWalker;
 
 function nodeDocument(node) {
   return node.ownerDocument || (node.nodeType == Ci.nsIDOMNode.DOCUMENT_NODE ? node : null);
 }
 
-
-
-
-
-
-
+/**
+ * Similar to a TreeWalker, except will dig in to iframes and it doesn't
+ * implement the good methods like previousNode and nextNode.
+ *
+ * See TreeWalker documentation for explanations of the methods.
+ */
 function DocumentWalker(aNode, aRootWin, aShow, aFilter, aExpandEntityReferences)
 {
   let doc = nodeDocument(aNode);
@@ -2320,11 +2322,11 @@ DocumentWalker.prototype = {
   get currentNode() this.walker.currentNode,
   set currentNode(aVal) this.walker.currentNode = aVal,
 
-  
-
-
-
-
+  /**
+   * Called when the new node is in a different document than
+   * the current node, creates a new treewalker for the document we've
+   * run in to.
+   */
   _reparentWalker: function DW_reparentWalker(aNewNode) {
     if (!aNewNode) {
       return null;
@@ -2388,9 +2390,9 @@ DocumentWalker.prototype = {
   nextSibling: function DW_nextSibling() this.walker.nextSibling()
 }
 
-
-
-
+/**
+ * A tree walker filter for avoiding empty whitespace text nodes.
+ */
 function whitespaceTextFilter(aNode)
 {
     if (aNode.nodeType == Ci.nsIDOMNode.TEXT_NODE &&

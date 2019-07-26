@@ -57,6 +57,10 @@ function test() {
     inspector.once("computed-view-refreshed", stylePanelAfterChange);
 
     testDiv.style.fontSize = "15px";
+
+    
+    
+    
     inspector.emit("layout-change");
   }
 
@@ -77,6 +81,11 @@ function test() {
       inspector.once("computed-view-refreshed", stylePanelAfterSwitch);
       testDiv.style.fontSize = "20px";
       inspector.sidebar.select("computedview");
+
+      
+      
+      
+      inspector.emit("layout-change");
     });
   }
 
