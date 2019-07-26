@@ -1091,6 +1091,43 @@ void CopyRawHeader(const char *aInput, uint32_t aLen,
   }
 }
 
+nsresult DecodeQOrBase64Str(const char *aEncoded, size_t aLen, char aQOrBase64,
+                            const char *aCharset, nsACString &aResult)
+{
+  char *decodedText;
+  NS_ASSERTION(aQOrBase64 == 'Q' || aQOrBase64 == 'B', "Should be 'Q' or 'B'");
+  if(aQOrBase64 == 'Q')
+    decodedText = DecodeQ(aEncoded, aLen);
+  else if (aQOrBase64 == 'B') {
+    decodedText = PL_Base64Decode(aEncoded, aLen, nullptr);
+  } else {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  if (!decodedText) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  nsresult rv;
+  nsCOMPtr<nsIUTF8ConverterService>
+    cvtUTF8(do_GetService(NS_UTF8CONVERTERSERVICE_CONTRACTID, &rv));
+  nsAutoCString utf8Text;
+  if (NS_SUCCEEDED(rv)) {
+    
+    rv = cvtUTF8->ConvertStringToUTF8(nsDependentCString(decodedText),
+                                      aCharset,
+                                      IS_7BIT_NON_ASCII_CHARSET(aCharset),
+                                      true, 1, utf8Text);
+  }
+  PR_Free(decodedText);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  aResult.Append(utf8Text);
+
+  return NS_OK;
+}
+
 static const char especials[] = "()<>@,;:\\\"/[]?.=";
 
 
@@ -1103,14 +1140,13 @@ nsresult DecodeRFC2047Str(const char *aHeader, const char *aDefaultCharset,
                           bool aOverrideCharset, nsACString &aResult)
 {
   const char *p, *q = nullptr, *r;
-  char *decodedText;
   const char *begin; 
   int32_t isLastEncodedWord = 0;
   const char *charsetStart, *charsetEnd;
-  char charset[80];
-
-  
-  charset[0] = '\0';
+  nsAutoCString prevCharset, curCharset;
+  nsAutoCString encodedText;
+  char prevEncoding = '\0', curEncoding;
+  nsresult rv;
 
   begin = aHeader;
 
@@ -1155,15 +1191,9 @@ nsresult DecodeRFC2047Str(const char *aHeader, const char *aDefaultCharset,
       charsetEnd = q;
     }
 
-    
-    if (uint32_t(charsetEnd - charsetStart) >= sizeof(charset)) 
-      goto badsyntax;
-    
-    memcpy(charset, charsetStart, charsetEnd - charsetStart);
-    charset[charsetEnd - charsetStart] = 0;
-
     q++;
-    if (*q != 'Q' && *q != 'q' && *q != 'B' && *q != 'b')
+    curEncoding = nsCRT::ToUpper(*q);
+    if (curEncoding != 'Q' && curEncoding != 'B')
       goto badsyntax;
 
     if (q[1] != '?')
@@ -1182,53 +1212,86 @@ nsresult DecodeRFC2047Str(const char *aHeader, const char *aDefaultCharset,
         continue;
     }
 
-    if(*q == 'Q' || *q == 'q')
-      decodedText = DecodeQ(q + 2, r - (q + 2));
-    else {
+    curCharset.Assign(charsetStart, charsetEnd - charsetStart);
+    
+    
+    if ((aOverrideCharset && 0 != nsCRT::strcasecmp(curCharset.get(), "UTF-8"))
+    || (aDefaultCharset && 0 == nsCRT::strcasecmp(curCharset.get(), "UNKNOWN-8BIT"))
+    ) {
+      curCharset = aDefaultCharset;
+    }
+
+    const char *R;
+    R = r;
+    if (curEncoding == 'B') {
       
       
       int32_t n = r - (q + 2);
-      n -= (n % 4 == 1 && !PL_strncmp(r - 3, "===", 3)) ? 1 : 0;
-      decodedText = PL_Base64Decode(q + 2, n, nullptr);
+      R -= (n % 4 == 1 && !PL_strncmp(r - 3, "===", 3)) ? 1 : 0;
+    }
+    
+    if (R[-1] != '='
+      && (prevCharset.IsEmpty()
+        || (curCharset == prevCharset && curEncoding == prevEncoding))
+    ) {
+      encodedText.Append(q + 2, R - (q + 2));
+      prevCharset = curCharset;
+      prevEncoding = curEncoding;
+
+      begin = r + 2;
+      isLastEncodedWord = 1;
+      continue;
     }
 
-    if (decodedText == nullptr)
-      goto badsyntax;
-
-    
-    
-    if ((aOverrideCharset && 0 != nsCRT::strcasecmp(charset, "UTF-8")) ||
-        (aDefaultCharset && 0 == nsCRT::strcasecmp(charset, "UNKNOWN-8BIT"))) {
-      PL_strncpy(charset, aDefaultCharset, sizeof(charset) - 1);
-      charset[sizeof(charset) - 1] = '\0';
+    bool bDecoded; 
+    bDecoded = false;
+    if (!encodedText.IsEmpty()) {
+      if (curCharset == prevCharset && curEncoding == prevEncoding) {
+        encodedText.Append(q + 2, R - (q + 2));
+        bDecoded = true;
+      }
+      rv = DecodeQOrBase64Str(encodedText.get(), encodedText.Length(),
+                              prevEncoding, prevCharset.get(), aResult);
+      if (NS_FAILED(rv)) {
+        aResult.Append(encodedText);
+      }
+      encodedText.Truncate();
+      prevCharset.Truncate();
     }
-
-    {
-      nsCOMPtr<nsIUTF8ConverterService> 
-        cvtUTF8(do_GetService(NS_UTF8CONVERTERSERVICE_CONTRACTID));
-      nsAutoCString utf8Text;
-      
-      if (cvtUTF8 &&
-          NS_SUCCEEDED(
-            cvtUTF8->ConvertStringToUTF8(nsDependentCString(decodedText),
-                                         charset,
-                                         IS_7BIT_NON_ASCII_CHARSET(charset),
-                                         true, 1, utf8Text))) {
-        aResult.Append(utf8Text);
-      } else {
-        aResult.Append(REPLACEMENT_CHAR);
+    if (!bDecoded) {
+      rv = DecodeQOrBase64Str(q + 2, R - (q + 2), curEncoding,
+                              curCharset.get(), aResult);
+      if (NS_FAILED(rv)) {
+        aResult.Append(encodedText);
       }
     }
-    PR_Free(decodedText);
+
     begin = r + 2;
     isLastEncodedWord = 1;
     continue;
 
   badsyntax:
+    if (!encodedText.IsEmpty()) {
+      rv = DecodeQOrBase64Str(encodedText.get(), encodedText.Length(),
+                              prevEncoding, prevCharset.get(), aResult);
+      if (NS_FAILED(rv)) {
+        aResult.Append(encodedText);
+      }
+      encodedText.Truncate();
+      prevCharset.Truncate();
+    }
     
     aResult.Append(begin, p - begin);
     begin = p;
     isLastEncodedWord = 0;
+  }
+
+  if (!encodedText.IsEmpty()) {
+    rv = DecodeQOrBase64Str(encodedText.get(), encodedText.Length(),
+                            prevEncoding, prevCharset.get(), aResult);
+    if (NS_FAILED(rv)) {
+      aResult.Append(encodedText);
+    }
   }
 
   
