@@ -730,7 +730,7 @@ ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
 }
 
 void
-ContentParent::ShutDownProcess(bool aFromActorDestroyed)
+ContentParent::ShutDownProcess(bool aCloseWithError)
 {
   if (!mIsDestroyed) {
     mIsDestroyed = true;
@@ -741,9 +741,7 @@ ContentParent::ShutDownProcess(bool aFromActorDestroyed)
       static_cast<IndexedDBParent*>(idbParents[i])->Disconnect();
     }
 
-    if (aFromActorDestroyed) {
-      
-      
+    if (aCloseWithError) {
       AsyncChannel* channel = GetIPCChannel();
       if (channel) {
         channel->CloseWithError();
@@ -1797,6 +1795,12 @@ ContentParent::KillHard()
         FROM_HERE,
         NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
                             OtherProcess(), true));
+    
+    MessageLoop::current()->PostDelayedTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &ContentParent::ShutDownProcess,
+                           true),
+        3000);
 }
 
 bool
