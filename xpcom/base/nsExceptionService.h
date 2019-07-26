@@ -43,10 +43,7 @@ public:
   static void DropAllThreads();
   static nsExceptionManager *firstThread;
 
-  nsSupportsHashtable mProviders;
-
   
-
   static mozilla::Mutex* sLock;
 
   static unsigned tlsIndex;
