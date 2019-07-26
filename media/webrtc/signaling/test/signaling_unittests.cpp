@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include <iostream>
 #include <map>
@@ -24,7 +24,6 @@
 #include "PeerConnectionImpl.h"
 #include "PeerConnectionCtx.h"
 #include "runnable_utils.h"
-#include "nsStaticComponents.h"
 #include "nsServiceManagerUtils.h"
 #include "nsNetUtil.h"
 #include "nsIIOService.h"
@@ -126,11 +125,11 @@ enum sdpTestFlags
 
 enum offerAnswerFlags
 {
-  OFFER_NONE  = 0, // Sugar to make function calls clearer.
+  OFFER_NONE  = 0, 
   OFFER_AUDIO = (1<<0),
   OFFER_VIDEO = (1<<1),
-  // Leaving some room here for other media types
-  ANSWER_NONE  = 0, // Sugar to make function calls clearer.
+  
+  ANSWER_NONE  = 0, 
   ANSWER_AUDIO = (1<<8),
   ANSWER_VIDEO = (1<<9),
 
@@ -319,7 +318,7 @@ TestObserver::OnStateChange(uint32_t state_type)
     break;
   case IPeerConnectionObserver::kSdpState:
     std::cout << "SDP State: " << std::endl;
-    // NS_ENSURE_SUCCESS(rv, rv);
+    
     break;
   case IPeerConnectionObserver::kSipccState:
     rv = pc->GetSipccState(&gotstate);
@@ -358,7 +357,7 @@ TestObserver::OnStateChange(uint32_t state_type)
     std::cout << ")" << std::endl;
     break;
   default:
-    // Unknown State
+    
     break;
   }
 
@@ -382,8 +381,8 @@ TestObserver::OnAddStream(nsIDOMMediaStream *stream)
 
   streams.push_back(ms);
 
-  // We know that the media stream is secretly a Fake_SourceMediaStream,
-  // so now we can start it pulling from us
+  
+  
   Fake_SourceMediaStream *fs = static_cast<Fake_SourceMediaStream *>(ms->GetStream());
 
   test_utils->sts_target()->Dispatch(
@@ -442,7 +441,7 @@ TestObserver::OnAddIceCandidateError(uint32_t code, const char *message)
 
 class ParsedSDP {
  public:
-  //Line number with the corresponding SDP line.
+  
   typedef std::pair<int, std::string> SdpLine;
 
   ParsedSDP(std::string sdp):
@@ -488,9 +487,9 @@ class ParsedSDP {
     num_lines++;
   }
 
-  //Parse SDP as std::string into map that looks like:
-  // key: sdp content till first space
-  // value : <line_number, sdp content after the first space>
+  
+  
+  
   void Parse()
   {
     size_t prev = 0;
@@ -505,37 +504,37 @@ class ParsedSDP {
       std::string key;
       std::string value;
       if(whiteSpace == std::string::npos) {
-        //this is the line with no extra contents
-        //example, v=0, a=sendrecv
+        
+        
         key = line.substr(0, line.size() - 2);
-        //<line_no>:<valeu>
+        
         value = "";
       } else {
         key = line.substr(0, whiteSpace);
-        //<line_no>:<value>
+        
         value = line.substr(whiteSpace+1);
       }
       SdpLine sdp_line_pair = std::make_pair(num_lines,value);
       sdp_map_.insert(std::pair<std::string, SdpLine>(key, sdp_line_pair));
       num_lines++;
-      //storing ice candidates separately for quick acesss as needed
-      //for the trickle unit tests
+      
+      
       if (line.find("a=candidate") == 0) {
-        // This is a candidate, strip of a= and \r\n
+        
         std::string cand = line.substr(2, line.size() - 4);
         ice_candidates_.insert(std::pair<int, std::string>(levels_, cand));
        } else {
         sdp_without_ice_ += line;
       }
       if (line.find("m=") == 0) {
-        // This is an m-line
+        
         ++levels_;
       }
       prev = found + 1;
     }
   }
 
-  //Convert Internal SDP representation into String representation
+  
   std::string getSdp()
   {
      std::vector<std::string> sdp_lines(num_lines);
@@ -553,7 +552,7 @@ class ParsedSDP {
       }
    }
 
-    //generate our final sdp in std::string format
+    
     std::string sdp;
     for (size_t i = 0; i < sdp_lines.size(); i++)
     {
@@ -659,9 +658,9 @@ class SignalingAgent {
       pc = nullptr;
     }
 
-    // Shutdown is synchronous evidently.
-    // ASSERT_TRUE(pObserver->WaitForObserverCall());
-    // ASSERT_EQ(pc->sipcc_state(), sipcc::PeerConnectionInterface::kIdle);
+    
+    
+    
   }
 
   char* offer() const { return offer_; }
@@ -685,7 +684,7 @@ class SignalingAgent {
     return sdp;
   }
 
-  // Adds a stream to the PeerConnection.
+  
   void AddStream(uint32_t hint =
          DOMMediaStream::HINT_CONTENTS_AUDIO |
          DOMMediaStream::HINT_CONTENTS_VIDEO,
@@ -704,9 +703,9 @@ class SignalingAgent {
   }
 
 
-  // Removes a stream from the PeerConnection. If the stream
-  // parameter is absent, removes the stream that was most
-  // recently added to the PeerConnection.
+  
+  
+  
   void RemoveLastStreamAdded() {
     ASSERT_EQ(pc->RemoveStream(domMediaStream_), NS_OK);
   }
@@ -716,7 +715,7 @@ class SignalingAgent {
                    sipcc::PeerConnectionImpl::SignalingState endState =
                      sipcc::PeerConnectionImpl::kSignalingStable) {
 
-    // Create a media stream as if it came from GUM
+    
     Fake_AudioStreamSource *audio_stream =
       new Fake_AudioStreamSource();
 
@@ -736,7 +735,7 @@ class SignalingAgent {
     }
     AddStream(aHintContents, audio_stream);
 
-    // Now call CreateOffer as JS would
+    
     pObserver->state = TestObserver::stateNoResponse;
     ASSERT_EQ(pc->CreateOffer(constraints), NS_OK);
     ASSERT_TRUE_WAIT(pObserver->state != TestObserver::stateNoResponse,
@@ -764,8 +763,8 @@ void CreateAnswer(sipcc::MediaConstraints& constraints, std::string offer,
     }
     AddStream(aHintContents);
 
-    // Decide if streams are disabled for offer or answer
-    // then perform SDP checking based on which stream disabled
+    
+    
     pObserver->state = TestObserver::stateNoResponse;
     ASSERT_EQ(pc->CreateAnswer(constraints), NS_OK);
     ASSERT_TRUE_WAIT(pObserver->state != TestObserver::stateNoResponse,
@@ -777,23 +776,23 @@ void CreateAnswer(sipcc::MediaConstraints& constraints, std::string offer,
     answer_ = pObserver->lastString;
   }
 
-  // At present, we use the hints field in a stream to find and
-  // remove it. This only works if the specified hints flags are
-  // unique among all streams in the PeerConnection. This is not
-  // generally true, and will need significant revision once
-  // multiple streams are supported.
+  
+  
+  
+  
+  
   void CreateOfferRemoveStream(sipcc::MediaConstraints& constraints,
                                uint32_t hints, uint32_t sdpCheck) {
 
     domMediaStream_->SetHintContents(hints);
 
-    // This currently "removes" a stream that has the same audio/video
-    // hints as were passed in.
-    // When complete RemoveStream will remove and entire stream and its tracks
-    // not just disable a track as this is currently doing
+    
+    
+    
+    
     ASSERT_EQ(pc->RemoveStream(domMediaStream_), NS_OK);
 
-    // Now call CreateOffer as JS would
+    
     pObserver->state = TestObserver::stateNoResponse;
     ASSERT_EQ(pc->CreateOffer(constraints), NS_OK);
     ASSERT_TRUE_WAIT(pObserver->state != TestObserver::stateNoResponse,
@@ -900,7 +899,7 @@ void CreateAnswer(sipcc::MediaConstraints& constraints, std::string offer,
                                 TestObserver::stateError
                );
 
-    // Verify that adding ICE candidates does not change the signaling state
+    
     ASSERT_EQ(signaling_state(), endState);
   }
 
@@ -919,15 +918,15 @@ void CreateAnswer(sipcc::MediaConstraints& constraints, std::string offer,
         domMediaStream_->GetStream())->GetSegmentsAdded();
   }
 
-  //Stops generating new audio data for transmission.
-  //Should be called before Cleanup of the peer connection.
+  
+  
   void CloseSendStreams() {
     static_cast<Fake_AudioStreamSource*>(
         domMediaStream_->GetStream())->StopStream();
   }
 
-  //Stops pulling audio data off the receivers.
-  //Should be called before Cleanup of the peer connection.
+  
+  
   void CloseReceiveStreams() {
     std::vector<DOMMediaStream *> streams =
                             pObserver->GetStreams();
@@ -1061,7 +1060,7 @@ private:
 class SignalingEnvironment : public ::testing::Environment {
  public:
   void TearDown() {
-    // Signaling is shut down in XPCOM shutdown
+    
   }
 };
 
@@ -1072,7 +1071,7 @@ class SignalingAgentTest : public ::testing::Test {
   }
 
   void TearDown() {
-    // Delete all the agents.
+    
     for (size_t i=0; i < agents_.size(); i++) {
       delete agents_[i];
     }
@@ -1185,7 +1184,7 @@ public:
     a2_.SetLocal(TestObserver::ANSWER, a2_.answer());
     ParsedSDP a2_answer(a2_.answer());
     a1_.SetRemote(TestObserver::ANSWER, a2_answer.sdp_without_ice_);
-    // Now set the trickle ICE candidates
+    
     a1_.DoTrickleIce(a2_answer);
     a2_.DoTrickleIce(a1_offer);
     ASSERT_TRUE_WAIT(a1_.IceCompleted() == true, kDefaultTimeout);
@@ -1205,7 +1204,7 @@ public:
     a2_.SetLocal(TestObserver::ANSWER, a2_.answer());
     ParsedSDP a2_answer(a2_.answer());
     a1_.SetRemote(TestObserver::ANSWER, a2_answer.sdp_without_ice_);
-    // Now set the trickle ICE candidates
+    
     a1_.DoTrickleIceChrome(a2_answer);
     a2_.DoTrickleIceChrome(a1_offer);
     ASSERT_TRUE_WAIT(a1_.IceCompleted() == true, kDefaultTimeout);
@@ -1239,8 +1238,8 @@ public:
   }
 
  protected:
-  SignalingAgent a1_;  // Canonically "caller"
-  SignalingAgent a2_;  // Canonically "callee"
+  SignalingAgent a1_;  
+  SignalingAgent a2_;  
 };
 
 TEST_F(SignalingTest, JustInit)
@@ -1314,7 +1313,7 @@ TEST_F(SignalingTest, CreateOfferDontReceiveVideo)
               SHOULD_SENDRECV_AUDIO | SHOULD_SEND_VIDEO);
 }
 
-// XXX Disabled pending resolution of Bug 840728
+
 TEST_F(SignalingTest, DISABLED_CreateOfferRemoveAudioStream)
 {
   sipcc::MediaConstraints constraints;
@@ -1324,7 +1323,7 @@ TEST_F(SignalingTest, DISABLED_CreateOfferRemoveAudioStream)
               SHOULD_RECV_AUDIO | SHOULD_SENDRECV_VIDEO);
 }
 
-// XXX Disabled pending resolution of Bug 840728
+
 TEST_F(SignalingTest, DISABLED_CreateOfferDontReceiveAudioRemoveAudioStream)
 {
   sipcc::MediaConstraints constraints;
@@ -1334,7 +1333,7 @@ TEST_F(SignalingTest, DISABLED_CreateOfferDontReceiveAudioRemoveAudioStream)
               SHOULD_SENDRECV_VIDEO);
 }
 
-// XXX Disabled pending resolution of Bug 840728
+
 TEST_F(SignalingTest, DISABLED_CreateOfferDontReceiveVideoRemoveVideoStream)
 {
   sipcc::MediaConstraints constraints;
@@ -1558,8 +1557,8 @@ TEST_F(SignalingTest, AddIceCandidateEarly)
                        strSampleMid.c_str(), nSamplelevel);
 }
 
-// XXX adam@nostrum.com -- This test seems questionable; we need to think
-// through what actually needs to be tested here.
+
+
 TEST_F(SignalingTest, DISABLED_OfferAnswerReNegotiateOfferAnswerDontReceiveVideoNoVideoStream)
 {
   sipcc::MediaConstraints aconstraints;
@@ -1616,14 +1615,14 @@ TEST_F(SignalingTest, FullCall)
   OfferAnswer(constraints, constraints, OFFER_AV | ANSWER_AV,
               true, SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
-  PR_Sleep(kDefaultTimeout * 2); // Wait for some data to get written
+  PR_Sleep(kDefaultTimeout * 2); 
 
   a1_.CloseSendStreams();
   a2_.CloseReceiveStreams();
-  // Check that we wrote a bunch of data
+  
   ASSERT_GE(a1_.GetPacketsSent(0), 40);
-  //ASSERT_GE(a2_.GetPacketsSent(0), 40);
-  //ASSERT_GE(a1_.GetPacketsReceived(0), 40);
+  
+  
   ASSERT_GE(a2_.GetPacketsReceived(0), 40);
 }
 
@@ -1633,14 +1632,14 @@ TEST_F(SignalingTest, FullCallAudioOnly)
   OfferAnswer(constraints, constraints, OFFER_AUDIO | ANSWER_AUDIO,
               true, SHOULD_SENDRECV_AUDIO, SHOULD_SENDRECV_AUDIO);
 
-  PR_Sleep(kDefaultTimeout * 2); // Wait for some data to get written
+  PR_Sleep(kDefaultTimeout * 2); 
 
   a1_.CloseSendStreams();
   a2_.CloseReceiveStreams();
-  // Check that we wrote a bunch of data
+  
   ASSERT_GE(a1_.GetPacketsSent(0), 40);
-  //ASSERT_GE(a2_.GetPacketsSent(0), 40);
-  //ASSERT_GE(a1_.GetPacketsReceived(0), 40);
+  
+  
   ASSERT_GE(a2_.GetPacketsReceived(0), 40);
 }
 
@@ -1650,20 +1649,20 @@ TEST_F(SignalingTest, FullCallVideoOnly)
   OfferAnswer(constraints, constraints, OFFER_VIDEO | ANSWER_VIDEO,
               true, SHOULD_SENDRECV_VIDEO, SHOULD_SENDRECV_VIDEO);
 
-  PR_Sleep(kDefaultTimeout * 2); // Wait for some data to get written
+  PR_Sleep(kDefaultTimeout * 2); 
 
   a1_.CloseSendStreams();
   a2_.CloseReceiveStreams();
 
-  // FIXME -- Ideally we would check that packets were sent
-  // and received; however, the test driver setup does not
-  // currently support sending/receiving with Fake_VideoStreamSource.
-  //
-  // Check that we wrote a bunch of data
-  // ASSERT_GE(a1_.GetPacketsSent(0), 40);
-  //ASSERT_GE(a2_.GetPacketsSent(0), 40);
-  //ASSERT_GE(a1_.GetPacketsReceived(0), 40);
-  // ASSERT_GE(a2_.GetPacketsReceived(0), 40);
+  
+  
+  
+  
+  
+  
+  
+  
+  
 }
 
 TEST_F(SignalingTest, OfferModifiedAnswer)
@@ -1671,7 +1670,7 @@ TEST_F(SignalingTest, OfferModifiedAnswer)
   sipcc::MediaConstraints constraints;
   OfferModifiedAnswer(constraints, constraints, SHOULD_SENDRECV_AV,
                       SHOULD_SENDRECV_AV);
-  PR_Sleep(kDefaultTimeout * 2); // Wait for completion
+  PR_Sleep(kDefaultTimeout * 2); 
   a1_.CloseSendStreams();
   a2_.CloseReceiveStreams();
 }
@@ -1683,7 +1682,7 @@ TEST_F(SignalingTest, FullCallTrickle)
                      SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   std::cerr << "ICE handshake completed" << std::endl;
-  PR_Sleep(kDefaultTimeout * 2); // Wait for some data to get written
+  PR_Sleep(kDefaultTimeout * 2); 
 
   a1_.CloseSendStreams();
   a2_.CloseReceiveStreams();
@@ -1691,7 +1690,7 @@ TEST_F(SignalingTest, FullCallTrickle)
   ASSERT_GE(a2_.GetPacketsReceived(0), 40);
 }
 
-// Offer answer with trickle but with chrome-style candidates
+
 TEST_F(SignalingTest, FullCallTrickleChrome)
 {
   sipcc::MediaConstraints constraints;
@@ -1699,7 +1698,7 @@ TEST_F(SignalingTest, FullCallTrickleChrome)
                            SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   std::cerr << "ICE handshake completed" << std::endl;
-  PR_Sleep(kDefaultTimeout * 2); // Wait for some data to get written
+  PR_Sleep(kDefaultTimeout * 2); 
 
   a1_.CloseSendStreams();
   a2_.CloseReceiveStreams();
@@ -1707,7 +1706,7 @@ TEST_F(SignalingTest, FullCallTrickleChrome)
   ASSERT_GE(a2_.GetPacketsReceived(0), 40);
 }
 
-// This test comes from Bug 810220
+
 TEST_F(SignalingTest, AudioOnlyG711Call)
 {
   sipcc::MediaConstraints constraints;
@@ -1740,28 +1739,28 @@ TEST_F(SignalingTest, AudioOnlyG711Call)
 
   std::string answer = a2_.answer();
 
-  // They didn't offer opus, so our answer shouldn't include it.
+  
   ASSERT_EQ(answer.find(" opus/"), std::string::npos);
 
-  // They also didn't offer video or application
+  
   ASSERT_EQ(answer.find("video"), std::string::npos);
   ASSERT_EQ(answer.find("application"), std::string::npos);
 
-  // We should answer with PCMU and telephone-event
+  
   ASSERT_NE(answer.find(" PCMU/8000"), std::string::npos);
   ASSERT_NE(answer.find(" telephone-event/8000"), std::string::npos);
 
-  // Double-check the directionality
+  
   ASSERT_NE(answer.find("\r\na=sendrecv"), std::string::npos);
 
 }
 
-// This test comes from Bug814038
+
 TEST_F(SignalingTest, ChromeOfferAnswer)
 {
   sipcc::MediaConstraints constraints;
 
-  // This is captured SDP from an early interop attempt with Chrome.
+  
   std::string offer =
     "v=0\r\n"
     "o=- 1713781661 2 IN IP4 127.0.0.1\r\n"
@@ -1784,11 +1783,11 @@ TEST_F(SignalingTest, ChromeOfferAnswer)
       "RzrYlzpkTsvgYFD1hQqNCzQ7y4emNLKI1tODsjim\r\n"
     "a=rtpmap:103 ISAC/16000\r\n"
     "a=rtpmap:104 ISAC/32000\r\n"
-    // NOTE: the actual SDP that Chrome sends at the moment
-    // doesn't indicate two channels. I've amended their SDP
-    // here, under the assumption that the constraints
-    // described in draft-spittka-payload-rtp-opus will
-    // eventually be implemented by Google.
+    
+    
+    
+    
+    
     "a=rtpmap:111 opus/48000/2\r\n"
     "a=rtpmap:0 PCMU/8000\r\n"
     "a=rtpmap:8 PCMA/8000\r\n"
@@ -1907,7 +1906,7 @@ TEST_F(SignalingTest, FullChromeHandshake)
   ASSERT_NE(answer.find("111 opus/"), std::string::npos);
 }
 
-// Disabled pending resolution of bug 818640.
+
 TEST_F(SignalingTest, DISABLED_OfferAllDynamicTypes)
 {
   sipcc::MediaConstraints constraints;
@@ -1935,13 +1934,13 @@ TEST_F(SignalingTest, DISABLED_OfferAllDynamicTypes)
       "a=ice-pwd:bwtpzLZD+3jbu8vQHvEa6Xuq\r\n"
       "a=sendrecv\r\n";
 
-      /*
-      std::cout << "Setting offer to:" << std::endl
-                << indent(offer) << std::endl;
-      */
+      
+
+
+
       a2_.SetRemote(TestObserver::OFFER, offer);
 
-      //std::cout << "Creating answer:" << std::endl;
+      
       a2_.CreateAnswer(constraints, offer, OFFER_AUDIO | ANSWER_AUDIO);
 
       std::string answer = a2_.answer();
@@ -1980,7 +1979,7 @@ TEST_F(SignalingTest, CheckTrickleSdpChange)
                      SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
   std::cerr << "ICE handshake completed" << std::endl;
 
-  PR_Sleep(kDefaultTimeout * 2); // Wait for some data to get written
+  PR_Sleep(kDefaultTimeout * 2); 
   a1_.CloseSendStreams();
   a2_.CloseReceiveStreams();
 
@@ -2004,16 +2003,16 @@ TEST_F(SignalingTest, CheckTrickleSdpChange)
             std::string::npos);
   ASSERT_NE(a2_.getRemoteDescription().find("\r\na=candidate"),
             std::string::npos);
-  /* TODO (abr): These checks aren't quite right, since trickle ICE
-   * can easily result in SDP that is semantically identical but
-   * varies syntactically (in particularly, the ordering of attributes
-   * withing an m-line section can be different). This needs to be updated
-   * to be a semantic comparision between the SDP. Currently, these checks
-   * will fail whenever we add any other attributes to the SDP, such as
-   * RTCP MUX or RTCP feedback.
-  ASSERT_EQ(a1_.getLocalDescription(),a2_.getRemoteDescription());
-  ASSERT_EQ(a2_.getLocalDescription(),a1_.getRemoteDescription());
-  */
+  
+
+
+
+
+
+
+
+
+
 }
 
 TEST_F(SignalingTest, ipAddrAnyOffer)
@@ -2079,8 +2078,8 @@ TEST_F(SignalingTest, BigOValuesExtraChars)
 
   CreateSDPForBigOTests(offer, "12345678901234567FOOBAR");
 
-  // The signaling state will remain "stable" because the unparsable
-  // SDP leads to a failure in SetRemoteDescription.
+  
+  
   a2_.SetRemote(TestObserver::OFFER, offer, true,
                 sipcc::PeerConnectionImpl::kSignalingStable);
   ASSERT_TRUE(a2_.pObserver->state == TestObserver::stateError);
@@ -2092,8 +2091,8 @@ TEST_F(SignalingTest, BigOValuesTooBig)
 
   CreateSDPForBigOTests(offer, "18446744073709551615");
 
-  // The signaling state will remain "stable" because the unparsable
-  // SDP leads to a failure in SetRemoteDescription.
+  
+  
   a2_.SetRemote(TestObserver::OFFER, offer, true,
                 sipcc::PeerConnectionImpl::kSignalingStable);
   ASSERT_TRUE(a2_.pObserver->state == TestObserver::stateError);
@@ -2104,8 +2103,8 @@ TEST_F(SignalingTest, SetLocalAnswerInStable)
   sipcc::MediaConstraints constraints;
   CreateOffer(constraints, OFFER_AUDIO, SHOULD_SENDRECV_AUDIO);
 
-  // The signaling state will remain "stable" because the
-  // SetLocalDescription call fails.
+  
+  
   a1_.SetLocal(TestObserver::ANSWER, a1_.offer(), true,
                sipcc::PeerConnectionImpl::kSignalingStable);
   ASSERT_EQ(a1_.pObserver->lastStatusCode,
@@ -2113,8 +2112,8 @@ TEST_F(SignalingTest, SetLocalAnswerInStable)
 }
 
 TEST_F(SignalingTest, SetRemoteAnswerInStable) {
-  // The signaling state will remain "stable" because the
-  // SetRemoteDescription call fails.
+  
+  
   a1_.SetRemote(TestObserver::ANSWER, strSampleSdpAudioVideoNoIce, true,
                 sipcc::PeerConnectionImpl::kSignalingStable);
   ASSERT_EQ(a1_.pObserver->lastStatusCode,
@@ -2128,8 +2127,8 @@ TEST_F(SignalingTest, SetLocalAnswerInHaveLocalOffer) {
   ASSERT_EQ(a1_.pObserver->lastStatusCode,
             sipcc::PeerConnectionImpl::kNoError);
 
-  // The signaling state will remain "have-local-offer" because the
-  // SetLocalDescription call fails.
+  
+  
   a1_.SetLocal(TestObserver::ANSWER, a1_.offer(), true,
                sipcc::PeerConnectionImpl::kSignalingHaveLocalOffer);
   ASSERT_EQ(a1_.pObserver->lastStatusCode,
@@ -2143,8 +2142,8 @@ TEST_F(SignalingTest, SetRemoteOfferInHaveLocalOffer) {
   ASSERT_EQ(a1_.pObserver->lastStatusCode,
             sipcc::PeerConnectionImpl::kNoError);
 
-  // The signaling state will remain "have-local-offer" because the
-  // SetRemoteDescription call fails.
+  
+  
   a1_.SetRemote(TestObserver::OFFER, a1_.offer(), true,
                 sipcc::PeerConnectionImpl::kSignalingHaveLocalOffer);
   ASSERT_EQ(a1_.pObserver->lastStatusCode,
@@ -2158,8 +2157,8 @@ TEST_F(SignalingTest, SetLocalOfferInHaveRemoteOffer) {
   ASSERT_EQ(a2_.pObserver->lastStatusCode,
             sipcc::PeerConnectionImpl::kNoError);
 
-  // The signaling state will remain "have-remote-offer" because the
-  // SetLocalDescription call fails.
+  
+  
   a2_.SetLocal(TestObserver::OFFER, a1_.offer(), true,
                sipcc::PeerConnectionImpl::kSignalingHaveRemoteOffer);
   ASSERT_EQ(a2_.pObserver->lastStatusCode,
@@ -2173,15 +2172,15 @@ TEST_F(SignalingTest, SetRemoteAnswerInHaveRemoteOffer) {
   ASSERT_EQ(a2_.pObserver->lastStatusCode,
             sipcc::PeerConnectionImpl::kNoError);
 
-  // The signaling state will remain "have-remote-offer" because the
-  // SetRemoteDescription call fails.
+  
+  
   a2_.SetRemote(TestObserver::ANSWER, a1_.offer(), true,
                sipcc::PeerConnectionImpl::kSignalingHaveRemoteOffer);
   ASSERT_EQ(a2_.pObserver->lastStatusCode,
             sipcc::PeerConnectionImpl::kInvalidState);
 }
 
-// Disabled until the spec adds a failure callback to addStream
+
 TEST_F(SignalingTest, DISABLED_AddStreamInHaveLocalOffer) {
   sipcc::MediaConstraints constraints;
   CreateOffer(constraints, OFFER_AUDIO, SHOULD_SENDRECV_AUDIO);
@@ -2193,7 +2192,7 @@ TEST_F(SignalingTest, DISABLED_AddStreamInHaveLocalOffer) {
             sipcc::PeerConnectionImpl::kInvalidState);
 }
 
-// Disabled until the spec adds a failure callback to removeStream
+
 TEST_F(SignalingTest, DISABLED_RemoveStreamInHaveLocalOffer) {
   sipcc::MediaConstraints constraints;
   CreateOffer(constraints, OFFER_AUDIO, SHOULD_SENDRECV_AUDIO);
@@ -2227,17 +2226,17 @@ TEST_F(SignalingAgentTest, CreateUntilFailThenWait) {
     std::cerr << "Created agent " << i << std::endl;
   }
   std::cerr << "Failed after creating " << i << " PCs " << std::endl;
-  PR_Sleep(10000);  // Wait to see if we crash
+  PR_Sleep(10000);  
 }
 
-// Test for bug 856433.
+
 TEST_F(SignalingAgentTest, CreateNoInit) {
   CreateAgentNoInit();
 }
 
-/*
- * Test for Bug 843595
- */
+
+
+
 TEST_F(SignalingTest, missingUfrag)
 {
   sipcc::MediaConstraints constraints;
@@ -2280,19 +2279,19 @@ TEST_F(SignalingTest, missingUfrag)
       "streams=16\r\n"
     "a=sendrecv\r\n";
 
-  // Need to create an offer, since that's currently required by our
-  // FSM. This may change in the future.
+  
+  
   a1_.CreateOffer(constraints, OFFER_AV, SHOULD_SENDRECV_AV);
   a1_.SetLocal(TestObserver::OFFER, offer, true);
   a2_.SetRemote(TestObserver::OFFER, offer, true);
   a2_.CreateAnswer(constraints, offer, OFFER_AV | ANSWER_AV);
   a2_.SetLocal(TestObserver::ANSWER, a2_.answer(), true);
   a1_.SetRemote(TestObserver::ANSWER, a2_.answer(), true);
-  // We don't check anything in particular for success here -- simply not
-  // crashing by now is enough to declare success.
+  
+  
 }
 
-} // End namespace test.
+} 
 
 bool is_color_terminal(const char *terminal) {
   if (!terminal) {
@@ -2319,7 +2318,7 @@ bool is_color_terminal(const char *terminal) {
 
 int main(int argc, char **argv) {
 
-  // This test can cause intermittent oranges on the builders
+  
   CHECK_ENVIRONMENT_FLAG("MOZ_WEBRTC_TESTS")
 
   if (isatty(STDOUT_FILENO) && is_color_terminal(getenv("TERM"))) {
@@ -2345,9 +2344,9 @@ int main(int argc, char **argv) {
   ::testing::AddGlobalTestEnvironment(new test::SignalingEnvironment);
   int result = RUN_ALL_TESTS();
 
-  // Because we don't initialize on the main thread, we can't register for
-  // XPCOM shutdown callbacks (where the context is usually shut down) --
-  // so we need to explictly destroy the context.
+  
+  
+  
   sipcc::PeerConnectionCtx::Destroy();
   delete test_utils;
 
