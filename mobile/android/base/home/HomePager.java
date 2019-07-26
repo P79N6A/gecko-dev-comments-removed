@@ -36,7 +36,7 @@ public class HomePager extends ViewPager {
     private static final int LOADER_ID_CONFIG = 0;
 
     private final Context mContext;
-    private volatile boolean mLoaded;
+    private volatile boolean mVisible;
     private Decor mDecor;
     private View mTabStrip;
     private HomeBanner mHomeBanner;
@@ -157,7 +157,7 @@ public class HomePager extends ViewPager {
 
 
     public void load(LoaderManager lm, FragmentManager fm, String panelId, PropertyAnimator animator) {
-        mLoaded = true;
+        mVisible = true;
         mInitialPanelId = panelId;
 
         
@@ -207,7 +207,7 @@ public class HomePager extends ViewPager {
 
 
     public void unload() {
-        mLoaded = false;
+        mVisible = false;
         setAdapter(null);
 
         
@@ -223,8 +223,8 @@ public class HomePager extends ViewPager {
 
 
 
-    public boolean isLoaded() {
-        return mLoaded;
+    public boolean isVisible() {
+        return mVisible;
     }
 
     @Override
@@ -276,7 +276,7 @@ public class HomePager extends ViewPager {
     private void updateUiFromConfigState(HomeConfig.State configState) {
         
         
-        if (!mLoaded) {
+        if (!mVisible) {
             return;
         }
 
