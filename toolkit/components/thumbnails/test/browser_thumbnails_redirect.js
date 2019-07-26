@@ -1,7 +1,7 @@
 
 
 
-const URL = "http://mochi.test:8888/browser/browser/components/thumbnails/" +
+const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/" +
             "test/background_red_redirect.sjs";
 
 
