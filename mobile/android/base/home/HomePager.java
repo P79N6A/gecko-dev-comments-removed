@@ -100,13 +100,6 @@ public class HomePager extends ViewPager {
     
 
 
-    public void updateAboutHome(final EnumSet<AboutHome.UpdateFlags> flags) {
-        
-    }
-
-    
-
-
     public void setAboutHomeLastTabsVisibility(boolean visible) {
         
     }

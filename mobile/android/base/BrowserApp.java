@@ -243,12 +243,6 @@ abstract public class BrowserApp extends GeckoApp
     }
 
     @Override
-    void handleClearHistory() {
-        super.handleClearHistory();
-        updateAboutHomeTopSites();
-    }
-
-    @Override
     public boolean onKey(View v, int keyCode, KeyEvent event) {
         
         
@@ -766,14 +760,6 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         super.onDestroy();
-    }
-
-    @Override
-    protected void finishProfileMigration() {
-        
-        updateAboutHomeTopSites();
-
-        super.finishProfileMigration();
     }
 
     @Override
@@ -1316,12 +1302,6 @@ abstract public class BrowserApp extends GeckoApp
 
         
         tab.setFaviconLoadId(Favicons.NOT_LOADING);
-    }
-
-
-    
-    void updateAboutHomeTopSites() {
-        mHomePager.updateAboutHome(EnumSet.of(AboutHome.UpdateFlags.TOP_SITES));
     }
 
     public boolean enterEditingMode(EditingTarget target) {
