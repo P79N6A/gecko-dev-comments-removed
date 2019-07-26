@@ -186,7 +186,11 @@ static const char* GetOmxLibraryName()
     
     return "lib/libomxplugingb235.so";
   }
-  else if (version < 9) {
+  else if (version == 8) {
+    
+    return "lib/libomxpluginfroyo.so";
+  }
+  else if (version < 8) {
     
     return nullptr;
   }
