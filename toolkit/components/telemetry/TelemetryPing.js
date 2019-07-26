@@ -717,6 +717,15 @@ TelemetryPing.prototype = {
 
 
   setup: function setup() {
+#ifdef MOZILLA_OFFICIAL
+    if (!Telemetry.canSend) {
+      
+      
+      
+      Telemetry.canRecord = false;
+      return;
+    }
+#endif
     let enabled = false; 
     try {
       enabled = Services.prefs.getBoolPref(PREF_ENABLED);
