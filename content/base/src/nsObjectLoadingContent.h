@@ -144,7 +144,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
     
-    void SetupProtoChain(JSContext* aCx, JSObject* aObject);
+    void SetupProtoChain(JSContext* aCx, JS::HandleObject aObject);
 
     
     void TeardownProtoChain();

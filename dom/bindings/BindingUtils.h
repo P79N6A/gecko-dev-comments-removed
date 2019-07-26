@@ -1176,7 +1176,7 @@ WrapCallThisObject(JSContext* cx, JS::Handle<JSObject*> scope, const T& p)
   
   
   
-  JSObject* obj = GetJSObjectFromCallback(p);
+  JS::Rooted<JSObject*> obj(cx, GetJSObjectFromCallback(p));
   if (!obj) {
     
     
@@ -1187,7 +1187,7 @@ WrapCallThisObject(JSContext* cx, JS::Handle<JSObject*> scope, const T& p)
   }
 
   
-  if (!JS_WrapObject(cx, &obj)) {
+  if (!JS_WrapObject(cx, obj.address())) {
     return nullptr;
   }
 
