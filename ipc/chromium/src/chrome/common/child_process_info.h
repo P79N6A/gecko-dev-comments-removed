@@ -38,7 +38,6 @@ class ChildProcessInfo {
     return pid_;
   }
   void SetProcessBackgrounded() const { process_.SetProcessBackgrounded(true); }
-  void ReduceWorkingSet() const { process_.ReduceWorkingSet(); }
 
   
   

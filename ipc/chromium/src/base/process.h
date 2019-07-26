@@ -67,20 +67,6 @@ class Process {
 
   
   
-  
-  
-  
-  
-  
-  
-  bool ReduceWorkingSet();
-
-  
-  
-  bool UnReduceWorkingSet();
-
-  
-  
   bool EmptyWorkingSet();
 
  private:

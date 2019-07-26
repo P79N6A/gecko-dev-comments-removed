@@ -36,69 +36,6 @@ bool Process::SetProcessBackgrounded(bool value) {
   return (SetPriorityClass(process_, priority) != 0);
 }
 
-
-
-
-static const int kWinDefaultMinSet = 50 * 4096;
-static const int kWinDefaultMaxSet = 345 * 4096;
-static const int kDampingFactor = 2;
-
-bool Process::ReduceWorkingSet() {
-  if (!process_)
-    return false;
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-
-  scoped_ptr<ProcessMetrics> metrics(
-      ProcessMetrics::CreateProcessMetrics(process_));
-  WorkingSetKBytes working_set;
-  if (!metrics->GetWorkingSetKBytes(&working_set))
-    return false;
-
-
-  
-  
-  
-  
-  
-  
-  
-  size_t current_working_set_size  = working_set.priv +
-                                     working_set.shareable;
-
-  size_t max_size = current_working_set_size;
-  if (last_working_set_size_)
-    max_size = (max_size + last_working_set_size_) / 2;  
-  max_size *= 1024;  
-  last_working_set_size_ = current_working_set_size / kDampingFactor;
-
-  BOOL rv = SetProcessWorkingSetSize(process_, kWinDefaultMinSet, max_size);
-  return rv == TRUE;
-}
-
-bool Process::UnReduceWorkingSet() {
-  if (!process_)
-    return false;
-
-  if (!last_working_set_size_)
-    return true;  
-
-  
-  
-  size_t limit = last_working_set_size_ * kDampingFactor * 2 * 1024;
-  BOOL rv = SetProcessWorkingSetSize(process_, kWinDefaultMinSet, limit);
-  return rv == TRUE;
-}
-
 bool Process::EmptyWorkingSet() {
   if (!process_)
     return false;

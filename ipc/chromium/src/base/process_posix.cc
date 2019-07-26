@@ -36,16 +36,6 @@ bool Process::SetProcessBackgrounded(bool value) {
   return true;
 }
 
-bool Process::ReduceWorkingSet() {
-  
-  return false;
-}
-
-bool Process::UnReduceWorkingSet() {
-  
-  return false;
-}
-
 bool Process::EmptyWorkingSet() {
   
   return false;
