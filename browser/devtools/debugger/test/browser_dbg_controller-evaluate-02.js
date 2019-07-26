@@ -39,8 +39,8 @@ function test() {
 
     
     executeSoon(() => debuggee.firstCall());
-    yield waitForSourceAndCaretAndScopes(panel, "-02.js", 6);
-    checkView(0, 1, 6, [/secondCall/, 118]);
+    yield waitForSourceAndCaretAndScopes(panel, "-02.js", 1);
+    checkView(0, 1, 1, [/secondCall/, 118]);
 
     
     let updatedFrame = waitForDebuggerEvents(panel, events.FETCHED_SCOPES);

@@ -384,9 +384,36 @@ class ScriptSource
     
     
     
+    uint32_t introductionOffset_;
+
+    
+    
+    
+    
+    
+    
+    char *introducerFilename_;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    const char *introducerType_;
+
+    
+    
+    
     bool sourceRetrievable_:1;
     bool argumentsNotIncluded_:1;
     bool ready_:1;
+    bool hasIntroductionOffset_:1;
 
   public:
     ScriptSource(JSPrincipals *originPrincipals)
@@ -397,9 +424,13 @@ class ScriptSource
         displayURL_(nullptr),
         sourceMapURL_(nullptr),
         originPrincipals_(originPrincipals),
+        introductionOffset_(0),
+        introducerFilename_(nullptr),
+        introducerType_(nullptr),
         sourceRetrievable_(false),
         argumentsNotIncluded_(false),
-        ready_(true)
+        ready_(true),
+        hasIntroductionOffset_(false)
     {
         data.source = nullptr;
         if (originPrincipals_)
@@ -438,6 +469,19 @@ class ScriptSource
     bool performXDR(XDRState<mode> *xdr);
 
     bool setFilename(ExclusiveContext *cx, const char *filename);
+    bool setIntroducedFilename(ExclusiveContext *cx,
+                               const char *callerFilename, unsigned callerLineno,
+                               const char *introducer, const char *introducerFilename);
+    const char *introducerFilename() const {
+        return introducerFilename_;
+    }
+    bool hasIntroducerType() const {
+        return introducerType_;
+    }
+    const char *introducerType() const {
+        JS_ASSERT(hasIntroducerType());
+        return introducerType_;
+    }
     const char *filename() const {
         return filename_;
     }
@@ -453,6 +497,18 @@ class ScriptSource
     bool hasSourceMapURL() const { return sourceMapURL_ != nullptr; }
 
     JSPrincipals *originPrincipals() const { return originPrincipals_; }
+
+    bool hasIntroductionOffset() const { return hasIntroductionOffset_; }
+    uint32_t introductionOffset() const {
+        JS_ASSERT(hasIntroductionOffset());
+        return introductionOffset_;
+    }
+    void setIntroductionOffset(uint32_t offset) {
+        JS_ASSERT(!hasIntroductionOffset());
+        JS_ASSERT(offset <= (uint32_t)INT32_MAX);
+        introductionOffset_ = offset;
+        hasIntroductionOffset_ = true;
+    }
 
   private:
     void destroy();
@@ -1905,8 +1961,10 @@ enum LineOption {
 };
 
 extern void
-CurrentScriptFileLineOrigin(JSContext *cx, const char **file, unsigned *linenop,
-                            JSPrincipals **origin, LineOption opt = NOT_CALLED_FROM_JSOP_EVAL);
+CurrentScriptFileLineOrigin(JSContext *cx, JSScript **script,
+                            const char **file, unsigned *linenop,
+                            uint32_t *pcOffset, JSPrincipals **origin,
+                            LineOption opt = NOT_CALLED_FROM_JSOP_EVAL);
 
 bool
 CloneFunctionScript(JSContext *cx, HandleFunction original, HandleFunction clone,

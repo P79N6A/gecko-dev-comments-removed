@@ -19,7 +19,7 @@ function test() {
     gEditor = gDebugger.DebuggerView.editor;
     gSources = gDebugger.DebuggerView.Sources;
 
-    waitForSourceAndCaretAndScopes(gPanel, "-02.js", 6)
+    waitForSourceAndCaretAndScopes(gPanel, "-02.js", 1)
       .then(testSourcesDisplay)
       .then(testSwitchPaused1)
       .then(testSwitchPaused2)
@@ -63,14 +63,14 @@ function testSourcesDisplay() {
   is(gEditor.getText().search(/debugger/), 172,
     "The second source is displayed.");
 
-  ok(isCaretPos(gPanel, 6),
+  ok(isCaretPos(gPanel, 1),
     "Editor caret location is correct.");
 
   
   executeSoon(() => {
-    is(gEditor.getDebugLocation(), 5,
+    is(gEditor.getDebugLocation(), 0,
       "Editor debugger location is correct.");
-    ok(gEditor.hasLineClass(5, "debug-line"),
+    ok(gEditor.hasLineClass(0, "debug-line"),
       "The debugged line is highlighted appropriately.");
 
     waitForDebuggerEvents(gPanel, gDebugger.EVENTS.SOURCE_SHOWN).then(deferred.resolve);
@@ -125,11 +125,11 @@ function testSwitchPaused2() {
 
   
   executeSoon(() => {
-    ok(isCaretPos(gPanel, 6),
+    ok(isCaretPos(gPanel, 1),
       "Editor caret location is correct.");
-    is(gEditor.getDebugLocation(), 5,
+    is(gEditor.getDebugLocation(), 0,
       "Editor debugger location is correct.");
-    ok(gEditor.hasLineClass(5, "debug-line"),
+    ok(gEditor.hasLineClass(0, "debug-line"),
       "The debugged line is highlighted appropriately.");
 
     
@@ -161,11 +161,11 @@ function testSwitchRunning() {
 
   
   executeSoon(() => {
-    ok(isCaretPos(gPanel, 5),
+    ok(isCaretPos(gPanel, 1),
       "Editor caret location is correct.");
-    is(gEditor.getDebugLocation(), 4,
+    is(gEditor.getDebugLocation(), 0,
       "Editor debugger location is correct.");
-    ok(gEditor.hasLineClass(4, "debug-line"),
+    ok(gEditor.hasLineClass(0, "debug-line"),
       "The debugged line is highlighted appropriately.");
 
     deferred.resolve();

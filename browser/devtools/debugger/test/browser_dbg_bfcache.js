@@ -38,7 +38,7 @@ function testFirstPage() {
   
   executeSoon(() => gDebuggee.firstCall());
 
-  return waitForSourceAndCaretAndScopes(gPanel, "-02.js", 6).then(() => {
+  return waitForSourceAndCaretAndScopes(gPanel, "-02.js", 1).then(() => {
     validateFirstPage();
   });
 }
