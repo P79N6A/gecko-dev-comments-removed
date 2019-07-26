@@ -63,6 +63,22 @@ class CompositorParent;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class APZCTreeManager {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(APZCTreeManager)
 
@@ -300,6 +316,7 @@ private:
 
 private:
   
+
 
 
 
