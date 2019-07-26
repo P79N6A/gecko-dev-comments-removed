@@ -20,6 +20,10 @@ function test()
   let resumed = false;
   let testStarted = false;
 
+  
+  
+  requestLongerTimeout(2);
+
   debug_tab_pane(TAB_URL, function(aTab, aDebuggee, aPane) {
     gTab = aTab;
     gDebuggee = aDebuggee;
