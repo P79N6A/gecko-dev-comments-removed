@@ -2125,6 +2125,14 @@ PeerConnectionImpl::BuildStatsQuery_m(
       query->now);
 
   
+  if (query->internalStats) {
+    query->report.mLocalSdp.Construct(
+        NS_ConvertASCIItoUTF16(mLocalSDP.c_str()));
+    query->report.mRemoteSdp.Construct(
+        NS_ConvertASCIItoUTF16(mRemoteSDP.c_str()));
+  }
+
+  
   TrackID trackId = aSelector ? aSelector->GetTrackID() : 0;
 
   for (int i = 0, len = mMedia->LocalStreamsLength(); i < len; i++) {
