@@ -17,6 +17,10 @@ function test() {
       let buildID = Services.appinfo.platformBuildID;
 
       
+      
+      yield forceSaveState();
+
+      
       Services.prefs.setCharPref(PREF_UPGRADE, "");
       let contents = "browser_upgrade_backup.js";
       let pathStore = OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.js");
@@ -28,13 +32,13 @@ function test() {
       is((yield OS.File.exists(pathBackup)), true, "upgrade backup file has been created");
 
       let data = yield OS.File.read(pathBackup);
-      is(contents, (new TextDecoder()).decode(data), "upgrade backup contains the expected contents");
+      is(new TextDecoder().decode(data), contents, "upgrade backup contains the expected contents");
 
       
       yield OS.File.writeAtomic(pathStore, "something else entirely", { tmpPath: pathStore + ".tmp" });
       yield SessionStore._internal._performUpgradeBackup();
       data = yield OS.File.read(pathBackup);
-      is(contents, (new TextDecoder()).decode(data), "upgrade backup hasn't changed");
+      is(new TextDecoder().decode(data), contents, "upgrade backup hasn't changed");
 
     } catch (ex) {
       ok(false, "Uncaught error: " + ex + " at " + ex.stack);
