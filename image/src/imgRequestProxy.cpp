@@ -134,6 +134,7 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
 
   nsRefPtr<imgRequest> oldOwner = mOwner;
   mOwner = aNewOwner;
+  mOwnerHasImage = !!GetStatusTracker().GetImage();
 
   
   for (uint32_t i = 0; i < oldLockCount; i++)
@@ -481,15 +482,35 @@ NS_IMETHODIMP imgRequestProxy::GetMimeType(char **aMimeType)
   return NS_OK;
 }
 
+static imgRequestProxy* NewProxy(imgRequestProxy* )
+{
+  return new imgRequestProxy();
+}
+
+imgRequestProxy* NewStaticProxy(imgRequestProxy* aThis)
+{
+  nsCOMPtr<nsIPrincipal> currentPrincipal;
+  aThis->GetImagePrincipal(getter_AddRefs(currentPrincipal));
+  return new imgRequestProxyStatic(
+      static_cast<imgRequestProxyStatic*>(aThis)->mImage, currentPrincipal);
+}
+
 NS_IMETHODIMP imgRequestProxy::Clone(imgINotificationObserver* aObserver,
                                      imgIRequest** aClone)
+{
+  return PerformClone(aObserver, NewProxy, aClone);
+}
+
+nsresult imgRequestProxy::PerformClone(imgINotificationObserver* aObserver,
+                                       imgRequestProxy* (aAllocFn)(imgRequestProxy*),
+                                       imgIRequest** aClone)
 {
   NS_PRECONDITION(aClone, "Null out param");
 
   LOG_SCOPE(gImgLog, "imgRequestProxy::Clone");
 
   *aClone = nullptr;
-  nsRefPtr<imgRequestProxy> clone = new imgRequestProxy();
+  nsRefPtr<imgRequestProxy> clone = aAllocFn(this);
 
   
   
@@ -498,7 +519,7 @@ NS_IMETHODIMP imgRequestProxy::Clone(imgINotificationObserver* aObserver,
   
   
   clone->SetLoadFlags(mLoadFlags);
-  nsresult rv = clone->Init(&mOwner->GetStatusTracker(), mLoadGroup, mURI, aObserver);
+  nsresult rv = clone->Init(&GetStatusTracker(), mLoadGroup, mURI, aObserver);
   if (NS_FAILED(rv))
     return rv;
 
@@ -938,4 +959,11 @@ imgStatusTracker&
 imgRequestProxyStatic::GetStatusTracker() const
 {
   return mImage->GetStatusTracker();
+}
+
+NS_IMETHODIMP
+imgRequestProxyStatic::Clone(imgINotificationObserver* aObserver,
+                             imgIRequest** aClone)
+{
+  return PerformClone(aObserver, NewStaticProxy, aClone);
 }
