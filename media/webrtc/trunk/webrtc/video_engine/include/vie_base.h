@@ -21,7 +21,7 @@
 
 #include "webrtc/common_types.h"
 
-#if defined(ANDROID) && !defined(WEBRTC_CHROMIUM_BUILD)
+#if defined(ANDROID) && !defined(WEBRTC_CHROMIUM_BUILD) && !defined(MOZ_WIDGET_GONK)
 #include <jni.h>
 #endif
 
@@ -64,7 +64,7 @@ class WEBRTC_DLLEXPORT VideoEngine {
   
   static int SetTraceCallback(TraceCallback* callback);
 
-#if defined(ANDROID) && !defined(WEBRTC_CHROMIUM_BUILD)
+#if defined(ANDROID) && !defined(WEBRTC_CHROMIUM_BUILD) && !defined(MOZ_WIDGET_GONK)
   
   static int SetAndroidObjects(JavaVM* java_vm);
 #endif
