@@ -21,6 +21,8 @@ class BluetoothNamedValue;
 class BluetoothReplyRunnable;
 class BluetoothSignal;
 
+typedef mozilla::ObserverList<BluetoothSignal> BluetoothSignalObserverList;
+
 class BluetoothService : public nsIObserver
                        , public BluetoothSignalObserver
 {
@@ -44,11 +46,58 @@ public:
 
 
 
+  virtual void
+  RegisterBluetoothSignalHandler(const nsAString& aNodeName,
+                                 BluetoothSignalObserver* aMsgHandler);
+
+  
 
 
 
-  nsresult RegisterBluetoothSignalHandler(const nsAString& aNodeName,
-                                          BluetoothSignalObserver* aMsgHandler);
+
+
+
+  virtual void
+  UnregisterBluetoothSignalHandler(const nsAString& aNodeName,
+                                   BluetoothSignalObserver* aMsgHandler);
+
+  
+
+
+
+
+
+  void
+  UnregisterAllSignalHandlers(BluetoothSignalObserver* aMsgHandler);
+
+  
+
+
+
+
+
+
+  void
+  DistributeSignal(const BluetoothSignal& aEvent);
+
+  
+
+
+  void
+  RegisterManager(BluetoothManager* aManager);
+
+  
+
+
+  void
+  UnregisterManager(BluetoothManager* aManager);
+
+  
+
+
+
+  void
+  Notify(const BluetoothSignal& aParam);
 
   
 
@@ -58,83 +107,11 @@ public:
 
 
 
+  static BluetoothService*
+  Get();
 
-
-  nsresult UnregisterBluetoothSignalHandler(const nsAString& aNodeName,
-                                            BluetoothSignalObserver* aMsgHandler);
-
-  
-
-
-
-
-
-
-  nsresult DistributeSignal(const BluetoothSignal& aEvent);
-
-  
-
-
-
-
-
-
-
-  nsresult Start();
-
-  
-
-
-
-
-
-
-
-
-  nsresult Stop();
-
-  
-
-
-  nsresult HandleStartup();
-
-  
-
-
-  nsresult HandleSettingsChanged(const nsAString& aData);
-
-  
-
-
-  nsresult HandleShutdown();
-
-  
-
-
-  void RegisterManager(BluetoothManager* aManager);
-
-  
-
-
-  void UnregisterManager(BluetoothManager* aManager);
-
-  
-
-
-
-  void Notify(const BluetoothSignal& aParam);
-
-  
-
-
-
-
-
-
-
-  static BluetoothService* Get();
-
-  static already_AddRefed<BluetoothService> FactoryCreate()
+  static already_AddRefed<BluetoothService>
+  FactoryCreate()
   {
     nsRefPtr<BluetoothService> service = Get();
     return service.forget();
@@ -146,7 +123,8 @@ public:
 
 
 
-  virtual nsresult GetDefaultAdapterPathInternal(BluetoothReplyRunnable* aRunnable) = 0;
+  virtual nsresult
+  GetDefaultAdapterPathInternal(BluetoothReplyRunnable* aRunnable) = 0;
 
   
 
@@ -154,18 +132,9 @@ public:
 
 
 
-  virtual nsresult GetPairedDevicePropertiesInternal(const nsTArray<nsString>& aDeviceAddresses,
-                                                     BluetoothReplyRunnable* aRunnable) = 0;
-
-  
-
-
-
-
-
-
-  virtual nsresult StopDiscoveryInternal(const nsAString& aAdapterPath,
-                                         BluetoothReplyRunnable* aRunnable) = 0;
+  virtual nsresult
+  GetPairedDevicePropertiesInternal(const nsTArray<nsString>& aDeviceAddresses,
+                                    BluetoothReplyRunnable* aRunnable) = 0;
 
   
 
@@ -174,8 +143,9 @@ public:
 
 
 
-  virtual nsresult StartDiscoveryInternal(const nsAString& aAdapterPath,
-                                          BluetoothReplyRunnable* aRunnable) = 0;
+  virtual nsresult
+  StopDiscoveryInternal(const nsAString& aAdapterPath,
+                        BluetoothReplyRunnable* aRunnable) = 0;
 
   
 
@@ -183,15 +153,10 @@ public:
 
 
 
-  virtual nsresult StartInternal() = 0;
 
-  
-
-
-
-
-
-  virtual nsresult StopInternal() = 0;
+  virtual nsresult
+  StartDiscoveryInternal(const nsAString& aAdapterPath,
+                         BluetoothReplyRunnable* aRunnable) = 0;
 
   
 
@@ -268,19 +233,28 @@ public:
   virtual bool
   CloseSocket(int aFd, BluetoothReplyRunnable* aRunnable) = 0;
 
-  virtual bool SetPinCodeInternal(const nsAString& aDeviceAddress, const nsAString& aPinCode) = 0;
-  virtual bool SetPasskeyInternal(const nsAString& aDeviceAddress, uint32_t aPasskey) = 0;
-  virtual bool SetPairingConfirmationInternal(const nsAString& aDeviceAddress, bool aConfirm) = 0;
-  virtual bool SetAuthorizationInternal(const nsAString& aDeviceAddress, bool aAllow) = 0;
+  virtual bool
+  SetPinCodeInternal(const nsAString& aDeviceAddress, const nsAString& aPinCode) = 0;
 
-  virtual bool IsEnabled()
+  virtual bool
+  SetPasskeyInternal(const nsAString& aDeviceAddress, uint32_t aPasskey) = 0;
+
+  virtual bool
+  SetPairingConfirmationInternal(const nsAString& aDeviceAddress, bool aConfirm) = 0;
+
+  virtual bool
+  SetAuthorizationInternal(const nsAString& aDeviceAddress, bool aAllow) = 0;
+
+  bool
+  IsEnabled() const
   {
     return mEnabled;
   }
 
 protected:
   BluetoothService()
-  : mEnabled(false)
+  : mEnabled(false), mSettingsCheckInProgress(false),
+    mRegisteredForLocalAgent(false)
 #ifdef DEBUG
     , mLastRequestedEnable(false)
 #endif
@@ -288,16 +262,66 @@ protected:
     mBluetoothSignalObserverTable.Init();
   }
 
-  ~BluetoothService();
+  virtual ~BluetoothService();
 
-  nsresult StartStopBluetooth(bool aStart);
+  bool
+  Init();
+
+  void
+  Cleanup();
+
+  nsresult
+  StartStopBluetooth(bool aStart);
 
   
-  void SetEnabled(bool aEnabled);
+
+
+
+
+
+  virtual nsresult
+  StartInternal() = 0;
 
   
+
+
+
+
+
+  virtual nsresult
+  StopInternal() = 0;
+
   
-  static BluetoothService* Create();
+
+
+  virtual nsresult
+  HandleStartup();
+
+  
+
+
+  nsresult
+  HandleStartupSettingsCheck(bool aEnable);
+
+  
+
+
+  nsresult
+  HandleSettingsChanged(const nsAString& aData);
+
+  
+
+
+  virtual nsresult
+  HandleShutdown();
+
+  
+  void
+  SetEnabled(bool aEnabled);
+
+  
+  static BluetoothService*
+  Create();
 
   
 
@@ -313,7 +337,6 @@ protected:
 
   nsCOMPtr<nsIThread> mBluetoothCommandThread;
 
-  typedef mozilla::ObserverList<BluetoothSignal> BluetoothSignalObserverList;
   typedef nsClassHashtable<nsStringHashKey, BluetoothSignalObserverList >
   BluetoothSignalObserverTable;
 
@@ -323,6 +346,9 @@ protected:
   BluetoothManagerList mLiveManagers;
 
   bool mEnabled;
+  bool mSettingsCheckInProgress;
+  bool mRegisteredForLocalAgent;
+
 #ifdef DEBUG
   bool mLastRequestedEnable;
 #endif
