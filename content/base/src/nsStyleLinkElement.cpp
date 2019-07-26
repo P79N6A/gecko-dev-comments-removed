@@ -316,11 +316,13 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
     }
   }
 
-  if (mDontLoadStyle || !mUpdatesEnabled) {
+  NS_ENSURE_TRUE(thisContent, NS_ERROR_FAILURE);
+
+  
+  if (mDontLoadStyle || !mUpdatesEnabled ||
+      thisContent->OwnerDoc()->IsStaticDocument()) {
     return NS_OK;
   }
-
-  NS_ENSURE_TRUE(thisContent, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIDocument> doc = thisContent->GetDocument();
 
