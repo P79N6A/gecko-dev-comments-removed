@@ -201,6 +201,7 @@ HistoryView.prototype = Util.extend(Object.create(View.prototype), {
 
           
           let event = document.createEvent("Events");
+          event.actions = [];
           event.initEvent("MozContextActionsChange", true, false);
           this._set.dispatchEvent(event);
 

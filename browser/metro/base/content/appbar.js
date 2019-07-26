@@ -34,7 +34,8 @@ var Appbar = {
         this.update();
         
         
-        if (this.activeTileset && aEvent.lastTab && aEvent.lastTab.browser.currentURI.spec == kStartURI) {
+        if (this.activeTileset && aEvent.lastTab && aEvent.lastTab.browser &&
+            aEvent.lastTab.browser.currentURI.spec == kStartURI) {
           ContextUI.dismiss();
         }
         break;
