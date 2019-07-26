@@ -1544,19 +1544,19 @@ MmsService.prototype = {
     
     
     gSystemMessenger.broadcastMessage(aName, {
-      type:         aDomMessage.type,
-      id:           aDomMessage.id,
-      threadId:     aDomMessage.threadId,
-      delivery:     aDomMessage.delivery,
-      deliveryInfo: aDomMessage.deliveryInfo,
-      sender:       aDomMessage.sender,
-      receivers:    aDomMessage.receivers,
-      timestamp:    aDomMessage.timestamp,
-      read:         aDomMessage.read,
-      subject:      aDomMessage.subject,
-      smil:         aDomMessage.smil,
-      attachments:  aDomMessage.attachments,
-      expiryDate:   aDomMessage.expiryDate
+      type:           aDomMessage.type,
+      id:             aDomMessage.id,
+      threadId:       aDomMessage.threadId,
+      delivery:       aDomMessage.delivery,
+      deliveryInfo:   aDomMessage.deliveryInfo,
+      sender:         aDomMessage.sender,
+      receivers:      aDomMessage.receivers,
+      timestamp:      aDomMessage.timestamp,
+      read:           aDomMessage.read,
+      subject:        aDomMessage.subject,
+      smil:           aDomMessage.smil,
+      attachments:    aDomMessage.attachments,
+      expiryDate:     aDomMessage.expiryDate
     });
   },
 

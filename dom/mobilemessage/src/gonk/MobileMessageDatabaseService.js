@@ -1601,12 +1601,6 @@ MobileMessageDatabaseService.prototype = {
               for (let i = 0; i < deliveryInfo.length; i++) {
                 if (deliveryInfo[i].deliveryStatus != deliveryStatus) {
                   deliveryInfo[i].deliveryStatus = deliveryStatus;
-
-                  
-                  if (deliveryStatus == DELIVERY_STATUS_SUCCESS) {
-                    deliveryInfo[i].deliveryTimestamp = Date.now();
-                  }
-
                   isRecordUpdated = true;
                 }
               }
@@ -1661,12 +1655,6 @@ MobileMessageDatabaseService.prototype = {
                   }
                   if (deliveryInfo[j].deliveryStatus != deliveryStatus) {
                     deliveryInfo[j].deliveryStatus = deliveryStatus;
-
-                    
-                    if (deliveryStatus == DELIVERY_STATUS_SUCCESS) {
-                      deliveryInfo[j].deliveryTimestamp = Date.now();
-                    }
-
                     isRecordUpdated = true;
                   }
                 }
@@ -1777,14 +1765,6 @@ MobileMessageDatabaseService.prototype = {
     if (aMessage.type == "mms") {
       aMessage.transactionIdIndex = aMessage.transactionId;
       aMessage.isReadReportSent = false;
-
-      
-      let deliveryInfo = aMessage.deliveryInfo;
-      for (let i = 0; i < deliveryInfo.length; i++) {
-        if (deliveryInfo[i].deliveryTimestamp == undefined) {
-          deliveryInfo[i].deliveryTimestamp = 0;
-        }
-      }
     }
 
     if (aMessage.type == "sms") {
@@ -1838,9 +1818,7 @@ MobileMessageDatabaseService.prototype = {
       aMessage.deliveryInfo = [];
       for (let i = 0; i < receivers.length; i++) {
         aMessage.deliveryInfo.push({
-          receiver: receivers[i],
-          deliveryStatus: deliveryStatus,
-          deliveryTimestamp: 0 });
+          receiver: receivers[i], deliveryStatus: deliveryStatus });
       }
     }
 
