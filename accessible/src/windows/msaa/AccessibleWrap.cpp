@@ -1132,7 +1132,7 @@ AccessibleWrap::HandleAccEvent(AccEvent* aEvent)
 
   if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED ||
       eventType == nsIAccessibleEvent::EVENT_FOCUS) {
-    UpdateSystemCaret();
+    UpdateSystemCaretFor(accessible);
   }
 
   int32_t childID = GetChildIDFor(accessible); 
@@ -1286,20 +1286,19 @@ AccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
 }
 
 void
-AccessibleWrap::UpdateSystemCaret()
+AccessibleWrap::UpdateSystemCaretFor(Accessible* aAccessible)
 {
   
   
   ::DestroyCaret();
 
-  a11y::RootAccessible* rootAccessible = RootAccessible();
-  if (!rootAccessible) {
+  HyperTextAccessible* text = aAccessible->AsHyperText();
+  if (!text)
     return;
-  }
 
   nsIWidget* widget = nullptr;
-  nsIntRect caretRect = SelectionMgr()->GetCaretRect(&widget);
-  HWND caretWnd; 
+  nsIntRect caretRect = text->GetCaretRect(&widget);
+  HWND caretWnd;
   if (caretRect.IsEmpty() || !(caretWnd = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW))) {
     return;
   }
