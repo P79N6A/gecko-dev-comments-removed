@@ -411,6 +411,7 @@ BaselineCompiler::emitEpilogue()
 
 
 
+
 bool
 BaselineCompiler::emitOutOfLinePostBarrierSlot()
 {
@@ -418,6 +419,7 @@ BaselineCompiler::emitOutOfLinePostBarrierSlot()
 
     Register objReg = R2.scratchReg();
     GeneralRegisterSet regs(GeneralRegisterSet::All());
+    regs.take(R0);
     regs.take(objReg);
     regs.take(BaselineFrameReg);
     Register scratch = regs.takeAny();
@@ -428,6 +430,7 @@ BaselineCompiler::emitOutOfLinePostBarrierSlot()
 #elif defined(JS_CODEGEN_MIPS)
     masm.push(ra);
 #endif
+    masm.pushValue(R0);
 
     masm.setupUnalignedABICall(2, scratch);
     masm.movePtr(ImmPtr(cx->runtime()), scratch);
@@ -435,6 +438,7 @@ BaselineCompiler::emitOutOfLinePostBarrierSlot()
     masm.passABIArg(objReg);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, PostWriteBarrier));
 
+    masm.popValue(R0);
     masm.ret();
     return true;
 }
@@ -2098,14 +2102,13 @@ BaselineCompiler::emit_JSOP_SETALIASEDVAR()
 #ifdef JSGC_GENERATIONAL
     
     
-    frame.syncStack(0);
     Register temp = R1.scratchReg();
 
     Label skipBarrier;
-    masm.branchTestObject(Assembler::NotEqual, R0, &skipBarrier);
-    masm.branchPtrInNurseryRange(objReg, temp, &skipBarrier);
+    masm.branchPtrInNurseryRange(Assembler::Equal, objReg, temp, &skipBarrier);
+    masm.branchValueIsNurseryObject(Assembler::NotEqual, R0, temp, &skipBarrier);
 
-    masm.call(&postBarrierSlot_);
+    masm.call(&postBarrierSlot_); 
 
     masm.bind(&skipBarrier);
 #endif
@@ -2461,11 +2464,12 @@ BaselineCompiler::emitFormalArgAccess(uint32_t arg, bool get)
         frame.push(R0);
     } else {
         masm.patchableCallPreBarrier(argAddr, MIRType_Value);
-        storeValue(frame.peek(-1), argAddr, R0);
+        masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R0);
+        masm.storeValue(R0, argAddr);
 
 #ifdef JSGC_GENERATIONAL
-        
-        frame.syncStack(0);
+        MOZ_ASSERT(frame.numUnsyncedSlots() == 0);
+
         Register temp = R1.scratchReg();
 
         
@@ -2473,7 +2477,9 @@ BaselineCompiler::emitFormalArgAccess(uint32_t arg, bool get)
         masm.loadPtr(Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfArgsObj()), reg);
 
         Label skipBarrier;
-        masm.branchPtrInNurseryRange(reg, temp, &skipBarrier);
+
+        masm.branchPtrInNurseryRange(Assembler::Equal, reg, temp, &skipBarrier);
+        masm.branchValueIsNurseryObject(Assembler::NotEqual, R0, temp, &skipBarrier);
 
         masm.call(&postBarrierSlot_);
 
