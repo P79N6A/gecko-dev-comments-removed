@@ -10492,6 +10492,11 @@ nsGlobalWindow::ShowSlowScriptDialog()
   }
 
   
+  if (!HasActiveDocument()) {
+    return KillSlowScript;
+  }
+
+  
   nsCOMPtr<nsIDocShell> ds = GetDocShell();
   NS_ENSURE_TRUE(ds, KillSlowScript);
   nsCOMPtr<nsIPrompt> prompt = do_GetInterface(ds);
