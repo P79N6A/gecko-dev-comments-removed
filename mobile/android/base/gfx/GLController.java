@@ -105,42 +105,9 @@ public class GLController {
         mWidth = newWidth;
         mHeight = newHeight;
 
-        if (mServerSurfaceValid) {
-            
-            
-            
-            resumeCompositor(mWidth, mHeight);
-            Log.w(LOGTAG, "done GLController::serverSurfaceChanged with compositor resume");
-            return;
-        }
         mServerSurfaceValid = true;
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        mView.post(new Runnable() {
-            @Override
-            public void run() {
-                Log.w(LOGTAG, "GLController::serverSurfaceChanged, creating compositor; mCompositorCreated=" + mCompositorCreated + ", mServerSurfaceValid=" + mServerSurfaceValid);
-                try {
-                    if (mServerSurfaceValid) {
-                        if (mEGL == null) {
-                            initEGL();
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.e(LOGTAG, "Unable to create window surface", e);
-                }
-                createCompositor();
-            }
-        });
+        createCompositor();
     }
 
     void createCompositor() {
@@ -178,11 +145,15 @@ public class GLController {
     }
 
     private void initEGL() {
+        if (mEGL != null) {
+            return;
+        }
         mEGL = (EGL10)EGLContext.getEGL();
 
         mEGLDisplay = mEGL.eglGetDisplay(EGL10.EGL_DEFAULT_DISPLAY);
         if (mEGLDisplay == EGL10.EGL_NO_DISPLAY) {
-            throw new GLControllerException("eglGetDisplay() failed");
+            Log.w(LOGTAG, "Can't get EGL display!");
+            return;
         }
 
         mEGLConfig = chooseConfig();
@@ -233,6 +204,7 @@ public class GLController {
 
     @GeneratableAndroidBridgeTarget(allowMultithread = true, stubName = "ProvideEGLSurfaceWrapper")
     private EGLSurface provideEGLSurface() {
+        initEGL();
         return mEGL.eglCreateWindowSurface(mEGLDisplay, mEGLConfig, mView.getNativeWindow(), null);
     }
 
