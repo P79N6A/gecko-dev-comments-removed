@@ -179,101 +179,6 @@ function promiseTimeout(aTime)
 
 
 
-function promiseTopicObserved(aTopic)
-{
-  let deferred = Promise.defer();
-
-  Services.obs.addObserver(
-    function PTO_observe(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(PTO_observe, aTopic);
-      deferred.resolve([aSubject, aData]);
-    }, aTopic, false);
-
-  return deferred.promise;
-}
-
-
-
-
-
-
-
-
-function promiseClearHistory()
-{
-  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-  do_execute_soon(function() PlacesUtils.bhistory.removeAllPages());
-  return promise;
-}
-
-
-
-
-
-
-
-
-
-
-
-function promiseWaitForVisit(aUrl)
-{
-  let deferred = Promise.defer();
-
-  let uri = NetUtil.newURI(aUrl);
-
-  PlacesUtils.history.addObserver({
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsINavHistoryObserver]),
-    onBeginUpdateBatch: function () {},
-    onEndUpdateBatch: function () {},
-    onVisit: function (aURI, aVisitID, aTime, aSessionID, aReferringID,
-                       aTransitionType, aGUID, aHidden) {
-      if (aURI.equals(uri)) {
-        PlacesUtils.history.removeObserver(this);
-        deferred.resolve([aTime, aTransitionType]);
-      }
-    },
-    onTitleChanged: function () {},
-    onDeleteURI: function () {},
-    onClearHistory: function () {},
-    onPageChanged: function () {},
-    onDeleteVisits: function () {},
-  }, false);
-
-  return deferred.promise;
-}
-
-
-
-
-
-
-
-
-
-
-
-function promiseIsURIVisited(aUrl) {
-  let deferred = Promise.defer();
-
-  PlacesUtils.asyncHistory.isURIVisited(NetUtil.newURI(aUrl),
-    function (aURI, aIsVisited) {
-      deferred.resolve(aIsVisited);
-    });
-
-  return deferred.promise;
-}
-
-
-
-
-
-
-
-
-
-
-
 
 function promiseNewDownload(aSourceUrl) {
   return Downloads.createDownload({
@@ -534,6 +439,40 @@ function promiseVerifyContents(aPath, aExpectedContents)
     });
     yield deferred.promise;
   });
+}
+
+
+
+
+
+
+
+
+
+
+
+function promiseAddDownloadToHistory(aSourceUrl) {
+  let deferred = Promise.defer();
+  PlacesUtils.asyncHistory.updatePlaces(
+    {
+      uri: NetUtil.newURI(aSourceUrl || httpUrl("source.txt")),
+      visits: [{
+        transitionType: Ci.nsINavHistoryService.TRANSITION_DOWNLOAD,
+        visitDate:  Date.now()
+      }]
+    },
+    {
+      handleError: function handleError(aResultCode, aPlaceInfo) {
+        let ex = new Components.Exception("Unexpected error in adding visits.",
+                                          aResultCode);
+        deferred.reject(ex);
+      },
+      handleResult: function () {},
+      handleCompletion: function handleCompletion() {
+        deferred.resolve();
+      }
+    });
+  return deferred.promise;
 }
 
 
