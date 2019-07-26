@@ -286,8 +286,10 @@ SimpleTest._logResult = function(test, passString, failString) {
         } else {
             parentRunner.log(msg);
         }
-    } else {
+    } else if (typeof dump === "function") {
         dump(msg + "\n");
+    } else {
+        
     }
 };
 
@@ -600,7 +602,7 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
 
     
     var inputValidatorFn = typeof(aExpectedStringOrValidatorFn) == "string"
-        ? function(aData) aData == aExpectedStringOrValidatorFn
+        ? function(aData) { return aData == aExpectedStringOrValidatorFn; }
         : aExpectedStringOrValidatorFn;
 
     
@@ -628,7 +630,7 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
             reset();
             successFn();
         } else {
-            setTimeout(function() wait(validatorFn, successFn, failureFn, flavor), 100);
+            setTimeout(function() { return wait(validatorFn, successFn, failureFn, flavor); }, 100);
         }
     }
 
@@ -636,7 +638,7 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
     var preExpectedVal = SimpleTest._waitForClipboardMonotonicCounter +
                          "-waitForClipboard-known-value";
     SpecialPowers.clipboardCopyString(preExpectedVal);
-    wait(function(aData) aData  == preExpectedVal,
+    wait(function(aData) { return aData  == preExpectedVal; },
          function() {
            
            aSetupFn();
