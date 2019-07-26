@@ -2143,10 +2143,15 @@ RilObject.prototype = {
 
 
   setDataRegistration: function(options) {
-    let request = options.attach ? RIL_REQUEST_GPRS_ATTACH :
-                                   RIL_REQUEST_GPRS_DETACH;
     this._attachDataRegistration = options.attach;
-    this.context.Buf.simpleRequest(request);
+
+    if (RILQUIRKS_DATA_REGISTRATION_ON_DEMAND) {
+      let request = options.attach ? RIL_REQUEST_GPRS_ATTACH :
+                                     RIL_REQUEST_GPRS_DETACH;
+      this.context.Buf.simpleRequest(request);
+    } else if (RILQUIRKS_SUBSCRIPTION_CONTROL && options.attach) {
+      this.context.Buf.simpleRequest(REQUEST_SET_DATA_SUBSCRIPTION, options);
+    }
   },
 
   
@@ -6413,7 +6418,9 @@ RilObject.prototype[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TEC
   this._processRadioTech(radioTech[0]);
 };
 RilObject.prototype[REQUEST_SET_UICC_SUBSCRIPTION] = null;
+RilObject.prototype[REQUEST_SET_DATA_SUBSCRIPTION] = null;
 RilObject.prototype[REQUEST_GET_UICC_SUBSCRIPTION] = null;
+RilObject.prototype[REQUEST_GET_DATA_SUBSCRIPTION] = null;
 RilObject.prototype[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOCK_RETRY_COUNT(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
@@ -6483,7 +6490,9 @@ RilObject.prototype[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLIC
     this.updateCellBroadcastConfig();
     this.setPreferredNetworkType();
     this.setCLIR();
-    if (RILQUIRKS_DATA_REGISTRATION_ON_DEMAND && this._attachDataRegistration) {
+    if ((RILQUIRKS_DATA_REGISTRATION_ON_DEMAND ||
+         RILQUIRKS_SUBSCRIPTION_CONTROL) &&
+        this._attachDataRegistration) {
       this.setDataRegistration({attach: true});
     }
   }
