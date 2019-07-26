@@ -118,7 +118,7 @@ function testJSTerm(hud)
 
   jsterm.clearOutput();
   jsterm.execute("pprint({b:2, a:1})");
-  checkResult('"  b: 2\n  a: 1"', "pprint()");
+  checkResult("\"  b: 2\\n  a: 1\"", "pprint()");
   yield undefined;
 
   
@@ -154,7 +154,7 @@ function testJSTerm(hud)
   
   jsterm.clearOutput();
   jsterm.execute("pprint('hi')");
-  checkResult('"  0: "h"\n  1: "i""', "pprint('hi')");
+  checkResult("\"  0: \\\"h\\\"\\n  1: \\\"i\\\"\"", "pprint('hi')");
   yield undefined;
 
   

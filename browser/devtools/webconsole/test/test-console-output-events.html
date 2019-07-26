@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html dir="ltr" lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <title>Test the web console output for DOM events</title>
+  
+
+
+
+</head>
+<body>
+  <p>hello world!</p>
+  <script type="text/javascript">
+function testDOMEvents() {
+  function eventLogger(ev) {
+    console.log("eventLogger", ev);
+  }
+  document.addEventListener("mousemove", eventLogger);
+  document.addEventListener("keypress", eventLogger);
+}
+  </script>
+</body>
+</html>
