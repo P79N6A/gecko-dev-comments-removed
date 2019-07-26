@@ -20,6 +20,16 @@
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/dom/TextTrackManager.h"
 #include "MediaDecoder.h"
+#include "mozilla/dom/MediaKeys.h"
+
+
+
+
+#ifdef None
+#undef None
+#endif
+
+#include "mozilla/dom/HTMLMediaElementBinding.h"
 
 
 
@@ -37,6 +47,7 @@ class MediaResource;
 class MediaDecoder;
 class VideoFrameContainer;
 namespace dom {
+class MediaKeys;
 class TextTrack;
 class TimeRanges;
 class WakeLock;
@@ -477,6 +488,22 @@ public:
   }
 
   
+
+  MediaKeys* GetMediaKeys() const;
+
+  already_AddRefed<Promise> SetMediaKeys(MediaKeys* mediaKeys,
+                                         ErrorResult& aRv);
+  
+  MediaWaitingFor WaitingFor() const;
+
+  mozilla::dom::EventHandlerNonNull* GetOnneedkey();
+  void SetOnneedkey(mozilla::dom::EventHandlerNonNull* listener);
+
+  void DispatchNeedKey(const nsTArray<uint8_t>& aInitData,
+                       const nsAString& aInitDataType);
+
+
+  bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
 
   bool MozAutoplayEnabled() const
   {
@@ -1011,6 +1038,9 @@ protected:
   nsRefPtr<TimeRanges> mPlayed;
 
   
+  nsRefPtr<MediaKeys> mMediaKeys;
+
+  
   double mCurrentPlayRangeStart;
 
   
@@ -1139,6 +1169,8 @@ protected:
   nsCOMPtr<nsIAudioChannelAgent> mAudioChannelAgent;
 
   nsRefPtr<TextTrackManager> mTextTrackManager;
+
+  MediaWaitingFor mWaitingFor;
 };
 
 } 
