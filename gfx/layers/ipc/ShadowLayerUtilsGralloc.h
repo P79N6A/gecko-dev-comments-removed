@@ -85,6 +85,11 @@ public:
   
   void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
+  
+  
+  void AddDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost);
+  void RemoveDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost);
+
   void AddTextureHost(TextureHost* aTextureHost);
   void RemoveTextureHost();
 

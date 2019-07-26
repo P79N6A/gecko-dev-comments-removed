@@ -761,7 +761,9 @@ public:
 
 
 
-  void SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator);
+  
+  
+  virtual void SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator);
 
   
   

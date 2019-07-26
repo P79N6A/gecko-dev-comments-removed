@@ -318,10 +318,30 @@ GrallocBufferActor::Create(const gfx::IntSize& aSize,
 void GrallocBufferActor::ActorDestroy(ActorDestroyReason)
 {
   
+  for (size_t i = 0; i < mDeprecatedTextureHosts.Length(); i++) {
+    mDeprecatedTextureHosts[i]->ForgetBuffer();
+  }
+
+  
   if (mTextureHost) {
     mTextureHost->ForgetBufferActor();
     mTextureHost = nullptr;
   }
+}
+
+
+void GrallocBufferActor::AddDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost)
+{
+  mDeprecatedTextureHosts.AppendElement(aDeprecatedTextureHost);
+}
+
+
+void GrallocBufferActor::RemoveDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost)
+{
+  mDeprecatedTextureHosts.RemoveElement(aDeprecatedTextureHost);
+  
+  
+  MOZ_ASSERT(!mDeprecatedTextureHosts.Contains(aDeprecatedTextureHost));
 }
 
 void GrallocBufferActor::AddTextureHost(TextureHost* aTextureHost)
