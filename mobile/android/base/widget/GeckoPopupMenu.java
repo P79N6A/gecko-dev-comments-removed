@@ -20,7 +20,7 @@ import android.view.View;
 
 
 
-public class GeckoPopupMenu implements GeckoMenu.Callback, 
+public class GeckoPopupMenu implements GeckoMenu.Callback,
                                        GeckoMenu.MenuPresenter {
 
     
@@ -92,8 +92,9 @@ public class GeckoPopupMenu implements GeckoMenu.Callback,
 
 
     public void inflate(int menuRes) {
-        mMenuInflater.inflate(menuRes, mMenu);
-
+        if (menuRes > 0) {
+            mMenuInflater.inflate(menuRes, mMenu);
+        }
         mMenuPanel.addView(mMenu);
         mMenuPopup.setPanelView(mMenuPanel);
     }
