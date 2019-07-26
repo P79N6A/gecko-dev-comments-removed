@@ -141,8 +141,10 @@ private:
   void Cleanup()
   {
     MOZ_ASSERT(NS_IsMainThread());
-    mBufferDecoder = nullptr;
+    
+    
     mDecoderReader = nullptr;
+    mBufferDecoder = nullptr;
   }
 
 private:
