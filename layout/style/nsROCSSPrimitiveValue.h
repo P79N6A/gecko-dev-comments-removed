@@ -23,6 +23,17 @@ class nsDOMCSSRGBColor;
 
 
 
+
+#define CSS_TURN 30U
+
+
+#define CSS_NUMBER_INT32 31U
+#define CSS_NUMBER_UINT32 32U
+
+
+
+
+
 class nsROCSSPrimitiveValue MOZ_FINAL : public mozilla::dom::CSSValue,
   public nsIDOMCSSPrimitiveValue
 {
@@ -47,6 +58,9 @@ public:
     
     
     if (mType > CSS_RGBCOLOR) {
+      if (mType == CSS_NUMBER_INT32 || mType == CSS_NUMBER_UINT32) {
+        return CSS_NUMBER;
+      }
       return CSS_UNKNOWN;
     }
     return mType;
@@ -100,6 +114,8 @@ private:
   union {
     nscoord         mAppUnits;
     float           mFloat;
+    int32_t         mInt32;
+    uint32_t        mUint32;
     nsDOMCSSRGBColor* mColor;
     nsDOMCSSRect*     mRect;
     char16_t*      mString;
