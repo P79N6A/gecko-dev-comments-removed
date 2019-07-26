@@ -322,23 +322,6 @@ TelephonyProvider.prototype = {
     }
   },
 
-  _validateNumber: function(aNumber) {
-    
-    if (gPhoneNumberUtils.isPlainPhoneNumber(aNumber)) {
-      return true;
-    }
-
-    let errorMsg = RIL.RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[RIL.CALL_FAIL_UNOBTAINABLE_NUMBER];
-    let currentThread = Services.tm.currentThread;
-    currentThread.dispatch(this.notifyCallError.bind(this, -1, errorMsg),
-                           Ci.nsIThread.DISPATCH_NORMAL);
-    if (DEBUG) {
-      debug("Number '" + aNumber + "' doesn't seem to be a viable number. Drop.");
-    }
-
-    return false;
-  },
-
   _updateDebugFlag: function() {
     try {
       DEBUG = RIL.DEBUG_RIL ||
@@ -419,17 +402,32 @@ TelephonyProvider.prototype = {
 
   dial: function(aClientId, aNumber, aIsEmergency) {
     if (DEBUG) debug("Dialing " + (aIsEmergency ? "emergency " : "") + aNumber);
+
     
     
     if (!aIsEmergency) {
       aNumber = gPhoneNumberUtils.normalize(aNumber);
     }
-    if (this._validateNumber(aNumber)) {
-      this._getClient(aClientId).sendWorkerMessage("dial", {
-        number: aNumber,
-        isDialEmergency: aIsEmergency
-      });
+
+    if (!gPhoneNumberUtils.isPlainPhoneNumber(aNumber)) {
+      
+      if (DEBUG) debug("Number '" + aNumber + "' is not viable. Drop.");
+      let errorMsg = RIL.RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[RIL.CALL_FAIL_UNOBTAINABLE_NUMBER];
+      Services.tm.currentThread.dispatch(
+        this.notifyCallError.bind(this, aClientId, -1, errorMsg),
+        Ci.nsIThread.DISPATCH_NORMAL);
+      return;
     }
+
+    this._getClient(aClientId).sendWorkerMessage("dial", {
+      number: aNumber,
+      isDialEmergency: aIsEmergency
+    }, (function(clientId, response) {
+      if (!response.success) {
+        this.notifyCallError(clientId, -1, response.errorMsg);
+      }
+      return false;
+    }).bind(this, aClientId));
   },
 
   hangUp: function(aClientId, aCallIndex) {
