@@ -761,6 +761,7 @@ CompositorParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
     
     
     if (mIsTesting && root && mCurrentCompositeTask) {
+      AutoResolveRefLayers resolve(mCompositionManager);
       bool requestNextFrame =
         mCompositionManager->TransformShadowTree(mTestTime);
       if (!requestNextFrame) {
@@ -790,6 +791,7 @@ CompositorParent::SetTestSampleTime(LayerTransactionParent* aLayerTree,
 
   
   if (mCompositionManager && mCurrentCompositeTask) {
+    AutoResolveRefLayers resolve(mCompositionManager);
     bool requestNextFrame = mCompositionManager->TransformShadowTree(aTime);
     if (!requestNextFrame) {
       CancelCurrentCompositeTask();
