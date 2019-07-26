@@ -153,6 +153,12 @@ private:
   
 
 
+
+  void minimizeMemory();
+
+  
+
+
   void shutdown();
 
   
