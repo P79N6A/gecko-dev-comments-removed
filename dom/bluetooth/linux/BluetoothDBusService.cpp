@@ -1156,9 +1156,19 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
         
         
         
+        nsString addrstr = NS_ConvertUTF8toUTF16(addr);
+        nsString path = GetObjectPathFromAddress(signalPath, addrstr);
+
         v.get_ArrayOfBluetoothNamedValue()
           .AppendElement(BluetoothNamedValue(NS_LITERAL_STRING("Address"),
-                                             NS_ConvertUTF8toUTF16(addr)));
+                                             addrstr));
+
+        
+        
+        v.get_ArrayOfBluetoothNamedValue()
+          .AppendElement(BluetoothNamedValue(NS_LITERAL_STRING("Path"),
+                                             path));
+
       }
     } else {
       errorStr.AssignLiteral("DBus device found message structure not as expected!");
@@ -1572,7 +1582,14 @@ public:
       InfallibleTArray<BluetoothNamedValue> parameters = v.get_ArrayOfBluetoothNamedValue();
 
       
-      nsString address = GetAddressFromObjectPath(parameters[0].value());
+      nsString path = parameters[0].value();
+      BluetoothNamedValue pathprop;
+      pathprop.name().AssignLiteral("Path");
+      pathprop.value() = path;
+      parameters.AppendElement(pathprop);
+
+      
+      nsString address = GetAddressFromObjectPath(path);
       parameters[0].value() = address;
 
       uint8_t i;
