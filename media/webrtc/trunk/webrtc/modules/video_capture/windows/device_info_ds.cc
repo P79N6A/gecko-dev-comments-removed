@@ -586,7 +586,7 @@ int32_t DeviceInfoDS::CreateCapabilityMap(
 
             if (hrVC == S_OK)
             {
-                LONGLONG *frameDurationList;
+                LONGLONG *frameDurationList = NULL;
                 LONGLONG maxFPS; 
                 long listSize;
                 SIZE size;
@@ -605,7 +605,9 @@ int32_t DeviceInfoDS::CreateCapabilityMap(
 
                 
                 
-                if (hrVC == S_OK && listSize > 0 &&
+                
+                
+                if (hrVC == S_OK && listSize > 0 && frameDurationList &&
                     0 != (maxFPS = GetMaxOfFrameArray(frameDurationList, 
                                                       listSize)))
                 {
