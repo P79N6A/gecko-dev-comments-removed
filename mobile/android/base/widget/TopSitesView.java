@@ -193,39 +193,44 @@ public class TopSitesView extends GridView {
     }
 
     public void loadTopSites() {
-        final ContentResolver resolver = mContext.getContentResolver();
-
-        
-        final Cursor oldCursor = (mTopSitesAdapter != null) ? mTopSitesAdapter.getCursor() : null;
-        final Cursor newCursor = BrowserDB.getTopSites(resolver, mNumberOfTopSites);
-
-        post(new Runnable() {
+        ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
-                if (mTopSitesAdapter == null) {
-                    mTopSitesAdapter = new TopSitesCursorAdapter(mContext,
-                                                                 R.layout.abouthome_topsite_item,
-                                                                 newCursor,
-                                                                 new String[] { URLColumns.TITLE },
-                                                                 new int[] { R.id.title });
-
-                    setAdapter(mTopSitesAdapter);
-                } else {
-                    mTopSitesAdapter.changeCursor(newCursor);
-                }
-
-                if (mTopSitesAdapter.getCount() > 0)
-                    loadTopSitesThumbnails(resolver);
+                final ContentResolver resolver = mContext.getContentResolver();
 
                 
-                if (oldCursor != null && !oldCursor.isClosed())
-                    oldCursor.close();
+                final Cursor oldCursor = (mTopSitesAdapter != null) ? mTopSitesAdapter.getCursor() : null;
+                final Cursor newCursor = BrowserDB.getTopSites(resolver, mNumberOfTopSites);
 
-                
-                
-                
-                if (mLoadCompleteListener != null)
-                    mLoadCompleteListener.onAboutHomeLoadComplete();
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mTopSitesAdapter == null) {
+                            mTopSitesAdapter = new TopSitesCursorAdapter(mContext,
+                                                                         R.layout.abouthome_topsite_item,
+                                                                         newCursor,
+                                                                         new String[] { URLColumns.TITLE },
+                                                                         new int[] { R.id.title });
+
+                            setAdapter(mTopSitesAdapter);
+                        } else {
+                            mTopSitesAdapter.changeCursor(newCursor);
+                        }
+
+                        if (mTopSitesAdapter.getCount() > 0)
+                            loadTopSitesThumbnails(resolver);
+
+                        
+                        if (oldCursor != null && !oldCursor.isClosed())
+                            oldCursor.close();
+
+                        
+                        
+                        
+                        if (mLoadCompleteListener != null)
+                            mLoadCompleteListener.onAboutHomeLoadComplete();
+                    }
+                });
             }
         });
     }
