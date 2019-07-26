@@ -169,6 +169,14 @@ public:
 
 
 
+  nsEventStatus ReceiveInputEvent(nsInputEvent& aEvent);
+
+  
+
+
+
+
+
 
   void UpdateCompositionBounds(const ScrollableLayerGuid& aGuid,
                                const ScreenIntRect& aCompositionBounds);
