@@ -417,7 +417,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
-  sortBy: function(aType) {
+  sortBy: function(aType = "waterfall") {
     let target = $("#requests-menu-" + aType + "-button");
     let headers = document.querySelectorAll(".requests-menu-header-button");
 
@@ -430,24 +430,17 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
     let direction = "";
     if (target) {
-      if (!target.hasAttribute("sorted")) {
-        target.setAttribute("sorted", direction = "ascending");
-        target.setAttribute("tooltiptext", L10N.getStr("networkMenu.sortedAsc"));
-      } else if (target.getAttribute("sorted") == "ascending") {
+      if (target.getAttribute("sorted") == "ascending") {
         target.setAttribute("sorted", direction = "descending");
         target.setAttribute("tooltiptext", L10N.getStr("networkMenu.sortedDesc"));
       } else {
-        target.removeAttribute("sorted");
-        target.removeAttribute("tooltiptext");
+        target.setAttribute("sorted", direction = "ascending");
+        target.setAttribute("tooltiptext", L10N.getStr("networkMenu.sortedAsc"));
       }
     }
 
     
-    if (!target || !direction) {
-      this.sortContents(this._byTiming);
-    }
-    
-    else switch (aType) {
+    switch (aType) {
       case "status":
         if (direction == "ascending") {
           this.sortContents(this._byStatus);
@@ -488,6 +481,13 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
           this.sortContents(this._bySize);
         } else {
           this.sortContents((a, b) => !this._bySize(a, b));
+        }
+        break;
+      case "waterfall":
+        if (direction == "ascending") {
+          this.sortContents(this._byTiming);
+        } else {
+          this.sortContents((a, b) => !this._byTiming(a, b));
         }
         break;
     }
@@ -924,7 +924,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
   _showWaterfallDivisionLabels: function(aScale) {
-    let container = $("#requests-menu-waterfall-header-box");
+    let container = $("#requests-menu-waterfall-button");
     let availableWidth = this._waterfallWidth - REQUESTS_WATERFALL_SAFE_BOUNDS;
 
     
