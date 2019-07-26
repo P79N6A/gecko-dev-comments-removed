@@ -686,7 +686,7 @@ CompositorD3D11::BeginFrame(const nsIntRegion& aInvalidRegion,
   UpdateRenderTarget();
 
   
-  if (!mDefaultRT ||
+  if (!mDefaultRT || !mDefaultRT->mRTView ||
       mSize.width == 0 || mSize.height == 0) {
     *aRenderBoundsOut = Rect();
     return;
