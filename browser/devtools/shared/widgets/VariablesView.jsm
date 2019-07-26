@@ -20,6 +20,8 @@ const SEARCH_ACTION_MAX_DELAY = 300;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+Cu.import("resource:///modules/devtools/shared/event-emitter.js");
+Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "NetworkHelper",
   "resource://gre/modules/devtools/NetworkHelper.jsm");
@@ -74,6 +76,8 @@ this.VariablesView = function VariablesView(aParentNode, aFlags = {}) {
   for (let name in aFlags) {
     this[name] = aFlags[name];
   }
+
+  EventEmitter.decorate(this);
 };
 
 VariablesView.prototype = {
@@ -86,7 +90,7 @@ VariablesView.prototype = {
 
   set rawObject(aObject) {
     this.empty();
-    this.addScope().addVar().populate(aObject);
+    this.addScope().addItem().populate(aObject);
   },
 
   
@@ -179,6 +183,11 @@ VariablesView.prototype = {
       }
     }, aTimeout);
   },
+
+  
+
+
+  controller: null,
 
   
 
@@ -587,7 +596,8 @@ VariablesView.prototype = {
 
   getScopeForNode: function(aNode) {
     let item = this._itemsByElement.get(aNode);
-    if (item && !(item instanceof Variable) && !(item instanceof Property)) {
+    
+    if (item && !(item instanceof Variable)) {
       return item;
     }
     return null;
@@ -791,8 +801,7 @@ VariablesView.prototype = {
       case e.DOM_VK_RETURN:
       case e.DOM_VK_ENTER:
         
-        if (item instanceof Variable ||
-            item instanceof Property) {
+        if (item instanceof Variable) {
           if (e.metaKey || e.altKey || e.shiftKey) {
             item._activateNameInput();
           } else {
@@ -804,8 +813,7 @@ VariablesView.prototype = {
       case e.DOM_VK_DELETE:
       case e.DOM_VK_BACK_SPACE:
         
-        if (item instanceof Variable ||
-            item instanceof Property) {
+        if (item instanceof Variable) {
           item._onDelete(e);
         }
         return;
@@ -902,6 +910,7 @@ VariablesView.NON_SORTABLE_CLASSES = [
   "Array",
   "Int8Array",
   "Uint8Array",
+  "Uint8ClampedArray",
   "Int16Array",
   "Uint16Array",
   "Int32Array",
@@ -916,12 +925,8 @@ VariablesView.NON_SORTABLE_CLASSES = [
 
 
 
-
-
-
-
-VariablesView.simpleValueEvalMacro = function(aItem, aCurrentString) {
-  return aItem._symbolicName + "=" + aCurrentString;
+VariablesView.isSortable = function(aClassName) {
+  return VariablesView.NON_SORTABLE_CLASSES.indexOf(aClassName) == -1;
 };
 
 
@@ -935,9 +940,27 @@ VariablesView.simpleValueEvalMacro = function(aItem, aCurrentString) {
 
 
 
-VariablesView.overrideValueEvalMacro = function(aItem, aCurrentString) {
+
+VariablesView.simpleValueEvalMacro = function(aItem, aCurrentString, aPrefix = "") {
+  return aPrefix + aItem._symbolicName + "=" + aCurrentString;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+VariablesView.overrideValueEvalMacro = function(aItem, aCurrentString, aPrefix = "") {
   let property = "\"" + aItem._nameString + "\"";
-  let parent = aItem.ownerView._symbolicName || "this";
+  let parent = aPrefix + aItem.ownerView._symbolicName || "this";
 
   return "Object.defineProperty(" + parent + "," + property + "," +
     "{ value: " + aCurrentString +
@@ -957,12 +980,14 @@ VariablesView.overrideValueEvalMacro = function(aItem, aCurrentString) {
 
 
 
-VariablesView.getterOrSetterEvalMacro = function(aItem, aCurrentString) {
+
+
+VariablesView.getterOrSetterEvalMacro = function(aItem, aCurrentString, aPrefix = "") {
   let type = aItem._nameString;
   let propertyObject = aItem.ownerView;
   let parentObject = propertyObject.ownerView;
   let property = "\"" + propertyObject._nameString + "\"";
-  let parent = parentObject._symbolicName || "this";
+  let parent = aPrefix + parentObject._symbolicName || "this";
 
   switch (aCurrentString) {
     case "":
@@ -976,7 +1001,7 @@ VariablesView.getterOrSetterEvalMacro = function(aItem, aCurrentString) {
       if ((type == "set" && propertyObject.getter.type == "undefined") ||
           (type == "get" && propertyObject.setter.type == "undefined")) {
         
-        return propertyObject.evaluationMacro(propertyObject, "undefined");
+        return propertyObject.evaluationMacro(propertyObject, "undefined", aPrefix);
       }
 
       
@@ -995,16 +1020,16 @@ VariablesView.getterOrSetterEvalMacro = function(aItem, aCurrentString) {
 
     default:
       
-      if (aCurrentString.indexOf("function") != 0) {
+      if (!aCurrentString.startsWith("function")) {
         let header = "function(" + (type == "set" ? "value" : "") + ")";
         let body = "";
         
         
-        if (aCurrentString.indexOf("return ") != -1) {
+        if (aCurrentString.contains("return ")) {
           body = "{" + aCurrentString + "}";
         }
         
-        else if (aCurrentString.indexOf("{") == 0) {
+        else if (aCurrentString.startsWith("{")) {
           body = aCurrentString;
         }
         
@@ -1053,6 +1078,7 @@ VariablesView.getterOrSetterDeleteCallback = function(aItem) {
 
 
 
+
 function Scope(aView, aName, aFlags = {}) {
   this.ownerView = aView;
 
@@ -1085,6 +1111,23 @@ Scope.prototype = {
   
 
 
+  shouldPrefetch: true,
+
+  
+
+
+
+
+
+
+
+
+
+  _createChild: function(aName, aDescriptor) {
+    return new Variable(this, aName, aDescriptor);
+  },
+
+  
 
 
 
@@ -1104,17 +1147,58 @@ Scope.prototype = {
 
 
 
-  addVar: function(aName = "", aDescriptor = {}, aRelaxed = false) {
+
+
+  addItem: function(aName = "", aDescriptor = {}, aRelaxed = false) {
     if (this._store.has(aName) && !aRelaxed) {
       return null;
     }
 
-    let variable = new Variable(this, aName, aDescriptor);
-    this._store.set(aName, variable);
-    this._variablesView._itemsByElement.set(variable._target, variable);
-    this._variablesView._currHierarchy.set(variable._absoluteName, variable);
-    variable.header = !!aName;
-    return variable;
+    let child = this._createChild(aName, aDescriptor);
+    this._store.set(aName, child);
+    this._variablesView._itemsByElement.set(child._target, child);
+    this._variablesView._currHierarchy.set(child._absoluteName, child);
+    child.header = !!aName;
+    return child;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  addItems: function(aItems, aOptions = {}) {
+    let names = Object.keys(aItems);
+
+    
+    if (aOptions.sorted) {
+      names.sort();
+    }
+    
+    for (let name of names) {
+      let descriptor = aItems[name];
+      let item = this.addItem(name, descriptor);
+
+      if (aOptions.callback) {
+        aOptions.callback(item, descriptor.value);
+      }
+    }
   },
 
   
@@ -1179,11 +1263,13 @@ Scope.prototype = {
     if (this.isChildOf(aParent)) {
       return true;
     }
-    if (this.ownerView instanceof Scope ||
-        this.ownerView instanceof Variable ||
-        this.ownerView instanceof Property) {
+
+    
+    if (this.ownerView instanceof Scope) {
       return this.ownerView.isDescendantOf(aParent);
     }
+
+    return false;
   },
 
   
@@ -1405,10 +1491,9 @@ Scope.prototype = {
     }
     
     let item = this;
-    while ((item = item.ownerView) &&  
-           (item instanceof Scope ||
-            item instanceof Variable ||
-            item instanceof Property)) {
+
+    
+    while ((item = item.ownerView) && item instanceof Scope) {
       if (!item._isExpanded) {
         return false;
       }
@@ -1725,11 +1810,8 @@ Scope.prototype = {
         
         
         
-
         while ((variable = variable.ownerView) &&  
-               (variable instanceof Scope ||
-                variable instanceof Variable ||
-                variable instanceof Property)) {
+               variable instanceof Scope) {
 
           
           variable._matched = true;
@@ -1973,38 +2055,8 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
   
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  addProperty: function(aName = "", aDescriptor = {}, aRelaxed = false) {
-    if (this._store.has(aName) && !aRelaxed) {
-      return null;
-    }
-
-    let property = new Property(this, aName, aDescriptor);
-    this._store.set(aName, property);
-    this._variablesView._itemsByElement.set(property._target, property);
-    this._variablesView._currHierarchy.set(property._absoluteName, property);
-    property.header = !!aName;
-    return property;
+  get shouldPrefetch(){
+    return this.name == "window" || this.name == "this";
   },
 
   
@@ -2017,33 +2069,8 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-  addProperties: function(aProperties, aOptions = {}) {
-    let propertyNames = Object.keys(aProperties);
-
-    
-    if (aOptions.sorted) {
-      propertyNames.sort();
-    }
-    
-    for (let name of propertyNames) {
-      let descriptor = aProperties[name];
-      let property = this.addProperty(name, descriptor);
-
-      if (aOptions.callback) {
-        aOptions.callback(property, descriptor.value);
-      }
-    }
+  _createChild: function(aName, aDescriptor) {
+    return new Property(this, aName, aDescriptor);
   },
 
   
@@ -2122,7 +2149,7 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
     let descriptor = Object.create(aDescriptor);
     descriptor.value = VariablesView.getGrip(aValue);
 
-    let propertyItem = this.addProperty(aName, descriptor);
+    let propertyItem = this.addItem(aName, descriptor);
     propertyItem._sourceValue = aValue;
 
     
@@ -2149,7 +2176,7 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
     descriptor.get = VariablesView.getGrip(aDescriptor.get);
     descriptor.set = VariablesView.getGrip(aDescriptor.set);
 
-    return this.addProperty(aName, descriptor);
+    return this.addItem(aName, descriptor);
   },
 
   
@@ -2311,8 +2338,8 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
         this.evaluationMacro = null;
       }
 
-      let getter = this.addProperty("get", { value: descriptor.get });
-      let setter = this.addProperty("set", { value: descriptor.set });
+      let getter = this.addItem("get", { value: descriptor.get });
+      let setter = this.addItem("set", { value: descriptor.set });
       getter.evaluationMacro = VariablesView.getterOrSetterEvalMacro;
       setter.evaluationMacro = VariablesView.getterOrSetterEvalMacro;
 
@@ -2853,8 +2880,7 @@ VariablesView.prototype.commitHierarchy = function() {
       expanded = prevVariable._isExpanded;
 
       
-      if (currVariable instanceof Variable ||
-          currVariable instanceof Property) {
+      if (currVariable instanceof Variable) {
         changed = prevVariable._valueString != currVariable._valueString;
       }
     }
@@ -2972,6 +2998,16 @@ VariablesView.isFalsy = function(aDescriptor) {
   }
 
   return false;
+};
+
+
+
+
+
+
+
+VariablesView.isVariable = function(aValue) {
+  return aValue instanceof Variable;
 };
 
 

@@ -24,6 +24,7 @@ Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 Cu.import("resource:///modules/devtools/BreadcrumbsWidget.jsm");
 Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
+Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Parser",
@@ -72,6 +73,24 @@ let DebuggerController = {
 
     DebuggerView.initialize(() => {
       DebuggerView._isInitialized = true;
+
+      VariablesViewController.attach(DebuggerView.Variables, {
+        getGripClient: aObject => {
+          return this.activeThread.pauseGrip(aObject);
+        }
+      });
+
+      
+      DebuggerView.Variables.on("fetched", (aEvent, aType) => {
+        switch (aType) {
+          case "variables":
+            window.dispatchEvent(document, "Debugger:FetchedVariables");
+            break;
+          case "properties":
+            window.dispatchEvent(document, "Debugger:FetchedProperties");
+            break;
+        }
+      });
 
       
       if (window._isChromeDebugger) {
@@ -407,15 +426,13 @@ ThreadState.prototype = {
 
 
 
+
 function StackFrames() {
   this._onPaused = this._onPaused.bind(this);
   this._onResumed = this._onResumed.bind(this);
   this._onFrames = this._onFrames.bind(this);
   this._onFramesCleared = this._onFramesCleared.bind(this);
   this._afterFramesCleared = this._afterFramesCleared.bind(this);
-  this._fetchScopeVariables = this._fetchScopeVariables.bind(this);
-  this._fetchVarProperties = this._fetchVarProperties.bind(this);
-  this._addVarExpander = this._addVarExpander.bind(this);
   this.evaluate = this.evaluate.bind(this);
 }
 
@@ -588,7 +605,12 @@ StackFrames.prototype = {
     DebuggerView.StackFrames.empty();
 
     for (let frame of this.activeThread.cachedFrames) {
-      this._addFrame(frame);
+      let depth = frame.depth;
+      let { url, line } = frame.where;
+      let frameLocation = NetworkHelper.convertToUnicode(unescape(url));
+      let frameTitle = StackFrameUtils.getFrameTitle(frame);
+
+      DebuggerView.StackFrames.addFrame(frameTitle, frameLocation, line, depth);
     }
     if (this.currentFrame == null) {
       DebuggerView.StackFrames.selectedDepth = 0;
@@ -661,6 +683,7 @@ StackFrames.prototype = {
     
     DebuggerView.Variables.empty();
 
+
     
     
     if (this.syncedWatchExpressions && watchExpressionsEvaluation) {
@@ -684,67 +707,26 @@ StackFrames.prototype = {
       
       let label = StackFrameUtils.getScopeLabel(environment);
       let scope = DebuggerView.Variables.addScope(label);
+      let innermost = environment == frame.environment;
 
       
-      if (environment == frame.environment) {
+      if (innermost) {
         this._insertScopeFrameReferences(scope, frame);
-        this._addScopeExpander(scope, environment);
-        
-        scope.expand();
       }
+
+      DebuggerView.Variables.controller.addExpander(scope, environment);
+
       
-      else {
-        this._addScopeExpander(scope, environment);
-        this.autoScopeExpand && scope.expand();
+      
+      
+      if (innermost || this.autoScopeExpand) {
+        scope.expand();
       }
     } while ((environment = environment.parent));
 
     
     window.dispatchEvent(document, "Debugger:FetchedVariables");
     DebuggerView.Variables.commitHierarchy();
-  },
-
-  
-
-
-
-
-
-
-
-
-  _addScopeExpander: function(aScope, aEnv) {
-    aScope._sourceEnvironment = aEnv;
-
-    
-    aScope.addEventListener("mouseover", this._fetchScopeVariables, false);
-    
-    aScope.onexpand = this._fetchScopeVariables;
-  },
-
-  
-
-
-
-
-
-
-
-
-  _addVarExpander: function(aVar, aGrip) {
-    
-    if (VariablesView.isPrimitive({ value: aGrip })) {
-      return;
-    }
-    aVar._sourceGrip = aGrip;
-
-    
-    
-    if (aVar.name == "window" || aVar.name == "this") {
-      aVar.addEventListener("mouseover", this._fetchVarProperties, false);
-    }
-    
-    aVar.onexpand = this._fetchVarProperties;
   },
 
   
@@ -770,8 +752,8 @@ StackFrames.prototype = {
       for (let i = 0; i < totalExpressions; i++) {
         let name = DebuggerView.WatchExpressions.getExpression(i);
         let expVal = ownProperties[i].value;
-        let expRef = aScope.addVar(name, ownProperties[i]);
-        this._addVarExpander(expRef, expVal);
+        let expRef = aScope.addItem(name, ownProperties[i]);
+        DebuggerView.Variables.controller.addExpander(expRef, expVal);
 
         
         expRef.switch = null;
@@ -793,201 +775,23 @@ StackFrames.prototype = {
 
 
 
-  _fetchScopeVariables: function(aScope) {
-    
-    if (aScope._fetched) {
-      return;
-    }
-    aScope._fetched = true;
-    let env = aScope._sourceEnvironment;
-
-    switch (env.type) {
-      case "with":
-      case "object":
-        
-        this.activeThread.pauseGrip(env.object).getPrototypeAndProperties((aResponse) => {
-          let { ownProperties, safeGetterValues } = aResponse;
-          this._mergeSafeGetterValues(ownProperties, safeGetterValues);
-          this._insertScopeVariables(ownProperties, aScope);
-
-          
-          window.dispatchEvent(document, "Debugger:FetchedVariables");
-          DebuggerView.Variables.commitHierarchy();
-        });
-        break;
-      case "block":
-      case "function":
-        
-        this._insertScopeArguments(env.bindings.arguments, aScope);
-        this._insertScopeVariables(env.bindings.variables, aScope);
-
-        
-        
-        
-        break;
-      default:
-        Cu.reportError("Unknown Debugger.Environment type: " + env.type);
-        break;
-    }
-  },
-
-  
-
-
-
-
-
-
 
   _insertScopeFrameReferences: function(aScope, aFrame) {
     
     if (this.currentException) {
-      let excRef = aScope.addVar("<exception>", { value: this.currentException });
-      this._addVarExpander(excRef, this.currentException);
+      let excRef = aScope.addItem("<exception>", { value: this.currentException });
+      DebuggerView.Variables.controller.addExpander(excRef, this.currentException);
     }
     
     if (this.currentReturnedValue) {
-      let retRef = aScope.addVar("<return>", { value: this.currentReturnedValue });
-      this._addVarExpander(retRef, this.currentReturnedValue);
+      let retRef = aScope.addItem("<return>", { value: this.currentReturnedValue });
+      DebuggerView.Variables.controller.addExpander(retRef, this.currentReturnedValue);
     }
     
     if (aFrame.this) {
-      let thisRef = aScope.addVar("this", { value: aFrame.this });
-      this._addVarExpander(thisRef, aFrame.this);
+      let thisRef = aScope.addItem("this", { value: aFrame.this });
+      DebuggerView.Variables.controller.addExpander(thisRef, aFrame.this);
     }
-  },
-
-  
-
-
-
-
-
-
-
-  _insertScopeArguments: function(aArguments, aScope) {
-    if (!aArguments) {
-      return;
-    }
-    for (let argument of aArguments) {
-      let name = Object.getOwnPropertyNames(argument)[0];
-      let argRef = aScope.addVar(name, argument[name]);
-      let argVal = argument[name].value;
-      this._addVarExpander(argRef, argVal);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  _insertScopeVariables: function(aVariables, aScope) {
-    if (!aVariables) {
-      return;
-    }
-    let variableNames = Object.keys(aVariables);
-
-    
-    if (Prefs.variablesSortingEnabled) {
-      variableNames.sort();
-    }
-    
-    for (let name of variableNames) {
-      let varRef = aScope.addVar(name, aVariables[name]);
-      let varVal = aVariables[name].value;
-      this._addVarExpander(varRef, varVal);
-    }
-  },
-
-  
-
-
-
-
-
-
-  _fetchVarProperties: function(aVar) {
-    
-    if (aVar._fetched) {
-      return;
-    }
-    aVar._fetched = true;
-    let grip = aVar._sourceGrip;
-
-    this.activeThread.pauseGrip(grip).getPrototypeAndProperties((aResponse) => {
-      let { ownProperties, prototype, safeGetterValues } = aResponse;
-      let sortable = VariablesView.NON_SORTABLE_CLASSES.indexOf(grip.class) == -1;
-
-      this._mergeSafeGetterValues(ownProperties, safeGetterValues);
-
-      
-      if (ownProperties) {
-        aVar.addProperties(ownProperties, {
-          
-          sorted: sortable,
-          
-          callback: this._addVarExpander
-        });
-      }
-
-      
-      if (prototype && prototype.type != "null") {
-        aVar.addProperty("__proto__", { value: prototype });
-        
-        this._addVarExpander(aVar.get("__proto__"), prototype);
-      }
-
-      
-      aVar._retrieved = true;
-
-      
-      window.dispatchEvent(document, "Debugger:FetchedProperties");
-      DebuggerView.Variables.commitHierarchy();
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _mergeSafeGetterValues: function(aOwnProperties, aSafeGetterValues) {
-    
-    
-    for (let name of Object.keys(aSafeGetterValues)) {
-      if (name in aOwnProperties) {
-        aOwnProperties[name].getterValue = aSafeGetterValues[name].getterValue;
-        aOwnProperties[name].getterPrototypeLevel =
-          aSafeGetterValues[name].getterPrototypeLevel;
-      } else {
-        aOwnProperties[name] = aSafeGetterValues[name];
-      }
-    }
-  },
-
-  
-
-
-
-
-
-  _addFrame: function(aFrame) {
-    let depth = aFrame.depth;
-    let { url, line } = aFrame.where;
-    let frameLocation = NetworkHelper.convertToUnicode(unescape(url));
-    let frameTitle = StackFrameUtils.getFrameTitle(aFrame);
-
-    DebuggerView.StackFrames.addFrame(frameTitle, frameLocation, line, depth);
   },
 
   
