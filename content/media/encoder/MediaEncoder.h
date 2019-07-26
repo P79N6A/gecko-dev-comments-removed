@@ -97,10 +97,6 @@ public :
   
 
 
-  static bool OnEncoderThread();
-  
-
-
 
 
 
