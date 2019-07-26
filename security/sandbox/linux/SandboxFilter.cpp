@@ -162,9 +162,8 @@ static struct sock_filter seccomp_filter[] = {
   ALLOW_SYSCALL(rt_sigprocmask),
 
   
-#ifdef MOZ_PROFILING
+  
   ALLOW_SYSCALL(tgkill),
-#endif
 
   
 #ifdef MOZ_WIDGET_GONK
