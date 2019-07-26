@@ -14,36 +14,6 @@
 #include "nsCOMPtr.h"
 #include "nsString.h"
 
-namespace mozilla { namespace net {
-
-
-
-
-
-class InfallableCopyCString : public nsCString
-{
-public:
-    InfallableCopyCString() { }
-    InfallableCopyCString(const nsACString & other)
-        : nsCString(other)
-    {
-        if (Length() != other.Length())
-            NS_RUNTIMEABORT("malloc");
-    }
-
-    InfallableCopyCString & operator=(const nsACString & other)
-    {
-        nsCString::operator=(other);
-
-        if (Length() != other.Length())
-            NS_RUNTIMEABORT("malloc");
-
-        return *this;
-    }
-};
-
-} } 
-
 class nsHttpHeaderArray
 {
 public:
@@ -93,7 +63,7 @@ public:
     struct nsEntry
     {
         nsHttpAtom header;
-        mozilla::net::InfallableCopyCString value;
+        nsCString value;
 
         struct MatchHeader {
           bool Equals(const nsEntry &entry, const nsHttpAtom &header) const {
