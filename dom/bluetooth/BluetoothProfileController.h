@@ -47,7 +47,7 @@ BEGIN_BLUETOOTH_NAMESPACE
 
 
 
-#define IS_HEADSET(cod)              ((GET_MAJOR_SERVICE_CLASS(cod) == 0x4) && \
+#define IS_HEADSET(cod)              ((GET_MAJOR_DEVICE_CLASS(cod) == 0x4) && \
                                      (GET_MINOR_DEVICE_CLASS(cod) == 0x1))
 
 class BluetoothProfileManagerBase;
