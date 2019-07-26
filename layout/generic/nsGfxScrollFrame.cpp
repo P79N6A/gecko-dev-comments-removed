@@ -2388,7 +2388,7 @@ ClipListsExceptCaret(nsDisplayListCollection* aLists,
 }
 
 static bool
-DisplayportExceedsMaxTextureSize(nsPresContext* aPresContext, const nsRect& aDisplayPort)
+DisplayportExceedsMaxTextureSize(nsPresContext* aPresContext, const nsRect& aDisplayPort, bool aLowPrecision)
 {
 #ifdef MOZ_WIDGET_GONK
   
@@ -2402,6 +2402,10 @@ DisplayportExceedsMaxTextureSize(nsPresContext* aPresContext, const nsRect& aDis
   
   
   gfxSize resolution = aPresContext->PresShell()->GetCumulativeResolution();
+  if (aLowPrecision) {
+    resolution.width *= gfxPrefs::LowPrecisionResolution();
+    resolution.height *= gfxPrefs::LowPrecisionResolution();
+  }
   return (aPresContext->AppUnitsToDevPixels(aDisplayPort.width) * resolution.width > 4096) ||
          (aPresContext->AppUnitsToDevPixels(aDisplayPort.height) * resolution.height > 4096);
 #else
@@ -2523,8 +2527,17 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       usingDisplayport = nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayPort);
     }
 
-    if (usingDisplayport && DisplayportExceedsMaxTextureSize(mOuter->PresContext(), displayPort)) {
+    bool usingLowPrecision = gfxPrefs::UseLowPrecisionBuffer();
+    if (usingDisplayport && DisplayportExceedsMaxTextureSize(mOuter->PresContext(), displayPort, usingLowPrecision)) {
       usingDisplayport = false;
+    }
+    if (usingDisplayport && usingLowPrecision) {
+      
+      nsRect critDp;
+      bool usingCritDp = nsLayoutUtils::GetCriticalDisplayPort(mOuter->GetContent(), &critDp);
+      if (usingCritDp && !critDp.IsEmpty() && DisplayportExceedsMaxTextureSize(mOuter->PresContext(), critDp, false)) {
+        usingDisplayport = false;
+      }
     }
 
     
