@@ -19,6 +19,10 @@ if (typeof gczeal == 'undefined')
 }
 else
 {
+  
+  
+  
+  for (z in this);
   jit(true);
   gczeal(2);
 
