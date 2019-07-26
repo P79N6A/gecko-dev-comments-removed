@@ -115,7 +115,8 @@ const RIL_IPC_MOBILECONNECTION_MSG_NAMES = [
   "RIL:ExitEmergencyCbMode",
   "RIL:SetRadioEnabled",
   "RIL:SetVoicePrivacyMode",
-  "RIL:GetVoicePrivacyMode"
+  "RIL:GetVoicePrivacyMode",
+  "RIL:GetSupportedNetworkTypes"
 ];
 
 const RIL_IPC_MOBILENETWORK_MSG_NAMES = [
@@ -1112,6 +1113,8 @@ function RadioInterface(options) {
     byApn: {}
   };
 
+  this.supportedNetworkTypes = this.getSupportedNetworkTypes();
+
   this.rilContext = {
     radioState:     RIL.GECKO_RADIOSTATE_UNAVAILABLE,
     detailedRadioState: null,
@@ -1251,6 +1254,26 @@ RadioInterface.prototype = {
   
 
 
+  getSupportedNetworkTypes: function() {
+    let key = "ro.moz.ril." + this.clientId + ".network_types";
+    let supportedNetworkTypes = libcutils.property_get(key, "").split(",");
+    for (let type of supportedNetworkTypes) {
+      
+      
+      if (RIL.GECKO_SUPPORTED_NETWORK_TYPES.indexOf(type) < 0) {
+        this.debug("Unknown network type: " + type);
+        supportedNetworkTypes =
+          RIL.GECKO_SUPPORTED_NETWORK_TYPES_DEFAULT.split(",");
+        break;
+      }
+    }
+    if (DEBUG) this.debug("Supported Network Types: " + supportedNetworkTypes);
+    return supportedNetworkTypes;
+  },
+
+  
+
+
   receiveMessage: function(msg) {
     switch (msg.name) {
       case "RIL:GetRilContext":
@@ -1374,6 +1397,9 @@ RadioInterface.prototype = {
       case "RIL:GetVoicePrivacyMode":
         this.workerMessenger.sendWithIPCMessage(msg, "queryVoicePrivacyMode");
         break;
+      case "RIL:GetSupportedNetworkTypes":
+        
+        return this.supportedNetworkTypes;
     }
     return null;
   },
@@ -2688,6 +2714,8 @@ RadioInterface.prototype = {
         break;
     }
   },
+
+  supportedNetworkTypes: null,
 
   
   dataCallSettings: null,

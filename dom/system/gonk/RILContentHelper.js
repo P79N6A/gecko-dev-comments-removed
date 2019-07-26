@@ -677,6 +677,12 @@ RILContentHelper.prototype = {
     return context && context.radioState;
   },
 
+  getSupportedNetworkTypes: function(clientId) {
+    return cpmm.sendSyncMessage("RIL:GetSupportedNetworkTypes", {
+      clientId: clientId
+    })[0];
+  },
+
   
 
 
