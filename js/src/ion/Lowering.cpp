@@ -859,7 +859,9 @@ ReorderCommutative(MDefinition **lhsp, MDefinition **rhsp)
     MDefinition *rhs = *rhsp;
 
     
-    if (lhs->isConstant()) {
+    
+    
+    if (lhs->isConstant() || rhs->useCount() == 1) {
         *rhsp = lhs;
         *lhsp = rhs;
     }
@@ -1156,6 +1158,7 @@ LIRGenerator::visitAdd(MAdd *ins)
 
     if (ins->specialization() == MIRType_Double) {
         JS_ASSERT(lhs->type() == MIRType_Double);
+        ReorderCommutative(&lhs, &rhs);
         return lowerForFPU(new LMathD(JSOP_ADD), ins, lhs, rhs);
     }
 
