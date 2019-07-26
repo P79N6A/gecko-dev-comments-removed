@@ -143,6 +143,7 @@ protected:
   void OnStopFrame       ();
   void OnStopDecode      ();
   void OnDiscard         ();
+  void OnUnlockedDraw    ();
   void OnImageIsAnimated ();
 
   

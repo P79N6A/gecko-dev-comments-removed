@@ -3108,6 +3108,15 @@ RasterImage::Draw(gfxContext *aContext,
   }
 
   
+  
+  
+  
+  if (mLockCount == 0 || (mAnim && mAnimationConsumers == 0)) {
+    if (mStatusTracker)
+      mStatusTracker->GetDecoderObserver()->OnUnlockedDraw();
+  }
+
+  
   if (!mDecoded && mHasSourceData) {
       mDrawStartTime = TimeStamp::Now();
 

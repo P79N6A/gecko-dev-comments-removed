@@ -767,6 +767,17 @@ void imgRequestProxy::OnDiscard()
   }
 }
 
+void imgRequestProxy::OnUnlockedDraw()
+{
+  LOG_FUNC(GetImgLog(), "imgRequestProxy::OnUnlockedDraw");
+
+  if (mListener && !mCanceled) {
+    
+    nsCOMPtr<imgINotificationObserver> kungFuDeathGrip(mListener);
+    mListener->Notify(this, imgINotificationObserver::UNLOCKED_DRAW, nullptr);
+  }
+}
+
 void imgRequestProxy::OnImageIsAnimated()
 {
   LOG_FUNC(GetImgLog(), "imgRequestProxy::OnImageIsAnimated");

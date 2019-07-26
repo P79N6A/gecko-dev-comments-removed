@@ -38,6 +38,7 @@
 #include "nsInterfaceHashtable.h"
 #include "nsEventStates.h"
 #include "nsPresArena.h"
+#include "nsIImageLoadingContent.h"
 
 class nsIContent;
 class nsIDocument;
@@ -122,8 +123,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-{ 0x15f6c268, 0xe40f, 0x42a9, \
-  { 0xa7, 0xeb, 0xe5, 0xe1, 0x0a, 0x58, 0x40, 0xa1 } }
+{ 0x835b3946, 0x1a4f, 0x4132, \
+  { 0xb3, 0xce, 0x2e, 0x2e, 0x8b, 0xe3, 0x77, 0xc8 } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1326,6 +1327,9 @@ public:
   
   
   virtual void RebuildImageVisibility(const nsDisplayList& aList) = 0;
+
+  
+  virtual void EnsureImageInVisibleList(nsIImageLoadingContent* aImage) = 0;
 
   
 
