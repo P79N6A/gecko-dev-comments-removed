@@ -83,7 +83,6 @@ nsImageLoadingContent::nsImageLoadingContent()
     mBroken(true),
     mUserDisabled(false),
     mSuppressed(false),
-    mFireEventsOnDecode(false),
     mNewRequestsWillNeedAnimationReset(false),
     mStateChangerDepth(0),
     mCurrentRequestRegistered(false),
@@ -162,20 +161,6 @@ nsImageLoadingContent::Notify(imgIRequest* aRequest,
     return OnStopRequest(aRequest, status);
   }
 
-  if (aType == imgINotificationObserver::DECODE_COMPLETE && mFireEventsOnDecode) {
-    mFireEventsOnDecode = false;
-
-    uint32_t reqStatus;
-    aRequest->GetImageStatus(&reqStatus);
-    if (reqStatus & imgIRequest::STATUS_ERROR) {
-      FireEvent(NS_LITERAL_STRING("error"));
-    } else {
-      FireEvent(NS_LITERAL_STRING("load"));
-    }
-
-    UpdateImageState(true);
-  }
-
   return NS_OK;
 }
 
@@ -228,34 +213,19 @@ nsImageLoadingContent::OnStopRequest(imgIRequest* aRequest,
 
   
   
-  bool startedDecoding = false;
   nsIDocument* doc = GetOurOwnerDoc();
   nsIPresShell* shell = doc ? doc->GetShell() : nullptr;
   if (shell && shell->IsVisible() &&
       (!shell->DidInitialize() || shell->IsPaintingSuppressed())) {
 
-    if (NS_SUCCEEDED(mCurrentRequest->StartDecoding())) {
-      startedDecoding = true;
-    }
+    mCurrentRequest->StartDecoding();
   }
 
   
-  
-  
-  
-  uint32_t reqStatus;
-  aRequest->GetImageStatus(&reqStatus);
-  if (NS_SUCCEEDED(aStatus) && !(reqStatus & imgIRequest::STATUS_ERROR) &&
-      (reqStatus & imgIRequest::STATUS_DECODE_STARTED ||
-       (startedDecoding && !(reqStatus & imgIRequest::STATUS_DECODE_COMPLETE)))) {
-    mFireEventsOnDecode = true;
+  if (NS_SUCCEEDED(aStatus)) {
+    FireEvent(NS_LITERAL_STRING("load"));
   } else {
-    
-    if (NS_SUCCEEDED(aStatus)) {
-      FireEvent(NS_LITERAL_STRING("load"));
-    } else {
-      FireEvent(NS_LITERAL_STRING("error"));
-    }
+    FireEvent(NS_LITERAL_STRING("error"));
   }
 
   nsCOMPtr<nsINode> thisNode = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
