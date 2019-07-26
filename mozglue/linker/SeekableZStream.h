@@ -52,7 +52,7 @@ class SeekableZStream {
 public:
   
 
-  bool Init(const void *buf);
+  bool Init(const void *buf, size_t length);
 
   
 
