@@ -855,6 +855,12 @@ nsSVGArcConverter::nsSVGArcConverter(const gfxPoint &from,
                                      bool sweepFlag)
 {
   const double radPerDeg = M_PI/180.0;
+  mSegIndex = 0;
+
+  if (from == to) {
+    mNumSegs = 0;
+    return;
+  }
 
   
   
@@ -910,7 +916,6 @@ nsSVGArcConverter::nsSVGArcConverter(const gfxPoint &from,
   mT = 8.0/3.0 * sin(mDelta/4.0) * sin(mDelta/4.0) / sin(mDelta/2.0);
 
   mFrom = from;
-  mSegIndex = 0;
 }
 
 bool
