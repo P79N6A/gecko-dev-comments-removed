@@ -17,12 +17,11 @@
 #include "gfxUtils.h"                   
 #include "gfx2DGlue.h"                  
 #include "mozilla/gfx/BaseSize.h"       
-#include "mozilla/gfx/Tools.h"
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
 #include "nsSize.h"                     
-#include "gfxUtils.h"
+#include "LayerUtils.h"
 
 using namespace mozilla::gfx;
 using namespace mozilla::gl;
@@ -127,7 +126,7 @@ CopyableCanvasLayer::UpdateTarget(DrawTarget* aDestTarget)
             Factory::CreateWrappingDataSourceSurface(destData, destStride, destSize, destFormat);
           mGLContext->Screen()->Readback(sharedSurf, data);
           if (needsPremult) {
-              gfxUtils::PremultiplyDataSurface(data);
+            PremultiplySurface(data);
           }
           aDestTarget->ReleaseBits(destData);
           return;
@@ -145,7 +144,7 @@ CopyableCanvasLayer::UpdateTarget(DrawTarget* aDestTarget)
       
       mGLContext->Screen()->Readback(sharedSurf, data);
       if (needsPremult) {
-        gfxUtils::PremultiplyDataSurface(data);
+        PremultiplySurface(data);
       }
       resultSurf = data;
     }
@@ -171,9 +170,7 @@ CopyableCanvasLayer::GetTempSurface(const IntSize& aSize,
       aSize != mCachedTempSurface->GetSize() ||
       aFormat != mCachedTempSurface->GetFormat())
   {
-    
-    uint32_t stride = GetAlignedStride<8>(aSize.width * BytesPerPixel(aFormat));
-    mCachedTempSurface = Factory::CreateDataSourceSurfaceWithStride(aSize, aFormat, stride);
+    mCachedTempSurface = Factory::CreateDataSourceSurface(aSize, aFormat);
   }
 
   return mCachedTempSurface;
