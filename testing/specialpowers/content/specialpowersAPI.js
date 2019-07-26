@@ -712,17 +712,6 @@ SpecialPowersAPI.prototype = {
   },
 
   
-  
-  
-  
-  
-  
-  
-  do_lookupGetter: function(obj, name) {
-    return Object.prototype.__lookupGetter__.call(obj, name);
-  },
-
-  
   getBoolPref: function(aPrefName) {
     return (this._getPref(aPrefName, 'BOOL'));
   },
