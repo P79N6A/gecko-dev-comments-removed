@@ -11,9 +11,10 @@
 #include "nsWrapperCache.h"
 #include "StreamBuffer.h"
 #include "nsIDOMWindow.h"
+#include "nsIPrincipal.h"
+#include "mozilla/PeerIdentity.h"
 
 class nsXPCClassInfo;
-class nsIPrincipal;
 
 
 
@@ -100,8 +101,26 @@ public:
 
 
 
+  PeerIdentity* GetPeerIdentity() const { return mPeerIdentity; }
+  void SetPeerIdentity(PeerIdentity* aPeerIdentity)
+  {
+    mPeerIdentity = aPeerIdentity;
+  }
+
+  
+
+
+
+
 
   bool CombineWithPrincipal(nsIPrincipal* aPrincipal);
+
+  
+
+
+
+
+  void SetPrincipal(nsIPrincipal* aPrincipal) { mPrincipal = aPrincipal; }
 
   
 
@@ -200,6 +219,9 @@ protected:
   
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
+  
+  
+  nsAutoPtr<PeerIdentity> mPeerIdentity;
 
   nsAutoTArray<nsRefPtr<MediaStreamTrack>,2> mTracks;
   nsRefPtr<StreamListener> mListener;
