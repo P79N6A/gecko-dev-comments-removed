@@ -372,7 +372,7 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
   public:
 
     
-    Node statement();
+    Node statement(bool canHaveDirectives = false);
     bool maybeParseDirective(Node pn, bool *cont);
 
     
