@@ -36,10 +36,7 @@ var Devices = {
       this.updateDeviceList();
     }, false);
 
-    
-    
-    this._savedSearchInterval = SimpleServiceDiscovery._searchInterval;
-    SimpleServiceDiscovery.search(SEARCH_INTERVAL_IN_MILLISECONDS);
+    this._savedSearchInterval = SimpleServiceDiscovery.search(SEARCH_INTERVAL_IN_MILLISECONDS);
 
     this.updateDeviceList();
   },

@@ -113,12 +113,15 @@ var SimpleServiceDiscovery = {
 
   
   
+  
   search: function search(aInterval) {
+    let existingSearchInterval = this._searchInterval;
     if (aInterval > 0) {
       this._searchInterval = aInterval || 0;
       this._searchRepeat.initWithCallback(this._search.bind(this), this._searchInterval, Ci.nsITimer.TYPE_REPEATING_SLACK);
     }
     this._search();
+    return existingSearchInterval;
   },
 
   
