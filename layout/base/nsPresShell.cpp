@@ -7020,9 +7020,7 @@ PresShell::WillPaintWindow(bool aWillSendDidPaint)
     return;
   }
 
-  if (!aWillSendDidPaint) {
-    rootPresContext->ApplyPluginGeometryUpdates();
-  }
+  rootPresContext->ApplyPluginGeometryUpdates();
 }
 
 void
@@ -7034,8 +7032,6 @@ PresShell::DidPaintWindow()
     
     return;
   }
-
-  rootPresContext->ApplyPluginGeometryUpdates();
 
   if (nsContentUtils::XPConnect()) {
     nsContentUtils::XPConnect()->NotifyDidPaint();
