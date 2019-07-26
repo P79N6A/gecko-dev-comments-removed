@@ -10,17 +10,29 @@ const Cu = Components.utils;
 const Ci = Components.interfaces;
 
 Cu.import("resource://gre/modules/Services.jsm", this);
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
+
+XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
+  "resource:///modules/sessionstore/SessionStore.jsm");
 
 
 const MAX_EXPIRY = Math.pow(2, 62);
 
 
+function makeURI(uri) {
+  return Services.io.newURI(uri, null, null);
+}
+
 
 
 
 this.SessionCookies = Object.freeze({
-  getCookiesForHost: function (host) {
-    return SessionCookiesInternal.getCookiesForHost(host);
+  update: function (windows) {
+    SessionCookiesInternal.update(windows);
+  },
+
+  getHostsForWindow: function (window, checkPrivacy = false) {
+    return SessionCookiesInternal.getHostsForWindow(window, checkPrivacy);
   }
 });
 
@@ -36,9 +48,64 @@ let SessionCookiesInternal = {
   
 
 
-  getCookiesForHost: function (host) {
+
+
+
+
+
+
+  update: function (windows) {
     this._ensureInitialized();
-    return CookieStore.getCookiesForHost(host);
+
+    for (let window of windows) {
+      let cookies = [];
+
+      
+      let hosts = this.getHostsForWindow(window, true);
+
+      for (let [host, isPinned] in Iterator(hosts)) {
+        for (let cookie of CookieStore.getCookiesForHost(host)) {
+          
+          
+          
+          if (SessionStore.checkPrivacyLevel(cookie.secure, isPinned)) {
+            cookies.push(cookie);
+          }
+        }
+      }
+
+      
+      if (cookies.length) {
+        window.cookies = cookies;
+      } else if ("cookies" in window) {
+        delete window.cookies;
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  getHostsForWindow: function (window, checkPrivacy = false) {
+    let hosts = {};
+
+    for (let tab of window.tabs) {
+      for (let entry of tab.entries) {
+        this._extractHostsFromEntry(entry, hosts, checkPrivacy, tab.pinned);
+      }
+    }
+
+    return hosts;
   },
 
   
@@ -78,6 +145,76 @@ let SessionCookiesInternal = {
       this._reloadCookies();
       this._initialized = true;
       Services.obs.addObserver(this, "cookie-changed", false);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _extractHostsFromEntry: function (entry, hosts, checkPrivacy, isPinned) {
+    let host = entry._host;
+    let scheme = entry._scheme;
+
+    
+    
+    
+    
+    if (!host && !scheme) {
+      try {
+        let uri = makeURI(entry.url);
+        host = uri.host;
+        scheme = uri.scheme;
+        this._extractHostsFromHostScheme(host, scheme, hosts, checkPrivacy, isPinned);
+      }
+      catch (ex) { }
+    }
+
+    if (entry.children) {
+      for (let child of entry.children) {
+        this._extractHostsFromEntry(child, hosts, checkPrivacy, isPinned);
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _extractHostsFromHostScheme:
+    function (host, scheme, hosts, checkPrivacy, isPinned) {
+    
+    
+    if (/https?/.test(scheme) && !hosts[host] &&
+        (!checkPrivacy ||
+         SessionStore.checkPrivacyLevel(scheme == "https", isPinned))) {
+      
+      
+      hosts[host] = isPinned;
+    } else if (scheme == "file") {
+      hosts[host] = true;
     }
   },
 

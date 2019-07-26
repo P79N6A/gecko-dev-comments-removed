@@ -929,7 +929,7 @@ let SessionStoreInternal = {
         winData.title = aWindow.content.document.title || tabbrowser.selectedTab.label;
         winData.title = this._replaceLoadingTitle(winData.title, tabbrowser,
                                                   tabbrowser.selectedTab);
-        this._updateCookies([winData]);
+        SessionCookies.update([winData]);
       }
 
 #ifndef XP_MACOSX
@@ -2327,110 +2327,6 @@ let SessionStoreInternal = {
 
 
 
-
-
-
-
-
-
-
-  _extractHostsForCookiesFromEntry:
-    function ssi_extractHostsForCookiesFromEntry(aEntry, aHosts, aCheckPrivacy, aIsPinned) {
-
-    let host = aEntry._host,
-        scheme = aEntry._scheme;
-
-    
-    
-    
-    
-    if (!host && !scheme) {
-      try {
-        let uri = this._getURIFromString(aEntry.url);
-        host = uri.host;
-        scheme = uri.scheme;
-        this._extractHostsForCookiesFromHostScheme(host, scheme, aHosts, aCheckPrivacy, aIsPinned);
-      }
-      catch(ex) { }
-    }
-
-    if (aEntry.children) {
-      aEntry.children.forEach(function(entry) {
-        this._extractHostsForCookiesFromEntry(entry, aHosts, aCheckPrivacy, aIsPinned);
-      }, this);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _extractHostsForCookiesFromHostScheme:
-    function ssi_extractHostsForCookiesFromHostScheme(aHost, aScheme, aHosts, aCheckPrivacy, aIsPinned) {
-    
-    
-    if (/https?/.test(aScheme) && !aHosts[aHost] &&
-        (!aCheckPrivacy ||
-         this.checkPrivacyLevel(aScheme == "https", aIsPinned))) {
-      
-      
-      aHosts[aHost] = aIsPinned;
-    }
-    else if (aScheme == "file") {
-      aHosts[aHost] = true;
-    }
-  },
-
-  
-
-
-
-
-
-  _updateCookies: function ssi_updateCookies(aWindows) {
-    for (let window of aWindows) {
-      window.cookies = [];
-
-      
-      let hosts = {};
-      window.tabs.forEach(function(tab) {
-        tab.entries.forEach(function(entry) {
-          this._extractHostsForCookiesFromEntry(entry, hosts, true, tab.pinned);
-        }, this);
-      }, this);
-
-      for (var [host, isPinned] in Iterator(hosts)) {
-        for (let cookie of SessionCookies.getCookiesForHost(host)) {
-          
-          
-          
-          if (this.checkPrivacyLevel(cookie.secure, isPinned)) {
-            window.cookies.push(cookie);
-          }
-        }
-      }
-
-      
-      if (!window.cookies.length)
-        delete window.cookies;
-    }
-  },
-
-  
-
-
-
-
   _updateWindowFeatures: function ssi_updateWindowFeatures(aWindow) {
     var winData = this._windows[aWindow.__SSi];
 
@@ -2496,7 +2392,7 @@ let SessionStoreInternal = {
       if (!this._windows[ix].isPopup)
         nonPopupCount++;
     }
-    this._updateCookies(total);
+    SessionCookies.update(total);
 
     
     for (ix in this._statesToRestore) {
@@ -2576,7 +2472,7 @@ let SessionStoreInternal = {
     }
 
     let windows = [this._windows[aWindow.__SSi]];
-    this._updateCookies(windows);
+    SessionCookies.update(windows);
 
     return { windows: windows };
   },
@@ -4093,12 +3989,7 @@ let SessionStoreInternal = {
       return;
 
     
-    let cookieHosts = {};
-    aTargetWinState.tabs.forEach(function(tab) {
-      tab.entries.forEach(function(entry) {
-        this._extractHostsForCookiesFromEntry(entry, cookieHosts, false);
-      }, this);
-    }, this);
+    let cookieHosts = SessionCookies.getHostsForWindow(aTargetWinState);
 
     
     
