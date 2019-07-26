@@ -462,7 +462,9 @@ class AssemblerX86Shared
             
             masm.linkJump(j, JmpDst(label->offset()));
         } else {
-            label->use(j.offset());
+            
+            JmpSrc prev = JmpSrc(label->use(j.offset()));
+            masm.setNextJump(j, prev);
         }
         return j;
     }
