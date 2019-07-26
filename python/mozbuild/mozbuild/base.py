@@ -217,7 +217,8 @@ class MozbuildObject(ProcessExecutionMixin):
         """
         self._ensure_objdir_exists()
 
-        args = self._make_path
+        
+        args = list(self._make_path)
 
         if directory:
             args.extend(['-C', directory])
