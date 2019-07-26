@@ -43,7 +43,7 @@ class ParallelArrayObject : public JSObject
     
     
     
-    static JSObject *newInstance(JSContext *cx);
+    static JSObject *newInstance(JSContext *cx, NewObjectKind newKind = GenericObject);
 
     
     static JSFunction *getConstructor(JSContext *cx, unsigned argc);
