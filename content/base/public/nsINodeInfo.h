@@ -49,8 +49,7 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INODEINFO_IID)
 
   nsINodeInfo()
-    : mInner(nullptr, nullptr, kNameSpaceID_None, 0, nullptr),
-      mOwnerManager(nullptr)
+    : mInner(nullptr, nullptr, kNameSpaceID_None, 0, nullptr)
   {
   }
 
@@ -332,7 +331,7 @@ protected:
   nsNodeInfoInner mInner;
 
   nsCOMPtr<nsIAtom> mIDAttributeAtom;
-  nsNodeInfoManager* mOwnerManager; 
+  nsRefPtr<nsNodeInfoManager> mOwnerManager;
 
   
 
