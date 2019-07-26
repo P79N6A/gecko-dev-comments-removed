@@ -251,6 +251,11 @@ public:
   
 
 
+  bool HitTestAPZC(const ScreenPoint& aPoint);
+
+  
+
+
 
   static void SetDPI(float aDpiValue) { sDPI = aDpiValue; }
 
