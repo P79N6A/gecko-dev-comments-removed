@@ -2854,14 +2854,8 @@ CodeGenerator::generateBody()
 #if defined(JS_ION_PERF)
         perfSpewer->startBasicBlock(current->mir(), masm);
 #endif
-        LInstructionIterator iter = current->begin();
 
-        
-        
-        JS_ASSERT(iter->isLabel());
-        ++iter;
-
-        for (; iter != current->end(); iter++) {
+        for (LInstructionIterator iter = current->begin(); iter != current->end(); iter++) {
             IonSpewStart(IonSpew_Codegen, "instruction %s", iter->opName());
 #ifdef DEBUG
             if (const char *extra = iter->extraName())

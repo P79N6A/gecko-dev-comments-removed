@@ -664,7 +664,7 @@ LiveRangeAllocator<VREG>::buildLivenessInfo()
                     LUse *use = inputAlloc->toUse();
 
                     
-                    JS_ASSERT(inputOf(*ins) > outputOf(block->firstId()));
+                    JS_ASSERT_IF(forLSRA, inputOf(*ins) > outputOf(block->firstId()));
 
                     
                     
