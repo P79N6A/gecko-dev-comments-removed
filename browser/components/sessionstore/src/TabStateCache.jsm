@@ -295,12 +295,8 @@ let TabStateCacheInternal = {
     for (let key of Object.keys(newData)) {
       let value = newData[key];
       if (value === null) {
-        
-        this.removeField(browser, key);
         delete data[key];
       } else {
-        
-        this.updateField(browser, key, value);
         data[key] = value;
       }
     }
