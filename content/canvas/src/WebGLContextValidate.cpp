@@ -11,9 +11,7 @@
 
 #include "jsfriendapi.h"
 
-#if defined(USE_ANGLE)
 #include "angle/ShaderLang.h"
-#endif
 
 #include <algorithm>
 
@@ -1001,7 +999,6 @@ WebGLContext::InitAndValidateGL()
     mShaderValidation =
         Preferences::GetBool("webgl.shader_validator", mShaderValidation);
 
-#if defined(USE_ANGLE)
     
     if (mShaderValidation) {
         if (!ShInitialize()) {
@@ -1009,7 +1006,6 @@ WebGLContext::InitAndValidateGL()
             return false;
         }
     }
-#endif
 
     
     mIsMesa = strstr((const char *)(gl->fGetString(LOCAL_GL_VERSION)), "Mesa");
