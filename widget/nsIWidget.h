@@ -278,6 +278,8 @@ struct IMEState {
 };
 
 struct InputContext {
+  InputContext() : mNativeIMEContext(nullptr) {}
+
   IMEState mIMEState;
 
   
@@ -288,6 +290,11 @@ struct InputContext {
 
   
   nsString mActionHint;
+
+  
+
+
+  void* mNativeIMEContext;
 };
 
 struct InputContextAction {
