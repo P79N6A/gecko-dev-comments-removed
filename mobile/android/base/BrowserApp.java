@@ -183,8 +183,16 @@ abstract public class BrowserApp extends GeckoApp
     @Override
     public boolean onInterceptTouchEvent(View view, MotionEvent event) {
         int action = event.getActionMasked();
-
         int pointerCount = event.getPointerCount();
+
+        
+        
+        
+        
+        
+        mLayerView.getLayerClient().setClampOnFixedLayerMarginsChange(
+            pointerCount == 0 || action == MotionEvent.ACTION_CANCEL ||
+            action == MotionEvent.ACTION_UP);
 
         View toolbarView = mBrowserToolbar.getLayout();
         if (action == MotionEvent.ACTION_DOWN ||
