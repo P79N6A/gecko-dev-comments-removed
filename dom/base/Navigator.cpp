@@ -1927,6 +1927,11 @@ Navigator::HasDataStoreSupport(JSContext* cx, JSObject* aGlobal)
   JS::Rooted<JSObject*> global(cx, aGlobal);
 
   
+  if (nsContentUtils::IsCallerChrome()) {
+    return true;
+  }
+
+  
   bool enabled = false;
   Preferences::GetBool("dom.datastore.enabled", &enabled);
   if (!enabled) {

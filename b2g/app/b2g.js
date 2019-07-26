@@ -816,11 +816,7 @@ pref("network.sntp.port", 123);
 pref("network.sntp.timeout", 30); 
 
 
-#ifdef RELEASE_BUILD
-pref("dom.datastore.enabled", false);
-#else
 pref("dom.datastore.enabled", true);
-#endif
 
 
 pref("dom.inter-app-communication-api.enabled", true);
@@ -874,7 +870,6 @@ pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");
 
 
 pref("apz.asyncscroll.throttle", 40);
-pref("apz.pan_repaint_interval", 40);
 
 
 
