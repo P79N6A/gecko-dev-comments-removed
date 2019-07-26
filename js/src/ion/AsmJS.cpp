@@ -36,6 +36,7 @@ using mozilla::AddToHash;
 using mozilla::ArrayLength;
 using mozilla::DebugOnly;
 using mozilla::HashGeneric;
+using mozilla::IsNaN;
 using mozilla::IsNegativeZero;
 using mozilla::Maybe;
 using mozilla::Move;
@@ -755,6 +756,10 @@ IsNumericLiteral(ParseNode *pn)
 static NumLit
 ExtractNumericLiteral(ParseNode *pn)
 {
+    
+    
+    
+    
     JS_ASSERT(IsNumericLiteral(pn));
     ParseNode *numberNode;
     double d;
@@ -766,21 +771,33 @@ ExtractNumericLiteral(ParseNode *pn)
         d = NumberNodeValue(numberNode);
     }
 
+    
+    
     if (NumberNodeHasFrac(numberNode) || IsNegativeZero(d))
         return NumLit(NumLit::Double, DoubleValue(d));
 
-    int64_t i64 = int64_t(d);
+    
+    JS_ASSERT(!IsNegativeZero(d));
+    JS_ASSERT(!IsNaN(d));
 
+    
+    
+    
+    
+    if (d < double(INT32_MIN) || d > double(UINT32_MAX))
+        return NumLit(NumLit::OutOfRangeInt, UndefinedValue());
+
+    
+    
+    int64_t i64 = int64_t(d);
     if (i64 >= 0) {
         if (i64 <= INT32_MAX)
             return NumLit(NumLit::Fixnum, Int32Value(i64));
-        if (i64 <= UINT32_MAX)
-            return NumLit(NumLit::BigUnsigned, Int32Value(uint32_t(i64)));
-        return NumLit(NumLit::OutOfRangeInt, UndefinedValue());
+        JS_ASSERT(i64 <= UINT32_MAX);
+        return NumLit(NumLit::BigUnsigned, Int32Value(uint32_t(i64)));
     }
-    if (i64 >= INT32_MIN)
-        return NumLit(NumLit::NegativeInt, Int32Value(i64));
-    return NumLit(NumLit::OutOfRangeInt, UndefinedValue());
+    JS_ASSERT(i64 >= INT32_MIN);
+    return NumLit(NumLit::NegativeInt, Int32Value(i64));
 }
 
 static inline bool
