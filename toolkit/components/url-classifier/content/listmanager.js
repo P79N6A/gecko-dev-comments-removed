@@ -359,7 +359,7 @@ PROT_ListManager.prototype.makeUpdateRequest_ = function(tableData) {
   
   
   for (var tableName in tableNames) {
-    request += tableName + "\n";
+    request += tableName + ";\n";
   }
 
   G_Debug(this, 'checkForUpdates: scheduling request..');
