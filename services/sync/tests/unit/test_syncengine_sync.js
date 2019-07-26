@@ -105,7 +105,7 @@ add_test(function test_syncStartup_emptyOrOutdatedGlobalsResetsSync() {
 
     engine.lastSync = Date.now() / 1000;
     engine.lastSyncLocal = Date.now();
-    
+
     
     
     engine._syncStartup();
@@ -227,7 +227,7 @@ add_test(function test_processIncoming_createFromServer() {
   Svc.Prefs.set("serverURL", TEST_SERVER_URL);
   Svc.Prefs.set("clusterURL", TEST_CLUSTER_URL);
   Svc.Prefs.set("username", "foo");
-  
+
   generateNewKeys();
 
   
@@ -923,7 +923,7 @@ add_test(function test_processIncoming_notify_count() {
   Svc.Prefs.set("serverURL", TEST_SERVER_URL);
   Svc.Prefs.set("clusterURL", TEST_CLUSTER_URL);
   Svc.Prefs.set("username", "foo");
-  
+
   const APPLY_BATCH_SIZE = 5;
   const NUMBER_OF_RECORDS = 15;
 
@@ -970,7 +970,7 @@ add_test(function test_processIncoming_notify_count() {
     
     engine._syncStartup();
     engine._processIncoming();
-    
+
     
     do_check_attribute_count(engine._store.items, 12);
     do_check_eq(engine.previousFailed.length, 3);
@@ -987,7 +987,7 @@ add_test(function test_processIncoming_notify_count() {
 
     
     engine._processIncoming();
-    
+
     
     do_check_attribute_count(engine._store.items, 14);
     do_check_eq(engine.previousFailed.length, 1);
@@ -1013,13 +1013,13 @@ add_test(function test_processIncoming_previousFailed() {
   Svc.Prefs.set("clusterURL", TEST_CLUSTER_URL);
   Svc.Prefs.set("username", "foo");
   Svc.Prefs.set("client.type", "mobile");
-  
+
   const APPLY_BATCH_SIZE = 4;
   const NUMBER_OF_RECORDS = 14;
 
   
   let engine = makeRotaryEngine();
-  engine.mobileGUIDFetchBatchSize = engine.applyIncomingBatchSize = APPLY_BATCH_SIZE;  
+  engine.mobileGUIDFetchBatchSize = engine.applyIncomingBatchSize = APPLY_BATCH_SIZE;
   engine._store._applyIncomingBatch = engine._store.applyIncomingBatch;
   engine._store.applyIncomingBatch = function (records) {
     engine._store._applyIncomingBatch(records.slice(2));
@@ -1205,7 +1205,7 @@ add_test(function test_processIncoming_failed_records() {
       _("Tried again. Requests: " + count + "; URIs: " + JSON.stringify(uris));
       return count;
     }
-    
+
     
     _("Test batching with ID batch size 3, normal mobile batch size.");
     do_check_eq(batchDownload(3), 3);
@@ -1725,7 +1725,7 @@ add_test(function test_canDecrypt_true() {
 
   
   generateNewKeys();
-  
+
   let collection = new ServerCollection();
   collection._wbos.flying = new ServerWBO(
       'flying', encryptPayload({id: 'flying',

@@ -437,7 +437,7 @@ function sync_httpd_setup(handlers) {
 
 
 function track_collections_helper() {
-  
+
   
 
 
@@ -488,7 +488,7 @@ function track_collections_helper() {
     response.setStatusLine(request.httpVersion, 200, "OK");
     response.bodyOutputStream.write(body, body.length);
   }
-  
+
   return {"collections": collections,
           "handler": info_collections,
           "with_updated_collection": with_updated_collection,

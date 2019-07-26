@@ -176,7 +176,7 @@ add_test(function test_masterpassword_locked_retry_interval() {
   _("Test Status.login = MASTER_PASSWORD_LOCKED results in reschedule at MASTER_PASSWORD interval");
   let loginFailed = false;
   Svc.Obs.add("weave:service:login:error", function onLoginError() {
-    Svc.Obs.remove("weave:service:login:error", onLoginError); 
+    Svc.Obs.remove("weave:service:login:error", onLoginError);
     loginFailed = true;
   });
 
@@ -225,7 +225,7 @@ add_test(function test_calculateBackoff() {
   Status.backoffInterval = MAXIMUM_BACKOFF_INTERVAL + 10;
   backoffInterval = Utils.calculateBackoff(50, MAXIMUM_BACKOFF_INTERVAL,
                                            Status.backoffInterval);
-  
+
   do_check_eq(backoffInterval, MAXIMUM_BACKOFF_INTERVAL + 10);
 
   cleanUpAndGo();
@@ -346,7 +346,7 @@ add_test(function test_scheduleNextSync_future_backoff() {
 add_test(function test_handleSyncError() {
   let server = sync_httpd_setup();
   setUp();
- 
+
   
   Svc.Prefs.set("firstSync", "notReady");
 
