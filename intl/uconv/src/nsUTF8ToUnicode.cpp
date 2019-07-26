@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsAlgorithm.h"
 #include "nsUCSupport.h"
 #include "nsUTF8ToUnicode.h"
@@ -271,10 +272,10 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
           
           
           
-          if (mBytes == 3 && (!mUcs4 && c < 0xA0 ||  
-                              mUcs4 == 0xD000 && c > 0x9F) ||  
-              mState == 3 && (!mUcs4 && c < 0x90 ||  
-                              mUcs4 == 0x100000 && c > 0x8F)) {  
+          if ((mBytes == 3 && ((!mUcs4 && c < 0xA0) ||             
+                               (mUcs4 == 0xD000 && c > 0x9F))) ||  
+              (mState == 3 && ((!mUcs4 && c < 0x90) ||             
+                               (mUcs4 == 0x100000 && c > 0x8F)))) {
             
             in--;
             if (mErrBehavior == kOnError_Signal) {
