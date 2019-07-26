@@ -767,21 +767,6 @@ HyperTextAccessible::GetRelativeOffset(nsIPresShell* aPresShell,
       -- hyperTextOffset;
     }
   }
-  else if (aAmount == eSelectEndLine && finalAccessible) { 
-    
-    
-    if (finalAccessible->Role() == roles::WHITESPACE) {  
-      
-      
-      
-      
-      ++ hyperTextOffset;  
-    }
-    
-    if (!aNeedsStart) {
-      -- hyperTextOffset;
-    }
-  }
 
   return hyperTextOffset;
 }
