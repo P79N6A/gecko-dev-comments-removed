@@ -108,6 +108,28 @@ class BuildBackend(LoggingMixin):
         
         self.backend_input_files = set()
 
+        
+        
+        for name, module in sys.modules.items():
+            if not module or not name.startswith('mozbuild'):
+                continue
+
+            p = module.__file__
+
+            
+            
+            
+            
+            
+            
+            
+            if p.endswith('.pyc'):
+                p = p[0:-1]
+
+            assert os.path.exists(p)
+
+            self.backend_input_files.add((os.path.abspath(p)))
+
         self._environments = {}
         self._environments[environment.topobjdir] = environment
 
