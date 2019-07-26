@@ -2094,29 +2094,8 @@ InvalidateActivation(FreeOp *fop, uint8_t *ionTop, bool invalidateAll)
         }
 #endif
 
-        if (invalidateAll && it.isBaselineJS())
-            it.script()->baseline->setActive();
-
         if (!it.isOptimizedJS())
             continue;
-
-        
-        
-        
-        if (invalidateAll && it.script()->hasBaselineScript()) {
-            it.script()->baselineScript()->setActive();
-
-            
-            JSContext *cx = GetIonContext()->cx;
-            InlineFrameIterator inlineIter(cx, &it);
-            for (;;) {
-                if (inlineIter.script()->hasBaselineScript())
-                    inlineIter.script()->baselineScript()->setActive();
-                if (!inlineIter.more())
-                    break;
-                ++inlineIter;
-            }
-        }
 
         
         if (it.checkInvalidation())

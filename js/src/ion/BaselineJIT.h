@@ -304,6 +304,11 @@ uint32_t
 BailoutIonToBaseline(JSContext *cx, IonActivation *activation, IonBailoutIterator &iter,
                      bool invalidate, BaselineBailoutInfo **bailoutInfo);
 
+
+
+void
+MarkActiveBaselineScripts(Zone *zone);
+
 } 
 } 
 

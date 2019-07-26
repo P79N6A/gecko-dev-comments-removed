@@ -186,6 +186,9 @@ Zone::discardJitCode(FreeOp *fop, bool discardConstraints)
 #  endif
 
         
+        ion::MarkActiveBaselineScripts(this);
+
+        
         ion::InvalidateAll(fop, this);
 # endif
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {

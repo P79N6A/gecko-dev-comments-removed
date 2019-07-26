@@ -757,7 +757,9 @@ DoUseCountFallback(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *fram
                    IonOsrTempData **infoPtr)
 {
     
-    JS_ASSERT(ion::IsEnabled(cx));
+    if (!ion::IsEnabled(cx))
+        return true;
+
     JS_ASSERT(infoPtr);
     *infoPtr = NULL;
 
