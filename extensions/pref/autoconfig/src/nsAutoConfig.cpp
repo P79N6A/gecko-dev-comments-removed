@@ -14,6 +14,7 @@
 #include "nsThreadUtils.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "prmem.h"
+#include "nsIProfile.h"
 #include "nsIObserverService.h"
 #include "nsLiteralString.h"
 #include "nsIPromptService.h"
@@ -178,6 +179,21 @@ NS_IMETHODIMP nsAutoConfig::Observe(nsISupports *aSubject,
 {
     nsresult rv = NS_OK;
     if (!nsCRT::strcmp(aTopic, "profile-after-change")) {
+
+        
+        
+        nsCOMPtr<nsIProfile> profile = do_QueryInterface(aSubject);
+        if (profile) {
+            nsXPIDLString profileName;
+            rv = profile->GetCurrentProfile(getter_Copies(profileName));
+            if (NS_SUCCEEDED(rv)) {
+                
+                CopyUTF16toUTF8(profileName, mCurrProfile);
+            }
+            else {
+                NS_WARNING("nsAutoConfig::GetCurrentProfile() failed");
+            }
+        } 
 
         
         
@@ -480,8 +496,8 @@ nsresult nsAutoConfig::getEmailAddr(nsACString & emailAddr)
                                   getter_Copies(prefValue));
         if (NS_SUCCEEDED(rv) && !prefValue.IsEmpty())
             emailAddr = prefValue;
-        else
-            PromptForEMailAddress(emailAddr);
+        else if (NS_FAILED(PromptForEMailAddress(emailAddr))  && (!mCurrProfile.IsEmpty()))
+            emailAddr = mCurrProfile;
     }
     
     return NS_OK;
