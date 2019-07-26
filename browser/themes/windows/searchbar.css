@@ -2,11 +2,6 @@
 
 
 
-.searchbar-textbox {
-  width: 6em;
-  min-width: 6em;
-}
-
 .autocomplete-textbox-container {
   -moz-box-align: stretch;
 }

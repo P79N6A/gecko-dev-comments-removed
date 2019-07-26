@@ -290,6 +290,14 @@ toolbarpaletteitem > #personal-bookmarks > #bookmarks-toolbar-placeholder,
   min-width: 25ch;
 }
 
+#urlbar,
+.searchbar-textbox {
+  
+
+  width: 1px;
+  min-width: 1px;
+}
+
 #main-window:-moz-lwtheme {
   background-repeat: no-repeat;
   background-position: top right;
