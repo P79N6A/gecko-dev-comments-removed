@@ -239,7 +239,7 @@ public:
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
 private:
-    nsHostResolver(uint32_t maxCacheEntries = 50, uint32_t maxCacheLifetime = 1,
+    nsHostResolver(uint32_t maxCacheEntries = 50, uint32_t maxCacheLifetime = 60,
                    uint32_t lifetimeGracePeriod = 0);
    ~nsHostResolver();
 
@@ -272,8 +272,8 @@ private:
     };
 
     uint32_t      mMaxCacheEntries;
-    mozilla::TimeDuration mMaxCacheLifetime;
-    uint32_t      mGracePeriod;
+    mozilla::TimeDuration mMaxCacheLifetime; 
+    mozilla::TimeDuration mGracePeriod; 
     mutable Mutex mLock;    
     CondVar       mIdleThreadCV;
     uint32_t      mNumIdleThreads;
