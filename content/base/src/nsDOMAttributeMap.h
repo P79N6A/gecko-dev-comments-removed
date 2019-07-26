@@ -23,12 +23,6 @@ class nsIAtom;
 class nsINodeInfo;
 class nsIDocument;
 
-namespace mozilla {
-namespace dom {
-class Element;
-} 
-} 
-
 
 
 
@@ -211,5 +205,9 @@ private:
   already_AddRefed<Attr> RemoveAttribute(nsINodeInfo* aNodeInfo);
 };
 
+
+
+
+#include "mozilla/dom/Element.h"
 
 #endif 
