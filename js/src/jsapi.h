@@ -4861,30 +4861,13 @@ SetAsmJSCacheOps(JSRuntime *rt, const AsmJSCacheOps *callbacks);
 class MOZ_STACK_CLASS JS_PUBLIC_API(ForOfIterator) {
   protected:
     JSContext *cx_;
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
     JS::RootedObject iterator;
-    uint32_t index;
-
-    static const uint32_t NOT_ARRAY = UINT32_MAX;
 
     ForOfIterator(const ForOfIterator &) MOZ_DELETE;
     ForOfIterator &operator=(const ForOfIterator &) MOZ_DELETE;
 
   public:
-    ForOfIterator(JSContext *cx) : cx_(cx), iterator(cx_), index(NOT_ARRAY) { }
+    ForOfIterator(JSContext *cx) : cx_(cx), iterator(cx) { }
 
     enum NonIterableBehavior {
         ThrowOnNonIterable,
@@ -4913,10 +4896,6 @@ class MOZ_STACK_CLASS JS_PUBLIC_API(ForOfIterator) {
     bool valueIsIterable() const {
         return iterator;
     }
-
-  private:
-    inline bool nextFromOptimizedArray(MutableHandleValue val, bool *done);
-    bool materializeArrayIterator();
 };
 
 } 
