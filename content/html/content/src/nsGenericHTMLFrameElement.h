@@ -90,21 +90,7 @@ protected:
   nsresult GetContentDocument(nsIDOMDocument** aContentDocument);
   nsresult GetContentWindow(nsIDOMWindow** aContentWindow);
 
-  
-  
-  
-  bool MayBeAppFrame();
-
   nsRefPtr<nsFrameLoader> mFrameLoader;
-  
-  
-  
-  
-  
-  
-  
-  nsCOMPtr<mozIApplication> mApp;
-  nsCOMPtr<mozIApplication> mContainingApp;
 
   
   

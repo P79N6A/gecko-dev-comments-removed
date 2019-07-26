@@ -334,6 +334,12 @@ private:
 
 
 
+  void GetOwnerAppManifestURL(nsAString& aOut);
+
+  
+
+
+
   already_AddRefed<mozIApplication> GetOwnApp();
 
   
