@@ -519,68 +519,82 @@ imgStatusTracker::SyncNotifyState(nsTObserverArray<imgRequestProxy*>& proxies,
   }
 }
 
-imgStatusTracker::StatusDiff
-imgStatusTracker::CalculateAndApplyDifference(imgStatusTracker* other)
+ImageStatusDiff
+imgStatusTracker::Difference(imgStatusTracker* aOther) const
 {
-  LOG_SCOPE(GetImgLog(), "imgStatusTracker::SyncAndCalculateDifference");
+  ImageStatusDiff diff;
+  diff.diffState = ~mState & aOther->mState & ~stateRequestStarted;
+  diff.diffImageStatus = ~mImageStatus & aOther->mImageStatus;
+  diff.unblockedOnload = mState & stateBlockingOnload && !(aOther->mState & stateBlockingOnload);
+  diff.unsetDecodeStarted = mImageStatus & imgIRequest::STATUS_DECODE_STARTED
+                         && !(aOther->mImageStatus & imgIRequest::STATUS_DECODE_STARTED);
+  diff.foundError = (mImageStatus != imgIRequest::STATUS_ERROR)
+                 && (aOther->mImageStatus == imgIRequest::STATUS_ERROR);
 
-  
-  uint32_t loadState = mState & stateRequestStarted;
+  MOZ_ASSERT(!mIsMultipart || aOther->mIsMultipart, "mIsMultipart should be monotonic");
+  diff.foundIsMultipart = !mIsMultipart && aOther->mIsMultipart;
+  MOZ_ASSERT(!mHadLastPart || aOther->mHadLastPart, "mHadLastPart should be monotonic");
+  diff.foundLastPart = !mHadLastPart && aOther->mHadLastPart;
 
-  StatusDiff diff;
-  diff.mDiffState = ~mState & other->mState & ~stateRequestStarted;
-  diff.mUnblockedOnload = mState & stateBlockingOnload && !(other->mState & stateBlockingOnload);
-  diff.mFoundError = (mImageStatus != imgIRequest::STATUS_ERROR) && (other->mImageStatus == imgIRequest::STATUS_ERROR);
-
-  
-  
-
-  
-  mState |= diff.mDiffState | loadState;
-  if (diff.mUnblockedOnload) {
-    mState &= ~stateBlockingOnload;
-  }
-
-  mIsMultipart = other->mIsMultipart;
-  mHadLastPart = other->mHadLastPart;
-  mImageStatus |= other->mImageStatus;
-  mHasBeenDecoded = mHasBeenDecoded || other->mHasBeenDecoded;
-
-  
-  if (mImageStatus & imgIRequest::STATUS_ERROR) {
-    mImageStatus = imgIRequest::STATUS_ERROR;
-  } else {
-    
-    if (!(other->mImageStatus & imgIRequest::STATUS_DECODE_STARTED)) {
-      mImageStatus &= ~imgIRequest::STATUS_DECODE_STARTED;
-    }
-  }
+  diff.gotDecoded = !mHasBeenDecoded && aOther->mHasBeenDecoded;
 
   
   
   
-  bool doInvalidations  = !mHasBeenDecoded
-                       || mImageStatus & imgIRequest::STATUS_ERROR
-                       || mImageStatus & imgIRequest::STATUS_DECODE_COMPLETE;
+  const uint32_t combinedStatus = mImageStatus | aOther->mImageStatus;
+  const bool doInvalidations  = !(mHasBeenDecoded || aOther->mHasBeenDecoded)
+                             || combinedStatus & imgIRequest::STATUS_ERROR
+                             || combinedStatus & imgIRequest::STATUS_DECODE_COMPLETE;
 
+  
   
   if (doInvalidations) {
-    diff.mInvalidRect = mInvalidRect.Union(other->mInvalidRect);
-    other->mInvalidRect.SetEmpty();
-    mInvalidRect.SetEmpty();
+    diff.invalidRect = aOther->mInvalidRect;
+    aOther->mInvalidRect.SetEmpty();
   }
 
   return diff;
 }
 
 void
-imgStatusTracker::SyncNotifyDifference(imgStatusTracker::StatusDiff diff)
+imgStatusTracker::ApplyDifference(const ImageStatusDiff& aDiff)
+{
+  LOG_SCOPE(GetImgLog(), "imgStatusTracker::ApplyDifference");
+
+  
+  uint32_t loadState = mState & stateRequestStarted;
+
+  
+  mState |= aDiff.diffState | loadState;
+  if (aDiff.unblockedOnload)
+    mState &= ~stateBlockingOnload;
+
+  mIsMultipart = mIsMultipart || aDiff.foundIsMultipart;
+  mHadLastPart = mHadLastPart || aDiff.foundLastPart;
+  mHasBeenDecoded = mHasBeenDecoded || aDiff.gotDecoded;
+
+  
+  mImageStatus |= aDiff.diffImageStatus;
+
+  
+  if (aDiff.unsetDecodeStarted)
+    mImageStatus &= ~imgIRequest::STATUS_DECODE_STARTED;
+
+  
+  if (mImageStatus & imgIRequest::STATUS_ERROR)
+    mImageStatus = imgIRequest::STATUS_ERROR;
+}
+
+void
+imgStatusTracker::SyncNotifyDifference(const ImageStatusDiff& diff)
 {
   LOG_SCOPE(GetImgLog(), "imgStatusTracker::SyncNotifyDifference");
 
-  SyncNotifyState(mConsumers, !!mImage, diff.mDiffState, diff.mInvalidRect, mHadLastPart);
+  nsIntRect invalidRect = mInvalidRect.Union(diff.invalidRect);
+  mInvalidRect.SetEmpty();
+  SyncNotifyState(mConsumers, !!mImage, diff.diffState, invalidRect, mHadLastPart);
 
-  if (diff.mUnblockedOnload) {
+  if (diff.unblockedOnload) {
     nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mConsumers);
     while (iter.HasMore()) {
       
@@ -593,7 +607,7 @@ imgStatusTracker::SyncNotifyDifference(imgStatusTracker::StatusDiff diff)
     }
   }
 
-  if (diff.mFoundError) {
+  if (diff.foundError) {
     FireFailureNotification();
   }
 }

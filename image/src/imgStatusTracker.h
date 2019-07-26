@@ -14,12 +14,6 @@ class imgRequestNotifyRunnable;
 class imgStatusTrackerObserver;
 class imgStatusTrackerNotifyingObserver;
 struct nsIntRect;
-namespace mozilla {
-namespace image {
-class Image;
-} 
-} 
-
 
 #include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
@@ -28,6 +22,64 @@ class Image;
 #include "nscore.h"
 #include "imgDecoderObserver.h"
 #include "nsISupportsImpl.h"
+
+namespace mozilla {
+namespace image {
+
+class Image;
+
+struct ImageStatusDiff
+{
+  ImageStatusDiff()
+    : invalidRect()
+    , diffState(0)
+    , diffImageStatus(0)
+    , unblockedOnload(false)
+    , unsetDecodeStarted(false)
+    , foundError(false)
+    , foundIsMultipart(false)
+    , foundLastPart(false)
+    , gotDecoded(false)
+  { }
+
+  static ImageStatusDiff NoChange() { return ImageStatusDiff(); }
+  bool IsNoChange() const { return *this == NoChange(); }
+
+  bool operator!=(const ImageStatusDiff& aOther) const { return !(*this == aOther); }
+  bool operator==(const ImageStatusDiff& aOther) const {
+    return aOther.invalidRect == invalidRect
+        && aOther.diffState == diffState
+        && aOther.diffImageStatus == diffImageStatus
+        && aOther.unblockedOnload == unblockedOnload
+        && aOther.unsetDecodeStarted == unsetDecodeStarted
+        && aOther.foundError == foundError
+        && aOther.foundIsMultipart == foundIsMultipart
+        && aOther.foundLastPart == foundLastPart
+        && aOther.gotDecoded == gotDecoded;
+  }
+
+  void Combine(const ImageStatusDiff& aOther) {
+    invalidRect = invalidRect.Union(aOther.invalidRect);
+    diffState |= aOther.diffState;
+    diffImageStatus |= aOther.diffImageStatus;
+    unblockedOnload = unblockedOnload || aOther.unblockedOnload;
+    unsetDecodeStarted = unsetDecodeStarted || aOther.unsetDecodeStarted;
+    foundError = foundError || aOther.foundError;
+    foundIsMultipart = foundIsMultipart || aOther.foundIsMultipart;
+    foundLastPart = foundLastPart || aOther.foundLastPart;
+    gotDecoded = gotDecoded || aOther.gotDecoded;
+  }
+
+  nsIntRect invalidRect;
+  uint32_t  diffState;
+  uint32_t  diffImageStatus;
+  bool      unblockedOnload    : 1;
+  bool      unsetDecodeStarted : 1;
+  bool      foundError         : 1;
+  bool      foundIsMultipart   : 1;
+  bool      foundLastPart      : 1;
+  bool      gotDecoded         : 1;
+};
 
 enum {
   stateRequestStarted    = 1u << 0,
@@ -39,6 +91,9 @@ enum {
   stateBlockingOnload    = 1u << 6,
   stateImageIsAnimated   = 1u << 7
 };
+
+} 
+} 
 
 
 
@@ -196,21 +251,15 @@ public:
 
   imgStatusTracker* CloneForRecording();
 
-  struct StatusDiff
-  {
-    uint32_t mDiffState;
-    bool mUnblockedOnload;
-    bool mFoundError;
-    nsIntRect mInvalidRect;
-  };
+  
+  mozilla::image::ImageStatusDiff Difference(imgStatusTracker* aOther) const;
+
+  
+  void ApplyDifference(const mozilla::image::ImageStatusDiff& aDiff);
 
   
   
-  StatusDiff CalculateAndApplyDifference(imgStatusTracker* other);
-
-  
-  
-  void SyncNotifyDifference(StatusDiff diff);
+  void SyncNotifyDifference(const mozilla::image::ImageStatusDiff& aDiff);
 
   nsIntRect GetInvalidRect() const { return mInvalidRect; }
 

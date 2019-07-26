@@ -2963,9 +2963,10 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     }
   }
 
-  imgStatusTracker::StatusDiff diff;
+  ImageStatusDiff diff;
   if (request) {
-    diff = image->mStatusTracker->CalculateAndApplyDifference(request->mStatusTracker);
+    diff = image->mStatusTracker->Difference(request->mStatusTracker);
+    image->mStatusTracker->ApplyDifference(diff);
   }
 
   {

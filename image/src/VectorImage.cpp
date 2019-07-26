@@ -391,10 +391,12 @@ VectorImage::OnImageDataComplete(nsIRequest* aRequest,
 
   
   if (mStatusTracker) {
+    
     nsRefPtr<imgStatusTracker> clone = mStatusTracker->CloneForRecording();
     imgDecoderObserver* observer = clone->GetDecoderObserver();
     observer->OnStopRequest(aLastPart, finalStatus);
-    imgStatusTracker::StatusDiff diff = mStatusTracker->CalculateAndApplyDifference(clone);
+    ImageStatusDiff diff = mStatusTracker->Difference(clone);
+    mStatusTracker->ApplyDifference(diff);
     mStatusTracker->SyncNotifyDifference(diff);
   }
   return finalStatus;
@@ -861,7 +863,8 @@ VectorImage::OnStartRequest(nsIRequest* aRequest, nsISupports* aCtxt)
     nsRefPtr<imgStatusTracker> clone = mStatusTracker->CloneForRecording();
     imgDecoderObserver* observer = clone->GetDecoderObserver();
     observer->OnStartDecode();
-    imgStatusTracker::StatusDiff diff = mStatusTracker->CalculateAndApplyDifference(clone);
+    ImageStatusDiff diff = mStatusTracker->Difference(clone);
+    mStatusTracker->ApplyDifference(diff);
     mStatusTracker->SyncNotifyDifference(diff);
   }
 
@@ -949,7 +952,8 @@ VectorImage::OnSVGDocumentLoaded()
     observer->OnStopFrame();
     observer->OnStopDecode(NS_OK); 
 
-    imgStatusTracker::StatusDiff diff = mStatusTracker->CalculateAndApplyDifference(clone);
+    ImageStatusDiff diff = mStatusTracker->Difference(clone);
+    mStatusTracker->ApplyDifference(diff);
     mStatusTracker->SyncNotifyDifference(diff);
   }
 
@@ -972,7 +976,8 @@ VectorImage::OnSVGDocumentError()
 
     
     observer->OnStopDecode(NS_ERROR_FAILURE);
-    imgStatusTracker::StatusDiff diff = mStatusTracker->CalculateAndApplyDifference(clone);
+    ImageStatusDiff diff = mStatusTracker->Difference(clone);
+    mStatusTracker->ApplyDifference(diff);
     mStatusTracker->SyncNotifyDifference(diff);
   }
 }
