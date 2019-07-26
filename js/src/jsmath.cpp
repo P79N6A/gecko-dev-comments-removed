@@ -40,6 +40,7 @@
 using namespace js;
 
 using mozilla::Abs;
+using mozilla::DoubleEqualsInt32;
 using mozilla::DoubleIsInt32;
 using mozilla::ExponentComponent;
 using mozilla::IsFinite;
@@ -611,8 +612,9 @@ js::ecmaPow(double x, double y)
 
 
 
-    if (int32_t(y) == y)
-        return powi(x, int32_t(y));
+    int32_t yi;
+    if (DoubleEqualsInt32(y, &yi))
+        return powi(x, yi);
 
     
 

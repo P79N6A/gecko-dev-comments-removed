@@ -202,15 +202,35 @@ MinDoubleValue()
   return BitwiseCast<double>(uint64_t(1));
 }
 
+
+
+
+
+
+
+
 static MOZ_ALWAYS_INLINE bool
-DoubleIsInt32(double d, int32_t* i)
+DoubleEqualsInt32(double d, int32_t* i)
 {
   
 
 
 
 
-  return !IsNegativeZero(d) && d == (*i = int32_t(d));
+  return d == (*i = int32_t(d));
+}
+
+
+
+
+
+
+
+
+static MOZ_ALWAYS_INLINE bool
+DoubleIsInt32(double d, int32_t* i)
+{
+  return !IsNegativeZero(d) && DoubleEqualsInt32(d, i);
 }
 
 
