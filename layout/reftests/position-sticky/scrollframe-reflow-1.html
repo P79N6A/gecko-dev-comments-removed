@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+
+
+
+<html>
+  <head>
+    <link rel="author" title="Corey Ford" href="mailto:cford@mozilla.com">
+    <link rel="match" href="scrollframe-reflow-1-ref.html">
+    <meta name="flags" content="dom">
+    <style>
+      #scroll {
+        height: 100px;
+        overflow: hidden;
+        border: 1px solid black;
+      }
+      #sticky {
+        position: sticky;
+        height: 10px;
+        bottom: 10px;
+        background-color: black;
+      }
+      .fill {
+        height: 1000px;
+      }
+    </style>
+  <body>
+    <div id="scroll">
+      <div class="fill"></div>
+      <div id="sticky"></div>
+    </div>
+    <script type="text/javascript">
+      document.getElementById("scroll").style.height = "120px";
+    </script>
+  </body>
+</html>

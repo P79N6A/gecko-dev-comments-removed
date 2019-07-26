@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+
+
+
+
+<html>
+  <head>
+    <link rel="author" title="Corey Ford" href="mailto:cford@mozilla.com">
+    <style>
+      body {
+        overflow: scroll;
+      }
+      #scroll {
+        height: auto;
+        overflow: hidden;
+        border: 1px solid black;
+      }
+      #sticky {
+        position: relative;
+        height: 10px;
+        top: 105px;
+        background-color: black;
+      }
+      .fill {
+        height: 200px;
+      }
+    </style>
+  <body>
+    <div id="scroll">
+      <div id="sticky"></div>
+      <div class="fill"></div>
+    </div>
+  </body>
+</html>
