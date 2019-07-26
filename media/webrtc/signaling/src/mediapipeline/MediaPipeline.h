@@ -149,7 +149,7 @@ class MediaPipeline : public sigslot::has_slots<> {
         : pipeline_(pipeline),
           sts_thread_(pipeline->sts_thread_) {}
 
-    void Detach() { pipeline_ = NULL; }
+    void Detach() { pipeline_ = nullptr; }
     MediaPipeline *pipeline() const { return pipeline_; }
 
     virtual nsresult SendRtpPacket(const void* data, int len);
@@ -545,7 +545,7 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
     PipelineRenderer(MediaPipelineReceiveVideo *pipeline) :
       pipeline_(pipeline) {}
 
-    void Detach() { pipeline_ = NULL; }
+    void Detach() { pipeline_ = nullptr; }
 
     
     virtual void FrameSizeChange(unsigned int width,

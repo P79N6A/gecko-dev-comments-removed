@@ -47,7 +47,7 @@ void Fake_SourceMediaStream::Periodic() {
     for (std::set<Fake_MediaStreamListener *>::iterator it =
              mListeners.begin(); it != mListeners.end(); ++it) {
       mDesiredTime += 10;
-      (*it)->NotifyPull(NULL, mozilla::MillisecondsToMediaTime(mDesiredTime));
+      (*it)->NotifyPull(nullptr, mozilla::MillisecondsToMediaTime(mDesiredTime));
     }
   }
 }
@@ -98,7 +98,7 @@ void Fake_AudioStreamSource::Periodic() {
 
   for(std::set<Fake_MediaStreamListener *>::iterator it = mListeners.begin();
        it != mListeners.end(); ++it) {
-    (*it)->NotifyQueuedTrackChanges(NULL, 
+    (*it)->NotifyQueuedTrackChanges(nullptr, 
                                     0, 
                                     16000, 
                                     0, 

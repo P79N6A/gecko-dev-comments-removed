@@ -202,7 +202,7 @@ public:
         mStateStr(aInfo->callStateToString(mCallState)),
         mFsmStateStr(aInfo->fsmStateToString(mFsmState)) {
     if (mCallState == REMOTESTREAMADD) {
-      MediaStreamTable *streams = NULL;
+      MediaStreamTable *streams = nullptr;
       streams = aInfo->getMediaStreams();
       mRemoteStream = mPC->media()->GetRemoteStream(streams->media_stream_id);
       MOZ_ASSERT(mRemoteStream);
@@ -456,9 +456,9 @@ PeerConnectionImpl::PeerConnectionImpl(const GlobalObject* aGlobal)
   , mSignalingState(PCImplSignalingState::SignalingStable)
   , mIceState(PCImplIceState::IceGathering)
   , mWindow(nullptr)
-  , mIdentity(NULL)
-  , mSTSThread(NULL)
-  , mMedia(NULL)
+  , mIdentity(nullptr)
+  , mSTSThread(nullptr)
+  , mMedia(nullptr)
   , mNumAudioStreams(0)
   , mNumVideoStreams(0)
   , mHaveDataStream(false)

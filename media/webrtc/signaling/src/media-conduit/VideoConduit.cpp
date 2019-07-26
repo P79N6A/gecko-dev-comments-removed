@@ -124,7 +124,7 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
   if (mOtherDirection)
   {
     
-    mOtherDirection->mOtherDirection = NULL;
+    mOtherDirection->mOtherDirection = nullptr;
     
     mOtherDirection->mShutDown = true;
     mVideoEngine = nullptr;
