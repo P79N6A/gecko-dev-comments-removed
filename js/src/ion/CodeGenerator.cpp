@@ -935,6 +935,10 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
     masm.checkStackAlignment();
 
     
+    if (target->isInterpretedLazy() && !target->getOrCreateScript(cx))
+        return false;
+
+    
     ExecutionMode executionMode = gen->info().executionMode();
     RootedScript targetScript(cx, target->nonLazyScript());
     if (GetIonScript(targetScript, executionMode) == ION_DISABLED_SCRIPT) {
