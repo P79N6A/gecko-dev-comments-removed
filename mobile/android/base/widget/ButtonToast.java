@@ -149,6 +149,7 @@ public class ButtonToast {
                 
                 
                 public void onPropertyAnimationEnd() {
+                    mView.clearAnimation();
                     mView.setVisibility(View.GONE);
                 }
                 public void onPropertyAnimationStart() { }
