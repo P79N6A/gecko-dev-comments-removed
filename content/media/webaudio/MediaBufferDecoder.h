@@ -31,7 +31,6 @@ struct WebAudioDecodeJob
   
   
   WebAudioDecodeJob(const nsACString& aContentType,
-                    const dom::ArrayBuffer& aBuffer,
                     dom::AudioContext* aContext,
                     dom::DecodeSuccessCallback* aSuccessCallback = nullptr,
                     dom::DecodeErrorCallback* aFailureCallback = nullptr);
@@ -46,21 +45,15 @@ struct WebAudioDecodeJob
   };
 
   typedef void (WebAudioDecodeJob::*ResultFn)(ErrorCode);
-  typedef std::pair<void*, float*> ChannelBuffer;
+  typedef nsAutoArrayPtr<float> ChannelBuffer;
 
   void OnSuccess(ErrorCode );
   void OnFailure(ErrorCode aErrorCode);
 
   bool AllocateBuffer();
-  bool FinalizeBufferData();
 
   nsCString mContentType;
-  uint8_t* mBuffer;
-  uint32_t mLength;
-  uint32_t mChannels;
-  uint32_t mSourceSampleRate;
-  uint32_t mFrames;
-  uint32_t mResampledFrames; 
+  uint32_t mWriteIndex;
   nsRefPtr<dom::AudioContext> mContext;
   nsRefPtr<dom::DecodeSuccessCallback> mSuccessCallback;
   nsRefPtr<dom::DecodeErrorCallback> mFailureCallback; 
