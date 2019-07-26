@@ -61,8 +61,11 @@ public:
 
 
 
-  void
-  SetStayActive(bool aStayActive) { mStayActive = aStayActive; }
+  
+  
+  
+  bool GetStayActive() { return mStayActive; }
+  void SetStayActive(bool aStayActive) { mStayActive = aStayActive; }
 
   
   

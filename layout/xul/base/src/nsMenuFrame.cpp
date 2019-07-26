@@ -577,6 +577,22 @@ nsMenuFrame::PopupClosed(bool aDeselectMenu)
       
       nsMenuFrame *current = mMenuParent->GetCurrentMenuItem();
       if (current) {
+        
+        
+        
+        
+        
+        
+        
+        nsIFrame* parent = current;
+        while (parent) {
+          nsMenuBarFrame* menubar = do_QueryFrame(parent);
+          if (menubar && menubar->GetStayActive())
+            return;
+
+          parent = parent->GetParent();
+        }
+
         nsCOMPtr<nsIRunnable> event =
           new nsMenuActivateEvent(current->GetContent(),
                                   PresContext(), true);
