@@ -268,6 +268,15 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         builder.setSingleChoiceItems(mAdapter, mAdapter.getSelectedIndex(), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
+                
+                
+                ArrayList<Integer> selected = mAdapter.getSelected();
+                for (Integer sel : selected) {
+                    mAdapter.toggleSelected(sel);
+                }
+
+                
+                mAdapter.toggleSelected(which);
                 closeIfNoButtons(which);
             }
         });
