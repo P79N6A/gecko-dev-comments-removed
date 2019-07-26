@@ -434,6 +434,7 @@ private:
   bool mVisible : 1;
 
   
+  nsCOMPtr<nsIObserver> mChildHost;
   RenderFrameParent* mCurrentRemoteFrame;
   TabParent* mRemoteBrowser;
 
