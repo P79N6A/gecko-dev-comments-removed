@@ -5517,6 +5517,8 @@ IonBuilder::annotateGetPropertyCache(JSContext *cx, MDefinition *obj, MGetProper
                                     types::TypeSet *objTypes, types::TypeSet *pushedTypes)
 {
     RootedId id(cx, NameToId(getPropCache->name()));
+    if ((jsid)id != types::MakeTypeId(cx, id))
+        return true;
 
     
     if (pushedTypes->unknownObject() || pushedTypes->baseFlags() != 0)
