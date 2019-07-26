@@ -52,7 +52,7 @@ PaymentUI.prototype = {
     
     
     if (aRequests.length == 1) {
-      aSuccessCb.onresult(aRequestId, aRequests[0].type);
+      aSuccessCb.onresult(aRequestId, aRequests[0].wrappedJSObject.type);
       return;
     }
 
@@ -60,7 +60,7 @@ PaymentUI.prototype = {
 
     
     for (let i = 0; i < aRequests.length; i++) {
-      let request = aRequests[i];
+      let request = aRequests[i].wrappedJSObject;
       let requestText = request.providerName;
       if (request.productPrice && Array.isArray(request.productPrice)) {
         
@@ -80,7 +80,7 @@ PaymentUI.prototype = {
                           items.length, items, selected);
     if (result) {
       aSuccessCb.onresult(aRequestId,
-                          aRequests[selected.value].type);
+                          aRequests[selected.value].wrappedJSObject.type);
     } else {
       aErrorCb.onresult(aRequestId, "USER_CANCELLED");
     }
