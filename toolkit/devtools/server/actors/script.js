@@ -4638,6 +4638,8 @@ update(ChromeDebuggerActor.prototype, {
 
 function AddonThreadActor(aConnect, aHooks, aAddonID) {
   this.addonID = aAddonID;
+  this.addonManager = Cc["@mozilla.org/addons/integration;1"].
+                      getService(Ci.amIAddonManager);
   ThreadActor.call(this, aHooks);
 }
 
@@ -4708,14 +4710,30 @@ update(AddonThreadActor.prototype, {
 
 
   _checkGlobal: function ADA_checkGlobal(aGlobal) {
-    let metadata;
     try {
       
-      metadata = Cu.getSandboxMetadata(aGlobal.unsafeDereference());
+      let metadata = Cu.getSandboxMetadata(aGlobal.unsafeDereference());
+      if (metadata)
+        return metadata.addonID === this.addonID;
     } catch (e) {
     }
 
-    return metadata && metadata.addonID === this.addonID;
+    
+    
+    let uridescriptor = aGlobal.getOwnPropertyDescriptor("__URI__");
+    if (uridescriptor && "value" in uridescriptor) {
+      try {
+        let uri = Services.io.newURI(uridescriptor.value, null, null);
+        let id = {};
+        if (this.addonManager.mapURIToAddonID(uri, id))
+          return id.value === this.addonID;
+      }
+      catch (e) {
+        console.log("Unexpected URI " + uridescriptor.value);
+      }
+    }
+
+    return false;
   }
 });
 
