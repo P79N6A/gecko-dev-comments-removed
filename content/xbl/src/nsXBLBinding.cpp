@@ -925,8 +925,9 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
     
     if (mIsStyleBinding) {
       
-      if (mPrototypeBinding->HasImplementation()) { 
-        nsIScriptGlobalObject *global = aOldDocument->GetScopeObject();
+      if (mPrototypeBinding->HasImplementation()) {
+        nsCOMPtr<nsIScriptGlobalObject> global =  do_QueryInterface(
+          aOldDocument->GetScopeObject());
         if (global) {
           JSObject *scope = global->GetGlobalJSObject();
           

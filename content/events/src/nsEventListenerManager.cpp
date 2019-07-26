@@ -628,7 +628,7 @@ nsEventListenerManager::SetEventHandler(nsIAtom *aName,
 
     
     
-    global = doc->GetScopeObject();
+    global = do_QueryInterface(doc->GetScopeObject());
   } else {
     nsCOMPtr<nsPIDOMWindow> win = GetTargetAsInnerWindow();
     if (win) {
