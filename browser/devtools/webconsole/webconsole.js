@@ -875,75 +875,37 @@ WebConsoleFrame.prototype = {
 
 
 
-  filterRepeatedCSS: function WCF_filterRepeatedCSS(aNode)
+  _filterRepeatedMessage: function WCF__filterRepeatedMessage(aNode)
   {
-    
-    let description = aNode.childNodes[2].textContent;
-    let location;
+    let repeatNode = aNode.getElementsByClassName("webconsole-msg-repeat")[0];
+    let uid = repeatNode._uid;
+    let dupeNode = null;
 
-    
-    
-    if (aNode.childNodes[4]) {
-      
-      location = aNode.childNodes[4].getAttribute("title");
+    if (aNode.classList.contains("webconsole-msg-cssparser")) {
+      dupeNode = this._cssNodes[uid];
+      if (!dupeNode) {
+        this._cssNodes[uid] = aNode;
+      }
     }
-    else {
-      location = "";
-    }
-
-    let dupe = this._cssNodes[description + location];
-    if (!dupe) {
-      
-      this._cssNodes[description + location] = aNode;
-      return false;
-    }
-
-    this.mergeFilteredMessageNode(dupe, aNode);
-
-    return true;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  filterRepeatedConsole: function WCF_filterRepeatedConsole(aNode)
-  {
-    let lastMessage = this.outputNode.lastChild;
-
-    if (!lastMessage) {
-      return false;
-    }
-
-    let body = aNode.querySelector(".webconsole-msg-body");
-    let lastBody = lastMessage.querySelector(".webconsole-msg-body");
-
-    if (aNode.classList.contains("webconsole-msg-inspector")) {
-      return false;
-    }
-
-    if (!body || !lastBody) {
-      return false;
-    }
-
-    if (body.textContent == lastBody.textContent) {
-      let loc = aNode.querySelector(".webconsole-location");
-      let lastLoc = lastMessage.querySelector(".webconsole-location");
-
-      if (loc && lastLoc) {
-        if (loc.getAttribute("value") !== lastLoc.getAttribute("value")) {
-          return false;
-        }
+    else if (!aNode.classList.contains("webconsole-msg-network") &&
+             !aNode.classList.contains("webconsole-msg-inspector") &&
+             (aNode.classList.contains("webconsole-msg-console") ||
+              aNode.classList.contains("webconsole-msg-exception") ||
+              aNode.classList.contains("webconsole-msg-error"))) {
+      let lastMessage = this.outputNode.lastChild;
+      if (!lastMessage) {
+        return false;
       }
 
-      this.mergeFilteredMessageNode(lastMessage, aNode);
+      let lastRepeatNode = lastMessage
+                           .getElementsByClassName("webconsole-msg-repeat")[0];
+      if (lastRepeatNode._uid == uid) {
+        dupeNode = lastMessage;
+      }
+    }
+
+    if (dupeNode) {
+      this.mergeFilteredMessageNode(dupeNode, aNode);
       return true;
     }
 
@@ -1880,18 +1842,7 @@ WebConsoleFrame.prototype = {
 
     let isFiltered = this.filterMessageNode(node);
 
-    let isRepeated = false;
-    if (node.classList.contains("webconsole-msg-cssparser")) {
-      isRepeated = this.filterRepeatedCSS(node);
-    }
-
-    if (!isRepeated &&
-        !node.classList.contains("webconsole-msg-network") &&
-        (node.classList.contains("webconsole-msg-console") ||
-         node.classList.contains("webconsole-msg-exception") ||
-         node.classList.contains("webconsole-msg-error"))) {
-      isRepeated = this.filterRepeatedConsole(node);
-    }
+    let isRepeated = this._filterRepeatedMessage(node);
 
     let lastVisible = !isRepeated && !isFiltered;
     if (!isRepeated) {
@@ -2066,12 +2017,8 @@ WebConsoleFrame.prototype = {
     }
 
     if (aNode.classList.contains("webconsole-msg-cssparser")) {
-      let desc = aNode.childNodes[2].textContent;
-      let location = "";
-      if (aNode.childNodes[4]) {
-        location = aNode.childNodes[4].getAttribute("title");
-      }
-      delete this._cssNodes[desc + location];
+      let repeatNode = aNode.getElementsByClassName("webconsole-msg-repeat")[0];
+      delete this._cssNodes[repeatNode._uid];
     }
     else if (aNode._connectionId &&
              aNode.classList.contains("webconsole-msg-network")) {
@@ -2210,6 +2157,8 @@ WebConsoleFrame.prototype = {
     let repeatNode = this.document.createElementNS(XUL_NS, "label");
     repeatNode.setAttribute("value", "1");
     repeatNode.classList.add("webconsole-msg-repeat");
+    repeatNode._uid = [bodyNode.textContent, aCategory, aSeverity, aLevel,
+                       aSourceURL, aSourceLine].join(":");
     repeatContainer.appendChild(repeatNode);
 
     
