@@ -206,6 +206,12 @@ public:
 
   
   
+  
+  static VideoData* ShallowCopyUpdateTimestamp(VideoData* aOther,
+                                               int64_t aTimestamp);
+
+  
+  
   static void SetVideoDataToImage(PlanarYCbCrImage* aVideoImage,
                                   VideoInfo& aInfo,                  
                                   const YCbCrBuffer &aBuffer,

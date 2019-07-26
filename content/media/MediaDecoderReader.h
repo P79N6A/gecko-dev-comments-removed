@@ -155,10 +155,12 @@ public:
   AudioData* DecodeToFirstAudioData();
   VideoData* DecodeToFirstVideoData();
 
-protected:
+  
   
   
   nsresult DecodeToTarget(int64_t aTarget);
+
+protected:
 
   
   AbstractMediaDecoder* mDecoder;
