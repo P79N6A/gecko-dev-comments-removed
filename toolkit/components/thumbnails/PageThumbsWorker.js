@@ -176,6 +176,28 @@ let Agent = {
     } finally {
       iterator.close();
     }
-   }
+  },
+
+  touchIfExists: function Agent_touchIfExists(path) {
+    
+    
+    
+    
+    
+    if (!File.exists(path)) {
+      return false;
+    }
+    let file = OS.File.open(path, { read: true, write: true });
+    try {
+      file.setPosition(0); 
+      let byte = file.read(1);
+      file.setPosition(0);
+      file.write(byte);
+    } finally {
+      file.close();
+    }
+    return true;
+  },
+
 };
 

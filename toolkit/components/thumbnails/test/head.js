@@ -52,8 +52,13 @@ let TestRunner = {
   next: function () {
     try {
       let value = TestRunner._iter.next();
-      if (value && typeof value.then == "function")
-        value.then(next);
+      if (value && typeof value.then == "function") {
+        value.then(result => {
+          next(result);
+        }, error => {
+          ok(false, error + "\n" + error.stack);
+        });
+      }
     } catch (e if e instanceof StopIteration) {
       finish();
     }
@@ -129,20 +134,33 @@ function captureAndCheckColor(aRed, aGreen, aBlue, aMessage) {
 function retrieveImageDataForURL(aURL, aCallback) {
   let width = 100, height = 100;
   let thumb = PageThumbs.getThumbnailURL(aURL, width, height);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  addTab("chrome://global/content/mozilla.xhtml", () => {
+    let doc = gBrowser.selectedBrowser.contentDocument;
+    let htmlns = "http://www.w3.org/1999/xhtml";
+    let img = doc.createElementNS(htmlns, "img");
+    img.setAttribute("src", thumb);
 
-  let htmlns = "http://www.w3.org/1999/xhtml";
-  let img = document.createElementNS(htmlns, "img");
-  img.setAttribute("src", thumb);
+    whenLoaded(img, function () {
+      let canvas = document.createElementNS(htmlns, "canvas");
+      canvas.setAttribute("width", width);
+      canvas.setAttribute("height", height);
 
-  whenLoaded(img, function () {
-    let canvas = document.createElementNS(htmlns, "canvas");
-    canvas.setAttribute("width", width);
-    canvas.setAttribute("height", height);
-
-    
-    let ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0, width, height);
-    aCallback(ctx.getImageData(0, 0, 100, 100).data);
+      
+      let ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      let result = ctx.getImageData(0, 0, 100, 100).data;
+      gBrowser.removeTab(gBrowser.selectedTab);
+      aCallback(result);
+    });
   });
 }
 
