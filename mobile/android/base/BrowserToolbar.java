@@ -282,8 +282,13 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             @Override
             public void onClick(View view) {
                 Tab tab = Tabs.getInstance().getSelectedTab();
-                if (tab != null)
-                    tab.readerMode();
+                if (tab != null) {
+                    if (ReaderModeUtils.isAboutReader(tab.getURL())) {
+                        tab.doBack();
+                    } else {
+                        tab.readerMode();
+                    }
+                }
             }
         });
 
@@ -938,12 +943,21 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
         
         setSiteSecurityVisibility(mShowSiteSecurity && !isLoading);
-        mReader.setVisibility(mShowReader && !isLoading ? View.VISIBLE : View.GONE);
 
         
         
         
-        mTitle.setPadding(0, 0, (!mShowReader && !isLoading ? mTitlePadding : 0), 0);
+        boolean exitableReaderMode = false;
+        Tab tab = Tabs.getInstance().getSelectedTab();
+        if (tab != null)
+            exitableReaderMode = ReaderModeUtils.isAboutReader(tab.getURL()) && tab.canDoBack();
+        mReader.setImageResource(exitableReaderMode ? R.drawable.reader_active : R.drawable.reader);
+        mReader.setVisibility(!isLoading && (mShowReader || exitableReaderMode) ? View.VISIBLE : View.GONE);
+
+        
+        
+        
+        mTitle.setPadding(0, 0, (!isLoading && !(mShowReader || exitableReaderMode) ? mTitlePadding : 0), 0);
 
         updateFocusOrder();
     }
