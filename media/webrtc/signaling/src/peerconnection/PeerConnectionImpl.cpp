@@ -124,7 +124,8 @@ public:
                                  IPeerConnectionObserver* aObserver)
       : mPC(aPC),
         mObserver(aObserver),
-        mCode(static_cast<StatusCode>(aInfo->getStatusCode())),
+        mCode(static_cast<PeerConnectionImpl::Error>(aInfo->getStatusCode())),
+        mReason(aInfo->getStatus()),
         mSdpStr(),
         mCallState(aInfo->getCallState()),
         mStateStr(aInfo->callStateToString(mCallState)) {
@@ -146,6 +147,23 @@ public:
     CSFLogInfo(logTag, "PeerConnectionObserverDispatch processing "
                        "mCallState = %d (%s)", mCallState, mStateStr.c_str());
 
+    if (mCallState == SETLOCALDESCERROR || mCallState == SETREMOTEDESCERROR) {
+      const std::vector<std::string> &errors = mPC->GetSdpParseErrors();
+      std::vector<std::string>::const_iterator i;
+      for (i = errors.begin(); i != errors.end(); ++i) {
+        mReason += " | SDP Parsing Error: " + *i;
+      }
+      if (errors.size()) {
+        mCode = PeerConnectionImpl::kInvalidSessionDescription;
+      }
+      mPC->ClearSdpParseErrorMessages();
+    }
+
+    if (mReason.length()) {
+      CSFLogInfo(logTag, "Message contains error: %d: %s",
+                 mCode, mReason.c_str());
+    }
+
     switch (mCallState) {
       case CREATEOFFER:
         mObserver->OnCreateOfferSuccess(mSdpStr.c_str());
@@ -156,18 +174,17 @@ public:
         break;
 
       case CREATEOFFERERROR:
-        mObserver->OnCreateOfferError(
-          PeerConnectionImpl::kInternalError,
-          "Unspecified Error processing createOffer");
+        mObserver->OnCreateOfferError(mCode, mReason.c_str());
         break;
 
       case CREATEANSWERERROR:
-        mObserver->OnCreateAnswerError(
-          PeerConnectionImpl::kInternalError,
-          "Unspecified Error processing createAnswer");
+        mObserver->OnCreateAnswerError(mCode, mReason.c_str());
         break;
 
       case SETLOCALDESC:
+        
+        
+        
         
         
         mPC->ClearSdpParseErrorMessages();
@@ -177,26 +194,19 @@ public:
       case SETREMOTEDESC:
         
         
+        
+        
+        
         mPC->ClearSdpParseErrorMessages();
         mObserver->OnSetRemoteDescriptionSuccess();
         break;
 
       case SETLOCALDESCERROR:
-        
-        
-        mPC->ClearSdpParseErrorMessages();
-        mObserver->OnSetLocalDescriptionError(
-          PeerConnectionImpl::kInternalError,
-          "Unspecified Error processing setLocalDescription");
+        mObserver->OnSetLocalDescriptionError(mCode, mReason.c_str());
         break;
 
       case SETREMOTEDESCERROR:
-        
-        
-        mPC->ClearSdpParseErrorMessages();
-        mObserver->OnSetRemoteDescriptionError(
-          PeerConnectionImpl::kInternalError,
-          "Unspecified Error processing setRemoteDescription");
+        mObserver->OnSetRemoteDescriptionError(mCode, mReason.c_str());
         break;
 
       case ADDICECANDIDATE:
@@ -204,9 +214,7 @@ public:
         break;
 
       case ADDICECANDIDATEERROR:
-        mObserver->OnAddIceCandidateError(
-          PeerConnectionImpl::kInternalError,
-          "Unspecified Error processing addIceCandidate");
+        mObserver->OnAddIceCandidateError(mCode, mReason.c_str());
         break;
 
       case REMOTESTREAMADD:
@@ -250,7 +258,8 @@ public:
 private:
   nsRefPtr<PeerConnectionImpl> mPC;
   nsCOMPtr<IPeerConnectionObserver> mObserver;
-  StatusCode mCode;
+  PeerConnectionImpl::Error mCode;
+  std::string mReason;
   std::string mSdpStr;
   cc_call_state_t mCallState;
   std::string mStateStr;
@@ -1440,6 +1449,11 @@ PeerConnectionImpl::OnSdpParseError(const char *message) {
 void
 PeerConnectionImpl::ClearSdpParseErrorMessages() {
   mSDPParseErrorMessages.clear();
+}
+
+const std::vector<std::string> &
+PeerConnectionImpl::GetSdpParseErrors() {
+  return mSDPParseErrorMessages;
 }
 
 

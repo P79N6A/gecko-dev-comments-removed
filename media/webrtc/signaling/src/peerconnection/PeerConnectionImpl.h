@@ -265,6 +265,9 @@ public:
   
   void ClearSdpParseErrorMessages();
 
+  
+  const std::vector<std::string> &GetSdpParseErrors();
+
 private:
   PeerConnectionImpl(const PeerConnectionImpl&rhs);
   PeerConnectionImpl& operator=(PeerConnectionImpl);
