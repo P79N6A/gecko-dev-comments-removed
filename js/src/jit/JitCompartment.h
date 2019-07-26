@@ -336,6 +336,17 @@ class JitRuntime
     }
 };
 
+class JitZone
+{
+    
+    OptimizedICStubSpace optimizedStubSpace_;
+
+  public:
+    OptimizedICStubSpace *optimizedStubSpace() {
+        return &optimizedStubSpace_;
+    }
+};
+
 class JitCompartment
 {
     friend class JitActivation;
@@ -349,9 +360,6 @@ class JitCompartment
     void *baselineCallReturnAddr_;
     void *baselineGetPropReturnAddr_;
     void *baselineSetPropReturnAddr_;
-
-    
-    OptimizedICStubSpace optimizedStubSpace_;
 
     
     
@@ -425,16 +433,11 @@ class JitCompartment
           default:                  MOZ_ASSUME_UNREACHABLE("No such execution mode");
         }
     }
-
-    OptimizedICStubSpace *optimizedStubSpace() {
-        return &optimizedStubSpace_;
-    }
 };
 
 
 void InvalidateAll(FreeOp *fop, JS::Zone *zone);
 void FinishInvalidation(FreeOp *fop, JSScript *script);
-void FinishDiscardJitCode(FreeOp *fop, JSCompartment *comp);
 
 
 

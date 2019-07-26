@@ -229,8 +229,7 @@ struct JSCompartment
                                 size_t *shapesCompartmentTables,
                                 size_t *crossCompartmentWrappers,
                                 size_t *regexpCompartment,
-                                size_t *debuggeesSet,
-                                size_t *baselineStubsOptimized);
+                                size_t *debuggeesSet);
 
     
 
