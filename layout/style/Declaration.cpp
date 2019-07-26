@@ -859,6 +859,12 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
       AppendValueToString(subprops[0], aValue);
       break;
     }
+    case eCSSProperty_all:
+      
+      
+      
+      
+      break;
     default:
       NS_ABORT_IF_FALSE(false, "no other shorthands");
       break;
