@@ -2,8 +2,6 @@
 
 
 
-from __future__ import unicode_literals
-
 import ntpath
 import os
 import posixpath
