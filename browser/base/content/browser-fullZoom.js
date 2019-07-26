@@ -26,8 +26,7 @@ var FullZoom = {
   
   
   
-  
-  _browserTokenMap: new Map(),
+  _browserTokenMap: new WeakMap(),
 
   get siteSpecific() {
     return this._siteSpecificPref;
@@ -47,10 +46,6 @@ var FullZoom = {
 
   init: function FullZoom_init() {
     
-    if (gMultiProcessBrowser)
-      return;
-
-    
     window.addEventListener("DOMMouseScroll", this, false);
 
     
@@ -65,19 +60,12 @@ var FullZoom = {
     
     
     gPrefService.addObserver("browser.zoom.", this, true);
-
-    Services.obs.addObserver(this, "outer-window-destroyed", false);
   },
 
   destroy: function FullZoom_destroy() {
-    
-    if (gMultiProcessBrowser)
-      return;
-
     gPrefService.removeObserver("browser.zoom.", this);
     this._cps2.removeObserverForName(this.name, this);
     window.removeEventListener("DOMMouseScroll", this, false);
-    Services.obs.removeObserver(this, "outer-window-destroyed");
   },
 
 
@@ -156,10 +144,6 @@ var FullZoom = {
             break;
         }
         break;
-      case "outer-window-destroyed":
-        let outerID = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
-        this._browserTokenMap.delete(outerID);
-        break;
     }
   },
 
@@ -208,7 +192,7 @@ var FullZoom = {
     
     
     let hasPref = false;
-    let ctxt = this._loadContextFromWindow(browser.contentWindow);
+    let ctxt = this._loadContextFromBrowser(browser);
     let token = this._getBrowserToken(browser);
     this._cps2.getByDomainAndName(browser.currentURI.spec, this.name, ctxt, {
       handleResult: function () hasPref = true,
@@ -234,10 +218,6 @@ var FullZoom = {
 
   onLocationChange: function FullZoom_onLocationChange(aURI, aIsTabSwitch, aBrowser) {
     
-    if (gMultiProcessBrowser)
-      return;
-
-    
     
     
     let browser = aBrowser || gBrowser.selectedBrowser;
@@ -256,7 +236,7 @@ var FullZoom = {
     }
 
     
-    if (!aIsTabSwitch && browser.contentDocument.mozSyntheticDocument) {
+    if (!aIsTabSwitch && browser.isSyntheticDocument) {
       ZoomManager.setZoomForBrowser(browser, 1);
       
       this._notifyOnLocationChange();
@@ -264,7 +244,7 @@ var FullZoom = {
     }
 
     
-    let ctxt = this._loadContextFromWindow(browser.contentWindow);
+    let ctxt = this._loadContextFromBrowser(browser);
     let pref = this._cps2.getCachedByDomainAndName(aURI.spec, this.name, ctxt);
     if (pref) {
       this._applyPrefToZoom(pref.value, browser,
@@ -326,7 +306,7 @@ var FullZoom = {
   reset: function FullZoom_reset() {
     let browser = gBrowser.selectedBrowser;
     let token = this._getBrowserToken(browser);
-    this._getGlobalValue(browser.contentWindow, function (value) {
+    this._getGlobalValue(browser, function (value) {
       if (token.isCurrent) {
         ZoomManager.setZoomForBrowser(browser, value === undefined ? 1 : value);
         this._ignorePendingZoomAccesses(browser);
@@ -367,8 +347,7 @@ var FullZoom = {
     
     
     
-    if (!aBrowser.contentDocument ||
-        aBrowser.contentDocument.mozSyntheticDocument) {
+    if (!aBrowser.parentNode || aBrowser.isSyntheticDocument) {
       this._executeSoon(aCallback);
       return;
     }
@@ -381,7 +360,7 @@ var FullZoom = {
     }
 
     let token = this._getBrowserToken(aBrowser);
-    this._getGlobalValue(aBrowser.contentWindow, function (value) {
+    this._getGlobalValue(aBrowser, function (value) {
       if (token.isCurrent) {
         ZoomManager.setZoomForBrowser(aBrowser, value === undefined ? 1 : value);
         this._ignorePendingZoomAccesses(aBrowser);
@@ -400,12 +379,12 @@ var FullZoom = {
     Services.obs.notifyObservers(null, "browser-fullZoom:zoomChange", "");
     if (!this.siteSpecific ||
         gInPrintPreviewMode ||
-        browser.contentDocument.mozSyntheticDocument)
+        browser.isSyntheticDocument)
       return;
 
     this._cps2.set(browser.currentURI.spec, this.name,
                    ZoomManager.getZoomForBrowser(browser),
-                   this._loadContextFromWindow(browser.contentWindow), {
+                   this._loadContextFromBrowser(browser), {
       handleCompletion: function () {
         this._isNextContentPrefChangeInternal = true;
       }.bind(this),
@@ -419,9 +398,9 @@ var FullZoom = {
 
   _removePref: function FullZoom__removePref(browser) {
     Services.obs.notifyObservers(null, "browser-fullZoom:zoomReset", "");
-    if (browser.contentDocument.mozSyntheticDocument)
+    if (browser.isSyntheticDocument)
       return;
-    let ctxt = this._loadContextFromWindow(browser.contentWindow);
+    let ctxt = this._loadContextFromBrowser(browser);
     this._cps2.removeByDomainAndName(browser.currentURI.spec, this.name, ctxt, {
       handleCompletion: function () {
         this._isNextContentPrefChangeInternal = true;
@@ -445,19 +424,18 @@ var FullZoom = {
 
 
   _getBrowserToken: function FullZoom__getBrowserToken(browser) {
-    let outerID = this._browserOuterID(browser);
     let map = this._browserTokenMap;
-    if (!map.has(outerID))
-      map.set(outerID, 0);
+    if (!map.has(browser))
+      map.set(browser, 0);
     return {
-      token: map.get(outerID),
+      token: map.get(browser),
       get isCurrent() {
         
         
         
         
         
-        return map.get(outerID) === this.token && browser.docShell;
+        return map.get(browser) === this.token && browser.parentNode;
       },
     };
   },
@@ -470,17 +448,8 @@ var FullZoom = {
 
 
   _ignorePendingZoomAccesses: function FullZoom__ignorePendingZoomAccesses(browser) {
-    let outerID = this._browserOuterID(browser);
     let map = this._browserTokenMap;
-    map.set(outerID, (map.get(outerID) || 0) + 1);
-  },
-
-  _browserOuterID: function FullZoom__browserOuterID(browser) {
-    return browser.
-           contentWindow.
-           QueryInterface(Ci.nsIInterfaceRequestor).
-           getInterface(Ci.nsIDOMWindowUtils).
-           outerWindowID;
+    map.set(browser, (map.get(browser) || 0) + 1);
   },
 
   _ensureValid: function FullZoom__ensureValid(aValue) {
@@ -512,7 +481,7 @@ var FullZoom = {
 
 
 
-  _getGlobalValue: function FullZoom__getGlobalValue(window, callback) {
+  _getGlobalValue: function FullZoom__getGlobalValue(browser, callback) {
     
     
     
@@ -521,7 +490,7 @@ var FullZoom = {
       return;
     }
     let value = undefined;
-    this._cps2.getGlobal(this.name, this._loadContextFromWindow(window), {
+    this._cps2.getGlobal(this.name, this._loadContextFromBrowser(browser), {
       handleResult: function (pref) value = pref.value,
       handleCompletion: function (reason) {
         this._globalValue = this._ensureValid(value);
@@ -536,11 +505,8 @@ var FullZoom = {
 
 
 
-  _loadContextFromWindow: function FullZoom__loadContextFromWindow(window) {
-    return window.
-           QueryInterface(Ci.nsIInterfaceRequestor).
-           getInterface(Ci.nsIWebNavigation).
-           QueryInterface(Ci.nsILoadContext);
+  _loadContextFromBrowser: function FullZoom__loadContextFromBrowser(browser) {
+    return browser.loadContext;
   },
 
   
