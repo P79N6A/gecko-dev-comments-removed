@@ -519,6 +519,19 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, docRequest, csp) {
         
         var dv = CSPSourceList.fromString(dirvalue, aCSPR, self, true);
         if (dv) {
+          
+          if (sdi === "style-src" && dv._allowUnsafeInline) {
+             aCSPR._allowInlineStyles = true;
+          } else if (sdi === "script-src") {
+            
+            if (dv._allowUnsafeInline) {
+              aCSPR._allowInlineScripts = true;
+            } else if (dv._allowUnsafeEval) {
+              
+              
+            }
+          }
+
           aCSPR._directives[sdi] = dv;
           continue directive;
         }
@@ -913,6 +926,9 @@ this.CSPSourceList = function CSPSourceList() {
   
   
   this._isImplicit = false;
+
+  
+  this._allowUnsafeInline = false;
 }
 
 
@@ -965,6 +981,11 @@ CSPSourceList.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
                                         [tokens[i]]));
       continue;
     }
+
+    
+    if (src._allowUnsafeInline)
+      slObj._allowUnsafeInline = true;
+
     
     if (src.permitAll) {
       slObj._permitAllSources = true;
@@ -1152,6 +1173,9 @@ this.CSPSource = function CSPSource() {
 
   
   this._isSelf = false;
+
+  
+  this._allowUnsafeInline = false;
 }
 
 
@@ -1378,6 +1402,15 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     sObj._isSelf = true;
     return sObj;
   }
+
+  
+  if (aStr.toUpperCase() === "'UNSAFE-INLINE'"){
+    sObj._allowUnsafeInline = true;
+    return sObj;
+  }
+
+  
+
   cspError(aCSPRep, CSPLocalizer.getFormatStr("couldntParseInvalidSource",
                                               [aStr]));
   return null;
