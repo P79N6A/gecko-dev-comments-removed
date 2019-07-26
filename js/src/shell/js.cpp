@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* JS shell. */
+
+
+
+
+
 
 #include <errno.h>
 #include <locale.h>
@@ -65,7 +65,7 @@
 #endif
 
 #if defined(XP_WIN) || defined(XP_OS2)
-#include <io.h>     /* for isatty() */
+#include <io.h>     
 #endif
 
 #ifdef XP_WIN
@@ -96,10 +96,10 @@ typedef enum JSShellExitCode {
 
 size_t gStackChunkSize = 8192;
 
-/*
- * Note: This limit should match the stack limit set by the browser in
- *       js/xpconnect/src/XPCJSRuntime.cpp
- */
+
+
+
+
 #if defined(MOZ_ASAN) || (defined(DEBUG) && !defined(XP_WIN))
 size_t gMaxStackSize = 2 * 128 * sizeof(size_t) * 1024;
 #else
@@ -112,10 +112,10 @@ static unsigned gStackBaseThreadIndex;
 static uintptr_t gStackBase;
 #endif
 
-/*
- * Limit the timeout to 30 minutes to prevent an overflow on platfoms
- * that represent the time internally in microseconds using 32-bit int.
- */
+
+
+
+
 static double MAX_TIMEOUT_INTERVAL = 1800.0;
 static double gTimeoutInterval = -1.0;
 static volatile bool gTimedOut = false;
@@ -144,9 +144,9 @@ ScheduleWatchdog(JSRuntime *rt, double t);
 static void
 CancelExecution(JSRuntime *rt);
 
-/*
- * Watchdog thread state.
- */
+
+
+
 #ifdef JS_THREADSAFE
 
 static PRLock *gWatchdogLock = NULL;
@@ -233,7 +233,7 @@ class ToStringHelper
     }
   private:
     JSContext *cx;
-    RootedString mStr;  // Objects of this class are always stack-allocated.
+    RootedString mStr;  
     JSAutoByteString mBytes;
 };
 
@@ -243,18 +243,18 @@ GetLine(FILE *file, const char * prompt)
     size_t size;
     char *buffer;
 #ifdef EDITLINE
-    /*
-     * Use readline only if file is stdin, because there's no way to specify
-     * another handle.  Are other filehandles interactive?
-     */
+    
+
+
+
     if (file == stdin) {
         char *linep = readline(prompt);
-        /*
-         * We set it to zero to avoid complaining about inappropriate ioctl
-         * for device in the case of EOF. Looks like errno == 251 if line is
-         * finished with EOF and errno == 25 (EINVAL on Mac) if there is
-         * nothing left to read.
-         */
+        
+
+
+
+
+
         if (errno == 251 || errno == 25 || errno == EINVAL)
             errno = 0;
         if (!linep)
@@ -278,7 +278,7 @@ GetLine(FILE *file, const char * prompt)
         len += strlen(current);
         char *t = buffer + len - 1;
         if (*t == '\n') {
-            /* Line was read. We remove '\n' and exit. */
+            
             *t = '\0';
             return buffer;
         }
@@ -309,14 +309,14 @@ JSStringToUTF8(JSContext *cx, JSString *str)
     return TwoByteCharsToNewUTF8CharsZ(cx, linear->range()).c_str();
 }
 
-/*
- * State to store as JSContext private.
- *
- * We declare such timestamp as volatile as they are updated in the operation
- * callback without taking any locks. Any possible race can only lead to more
- * frequent callback calls. This is safe as the callback does everything based
- * on timing.
- */
+
+
+
+
+
+
+
+
 struct JSShellContextData {
     volatile int64_t startTime;
 };
@@ -324,7 +324,7 @@ struct JSShellContextData {
 static JSShellContextData *
 NewContextData()
 {
-    /* Prevent creation of new contexts after we have been canceled. */
+    
     if (gTimedOut)
         return NULL;
 
@@ -378,11 +378,11 @@ SetContextOptions(JSContext *cx)
     JS_SetOperationCallback(cx, ShellOperationCallback);
 }
 
-/*
- * Some UTF-8 files, notably those written using Notepad, have a Unicode
- * Byte-Order-Mark (BOM) as their first character. This is useless (byte-order
- * is meaningless for UTF-8) but causes a syntax error unless we skip it.
- */
+
+
+
+
+
 static void
 SkipUTF8BOM(FILE* file)
 {
@@ -390,11 +390,11 @@ SkipUTF8BOM(FILE* file)
     int ch2 = fgetc(file);
     int ch3 = fgetc(file);
 
-    // Skip the BOM
+    
     if (ch1 == 0xEF && ch2 == 0xBB && ch3 == 0xBF)
         return;
 
-    // No BOM - revert
+    
     if (ch3 != EOF)
         ungetc(ch3, file);
     if (ch2 != EOF)
@@ -408,8 +408,8 @@ RunFile(JSContext *cx, Handle<JSObject*> obj, const char *filename, FILE *file, 
 {
     SkipUTF8BOM(file);
 
-    // To support the UNIX #! shell hack, gobble the first line if it starts
-    // with '#'.
+    
+    
     int ch = fgetc(file);
     if (ch == '#') {
         while ((ch = fgetc(file)) != EOF) {
@@ -446,7 +446,7 @@ static bool
 EvalAndPrint(JSContext *cx, Handle<JSObject*> global, const char *bytes, size_t length,
              int lineno, bool compileOnly, FILE *out)
 {
-    // Eval.
+    
     JS::CompileOptions options(cx);
     options.utf8 = true;
     options.compileAndGo = true;
@@ -463,7 +463,7 @@ EvalAndPrint(JSContext *cx, Handle<JSObject*> global, const char *bytes, size_t 
         return false;
 
     if (!result.isUndefined()) {
-        // Print.
+        
         RootedString str(cx);
         str = JS_ValueToSource(cx, result);
         if (!str)
@@ -485,12 +485,12 @@ ReadEvalPrintLoop(JSContext *cx, Handle<JSObject*> global, FILE *in, FILE *out, 
     bool hitEOF = false;
 
     do {
-        /*
-         * Accumulate lines until we get a 'compilable unit' - one that either
-         * generates an error (before running out of source) or that compiles
-         * cleanly.  This should be whenever we get a complete statement that
-         * coincides with the end of a line.
-         */
+        
+
+
+
+
+
         int startline = lineno;
         typedef Vector<char, 32, ContextAllocPolicy> CharBuffer;
         CharBuffer buffer(cx);
@@ -525,7 +525,7 @@ ReadEvalPrintLoop(JSContext *cx, Handle<JSObject*> global, FILE *in, FILE *out, 
         if (!EvalAndPrint(cx, global, buffer.begin(), buffer.length(), startline, compileOnly,
                           out))
         {
-            // Catch the error, report it, and keep going.
+            
             JS_ReportPendingException(cx);
         }
     } while (!hitEOF && !gQuitting);
@@ -567,18 +567,18 @@ Process(JSContext *cx, JSObject *obj_, const char *filename, bool forceTTY)
     SetContextOptions(cx);
 
     if (!forceTTY && !isatty(fileno(file))) {
-        // It's not interactive - just execute it.
+        
         RunFile(cx, obj, filename, file, compileOnly);
     } else {
-        // It's an interactive filehandle; drop into read-eval-print loop.
+        
         ReadEvalPrintLoop(cx, obj, file, gOutFile, compileOnly);
     }
 }
 
-/*
- * JSContext option name to flag map. The option names are in alphabetical
- * order for better reporting.
- */
+
+
+
+
 static const struct JSOption {
     const char  *name;
     uint32_t    flag;
@@ -626,10 +626,10 @@ Version(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() == 0 || JSVAL_IS_VOID(args[0])) {
-        /* Get version. */
+        
         args.rval().setInt32(JS_GetVersion(cx));
     } else {
-        /* Set version. */
+        
         int32_t v = -1;
         if (args[0].isInt32()) {
             v = args[0].toInt32();
@@ -664,14 +664,14 @@ GetTopScript(JSContext *cx)
     return script;
 }
 
-/*
- * Resolve a (possibly) relative filename to an absolute path. If
- * |scriptRelative| is true, then the result will be relative to the directory
- * containing the currently-running script, or the current working directory if
- * the currently-running script is "-e" (namely, you're using it from the
- * command line.) Otherwise, it will be relative to the current working
- * directory.
- */
+
+
+
+
+
+
+
+
 static JSString *
 ResolvePath(JSContext *cx, HandleString filenameStr, bool scriptRelative)
 {
@@ -683,19 +683,19 @@ ResolvePath(JSContext *cx, HandleString filenameStr, bool scriptRelative)
     if (pathname[0] == '/')
         return filenameStr;
 #ifdef XP_WIN
-    // Various forms of absolute paths per http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-    // "\..."
+    
+    
     if (pathname[0] == '\\')
         return filenameStr;
-    // "C:\..."
+    
     if (strlen(pathname) > 3 && isalpha(pathname[0]) && pathname[1] == ':' && pathname[2] == '\\')
         return filenameStr;
-    // "\\..."
+    
     if (strlen(pathname) > 2 && pathname[1] == '\\' && pathname[2] == '\\')
         return filenameStr;
 #endif
 
-    /* Get the currently executing script's name. */
+    
     RootedScript script(cx, GetTopScript(cx));
     JS_ASSERT(script && script->filename());
     if (strcmp(script->filename(), "-e") == 0 || strcmp(script->filename(), "typein") == 0)
@@ -704,15 +704,15 @@ ResolvePath(JSContext *cx, HandleString filenameStr, bool scriptRelative)
     static char buffer[PATH_MAX+1];
     if (scriptRelative) {
 #ifdef XP_WIN
-        // The docs say it can return EINVAL, but the compiler says it's void
+        
         _splitpath(script->filename(), NULL, buffer, NULL, NULL);
 #else
         strncpy(buffer, script->filename(), PATH_MAX+1);
         if (buffer[PATH_MAX] != '\0')
             return NULL;
 
-        // dirname(buffer) might return buffer, or it might return a
-        // statically-allocated string
+        
+        
         memmove(buffer, dirname(buffer), strlen(buffer) + 1);
 #endif
     } else {
@@ -1171,11 +1171,11 @@ FileAsTypedArray(JSContext *cx, const char *pathname)
     return obj;
 }
 
-/*
- * Function to run scripts and return compilation + execution time. Semantics
- * are closely modelled after the equivalent function in WebKit, as this is used
- * to produce benchmark timings by SunSpider.
- */
+
+
+
+
+
 static JSBool
 Run(JSContext *cx, unsigned argc, jsval *vp)
 {
@@ -1220,10 +1220,10 @@ Run(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
-/*
- * function readline()
- * Provides a hook for scripts to read a line from stdin.
- */
+
+
+
+
 static JSBool
 ReadLine(JSContext *cx, unsigned argc, jsval *vp)
 {
@@ -1242,7 +1242,7 @@ ReadLine(JSContext *cx, unsigned argc, jsval *vp)
     while ((gotlength = js_fgets(buf + buflength, bufsize - buflength, from)) > 0) {
         buflength += gotlength;
 
-        /* Are we done? */
+        
         if (buf[buflength - 1] == '\n') {
             buf[buflength - 1] = '\0';
             sawNewline = true;
@@ -1251,7 +1251,7 @@ ReadLine(JSContext *cx, unsigned argc, jsval *vp)
             break;
         }
 
-        /* Else, grow our buffer for another pass. */
+        
         char *tmp;
         bufsize *= 2;
         if (bufsize > buflength) {
@@ -1269,14 +1269,14 @@ ReadLine(JSContext *cx, unsigned argc, jsval *vp)
         buf = tmp;
     }
 
-    /* Treat the empty string specially. */
+    
     if (buflength == 0) {
         args.rval().set(feof(from) ? NullValue() : JS_GetEmptyStringValue(cx));
         JS_free(cx, buf);
         return true;
     }
 
-    /* Shrink the buffer to the real size. */
+    
     char *tmp = static_cast<char*>(JS_realloc(cx, buf, buflength));
     if (!tmp) {
         JS_free(cx, buf);
@@ -1285,10 +1285,10 @@ ReadLine(JSContext *cx, unsigned argc, jsval *vp)
 
     buf = tmp;
 
-    /*
-     * Turn buf into a JSString. Note that buflength includes the trailing null
-     * character.
-     */
+    
+
+
+
     JSString *str = JS_NewStringCopyN(cx, buf, sawNewline ? buflength - 1 : buflength);
     JS_free(cx, buf);
     if (!str)
@@ -1437,7 +1437,7 @@ ValueToScript(JSContext *cx, jsval v, JSFunction **funp = NULL)
     if (!fun)
         return NULL;
 
-    // Unwrap bound functions.
+    
     while (fun->isBoundFunction()) {
         JSObject *target = fun->getBoundFunctionTarget();
         if (target && target->isFunction())
@@ -1467,12 +1467,12 @@ SetDebug(JSContext *cx, unsigned argc, jsval *vp)
         return false;
     }
 
-    /*
-     * Debug mode can only be set when there is no JS code executing on the
-     * stack. Unfortunately, that currently means that this call will fail
-     * unless debug mode is already set to what you're trying to set it to.
-     * In the future, this restriction may be lifted.
-     */
+    
+
+
+
+
+
 
     bool ok = !!JS_SetDebugMode(cx, args[0].toBoolean());
     if (ok)
@@ -1521,7 +1521,7 @@ TrapHandler(JSContext *cx, JSScript *, jsbytecode *pc, jsval *rvalArg,
     ScriptFrameIter iter(cx);
     JS_ASSERT(!iter.done());
 
-    /* Debug-mode currently disables Ion compilation. */
+    
     JSAbstractFramePtr frame(Jsvalify(iter.abstractFramePtr()));
     RootedScript script(cx, iter.script());
 
@@ -1704,7 +1704,7 @@ UpdateSwitchTableBounds(JSContext *cx, HandleScript script, unsigned offset,
         break;
 
       default:
-        /* [condswitch] switch does not have any jump or lookup tables. */
+        
         JS_ASSERT(op == JSOP_CONDSWITCH);
         return;
     }
@@ -1917,7 +1917,7 @@ struct DisassembleOptionParser {
       : argc(argc), argv(argv), lines(false), recursive(false) {}
 
     bool parse(JSContext *cx) {
-        /* Read options off early arguments */
+        
         while (argc > 0 && argv[0].isString()) {
             JSString *str = argv[0].toString();
             JSFlatString *flatStr = JS_FlattenString(cx, str);
@@ -1935,7 +1935,7 @@ struct DisassembleOptionParser {
     }
 };
 
-} /* anonymous namespace */
+} 
 
 static bool
 DisassembleToSprinter(JSContext *cx, unsigned argc, jsval *vp, Sprinter *sprinter)
@@ -1946,7 +1946,7 @@ DisassembleToSprinter(JSContext *cx, unsigned argc, jsval *vp, Sprinter *sprinte
         return false;
 
     if (p.argc == 0) {
-        /* Without arguments, disassemble the current script. */
+        
         RootedScript script(cx, GetTopScript(cx));
         if (script) {
             if (!js_Disassemble(cx, script, p.lines, sprinter))
@@ -2004,7 +2004,7 @@ DisassFile(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    /* Support extra options at the start, just like Disassemble. */
+    
     DisassembleOptionParser p(args.length(), args.array());
     if (!p.parse(cx))
         return false;
@@ -2090,7 +2090,7 @@ DisassWithSrc(JSContext *cx, unsigned argc, jsval *vp)
             goto bail;
         }
 
-        /* burn the leading lines */
+        
         line2 = JS_PCToLineNumber(cx, script, pc);
         for (line1 = 0; line1 < line2 - 1; line1++) {
             char *tmp = fgets(linebuf, LINE_BUF_LEN, file);
@@ -2175,8 +2175,8 @@ DumpHeap(JSContext *cx, unsigned argc, jsval *vp)
         }
     }
 
-    // Grab the depth param first, because JS_ValueToECMAUint32 can GC, and
-    // there's no easy way to root the traceable void* parameters below.
+    
+    
     maxDepth = (size_t)-1;
     if (args.length() > 3) {
         v = args[3];
@@ -2265,7 +2265,7 @@ DumpObject(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
-#endif /* DEBUG */
+#endif 
 
 static JSBool
 BuildDate(JSContext *cx, unsigned argc, jsval *vp)
@@ -2382,7 +2382,7 @@ GetPDA(JSContext *cx, unsigned argc, jsval *vp)
             break;
         }
 
-        /* Protect pdobj from GC by setting it as an element of aobj now */
+        
         v = OBJECT_TO_JSVAL(pdobj);
         ok = !!JS_SetElement(cx, aobj, i, &v);
         if (!ok)
@@ -2432,7 +2432,7 @@ ThrowError(JSContext *cx, unsigned argc, jsval *vp)
 
 #define LAZY_STANDARD_CLASSES
 
-/* A class for easily testing the inner/outer object callbacks. */
+
 typedef struct ComplexObject {
     bool isInner;
     bool frozen;
@@ -2597,14 +2597,14 @@ EvalInFrame(JSContext *cx, unsigned argc, jsval *vp)
 
     JS_ASSERT(cx->hasfp());
 
-    /* This is a copy of CheckDebugMode. */
+    
     if (!JS_GetDebugMode(cx)) {
         JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage,
                                      NULL, JSMSG_NEED_DEBUG_MODE);
         return false;
     }
 
-    /* Debug-mode currently disables Ion compilation. */
+    
     ScriptFrameIter fi(cx);
     for (uint32_t i = 0; i < upCount; ++i, ++fi) {
         ScriptFrameIter next(fi);
@@ -2649,11 +2649,11 @@ ShapeOf(JSContext *cx, unsigned argc, JS::Value *vp)
     return true;
 }
 
-/*
- * If referent has an own property named id, copy that property to obj[id].
- * Since obj is native, this isn't totally transparent; properties of a
- * non-native referent may be simplified to data properties.
- */
+
+
+
+
+
 static JSBool
 CopyProperty(JSContext *cx, HandleObject obj, HandleObject referent, HandleId id,
              unsigned lookupFlags, MutableHandleObject objp)
@@ -2771,11 +2771,11 @@ Resolver(JSContext *cx, unsigned argc, jsval *vp)
 
 #ifdef JS_THREADSAFE
 
-/*
- * Check that t1 comes strictly before t2. The function correctly deals with
- * wrap-around between t2 and t1 assuming that t2 and t1 stays within INT32_MAX
- * from each other. We use MAX_TIMEOUT_INTERVAL to enforce this restriction.
- */
+
+
+
+
+
 static bool
 IsBefore(int64_t t1, int64_t t2)
 {
@@ -2795,7 +2795,7 @@ Sleep_fn(JSContext *cx, unsigned argc, jsval *vp)
         if (!JS_ValueToNumber(cx, argc == 0 ? UndefinedValue() : vp[2], &t_secs))
             return false;
 
-        /* NB: The next condition also filter out NaNs. */
+        
         if (!(t_secs <= MAX_TIMEOUT_INTERVAL)) {
             JS_ReportError(cx, "Excessive sleep interval");
             return false;
@@ -2845,10 +2845,10 @@ KillWatchdog()
     PR_Lock(gWatchdogLock);
     thread = gWatchdogThread;
     if (thread) {
-        /*
-         * The watchdog thread is running, tell it to terminate waking it up
-         * if necessary.
-         */
+        
+
+
+
         gWatchdogThread = NULL;
         PR_NotifyCondVar(gWatchdogWakeup);
     }
@@ -2871,23 +2871,23 @@ WatchdogMain(void *arg)
     while (gWatchdogThread) {
         int64_t now = PRMJ_Now();
         if (gWatchdogHasTimeout && !IsBefore(now, gWatchdogTimeout)) {
-            /*
-             * The timeout has just expired. Trigger the operation callback
-             * outside the lock.
-             */
+            
+
+
+
             gWatchdogHasTimeout = false;
             PR_Unlock(gWatchdogLock);
             CancelExecution(rt);
             PR_Lock(gWatchdogLock);
 
-            /* Wake up any threads doing sleep. */
+            
             PR_NotifyAllCondVar(gSleepWakeup);
         } else {
             if (gWatchdogHasTimeout) {
-                /*
-                 * Time hasn't expired yet. Simulate an operation callback
-                 * which doesn't abort execution.
-                 */
+                
+
+
+
                 JS_TriggerOperationCallback(rt);
             }
 
@@ -2937,7 +2937,7 @@ ScheduleWatchdog(JSRuntime *rt, double t)
     return true;
 }
 
-#else /* !JS_THREADSAFE */
+#else 
 
 #ifdef XP_WIN
 static HANDLE gTimerHandle = 0;
@@ -2991,19 +2991,19 @@ ScheduleWatchdog(JSRuntime *rt, double t)
         return false;
     }
 #else
-    /* FIXME: use setitimer when available for sub-second resolution. */
+    
     if (t <= 0) {
         alarm(0);
         signal(SIGALRM, NULL);
     } else {
-        signal(SIGALRM, AlarmHandler); /* set the Alarm signal capture */
+        signal(SIGALRM, AlarmHandler); 
         alarm(ceil(t));
     }
 #endif
     return true;
 }
 
-#endif /* !JS_THREADSAFE */
+#endif 
 
 static void
 CancelExecution(JSRuntime *rt)
@@ -3014,8 +3014,8 @@ CancelExecution(JSRuntime *rt)
     if (!gTimeoutFunc.isNull()) {
         static const char msg[] = "Script runs for too long, terminating.\n";
 #if defined(XP_UNIX) && !defined(JS_THREADSAFE)
-        /* It is not safe to call fputs from signals. */
-        /* Dummy assignment avoids GCC warning on "attribute warn_unused_result" */
+        
+        
         ssize_t dummy = write(2, msg, sizeof(msg) - 1);
         (void)dummy;
 #else
@@ -3027,7 +3027,7 @@ CancelExecution(JSRuntime *rt)
 static JSBool
 SetTimeoutValue(JSContext *cx, double t)
 {
-    /* NB: The next condition also filter out NaNs. */
+    
     if (!(t <= MAX_TIMEOUT_INTERVAL)) {
         JS_ReportError(cx, "Excessive timeout value");
         return false;
@@ -3102,7 +3102,7 @@ Parent(JSContext *cx, unsigned argc, jsval *vp)
     Rooted<JSObject*> parent(cx, JS_GetParent(&v.toObject()));
     JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(parent));
 
-    /* Outerize if necessary.  Embrace the ugliness! */
+    
     if (parent) {
         if (JSObjectOp op = parent->getClass()->ext.outerObject)
             JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(op(cx, parent)));
@@ -3163,7 +3163,7 @@ Parse(JSContext *cx, unsigned argc, jsval *vp)
     Parser<FullParseHandler> parser(cx, options,
                                     JS_GetStringCharsZ(cx, scriptContents),
                                     JS_GetStringLength(scriptContents),
-                                    /* foldConstants = */ true, NULL, NULL);
+                                     true, NULL, NULL);
 
     ParseNode *pn = parser.parse(NULL);
     if (!pn)
@@ -3208,8 +3208,8 @@ SyntaxParse(JSContext *cx, unsigned argc, jsval *vp)
         return false;
 
     if (!succeeded && !parser.hadAbortedSyntaxParse()) {
-        // If no exception is posted, either there was an OOM or a language
-        // feature unhandled by the syntax parser was encountered.
+        
+        
         JS_ASSERT(cx->runtime()->hadOutOfMemory);
         return false;
     }
@@ -3988,10 +3988,10 @@ Help(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
-/*
- * Define a JS object called "it".  Give it class operations that printf why
- * they're being called for tutorial purposes.
- */
+
+
+
+
 enum its_tinyid {
     ITS_COLOR, ITS_HEIGHT, ITS_WIDTH, ITS_FUNNY, ITS_ARRAY, ITS_RDONLY,
     ITS_CUSTOM, ITS_CUSTOMRDONLY, ITS_CUSTOMNATIVE
@@ -4027,8 +4027,8 @@ static const JSPropertySpec its_props[] = {
     {NULL,0,0,JSOP_NULLWRAPPER, JSOP_NULLWRAPPER}
 };
 
-static JSBool its_noisy;    /* whether to be noisy when finalizing it */
-static JSBool its_enum_fail;/* whether to fail when enumerating it */
+static JSBool its_noisy;    
+static JSBool its_enum_fail;
 
 static JSBool
 its_addProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp)
@@ -4095,10 +4095,10 @@ its_setProperty(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Mut
     return true;
 }
 
-/*
- * Its enumerator, implemented using the "new" enumerate API,
- * see class flags.
- */
+
+
+
+
 static JSBool
 its_enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
               jsval *statep, jsid *idp)
@@ -4132,10 +4132,10 @@ its_enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
 
         if (!JSID_IS_VOID(*idp))
             break;
-        /* Fall through. */
+        
 
       case JSENUMERATE_DESTROY:
-        /* Allow our iterator object to be GC'd. */
+        
         *statep = NullValue();
         break;
     }
@@ -4284,7 +4284,7 @@ Exec(JSContext *cx, unsigned argc, jsval *vp)
 
     nargc = 1 + argc;
 
-    /* nargc + 1 accounts for the terminating NULL. */
+    
     nargv = new (char *)[nargc + 1];
     if (!nargv)
         return false;
@@ -4353,10 +4353,10 @@ global_resolve(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
 #endif
 
 #if defined(SHELL_HACK) && defined(DEBUG) && defined(XP_UNIX)
-    /*
-     * Do this expensive hack only for unoptimized Unix builds, which are
-     * not used for benchmarking.
-     */
+    
+
+
+
     char *path, *comp, *full;
     const char *name;
     bool ok, found;
@@ -4415,7 +4415,7 @@ JSClass global_class = {
 static JSBool
 env_setProperty(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, MutableHandleValue vp)
 {
-/* XXX porting may be easy, but these don't seem to supply setenv by default */
+
 #if !defined XP_OS2 && !defined SOLARIS
     int rv;
 
@@ -4434,13 +4434,13 @@ env_setProperty(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Mut
         }
         rv = putenv(waste);
 #ifdef XP_WIN
-        /*
-         * HPUX9 at least still has the bad old non-copying putenv.
-         *
-         * Per mail from <s.shanmuganathan@digital.com>, OSF1 also has a putenv
-         * that will crash if you pass it an auto char array (so it must place
-         * its argument directly in the char *environ[] array).
-         */
+        
+
+
+
+
+
+
         JS_smprintf_free(waste);
 #endif
     }
@@ -4452,7 +4452,7 @@ env_setProperty(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Mut
         return false;
     }
     vp.set(valstr.getJSVal());
-#endif /* !defined XP_OS2 && !defined SOLARIS */
+#endif 
     return true;
 }
 
@@ -4518,11 +4518,11 @@ static JSClass env_class = {
     JS_ConvertStub
 };
 
-/*
- * Define a FakeDOMObject constructor. It returns an object with a getter,
- * setter and method with attached JitInfo. This object can be used to test
- * IonMonkey DOM optimizations in the shell.
- */
+
+
+
+
+
 static uint32_t DOM_OBJECT_SLOT = 0;
 
 static JSBool
@@ -4561,36 +4561,36 @@ dom_doFoo(JSContext* cx, JSHandleObject obj, void *self, const JSJitMethodCallAr
     JS_ASSERT(JS_GetClass(obj) == GetDomClass());
     JS_ASSERT(self == (void *)0x1234);
 
-    /* Just return args.length(). */
+    
     args.rval().setInt32(args.length());
     return true;
 }
 
 const JSJitInfo dom_x_getterinfo = {
     { (JSJitGetterOp)dom_get_x },
-    0,        /* protoID */
-    0,        /* depth */
+    0,        
+    0,        
     JSJitInfo::Getter,
-    true,     /* isInfallible. False in setters. */
-    true      /* isConstant. Only relevant for getters. */
+    true,     
+    true      
 };
 
 const JSJitInfo dom_x_setterinfo = {
     { (JSJitGetterOp)dom_set_x },
-    0,        /* protoID */
-    0,        /* depth */
+    0,        
+    0,        
     JSJitInfo::Setter,
-    false,    /* isInfallible. False in setters. */
-    false     /* isConstant. Only relevant for getters. */
+    false,    
+    false     
 };
 
 const JSJitInfo doFoo_methodinfo = {
     { (JSJitGetterOp)dom_doFoo },
-    0,        /* protoID */
-    0,        /* depth */
+    0,        
+    0,        
     JSJitInfo::Method,
-    false,    /* isInfallible. False in setters. */
-    false     /* isConstant. Only relevant for getters. */
+    false,    
+    false     
 };
 
 static const JSPropertySpec dom_props[] = {
@@ -4609,19 +4609,19 @@ static const JSFunctionSpec dom_methods[] = {
 
 static JSClass dom_class = {
     "FakeDOMObject", JSCLASS_IS_DOMJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(2),
-    JS_PropertyStub,       /* addProperty */
-    JS_DeletePropertyStub, /* delProperty */
-    JS_PropertyStub,       /* getProperty */
-    JS_StrictPropertyStub, /* setProperty */
+    JS_PropertyStub,       
+    JS_DeletePropertyStub, 
+    JS_PropertyStub,       
+    JS_StrictPropertyStub, 
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    NULL,                  /* finalize */
-    NULL,                  /* checkAccess */
-    NULL,                  /* call */
-    NULL,                  /* hasInstance */
-    NULL,                  /* construct */
-    NULL,                  /* trace */
+    NULL,                  
+    NULL,                  
+    NULL,                  
+    NULL,                  
+    NULL,                  
+    NULL,                  
     JSCLASS_NO_INTERNAL_MEMBERS
 };
 
@@ -4702,7 +4702,7 @@ dom_genericMethod(JSContext* cx, unsigned argc, JS::Value *vp)
 static void
 InitDOMObject(HandleObject obj)
 {
-    /* Fow now just initialize to a constant we can check. */
+    
     SetReservedSlot(obj, DOM_OBJECT_SLOT, PRIVATE_TO_JSVAL((void *)0x1234));
 }
 
@@ -4734,19 +4734,19 @@ dom_constructor(JSContext* cx, unsigned argc, JS::Value *vp)
 static JSBool
 InstanceClassHasProtoAtDepth(JSHandleObject protoObject, uint32_t protoID, uint32_t depth)
 {
-    /* There's only a single (fake) DOM object in the shell, so just return true. */
+    
     return true;
 }
 
-/*
- * Avoid a reentrancy hazard.
- *
- * The non-JS_THREADSAFE shell uses a signal handler to implement timeout().
- * The JS engine is not really reentrant, but JS_TriggerAllOperationCallbacks
- * is mostly safe--the only danger is that we might interrupt JS_NewContext or
- * JS_DestroyContext while the context list is being modified. Therefore we
- * disable the signal handler around calls to those functions.
- */
+
+
+
+
+
+
+
+
+
 #ifdef JS_THREADSAFE
 # define WITH_SIGNALS_DISABLED(x)  x
 #else
@@ -4799,8 +4799,9 @@ DestroyContext(JSContext *cx, bool withGC)
 static JSObject *
 NewGlobalObject(JSContext *cx, JSObject *sameZoneAs)
 {
-    JS::ZoneSpecifier spec = sameZoneAs ? JS::SameZoneAs(sameZoneAs) : JS::FreshZone;
-    RootedObject glob(cx, JS_NewGlobalObject(cx, &global_class, NULL, spec));
+    JS::CompartmentOptions options;
+    options.setZone(sameZoneAs ? JS::SameZoneAs(sameZoneAs) : JS::FreshZone);
+    RootedObject glob(cx, JS_NewGlobalObject(cx, &global_class, NULL, options));
     if (!glob)
         return NULL;
 
@@ -4857,7 +4858,7 @@ NewGlobalObject(JSContext *cx, JSObject *sameZoneAs)
             return NULL;
         }
 
-        /* Initialize FakeDOMObject. */
+        
         static js::DOMCallbacks DOMcallbacks = {
             InstanceClassHasProtoAtDepth
         };
@@ -4868,7 +4869,7 @@ NewGlobalObject(JSContext *cx, JSObject *sameZoneAs)
         if (!domProto)
             return NULL;
 
-        /* Initialize FakeDOMObject.prototype */
+        
         InitDOMObject(domProto);
     }
 
@@ -4886,12 +4887,12 @@ BindScriptArgs(JSContext *cx, JSObject *obj_, OptionParser *op)
     if (!scriptArgs)
         return false;
 
-    /*
-     * Script arguments are bound as a normal |arguments| property on the
-     * global object. It has no special significance, like |arguments| in
-     * function scope does -- this identifier is used de-facto across shell
-     * implementations, see bug 675269.
-     */
+    
+
+
+
+
+
     if (!JS_DefineProperty(cx, obj, "arguments", OBJECT_TO_JSVAL(scriptArgs), NULL, NULL, 0))
         return false;
 
@@ -4908,9 +4909,9 @@ BindScriptArgs(JSContext *cx, JSObject *obj_, OptionParser *op)
     return true;
 }
 
-// This function is currently only called from "#if defined(JS_ION)" chunks,
-// so we're guarding the function definition with an #ifdef, too, to avoid
-// build warning for unused function in non-ion-enabled builds:
+
+
+
 #if defined(JS_ION)
 static int
 OptionFailure(const char *option, const char *str)
@@ -4918,7 +4919,7 @@ OptionFailure(const char *option, const char *str)
     fprintf(stderr, "Unrecognized option for %s: %s\n", option, str);
     return EXIT_FAILURE;
 }
-#endif /* JS_ION */
+#endif 
 
 static int
 ProcessArgs(JSContext *cx, JSObject *obj_, OptionParser *op)
@@ -4951,7 +4952,7 @@ ProcessArgs(JSContext *cx, JSObject *obj_, OptionParser *op)
     int32_t threadCount = op->getIntOption("thread-count");
     if (threadCount >= 0)
         cx->runtime()->requestHelperThreadCount(threadCount);
-#endif /* JS_THREADSAFE */
+#endif 
 
 #if defined(JS_ION)
     if (op->getBoolOption("no-ion")) {
@@ -5072,11 +5073,11 @@ ProcessArgs(JSContext *cx, JSObject *obj_, OptionParser *op)
             return OptionFailure("ion-parallel-compile", str);
         }
     }
-#endif /* JS_THREADSAFE */
+#endif 
 
-#endif /* JS_ION */
+#endif 
 
-    /* |scriptArgs| gets bound on the global before any code is run. */
+    
     if (!BindScriptArgs(cx, obj, op))
         return EXIT_FAILURE;
 
@@ -5084,7 +5085,7 @@ ProcessArgs(JSContext *cx, JSObject *obj_, OptionParser *op)
     MultiStringRange codeChunks = op->getMultiStringOption('e');
 
     if (filePaths.empty() && codeChunks.empty() && !op->getStringArg("script")) {
-        Process(cx, obj, NULL, true); /* Interactive. */
+        Process(cx, obj, NULL, true); 
         return gExitCode;
     }
 
@@ -5106,7 +5107,7 @@ ProcessArgs(JSContext *cx, JSObject *obj_, OptionParser *op)
         }
     }
 
-    /* The |script| argument is processed after all options. */
+    
     if (const char *path = op->getStringArg("script")) {
         Process(cx, obj, path, false);
         if (gExitCode)
@@ -5124,10 +5125,10 @@ Shell(JSContext *cx, OptionParser *op, char **envp)
 {
     JSAutoRequest ar(cx);
 
-    /*
-     * First check to see if type inference is enabled. These flags
-     * must be set on the compartment when it is constructed.
-     */
+    
+
+
+
     if (op->getBoolOption("no-ti")) {
         enableTypeInference = false;
         JS_ToggleOptions(cx, JSOPTION_TYPE_INFERENCE);
@@ -5164,7 +5165,7 @@ MaybeOverrideOutFileFromEnv(const char* const envVar,
     }
 }
 
-/* Set the initial counter to 1 so the principal will never be destroyed. */
+
 JSPrincipals shellTrustedPrincipals = { 1 };
 
 JSBool
@@ -5179,7 +5180,7 @@ JSSecurityCallbacks securityCallbacks = {
     NULL
 };
 
-/* Pretend we can always preserve wrappers for dummy DOM objects. */
+
 static bool
 DummyPreserveWrapperCallback(JSContext *cx, JSObject *obj)
 {
@@ -5217,8 +5218,8 @@ main(int argc, char **argv, char **envp)
 #endif
 
 #ifdef XP_OS2
-   /* these streams are normally line buffered on OS/2 and need a \n, *
-    * so we need to unbuffer then to get a reasonable prompt          */
+   
+
     setbuf(stdout,0);
     setbuf(stderr,0);
 #endif
@@ -5331,10 +5332,10 @@ main(int argc, char **argv, char **envp)
         return EXIT_SUCCESS;
 
 #ifdef DEBUG
-    /*
-     * Process OOM options as early as possible so that we can observe as many
-     * allocations as possible.
-     */
+    
+
+
+
     if (op.getBoolOption('O'))
         OOM_printAllocationCount = true;
 
@@ -5344,7 +5345,7 @@ main(int argc, char **argv, char **envp)
 #endif
 #endif
 
-    /* Use the same parameters as the browser in xpcjsruntime.cpp. */
+    
     rt = JS_NewRuntime(32L * 1024L * 1024L, JS_USE_HELPER_THREADS);
     if (!rt)
         return 1;
@@ -5375,7 +5376,7 @@ main(int argc, char **argv, char **envp)
 
     js::SetPreserveWrapperCallback(rt, DummyPreserveWrapperCallback);
 
-    /* Must be done before creating the global object */
+    
     if (op.getBoolOption('D'))
         JS_ToggleOptions(cx, JSOPTION_PCCOUNT);
 
