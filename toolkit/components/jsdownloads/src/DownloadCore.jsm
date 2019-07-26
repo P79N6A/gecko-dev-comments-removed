@@ -29,6 +29,9 @@
 
 
 
+
+
+
 "use strict";
 
 this.EXPORTED_SYMBOLS = [
@@ -38,6 +41,7 @@ this.EXPORTED_SYMBOLS = [
   "DownloadError",
   "DownloadSaver",
   "DownloadCopySaver",
+  "DownloadLegacySaver",
 ];
 
 
@@ -52,6 +56,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm")
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/commonjs/sdk/core/promise.js");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
@@ -652,5 +658,149 @@ DownloadCopySaver.prototype = {
       this._backgroundFileSaver.finish(Cr.NS_ERROR_FAILURE);
       this._backgroundFileSaver = null;
     }
+  },
+};
+
+
+
+
+
+
+
+
+
+function DownloadLegacySaver()
+{
+  this.deferExecuted = Promise.defer();
+  this.deferCanceled = Promise.defer();
+}
+
+DownloadLegacySaver.prototype = {
+  __proto__: DownloadSaver.prototype,
+
+  
+
+
+
+
+  request: null,
+
+  
+
+
+
+
+  deferExecuted: null,
+
+  
+
+
+
+
+
+  deferCanceled: null,
+
+  
+
+
+
+  setProgressBytesFn: null,
+
+  
+
+
+
+
+
+
+
+  onProgressBytes: function DLS_onProgressBytes(aCurrentBytes, aTotalBytes)
+  {
+    
+    if (!this.setProgressBytesFn) {
+      return;
+    }
+
+    this.progressWasNotified = true;
+    this.setProgressBytesFn(aCurrentBytes, aTotalBytes);
+  },
+
+  
+
+
+  progressWasNotified: false,
+
+  
+
+
+
+
+
+
+
+  onTransferFinished: function DLS_onTransferFinished(aRequest, aStatus)
+  {
+    
+    this.request = aRequest;
+
+    if (Components.isSuccessCode(aStatus)) {
+      this.deferExecuted.resolve();
+    } else {
+      
+      
+      this.deferExecuted.reject(new DownloadError(aStatus, null, true));
+    }
+  },
+
+  
+
+
+  execute: function DLS_execute(aSetProgressBytesFn)
+  {
+    this.setProgressBytesFn = aSetProgressBytesFn;
+
+    return Task.spawn(function task_DLS_execute() {
+      try {
+        
+        yield this.deferExecuted.promise;
+
+        
+        
+        
+        if (!this.progressWasNotified &&
+            this.request instanceof Ci.nsIChannel &&
+            this.request.contentLength >= 0) {
+          aSetProgressBytesFn(0, this.request.contentLength);
+        }
+
+        
+        
+        
+        try {
+          
+          let file = yield OS.File.open(this.download.target.file.path,
+                                        { create: true });
+          yield file.close();
+        } catch (ex if ex instanceof OS.File.Error && ex.becauseExists) { }
+      } finally {
+        
+        this.request = null;
+      }
+    }.bind(this));
+  },
+
+  
+
+
+  cancel: function DLS_cancel()
+  {
+    
+    this.deferCanceled.resolve();
+
+    
+    
+    
+    this.deferExecuted.reject(new DownloadError(Cr.NS_ERROR_FAILURE,
+                                                "Download canceled."));
   },
 };

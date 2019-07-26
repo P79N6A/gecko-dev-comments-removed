@@ -81,7 +81,9 @@ this.Downloads = {
       download.target.file = aProperties.target.file;
 
       
-      download.saver = new DownloadCopySaver();
+      download.saver = aProperties.saver.type == "legacy"
+                       ? new DownloadLegacySaver()
+                       : new DownloadCopySaver();
       download.saver.download = download;
 
       
