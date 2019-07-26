@@ -1921,10 +1921,12 @@ TextRenderedRunIterator::Next()
                                    mFrameIterator.DominantBaseline());
 
     
+    uint32_t untrimmedOffset = offset;
     uint32_t untrimmedLength = length;
     nsTextFrame::TrimmedOffsets trimmedOffsets =
       frame->GetTrimmedOffsets(frame->GetContent()->GetText(), true);
     TrimOffsets(offset, length, trimmedOffsets);
+    charIndex += offset - untrimmedOffset;
 
     
     bool skip = !mFrameIterator.IsWithinSubtree() ||
@@ -1995,7 +1997,8 @@ public:
     eOriginal,
     
     
-    eNonSkipped,
+    
+    eAddressable,
     
     
     eClusterAndLigatureGroupStart,
@@ -2011,7 +2014,11 @@ public:
 
 
 
-  CharIterator(nsSVGTextFrame2* aSVGTextFrame, CharacterFilter aFilter);
+
+
+  CharIterator(nsSVGTextFrame2* aSVGTextFrame,
+               CharacterFilter aFilter,
+               nsIContent* aSubtree = nullptr);
 
   
 
@@ -2026,6 +2033,18 @@ public:
 
 
   bool Next();
+
+  
+
+
+
+  bool Next(uint32_t aCount);
+
+  
+
+
+
+  void NextWithinSubtree(uint32_t aCount);
 
   
 
@@ -2048,9 +2067,32 @@ public:
   
 
 
+
+
+  bool AdvanceToSubtree();
+
+  
+
+
   nsTextFrame* TextFrame() const
   {
     return mFrameIterator.Current();
+  }
+
+  
+
+
+  bool IsWithinSubtree() const
+  {
+    return mFrameIterator.IsWithinSubtree();
+  }
+
+  
+
+
+  bool IsAfterSubtree() const
+  {
+    return mFrameIterator.IsAfterSubtree();
   }
 
   
@@ -2209,9 +2251,10 @@ private:
 };
 
 CharIterator::CharIterator(nsSVGTextFrame2* aSVGTextFrame,
-                           CharIterator::CharacterFilter aFilter)
+                           CharIterator::CharacterFilter aFilter,
+                           nsIContent* aSubtree)
   : mFilter(aFilter),
-    mFrameIterator(aSVGTextFrame),
+    mFrameIterator(aSVGTextFrame, aSubtree),
     mFrameForTrimCheck(nullptr),
     mTrimmedOffset(0),
     mTrimmedLength(0),
@@ -2237,6 +2280,29 @@ CharIterator::Next()
     }
   }
   return false;
+}
+
+bool
+CharIterator::Next(uint32_t aCount)
+{
+  while (aCount) {
+    if (!Next()) {
+      return false;
+    }
+    aCount--;
+  }
+  return true;
+}
+
+void
+CharIterator::NextWithinSubtree(uint32_t aCount)
+{
+  while (IsWithinSubtree() && aCount) {
+    if (!Next()) {
+      break;
+    }
+    aCount--;
+  }
 }
 
 bool
@@ -2275,6 +2341,20 @@ CharIterator::AdvancePastCurrentTextPathFrame()
       return false;
     }
   } while (TextPathFrame() == currentTextPathFrame);
+  return true;
+}
+
+bool
+CharIterator::AdvanceToSubtree()
+{
+  while (!IsWithinSubtree()) {
+    if (IsAfterSubtree()) {
+      return false;
+    }
+    if (!AdvancePastCurrentFrame()) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -2435,8 +2515,8 @@ CharIterator::MatchesFilter() const
     return false;
   }
 
-  if (mFilter == eNonSkipped) {
-    return true;
+  if (mFilter == eAddressable) {
+    return !IsOriginalCharUnaddressable();
   }
 
   return (mFilter == eClusterAndLigatureGroupStart) ==
@@ -3490,28 +3570,23 @@ GetTextContentLength(nsIContent* aContent)
   return length;
 }
 
-
-
-
-
-
-
-
-
-static uint32_t
-GetTextContentLengthBefore(nsIContent* aContent, nsIContent* aBefore)
+int32_t
+nsSVGTextFrame2::ConvertTextElementCharIndexToAddressableIndex(
+                                                           int32_t aIndex,
+                                                           nsIContent* aContent)
 {
-  NS_ASSERTION(aContent, "expected non-null aContent");
-  NS_ASSERTION(aBefore, "expected non-null aBefore");
-
-  uint32_t length = 0;
-  TextNodeIterator it(aContent, aBefore);
-  for (nsTextNode* text = it.Current();
-       text && !it.IsWithinSubtree() && !it.IsAfterSubtree();
-       text = it.Next()) {
-    length += text->TextLength();
+  CharIterator it(this, CharIterator::eAddressable, aContent);
+  if (!it.AdvanceToSubtree()) {
+    return -1;
   }
-  return length;
+  uint32_t result = 0;
+  while (!it.AtEnd() &&
+         it.IsWithinSubtree() &&
+         it.TextElementCharIndex() < static_cast<uint32_t>(aIndex)) {
+    result++;
+    it.Next();
+  }
+  return result;
 }
 
 
@@ -3521,7 +3596,15 @@ GetTextContentLengthBefore(nsIContent* aContent, nsIContent* aBefore)
 uint32_t
 nsSVGTextFrame2::GetNumberOfChars(nsIContent* aContent)
 {
-  return GetTextContentLength(aContent);
+  uint32_t n = 0;
+  CharIterator it(this, CharIterator::eAddressable, aContent);
+  if (it.AdvanceToSubtree()) {
+    while (!it.AtEnd() && it.IsWithinSubtree()) {
+      n++;
+      it.Next();
+    }
+  }
+  return n;
 }
 
 
@@ -3569,10 +3652,20 @@ nsSVGTextFrame2::GetSubStringLength(nsIContent* aContent,
 
   
   
-  charnum += GetTextContentLengthBefore(mContent, aContent);
+  CharIterator chit(this, CharIterator::eAddressable, aContent);
+  if (!chit.AdvanceToSubtree() ||
+      !chit.Next(charnum) ||
+      chit.IsAfterSubtree()) {
+    return 0.0f;
+  }
+  charnum = chit.TextElementCharIndex();
+  chit.NextWithinSubtree(nchars);
+  nchars = chit.TextElementCharIndex() - charnum;
 
+  
+  
   nscoord textLength = 0;
-  TextRenderedRunIterator it(this);
+  TextRenderedRunIterator it(this, TextRenderedRunIterator::eAllFrames);
   TextRenderedRun run = it.Current();
   while (run.mFrame) {
     
@@ -3589,7 +3682,7 @@ nsSVGTextFrame2::GetSubStringLength(nsIContent* aContent,
 
     if (length != 0) {
       
-      offset -= run.mTextElementCharIndex;
+      offset += run.mTextFrameContentOffset - run.mTextElementCharIndex;
 
       gfxSkipCharsIterator it =
         run.mFrame->EnsureTextRun(nsTextFrame::eInflated);
@@ -3637,7 +3730,7 @@ nsSVGTextFrame2::GetCharNumAtPosition(nsIContent* aContent,
     
     int32_t index = run.GetCharNumAtPosition(context, p);
     if (index != -1) {
-      result = index + run.mTextElementCharIndex;
+      result = index + run.mTextElementCharIndex - run.mTextFrameContentOffset;
     }
   }
 
@@ -3645,8 +3738,7 @@ nsSVGTextFrame2::GetCharNumAtPosition(nsIContent* aContent,
     return result;
   }
 
-  
-  return result - GetTextContentLengthBefore(mContent, aContent);
+  return ConvertTextElementCharIndexToAddressableIndex(result, aContent);
 }
 
 
@@ -3660,16 +3752,10 @@ nsSVGTextFrame2::GetStartPositionOfChar(nsIContent* aContent,
 {
   UpdateGlyphPositioning(false);
 
-  uint32_t textBefore = GetTextContentLengthBefore(mContent, aContent);
-  uint32_t textWithin = GetTextContentLength(aContent);
-
-  if (aCharNum >= textWithin) {
+  CharIterator it(this, CharIterator::eAddressable, aContent);
+  if (!it.AdvanceToSubtree() ||
+      !it.Next(aCharNum)) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
-  }
-
-  CharIterator it(this, CharIterator::eNonSkipped);
-  if (!it.AdvanceToCharacter(aCharNum + textBefore)) {
-    return NS_ERROR_FAILURE;
   }
 
   
@@ -3690,16 +3776,10 @@ nsSVGTextFrame2::GetEndPositionOfChar(nsIContent* aContent,
 {
   UpdateGlyphPositioning(false);
 
-  uint32_t textBefore = GetTextContentLengthBefore(mContent, aContent);
-  uint32_t textWithin = GetTextContentLength(aContent);
-
-  if (aCharNum >= textWithin) {
+  CharIterator it(this, CharIterator::eAddressable, aContent);
+  if (!it.AdvanceToSubtree() ||
+      !it.Next(aCharNum)) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
-  }
-
-  CharIterator it(this, CharIterator::eNonSkipped);
-  if (!it.AdvanceToCharacter(aCharNum + textBefore)) {
-    return NS_ERROR_FAILURE;
   }
 
   
@@ -3733,16 +3813,10 @@ nsSVGTextFrame2::GetExtentOfChar(nsIContent* aContent,
 {
   UpdateGlyphPositioning(false);
 
-  uint32_t textBefore = GetTextContentLengthBefore(mContent, aContent);
-  uint32_t textWithin = GetTextContentLength(aContent);
-
-  if (aCharNum >= textWithin) {
+  CharIterator it(this, CharIterator::eAddressable, aContent);
+  if (!it.AdvanceToSubtree() ||
+      !it.Next(aCharNum)) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
-  }
-
-  CharIterator it(this, CharIterator::eNonSkipped);
-  if (!it.AdvanceToCharacter(aCharNum + textBefore)) {
-    return NS_ERROR_FAILURE;
   }
 
   nsPresContext* presContext = PresContext();
@@ -3790,13 +3864,13 @@ nsSVGTextFrame2::GetRotationOfChar(nsIContent* aContent,
 {
   UpdateGlyphPositioning(false);
 
-  uint32_t textBefore = GetTextContentLengthBefore(mContent, aContent);
-  uint32_t textWithin = GetTextContentLength(aContent);
-  if (aCharNum >= textWithin) {
+  CharIterator it(this, CharIterator::eAddressable, aContent);
+  if (!it.AdvanceToSubtree() ||
+      !it.Next(aCharNum)) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
 
-  *aResult = mPositions[aCharNum + textBefore].mAngle * 180.0 / M_PI;
+  *aResult = mPositions[it.TextElementCharIndex()].mAngle * 180.0 / M_PI;
   return NS_OK;
 }
 

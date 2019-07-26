@@ -405,6 +405,22 @@ private:
 
 
 
+
+
+  int32_t
+  ConvertTextElementCharIndexToAddressableIndex(int32_t aIndex,
+                                                nsIContent* aContent);
+
+  
+
+
+
+
+
+
+
+
+
   uint32_t ResolvePositions(nsIContent* aContent, uint32_t aIndex,
                             bool aInTextPath, bool& aForceStartOfChunk,
                             nsTArray<gfxPoint>& aDeltas);
