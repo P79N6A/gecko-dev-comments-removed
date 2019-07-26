@@ -9,6 +9,25 @@ const Cu = Components.utils;
 
 const CACHE_MAX_GROUP_ENTRIES = 100;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const REMOTE_WHITELIST = [
+  "browser.upload.lastDir",
+  "spellcheck.lang",
+];
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
@@ -26,25 +45,15 @@ function electrolify(service) {
       Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
     
 
+    service.messageManager = Cc["@mozilla.org/parentprocessmessagemanager;1"].
+                             getService(Ci.nsIMessageBroadcaster);
+
     
     
     service.receiveMessage = function(aMessage) {
       var json = aMessage.json;
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      const NAME_WHITELIST = ["browser.upload.lastDir", "spellcheck.lang"];
-      if (NAME_WHITELIST.indexOf(json.name) == -1)
+
+      if (REMOTE_WHITELIST.indexOf(json.name) == -1)
         return { succeeded: false };
 
       switch (aMessage.name) {
@@ -88,6 +97,19 @@ function electrolify(service) {
         return ret.value;
       };
     });
+
+    
+    
+    service.messageManager.addMessageListener("ContentPref:notifyPrefSet",
+      function(aMessage) {
+        var json = aMessage.json;
+        service._notifyPrefSet(json.group, json.name, json.value);
+      });
+    service.messageManager.addMessageListener("ContentPref:notifyPrefRemoved",
+      function(aMessage) {
+        var json = aMessage.json;
+        service._notifyPrefRemoved(json.group, json.name);
+      });
   }
 }
 
@@ -328,7 +350,7 @@ ContentPrefService.prototype = {
 
     if (aContext && aContext.usePrivateBrowsing) {
       this._privModeStorage.setWithCast(group, aName, aValue);
-      this._notifyPrefSet(group, aName, aValue);
+      this._broadcastPrefSet(group, aName, aValue);
       return;
     }
 
@@ -350,8 +372,7 @@ ContentPrefService.prototype = {
       this._insertPref(groupID, settingID, aValue);
 
     this._cache.setWithCast(group, aName, aValue);
-
-    this._notifyPrefSet(group, aName, aValue);
+    this._broadcastPrefSet(group, aName, aValue);
   },
 
   hasPref: function ContentPrefService_hasPref(aGroup, aName, aContext) {
@@ -379,7 +400,7 @@ ContentPrefService.prototype = {
 
     if (aContext && aContext.usePrivateBrowsing) {
       this._privModeStorage.remove(group, aName);
-      this._notifyPrefRemoved(group, aName);
+      this._broadcastPrefRemoved(group, aName);
       return;
     }
 
@@ -402,7 +423,7 @@ ContentPrefService.prototype = {
       this._deleteGroupIfUnused(groupID);
 
     this._cache.remove(group, aName);
-    this._notifyPrefRemoved(group, aName);
+    this._broadcastPrefRemoved(group, aName);
   },
 
   removeGroupedPrefs: function ContentPrefService_removeGroupedPrefs(aContext) {
@@ -437,7 +458,7 @@ ContentPrefService.prototype = {
       for (let [group, name, ] in this._privModeStorage) {
         if (name === aName) {
           this._privModeStorage.remove(group, aName);
-          this._notifyPrefRemoved(group, aName);
+          this._broadcastPrefRemoved(group, aName);
         }
       }
     }
@@ -479,7 +500,7 @@ ContentPrefService.prototype = {
       if (groupNames[i]) 
         this._deleteGroupIfUnused(groupIDs[i]);
       if (!aContext || !aContext.usePrivateBrowsing) {
-        this._notifyPrefRemoved(groupNames[i], aName);
+        this._broadcastPrefRemoved(groupNames[i], aName);
       }
     }
   },
@@ -569,7 +590,10 @@ ContentPrefService.prototype = {
 
     return observers;
   },
+
   
+
+
   _notifyPrefRemoved: function ContentPrefService__notifyPrefRemoved(aGroup, aName) {
     for each (var observer in this._getObservers(aName)) {
       try {
@@ -581,6 +605,9 @@ ContentPrefService.prototype = {
     }
   },
 
+  
+
+
   _notifyPrefSet: function ContentPrefService__notifyPrefSet(aGroup, aName, aValue) {
     for each (var observer in this._getObservers(aName)) {
       try {
@@ -589,6 +616,38 @@ ContentPrefService.prototype = {
       catch(ex) {
         Cu.reportError(ex);
       }
+    }
+  },
+
+  
+
+
+
+
+
+
+  _broadcastPrefRemoved: function ContentPrefService__broadcastPrefRemoved(aGroup, aName) {
+    this._notifyPrefRemoved(aGroup, aName);
+
+    if (REMOTE_WHITELIST.indexOf(aName) != -1) {
+      this.messageManager.broadcastAsyncMessage('ContentPref:notifyPrefRemoved',
+        { "group": aGroup, "name": aName } );
+    }
+  },
+
+  
+
+
+
+
+
+
+  _broadcastPrefSet: function ContentPrefService__broadcastPrefSet(aGroup, aName, aValue) {
+    this._notifyPrefSet(aGroup, aName, aValue);
+
+    if (REMOTE_WHITELIST.indexOf(aName) != -1) {
+      this.messageManager.broadcastAsyncMessage('ContentPref:notifyPrefSet',
+        { "group": aGroup, "name": aName, "value": aValue } );
     }
   },
 
