@@ -1727,7 +1727,7 @@ nsListControlFrame::GetIndexFromDOMEvent(nsIDOMEvent* aMouseEvent,
   }
 
   if (option) {
-    aCurIndex = option->Index();
+    option->GetIndex(&aCurIndex);
     MOZ_ASSERT(aCurIndex >= 0);
     return NS_OK;
   }
@@ -2128,23 +2128,37 @@ nsListControlFrame::KeyDown(nsIDOMEvent* aKeyEvent)
       break;
     case NS_VK_RETURN:
       if (mComboboxFrame) {
+        nsWeakFrame weakFrame(this);
         if (mComboboxFrame->IsDroppedDown()) {
-          nsWeakFrame weakFrame(this);
+          
+          
+          aKeyEvent->PreventDefault();
           ComboboxFinish(mEndSelectionIndex);
           if (!weakFrame.IsAlive()) {
             return NS_OK;
           }
         }
         FireOnChange();
+        if (!weakFrame.IsAlive()) {
+          
+          
+          
+          aKeyEvent->PreventDefault();
+        }
         return NS_OK;
       }
       newIndex = mEndSelectionIndex;
       break;
     case NS_VK_ESCAPE: {
       nsWeakFrame weakFrame(this);
+      
+      
       AboutToRollup();
       if (!weakFrame.IsAlive()) {
-        aKeyEvent->PreventDefault(); 
+        
+        
+        
+        aKeyEvent->PreventDefault();
         return NS_OK;
       }
       break;
