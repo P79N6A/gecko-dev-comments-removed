@@ -42,15 +42,7 @@ ThebesLayerD3D10::~ThebesLayerD3D10()
 {
 }
 
-
-
-
-
-
-#define RETENTION_THRESHOLD 16384
-
 void
-
 ThebesLayerD3D10::InvalidateRegion(const nsIntRegion &aRegion)
 {
   mValidRegion.Sub(mValidRegion, aRegion);
@@ -64,26 +56,24 @@ void ThebesLayerD3D10::CopyRegion(ID3D10Texture2D* aSrc, const nsIntPoint &aSrcO
   nsIntRegionRectIterator iter(aCopyRegion);
   const nsIntRect *r;
   while ((r = iter.Next())) {
-    if (r->width * r->height > RETENTION_THRESHOLD) {
-      
-      
-      D3D10_BOX box;
-      box.left = r->x - aSrcOffset.x;
-      box.top = r->y - aSrcOffset.y;
-      box.right = box.left + r->width;
-      box.bottom = box.top + r->height;
-      box.back = 1;
-      box.front = 0;
+    
+    
+    D3D10_BOX box;
+    box.left = r->x - aSrcOffset.x;
+    box.top = r->y - aSrcOffset.y;
+    box.right = box.left + r->width;
+    box.bottom = box.top + r->height;
+    box.back = 1;
+    box.front = 0;
 
-      device()->CopySubresourceRegion(aDest, 0,
-                                      r->x - aDestOffset.x,
-                                      r->y - aDestOffset.y,
-                                      0,
-                                      aSrc, 0,
-                                      &box);
+    device()->CopySubresourceRegion(aDest, 0,
+                                    r->x - aDestOffset.x,
+                                    r->y - aDestOffset.y,
+                                    0,
+                                    aSrc, 0,
+                                    &box);
 
-      retainedRegion.Or(retainedRegion, *r);
-    }
+    retainedRegion.Or(retainedRegion, *r);
   }
 
   
@@ -219,8 +209,7 @@ ThebesLayerD3D10::Validate(ReadbackProcessor *aReadback)
       
       
       
-      if (!oldTexture || !mTexture ||
-          largeRect.width * largeRect.height < RETENTION_THRESHOLD) {
+      if (!oldTexture || !mTexture) {
         mValidRegion.SetEmpty();
       } else {
         CopyRegion(oldTexture, mTextureRect.TopLeft(),
@@ -437,7 +426,7 @@ ThebesLayerD3D10::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode)
   context->NewPath();
   const nsIntRect *iterRect;
   while ((iterRect = iter.Next())) {
-    context->Rectangle(gfxRect(iterRect->x, iterRect->y, iterRect->width, iterRect->height));      
+    context->Rectangle(gfxRect(iterRect->x, iterRect->y, iterRect->width, iterRect->height));
     if (mDrawTarget && aMode == SURFACE_SINGLE_CHANNEL_ALPHA) {
       mDrawTarget->ClearRect(Rect(iterRect->x, iterRect->y, iterRect->width, iterRect->height));
     }
