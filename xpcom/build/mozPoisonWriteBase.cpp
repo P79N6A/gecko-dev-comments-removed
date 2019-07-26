@@ -75,7 +75,7 @@ void DebugFilesAutoLock::Clear() {
   Lock = nullptr;
 }
 
-static char *sProfileDirectory = NULL;
+static char *sProfileDirectory = nullptr;
 
 
 
@@ -117,7 +117,7 @@ public:
         MozillaUnRegisterDebugFD(fd);
         fclose(mFile);
         mSHA1.finish(aHash);
-        mFile = NULL;
+        mFile = nullptr;
     }
 private:
     FILE *mFile;
@@ -201,7 +201,8 @@ bool ValidWriteAssert(bool ok)
     do {
       
       int result = _mktemp_s(name, strlen(name) + 1);
-      hFile = CreateFileA(name, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+      hFile = CreateFileA(name, GENERIC_WRITE, 0, nullptr,
+                          CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
     } while (GetLastError() == ERROR_FILE_EXISTS);
 
     if (hFile == INVALID_HANDLE_VALUE) {

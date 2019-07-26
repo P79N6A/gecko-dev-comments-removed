@@ -60,7 +60,7 @@ stack_callback(void *pc, void *sp, void *closure)
   
   
   if (gCriticalAddress.mAddr || dladdr(pc, &info) == 0  ||
-      info.dli_sname == NULL || strcmp(info.dli_sname, name) != 0)
+      info.dli_sname == nullptr || strcmp(info.dli_sname, name) != 0)
     return;
   gCriticalAddress.mAddr = pc;
 }
@@ -140,7 +140,7 @@ StackWalkInitCriticalAddress()
   
   
   
-  MOZ_ASSERT(OnLionOrLater() || gCriticalAddress.mAddr != NULL);
+  MOZ_ASSERT(OnLionOrLater() || gCriticalAddress.mAddr != nullptr);
   MOZ_ASSERT(r == ETIMEDOUT);
   r = pthread_mutex_unlock(&mutex);
   MOZ_ASSERT(r == 0);
@@ -237,12 +237,12 @@ void PrintError(const char *prefix)
     DWORD lastErr = GetLastError();
     FormatMessageA(
       FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-      NULL,
+      nullptr,
       lastErr,
       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
       (LPSTR) &lpMsgBuf,
       0,
-      NULL
+      nullptr
     );
     fprintf(stderr, "### ERROR: %s: %s",
                     prefix, lpMsgBuf ? lpMsgBuf : "(null)\n");
@@ -263,14 +263,14 @@ EnsureImageHlpInitialized()
     
     
     
-    HANDLE readyEvent = ::CreateEvent(NULL, FALSE ,
-                            FALSE , NULL);
+    HANDLE readyEvent = ::CreateEvent(nullptr, FALSE ,
+                            FALSE , nullptr);
     unsigned int threadID;
     HANDLE hStackWalkThread = (HANDLE)
-      _beginthreadex(NULL, 0, WalkStackThread, (void*)readyEvent,
+      _beginthreadex(nullptr, 0, WalkStackThread, (void*)readyEvent,
                      0, &threadID);
     gStackWalkThread = threadID;
-    if (hStackWalkThread == NULL) {
+    if (hStackWalkThread == nullptr) {
         PrintError("CreateThread");
         return false;
     }
@@ -356,7 +356,7 @@ WalkStackMain64(struct WalkStackData* data)
           myThread,
           &frame64,
           &context,
-          NULL,
+          nullptr,
           SymFunctionTableAccess64, 
           SymGetModuleBase64,       
           0
@@ -408,7 +408,7 @@ WalkStackThread(void* aData)
 
     
     
-    ::PeekMessage(&msg, NULL, WM_USER, WM_USER, PM_NOREMOVE);
+    ::PeekMessage(&msg, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
 
     
     HANDLE readyEvent = (HANDLE)aData;
@@ -466,7 +466,7 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
              void *aPlatformData)
 {
     StackWalkInitCriticalAddress();
-    static HANDLE myProcess = NULL;
+    static HANDLE myProcess = nullptr;
     HANDLE myThread;
     DWORD walkerReturn;
     struct WalkStackData data;
@@ -540,10 +540,10 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
             WalkStackMain64(&data);
         }
     } else {
-        data.eventStart = ::CreateEvent(NULL, FALSE ,
-                              FALSE , NULL);
-        data.eventEnd = ::CreateEvent(NULL, FALSE ,
-                            FALSE , NULL);
+        data.eventStart = ::CreateEvent(nullptr, FALSE ,
+                              FALSE , nullptr);
+        data.eventEnd = ::CreateEvent(nullptr, FALSE ,
+                            FALSE , nullptr);
 
         ::PostThreadMessage(gStackWalkThread, WM_USER, 0, (LPARAM)&data);
 
@@ -601,7 +601,9 @@ static BOOL CALLBACK callbackEspecial64(
        ? (addr >= aModuleBase && addr <= (aModuleBase + aModuleSize))
        : (addr <= aModuleBase && addr >= (aModuleBase - aModuleSize))
         ) {
-        retval = !!SymLoadModule64(GetCurrentProcess(), NULL, (PSTR)aModuleName, NULL, aModuleBase, aModuleSize);
+        retval = !!SymLoadModule64(GetCurrentProcess(), nullptr,
+                                   (PSTR)aModuleName, nullptr,
+                                   aModuleBase, aModuleSize);
         if (!retval)
             PrintError("SymLoadModule64");
     }
@@ -705,7 +707,7 @@ EnsureSymInitialized()
         return false;
 
     SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
-    retStat = SymInitialize(GetCurrentProcess(), NULL, TRUE);
+    retStat = SymInitialize(GetCurrentProcess(), nullptr, TRUE);
     if (!retStat)
         PrintError("SymInitialize");
 
@@ -923,7 +925,7 @@ myinit()
         const char *libdem = "libdemangle.so.1";
 
         
-        if ((handle = dlopen(libdem, RTLD_LAZY)) != NULL) {
+        if ((handle = dlopen(libdem, RTLD_LAZY)) != nullptr) {
             demf = (demf_t *)dlsym(handle,
                            "cplus_demangle"); 
                 
@@ -979,7 +981,7 @@ newbucket(void * pc)
     static int index; 
                      
     ptr->index = index++;
-    ptr->next = NULL;
+    ptr->next = nullptr;
     ptr->pc = pc;    
     return (ptr);    
 }
@@ -1010,7 +1012,7 @@ cswalkstack(struct frame *fp, int (*operate_func)(void *, void *, void *),
 
     while (fp != 0 && fp->fr_savpc != 0) {
 
-        if (operate_func((void *)fp->fr_savpc, NULL, usrarg) != 0)
+        if (operate_func((void *)fp->fr_savpc, nullptr, usrarg) != 0)
             break;
         
 
@@ -1229,7 +1231,7 @@ unwind_callback (struct _Unwind_Context *context, void *closure)
         return _URC_FOREIGN_EXCEPTION_CAUGHT;
     }
     if (--info->skip < 0) {
-        (*info->callback)(pc, NULL, info->closure);
+        (*info->callback)(pc, nullptr, info->closure);
         info->numFrames++;
         if (info->maxFrames != 0 && info->numFrames == info->maxFrames) {
             

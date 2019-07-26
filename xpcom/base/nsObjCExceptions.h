@@ -133,7 +133,7 @@ static void nsObjCExceptionAbort()
   
   
   
-  int* foo = NULL;
+  int* foo = nullptr;
   *foo = 1;
 }
 

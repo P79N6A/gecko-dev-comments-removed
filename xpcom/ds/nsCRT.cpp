@@ -65,7 +65,7 @@ char* nsCRT::strtok(char* string, const char* delims, char* *newStr)
   }
   *newStr = str;
 
-  return str == result ? NULL : result;
+  return str == result ? nullptr : result;
 }
 
 
@@ -131,7 +131,7 @@ const char* nsCRT::memmem(const char* haystack, uint32_t haystackLen,
   
   if (!(haystack && needle && haystackLen && needleLen &&
         needleLen <= haystackLen))
-    return NULL;
+    return nullptr;
 
 #ifdef HAVE_MEMMEM
   return (const char*)::memmem(haystack, haystackLen, needle, needleLen);
@@ -144,7 +144,7 @@ const char* nsCRT::memmem(const char* haystack, uint32_t haystackLen,
       return haystack + i;
   }
 #endif
-  return NULL;
+  return nullptr;
 }
 
 

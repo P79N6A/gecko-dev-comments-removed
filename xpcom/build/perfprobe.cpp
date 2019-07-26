@@ -204,9 +204,9 @@ nsresult ProbeManager::StartSession(nsTArray<nsRefPtr<Probe>> &aProbes)
                      ,
                      probes
                      ,
-                     NULL
+                     nullptr
                      ,
-                     NULL
+                     nullptr
                      ,
                      &mRegistrationHandle
                      

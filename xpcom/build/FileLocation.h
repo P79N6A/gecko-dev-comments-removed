@@ -50,7 +50,7 @@ public:
   
 
 
-  FileLocation(const FileLocation &file, const char *path = NULL);
+  FileLocation(const FileLocation &file, const char *path = nullptr);
 
   
 
