@@ -810,11 +810,11 @@ class JSObject : public js::ObjectImpl
 
     
     static js::UnrootedShape changeProperty(JSContext *cx, js::HandleObject obj,
-                                            js::RawShape shape, unsigned attrs, unsigned mask,
+                                            js::HandleShape shape, unsigned attrs, unsigned mask,
                                             JSPropertyOp getter, JSStrictPropertyOp setter);
 
     static inline bool changePropertyAttributes(JSContext *cx, js::HandleObject obj,
-                                                js::Shape *shape, unsigned attrs);
+                                                js::HandleShape shape, unsigned attrs);
 
     
     bool removeProperty(JSContext *cx, jsid id);
