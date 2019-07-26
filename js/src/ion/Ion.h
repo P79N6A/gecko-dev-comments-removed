@@ -78,6 +78,11 @@ struct IonOptions
     
     
     
+    bool limitScriptSize;
+
+    
+    
+    
     
     bool lsra;
 
@@ -115,6 +120,7 @@ struct IonOptions
         gvnIsOptimistic(true),
         licm(true),
         osr(true),
+        limitScriptSize(true),
         lsra(true),
         inlining(true),
         rangeAnalysis(true),
