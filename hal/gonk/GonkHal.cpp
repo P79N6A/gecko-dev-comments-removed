@@ -1186,7 +1186,13 @@ OomVictimLogger::Observe(
       int matching = !regexec(&(mRegexes[i]), line_begin, 0, NULL, 0);
       if (matching) {
         
-        line_begin = strchr(line_begin, ']') + 2;
+        
+        
+        char* endOfTimestamp = strchr(line_begin, ']');
+        if (endOfTimestamp && endOfTimestamp[1] == ' ') {
+          
+          line_begin = endOfTimestamp + 2;
+        }
         if (!lineTimestampFound) {
           OOM_LOG(ANDROID_LOG_WARN, "following kill message may be a duplicate");
         }
