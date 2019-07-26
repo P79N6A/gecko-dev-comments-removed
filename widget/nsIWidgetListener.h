@@ -2,46 +2,39 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsIWidgetListener_h__
 #define nsIWidgetListener_h__
 
-#include "nscore.h"
-#include "nsGUIEvent.h"
-#include "nsIXULWindow.h"
+#include <stdint.h>
+
+#include "mozilla/EventForwards.h"
 
 class nsView;
+class nsIntRegion;
 class nsIPresShell;
+class nsIWidget;
+class nsIXULWindow;
+
+
+
+
+enum nsSizeMode
+{
+  nsSizeMode_Normal = 0,
+  nsSizeMode_Minimized,
+  nsSizeMode_Maximized,
+  nsSizeMode_Fullscreen
+};
+
+
+
+
+enum nsWindowZ
+{
+  nsWindowZTop = 0,   
+  nsWindowZBottom,    
+  nsWindowZRelative   
+};
 
 class nsIWidgetListener
 {
@@ -52,72 +45,35 @@ public:
 
 
 
-  virtual nsIXULWindow* GetXULWindow() { return nullptr; }
+  virtual nsIXULWindow* GetXULWindow();
 
   
 
 
-  virtual nsView* GetView() { return nullptr; }
+  virtual nsView* GetView();
 
   
 
 
-  virtual nsIPresShell* GetPresShell() { return nullptr; }
-
-  
-
-
-
-  virtual bool WindowMoved(nsIWidget* aWidget, int32_t aX, int32_t aY) { return false; }
+  virtual nsIPresShell* GetPresShell();
 
   
 
 
 
-  virtual bool WindowResized(nsIWidget* aWidget, int32_t aWidth, int32_t aHeight) { return false; }
-
-  
-
-
-  virtual void SizeModeChanged(nsSizeMode sizeMode) { }
+  virtual bool WindowMoved(nsIWidget* aWidget, int32_t aX, int32_t aY);
 
   
 
 
 
-
-
-
-  virtual bool ZLevelChanged(bool aImmediate, nsWindowZ *aPlacement,
-                             nsIWidget* aRequestBelow, nsIWidget** aActualBelow) { return false; }
+  virtual bool WindowResized(nsIWidget* aWidget,
+                             int32_t aWidth, int32_t aHeight);
 
   
 
 
-  virtual void WindowActivated() { }
-
-  
-
-
-  virtual void WindowDeactivated() { }
-
-  
-
-
-  virtual void OSToolbarButtonPressed() { }
-
-  
-
-
-
-  virtual bool RequestWindowClose(nsIWidget* aWidget) { return false; }
-
-  
-
-
-
-
-  virtual void WillPaintWindow(nsIWidget* aWidget) { }
+  virtual void SizeModeChanged(nsSizeMode aSizeMode);
 
   
 
@@ -125,7 +81,38 @@ public:
 
 
 
-  virtual bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion) { return false; }
+
+  virtual bool ZLevelChanged(bool aImmediate, nsWindowZ* aPlacement,
+                             nsIWidget* aRequestBelow,
+                             nsIWidget** aActualBelow);
+
+  
+
+
+  virtual void WindowActivated();
+
+  
+
+
+  virtual void WindowDeactivated();
+
+  
+
+
+  virtual void OSToolbarButtonPressed();
+
+  
+
+
+
+  virtual bool RequestWindowClose(nsIWidget* aWidget);
+
+  
+
+
+
+
+  virtual void WillPaintWindow(nsIWidget* aWidget);
 
   
 
@@ -133,20 +120,28 @@ public:
 
 
 
-  virtual void DidPaintWindow() { }
+  virtual bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion);
 
   
 
 
-  virtual void RequestRepaint() { }
+
+
+
+  virtual void DidPaintWindow();
+
+  virtual void DidCompositeWindow();
 
   
 
 
-  virtual nsEventStatus HandleEvent(nsGUIEvent* event, bool useAttachedEvents)
-  {
-    return nsEventStatus_eIgnore;
-  }
+  virtual void RequestRepaint();
+
+  
+
+
+  virtual nsEventStatus HandleEvent(mozilla::WidgetGUIEvent* aEvent,
+                                    bool aUseAttachedEvents);
 };
 
 #endif
