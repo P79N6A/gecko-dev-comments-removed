@@ -2354,8 +2354,7 @@ nsPresContext::NotifyInvalidation(const nsIntRect& aRect, uint32_t aFlags)
 void
 nsPresContext::NotifyInvalidation(const nsRect& aRect, uint32_t aFlags)
 {
-  
-  
+  MOZ_ASSERT(GetContainerWeak(), "Invalidation in detached pres context");
 
   
   
