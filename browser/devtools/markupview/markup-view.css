@@ -22,6 +22,9 @@
   margin: 0;
 }
 
+
+
+
 .child {
   margin-left: -1000em;
   padding-left: 1001em;
@@ -84,6 +87,10 @@
 
 .newattr:focus {
   margin-right: 0;
+}
+
+.highlighter.flash-out {
+  transition: background .5s;
 }
 
 

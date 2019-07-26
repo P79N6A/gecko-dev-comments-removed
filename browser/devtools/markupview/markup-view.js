@@ -13,6 +13,7 @@ const DEFAULT_MAX_CHILDREN = 100;
 const COLLAPSE_ATTRIBUTE_LENGTH = 120;
 const COLLAPSE_DATA_URL_REGEX = /^data.+base64/;
 const COLLAPSE_DATA_URL_LENGTH = 60;
+const CONTAINER_FLASHING_DURATION = 500;
 
 const {UndoStack} = require("devtools/shared/undo");
 const {editableField, InplaceEditor} = require("devtools/shared/inplace-editor");
@@ -359,7 +360,9 @@ MarkupView.prototype = {
 
 
 
-  importNode: function MT_importNode(aNode)
+
+
+  importNode: function MT_importNode(aNode, aFlashNode)
   {
     if (!aNode) {
       return null;
@@ -375,6 +378,9 @@ MarkupView.prototype = {
       this._rootNode = aNode;
     } else {
       var container = new MarkupContainer(this, aNode);
+      if (aFlashNode) {
+        container.flashMutation();
+      }
     }
 
     this._containers.set(aNode, container);
@@ -415,12 +421,60 @@ MarkupView.prototype = {
         container.update(false);
       } else if (type === "childList") {
         container.childrenDirty = true;
-        this._updateChildren(container);
+        
+        
+        
+        this._updateChildren(container, {flash: true});
       }
     }
     this._waitForChildren().then(() => {
+      this._flashMutatedNodes(aMutations);
       this._inspector.emit("markupmutation");
     });
+  },
+
+  
+
+
+
+  _flashMutatedNodes: function MT_flashMutatedNodes(aMutations)
+  {
+    let addedOrEditedContainers = new Set();
+    let removedContainers = new Set();
+
+    for (let {type, target, added, removed} of aMutations) {
+      let container = this._containers.get(target);
+
+      if (container) {
+        if (type === "attributes" || type === "characterData") {
+          addedOrEditedContainers.add(container);
+        } else if (type === "childList") {
+          
+          if (removed.length) {
+            removedContainers.add(container);
+          }
+
+          
+          added.forEach(added => {
+            let addedContainer = this._containers.get(added);
+            addedOrEditedContainers.add(addedContainer);
+
+            
+            
+            
+            
+            removedContainers.delete(container);
+          });
+        }
+      }
+    }
+
+    for (let container of removedContainers) {
+      container.flashMutation();
+    }
+    for (let container of addedOrEditedContainers) {
+      container.flashMutation();
+    }
   },
 
   
@@ -449,7 +503,7 @@ MarkupView.prototype = {
 
   _expandContainer: function MT__expandContainer(aContainer)
   {
-    return this._updateChildren(aContainer, true).then(() => {
+    return this._updateChildren(aContainer, {expand: true}).then(() => {
       aContainer.expanded = true;
     });
   },
@@ -543,7 +597,7 @@ MarkupView.prototype = {
       if (!container.elt.parentNode) {
         let parentContainer = this._containers.get(parent);
         parentContainer.childrenDirty = true;
-        this._updateChildren(parentContainer, node);
+        this._updateChildren(parentContainer, {expand: node});
       }
 
       node = parent;
@@ -609,8 +663,15 @@ MarkupView.prototype = {
 
 
 
-  _updateChildren: function(aContainer, aExpand)
+
+
+
+
+  _updateChildren: function(aContainer, options)
   {
+    let expand = options && options.expand;
+    let flash = options && options.flash;
+
     aContainer.hasChildren = aContainer.node.hasChildren;
 
     if (!this._queuedChildUpdates) {
@@ -636,7 +697,7 @@ MarkupView.prototype = {
     
     
     
-    if (!(aContainer.expanded || aExpand)) {
+    if (!(aContainer.expanded || expand)) {
       return promise.resolve(aContainer);
     }
 
@@ -657,13 +718,13 @@ MarkupView.prototype = {
       
       
       if (aContainer.childrenDirty) {
-        return this._updateChildren(aContainer, centered);
+        return this._updateChildren(aContainer, {expand: centered});
       }
 
       let fragment = this.doc.createDocumentFragment();
 
       for (let child of children.nodes) {
-        let container = this.importNode(child);
+        let container = this.importNode(child, flash);
         fragment.appendChild(container.elt);
       }
 
@@ -999,6 +1060,54 @@ MarkupContainer.prototype = {
     event.stopPropagation();
   },
 
+  
+
+
+
+  flashMutation: function() {
+    if (!this.selected) {
+      let contentWin = this.markup._frame.contentWindow;
+      this.flashed = true;
+      if (this._flashMutationTimer) {
+        contentWin.clearTimeout(this._flashMutationTimer);
+        this._flashMutationTimer = null;
+      }
+      this._flashMutationTimer = contentWin.setTimeout(() => {
+        this.flashed = false;
+      }, CONTAINER_FLASHING_DURATION);
+    }
+  },
+
+  set flashed(aValue) {
+    if (aValue) {
+      
+      this.highlighter.classList.remove("flash-out");
+
+      
+      this.highlighter.classList.add("theme-bg-contrast");
+
+      
+      this.editor.elt.classList.add("theme-fg-contrast");
+      [].forEach.call(
+        this.editor.elt.querySelectorAll("[class*=theme-fg-color]"),
+        span => span.classList.add("theme-fg-contrast")
+      );
+    } else {
+      
+      this.highlighter.classList.add("flash-out");
+
+      
+      this.highlighter.classList.remove("theme-bg-contrast");
+
+      
+      this.editor.elt.classList.remove("theme-fg-contrast");
+      [].forEach.call(
+        this.editor.elt.querySelectorAll("[class*=theme-fg-color]"),
+        span => span.classList.remove("theme-fg-contrast")
+      );
+    }
+  },
+
   _highlighted: false,
 
   
@@ -1006,6 +1115,7 @@ MarkupContainer.prototype = {
 
 
   set highlighted(aValue) {
+    this.highlighter.classList.remove("flash-out");
     this._highlighted = aValue;
     if (aValue) {
       if (!this.selected) {
@@ -1039,6 +1149,7 @@ MarkupContainer.prototype = {
   },
 
   set selected(aValue) {
+    this.highlighter.classList.remove("flash-out");
     this._selected = aValue;
     this.editor.selected = aValue;
     if (this._selected) {
@@ -1361,7 +1472,7 @@ ElementEditor.prototype = {
         }
       },
       done: (aVal, aCommit) => {
-        if (!aCommit) {
+        if (!aCommit || aVal === initial) {
           return;
         }
 
