@@ -66,14 +66,6 @@ XPCOMUtils.defineLazyGetter(this, "gParentalControlsService", function() {
   return null;
 });
 
-
-
-
-
-XPCOMUtils.defineLazyGetter(this, "gInternetZoneIdentifier", function() {
-  return new TextEncoder().encode("[ZoneTransfer]\r\nZoneId=3\r\n");
-});
-
 const Timer = Components.Constructor("@mozilla.org/timer;1", "nsITimer",
                                      "initWithCallback");
 
@@ -397,46 +389,15 @@ this.DownloadIntegration = {
 
 
   downloadDone: function(aDownload) {
-    return Task.spawn(function () {
-#ifdef XP_WIN
-      
-      
-      
-      
-      
-      
-      
-      if (Services.prefs.getBoolPref("browser.download.saveZoneInformation")) {
-        let file = new FileUtils.File(aDownload.target.path);
-        if (file.isExecutable()) {
-          try {
-            let streamPath = aDownload.target.path + ":Zone.Identifier";
-            let stream = yield OS.File.open(streamPath, { create: true });
-            try {
-              yield stream.write(gInternetZoneIdentifier);
-            } finally {
-              yield stream.close();
-            }
-          } catch (ex) {
-            
-            
-            
-            
-            
-            if (!(ex instanceof OS.File.Error) || ex.winLastError != 123) {
-              Cu.reportError(ex);
-            }
-          }
-        }
-      }
-#endif
-
+    try {
       gDownloadPlatform.downloadDone(NetUtil.newURI(aDownload.source.url),
                                      new FileUtils.File(aDownload.target.path),
-                                     aDownload.contentType,
-                                     aDownload.source.isPrivate);
+                                     aDownload.contentType, aDownload.source.isPrivate);
       this.downloadDoneCalled = true;
-    }.bind(this));
+      return Promise.resolve();
+    } catch(ex) {
+      return Promise.reject(ex);
+    }
   },
 
   
@@ -471,8 +432,6 @@ this.DownloadIntegration = {
     let deferred = Task.spawn(function DI_launchDownload_task() {
       let file = new FileUtils.File(aDownload.target.path);
 
-#ifndef XP_WIN
-      
       
       
       
@@ -490,7 +449,6 @@ this.DownloadIntegration = {
           return;
         }
       }
-#endif
 
       
       
