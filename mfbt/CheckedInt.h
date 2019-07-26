@@ -40,6 +40,8 @@
 
 namespace mozilla {
 
+template<typename T> class CheckedInt;
+
 namespace detail {
 
 
@@ -454,23 +456,32 @@ IsDivValid(T x, T y)
          !(IsSigned<T>::value && x == MinValue<T>::value && y == T(-1));
 }
 
+template<typename T, bool IsSigned = IsSigned<T>::value>
+struct NegateImpl;
 
-template<typename T, bool IsTSigned = IsSigned<T>::value>
-struct OppositeIfSignedImpl
-{
-    static T run(T x) { return -x; }
-};
 template<typename T>
-struct OppositeIfSignedImpl<T, false>
+struct NegateImpl<T, false>
 {
-    static T run(T x) { return x; }
+    static CheckedInt<T> negate(const CheckedInt<T>& val)
+    {
+      
+      
+      return CheckedInt<T>(0, val.isValid() && val.mValue == 0);
+    }
 };
+
 template<typename T>
-inline T
-OppositeIfSigned(T x)
+struct NegateImpl<T, true>
 {
-  return OppositeIfSignedImpl<T>::run(x);
-}
+    static CheckedInt<T> negate(const CheckedInt<T>& val)
+    {
+      
+      
+      if (!val.isValid() || val.mValue == MinValue<T>::value)
+        return CheckedInt<T>(val.mValue, false);
+      return CheckedInt<T>(-val.mValue, true);
+    }
+};
 
 } 
 
@@ -560,6 +571,8 @@ class CheckedInt
                         "This type is not supported by CheckedInt");
     }
 
+    friend class detail::NegateImpl<T>;
+
   public:
     
 
@@ -628,14 +641,7 @@ class CheckedInt
 
     CheckedInt operator -() const
     {
-      
-      
-      
-      T result = detail::OppositeIfSigned(mValue);
-      
-      return CheckedInt(result,
-                        mIsValid && detail::IsSubValid(T(0),
-                                                       mValue));
+      return detail::NegateImpl<T>::negate(*this);
     }
 
     
