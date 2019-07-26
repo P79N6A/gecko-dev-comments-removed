@@ -4,10 +4,11 @@
 
 "use strict";
 
-const {utils: Cu} = Components;
+const {interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/osfile.jsm", this)
 Cu.import("resource://gre/modules/Task.jsm", this);
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 
 this.EXPORTED_SYMBOLS = [
   "CrashManager",
@@ -154,4 +155,28 @@ this.CrashManager.prototype = Object.freeze({
       return entries;
     }.bind(this));
   },
+});
+
+let gCrashManager;
+
+
+
+
+
+
+
+XPCOMUtils.defineLazyGetter(this.CrashManager, "Singleton", function () {
+  Cu.reportError("CrashManager.Singleton accessed!");
+  if (gCrashManager) {
+    return gCrashManager;
+  }
+
+  let crPath = OS.Path.join(OS.Constants.Path.userApplicationDataDir,
+                            "Crash Reports");
+  gCrashManager = new CrashManager({
+    pendingDumpsDir: OS.Path.join(crPath, "pending"),
+    submittedDumpsDir: OS.Path.join(crPath, "submitted"),
+  });
+
+  return gCrashManager;
 });
