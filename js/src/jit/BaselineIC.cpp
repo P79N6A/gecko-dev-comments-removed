@@ -3598,6 +3598,12 @@ TryAttachGetElemStub(JSContext *cx, HandleScript script, ICGetElem_Fallback *stu
     if (!obj->isNative() && !obj->is<TypedArrayObject>())
         stub->noteNonNativeAccess();
 
+    
+    
+    
+    if (rhs.isNumber() && rhs.toNumber() < 0)
+        stub->noteNegativeIndex();
+
     return true;
 }
 

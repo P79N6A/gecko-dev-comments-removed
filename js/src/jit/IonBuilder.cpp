@@ -6466,6 +6466,11 @@ IonBuilder::getElemTryDense(bool *emitted, MDefinition *obj, MDefinition *index)
         return true;
 
     
+    
+    if (inspector->hasSeenNegativeIndexGetElement(pc))
+        return true;
+
+    
     if (!jsop_getelem_dense(obj, index))
         return false;
 
