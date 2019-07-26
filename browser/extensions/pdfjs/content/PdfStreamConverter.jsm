@@ -160,6 +160,10 @@ function getLocalizedString(strings, id, property) {
   return id;
 }
 
+function makeContentReadable(obj, window) {
+  return Cu.cloneInto(obj, window);
+}
+
 
 function PdfDataListener(length) {
   this.length = length; 
@@ -704,21 +708,18 @@ RequestListener.prototype.receive = function(event) {
   }
   if (sync) {
     var response = actions[action].call(this.actions, data);
-    var detail = event.detail;
-    detail.__exposedProps__ = {response: 'r'};
-    detail.response = response;
+    event.detail.response = response;
   } else {
     var response;
-    if (!event.detail.callback) {
+    if (!event.detail.responseExpected) {
       doc.documentElement.removeChild(message);
       response = null;
     } else {
       response = function sendResponse(response) {
         try {
           var listener = doc.createEvent('CustomEvent');
-          listener.initCustomEvent('pdf.js.response', true, false,
-                                   {response: response,
-                                    __exposedProps__: {response: 'r'}});
+          let detail = makeContentReadable({response: response}, doc.defaultView);
+          listener.initCustomEvent('pdf.js.response', true, false, detail);
           return message.dispatchEvent(listener);
         } catch (e) {
           
@@ -761,13 +762,13 @@ FindEventManager.prototype.handleEvent = function(e) {
   var contentWindow = this.contentWindow;
   
   if (chromeWindow.gBrowser.selectedBrowser.contentWindow === contentWindow) {
-    var detail = e.detail;
-    detail.__exposedProps__ = {
-      query: 'r',
-      caseSensitive: 'r',
-      highlightAll: 'r',
-      findPrevious: 'r'
+    var detail = {
+      query: e.detail.query,
+      caseSensitive: e.detail.caseSensitive,
+      highlightAll: e.detail.highlightAll,
+      findPrevious: e.detail.findPrevious
     };
+    detail = makeContentReadable(detail, contentWindow);
     var forward = contentWindow.document.createEvent('CustomEvent');
     forward.initCustomEvent(e.type, true, true, detail);
     contentWindow.dispatchEvent(forward);
