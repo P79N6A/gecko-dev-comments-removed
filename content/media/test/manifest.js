@@ -197,13 +197,6 @@ var gInvalidTests = [
 
 
 
-var gStreamSwitchTests = [
-  { name:"dash-manifest-sjs.mpd", type:"application/dash+xml",
-    width:320, height:180, duration:3.966 }
-];
-
-
-
 
 function fileUriToSrc(path, mustExist) {
   
