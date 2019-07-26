@@ -274,9 +274,9 @@ PRMJ_Now()
             MUTEX_LOCK(&calibration.data_lock);
 
             
-            if(calibration.offset == cachedOffset) {
+            if (calibration.offset == cachedOffset) {
                 
-
+                
                 MUTEX_SETSPINCOUNT(&calibration.data_lock, 0);
 
                 NowCalibrate();
@@ -340,34 +340,34 @@ PRMJ_Now()
             
             
             
-            if (mozilla::Abs(diff) > 2 * skewThreshold) {
-                if (calibrated) {
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    return int64_t(lowresTime);
-                }
-
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                needsCalibration = true;
-            } else {
+            if (mozilla::Abs(diff) <= 2 * skewThreshold) {
                 
                 return int64_t(highresTime);
             }
+
+            if (calibrated) {
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                return int64_t(lowresTime);
+            }
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            needsCalibration = true;
         } else {
             
             returnedTime = int64_t(lowresTime);
