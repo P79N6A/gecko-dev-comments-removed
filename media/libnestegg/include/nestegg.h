@@ -190,9 +190,10 @@ int nestegg_track_count(nestegg * context, unsigned int * tracks);
 
 
 
+
 int nestegg_get_cue_point(nestegg * context, unsigned int cluster_num,
                           int64_t max_offset, int64_t * start_pos,
-                          int64_t * end_pos);
+                          int64_t * end_pos, uint64_t * tstamp);
 
 
 
