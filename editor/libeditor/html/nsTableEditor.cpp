@@ -1309,10 +1309,17 @@ nsHTMLEditor::DeleteRow(nsIDOMElement *aTable, int32_t aRowIndex)
   nsTArray<nsCOMPtr<nsIDOMElement> > spanCellList;
   nsTArray<int32_t> newSpanList;
 
+  int32_t rowCount, colCount;
+  res = GetTableSize(aTable, &rowCount, &colCount);
+  NS_ENSURE_SUCCESS(res, res);
+
   
   
   
   do {
+    if (aRowIndex >= rowCount || colIndex >= colCount)
+      break;
+
     res = GetCellDataAt(aTable, aRowIndex, colIndex, getter_AddRefs(cell),
                         &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
                         &actualRowSpan, &actualColSpan, &isSelected);
