@@ -290,6 +290,12 @@ exports.hasSafeGetter = function hasSafeGetter(aDesc) {
 
 
 exports.isSafeJSObject = function isSafeJSObject(aObj) {
+  
+  
+  if (!Cu) {
+    return false;
+  }
+
   if (Cu.getGlobalForObject(aObj) ==
       Cu.getGlobalForObject(exports.isSafeJSObject)) {
     return true; 
