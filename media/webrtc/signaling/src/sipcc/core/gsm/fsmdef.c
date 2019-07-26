@@ -765,7 +765,7 @@ static sm_function_t fsmdef_function_table[FSMDEF_S_MAX][CC_MSG_MAX] =
      fsmdef_ev_addstream,
      fsmdef_ev_removestream,
      fsmdef_ev_addcandidate,
-     fsmdef_ev_default
+     fsmdef_ev_foundcandidate
     },
 
 
@@ -4262,33 +4262,34 @@ fsmdef_ev_foundcandidate(sm_event_t *event) {
 
 
 
+
+
     
     PR_snprintf(candidate_tmp, sizeof(candidate_tmp), "%d\t%s\t%s",
                 msg->data.candidate.level,
                 (char *)msg->data.candidate.mid,
                 (char *)msg->data.candidate.candidate);
 
-    if (fcb->state == FSMDEF_S_STABLE) {
-        if (!dcb->sdp->dest_sdp) {
-            fsmdef_candidate_t *buffered_cand = NULL;
+    if ((fcb->state == FSMDEF_S_STABLE && !dcb->sdp->dest_sdp)
+        || fcb->state == FSMDEF_S_HAVE_REMOTE_OFFER) {
+        fsmdef_candidate_t *buffered_cand = NULL;
 
-            FSM_DEBUG_SM(DEB_F_PREFIX"dcb->sdp->dest_sdp is null."
-                         "assuming CreateOffer called but not SetLocal...\n",
-                         DEB_F_PREFIX_ARGS(FSM, __FUNCTION__));
+        FSM_DEBUG_SM(DEB_F_PREFIX"dcb->sdp->dest_sdp is null."
+                     "assuming CreateOffer called but not SetLocal...\n",
+                     DEB_F_PREFIX_ARGS(FSM, __FUNCTION__));
 
-            buffered_cand = (fsmdef_candidate_t *)cpr_malloc(sizeof(fsmdef_candidate_t));
-            if (!buffered_cand)
-                return SM_RC_END;
-
-            buffered_cand->candidate = strlib_malloc(candidate_tmp, -1);
-
-            if (sll_lite_link_head(&dcb->candidate_list,
-                                   (sll_lite_node_t *)buffered_cand) != SLL_LITE_RET_SUCCESS)
-                return SM_RC_END;
-
-            
+        buffered_cand = (fsmdef_candidate_t *)cpr_malloc(sizeof(fsmdef_candidate_t));
+        if (!buffered_cand)
             return SM_RC_END;
-        }
+
+        buffered_cand->candidate = strlib_malloc(candidate_tmp, -1);
+
+        if (sll_lite_link_head(&dcb->candidate_list,
+                               (sll_lite_node_t *)buffered_cand) != SLL_LITE_RET_SUCCESS)
+            return SM_RC_END;
+
+        
+        return SM_RC_END;
     }
 
     ui_ice_candidate_found(evFoundIceCandidate, fcb->state, line, call_id,
