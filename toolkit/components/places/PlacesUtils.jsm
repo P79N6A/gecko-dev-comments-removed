@@ -1776,6 +1776,30 @@ this.PlacesUtils = {
     });
 
     return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+  promiseFaviconData: function (aPageUrl) {
+    let deferred = Promise.defer();
+    PlacesUtils.favicons.getFaviconDataForPage(NetUtil.newURI(aPageUrl),
+      function (aURI, aDataLen, aData, aMimeType) {
+        if (aURI) {
+          deferred.resolve({ uri: aURI,
+                             dataLen: aDataLen,
+                             data: aData,
+                             mimeType: aMimeType });
+        } else {
+          deferred.reject();
+        }
+      });
+    return deferred.promise;
   }
 };
 

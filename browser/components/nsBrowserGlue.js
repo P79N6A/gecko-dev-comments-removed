@@ -1046,13 +1046,13 @@ BrowserGlue.prototype = {
     
     
     
-    var dbStatus = PlacesUtils.history.databaseStatus;
-    var importBookmarks = !aInitialMigrationPerformed &&
+    let dbStatus = PlacesUtils.history.databaseStatus;
+    let importBookmarks = !aInitialMigrationPerformed &&
                           (dbStatus == PlacesUtils.history.DATABASE_STATUS_CREATE ||
                            dbStatus == PlacesUtils.history.DATABASE_STATUS_CORRUPT);
 
     
-    var importBookmarksHTML = false;
+    let importBookmarksHTML = false;
     try {
       importBookmarksHTML =
         Services.prefs.getBoolPref("browser.places.importBookmarksHTML");
@@ -1063,7 +1063,7 @@ BrowserGlue.prototype = {
     Task.spawn(function() {
       
       
-      var restoreDefaultBookmarks = false;
+      let restoreDefaultBookmarks = false;
       try {
         restoreDefaultBookmarks =
           Services.prefs.getBoolPref("browser.bookmarks.restore_default_bookmarks");
@@ -1091,10 +1091,7 @@ BrowserGlue.prototype = {
         else {
           
           importBookmarks = true;
-          var dirService = Cc["@mozilla.org/file/directory_service;1"].
-                           getService(Ci.nsIProperties);
-          var bookmarksHTMLFile = dirService.get("BMarks", Ci.nsILocalFile);
-          if (bookmarksHTMLFile.exists()) {
+          if (yield OS.File.exists(BookmarkHTMLUtils.defaultPath)) {
             
             importBookmarksHTML = true;
           }
@@ -1120,36 +1117,30 @@ BrowserGlue.prototype = {
         
         
         
-        var autoExportHTML = false;
+        let autoExportHTML = false;
         try {
           autoExportHTML = Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML");
         } catch(ex) {}
-        var smartBookmarksVersion = 0;
+        let smartBookmarksVersion = 0;
         try {
           smartBookmarksVersion = Services.prefs.getIntPref("browser.places.smartBookmarksVersion");
         } catch(ex) {}
         if (!autoExportHTML && smartBookmarksVersion != -1)
           Services.prefs.setIntPref("browser.places.smartBookmarksVersion", 0);
 
-        
-        var dirService = Cc["@mozilla.org/file/directory_service;1"].
-                         getService(Ci.nsIProperties);
-
-        var bookmarksURI = null;
+        let bookmarksUrl = null;
         if (restoreDefaultBookmarks) {
           
-          bookmarksURI = NetUtil.newURI("resource:///defaults/profile/bookmarks.html");
+          bookmarksUrl = "resource:///defaults/profile/bookmarks.html";
         }
-        else {
-          var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
-          if (bookmarksFile.exists())
-            bookmarksURI = NetUtil.newURI(bookmarksFile);
+        else if (yield OS.File.exists(BookmarkHTMLUtils.defaultPath)) {
+          bookmarksUrl = OS.Path.toFileURI(BookmarkHTMLUtils.defaultPath);
         }
 
-        if (bookmarksURI) {
+        if (bookmarksUrl) {
           
           try {
-            BookmarkHTMLUtils.importFromURL(bookmarksURI.spec, true).then(null,
+            BookmarkHTMLUtils.importFromURL(bookmarksUrl, true).then(null,
               function onFailure() {
                 Cu.reportError("Bookmarks.html file could be corrupt.");
               }
@@ -1240,7 +1231,7 @@ BrowserGlue.prototype = {
         
         AsyncShutdown.profileBeforeChange.addBlocker(
           "Places: bookmarks.html",
-          () => BookmarkHTMLUtils.exportToFile(Services.dirsvc.get("BMarks", Ci.nsIFile))
+          () => BookmarkHTMLUtils.exportToFile(BookmarkHTMLUtils.defaultPath)
                                  .then(null, Cu.reportError)
         );
       }
