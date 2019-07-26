@@ -259,7 +259,7 @@ NextView(JSObject *obj)
     return static_cast<JSObject*>(obj->getFixedSlot(BufferView::NEXT_VIEW_SLOT).toPrivate());
 }
 
-static JSObject **
+static HeapPtrObject *
 GetViewList(ArrayBufferObject *obj)
 {
 #if USE_NEW_OBJECT_REPRESENTATION
@@ -275,7 +275,7 @@ GetViewList(ArrayBufferObject *obj)
     struct OldObjectRepresentationHack {
             uint32_t capacity;
             uint32_t initializedLength;
-            JSObject *views;
+            HeapPtrObject views;
     };
     return &reinterpret_cast<OldObjectRepresentationHack*>(obj->getElementsHeader())->views;
 #endif
@@ -468,8 +468,10 @@ class WeakObjectSlotRef : public js::gc::BufferableRef
     }
 
     virtual void mark(JSTracer *trc) {
+        MarkObjectUnbarriered(trc, &owner, "weak TypeArrayView ref");
         JSObject *obj = static_cast<JSObject*>(owner->getFixedSlot(slot).toPrivate());
-        MarkObjectUnbarriered(trc, &obj, desc);
+        if (obj && obj != UNSET_BUFFER_LINK)
+            MarkObjectUnbarriered(trc, &obj, desc);
         owner->setFixedSlot(slot, PrivateValue(obj));
     }
 };
@@ -508,7 +510,7 @@ ArrayBufferObject::addView(RawObject view)
     
     
 
-    JSObject **views = GetViewList(this);
+    HeapPtrObject *views = GetViewList(this);
     if (*views == NULL) {
         
         
@@ -638,7 +640,7 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
 
     
     ArrayBufferObject::setElementsHeader(header, 0);
-    *GetViewList(&buffer) = views;
+    GetViewList(&buffer)->init(views);
     for (JSObject *view = views; view; view = NextView(view))
         TypedArray::neuter(view);
 
@@ -671,9 +673,22 @@ ArrayBufferObject::obj_trace(JSTracer *trc, RawObject obj)
     
     
 
-    JSObject **views = GetViewList(&obj->asArrayBuffer());
+    HeapPtrObject *views = GetViewList(&obj->asArrayBuffer());
     if (!*views)
         return;
+
+    
+    
+    
+    if (trc->runtime->isHeapMinorCollecting()) {
+        MarkObject(trc, views, "arraybuffer.viewlist");
+        JSObject *prior = views->get();
+        for (JSObject *view = NextView(prior); view; prior = view, view = NextView(view)) {
+            MarkObjectUnbarriered(trc, &view, "arraybuffer.views");
+            prior->setFixedSlot(BufferView::NEXT_VIEW_SLOT, PrivateValue(view));
+        }
+        return;
+    }
 
     JSObject *firstView = *views;
     if (NextView(firstView) == NULL) {
@@ -681,10 +696,9 @@ ArrayBufferObject::obj_trace(JSTracer *trc, RawObject obj)
         
         
         if (IS_GC_MARKING_TRACER(trc))
-            MarkObjectUnbarriered(trc, views, "arraybuffer.singleview");
+            MarkObject(trc, views, "arraybuffer.singleview");
     } else {
         
-
         if (IS_GC_MARKING_TRACER(trc)) {
             
             
@@ -715,7 +729,7 @@ ArrayBufferObject::sweep(JSCompartment *compartment)
     compartment->gcLiveArrayBuffers = NULL;
 
     while (buffer) {
-        JSObject **views = GetViewList(&buffer->asArrayBuffer());
+        HeapPtrObject *views = GetViewList(&buffer->asArrayBuffer());
         JS_ASSERT(*views);
 
         JSObject *nextBuffer = BufferLink(*views);
@@ -735,7 +749,7 @@ ArrayBufferObject::sweep(JSCompartment *compartment)
             }
             view = nextView;
         }
-        *views = prevLiveView;
+        *(views->unsafeGet()) = prevLiveView;
 
         buffer = nextBuffer;
     }
@@ -1741,7 +1755,7 @@ class TypedArrayTemplate
         JS_ASSERT(bufobj->isArrayBuffer());
         Rooted<ArrayBufferObject *> buffer(cx, &bufobj->asArrayBuffer());
 
-        InitTypedArrayDataPointer(obj, buffer, byteOffset);
+        InitArrayBufferViewDataPointer(obj, buffer, byteOffset);
         obj->setSlot(LENGTH_SLOT, Int32Value(len));
         obj->setSlot(BYTEOFFSET_SLOT, Int32Value(byteOffset));
         obj->setSlot(BYTELENGTH_SLOT, Int32Value(len * sizeof(NativeType)));

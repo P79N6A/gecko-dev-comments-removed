@@ -212,6 +212,7 @@ struct JSCompartment
     
     js::InitialShapeSet          initialShapes;
     void sweepInitialShapeTable();
+    void markAllInitialShapeTableEntries(JSTracer *trc);
 
     
     js::types::TypeObjectSet     newTypeObjects;
@@ -262,6 +263,7 @@ struct JSCompartment
 
     
     void markCrossCompartmentWrappers(JSTracer *trc);
+    void markAllCrossCompartmentWrappers(JSTracer *trc);
 
     bool wrap(JSContext *cx, JS::MutableHandleValue vp, JS::HandleObject existing = js::NullPtr());
     bool wrap(JSContext *cx, JSString **strp);
