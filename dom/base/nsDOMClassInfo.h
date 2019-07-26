@@ -59,8 +59,9 @@ struct nsDOMClassInfoData
   uint32_t mScriptableFlags : 31; 
   uint32_t mHasClassInterface : 1;
   uint32_t mInterfacesBitmap;
-  bool mChromeOnly;
-  bool mDisabled;
+  bool mChromeOnly : 1;
+  bool mAllowXBL : 1;
+  bool mDisabled : 1;
 #ifdef DEBUG
   uint32_t mDebugID;
 #endif
