@@ -5518,12 +5518,10 @@ types::MarkIteratorUnknownSlow(JSContext *cx)
     if (JSOp(*pc) != JSOP_ITER)
         return;
 
-    AutoEnterAnalysis enter(cx);
-
-    if (!script->ensureHasTypes(cx)) {
-        cx->compartment->types.setPendingNukeTypes(cx);
+    if (!script->types)
         return;
-    }
+
+    AutoEnterAnalysis enter(cx);
 
     
 
@@ -5608,6 +5606,9 @@ void
 types::TypeDynamicResult(JSContext *cx, JSScript *script, jsbytecode *pc, Type type)
 {
     JS_ASSERT(cx->typeInferenceEnabled());
+
+    if (!script->types)
+        return;
 
     AutoEnterAnalysis enter(cx);
 
@@ -5712,6 +5713,9 @@ types::TypeMonitorResult(JSContext *cx, JSScript *script, jsbytecode *pc, const 
 {
     
     if (!(js_CodeSpec[*pc].format & JOF_TYPESET))
+        return;
+
+    if (!script->types)
         return;
 
     AutoEnterAnalysis enter(cx);
