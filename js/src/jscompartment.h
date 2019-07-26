@@ -9,6 +9,7 @@
 #define jscompartment_h___
 
 #include "mozilla/Attributes.h"
+#include "mozilla/Util.h"
 
 #include "jscntxt.h"
 #include "jsfun.h"
@@ -278,6 +279,13 @@ struct JSCompartment
     void                         *data;
     bool                         active;  
     js::WrapperMap               crossCompartmentWrappers;
+
+    
+
+
+
+    bool                         scheduledForDestruction;
+    bool                         maybeAlive;
 
     
     int64_t                      lastAnimationTime;

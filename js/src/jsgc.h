@@ -985,6 +985,7 @@ struct GCMarker : public JSTracer {
     void startBufferingGrayRoots();
     void endBufferingGrayRoots();
     void markBufferedGrayRoots();
+    void markBufferedGrayRootCompartmentsAlive();
 
     static void GrayCallback(JSTracer *trc, void **thing, JSGCTraceKind kind);
 
@@ -1171,6 +1172,30 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false)
 
 void
 PurgeJITCaches(JSCompartment *c);
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct AutoTransplantGC
+{
+    AutoTransplantGC(JSContext *cx);
+    ~AutoTransplantGC();
+
+  private:
+    JSRuntime *runtime;
+    unsigned markCount;
+    bool inIncremental;
+    bool inTransplant;
+};
 
 } 
 
