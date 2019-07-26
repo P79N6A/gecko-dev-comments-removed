@@ -5549,40 +5549,17 @@ CodeGenerator::link()
 
     
     
-    
-    
-    JSRuntime::AutoLockForOperationCallback lock(cx->runtime());
+    if (cx->compartment()->types.compiledInfo.compilerOutput(cx)->isInvalidated())
+        return true;
 
-    
-    
-    cx->runtime()->ionRuntime()->ensureIonCodeAccessible(cx->runtime());
-
-    
-    
-    
     ExecutionMode executionMode = gen->info().executionMode();
-
-    Linker linker(masm);
-    IonCode *code = (executionMode == SequentialExecution)
-                    ? linker.newCodeForIonScript(cx)
-                    : linker.newCode(cx, JSC::ION_CODE);
-    if (!code)
-        return false;
-
-    
-    encodeSafepoints();
-
-    JSScript *script = gen->info().script();
-    JS_ASSERT(!HasIonScript(script, executionMode));
 
     uint32_t scriptFrameSize = frameClass_ == FrameSizeClass::None()
                            ? frameDepth_
                            : FrameSizeClass::FromDepth(frameDepth_).frameSize();
 
     
-    
-    if (cx->compartment()->types.compiledInfo.compilerOutput(cx)->isInvalidated())
-        return true;
+    encodeSafepoints();
 
     
     
@@ -5597,6 +5574,31 @@ CodeGenerator::link()
                      cacheList_.length(), runtimeData_.length(),
                      safepoints_.size(), graph.mir().numScripts(),
                      callTargets.length(), patchableBackedges_.length());
+    if (!ionScript)
+        return false;
+
+    
+    
+    
+    
+    JSRuntime::AutoLockForOperationCallback lock(cx->runtime());
+
+    
+    
+    cx->runtime()->ionRuntime()->ensureIonCodeAccessible(cx->runtime());
+
+    
+    
+    
+    Linker linker(masm);
+    IonCode *code = (executionMode == SequentialExecution)
+                    ? linker.newCodeForIonScript(cx)
+                    : linker.newCode(cx, JSC::ION_CODE);
+    if (!code)
+        return false;
+
+    JSScript *script = gen->info().script();
+    JS_ASSERT(!HasIonScript(script, executionMode));
 
     ionScript->setMethod(code);
     ionScript->setSkipArgCheckEntryOffset(getSkipArgCheckEntryOffset());
@@ -5613,8 +5615,6 @@ CodeGenerator::link()
     if (callTargets.length() != 0)
         ionScript->setHasUncompiledCallTarget();
 
-    if (!ionScript)
-        return false;
     invalidateEpilogueData_.fixup(&masm);
     Assembler::patchDataWithValueCheck(CodeLocationLabel(code, invalidateEpilogueData_),
                                        ImmWord(uintptr_t(ionScript)),
