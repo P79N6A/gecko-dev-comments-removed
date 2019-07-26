@@ -31,6 +31,7 @@ const DELIVERY_SENDING = "sending";
 const DELIVERY_SENT = "sent";
 const DELIVERY_RECEIVED = "received";
 const DELIVERY_NOT_DOWNLOADED = "not-downloaded";
+const DELIVERY_ERROR = "error";
 
 const DELIVERY_STATUS_NOT_APPLICABLE = "not-applicable";
 const DELIVERY_STATUS_SUCCESS = "success";
@@ -105,6 +106,7 @@ function MobileMessageDatabaseService() {
       }
     };
   });
+  this.updatePendingTransactionToError();
 }
 MobileMessageDatabaseService.prototype = {
 
@@ -276,6 +278,79 @@ MobileMessageDatabaseService.prototype = {
         }
       }
       callback(null, txn, stores);
+    });
+  },
+
+  
+
+
+
+  updatePendingTransactionToError: function updatePendingTransactionToError() {
+    this.newTxn(READ_WRITE, function (error, txn, messageStore) {
+      if (DEBUG) {
+        txn.onerror = function onerror(event) {
+          debug("updatePendingTransactionToError fail, event = " + event);
+        };
+      }
+
+      let deliveryIndex = messageStore.index("delivery");
+
+      
+      
+      let keyRange = IDBKeyRange.bound([DELIVERY_SENDING, 0], [DELIVERY_SENDING, ""]);
+      let cursorRequestSending = deliveryIndex.openCursor(keyRange);
+      cursorRequestSending.onsuccess = function(event) {
+        let messageCursor = event.target.result;
+        if (!messageCursor) {
+          return;
+        }
+
+        let messageRecord = messageCursor.value;
+
+        
+        messageRecord.delivery = DELIVERY_ERROR;
+        messageRecord.deliveryIndex = [DELIVERY_ERROR, messageRecord.timestamp];
+
+        if (messageRecord.type == "sms") {
+          messageRecord.deliveryStatus = DELIVERY_STATUS_ERROR;
+        } else {
+          
+          for (let i = 0; i < messageRecord.deliveryStatus.length; i++) {
+            messageRecord.deliveryStatus[i] = DELIVERY_STATUS_ERROR;
+          }
+        }
+
+        messageCursor.update(messageRecord);
+        messageCursor.continue();
+      };
+
+      
+      
+      keyRange = IDBKeyRange.bound([DELIVERY_NOT_DOWNLOADED, 0], [DELIVERY_NOT_DOWNLOADED, ""]);
+      let cursorRequestNotDownloaded = deliveryIndex.openCursor(keyRange);
+      cursorRequestNotDownloaded.onsuccess = function(event) {
+        let messageCursor = event.target.result;
+        if (!messageCursor) {
+          return;
+        }
+
+        let messageRecord = messageCursor.value;
+
+        
+        if (messageRecord.type == "sms") {
+          messageCursor.continue();
+          return;
+        }
+
+        
+        if (messageRecord.deliveryStatus.length == 1 &&
+            messageRecord.deliveryStatus[0] == DELIVERY_STATUS_PENDING) {
+          messageRecord.deliveryStatus = [DELIVERY_STATUS_ERROR];
+        }
+
+        messageCursor.update(messageRecord);
+        messageCursor.continue();
+      };
     });
   },
 
