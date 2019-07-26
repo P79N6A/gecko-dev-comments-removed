@@ -29,19 +29,16 @@ bool
 WMFDecoder::IsMP3Supported()
 {
   MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
-#ifdef MOZ_DIRECTSHOW
-  if (DirectShowDecoder::IsEnabled()) {
-    
-    
-    return false;
-  }
-#endif
   if (!MediaDecoder::IsWMFEnabled()) {
     return false;
   }
+  
   if (!IsWin7OrLater()) {
     return true;
   }
+  
+  
+  
   
   
   return IsWin7SP1OrLater();
@@ -111,7 +108,9 @@ WMFDecoder::CanPlayType(const nsACString& aType,
 
   
   if (aType.EqualsASCII("audio/mp4") || aType.EqualsASCII("audio/x-m4a")) {
-    return !aCodecs.Length() || aCodecs.EqualsASCII("mp4a.40.2");
+    return !aCodecs.Length() ||
+           aCodecs.EqualsASCII("mp4a.40.2") ||
+           aCodecs.EqualsASCII("mp3");
   }
 
   if (!aType.EqualsASCII("video/mp4")) {
@@ -126,6 +125,7 @@ WMFDecoder::CanPlayType(const nsACString& aType,
     const nsSubstring& token = tokenizer.nextToken();
     expectMoreTokens = tokenizer.separatorAfterCurrentToken();
     if (token.EqualsASCII("mp4a.40.2") || 
+        token.EqualsASCII("mp3") ||
         IsSupportedH264Codec(token)) {
       continue;
     }

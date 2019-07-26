@@ -536,7 +536,7 @@ WMFReader::ReadMetadata(MediaInfo* aInfo,
   hr = GetSourceReaderDuration(mSourceReader, duration);
   if (SUCCEEDED(hr)) {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    mDecoder->SetMediaDuration(duration);
+    mDecoder->SetMediaEndTime(duration);
   }
   
   

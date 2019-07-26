@@ -404,6 +404,13 @@ DecoderTraits::CanHandleMediaType(const char* aMIMEType,
     }
   }
 #endif
+#ifdef MOZ_DIRECTSHOW
+  
+  
+  if (DirectShowDecoder::GetSupportedCodecs(nsDependentCString(aMIMEType), &codecList)) {
+    result = CANPLAY_MAYBE;
+  }
+#endif
 #ifdef MOZ_WMF
   if (IsWMFSupportedType(nsDependentCString(aMIMEType))) {
     if (!aHaveRequestedCodecs) {
@@ -412,11 +419,6 @@ DecoderTraits::CanHandleMediaType(const char* aMIMEType,
     return WMFDecoder::CanPlayType(nsDependentCString(aMIMEType),
                                    aRequestedCodecs)
            ? CANPLAY_YES : CANPLAY_NO;
-  }
-#endif
-#ifdef MOZ_DIRECTSHOW
-  if (DirectShowDecoder::GetSupportedCodecs(nsDependentCString(aMIMEType), &codecList)) {
-    result = CANPLAY_MAYBE;
   }
 #endif
 #ifdef MOZ_APPLEMEDIA
