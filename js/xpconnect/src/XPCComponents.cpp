@@ -3839,25 +3839,7 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
 {
     JS_AbortIfWrongThread(JS_GetRuntime(cx));
 
-#ifdef DEBUG
-    
-    {
-        nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
-        if (ssm) {
-            JSStackFrame *fp;
-            nsIPrincipal *subjectPrincipal =
-                ssm->GetCxSubjectPrincipalAndFrame(cx, &fp);
-            bool system;
-            ssm->IsSystemPrincipal(subjectPrincipal, &system);
-            if (fp && !system) {
-                ssm->IsCapabilityEnabled("UniversalXPConnect", &system);
-                NS_ASSERTION(system, "Bad caller!");
-            }
-        }
-    }
-#endif
-
-    sandbox = XPCWrapper::UnsafeUnwrapSecurityWrapper(sandbox);
+    sandbox = js::UnwrapObjectChecked(cx, sandbox);
     if (!sandbox || js::GetObjectJSClass(sandbox) != &SandboxClass) {
         return NS_ERROR_INVALID_ARG;
     }
