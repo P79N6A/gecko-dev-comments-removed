@@ -809,7 +809,8 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
 
   JS::Rooted<JSObject*> scope(cx, listener->GetEventScope());
 
-  nsIAtom* attrName = aListenerStruct->mTypeAtom;
+  nsCOMPtr<nsIAtom> typeAtom = aListenerStruct->mTypeAtom;
+  nsIAtom* attrName = typeAtom;
 
   if (aListenerStruct->mHandlerIsString) {
     
@@ -850,6 +851,7 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
       body = &handlerBody;
       aElement = element;
     }
+    aListenerStruct = nullptr;
 
     uint32_t lineNo = 0;
     nsAutoCString url (NS_LITERAL_CSTRING("-moz-evil:lying-event-listener"));
@@ -864,7 +866,7 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     uint32_t argCount;
     const char **argNames;
     nsContentUtils::GetEventArgNames(aElement->GetNameSpaceID(),
-                                     aListenerStruct->mTypeAtom,
+                                     typeAtom,
                                      &argCount, &argNames);
 
     JSAutoCompartment ac(cx, context->GetWindowProxy());
@@ -894,11 +896,13 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
 
     JS::Rooted<JSObject*> handlerFun(cx);
     result = nsJSUtils::CompileFunction(cx, JS::NullPtr(), options,
-                                        nsAtomCString(aListenerStruct->mTypeAtom),
+                                        nsAtomCString(typeAtom),
                                         argCount, argNames, *body, handlerFun.address());
     NS_ENSURE_SUCCESS(result, result);
     handler = handlerFun;
     NS_ENSURE_TRUE(handler, NS_ERROR_FAILURE);
+  } else {
+    aListenerStruct = nullptr;
   }
 
   if (handler) {
@@ -906,7 +910,6 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     
     JS::Rooted<JSObject*> boundHandler(cx);
     context->BindCompiledEventHandler(mTarget, scope, handler, &boundHandler);
-    aListenerStruct = nullptr;
     
     
     
