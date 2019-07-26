@@ -81,7 +81,11 @@ public:
 
   virtual nsMargin GetDesiredScrollbarSizes(nsPresContext* aPresContext,
                                             nsRenderingContext* aRC) = 0;
+  
 
+
+  virtual nscoord GetNondisappearingScrollbarWidth(nsPresContext* aPresContext,
+                                                   nsRenderingContext* aRC) = 0;
   
 
 
