@@ -5695,7 +5695,10 @@ var XPInstallObserver = {
         if (!tab)
           return;
 
-        let host = installInfo.originatingURI.host;
+        let host = null;
+        if (installInfo.originatingURI) {
+          host = installInfo.originatingURI.host;
+        }
 
         let brandShortName = Strings.brand.GetStringFromName("brandShortName");
         let notificationName, buttons, message;
@@ -5723,7 +5726,23 @@ var XPInstallObserver = {
           }
         } else {
           notificationName = "xpinstall";
-          message = strings.formatStringFromName("xpinstallPromptWarning2", [brandShortName, host], 2);
+          if (host) {
+            
+            message = strings.formatStringFromName("xpinstallPromptWarning2", [brandShortName, host], 2);
+          } else {
+            
+            let addon = null;
+            if (installInfo.installs.length > 0) {
+              addon = installInfo.installs[0].name;
+            }
+            if (addon) {
+              
+              message = strings.formatStringFromName("xpinstallPromptWarningLocal", [brandShortName, addon], 2);
+            } else {
+              
+              message = strings.formatStringFromName("xpinstallPromptWarningDirect", [brandShortName], 1);
+            }
+          }
 
           buttons = [{
             label: strings.GetStringFromName("xpinstallPromptAllowButton"),

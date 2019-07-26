@@ -67,6 +67,8 @@ const PREF_EM_AUTO_DISABLED_SCOPES    = "extensions.autoDisableScopes";
 const PREF_EM_SHOW_MISMATCH_UI        = "extensions.showMismatchUI";
 const PREF_XPI_ENABLED                = "xpinstall.enabled";
 const PREF_XPI_WHITELIST_REQUIRED     = "xpinstall.whitelist.required";
+const PREF_XPI_DIRECT_WHITELISTED     = "xpinstall.whitelist.directRequest";
+const PREF_XPI_FILE_WHITELISTED       = "xpinstall.whitelist.fileRequest";
 const PREF_XPI_PERMISSIONS_BRANCH     = "xpinstall.";
 const PREF_XPI_UNPACK                 = "extensions.alwaysUnpack";
 const PREF_INSTALL_REQUIREBUILTINCERTS = "extensions.install.requireBuiltInCerts";
@@ -3451,16 +3453,40 @@ var XPIProvider = {
 
 
 
+  isDirectRequestWhitelisted: function XPI_isDirectRequestWhitelisted() {
+    
+    return Prefs.getBoolPref(PREF_XPI_DIRECT_WHITELISTED, true);
+  },
+
+  
+
+
+
+
+
+  isFileRequestWhitelisted: function XPI_isFileRequestWhitelisted() {
+    
+    return Prefs.getBoolPref(PREF_XPI_FILE_WHITELISTED, true);
+  },
+
+  
+
+
+
+
+
 
   isInstallAllowed: function XPI_isInstallAllowed(aUri) {
     if (!this.isInstallEnabled())
       return false;
 
+    
     if (!aUri)
-      return true;
+      return this.isDirectRequestWhitelisted();
 
     
-    if (aUri.schemeIs("chrome") || aUri.schemeIs("file"))
+    if (this.isFileRequestWhitelisted() &&
+        (aUri.schemeIs("chrome") || aUri.schemeIs("file")))
       return true;
 
     this.importPermissions();
