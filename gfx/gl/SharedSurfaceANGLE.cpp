@@ -1,7 +1,7 @@
-/* -*- Mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40; -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "SharedSurfaceANGLE.h"
 
@@ -11,10 +11,6 @@ using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace gl {
-
-class GLContextEGL;
-void SetEGLSurfaceOverride(GLContextEGL* context, EGLSurface surf);
-GLContextEGL* DowncastGLContextEGL(GLContext* context);
 
 SurfaceFactory_ANGLEShareHandle*
 SurfaceFactory_ANGLEShareHandle::Create(GLContext* gl,
@@ -49,7 +45,7 @@ SharedSurface_ANGLEShareHandle::~SharedSurface_ANGLEShareHandle()
 void
 SharedSurface_ANGLEShareHandle::LockProdImpl()
 {
-    SetEGLSurfaceOverride(DowncastGLContextEGL(mGL), mPBuffer);
+    GLContextEGL::Cast(mGL)->SetEGLSurfaceOverride(mPBuffer);
 }
 
 void
@@ -67,7 +63,7 @@ SharedSurface_ANGLEShareHandle::Fence()
 bool
 SharedSurface_ANGLEShareHandle::WaitSync()
 {
-    // Since we glFinish in Fence(), we're always going to be resolved here.
+    
     return true;
 }
 
@@ -139,17 +135,17 @@ ChooseConfig(GLContext* gl,
     MOZ_ASSERT(egl);
     MOZ_ASSERT(caps.color);
 
-    // We might want 24-bit depth, but we're only (fairly) sure to get 16-bit.
+    
     int depthBits = caps.depth ? 16 : 0;
     int stencilBits = caps.stencil ? 8 : 0;
 
-    // Ok, now we have everything.
+    
     nsTArray<EGLint> attribs(32);
     FillPBufferAttribs_BySizes(attribs,
                                caps.bpp16, caps.alpha,
                                depthBits, stencilBits);
 
-    // Time to try to get this config:
+    
     EGLConfig configs[64];
     int numConfigs = sizeof(configs)/sizeof(EGLConfig);
     int foundConfigs = 0;
@@ -164,8 +160,8 @@ ChooseConfig(GLContext* gl,
         return EGL_NO_CONFIG;
     }
 
-    // TODO: Pick a config progamatically instead of hoping that
-    // the first config will be minimally matching our request.
+    
+    
     EGLConfig config = configs[0];
 
     if (gl->DebugMode()) {
@@ -176,7 +172,7 @@ ChooseConfig(GLContext* gl,
 }
 
 
-// Returns EGL_NO_SURFACE on error.
+
 static EGLSurface CreatePBufferSurface(GLLibraryEGL* egl,
                                        EGLDisplay display,
                                        EGLConfig config,
@@ -212,17 +208,17 @@ SharedSurface_ANGLEShareHandle::Create(GLContext* gl, ID3D10Device1* d3d,
         return nullptr;
 
 
-    // Declare everything before 'goto's.
+    
     HANDLE shareHandle = nullptr;
     nsRefPtr<ID3D10Texture2D> texture;
     nsRefPtr<ID3D10ShaderResourceView> srv;
 
-    // On failure, goto CleanUpIfFailed.
-    // If |failed|, CleanUpIfFailed will clean up and return null.
+    
+    
     bool failed = true;
     HRESULT hr;
 
-    // Off to the races!
+    
     if (!egl->fQuerySurfacePointerANGLE(
             display,
             pbuffer,
@@ -233,8 +229,8 @@ SharedSurface_ANGLEShareHandle::Create(GLContext* gl, ID3D10Device1* d3d,
         goto CleanUpIfFailed;
     }
 
-    // Ok, we have a valid PBuffer with ShareHandle.
-    // Let's attach it to D3D.
+    
+    
     hr = d3d->OpenSharedResource(shareHandle,
                                  __uuidof(ID3D10Texture2D),
                                  getter_AddRefs(texture));
@@ -279,5 +275,5 @@ SurfaceFactory_ANGLEShareHandle::SurfaceFactory_ANGLEShareHandle(GLContext* gl,
     MOZ_ASSERT(mConfig && mContext);
 }
 
-} /* namespace gl */
-} /* namespace mozilla */
+} 
+} 
