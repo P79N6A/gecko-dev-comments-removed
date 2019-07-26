@@ -261,8 +261,13 @@ ion::CanEnterBaselineJIT(JSContext *cx, JSScript *scriptArg, StackFrame *fp, boo
 
     
     
-    if (scriptArg->incUseCount() <= js_IonOptions.baselineUsesBeforeCompile && !IsJSDEnabled(cx))
+    
+    if (IsJSDEnabled(cx)) {
+        if (JSOp(*cx->regs().pc) == JSOP_LOOPENTRY) 
+            return Method_Skipped;
+    } else if (scriptArg->incUseCount() <= js_IonOptions.baselineUsesBeforeCompile) {
         return Method_Skipped;
+    }
 
     if (script->isCallsiteClone) {
         
