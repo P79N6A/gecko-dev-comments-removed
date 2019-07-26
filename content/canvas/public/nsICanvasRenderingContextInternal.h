@@ -54,6 +54,12 @@ public:
     return mCanvasElement;
   }
 
+#ifdef DEBUG
+    
+    virtual int32_t GetWidth() const = 0;
+    virtual int32_t GetHeight() const = 0;
+#endif
+
   
   
   NS_IMETHOD SetDimensions(int32_t width, int32_t height) = 0;
