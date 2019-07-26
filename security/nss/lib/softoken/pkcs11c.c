@@ -305,6 +305,46 @@ GetHashTypeFromMechanism(CK_MECHANISM_TYPE mech)
 
 
 
+static PRBool
+sftk_ValidatePssParams(const CK_RSA_PKCS_PSS_PARAMS *params)
+{
+    if (!params) {
+        return PR_FALSE;
+    }
+    if (GetHashTypeFromMechanism(params->hashAlg) == HASH_AlgNULL ||
+        GetHashTypeFromMechanism(params->mgf) == HASH_AlgNULL) {
+        return PR_FALSE;
+    }
+    return PR_TRUE;
+}
+
+
+
+
+static PRBool
+sftk_ValidateOaepParams(const CK_RSA_PKCS_OAEP_PARAMS *params)
+{
+    if (!params) {
+        return PR_FALSE;
+    }
+    
+
+
+
+
+    if (params->source != CKZ_DATA_SPECIFIED ||
+        (GetHashTypeFromMechanism(params->hashAlg) == HASH_AlgNULL) ||
+        (GetHashTypeFromMechanism(params->mgf) == HASH_AlgNULL) ||
+        (params->ulSourceDataLen == 0 && params->pSourceData != NULL) ||
+        (params->ulSourceDataLen != 0 && params->pSourceData == NULL)) {
+        return PR_FALSE;
+    }
+    return PR_TRUE;
+}
+
+
+
+
 SFTKSessionContext *
 sftk_ReturnContextByType(SFTKSession *session, SFTKContextType type)
 {
@@ -588,11 +628,6 @@ sftk_RSAEncryptOAEP(SFTKOAEPEncryptInfo *info, unsigned char *output,
     hashAlg = GetHashTypeFromMechanism(info->params->hashAlg);
     maskHashAlg = GetHashTypeFromMechanism(info->params->mgf);
 
-    if (info->params->source != CKZ_DATA_SPECIFIED) {
-        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
-        return SECFailure;
-    }
-
     return RSA_EncryptOAEP(&info->key->u.rsa, hashAlg, maskHashAlg,
                            (const unsigned char*)info->params->pSourceData,
                            info->params->ulSourceDataLen, NULL, 0,
@@ -616,11 +651,6 @@ sftk_RSADecryptOAEP(SFTKOAEPDecryptInfo *info, unsigned char *output,
 
     hashAlg = GetHashTypeFromMechanism(info->params->hashAlg);
     maskHashAlg = GetHashTypeFromMechanism(info->params->mgf);
-
-    if (info->params->source != CKZ_DATA_SPECIFIED) {
-        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
-        return SECFailure;
-    }
 
     rv = RSA_DecryptOAEP(&info->key->u.rsa, hashAlg, maskHashAlg,
                          (const unsigned char*)info->params->pSourceData,
@@ -710,55 +740,53 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	}
 	context->destroy = sftk_Null;
 	break;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    case CKM_RSA_PKCS_OAEP:
+	if (key_type != CKK_RSA) {
+	    crv = CKR_KEY_TYPE_INCONSISTENT;
+	    break;
+	}
+	if (pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_OAEP_PARAMS) ||
+	    !sftk_ValidateOaepParams((CK_RSA_PKCS_OAEP_PARAMS*)pMechanism->pParameter)) {
+	    crv = CKR_MECHANISM_PARAM_INVALID;
+	    break;
+	}
+	context->multi = PR_FALSE;
+	context->rsa = PR_TRUE;
+	if (isEncrypt) {
+	    SFTKOAEPEncryptInfo *info = PORT_New(SFTKOAEPEncryptInfo);
+	    if (info == NULL) {
+	        crv = CKR_HOST_MEMORY;
+	        break;
+	    }
+	    info->params = pMechanism->pParameter;
+	    info->key = sftk_GetPubKey(key, CKK_RSA, &crv);
+	    if (info->key == NULL) {
+	        PORT_Free(info);
+	        crv = CKR_KEY_HANDLE_INVALID;
+	        break;
+	    }
+	    context->update = (SFTKCipher) sftk_RSAEncryptOAEP;
+	    context->maxLen = nsslowkey_PublicModulusLen(info->key);
+	    context->cipherInfo = info;
+	} else {
+	    SFTKOAEPDecryptInfo *info = PORT_New(SFTKOAEPDecryptInfo);
+	    if (info == NULL) {
+	        crv = CKR_HOST_MEMORY;
+	        break;
+	    }
+	    info->params = pMechanism->pParameter;
+	    info->key = sftk_GetPrivKey(key, CKK_RSA, &crv);
+	    if (info->key == NULL) {
+	        PORT_Free(info);
+	        crv = CKR_KEY_HANDLE_INVALID;
+	        break;
+	    }
+	    context->update = (SFTKCipher) sftk_RSADecryptOAEP;
+	    context->maxLen = nsslowkey_PrivateModulusLen(info->key);
+	    context->cipherInfo = info;
+	}
+	context->destroy = (SFTKDestroy) sftk_Space;
+	break;
     case CKM_RC2_CBC_PAD:
 	context->doPad = PR_TRUE;
 	
@@ -2386,7 +2414,8 @@ finish_rsa:
 	    break;
 	} 
 	context->rsa = PR_TRUE;
-	if (pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+	if (pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS) ||
+	    !sftk_ValidatePssParams((const CK_RSA_PKCS_PSS_PARAMS*)pMechanism->pParameter)) {
 	    crv = CKR_MECHANISM_PARAM_INVALID;
 	    break;
 	}
@@ -3023,7 +3052,8 @@ finish_rsa:
 	    break;
 	} 
 	context->rsa = PR_TRUE;
-	if (pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+	if (pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS) ||
+	    !sftk_ValidatePssParams((const CK_RSA_PKCS_PSS_PARAMS*)pMechanism->pParameter)) {
 	    crv = CKR_MECHANISM_PARAM_INVALID;
 	    break;
 	}

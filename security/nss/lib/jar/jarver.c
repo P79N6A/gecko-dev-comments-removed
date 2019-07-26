@@ -14,12 +14,7 @@
 #include "certdb.h"
 #include "certt.h"
 #include "secpkcs7.h"
-
-
 #include "secder.h"
-
-
-#define CERTDB_USER (1<<6)
 
 #define SZ 512
 
