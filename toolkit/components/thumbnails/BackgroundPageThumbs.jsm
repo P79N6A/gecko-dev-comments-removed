@@ -2,13 +2,6 @@
 
 
 
-
-
-
-
-
-
-
 const EXPORTED_SYMBOLS = [
   "BackgroundPageThumbs",
 ];
@@ -51,11 +44,6 @@ const BackgroundPageThumbs = {
 
 
 
-
-
-
-
-
   capture: function (url, options={}) {
     if (!PageThumbs._prefEnabled()) {
       if (options.onDone)
@@ -83,11 +71,6 @@ const BackgroundPageThumbs = {
   },
 
   
-
-
-
-
-
 
 
 
