@@ -79,15 +79,15 @@ public:
   gfxASurface::gfxImageFormat format;
 
   
-  uint8_t *mHeaderBuf;
-  uint32_t mHeaderBytesRead;
+  PRUint8  mSizeBytes[8]; 
+  PRUint32 mHeaderBytesRead;
+
+  
+  uint32_t mCMSMode;
 
   uint8_t mChannels;
   bool mFrameHasNoAlpha;
   bool mFrameIsHidden;
-
-  
-  uint32_t mCMSMode;
   bool mDisablePremultipliedAlpha;
 
   struct AnimFrameInfo
