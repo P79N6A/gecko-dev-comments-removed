@@ -33,6 +33,7 @@
 #include "nsLayoutUtils.h"
 #include "nsViewManager.h"
 #include "RestyleManager.h"
+#include "SurfaceCache.h"
 #include "nsCSSRuleProcessor.h"
 #include "nsRuleNode.h"
 #include "gfxPlatform.h"
@@ -1710,10 +1711,15 @@ nsPresContext::ThemeChangedInternal()
     sThemeChanged = false;
   }
 
-  
   if (sLookAndFeelChanged) {
+    
     LookAndFeel::Refresh();
     sLookAndFeelChanged = false;
+
+    
+    
+    
+    mozilla::image::SurfaceCache::DiscardAll();
   }
 
   
