@@ -98,6 +98,8 @@ this.startup = function(window) {
 
     yield WebappRT.loadConfig();
 
+    let appData = WebappRT.config.app;
+
     
     Cu.import("resource://gre/modules/Webapps.jsm");
     
@@ -105,13 +107,16 @@ this.startup = function(window) {
 
     
     yield DOMApplicationRegistry.registryStarted;
+    
+    yield DOMApplicationRegistry.addInstalledApp(appData, appData.manifest,
+                                                 appData.updateManifest);
 
-    let manifestURL = WebappRT.config.app.manifestURL;
+    let manifestURL = appData.manifestURL;
     if (manifestURL) {
       
       
       if (isFirstRunOrUpdate(Services.prefs) || appUpdated) {
-        PermissionsInstaller.installPermissions(WebappRT.config.app, true);
+        PermissionsInstaller.installPermissions(appData, true);
         yield createBrandingFiles();
       }
     }
@@ -137,7 +142,7 @@ this.startup = function(window) {
     appBrowser.docShell.setIsApp(WebappRT.appID);
     appBrowser.setAttribute("src", WebappRT.launchURI);
 
-    if (WebappRT.config.app.manifest.fullscreen) {
+    if (appData.manifest.fullscreen) {
       appBrowser.addEventListener("load", function onLoad() {
         appBrowser.removeEventListener("load", onLoad, true);
         appBrowser.contentDocument.
