@@ -4263,12 +4263,6 @@ var TabsInTitlebar = {
   },
 
   _onMenuMutate: function (aMutations) {
-    
-    
-    if (document.documentElement.getAttribute("sizemode") == "normal") {
-      return;
-    }
-
     for (let mutation of aMutations) {
       if (mutation.attributeName == "inactive" ||
           mutation.attributeName == "autohide") {
