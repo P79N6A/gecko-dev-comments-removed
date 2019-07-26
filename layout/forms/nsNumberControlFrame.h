@@ -14,6 +14,7 @@
 class nsPresContext;
 
 namespace mozilla {
+class WidgetGUIEvent;
 namespace dom {
 class HTMLInputElement;
 }
@@ -29,6 +30,7 @@ class nsNumberControlFrame MOZ_FINAL : public nsContainerFrame
   NS_NewNumberControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
   typedef mozilla::dom::HTMLInputElement HTMLInputElement;
+  typedef mozilla::WidgetGUIEvent WidgetGUIEvent;
 
   nsNumberControlFrame(nsStyleContext* aContext);
 
@@ -85,6 +87,19 @@ public:
   }
 
   HTMLInputElement* GetAnonTextControl();
+
+  enum SpinButtonEnum {
+    eSpinButtonNone,
+    eSpinButtonUp,
+    eSpinButtonDown
+  };
+
+  
+
+
+
+
+  int32_t GetSpinButtonForPointerEvent(WidgetGUIEvent* aEvent) const;
 
 private:
 
