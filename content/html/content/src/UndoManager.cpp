@@ -252,11 +252,19 @@ UndoTextChanged::RedoTransaction()
   }
 
   if (mChange.mAppend) {
-    mContent->AppendText(mRedoValue.get(), mRedoValue.Length(), true);
+    
+    
+    if (text.Length() == mChange.mChangeStart) {
+      mContent->AppendText(mRedoValue.get(), mRedoValue.Length(), true);
+    }
   } else {
     int32_t numReplaced = mChange.mChangeEnd - mChange.mChangeStart;
-    text.Replace(mChange.mChangeStart, numReplaced, mRedoValue);
-    mContent->SetText(text, true);
+    
+    
+    if (mChange.mChangeStart + numReplaced <= text.Length()) {
+      text.Replace(mChange.mChangeStart, numReplaced, mRedoValue);
+      mContent->SetText(text, true);
+    }
   }
 
   return NS_OK;
@@ -275,9 +283,17 @@ UndoTextChanged::UndoTransaction()
   }
 
   if (mChange.mAppend) {
-    text.Truncate(text.Length() - mRedoValue.Length());
+    
+    
+    if (mRedoValue.Length() <= text.Length()) {
+      text.Truncate(text.Length() - mRedoValue.Length());
+    }
   } else {
-    text.Replace(mChange.mChangeStart, mRedoValue.Length(), mUndoValue);
+    
+    
+    if (mChange.mChangeStart + mChange.mReplaceLength <= text.Length()) {
+      text.Replace(mChange.mChangeStart, mChange.mReplaceLength, mUndoValue);
+    }
   }
   mContent->SetText(text, true);
 
@@ -288,7 +304,12 @@ void
 UndoTextChanged::SaveRedoState()
 {
   const nsTextFragment* text = mContent->GetText();
-  text->AppendTo(mRedoValue, mChange.mChangeStart, mChange.mReplaceLength);
+  mRedoValue.Truncate();
+  
+  
+  if (mChange.mChangeStart + mChange.mReplaceLength <= text->GetLength()) {
+    text->AppendTo(mRedoValue, mChange.mChangeStart, mChange.mReplaceLength);
+  }
 }
 
 
