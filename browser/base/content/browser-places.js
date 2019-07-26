@@ -922,7 +922,6 @@ let PlacesToolbarHelper = {
     if (forceToolbarOverflowCheck) {
       viewElt._placesView.updateOverflowStatus();
     }
-    this._shouldWrap = false;
     this._setupPlaceholder();
   },
 
@@ -1545,6 +1544,10 @@ let BookmarkingUI = {
       viewToolbar.removeAttribute("checked");
     else
       viewToolbar.setAttribute("checked", "true");
+    
+    let staticButtons = viewToolbar.parentNode.getElementsByTagName("toolbarbutton");
+    for (let i = 0, l = staticButtons.length; i < l; ++i)
+      CustomizableUI.addShortcut(staticButtons[i]);
     
     this._panelMenuView = new PlacesPanelMenuView("place:folder=BOOKMARKS_MENU",
                                                   "panelMenu_bookmarksMenu",

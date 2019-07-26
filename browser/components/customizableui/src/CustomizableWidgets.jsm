@@ -20,6 +20,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
   "resource://gre/modules/ShortcutUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CharsetMenu",
   "resource://gre/modules/CharsetMenu.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "CharsetManager",
+                                   "@mozilla.org/charset-converter-manager;1",
+                                   "nsICharsetConverterManager");
 
 XPCOMUtils.defineLazyGetter(this, "CharsetBundle", function() {
   const kCharsetBundle = "chrome://global/locale/charsetMenu.properties";
@@ -78,18 +81,6 @@ function updateCombinedWidgetStyle(aNode, aArea, aModifyCloseMenu) {
   }
 }
 
-function addShortcut(aNode, aDocument, aItem) {
-  let shortcutId = aNode.getAttribute("key");
-  if (!shortcutId) {
-    return;
-  }
-  let shortcut = aDocument.getElementById(shortcutId);
-  if (!shortcut) {
-    return;
-  }
-  aItem.setAttribute("shortcut", ShortcutUtils.prettifyShortcut(shortcut));
-}
-
 function fillSubviewFromMenuItems(aMenuItems, aSubview) {
   let attrs = ["oncommand", "onclick", "label", "key", "disabled",
                "command", "observes", "hidden", "class", "origin",
@@ -111,7 +102,7 @@ function fillSubviewFromMenuItems(aMenuItems, aSubview) {
       subviewItem = doc.createElementNS(kNSXUL, "menuseparator");
     } else if (menuChild.localName == "menuitem") {
       subviewItem = doc.createElementNS(kNSXUL, "toolbarbutton");
-      addShortcut(menuChild, doc, subviewItem);
+      CustomizableUI.addShortcut(menuChild, subviewItem);
     } else {
       continue;
     }
@@ -168,6 +159,11 @@ const CustomizableWidgets = [{
       while (items.firstChild) {
         items.removeChild(items.firstChild);
       }
+
+      
+      let staticButtons = items.parentNode.getElementsByTagNameNS(kNSXUL, "toolbarbutton");
+      for (let i = 0, l = staticButtons.length; i < l; ++i)
+        CustomizableUI.addShortcut(staticButtons[i]);
 
       PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
                          .asyncExecuteLegacyQueries([query], 1, options, {
