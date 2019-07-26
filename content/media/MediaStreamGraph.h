@@ -261,7 +261,6 @@ public:
     , mGraphUpdateIndices(0)
     , mFinished(false)
     , mNotifiedFinished(false)
-    , mNotifiedBlocked(false)
     , mWrapper(aWrapper)
     , mMainThreadCurrentTime(0)
     , mMainThreadFinished(false)
@@ -458,11 +457,6 @@ protected:
 
 
   bool mNotifiedFinished;
-  
-
-
-
-  bool mNotifiedBlocked;
 
   
   bool mHasBeenOrdered;
