@@ -102,7 +102,9 @@ public:
 
 
 
-  static void SetInputContext(nsWindow* aWindow, InputContext& aInputContext);
+  static void SetInputContext(nsWindow* aWindow,
+                              InputContext& aInputContext,
+                              const InputContextAction& aAction);
 
   
 

@@ -253,7 +253,9 @@ IMEHandler::OnDestroyWindow(nsWindow* aWindow)
 
 
 void
-IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext)
+IMEHandler::SetInputContext(nsWindow* aWindow,
+                            InputContext& aInputContext,
+                            const InputContextAction& aAction)
 {
   
   NotifyIME(aWindow, REQUEST_TO_COMMIT_COMPOSITION);
@@ -272,12 +274,14 @@ IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext)
 #ifdef NS_ENABLE_TSF
   
   if (sIsInTSFMode) {
-    nsTextStore::SetInputContext(aInputContext);
+    nsTextStore::SetInputContext(aWindow, aInputContext, aAction);
     if (IsTSFAvailable()) {
       aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
+      if (adjustOpenState) {
+        nsTextStore::SetIMEOpenState(open);
+      }
+      return;
     }
-    
-    
   }
 #endif 
 
@@ -298,12 +302,6 @@ IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext)
   }
 
   if (adjustOpenState) {
-#ifdef NS_ENABLE_TSF
-    if (IsTSFAvailable()) {
-      nsTextStore::SetIMEOpenState(open);
-      return;
-    }
-#endif 
     IMEContext.SetOpenState(open);
   }
 }
@@ -317,7 +315,9 @@ IMEHandler::InitInputContext(nsWindow* aWindow, InputContext& aInputContext)
 
 #ifdef NS_ENABLE_TSF
   if (sIsInTSFMode) {
-    nsTextStore::SetInputContext(aInputContext);
+    nsTextStore::SetInputContext(aWindow, aInputContext,
+      InputContextAction(InputContextAction::CAUSE_UNKNOWN,
+                         InputContextAction::GOT_FOCUS));
     aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
     MOZ_ASSERT(aInputContext.mNativeIMEContext);
     return;
