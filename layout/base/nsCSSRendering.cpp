@@ -1233,20 +1233,23 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
     shadowGfxRectPlusBlur.RoundOut();
 
     gfxContext* renderContext = aRenderingContext.ThebesContext();
-    nsRefPtr<gfxContext> shadowContext;
     nsContextBoxBlur blurringArea;
 
     
     
     
     
-    shadowContext = 
+    gfxContext* shadowContext =
       blurringArea.Init(shadowRect, pixelSpreadRadius,
                         blurRadius, twipsPerPixel, renderContext, aDirtyRect,
                         useSkipGfxRect ? &skipGfxRect : nullptr,
                         nativeTheme ? nsContextBoxBlur::FORCE_MASK : 0);
     if (!shadowContext)
       continue;
+
+    
+    MOZ_ASSERT(shadowContext == renderContext ||
+               shadowContext == blurringArea.GetContext());
 
     
     nscolor shadowColor;
