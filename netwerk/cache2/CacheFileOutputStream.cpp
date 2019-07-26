@@ -391,5 +391,18 @@ CacheFileOutputStream::NotifyListener()
   asyncCallback->OnOutputStreamReady(this);
 }
 
+
+
+size_t
+CacheFileOutputStream::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+{
+  
+  
+  
+  
+  
+  return mallocSizeOf(this);
+}
+
 } 
 } 
