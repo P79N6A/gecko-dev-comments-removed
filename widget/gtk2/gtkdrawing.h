@@ -162,8 +162,6 @@ typedef enum {
   
   MOZ_GTK_TREEVIEW_EXPANDER,
   
-  MOZ_GTK_EXPANDER,
-  
   MOZ_GTK_MENUBAR,
   
   MOZ_GTK_MENUPOPUP,
