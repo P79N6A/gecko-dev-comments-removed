@@ -404,6 +404,14 @@ public:
 
 #define NS_INIT_ISUPPORTS() ((void)0)
 
+namespace mozilla {
+template <typename T>
+struct HasDangerousPublicDestructor
+{
+  static const bool value = false;
+};
+}
+
 
 
 
