@@ -286,10 +286,10 @@ public:
   NS_DECL_NSIDOMEVENTLISTENER
 
   
-  virtual nsIContent* Rollup(PRUint32 aCount, bool aGetLastRolledUp = false);
+  virtual nsIContent* Rollup(uint32_t aCount, bool aGetLastRolledUp = false);
   virtual bool ShouldRollupOnMouseWheelEvent();
   virtual bool ShouldRollupOnMouseActivate();
-  virtual PRUint32 GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain);
+  virtual uint32_t GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain);
   virtual void NotifyGeometryChange() {}
 
   static nsXULPopupManager* sInstance;
@@ -351,7 +351,7 @@ public:
   
   
   
-  void GetMouseLocation(nsIDOMNode** aNode, PRInt32* aOffset);
+  void GetMouseLocation(nsIDOMNode** aNode, int32_t* aOffset);
 
   
 
@@ -375,7 +375,7 @@ public:
   void ShowPopup(nsIContent* aPopup,
                  nsIContent* aAnchorContent,
                  const nsAString& aPosition,
-                 PRInt32 aXPos, PRInt32 aYPos,
+                 int32_t aXPos, int32_t aYPos,
                  bool aIsContextMenu,
                  bool aAttributesOverride,
                  bool aSelectFirstItem,
@@ -392,7 +392,7 @@ public:
 
 
   void ShowPopupAtScreen(nsIContent* aPopup,
-                         PRInt32 aXPos, PRInt32 aYPos,
+                         int32_t aXPos, int32_t aYPos,
                          bool aIsContextMenu,
                          nsIDOMEvent* aTriggerEvent);
 
@@ -404,7 +404,7 @@ public:
 
   void ShowTooltipAtScreen(nsIContent* aPopup,
                            nsIContent* aTriggerContent,
-                           PRInt32 aXPos, PRInt32 aYPos);
+                           int32_t aXPos, int32_t aYPos);
 
   
 
@@ -416,7 +416,7 @@ public:
                                 nsIContent* aAnchorContent,
                                 nsAString& aAnchor,
                                 nsAString& aAlign,
-                                PRInt32 aXPos, PRInt32 aYPos,
+                                int32_t aXPos, int32_t aYPos,
                                 bool aIsContextMenu);
 
   
@@ -577,7 +577,7 @@ public:
 
 
 
-  bool HandleKeyboardNavigation(PRUint32 aKeyCode);
+  bool HandleKeyboardNavigation(uint32_t aKeyCode);
 
   
 
@@ -721,7 +721,7 @@ protected:
 
   
   nsCOMPtr<nsIDOMNode> mRangeParent;
-  PRInt32 mRangeOffset;
+  int32_t mRangeOffset;
   
   
   nsIntPoint mCachedMousePoint;

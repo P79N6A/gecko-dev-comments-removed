@@ -23,7 +23,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    nsTreeSanitizer(PRUint32 aFlags = 0);
+    nsTreeSanitizer(uint32_t aFlags = 0);
 
     static void InitializeStatics();
     static void ReleaseStatics();
@@ -91,7 +91,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    bool MustFlatten(PRInt32 aNamespace, nsIAtom* aLocal);
+    bool MustFlatten(int32_t aNamespace, nsIAtom* aLocal);
 
     
 
@@ -101,7 +101,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    bool MustPrune(PRInt32 aNamespace,
+    bool MustPrune(int32_t aNamespace,
                      nsIAtom* aLocal,
                      mozilla::dom::Element* aElement);
 
@@ -145,7 +145,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
     bool SanitizeURL(mozilla::dom::Element* aElement,
-                       PRInt32 aNamespace,
+                       int32_t aNamespace,
                        nsIAtom* aLocalName);
 
     

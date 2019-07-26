@@ -32,7 +32,7 @@ public:
     NOT_MAIN_THREAD
   };
 
-  nsThread(MainThreadFlag aMainThread, PRUint32 aStackSize);
+  nsThread(MainThreadFlag aMainThread, uint32_t aStackSize);
 
   
   nsresult Init();
@@ -86,10 +86,10 @@ private:
 
   nsEventQueue  mEvents;
 
-  PRInt32   mPriority;
+  int32_t   mPriority;
   PRThread *mThread;
-  PRUint32  mRunningEvent;  
-  PRUint32  mStackSize;
+  uint32_t  mRunningEvent;  
+  uint32_t  mStackSize;
 
   struct nsThreadShutdownContext *mShutdownContext;
 

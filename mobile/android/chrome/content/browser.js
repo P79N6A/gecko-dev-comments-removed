@@ -3415,6 +3415,13 @@ var BrowserEventHandler = {
     
     const minDifference = -20;
     const maxDifference = 20;
+    const maxZoomAllowed = 4; 
+
+    if (Math.abs(aViewport.zoom - maxZoomAllowed) < 1e-6) {
+      
+      
+      return true;
+    }
 
     let vRect = new Rect(aViewport.cssX, aViewport.cssY, aViewport.cssWidth, aViewport.cssHeight);
     let overlap = vRect.intersect(aRect);

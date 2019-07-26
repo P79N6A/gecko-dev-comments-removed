@@ -88,7 +88,7 @@ nsIdleServiceDaily::Observe(nsISupports *,
 
   
   const nsCOMArray<nsIObserver> &entries = mCategoryObservers.GetEntries();
-  for (PRInt32 i = 0; i < entries.Count(); ++i) {
+  for (int32_t i = 0; i < entries.Count(); ++i) {
     (void)entries[i]->Observe(nullptr, OBSERVER_TOPIC_IDLE_DAILY, nullptr);
   }
 
@@ -97,7 +97,7 @@ nsIdleServiceDaily::Observe(nsISupports *,
                                          DAILY_SIGNIFICANT_IDLE_SERVICE_SEC);
 
   
-  PRInt32 nowSec = static_cast<PRInt32>(PR_Now() / PR_USEC_PER_SEC);
+  int32_t nowSec = static_cast<int32_t>(PR_Now() / PR_USEC_PER_SEC);
   Preferences::SetInt(PREF_LAST_DAILY, nowSec);
 
   
@@ -137,8 +137,8 @@ nsIdleServiceDaily::Init()
 {
   
   
-  PRInt32 nowSec = static_cast<PRInt32>(PR_Now() / PR_USEC_PER_SEC);
-  PRInt32 lastDaily = Preferences::GetInt(PREF_LAST_DAILY, 0);
+  int32_t nowSec = static_cast<int32_t>(PR_Now() / PR_USEC_PER_SEC);
+  int32_t lastDaily = Preferences::GetInt(PREF_LAST_DAILY, 0);
   if (lastDaily < 0 || lastDaily > nowSec) {
     
     lastDaily = 0;
@@ -343,7 +343,7 @@ nsIdleService::~nsIdleService()
 NS_IMPL_ISUPPORTS2(nsIdleService, nsIIdleService, nsIIdleServiceInternal)
 
 NS_IMETHODIMP
-nsIdleService::AddIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTimeInS)
+nsIdleService::AddIdleObserver(nsIObserver* aObserver, uint32_t aIdleTimeInS)
 {
   PR_LOG(sLog, PR_LOG_DEBUG,
          ("idleService: Register idle observer %x for %d seconds",
@@ -396,7 +396,7 @@ nsIdleService::AddIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTimeInS)
 }
 
 NS_IMETHODIMP
-nsIdleService::RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aTimeInS)
+nsIdleService::RemoveIdleObserver(nsIObserver* aObserver, uint32_t aTimeInS)
 {
 
   NS_ENSURE_ARG_POINTER(aObserver);
@@ -432,7 +432,7 @@ nsIdleService::RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aTimeInS)
 }
 
 NS_IMETHODIMP
-nsIdleService::ResetIdleTimeOut(PRUint32 idleDeltaInMS)
+nsIdleService::ResetIdleTimeOut(uint32_t idleDeltaInMS)
 {
   PR_LOG(sLog, PR_LOG_DEBUG,
          ("idleService: Reset idle timeout (last interaction %u msec)",
@@ -454,7 +454,7 @@ nsIdleService::ResetIdleTimeOut(PRUint32 idleDeltaInMS)
   mDeltaToNextIdleSwitchInS = PR_UINT32_MAX;
 
   
-  for (PRUint32 i = 0; i < mArrayListeners.Length(); i++) {
+  for (uint32_t i = 0; i < mArrayListeners.Length(); i++) {
     IdleListener& curListener = mArrayListeners.ElementAt(i);
 
     
@@ -474,7 +474,7 @@ nsIdleService::ResetIdleTimeOut(PRUint32 idleDeltaInMS)
   
   ReconfigureTimer();
 
-  PRInt32 numberOfPendingNotifications = notifyList.Count();
+  int32_t numberOfPendingNotifications = notifyList.Count();
   Telemetry::Accumulate(Telemetry::IDLE_NOTIFY_BACK_LISTENERS,
                         numberOfPendingNotifications);
 
@@ -489,7 +489,7 @@ nsIdleService::ResetIdleTimeOut(PRUint32 idleDeltaInMS)
   
   nsAutoString timeStr;
 
-  timeStr.AppendInt((PRInt32)(idleDeltaInMS / PR_MSEC_PER_SEC));
+  timeStr.AppendInt((int32_t)(idleDeltaInMS / PR_MSEC_PER_SEC));
 
   
   while (numberOfPendingNotifications--) {
@@ -509,7 +509,7 @@ nsIdleService::ResetIdleTimeOut(PRUint32 idleDeltaInMS)
 }
 
 NS_IMETHODIMP
-nsIdleService::GetIdleTime(PRUint32* idleTime)
+nsIdleService::GetIdleTime(uint32_t* idleTime)
 {
   
   if (!idleTime) {
@@ -517,7 +517,7 @@ nsIdleService::GetIdleTime(PRUint32* idleTime)
   }
 
   
-  PRUint32 polledIdleTimeMS;
+  uint32_t polledIdleTimeMS;
 
   bool polledIdleTimeIsValid = PollIdleTime(&polledIdleTimeMS);
 
@@ -526,7 +526,7 @@ nsIdleService::GetIdleTime(PRUint32* idleTime)
           polledIdleTimeMS, polledIdleTimeIsValid));
   
   
-  PRUint32 timeSinceResetInMS = (PR_Now() - mLastUserInteractionInPR) /
+  uint32_t timeSinceResetInMS = (PR_Now() - mLastUserInteractionInPR) /
                                 PR_USEC_PER_MSEC;
 
   PR_LOG(sLog, PR_LOG_DEBUG,
@@ -553,7 +553,7 @@ nsIdleService::GetIdleTime(PRUint32* idleTime)
 
 
 bool
-nsIdleService::PollIdleTime(PRUint32* )
+nsIdleService::PollIdleTime(uint32_t* )
 {
   
   return false;
@@ -562,7 +562,7 @@ nsIdleService::PollIdleTime(PRUint32* )
 bool
 nsIdleService::UsePollMode()
 {
-  PRUint32 dummy;
+  uint32_t dummy;
   return PollIdleTime(&dummy);
 }
 
@@ -579,7 +579,7 @@ nsIdleService::IdleTimerCallback(void)
   mCurrentlySetToTimeoutAtInPR = 0;
 
   
-  PRUint32 currentIdleTimeInMS;
+  uint32_t currentIdleTimeInMS;
 
   if (NS_FAILED(GetIdleTime(&currentIdleTimeInMS))) {
     PR_LOG(sLog, PR_LOG_ALWAYS,
@@ -615,7 +615,7 @@ nsIdleService::IdleTimerCallback(void)
   }
 
   
-  PRUint32 currentIdleTimeInS = currentIdleTimeInMS / PR_MSEC_PER_SEC;
+  uint32_t currentIdleTimeInS = currentIdleTimeInMS / PR_MSEC_PER_SEC;
 
   
   if (mDeltaToNextIdleSwitchInS > currentIdleTimeInS) {
@@ -633,7 +633,7 @@ nsIdleService::IdleTimerCallback(void)
   
   nsCOMArray<nsIObserver> notifyList;
 
-  for (PRUint32 i = 0; i < mArrayListeners.Length(); i++) {
+  for (uint32_t i = 0; i < mArrayListeners.Length(); i++) {
     IdleListener& curListener = mArrayListeners.ElementAt(i);
 
     
@@ -659,7 +659,7 @@ nsIdleService::IdleTimerCallback(void)
   
   ReconfigureTimer();
 
-  PRInt32 numberOfPendingNotifications = notifyList.Count();
+  int32_t numberOfPendingNotifications = notifyList.Count();
   Telemetry::Accumulate(Telemetry::IDLE_NOTIFY_IDLE_LISTENERS,
                         numberOfPendingNotifications);
 
@@ -777,7 +777,7 @@ nsIdleService::ReconfigureTimer(void)
   PR_LOG(sLog, PR_LOG_DEBUG,
          ("idleService: next timeout %lld usec (%u msec from now)",
           nextTimeoutAtInPR,
-          (PRUint32)((nextTimeoutAtInPR - curTimeInPR) / PR_USEC_PER_MSEC)));
+          (uint32_t)((nextTimeoutAtInPR - curTimeInPR) / PR_USEC_PER_MSEC)));
 #ifdef ANDROID
   __android_log_print(ANDROID_LOG_INFO, "IdleService",
                       "next timeout %lld usec (%lld msec from now)",

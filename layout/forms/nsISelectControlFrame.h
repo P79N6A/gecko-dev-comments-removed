@@ -22,13 +22,13 @@ public:
 
 
 
-  NS_IMETHOD AddOption(PRInt32 index) = 0;
+  NS_IMETHOD AddOption(int32_t index) = 0;
 
   
 
 
 
-  NS_IMETHOD RemoveOption(PRInt32 index) = 0; 
+  NS_IMETHOD RemoveOption(int32_t index) = 0; 
 
   
 
@@ -39,13 +39,13 @@ public:
   
 
 
-  NS_IMETHOD OnOptionSelected(PRInt32 aIndex, bool aSelected) = 0;
+  NS_IMETHOD OnOptionSelected(int32_t aIndex, bool aSelected) = 0;
 
   
 
 
 
-  NS_IMETHOD OnSetSelectedIndex(PRInt32 aOldIndex, PRInt32 aNewIndex) = 0;
+  NS_IMETHOD OnSetSelectedIndex(int32_t aOldIndex, int32_t aNewIndex) = 0;
 
 };
 

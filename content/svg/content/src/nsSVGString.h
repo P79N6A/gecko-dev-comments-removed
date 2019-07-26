@@ -15,7 +15,7 @@ class nsSVGString
 {
 
 public:
-  void Init(PRUint8 aAttrEnum) {
+  void Init(uint8_t aAttrEnum) {
     mAnimVal = nullptr;
     mAttrEnum = aAttrEnum;
     mIsBaseSet = false;
@@ -46,7 +46,7 @@ public:
 private:
 
   nsAutoPtr<nsString> mAnimVal;
-  PRUint8 mAttrEnum; 
+  uint8_t mAttrEnum; 
   bool mIsBaseSet;
 
 public:

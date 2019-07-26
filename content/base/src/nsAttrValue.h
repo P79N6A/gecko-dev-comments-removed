@@ -117,8 +117,8 @@ public:
   void SetTo(const nsAttrValue& aOther);
   void SetTo(const nsAString& aValue);
   void SetTo(nsIAtom* aValue);
-  void SetTo(PRInt16 aInt);
-  void SetTo(PRInt32 aInt, const nsAString* aSerialized);
+  void SetTo(int16_t aInt);
+  void SetTo(int32_t aInt, const nsAString* aSerialized);
   void SetTo(double aValue, const nsAString* aSerialized);
   void SetTo(mozilla::css::StyleRule* aValue, const nsAString* aSerialized);
   void SetTo(const nsIntMargin& aValue);
@@ -163,9 +163,9 @@ public:
   inline bool IsEmptyString() const;
   const nsCheapString GetStringValue() const;
   inline nsIAtom* GetAtomValue() const;
-  inline PRInt32 GetIntegerValue() const;
+  inline int32_t GetIntegerValue() const;
   bool GetColorValue(nscolor& aColor) const;
-  inline PRInt16 GetEnumValue() const;
+  inline int16_t GetEnumValue() const;
   inline float GetPercentValue() const;
   inline AtomArray* GetAtomArrayValue() const;
   inline mozilla::css::StyleRule* GetCSSStyleRuleValue() const;
@@ -183,12 +183,12 @@ public:
   
   
   
-  PRUint32 GetAtomCount() const;
+  uint32_t GetAtomCount() const;
   
   
-  nsIAtom* AtomAt(PRInt32 aIndex) const;
+  nsIAtom* AtomAt(int32_t aIndex) const;
 
-  PRUint32 HashValue() const;
+  uint32_t HashValue() const;
   bool Equals(const nsAttrValue& aOther) const;
   bool Equals(const nsAString& aValue, nsCaseTreatment aCaseSensitive) const;
   bool Equals(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const;
@@ -232,7 +232,7 @@ public:
     
     const char* tag;
     
-    PRInt16 value;
+    int16_t value;
   };
 
   
@@ -282,8 +282,8 @@ public:
 
 
 
-  bool ParseIntWithBounds(const nsAString& aString, PRInt32 aMin,
-                            PRInt32 aMax = PR_INT32_MAX);
+  bool ParseIntWithBounds(const nsAString& aString, int32_t aMin,
+                            int32_t aMax = PR_INT32_MAX);
 
   
 
@@ -362,10 +362,10 @@ private:
     
     PtrBits mStringBits;
     union {
-      PRInt32 mInteger;
+      int32_t mInteger;
       nscolor mColor;
-      PRUint32 mEnumValue;
-      PRInt32 mPercent;
+      uint32_t mEnumValue;
+      int32_t mPercent;
       mozilla::css::StyleRule* mCSSStyleRule;
       AtomArray* mAtomArray;
       double mDoubleValue;
@@ -395,10 +395,10 @@ private:
 
 
 
-  PRInt16  GetEnumTableIndex(const EnumTable* aTable);
+  int16_t  GetEnumTableIndex(const EnumTable* aTable);
 
   inline void SetPtrValueAndType(void* aValue, ValueBaseType aType);
-  void SetIntValueAndType(PRInt32 aValue, ValueType aType,
+  void SetIntValueAndType(int32_t aValue, ValueType aType,
                           const nsAString* aStringValue);
   void SetColorValue(nscolor aColor, const nsAString& aString);
   void SetMiscAtomOrString(const nsAString* aValue);
@@ -409,21 +409,21 @@ private:
 
   inline void* GetPtr() const;
   inline MiscContainer* GetMiscContainer() const;
-  inline PRInt32 GetIntInternal() const;
+  inline int32_t GetIntInternal() const;
 
   bool EnsureEmptyMiscContainer();
   bool EnsureEmptyAtomArray();
   nsStringBuffer* GetStringBuffer(const nsAString& aValue) const;
   
   
-  PRInt32 StringToInteger(const nsAString& aValue,
+  int32_t StringToInteger(const nsAString& aValue,
                           bool* aStrict,
                           nsresult* aErrorCode,
                           bool aCanBePercent = false,
                           bool* aIsPercent = nullptr) const;
   
   
-  PRInt32 EnumTableEntryToValue(const EnumTable* aEnumTable,
+  int32_t EnumTableEntryToValue(const EnumTable* aEnumTable,
                                 const EnumTable* aTableEntry);  
 
   static nsTArray<const EnumTable*, nsTArrayDefaultAllocator>* sEnumTableArray;
@@ -449,7 +449,7 @@ nsAttrValue::GetAtomValue() const
   return reinterpret_cast<nsIAtom*>(GetPtr());
 }
 
-inline PRInt32
+inline int32_t
 nsAttrValue::GetIntegerValue() const
 {
   NS_PRECONDITION(Type() == eInteger, "wrong type");
@@ -458,15 +458,15 @@ nsAttrValue::GetIntegerValue() const
          : GetMiscContainer()->mInteger;
 }
 
-inline PRInt16
+inline int16_t
 nsAttrValue::GetEnumValue() const
 {
   NS_PRECONDITION(Type() == eEnum, "wrong type");
   
   
-  return static_cast<PRInt16>((
+  return static_cast<int16_t>((
     (BaseType() == eIntegerBase)
-    ? static_cast<PRUint32>(GetIntInternal())
+    ? static_cast<uint32_t>(GetIntInternal())
     : GetMiscContainer()->mEnumValue)
       >> NS_ATTRVALUE_ENUMTABLEINDEX_BITS);
 }
@@ -556,7 +556,7 @@ nsAttrValue::GetMiscContainer() const
   return static_cast<MiscContainer*>(GetPtr());
 }
 
-inline PRInt32
+inline int32_t
 nsAttrValue::GetIntInternal() const
 {
   NS_ASSERTION(BaseType() == eIntegerBase,
@@ -564,7 +564,7 @@ nsAttrValue::GetIntInternal() const
   
   
   
-  return static_cast<PRInt32>(mBits & ~NS_ATTRVALUE_INTEGERTYPE_MASK) /
+  return static_cast<int32_t>(mBits & ~NS_ATTRVALUE_INTEGERTYPE_MASK) /
          NS_ATTRVALUE_INTEGERTYPE_MULTIPLIER;
 }
 

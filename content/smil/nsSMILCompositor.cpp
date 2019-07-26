@@ -73,7 +73,7 @@ nsSMILCompositor::ComposeAttribute()
 
   
   
-  PRUint32 firstFuncToCompose = GetFirstFuncToAffectSandwich();
+  uint32_t firstFuncToCompose = GetFirstFuncToAffectSandwich();
 
   
   nsSMILValue sandwichResultValue;
@@ -87,8 +87,8 @@ nsSMILCompositor::ComposeAttribute()
   }
 
   
-  PRUint32 length = mAnimationFunctions.Length();
-  for (PRUint32 i = firstFuncToCompose; i < length; ++i) {
+  uint32_t length = mAnimationFunctions.Length();
+  for (uint32_t i = firstFuncToCompose; i < length; ++i) {
     mAnimationFunctions[i]->ComposeResult(*smilAttr, sandwichResultValue);
   }
   if (sandwichResultValue.IsNull()) {
@@ -136,10 +136,10 @@ nsSMILCompositor::CreateSMILAttr()
   return nullptr;
 }
 
-PRUint32
+uint32_t
 nsSMILCompositor::GetFirstFuncToAffectSandwich()
 {
-  PRUint32 i;
+  uint32_t i;
   for (i = mAnimationFunctions.Length(); i > 0; --i) {
     nsSMILAnimationFunction* curAnimFunc = mAnimationFunctions[i-1];
     
@@ -163,7 +163,7 @@ nsSMILCompositor::GetFirstFuncToAffectSandwich()
   
   
   if (mForceCompositing) {
-    for (PRUint32 j = i; j > 0; --j) {
+    for (uint32_t j = i; j > 0; --j) {
       mAnimationFunctions[j-1]->SetWasSkipped();
     }
   }

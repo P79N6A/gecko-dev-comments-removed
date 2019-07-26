@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsDOMClassInfoID.h"
 #include "nsDOMMozTouchEvent.h"
@@ -38,9 +38,9 @@ NS_INTERFACE_MAP_BEGIN(nsDOMMozTouchEvent)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(MozTouchEvent)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMMouseEvent)
 
-/* readonly attribute unsigned long steramId; */
+
 NS_IMETHODIMP
-nsDOMMozTouchEvent::GetStreamId(PRUint32 *aStreamId)
+nsDOMMozTouchEvent::GetStreamId(uint32_t *aStreamId)
 {
   NS_ENSURE_ARG_POINTER(aStreamId);
   *aStreamId = static_cast<nsMozTouchEvent*>(mEvent)->streamId;
@@ -52,18 +52,18 @@ nsDOMMozTouchEvent::InitMozTouchEvent(const nsAString& aTypeArg,
                                       bool aCanBubbleArg,
                                       bool aCancelableArg,
                                       nsIDOMWindow* aViewArg,
-                                      PRInt32 aDetailArg,
-                                      PRInt32 aScreenX,
-                                      PRInt32 aScreenY,
-                                      PRInt32 aClientX,
-                                      PRInt32 aClientY,
+                                      int32_t aDetailArg,
+                                      int32_t aScreenX,
+                                      int32_t aScreenY,
+                                      int32_t aClientX,
+                                      int32_t aClientY,
                                       bool aCtrlKeyArg,
                                       bool aAltKeyArg,
                                       bool aShiftKeyArg,
                                       bool aMetaKeyArg,
-                                      PRUint16 aButton,
+                                      uint16_t aButton,
                                       nsIDOMEventTarget* aRelatedTarget,
-                                      PRUint32 aStreamId)
+                                      uint32_t aStreamId)
 {
   nsresult rv = nsDOMMouseEvent::InitMouseEvent(aTypeArg,
                                                 aCanBubbleArg,

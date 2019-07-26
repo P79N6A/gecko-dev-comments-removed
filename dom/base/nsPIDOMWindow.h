@@ -109,7 +109,7 @@ public:
     return mParentTarget;
   }
 
-  bool HasMutationListeners(PRUint32 aMutationEventType) const
+  bool HasMutationListeners(uint32_t aMutationEventType) const
   {
     const nsPIDOMWindow *win;
 
@@ -134,7 +134,7 @@ public:
     return (win->mMutationBits & aMutationEventType) != 0;
   }
 
-  void SetMutationListeners(PRUint32 aType)
+  void SetMutationListeners(uint32_t aType)
   {
     nsPIDOMWindow *win;
 
@@ -302,13 +302,13 @@ public:
   virtual nsresult RestoreWindowState(nsISupports *aState) = 0;
 
   
-  virtual void SuspendTimeouts(PRUint32 aIncrease = 1,
+  virtual void SuspendTimeouts(uint32_t aIncrease = 1,
                                bool aFreezeChildren = true) = 0;
 
   
   virtual nsresult ResumeTimeouts(bool aThawChildren = true) = 0;
 
-  virtual PRUint32 TimeoutSuspendCount() = 0;
+  virtual uint32_t TimeoutSuspendCount() = 0;
 
   
   
@@ -318,11 +318,11 @@ public:
 
   
   virtual nsresult SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
-                                        PRInt32 interval,
-                                        bool aIsInterval, PRInt32 *aReturn) = 0;
+                                        int32_t interval,
+                                        bool aIsInterval, int32_t *aReturn) = 0;
 
   
-  virtual nsresult ClearTimeoutOrInterval(PRInt32 aTimerID) = 0;
+  virtual nsresult ClearTimeoutOrInterval(int32_t aTimerID) = 0;
 
   nsPIDOMWindow *GetOuterWindow()
   {
@@ -505,13 +505,13 @@ public:
     return mFocusedNode;
   }
   virtual void SetFocusedNode(nsIContent* aNode,
-                              PRUint32 aFocusMethod = 0,
+                              uint32_t aFocusMethod = 0,
                               bool aNeedsFocus = false) = 0;
 
   
 
 
-  virtual PRUint32 GetFocusMethod() = 0;
+  virtual uint32_t GetFocusMethod() = 0;
 
   
 
@@ -523,7 +523,7 @@ public:
 
 
 
-  virtual bool TakeFocus(bool aFocus, PRUint32 aFocusMethod) = 0;
+  virtual bool TakeFocus(bool aFocus, uint32_t aFocusMethod) = 0;
 
   
 
@@ -569,12 +569,12 @@ public:
   
 
 
-  virtual void EnableDeviceSensor(PRUint32 aType) = 0;
+  virtual void EnableDeviceSensor(uint32_t aType) = 0;
 
   
 
 
-  virtual void DisableDeviceSensor(PRUint32 aType) = 0;
+  virtual void DisableDeviceSensor(uint32_t aType) = 0;
 
   
 
@@ -590,12 +590,12 @@ public:
 
 
 
-  virtual PRUint32 GetSerial() = 0;
+  virtual uint32_t GetSerial() = 0;
 
   
 
 
-  PRUint64 WindowID() const { return mWindowID; }
+  uint64_t WindowID() const { return mWindowID; }
 
   
 
@@ -646,12 +646,12 @@ protected:
   nsCOMPtr<nsIDOMElement> mFrameElement;
   nsIDocShell           *mDocShell;  
 
-  PRUint32               mModalStateDepth;
+  uint32_t               mModalStateDepth;
 
   
   nsTimeout             *mRunningTimeout;
 
-  PRUint32               mMutationBits;
+  uint32_t               mMutationBits;
 
   bool                   mIsDocumentLoaded;
   bool                   mIsHandlingResizeEvent;
@@ -683,7 +683,7 @@ protected:
 
   
   
-  PRUint64 mWindowID;
+  uint64_t mWindowID;
 
   
   

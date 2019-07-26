@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef nsPluginStreamListenerPeer_h_
 #define nsPluginStreamListenerPeer_h_
@@ -22,12 +22,12 @@
 class nsIChannel;
 class nsObjectLoadingContent;
 
-/**
- * When a plugin requests opens multiple requests to the same URL and
- * the request must be satified by saving a file to disk, each stream
- * listener holds a reference to the backing file: the file is only removed
- * when all the listeners are done.
- */
+
+
+
+
+
+
 class CachedFileHolder
 {
 public:
@@ -63,13 +63,13 @@ public:
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSICHANNELEVENTSINK
 
-  // Called by RequestRead
+  
   void
-  MakeByteRangeString(NPByteRange* aRangeList, nsACString &string, PRInt32 *numRequests);
+  MakeByteRangeString(NPByteRange* aRangeList, nsACString &string, int32_t *numRequests);
   
   bool UseExistingPluginCacheFile(nsPluginStreamListenerPeer* psi);
   
-  // Called by GetURL and PostURL (via NewStream)
+  
   nsresult Initialize(nsIURI *aURL,
                       nsNPAPIPluginInstance *aInstance,
                       nsNPAPIPluginStreamListener *aListener);
@@ -87,13 +87,13 @@ public:
   nsNPAPIPluginInstance *GetPluginInstance() { return mPluginInstance; }
   
   nsresult RequestRead(NPByteRange* rangeList);
-  nsresult GetLength(PRUint32* result);
+  nsresult GetLength(uint32_t* result);
   nsresult GetURL(const char** result);
-  nsresult GetLastModified(PRUint32* result);
+  nsresult GetLastModified(uint32_t* result);
   nsresult IsSeekable(bool* result);
   nsresult GetContentType(char** result);
-  nsresult GetStreamOffset(PRInt32* result);
-  nsresult SetStreamOffset(PRInt32 value);
+  nsresult GetStreamOffset(int32_t* result);
+  nsresult SetStreamOffset(int32_t value);
 
   void TrackRequest(nsIRequest* request)
   {
@@ -102,7 +102,7 @@ public:
 
   void ReplaceRequest(nsIRequest* oldRequest, nsIRequest* newRequest)
   {
-    PRInt32 i = mRequests.IndexOfObject(oldRequest);
+    int32_t i = mRequests.IndexOfObject(oldRequest);
     if (i == -1) {
       NS_ASSERTION(mRequests.Count() == 0,
                    "Only our initial stream should be unknown!");
@@ -115,21 +115,21 @@ public:
   
   void CancelRequests(nsresult status)
   {
-    // Copy the array to avoid modification during the loop.
+    
     nsCOMArray<nsIRequest> requestsCopy(mRequests);
-    for (PRInt32 i = 0; i < requestsCopy.Count(); ++i)
+    for (int32_t i = 0; i < requestsCopy.Count(); ++i)
       requestsCopy[i]->Cancel(status);
   }
 
   void SuspendRequests() {
     nsCOMArray<nsIRequest> requestsCopy(mRequests);
-    for (PRInt32 i = 0; i < requestsCopy.Count(); ++i)
+    for (int32_t i = 0; i < requestsCopy.Count(); ++i)
       requestsCopy[i]->Suspend();
   }
 
   void ResumeRequests() {
     nsCOMArray<nsIRequest> requestsCopy(mRequests);
-    for (PRInt32 i = 0; i < requestsCopy.Count(); ++i)
+    for (int32_t i = 0; i < requestsCopy.Count(); ++i)
       requestsCopy[i]->Resume();
   }
 
@@ -139,44 +139,44 @@ private:
   nsresult GetInterfaceGlobal(const nsIID& aIID, void** result);
 
   nsCOMPtr<nsIURI> mURL;
-  nsCString mURLSpec; // Have to keep this member because GetURL hands out char*
+  nsCString mURLSpec; 
   nsCOMPtr<nsIObjectLoadingContent> mContent;
   nsRefPtr<nsNPAPIPluginStreamListener> mPStreamListener;
 
-  // Set to true if we request failed (like with a HTTP response of 404)
+  
   bool                    mRequestFailed;
   
-  /*
-   * Set to true after nsNPAPIPluginStreamListener::OnStartBinding() has
-   * been called.  Checked in ::OnStopRequest so we can call the
-   * plugin's OnStartBinding if, for some reason, it has not already
-   * been called.
-   */
+  
+
+
+
+
+
   bool              mStartBinding;
   bool              mHaveFiredOnStartRequest;
-  // these get passed to the plugin stream listener
-  PRUint32                mLength;
-  PRInt32                 mStreamType;
   
-  // local cached file, we save the content into local cache if browser cache is not available,
-  // or plugin asks stream as file and it expects file extension until bug 90558 got fixed
+  uint32_t                mLength;
+  int32_t                 mStreamType;
+  
+  
+  
   nsRefPtr<CachedFileHolder> mLocalCachedFileHolder;
   nsCOMPtr<nsIOutputStream> mFileCacheOutputStream;
   nsHashtable             *mDataForwardToRequest;
   
   nsCString mContentType;
   bool mSeekable;
-  PRUint32 mModified;
+  uint32_t mModified;
   nsRefPtr<nsNPAPIPluginInstance> mPluginInstance;
-  PRInt32 mStreamOffset;
+  int32_t mStreamOffset;
   bool mStreamComplete;
   
 public:
   bool                    mAbort;
-  PRInt32                 mPendingRequests;
+  int32_t                 mPendingRequests;
   nsWeakPtr               mWeakPtrChannelCallbacks;
   nsWeakPtr               mWeakPtrChannelLoadGroup;
   nsCOMArray<nsIRequest> mRequests;
 };
 
-#endif // nsPluginStreamListenerPeer_h_
+#endif 

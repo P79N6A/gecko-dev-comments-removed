@@ -51,6 +51,8 @@ const BLANK_URL_FOR_CLEARING = "data:text/html,%3C%21%2D%2DCLEAR%2D%2D%3E";
 var gBrowser;
 
 var gBrowserIsRemote;           
+
+var gBrowserIsIframe;           
 var gBrowserMessageManager;
 var gCanvas1, gCanvas2;
 
@@ -219,6 +221,12 @@ function OnRefTestLoad(win)
         gBrowserIsRemote = false;
     }
 
+    try {
+      gBrowserIsIframe = prefs.getBoolPref("reftest.browser.iframe.enabled");
+    } catch (e) {
+      gBrowserIsIframe = false;
+    }
+
     if (win === undefined || win == null) {
       win = window;
     }
@@ -226,7 +234,12 @@ function OnRefTestLoad(win)
       gContainingWindow = win;
     }
 
-    gBrowser = gContainingWindow.document.createElementNS(XUL_NS, "xul:browser");
+    if (gBrowserIsIframe) {
+      gBrowser = gContainingWindow.document.createElementNS(XHTML_NS, "iframe");
+      gBrowser.setAttribute("mozbrowser", "");
+    } else {
+      gBrowser = gContainingWindow.document.createElementNS(XUL_NS, "xul:browser");
+    }
     gBrowser.setAttribute("id", "browser");
     gBrowser.setAttribute("type", "content-primary");
     gBrowser.setAttribute("remote", gBrowserIsRemote ? "true" : "false");

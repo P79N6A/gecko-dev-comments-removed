@@ -66,7 +66,7 @@ nsDefaultURIFixup::CreateExposableURI(nsIURI *aURI, nsIURI **aReturn)
         nsresult rv = aURI->GetPath(path);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        PRUint32 pathLength = path.Length();
+        uint32_t pathLength = path.Length();
         if (pathLength <= 2)
         {
             return NS_ERROR_FAILURE;
@@ -75,7 +75,7 @@ nsDefaultURIFixup::CreateExposableURI(nsIURI *aURI, nsIURI **aReturn)
         
         
         
-        PRInt32 slashIndex = path.FindChar('/', 2);
+        int32_t slashIndex = path.FindChar('/', 2);
         if (slashIndex == kNotFound)
         {
             return NS_ERROR_FAILURE;
@@ -111,7 +111,7 @@ nsDefaultURIFixup::CreateExposableURI(nsIURI *aURI, nsIURI **aReturn)
 
 
 NS_IMETHODIMP
-nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupFlags, nsIURI **aURI)
+nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupFlags, nsIURI **aURI)
 {
     NS_ENSURE_ARG(!aStringURI.IsEmpty());
     NS_ENSURE_ARG_POINTER(aURI);
@@ -139,7 +139,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
     if (scheme.LowerCaseEqualsLiteral("view-source"))
     {
         nsCOMPtr<nsIURI> uri;
-        PRUint32 newFixupFlags = aFixupFlags & ~FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP;
+        uint32_t newFixupFlags = aFixupFlags & ~FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP;
 
         rv =  CreateFixupURI(Substring(uriString,
                                        sizeof("view-source:") - 1,
@@ -270,12 +270,12 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
     
     
     
-    PRInt32 schemeDelim = uriString.Find("://",0);
-    PRInt32 firstDelim = uriString.FindCharInSet("/:");
+    int32_t schemeDelim = uriString.Find("://",0);
+    int32_t firstDelim = uriString.FindCharInSet("/:");
     if (schemeDelim <= 0 ||
         (firstDelim != -1 && schemeDelim > firstDelim)) {
         
-        PRInt32 hostPos = uriString.FindCharInSet("/:?#");
+        int32_t hostPos = uriString.FindCharInSet("/:?#");
         if (hostPos == -1) 
             hostPos = uriString.Length();
 
@@ -421,7 +421,7 @@ bool nsDefaultURIFixup::MakeAlternateURI(nsIURI *aURI)
     aURI->GetHost(oldHost);
 
     
-    PRInt32 numDots = 0;
+    int32_t numDots = 0;
     nsReadingIterator<char> iter;
     nsReadingIterator<char> iterEnd;
     oldHost.BeginReading(iter);
@@ -658,7 +658,7 @@ bool nsDefaultURIFixup::PossiblyHostPortUrl(const nsACString &aUrl)
 
     while (iter != iterEnd)
     {
-        PRUint32 chunkSize = 0;
+        uint32_t chunkSize = 0;
         
         while (iter != iterEnd &&
                (*iter == '-' ||
@@ -694,7 +694,7 @@ bool nsDefaultURIFixup::PossiblyHostPortUrl(const nsACString &aUrl)
     
     
 
-    PRUint32 digitCount = 0;
+    uint32_t digitCount = 0;
     while (iter != iterEnd && digitCount <= 5)
     {
         if (nsCRT::IsAsciiDigit(*iter))
@@ -792,16 +792,16 @@ nsresult nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
     
     
     
-    PRUint32 dotLoc   = PRUint32(aURIString.FindChar('.'));
-    PRUint32 colonLoc = PRUint32(aURIString.FindChar(':'));
-    PRUint32 spaceLoc = PRUint32(aURIString.FindChar(' '));
+    uint32_t dotLoc   = uint32_t(aURIString.FindChar('.'));
+    uint32_t colonLoc = uint32_t(aURIString.FindChar(':'));
+    uint32_t spaceLoc = uint32_t(aURIString.FindChar(' '));
     if (spaceLoc == 0) {
         
-        spaceLoc = PRUint32(kNotFound);
+        spaceLoc = uint32_t(kNotFound);
     }
-    PRUint32 qMarkLoc = PRUint32(aURIString.FindChar('?'));
-    PRUint32 quoteLoc = NS_MIN(PRUint32(aURIString.FindChar('"')),
-                               PRUint32(aURIString.FindChar('\'')));
+    uint32_t qMarkLoc = uint32_t(aURIString.FindChar('?'));
+    uint32_t quoteLoc = NS_MIN(uint32_t(aURIString.FindChar('"')),
+                               uint32_t(aURIString.FindChar('\'')));
 
     if (((spaceLoc < dotLoc || quoteLoc < dotLoc) &&
          (spaceLoc < colonLoc || quoteLoc < colonLoc) &&

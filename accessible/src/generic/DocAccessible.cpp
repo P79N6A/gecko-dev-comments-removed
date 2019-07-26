@@ -70,7 +70,7 @@ static nsIAtom** kRelationAttrs[] =
   &nsGkAtoms::control
 };
 
-static const PRUint32 kRelationAttrsLen = NS_ARRAY_LENGTH(kRelationAttrs);
+static const uint32_t kRelationAttrsLen = NS_ARRAY_LENGTH(kRelationAttrs);
 
 
 
@@ -131,7 +131,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(DocAccessible, Accessible)
                                                     nsAccessiblePivot)
   }
 
-  PRUint32 i, length = tmp->mChildDocuments.Length();
+  uint32_t i, length = tmp->mChildDocuments.Length();
   for (i = 0; i < length; ++i) {
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mChildDocuments[i],
                                                          nsIAccessible)
@@ -218,7 +218,7 @@ DocAccessible::NativeRole()
   if (docShellTreeItem) {
     nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
     docShellTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
-    PRInt32 itemType;
+    int32_t itemType;
     docShellTreeItem->GetItemType(&itemType);
     if (sameTypeRoot == docShellTreeItem) {
       
@@ -278,12 +278,12 @@ DocAccessible::Description(nsString& aDescription)
 }
 
 
-PRUint64
+uint64_t
 DocAccessible::NativeState()
 {
   
   
-  PRUint64 state = (mContent->GetCurrentDoc() == mDocument) ?
+  uint64_t state = (mContent->GetCurrentDoc() == mDocument) ?
     0 : states::STALE;
 
   
@@ -313,7 +313,7 @@ DocAccessible::NativeState()
   return state;
 }
 
-PRUint64
+uint64_t
 DocAccessible::NativeInteractiveState() const
 {
   
@@ -328,7 +328,7 @@ DocAccessible::NativelyUnavailable() const
 
 
 void
-DocAccessible::ApplyARIAState(PRUint64* aState) const
+DocAccessible::ApplyARIAState(uint64_t* aState) const
 {
   
   
@@ -438,7 +438,7 @@ DocAccessible::GetDocType(nsAString& aDocType)
 }
 
 NS_IMETHODIMP
-DocAccessible::GetNameSpaceURIForID(PRInt16 aNameSpaceID, nsAString& aNameSpaceURI)
+DocAccessible::GetNameSpaceURIForID(int16_t aNameSpaceID, nsAString& aNameSpaceURI)
 {
   if (mDocument) {
     nsCOMPtr<nsINameSpaceManager> nameSpaceManager =
@@ -499,7 +499,7 @@ DocAccessible::GetParentDocument(nsIAccessibleDocument** aDocument)
 }
 
 NS_IMETHODIMP
-DocAccessible::GetChildDocumentCount(PRUint32* aCount)
+DocAccessible::GetChildDocumentCount(uint32_t* aCount)
 {
   NS_ENSURE_ARG_POINTER(aCount);
   *aCount = 0;
@@ -511,7 +511,7 @@ DocAccessible::GetChildDocumentCount(PRUint32* aCount)
 }
 
 NS_IMETHODIMP
-DocAccessible::GetChildDocumentAt(PRUint32 aIndex,
+DocAccessible::GetChildDocumentAt(uint32_t aIndex,
                                   nsIAccessibleDocument** aDocument)
 {
   NS_ENSURE_ARG_POINTER(aDocument);
@@ -661,8 +661,8 @@ DocAccessible::Shutdown()
 
   
   
-  PRInt32 childDocCount = mChildDocuments.Length();
-  for (PRInt32 idx = childDocCount - 1; idx >= 0; idx--)
+  int32_t childDocCount = mChildDocuments.Length();
+  for (int32_t idx = childDocCount - 1; idx >= 0; idx--)
     mChildDocuments[idx]->Shutdown();
 
   mChildDocuments.Clear();
@@ -750,7 +750,7 @@ DocAccessible::AddEventListeners()
 
   
   
-  PRInt32 itemType;
+  int32_t itemType;
   docShellTreeItem->GetItemType(&itemType);
 
   bool isContent = (itemType == nsIDocShellTreeItem::typeContent);
@@ -797,7 +797,7 @@ DocAccessible::RemoveEventListeners()
     NS_ASSERTION(docShellTreeItem, "doc should support nsIDocShellTreeItem.");
 
     if (docShellTreeItem) {
-      PRInt32 itemType;
+      int32_t itemType;
       docShellTreeItem->GetItemType(&itemType);
       if (itemType == nsIDocShellTreeItem::typeContent) {
         nsCOMPtr<nsICommandManager> commandManager = do_GetInterface(docShellTreeItem);
@@ -884,7 +884,7 @@ DocAccessible::ScrollPositionDidChange(nscoord aX, nscoord aY)
 {
   
   
-  const PRUint32 kScrollPosCheckWait = 50;
+  const uint32_t kScrollPosCheckWait = 50;
   if (mScrollWatchTimer) {
     mScrollWatchTimer->SetDelay(kScrollPosCheckWait);  
   }
@@ -926,7 +926,7 @@ DocAccessible::Observe(nsISupports* aSubject, const char* aTopic,
 NS_IMETHODIMP
 DocAccessible::OnPivotChanged(nsIAccessiblePivot* aPivot,
                               nsIAccessible* aOldAccessible,
-                              PRInt32 aOldStart, PRInt32 aOldEnd,
+                              int32_t aOldStart, int32_t aOldEnd,
                               PivotMoveReason aReason)
 {
   nsRefPtr<AccEvent> event = new AccVCChangeEvent(this, aOldAccessible,
@@ -947,8 +947,8 @@ NS_IMPL_NSIDOCUMENTOBSERVER_STYLE_STUB(DocAccessible)
 void
 DocAccessible::AttributeWillChange(nsIDocument* aDocument,
                                    dom::Element* aElement,
-                                   PRInt32 aNameSpaceID,
-                                   nsIAtom* aAttribute, PRInt32 aModType)
+                                   int32_t aNameSpaceID,
+                                   nsIAtom* aAttribute, int32_t aModType)
 {
   Accessible* accessible = GetAccessible(aElement);
   if (!accessible) {
@@ -983,8 +983,8 @@ DocAccessible::AttributeWillChange(nsIDocument* aDocument,
 void
 DocAccessible::AttributeChanged(nsIDocument* aDocument,
                                 dom::Element* aElement,
-                                PRInt32 aNameSpaceID, nsIAtom* aAttribute,
-                                PRInt32 aModType)
+                                int32_t aNameSpaceID, nsIAtom* aAttribute,
+                                int32_t aModType)
 {
   NS_ASSERTION(!IsDefunct(),
                "Attribute changed called on defunct document accessible!");
@@ -1024,7 +1024,7 @@ DocAccessible::AttributeChanged(nsIDocument* aDocument,
 
 
 void
-DocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID, nsIAtom* aAttribute)
+DocAccessible::AttributeChangedImpl(nsIContent* aContent, int32_t aNameSpaceID, nsIAtom* aAttribute)
 {
   
   
@@ -1163,7 +1163,7 @@ DocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
 
   
   
-  PRUint8 attrFlags = nsAccUtils::GetAttributeCharacteristics(aAttribute);
+  uint8_t attrFlags = nsAccUtils::GetAttributeCharacteristics(aAttribute);
   if (!(attrFlags & ATTR_BYPASSOBJ))
     FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_OBJECT_ATTRIBUTE_CHANGED,
                                aContent);
@@ -1179,7 +1179,7 @@ DocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
   
   if (aAttribute == nsGkAtoms::aria_checked ||
       aAttribute == nsGkAtoms::aria_pressed) {
-    const PRUint32 kState = (aAttribute == nsGkAtoms::aria_checked) ?
+    const uint32_t kState = (aAttribute == nsGkAtoms::aria_checked) ?
                             states::CHECKED : states::PRESSED;
     nsRefPtr<AccEvent> event = new AccStateChangeEvent(aContent, kState);
     FireDelayedAccessibleEvent(event);
@@ -1242,7 +1242,7 @@ void
 DocAccessible::ContentAppended(nsIDocument* aDocument,
                                nsIContent* aContainer,
                                nsIContent* aFirstNewContent,
-                               PRInt32 )
+                               int32_t )
 {
 }
 
@@ -1295,13 +1295,13 @@ DocAccessible::CharacterDataChanged(nsIDocument* aDocument,
 
 void
 DocAccessible::ContentInserted(nsIDocument* aDocument, nsIContent* aContainer,
-                               nsIContent* aChild, PRInt32 )
+                               nsIContent* aChild, int32_t )
 {
 }
 
 void
 DocAccessible::ContentRemoved(nsIDocument* aDocument, nsIContent* aContainer,
-                              nsIContent* aChild, PRInt32 ,
+                              nsIContent* aChild, int32_t ,
                               nsIContent* aPreviousSibling)
 {
 }
@@ -1354,8 +1354,8 @@ DocAccessible::GetAccessibleByUniqueIDInSubtree(void* aUniqueID)
   if (child)
     return child;
 
-  PRUint32 childDocCount = mChildDocuments.Length();
-  for (PRUint32 childDocIdx= 0; childDocIdx < childDocCount; childDocIdx++) {
+  uint32_t childDocCount = mChildDocuments.Length();
+  for (uint32_t childDocIdx= 0; childDocIdx < childDocCount; childDocIdx++) {
     DocAccessible* childDocument = mChildDocuments.ElementAt(childDocIdx);
     child = childDocument->GetAccessibleByUniqueIDInSubtree(aUniqueID);
     if (child)
@@ -1478,7 +1478,7 @@ DocAccessible::ProcessInvalidationList()
   
   
   
-  for (PRUint32 idx = 0; idx < mInvalidationList.Length(); idx++) {
+  for (uint32_t idx = 0; idx < mInvalidationList.Length(); idx++) {
     nsIContent* content = mInvalidationList[idx];
     Accessible* accessible = GetAccessible(content);
     if (!accessible) {
@@ -1600,7 +1600,7 @@ void
 DocAccessible::AddDependentIDsFor(Accessible* aRelProvider,
                                   nsIAtom* aRelAttr)
 {
-  for (PRUint32 idx = 0; idx < kRelationAttrsLen; idx++) {
+  for (uint32_t idx = 0; idx < kRelationAttrsLen; idx++) {
     nsIAtom* relAttr = *kRelationAttrs[idx];
     if (aRelAttr && aRelAttr != relAttr)
       continue;
@@ -1661,7 +1661,7 @@ void
 DocAccessible::RemoveDependentIDsFor(Accessible* aRelProvider,
                                      nsIAtom* aRelAttr)
 {
-  for (PRUint32 idx = 0; idx < kRelationAttrsLen; idx++) {
+  for (uint32_t idx = 0; idx < kRelationAttrsLen; idx++) {
     nsIAtom* relAttr = *kRelationAttrs[idx];
     if (aRelAttr && aRelAttr != *kRelationAttrs[idx])
       continue;
@@ -1674,7 +1674,7 @@ DocAccessible::RemoveDependentIDsFor(Accessible* aRelProvider,
 
       AttrRelProviderArray* providers = mDependentIDsHash.Get(id);
       if (providers) {
-        for (PRUint32 jdx = 0; jdx < providers->Length(); ) {
+        for (uint32_t jdx = 0; jdx < providers->Length(); ) {
           AttrRelProvider* provider = (*providers)[jdx];
           if (provider->mRelAttr == relAttr &&
               provider->mContent == aRelProvider->GetContent())
@@ -1741,7 +1741,7 @@ DocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
 
 
 nsresult
-DocAccessible::FireDelayedAccessibleEvent(PRUint32 aEventType, nsINode* aNode,
+DocAccessible::FireDelayedAccessibleEvent(uint32_t aEventType, nsINode* aNode,
                                           AccEvent::EEventRule aAllowDupes,
                                           EIsFromUserInput aIsFromUserInput)
 {
@@ -1772,17 +1772,17 @@ DocAccessible::FireDelayedAccessibleEvent(AccEvent* aEvent)
 void
 DocAccessible::ProcessPendingEvent(AccEvent* aEvent)
 {
-  PRUint32 eventType = aEvent->GetEventType();
+  uint32_t eventType = aEvent->GetEventType();
   if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
     HyperTextAccessible* hyperText = aEvent->GetAccessible()->AsHyperText();
-    PRInt32 caretOffset;
+    int32_t caretOffset;
     if (hyperText &&
         NS_SUCCEEDED(hyperText->GetCaretOffset(&caretOffset))) {
       nsRefPtr<AccEvent> caretMoveEvent =
         new AccCaretMoveEvent(hyperText, caretOffset);
       nsEventShell::FireEvent(caretMoveEvent);
 
-      PRInt32 selectionCount;
+      int32_t selectionCount;
       hyperText->GetSelectionCount(&selectionCount);
       if (selectionCount) {  
         nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
@@ -1833,7 +1833,7 @@ DocAccessible::ProcessContentInserted(Accessible* aContainer,
   
   
   
-  for (PRUint32 idx = 0; idx < aInsertedContent->Length(); idx++) {
+  for (uint32_t idx = 0; idx < aInsertedContent->Length(); idx++) {
     Accessible* directContainer =
       GetContainerAccessible(aInsertedContent->ElementAt(idx));
     if (directContainer)
@@ -1845,7 +1845,7 @@ void
 DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
                           bool aIsInsert)
 {
-  PRUint32 updateFlags = eNoAccessible;
+  uint32_t updateFlags = eNoAccessible;
 
   
   Accessible* child = GetAccessible(aChildNode);
@@ -1911,10 +1911,10 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
     FireDelayedAccessibleEvent(reorderEvent);
 }
 
-PRUint32
+uint32_t
 DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert)
 {
-  PRUint32 updateFlags = eAccessible;
+  uint32_t updateFlags = eAccessible;
 
   nsINode* node = aChild->GetNode();
   if (aIsInsert) {
@@ -1997,8 +1997,8 @@ DocAccessible::CacheChildrenInSubtree(Accessible* aRoot)
   
   
   
-  PRUint32 count = aRoot->ContentChildCount();
-  for (PRUint32 idx = 0; idx < count; idx++) {
+  uint32_t count = aRoot->ContentChildCount();
+  for (uint32_t idx = 0; idx < count; idx++) {
     Accessible* child = aRoot->ContentChildAt(idx);
     NS_ASSERTION(child, "Illicit tree change while tree is created!");
     
@@ -2024,8 +2024,8 @@ DocAccessible::UncacheChildrenInSubtree(Accessible* aRoot)
   if (aRoot->IsElement())
     RemoveDependentIDsFor(aRoot);
 
-  PRUint32 count = aRoot->ContentChildCount();
-  for (PRUint32 idx = 0; idx < count; idx++)
+  uint32_t count = aRoot->ContentChildCount();
+  for (uint32_t idx = 0; idx < count; idx++)
     UncacheChildrenInSubtree(aRoot->ContentChildAt(idx));
 
   if (aRoot->IsPrimaryForNode() &&
@@ -2040,8 +2040,8 @@ DocAccessible::ShutdownChildrenInSubtree(Accessible* aAccessible)
   
   
   
-  PRUint32 count = aAccessible->ContentChildCount();
-  for (PRUint32 idx = 0, jdx = 0; idx < count; idx++) {
+  uint32_t count = aAccessible->ContentChildCount();
+  for (uint32_t idx = 0, jdx = 0; idx < count; idx++) {
     Accessible* child = aAccessible->ContentChildAt(jdx);
     if (!child->IsBoundToParent()) {
       NS_ERROR("Parent refers to a child, child doesn't refer to parent!");
@@ -2075,7 +2075,7 @@ DocAccessible::IsLoadEventTarget() const
   }
 
   
-  PRInt32 contentType;
+  int32_t contentType;
   docShellTreeItem->GetItemType(&contentType);
   return (contentType == nsIDocShellTreeItem::typeContent);
 }

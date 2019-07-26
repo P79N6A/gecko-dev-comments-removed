@@ -1320,7 +1320,7 @@ GetNLSString(const PRUnichar *aKey, nsAString& result)
 
 
 
-static PRUint32
+static uint32_t
 WpsGetDefaultHandler(const char *aFileExt, nsAString& aDescription)
 {
   aDescription.Truncate();
@@ -1330,7 +1330,7 @@ WpsGetDefaultHandler(const char *aFileExt, nsAString& aDescription)
     if (!rwsSvc)
       sUseRws = false;
     else {
-      PRUint32 handle;
+      uint32_t handle;
       
       if (NS_SUCCEEDED(rwsSvc->HandlerFromExtension(aFileExt, &handle, aDescription)))
         return handle;
@@ -1361,7 +1361,7 @@ WpsMimeInfoFromExtension(const char *aFileExt, nsMIMEInfoOS2 *aMI)
 
   
   nsAutoString ustr;
-  PRUint32 handle = WpsGetDefaultHandler(aFileExt, ustr);
+  uint32_t handle = WpsGetDefaultHandler(aFileExt, ustr);
   aMI->SetDefaultDescription(ustr);
   aMI->SetDefaultAppHandle(handle);
 
@@ -1483,7 +1483,7 @@ nsOSHelperAppService::GetFromTypeAndExtension(const nsACString& aMIMEType,
   }
 
   
-  PRUint32 handle = WpsGetDefaultHandler(ext.get(), description);
+  uint32_t handle = WpsGetDefaultHandler(ext.get(), description);
   mi->SetDefaultDescription(description);
   mi->SetDefaultApplication(0);
   mi->SetDefaultAppHandle(handle);

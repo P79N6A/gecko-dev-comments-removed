@@ -36,7 +36,7 @@ enum AtkProperty {
 };
 
 struct AtkPropertyChange {
-  PRInt32 type;     
+  int32_t type;     
   void *oldvalue;
   void *newvalue;
 };
@@ -59,8 +59,8 @@ public:
 
 #ifdef MAI_LOGGING
   virtual void DumpAccessibleWrapInfo(int aDepth) {}
-  static PRInt32 mAccWrapCreated;
-  static PRInt32 mAccWrapDeleted;
+  static int32_t mAccWrapCreated;
+  static int32_t mAccWrapDeleted;
 #endif
 
   
@@ -107,7 +107,7 @@ private:
 
   static EAvailableAtkSignals gAvailableAtkSignals;
 
-  PRUint16 CreateMaiInterfaces(void);
+  uint16_t CreateMaiInterfaces(void);
 };
 
 #endif

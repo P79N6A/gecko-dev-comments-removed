@@ -33,7 +33,7 @@ public:
   
   
   
-  PRInt32 GetNthIndex(Element* aChild, bool aIsOfType, bool aIsFromEnd,
+  int32_t GetNthIndex(Element* aChild, bool aIsOfType, bool aIsFromEnd,
                       bool aCheckEdgeOnly);
 
   void Reset();
@@ -50,7 +50,7 @@ private:
   
   
   
-  typedef PRInt32 CacheEntry;
+  typedef int32_t CacheEntry;
 
   class SystemAllocPolicy {
   public:
@@ -79,7 +79,7 @@ private:
                                                  bool aIsOfType,
                                                  bool aIsFromEnd,
                                                  const Cache& aCache,
-                                                 PRInt32& aResult);
+                                                 int32_t& aResult);
 
   
   

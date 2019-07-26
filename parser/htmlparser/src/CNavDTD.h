@@ -139,7 +139,7 @@ private:
 
     bool CanPropagate(eHTMLTags aParent,
                         eHTMLTags aChild,
-                        PRInt32 aParentContains);
+                        int32_t aParentContains);
 
     
 
@@ -153,7 +153,7 @@ private:
 
     bool CanOmit(eHTMLTags aParent, 
                    eHTMLTags aChild,
-                   PRInt32& aParentContains);
+                   int32_t& aParentContains);
 
     
 
@@ -206,7 +206,7 @@ private:
 
 
 
-    bool HasOpenContainer(const eHTMLTags aTagSet[], PRInt32 aCount) const;
+    bool HasOpenContainer(const eHTMLTags aTagSet[], int32_t aCount) const;
 
     
 
@@ -222,7 +222,7 @@ private:
 
 
 
-    PRInt32 LastOf(eHTMLTags aTagSet[], PRInt32 aCount) const;
+    int32_t LastOf(eHTMLTags aTagSet[], int32_t aCount) const;
 
     nsresult HandleToken(CToken* aToken);
 
@@ -274,7 +274,7 @@ private:
 
     nsresult CloseContainer(const eHTMLTags aTag, bool aMalformed);
     nsresult CloseContainersTo(eHTMLTags aTag, bool aClosedByStartTag);
-    nsresult CloseContainersTo(PRInt32 anIndex, eHTMLTags aTag,
+    nsresult CloseContainersTo(int32_t anIndex, eHTMLTags aTag,
                                bool aClosedByStartTag);
     nsresult CloseResidualStyleTags(const eHTMLTags aTag,
                                     bool aClosedByStartTag);
@@ -310,7 +310,7 @@ private:
 
 protected:
 
-    nsresult        CollectAttributes(nsIParserNode* aNode,eHTMLTags aTag,PRInt32 aCount);
+    nsresult        CollectAttributes(nsIParserNode* aNode,eHTMLTags aTag,int32_t aCount);
 
     
 
@@ -336,11 +336,11 @@ protected:
 
     void            HandleOmittedTag(CToken* aToken, eHTMLTags aChildTag,
                                      eHTMLTags aParent, nsIParserNode *aNode);
-    nsresult        HandleSavedTokens(PRInt32 anIndex);
+    nsresult        HandleSavedTokens(int32_t anIndex);
     nsresult        HandleKeyGen(nsIParserNode *aNode);
     bool            IsAlternateTag(eHTMLTags aTag);
-    bool            IsBlockElement(PRInt32 aTagID, PRInt32 aParentID) const;
-    bool            IsInlineElement(PRInt32 aTagID, PRInt32 aParentID) const;
+    bool            IsBlockElement(int32_t aTagID, int32_t aParentID) const;
+    bool            IsInlineElement(int32_t aTagID, int32_t aParentID) const;
 
     nsDeque             mMisplacedContent;
     
@@ -360,11 +360,11 @@ protected:
     eParserDocType      mDocType;
     eParserCommands     mParserCommand;   
 
-    PRInt32             mLineNumber;
-    PRInt32             mOpenMapCount;
-    PRInt32             mHeadContainerPosition;
+    int32_t             mLineNumber;
+    int32_t             mOpenMapCount;
+    int32_t             mHeadContainerPosition;
 
-    PRUint16            mFlags;
+    uint16_t            mFlags;
 };
 
 #endif 

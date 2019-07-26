@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "mozilla/Util.h"
 
@@ -22,22 +22,22 @@ public:
   nsHTMLLIElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLLIElement();
 
-  // nsISupports
+  
   NS_DECL_ISUPPORTS_INHERITED
 
-  // nsIDOMNode
+  
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
 
-  // nsIDOMElement
+  
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
 
-  // nsIDOMHTMLElement
+  
   NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
 
-  // nsIDOMHTMLLIElement
+  
   NS_DECL_NSIDOMHTMLLIELEMENT
 
-  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+  virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -68,7 +68,7 @@ NS_IMPL_RELEASE_INHERITED(nsHTMLLIElement, nsGenericElement)
 
 DOMCI_NODE_DATA(HTMLLIElement, nsHTMLLIElement)
 
-// QueryInterface implementation for nsHTMLLIElement
+
 NS_INTERFACE_TABLE_HEAD(nsHTMLLIElement)
   NS_HTML_CONTENT_INTERFACE_TABLE1(nsHTMLLIElement, nsIDOMHTMLLIElement)
   NS_HTML_CONTENT_INTERFACE_TABLE_TO_MAP_SEGUE(nsHTMLLIElement,
@@ -82,7 +82,7 @@ NS_IMPL_ELEMENT_CLONE(nsHTMLLIElement)
 NS_IMPL_STRING_ATTR(nsHTMLLIElement, Type, type)
 NS_IMPL_INT_ATTR(nsHTMLLIElement, Value, value)
 
-// values that are handled case-insensitively
+
 static const nsAttrValue::EnumTable kUnorderedListItemTypeTable[] = {
   { "disc", NS_STYLE_LIST_STYLE_DISC },
   { "circle", NS_STYLE_LIST_STYLE_CIRCLE },
@@ -91,7 +91,7 @@ static const nsAttrValue::EnumTable kUnorderedListItemTypeTable[] = {
   { 0 }
 };
 
-// values that are handled case-sensitively
+
 static const nsAttrValue::EnumTable kOrderedListItemTypeTable[] = {
   { "A", NS_STYLE_LIST_STYLE_UPPER_ALPHA },
   { "a", NS_STYLE_LIST_STYLE_LOWER_ALPHA },
@@ -102,7 +102,7 @@ static const nsAttrValue::EnumTable kOrderedListItemTypeTable[] = {
 };
 
 bool
-nsHTMLLIElement::ParseAttribute(PRInt32 aNamespaceID,
+nsHTMLLIElement::ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult)
@@ -129,7 +129,7 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(List)) {
     nsCSSValue* listStyleType = aData->ValueForListStyleType();
     if (listStyleType->GetUnit() == eCSSUnit_Null) {
-      // type: enum
+      
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::type);
       if (value && value->Type() == nsAttrValue::eEnum)
         listStyleType->SetIntValue(value->GetEnumValue(), eCSSUnit_Enumerated);

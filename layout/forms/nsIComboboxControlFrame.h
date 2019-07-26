@@ -58,7 +58,7 @@ public:
   
 
 
-  virtual PRInt32 UpdateRecentIndex(PRInt32 aIndex) = 0;
+  virtual int32_t UpdateRecentIndex(int32_t aIndex) = 0;
 
   
 
@@ -81,7 +81,7 @@ public:
 
 
 
-  virtual PRInt32 GetIndexOfDisplayArea() = 0;
+  virtual int32_t GetIndexOfDisplayArea() = 0;
 };
 
 #endif

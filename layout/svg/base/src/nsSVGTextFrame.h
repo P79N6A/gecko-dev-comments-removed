@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef NS_SVGTEXTFRAME_H
 #define NS_SVGTEXTFRAME_H
@@ -26,22 +26,22 @@ protected:
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
-  // nsIFrame:
+  
 #ifdef DEBUG
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
 #endif
 
-  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               PRInt32         aModType);
+                               int32_t         aModType);
 
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgTextFrame
-   */
+  
+
+
+
+
   virtual nsIAtom* GetType() const;
 
 #ifdef DEBUG
@@ -55,40 +55,40 @@ public:
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
 
-  // nsISVGChildFrame interface:
-  virtual void NotifySVGChanged(PRUint32 aFlags);
-  // Override these four to ensure that UpdateGlyphPositioning is called
-  // to bring glyph positions up to date
+  
+  virtual void NotifySVGChanged(uint32_t aFlags);
+  
+  
   NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
                       const nsIntRect *aDirtyRect);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint & aPoint);
   virtual void ReflowSVG();
   virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      PRUint32 aFlags);
+                                      uint32_t aFlags);
   
-  // nsSVGContainerFrame methods:
-  virtual gfxMatrix GetCanvasTM(PRUint32 aFor);
   
-  // nsSVGTextContainerFrame methods:
-  virtual PRUint32 GetNumberOfChars();
+  virtual gfxMatrix GetCanvasTM(uint32_t aFor);
+  
+  
+  virtual uint32_t GetNumberOfChars();
   virtual float GetComputedTextLength();
-  virtual float GetSubStringLength(PRUint32 charnum, PRUint32 nchars);
-  virtual PRInt32 GetCharNumAtPosition(nsIDOMSVGPoint *point);
+  virtual float GetSubStringLength(uint32_t charnum, uint32_t nchars);
+  virtual int32_t GetCharNumAtPosition(nsIDOMSVGPoint *point);
 
-  NS_IMETHOD GetStartPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval);
-  NS_IMETHOD GetEndPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval);
-  NS_IMETHOD GetExtentOfChar(PRUint32 charnum, nsIDOMSVGRect **_retval);
-  NS_IMETHOD GetRotationOfChar(PRUint32 charnum, float *_retval);
+  NS_IMETHOD GetStartPositionOfChar(uint32_t charnum, nsIDOMSVGPoint **_retval);
+  NS_IMETHOD GetEndPositionOfChar(uint32_t charnum, nsIDOMSVGPoint **_retval);
+  NS_IMETHOD GetExtentOfChar(uint32_t charnum, nsIDOMSVGRect **_retval);
+  NS_IMETHOD GetRotationOfChar(uint32_t charnum, float *_retval);
 
-  // nsSVGTextFrame
+  
   void NotifyGlyphMetricsChange();
 
 private:
-  /**
-   * @param aForceGlobalTransform passed down to nsSVGGlyphFrames to
-   * control whether they should use the global transform even when
-   * NS_STATE_NONDISPLAY_CHILD
-   */
+  
+
+
+
+
   void UpdateGlyphPositioning(bool aForceGlobalTransform);
 
   void SetWhitespaceHandling(nsSVGGlyphFrame *aFrame);

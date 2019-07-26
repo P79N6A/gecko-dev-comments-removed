@@ -57,9 +57,9 @@ public:
     return NS_OK;
   }
 
-  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              PRInt32         aModType);
+                              int32_t         aModType);
   
 
 
@@ -81,7 +81,7 @@ public:
                      float aStrokeWidth);
 
   SVGBBox GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                  PRUint32 aFlags,
+                                  uint32_t aFlags,
                                   nsSVGPathGeometryFrame *aMarkedFrame,
                                   const nsSVGMark *aMark,
                                   float aStrokeWidth);
@@ -92,7 +92,7 @@ private:
   float mStrokeWidth, mX, mY, mAutoAngle;
 
   
-  virtual gfxMatrix GetCanvasTM(PRUint32 aFor);
+  virtual gfxMatrix GetCanvasTM(uint32_t aFor);
 
   
   

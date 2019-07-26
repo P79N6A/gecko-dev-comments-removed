@@ -36,7 +36,7 @@ public:
   
 
 
-  PRInt32  mNamespaceID;
+  int32_t  mNamespaceID;
 
   
 
@@ -44,7 +44,7 @@ public:
 
   nsIAtom* mLocalName;
 
-  nsAttrKey(PRInt32 aNs, nsIAtom* aName)
+  nsAttrKey(int32_t aNs, nsIAtom* aName)
     : mNamespaceID(aNs), mLocalName(aName) {}
 
   nsAttrKey(const nsAttrKey& aAttr)
@@ -116,7 +116,7 @@ public:
 
 
 
-  void DropAttribute(PRInt32 aNamespaceID, nsIAtom* aLocalName);
+  void DropAttribute(int32_t aNamespaceID, nsIAtom* aLocalName);
 
   
 
@@ -125,7 +125,7 @@ public:
 
 
 
-  PRUint32 Count() const;
+  uint32_t Count() const;
 
   typedef nsRefPtrHashtable<nsAttrHashKey, nsDOMAttribute> AttrCache;
 
@@ -135,9 +135,9 @@ public:
 
 
 
-  PRUint32 Enumerate(AttrCache::EnumReadFunction aFunc, void *aUserArg) const;
+  uint32_t Enumerate(AttrCache::EnumReadFunction aFunc, void *aUserArg) const;
 
-  nsDOMAttribute* GetItemAt(PRUint32 aIndex, nsresult *rv);
+  nsDOMAttribute* GetItemAt(uint32_t aIndex, nsresult *rv);
   nsDOMAttribute* GetNamedItem(const nsAString& aAttrName, nsresult *rv);
 
   static nsDOMAttributeMap* FromSupports(nsISupports* aSupports)

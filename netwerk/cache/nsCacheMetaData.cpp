@@ -33,15 +33,15 @@ nsresult
 nsCacheMetaData::SetElement(const char * key,
                             const char * value)
 {
-    const PRUint32 keySize = strlen(key) + 1;
+    const uint32_t keySize = strlen(key) + 1;
     char * pos = (char *)GetElement(key);
 
     if (!value) {
         
         if (pos) {
-            PRUint32 oldValueSize = strlen(pos) + 1;
-            PRUint32 offset = pos - mBuffer;
-            PRUint32 remainder = mMetaSize - (offset + oldValueSize);
+            uint32_t oldValueSize = strlen(pos) + 1;
+            uint32_t offset = pos - mBuffer;
+            uint32_t remainder = mMetaSize - (offset + oldValueSize);
 
             memmove(pos - keySize, pos + oldValueSize, remainder);
             mMetaSize -= keySize + oldValueSize;
@@ -49,12 +49,12 @@ nsCacheMetaData::SetElement(const char * key,
         return NS_OK;
     }
 
-    const PRUint32 valueSize = strlen(value) + 1;
-    PRUint32 newSize = mMetaSize + valueSize;
+    const uint32_t valueSize = strlen(value) + 1;
+    uint32_t newSize = mMetaSize + valueSize;
     if (pos) {
-        const PRUint32 oldValueSize = strlen(pos) + 1;
-        const PRUint32 offset = pos - mBuffer;
-        const PRUint32 remainder = mMetaSize - (offset + oldValueSize);
+        const uint32_t oldValueSize = strlen(pos) + 1;
+        const uint32_t offset = pos - mBuffer;
+        const uint32_t remainder = mMetaSize - (offset + oldValueSize);
 
         
         newSize -= oldValueSize;
@@ -84,7 +84,7 @@ nsCacheMetaData::SetElement(const char * key,
 }
 
 nsresult
-nsCacheMetaData::FlattenMetaData(char * buffer, PRUint32 bufSize)
+nsCacheMetaData::FlattenMetaData(char * buffer, uint32_t bufSize)
 {
     if (mMetaSize > bufSize) {
         NS_ERROR("buffer size too small for meta data.");
@@ -96,7 +96,7 @@ nsCacheMetaData::FlattenMetaData(char * buffer, PRUint32 bufSize)
 }
 
 nsresult
-nsCacheMetaData::UnflattenMetaData(const char * data, PRUint32 size)
+nsCacheMetaData::UnflattenMetaData(const char * data, uint32_t size)
 {
     if (data && size) {
         
@@ -107,7 +107,7 @@ nsCacheMetaData::UnflattenMetaData(const char * data, PRUint32 size)
         
         
         bool odd = false;
-        for (PRUint32 i = 0; i < size; i++) {
+        for (uint32_t i = 0; i < size; i++) {
             if (data[i] == '\0') 
                 odd = !odd;
         }
@@ -149,7 +149,7 @@ nsCacheMetaData::VisitElements(nsICacheMetaDataVisitor * visitor)
 }
 
 nsresult
-nsCacheMetaData::EnsureBuffer(PRUint32 bufSize)
+nsCacheMetaData::EnsureBuffer(uint32_t bufSize)
 {
     if (mBufferSize < bufSize) {
         char * buf = (char *)PR_REALLOC(mBuffer, bufSize);

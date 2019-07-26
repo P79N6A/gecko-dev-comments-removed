@@ -254,7 +254,7 @@ protected:
     
     
     
-    PRInt32 mPriority;
+    int32_t mPriority;
 
 public:
 
@@ -269,7 +269,7 @@ public:
     
     nsCOMPtr<nsIAtom> mTag;
 
-    nsTemplateQuerySet(PRInt32 aPriority)
+    nsTemplateQuerySet(int32_t aPriority)
         : mPriority(aPriority)
     {
         MOZ_COUNT_CTOR(nsTemplateQuerySet);
@@ -280,7 +280,7 @@ public:
         MOZ_COUNT_DTOR(nsTemplateQuerySet);
     }
 
-    PRInt32 Priority() const
+    int32_t Priority() const
     {
         return mPriority;
     }
@@ -306,14 +306,14 @@ public:
         mRules.RemoveElementAt(aRule - mRules.Elements());
     }
 
-    PRInt16 RuleCount() const
+    int16_t RuleCount() const
     {
         return mRules.Length();
     }
 
-    nsTemplateRule* GetRuleAt(PRInt16 aIndex)
+    nsTemplateRule* GetRuleAt(int16_t aIndex)
     {
-        if (PRUint32(aIndex) < mRules.Length()) {
+        if (uint32_t(aIndex) < mRules.Length()) {
             return &mRules[aIndex];
         }
         return nullptr;

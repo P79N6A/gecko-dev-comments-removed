@@ -38,14 +38,14 @@ public:
                               const PRUnichar *aPublicId);
   nsresult HandleStartElement(const PRUnichar *aName, const PRUnichar **aAtts);
   nsresult HandleEndElement(const PRUnichar *aName);
-  nsresult HandleCharacterData(const PRUnichar *aCData, const PRUint32 aLength);
+  nsresult HandleCharacterData(const PRUnichar *aCData, const uint32_t aLength);
   nsresult HandleComment(const PRUnichar *aName);
   nsresult HandleProcessingInstruction(const PRUnichar *aTarget,
                                        const PRUnichar *aData);
   nsresult HandleXMLDeclaration(const PRUnichar *aVersion,
                                 const PRUnichar *aEncoding,
-                                PRInt32 aStandalone);
-  nsresult HandleDefault(const PRUnichar *aData, const PRUint32 aLength);
+                                int32_t aStandalone);
+  nsresult HandleDefault(const PRUnichar *aData, const uint32_t aLength);
   nsresult HandleStartCdataSection();
   nsresult HandleEndCdataSection();
   nsresult HandleStartDoctypeDecl(const PRUnichar* aDoctypeName,
@@ -92,8 +92,8 @@ private:
 
 
 
-  void ParseBuffer(const PRUnichar *aBuffer, PRUint32 aLength, bool aIsFinal,
-                   PRUint32 *aConsumed);
+  void ParseBuffer(const PRUnichar *aBuffer, uint32_t aLength, bool aIsFinal,
+                   uint32_t *aConsumed);
   nsresult HandleError();
 
   void MaybeStopParser(nsresult aState);
@@ -124,7 +124,7 @@ private:
   nsresult         mInternalState;
 
   
-  PRUint32         mExpatBuffered;
+  uint32_t         mExpatBuffered;
 
   
   
@@ -137,7 +137,7 @@ private:
   nsString         mURISpec;
 
   
-  PRUint64         mInnerWindowID;
+  uint64_t         mInnerWindowID;
 };
 
 #endif

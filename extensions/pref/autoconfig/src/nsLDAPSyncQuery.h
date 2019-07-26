@@ -36,10 +36,10 @@ class nsLDAPSyncQuery : public nsILDAPSyncQuery,
     nsCOMPtr<nsILDAPOperation> mOperation;   
     nsCOMPtr<nsILDAPURL> mServerURL;         
     bool mFinished;                        
-    PRUint32 mAttrCount;                     
+    uint32_t mAttrCount;                     
     char **mAttrs;                           
     nsString mResults;                       
-    PRUint32 mProtocolVersion;               
+    uint32_t mProtocolVersion;               
 
     nsresult InitConnection();
     

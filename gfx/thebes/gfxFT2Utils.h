@@ -39,15 +39,15 @@ public:
 
 
 
-    PRUint32 GetGlyph(PRUint32 aCharCode);
+    uint32_t GetGlyph(uint32_t aCharCode);
     
 
 
-    PRUint32 GetUVSGlyph(PRUint32 aCharCode, PRUint32 aVariantSelector);
+    uint32_t GetUVSGlyph(uint32_t aCharCode, uint32_t aVariantSelector);
 
-    void GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph);
+    void GetMetrics(gfxFont::Metrics* aMetrics, uint32_t* aSpaceGlyph);
 
-    bool GetFontTable(PRUint32 aTag, FallibleTArray<PRUint8>& aBuffer);
+    bool GetFontTable(uint32_t aTag, FallibleTArray<uint8_t>& aBuffer);
 
     
     
@@ -81,7 +81,7 @@ protected:
 
 
 
-    PRUint32 GetCharExtents(char aChar, cairo_text_extents_t* aExtents);
+    uint32_t GetCharExtents(char aChar, cairo_text_extents_t* aExtents);
 
     typedef FT_UInt (*CharVariantFunction)(FT_Face  face,
                                            FT_ULong charcode,

@@ -84,7 +84,7 @@ nsIThread* nsUrlClassifierDBService::gDbBackgroundThread = nullptr;
 
 static bool gShuttingDownThread = false;
 
-static PRInt32 gFreshnessGuarantee = CONFIRM_AGE_DEFAULT_SEC;
+static int32_t gFreshnessGuarantee = CONFIRM_AGE_DEFAULT_SEC;
 
 static void
 SplitTables(const nsACString& str, nsTArray<nsCString>& tables)
@@ -116,7 +116,7 @@ public:
   NS_DECL_NSIURLCLASSIFIERDBSERVICE
   NS_DECL_NSIURLCLASSIFIERDBSERVICEWORKER
 
-  nsresult Init(PRInt32 gethashNoise, nsCOMPtr<nsIFile> aCacheDir,
+  nsresult Init(int32_t gethashNoise, nsCOMPtr<nsIFile> aCacheDir,
                 bool aPerClientRandomize);
 
   
@@ -150,7 +150,7 @@ private:
 
   nsresult AddNoise(const Prefix aPrefix,
                     const nsCString tableName,
-                    PRInt32 aCount,
+                    int32_t aCount,
                     LookupResultArray& results);
 
   nsCOMPtr<nsICryptoHash> mCryptoHash;
@@ -165,7 +165,7 @@ private:
   
   nsTArray<TableUpdate*> mTableUpdates;
 
-  PRInt32 mUpdateWait;
+  int32_t mUpdateWait;
 
   
   
@@ -181,10 +181,10 @@ private:
   nsCString mUpdateClientKey;
 
   
-  PRUint32 mHashKey;
+  uint32_t mHashKey;
 
   
-  PRInt32 mGethashNoise;
+  int32_t mGethashNoise;
 
   
   bool mPerClientRandomize;
@@ -224,7 +224,7 @@ nsUrlClassifierDBServiceWorker::~nsUrlClassifierDBServiceWorker()
 }
 
 nsresult
-nsUrlClassifierDBServiceWorker::Init(PRInt32 gethashNoise,
+nsUrlClassifierDBServiceWorker::Init(int32_t gethashNoise,
                                      nsCOMPtr<nsIFile> aCacheDir,
                                      bool aPerClientRandomize)
 {
@@ -310,13 +310,13 @@ nsUrlClassifierDBServiceWorker::DoLookup(const nsACString& spec,
 
   nsAutoPtr<LookupResultArray> completes(new LookupResultArray());
 
-  for (PRUint32 i = 0; i < results->Length(); i++) {
+  for (uint32_t i = 0; i < results->Length(); i++) {
     if (!mMissCache.Contains(results->ElementAt(i).hash.prefix)) {
       completes->AppendElement(results->ElementAt(i));
     }
   }
 
-  for (PRUint32 i = 0; i < completes->Length(); i++) {
+  for (uint32_t i = 0; i < completes->Length(); i++) {
     if (!completes->ElementAt(i).Confirmed()) {
       
       
@@ -347,7 +347,7 @@ nsUrlClassifierDBServiceWorker::HandlePendingLookups()
     }
     double lookupTime = (TimeStamp::Now() - lookup.mStartTime).ToMilliseconds();
     Telemetry::Accumulate(Telemetry::URLCLASSIFIER_LOOKUP_TIME,
-                          static_cast<PRUint32>(lookupTime));
+                          static_cast<uint32_t>(lookupTime));
   }
 
   return NS_OK;
@@ -356,7 +356,7 @@ nsUrlClassifierDBServiceWorker::HandlePendingLookups()
 nsresult
 nsUrlClassifierDBServiceWorker::AddNoise(const Prefix aPrefix,
                                          const nsCString tableName,
-                                         PRInt32 aCount,
+                                         int32_t aCount,
                                          LookupResultArray& results)
 {
   if (aCount < 1) {
@@ -368,7 +368,7 @@ nsUrlClassifierDBServiceWorker::AddNoise(const Prefix aPrefix,
                                               aCount, &noiseEntries);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  for (PRUint32 i = 0; i < noiseEntries.Length(); i++) {
+  for (uint32_t i = 0; i < noiseEntries.Length(); i++) {
     LookupResult *result = results.AppendElement();
     if (!result)
       return NS_ERROR_OUT_OF_MEMORY;
@@ -716,9 +716,9 @@ nsUrlClassifierDBServiceWorker::CacheCompletions(CacheResultArray *results)
   nsresult rv = mClassifier->ActiveTables(tables);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  for (PRUint32 i = 0; i < resultsPtr->Length(); i++) {
+  for (uint32_t i = 0; i < resultsPtr->Length(); i++) {
     bool activeTable = false;
-    for (PRUint32 table = 0; table < tables.Length(); table++) {
+    for (uint32_t table = 0; table < tables.Length(); table++) {
       if (tables[table].Equals(resultsPtr->ElementAt(i).table)) {
         activeTable = true;
       }
@@ -751,7 +751,7 @@ nsUrlClassifierDBServiceWorker::CacheMisses(PrefixArray *results)
   
   nsAutoPtr<PrefixArray> resultsPtr(results);
 
-  for (PRUint32 i = 0; i < resultsPtr->Length(); i++) {
+  for (uint32_t i = 0; i < resultsPtr->Length(); i++) {
     mMissCache.AppendElement(resultsPtr->ElementAt(i));
    }
   return NS_OK;
@@ -823,7 +823,7 @@ private:
   
   nsAutoPtr<CacheResultArray> mCacheResults;
 
-  PRUint32 mPendingCompletions;
+  uint32_t mPendingCompletions;
   nsCOMPtr<nsIUrlClassifierCallback> mCallback;
 };
 
@@ -855,7 +855,7 @@ nsUrlClassifierLookupCallback::LookupComplete(nsTArray<LookupResult>* results)
   mResults = results;
 
   
-  for (PRUint32 i = 0; i < results->Length(); i++) {
+  for (uint32_t i = 0; i < results->Length(); i++) {
     LookupResult& result = results->ElementAt(i);
 
     
@@ -911,7 +911,7 @@ nsUrlClassifierLookupCallback::CompletionFinished(nsresult status)
 NS_IMETHODIMP
 nsUrlClassifierLookupCallback::Completion(const nsACString& completeHash,
                                           const nsACString& tableName,
-                                          PRUint32 chunkId,
+                                          uint32_t chunkId,
                                           bool verified)
 {
   LOG(("nsUrlClassifierLookupCallback::Completion [%p, %s, %d, %d]",
@@ -937,7 +937,7 @@ nsUrlClassifierLookupCallback::Completion(const nsACString& completeHash,
   }
 
   
-  for (PRUint32 i = 0; i < mResults->Length(); i++) {
+  for (uint32_t i = 0; i < mResults->Length(); i++) {
     LookupResult& result = mResults->ElementAt(i);
 
     
@@ -959,7 +959,7 @@ nsUrlClassifierLookupCallback::HandleResults()
 
   nsTArray<nsCString> tables;
   
-  for (PRUint32 i = 0; i < mResults->Length(); i++) {
+  for (uint32_t i = 0; i < mResults->Length(); i++) {
     LookupResult& result = mResults->ElementAt(i);
 
     
@@ -1000,7 +1000,7 @@ nsUrlClassifierLookupCallback::HandleResults()
   }
 
   nsCAutoString tableStr;
-  for (PRUint32 i = 0; i < tables.Length(); i++) {
+  for (uint32_t i = 0; i < tables.Length(); i++) {
     if (i != 0)
       tableStr.Append(',');
     tableStr.Append(tables[i]);
@@ -1128,7 +1128,7 @@ nsUrlClassifierDBService::Init()
   
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
 
-  PRInt32 gethashNoise = 0;
+  int32_t gethashNoise = 0;
   if (prefs) {
     bool tmpbool;
     rv = prefs->GetBoolPref(CHECK_MALWARE_PREF, &tmpbool);
@@ -1152,7 +1152,7 @@ nsUrlClassifierDBService::Init()
 
     prefs->AddObserver(GETHASH_TABLES_PREF, this, false);
 
-    PRInt32 tmpint;
+    int32_t tmpint;
     rv = prefs->GetIntPref(CONFIRM_AGE_PREF, &tmpint);
     PR_ATOMIC_SET(&gFreshnessGuarantee, NS_SUCCEEDED(rv) ? tmpint : CONFIRM_AGE_DEFAULT_SEC);
 
@@ -1285,7 +1285,7 @@ nsUrlClassifierDBService::LookupURI(nsIPrincipal* aPrincipal,
         do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
 
       if (permissionManager) {
-        PRUint32 perm;
+        uint32_t perm;
         rv = permissionManager->TestPermissionFromPrincipal(aPrincipal,
                                                            "safe-browsing", &perm);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -1472,7 +1472,7 @@ nsUrlClassifierDBService::Observe(nsISupports *aSubject, const char *aTopic,
         SplitTables(val, mGethashWhitelist);
       }
     } else if (NS_LITERAL_STRING(CONFIRM_AGE_PREF).Equals(aData)) {
-      PRInt32 tmpint;
+      int32_t tmpint;
       rv = prefs->GetIntPref(CONFIRM_AGE_PREF, &tmpint);
       PR_ATOMIC_SET(&gFreshnessGuarantee, NS_SUCCEEDED(rv) ? tmpint : CONFIRM_AGE_DEFAULT_SEC);
     }

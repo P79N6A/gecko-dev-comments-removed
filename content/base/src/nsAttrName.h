@@ -107,7 +107,7 @@ public:
     return reinterpret_cast<PtrBits>(aAtom) == mBits;
   }
 
-  bool Equals(nsIAtom* aLocalName, PRInt32 aNamespaceID) const
+  bool Equals(nsIAtom* aLocalName, int32_t aNamespaceID) const
   {
     if (aNamespaceID == kNameSpaceID_None) {
       return Equals(aLocalName);
@@ -120,12 +120,12 @@ public:
     return Equals(aNodeInfo->NameAtom(), aNodeInfo->NamespaceID());
   }
 
-  PRInt32 NamespaceID() const
+  int32_t NamespaceID() const
   {
     return IsAtom() ? kNameSpaceID_None : NodeInfo()->NamespaceID();
   }
 
-  PRInt32 NamespaceEquals(PRInt32 aNamespaceID) const
+  int32_t NamespaceEquals(int32_t aNamespaceID) const
   {
     return aNamespaceID == kNameSpaceID_None ?
            IsAtom() :
@@ -170,7 +170,7 @@ public:
   }
 #endif
 
-  PRUint32 HashValue() const
+  uint32_t HashValue() const
   {
     
     

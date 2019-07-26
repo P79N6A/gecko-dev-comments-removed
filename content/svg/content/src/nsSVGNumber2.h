@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef __NS_SVGNUMBER2_H__
 #define __NS_SVGNUMBER2_H__
@@ -22,7 +22,7 @@ class nsSVGNumber2
 {
 
 public:
-  void Init(PRUint8 aAttrEnum = 0xff, float aValue = 0) {
+  void Init(uint8_t aAttrEnum = 0xff, float aValue = 0) {
     mAnimVal = mBaseVal = aValue;
     mAttrEnum = aAttrEnum;
     mIsAnimated = false;
@@ -40,24 +40,24 @@ public:
   float GetAnimValue() const
     { return mAnimVal; }
 
-  // Returns true if the animated value of this number has been explicitly
-  // set (either by animation, or by taking on the base value which has been
-  // explicitly set by markup or a DOM call), false otherwise.
-  // If this returns false, the animated value is still valid, that is,
-  // useable, and represents the default base value of the attribute.
+  
+  
+  
+  
+  
   bool IsExplicitlySet() const
     { return mIsAnimated || mIsBaseSet; }
 
   nsresult ToDOMAnimatedNumber(nsIDOMSVGAnimatedNumber **aResult,
                                nsSVGElement* aSVGElement);
-  // Returns a new nsISMILAttr object that the caller must delete
+  
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
 private:
 
   float mAnimVal;
   float mBaseVal;
-  PRUint8 mAttrEnum; // element specified tracking for attribute
+  uint8_t mAttrEnum; 
   bool mIsAnimated;
   bool mIsBaseSet;
 
@@ -70,7 +70,7 @@ public:
     DOMAnimatedNumber(nsSVGNumber2* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    nsSVGNumber2* mVal; // kept alive because it belongs to content
+    nsSVGNumber2* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
 
     NS_IMETHOD GetBaseVal(float* aResult)
@@ -84,8 +84,8 @@ public:
         return NS_OK;
       }
 
-    // Script may have modified animation parameters or timeline -- DOM getters
-    // need to flush any resample requests to reflect these modifications.
+    
+    
     NS_IMETHOD GetAnimVal(float* aResult)
     {
       mSVGElement->FlushAnimations();
@@ -100,13 +100,13 @@ public:
     SMILNumber(nsSVGNumber2* aVal, nsSVGElement* aSVGElement)
     : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    // These will stay alive because a nsISMILAttr only lives as long
-    // as the Compositing step, and DOM elements don't get a chance to
-    // die during that.
+    
+    
+    
     nsSVGNumber2* mVal;
     nsSVGElement* mSVGElement;
 
-    // nsISMILAttr methods
+    
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
@@ -117,4 +117,4 @@ public:
   };
 };
 
-#endif //__NS_SVGNUMBER2_H__
+#endif 

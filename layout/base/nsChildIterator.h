@@ -27,7 +27,7 @@ protected:
   
   
   union {
-    PRUint32 mIndex;
+    uint32_t mIndex;
     nsIContent* mChild;
   };
   nsINodeList* mNodes;
@@ -116,7 +116,7 @@ public:
 
   void seek(nsIContent* aContent) {
     if (XBLInvolved()) {
-      PRInt32 index = mNodes->IndexOf(aContent);
+      int32_t index = mNodes->IndexOf(aContent);
       
       
       
@@ -152,9 +152,9 @@ public:
                        ChildIterator* aLast);
 
 private:
-  PRUint32 length() {
+  uint32_t length() {
     NS_PRECONDITION(XBLInvolved(), "Don't call me");
-    PRUint32 l;
+    uint32_t l;
     mNodes->GetLength(&l);
     return l;
   }

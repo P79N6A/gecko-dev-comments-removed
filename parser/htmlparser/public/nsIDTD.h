@@ -95,7 +95,7 @@ public:
 
 
 
-    NS_IMETHOD_(bool) CanContain(PRInt32 aParent,PRInt32 aChild) const = 0;
+    NS_IMETHOD_(bool) CanContain(int32_t aParent,int32_t aChild) const = 0;
 
     
 
@@ -105,7 +105,7 @@ public:
 
 
 
-    NS_IMETHOD_(bool) IsContainer(PRInt32 aTag) const = 0;
+    NS_IMETHOD_(bool) IsContainer(int32_t aTag) const = 0;
 
     
 
@@ -119,7 +119,7 @@ public:
 
     NS_IMETHOD_(void) Terminate() = 0;
 
-    NS_IMETHOD_(PRInt32) GetType() = 0;
+    NS_IMETHOD_(int32_t) GetType() = 0;
 
     
 
@@ -134,9 +134,9 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDTD, NS_IDTD_IID)
     NS_IMETHOD WillBuildModel(  const CParserContext& aParserContext, nsITokenizer* aTokenizer, nsIContentSink* aSink);\
     NS_IMETHOD DidBuildModel(nsresult anErrorCode);\
     NS_IMETHOD BuildModel(nsITokenizer* aTokenizer, bool aCountLines, const nsCString* aCharsetPtr);\
-    NS_IMETHOD_(bool) CanContain(PRInt32 aParent,PRInt32 aChild) const;\
-    NS_IMETHOD_(bool) IsContainer(PRInt32 aTag) const;\
+    NS_IMETHOD_(bool) CanContain(int32_t aParent,int32_t aChild) const;\
+    NS_IMETHOD_(bool) IsContainer(int32_t aTag) const;\
     NS_IMETHOD_(void)  Terminate();\
-    NS_IMETHOD_(PRInt32) GetType();\
+    NS_IMETHOD_(int32_t) GetType();\
     NS_IMETHOD_(nsDTDMode) GetMode() const;
 #endif 

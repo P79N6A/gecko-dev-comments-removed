@@ -45,7 +45,7 @@ public:
 
 
   static void DispatchClickEvent(nsITreeBoxObject *aTreeBoxObj,
-                                 PRInt32 aRowIndex, nsITreeColumn *aColumn,
+                                 int32_t aRowIndex, nsITreeColumn *aColumn,
                                  const nsCString& aPseudoElt = EmptyCString());
 
   
@@ -55,7 +55,7 @@ public:
 
 
 
-  static bool DispatchMouseEvent(PRUint32 aEventType,
+  static bool DispatchMouseEvent(uint32_t aEventType,
                                    nsIPresShell *aPresShell,
                                    nsIContent *aContent);
 
@@ -70,7 +70,7 @@ public:
 
 
 
-  static void DispatchMouseEvent(PRUint32 aEventType, PRInt32 aX, PRInt32 aY,
+  static void DispatchMouseEvent(uint32_t aEventType, int32_t aX, int32_t aY,
                                  nsIContent *aContent, nsIFrame *aFrame,
                                  nsIPresShell *aPresShell,
                                  nsIWidget *aRootWidget);
@@ -81,7 +81,7 @@ public:
 
 
 
-  static PRUint32 GetAccessKeyFor(nsIContent *aContent);
+  static uint32_t GetAccessKeyFor(nsIContent *aContent);
 
   
 
@@ -96,7 +96,7 @@ public:
   
 
 
-  static nsINode *GetDOMNodeFromDOMPoint(nsINode *aNode, PRUint32 aOffset);
+  static nsINode *GetDOMNodeFromDOMPoint(nsINode *aNode, uint32_t aOffset);
 
   
 
@@ -135,7 +135,7 @@ public:
 
 
   static nsresult ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
-                                    PRUint32 aScrollType);
+                                    uint32_t aScrollType);
 
   
 
@@ -164,7 +164,7 @@ public:
 
 
 
-  static void ConvertScrollTypeToPercents(PRUint32 aScrollType,
+  static void ConvertScrollTypeToPercents(uint32_t aScrollType,
                                           nsIPresShell::ScrollAxis *aVertical,
                                           nsIPresShell::ScrollAxis *aHorizontal);
 
@@ -228,7 +228,7 @@ public:
 
 
   static bool GetUIntAttr(nsIContent *aContent, nsIAtom *aAttr,
-                            PRInt32 *aUInt);
+                            int32_t *aUInt);
 
   
 
@@ -269,13 +269,13 @@ public:
   
 
 
-  static PRUint32 GetSensibleColumnCount(nsITreeBoxObject *aTree);
+  static uint32_t GetSensibleColumnCount(nsITreeBoxObject *aTree);
 
   
 
 
   static already_AddRefed<nsITreeColumn>
-    GetSensibleColumnAt(nsITreeBoxObject *aTree, PRUint32 aIndex);
+    GetSensibleColumnAt(nsITreeBoxObject *aTree, uint32_t aIndex);
 
   
 
@@ -298,7 +298,7 @@ public:
 
 
   static void ScrollTo(nsIPresShell* aPresShell, nsIContent* aContent,
-                       PRUint32 aScrollType);
+                       uint32_t aScrollType);
 
   
 

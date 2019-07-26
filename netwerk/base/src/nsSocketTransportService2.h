@@ -58,7 +58,7 @@ public:
 
     
     
-    static PRUint32 gMaxCount;
+    static uint32_t gMaxCount;
     static PRCallOnceType gMaxCountInitOnce;
     static PRStatus DiscoverMaxCount();
 
@@ -123,16 +123,16 @@ private:
     {
         PRFileDesc       *mFD;
         nsASocketHandler *mHandler;
-        PRUint16          mElapsedTime;  
+        uint16_t          mElapsedTime;  
     };
 
     SocketContext *mActiveList;                   
     SocketContext *mIdleList;                     
 
-    PRUint32 mActiveListSize;
-    PRUint32 mIdleListSize;
-    PRUint32 mActiveCount;
-    PRUint32 mIdleCount;
+    uint32_t mActiveListSize;
+    uint32_t mIdleListSize;
+    uint32_t mActiveCount;
+    uint32_t mIdleCount;
 
     nsresult DetachSocket(SocketContext *, SocketContext *);
     nsresult AddToIdleList(SocketContext *);
@@ -158,7 +158,7 @@ private:
     PRIntervalTime PollTimeout();            
     nsresult       DoPollIteration(bool wait);
                                              
-    PRInt32        Poll(bool wait, PRUint32 *interval);
+    int32_t        Poll(bool wait, uint32_t *interval);
                                              
                                              
                                              
@@ -171,7 +171,7 @@ private:
 
     
     nsresult    UpdatePrefs();
-    PRInt32     mSendBufferSize;
+    int32_t     mSendBufferSize;
 
     
 #if defined(XP_WIN)

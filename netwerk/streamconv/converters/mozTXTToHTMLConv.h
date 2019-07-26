@@ -36,17 +36,17 @@ public:
 
 
 
-  void ScanTXT(const PRUnichar * aInString, PRInt32 aInStringLength, PRUint32 whattodo, nsString& aOutString);
+  void ScanTXT(const PRUnichar * aInString, int32_t aInStringLength, uint32_t whattodo, nsString& aOutString);
 
 
 
 
-  void ScanHTML(nsString& aInString, PRUint32 whattodo, nsString &aOutString);
+  void ScanHTML(nsString& aInString, uint32_t whattodo, nsString &aOutString);
 
 
 
 
-  PRInt32 CiteLevelTXT(const PRUnichar * line,PRUint32& logLineStart);
+  int32_t CiteLevelTXT(const PRUnichar * line,uint32_t& logLineStart);
 
 
 
@@ -64,8 +64,8 @@ protected:
 
 
 
-  void CompleteAbbreviatedURL(const PRUnichar * aInString, PRInt32 aInLength, 
-                              const PRUint32 pos, nsString& aOutString);
+  void CompleteAbbreviatedURL(const PRUnichar * aInString, int32_t aInLength, 
+                              const uint32_t pos, nsString& aOutString);
 
 
 
@@ -92,15 +92,15 @@ private:
 
 
 
-  bool ItMatchesDelimited(const PRUnichar * aInString, PRInt32 aInLength,
-      const PRUnichar * rep, PRInt32 aRepLen, LIMTYPE before, LIMTYPE after);
+  bool ItMatchesDelimited(const PRUnichar * aInString, int32_t aInLength,
+      const PRUnichar * rep, int32_t aRepLen, LIMTYPE before, LIMTYPE after);
 
 
 
 
 
-  PRUint32 NumberOfMatches(const PRUnichar * aInString, PRInt32 aInStringLength,
-      const PRUnichar* rep, PRInt32 aRepLen, LIMTYPE before, LIMTYPE after);
+  uint32_t NumberOfMatches(const PRUnichar * aInString, int32_t aInStringLength,
+      const PRUnichar* rep, int32_t aRepLen, LIMTYPE before, LIMTYPE after);
 
 
 
@@ -127,8 +127,8 @@ private:
 
 
 
-  void UnescapeStr(const PRUnichar * aInString, PRInt32 aStartPos,
-                   PRInt32 aLength, nsString& aOutString);
+  void UnescapeStr(const PRUnichar * aInString, int32_t aStartPos,
+                   int32_t aLength, nsString& aOutString);
 
 
 
@@ -153,9 +153,9 @@ private:
 
 
 
-  bool FindURL(const PRUnichar * aInString, PRInt32 aInLength, const PRUint32 pos,
-          const PRUint32 whathasbeendone,
-          nsString& outputHTML, PRInt32& replaceBefore, PRInt32& replaceAfter);
+  bool FindURL(const PRUnichar * aInString, int32_t aInLength, const uint32_t pos,
+          const uint32_t whathasbeendone,
+          nsString& outputHTML, int32_t& replaceBefore, int32_t& replaceAfter);
 
   enum modetype {
          unknown,
@@ -187,8 +187,8 @@ private:
 
 
 
-  bool FindURLStart(const PRUnichar * aInString, PRInt32 aInLength, const PRUint32 pos,
-            	               const modetype check, PRUint32& start);
+  bool FindURLStart(const PRUnichar * aInString, int32_t aInLength, const uint32_t pos,
+            	               const modetype check, uint32_t& start);
 
 
 
@@ -197,8 +197,8 @@ private:
 
 
 
-  bool FindURLEnd(const PRUnichar * aInString, PRInt32 aInStringLength, const PRUint32 pos,
-           const modetype check, const PRUint32 start, PRUint32& end);
+  bool FindURLEnd(const PRUnichar * aInString, int32_t aInStringLength, const uint32_t pos,
+           const modetype check, const uint32_t start, uint32_t& end);
 
 
 
@@ -210,11 +210,11 @@ private:
 
 
 
-  void CalculateURLBoundaries(const PRUnichar * aInString, PRInt32 aInStringLength, 
-     const PRUint32 pos, const PRUint32 whathasbeendone,
-     const modetype check, const PRUint32 start, const PRUint32 end,
+  void CalculateURLBoundaries(const PRUnichar * aInString, int32_t aInStringLength, 
+     const uint32_t pos, const uint32_t whathasbeendone,
+     const modetype check, const uint32_t start, const uint32_t end,
      nsString& txtURL, nsString& desc,
-     PRInt32& replaceBefore, PRInt32& replaceAfter);
+     int32_t& replaceBefore, int32_t& replaceAfter);
 
 
 
@@ -243,11 +243,11 @@ private:
 
 
 
-  bool StructPhraseHit(const PRUnichar * aInString, PRInt32 aInStringLength, bool col0,
+  bool StructPhraseHit(const PRUnichar * aInString, int32_t aInStringLength, bool col0,
      const PRUnichar* tagTXT,
-     PRInt32 aTagTxtLen, 
+     int32_t aTagTxtLen, 
      const char* tagHTML, const char* attributeHTML,
-     nsString& aOutputString, PRUint32& openTags);
+     nsString& aOutputString, uint32_t& openTags);
 
 
 
@@ -257,9 +257,9 @@ private:
 
 
   bool
-         SmilyHit(const PRUnichar * aInString, PRInt32 aLength, bool col0,
+         SmilyHit(const PRUnichar * aInString, int32_t aLength, bool col0,
          const char* tagTXT, const char* imageName,
-         nsString& outputHTML, PRInt32& glyphTextLen);
+         nsString& outputHTML, int32_t& glyphTextLen);
 
 
 
@@ -276,8 +276,8 @@ private:
 
 
 
-  bool GlyphHit(const PRUnichar * aInString, PRInt32 aInLength, bool col0,
-       nsString& aOutString, PRInt32& glyphTextLen);
+  bool GlyphHit(const PRUnichar * aInString, int32_t aInLength, bool col0,
+       nsString& aOutString, int32_t& glyphTextLen);
 
 
 
@@ -287,8 +287,8 @@ private:
 };
 
 
-const PRInt32 mozTXTToHTMLConv_lastMode = 4;
+const int32_t mozTXTToHTMLConv_lastMode = 4;
 	                        
-const PRInt32 mozTXTToHTMLConv_numberOfModes = 4;  
+const int32_t mozTXTToHTMLConv_numberOfModes = 4;  
 
 #endif

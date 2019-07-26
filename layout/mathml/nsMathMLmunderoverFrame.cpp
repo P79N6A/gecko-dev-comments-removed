@@ -36,9 +36,9 @@ nsMathMLmunderoverFrame::~nsMathMLmunderoverFrame()
 }
 
 NS_IMETHODIMP
-nsMathMLmunderoverFrame::AttributeChanged(PRInt32         aNameSpaceID,
+nsMathMLmunderoverFrame::AttributeChanged(int32_t         aNameSpaceID,
                                           nsIAtom*        aAttribute,
-                                          PRInt32         aModType)
+                                          int32_t         aModType)
 {
   if (nsGkAtoms::accent_ == aAttribute ||
       nsGkAtoms::accentunder_ == aAttribute) {
@@ -52,8 +52,8 @@ nsMathMLmunderoverFrame::AttributeChanged(PRInt32         aNameSpaceID,
 }
 
 NS_IMETHODIMP
-nsMathMLmunderoverFrame::UpdatePresentationData(PRUint32        aFlagsValues,
-                                                PRUint32        aFlagsToUpdate)
+nsMathMLmunderoverFrame::UpdatePresentationData(uint32_t        aFlagsValues,
+                                                uint32_t        aFlagsToUpdate)
 {
   nsMathMLContainerFrame::UpdatePresentationData(aFlagsValues, aFlagsToUpdate);
   
@@ -68,10 +68,10 @@ nsMathMLmunderoverFrame::UpdatePresentationData(PRUint32        aFlagsValues,
 }
 
 NS_IMETHODIMP
-nsMathMLmunderoverFrame::UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
-                                                           PRInt32         aLastIndex,
-                                                           PRUint32        aFlagsValues,
-                                                           PRUint32        aFlagsToUpdate)
+nsMathMLmunderoverFrame::UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
+                                                           int32_t         aLastIndex,
+                                                           uint32_t        aFlagsValues,
+                                                           uint32_t        aFlagsToUpdate)
 {
   
   
@@ -88,7 +88,7 @@ nsMathMLmunderoverFrame::UpdatePresentationDataFromChildAt(PRInt32         aFirs
   
 
   
-  PRInt32 index = 0;
+  int32_t index = 0;
   nsIFrame* childFrame = mFrames.FirstChild();
   while (childFrame) {
     if ((index >= aFirstIndex) &&
@@ -257,7 +257,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
 
   if (tag == nsGkAtoms::mover_ ||
       tag == nsGkAtoms::munderover_) {
-    PRUint32 compress = NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)
+    uint32_t compress = NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)
       ? NS_MATHML_COMPRESSED : 0;
     SetIncrementScriptLevel(tag == nsGkAtoms::mover_ ? 1 : 2,
                             !NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags) || subsupDisplay);

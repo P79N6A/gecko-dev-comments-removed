@@ -29,7 +29,7 @@ public:
   
   virtual void Value(nsString& aValue);
   virtual mozilla::a11y::role NativeRole();
-  virtual PRUint64 NativeState();
+  virtual uint64_t NativeState();
 
   
   virtual bool IsWidget() const;
@@ -45,14 +45,14 @@ public:
   RadioButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(PRUint8 aIndex);
+  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(uint8_t aIndex);
 
   
   virtual mozilla::a11y::role NativeRole();
 
   
-  virtual PRUint8 ActionCount();
+  virtual uint8_t ActionCount();
 
   enum { eAction_Click = 0 };
 

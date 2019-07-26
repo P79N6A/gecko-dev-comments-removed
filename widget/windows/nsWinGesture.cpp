@@ -193,7 +193,7 @@ bool nsWinGesture::UnregisterTouchWindow(HWND hWnd)
   return unregisterTouchWindow(hWnd);
 }
 
-bool nsWinGesture::GetTouchInputInfo(HTOUCHINPUT hTouchInput, PRUint32 cInputs, PTOUCHINPUT pInputs)
+bool nsWinGesture::GetTouchInputInfo(HTOUCHINPUT hTouchInput, uint32_t cInputs, PTOUCHINPUT pInputs)
 {
   if (!getTouchInputInfo)
     return false;
@@ -444,8 +444,8 @@ nsWinGesture::ProcessPanMessage(HWND hWnd, WPARAM wParam, LPARAM lParam)
       else {
 
 #ifdef DBG_jimm
-        PRInt32 deltaX = mPanIntermediate.x - coord.x;
-        PRInt32 deltaY = mPanIntermediate.y - coord.y;
+        int32_t deltaX = mPanIntermediate.x - coord.x;
+        int32_t deltaY = mPanIntermediate.y - coord.y;
         PR_LOG(gWindowsLog, PR_LOG_ALWAYS, 
                ("coordX=%d coordY=%d deltaX=%d deltaY=%d x:%d y:%d\n", coord.x,
                 coord.y, deltaX, deltaY, mXAxisFeedback, mYAxisFeedback));
@@ -470,7 +470,7 @@ nsWinGesture::ProcessPanMessage(HWND hWnd, WPARAM wParam, LPARAM lParam)
   return true;
 }
 
-inline bool TestTransition(PRInt32 a, PRInt32 b)
+inline bool TestTransition(int32_t a, int32_t b)
 {
   
   
@@ -480,7 +480,7 @@ inline bool TestTransition(PRInt32 a, PRInt32 b)
 }
 
 void
-nsWinGesture::UpdatePanFeedbackX(HWND hWnd, PRInt32 scrollOverflow, bool& endFeedback)
+nsWinGesture::UpdatePanFeedbackX(HWND hWnd, int32_t scrollOverflow, bool& endFeedback)
 {
   
   
@@ -495,7 +495,7 @@ nsWinGesture::UpdatePanFeedbackX(HWND hWnd, PRInt32 scrollOverflow, bool& endFee
   }
   
   if (mXAxisFeedback) {
-    PRInt32 newOverflow = mPixelScrollOverflow.x - mPixelScrollDelta.x;
+    int32_t newOverflow = mPixelScrollOverflow.x - mPixelScrollDelta.x;
 
     
     
@@ -509,7 +509,7 @@ nsWinGesture::UpdatePanFeedbackX(HWND hWnd, PRInt32 scrollOverflow, bool& endFee
 }
 
 void
-nsWinGesture::UpdatePanFeedbackY(HWND hWnd, PRInt32 scrollOverflow, bool& endFeedback)
+nsWinGesture::UpdatePanFeedbackY(HWND hWnd, int32_t scrollOverflow, bool& endFeedback)
 {
   
   
@@ -524,7 +524,7 @@ nsWinGesture::UpdatePanFeedbackY(HWND hWnd, PRInt32 scrollOverflow, bool& endFee
   }
   
   if (mYAxisFeedback) {
-    PRInt32 newOverflow = mPixelScrollOverflow.y - mPixelScrollDelta.y;
+    int32_t newOverflow = mPixelScrollOverflow.y - mPixelScrollDelta.y;
 
     
     

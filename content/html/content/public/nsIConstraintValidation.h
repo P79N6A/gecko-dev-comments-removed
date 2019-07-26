@@ -32,7 +32,7 @@ public:
 
   friend class nsDOMValidityState;
 
-  static const PRUint16 sContentSpecifiedMaxLengthMessage;
+  static const uint16_t sContentSpecifiedMaxLengthMessage;
 
   virtual ~nsIConstraintValidation();
 
@@ -85,7 +85,7 @@ private:
 
 
 
-  PRInt8                        mValidityBitField;
+  int8_t                        mValidityBitField;
 
   
 

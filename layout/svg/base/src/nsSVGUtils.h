@@ -265,26 +265,26 @@ public:
   
 
 
-  static void UnPremultiplyImageDataAlpha(PRUint8 *data, 
-                                          PRInt32 stride, 
+  static void UnPremultiplyImageDataAlpha(uint8_t *data, 
+                                          int32_t stride, 
                                           const nsIntRect &rect);
   
 
 
-  static void PremultiplyImageDataAlpha(PRUint8 *data, 
-                                        PRInt32 stride, 
+  static void PremultiplyImageDataAlpha(uint8_t *data, 
+                                        int32_t stride, 
                                         const nsIntRect &rect);
   
 
 
-  static void ConvertImageDataToLinearRGB(PRUint8 *data, 
-                                          PRInt32 stride, 
+  static void ConvertImageDataToLinearRGB(uint8_t *data, 
+                                          int32_t stride, 
                                           const nsIntRect &rect);
   
 
 
-  static void ConvertImageDataFromLinearRGB(PRUint8 *data, 
-                                            PRInt32 stride, 
+  static void ConvertImageDataFromLinearRGB(uint8_t *data, 
+                                            int32_t stride, 
                                             const nsIntRect &rect);
 
   
@@ -293,7 +293,7 @@ public:
   static nsresult ReportToConsole(nsIDocument* doc,
                                   const char* aWarning,
                                   const PRUnichar **aParams,
-                                  PRUint32 aParamsLength);
+                                  uint32_t aParamsLength);
 
   
 
@@ -343,7 +343,7 @@ public:
 
   static void InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate = false,
                                const nsRect *aBoundsSubArea = nullptr,
-                               PRUint32 aFlags = 0);
+                               uint32_t aFlags = 0);
 
   
 
@@ -473,7 +473,7 @@ public:
 
 
 
-  static gfxMatrix GetCanvasTM(nsIFrame* aFrame, PRUint32 aFor);
+  static gfxMatrix GetCanvasTM(nsIFrame* aFrame, uint32_t aFor);
 
   
 
@@ -484,7 +484,7 @@ public:
 
 
 
-  static gfxMatrix GetUserToCanvasTM(nsIFrame* aFrame, PRUint32 aFor);
+  static gfxMatrix GetUserToCanvasTM(nsIFrame* aFrame, uint32_t aFor);
 
   
 
@@ -497,7 +497,7 @@ public:
 
 
   static void
-  NotifyChildrenOfSVGChange(nsIFrame *aFrame, PRUint32 aFlags);
+  NotifyChildrenOfSVGChange(nsIFrame *aFrame, uint32_t aFlags);
 
   
 
@@ -605,7 +605,7 @@ public:
 
 
   static gfxRect GetBBox(nsIFrame *aFrame,
-                         PRUint32 aFlags = eBBoxIncludeFillGeometry);
+                         uint32_t aFlags = eBBoxIncludeFillGeometry);
 
   
 
@@ -619,7 +619,7 @@ public:
 
 
   static gfxRect
-  GetRelativeRect(PRUint16 aUnits, const nsSVGLength2 *aXYWH,
+  GetRelativeRect(uint16_t aUnits, const nsSVGLength2 *aXYWH,
                   const gfxRect &aBBox, nsIFrame *aFrame);
 
   
@@ -668,7 +668,7 @@ public:
 
 
 
-  static PRInt32 ClampToInt(double aVal)
+  static int32_t ClampToInt(double aVal)
   {
     return NS_lround(NS_MAX(double(PR_INT32_MIN),
                             NS_MIN(double(PR_INT32_MAX), aVal)));
@@ -719,7 +719,7 @@ public:
 
 
 
-  static PRUint16 GetGeometryHitTestFlags(nsIFrame* aFrame);
+  static uint16_t GetGeometryHitTestFlags(nsIFrame* aFrame);
 };
 
 #endif

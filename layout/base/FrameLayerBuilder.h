@@ -240,7 +240,7 @@ public:
 
 
 
-  static Layer* GetDedicatedLayer(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+  static Layer* GetDedicatedLayer(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
   
 
@@ -294,9 +294,9 @@ public:
 
 
 
-  Layer* GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+  Layer* GetOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
-  static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+  static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
   
 
 
@@ -332,7 +332,7 @@ public:
 
 
 
-  static bool HasRetainedLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+  static bool HasRetainedLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
   
 
@@ -394,20 +394,20 @@ public:
     
     
     void ApplyTo(gfxContext* aContext, nsPresContext* aPresContext,
-                 PRUint32 aBegin = 0, PRUint32 aEnd = PR_UINT32_MAX);
+                 uint32_t aBegin = 0, uint32_t aEnd = PR_UINT32_MAX);
 
-    void ApplyRectTo(gfxContext* aContext, PRInt32 A2D) const;
+    void ApplyRectTo(gfxContext* aContext, int32_t A2D) const;
     
     
     
-    void ApplyRoundedRectsTo(gfxContext* aContext, PRInt32 A2DPRInt32,
-                             PRUint32 aBegin, PRUint32 aEnd) const;
+    void ApplyRoundedRectsTo(gfxContext* aContext, int32_t A2DPRInt32,
+                             uint32_t aBegin, uint32_t aEnd) const;
 
     
-    void DrawRoundedRectsTo(gfxContext* aContext, PRInt32 A2D,
-                            PRUint32 aBegin, PRUint32 aEnd) const;
+    void DrawRoundedRectsTo(gfxContext* aContext, int32_t A2D,
+                            uint32_t aBegin, uint32_t aEnd) const;
     
-    void AddRoundedRectPathTo(gfxContext* aContext, PRInt32 A2D,
+    void AddRoundedRectPathTo(gfxContext* aContext, int32_t A2D,
                               const RoundedRect &aRoundRect) const;
 
     
@@ -445,12 +445,12 @@ protected:
 
   class DisplayItemData {
   public:
-    DisplayItemData(Layer* aLayer, PRUint32 aKey, LayerState aLayerState, PRUint32 aGeneration);
+    DisplayItemData(Layer* aLayer, uint32_t aKey, LayerState aLayerState, uint32_t aGeneration);
     ~DisplayItemData();
 
     nsRefPtr<Layer> mLayer;
-    PRUint32        mDisplayItemKey;
-    PRUint32        mContainerLayerGeneration;
+    uint32_t        mDisplayItemKey;
+    uint32_t        mContainerLayerGeneration;
     LayerState      mLayerState;
   };
 
@@ -481,7 +481,7 @@ protected:
 
     nsAutoTArray<DisplayItemData, 1> mData;
     nsRefPtr<RefCountedRegion> mInvalidRegion;
-    PRUint32 mContainerLayerGeneration;
+    uint32_t mContainerLayerGeneration;
     bool mIsSharingContainerLayer;
 
     enum { ALLOW_MEMMOVE = false };
@@ -525,14 +525,14 @@ protected:
 
 
   struct ClippedDisplayItem {
-    ClippedDisplayItem(nsDisplayItem* aItem, const Clip& aClip, PRUint32 aGeneration)
+    ClippedDisplayItem(nsDisplayItem* aItem, const Clip& aClip, uint32_t aGeneration)
       : mItem(aItem), mClip(aClip), mContainerLayerGeneration(aGeneration)
     {
     }
 
     nsDisplayItem* mItem;
     Clip mClip;
-    PRUint32 mContainerLayerGeneration;
+    uint32_t mContainerLayerGeneration;
     bool mInactiveLayer;
   };
 
@@ -557,13 +557,13 @@ public:
     
     
     nsIntPoint mLastPaintOffset;
-    PRUint32 mContainerLayerGeneration;
+    uint32_t mContainerLayerGeneration;
     bool mHasExplicitLastPaintOffset;
     
 
 
 
-    PRUint32 mCommonClipCount;
+    uint32_t mCommonClipCount;
 
     enum { ALLOW_MEMMOVE = true };
   };
@@ -620,7 +620,7 @@ protected:
   
 
 
-  PRUint32                            mInitialDOMGeneration;
+  uint32_t                            mInitialDOMGeneration;
   
 
 
@@ -632,8 +632,8 @@ protected:
 
   bool                                mInvalidateAllLayers;
 
-  PRUint32                            mContainerLayerGeneration;
-  PRUint32                            mMaxContainerLayerGeneration;
+  uint32_t                            mContainerLayerGeneration;
+  uint32_t                            mMaxContainerLayerGeneration;
 };
 
 }

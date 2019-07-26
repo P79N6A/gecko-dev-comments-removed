@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef __JumpListBuilder_h__
 #define __JumpListBuilder_h__
@@ -10,7 +10,7 @@
 
 #undef NTDDI_VERSION
 #define NTDDI_VERSION NTDDI_WIN7
-// Needed for various com interfaces
+
 #include <shobjidl.h>
 
 #include "nsString.h"
@@ -43,7 +43,7 @@ protected:
 
 private:
   nsRefPtr<ICustomDestinationList> mJumpListMgr;
-  PRUint32 mMaxItems;
+  uint32_t mMaxItems;
   bool mHasCommit;
   nsCOMPtr<nsIThread> mIOThread;
 
@@ -55,8 +55,8 @@ private:
   friend class WinTaskbar;
 };
 
-} // namespace widget
-} // namespace mozilla
+} 
+} 
 
-#endif /* __JumpListBuilder_h__ */
+#endif 
 

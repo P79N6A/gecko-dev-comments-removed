@@ -48,9 +48,9 @@ public:
 
 
   static void AttributeWillChange(mozilla::dom::Element* aElement,
-                                  PRInt32 aNameSpaceID,
+                                  int32_t aNameSpaceID,
                                   nsIAtom* aAttribute,
-                                  PRInt32 aModType);
+                                  int32_t aModType);
 
   
 
@@ -61,9 +61,9 @@ public:
 
 
   static void AttributeChanged(mozilla::dom::Element* aElement,
-                               PRInt32 aNameSpaceID,
+                               int32_t aNameSpaceID,
                                nsIAtom* aAttribute,
-                               PRInt32 aModType);
+                               int32_t aModType);
   
 
 
@@ -72,7 +72,7 @@ public:
 
 
   static void AttributeSetToCurrentValue(mozilla::dom::Element* aElement,
-                                         PRInt32 aNameSpaceID,
+                                         int32_t aNameSpaceID,
                                          nsIAtom* aAttribute);
 
   
@@ -84,7 +84,7 @@ public:
 
   static void ContentAppended(nsIContent* aContainer,
                               nsIContent* aFirstNewContent,
-                              PRInt32 aNewIndexInContainer);
+                              int32_t aNewIndexInContainer);
 
   
 
@@ -95,7 +95,7 @@ public:
 
   static void ContentInserted(nsINode* aContainer,
                               nsIContent* aChild,
-                              PRInt32 aIndexInContainer);
+                              int32_t aIndexInContainer);
   
 
 
@@ -105,7 +105,7 @@ public:
 
   static void ContentRemoved(nsINode* aContainer,
                              nsIContent* aChild,
-                             PRInt32 aIndexInContainer,
+                             int32_t aIndexInContainer,
                              nsIContent* aPreviousSibling);
   
 
@@ -205,7 +205,7 @@ public:
 
   static nsresult CallUserDataHandlers(nsCOMArray<nsINode> &aNodesWithProperties,
                                        nsIDocument *aOwnerDocument,
-                                       PRUint16 aOperation, bool aCloned);
+                                       uint16_t aOperation, bool aCloned);
 
   
 

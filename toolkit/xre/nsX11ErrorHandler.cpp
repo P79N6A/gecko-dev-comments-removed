@@ -112,7 +112,7 @@ X11Error(Display *display, XErrorEvent *event) {
       notes.Append("; sync");
     } else {
       notes.Append("; ");
-      notes.AppendInt(PRUint32(age));
+      notes.AppendInt(uint32_t(age));
       notes.Append(" requests ago");
     }
   }
@@ -133,7 +133,7 @@ X11Error(Display *display, XErrorEvent *event) {
   
   
   notes.Append("; id=0x");
-  notes.AppendInt(PRUint32(event->resourceid), 16);
+  notes.AppendInt(uint32_t(event->resourceid), 16);
 #ifdef MOZ_X11
   
   

@@ -29,13 +29,13 @@ public:
   
 
 
-  virtual void GetOptionText(PRInt32 aIndex, nsAString & aStr) = 0;
+  virtual void GetOptionText(int32_t aIndex, nsAString & aStr) = 0;
 
   
 
 
 
-  virtual PRInt32 GetSelectedIndex() = 0;
+  virtual int32_t GetSelectedIndex() = 0;
 
   
 
@@ -59,7 +59,7 @@ public:
 
 
 
-  virtual PRInt32 GetNumberOfOptions() = 0; 
+  virtual int32_t GetNumberOfOptions() = 0; 
 
   
 
@@ -82,7 +82,7 @@ public:
 
 
 
-  virtual void ComboboxFinish(PRInt32 aIndex) = 0;
+  virtual void ComboboxFinish(int32_t aIndex) = 0;
 
   
 

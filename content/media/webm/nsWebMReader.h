@@ -30,7 +30,7 @@ class nsWebMBufferedState;
 
 class NesteggPacketHolder {
 public:
-  NesteggPacketHolder(nestegg_packet* aPacket, PRInt64 aOffset)
+  NesteggPacketHolder(nestegg_packet* aPacket, int64_t aOffset)
     : mPacket(aPacket), mOffset(aOffset)
   {
     MOZ_COUNT_CTOR(NesteggPacketHolder);
@@ -42,7 +42,7 @@ public:
   nestegg_packet* mPacket;
   
   
-  PRInt64 mOffset;
+  int64_t mOffset;
 private:
   
   NesteggPacketHolder(const NesteggPacketHolder &aOther);
@@ -70,7 +70,7 @@ class PacketQueue : private nsDeque {
     Reset();
   }
 
-  inline PRInt32 GetSize() { 
+  inline int32_t GetSize() { 
     return nsDeque::GetSize();
   }
   
@@ -109,7 +109,7 @@ public:
   
   
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                  PRInt64 aTimeThreshold);
+                                  int64_t aTimeThreshold);
 
   virtual bool HasAudio()
   {
@@ -130,9 +130,9 @@ public:
 
   virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
                                 nsHTMLMediaElement::MetadataTags** aTags);
-  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime, PRInt64 aCurrentTime);
-  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
-  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRInt64 aOffset);
+  virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
 
 private:
   
@@ -152,7 +152,7 @@ private:
                            size_t aLength,
                            bool aBOS,
                            bool aEOS,
-                           PRInt64 aGranulepos);
+                           int64_t aGranulepos);
 
   
   
@@ -160,7 +160,7 @@ private:
   
   
   
-  bool DecodeAudioPacket(nestegg_packet* aPacket, PRInt64 aOffset);
+  bool DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset);
 
   
   
@@ -179,8 +179,8 @@ private:
   vorbis_comment mVorbisComment;
   vorbis_dsp_state mVorbisDsp;
   vorbis_block mVorbisBlock;
-  PRUint32 mPacketCount;
-  PRUint32 mChannels;
+  uint32_t mPacketCount;
+  uint32_t mChannels;
 
   
   
@@ -188,14 +188,14 @@ private:
   PacketQueue mAudioPackets;
 
   
-  PRUint32 mVideoTrack;
-  PRUint32 mAudioTrack;
+  uint32_t mVideoTrack;
+  uint32_t mAudioTrack;
 
   
-  PRInt64 mAudioStartUsec;
+  int64_t mAudioStartUsec;
 
   
-  PRUint64 mAudioFrames;
+  uint64_t mAudioFrames;
 
   
   

@@ -151,15 +151,15 @@ public:
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
 
-  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
+  NS_IMETHOD AttributeChanged(int32_t aNameSpaceID,
                               nsIAtom* aAttribute,
-                              PRInt32 aModType);
+                              int32_t aModType);
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                  PRUint32 aFlags);
+                                  uint32_t aFlags);
 
   
   
@@ -173,7 +173,7 @@ public:
   void EnsureWidget();
 
   nsresult CreateWidgetForView(nsIView* aView);
-  PRUint8 GetShadowStyle();
+  uint8_t GetShadowStyle();
 
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
@@ -230,7 +230,7 @@ public:
   void InitializePopup(nsIContent* aAnchorContent,
                        nsIContent* aTriggerContent,
                        const nsAString& aPosition,
-                       PRInt32 aXPos, PRInt32 aYPos,
+                       int32_t aXPos, int32_t aYPos,
                        bool aAttributesOverride);
 
   
@@ -239,13 +239,13 @@ public:
 
 
   void InitializePopupAtScreen(nsIContent* aTriggerContent,
-                               PRInt32 aXPos, PRInt32 aYPos,
+                               int32_t aXPos, int32_t aYPos,
                                bool aIsContextMenu);
 
   void InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
                                       nsAString& aAnchor,
                                       nsAString& aAlign,
-                                      PRInt32 aXPos, PRInt32 aYPos);
+                                      int32_t aXPos, int32_t aYPos);
 
   
   void ShowPopup(bool aIsContextMenu, bool aSelectFirstItem);
@@ -278,11 +278,11 @@ public:
   
   
   
-  void MoveTo(PRInt32 aLeft, PRInt32 aTop, bool aUpdateAttrs);
+  void MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs);
 
   bool GetAutoPosition();
   void SetAutoPosition(bool aShouldAutoPosition);
-  void SetConsumeRollupEvent(PRUint32 aConsumeMode);
+  void SetConsumeRollupEvent(uint32_t aConsumeMode);
 
   nsIScrollableFrame* GetScrollFrame(nsIFrame* aStart);
 
@@ -303,7 +303,7 @@ public:
   
   
   
-  void CanAdjustEdges(PRInt8 aHorizontalSide, PRInt8 aVerticalSide, nsIntPoint& aChange);
+  void CanAdjustEdges(int8_t aHorizontalSide, int8_t aVerticalSide, nsIntPoint& aChange);
 
   
   bool IsAnchored() const { return mScreenXPos == -1 && mScreenYPos == -1; }
@@ -326,7 +326,7 @@ protected:
   nsPopupLevel PopupLevel(bool aIsNoAutoHide) const;
 
   
-  virtual void GetLayoutFlags(PRUint32& aFlags);
+  virtual void GetLayoutFlags(uint32_t& aFlags);
 
   void InitPositionFromAnchorAlign(const nsAString& aAnchor,
                                    const nsAString& aAlign);
@@ -399,10 +399,10 @@ protected:
 
   
   
-  PRInt32 mXPos;
-  PRInt32 mYPos;
-  PRInt32 mScreenXPos;
-  PRInt32 mScreenYPos;
+  int32_t mXPos;
+  int32_t mYPos;
+  int32_t mScreenXPos;
+  int32_t mScreenYPos;
   
   
   
@@ -412,10 +412,10 @@ protected:
   nsPopupState mPopupState; 
 
   
-  PRInt8 mPopupAlignment;
-  PRInt8 mPopupAnchor;
+  int8_t mPopupAlignment;
+  int8_t mPopupAnchor;
   
-  PRInt8 mConsumeRollupEvent;
+  int8_t mConsumeRollupEvent;
   bool mFlipBoth; 
 
   bool mIsOpenChanged; 
@@ -434,7 +434,7 @@ protected:
   bool mHFlip;
   bool mVFlip;
 
-  static PRInt8 sDefaultLevelIsTop;
+  static int8_t sDefaultLevelIsTop;
 }; 
 
 #endif

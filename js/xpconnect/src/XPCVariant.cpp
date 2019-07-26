@@ -305,7 +305,7 @@ JSBool XPCVariant::InitializeData(XPCCallContext& ccx)
         mData.u.wstr.mWStringValue = const_cast<jschar *>(chars);
         
         
-        mData.u.wstr.mWStringLength = (PRUint32)length;
+        mData.u.wstr.mWStringLength = (uint32_t)length;
         mData.mType = nsIDataType::VTYPE_WSTRING_SIZE_IS;
 
         return true;
@@ -379,7 +379,7 @@ XPCVariant::VariantDataToJS(XPCLazyCallContext& lccx,
                             nsresult* pErr, jsval* pJSVal)
 {
     
-    PRUint16 type;
+    uint16_t type;
     if (NS_FAILED(variant->GetDataType(&type)))
         return false;
 
@@ -426,7 +426,7 @@ XPCVariant::VariantDataToJS(XPCLazyCallContext& lccx,
     nsAutoString astring;
     nsCAutoString cString;
     nsUTF8String utf8String;
-    PRUint32 size;
+    uint32_t size;
     xpctvar.flags = 0;
     JSBool success;
 
@@ -559,7 +559,7 @@ XPCVariant::VariantDataToJS(XPCLazyCallContext& lccx,
             success = false;
 
             nsXPTType conversionType;
-            PRUint16 elementType = du.u.array.mArrayType;
+            uint16_t elementType = du.u.array.mArrayType;
             const nsID* pid = nullptr;
 
             switch (elementType) {
@@ -674,56 +674,56 @@ VARIANT_DONE:
 
 
 
-NS_IMETHODIMP XPCVariant::GetDataType(PRUint16 *aDataType)
+NS_IMETHODIMP XPCVariant::GetDataType(uint16_t *aDataType)
 {
     *aDataType = mData.mType;
     return NS_OK;
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsInt8(PRUint8 *_retval)
+NS_IMETHODIMP XPCVariant::GetAsInt8(uint8_t *_retval)
 {
     return nsVariant::ConvertToInt8(mData, _retval);
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsInt16(PRInt16 *_retval)
+NS_IMETHODIMP XPCVariant::GetAsInt16(int16_t *_retval)
 {
     return nsVariant::ConvertToInt16(mData, _retval);
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsInt32(PRInt32 *_retval)
+NS_IMETHODIMP XPCVariant::GetAsInt32(int32_t *_retval)
 {
     return nsVariant::ConvertToInt32(mData, _retval);
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsInt64(PRInt64 *_retval)
+NS_IMETHODIMP XPCVariant::GetAsInt64(int64_t *_retval)
 {
     return nsVariant::ConvertToInt64(mData, _retval);
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsUint8(PRUint8 *_retval)
+NS_IMETHODIMP XPCVariant::GetAsUint8(uint8_t *_retval)
 {
     return nsVariant::ConvertToUint8(mData, _retval);
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsUint16(PRUint16 *_retval)
+NS_IMETHODIMP XPCVariant::GetAsUint16(uint16_t *_retval)
 {
     return nsVariant::ConvertToUint16(mData, _retval);
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsUint32(PRUint32 *_retval)
+NS_IMETHODIMP XPCVariant::GetAsUint32(uint32_t *_retval)
 {
     return nsVariant::ConvertToUint32(mData, _retval);
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsUint64(PRUint64 *_retval)
+NS_IMETHODIMP XPCVariant::GetAsUint64(uint64_t *_retval)
 {
     return nsVariant::ConvertToUint64(mData, _retval);
 }
@@ -816,19 +816,19 @@ NS_IMETHODIMP XPCVariant::GetAsInterface(nsIID * *iid, void * *iface)
 
 
 
-NS_IMETHODIMP_(nsresult) XPCVariant::GetAsArray(PRUint16 *type, nsIID *iid, PRUint32 *count, void * *ptr)
+NS_IMETHODIMP_(nsresult) XPCVariant::GetAsArray(uint16_t *type, nsIID *iid, uint32_t *count, void * *ptr)
 {
     return nsVariant::ConvertToArray(mData, type, iid, count, ptr);
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsStringWithSize(PRUint32 *size, char **str)
+NS_IMETHODIMP XPCVariant::GetAsStringWithSize(uint32_t *size, char **str)
 {
     return nsVariant::ConvertToStringWithSize(mData, size, str);
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsWStringWithSize(PRUint32 *size, PRUnichar **str)
+NS_IMETHODIMP XPCVariant::GetAsWStringWithSize(uint32_t *size, PRUnichar **str)
 {
     return nsVariant::ConvertToWStringWithSize(mData, size, str);
 }

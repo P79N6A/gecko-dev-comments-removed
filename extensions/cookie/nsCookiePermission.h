@@ -39,8 +39,8 @@ private:
   nsCOMPtr<nsIPermissionManager> mPermMgr;
   nsCOMPtr<nsIPrivateBrowsingService> mPBService;
 
-  PRInt64      mCookiesLifetimeSec;            
-  PRUint8      mCookiesLifetimePolicy;         
+  int64_t      mCookiesLifetimeSec;            
+  uint8_t      mCookiesLifetimePolicy;         
   bool mCookiesAlwaysAcceptSession;    
 };
 

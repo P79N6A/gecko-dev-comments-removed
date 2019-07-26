@@ -50,7 +50,7 @@ public:
 
 
 
-  virtual PRUint32 GetScrollbarVisibility() const = 0;
+  virtual uint32_t GetScrollbarVisibility() const = 0;
   
 
 

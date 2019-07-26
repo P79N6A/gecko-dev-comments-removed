@@ -59,8 +59,8 @@ private:
     PRLock    *mLock;
     PRCondVar *mIdleThreadCV;   
     PRCondVar *mExitThreadCV;   
-    PRUint32   mNumThreads;     
-    PRUint32   mNumIdleThreads; 
+    uint32_t   mNumThreads;     
+    uint32_t   mNumIdleThreads; 
     PRCList    mEventQ;         
     bool       mShutdown;       
     nsThreadPoolNaming mNaming; 

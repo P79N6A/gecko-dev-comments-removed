@@ -152,7 +152,7 @@ nsIWidget*          gRollupWidget             = 0;
 bool                gRollupConsumeRollupEvent = false;
 
 
-PRUint32            gOS2Flags = 0;
+uint32_t            gOS2Flags = 0;
 
 
 static HPOINTER     sPtrArray[IDC_COUNT];
@@ -161,7 +161,7 @@ static HPOINTER     sPtrArray[IDC_COUNT];
 static POINTS       sLastButton1Down = {0,0};
 
 
-static PRUint32     sDragStatus = 0;
+static uint32_t     sDragStatus = 0;
 
 #ifdef DEBUG_FOCUS
   int currentWindowIdentifier = 0;
@@ -176,7 +176,7 @@ static APIRET (APIENTRY *spfnImGetResultString)(HIMI, ULONG, PVOID, PULONG);
 static APIRET (APIENTRY *spfnImRequestIME)(HIMI, ULONG, ULONG, ULONG);
 
 
-static PRUint32     WMChar2KeyCode(MPARAM mp1, MPARAM mp2);
+static uint32_t     WMChar2KeyCode(MPARAM mp1, MPARAM mp2);
 
 
 
@@ -433,7 +433,7 @@ nsresult nsWindow::CreateWindow(nsWindow* aParent,
 
   
   
-  PRUint32 style = WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+  uint32_t style = WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
   if (aInitData && !aInitData->clipSiblings) {
     style &= ~WS_CLIPSIBLINGS;
   }
@@ -662,7 +662,7 @@ gfxASurface* nsWindow::ConfirmThebesSurface()
 
 float nsWindow::GetDPI()
 {
-  static PRInt32 sDPI = 0;
+  static int32_t sDPI = 0;
 
   
   
@@ -684,7 +684,7 @@ float nsWindow::GetDPI()
 
 
 
-void* nsWindow::GetNativeData(PRUint32 aDataType)
+void* nsWindow::GetNativeData(uint32_t aDataType)
 {
   switch(aDataType) {
     case NS_NATIVE_WIDGET:
@@ -709,7 +709,7 @@ void* nsWindow::GetNativeData(PRUint32 aDataType)
 
 
 
-void nsWindow::FreeNativeData(void* data, PRUint32 aDataType)
+void nsWindow::FreeNativeData(void* data, uint32_t aDataType)
 {
   
   if (aDataType == NS_NATIVE_GRAPHIC &&
@@ -808,7 +808,7 @@ void nsWindow::NS2PM_PARENT(POINTL& ptl)
 
 
 
-NS_METHOD nsWindow::Move(PRInt32 aX, PRInt32 aY)
+NS_METHOD nsWindow::Move(int32_t aX, int32_t aY)
 {
   if (mFrame) {
     nsresult rv = mFrame->Move(aX, aY);
@@ -821,7 +821,7 @@ NS_METHOD nsWindow::Move(PRInt32 aX, PRInt32 aY)
 
 
 
-NS_METHOD nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
+NS_METHOD nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
 {
   if (mFrame) {
     nsresult rv = mFrame->Resize(aWidth, aHeight, aRepaint);
@@ -834,8 +834,8 @@ NS_METHOD nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
 
 
 
-NS_METHOD nsWindow::Resize(PRInt32 aX, PRInt32 aY,
-                           PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
+NS_METHOD nsWindow::Resize(int32_t aX, int32_t aY,
+                           int32_t aWidth, int32_t aHeight, bool aRepaint)
 {
   if (mFrame) {
     nsresult rv = mFrame->Resize(aX, aY, aWidth, aHeight, aRepaint);
@@ -896,7 +896,7 @@ NS_METHOD nsWindow::PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
     hBehind = (static_cast<nsWindow*>(aWidget))->GetMainWindow();
   }
 
-  PRUint32 flags = SWP_ZORDER;
+  uint32_t flags = SWP_ZORDER;
   if (aActivate) {
     flags |= SWP_ACTIVATE;
   }
@@ -908,7 +908,7 @@ NS_METHOD nsWindow::PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
 
 
 
-NS_METHOD nsWindow::SetZIndex(PRInt32 aZIndex)
+NS_METHOD nsWindow::SetZIndex(int32_t aZIndex)
 {
   
   
@@ -977,7 +977,7 @@ void nsWindow::ActivatePlugin(HWND aWnd)
 
 nsresult nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 {
-  for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
+  for (uint32_t i = 0; i < aConfigurations.Length(); ++i) {
     const Configuration& configuration = aConfigurations[i];
     nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
     NS_ASSERTION(w->GetParent() == this,
@@ -1021,7 +1021,7 @@ void nsWindow::SetPluginClipRegion(const Configuration& aConfiguration)
   
   const nsTArray<nsIntRect>& rects = aConfiguration.mClipRegion;
   nsIntRect r;
-  for (PRUint32 i = 0; i < rects.Length(); ++i) {
+  for (uint32_t i = 0; i < rects.Length(); ++i) {
     r.UnionRect(r, rects[i]);
   }
 
@@ -1135,7 +1135,7 @@ void nsWindow::ActivateTopLevelWidget()
 
 
 
-NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode)
+NS_IMETHODIMP nsWindow::SetSizeMode(int32_t aMode)
 {
   NS_ENSURE_TRUE(mFrame, NS_ERROR_UNEXPECTED);
   return mFrame->SetSizeMode(aMode);
@@ -1160,7 +1160,7 @@ NS_METHOD nsWindow::SetIcon(const nsAString& aIconSpec)
 }
 
 NS_METHOD nsWindow::ConstrainPosition(bool aAllowSlop,
-                                      PRInt32* aX, PRInt32* aY)
+                                      int32_t* aX, int32_t* aY)
 {
   NS_ENSURE_TRUE(mFrame, NS_ERROR_UNEXPECTED);
   return mFrame->ConstrainPosition(aAllowSlop, aX, aY);
@@ -1322,7 +1322,7 @@ NS_METHOD nsWindow::SetCursor(nsCursor aCursor)
 
 
 NS_IMETHODIMP nsWindow::SetCursor(imgIContainer* aCursor,
-                                  PRUint32 aHotspotX, PRUint32 aHotspotY)
+                                  uint32_t aHotspotX, uint32_t aHotspotY)
 {
 
   
@@ -1341,11 +1341,11 @@ NS_IMETHODIMP nsWindow::SetCursor(imgIContainer* aCursor,
 
   
   
-  PRInt32 width = frame->Width();
-  PRInt32 height = frame->Height();
+  int32_t width = frame->Width();
+  int32_t height = frame->Height();
   NS_ENSURE_TRUE(width <= 128 && height <= 128, NS_ERROR_FAILURE);
 
-  PRUint8* data = frame->Data();
+  uint8_t* data = frame->Data();
 
   
   HBITMAP hBmp = CreateBitmapRGB(data, width, height);
@@ -1393,8 +1393,8 @@ NS_IMETHODIMP nsWindow::SetCursor(imgIContainer* aCursor,
 
 #define ALIGNEDBPR(cx,bits) ( ( ( ((cx)*(bits)) + 31) / 32) * 4)
 
-HBITMAP nsWindow::DataToBitmap(PRUint8* aImageData, PRUint32 aWidth,
-                               PRUint32 aHeight, PRUint32 aDepth)
+HBITMAP nsWindow::DataToBitmap(uint8_t* aImageData, uint32_t aWidth,
+                               uint32_t aHeight, uint32_t aDepth)
 {
   
   HPS hps = (HPS)GetNativeData(NS_NATIVE_GRAPHIC);
@@ -1438,25 +1438,25 @@ HBITMAP nsWindow::DataToBitmap(PRUint8* aImageData, PRUint32 aWidth,
 
 
 
-HBITMAP nsWindow::CreateBitmapRGB(PRUint8* aImageData,
-                                  PRUint32 aWidth,
-                                  PRUint32 aHeight)
+HBITMAP nsWindow::CreateBitmapRGB(uint8_t* aImageData,
+                                  uint32_t aWidth,
+                                  uint32_t aHeight)
 {
   
-  const PRUint32 bpr = ALIGNEDBPR(aWidth, 24);
-  PRUint8* bmp = (PRUint8*)malloc(bpr * aHeight);
+  const uint32_t bpr = ALIGNEDBPR(aWidth, 24);
+  uint8_t* bmp = (uint8_t*)malloc(bpr * aHeight);
   if (!bmp) {
     return 0;
   }
 
-  PRUint32* pSrc = (PRUint32*)aImageData;
-  for (PRUint32 row = aHeight; row > 0; --row) {
-    PRUint8* pDst = bmp + bpr * (row - 1);
+  uint32_t* pSrc = (uint32_t*)aImageData;
+  for (uint32_t row = aHeight; row > 0; --row) {
+    uint8_t* pDst = bmp + bpr * (row - 1);
 
-    for (PRUint32 col = aWidth; col > 0; --col) {
+    for (uint32_t col = aWidth; col > 0; --col) {
       
       
-      PRUint32 color = *pSrc++;
+      uint32_t color = *pSrc++;
       *pDst++ = color;       
       *pDst++ = color >> 8;  
       *pDst++ = color >> 16; 
@@ -1475,16 +1475,16 @@ HBITMAP nsWindow::CreateBitmapRGB(PRUint8* aImageData,
 
 
 HBITMAP nsWindow::CreateTransparencyMask(gfxASurface::gfxImageFormat format,
-                                         PRUint8* aImageData,
-                                         PRUint32 aWidth,
-                                         PRUint32 aHeight)
+                                         uint8_t* aImageData,
+                                         uint32_t aWidth,
+                                         uint32_t aHeight)
 {
   
-  PRUint32 abpr = ALIGNEDBPR(aWidth, 1);
-  PRUint32 cbData = abpr * aHeight;
+  uint32_t abpr = ALIGNEDBPR(aWidth, 1);
+  uint32_t cbData = abpr * aHeight;
 
   
-  PRUint8* mono = (PRUint8*)calloc(cbData, 2);
+  uint8_t* mono = (uint8_t*)calloc(cbData, 2);
   if (!mono) {
     return 0;
   }
@@ -1494,12 +1494,12 @@ HBITMAP nsWindow::CreateTransparencyMask(gfxASurface::gfxImageFormat format,
   if (format == gfxASurface::ImageFormatARGB32) {
 
     
-    PRInt32* pSrc = (PRInt32*)aImageData;
-    for (PRUint32 row = aHeight; row > 0; --row) {
+    int32_t* pSrc = (int32_t*)aImageData;
+    for (uint32_t row = aHeight; row > 0; --row) {
       
-      PRUint8* pDst = mono + cbData + abpr * (row - 1);
-      PRUint8 mask = 0x80;
-      for (PRUint32 col = aWidth; col > 0; --col) {
+      uint8_t* pDst = mono + cbData + abpr * (row - 1);
+      uint8_t mask = 0x80;
+      for (uint32_t col = aWidth; col > 0; --col) {
         
         
         
@@ -1585,12 +1585,12 @@ bool nsWindow::RollupOnButtonDown(ULONG aMsg)
 
   
   
-  PRUint32 popupsToRollup = PR_UINT32_MAX;
+  uint32_t popupsToRollup = PR_UINT32_MAX;
 
   if (gRollupListener) {
     nsAutoTArray<nsIWidget*, 5> widgetChain;
-    PRUint32 sameTypeCount = gRollupListener->GetSubmenuWidgetChain(&widgetChain);
-    for (PRUint32 i = 0; i < widgetChain.Length(); ++i) {
+    uint32_t sameTypeCount = gRollupListener->GetSubmenuWidgetChain(&widgetChain);
+    for (uint32_t i = 0; i < widgetChain.Length(); ++i) {
       nsIWidget* widget = widgetChain[i];
       if (EventIsInsideWindow((nsWindow*)widget)) {
         if (i < sameTypeCount) {
@@ -1627,7 +1627,7 @@ void nsWindow::RollupOnFocusLost(HWND aFocus)
   if (gRollupListener) {
     nsAutoTArray<nsIWidget*, 5> widgetChain;
     gRollupListener->GetSubmenuWidgetChain(&widgetChain);
-    for (PRUint32 i = 0; i < widgetChain.Length(); ++i) {
+    for (uint32_t i = 0; i < widgetChain.Length(); ++i) {
       if (((nsWindow*)widgetChain[i])->mWnd == aFocus) {
         return;
       }
@@ -1833,7 +1833,7 @@ MRESULT nsWindow::ProcessMessage(ULONG msg, MPARAM mp1, MPARAM mp2)
       break;
 
     case WM_APPCOMMAND: {
-      PRUint32 appCommand = SHORT2FROMMP(mp2) & 0xfff;
+      uint32_t appCommand = SHORT2FROMMP(mp2) & 0xfff;
 
       switch (appCommand) {
         case APPCOMMAND_BROWSER_BACKWARD:
@@ -2066,7 +2066,7 @@ do {
 
   
   thebesContext->NewPath();
-  for (PRUint32 i = 0; i < rgnrect.crcReturned; i++, pr++) {
+  for (uint32_t i = 0; i < rgnrect.crcReturned; i++, pr++) {
     event.region.Or(event.region, 
                     nsIntRect(pr->xLeft,
                               mBounds.height - pr->yTop,
@@ -2082,7 +2082,7 @@ do {
 
 #ifdef DEBUG_PAINT
   debug_DumpPaintEvent(stdout, this, &event, nsCAutoString("noname"),
-                       (PRInt32)mWnd);
+                       (int32_t)mWnd);
 #endif
 
   
@@ -2098,7 +2098,7 @@ do {
   thebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
   thebesContext->Paint();
   pr = arect;
-  for (PRUint32 i = 0; i < rgnrect.crcReturned; i++, pr++) {
+  for (uint32_t i = 0; i < rgnrect.crcReturned; i++, pr++) {
     mThebesSurface->Refresh(pr, hPS);
   }
 
@@ -2214,8 +2214,8 @@ bool nsWindow::OnMouseChord(MPARAM mp1, MPARAM mp2)
 bool nsWindow::OnDragDropMsg(ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT& mr)
 {
   nsresult rv;
-  PRUint32 eventType = 0;
-  PRUint32 dragFlags = 0;
+  uint32_t eventType = 0;
+  uint32_t dragFlags = 0;
 
   mr = 0;
   nsCOMPtr<nsIDragService> dragService =
@@ -2290,7 +2290,7 @@ bool nsWindow::OnDragDropMsg(ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT& mr)
 
 
 
-bool nsWindow::CheckDragStatus(PRUint32 aAction, HPS* aHps)
+bool nsWindow::CheckDragStatus(uint32_t aAction, HPS* aHps)
 {
   bool rtn    = true;
   bool getHps = false;
@@ -2369,9 +2369,9 @@ bool nsWindow::ReleaseIfDragHPS(HPS aHps)
 
 
 
-NS_IMETHODIMP nsWindow::GetToggledKeyState(PRUint32 aKeyCode, bool* aLEDState)
+NS_IMETHODIMP nsWindow::GetToggledKeyState(uint32_t aKeyCode, bool* aLEDState)
 {
-  PRUint32  vkey;
+  uint32_t  vkey;
 
   NS_ENSURE_ARG_POINTER(aLEDState);
 
@@ -2495,7 +2495,7 @@ bool nsWindow::ImeResultString(HIMI himi)
   }
 
   nsAutoChar16Buffer outBuf;
-  PRInt32 outBufLen;
+  int32_t outBufLen;
   MultiByteToWideChar(0, pBuf, ulBufLen, outBuf, outBufLen);
 
   delete pBuf;
@@ -2558,7 +2558,7 @@ bool nsWindow::ImeConversionString(HIMI himi)
   }
 
   nsAutoChar16Buffer outBuf;
-  PRInt32 outBufLen;
+  int32_t outBufLen;
   MultiByteToWideChar(0, pBuf, ulBufLen, outBuf, outBufLen);
 
   delete pBuf;
@@ -2730,7 +2730,7 @@ bool nsWindow::DispatchKeyEvent(MPARAM mp1, MPARAM mp2)
     inbuf[1] = '\0';
 
     nsAutoChar16Buffer outbuf;
-    PRInt32 bufLength;
+    int32_t bufLength;
     MultiByteToWideChar(0, (const char*)inbuf, 2, outbuf, bufLength);
 
     pressEvent.charCode = outbuf[0];
@@ -2767,10 +2767,10 @@ bool nsWindow::DispatchKeyEvent(MPARAM mp1, MPARAM mp2)
 
 
 static
-PRUint32 WMChar2KeyCode(MPARAM mp1, MPARAM mp2)
+uint32_t WMChar2KeyCode(MPARAM mp1, MPARAM mp2)
 {
-  PRUint32 rc = SHORT1FROMMP(mp2);  
-  PRUint32 rcmask = rc & 0x00FF;    
+  uint32_t rc = SHORT1FROMMP(mp2);  
+  uint32_t rcmask = rc & 0x00FF;    
   USHORT sc = CHAR4FROMMP(mp1);     
   USHORT flags = SHORT1FROMMP(mp1); 
 
@@ -2977,7 +2977,7 @@ bool nsWindow::DispatchWindowEvent(nsGUIEvent*event, nsEventStatus &aStatus) {
 
 
 
-bool nsWindow::DispatchCommandEvent(PRUint32 aEventCommand)
+bool nsWindow::DispatchCommandEvent(uint32_t aEventCommand)
 {
   nsCOMPtr<nsIAtom> command;
 
@@ -3005,7 +3005,7 @@ bool nsWindow::DispatchCommandEvent(PRUint32 aEventCommand)
 
 
 
-bool nsWindow::DispatchDragDropEvent(PRUint32 aMsg)
+bool nsWindow::DispatchDragDropEvent(uint32_t aMsg)
 {
   nsDragEvent event(true, aMsg, this);
   InitEvent(event);
@@ -3019,7 +3019,7 @@ bool nsWindow::DispatchDragDropEvent(PRUint32 aMsg)
 
 
 
-bool nsWindow::DispatchMoveEvent(PRInt32 aX, PRInt32 aY)
+bool nsWindow::DispatchMoveEvent(int32_t aX, int32_t aY)
 {
   
   nsGUIEvent event(true, NS_MOVE, this);
@@ -3030,7 +3030,7 @@ bool nsWindow::DispatchMoveEvent(PRInt32 aX, PRInt32 aY)
 
 
 
-bool nsWindow::DispatchResizeEvent(PRInt32 aX, PRInt32 aY)
+bool nsWindow::DispatchResizeEvent(int32_t aX, int32_t aY)
 {
   nsSizeEvent event(true, NS_SIZE, this);
   nsIntRect   rect(0, 0, aX, aY);
@@ -3046,8 +3046,8 @@ bool nsWindow::DispatchResizeEvent(PRInt32 aX, PRInt32 aY)
 
 
 
-bool nsWindow::DispatchMouseEvent(PRUint32 aEventType, MPARAM mp1, MPARAM mp2,
-                                    bool aIsContextMenuKey, PRInt16 aButton)
+bool nsWindow::DispatchMouseEvent(uint32_t aEventType, MPARAM mp1, MPARAM mp2,
+                                    bool aIsContextMenuKey, int16_t aButton)
 {
   NS_ENSURE_TRUE(aEventType, false);
 
@@ -3193,7 +3193,7 @@ bool nsWindow::DispatchMouseEvent(PRUint32 aEventType, MPARAM mp1, MPARAM mp2,
 
 
 
-bool nsWindow::DispatchActivationEvent(PRUint32 aEventType)
+bool nsWindow::DispatchActivationEvent(uint32_t aEventType)
 {
   nsGUIEvent event(true, aEventType, this);
 
@@ -3231,7 +3231,7 @@ bool nsWindow::DispatchScrollEvent(ULONG msg, MPARAM mp1, MPARAM mp2)
                                 isKeyDown(VK_SHIFT), false);
   
   
-  PRInt32 delta;
+  int32_t delta;
   switch (SHORT2FROMMP(mp2)) {
     case SB_LINEUP:
     

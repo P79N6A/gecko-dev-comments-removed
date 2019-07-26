@@ -217,14 +217,14 @@ nsResProtocolHandler::GetScheme(nsACString &result)
 }
 
 NS_IMETHODIMP
-nsResProtocolHandler::GetDefaultPort(PRInt32 *result)
+nsResProtocolHandler::GetDefaultPort(int32_t *result)
 {
     *result = -1;        
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsResProtocolHandler::GetProtocolFlags(PRUint32 *result)
+nsResProtocolHandler::GetProtocolFlags(uint32_t *result)
 {
     
     
@@ -301,7 +301,7 @@ nsResProtocolHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
 }
 
 NS_IMETHODIMP 
-nsResProtocolHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval)
+nsResProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
 {
     
     *_retval = false;

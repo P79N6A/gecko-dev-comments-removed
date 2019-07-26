@@ -51,7 +51,7 @@ NS_CSS_MINMAX(NumericType aValue, NumericType aMinValue, NumericType aMaxValue)
 
 
 
-typedef PRUint32  nsCSSFrameType;
+typedef uint32_t  nsCSSFrameType;
 
 #define NS_CSS_FRAME_TYPE_UNKNOWN         0
 #define NS_CSS_FRAME_TYPE_INLINE          1
@@ -190,11 +190,11 @@ protected:
   
   
   nscoord ComputeWidthValue(nscoord aContainingBlockWidth,
-                            PRUint8 aBoxSizing,
+                            uint8_t aBoxSizing,
                             const nsStyleCoord& aCoord);
 
   nscoord ComputeHeightValue(nscoord aContainingBlockHeight,
-                             PRUint8 aBoxSizing,
+                             uint8_t aBoxSizing,
                              const nsStyleCoord& aCoord);
 };
 
@@ -301,7 +301,7 @@ public:
     return mStyleDisplay->IsFloating(frame);
   }
 
-  PRUint8 GetDisplay() const {
+  uint8_t GetDisplay() const {
     return mStyleDisplay->GetDisplay(frame);
   }
 
@@ -318,38 +318,38 @@ public:
 
   
   
-  PRInt16 mReflowDepth;
+  int16_t mReflowDepth;
 
   struct ReflowStateFlags {
-    PRUint16 mSpecialHeightReflow:1; 
+    uint16_t mSpecialHeightReflow:1; 
                                      
-    PRUint16 mNextInFlowUntouched:1; 
+    uint16_t mNextInFlowUntouched:1; 
                                      
-    PRUint16 mIsTopOfPage:1;         
+    uint16_t mIsTopOfPage:1;         
                                      
                                      
                                      
-    PRUint16 mBlinks:1;              
-    PRUint16 mHasClearance:1;        
-    PRUint16 mAssumingHScrollbar:1;  
+    uint16_t mBlinks:1;              
+    uint16_t mHasClearance:1;        
+    uint16_t mAssumingHScrollbar:1;  
                                      
-    PRUint16 mAssumingVScrollbar:1;  
-                                     
-
-    PRUint16 mHResize:1;             
+    uint16_t mAssumingVScrollbar:1;  
                                      
 
-    PRUint16 mVResize:1;             
+    uint16_t mHResize:1;             
+                                     
+
+    uint16_t mVResize:1;             
                                      
                                      
                                      
                                      
-    PRUint16 mTableIsSplittable:1;   
+    uint16_t mTableIsSplittable:1;   
                                      
-    PRUint16 mHeightDependsOnAncestorCell:1;   
+    uint16_t mHeightDependsOnAncestorCell:1;   
                                                
-    PRUint16 mIsColumnBalancing:1;   
-    PRUint16 mDummyParentReflowState:1; 
+    uint16_t mIsColumnBalancing:1;   
+    uint16_t mDummyParentReflowState:1; 
                                         
                                         
   } mFlags;
@@ -364,7 +364,7 @@ public:
                     nsIFrame*                aFrame,
                     nsRenderingContext*     aRenderingContext,
                     const nsSize&            aAvailableSpace,
-                    PRUint32                 aFlags = 0);
+                    uint32_t                 aFlags = 0);
 
   
   
@@ -482,7 +482,7 @@ public:
   }
 
   
-  static void ComputeRelativeOffsets(PRUint8 aCBDirection,
+  static void ComputeRelativeOffsets(uint8_t aCBDirection,
                                      nsIFrame* aFrame,
                                      nscoord aContainingBlockWidth,
                                      nscoord aContainingBlockHeight,

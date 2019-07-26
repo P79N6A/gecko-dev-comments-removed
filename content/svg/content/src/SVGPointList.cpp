@@ -35,8 +35,8 @@ SVGPointList::GetValueAsString(nsAString& aValue) const
 {
   aValue.Truncate();
   PRUnichar buf[50];
-  PRUint32 last = mItems.Length() - 1;
-  for (PRUint32 i = 0; i < mItems.Length(); ++i) {
+  uint32_t last = mItems.Length() - 1;
+  for (uint32_t i = 0; i < mItems.Length(); ++i) {
     
     
     nsTextFormatter::snprintf(buf, ArrayLength(buf),

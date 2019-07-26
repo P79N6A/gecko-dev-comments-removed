@@ -28,7 +28,7 @@ enum {
 
 gfxWindowsNativeDrawing::gfxWindowsNativeDrawing(gfxContext* ctx,
                                                  const gfxRect& nativeRect,
-                                                 PRUint32 nativeDrawFlags)
+                                                 uint32_t nativeDrawFlags)
     : mContext(ctx), mNativeRect(nativeRect), mNativeDrawFlags(nativeDrawFlags), mRenderState(RENDER_STATE_INIT)
 {
 }
@@ -112,8 +112,8 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
                 
                 
                 mTempSurfaceSize =
-                    gfxIntSize((PRInt32) ceil(mNativeRect.Width() + 1),
-                               (PRInt32) ceil(mNativeRect.Height() + 1));
+                    gfxIntSize((int32_t) ceil(mNativeRect.Width() + 1),
+                               (int32_t) ceil(mNativeRect.Height() + 1));
             } else {
                 
                 mScale = m.ScaleFactors(true);
@@ -127,8 +127,8 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
 
                 
                 mTempSurfaceSize =
-                    gfxIntSize((PRInt32) ceil(mNativeRect.Width() * mScale.width + 1),
-                               (PRInt32) ceil(mNativeRect.Height() * mScale.height + 1));
+                    gfxIntSize((int32_t) ceil(mNativeRect.Width() * mScale.width + 1),
+                               (int32_t) ceil(mNativeRect.Height() * mScale.height + 1));
             }
         }
     }

@@ -47,10 +47,10 @@ private:
     nsIConsoleMessage **mMessages;
 
     
-    PRUint32 mBufferSize;
+    uint32_t mBufferSize;
 
     
-    PRUint32 mCurrent;
+    uint32_t mCurrent;
 
     
     bool mFull;

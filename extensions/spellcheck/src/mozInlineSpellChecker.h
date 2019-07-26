@@ -36,13 +36,13 @@ public:
   mozInlineSpellStatus(mozInlineSpellChecker* aSpellChecker);
 
   nsresult InitForEditorChange(EditAction aAction,
-                               nsIDOMNode* aAnchorNode, PRInt32 aAnchorOffset,
-                               nsIDOMNode* aPreviousNode, PRInt32 aPreviousOffset,
-                               nsIDOMNode* aStartNode, PRInt32 aStartOffset,
-                               nsIDOMNode* aEndNode, PRInt32 aEndOffset);
-  nsresult InitForNavigation(bool aForceCheck, PRInt32 aNewPositionOffset,
-                             nsIDOMNode* aOldAnchorNode, PRInt32 aOldAnchorOffset,
-                             nsIDOMNode* aNewAnchorNode, PRInt32 aNewAnchorOffset,
+                               nsIDOMNode* aAnchorNode, int32_t aAnchorOffset,
+                               nsIDOMNode* aPreviousNode, int32_t aPreviousOffset,
+                               nsIDOMNode* aStartNode, int32_t aStartOffset,
+                               nsIDOMNode* aEndNode, int32_t aEndOffset);
+  nsresult InitForNavigation(bool aForceCheck, int32_t aNewPositionOffset,
+                             nsIDOMNode* aOldAnchorNode, int32_t aOldAnchorOffset,
+                             nsIDOMNode* aNewAnchorNode, int32_t aNewAnchorOffset,
                              bool* aContinue);
   nsresult InitForSelection();
   nsresult InitForRange(nsRange* aRange);
@@ -59,7 +59,7 @@ public:
   
   
   
-  PRInt32 mWordCount;
+  int32_t mWordCount;
 
   
   enum Operation { eOpChange,       
@@ -101,7 +101,7 @@ public:
   bool mForceNavigationWordCheck;
 
   
-  PRInt32 mNewNavigationPositionOffset;
+  int32_t mNewNavigationPositionOffset;
 
 protected:
   nsresult FinishNavigationEvent(mozInlineSpellWordUtil& aWordUtil);
@@ -110,7 +110,7 @@ protected:
 
   nsresult GetDocument(nsIDOMDocument** aDocument);
   nsresult PositionToCollapsedRange(nsIDOMDocument* aDocument,
-                                    nsIDOMNode* aNode, PRInt32 aOffset,
+                                    nsIDOMNode* aNode, int32_t aOffset,
                                     nsIDOMRange** aRange);
 };
 
@@ -134,20 +134,20 @@ private:
   nsCOMPtr<nsIDOMTreeWalker> mTreeWalker;
   nsCOMPtr<mozISpellI18NUtil> mConverter;
 
-  PRInt32 mNumWordsInSpellSelection;
-  PRInt32 mMaxNumWordsInSpellSelection;
+  int32_t mNumWordsInSpellSelection;
+  int32_t mMaxNumWordsInSpellSelection;
 
   
   
   
   
   
-  PRInt32 mMaxMisspellingsPerCheck;
+  int32_t mMaxMisspellingsPerCheck;
 
   
   
   nsCOMPtr<nsIDOMNode> mCurrentSelectionAnchorNode;
-  PRInt32              mCurrentSelectionOffset;
+  int32_t              mCurrentSelectionOffset;
 
   
   
@@ -179,9 +179,9 @@ public:
 
   
   nsresult SpellCheckBetweenNodes(nsIDOMNode *aStartNode,
-                                  PRInt32 aStartOffset,
+                                  int32_t aStartOffset,
                                   nsIDOMNode *aEndNode,
-                                  PRInt32 aEndOffset);
+                                  int32_t aEndOffset);
 
   
   
@@ -189,8 +189,8 @@ public:
   nsresult SkipSpellCheckForNode(nsIEditor* aEditor,
                                  nsIDOMNode *aNode, bool * aCheckSpelling);
 
-  nsresult SpellCheckAfterChange(nsIDOMNode* aCursorNode, PRInt32 aCursorOffset,
-                                 nsIDOMNode* aPreviousNode, PRInt32 aPreviousOffset,
+  nsresult SpellCheckAfterChange(nsIDOMNode* aCursorNode, int32_t aCursorOffset,
+                                 nsIDOMNode* aPreviousNode, int32_t aPreviousOffset,
                                  nsISelection* aSpellCheckSelection);
 
   
@@ -208,7 +208,7 @@ public:
   
   nsresult IsPointInSelection(nsISelection *aSelection,
                               nsIDOMNode *aNode,
-                              PRInt32 aOffset,
+                              int32_t aOffset,
                               nsIDOMRange **aRange);
 
   nsresult CleanupRangesInSelection(nsISelection *aSelection);
@@ -217,14 +217,14 @@ public:
   nsresult AddRange(nsISelection *aSpellCheckSelection, nsIDOMRange * aRange);
   bool     SpellCheckSelectionIsFull() { return mNumWordsInSpellSelection >= mMaxNumWordsInSpellSelection; }
 
-  nsresult MakeSpellCheckRange(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
-                               nsIDOMNode* aEndNode, PRInt32 aEndOffset,
+  nsresult MakeSpellCheckRange(nsIDOMNode* aStartNode, int32_t aStartOffset,
+                               nsIDOMNode* aEndNode, int32_t aEndOffset,
                                nsRange** aRange);
 
   
   nsresult RegisterEventListeners();
   nsresult UnregisterEventListeners();
-  nsresult HandleNavigationEvent(bool aForceWordSpellCheck, PRInt32 aNewPositionOffset = 0);
+  nsresult HandleNavigationEvent(bool aForceWordSpellCheck, int32_t aNewPositionOffset = 0);
 
   nsresult GetSpellCheckSelection(nsISelection ** aSpellCheckSelection);
   nsresult SaveCurrentSelectionPosition();

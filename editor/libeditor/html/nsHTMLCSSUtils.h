@@ -108,7 +108,7 @@ public:
                              const nsAString & aValue,
                              bool aSuppressTransaction);
   nsresult    SetCSSPropertyPixels(nsIDOMElement *aElement, nsIAtom *aProperty,
-                                   PRInt32 aIntValue, bool aSuppressTxn);
+                                   int32_t aIntValue, bool aSuppressTxn);
   nsresult    RemoveCSSProperty(nsIDOMElement * aElement, nsIAtom * aProperty,
                                 const nsAString & aPropertyValue, bool aSuppressTransaction);
 
@@ -124,7 +124,7 @@ public:
                              const nsAString & aValue);
   nsresult    SetCSSPropertyPixels(nsIDOMElement * aElement,
                                    const nsAString & aProperty,
-                                   PRInt32 aIntValue);
+                                   int32_t aIntValue);
 
   
 
@@ -223,7 +223,7 @@ public:
 
 
 
-  PRInt32     SetCSSEquivalentToHTMLStyle(mozilla::dom::Element* aElement,
+  int32_t     SetCSSEquivalentToHTMLStyle(mozilla::dom::Element* aElement,
                                           nsIAtom* aProperty,
                                           const nsAString* aAttribute,
                                           const nsAString* aValue,
@@ -232,7 +232,7 @@ public:
                                           nsIAtom * aHTMLProperty,
                                           const nsAString * aAttribute,
                                           const nsAString * aValue,
-                                          PRInt32 * aCount,
+                                          int32_t * aCount,
                                           bool aSuppressTransaction);
 
   
@@ -293,7 +293,7 @@ public:
 
 
   nsresult GetInlineStyles(nsIDOMElement * aElement, nsIDOMCSSStyleDeclaration ** aCssDecl,
-                           PRUint32 * aLength);
+                           uint32_t * aLength);
 
   
 

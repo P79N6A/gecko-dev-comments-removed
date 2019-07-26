@@ -19,7 +19,7 @@ public:
     static nsresult CreateStackFrameLocation(PRUint32 aLanguage,
                                              const char* aFilename,
                                              const char* aFunctionName,
-                                             PRInt32 aLineNumber,
+                                             int32_t aLineNumber,
                                              nsIStackFrame* aCaller,
                                              XPCJSStackFrame** stack);
 
@@ -34,8 +34,8 @@ private:
 
     char* mFilename;
     char* mFunname;
-    PRInt32 mLineno;
-    PRUint32 mLanguage;
+    int32_t mLineno;
+    uint32_t mLanguage;
 };
 
 
@@ -53,10 +53,10 @@ XPCJSStack::CreateStack(JSContext* cx, nsIStackFrame** stack)
 
 
 nsresult
-XPCJSStack::CreateStackFrameLocation(PRUint32 aLanguage,
+XPCJSStack::CreateStackFrameLocation(uint32_t aLanguage,
                                      const char* aFilename,
                                      const char* aFunctionName,
-                                     PRInt32 aLineNumber,
+                                     int32_t aLineNumber,
                                      nsIStackFrame* aCaller,
                                      nsIStackFrame** stack)
 {
@@ -145,10 +145,10 @@ XPCJSStackFrame::CreateStack(JSContext* cx, XPCJSStackFrame** stack)
 
 
 nsresult
-XPCJSStackFrame::CreateStackFrameLocation(PRUint32 aLanguage,
+XPCJSStackFrame::CreateStackFrameLocation(uint32_t aLanguage,
                                           const char* aFilename,
                                           const char* aFunctionName,
-                                          PRInt32 aLineNumber,
+                                          int32_t aLineNumber,
                                           nsIStackFrame* aCaller,
                                           XPCJSStackFrame** stack)
 {
@@ -193,7 +193,7 @@ XPCJSStackFrame::CreateStackFrameLocation(PRUint32 aLanguage,
 }
 
 
-NS_IMETHODIMP XPCJSStackFrame::GetLanguage(PRUint32 *aLanguage)
+NS_IMETHODIMP XPCJSStackFrame::GetLanguage(uint32_t *aLanguage)
 {
     *aLanguage = mLanguage;
     return NS_OK;
@@ -227,7 +227,7 @@ NS_IMETHODIMP XPCJSStackFrame::GetName(char * *aFunction)
 }
 
 
-NS_IMETHODIMP XPCJSStackFrame::GetLineNumber(PRInt32 *aLineNumber)
+NS_IMETHODIMP XPCJSStackFrame::GetLineNumber(int32_t *aLineNumber)
 {
     *aLineNumber = mLineno;
     return NS_OK;

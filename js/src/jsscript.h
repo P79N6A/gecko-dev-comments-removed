@@ -185,10 +185,6 @@ class Bindings
     Shape *callObjShape() const { return callObjShape_; }
 
     
-    inline bool extensibleParents();
-    bool setExtensibleParents(JSContext *cx);
-
-    
     unsigned argumentsVarIndex(JSContext *cx) const;
 
     

@@ -57,7 +57,7 @@ public:
     
     
     
-    nsresult Init(nsHttpConnectionInfo *info, PRUint16 maxHangTime,
+    nsresult Init(nsHttpConnectionInfo *info, uint16_t maxHangTime,
                   nsISocketTransport *, nsIAsyncInputStream *,
                   nsIAsyncOutputStream *, nsIInterfaceRequestor *,
                   nsIEventTarget *, PRIntervalTime);
@@ -65,7 +65,7 @@ public:
     
     
     
-    nsresult Activate(nsAHttpTransaction *, PRUint8 caps, PRInt32 pri);
+    nsresult Activate(nsAHttpTransaction *, uint8_t caps, int32_t pri);
 
     
     void Close(nsresult reason);
@@ -80,7 +80,7 @@ public:
     bool     CanDirectlyActivate();
 
     
-    PRUint32 TimeToLive();
+    uint32_t TimeToLive();
 
     void     DontReuse();
     void     DropTransport() { DontReuse(); mSocketTransport = 0; }
@@ -114,15 +114,15 @@ public:
     void     GetSecurityInfo(nsISupports **);
     bool     IsPersistent() { return IsKeepAlive(); }
     bool     IsReused();
-    void     SetIsReusedAfter(PRUint32 afterMilliseconds);
+    void     SetIsReusedAfter(uint32_t afterMilliseconds);
     void     SetIdleTimeout(PRIntervalTime val) {mIdleTimeout = val;}
-    nsresult PushBack(const char *data, PRUint32 length);
+    nsresult PushBack(const char *data, uint32_t length);
     nsresult ResumeSend();
     nsresult ResumeRecv();
-    PRInt64  MaxBytesRead() {return mMaxBytesRead;}
+    int64_t  MaxBytesRead() {return mMaxBytesRead;}
 
     static NS_METHOD ReadFromStream(nsIInputStream *, void *, const char *,
-                                    PRUint32, PRUint32, PRUint32 *);
+                                    uint32_t, uint32_t, uint32_t *);
 
     
     
@@ -150,7 +150,7 @@ public:
     
     void  ReadTimeoutTick();
 
-    PRInt64 BytesWritten() { return mTotalBytesWritten; }
+    int64_t BytesWritten() { return mTotalBytesWritten; }
 
     void    PrintDiagnostics(nsCString &log);
 
@@ -171,17 +171,17 @@ private:
     
     
     bool     EnsureNPNComplete();
-    void     SetupNPN(PRUint8 caps);
+    void     SetupNPN(uint8_t caps);
 
     
     
     void     HandleAlternateProtocol(nsHttpResponseHead *);
 
     
-    void     StartSpdy(PRUint8 versionLevel);
+    void     StartSpdy(uint8_t versionLevel);
 
     
-    nsresult AddTransaction(nsAHttpTransaction *, PRInt32);
+    nsresult AddTransaction(nsAHttpTransaction *, int32_t);
 
 private:
     nsCOMPtr<nsISocketTransport>    mSocketTransport;
@@ -208,10 +208,10 @@ private:
     PRIntervalTime                  mIdleTimeout;    
     PRIntervalTime                  mConsiderReusedAfterInterval;
     PRIntervalTime                  mConsiderReusedAfterEpoch;
-    PRInt64                         mCurrentBytesRead;   
-    PRInt64                         mMaxBytesRead;       
-    PRInt64                         mTotalBytesRead;     
-    PRInt64                         mTotalBytesWritten;  
+    int64_t                         mCurrentBytesRead;   
+    int64_t                         mMaxBytesRead;       
+    int64_t                         mTotalBytesRead;     
+    int64_t                         mTotalBytesWritten;  
 
     nsRefPtr<nsIAsyncInputStream>   mInputOverflow;
 
@@ -229,12 +229,12 @@ private:
 
     
     
-    PRUint32                        mHttp1xTransactionCount;
+    uint32_t                        mHttp1xTransactionCount;
 
     
     
     
-    PRUint32                        mRemainingConnectionUses;
+    uint32_t                        mRemainingConnectionUses;
 
     nsAHttpTransaction::Classifier  mClassification;
 
@@ -243,10 +243,10 @@ private:
     bool                            mSetupNPNCalled;
 
     
-    PRUint8                         mUsingSpdyVersion;
+    uint8_t                         mUsingSpdyVersion;
 
     nsRefPtr<mozilla::net::ASpdySession> mSpdySession;
-    PRInt32                         mPriority;
+    int32_t                         mPriority;
     bool                            mReportedSpdy;
 
     

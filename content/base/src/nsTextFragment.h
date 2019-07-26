@@ -112,7 +112,7 @@ public:
 
 
 
-  PRUint32 GetLength() const
+  uint32_t GetLength() const
   {
     return mState.mLength;
   }
@@ -127,14 +127,14 @@ public:
 
 
 
-  void SetTo(const PRUnichar* aBuffer, PRInt32 aLength, bool aUpdateBidi);
+  void SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBidi);
 
   
 
 
 
 
-  void Append(const PRUnichar* aBuffer, PRUint32 aLength, bool aUpdateBidi);
+  void Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateBidi);
 
   
 
@@ -152,7 +152,7 @@ public:
 
 
 
-  void AppendTo(nsAString& aString, PRInt32 aOffset, PRInt32 aLength) const {
+  void AppendTo(nsAString& aString, int32_t aOffset, int32_t aLength) const {
     if (mState.mIs2b) {
       aString.Append(m2b + aOffset, aLength);
     } else {
@@ -166,15 +166,15 @@ public:
 
 
 
-  void CopyTo(PRUnichar *aDest, PRInt32 aOffset, PRInt32 aCount);
+  void CopyTo(PRUnichar *aDest, int32_t aOffset, int32_t aCount);
 
   
 
 
 
-  PRUnichar CharAt(PRInt32 aIndex) const
+  PRUnichar CharAt(int32_t aIndex) const
   {
-    NS_ASSERTION(PRUint32(aIndex) < mState.mLength, "bad index");
+    NS_ASSERTION(uint32_t(aIndex) < mState.mLength, "bad index");
     return mState.mIs2b ? m2b[aIndex] : static_cast<unsigned char>(m1b[aIndex]);
   }
 
@@ -184,10 +184,10 @@ public:
     
     
     
-    PRUint32 mInHeap : 1;
-    PRUint32 mIs2b : 1;
-    PRUint32 mIsBidi : 1;
-    PRUint32 mLength : 29;
+    uint32_t mInHeap : 1;
+    uint32_t mIs2b : 1;
+    uint32_t mIsBidi : 1;
+    uint32_t mLength : 29;
   };
 
   size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
@@ -199,7 +199,7 @@ private:
 
 
 
-  void UpdateBidiFlag(const PRUnichar* aBuffer, PRUint32 aLength);
+  void UpdateBidiFlag(const PRUnichar* aBuffer, uint32_t aLength);
  
   union {
     PRUnichar *m2b;
@@ -207,7 +207,7 @@ private:
   };
 
   union {
-    PRUint32 mAllBits;
+    uint32_t mAllBits;
     FragmentBits mState;
   };
 };

@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef nsNPAPIPluginStreamListener_h_
 #define nsNPAPIPluginStreamListener_h_
@@ -36,13 +36,13 @@ public:
 
   NPStream                              mNPStream;
 protected:
-  nsCOMPtr<nsIOutputStream>             mOutputStream; // only valid if not browser initiated
-  nsNPAPIPluginStreamListener*          mStreamListener; // only valid if browser initiated
+  nsCOMPtr<nsIOutputStream>             mOutputStream; 
+  nsNPAPIPluginStreamListener*          mStreamListener; 
 };
 
-// Used to handle NPN_NewStream() - writes the stream as received by the plugin
-// to a file and at completion (NPN_DestroyStream), tells the browser to load it into
-// a plugin-specified target
+
+
+
 class nsPluginStreamToFile : public nsIOutputStream
 {
 public:
@@ -77,12 +77,12 @@ public:
   nsresult OnStartBinding(nsPluginStreamListenerPeer* streamPeer);
   nsresult OnDataAvailable(nsPluginStreamListenerPeer* streamPeer,
                            nsIInputStream* input,
-                           PRUint32 length);
+                           uint32_t length);
   nsresult OnFileAvailable(nsPluginStreamListenerPeer* streamPeer, 
                            const char* fileName);
   nsresult OnStopBinding(nsPluginStreamListenerPeer* streamPeer, 
                          nsresult status);
-  nsresult GetStreamType(PRInt32 *result);
+  nsresult GetStreamType(int32_t *result);
 
   bool IsStarted();
   nsresult CleanUpStream(NPReason reason);
@@ -98,7 +98,7 @@ public:
   nsPluginStreamListenerPeer* GetStreamListenerPeer() { return mStreamListenerPeer; }
   void SetStreamListenerPeer(nsPluginStreamListenerPeer* aPeer) { mStreamListenerPeer = aPeer; }
 
-  // Returns true if the redirect will be handled by NPAPI, false otherwise.
+  
   bool HandleRedirectNotification(nsIChannel *oldChannel, nsIChannel *newChannel,
                                   nsIAsyncVerifyRedirectCallback* callback);
   void URLRedirectResponse(NPBool allow);
@@ -108,9 +108,9 @@ protected:
   char* mNotifyURL;
   nsRefPtr<nsNPAPIPluginInstance> mInst;
   nsNPAPIStreamWrapper *mNPStreamWrapper;
-  PRUint32 mStreamBufferSize;
-  PRInt32 mStreamBufferByteCount;
-  PRInt32 mStreamType;
+  uint32_t mStreamBufferSize;
+  int32_t mStreamBufferByteCount;
+  int32_t mStreamType;
   bool mStreamStarted;
   bool mStreamCleanedUp;
   bool mCallNotify;
@@ -126,4 +126,4 @@ public:
   nsRefPtr<nsPluginStreamListenerPeer> mStreamListenerPeer;
 };
 
-#endif // nsNPAPIPluginStreamListener_h_
+#endif 

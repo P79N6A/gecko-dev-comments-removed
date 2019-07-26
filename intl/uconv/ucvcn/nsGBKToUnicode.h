@@ -37,7 +37,7 @@ protected:
 
   
   
-  NS_IMETHOD ConvertNoBuff(const char* aSrc, PRInt32 * aSrcLength, PRUnichar *aDest, PRInt32 * aDestLength);
+  NS_IMETHOD ConvertNoBuff(const char* aSrc, int32_t * aSrcLength, PRUnichar *aDest, int32_t * aDestLength);
 
 protected:
   nsGBKConvUtil mUtil;

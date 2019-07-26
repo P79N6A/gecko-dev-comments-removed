@@ -138,7 +138,7 @@ class CToken {
 
 
 
-    CToken(PRInt32 aTag=0);
+    CToken(int32_t aTag=0);
 
     
 
@@ -165,7 +165,7 @@ class CToken {
 
 
 
-    void SetTypeID(PRInt32 aValue) {
+    void SetTypeID(int32_t aValue) {
       mTypeID = aValue;
     }
     
@@ -174,14 +174,14 @@ class CToken {
 
 
 
-    virtual PRInt32 GetTypeID(void);
+    virtual int32_t GetTypeID(void);
 
     
 
 
 
 
-    virtual PRInt16 GetAttributeCount(void);
+    virtual int16_t GetAttributeCount(void);
 
     
 
@@ -191,14 +191,14 @@ class CToken {
 
 
 
-    virtual nsresult Consume(PRUnichar aChar,nsScanner& aScanner,PRInt32 aMode);
+    virtual nsresult Consume(PRUnichar aChar,nsScanner& aScanner,int32_t aMode);
 
     
 
 
 
 
-    virtual PRInt32 GetTokenType(void);
+    virtual int32_t GetTokenType(void);
 
     
 
@@ -216,22 +216,22 @@ class CToken {
 
     virtual void SetEmpty(bool aValue) { return ; }
 
-    PRInt32 GetNewlineCount() 
+    int32_t GetNewlineCount() 
     { 
       return mNewlineCount; 
     }
 
-    void SetNewlineCount(PRInt32 aCount)
+    void SetNewlineCount(int32_t aCount)
     {
       mNewlineCount = aCount;
     }
 
-    PRInt32 GetLineNumber() 
+    int32_t GetLineNumber() 
     { 
       return mLineNumber;
     }
 
-    void SetLineNumber(PRInt32 aLineNumber) 
+    void SetLineNumber(int32_t aLineNumber) 
     { 
       mLineNumber = mLineNumber == 0 ? aLineNumber : mLineNumber;
     }
@@ -246,7 +246,7 @@ class CToken {
       return mInError;
     }
 
-    void SetAttributeCount(PRInt16 aValue) {  mAttrCount = aValue; }
+    void SetAttributeCount(int16_t aValue) {  mAttrCount = aValue; }
 
     
 
@@ -264,12 +264,12 @@ protected:
 
     virtual size_t SizeOf() const = 0;
 
-    PRInt32 mTypeID;
-    PRInt32 mUseCount;
-    PRInt32 mNewlineCount;
-    PRUint32 mLineNumber : 31;
-    PRUint32 mInError : 1;
-    PRInt16 mAttrCount;
+    int32_t mTypeID;
+    int32_t mUseCount;
+    int32_t mNewlineCount;
+    uint32_t mLineNumber : 31;
+    uint32_t mInError : 1;
+    int16_t mAttrCount;
 };
 
 

@@ -167,7 +167,7 @@ public:
     CompileTemplate(nsIContent* aTemplate,
                     nsTemplateQuerySet* aQuerySet,
                     bool aIsQuerySet,
-                    PRInt32* aPriority,
+                    int32_t* aPriority,
                     bool* aCanUseTemplate);
 
     
@@ -302,7 +302,7 @@ public:
                          nsIXULTemplateResult* aResult,
                          nsTemplateQuerySet* aQuerySet,
                          nsTemplateRule** aMatchedRule,
-                         PRInt16 *aRuleIndex);
+                         int16_t *aRuleIndex);
 
     
     
@@ -406,7 +406,7 @@ protected:
         eLoggingEnabled = (1 << 2)
     };
 
-    PRInt32 mFlags;
+    int32_t mFlags;
 
     
 

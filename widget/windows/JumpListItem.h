@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef __JumpListItem_h__
 #define __JumpListItem_h__
@@ -9,8 +9,8 @@
 #include <windows.h>
 #include <shobjidl.h>
 
-#include "nsIJumpListItem.h"  // defines nsIJumpListItem
-#include "nsIMIMEInfo.h" // defines nsILocalHandlerApp
+#include "nsIJumpListItem.h"  
+#include "nsIMIMEInfo.h" 
 #include "nsTArray.h"
 #include "nsIMutableArray.h"
 #include "nsCOMPtr.h"
@@ -32,7 +32,7 @@ public:
    mItemType(nsIJumpListItem::JUMPLIST_ITEM_EMPTY)
   {}
 
-  JumpListItem(PRInt32 type) :
+  JumpListItem(int32_t type) :
    mItemType(type)
   {}
 
@@ -58,7 +58,7 @@ public:
   {}
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_IMETHOD GetType(PRInt16 *aType) { return JumpListItem::GetType(aType); }
+  NS_IMETHOD GetType(int16_t *aType) { return JumpListItem::GetType(aType); }
   NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval) { return JumpListItem::Equals(item, _retval); }
 
   static nsresult GetSeparator(nsRefPtr<IShellLinkW>& aShellLink);
@@ -72,7 +72,7 @@ public:
   {}
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_IMETHOD GetType(PRInt16 *aType) { return JumpListItem::GetType(aType); }
+  NS_IMETHOD GetType(int16_t *aType) { return JumpListItem::GetType(aType); }
   NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval);
   NS_DECL_NSIJUMPLISTLINK
 
@@ -94,7 +94,7 @@ public:
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(JumpListShortcut, JumpListItem);
-  NS_IMETHOD GetType(PRInt16 *aType) { return JumpListItem::GetType(aType); }
+  NS_IMETHOD GetType(int16_t *aType) { return JumpListItem::GetType(aType); }
   NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval);
   NS_DECL_NSIJUMPLISTSHORTCUT
 
@@ -106,7 +106,7 @@ public:
                                     nsCOMPtr<nsIFile> &aICOFile);
 
 protected:
-  PRInt32 mIconIndex;
+  int32_t mIconIndex;
   nsCOMPtr<nsIURI> mFaviconPageURI;
   nsCOMPtr<nsILocalHandlerApp> mHandlerApp;
 
@@ -119,7 +119,7 @@ protected:
                                                    nsCOMPtr<nsIThread> &aIOThread);
 };
 
-} // namespace widget
-} // namespace mozilla
+} 
+} 
 
-#endif /* __JumpListItem_h__ */
+#endif 

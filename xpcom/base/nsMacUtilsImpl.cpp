@@ -120,7 +120,7 @@ NS_IMETHODIMP nsMacUtilsImpl::GetIsTranslated(bool *aIsTranslated)
   
   
   
-  static PRInt32 sIsNative = 1;
+  static int32_t sIsNative = 1;
 
   if (!sInitialized) {
     size_t sz = sizeof(sIsNative);

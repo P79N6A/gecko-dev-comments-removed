@@ -225,7 +225,7 @@ private:
 
 
   void CancelImageRequests(nsresult aReason, bool aEvenIfSizeAvailable,
-                           PRInt16 aNewImageStatus);
+                           int16_t aNewImageStatus);
 
   
 
@@ -260,7 +260,7 @@ protected:
 
 
 
-  void SetBlockedRequest(nsIURI* aURI, PRInt16 aContentDecision);
+  void SetBlockedRequest(nsIURI* aURI, int16_t aContentDecision);
 
   
 
@@ -317,8 +317,8 @@ protected:
   
   nsCOMPtr<imgIRequest> mCurrentRequest;
   nsCOMPtr<imgIRequest> mPendingRequest;
-  PRUint32 mCurrentRequestFlags;
-  PRUint32 mPendingRequestFlags;
+  uint32_t mCurrentRequestFlags;
+  uint32_t mPendingRequestFlags;
 
   enum {
     
@@ -351,7 +351,7 @@ private:
 
   nsEventStates mForcedImageState;
 
-  PRInt16 mImageBlockingStatus;
+  int16_t mImageBlockingStatus;
   bool mLoadingEnabled : 1;
 
   
@@ -381,7 +381,7 @@ protected:
 
 private:
   
-  PRUint8 mStateChangerDepth;
+  uint8_t mStateChangerDepth;
 
   
   

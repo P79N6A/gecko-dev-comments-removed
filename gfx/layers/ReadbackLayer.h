@@ -26,7 +26,7 @@ public:
   
 
 
-  virtual void SetUnknown(PRUint64 aSequenceNumber) = 0;
+  virtual void SetUnknown(uint64_t aSequenceNumber) = 0;
   
 
 
@@ -44,7 +44,7 @@ public:
 
 
   virtual already_AddRefed<gfxContext>
-      BeginUpdate(const nsIntRect& aRect, PRUint64 aSequenceNumber) = 0;
+      BeginUpdate(const nsIntRect& aRect, uint64_t aSequenceNumber) = 0;
   
 
 
@@ -132,7 +132,7 @@ public:
 
   const nsIntPoint& GetBackgroundLayerOffset() { return mBackgroundLayerOffset; }
 
-  PRUint64 AllocateSequenceNumber() { return ++mSequenceCounter; }
+  uint64_t AllocateSequenceNumber() { return ++mSequenceCounter; }
 
   void SetUnknown()
   {
@@ -161,7 +161,7 @@ protected:
   
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
-  PRUint64 mSequenceCounter;
+  uint64_t mSequenceCounter;
   nsAutoPtr<ReadbackSink> mSink;
   nsIntSize mSize;
 

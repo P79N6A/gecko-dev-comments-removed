@@ -37,12 +37,12 @@ public:
   
 
 
-  PRUint32 AreaCount() const { return mAreas.Length(); }
+  uint32_t AreaCount() const { return mAreas.Length(); }
 
   
 
 
-  nsIContent* GetAreaAt(PRUint32 aIndex) const;
+  nsIContent* GetAreaAt(uint32_t aIndex) const;
 
   void Draw(nsIFrame* aFrame, nsRenderingContext& aRC);
   

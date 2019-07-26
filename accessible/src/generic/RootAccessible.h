@@ -36,9 +36,9 @@ public:
 
   
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
-  virtual Relation RelationByType(PRUint32 aType);
+  virtual Relation RelationByType(uint32_t aType);
   virtual mozilla::a11y::role NativeRole();
-  virtual PRUint64 NativeState();
+  virtual uint64_t NativeState();
 
   
   nsCaretAccessible* GetCaretAccessible();
@@ -77,7 +77,7 @@ protected:
     void HandleTreeInvalidatedEvent(nsIDOMEvent* aEvent,
                                     XULTreeAccessible* aAccessible);
 
-    PRUint32 GetChromeFlags();
+    uint32_t GetChromeFlags();
 #endif
 
     nsRefPtr<nsCaretAccessible> mCaretAccessible;

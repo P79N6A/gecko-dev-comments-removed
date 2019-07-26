@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsCOMPtr.h"
 #include "nsDOMClassInfoID.h"
@@ -76,7 +76,7 @@ nsDOMMutationEvent::GetAttrName(nsAString& aAttrName)
 }
 
 NS_IMETHODIMP
-nsDOMMutationEvent::GetAttrChange(PRUint16* aAttrChange)
+nsDOMMutationEvent::GetAttrChange(uint16_t* aAttrChange)
 {
   *aAttrChange = 0;
   nsMutationEvent* mutation = static_cast<nsMutationEvent*>(mEvent);
@@ -86,7 +86,7 @@ nsDOMMutationEvent::GetAttrChange(PRUint16* aAttrChange)
 }
 
 NS_IMETHODIMP
-nsDOMMutationEvent::InitMutationEvent(const nsAString& aTypeArg, bool aCanBubbleArg, bool aCancelableArg, nsIDOMNode* aRelatedNodeArg, const nsAString& aPrevValueArg, const nsAString& aNewValueArg, const nsAString& aAttrNameArg, PRUint16 aAttrChangeArg)
+nsDOMMutationEvent::InitMutationEvent(const nsAString& aTypeArg, bool aCanBubbleArg, bool aCancelableArg, nsIDOMNode* aRelatedNodeArg, const nsAString& aPrevValueArg, const nsAString& aNewValueArg, const nsAString& aAttrNameArg, uint16_t aAttrChangeArg)
 {
   nsresult rv = nsDOMEvent::InitEvent(aTypeArg, aCanBubbleArg, aCancelableArg);
   NS_ENSURE_SUCCESS(rv, rv);

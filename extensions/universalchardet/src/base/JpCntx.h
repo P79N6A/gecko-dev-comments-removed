@@ -14,18 +14,18 @@
 #define MAX_REL_THRESHOLD     1000
 
 
-extern const PRUint8 jp2CharContext[83][83];
+extern const uint8_t jp2CharContext[83][83];
 
 class JapaneseContextAnalysis
 {
 public:
   JapaneseContextAnalysis() {Reset(false);}
 
-  void HandleData(const char* aBuf, PRUint32 aLen);
+  void HandleData(const char* aBuf, uint32_t aLen);
 
-  void HandleOneChar(const char* aStr, PRUint32 aCharLen)
+  void HandleOneChar(const char* aStr, uint32_t aCharLen)
   {
-    PRInt32 order;
+    int32_t order;
 
     
     if (mTotalRel > MAX_REL_THRESHOLD)   mDone = true;
@@ -47,24 +47,24 @@ public:
   bool GotEnoughData() {return mTotalRel > ENOUGH_REL_THRESHOLD;}
 
 protected:
-  virtual PRInt32 GetOrder(const char* str, PRUint32 *charLen) = 0;
-  virtual PRInt32 GetOrder(const char* str) = 0;
+  virtual int32_t GetOrder(const char* str, uint32_t *charLen) = 0;
+  virtual int32_t GetOrder(const char* str) = 0;
 
   
-  PRUint32 mRelSample[NUM_OF_CATEGORY];
+  uint32_t mRelSample[NUM_OF_CATEGORY];
 
   
-  PRUint32 mTotalRel;
+  uint32_t mTotalRel;
 
   
-  PRUint32 mDataThreshold;
+  uint32_t mDataThreshold;
   
   
-  PRInt32  mLastCharOrder;
+  int32_t  mLastCharOrder;
 
   
   
-  PRUint32 mNeedToSkipCharNum;
+  uint32_t mNeedToSkipCharNum;
 
   
   bool     mDone;
@@ -75,9 +75,9 @@ class SJISContextAnalysis : public JapaneseContextAnalysis
 {
   
 protected:
-  PRInt32 GetOrder(const char* str, PRUint32 *charLen);
+  int32_t GetOrder(const char* str, uint32_t *charLen);
 
-  PRInt32 GetOrder(const char* str)
+  int32_t GetOrder(const char* str)
   {
     
     if (*str == '\202' && 
@@ -91,8 +91,8 @@ protected:
 class EUCJPContextAnalysis : public JapaneseContextAnalysis
 {
 protected:
-  PRInt32 GetOrder(const char* str, PRUint32 *charLen);
-  PRInt32 GetOrder(const char* str)
+  int32_t GetOrder(const char* str, uint32_t *charLen);
+  int32_t GetOrder(const char* str)
     
   {
     if (*str == '\244' &&

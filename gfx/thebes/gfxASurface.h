@@ -161,18 +161,18 @@ public:
 
 
 
-    static bool CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit = 0);
+    static bool CheckSurfaceSize(const gfxIntSize& sz, int32_t limit = 0);
 
     
 
 
-    static PRInt32 FormatStrideForWidth(gfxImageFormat format, PRInt32 width);
+    static int32_t FormatStrideForWidth(gfxImageFormat format, int32_t width);
 
     
 
 
 
-    virtual PRInt32 GetDefaultContextFlags() const { return 0; }
+    virtual int32_t GetDefaultContextFlags() const { return 0; }
 
     static gfxContentType ContentFromFormat(gfxImageFormat format);
 
@@ -184,7 +184,7 @@ public:
 
 
     static void RecordMemoryUsedForSurfaceType(gfxASurface::gfxSurfaceType aType,
-                                               PRInt32 aBytes);
+                                               int32_t aBytes);
 
     
 
@@ -192,10 +192,10 @@ public:
 
 
 
-    void RecordMemoryUsed(PRInt32 aBytes);
+    void RecordMemoryUsed(int32_t aBytes);
     void RecordMemoryFreed();
 
-    virtual PRInt32 KnownMemoryUsed() { return mBytesRecorded; }
+    virtual int32_t KnownMemoryUsed() { return mBytesRecorded; }
 
     
 
@@ -214,7 +214,7 @@ public:
 
     virtual MemoryLocation GetMemoryLocation() const;
 
-    static PRInt32 BytePerPixelFromFormat(gfxImageFormat format);
+    static int32_t BytePerPixelFromFormat(gfxImageFormat format);
 
     virtual const gfxIntSize GetSize() const { return gfxIntSize(-1, -1); }
 
@@ -317,8 +317,8 @@ protected:
 private:
     static void SurfaceDestroyFunc(void *data);
 
-    PRInt32 mFloatingRefs;
-    PRInt32 mBytesRecorded;
+    int32_t mFloatingRefs;
+    int32_t mBytesRecorded;
 
 protected:
     bool mSurfaceValid;

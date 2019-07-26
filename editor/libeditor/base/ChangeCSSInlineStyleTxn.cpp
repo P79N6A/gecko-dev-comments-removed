@@ -225,7 +225,7 @@ NS_IMETHODIMP ChangeCSSInlineStyleTxn::DoTransaction(void)
   }
 
   
-  PRUint32 length;
+  uint32_t length;
   result = cssDecl->GetLength(&length);
   NS_ENSURE_SUCCESS(result, result);     
   if (!length) {

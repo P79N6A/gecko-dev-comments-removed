@@ -283,7 +283,7 @@ public:
     void CheckConsole();
 
 private:
-    static void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir, PRUint32 aState);
+    static void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir, uint32_t aState);
     static HDDEDATA CALLBACK HandleDDENotification( UINT     uType,
                                                     UINT     uFmt,
                                                     HCONV    hconv,
@@ -878,7 +878,7 @@ static nsCString hszValue( DWORD, HSZ ) {
 
 
 static void escapeQuotes( nsAString &aString ) {
-    PRInt32 offset = -1;
+    int32_t offset = -1;
     while( 1 ) {
        
        offset = aString.FindChar( '"', ++offset );
@@ -1152,7 +1152,7 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,
 
 
 
-static PRInt32 advanceToEndOfQuotedArg( const WCHAR *p, PRInt32 offset, PRInt32 len ) {
+static int32_t advanceToEndOfQuotedArg( const WCHAR *p, int32_t offset, int32_t len ) {
     
     if ( p[++offset] == '"' ) {
         
@@ -1172,7 +1172,7 @@ void nsNativeAppSupportWin::ParseDDEArg( const WCHAR* args, int index, nsString&
         nsDependentString temp(args);
 
         
-        PRInt32 offset = -1;
+        int32_t offset = -1;
         
         while( index-- ) {
             
@@ -1193,7 +1193,7 @@ void nsNativeAppSupportWin::ParseDDEArg( const WCHAR* args, int index, nsString&
         
         
         
-        PRInt32 end = advanceToEndOfQuotedArg( args, offset++, temp.Length() );
+        int32_t end = advanceToEndOfQuotedArg( args, offset++, temp.Length() );
         
         end = temp.FindChar( ',', end );
         if ( end == kNotFound ) {
@@ -1251,7 +1251,7 @@ void nsNativeAppSupportWin::ActivateLastWindow() {
 void
 nsNativeAppSupportWin::HandleCommandLine(const char* aCmdLineString,
                                          nsIFile* aWorkingDir,
-                                         PRUint32 aState)
+                                         uint32_t aState)
 {
     nsresult rv;
 

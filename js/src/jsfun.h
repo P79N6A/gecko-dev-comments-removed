@@ -187,7 +187,8 @@ struct JSFunction : public JSObject
     inline const js::Value &getExtendedSlot(size_t which) const;
 
     
-    bool setTypeForScriptedFunction(JSContext *cx, bool singleton = false);
+    static bool setTypeForScriptedFunction(JSContext *cx, js::HandleFunction fun,
+                                           bool singleton = false);
 
   private:
     static void staticAsserts() {

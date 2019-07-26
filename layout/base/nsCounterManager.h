@@ -27,7 +27,7 @@ struct nsCounterNode : public nsGenConNode {
     Type mType;
 
     
-    PRInt32 mValueAfter;
+    int32_t mValueAfter;
 
     
     
@@ -60,7 +60,7 @@ struct nsCounterNode : public nsGenConNode {
     
     
     
-    nsCounterNode(PRInt32 aContentIndex, Type aType)
+    nsCounterNode(int32_t aContentIndex, Type aType)
         : nsGenConNode(aContentIndex)
         , mType(aType)
         , mValueAfter(0)
@@ -84,7 +84,7 @@ struct nsCounterUseNode : public nsCounterNode {
 
     
     nsCounterUseNode(nsCSSValue::Array* aCounterStyle,
-                     PRUint32 aContentIndex, bool aAllCounters)
+                     uint32_t aContentIndex, bool aAllCounters)
         : nsCounterNode(aContentIndex, USE)
         , mCounterStyle(aCounterStyle)
         , mAllCounters(aAllCounters)
@@ -104,7 +104,7 @@ struct nsCounterUseNode : public nsCounterNode {
 };
 
 struct nsCounterChangeNode : public nsCounterNode {
-    PRInt32 mChangeValue; 
+    int32_t mChangeValue; 
 
     
     
@@ -113,8 +113,8 @@ struct nsCounterChangeNode : public nsCounterNode {
     
     nsCounterChangeNode(nsIFrame* aPseudoFrame,
                         nsCounterNode::Type aChangeType,
-                        PRInt32 aChangeValue,
-                        PRInt32 aPropIndex)
+                        int32_t aChangeValue,
+                        int32_t aPropIndex)
         : nsCounterNode(
                         
                         
@@ -182,7 +182,7 @@ public:
         return static_cast<nsCounterNode*>(nsGenConList::Prev(aNode));
     }
 
-    static PRInt32 ValueBefore(nsCounterNode* aNode) {
+    static int32_t ValueBefore(nsCounterNode* aNode) {
         return aNode->mScopePrev ? aNode->mScopePrev->mValueAfter : 0;
     }
 
@@ -230,7 +230,7 @@ public:
 
 private:
     
-    bool AddResetOrIncrement(nsIFrame *aFrame, PRInt32 aIndex,
+    bool AddResetOrIncrement(nsIFrame *aFrame, int32_t aIndex,
                                const nsStyleCounterData *aCounterData,
                                nsCounterNode::Type aType);
 

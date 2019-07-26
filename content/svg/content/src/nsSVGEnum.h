@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef __NS_SVGENUM_H__
 #define __NS_SVGENUM_H__
@@ -18,7 +18,7 @@ class nsIAtom;
 class nsISMILAnimationElement;
 class nsSMILValue;
 
-typedef PRUint8 nsSVGEnumValue;
+typedef uint8_t nsSVGEnumValue;
 
 struct nsSVGEnumMapping {
   nsIAtom **mKey;
@@ -28,8 +28,8 @@ struct nsSVGEnumMapping {
 class nsSVGEnum
 {
 public:
-  void Init(PRUint8 aAttrEnum, PRUint16 aValue) {
-    mAnimVal = mBaseVal = PRUint8(aValue);
+  void Init(uint8_t aAttrEnum, uint16_t aValue) {
+    mAnimVal = mBaseVal = uint8_t(aValue);
     mAttrEnum = aAttrEnum;
     mIsAnimated = false;
     mIsBaseSet = false;
@@ -37,26 +37,26 @@ public:
 
   nsresult SetBaseValueAtom(const nsIAtom* aValue, nsSVGElement *aSVGElement);
   nsIAtom* GetBaseValueAtom(nsSVGElement *aSVGElement);
-  nsresult SetBaseValue(PRUint16 aValue,
+  nsresult SetBaseValue(uint16_t aValue,
                         nsSVGElement *aSVGElement);
-  PRUint16 GetBaseValue() const
+  uint16_t GetBaseValue() const
     { return mBaseVal; }
 
-  void SetAnimValue(PRUint16 aValue, nsSVGElement *aSVGElement);
-  PRUint16 GetAnimValue() const
+  void SetAnimValue(uint16_t aValue, nsSVGElement *aSVGElement);
+  uint16_t GetAnimValue() const
     { return mAnimVal; }
   bool IsExplicitlySet() const
     { return mIsAnimated || mIsBaseSet; }
 
   nsresult ToDOMAnimatedEnum(nsIDOMSVGAnimatedEnumeration **aResult,
                              nsSVGElement* aSVGElement);
-  // Returns a new nsISMILAttr object that the caller must delete
+  
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
 private:
   nsSVGEnumValue mAnimVal;
   nsSVGEnumValue mBaseVal;
-  PRUint8 mAttrEnum; // element specified tracking for attribute
+  uint8_t mAttrEnum; 
   bool mIsAnimated;
   bool mIsBaseSet;
 
@@ -71,17 +71,17 @@ public:
     DOMAnimatedEnum(nsSVGEnum* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    nsSVGEnum *mVal; // kept alive because it belongs to content
+    nsSVGEnum *mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
 
-    NS_IMETHOD GetBaseVal(PRUint16* aResult)
+    NS_IMETHOD GetBaseVal(uint16_t* aResult)
       { *aResult = mVal->GetBaseValue(); return NS_OK; }
-    NS_IMETHOD SetBaseVal(PRUint16 aValue)
+    NS_IMETHOD SetBaseVal(uint16_t aValue)
       { return mVal->SetBaseValue(aValue, mSVGElement); }
 
-    // Script may have modified animation parameters or timeline -- DOM getters
-    // need to flush any resample requests to reflect these modifications.
-    NS_IMETHOD GetAnimVal(PRUint16* aResult)
+    
+    
+    NS_IMETHOD GetAnimVal(uint16_t* aResult)
     {
       mSVGElement->FlushAnimations();
       *aResult = mVal->GetAnimValue();
@@ -95,13 +95,13 @@ public:
     SMILEnum(nsSVGEnum* aVal, nsSVGElement* aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    // These will stay alive because a nsISMILAttr only lives as long
-    // as the Compositing step, and DOM elements don't get a chance to
-    // die during that.
+    
+    
+    
     nsSVGEnum* mVal;
     nsSVGElement* mSVGElement;
 
-    // nsISMILAttr methods
+    
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
@@ -112,4 +112,4 @@ public:
   };
 };
 
-#endif //__NS_SVGENUM_H__
+#endif 

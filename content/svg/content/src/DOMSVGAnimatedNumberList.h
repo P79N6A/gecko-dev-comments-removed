@@ -57,7 +57,7 @@ public:
   static already_AddRefed<DOMSVGAnimatedNumberList>
     GetDOMWrapper(SVGAnimatedNumberList *aList,
                   nsSVGElement *aElement,
-                  PRUint8 aAttrEnum);
+                  uint8_t aAttrEnum);
 
   
 
@@ -94,7 +94,7 @@ private:
 
 
 
-  DOMSVGAnimatedNumberList(nsSVGElement *aElement, PRUint8 aAttrEnum)
+  DOMSVGAnimatedNumberList(nsSVGElement *aElement, uint8_t aAttrEnum)
     : mBaseVal(nullptr)
     , mAnimVal(nullptr)
     , mElement(aElement)
@@ -117,7 +117,7 @@ private:
   
   nsRefPtr<nsSVGElement> mElement;
 
-  PRUint8 mAttrEnum;
+  uint8_t mAttrEnum;
 };
 
 } 

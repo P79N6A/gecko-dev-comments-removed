@@ -13,18 +13,18 @@
 using namespace mozilla;
 
 
-static const PRUint32 PROGRESS_MS = 350;
+static const uint32_t PROGRESS_MS = 350;
 
 
-static const PRUint32 STALL_MS = 3000;
-
-
-
+static const uint32_t STALL_MS = 3000;
 
 
 
 
-static const PRInt64 CAN_PLAY_THROUGH_MARGIN = 10;
+
+
+
+static const int64_t CAN_PLAY_THROUGH_MARGIN = 10;
 
 nsMediaDecoder::nsMediaDecoder() :
   mElement(nullptr),
@@ -60,7 +60,7 @@ nsHTMLMediaElement* nsMediaDecoder::GetMediaElement()
   return mElement;
 }
 
-nsresult nsMediaDecoder::RequestFrameBufferLength(PRUint32 aLength)
+nsresult nsMediaDecoder::RequestFrameBufferLength(uint32_t aLength)
 {
   if (aLength < FRAMEBUFFER_LENGTH_MIN || aLength > FRAMEBUFFER_LENGTH_MAX) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
@@ -161,8 +161,8 @@ bool nsMediaDecoder::CanPlayThrough()
   if (!stats.mDownloadRateReliable || !stats.mPlaybackRateReliable) {
     return false;
   }
-  PRInt64 bytesToDownload = stats.mTotalBytes - stats.mDownloadPosition;
-  PRInt64 bytesToPlayback = stats.mTotalBytes - stats.mPlaybackPosition;
+  int64_t bytesToDownload = stats.mTotalBytes - stats.mDownloadPosition;
+  int64_t bytesToPlayback = stats.mTotalBytes - stats.mPlaybackPosition;
   double timeToDownload = bytesToDownload / stats.mDownloadRate;
   double timeToPlay = bytesToPlayback / stats.mPlaybackRate;
 
@@ -179,8 +179,8 @@ bool nsMediaDecoder::CanPlayThrough()
   
   
   
-  PRInt64 readAheadMargin =
-    static_cast<PRInt64>(stats.mPlaybackRate * CAN_PLAY_THROUGH_MARGIN);
+  int64_t readAheadMargin =
+    static_cast<int64_t>(stats.mPlaybackRate * CAN_PLAY_THROUGH_MARGIN);
   return stats.mTotalBytes == stats.mDownloadPosition ||
          stats.mDownloadPosition > stats.mPlaybackPosition + readAheadMargin;
 }

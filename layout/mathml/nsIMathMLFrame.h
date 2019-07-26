@@ -167,8 +167,8 @@ public:
 
 
   NS_IMETHOD
-  UpdatePresentationData(PRUint32        aFlagsValues,
-                         PRUint32        aWhichFlags) = 0;
+  UpdatePresentationData(uint32_t        aFlagsValues,
+                         uint32_t        aWhichFlags) = 0;
 
  
 
@@ -196,10 +196,10 @@ public:
 
 
   NS_IMETHOD
-  UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
-                                    PRInt32         aLastIndex,
-                                    PRUint32        aFlagsValues,
-                                    PRUint32        aWhichFlags) = 0;
+  UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
+                                    int32_t         aLastIndex,
+                                    uint32_t        aFlagsValues,
+                                    uint32_t        aWhichFlags) = 0;
 };
 
 
@@ -209,7 +209,7 @@ public:
 
 struct nsEmbellishData {
   
-  PRUint32 flags;
+  uint32_t flags;
 
   
   nsIFrame* coreFrame;
@@ -243,7 +243,7 @@ struct nsEmbellishData {
 
 struct nsPresentationData {
   
-  PRUint32 flags;
+  uint32_t flags;
 
   
   

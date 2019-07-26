@@ -32,7 +32,7 @@ class nsHtml5PendingNotification {
       return !!(mParent == aNode);
     }
     
-    inline bool HaveNotifiedIndex(PRUint32 index) {
+    inline bool HaveNotifiedIndex(uint32_t index) {
       return index < mChildCount;
     }
 
@@ -45,7 +45,7 @@ class nsHtml5PendingNotification {
     
 
 
-    PRUint32    mChildCount;
+    uint32_t    mChildCount;
 };
 
 #endif 

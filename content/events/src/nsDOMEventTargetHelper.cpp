@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsDOMEventTargetHelper.h"
 #include "nsContentUtils.h"
@@ -125,7 +125,7 @@ void
 nsDOMEventTargetHelper::DisconnectFromOwner()
 {
   mOwner = nullptr;
-  // Event listeners can't be handled anymore, so we can release them here.
+  
   if (mListenerManager) {
     mListenerManager->Disconnect();
     mListenerManager = nullptr;
@@ -152,7 +152,7 @@ nsDOMEventTargetHelper::AddEventListener(const nsAString& aType,
                                          nsIDOMEventListener *aListener,
                                          bool aUseCapture,
                                          bool aWantsUntrusted,
-                                         PRUint8 aOptionalArgc)
+                                         uint8_t aOptionalArgc)
 {
   NS_ASSERTION(!aWantsUntrusted || aOptionalArgc > 1,
                "Won't check if this is chrome, you want to set "
@@ -179,7 +179,7 @@ nsDOMEventTargetHelper::AddSystemEventListener(const nsAString& aType,
                                                nsIDOMEventListener *aListener,
                                                bool aUseCapture,
                                                bool aWantsUntrusted,
-                                               PRUint8 aOptionalArgc)
+                                               uint8_t aOptionalArgc)
 {
   NS_ASSERTION(!aWantsUntrusted || aOptionalArgc > 1,
                "Won't check if this is chrome, you want to set "

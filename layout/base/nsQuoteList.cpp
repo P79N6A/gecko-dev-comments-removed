@@ -37,8 +37,8 @@ nsQuoteNode::Text()
                mType == eStyleContentType_CloseQuote,
                "should only be called when mText should be non-null");
   const nsStyleQuotes* styleQuotes = mPseudoFrame->GetStyleQuotes();
-  PRInt32 quotesCount = styleQuotes->QuotesCount(); 
-  PRInt32 quoteDepth = Depth();
+  int32_t quotesCount = styleQuotes->QuotesCount(); 
+  int32_t quoteDepth = Depth();
 
   
   
@@ -77,7 +77,7 @@ nsQuoteList::RecalcAll()
     return;
 
   do {
-    PRInt32 oldDepth = node->mDepthBefore;
+    int32_t oldDepth = node->mDepthBefore;
     Calc(node);
 
     if (node->mDepthBefore != oldDepth && node->mText && node->IsRealQuote())

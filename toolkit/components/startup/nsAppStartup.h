@@ -53,7 +53,7 @@ private:
 
   nsCOMPtr<nsIAppShell> mAppShell;
 
-  PRInt32      mConsiderQuitStopper; 
+  int32_t      mConsiderQuitStopper; 
   bool mRunning;        
   bool mShuttingDown;   
   bool mAttemptingQuit; 
@@ -62,7 +62,7 @@ private:
   bool mIsSafeModeNecessary;       
   bool mStartupCrashTrackingEnded; 
   bool mCachedShutdownTime;
-  PRUint32 mLastShutdownTime;
+  uint32_t mLastShutdownTime;
 
 #if defined(XP_WIN)
   

@@ -31,7 +31,7 @@ let gSyncAddDevice = {
 
     
     
-    Weave.Utils.nextTick(Weave.Service.sync, Weave.Service);
+    Weave.SyncScheduler.scheduleNextSync(0);
   },
 
   onPageShow: function onPageShow() {

@@ -62,7 +62,7 @@ public:
                 imgCacheEntry *aCacheEntry,
                 void *aLoadId,
                 nsIPrincipal* aLoadingPrincipal,
-                PRInt32 aCORSMode);
+                int32_t aCORSMode);
 
   
   nsresult AddProxy(imgRequestProxy *proxy);
@@ -70,7 +70,7 @@ public:
   
   nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, bool aNotify);
 
-  void SniffMimeType(const char *buf, PRUint32 len);
+  void SniffMimeType(const char *buf, uint32_t len);
 
   
   
@@ -83,11 +83,11 @@ public:
   nsresult UnlockImage();
   nsresult RequestDecode();
 
-  inline void SetInnerWindowID(PRUint64 aInnerWindowId) {
+  inline void SetInnerWindowID(uint64_t aInnerWindowId) {
     mInnerWindowId = aInnerWindowId;
   }
 
-  inline PRUint64 InnerWindowID() const {
+  inline uint64_t InnerWindowID() const {
     return mInnerWindowId;
   }
 
@@ -100,7 +100,7 @@ public:
   bool GetMultipart() const { return mIsMultiPartChannel; }
 
   
-  PRInt32 GetCORSMode() const { return mCORSMode; }
+  int32_t GetCORSMode() const { return mCORSMode; }
 
   
   
@@ -154,11 +154,11 @@ private:
 
   
   
-  PRInt32 Priority() const;
+  int32_t Priority() const;
 
   
   
-  void AdjustPriority(imgRequestProxy *aProxy, PRInt32 aDelta);
+  void AdjustPriority(imgRequestProxy *aProxy, int32_t aDelta);
 
   
   bool HasTransferredData() const { return mGotData; }
@@ -217,11 +217,11 @@ private:
   nsCOMPtr<nsIChannel> mNewRedirectChannel;
 
   
-  PRUint64 mInnerWindowId;
+  uint64_t mInnerWindowId;
 
   
   
-  PRInt32 mCORSMode;
+  int32_t mCORSMode;
 
   
   

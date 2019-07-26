@@ -109,7 +109,7 @@ public:
   
   
   
-  nsresult Redirect(nsIChannel *newChannel, PRUint32 redirectFlags,
+  nsresult Redirect(nsIChannel *newChannel, uint32_t redirectFlags,
                     bool openNewChannel);
 
   
@@ -144,7 +144,7 @@ public:
   }
 
   
-  bool HasLoadFlag(PRUint32 flag) {
+  bool HasLoadFlag(uint32_t flag) {
     return (mLoadFlags & flag) != 0;
   }
 
@@ -155,8 +155,8 @@ public:
 
   
   
-  void SetContentLength64(PRInt64 len);
-  PRInt64 ContentLength64();
+  void SetContentLength64(int64_t len);
+  int64_t ContentLength64();
 
   
   template <class T> void GetCallback(nsCOMPtr<T> &result) {
@@ -252,13 +252,13 @@ private:
   nsCOMPtr<nsIChannel>                mRedirectChannel;
   nsCString                           mContentType;
   nsCString                           mContentCharset;
-  PRUint32                            mLoadFlags;
+  uint32_t                            mLoadFlags;
   bool                                mQueriedProgressSink;
   bool                                mSynthProgressEvents;
   bool                                mWasOpened;
   bool                                mWaitingOnAsyncRedirect;
   bool                                mOpenRedirectChannel;
-  PRUint32                            mRedirectFlags;
+  uint32_t                            mRedirectFlags;
 
 protected:
   nsCOMPtr<nsIURI>                    mURI;

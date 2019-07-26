@@ -43,7 +43,7 @@ protected:
 
   nsCOMPtr<nsIWordBreaker> mWordBreaker;
 
-  PRInt32 mIterOffset;
+  int32_t mIterOffset;
   nsCOMPtr<nsIDOMNode> mIterNode;
 
   
@@ -65,8 +65,8 @@ protected:
   void ResetAll();
 
   
-  nsresult InitIterator(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
-                        nsIDOMNode* aEndNode, PRInt32 aEndOffset);
+  nsresult InitIterator(nsIDOMNode* aStartNode, int32_t aStartOffset,
+                        nsIDOMNode* aEndNode, int32_t aEndOffset);
   nsCOMPtr<nsFindContentIterator> mIterator;
 };
 

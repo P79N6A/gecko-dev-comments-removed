@@ -59,7 +59,7 @@ public:
                                  const gfxRect&   aFill,
                                  const gfxImageSurface::gfxImageFormat aFormat,
                                  gfxPattern::GraphicsFilter aFilter,
-                                 PRUint32         aImageFlags = imgIContainer::FLAG_NONE);
+                                 uint32_t         aImageFlags = imgIContainer::FLAG_NONE);
 
     
 
@@ -123,7 +123,7 @@ public:
                       const gfxASurface::gfxImageFormat& aDestFormat,
                       const gfxIntSize& aDestSize,
                       unsigned char* aDestBuffer,
-                      PRInt32 aStride);
+                      int32_t aStride);
 
 #ifdef MOZ_DUMP_PAINTING
     

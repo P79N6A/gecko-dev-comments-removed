@@ -19,7 +19,7 @@
 typedef struct
 {
   const unsigned char* const charToOrderMap;    
-  const PRUint8* const precedenceMatrix;  
+  const uint8_t* const precedenceMatrix;  
   float  mTypicalPositiveRatio;     
   bool keepEnglishLetter;         
   const char* const charsetName;
@@ -34,7 +34,7 @@ public:
     :mModel(model), mReversed(reversed), mNameProber(nameProber) { Reset(); }
 
   virtual const char* GetCharSetName();
-  virtual nsProbingState HandleData(const char* aBuf, PRUint32 aLen);
+  virtual nsProbingState HandleData(const char* aBuf, uint32_t aLen);
   virtual nsProbingState GetState(void) {return mState;}
   virtual void      Reset(void);
   virtual float     GetConfidence(void);
@@ -59,12 +59,12 @@ protected:
   
   unsigned char mLastOrder;
 
-  PRUint32 mTotalSeqs;
-  PRUint32 mSeqCounters[NUMBER_OF_SEQ_CAT];
+  uint32_t mTotalSeqs;
+  uint32_t mSeqCounters[NUMBER_OF_SEQ_CAT];
 
-  PRUint32 mTotalChar;
+  uint32_t mTotalChar;
   
-  PRUint32 mFreqChar;
+  uint32_t mFreqChar;
   
   
   nsCharSetProber* mNameProber; 

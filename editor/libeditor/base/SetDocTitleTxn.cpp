@@ -118,7 +118,7 @@ nsresult SetDocTitleTxn::SetDomTitle(const nsAString& aTitle)
   NS_ENSURE_STATE(head);
 
   bool     newTitleNode = false;
-  PRUint32 newTitleIndex = 0;
+  uint32_t newTitleIndex = 0;
 
   if (!titleNode)
   {

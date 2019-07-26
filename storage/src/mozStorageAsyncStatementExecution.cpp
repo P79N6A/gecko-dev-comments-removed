@@ -431,7 +431,7 @@ AsyncExecuteStatements::notifyComplete()
   
   
   
-  for (PRUint32 i = 0; i < mStatements.Length(); i++)
+  for (uint32_t i = 0; i < mStatements.Length(); i++)
     mStatements[i].finalize();
 
   
@@ -467,7 +467,7 @@ AsyncExecuteStatements::notifyComplete()
 }
 
 nsresult
-AsyncExecuteStatements::notifyError(PRInt32 aErrorCode,
+AsyncExecuteStatements::notifyError(int32_t aErrorCode,
                                     const char *aMessage)
 {
   mMutex.AssertNotCurrentThreadOwns();
@@ -526,7 +526,7 @@ AsyncExecuteStatements::statementsNeedTransaction()
   
   
   
-  for (PRUint32 i = 0, transactionsCount = 0; i < mStatements.Length(); ++i) {
+  for (uint32_t i = 0, transactionsCount = 0; i < mStatements.Length(); ++i) {
     transactionsCount += mStatements[i].needsTransaction();
     if (transactionsCount > 1) {
       return true;
@@ -582,7 +582,7 @@ AsyncExecuteStatements::Run()
   }
 
   
-  for (PRUint32 i = 0; i < mStatements.Length(); i++) {
+  for (uint32_t i = 0; i < mStatements.Length(); i++) {
     bool finished = (i == (mStatements.Length() - 1));
 
     sqlite3_stmt *stmt;

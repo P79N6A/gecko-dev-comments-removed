@@ -37,10 +37,10 @@ public:
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
 
-  SpdySession2(nsAHttpTransaction *, nsISocketTransport *, PRInt32);
+  SpdySession2(nsAHttpTransaction *, nsISocketTransport *, int32_t);
   ~SpdySession2();
 
-  bool AddStream(nsAHttpTransaction *, PRInt32);
+  bool AddStream(nsAHttpTransaction *, int32_t);
   bool CanReuse() { return !mShouldGoAway && !mClosed; }
   bool RoomForMoreStreams();
 
@@ -50,13 +50,13 @@ public:
   
   PRIntervalTime IdleTime();
 
-  PRUint32 RegisterStreamID(SpdyStream2 *);
+  uint32_t RegisterStreamID(SpdyStream2 *);
 
-  const static PRUint8 kFlag_Control   = 0x80;
+  const static uint8_t kFlag_Control   = 0x80;
 
-  const static PRUint8 kFlag_Data_FIN  = 0x01;
-  const static PRUint8 kFlag_Data_UNI  = 0x02;
-  const static PRUint8 kFlag_Data_ZLIB = 0x02;
+  const static uint8_t kFlag_Data_FIN  = 0x01;
+  const static uint8_t kFlag_Data_UNI  = 0x02;
+  const static uint8_t kFlag_Data_ZLIB = 0x02;
   
   
   
@@ -67,10 +67,10 @@ public:
   
   
 
-  const static PRUint8 kPri00   = 0 << 6; 
-  const static PRUint8 kPri01   = 1 << 6;
-  const static PRUint8 kPri02   = 2 << 6;
-  const static PRUint8 kPri03   = 3 << 6; 
+  const static uint8_t kPri00   = 0 << 6; 
+  const static uint8_t kPri01   = 1 << 6;
+  const static uint8_t kPri02   = 2 << 6;
+  const static uint8_t kPri03   = 3 << 6; 
 
   enum
   {
@@ -114,20 +114,20 @@ public:
   
   
   
-  const static PRUint32 kDefaultBufferSize = 2048;
+  const static uint32_t kDefaultBufferSize = 2048;
 
   
-  const static PRUint32 kDefaultQueueSize =  16384;
-  const static PRUint32 kQueueMinimumCleanup = 8192;
-  const static PRUint32 kQueueTailRoom    =  4096;
-  const static PRUint32 kQueueReserved    =  1024;
+  const static uint32_t kDefaultQueueSize =  16384;
+  const static uint32_t kQueueMinimumCleanup = 8192;
+  const static uint32_t kQueueTailRoom    =  4096;
+  const static uint32_t kQueueReserved    =  1024;
 
-  const static PRUint32 kDefaultMaxConcurrent = 100;
-  const static PRUint32 kMaxStreamID = 0x7800000;
+  const static uint32_t kDefaultMaxConcurrent = 100;
+  const static uint32_t kMaxStreamID = 0x7800000;
   
   
   
-  const static PRUint32 kDeadStreamID = 0xffffdead;
+  const static uint32_t kDeadStreamID = 0xffffdead;
   
   static nsresult HandleSynStream(SpdySession2 *);
   static nsresult HandleSynReply(SpdySession2 *);
@@ -140,11 +140,11 @@ public:
   static nsresult HandleWindowUpdate(SpdySession2 *);
 
   static void EnsureBuffer(nsAutoArrayPtr<char> &,
-                           PRUint32, PRUint32, PRUint32 &);
+                           uint32_t, uint32_t, uint32_t &);
 
   
   static void LogIO(SpdySession2 *, SpdyStream2 *, const char *,
-                    const char *, PRUint32);
+                    const char *, uint32_t);
 
   
   void TransactionHasDataToWrite(nsAHttpTransaction *);
@@ -153,7 +153,7 @@ public:
   void TransactionHasDataToWrite(SpdyStream2 *);
 
   
-  virtual nsresult CommitToSegmentSize(PRUint32 size);
+  virtual nsresult CommitToSegmentSize(uint32_t size);
   
   void     PrintDiagnostics (nsCString &log);
 
@@ -170,17 +170,17 @@ private:
 
   void        DeterminePingThreshold();
   nsresult    HandleSynReplyForValidStream();
-  PRUint32    GetWriteQueueSize();
+  uint32_t    GetWriteQueueSize();
   void        ChangeDownstreamState(enum stateType);
   void        ResetDownstreamState();
-  nsresult    DownstreamUncompress(char *, PRUint32);
+  nsresult    DownstreamUncompress(char *, uint32_t);
   void        zlibInit();
   nsresult    FindHeader(nsCString, nsDependentCSubstring &);
   nsresult    ConvertHeaders(nsDependentCSubstring &,
                              nsDependentCSubstring &);
-  void        GeneratePing(PRUint32);
+  void        GeneratePing(uint32_t);
   void        ClearPing(bool);
-  void        GenerateRstStream(PRUint32, PRUint32);
+  void        GenerateRstStream(uint32_t, uint32_t);
   void        GenerateGoAway();
   void        CleanupStream(SpdyStream2 *, nsresult, rstReason);
   void        CloseStream(SpdyStream2 *, nsresult);
@@ -191,13 +191,13 @@ private:
   bool        RoomForMoreConcurrent();
   void        ActivateStream(SpdyStream2 *);
   void        ProcessPending();
-  nsresult    SetInputFrameDataStream(PRUint32);
-  bool        VerifyStream(SpdyStream2 *, PRUint32);
+  nsresult    SetInputFrameDataStream(uint32_t);
+  bool        VerifyStream(SpdyStream2 *, uint32_t);
   void        SetNeedsCleanup();
 
   
   
-  nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, PRUint32, PRUint32 *);
+  nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, uint32_t, uint32_t *);
   
   static PLDHashOperator ShutdownEnumerator(nsAHttpTransaction *,
                                             nsAutoPtr<SpdyStream2> &,
@@ -217,9 +217,9 @@ private:
   nsAHttpSegmentReader       *mSegmentReader;
   nsAHttpSegmentWriter       *mSegmentWriter;
 
-  PRUint32          mSendingChunkSize;        
-  PRUint32          mNextStreamID;            
-  PRUint32          mConcurrentHighWater;     
+  uint32_t          mSendingChunkSize;        
+  uint32_t          mNextStreamID;            
+  uint32_t          mConcurrentHighWater;     
 
   stateType         mDownstreamState; 
 
@@ -250,15 +250,15 @@ private:
 
   
   
-  PRUint32             mInputFrameBufferSize;
-  PRUint32             mInputFrameBufferUsed;
+  uint32_t             mInputFrameBufferSize;
+  uint32_t             mInputFrameBufferUsed;
   nsAutoArrayPtr<char> mInputFrameBuffer;
   
   
   
   
-  PRUint32             mInputFrameDataSize;
-  PRUint32             mInputFrameDataRead;
+  uint32_t             mInputFrameDataSize;
+  uint32_t             mInputFrameDataRead;
   bool                 mInputFrameDataLast; 
 
   
@@ -274,22 +274,22 @@ private:
   SpdyStream2          *mNeedsCleanup;
 
   
-  PRUint32             mFrameControlType;
+  uint32_t             mFrameControlType;
 
   
-  PRUint32             mDownstreamRstReason;
+  uint32_t             mDownstreamRstReason;
 
   
   
   
   
-  PRUint32             mDecompressBufferSize;
-  PRUint32             mDecompressBufferUsed;
+  uint32_t             mDecompressBufferSize;
+  uint32_t             mDecompressBufferUsed;
   nsAutoArrayPtr<char> mDecompressBuffer;
 
   
   nsCString            mFlatHTTPResponseHeaders;
-  PRUint32             mFlatHTTPResponseHeadersOut;
+  uint32_t             mFlatHTTPResponseHeadersOut;
 
   
   
@@ -306,36 +306,36 @@ private:
 
   
   
-  PRUint32             mGoAwayID;
+  uint32_t             mGoAwayID;
 
   
   
   
-  PRUint32             mMaxConcurrent;
+  uint32_t             mMaxConcurrent;
 
   
   
   
-  PRUint32             mConcurrent;
+  uint32_t             mConcurrent;
 
   
-  PRUint32             mServerPushedResources;
+  uint32_t             mServerPushedResources;
 
   
   
   
   
   
-  PRUint32             mOutputQueueSize;
-  PRUint32             mOutputQueueUsed;
-  PRUint32             mOutputQueueSent;
+  uint32_t             mOutputQueueSize;
+  uint32_t             mOutputQueueUsed;
+  uint32_t             mOutputQueueSent;
   nsAutoArrayPtr<char> mOutputQueueBuffer;
 
   PRIntervalTime       mPingThreshold;
   PRIntervalTime       mLastReadEpoch;     
   PRIntervalTime       mLastDataReadEpoch; 
   PRIntervalTime       mPingSentEpoch;
-  PRUint32             mNextPingID;
+  uint32_t             mNextPingID;
   bool                 mPingThresholdExperiment;
 };
 

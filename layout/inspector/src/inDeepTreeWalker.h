@@ -19,7 +19,7 @@ struct DeepTreeStackItem
 {
   nsCOMPtr<nsIDOMNode> node;
   nsCOMPtr<nsIDOMNodeList> kids;
-  PRUint32 lastIndex; 
+  uint32_t lastIndex; 
                       
 };
 
@@ -42,7 +42,7 @@ protected:
   bool mShowSubDocuments;
   nsCOMPtr<nsIDOMNode> mRoot;
   nsCOMPtr<nsIDOMNode> mCurrentNode;
-  PRUint32 mWhatToShow;
+  uint32_t mWhatToShow;
   
   nsAutoTArray<DeepTreeStackItem, 8> mStack;
   nsCOMPtr<inIDOMUtils> mDOMUtils;

@@ -29,30 +29,30 @@ public:
     nsresult Close();
 
 protected:
-    nsresult Init(nsISupports* stream, PRUint32 bufferSize);
+    nsresult Init(nsISupports* stream, uint32_t bufferSize);
     NS_IMETHOD Fill() = 0;
     NS_IMETHOD Flush() = 0;
 
-    PRUint32                    mBufferSize;
+    uint32_t                    mBufferSize;
     char*                       mBuffer;
 
     
-    PRInt64                     mBufferStartOffset;
+    int64_t                     mBufferStartOffset;
 
     
     
-    PRUint32                    mCursor;
+    uint32_t                    mCursor;
 
     
     
     
-    PRUint32                    mFillPoint;
+    uint32_t                    mFillPoint;
 
     nsISupports*                mStream;        
 
     bool                        mBufferDisabled;
     bool                        mEOF;  
-    PRUint8                     mGetBufferCount;
+    uint8_t                     mGetBufferCount;
 };
 
 

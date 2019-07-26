@@ -34,7 +34,7 @@ class nsIParserService : public nsISupports {
 
 
 
-  virtual PRInt32 HTMLAtomTagToId(nsIAtom* aAtom) const = 0;
+  virtual int32_t HTMLAtomTagToId(nsIAtom* aAtom) const = 0;
 
   
 
@@ -45,19 +45,7 @@ class nsIParserService : public nsISupports {
 
 
 
-  virtual PRInt32 HTMLCaseSensitiveAtomTagToId(nsIAtom* aAtom) const = 0;
-
-  
-
-
-
-
-
-
-
-
-
-  virtual PRInt32 HTMLStringTagToId(const nsAString& aTag) const = 0;
+  virtual int32_t HTMLCaseSensitiveAtomTagToId(nsIAtom* aAtom) const = 0;
 
   
 
@@ -69,8 +57,7 @@ class nsIParserService : public nsISupports {
 
 
 
-
-  virtual const PRUnichar *HTMLIdToStringTag(PRInt32 aId) const = 0;
+  virtual int32_t HTMLStringTagToId(const nsAString& aTag) const = 0;
 
   
 
@@ -83,16 +70,29 @@ class nsIParserService : public nsISupports {
 
 
 
-  virtual nsIAtom *HTMLIdToAtomTag(PRInt32 aId) const = 0;
+  virtual const PRUnichar *HTMLIdToStringTag(int32_t aId) const = 0;
+
+  
+
+
+
+
+
+
+
+
+
+
+  virtual nsIAtom *HTMLIdToAtomTag(int32_t aId) const = 0;
   
   NS_IMETHOD HTMLConvertEntityToUnicode(const nsAString& aEntity, 
-                                        PRInt32* aUnicode) const = 0;
+                                        int32_t* aUnicode) const = 0;
 
-  NS_IMETHOD HTMLConvertUnicodeToEntity(PRInt32 aUnicode,
+  NS_IMETHOD HTMLConvertUnicodeToEntity(int32_t aUnicode,
                                         nsCString& aEntity) const = 0;
 
-  NS_IMETHOD IsContainer(PRInt32 aId, bool& aIsContainer) const = 0;
-  NS_IMETHOD IsBlock(PRInt32 aId, bool& aIsBlock) const = 0;
+  NS_IMETHOD IsContainer(int32_t aId, bool& aIsContainer) const = 0;
+  NS_IMETHOD IsBlock(int32_t aId, bool& aIsBlock) const = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIParserService, NS_IPARSERSERVICE_IID)

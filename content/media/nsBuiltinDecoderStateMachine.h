@@ -124,9 +124,9 @@ public:
   virtual void SetVolume(double aVolume);
   virtual void SetAudioCaptured(bool aCapture);
   virtual void Shutdown();
-  virtual PRInt64 GetDuration();
-  virtual void SetDuration(PRInt64 aDuration);
-  void SetEndTime(PRInt64 aEndTime);
+  virtual int64_t GetDuration();
+  virtual void SetDuration(int64_t aDuration);
+  void SetEndTime(int64_t aEndTime);
   virtual bool OnDecodeThread() const {
     return IsCurrentThread(mDecodeThread);
   }
@@ -137,7 +137,7 @@ public:
   virtual double GetCurrentTime() const;
   virtual void ClearPositionChangeFlag();
   virtual void SetSeekable(bool aSeekable);
-  virtual void UpdatePlaybackPosition(PRInt64 aTime);
+  virtual void UpdatePlaybackPosition(int64_t aTime);
   virtual void StartBuffering();
 
   
@@ -184,23 +184,23 @@ public:
  
   nsresult GetBuffered(nsTimeRanges* aBuffered);
 
-  PRInt64 VideoQueueMemoryInUse() {
+  int64_t VideoQueueMemoryInUse() {
     if (mReader) {
       return mReader->VideoQueueMemoryInUse();
     }
     return 0;
   }
 
-  PRInt64 AudioQueueMemoryInUse() {
+  int64_t AudioQueueMemoryInUse() {
     if (mReader) {
       return mReader->AudioQueueMemoryInUse();
     }
     return 0;
   }
 
-  void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRInt64 aOffset);
+  void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
 
-  PRInt64 GetEndMediaTime() const {
+  int64_t GetEndMediaTime() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mEndTime;
   }
@@ -219,7 +219,7 @@ public:
 
   
   
-  virtual void SetFrameBufferLength(PRUint32 aLength);
+  virtual void SetFrameBufferLength(uint32_t aLength);
 
   
   static nsIThread* GetStateMachineThread();
@@ -237,7 +237,7 @@ public:
   
   
   
-  nsresult ScheduleStateMachine(PRInt64 aUsecs);
+  nsresult ScheduleStateMachine(int64_t aUsecs);
 
   
   
@@ -249,7 +249,7 @@ public:
   void TimeoutExpired();
 
   
-  void SetFragmentEndTime(PRInt64 aEndTime);
+  void SetFragmentEndTime(int64_t aEndTime);
 
   
   void ReleaseDecoder() { mDecoder = nullptr; }
@@ -262,14 +262,14 @@ public:
   
   void SendOutputStreamData();
   void FinishOutputStreams();
-  bool HaveEnoughDecodedAudio(PRInt64 aAmpleAudioUSecs);
+  bool HaveEnoughDecodedAudio(int64_t aAmpleAudioUSecs);
   bool HaveEnoughDecodedVideo();
 
 protected:
 
   
   
-  bool HasLowDecodedData(PRInt64 aAudioUsecs) const;
+  bool HasLowDecodedData(int64_t aAudioUsecs) const;
 
   
   
@@ -277,13 +277,13 @@ protected:
 
   
   
-  PRInt64 GetUndecodedData() const;
+  int64_t GetUndecodedData() const;
 
   
   
   
   
-  PRInt64 AudioDecodedUsecs() const;
+  int64_t AudioDecodedUsecs() const;
 
   
   
@@ -300,7 +300,7 @@ protected:
   
   
   
-  void Wait(PRInt64 aUsecs);
+  void Wait(int64_t aUsecs);
 
   
   void UpdateReadyState();
@@ -310,7 +310,7 @@ protected:
 
   
   
-  PRInt64 GetAudioClock();
+  int64_t GetAudioClock();
 
   
   
@@ -322,7 +322,7 @@ protected:
   
   
   
-  void UpdatePlaybackPositionInternal(PRInt64 aTime);
+  void UpdatePlaybackPositionInternal(int64_t aTime);
 
   
   
@@ -342,14 +342,14 @@ protected:
   
   
   
-  PRUint32 PlaySilence(PRUint32 aFrames,
-                       PRUint32 aChannels,
-                       PRUint64 aFrameOffset);
+  uint32_t PlaySilence(uint32_t aFrames,
+                       uint32_t aChannels,
+                       uint64_t aFrameOffset);
 
   
   
   
-  PRUint32 PlayFromAudioQueue(PRUint64 aFrameOffset, PRUint32 aChannels);
+  uint32_t PlayFromAudioQueue(uint64_t aFrameOffset, uint32_t aChannels);
 
   
   
@@ -398,7 +398,7 @@ protected:
   
   
   
-  PRInt64 GetMediaTime() const {
+  int64_t GetMediaTime() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mStartTime + mCurrentFrameTime;
   }
@@ -410,7 +410,7 @@ protected:
   
   
   
-  PRInt64 GetDecodedAudioDuration();
+  int64_t GetDecodedAudioDuration();
 
   
   
@@ -493,7 +493,7 @@ protected:
   
   
   
-  PRInt64 mPlayDuration;
+  int64_t mPlayDuration;
 
   
   
@@ -504,20 +504,20 @@ protected:
   
   
   
-  PRInt64 mStartTime;
+  int64_t mStartTime;
 
   
   
   
-  PRInt64 mEndTime;
+  int64_t mEndTime;
 
   
   
   
-  PRInt64 mSeekTime;
+  int64_t mSeekTime;
 
   
-  PRInt64 mFragmentEndTime;
+  int64_t mFragmentEndTime;
 
   
   
@@ -534,22 +534,22 @@ protected:
   
   
   
-  PRInt64 mCurrentFrameTime;
+  int64_t mCurrentFrameTime;
 
   
   
   
   
-  PRInt64 mAudioStartTime;
+  int64_t mAudioStartTime;
 
   
   
   
-  PRInt64 mAudioEndTime;
+  int64_t mAudioEndTime;
 
   
   
-  PRInt64 mVideoFrameEndTime;
+  int64_t mVideoFrameEndTime;
   
   
   
@@ -561,8 +561,8 @@ protected:
 
   
   
-  PRUint32 mBufferingWait;
-  PRInt64  mLowDataThresholdUsecs;
+  uint32_t mBufferingWait;
+  int64_t  mLowDataThresholdUsecs;
 
   
   

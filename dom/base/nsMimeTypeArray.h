@@ -28,7 +28,7 @@ public:
 
   void Refresh();
 
-  nsIDOMMimeType* GetItemAt(PRUint32 aIndex, nsresult* aResult);
+  nsIDOMMimeType* GetItemAt(uint32_t aIndex, nsresult* aResult);
   nsIDOMMimeType* GetNamedItem(const nsAString& aName, nsresult* aResult);
 
   static nsMimeTypeArray* FromSupports(nsISupports* aSupports)
@@ -62,7 +62,7 @@ private:
 protected:
   nsIDOMNavigator* mNavigator;
   
-  PRUint32 mPluginMimeTypeCount;
+  uint32_t mPluginMimeTypeCount;
   
   
   

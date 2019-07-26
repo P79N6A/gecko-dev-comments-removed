@@ -1234,9 +1234,13 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
 
 
 
+
+
+
+
 bool
-frontend::DefineArg(Parser *parser, ParseNode *funcpn, HandlePropertyName name, bool destructuringArg,
-                    Definition **duplicatedArg)
+frontend::DefineArg(Parser *parser, ParseNode *funcpn, HandlePropertyName name,
+                    bool disallowDuplicateArgs, Definition **duplicatedArg)
 {
     JSContext *cx = parser->context;
     ParseContext *pc = parser->pc;
@@ -1258,20 +1262,10 @@ frontend::DefineArg(Parser *parser, ParseNode *funcpn, HandlePropertyName name, 
                 return false;
         }
 
-        
-
-
-
-
-
-        if (destructuringArg) {
-            parser->reportError(prevDecl, JSMSG_DESTRUCT_DUP_ARG);
+        if (disallowDuplicateArgs) {
+            parser->reportError(prevDecl, JSMSG_BAD_DUP_ARGS);
             return false;
         }
-
-        
-
-
 
         if (duplicatedArg)
             *duplicatedArg = prevDecl;
@@ -1299,7 +1293,7 @@ BindDestructuringArg(JSContext *cx, BindData *data, HandlePropertyName name, Par
     JS_ASSERT(pc->sc->inFunction());
 
     if (pc->decls().lookupFirst(name)) {
-        parser->reportError(NULL, JSMSG_DESTRUCT_DUP_ARG);
+        parser->reportError(NULL, JSMSG_BAD_DUP_ARGS);
         return false;
     }
 
@@ -1352,7 +1346,7 @@ Parser::functionArguments(ParseNode **listp, bool &hasRest)
               {
                 
                 if (duplicatedArg) {
-                    reportError(duplicatedArg, JSMSG_DESTRUCT_DUP_ARG);
+                    reportError(duplicatedArg, JSMSG_BAD_DUP_ARGS);
                     return false;
                 }
 
@@ -1420,12 +1414,17 @@ Parser::functionArguments(ParseNode **listp, bool &hasRest)
               case TOK_NAME:
               {
                 RootedPropertyName name(context, tokenStream.currentToken().name());
-                if (!DefineArg(this, funcpn, name, destructuringArg, &duplicatedArg))
+                bool disallowDuplicateArgs = destructuringArg || hasDefaults;
+                if (!DefineArg(this, funcpn, name, disallowDuplicateArgs, &duplicatedArg))
                     return false;
 
                 if (tokenStream.matchToken(TOK_ASSIGN)) {
                     if (hasRest) {
                         reportError(NULL, JSMSG_REST_WITH_DEFAULT);
+                        return false;
+                    }
+                    if (duplicatedArg) {
+                        reportError(duplicatedArg, JSMSG_BAD_DUP_ARGS);
                         return false;
                     }
                     hasDefaults = true;

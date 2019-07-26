@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * Implementation of DOM Core's nsIDOMText node.
- */
+
+
+
+
+
+
+
 
 #include "nsTextNode.h"
 #include "nsContentUtils.h"
@@ -19,9 +19,9 @@
 
 using namespace mozilla::dom;
 
-/**
- * class used to implement attr() generated content
- */
+
+
+
 class nsAttributeTextNode : public nsTextNode,
                             public nsStubMutationObserver
 {
@@ -29,7 +29,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   
   nsAttributeTextNode(already_AddRefed<nsINodeInfo> aNodeInfo,
-                      PRInt32 aNameSpaceID,
+                      int32_t aNameSpaceID,
                       nsIAtom* aAttrName) :
     nsTextNode(aNodeInfo),
     mGrandparent(nullptr),
@@ -67,22 +67,22 @@ public:
     return it;
   }
 
-  // Public method for the event to run
+  
   void UpdateText() {
     UpdateText(true);
   }
 
 private:
-  // Update our text to our parent's current attr value
+  
   void UpdateText(bool aNotify);
 
-  // This doesn't need to be a strong pointer because it's only non-null
-  // while we're bound to the document tree, and it points to an ancestor
-  // so the ancestor must be bound to the document tree the whole time
-  // and can't be deleted.
+  
+  
+  
+  
   nsIContent* mGrandparent;
-  // What attribute we're showing
-  PRInt32 mNameSpaceID;
+  
+  int32_t mNameSpaceID;
   nsCOMPtr<nsIAtom> mAttrName;
 };
 
@@ -125,7 +125,7 @@ NS_IMPL_RELEASE_INHERITED(nsTextNode, nsGenericDOMDataNode)
 
 DOMCI_NODE_DATA(Text, nsTextNode)
 
-// QueryInterface implementation for nsTextNode
+
 NS_INTERFACE_TABLE_HEAD(nsTextNode)
   NS_NODE_INTERFACE_TABLE3(nsTextNode, nsIDOMNode, nsIDOMText,
                            nsIDOMCharacterData)
@@ -134,7 +134,7 @@ NS_INTERFACE_TABLE_HEAD(nsTextNode)
 NS_INTERFACE_MAP_END_INHERITING(nsGenericDOMDataNode)
 
 bool
-nsTextNode::IsNodeOfType(PRUint32 aFlags) const
+nsTextNode::IsNodeOfType(uint32_t aFlags) const
 {
   return !(aFlags & ~(eCONTENT | eTEXT | eDATA_NODE));
 }
@@ -152,7 +152,7 @@ nsTextNode::CloneDataNode(nsINodeInfo *aNodeInfo, bool aCloneText) const
 }
 
 nsresult
-nsTextNode::AppendTextForNormalize(const PRUnichar* aBuffer, PRUint32 aLength,
+nsTextNode::AppendTextForNormalize(const PRUnichar* aBuffer, uint32_t aLength,
                                    bool aNotify, nsIContent* aNextSibling)
 {
   CharacterDataChangeInfo::Details details = {
@@ -163,9 +163,9 @@ nsTextNode::AppendTextForNormalize(const PRUnichar* aBuffer, PRUint32 aLength,
 
 #ifdef DEBUG
 void
-nsTextNode::List(FILE* out, PRInt32 aIndent) const
+nsTextNode::List(FILE* out, int32_t aIndent) const
 {
-  PRInt32 index;
+  int32_t index;
   for (index = aIndent; --index >= 0; ) fputs("  ", out);
 
   fprintf(out, "Text@%p", static_cast<const void*>(this));
@@ -187,10 +187,10 @@ nsTextNode::List(FILE* out, PRInt32 aIndent) const
 }
 
 void
-nsTextNode::DumpContent(FILE* out, PRInt32 aIndent, bool aDumpAll) const
+nsTextNode::DumpContent(FILE* out, int32_t aIndent, bool aDumpAll) const
 {
   if(aDumpAll) {
-    PRInt32 index;
+    int32_t index;
     for (index = aIndent; --index >= 0; ) fputs("  ", out);
 
     nsAutoString tmp;
@@ -206,7 +206,7 @@ nsTextNode::DumpContent(FILE* out, PRInt32 aIndent, bool aDumpAll) const
 
 nsresult
 NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
-                       PRInt32 aNameSpaceID, nsIAtom* aAttrName,
+                       int32_t aNameSpaceID, nsIAtom* aAttrName,
                        nsIContent** aResult)
 {
   NS_PRECONDITION(aNodeInfoManager, "Missing nodeInfoManager");
@@ -251,8 +251,8 @@ nsAttributeTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   mGrandparent = aParent->GetParent();
   mGrandparent->AddMutationObserver(this);
 
-  // Note that there is no need to notify here, since we have no
-  // frame yet at this point.
+  
+  
   UpdateText(false);
 
   return NS_OK;
@@ -261,11 +261,11 @@ nsAttributeTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 nsAttributeTextNode::UnbindFromTree(bool aDeep, bool aNullParent)
 {
-  // UnbindFromTree can be called anytime so we have to be safe.
+  
   if (mGrandparent) {
-    // aNullParent might not be true here, but we want to remove the
-    // mutation observer anyway since we only need it while we're
-    // in the document.
+    
+    
+    
     mGrandparent->RemoveMutationObserver(this);
     mGrandparent = nullptr;
   }
@@ -275,15 +275,15 @@ nsAttributeTextNode::UnbindFromTree(bool aDeep, bool aNullParent)
 void
 nsAttributeTextNode::AttributeChanged(nsIDocument* aDocument,
                                       Element* aElement,
-                                      PRInt32 aNameSpaceID,
+                                      int32_t aNameSpaceID,
                                       nsIAtom* aAttribute,
-                                      PRInt32 aModType)
+                                      int32_t aModType)
 {
   if (aNameSpaceID == mNameSpaceID && aAttribute == mAttrName &&
       aElement == mGrandparent) {
-    // Since UpdateText notifies, do it when it's safe to run script.  Note
-    // that if we get unbound while the event is up that's ok -- we'll just
-    // have no grandparent when it fires, and will do nothing.
+    
+    
+    
     void (nsAttributeTextNode::*update)() = &nsAttributeTextNode::UpdateText;
     nsCOMPtr<nsIRunnable> ev = NS_NewRunnableMethod(this, update);
     nsContentUtils::AddScriptRunner(ev);

@@ -41,7 +41,7 @@ public:
 
 
   NS_IMETHOD Init(nsIDOMCharacterData *aElement,
-                  PRUint32 aOffset,
+                  uint32_t aOffset,
                   const nsAString& aString,
                   nsIEditor *aEditor);
 
@@ -66,7 +66,7 @@ protected:
   nsCOMPtr<nsIDOMCharacterData> mElement;
   
   
-  PRUint32 mOffset;
+  uint32_t mOffset;
 
   
   nsString mStringToInsert;

@@ -49,7 +49,7 @@ public:
   }
 
   nsCString mAsciiHost;
-  PRInt32 mPort;
+  int32_t mPort;
   bool mIsTemporary; 
   nsCString mFingerprint;
   nsCString mFingerprintAlgOID;
@@ -154,7 +154,7 @@ public:
     
     
     
-    static void GetHostWithPort(const nsACString & aHostName, PRInt32 aPort, nsACString& _retval);
+    static void GetHostWithPort(const nsACString & aHostName, int32_t aPort, nsACString& _retval);
 
 protected:
     mozilla::ReentrantMonitor monitor;
@@ -167,7 +167,7 @@ protected:
     void RemoveAllFromMemory();
     nsresult Read();
     nsresult Write();
-    nsresult AddEntryToList(const nsACString &host, PRInt32 port,
+    nsresult AddEntryToList(const nsACString &host, int32_t port,
                             nsIX509Cert *aCert,
                             const bool aIsTemporary,
                             const nsACString &algo_oid, 

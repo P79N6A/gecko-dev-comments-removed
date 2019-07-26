@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef nsXPathResult_h__
 #define nsXPathResult_h__
@@ -16,7 +16,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
 
-// {662f2c9a-c7cd-4cab-9349-e733df5a838c}
+
 #define NS_IXPATHRESULT_IID \
 { 0x662f2c9a, 0xc7cd, 0x4cab, {0x93, 0x49, 0xe7, 0x33, 0xdf, 0x5a, 0x83, 0x8c }}
 
@@ -25,7 +25,7 @@ class nsIXPathResult : public nsISupports
 public:
     NS_DECLARE_STATIC_IID_ACCESSOR(NS_IXPATHRESULT_IID)
     virtual nsresult SetExprResult(txAExprResult *aExprResult,
-                                   PRUint16 aResultType,
+                                   uint16_t aResultType,
                                    nsINode* aContextNode) = 0;
     virtual nsresult GetExprResult(txAExprResult **aExprResult) = 0;
     virtual nsresult Clone(nsIXPathResult **aResult) = 0;
@@ -33,9 +33,9 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPathResult, NS_IXPATHRESULT_IID)
 
-/**
- * A class for evaluating an XPath expression string
- */
+
+
+
 class nsXPathResult MOZ_FINAL : public nsIDOMXPathResult,
                                 public nsStubMutationObserver,
                                 public nsIXPathResult
@@ -45,14 +45,14 @@ public:
     nsXPathResult(const nsXPathResult &aResult);
     ~nsXPathResult();
 
-    // nsISupports interface
+    
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXPathResult, nsIDOMXPathResult)
 
-    // nsIDOMXPathResult interface
+    
     NS_DECL_NSIDOMXPATHRESULT
 
-    // nsIMutationObserver interface
+    
     NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
     NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
     NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
@@ -60,24 +60,24 @@ public:
     NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
     NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
 
-    // nsIXPathResult interface
-    nsresult SetExprResult(txAExprResult *aExprResult, PRUint16 aResultType,
+    
+    nsresult SetExprResult(txAExprResult *aExprResult, uint16_t aResultType,
                            nsINode* aContextNode);
     nsresult GetExprResult(txAExprResult **aExprResult);
     nsresult Clone(nsIXPathResult **aResult);
     void RemoveObserver();
 private:
-    static bool isSnapshot(PRUint16 aResultType)
+    static bool isSnapshot(uint16_t aResultType)
     {
         return aResultType == UNORDERED_NODE_SNAPSHOT_TYPE ||
                aResultType == ORDERED_NODE_SNAPSHOT_TYPE;
     }
-    static bool isIterator(PRUint16 aResultType)
+    static bool isIterator(uint16_t aResultType)
     {
         return aResultType == UNORDERED_NODE_ITERATOR_TYPE ||
                aResultType == ORDERED_NODE_ITERATOR_TYPE;
     }
-    static bool isNode(PRUint16 aResultType)
+    static bool isNode(uint16_t aResultType)
     {
         return aResultType == FIRST_ORDERED_NODE_TYPE ||
                aResultType == ANY_UNORDERED_NODE_TYPE;
@@ -100,8 +100,8 @@ private:
     nsRefPtr<txAExprResult> mResult;
     nsCOMArray<nsIDOMNode> mResultNodes;
     nsCOMPtr<nsIDocument> mDocument;
-    PRUint32 mCurrentPos;
-    PRUint16 mResultType;
+    uint32_t mCurrentPos;
+    uint16_t mResultType;
     nsWeakPtr mContextNode;
     bool mInvalidIteratorState;
     bool mBooleanResult;

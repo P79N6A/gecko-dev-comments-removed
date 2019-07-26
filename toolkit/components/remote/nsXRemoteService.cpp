@@ -210,7 +210,7 @@ nsXRemoteService::HandleNewProperty(XID aWindowId, Display* aDisplay,
       return false;
 
     
-    if (!data || !TO_LITTLE_ENDIAN32(*reinterpret_cast<PRInt32*>(data)))
+    if (!data || !TO_LITTLE_ENDIAN32(*reinterpret_cast<int32_t*>(data)))
       return false;
 
     
@@ -245,7 +245,7 @@ nsXRemoteService::HandleNewProperty(XID aWindowId, Display* aDisplay,
 
 const char*
 nsXRemoteService::HandleCommand(char* aCommand, nsIDOMWindow* aWindow,
-                                PRUint32 aTimestamp)
+                                uint32_t aTimestamp)
 {
   nsresult rv;
 
@@ -258,7 +258,7 @@ nsXRemoteService::HandleCommand(char* aCommand, nsIDOMWindow* aWindow,
   
 
   nsCAutoString command(aCommand);
-  PRInt32 p1, p2;
+  int32_t p1, p2;
   p1 = command.FindChar('(');
   p2 = command.FindChar(')');
 
@@ -300,7 +300,7 @@ nsXRemoteService::HandleCommand(char* aCommand, nsIDOMWindow* aWindow,
 
 const char*
 nsXRemoteService::HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
-                                    PRUint32 aTimestamp)
+                                    uint32_t aTimestamp)
 {
   nsresult rv;
 
@@ -315,8 +315,8 @@ nsXRemoteService::HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
   
   
 
-  PRInt32 argc = TO_LITTLE_ENDIAN32(*reinterpret_cast<PRInt32*>(aBuffer));
-  char *wd   = aBuffer + ((argc + 1) * sizeof(PRInt32));
+  int32_t argc = TO_LITTLE_ENDIAN32(*reinterpret_cast<int32_t*>(aBuffer));
+  char *wd   = aBuffer + ((argc + 1) * sizeof(int32_t));
 
   nsCOMPtr<nsIFile> lf;
   rv = NS_NewNativeLocalFile(nsDependentCString(wd), true,
@@ -329,7 +329,7 @@ nsXRemoteService::HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
   char **argv = (char**) malloc(sizeof(char*) * argc);
   if (!argv) return "509 internal error";
 
-  PRInt32  *offset = reinterpret_cast<PRInt32*>(aBuffer) + 1;
+  int32_t  *offset = reinterpret_cast<int32_t*>(aBuffer) + 1;
 
   for (int i = 0; i < argc; ++i) {
     argv[i] = aBuffer + TO_LITTLE_ENDIAN32(offset[i]);

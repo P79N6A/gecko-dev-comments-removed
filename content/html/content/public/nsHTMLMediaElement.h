@@ -27,8 +27,8 @@
 
 
 
-typedef PRUint16 nsMediaNetworkState;
-typedef PRUint16 nsMediaReadyState;
+typedef uint16_t nsMediaNetworkState;
+typedef uint16_t nsMediaReadyState;
 
 namespace mozilla {
 class MediaResource;
@@ -79,21 +79,21 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLMediaElement,
                                            nsGenericHTMLElement)
 
-  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+  virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
   
   
-  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
   }
-  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            bool aNotify);
-  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr,
+  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr,
                              bool aNotify);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -112,8 +112,8 @@ public:
   
   
   
-  void MetadataLoaded(PRUint32 aChannels,
-                      PRUint32 aRate,
+  void MetadataLoaded(uint32_t aChannels,
+                      uint32_t aRate,
                       bool aHasAudio,
                       const MetadataTags* aTags);
 
@@ -198,7 +198,7 @@ public:
   nsresult DispatchEvent(const nsAString& aName);
   nsresult DispatchAsyncEvent(const nsAString& aName);
   nsresult DispatchAudioAvailableEvent(float* aFrameBuffer,
-                                       PRUint32 aFrameBufferLength,
+                                       uint32_t aFrameBufferLength,
                                        float aTime);
 
   
@@ -327,17 +327,17 @@ public:
   
 
 
-  void NotifyAudioAvailable(float* aFrameBuffer, PRUint32 aFrameBufferLength,
+  void NotifyAudioAvailable(float* aFrameBuffer, uint32_t aFrameBufferLength,
                             float aTime);
 
-  virtual bool IsNodeOfType(PRUint32 aFlags) const;
+  virtual bool IsNodeOfType(uint32_t aFlags) const;
 
   
 
 
 
 
-  PRUint32 GetCurrentLoadID() { return mCurrentLoadID; }
+  uint32_t GetCurrentLoadID() { return mCurrentLoadID; }
 
   
 
@@ -391,7 +391,7 @@ protected:
 
   void ReportLoadError(const char* aMsg,
                        const PRUnichar** aParams = nullptr,
-                       PRUint32 aParamCount = 0);
+                       uint32_t aParamCount = 0);
 
   
 
@@ -544,7 +544,7 @@ protected:
 
   nsresult OnChannelRedirect(nsIChannel *aChannel,
                              nsIChannel *aNewChannel,
-                             PRUint32 aFlags);
+                             uint32_t aFlags);
 
   
 
@@ -610,7 +610,7 @@ protected:
 
 
 
-  void Error(PRUint16 aErrorCode);
+  void Error(uint16_t aErrorCode);
 
   
 
@@ -662,7 +662,7 @@ protected:
   
   
   
-  PRUint32 mCurrentLoadID;
+  uint32_t mCurrentLoadID;
 
   
   
@@ -701,10 +701,10 @@ protected:
   double mVolume;
 
   
-  PRUint32 mChannels;
+  uint32_t mChannels;
 
   
-  PRUint32 mRate;
+  uint32_t mRate;
 
   
   

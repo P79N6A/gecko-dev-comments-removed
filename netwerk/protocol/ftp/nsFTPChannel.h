@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim:set ts=4 sw=4 sts=4 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef nsFTPChannel_h___
 #define nsFTPChannel_h___
@@ -55,13 +55,13 @@ public:
         return mProxyInfo;
     }
 
-    // Were we asked to resume a download?
+    
     bool ResumeRequested() { return mResumeRequested; }
 
-    // Download from this byte offset
-    PRUint64 StartPos() { return mStartPos; }
+    
+    uint64_t StartPos() { return mStartPos; }
 
-    // ID of the entity to resume downloading
+    
     const nsCString &EntityID() {
         return mEntityID;
     }
@@ -79,12 +79,12 @@ public:
         return NS_OK;
     }
 
-    // Data stream to upload
+    
     nsIInputStream *UploadStream() {
         return mUploadStream;
     }
 
-    // Helper function for getting the nsIFTPEventSink.
+    
     void GetFTPEventSink(nsCOMPtr<nsIFTPEventSink> &aResult);
 
 protected:
@@ -98,10 +98,10 @@ private:
     nsCOMPtr<nsIProxyInfo>    mProxyInfo; 
     nsCOMPtr<nsIFTPEventSink> mFTPEventSink;
     nsCOMPtr<nsIInputStream>  mUploadStream;
-    PRUint64                  mStartPos;
+    uint64_t                  mStartPos;
     nsCString                 mEntityID;
     bool                      mResumeRequested;
     PRTime                    mLastModifiedTime;
 };
 
-#endif /* nsFTPChannel_h___ */
+#endif 

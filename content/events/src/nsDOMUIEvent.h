@@ -97,7 +97,7 @@ protected:
   nsIntPoint GetPagePoint();
 
   
-  virtual nsresult Which(PRUint32* aWhich)
+  virtual nsresult Which(uint32_t* aWhich)
   {
     NS_ENSURE_ARG_POINTER(aWhich);
     
@@ -106,7 +106,7 @@ protected:
   }
 
   nsCOMPtr<nsIDOMWindow> mView;
-  PRInt32 mDetail;
+  int32_t mDetail;
   nsIntPoint mClientPoint;
   
   nsIntPoint mLayerPoint;

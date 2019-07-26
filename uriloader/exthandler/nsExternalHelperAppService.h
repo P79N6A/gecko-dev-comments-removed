@@ -228,7 +228,7 @@ public:
                        nsIInterfaceRequestor * aWindowContext,
                        nsExternalHelperAppService * aExtProtSvc,
                        const nsAString& aFilename,
-                       PRUint32 aReason, bool aForceSave);
+                       uint32_t aReason, bool aForceSave);
 
   ~nsExternalAppHandler();
 
@@ -292,7 +292,7 @@ protected:
 
 
 
-  PRUint32 mReason;
+  uint32_t mReason;
 
   
 
@@ -300,8 +300,8 @@ protected:
   bool mTempFileIsExecutable;
 
   PRTime mTimeDownloadStarted;
-  PRInt64 mContentLength;
-  PRInt64 mProgress; 
+  int64_t mContentLength;
+  int64_t mProgress; 
 
   
 
@@ -310,7 +310,7 @@ protected:
 
   nsCOMPtr<nsIFile> mFinalFileDestination;
 
-  PRUint32 mBufferSize;
+  uint32_t mBufferSize;
   char    *mDataBuffer;
 
   

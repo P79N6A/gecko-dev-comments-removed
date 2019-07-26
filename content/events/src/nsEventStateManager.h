@@ -123,7 +123,7 @@ public:
 
 
 
-  void RegisterAccessKey(nsIContent* aContent, PRUint32 aKey);
+  void RegisterAccessKey(nsIContent* aContent, uint32_t aKey);
 
   
 
@@ -131,7 +131,7 @@ public:
 
 
 
-  void UnregisterAccessKey(nsIContent* aContent, PRUint32 aKey);
+  void UnregisterAccessKey(nsIContent* aContent, uint32_t aKey);
 
   
 
@@ -139,11 +139,11 @@ public:
 
 
 
-  PRUint32 GetRegisteredAccessKey(nsIContent* aContent);
+  uint32_t GetRegisteredAccessKey(nsIContent* aContent);
 
   bool GetAccessKeyLabelPrefix(nsAString& aPrefix);
 
-  nsresult SetCursor(PRInt32 aCursor, imgIContainer* aContainer,
+  nsresult SetCursor(int32_t aCursor, imgIContainer* aContainer,
                      bool aHaveHotspot, float aHotspotX, float aHotspotY,
                      nsIWidget* aWidget, bool aLockCursor); 
 
@@ -230,7 +230,7 @@ protected:
 
 
 
-  nsIFrame* DispatchMouseEvent(nsGUIEvent* aEvent, PRUint32 aMessage,
+  nsIFrame* DispatchMouseEvent(nsGUIEvent* aEvent, uint32_t aMessage,
                                nsIContent* aTargetContent,
                                nsIContent* aRelatedContent);
   
@@ -264,7 +264,7 @@ protected:
 
   void FireDragEnterOrExit(nsPresContext* aPresContext,
                            nsGUIEvent* aEvent,
-                           PRUint32 aMsg,
+                           uint32_t aMsg,
                            nsIContent* aRelatedTarget,
                            nsIContent* aTargetContent,
                            nsWeakFrame& aTargetFrame);
@@ -312,9 +312,9 @@ protected:
                        nsEventStatus* aStatus,
                        nsIDocShellTreeItem* aBubbledFrom,
                        ProcessingAccessKeyState aAccessKeyState,
-                       PRInt32 aModifierMask);
+                       int32_t aModifierMask);
 
-  bool ExecuteAccessKey(nsTArray<PRUint32>& aAccessCharCodes,
+  bool ExecuteAccessKey(nsTArray<uint32_t>& aAccessCharCodes,
                           bool aIsTrustedEvent);
 
   
@@ -441,7 +441,7 @@ protected:
   void SendLineScrollEvent(nsIFrame* aTargetFrame,
                            mozilla::widget::WheelEvent* aEvent,
                            nsEventStatus* aStatus,
-                           PRInt32 aDelta,
+                           int32_t aDelta,
                            DeltaDirection aDeltaDirection);
 
   
@@ -459,7 +459,7 @@ protected:
   void SendPixelScrollEvent(nsIFrame* aTargetFrame,
                             mozilla::widget::WheelEvent* aEvent,
                             nsEventStatus* aStatus,
-                            PRInt32 aPixelDelta,
+                            int32_t aPixelDelta,
                             DeltaDirection aDeltaDirection);
 
   
@@ -500,11 +500,11 @@ protected:
   void DoScrollText(nsIScrollableFrame* aScrollableFrame,
                     mozilla::widget::WheelEvent* aEvent);
 
-  void DoScrollHistory(PRInt32 direction);
-  void DoScrollZoom(nsIFrame *aTargetFrame, PRInt32 adjustment);
+  void DoScrollHistory(int32_t direction);
+  void DoScrollZoom(nsIFrame *aTargetFrame, int32_t adjustment);
   nsresult GetMarkupDocumentViewer(nsIMarkupDocumentViewer** aMv);
-  nsresult ChangeTextSize(PRInt32 change);
-  nsresult ChangeFullZoom(PRInt32 change);
+  nsresult ChangeTextSize(int32_t change);
+  nsresult ChangeFullZoom(int32_t change);
 
   
 
@@ -571,7 +571,7 @@ protected:
 
     TimeStamp mLastTime;
 
-    PRUint32 mHandlingDeltaMode;
+    uint32_t mHandlingDeltaMode;
     bool mHandlingPixelOnlyDevice;
 
     static DeltaAccumulator* sInstance;
@@ -661,7 +661,7 @@ private:
                                   nsEventStates aState,
                                   bool aAddState);
 
-  PRInt32     mLockCursor;
+  int32_t     mLockCursor;
 
   
   
@@ -688,7 +688,7 @@ private:
   nsCOMPtr<nsIContent> mGestureDownFrameOwner;
   
   mozilla::widget::Modifiers mGestureModifiers;
-  PRUint16 mGestureDownButtons;
+  uint16_t mGestureDownButtons;
 
   nsCOMPtr<nsIContent> mLastLeftMouseDownContent;
   nsCOMPtr<nsIContent> mLastLeftMouseDownContentParent;
@@ -713,9 +713,9 @@ private:
   nsPresContext* mPresContext;      
   nsCOMPtr<nsIDocument> mDocument;   
 
-  PRUint32 mLClickCount;
-  PRUint32 mMClickCount;
-  PRUint32 mRClickCount;
+  uint32_t mLClickCount;
+  uint32_t mMClickCount;
+  uint32_t mRClickCount;
 
   bool m_haveShutdown;
 
@@ -727,7 +727,7 @@ public:
   
   nsCOMArray<nsIContent> mAccessKeys;
 
-  static PRInt32 sUserInputEventDepth;
+  static int32_t sUserInputEventDepth;
   
   static bool sNormalLMouseEventInProcess;
 

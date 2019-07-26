@@ -336,7 +336,7 @@ nsSVGSVGElement::GetCurrentTranslate(nsIDOMSVGPoint * *aCurrentTranslate)
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::SuspendRedraw(PRUint32 max_wait_milliseconds, PRUint32 *_retval)
+nsSVGSVGElement::SuspendRedraw(uint32_t max_wait_milliseconds, uint32_t *_retval)
 {
   
   
@@ -346,7 +346,7 @@ nsSVGSVGElement::SuspendRedraw(PRUint32 max_wait_milliseconds, PRUint32 *_retval
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::UnsuspendRedraw(PRUint32 suspend_handle_id)
+nsSVGSVGElement::UnsuspendRedraw(uint32_t suspend_handle_id)
 {
   
   return NS_OK;
@@ -445,7 +445,7 @@ nsSVGSVGElement::SetCurrentTime(float seconds)
       double fMilliseconds = double(seconds) * PR_MSEC_PER_SEC;
       
       
-      nsSMILTime lMilliseconds = PRInt64(NS_round(fMilliseconds));
+      nsSMILTime lMilliseconds = int64_t(NS_round(fMilliseconds));
       mTimedDocumentRoot->SetCurrentTime(lMilliseconds);
       AnimationNeedsResample();
       
@@ -717,14 +717,14 @@ nsSVGSVGElement::GetTransformToElement(nsIDOMSVGElement *element,
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::GetZoomAndPan(PRUint16 *aZoomAndPan)
+nsSVGSVGElement::GetZoomAndPan(uint16_t *aZoomAndPan)
 {
   *aZoomAndPan = mEnumAttributes[ZOOMANDPAN].GetAnimValue();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSVGSVGElement::SetZoomAndPan(PRUint16 aZoomAndPan)
+nsSVGSVGElement::SetZoomAndPan(uint16_t aZoomAndPan)
 {
   if (aZoomAndPan == nsIDOMSVGZoomAndPan::SVG_ZOOMANDPAN_DISABLE ||
       aZoomAndPan == nsIDOMSVGZoomAndPan::SVG_ZOOMANDPAN_MAGNIFY) {
@@ -1110,7 +1110,7 @@ nsSVGSVGElement::GetPreserveAspectRatioWithOverride() const
 
 
 float
-nsSVGSVGElement::GetLength(PRUint8 aCtxType)
+nsSVGSVGElement::GetLength(uint8_t aCtxType)
 {
   float h, w;
 
@@ -1400,7 +1400,7 @@ nsSVGSVGElement::ClearViewBoxProperty()
 }
 
 bool
-nsSVGSVGElement::SetZoomAndPanProperty(PRUint16 aValue)
+nsSVGSVGElement::SetZoomAndPanProperty(uint16_t aValue)
 {
   nsresult rv = SetProperty(nsGkAtoms::zoomAndPan,
                             reinterpret_cast<void*>(aValue),
@@ -1411,7 +1411,7 @@ nsSVGSVGElement::SetZoomAndPanProperty(PRUint16 aValue)
   return NS_SUCCEEDED(rv);
 }
 
-PRUint16
+uint16_t
 nsSVGSVGElement::GetZoomAndPanProperty() const
 {
   void* valPtr = GetProperty(nsGkAtoms::zoomAndPan);

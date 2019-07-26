@@ -51,7 +51,7 @@ public:
 
 
   DOMSVGTransform(DOMSVGTransformList *aList,
-                  PRUint32 aListIndex,
+                  uint32_t aListIndex,
                   bool aIsAnimValItem);
 
   
@@ -115,15 +115,15 @@ public:
 
 
   void InsertingIntoList(DOMSVGTransformList *aList,
-                         PRUint32 aListIndex,
+                         uint32_t aListIndex,
                          bool aIsAnimValItem);
 
-  static PRUint32 MaxListIndex() {
+  static uint32_t MaxListIndex() {
     return (1U << MOZ_SVG_LIST_INDEX_BIT_COUNT) - 1;
   }
 
   
-  void UpdateListIndex(PRUint32 aListIndex) {
+  void UpdateListIndex(uint32_t aListIndex) {
     mListIndex = aListIndex;
   }
 
@@ -181,7 +181,7 @@ private:
   
   
 
-  PRUint32 mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
+  uint32_t mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
   bool mIsAnimValItem:1;
 
   

@@ -80,9 +80,9 @@ bool nsOCSPResponder::IncludeCert(CERTCertificate *aCert)
 
 
 
-PRInt32 nsOCSPResponder::CmpCAName(nsIOCSPResponder *a, nsIOCSPResponder *b)
+int32_t nsOCSPResponder::CmpCAName(nsIOCSPResponder *a, nsIOCSPResponder *b)
 {
-  PRInt32 cmp1;
+  int32_t cmp1;
   nsXPIDLString aTok, bTok;
   a->GetResponseSigner(getter_Copies(aTok));
   b->GetResponseSigner(getter_Copies(bTok));
@@ -98,7 +98,7 @@ PRInt32 nsOCSPResponder::CmpCAName(nsIOCSPResponder *a, nsIOCSPResponder *b)
 
 
 
-PRInt32 nsOCSPResponder::CompareEntries(nsIOCSPResponder *a, nsIOCSPResponder *b)
+int32_t nsOCSPResponder::CompareEntries(nsIOCSPResponder *a, nsIOCSPResponder *b)
 {
   nsXPIDLString aURL, bURL;
   nsAutoString aURLAuto, bURLAuto;

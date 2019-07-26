@@ -57,24 +57,24 @@ public:
 
 
   static void SetAccGroupAttrs(nsIPersistentProperties *aAttributes,
-                               PRInt32 aLevel, PRInt32 aSetSize,
-                               PRInt32 aPosInSet);
+                               int32_t aLevel, int32_t aSetSize,
+                               int32_t aPosInSet);
 
   
 
 
-  static PRInt32 GetDefaultLevel(Accessible* aAcc);
+  static int32_t GetDefaultLevel(Accessible* aAcc);
 
   
 
 
 
-  static PRInt32 GetARIAOrDefaultLevel(Accessible* aAccessible);
+  static int32_t GetARIAOrDefaultLevel(Accessible* aAccessible);
 
   
 
 
-  static PRInt32 GetLevelForXULContainerItem(nsIContent *aContent);
+  static int32_t GetLevelForXULContainerItem(nsIContent *aContent);
 
   
 
@@ -130,7 +130,7 @@ public:
 
 
    static Accessible* GetAncestorWithRole(Accessible* aDescendant,
-                                          PRUint32 aRole);
+                                          uint32_t aRole);
 
   
 
@@ -139,7 +139,7 @@ public:
 
 
   static Accessible* GetSelectableContainer(Accessible* aAccessible,
-                                            PRUint64 aState);
+                                            uint64_t aState);
 
   
 
@@ -168,8 +168,8 @@ public:
 
 
 
-  static nsresult ConvertToScreenCoords(PRInt32 aX, PRInt32 aY,
-                                        PRUint32 aCoordinateType,
+  static nsresult ConvertToScreenCoords(int32_t aX, int32_t aY,
+                                        uint32_t aCoordinateType,
                                         nsAccessNode *aAccessNode,
                                         nsIntPoint *aCoords);
 
@@ -184,8 +184,8 @@ public:
 
 
 
-  static nsresult ConvertScreenCoordsTo(PRInt32 *aX, PRInt32 *aY,
-                                        PRUint32 aCoordinateType,
+  static nsresult ConvertScreenCoordsTo(int32_t *aX, int32_t *aY,
+                                        uint32_t aCoordinateType,
                                         nsAccessNode *aAccessNode);
 
   
@@ -205,9 +205,9 @@ public:
   
 
 
-  static PRUint32 Role(nsIAccessible *aAcc)
+  static uint32_t Role(nsIAccessible *aAcc)
   {
-    PRUint32 role = nsIAccessibleRole::ROLE_NOTHING;
+    uint32_t role = nsIAccessibleRole::ROLE_NOTHING;
     if (aAcc)
       aAcc->GetRole(&role);
 
@@ -221,7 +221,7 @@ public:
 
 
 
-  static PRUint8 GetAttributeCharacteristics(nsIAtom* aAtom);
+  static uint8_t GetAttributeCharacteristics(nsIAtom* aAtom);
 
   
 
@@ -232,7 +232,7 @@ public:
 
 
 
-  static bool GetLiveAttrValue(PRUint32 aRule, nsAString& aValue);
+  static bool GetLiveAttrValue(uint32_t aRule, nsAString& aValue);
 
 #ifdef DEBUG
   
@@ -247,7 +247,7 @@ public:
 
   static bool IsText(nsIAccessible *aAcc)
   {
-    PRUint32 role = Role(aAcc);
+    uint32_t role = Role(aAcc);
     return role == nsIAccessibleRole::ROLE_TEXT_LEAF ||
            role == nsIAccessibleRole::ROLE_STATICTEXT;
   }
@@ -255,14 +255,14 @@ public:
   
 
 
-  static PRUint32 TextLength(Accessible* aAccessible);
+  static uint32_t TextLength(Accessible* aAccessible);
 
   
 
 
   static bool IsEmbeddedObject(nsIAccessible *aAcc)
   {
-    PRUint32 role = Role(aAcc);
+    uint32_t role = Role(aAcc);
     return role != nsIAccessibleRole::ROLE_TEXT_LEAF &&
            role != nsIAccessibleRole::ROLE_WHITESPACE &&
            role != nsIAccessibleRole::ROLE_STATICTEXT;
@@ -271,21 +271,21 @@ public:
   
 
 
-  static inline PRUint64 To64State(PRUint32 aState1, PRUint32 aState2)
+  static inline uint64_t To64State(uint32_t aState1, uint32_t aState2)
   {
-    return static_cast<PRUint64>(aState1) +
-        (static_cast<PRUint64>(aState2) << 31);
+    return static_cast<uint64_t>(aState1) +
+        (static_cast<uint64_t>(aState2) << 31);
   }
 
   
 
 
-  static inline void To32States(PRUint64 aState64,
-                                PRUint32* aState1, PRUint32* aState2)
+  static inline void To32States(uint64_t aState64,
+                                uint32_t* aState1, uint32_t* aState2)
   {
     *aState1 = aState64 & 0x7fffffff;
     if (aState2)
-      *aState2 = static_cast<PRUint32>(aState64 >> 31);
+      *aState2 = static_cast<uint32_t>(aState64 >> 31);
   }
 
   
@@ -317,7 +317,7 @@ public:
 
   static nsresult GetHeaderCellsFor(nsIAccessibleTable *aTable,
                                     nsIAccessibleTableCell *aCell,
-                                    PRInt32 aRowOrColHeaderCells,
+                                    int32_t aRowOrColHeaderCells,
                                     nsIArray **aCells);
 };
 

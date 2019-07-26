@@ -71,29 +71,21 @@ class nsIParserNode {
 
 
 
-    virtual PRInt32 GetNodeType()  const =0;
+    virtual int32_t GetNodeType()  const =0;
 
     
 
 
 
 
-    virtual PRInt32 GetTokenType()  const =0;
+    virtual int32_t GetTokenType()  const =0;
 
     
 
 
 
 
-    virtual PRInt32 GetAttributeCount(bool askToken=false) const =0;
-
-    
-
-
-
-
-
-    virtual const nsAString& GetKeyAt(PRUint32 anIndex) const = 0;
+    virtual int32_t GetAttributeCount(bool askToken=false) const =0;
 
     
 
@@ -101,7 +93,15 @@ class nsIParserNode {
 
 
 
-    virtual const nsAString& GetValueAt(PRUint32 anIndex) const = 0;
+    virtual const nsAString& GetKeyAt(uint32_t anIndex) const = 0;
+
+    
+
+
+
+
+
+    virtual const nsAString& GetValueAt(uint32_t anIndex) const = 0;
 
     
 
@@ -110,7 +110,7 @@ class nsIParserNode {
 
 
 
-    virtual PRInt32 TranslateToUnicodeStr(nsString& aString) const = 0;
+    virtual int32_t TranslateToUnicodeStr(nsString& aString) const = 0;
 
 
     virtual void AddAttribute(CToken* aToken)=0;
@@ -121,7 +121,7 @@ class nsIParserNode {
 
 
 
-    virtual PRInt32 GetSourceLineNumber(void) const =0;
+    virtual int32_t GetSourceLineNumber(void) const =0;
 
     
 

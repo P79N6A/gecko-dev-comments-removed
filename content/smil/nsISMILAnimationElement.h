@@ -92,7 +92,7 @@ public:
   
 
 
-  virtual bool GetTargetAttributeName(PRInt32* aNamespaceID,
+  virtual bool GetTargetAttributeName(int32_t* aNamespaceID,
                                         nsIAtom** aLocalName) const = 0;
 
   

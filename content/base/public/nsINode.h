@@ -197,9 +197,9 @@ public:
 
 
 
-  bool Mutated(PRUint8 aIgnoreCount)
+  bool Mutated(uint8_t aIgnoreCount)
   {
-    return sMutationCount < static_cast<PRUint32>(eMaxMutations - aIgnoreCount);
+    return sMutationCount < static_cast<uint32_t>(eMaxMutations - aIgnoreCount);
   }
 
   
@@ -216,7 +216,7 @@ private:
   
   
   
-  PRUint32 mDelta;
+  uint32_t mDelta;
 
   
   
@@ -226,7 +226,7 @@ private:
   
   
   
-  static PRUint32 sMutationCount;
+  static uint32_t sMutationCount;
 };
 
 
@@ -353,7 +353,7 @@ public:
 
 
 
-  virtual bool IsNodeOfType(PRUint32 aFlags) const = 0;
+  virtual bool IsNodeOfType(uint32_t aFlags) const = 0;
 
   
 
@@ -386,25 +386,14 @@ public:
 
 
 
-  virtual PRUint32 GetChildCount() const = 0;
+  virtual uint32_t GetChildCount() const = 0;
 
   
 
 
 
 
-  virtual nsIContent* GetChildAt(PRUint32 aIndex) const = 0;
-
-  
-
-
-
-
-
-
-
-
-  virtual nsIContent * const * GetChildArray(PRUint32* aChildCount) const = 0;
+  virtual nsIContent* GetChildAt(uint32_t aIndex) const = 0;
 
   
 
@@ -414,7 +403,18 @@ public:
 
 
 
-  virtual PRInt32 IndexOf(nsINode* aPossibleChild) const = 0;
+
+  virtual nsIContent * const * GetChildArray(uint32_t* aChildCount) const = 0;
+
+  
+
+
+
+
+
+
+
+  virtual int32_t IndexOf(nsINode* aPossibleChild) const = 0;
 
   
 
@@ -458,7 +458,7 @@ public:
 
 
 
-  PRUint16 NodeType() const
+  uint16_t NodeType() const
   {
     return mNodeInfo->NodeType();
   }
@@ -519,7 +519,7 @@ public:
 
 
 
-  virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
+  virtual nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
                                  bool aNotify) = 0;
 
   
@@ -556,7 +556,7 @@ public:
 
 
 
-  virtual void RemoveChildAt(PRUint32 aIndex, bool aNotify) = 0;
+  virtual void RemoveChildAt(uint32_t aIndex, bool aNotify) = 0;
 
   
 
@@ -587,7 +587,7 @@ public:
 
 
 
-  virtual void* GetProperty(PRUint16 aCategory,
+  virtual void* GetProperty(uint16_t aCategory,
                             nsIAtom *aPropertyName,
                             nsresult *aStatus = nullptr) const;
 
@@ -635,7 +635,7 @@ public:
 
 
 
-  virtual nsresult SetProperty(PRUint16 aCategory,
+  virtual nsresult SetProperty(uint16_t aCategory,
                                nsIAtom *aPropertyName,
                                void *aValue,
                                NSPropertyDtorFunc aDtor = nullptr,
@@ -660,7 +660,7 @@ public:
 
 
 
-  virtual void DeleteProperty(PRUint16 aCategory, nsIAtom *aPropertyName);
+  virtual void DeleteProperty(uint16_t aCategory, nsIAtom *aPropertyName);
 
   
 
@@ -695,7 +695,7 @@ public:
 
 
 
-  virtual void* UnsetProperty(PRUint16 aCategory,
+  virtual void* UnsetProperty(uint16_t aCategory,
                               nsIAtom *aPropertyName,
                               nsresult *aStatus = nullptr);
   
@@ -901,12 +901,12 @@ public:
     return !!(GetFlags() & aFlag);
   }
 
-  PRUint32 GetFlags() const
+  uint32_t GetFlags() const
   {
     return mFlags;
   }
 
-  void SetFlags(PRUint32 aFlagsToSet)
+  void SetFlags(uint32_t aFlagsToSet)
   {
     NS_ASSERTION(!(aFlagsToSet & (NODE_IS_ANONYMOUS |
                                   NODE_IS_NATIVE_ANONYMOUS_ROOT |
@@ -919,7 +919,7 @@ public:
     mFlags |= aFlagsToSet;
   }
 
-  void UnsetFlags(PRUint32 aFlagsToUnset)
+  void UnsetFlags(uint32_t aFlagsToUnset)
   {
     NS_ASSERTION(!(aFlagsToUnset &
                    (NODE_IS_ANONYMOUS |
@@ -997,7 +997,7 @@ public:
   nsIContent* GetFirstChild() const { return mFirstChild; }
   nsIContent* GetLastChild() const
   {
-    PRUint32 count;
+    uint32_t count;
     nsIContent* const* children = GetChildArray(&count);
 
     return count > 0 ? children[count - 1] : nullptr;
@@ -1105,15 +1105,15 @@ public:
 
 
 
-  PRUint16 CompareDocPosition(nsINode* aOtherNode);
-  nsresult CompareDocPosition(nsINode* aOtherNode, PRUint16* aReturn)
+  uint16_t CompareDocPosition(nsINode* aOtherNode);
+  nsresult CompareDocPosition(nsINode* aOtherNode, uint16_t* aReturn)
   {
     NS_ENSURE_ARG(aOtherNode);
     *aReturn = CompareDocPosition(aOtherNode);
     return NS_OK;
   }
   nsresult CompareDocumentPosition(nsIDOMNode* aOther,
-                                   PRUint16* aReturn);
+                                   uint16_t* aReturn);
 
   nsresult LookupPrefix(const nsAString& aNamespaceURI, nsAString& aPrefix);
   nsresult IsDefaultNamespace(const nsAString& aNamespaceURI, bool* aResult)
@@ -1405,7 +1405,7 @@ public:
 
 
 
-  PRUint32 Length() const;
+  uint32_t Length() const;
 
 protected:
 
@@ -1491,7 +1491,7 @@ protected:
 
 
 
-  void doRemoveChildAt(PRUint32 aIndex, bool aNotify, nsIContent* aKid,
+  void doRemoveChildAt(uint32_t aIndex, bool aNotify, nsIContent* aKid,
                        nsAttrAndChildArray& aChildArray);
 
   
@@ -1504,7 +1504,7 @@ protected:
 
 
 
-  nsresult doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
+  nsresult doInsertChildAt(nsIContent* aKid, uint32_t aIndex,
                            bool aNotify, nsAttrAndChildArray& aChildArray);
 
 public:
@@ -1535,11 +1535,11 @@ protected:
 
   nsINode* mParent;
 
-  PRUint32 mFlags;
+  uint32_t mFlags;
 
 private:
   
-  PRUint32 mBoolFlags;
+  uint32_t mBoolFlags;
 
 protected:
   nsIContent* mNextSibling;

@@ -127,8 +127,8 @@ public:
   static already_AddRefed<DOMSVGAnimatedLengthList>
     GetDOMWrapper(SVGAnimatedLengthList *aList,
                   nsSVGElement *aElement,
-                  PRUint8 aAttrEnum,
-                  PRUint8 aAxis);
+                  uint8_t aAttrEnum,
+                  uint8_t aAxis);
 
   
 
@@ -165,7 +165,7 @@ private:
 
 
 
-  DOMSVGAnimatedLengthList(nsSVGElement *aElement, PRUint8 aAttrEnum, PRUint8 aAxis)
+  DOMSVGAnimatedLengthList(nsSVGElement *aElement, uint8_t aAttrEnum, uint8_t aAxis)
     : mBaseVal(nullptr)
     , mAnimVal(nullptr)
     , mElement(aElement)
@@ -189,8 +189,8 @@ private:
   
   nsRefPtr<nsSVGElement> mElement;
 
-  PRUint8 mAttrEnum;
-  PRUint8 mAxis;
+  uint8_t mAttrEnum;
+  uint8_t mAxis;
 };
 
 } 

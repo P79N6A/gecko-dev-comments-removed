@@ -27,11 +27,11 @@ public:
     kWordBreak_KeepAll  = 2  
   };
 
-  virtual PRInt32 Next( const PRUnichar* aText, PRUint32 aLen, 
-                        PRUint32 aPos) = 0;
+  virtual int32_t Next( const PRUnichar* aText, uint32_t aLen, 
+                        uint32_t aPos) = 0;
 
-  virtual PRInt32 Prev( const PRUnichar* aText, PRUint32 aLen, 
-                        PRUint32 aPos) = 0;
+  virtual int32_t Prev( const PRUnichar* aText, uint32_t aLen, 
+                        uint32_t aPos) = 0;
 
   
   
@@ -39,12 +39,12 @@ public:
   
   
   
-  virtual void GetJISx4051Breaks(const PRUnichar* aText, PRUint32 aLength,
-                                 PRUint8 aWordBreak,
-                                 PRUint8* aBreakBefore) = 0;
-  virtual void GetJISx4051Breaks(const PRUint8* aText, PRUint32 aLength,
-                                 PRUint8 aWordBreak,
-                                 PRUint8* aBreakBefore) = 0;
+  virtual void GetJISx4051Breaks(const PRUnichar* aText, uint32_t aLength,
+                                 uint8_t aWordBreak,
+                                 uint8_t* aBreakBefore) = 0;
+  virtual void GetJISx4051Breaks(const uint8_t* aText, uint32_t aLength,
+                                 uint8_t aWordBreak,
+                                 uint8_t* aBreakBefore) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsILineBreaker, NS_ILINEBREAKER_IID)

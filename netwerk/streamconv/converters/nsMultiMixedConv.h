@@ -36,14 +36,14 @@ class nsPartChannel MOZ_FINAL : public nsIChannel,
                                 public nsIMultiPartChannel
 {
 public:
-  nsPartChannel(nsIChannel *aMultipartChannel, PRUint32 aPartID,
+  nsPartChannel(nsIChannel *aMultipartChannel, uint32_t aPartID,
                 nsIStreamListener* aListener);
 
-  void InitializeByteRange(PRInt64 aStart, PRInt64 aEnd);
+  void InitializeByteRange(int64_t aStart, int64_t aEnd);
   void SetIsLastPart() { mIsLastPart = true; }
   nsresult SendOnStartRequest(nsISupports* aContext);
   nsresult SendOnDataAvailable(nsISupports* aContext, nsIInputStream* aStream,
-                               PRUint32 aOffset, PRUint32 aLen);
+                               uint32_t aOffset, uint32_t aLen);
   nsresult SendOnStopRequest(nsISupports* aContext, nsresult aStatus);
   
 
@@ -69,16 +69,16 @@ protected:
 
   nsCString               mContentType;
   nsCString               mContentCharset;
-  PRUint32                mContentDisposition;
+  uint32_t                mContentDisposition;
   nsString                mContentDispositionFilename;
   nsCString               mContentDispositionHeader;
-  PRUint64                mContentLength;
+  uint64_t                mContentLength;
 
   bool                    mIsByteRangeRequest;
-  PRInt64                 mByteRangeStart;
-  PRInt64                 mByteRangeEnd;
+  int64_t                 mByteRangeStart;
+  int64_t                 mByteRangeEnd;
 
-  PRUint32                mPartID; 
+  uint32_t                mPartID; 
                                    
   bool                    mIsLastPart;
 };
@@ -133,12 +133,12 @@ public:
 protected:
     nsresult SendStart(nsIChannel *aChannel);
     nsresult SendStop(nsresult aStatus);
-    nsresult SendData(char *aBuffer, PRUint32 aLen);
+    nsresult SendData(char *aBuffer, uint32_t aLen);
     nsresult ParseHeaders(nsIChannel *aChannel, char *&aPtr,
-                          PRUint32 &aLen, bool *_retval);
-    PRInt32  PushOverLine(char *&aPtr, PRUint32 &aLen);
-    char *FindToken(char *aCursor, PRUint32 aLen);
-    nsresult BufferData(char *aData, PRUint32 aLen);
+                          uint32_t &aLen, bool *_retval);
+    int32_t  PushOverLine(char *&aPtr, uint32_t &aLen);
+    char *FindToken(char *aCursor, uint32_t aLen);
+    nsresult BufferData(char *aData, uint32_t aLen);
 
     
     bool                mNewPart;        
@@ -146,28 +146,28 @@ protected:
     nsCOMPtr<nsIStreamListener> mFinalListener; 
 
     nsCString           mToken;
-    PRUint32            mTokenLen;
+    uint32_t            mTokenLen;
 
     nsRefPtr<nsPartChannel> mPartChannel;   
                                         
     nsCOMPtr<nsISupports> mContext;
     nsCString           mContentType;
     nsCString           mContentDisposition;
-    PRUint64            mContentLength;
+    uint64_t            mContentLength;
     
     char                *mBuffer;
-    PRUint32            mBufLen;
-    PRUint64            mTotalSent;
+    uint32_t            mBufLen;
+    uint64_t            mTotalSent;
     bool                mFirstOnData;   
 
     
     
     
-    PRInt64             mByteRangeStart;
-    PRInt64             mByteRangeEnd;
+    int64_t             mByteRangeStart;
+    int64_t             mByteRangeEnd;
     bool                mIsByteRangeRequest;
 
-    PRUint32            mCurrentPartID;
+    uint32_t            mCurrentPartID;
 };
 
 #endif 

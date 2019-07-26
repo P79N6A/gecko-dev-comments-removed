@@ -43,7 +43,7 @@ public:
 
 
 
-  static nsresult DeleteDir(nsIFile *dir, bool moveToTrash, PRUint32 delay = 0);
+  static nsresult DeleteDir(nsIFile *dir, bool moveToTrash, uint32_t delay = 0);
 
   
 
@@ -64,7 +64,7 @@ private:
 
   nsresult InitThread();
   void     DestroyThread();
-  nsresult PostTimer(void *arg, PRUint32 delay);
+  nsresult PostTimer(void *arg, uint32_t delay);
   nsresult RemoveDir(nsIFile *file, bool *stopDeleting);
 
   static nsDeleteDir * gInstance;

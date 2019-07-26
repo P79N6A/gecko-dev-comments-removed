@@ -88,10 +88,10 @@ struct nsDiskCacheEntry;
 class nsDiskCacheRecord {
 
 private:
-    PRUint32    mHashNumber;
-    PRUint32    mEvictionRank;
-    PRUint32    mDataLocation;
-    PRUint32    mMetaLocation;
+    uint32_t    mHashNumber;
+    uint32_t    mEvictionRank;
+    uint32_t    mDataLocation;
+    uint32_t    mMetaLocation;
  
     enum {
         eLocationInitializedMask = 0x80000000,
@@ -127,23 +127,23 @@ public:
     }
     
     
-    PRUint32  HashNumber() const                  { return mHashNumber; }
-    void      SetHashNumber( PRUint32 hashNumber) { mHashNumber = hashNumber; }
+    uint32_t  HashNumber() const                  { return mHashNumber; }
+    void      SetHashNumber( uint32_t hashNumber) { mHashNumber = hashNumber; }
 
     
-    PRUint32  EvictionRank() const              { return mEvictionRank; }
-    void      SetEvictionRank( PRUint32 rank)   { mEvictionRank = rank ? rank : 1; }
+    uint32_t  EvictionRank() const              { return mEvictionRank; }
+    void      SetEvictionRank( uint32_t rank)   { mEvictionRank = rank ? rank : 1; }
 
     
     bool      DataLocationInitialized() const { return 0 != (mDataLocation & eLocationInitializedMask); }
     void      ClearDataLocation()       { mDataLocation = 0; }
     
-    PRUint32  DataFile() const
+    uint32_t  DataFile() const
     {
-        return (PRUint32)(mDataLocation & eLocationSelectorMask) >> eLocationSelectorOffset;
+        return (uint32_t)(mDataLocation & eLocationSelectorMask) >> eLocationSelectorOffset;
     }
 
-    void      SetDataBlocks( PRUint32 index, PRUint32 startBlock, PRUint32 blockCount)
+    void      SetDataBlocks( uint32_t index, uint32_t startBlock, uint32_t blockCount)
     {
         
         mDataLocation = 0;
@@ -165,35 +165,35 @@ public:
         mDataLocation |= eLocationInitializedMask;
     }
 
-    PRUint32   DataBlockCount() const
+    uint32_t   DataBlockCount() const
     {
-        return (PRUint32)((mDataLocation & eExtraBlocksMask) >> eExtraBlocksOffset) + 1;
+        return (uint32_t)((mDataLocation & eExtraBlocksMask) >> eExtraBlocksOffset) + 1;
     }
 
-    PRUint32   DataStartBlock() const
+    uint32_t   DataStartBlock() const
     {
         return (mDataLocation & eBlockNumberMask);
     }
     
-    PRUint32   DataBlockSize() const
+    uint32_t   DataBlockSize() const
     {
         return BLOCK_SIZE_FOR_INDEX(DataFile());
     }
     
-    PRUint32   DataFileSize() const  { return (mDataLocation & eFileSizeMask) >> eFileSizeOffset; }
-    void       SetDataFileSize(PRUint32  size)
+    uint32_t   DataFileSize() const  { return (mDataLocation & eFileSizeMask) >> eFileSizeOffset; }
+    void       SetDataFileSize(uint32_t  size)
     {
         NS_ASSERTION((mDataLocation & eFileReservedMask) == 0, "bad location");
         mDataLocation &= ~eFileSizeMask;    
         mDataLocation |= (size << eFileSizeOffset) & eFileSizeMask;
     }
 
-    PRUint8   DataFileGeneration() const
+    uint8_t   DataFileGeneration() const
     {
         return (mDataLocation & eFileGenerationMask);
     }
 
-    void       SetDataFileGeneration( PRUint8 generation)
+    void       SetDataFileGeneration( uint8_t generation)
     {
         
         mDataLocation = 0;
@@ -204,14 +204,14 @@ public:
     
     bool      MetaLocationInitialized() const { return 0 != (mMetaLocation & eLocationInitializedMask); }
     void      ClearMetaLocation()             { mMetaLocation = 0; }   
-    PRUint32  MetaLocation() const            { return mMetaLocation; }
+    uint32_t  MetaLocation() const            { return mMetaLocation; }
     
-    PRUint32  MetaFile() const
+    uint32_t  MetaFile() const
     {
-        return (PRUint32)(mMetaLocation & eLocationSelectorMask) >> eLocationSelectorOffset;
+        return (uint32_t)(mMetaLocation & eLocationSelectorMask) >> eLocationSelectorOffset;
     }
 
-    void      SetMetaBlocks( PRUint32 index, PRUint32 startBlock, PRUint32 blockCount)
+    void      SetMetaBlocks( uint32_t index, uint32_t startBlock, uint32_t blockCount)
     {
         
         mMetaLocation = 0;
@@ -233,34 +233,34 @@ public:
         mMetaLocation |= eLocationInitializedMask;
     }
 
-    PRUint32   MetaBlockCount() const
+    uint32_t   MetaBlockCount() const
     {
-        return (PRUint32)((mMetaLocation & eExtraBlocksMask) >> eExtraBlocksOffset) + 1;
+        return (uint32_t)((mMetaLocation & eExtraBlocksMask) >> eExtraBlocksOffset) + 1;
     }
 
-    PRUint32   MetaStartBlock() const
+    uint32_t   MetaStartBlock() const
     {
         return (mMetaLocation & eBlockNumberMask);
     }
 
-    PRUint32   MetaBlockSize() const
+    uint32_t   MetaBlockSize() const
     {
         return BLOCK_SIZE_FOR_INDEX(MetaFile());
     }
     
-    PRUint32   MetaFileSize() const  { return (mMetaLocation & eFileSizeMask) >> eFileSizeOffset; }
-    void       SetMetaFileSize(PRUint32  size)
+    uint32_t   MetaFileSize() const  { return (mMetaLocation & eFileSizeMask) >> eFileSizeOffset; }
+    void       SetMetaFileSize(uint32_t  size)
     {
         mMetaLocation &= ~eFileSizeMask;    
         mMetaLocation |= (size << eFileSizeOffset) & eFileSizeMask;
     }
 
-    PRUint8   MetaFileGeneration() const
+    uint8_t   MetaFileGeneration() const
     {
         return (mMetaLocation & eFileGenerationMask);
     }
 
-    void       SetMetaFileGeneration( PRUint8 generation)
+    void       SetMetaFileGeneration( uint8_t generation)
     {
         
         mMetaLocation = 0;
@@ -268,7 +268,7 @@ public:
         mMetaLocation |= eLocationInitializedMask;
     }
 
-    PRUint8   Generation() const
+    uint8_t   Generation() const
     {
         if ((mDataLocation & eLocationInitializedMask)  &&
             (DataFile() == 0))
@@ -316,7 +316,7 @@ enum {  kDeleteRecordAndContinue = -1,
 class nsDiskCacheRecordVisitor {
     public:
 
-    virtual PRInt32  VisitRecord( nsDiskCacheRecord *  mapRecord) = 0;
+    virtual int32_t  VisitRecord( nsDiskCacheRecord *  mapRecord) = 0;
 };
 
 
@@ -325,13 +325,13 @@ class nsDiskCacheRecordVisitor {
 
 
 struct nsDiskCacheHeader {
-    PRUint32    mVersion;                           
-    PRUint32    mDataSize;                          
-    PRInt32     mEntryCount;                        
-    PRUint32    mIsDirty;                           
-    PRInt32     mRecordCount;                       
-    PRUint32    mEvictionRank[kBuckets];            
-    PRUint32    mBucketUsage[kBuckets];             
+    uint32_t    mVersion;                           
+    uint32_t    mDataSize;                          
+    int32_t     mEntryCount;                        
+    uint32_t    mIsDirty;                           
+    int32_t     mRecordCount;                       
+    uint32_t    mEvictionRank[kBuckets];            
+    uint32_t    mBucketUsage[kBuckets];             
   
     nsDiskCacheHeader()
         : mVersion(nsDiskCache::kCurrentVersion)
@@ -350,7 +350,7 @@ struct nsDiskCacheHeader {
         mIsDirty     = htonl(mIsDirty);
         mRecordCount = htonl(mRecordCount);
 
-        for (PRUint32 i = 0; i < kBuckets ; i++) {
+        for (uint32_t i = 0; i < kBuckets ; i++) {
             mEvictionRank[i] = htonl(mEvictionRank[i]);
             mBucketUsage[i]  = htonl(mBucketUsage[i]);
         }
@@ -366,7 +366,7 @@ struct nsDiskCacheHeader {
         mIsDirty     = ntohl(mIsDirty);
         mRecordCount = ntohl(mRecordCount);
 
-        for (PRUint32 i = 0; i < kBuckets ; i++) {
+        for (uint32_t i = 0; i < kBuckets ; i++) {
             mEvictionRank[i] = ntohl(mEvictionRank[i]);
             mBucketUsage[i]  = ntohl(mBucketUsage[i]);
         }
@@ -415,14 +415,14 @@ public:
     nsresult  FlushHeader();
     nsresult  FlushRecords( bool unswap);
 
-    void      NotifyCapacityChange(PRUint32 capacity);
+    void      NotifyCapacityChange(uint32_t capacity);
 
 
 
 
     nsresult AddRecord( nsDiskCacheRecord *  mapRecord, nsDiskCacheRecord * oldRecord);
     nsresult UpdateRecord( nsDiskCacheRecord *  mapRecord);
-    nsresult FindRecord( PRUint32  hashNumber, nsDiskCacheRecord *  mapRecord);
+    nsresult FindRecord( uint32_t  hashNumber, nsDiskCacheRecord *  mapRecord);
     nsresult DeleteRecord( nsDiskCacheRecord *  mapRecord);
     nsresult VisitRecords( nsDiskCacheRecordVisitor * visitor);
     nsresult EvictRecords( nsDiskCacheRecordVisitor * visitor);
@@ -448,41 +448,41 @@ public:
 
     nsresult    WriteDiskCacheEntry( nsDiskCacheBinding *  binding);
     
-    nsresult    ReadDataCacheBlocks(nsDiskCacheBinding * binding, char * buffer, PRUint32 size);
-    nsresult    WriteDataCacheBlocks(nsDiskCacheBinding * binding, char * buffer, PRUint32 size);
+    nsresult    ReadDataCacheBlocks(nsDiskCacheBinding * binding, char * buffer, uint32_t size);
+    nsresult    WriteDataCacheBlocks(nsDiskCacheBinding * binding, char * buffer, uint32_t size);
     nsresult    DeleteStorage( nsDiskCacheRecord * record, bool metaData);
     
     
 
 
-    void     IncrementTotalSize( PRUint32  delta)
+    void     IncrementTotalSize( uint32_t  delta)
              {
                 mHeader.mDataSize += delta;
                 mHeader.mIsDirty   = true;
              }
              
-    void     DecrementTotalSize( PRUint32  delta)
+    void     DecrementTotalSize( uint32_t  delta)
              {
                 NS_ASSERTION(mHeader.mDataSize >= delta, "disk cache size negative?");
                 mHeader.mDataSize  = mHeader.mDataSize > delta ? mHeader.mDataSize - delta : 0;               
                 mHeader.mIsDirty   = true;
              }
     
-    inline void IncrementTotalSize( PRUint32  blocks, PRUint32 blockSize)
+    inline void IncrementTotalSize( uint32_t  blocks, uint32_t blockSize)
              {
                 
                 IncrementTotalSize(((blocks*blockSize) + 0x03FF) >> 10);
              }
 
-    inline void DecrementTotalSize( PRUint32  blocks, PRUint32 blockSize)
+    inline void DecrementTotalSize( uint32_t  blocks, uint32_t blockSize)
              {
                 
                 DecrementTotalSize(((blocks*blockSize) + 0x03FF) >> 10);
              }
                  
-    PRUint32 TotalSize()   { return mHeader.mDataSize; }
+    uint32_t TotalSize()   { return mHeader.mDataSize; }
     
-    PRInt32  EntryCount()  { return mHeader.mEntryCount; }
+    int32_t  EntryCount()  { return mHeader.mEntryCount; }
 
 
 private:
@@ -496,46 +496,46 @@ private:
 
     nsresult    CreateCacheSubDirectories();
 
-    PRUint32    CalculateFileIndex(PRUint32 size);
+    uint32_t    CalculateFileIndex(uint32_t size);
 
-    nsresult    GetBlockFileForIndex( PRUint32 index, nsIFile ** result);
-    PRUint32    GetBlockSizeForIndex( PRUint32 index) const {
+    nsresult    GetBlockFileForIndex( uint32_t index, nsIFile ** result);
+    uint32_t    GetBlockSizeForIndex( uint32_t index) const {
         return BLOCK_SIZE_FOR_INDEX(index);
     }
-    PRUint32    GetBitMapSizeForIndex( PRUint32 index) const {
+    uint32_t    GetBitMapSizeForIndex( uint32_t index) const {
         return BITMAP_SIZE_FOR_INDEX(index);
     }
     
     
-    PRUint32 GetBucketIndex( PRUint32 hashNumber) const {
+    uint32_t GetBucketIndex( uint32_t hashNumber) const {
         return (hashNumber & (kBuckets - 1));
     }
     
     
-    PRUint32 GetRecordsPerBucket() const {
+    uint32_t GetRecordsPerBucket() const {
         return mHeader.mRecordCount / kBuckets;
     }
 
     
-    nsDiskCacheRecord *GetFirstRecordInBucket(PRUint32 bucket) const {
+    nsDiskCacheRecord *GetFirstRecordInBucket(uint32_t bucket) const {
         return mRecordArray + bucket * GetRecordsPerBucket();
     }
 
-    PRUint32 GetBucketRank(PRUint32 bucketIndex, PRUint32 targetRank);
+    uint32_t GetBucketRank(uint32_t bucketIndex, uint32_t targetRank);
 
-    PRInt32  VisitEachRecord(PRUint32                    bucketIndex,
+    int32_t  VisitEachRecord(uint32_t                    bucketIndex,
                              nsDiskCacheRecordVisitor *  visitor,
-                             PRUint32                    evictionRank);
+                             uint32_t                    evictionRank);
 
     nsresult GrowRecords();
     nsresult ShrinkRecords();
 
-    nsresult EnsureBuffer(PRUint32 bufSize);
+    nsresult EnsureBuffer(uint32_t bufSize);
 
     
     
     nsDiskCacheEntry *  CreateDiskCacheEntry(nsDiskCacheBinding *  binding,
-                                             PRUint32 * size);
+                                             uint32_t * size);
 
     
     nsresult InitCacheClean(nsIFile *  cacheDirectory,
@@ -543,7 +543,7 @@ private:
     
     nsresult WriteCacheClean(bool clean);
     
-    nsresult ResetCacheTimer(PRInt32 timeout = kRevalidateCacheTimeout);
+    nsresult ResetCacheTimer(int32_t timeout = kRevalidateCacheTimeout);
     
     nsresult InvalidateCache();
     
@@ -564,10 +564,10 @@ private:
     PRFileDesc *            mCleanFD;
     nsDiskCacheRecord *     mRecordArray;
     nsDiskCacheBlockFile    mBlockFile[kNumBlockFiles];
-    PRUint32                mBufferSize;
+    uint32_t                mBufferSize;
     char *                  mBuffer;
     nsDiskCacheHeader       mHeader;
-    PRInt32                 mMaxRecordCount;
+    int32_t                 mMaxRecordCount;
     bool                    mIsDirtyCacheFlushed;
     PRIntervalTime          mLastInvalidateTime;
 };

@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef nsDOMEventTargetHelper_h_
 #define nsDOMEventTargetHelper_h_
@@ -47,7 +47,7 @@ public:
 
   NS_DECL_NSIDOMEVENTTARGET
   void AddEventListener(const nsAString& aType,
-                        nsIDOMEventListener* aCallback, // XXX nullable
+                        nsIDOMEventListener* aCallback, 
                         bool aCapture, Nullable<bool>& aWantsUntrusted,
                         mozilla::ErrorResult& aRv)
   {
@@ -87,9 +87,9 @@ public:
       nsCOMPtr<nsIDOMEventTarget> target_qi =
         do_QueryInterface(aSupports);
 
-      // If this assertion fires the QI implementation for the object in
-      // question doesn't use the nsIDOMEventTarget pointer as the
-      // nsISupports pointer. That must be fixed, or we'll crash...
+      
+      
+      
       NS_ASSERTION(target_qi == target, "Uh, fix QI!");
     }
 #endif
@@ -131,8 +131,8 @@ public:
 protected:
   nsRefPtr<nsEventListenerManager> mListenerManager;
 private:
-  // These may be null (native callers or xpcshell).
-  nsPIDOMWindow*             mOwner; // Inner window.
+  
+  nsPIDOMWindow*             mOwner; 
   bool                       mHasOrHasHadOwner;
 };
 
@@ -194,16 +194,16 @@ private:
     xpc_TryUnmarkWrappedGrayObject(tmp->mOn##_event##Listener->GetInner());   \
   }
 
-/* Use this macro to declare functions that forward the behavior of this
- * interface to another object.
- * This macro doesn't forward PreHandleEvent because sometimes subclasses
- * want to override it.
- */
+
+
+
+
+
 #define NS_FORWARD_NSIDOMEVENTTARGET_NOPREHANDLEEVENT(_to) \
-  NS_IMETHOD AddEventListener(const nsAString & type, nsIDOMEventListener *listener, bool useCapture, bool wantsUntrusted, PRUint8 _argc) { \
+  NS_IMETHOD AddEventListener(const nsAString & type, nsIDOMEventListener *listener, bool useCapture, bool wantsUntrusted, uint8_t _argc) { \
     return _to AddEventListener(type, listener, useCapture, wantsUntrusted, _argc); \
   } \
-  NS_IMETHOD AddSystemEventListener(const nsAString & type, nsIDOMEventListener *listener, bool aUseCapture, bool aWantsUntrusted, PRUint8 _argc) { \
+  NS_IMETHOD AddSystemEventListener(const nsAString & type, nsIDOMEventListener *listener, bool aUseCapture, bool aWantsUntrusted, uint8_t _argc) { \
     return _to AddSystemEventListener(type, listener, aUseCapture, aWantsUntrusted, _argc); \
   } \
   NS_IMETHOD RemoveEventListener(const nsAString & type, nsIDOMEventListener *listener, bool useCapture) { \
@@ -240,4 +240,4 @@ private:
     return _to GetJSContextForEventHandlers(); \
   } 
 
-#endif // nsDOMEventTargetHelper_h_
+#endif 

@@ -98,8 +98,8 @@ public:
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   
-  nsresult Init(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
-                nsIDOMNode* aEndNode, PRInt32 aEndOffset);
+  nsresult Init(nsIDOMNode* aStartNode, int32_t aStartOffset,
+                nsIDOMNode* aEndNode, int32_t aEndOffset);
   virtual void First();
   virtual void Last();
   virtual void Next();
@@ -114,9 +114,9 @@ private:
   
   
   nsCOMPtr<nsIDOMNode> mStartNode;
-  PRInt32 mStartOffset;
+  int32_t mStartOffset;
   nsCOMPtr<nsIDOMNode> mEndNode;
-  PRInt32 mEndOffset;
+  int32_t mEndOffset;
   
   nsCOMPtr<nsIContent> mStartOuterContent;
   nsCOMPtr<nsIContent> mEndOuterContent;
@@ -130,8 +130,8 @@ private:
 NS_IMPL_ISUPPORTS1(nsFindContentIterator, nsIContentIterator)
 
 nsresult
-nsFindContentIterator::Init(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
-                            nsIDOMNode* aEndNode, PRInt32 aEndOffset)
+nsFindContentIterator::Init(nsIDOMNode* aStartNode, int32_t aStartOffset,
+                            nsIDOMNode* aEndNode, int32_t aEndOffset)
 {
   if (!mOuterIterator) {
     if (mFindBackward) {
@@ -345,7 +345,7 @@ nsFindContentIterator::SetupInnerIterator(nsIContent* aContent)
     return;
 
   
-  PRUint32 editorFlags = 0;
+  uint32_t editorFlags = 0;
   editor->GetFlags(&editorFlags);
   if (editorFlags & nsIPlaintextEditor::eEditorDisabledMask)
     return;
@@ -460,8 +460,8 @@ static void DumpNode(nsIDOMNode* aNode)
 #endif
 
 nsresult
-nsFind::InitIterator(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
-                     nsIDOMNode* aEndNode, PRInt32 aEndOffset)
+nsFind::InitIterator(nsIDOMNode* aStartNode, int32_t aStartOffset,
+                     nsIDOMNode* aEndNode, int32_t aEndOffset)
 {
   if (!mIterator)
   {
@@ -572,7 +572,7 @@ nsFind::NextNode(nsIDOMRange* aSearchRange,
     
     nsCOMPtr<nsIDOMNode> startNode;
     nsCOMPtr<nsIDOMNode> endNode;
-    PRInt32 startOffset, endOffset;
+    int32_t startOffset, endOffset;
     if (aContinueOk)
     {
 #ifdef DEBUG_FIND
@@ -720,7 +720,7 @@ bool nsFind::IsBlockNode(nsIContent* aContent)
 
 bool nsFind::IsTextNode(nsIDOMNode* aNode)
 {
-  PRUint16 nodeType;
+  uint16_t nodeType;
   aNode->GetNodeType(&nodeType);
 
   return nodeType == nsIDOMNode::TEXT_NODE ||
@@ -864,20 +864,20 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
   patAutoStr.StripChars(kShy);
 
   const PRUnichar* patStr = patAutoStr.get();
-  PRInt32 patLen = patAutoStr.Length() - 1;
+  int32_t patLen = patAutoStr.Length() - 1;
 
   
-  PRInt32 pindex = (mFindBackward ? patLen : 0);
+  int32_t pindex = (mFindBackward ? patLen : 0);
 
   
-  PRInt32 findex = 0;
+  int32_t findex = 0;
 
   
   int incr = (mFindBackward ? -1 : 1);
 
   nsCOMPtr<nsIContent> tc;
   const nsTextFragment *frag = nullptr;
-  PRInt32 fragLen = 0;
+  int32_t fragLen = 0;
 
   
   const PRUnichar *t2b = nullptr;
@@ -889,11 +889,11 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
 
   
   nsCOMPtr<nsIDOMNode> matchAnchorNode;
-  PRInt32 matchAnchorOffset = 0;
+  int32_t matchAnchorOffset = 0;
 
   
   nsCOMPtr<nsIDOMNode> endNode;
-  PRInt32 endOffset;
+  int32_t endOffset;
   aEndPoint->GetEndContainer(getter_AddRefs(endNode));
   aEndPoint->GetEndOffset(&endOffset);
 
@@ -1083,7 +1083,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
     
     if (pindex != (mFindBackward ? patLen : 0) && c != patc && !inWhitespace) {
       if (c == '\n' && t2b && IS_CJ_CHAR(prevChar)) {
-        PRInt32 nindex = findex + incr;
+        int32_t nindex = findex + incr;
         if (mFindBackward ? (nindex >= 0) : (nindex < fragLen)) {
           if (IS_CJ_CHAR(t2b[nindex]))
             continue;
@@ -1122,9 +1122,9 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
         nsCOMPtr<nsIDOMRange> range = CreateRange();
         if (range)
         {
-          PRInt32 matchStartOffset, matchEndOffset;
+          int32_t matchStartOffset, matchEndOffset;
           
-          PRInt32 mao = matchAnchorOffset + (mFindBackward ? 1 : 0);
+          int32_t mao = matchAnchorOffset + (mFindBackward ? 1 : 0);
           if (mFindBackward)
           {
             startParent = do_QueryInterface(tc);

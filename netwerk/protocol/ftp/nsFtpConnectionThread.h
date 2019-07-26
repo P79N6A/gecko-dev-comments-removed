@@ -98,12 +98,12 @@ public:
 
     
     NS_IMETHOD CloseWithStatus(nsresult status);
-    NS_IMETHOD Available(PRUint64 *result);
+    NS_IMETHOD Available(uint64_t *result);
     NS_IMETHOD ReadSegments(nsWriteSegmentFun fun, void *closure,
-                            PRUint32 count, PRUint32 *result);
+                            uint32_t count, uint32_t *result);
 
     
-    virtual void OnControlDataAvailable(const char *data, PRUint32 dataLen);
+    virtual void OnControlDataAvailable(const char *data, uint32_t dataLen);
     virtual void OnControlError(nsresult status);
 
     nsFtpState();
@@ -208,7 +208,7 @@ private:
     FTP_STATE           mState;             
     FTP_STATE           mNextState;         
     bool                mKeepRunning;       
-    PRInt32             mResponseCode;      
+    int32_t             mResponseCode;      
     nsCString           mResponseMsg;       
 
         
@@ -216,7 +216,7 @@ private:
     bool                            mReceivedControlData;  
     bool                            mTryingCachedControl;     
     bool                            mRETRFailed;              
-    PRUint64                        mFileSize;
+    uint64_t                        mFileSize;
     nsCString                       mModTime;
 
         
@@ -224,7 +224,7 @@ private:
     nsCOMPtr<nsIProxyInfo>          mProxyInfo;
 
         
-    PRInt32             mServerType;    
+    int32_t             mServerType;    
 
         
     nsString            mUsername;      
@@ -239,7 +239,7 @@ private:
     bool                mCacheConnection;
 
         
-    PRInt32                mPort;       
+    int32_t                mPort;       
     nsString               mFilename;   
     nsCString              mPath;       
     nsCString              mPwd;        
@@ -251,7 +251,7 @@ private:
     bool                    mAddressChecked;
     bool                    mServerIsIPv6;
     
-    static PRUint32         mSessionStartTime;
+    static uint32_t         mSessionStartTime;
 
     PRNetAddr               mServerAddress;
 

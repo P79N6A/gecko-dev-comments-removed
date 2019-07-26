@@ -124,19 +124,19 @@ public:
 #endif
 
   
-  PRInt32 GetRowCount();
+  int32_t GetRowCount();
 
   
 
 
-  PRInt32 GetStartRowIndex();
+  int32_t GetStartRowIndex();
 
   
 
 
 
-  void AdjustRowIndices(PRInt32   aRowIndex,
-                        PRInt32   anAdjustment);
+  void AdjustRowIndices(int32_t   aRowIndex,
+                        int32_t   anAdjustment);
 
   
 
@@ -169,7 +169,7 @@ public:
 
 
 
-  void SetContinuousBCBorderWidth(PRUint8     aForSide,
+  void SetContinuousBCBorderWidth(uint8_t     aForSide,
                                   BCPixelSize aPixelValue);
   
 
@@ -197,7 +197,7 @@ public:
   
 
 
-  virtual PRInt32 GetNumLines();
+  virtual int32_t GetNumLines();
 
   
 
@@ -216,11 +216,11 @@ public:
 
 
 
-  NS_IMETHOD GetLine(PRInt32 aLineNumber,
+  NS_IMETHOD GetLine(int32_t aLineNumber,
                      nsIFrame** aFirstFrameOnLine,
-                     PRInt32* aNumFramesOnLine,
+                     int32_t* aNumFramesOnLine,
                      nsRect& aLineBounds,
-                     PRUint32* aLineFlags);
+                     uint32_t* aLineFlags);
   
   
 
@@ -229,7 +229,7 @@ public:
 
 
 
-  virtual PRInt32 FindLineContaining(nsIFrame* aFrame, PRInt32 aStartLine = 0);
+  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0);
 
   
 
@@ -242,7 +242,7 @@ public:
 
 
 
-  NS_IMETHOD FindFrameAt(PRInt32 aLineNumber,
+  NS_IMETHOD FindFrameAt(int32_t aLineNumber,
                          nscoord aX,
                          nsIFrame** aFrameFound,
                          bool* aXIsBeforeFirstFrame,
@@ -257,7 +257,7 @@ public:
 
 
 
-  NS_IMETHOD CheckLineOrder(PRInt32                  aLine,
+  NS_IMETHOD CheckLineOrder(int32_t                  aLine,
                             bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
                             nsIFrame                 **aLastVisual);
@@ -268,7 +268,7 @@ public:
 
 
   
-  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, PRInt32 aLineNumber);
+  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber);
 
   
   
@@ -282,7 +282,7 @@ public:
   
   struct FrameCursorData {
     nsTArray<nsIFrame*> mFrames;
-    PRUint32            mCursorIndex;
+    uint32_t            mCursorIndex;
     nscoord             mOverflowAbove;
     nscoord             mOverflowBelow;
     
@@ -440,7 +440,7 @@ inline void nsTableRowGroupFrame::SetHasStyleHeight(bool aValue)
 inline void
 nsTableRowGroupFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
 {
-  PRInt32 aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
+  int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
   aBorder.right = BC_BORDER_LEFT_HALF_COORD(aPixelsToTwips,
                                             mRightContBorderWidth);
   aBorder.bottom = BC_BORDER_TOP_HALF_COORD(aPixelsToTwips,

@@ -59,20 +59,20 @@ protected:
   
   
   
-  nsDOMDataTransfer(PRUint32 aEventType);
+  nsDOMDataTransfer(uint32_t aEventType);
 
   
   
-  nsDOMDataTransfer(PRUint32 aEventType,
-                    const PRUint32 aEffectAllowed,
+  nsDOMDataTransfer(uint32_t aEventType,
+                    const uint32_t aEffectAllowed,
                     bool aCursorState,
                     bool aIsExternal,
                     bool aUserCancelled,
                     bool aIsCrossDomainSubFrameDrop,
                     nsTArray<nsTArray<TransferItem> >& aItems,
                     nsIDOMElement* aDragImage,
-                    PRUint32 aDragImageX,
-                    PRUint32 aDragImageY);
+                    uint32_t aDragImageX,
+                    uint32_t aDragImageY);
 
   ~nsDOMDataTransfer()
   {
@@ -104,7 +104,7 @@ public:
   
   bool ConvertFromVariant(nsIVariant* aVariant,
                             nsISupports** aSupports,
-                            PRUint32* aLength);
+                            uint32_t* aLength);
 
   
   void ClearAll();
@@ -113,13 +113,13 @@ public:
   
   nsresult SetDataWithPrincipal(const nsAString& aFormat,
                                 nsIVariant* aData,
-                                PRUint32 aIndex,
+                                uint32_t aIndex,
                                 nsIPrincipal* aPrincipal);
 
 protected:
 
   
-  nsIDOMElement* GetDragImage(PRInt32* aX, PRInt32* aY)
+  nsIDOMElement* GetDragImage(int32_t* aX, int32_t* aY)
   {
     *aX = mDragImageX;
     *aY = mDragImageY;
@@ -139,15 +139,15 @@ protected:
 
   
   
-  void FillInExternalDragData(TransferItem& aItem, PRUint32 aIndex);
+  void FillInExternalDragData(TransferItem& aItem, uint32_t aIndex);
 
   
   
-  PRUint32 mEventType;
+  uint32_t mEventType;
 
   
-  PRUint32 mDropEffect;
-  PRUint32 mEffectAllowed;
+  uint32_t mDropEffect;
+  uint32_t mEffectAllowed;
 
   
   bool mCursorState;
@@ -179,8 +179,8 @@ protected:
   
   
   nsCOMPtr<nsIDOMElement> mDragImage;
-  PRUint32 mDragImageX;
-  PRUint32 mDragImageY;
+  uint32_t mDragImageX;
+  uint32_t mDragImageY;
 };
 
 #endif 

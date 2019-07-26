@@ -1,14 +1,14 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * A base class which implements nsIStyleSheetLinkingElement and can
- * be subclassed by various content nodes that want to load
- * stylesheets (<style>, <link>, processing instructions, etc).
- */
+
+
+
+
+
+
+
+
+
+
 
 #include "nsStyleLinkElement.h"
 
@@ -87,8 +87,8 @@ nsStyleLinkElement::GetSheet(nsIDOMStyleSheet** aSheet)
     CallQueryInterface(mStyleSheet, aSheet);
   }
 
-  // Always return NS_OK to avoid throwing JS exceptions if mStyleSheet 
-  // is not a nsIDOMStyleSheet
+  
+  
   return NS_OK;
 }
 
@@ -103,24 +103,24 @@ nsStyleLinkElement::SetEnableUpdates(bool aEnableUpdates)
 NS_IMETHODIMP
 nsStyleLinkElement::GetCharset(nsAString& aCharset)
 {
-  // descendants have to implement this themselves
+  
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-/* virtual */ void
+ void
 nsStyleLinkElement::OverrideBaseURI(nsIURI* aNewBaseURI)
 {
   NS_NOTREACHED("Base URI can't be overriden in this implementation "
                 "of nsIStyleSheetLinkingElement.");
 }
 
-/* virtual */ void
-nsStyleLinkElement::SetLineNumber(PRUint32 aLineNumber)
+ void
+nsStyleLinkElement::SetLineNumber(uint32_t aLineNumber)
 {
   mLineNumber = aLineNumber;
 }
 
-PRUint32 ToLinkMask(const nsAString& aLink)
+uint32_t ToLinkMask(const nsAString& aLink)
 { 
   if (aLink.EqualsLiteral("prefetch"))
      return PREFETCH;
@@ -136,9 +136,9 @@ PRUint32 ToLinkMask(const nsAString& aLink)
     return 0;
 }
 
-PRUint32 nsStyleLinkElement::ParseLinkTypes(const nsAString& aTypes)
+uint32_t nsStyleLinkElement::ParseLinkTypes(const nsAString& aTypes)
 {
-  PRUint32 linkMask = 0;
+  uint32_t linkMask = 0;
   nsAString::const_iterator start, done;
   aTypes.BeginReading(start);
   aTypes.EndReading(done);
@@ -200,10 +200,10 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
   *aWillNotify = false;
 
   if (mStyleSheet && aOldDocument) {
-    // We're removing the link element from the document, unload the
-    // stylesheet.  We want to do this even if updates are disabled, since
-    // otherwise a sheet with a stale linking element pointer will be hanging
-    // around -- not good!
+    
+    
+    
+    
     aOldDocument->BeginUpdate(UPDATE_STYLE);
     aOldDocument->RemoveStyleSheet(mStyleSheet);
     aOldDocument->EndUpdate(UPDATE_STYLE);
@@ -234,7 +234,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
       bool equal;
       nsresult rv = oldURI->Equals(uri, &equal);
       if (NS_SUCCEEDED(rv) && equal) {
-        return NS_OK; // We already loaded this stylesheet
+        return NS_OK; 
       }
     }
   }
@@ -247,7 +247,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
   }
 
   if (!uri && !isInline) {
-    return NS_OK; // If href is empty and this is not inline style then just bail
+    return NS_OK; 
   }
 
   nsAutoString title, type, media;
@@ -265,13 +265,13 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
     nsAutoString text;
     nsContentUtils::GetNodeTextContent(thisContent, false, text);
 
-    // Parse the style sheet.
+    
     rv = doc->CSSLoader()->
       LoadInlineStyle(thisContent, text, mLineNumber, title, media,
                       aObserver, &doneLoading, &isAlternate);
   }
   else {
-    // XXXbz clone the URI here to work around content policies modifying URIs.
+    
     nsCOMPtr<nsIURI> clonedURI;
     uri->Clone(getter_AddRefs(clonedURI));
     NS_ENSURE_TRUE(clonedURI, NS_ERROR_OUT_OF_MEMORY);
@@ -279,9 +279,9 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
       LoadStyleLink(thisContent, clonedURI, title, media, isAlternate, aObserver,
                     &isAlternate);
     if (NS_FAILED(rv)) {
-      // Don't propagate LoadStyleLink() errors further than this, since some
-      // consumers (e.g. nsXMLContentSink) will completely abort on innocuous
-      // things like a stylesheet load being blocked by the security system.
+      
+      
+      
       doneLoading = true;
       isAlternate = false;
       rv = NS_OK;

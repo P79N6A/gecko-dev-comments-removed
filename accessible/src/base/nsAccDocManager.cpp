@@ -124,7 +124,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS3(nsAccDocManager,
 
 NS_IMETHODIMP
 nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
-                               nsIRequest *aRequest, PRUint32 aStateFlags,
+                               nsIRequest *aRequest, uint32_t aStateFlags,
                                nsresult aStatus)
 {
   NS_ASSERTION(aStateFlags & STATE_IS_DOCUMENT, "Other notifications excluded");
@@ -151,7 +151,7 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
 #endif
 
     
-    PRUint32 eventType = nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_STOPPED;
+    uint32_t eventType = nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_STOPPED;
 
     
     
@@ -163,7 +163,7 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
     
     
     if (aRequest) {
-      PRUint32 loadFlags = 0;
+      uint32_t loadFlags = 0;
       aRequest->GetLoadFlags(&loadFlags);
       if (loadFlags & nsIChannel::LOAD_RETARGETED_DOCUMENT_URI)
         eventType = 0;
@@ -188,7 +188,7 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
   NS_ENSURE_STATE(docShell);
 
   bool isReloading = false;
-  PRUint32 loadType;
+  uint32_t loadType;
   docShell->GetLoadType(&loadType);
   if (loadType == LOAD_RELOAD_NORMAL ||
       loadType == LOAD_RELOAD_BYPASS_CACHE ||
@@ -204,10 +204,10 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
 NS_IMETHODIMP
 nsAccDocManager::OnProgressChange(nsIWebProgress *aWebProgress,
                                   nsIRequest *aRequest,
-                                  PRInt32 aCurSelfProgress,
-                                  PRInt32 aMaxSelfProgress,
-                                  PRInt32 aCurTotalProgress,
-                                  PRInt32 aMaxTotalProgress)
+                                  int32_t aCurSelfProgress,
+                                  int32_t aMaxSelfProgress,
+                                  int32_t aCurTotalProgress,
+                                  int32_t aMaxTotalProgress)
 {
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
@@ -216,7 +216,7 @@ nsAccDocManager::OnProgressChange(nsIWebProgress *aWebProgress,
 NS_IMETHODIMP
 nsAccDocManager::OnLocationChange(nsIWebProgress *aWebProgress,
                                   nsIRequest *aRequest, nsIURI *aLocation,
-                                  PRUint32 aFlags)
+                                  uint32_t aFlags)
 {
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
@@ -234,7 +234,7 @@ nsAccDocManager::OnStatusChange(nsIWebProgress *aWebProgress,
 NS_IMETHODIMP
 nsAccDocManager::OnSecurityChange(nsIWebProgress *aWebProgress,
                                   nsIRequest *aRequest,
-                                  PRUint32 aState)
+                                  uint32_t aState)
 {
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
@@ -306,7 +306,7 @@ nsAccDocManager::HandleEvent(nsIDOMEvent *aEvent)
 
 void
 nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
-                                       PRUint32 aLoadEventType)
+                                       uint32_t aLoadEventType)
 {
   
   

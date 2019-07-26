@@ -107,8 +107,8 @@ private:
     static void ParseValue(const nsAString& aSpec,
                            const nsIAtom* aTransformType,
                            nsSMILValue& aResult);
-    static PRInt32 ParseParameterList(const nsAString& aSpec, float* aVars,
-                                      PRInt32 aNVars);
+    static int32_t ParseParameterList(const nsAString& aSpec, float* aVars,
+                                      int32_t aNVars);
 
     
     

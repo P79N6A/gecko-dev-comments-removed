@@ -75,31 +75,31 @@ public:
   
   static nsresult GetFlatTextOffsetOfRange(nsIContent* aRootContent,
                                            nsINode* aNode,
-                                           PRInt32 aNodeOffset,
-                                           PRUint32* aOffset);
+                                           int32_t aNodeOffset,
+                                           uint32_t* aOffset);
   static nsresult GetFlatTextOffsetOfRange(nsIContent* aRootContent,
                                            nsRange* aRange,
-                                           PRUint32* aOffset);
+                                           uint32_t* aOffset);
 protected:
   
   
   
   nsresult SetRangeFromFlatTextOffset(nsRange* aRange,
-                                      PRUint32 aNativeOffset,
-                                      PRUint32 aNativeLength,
+                                      uint32_t aNativeOffset,
+                                      uint32_t aNativeLength,
                                       bool aExpandToClusterBoundaries);
   
   
   nsresult GetStartFrameAndOffset(nsRange* aRange,
                                   nsIFrame** aFrame,
-                                  PRInt32* aOffsetInFrame);
+                                  int32_t* aOffsetInFrame);
   
   nsresult ConvertToRootViewRelativeOffset(nsIFrame* aFrame,
                                            nsRect& aRect);
   
   
   nsresult ExpandToClusterBoundary(nsIContent* aContent, bool aForward,
-                                   PRUint32* aXPOffset);
+                                   uint32_t* aXPOffset);
 };
 
 #endif 

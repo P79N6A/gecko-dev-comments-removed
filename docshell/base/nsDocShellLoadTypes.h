@@ -70,7 +70,7 @@ enum LoadType {
 
     
 };
-static inline bool IsValidLoadType(PRUint32 aLoadType)
+static inline bool IsValidLoadType(uint32_t aLoadType)
 {
     switch (aLoadType)
     {

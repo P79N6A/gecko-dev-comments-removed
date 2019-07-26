@@ -20,7 +20,7 @@ public:
   virtual nsresult Init(nsBuiltinDecoderReader* aCloneDonor);
   virtual bool DecodeAudioData();
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                  PRInt64 aTimeThreshold);
+                                  int64_t aTimeThreshold);
 
   virtual bool HasAudio()
   {
@@ -34,8 +34,8 @@ public:
 
   virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
                                 nsHTMLMediaElement::MetadataTags** aTags);
-  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime, PRInt64 aCurrentTime);
-  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
+  virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
 
   
   virtual bool IsSeekableInBufferedRanges() {
@@ -43,27 +43,27 @@ public:
   }
 
 private:
-  bool ReadAll(char* aBuf, PRInt64 aSize, PRInt64* aBytesRead = nullptr);
+  bool ReadAll(char* aBuf, int64_t aSize, int64_t* aBytesRead = nullptr);
   bool LoadRIFFChunk();
-  bool ScanForwardUntil(PRUint32 aWantedChunk, PRUint32* aChunkSize);
+  bool ScanForwardUntil(uint32_t aWantedChunk, uint32_t* aChunkSize);
   bool LoadFormatChunk();
   bool FindDataOffset();
 
   
   
   
-  double BytesToTime(PRInt64 aBytes) const;
+  double BytesToTime(int64_t aBytes) const;
 
   
   
   
-  PRInt64 TimeToBytes(double aTime) const;
+  int64_t TimeToBytes(double aTime) const;
 
   
   
-  PRInt64 RoundDownToFrame(PRInt64 aBytes) const;
-  PRInt64 GetDataLength();
-  PRInt64 GetPosition();
+  int64_t RoundDownToFrame(int64_t aBytes) const;
+  int64_t GetDataLength();
+  int64_t GetPosition();
 
   
 
@@ -71,25 +71,25 @@ private:
 
 
   
-  PRUint32 mSampleRate;
+  uint32_t mSampleRate;
 
   
-  PRUint32 mChannels;
+  uint32_t mChannels;
 
   
   
-  PRUint32 mFrameSize;
+  uint32_t mFrameSize;
 
   
   nsAudioStream::SampleFormat mSampleFormat;
 
   
   
-  PRInt64 mWaveLength;
+  int64_t mWaveLength;
 
   
   
-  PRInt64 mWavePCMOffset;
+  int64_t mWavePCMOffset;
 };
 
 #endif

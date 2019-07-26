@@ -29,8 +29,8 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(PRUint8 index);
+  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(uint8_t index);
 
   
   NS_DECL_NSIACCESSIBLEIMAGE
@@ -38,11 +38,11 @@ public:
   
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual a11y::role NativeRole();
-  virtual PRUint64 NativeState();
+  virtual uint64_t NativeState();
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
   
-  virtual PRUint8 ActionCount();
+  virtual uint8_t ActionCount();
 
 private:
   
@@ -70,7 +70,7 @@ private:
 
 
 
-  inline bool IsLongDescIndex(PRUint8 aIndex);
+  inline bool IsLongDescIndex(uint8_t aIndex);
 
 };
 

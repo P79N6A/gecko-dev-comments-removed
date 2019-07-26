@@ -253,14 +253,14 @@ public:
 
   virtual void SetDocumentCharacterSet(const nsACString& aCharSetID) = 0;
 
-  PRInt32 GetDocumentCharacterSetSource() const
+  int32_t GetDocumentCharacterSetSource() const
   {
     return mCharacterSetSource;
   }
 
   
   
-  void SetDocumentCharacterSetSource(PRInt32 aCharsetSource)
+  void SetDocumentCharacterSetSource(int32_t aCharsetSource)
   {
     mCharacterSetSource = aCharsetSource;
   }
@@ -384,7 +384,7 @@ public:
 
 
 
-  PRUint32 GetBidiOptions() const
+  uint32_t GetBidiOptions() const
   {
     return mBidiOptions;
   }
@@ -395,7 +395,7 @@ public:
 
 
 
-  void SetBidiOptions(PRUint32 aBidiOptions)
+  void SetBidiOptions(uint32_t aBidiOptions)
   {
     mBidiOptions = aBidiOptions;
   }
@@ -405,7 +405,7 @@ public:
 
 
 
-  PRUint32 GetSandboxFlags() const
+  uint32_t GetSandboxFlags() const
   {
     return mSandboxFlags;
   }
@@ -414,7 +414,7 @@ public:
 
 
 
-  void SetSandboxFlags(PRUint32 sandboxFlags)
+  void SetSandboxFlags(uint32_t sandboxFlags)
   {
     mSandboxFlags = sandboxFlags;
   }
@@ -539,7 +539,7 @@ public:
 
 
 
-  virtual PRInt32 GetNumberOfStyleSheets() const = 0;
+  virtual int32_t GetNumberOfStyleSheets() const = 0;
   
   
 
@@ -547,7 +547,7 @@ public:
 
 
 
-  virtual nsIStyleSheet* GetStyleSheetAt(PRInt32 aIndex) const = 0;
+  virtual nsIStyleSheet* GetStyleSheetAt(int32_t aIndex) const = 0;
   
   
 
@@ -556,7 +556,7 @@ public:
 
 
 
-  virtual void InsertStyleSheetAt(nsIStyleSheet* aSheet, PRInt32 aIndex) = 0;
+  virtual void InsertStyleSheetAt(nsIStyleSheet* aSheet, int32_t aIndex) = 0;
 
   
 
@@ -564,7 +564,7 @@ public:
 
 
 
-  virtual PRInt32 GetIndexOfStyleSheet(nsIStyleSheet* aSheet) const = 0;
+  virtual int32_t GetIndexOfStyleSheet(nsIStyleSheet* aSheet) const = 0;
 
   
 
@@ -598,8 +598,8 @@ public:
 
 
 
-  virtual PRInt32 GetNumberOfCatalogStyleSheets() const = 0;
-  virtual nsIStyleSheet* GetCatalogStyleSheetAt(PRInt32 aIndex) const = 0;
+  virtual int32_t GetNumberOfCatalogStyleSheets() const = 0;
+  virtual nsIStyleSheet* GetCatalogStyleSheetAt(int32_t aIndex) const = 0;
   virtual void AddCatalogStyleSheet(nsIStyleSheet* aSheet) = 0;
   virtual void EnsureCatalogStyleSheet(const char *aStyleSheetURI) = 0;
 
@@ -701,7 +701,7 @@ public:
   
 
 
-  PRUint64 OuterWindowID() const
+  uint64_t OuterWindowID() const
   {
     nsPIDOMWindow *window = GetWindow();
     return window ? window->WindowID() : 0;
@@ -710,7 +710,7 @@ public:
   
 
 
-  PRUint64 InnerWindowID()
+  uint64_t InnerWindowID()
   {
     nsPIDOMWindow *window = GetInnerWindow();
     return window ? window->WindowID() : 0;
@@ -932,7 +932,7 @@ public:
 
   virtual void SetXMLDeclaration(const PRUnichar *aVersion,
                                  const PRUnichar *aEncoding,
-                                 const PRInt32 aStandalone) = 0;
+                                 const int32_t aStandalone) = 0;
   virtual void GetXMLDeclaration(nsAString& aVersion,
                                  nsAString& aEncoding,
                                  nsAString& Standalone) = 0;
@@ -954,7 +954,7 @@ public:
 
 
   virtual nsresult CreateElem(const nsAString& aName, nsIAtom *aPrefix,
-                              PRInt32 aNamespaceID,
+                              int32_t aNamespaceID,
                               nsIContent** aResult) = 0;
 
   
@@ -973,7 +973,7 @@ public:
 
 
 
-  PRInt32 GetDefaultNamespaceID() const
+  int32_t GetDefaultNamespaceID() const
   {
     return mDefaultElementType;
   }
@@ -981,25 +981,25 @@ public:
   void DeleteAllProperties();
   void DeleteAllPropertiesFor(nsINode* aNode);
 
-  nsPropertyTable* PropertyTable(PRUint16 aCategory) {
+  nsPropertyTable* PropertyTable(uint16_t aCategory) {
     if (aCategory == 0)
       return &mPropertyTable;
     return GetExtraPropertyTable(aCategory);
   }
-  PRUint32 GetPropertyTableCount()
+  uint32_t GetPropertyTableCount()
   { return mExtraPropertyTables.Length() + 1; }
 
   
 
 
-  void SetPartID(PRUint32 aID) {
+  void SetPartID(uint32_t aID) {
     mPartID = aID;
   }
 
   
 
 
-  PRUint32 GetPartID() const {
+  uint32_t GetPartID() const {
     return mPartID;
   }
 
@@ -1210,7 +1210,7 @@ public:
 
 
 
-  void MarkUncollectableForCCGeneration(PRUint32 aGeneration)
+  void MarkUncollectableForCCGeneration(uint32_t aGeneration)
   {
     mMarkedCCGeneration = aGeneration;
   }
@@ -1218,7 +1218,7 @@ public:
   
 
 
-  PRUint32 GetMarkedCCGeneration()
+  uint32_t GetMarkedCCGeneration()
   {
     return mMarkedCCGeneration;
   }
@@ -1409,7 +1409,7 @@ public:
 
 
 
-  virtual void SuppressEventHandling(PRUint32 aIncrease = 1) = 0;
+  virtual void SuppressEventHandling(uint32_t aIncrease = 1) = 0;
 
   
 
@@ -1418,7 +1418,7 @@ public:
 
   virtual void UnsuppressEventHandlingAndFireEvents(bool aFireEvents) = 0;
 
-  PRUint32 EventHandlingSuppressed() const { return mEventsSuppressed; }
+  uint32_t EventHandlingSuppressed() const { return mEventsSuppressed; }
 
   bool IsEventHandlingEnabled() {
     return !EventHandlingSuppressed() && mScriptGlobalObject;
@@ -1582,8 +1582,8 @@ public:
   virtual Element* LookupImageElement(const nsAString& aElementId) = 0;
 
   nsresult ScheduleFrameRequestCallback(nsIFrameRequestCallback* aCallback,
-                                        PRInt32 *aHandle);
-  void CancelFrameRequestCallback(PRInt32 aHandle);
+                                        int32_t *aHandle);
+  void CancelFrameRequestCallback(int32_t aHandle);
 
   typedef nsTArray< nsCOMPtr<nsIFrameRequestCallback> > FrameRequestCallbackList;
   
@@ -1708,11 +1708,11 @@ public:
   }
 
 private:
-  PRUint64 mWarnedAbout;
+  uint64_t mWarnedAbout;
 
 protected:
   ~nsIDocument();
-  nsPropertyTable* GetExtraPropertyTable(PRUint16 aCategory);
+  nsPropertyTable* GetExtraPropertyTable(uint16_t aCategory);
 
   
   virtual nsPIDOMWindow *GetWindowInternal() const = 0;
@@ -1760,7 +1760,7 @@ protected:
   nsWeakPtr mDocumentContainer;
 
   nsCString mCharacterSet;
-  PRInt32 mCharacterSetSource;
+  int32_t mCharacterSetSource;
 
   
   nsIDocument* mParentDocument;
@@ -1889,12 +1889,12 @@ protected:
 
   
   
-  PRUint32 mBidiOptions;
+  uint32_t mBidiOptions;
 
   
   
   
-  PRUint32 mSandboxFlags;
+  uint32_t mSandboxFlags;
 
   
   mozilla::directionality::Directionality mDirectionality;
@@ -1909,34 +1909,34 @@ protected:
 
   
   
-  PRUint32 mPartID;
+  uint32_t mPartID;
   
   
   
-  PRUint32 mMarkedCCGeneration;
+  uint32_t mMarkedCCGeneration;
 
   nsIPresShell* mPresShell;
 
   nsCOMArray<nsINode> mSubtreeModifiedTargets;
-  PRUint32            mSubtreeModifiedDepth;
+  uint32_t            mSubtreeModifiedDepth;
 
   
   
   
   nsCOMPtr<nsIDocument> mDisplayDocument;
 
-  PRUint32 mEventsSuppressed;
+  uint32_t mEventsSuppressed;
 
   
 
 
 
-  PRUint32 mExternalScriptsBeingEvaluated;
+  uint32_t mExternalScriptsBeingEvaluated;
 
   
 
 
-  PRInt32 mFrameRequestCallbackCounter;
+  int32_t mFrameRequestCallbackCounter;
 
   
   
@@ -1946,7 +1946,7 @@ protected:
 
   struct FrameRequest {
     FrameRequest(nsIFrameRequestCallback* aCallback,
-                 PRInt32 aHandle) :
+                 int32_t aHandle) :
       mCallback(aCallback),
       mHandle(aHandle)
     {}
@@ -1957,15 +1957,15 @@ protected:
 
     
     
-    bool operator==(PRInt32 aHandle) const {
+    bool operator==(int32_t aHandle) const {
       return mHandle == aHandle;
     }
-    bool operator<(PRInt32 aHandle) const {
+    bool operator<(int32_t aHandle) const {
       return mHandle < aHandle;
     }
     
     nsCOMPtr<nsIFrameRequestCallback> mCallback;
-    PRInt32 mHandle;
+    int32_t mHandle;
   };
 
   nsTArray<FrameRequest> mFrameRequestCallbacks;
@@ -1980,9 +1980,9 @@ protected:
   nsCOMPtr<nsIStructuredCloneContainer> mStateObjectContainer;
   nsCOMPtr<nsIVariant> mStateObjectCached;
 
-  PRUint8 mDefaultElementType;
+  uint8_t mDefaultElementType;
 
-  PRUint32 mInSyncOperationCount;
+  uint32_t mInSyncOperationCount;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)
@@ -2036,7 +2036,7 @@ public:
   ~nsAutoSyncOperation();
 private:
   nsCOMArray<nsIDocument> mDocuments;
-  PRUint32                mMicroTaskLevel;
+  uint32_t                mMicroTaskLevel;
 };
 
 

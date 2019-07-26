@@ -160,11 +160,11 @@ struct ViewportInfo
 
     
     
-    PRUint32 width;
+    uint32_t width;
 
     
     
-    PRUint32 height;
+    uint32_t height;
 
     
     
@@ -187,17 +187,17 @@ struct ViewportInfo
 struct EventNameMapping
 {
   nsIAtom* mAtom;
-  PRUint32 mId;
-  PRInt32  mType;
-  PRUint32 mStructType;
+  uint32_t mId;
+  int32_t  mType;
+  uint32_t mStructType;
 };
 
 struct nsShortcutCandidate {
-  nsShortcutCandidate(PRUint32 aCharCode, bool aIgnoreShift) :
+  nsShortcutCandidate(uint32_t aCharCode, bool aIgnoreShift) :
     mCharCode(aCharCode), mIgnoreShift(aIgnoreShift)
   {
   }
-  PRUint32 mCharCode;
+  uint32_t mCharCode;
   bool     mIgnoreShift;
 };
 
@@ -279,9 +279,9 @@ public:
 
 
   static nsresult GetAncestorsAndOffsets(nsIDOMNode* aNode,
-                                         PRInt32 aOffset,
+                                         int32_t aOffset,
                                          nsTArray<nsIContent*>* aAncestorNodes,
-                                         nsTArray<PRInt32>* aAncestorOffsets);
+                                         nsTArray<int32_t>* aAncestorOffsets);
 
   
 
@@ -322,11 +322,11 @@ public:
 
 
 
-  static PRInt32 ComparePoints(nsINode* aParent1, PRInt32 aOffset1,
-                               nsINode* aParent2, PRInt32 aOffset2,
+  static int32_t ComparePoints(nsINode* aParent1, int32_t aOffset1,
+                               nsINode* aParent2, int32_t aOffset2,
                                bool* aDisconnected = nullptr);
-  static PRInt32 ComparePoints(nsIDOMNode* aParent1, PRInt32 aOffset1,
-                               nsIDOMNode* aParent2, PRInt32 aOffset2,
+  static int32_t ComparePoints(nsIDOMNode* aParent1, int32_t aOffset1,
+                               nsIDOMNode* aParent2, int32_t aOffset2,
                                bool* aDisconnected = nullptr);
 
   
@@ -350,15 +350,15 @@ public:
 
 
 
-  static PRUint16 ReverseDocumentPosition(PRUint16 aDocumentPosition);
+  static uint16_t ReverseDocumentPosition(uint16_t aDocumentPosition);
 
-  static PRUint32 CopyNewlineNormalizedUnicodeTo(const nsAString& aSource,
-                                                 PRUint32 aSrcOffset,
+  static uint32_t CopyNewlineNormalizedUnicodeTo(const nsAString& aSource,
+                                                 uint32_t aSrcOffset,
                                                  PRUnichar* aDest,
-                                                 PRUint32 aLength,
+                                                 uint32_t aLength,
                                                  bool& aLastCharCR);
 
-  static PRUint32 CopyNewlineNormalizedUnicodeTo(nsReadingIterator<PRUnichar>& aSrcStart, const nsReadingIterator<PRUnichar>& aSrcEnd, nsAString& aDest);
+  static uint32_t CopyNewlineNormalizedUnicodeTo(nsReadingIterator<PRUnichar>& aSrcStart, const nsReadingIterator<PRUnichar>& aSrcEnd, nsAString& aDest);
 
   static const nsDependentSubstring TrimCharsInSet(const char* aSet,
                                                    const nsAString& aValue);
@@ -370,14 +370,14 @@ public:
   
 
 
-  static bool IsFirstLetterPunctuation(PRUint32 aChar);
-  static bool IsFirstLetterPunctuationAt(const nsTextFragment* aFrag, PRUint32 aOffset);
+  static bool IsFirstLetterPunctuation(uint32_t aChar);
+  static bool IsFirstLetterPunctuationAt(const nsTextFragment* aFrag, uint32_t aOffset);
  
   
 
 
-  static bool IsAlphanumeric(PRUint32 aChar);
-  static bool IsAlphanumericAt(const nsTextFragment* aFrag, PRUint32 aOffset);
+  static bool IsAlphanumeric(uint32_t aChar);
+  static bool IsAlphanumericAt(const nsTextFragment* aFrag, uint32_t aOffset);
 
   
 
@@ -416,7 +416,7 @@ public:
 
 
 
-  static PRInt32 ParseLegacyFontSize(const nsAString& aValue);
+  static int32_t ParseLegacyFontSize(const nsAString& aValue);
 
   static void Shutdown();
 
@@ -547,10 +547,10 @@ public:
 
 
 
-  static bool CheckForBOM(const unsigned char* aBuffer, PRUint32 aLength,
+  static bool CheckForBOM(const unsigned char* aBuffer, uint32_t aLength,
                           nsACString& aCharset, bool *bigEndian = nullptr);
 
-  static nsresult GuessCharset(const char *aData, PRUint32 aDataLen,
+  static nsresult GuessCharset(const char *aData, uint32_t aDataLen,
                                nsACString &aCharset);
 
   
@@ -570,16 +570,16 @@ public:
 
   static nsresult SplitQName(const nsIContent* aNamespaceResolver,
                              const nsAFlatString& aQName,
-                             PRInt32 *aNamespace, nsIAtom **aLocalName);
+                             int32_t *aNamespace, nsIAtom **aLocalName);
 
   static nsresult GetNodeInfoFromQName(const nsAString& aNamespaceURI,
                                        const nsAString& aQualifiedName,
                                        nsNodeInfoManager* aNodeInfoManager,
-                                       PRUint16 aNodeType,
+                                       uint16_t aNodeType,
                                        nsINodeInfo** aNodeInfo);
 
   static void SplitExpatName(const PRUnichar *aExpatName, nsIAtom **aPrefix,
-                             nsIAtom **aTagName, PRInt32 *aNameSpaceID);
+                             nsIAtom **aTagName, int32_t *aNameSpaceID);
 
   
   
@@ -617,7 +617,7 @@ public:
 
 
 
-  static bool HasNonEmptyAttr(const nsIContent* aContent, PRInt32 aNameSpaceID,
+  static bool HasNonEmptyAttr(const nsIContent* aContent, int32_t aNameSpaceID,
                                 nsIAtom* aName);
 
   
@@ -649,7 +649,7 @@ public:
                              nsISupports* aContext,
                              nsIDocument* aLoadingDocument,
                              nsIPrincipal* aLoadingPrincipal,
-                             PRInt16* aImageBlockingStatus = nullptr);
+                             int16_t* aImageBlockingStatus = nullptr);
   
 
 
@@ -668,7 +668,7 @@ public:
                             nsIPrincipal* aLoadingPrincipal,
                             nsIURI* aReferrer,
                             imgIDecoderObserver* aObserver,
-                            PRInt32 aLoadFlags,
+                            int32_t aLoadFlags,
                             imgIRequest** aRequest);
 
   
@@ -736,8 +736,8 @@ public:
 
 
 
-  static void GetEventArgNames(PRInt32 aNameSpaceID, nsIAtom *aEventName,
-                               PRUint32 *aArgCount, const char*** aArgNames);
+  static void GetEventArgNames(int32_t aNameSpaceID, nsIAtom *aEventName,
+                               uint32_t *aArgCount, const char*** aArgNames);
 
   
 
@@ -796,18 +796,18 @@ public:
     eCOMMON_DIALOG_PROPERTIES,
     PropertiesFile_COUNT
   };
-  static nsresult ReportToConsole(PRUint32 aErrorFlags,
+  static nsresult ReportToConsole(uint32_t aErrorFlags,
                                   const char *aCategory,
                                   nsIDocument* aDocument,
                                   PropertiesFile aFile,
                                   const char *aMessageName,
                                   const PRUnichar **aParams = nullptr,
-                                  PRUint32 aParamsLength = 0,
+                                  uint32_t aParamsLength = 0,
                                   nsIURI* aURI = nullptr,
                                   const nsAFlatString& aSourceLine
                                     = EmptyString(),
-                                  PRUint32 aLineNumber = 0,
-                                  PRUint32 aColumnNumber = 0);
+                                  uint32_t aLineNumber = 0,
+                                  uint32_t aColumnNumber = 0);
 
   
 
@@ -823,7 +823,7 @@ public:
 
 
 
-  static PRUint32 ParseSandboxAttributeToFlags(const nsAString& aSandboxAttr);
+  static uint32_t ParseSandboxAttributeToFlags(const nsAString& aSandboxAttr);
 
 
   
@@ -834,11 +834,11 @@ private:
   static nsresult FormatLocalizedString(PropertiesFile aFile,
                                         const char* aKey,
                                         const PRUnichar** aParams,
-                                        PRUint32 aParamsLength,
+                                        uint32_t aParamsLength,
                                         nsXPIDLString& aResult);
   
 public:
-  template<PRUint32 N>
+  template<uint32_t N>
   static nsresult FormatLocalizedString(PropertiesFile aFile,
                                         const char* aKey,
                                         const PRUnichar* (&aParams)[N],
@@ -897,7 +897,7 @@ public:
 
 
   static bool HasMutationListeners(nsINode* aNode,
-                                     PRUint32 aType,
+                                     uint32_t aType,
                                      nsINode* aTargetForSubtreeModified);
 
   
@@ -912,7 +912,7 @@ public:
 
 
   static bool HasMutationListeners(nsIDocument* aDocument,
-                                     PRUint32 aType);
+                                     uint32_t aType);
   
 
 
@@ -998,7 +998,7 @@ public:
 
 
 
-  static bool IsEventAttributeName(nsIAtom* aName, PRInt32 aType);
+  static bool IsEventAttributeName(nsIAtom* aName, int32_t aType);
 
   
 
@@ -1007,7 +1007,7 @@ public:
 
 
 
-  static PRUint32 GetEventId(nsIAtom* aName);
+  static uint32_t GetEventId(nsIAtom* aName);
 
   
 
@@ -1016,7 +1016,7 @@ public:
 
 
 
-  static PRUint32 GetEventCategory(const nsAString& aName);
+  static uint32_t GetEventCategory(const nsAString& aName);
 
   
 
@@ -1028,8 +1028,8 @@ public:
 
 
   static nsIAtom* GetEventIdAndAtom(const nsAString& aName,
-                                    PRUint32 aEventStruct,
-                                    PRUint32* aEventID);
+                                    uint32_t aEventStruct,
+                                    uint32_t* aEventID);
 
   
 
@@ -1056,7 +1056,7 @@ public:
   static nsEventListenerManager* GetListenerManager(nsINode* aNode,
                                                     bool aCreateIfNotFound);
 
-  static void UnmarkGrayJSListenersInCCGenerationDocuments(PRUint32 aGeneration);
+  static void UnmarkGrayJSListenersInCCGenerationDocuments(uint32_t aGeneration);
 
   
 
@@ -1080,7 +1080,7 @@ public:
 
 
   static bool IsValidNodeName(nsIAtom *aLocalName, nsIAtom *aPrefix,
-                                PRInt32 aNamespaceID);
+                                int32_t aNamespaceID);
 
   
 
@@ -1119,7 +1119,7 @@ public:
   static nsresult ParseFragmentHTML(const nsAString& aSourceBuffer,
                                     nsIContent* aTargetNode,
                                     nsIAtom* aContextLocalName,
-                                    PRInt32 aContextNamespace,
+                                    int32_t aContextNamespace,
                                     bool aQuirks,
                                     bool aPreventScriptExecution);
 
@@ -1173,8 +1173,8 @@ public:
 
   static nsresult ConvertToPlainText(const nsAString& aSourceBuffer,
                                      nsAString& aResultBuffer,
-                                     PRUint32 aFlags,
-                                     PRUint32 aWrapCol);
+                                     uint32_t aFlags,
+                                     uint32_t aWrapCol);
 
   
 
@@ -1349,9 +1349,9 @@ public:
 
   static nsresult CheckSecurityBeforeLoad(nsIURI* aURIToLoad,
                                           nsIPrincipal* aLoadingPrincipal,
-                                          PRUint32 aCheckLoadFlags,
+                                          uint32_t aCheckLoadFlags,
                                           bool aAllowData,
-                                          PRUint32 aContentPolicyType,
+                                          uint32_t aContentPolicyType,
                                           nsISupports* aContext,
                                           const nsACString& aMimeGuess = EmptyCString(),
                                           nsISupports* aExtra = nullptr);
@@ -1444,7 +1444,7 @@ public:
 
 
   static void GetAccessKeyCandidates(nsKeyEvent* aNativeKeyEvent,
-                                     nsTArray<PRUint32>& aCandidates);
+                                     nsTArray<uint32_t>& aCandidates);
 
   
 
@@ -1464,7 +1464,7 @@ public:
 
   
   
-  static PRUint32 FilterDropEffect(PRUint32 aAction, PRUint32 aEffectAllowed);
+  static uint32_t FilterDropEffect(uint32_t aAction, uint32_t aEffectAllowed);
 
   
 
@@ -1564,8 +1564,8 @@ public:
   static void LeaveMicroTask();
 
   static bool IsInMicroTask() { return sMicroTaskLevel != 0; }
-  static PRUint32 MicroTaskLevel() { return sMicroTaskLevel; }
-  static void SetMicroTaskLevel(PRUint32 aLevel) { sMicroTaskLevel = aLevel; }
+  static uint32_t MicroTaskLevel() { return sMicroTaskLevel; }
+  static void SetMicroTaskLevel(uint32_t aLevel) { sMicroTaskLevel = aLevel; }
 
   
 
@@ -1598,13 +1598,13 @@ public:
 
   static bool EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
                                            const char* aStr2,
-                                           const PRUint32 len);
+                                           const uint32_t len);
 #ifdef NS_DISABLE_LITERAL_TEMPLATE
   static inline bool
   EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
                                const char* aStr2)
   {
-    PRUint32 len = strlen(aStr2);
+    uint32_t len = strlen(aStr2);
     return EqualsLiteralIgnoreASCIICase(aStr1, aStr2, len);
   }
 #else
@@ -2029,7 +2029,7 @@ public:
 
 
 
-  static bool IsJavaScriptLanguage(const nsString& aName, PRUint32 *aVerFlags);
+  static bool IsJavaScriptLanguage(const nsString& aName, uint32_t *aVerFlags);
 
   
 
@@ -2060,7 +2060,7 @@ public:
       nullptr
     };
 
-    for (PRUint32 i = 0; jsTypes[i]; ++i) {
+    for (uint32_t i = 0; jsTypes[i]; ++i) {
       if (aMIMEType.LowerCaseEqualsASCII(jsTypes[i])) {
         return true;
       }
@@ -2083,7 +2083,7 @@ public:
 
 
 
-  static nsresult IsUserIdle(PRUint32 aRequestedIdleTimeInMS, bool* aUserIsIdle);
+  static nsresult IsUserIdle(uint32_t aRequestedIdleTimeInMS, bool* aUserIsIdle);
 
   
 
@@ -2116,8 +2116,8 @@ public:
 
   static void GetSelectionInTextControl(mozilla::Selection* aSelection,
                                         Element* aRoot,
-                                        PRInt32& aOutStartOffset,
-                                        PRInt32& aOutEndOffset);
+                                        int32_t& aOutStartOffset,
+                                        int32_t& aOutEndOffset);
 
   static nsIEditor* GetHTMLEditor(nsPresContext* aPresContext);
 
@@ -2187,22 +2187,22 @@ private:
   static nsILineBreaker* sLineBreaker;
   static nsIWordBreaker* sWordBreaker;
 
-  static PRUint32 sJSGCThingRootCount;
+  static uint32_t sJSGCThingRootCount;
 
 #ifdef IBMBIDI
   static nsIBidiKeyboard* sBidiKeyboard;
 #endif
 
   static bool sInitialized;
-  static PRUint32 sScriptBlockerCount;
+  static uint32_t sScriptBlockerCount;
 #ifdef DEBUG
-  static PRUint32 sDOMNodeRemovedSuppressCount;
+  static uint32_t sDOMNodeRemovedSuppressCount;
 #endif
-  static PRUint32 sMicroTaskLevel;
+  static uint32_t sMicroTaskLevel;
   
   static nsTArray< nsCOMPtr<nsIRunnable> >* sBlockedScriptRunners;
-  static PRUint32 sRunnersCountAtFirstBlocker;
-  static PRUint32 sScriptBlockerCountWhereRunnersPrevented;
+  static uint32_t sRunnersCountAtFirstBlocker;
+  static uint32_t sScriptBlockerCountWhereRunnersPrevented;
 
   static nsIInterfaceRequestor* sSameOriginChecker;
 
@@ -2210,7 +2210,7 @@ private:
   static bool sAllowXULXBL_for_file;
   static bool sIsFullScreenApiEnabled;
   static bool sTrustedFullScreenOnly;
-  static PRUint32 sHandlingInputTimeout;
+  static uint32_t sHandlingInputTimeout;
   static bool sIsIdleObserverAPIEnabled;
 
   static nsHtml5StringParser* sHTMLFragmentParser;

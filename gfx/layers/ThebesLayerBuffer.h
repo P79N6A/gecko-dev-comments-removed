@@ -111,7 +111,7 @@ public:
 
 
   PaintState BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
-                        PRUint32 aFlags);
+                        uint32_t aFlags);
 
   enum {
     ALLOW_REPEAT = 0x01
@@ -122,7 +122,7 @@ public:
 
 
   virtual already_AddRefed<gfxASurface>
-  CreateBuffer(ContentType aType, const nsIntSize& aSize, PRUint32 aFlags) = 0;
+  CreateBuffer(ContentType aType, const nsIntSize& aSize, uint32_t aFlags) = 0;
 
   
 

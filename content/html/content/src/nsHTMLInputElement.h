@@ -77,8 +77,8 @@ public:
   
   NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(nsGenericHTMLFormElement::)
   NS_IMETHOD Click();
-  NS_IMETHOD GetTabIndex(PRInt32* aTabIndex);
-  NS_IMETHOD SetTabIndex(PRInt32 aTabIndex);
+  NS_IMETHOD GetTabIndex(int32_t* aTabIndex);
+  NS_IMETHOD SetTabIndex(int32_t aTabIndex);
   NS_IMETHOD Focus();
   NS_IMETHOD GetDraggable(bool* aDraggable) {
     return nsGenericHTMLFormElement::GetDraggable(aDraggable);
@@ -105,7 +105,7 @@ public:
   NS_IMETHOD SetUserInput(const nsAString& aInput);
 
   
-  NS_IMETHOD_(PRUint32) GetType() const { return mType; }
+  NS_IMETHOD_(uint32_t) GetType() const { return mType; }
   NS_IMETHOD Reset();
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission);
   NS_IMETHOD SaveState();
@@ -115,14 +115,14 @@ public:
   virtual void FieldSetDisabledChanged(bool aNotify);
 
   
-  virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32 *aTabIndex);
+  virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, int32_t *aTabIndex);
 
-  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+  virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              PRInt32 aModType) const;
+                                              int32_t aModType) const;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
 
@@ -145,9 +145,9 @@ public:
   NS_IMETHOD_(bool) IsTextArea() const;
   NS_IMETHOD_(bool) IsPlainTextControl() const;
   NS_IMETHOD_(bool) IsPasswordTextControl() const;
-  NS_IMETHOD_(PRInt32) GetCols();
-  NS_IMETHOD_(PRInt32) GetWrapCols();
-  NS_IMETHOD_(PRInt32) GetRows();
+  NS_IMETHOD_(int32_t) GetCols();
+  NS_IMETHOD_(int32_t) GetWrapCols();
+  NS_IMETHOD_(int32_t) GetRows();
   NS_IMETHOD_(void) GetDefaultValueFromContent(nsAString& aValue);
   NS_IMETHOD_(bool) ValueChanged() const;
   NS_IMETHOD_(void) GetTextEditorValue(nsAString& aValue, bool aIgnoreWrap) const;
@@ -271,7 +271,7 @@ public:
 
 
 
-  PRInt32 GetFilterFromAccept();
+  int32_t GetFilterFromAccept();
 
   
 
@@ -365,18 +365,18 @@ protected:
   nsresult SetIndeterminateInternal(bool aValue,
                                     bool aShouldInvalidate);
 
-  nsresult GetSelectionRange(PRInt32* aSelectionStart, PRInt32* aSelectionEnd);
+  nsresult GetSelectionRange(int32_t* aSelectionStart, int32_t* aSelectionEnd);
 
   
 
 
-  virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+  virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify);
   
 
 
-  virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                                 const nsAttrValue* aValue, bool aNotify);
 
   
@@ -501,7 +501,7 @@ protected:
   
 
 
-  void HandleTypeChange(PRUint8 aNewType);
+  void HandleTypeChange(uint8_t aNewType);
 
   
 
@@ -614,7 +614,7 @@ protected:
 
 
 
-  nsresult ApplyStep(PRInt32 aStep);
+  nsresult ApplyStep(int32_t aStep);
 
   nsCOMPtr<nsIControllers> mControllers;
 
@@ -670,7 +670,7 @@ protected:
 
 
 
-  PRUint8                  mType;
+  uint8_t                  mType;
   bool                     mDisabledChanged     : 1;
   bool                     mValueChanged        : 1;
   bool                     mCheckedChanged      : 1;
@@ -691,7 +691,7 @@ private:
     nsFilePickerFilter()
       : mFilterMask(0), mIsTrusted(false) {}
 
-    nsFilePickerFilter(PRInt32 aFilterMask)
+    nsFilePickerFilter(int32_t aFilterMask)
       : mFilterMask(aFilterMask), mIsTrusted(true) {}
 
     nsFilePickerFilter(const nsString& aTitle,
@@ -718,7 +718,7 @@ private:
     }
     
     
-    PRInt32 mFilterMask;
+    int32_t mFilterMask;
     
     
     nsString mTitle;
@@ -755,7 +755,7 @@ private:
 
     NS_DECL_ISUPPORTS
 
-    NS_IMETHOD Done(PRInt16 aResult);
+    NS_IMETHOD Done(int16_t aResult);
 
   private:
     nsCOMPtr<nsIFilePicker> mFilePicker;

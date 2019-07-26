@@ -66,7 +66,7 @@ typedef enum nsCharType nsCharType;
 
 
 
-  PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, PRUint32 aNumFlag);
+  PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, uint32_t aNumFlag);
 
   
 
@@ -78,14 +78,14 @@ typedef enum nsCharType nsCharType;
 
 
 
-  nsresult HandleNumbers(PRUnichar* aBuffer, PRUint32 aSize, PRUint32  aNumFlag);
+  nsresult HandleNumbers(PRUnichar* aBuffer, uint32_t aSize, uint32_t  aNumFlag);
 
   
 
 
 
 
-  bool IsBidiControl(PRUint32 aChar);
+  bool IsBidiControl(uint32_t aChar);
 
   
 

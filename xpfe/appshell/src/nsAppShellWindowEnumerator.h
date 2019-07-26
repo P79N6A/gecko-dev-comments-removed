@@ -17,12 +17,12 @@ class nsWindowMediator;
 
 struct nsWindowInfo
 {
-  nsWindowInfo(nsIXULWindow* inWindow, PRInt32 inTimeStamp);
+  nsWindowInfo(nsIXULWindow* inWindow, int32_t inTimeStamp);
   ~nsWindowInfo();
 
   nsCOMPtr<nsIXULWindow>    mWindow;
-  PRInt32                   mTimeStamp;
-  PRUint32                  mZLevel;
+  int32_t                   mTimeStamp;
+  uint32_t                  mZLevel;
 
   
   nsWindowInfo              *mYounger, 

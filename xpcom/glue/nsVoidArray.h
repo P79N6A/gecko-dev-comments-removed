@@ -28,22 +28,22 @@ typedef size_t (* nsVoidArraySizeOfElementIncludingThisFunc)(const void* aElemen
 class NS_COM_GLUE nsVoidArray {
 public:
   nsVoidArray();
-  nsVoidArray(PRInt32 aCount);  
+  nsVoidArray(int32_t aCount);  
   ~nsVoidArray();
 
   nsVoidArray& operator=(const nsVoidArray& other);
 
-  inline PRInt32 Count() const {
+  inline int32_t Count() const {
     return mImpl ? mImpl->mCount : 0;
   }
   
-  bool SetCount(PRInt32 aNewCount);
+  bool SetCount(int32_t aNewCount);
   
-  inline PRInt32 GetArraySize() const {
-    return mImpl ? (PRInt32(mImpl->mBits) & kArraySizeMask) : 0;
+  inline int32_t GetArraySize() const {
+    return mImpl ? (int32_t(mImpl->mBits) & kArraySizeMask) : 0;
   }
 
-  void* FastElementAt(PRInt32 aIndex) const
+  void* FastElementAt(int32_t aIndex) const
   {
     NS_ASSERTION(0 <= aIndex && aIndex < Count(), "nsVoidArray::FastElementAt: index out of range");
     return mImpl->mArray[aIndex];
@@ -52,16 +52,16 @@ public:
   
   
   
-  void* ElementAt(PRInt32 aIndex) const
+  void* ElementAt(int32_t aIndex) const
   {
     NS_ASSERTION(0 <= aIndex && aIndex < Count(), "nsVoidArray::ElementAt: index out of range");
     return SafeElementAt(aIndex);
   }
 
   
-  void* SafeElementAt(PRInt32 aIndex) const
+  void* SafeElementAt(int32_t aIndex) const
   {
-    if (PRUint32(aIndex) >= PRUint32(Count())) 
+    if (uint32_t(aIndex) >= uint32_t(Count())) 
     {
       return nullptr;
     }
@@ -69,17 +69,17 @@ public:
     return mImpl->mArray[aIndex];
   }
 
-  void* operator[](PRInt32 aIndex) const { return ElementAt(aIndex); }
+  void* operator[](int32_t aIndex) const { return ElementAt(aIndex); }
 
-  PRInt32 IndexOf(void* aPossibleElement) const;
+  int32_t IndexOf(void* aPossibleElement) const;
 
-  bool InsertElementAt(void* aElement, PRInt32 aIndex);
-  bool InsertElementsAt(const nsVoidArray &other, PRInt32 aIndex);
+  bool InsertElementAt(void* aElement, int32_t aIndex);
+  bool InsertElementsAt(const nsVoidArray &other, int32_t aIndex);
 
-  bool ReplaceElementAt(void* aElement, PRInt32 aIndex);
+  bool ReplaceElementAt(void* aElement, int32_t aIndex);
 
   
-  bool MoveElement(PRInt32 aFrom, PRInt32 aTo);
+  bool MoveElement(int32_t aFrom, int32_t aTo);
 
   bool AppendElement(void* aElement) {
     return InsertElementAt(aElement, Count());
@@ -90,12 +90,12 @@ public:
   }
 
   bool RemoveElement(void* aElement);
-  bool RemoveElementsAt(PRInt32 aIndex, PRInt32 aCount);
-  bool RemoveElementAt(PRInt32 aIndex) { return RemoveElementsAt(aIndex,1); }
+  bool RemoveElementsAt(int32_t aIndex, int32_t aCount);
+  bool RemoveElementAt(int32_t aIndex) { return RemoveElementsAt(aIndex,1); }
 
   void   Clear();
 
-  bool SizeTo(PRInt32 aMin);
+  bool SizeTo(int32_t aMin);
   
   
   void Compact();
@@ -114,7 +114,7 @@ public:
            nsMallocSizeOfFun aMallocSizeOf, void* aData = NULL) const;
 
 protected:
-  bool GrowArrayBy(PRInt32 aGrowBy);
+  bool GrowArrayBy(int32_t aGrowBy);
 
   struct Impl {
     
@@ -123,12 +123,12 @@ protected:
 
 
 
-    PRUint32 mBits;
+    uint32_t mBits;
 
     
 
 
-    PRInt32 mCount;
+    int32_t mCount;
 
     
 
@@ -138,8 +138,8 @@ protected:
 
   Impl* mImpl;
 #if DEBUG_VOIDARRAY
-  PRInt32 mMaxCount;
-  PRInt32 mMaxSize;
+  int32_t mMaxCount;
+  int32_t mMaxSize;
   bool    mIsAuto;
 #endif
 
@@ -152,7 +152,7 @@ protected:
 
 
   
-  void SetArray(Impl *newImpl, PRInt32 aSize, PRInt32 aCount, bool aOwner,
+  void SetArray(Impl *newImpl, int32_t aSize, int32_t aCount, bool aOwner,
                 bool aHasAuto);
   inline bool IsArrayOwner() const {
     return mImpl && (mImpl->mBits & kArrayOwnerMask);
@@ -220,43 +220,43 @@ public:
   ~nsSmallVoidArray();
 
   nsSmallVoidArray& operator=(nsSmallVoidArray& other);
-  void* operator[](PRInt32 aIndex) const { return ElementAt(aIndex); }
+  void* operator[](int32_t aIndex) const { return ElementAt(aIndex); }
 
-  PRInt32 GetArraySize() const;
+  int32_t GetArraySize() const;
 
-  PRInt32 Count() const;
-  void* FastElementAt(PRInt32 aIndex) const;
+  int32_t Count() const;
+  void* FastElementAt(int32_t aIndex) const;
   
   
   
-  void* ElementAt(PRInt32 aIndex) const
+  void* ElementAt(int32_t aIndex) const
   {
     NS_ASSERTION(0 <= aIndex && aIndex < Count(), "nsSmallVoidArray::ElementAt: index out of range");
     return SafeElementAt(aIndex);
   }
-  void* SafeElementAt(PRInt32 aIndex) const {
+  void* SafeElementAt(int32_t aIndex) const {
     
-    if (PRUint32(aIndex) >= PRUint32(Count())) 
+    if (uint32_t(aIndex) >= uint32_t(Count())) 
     {
       return nullptr;
     }
     return FastElementAt(aIndex);
   }
-  PRInt32 IndexOf(void* aPossibleElement) const;
-  bool InsertElementAt(void* aElement, PRInt32 aIndex);
-  bool InsertElementsAt(const nsVoidArray &other, PRInt32 aIndex);
-  bool ReplaceElementAt(void* aElement, PRInt32 aIndex);
-  bool MoveElement(PRInt32 aFrom, PRInt32 aTo);
+  int32_t IndexOf(void* aPossibleElement) const;
+  bool InsertElementAt(void* aElement, int32_t aIndex);
+  bool InsertElementsAt(const nsVoidArray &other, int32_t aIndex);
+  bool ReplaceElementAt(void* aElement, int32_t aIndex);
+  bool MoveElement(int32_t aFrom, int32_t aTo);
   bool AppendElement(void* aElement);
   bool AppendElements(nsVoidArray& aElements) {
     return InsertElementsAt(aElements, Count());
   }
   bool RemoveElement(void* aElement);
-  bool RemoveElementsAt(PRInt32 aIndex, PRInt32 aCount);
-  bool RemoveElementAt(PRInt32 aIndex);
+  bool RemoveElementsAt(int32_t aIndex, int32_t aCount);
+  bool RemoveElementAt(int32_t aIndex);
 
   void Clear();
-  bool SizeTo(PRInt32 aMin);
+  bool SizeTo(int32_t aMin);
   void Compact();
   void Sort(nsVoidArrayComparatorFunc aFunc, void* aData);
 

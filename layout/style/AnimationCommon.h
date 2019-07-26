@@ -19,8 +19,11 @@
 
 class nsPresContext;
 
+
 namespace mozilla {
 namespace css {
+
+bool IsGeometricProperty(nsCSSProperty aProperty);
 
 struct CommonElementAnimationData;
 
@@ -76,7 +79,7 @@ public:
   
   virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   void AddValue(nsCSSProperty aProperty, nsStyleAnimation::Value &aStartValue)
@@ -112,11 +115,11 @@ public:
     return &mTimingFunction;
   }
   Type GetType() const { return mType; }
-  PRUint32 GetSteps() const { return mSteps; }
+  uint32_t GetSteps() const { return mSteps; }
 private:
   Type mType;
   nsSMILKeySpline mTimingFunction;
-  PRUint32 mSteps;
+  uint32_t mSteps;
 };
 
 struct CommonElementAnimationData : public PRCList
@@ -150,7 +153,8 @@ struct CommonElementAnimationData : public PRCList
 
   static bool
   CanAnimatePropertyOnCompositor(const dom::Element *aElement,
-                                 nsCSSProperty aProperty);
+                                 nsCSSProperty aProperty,
+                                 bool aHasGeometricProperties);
 
   dom::Element *mElement;
 
@@ -159,6 +163,17 @@ struct CommonElementAnimationData : public PRCList
   nsIAtom *mElementProperty;
 
   CommonAnimationManager *mManager;
+
+  
+  
+  
+  
+  
+  
+  
+  nsRefPtr<mozilla::css::AnimValuesStyleRule> mStyleRule;
+  
+  TimeStamp mStyleRuleRefreshTime;
 
 #ifdef DEBUG
   bool mCalledPropertyDtor;

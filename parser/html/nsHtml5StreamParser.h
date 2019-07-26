@@ -148,7 +148,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-    inline void SetDocumentCharset(const nsACString& aCharset, PRInt32 aSource) {
+    inline void SetDocumentCharset(const nsACString& aCharset, int32_t aSource) {
       NS_PRECONDITION(mStreamState == STREAM_NOT_STARTED,
                       "SetDocumentCharset called too late.");
       NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
@@ -239,7 +239,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
     void DoStopRequest();
     
-    void DoDataAvailable(PRUint8* aBuffer, PRUint32 aLength);
+    void DoDataAvailable(uint8_t* aBuffer, uint32_t aLength);
 
     bool IsTerminatedOrInterrupted() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
@@ -261,40 +261,22 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    nsresult SniffStreamBytes(const PRUint8* aFromSegment,
-                              PRUint32 aCount,
-                              PRUint32* aWriteCount);
+    nsresult SniffStreamBytes(const uint8_t* aFromSegment,
+                              uint32_t aCount,
+                              uint32_t* aWriteCount);
 
     
 
 
-    nsresult WriteStreamBytes(const PRUint8* aFromSegment,
-                              PRUint32 aCount,
-                              PRUint32* aWriteCount);
+    nsresult WriteStreamBytes(const uint8_t* aFromSegment,
+                              uint32_t aCount,
+                              uint32_t* aWriteCount);
 
     
 
 
-    void SniffBOMlessUTF16BasicLatin(const PRUint8* aFromSegment,
-                                     PRUint32 aCountToSniffingLimit);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    nsresult FinalizeSniffing(const PRUint8* aFromSegment,
-                              PRUint32 aCount,
-                              PRUint32* aWriteCount,
-                              PRUint32 aCountToSniffingLimit);
+    void SniffBOMlessUTF16BasicLatin(const uint8_t* aFromSegment,
+                                     uint32_t aCountToSniffingLimit);
 
     
 
@@ -307,9 +289,12 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-    nsresult SetupDecodingAndWriteSniffingBufferAndCurrentSegment(const PRUint8* aFromSegment,
-                                                                  PRUint32 aCount,
-                                                                  PRUint32* aWriteCount);
+
+
+    nsresult FinalizeSniffing(const uint8_t* aFromSegment,
+                              uint32_t aCount,
+                              uint32_t* aWriteCount,
+                              uint32_t aCountToSniffingLimit);
 
     
 
@@ -322,9 +307,24 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-    nsresult WriteSniffingBufferAndCurrentSegment(const PRUint8* aFromSegment,
-                                                  PRUint32 aCount,
-                                                  PRUint32* aWriteCount);
+    nsresult SetupDecodingAndWriteSniffingBufferAndCurrentSegment(const uint8_t* aFromSegment,
+                                                                  uint32_t aCount,
+                                                                  uint32_t* aWriteCount);
+
+    
+
+
+
+
+
+
+
+
+
+
+    nsresult WriteSniffingBufferAndCurrentSegment(const uint8_t* aFromSegment,
+                                                  uint32_t aCount,
+                                                  uint32_t* aWriteCount);
 
     
 
@@ -376,12 +376,12 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    nsAutoArrayPtr<PRUint8>       mSniffingBuffer;
+    nsAutoArrayPtr<uint8_t>       mSniffingBuffer;
 
     
 
 
-    PRUint32                      mSniffingLength;
+    uint32_t                      mSniffingLength;
 
     
 
@@ -397,7 +397,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    PRInt32                       mCharsetSource;
+    int32_t                       mCharsetSource;
 
     
 
@@ -538,14 +538,14 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-    static PRInt32                sTimerInitialDelay;
+    static int32_t                sTimerInitialDelay;
 
     
 
 
 
 
-    static PRInt32                sTimerSubsequentDelay;
+    static int32_t                sTimerSubsequentDelay;
 };
 
 #endif 

@@ -41,32 +41,32 @@ protected:
 
   
   nsresult ParseOptions(const nsAString& aOptions, Version* version,
-                        PRUint32* bpp);
+                        uint32_t* bpp);
   
-  void ConvertHostARGBRow(const PRUint8* aSrc, PRUint8* aDest,
-                          PRUint32 aPixelWidth);
+  void ConvertHostARGBRow(const uint8_t* aSrc, uint8_t* aDest,
+                          uint32_t aPixelWidth);
   
   void NotifyListener();
 
   
-  void InitFileHeader(Version aVersion, PRUint32 aBPP, PRUint32 aWidth,
-                      PRUint32 aHeight);
+  void InitFileHeader(Version aVersion, uint32_t aBPP, uint32_t aWidth,
+                      uint32_t aHeight);
   
-  void InitInfoHeader(Version aVersion, PRUint32 aBPP, PRUint32 aWidth,
-                      PRUint32 aHeight);
+  void InitInfoHeader(Version aVersion, uint32_t aBPP, uint32_t aWidth,
+                      uint32_t aHeight);
 
   
   void EncodeFileHeader();
   
   void EncodeInfoHeader();
   
-  void EncodeImageDataRow24(const PRUint8* aData);
+  void EncodeImageDataRow24(const uint8_t* aData);
   
-  void EncodeImageDataRow32(const PRUint8* aData);
+  void EncodeImageDataRow32(const uint8_t* aData);
   
-  inline PRInt32 GetCurrentImageBufferOffset()
+  inline int32_t GetCurrentImageBufferOffset()
   {
-    return static_cast<PRInt32>(mImageBufferCurr - mImageBufferStart);
+    return static_cast<int32_t>(mImageBufferCurr - mImageBufferStart);
   }
 
   
@@ -75,17 +75,17 @@ protected:
   mozilla::image::BITMAPV5HEADER mBMPInfoHeader;
 
   
-  PRUint8* mImageBufferStart;
+  uint8_t* mImageBufferStart;
   
-  PRUint8* mImageBufferCurr;
+  uint8_t* mImageBufferCurr;
   
-  PRUint32 mImageBufferSize;
+  uint32_t mImageBufferSize;
   
-  PRUint32 mImageBufferReadPoint;
+  uint32_t mImageBufferReadPoint;
   
   bool mFinished;
 
   nsCOMPtr<nsIInputStreamCallback> mCallback;
   nsCOMPtr<nsIEventTarget> mCallbackTarget;
-  PRUint32 mNotifyThreshold;
+  uint32_t mNotifyThreshold;
 };

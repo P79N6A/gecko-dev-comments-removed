@@ -105,7 +105,7 @@ nsHTMLDNSPrefetch::IsAllowed (nsIDocument *aDocument)
 }
 
 nsresult
-nsHTMLDNSPrefetch::Prefetch(Link *aElement, PRUint16 flags)
+nsHTMLDNSPrefetch::Prefetch(Link *aElement, uint16_t flags)
 {
   if (!(sInitialized && sPrefetches && sDNSService && sDNSListener))
     return NS_ERROR_NOT_AVAILABLE;
@@ -132,7 +132,7 @@ nsHTMLDNSPrefetch::PrefetchHigh(Link *aElement)
 }
 
 nsresult
-nsHTMLDNSPrefetch::Prefetch(const nsAString &hostname, PRUint16 flags)
+nsHTMLDNSPrefetch::Prefetch(const nsAString &hostname, uint16_t flags)
 {
   if (IsNeckoChild()) {
     
@@ -174,7 +174,7 @@ nsHTMLDNSPrefetch::PrefetchHigh(const nsAString &hostname)
 
 nsresult
 nsHTMLDNSPrefetch::CancelPrefetch(Link *aElement,
-                                  PRUint16 flags,
+                                  uint16_t flags,
                                   nsresult aReason)
 {
   if (!(sInitialized && sPrefetches && sDNSService && sDNSListener))
@@ -188,7 +188,7 @@ nsHTMLDNSPrefetch::CancelPrefetch(Link *aElement,
 
 nsresult
 nsHTMLDNSPrefetch::CancelPrefetch(const nsAString &hostname,
-                                  PRUint16 flags,
+                                  uint16_t flags,
                                   nsresult aReason)
 {
   
@@ -277,7 +277,7 @@ nsHTMLDNSPrefetch::nsDeferrals::Flush()
 }
 
 nsresult
-nsHTMLDNSPrefetch::nsDeferrals::Add(PRUint16 flags, Link *aElement)
+nsHTMLDNSPrefetch::nsDeferrals::Add(uint16_t flags, Link *aElement)
 {
   
   NS_ASSERTION(NS_IsMainThread(), "nsDeferrals::Add must be on main thread");
@@ -386,7 +386,7 @@ nsHTMLDNSPrefetch::nsDeferrals::Tick(nsITimer *aTimer, void *aClosure)
 NS_IMETHODIMP 
 nsHTMLDNSPrefetch::nsDeferrals::OnStateChange(nsIWebProgress* aWebProgress, 
                                               nsIRequest *aRequest, 
-                                              PRUint32 progressStateFlags, 
+                                              uint32_t progressStateFlags, 
                                               nsresult aStatus)
 {
   
@@ -413,10 +413,10 @@ nsHTMLDNSPrefetch::nsDeferrals::OnStateChange(nsIWebProgress* aWebProgress,
 NS_IMETHODIMP
 nsHTMLDNSPrefetch::nsDeferrals::OnProgressChange(nsIWebProgress *aProgress,
                                                  nsIRequest *aRequest, 
-                                                 PRInt32 curSelfProgress, 
-                                                 PRInt32 maxSelfProgress, 
-                                                 PRInt32 curTotalProgress, 
-                                                 PRInt32 maxTotalProgress)
+                                                 int32_t curSelfProgress, 
+                                                 int32_t maxSelfProgress, 
+                                                 int32_t curTotalProgress, 
+                                                 int32_t maxTotalProgress)
 {
   return NS_OK;
 }
@@ -425,7 +425,7 @@ NS_IMETHODIMP
 nsHTMLDNSPrefetch::nsDeferrals::OnLocationChange(nsIWebProgress* aWebProgress,
                                                  nsIRequest* aRequest,
                                                  nsIURI *location,
-                                                 PRUint32 aFlags)
+                                                 uint32_t aFlags)
 {
   return NS_OK;
 }
@@ -442,7 +442,7 @@ nsHTMLDNSPrefetch::nsDeferrals::OnStatusChange(nsIWebProgress* aWebProgress,
 NS_IMETHODIMP 
 nsHTMLDNSPrefetch::nsDeferrals::OnSecurityChange(nsIWebProgress *aWebProgress, 
                                                  nsIRequest *aRequest, 
-                                                 PRUint32 state)
+                                                 uint32_t state)
 {
   return NS_OK;
 }

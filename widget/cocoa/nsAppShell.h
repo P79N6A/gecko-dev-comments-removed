@@ -68,9 +68,9 @@ public:
   NS_IMETHOD Run(void);
   NS_IMETHOD Exit(void);
   NS_IMETHOD OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
-                                PRUint32 aRecursionDepth);
+                                uint32_t aRecursionDepth);
   NS_IMETHOD AfterProcessNextEvent(nsIThreadInternal *aThread,
-                                   PRUint32 aRecursionDepth);
+                                   uint32_t aRecursionDepth);
 
   
   void WillTerminate();
@@ -100,18 +100,18 @@ protected:
 
   
   
-  PRUint32               mHadMoreEventsCount;
+  uint32_t               mHadMoreEventsCount;
   
   
   
   
   
-  static const PRUint32  kHadMoreEventsCountMax = 3;
+  static const uint32_t  kHadMoreEventsCountMax = 3;
 
-  PRInt32            mRecursionDepth;
-  PRInt32            mNativeEventCallbackDepth;
+  int32_t            mRecursionDepth;
+  int32_t            mNativeEventCallbackDepth;
   
-  PRInt32            mNativeEventScheduledDepth;
+  int32_t            mNativeEventScheduledDepth;
 };
 
 #endif 

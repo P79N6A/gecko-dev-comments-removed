@@ -45,7 +45,7 @@ public:
   
   
   
-  static PRInt32 sIndexingMenuLevel;
+  static int32_t sIndexingMenuLevel;
 
   NS_DECL_CHANGEOBSERVER
 
@@ -55,10 +55,10 @@ public:
 
   
   nsresult       Create(nsMenuObjectX* aParent, nsMenuGroupOwnerX* aMenuGroupOwner, nsIContent* aNode);
-  PRUint32       GetItemCount();
-  nsMenuObjectX* GetItemAt(PRUint32 aPos);
-  nsresult       GetVisibleItemCount(PRUint32 &aCount);
-  nsMenuObjectX* GetVisibleItemAt(PRUint32 aPos);
+  uint32_t       GetItemCount();
+  nsMenuObjectX* GetItemAt(uint32_t aPos);
+  nsresult       GetVisibleItemCount(uint32_t &aCount);
+  nsMenuObjectX* GetVisibleItemAt(uint32_t aPos);
   nsEventStatus  MenuOpened();
   void           MenuClosed();
   void           SetRebuild(bool aMenuEvent);
@@ -83,7 +83,7 @@ protected:
 
   nsTArray< nsAutoPtr<nsMenuObjectX> > mMenuObjectsArray;
   nsString                  mLabel;
-  PRUint32                  mVisibleItemsCount; 
+  uint32_t                  mVisibleItemsCount; 
   nsMenuObjectX*            mParent; 
   nsMenuGroupOwnerX*        mMenuGroupOwner; 
   

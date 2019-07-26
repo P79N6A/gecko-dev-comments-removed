@@ -50,42 +50,42 @@ typedef enum {
 typedef struct gif_struct {
     
     gstate state;                   
-    PRUint32 bytes_to_consume;      
-    PRUint32 bytes_in_hold;         
+    uint32_t bytes_to_consume;      
+    uint32_t bytes_in_hold;         
 
     
-    PRUint8 *stackp;              
+    uint8_t *stackp;              
     int datasize;
     int codesize;
     int codemask;
     int avail;                  
     int oldcode;
-    PRUint8 firstchar;
+    uint8_t firstchar;
     int count;                  
     int bits;                   
-    PRInt32 datum;              
+    int32_t datum;              
 
     
     int ipass;                  
-    PRUintn rows_remaining;        
-    PRUintn irow;                  
-    PRUint8 *rowp;                 
+    unsigned rows_remaining;        
+    unsigned irow;                  
+    uint8_t *rowp;                 
 
     
-    PRUintn x_offset, y_offset;    
-    PRUintn height, width;
+    unsigned x_offset, y_offset;    
+    unsigned height, width;
     int tpixel;                 
-    PRInt32 disposal_method;    
-    PRUint32 *local_colormap;   
+    int32_t disposal_method;    
+    uint32_t *local_colormap;   
     int local_colormap_size;    
-    PRUint32 delay_time;        
+    uint32_t delay_time;        
 
 
     
     int version;                
-    PRUintn screen_width;       
-    PRUintn screen_height;
-    PRUint32 global_colormap_depth;  
+    unsigned screen_width;       
+    unsigned screen_height;
+    uint32_t global_colormap_depth;  
     int images_decoded;         
     int loop_count;             
 
@@ -94,11 +94,11 @@ typedef struct gif_struct {
     bool interlaced;             
     bool is_transparent;         
 
-    PRUint16  prefix[MAX_BITS];          
-    PRUint8   hold[MAX_HOLD_SIZE];       
-    PRUint32  global_colormap[MAX_COLORS];   
-    PRUint8   suffix[MAX_BITS];          
-    PRUint8   stack[MAX_BITS];           
+    uint16_t  prefix[MAX_BITS];          
+    uint8_t   hold[MAX_HOLD_SIZE];       
+    uint32_t  global_colormap[MAX_COLORS];   
+    uint8_t   suffix[MAX_BITS];          
+    uint8_t   stack[MAX_BITS];           
 
 } gif_struct;
 

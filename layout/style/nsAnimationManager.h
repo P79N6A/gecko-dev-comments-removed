@@ -28,7 +28,7 @@ struct AnimationEventInfo {
 
   AnimationEventInfo(mozilla::dom::Element *aElement,
                      const nsString& aAnimationName,
-                     PRUint32 aMessage, mozilla::TimeDuration aElapsedTime)
+                     uint32_t aMessage, mozilla::TimeDuration aElapsedTime)
     : mElement(aElement),
       mEvent(true, aMessage, aAnimationName, aElapsedTime.ToSeconds())
   {
@@ -72,9 +72,9 @@ struct ElementAnimation
 
   nsString mName; 
   float mIterationCount; 
-  PRUint8 mDirection;
-  PRUint8 mFillMode;
-  PRUint8 mPlayState;
+  uint8_t mDirection;
+  uint8_t mFillMode;
+  uint8_t mPlayState;
 
   bool FillsForwards() const {
     return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
@@ -90,20 +90,19 @@ struct ElementAnimation
   }
 
   bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
-  bool CanPerformOnCompositor(mozilla::dom::Element* aElement,
-                              mozilla::TimeStamp aTime) const;
+  bool IsRunningAt(mozilla::TimeStamp aTime) const;
 
   mozilla::TimeStamp mStartTime; 
   mozilla::TimeStamp mPauseStart;
   mozilla::TimeDuration mIterationDuration;
 
   enum {
-    LAST_NOTIFICATION_NONE = PRUint32(-1),
-    LAST_NOTIFICATION_END = PRUint32(-2)
+    LAST_NOTIFICATION_NONE = uint32_t(-1),
+    LAST_NOTIFICATION_END = uint32_t(-2)
   };
   
   
-  PRUint32 mLastNotification;
+  uint32_t mLastNotification;
 
   InfallibleTArray<AnimationProperty> mProperties;
 };
@@ -133,7 +132,7 @@ struct ElementAnimations : public mozilla::css::CommonElementAnimationData
                                        TimeStamp aCurrentTime,
                                        TimeDuration aDuration,
                                        double aIterationCount,
-                                       PRUint32 aDirection,
+                                       uint32_t aDirection,
                                        bool IsForElement = true,
                                        ElementAnimation* aAnimation = nullptr,
                                        ElementAnimations* aEa = nullptr,
@@ -154,16 +153,6 @@ struct ElementAnimations : public mozilla::css::CommonElementAnimationData
   
   bool CanPerformOnCompositorThread() const;
   bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
-  
-  
-  
-  
-  
-  
-  
-  nsRefPtr<mozilla::css::AnimValuesStyleRule> mStyleRule;
-  
-  TimeStamp mStyleRuleRefreshTime;
 
   
   

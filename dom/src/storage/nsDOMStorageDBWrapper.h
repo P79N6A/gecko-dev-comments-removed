@@ -90,9 +90,9 @@ public:
          const nsAString& aKey,
          const nsAString& aValue,
          bool aSecure,
-         PRInt32 aQuota,
+         int32_t aQuota,
          bool aExcludeOfflineFromUsage,
-         PRInt32* aNewUsage);
+         int32_t* aNewUsage);
 
   
 
@@ -110,7 +110,7 @@ public:
   RemoveKey(DOMStorageImpl* aStorage,
             const nsAString& aKey,
             bool aExcludeOfflineFromUsage,
-            PRInt32 aKeyUsage);
+            int32_t aKeyUsage);
 
   
 
@@ -148,13 +148,13 @@ public:
 
 
   nsresult
-  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
+  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, int32_t *aUsage);
 
   
 
 
   nsresult
-  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, PRInt32 *aUsage, bool aPrivate);
+  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, int32_t *aUsage, bool aPrivate);
 
   
 

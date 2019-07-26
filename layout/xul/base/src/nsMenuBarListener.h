@@ -36,7 +36,7 @@ public:
   nsresult Blur(nsIDOMEvent* aEvent);
   nsresult MouseDown(nsIDOMEvent* aMouseEvent);
 
-  static nsresult GetMenuAccessKey(PRInt32* aAccessKey);
+  static nsresult GetMenuAccessKey(int32_t* aAccessKey);
   
   NS_DECL_ISUPPORTS
 
@@ -45,7 +45,7 @@ public:
 protected:
   static void InitAccessKey();
 
-  static PRUint32 GetModifiers(nsIDOMKeyEvent* event);
+  static uint32_t GetModifiers(nsIDOMKeyEvent* event);
 
   
   
@@ -57,8 +57,8 @@ protected:
   
   bool mAccessKeyDownCanceled;
   static bool mAccessKeyFocuses; 
-  static PRInt32 mAccessKey;     
-  static PRUint32 mAccessKeyMask;
+  static int32_t mAccessKey;     
+  static uint32_t mAccessKeyMask;
 };
 
 

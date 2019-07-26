@@ -15,9 +15,9 @@ struct nsQuoteNode : public nsGenConNode {
   const nsStyleContentType mType;
 
   
-  PRInt32 mDepthBefore;
+  int32_t mDepthBefore;
 
-  nsQuoteNode(nsStyleContentType& aType, PRUint32 aContentIndex)
+  nsQuoteNode(nsStyleContentType& aType, uint32_t aContentIndex)
     : nsGenConNode(aContentIndex)
     , mType(aType)
     , mDepthBefore(0)
@@ -53,12 +53,12 @@ struct nsQuoteNode : public nsGenConNode {
   
   
   
-  PRInt32 Depth() {
+  int32_t Depth() {
     return IsOpenQuote() ? mDepthBefore : mDepthBefore - 1;
   }
 
   
-  PRInt32 DepthAfter() {
+  int32_t DepthAfter() {
     return IsOpenQuote() ? mDepthBefore + 1
                          : (mDepthBefore == 0 ? 0 : mDepthBefore - 1);
   }

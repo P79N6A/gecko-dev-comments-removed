@@ -58,9 +58,9 @@ public:
 
 
   
-  static const PRInt8 kClockValueAllowSign       = 1;
+  static const int8_t kClockValueAllowSign       = 1;
   
-  static const PRInt8 kClockValueAllowIndefinite = 2;
+  static const int8_t kClockValueAllowIndefinite = 2;
 
   
 
@@ -90,7 +90,7 @@ public:
 
   static nsresult ParseClockValue(const nsAString& aSpec,
                                   nsSMILTimeValue* aResult,
-                                  PRUint32 aFlags = 0,
+                                  uint32_t aFlags = 0,
                                   bool* aIsMedia = nullptr);
 
   
@@ -100,7 +100,7 @@ public:
 
 
 
-  static PRInt32 CheckForNegativeNumber(const nsAString& aStr);
+  static int32_t CheckForNegativeNumber(const nsAString& aStr);
 };
 
 #endif 

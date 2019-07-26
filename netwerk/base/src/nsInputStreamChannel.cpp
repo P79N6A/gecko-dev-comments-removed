@@ -17,9 +17,9 @@ nsInputStreamChannel::OpenContentStream(bool async, nsIInputStream **result,
   
   
 
-  PRInt64 len = ContentLength64();
+  int64_t len = ContentLength64();
   if (len < 0) {
-    PRUint64 avail;
+    uint64_t avail;
     nsresult rv = mContentStream->Available(&avail);
     if (rv == NS_BASE_STREAM_CLOSED) {
       

@@ -199,7 +199,7 @@ public:
 
 
 
-  NS_IMETHOD  SetViewZIndex(nsIView *aView, bool aAutoZIndex, PRInt32 aZindex, bool aTopMost = false) = 0;
+  NS_IMETHOD  SetViewZIndex(nsIView *aView, bool aAutoZIndex, int32_t aZindex, bool aTopMost = false) = 0;
 
   
 
@@ -286,7 +286,7 @@ public:
 
 
 
-  NS_IMETHOD GetLastUserEventTime(PRUint32& aTime)=0;
+  NS_IMETHOD GetLastUserEventTime(uint32_t& aTime)=0;
 
   
 

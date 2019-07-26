@@ -40,9 +40,9 @@ protected:
   nsCOMPtr<nsITreeBoxObject> mTree; 
 
   bool mSuppressed; 
-  PRInt32 mCurrentIndex; 
+  int32_t mCurrentIndex; 
   nsCOMPtr<nsITreeColumn> mCurrentColumn;
-  PRInt32 mShiftSelectPivot; 
+  int32_t mShiftSelectPivot; 
 
   nsTreeRange* mFirstRange; 
 

@@ -175,7 +175,7 @@ public:
 
 
 
-  static PRInt32 CompareTreePosition(nsIContent* aContent1,
+  static int32_t CompareTreePosition(nsIContent* aContent1,
                                      nsIContent* aContent2,
                                      const nsIContent* aCommonAncestor = nullptr)
   {
@@ -188,10 +188,10 @@ public:
 
 
 
-  static PRInt32 DoCompareTreePosition(nsIContent* aContent1,
+  static int32_t DoCompareTreePosition(nsIContent* aContent1,
                                        nsIContent* aContent2,
-                                       PRInt32 aIf1Ancestor,
-                                       PRInt32 aIf2Ancestor,
+                                       int32_t aIf1Ancestor,
+                                       int32_t aIf2Ancestor,
                                        const nsIContent* aCommonAncestor = nullptr);
 
   
@@ -213,7 +213,7 @@ public:
 
 
 
-  static PRInt32 CompareTreePosition(nsIFrame* aFrame1,
+  static int32_t CompareTreePosition(nsIFrame* aFrame1,
                                      nsIFrame* aFrame2,
                                      nsIFrame* aCommonAncestor = nullptr)
   {
@@ -226,10 +226,10 @@ public:
 
 
 
-  static PRInt32 DoCompareTreePosition(nsIFrame* aFrame1,
+  static int32_t DoCompareTreePosition(nsIFrame* aFrame1,
                                        nsIFrame* aFrame2,
-                                       PRInt32 aIf1Ancestor,
-                                       PRInt32 aIf2Ancestor,
+                                       int32_t aIf1Ancestor,
+                                       int32_t aIf2Ancestor,
                                        nsIFrame* aCommonAncestor = nullptr);
 
   
@@ -376,7 +376,7 @@ public:
 
   
   
-  static PRUint8 CombineBreakType(PRUint8 aOrigBreakType, PRUint8 aNewBreakType);
+  static uint8_t CombineBreakType(uint8_t aOrigBreakType, uint8_t aNewBreakType);
 
   
 
@@ -646,13 +646,13 @@ public:
 
   static nsresult PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFrame,
                              const nsRegion& aDirtyRegion, nscolor aBackstop,
-                             PRUint32 aFlags = 0);
+                             uint32_t aFlags = 0);
 
   
 
 
 
-  static PRInt32 GetZIndex(nsIFrame* aFrame);
+  static int32_t GetZIndex(nsIFrame* aFrame);
 
   
 
@@ -669,13 +669,13 @@ public:
   static bool
   BinarySearchForPosition(nsRenderingContext* acx,
                           const PRUnichar* aText,
-                          PRInt32    aBaseWidth,
-                          PRInt32    aBaseInx,
-                          PRInt32    aStartInx,
-                          PRInt32    aEndInx,
-                          PRInt32    aCursorPos,
-                          PRInt32&   aIndex,
-                          PRInt32&   aTextWidth);
+                          int32_t    aBaseWidth,
+                          int32_t    aBaseInx,
+                          int32_t    aStartInx,
+                          int32_t    aEndInx,
+                          int32_t    aCursorPos,
+                          int32_t&   aIndex,
+                          int32_t&   aTextWidth);
 
   class BoxCallback {
   public:
@@ -731,14 +731,14 @@ public:
 
 
   static void GetAllInFlowRects(nsIFrame* aFrame, nsIFrame* aRelativeTo,
-                                RectCallback* aCallback, PRUint32 aFlags = 0);
+                                RectCallback* aCallback, uint32_t aFlags = 0);
   
 
 
 
 
   static void GetAllInFlowPaddingRects(nsIFrame* aFrame, nsIFrame* aRelativeTo,
-                                RectCallback* aCallback, PRUint32 aFlags = 0);
+                                RectCallback* aCallback, uint32_t aFlags = 0);
 
   
 
@@ -748,7 +748,7 @@ public:
 
 
   static nsRect GetAllInFlowRectsUnion(nsIFrame* aFrame, nsIFrame* aRelativeTo,
-                                       PRUint32 aFlags = 0);
+                                       uint32_t aFlags = 0);
 
   
 
@@ -756,7 +756,7 @@ public:
 
   static nsRect GetAllInFlowPaddingRectsUnion(nsIFrame* aFrame,
                                               nsIFrame* aRelativeTo,
-                                              PRUint32 aFlags = 0);
+                                              uint32_t aFlags = 0);
 
   enum {
     EXCLUDE_BLUR_SHADOWS = 0x01
@@ -768,7 +768,7 @@ public:
 
   static nsRect GetTextShadowRectsUnion(const nsRect& aTextAndDecorationsRect,
                                         nsIFrame* aFrame,
-                                        PRUint32 aFlags = 0);
+                                        uint32_t aFlags = 0);
 
   
 
@@ -996,14 +996,14 @@ public:
   static void DrawString(const nsIFrame*      aFrame,
                          nsRenderingContext* aContext,
                          const PRUnichar*     aString,
-                         PRInt32              aLength,
+                         int32_t              aLength,
                          nsPoint              aPoint,
-                         PRUint8              aDirection = NS_STYLE_DIRECTION_INHERIT);
+                         uint8_t              aDirection = NS_STYLE_DIRECTION_INHERIT);
 
   static nscoord GetStringWidth(const nsIFrame*      aFrame,
                                 nsRenderingContext* aContext,
                                 const PRUnichar*     aString,
-                                PRInt32              aLength);
+                                int32_t              aLength);
 
   
 
@@ -1130,7 +1130,7 @@ public:
                                       const nsRect&       aFill,
                                       const nsPoint&      aAnchor,
                                       const nsRect&       aDirty,
-                                      PRUint32            aImageFlags);
+                                      uint32_t            aImageFlags);
 
   
 
@@ -1154,13 +1154,13 @@ public:
                             const nsRect&        aFill,
                             const nsPoint&       aAnchor,
                             const nsRect&        aDirty,
-                            PRUint32             aImageFlags);
+                            uint32_t             aImageFlags);
 
   
 
 
   static gfxRect RectToGfxRect(const nsRect& aRect,
-                               PRInt32 aAppUnitsPerDevPixel);
+                               int32_t aAppUnitsPerDevPixel);
 
   
 
@@ -1206,7 +1206,7 @@ public:
                                           GraphicsFilter       aGraphicsFilter,
                                           const nsPoint&       aDest,
                                           const nsRect*        aDirty,
-                                          PRUint32             aImageFlags,
+                                          uint32_t             aImageFlags,
                                           const nsRect*        aSourceArea = nullptr);
 
   
@@ -1229,7 +1229,7 @@ public:
                                   GraphicsFilter       aGraphicsFilter,
                                   const nsRect&        aDest,
                                   const nsRect&        aDirty,
-                                  PRUint32             aImageFlags,
+                                  uint32_t             aImageFlags,
                                   const nsRect*        aSourceArea = nullptr);
 
   
@@ -1317,7 +1317,7 @@ public:
 
 
 
-  static PRUint32 GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
+  static uint32_t GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
                                           const nsStyleFont* aStyleFont,
                                           nscoord aLetterSpacing);
 
@@ -1424,18 +1424,18 @@ public:
   };
 
   static SurfaceFromElementResult SurfaceFromElement(mozilla::dom::Element *aElement,
-                                                     PRUint32 aSurfaceFlags = 0);
+                                                     uint32_t aSurfaceFlags = 0);
   static SurfaceFromElementResult SurfaceFromElement(nsIImageLoadingContent *aElement,
-                                                     PRUint32 aSurfaceFlags = 0);
+                                                     uint32_t aSurfaceFlags = 0);
   
   
   
   static SurfaceFromElementResult SurfaceFromElement(nsHTMLImageElement *aElement,
-                                                     PRUint32 aSurfaceFlags = 0);
+                                                     uint32_t aSurfaceFlags = 0);
   static SurfaceFromElementResult SurfaceFromElement(nsHTMLCanvasElement *aElement,
-                                                     PRUint32 aSurfaceFlags = 0);
+                                                     uint32_t aSurfaceFlags = 0);
   static SurfaceFromElementResult SurfaceFromElement(nsHTMLVideoElement *aElement,
-                                                     PRUint32 aSurfaceFlags = 0);
+                                                     uint32_t aSurfaceFlags = 0);
 
   
 
@@ -1484,8 +1484,8 @@ public:
 
 
   static nsresult GetFontFacesForText(nsIFrame* aFrame,
-                                      PRInt32 aStartOffset,
-                                      PRInt32 aEndOffset,
+                                      int32_t aStartOffset,
+                                      int32_t aEndOffset,
                                       bool aFollowContinuations,
                                       nsFontFaceList* aFontFaceList);
 
@@ -1593,7 +1593,7 @@ public:
 
 
 
-  static PRUint32 FontSizeInflationEmPerLine() {
+  static uint32_t FontSizeInflationEmPerLine() {
     return sFontSizeInflationEmPerLine;
   }
 
@@ -1601,7 +1601,7 @@ public:
 
 
 
-  static PRUint32 FontSizeInflationMinTwips() {
+  static uint32_t FontSizeInflationMinTwips() {
     return sFontSizeInflationMinTwips;
   }
 
@@ -1609,7 +1609,7 @@ public:
 
 
 
-  static PRUint32 FontSizeInflationLineThreshold() {
+  static uint32_t FontSizeInflationLineThreshold() {
     return sFontSizeInflationLineThreshold;
   }
 
@@ -1617,7 +1617,7 @@ public:
 
 
 
-  static PRInt32 FontSizeInflationMappingIntercept() {
+  static int32_t FontSizeInflationMappingIntercept() {
     return sFontSizeInflationMappingIntercept;
   }
 
@@ -1726,10 +1726,10 @@ public:
 #endif
 
 private:
-  static PRUint32 sFontSizeInflationEmPerLine;
-  static PRUint32 sFontSizeInflationMinTwips;
-  static PRUint32 sFontSizeInflationLineThreshold;
-  static PRInt32 sFontSizeInflationMappingIntercept;
+  static uint32_t sFontSizeInflationEmPerLine;
+  static uint32_t sFontSizeInflationMinTwips;
+  static uint32_t sFontSizeInflationLineThreshold;
+  static int32_t sFontSizeInflationMappingIntercept;
 };
 
 template<typename PointType, typename RectType, typename CoordType>
@@ -1820,7 +1820,7 @@ public:
   nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,
                     const nsAString& aValue);
   nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,
-                    PRInt32 aValue);
+                    int32_t aValue);
 
   NS_DECL_NSIRUNNABLE
 

@@ -121,7 +121,7 @@ public:
 
 
 
-  inline PRUint32 needsTransaction()
+  inline uint32_t needsTransaction()
   {
     MOZ_ASSERT(!NS_IsMainThread());
     

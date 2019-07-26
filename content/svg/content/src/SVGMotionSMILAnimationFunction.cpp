@@ -299,8 +299,8 @@ SVGMotionSMILAnimationFunction::
   
   
   double distanceMultiplier = aIsKeyPoints ? aPath->GetLength() : 1.0;
-  const PRUint32 numPoints = aPointDistances.Length();
-  for (PRUint32 i = 0; i < numPoints; ++i) {
+  const uint32_t numPoints = aPointDistances.Length();
+  for (uint32_t i = 0; i < numPoints; ++i) {
     double curDist = aPointDistances[i] * distanceMultiplier;
     if (!aResult.AppendElement(
           SVGMotionSMILType::ConstructSMILValue(aPath, curDist,
@@ -342,7 +342,7 @@ SVGMotionSMILAnimationFunction::GetValues(const nsISMILAttr& aSMILAttr,
 
 void
 SVGMotionSMILAnimationFunction::
-  CheckValueListDependentAttrs(PRUint32 aNumValues)
+  CheckValueListDependentAttrs(uint32_t aNumValues)
 {
   
   nsSMILAnimationFunction::CheckValueListDependentAttrs(aNumValues);
@@ -448,7 +448,7 @@ SVGMotionSMILAnimationFunction::SetRotate(const nsAString& aRotate,
     mRotateAngle = svgAngle.GetBaseValInSpecifiedUnits();
 
     
-    PRUint8 angleUnit = svgAngle.GetBaseValueUnit();
+    uint8_t angleUnit = svgAngle.GetBaseValueUnit();
     if (angleUnit != nsIDOMSVGAngle::SVG_ANGLETYPE_RAD) {
       mRotateAngle *= nsSVGAngle::GetDegreesPerUnit(angleUnit) /
         nsSVGAngle::GetDegreesPerUnit(nsIDOMSVGAngle::SVG_ANGLETYPE_RAD);

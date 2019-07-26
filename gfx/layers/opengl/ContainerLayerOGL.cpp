@@ -201,7 +201,7 @@ ContainerRender(Container* aContainer,
   
 
 
-  for (PRUint32 i = 0; i < children.Length(); i++) {
+  for (uint32_t i = 0; i < children.Length(); i++) {
     LayerOGL* layerToRender = static_cast<LayerOGL*>(children.ElementAt(i)->ImplData());
 
     if (layerToRender->GetLayer()->GetEffectiveVisibleRegion().IsEmpty()) {
