@@ -117,6 +117,16 @@ ToolSidebar.prototype = {
   
 
 
+
+
+
+  getTab: function ToolSidebar_getTab(id) {
+    return this._tabbox.tabpanels.querySelector("#sidebar-panel-" + id);
+  },
+
+  
+
+
   handleEvent: function ToolSidebar_eventHandler(event) {
     if (event.type == "select") {
       let previousTool = this._currentTool;
@@ -176,7 +186,7 @@ ToolSidebar.prototype = {
     }
     this._destroyed = true;
 
-    this._tabbox.removeEventListener("select", this, true);
+    this._tabbox.tabpanels.removeEventListener("select", this, true);
 
     while (this._tabbox.tabpanels.hasChildNodes()) {
       this._tabbox.tabpanels.removeChild(this._tabbox.tabpanels.firstChild);
