@@ -119,7 +119,7 @@ PowerManagerService::Reboot()
   
   SyncProfile();
   hal::Reboot();
-  MOZ_NOT_REACHED();
+  MOZ_NOT_REACHED("hal::Reboot() shouldn't return");
   return NS_OK;
 }
 
@@ -130,7 +130,7 @@ PowerManagerService::PowerOff()
   
   SyncProfile();
   hal::PowerOff();
-  MOZ_NOT_REACHED();
+  MOZ_NOT_REACHED("hal::PowerOff() shouldn't return");
   return NS_OK;
 }
 
@@ -153,7 +153,7 @@ PowerManagerService::Restart()
   sync();
 #endif
   _exit(0);
-  MOZ_NOT_REACHED();
+  MOZ_NOT_REACHED("_exit() shouldn't return");
   return NS_OK;
 }
 

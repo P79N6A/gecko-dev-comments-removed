@@ -390,7 +390,7 @@ nsScreen::MozLockOrientation(const Sequence<nsString>& aOrientations,
 
   
   
-  MOZ_NOT_REACHED();
+  MOZ_NOT_REACHED("unexpected lock orientation permission value");
   return false;
 }
 
