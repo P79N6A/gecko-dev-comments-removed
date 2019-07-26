@@ -250,7 +250,8 @@ public:
 
   NS_IMETHOD OnFileDoomed(CacheFileHandle *aHandle, nsresult aResult)
   {
-    mListener->OnFileDoomed(aResult);
+    if (mListener)
+      mListener->OnFileDoomed(aResult);
     return NS_OK;
   }
 
@@ -585,6 +586,36 @@ CacheFile::OnFileOpened(CacheFileHandle *aHandle, nsresult aResult)
 {
   nsresult rv;
 
+  
+  
+  class AutoFailDoomListener
+  {
+  public:
+    AutoFailDoomListener(CacheFileHandle *aHandle)
+      : mHandle(aHandle)
+      , mAlreadyDoomed(false)
+    {}
+    ~AutoFailDoomListener()
+    {
+      if (!mListener)
+        return;
+
+      if (mHandle) {
+        if (mAlreadyDoomed) {
+          mListener->OnFileDoomed(mHandle, NS_OK);
+        } else {
+          CacheFileIOManager::DoomFile(mHandle, mListener);
+        }
+      } else {
+        mListener->OnFileDoomed(nullptr, NS_ERROR_NOT_AVAILABLE);
+      }
+    }
+
+    CacheFileHandle* mHandle;
+    nsCOMPtr<CacheFileIOListener> mListener;
+    bool mAlreadyDoomed;
+  } autoDoom(aHandle);
+
   nsCOMPtr<CacheFileListener> listener;
   bool isNew = false;
   nsresult retval = NS_OK;
@@ -604,11 +635,14 @@ CacheFile::OnFileOpened(CacheFileHandle *aHandle, nsresult aResult)
 
     mOpeningFile = false;
 
+    autoDoom.mListener.swap(mDoomAfterOpenListener);
+
     if (mMemoryOnly) {
       
       
 
       
+      autoDoom.mAlreadyDoomed = true;
       return NS_OK;
     }
     else if (NS_FAILED(aResult)) {
@@ -891,13 +925,13 @@ CacheFile::Doom(CacheFileListener *aCallback)
   }
 
   nsCOMPtr<CacheFileIOListener> listener;
-  if (aCallback)
+  if (aCallback || !mHandle) {
     listener = new DoomFileHelper(aCallback);
-
+  }
   if (mHandle) {
     rv = CacheFileIOManager::DoomFile(mHandle, listener);
-  } else {
-    rv = CacheFileIOManager::DoomFileByKey(mKey, listener);
+  } else if (mOpeningFile) {
+    mDoomAfterOpenListener = listener;
   }
 
   return rv;
