@@ -3155,6 +3155,14 @@ RilObject.prototype = {
 
 
   _processICCStatus: function(iccStatus) {
+    
+    
+    
+    
+    if (this._waitingRadioTech) {
+      return;
+    }
+
     this.iccStatus = iccStatus;
     let newCardState;
     let index = this._isCdma ? iccStatus.cdmaSubscriptionAppIndex :
@@ -4295,7 +4303,7 @@ RilObject.prototype = {
         this.getIMEI();
         this.getIMEISV();
       }
-       this.getICCStatus();
+      this.getICCStatus();
     }
   },
 
