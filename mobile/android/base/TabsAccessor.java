@@ -192,7 +192,7 @@ public final class TabsAccessor {
         for (Tab tab : tabs) {
             
             String url = tab.getURL();
-            if (url == null)
+            if (url == null || tab.isPrivate())
                 continue;
 
             ContentValues values = new ContentValues();
