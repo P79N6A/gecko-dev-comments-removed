@@ -210,7 +210,11 @@ Spinner.prototype = {
       try {
         if (typeof condition == "function") {
           
-          condition = condition(topic);
+          try {
+            condition = condition(topic);
+          } catch (ex) {
+            condition = Promise.reject(ex);
+          }
         }
         
         
