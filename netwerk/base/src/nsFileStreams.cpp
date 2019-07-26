@@ -834,21 +834,21 @@ nsFileOutputStream::Init(nsIFile* file, int32_t ioFlags, int32_t perm,
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(nsSafeFileOutputStream,
+NS_IMPL_ISUPPORTS_INHERITED3(nsAtomicFileOutputStream,
                              nsFileOutputStream,
                              nsISafeOutputStream,
                              nsIOutputStream,
                              nsIFileOutputStream)
 
 NS_IMETHODIMP
-nsSafeFileOutputStream::Init(nsIFile* file, int32_t ioFlags, int32_t perm,
+nsAtomicFileOutputStream::Init(nsIFile* file, int32_t ioFlags, int32_t perm,
                              int32_t behaviorFlags)
 {
     return nsFileOutputStream::Init(file, ioFlags, perm, behaviorFlags);
 }
 
 nsresult
-nsSafeFileOutputStream::DoOpen()
+nsAtomicFileOutputStream::DoOpen()
 {
     
     
@@ -896,7 +896,7 @@ nsSafeFileOutputStream::DoOpen()
 }
 
 NS_IMETHODIMP
-nsSafeFileOutputStream::Close()
+nsAtomicFileOutputStream::Close()
 {
     nsresult rv = nsFileOutputStream::Close();
 
@@ -911,9 +911,8 @@ nsSafeFileOutputStream::Close()
 }
 
 NS_IMETHODIMP
-nsSafeFileOutputStream::Finish()
+nsAtomicFileOutputStream::Finish()
 {
-    Flush();
     nsresult rv = nsFileOutputStream::Close();
 
     
@@ -930,7 +929,7 @@ nsSafeFileOutputStream::Finish()
             
             
             
-#ifdef DEBUG      
+#ifdef DEBUG
             bool equal;
             if (NS_FAILED(mTargetFile->Equals(mTempFile, &equal)) || !equal)
                 NS_ERROR("mTempFile not equal to mTargetFile");
@@ -959,7 +958,7 @@ nsSafeFileOutputStream::Finish()
 }
 
 NS_IMETHODIMP
-nsSafeFileOutputStream::Write(const char *buf, uint32_t count, uint32_t *result)
+nsAtomicFileOutputStream::Write(const char *buf, uint32_t count, uint32_t *result)
 {
     nsresult rv = nsFileOutputStream::Write(buf, count, result);
     if (NS_SUCCEEDED(mWriteResult)) {
@@ -970,8 +969,18 @@ nsSafeFileOutputStream::Write(const char *buf, uint32_t count, uint32_t *result)
 
         if (NS_FAILED(mWriteResult) && count > 0)
             NS_WARNING("writing to output stream failed! data may be lost");
-    } 
+    }
     return rv;
+}
+
+
+
+
+NS_IMETHODIMP
+nsSafeFileOutputStream::Finish()
+{
+    (void) Flush();
+    return nsAtomicFileOutputStream::Finish();
 }
 
 

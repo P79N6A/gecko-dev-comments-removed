@@ -397,6 +397,16 @@
 }
 
 
+#define NS_ATOMICLOCALFILEOUTPUTSTREAM_CONTRACTID \
+    "@mozilla.org/network/atomic-file-output-stream;1"
+#define NS_ATOMICLOCALFILEOUTPUTSTREAM_CID           \
+{ /* 6EAE857E-4BA9-11E3-9B39-B4036188709B */         \
+    0x6EAE857E,                                      \
+    0x4BA9,                                          \
+    0x11E3,                                          \
+    {0x9b, 0x39, 0xb4, 0x03, 0x61, 0x88, 0x70, 0x9b} \
+}
+
 #define NS_SAFELOCALFILEOUTPUTSTREAM_CONTRACTID \
     "@mozilla.org/network/safe-file-output-stream;1"
 #define NS_SAFELOCALFILEOUTPUTSTREAM_CID             \

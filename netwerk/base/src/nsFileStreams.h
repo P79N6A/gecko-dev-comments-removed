@@ -225,23 +225,28 @@ public:
 
 
 
-class nsSafeFileOutputStream : public nsFileOutputStream,
-                               public nsISafeOutputStream
+
+
+
+
+
+class nsAtomicFileOutputStream : public nsFileOutputStream,
+                                 public nsISafeOutputStream
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSISAFEOUTPUTSTREAM
 
-    nsSafeFileOutputStream() :
+    nsAtomicFileOutputStream() :
         mTargetFileExists(true),
         mWriteResult(NS_OK) {}
 
-    virtual ~nsSafeFileOutputStream()
+    virtual ~nsAtomicFileOutputStream()
     {
         Close();
     }
 
-    virtual nsresult DoOpen();
+    virtual nsresult DoOpen() MOZ_OVERRIDE;
 
     NS_IMETHODIMP Close();
     NS_IMETHODIMP Write(const char *buf, uint32_t count, uint32_t *result);
@@ -253,6 +258,22 @@ protected:
 
     bool     mTargetFileExists;
     nsresult mWriteResult; 
+
+};
+
+
+
+
+
+
+
+
+
+class nsSafeFileOutputStream : public nsAtomicFileOutputStream
+{
+public:
+
+    NS_IMETHOD Finish();
 };
 
 
