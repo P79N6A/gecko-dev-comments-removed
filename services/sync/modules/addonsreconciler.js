@@ -19,7 +19,7 @@
 
 const Cu = Components.utils;
 
-Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://gre/modules/AddonManager.jsm");
 
@@ -113,9 +113,9 @@ this.EXPORTED_SYMBOLS = ["AddonsReconciler", "CHANGE_INSTALLED",
 
 
 this.AddonsReconciler = function AddonsReconciler() {
-  this._log = Log4Moz.repository.getLogger("Sync.AddonsReconciler");
+  this._log = Log.repository.getLogger("Sync.AddonsReconciler");
   let level = Svc.Prefs.get("log.logger.addonsreconciler", "Debug");
-  this._log.level = Log4Moz.Level[level];
+  this._log.level = Log.Level[level];
 
   Svc.Obs.add("xpcom-shutdown", this.stopListening, this);
 };

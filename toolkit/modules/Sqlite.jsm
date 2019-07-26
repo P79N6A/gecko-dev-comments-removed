@@ -14,7 +14,7 @@ Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://gre/modules/Log.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
                                   "resource://gre/modules/AsyncShutdown.jsm");
@@ -66,7 +66,7 @@ let connectionCounters = new Map();
 
 
 function openConnection(options) {
-  let log = Log4Moz.repository.getLogger("Sqlite.ConnectionOpener");
+  let log = Log.repository.getLogger("Sqlite.ConnectionOpener");
 
   if (!options.path) {
     throw new Error("path not specified in connection options.");
@@ -173,7 +173,7 @@ function openConnection(options) {
 
 
 function OpenedConnection(connection, basename, number, options) {
-  let log = Log4Moz.repository.getLogger("Sqlite.Connection." + basename);
+  let log = Log.repository.getLogger("Sqlite.Connection." + basename);
 
   
   
@@ -183,7 +183,7 @@ function OpenedConnection(connection, basename, number, options) {
   let logProxy = {__proto__: log};
 
   
-  for (let level in Log4Moz.Level) {
+  for (let level in Log.Level) {
     if (level == "Desc") {
       continue;
     }
@@ -745,7 +745,7 @@ OpenedConnection.prototype = Object.freeze({
 
     
     
-    if (this._log.level <= Log4Moz.Level.Trace) {
+    if (this._log.level <= Log.Level.Trace) {
       let msg = "Stmt #" + index + " " + sql;
 
       if (params) {
