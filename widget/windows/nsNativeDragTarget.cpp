@@ -23,9 +23,6 @@ using namespace mozilla;
 using namespace mozilla::widget;
 
 
-static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
-
-
 static NS_DEFINE_IID(kIDragServiceIID, NS_IDRAGSERVICE_IID);
 
 
@@ -40,6 +37,8 @@ nsNativeDragTarget::nsNativeDragTarget(nsIWidget * aWidget)
     mEffectsPreferred(DROPEFFECT_NONE),
     mTookOwnRef(false), mWidget(aWidget), mDropTargetHelper(nullptr)
 {
+  static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
+
   mHWnd = (HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW);
 
   

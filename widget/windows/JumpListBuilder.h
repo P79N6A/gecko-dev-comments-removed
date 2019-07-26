@@ -12,6 +12,7 @@
 #define NTDDI_VERSION NTDDI_WIN7
 
 #include <shobjidl.h>
+#undef LogSeverity // SetupAPI.h #defines this as DWORD
 
 #include "nsString.h"
 #include "nsIMutableArray.h"

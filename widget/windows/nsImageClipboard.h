@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsImageClipboard_h
+#define nsImageClipboard_h
+
 
 
 
@@ -86,3 +89,5 @@ private:
   void CalcBitShift(bitFields * aColorMask);
 
 }; 
+
+#endif

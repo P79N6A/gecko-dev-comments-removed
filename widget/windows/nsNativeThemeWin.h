@@ -4,6 +4,9 @@
 
 
 
+#ifndef nsNativeThemeWin_h
+#define nsNativeThemeWin_h
+
 #include "nsITheme.h"
 #include "nsCOMPtr.h"
 #include "nsIAtom.h"
@@ -118,3 +121,5 @@ private:
   TimeStamp mProgressDeterminateTimeStamp;
   TimeStamp mProgressIndeterminateTimeStamp;
 };
+
+#endif
