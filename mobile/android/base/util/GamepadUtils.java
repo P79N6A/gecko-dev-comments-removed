@@ -18,6 +18,7 @@ public final class GamepadUtils {
     private static final int SONY_XPERIA_GAMEPAD_DEVICE_ID = 196611;
 
     private static View.OnKeyListener sClickDispatcher;
+    private static float sDeadZoneThresholdOverride = 1e-2f;
 
     private GamepadUtils() {
     }
@@ -42,11 +43,19 @@ public final class GamepadUtils {
     }
 
     public static boolean isValueInDeadZone(MotionEvent event, int axis) {
+        if (Build.VERSION.SDK_INT < 9) {
+            return false;
+        }
+
+        float threshold;
+        if (sDeadZoneThresholdOverride >= 0) {
+            threshold = sDeadZoneThresholdOverride;
+        } else {
+            InputDevice.MotionRange range = event.getDevice().getMotionRange(axis);
+            threshold = range.getFlat() + range.getFuzz();
+        }
         float value = event.getAxisValue(axis);
-        
-        
-        
-        return (Math.abs(value) < 1e-2);
+        return (Math.abs(value) < threshold);
     }
 
     public static boolean isPanningControl(MotionEvent event) {
