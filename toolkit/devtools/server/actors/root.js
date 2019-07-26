@@ -185,6 +185,10 @@ RootActor.prototype = {
         
         urlToImageDataResolver: true,
         networkMonitor: true,
+        
+        storageInspector: true,
+        
+        storageInspectorReadOnly: true,
       }
     };
   },
