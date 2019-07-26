@@ -1301,16 +1301,22 @@ nsNavHistoryContainerResultNode::FindChildURI(const nsACString& aSpec,
 
 
 
+
+
+
+
+
 nsresult
 nsNavHistoryContainerResultNode::InsertChildAt(nsNavHistoryResultNode* aNode,
-                                               int32_t aIndex)
+                                               int32_t aIndex,
+                                               bool aIsTemporary)
 {
   nsNavHistoryResult* result = GetResult();
   NS_ENSURE_STATE(result);
 
   aNode->mParent = this;
   aNode->mIndentLevel = mIndentLevel + 1;
-  if (aNode->IsContainer()) {
+  if (!aIsTemporary && aNode->IsContainer()) {
     
     nsNavHistoryContainerResultNode* container = aNode->GetAsContainer();
     container->mResult = result;
@@ -1321,18 +1327,20 @@ nsNavHistoryContainerResultNode::InsertChildAt(nsNavHistoryResultNode* aNode,
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  mAccessCount += aNode->mAccessCount;
-  if (mTime < aNode->mTime)
-    mTime = aNode->mTime;
-  if (!mParent || mParent->AreChildrenVisible()) {
-    NOTIFY_RESULT_OBSERVERS(result,
-                            NodeHistoryDetailsChanged(TO_ICONTAINER(this),
-                                                      mTime,
-                                                      mAccessCount));
-  }
+  if (!aIsTemporary) {
+    mAccessCount += aNode->mAccessCount;
+    if (mTime < aNode->mTime)
+      mTime = aNode->mTime;
+    if (!mParent || mParent->AreChildrenVisible()) {
+      NOTIFY_RESULT_OBSERVERS(result,
+                              NodeHistoryDetailsChanged(TO_ICONTAINER(this),
+                                                        mTime,
+                                                        mAccessCount));
+    }
 
-  nsresult rv = ReverseUpdateStats(aNode->mAccessCount);
-  NS_ENSURE_SUCCESS(rv, rv);
+    nsresult rv = ReverseUpdateStats(aNode->mAccessCount);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   
@@ -1350,12 +1358,12 @@ nsNavHistoryContainerResultNode::InsertChildAt(nsNavHistoryResultNode* aNode,
 
 nsresult
 nsNavHistoryContainerResultNode::InsertSortedChild(
-    nsNavHistoryResultNode* aNode,
-    bool aIgnoreDuplicates)
+    nsNavHistoryResultNode* aNode, 
+    bool aIsTemporary, bool aIgnoreDuplicates)
 {
 
   if (mChildren.Count() == 0)
-    return InsertChildAt(aNode, 0);
+    return InsertChildAt(aNode, 0, aIsTemporary);
 
   SortComparator comparator = GetSortingComparator(GetSortType());
   if (comparator) {
@@ -1365,7 +1373,7 @@ nsNavHistoryContainerResultNode::InsertSortedChild(
     
     
     
-    if (aNode->IsContainer()) {
+    if (!aIsTemporary && aNode->IsContainer()) {
       
       nsNavHistoryContainerResultNode* container = aNode->GetAsContainer();
       container->mResult = mResult;
@@ -1381,9 +1389,9 @@ nsNavHistoryContainerResultNode::InsertSortedChild(
     if (aIgnoreDuplicates && itemExists)
       return NS_OK;
 
-    return InsertChildAt(aNode, position);
+    return InsertChildAt(aNode, position, aIsTemporary);
   }
-  return InsertChildAt(aNode, mChildren.Count());
+  return InsertChildAt(aNode, mChildren.Count(), aIsTemporary);
 }
 
 
@@ -1430,8 +1438,14 @@ nsNavHistoryContainerResultNode::EnsureItemPosition(uint32_t aIndex) {
 
 
 
+
+
+
+
+
 nsresult
-nsNavHistoryContainerResultNode::RemoveChildAt(int32_t aIndex)
+nsNavHistoryContainerResultNode::RemoveChildAt(int32_t aIndex,
+                                               bool aIsTemporary)
 {
   NS_ASSERTION(aIndex >= 0 && aIndex < mChildren.Count(), "Invalid index");
 
@@ -1439,10 +1453,12 @@ nsNavHistoryContainerResultNode::RemoveChildAt(int32_t aIndex)
   nsRefPtr<nsNavHistoryResultNode> oldNode = mChildren[aIndex];
 
   
-  MOZ_ASSERT(mAccessCount >= mChildren[aIndex]->mAccessCount,
-             "Invalid access count while updating!");
-  uint32_t oldAccessCount = mAccessCount;
-  mAccessCount -= mChildren[aIndex]->mAccessCount;
+  uint32_t oldAccessCount = 0;
+  if (!aIsTemporary) {
+    oldAccessCount = mAccessCount;
+    mAccessCount -= mChildren[aIndex]->mAccessCount;
+    NS_ASSERTION(mAccessCount >= 0, "Invalid access count while updating!");
+  }
 
   
   mChildren.RemoveObjectAt(aIndex);
@@ -1452,9 +1468,11 @@ nsNavHistoryContainerResultNode::RemoveChildAt(int32_t aIndex)
                             NodeRemoved(this, oldNode, aIndex));
   }
 
-  nsresult rv = ReverseUpdateStats(mAccessCount - oldAccessCount);
-  NS_ENSURE_SUCCESS(rv, rv);
-  oldNode->OnRemoving();
+  if (!aIsTemporary) {
+    nsresult rv = ReverseUpdateStats(mAccessCount - oldAccessCount);
+    NS_ENSURE_SUCCESS(rv, rv);
+    oldNode->OnRemoving();
+  }
   return NS_OK;
 }
 
@@ -2567,7 +2585,7 @@ nsNavHistoryQueryResultNode::OnTitleChanged(nsIURI* aURI,
       rv = history->URIToResultNode(aURI, mOptions, getter_AddRefs(node));
       NS_ENSURE_SUCCESS(rv, rv);
       if (history->EvaluateQueryForNode(mQueries, mOptions, node)) {
-        rv = InsertSortedChild(node);
+        rv = InsertSortedChild(node, true);
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }
@@ -2780,7 +2798,7 @@ nsNavHistoryQueryResultNode::NotifyIfTagsChanged(nsIURI* aURI)
     rv = history->URIToResultNode(aURI, mOptions, getter_AddRefs(node));
     NS_ENSURE_SUCCESS(rv, rv);
     if (history->EvaluateQueryForNode(mQueries, mOptions, node)) {
-      rv = InsertSortedChild(node);
+      rv = InsertSortedChild(node, true);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -3615,7 +3633,7 @@ nsNavHistoryFolderResultNode::OnItemAdded(int64_t aItemId,
   }
 
   
-  return InsertSortedChild(node);
+  return InsertSortedChild(node, false);
 }
 
 
