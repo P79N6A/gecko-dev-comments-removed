@@ -2660,7 +2660,7 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
   nsCookieAttributes cookieAttributes;
 
   
-  cookieAttributes.expiryTime = LL_MAXINT;
+  cookieAttributes.expiryTime = INT64_MAX;
 
   
   
@@ -3437,7 +3437,7 @@ nsCookieService::RemoveAllFromMemory()
   
   mDBState->hostTable.Clear();
   mDBState->cookieCount = 0;
-  mDBState->cookieOldestTime = LL_MAXINT;
+  mDBState->cookieOldestTime = INT64_MAX;
 }
 
 
@@ -3453,7 +3453,7 @@ struct nsPurgeData
               mozIStorageBindingParamsArray *aParamsArray)
    : currentTime(aCurrentTime)
    , purgeTime(aPurgeTime)
-   , oldestTime(LL_MAXINT)
+   , oldestTime(INT64_MAX)
    , purgeList(aPurgeList)
    , removedList(aRemovedList)
    , paramsArray(aParamsArray)

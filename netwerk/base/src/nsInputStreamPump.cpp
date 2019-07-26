@@ -292,7 +292,7 @@ nsInputStreamPump::AsyncRead(nsIStreamListener *listener, nsISupports *ctxt)
         
         
         
-        if (mAsyncStream && (mStreamOffset != LL_MAXUINT)) {
+        if (mAsyncStream && (mStreamOffset != UINT64_MAX)) {
             nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mStream);
             if (seekable)
                 seekable->Seek(nsISeekableStream::NS_SEEK_SET, mStreamOffset);

@@ -525,7 +525,7 @@ nsSMILAnimationController::DoMilestoneSamples()
   
   
 
-  nsSMILTime sampleTime = LL_MININT;
+  nsSMILTime sampleTime = INT64_MIN;
 
   while (true) {
     

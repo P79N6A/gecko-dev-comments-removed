@@ -198,16 +198,16 @@ public:
   TimeDuration operator-(const TimeStamp& aOther) const {
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
-    PR_STATIC_ASSERT(-LL_MAXINT > LL_MININT);
+    PR_STATIC_ASSERT(-INT64_MAX > INT64_MIN);
     int64_t ticks = int64_t(mValue - aOther.mValue);
     
     if (mValue > aOther.mValue) {
       if (ticks < 0) {
-        ticks = LL_MAXINT;
+        ticks = INT64_MAX;
       }
     } else {
       if (ticks > 0) {
-        ticks = LL_MININT;
+        ticks = INT64_MIN;
       }
     }
     return TimeDuration::FromTicks(ticks);

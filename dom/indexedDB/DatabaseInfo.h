@@ -42,9 +42,9 @@ struct DatabaseInfoGuts
   
   nsString name;
   nsCString origin;
-  PRUint64 version;
-  PRInt64 nextObjectStoreId;
-  PRInt64 nextIndexId;
+  uint64_t version;
+  int64_t nextObjectStoreId;
+  int64_t nextIndexId;
 };
 
 struct DatabaseInfo : public DatabaseInfoGuts
@@ -92,7 +92,7 @@ struct IndexInfo
   ~IndexInfo();
 #else
   IndexInfo()
-  : id(LL_MININT), keyPath(0), unique(false), multiEntry(false) { }
+  : id(INT64_MIN), keyPath(0), unique(false), multiEntry(false) { }
 #endif
 
   bool operator==(const IndexInfo& aOther) const
@@ -106,7 +106,7 @@ struct IndexInfo
 
   
   nsString name;
-  PRInt64 id;
+  int64_t id;
   KeyPath keyPath;
   bool unique;
   bool multiEntry;
@@ -128,10 +128,11 @@ struct ObjectStoreInfoGuts
 
   
   nsString name;
-  PRInt64 id;
+  int64_t id;
   KeyPath keyPath;
   bool autoIncrement;
 
+  
   
   nsTArray<IndexInfo> indexes;
 };
@@ -157,8 +158,8 @@ public:
 
   
   
-  PRInt64 nextAutoIncrementId;
-  PRInt64 comittedAutoIncrementId;
+  int64_t nextAutoIncrementId;
+  int64_t comittedAutoIncrementId;
 
   
   
@@ -183,7 +184,7 @@ struct IndexUpdateInfo
   };
 
   
-  PRInt64 indexId;
+  int64_t indexId;
   bool indexUnique;
   Key value;
 };

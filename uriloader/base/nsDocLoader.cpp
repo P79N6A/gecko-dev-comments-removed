@@ -1074,7 +1074,7 @@ NS_IMETHODIMP nsDocLoader::OnProgress(nsIRequest *aRequest, nsISupports* ctxt,
       
       
       
-      if (uint64_t(aProgressMax) != LL_MAXUINT) {
+      if (uint64_t(aProgressMax) != UINT64_MAX) {
         mMaxSelfProgress  += int64_t(aProgressMax);
         info->mMaxProgress = int64_t(aProgressMax);
       } else {

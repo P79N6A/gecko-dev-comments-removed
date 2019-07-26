@@ -621,7 +621,7 @@ main(int32_t argc, char *argv[])
                                            false,                             
                                            false,                             
                                            true,                              
-                                           LL_MAXINT));                          
+                                           INT64_MAX));                          
       rv[2] = NS_SUCCEEDED(cookieMgr2->Add(NS_LITERAL_CSTRING("cookiemgr.test"), 
                                            NS_LITERAL_CSTRING("/foo"),           
                                            NS_LITERAL_CSTRING("test2"),          
@@ -637,7 +637,7 @@ main(int32_t argc, char *argv[])
                                            false,                             
                                            false,                             
                                            true,                              
-                                           LL_MAXINT));                          
+                                           INT64_MAX));                          
       
       nsCOMPtr<nsISimpleEnumerator> enumerator;
       rv[4] = NS_SUCCEEDED(cookieMgr->GetEnumerator(getter_AddRefs(enumerator)));
@@ -685,7 +685,7 @@ main(int32_t argc, char *argv[])
                                             false,                             
                                             false,                             
                                             true,                              
-                                            LL_MININT));                          
+                                            INT64_MIN));                          
       rv[13] = NS_SUCCEEDED(cookieMgr2->CookieExists(newDomainCookie, &found)) && !found;
       
       PR_Sleep(4 * PR_TicksPerSecond());

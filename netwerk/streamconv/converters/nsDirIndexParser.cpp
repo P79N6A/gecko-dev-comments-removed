@@ -305,7 +305,7 @@ nsDirIndexParser::ParseData(nsIDirIndex *aIdx, char* aDataStr) {
         if (status == 1)
           aIdx->SetSize(len);
         else
-          aIdx->SetSize(LL_MAXUINT); 
+          aIdx->SetSize(UINT64_MAX); 
       }
       break;
     case FIELD_LASTMODIFIED:

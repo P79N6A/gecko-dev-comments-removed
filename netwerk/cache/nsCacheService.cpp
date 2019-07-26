@@ -926,8 +926,8 @@ nsCacheProfilePrefObserver::MemoryCacheCapacity()
     
     
     
-    if (LL_CMP(bytes, >, LL_MAXINT))
-        bytes = LL_MAXINT;
+    if (LL_CMP(bytes, >, INT64_MAX))
+        bytes = INT64_MAX;
 
     uint64_t kbytes;
     LL_SHR(kbytes, bytes, 10);

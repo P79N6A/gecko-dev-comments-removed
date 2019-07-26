@@ -477,7 +477,7 @@ public:
   {
     DispatchProgressEvent(aTarget, aType, false,
                           aLengthComputable, aLoaded, aTotal,
-                          aLoaded, aLengthComputable ? aTotal : LL_MAXUINT);
+                          aLoaded, aLengthComputable ? aTotal : UINT64_MAX);
   }
 
   

@@ -148,7 +148,7 @@ struct CookieDomainTuple
 
 struct DBState
 {
-  DBState() : cookieCount(0), cookieOldestTime(LL_MAXINT), corruptFlag(OK)
+  DBState() : cookieCount(0), cookieOldestTime(INT64_MAX), corruptFlag(OK)
   {
     hostTable.Init();
   }
