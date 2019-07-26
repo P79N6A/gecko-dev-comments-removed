@@ -6,7 +6,11 @@
 
 "use strict";
 
-let {Cu} = require("chrome");
+let {Ci,Cu} = require("chrome");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+let devtools = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
+let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager", "resource://gre/modules/AddonManager.jsm");
 
@@ -16,6 +20,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonManager", "resource://gre/modules/
 XPCOMUtils.defineLazyGetter(this, "events", () => {
   return devtools.require("sdk/event/core");
 });
+
+
+
+
 
 
 
@@ -1040,9 +1048,15 @@ TabActor.prototype = {
 
 
   hasNativeConsoleAPI: function BTA_hasNativeConsoleAPI(aWindow) {
-    
-    
-    return WebConsoleActor.prototype.hasNativeConsoleAPI(aWindow);
+    let isNative = false;
+    try {
+      
+      
+      let console = aWindow.wrappedJSObject.console;
+      isNative = console instanceof aWindow.Console;
+    }
+    catch (ex) { }
+    return isNative;
   }
 };
 
