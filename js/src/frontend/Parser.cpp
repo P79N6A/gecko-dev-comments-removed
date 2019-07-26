@@ -2919,24 +2919,6 @@ Parser<FullParseHandler>::bindDestructuringVar(BindData<FullParseHandler> *data,
     return true;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 template <>
 bool
 Parser<FullParseHandler>::bindDestructuringLHS(ParseNode *pn)

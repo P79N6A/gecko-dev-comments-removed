@@ -2731,65 +2731,90 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
             if (Emit1(cx, bce, JSOP_POP) < 0)
                 return false;
         }
+    } else if (emitOption == PushInitialValues) {
+        
+        
+        JS_ASSERT(pn->getOp() == JSOP_GETLOCAL);
+        JS_ASSERT(pn->pn_dflags & PND_BOUND);
     } else {
-        if (emitOption == PushInitialValues) {
-            
-
-
-
-            JS_ASSERT(pn->getOp() == JSOP_GETLOCAL);
-            JS_ASSERT(pn->pn_dflags & PND_BOUND);
-            return true;
-        }
-
         
 
-        if (pn->isKind(PNK_NAME)) {
+        switch (pn->getKind()) {
+          case PNK_NAME:
             if (!BindNameToSlot(cx, bce, pn))
                 return false;
 
             
             if (pn->isConst() && !pn->isDefn())
                 return Emit1(cx, bce, JSOP_POP) >= 0;
-        }
 
-        switch (pn->getOp()) {
-          case JSOP_SETNAME:
-          case JSOP_SETGNAME:
+            switch (pn->getOp()) {
+              case JSOP_SETNAME:
+              case JSOP_SETGNAME:
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                if (!EmitElemOp(cx, pn, JSOP_ENUMELEM, bce))
+                    return false;
+                break;
+
+              case JSOP_SETCONST:
+                
+                if (!EmitElemOp(cx, pn, JSOP_ENUMCONSTELEM, bce))
+                    return false;
+                break;
+
+              case JSOP_SETLOCAL:
+              case JSOP_SETARG:
+                if (!EmitVarOp(cx, pn, pn->getOp(), bce))
+                    return false;
+                if (Emit1(cx, bce, JSOP_POP) < 0)
+                    return false;
+                break;
+
+              default:
+                MOZ_ASSUME_UNREACHABLE("EmitDestructuringLHS: bad name op");
+            }
+            break;
+
+          case PNK_DOT:
+          case PNK_ELEM:
             
-
-
-
-
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             if (!EmitElemOp(cx, pn, JSOP_ENUMELEM, bce))
                 return false;
             break;
 
-          case JSOP_SETCONST:
-            if (!EmitElemOp(cx, pn, JSOP_ENUMCONSTELEM, bce))
-                return false;
-            break;
-
-          case JSOP_SETLOCAL:
-          case JSOP_SETARG:
-            if (!EmitVarOp(cx, pn, pn->getOp(), bce))
-                return false;
-            if (Emit1(cx, bce, JSOP_POP) < 0)
-                return false;
-            break;
-
-          case JSOP_CALL:
-          case JSOP_EVAL:
-          case JSOP_FUNCALL:
-          case JSOP_FUNAPPLY:
+          case PNK_CALL:
             JS_ASSERT(pn->pn_xflags & PNX_SETCALL);
             if (!EmitTree(cx, bce, pn))
                 return false;
 
             
-
-
-
+            
+            
+            
+            
             if (Emit1(cx, bce, JSOP_POP) < 0)
                 return false;
             if (Emit1(cx, bce, JSOP_POP) < 0)
@@ -2797,16 +2822,7 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
             break;
 
           default:
-          {
-            if (!EmitTree(cx, bce, pn))
-                return false;
-            if (!EmitElemOpBase(cx, bce, JSOP_ENUMELEM))
-                return false;
-            break;
-          }
-
-          case JSOP_ENUMELEM:
-            JS_ASSERT(0);
+            MOZ_ASSUME_UNREACHABLE("EmitDestructuringLHS: bad lhs kind");
         }
     }
 
