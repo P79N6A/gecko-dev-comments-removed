@@ -82,10 +82,8 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Get
 {
   typename base_type::EntryType* ent = this->GetEntry(aKey);
 
-  if (ent)
-  {
-    if (pRefPtr)
-    {
+  if (ent) {
+    if (pRefPtr) {
       *pRefPtr = ent->mData;
 
       NS_IF_ADDREF(*pRefPtr);
@@ -96,8 +94,9 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Get
 
   
   
-  if (pRefPtr)
+  if (pRefPtr) {
     *pRefPtr = nullptr;
+  }
 
   return false;
 }
@@ -109,17 +108,19 @@ nsRefPtrHashtable<KeyClass,RefPtr>::GetWeak
 {
   typename base_type::EntryType* ent = this->GetEntry(aKey);
 
-  if (ent)
-  {
-    if (aFound)
+  if (ent) {
+    if (aFound) {
       *aFound = true;
+    }
 
     return ent->mData;
   }
 
   
-  if (aFound)
+  if (aFound) {
     *aFound = false;
+  }
+
   return nullptr;
 }
 
