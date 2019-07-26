@@ -2267,9 +2267,7 @@ update(ChromeDebuggerActor.prototype, {
   globalManager: {
     findGlobals: function CDA_findGlobals() {
       
-      for (let g of this.dbg.findAllGlobals()) {
-        this.addDebuggee(g);
-      }
+      this.dbg.addAllGlobalsAsDebuggees();
     },
 
     
