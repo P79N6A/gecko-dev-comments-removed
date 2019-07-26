@@ -4,6 +4,9 @@
 
 
 
+#ifndef SpanningCellSorter_h
+#define SpanningCellSorter_h
+
 
 
 
@@ -93,3 +96,4 @@ private:
     void* operator new(size_t sz) CPP_THROW_NEW { return nullptr; }
 };
 
+#endif
