@@ -370,6 +370,14 @@ public:
   {
     mStreamOrderDirty = true;
   }
+  
+
+
+  void PauseAllAudioOutputs();
+  
+
+
+  void ResumeAllAudioOutputs();
 
   
 
