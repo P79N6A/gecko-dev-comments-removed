@@ -12,9 +12,9 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-function log(msg) {
-  Services.console.logStringMessage("[SSDP] " + msg);
-}
+
+
+let log = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog.d.bind(null, "SSDP");
 
 XPCOMUtils.defineLazyGetter(this, "converter", function () {
   let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"].createInstance(Ci.nsIScriptableUnicodeConverter);
@@ -218,8 +218,8 @@ var SimpleServiceDiscovery = {
       
       for (let [key, service] of this._services) {
         if (service.lastPing != this._searchTimestamp) {
-          Services.obs.notifyObservers(null, EVENT_SERVICE_LOST, service.location);
-          this._services.delete(service.location);
+          Services.obs.notifyObservers(null, EVENT_SERVICE_LOST, service.uuid);
+          this._services.delete(service.uuid);
         }
       }
     }
@@ -244,9 +244,9 @@ var SimpleServiceDiscovery = {
     return null;
   },
 
-  findServiceForLocation: function findServiceForLocation(aLocation) {
-    if (this._services.has(aLocation)) {
-      return this._services.get(aLocation);
+  findServiceForID: function findServiceForID(aUUID) {
+    if (this._services.has(aUUID)) {
+      return this._services.get(aUUID);
     }
     return null;
   },
@@ -279,13 +279,13 @@ var SimpleServiceDiscovery = {
         aService.modelName = doc.querySelector("modelName").textContent;
 
         
-        if (!this._services.has(aService.location)) {
-          this._services.set(aService.location, aService);
-          Services.obs.notifyObservers(null, EVENT_SERVICE_FOUND, aService.location);
+        if (!this._services.has(aService.uuid)) {
+          this._services.set(aService.uuid, aService);
+          Services.obs.notifyObservers(null, EVENT_SERVICE_FOUND, aService.uuid);
         }
 
         
-        this._services.get(aService.location).lastPing = this._searchTimestamp;
+        this._services.get(aService.uuid).lastPing = this._searchTimestamp;
       }
     }).bind(this), false);
 
