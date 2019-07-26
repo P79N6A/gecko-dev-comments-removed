@@ -313,7 +313,7 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
     
     
     RootedObject moduleObj(cx, &callee->getExtendedSlot(ASM_MODULE_SLOT).toObject());
-    AsmJSModule &module = AsmJSModuleObjectToModule(moduleObj);
+    AsmJSModule &module = moduleObj->as<AsmJSModuleObject>().module();
 
     
     
@@ -576,7 +576,7 @@ SendModuleToAttachedProfiler(JSContext *cx, AsmJSModule &module)
 static JSObject *
 CreateExportObject(JSContext *cx, HandleObject moduleObj)
 {
-    AsmJSModule &module = AsmJSModuleObjectToModule(moduleObj);
+    AsmJSModule &module = moduleObj->as<AsmJSModuleObject>().module();
 
     if (module.numExportedFunctions() == 1) {
         const AsmJSModule::ExportedFunction &func = module.exportedFunction(0);
@@ -616,7 +616,7 @@ LinkAsmJS(JSContext *cx, unsigned argc, JS::Value *vp)
     
     RootedFunction fun(cx, &args.callee().as<JSFunction>());
     RootedObject moduleObj(cx,  &fun->getExtendedSlot(MODULE_FUN_SLOT).toObject());
-    AsmJSModule &module = AsmJSModuleObjectToModule(moduleObj);
+    AsmJSModule &module = moduleObj->as<AsmJSModuleObject>().module();
 
     
     

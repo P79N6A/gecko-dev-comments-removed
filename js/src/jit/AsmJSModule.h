@@ -698,21 +698,36 @@ class AsmJSModule
     void detachIonCompilation(size_t exitIndex) const {
         exitIndexToGlobalDatum(exitIndex).exit = exit(exitIndex).interpCode();
     }
+
+    
+    void sizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t *asmJSModuleCode,
+                    size_t *asmJSModuleData);
 };
 
 
 
-extern JSObject *
-NewAsmJSModuleObject(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *module);
 
 
-extern bool
-IsAsmJSModuleObject(JSObject *obj);
+class AsmJSModuleObject : public JSObject
+{
+    static const unsigned MODULE_SLOT = 0;
 
+  public:
+    static const unsigned RESERVED_SLOTS = 1;
 
+    
+    
+    static AsmJSModuleObject *create(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *module);
 
-extern AsmJSModule &
-AsmJSModuleObjectToModule(JSObject *obj);
+    AsmJSModule &module() const;
+
+    void sizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t *asmJSModuleCode,
+                    size_t *asmJSModuleData) {
+        module().sizeOfMisc(mallocSizeOf, asmJSModuleCode, asmJSModuleData);
+    }
+
+    static Class class_;
+};
 
 }  
 
