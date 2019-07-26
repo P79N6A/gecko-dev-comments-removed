@@ -138,7 +138,6 @@ SessionStore.prototype = {
         observerService.addObserver(this, "quit-application-requested", true);
         observerService.addObserver(this, "quit-application-granted", true);
         observerService.addObserver(this, "quit-application", true);
-        observerService.addObserver(this, "PrivateBrowsing:Restore", true);
         break;
       case "final-ui-startup":
         observerService.removeObserver(this, "final-ui-startup");
@@ -204,7 +203,6 @@ SessionStore.prototype = {
         observerService.removeObserver(this, "quit-application-requested");
         observerService.removeObserver(this, "quit-application-granted");
         observerService.removeObserver(this, "quit-application");
-        observerService.removeObserver(this, "PrivateBrowsing:Restore");
 
         
         if (this._saveTimer) {
@@ -237,15 +235,6 @@ SessionStore.prototype = {
         
         this._saveTimer = null;
         this.saveState();
-        break;
-      case "PrivateBrowsing:Restore":
-        let session;
-        try {
-          session = JSON.parse(aData);
-          this._restoreWindow(session, session.windows[0].selected != null);
-        } catch (e) {
-          Cu.reportError("SessionStore: Could not restore browser session: " + e);
-        }
         break;
     }
   },
