@@ -270,10 +270,13 @@ BreakpointStore.prototype = {
 
 
 
-function EventLoopStack({ inspector, thread, hooks }) {
+
+
+function EventLoopStack({ inspector, thread, connection, hooks }) {
   this._inspector = inspector;
   this._hooks = hooks;
   this._thread = thread;
+  this._connection = connection;
 }
 
 EventLoopStack.prototype = {
@@ -305,11 +308,20 @@ EventLoopStack.prototype = {
 
 
 
+  get lastConnection() {
+    return this._inspector.lastNestRequestor._connection;
+  },
+
+  
+
+
+
 
   push: function () {
     return new EventLoop({
       inspector: this._inspector,
       thread: this._thread,
+      connection: this._connection,
       hooks: this._hooks
     });
   }
@@ -327,10 +339,13 @@ EventLoopStack.prototype = {
 
 
 
-function EventLoop({ inspector, thread, hooks }) {
+
+
+function EventLoop({ inspector, thread, connection, hooks }) {
   this._inspector = inspector;
   this._thread = thread;
   this._hooks = hooks;
+  this._connection = connection;
 
   this.enter = this.enter.bind(this);
   this.resolve = this.resolve.bind(this);
@@ -414,11 +429,6 @@ function ThreadActor(aHooks, aGlobal)
   this._frameActors = [];
   this._hooks = aHooks;
   this.global = aGlobal;
-  this._nestedEventLoops = new EventLoopStack({
-    inspector: DebuggerServer.xpcInspector,
-    hooks: aHooks,
-    thread: this
-  });
   
   this._hiddenBreakpoints = new Map();
 
@@ -674,6 +684,15 @@ ThreadActor.prototype = {
     this._state = "attached";
 
     update(this._options, aRequest.options || {});
+
+    
+    
+    this._nestedEventLoops = new EventLoopStack({
+      inspector: DebuggerServer.xpcInspector,
+      hooks: this._hooks,
+      connection: this.conn,
+      thread: this
+    });
 
     if (!this.dbg) {
       this._initDebugger();
@@ -992,7 +1011,8 @@ ThreadActor.prototype = {
     
     
     if (this._nestedEventLoops.size && this._nestedEventLoops.lastPausedUrl
-        && this._nestedEventLoops.lastPausedUrl !== this._hooks.url) {
+        && (this._nestedEventLoops.lastPausedUrl !== this._hooks.url
+        || this._nestedEventLoops.lastConnection !== this.conn)) {
       return {
         error: "wrongOrder",
         message: "trying to resume in the wrong order.",
