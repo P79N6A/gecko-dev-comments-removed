@@ -5,6 +5,7 @@
 
 #include "base/basictypes.h"
 
+#include "AccessCheck.h"
 #include "ipc/IPCMessageUtils.h"
 #include "nsCOMPtr.h"
 #include "nsError.h"
@@ -32,6 +33,14 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+
+namespace mozilla {
+namespace dom {
+namespace workers {
+extern bool IsCurrentThreadRunningChromeWorker();
+} 
+} 
+} 
 
 static char *sPopupAllowedEvents;
 
@@ -216,6 +225,14 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDOMEvent)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwner)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+bool
+nsDOMEvent::IsChrome(JSContext* aCx) const
+{
+  return mIsMainThreadEvent ?
+    xpc::AccessCheck::isChrome(js::GetContextCompartment(aCx)) :
+    mozilla::dom::workers::IsCurrentThreadRunningChromeWorker();
+}
 
 
 NS_METHOD nsDOMEvent::GetType(nsAString& aType)
@@ -436,25 +453,40 @@ nsDOMEvent::GetIsTrusted(bool *aIsTrusted)
 NS_IMETHODIMP
 nsDOMEvent::PreventDefault()
 {
-  if (mEvent->mFlags.mCancelable) {
-    mEvent->mFlags.mDefaultPrevented = true;
+  
+  
+  PreventDefaultInternal(true);
+  return NS_OK;
+}
 
-    
-    if (mEvent->eventStructType == NS_DRAG_EVENT && IsTrusted()) {
-      nsCOMPtr<nsINode> node = do_QueryInterface(mEvent->currentTarget);
-      if (!node) {
-        nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(mEvent->currentTarget);
-        if (win) {
-          node = win->GetExtantDoc();
-        }
-      }
-      if (node && !nsContentUtils::IsChromeDoc(node->OwnerDoc())) {
-        mEvent->mFlags.mDefaultPreventedByContent = true;
-      }
-    }
+void
+nsDOMEvent::PreventDefault(JSContext* aCx)
+{
+  MOZ_ASSERT(aCx, "JS context must be specified");
+
+  
+  
+  
+  
+  PreventDefaultInternal(IsChrome(aCx));
+}
+
+void
+nsDOMEvent::PreventDefaultInternal(bool aCalledByDefaultHandler)
+{
+  if (!mEvent->mFlags.mCancelable) {
+    return;
   }
 
-  return NS_OK;
+  mEvent->mFlags.mDefaultPrevented = true;
+
+  
+  
+  
+  
+  if (!aCalledByDefaultHandler) {
+    mEvent->mFlags.mDefaultPreventedByContent = true;
+  }
 }
 
 void
@@ -1144,6 +1176,24 @@ const char* nsDOMEvent::GetEventName(uint32_t aEventType)
 }
 
 bool
+nsDOMEvent::DefaultPrevented(JSContext* aCx) const
+{
+  MOZ_ASSERT(aCx, "JS context must be specified");
+
+  NS_ENSURE_TRUE(mEvent, false);
+
+  
+  if (!mEvent->mFlags.mDefaultPrevented) {
+    return false;
+  }
+
+  
+  
+  
+  return mEvent->mFlags.mDefaultPreventedByContent || IsChrome(aCx);
+}
+
+bool
 nsDOMEvent::GetPreventDefault() const
 {
   if (mOwner) {
@@ -1151,6 +1201,9 @@ nsDOMEvent::GetPreventDefault() const
       doc->WarnOnceAbout(nsIDocument::eGetPreventDefault);
     }
   }
+  
+  
+  
   return DefaultPrevented();
 }
 
@@ -1166,6 +1219,9 @@ NS_IMETHODIMP
 nsDOMEvent::GetDefaultPrevented(bool* aReturn)
 {
   NS_ENSURE_ARG_POINTER(aReturn);
+  
+  
+  
   *aReturn = DefaultPrevented();
   return NS_OK;
 }

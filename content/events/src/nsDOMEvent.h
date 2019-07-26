@@ -153,9 +153,20 @@ public:
   
   
 
+  
+  
+  
+  
+  void PreventDefault(JSContext* aCx);
+
+  
+  
+  
+  bool DefaultPrevented(JSContext* aCx) const;
+
   bool DefaultPrevented() const
   {
-    return mEvent && mEvent->mFlags.mDefaultPrevented;
+    return mEvent->mFlags.mDefaultPrevented;
   }
 
   bool MultipleActionsPrevented() const
@@ -189,6 +200,20 @@ protected:
   
   void SetEventType(const nsAString& aEventTypeArg);
   already_AddRefed<nsIContent> GetTargetFromFrame();
+
+  
+
+
+
+  bool IsChrome(JSContext* aCx) const;
+
+  
+
+
+
+
+
+  void PreventDefaultInternal(bool aCalledByDefaultHandler);
 
   mozilla::WidgetEvent*       mEvent;
   nsRefPtr<nsPresContext>     mPresContext;

@@ -481,7 +481,19 @@ protected:
     DELTA_DIRECTION_Y
   };
 
+  struct MOZ_STACK_CLASS EventState
+  {
+    bool mDefaultPrevented;
+    bool mDefaultPreventedByContent;
+
+    EventState() :
+      mDefaultPrevented(false), mDefaultPreventedByContent(false)
+    {
+    }
+  };
+
   
+
 
 
 
@@ -495,7 +507,7 @@ protected:
 
   void SendLineScrollEvent(nsIFrame* aTargetFrame,
                            mozilla::WidgetWheelEvent* aEvent,
-                           nsEventStatus* aStatus,
+                           EventState& aState,
                            int32_t aDelta,
                            DeltaDirection aDeltaDirection);
 
@@ -511,9 +523,10 @@ protected:
 
 
 
+
   void SendPixelScrollEvent(nsIFrame* aTargetFrame,
                             mozilla::WidgetWheelEvent* aEvent,
-                            nsEventStatus* aStatus,
+                            EventState& aState,
                             int32_t aPixelDelta,
                             DeltaDirection aDeltaDirection);
 
