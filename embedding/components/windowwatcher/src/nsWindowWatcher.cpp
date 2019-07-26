@@ -955,7 +955,11 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
     
     
-    nsAutoWindowStateHelper windowStateHelper(aParent);
+    
+    
+    
+    nsAutoWindowStateHelper windowStateHelper(
+      parentWindow ? parentWindow->GetOuterWindow() : nullptr);
 
     if (!windowStateHelper.DefaultEnabled()) {
       
