@@ -1,8 +1,3 @@
-
-
-
-
-
 function check_one(expected, f, err) {
     var failed = true;
     try {
