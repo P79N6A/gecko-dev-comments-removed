@@ -5233,37 +5233,7 @@ if (!${obj}) {
         if setSlot:
             
             
-            
-            
-            
-            
-            
-            
-            if (self.idlNode.getExtendedAttribute("Cached") and
-                self.descriptor.wrapperCache):
-                preserveWrapper = "PreserveWrapper(self);\n"
-            else:
-                preserveWrapper = ""
-            if self.idlNode.getExtendedAttribute("Frozen"):
-                assert self.idlNode.type.isSequence() or self.idlNode.type.isDictionary()
-                freezeValue = CGGeneric(
-                    "JS::Rooted<JSObject*> rvalObj(cx, &args.rval().toObject());\n"
-                    "if (!JS_FreezeObject(cx, rvalObj)) {\n"
-                    "  return false;\n"
-                    "}")
-                if self.idlNode.type.nullable():
-                    freezeValue = CGIfWrapper(freezeValue,
-                                              "args.rval().isObject()")
-                freezeValue = freezeValue.define() + "\n"
-            else:
-                freezeValue = ""
-
-            successCode = (
-                "%s"
-                "js::SetReservedSlot(reflector, %s, args.rval());\n"
-                "%s"
-                "break;" %
-                (freezeValue, memberReservedSlot(self.idlNode), preserveWrapper))
+            successCode = "break;"
         else:
             successCode = None
 
@@ -5285,15 +5255,51 @@ if (!${obj}) {
             
             
             
+            
+            
+
+            
+            
+            
+            postSteps = ""
+            if self.idlNode.getExtendedAttribute("Frozen"):
+                assert self.idlNode.type.isSequence() or self.idlNode.type.isDictionary()
+                freezeValue = CGGeneric(
+                    "JS::Rooted<JSObject*> rvalObj(cx, &args.rval().toObject());\n"
+                    "if (!JS_FreezeObject(cx, rvalObj)) {\n"
+                    "  return false;\n"
+                    "}")
+                if self.idlNode.type.nullable():
+                    freezeValue = CGIfWrapper(freezeValue,
+                                              "args.rval().isObject()")
+                postSteps += freezeValue.define() + "\n"
+            postSteps += ("js::SetReservedSlot(reflector, %s, args.rval());\n" %
+                          memberReservedSlot(self.idlNode))
+            
+            
+            
+            
+            
+            
+            
+            
+            if (self.idlNode.getExtendedAttribute("Cached") and
+                self.descriptor.wrapperCache):
+                postSteps += "PreserveWrapper(self);\n"
+
             wrapCode = CGWrapper(
-                CGIndenter(wrapCode),
-                pre=("do { // block we break out of when done wrapping\n"
-                     "  // Make sure we wrap and store in the slot in reflector's compartment\n"
-                     "  JSAutoCompartment ac(cx, reflector);\n"),
-                post=("\n} while (0);\n"
+                CGIndenter(wrapCode, 4),
+                pre=("{ // Make sure we wrap and store in the slot in reflector's compartment\n"
+                     "  JSAutoCompartment ac(cx, reflector);\n"
+                     "  do { // block we break out of when done wrapping\n"),
+                post=("\n"
+                      "  } while (0);\n"
+                      "%s"
+                      "}\n"
                       "// And now make sure args.rval() is in the caller compartment\n"
                       "return %s(cx, args.rval());" %
-                      getMaybeWrapValueFuncForType(self.idlNode.type)))
+                      (CGIndenter(CGGeneric(postSteps)).define(),
+                       getMaybeWrapValueFuncForType(self.idlNode.type))))
         return wrapCode.define()
 
     def getErrorReport(self):
