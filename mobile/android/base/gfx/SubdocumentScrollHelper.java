@@ -18,7 +18,7 @@ import android.os.Handler;
 import android.util.Log;
 
 class SubdocumentScrollHelper implements GeckoEventListener {
-    private static final String LOGTAG = "GeckoSubdocumentScrollHelper";
+    private static final String LOGTAG = "GeckoSubdocScroll";
 
     private static String MESSAGE_PANNING_OVERRIDE = "Panning:Override";
     private static String MESSAGE_CANCEL_OVERRIDE = "Panning:CancelOverride";
@@ -124,7 +124,6 @@ class SubdocumentScrollHelper implements GeckoEventListener {
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
-                Log.i(LOGTAG, "Got message: " + event);
                 try {
                     if (MESSAGE_PANNING_OVERRIDE.equals(event)) {
                         mOverridePanning = true;
