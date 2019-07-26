@@ -42,11 +42,14 @@ let gTransformation = {
 
 
 
-  showSite: function (aSite) {
-    let node = aSite.node;
-    return this._setNodeOpacity(node, 1).then(() => {
+
+  fadeNodeIn: function Transformation_fadeNodeIn(aNode, aCallback) {
+    this._setNodeOpacity(aNode, 1, function () {
       
-      node.style.opacity = "";
+      aNode.style.opacity = "";
+
+      if (aCallback)
+        aCallback();
     });
   },
 
@@ -54,8 +57,27 @@ let gTransformation = {
 
 
 
-  hideSite: function (aSite) {
-    return this._setNodeOpacity(aSite.node, 0);
+
+  fadeNodeOut: function Transformation_fadeNodeOut(aNode, aCallback) {
+    this._setNodeOpacity(aNode, 0, aCallback);
+  },
+
+  
+
+
+
+
+  showSite: function Transformation_showSite(aSite, aCallback) {
+    this.fadeNodeIn(aSite.node, aCallback);
+  },
+
+  
+
+
+
+
+  hideSite: function Transformation_hideSite(aSite, aCallback) {
+    this.fadeNodeOut(aSite.node, aCallback);
   },
 
   
@@ -108,10 +130,21 @@ let gTransformation = {
 
 
 
-  slideSiteTo: function (aSite, aTarget, aOptions) {
+
+  slideSiteTo: function Transformation_slideSiteTo(aSite, aTarget, aOptions) {
     let currentPosition = this.getNodePosition(aSite.node);
     let targetPosition = this.getNodePosition(aTarget.node)
-    let promise;
+    let callback = aOptions && aOptions.callback;
+
+    let self = this;
+
+    function finish() {
+      if (aOptions && aOptions.unfreeze)
+        self.unfreezeSitePosition(aSite);
+
+      if (callback)
+        callback();
+    }
 
     
     targetPosition.left += this._cellBorderWidths.left;
@@ -120,17 +153,11 @@ let gTransformation = {
     
     if (currentPosition.left == targetPosition.left &&
         currentPosition.top == targetPosition.top) {
-      promise = Promise.resolve();
+      finish();
     } else {
       this.setSitePosition(aSite, targetPosition);
-      promise = this._whenTransitionEnded(aSite.node, ["left", "top"]);
+      this._whenTransitionEnded(aSite.node, ["left", "top"], finish);
     }
-
-    if (aOptions && aOptions.unfreeze) {
-      promise = promise.then(() => this.unfreezeSitePosition(aSite));
-    }
-
-    return promise;
   },
 
   
@@ -140,32 +167,35 @@ let gTransformation = {
 
 
 
-  rearrangeSites: function (aSites, aOptions) {
-    let self = this;
+
+  rearrangeSites: function Transformation_rearrangeSites(aSites, aOptions) {
+    let batch = [];
     let cells = gGrid.cells;
+    let callback = aOptions && aOptions.callback;
     let unfreeze = aOptions && aOptions.unfreeze;
 
-    function promises() {
-      let index = 0;
+    aSites.forEach(function (aSite, aIndex) {
+      
+      if (!aSite || aSite == gDrag.draggedSite)
+        return;
 
-      for (let site of aSites) {
-        if (site && site !== gDrag.draggedSite) {
-          if (!cells[index]) {
-            
-            yield self.hideSite(site);
-          } else if (self._getNodeOpacity(site.node) != 1) {
-            
-            yield self.showSite(site);
-          } else {
-            
-            yield self._moveSite(site, index, {unfreeze: unfreeze});
-          }
-        }
-        index++;
-      }
-    }
+      let deferred = Promise.defer();
+      batch.push(deferred.promise);
+      let cb = function () deferred.resolve();
 
-    return Promise.every([p for (p of promises())]);
+      if (!cells[aIndex])
+        
+        this.hideSite(aSite, cb);
+      else if (this._getNodeOpacity(aSite.node) != 1)
+        
+        this.showSite(aSite, cb);
+      else
+        
+        this._moveSite(aSite, aIndex, {unfreeze: unfreeze, callback: cb});
+    }, this);
+
+    let wait = Promise.promised(function () callback && callback());
+    wait.apply(null, batch);
   },
 
   
@@ -173,16 +203,18 @@ let gTransformation = {
 
 
 
-  _whenTransitionEnded: function (aNode, aProperties) {
-    let deferred = Promise.defer();
+
+
+  _whenTransitionEnded:
+    function Transformation_whenTransitionEnded(aNode, aProperties, aCallback) {
+
     let props = new Set(aProperties);
     aNode.addEventListener("transitionend", function onEnd(e) {
       if (props.has(e.propertyName)) {
         aNode.removeEventListener("transitionend", onEnd);
-        deferred.resolve();
+        aCallback();
       }
     });
-    return deferred.promise;
   },
 
   
@@ -200,13 +232,20 @@ let gTransformation = {
 
 
 
-  _setNodeOpacity: function (aNode, aOpacity) {
-    if (this._getNodeOpacity(aNode) == aOpacity) {
-      return Promise.resolve();
-    }
 
-    aNode.style.opacity = aOpacity;
-    return this._whenTransitionEnded(aNode, ["opacity"]);
+  _setNodeOpacity:
+    function Transformation_setNodeOpacity(aNode, aOpacity, aCallback) {
+
+    if (this._getNodeOpacity(aNode) == aOpacity) {
+      if (aCallback)
+        aCallback();
+    } else {
+      if (aCallback) {
+        this._whenTransitionEnded(aNode, ["opacity"], aCallback);
+      }
+
+      aNode.style.opacity = aOpacity;
+    }
   },
 
   
@@ -215,9 +254,9 @@ let gTransformation = {
 
 
 
-  _moveSite: function (aSite, aIndex, aOptions) {
+  _moveSite: function Transformation_moveSite(aSite, aIndex, aOptions) {
     this.freezeSitePosition(aSite);
-    return this.slideSiteTo(aSite, gGrid.cells[aIndex], aOptions);
+    this.slideSiteTo(aSite, gGrid.cells[aIndex], aOptions);
   },
 
   
