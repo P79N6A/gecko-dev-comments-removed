@@ -57,7 +57,7 @@ private:
 
 
   static void PlayBinSourceSetupCb(GstElement *aPlayBin,
-                                   GstElement *aSource,
+                                   GParamSpec *pspec,
                                    gpointer aUserData);
   void PlayBinSourceSetup(GstAppSrc *aSource);
 
