@@ -177,12 +177,6 @@ var CastingApps = {
     }
 
     
-    
-    if (aElement.getAttribute("x-webkit-airplay") === "deny") {
-      return null;
-    }
-
-    
     function allowableExtension(aURI) {
       if (aURI && aURI instanceof Ci.nsIURL) {
         return (aURI.fileExtension == "mp4");
