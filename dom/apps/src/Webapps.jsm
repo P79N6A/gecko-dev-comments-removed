@@ -1174,6 +1174,46 @@ this.DOMApplicationRegistry = {
     }
 
     
+    if (!app.removable) {
+      
+      if (app.origin.startsWith("app://")) {
+        aData.error = "NOT_UPDATABLE";
+        aMm.sendAsyncMessage("Webapps:CheckForUpdate:Return:KO", aData);
+        return;
+      }
+
+      
+      let id = this._appId(app.origin);
+      this._readManifests([{ id: id }], function(aResult) {
+        let manifest = aResult[0].manifest;
+        if (!manifest.appcache_path) {
+          aData.error = "NOT_UPDATABLE";
+          aMm.sendAsyncMessage("Webapps:CheckForUpdate:Return:KO", aData);
+          return;
+        }
+
+        debug("Checking only appcache for " + aData.manifestURL);
+        
+        
+        let updateObserver = {
+          observe: function(aSubject, aTopic, aObsData) {
+            debug("appcache result: " + aTopic);
+            if (aData.event == "offline-cache-update-available") {
+              aData.event = "downloadavailable";
+              aMm.sendAsyncMessage("Webapps:CheckForUpdate:Return:OK", aData);
+            } else {
+              aData.error = "NOT_UPDATABLE";
+              aMm.sendAsyncMessage("Webapps:CheckForUpdate:Return:KO", aData);
+            }
+          }
+        }
+        updateSvc.checkForUpdate(Services.io.newURI(aData.manifestURL, null, null),
+                                 app.localId, false, updateObserver);
+      });
+      return;
+    }
+
+    
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
                 .createInstance(Ci.nsIXMLHttpRequest);
     xhr.open("GET", aData.manifestURL, true);
