@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsHTMLSelectElement_h___
-#define nsHTMLSelectElement_h___
+#ifndef mozilla_dom_HTMLSelectElement_h
+#define mozilla_dom_HTMLSelectElement_h
 
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLSelectElement.h"
@@ -16,10 +16,14 @@
 #include "nsError.h"
 #include "nsHTMLFormElement.h"
 
-class nsHTMLSelectElement;
 class nsIDOMHTMLOptionElement;
 class nsISelectControlFrame;
 class nsPresState;
+
+namespace mozilla {
+namespace dom {
+
+class HTMLSelectElement;
 
 #define NS_SELECT_STATE_IID                        \
 { /* 4db54c7c-d159-455f-9d8e-f60ee466dbf3 */       \
@@ -32,12 +36,13 @@ class nsPresState;
 
 
 
-class nsSelectState : public nsISupports {
+class SelectState : public nsISupports
+{
 public:
-  nsSelectState()
+  SelectState()
   {
   }
-  virtual ~nsSelectState()
+  virtual ~SelectState()
   {
   }
 
@@ -64,7 +69,7 @@ private:
   nsCheapSet<nsUint32HashKey> mIndices;
 };
 
-class NS_STACK_CLASS nsSafeOptionListMutation
+class NS_STACK_CLASS SafeOptionListMutation
 {
 public:
   
@@ -75,15 +80,15 @@ public:
 
 
 
-  nsSafeOptionListMutation(nsIContent* aSelect, nsIContent* aParent,
-                           nsIContent* aKid, uint32_t aIndex, bool aNotify);
-  ~nsSafeOptionListMutation();
+  SafeOptionListMutation(nsIContent* aSelect, nsIContent* aParent,
+                         nsIContent* aKid, uint32_t aIndex, bool aNotify);
+  ~SafeOptionListMutation();
   void MutationFailed() { mNeedsRebuild = true; }
 private:
   static void* operator new(size_t) CPP_THROW_NEW { return 0; }
   static void operator delete(void*, size_t) {}
   
-  nsRefPtr<nsHTMLSelectElement> mSelect;
+  nsRefPtr<HTMLSelectElement> mSelect;
   
   bool                       mTopLevelMutation;
   
@@ -96,19 +101,18 @@ private:
 
 
 
-class nsHTMLSelectElement : public nsGenericHTMLFormElement,
-                            public nsIDOMHTMLSelectElement,
-                            public nsIConstraintValidation
+class HTMLSelectElement : public nsGenericHTMLFormElement,
+                          public nsIDOMHTMLSelectElement,
+                          public nsIConstraintValidation
 {
 public:
-  typedef mozilla::dom::HTMLOptionsCollection HTMLOptionsCollection;
   using nsIConstraintValidation::GetValidationMessage;
 
-  nsHTMLSelectElement(already_AddRefed<nsINodeInfo> aNodeInfo,
-                      mozilla::dom::FromParser aFromParser = mozilla::dom::NOT_FROM_PARSER);
-  virtual ~nsHTMLSelectElement();
+  HTMLSelectElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+                    FromParser aFromParser = NOT_FROM_PARSER);
+  virtual ~HTMLSelectElement();
 
-  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(nsHTMLSelectElement, select)
+  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLSelectElement, select)
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -132,7 +136,7 @@ public:
   {
     return GetBoolAttr(nsGkAtoms::autofocus);
   }
-  void SetAutofocus(bool aVal, mozilla::ErrorResult& aRv)
+  void SetAutofocus(bool aVal, ErrorResult& aRv)
   {
     SetHTMLBoolAttr(nsGkAtoms::autofocus, aVal, aRv);
   }
@@ -140,7 +144,7 @@ public:
   {
     return GetBoolAttr(nsGkAtoms::disabled);
   }
-  void SetDisabled(bool aVal, mozilla::ErrorResult& aRv)
+  void SetDisabled(bool aVal, ErrorResult& aRv)
   {
     SetHTMLBoolAttr(nsGkAtoms::disabled, aVal, aRv);
   }
@@ -152,7 +156,7 @@ public:
   {
     return GetBoolAttr(nsGkAtoms::multiple);
   }
-  void SetMultiple(bool aVal, mozilla::ErrorResult& aRv)
+  void SetMultiple(bool aVal, ErrorResult& aRv)
   {
     SetHTMLBoolAttr(nsGkAtoms::multiple, aVal, aRv);
   }
@@ -160,15 +164,15 @@ public:
   {
     return GetHTMLUnsignedIntAttr(nsGkAtoms::size, 0);
   }
-  void SetSize(uint32_t aSize, mozilla::ErrorResult& aRv)
+  void SetSize(uint32_t aSize, ErrorResult& aRv)
   {
     SetHTMLUnsignedIntAttr(nsGkAtoms::size, aSize, aRv);
   }
-  void GetName(nsString& aName, mozilla::ErrorResult& aRv) const
+  void GetName(nsString& aName, ErrorResult& aRv) const
   {
     GetHTMLAttr(nsGkAtoms::name, aName);
   }
-  void SetName(const nsAString& aName, mozilla::ErrorResult& aRv)
+  void SetName(const nsAString& aName, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::name, aName, aRv);
   }
@@ -176,7 +180,7 @@ public:
   {
     return GetBoolAttr(nsGkAtoms::required);
   }
-  void SetRequired(bool aVal, mozilla::ErrorResult& aRv)
+  void SetRequired(bool aVal, ErrorResult& aRv)
   {
     SetHTMLBoolAttr(nsGkAtoms::required, aVal, aRv);
   }
@@ -184,7 +188,7 @@ public:
   {
     return mOptions;
   }
-  void Remove(int32_t aIdx, mozilla::ErrorResult& aRv)
+  void Remove(int32_t aIdx, ErrorResult& aRv)
   {
     aRv = Remove(aIdx);
   }
@@ -192,11 +196,11 @@ public:
   {
     return mSelectedIndex;
   }
-  void SetSelectedIndex(int32_t aIdx, mozilla::ErrorResult& aRv)
+  void SetSelectedIndex(int32_t aIdx, ErrorResult& aRv)
   {
     aRv = SetSelectedIndexInternal(aIdx, true);
   }
-  mozilla::dom::Element* IndexedGetter(uint32_t aIdx, bool& aFound) const
+  Element* IndexedGetter(uint32_t aIdx, bool& aFound) const
   {
     return mOptions->IndexedGetter(aIdx, aFound);
   }
@@ -331,7 +335,7 @@ public:
 
   virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const;
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLSelectElement,
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLSelectElement,
                                            nsGenericHTMLFormElement)
 
   HTMLOptionsCollection* GetOptions()
@@ -339,9 +343,9 @@ public:
     return mOptions;
   }
 
-  static nsHTMLSelectElement* FromSupports(nsISupports* aSupports)
+  static HTMLSelectElement* FromSupports(nsISupports* aSupports)
   {
-    return static_cast<nsHTMLSelectElement*>(static_cast<nsINode*>(aSupports));
+    return static_cast<HTMLSelectElement*>(static_cast<nsINode*>(aSupports));
   }
 
   virtual nsXPCClassInfo* GetClassInfo();
@@ -356,9 +360,8 @@ public:
 
 
   void Add(nsGenericHTMLElement& aElement, nsGenericHTMLElement* aBefore,
-           mozilla::ErrorResult& aError);
-  void Add(nsGenericHTMLElement& aElement, int32_t aIndex,
-           mozilla::ErrorResult& aError)
+           ErrorResult& aError);
+  void Add(nsGenericHTMLElement& aElement, int32_t aIndex, ErrorResult& aError)
   {
     
     
@@ -368,7 +371,7 @@ public:
   }
 
 protected:
-  friend class nsSafeOptionListMutation;
+  friend class SafeOptionListMutation;
 
   
   
@@ -414,7 +417,7 @@ protected:
 
 
 
-  void RestoreStateTo(nsSelectState* aNewSelected);
+  void RestoreStateTo(SelectState* aNewSelected);
 
   
   
@@ -604,7 +607,10 @@ protected:
 
 
 
-  nsCOMPtr<nsSelectState> mRestoreState;
+  nsCOMPtr<SelectState> mRestoreState;
 };
 
-#endif
+} 
+} 
+
+#endif 

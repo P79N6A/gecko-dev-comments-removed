@@ -17,11 +17,12 @@
 #include "nsGenericHTMLElement.h"
 #include "nsTArray.h"
 
-class nsHTMLSelectElement;
 class nsIDOMHTMLOptionElement;
 
 namespace mozilla {
 namespace dom {
+
+class HTMLSelectElement;
 
 
 
@@ -33,7 +34,7 @@ class HTMLOptionsCollection : public nsIHTMLCollection
 {
   typedef HTMLOptionElementOrHTMLOptGroupElement HTMLOptionOrOptGroupElement;
 public:
-  HTMLOptionsCollection(nsHTMLSelectElement* aSelect);
+  HTMLOptionsCollection(HTMLSelectElement* aSelect);
   virtual ~HTMLOptionsCollection();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -138,7 +139,7 @@ private:
 
   nsTArray<nsRefPtr<mozilla::dom::HTMLOptionElement> > mElements;
   
-  nsHTMLSelectElement* mSelect;
+  HTMLSelectElement* mSelect;
 };
 
 } 
