@@ -123,6 +123,8 @@ class Nursery
     
     void forwardBufferPointer(HeapSlot **pSlotsElems);
 
+    size_t sizeOfHeap() { return start() ? NurserySize : 0; }
+
 #ifdef JS_GC_ZEAL
     
 
