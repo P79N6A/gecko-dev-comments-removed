@@ -304,6 +304,34 @@ JS_FRIEND_API(bool)
 RecomputeWrappers(JSContext *cx, const CompartmentFilter &sourceFilter,
                   const CompartmentFilter &targetFilter);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct JS_FRIEND_API(AutoMaybeTouchDeadZones)
+{
+    
+    explicit AutoMaybeTouchDeadZones(JSContext *cx);
+    explicit AutoMaybeTouchDeadZones(JSObject *obj);
+    ~AutoMaybeTouchDeadZones();
+
+  private:
+    JSRuntime *runtime;
+    unsigned markCount;
+    bool inIncremental;
+    bool manipulatingDeadZones;
+};
+
 } 
 
 #endif 
