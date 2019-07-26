@@ -100,12 +100,14 @@ class autoJArray {
       arr = other.arr;
       length = other.length;
     }
-#if defined(__clang__)
+#if defined(MOZ_HAVE_CXX11_NULLPTR)
+#  if defined(__clang__)
     
     typedef decltype(nullptr) jArray_nullptr_t;
-#elif defined(MOZ_HAVE_CXX11_NULLPTR)
+#  else
     
     typedef std::nullptr_t jArray_nullptr_t;
+#  endif
 #elif defined(__GNUC__)
     typedef void* jArray_nullptr_t;
 #elif defined(_WIN64)
