@@ -716,10 +716,18 @@ nsContentList::ContentAppended(nsIDocument* aDocument, nsIContent* aContainer,
 
 
 
+
+
+
+
   if (mState == LIST_DIRTY ||
       !nsContentUtils::IsInSameAnonymousTree(mRootNode, aContainer) ||
-      !MayContainRelevantNodes(aContainer))
+      !MayContainRelevantNodes(aContainer) ||
+      (!aFirstNewContent->HasChildren() &&
+       !aFirstNewContent->GetNextSibling() &&
+       !MatchSelf(aFirstNewContent))) {
     return;
+  }
 
   
 
