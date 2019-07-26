@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jscompartmentinlines_h
 #define jscompartmentinlines_h
@@ -43,4 +43,65 @@ js::AutoCompartment::~AutoCompartment()
     cx_->leaveCompartment(origin_);
 }
 
-#endif /* jscompartmentinlines_h */
+inline bool
+JSCompartment::wrap(JSContext *cx, JS::MutableHandleValue vp, JS::HandleObject existing)
+{
+    JS_ASSERT_IF(existing, vp.isObject());
+
+    
+    if (!vp.isMarkable())
+        return true;
+
+    
+    if (vp.isString()) {
+        JSString *str = vp.toString();
+        if (!wrap(cx, &str))
+            return false;
+        vp.setString(str);
+        return true;
+    }
+
+    JS_ASSERT(vp.isObject());
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef DEBUG
+    JS::RootedObject cacheResult(cx);
+#endif
+    JS::RootedValue v(cx, vp);
+    if (js::WrapperMap::Ptr p = crossCompartmentWrappers.lookup(v)) {
+#ifdef DEBUG
+        cacheResult = &p->value.get().toObject();
+#else
+        vp.set(p->value);
+        return true;
+#endif
+    }
+
+    JS::RootedObject obj(cx, &vp.toObject());
+    if (!wrap(cx, &obj, existing))
+        return false;
+    vp.setObject(*obj);
+    JS_ASSERT_IF(cacheResult, obj == cacheResult);
+    return true;
+}
+
+#endif 
