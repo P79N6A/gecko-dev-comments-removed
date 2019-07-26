@@ -21,6 +21,7 @@
 #endif
 #include "nsIDownloader.h"
 #include "nsIURI.h"
+#include "nsIWidget.h"
 
 #include "mozilla/Attributes.h"
 
@@ -243,6 +244,12 @@ public:
 
 
   static nsIntRect ToIntRect(const RECT& aRect);
+
+  
+
+
+  static bool IsIMEEnabled(const InputContext& aInputContext);
+  static bool IsIMEEnabled(IMEState::Enabled aIMEState);
 
 private:
   typedef HRESULT (WINAPI * SHCreateItemFromParsingNamePtr)(PCWSTR pszPath,

@@ -40,12 +40,6 @@ public:
   
 
 
-  static bool IsIMEEnabled(const InputContext& aInputContext);
-  static bool IsIMEEnabled(IMEState::Enabled aIMEState);
-
-  
-
-
 
 
   static bool ProcessRawKeyMessage(const MSG& aMsg);

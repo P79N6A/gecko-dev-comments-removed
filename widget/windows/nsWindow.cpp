@@ -5592,22 +5592,16 @@ LRESULT nsWindow::ProcessKeyDownMessage(const MSG &aMsg,
   
   
   
+  
   RedirectedKeyDownMessageManager::AutoFlusher redirectedMsgFlusher(this, aMsg);
 
   ModifierKeyState modKeyState;
 
-  
-  
-  
-  
-  
-  
-  
-  
-
   LRESULT result = 0;
   if (!IMEHandler::IsComposingOn(this)) {
-    result = OnKeyDown(aMsg, modKeyState, aEventDispatched, nullptr);
+    NativeKey nativeKey(this, aMsg, modKeyState);
+    result =
+      static_cast<LRESULT>(nativeKey.HandleKeyDownMessage(aEventDispatched));
     
     
     redirectedMsgFlusher.Cancel();
@@ -5753,7 +5747,7 @@ nsWindow::SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
     if (keySpecific == VK_RCONTROL || keySpecific == VK_RMENU) {
       lParam |= 0x1000000;
     }
-    MSG msg = WinUtils::InitMSG(WM_KEYDOWN, key, lParam, mWnd);
+    MSG keyDownMsg = WinUtils::InitMSG(WM_KEYDOWN, key, lParam, mWnd);
     if (i == keySequence.Length() - 1) {
       bool makeDeadCharMessage =
         keyboardLayout->IsDeadKey(key, modKeyState) && aCharacters.IsEmpty();
@@ -5766,20 +5760,24 @@ nsWindow::SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
                      "Dead char must be only one character");
       }
       if (chars.IsEmpty()) {
-        OnKeyDown(msg, modKeyState, nullptr, nullptr);
+        NativeKey nativeKey(this, keyDownMsg, modKeyState);
+        nativeKey.HandleKeyDownMessage();
       } else {
-        nsFakeCharMessage fakeMsg = { chars.CharAt(0), scanCode,
-                                      makeDeadCharMessage };
-        OnKeyDown(msg, modKeyState, nullptr, &fakeMsg);
+        nsFakeCharMessage fakeMsgForKeyDown = { chars.CharAt(0), scanCode,
+                                                makeDeadCharMessage };
+        NativeKey nativeKey(this, keyDownMsg, modKeyState, &fakeMsgForKeyDown);
+        nativeKey.HandleKeyDownMessage();
         for (uint32_t j = 1; j < chars.Length(); j++) {
-          nsFakeCharMessage fakeMsg = { chars.CharAt(j), scanCode, false };
-          MSG msg = fakeMsg.GetCharMessage(mWnd);
-          NativeKey nativeKey(this, msg, modKeyState);
-          nativeKey.HandleCharMessage(msg);
+          nsFakeCharMessage fakeMsgForChar = { chars.CharAt(j), scanCode,
+                                               false };
+          MSG charMsg = fakeMsgForChar.GetCharMessage(mWnd);
+          NativeKey nativeKey(this, charMsg, modKeyState, &fakeMsgForChar);
+          nativeKey.HandleCharMessage(charMsg);
         }
       }
     } else {
-      OnKeyDown(msg, modKeyState, nullptr, nullptr);
+      NativeKey nativeKey(this, keyDownMsg, modKeyState);
+      nativeKey.HandleKeyDownMessage();
     }
   }
   for (uint32_t i = keySequence.Length(); i > 0; --i) {
@@ -6314,135 +6312,6 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
   return true; 
 }
 
-
-
-
-
-
-
-
-
-LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
-                            const ModifierKeyState &aModKeyState,
-                            bool *aEventDispatched,
-                            nsFakeCharMessage* aFakeCharMessage)
-{
-  KeyboardLayout* keyboardLayout = KeyboardLayout::GetInstance();
-  NativeKey nativeKey(this, aMsg, aModKeyState, aFakeCharMessage);
-  uint32_t DOMKeyCode = nativeKey.GetDOMKeyCode();
-
-  bool noDefault;
-  if (aFakeCharMessage ||
-      !RedirectedKeyDownMessageManager::IsRedirectedMessage(aMsg)) {
-    bool isIMEEnabled = IMEHandler::IsIMEEnabled(mInputContext);
-    bool eventDispatched;
-    noDefault = nativeKey.DispatchKeyDownEvent(&eventDispatched);
-    if (aEventDispatched) {
-      *aEventDispatched = eventDispatched;
-    }
-    if (!eventDispatched) {
-      
-      
-      RedirectedKeyDownMessageManager::Forget();
-      return 0;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    HWND focusedWnd = ::GetFocus();
-    if (!noDefault && !aFakeCharMessage && focusedWnd && !PluginHasFocus() &&
-        !isIMEEnabled && IMEHandler::IsIMEEnabled(mInputContext)) {
-      RedirectedKeyDownMessageManager::RemoveNextCharMessage(focusedWnd);
-
-      INPUT keyinput;
-      keyinput.type = INPUT_KEYBOARD;
-      keyinput.ki.wVk = aMsg.wParam;
-      keyinput.ki.wScan = WinUtils::GetScanCode(aMsg.lParam);
-      keyinput.ki.dwFlags = KEYEVENTF_SCANCODE;
-      if (WinUtils::IsExtendedScanCode(aMsg.lParam)) {
-        keyinput.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
-      }
-      keyinput.ki.time = 0;
-      keyinput.ki.dwExtraInfo = 0;
-
-      RedirectedKeyDownMessageManager::WillRedirect(aMsg, noDefault);
-
-      ::SendInput(1, &keyinput, sizeof(keyinput));
-
-      
-      
-      
-      return true;
-    }
-
-    if (mOnDestroyCalled) {
-      
-      
-      return true;
-    }
-  } else {
-    noDefault = RedirectedKeyDownMessageManager::DefaultPrevented();
-    
-    
-    if (aEventDispatched) {
-      *aEventDispatched = true;
-    }
-  }
-
-  RedirectedKeyDownMessageManager::Forget();
-
-  
-  if (aMsg.wParam == VK_PROCESSKEY) {
-    return noDefault;
-  }
-
-  
-  
-  switch (DOMKeyCode) {
-    case NS_VK_SHIFT:
-    case NS_VK_CONTROL:
-    case NS_VK_ALT:
-    case NS_VK_CAPS_LOCK:
-    case NS_VK_NUM_LOCK:
-    case NS_VK_SCROLL_LOCK:
-    case NS_VK_WIN:
-      return noDefault;
-  }
-
-  EventFlags extraFlags;
-  extraFlags.mDefaultPrevented = noDefault;
-
-  if (nativeKey.NeedsToHandleWithoutFollowingCharMessages()) {
-    return nativeKey.DispatchKeyPressEventsAndDiscardsCharMessages(extraFlags);
-  }
-
-  if (nativeKey.IsFollowedByCharMessage()) {
-    return static_cast<LRESULT>(
-      nativeKey.DispatchKeyPressEventForFollowingCharMessage(extraFlags));
-  }
-
-  if (!aModKeyState.IsControl() && !aModKeyState.IsAlt() &&
-      !aModKeyState.IsWin() && nativeKey.IsPrintableKey()) {
-    
-    
-    
-    return PluginHasFocus() && noDefault;
-  }
-
-  if (nativeKey.IsDeadKey()) {
-    return PluginHasFocus() && noDefault;
-  }
-
-  return static_cast<LRESULT>(
-    nativeKey.DispatchKeyPressEventsWithKeyboardLayout(extraFlags));
-}
-
 void
 nsWindow::SetupKeyModifiersSequence(nsTArray<KeyPair>* aArray, uint32_t aModifiers)
 {
@@ -6900,7 +6769,7 @@ NS_IMETHODIMP_(InputContext)
 nsWindow::GetInputContext()
 {
   mInputContext.mIMEState.mOpen = IMEState::CLOSED;
-  if (IMEHandler::IsIMEEnabled(mInputContext) && IMEHandler::GetOpenState(this)) {
+  if (WinUtils::IsIMEEnabled(mInputContext) && IMEHandler::GetOpenState(this)) {
     mInputContext.mIMEState.mOpen = IMEState::OPEN;
   } else {
     mInputContext.mIMEState.mOpen = IMEState::CLOSED;

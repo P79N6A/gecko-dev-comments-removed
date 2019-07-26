@@ -85,21 +85,6 @@ IMEHandler::GetNativeData(uint32_t aDataType)
 
 
 bool
-IMEHandler::IsIMEEnabled(const InputContext& aInputContext)
-{
-  return IsIMEEnabled(aInputContext.mIMEState.mEnabled);
-}
-
-
-bool
-IMEHandler::IsIMEEnabled(IMEState::Enabled aIMEState)
-{
-  return (aIMEState == mozilla::widget::IMEState::ENABLED ||
-          aIMEState == mozilla::widget::IMEState::PLUGIN);
-}
-
-
-bool
 IMEHandler::ProcessRawKeyMessage(const MSG& aMsg)
 {
 #ifdef NS_ENABLE_TSF
@@ -282,7 +267,7 @@ IMEHandler::SetInputContext(nsWindow* aWindow,
   
   sPluginHasFocus = (aInputContext.mIMEState.mEnabled == IMEState::PLUGIN);
 
-  bool enable = IsIMEEnabled(aInputContext);
+  bool enable = WinUtils::IsIMEEnabled(aInputContext);
   bool adjustOpenState = (enable &&
     aInputContext.mIMEState.mOpen != IMEState::DONT_CHANGE_OPEN_STATE);
   bool open = (adjustOpenState &&

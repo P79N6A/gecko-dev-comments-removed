@@ -788,6 +788,126 @@ NativeKey::DispatchKeyDownEvent(bool* aEventDispatched) const
 }
 
 bool
+NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
+{
+  MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
+
+  if (aEventDispatched) {
+    *aEventDispatched = false;
+  }
+
+  bool defaultPrevented = false;
+  if (mIsFakeCharMsg ||
+      !RedirectedKeyDownMessageManager::IsRedirectedMessage(mMsg)) {
+    bool isIMEEnabled = WinUtils::IsIMEEnabled(mWidget->GetInputContext());
+    bool eventDispatched;
+    defaultPrevented = DispatchKeyDownEvent(&eventDispatched);
+    if (aEventDispatched) {
+      *aEventDispatched = eventDispatched;
+    }
+    if (!eventDispatched) {
+      
+      
+      RedirectedKeyDownMessageManager::Forget();
+      return false;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    HWND focusedWnd = ::GetFocus();
+    if (!defaultPrevented && !mIsFakeCharMsg && focusedWnd &&
+        !mWidget->PluginHasFocus() && !isIMEEnabled &&
+        WinUtils::IsIMEEnabled(mWidget->GetInputContext())) {
+      RedirectedKeyDownMessageManager::RemoveNextCharMessage(focusedWnd);
+
+      INPUT keyinput;
+      keyinput.type = INPUT_KEYBOARD;
+      keyinput.ki.wVk = mOriginalVirtualKeyCode;
+      keyinput.ki.wScan = mScanCode;
+      keyinput.ki.dwFlags = KEYEVENTF_SCANCODE;
+      if (mIsExtended) {
+        keyinput.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
+      }
+      keyinput.ki.time = 0;
+      keyinput.ki.dwExtraInfo = 0;
+
+      RedirectedKeyDownMessageManager::WillRedirect(mMsg, defaultPrevented);
+
+      ::SendInput(1, &keyinput, sizeof(keyinput));
+
+      
+      
+      
+      return true;
+    }
+
+    if (mWidget->Destroyed()) {
+      
+      
+      return true;
+    }
+  } else {
+    defaultPrevented = RedirectedKeyDownMessageManager::DefaultPrevented();
+    
+    
+    if (aEventDispatched) {
+      *aEventDispatched = true;
+    }
+  }
+
+  RedirectedKeyDownMessageManager::Forget();
+
+  
+  if (mOriginalVirtualKeyCode == VK_PROCESSKEY) {
+    return defaultPrevented;
+  }
+
+  
+  
+  switch (mDOMKeyCode) {
+    case NS_VK_SHIFT:
+    case NS_VK_CONTROL:
+    case NS_VK_ALT:
+    case NS_VK_CAPS_LOCK:
+    case NS_VK_NUM_LOCK:
+    case NS_VK_SCROLL_LOCK:
+    case NS_VK_WIN:
+      return defaultPrevented;
+  }
+
+  EventFlags extraFlags;
+  extraFlags.mDefaultPrevented = defaultPrevented;
+
+  if (NeedsToHandleWithoutFollowingCharMessages()) {
+    return DispatchKeyPressEventsAndDiscardsCharMessages(extraFlags);
+  }
+
+  if (IsFollowedByCharMessage()) {
+    return DispatchKeyPressEventForFollowingCharMessage(extraFlags);
+  }
+
+  if (!mModKeyState.IsControl() && !mModKeyState.IsAlt() &&
+      !mModKeyState.IsWin() && IsPrintableKey()) {
+    
+    
+    
+    return mWidget->PluginHasFocus() && defaultPrevented;
+  }
+
+  if (IsDeadKey()) {
+    return mWidget->PluginHasFocus() && defaultPrevented;
+  }
+
+  return DispatchKeyPressEventsWithKeyboardLayout(extraFlags);
+}
+
+bool
 NativeKey::HandleCharMessage(const MSG& aCharMsg,
                              bool* aEventDispatched,
                              const EventFlags* aExtraFlags) const
