@@ -169,6 +169,19 @@ WrapRotationAxis(int32_t* aRotationPoint, int32_t aSize)
   }
 }
 
+static nsIntRect
+ComputeBufferRect(const nsIntRect& aRequestedRect)
+{
+  nsIntRect rect(aRequestedRect);
+  
+  
+  
+  
+  
+  rect.width = NS_MAX(aRequestedRect.width, 64);
+  return rect;
+}
+
 ThebesLayerBuffer::PaintState
 ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
                               uint32_t aFlags)
@@ -202,7 +215,8 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
         destBufferRect = neededRegion.GetBounds();
       }
     } else {
-      destBufferRect = neededRegion.GetBounds();
+      
+      destBufferRect = ComputeBufferRect(neededRegion.GetBounds());
     }
 
     if ((aFlags & PAINT_WILL_RESAMPLE) &&
@@ -271,7 +285,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
         } else {
           
           
-          destBufferRect = neededRegion.GetBounds();
+          destBufferRect = ComputeBufferRect(neededRegion.GetBounds());
           destBuffer = CreateBuffer(contentType, destBufferRect.Size(), bufferFlags);
           if (!destBuffer)
             return result;
