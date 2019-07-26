@@ -2265,9 +2265,10 @@ public:
 
 
   enum {
-    PAINT_COMPOSITE_ONLY
+    PAINT_DEFAULT = 0,
+    PAINT_COMPOSITE_ONLY = 1 << 0
   };
-  void SchedulePaint(uint32_t aFlags = 0);
+  void SchedulePaint(uint32_t aFlags = PAINT_DEFAULT);
 
   
 
