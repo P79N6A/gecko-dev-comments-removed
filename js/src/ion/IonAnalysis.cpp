@@ -17,7 +17,7 @@ using namespace js::ion;
 
 
 bool
-ion::SplitCriticalEdges(MIRGenerator *gen, MIRGraph &graph)
+ion::SplitCriticalEdges(MIRGraph &graph)
 {
     for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
         if (block->numSuccessors() < 2)

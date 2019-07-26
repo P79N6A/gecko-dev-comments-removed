@@ -445,7 +445,7 @@ class IonBuilder : public MIRGenerator
     types::RecompileInfo const recompileInfo;
 
     
-    LIRGraph *lir;
+    LIRGraph *backgroundCompiledLir;
 
     void clearForBackEnd();
 
