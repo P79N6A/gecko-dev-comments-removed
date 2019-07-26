@@ -1381,7 +1381,11 @@ pref("network.proxy.socks_remote_dns",      false);
 pref("network.proxy.no_proxies_on",         "localhost, 127.0.0.1");
 pref("network.proxy.failover_timeout",      1800); 
 pref("network.online",                      true); 
+#ifdef RELEASE_BUILD
+pref("network.cookie.cookieBehavior",       0); 
+#else
 pref("network.cookie.cookieBehavior",       3); 
+#endif
 #ifdef ANDROID
 pref("network.cookie.cookieBehavior",       0); 
 #endif

@@ -178,8 +178,13 @@ var gPrivacyPane = {
       
       document.getElementById("browser.formfill.enable").value = true;
 
+#ifdef RELEASE_BUILD
+      
+      document.getElementById("network.cookie.cookieBehavior").value = 0;
+#else
       
       document.getElementById("network.cookie.cookieBehavior").value = 3;
+#endif
       
       document.getElementById("network.cookie.lifetimePolicy").value = 0;
 
@@ -399,11 +404,19 @@ var gPrivacyPane = {
     var accept = document.getElementById("acceptCookies");
     var acceptThirdPartyMenu = document.getElementById("acceptThirdPartyMenu");
 
+#ifdef RELEASE_BUILD
+    
+    if (accept.checked)
+      acceptThirdPartyMenu.selectedIndex = 0;
+
+    return accept.checked ? 0 : 2;
+#else
     
     if (accept.checked)
       acceptThirdPartyMenu.selectedIndex = 1;
 
     return accept.checked ? 3 : 2;
+#endif
   },
   
   
