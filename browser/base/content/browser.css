@@ -185,6 +185,36 @@ toolbar[customizing] > .overflow-button {
 #titlebar-fullscreen-button {
   -moz-appearance: -moz-mac-fullscreen-button;
 }
+
+
+
+#titlebar-buttonbox-container:-moz-locale-dir(ltr) {
+  -moz-box-align: start;
+}
+
+#titlebar-buttonbox-container:-moz-locale-dir(rtl) {
+  -moz-box-align: end;
+}
+
+
+#titlebar-fullscreen-button:-moz-locale-dir(ltr),
+#titlebar-buttonbox-container:-moz-locale-dir(rtl),
+.titlebar-placeholder[type="fullscreen-button"]:-moz-locale-dir(ltr),
+.titlebar-placeholder[type="caption-buttons"]:-moz-locale-dir(rtl) {
+  -moz-box-ordinal-group: 1000;
+}
+
+#titlebar-fullscreen-button:-moz-locale-dir(rtl),
+#titlebar-buttonbox-container:-moz-locale-dir(ltr),
+.titlebar-placeholder[type="caption-buttons"]:-moz-locale-dir(ltr),
+.titlebar-placeholder[type="fullscreen-button"]:-moz-locale-dir(rtl) {
+  -moz-box-ordinal-group: 0;
+}
+%else
+
+#titlebar-buttonbox-container {
+  -moz-box-align: start;
+}
 %endif
 
 %ifdef XP_WIN
