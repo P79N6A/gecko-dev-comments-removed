@@ -1062,16 +1062,22 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   
   
   
-  LayerRect typedCoherentUpdateRect =
-    transformedCompositionBounds.Intersect(aPaintData->mCompositionBounds);
-
   
-  nsIntRect untypedCoherentUpdateRect(LayerIntRect::ToUntyped(
-    RoundedOut(typedCoherentUpdateRect)));
+  
+  
+  
+  
+  nsIntRect coherentUpdateRect(LayerIntRect::ToUntyped(RoundedOut(
+#ifdef MOZ_WIDGET_ANDROID
+    transformedCompositionBounds.Intersect(aPaintData->mCompositionBounds)
+#else
+    transformedCompositionBounds
+#endif
+  )));
 
-  TILING_PRLOG_OBJ(("TILING 0x%p: Progressive update final coherency rect %s\n", mThebesLayer, tmpstr.get()), untypedCoherentUpdateRect);
+  TILING_PRLOG_OBJ(("TILING 0x%p: Progressive update final coherency rect %s\n", mThebesLayer, tmpstr.get()), coherentUpdateRect);
 
-  aRegionToPaint.And(aInvalidRegion, untypedCoherentUpdateRect);
+  aRegionToPaint.And(aInvalidRegion, coherentUpdateRect);
   aRegionToPaint.Or(aRegionToPaint, staleRegion);
   bool drawingStale = !aRegionToPaint.IsEmpty();
   if (!drawingStale) {
@@ -1080,8 +1086,8 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
 
   
   bool paintVisible = false;
-  if (aRegionToPaint.Intersects(untypedCoherentUpdateRect)) {
-    aRegionToPaint.And(aRegionToPaint, untypedCoherentUpdateRect);
+  if (aRegionToPaint.Intersects(coherentUpdateRect)) {
+    aRegionToPaint.And(aRegionToPaint, coherentUpdateRect);
     paintVisible = true;
   }
 
