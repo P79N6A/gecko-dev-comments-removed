@@ -28,9 +28,9 @@ public:
 
   
   nsMozIconURI();
-  virtual ~nsMozIconURI();
 
 protected:
+  virtual ~nsMozIconURI();
   nsCOMPtr<nsIURL> mIconURL; 
   uint32_t mSize; 
   nsCString mContentType; 

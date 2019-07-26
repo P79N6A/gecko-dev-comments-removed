@@ -21,8 +21,6 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_IMGICONTAINER
 
-  virtual ~ImageWrapper() { }
-
   
   virtual nsresult Init(const char* aMimeType, uint32_t aFlags) MOZ_OVERRIDE;
 
@@ -70,6 +68,8 @@ protected:
   {
     NS_ABORT_IF_FALSE(aInnerImage, "Cannot wrap a null image");
   }
+
+  virtual ~ImageWrapper() { }
 
   
 

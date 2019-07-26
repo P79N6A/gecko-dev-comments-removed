@@ -143,6 +143,9 @@ class RasterImage : public ImageResource
                   , public imgIContainerDebug
 #endif
 {
+  
+  virtual ~RasterImage();
+
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(RasterImage)
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -151,9 +154,6 @@ public:
 #ifdef DEBUG
   NS_DECL_IMGICONTAINERDEBUG
 #endif
-
-  
-  virtual ~RasterImage();
 
   virtual nsresult StartAnimation();
   virtual nsresult StopAnimation();
@@ -454,13 +454,12 @@ private:
 
     already_AddRefed<nsIEventTarget> GetEventTarget();
 
-    virtual ~DecodePool();
-
   private: 
     static StaticRefPtr<DecodePool> sSingleton;
 
   private: 
     DecodePool();
+    virtual ~DecodePool();
 
     enum DecodeType {
       DECODE_TYPE_UNTIL_TIME,
@@ -830,4 +829,4 @@ class imgDecodeRequestor : public nsRunnable
 } 
 } 
 
-#endif
+#endif 
