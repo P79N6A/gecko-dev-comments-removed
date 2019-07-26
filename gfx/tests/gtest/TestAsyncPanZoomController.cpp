@@ -65,22 +65,24 @@ public:
 class MockContentControllerDelayed : public MockContentController {
 public:
   MockContentControllerDelayed()
-    : mCurrentTask(nullptr)
   {
   }
 
   void PostDelayedTask(Task* aTask, int aDelayMs) {
-    
-    EXPECT_TRUE(nullptr == mCurrentTask);
-    mCurrentTask = aTask;
+    mTaskQueue.AppendElement(aTask);
   }
 
   void CheckHasDelayedTask() {
-    EXPECT_TRUE(nullptr != mCurrentTask);
+    EXPECT_TRUE(mTaskQueue.Length() > 0);
   }
 
   void ClearDelayedTask() {
-    mCurrentTask = nullptr;
+    mTaskQueue.RemoveElementAt(0);
+  }
+
+  void DestroyOldestTask() {
+    delete mTaskQueue[0];
+    mTaskQueue.RemoveElementAt(0);
   }
 
   
@@ -88,16 +90,13 @@ public:
   
   
   void RunDelayedTask() {
-    
-    
-    Task* local = mCurrentTask;
-    mCurrentTask = nullptr;
-    local->Run();
-    delete local;
+    mTaskQueue[0]->Run();
+    delete mTaskQueue[0];
+    mTaskQueue.RemoveElementAt(0);
   }
 
 private:
-  Task *mCurrentTask;
+  nsTArray<Task*> mTaskQueue;
 };
 
 
@@ -284,19 +283,19 @@ void DoPanTest(bool aShouldTriggerScroll, bool aShouldUseTouchAction, uint32_t a
 
 static void
 ApzcPinch(AsyncPanZoomController* aApzc, int aFocusX, int aFocusY, float aScale) {
-  aApzc->HandleInputEvent(PinchGestureInput(PinchGestureInput::PINCHGESTURE_START,
+  aApzc->HandleGestureEvent(PinchGestureInput(PinchGestureInput::PINCHGESTURE_START,
                                             0,
                                             ScreenPoint(aFocusX, aFocusY),
                                             10.0,
                                             10.0,
                                             0));
-  aApzc->HandleInputEvent(PinchGestureInput(PinchGestureInput::PINCHGESTURE_SCALE,
+  aApzc->HandleGestureEvent(PinchGestureInput(PinchGestureInput::PINCHGESTURE_SCALE,
                                             0,
                                             ScreenPoint(aFocusX, aFocusY),
                                             10.0 * aScale,
                                             10.0,
                                             0));
-  aApzc->HandleInputEvent(PinchGestureInput(PinchGestureInput::PINCHGESTURE_END,
+  aApzc->HandleGestureEvent(PinchGestureInput(PinchGestureInput::PINCHGESTURE_END,
                                             0,
                                             ScreenPoint(aFocusX, aFocusY),
                                             
@@ -326,6 +325,8 @@ ApzcTap(AsyncPanZoomController* apzc, int aX, int aY, int& aTime, int aTapLength
   if (mcc != nullptr) {
     
     
+    mcc->CheckHasDelayedTask();
+    mcc->ClearDelayedTask();
     mcc->CheckHasDelayedTask();
     mcc->ClearDelayedTask();
   }
@@ -776,6 +777,16 @@ DoLongPressTest(bool aShouldUseTouchAction, uint32_t aBehavior) {
   mcc->RunDelayedTask();
   check.Call("postHandleLongTap");
 
+  
+  mcc->DestroyOldestTask();
+  
+  
+  
+  
+  mcc->CheckHasDelayedTask();
+  mcc->ClearDelayedTask();
+  apzc->ContentReceivedTouch(true);
+
   time += 1000;
 
   status = ApzcUp(apzc, 10, 10, time);
@@ -835,6 +846,8 @@ TEST_F(AsyncPanZoomControllerTester, LongPressPreventDefault) {
   mcc->RunDelayedTask();
   check.Call("postHandleLongTap");
 
+  
+  mcc->DestroyOldestTask();
   
   
   

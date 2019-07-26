@@ -258,6 +258,15 @@ public:
   
 
 
+
+
+
+
+  nsEventStatus HandleGestureEvent(const InputData& aEvent);
+
+  
+
+
   void GetGuid(ScrollableLayerGuid* aGuidOut);
 
   

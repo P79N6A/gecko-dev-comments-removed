@@ -7,10 +7,8 @@
 #ifndef mozilla_layers_GestureEventListener_h
 #define mozilla_layers_GestureEventListener_h
 
-#include <stdint.h>                     
 #include "InputData.h"                  
 #include "Units.h"                      
-#include "mozilla/Assertions.h"         
 #include "mozilla/EventForwards.h"      
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"
@@ -56,111 +54,88 @@ public:
 
   nsEventStatus HandleInputEvent(const MultiTouchInput& aEvent);
 
-  
-
-
-
-
-  void CancelGesture();
-
-  
-
-
-
-  AsyncPanZoomController* GetAsyncPanZoomController();
-
 protected:
+
+  
+
+
   enum GestureState {
     
+    
+    
+    
     GESTURE_NONE,
+
     
     
     
-    GESTURE_WAITING_PINCH,
-    
-    
-    GESTURE_PINCH,
     
     
     
-    GESTURE_WAITING_SINGLE_TAP,
+    GESTURE_FIRST_SINGLE_TOUCH_DOWN,
+
     
-    GESTURE_WAITING_DOUBLE_TAP,
     
     
-    GESTURE_LONG_TAP_UP
+    
+    
+    
+    GESTURE_FIRST_SINGLE_TOUCH_MAX_TAP_DOWN,
+
+    
+    
+    
+    
+    GESTURE_FIRST_SINGLE_TOUCH_UP,
+
+    
+    
+    
+    
+    GESTURE_SECOND_SINGLE_TOUCH_DOWN,
+
+    
+    
+    
+    GESTURE_LONG_TOUCH_DOWN,
+
+    
+    
+    
+    
+    GESTURE_MULTI_TOUCH_DOWN,
+
+    
+    
+    
+    GESTURE_PINCH
   };
 
   
 
 
 
-  nsEventStatus HandlePinchGestureEvent(const MultiTouchInput& aEvent);
+  nsEventStatus HandleInputTouchSingleStart();
+  nsEventStatus HandleInputTouchMultiStart();
+  nsEventStatus HandleInputTouchEnd();
+  nsEventStatus HandleInputTouchMove();
+  nsEventStatus HandleInputTouchCancel();
+  void HandleInputTimeoutLongTap();
+  void HandleInputTimeoutMaxTap();
+
+  void TriggerSingleTapConfirmedEvent();
 
   
 
 
-
-
-
-
-  nsEventStatus HandleSingleTapUpEvent(const MultiTouchInput& aEvent);
-
-  
-
-
-
-
-
-  nsEventStatus HandleSingleTapConfirmedEvent(const MultiTouchInput& aEvent);
-
-  
-
-
-
-  nsEventStatus HandleLongTapEvent(const MultiTouchInput& aEvent);
-
-  
-
-
-
-  nsEventStatus HandleLongTapUpEvent(const MultiTouchInput& aEvent);
-
-  
-
-
-
-
-
-
-  nsEventStatus HandleTapCancel(const MultiTouchInput& aEvent);
-
-  
-
-
-
-
-
-
-  nsEventStatus HandleDoubleTap(const MultiTouchInput& aEvent);
-
-  
-
-
-
-
-
-
-  void TimeoutDoubleTap();
-  
-
-
-
-  void TimeoutLongTap();
+  void SetState(GestureState aState);
 
   nsRefPtr<AsyncPanZoomController> mAsyncPanZoomController;
 
   
+
+
+
 
 
 
@@ -188,26 +163,6 @@ protected:
   
 
 
-
-
-
-
-  uint64_t mTapStartTime;
-
-  
-
-
-
-
-  uint64_t mLastTapEndTime;
-
-  
-
-
-
-
-
-
   MultiTouchInput mLastTouchInput;
 
   
@@ -217,10 +172,15 @@ protected:
 
 
 
-  CancelableTask *mDoubleTapTimeoutTask;
-  inline void CancelDoubleTapTimeoutTask();
+
+
+  ScreenIntPoint mTouchStartPosition;
 
   
+
+
+
+
 
 
 
@@ -228,14 +188,22 @@ protected:
 
 
   CancelableTask *mLongTapTimeoutTask;
-  inline void CancelLongTapTimeoutTask();
+  void CancelLongTapTimeoutTask();
+  void CreateLongTapTimeoutTask();
 
   
 
 
 
 
-  ScreenIntPoint mTouchStartPosition;
+
+
+
+
+  CancelableTask *mMaxTapTimeoutTask;
+  void CancelMaxTapTimeoutTask();
+  void CreateMaxTapTimeoutTask();
+
 };
 
 }
