@@ -525,10 +525,29 @@ JSFunction::trace(JSTracer *trc)
         
         
         
-        if (hasScript() && u.i.s.script_)
-            MarkScriptUnbarriered(trc, &u.i.s.script_, "script");
-        else if (isInterpretedLazy() && u.i.s.lazy_)
+        if (hasScript() && u.i.s.script_) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            if (IS_GC_MARKING_TRACER(trc) && !compartment()->hasBeenEntered() &&
+                !compartment()->debugMode() && !compartment()->isSelfHosting &&
+                u.i.s.script_->isRelazifiable() && (!isSelfHostedBuiltin() || isExtended()))
+            {
+                relazify(trc);
+            } else {
+                MarkScriptUnbarriered(trc, &u.i.s.script_, "script");
+            }
+        } else if (isInterpretedLazy() && u.i.s.lazy_) {
             MarkLazyScriptUnbarriered(trc, &u.i.s.lazy_, "lazyScript");
+        }
         if (u.i.env_)
             MarkObjectUnbarriered(trc, &u.i.env_, "fun_callscope");
     }
@@ -1128,6 +1147,11 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
         if (script) {
             AutoLockForCompilation lock(cx);
             fun->setUnlazifiedScript(script);
+            
+            
+            
+            if (!lazy->numInnerFunctions())
+                script->setLazyScript(lazy);
             return true;
         }
 
@@ -1174,7 +1198,8 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
 
             CallNewScriptHook(cx, clonedScript, fun);
 
-            lazy->initScript(clonedScript);
+            if (!lazy->maybeScript())
+                lazy->initScript(clonedScript);
             return true;
         }
 
@@ -1195,6 +1220,11 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
         script = fun->nonLazyScript();
 
         
+        
+        if (!lazy->maybeScript())
+            lazy->initScript(script);
+
+        
         if (!lazy->numInnerFunctions()) {
             
             
@@ -1203,20 +1233,61 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
 
             LazyScriptCache::Lookup lookup(cx, lazy);
             cx->runtime()->lazyScriptCache.insert(lookup, script);
-        }
 
-        
-        
-        lazy->initScript(script);
+            
+            
+            
+            script->setLazyScript(lazy);
+        }
         return true;
     }
 
     
+    JS_ASSERT(fun->isSelfHostedBuiltin());
     RootedAtom funAtom(cx, &fun->getExtendedSlot(0).toString()->asAtom());
     if (!funAtom)
         return false;
     Rooted<PropertyName *> funName(cx, funAtom->asPropertyName());
     return cx->runtime()->cloneSelfHostedFunctionScript(cx, funName, fun);
+}
+
+void
+JSFunction::relazify(JSTracer *trc)
+{
+    JSScript *script = nonLazyScript();
+    JS_ASSERT(script->isRelazifiable());
+    JS_ASSERT(!compartment()->hasBeenEntered());
+    JS_ASSERT(!compartment()->debugMode());
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (script->functionNonDelazifying()->hasScript())
+        MarkScriptUnbarriered(trc, &u.i.s.script_, "script");
+
+    flags_ &= ~INTERPRETED;
+    flags_ |= INTERPRETED_LAZY;
+    LazyScript *lazy = script->maybeLazyScript();
+    u.i.s.lazy_ = lazy;
+    if (lazy) {
+        JS_ASSERT(!isSelfHostedBuiltin());
+        
+        
+        
+        if (lazy->maybeScript() == script)
+            lazy->resetScript();
+        MarkLazyScriptUnbarriered(trc, &u.i.s.lazy_, "lazyScript");
+    } else {
+        JS_ASSERT(isSelfHostedBuiltin());
+        JS_ASSERT(isExtended());
+        JS_ASSERT(getExtendedSlot(0).toString()->isAtom());
+    }
 }
 
 
