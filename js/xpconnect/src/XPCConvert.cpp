@@ -291,11 +291,6 @@ XPCConvert::NativeData2JS(MutableHandleValue d, const void* s,
                 if (!cString || cString->IsVoid())
                     break;
 
-                if (cString->IsEmpty()) {
-                    d.set(JS_GetEmptyStringValue(cx));
-                    break;
-                }
-
                 
                 
                 
