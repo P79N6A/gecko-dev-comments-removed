@@ -2500,12 +2500,8 @@ js::AsTypedArrayBuffer(HandleValue v)
 }
 
 bool
-js::StringIsTypedArrayIndex(JSLinearString *str, double *indexp)
+js::StringIsTypedArrayIndex(JSLinearString *str, uint64_t *indexp)
 {
-    
-    
-    static const double MAX_INTEGER = 9007199254740991;
-
     const jschar *s = str->chars();
     const jschar *end = s + str->length();
 
@@ -2522,7 +2518,7 @@ js::StringIsTypedArrayIndex(JSLinearString *str, double *indexp)
     if (!JS7_ISDEC(*s))
         return false;
 
-    double index = 0;
+    uint64_t index = 0;
     uint32_t digit = JS7_UNDEC(*s++);
 
     
@@ -2538,16 +2534,16 @@ js::StringIsTypedArrayIndex(JSLinearString *str, double *indexp)
         digit = JS7_UNDEC(*s);
 
         
-        if ((MAX_INTEGER - digit) / 10 < index)
-            return false;
-
-        index = 10 * index + digit;
+        if ((UINT64_MAX - digit) / 10 < index)
+            index = UINT64_MAX;
+        else
+            index = 10 * index + digit;
     }
 
     if (negative)
-        index = -index;
-
-    *indexp = index;
+        *indexp = UINT64_MAX;
+    else
+        *indexp = index;
     return true;
 }
 

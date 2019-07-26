@@ -18,7 +18,14 @@ f();
 
 var bigint = "" + Math.pow(2, 53);
 x[bigint] = "twelve";
-assertEq(x[bigint], "twelve");
+assertEq(x[bigint], undefined);
+
+x["9999999999999999999999"] = "twelve";
+assertEq(x["9999999999999999999999"], undefined);
+
+
+x[9999999999999999999999] = "twelve";
+assertEq(x[9999999999999999999999], "twelve");
 
 
 

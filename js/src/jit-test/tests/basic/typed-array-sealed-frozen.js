@@ -68,7 +68,7 @@ for (constructor of constructors) {
 
   
   a[Math.pow(2, 53)] = "twelve";
-  assertEq(a[Math.pow(2, 53)], "twelve");
+  assertEq(a[Math.pow(2, 53)], undefined);
 
   
   Object.defineProperty(a, 5, {value: 3});
