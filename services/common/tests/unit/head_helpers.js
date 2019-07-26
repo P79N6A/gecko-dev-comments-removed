@@ -2,13 +2,13 @@
 
 
 
-Cu.import("resource://gre/modules/Log.jsm");
+Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://testing-common/services-common/logging.js");
 
-let btoa = Cu.import("resource://gre/modules/Log.jsm").btoa;
-let atob = Cu.import("resource://gre/modules/Log.jsm").atob;
+let btoa = Cu.import("resource://services-common/log4moz.js").btoa;
+let atob = Cu.import("resource://services-common/log4moz.js").atob;
 
 function do_check_empty(obj) {
   do_check_attribute_count(obj, 0);

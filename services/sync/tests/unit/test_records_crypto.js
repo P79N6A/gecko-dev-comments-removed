@@ -1,7 +1,7 @@
 
 
 
-Cu.import("resource://gre/modules/Log.jsm");
+Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/keys.js");
 Cu.import("resource://services-sync/record.js");
@@ -35,8 +35,8 @@ function run_test() {
   let keyBundle = Service.identity.syncKeyBundle;
 
   try {
-    let log = Log.repository.getLogger("Test");
-    Log.repository.rootLogger.addAppender(new Log.DumpAppender());
+    let log = Log4Moz.repository.getLogger("Test");
+    Log4Moz.repository.rootLogger.addAppender(new Log4Moz.DumpAppender());
 
     log.info("Setting up server and authenticator");
 

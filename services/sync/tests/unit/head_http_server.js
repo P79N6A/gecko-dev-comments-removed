@@ -1,7 +1,7 @@
 const Cm = Components.manager;
 
 
-Cu.import("resource://gre/modules/Log.jsm");
+Cu.import("resource://services-common/log4moz.js");
 const SYNC_HTTP_LOGGER = "Sync.Test.Server";
 const SYNC_API_VERSION = "1.1";
 
@@ -163,7 +163,7 @@ function ServerCollection(wbos, acceptNew, timestamp) {
 
 
   this.timestamp = timestamp || new_timestamp();
-  this._log = Log.repository.getLogger(SYNC_HTTP_LOGGER);
+  this._log = Log4Moz.repository.getLogger(SYNC_HTTP_LOGGER);
 }
 ServerCollection.prototype = {
 
@@ -527,7 +527,7 @@ function SyncServer(callback) {
   this.server   = new HttpServer();
   this.started  = false;
   this.users    = {};
-  this._log     = Log.repository.getLogger(SYNC_HTTP_LOGGER);
+  this._log     = Log4Moz.repository.getLogger(SYNC_HTTP_LOGGER);
 
   
   
