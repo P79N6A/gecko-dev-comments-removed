@@ -1842,6 +1842,7 @@ nsImageFrame::LoadIcon(const nsAString& aSpec,
                        loadFlags,
                        nullptr,
                        nullptr,      
+                       EmptyString(),
                        aRequest);
 }
 

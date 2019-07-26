@@ -9274,6 +9274,7 @@ nsDocument::MaybePreLoadImage(nsIURI* uri, const nsAString &aCrossOriginAttr)
                               mDocumentURI, 
                               nullptr,       
                               loadFlags,
+                              NS_LITERAL_STRING("img"),
                               getter_AddRefs(request));
 
   

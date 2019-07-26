@@ -26,6 +26,8 @@
 #include "nsICookieService.h"
 #include "nsIStreamConverterService.h"
 #include "nsCRT.h"
+#include "nsContentUtils.h"
+#include "nsIScriptSecurityManager.h"
 #include "nsIObserverService.h"
 
 #include <algorithm>
@@ -59,10 +61,12 @@ HttpBaseChannel::HttpBaseChannel()
   , mLoadAsBlocking(false)
   , mLoadUnblocked(false)
   , mResponseTimeoutEnabled(true)
+  , mAllRedirectsSameOrigin(true)
   , mSuspendCount(0)
   , mProxyResolveFlags(0)
   , mContentDispositionHint(UINT32_MAX)
   , mHttpHandler(gHttpHandler)
+  , mRedirectCount(0)
 {
   LOG(("Creating HttpBaseChannel @%x\n", this));
 
@@ -1907,11 +1911,44 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     mPropertyHash.EnumerateRead(CopyProperties, bag.get());
 
   
-  nsCOMPtr<nsITimedChannel> timed(do_QueryInterface(newChannel));
-  if (timed)
-    timed->SetTimingEnabled(mTimingEnabled);
+  nsCOMPtr<nsITimedChannel> newTimedChannel(do_QueryInterface(newChannel));
+  nsCOMPtr<nsITimedChannel> oldTimedChannel(
+      do_QueryInterface(static_cast<nsIHttpChannel*>(this)));
+  if (oldTimedChannel && newTimedChannel) {
+    newTimedChannel->SetTimingEnabled(mTimingEnabled);
+    newTimedChannel->SetRedirectCount(mRedirectCount + 1);
+
+    
+    
+    if (mRedirectStartTimeStamp.IsNull()) {
+      TimeStamp asyncOpen;
+      oldTimedChannel->GetAsyncOpen(&asyncOpen);
+      newTimedChannel->SetRedirectStart(asyncOpen);
+    }
+    else {
+      newTimedChannel->SetRedirectStart(mRedirectStartTimeStamp);
+    }
+
+    
+    TimeStamp prevResponseEnd;
+    oldTimedChannel->GetResponseEnd(&prevResponseEnd);
+    newTimedChannel->SetRedirectEnd(prevResponseEnd);
+
+    
+    newTimedChannel->SetAllRedirectsSameOrigin(
+        mAllRedirectsSameOrigin && SameOriginWithOriginalUri(newURI));
+  }
 
   return NS_OK;
+}
+
+
+bool
+HttpBaseChannel::SameOriginWithOriginalUri(nsIURI *aURI)
+{
+  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+  nsresult rv = ssm->CheckSameOriginURI(aURI, mOriginalURI, false);
+  return (NS_SUCCEEDED(rv));
 }
 
 

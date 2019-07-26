@@ -2323,6 +2323,12 @@ nsObjectLoadingContent::OpenChannel()
   nsCOMPtr<nsIHttpChannel> httpChan(do_QueryInterface(chan));
   if (httpChan) {
     httpChan->SetReferrer(doc->GetDocumentURI());
+
+    
+    nsCOMPtr<nsITimedChannel> timedChannel(do_QueryInterface(httpChan));
+    if (timedChannel) {
+      timedChannel->SetInitiatorType(thisContent->LocalName());
+    }
   }
 
   

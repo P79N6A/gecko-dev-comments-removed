@@ -6819,14 +6819,6 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
     }
 
     
-    bool equals = false;
-    if (mTiming &&
-        !(mLoadType == LOAD_HISTORY &&
-          NS_SUCCEEDED(newURI->Equals(oldURI, &equals)) && equals)) {
-        mTiming->NotifyRedirect(oldURI, newURI);
-    }
-
-    
     
     
     
@@ -10033,6 +10025,9 @@ nsDocShell::DoURILoad(nsIURI * aURI,
     nsCOMPtr<nsITimedChannel> timedChannel(do_QueryInterface(channel));
     if (timedChannel) {
         timedChannel->SetTimingEnabled(true);
+        if (IsFrame()) {
+            timedChannel->SetInitiatorType(NS_LITERAL_STRING("subdocument"));
+        }
     }
 
     rv = DoChannelLoad(channel, uriLoader, aBypassClassifier);

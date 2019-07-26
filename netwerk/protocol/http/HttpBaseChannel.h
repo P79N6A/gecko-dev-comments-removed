@@ -243,6 +243,10 @@ protected:
                                   getter_AddRefs(aResult));
   }
 
+  
+  
+  bool SameOriginWithOriginalUri(nsIURI *aURI);
+
   friend class PrivateBrowsingChannel<HttpBaseChannel>;
 
   nsCOMPtr<nsIURI>                  mURI;
@@ -306,6 +310,8 @@ protected:
   uint32_t                          mLoadAsBlocking             : 1;
   uint32_t                          mLoadUnblocked              : 1;
   uint32_t                          mResponseTimeoutEnabled     : 1;
+  
+  uint32_t                          mAllRedirectsSameOrigin     : 1;
 
   
   uint32_t                          mSuspendCount;
@@ -320,6 +326,19 @@ protected:
   nsAutoPtr<nsString>               mContentDispositionFilename;
 
   nsRefPtr<nsHttpHandler>           mHttpHandler;  
+
+  
+  
+  
+  nsString                          mInitiatorType;
+  
+  int16_t                           mRedirectCount;
+  
+  
+  mozilla::TimeStamp                mRedirectStartTimeStamp;
+  
+  
+  mozilla::TimeStamp                mRedirectEndTimeStamp;
 };
 
 

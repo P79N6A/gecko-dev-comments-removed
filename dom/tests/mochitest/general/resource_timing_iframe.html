@@ -1,0 +1,48 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test for Bug 822480 -  Add in the Resource Timing API</title>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<script>
+function doTest() {
+  window.parent.ok(!!window.performance.getEntriesByName(
+    "http://example.com/tests/image/test/mochitest/damon.jpg").length,
+    "http://example.com/tests/image/test/mochitest/damon.jpg should be a valid entry name");
+  window.parent.ok(!window.performance.getEntriesByName(
+    "http://mochi.test:8888/tests/dom/tests/mochitest/general/resource_timing_iframe.html").length,
+    "This iframe should NOT contain itself as an entry");
+
+  // Check that there are no iframes added as entries
+  for (var i = 0 ; i < window.performance.getEntries().length ; i++) {
+    var entry = window.performance.getEntries()[i];
+    if (entry.initiatorType === "subdocument") {
+      ok(false, "unexpected iframe " + entry.name);
+    }
+  }
+
+  window.parent.iframeTestsCompleted();
+}
+</script>
+<body onLoad="doTest()">
+  <img src="http://example.com/tests/image/test/mochitest/damon.jpg"/>
+</body>
+</html>

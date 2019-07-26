@@ -106,6 +106,9 @@ pref("dom.workers.sharedWorkers.enabled", true);
 pref("dom.enable_performance", true);
 
 
+pref("dom.enable_resource_timing", false);
+
+
 pref("dom.gamepad.enabled", true);
 #ifdef RELEASE_BUILD
 pref("dom.gamepad.non_standard_events.enabled", false);

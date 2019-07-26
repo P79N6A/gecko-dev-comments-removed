@@ -13,16 +13,47 @@
 #include "nsContentUtils.h"
 #include "nsIDOMWindow.h"
 #include "js/TypeDecls.h"
+#include "mozilla/dom/BindingDeclarations.h"
 
 class nsITimedChannel;
 class nsPerformance;
+class nsIHttpChannel;
+
+namespace mozilla {
+namespace dom {
+  class PerformanceEntry;
+}
+}
 
 
 class nsPerformanceTiming MOZ_FINAL : public nsWrapperCache
 {
 public:
+  typedef mozilla::TimeStamp TimeStamp;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsPerformanceTiming(nsPerformance* aPerformance,
-                      nsITimedChannel* aChannel);
+                      nsITimedChannel* aChannel,
+                      nsIHttpChannel* aHttpChannel,
+                      DOMHighResTimeStamp aZeroTime);
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(nsPerformanceTiming)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(nsPerformanceTiming)
 
@@ -31,6 +62,57 @@ public:
   nsPerformance* GetParentObject() const
   {
     return mPerformance;
+  }
+
+  
+
+
+
+
+
+
+
+
+  inline DOMHighResTimeStamp TimeStampToDOMHighResOrFetchStart(TimeStamp aStamp)
+  {
+    return (!aStamp.IsNull())
+        ? TimeStampToDOMHighRes(aStamp)
+        : FetchStartHighRes();
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  inline DOMHighResTimeStamp TimeStampToDOMHighRes(TimeStamp aStamp) const
+  {
+    MOZ_ASSERT(!aStamp.IsNull());
+    mozilla::TimeDuration duration =
+        aStamp - GetDOMTiming()->GetNavigationStartTimeStamp();
+    return duration.ToMilliseconds() + mZeroTime;
   }
 
   virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
@@ -54,32 +136,36 @@ public:
     }
     return GetDOMTiming()->GetUnloadEventEnd();
   }
-  DOMTimeMilliSec RedirectStart() {
-    if (!nsContentUtils::IsPerformanceTimingEnabled()) {
-      return 0;
-    }
-    return GetDOMTiming()->GetRedirectStart();
-  }
-  DOMTimeMilliSec RedirectEnd() {
-    if (!nsContentUtils::IsPerformanceTimingEnabled()) {
-      return 0;
-    }
-    return GetDOMTiming()->GetRedirectEnd();
-  }
-  DOMTimeMilliSec FetchStart() const {
-    if (!nsContentUtils::IsPerformanceTimingEnabled()) {
-      return 0;
-    }
-    return GetDOMTiming()->GetFetchStart();
-  }
-  DOMTimeMilliSec DomainLookupStart() const;
-  DOMTimeMilliSec DomainLookupEnd() const;
-  DOMTimeMilliSec ConnectStart() const;
-  DOMTimeMilliSec ConnectEnd() const;
-  DOMTimeMilliSec RequestStart() const;
-  DOMTimeMilliSec ResponseStart() const;
-  DOMTimeMilliSec ResponseEnd() const;
-  DOMTimeMilliSec DomLoading() const {
+
+  uint16_t GetRedirectCount() const;
+  bool IsSameOriginAsReferral() const;
+  void CheckRedirectCrossOrigin(nsIHttpChannel* aResourceChannel);
+
+  
+  DOMHighResTimeStamp FetchStartHighRes();
+  DOMHighResTimeStamp RedirectStartHighRes();
+  DOMHighResTimeStamp RedirectEndHighRes();
+  DOMHighResTimeStamp DomainLookupStartHighRes();
+  DOMHighResTimeStamp DomainLookupEndHighRes();
+  DOMHighResTimeStamp ConnectStartHighRes();
+  DOMHighResTimeStamp ConnectEndHighRes();
+  DOMHighResTimeStamp RequestStartHighRes();
+  DOMHighResTimeStamp ResponseStartHighRes();
+  DOMHighResTimeStamp ResponseEndHighRes();
+
+  
+  DOMTimeMilliSec FetchStart();
+  DOMTimeMilliSec RedirectStart();
+  DOMTimeMilliSec RedirectEnd();
+  DOMTimeMilliSec DomainLookupStart();
+  DOMTimeMilliSec DomainLookupEnd();
+  DOMTimeMilliSec ConnectStart();
+  DOMTimeMilliSec ConnectEnd();
+  DOMTimeMilliSec RequestStart();
+  DOMTimeMilliSec ResponseStart();
+  DOMTimeMilliSec ResponseEnd();
+
+  DOMTimeMilliSec DomLoading() {
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
@@ -124,8 +210,16 @@ public:
 
 private:
   ~nsPerformanceTiming();
+  bool IsInitialized() const;
   nsRefPtr<nsPerformance> mPerformance;
   nsCOMPtr<nsITimedChannel> mChannel;
+  DOMHighResTimeStamp mFetchStart;
+  
+  
+  
+  
+  DOMHighResTimeStamp mZeroTime;
+  bool mReportCrossOriginResources;
 };
 
 
@@ -137,6 +231,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(nsPerformanceNavigation)
 
   nsDOMNavigationTiming* GetDOMTiming() const;
+  nsPerformanceTiming* GetPerformanceTiming() const;
 
   nsPerformance* GetParentObject() const
   {
@@ -150,7 +245,7 @@ public:
     return GetDOMTiming()->GetType();
   }
   uint16_t RedirectCount() const {
-    return GetDOMTiming()->GetRedirectCount();
+    return GetPerformanceTiming()->GetRedirectCount();
   }
 
 private:
@@ -163,9 +258,11 @@ class nsPerformance MOZ_FINAL : public nsISupports,
                                 public nsWrapperCache
 {
 public:
+  typedef mozilla::dom::PerformanceEntry PerformanceEntry;
   nsPerformance(nsIDOMWindow* aWindow,
                 nsDOMNavigationTiming* aDOMTiming,
-                nsITimedChannel* aChannel);
+                nsITimedChannel* aChannel,
+                nsPerformance* aParentPerformance);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsPerformance)
@@ -180,6 +277,11 @@ public:
     return mChannel;
   }
 
+  nsPerformance* GetParentPerformance() const
+  {
+    return mParentPerformance;
+  }
+
   nsIDOMWindow* GetParentObject() const
   {
     return mWindow.get();
@@ -192,6 +294,17 @@ public:
   nsPerformanceTiming* Timing();
   nsPerformanceNavigation* Navigation();
 
+  void GetEntries(nsTArray<nsRefPtr<PerformanceEntry> >& retval);
+  void GetEntriesByType(const nsAString& entryType,
+                        nsTArray<nsRefPtr<PerformanceEntry> >& retval);
+  void GetEntriesByName(const nsAString& name,
+                        const mozilla::dom::Optional< nsAString >& entryType,
+                        nsTArray<nsRefPtr<PerformanceEntry> >& retval);
+  void AddEntry(nsIHttpChannel* channel,
+                nsITimedChannel* timedChannel);
+  void ClearResourceTimings();
+  void SetResourceTimingBufferSize(uint64_t maxSize);
+
 private:
   ~nsPerformance();
 
@@ -200,12 +313,33 @@ private:
   nsCOMPtr<nsITimedChannel> mChannel;
   nsRefPtr<nsPerformanceTiming> mTiming;
   nsRefPtr<nsPerformanceNavigation> mNavigation;
+  nsTArray<nsRefPtr<PerformanceEntry> > mEntries;
+  nsRefPtr<nsPerformance> mParentPerformance;
+  uint64_t mBufferSizeSet;
+  uint64_t mPrimaryBufferSize;
+
+  static const uint64_t kDefaultBufferSize = 150;
+
+  
+  class PerformanceEntryComparator {
+    public:
+      bool Equals(const PerformanceEntry* aElem1,
+                  const PerformanceEntry* aElem2) const;
+      bool LessThan(const PerformanceEntry* aElem1,
+                    const PerformanceEntry* aElem2) const;
+  };
 };
 
 inline nsDOMNavigationTiming*
 nsPerformanceNavigation::GetDOMTiming() const
 {
   return mPerformance->GetDOMTiming();
+}
+
+inline nsPerformanceTiming*
+nsPerformanceNavigation::GetPerformanceTiming() const
+{
+  return mPerformance->Timing();
 }
 
 inline nsDOMNavigationTiming*

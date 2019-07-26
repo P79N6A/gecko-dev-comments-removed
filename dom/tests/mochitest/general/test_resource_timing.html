@@ -1,0 +1,35 @@
+
+
+
+
+
+<!DOCTYPE HTML>
+<html>
+
+
+
+<head>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+
+<pre id="test">
+<script type="application/javascript">
+
+SimpleTest.waitForExplicitFinish();
+
+// Resource timing is prefed off by default, so we had to use this workaround
+SpecialPowers.setBoolPref("dom.enable_resource_timing", true);
+var subwindow = window.open("resource_timing_main_test.html");
+
+function finishTests() {
+  subwindow.close();
+  SpecialPowers.setBoolPref("dom.enable_resource_timing", false);
+  SimpleTest.finish();
+}
+</script>
+</pre>
+
+</body>
+</html>

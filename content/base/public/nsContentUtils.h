@@ -654,6 +654,7 @@ public:
                             nsIURI* aReferrer,
                             imgINotificationObserver* aObserver,
                             int32_t aLoadFlags,
+                            const nsAString& initiatorType,
                             imgRequestProxy** aRequest);
 
   
@@ -1850,6 +1851,14 @@ public:
   
 
 
+  static bool IsResourceTimingEnabled()
+  {
+    return sIsResourceTimingEnabled;
+  }
+
+  
+
+
 
 
 
@@ -2221,6 +2230,7 @@ private:
   static uint32_t sHandlingInputTimeout;
   static bool sIsIdleObserverAPIEnabled;
   static bool sIsPerformanceTimingEnabled;
+  static bool sIsResourceTimingEnabled;
 
   static nsHtml5StringParser* sHTMLFragmentParser;
   static nsIParser* sXMLFragmentParser;
