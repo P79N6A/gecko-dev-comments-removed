@@ -292,9 +292,7 @@ StoreBuffer::mark(JSTracer *trc)
     bufferGeneric.mark(this, trc);
 
 #if defined(DEBUG)
-    
     for (CompartmentsIter c(runtime_, SkipAtoms); !c.done(); c.next()) {
-        c->checkNewTypeObjectTableAfterMovingGC();
         if (c->debugScopes)
             c->debugScopes->checkHashTablesAfterMovingGC(runtime_);
     }
