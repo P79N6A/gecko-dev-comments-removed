@@ -152,14 +152,12 @@ MNewStringObject::templateObj() const {
 CodeGenerator::CodeGenerator(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
   : CodeGeneratorSpecific(gen, graph, masm)
   , ionScriptLabels_(gen->alloc())
-  , scriptCounts_(nullptr)
 {
 }
 
 CodeGenerator::~CodeGenerator()
 {
     JS_ASSERT_IF(!gen->compilingAsmJS(), masm.numAsmJSAbsoluteLinks() == 0);
-    js_delete(scriptCounts_);
 }
 
 typedef bool (*StringToNumberFn)(ThreadSafeContext *, JSString *, double *);
@@ -3161,16 +3159,19 @@ CodeGenerator::maybeCreateScriptCounts()
 {
     
     
-    
-    if (!GetIonContext()->runtime->profilingScripts())
+    JSContext *cx = GetIonContext()->cx;
+    if (!cx || !cx->runtime()->profilingScripts)
         return nullptr;
-
-    IonScriptCounts *counts = nullptr;
 
     CompileInfo *outerInfo = &gen->info();
     JSScript *script = outerInfo->script();
+    if (!script)
+        return nullptr;
 
-    counts = js_new<IonScriptCounts>();
+    if (!script->hasScriptCounts() && !script->initScriptCounts(cx))
+        return nullptr;
+
+    IonScriptCounts *counts = js_new<IonScriptCounts>();
     if (!counts || !counts->init(graph.numBlocks())) {
         js_delete(counts);
         return nullptr;
@@ -3179,26 +3180,24 @@ CodeGenerator::maybeCreateScriptCounts()
     for (size_t i = 0; i < graph.numBlocks(); i++) {
         MBasicBlock *block = graph.getBlock(i)->mir();
 
-        uint32_t offset = 0;
-        if (script) {
-            
-            
-            
-            MResumePoint *resume = block->entryResumePoint();
-            while (resume->caller())
-                resume = resume->caller();
-            offset = script->pcToOffset(resume->pc());
-        }
+        
+        
+        
+        MResumePoint *resume = block->entryResumePoint();
+        while (resume->caller())
+            resume = resume->caller();
 
+        uint32_t offset = script->pcToOffset(resume->pc());
         if (!counts->block(i).init(block->id(), offset, block->numSuccessors())) {
             js_delete(counts);
             return nullptr;
         }
+
         for (size_t j = 0; j < block->numSuccessors(); j++)
             counts->block(i).setSuccessor(j, block->getSuccessor(j)->id());
     }
 
-    scriptCounts_ = counts;
+    script->addIonCounts(counts);
     return counts;
 }
 
@@ -6703,9 +6702,6 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
         }
     }
 
-    if (scriptCounts_ && !script->initScriptCounts(cx))
-        return false;
-
     
     
     types::RecompileInfo recompileInfo;
@@ -6882,10 +6878,6 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
       default:
         MOZ_ASSUME_UNREACHABLE("No such execution mode");
     }
-
-    
-    if (IonScriptCounts *counts = extractScriptCounts())
-        script->addIonCounts(counts);
 
     return true;
 }

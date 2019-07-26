@@ -1746,9 +1746,14 @@ OffThreadCompilationAvailable(JSContext *cx)
     
     
     
+    
+    
+    
+    
     return cx->runtime()->canUseParallelIonCompilation()
         && HelperThreadState().cpuCount > 1
-        && cx->runtime()->gc.incrementalState == gc::NO_INCREMENTAL;
+        && cx->runtime()->gc.incrementalState == gc::NO_INCREMENTAL
+        && !cx->runtime()->profilingScripts;
 #else
     return false;
 #endif
@@ -1985,7 +1990,8 @@ CheckScriptSize(JSContext *cx, JSScript* script)
             
             
             
-            if (!OffThreadCompilationAvailable(cx)) {
+            
+            if (!OffThreadCompilationAvailable(cx) && !cx->runtime()->profilingScripts) {
                 IonSpew(IonSpew_Abort,
                         "Script too large for main thread, skipping (%u bytes) (%u locals/args)",
                         script->length(), numLocalsAndArgs);
