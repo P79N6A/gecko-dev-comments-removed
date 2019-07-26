@@ -2271,6 +2271,7 @@ ${target} = tmp.forget();""").substitute(self.substitution)
 
 
 
+
 def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isDefinitelyObject=False,
                                     isMember=False,
@@ -2284,7 +2285,8 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isNullOrUndefined=False,
                                     exceptionCode=None,
                                     lenientFloatCode=None,
-                                    allowTreatNonCallableAsNull=False):
+                                    allowTreatNonCallableAsNull=False,
+                                    isCallbackReturnValue=False):
     """
     Get a template for converting a JS value to a native object based on the
     given type and descriptor.  If failureCode is given, then we're actually
@@ -2327,6 +2329,10 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
     If allowTreatNonCallableAsNull is true, then [TreatNonCallableAsNull]
     extended attributes on nullable callback functions will be honored.
+
+    If isCallbackReturnValue is true, then the declType may be adjusted to make
+    it easier to return from a callback.  Since that type is never directly
+    observable by any consumers of the callback code, this is OK.
 
     The return value from this function is a tuple consisting of four things:
 
@@ -2490,7 +2496,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         
         
         
-        if isMember or isOptional or nullable:
+        if isMember or isOptional or nullable or isCallbackReturnValue:
             sequenceClass = "Sequence"
         else:
             sequenceClass = "AutoSequence"
@@ -2498,7 +2504,8 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         (elementTemplate, elementDeclType,
          elementHolderType, dealWithOptional) = getJSToNativeConversionTemplate(
             elementType, descriptorProvider, isMember=True,
-            exceptionCode=exceptionCode, lenientFloatCode=lenientFloatCode)
+            exceptionCode=exceptionCode, lenientFloatCode=lenientFloatCode,
+            isCallbackReturnValue=isCallbackReturnValue)
         if dealWithOptional:
             raise TypeError("Shouldn't have optional things in sequences")
         if elementHolderType is not None:
@@ -2514,7 +2521,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         
         
         mutableTypeName = typeName
-        if not isOptional and not isMember:
+        if not (isOptional or isMember or isCallbackReturnValue):
             typeName = CGWrapper(typeName, pre="const ")
 
         
@@ -2774,14 +2781,14 @@ for (uint32_t i = 0; i < length; ++i) {
         if (descriptor.interface.isCallback() and
             descriptor.interface.identifier.name != "EventListener"):
             if descriptor.workers:
-                if type.nullable():
+                if type.nullable() or isCallbackReturnValue:
                     declType = CGGeneric("JSObject*")
                 else:
                     declType = CGGeneric("NonNull<JSObject>")
                 conversion = "  ${declName} = &${val}.toObject();\n"
             else:
                 name = descriptor.interface.identifier.name
-                if type.nullable():
+                if type.nullable() or isCallbackReturnValue:
                     declType = CGGeneric("nsRefPtr<%s>" % name);
                 else:
                     declType = CGGeneric("OwningNonNull<%s>" % name)
@@ -2800,7 +2807,10 @@ for (uint32_t i = 0; i < length; ++i) {
         
 
         
-        argIsPointer = type.nullable() or type.unroll().inner.isExternal()
+        
+        
+        argIsPointer = (type.nullable() or type.unroll().inner.isExternal() or
+                        isCallbackReturnValue)
 
         
         
@@ -7778,8 +7788,8 @@ class CGNativeMember(ClassMethod):
                               "return ${declName};")
             else:
                 
-                returnCode = ("NS_ADDREF(${declName}.Ptr());\n"
-                              "return ${declName}.Ptr();")
+                returnCode = ("NS_ADDREF(${declName});\n"
+                              "return ${declName};")
             return result.define(), "nullptr", returnCode
         if type.isCallback():
             return ("already_AddRefed<%s>" % type.unroll().identifier.name,
@@ -7799,25 +7809,19 @@ class CGNativeMember(ClassMethod):
                 returnCode = ("return static_cast<%s&>(${declName}).Obj();" % type.name)
             return "JSObject*", "nullptr", returnCode
         if type.isSequence():
+            
+            
+            
             assert not isMember
             
-            
-            
-            
-            
-            
-            
-            
-            if not type.unroll().isPrimitive():
-                return "void", ""
             if type.nullable():
                 returnCode = ("if (${declName}.IsNull()) {\n"
                               "  retval.SetNull();\n"
                               "} else {\n"
-                              "  retval.SetValue() = ${declName}.Value();\n"
+                              "  retval.SetValue().SwapElements(${declName}.Value());\n"
                               "}")
             else:
-                returnCode = "retval = ${declName};"
+                returnCode = "retval.SwapElements(${declName});"
             return "void", "", returnCode
         raise TypeError("Don't know how to declare return value for %s" %
                         type)
@@ -8715,7 +8719,8 @@ class CallbackMember(CGNativeMember):
         convertType = instantiateJSToNativeConversionTemplate(
             getJSToNativeConversionTemplate(self.retvalType,
                                             self.descriptor,
-                                            exceptionCode=self.exceptionCode),
+                                            exceptionCode=self.exceptionCode,
+                                            isCallbackReturnValue=True),
             replacements)
         assignRetval = string.Template(
             self.getRetvalInfo(self.retvalType,
