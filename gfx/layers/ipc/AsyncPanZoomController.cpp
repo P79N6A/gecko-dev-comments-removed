@@ -312,6 +312,13 @@ static bool IsCloseToVertical(float aAngle, float aThreshold)
   return (fabs(aAngle - (M_PI / 2)) < aThreshold);
 }
 
+template <typename Units>
+static bool IsZero(const gfx::PointTyped<Units>& aPoint)
+{
+  return FuzzyEqualsMultiplicative(aPoint.x, 0.0f)
+      && FuzzyEqualsMultiplicative(aPoint.y, 0.0f);
+}
+
 static inline void LogRendertraceRect(const ScrollableLayerGuid& aGuid, const char* aDesc, const char* aColor, const CSSRect& aRect)
 {
 #ifdef APZC_ENABLE_RENDERTRACE
@@ -752,6 +759,7 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
       
       
       
+      
       APZCTreeManager* treeManagerLocal = mTreeManager;
       if (treeManagerLocal) {
         if (!treeManagerLocal->FlushRepaintsForOverscrollHandoffChain()) {
@@ -1156,14 +1164,14 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
     CSSPoint cssDisplacement = displacement / zoom;
 
     CSSPoint cssOverscroll;
-    gfx::Point scrollOffset(mX.AdjustDisplacement(cssDisplacement.x,
-                                                  cssOverscroll.x),
-                            mY.AdjustDisplacement(cssDisplacement.y,
-                                                  cssOverscroll.y));
+    CSSPoint allowedDisplacement(mX.AdjustDisplacement(cssDisplacement.x,
+                                                       cssOverscroll.x),
+                                 mY.AdjustDisplacement(cssDisplacement.y,
+                                                       cssOverscroll.y));
     overscroll = cssOverscroll * zoom;
 
-    if (fabs(scrollOffset.x) > EPSILON || fabs(scrollOffset.y) > EPSILON) {
-      ScrollBy(CSSPoint::FromUnknownPoint(scrollOffset));
+    if (!IsZero(allowedDisplacement)) {
+      ScrollBy(allowedDisplacement);
       ScheduleComposite();
 
       TimeDuration timePaintDelta = mPaintThrottler.TimeSinceLastRequest(GetFrameTime());
@@ -1174,7 +1182,7 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
     }
   }
 
-  if (fabs(overscroll.x) > EPSILON || fabs(overscroll.y) > EPSILON) {
+  if (!IsZero(overscroll)) {
     
     
     CallDispatchScroll(aEndPoint + overscroll, aEndPoint, aOverscrollHandoffChainIndex + 1);
@@ -1254,10 +1262,10 @@ bool FlingAnimation::Sample(FrameMetrics& aFrameMetrics,
   
   
   CSSPoint cssOffset = offset / aFrameMetrics.mZoom;
-  aFrameMetrics.mScrollOffset += CSSPoint::FromUnknownPoint(gfx::Point(
+  aFrameMetrics.mScrollOffset += CSSPoint(
     mX.AdjustDisplacement(cssOffset.x, overscroll.x),
     mY.AdjustDisplacement(cssOffset.y, overscroll.y)
-  ));
+  );
 
   return true;
 }
