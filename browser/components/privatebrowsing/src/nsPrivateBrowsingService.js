@@ -101,11 +101,18 @@ PrivateBrowsingService.prototype = {
            .usePrivateBrowsing = aFlag;
   },
 
-  _onBeforePrivateBrowsingModeChange: function PBS__onBeforePrivateBrowsingModeChange() {
+  _adjustPBFlagOnExistingWindows: function PBS__adjustPBFlagOnExistingWindows() {
     var windowsEnum = Services.wm.getEnumerator(null);
     while (windowsEnum.hasMoreElements()) {
       var window = windowsEnum.getNext();
       this._setPerWindowPBFlag(window, this._inPrivateBrowsing);
+    }
+  },
+
+  _onBeforePrivateBrowsingModeChange: function PBS__onBeforePrivateBrowsingModeChange() {
+    
+    if (this._inPrivateBrowsing) {
+      this._adjustPBFlagOnExistingWindows();
     }
 
     
@@ -180,6 +187,11 @@ PrivateBrowsingService.prototype = {
     }
     else
       this._saveSession = false;
+
+    
+    if (!this._inPrivateBrowsing) {
+      this._adjustPBFlagOnExistingWindows();
+    }
   },
 
   _onAfterPrivateBrowsingModeChange: function PBS__onAfterPrivateBrowsingModeChange() {

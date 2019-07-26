@@ -515,7 +515,18 @@ AsyncFetchAndSetIconForPage::AsyncFetchAndSetIconForPage(
   if (pbService) {
     bool inPrivateBrowsing = false;
     if (NS_SUCCEEDED(pbService->GetPrivateBrowsingEnabled(&inPrivateBrowsing))) {
-      MOZ_ASSERT(inPrivateBrowsing == mFaviconLoadPrivate);
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      MOZ_ASSERT_IF(inPrivateBrowsing && !mFaviconLoadPrivate, false);
+      NS_ASSERTION(inPrivateBrowsing == mFaviconLoadPrivate,
+                   "The favicon load flag and the global PB flag do not match");
     }
   }
 #endif
