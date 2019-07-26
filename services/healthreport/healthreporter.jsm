@@ -176,7 +176,7 @@ AbstractHealthReporter.prototype = Object.freeze({
 
     this._log.info("Initializing collector.");
     this._collector = new Metrics.Collector(this._storage);
-    this._collector.onProviderError = this._errors.push.bind(this._errors);
+    this._collector.onProviderError = this._recordError.bind(this);
     this._collectorInProgress = true;
 
     let catString = this._prefs.get("service.providerCategories") || "";
@@ -592,6 +592,36 @@ AbstractHealthReporter.prototype = Object.freeze({
     if (ex) {
       recordMessage += ": " + ex.message;
       logMessage += ": " + CommonUtils.exceptionStr(ex);
+    }
+
+    
+    
+    let appData = Services.dirsvc.get("UAppData", Ci.nsIFile);
+    let profile = Services.dirsvc.get("ProfD", Ci.nsIFile);
+
+    let appDataURI = Services.io.newFileURI(appData);
+    let profileURI = Services.io.newFileURI(profile);
+
+    
+    
+    
+    
+
+    function replace(uri, path, thing) {
+      
+      try {
+        recordMessage = recordMessage.replace(uri.spec, '<' + thing + 'URI>', 'g');
+      } catch (ex) { }
+
+      recordMessage = recordMessage.replace(path, '<' + thing + 'Path>', 'g');
+    }
+
+    if (appData.path.contains(profile.path)) {
+      replace(appDataURI, appData.path, 'AppData');
+      replace(profileURI, profile.path, 'Profile');
+    } else {
+      replace(profileURI, profile.path, 'Profile');
+      replace(appDataURI, appData.path, 'AppData');
     }
 
     this._log.warn(logMessage);
