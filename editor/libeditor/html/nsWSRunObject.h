@@ -232,22 +232,24 @@ class MOZ_STACK_CLASS nsWSRunObject
     
     
     
-    void PriorVisibleNode(nsINode* aNode,
+    
+    void PriorVisibleNode(nsIDOMNode *aNode,
                           int32_t aOffset,
-                          nsCOMPtr<nsINode>* outVisNode,
-                          int32_t* outVisOffset,
-                          WSType* outType);
+                          nsCOMPtr<nsIDOMNode> *outVisNode,
+                          int32_t *outVisOffset,
+                          WSType *outType);
 
     
     
     
     
-    void NextVisibleNode(nsINode* aNode,
+    
+    void NextVisibleNode(nsIDOMNode *aNode,
                          int32_t aOffset,
-                         nsCOMPtr<nsINode>* outVisNode,
-                         int32_t* outVisOffset,
-                         WSType* outType);
-
+                         nsCOMPtr<nsIDOMNode> *outVisNode,
+                         int32_t *outVisOffset,
+                         WSType *outType);
+    
     
     
     nsresult AdjustWhitespace();

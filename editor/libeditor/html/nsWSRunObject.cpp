@@ -489,89 +489,104 @@ nsWSRunObject::DeleteWSForward()
 }
 
 void
-nsWSRunObject::PriorVisibleNode(nsINode* aNode,
-                                int32_t aOffset,
-                                nsCOMPtr<nsINode>* outVisNode,
-                                int32_t* outVisOffset,
-                                WSType* outType)
+nsWSRunObject::PriorVisibleNode(nsIDOMNode *aNode, 
+                                int32_t aOffset, 
+                                nsCOMPtr<nsIDOMNode> *outVisNode, 
+                                int32_t *outVisOffset,
+                                WSType *outType)
 {
   
   
-  
   MOZ_ASSERT(aNode && outVisNode && outVisOffset && outType);
-
-  WSFragment* run;
-  FindRun(GetAsDOMNode(aNode), aOffset, &run, false);
-
+    
+  *outType = WSType::none;
+  WSFragment *run;
+  FindRun(aNode, aOffset, &run, false);
   
-  for (; run; run = run->mLeft) {
+  
+  while (run)
+  {
     if (run->mType == WSType::normalWS) {
-      WSPoint point = GetCharBefore(GetAsDOMNode(aNode), aOffset);
-      if (point.mTextNode) {
-        *outVisNode = point.mTextNode;
-        *outVisOffset = point.mOffset + 1;
-        if (nsCRT::IsAsciiSpace(point.mChar) || point.mChar == nbsp) {
+      WSPoint point = GetCharBefore(aNode, aOffset);
+      if (point.mTextNode)
+      {
+        *outVisNode = do_QueryInterface(point.mTextNode);
+        *outVisOffset = point.mOffset+1;
+        if (nsCRT::IsAsciiSpace(point.mChar) || (point.mChar==nbsp))
+        {
           *outType = WSType::normalWS;
-        } else if (!point.mChar) {
+        }
+        else if (!point.mChar)
+        {
           
           *outType = WSType::none;
-        } else {
+        }
+        else
+        {
           *outType = WSType::text;
         }
         return;
       }
       
     }
-  }
 
+    run = run->mLeft;
+  }
   
-  *outVisNode = mStartReasonNode;
   
-  *outVisOffset = mStartOffset;
+  *outVisNode = GetAsDOMNode(mStartReasonNode);
+  *outVisOffset = mStartOffset;  
   *outType = mStartReason;
 }
 
 
 void
-nsWSRunObject::NextVisibleNode(nsINode* aNode,
-                               int32_t aOffset,
-                               nsCOMPtr<nsINode>* outVisNode,
-                               int32_t* outVisOffset,
-                               WSType* outType)
+nsWSRunObject::NextVisibleNode (nsIDOMNode *aNode, 
+                                int32_t aOffset, 
+                                nsCOMPtr<nsIDOMNode> *outVisNode, 
+                                int32_t *outVisOffset,
+                                WSType *outType)
 {
   
   
-  
   MOZ_ASSERT(aNode && outVisNode && outVisOffset && outType);
-
-  WSFragment* run;
-  FindRun(GetAsDOMNode(aNode), aOffset, &run, true);
-
+    
+  WSFragment *run;
+  FindRun(aNode, aOffset, &run, true);
   
-  for (; run; run = run->mRight) {
+  
+  while (run)
+  {
     if (run->mType == WSType::normalWS) {
-      WSPoint point = GetCharAfter(GetAsDOMNode(aNode), aOffset);
-      if (point.mTextNode) {
-        *outVisNode = point.mTextNode;
+      WSPoint point = GetCharAfter(aNode, aOffset);
+      if (point.mTextNode)
+      {
+        *outVisNode = do_QueryInterface(point.mTextNode);
         *outVisOffset = point.mOffset;
-        if (nsCRT::IsAsciiSpace(point.mChar) || point.mChar == nbsp) {
+        if (nsCRT::IsAsciiSpace(point.mChar) || (point.mChar==nbsp))
+        {
           *outType = WSType::normalWS;
-        } else if (!point.mChar) {
+        }
+        else if (!point.mChar)
+        {
           
           *outType = WSType::none;
-        } else {
+        }
+        else
+        {
           *outType = WSType::text;
         }
         return;
       }
       
     }
-  }
 
+    run = run->mRight;
+  }
   
-  *outVisNode = mEndReasonNode;
   
-  *outVisOffset = mEndOffset;
+  *outVisNode = GetAsDOMNode(mEndReasonNode);
+  *outVisOffset = mEndOffset; 
   *outType = mEndReason;
 }
 
