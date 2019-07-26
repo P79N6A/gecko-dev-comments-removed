@@ -4,12 +4,14 @@
 
 
 
+#ifndef nsDocShellEnumerator_h___
+#define nsDocShellEnumerator_h___
+
 #include "nsISimpleEnumerator.h"
 #include "nsTArray.h"
 #include "nsIWeakReferenceUtils.h"
 
 class nsIDocShellTreeItem;
-
 
 
 
@@ -105,5 +107,6 @@ public:
 protected:
 
   virtual nsresult            BuildArrayRecursive(nsIDocShellTreeItem* inItem, nsTArray<nsWeakPtr>& inItemArray);
-
 };
+
+#endif
