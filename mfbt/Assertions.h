@@ -278,24 +278,23 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 
 
 
-   
-#  define MOZ_ASSERT_HELPER1(expr) \
-     do { \
-       if (MOZ_UNLIKELY(!(expr))) { \
-         MOZ_ReportAssertionFailure(#expr, __FILE__, __LINE__); \
-         MOZ_REALLY_CRASH(); \
-       } \
-     } while (0)
-   
-#  define MOZ_ASSERT_HELPER2(expr, explain) \
-     do { \
-       if (MOZ_UNLIKELY(!(expr))) { \
-         MOZ_ReportAssertionFailure(#expr " (" explain ")", __FILE__, __LINE__); \
-         MOZ_REALLY_CRASH(); \
-       } \
-     } while (0)
-   
-   
+
+
+#define MOZ_ASSERT_HELPER1(expr) \
+   do { \
+     if (MOZ_UNLIKELY(!(expr))) { \
+       MOZ_ReportAssertionFailure(#expr, __FILE__, __LINE__); \
+       MOZ_REALLY_CRASH(); \
+     } \
+   } while (0)
+
+#define MOZ_ASSERT_HELPER2(expr, explain) \
+   do { \
+     if (MOZ_UNLIKELY(!(expr))) { \
+       MOZ_ReportAssertionFailure(#expr " (" explain ")", __FILE__, __LINE__); \
+       MOZ_REALLY_CRASH(); \
+     } \
+   } while (0)
 
 
 
@@ -303,21 +302,23 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 
 
 
-#  define MOZ_COUNT_ASSERT_ARGS_IMPL2(_1, _2, count, ...) \
-     count
-#  define MOZ_COUNT_ASSERT_ARGS_IMPL(args) \
-	 MOZ_COUNT_ASSERT_ARGS_IMPL2 args
-#  define MOZ_COUNT_ASSERT_ARGS(...) \
-     MOZ_COUNT_ASSERT_ARGS_IMPL((__VA_ARGS__, 2, 1, 0))
-   
-#  define MOZ_ASSERT_CHOOSE_HELPER2(count) MOZ_ASSERT_HELPER##count
-#  define MOZ_ASSERT_CHOOSE_HELPER1(count) MOZ_ASSERT_CHOOSE_HELPER2(count)
-#  define MOZ_ASSERT_CHOOSE_HELPER(count) MOZ_ASSERT_CHOOSE_HELPER1(count)
-   
-#  define MOZ_ASSERT_GLUE(x, y) x y
-#  define MOZ_RELEASE_ASSERT(...) \
-     MOZ_ASSERT_GLUE(MOZ_ASSERT_CHOOSE_HELPER(MOZ_COUNT_ASSERT_ARGS(__VA_ARGS__)), \
-                     (__VA_ARGS__))
+
+
+#define MOZ_COUNT_ASSERT_ARGS_IMPL2(_1, _2, count, ...) \
+   count
+#define MOZ_COUNT_ASSERT_ARGS_IMPL(args) \
+       MOZ_COUNT_ASSERT_ARGS_IMPL2 args
+#define MOZ_COUNT_ASSERT_ARGS(...) \
+   MOZ_COUNT_ASSERT_ARGS_IMPL((__VA_ARGS__, 2, 1, 0))
+
+#define MOZ_ASSERT_CHOOSE_HELPER2(count) MOZ_ASSERT_HELPER##count
+#define MOZ_ASSERT_CHOOSE_HELPER1(count) MOZ_ASSERT_CHOOSE_HELPER2(count)
+#define MOZ_ASSERT_CHOOSE_HELPER(count) MOZ_ASSERT_CHOOSE_HELPER1(count)
+
+#define MOZ_ASSERT_GLUE(x, y) x y
+#define MOZ_RELEASE_ASSERT(...) \
+   MOZ_ASSERT_GLUE(MOZ_ASSERT_CHOOSE_HELPER(MOZ_COUNT_ASSERT_ARGS(__VA_ARGS__)), \
+                   (__VA_ARGS__))
 #ifdef DEBUG
 #  define MOZ_ASSERT(...) MOZ_RELEASE_ASSERT(__VA_ARGS__)
 #else
