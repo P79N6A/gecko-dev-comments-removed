@@ -58,14 +58,9 @@ const DownloadsButton = {
 
 
 
-
   initializeIndicator: function DB_initializeIndicator()
   {
-    if (!DownloadsCommon.useToolkitUI) {
-      DownloadsIndicatorView.ensureInitialized();
-    } else {
-      DownloadsIndicatorView.ensureTerminated();
-    }
+    DownloadsIndicatorView.ensureInitialized();
   },
 
   
@@ -95,11 +90,7 @@ const DownloadsButton = {
   customizeDone: function DB_customizeDone()
   {
     this._customizing = false;
-    if (!DownloadsCommon.useToolkitUI) {
-      DownloadsIndicatorView.afterCustomize();
-    } else {
-      DownloadsIndicatorView.ensureTerminated();
-    }
+    DownloadsIndicatorView.afterCustomize();
   },
 
   
@@ -502,18 +493,12 @@ const DownloadsIndicatorView = {
 
   onCommand: function DIV_onCommand(aEvent)
   {
-    if (DownloadsCommon.useToolkitUI) {
-      
-      DownloadsCommon.getIndicatorData(window).attention = false;
-      BrowserDownloadsUI();
+    
+    let widgetGroup = CustomizableUI.getWidget("downloads-button");
+    if (widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL) {
+      DownloadsPanel.showDownloadsHistory();
     } else {
-      
-      let widgetGroup = CustomizableUI.getWidget("downloads-button");
-      if (widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL) {
-        DownloadsPanel.showDownloadsHistory();
-      } else {
-        DownloadsPanel.showPanel();
-      }
+      DownloadsPanel.showPanel();
     }
 
     aEvent.stopPropagation();
