@@ -1136,8 +1136,25 @@ public:
 
 
   bool IsTransformed() const;
+
   
-  bool HasOpacity() const;
+
+
+
+  bool HasOpacity() const
+  {
+    return HasOpacityInternal(1.0f);
+  }
+  
+
+
+  bool HasVisualOpacity() const
+  {
+    
+    
+    
+    return HasOpacityInternal(0.99f);
+  }
 
    
 
@@ -3049,6 +3066,8 @@ private:
 
   template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
   static nsIFrame* MergeSort(nsIFrame *aSource);
+
+  bool HasOpacityInternal(float aThreshold) const;
 
 #ifdef DEBUG_FRAME_DUMP
 public:
