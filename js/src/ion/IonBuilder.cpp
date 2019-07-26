@@ -5787,7 +5787,14 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
         if (!barrier && !IsNullOrUndefined(unary.rval))
             rvalType = unary.rval;
 
-        if (Shape *objShape = mjit::GetPICSingleShape(cx, script, pc, info().constructing())) {
+        Shape *objShape;
+        if ((objShape = mjit::GetPICSingleShape(cx, script, pc, info().constructing())) &&
+            !objShape->inDictionary())
+        {
+            
+            
+            
+            
             
             MGuardShape *guard = MGuardShape::New(obj, objShape);
             current->add(guard);
@@ -5896,7 +5903,13 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
     if (monitored) {
         ins = MCallSetProperty::New(obj, value, name, script->strictModeCode);
     } else {
-        if (Shape *objShape = mjit::GetPICSingleShape(cx, script, pc, info().constructing())) {
+        Shape *objShape;
+        if ((objShape = mjit::GetPICSingleShape(cx, script, pc, info().constructing())) &&
+            !objShape->inDictionary())
+        {
+            
+            
+            
             
             MGuardShape *guard = MGuardShape::New(obj, objShape);
             current->add(guard);
