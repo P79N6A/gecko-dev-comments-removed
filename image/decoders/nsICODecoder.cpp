@@ -314,6 +314,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     if (mIsPNG) {
       mContainedDecoder = new nsPNGDecoder(mImage);
       mContainedDecoder->SetObserver(mObserver);
+      mContainedDecoder->SetSizeDecode(IsSizeDecode());
       mContainedDecoder->InitSharedDecoder();
       if (!WriteToContainedDecoder(mSignature, PNGSIGNATURESIZE)) {
         return;
@@ -332,7 +333,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
 
     
     
-    if (!static_cast<nsPNGDecoder*>(mContainedDecoder.get())->IsValidICO()) {
+    if (!IsSizeDecode() &&
+        !static_cast<nsPNGDecoder*>(mContainedDecoder.get())->IsValidICO()) {
       PostDataError();
     }
     return;

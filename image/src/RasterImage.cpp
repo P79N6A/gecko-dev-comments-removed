@@ -384,6 +384,7 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   mAnimationFinished(false),
   mFinishing(false),
   mInUpdateImageContainer(false),
+  mWantFullDecode(false),
   mScaleRequest(nullptr)
 {
   
@@ -490,7 +491,7 @@ RasterImage::Init(const char* aMimeType,
   
   
   
-  nsresult rv = InitDecoder( mDecodeOnDraw);
+  nsresult rv = InitDecoder( StoringSourceData());
   CONTAINER_ENSURE_SUCCESS(rv);
 
   
@@ -1960,9 +1961,7 @@ RasterImage::OnNewSourceData()
   mDecoded = false;
   mHasSourceData = false;
 
-  
-  
-  rv = InitDecoder( false);
+  rv = InitDecoder( StoringSourceData());
   CONTAINER_ENSURE_SUCCESS(rv);
 
   return NS_OK;
@@ -2574,6 +2573,12 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
   NS_ABORT_IF_FALSE(!DiscardingActive(), "Discard Timer active in InitDecoder()!");
 
   
+  
+  if (StoringSourceData() && !aDoSizeDecode) {
+    NS_ABORT_IF_FALSE(mHasSize, "Must do a size decode before a full decode!");
+  }
+
+  
   eDecoderType type = GetDecoderType(mSourceDataMimeType.get());
   CONTAINER_ENSURE_TRUE(type != eDecoderType_unknown, NS_IMAGELIB_ERROR_NO_DECODER);
 
@@ -2820,11 +2825,22 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     return NS_DispatchToCurrentThread(requestor);
   }
 
+  
+  if (mDecoder && mDecoder->IsSizeDecode()) {
+    nsresult rv = DecodeWorker::Singleton()->DecodeUntilSizeAvailable(this);
+    CONTAINER_ENSURE_SUCCESS(rv);
+
+    
+    
+    if (!mHasSize) {
+      mWantFullDecode = true;
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+  }
 
   
   
-  if (mDecoder &&
-      (mDecoder->IsSizeDecode() || mDecoder->GetDecodeFlags() != mFrameDecodeFlags))
+  if (mDecoder && mDecoder->GetDecodeFlags() != mFrameDecodeFlags)
   {
     FinishedSomeDecoding(eShutdownIntent_NotNeeded);
   }
@@ -2867,10 +2883,6 @@ RasterImage::SyncDecode()
   SAMPLE_LABEL_PRINTF("RasterImage", "SyncDecode", "%s", GetURIString().get());;
 
   
-  if (mDecoded)
-    return NS_OK;
-
-  
   if (!StoringSourceData())
     return NS_OK;
 
@@ -2881,10 +2893,26 @@ RasterImage::SyncDecode()
   NS_ABORT_IF_FALSE(!mInDecoder, "Yikes, forcing sync in reentrant call!");
 
   
+  if (mDecoder && mDecoder->IsSizeDecode()) {
+    nsresult rv = DecodeWorker::Singleton()->DecodeUntilSizeAvailable(this);
+    CONTAINER_ENSURE_SUCCESS(rv);
+
+    
+    
+    if (!mHasSize) {
+      mWantFullDecode = true;
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+  }
+
   
-  if (mDecoder &&
-      (mDecoder->IsSizeDecode() || mDecoder->GetDecodeFlags() != mFrameDecodeFlags))
-  {
+  
+  if (mDecoded)
+    return NS_OK;
+
+  
+  
+  if (mDecoder && mDecoder->GetDecodeFlags() != mFrameDecodeFlags) {
     FinishedSomeDecoding(eShutdownIntent_NotNeeded);
   }
 
@@ -3381,6 +3409,7 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
   nsRefPtr<RasterImage> image(this);
 
   bool done = false;
+  bool wasSize = false;
 
   if (image->mDecoder) {
     if (request && request->mChunkCount && !image->mDecoder->IsSizeDecode()) {
@@ -3395,6 +3424,8 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
 
       
       nsRefPtr<Decoder> decoder = image->mDecoder;
+
+      wasSize = decoder->IsSizeDecode();
 
       
       
@@ -3440,6 +3471,14 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     image->mStatusTracker->SyncAndSyncNotifyDifference(request->mStatusTracker);
   } else {
     image->mStatusTracker->SyncNotifyDecodeState();
+  }
+
+  if (done) {
+    
+    if (wasSize && image->mWantFullDecode) {
+      image->mWantFullDecode = false;
+      image->RequestDecode();
+    }
   }
 }
 

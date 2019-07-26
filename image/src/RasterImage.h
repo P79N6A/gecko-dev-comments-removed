@@ -762,6 +762,10 @@ private:
   bool                       mInUpdateImageContainer:1;
 
   
+  
+  bool                       mWantFullDecode:1;
+
+  
   nsresult WantDecodedFrames();
   nsresult SyncDecode();
   nsresult InitDecoder(bool aDoSizeDecode);
