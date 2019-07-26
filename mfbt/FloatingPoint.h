@@ -12,6 +12,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Casting.h"
+#include "mozilla/MathAlgorithms.h"
 #include "mozilla/Types.h"
 
 #include <stdint.h>
@@ -288,6 +289,70 @@ SpecificFloatNaN(int signbit, uint32_t significand)
                                  significand);
   MOZ_ASSERT(IsFloatNaN(f));
   return f;
+}
+
+namespace detail {
+
+template<typename T>
+struct FuzzyEqualsEpsilon;
+
+template<>
+struct FuzzyEqualsEpsilon<float>
+{
+  
+  
+  static const float value() { return 1.0f / (1 << 17); }
+};
+
+template<>
+struct FuzzyEqualsEpsilon<double>
+{
+  
+  
+  static const double value() { return 1.0 / (1LL << 40); }
+};
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+static MOZ_ALWAYS_INLINE bool
+FuzzyEqualsAdditive(T val1, T val2, T epsilon = detail::FuzzyEqualsEpsilon<T>::value())
+{
+  static_assert(IsFloatingPoint<T>::value, "floating point type required");
+  return Abs(val1 - val2) <= epsilon;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+static MOZ_ALWAYS_INLINE bool
+FuzzyEqualsMultiplicative(T val1, T val2, T epsilon = detail::FuzzyEqualsEpsilon<T>::value())
+{
+  static_assert(IsFloatingPoint<T>::value, "floating point type required");
+  
+  T smaller = Abs(val1) < Abs(val2) ? Abs(val1) : Abs(val2);
+  return Abs(val1 - val2) <= epsilon * smaller;
 }
 
 
