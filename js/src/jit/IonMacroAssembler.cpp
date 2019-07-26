@@ -1204,14 +1204,6 @@ MacroAssembler::handleFailure(ExecutionMode executionMode)
 }
 
 #ifdef DEBUG
-static inline bool
-IsCompilingAsmJS()
-{
-    
-    IonContext *ictx = MaybeGetIonContext();
-    return ictx && ictx->compartment == nullptr;
-}
-
 static void
 AssumeUnreachable_(const char *output) {
     MOZ_ReportAssertionFailure(output, __FILE__, __LINE__);
