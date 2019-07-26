@@ -692,7 +692,8 @@ var SocialToolbar = {
     const CACHE_PREF_NAME = "social.cached.notificationIcons";
     
     
-    if (!SocialUI.haveLoggedInUser() && provider.profile !== undefined) {
+    if (!Social.provider || !Social.provider.enabled ||
+        (!SocialUI.haveLoggedInUser() && provider.profile !== undefined)) {
       
       
       
