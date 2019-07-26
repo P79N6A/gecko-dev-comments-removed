@@ -1400,15 +1400,6 @@ class JitActivationIterator : public ActivationIterator
 
 } 
 
-class ForkJoinActivation : public Activation
-{
-    uint8_t *prevIonTop_;
-
-  public:
-    ForkJoinActivation(JSContext *cx);
-    ~ForkJoinActivation();
-};
-
 
 class InterpreterFrameIterator
 {

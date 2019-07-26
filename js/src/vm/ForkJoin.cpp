@@ -461,6 +461,43 @@ class AutoSetForkJoinSlice
 
 
 
+ForkJoinActivation::ForkJoinActivation(JSContext *cx)
+  : Activation(cx, ForkJoin),
+    prevIonTop_(cx->mainThread().ionTop),
+    av_(cx->runtime(), false)
+{
+    
+    
+    
+    
+    
+    
+
+    if (JS::IsIncrementalGCInProgress(cx->runtime())) {
+        JS::PrepareForIncrementalGC(cx->runtime());
+        JS::FinishIncrementalGC(cx->runtime(), JS::gcreason::API);
+    }
+
+    MinorGC(cx->runtime(), JS::gcreason::API);
+
+    cx->runtime()->gcHelperThread.waitBackgroundSweepEnd();
+
+    JS_ASSERT(!cx->runtime()->needsBarrier());
+    JS_ASSERT(!cx->zone()->needsBarrier());
+}
+
+ForkJoinActivation::~ForkJoinActivation()
+{
+    cx_->mainThread().ionTop = prevIonTop_;
+}
+
+
+
+
+
+
+
+
 static const char *ForkJoinModeString(ForkJoinMode mode);
 
 bool

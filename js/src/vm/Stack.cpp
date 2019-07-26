@@ -1336,32 +1336,6 @@ jit::JitActivation::setActive(JSContext *cx, bool active)
     }
 }
 
-ForkJoinActivation::ForkJoinActivation(JSContext *cx)
-  : Activation(cx, ForkJoin),
-    prevIonTop_(cx->mainThread().ionTop)
-{
-    
-    
-    
-    
-    
-    
-
-    if (JS::IsIncrementalGCInProgress(cx->runtime())) {
-        JS::PrepareForIncrementalGC(cx->runtime());
-        JS::FinishIncrementalGC(cx->runtime(), JS::gcreason::API);
-    }
-
-    MinorGC(cx->runtime(), JS::gcreason::API);
-
-    cx->runtime()->gcHelperThread.waitBackgroundSweepEnd();
-}
-
-ForkJoinActivation::~ForkJoinActivation()
-{
-    cx_->mainThread().ionTop = prevIonTop_;
-}
-
 InterpreterFrameIterator &
 InterpreterFrameIterator::operator++()
 {
