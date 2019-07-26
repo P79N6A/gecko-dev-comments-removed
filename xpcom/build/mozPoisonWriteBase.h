@@ -30,11 +30,24 @@ struct DebugFDAutoLockTraits {
 };
 
 class DebugFDAutoLock : public Scoped<DebugFDAutoLockTraits> {
+  static PRLock *Lock;
 public:
+  static void Clear();
   static PRLock *getDebugFDsLock() {
     
     
-    static PRLock *Lock = PR_NewLock();
+    
+    
+    
+    
+    static bool Initialized = false;
+    if (!Initialized) {
+      Lock = PR_NewLock();
+      Initialized = true;
+    }
+
+    
+    
     return Lock;
   }
 

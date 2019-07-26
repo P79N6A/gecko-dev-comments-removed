@@ -135,30 +135,6 @@ FuncData *Functions[] = { &aio_write_data,
 
 const int NumFunctions = ArrayLength(Functions);
 
-struct AutoLockTraits {
-    typedef PRLock *type;
-    const static type empty() {
-      return NULL;
-    }
-    const static void release(type aL) {
-        PR_Unlock(aL);
-    }
-};
-
-class MyAutoLock : public Scoped<AutoLockTraits> {
-public:
-    static PRLock *getDebugFDsLock() {
-        
-        
-        static PRLock *Lock = PR_NewLock();
-        return Lock;
-    }
-
-    MyAutoLock() : Scoped<AutoLockTraits>(getDebugFDsLock()) {
-        PR_Lock(get());
-    }
-};
-
 
 
 bool IsIPCWrite(int fd, const struct stat &buf) {
@@ -200,7 +176,7 @@ void AbortOnBadWrite(int fd, const void *wbuf, size_t count) {
         return;
 
     {
-        MyAutoLock lockedScope;
+        DebugFDAutoLock lockedScope;
 
         
         std::vector<int> &Vec = getDebugFDs();
