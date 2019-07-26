@@ -25,6 +25,9 @@ let isWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
 let gWindow = window;
 
 
+let gDirectorySource = "data:application/json,{}";
+
+
 
 let requiredInnerHeight =
   40 + 32 + 
@@ -95,9 +98,10 @@ function test() {
   waitForExplicitFinish();
   
   watchLinksChangeOnce().then(() => {
-    TestRunner.run();
+    
+    whenPagesUpdated(() => TestRunner.run(), true);
   });
-  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, "data:application/json,{}");
+  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, gDirectorySource);
 }
 
 
