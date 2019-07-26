@@ -57,6 +57,13 @@ public:
   
 
 
+  static nsresult NotifyIMEOfTextChange(uint32_t aStart,
+                                        uint32_t aOldEnd,
+                                        uint32_t aNewEnd);
+
+  
+
+
 
 
   static bool IsDoingKakuteiUndo(HWND aWnd);
