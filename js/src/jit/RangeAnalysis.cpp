@@ -25,6 +25,7 @@ using mozilla::Abs;
 using mozilla::CountLeadingZeroes32;
 using mozilla::DoubleEqualsInt32;
 using mozilla::ExponentComponent;
+using mozilla::FloorLog2;
 using mozilla::IsInfinite;
 using mozilla::IsFinite;
 using mozilla::IsNaN;
@@ -284,6 +285,25 @@ SymbolicBound::print(Sprinter &sp) const
     sum.print(sp);
 }
 
+
+
+static bool
+IsExponentInteresting(const Range *r)
+{
+   
+   if (!r->hasInt32Bounds())
+       return true;
+
+   
+   
+   if (!r->canHaveFractionalPart())
+       return false;
+
+   
+   
+   return FloorLog2(Max(Abs(r->lower()), Abs(r->upper()))) > r->exponent();
+}
+
 void
 Range::print(Sprinter &sp) const
 {
@@ -320,12 +340,14 @@ Range::print(Sprinter &sp) const
     }
 
     sp.printf("]");
-    if (max_exponent_ == IncludesInfinityAndNaN)
-        sp.printf(" (U inf U NaN)", max_exponent_);
-    else if (max_exponent_ == IncludesInfinity)
-        sp.printf(" (U inf)");
-    else if (!hasInt32UpperBound_ || !hasInt32LowerBound_)
-        sp.printf(" (< pow(2, %d+1))", max_exponent_);
+    if (IsExponentInteresting(this)) {
+        if (max_exponent_ == IncludesInfinityAndNaN)
+            sp.printf(" (U inf U NaN)", max_exponent_);
+        else if (max_exponent_ == IncludesInfinity)
+            sp.printf(" (U inf)");
+        else
+            sp.printf(" (< pow(2, %d+1))", max_exponent_);
+    }
 }
 
 void
@@ -394,7 +416,19 @@ Range::intersect(const Range *lhs, const Range *rhs, bool *emptyRange)
     
     
     
-    if (lhs->canHaveFractionalPart_ != rhs->canHaveFractionalPart_) {
+    
+    
+    
+    
+    
+    
+    
+    
+    if (lhs->canHaveFractionalPart_ != rhs->canHaveFractionalPart_ ||
+        (lhs->canHaveFractionalPart_ &&
+         newHasInt32LowerBound && newHasInt32UpperBound &&
+         newLower == newUpper))
+    {
         refineInt32BoundsByExponent(newExponent, &newLower, &newUpper);
 
         
