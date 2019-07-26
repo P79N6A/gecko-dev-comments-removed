@@ -226,6 +226,15 @@ void GStreamerReader::PlayBinSourceSetup(GstAppSrc* aSource)
   gst_app_src_set_callbacks(mSource, &mSrcCallbacks, (gpointer) this, nullptr);
   MediaResource* resource = mDecoder->GetResource();
 
+  
+
+
+  char buf[512];
+  unsigned int size = 0;
+  resource->Read(buf, sizeof(buf), &size);
+  resource->Seek(SEEK_SET, 0);
+
+  
   int64_t resourceLength = resource->GetLength();
   gst_app_src_set_size(mSource, resourceLength);
   if (resource->IsDataCachedToEndOfResource(0) ||
