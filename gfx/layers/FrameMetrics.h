@@ -354,10 +354,17 @@ public:
   
   bool mIsRoot;
 
-  
-  bool mHasScrollgrab;
-
 public:
+  void SetHasScrollgrab(bool aHasScrollgrab)
+  {
+    mHasScrollgrab = aHasScrollgrab;
+  }
+
+  bool GetHasScrollgrab() const
+  {
+    return mHasScrollgrab;
+  }
+
   void SetScrollOffset(const CSSPoint& aScrollOffset)
   {
     mScrollOffset = aScrollOffset;
@@ -459,6 +466,9 @@ public:
 private:
   
   
+
+  
+  bool mHasScrollgrab;
 
   
   ViewID mScrollId;

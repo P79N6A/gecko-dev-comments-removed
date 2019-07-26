@@ -316,7 +316,7 @@ public:
 
 
 
-  bool HasScrollgrab() const { return mFrameMetrics.mHasScrollgrab; }
+  bool HasScrollgrab() const { return mFrameMetrics.GetHasScrollgrab(); }
 
   
 
