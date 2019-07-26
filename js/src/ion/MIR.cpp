@@ -786,16 +786,16 @@ MDiv::analyzeEdgeCasesForward()
 
     
     if (rhs()->isConstant() && !rhs()->toConstant()->value().isInt32(0))
-        canBeDivideByZero_ =  false;
+        canBeDivideByZero_ = false;
 
     
     
     if (lhs()->isConstant() && !lhs()->toConstant()->value().isInt32(INT32_MIN))
-        setCanBeNegativeZero(false);
+        canBeNegativeOverflow_ = false;
 
     
     if (rhs()->isConstant() && !rhs()->toConstant()->value().isInt32(-1))
-        setCanBeNegativeZero(false);
+        canBeNegativeOverflow_ = false;
 
     
     if (lhs()->isConstant() && !lhs()->toConstant()->value().isInt32(0))
