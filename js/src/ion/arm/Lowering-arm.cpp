@@ -230,6 +230,25 @@ LIRGeneratorARM::lowerForShift(LInstructionHelper<1, 2, 0> *ins, MDefinition *mi
 bool
 LIRGeneratorARM::lowerDivI(MDiv *div)
 {
+    
+    
+    if (div->rhs()->isConstant()) {
+        int32_t rhs = div->rhs()->toConstant()->value().toInt32();
+        
+        
+        
+        
+        
+        int32_t shift;
+        JS_FLOOR_LOG2(shift, rhs);
+        if (rhs > 0 && 1 << shift == rhs) {
+            LDivPowTwoI *lir = new LDivPowTwoI(useRegisterAtStart(div->lhs()), shift);
+            if (div->fallible() && !assignSnapshot(lir))
+                return false;
+            return define(lir, div);
+        }
+    }
+
     LDivI *lir = new LDivI(useFixed(div->lhs(), r0), use(div->rhs(), r1),
                            tempFixed(r2), tempFixed(r3));
     if (div->fallible() && !assignSnapshot(lir))

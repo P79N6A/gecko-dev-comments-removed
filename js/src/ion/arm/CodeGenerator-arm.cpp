@@ -571,6 +571,39 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
 }
 
 bool
+CodeGeneratorARM::visitDivPowTwoI(LDivPowTwoI *ins)
+{
+    Register lhs = ToRegister(ins->numerator());
+    Register output = ToRegister(ins->output());
+    int32_t shift = ins->shift();
+
+    if (shift != 0) {
+        if (!ins->mir()->isTruncated()) {
+            
+            masm.as_mov(ScratchRegister, lsl(lhs, 32 - shift), SetCond);
+            if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
+                return false;
+        }
+
+        
+        
+        
+        
+        
+        if (shift > 1) {
+            masm.as_mov(ScratchRegister, asr(lhs, 31));
+            masm.as_add(ScratchRegister, lhs, lsr(ScratchRegister, 32 - shift));
+        } else
+            masm.as_add(ScratchRegister, lhs, lsr(lhs, 32 - shift));
+
+        
+        masm.as_mov(output, asr(ScratchRegister, shift));
+    }
+
+    return true;
+}
+
+bool
 CodeGeneratorARM::visitModI(LModI *ins)
 {
     
