@@ -103,10 +103,10 @@ public class TopSitesGridView extends GridView {
         setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                TopSitesGridItemView row = (TopSitesGridItemView) view;
+                TopSitesGridItemView item = (TopSitesGridItemView) view;
 
                 
-                String url = HomeFragment.decodeUserEnteredUrl(row.getUrl());
+                String url = HomeFragment.decodeUserEnteredUrl(item.getUrl());
 
                 
                 
