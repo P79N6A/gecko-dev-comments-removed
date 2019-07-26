@@ -274,6 +274,24 @@ function ensureMobileConnection(aAdditionalPermissions, aServiceId) {
 
 
 
+function getMozMobileConnectionByServiceId(aServiceId) {
+  let mobileConn = mobileConnection;
+  if (aServiceId !== undefined) {
+    mobileConn =
+      workingFrame.contentWindow.navigator.mozMobileConnections[aServiceId];
+  }
+  return mobileConn;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -283,11 +301,7 @@ function ensureMobileConnection(aAdditionalPermissions, aServiceId) {
 function waitForManagerEvent(aEventName, aServiceId) {
   let deferred = Promise.defer();
 
-  let mobileConn = mobileConnection;
-  if (aServiceId !== undefined) {
-    mobileConn =
-      workingFrame.contentWindow.navigator.mozMobileConnections[aServiceId];
-  }
+  let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
 
   mobileConn.addEventListener(aEventName, function onevent(aEvent) {
     mobileConn.removeEventListener(aEventName, onevent);
@@ -426,11 +440,7 @@ function setDataEnabledAndWait(aEnabled, aServiceId) {
   promises.push(waitForManagerEvent("datachange", aServiceId));
   promises.push(setDataEnabled(aEnabled));
   Promise.all(promises).then(function keepWaiting() {
-    let mobileConn = mobileConnection;
-    if (aServiceId !== undefined) {
-      mobileConn =
-        workingFrame.contentWindow.navigator.mozMobileConnections[aServiceId];
-    }
+    let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
     
     
     let connected = mobileConn.data.connected;
@@ -443,6 +453,114 @@ function setDataEnabledAndWait(aEnabled, aServiceId) {
   });
 
   return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setRadioEnabled(aEnabled, aServiceId) {
+  let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
+  let request = mobileConn.setRadioEnabled(aEnabled);
+  return wrapDomRequestAsPromise(request)
+    .then(function onsuccess() {
+      ok(true, "setRadioEnabled " + aEnabled + " on " + aServiceId + " success.");
+    }, function onerror() {
+      ok(false, "setRadioEnabled " + aEnabled + " on " + aServiceId + " " +
+         request.error.name);
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setRadioEnabledAndWait(aEnabled, aServiceId) {
+  let deferred = Promise.defer();
+
+  let promises = [];
+  promises.push(waitForManagerEvent("radiostatechange", aServiceId));
+  promises.push(setRadioEnabled(aEnabled, aServiceId));
+  Promise.all(promises).then(function keepWaiting() {
+    let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
+    
+    
+    let state = mobileConn.radioState;
+    aEnabled = aEnabled ? "enabled" : "disabled";
+    if (state == aEnabled) {
+      deferred.resolve();
+      return;
+    }
+
+    return waitForManagerEvent("radiostatechange", aServiceId).then(keepWaiting);
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setClir(aMode, aServiceId) {
+  ok(true, "setClir(" + aMode + ", " + aServiceId + ")");
+  let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
+  let request = mobileConn.setCallingLineIdRestriction(aMode);
+  return wrapDomRequestAsPromise(request);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getClir(aServiceId) {
+  ok(true, "getClir(" + aServiceId + ")");
+  let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
+  let request = mobileConn.getCallingLineIdRestriction();
+  return wrapDomRequestAsPromise(request);
 }
 
 
@@ -487,11 +605,7 @@ function setEmulatorRoamingAndWait(aRoaming, aServiceId) {
     let state = (aRoaming ? "roaming" : "home");
     return setEmulatorVoiceDataStateAndWait(aWhich, state, aServiceId)
       .then(() => {
-        let mobileConn = mobileConnection;
-        if (aServiceId !== undefined) {
-          mobileConn =
-            workingFrame.contentWindow.navigator.mozMobileConnections[aServiceId];
-        }
+        let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
         is(mobileConn[aWhich].roaming, aRoaming,
                      aWhich + ".roaming")
       });
