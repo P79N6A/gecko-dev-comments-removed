@@ -49,7 +49,7 @@
 #include "gfxTypes.h"
 #include "gfxUserFontSet.h"
 #include "nsTArray.h"
-#include "nsHTMLCanvasElement.h"
+#include "mozilla/dom/HTMLCanvasElement.h"
 #include "nsICanvasRenderingContextInternal.h"
 #include "gfxPlatform.h"
 #include "nsClientRect.h"
@@ -4520,7 +4520,7 @@ nsLayoutUtils::SurfaceFromElement(HTMLImageElement *aElement,
 }
 
 nsLayoutUtils::SurfaceFromElementResult
-nsLayoutUtils::SurfaceFromElement(nsHTMLCanvasElement* aElement,
+nsLayoutUtils::SurfaceFromElement(HTMLCanvasElement* aElement,
                                   uint32_t aSurfaceFlags)
 {
   SurfaceFromElementResult result;
@@ -4559,7 +4559,7 @@ nsLayoutUtils::SurfaceFromElement(nsHTMLCanvasElement* aElement,
 
     nsRefPtr<gfxContext> ctx = new gfxContext(surf);
     
-    uint32_t flags = premultAlpha ? nsHTMLCanvasElement::RenderFlagPremultAlpha : 0;
+    uint32_t flags = premultAlpha ? HTMLCanvasElement::RenderFlagPremultAlpha : 0;
     rv = aElement->RenderContextsExternal(ctx, gfxPattern::FILTER_NEAREST, flags);
     if (NS_FAILED(rv))
       return result;
@@ -4636,8 +4636,8 @@ nsLayoutUtils::SurfaceFromElement(dom::Element* aElement,
                                   uint32_t aSurfaceFlags)
 {
   
-  if (nsHTMLCanvasElement* canvas =
-        nsHTMLCanvasElement::FromContentOrNull(aElement)) {
+  if (HTMLCanvasElement* canvas =
+        HTMLCanvasElement::FromContentOrNull(aElement)) {
     return SurfaceFromElement(canvas, aSurfaceFlags);
   }
 
