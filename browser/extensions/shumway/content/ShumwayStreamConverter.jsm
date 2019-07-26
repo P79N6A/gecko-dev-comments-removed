@@ -72,7 +72,8 @@ function log(aMsg) {
 }
 
 function getDOMWindow(aChannel) {
-  var requestor = aChannel.notificationCallbacks;
+  var requestor = aChannel.notificationCallbacks ||
+                  aChannel.loadGroup.notificationCallbacks;
   var win = requestor.getInterface(Components.interfaces.nsIDOMWindow);
   return win;
 }
@@ -177,7 +178,10 @@ function isShumwayEnabledFor(actions) {
 
   
   if (/\.ytimg\.com\//i.test(url)  ||
-    /\/vui.swf\b/i.test(url)  ) {
+    /\/vui.swf\b/i.test(url)   ||
+    /soundcloud\.com\/player\/assets\/swf/i.test(url)  ||
+    /sndcdn\.com\/assets\/swf/.test(url)  ||
+    /vimeocdn\.com/.test(url) ) {
     return false;
   }
 
@@ -727,34 +731,45 @@ ShumwayStreamConverterBase.prototype = {
     throw Cr.NS_ERROR_NOT_IMPLEMENTED;
   },
 
-  isValidRequest: function() {
-    return true;
-  },
-
   getUrlHint: function(requestUrl) {
     return requestUrl.spec;
   },
 
   createChromeActions: function(window, document, urlHint) {
-    var url;
+    var url = urlHint;
     var baseUrl;
     var pageUrl;
     var element = window.frameElement;
     var isOverlay = false;
     var objectParams = {};
     if (element) {
-      var tagName = element.nodeName;
+      
+      
+      var tagName = element.nodeName, containerElement;
       while (tagName != 'EMBED' && tagName != 'OBJECT') {
         
         isOverlay = true;
+        containerElement = element;
         element = element.parentNode;
-        if (!element)
-          throw 'Plugin element is not found';
+        if (!element) {
+          throw new Error('Plugin element is not found');
+        }
         tagName = element.nodeName;
       }
 
+      if (isOverlay) {
+        
+        for (var i = 0; i < element.children.length; i++) {
+          if (element.children[i] === containerElement) {
+            throw new Error('Plugin element is invalid');
+          }
+        }
+      }
+    }
+
+    if (element) {
       
-      element.style.visibility = 'visible';
+      url = element.srcURI.spec;
 
       pageUrl = element.ownerDocument.location.href; 
 
@@ -764,7 +779,6 @@ ShumwayStreamConverterBase.prototype = {
           objectParams[paramName] = element.attributes[i].value;
         }
       } else {
-        url = element.getAttribute('data');
         for (var i = 0; i < element.childNodes.length; ++i) {
           var paramElement = element.childNodes[i];
           if (paramElement.nodeType != 1 ||
@@ -777,7 +791,10 @@ ShumwayStreamConverterBase.prototype = {
       }
     }
 
-    url = url || objectParams.src || objectParams.movie;
+    if (!url) { 
+      throw new Error('Movie url is not specified');
+    }
+
     baseUrl = objectParams.base || pageUrl;
 
     var movieParams = {};
@@ -793,9 +810,6 @@ ShumwayStreamConverterBase.prototype = {
         }
       }
     }
-
-    url = !url ? urlHint : Services.io.newURI(url, null,
-      baseUrl ? Services.io.newURI(baseUrl, null, null) : null).spec;
 
     var allowScriptAccess = false;
     switch (objectParams.allowscriptaccess || 'sameDomain') {
@@ -830,9 +844,6 @@ ShumwayStreamConverterBase.prototype = {
 
   
   asyncConvertData: function(aFromType, aToType, aListener, aCtxt) {
-    if(!this.isValidRequest(aCtxt))
-      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
-
     
     this.listener = aListener;
   },
@@ -847,8 +858,15 @@ ShumwayStreamConverterBase.prototype = {
   onStartRequest: function(aRequest, aContext) {
     
     aRequest.QueryInterface(Ci.nsIChannel);
+
+    aRequest.QueryInterface(Ci.nsIWritablePropertyBag);
+
     
-    aRequest.cancel(Cr.NS_BINDING_ABORTED);
+    aRequest.setProperty('contentType', aRequest.contentType);
+    aRequest.contentType = 'text/html';
+
+    
+    aRequest.suspend();
 
     var originalURI = aRequest.URI;
 
@@ -857,61 +875,74 @@ ShumwayStreamConverterBase.prototype = {
                        getBoolPref('shumway.simpleMode', false);
 
     
-    var channel = Services.io.newChannel(isSimpleMode ?
+    var viewerUrl = isSimpleMode ?
                     'resource://shumway/web/simple.html' :
-                    'resource://shumway/web/viewer.html', null, null);
+                    'resource://shumway/web/viewer.html';
+    var channel = Services.io.newChannel(viewerUrl, null, null);
 
     var converter = this;
     var listener = this.listener;
     
     
     var proxy = {
-      onStartRequest: function() {
-        listener.onStartRequest.apply(listener, arguments);
+      onStartRequest: function(request, context) {
+        listener.onStartRequest(aRequest, context);
       },
-      onDataAvailable: function() {
-        listener.onDataAvailable.apply(listener, arguments);
+      onDataAvailable: function(request, context, inputStream, offset, count) {
+        listener.onDataAvailable(aRequest, context, inputStream, offset, count);
       },
-      onStopRequest: function() {
+      onStopRequest: function(request, context, statusCode) {
+        
+        aRequest.resume();
+        aRequest.cancel(Cr.NS_BINDING_ABORTED);
+
         var domWindow = getDOMWindow(channel);
-        if (domWindow.document.documentURIObject.equals(channel.originalURI)) {
-          
-          let actions = converter.createChromeActions(domWindow,
-                                                      domWindow.document,
-                                                      converter.getUrlHint(originalURI));
-          if (!isShumwayEnabledFor(actions)) {
-            actions.fallback(true);
-            return;
-          }
+        let actions = converter.createChromeActions(domWindow,
+                                                    domWindow.document,
+                                                    converter.getUrlHint(originalURI));
 
-          
-          if (actions.isOverlay) {
-            
-            var prevPageActions = ActivationQueue.findLastOnPage(actions.baseUrl);
-            var pageIndex = !prevPageActions ? 1 : (prevPageActions.telemetry.pageIndex + 1);
-            actions.telemetry.pageIndex = pageIndex;
-            ShumwayTelemetry.onPageIndex(pageIndex);
-          } else {
-            ShumwayTelemetry.onPageIndex(0);
-          }
-
-          actions.activationCallback = function(domWindow, isSimpleMode) {
-            delete this.activationCallback;
-            activateShumwayScripts(domWindow, isSimpleMode);
-          }.bind(actions, domWindow, isSimpleMode);
-          ActivationQueue.enqueue(actions);
-
-          let requestListener = new RequestListener(actions);
-          domWindow.addEventListener('shumway.message', function(event) {
-            requestListener.receive(event);
-          }, false, true);
+        if (!isShumwayEnabledFor(actions)) {
+          actions.fallback(true);
+          return;
         }
-        listener.onStopRequest.apply(listener, arguments);
+
+        
+        if (actions.isOverlay) {
+          
+          var prevPageActions = ActivationQueue.findLastOnPage(actions.baseUrl);
+          var pageIndex = !prevPageActions ? 1 : (prevPageActions.telemetry.pageIndex + 1);
+          actions.telemetry.pageIndex = pageIndex;
+          ShumwayTelemetry.onPageIndex(pageIndex);
+        } else {
+          ShumwayTelemetry.onPageIndex(0);
+        }
+
+        actions.activationCallback = function(domWindow, isSimpleMode) {
+          delete this.activationCallback;
+          activateShumwayScripts(domWindow, isSimpleMode);
+        }.bind(actions, domWindow, isSimpleMode);
+        ActivationQueue.enqueue(actions);
+
+        let requestListener = new RequestListener(actions);
+        domWindow.addEventListener('shumway.message', function(event) {
+          requestListener.receive(event);
+        }, false, true);
+
+        listener.onStopRequest(aRequest, context, statusCode);
       }
     };
 
     
+    channel.originalURI = aRequest.URI;
+    channel.loadGroup = aRequest.loadGroup;
+
     
+    
+    var securityManager = Cc['@mozilla.org/scriptsecuritymanager;1']
+                          .getService(Ci.nsIScriptSecurityManager);
+    var uri = Services.io.newURI(viewerUrl, null, null);
+    var resourcePrincipal = securityManager.getNoAppCodebasePrincipal(uri);
+    aRequest.owner = resourcePrincipal;
     channel.asyncOpen(proxy, aContext);
   },
 
@@ -943,17 +974,6 @@ copyProperties(ShumwayStreamOverlayConverter.prototype, {
   classDescription: 'Shumway PlayPreview Component',
   contractID: '@mozilla.org/streamconv;1?from=application/x-moz-playpreview&to=*/*'
 });
-ShumwayStreamOverlayConverter.prototype.isValidRequest =
-  (function(aCtxt) {
-    try {
-      var request = aCtxt;
-      request.QueryInterface(Ci.nsIChannel);
-      var spec = request.URI.spec;
-      return spec.indexOf(EXPECTED_PLAYPREVIEW_URI_PREFIX) === 0;
-    } catch (e) {
-      return false;
-    }
-  });
 ShumwayStreamOverlayConverter.prototype.getUrlHint = function (requestUrl) {
   return '';
 };
