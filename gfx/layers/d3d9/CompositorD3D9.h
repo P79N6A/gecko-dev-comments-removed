@@ -106,6 +106,17 @@ public:
 
 
 
+
+
+
+
+
+  virtual bool Ready() MOZ_OVERRIDE;
+
+  
+
+
+
   virtual void SetScreenRenderOffset(const ScreenPoint& aOffset) MOZ_OVERRIDE
   {
     if (aOffset.x || aOffset.y) {
@@ -122,6 +133,27 @@ private:
   void SetSamplerForFilter(gfx::Filter aFilter);
   void PaintToTarget();
   void SetMask(const EffectChain &aEffectChain, uint32_t aMaskTexture);
+  
+
+
+
+
+
+
+
+
+  bool EnsureSwapChain();
+
+  
+
+
+
+
+
+
+
+
+  void CheckResetCount();
 
   void ReportFailure(const nsACString &aMsg, HRESULT aCode);
 
@@ -143,6 +175,8 @@ private:
   RefPtr<CompositingRenderTargetD3D9> mCurrentRT;
 
   nsIntSize mSize;
+
+  uint32_t mDeviceResetCount;
 };
 
 }

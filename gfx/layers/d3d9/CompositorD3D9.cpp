@@ -24,6 +24,7 @@ namespace layers {
 CompositorD3D9::CompositorD3D9(PCompositorParent* aParent, nsIWidget *aWidget)
   : Compositor(aParent)
   , mWidget(aWidget)
+  , mDeviceResetCount(0)
 {
   sBackend = LAYERS_D3D9;
 }
@@ -456,6 +457,97 @@ CompositorD3D9::SetMask(const EffectChain &aEffectChain, uint32_t aMaskTexture)
                                      1);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+CompositorD3D9::EnsureSwapChain()
+{
+  MOZ_ASSERT(mDeviceManager, "Don't call EnsureSwapChain without a device manager");
+
+  if (!mSwapChain) {
+    mSwapChain = mDeviceManager->
+      CreateSwapChain((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW));
+    if (!mSwapChain) {
+      DeviceManagerState state = mDeviceManager->VerifyReadyForRendering();
+      if (state == DeviceMustRecreate) {
+        mDeviceManager = nullptr;
+        mParent->SendInvalidateAll();
+      } else if (state == DeviceRetry) {
+        mParent->SendInvalidateAll();
+      }
+      return false;
+    }
+  }
+
+  DeviceManagerState state = mSwapChain->PrepareForRendering();
+  if (state == DeviceOK) {
+    return true;
+  }
+  if (state == DeviceMustRecreate) {
+    mDeviceManager = nullptr;
+    mSwapChain = nullptr;
+    mParent->SendInvalidateAll();
+  } else if (state == DeviceRetry) {
+    mParent->SendInvalidateAll();
+  }
+  return false;
+}
+
+void
+CompositorD3D9::CheckResetCount()
+{
+  if (mDeviceResetCount != mDeviceManager->GetDeviceResetCount()) {
+    mParent->SendInvalidateAll();
+  }
+  mDeviceResetCount = mDeviceManager->GetDeviceResetCount();
+}
+
+bool
+CompositorD3D9::Ready()
+{
+  if (mDeviceManager) {
+    if (EnsureSwapChain()) {
+      
+      
+      CheckResetCount();
+      return true;
+    }
+    return false;
+  }
+
+  NS_ASSERTION(!mCurrentRT && !mDefaultRT,
+                "Shouldn't have any render targets around, they must be released before our device");
+  mSwapChain = nullptr;
+
+  mDeviceManager = gfxWindowsPlatform::GetPlatform()->GetD3D9DeviceManager();
+  if (!mDeviceManager) {
+    mParent->SendInvalidateAll();
+    return false;
+  }
+  if (EnsureSwapChain()) {
+    CheckResetCount();
+    return true;
+  }
+  return false;
+}
+
 static void
 CancelCompositing(Rect* aRenderBoundsOut)
 {
@@ -472,42 +564,7 @@ CompositorD3D9::BeginFrame(const nsIntRegion& aInvalidRegion,
                            Rect *aClipRectOut,
                            Rect *aRenderBoundsOut)
 {
-  if (!mDeviceManager) {
-    mDeviceManager = gfxWindowsPlatform::GetPlatform()->GetD3D9DeviceManager();
-    if (!mDeviceManager) {
-      mSwapChain = nullptr;
-      CancelCompositing(aRenderBoundsOut);
-      return;
-    }
-
-    
-    
-    
-    mParent->SendInvalidateAll();
-    CancelCompositing(aRenderBoundsOut);
-    return;
-  }
-
-  if (!mDeviceManager->VerifyReadyForRendering()) {
-    NS_ASSERTION(!mCurrentRT && !mDefaultRT,
-                 "Shouldn't have any render targets around, they must be released before our device");
-    mSwapChain = nullptr;
-    mDeviceManager = nullptr;
-
-    CancelCompositing(aRenderBoundsOut);
-    return;
-  }
-  MOZ_ASSERT(mDeviceManager);
-
-  if (!mSwapChain) {
-    mSwapChain = mDeviceManager->
-      CreateSwapChain((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW));
-  }
-  if (!mSwapChain ||
-      !mSwapChain->PrepareForRendering()) {
-    CancelCompositing(aRenderBoundsOut);
-    return;
-  }
+  MOZ_ASSERT(mDeviceManager && mSwapChain);
 
   mDeviceManager->SetupRenderState();
 

@@ -413,6 +413,12 @@ public:
   virtual bool Resume() { return true; }
 
   
+
+
+
+  virtual bool Ready() { return true; }
+
+  
   
   virtual nsIWidget* GetWidget() const { return nullptr; }
   virtual const nsIntSize& GetWidgetSize() = 0;
