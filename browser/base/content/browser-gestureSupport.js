@@ -743,7 +743,11 @@ let gHistorySwipeAnimation = {
         if (aEvent.target == gBrowser.selectedBrowser.contentDocument) {
           
           
-          this._takeSnapshot();
+          
+          if (!this.isAnimationRunning()) {
+            this._takeSnapshot();
+          }
+          this._compressSnapshotAtCurrentIndex();
         }
         break;
     }
@@ -938,10 +942,24 @@ let gHistorySwipeAnimation = {
   
 
 
-  _takeSnapshot: function HSA__takeSnapshot() {
+
+
+
+  _readyToTakeSnapshots: function HSA__readyToTakeSnapshots() {
     if ((this._maxSnapshots < 1) ||
-        (gBrowser.webNavigation.sessionHistory.index < 0))
+        (gBrowser.webNavigation.sessionHistory.index < 0)) {
+      return false;
+    }
+    return true;
+  },
+
+  
+
+
+  _takeSnapshot: function HSA__takeSnapshot() {
+    if (!this._readyToTakeSnapshots()) {
       return;
+    }
 
     let canvas = null;
 
@@ -1010,9 +1028,27 @@ let gHistorySwipeAnimation = {
       image: aCanvas,
       scale: window.devicePixelRatio
     };
+  },
+
+  
+
+
+
+  _compressSnapshotAtCurrentIndex:
+  function HSA__compressSnapshotAtCurrentIndex() {
+    if (!this._readyToTakeSnapshots()) {
+      
+      
+      return;
+    }
+
+    let browser = gBrowser.selectedBrowser;
+    let snapshots = browser.snapshots;
+    let currIndex = browser.webNavigation.sessionHistory.index;
 
     
-    aCanvas.toBlob(function(aBlob) {
+    let canvas = snapshots[currIndex].image;
+    canvas.toBlob(function(aBlob) {
         if (snapshots[currIndex]) {
           snapshots[currIndex].image = aBlob;
         }
