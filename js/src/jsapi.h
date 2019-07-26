@@ -802,23 +802,9 @@ typedef JSObject *
 (* JSPreWrapCallback)(JSContext *cx, JS::HandleObject scope, JS::HandleObject obj,
                       unsigned flags);
 
-
-
-
-
-
-
-
-
-
-
-typedef JSObject *
-(* JSSameCompartmentWrapObjectCallback)(JSContext *cx, JS::HandleObject obj);
-
 struct JSWrapObjectCallbacks
 {
     JSWrapObjectCallback wrap;
-    JSSameCompartmentWrapObjectCallback sameCompartmentWrap;
     JSPreWrapCallback preWrap;
 };
 

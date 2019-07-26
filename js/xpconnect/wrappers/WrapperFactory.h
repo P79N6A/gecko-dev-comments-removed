@@ -59,10 +59,6 @@ class WrapperFactory {
                             unsigned flags);
 
     
-    static JSObject *WrapForSameCompartment(JSContext *cx,
-                                            JS::HandleObject obj);
-
-    
     static bool WaiveXrayAndWrap(JSContext *cx, JS::MutableHandleValue vp);
     static bool WaiveXrayAndWrap(JSContext *cx, JS::MutableHandleObject object);
 

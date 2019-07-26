@@ -489,26 +489,6 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
     return Wrapper::New(cx, obj, parent, wrapper);
 }
 
-JSObject *
-WrapperFactory::WrapForSameCompartment(JSContext *cx, HandleObject objArg)
-{
-    RootedObject obj(cx, objArg);
-    MOZ_ASSERT(js::IsObjectInContextCompartment(obj, cx));
-
-    
-    
-    
-
-    
-    
-    obj = JS_ObjectToOuterObject(cx, obj);
-    NS_ENSURE_TRUE(obj, nullptr);
-
-    
-    dom::GetSameCompartmentWrapperForDOMBinding(*obj.address());
-    return obj;
-}
-
 
 
 

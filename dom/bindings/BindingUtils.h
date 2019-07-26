@@ -512,12 +512,6 @@ CouldBeDOMBinding(nsWrapperCache* aCache)
   return aCache->IsDOMBinding();
 }
 
-inline bool
-GetSameCompartmentWrapperForDOMBinding(JSObject*& obj)
-{
-  return IsDOMObject(obj);
-}
-
 
 
 MOZ_ALWAYS_INLINE
@@ -540,15 +534,14 @@ MaybeWrapObjectValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
 {
   MOZ_ASSERT(rval.isObject());
 
+  
   JSObject* obj = &rval.toObject();
   if (js::GetObjectCompartment(obj) != js::GetContextCompartment(cx)) {
     return JS_WrapValue(cx, rval);
   }
 
   
-  
-  if (GetSameCompartmentWrapperForDOMBinding(obj)) {
-    
+  if (IsDOMObject(obj)) {
     rval.set(JS::ObjectValue(*obj));
     return true;
   }
