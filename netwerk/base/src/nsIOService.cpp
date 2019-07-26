@@ -664,7 +664,7 @@ nsIOService::SetOffline(bool offline)
 {
     
     
-    if (mShutdown && !offline)
+    if ((mShutdown || mOfflineForProfileChange) && !offline)
         return NS_ERROR_NOT_AVAILABLE;
 
     
@@ -741,7 +741,7 @@ nsIOService::SetOffline(bool offline)
     }
 
     
-    if (mShutdown && mOffline) {
+    if ((mShutdown || mOfflineForProfileChange) && mOffline) {
         
         
         if (mDNSService) {
@@ -912,8 +912,8 @@ nsIOService::Observe(nsISupports *subject,
     }
     else if (!strcmp(topic, kProfileChangeNetTeardownTopic)) {
         if (!mOffline) {
-            SetOffline(true);
             mOfflineForProfileChange = true;
+            SetOffline(true);
         }
     }
     else if (!strcmp(topic, kProfileChangeNetRestoreTopic)) {
