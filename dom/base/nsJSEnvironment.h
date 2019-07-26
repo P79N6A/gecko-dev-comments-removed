@@ -184,14 +184,17 @@ private:
 
 class nsIJSRuntimeService;
 
-namespace nsJSRuntime
-{
-  void Startup();
-  void Shutdown();
-  
-  nsScriptNameSpaceManager* GetNameSpaceManager();
+namespace mozilla {
+namespace dom {
 
-};
+void StartupJSEnvironment();
+void ShutdownJSEnvironment();
+
+
+nsScriptNameSpaceManager* GetNameSpaceManager();
+
+} 
+} 
 
 
 
