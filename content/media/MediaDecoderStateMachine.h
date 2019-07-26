@@ -320,7 +320,13 @@ public:
   void SetFragmentEndTime(int64_t aEndTime);
 
   
-  void ReleaseDecoder() { mDecoder = nullptr; }
+  void ReleaseDecoder() {
+    MOZ_ASSERT(mReader);
+    if (mReader) {
+      mReader->ReleaseDecoder();
+    }
+    mDecoder = nullptr;
+  }
 
    
    

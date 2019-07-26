@@ -447,6 +447,8 @@ public:
   virtual bool IsDormantNeeded() { return false; }
   
   virtual void ReleaseMediaResources() {};
+  
+  virtual void ReleaseDecoder() {};
 
   
   virtual nsresult ResetDecode();
