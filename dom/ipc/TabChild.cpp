@@ -2366,7 +2366,7 @@ TabChild::NotifyPainted()
     
     
     if (UseDirectCompositor() &&
-        (!mNotified || mTextureFactoryIdentifier.mParentBackend == LAYERS_BASIC)) {
+        (!mNotified || mTextureFactoryIdentifier.mParentBackend == LayersBackend::LAYERS_BASIC)) {
         mRemoteFrame->SendNotifyCompositorTransaction();
         mNotified = true;
     }

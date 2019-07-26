@@ -17,7 +17,7 @@ class Matrix4x4;
 
 namespace layers {
 
- LayersBackend Compositor::sBackend = LAYERS_NONE;
+ LayersBackend Compositor::sBackend = LayersBackend::LAYERS_NONE;
  LayersBackend
 Compositor::GetBackend()
 {

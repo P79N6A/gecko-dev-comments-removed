@@ -1379,7 +1379,7 @@ NS_METHOD nsWindow::Move(double aX, double aY)
     
     
     if (mWindowType == eWindowType_plugin &&
-        (!mLayerManager || mLayerManager->GetBackendType() == LAYERS_D3D9) &&
+        (!mLayerManager || mLayerManager->GetBackendType() == LayersBackend::LAYERS_D3D9) &&
         mClipRects &&
         (mClipRectCount != 1 || !mClipRects[0].IsEqualInterior(nsIntRect(0, 0, mBounds.width, mBounds.height)))) {
       flags |= SWP_NOCOPYBITS;
@@ -3252,7 +3252,7 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
 
 #ifdef MOZ_ENABLE_D3D10_LAYER
   if (mLayerManager) {
-    if (mLayerManager->GetBackendType() == LAYERS_D3D10)
+    if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_D3D10)
     {
       LayerManagerD3D10 *layerManagerD3D10 =
         static_cast<LayerManagerD3D10*>(mLayerManager.get());
@@ -3281,7 +3281,7 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
 
   if (!mLayerManager ||
       (!sAllowD3D9 && aPersistence == LAYER_MANAGER_PERSISTENT &&
-        mLayerManager->GetBackendType() == LAYERS_BASIC &&
+        mLayerManager->GetBackendType() == LayersBackend::LAYERS_BASIC &&
         !ShouldUseOffMainThreadCompositing())) {
     
     
@@ -6372,7 +6372,7 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 
       if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
           gfxWindowsPlatform::RENDER_DIRECT2D ||
-          GetLayerManager()->GetBackendType() != LAYERS_BASIC) {
+          GetLayerManager()->GetBackendType() != LayersBackend::LAYERS_BASIC) {
         
         
         
@@ -6673,14 +6673,14 @@ nsWindow::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
   if (!(prefs.mDisableAcceleration ||
         mTransparencyMode == eTransparencyTransparent)) {
     if (prefs.mPreferOpenGL) {
-      aHints.AppendElement(LAYERS_OPENGL);
+      aHints.AppendElement(LayersBackend::LAYERS_OPENGL);
     }
     if (!prefs.mPreferD3D9) {
-      aHints.AppendElement(LAYERS_D3D11);
+      aHints.AppendElement(LayersBackend::LAYERS_D3D11);
     }
-    aHints.AppendElement(LAYERS_D3D9);
+    aHints.AppendElement(LayersBackend::LAYERS_D3D9);
   }
-  aHints.AppendElement(LAYERS_BASIC);
+  aHints.AppendElement(LayersBackend::LAYERS_BASIC);
 }
 
 void
@@ -7253,7 +7253,7 @@ nsWindow::ClearCachedResources()
     mD2DWindowSurface = nullptr;
 #endif
     if (mLayerManager &&
-        mLayerManager->GetBackendType() == LAYERS_BASIC) {
+        mLayerManager->GetBackendType() == LayersBackend::LAYERS_BASIC) {
       mLayerManager->ClearCachedResources();
     }
     ::EnumChildWindows(mWnd, nsWindow::ClearResourcesCallback, 0);

@@ -443,9 +443,9 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
       destBufferRect = ComputeBufferRect(neededRegion.GetBounds());
     }
 
-    if (mode == SURFACE_COMPONENT_ALPHA) {
+    if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
 #if defined(MOZ_GFX_OPTIMIZE_MOBILE) || defined(MOZ_WIDGET_GONK)
-      mode = SURFACE_SINGLE_CHANNEL_ALPHA;
+      mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
 #else
       if (!aLayer->GetParent() ||
           !aLayer->GetParent()->SupportsComponentAlphaChildren() ||
@@ -453,7 +453,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
           !aLayer->AsShadowableLayer() ||
           !aLayer->AsShadowableLayer()->HasShadow() ||
           !gfxPlatform::ComponentAlphaEnabled()) {
-        mode = SURFACE_SINGLE_CHANNEL_ALPHA;
+        mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
       } else {
         contentType = gfxContentType::COLOR;
       }
@@ -464,9 +464,9 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
         (!neededRegion.GetBounds().IsEqualInterior(destBufferRect) ||
          neededRegion.GetNumRects() > 1)) {
       
-      if (mode == SURFACE_OPAQUE) {
+      if (mode == SurfaceMode::SURFACE_OPAQUE) {
         contentType = gfxContentType::COLOR_ALPHA;
-        mode = SURFACE_SINGLE_CHANNEL_ALPHA;
+        mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
       }
 
       
@@ -478,7 +478,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
     
     if (HaveBuffer() &&
         (contentType != BufferContentType() ||
-        (mode == SURFACE_COMPONENT_ALPHA) != HaveBufferOnWhite())) {
+        (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) != HaveBufferOnWhite())) {
 
       
       
@@ -510,7 +510,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
   RefPtr<DrawTarget> destDTBuffer;
   RefPtr<DrawTarget> destDTBufferOnWhite;
   uint32_t bufferFlags = canHaveRotation ? ALLOW_REPEAT : 0;
-  if (mode == SURFACE_COMPONENT_ALPHA) {
+  if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
     bufferFlags |= BUFFER_COMPONENT_ALPHA;
   }
   if (canReuseBuffer) {
@@ -542,7 +542,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
           MOZ_ASSERT(mDTBuffer);
           mDTBuffer->CopyRect(IntRect(srcRect.x, srcRect.y, srcRect.width, srcRect.height),
                               IntPoint(dest.x, dest.y));
-          if (mode == SURFACE_COMPONENT_ALPHA) {
+          if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
             if (!EnsureBufferOnWhite()) {
               return result;
             }
@@ -571,7 +571,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
                            newRotation.x * bytesPerPixel, newRotation.y);
             mDTBuffer->ReleaseBits(data);
 
-            if (mode == SURFACE_COMPONENT_ALPHA) {
+            if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
               if (!EnsureBufferOnWhite()) {
                 return result;
               }
@@ -630,7 +630,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
   bool isClear = !HaveBuffer();
 
   if (destDTBuffer) {
-    if (!isClear && (mode != SURFACE_COMPONENT_ALPHA || HaveBufferOnWhite())) {
+    if (!isClear && (mode != SurfaceMode::SURFACE_COMPONENT_ALPHA || HaveBufferOnWhite())) {
       
       nsIntPoint offset = -destBufferRect.TopLeft();
       Matrix mat;
@@ -643,7 +643,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
       DrawBufferWithRotation(destDTBuffer, BUFFER_BLACK, 1.0, CompositionOp::OP_SOURCE);
       destDTBuffer->SetTransform(Matrix());
 
-      if (mode == SURFACE_COMPONENT_ALPHA) {
+      if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
         NS_ASSERTION(destDTBufferOnWhite, "Must have a white buffer!");
         destDTBufferOnWhite->SetTransform(mat);
         if (!EnsureBufferOnWhite()) {
@@ -666,7 +666,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
   nsIntRegion invalidate;
   invalidate.Sub(aLayer->GetValidRegion(), destBufferRect);
   result.mRegionToInvalidate.Or(result.mRegionToInvalidate, invalidate);
-  result.mClip = CLIP_DRAW_SNAPPED;
+  result.mClip = DrawRegionClip::DRAW_SNAPPED;
   result.mMode = mode;
 
   return result;
@@ -676,7 +676,7 @@ DrawTarget*
 RotatedContentBuffer::BorrowDrawTargetForPainting(ThebesLayer* aLayer,
                                                   const PaintState& aPaintState)
 {
-  if (!aPaintState.mMode) {
+  if (aPaintState.mMode == SurfaceMode::SURFACE_NONE) {
     return nullptr;
   }
 
@@ -688,7 +688,7 @@ RotatedContentBuffer::BorrowDrawTargetForPainting(ThebesLayer* aLayer,
     canUseOpaqueSurface ? gfxContentType::COLOR :
                           gfxContentType::COLOR_ALPHA;
 
-  if (aPaintState.mMode == SURFACE_COMPONENT_ALPHA) {
+  if (aPaintState.mMode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
     MOZ_ASSERT(mDTBuffer && mDTBufferOnWhite);
     nsIntRegionRectIterator iter(aPaintState.mRegionToDraw);
     const nsIntRect *iterRect;

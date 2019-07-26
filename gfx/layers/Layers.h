@@ -587,7 +587,7 @@ public:
   {
     
     
-    return LAYERS_BASIC != aBackend && LAYERS_NONE != aBackend;
+    return LayersBackend::LAYERS_BASIC != aBackend && LayersBackend::LAYERS_NONE != aBackend;
   }
 
   virtual bool IsCompositingCheap() { return true; }
@@ -1107,10 +1107,10 @@ public:
   SurfaceMode GetSurfaceMode()
   {
     if (CanUseOpaqueSurface())
-      return SURFACE_OPAQUE;
+      return SurfaceMode::SURFACE_OPAQUE;
     if (mContentFlags & CONTENT_COMPONENT_ALPHA)
-      return SURFACE_COMPONENT_ALPHA;
-    return SURFACE_SINGLE_CHANNEL_ALPHA;
+      return SurfaceMode::SURFACE_COMPONENT_ALPHA;
+    return SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
   }
 
   

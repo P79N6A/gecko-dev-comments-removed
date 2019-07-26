@@ -199,9 +199,9 @@ nsWindow::DoDraw(void)
     }
 
     LayerManager* lm = gWindowToRedraw->GetLayerManager();
-    if (mozilla::layers::LAYERS_CLIENT == lm->GetBackendType()) {
+    if (mozilla::layers::LayersBackend::LAYERS_CLIENT == lm->GetBackendType()) {
       
-    } else if (mozilla::layers::LAYERS_BASIC == lm->GetBackendType()) {
+    } else if (mozilla::layers::LayersBackend::LAYERS_BASIC == lm->GetBackendType()) {
         MOZ_ASSERT(sFramebufferOpen || sUsingOMTC);
         nsRefPtr<gfxASurface> targetSurface;
 
@@ -217,7 +217,7 @@ nsWindow::DoDraw(void)
 
             
             AutoLayerManagerSetup setupLayerManager(
-                gWindowToRedraw, ctx, mozilla::layers::BUFFER_NONE,
+                gWindowToRedraw, ctx, mozilla::layers::BufferMode::BUFFER_NONE,
                 ScreenRotation(EffectiveScreenRotation()));
 
             listener = gWindowToRedraw->GetWidgetListener();
@@ -544,15 +544,15 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
     if (mLayerManager) {
         
         
-        if (mLayerManager->GetBackendType() == LAYERS_BASIC) {
+        if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_BASIC) {
             BasicLayerManager* manager =
                 static_cast<BasicLayerManager*>(mLayerManager.get());
-            manager->SetDefaultTargetConfiguration(mozilla::layers::BUFFER_NONE,
+            manager->SetDefaultTargetConfiguration(mozilla::layers::BufferMode::BUFFER_NONE,
                                                    ScreenRotation(EffectiveScreenRotation()));
-        } else if (mLayerManager->GetBackendType() == LAYERS_CLIENT) {
+        } else if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
             ClientLayerManager* manager =
                 static_cast<ClientLayerManager*>(mLayerManager.get());
-            manager->SetDefaultTargetConfiguration(mozilla::layers::BUFFER_NONE,
+            manager->SetDefaultTargetConfiguration(mozilla::layers::BufferMode::BUFFER_NONE,
                                                    ScreenRotation(EffectiveScreenRotation()));
         }
         return mLayerManager;
@@ -646,7 +646,7 @@ uint32_t
 nsWindow::GetGLFrameBufferFormat()
 {
     if (mLayerManager &&
-        mLayerManager->GetBackendType() == mozilla::layers::LAYERS_OPENGL) {
+        mLayerManager->GetBackendType() == mozilla::layers::LayersBackend::LAYERS_OPENGL) {
         
         
         return LOCAL_GL_RGB;

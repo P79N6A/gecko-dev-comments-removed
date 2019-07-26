@@ -71,7 +71,7 @@ ImageBridgeParent::RecvUpdate(const EditArray& aEdits, EditReplyArray* aReply)
 {
   
   
-  if (Compositor::GetBackend() == LAYERS_NONE) {
+  if (Compositor::GetBackend() == LayersBackend::LAYERS_NONE) {
     return true;
   }
 

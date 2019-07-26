@@ -2086,7 +2086,7 @@ do {
   
   
   AutoLayerManagerSetup
-      setupLayerManager(this, thebesContext, BasicLayerManager::BUFFER_NONE);
+      setupLayerManager(this, thebesContext, BasicLayerManager::BufferMode::BUFFER_NONE);
   if (!DispatchWindowEvent(&event, eventStatus)) {
     break;
   }

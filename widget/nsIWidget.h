@@ -1202,14 +1202,14 @@ class nsIWidget : public nsISupports {
 
     inline LayerManager* GetLayerManager(bool* aAllowRetaining = nullptr)
     {
-        return GetLayerManager(nullptr, mozilla::layers::LAYERS_NONE,
+        return GetLayerManager(nullptr, mozilla::layers::LayersBackend::LAYERS_NONE,
                                LAYER_MANAGER_CURRENT, aAllowRetaining);
     }
 
     inline LayerManager* GetLayerManager(LayerManagerPersistence aPersistence,
                                          bool* aAllowRetaining = nullptr)
     {
-        return GetLayerManager(nullptr, mozilla::layers::LAYERS_NONE,
+        return GetLayerManager(nullptr, mozilla::layers::LayersBackend::LAYERS_NONE,
                                aPersistence, aAllowRetaining);
     }
 

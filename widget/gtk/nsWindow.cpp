@@ -2054,7 +2054,7 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     nsIntRegion &region = exposeRegion.mRegion;
 
     ClientLayerManager *clientLayers =
-        (GetLayerManager()->GetBackendType() == LAYERS_CLIENT)
+        (GetLayerManager()->GetBackendType() == LayersBackend::LAYERS_CLIENT)
         ? static_cast<ClientLayerManager*>(GetLayerManager())
         : nullptr;
 
@@ -2139,7 +2139,7 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     }
 
     
-    if (GetLayerManager()->GetBackendType() == LAYERS_CLIENT) {
+    if (GetLayerManager()->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
         listener->PaintWindow(this, region);
         listener->DidPaintWindow();
         return TRUE;
@@ -2192,16 +2192,16 @@ nsWindow::OnExposeEvent(cairo_t *cr)
         
         
         
-        layerBuffering = mozilla::layers::BUFFER_NONE;
+        layerBuffering = mozilla::layers::BufferMode::BUFFER_NONE;
         ctx->PushGroup(gfxContentType::COLOR_ALPHA);
 #ifdef MOZ_HAVE_SHMIMAGE
     } else if (nsShmImage::UseShm()) {
         
-        layerBuffering = mozilla::layers::BUFFER_NONE;
+        layerBuffering = mozilla::layers::BufferMode::BUFFER_NONE;
 #endif
     } else {
         
-        layerBuffering = mozilla::layers::BUFFER_BUFFERED;
+        layerBuffering = mozilla::layers::BufferMode::BUFFERED;
     }
 
 #if 0
@@ -2219,7 +2219,7 @@ nsWindow::OnExposeEvent(cairo_t *cr)
 
     bool painted = false;
     {
-      if (GetLayerManager()->GetBackendType() == LAYERS_BASIC) {
+      if (GetLayerManager()->GetBackendType() == LayersBackend::LAYERS_BASIC) {
         AutoLayerManagerSetup setupLayerManager(this, ctx, layerBuffering);
         painted = listener->PaintWindow(this, region);
       }
@@ -6212,7 +6212,7 @@ void
 nsWindow::ClearCachedResources()
 {
     if (mLayerManager &&
-        mLayerManager->GetBackendType() == mozilla::layers::LAYERS_BASIC) {
+        mLayerManager->GetBackendType() == mozilla::layers::LayersBackend::LAYERS_BASIC) {
         mLayerManager->ClearCachedResources();
     }
 

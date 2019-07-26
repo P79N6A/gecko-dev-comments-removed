@@ -4905,7 +4905,7 @@ nsIFrame::InvalidateLayer(uint32_t aDisplayItemKey,
   
   
   if ((aFlags & UPDATE_IS_ASYNC) && layer &&
-      layer->Manager()->GetBackendType() == LAYERS_CLIENT) {
+      layer->Manager()->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
     return layer;
   }
 
