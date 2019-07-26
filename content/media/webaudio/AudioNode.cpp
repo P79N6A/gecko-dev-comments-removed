@@ -173,9 +173,6 @@ AudioNode::Connect(AudioNode& aDestination, uint32_t aOutput,
     input->mStreamPort =
       ps->AllocateInputPort(mStream, MediaInputPort::FLAG_BLOCK_INPUT);
   }
-
-  
-  Context()->UpdatePannerSource();
 }
 
 void
@@ -242,9 +239,6 @@ AudioNode::Disconnect(uint32_t aOutput, ErrorResult& aRv)
   for (uint32_t i = 0; i < outputsToUpdate.Length(); ++i) {
     outputsToUpdate[i]->UpdateOutputEnded();
   }
-
-  
-  Context()->UpdatePannerSource();
 }
 
 }
