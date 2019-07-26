@@ -5,12 +5,18 @@
 
 package org.mozilla.gecko.home;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.db.BrowserContract.HomeItems;
 import org.mozilla.gecko.db.DBUtils;
 import org.mozilla.gecko.home.HomeConfig.PanelConfig;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
 import org.mozilla.gecko.home.PanelLayout.DatasetHandler;
 import org.mozilla.gecko.home.PanelLayout.DatasetRequest;
+import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.Activity;
 import android.content.ContentResolver;
@@ -45,7 +51,8 @@ import android.view.ViewGroup;
 
 
 
-public class DynamicPanel extends HomeFragment {
+public class DynamicPanel extends HomeFragment
+                          implements GeckoEventListener {
     private static final String LOGTAG = "GeckoDynamicPanel";
 
     
@@ -116,12 +123,15 @@ public class DynamicPanel extends HomeFragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        GeckoAppShell.registerEventListener("HomePanels:RefreshDataset", this);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         mLayout = null;
+
+        GeckoAppShell.unregisterEventListener("HomePanels:RefreshDataset", this);
     }
 
     @Override
@@ -152,8 +162,58 @@ public class DynamicPanel extends HomeFragment {
         mLayout.load();
     }
 
+    @Override
+    public void handleMessage(String event, final JSONObject message) {
+        if (event.equals("HomePanels:RefreshDataset")) {
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    handleDatasetRefreshRequest(message);
+                }
+            });
+        }
+    }
+
     private static int generateLoaderId(String datasetId) {
         return datasetId.hashCode();
+    }
+
+    
+
+
+
+    private void handleDatasetRefreshRequest(JSONObject message) {
+        final String datasetId;
+        try {
+            datasetId = message.getString("datasetId");
+        } catch (JSONException e) {
+            Log.e(LOGTAG, "Failed to handle dataset refresh", e);
+            return;
+        }
+
+        Log.d(LOGTAG, "Refresh request for dataset: " + datasetId);
+
+        final int loaderId = generateLoaderId(datasetId);
+
+        final LoaderManager lm = getLoaderManager();
+        final Loader<?> loader = (Loader<?>) lm.getLoader(loaderId);
+
+        
+        
+        if (loader != null) {
+            final PanelDatasetLoader datasetLoader = (PanelDatasetLoader) loader;
+            final DatasetRequest request = datasetLoader.getRequest();
+
+            
+            
+            
+            final DatasetRequest newRequest =
+                   new DatasetRequest(DatasetRequest.Type.DATASET_LOAD,
+                                      request.getDatasetId(),
+                                      request.getFilterDetail());
+
+            restartDatasetLoader(newRequest);
+        }
     }
 
     private void restartDatasetLoader(DatasetRequest request) {
