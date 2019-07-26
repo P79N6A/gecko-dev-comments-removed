@@ -76,6 +76,9 @@ this.PhoneNumber = (function (dataBase) {
   
   function ParseFormat(md) {
     var formats = md.formats;
+    if (!formats) {
+      return null;
+    }
     
     if (!(Array.isArray(formats[0])))
       return;
@@ -138,6 +141,9 @@ this.PhoneNumber = (function (dataBase) {
     
     ParseFormat(regionMetaData);
     var formats = regionMetaData.formats;
+    if (!formats) {
+      return null;
+    }
     for (var n = 0; n < formats.length; ++n) {
       var format = formats[n];
       
@@ -172,12 +178,14 @@ this.PhoneNumber = (function (dataBase) {
           
           
           var match = number.match(SPLIT_FIRST_GROUP);
-          var firstGroup = match[1];
-          var rest = match[2];
-          var prefix = nationalPrefixFormattingRule;
-          prefix = prefix.replace("$NP", regionMetaData.nationalPrefix);
-          prefix = prefix.replace("$FG", firstGroup);
-          number = prefix + rest;
+          if (match) {
+            var firstGroup = match[1];
+            var rest = match[2];
+            var prefix = nationalPrefixFormattingRule;
+            prefix = prefix.replace("$NP", regionMetaData.nationalPrefix);
+            prefix = prefix.replace("$FG", firstGroup);
+            number = prefix + rest;
+          }
         }
       }
       return (number == "NA") ? null : number;
