@@ -40,12 +40,16 @@ var PREF_EM_CHECK_COMPATIBILITY;
 
 const TOOLKIT_ID                      = "toolkit@mozilla.org";
 
-const SHUTDOWN_EVENT                  = "profile-before-change";
-
 const VALID_TYPES_REGEXP = /^[\w\-]+$/;
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/AsyncShutdown.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository",
+                                  "resource://gre/modules/AddonRepository.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "CertUtils", function certUtilsLazyGetter() {
   let certUtils = {};
@@ -453,8 +457,6 @@ var AddonManagerInternal = {
 
     this.recordTimestamp("AMI_startup_begin");
 
-    Services.obs.addObserver(this, SHUTDOWN_EVENT, false);
-
     let appChanged = undefined;
 
     let oldAppVersion = null;
@@ -546,6 +548,10 @@ var AddonManagerInternal = {
               url + "\"", e);
       }
     }
+
+    
+    AsyncShutdown.profileBeforeChange.addBlocker("AddonManager: shutting down providers",
+                                                 this.shutdown.bind(this));
 
     
     gStarted = true;
@@ -682,9 +688,54 @@ var AddonManagerInternal = {
 
 
 
+
+
+
+
+
+
+
+
+  callProvidersAsync: function AMI_callProviders(aMethod, ...aArgs) {
+    if (!aMethod || typeof aMethod != "string")
+      throw Components.Exception("aMethod must be a non-empty string",
+                                 Cr.NS_ERROR_INVALID_ARG);
+
+    let allProviders = [];
+
+    let providers = this.providers.slice(0);
+    for (let provider of providers) {
+      try {
+        if (aMethod in provider) {
+          
+          
+          let providerResult = provider[aMethod].apply(provider, aArgs);
+          let nextPromise = Promise.resolve(providerResult);
+          
+          nextPromise = nextPromise.then(
+              null,
+              e => ERROR("Exception calling provider " + aMethod, e));
+          allProviders.push(nextPromise);
+        }
+      }
+      catch (e) {
+        ERROR("Exception calling provider " + aMethod, e);
+      }
+    }
+    
+    
+    return Promise.all(allProviders);
+  },
+
+  
+
+
+
+
+
   shutdown: function AMI_shutdown() {
     LOG("shutdown");
-    Services.obs.removeObserver(this, SHUTDOWN_EVENT);
+    
     Services.prefs.removeObserver(PREF_EM_CHECK_COMPATIBILITY, this);
     Services.prefs.removeObserver(PREF_EM_STRICT_COMPATIBILITY, this);
     Services.prefs.removeObserver(PREF_EM_CHECK_UPDATE_SECURITY, this);
@@ -694,17 +745,30 @@ var AddonManagerInternal = {
 
     
     
-    if (gStarted)
-      this.callProviders("shutdown");
+    let shuttingDown = null;
+    if (gStarted) {
+      shuttingDown = this.callProvidersAsync("shutdown")
+        .then(null,
+              err => ERROR("Failure during async provider shutdown", err))
+        .then(() => AddonRepository.shutdown());
+    }
+    else {
+      shuttingDown = AddonRepository.shutdown();
+    }
 
-    this.managerListeners.splice(0, this.managerListeners.length);
-    this.installListeners.splice(0, this.installListeners.length);
-    this.addonListeners.splice(0, this.addonListeners.length);
-    this.typeListeners.splice(0, this.typeListeners.length);
-    for (let type in this.startupChanges)
-      delete this.startupChanges[type];
-    gStarted = false;
-    gStartupComplete = false;
+    shuttingDown.then(val => LOG("Async provider shutdown done"),
+                      err => ERROR("Failure during AddonRepository shutdown", err))
+      .then(() => {
+        this.managerListeners.splice(0, this.managerListeners.length);
+        this.installListeners.splice(0, this.installListeners.length);
+        this.addonListeners.splice(0, this.addonListeners.length);
+        this.typeListeners.splice(0, this.typeListeners.length);
+        for (let type in this.startupChanges)
+          delete this.startupChanges[type];
+        gStarted = false;
+        gStartupComplete = false;
+      });
+    return shuttingDown;
   },
 
   
@@ -713,11 +777,6 @@ var AddonManagerInternal = {
 
 
   observe: function AMI_observe(aSubject, aTopic, aData) {
-    if (aTopic == SHUTDOWN_EVENT) {
-      this.shutdown();
-      return;
-    }
-
     switch (aData) {
       case PREF_EM_CHECK_COMPATIBILITY: {
         let oldValue = gCheckCompatibility;
@@ -910,7 +969,6 @@ var AddonManagerInternal = {
 
     if (this.updateEnabled) {
       let scope = {};
-      Components.utils.import("resource://gre/modules/AddonRepository.jsm", scope);
       Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm", scope);
       scope.LightweightThemeManager.updateCurrentTheme();
 
@@ -921,7 +979,7 @@ var AddonManagerInternal = {
 
         
         
-        scope.AddonRepository.backgroundUpdateCheck(
+        AddonRepository.backgroundUpdateCheck(
                      ids, function BUC_backgroundUpdateCheckCallback() {
           AddonManagerInternal.updateAddonRepositoryData(
                                     function BUC_updateAddonCallback() {
@@ -1144,7 +1202,7 @@ var AddonManagerInternal = {
 
 
 
-  callInstallListeners: function AMI_callInstallListeners(aMethod, 
+  callInstallListeners: function AMI_callInstallListeners(aMethod,
                                  aExtraListeners, ...aArgs) {
     if (!gStarted)
       throw Components.Exception("AddonManager is not initialized",
@@ -1248,7 +1306,7 @@ var AddonManagerInternal = {
 
     this.callProviders("updateAddonAppDisabledStates");
   },
-  
+
   
 
 
@@ -1632,7 +1690,7 @@ var AddonManagerInternal = {
     if (!aListener || typeof aListener != "object")
       throw Components.Exception("aListener must be a InstallListener object",
                                  Cr.NS_ERROR_INVALID_ARG);
-    
+
     if (!this.installListeners.some(function addInstallListener_matchListener(i) {
       return i == aListener; }))
       this.installListeners.push(aListener);
@@ -1763,7 +1821,7 @@ var AddonManagerInternal = {
 
     new AsyncObjectCaller(aIDs, null, {
       nextObject: function getAddonsByIDs_nextObject(aCaller, aID) {
-        AddonManagerInternal.getAddonByID(aID, 
+        AddonManagerInternal.getAddonByID(aID,
                              function getAddonsByIDs_getAddonByID(aAddon) {
           addons.push(aAddon);
           aCaller.callNext();
@@ -2444,7 +2502,7 @@ this.AddonManager = {
     if (!aAddon || typeof aAddon != "object")
       throw Components.Exception("aAddon must be specified",
                                  Cr.NS_ERROR_INVALID_ARG);
-    
+
     if (!("applyBackgroundUpdates" in aAddon))
       return false;
     if (aAddon.applyBackgroundUpdates == AddonManager.AUTOUPDATE_ENABLE)

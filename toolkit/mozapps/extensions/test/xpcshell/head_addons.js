@@ -400,29 +400,16 @@ function shutdownManager() {
   if (!gInternalManager)
     return;
 
-  let xpiShutdown = false;
-  Services.obs.addObserver({
-    observe: function(aSubject, aTopic, aData) {
-      xpiShutdown = true;
-      gXPISaveError = aData;
-      Services.obs.removeObserver(this, "xpi-provider-shutdown");
-    }
-  }, "xpi-provider-shutdown", false);
-
-  let repositoryShutdown = false;
-  Services.obs.addObserver({
-    observe: function(aSubject, aTopic, aData) {
-      repositoryShutdown = true;
-      Services.obs.removeObserver(this, "addon-repository-shutdown");
-    }
-  }, "addon-repository-shutdown", false);
+  let shutdownDone = false;
 
   Services.obs.notifyObservers(null, "quit-application-granted", null);
   let scope = Components.utils.import("resource://gre/modules/AddonManager.jsm");
-  scope.AddonManagerInternal.shutdown();
-  gInternalManager = null;
+  scope.AddonManagerInternal.shutdown()
+    .then(
+        () => shutdownDone = true,
+        err => shutdownDone = true);
 
-  AddonRepository.shutdown();
+  gInternalManager = null;
 
   
   loadAddonsList();
@@ -433,13 +420,16 @@ function shutdownManager() {
   let thr = Services.tm.mainThread;
 
   
-  while (!repositoryShutdown || !xpiShutdown) {
+  while (!shutdownDone) {
     thr.processNextEvent(true);
   }
 
   
   
   scope = Components.utils.import("resource://gre/modules/XPIProvider.jsm");
+  
+  
+  gXPISaveError = scope.XPIProvider._shutdownError;
   AddonManagerPrivate.unregisterProvider(scope.XPIProvider);
   Components.utils.unload("resource://gre/modules/XPIProvider.jsm");
 }
