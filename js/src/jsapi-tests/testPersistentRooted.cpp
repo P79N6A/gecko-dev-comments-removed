@@ -47,7 +47,7 @@ struct Kennel {
 
 
 
-JS_NEVER_INLINE static Kennel *
+MOZ_NEVER_INLINE static Kennel *
 Allocate(JSContext *cx)
 {
     RootedObject barker(cx, JS_NewObject(cx, &BarkWhenTracedClass::class_, JS::NullPtr(), JS::NullPtr()));

@@ -39,7 +39,7 @@ BEGIN_TEST(testRegExpInstanceProperties)
 
 
 
-JS_NEVER_INLINE bool helper(JSObject *regexpProto)
+MOZ_NEVER_INLINE bool helper(JSObject *regexpProto)
 {
     CHECK(!regexpProto->inDictionaryMode());
 
