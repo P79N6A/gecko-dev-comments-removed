@@ -429,7 +429,7 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
          .setUserBit(true); 
   rv = context->EvaluateString(nsDependentString(mFieldText,
                                                  mFieldTextLength),
-                               *wrappedNode, options,
+                               wrappedNode, options,
                                 false,
                                result.address());
   if (NS_FAILED(rv)) {
