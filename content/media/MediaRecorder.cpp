@@ -114,7 +114,7 @@ class MediaRecorder::Session: public nsIObserver
     }
 
   private:
-    nsRefPtr<Session> mSession;
+    Session* mSession;
   };
 
   
