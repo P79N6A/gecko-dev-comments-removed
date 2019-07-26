@@ -551,7 +551,7 @@ static void nr_ice_srvrflx_start_stun_timer_cb(NR_SOCKET s, int how, void *cb_ar
 
 
 
-    if(r=nr_stun_client_start(cand->u.srvrflx.stun, NR_STUN_CLIENT_MODE_BINDING_REQUEST_STUND_0_96, nr_ice_srvrflx_stun_finished_cb, cand))
+    if(r=nr_stun_client_start(cand->u.srvrflx.stun, NR_STUN_CLIENT_MODE_BINDING_REQUEST_NO_AUTH, nr_ice_srvrflx_stun_finished_cb, cand))
       ABORT(r);
 
     if(r=nr_ice_ctx_remember_id(cand->ctx, cand->u.srvrflx.stun->request))
@@ -656,7 +656,7 @@ static void nr_ice_srvrflx_stun_finished_cb(NR_SOCKET sock, int how, void *cb_ar
       
       case NR_STUN_CLIENT_STATE_DONE:
         
-        nr_transport_addr_copy(&cand->addr, &cand->u.srvrflx.stun->results.stun_binding_response_stund_0_96.mapped_addr);
+        nr_transport_addr_copy(&cand->addr, &cand->u.srvrflx.stun->results.stun_binding_response.mapped_addr);
         nr_stun_client_ctx_destroy(&cand->u.srvrflx.stun);
         cand->state=NR_ICE_CAND_STATE_INITIALIZED;
         

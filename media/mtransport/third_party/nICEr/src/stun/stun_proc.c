@@ -200,6 +200,11 @@ nr_stun_process_indication(nr_stun_message *ind)
 }
 
 
+
+
+
+
+
 int
 nr_stun_process_success_response(nr_stun_message *res)
 {
@@ -211,8 +216,9 @@ nr_stun_process_success_response(nr_stun_message *res)
 #endif 
 
     if (NR_STUN_GET_TYPE_METHOD(res->header.type) == NR_METHOD_BINDING) {
-        if (! nr_stun_message_has_attribute(res, NR_STUN_ATTR_XOR_MAPPED_ADDRESS, 0)) {
-            r_log(NR_LOG_STUN, LOG_ERR, "Missing XOR-MAPPED-ADDRESS");
+        if (! nr_stun_message_has_attribute(res, NR_STUN_ATTR_XOR_MAPPED_ADDRESS, 0) &&
+            ! nr_stun_message_has_attribute(res, NR_STUN_ATTR_MAPPED_ADDRESS, 0)) {
+            r_log(NR_LOG_STUN, LOG_ERR, "Missing XOR-MAPPED-ADDRESS and MAPPED_ADDRESS");
             ABORT(R_REJECTED);
         }
     }
