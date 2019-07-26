@@ -36,7 +36,7 @@ js::Nursery::init()
 
     fallbackBitmap.clear(false);
 
-    void *heap = MapAlignedPages(NurserySize, Alignment);
+    void *heap = MapAlignedPages(runtime(), NurserySize, Alignment);
 #ifdef JSGC_ROOT_ANALYSIS
     
     
@@ -69,7 +69,7 @@ js::Nursery::init()
 js::Nursery::~Nursery()
 {
     if (start())
-        UnmapPages((void *)start(), NurserySize);
+        UnmapPages(runtime(), (void *)start(), NurserySize);
 }
 
 void
