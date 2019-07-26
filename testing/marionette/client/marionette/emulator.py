@@ -387,20 +387,20 @@ waitFor(
         print 'installing gecko binaries...'
         
         self._run_adb(['remount'])
-
         for root, dirs, files in os.walk(gecko_path):
             for filename in files:
-                rel_file = os.path.relpath(os.path.join(root, filename), gecko_path)
-                data_local_file = os.path.join('/data/local', rel_file)
+                rel_path = os.path.relpath(os.path.join(root, filename), gecko_path)
+                system_b2g_file = os.path.join('/system/b2g', rel_path)
                 for retry in range(1, push_attempts+1):
-                    print 'pushing', data_local_file, '(attempt %s of %s)' % (retry, push_attempts)
+                    print 'pushing', system_b2g_file, '(attempt %s of %s)' % (retry, push_attempts)
                     try:
-                        self.dm.pushFile(os.path.join(root, filename), data_local_file)
+                        self.dm.pushFile(os.path.join(root, filename), system_b2g_file)
                         break
                     except DMError:
                         if retry == push_attempts:
                             raise
 
+        print 'restarting B2G'
         self.dm.shellCheckOutput(['stop', 'b2g'])
         
         for i in range(0, 10):
@@ -409,17 +409,6 @@ waitFor(
                 break
         else:
             raise TimeoutException("Timeout waiting for the b2g process to terminate")
-
-        for root, dirs, files in os.walk(gecko_path):
-            for filename in files:
-                rel_file = os.path.relpath(os.path.join(root, filename), gecko_path)
-                data_local_file = os.path.join('/data/local', rel_file)
-                system_file = os.path.join('/system/b2g', rel_file)
-                print 'copying', data_local_file, 'to', system_file
-                self.dm.shellCheckOutput(['dd', 'if=%s' % data_local_file,
-                                          'of=%s' % system_file])
-
-        print 'restarting B2G'
         self.dm.shellCheckOutput(['start', 'b2g'])
 
         if not self.wait_for_port():
