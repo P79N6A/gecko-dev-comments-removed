@@ -26,6 +26,8 @@
 
     void documentMode(nsHtml5DocumentMode m);
 
+    nsIContent** getDocumentFragmentForTemplate(nsIContent** aTemplate);
+
     
 
 

@@ -34,6 +34,7 @@ enum eHtml5TreeOperation {
   eTreeOpAppendComment,
   eTreeOpAppendCommentToDocument,
   eTreeOpAppendDoctypeToDocument,
+  eTreeOpGetDocumentFragmentForTemplate,
   
   eTreeOpMarkAsBroken,
   eTreeOpRunScript,
