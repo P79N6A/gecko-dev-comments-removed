@@ -389,6 +389,17 @@ pref("dom.mozContacts.enabled", true);
 pref("dom.mozAlarms.enabled", true);
 
 
+
+pref("services.push.serverURL", "");
+pref("services.push.userAgentID", "");
+
+pref("services.push.retryBaseInterval", 5000);
+
+pref("services.push.maxRetryInterval", 1200000);
+
+pref("services.push.requestTimeout", 10000);
+
+
 #ifdef MOZ_B2G_RIL
 pref("dom.mozNetworkStats.enabled", true);
 pref("ril.lastKnownMcc", "724");
