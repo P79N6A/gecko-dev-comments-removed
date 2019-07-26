@@ -1431,13 +1431,13 @@ struct nsStyleText {
   }
 
   
+  inline bool HasTextShadow() const;
+  inline nsCSSShadowArray* GetTextShadow() const;
 
   
   
   
   
-  inline bool HasTextShadow(const nsIFrame* aContextFrame) const;
-  inline nsCSSShadowArray* GetTextShadow(const nsIFrame* aContextFrame) const;
   inline bool WhiteSpaceCanWrap(const nsIFrame* aContextFrame) const;
   inline bool WordCanWrap(const nsIFrame* aContextFrame) const;
 };

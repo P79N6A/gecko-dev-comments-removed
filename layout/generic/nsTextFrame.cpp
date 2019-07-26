@@ -5211,9 +5211,6 @@ static bool GetSelectionTextShadow(nsIFrame* aFrame,
                                    nsTextPaintStyle& aTextPaintStyle,
                                    nsCSSShadowArray** aShadow)
 {
-  if (aFrame->IsSVGText()) {
-    return false;
-  }
   switch (aType) {
     case nsISelectionController::SELECTION_NORMAL:
       return aTextPaintStyle.GetSelectionShadow(aShadow);
@@ -5511,7 +5508,7 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
 
     
     
-    nsCSSShadowArray *shadow = textStyle->GetTextShadow(this);
+    nsCSSShadowArray* shadow = textStyle->GetTextShadow();
     GetSelectionTextShadow(this, type, aTextPaintStyle, &shadow);
 
     
@@ -5897,7 +5894,7 @@ nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
   nscolor foregroundColor = textPaintStyle.GetTextColor();
   if (!aCallbacks) {
     const nsStyleText* textStyle = StyleText();
-    if (textStyle->HasTextShadow(this)) {
+    if (textStyle->HasTextShadow()) {
       
       
       gfxTextRun::Metrics shadowMetrics = 
