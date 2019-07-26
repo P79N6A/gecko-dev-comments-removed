@@ -18,6 +18,7 @@
 
 using namespace mozilla;
 using namespace xpc;
+using namespace JS;
 
 
 
@@ -97,17 +98,24 @@ XPCWrappedNativeScope::GetNewOrUsed(JSContext *cx, JS::HandleObject aGlobal)
 }
 
 static bool
-RemoteXULForbidsXBLScope(nsIPrincipal *aPrincipal)
+RemoteXULForbidsXBLScope(nsIPrincipal *aPrincipal, HandleObject aGlobal)
 {
   
-  
-  
-  
-  if (!nsContentUtils::IsInitialized() || !aPrincipal)
+  if (!aPrincipal)
       return false;
 
   
   
+  
+  
+  
+  
+  if (JS_GetClass(aGlobal) == &SafeJSContextGlobalClass)
+      return false;
+
+  
+  
+  MOZ_ASSERT(nsContentUtils::IsInitialized());
   if (nsContentUtils::IsSystemPrincipal(aPrincipal))
       return false;
 
@@ -161,7 +169,7 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
     
     
     nsIPrincipal *principal = GetPrincipal();
-    mAllowXBLScope = !RemoteXULForbidsXBLScope(principal);
+    mAllowXBLScope = !RemoteXULForbidsXBLScope(principal, aGlobal);
 
     
     mUseXBLScope = mAllowXBLScope;
