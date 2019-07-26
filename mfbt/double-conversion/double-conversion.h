@@ -130,7 +130,7 @@ class DoubleToStringConverter {
   }
 
   
-  static MFBT_API(const DoubleToStringConverter&) EcmaScriptConverter();
+  static MFBT_API const DoubleToStringConverter& EcmaScriptConverter();
 
   
   
@@ -198,7 +198,7 @@ class DoubleToStringConverter {
   
   
   
-  MFBT_API(bool) ToFixed(double value,
+  MFBT_API bool ToFixed(double value,
                int requested_digits,
                StringBuilder* result_builder) const;
 
@@ -230,7 +230,7 @@ class DoubleToStringConverter {
   
   
   
-  MFBT_API(bool) ToExponential(double value,
+  MFBT_API bool ToExponential(double value,
                      int requested_digits,
                      StringBuilder* result_builder) const;
 
@@ -268,7 +268,7 @@ class DoubleToStringConverter {
   
   
   
-  MFBT_API(bool) ToPrecision(double value,
+  MFBT_API bool ToPrecision(double value,
                    int precision,
                    StringBuilder* result_builder) const;
 
@@ -293,7 +293,7 @@ class DoubleToStringConverter {
   
   
   
-  static const MFBT_DATA(int) kBase10MaximalLength = 17;
+  static const MFBT_DATA int kBase10MaximalLength = 17;
 
   
   
@@ -333,7 +333,7 @@ class DoubleToStringConverter {
   
   
   
-  static MFBT_API(void) DoubleToAscii(double v,
+  static MFBT_API void DoubleToAscii(double v,
                             DtoaMode mode,
                             int requested_digits,
                             char* buffer,
@@ -344,7 +344,7 @@ class DoubleToStringConverter {
 
  private:
   
-  MFBT_API(bool) ToShortestIeeeNumber(double value,
+  MFBT_API bool ToShortestIeeeNumber(double value,
                             StringBuilder* result_builder,
                             DtoaMode mode) const;
 
@@ -352,15 +352,15 @@ class DoubleToStringConverter {
   
   
   
-  MFBT_API(bool) HandleSpecialValues(double value, StringBuilder* result_builder) const;
+  MFBT_API bool HandleSpecialValues(double value, StringBuilder* result_builder) const;
   
   
-  MFBT_API(void) CreateExponentialRepresentation(const char* decimal_digits,
+  MFBT_API void CreateExponentialRepresentation(const char* decimal_digits,
                                        int length,
                                        int exponent,
                                        StringBuilder* result_builder) const;
   
-  MFBT_API(void) CreateDecimalRepresentation(const char* decimal_digits,
+  MFBT_API void CreateDecimalRepresentation(const char* decimal_digits,
                                    int length,
                                    int decimal_point,
                                    int digits_after_point,
