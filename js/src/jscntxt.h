@@ -730,7 +730,6 @@ struct JSRuntime : js::RuntimeFriendFields
     int                 gcSweepPhase;
     JSCompartment       *gcSweepCompartment;
     int                 gcSweepKindIndex;
-    bool                gcAbortSweepAfterCurrentGroup;
 
     
 

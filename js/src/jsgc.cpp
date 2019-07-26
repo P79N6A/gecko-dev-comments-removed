@@ -3099,9 +3099,6 @@ FindCompartmentGroups(JSRuntime *rt)
 }
 
 static void
-ResetGrayList(JSCompartment* comp);
-
-static void
 GetNextCompartmentGroup(JSRuntime *rt)
 {
     rt->gcCurrentCompartmentGroup = rt->gcCurrentCompartmentGroup->nextGroup();
@@ -3109,26 +3106,6 @@ GetNextCompartmentGroup(JSRuntime *rt)
 
     if (!rt->gcIsIncremental)
         ComponentFinder<JSCompartment>::mergeCompartmentGroups(rt->gcCurrentCompartmentGroup);
-
-    if (rt->gcAbortSweepAfterCurrentGroup) {
-        
-
-
-
-        JS_ASSERT(!rt->gcIsIncremental);
-        for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
-            JS_ASSERT(!c->gcNextGraphComponent);
-            JS_ASSERT(c->isGCMarking());
-            c->setNeedsBarrier(false, JSCompartment::UpdateIon);
-            c->setGCState(JSCompartment::NoGC);
-            ArrayBufferObject::resetArrayBufferList(c);
-            ResetGrayList(c);
-            c->gcGrayRoots.clearAndFree();
-        }
-
-        rt->gcAbortSweepAfterCurrentGroup = false;
-        rt->gcCurrentCompartmentGroup = NULL;
-    }
 }
 
 
@@ -3317,15 +3294,6 @@ RemoveFromGrayList(RawObject wrapper)
 
     JS_NOT_REACHED("object not found in gray link list");
     return false;
-}
-
-static void
-ResetGrayList(JSCompartment* comp)
-{
-    RawObject src = comp->gcIncomingGrayPointers;
-    while (src)
-        src = NextIncomingCrossCompartmentPointer(src, true);
-    comp->gcIncomingGrayPointers = NULL;
 }
 
 void
@@ -3533,8 +3501,6 @@ BeginSweepPhase(JSRuntime *rt)
 
 
 
-    JS_ASSERT(!rt->gcAbortSweepAfterCurrentGroup);
-
     ComputeNonIncrementalMarkingForValidation(rt);
 
     gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP);
@@ -3630,7 +3596,6 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool lastGC)
     rt->gcMarker.stop();
 
     
-
 
 
 
@@ -3841,11 +3806,11 @@ ResetIncrementalGC(JSRuntime *rt, const char *reason)
         rt->gcMarker.stop();
 
         for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
-            JS_ASSERT(c->isGCMarking());
-            c->setNeedsBarrier(false, JSCompartment::UpdateIon);
-            c->setGCState(JSCompartment::NoGC);
-            ArrayBufferObject::resetArrayBufferList(c);
-            ResetGrayList(c);
+            if (c->isGCMarking()) {
+                c->setNeedsBarrier(false, JSCompartment::UpdateIon);
+                c->setGCState(JSCompartment::NoGC);
+                ArrayBufferObject::resetArrayBufferList(c);
+            }
         }
 
         rt->gcIncrementalState = NO_INCREMENTAL;
@@ -3856,13 +3821,21 @@ ResetIncrementalGC(JSRuntime *rt, const char *reason)
       }
 
       case SWEEP:
-        rt->gcMarker.reset();
-
-        for (CompartmentsIter c(rt); !c.done(); c.next())
+        for (CompartmentsIter c(rt); !c.done(); c.next()) {
             c->scheduledForDestruction = false;
 
+            if (c->isGCMarking() && c->activeAnalysis && !c->gcTypesMarked) {
+                AutoCopyFreeListToArenas copy(rt);
+                gcstats::AutoPhase ap1(rt->gcStats, gcstats::PHASE_SWEEP);
+                gcstats::AutoPhase ap2(rt->gcStats, gcstats::PHASE_SWEEP_MARK);
+                gcstats::AutoPhase ap3(rt->gcStats, gcstats::PHASE_SWEEP_MARK_TYPES);
+                rt->gcIncrementalState = MARK_ROOTS;
+                c->markTypes(&rt->gcMarker);
+                rt->gcIncrementalState = SWEEP;
+            }
+        }
+
         
-        rt->gcAbortSweepAfterCurrentGroup = true;
         IncrementalCollectSlice(rt, SliceBudget::Unlimited, gcreason::RESET, GC_NORMAL);
 
         {
