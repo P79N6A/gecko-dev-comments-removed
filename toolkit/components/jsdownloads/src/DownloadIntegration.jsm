@@ -362,7 +362,7 @@ this.DownloadIntegration = {
 #else
       
       
-      if (this._isImmersiveProcess()) {
+      if (Services.metro && Services.metro.immersive) {
         directoryPath = yield this.getSystemDownloadsDirectory();
       } else {
         directoryPath = this._getDirectory("TmpD");
@@ -452,14 +452,6 @@ this.DownloadIntegration = {
                                      aDownload.source.isPrivate);
       this.downloadDoneCalled = true;
     }.bind(this));
-  },
-
-  
-
-
-  _isImmersiveProcess: function() {
-    
-    return false;
   },
 
   
