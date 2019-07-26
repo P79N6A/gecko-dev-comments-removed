@@ -4626,7 +4626,7 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
                                                               media,
                                                               &pc_stream_id);
                               if (lsm_rc) {
-                                cause = CC_CAUSE_NO_MEDIA;
+                                return (CC_CAUSE_NO_MEDIA);
                               } else {
                                 MOZ_ASSERT(pc_stream_id == 0);
                                 
@@ -4640,12 +4640,14 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
                               }
                           }
 
-                          
+                          if (created_media_stream) {
+                                
 
-                          result = gsmsdp_add_remote_track(0, i, dcb_p, media);
-                          MOZ_ASSERT(result);  
+                                result = gsmsdp_add_remote_track(0, i, dcb_p, media);
+                                MOZ_ASSERT(result);  
 
 
+                          }
                       }
                   }
               }
