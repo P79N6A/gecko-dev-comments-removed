@@ -51,7 +51,7 @@ public:
 
   NS_IMETHOD GetFailures(uint32_t *failureCount, char ***failures);
   NS_IMETHOD_(void) LogFailure(const nsACString &failure);
-  NS_IMETHOD GetInfo(JSContext*, jsval*);
+  NS_IMETHOD GetInfo(JSContext*, JS::MutableHandle<JS::Value>);
 
   
   

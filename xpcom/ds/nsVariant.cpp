@@ -1860,7 +1860,7 @@ NS_IMETHODIMP nsVariant::GetAsISupports(nsISupports **_retval)
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsJSVal(JS::Value *_retval)
+NS_IMETHODIMP nsVariant::GetAsJSVal(JS::MutableHandleValue)
 {
     
     return NS_ERROR_CANNOT_CONVERT_DATA;
