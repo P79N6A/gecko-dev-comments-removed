@@ -4,13 +4,11 @@
 
 "use strict";
 
-const Cu = Components.utils;
+const {Cu} = require("chrome");
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "AutocompletePopup",
-                                  "resource:///modules/devtools/AutocompletePopup.jsm");
-this.EXPORTED_SYMBOLS = ["SelectorSearch"];
+loader.lazyGetter(this, "AutocompletePopup", () => {
+  return Cu.import("resource:///modules/devtools/AutocompletePopup.jsm", {}).AutocompletePopup;
+});
 
 
 const MAX_SUGGESTIONS = 15;
@@ -28,7 +26,7 @@ const MAX_SUGGESTIONS = 15;
 
 
 
-this.SelectorSearch = function(aContentDocument, aInputNode, aCallback) {
+function SelectorSearch(aContentDocument, aInputNode, aCallback) {
   this.doc = aContentDocument;
   this.callback = aCallback;
   this.searchBox = aInputNode;
@@ -66,7 +64,9 @@ this.SelectorSearch = function(aContentDocument, aInputNode, aCallback) {
   this.searchBox.addEventListener("keypress", this._onSearchKeypress, true);
 }
 
-this.SelectorSearch.prototype = {
+exports.SelectorSearch = SelectorSearch;
+
+SelectorSearch.prototype = {
 
   
   States: {

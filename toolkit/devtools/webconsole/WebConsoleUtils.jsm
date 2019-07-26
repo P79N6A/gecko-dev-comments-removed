@@ -32,9 +32,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "gActivityDistributor",
 
 XPCOMUtils.defineLazyModuleGetter(this, "gDevTools",
                                   "resource:///modules/devtools/gDevTools.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "TargetFactory",
-                                  "resource:///modules/devtools/Target.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "devtools",
+                                  "resource:///modules/devtools/gDevTools.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "VariablesView",
                                   "resource:///modules/devtools/VariablesView.jsm");
@@ -1591,7 +1590,7 @@ this.JSTermHelpers = function JSTermHelpers(aOwner)
       if (!window) {
         return null;
       }
-      let target = TargetFactory.forTab(window.gBrowser.selectedTab);
+      let target = devtools.TargetFactory.forTab(window.gBrowser.selectedTab);
       let toolbox = gDevTools.getToolbox(target);
       let panel = toolbox ? toolbox.getPanel("inspector") : null;
       let node = panel ? panel.selection.node : null;

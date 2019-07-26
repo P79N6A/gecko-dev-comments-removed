@@ -3,9 +3,6 @@
 
 
 
-const Cu = Components.utils;
-
-this.EXPORTED_SYMBOLS = ["UndoStack"];
 
 
 
@@ -19,11 +16,13 @@ this.EXPORTED_SYMBOLS = ["UndoStack"];
 
 
 
-this.UndoStack = function UndoStack(aMaxUndo)
+function UndoStack(aMaxUndo)
 {
   this.maxUndo = aMaxUndo || 50;
   this._stack = [];
 }
+
+exports.UndoStack = UndoStack;
 
 UndoStack.prototype = {
   
