@@ -542,8 +542,7 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function() {
 
 
 
-    sendRequest: function(mmsConnection, method, url, istream,
-                                      callback) {
+    sendRequest: function(mmsConnection, method, url, istream, callback) {
       
       let cancellable = {
         callback: callback,
@@ -615,8 +614,8 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function() {
       return cancellable;
     },
 
-    sendHttpRequest: function(mmsConnection, method, url,
-                                              istream, proxyFilter, callback) {
+    sendHttpRequest: function(mmsConnection, method, url, istream, proxyFilter,
+                              callback) {
       let releaseMmsConnectionAndCallback = function(httpStatus, data) {
         gpps.unregisterFilter(proxyFilter);
         
@@ -765,9 +764,8 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function() {
       return true;
     },
 
-    translateHttpStatusToMmsStatus: function(httpStatus,
-                                              cancelledReason,
-                                              defaultStatus) {
+    translateHttpStatusToMmsStatus: function(httpStatus, cancelledReason,
+                                             defaultStatus) {
       switch(httpStatus) {
         case _HTTP_STATUS_USER_CANCELLED:
           return cancelledReason;
@@ -1449,9 +1447,8 @@ MmsService.prototype = {
 
 
 
-  convertIntermediateToSavable: function(mmsConnection,
-                                          intermediate,
-                                          retrievalMode) {
+  convertIntermediateToSavable: function(mmsConnection, intermediate,
+                                         retrievalMode) {
     intermediate.type = "mms";
     intermediate.delivery = DELIVERY_NOT_DOWNLOADED;
 
@@ -1499,9 +1496,7 @@ MmsService.prototype = {
 
 
 
-  mergeRetrievalConfirmation: function(mmsConnection,
-                                                                  intermediate,
-                                                                  savable) {
+  mergeRetrievalConfirmation: function(mmsConnection, intermediate, savable) {
     
     savable.timestamp = Date.now();
     savable.sentTimestamp = intermediate.headers["date"].getTime();
@@ -1546,8 +1541,8 @@ MmsService.prototype = {
 
 
 
-  retrieveMessage: function(aMmsConnection, aContentLocation,
-                                            aCallback, aDomMessage) {
+  retrieveMessage: function(aMmsConnection, aContentLocation, aCallback,
+                            aDomMessage) {
     
     Services.obs.notifyObservers(aDomMessage, kSmsRetrievingObserverTopic, null);
 
@@ -1623,11 +1618,8 @@ MmsService.prototype = {
   
 
 
-  retrieveMessageCallback: function(mmsConnection,
-                                                            wish,
-                                                            savableMessage,
-                                                            mmsStatus,
-                                                            retrievedMessage) {
+  retrieveMessageCallback: function(mmsConnection, wish, savableMessage,
+                                    mmsStatus, retrievedMessage) {
     if (DEBUG) debug("retrievedMessage = " + JSON.stringify(retrievedMessage));
 
     let transactionId = savableMessage.headers["x-mms-transaction-id"];
@@ -1704,11 +1696,8 @@ MmsService.prototype = {
   
 
 
-  saveReceivedMessageCallback: function(mmsConnection,
-                                         retrievalMode,
-                                         savableMessage,
-                                         rv,
-                                         domMessage) {
+  saveReceivedMessageCallback: function(mmsConnection, retrievalMode,
+                                        savableMessage, rv, domMessage) {
     let success = Components.isSuccessCode(rv);
     if (!success) {
       
@@ -1774,8 +1763,7 @@ MmsService.prototype = {
 
 
 
-  handleNotificationIndication: function(serviceId,
-                                                                      notification) {
+  handleNotificationIndication: function(serviceId, notification) {
     let transactionId = notification.headers["x-mms-transaction-id"];
     gMobileMessageDatabaseService.getMessageRecordByTransactionId(transactionId,
         (function(aRv, aMessageRecord) {
@@ -1961,8 +1949,7 @@ MmsService.prototype = {
 
 
 
-  createSavableFromParams: function(aMmsConnection,
-                                                            aParams, aMessage) {
+  createSavableFromParams: function(aMmsConnection, aParams, aMessage) {
     if (DEBUG) debug("createSavableFromParams: aParams: " + JSON.stringify(aParams));
 
     let isAddrValid = true;
