@@ -1360,7 +1360,7 @@ public:
         
         MOZ_ASSERT(NS_IsMainThread());
 
-        CSSToScreenScale resolution = mFrameMetrics.CalculateResolution();
+        CSSToScreenScale resolution = mFrameMetrics.mZoom;
         CSSRect compositedRect = mFrameMetrics.CalculateCompositedRectInCssPixels();
 
         NS_ConvertASCIItoUTF16 data(nsPrintfCString("{ " \
