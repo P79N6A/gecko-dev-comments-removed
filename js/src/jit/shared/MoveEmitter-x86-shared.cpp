@@ -107,7 +107,7 @@ MoveEmitterX86::emit(const MoveResolver &moves)
             
             
             if (inCycle_) {
-                completeCycle(to, move.kind());
+                completeCycle(to, move.type());
                 inCycle_ = false;
                 continue;
             }
@@ -123,12 +123,12 @@ MoveEmitterX86::emit(const MoveResolver &moves)
             }
 
             
-            breakCycle(to, move.kind());
+            breakCycle(to, move.type());
             inCycle_ = true;
         }
 
         
-        switch (move.kind()) {
+        switch (move.type()) {
           case MoveOp::FLOAT32:
           case MoveOp::DOUBLE:
             emitDoubleMove(from, to);
@@ -137,7 +137,7 @@ MoveEmitterX86::emit(const MoveResolver &moves)
             emitGeneralMove(from, to);
             break;
           default:
-            MOZ_ASSUME_UNREACHABLE("Unexpected move kind");
+            MOZ_ASSUME_UNREACHABLE("Unexpected move type");
         }
     }
 }
@@ -211,7 +211,7 @@ MoveEmitterX86::toPopOperand(const MoveOperand &operand) const
 }
 
 void
-MoveEmitterX86::breakCycle(const MoveOperand &to, MoveOp::Kind kind)
+MoveEmitterX86::breakCycle(const MoveOperand &to, MoveOp::Type type)
 {
     
     
@@ -219,7 +219,7 @@ MoveEmitterX86::breakCycle(const MoveOperand &to, MoveOp::Kind kind)
     
     
     
-    switch (kind) {
+    switch (type) {
       case MoveOp::FLOAT32:
       case MoveOp::DOUBLE:
         if (to.isMemory()) {
@@ -233,12 +233,12 @@ MoveEmitterX86::breakCycle(const MoveOperand &to, MoveOp::Kind kind)
         masm.Push(toOperand(to));
         break;
       default:
-        MOZ_ASSUME_UNREACHABLE("Unexpected move kind");
+        MOZ_ASSUME_UNREACHABLE("Unexpected move type");
     }
 }
 
 void
-MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Kind kind)
+MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Type type)
 {
     
     
@@ -246,7 +246,7 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Kind kind)
     
     
     
-    switch (kind) {
+    switch (type) {
       case MoveOp::FLOAT32:
       case MoveOp::DOUBLE:
         if (to.isMemory()) {
@@ -264,7 +264,7 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Kind kind)
         }
         break;
       default:
-        MOZ_ASSUME_UNREACHABLE("Unexpected move kind");
+        MOZ_ASSUME_UNREACHABLE("Unexpected move type");
     }
 }
 
