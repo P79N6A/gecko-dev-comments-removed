@@ -94,6 +94,7 @@ class DOMImplementation;
 class Element;
 struct ElementRegistrationOptions;
 class EventTarget;
+class FrameRequestCallback;
 class GlobalObject;
 class HTMLBodyElement;
 class Link;
@@ -1772,11 +1773,14 @@ public:
 
   virtual already_AddRefed<mozilla::dom::UndoManager> GetUndoManager() = 0;
 
-  nsresult ScheduleFrameRequestCallback(nsIFrameRequestCallback* aCallback,
+  typedef mozilla::dom::CallbackObjectHolder<
+    mozilla::dom::FrameRequestCallback,
+    nsIFrameRequestCallback> FrameRequestCallbackHolder;
+  nsresult ScheduleFrameRequestCallback(const FrameRequestCallbackHolder& aCallback,
                                         int32_t *aHandle);
   void CancelFrameRequestCallback(int32_t aHandle);
 
-  typedef nsTArray< nsCOMPtr<nsIFrameRequestCallback> > FrameRequestCallbackList;
+  typedef nsTArray<FrameRequestCallbackHolder> FrameRequestCallbackList;
   
 
 
@@ -2369,29 +2373,7 @@ protected:
 
   nsCOMPtr<nsIDocumentEncoder> mCachedEncoder;
 
-  struct FrameRequest {
-    FrameRequest(nsIFrameRequestCallback* aCallback,
-                 int32_t aHandle) :
-      mCallback(aCallback),
-      mHandle(aHandle)
-    {}
-
-    
-    
-    operator nsIFrameRequestCallback* const () const { return mCallback; }
-
-    
-    
-    bool operator==(int32_t aHandle) const {
-      return mHandle == aHandle;
-    }
-    bool operator<(int32_t aHandle) const {
-      return mHandle < aHandle;
-    }
-    
-    nsCOMPtr<nsIFrameRequestCallback> mCallback;
-    int32_t mHandle;
-  };
+  struct FrameRequest;
 
   nsTArray<FrameRequest> mFrameRequestCallbacks;
 
