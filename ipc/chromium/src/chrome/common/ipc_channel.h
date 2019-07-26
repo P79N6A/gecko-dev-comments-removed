@@ -98,8 +98,6 @@ class Channel : public Message::Sender {
   
   
   
-  
-  
   virtual bool Send(Message* message);
 
 #if defined(OS_POSIX)

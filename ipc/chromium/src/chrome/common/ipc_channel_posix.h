@@ -122,6 +122,9 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   
   bool processing_incoming_;
 
+  
+  bool closed_;
+
 #if defined(OS_MACOSX)
   struct PendingDescriptors {
     uint32_t id;
