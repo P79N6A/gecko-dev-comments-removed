@@ -2868,6 +2868,13 @@ RestyleManager::ComputeStyleChangeFor(nsIFrame*          aFrame,
   
   
   
+  
+  
+  
+  
+  
+  
+  
 
   FramePropertyTable* propTable = mPresContext->PropertyTable();
 
@@ -2883,6 +2890,12 @@ RestyleManager::ComputeStyleChangeFor(nsIFrame*          aFrame,
        ibSibling = GetNextBlockInInlineSibling(propTable, ibSibling)) {
     
     for (nsIFrame* cont = ibSibling; cont; cont = cont->GetNextContinuation()) {
+      if (GetPrevContinuationWithSameStyle(cont)) {
+        
+        
+        continue;
+      }
+
       
       ElementRestyler restyler(mPresContext, cont, aChangeList,
                                aMinChange, aRestyleTracker,
