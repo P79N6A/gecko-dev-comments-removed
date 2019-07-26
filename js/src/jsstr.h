@@ -213,8 +213,15 @@ namespace js {
 
 
 extern jschar *
-InflateString(JSContext *cx, const char *bytes, size_t *length,
-              FlationCoding fc = NormalEncoding);
+InflateString(JSContext *cx, const char *bytes, size_t *length);
+
+
+
+
+
+
+extern jschar *
+InflateUTF8String(JSContext *cx, const char *bytes, size_t *length);
 
 extern char *
 DeflateString(JSContext *cx, const jschar *chars, size_t length);
@@ -232,18 +239,11 @@ InflateStringToBuffer(JSContext *cx, const char *bytes, size_t length,
 
 extern bool
 InflateUTF8StringToBuffer(JSContext *cx, const char *bytes, size_t length,
-                          jschar *chars, size_t *charsLength,
-                          FlationCoding fc = NormalEncoding);
+                          jschar *chars, size_t *charsLength);
 
 
 extern size_t
 GetDeflatedStringLength(JSContext *cx, const jschar *chars, size_t charsLength);
-
-
-extern size_t
-GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
-                            size_t charsLength,
-                            FlationCoding fc = NormalEncoding);
 
 
 
@@ -254,14 +254,6 @@ GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
 extern bool
 DeflateStringToBuffer(JSContext *cx, const jschar *chars,
                       size_t charsLength, char *bytes, size_t *length);
-
-
-
-
-extern bool
-DeflateStringToUTF8Buffer(JSContext *cx, const jschar *chars,
-                          size_t charsLength, char *bytes, size_t *length,
-                          FlationCoding fc = NormalEncoding);
 
 
 

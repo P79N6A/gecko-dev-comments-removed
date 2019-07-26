@@ -379,16 +379,6 @@ typedef JSObject *
 typedef JSObject *
 (* JSIteratorOp)(JSContext *cx, JSHandleObject obj, JSBool keysonly);
 
-
-
-
-
-#ifdef JS_C_STRINGS_ARE_UTF8
-# define js_CStringsAreUTF8 JS_TRUE
-#else
-extern JSBool js_CStringsAreUTF8;
-#endif
-
 JS_END_EXTERN_C
 
 #endif 

@@ -119,29 +119,6 @@ struct AtomHasher
 
 typedef HashSet<AtomStateEntry, AtomHasher, SystemAllocPolicy> AtomSet;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-enum FlationCoding
-{
-    NormalEncoding,
-    CESU8Encoding
-};
-
 class PropertyName;
 
 }  
@@ -246,8 +223,7 @@ enum InternBehavior
 
 extern JSAtom *
 Atomize(JSContext *cx, const char *bytes, size_t length,
-        js::InternBehavior ib = js::DoNotInternAtom,
-        js::FlationCoding fc = js::NormalEncoding);
+        js::InternBehavior ib = js::DoNotInternAtom);
 
 extern JSAtom *
 AtomizeChars(JSContext *cx, const jschar *chars, size_t length,

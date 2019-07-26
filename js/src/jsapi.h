@@ -4948,26 +4948,18 @@ JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSRawObject parent);
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_BufferIsCompilableUnit(JSContext *cx, JSBool bytes_are_utf8,
-                          JSObject *obj, const char *bytes, size_t length);
+JS_BufferIsCompilableUnit(JSContext *cx, JSObject *obj, const char *utf8, size_t length);
 
 extern JS_PUBLIC_API(JSScript *)
 JS_CompileScript(JSContext *cx, JSObject *obj,
-                 const char *bytes, size_t length,
+                 const char *ascii, size_t length,
                  const char *filename, unsigned lineno);
 
 extern JS_PUBLIC_API(JSScript *)
 JS_CompileScriptForPrincipals(JSContext *cx, JSObject *obj,
                               JSPrincipals *principals,
-                              const char *bytes, size_t length,
+                              const char *ascii, size_t length,
                               const char *filename, unsigned lineno);
-
-extern JS_PUBLIC_API(JSScript *)
-JS_CompileScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
-                                     JSPrincipals *principals,
-                                     const char *bytes, size_t length,
-                                     const char *filename, unsigned lineno,
-                                     JSVersion version);
 
 extern JS_PUBLIC_API(JSScript *)
 JS_CompileUCScript(JSContext *cx, JSObject *obj,
@@ -4981,24 +4973,6 @@ JS_CompileUCScriptForPrincipals(JSContext *cx, JSObject *obj,
                                 const char *filename, unsigned lineno);
 
 extern JS_PUBLIC_API(JSScript *)
-JS_CompileUCScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
-                                       JSPrincipals *principals,
-                                       const jschar *chars, size_t length,
-                                       const char *filename, unsigned lineno,
-                                       JSVersion version);
-
-
-
-
-extern JS_PUBLIC_API(JSScript *)
-JS_CompileUCScriptForPrincipalsVersionOrigin(JSContext *cx, JSObject *obj,
-                                             JSPrincipals *principals,
-                                             JSPrincipals *originPrincipals,
-                                             const jschar *chars, size_t length,
-                                             const char *filename, unsigned lineno,
-                                             JSVersion version);
-
-extern JS_PUBLIC_API(JSScript *)
 JS_CompileUTF8File(JSContext *cx, JSObject *obj, const char *filename);
 
 extern JS_PUBLIC_API(JSScript *)
@@ -5009,12 +4983,6 @@ extern JS_PUBLIC_API(JSScript *)
 JS_CompileUTF8FileHandleForPrincipals(JSContext *cx, JSObject *obj,
                                       const char *filename, FILE *fh,
                                       JSPrincipals *principals);
-
-extern JS_PUBLIC_API(JSScript *)
-JS_CompileUTF8FileHandleForPrincipalsVersion(JSContext *cx, JSObject *obj,
-                                             const char *filename, FILE *fh,
-                                             JSPrincipals *principals,
-                                             JSVersion version);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalFromScript(JSScript *script);
@@ -5037,21 +5005,6 @@ JS_CompileUCFunction(JSContext *cx, JSObject *obj, const char *name,
                      unsigned nargs, const char **argnames,
                      const jschar *chars, size_t length,
                      const char *filename, unsigned lineno);
-
-extern JS_PUBLIC_API(JSFunction *)
-JS_CompileUCFunctionForPrincipals(JSContext *cx, JSObject *obj,
-                                  JSPrincipals *principals, const char *name,
-                                  unsigned nargs, const char **argnames,
-                                  const jschar *chars, size_t length,
-                                  const char *filename, unsigned lineno);
-
-extern JS_PUBLIC_API(JSFunction *)
-JS_CompileUCFunctionForPrincipalsVersion(JSContext *cx, JSObject *obj,
-                                         JSPrincipals *principals, const char *name,
-                                         unsigned nargs, const char **argnames,
-                                         const jschar *chars, size_t length,
-                                         const char *filename, unsigned lineno,
-                                         JSVersion version);
 
 #ifdef __cplusplus
 JS_END_EXTERN_C
@@ -5540,16 +5493,6 @@ JS_UndependString(JSContext *cx, JSString *str);
 
 
 
-JS_PUBLIC_API(JSBool)
-JS_CStringsAreUTF8(void);
-
-
-
-
-
-
-JS_PUBLIC_API(void)
-JS_SetCStringsAreUTF8(void);
 
 
 
@@ -5558,25 +5501,6 @@ JS_SetCStringsAreUTF8(void);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-JS_PUBLIC_API(JSBool)
-JS_EncodeCharacters(JSContext *cx, const jschar *src, size_t srclen, char *dst,
-                    size_t *dstlenp);
 
 JS_PUBLIC_API(JSBool)
 JS_DecodeBytes(JSContext *cx, const char *src, size_t srclen, jschar *dst,
@@ -5600,11 +5524,6 @@ JS_EncodeString(JSContext *cx, JSRawString str);
 
 JS_PUBLIC_API(size_t)
 JS_GetStringEncodingLength(JSContext *cx, JSString *str);
-
-
-
-
-
 
 
 
