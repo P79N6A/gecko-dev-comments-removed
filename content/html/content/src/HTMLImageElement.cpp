@@ -106,6 +106,7 @@ HTMLImageElement::SetItemValueText(const nsAString& aValue)
 
 
 
+
 NS_IMPL_STRING_ATTR(HTMLImageElement, CrossOrigin, crossorigin)
 
 bool
