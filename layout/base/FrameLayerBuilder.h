@@ -325,16 +325,6 @@ public:
 
 
 
-
-
-
-  static bool NeedToInvalidateFixedDisplayItem(nsDisplayListBuilder* aBuilder,
-                                                 nsDisplayItem* aItem);
-
-  
-
-
-
   static bool HasRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
   class DisplayItemData;
