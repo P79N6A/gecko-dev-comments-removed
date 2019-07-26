@@ -455,28 +455,20 @@ DrawTargetCairo::DrawSurface(SourceSurface *aSurface,
 
   cairo_set_antialias(mContext, GfxAntialiasToCairoAntialias(aOptions.mAntialiasMode));
 
-  double clipX1, clipY1, clipX2, clipY2;
-  cairo_clip_extents(mContext, &clipX1, &clipY1, &clipX2, &clipY2);
-  Rect clip(clipX1, clipY1, clipX2 - clipX1, clipY2 - clipY1); 
-  
-  
-  bool needsGroup = !IsOperatorBoundByMask(aOptions.mCompositionOp) &&
-                    !aDest.Contains(clip);
-
   cairo_translate(mContext, aDest.X(), aDest.Y());
 
-  if (needsGroup) {
+  if (IsOperatorBoundByMask(aOptions.mCompositionOp)) {
+    cairo_new_path(mContext);
+    cairo_rectangle(mContext, 0, 0, aDest.Width(), aDest.Height());
+    cairo_clip(mContext);
+    cairo_set_source(mContext, pat);
+  } else {
     cairo_push_group(mContext);
       cairo_new_path(mContext);
       cairo_rectangle(mContext, 0, 0, aDest.Width(), aDest.Height());
       cairo_set_source(mContext, pat);
       cairo_fill(mContext);
     cairo_pop_group_to_source(mContext);
-  } else {
-    cairo_new_path(mContext);
-    cairo_rectangle(mContext, 0, 0, aDest.Width(), aDest.Height());
-    cairo_clip(mContext);
-    cairo_set_source(mContext, pat);
   }
 
   cairo_set_operator(mContext, GfxOpToCairoOp(aOptions.mCompositionOp));
