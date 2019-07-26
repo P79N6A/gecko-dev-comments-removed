@@ -4,52 +4,49 @@
 
 
 <head>
-  <title>Test for Bug 582181</title>
-  <meta charset="utf-8">
+  <title>Test for Bug 644768</title>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="text/javascript" src="/tests/SimpleTest/WindowSnapshot.js"></script>
   <script type="application/javascript" src="/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body onload="test()">
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=582181">Mozilla Bug 582181</a>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=644768">Mozilla Bug 644768</a>
 <p id="display"></p>
-<div id="content" dir="rtl">
-<textarea rows="4" id="testInput">فارسی
-[[en:Farsi]]</textarea>
+<div id="content">
+
+
+
+
+ <textarea id="testInput" dir="rtl" cols="80" rows="25">
+
+== &#x0632;&#x0627;&#x062F;&#x0631;&#x0648;&#x0632;&#x0647;&#x0627; ==
+* [[&#x06F1;&#x06F3;&#x06F0;&#x06F7;]]</textarea>
 </div>
 <pre id="test">
 <script class="testbody" type="text/javascript">
 
-/** Test for Bug 582181 **/
+/** Test for Bug 644768 **/
 
 SimpleTest.waitForExplicitFinish();
 
 function test() {
   var textInput = $("testInput");
-  var s1, s2, s3, equal, str1, str2;
-
-  s1 = snapshotWindow(window);
+  var s1, s2, equal, str1, str2;
 
   textInput.focus();
-  synthesizeKey("VK_DOWN", { });
-  synthesizeKey("VK_DOWN", { });
+  s1 = snapshotWindow(window);
+
+  synthesizeKey("VK_UP", { });
+  synthesizeKey("VK_UP", { });
+  synthesizeKey("VK_UP", { });
+  synthesizeKey("VK_DELETE", { });
   synthesizeKey("VK_RETURN", { });
-  textInput.blur();
   s2 = snapshotWindow(window);
 
   [equal, str1, str2] = compareSnapshots(s1, s2, true);
-  ok(equal, "enter after text shouldn't change rendering: expected " +
+  ok(equal, "newline before bidi text shouldn't change direction: expected " +
      str1 + " but got " + str2);
-
-  textInput.focus();
-  synthesizeKey("VK_BACK_SPACE", { });
-  textInput.blur();
-  s3 = snapshotWindow(window);
-
-  [equal, str1, str2] = compareSnapshots(s1, s3, true);
-  ok(equal, "backspace shouldn't change rendering: expected " + str1 + 
-     " but got " + str2);
 
   SimpleTest.finish();
 }
@@ -58,3 +55,4 @@ function test() {
 </pre>
 </body>
 </html>
+

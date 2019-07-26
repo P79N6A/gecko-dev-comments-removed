@@ -442,7 +442,7 @@ function saveSearch() {
   if (random >= 0.33) {
     EventUtils.sendKey("RETURN", gDebugger);
   } else if (random >= 0.66) {
-    EventUtils.sendKey("ENTER", gDebugger);
+    EventUtils.sendKey("RETURN", gDebugger);
   } else {
     EventUtils.sendMouseEvent({ type: "click" },
       gFilteredFunctions.selectedItem.target,

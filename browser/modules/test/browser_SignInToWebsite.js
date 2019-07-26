@@ -459,7 +459,7 @@ function triggerSecondaryCommand(popup, index) {
       EventUtils.synthesizeKey("VK_DOWN", {});
 
     
-    EventUtils.synthesizeKey("VK_ENTER", {});
+    EventUtils.synthesizeKey("VK_RETURN", {});
   }, false);
 
   

@@ -95,11 +95,11 @@ function test()
     sendChar("A");
     sendKey("DOWN");
     sendKey("RETURN");
-    sendKey("ENTER");
+    sendKey("RETURN");
     sendKey("HOME");
     sendKey("END");
     sendKey("TAB");
-    sendKey("ENTER");
+    sendKey("RETURN");
 
     
     

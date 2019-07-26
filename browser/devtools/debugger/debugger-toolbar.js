@@ -953,7 +953,6 @@ FilterView.prototype = {
     
     else switch (e.keyCode) {
       case e.DOM_VK_RETURN:
-      case e.DOM_VK_ENTER:
         var isReturnKey = true;
         
         actionToPerform = e.shiftKey ? "selectPrev" : "selectNext";

@@ -92,9 +92,9 @@ function performTest() {
 
     
 
-    yield synthesizeKeyAndWaitForElement("VK_ENTER", {}, ".element-value-input", true);
+    yield synthesizeKeyAndWaitForElement("VK_RETURN", {}, ".element-value-input", true);
     yield synthesizeKeyAndWaitForElement("VK_ESCAPE", {}, ".element-value-input", false);
-    yield synthesizeKeyAndWaitForElement("VK_ENTER", { shiftKey: true }, ".element-name-input", true);
+    yield synthesizeKeyAndWaitForElement("VK_RETURN", { shiftKey: true }, ".element-name-input", true);
     yield synthesizeKeyAndWaitForElement("VK_ESCAPE", {}, ".element-name-input", false);
 
     
