@@ -2,13 +2,18 @@
 
 
 
-const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+const {Constructor: CC, classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 const MARIONETTE_CONTRACTID = "@mozilla.org/marionette;1";
 const MARIONETTE_CID = Components.ID("{786a1369-dca5-4adc-8486-33d23c88010a}");
 const DEBUGGER_ENABLED_PREF = 'devtools.debugger.remote-enabled';
 const MARIONETTE_ENABLED_PREF = 'marionette.defaultPrefs.enabled';
 const MARIONETTE_LOADEARLY_PREF = 'marionette.loadearly';
+const DEBUGGER_FORCELOCAL_PREF = 'devtools.debugger.force-local';
+
+const ServerSocket = CC("@mozilla.org/network/server-socket;1",
+                        "nsIServerSocket",
+                        "init");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -34,6 +39,16 @@ MarionetteComponent.prototype = {
   contractID: MARIONETTE_CONTRACTID,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
   _xpcom_categories: [{category: "profile-after-change", service: true}],
+  original_forcelocal: null,
+
+  onSocketAccepted: function mc_onSocketAccepted(aSocket, aTransport) {
+    this.logger.info("onSocketAccepted for Marionette dummy socket");
+  },
+
+  onStopListening: function mc_onStopListening(aSocket, status) {
+    this.logger.info("onStopListening for Marionette dummy socket, code " + status);
+    aSocket.close();
+  },
 
   observe: function mc_observe(aSubject, aTopic, aData) {
     let observerService = Services.obs;
@@ -65,6 +80,20 @@ MarionetteComponent.prototype = {
       case "system-message-listener-ready":
         this.logger.info("marionette initializing at system-message-listener-ready");
         observerService.removeObserver(this, "system-message-listener-ready");
+
+        try {
+          this.original_forcelocal = Services.prefs.getBoolPref(DEBUGGER_FORCELOCAL_PREF);
+        }
+        catch(e) {}
+        Services.prefs.setBoolPref(DEBUGGER_FORCELOCAL_PREF, false);
+
+        
+        
+        
+        
+        let insaneSacrificialGoat = new ServerSocket(666, false, 4);
+        insaneSacrificialGoat.asyncListen(this);
+
         this.init();
         break;
       case "final-ui-startup":
@@ -94,16 +123,23 @@ MarionetteComponent.prototype = {
         DebuggerServer.addActors('chrome://marionette/content/marionette-actors.js');
         
         
+
         let original = false;
         try {
           original = Services.prefs.getBoolPref(DEBUGGER_ENABLED_PREF);
         }
         catch(e) { }
         Services.prefs.setBoolPref(DEBUGGER_ENABLED_PREF, true);
+
         
         DebuggerServer.initTransport(function () { return true; });
         DebuggerServer.openListener(port);
+
         Services.prefs.setBoolPref(DEBUGGER_ENABLED_PREF, original);
+        if (this.original_forcelocal != null) {
+          Services.prefs.setBoolPref(DEBUGGER_FORCELOCAL_PREF,
+                                     this.original_forcelocal);
+        }
         this.logger.info("marionette listener opened");
       }
       catch(e) {

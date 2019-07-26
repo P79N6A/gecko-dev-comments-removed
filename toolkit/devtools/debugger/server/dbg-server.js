@@ -289,7 +289,9 @@ var DebuggerServer = {
     }
   },
 
-  onStopListening: function DS_onStopListening() { },
+  onStopListening: function DS_onStopListening(aSocket, status) {
+    dumpn("onStopListening, status: " + status);
+  },
 
   
 
