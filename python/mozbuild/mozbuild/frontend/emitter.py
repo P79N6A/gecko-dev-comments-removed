@@ -488,6 +488,13 @@ class TreeMetadataEmitter(LoggingMixin):
                         path, ', '.join(missing)))
 
             out_dir = mozpath.join(install_prefix, manifest_reldir)
+            if 'install-to-subdir' in defaults:
+                
+                out_dir = mozpath.join(out_dir, defaults['install-to-subdir'])
+                obj.manifest_obj_relpath = mozpath.join(manifest_reldir,
+                                                        defaults['install-to-subdir'],
+                                                        mozpath.basename(path))
+
 
             
             

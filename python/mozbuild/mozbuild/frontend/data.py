@@ -424,6 +424,9 @@ class TestManifest(SandboxDerived):
         'manifest_relpath',
 
         
+        'manifest_obj_relpath',
+
+        
         
         'dupe_manifest',
     )
@@ -438,6 +441,7 @@ class TestManifest(SandboxDerived):
         self.flavor = flavor
         self.install_prefix = install_prefix
         self.manifest_relpath = relpath
+        self.manifest_obj_relpath = relpath
         self.dupe_manifest = dupe_manifest
         self.installs = {}
         self.pattern_installs = []
