@@ -1931,7 +1931,7 @@ SpdySession3::UpdateLocalRwin(SpdyStream3 *stream,
 
   
   
-  uint32_t toack = unacked & 0x7fffffff;
+  uint32_t toack = (unacked <= 0x7fffffffU) ? unacked : 0x7fffffffU;
 
   LOG3(("SpdySession3::UpdateLocalRwin Ack %p 0x%X %d\n",
         this, stream->StreamID(), toack));
