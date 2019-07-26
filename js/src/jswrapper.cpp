@@ -1007,7 +1007,7 @@ js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
     
     
     JS_ASSERT(wobj->is<WrapperObject>());
-    wcompartment->putWrapper(ObjectValue(*newTarget), ObjectValue(*wobj));
+    wcompartment->putWrapper(cx, ObjectValue(*newTarget), ObjectValue(*wobj));
     return true;
 }
 
