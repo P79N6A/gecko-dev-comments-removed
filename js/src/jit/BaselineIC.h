@@ -3733,8 +3733,6 @@ class ICIn_Fallback : public ICFallbackStub
 
 
 
-
-
 class ICGetName_Fallback : public ICMonitoredFallbackStub
 {
     friend class ICStubSpace;
@@ -3927,7 +3925,6 @@ class ICBindName_Fallback : public ICFallbackStub
         }
     };
 };
-
 
 
 
