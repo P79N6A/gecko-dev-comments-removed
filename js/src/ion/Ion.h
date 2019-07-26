@@ -118,6 +118,12 @@ struct IonOptions
     
     
     
+    
+    uint32_t osrPcMismatchesBeforeRecompile;
+
+    
+    
+    
     uint32_t maxStackArgs;
 
     
@@ -207,6 +213,7 @@ struct IonOptions
         usesBeforeCompile(1000),
         usesBeforeCompileNoJaeger(40),
         usesBeforeInliningFactor(.125),
+        osrPcMismatchesBeforeRecompile(6000),
         maxStackArgs(4096),
         maxInlineDepth(3),
         smallFunctionMaxInlineDepth(10),
