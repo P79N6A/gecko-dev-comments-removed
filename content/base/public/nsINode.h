@@ -863,23 +863,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const = 0;
 
   
-
-
-
-
-
-
-
-
-
-  bool HasSameOwnerDoc(nsINode *aOther)
-  {
-    
-    
-    return mNodeInfo->NodeInfoManager() == aOther->mNodeInfo->NodeInfoManager();
-  }
-
-  
   
   class nsSlots
   {
