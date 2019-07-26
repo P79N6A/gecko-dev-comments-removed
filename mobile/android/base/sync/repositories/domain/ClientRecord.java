@@ -19,8 +19,22 @@ public class ClientRecord extends Record {
   public static final long CLIENTS_TTL = 21 * 24 * 60 * 60; 
   public static final String DEFAULT_CLIENT_NAME = "Default Name";
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
   public String name = ClientRecord.DEFAULT_CLIENT_NAME;
   public String type = ClientRecord.CLIENT_TYPE;
+  public String version = null;                      
   public JSONArray commands;
 
   public ClientRecord(String guid, String collection, long lastModified, boolean deleted) {
@@ -48,6 +62,11 @@ public class ClientRecord extends Record {
   protected void initFromPayload(ExtendedJSONObject payload) {
     this.name = (String) payload.get("name");
     this.type = (String) payload.get("type");
+    try {
+      this.version = (String) payload.get("version");
+    } catch (Exception e) {
+      
+    }
 
     try {
       commands = payload.getArray("commands");
@@ -62,6 +81,8 @@ public class ClientRecord extends Record {
     putPayload(payload, "id",   this.guid);
     putPayload(payload, "name", this.name);
     putPayload(payload, "type", this.type);
+    putPayload(payload, "version", this.version);
+
     if (this.commands != null) {
       payload.put("commands",  this.commands);
     }
@@ -82,6 +103,7 @@ public class ClientRecord extends Record {
       return false;
     }
 
+    
     ClientRecord other = (ClientRecord) o;
     if (!RepoUtils.stringsEqual(other.name, this.name) ||
         !RepoUtils.stringsEqual(other.type, this.type)) {
@@ -99,6 +121,7 @@ public class ClientRecord extends Record {
 
     out.name = this.name;
     out.type = this.type;
+    out.version = this.version;
     return out;
   }
 
