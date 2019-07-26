@@ -272,7 +272,6 @@ struct NotableStringInfo : public StringInfo
 {
     NotableStringInfo();
     NotableStringInfo(JSString *str, const StringInfo &info);
-    NotableStringInfo(const NotableStringInfo& info);
     NotableStringInfo(NotableStringInfo &&info);
     NotableStringInfo &operator=(NotableStringInfo &&info);
 
@@ -286,10 +285,10 @@ struct NotableStringInfo : public StringInfo
         return js::MemoryReportingSundriesThreshold();
     }
 
-    
-    
-    size_t bufferSize;
     char *buffer;
+
+  private:
+    NotableStringInfo(const NotableStringInfo& info) MOZ_DELETE;
 };
 
 
