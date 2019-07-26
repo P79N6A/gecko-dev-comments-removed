@@ -197,6 +197,10 @@ JavaScriptChild::AnswerGet(const ObjectId &objId, const ObjectId &receiverId,
     AutoSafeJSContext cx;
     JSAutoRequest request(cx);
 
+    
+    
+    *result = void_t();
+
     RootedObject obj(cx, findObject(objId));
     if (!obj)
         return false;
