@@ -82,7 +82,7 @@ public:
 
   bool AppendDone() const
   {
-    return mReadyState == MediaSourceReadyState::Closed;
+    return mReadyState == MediaSourceReadyState::Closed || mReadyState == MediaSourceReadyState::Ended;
   }
 
   
