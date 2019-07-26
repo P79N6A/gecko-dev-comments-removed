@@ -633,7 +633,7 @@ js::Execute(JSContext *cx, HandleScript script, JSObject &scopeChainArg, Value *
 #endif
 
     
-    if (!cx->hasOption(JSOPTION_VAROBJFIX)) {
+    if (!cx->options().varObjFix()) {
         if (!scopeChain->setVarObj(cx))
             return false;
     }

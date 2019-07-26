@@ -428,7 +428,7 @@ struct JSContext : public js::ExclusiveContext,
     js::Value           exception;           
 
     
-    unsigned            options_;            
+    JS::ContextOptions  options_;
 
   public:
     int32_t             reportGranularity;  
@@ -463,7 +463,7 @@ struct JSContext : public js::ExclusiveContext,
     inline void setDefaultCompartmentObject(JSObject *obj);
     inline void setDefaultCompartmentObjectIfUnset(JSObject *obj);
     JSObject *maybeDefaultCompartmentObject() const {
-        JS_ASSERT(!hasOption(JSOPTION_NO_DEFAULT_COMPARTMENT_OBJECT));
+        JS_ASSERT(!options().noDefaultCompartmentObject());
         return defaultCompartmentObject_;
     }
 
@@ -492,20 +492,13 @@ struct JSContext : public js::ExclusiveContext,
 
     JSVersion findVersion() const;
 
-    void setOptions(unsigned opts) {
-        JS_ASSERT((opts & JSOPTION_MASK) == opts);
-        options_ = opts;
+    const JS::ContextOptions &options() const {
+        return options_;
     }
 
-    unsigned options() const { return options_; }
-
-    bool hasOption(unsigned opt) const {
-        JS_ASSERT((opt & JSOPTION_MASK) == opt);
-        return !!(options_ & opt);
+    JS::ContextOptions &options() {
+        return options_;
     }
-
-    bool hasExtraWarningsOption() const { return hasOption(JSOPTION_EXTRA_WARNINGS); }
-    bool hasWErrorOption() const { return hasOption(JSOPTION_WERROR); }
 
     js::LifoAlloc &tempLifoAlloc() { return runtime()->tempLifoAlloc; }
 
