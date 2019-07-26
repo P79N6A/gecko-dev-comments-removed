@@ -47,17 +47,38 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public class ToolbarDisplayLayout extends GeckoLinearLayout
                                   implements Animation.AnimationListener {
 
     private static final String LOGTAG = "GeckoToolbarDisplayLayout";
 
+    
+    
     enum UpdateFlags {
         TITLE,
         FAVICON,
         PROGRESS,
         SITE_IDENTITY,
         PRIVATE_MODE,
+
+        
+        
+        
         DISABLE_ANIMATIONS
     }
 

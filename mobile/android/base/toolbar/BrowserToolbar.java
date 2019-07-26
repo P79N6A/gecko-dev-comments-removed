@@ -62,6 +62,23 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public class BrowserToolbar extends GeckoRelativeLayout
                             implements Tabs.OnTabsChangedListener,
                                        GeckoMenu.ActionItemBarPresenter,

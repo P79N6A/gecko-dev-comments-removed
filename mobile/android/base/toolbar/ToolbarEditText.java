@@ -30,11 +30,20 @@ import android.view.View.OnKeyListener;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 
+
+
+
+
+
+
 public class ToolbarEditText extends CustomEditText
                              implements AutocompleteHandler {
 
     private static final String LOGTAG = "GeckoToolbarEditText";
 
+    
+    
+    
     enum TextType {
         EMPTY,
         SEARCH_QUERY,
