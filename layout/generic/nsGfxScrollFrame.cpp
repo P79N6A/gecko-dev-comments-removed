@@ -2357,27 +2357,66 @@ nsGfxScrollFrameInner::GetLineScrollAmount() const
 
 
 
+
+struct TopAndBottom
+{
+  TopAndBottom(nscoord aTop, nscoord aBottom) : top(aTop), bottom(aBottom) {}
+
+  nscoord top, bottom;
+};
+struct TopComparator
+{
+  bool Equals(const TopAndBottom& A, const TopAndBottom& B) const {
+    return A.top == B.top;
+  }
+  bool LessThan(const TopAndBottom& A, const TopAndBottom& B) const {
+    return A.top < B.top;
+  }
+};
+struct ReverseBottomComparator
+{
+  bool Equals(const TopAndBottom& A, const TopAndBottom& B) const {
+    return A.bottom == B.bottom;
+  }
+  bool LessThan(const TopAndBottom& A, const TopAndBottom& B) const {
+    return A.bottom > B.bottom;
+  }
+};
 static nsSize
 GetScrollPortSizeExcludingHeadersAndFooters(nsIFrame* aViewportFrame,
                                             const nsRect& aScrollPort)
 {
+  nsTArray<TopAndBottom> list;
   nsFrameList fixedFrames = aViewportFrame->GetChildList(nsIFrame::kFixedList);
-  nscoord headerBottom = 0;
-  nscoord footerTop = aScrollPort.height;
   for (nsFrameList::Enumerator iterator(fixedFrames); !iterator.AtEnd();
        iterator.Next()) {
     nsIFrame* f = iterator.get();
     nsRect r = f->GetRect().Intersect(aScrollPort);
     if (r.x == 0 && r.width == aScrollPort.width &&
         r.height <= aScrollPort.height/3) {
-      if (r.y == 0) {
-        headerBottom = std::max(headerBottom, r.height);
-      }
-      if (r.YMost() == aScrollPort.height) {
-        footerTop = std::min(footerTop, r.y);
-      }
+      list.AppendElement(TopAndBottom(r.y, r.YMost()));
     }
   }
+
+  list.Sort(TopComparator());
+  nscoord headerBottom = 0;
+  for (int32_t i = 0; i < list.Length(); ++i) {
+    if (list[i].top <= headerBottom) {
+      headerBottom = std::max(headerBottom, list[i].bottom);
+    }
+  }
+
+  list.Sort(ReverseBottomComparator());
+  nscoord footerTop = aScrollPort.height;
+  for (int32_t i = 0; i < list.Length(); ++i) {
+    if (list[i].bottom >= footerTop) {
+      footerTop = std::min(footerTop, list[i].top);
+    }
+  }
+
+  headerBottom = std::min(aScrollPort.height/3, headerBottom);
+  footerTop = std::max(aScrollPort.height - aScrollPort.height/3, footerTop);
+
   return nsSize(aScrollPort.width, footerTop - headerBottom);
 }
 
