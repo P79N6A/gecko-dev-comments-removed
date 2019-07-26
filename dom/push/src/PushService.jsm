@@ -460,6 +460,8 @@ this.PushService = {
     prefs.observe("serverURL", this);
     
     prefs.observe("connection.enabled", this);
+
+    this._started = true;
   },
 
   _shutdownWS: function() {
