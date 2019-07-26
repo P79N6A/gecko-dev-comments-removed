@@ -122,7 +122,7 @@ Decoder::Finish(RasterImage::eShutdownIntent aShutdownIntent)
     bool usable = true;
     if (aShutdownIntent != RasterImage::eShutdownIntent_NotNeeded && !HasDecoderError()) {
       
-      if (mImage.GetNumFrames() == 0) {
+      if (GetCompleteFrameCount() == 0) {
         usable = false;
       }
     }
