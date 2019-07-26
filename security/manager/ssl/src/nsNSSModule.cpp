@@ -24,6 +24,7 @@
 #include "nsCertTree.h"
 #endif
 #include "nsCrypto.h"
+#include "nsCryptoHash.h"
 
 #include "nsDOMCID.h"
 
