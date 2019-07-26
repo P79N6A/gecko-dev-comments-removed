@@ -317,6 +317,7 @@ SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
   , mTimestampOffset(0)
   , mAppendMode(SourceBufferAppendMode::Segments)
   , mUpdating(false)
+  , mDecoderInit(false)
 {
   MOZ_ASSERT(aMediaSource);
   if (mType.EqualsIgnoreCase("video/webm") || mType.EqualsIgnoreCase("audio/webm")) {
@@ -325,6 +326,8 @@ SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
     
     mParser = new ContainerParser();
   }
+  MSE_DEBUG("%p SourceBuffer: Creating initial decoder.", this);
+  InitNewDecoder();
 }
 
 already_AddRefed<SourceBuffer>
@@ -422,14 +425,17 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   StartUpdating();
   
   if (!mDecoder || mParser->IsInitSegmentPresent(aData, aLength)) {
-    MSE_DEBUG("%p AppendBuffer: New initialization segment, creating decoder.", this);
-    if (mDecoder) {
+    if (!mDecoder || mDecoderInit) {
+      MSE_DEBUG("%p AppendBuffer: New initialization segment, creating decoder.", this);
       mDecoder->GetResource()->Ended();
+
+      if (!InitNewDecoder()) {
+        aRv.Throw(NS_ERROR_FAILURE); 
+        return;
+      }
     }
-    if (!InitNewDecoder()) {
-      aRv.Throw(NS_ERROR_FAILURE); 
-      return;
-    }
+    MSE_DEBUG("%p AppendBuffer: Decoder marked as initialized.", this);
+    mDecoderInit = true;
   }
   
   mDecoder->NotifyDataArrived(reinterpret_cast<const char*>(aData),
