@@ -2009,7 +2009,7 @@ public:
 
 
 
-  gfx3DMatrix GetTransformMatrix(nsIFrame* aStopAtAncestor,
+  gfx3DMatrix GetTransformMatrix(const nsIFrame* aStopAtAncestor,
                                  nsIFrame **aOutAncestor);
 
   

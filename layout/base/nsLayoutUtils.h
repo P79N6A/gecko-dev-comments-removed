@@ -295,8 +295,8 @@ public:
 
 
 
-  static bool IsAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
-                                        nsIFrame* aCommonAncestor = nullptr);
+  static bool IsAncestorFrameCrossDoc(const nsIFrame* aAncestorFrame, const nsIFrame* aFrame,
+                                        const nsIFrame* aCommonAncestor = nullptr);
 
   
 
@@ -306,7 +306,7 @@ public:
 
 
   static nsIFrame* GetActiveScrolledRootFor(nsIFrame* aFrame,
-                                            nsIFrame* aStopAtAncestor);
+                                            const nsIFrame* aStopAtAncestor);
 
   static nsIFrame* GetActiveScrolledRootFor(nsDisplayItem* aItem,
                                             nsDisplayListBuilder* aBuilder,
@@ -317,7 +317,7 @@ public:
 
 
 
-  static bool IsScrolledByRootContentDocumentDisplayportScrolling(nsIFrame* aActiveScrolledRoot,
+  static bool IsScrolledByRootContentDocumentDisplayportScrolling(const nsIFrame* aActiveScrolledRoot,
                                                                   nsDisplayListBuilder* aBuilder);
 
   
@@ -519,7 +519,7 @@ public:
 
   static nsRect TransformAncestorRectToFrame(nsIFrame* aFrame,
                                              const nsRect& aRect,
-                                             nsIFrame* aAncestor);
+                                             const nsIFrame* aAncestor);
 
   
 
@@ -534,7 +534,7 @@ public:
 
 
 
-  static gfx3DMatrix GetTransformToAncestor(nsIFrame *aFrame, nsIFrame *aAncestor);
+  static gfx3DMatrix GetTransformToAncestor(nsIFrame *aFrame, const nsIFrame *aAncestor);
 
   
 

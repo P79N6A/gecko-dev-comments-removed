@@ -269,7 +269,7 @@ protected:
                     const nsIntRect& aVisibleRect,
                     const nsIntRect& aDrawRect,
                     const FrameLayerBuilder::Clip& aClip);
-    nsIFrame* GetActiveScrolledRoot() { return mActiveScrolledRoot; }
+    const nsIFrame* GetActiveScrolledRoot() { return mActiveScrolledRoot; }
 
     
 
@@ -318,7 +318,7 @@ protected:
 
 
 
-    nsIFrame*    mActiveScrolledRoot;
+    const nsIFrame*    mActiveScrolledRoot;
     ThebesLayer* mLayer;
     
 
@@ -441,7 +441,7 @@ protected:
                                                    const nsIntRect& aVisibleRect,
                                                    const nsIntRect& aDrawRect,
                                                    const FrameLayerBuilder::Clip& aClip,
-                                                   nsIFrame* aActiveScrolledRoot);
+                                                   const nsIFrame* aActiveScrolledRoot);
   ThebesLayerData* GetTopThebesLayerData()
   {
     return mThebesLayerDataStack.IsEmpty() ? nullptr
@@ -1630,7 +1630,7 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
                                    const nsIntRect& aVisibleRect,
                                    const nsIntRect& aDrawRect,
                                    const FrameLayerBuilder::Clip& aClip,
-                                   nsIFrame* aActiveScrolledRoot)
+                                   const nsIFrame* aActiveScrolledRoot)
 {
   int32_t i;
   int32_t lowestUsableLayerWithScrolledRoot = -1;
@@ -1815,7 +1815,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
 
     bool isFixed;
     bool forceInactive;
-    nsIFrame* activeScrolledRoot;
+    const nsIFrame* activeScrolledRoot;
     if (aFlags & NO_COMPONENT_ALPHA) {
       
       
