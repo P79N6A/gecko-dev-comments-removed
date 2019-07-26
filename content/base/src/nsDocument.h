@@ -385,6 +385,35 @@ struct CustomElementDefinition
   uint32_t mDocOrder;
 };
 
+class Registry : public nsISupports
+{
+public:
+  friend class ::nsDocument;
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Registry)
+
+  Registry();
+  virtual ~Registry();
+
+protected:
+  typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
+                           mozilla::dom::CustomElementDefinition>
+    DefinitionMap;
+  typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
+                           nsTArray<nsRefPtr<mozilla::dom::Element>>>
+    CandidateMap;
+
+  
+  
+  DefinitionMap mCustomDefinitions;
+
+  
+  
+  
+  CandidateMap mCandidatesMap;
+};
+
 } 
 } 
 
@@ -1210,6 +1239,7 @@ public:
                                                     const nsAString& aQualifiedName,
                                                     const nsAString& aTypeExtension,
                                                     mozilla::ErrorResult& rv) MOZ_OVERRIDE;
+  virtual void UseRegistryFromDocument(nsIDocument* aDocument) MOZ_OVERRIDE;
 
 protected:
   friend class nsNodeUtils;
@@ -1371,33 +1401,6 @@ protected:
   nsWeakPtr mFullscreenRoot;
 
 private:
-  struct Registry
-  {
-    NS_INLINE_DECL_REFCOUNTING(Registry)
-
-    typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
-                             mozilla::dom::CustomElementDefinition>
-      DefinitionMap;
-    typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
-                             nsTArray<nsRefPtr<mozilla::dom::Element>>>
-      CandidateMap;
-
-    
-    
-    DefinitionMap mCustomDefinitions;
-
-    
-    
-    
-    CandidateMap mCandidatesMap;
-
-    void Clear()
-    {
-      mCustomDefinitions.Clear();
-      mCandidatesMap.Clear();
-    }
-  };
-
   
   
   
@@ -1424,7 +1427,7 @@ public:
   static bool IsRegisterElementEnabled(JSContext* aCx, JSObject* aObject);
 
   
-  nsRefPtr<Registry> mRegistry;
+  nsRefPtr<mozilla::dom::Registry> mRegistry;
 
   nsRefPtr<mozilla::EventListenerManager> mListenerManager;
   nsCOMPtr<nsIDOMStyleSheetList> mDOMStyleSheets;

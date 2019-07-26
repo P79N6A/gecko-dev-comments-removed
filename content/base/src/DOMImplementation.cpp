@@ -133,7 +133,14 @@ DOMImplementation::CreateDocument(const nsAString& aNamespaceURI,
                          DocumentFlavorLegacyGuess);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
   nsCOMPtr<nsIDocument> doc = do_QueryInterface(document);
+  if (aNamespaceURI.EqualsLiteral("http://www.w3.org/1999/xhtml")) {
+    doc->UseRegistryFromDocument(mOwner);
+  }
+
   doc->SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
 
   doc.forget(aDocument);
@@ -236,6 +243,10 @@ DOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
   NS_ENSURE_SUCCESS(rv, rv);
   rv = root->AppendChildTo(body, false);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  doc->UseRegistryFromDocument(mOwner);
 
   doc->SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
 
