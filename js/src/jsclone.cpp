@@ -461,7 +461,7 @@ JSStructuredCloneWriter::parseTransferable()
             return false;
         }
 
-        JSObject* tObj = UnwrapObjectChecked(&v.toObject());
+        JSObject* tObj = CheckedUnwrap(&v.toObject());
         if (!tObj) {
             JS_ReportError(context(), "Permission denied to access object");
             return false;
@@ -544,7 +544,7 @@ JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v)
     
     
     if (obj->isWrapper())
-        obj = UnwrapObjectChecked(obj);
+        obj = CheckedUnwrap(obj);
     if (!obj) {
         JS_ReportError(w->context(), "Permission denied to access object");
         return false;
@@ -648,7 +648,7 @@ JSStructuredCloneWriter::startWrite(const Value &v)
 
         
         
-        obj = UnwrapObjectChecked(obj);
+        obj = CheckedUnwrap(obj);
         if (!obj) {
             JS_ReportError(context(), "Permission denied to access object");
             return false;

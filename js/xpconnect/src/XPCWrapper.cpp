@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=2 sw=2 et tw=78: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "XPCWrapper.h"
 #include "AccessCheck.h"
@@ -64,12 +64,12 @@ XrayWrapperConstructor(JSContext *cx, unsigned argc, jsval *vp)
     return true;
   }
 
-  obj = js::UnwrapObject(obj);
+  obj = js::UncheckedUnwrap(obj);
 
   *vp = OBJECT_TO_JSVAL(obj);
   return JS_WrapValue(cx, vp);
 }
-
+// static
 bool
 AttachNewConstructorObject(XPCCallContext &ccx, JSObject *aGlobalObject)
 {
@@ -84,7 +84,7 @@ AttachNewConstructorObject(XPCCallContext &ccx, JSObject *aGlobalObject)
                            JSPROP_READONLY | JSPROP_PERMANENT) != nullptr;
 }
 
-} 
+} // namespace XPCNativeWrapper
 
 namespace XPCWrapper {
 
@@ -92,10 +92,10 @@ JSObject *
 UnsafeUnwrapSecurityWrapper(JSObject *obj)
 {
   if (js::IsProxy(obj)) {
-    return js::UnwrapObject(obj);
+    return js::UncheckedUnwrap(obj);
   }
 
   return obj;
 }
 
-} 
+} // namespace XPCWrapper

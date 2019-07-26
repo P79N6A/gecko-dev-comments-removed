@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99 ft=cpp:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Util.h"
 
@@ -35,16 +35,16 @@ GetCompartmentPrincipal(JSCompartment *compartment)
     return nsJSPrincipals::get(JS_GetCompartmentPrincipals(compartment));
 }
 
-
+// Does the principal of compartment a subsume the principal of compartment b?
 bool
 AccessCheck::subsumes(JSCompartment *a, JSCompartment *b)
 {
     nsIPrincipal *aprin = GetCompartmentPrincipal(a);
     nsIPrincipal *bprin = GetCompartmentPrincipal(b);
 
-    
-    
-    
+    // If either a or b doesn't have principals, we don't have enough
+    // information to tell. Seeing as how this is Gecko, we are default-unsafe
+    // in this case.
     if (!aprin || !bprin)
         return true;
 
@@ -61,7 +61,7 @@ AccessCheck::subsumes(JSObject *a, JSObject *b)
     return subsumes(js::GetObjectCompartment(a), js::GetObjectCompartment(b));
 }
 
-
+// Same as above, but ignoring document.domain.
 bool
 AccessCheck::subsumesIgnoringDomain(JSCompartment *a, JSCompartment *b)
 {
@@ -78,12 +78,12 @@ AccessCheck::subsumesIgnoringDomain(JSCompartment *a, JSCompartment *b)
     return subsumes;
 }
 
-
+// Does the compartment of the wrapper subsumes the compartment of the wrappee?
 bool
 AccessCheck::wrapperSubsumes(JSObject *wrapper)
 {
     MOZ_ASSERT(js::IsWrapper(wrapper));
-    JSObject *wrapped = js::UnwrapObject(wrapper);
+    JSObject *wrapped = js::UncheckedUnwrap(wrapper);
     return AccessCheck::subsumes(js::GetObjectCompartment(wrapper),
                                  js::GetObjectCompartment(wrapped));
 }
@@ -131,9 +131,9 @@ AccessCheck::getPrincipal(JSCompartment *compartment)
 #define R(str) if (!set && JS_FlatStringEqualsAscii(prop, str)) return true;
 #define W(str) if (set && JS_FlatStringEqualsAscii(prop, str)) return true;
 
-
-
-
+// Hardcoded policy for cross origin property access. This was culled from the
+// preferences file (all.js). We don't want users to overwrite highly sensitive
+// security policies.
 static bool
 IsPermitted(const char *name, JSFlatString *prop, bool set)
 {
@@ -257,13 +257,13 @@ AccessCheck::needsSystemOnlyWrapper(JSObject *obj)
 bool
 OnlyIfSubjectIsSystem::isSafeToUnwrap()
 {
-    
-    
+    // It's nasty to use the context stack here, but the alternative is passing cx all
+    // the way down through CheckedUnwrap, which we just undid in a 100k patch. :-(
     JSContext *cx = nsContentUtils::GetCurrentJSContext();
     if (!cx)
         return true;
-    
-    
+    // If XBL scopes are enabled for this compartment, this hook doesn't need to
+    // be dynamic at all, since SOWs can be opaque.
     if (xpc::AllowXBLScope(js::GetContextCompartment(cx)))
         return false;
     return AccessCheck::isSystemOnlyAccessPermitted(cx);
@@ -288,25 +288,25 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
 
     jsid exposedPropsId = GetRTIdByIndex(cx, XPCJSRuntime::IDX_EXPOSEDPROPS);
 
-    
-    
-    
-    
+    // We need to enter the wrappee's compartment to look at __exposedProps__,
+    // but we want to be in the wrapper's compartment if we call Deny().
+    //
+    // Unfortunately, |cx| can be in either compartment when we call ::check. :-(
     JSAutoCompartment ac(cx, wrappedObject);
 
     JSBool found = false;
     if (!JS_HasPropertyById(cx, wrappedObject, exposedPropsId, &found))
         return false;
 
-    
+    // Always permit access to "length" and indexed properties of arrays.
     if ((JS_IsArrayObject(cx, wrappedObject) ||
          JS_IsTypedArrayObject(wrappedObject)) &&
         ((JSID_IS_INT(id) && JSID_TO_INT(id) >= 0) ||
          (JSID_IS_STRING(id) && JS_FlatStringEqualsAscii(JSID_TO_FLAT_STRING(id), "length")))) {
-        return true; 
+        return true; // Allow
     }
 
-    
+    // If no __exposedProps__ existed, deny access.
     if (!found) {
         return false;
     }
@@ -328,7 +328,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
 
     JSObject *hallpass = &exposedProps.toObject();
 
-    if (!AccessCheck::subsumes(js::UnwrapObject(hallpass), wrappedObject)) {
+    if (!AccessCheck::subsumes(js::UncheckedUnwrap(hallpass), wrappedObject)) {
         EnterAndThrow(cx, wrapper, "Invalid __exposedProps__");
         return false;
     }
@@ -337,7 +337,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
 
     JSPropertyDescriptor desc;
     if (!JS_GetPropertyDescriptorById(cx, hallpass, id, 0, &desc)) {
-        return false; 
+        return false; // Error
     }
     if (!desc.obj || !(desc.attrs & JSPROP_ENUMERATE))
         return false;
@@ -414,9 +414,9 @@ ComponentsObjectPolicy::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper
         }
     }
 
-    
-    
-    
+    // We don't have any way to recompute same-compartment Components wrappers,
+    // so we need this dynamic check. This can go away when we expose Components
+    // as SpecialPowers.wrap(Components) during automation.
     if (xpc::IsUniversalXPConnectEnabled(cx)) {
         return true;
     }

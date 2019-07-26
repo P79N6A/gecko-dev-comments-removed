@@ -22,7 +22,7 @@ class WrapperFactory {
     
     static bool HasWrapperFlag(JSObject *wrapper, unsigned flag) {
         unsigned flags = 0;
-        js::UnwrapObject(wrapper, true, &flags);
+        js::UncheckedUnwrap(wrapper, true, &flags);
         return !!(flags & flag);
     }
 
@@ -35,7 +35,7 @@ class WrapperFactory {
     }
 
     static bool IsSecurityWrapper(JSObject *obj) {
-        return !js::UnwrapObjectChecked(obj);
+        return !js::CheckedUnwrap(obj);
     }
 
     static bool IsCOW(JSObject *wrapper);

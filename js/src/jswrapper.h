@@ -226,14 +226,14 @@ IsWrapper(RawObject obj)
 
 
 JS_FRIEND_API(JSObject *)
-UnwrapObject(JSObject *obj, bool stopAtOuter = true, unsigned *flagsp = NULL);
+UncheckedUnwrap(JSObject *obj, bool stopAtOuter = true, unsigned *flagsp = NULL);
 
 
 
 
 
 JS_FRIEND_API(JSObject *)
-UnwrapObjectChecked(RawObject obj, bool stopAtOuter = true);
+CheckedUnwrap(RawObject obj, bool stopAtOuter = true);
 
 
 
