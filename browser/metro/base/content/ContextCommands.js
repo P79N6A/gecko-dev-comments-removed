@@ -230,17 +230,6 @@ var ContextCommands = {
 
   
 
-  errorConsole: function cc_errorConsole() {
-    PanelUI.show("console-container");
-  },
-
-  jsShell: function cc_jsShell() {
-    
-    if (!MetroUtils.immersive)
-      window.openDialog("chrome://browser/content/shell.xul", "_blank",
-                        "all=no,scrollbars=yes,resizable=yes,dialog=no");
-  },
-
   findInPage: function cc_findInPage() {
     FindHelperUI.show();
   },
