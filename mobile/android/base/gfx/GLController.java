@@ -79,9 +79,9 @@ public class GLController {
         return sInstance;
     }
 
-    synchronized void surfaceDestroyed() {
+    synchronized void serverSurfaceDestroyed() {
         ThreadUtils.assertOnUiThread();
-        Log.w(LOGTAG, "GLController::surfaceDestroyed() with mCompositorCreated=" + mCompositorCreated);
+        Log.w(LOGTAG, "GLController::serverSurfaceDestroyed() with mCompositorCreated=" + mCompositorCreated);
 
         mServerSurfaceValid = false;
         mClientSurface = null;
@@ -97,12 +97,12 @@ public class GLController {
         if (mCompositorCreated) {
             GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorPauseEvent());
         }
-        Log.w(LOGTAG, "done GLController::surfaceDestroyed()");
+        Log.w(LOGTAG, "done GLController::serverSurfaceDestroyed()");
     }
 
-    synchronized void surfaceChanged(int newWidth, int newHeight) {
+    synchronized void serverSurfaceChanged(int newWidth, int newHeight) {
         ThreadUtils.assertOnUiThread();
-        Log.w(LOGTAG, "GLController::surfaceChanged(" + newWidth + ", " + newHeight + ") with mServerSurfaceValid=" + mServerSurfaceValid);
+        Log.w(LOGTAG, "GLController::serverSurfaceChanged(" + newWidth + ", " + newHeight + ") with mServerSurfaceValid=" + mServerSurfaceValid);
 
         mWidth = newWidth;
         mHeight = newHeight;
@@ -112,7 +112,7 @@ public class GLController {
             
             
             resumeCompositor(mWidth, mHeight);
-            Log.w(LOGTAG, "done GLController::surfaceChanged with compositor resume");
+            Log.w(LOGTAG, "done GLController::serverSurfaceChanged with compositor resume");
             return;
         }
         mServerSurfaceValid = true;
@@ -130,7 +130,7 @@ public class GLController {
         mView.post(new Runnable() {
             @Override
             public void run() {
-                Log.w(LOGTAG, "GLController::surfaceChanged, creating compositor; mCompositorCreated=" + mCompositorCreated + ", mServerSurfaceValid=" + mServerSurfaceValid);
+                Log.w(LOGTAG, "GLController::serverSurfaceChanged, creating compositor; mCompositorCreated=" + mCompositorCreated + ", mServerSurfaceValid=" + mServerSurfaceValid);
                 try {
                     
                     
@@ -191,7 +191,7 @@ public class GLController {
         mCompositorCreated = true;
     }
 
-    public boolean hasValidSurface() {
+    public boolean isServerSurfaceValid() {
         return mServerSurfaceValid;
     }
 
