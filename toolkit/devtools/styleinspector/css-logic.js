@@ -918,9 +918,12 @@ CssLogic.findCssSelector = function CssLogic_findCssSelector(ele) {
   }
 
   
-  index = positionInNodeList(ele, ele.parentNode.children) + 1;
-  selector = CssLogic_findCssSelector(ele.parentNode) + ' > ' +
-          tagName + ':nth-child(' + index + ')';
+  
+  if (ele.parentNode !== document) {
+    index = positionInNodeList(ele, ele.parentNode.children) + 1;
+    selector = CssLogic_findCssSelector(ele.parentNode) + ' > ' +
+            tagName + ':nth-child(' + index + ')';
+  }
 
   return selector;
 };
