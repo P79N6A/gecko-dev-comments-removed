@@ -259,7 +259,10 @@ ShouldJaegerCompileCallee(JSContext *cx, JSScript *caller, JSScript *callee, JIT
 
     
     
-    if (!callee->hasAnalysis() || !callee->analysis()->hasLoops())
+    if (!callee->hasAnalysis())
+        return true;
+
+    if (callee->isShortRunning())
         return true;
 
     return false;

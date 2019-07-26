@@ -387,6 +387,10 @@ struct JSScript : public js::gc::Cell
 
 
 
+    uint32_t        maxLoopCount; 
+    uint32_t        loopCount;    
+
+
 #ifdef DEBUG
     
     
@@ -588,6 +592,9 @@ struct JSScript : public js::gc::Cell
     inline void clearAnalysis();
     inline js::analyze::ScriptAnalysis *analysis();
 
+    
+    bool isShortRunning();
+
     inline bool hasGlobal() const;
     inline bool hasClearedGlobal() const;
 
@@ -655,6 +662,22 @@ struct JSScript : public js::gc::Cell
     uint32_t incUseCount() { return ++useCount; }
     uint32_t *addressOfUseCount() { return &useCount; }
     void resetUseCount() { useCount = 0; }
+
+    void resetLoopCount() {
+        if (loopCount > maxLoopCount)
+            maxLoopCount = loopCount;
+        loopCount = 0;
+    }
+
+    void incrLoopCount() {
+        ++loopCount;
+    }
+
+    uint32_t getMaxLoopCount() {
+        if (loopCount > maxLoopCount)
+            maxLoopCount = loopCount;
+        return maxLoopCount;
+    }
 
     
 
