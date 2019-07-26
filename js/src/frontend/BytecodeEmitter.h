@@ -257,7 +257,6 @@ enum SrcNoteType {
     SRC_BREAK       = 1,        
     SRC_INITPROP    = 1,        
 
-
     SRC_GENEXP      = 1,        
     SRC_IF_ELSE     = 2,        
     SRC_FOR_IN      = 2,        

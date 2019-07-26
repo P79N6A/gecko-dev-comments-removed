@@ -5783,11 +5783,8 @@ EmitObject(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                 return false;
         }
 
-        
         if (pn3->isKind(PNK_NUMBER)) {
             obj = NULL;
-            if (NewSrcNote(cx, bce, SRC_INITPROP) < 0)
-                return false;
             if (Emit1(cx, bce, JSOP_INITELEM) < 0)
                 return false;
         } else {
@@ -5900,8 +5897,6 @@ EmitArray(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     if (nspread && !EmitNumberOp(cx, 0, bce))
         return false;
     for (atomIndex = 0; pn2; atomIndex++, pn2 = pn2->pn_next) {
-        if (!nspread && !EmitNumberOp(cx, atomIndex, bce))
-            return false;
         if (pn2->isKind(PNK_COMMA) && pn2->isArity(PN_NULLARY)) {
             if (Emit1(cx, bce, JSOP_HOLE) < 0)
                 return false;
@@ -5913,8 +5908,14 @@ EmitArray(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         if (pn2->isKind(PNK_SPREAD)) {
             if (Emit1(cx, bce, JSOP_SPREAD) < 0)
                 return false;
-        } else if (Emit1(cx, bce, nspread ? JSOP_INITELEM_INC : JSOP_INITELEM) < 0) {
-            return false;
+        } else if (nspread) {
+            if (Emit1(cx, bce, JSOP_INITELEM_INC) < 0)
+                return false;
+        } else {
+            off = EmitN(cx, bce, JSOP_INITELEM_ARRAY, 3);
+            if (off < 0)
+                return false;
+            SET_UINT24(bce->code(off), atomIndex);
         }
     }
     JS_ASSERT(atomIndex == pn->pn_count);
