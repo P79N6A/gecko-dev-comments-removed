@@ -262,12 +262,12 @@ UnwrapObject(JSObject *obj, bool stopAtOuter = true, unsigned *flagsp = NULL);
 
 
 JS_FRIEND_API(JSObject *)
-UnwrapObjectChecked(RawObject obj);
+UnwrapObjectChecked(RawObject obj, bool stopAtOuter = true);
 
 
 
 JS_FRIEND_API(JSObject *)
-UnwrapOneChecked(RawObject obj);
+UnwrapOneChecked(RawObject obj, bool stopAtOuter = true);
 
 JS_FRIEND_API(bool)
 IsCrossCompartmentWrapper(RawObject obj);
