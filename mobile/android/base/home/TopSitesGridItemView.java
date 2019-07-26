@@ -43,7 +43,7 @@ public class TopSitesGridItemView extends RelativeLayout {
     private String mUrl;
     private String mFaviconURL;
 
-    private Bitmap mThumbnail;
+    private boolean mThumbnailSet;
 
     
     private boolean mIsPinned = false;
@@ -170,7 +170,7 @@ public class TopSitesGridItemView extends RelativeLayout {
         } else if (changed) {
             
             
-            mThumbnail = null;
+            mThumbnailSet = false;
         }
 
         if (changed) {
@@ -196,6 +196,7 @@ public class TopSitesGridItemView extends RelativeLayout {
         mThumbnailView.setScaleType(SCALE_TYPE_RESOURCE);
         mThumbnailView.setImageResource(resId);
         mThumbnailView.setBackgroundColor(0x0);
+        mThumbnailSet = false;
     }
 
     
@@ -209,7 +210,7 @@ public class TopSitesGridItemView extends RelativeLayout {
             displayThumbnail(R.drawable.favicon);
             return;
         }
-        mThumbnail = thumbnail;
+        mThumbnailSet = true;
         Favicons.cancelFaviconLoad(mLoadId);
 
         mThumbnailView.setScaleType(SCALE_TYPE_THUMBNAIL);
@@ -234,7 +235,7 @@ public class TopSitesGridItemView extends RelativeLayout {
 
 
     public void displayFavicon(Bitmap favicon, String faviconURL) {
-        if (mThumbnail != null) {
+        if (mThumbnailSet) {
             
             return;
         }
