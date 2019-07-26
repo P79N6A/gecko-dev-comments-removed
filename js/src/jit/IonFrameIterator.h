@@ -237,8 +237,13 @@ class SnapshotIterator : public SnapshotReader
     IonScript *ionScript_;
 
   private:
-    bool hasLocation(const Location &loc);
-    uintptr_t fromLocation(const Location &loc);
+    
+    bool hasRegister(const Location &loc);
+    uintptr_t fromRegister(const Location &loc);
+
+    
+    bool hasStack(const Location &loc);
+    uintptr_t fromStack(const Location &loc);
 
     Value slotValue(const Slot &slot);
     bool slotReadable(const Slot &slot);
