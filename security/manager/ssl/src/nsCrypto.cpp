@@ -2351,7 +2351,7 @@ nsCrypto::ImportUserCertificates(const nsAString& aNickname,
       localNick = currCert->nickname;
     }
     else if (!nickname || nickname[0] == '\0') {
-      nsNSSCertificateDB::get_default_nickname(currCert, ctx, localNick);
+      nsNSSCertificateDB::get_default_nickname(currCert, ctx, localNick, locker);
     } else {
       
       
@@ -2407,7 +2407,7 @@ nsCrypto::ImportUserCertificates(const nsAString& aNickname,
            node = CERT_LIST_NEXT(node), i++) {
         derCerts[i] = node->cert->derCert;
       }
-      nsNSSCertificateDB::ImportValidCACerts(numCAs, derCerts, ctx);
+      nsNSSCertificateDB::ImportValidCACerts(numCAs, derCerts, ctx, locker);
       nsMemory::Free(derCerts);
     }
   }
