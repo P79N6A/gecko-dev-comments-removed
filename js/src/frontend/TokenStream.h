@@ -72,7 +72,6 @@ enum TokenKind {
     TOK_THROW,                     
     TOK_DEBUGGER,                  
     TOK_YIELD,                     
-    TOK_LEXICALSCOPE,              
     TOK_LET,                       
     TOK_EXPORT,                    
     TOK_IMPORT,                    
