@@ -179,6 +179,15 @@ function attachToWindow(provider, targetWindow) {
     
     schedule(function () { port.close(); });
   });
+  
+  
+  
+  
+  
+  let dwu = targetWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                        .getInterface(Ci.nsIDOMWindowUtils);
+  dwu.allowScriptsToClose();
+
   targetWindow.addEventListener("DOMWindowClose", function _mozSocialDOMWindowClose(evt) {
     let elt = targetWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                 .getInterface(Ci.nsIWebNavigation)

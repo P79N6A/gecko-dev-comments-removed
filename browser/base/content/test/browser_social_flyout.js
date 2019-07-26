@@ -78,6 +78,15 @@ var tests = {
   },
 
   testCloseSelf: function(next) {
+    
+    
+    
+    const ALLOW_SCRIPTS_TO_CLOSE_PREF = "dom.allow_scripts_to_close_windows";
+    
+    
+    
+    let oldAllowScriptsToClose = Services.prefs.getBoolPref(ALLOW_SCRIPTS_TO_CLOSE_PREF);    
+    Services.prefs.setBoolPref(ALLOW_SCRIPTS_TO_CLOSE_PREF, false);
     let panel = document.getElementById("social-flyout-panel");
     let port = Social.provider.getWorkerPort();
     ok(port, "provider has a port");
@@ -92,6 +101,7 @@ var tests = {
           iframe.contentDocument.addEventListener("SocialTest-DoneCloseSelf", function _doneHandler() {
             iframe.contentDocument.removeEventListener("SocialTest-DoneCloseSelf", _doneHandler, false);
             is(panel.state, "closed", "flyout should have closed itself");
+            Services.prefs.setBoolPref(ALLOW_SCRIPTS_TO_CLOSE_PREF, oldAllowScriptsToClose);
             next();
           }, false);
           is(panel.state, "open", "flyout should be open");
