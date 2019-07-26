@@ -3745,6 +3745,7 @@ var XULBrowserWindow = {
       aMaxTotalProgress);
   },
 
+  
   onStateChange: function (aWebProgress, aRequest, aStateFlags, aStatus) {
     const nsIWebProgressListener = Ci.nsIWebProgressListener;
     const nsIChannel = Ci.nsIChannel;
@@ -3752,8 +3753,13 @@ var XULBrowserWindow = {
     if (aStateFlags & nsIWebProgressListener.STATE_START &&
         aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK) {
 
-      if (aRequest && aWebProgress.DOMWindow == content)
-        this.startDocumentLoad(aRequest);
+      if (aRequest && aWebProgress.DOMWindow == content) {
+        
+        gBrowser.selectedBrowser.feeds = null;
+
+        
+        gBrowser.selectedBrowser.engines = null;
+      }
 
       this.isBusy = true;
 
@@ -3770,11 +3776,6 @@ var XULBrowserWindow = {
       }
     }
     else if (aStateFlags & nsIWebProgressListener.STATE_STOP) {
-      if (aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK &&
-          aWebProgress.DOMWindow == content &&
-          aRequest)
-        this.endDocumentLoad(aRequest, aStatus);
-
       
       
       
@@ -4073,30 +4074,6 @@ var XULBrowserWindow = {
     if (loadingDone)
       return;
     this.onStatusChange(gBrowser.webProgress, null, 0, aMessage);
-  },
-
-  startDocumentLoad: function XWB_startDocumentLoad(aRequest) {
-    
-    gBrowser.selectedBrowser.feeds = null;
-
-    
-    gBrowser.selectedBrowser.engines = null;
-
-    var uri = aRequest.QueryInterface(Ci.nsIChannel).URI;
-    try {
-      Services.obs.notifyObservers(content, "StartDocumentLoad", uri.spec);
-    } catch (e) {
-    }
-  },
-
-  endDocumentLoad: function XWB_endDocumentLoad(aRequest, aStatus) {
-    var urlStr = aRequest.QueryInterface(Ci.nsIChannel).originalURI.spec;
-
-    var notification = Components.isSuccessCode(aStatus) ? "EndDocumentLoad" : "FailDocumentLoad";
-    try {
-      Services.obs.notifyObservers(content, notification, urlStr);
-    } catch (e) {
-    }
   }
 };
 
