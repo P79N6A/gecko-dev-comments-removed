@@ -445,14 +445,14 @@ struct BaseRect {
 
 
 
-  Sub ClampRect(const Sub& aRect) const
+  Sub ForceInside(const Sub& aRect) const
   {
     Sub rect(std::max(aRect.x, x),
              std::max(aRect.y, y),
              std::min(aRect.width, width),
              std::min(aRect.height, height));
-    rect.x = std::min(rect.XMost(), XMost()) - rect.width;
-    rect.y = std::min(rect.YMost(), YMost()) - rect.height;
+    rect.x = std::min(rect.XMost(), aRect.XMost()) - rect.width;
+    rect.y = std::min(rect.YMost(), aRect.YMost()) - rect.height;
     return rect;
   }
 
