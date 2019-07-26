@@ -211,7 +211,7 @@ private:
   bool mTouchMoveDefaultPrevented;
   bool mIsFirstTouchMove;
   bool mCancelable;
-  bool mTouchCancelSent;
+  nsTArray<uint32_t> mCanceledIds;
 
   
   
@@ -287,7 +287,7 @@ private:
 
   
   void DispatchEventIgnoreStatus(WidgetGUIEvent* aEvent);
-  void DispatchTouchCancel();
+  void DispatchTouchCancel(WidgetTouchEvent* aEvent);
 
   nsDeque mInputEventQueue;
   static nsEventStatus sThrowawayStatus;

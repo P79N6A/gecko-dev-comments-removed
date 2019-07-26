@@ -487,7 +487,7 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
     mTouchMoveDefaultPrevented = false;
     mIsFirstTouchMove = true;
     mCancelable = true;
-    mTouchCancelSent = false;
+    mCanceledIds.Clear();
     InitTouchEventTouchList(touchEvent);
     DispatchAsyncTouchEventWithCallback(touchEvent, &MetroInput::OnPointerPressedCallback);
   } else {
@@ -1219,6 +1219,10 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
 
 
+
+
+
+
   
   
   
@@ -1247,10 +1251,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
   WidgetTouchEvent transformedEvent(*event);
   status = mWidget->ApzReceiveInputEvent(event, &transformedEvent);
   if (!mCancelable && status == nsEventStatus_eConsumeNoDefault) {
-    if (!mTouchCancelSent) {
-      mTouchCancelSent = true;
-      DispatchTouchCancel();
-    }
+    DispatchTouchCancel(event);
     return status;
   }
 
@@ -1261,16 +1262,31 @@ MetroInput::DeliverNextQueuedTouchEvent()
 }
 
 void
-MetroInput::DispatchTouchCancel()
+MetroInput::DispatchTouchCancel(WidgetTouchEvent* aEvent)
 {
-  LogFunction();
-  
+  MOZ_ASSERT(aEvent);
   
   
   
   
   WidgetTouchEvent touchEvent(true, NS_TOUCH_CANCEL, mWidget.Get());
-  InitTouchEventTouchList(&touchEvent);
+  nsTArray< nsRefPtr<dom::Touch> >& touches = aEvent->touches;
+  for (uint32_t i = 0; i < touches.Length(); ++i) {
+    dom::Touch* touch = touches[i];
+    if (!touch) {
+      continue;
+    }
+    int32_t id = touch->Identifier();
+    if (mCanceledIds.Contains(id)) {
+      continue;
+    }
+    mCanceledIds.AppendElement(id);
+    touchEvent.touches.AppendElement(touch);
+  }
+  if (!touchEvent.touches.Length()) {
+    return;
+  }
+
   mWidget->DispatchEvent(&touchEvent, sThrowawayStatus);
 }
 
