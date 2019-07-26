@@ -11,6 +11,8 @@
 
 BEGIN_BLUETOOTH_NAMESPACE
 
+class BluetoothProfileManagerBase;
+
 
 
 
@@ -55,7 +57,10 @@ public:
   GetBluetoothServiceClass(const nsAString& aUuidStr);
 
   static BluetoothServiceClass
-  GetBluetoothServiceClass(uint16_t aProfileId);
+  GetBluetoothServiceClass(uint16_t aServiceUuid);
+
+  static BluetoothProfileManagerBase*
+  GetBluetoothProfileManager(uint16_t aServiceUuid);
 };
 
 
