@@ -28,6 +28,13 @@ enum ImageFormat {
 
 
 
+  SHARED_RGB,
+
+  
+
+
+
+
 
 
 
