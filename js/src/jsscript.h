@@ -592,6 +592,7 @@ class JSScript : public js::gc::Cell
     bool            shouldCloneAtCallsite:1;
     bool            isCallsiteClone:1; 
     bool            shouldInline:1;    
+    bool            uninlineable:1;    
 #ifdef JS_ION
     bool            failedBoundsCheck:1; 
     bool            failedShapeGuard:1; 

@@ -226,12 +226,15 @@ IonBuilder::getPolyCallTargets(types::TemporaryTypeSet *calleeTypes, bool constr
 bool
 IonBuilder::canEnterInlinedFunction(JSFunction *target)
 {
+    if (target->isHeavyweight())
+        return false;
+
     RootedScript targetScript(cx, target->nonLazyScript());
 
     if (!targetScript->ensureRanAnalysis(cx))
         return false;
 
-    if (!targetScript->analysis()->ionInlineable())
+    if (targetScript->uninlineable)
         return false;
 
     if (targetScript->needsArgsObj())
@@ -1110,6 +1113,8 @@ IonBuilder::traverseBytecode()
                 break;
             if (status == ControlStatus_Error)
                 return false;
+            if (status == ControlStatus_Abort)
+                return abort("Aborted while processing control flow");
             if (!current)
                 return maybeAddOsrTypeBarriers();
         }
@@ -3359,6 +3364,10 @@ IonBuilder::jsop_try()
     if (script()->analysis()->hasTryFinally())
         return abort("Has try-finally");
 
+    
+    if (callerBuilder_)
+        return abort("try-catch within inline frame");
+
     graph().setHasTryBlock();
 
     jssrcnote *sn = info().getNote(cx, pc);
@@ -3462,6 +3471,10 @@ IonBuilder::processReturn(JSOp op)
 IonBuilder::ControlStatus
 IonBuilder::processThrow()
 {
+    
+    if (callerBuilder_)
+        return ControlStatus_Abort;
+
     MDefinition *def = current->pop();
 
     if (graph().hasTryBlock()) {
@@ -3775,13 +3788,14 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
         }
 
         
+        
         if (inlineBuilder.abortReason_ == AbortReason_Disable) {
-            
-            
-            calleeScript->analysis()->setIonUninlineable();
+            calleeScript->uninlineable = true;
+            abortReason_ = AbortReason_Inlining;
+        } else if (inlineBuilder.abortReason_ == AbortReason_Inlining) {
+            abortReason_ = AbortReason_Inlining;
         }
 
-        abortReason_ = AbortReason_Inlining;
         return false;
     }
 
@@ -3804,7 +3818,7 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
     MIRGraphExits &exits = *inlineBuilder.graph().exitAccumulator();
     if (exits.length() == 0) {
         
-        calleeScript->analysis()->setIonUninlineable();
+        calleeScript->uninlineable = true;
         abortReason_ = AbortReason_Inlining;
         return false;
     }
