@@ -11,6 +11,9 @@ const Ci = Components.interfaces;
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 
+
+let MakeTimer = () => Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+
 this.EXPORTED_SYMBOLS = ["DeferredSave"];
 
 
@@ -104,7 +107,7 @@ this.DeferredSave.prototype = {
 
     this.LOG("Starting timer");
     if (!this._timer)
-      this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      this._timer = MakeTimer();
     this._timer.initWithCallback(() => this._deferredSave(),
                                  this._delay, Ci.nsITimer.TYPE_ONE_SHOT);
   },
