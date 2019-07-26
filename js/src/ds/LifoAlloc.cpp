@@ -140,12 +140,3 @@ LifoAlloc::transferUnusedFrom(LifoAlloc *other)
         other->last = other->latest;
     }
 }
-
-bool
-LifoAlloc::ensureUnusedApproximateSlow(size_t n)
-{
-    
-    LifoAllocScope scope(this);
-    return !!getOrCreateChunk(n);
-}
-
