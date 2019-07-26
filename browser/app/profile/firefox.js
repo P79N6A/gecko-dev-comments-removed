@@ -1209,7 +1209,7 @@ pref("devtools.shadereditor.enabled", false);
 pref("devtools.chrome.enabled", false);
 
 
-pref("devtools.theme", "dark");
+pref("devtools.theme", "light");
 
 
 pref("devtools.gcli.hideIntro", false);
