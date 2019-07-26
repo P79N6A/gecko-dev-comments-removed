@@ -17,7 +17,6 @@
 
 static const int32_t kMinGrowArrayBy = 8;
 static const int32_t kMaxGrowArrayBy = 1024;
-static const int32_t kAutoClearCompactSizeFactor = 4;
 
 
 
@@ -30,7 +29,6 @@ static const int32_t kLinearThreshold = 24 * sizeof(void *);
 
 
 #define SIZEOF_IMPL(n_) (sizeof(Impl) + sizeof(void *) * ((n_) - 1))
-
 
 
 

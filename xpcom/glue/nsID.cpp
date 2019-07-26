@@ -2,16 +2,10 @@
 
 
 
+
 #include "nsID.h"
 #include "prprf.h"
 #include "nsMemory.h"
-
-static const char gIDFormat[] = 
-  "{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}";
-
-static const char gIDFormat2[] = 
-  "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x";
-
 
 
 
@@ -51,7 +45,7 @@ static const char gIDFormat2[] =
 
 
  #define PARSE_HYPHEN(char_pointer)   if(*(char_pointer++) != '-') return false
-    
+
 
 
 
@@ -81,19 +75,22 @@ bool nsID::Parse(const char *aIDStr)
     PARSE_CHARS_TO_NUM(aIDStr, m3[i], 2);
     i++;
   }
-  
+
   return expectFormat1 ? *aIDStr == '}' : true;
 }
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
 
+static const char gIDFormat[] =
+  "{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}";
 
 
 
 
 
 
-char *nsID::ToString() const 
+
+char *nsID::ToString() const
 {
   char *res = (char*)NS_Alloc(NSID_LENGTH);
 
