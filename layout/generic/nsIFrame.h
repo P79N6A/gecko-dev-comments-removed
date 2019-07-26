@@ -1841,6 +1841,26 @@ public:
 
 
 
+
+
+
+
+
+
+
+  virtual nsresult GetPrefWidthTightBounds(nsRenderingContext* aContext,
+                                           nscoord& aX,
+                                           nscoord& aXMost);
+
+  
+
+
+
+
+
+
+
+
   NS_IMETHOD  WillReflow(nsPresContext* aPresContext) = 0;
 
   

@@ -4047,6 +4047,14 @@ nsFrame::ComputeSimpleTightBounds(gfxContext* aContext) const
   return r;
 }
 
+ nsresult
+nsIFrame::GetPrefWidthTightBounds(nsRenderingContext* aContext,
+                                  nscoord& aX,
+                                  nscoord& aXMost)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
  nsSize
 nsFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                          nsSize aCBSize, nscoord aAvailableWidth,

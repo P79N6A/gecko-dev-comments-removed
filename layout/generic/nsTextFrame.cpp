@@ -2623,17 +2623,20 @@ GetEndOfTrimmedText(const nsTextFragment* aFrag, const nsStyleText* aStyleText,
 
 nsTextFrame::TrimmedOffsets
 nsTextFrame::GetTrimmedOffsets(const nsTextFragment* aFrag,
-                               bool aTrimAfter)
+                               bool aTrimAfter, bool aPostReflow)
 {
   NS_ASSERTION(mTextRun, "Need textrun here");
-  
-  
-  
-  NS_ASSERTION(!(GetStateBits() & NS_FRAME_FIRST_REFLOW) ||
-               (GetParent()->GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE),
-               "Can only call this on frames that have been reflowed");
-  NS_ASSERTION(!(GetStateBits() & NS_FRAME_IN_REFLOW),
-               "Can only call this on frames that are not being reflowed");
+  if (aPostReflow) {
+    
+    
+    
+    NS_ASSERTION(!(GetStateBits() & NS_FRAME_FIRST_REFLOW) ||
+                 (GetParent()->GetStateBits() &
+                  NS_FRAME_TOO_DEEP_IN_FRAME_TREE),
+                 "Can only call this on frames that have been reflowed");
+    NS_ASSERTION(!(GetStateBits() & NS_FRAME_IN_REFLOW),
+                 "Can only call this on frames that are not being reflowed");
+  }
 
   TrimmedOffsets offsets = { GetContentOffset(), GetContentLength() };
   const nsStyleText* textStyle = StyleText();
@@ -2642,7 +2645,7 @@ nsTextFrame::GetTrimmedOffsets(const nsTextFragment* aFrag,
   if (textStyle->WhiteSpaceIsSignificant())
     return offsets;
 
-  if (GetStateBits() & TEXT_START_OF_LINE) {
+  if (!aPostReflow || GetStateBits() & TEXT_START_OF_LINE) {
     int32_t whitespaceCount =
       GetTrimmableWhitespaceCount(aFrag,
                                   offsets.mStart, offsets.mLength, 1);
@@ -2650,7 +2653,7 @@ nsTextFrame::GetTrimmedOffsets(const nsTextFragment* aFrag,
     offsets.mLength -= whitespaceCount;
   }
 
-  if (aTrimAfter && (GetStateBits() & TEXT_END_OF_LINE)) {
+  if (aTrimAfter && (!aPostReflow || GetStateBits() & TEXT_END_OF_LINE)) {
     
     
     
@@ -2822,6 +2825,8 @@ public:
 
   
   void InitializeForDisplay(bool aTrimAfter);
+
+  void InitializeForMeasure();
 
   virtual void GetSpacing(uint32_t aStart, uint32_t aLength, Spacing* aSpacing);
   virtual gfxFloat GetHyphenWidth();
@@ -3259,6 +3264,17 @@ PropertyProvider::InitializeForDisplay(bool aTrimAfter)
   mLength = trimmed.mLength;
   SetupJustificationSpacing();
 }
+
+void
+PropertyProvider::InitializeForMeasure()
+{
+  nsTextFrame::TrimmedOffsets trimmed =
+    mFrame->GetTrimmedOffsets(mFrag, true, false);
+  mStart.SetOriginalOffset(trimmed.mStart);
+  mLength = trimmed.mLength;
+  SetupJustificationSpacing();
+}
+
 
 static uint32_t GetSkippedDistance(const gfxSkipCharsIterator& aStart,
                                    const gfxSkipCharsIterator& aEnd)
@@ -7300,6 +7316,31 @@ nsTextFrame::ComputeTightBounds(gfxContext* aContext) const
   
   
   return RoundOut(metrics.mBoundingBox) + nsPoint(0, mAscent);
+}
+
+ nsresult
+nsTextFrame::GetPrefWidthTightBounds(nsRenderingContext* aContext,
+                                     nscoord& aX,
+                                     nscoord& aXMost)
+{
+  gfxSkipCharsIterator iter =
+    const_cast<nsTextFrame*>(this)->EnsureTextRun(nsTextFrame::eInflated);
+  if (!mTextRun)
+    return NS_ERROR_FAILURE;
+
+  PropertyProvider provider(const_cast<nsTextFrame*>(this), iter,
+                            nsTextFrame::eInflated);
+  provider.InitializeForMeasure();
+
+  gfxTextRun::Metrics metrics =
+        mTextRun->MeasureText(provider.GetStart().GetSkippedOffset(),
+                              ComputeTransformedLength(provider),
+                              gfxFont::TIGHT_HINTED_OUTLINE_EXTENTS,
+                              aContext->ThebesContext(), &provider);
+  aX = metrics.mBoundingBox.x;
+  aXMost = metrics.mBoundingBox.XMost();
+
+  return NS_OK;
 }
 
 static bool
