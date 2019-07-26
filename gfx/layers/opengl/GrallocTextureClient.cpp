@@ -35,7 +35,6 @@ public:
 
   virtual void DeallocateSharedData(ISurfaceAllocator*) MOZ_OVERRIDE
   {
-    mBufferLocked->Unlock();
     mBufferLocked = nullptr;
   }
 
@@ -129,9 +128,7 @@ GrallocTextureClientOGL::~GrallocTextureClientOGL()
     if (ShouldDeallocateInDestructor()) {
     
     
-    if (mBufferLocked) {
-      mBufferLocked->Unlock();
-    } else {
+    if (!mBufferLocked) {
       
       
       SurfaceDescriptor sd = SurfaceDescriptorGralloc(nullptr, mGrallocActor,

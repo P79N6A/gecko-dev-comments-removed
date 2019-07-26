@@ -18,13 +18,13 @@
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/ipc/Shmem.h"          
+#include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsISupportsImpl.h"            
-#include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 
 class gfxReusableSurfaceWrapper;
 class gfxASurface;
