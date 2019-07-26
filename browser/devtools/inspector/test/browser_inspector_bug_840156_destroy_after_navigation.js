@@ -1,16 +1,9 @@
 
 
 
-let temp = {};
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", temp);
-let Promise = temp.Promise;
-temp = {};
-Cu.import("resource:///modules/devtools/Toolbox.jsm", temp);
-let Toolbox = temp.Toolbox;
-temp = {};
-Cu.import("resource:///modules/devtools/Target.jsm", temp);
-let TargetFactory = temp.TargetFactory;
-temp = null;
+let Promise = devtools.require("sdk/core/promise");
+let Toolbox = devtools.Toolbox;
+let TargetFactory = devtools.TargetFactory;
 
 function test() {
   waitForExplicitFinish();
