@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=2 sw=2 et tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsContentEventHandler.h"
 #include "nsCOMPtr.h"
@@ -16,7 +16,7 @@
 #include "nsCopySupport.h"
 #include "nsFrameSelection.h"
 #include "nsIFrame.h"
-#include "nsIView.h"
+#include "nsView.h"
 #include "nsIContentIterator.h"
 #include "nsTextFragment.h"
 #include "nsTextFrame.h"
@@ -30,9 +30,9 @@
 
 using namespace mozilla::dom;
 
-
-
-
+/******************************************************************/
+/* nsContentEventHandler                                          */
+/******************************************************************/
 
 nsContentEventHandler::nsContentEventHandler(
                               nsPresContext* aPresContext) :
@@ -50,11 +50,11 @@ nsContentEventHandler::InitCommon()
 
   NS_ENSURE_TRUE(mPresShell, NS_ERROR_NOT_AVAILABLE);
 
-  
-  
+  // If text frame which has overflowing selection underline is dirty,
+  // we need to flush the pending reflow here.
   mPresShell->FlushPendingNotifications(Flush_Layout);
 
-  
+  // Flushing notifications can cause mPresShell to be destroyed (bug 577963).
   NS_ENSURE_TRUE(!mPresShell->IsDestroying(), NS_ERROR_FAILURE);
 
   nsCopySupport::GetSelectionForCopy(mPresShell->GetDocument(),
@@ -62,7 +62,7 @@ nsContentEventHandler::InitCommon()
 
   nsCOMPtr<nsIDOMRange> firstRange;
   nsresult rv = mSelection->GetRangeAt(0, getter_AddRefs(firstRange));
-  
+  // This shell doesn't support selection.
   if (NS_FAILED(rv))
     return NS_ERROR_NOT_AVAILABLE;
   mFirstSelectedRange = static_cast<nsRange*>(firstRange.get());
@@ -72,7 +72,7 @@ nsContentEventHandler::InitCommon()
   nsINode* endNode = mFirstSelectedRange->GetEndParent();
   NS_ENSURE_TRUE(endNode, NS_ERROR_FAILURE);
 
-  
+  // See bug 537041 comment 5, the range could have removed node.
   NS_ENSURE_TRUE(startNode->GetCurrentDoc() == mPresShell->GetDocument(),
                  NS_ERROR_NOT_AVAILABLE);
   NS_ASSERTION(startNode->GetCurrentDoc() == endNode->GetCurrentDoc(),
@@ -125,10 +125,10 @@ nsContentEventHandler::Init(nsSelectionEvent* aEvent)
   return NS_OK;
 }
 
-
-
-
-
+// Editor places a bogus BR node under its root content if the editor doesn't
+// have any text. This happens even for single line editors.
+// When we get text content and when we change the selection,
+// we don't want to include the bogus BRs at the end.
 static bool IsContentBR(nsIContent* aContent)
 {
   return aContent->IsHTML() &&
@@ -182,7 +182,7 @@ static uint32_t CountNewlinesInXPLength(nsIContent* aContent,
   const nsTextFragment* text = aContent->GetText();
   if (!text)
     return 0;
-  
+  // For automated tests, we should abort on debug build.
   NS_ABORT_IF_FALSE(
     (aXPLength == UINT32_MAX || aXPLength <= text->GetLength()),
     "aXPLength is out-of-bounds");
@@ -205,7 +205,7 @@ static uint32_t CountNewlinesInNativeLength(nsIContent* aContent,
   if (!text) {
     return 0;
   }
-  
+  // For automated tests, we should abort on debug build.
   NS_ABORT_IF_FALSE(
     (aNativeLength == UINT32_MAX || aNativeLength <= text->GetLength() * 2),
     "aNativeLength is unexpected value");
@@ -214,7 +214,7 @@ static uint32_t CountNewlinesInNativeLength(nsIContent* aContent,
   for (uint32_t i = 0, nativeOffset = 0;
        i < xpLength && nativeOffset < aNativeLength;
        ++i, ++nativeOffset) {
-    
+    // For automated tests, we should abort on debug build.
     NS_ABORT_IF_FALSE(i < text->GetLength(), "i is out-of-bounds");
     if (text->CharAt(i) == '\n') {
       ++newlines;
@@ -225,22 +225,22 @@ static uint32_t CountNewlinesInNativeLength(nsIContent* aContent,
 }
 #endif
 
- uint32_t
+/* static */ uint32_t
 nsContentEventHandler::GetNativeTextLength(nsIContent* aContent, uint32_t aMaxLength)
 {
   if (aContent->IsNodeOfType(nsINode::eTEXT)) {
     uint32_t textLengthDifference =
 #if defined(XP_MACOSX)
-      
-      
+      // On Mac, the length of a native newline ("\r") is equal to the length of
+      // the XP newline ("\n"), so the native length is the same as the XP length.
       0;
 #elif defined(XP_WIN)
-      
-      
-      
+      // On Windows, the length of a native newline ("\r\n") is twice the length of
+      // the XP newline ("\n"), so XP length is equal to the length of the native
+      // offset plus the number of newlines encountered in the string.
       CountNewlinesInXPLength(aContent, aMaxLength);
 #else
-      
+      // On other platforms, the native and XP newlines are the same.
       0;
 #endif
 
@@ -251,7 +251,7 @@ nsContentEventHandler::GetNativeTextLength(nsIContent* aContent, uint32_t aMaxLe
     return length + textLengthDifference;
   } else if (IsContentBR(aContent)) {
 #if defined(XP_WIN)
-    
+    // Length of \r\n
     return 2;
 #else
     return 1;
@@ -263,16 +263,16 @@ nsContentEventHandler::GetNativeTextLength(nsIContent* aContent, uint32_t aMaxLe
 static uint32_t ConvertToXPOffset(nsIContent* aContent, uint32_t aNativeOffset)
 {
 #if defined(XP_MACOSX)
-  
-  
+  // On Mac, the length of a native newline ("\r") is equal to the length of
+  // the XP newline ("\n"), so the native offset is the same as the XP offset.
   return aNativeOffset;
 #elif defined(XP_WIN)
-  
-  
-  
+  // On Windows, the length of a native newline ("\r\n") is twice the length of
+  // the XP newline ("\n"), so XP offset is equal to the length of the native
+  // offset minus the number of newlines encountered in the string.
   return aNativeOffset - CountNewlinesInNativeLength(aContent, aNativeOffset);
 #else
-  
+  // On other platforms, the native and XP newlines are the same.
   return aNativeOffset;
 #endif
 }
@@ -327,8 +327,8 @@ nsContentEventHandler::ExpandToClusterBoundary(nsIContent* aContent,
                                                bool aForward,
                                                uint32_t* aXPOffset)
 {
-  
-  
+  // XXX This method assumes that the frame boundaries must be cluster
+  // boundaries. It's false, but no problem now, maybe.
   if (!aContent->IsNodeOfType(nsINode::eTEXT) ||
       *aXPOffset == 0 || *aXPOffset == aContent->TextLength())
     return NS_OK;
@@ -343,7 +343,7 @@ nsContentEventHandler::ExpandToClusterBoundary(nsIContent* aContent,
   nsIFrame* frame = fs->GetFrameForNodeOffset(aContent, int32_t(*aXPOffset),
                                               hint, &offsetInFrame);
   if (!frame) {
-    
+    // This content doesn't have any frames, we only can check surrogate pair...
     const nsTextFragment* text = aContent->GetText();
     NS_ENSURE_TRUE(text, NS_ERROR_FAILURE);
     if (NS_IS_LOW_SURROGATE(text->CharAt(*aXPOffset)) &&
@@ -411,7 +411,7 @@ nsContentEventHandler::SetRangeFromFlatTextOffset(
       NS_ENSURE_SUCCESS(rv, rv);
       startSet = true;
       if (aNativeLength == 0) {
-        
+        // Ensure that the end offset and the start offset are same.
         rv = aRange->SetEnd(domNode, int32_t(xpOffset));
         NS_ENSURE_SUCCESS(rv, rv);
         return NS_OK;
@@ -429,8 +429,8 @@ nsContentEventHandler::SetRangeFromFlatTextOffset(
           NS_ENSURE_SUCCESS(rv, rv);
         }
       } else {
-        
-        
+        // Use first position of next node, because the end node is ignored
+        // by ContentIterator when the offset is zero.
         xpOffset = 0;
         iter->Next();
         if (iter->IsDone())
@@ -527,8 +527,8 @@ nsContentEventHandler::OnQueryTextContent(nsQueryContentEvent* aEvent)
   return NS_OK;
 }
 
-
-
+// Adjust to use a child node if possible
+// to make the returned rect more accurate
 static nsINode* AdjustTextRectNode(nsINode* aNode,
                                    int32_t& aOffset)
 {
@@ -547,8 +547,8 @@ static nsINode* AdjustTextRectNode(nsINode* aNode,
   return node;
 }
 
-
-
+// Similar to nsFrameSelection::GetFrameForNodeOffset,
+// but this is more flexible for OnQueryTextRect to use
 static nsresult GetFrameForTextRect(nsINode* aNode,
                                     int32_t aOffset,
                                     bool aHint,
@@ -576,11 +576,11 @@ nsContentEventHandler::OnQueryTextRect(nsQueryContentEvent* aEvent)
                                   aEvent->mInput.mLength, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // used to iterate over all contents and their frames
   nsCOMPtr<nsIContentIterator> iter = NS_NewContentIterator();
   iter->Init(range);
 
-  
+  // get the starting frame
   int32_t offset = range->StartOffset();
   nsINode* node = iter->GetCurrentNode();
   if (!node) {
@@ -590,25 +590,25 @@ nsContentEventHandler::OnQueryTextRect(nsQueryContentEvent* aEvent)
   rv = GetFrameForTextRect(node, offset, true, &firstFrame);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // get the starting frame rect
   nsRect rect(nsPoint(0, 0), firstFrame->GetRect().Size());
   rv = ConvertToRootViewRelativeOffset(firstFrame, rect);
   NS_ENSURE_SUCCESS(rv, rv);
   nsRect frameRect = rect;
   nsPoint ptOffset;
   firstFrame->GetPointFromOffset(offset, &ptOffset);
-  
+  // minus 1 to avoid creating an empty rect
   rect.x += ptOffset.x - 1;
   rect.width -= ptOffset.x - 1;
 
-  
+  // get the ending frame
   offset = range->EndOffset();
   node = AdjustTextRectNode(range->GetEndParent(), offset);
   nsIFrame* lastFrame = nullptr;
   rv = GetFrameForTextRect(node, offset, range->Collapsed(), &lastFrame);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // iterate over all covered frames
   for (nsIFrame* frame = firstFrame; frame != lastFrame;) {
     frame = frame->GetNextContinuation();
     if (!frame) {
@@ -622,7 +622,7 @@ nsContentEventHandler::OnQueryTextRect(nsQueryContentEvent* aEvent)
         frame = static_cast<nsIContent*>(node)->GetPrimaryFrame();
       } while (!frame && !iter->IsDone());
       if (!frame) {
-        
+        // this can happen when the end offset of the range is 0.
         frame = lastFrame;
       }
     }
@@ -630,14 +630,14 @@ nsContentEventHandler::OnQueryTextRect(nsQueryContentEvent* aEvent)
     rv = ConvertToRootViewRelativeOffset(frame, frameRect);
     NS_ENSURE_SUCCESS(rv, rv);
     if (frame != lastFrame) {
-      
+      // not last frame, so just add rect to previous result
       rect.UnionRect(rect, frameRect);
     }
   }
 
-  
+  // get the ending frame rect
   lastFrame->GetPointFromOffset(offset, &ptOffset);
-  
+  // minus 1 to avoid creating an empty rect
   frameRect.width -= lastFrame->GetRect().width - ptOffset.x - 1;
 
   if (firstFrame == lastFrame) {
@@ -661,12 +661,12 @@ nsContentEventHandler::OnQueryEditorRect(nsQueryContentEvent* aEvent)
   nsIFrame* frame = mRootContent->GetPrimaryFrame();
   NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
 
-  
+  // get rect for first frame
   nsRect resultRect(nsPoint(0, 0), frame->GetRect().Size());
   rv = ConvertToRootViewRelativeOffset(frame, resultRect);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // account for any additional frames
   while ((frame = frame->GetNextContinuation()) != nullptr) {
     nsRect frameRect(nsPoint(0, 0), frame->GetRect().Size());
     rv = ConvertToRootViewRelativeOffset(frame, frameRect);
@@ -690,8 +690,8 @@ nsContentEventHandler::OnQueryCaretRect(nsQueryContentEvent* aEvent)
   nsRefPtr<nsCaret> caret = mPresShell->GetCaret();
   NS_ASSERTION(caret, "GetCaret returned null");
 
-  
-  
+  // When the selection is collapsed and the queried offset is current caret
+  // position, we should return the "real" caret rect.
   bool selectionIsCollapsed;
   rv = mSelection->GetIsCollapsed(&selectionIsCollapsed);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -714,7 +714,7 @@ nsContentEventHandler::OnQueryCaretRect(nsQueryContentEvent* aEvent)
     }
   }
 
-  
+  // Otherwise, we should set the guessed caret rect.
   nsRefPtr<nsRange> range = new nsRange();
   rv = SetRangeFromFlatTextOffset(range, aEvent->mInput.mOffset, 0, true);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -790,11 +790,11 @@ nsContentEventHandler::OnQueryCharacterAtPoint(nsQueryContentEvent* aEvent)
   nsIWidget* rootWidget = rootFrame->GetNearestWidget();
   NS_ENSURE_TRUE(rootWidget, NS_ERROR_FAILURE);
 
-  
-  
+  // The root frame's widget might be different, e.g., the event was fired on
+  // a popup but the rootFrame is the document root.
   if (rootWidget != aEvent->widget) {
     NS_PRECONDITION(aEvent->widget, "The event must have the widget");
-    nsIView* view = nsIView::GetViewFor(aEvent->widget);
+    nsView* view = nsView::GetViewFor(aEvent->widget);
     NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
     rootFrame = view->GetFrame();
     NS_ENSURE_TRUE(rootFrame, NS_ERROR_FAILURE);
@@ -817,7 +817,7 @@ nsContentEventHandler::OnQueryCharacterAtPoint(nsQueryContentEvent* aEvent)
       !targetFrame->GetContent() ||
       !nsContentUtils::ContentIsDescendantOf(targetFrame->GetContent(),
                                              mRootContent)) {
-    
+    // there is no character at the point.
     aEvent->mReply.mOffset = nsQueryContentEvent::NOT_FOUND;
     aEvent->mSucceeded = true;
     return NS_OK;
@@ -842,7 +842,7 @@ nsContentEventHandler::OnQueryCharacterAtPoint(nsQueryContentEvent* aEvent)
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(textRect.mSucceeded, NS_ERROR_FAILURE);
 
-  
+  // currently, we don't need to get the actual text.
   aEvent->mReply.mOffset = nativeOffset;
   aEvent->mReply.mRect = textRect.mReply.mRect;
   aEvent->mSucceeded = true;
@@ -867,7 +867,7 @@ nsContentEventHandler::OnQueryDOMWidgetHittest(nsQueryContentEvent* aEvent)
 
   nsIntPoint eventLoc =
     aEvent->refPoint + aEvent->widget->WidgetToScreenOffset();
-  nsIntRect docFrameRect = docFrame->GetScreenRect(); 
+  nsIntRect docFrameRect = docFrame->GetScreenRect(); // Returns CSS pixels
   eventLoc.x = mPresContext->DevPixelsToIntCSSPixels(eventLoc.x);
   eventLoc.y = mPresContext->DevPixelsToIntCSSPixels(eventLoc.y);
   eventLoc.x -= docFrameRect.x;
@@ -924,17 +924,17 @@ nsContentEventHandler::GetFlatTextOffsetOfRange(nsIContent* aRootContent,
     nsIContent* content = static_cast<nsIContent*>(node);
 
     if (node->IsNodeOfType(nsINode::eTEXT)) {
-      
+      // Note: our range always starts from offset 0
       if (node == endNode)
         *aNativeOffset += GetNativeTextLength(content, aNodeOffset);
       else
         *aNativeOffset += GetNativeTextLength(content);
     } else if (IsContentBR(content)) {
 #if defined(XP_WIN)
-      
+      // On Windows, the length of the newline is 2.
       *aNativeOffset += 2;
 #else
-      
+      // On other platforms, the length of the newline is 1.
       *aNativeOffset += 1;
 #endif
     }
@@ -982,7 +982,7 @@ nsContentEventHandler::ConvertToRootViewRelativeOffset(nsIFrame* aFrame,
 {
   NS_ASSERTION(aFrame, "aFrame must not be null");
 
-  nsIView* view = nullptr;
+  nsView* view = nullptr;
   nsPoint posInView;
   aFrame->GetOffsetFromView(posInView, &view);
   if (!view)
@@ -1018,9 +1018,9 @@ nsContentEventHandler::OnSelectionEvent(nsSelectionEvent* aEvent)
 {
   aEvent->mSucceeded = false;
 
-  
-  
-  
+  // Get selection to manipulate
+  // XXX why do we need to get them from ISM? This method should work fine
+  //     without ISM.
   nsresult rv = nsIMEStateManager::
       GetFocusSelectionAndRoot(getter_AddRefs(mSelection),
                                getter_AddRefs(mRootContent));
@@ -1031,7 +1031,7 @@ nsContentEventHandler::OnSelectionEvent(nsSelectionEvent* aEvent)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  
+  // Get range from offset and length
   nsRefPtr<nsRange> range = new nsRange();
   NS_ENSURE_TRUE(range, NS_ERROR_OUT_OF_MEMORY);
   rv = SetRangeFromFlatTextOffset(range, aEvent->mOffset, aEvent->mLength,
@@ -1052,9 +1052,9 @@ nsContentEventHandler::OnSelectionEvent(nsSelectionEvent* aEvent)
   nsCOMPtr<nsISelectionPrivate> selPrivate(do_QueryInterface(mSelection));
   selPrivate->StartBatchChanges();
 
-  
+  // Clear selection first before setting
   rv = mSelection->RemoveAllRanges();
-  
+  // Need to call EndBatchChanges at the end even if call failed
   if (NS_SUCCEEDED(rv)) {
     if (aEvent->mReversed) {
       rv = mSelection->Collapse(endDomNode, endOffset);

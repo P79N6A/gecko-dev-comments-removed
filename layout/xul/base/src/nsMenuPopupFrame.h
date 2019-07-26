@@ -91,7 +91,7 @@ enum FlipStyle {
 nsIFrame* NS_NewMenuPopupFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 class nsIViewManager;
-class nsIView;
+class nsView;
 class nsMenuPopupFrame;
 
 class nsMenuPopupFrame : public nsBoxFrame, public nsMenuParent
@@ -170,7 +170,7 @@ public:
 
   void EnsureWidget();
 
-  nsresult CreateWidgetForView(nsIView* aView);
+  nsresult CreateWidgetForView(nsView* aView);
   uint8_t GetShadowStyle();
 
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
@@ -181,7 +181,7 @@ public:
   
   void LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, bool aSizedToPopup);
 
-  nsIView* GetRootViewForPopup(nsIFrame* aStartFrame);
+  nsView* GetRootViewForPopup(nsIFrame* aStartFrame);
 
   
   

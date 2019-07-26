@@ -571,7 +571,7 @@ nsBox::SyncLayout(nsBoxLayoutState& aState)
     visualOverflow = overflowAreas.VisualOverflow();
   }
 
-  nsIView* view = GetView();
+  nsView* view = GetView();
   if (view) {
     
     

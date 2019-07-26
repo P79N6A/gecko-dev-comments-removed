@@ -16,7 +16,7 @@
 #include "nsPoint.h"
 #include "nsGUIEvent.h"
 #include "nsStyleConsts.h"
-#include "nsIView.h"
+#include "nsView.h"
 #include "nsFrameManager.h"
 #include "nsIPresShell.h"
 #include "nsCOMPtr.h"
@@ -374,8 +374,8 @@ nsContainerFrame::PeekOffsetCharacter(bool aForward, int32_t* aOffset,
 static nsresult
 ReparentFrameViewTo(nsIFrame*       aFrame,
                     nsIViewManager* aViewManager,
-                    nsIView*        aNewParentView,
-                    nsIView*        aOldParentView)
+                    nsView*        aNewParentView,
+                    nsView*        aOldParentView)
 {
 
   
@@ -389,7 +389,7 @@ ReparentFrameViewTo(nsIFrame*       aFrame,
       return NS_OK;
     }
 #endif
-    nsIView* view = aFrame->GetView();
+    nsView* view = aFrame->GetView();
     
     
     
@@ -397,7 +397,7 @@ ReparentFrameViewTo(nsIFrame*       aFrame,
     aViewManager->RemoveChild(view);
     
     
-    nsIView* insertBefore = nsLayoutUtils::FindSiblingViewFor(aNewParentView, aFrame);
+    nsView* insertBefore = nsLayoutUtils::FindSiblingViewFor(aNewParentView, aFrame);
     aViewManager->InsertChild(aNewParentView, view, insertBefore, insertBefore != nullptr);
   } else {
     nsIFrame::ChildListIterator lists(aFrame);
@@ -429,20 +429,20 @@ nsContainerFrame::CreateViewForFrame(nsIFrame* aFrame,
     return NS_OK;
   }
 
-  nsIView* parentView = aFrame->GetParent()->GetClosestView();
+  nsView* parentView = aFrame->GetParent()->GetClosestView();
   NS_ASSERTION(parentView, "no parent with view");
 
   nsIViewManager* viewManager = parentView->GetViewManager();
   NS_ASSERTION(viewManager, "null view manager");
 
   
-  nsIView* view = viewManager->CreateView(aFrame->GetRect(), parentView);
+  nsView* view = viewManager->CreateView(aFrame->GetRect(), parentView);
   if (!view)
     return NS_ERROR_OUT_OF_MEMORY;
 
   SyncFrameViewProperties(aFrame->PresContext(), aFrame, nullptr, view);
 
-  nsIView* insertBefore = nsLayoutUtils::FindSiblingViewFor(parentView, aFrame);
+  nsView* insertBefore = nsLayoutUtils::FindSiblingViewFor(parentView, aFrame);
   
   
   
@@ -479,10 +479,10 @@ nsContainerFrame::PositionFrameView(nsIFrame* aKidFrame)
   if (!aKidFrame->HasView() || !parentFrame)
     return;
 
-  nsIView* view = aKidFrame->GetView();
+  nsView* view = aKidFrame->GetView();
   nsIViewManager* vm = view->GetViewManager();
   nsPoint pt;
-  nsIView* ancestorView = parentFrame->GetClosestView(&pt);
+  nsView* ancestorView = parentFrame->GetClosestView(&pt);
 
   if (ancestorView != view->GetParent()) {
     NS_ASSERTION(ancestorView == view->GetParent()->GetParent(),
@@ -540,8 +540,8 @@ nsContainerFrame::ReparentFrameView(nsPresContext* aPresContext,
 
   
   
-  nsIView* oldParentView = aOldParentFrame->GetClosestView();
-  nsIView* newParentView = aNewParentFrame->GetClosestView();
+  nsView* oldParentView = aOldParentFrame->GetClosestView();
+  nsView* newParentView = aNewParentFrame->GetClosestView();
   
   
   
@@ -600,8 +600,8 @@ nsContainerFrame::ReparentFrameViewList(nsPresContext*     aPresContext,
 
   
   
-  nsIView* oldParentView = aOldParentFrame->GetClosestView();
-  nsIView* newParentView = aNewParentFrame->GetClosestView();
+  nsView* oldParentView = aOldParentFrame->GetClosestView();
+  nsView* newParentView = aNewParentFrame->GetClosestView();
   
   
   
@@ -645,7 +645,7 @@ IsTopLevelWidget(nsIWidget* aWidget)
 void
 nsContainerFrame::SyncWindowProperties(nsPresContext*       aPresContext,
                                        nsIFrame*            aFrame,
-                                       nsIView*             aView,
+                                       nsView*             aView,
                                        nsRenderingContext*  aRC)
 {
 #ifdef MOZ_XUL
@@ -657,7 +657,7 @@ nsContainerFrame::SyncWindowProperties(nsPresContext*       aPresContext,
     return;
 
   nsIViewManager* vm = aView->GetViewManager();
-  nsIView* rootView = vm->GetRootView();
+  nsView* rootView = vm->GetRootView();
 
   if (aView != rootView)
     return;
@@ -734,7 +734,7 @@ void nsContainerFrame::SetSizeConstraints(nsPresContext* aPresContext,
 void
 nsContainerFrame::SyncFrameViewAfterReflow(nsPresContext* aPresContext,
                                            nsIFrame*       aFrame,
-                                           nsIView*        aView,
+                                           nsView*        aView,
                                            const nsRect&   aVisualOverflowArea,
                                            uint32_t        aFlags)
 {
@@ -758,7 +758,7 @@ void
 nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
                                           nsIFrame*        aFrame,
                                           nsStyleContext*  aStyleContext,
-                                          nsIView*         aView,
+                                          nsView*         aView,
                                           uint32_t         aFlags)
 {
   NS_ASSERTION(!aStyleContext || aFrame->GetStyleContext() == aStyleContext,
@@ -1036,7 +1036,7 @@ nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
   aKidFrame->SetRect(bounds);
 
   if (aKidFrame->HasView()) {
-    nsIView* view = aKidFrame->GetView();
+    nsView* view = aKidFrame->GetView();
     
     
     SyncFrameViewAfterReflow(aPresContext, aKidFrame, view,

@@ -134,7 +134,7 @@ public:
   
   static void SyncFrameViewAfterReflow(nsPresContext* aPresContext,
                                        nsIFrame*       aFrame,
-                                       nsIView*        aView,
+                                       nsView*        aView,
                                        const nsRect&   aVisualOverflowArea,
                                        uint32_t        aFlags = 0);
 
@@ -142,7 +142,7 @@ public:
   
   static void SyncWindowProperties(nsPresContext*       aPresContext,
                                    nsIFrame*            aFrame,
-                                   nsIView*             aView,
+                                   nsView*             aView,
                                    nsRenderingContext*  aRC = nullptr);
 
   
@@ -154,7 +154,7 @@ public:
   static void SyncFrameViewProperties(nsPresContext*  aPresContext,
                                       nsIFrame*        aFrame,
                                       nsStyleContext*  aStyleContext,
-                                      nsIView*         aView,
+                                      nsView*         aView,
                                       uint32_t         aFlags = 0);
 
   

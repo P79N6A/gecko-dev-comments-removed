@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AccessibleWrap.h"
 #include "Accessible-inl.h"
@@ -33,7 +33,7 @@
 #include "nsINodeInfo.h"
 #include "nsIServiceManager.h"
 #include "nsTextFormatter.h"
-#include "nsIView.h"
+#include "nsView.h"
 #include "nsIViewManager.h"
 #include "nsEventMap.h"
 #include "nsArrayUtils.h"
@@ -49,11 +49,11 @@ using namespace mozilla::a11y;
 
 const uint32_t USE_ROLE_STRING = 0;
 
+/* For documentation of the accessibility architecture,
+ * see http://lxr.mozilla.org/seamonkey/source/accessible/accessible-docs.html
+ */
 
-
-
-
-
+//#define DEBUG_LEAKS
 
 #ifdef DEBUG_LEAKS
 static gAccessibles = 0;
@@ -61,19 +61,19 @@ static gAccessibles = 0;
 
 static const int32_t kIEnumVariantDisconnected = -1;
 
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccessibleWrap
+////////////////////////////////////////////////////////////////////////////////
 
 ITypeInfo* AccessibleWrap::gTypeInfo = NULL;
 
 NS_IMPL_ISUPPORTS_INHERITED0(AccessibleWrap, Accessible)
 
+//-----------------------------------------------------
+// IUnknown interface methods - see iunknown.h for documentation
+//-----------------------------------------------------
 
-
-
-
-
+// Microsoft COM QueryInterface
 STDMETHODIMP
 AccessibleWrap::QueryInterface(REFIID iid, void** ppv)
 {
@@ -84,7 +84,7 @@ AccessibleWrap::QueryInterface(REFIID iid, void** ppv)
   if (IID_IUnknown == iid || IID_IDispatch == iid || IID_IAccessible == iid)
     *ppv = static_cast<IAccessible*>(this);
   else if (IID_IEnumVARIANT == iid) {
-    
+    // Don't support this interface for leaf elements.
     if (!HasChildren() || nsAccUtils::MustPrune(this))
       return E_NOINTERFACE;
 
@@ -127,8 +127,8 @@ AccessibleWrap::QueryInterface(REFIID iid, void** ppv)
   A11Y_TRYBLOCK_END
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// IServiceProvider
 
 STDMETHODIMP
 AccessibleWrap::QueryService(REFGUID aGuidService, REFIID aIID,
@@ -139,7 +139,7 @@ AccessibleWrap::QueryService(REFGUID aGuidService, REFIID aIID,
 
   *aInstancePtr = NULL;
 
-  
+  // UIA IAccessibleEx
   if (aGuidService == IID_IAccessibleEx &&
       Preferences::GetBool("accessibility.uia.enable")) {
     uiaRawElmProvider* accEx = new uiaRawElmProvider(this);
@@ -153,9 +153,9 @@ AccessibleWrap::QueryService(REFGUID aGuidService, REFIID aIID,
   return nsAccessNodeWrap::QueryService(aGuidService, aIID, aInstancePtr);
 }
 
-
-
-
+//-----------------------------------------------------
+// IAccessible methods
+//-----------------------------------------------------
 
 STDMETHODIMP
 AccessibleWrap::get_accParent( IDispatch __RPC_FAR *__RPC_FAR *ppdispParent)
@@ -169,8 +169,8 @@ AccessibleWrap::get_accParent( IDispatch __RPC_FAR *__RPC_FAR *ppdispParent)
 
   DocAccessible* doc = AsDoc();
   if (doc) {
-    
-    
+    // Return window system accessible object for root document and tab document
+    // accessibles.
     if (!doc->ParentDocument() ||
         (nsWinUtils::IsWindowEmulationStarted() &&
          nsCoreUtils::IsTabDocument(doc->DocumentNode()))) {
@@ -217,8 +217,8 @@ AccessibleWrap::get_accChildCount( long __RPC_FAR *pcountChildren)
 
 STDMETHODIMP
 AccessibleWrap::get_accChild(
-       VARIANT varChild,
-       IDispatch __RPC_FAR *__RPC_FAR *ppdispChild)
+      /* [in] */ VARIANT varChild,
+      /* [retval][out] */ IDispatch __RPC_FAR *__RPC_FAR *ppdispChild)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -226,11 +226,11 @@ AccessibleWrap::get_accChild(
   if (IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  
-  
-  
-  
-  
+  // IAccessible::accChild is used to return this accessible or child accessible
+  // at the given index or to get an accessible by child ID in the case of
+  // document accessible (it's handled by overriden GetXPAccessibleFor method
+  // on the document accessible). The getting an accessible by child ID is used
+  // by AccessibleObjectFromEvent() called by AT when AT handles our MSAA event.
   Accessible* child = GetXPAccessibleFor(varChild);
   if (!child)
     return E_INVALIDARG;
@@ -246,8 +246,8 @@ AccessibleWrap::get_accChild(
 
 STDMETHODIMP
 AccessibleWrap::get_accName(
-       VARIANT varChild,
-       BSTR __RPC_FAR *pszName)
+      /* [optional][in] */ VARIANT varChild,
+      /* [retval][out] */ BSTR __RPC_FAR *pszName)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -266,9 +266,9 @@ AccessibleWrap::get_accName(
   nsAutoString name;
   xpAccessible->Name(name);
 
-  
-  
-  
+  // The name was not provided, e.g. no alt attribute for an image. A screen
+  // reader may choose to invent its own accessible name, e.g. from an image src
+  // attribute. Refer to eNoNameOnPurpose return value.
   if (name.IsVoid())
     return S_FALSE;
 
@@ -283,8 +283,8 @@ AccessibleWrap::get_accName(
 
 STDMETHODIMP
 AccessibleWrap::get_accValue(
-       VARIANT varChild,
-       BSTR __RPC_FAR *pszValue)
+      /* [optional][in] */ VARIANT varChild,
+      /* [retval][out] */ BSTR __RPC_FAR *pszValue)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -306,9 +306,9 @@ AccessibleWrap::get_accValue(
   nsAutoString value;
   xpAccessible->Value(value);
 
-  
-  
-  
+  // See bug 438784: need to expose URL on doc's value attribute. For this,
+  // reverting part of fix for bug 425693 to make this MSAA method behave
+  // IAccessible2-style.
   if (value.IsEmpty())
     return S_FALSE;
 
@@ -350,8 +350,8 @@ AccessibleWrap::get_accDescription(VARIANT varChild,
 
 STDMETHODIMP
 AccessibleWrap::get_accRole(
-       VARIANT varChild,
-       VARIANT __RPC_FAR *pvarRole)
+      /* [optional][in] */ VARIANT varChild,
+      /* [retval][out] */ VARIANT __RPC_FAR *pvarRole)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -389,25 +389,25 @@ AccessibleWrap::get_accRole(
 
 #undef ROLE
 
-  
-  
-  
+  // Special case, if there is a ROLE_ROW inside of a ROLE_TREE_TABLE, then call the MSAA role
+  // a ROLE_OUTLINEITEM for consistency and compatibility.
+  // We need this because ARIA has a role of "row" for both grid and treegrid
   if (geckoRole == roles::ROW) {
     Accessible* xpParent = Parent();
     if (xpParent && xpParent->Role() == roles::TREE_TABLE)
       msaaRole = ROLE_SYSTEM_OUTLINEITEM;
   }
   
-  
+  // -- Try enumerated role
   if (msaaRole != USE_ROLE_STRING) {
     pvarRole->vt = VT_I4;
-    pvarRole->lVal = msaaRole;  
+    pvarRole->lVal = msaaRole;  // Normal enumerated role
     return S_OK;
   }
 
-  
-  
-  
+  // -- Try BSTR role
+  // Could not map to known enumerated MSAA role like ROLE_BUTTON
+  // Use BSTR role to expose role attribute or tag name + namespace
   nsIContent *content = xpAccessible->GetContent();
   if (!content)
     return E_FAIL;
@@ -423,7 +423,7 @@ AccessibleWrap::get_accRole(
       nsINodeInfo *nodeInfo = content->NodeInfo();
       nodeInfo->GetName(roleString);
 
-      
+      // Only append name space if different from that of current document.
       if (!nodeInfo->NamespaceEquals(document->GetDefaultNamespaceID())) {
         nsAutoString nameSpaceURI;
         nodeInfo->GetNamespaceURI(nameSpaceURI);
@@ -445,8 +445,8 @@ AccessibleWrap::get_accRole(
 
 STDMETHODIMP
 AccessibleWrap::get_accState(
-       VARIANT varChild,
-       VARIANT __RPC_FAR *pvarState)
+      /* [optional][in] */ VARIANT varChild,
+      /* [retval][out] */ VARIANT __RPC_FAR *pvarState)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -464,13 +464,13 @@ AccessibleWrap::get_accState(
   if (xpAccessible->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  
-  
-  
-  
-  
-  
-  
+  // MSAA only has 31 states and the lowest 31 bits of our state bit mask
+  // are the same states as MSAA.
+  // Note: we map the following Gecko states to different MSAA states:
+  //   REQUIRED -> ALERT_LOW
+  //   ALERT -> ALERT_MEDIUM
+  //   INVALID -> ALERT_HIGH
+  //   CHECKABLE -> MARQUEED
 
   uint32_t msaaState = 0;
   nsAccUtils::To32States(xpAccessible->State(), &msaaState, nullptr);
@@ -483,8 +483,8 @@ AccessibleWrap::get_accState(
 
 STDMETHODIMP
 AccessibleWrap::get_accHelp(
-       VARIANT varChild,
-       BSTR __RPC_FAR *pszHelp)
+      /* [optional][in] */ VARIANT varChild,
+      /* [retval][out] */ BSTR __RPC_FAR *pszHelp)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -496,9 +496,9 @@ AccessibleWrap::get_accHelp(
 
 STDMETHODIMP
 AccessibleWrap::get_accHelpTopic(
-       BSTR __RPC_FAR *pszHelpFile,
-       VARIANT varChild,
-       long __RPC_FAR *pidTopic)
+      /* [out] */ BSTR __RPC_FAR *pszHelpFile,
+      /* [optional][in] */ VARIANT varChild,
+      /* [retval][out] */ long __RPC_FAR *pidTopic)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -511,8 +511,8 @@ AccessibleWrap::get_accHelpTopic(
 
 STDMETHODIMP
 AccessibleWrap::get_accKeyboardShortcut(
-       VARIANT varChild,
-       BSTR __RPC_FAR *pszKeyboardShortcut)
+      /* [optional][in] */ VARIANT varChild,
+      /* [retval][out] */ BSTR __RPC_FAR *pszKeyboardShortcut)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -546,22 +546,22 @@ AccessibleWrap::get_accKeyboardShortcut(
 
 STDMETHODIMP
 AccessibleWrap::get_accFocus(
-       VARIANT __RPC_FAR *pvarChild)
+      /* [retval][out] */ VARIANT __RPC_FAR *pvarChild)
 {
   A11Y_TRYBLOCK_BEGIN
 
-  
-  
-  
-  
-  
-  
+  // VT_EMPTY:    None. This object does not have the keyboard focus itself
+  //              and does not contain a child that has the keyboard focus.
+  // VT_I4:       lVal is CHILDID_SELF. The object itself has the keyboard focus.
+  // VT_I4:       lVal contains the child ID of the child element with the keyboard focus.
+  // VT_DISPATCH: pdispVal member is the address of the IDispatch interface
+  //              for the child object with the keyboard focus.
   if (IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
   VariantInit(pvarChild);
 
-  
+  // Return the current IAccessible child that has focus
   Accessible* focusedAccessible = FocusedChild();
   if (focusedAccessible == this) {
     pvarChild->vt = VT_I4;
@@ -572,7 +572,7 @@ AccessibleWrap::get_accFocus(
     pvarChild->pdispVal = NativeAccessible(focusedAccessible);
   }
   else {
-    pvarChild->vt = VT_EMPTY;   
+    pvarChild->vt = VT_EMPTY;   // No focus or focus is not a child
   }
 
   return S_OK;
@@ -580,7 +580,7 @@ AccessibleWrap::get_accFocus(
   A11Y_TRYBLOCK_END
 }
 
-
+// This helper class implements IEnumVARIANT for a nsIArray containing nsIAccessible objects.
 
 class AccessibleEnumerator MOZ_FINAL : public IEnumVARIANT
 {
@@ -590,12 +590,12 @@ public:
     mArray(toCopy.mArray), mCurIndex(toCopy.mCurIndex) { }
   ~AccessibleEnumerator() { }
 
-  
+  // IUnknown
   STDMETHODIMP QueryInterface(REFIID iid, void ** ppvObject);
   STDMETHODIMP_(ULONG) AddRef(void);
   STDMETHODIMP_(ULONG) Release(void);
 
-  
+  // IEnumVARIANT
   STDMETHODIMP Next(unsigned long celt, VARIANT FAR* rgvar, unsigned long FAR* pceltFetched);
   STDMETHODIMP Skip(unsigned long celt);
   STDMETHODIMP Reset()
@@ -658,14 +658,14 @@ AccessibleEnumerator::Next(unsigned long celt, VARIANT FAR* rgvar, unsigned long
 
   HRESULT hr = S_OK;
 
-  
+  // Can't get more elements than there are...
   if (celt > length - mCurIndex) {
     hr = S_FALSE;
     celt = length - mCurIndex;
   }
 
   for (uint32_t i = 0; i < celt; ++i, ++mCurIndex) {
-    
+    // Copy the elements of the array into rgvar
     nsCOMPtr<nsIAccessible> accel(do_QueryElementAt(mArray, mCurIndex));
     NS_ASSERTION(accel, "Invalid pointer in mArray");
 
@@ -704,7 +704,7 @@ AccessibleEnumerator::Skip(unsigned long celt)
 
   uint32_t length = 0;
   mArray->GetLength(&length);
-  
+  // Check if we can skip the requested number of elements
   if (celt > length - mCurIndex) {
     mCurIndex = length;
     return S_FALSE;
@@ -715,23 +715,23 @@ AccessibleEnumerator::Skip(unsigned long celt)
   A11Y_TRYBLOCK_END
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+  * This method is called when a client wants to know which children of a node
+  *  are selected. Note that this method can only find selected children for
+  *  nsIAccessible object which implement SelectAccessible.
+  *
+  * The VARIANT return value arguement is expected to either contain a single IAccessible
+  *  or an IEnumVARIANT of IAccessibles. We return the IEnumVARIANT regardless of the number
+  *  of children selected, unless there are none selected in which case we return an empty
+  *  VARIANT.
+  *
+  * We get the selected options from the select's accessible object and wrap
+  *  those in an AccessibleEnumerator which we then put in the return VARIANT.
+  *
+  * returns a VT_EMPTY VARIANT if:
+  *  - there are no selected children for this object
+  *  - the object is not the type that can have children selected
+  */
 STDMETHODIMP
 AccessibleWrap::get_accSelection(VARIANT __RPC_FAR *pvarChildren)
 {
@@ -746,14 +746,14 @@ AccessibleWrap::get_accSelection(VARIANT __RPC_FAR *pvarChildren)
   if (IsSelect()) {
     nsCOMPtr<nsIArray> selectedItems = SelectedItems();
     if (selectedItems) {
-      
+      // 1) Create and initialize the enumeration
       nsRefPtr<AccessibleEnumerator> pEnum =
         new AccessibleEnumerator(selectedItems);
 
-      
+      // 2) Put the enumerator in the VARIANT
       if (!pEnum)
         return E_OUTOFMEMORY;
-      pvarChildren->vt = VT_UNKNOWN;    
+      pvarChildren->vt = VT_UNKNOWN;    // this must be VT_UNKNOWN for an IEnumVARIANT
       NS_ADDREF(pvarChildren->punkVal = pEnum);
     }
   }
@@ -764,8 +764,8 @@ AccessibleWrap::get_accSelection(VARIANT __RPC_FAR *pvarChildren)
 
 STDMETHODIMP
 AccessibleWrap::get_accDefaultAction(
-       VARIANT varChild,
-       BSTR __RPC_FAR *pszDefaultAction)
+      /* [optional][in] */ VARIANT varChild,
+      /* [retval][out] */ BSTR __RPC_FAR *pszDefaultAction)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -794,15 +794,15 @@ AccessibleWrap::get_accDefaultAction(
 
 STDMETHODIMP
 AccessibleWrap::accSelect(
-       long flagsSelect,
-       VARIANT varChild)
+      /* [in] */ long flagsSelect,
+      /* [optional][in] */ VARIANT varChild)
 {
   A11Y_TRYBLOCK_BEGIN
 
   if (IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  
+  // currently only handle focus and selection
   Accessible* xpAccessible = GetXPAccessibleFor(varChild);
   if (!xpAccessible)
     return E_INVALIDARG;
@@ -837,11 +837,11 @@ AccessibleWrap::accSelect(
 
 STDMETHODIMP
 AccessibleWrap::accLocation(
-       long __RPC_FAR *pxLeft,
-       long __RPC_FAR *pyTop,
-       long __RPC_FAR *pcxWidth,
-       long __RPC_FAR *pcyHeight,
-       VARIANT varChild)
+      /* [out] */ long __RPC_FAR *pxLeft,
+      /* [out] */ long __RPC_FAR *pyTop,
+      /* [out] */ long __RPC_FAR *pcxWidth,
+      /* [out] */ long __RPC_FAR *pcyHeight,
+      /* [optional][in] */ VARIANT varChild)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -870,9 +870,9 @@ AccessibleWrap::accLocation(
 
 STDMETHODIMP
 AccessibleWrap::accNavigate(
-       long navDir,
-       VARIANT varStart,
-       VARIANT __RPC_FAR *pvarEndUpAt)
+      /* [in] */ long navDir,
+      /* [optional][in] */ VARIANT varStart,
+      /* [retval][out] */ VARIANT __RPC_FAR *pvarEndUpAt)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -915,7 +915,7 @@ AccessibleWrap::accNavigate(
     case NAVDIR_UP:
       return E_NOTIMPL;
 
-    
+    // MSAA relationship extensions to accNavigate
     case NAVRELATION_CONTROLLED_BY:
       xpRelation = nsIAccessibleRelation::RELATION_CONTROLLED_BY;
       break;
@@ -988,9 +988,9 @@ AccessibleWrap::accNavigate(
 
 STDMETHODIMP
 AccessibleWrap::accHitTest(
-       long xLeft,
-       long yTop,
-       VARIANT __RPC_FAR *pvarChild)
+      /* [in] */ long xLeft,
+      /* [in] */ long yTop,
+      /* [retval][out] */ VARIANT __RPC_FAR *pvarChild)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -1001,18 +1001,18 @@ AccessibleWrap::accHitTest(
 
   Accessible* accessible = ChildAtPoint(xLeft, yTop, eDirectChild);
 
-  
+  // if we got a child
   if (accessible) {
-    
+    // if the child is us
     if (accessible == this) {
       pvarChild->vt = VT_I4;
       pvarChild->lVal = CHILDID_SELF;
-    } else { 
+    } else { // its not create an Accessible for it.
       pvarChild->vt = VT_DISPATCH;
       pvarChild->pdispVal = NativeAccessible(accessible);
     }
   } else {
-    
+    // no child at that point
     pvarChild->vt = VT_EMPTY;
     return S_FALSE;
   }
@@ -1023,7 +1023,7 @@ AccessibleWrap::accHitTest(
 
 STDMETHODIMP
 AccessibleWrap::accDoDefaultAction(
-       VARIANT varChild)
+      /* [optional][in] */ VARIANT varChild)
 {
   A11Y_TRYBLOCK_BEGIN
 
@@ -1044,22 +1044,22 @@ AccessibleWrap::accDoDefaultAction(
 
 STDMETHODIMP
 AccessibleWrap::put_accName(
-       VARIANT varChild,
-       BSTR szName)
+      /* [optional][in] */ VARIANT varChild,
+      /* [in] */ BSTR szName)
 {
   return E_NOTIMPL;
 }
 
 STDMETHODIMP
 AccessibleWrap::put_accValue(
-       VARIANT varChild,
-       BSTR szValue)
+      /* [optional][in] */ VARIANT varChild,
+      /* [in] */ BSTR szValue)
 {
   return E_NOTIMPL;
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccessibleWrap. IAccessible2
 
 STDMETHODIMP
 AccessibleWrap::get_nRelations(long *aNRelations)
@@ -1176,8 +1176,8 @@ AccessibleWrap::role(long *aRole)
 
 #undef ROLE
 
-  
-  
+  // Special case, if there is a ROLE_ROW inside of a ROLE_TREE_TABLE, then call
+  // the IA2 role a ROLE_OUTLINEITEM.
   if (geckoRole == roles::ROW) {
     Accessible* xpParent = Parent();
     if (xpParent && xpParent->Role() == roles::TREE_TABLE)
@@ -1234,9 +1234,9 @@ AccessibleWrap::get_groupPosition(long *aGroupLevel,
 
   GroupPos groupPos = GroupPosition();
 
-  
-  
-  
+  // Group information for accessibles having level only (like html headings
+  // elements) isn't exposed by this method. AT should look for 'level' object
+  // attribute.
   if (!groupPos.setSize && !groupPos.posInSet)
     return S_FALSE;
 
@@ -1256,7 +1256,7 @@ AccessibleWrap::get_states(AccessibleStates *aStates)
 
   *aStates = 0;
 
-  
+  // XXX: bug 344674 should come with better approach that we have here.
 
   uint64_t state = State();
 
@@ -1265,11 +1265,11 @@ AccessibleWrap::get_states(AccessibleStates *aStates)
   if (state & states::REQUIRED)
     *aStates |= IA2_STATE_REQUIRED;
 
-  
-  
-  
-  
-  
+  // The following IA2 states are not supported by Gecko
+  // IA2_STATE_ARMED
+  // IA2_STATE_MANAGES_DESCENDANTS
+  // IA2_STATE_ICONIFIED
+  // IA2_STATE_INVALID // This is not a state, it is the absence of a state
 
   if (state & states::ACTIVE)
     *aStates |= IA2_STATE_ACTIVE;
@@ -1417,10 +1417,10 @@ AccessibleWrap::get_locale(IA2Locale *aLocale)
 {
   A11Y_TRYBLOCK_BEGIN
 
-  
-  
-  
-  
+  // Language codes consist of a primary code and a possibly empty series of
+  // subcodes: language-code = primary-code ( "-" subcode )*
+  // Two-letter primary codes are reserved for [ISO639] language abbreviations.
+  // Any two-letter subcode is understood to be a [ISO3166] country code.
 
   if (IsDefunct())
     return CO_E_OBJNOTCONNECTED;
@@ -1428,7 +1428,7 @@ AccessibleWrap::get_locale(IA2Locale *aLocale)
   nsAutoString lang;
   Language(lang);
 
-  
+  // If primary code consists from two letters then expose it as language.
   int32_t offset = lang.FindChar('-', 0);
   if (offset == -1) {
     if (lang.Length() == 2) {
@@ -1438,8 +1438,8 @@ AccessibleWrap::get_locale(IA2Locale *aLocale)
   } else if (offset == 2) {
     aLocale->language = ::SysAllocStringLen(lang.get(), 2);
 
-    
-    
+    // If the first subcode consists from two letters then expose it as
+    // country.
     offset = lang.FindChar('-', 3);
     if (offset == -1) {
       if (lang.Length() == 5) {
@@ -1451,8 +1451,8 @@ AccessibleWrap::get_locale(IA2Locale *aLocale)
     }
   }
 
-  
-  
+  // Expose as a string if primary code or subcode cannot point to language or
+  // country abbreviations or if there are more than one subcode.
   aLocale->variant = ::SysAllocString(lang.get());
   return S_OK;
 
@@ -1464,8 +1464,8 @@ AccessibleWrap::get_attributes(BSTR *aAttributes)
 {
   A11Y_TRYBLOCK_BEGIN
 
-  
-  
+  // The format is name:value;name:value; with \ for escaping these
+  // characters ":;=,\".
   *aAttributes = NULL;
 
   if (IsDefunct())
@@ -1477,8 +1477,8 @@ AccessibleWrap::get_attributes(BSTR *aAttributes)
   A11Y_TRYBLOCK_END
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// IDispatch
 
 STDMETHODIMP
 AccessibleWrap::GetTypeInfoCount(UINT *pctinfo)
@@ -1533,7 +1533,7 @@ AccessibleWrap::Invoke(DISPID dispIdMember, REFIID riid,
 }
 
 
-
+// nsIAccessible method
 NS_IMETHODIMP
 AccessibleWrap::GetNativeInterface(void **aOutAccessible)
 {
@@ -1542,8 +1542,8 @@ AccessibleWrap::GetNativeInterface(void **aOutAccessible)
   return NS_OK;
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// Accessible
 
 nsresult
 AccessibleWrap::HandleAccEvent(AccEvent* aEvent)
@@ -1554,8 +1554,8 @@ AccessibleWrap::HandleAccEvent(AccEvent* aEvent)
   return FirePlatformEvent(aEvent);
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccessibleWrap
 
 nsresult
 AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
@@ -1571,7 +1571,7 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
   if (!winEvent)
     return NS_OK;
 
-  
+  // Means we're not active.
   NS_ENSURE_TRUE(!IsDefunct(), NS_ERROR_FAILURE);
 
   Accessible* accessible = aEvent->GetAccessible();
@@ -1583,9 +1583,9 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
     UpdateSystemCaret();
   }
 
-  int32_t childID = GetChildIDFor(accessible); 
+  int32_t childID = GetChildIDFor(accessible); // get the id for the accessible
   if (!childID)
-    return NS_OK; 
+    return NS_OK; // Can't fire an event without a child ID
 
   HWND hWnd = GetHWNDFor(accessible);
   NS_ENSURE_TRUE(hWnd, NS_ERROR_FAILURE);
@@ -1608,10 +1608,10 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
   }
 #endif
 
-  
+  // Fire MSAA event for client area window.
   ::NotifyWinEvent(winEvent, hWnd, OBJID_CLIENT, childID);
 
-  
+  // JAWS announces collapsed combobox navigation based on focus events.
   if (Compatibility::IsJAWS()) {
     if (eventType == nsIAccessibleEvent::EVENT_SELECTION &&
       accessible->Role() == roles::COMBOBOX_OPTION) {
@@ -1622,18 +1622,18 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
   return NS_OK;
 }
 
-
+//------- Helper methods ---------
 
 int32_t
 AccessibleWrap::GetChildIDFor(Accessible* aAccessible)
 {
-  
-  
-  
+  // A child ID of the window is required, when we use NotifyWinEvent,
+  // so that the 3rd party application can call back and get the IAccessible
+  // the event occurred on.
 
-  
-  
-  
+  // Yes, this means we're only compatibible with 32 bit
+  // MSAA is only available for 32 bit windows, so it's okay
+  // XXX: bug 606080
   return aAccessible ? - NS_PTR_TO_INT32(aAccessible->UniqueID()) : 0;
 }
 
@@ -1645,9 +1645,9 @@ AccessibleWrap::GetHWNDFor(Accessible* aAccessible)
     if(!document)
       return nullptr;
 
-    
-    
-    
+    // Popup lives in own windows, use its HWND until the popup window is
+    // hidden to make old JAWS versions work with collapsed comboboxes (see
+    // discussion in bug 379678).
     nsIFrame* frame = aAccessible->GetFrame();
     if (frame) {
       nsIWidget* widget = frame->GetNearestWidget();
@@ -1657,9 +1657,9 @@ AccessibleWrap::GetHWNDFor(Accessible* aAccessible)
         if (vm) {
           nsCOMPtr<nsIWidget> rootWidget;
           vm->GetRootWidget(getter_AddRefs(rootWidget));
-          
-          
-          
+          // Make sure the accessible belongs to popup. If not then use
+          // document HWND (which might be different from root widget in the
+          // case of window emulation).
           if (rootWidget != widget)
             return static_cast<HWND>(widget->GetNativeData(NS_NATIVE_WINDOW));
         }
@@ -1677,8 +1677,8 @@ AccessibleWrap::ConvertToIA2Attributes(nsIPersistentProperties *aAttributes,
 {
   *aIA2Attributes = NULL;
 
-  
-  
+  // The format is name:value;name:value; with \ for escaping these
+  // characters ":;=,\".
 
   if (!aAttributes)
     return S_FALSE;
@@ -1753,33 +1753,33 @@ AccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
   if (aVarChild.vt != VT_I4)
     return nullptr;
 
-  
+  // if its us real easy - this seems to always be the case
   if (aVarChild.lVal == CHILDID_SELF)
     return this;
 
   if (nsAccUtils::MustPrune(this))
     return nullptr;
 
-  
-  
-  
+  // If lVal negative then it is treated as child ID and we should look for
+  // accessible through whole accessible subtree including subdocuments.
+  // Otherwise we treat lVal as index in parent.
 
   if (aVarChild.lVal < 0) {
-    
+    // Convert child ID to unique ID.
     void* uniqueID = reinterpret_cast<void*>(-aVarChild.lVal);
 
-    
+    // Document.
     if (IsDoc())
       return AsDoc()->GetAccessibleByUniqueIDInSubtree(uniqueID);
 
-    
+    // ARIA document.
     if (ARIARole() == roles::DOCUMENT) {
       DocAccessible* document = Document();
       Accessible* child =
         document->GetAccessibleByUniqueIDInSubtree(uniqueID);
 
-      
-      
+      // Check whether the accessible for the given ID is a child of ARIA
+      // document.
       Accessible* parent = child ? child->Parent() : nullptr;
       while (parent && parent != document) {
         if (parent == this)
@@ -1792,15 +1792,15 @@ AccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
     return nullptr;
   }
 
-  
+  // Gecko child indices are 0-based in contrast to indices used in MSAA.
   return GetChildAt(aVarChild.lVal - 1);
 }
 
 void
 AccessibleWrap::UpdateSystemCaret()
 {
-  
-  
+  // Move the system caret so that Windows Tablet Edition and tradional ATs with 
+  // off-screen model can follow the caret
   ::DestroyCaret();
 
   a11y::RootAccessible* rootAccessible = RootAccessible();
@@ -1820,10 +1820,10 @@ AccessibleWrap::UpdateSystemCaret()
     return;
   }
 
-  
-  
+  // Create invisible bitmap for caret, otherwise its appearance interferes
+  // with Gecko caret
   HBITMAP caretBitMap = CreateBitmap(1, caretRect.height, 1, 1, NULL);
-  if (::CreateCaret(caretWnd, caretBitMap, 1, caretRect.height)) {  
+  if (::CreateCaret(caretWnd, caretBitMap, 1, caretRect.height)) {  // Also destroys the last caret
     ::ShowCaret(caretWnd);
     RECT windowRect;
     ::GetWindowRect(caretWnd, &windowRect);

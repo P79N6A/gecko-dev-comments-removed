@@ -62,7 +62,7 @@ class nsIAtom;
 class nsPresContext;
 class nsIPresShell;
 class nsRenderingContext;
-class nsIView;
+class nsView;
 class nsIWidget;
 class nsIDOMRange;
 class nsISelectionController;
@@ -1949,16 +1949,16 @@ public:
 
 
   bool HasView() const { return !!(mState & NS_FRAME_HAS_VIEW); }
-  nsIView* GetView() const;
-  virtual nsIView* GetViewExternal() const;
-  nsresult SetView(nsIView* aView);
+  nsView* GetView() const;
+  virtual nsView* GetViewExternal() const;
+  nsresult SetView(nsView* aView);
 
   
 
 
 
 
-  nsIView* GetClosestView(nsPoint* aOffset = nullptr) const;
+  nsView* GetClosestView(nsPoint* aOffset = nullptr) const;
 
   
 
@@ -2026,7 +2026,7 @@ public:
 
 
   NS_IMETHOD  GetOffsetFromView(nsPoint&  aOffset,
-                                nsIView** aView) const = 0;
+                                nsView** aView) const = 0;
 
   
 

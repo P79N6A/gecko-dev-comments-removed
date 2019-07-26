@@ -567,7 +567,7 @@ nsFrameSelection::FetchDesiredX(nscoord &aDesiredX)
   if (!caretFrame)
     return NS_ERROR_FAILURE;
   nsPoint viewOffset(0, 0);
-  nsIView* view = nullptr;
+  nsView* view = nullptr;
   caretFrame->GetOffsetFromView(viewOffset, &view);
   if (view)
     coord.x += viewOffset.x;

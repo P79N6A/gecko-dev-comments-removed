@@ -440,7 +440,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
                kidDesiredSize.width, kidDesiredSize.height);
   aKidFrame->SetRect(rect);
 
-  nsIView* view = aKidFrame->GetView();
+  nsView* view = aKidFrame->GetView();
   if (view) {
     
     

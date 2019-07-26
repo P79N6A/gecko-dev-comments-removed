@@ -67,7 +67,6 @@
 #include "nsIDOMFileHandle.h"
 #include "nsPrintfCString.h"
 #include "nsViewportInfo.h"
-#include "nsIFormControl.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -666,7 +665,7 @@ nsDOMWindowUtils::SendMouseEventCommon(const nsAString& aType,
     nsIViewManager* viewManager = presShell->GetViewManager();
     if (!viewManager)
       return NS_ERROR_FAILURE;
-    nsIView* view = viewManager->GetRootView();
+    nsView* view = viewManager->GetRootView();
     if (!view)
       return NS_ERROR_FAILURE;
 
@@ -3089,28 +3088,5 @@ nsDOMWindowUtils::AllowScriptsToClose()
   nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindow);
   NS_ENSURE_STATE(window);
   static_cast<nsGlobalWindow*>(window.get())->AllowScriptsToClose();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::IsNodeDisabledForEvents(nsIDOMNode* aNode, bool* aRetVal)
-{
-  *aRetVal = false;
-  if (!nsContentUtils::IsCallerChrome()) {
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-  nsCOMPtr<nsINode> n = do_QueryInterface(aNode);
-  nsINode* node = n;
-  while (node) {
-    if (node->IsNodeOfType(nsINode::eHTML_FORM_CONTROL)) {
-      nsCOMPtr<nsIFormControl> fc = do_QueryInterface(node);
-      if (fc && fc->IsDisabledForEvents(NS_EVENT_NULL)) {
-        *aRetVal = true;
-        break;
-      }
-    }
-    node = node->GetParentNode();
-  }
-
   return NS_OK;
 }

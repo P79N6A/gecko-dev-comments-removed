@@ -40,7 +40,7 @@
 #include "nsGUIEvent.h"
 #include "nsIXULWindow.h"
 
-class nsIView;
+class nsView;
 class nsIPresShell;
 
 class nsIWidgetListener
@@ -57,7 +57,7 @@ public:
   
 
 
-  virtual nsIView* GetView() { return nullptr; }
+  virtual nsView* GetView() { return nullptr; }
 
   
 

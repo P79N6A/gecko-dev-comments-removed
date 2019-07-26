@@ -26,7 +26,7 @@ class nsIImageLoadingContent;
 #include "nsStyleContext.h"
 #include "nsAutoPtr.h"
 #include "nsStyleSet.h"
-#include "nsIView.h"
+#include "nsView.h"
 #include "nsIFrame.h"
 #include "nsThreadUtils.h"
 #include "nsIPresShell.h"
@@ -272,7 +272,7 @@ public:
 
 
 
-  static nsIView* FindSiblingViewFor(nsIView* aParentView, nsIFrame* aFrame);
+  static nsView* FindSiblingViewFor(nsView* aParentView, nsIFrame* aFrame);
 
   
 
@@ -471,7 +471,7 @@ public:
 
   static nsPoint TranslateWidgetToView(nsPresContext* aPresContext,
                                        nsIWidget* aWidget, nsIntPoint aPt,
-                                       nsIView* aView);
+                                       nsView* aView);
 
   
 

@@ -7,7 +7,7 @@
 #define nsIViewManager_h___
 
 #include "nscore.h"
-#include "nsIView.h"
+#include "nsView.h"
 #include "nsEvent.h"
 
 class nsIWidget;
@@ -45,15 +45,15 @@ public:
 
 
 
-  NS_IMETHOD_(nsIView*) CreateView(const nsRect& aBounds,
-                                   const nsIView* aParent,
+  NS_IMETHOD_(nsView*) CreateView(const nsRect& aBounds,
+                                   const nsView* aParent,
                                    nsViewVisibility aVisibilityFlag = nsViewVisibility_kShow) = 0;
 
   
 
 
 
-  NS_IMETHOD_(nsIView*) GetRootView() = 0;
+  NS_IMETHOD_(nsView*) GetRootView() = 0;
 
   
 
@@ -61,7 +61,7 @@ public:
 
 
 
-  NS_IMETHOD  SetRootView(nsIView *aView) = 0;
+  NS_IMETHOD  SetRootView(nsView *aView) = 0;
 
   
 
@@ -90,7 +90,7 @@ public:
 
 
 
-  NS_IMETHOD  InvalidateView(nsIView *aView) = 0;
+  NS_IMETHOD  InvalidateView(nsView *aView) = 0;
 
   
 
@@ -99,7 +99,7 @@ public:
 
 
 
-  NS_IMETHOD  InvalidateViewNoSuppression(nsIView *aView, const nsRect &aRect) = 0;
+  NS_IMETHOD  InvalidateViewNoSuppression(nsView *aView, const nsRect &aRect) = 0;
 
   
 
@@ -115,7 +115,7 @@ public:
 
 
   NS_IMETHOD  DispatchEvent(nsGUIEvent *aEvent,
-      nsIView* aViewTarget, nsEventStatus* aStatus) = 0;
+      nsView* aViewTarget, nsEventStatus* aStatus) = 0;
 
   
 
@@ -132,7 +132,7 @@ public:
 
 
 
-  NS_IMETHOD  InsertChild(nsIView *aParent, nsIView *aChild, nsIView *aSibling,
+  NS_IMETHOD  InsertChild(nsView *aParent, nsView *aChild, nsView *aSibling,
                           bool aAfter) = 0;
 
   
@@ -142,7 +142,7 @@ public:
 
 
 
-  NS_IMETHOD  RemoveChild(nsIView *aChild) = 0;
+  NS_IMETHOD  RemoveChild(nsView *aChild) = 0;
 
   
 
@@ -153,7 +153,7 @@ public:
 
 
 
-  NS_IMETHOD  MoveViewTo(nsIView *aView, nscoord aX, nscoord aY) = 0;
+  NS_IMETHOD  MoveViewTo(nsView *aView, nscoord aX, nscoord aY) = 0;
 
   
 
@@ -167,7 +167,7 @@ public:
 
 
 
-  NS_IMETHOD  ResizeView(nsIView *aView, const nsRect &aRect,
+  NS_IMETHOD  ResizeView(nsView *aView, const nsRect &aRect,
                          bool aRepaintExposedAreaOnly = false) = 0;
 
   
@@ -181,7 +181,7 @@ public:
 
 
 
-  NS_IMETHOD  SetViewVisibility(nsIView *aView, nsViewVisibility aVisible) = 0;
+  NS_IMETHOD  SetViewVisibility(nsView *aView, nsViewVisibility aVisible) = 0;
 
   
 
@@ -199,7 +199,7 @@ public:
 
 
 
-  NS_IMETHOD  SetViewZIndex(nsIView *aView, bool aAutoZIndex, int32_t aZindex, bool aTopMost = false) = 0;
+  NS_IMETHOD  SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZindex, bool aTopMost = false) = 0;
 
   
 
@@ -208,7 +208,7 @@ public:
 
 
 
-  NS_IMETHOD  SetViewFloating(nsIView *aView, bool aFloatingView) = 0;
+  NS_IMETHOD  SetViewFloating(nsView *aView, bool aFloatingView) = 0;
 
   
 
@@ -292,7 +292,7 @@ public:
 
 
 
-  static nsIView* GetDisplayRootFor(nsIView* aView);
+  static nsView* GetDisplayRootFor(nsView* aView);
 
   
 

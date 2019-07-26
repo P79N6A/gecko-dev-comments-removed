@@ -124,7 +124,7 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
   
   
   
-  nsIView* ourView = GetView();
+  nsView* ourView = GetView();
   nsIViewManager* viewManager = ourView->GetViewManager();
   viewManager->SetViewFloating(ourView, true);
 
@@ -227,7 +227,7 @@ nsMenuPopupFrame::PopupLevel(bool aIsNoAutoHide) const
 void
 nsMenuPopupFrame::EnsureWidget()
 {
-  nsIView* ourView = GetView();
+  nsView* ourView = GetView();
   if (!ourView->HasWidget()) {
     NS_ASSERTION(!mGeneratedChildren && !GetFirstPrincipalChild(),
                  "Creating widget for MenuPopupFrame with children");
@@ -236,7 +236,7 @@ nsMenuPopupFrame::EnsureWidget()
 }
 
 nsresult
-nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
+nsMenuPopupFrame::CreateWidgetForView(nsView* aView)
 {
   
   nsWidgetInitData widgetData;
@@ -448,7 +448,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
   }
 
   nsPresContext* pc = PresContext();
-  nsIView* view = GetView();
+  nsView* view = GetView();
 
   if (sizeChanged) {
     
@@ -793,7 +793,7 @@ nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState)
   mCurrentMenu = nullptr; 
   mHFlip = mVFlip = false;
 
-  nsIView* view = GetView();
+  nsView* view = GetView();
   nsIViewManager* viewManager = view->GetViewManager();
   viewManager->SetViewVisibility(view, nsViewVisibility_kHide);
 
@@ -827,10 +827,10 @@ nsMenuPopupFrame::GetLayoutFlags(uint32_t& aFlags)
 
 
 
-nsIView*
+nsView*
 nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame)
 {
-  nsIView* view = aStartFrame->GetClosestView();
+  nsView* view = aStartFrame->GetClosestView();
   NS_ASSERTION(view, "frame must have a closest view!");
   while (view) {
     
@@ -845,7 +845,7 @@ nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame)
       }
     }
 
-    nsIView* temp = view->GetParent();
+    nsView* temp = view->GetParent();
     if (!temp) {
       
       
@@ -1271,7 +1271,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
   viewPoint.x = presContext->RoundAppUnitsToNearestDevPixels(viewPoint.x);
   viewPoint.y = presContext->RoundAppUnitsToNearestDevPixels(viewPoint.y);
 
-  nsIView* view = GetView();
+  nsView* view = GetView();
   NS_ASSERTION(view, "popup with no view");
 
   
@@ -1731,7 +1731,7 @@ nsMenuPopupFrame::LockMenuUntilClosed(bool aLock)
 nsIWidget*
 nsMenuPopupFrame::GetWidget()
 {
-  nsIView * view = GetRootViewForPopup(this);
+  nsView * view = GetRootViewForPopup(this);
   if (!view)
     return nullptr;
 
@@ -1773,7 +1773,7 @@ nsMenuPopupFrame::AttributeChanged(int32_t aNameSpaceID,
 
   if (aAttribute == nsGkAtoms::label) {
     
-    nsIView* view = GetView();
+    nsView* view = GetView();
     if (view) {
       nsIWidget* widget = view->GetWidget();
       if (widget) {
@@ -1923,7 +1923,7 @@ nsMenuPopupFrame::CreatePopupView()
   NS_ASSERTION(nullptr != viewManager, "null view manager");
 
   
-  nsIView* parentView = viewManager->GetRootView();
+  nsView* parentView = viewManager->GetRootView();
   nsViewVisibility visibility = nsViewVisibility_kHide;
   int32_t zIndex = INT32_MAX;
   bool    autoZIndex = false;
@@ -1931,7 +1931,7 @@ nsMenuPopupFrame::CreatePopupView()
   NS_ASSERTION(parentView, "no parent view");
 
   
-  nsIView *view = viewManager->CreateView(GetRect(), parentView, visibility);
+  nsView *view = viewManager->CreateView(GetRect(), parentView, visibility);
   if (view) {
     viewManager->SetViewZIndex(view, autoZIndex, zIndex);
     

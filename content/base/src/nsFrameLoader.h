@@ -26,7 +26,7 @@
 
 class nsIURI;
 class nsSubDocumentFrame;
-class nsIView;
+class nsView;
 class nsIInProcessContentFrameMessageManager;
 class AutoResetInShow;
 class nsITabParent;
@@ -296,14 +296,14 @@ public:
 
 
 
-  void SetDetachedSubdocView(nsIView* aDetachedView,
+  void SetDetachedSubdocView(nsView* aDetachedView,
                              nsIDocument* aContainerDoc);
 
   
 
 
 
-  nsIView* GetDetachedSubdocView(nsIDocument** aContainerDoc) const;
+  nsView* GetDetachedSubdocView(nsIDocument** aContainerDoc) const;
 
 private:
 
@@ -392,7 +392,7 @@ public:
 private:
   
   
-  nsIView* mDetachedSubdocViews;
+  nsView* mDetachedSubdocViews;
   
   
   
