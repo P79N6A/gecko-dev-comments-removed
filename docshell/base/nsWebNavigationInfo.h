@@ -9,7 +9,6 @@
 #include "nsIWebNavigationInfo.h"
 #include "nsCOMPtr.h"
 #include "nsICategoryManager.h"
-#include "imgILoader.h"
 #include "nsStringFwd.h"
 #include "mozilla/Attributes.h"
 
@@ -37,10 +36,6 @@ private:
                                    uint32_t* aIsSupported);
   
   nsCOMPtr<nsICategoryManager> mCategoryManager;
-  
-  
-  
-  nsCOMPtr<imgILoader> mImgLoader;
 };
 
 #endif  
