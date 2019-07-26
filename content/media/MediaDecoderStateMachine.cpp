@@ -79,6 +79,13 @@ const int64_t AMPLE_AUDIO_USECS = 1000000;
 
 
 
+const int64_t NO_VIDEO_AMPLE_AUDIO_DIVISOR = 8;
+
+
+
+
+
+
 const uint32_t SILENCE_BYTES_CHUNK = 32 * 1024;
 
 
@@ -1855,6 +1862,14 @@ nsresult MediaDecoderStateMachine::DecodeMetadata()
                              " transportSeekable=%d, mediaSeekable=%d",
                              mDecoder.get(), mStartTime, mEndTime, GetDuration(),
                              mTransportSeekable, mMediaSeekable));
+
+  if (HasAudio() && !HasVideo()) {
+    
+    
+    
+    mAmpleAudioThresholdUsecs /= NO_VIDEO_AMPLE_AUDIO_DIVISOR;
+    mLowAudioThresholdUsecs /= NO_VIDEO_AMPLE_AUDIO_DIVISOR;
+  }
 
   
   
