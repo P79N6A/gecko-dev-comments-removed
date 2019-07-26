@@ -1112,7 +1112,6 @@ RilObject.prototype = {
 
 
 
-
   setCLIR: function(options) {
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_SET_CLIR, options);
