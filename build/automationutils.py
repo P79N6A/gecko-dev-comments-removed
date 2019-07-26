@@ -146,23 +146,23 @@ def checkForCrashes(dumpDir, symbolsPath, testName=None):
   if len(dumps) == 0:
     return False
 
-  removeSymbolsPath = False
-
-  
-  if symbolsPath and isURL(symbolsPath):
-    print "Downloading symbols from: " + symbolsPath
-    removeSymbolsPath = True
-    
-    data = urllib2.urlopen(symbolsPath)
-    symbolsFile = tempfile.TemporaryFile()
-    symbolsFile.write(data.read())
-    
-    
-    symbolsPath = tempfile.mkdtemp()
-    zfile = ZipFileReader(symbolsFile)
-    zfile.extractall(symbolsPath)
-
   try:
+    removeSymbolsPath = False
+
+    
+    if symbolsPath and isURL(symbolsPath):
+      print "Downloading symbols from: " + symbolsPath
+      removeSymbolsPath = True
+      
+      data = urllib2.urlopen(symbolsPath)
+      symbolsFile = tempfile.TemporaryFile()
+      symbolsFile.write(data.read())
+      
+      
+      symbolsPath = tempfile.mkdtemp()
+      zfile = ZipFileReader(symbolsFile)
+      zfile.extractall(symbolsPath)
+
     for d in dumps:
       stackwalkOutput = []
       stackwalkOutput.append("Crash dump filename: " + d)

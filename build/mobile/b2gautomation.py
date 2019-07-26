@@ -102,13 +102,15 @@ class B2GRemoteAutomation(Automation):
     def checkForCrashes(self, directory, symbolsPath):
         
         
-        dumpDir = tempfile.mkdtemp()
-        self._devicemanager.getDirectory(self._remoteProfile + '/minidumps/', dumpDir)
-        crashed = automationutils.checkForCrashes(dumpDir, symbolsPath, self.lastTestSeen)
         try:
-            shutil.rmtree(dumpDir)
-        except:
-            print "WARNING: unable to remove directory: %s" % (dumpDir)
+            dumpDir = tempfile.mkdtemp()
+            self._devicemanager.getDirectory(self._remoteProfile + '/minidumps/', dumpDir)
+            crashed = automationutils.checkForCrashes(dumpDir, symbolsPath, self.lastTestSeen)
+        finally:
+            try:
+                shutil.rmtree(dumpDir)
+            except:
+                print "WARNING: unable to remove directory: %s" % (dumpDir)
         return crashed
 
     def initializeProfile(self,  profileDir, extraPrefs=[],

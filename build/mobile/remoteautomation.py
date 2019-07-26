@@ -88,22 +88,24 @@ class RemoteAutomation(Automation):
         return status
 
     def checkForCrashes(self, directory, symbolsPath):
-        remoteCrashDir = self._remoteProfile + '/minidumps/'
-        if not self._devicemanager.dirExists(remoteCrashDir):
-            
-            
-            
-            print "Automation Error: No crash directory (%s) found on remote device" % remoteCrashDir
-            
-            return True
-        dumpDir = tempfile.mkdtemp()
-        self._devicemanager.getDirectory(remoteCrashDir, dumpDir)
-        crashed = automationutils.checkForCrashes(dumpDir, symbolsPath,
-                                        self.lastTestSeen)
         try:
-            shutil.rmtree(dumpDir)
-        except:
-            print "WARNING: unable to remove directory: %s" % dumpDir
+            remoteCrashDir = self._remoteProfile + '/minidumps/'
+            if not self._devicemanager.dirExists(remoteCrashDir):
+                
+                
+                
+                print "Automation Error: No crash directory (%s) found on remote device" % remoteCrashDir
+                
+                return True
+            dumpDir = tempfile.mkdtemp()
+            self._devicemanager.getDirectory(remoteCrashDir, dumpDir)
+            crashed = automationutils.checkForCrashes(dumpDir, symbolsPath,
+                                            self.lastTestSeen)
+        finally:
+            try:
+                shutil.rmtree(dumpDir)
+            except:
+                print "WARNING: unable to remove directory: %s" % dumpDir
         return crashed
 
     def buildCommandLine(self, app, debuggerInfo, profileDir, testURL, extraArgs):
