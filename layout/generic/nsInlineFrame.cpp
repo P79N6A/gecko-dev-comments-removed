@@ -895,13 +895,13 @@ nsInlineFrame::AccessibleType()
   
   nsIAtom *tagAtom = mContent->Tag();
   if (tagAtom == nsGkAtoms::input)  
-    return a11y::eHTMLButtonAccessible;
+    return a11y::eHTMLButton;
   if (tagAtom == nsGkAtoms::img)  
-    return a11y::eImageAccessible;
+    return a11y::eImage;
   if (tagAtom == nsGkAtoms::label)  
-    return a11y::eHTMLLabelAccessible;
+    return a11y::eHTMLLabel;
 
-  return a11y::eNoAccessible;
+  return a11y::eNoType;
 }
 #endif
 

@@ -54,8 +54,8 @@ public:
   virtual Accessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
                                                 bool aCanCreate);
   already_AddRefed<Accessible>
-    CreateHTMLObjectFrameAccessible(nsObjectFrame* aFrame, nsIContent* aContent,
-                                    Accessible* aContext);
+    CreatePluginAccessible(nsObjectFrame* aFrame, nsIContent* aContent,
+                           Accessible* aContext);
 
   
 

@@ -6250,14 +6250,14 @@ nsBlockFrame::AccessibleType()
 {
   
   if (mContent->Tag() == nsGkAtoms::hr) {
-    return a11y::eHTMLHRAccessible;
+    return a11y::eHTMLHR;
   }
 
   if (!HasBullet() || !PresContext()) {
     if (!mContent->GetParent()) {
       
       
-      return a11y::eNoAccessible;
+      return a11y::eNoType;
     }
     
     nsCOMPtr<nsIDOMHTMLDocument> htmlDoc =
@@ -6268,16 +6268,16 @@ nsBlockFrame::AccessibleType()
       if (SameCOMIdentity(body, mContent)) {
         
         
-        return a11y::eNoAccessible;
+        return a11y::eNoType;
       }
     }
 
     
-    return a11y::eHyperTextAccessible;
+    return a11y::eHyperText;
   }
 
   
-  return a11y::eHTMLLiAccessible;
+  return a11y::eHTMLLi;
 }
 #endif
 
