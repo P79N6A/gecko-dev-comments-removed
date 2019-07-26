@@ -1276,6 +1276,9 @@ var gBrowserInit = {
     window.addEventListener("mousemove", MousePosTracker, false);
     window.addEventListener("dragover", MousePosTracker, false);
 
+    window.addEventListener("CustomizationStart", CustomizationHandler, false);
+    window.addEventListener("CustomizationEnd", CustomizationHandler, false);
+
     
     
     try {
@@ -1288,9 +1291,6 @@ var gBrowserInit = {
     Services.obs.notifyObservers(window, "browser-delayed-startup-finished", "");
     setTimeout(function () { BrowserChromeTest.markAsReady(); }, 0);
     TelemetryTimestamps.add("delayedStartupFinished");
-
-    window.addEventListener("CustomizationStart", CustomizationHandler, false);
-    window.addEventListener("CustomizationEnd", CustomizationHandler, false);
   },
 
   onUnload: function() {
