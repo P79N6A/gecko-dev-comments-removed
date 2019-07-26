@@ -477,58 +477,6 @@ private:
 
 NS_IMPL_ISUPPORTS1(DirPickerRecursiveFileEnumerator, nsISimpleEnumerator)
 
-class DirPickerFileListBuilderTask MOZ_FINAL
-  : public nsRunnable
-{
-public:
-  DirPickerFileListBuilderTask(HTMLInputElement* aInput, nsIFile* aTopDir)
-    : mInput(aInput)
-    , mTopDir(aTopDir)
-  {}
-
-  NS_IMETHOD Run() {
-    if (!NS_IsMainThread()) {
-      
-      nsCOMPtr<nsISimpleEnumerator> iter =
-        new DirPickerRecursiveFileEnumerator(mTopDir);
-      bool hasMore = true;
-      nsCOMPtr<nsISupports> tmp;
-      while (NS_SUCCEEDED(iter->HasMoreElements(&hasMore)) && hasMore) {
-        iter->GetNext(getter_AddRefs(tmp));
-        nsCOMPtr<nsIDOMFile> domFile = do_QueryInterface(tmp);
-        MOZ_ASSERT(domFile);
-        mFileList.AppendElement(domFile);
-        mInput->SetFileListProgress(mFileList.Length());
-      }
-      return NS_DispatchToMainThread(this);
-    }
-
-    
-    if (mFileList.IsEmpty()) {
-      return NS_OK;
-    }
-    
-    
-    
-    mInput->SetFiles(mFileList, true);
-    mInput->MaybeDispatchProgressEvent(true); 
-    nsresult rv =
-      nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
-                                           static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
-                                           NS_LITERAL_STRING("change"), true,
-                                           false);
-    
-    
-    mInput = nullptr;
-    return rv;
-  }
-
-private:
-  nsRefPtr<HTMLInputElement> mInput;
-  nsCOMPtr<nsIFile> mTopDir;
-  nsTArray<nsCOMPtr<nsIDOMFile> > mFileList;
-};
-
 
 
 
@@ -554,12 +502,116 @@ DOMFileToLocalFile(nsIDOMFile* aDomFile)
 
 } 
 
+class DirPickerFileListBuilderTask MOZ_FINAL
+  : public nsRunnable
+{
+public:
+  DirPickerFileListBuilderTask(HTMLInputElement* aInput, nsIFile* aTopDir)
+    : mPreviousFileListLength(0)
+    , mInput(aInput)
+    , mTopDir(aTopDir)
+    , mFileListLength(0)
+    , mCanceled(0)
+  {}
+
+  NS_IMETHOD Run() {
+    if (!NS_IsMainThread()) {
+      
+      nsCOMPtr<nsISimpleEnumerator> iter =
+        new DirPickerRecursiveFileEnumerator(mTopDir);
+      bool hasMore = true;
+      nsCOMPtr<nsISupports> tmp;
+      while (NS_SUCCEEDED(iter->HasMoreElements(&hasMore)) && hasMore) {
+        iter->GetNext(getter_AddRefs(tmp));
+        nsCOMPtr<nsIDOMFile> domFile = do_QueryInterface(tmp);
+        MOZ_ASSERT(domFile);
+        mFileList.AppendElement(domFile);
+        mFileListLength = mFileList.Length();
+        if (mCanceled) {
+          NS_ASSERTION(!mInput, "This is bad - how did this happen?");
+          
+          
+          return NS_OK;
+        }
+      }
+      return NS_DispatchToMainThread(this);
+    }
+
+    
+    if (mCanceled || mFileList.IsEmpty()) {
+      return NS_OK;
+    }
+    MOZ_ASSERT(mInput->mDirPickerFileListBuilderTask,
+               "But we aren't canceled!");
+    if (mInput->mProgressTimer) {
+      mInput->mProgressTimerIsActive = false;
+      mInput->mProgressTimer->Cancel();
+    }
+
+    
+    
+    
+    mInput->SetFiles(mFileList, true);
+    mInput->MaybeDispatchProgressEvent(true);        
+    mInput->mDirPickerFileListBuilderTask = nullptr; 
+    nsresult rv =
+      nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                           static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                           NS_LITERAL_STRING("change"), true,
+                                           false);
+    
+    
+    mInput = nullptr;
+    return rv;
+  }
+
+  void Cancel()
+  {
+    MOZ_ASSERT(NS_IsMainThread() && !mCanceled);
+    
+    
+    mInput = nullptr;
+    mCanceled = 1; 
+  }
+
+  uint32_t GetFileListLength() const
+  {
+    return mFileListLength;
+  }
+
+  
+
+
+
+
+
+
+
+
+  uint32_t mPreviousFileListLength;
+
+private:
+  nsRefPtr<HTMLInputElement> mInput;
+  nsCOMPtr<nsIFile> mTopDir;
+  nsTArray<nsCOMPtr<nsIDOMFile> > mFileList;
+
+  
+  
+  mozilla::Atomic<uint32_t> mFileListLength;
+
+  
+  mozilla::Atomic<uint32_t> mCanceled;
+};
+
+
 NS_IMETHODIMP
 HTMLInputElement::nsFilePickerShownCallback::Done(int16_t aResult)
 {
   if (aResult == nsIFilePicker::returnCancel) {
     return NS_OK;
   }
+
+  mInput->CancelDirectoryPickerScanIfRunning();
 
   int16_t mode;
   mFilePicker->GetMode(&mode);
@@ -590,14 +642,14 @@ HTMLInputElement::nsFilePickerShownCallback::Done(int16_t aResult)
       = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
     NS_ASSERTION(target, "Must have stream transport service");
 
-    mInput->ResetProgressCounters();
     mInput->StartProgressEventTimer();
 
     
     
-    nsRefPtr<DirPickerFileListBuilderTask> event =
+    mInput->mDirPickerFileListBuilderTask =
       new DirPickerFileListBuilderTask(mInput.get(), pickedDir.get());
-    return target->Dispatch(event, NS_DISPATCH_NORMAL);
+    return target->Dispatch(mInput->mDirPickerFileListBuilderTask,
+                            NS_DISPATCH_NORMAL);
   }
 
   
@@ -1020,8 +1072,6 @@ static nsresult FireEventForAccessibility(nsIDOMHTMLInputElement* aTarget,
 HTMLInputElement::HTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
                                    FromParser aFromParser)
   : nsGenericHTMLFormElementWithState(aNodeInfo)
-  , mFileListProgress(0)
-  , mLastFileListProgress(0)
   , mType(kInputDefaultType->value)
   , mDisabledChanged(false)
   , mValueChanged(false)
@@ -2464,6 +2514,20 @@ HTMLInputElement::OpenDirectoryPicker(ErrorResult& aRv)
 }
 
 void
+HTMLInputElement::CancelDirectoryPickerScanIfRunning()
+{
+  if (!mDirPickerFileListBuilderTask) {
+    return;
+  }
+  if (mProgressTimer) {
+    mProgressTimerIsActive = false;
+    mProgressTimer->Cancel();
+  }
+  mDirPickerFileListBuilderTask->Cancel();
+  mDirPickerFileListBuilderTask = nullptr;
+}
+
+void
 HTMLInputElement::StartProgressEventTimer()
 {
   if (!mProgressTimer) {
@@ -2507,8 +2571,10 @@ HTMLInputElement::MaybeDispatchProgressEvent(bool aFinalProgress)
     mProgressTimer->Cancel();
   }
 
+  uint32_t fileListLength = mDirPickerFileListBuilderTask->GetFileListLength();
+
   if (mProgressTimerIsActive ||
-      mFileListProgress == mLastFileListProgress) {
+      fileListLength == mDirPickerFileListBuilderTask->mPreviousFileListLength) {
     return;
   }
 
@@ -2516,10 +2582,11 @@ HTMLInputElement::MaybeDispatchProgressEvent(bool aFinalProgress)
     StartProgressEventTimer();
   }
 
-  mLastFileListProgress = mFileListProgress;
+  mDirPickerFileListBuilderTask->mPreviousFileListLength = fileListLength;
 
   DispatchProgressEvent(NS_LITERAL_STRING(PROGRESS_STR),
-                        false, mLastFileListProgress,
+                        false,
+                        mDirPickerFileListBuilderTask->mPreviousFileListLength,
                         0);
 }
 

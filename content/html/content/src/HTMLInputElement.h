@@ -32,6 +32,7 @@ namespace mozilla {
 namespace dom {
 
 class Date;
+class DirPickerFileListBuilderTask;
 
 class UploadLastDir MOZ_FINAL : public nsIObserver, public nsSupportsWeakReference {
 public:
@@ -87,6 +88,8 @@ class HTMLInputElement MOZ_FINAL : public nsGenericHTMLFormElementWithState,
                                    public nsITimerCallback,
                                    public nsIConstraintValidation
 {
+  friend class DirPickerFileListBuilderTask;
+
 public:
   using nsIConstraintValidation::GetValidationMessage;
   using nsIConstraintValidation::CheckValidity;
@@ -402,12 +405,8 @@ public:
   nsDOMFileList* GetFiles();
 
   void OpenDirectoryPicker(ErrorResult& aRv);
+  void CancelDirectoryPickerScanIfRunning();
 
-  void ResetProgressCounters()
-  {
-    mFileListProgress = 0;
-    mLastFileListProgress = 0;
-  }
   void StartProgressEventTimer();
   void MaybeDispatchProgressEvent(bool aFinalProgress);
   void DispatchProgressEvent(const nsAString& aType,
@@ -676,13 +675,6 @@ public:
   
 
   
-
-  void SetFileListProgress(uint32_t mFileCount)
-  {
-    MOZ_ASSERT(!NS_IsMainThread(),
-               "Why are we calling this on the main thread?");
-    mFileListProgress = mFileCount;
-  }
 
 protected:
   virtual JSObject* WrapNode(JSContext* aCx,
@@ -1162,6 +1154,8 @@ protected:
 
   nsRefPtr<nsDOMFileList>  mFileList;
 
+  nsRefPtr<DirPickerFileListBuilderTask> mDirPickerFileListBuilderTask;
+
   nsString mStaticDocFileList;
   
   
@@ -1201,19 +1195,6 @@ protected:
 
   
   static const Decimal kStepAny;
-
-  
-
-
-
-
-  mozilla::Atomic<uint32_t> mFileListProgress;
-
-  
-
-
-
-  uint32_t mLastFileListProgress;
 
   
 
