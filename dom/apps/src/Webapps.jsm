@@ -168,6 +168,10 @@ this.DOMApplicationRegistry = {
   },
 
   updatePermissionsForApp: function updatePermissionsForApp(aId) {
+    if (!this.webapps[aId]) {
+      return;
+    }
+
     
     
     this._readManifests([{ id: aId }], (function(aResult) {
@@ -190,6 +194,71 @@ this.DOMApplicationRegistry = {
       origin: app.origin,
       localId: app.localId
     });
+  },
+
+  
+  installPreinstalledPackage: function installPreinstalledPackage(aId) {
+    let app = this.webapps[aId];
+    let baseDir;
+    try {
+      baseDir = FileUtils.getDir("coreAppsDir", ["webapps", aId], true, true);
+    } catch(e) {
+      
+      return;
+    }
+
+    let updateFile = baseDir.clone();
+    updateFile.append("update.webapp");
+    if (!updateFile.exists()) {
+      
+      return;
+    }
+
+    debug("Installing 3rd party packaged app : " + aId +
+          " from " + baseDir.path);
+
+    
+    let destDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", aId], true, true);
+    destDir.permissions = FileUtils.PERMS_DIRECTORY;
+
+    ["application.zip", "update.webapp"]
+      .forEach(function(aFile) {
+        let file = baseDir.clone();
+        file.append(aFile);
+        file.copyTo(destDir, aFile);
+        let newFile = destDir.clone();
+        newFile.append(aFile);
+        newFile.permissions = FileUtils.PERMS_FILE;
+      });
+
+    app.basePath = FileUtils.getDir(DIRECTORY_NAME, ["webapps"], true, true)
+                            .path;
+    app.origin = "app://" + aId;
+    app.removable = true;
+
+    
+    let zipFile = baseDir.clone();
+    zipFile.append("application.zip");
+    let zipReader = Cc["@mozilla.org/libjar/zip-reader;1"]
+                      .createInstance(Ci.nsIZipReader);
+    try {
+      debug("Opening " + zipFile.path);
+      zipReader.open(zipFile);
+      if (!zipReader.hasEntry("manifest.webapp")) {
+        throw "MISSING_MANIFEST";
+      }
+      let manifestFile = destDir.clone();
+      manifestFile.append("manifest.webapp");
+      zipReader.extract("manifest.webapp", manifestFile);
+      manifestFile.permissions = FileUtils.PERMS_FILE;
+    } catch(e) {
+      
+      debug("Cleaning up: " + e);
+      destDir.remove(true);
+      delete this.webapps[aId];
+    } finally {
+      zipReader.close();
+    }
   },
 
   
@@ -293,9 +362,16 @@ this.DOMApplicationRegistry = {
       if (runUpdate) {
         
         for (let id in this.webapps) {
-          this.updatePermissionsForApp(id);
+          this.installPreinstalledPackage(id);
+          if (!this.webapps[id]) {
+            continue;
+          }
           this.updateOfflineCacheForApp(id);
+          this.updatePermissionsForApp(id);
         }
+        
+        
+        this._saveApps();
       }
       this.registerAppsHandlers(runUpdate);
     }).bind(this);
