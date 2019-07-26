@@ -7,6 +7,7 @@
 #ifndef nsStringBuffer_h__
 #define nsStringBuffer_h__
 
+template<class T> struct already_AddRefed;
 
 
 
@@ -41,7 +42,7 @@ class nsStringBuffer
 
 
 
-      static nsStringBuffer* Alloc(size_t storageSize);
+      static already_AddRefed<nsStringBuffer> Alloc(size_t storageSize);
 
       
 

@@ -415,7 +415,8 @@ private:
   
   MiscContainer* EnsureEmptyMiscContainer();
   bool EnsureEmptyAtomArray();
-  nsStringBuffer* GetStringBuffer(const nsAString& aValue) const;
+  already_AddRefed<nsStringBuffer>
+    GetStringBuffer(const nsAString& aValue) const;
   
   
   int32_t StringToInteger(const nsAString& aValue,
