@@ -6152,7 +6152,7 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
     
     if (!captureRetarget && !isWindowLevelMouseExit) {
       nsPoint eventPoint;
-      uint32_t flags;
+      uint32_t flags = 0;
       if (aEvent->message == NS_TOUCH_START) {
         flags |= INPUT_IGNORE_ROOT_SCROLL_FRAME;
         nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
