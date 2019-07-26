@@ -578,6 +578,7 @@ WebConsoleActor.prototype =
     let evalOptions = {
       bindObjectActor: aRequest.bindObjectActor,
       frameActor: aRequest.frameActor,
+      url: aRequest.url,
     };
     let evalInfo = this.evalWithDebugger(input, evalOptions);
     let evalResult = evalInfo.result;
@@ -795,6 +796,8 @@ WebConsoleActor.prototype =
 
 
 
+
+
   evalWithDebugger: function WCA_evalWithDebugger(aString, aOptions = {})
   {
     
@@ -892,12 +895,17 @@ WebConsoleActor.prototype =
     
     helpers.evalInput = aString;
 
+    let evalOptions;
+    if (typeof aOptions.url == "string") {
+      evalOptions = { url: aOptions.url };
+    }
+
     let result;
     if (frame) {
-      result = frame.evalWithBindings(aString, bindings);
+      result = frame.evalWithBindings(aString, bindings, evalOptions);
     }
     else {
-      result = dbgWindow.evalInGlobalWithBindings(aString, bindings);
+      result = dbgWindow.evalInGlobalWithBindings(aString, bindings, evalOptions);
     }
 
     let helperResult = helpers.helperResult;
