@@ -1220,6 +1220,86 @@ GetPropertyIC::tryAttachTypedArrayLength(JSContext *cx, IonScript *ion, HandleOb
     return linkAndAttachStub(cx, masm, attacher, ion, "typed array length");
 }
 
+static bool
+EmitCallProxyGet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &attacher,
+                 PropertyName *name, RegisterSet liveRegs, Register object,
+                 TypedOrValueRegister output, void *returnAddr)
+{
+    JS_ASSERT(output.hasValue());
+    
+    masm.PushRegsInMask(liveRegs);
+
+    
+    
+    RegisterSet regSet(RegisterSet::All());
+    regSet.take(AnyRegister(object));
+
+    
+    
+    Register argJSContextReg = regSet.takeGeneral();
+    Register argProxyReg     = regSet.takeGeneral();
+    Register argIdReg        = regSet.takeGeneral();
+    Register argVpReg        = regSet.takeGeneral();
+
+    Register scratch         = regSet.takeGeneral();
+
+    DebugOnly<uint32_t> initialStack = masm.framePushed();
+
+    
+    attacher.pushStubCodePointer(masm);
+
+    
+    masm.Push(UndefinedValue());
+    masm.movePtr(StackPointer, argVpReg);
+
+    RootedId propId(cx, AtomToId(name));
+    masm.Push(propId, scratch);
+    masm.movePtr(StackPointer, argIdReg);
+
+    
+    
+    masm.Push(object);
+    masm.Push(object);
+    masm.movePtr(StackPointer, argProxyReg);
+
+    masm.loadJSContext(argJSContextReg);
+
+    if (!masm.buildOOLFakeExitFrame(returnAddr))
+        return false;
+    masm.enterFakeExitFrame(ION_FRAME_OOL_PROXY_GET);
+
+    
+    masm.setupUnalignedABICall(5, scratch);
+    masm.passABIArg(argJSContextReg);
+    masm.passABIArg(argProxyReg);
+    masm.passABIArg(argProxyReg);
+    masm.passABIArg(argIdReg);
+    masm.passABIArg(argVpReg);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Proxy::get));
+
+    
+    masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
+
+    
+    masm.loadValue(
+        Address(StackPointer, IonOOLProxyGetExitFrameLayout::offsetOfResult()),
+        JSReturnOperand);
+
+    masm.storeCallResultValue(output);
+
+    
+    
+
+    
+    masm.adjustStack(IonOOLProxyGetExitFrameLayout::Size());
+    JS_ASSERT(masm.framePushed() == initialStack);
+
+    
+    masm.PopRegsInMask(liveRegs);
+
+    return true;
+}
+
 bool
 GetPropertyIC::tryAttachDOMProxyShadowed(JSContext *cx, IonScript *ion,
                                          HandleObject obj, void *returnAddr,
@@ -1250,73 +1330,8 @@ GetPropertyIC::tryAttachDOMProxyShadowed(JSContext *cx, IonScript *ion,
     GenerateDOMProxyChecks(cx, masm, obj, name(), object(), &failures,
                            true);
 
-    
-    masm.PushRegsInMask(liveRegs_);
-
-    DebugOnly<uint32_t> initialStack = masm.framePushed();
-
-    
-    
-    RegisterSet regSet(RegisterSet::All());
-    regSet.take(AnyRegister(object()));
-
-    
-    
-    Register argJSContextReg = regSet.takeGeneral();
-    Register argProxyReg     = regSet.takeGeneral();
-    Register argIdReg        = regSet.takeGeneral();
-    Register argVpReg        = regSet.takeGeneral();
-
-    Register scratch         = regSet.takeGeneral();
-
-    
-    masm.Push(UndefinedValue());
-    masm.movePtr(StackPointer, argVpReg);
-
-    RootedId propId(cx, AtomToId(name()));
-    masm.Push(propId, scratch);
-    masm.movePtr(StackPointer, argIdReg);
-
-    
-    
-    masm.Push(object());
-    masm.Push(object());
-    masm.movePtr(StackPointer, argProxyReg);
-
-    masm.loadJSContext(argJSContextReg);
-
-    if (!masm.buildOOLFakeExitFrame(returnAddr))
+    if (!EmitCallProxyGet(cx, masm, attacher, name(), liveRegs_, object(), output(), returnAddr))
         return false;
-    masm.enterFakeExitFrame(ION_FRAME_OOL_PROXY_GET);
-
-    
-    masm.setupUnalignedABICall(5, scratch);
-    masm.passABIArg(argJSContextReg);
-    masm.passABIArg(argProxyReg);
-    masm.passABIArg(argProxyReg);
-    masm.passABIArg(argIdReg);
-    masm.passABIArg(argVpReg);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Proxy::get));
-
-    
-    masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
-
-    
-    masm.loadValue(
-        Address(StackPointer, IonOOLProxyGetExitFrameLayout::offsetOfResult()),
-        JSReturnOperand);
-
-    masm.storeCallResultValue(output());
-
-    
-    
-
-    
-    masm.adjustStack(IonOOLPropertyOpExitFrameLayout::Size());
-    JS_ASSERT(masm.framePushed() == initialStack);
-
-    
-    masm.PopRegsInMask(liveRegs_);
 
     
     attacher.jumpRejoin(masm);
