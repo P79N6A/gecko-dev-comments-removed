@@ -110,7 +110,12 @@ class ValueNumberData : public TempObject {
     void setClass(MDefinition *thisDef, MDefinition *rep) {
         JS_ASSERT(thisDef->valueNumberData() == this);
         
-        if (number == rep->valueNumber())
+        
+        
+        
+        
+        
+        if (this == rep->valueNumberData())
             return;
 
         if (classNext)
