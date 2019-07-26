@@ -83,7 +83,6 @@ extern "C" {
 #include "nricemediastream.h"
 #include "nr_socket_prsock.h"
 #include "nrinterfaceprioritizer.h"
-#include "rlogringbuffer.h"
 
 namespace mozilla {
 
@@ -340,7 +339,6 @@ RefPtr<NrIceCtx> NrIceCtx::Create(const std::string& name,
   
   if (!initialized) {
     NR_reg_init(NR_REG_MODE_LOCAL);
-    RLogRingBuffer::CreateInstance();
     nr_crypto_vtbl = &nr_ice_crypto_nss_vtbl;
     initialized = true;
 
