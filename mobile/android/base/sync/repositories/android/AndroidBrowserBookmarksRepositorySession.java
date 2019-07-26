@@ -193,11 +193,32 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
 
 
 
-  public static boolean forbiddenGUID(String recordGUID) {
+
+
+
+  public static boolean forbiddenGUID(final String recordGUID) {
     return recordGUID == null ||
-           "readinglist".equals(recordGUID) ||      
-           "places".equals(recordGUID) ||
-           "tags".equals(recordGUID);
+           
+           BrowserContract.Bookmarks.READING_LIST_FOLDER_GUID.equals(recordGUID) ||
+           BrowserContract.Bookmarks.PINNED_FOLDER_GUID.equals(recordGUID) ||
+           BrowserContract.Bookmarks.PLACES_FOLDER_GUID.equals(recordGUID) ||
+           BrowserContract.Bookmarks.TAGS_FOLDER_GUID.equals(recordGUID);
+  }
+
+  
+
+
+
+
+
+
+
+
+  public static boolean forbiddenParent(final String parentGUID) {
+    return parentGUID == null ||
+           
+           BrowserContract.Bookmarks.READING_LIST_FOLDER_GUID.equals(parentGUID) ||
+           BrowserContract.Bookmarks.PINNED_FOLDER_GUID.equals(parentGUID);
   }
 
   public AndroidBrowserBookmarksRepositorySession(Repository repository, Context context) {
@@ -508,6 +529,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     if (record.deleted) {
       return false;
     }
+
     BookmarkRecord bmk = (BookmarkRecord) record;
 
     if (forbiddenGUID(bmk.guid)) {
@@ -515,8 +537,8 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
       return true;
     }
 
-    if ("readinglist".equals(bmk.parentID)) {      
-      Logger.debug(LOG_TAG,  "Ignoring reading list item with guid: " + bmk.guid);
+    if (forbiddenParent(bmk.parentID)) {
+      Logger.debug(LOG_TAG,  "Ignoring child " + bmk.guid + " of forbidden parent folder " + bmk.parentID);
       return true;
     }
 
