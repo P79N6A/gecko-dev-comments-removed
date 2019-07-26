@@ -6,6 +6,7 @@
 #ifndef GFX_SKIP_CHARS_H
 #define GFX_SKIP_CHARS_H
 
+#include "nsAutoPtr.h"
 #include "nsTArray.h"
 
 
@@ -23,122 +24,142 @@
 
 
 
-class gfxSkipChars
-{
-private:
-    class SkippedRange
-    {
-    public:
-        SkippedRange(uint32_t aOffset, uint32_t aLength, uint32_t aDelta)
-            : mOffset(aOffset), mLength(aLength), mDelta(aDelta)
-        { }
 
-        uint32_t Start() const
-        {
-            return mOffset;
-        }
 
-        uint32_t End() const
-        {
-            return mOffset + mLength;
-        }
 
-        uint32_t Length() const
-        {
-            return mLength;
-        }
 
-        uint32_t SkippedOffset() const
-        {
-            return mOffset - mDelta;
-        }
 
-        uint32_t Delta() const
-        {
-            return mDelta;
-        }
 
-        uint32_t NextDelta() const
-        {
-            return mDelta + mLength;
-        }
 
-        void Extend(uint32_t aChars)
-        {
-            mLength += aChars;
-        }
 
-    private:
-        uint32_t mOffset; 
-        uint32_t mLength; 
-        uint32_t mDelta;  
-    };
 
+
+class gfxSkipCharsBuilder {
 public:
-    gfxSkipChars()
-        : mCharCount(0)
-    { }
-
-    void SkipChars(uint32_t aChars)
-    {
-        NS_ASSERTION(mCharCount + aChars > mCharCount,
-                     "Character count overflow");
-        uint32_t rangeCount = mRanges.Length();
-        uint32_t delta = 0;
-        if (rangeCount > 0) {
-            SkippedRange& lastRange = mRanges[rangeCount - 1];
-            if (lastRange.End() == mCharCount) {
-                lastRange.Extend(aChars);
-                mCharCount += aChars;
-                return;
-            }
-            delta = lastRange.NextDelta();
-        }
-        mRanges.AppendElement(SkippedRange(mCharCount, aChars, delta));
-        mCharCount += aChars;
+    gfxSkipCharsBuilder() :
+        mCharCount(0), mRunCharCount(0), mRunSkipped(false), mInErrorState(false)
+    {}
+  
+    void SkipChars(uint32_t aChars) {
+        DoChars(aChars, true);
     }
-
-    void KeepChars(uint32_t aChars)
-    {
-        NS_ASSERTION(mCharCount + aChars > mCharCount,
-                     "Character count overflow");
-        mCharCount += aChars;
+    void KeepChars(uint32_t aChars) {
+        DoChars(aChars, false);
     }
-
-    void SkipChar()
-    {
+    void SkipChar() {
         SkipChars(1);
     }
-
-    void KeepChar()
-    {
+    void KeepChar() {
         KeepChars(1);
     }
+    void DoChars(uint32_t aChars, bool aSkipped) {
+        if (aSkipped != mRunSkipped && aChars > 0) {
+            FlushRun();
+        }
+        NS_ASSERTION(mRunCharCount + aChars > mRunCharCount,
+                     "Character count overflow");
+        mRunCharCount += aChars;
+    }
 
-    void TakeFrom(gfxSkipChars* aSkipChars)
-    {
-        mRanges.SwapElements(aSkipChars->mRanges);
+    bool IsOK() { return !mInErrorState; }
+
+    uint32_t GetCharCount() { return mCharCount + mRunCharCount; }
+    bool GetAllCharsKept() { return mBuffer.Length() == 0; }
+
+    friend class gfxSkipChars;
+
+private:
+    typedef AutoFallibleTArray<uint8_t,256> Buffer;
+
+    
+
+
+
+    void FlushRun();
+  
+    Buffer       mBuffer;
+    uint32_t     mCharCount;
+    uint32_t     mRunCharCount;
+    bool mRunSkipped; 
+    bool mInErrorState;
+};
+
+
+
+
+
+
+
+
+
+class gfxSkipChars {
+public:
+    gfxSkipChars() : mListLength(0), mCharCount(0) {}
+  
+    void TakeFrom(gfxSkipChars* aSkipChars) {
+        mList = aSkipChars->mList.forget();
+        mListLength = aSkipChars->mListLength;
         mCharCount = aSkipChars->mCharCount;
         aSkipChars->mCharCount = 0;
+        aSkipChars->mListLength = 0;
+        BuildShortcuts();
     }
-
-    int32_t GetOriginalCharCount() const
-    {
-        return mCharCount;
+  
+    void TakeFrom(gfxSkipCharsBuilder* aSkipCharsBuilder) {
+        if (!aSkipCharsBuilder->mBuffer.Length()) {
+            NS_ASSERTION(!aSkipCharsBuilder->mRunSkipped, "out of sync");
+            
+            mCharCount = aSkipCharsBuilder->mRunCharCount;
+            mList = nullptr;
+            mListLength = 0;
+        } else {
+            aSkipCharsBuilder->FlushRun();
+            mCharCount = aSkipCharsBuilder->mCharCount;
+            mList = new uint8_t[aSkipCharsBuilder->mBuffer.Length()];
+            if (!mList) {
+                mListLength = 0;
+            } else {
+                mListLength = aSkipCharsBuilder->mBuffer.Length();
+                memcpy(mList, aSkipCharsBuilder->mBuffer.Elements(), mListLength);
+            }
+        }
+        aSkipCharsBuilder->mBuffer.Clear();
+        aSkipCharsBuilder->mCharCount = 0;
+        aSkipCharsBuilder->mRunCharCount = 0;    
+        aSkipCharsBuilder->mRunSkipped = false;
+        BuildShortcuts();
     }
-
-    const SkippedRange& LastRange() const
-    {
-        
-        
-        return mRanges[mRanges.Length() - 1];
+  
+    void SetAllKeep(uint32_t aLength) {
+        mCharCount = aLength;
+        mList = nullptr;
+        mListLength = 0;
     }
+  
+    int32_t GetOriginalCharCount() const { return mCharCount; }
 
     friend class gfxSkipCharsIterator;
 
 private:
-    nsTArray<SkippedRange> mRanges;
-    uint32_t               mCharCount;
+    struct Shortcut {
+        uint32_t mListPrefixLength;
+        uint32_t mListPrefixCharCount;
+        uint32_t mListPrefixKeepCharCount;
+    
+        Shortcut() {}
+        Shortcut(uint32_t aListPrefixLength, uint32_t aListPrefixCharCount,
+                 uint32_t aListPrefixKeepCharCount) :
+            mListPrefixLength(aListPrefixLength),
+            mListPrefixCharCount(aListPrefixCharCount),
+            mListPrefixKeepCharCount(aListPrefixKeepCharCount) {}
+    };
+  
+    void BuildShortcuts();
+
+    nsAutoArrayPtr<uint8_t>  mList;
+    nsAutoArrayPtr<Shortcut> mShortcuts;
+    uint32_t                 mListLength;
+    uint32_t                 mCharCount;
 };
 
 
@@ -158,8 +179,7 @@ private:
 
 
 
-class gfxSkipCharsIterator
-{
+class gfxSkipCharsIterator {
 public:
     
 
@@ -169,72 +189,66 @@ public:
                          int32_t aOriginalStringToSkipCharsOffset,
                          int32_t aOriginalStringOffset)
         : mSkipChars(&aSkipChars),
-          mOriginalStringOffset(0),
-          mSkippedStringOffset(0),
-          mCurrentRangeIndex(-1),
-          mOriginalStringToSkipCharsOffset(aOriginalStringToSkipCharsOffset)
-    {
+          mOriginalStringToSkipCharsOffset(aOriginalStringToSkipCharsOffset),
+          mListPrefixLength(0), mListPrefixCharCount(0), mListPrefixKeepCharCount(0) {
           SetOriginalOffset(aOriginalStringOffset);
     }
 
     gfxSkipCharsIterator(const gfxSkipChars& aSkipChars,
                          int32_t aOriginalStringToSkipCharsOffset = 0)
         : mSkipChars(&aSkipChars),
-          mOriginalStringOffset(0),
-          mSkippedStringOffset(0),
-          mCurrentRangeIndex(-1),
-          mOriginalStringToSkipCharsOffset(aOriginalStringToSkipCharsOffset)
-    { }
+          mOriginalStringOffset(0), mSkippedStringOffset(0),
+          mOriginalStringToSkipCharsOffset(aOriginalStringToSkipCharsOffset),
+          mListPrefixLength(0), mListPrefixCharCount(0), mListPrefixKeepCharCount(0) {
+    }
 
     gfxSkipCharsIterator(const gfxSkipCharsIterator& aIterator)
         : mSkipChars(aIterator.mSkipChars),
           mOriginalStringOffset(aIterator.mOriginalStringOffset),
           mSkippedStringOffset(aIterator.mSkippedStringOffset),
-          mCurrentRangeIndex(aIterator.mCurrentRangeIndex),
-          mOriginalStringToSkipCharsOffset(aIterator.mOriginalStringToSkipCharsOffset)
-    { }
+          mOriginalStringToSkipCharsOffset(aIterator.mOriginalStringToSkipCharsOffset),
+          mListPrefixLength(aIterator.mListPrefixLength),
+          mListPrefixCharCount(aIterator.mListPrefixCharCount),
+          mListPrefixKeepCharCount(aIterator.mListPrefixKeepCharCount)
+    {}
+  
+    
+
+
+    gfxSkipCharsIterator() : mSkipChars(nullptr) {}
+
+    
+
+  
+    bool IsInitialized() { return mSkipChars != nullptr; }
 
     
 
 
-    gfxSkipCharsIterator()
-        : mSkipChars(nullptr)
-    { }
-
-    
 
 
-    bool IsInitialized()
-    {
-        return mSkipChars != nullptr;
+    void SetOriginalOffset(int32_t aOriginalStringOffset) {
+        SetOffsets(aOriginalStringOffset + mOriginalStringToSkipCharsOffset, true);
     }
-
+    
     
 
 
 
 
-    void SetOriginalOffset(int32_t aOriginalStringOffset);
-
+    void SetSkippedOffset(uint32_t aSkippedStringOffset) {
+        SetOffsets(aSkippedStringOffset, false);
+    }
     
-
-
-
-
-    void SetSkippedOffset(uint32_t aSkippedStringOffset);
-
-    uint32_t ConvertOriginalToSkipped(int32_t aOriginalStringOffset)
-    {
+    uint32_t ConvertOriginalToSkipped(int32_t aOriginalStringOffset) {
         SetOriginalOffset(aOriginalStringOffset);
         return GetSkippedOffset();
     }
-
-    uint32_t ConvertSkippedToOriginal(int32_t aSkippedStringOffset)
-    {
+    uint32_t ConvertSkippedToOriginal(int32_t aSkippedStringOffset) {
         SetSkippedOffset(aSkippedStringOffset);
         return GetOriginalOffset();
     }
-
+  
     
 
 
@@ -243,25 +257,20 @@ public:
 
 
     bool IsOriginalCharSkipped(int32_t* aRunLength = nullptr) const;
-
-    void AdvanceOriginal(int32_t aDelta)
-    {
-        SetOriginalOffset(GetOriginalOffset() + aDelta);
+    
+    void AdvanceOriginal(int32_t aDelta) {
+        SetOffsets(mOriginalStringOffset + aDelta, true);
     }
-
-    void AdvanceSkipped(int32_t aDelta)
-    {
-        SetSkippedOffset(GetSkippedOffset() + aDelta);
+    void AdvanceSkipped(int32_t aDelta) {
+        SetOffsets(mSkippedStringOffset + aDelta, false);
     }
-
+  
     
 
 
-    int32_t GetOriginalOffset() const
-    {
+    int32_t GetOriginalOffset() const {
         return mOriginalStringOffset - mOriginalStringToSkipCharsOffset;
     }
-
     
 
 
@@ -270,33 +279,38 @@ public:
 
 
 
-    uint32_t GetSkippedOffset() const
-    {
-        return mSkippedStringOffset;
-    }
+    uint32_t GetSkippedOffset() const { return mSkippedStringOffset; }
 
-    int32_t GetOriginalEnd() const
-    {
+    int32_t GetOriginalEnd() const {
         return mSkipChars->GetOriginalCharCount() -
             mOriginalStringToSkipCharsOffset;
     }
 
 private:
+    void SetOffsets(uint32_t aOffset, bool aInOriginalString);
+  
     const gfxSkipChars* mSkipChars;
-
-    
     int32_t mOriginalStringOffset;
     uint32_t mSkippedStringOffset;
 
     
     
     
-    int32_t mCurrentRangeIndex;
+    int32_t mOriginalStringToSkipCharsOffset;
 
     
-    
-    
-    int32_t mOriginalStringToSkipCharsOffset;
+
+
+
+
+
+
+
+
+
+    uint32_t mListPrefixLength;
+    uint32_t mListPrefixCharCount;
+    uint32_t mListPrefixKeepCharCount;
 };
 
 #endif 
