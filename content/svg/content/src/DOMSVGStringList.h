@@ -43,12 +43,11 @@ class SVGStringList;
 
 
 
-class DOMSVGStringList MOZ_FINAL : public nsISupports
-                                 , public nsWrapperCache
+class DOMSVGStringList MOZ_FINAL : public nsWrapperCache
 {
 public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGStringList)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMSVGStringList)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGStringList)
 
   nsSVGElement* GetParentObject() const
   {
