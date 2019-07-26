@@ -75,6 +75,12 @@ const ContentPanning = {
   },
 
   handleEvent: function cp_handleEvent(evt) {
+    
+    
+    if (evt.target instanceof Ci.nsIMozBrowserFrame) {
+      return;
+    }
+
     if (evt.defaultPrevented || evt.multipleActionsPrevented) {
       
       if(evt.type === 'touchend' || evt.type === 'mouseup') {
