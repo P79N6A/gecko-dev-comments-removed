@@ -42,6 +42,9 @@ this.TouchAdapter = {
   
   MOUSE_ID: 'mouse',
 
+  
+  SYNTH_ID: -1,
+
   start: function TouchAdapter_start() {
     Logger.info('TouchAdapter.start');
 
@@ -131,6 +134,13 @@ this.TouchAdapter = {
       return;
     }
 
+    let changedTouches = aEvent.changedTouches || [aEvent];
+
+    if (changedTouches.length == 1 &&
+        changedTouches[0].identifier == this.SYNTH_ID) {
+      return;
+    }
+
     if (!this.eventsOfInterest[aEvent.type]) {
       aEvent.preventDefault();
       aEvent.stopImmediatePropagation();
@@ -141,8 +151,6 @@ this.TouchAdapter = {
       Utils.win.clearTimeout(this._delayedEvent);
       delete this._delayedEvent;
     }
-
-    let changedTouches = aEvent.changedTouches || [aEvent];
 
     
     
