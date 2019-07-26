@@ -188,7 +188,10 @@ public:
 
 
 
+
+
   static void SetDisplayPortBase(nsIContent* aContent, const nsRect& aBase);
+  static void SetDisplayPortBaseIfNotSet(nsIContent* aContent, const nsRect& aBase);
 
   
 
