@@ -30,6 +30,8 @@
 #include "nsIInputStream.h"
 #include "nsIMultiPartChannel.h"
 #include "nsIHttpChannel.h"
+#include "nsIApplicationCache.h"
+#include "nsIApplicationCacheChannel.h"
 
 #include "nsIComponentManager.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -440,6 +442,67 @@ void imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry, nsIRequest* aReq
   }
 }
 
+namespace { 
+
+already_AddRefed<nsIApplicationCache>
+GetApplicationCache(nsIRequest* aRequest)
+{
+  nsresult rv;
+
+  nsCOMPtr<nsIApplicationCacheChannel> appCacheChan = do_QueryInterface(aRequest);
+  if (!appCacheChan) {
+    return nullptr;
+  }
+
+  bool fromAppCache;
+  rv = appCacheChan->GetLoadedFromApplicationCache(&fromAppCache);
+  NS_ENSURE_SUCCESS(rv, nullptr);
+
+  if (!fromAppCache) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIApplicationCache> appCache;
+  rv = appCacheChan->GetApplicationCache(getter_AddRefs(appCache));
+  NS_ENSURE_SUCCESS(rv, nullptr);
+
+  return appCache.forget();
+}
+
+} 
+
+bool
+imgRequest::CacheChanged(nsIRequest* aNewRequest)
+{
+  nsresult rv;
+
+  nsCOMPtr<nsIApplicationCache> newAppCache = GetApplicationCache(aNewRequest);
+  NS_ENSURE_SUCCESS(rv, true); 
+
+  
+  
+  if (newAppCache == mApplicationCache)
+    return false;
+
+  
+  
+  if (newAppCache && mApplicationCache) {
+    nsAutoCString oldAppCacheClientId, newAppCacheClientId;
+    rv = mApplicationCache->GetClientID(oldAppCacheClientId);
+    NS_ENSURE_SUCCESS(rv, true);
+    rv = newAppCache->GetClientID(newAppCacheClientId);
+    NS_ENSURE_SUCCESS(rv, true);
+
+    if (oldAppCacheClientId == newAppCacheClientId)
+      return false;
+  }
+
+  
+  
+  
+  return true;
+}
+
 nsresult
 imgRequest::LockImage()
 {
@@ -546,6 +609,8 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
   }
 
   SetCacheValidation(mCacheEntry, aRequest);
+
+  mApplicationCache = GetApplicationCache(aRequest);
 
   
   if (GetStatusTracker().ConsumerCount() == 0) {

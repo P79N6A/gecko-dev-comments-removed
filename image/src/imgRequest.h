@@ -16,6 +16,7 @@
 #include "nsIURI.h"
 #include "nsIPrincipal.h"
 #include "nsITimedChannel.h"
+#include "nsIApplicationCache.h"
 
 #include "nsCategoryCache.h"
 #include "nsCOMPtr.h"
@@ -90,6 +91,12 @@ public:
   
   
   static void SetCacheValidation(imgCacheEntry* aEntry, nsIRequest* aRequest);
+
+  
+  
+  
+  
+  bool CacheChanged(nsIRequest* aNewRequest);
 
   bool GetMultipart() const { return mIsMultiPartChannel; }
 
@@ -200,6 +207,7 @@ private:
   nsCOMPtr<nsISupports> mSecurityInfo;
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIInterfaceRequestor> mPrevChannelSink;
+  nsCOMPtr<nsIApplicationCache> mApplicationCache;
 
   nsCOMPtr<nsITimedChannel> mTimedChannel;
 
