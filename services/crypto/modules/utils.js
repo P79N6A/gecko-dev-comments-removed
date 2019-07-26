@@ -57,6 +57,17 @@ this.CryptoUtils = {
 
 
 
+  updateUTF8: function(message, hasher) {
+    let bytes = this._utf8Converter.convertToByteArray(message, {});
+    hasher.update(bytes, bytes.length);
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -342,6 +353,159 @@ this.CryptoUtils = {
 
     return header += ', ext="' + ext +'"';
   },
+
+  
+
+
+
+  stripHeaderAttributes: function(value) {
+    let value = value || "";
+    let i = value.indexOf(";");
+    return value.substring(0, (i >= 0) ? i : undefined).trim().toLowerCase();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  computeHAWK: function(uri, method, options) {
+    let credentials = options.credentials;
+    let ts = options.ts || Math.floor(((options.now || Date.now()) +
+                                       (options.localtimeOffsetMsec || 0))
+                                      / 1000);
+
+    let hash_algo, hmac_algo;
+    if (credentials.algorithm == "sha1") {
+      hash_algo = Ci.nsICryptoHash.SHA1;
+      hmac_algo = Ci.nsICryptoHMAC.SHA1;
+    } else if (credentials.algorithm == "sha256") {
+      hash_algo = Ci.nsICryptoHash.SHA256;
+      hmac_algo = Ci.nsICryptoHMAC.SHA256;
+    } else {
+      throw new Error("Unsupported algorithm: " + credentials.algorithm);
+    }
+
+    let port;
+    if (uri.port != -1) {
+      port = uri.port;
+    } else if (uri.scheme == "http") {
+      port = 80;
+    } else if (uri.scheme == "https") {
+      port = 443;
+    } else {
+      throw new Error("Unsupported URI scheme: " + uri.scheme);
+    }
+
+    let artifacts = {
+      ts: ts,
+      nonce: options.nonce || btoa(CryptoUtils.generateRandomBytes(8)),
+      method: method.toUpperCase(),
+      resource: uri.path, 
+      host: uri.asciiHost.toLowerCase(), 
+      port: port.toString(10),
+      hash: options.hash,
+      ext: options.ext,
+    };
+
+    let contentType = CryptoUtils.stripHeaderAttributes(options.contentType);
+
+    if (!artifacts.hash && options.hasOwnProperty("payload")) {
+      let hasher = Cc["@mozilla.org/security/hash;1"]
+                     .createInstance(Ci.nsICryptoHash);
+      hasher.init(hash_algo);
+      CryptoUtils.updateUTF8("hawk.1.payload\n", hasher);
+      CryptoUtils.updateUTF8(contentType+"\n", hasher);
+      CryptoUtils.updateUTF8(options.payload, hasher);
+      CryptoUtils.updateUTF8("\n", hasher);
+      let hash = hasher.finish(false);
+      
+      let hash_b64 = CommonUtils.encodeBase64URL(hash, true);
+      artifacts.hash = hash_b64;
+    }
+
+    let requestString = ("hawk.1.header"        + "\n" +
+                         artifacts.ts.toString(10) + "\n" +
+                         artifacts.nonce        + "\n" +
+                         artifacts.method       + "\n" +
+                         artifacts.resource     + "\n" +
+                         artifacts.host         + "\n" +
+                         artifacts.port         + "\n" +
+                         (artifacts.hash || "") + "\n");
+    if (artifacts.ext) {
+      requestString += artifacts.ext.replace("\\", "\\\\").replace("\n", "\\n");
+    }
+    requestString += "\n";
+
+    let hasher = CryptoUtils.makeHMACHasher(hmac_algo,
+                                            CryptoUtils.makeHMACKey(credentials.key));
+    artifacts.mac = btoa(CryptoUtils.digestBytes(requestString, hasher));
+    
+
+    function escape(attribute) {
+      
+      return attribute.replace(/\\/g, "\\\\").replace(/\"/g, '\\"');
+    }
+    let header = ('Hawk id="' + credentials.id + '", ' +
+                  'ts="' + artifacts.ts + '", ' +
+                  'nonce="' + artifacts.nonce + '", ' +
+                  (artifacts.hash ? ('hash="' + artifacts.hash + '", ') : "") +
+                  (artifacts.ext ? ('ext="' + escape(artifacts.ext) + '", ') : "") +
+                  'mac="' + artifacts.mac + '"');
+    return {
+      artifacts: artifacts,
+      field: header,
+    };
+  },
+
 };
 
 XPCOMUtils.defineLazyGetter(CryptoUtils, "_utf8Converter", function() {
