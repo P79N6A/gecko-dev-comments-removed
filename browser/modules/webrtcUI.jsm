@@ -212,6 +212,38 @@ function prompt(aContentWindow, aCallID, aAudioRequested, aVideoRequested, aDevi
       if (aTopic != "showing")
         return false;
 
+      
+      
+      
+      if (aSecure) {
+        let perms = Services.perms;
+
+        let micPerm = perms.testExactPermission(uri, "microphone");
+        if (micPerm == perms.PROMPT_ACTION)
+          micPerm = perms.UNKNOWN_ACTION;
+
+        let camPerm = perms.testExactPermission(uri, "camera");
+        if (camPerm == perms.PROMPT_ACTION)
+          camPerm = perms.UNKNOWN_ACTION;
+
+        
+        
+        
+        
+        if ((!audioDevices.length || micPerm) && (!videoDevices.length || camPerm)) {
+          
+          let allowedDevices = Cc["@mozilla.org/supports-array;1"]
+                                 .createInstance(Ci.nsISupportsArray);
+          if (videoDevices.length && camPerm == perms.ALLOW_ACTION)
+            allowedDevices.AppendElement(videoDevices[0]);
+          if (audioDevices.length && micPerm == perms.ALLOW_ACTION)
+            allowedDevices.AppendElement(audioDevices[0]);
+          Services.obs.notifyObservers(allowedDevices, "getUserMedia:response:allow", aCallID);
+          this.remove();
+          return true;
+        }
+      }
+
       function listDevices(menupopup, devices) {
         while (menupopup.lastChild)
           menupopup.removeChild(menupopup.lastChild);
