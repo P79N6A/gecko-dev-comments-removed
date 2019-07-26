@@ -84,8 +84,10 @@ DOMRequestIpcHelper.prototype = {
       let name = aMsg.name || aMsg;
       
       
+      
       if (this._listeners[name] != undefined) {
-        if (!!aMsg.weakRef == this._listeners[name]) {
+        if (!!aMsg.weakRef == this._listeners[name].weakRef) {
+          this._listeners[name].count++;
           return;
         } else {
           throw Cr.NS_ERROR_FAILURE;
@@ -94,7 +96,10 @@ DOMRequestIpcHelper.prototype = {
 
       aMsg.weakRef ? cpmm.addWeakMessageListener(name, this)
                    : cpmm.addMessageListener(name, this);
-      this._listeners[name] = !!aMsg.weakRef;
+      this._listeners[name] = {
+        weakRef: !!aMsg.weakRef,
+        count: 1
+      };
     });
   },
 
@@ -116,9 +121,14 @@ DOMRequestIpcHelper.prototype = {
         return;
       }
 
-      this._listeners[aName] ? cpmm.removeWeakMessageListener(aName, this)
-                             : cpmm.removeMessageListener(aName, this);
-      delete this._listeners[aName];
+      
+      
+      if (!--this._listeners[aName].count) {
+        this._listeners[aName].weakRef ?
+            cpmm.removeWeakMessageListener(aName, this)
+          : cpmm.removeMessageListener(aName, this);
+        delete this._listeners[aName];
+      }
     });
   },
 
