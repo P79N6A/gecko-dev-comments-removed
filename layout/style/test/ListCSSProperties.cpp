@@ -146,7 +146,8 @@ const char *gInaccessibleProperties[] = {
     "padding-right-rtl-source",
     "-moz-script-level", 
     "-moz-script-size-multiplier",
-    "-moz-script-min-size"
+    "-moz-script-min-size",
+    "-moz-math-variant"
 };
 
 inline int

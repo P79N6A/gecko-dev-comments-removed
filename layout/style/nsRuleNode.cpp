@@ -1834,7 +1834,8 @@ AreAllMathMLPropertiesUndefined(const nsRuleData* aRuleData)
   return
     aRuleData->ValueForScriptLevel()->GetUnit() == eCSSUnit_Null &&
     aRuleData->ValueForScriptSizeMultiplier()->GetUnit() == eCSSUnit_Null &&
-    aRuleData->ValueForScriptMinSize()->GetUnit() == eCSSUnit_Null;
+    aRuleData->ValueForScriptMinSize()->GetUnit() == eCSSUnit_Null &&
+    aRuleData->ValueForMathVariant()->GetUnit() == eCSSUnit_Null;
 }
 #endif
 
@@ -1890,7 +1891,7 @@ nsRuleNode::CheckSpecifiedProperties(const nsStyleStructID aSID,
            
            
            
-           || (aSID == eStyleStruct_Font && specified + 3 == total &&
+           || (aSID == eStyleStruct_Font && specified + 4 == total &&
                !mPresContext->Document()->GetMathMLEnabled())
           ) {
     if (inherited == 0)
@@ -3248,6 +3249,13 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   }
 
   
+  SetDiscrete(*aRuleData->ValueForMathVariant(), aFont->mMathVariant,
+              aCanStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INHERIT,
+              aParentFont->mMathVariant, NS_MATHML_MATHVARIANT_NONE,
+              0, 0, 0, 0);
+
+  
   SetDiscrete(*aRuleData->ValueForOSXFontSmoothing(),
               aFont->mFont.smoothing, aCanStoreInRuleTree,
               SETDSC_ENUMERATED | SETDSC_UNSET_INHERIT,
@@ -3256,12 +3264,17 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
               0, 0, 0, 0);
 
   
-  SetDiscrete(*aRuleData->ValueForFontStyle(),
-              aFont->mFont.style, aCanStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_SYSTEM_FONT | SETDSC_UNSET_INHERIT,
-              aParentFont->mFont.style,
-              defaultVariableFont->style,
-              0, 0, 0, systemFont.style);
+  if (aFont->mMathVariant != NS_MATHML_MATHVARIANT_NONE) {
+    
+    aFont->mFont.style = NS_FONT_STYLE_NORMAL;
+  } else {
+    SetDiscrete(*aRuleData->ValueForFontStyle(),
+                aFont->mFont.style, aCanStoreInRuleTree,
+                SETDSC_ENUMERATED | SETDSC_SYSTEM_FONT | SETDSC_UNSET_INHERIT,
+                aParentFont->mFont.style,
+                defaultVariableFont->style,
+                0, 0, 0, systemFont.style);
+  }
 
   
   SetDiscrete(*aRuleData->ValueForFontVariant(),
@@ -3274,7 +3287,10 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   
   
   const nsCSSValue* weightValue = aRuleData->ValueForFontWeight();
-  if (eCSSUnit_Enumerated == weightValue->GetUnit()) {
+  if (aFont->mMathVariant != NS_MATHML_MATHVARIANT_NONE) {
+    
+    aFont->mFont.weight = NS_FONT_WEIGHT_NORMAL;
+  } else if (eCSSUnit_Enumerated == weightValue->GetUnit()) {
     int32_t value = weightValue->GetIntValue();
     switch (value) {
       case NS_STYLE_FONT_WEIGHT_NORMAL:
