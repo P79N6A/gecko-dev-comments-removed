@@ -1291,9 +1291,10 @@ nsGenericHTMLElement::GetMarkup(bool aIncludeSelf, nsAString& aMarkup)
   return rv;
 }
 
-nsresult
-nsGenericHTMLElement::GetInnerHTML(nsAString& aInnerHTML) {
-  return GetMarkup(false, aInnerHTML);
+void
+nsGenericHTMLElement::GetInnerHTML(nsAString& aInnerHTML, ErrorResult& aError)
+{
+  aError = GetMarkup(false, aInnerHTML);
 }
 
 NS_IMETHODIMP
@@ -1323,8 +1324,9 @@ nsGenericHTMLElement::FireMutationEventsForDirectParsing(nsIDocument* aDoc,
   }
 }
 
-NS_IMETHODIMP
-nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
+void
+nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML,
+                                   ErrorResult& aError)
 {
   nsIDocument* doc = OwnerDoc();
 
@@ -1345,38 +1347,37 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
   mb.RemovalDone();
 
   nsAutoScriptLoaderDisabler sld(doc);
-  
-  nsresult rv = NS_OK;
+
   if (doc->IsHTML()) {
     int32_t oldChildCount = GetChildCount();
-    rv = nsContentUtils::ParseFragmentHTML(aInnerHTML,
-                                           this,
-                                           Tag(),
-                                           GetNameSpaceID(),
-                                           doc->GetCompatibilityMode() ==
-                                             eCompatibility_NavQuirks,
-                                           true);
+    aError = nsContentUtils::ParseFragmentHTML(aInnerHTML,
+                                               this,
+                                               Tag(),
+                                               GetNameSpaceID(),
+                                               doc->GetCompatibilityMode() ==
+                                                 eCompatibility_NavQuirks,
+                                               true);
     mb.NodesAdded();
     
     FireMutationEventsForDirectParsing(doc, this, oldChildCount);
   } else {
     nsCOMPtr<nsIDOMDocumentFragment> df;
-    rv = nsContentUtils::CreateContextualFragment(this, aInnerHTML,
-                                                  true,
-                                                  getter_AddRefs(df));
+    aError = nsContentUtils::CreateContextualFragment(this, aInnerHTML,
+                                                      true,
+                                                      getter_AddRefs(df));
     nsCOMPtr<nsINode> fragment = do_QueryInterface(df);
-    if (NS_SUCCEEDED(rv)) {
+    if (!aError.Failed()) {
       
       
       
       nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
 
+      nsresult rv = NS_OK;
       static_cast<nsINode*>(this)->AppendChild(fragment, &rv);
+      aError = rv;
       mb.NodesAdded();
     }
   }
-
-  return rv;
 }
 
 NS_IMETHODIMP
