@@ -1297,7 +1297,14 @@ public class GeckoAppShell
                 if (android.os.Build.VERSION.SDK_INT >= 11) {
                     android.content.ClipboardManager cm = (android.content.ClipboardManager)
                         context.getSystemService(Context.CLIPBOARD_SERVICE);
-                    cm.setPrimaryClip(ClipData.newPlainText("Text", text));
+                    ClipData clip = ClipData.newPlainText("Text", text);
+                    try {
+                        cm.setPrimaryClip(clip);
+                    } catch (NullPointerException e) {
+                        
+                        
+                        
+                    }
                 } else {
                     android.text.ClipboardManager cm = (android.text.ClipboardManager)
                         context.getSystemService(Context.CLIPBOARD_SERVICE);
