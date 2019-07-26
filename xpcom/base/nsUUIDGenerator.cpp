@@ -126,6 +126,9 @@ nsUUIDGenerator::GenerateUUIDInPlace(nsID* aId)
   setstate(mState);
 #endif
 
+#ifdef HAVE_ARC4RANDOM_BUF
+  arc4random_buf(aId, sizeof(nsID));
+#else 
   size_t bytesLeft = sizeof(nsID);
   while (bytesLeft > 0) {
 #ifdef HAVE_ARC4RANDOM
@@ -150,6 +153,7 @@ nsUUIDGenerator::GenerateUUIDInPlace(nsID* aId)
 
     bytesLeft -= toWrite;
   }
+#endif 
 
   
   aId->m2 &= 0x0fff;
