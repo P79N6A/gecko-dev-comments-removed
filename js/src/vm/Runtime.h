@@ -693,6 +693,9 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     volatile int32_t    interrupt;
 
+    
+    JSOperationCallback operationCallback;
+
 #ifdef JS_THREADSAFE
   private:
     

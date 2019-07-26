@@ -865,8 +865,6 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime, bool aGCOnDestruction,
     
     Preferences::RegisterCallback(JSOptionChangedCallback,
                                   js_options_dot_str, this);
-
-    ::JS_SetOperationCallback(mContext, xpc::OperationCallback);
   }
   mIsInitialized = false;
   mScriptsEnabled = true;

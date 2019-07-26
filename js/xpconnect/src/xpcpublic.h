@@ -67,10 +67,6 @@ AllowXBLScope(JSCompartment *c);
 bool
 IsSandboxPrototypeProxy(JSObject *obj);
 
-
-bool
-OperationCallback(JSContext* cx);
-
 } 
 
 #define XPCONNECT_GLOBAL_FLAGS                                                \
