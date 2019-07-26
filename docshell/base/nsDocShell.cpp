@@ -7813,6 +7813,22 @@ nsDocShell::RestoreFromHistory()
 
     nsCOMPtr<nsIPresShell> shell = GetPresShell();
 
+    
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+    if (shell && shell->GetPresContext()->DeviceContext()->CheckDPIChange()) {
+        shell->BackingScaleFactorChanged();
+    }
+
     nsViewManager *newVM = shell ? shell->GetViewManager() : nullptr;
     nsView *newRootView = newVM ? newVM->GetRootView() : nullptr;
 
