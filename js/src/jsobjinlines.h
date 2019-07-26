@@ -1051,11 +1051,14 @@ NewObjectMetadata(ExclusiveContext *cxArg, JSObject **pmetadata)
     JS_ASSERT(!*pmetadata);
     if (JSContext *cx = cxArg->maybeJSContext()) {
         if (JS_UNLIKELY((size_t)cx->compartment()->hasObjectMetadataCallback()) &&
-            !cx->compartment()->activeAnalysis &&
-            !cx->runtime()->mainThread.activeCompilations)
+            !cx->compartment()->activeAnalysis)
         {
             JS::DisableGenerationalGC(cx->runtime());
-            gc::AutoSuppressGC suppress(cx);
+
+            
+            
+            types::AutoEnterAnalysis enter(cx);
+
             bool status = cx->compartment()->callObjectMetadataCallback(cx, pmetadata);
             JS::EnableGenerationalGC(cx->runtime());
             return status;
