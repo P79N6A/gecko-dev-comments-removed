@@ -7,8 +7,6 @@
 #ifndef js_heap_api_h___
 #define js_heap_api_h___
 
-#include "jsfriendapi.h"
-
 
 namespace js {
 namespace gc {
@@ -138,30 +136,6 @@ IsIncrementalBarrierNeededOnGCThing(void *thing, JSGCTraceKind kind)
 {
     JSCompartment *comp = GetGCThingCompartment(thing);
     return reinterpret_cast<shadow::Compartment *>(comp)->needsBarrier_;
-}
-
-
-
-
-
-
-
-static JS_ALWAYS_INLINE void
-ExposeGCThingToActiveJS(void *thing, JSGCTraceKind kind)
-{
-    JS_ASSERT(kind != JSTRACE_SHAPE);
-
-    if (GCThingIsMarkedGray(thing))
-        js::UnmarkGrayGCThingRecursively(thing, kind);
-    else if (IsIncrementalBarrierNeededOnGCThing(thing, kind))
-        js::IncrementalReferenceBarrier(thing);
-}
-
-static JS_ALWAYS_INLINE void
-ExposeValueToActiveJS(const Value &v)
-{
-    if (v.isMarkable())
-        ExposeGCThingToActiveJS(v.toGCThing(), v.gcKind());
 }
 
 } 

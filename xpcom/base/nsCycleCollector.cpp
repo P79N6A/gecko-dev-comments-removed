@@ -2820,7 +2820,7 @@ nsCycleCollector::FixGrayBits(bool aForceGC)
     
     
     
-    mJSRuntime->Collect(aForceGC ? js::gcreason::SHUTDOWN_CC : js::gcreason::CC_FORCED);
+    mJSRuntime->Collect(aForceGC ? JS::gcreason::SHUTDOWN_CC : JS::gcreason::CC_FORCED);
     timeLog.Checkpoint("GC()");
 }
 
