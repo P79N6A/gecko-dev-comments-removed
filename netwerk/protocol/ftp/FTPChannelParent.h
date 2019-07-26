@@ -8,6 +8,7 @@
 #ifndef mozilla_net_FTPChannelParent_h
 #define mozilla_net_FTPChannelParent_h
 
+#include "ADivertableParentChannel.h"
 #include "mozilla/net/PFTPChannelParent.h"
 #include "mozilla/net/NeckoParent.h"
 #include "nsIParentChannel.h"
@@ -22,6 +23,7 @@ namespace net {
 class FTPChannelParent : public PFTPChannelParent
                        , public nsIParentChannel
                        , public nsIInterfaceRequestor
+                       , public ADivertableParentChannel
 {
 public:
   NS_DECL_ISUPPORTS
@@ -35,7 +37,26 @@ public:
 
   bool Init(const FTPChannelCreationArgs& aOpenArgs);
 
+  
+  void DivertTo(nsIStreamListener *aListener) MOZ_OVERRIDE;
+  nsresult SuspendForDiversion() MOZ_OVERRIDE;
+
+  
+  
+  
+  void StartDiversion();
+
+  
+  
+  void NotifyDiversionFailed(nsresult aErrorCode, bool aSkipResume = true);
+
 protected:
+  
+  nsresult ResumeForDiversion();
+
+  
+  void FailDiversion(nsresult aErrorCode, bool aSkipResume = true);
+
   bool DoAsyncOpen(const URIParams& aURI, const uint64_t& aStartPos,
                    const nsCString& aEntityID,
                    const OptionalInputStreamParams& aUploadStream);
@@ -62,6 +83,22 @@ protected:
   nsCOMPtr<nsILoadContext> mLoadContext;
 
   PBOverrideStatus mPBOverride;
+
+  
+  
+  nsCOMPtr<nsIStreamListener> mDivertToListener;
+  
+  nsresult mStatus;
+  
+  
+  
+  bool mDivertingFromChild;
+  
+  bool mDivertedOnStartRequest;
+
+  
+  
+  bool mSuspendedForDiversion;
 };
 
 } 
