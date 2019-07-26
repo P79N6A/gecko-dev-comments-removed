@@ -176,6 +176,12 @@ private:
   nsAutoArrayPtr<uint8_t> mReceivedDataBuffer;
 
   nsCOMPtr<nsIDOMBlob> mBlob;
+
+  
+
+
+
+
   nsCOMPtr<nsIThread> mReadFileThread;
   nsCOMPtr<nsIOutputStream> mOutputStream;
   nsCOMPtr<nsIInputStream> mInputStream;
