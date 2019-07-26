@@ -331,28 +331,6 @@ nsWindowMediator::GetOuterWindowWithId(uint64_t aWindowID,
 }
 
 NS_IMETHODIMP
-nsWindowMediator::GetCurrentInnerWindowWithId(uint64_t aWindowID,
-                                              nsIDOMWindow** aWindow)
-{
-  nsCOMPtr<nsPIDOMWindow> inner = nsGlobalWindow::GetInnerWindowWithId(aWindowID);
-
-  
-  if (!inner)
-    return NS_OK;
-
-  nsCOMPtr<nsPIDOMWindow> outer = inner->GetOuterWindow();
-  NS_ENSURE_TRUE(outer, NS_ERROR_UNEXPECTED);
-
-  
-  if (outer->GetCurrentInnerWindow() != inner)
-    return NS_OK;
-
-  nsCOMPtr<nsIDOMWindow> ret = do_QueryInterface(outer);
-  ret.forget(aWindow);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsWindowMediator::UpdateWindowTimeStamp(nsIXULWindow* inWindow)
 {
   NS_ENSURE_STATE(mReady);
