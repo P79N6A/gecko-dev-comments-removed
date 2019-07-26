@@ -275,15 +275,7 @@ SPSProfiler::allocProfileString(JSScript *script, JSFunction *maybeFun)
     
 
     
-    bool hasAtom = maybeFun && maybeFun->displayAtom();
-
-    
-    const jschar *atom = nullptr;
-    size_t lenAtom = 0;
-    if (hasAtom) {
-        atom = maybeFun->displayAtom()->charsZ();
-        lenAtom = maybeFun->displayAtom()->length();
-    }
+    JSAtom *atom = maybeFun ? maybeFun->displayAtom() : nullptr;
 
     
     const char *filename = script->filename();
@@ -298,8 +290,8 @@ SPSProfiler::allocProfileString(JSScript *script, JSFunction *maybeFun)
 
     
     size_t len = lenFilename + lenLineno + 1; 
-    if (hasAtom)
-        len += lenAtom + 3; 
+    if (atom)
+        len += atom->length() + 3; 
 
     
     char *cstr = js_pod_malloc<char>(len + 1);
@@ -308,10 +300,15 @@ SPSProfiler::allocProfileString(JSScript *script, JSFunction *maybeFun)
 
     
     DebugOnly<size_t> ret;
-    if (hasAtom)
-        ret = JS_snprintf(cstr, len + 1, "%hs (%s:%llu)", atom, filename, lineno);
-    else
+    if (atom) {
+        JS::AutoCheckCannotGC nogc;
+        if (atom->hasLatin1Chars())
+            ret = JS_snprintf(cstr, len + 1, "%s (%s:%llu)", atom->latin1Chars(nogc), filename, lineno);
+        else
+            ret = JS_snprintf(cstr, len + 1, "%hs (%s:%llu)", atom->twoByteChars(nogc), filename, lineno);
+    } else {
         ret = JS_snprintf(cstr, len + 1, "%s:%llu", filename, lineno);
+    }
 
     MOZ_ASSERT(ret == len, "Computed length should match actual length!");
 
