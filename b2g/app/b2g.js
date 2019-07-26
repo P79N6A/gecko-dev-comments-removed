@@ -399,6 +399,9 @@ pref("dom.mozAlarms.enabled", true);
 
 pref("services.push.enabled", true);
 
+
+pref("services.push.connection.enabled", true);
+
 pref("services.push.serverURL", "");
 pref("services.push.userAgentID", "");
 
@@ -641,8 +644,6 @@ pref("dom.disable_window_open_dialog_feature", true);
 
 
 pref("accessibility.accessfu.activate", 2);
-
-pref("accessibility.accessfu.skip_empty_images", true);
 
 
 pref("ui.touch.radius.enabled", false);
