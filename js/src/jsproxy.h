@@ -53,7 +53,7 @@ class JS_FRIEND_API(BaseProxyHandler) {
     bool mHasPrototype;
   protected:
     
-    void setHasPrototype(bool hasPrototype) { mHasPrototype = hasPrototype; }
+    void setHasPrototype(bool aHasPrototype) { mHasPrototype = aHasPrototype; }
 
   public:
     explicit BaseProxyHandler(void *family);
