@@ -426,7 +426,7 @@ let NetworkHelper = {
     
     
     
-    if (/^application\/[a-z-]+\b(xml|json)/.test(aMimeType)) {
+    if (/^application\/(\w+[\.-]?)+\+(xml|json)/.test(aMimeType)) {
       return true;
     }
 
