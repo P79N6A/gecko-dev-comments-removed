@@ -6143,16 +6143,6 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
         
         
         
-        if (touchEvent->touches.Length() == 1) {
-          nsTArray< nsRefPtr<dom::Touch> > touches;
-          gCaptureTouchList.Enumerate(&AppendToTouchList, (void *)&touches);
-          for (uint32_t i = 0; i < touches.Length(); ++i) {
-            EvictTouchPoint(touches[i]);
-          }
-        }
-        
-        
-        
         nsCOMPtr<nsIContent> anyTarget;
         if (gCaptureTouchList.Count() > 0) {
           gCaptureTouchList.Enumerate(&FindAnyTarget, &anyTarget);
@@ -6160,18 +6150,12 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
           gPreventMouseEvents = false;
         }
 
-        
         for (int32_t i = touchEvent->touches.Length(); i; ) {
           --i;
           dom::Touch* touch = touchEvent->touches[i];
-          touch->mMessage = aEvent->message;
 
           int32_t id = touch->Identifier();
           if (!gCaptureTouchList.Get(id, nullptr)) {
-            
-            
-            touch->mChanged = true;
-
             
             uint32_t flags = 0;
             eventPoint = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent,
@@ -6187,7 +6171,6 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
                 anyTarget = anyTarget->GetParent();
               }
               touch->SetTarget(anyTarget);
-              gCaptureTouchList.Put(id, touch);
             } else {
               nsIFrame* newTargetFrame = nullptr;
               for (nsIFrame* f = target; f;
@@ -6216,7 +6199,6 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
                   targetContent = targetContent->GetParent();
                 }
                 touch->SetTarget(targetContent);
-                gCaptureTouchList.Put(id, touch);
               }
             }
             if (target) {
@@ -6231,7 +6213,6 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
             nsRefPtr<dom::Touch> oldTouch = gCaptureTouchList.GetWeak(id);
             if (oldTouch) {
               touch->SetTarget(oldTouch->mTarget);
-              gCaptureTouchList.Put(id, touch);
             }
           }
         }
@@ -6680,6 +6661,31 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
       case NS_MOUSE_BUTTON_UP:
         isHandlingUserInput = true;
         break;
+      case NS_TOUCH_START: {
+        nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
+        
+        
+        
+        if (touchEvent->touches.Length() == 1) {
+          nsTArray< nsRefPtr<dom::Touch> > touches;
+          gCaptureTouchList.Enumerate(&AppendToTouchList, (void *)&touches);
+          for (uint32_t i = 0; i < touches.Length(); ++i) {
+            EvictTouchPoint(touches[i]);
+          }
+        }
+        
+        for (uint32_t i = 0; i < touchEvent->touches.Length(); ++i) {
+          dom::Touch* touch = touchEvent->touches[i];
+          int32_t id = touch->Identifier();
+          if (!gCaptureTouchList.Get(id, nullptr)) {
+            
+            touch->mChanged = true;
+          }
+          touch->mMessage = aEvent->message;
+          gCaptureTouchList.Put(id, touch);
+        }
+        break;
+      }
       case NS_TOUCH_CANCEL:
       case NS_TOUCH_END: {
         
