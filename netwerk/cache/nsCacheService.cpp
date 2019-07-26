@@ -1210,17 +1210,26 @@ nsCacheService::Shutdown()
     nsCOMPtr<nsIFile> parentDir;
 
     {
-    nsCacheServiceAutoLock lock(LOCK_TELEM(NSCACHESERVICE_SHUTDOWN));
-    NS_ASSERTION(mInitialized, 
-                 "can't shutdown nsCacheService unless it has been initialized.");
+        nsCacheServiceAutoLock lock(LOCK_TELEM(NSCACHESERVICE_SHUTDOWN));
+        NS_ASSERTION(mInitialized,
+            "can't shutdown nsCacheService unless it has been initialized.");
+        if (!mInitialized)
+            return;
 
-    if (mInitialized) {
+        mClearingEntries = true;
+        DoomActiveEntries(nullptr);
+    }
+
+    CloseAllStreams();
+
+    {
+        nsCacheServiceAutoLock lock(LOCK_TELEM(NSCACHESERVICE_SHUTDOWN));
+        NS_ASSERTION(mInitialized, "Bad state");
 
         mInitialized = false;
 
         
         ClearDoomList();
-        ClearActiveEntries();
 
         if (mSmartSizeTimer) {
             mSmartSizeTimer->Cancel();
@@ -1261,9 +1270,9 @@ nsCacheService::Shutdown()
         LogCacheStatistics();
 #endif
 
+        mClearingEntries = false;
         mCacheIOThread.swap(cacheIOThread);
     }
-    } 
 
     if (cacheIOThread)
         cacheIOThread->Shutdown();
@@ -2336,10 +2345,15 @@ nsCacheService::OnProfileShutdown(bool cleanse)
         
         return;
     }
-    nsCacheServiceAutoLock lock(LOCK_TELEM(NSCACHESERVICE_ONPROFILESHUTDOWN));
-    gService->mClearingEntries = true;
+    {
+        nsCacheServiceAutoLock lock(LOCK_TELEM(NSCACHESERVICE_ONPROFILESHUTDOWN));
+        gService->mClearingEntries = true;
+        gService->DoomActiveEntries(nullptr);
+    }
 
-    gService->DoomActiveEntries(nullptr);
+    gService->CloseAllStreams();
+
+    nsCacheServiceAutoLock lock(LOCK_TELEM(NSCACHESERVICE_ONPROFILESHUTDOWN));
     gService->ClearDoomList();
 
     
@@ -2534,11 +2548,17 @@ void
 nsCacheService::CloseDescriptor(nsCacheEntryDescriptor * descriptor)
 {
     
-    nsCacheEntry * entry       = descriptor->CacheEntry();
-    bool           stillActive = entry->RemoveDescriptor(descriptor);
+    nsCacheEntry * entry = descriptor->CacheEntry();
+    bool doomEntry;
+    bool stillActive = entry->RemoveDescriptor(descriptor, &doomEntry);
 
     if (!entry->IsValid()) {
         gService->ProcessPendingRequests(entry);
+    }
+
+    if (doomEntry) {
+        gService->DoomEntry_Internal(entry, true);
+        return;
     }
 
     if (!stillActive) {
@@ -2844,22 +2864,6 @@ nsCacheService::ProcessPendingRequests(nsCacheEntry * entry)
     return NS_OK;
 }
 
-
-void
-nsCacheService::ClearPendingRequests(nsCacheEntry * entry)
-{
-    nsCacheRequest * request = (nsCacheRequest *)PR_LIST_HEAD(&entry->mRequestQ);
-    
-    while (request != &entry->mRequestQ) {
-        nsCacheRequest * next = (nsCacheRequest *)PR_NEXT_LINK(request);
-
-        
-        PR_REMOVE_AND_INIT_LINK(request);
-        delete request;
-        request = next;
-    }
-}
-
 bool
 nsCacheService::IsDoomListEmpty()
 {
@@ -2874,36 +2878,12 @@ nsCacheService::ClearDoomList()
 
     while (entry != &mDoomedEntries) {
         nsCacheEntry * next = (nsCacheEntry *)PR_NEXT_LINK(entry);
-        
-         entry->DetachDescriptors();
-         DeactivateEntry(entry);
-         entry = next;
-    }        
-}
 
-
-void
-nsCacheService::ClearActiveEntries()
-{
-    nsVoidArray entries;
-
-    
-    
-    
-    mActiveEntries.VisitEntries(GetActiveEntries, &entries);
-
-    for (int32_t i = 0 ; i < entries.Count() ; i++) {
-        nsCacheEntry * entry = static_cast<nsCacheEntry *>(entries.ElementAt(i));
-        NS_ASSERTION(entry, "### active entry = nullptr!");
-        
-        gService->ClearPendingRequests(entry);
         entry->DetachDescriptors();
-        gService->DeactivateEntry(entry);
+        DeactivateEntry(entry);
+        entry = next;
     }
-
-    mActiveEntries.Shutdown();
 }
-
 
 PLDHashOperator
 nsCacheService::GetActiveEntries(PLDHashTable *    table,
@@ -2954,6 +2934,67 @@ nsCacheService::RemoveActiveEntry(PLDHashTable *    table,
     
     entry->MarkInactive();
     return PL_DHASH_REMOVE; 
+}
+
+
+void
+nsCacheService::CloseAllStreams()
+{
+    nsTArray<nsRefPtr<nsCacheEntryDescriptor::nsInputStreamWrapper> > inputs;
+    nsTArray<nsRefPtr<nsCacheEntryDescriptor::nsOutputStreamWrapper> > outputs;
+
+    {
+        nsCacheServiceAutoLock lock(LOCK_TELEM(NSCACHESERVICE_CLOSEALLSTREAMS));
+
+        nsVoidArray entries;
+
+#if DEBUG
+        
+        mActiveEntries.VisitEntries(GetActiveEntries, &entries);
+        NS_ASSERTION(entries.Count() == 0, "Bad state");
+#endif
+
+        
+        nsCacheEntry * entry = (nsCacheEntry *)PR_LIST_HEAD(&mDoomedEntries);
+        while (entry != &mDoomedEntries) {
+            nsCacheEntry * next = (nsCacheEntry *)PR_NEXT_LINK(entry);
+            entries.AppendElement(entry);
+            entry = next;
+        }
+
+        
+        for (int32_t i = 0 ; i < entries.Count() ; i++) {
+            entry = static_cast<nsCacheEntry *>(entries.ElementAt(i));
+
+            nsTArray<nsRefPtr<nsCacheEntryDescriptor> > descs;
+            entry->GetDescriptors(descs);
+
+            for (uint32_t j = 0 ; j < descs.Length() ; j++) {
+                if (descs[j]->mOutputWrapper)
+                    outputs.AppendElement(descs[j]->mOutputWrapper);
+
+                for (int32_t k = 0 ; k < descs[j]->mInputWrappers.Count() ; k++)
+                    inputs.AppendElement(static_cast<
+                        nsCacheEntryDescriptor::nsInputStreamWrapper *>(
+                        descs[j]->mInputWrappers[k]));
+            }
+        }
+    }
+
+    uint32_t i;
+    for (i = 0 ; i < inputs.Length() ; i++)
+        inputs[i]->Close();
+
+    for (i = 0 ; i < outputs.Length() ; i++)
+        outputs[i]->Close();
+}
+
+
+bool
+nsCacheService::GetClearingEntries()
+{
+    AssertOwnsLock();
+    return gService->mClearingEntries;
 }
 
 

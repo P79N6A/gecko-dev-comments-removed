@@ -138,8 +138,8 @@ function check_doom3(status)
   
   var data = "testdata";
   write_and_check(gOstream, data, data.length);
-  gEntry.close();
   gOstream.close();
+  gEntry.close();
   
   new DoomEntry("testentry", check_doom4);
 }
