@@ -89,10 +89,6 @@ bool IsAltPressed();
 
 
 
-std::wstring GetClassName(HWND window);
-
-
-
 
 
 

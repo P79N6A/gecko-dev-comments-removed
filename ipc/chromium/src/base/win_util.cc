@@ -322,27 +322,6 @@ bool IsAltPressed() {
   return (::GetKeyState(VK_MENU) & 0x80) == 0x80;
 }
 
-std::wstring GetClassName(HWND window) {
-  
-  
-  
-  
-  DWORD buffer_size = MAX_PATH;
-  while (true) {
-    std::wstring output;
-    DWORD size_ret =
-        GetClassNameW(window, WriteInto(&output, buffer_size), buffer_size);
-    if (size_ret == 0)
-      break;
-    if (size_ret < (buffer_size - 1)) {
-      output.resize(size_ret);
-      return output;
-    }
-    buffer_size *= 2;
-  }
-  return std::wstring();  
-}
-
 bool UserAccountControlIsEnabled() {
   RegKey key(HKEY_LOCAL_MACHINE,
       L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System");
