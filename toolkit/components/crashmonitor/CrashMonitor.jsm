@@ -41,8 +41,6 @@ Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/AsyncShutdown.jsm");
-Cu.import("resource://gre/modules/NetUtil.jsm");
-Cu.import("resource://gre/modules/FileUtils.jsm");
 
 const NOTIFICATIONS = [
   "final-ui-startup",
@@ -100,42 +98,30 @@ let CrashMonitorInternal = {
 
 
   loadPreviousCheckpoints: function () {
-    let deferred = Promise.defer();
-    CrashMonitorInternal.previousCheckpoints = deferred.promise;
-
-    let file = FileUtils.File(CrashMonitorInternal.path);
-    NetUtil.asyncFetch(file, function(inputStream, status) {
-      if (!Components.isSuccessCode(status)) {
-        if (status != Cr.NS_ERROR_FILE_NOT_FOUND) {
-          Cu.reportError("Error while loading crash monitor data: " + status);
+    this.previousCheckpoints = Task.spawn(function*() {
+      let data;
+      try {
+        data = yield OS.File.read(CrashMonitorInternal.path, { encoding: "utf-8" });
+      } catch (ex if ex instanceof OS.File.Error) {
+        if (!ex.becauseNoSuchFile) {
+          Cu.reportError("Error while loading crash monitor data: " + ex.toString());
         }
 
-        deferred.resolve(null);
-        return;
+        return null;
       }
 
-      let data = NetUtil.readInputStreamToString(inputStream,
-        inputStream.available(), { charset: "UTF-8" });
-
-      let notifications = null;
+      let notifications;
       try {
         notifications = JSON.parse(data);
       } catch (ex) {
         Cu.reportError("Error while parsing crash monitor data: " + ex);
-        deferred.resolve(null);
+        return null;
       }
 
-      try {
-        deferred.resolve(Object.freeze(notifications));
-      } catch (ex) {
-        
-        
-        
-        deferred.reject(ex);
-      }
+      return Object.freeze(notifications);
     });
 
-    return deferred.promise;
+    return this.previousCheckpoints;
   }
 };
 
