@@ -576,8 +576,6 @@ pref("pdfjs.firstRun", false);
 pref("pdfjs.previousHandler.preferredAction", 0);
 pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
 
-pref("shumway.disabled", true);
-
 
 
 
