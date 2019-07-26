@@ -2478,7 +2478,6 @@ class LTruncateDToInt32 : public LInstructionHelper<1, 1, 1>
 };
 
 
-
 class LIntToString : public LInstructionHelper<1, 1, 0>
 {
   public:
@@ -2488,6 +2487,25 @@ class LIntToString : public LInstructionHelper<1, 1, 0>
         setOperand(0, input);
     }
 
+    const MToString *mir() {
+        return mir_->toToString();
+    }
+};
+
+
+class LDoubleToString : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(DoubleToString)
+
+    LDoubleToString(const LAllocation &input, const LDefinition &temp) {
+        setOperand(0, input);
+        setTemp(0, temp);
+    }
+
+    const LDefinition *tempInt() {
+        return getTemp(0);
+    }
     const MToString *mir() {
         return mir_->toToString();
     }

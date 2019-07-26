@@ -42,8 +42,11 @@ JSObject* ParPush(ParPushArgs *args);
 JSObject *ParExtendArray(ForkJoinSlice *slice, JSObject *array, uint32_t length);
 
 
+
 ParallelResult ParConcatStrings(ForkJoinSlice *slice, HandleString left, HandleString right,
                                 MutableHandleString out);
+ParallelResult ParIntToString(ForkJoinSlice *slice, int i, MutableHandleString out);
+ParallelResult ParDoubleToString(ForkJoinSlice *slice, double d, MutableHandleString out);
 
 
 
