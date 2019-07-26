@@ -1799,22 +1799,6 @@ pref("viewmanager.do_doublebuffering", true);
 
 pref("gestures.enable_single_finger_input", true);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pref("editor.resizing.preserve_ratio",       true);
 pref("editor.positioning.offset",            0);
 
