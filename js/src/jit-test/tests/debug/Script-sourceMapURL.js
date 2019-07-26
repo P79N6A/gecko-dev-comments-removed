@@ -28,9 +28,18 @@ g.evaluate('(function () { (function () { debugger; })(); })();',
 assertEq(fired, true);
 
 
-
 g.evaluate('function f() {}\n' +
            '//@ sourceMappingURL=file:///var/quux.js.map');
+assertEq(getSourceMapURL(), 'file:///var/quux.js.map');
+
+g.evaluate('function f() {}\n' +
+           '/*//@ sourceMappingURL=file:///var/quux.js.map*/');
+assertEq(getSourceMapURL(), 'file:///var/quux.js.map');
+
+g.evaluate('function f() {}\n' +
+           '/*\n' +
+           '//@ sourceMappingURL=file:///var/quux.js.map\n' +
+           '*/');
 assertEq(getSourceMapURL(), 'file:///var/quux.js.map');
 
 
