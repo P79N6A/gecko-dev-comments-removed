@@ -492,6 +492,26 @@ NativeInterface2JSObjectAndThrowIfFailed(JSContext* aCx,
   return true;
 }
 
+bool
+TryPreserveWrapper(JSObject* obj)
+{
+  nsISupports* native;
+  if (UnwrapDOMObjectToISupports(obj, native)) {
+    nsWrapperCache* cache = nullptr;
+    CallQueryInterface(native, &cache);
+    if (cache) {
+      nsContentUtils::PreserveWrapper(native, cache);
+    }
+    return true;
+  }
+
+  
+  
+  
+  const DOMClass* domClass = GetDOMClass(obj);
+  return domClass && !domClass->mParticipant;
+}
+
 
 
 JSBool

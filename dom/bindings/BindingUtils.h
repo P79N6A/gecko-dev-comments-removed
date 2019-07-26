@@ -841,6 +841,17 @@ ClearWrapper(T* p, void*)
 
 
 
+
+
+
+
+
+
+bool
+TryPreserveWrapper(JSObject* obj);
+
+
+
 JSBool
 InstanceClassHasProtoAtDepth(JSHandleObject protoObject, uint32_t protoID,
                              uint32_t depth);
