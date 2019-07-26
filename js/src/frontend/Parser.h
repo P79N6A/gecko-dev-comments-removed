@@ -644,15 +644,6 @@ class Parser : private AutoGCRooter, public StrictModeGetter
 
     bool asmJS(Node list);
 
-  public:
-    
-    
-    
-    
-    
-    uint32_t offsetOfCurrentAsmJSModule() const { return tokenStream.currentToken().pos.end; }
-  private:
-
     friend class LegacyCompExprTransplanter;
     friend struct BindData<ParseHandler>;
 };
