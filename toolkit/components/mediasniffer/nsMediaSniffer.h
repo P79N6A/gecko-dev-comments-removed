@@ -4,6 +4,8 @@
 
 
 
+#ifndef nsMediaSniffer_h
+#define nsMediaSniffer_h
 
 #include "nsIModule.h"
 #include "nsIFactory.h"
@@ -40,3 +42,5 @@ class nsMediaSniffer MOZ_FINAL : public nsIContentSniffer
 
   static nsMediaSnifferEntry sSnifferEntries[];
 };
+
+#endif
