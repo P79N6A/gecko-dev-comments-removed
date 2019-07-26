@@ -289,12 +289,46 @@ CompartmentPrivate::~CompartmentPrivate()
         --kLivingAdopters;
 }
 
-bool CompartmentPrivate::TryParseLocationURI()
+static bool
+TryParseLocationURICandidate(const nsACString& uristr,
+                             CompartmentPrivate::LocationHint aLocationHint,
+                             nsIURI** aURI)
 {
+    static NS_NAMED_LITERAL_CSTRING(kGRE, "resource://gre/");
+    static NS_NAMED_LITERAL_CSTRING(kToolkit, "chrome://global/");
+    static NS_NAMED_LITERAL_CSTRING(kBrowser, "chrome://browser/");
+
+    if (aLocationHint == CompartmentPrivate::LocationHintAddon) {
+        
+        if (StringBeginsWith(uristr, kGRE) ||
+            StringBeginsWith(uristr, kToolkit) ||
+            StringBeginsWith(uristr, kBrowser))
+            return false;
+    }
+
+    nsCOMPtr<nsIURI> uri;
+    if (NS_FAILED(NS_NewURI(getter_AddRefs(uri), uristr)))
+        return false;
+
+    nsAutoCString scheme;
+    if (NS_FAILED(uri->GetScheme(scheme)))
+        return false;
+
     
-    if (locationWasParsed)
-      return false;
-    locationWasParsed = true;
+    
+    
+    if (scheme.EqualsLiteral("data") || scheme.EqualsLiteral("blob"))
+        return false;
+
+    uri.forget(aURI);
+    return true;
+}
+
+bool CompartmentPrivate::TryParseLocationURI(CompartmentPrivate::LocationHint aLocationHint,
+                                             nsIURI **aURI)
+{
+    if (!aURI)
+        return false;
 
     
     if (location.IsEmpty())
@@ -320,12 +354,13 @@ bool CompartmentPrivate::TryParseLocationURI()
     
     int32_t idx = location.Find(from);
     if (idx < 0)
-        return TryParseLocationURICandidate(location);
+        return TryParseLocationURICandidate(location, aLocationHint, aURI);
 
 
     
     
-    if (TryParseLocationURICandidate(Substring(location, 0, idx)))
+    if (TryParseLocationURICandidate(Substring(location, 0, idx), aLocationHint,
+                                     aURI))
         return true;
 
     
@@ -343,40 +378,19 @@ bool CompartmentPrivate::TryParseLocationURI()
         idx = chain.RFind(arrow);
         if (idx < 0) {
             
-            return TryParseLocationURICandidate(chain);
+            return TryParseLocationURICandidate(chain, aLocationHint, aURI);
         }
 
         
-        if (TryParseLocationURICandidate(Substring(chain, idx + arrowLength)))
+        if (TryParseLocationURICandidate(Substring(chain, idx + arrowLength),
+                                         aLocationHint, aURI))
             return true;
 
         
         
-        idx -= 1;
-        
         chain = Substring(chain, 0, idx);
     }
     MOZ_ASSUME_UNREACHABLE("Chain parser loop does not terminate");
-}
-
-bool CompartmentPrivate::TryParseLocationURICandidate(const nsACString& uristr)
-{
-    nsCOMPtr<nsIURI> uri;
-    if (NS_FAILED(NS_NewURI(getter_AddRefs(uri), uristr)))
-        return false;
-
-    nsAutoCString scheme;
-    if (NS_FAILED(uri->GetScheme(scheme)))
-        return false;
-
-    
-    
-    
-    if (scheme.EqualsLiteral("data") || scheme.EqualsLiteral("blob"))
-        return false;
-
-    locationURI = uri.forget();
-    return true;
 }
 
 CompartmentPrivate*
@@ -2534,7 +2548,8 @@ class XPCJSRuntimeStats : public JS::RuntimeStats
         if (mGetLocations) {
             CompartmentPrivate *cp = GetCompartmentPrivate(c);
             if (cp)
-              cp->GetLocationURI(getter_AddRefs(extras->location));
+              cp->GetLocationURI(CompartmentPrivate::LocationHintAddon,
+                                 getter_AddRefs(extras->location));
             
             
             
