@@ -48,21 +48,21 @@ class WrapperFactory {
 
     
     static JSObject *PrepareForWrapping(JSContext *cx,
-                                        JSObject *scope,
-                                        JSObject *obj,
+                                        JS::HandleObject scope,
+                                        JS::HandleObject obj,
                                         unsigned flags);
 
     
     static JSObject *Rewrap(JSContext *cx,
-                            JSObject *existing,
-                            JSObject *obj,
-                            JSObject *wrappedProto,
-                            JSObject *parent,
+                            JS::HandleObject existing,
+                            JS::HandleObject obj,
+                            JS::HandleObject wrappedProto,
+                            JS::HandleObject parent,
                             unsigned flags);
 
     
     static JSObject *WrapForSameCompartment(JSContext *cx,
-                                            JSObject *obj);
+                                            JS::HandleObject obj);
 
     
     static bool WaiveXrayAndWrap(JSContext *cx, jsval *vp);

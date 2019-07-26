@@ -125,7 +125,8 @@ WrapperFactory::DoubleWrap(JSContext *cx, HandleObject obj, unsigned flags)
 }
 
 JSObject *
-WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *objArg, unsigned flags)
+WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
+                                   HandleObject objArg, unsigned flags)
 {
     RootedObject obj(cx, objArg);
     
@@ -167,6 +168,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
 
     JSAutoCompartment ac(cx, obj);
     XPCCallContext ccx(JS_CALLER, cx, obj);
+    RootedObject wrapScope(cx, scope);
 
     {
         if (NATIVE_HAS_FLAG(&ccx, WantPreCreate)) {
@@ -177,20 +179,19 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
             
             
             
-            RootedObject originalScope(cx, scope);
             nsresult rv = wn->GetScriptableInfo()->GetCallback()->
-                PreCreate(wn->Native(), cx, scope, &scope);
+                PreCreate(wn->Native(), cx, scope, wrapScope.address());
             NS_ENSURE_SUCCESS(rv, DoubleWrap(cx, obj, flags));
 
             
             
             
             
-            if (js::GetObjectCompartment(originalScope) != js::GetObjectCompartment(scope))
+            if (js::GetObjectCompartment(scope) != js::GetObjectCompartment(wrapScope))
                 return DoubleWrap(cx, obj, flags);
 
             RootedObject currentScope(cx, JS_GetGlobalForObject(cx, obj));
-            if (MOZ_UNLIKELY(scope != currentScope)) {
+            if (MOZ_UNLIKELY(wrapScope != currentScope)) {
                 
                 
                 
@@ -217,7 +218,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
 
                 
                 if (probe != currentScope) {
-                    MOZ_ASSERT(probe == scope);
+                    MOZ_ASSERT(probe == wrapScope);
                     return DoubleWrap(cx, obj, flags);
                 }
 
@@ -236,8 +237,8 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
             
             
             
-            if (!AccessCheck::isChrome(js::GetObjectCompartment(scope)) &&
-                 AccessCheck::subsumesIgnoringDomain(js::GetObjectCompartment(scope),
+            if (!AccessCheck::isChrome(js::GetObjectCompartment(wrapScope)) &&
+                 AccessCheck::subsumesIgnoringDomain(js::GetObjectCompartment(wrapScope),
                                                      js::GetObjectCompartment(obj)))
             {
                 return DoubleWrap(cx, obj, flags);
@@ -253,7 +254,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
     
     RootedValue v(cx);
     nsresult rv =
-        nsXPConnect::FastGetXPConnect()->WrapNativeToJSVal(cx, scope, wn->Native(), nullptr,
+        nsXPConnect::FastGetXPConnect()->WrapNativeToJSVal(cx, wrapScope, wn->Native(), nullptr,
                                                            &NS_GET_IID(nsISupports), false,
                                                            v.address(), getter_AddRefs(holder));
     if (NS_SUCCEEDED(rv)) {
@@ -344,8 +345,8 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
 }
 
 JSObject *
-WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
-                       JSObject *wrappedProto, JSObject *parent,
+WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
+                       HandleObject wrappedProto, HandleObject parent,
                        unsigned flags)
 {
     MOZ_ASSERT(!IsWrapper(obj) ||
@@ -498,8 +499,9 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
 }
 
 JSObject *
-WrapperFactory::WrapForSameCompartment(JSContext *cx, JSObject *obj)
+WrapperFactory::WrapForSameCompartment(JSContext *cx, HandleObject objArg)
 {
+    RootedObject obj(cx, objArg);
     MOZ_ASSERT(js::IsObjectInContextCompartment(obj, cx));
 
     
@@ -511,7 +513,7 @@ WrapperFactory::WrapForSameCompartment(JSContext *cx, JSObject *obj)
     obj = JS_ObjectToOuterObject(cx, obj);
     NS_ENSURE_TRUE(obj, nullptr);
 
-    if (dom::GetSameCompartmentWrapperForDOMBinding(obj)) {
+    if (dom::GetSameCompartmentWrapperForDOMBinding(*obj.address())) {
         return obj;
     }
 

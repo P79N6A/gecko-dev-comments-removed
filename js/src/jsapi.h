@@ -1161,8 +1161,8 @@ typedef JSBool
 
 
 typedef JSObject *
-(* JSWrapObjectCallback)(JSContext *cx, JSObject *existing, JSObject *obj,
-                         JSObject *proto, JSObject *parent,
+(* JSWrapObjectCallback)(JSContext *cx, JS::HandleObject existing, JS::HandleObject obj,
+                         JS::HandleObject proto, JS::HandleObject parent,
                          unsigned flags);
 
 
@@ -1171,7 +1171,8 @@ typedef JSObject *
 
 
 typedef JSObject *
-(* JSPreWrapCallback)(JSContext *cx, JSObject *scope, JSObject *obj, unsigned flags);
+(* JSPreWrapCallback)(JSContext *cx, JS::HandleObject scope, JS::HandleObject obj,
+                      unsigned flags);
 
 
 
@@ -1184,7 +1185,7 @@ typedef JSObject *
 
 
 typedef JSObject *
-(* JSSameCompartmentWrapObjectCallback)(JSContext *cx, JSObject *obj);
+(* JSSameCompartmentWrapObjectCallback)(JSContext *cx, JS::HandleObject obj);
 
 typedef void
 (* JSDestroyCompartmentCallback)(JSFreeOp *fop, JSCompartment *compartment);
