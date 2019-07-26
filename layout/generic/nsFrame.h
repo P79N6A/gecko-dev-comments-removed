@@ -497,10 +497,11 @@ public:
 
 
 
+
   void DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
                                       const nsDisplayListSet& aLists,
                                       bool aForceBackground,
-                                      nsDisplayBackgroundImage** aBackground);
+                                      bool* aAppendedThemedBackground = nullptr);
   
 
 
