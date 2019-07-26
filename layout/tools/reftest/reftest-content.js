@@ -19,6 +19,7 @@ const ENVIRONMENT_CONTRACTID = "@mozilla.org/process/environment;1";
 const BLANK_URL_FOR_CLEARING = "data:text/html;charset=UTF-8,%3C%21%2D%2DCLEAR%2D%2D%3E";
 
 CU.import("resource://gre/modules/Timer.jsm");
+CU.import("resource://gre/modules/AsyncSpellCheckTestHelper.jsm");
 
 var gBrowserIsRemote;
 var gHaveCanvasSnapshot = false;
@@ -253,10 +254,13 @@ const STATE_WAITING_TO_FIRE_INVALIDATE_EVENT = 0;
 const STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL = 1;
 
 
-const STATE_WAITING_TO_FINISH = 2;
-const STATE_COMPLETED = 3;
+const STATE_WAITING_FOR_SPELL_CHECKS = 2;
 
-function WaitForTestEnd(contentRootElement, inPrintMode) {
+
+const STATE_WAITING_TO_FINISH = 3;
+const STATE_COMPLETED = 4;
+
+function WaitForTestEnd(contentRootElement, inPrintMode, spellCheckedElements) {
     var stopAfterPaintReceived = false;
     var currentDoc = content.document;
     var state = STATE_WAITING_TO_FIRE_INVALIDATE_EVENT;
@@ -398,6 +402,20 @@ function WaitForTestEnd(contentRootElement, inPrintMode) {
                 LogInfo("MakeProgress: waiting for reftest-wait to be removed");
                 return;
             }
+
+            
+            state = STATE_WAITING_FOR_SPELL_CHECKS;
+            MakeProgress();
+            return;
+
+        case STATE_WAITING_FOR_SPELL_CHECKS:
+            LogInfo("MakeProgress: STATE_WAITING_FOR_SPELL_CHECKS");
+            if (numPendingSpellChecks) {
+                gFailureReason = "timed out waiting for spell checks to end";
+                LogInfo("MakeProgress: waiting for spell checks to end");
+                return;
+            }
+
             state = STATE_WAITING_TO_FINISH;
             if (!inPrintMode && doPrintMode(contentRootElement)) {
                 LogInfo("MakeProgress: setting up print mode");
@@ -451,6 +469,21 @@ function WaitForTestEnd(contentRootElement, inPrintMode) {
     gTimeoutHook = RemoveListeners;
 
     
+    var numPendingSpellChecks = spellCheckedElements.length;
+    function decNumPendingSpellChecks() {
+        --numPendingSpellChecks;
+        MakeProgress();
+    }
+    for (let editable of spellCheckedElements) {
+        try {
+            onSpellCheck(editable, decNumPendingSpellChecks);
+        } catch (err) {
+            
+            setTimeout(decNumPendingSpellChecks, 0);
+        }
+    }
+
+    
     
     
     SendInitCanvasWithSnapshot();
@@ -475,6 +508,19 @@ function OnDocumentLoad(event)
         
         return;
     }
+
+    
+    
+    
+    
+    
+    
+    var querySelector =
+        '*[class~="spell-checked"],' +
+        'textarea:not([spellcheck="false"]),' +
+        'input[spellcheck]:-moz-any([spellcheck=""],[spellcheck="true"]),' +
+        '*[contenteditable]:-moz-any([contenteditable=""],[contenteditable="true"])';
+    var spellCheckedElements = currentDoc.querySelectorAll(querySelector);
 
     var contentRootElement = currentDoc ? currentDoc.documentElement : null;
     currentDoc = null;
@@ -501,7 +547,7 @@ function OnDocumentLoad(event)
             !painted) {
             LogInfo("AfterOnLoadScripts belatedly entering WaitForTestEnd");
             
-            WaitForTestEnd(contentRootElement, inPrintMode);
+            WaitForTestEnd(contentRootElement, inPrintMode, []);
         } else {
             CheckForProcessCrashExpectation();
             RecordResult();
@@ -509,12 +555,13 @@ function OnDocumentLoad(event)
     }
 
     if (shouldWaitForReftestWaitRemoval(contentRootElement) ||
-        shouldWaitForExplicitPaintWaiters()) {
+        shouldWaitForExplicitPaintWaiters() ||
+        spellCheckedElements.length) {
         
         
         gFailureReason = "timed out waiting for test to complete (trying to get into WaitForTestEnd)";
         LogInfo("OnDocumentLoad triggering WaitForTestEnd");
-        setTimeout(function () { WaitForTestEnd(contentRootElement, inPrintMode); }, 0);
+        setTimeout(function () { WaitForTestEnd(contentRootElement, inPrintMode, spellCheckedElements); }, 0);
     } else {
         if (doPrintMode(contentRootElement)) {
             LogInfo("OnDocumentLoad setting up print mode");
