@@ -331,14 +331,6 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
 
     friend void AutoGCRooter::trace(JSTracer *trc);
 
-    
-
-
-
-
-
-    bool init();
-
     const char *getFilename() const { return tokenStream.getFilename(); }
     JSVersion versionNumber() const { return tokenStream.versionNumber(); }
 

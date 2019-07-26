@@ -29,6 +29,7 @@
 #include "prmjtime.h"
 
 #include "ds/LifoAlloc.h"
+#include "frontend/ParseMaps.h"
 #include "gc/Nursery.h"
 #include "gc/Statistics.h"
 #include "gc/StoreBuffer.h"
@@ -1257,6 +1258,16 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     js::ConservativeGCData conservativeGC;
 
+    
+    js::frontend::ParseMapPool parseMapPool;
+
+    
+
+
+
+
+    unsigned activeCompilations;
+
   private:
     JSPrincipals        *trustedPrincipals_;
   public:
@@ -1601,11 +1612,6 @@ struct JSContext : js::ContextFriendFields,
     
     void wrapPendingException();
 
-  private:
-    
-    js::frontend::ParseMapPool *parseMapPool_;
-
-  public:
     
     js::ObjectSet       cycleDetectorSet;
 
@@ -1622,13 +1628,6 @@ struct JSContext : js::ContextFriendFields,
     inline js::RegExpStatics *regExpStatics();
 
   public:
-    js::frontend::ParseMapPool &parseMapPool() {
-        JS_ASSERT(parseMapPool_);
-        return *parseMapPool_;
-    }
-
-    inline bool ensureParseMapPool();
-
     
 
 
@@ -1750,8 +1749,6 @@ struct JSContext : js::ContextFriendFields,
         js_ReportAllocationOverflow(this);
     }
 
-    void purge();
-
     bool isExceptionPending() {
         return throwing;
     }
@@ -1777,13 +1774,6 @@ struct JSContext : js::ContextFriendFields,
 
     bool stackIterAssertionEnabled;
 #endif
-
-    
-
-
-
-
-    unsigned activeCompilations;
 
     
 

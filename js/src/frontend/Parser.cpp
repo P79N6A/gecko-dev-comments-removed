@@ -422,24 +422,15 @@ Parser<ParseHandler>::Parser(JSContext *cx, const CompileOptions &options,
     
     handler.disableSyntaxParser();
 
-    cx->activeCompilations++;
+    cx->runtime->activeCompilations++;
 
     
     
     
     if (context->hasStrictOption())
         handler.disableSyntaxParser();
-}
 
-template <typename ParseHandler>
-bool
-Parser<ParseHandler>::init()
-{
-    if (!context->ensureParseMapPool())
-        return false;
-
-    tempPoolMark = context->tempLifoAlloc().mark();
-    return true;
+    tempPoolMark = cx->tempLifoAlloc().mark();
 }
 
 template <typename ParseHandler>
@@ -447,7 +438,7 @@ Parser<ParseHandler>::~Parser()
 {
     JSContext *cx = context;
     cx->tempLifoAlloc().release(tempPoolMark);
-    cx->activeCompilations--;
+    cx->runtime->activeCompilations--;
 
     
 
@@ -6720,7 +6711,7 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt)
 
 
 
-        AtomIndexMap seen(context);
+        AtomIndexMap seen;
 
         enum AssignmentType {
             GET     = 0x1,
