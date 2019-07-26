@@ -50,9 +50,15 @@ namespace {
   StaticAutoPtr<BluetoothHfpManager> gBluetoothHfpManager;
   StaticRefPtr<BluetoothHfpManagerObserver> sHfpObserver;
   bool gInShutdown = false;
+  static const char kHfpCrlf[] = "\xd\xa";
+
+  
   static bool sStopSendingRingFlag = true;
   static int sRingInterval = 3000; 
-  static const char kHfpCrlf[] = "\xd\xa";
+
+  
+  
+  static int sWaitingForProcessingBLDNInterval = 2000; 
 } 
 
 
@@ -263,6 +269,20 @@ BluetoothHfpManagerObserver::Observe(nsISupports* aSubject,
 
 NS_IMPL_ISUPPORTS1(BluetoothHfpManagerObserver, nsIObserver)
 
+class BluetoothHfpManager::RespondToBLDNTask : public Task
+{
+private:
+  void Run() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(gBluetoothHfpManager);
+
+    if (!gBluetoothHfpManager->mBLDNProcessed) {
+      gBluetoothHfpManager->mBLDNProcessed = true;
+      gBluetoothHfpManager->SendLine("ERROR");
+    }
+  }
+};
+
 class BluetoothHfpManager::SendRingIndicatorTask : public Task
 {
 public:
@@ -384,6 +404,7 @@ BluetoothHfpManager::Reset()
   mCMEE = false;
   mCMER = false;
   mReceiveVgsFlag = false;
+  mBLDNProcessed = true;
 
   ResetCallArray();
 }
@@ -851,7 +872,16 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
     
     
     
+    mBLDNProcessed = false;
     NotifyDialer(NS_LITERAL_STRING("BLDN"));
+
+    MessageLoop::current()->
+      PostDelayedTask(FROM_HERE, new RespondToBLDNTask(),
+                      sWaitingForProcessingBLDNInterval);
+
+    
+    
+    return;
   } else if (msg.Find("ATA") != -1) {
     NotifyDialer(NS_LITERAL_STRING("ATA"));
   } else if (msg.Find("AT+CHUP") != -1) {
@@ -1250,6 +1280,11 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       }
       break;
     case nsITelephonyProvider::CALL_STATE_DIALING:
+      if (!mBLDNProcessed) {
+        SendLine("OK");
+        mBLDNProcessed = true;
+      }
+
       mCurrentCallArray[aCallIndex].mDirection = false;
       UpdateCIND(CINDType::CALLSETUP, CallSetupState::OUTGOING, aSend);
 
