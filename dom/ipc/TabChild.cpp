@@ -611,7 +611,7 @@ TabChild::HandlePossibleViewportChange()
     
     
     
-    metrics, gfx::Point(0.0f, 0.0f), gfx::Point(0.0f, 0.0f), 0.0);
+    metrics, ScreenPoint(0.0f, 0.0f), gfx::Point(0.0f, 0.0f), 0.0);
   metrics.mCumulativeResolution = metrics.mZoom / metrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
   
   
