@@ -172,15 +172,15 @@ AccumulateLayerTransforms2D(Layer* aLayer,
   return true;
 }
 
-static gfxPoint
+static LayerPoint
 GetLayerFixedMarginsOffset(Layer* aLayer,
                            const gfx::Margin& aFixedLayerMargins)
 {
   
   
   
-  gfxPoint translation;
-  const gfxPoint& anchor = aLayer->GetFixedPositionAnchor();
+  LayerPoint translation;
+  const LayerPoint& anchor = aLayer->GetFixedPositionAnchor();
   const gfx::Margin& fixedMargins = aLayer->GetFixedPositionMargins();
 
   if (fixedMargins.left >= 0) {
@@ -240,27 +240,35 @@ AsyncCompositionManager::AlignFixedLayersForAnchorPoint(Layer* aLayer,
 
     
     
-    
-    gfxPoint offsetInOldSpace = GetLayerFixedMarginsOffset(aLayer, aFixedLayerMargins);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
     gfxMatrix layerTransform;
     if (!GetBaseTransform2D(aLayer, &layerTransform)) {
       return;
     }
 
-    const gfxPoint& anchor = aLayer->GetFixedPositionAnchor();
-    gfxPoint locallyTransformedAnchor = layerTransform.Transform(anchor);
-    gfxPoint locallyTransformedOffsetAnchor = layerTransform.Transform(anchor + offsetInOldSpace);
+    
+    
+    
+    LayerPoint offsetInOldSubtreeLayerSpace = GetLayerFixedMarginsOffset(aLayer, aFixedLayerMargins);
 
+    
+    
+    const LayerPoint& anchorInOldSubtreeLayerSpace = aLayer->GetFixedPositionAnchor();
+    LayerPoint offsetAnchorInOldSubtreeLayerSpace = anchorInOldSubtreeLayerSpace + offsetInOldSubtreeLayerSpace;
+
+    
+    
+    gfxPoint anchor(anchorInOldSubtreeLayerSpace.x, anchorInOldSubtreeLayerSpace.y);
+    gfxPoint offsetAnchor(offsetAnchorInOldSubtreeLayerSpace.x, offsetAnchorInOldSubtreeLayerSpace.y);
+    gfxPoint locallyTransformedAnchor = layerTransform.Transform(anchor);
+    gfxPoint locallyTransformedOffsetAnchor = layerTransform.Transform(offsetAnchor);
+
+    
+    
+    
+    
+    
+    
+    
     gfxPoint oldAnchorPositionInNewSpace =
       newCumulativeTransformInverse.Transform(
         oldCumulativeTransform.Transform(locallyTransformedOffsetAnchor));
