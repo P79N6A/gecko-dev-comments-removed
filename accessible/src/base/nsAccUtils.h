@@ -122,17 +122,6 @@ public:
 
 
 
-
-
-   static Accessible* GetAncestorWithRole(Accessible* aDescendant,
-                                          uint32_t aRole);
-
-  
-
-
-
-
-
   static Accessible* GetSelectableContainer(Accessible* aAccessible,
                                             uint64_t aState);
 
