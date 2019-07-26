@@ -179,6 +179,57 @@ function closeConsole(aTab, aCallback)
   HUDService.deactivateHUDForContext(aTab || tab);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForOpenContextMenu(aContextMenu, aOptions) {
+  let start = Date.now();
+  let timeout = aOptions.timeout || 5000;
+  let targetElement = aOptions.target;
+
+  if (!aContextMenu) {
+    ok(false, "Can't get a context menu.");
+    aOptions.failureFn();
+    return;
+  }
+  if (!targetElement) {
+    ok(false, "Can't get a target element.");
+    aOptions.failureFn();
+    return;
+  }
+
+  function onPopupShown() {
+    aContextMenu.removeEventListener("popupshown", onPopupShown);
+    clearTimeout(onTimeout);
+    aOptions.successFn();
+  }
+
+
+  aContextMenu.addEventListener("popupshown", onPopupShown);
+
+  let onTimeout = setTimeout(function(){
+    aContextMenu.removeEventListener("popupshown", onPopupShown);
+    aOptions.failureFn();
+  }, timeout);
+
+  
+  let eventDetails = { type : "contextmenu", button : 2};
+  EventUtils.synthesizeMouse(targetElement, 2, 2,
+                             eventDetails, targetElement.ownerDocument.defaultView);
+}
+
 function finishTest()
 {
   browser = hudId = hud = filterBox = outputNode = cs = null;
