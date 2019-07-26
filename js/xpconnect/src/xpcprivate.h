@@ -734,7 +734,7 @@ public:
     
     
     
-    typedef bool (*DeferredFinalizeFunction)(int32_t slice, void* data);
+    typedef bool (*DeferredFinalizeFunction)(uint32_t slice, void* data);
 
 private:
     struct DeferredFinalizeFunctions
