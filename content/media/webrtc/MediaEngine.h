@@ -12,6 +12,9 @@
 
 namespace mozilla {
 
+class VideoTrackConstraintsN;
+class AudioTrackConstraintsN;
+
 
 
 
@@ -72,9 +75,6 @@ public:
 
   
   virtual void GetUUID(nsAString&) = 0;
-
-  
-  virtual nsresult Allocate(const MediaEnginePrefs &aPrefs) = 0;
 
   
   virtual nsresult Deallocate() = 0;
@@ -141,6 +141,10 @@ class MediaEngineVideoSource : public MediaEngineSource
 {
 public:
   virtual ~MediaEngineVideoSource() {}
+
+  
+  virtual nsresult Allocate(const VideoTrackConstraintsN &aConstraints,
+                            const MediaEnginePrefs &aPrefs) = 0;
 };
 
 
@@ -150,6 +154,11 @@ class MediaEngineAudioSource : public MediaEngineSource
 {
 public:
   virtual ~MediaEngineAudioSource() {}
+
+  
+  virtual nsresult Allocate(const AudioTrackConstraintsN &aConstraints,
+                            const MediaEnginePrefs &aPrefs) = 0;
+
 };
 
 }
