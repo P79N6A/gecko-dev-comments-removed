@@ -642,8 +642,14 @@ StackSpace::containingSegment(const StackFrame *target) const
 void
 StackSpace::markFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd)
 {
+    
+
+
+
+
+
     Value *slotsBegin = fp->slots();
-    gc::MarkValueRootRange(trc, slotsBegin, slotsEnd, "vm_stack");
+    gc::MarkValueRootRangeMaybeNullPayload(trc, slotsEnd - slotsBegin, slotsBegin, "vm_stack");
 }
 
 void
