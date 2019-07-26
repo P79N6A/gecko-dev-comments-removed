@@ -473,8 +473,7 @@ CodeGenerator::testObjectEmulatesUndefinedKernel(Register objreg,
     
     
     
-    Assembler::Condition cond = masm.branchTestObjectTruthy(false, objreg, scratch, ool->entry());
-    masm.j(cond, ifEmulatesUndefined);
+    masm.branchTestObjectTruthy(false, objreg, scratch, ool->entry(), ifEmulatesUndefined);
 }
 
 void
