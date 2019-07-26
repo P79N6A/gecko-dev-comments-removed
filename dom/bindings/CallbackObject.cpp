@@ -35,7 +35,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(CallbackObject)
 NS_IMPL_CYCLE_COLLECTION_CLASS(CallbackObject)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(CallbackObject)
-  tmp->DropCallback();
+  tmp->DropJSObjects();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mIncumbentGlobal)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(CallbackObject)
@@ -44,6 +44,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(CallbackObject)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(CallbackObject)
   NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mCallback)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mIncumbentJSGlobal)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
@@ -122,8 +123,17 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
 
     mAutoEntryScript.construct(globalObject, mIsMainThread, cx);
     mAutoEntryScript.ref().SetWebIDLCallerPrincipal(webIDLCallerPrincipal);
-    if (aCallback->IncumbentGlobalOrNull()) {
-      mAutoIncumbentScript.construct(aCallback->IncumbentGlobalOrNull());
+    nsIGlobalObject* incumbent = aCallback->IncumbentGlobalOrNull();
+    if (incumbent) {
+      
+      
+      
+      
+      
+      if (!incumbent->GetGlobalJSObject()) {
+        return;
+      }
+      mAutoIncumbentScript.construct(incumbent);
     }
 
     

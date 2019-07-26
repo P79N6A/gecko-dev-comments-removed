@@ -57,7 +57,7 @@ public:
 
   virtual ~CallbackObject()
   {
-    DropCallback();
+    DropJSObjects();
   }
 
   JS::Handle<JSObject*> Callback() const
@@ -124,25 +124,38 @@ private:
     
     
     mCallback = aCallback;
+    if (aIncumbentGlobal) {
+      mIncumbentGlobal = aIncumbentGlobal;
+      mIncumbentJSGlobal = aIncumbentGlobal->GetGlobalJSObject();
+    }
     mozilla::HoldJSObjects(this);
-
-    mIncumbentGlobal = aIncumbentGlobal;
   }
 
   CallbackObject(const CallbackObject&) MOZ_DELETE;
   CallbackObject& operator =(const CallbackObject&) MOZ_DELETE;
 
 protected:
-  void DropCallback()
+  void DropJSObjects()
   {
+    MOZ_ASSERT_IF(mIncumbentJSGlobal, mCallback);
     if (mCallback) {
       mCallback = nullptr;
+      mIncumbentJSGlobal = nullptr;
       mozilla::DropJSObjects(this);
     }
   }
 
   JS::Heap<JSObject*> mCallback;
+  
+  
+  
+  
+  
+  
+  
+  
   nsCOMPtr<nsIGlobalObject> mIncumbentGlobal;
+  JS::TenuredHeap<JSObject*> mIncumbentJSGlobal;
 
   class MOZ_STACK_CLASS CallSetup
   {
