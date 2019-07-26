@@ -109,7 +109,6 @@ pref("mozilla.widget.use-buffer-pixmap", true);
 pref("mozilla.widget.disable-native-theme", true);
 pref("layout.reflow.synthMouseMove", false);
 pref("layers.enable-tiles", true);
-pref("layers.low-precision-buffer", true);
 
 
 
@@ -117,7 +116,7 @@ pref("layers.low-precision-buffer", true);
 #ifdef MOZ_WIDGET_COCOA
 pref("layers.progressive-paint", false);
 #else
-pref("layers.progressive-paint", true);
+pref("layers.progressive-paint", false);
 #endif
 
 
