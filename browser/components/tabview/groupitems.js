@@ -1004,7 +1004,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
         
         
-        if (item.tab == gBrowser.selectedTab ||
+        if (item.tab.selected ||
             (!GroupItems.getActiveGroupItem() && !item.tab.hidden))
           UI.setActive(this);
       }
@@ -2542,7 +2542,7 @@ let GroupItems = {
     let groupItem;
 
     
-    if (gBrowser.selectedTab == tab) {
+    if (tab.selected) {
       if (gBrowser.visibleTabs.length > 1) {
         gBrowser._blurTab(tab);
         shouldUpdateTabBar = true;

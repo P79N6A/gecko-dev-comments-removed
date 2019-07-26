@@ -277,7 +277,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
         
         
-        if (this.tab == gBrowser.selectedTab ||
+        if (this.tab.selected ||
             (!GroupItems.getActiveGroupItem() && !this.tab.hidden))
           UI.setActive(this.parent);
       }
@@ -541,9 +541,9 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       
       
-      if (tab != gBrowser.selectedTab) {
+      if (!tab.selected) {
         UI.onTabSelect(gBrowser.selectedTab);
-      } else { 
+      } else {
         if (isNewBlankTab)
           gWindow.gURLBar.focus();
       }

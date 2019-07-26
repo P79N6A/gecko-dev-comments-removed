@@ -823,7 +823,7 @@ let UI = {
   
   goToTab: function UI_goToTab(xulTab) {
     
-    if (gBrowser.selectedTab == xulTab)
+    if (xulTab.selected)
       this.onTabSelect(xulTab);
     else
       gBrowser.selectedTab = xulTab;
@@ -936,7 +936,7 @@ let UI = {
     
     
     
-    if (gBrowser.selectedTab == tab && this._currentTab == tab)
+    if (tab.selected && this._currentTab == tab)
       this.onTabSelect(tab);
   },
 
