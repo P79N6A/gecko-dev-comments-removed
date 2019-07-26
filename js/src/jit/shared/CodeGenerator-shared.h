@@ -440,7 +440,7 @@ class CodeGeneratorShared : public LInstructionVisitor
 };
 
 
-class OutOfLineCode : public TempObject
+class OutOfLineCode : public OldTempObject
 {
     Label entry_;
     Label rejoin_;

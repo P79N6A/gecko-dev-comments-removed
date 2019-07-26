@@ -165,9 +165,6 @@ class AutoIonContextAlloc
 
 struct TempObject
 {
-    inline void *operator new(size_t nbytes) {
-        return GetIonContext()->temp->allocateInfallible(nbytes);
-    }
     inline void *operator new(size_t nbytes, TempAllocator &alloc) {
         return alloc.allocateInfallible(nbytes);
     }
@@ -176,6 +173,18 @@ struct TempObject
         static_assert(mozilla::IsConvertible<T*, TempObject*>::value,
                       "Placement new argument type must inherit from TempObject");
         return pos;
+    }
+};
+
+
+
+struct OldTempObject
+  : public TempObject
+{
+    using TempObject::operator new;
+
+    inline void *operator new(size_t nbytes) {
+        return GetIonContext()->temp->allocateInfallible(nbytes);
     }
 };
 
