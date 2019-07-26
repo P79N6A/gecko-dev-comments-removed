@@ -228,8 +228,32 @@ RotatedContentBuffer::DrawTo(ThebesLayer* aLayer,
 
 DrawTarget*
 RotatedContentBuffer::BorrowDrawTargetForQuadrantUpdate(const nsIntRect& aBounds,
-                                                        ContextSource aSource)
+                                                        ContextSource aSource,
+                                                        DrawIterator* aIter)
 {
+  nsIntRect bounds = aBounds;
+  if (aIter) {
+    
+    
+    
+    
+    
+    aIter->mDrawRegion.SetEmpty();
+    while (aIter->mCount < 4) {
+      nsIntRect quadrant = GetQuadrantRectangle((aIter->mCount & 1) ? LEFT : RIGHT,
+        (aIter->mCount & 2) ? TOP : BOTTOM);
+      aIter->mDrawRegion.And(aBounds, quadrant);
+      aIter->mCount++;
+      if (!aIter->mDrawRegion.IsEmpty()) {
+        break;
+      }
+    }
+    if (aIter->mDrawRegion.IsEmpty()) {
+      return nullptr;
+    }
+    bounds = aIter->mDrawRegion.GetBounds();
+  }
+
   if (!EnsureBuffer()) {
     return nullptr;
   }
@@ -254,10 +278,10 @@ RotatedContentBuffer::BorrowDrawTargetForQuadrantUpdate(const nsIntRect& aBounds
   
   int32_t xBoundary = mBufferRect.XMost() - mBufferRotation.x;
   int32_t yBoundary = mBufferRect.YMost() - mBufferRotation.y;
-  XSide sideX = aBounds.XMost() <= xBoundary ? RIGHT : LEFT;
-  YSide sideY = aBounds.YMost() <= yBoundary ? BOTTOM : TOP;
+  XSide sideX = bounds.XMost() <= xBoundary ? RIGHT : LEFT;
+  YSide sideY = bounds.YMost() <= yBoundary ? BOTTOM : TOP;
   nsIntRect quadrantRect = GetQuadrantRectangle(sideX, sideY);
-  NS_ASSERTION(quadrantRect.Contains(aBounds), "Messed up quadrants");
+  NS_ASSERTION(quadrantRect.Contains(bounds), "Messed up quadrants");
 
   mLoanedTransform = mLoanedDrawTarget->GetTransform();
   mLoanedTransform.Translate(-quadrantRect.x, -quadrantRect.y);
@@ -673,33 +697,18 @@ RotatedContentBuffer::BorrowDrawTargetForPainting(const PaintState& aPaintState,
     return nullptr;
   }
 
-  const nsIntRegion* drawPtr;
+  DrawTarget* result = BorrowDrawTargetForQuadrantUpdate(aPaintState.mRegionToDraw.GetBounds(),
+                                                         BUFFER_BOTH, aIter);
+  if (!result) {
+    return nullptr;
+  }
+  const nsIntRegion* drawPtr = &aPaintState.mRegionToDraw;
   if (aIter) {
     
     
-    
-    
-    
-    aIter->mDrawRegion.SetEmpty();
-    while (aIter->mCount < 4) {
-      nsIntRect quadrant = GetQuadrantRectangle((aIter->mCount & 1) ? LEFT : RIGHT,
-                                                (aIter->mCount & 2) ? TOP : BOTTOM);
-      aIter->mDrawRegion.And(aPaintState.mRegionToDraw, quadrant);
-      aIter->mCount++;
-      if (!aIter->mDrawRegion.IsEmpty()) {
-        break;
-      }
-    }
-    if (aIter->mDrawRegion.IsEmpty()) {
-      return nullptr;
-    }
+    aIter->mDrawRegion.And(aIter->mDrawRegion, aPaintState.mRegionToDraw);
     drawPtr = &aIter->mDrawRegion;
-  } else {
-    drawPtr = &aPaintState.mRegionToDraw;
   }
-
-  DrawTarget* result = BorrowDrawTargetForQuadrantUpdate(drawPtr->GetBounds(),
-                                                         BUFFER_BOTH);
 
   if (aPaintState.mMode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
     MOZ_ASSERT(mDTBuffer && mDTBufferOnWhite);
