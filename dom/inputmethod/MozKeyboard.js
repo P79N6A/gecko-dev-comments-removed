@@ -329,6 +329,7 @@ MozInputMethod.prototype = {
   },
 
   uninit: function mozInputMethodUninit() {
+    this.setActive(false);
     Services.obs.removeObserver(this, "inner-window-destroyed");
     cpmm.removeMessageListener('Keyboard:FocusChange', this);
     cpmm.removeMessageListener('Keyboard:SelectionChange', this);
@@ -428,9 +429,11 @@ MozInputMethod.prototype = {
       
       
       
+      cpmm.sendAsyncMessage('Keyboard:Register', {});
       cpmm.sendAsyncMessage("Keyboard:GetContext", {});
     } else {
       
+      cpmm.sendAsyncMessage('Keyboard:Unregister', {});
       if (this._inputcontext) {
         this.setInputContext(null);
       }
