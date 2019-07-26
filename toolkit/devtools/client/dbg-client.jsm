@@ -1779,21 +1779,6 @@ ThreadClient.prototype = {
     telemetry: "SOURCES"
   }),
 
-  _doInterrupted: function (aAction, aError) {
-    if (this.paused) {
-      aAction();
-      return;
-    }
-    this.interrupt((aResponse) => {
-      if (aResponse) {
-        aError(aResponse);
-        return;
-      }
-      aAction();
-      this.resume();
-    });
-  },
-
   
 
 
