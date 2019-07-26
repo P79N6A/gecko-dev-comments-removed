@@ -83,8 +83,8 @@ ImageClient::RemoveTextureWithTracker(TextureClient* aTexture,
 #ifdef MOZ_WIDGET_GONK
   
   
-  if (GetForwarder()->IsImageBridgeChild() &&
-      aTexture->HasRecycleCallback()) {
+  if (aAsyncTransactionTracker ||
+      (GetForwarder()->IsImageBridgeChild() && aTexture->HasRecycleCallback())) {
     RefPtr<AsyncTransactionTracker> request = aAsyncTransactionTracker;
     if (!request) {
       
