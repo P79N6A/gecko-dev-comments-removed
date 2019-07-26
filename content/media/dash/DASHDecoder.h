@@ -57,9 +57,8 @@ public:
 
   
   
-  nsresult Load(MediaResource* aResource,
-                nsIStreamListener** aListener,
-                MediaDecoder* aCloneDonor);
+  virtual nsresult Load(nsIStreamListener** aListener,
+                        MediaDecoder* aCloneDonor) MOZ_OVERRIDE;
 
   
   

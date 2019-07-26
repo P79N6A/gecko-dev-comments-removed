@@ -73,9 +73,8 @@ public:
   void SetMPDRepresentation(Representation const * aRep);
 
   
-  nsresult Load(MediaResource* aResource = nullptr,
-                nsIStreamListener** aListener = nullptr,
-                MediaDecoder* aCloneDonor = nullptr);
+  virtual nsresult Load(nsIStreamListener** aListener = nullptr,
+                        MediaDecoder* aCloneDonor = nullptr) MOZ_OVERRIDE;
 
   
   

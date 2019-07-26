@@ -278,15 +278,11 @@ public:
   
   
   
-  
-  
-  virtual nsresult Load(MediaResource* aResource,
-                        nsIStreamListener** aListener,
+  virtual nsresult Load(nsIStreamListener** aListener,
                         MediaDecoder* aCloneDonor);
 
   
-  nsresult OpenResource(MediaResource* aResource,
-                        nsIStreamListener** aStreamListener);
+  nsresult OpenResource(nsIStreamListener** aStreamListener);
 
   
   virtual void ResourceLoaded();
@@ -305,6 +301,11 @@ public:
   MediaResource* GetResource() const MOZ_FINAL MOZ_OVERRIDE
   {
     return mResource;
+  }
+  void SetResource(MediaResource* aResource)
+  {
+    NS_ASSERTION(NS_IsMainThread(), "Should only be called on main thread");
+    mResource = aResource;
   }
 
   
@@ -642,6 +643,10 @@ public:
 
   
   
+  bool IsSameOriginMedia();
+
+  
+  
   bool CanPlayThrough();
 
   
@@ -735,6 +740,9 @@ public:
 
   
   virtual void DecodeError();
+
+  
+  void UpdateSameOriginStatus(bool aSameOrigin);
 
   MediaDecoderOwner* GetOwner() MOZ_OVERRIDE;
 
@@ -957,6 +965,10 @@ public:
 
   
   bool mMediaSeekable;
+
+  
+  
+  bool mSameOriginMedia;
 
   
 

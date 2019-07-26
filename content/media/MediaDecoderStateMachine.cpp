@@ -619,6 +619,11 @@ void MediaDecoderStateMachine::SendStreamData()
   if (mState == DECODER_STATE_DECODING_METADATA)
     return;
 
+  if (!mDecoder->IsSameOriginMedia()) {
+    printf("MediaDecoderStateMachine::SendStreamData Same-origin check failed (decoder %p)!!!\n", mDecoder.get());
+    return;
+  }
+
   
   
   

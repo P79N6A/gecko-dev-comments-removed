@@ -2514,12 +2514,21 @@ nsresult HTMLMediaElement::FinishDecoderSetup(MediaDecoder* aDecoder,
   mPausedForInactiveDocumentOrChannel = false;
   mEventDeliveryPaused = false;
   mPendingEvents.Clear();
+  
+  
+  mDecoder = aDecoder;
 
+  
+  
+  aDecoder->SetResource(aStream);
   aDecoder->SetAudioChannelType(mAudioChannelType);
   aDecoder->SetAudioCaptured(mAudioCaptured);
   aDecoder->SetVolume(mMuted ? 0.0 : mVolume);
   aDecoder->SetPreservesPitch(mPreservesPitch);
   aDecoder->SetPlaybackRate(mPlaybackRate);
+  
+  
+  NotifyDecoderPrincipalChanged();
 
   for (uint32_t i = 0; i < mOutputStreams.Length(); ++i) {
     OutputMediaStream* ms = &mOutputStreams[i];
@@ -2527,8 +2536,9 @@ nsresult HTMLMediaElement::FinishDecoderSetup(MediaDecoder* aDecoder,
         ms->mFinishWhenEnded);
   }
 
-  nsresult rv = aDecoder->Load(aStream, aListener, aCloneDonor);
+  nsresult rv = aDecoder->Load(aListener, aCloneDonor);
   if (NS_FAILED(rv)) {
+    mDecoder = nullptr;
     LOG(PR_LOG_DEBUG, ("%p Failed to load for decoder %p", this, aDecoder));
     return rv;
   }
@@ -2537,9 +2547,7 @@ nsresult HTMLMediaElement::FinishDecoderSetup(MediaDecoder* aDecoder,
   
   mChannel = nullptr;
 
-  mDecoder = aDecoder;
   AddMediaElementToURITable();
-  NotifyDecoderPrincipalChanged();
 
   
   
@@ -3253,9 +3261,14 @@ already_AddRefed<nsIPrincipal> HTMLMediaElement::GetCurrentPrincipal()
 
 void HTMLMediaElement::NotifyDecoderPrincipalChanged()
 {
+  nsRefPtr<nsIPrincipal> principal = GetCurrentPrincipal();
+
+  bool subsumes;
+  mDecoder->UpdateSameOriginStatus(
+    NS_SUCCEEDED(NodePrincipal()->Subsumes(principal, &subsumes)) && subsumes);
+
   for (uint32_t i = 0; i < mOutputStreams.Length(); ++i) {
     OutputMediaStream* ms = &mOutputStreams[i];
-    nsRefPtr<nsIPrincipal> principal = GetCurrentPrincipal();
     ms->mStream->CombineWithPrincipal(principal);
   }
 }
