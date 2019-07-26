@@ -1097,18 +1097,19 @@ MmsService.prototype = {
         
         this.retrieveMessage(url, (function responseNotify(mmsStatus,
                                                            retrievedMessage) {
+          debug("retrievedMessage = " + JSON.stringify(retrievedMessage));
+
           
           
           
-          if ((wish == null) && retrievedMessage) {
+          if (wish == null && retrievedMessage) {
             wish = retrievedMessage.headers["x-mms-delivery-report"];
           }
           let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport,
                                                     wish);
 
           
-          debug("retrievedMessage = " + JSON.stringify(retrievedMessage));
-
+          
           
           
           if (MMS.MMS_PDU_STATUS_RETRIEVED !== mmsStatus) {
@@ -1126,18 +1127,20 @@ MmsService.prototype = {
           gMobileMessageDatabaseService.saveReceivedMessage(savableMessage,
             (function (rv, domMessage) {
               let success = Components.isSuccessCode(rv);
+              let transaction =
+                new NotifyResponseTransaction(transactionId,
+                                              success ? MMS.MMS_PDU_STATUS_RETRIEVED
+                                                      : MMS.MMS_PDU_STATUS_DEFERRED,
+                                              reportAllowed);
+              transaction.run();
+
               if (!success) {
+                
                 
                 
                 
                 debug("Could not store MMS " + domMessage.id +
                       ", error code " + rv);
-
-                let transaction =
-                  new NotifyResponseTransaction(transactionId,
-                                                MMS.MMS_PDU_STATUS_DEFERRED,
-                                                reportAllowed);
-                transaction.run();
                 return;
               }
 
