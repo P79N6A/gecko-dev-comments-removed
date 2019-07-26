@@ -582,6 +582,8 @@ ArrayBufferObject::create(JSContext *cx, uint32_t nbytes, void *data ,
 {
     
     
+    
+    
     size_t reservedSlots = JSCLASS_RESERVED_SLOTS(&class_);
 
     size_t nslots = reservedSlots;

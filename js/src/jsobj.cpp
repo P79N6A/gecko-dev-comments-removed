@@ -1253,8 +1253,20 @@ NewObject(ExclusiveContext *cx, types::TypeObject *type_, JSObject *parent, gc::
     if (!NewObjectMetadata(cx, &metadata))
         return nullptr;
 
+    
+    
+    
+    
+    size_t nfixed;
+    if (clasp == &ArrayBufferObject::class_) {
+        JS_STATIC_ASSERT(ArrayBufferObject::RESERVED_SLOTS == 4);
+        nfixed = ArrayBufferObject::RESERVED_SLOTS;
+    } else {
+        nfixed = GetGCKindSlots(kind, clasp);
+    }
+
     RootedShape shape(cx, EmptyShape::getInitialShape(cx, clasp, type->proto(),
-                                                      parent, metadata, kind));
+                                                      parent, metadata, nfixed));
     if (!shape)
         return nullptr;
 
