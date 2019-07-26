@@ -64,7 +64,7 @@ BaselineCompilerShared::callVM(const VMFunction &fun)
 
     
     
-    ICEntry entry(pc - script->code);
+    ICEntry entry(pc - script->code, false);
     entry.setReturnOffset(callOffset);
 
     return icEntries_.append(entry);

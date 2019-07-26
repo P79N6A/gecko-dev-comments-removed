@@ -49,13 +49,12 @@ class BaselineCompilerShared
 
     BaselineCompilerShared(JSContext *cx, HandleScript script);
 
-    ICEntry *allocateICEntry(ICStub *stub) {
+    ICEntry *allocateICEntry(ICStub *stub, bool isForOp) {
         if (!stub)
             return NULL;
 
         
-        ICEntry entry((uint32_t) (pc - script->code));
-        if (!icEntries_.append(entry))
+        if (!icEntries_.append(ICEntry((uint32_t) (pc - script->code), isForOp)))
             return NULL;
         ICEntry &vecEntry = icEntries_[icEntries_.length() - 1];
 
