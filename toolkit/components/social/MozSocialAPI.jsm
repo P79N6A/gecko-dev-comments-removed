@@ -275,12 +275,23 @@ function findChromeWindowForChats(preferredWindow) {
   
   
   
+
+  
+  
+  
+  
+
+  let mostRecent = Services.wm.getMostRecentWindow("navigator:browser");
+  if (isWindowGoodForChats(mostRecent))
+    return mostRecent;
+
   let topMost, enumerator;
   
   
   
   
-  const BROKEN_WM_Z_ORDER = Services.appinfo.OS != "WINNT";
+  let os = Services.appinfo.OS;
+  const BROKEN_WM_Z_ORDER = os != "WINNT" && os != "Darwin";
   if (BROKEN_WM_Z_ORDER) {
     
     enumerator = Services.wm.getEnumerator("navigator:browser");
