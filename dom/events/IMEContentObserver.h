@@ -25,6 +25,8 @@ class nsPresContext;
 
 namespace mozilla {
 
+class EventStateManager;
+
 
 
 class IMEContentObserver MOZ_FINAL : public nsISelectionListener,
@@ -54,6 +56,12 @@ public:
   void Init(nsIWidget* aWidget, nsPresContext* aPresContext,
             nsIContent* aContent);
   void Destroy();
+  
+
+
+
+
+  void DisconnectFromEventStateManager();
   bool IsManaging(nsPresContext* aPresContext, nsIContent* aContent);
   bool IsEditorHandlingEventForComposition() const;
   bool KeepAliveDuringDeactive() const
@@ -73,6 +81,9 @@ private:
   nsCOMPtr<nsIContent> mRootContent;
   nsCOMPtr<nsINode> mEditableNode;
   nsCOMPtr<nsIDocShell> mDocShell;
+
+  EventStateManager* mESM;
+
   nsIMEUpdatePreference mUpdatePreference;
   uint32_t mPreAttrChangeLength;
 };

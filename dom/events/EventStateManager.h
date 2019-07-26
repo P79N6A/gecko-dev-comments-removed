@@ -34,6 +34,7 @@ namespace mozilla {
 
 class EnterLeaveDispatcher;
 class EventStates;
+class IMEContentObserver;
 class ScrollbarsForWheel;
 class WheelTransaction;
 
@@ -132,6 +133,14 @@ public:
   bool SetContentState(nsIContent* aContent, EventStates aState);
   void ContentRemoved(nsIDocument* aDocument, nsIContent* aContent);
   bool EventStatusOK(WidgetGUIEvent* aEvent);
+
+  
+
+
+
+
+  void OnStartToObserveContent(IMEContentObserver* aIMEContentObserver);
+  void OnStopObservingContent(IMEContentObserver* aIMEContentObserver);
 
   
 
@@ -777,6 +786,8 @@ protected:
                                nsIFrame* aTargetFrame,
                                nsEventStatus* aStatus);
 
+  void ReleaseCurrentIMEContentObserver();
+
 private:
   static inline void DoStateChange(dom::Element* aElement,
                                    EventStates aState, bool aAddState);
@@ -838,6 +849,8 @@ private:
 
   nsPresContext* mPresContext;      
   nsCOMPtr<nsIDocument> mDocument;   
+
+  nsRefPtr<IMEContentObserver> mIMEContentObserver;
 
   uint32_t mLClickCount;
   uint32_t mMClickCount;
