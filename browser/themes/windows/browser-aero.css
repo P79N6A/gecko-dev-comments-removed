@@ -177,7 +177,7 @@
   
   #toolbar-menubar:not([autohide="true"]),
   #TabsToolbar,
-  #navigator-toolbox > toolbar:not(#toolbar-menubar):-moz-lwtheme {
+  #navigator-toolbox > toolbar:not(#toolbar-menubar):not(#addon-bar):-moz-lwtheme {
     -moz-binding: url("chrome://browser/content/customizableui/toolbar.xml#toolbar-drag");
   }
 
