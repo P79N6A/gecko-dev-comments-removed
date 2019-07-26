@@ -87,7 +87,7 @@ function ContentSecurityPolicy() {
 }
 
 ContentSecurityPolicy.prototype = {
-  classID:          Components.ID("{AB36A2BF-CB32-4AA6-AB41-6B4E4444A221}"),
+  classID:          Components.ID("{d1680bb4-1ac0-4772-9437-1188375e44f2}"),
   QueryInterface:   XPCOMUtils.generateQI([Ci.nsIContentSecurityPolicy]),
 
   get isInitialized() {
@@ -197,9 +197,10 @@ ContentSecurityPolicy.prototype = {
 
 
   refinePolicy:
-  function csp_refinePolicy(aPolicy, selfURI) {
+  function csp_refinePolicy(aPolicy, selfURI, aSpecCompliant) {
     CSPdebug("REFINE POLICY: " + aPolicy);
     CSPdebug("         SELF: " + selfURI.asciiSpec);
+    CSPdebug("CSP 1.0 COMPLIANT : " + aSpecCompliant);
     
     
     
@@ -215,10 +216,22 @@ ContentSecurityPolicy.prototype = {
     
     
     
-    var newpolicy = CSPRep.fromString(aPolicy,
-				      selfURI,
-                                      this._docRequest,
-                                      this);
+
+    
+    
+    
+    var newpolicy;
+    if (aSpecCompliant) {
+      newpolicy = CSPRep.fromStringSpecCompliant(aPolicy,
+                                                 selfURI,
+                                                 this._docRequest,
+                                                 this);
+    } else {
+      newpolicy = CSPRep.fromString(aPolicy,
+                                    selfURI,
+                                    this._docRequest,
+                                    this);
+    }
 
     
     var intersect = this._policy.intersectWith(newpolicy);

@@ -436,6 +436,26 @@ CSPRep.fromString = function(aStr, self, docRequest, csp) {
   return CSPRep.fromString("default-src 'none'", self);
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CSPRep.fromStringSpecCompliant = function(aStr, self, docRequest, csp) {
+  
+};
+
 CSPRep.prototype = {
   
 
