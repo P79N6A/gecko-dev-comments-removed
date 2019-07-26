@@ -717,11 +717,6 @@ protected:
   
   
   
-  bool mResetPlayStartTime;
-
-  
-  
-  
   
   int64_t mPlayDuration;
 
@@ -806,11 +801,6 @@ protected:
 
   
   bool mPreservesPitch;
-
-  
-  
-  
-  int64_t mBasePosition;
 
   
   TimeStamp mDecodeStartTime;

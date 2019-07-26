@@ -182,7 +182,6 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mInRunningStateMachine(false),
   mSyncPointInMediaStream(-1),
   mSyncPointInDecodedStream(-1),
-  mResetPlayStartTime(false),
   mPlayDuration(0),
   mStartTime(-1),
   mEndTime(-1),
@@ -195,7 +194,6 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mVolume(1.0),
   mPlaybackRate(1.0),
   mPreservesPitch(true),
-  mBasePosition(0),
   mAmpleVideoFrames(2),
   mLowAudioThresholdUsecs(LOW_AUDIO_USECS),
   mAmpleAudioThresholdUsecs(AMPLE_AUDIO_USECS),
@@ -564,8 +562,6 @@ bool
 MediaDecoderStateMachine::NeedToDecodeVideo()
 {
   AssertCurrentThreadInMonitor();
-  NS_ASSERTION(OnStateMachineThread() || OnDecodeThread(),
-               "Should be on state machine or decode thread.");
   return IsVideoDecoding() &&
          ((mState == DECODER_STATE_SEEKING && mDecodeToSeekTarget) ||
           (!mMinimizePreroll && !HaveEnoughDecodedVideo()));
@@ -634,8 +630,6 @@ bool
 MediaDecoderStateMachine::NeedToDecodeAudio()
 {
   AssertCurrentThreadInMonitor();
-  NS_ASSERTION(OnStateMachineThread() || OnDecodeThread(),
-               "Should be on state machine or decode thread.");
   return IsAudioDecoding() &&
          ((mState == DECODER_STATE_SEEKING && mDecodeToSeekTarget) ||
           (!mMinimizePreroll &&
@@ -1403,7 +1397,7 @@ void MediaDecoderStateMachine::StopPlayback()
   mDecoder->NotifyPlaybackStopped();
 
   if (IsPlaying()) {
-    mPlayDuration = GetClock();
+    mPlayDuration = GetClock() - mStartTime;
     mPlayStartTime = TimeStamp();
   }
   
@@ -2336,12 +2330,6 @@ void MediaDecoderStateMachine::DecodeSeek()
   
   
   
-  
-  mBasePosition = seekTime - mStartTime;
-
-  
-  
-  
   {
     ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
     nsCOMPtr<nsIRunnable> startEvent =
@@ -2810,15 +2798,10 @@ int64_t MediaDecoderStateMachine::GetVideoStreamPosition()
   }
 
   
-  if (mResetPlayStartTime) {
-    mPlayStartTime = TimeStamp::Now();
-    mResetPlayStartTime = false;
-  }
-
-  int64_t pos = DurationToUsecs(TimeStamp::Now() - mPlayStartTime) + mPlayDuration;
-  pos -= mBasePosition;
-  NS_ASSERTION(pos >= 0, "Video stream position should be positive.");
-  return mBasePosition + pos * mPlaybackRate + mStartTime;
+  int64_t delta = DurationToUsecs(TimeStamp::Now() - mPlayStartTime);
+  
+  delta *= mPlaybackRate;
+  return mStartTime + mPlayDuration + delta;
 }
 
 int64_t MediaDecoderStateMachine::GetClock()
@@ -2903,7 +2886,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
     
     
     if (frame && !currentFrame) {
-      int64_t now = IsPlaying() ? clock_time : mPlayDuration;
+      int64_t now = IsPlaying() ? clock_time : mStartTime + mPlayDuration;
 
       remainingTime = frame->mTime - now;
     }
@@ -3353,15 +3336,12 @@ void MediaDecoderStateMachine::SetPlaybackRate(double aPlaybackRate)
   }
 
   
-  if (!HasAudio()) {
+  
+  
+  if (!HasAudio() && IsPlaying()) {
     
-    if (mState == DECODER_STATE_SEEKING) {
-      mBasePosition = mCurrentSeekTarget.mTime - mStartTime;
-    } else {
-      mBasePosition = GetVideoStreamPosition();
-    }
-    mPlayDuration = mBasePosition;
-    mResetPlayStartTime = true;
+    
+    mPlayDuration = GetVideoStreamPosition() - mStartTime;
     mPlayStartTime = TimeStamp::Now();
   }
 
