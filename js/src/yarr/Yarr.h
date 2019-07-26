@@ -47,6 +47,7 @@ namespace JSC { namespace Yarr {
 
 static const unsigned quantifyInfinite = UINT_MAX;
 static const unsigned offsetNoMatch = (unsigned)-1;
+static const unsigned offsetError = (unsigned)-2;
 
 
 
