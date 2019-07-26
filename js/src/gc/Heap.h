@@ -808,7 +808,7 @@ struct Chunk
     }
 
   private:
-    inline void init();
+    inline void init(JSRuntime *rt);
 
     
     unsigned findDecommittedArenaOffset();
