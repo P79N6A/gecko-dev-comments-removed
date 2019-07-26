@@ -1173,42 +1173,63 @@ DownloadsPlacesView.prototype = {
 
     let suppressOnSelect = this._richlistbox.suppressOnSelect;
     this._richlistbox.suppressOnSelect = true;
-
-    
-    
-    
-    for (let i = this._richlistbox.childNodes.length - 1; i >= 0; --i) {
-      let element = this._richlistbox.childNodes[i];
-      if (element._shell.placesNode)
-        this._removeHistoryDownloadFromView(element._shell.placesNode);
-    }
-
-    let elementsToAppendFragment = document.createDocumentFragment();
-    for (let i = 0; i < aContainer.childCount; i++) {
-      try {
-        this._addDownloadData(null, aContainer.getChild(i), false,
-                              elementsToAppendFragment);
-      }
-      catch(ex) {
-        Cu.reportError(ex);
+    try {
+      
+      
+      
+      for (let i = this._richlistbox.childNodes.length - 1; i >= 0; --i) {
+        let element = this._richlistbox.childNodes[i];
+        if (element._shell.placesNode)
+          this._removeHistoryDownloadFromView(element._shell.placesNode);
       }
     }
+    finally {
+      this._richlistbox.suppressOnSelect = suppressOnSelect;
+    }
 
-    this._appendDownloadsFragment(elementsToAppendFragment);
-    this._ensureVisibleElementsAreActive();
+    if (aContainer.childCount > 0) {
+      let elementsToAppendFragment = document.createDocumentFragment();
+      for (let i = 0; i < aContainer.childCount; i++) {
+        try {
+          this._addDownloadData(null, aContainer.getChild(i), false,
+                                elementsToAppendFragment);
+        }
+        catch(ex) {
+          Cu.reportError(ex);
+        }
+      }
 
-    this._richlistbox.suppressOnSelect = suppressOnSelect;
+      
+      
+      if (elementsToAppendFragment.firstChild) {
+        this._appendDownloadsFragment(elementsToAppendFragment);
+        this._ensureVisibleElementsAreActive();
+      }
+    }
+
     goUpdateDownloadCommands();
   },
 
   _appendDownloadsFragment: function DPV__appendDownloadsFragment(aDOMFragment) {
     
     
+
+    
+    
+    let xblFields = new Map();
+    for (let [key, value] in Iterator(this._richlistbox)) {
+      xblFields.set(key, value);
+    }
+
     let parentNode = this._richlistbox.parentNode;
     let nextSibling = this._richlistbox.nextSibling;
     parentNode.removeChild(this._richlistbox);
     this._richlistbox.appendChild(aDOMFragment);
     parentNode.insertBefore(this._richlistbox, nextSibling);
+
+    for (let [key, value] of xblFields) {
+      this._richlistbox[key] = value;
+    }
   },
 
   nodeInserted: function DPV_nodeInserted(aParent, aPlacesNode) {
