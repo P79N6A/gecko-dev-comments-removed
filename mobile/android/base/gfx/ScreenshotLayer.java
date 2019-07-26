@@ -123,7 +123,11 @@ public class ScreenshotLayer extends SingleTileLayer {
             end = Math.max(start, Math.min(dst.limit(), Math.min(src.capacity(), end)));
             dst.position(start);
             src.position(start).limit(end);
-            dst.put(src);
+            
+            
+            try {
+              dst.put(src);
+            } catch (java.lang.OutOfMemoryError e) {}
         }
 
         synchronized void setBitmap(ByteBuffer data, int width, int height, int format, Rect rect) {
