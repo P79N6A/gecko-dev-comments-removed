@@ -11,7 +11,6 @@
 #include "GLContextProvider.h"          
 #include "GLContext.h"                  
 #include "Layers.h"                     
-#include "LayerScope.h"                 
 #include "gfx2DGlue.h"                  
 #include "gfx3DMatrix.h"                
 #include "gfxASurface.h"                
@@ -51,7 +50,7 @@
 #endif
 
 #define BUFFER_OFFSET(i) ((char *)nullptr + (i))
-
+ 
 namespace mozilla {
 
 using namespace gfx;
@@ -768,8 +767,6 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
   PROFILER_LABEL("CompositorOGL", "BeginFrame");
   MOZ_ASSERT(!mFrameInProgress, "frame still in progress (should have called EndFrame or AbortFrame");
 
-  LayerScope::BeginFrame(mGLContext, PR_Now());
-
   mVBOs.Reset();
 
   mFrameInProgress = true;
@@ -999,11 +996,31 @@ private:
 };
 
 void
-CompositorOGL::DrawQuad(const Rect& aRect,
-                        const Rect& aClipRect,
-                        const EffectChain &aEffectChain,
-                        Float aOpacity,
-                        const gfx::Matrix4x4 &aTransform)
+CompositorOGL::DrawLines(const std::vector<gfx::Point>& aLines, const gfx::Rect& aClipRect,
+                         const gfx::Color& aColor,
+                         gfx::Float aOpacity, const gfx::Matrix4x4 &aTransform)
+{
+  mGLContext->fLineWidth(2.0);
+
+  EffectChain effects;
+  effects.mPrimaryEffect = new EffectSolidColor(aColor);
+
+  for (int32_t i = 0; i < (int32_t)aLines.size() - 1; i++) {
+    const gfx::Point& p1 = aLines[i];
+    const gfx::Point& p2 = aLines[i+1];
+    DrawQuadInternal(Rect(p1.x, p2.y, p2.x - p1.x, p1.y - p2.y),
+                     aClipRect, effects, aOpacity, aTransform,
+                     LOCAL_GL_LINE_STRIP);
+  }
+}
+
+void
+CompositorOGL::DrawQuadInternal(const Rect& aRect,
+                                const Rect& aClipRect,
+                                const EffectChain &aEffectChain,
+                                Float aOpacity,
+                                const gfx::Matrix4x4 &aTransform,
+                                GLuint aDrawMode)
 {
   PROFILER_LABEL("CompositorOGL", "DrawQuad");
   MOZ_ASSERT(mFrameInProgress, "frame not started");
@@ -1016,9 +1033,6 @@ CompositorOGL::DrawQuad(const Rect& aRect,
   clipRect.ToIntRect(&intClipRect);
   mGLContext->PushScissorRect(nsIntRect(intClipRect.x, intClipRect.y,
                                         intClipRect.width, intClipRect.height));
-
-  LayerScope::SendEffectChain(mGLContext, aEffectChain,
-                              aRect.width, aRect.height);
 
   MaskType maskType;
   EffectMask* effectMask;
@@ -1097,7 +1111,7 @@ CompositorOGL::DrawQuad(const Rect& aRect,
         program->SetMaskLayerTransform(maskQuadTransform);
       }
 
-      BindAndDrawQuad(program);
+      BindAndDrawQuad(program, false, aDrawMode);
     }
     break;
 
@@ -1313,8 +1327,6 @@ CompositorOGL::EndFrame()
 #endif
 
   mFrameInProgress = false;
-
-  LayerScope::EndFrame(mGLContext);
 
   if (mTarget) {
     CopyToTarget(mTarget, mCurrentRenderTarget->GetTransform());
@@ -1543,7 +1555,8 @@ CompositorOGL::QuadVBOFlippedTexCoordsAttrib(GLuint aAttribIndex) {
 void
 CompositorOGL::BindAndDrawQuad(GLuint aVertAttribIndex,
                                GLuint aTexCoordAttribIndex,
-                               bool aFlipped)
+                               bool aFlipped,
+                               GLuint aDrawMode)
 {
   BindQuadVBO();
   QuadVBOVerticesAttrib(aVertAttribIndex);
@@ -1558,7 +1571,11 @@ CompositorOGL::BindAndDrawQuad(GLuint aVertAttribIndex,
   }
 
   mGLContext->fEnableVertexAttribArray(aVertAttribIndex);
-  mGLContext->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 4);
+  if (aDrawMode == LOCAL_GL_LINE_STRIP) {
+    mGLContext->fDrawArrays(aDrawMode, 1, 2);
+  } else {
+    mGLContext->fDrawArrays(aDrawMode, 0, 4);
+  }
   mGLContext->fDisableVertexAttribArray(aVertAttribIndex);
 
   if (aTexCoordAttribIndex != GLuint(-1)) {
@@ -1568,12 +1585,13 @@ CompositorOGL::BindAndDrawQuad(GLuint aVertAttribIndex,
 
 void
 CompositorOGL::BindAndDrawQuad(ShaderProgramOGL *aProg,
-                               bool aFlipped)
+                               bool aFlipped,
+                               GLuint aDrawMode)
 {
   NS_ASSERTION(aProg->HasInitialized(), "Shader program not correctly initialized");
   BindAndDrawQuad(aProg->AttribLocation(ShaderProgramOGL::VertexCoordAttrib),
                   aProg->AttribLocation(ShaderProgramOGL::TexCoordAttrib),
-                  aFlipped);
+                  aFlipped, aDrawMode);
 }
 
 

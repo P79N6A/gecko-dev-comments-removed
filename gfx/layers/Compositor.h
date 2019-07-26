@@ -16,6 +16,7 @@
 #include "mozilla/layers/LayersTypes.h"  
 #include "nsTraceRefcnt.h"              
 #include "nsRegion.h"
+#include <vector>
 
 
 
@@ -292,6 +293,15 @@ public:
   virtual void DrawQuad(const gfx::Rect& aRect, const gfx::Rect& aClipRect,
                         const EffectChain& aEffectChain,
                         gfx::Float aOpacity, const gfx::Matrix4x4 &aTransform) = 0;
+
+  
+
+
+
+  virtual void DrawLines(const std::vector<gfx::Point>& aLines, const gfx::Rect& aClipRect,
+                         const gfx::Color& aColor,
+                         gfx::Float aOpacity, const gfx::Matrix4x4 &aTransform)
+  {  }
 
   
 
