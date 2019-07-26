@@ -2281,6 +2281,7 @@ struct nsStyleFilter {
     eBlur,
     eBrightness,
     eContrast,
+    eHueRotate,
     eInvert,
     eOpacity,
     eGrayscale,
@@ -2290,7 +2291,7 @@ struct nsStyleFilter {
 
   Type mType;
   nsIURI* mURL;
-  nsStyleCoord mCoord;
+  nsStyleCoord mFilterParameter; 
   
 };
 
