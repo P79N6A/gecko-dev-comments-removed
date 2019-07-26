@@ -161,6 +161,13 @@ private:
 
   
   
+  
+  
+  
+  bool PersistAndDatabaseUp(const DOMStorage* aStorage) const;
+
+  
+  
   bool ProcessUsageDelta(uint32_t aGetDataSetIndex, const int64_t aDelta);
   bool ProcessUsageDelta(const DOMStorage* aStorage, const int64_t aDelta);
 
@@ -225,6 +232,9 @@ private:
   
   
   static DOMStorageDBBridge* sDatabase;
+
+  
+  static bool sDatabaseDown;
 };
 
 
