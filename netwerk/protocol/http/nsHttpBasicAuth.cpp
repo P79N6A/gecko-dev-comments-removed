@@ -6,7 +6,6 @@
 
 #include "HttpLog.h"
 
-#include "nsHttp.h"
 #include "nsHttpBasicAuth.h"
 #include "plbase64.h"
 #include "nsString.h"

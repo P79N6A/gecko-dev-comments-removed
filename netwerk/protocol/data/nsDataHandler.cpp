@@ -3,16 +3,8 @@
 
 
 
-#include "nspr.h"
 #include "nsDataChannel.h"
 #include "nsDataHandler.h"
-#include "nsIURL.h"
-#include "nsCRT.h"
-#include "nsIComponentManager.h"
-#include "nsIServiceManager.h"
-#include "nsIInterfaceRequestor.h"
-#include "nsIInterfaceRequestorUtils.h"
-#include "nsIProgressEventSink.h"
 #include "nsNetCID.h"
 #include "nsError.h"
 

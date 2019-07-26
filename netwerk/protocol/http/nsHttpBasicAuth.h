@@ -8,8 +8,6 @@
 
 #include "nsIHttpAuthenticator.h"
 
-class nsIURI;
-
 
 
 

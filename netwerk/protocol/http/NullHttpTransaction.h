@@ -8,11 +8,11 @@
 #define mozilla_net_NullHttpTransaction_h
 
 #include "nsAHttpTransaction.h"
-#include "nsAHttpConnection.h"
-#include "nsIInterfaceRequestor.h"
-#include "nsHttpConnectionInfo.h"
-#include "nsHttpRequestHead.h"
 #include "mozilla/Attributes.h"
+
+class nsAHttpConnection;
+class nsHttpRequestHead;
+class nsHttpConnectionInfo;
 
 
 

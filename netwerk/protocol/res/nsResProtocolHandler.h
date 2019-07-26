@@ -8,10 +8,10 @@
 
 #include "nsIResProtocolHandler.h"
 #include "nsInterfaceHashtable.h"
-#include "nsIIOService.h"
 #include "nsWeakReference.h"
 #include "nsStandardURL.h"
 
+class nsIIOService;
 struct ResourceMapping;
 
 

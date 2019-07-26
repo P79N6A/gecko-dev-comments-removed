@@ -4,12 +4,11 @@
 
 
 #include "plstr.h"
-#include "nsComponentManagerUtils.h"
 #include "nsDeviceChannel.h"
 #include "nsDeviceCaptureProvider.h"
-#include "mozilla/Preferences.h"
 
 #ifdef MOZ_WIDGET_ANDROID
+#include "mozilla/Preferences.h"
 #include "AndroidCaptureProvider.h"
 #endif
 

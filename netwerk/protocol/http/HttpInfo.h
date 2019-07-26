@@ -2,13 +2,15 @@
 
 
 
-#include "mozilla/net/DashboardTypes.h"
-
 #ifndef nsHttpInfo__
 #define nsHttpInfo__
 
+template<class T> class nsTArray;
+
 namespace mozilla {
 namespace net {
+
+struct HttpRetParams;
 
 class HttpInfo
 {

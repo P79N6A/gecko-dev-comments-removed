@@ -3,14 +3,10 @@
 
 
 
-#include <limits.h>
-
 #include "nsAboutCacheEntry.h"
 #include "nsICacheService.h"
 #include "nsICacheSession.h"
-#include "nsIStorageStream.h"
 #include "nsNetUtil.h"
-#include "nsAutoPtr.h"
 #include "prprf.h"
 #include "nsEscape.h"
 #include <algorithm>

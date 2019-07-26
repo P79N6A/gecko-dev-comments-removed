@@ -7,7 +7,6 @@
 #define nsDeviceProtocolHandler_h_
 
 #include "nsIProtocolHandler.h"
-#include "nsString.h"
 #include "mozilla/Attributes.h"
 
 
