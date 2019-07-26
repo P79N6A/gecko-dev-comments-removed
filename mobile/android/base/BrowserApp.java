@@ -1694,16 +1694,22 @@ abstract public class BrowserApp extends GeckoApp
             mHomePager = (HomePager) homePagerStub.inflate();
 
             final HomeBanner homeBanner = (HomeBanner) findViewById(R.id.home_banner);
-            mHomePager.setBanner(homeBanner);
 
             
-            homeBanner.setOnDismissListener(new HomeBanner.OnDismissListener() {
-                @Override
-                public void onDismiss() {
-                    mHomePager.setBanner(null);
-                    mHomePagerContainer.removeView(homeBanner);
-                }
-            });
+            if (GeckoProfile.get(this).inGuestMode()) {
+                mHomePagerContainer.removeView(homeBanner);
+            } else {
+                mHomePager.setBanner(homeBanner);
+
+                
+                homeBanner.setOnDismissListener(new HomeBanner.OnDismissListener() {
+                    @Override
+                    public void onDismiss() {
+                        mHomePager.setBanner(null);
+                        mHomePagerContainer.removeView(homeBanner);
+                    }
+                });
+            }
         }
 
         mHomePagerContainer.setVisibility(View.VISIBLE);
