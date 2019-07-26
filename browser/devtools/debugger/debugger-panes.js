@@ -931,7 +931,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-  _onCmdAddBreakpoint: function() {
+  _onCmdAddBreakpoint: function(e) {
     let url = DebuggerView.Sources.selectedValue;
     let line = DebuggerView.editor.getCursor().line + 1;
     let location = { url: url, line: line };
@@ -1811,6 +1811,12 @@ VariableBubbleView.prototype = {
 
 
 
+  _ignoreLiterals: true,
+
+  
+
+
+
 
 
 
@@ -1846,7 +1852,8 @@ VariableBubbleView.prototype = {
     let identifierInfo = parsedSource.getIdentifierAt({
       line: scriptLine + 1,
       column: scriptColumn,
-      scriptIndex: scriptInfo.index
+      scriptIndex: scriptInfo.index,
+      ignoreLiterals: this._ignoreLiterals
     });
 
     
