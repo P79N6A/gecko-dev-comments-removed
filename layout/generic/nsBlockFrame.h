@@ -70,39 +70,6 @@ class nsFirstLineFrame;
 
 
 
-
-
-
-
-
-
-
-#define NS_BLOCK_NEEDS_BIDI_RESOLUTION      NS_FRAME_STATE_BIT(20)
-#define NS_BLOCK_HAS_PUSHED_FLOATS          NS_FRAME_STATE_BIT(21)
-#define NS_BLOCK_HAS_LINE_CURSOR            NS_FRAME_STATE_BIT(24)
-#define NS_BLOCK_HAS_OVERFLOW_LINES         NS_FRAME_STATE_BIT(25)
-#define NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS  NS_FRAME_STATE_BIT(26)
-
-
-
-
-#define NS_BLOCK_HAS_CLEAR_CHILDREN         NS_FRAME_STATE_BIT(27)
-
-
-
-
-#define NS_BLOCK_LOOK_FOR_DIRTY_FRAMES      NS_FRAME_STATE_BIT(61)
-
-
-
-
-
-
-
-
-
-#define NS_BLOCK_FRAME_INTRINSICS_INFLATED  NS_FRAME_STATE_BIT(62)
-
 #define nsBlockFrameSuper nsContainerFrame
 
 
@@ -132,7 +99,7 @@ public:
   line_iterator line(nsLineBox* aList) { return mLines.begin(aList); }
   reverse_line_iterator rline(nsLineBox* aList) { return mLines.rbegin(aList); }
 
-  friend nsIFrame* NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, uint32_t aFlags);
+  friend nsIFrame* NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aFlags);
 
   
   NS_DECL_QUERYFRAME

@@ -40,15 +40,6 @@ struct nsRowGroupReflowState {
   ~nsRowGroupReflowState() {}
 };
 
-
-
-
-#define NS_ROWGROUP_REPEATABLE           NS_FRAME_STATE_BIT(31)
-#define NS_ROWGROUP_HAS_STYLE_HEIGHT     NS_FRAME_STATE_BIT(30)
-
-#define NS_REPEATED_ROW_OR_ROWGROUP      NS_FRAME_STATE_BIT(28)
-#define NS_ROWGROUP_HAS_ROW_CURSOR       NS_FRAME_STATE_BIT(27)
-
 #define MIN_ROWS_NEEDING_CURSOR 20
 
 

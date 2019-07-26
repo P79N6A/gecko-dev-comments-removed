@@ -19,15 +19,6 @@ struct nsTableCellReflowState;
 
 
 
-#define NS_ROW_HAS_CELL_WITH_STYLE_HEIGHT   NS_FRAME_STATE_BIT(29)
-
-#define NS_TABLE_ROW_HAS_UNPAGINATED_HEIGHT NS_FRAME_STATE_BIT(30)
-
-
-
-
-
-
 
 
 
