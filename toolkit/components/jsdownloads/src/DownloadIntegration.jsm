@@ -699,6 +699,13 @@ this.DownloadIntegration = {
       Services.obs.addObserver(DownloadObserver, "offline-requested", true);
       Services.obs.addObserver(DownloadObserver, "last-pb-context-exiting", true);
       Services.obs.addObserver(DownloadObserver, "last-pb-context-exited", true);
+
+      Services.obs.addObserver(DownloadObserver, "sleep_notification", true);
+      Services.obs.addObserver(DownloadObserver, "suspend_process_notification", true);
+      Services.obs.addObserver(DownloadObserver, "wake_notification", true);
+      Services.obs.addObserver(DownloadObserver, "resume_process_notification", true);
+      Services.obs.addObserver(DownloadObserver, "network:offline-about-to-go-offline", true);
+      Services.obs.addObserver(DownloadObserver, "network:offline-status-changed", true);
     }
     return Promise.resolve();
   },
@@ -731,6 +738,12 @@ this.DownloadObserver = {
 
 
 
+  _wakeTimer: null,
+
+  
+
+
+
 
   _publicInProgressDownloads: new Set(),
 
@@ -747,6 +760,14 @@ this.DownloadObserver = {
 
 
 
+  _canceledOfflineDownloads: new Set(),
+
+  
+
+
+
+
+
 
 
 
@@ -755,20 +776,22 @@ this.DownloadObserver = {
     let downloadsSet = aIsPrivate ? this._privateInProgressDownloads
                                   : this._publicInProgressDownloads;
     let downloadsView = {
-      onDownloadAdded: function DO_V_onDownloadAdded(aDownload) {
+      onDownloadAdded: aDownload => {
         if (!aDownload.stopped) {
           downloadsSet.add(aDownload);
         }
       },
-      onDownloadChanged: function DO_V_onDownloadChanged(aDownload) {
+      onDownloadChanged: aDownload => {
         if (aDownload.stopped) {
           downloadsSet.delete(aDownload);
         } else {
           downloadsSet.add(aDownload);
         }
       },
-      onDownloadRemoved: function DO_V_onDownloadRemoved(aDownload) {
+      onDownloadRemoved: aDownload => {
         downloadsSet.delete(aDownload);
+        
+        this._canceledOfflineDownloads.delete(aDownload);
       }
     };
 
@@ -803,6 +826,18 @@ this.DownloadObserver = {
     }
 
     aCancel.data = aPrompter.confirmCancelDownloads(aDownloadsCount, aPromptType);
+  },
+
+  
+
+
+
+  _resumeOfflineDownloads: function DO_resumeOfflineDownloads() {
+    this._wakeTimer = null;
+
+    for (let download of this._canceledOfflineDownloads) {
+      download.start();
+    }
   },
 
   
@@ -842,6 +877,35 @@ this.DownloadObserver = {
         if (DownloadIntegration.testMode) {
           deferred.then((value) => { DownloadIntegration._deferTestClearPrivateList.resolve("success"); },
                         (error) => { DownloadIntegration._deferTestClearPrivateList.reject(error); });
+        }
+        break;
+      case "sleep_notification":
+      case "suspend_process_notification":
+      case "network:offline-about-to-go-offline":
+        for (let download of this._publicInProgressDownloads) {
+          download.cancel();
+          this._canceledOfflineDownloads.add(download);
+        }
+        for (let download of this._privateInProgressDownloads) {
+          download.cancel();
+          this._canceledOfflineDownloads.add(download);
+        }
+        break;
+      case "wake_notification":
+      case "resume_process_notification":
+        let wakeDelay = 10000;
+        try {
+          wakeDelay = Services.prefs.getIntPref("browser.download.manager.resumeOnWakeDelay");
+        } catch(e) {}
+
+        if (wakeDelay >= 0) {
+          this._wakeTimer = new Timer(this._resumeOfflineDownloads.bind(this), wakeDelay,
+                                      Ci.nsITimer.TYPE_ONE_SHOT);
+        }
+        break;
+      case "network:offline-status-changed":
+        if (aData == "online") {
+          this._resumeOfflineDownloads();
         }
         break;
     }
