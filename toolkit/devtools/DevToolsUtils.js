@@ -8,11 +8,9 @@
 
 
 
-if (hasChrome) {
-  var { Ci, Cu } = require("chrome");
-  var Services = require("Services");
-  var setTimeout = Cu.import("resource://gre/modules/Timer.jsm", {}).setTimeout;
-}
+var { Ci, Cu } = require("chrome");
+var Services = require("Services");
+var setTimeout = Cu.import("resource://gre/modules/Timer.jsm", {}).setTimeout;
 
 
 
@@ -304,3 +302,19 @@ exports.isSafeJSObject = function isSafeJSObject(aObj) {
 
   return Cu.isXrayWrapper(aObj);
 };
+
+exports.dumpn = function dumpn(str) {
+  if (exports.dumpn.wantLogging) {
+    dump("DBG-SERVER: " + str + "\n");
+  }
+}
+
+
+
+exports.dumpn.wantLogging = false;
+
+exports.dbg_assert = function dbg_assert(cond, e) {
+  if (!cond) {
+    return e;
+  }
+}
