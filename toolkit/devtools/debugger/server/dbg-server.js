@@ -318,10 +318,8 @@ var DebuggerServer = {
   
 
 
-
   _connectionClosed: function DH_connectionClosed(aConnection) {
     delete this._connections[aConnection.prefix];
-    this.destroy();
   }
 };
 
