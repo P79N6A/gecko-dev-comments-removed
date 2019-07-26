@@ -1,8 +1,8 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "WorkerScope.h"
 
@@ -11,6 +11,7 @@
 #include "mozilla/Util.h"
 #include "mozilla/dom/DOMJSClass.h"
 #include "mozilla/dom/EventBinding.h"
+#include "mozilla/dom/EventHandlerBinding.h"
 #include "mozilla/dom/EventTargetBinding.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
@@ -79,7 +80,7 @@ class WorkerGlobalScope : public workers::EventTarget,
     SLOT_COUNT
   };
 
-  // Must be traced!
+  
   JS::Heap<JS::Value> mSlots[SLOT_COUNT];
 
   enum
@@ -129,7 +130,7 @@ protected:
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  // nsIGlobalObject
+  
   virtual JSObject* GetGlobalJSObject() MOZ_OVERRIDE
   {
     mWorker->AssertIsOnWorkerThread();
@@ -163,8 +164,7 @@ private:
     MOZ_ASSERT(scope);
 
     ErrorResult rv;
-
-    JSObject* listener =
+    nsRefPtr<EventHandlerNonNull> handler =
       scope->GetEventListener(NS_ConvertASCIItoUTF16(name + 2), rv);
 
     if (rv.Failed()) {
@@ -172,7 +172,11 @@ private:
       return false;
     }
 
-    aArgs.rval().setObjectOrNull(listener);
+    if (!handler) {
+      aArgs.rval().setNull();
+    } else {
+      aArgs.rval().setObject(*handler->Callable());
+    }
     return true;
   }
 
@@ -191,15 +195,21 @@ private:
       GetInstancePrivate(aCx, &aArgs.thisv().toObject(), name);
     MOZ_ASSERT(scope);
 
-    if (aArgs.length() == 0 || !aArgs[0].isObject()) {
+    if (aArgs.length() == 0 || !aArgs[0].isObjectOrNull()) {
       JS_ReportError(aCx, "Not an event listener!");
       return false;
     }
 
     ErrorResult rv;
-    JS::Rooted<JSObject*> listenerObj(aCx, &aArgs[0].toObject());
+    JS::Rooted<JSObject*> listenerObj(aCx, aArgs[0].toObjectOrNull());
+    nsRefPtr<EventHandlerNonNull> handler;
+    if (listenerObj && JS_ObjectIsCallable(aCx, listenerObj)) {
+      handler = new EventHandlerNonNull(listenerObj);
+    } else {
+      handler = nullptr;
+    }
     scope->SetEventListener(NS_ConvertASCIItoUTF16(name + 2),
-                            listenerObj, rv);
+                            handler, rv);
     if (rv.Failed()) {
       JS_ReportError(aCx, "Failed to set event listener!");
       return false;
@@ -319,8 +329,7 @@ private:
     MOZ_ASSERT(scope);
 
     ErrorResult rv;
-
-    JSObject* adaptor =
+    nsRefPtr<EventHandlerNonNull> adaptor =
       scope->GetEventListener(NS_ConvertASCIItoUTF16(name + 2), rv);
 
     if (rv.Failed()) {
@@ -333,7 +342,8 @@ private:
       return true;
     }
 
-    aArgs.rval().set(js::GetFunctionNativeReserved(adaptor, SLOT_wrappedFunction));
+    aArgs.rval().set(js::GetFunctionNativeReserved(adaptor->Callable(),
+                                                   SLOT_wrappedFunction));
     MOZ_ASSERT(aArgs.rval().isObject());
     return true;
   }
@@ -375,8 +385,8 @@ private:
     js::SetFunctionNativeReserved(listener, SLOT_wrappedFunction, aArgs[0]);
 
     ErrorResult rv;
-
-    scope->SetEventListener(NS_ConvertASCIItoUTF16(name + 2), listener, rv);
+    nsRefPtr<EventHandlerNonNull> handler = new EventHandlerNonNull(listener);
+    scope->SetEventListener(NS_ConvertASCIItoUTF16(name + 2), handler, rv);
 
     if (rv.Failed()) {
       JS_ReportError(aCx, "Failed to set event listener!");
@@ -787,8 +797,7 @@ private:
     MOZ_ASSERT(scope);
 
     ErrorResult rv;
-
-    JSObject* listener =
+    nsRefPtr<EventHandlerNonNull> handler =
       scope->GetEventListener(NS_ConvertASCIItoUTF16(name + 2), rv);
 
     if (rv.Failed()) {
@@ -796,7 +805,11 @@ private:
       return false;
     }
 
-    aArgs.rval().setObjectOrNull(listener);
+    if (!handler) {
+      aArgs.rval().setNull();
+    } else {
+      aArgs.rval().setObject(*handler->Callable());
+    }
     return true;
   }
 
@@ -815,16 +828,22 @@ private:
       GetInstancePrivate(aCx, &aArgs.thisv().toObject(), name);
     MOZ_ASSERT(scope);
 
-    if (aArgs.length() == 0 || !aArgs[0].isObject()) {
+    if (aArgs.length() == 0 || !aArgs[0].isObjectOrNull()) {
       JS_ReportError(aCx, "Not an event listener!");
       return false;
     }
 
     ErrorResult rv;
 
-    JS::Rooted<JSObject*> listenerObj(aCx, &aArgs[0].toObject());
+    JS::Rooted<JSObject*> listenerObj(aCx, aArgs[0].toObjectOrNull());
+    nsRefPtr<EventHandlerNonNull> handler;
+    if (listenerObj && JS_ObjectIsCallable(aCx, listenerObj)) {
+      handler = new EventHandlerNonNull(listenerObj);
+    } else {
+      handler = nullptr;
+    }
     scope->SetEventListener(NS_ConvertASCIItoUTF16(name + 2),
-                            listenerObj, rv);
+                            handler, rv);
 
     if (rv.Failed()) {
       JS_ReportError(aCx, "Failed to set event listener!");
@@ -933,8 +952,8 @@ private:
 
 const DOMJSClass DedicatedWorkerGlobalScope::sClass = {
   {
-    // We don't have to worry about Xray expando slots here because we'll never
-    // have an Xray wrapper to a worker global scope.
+    
+    
     "DedicatedWorkerGlobalScope",
     JSCLASS_DOM_GLOBAL | JSCLASS_IS_DOMJSCLASS | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(DOM_GLOBAL_SLOTS) | JSCLASS_NEW_RESOLVE,
@@ -951,25 +970,25 @@ const DOMJSClass DedicatedWorkerGlobalScope::sClass = {
 
 const DOMIfaceAndProtoJSClass DedicatedWorkerGlobalScope::sProtoClass = {
   {
-    // XXXbz we use "DedicatedWorkerGlobalScope" here to match sClass
-    // so that we can JS_InitClass this JSClass and then
-    // call JS_NewObject with our sClass and have it find the right
-    // prototype.
+    
+    
+    
+    
     "DedicatedWorkerGlobalScope",
     JSCLASS_IS_DOMIFACEANDPROTOJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(2),
-    JS_PropertyStub,       /* addProperty */
-    JS_DeletePropertyStub, /* delProperty */
-    JS_PropertyStub,       /* getProperty */
-    JS_StrictPropertyStub, /* setProperty */
+    JS_PropertyStub,       
+    JS_DeletePropertyStub, 
+    JS_PropertyStub,       
+    JS_StrictPropertyStub, 
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    nullptr,               /* finalize */
-    nullptr,               /* checkAccess */
-    nullptr,               /* call */
-    nullptr,               /* hasInstance */
-    nullptr,               /* construct */
-    nullptr,               /* trace */
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
     JSCLASS_NO_INTERNAL_MEMBERS
   },
   eInterfacePrototype,
@@ -1000,8 +1019,8 @@ WorkerGlobalScope::GetInstancePrivate(JSContext* aCx, JSObject* aObj,
 {
   const JSClass* classPtr = JS_GetClass(aObj);
 
-  // We can only make DedicatedWorkerGlobalScope, not WorkerGlobalScope, so this
-  // should never happen.
+  
+  
   JS_ASSERT(classPtr != Class());
 
   if (classPtr == DedicatedWorkerGlobalScope::Class()) {
@@ -1019,7 +1038,7 @@ WorkerGlobalScope::IsWorkerGlobalScope(JS::Handle<JS::Value> v)
   return v.isObject() && JS_GetClass(&v.toObject()) == DedicatedWorkerGlobalScope::Class();
 }
 
-} /* anonymous namespace */
+} 
 
 BEGIN_WORKERS_NAMESPACE
 
@@ -1043,16 +1062,16 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
 
   JSAutoCompartment ac(aCx, global);
 
-  // Make the private slots now so that all our instance checks succeed.
+  
   if (!DedicatedWorkerGlobalScope::InitPrivate(aCx, global, worker)) {
     return NULL;
   }
 
-  // Proto chain should be:
-  //   global -> DedicatedWorkerGlobalScope
-  //          -> WorkerGlobalScope
-  //          -> EventTarget
-  //          -> Object
+  
+  
+  
+  
+  
 
   JS::Rooted<JSObject*> eventTargetProto(aCx,
     EventTargetBinding_workers::GetProtoObject(aCx, global));
@@ -1090,13 +1109,13 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
     }
   }
 
-  // Init other classes we care about.
+  
   if (!events::InitClasses(aCx, global, false) ||
       !file::InitClasses(aCx, global)) {
     return NULL;
   }
 
-  // Init other paris-bindings.
+  
   if (!DOMExceptionBinding::GetConstructorObject(aCx, global) ||
       !EventBinding::GetConstructorObject(aCx, global) ||
       !FileReaderSyncBinding_workers::GetConstructorObject(aCx, global) ||
