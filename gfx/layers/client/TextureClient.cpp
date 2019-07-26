@@ -214,6 +214,7 @@ MemoryTextureClient::Allocate(uint32_t aSize)
 {
   MOZ_ASSERT(!mBuffer);
   mBuffer = new uint8_t[aSize];
+  GfxMemoryImageReporter::DidAlloc(mBuffer);
   mBufSize = aSize;
   return true;
 }
@@ -231,9 +232,10 @@ MemoryTextureClient::MemoryTextureClient(CompositableClient* aCompositable,
 MemoryTextureClient::~MemoryTextureClient()
 {
   MOZ_COUNT_DTOR(MemoryTextureClient);
-  if (ShouldDeallocateInDestructor()) {
+  if (ShouldDeallocateInDestructor() && mBuffer) {
     
     
+    GfxMemoryImageReporter::WillFree(mBuffer);
     delete mBuffer;
   }
 }

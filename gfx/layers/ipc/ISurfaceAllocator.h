@@ -12,6 +12,8 @@
 #include "gfxPoint.h"                   
 #include "mozilla/ipc/SharedMemory.h"   
 #include "mozilla/WeakPtr.h"
+#include "nsIMemoryReporter.h"          
+#include "mozilla/Atomics.h"            
 
 
 
@@ -39,6 +41,8 @@ namespace layers {
 
 class PGrallocBufferChild;
 class MaybeMagicGrallocBufferHandle;
+class MemoryTextureClient;
+class MemoryTextureHost;
 
 enum BufferCapabilities {
   DEFAULT_BUFFER_CAPS = 0,
@@ -131,6 +135,38 @@ protected:
 
 
   ~ISurfaceAllocator() {}
+};
+
+class GfxMemoryImageReporter MOZ_FINAL : public mozilla::MemoryUniReporter
+{
+public:
+  GfxMemoryImageReporter()
+    : MemoryUniReporter("explicit/gfx/heap-textures", KIND_HEAP, UNITS_BYTES,
+                        "Heap memory shared between threads by texture clients and hosts.")
+  {
+#ifdef DEBUG
+    
+    
+    static bool hasRun = false;
+    MOZ_ASSERT(!hasRun);
+    hasRun = true;
+#endif
+  }
+
+  static void DidAlloc(void* aPointer)
+  {
+    sAmount += MallocSizeOfOnAlloc(aPointer);
+  }
+
+  static void WillFree(void* aPointer)
+  {
+    sAmount -= MallocSizeOfOnFree(aPointer);
+  }
+
+private:
+  int64_t Amount() MOZ_OVERRIDE { return sAmount; }
+
+  static mozilla::Atomic<int32_t> sAmount;
 };
 
 } 
