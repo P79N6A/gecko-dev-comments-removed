@@ -565,17 +565,37 @@ gfxWindowsPlatform::VerifyD2DDevice(bool aAttemptForce)
               
               return;
             }
-    
-            hr = factory1->EnumAdapters1(0, getter_AddRefs(adapter1));
 
+            bool checkDX10 =
+              Preferences::GetBool("gfx.direct3d.checkDX10", true);
+            hr = factory1->EnumAdapters1(0, getter_AddRefs(adapter1));
             if (SUCCEEDED(hr) && adapter1) {
+              
+              
+              if (!checkDX10) {
+                
+                
+                
+                
+                
                 hr = adapter1->CheckInterfaceSupport(__uuidof(ID3D10Device),
                                                      nullptr);
-                if (FAILED(hr)) {
-                    
-                    
-                    return;
+                if (SUCCEEDED(hr)) {
+                  checkDX10 = true;
+                  Preferences::SetBool("gfx.direct3d.checkDX10", true);
                 }
+              }
+            } else {
+              
+              
+              return;
+            }
+
+            
+            
+            
+            if (!checkDX10) {
+              return;
             }
         }
 
@@ -665,6 +685,10 @@ gfxWindowsPlatform::VerifyD2DDevice(bool aAttemptForce)
                 Preferences::SetBool("gfx.direct3d.prefer_10_1", true);
             }
             mD2DDevice = cairo_d2d_create_device_from_d3d10device(device);
+        }
+
+        if (FAILED(hr) || !device) {
+          Preferences::SetBool("gfx.direct3d.checkDX10", false);
         }
     }
 
