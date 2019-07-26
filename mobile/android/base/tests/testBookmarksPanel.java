@@ -13,10 +13,16 @@ public class testBookmarksPanel extends AboutHomeTest {
         JSONObject data = null;
 
         
+        
+        initializeProfile();
+
+        
         mDatabaseHelper.addOrUpdateMobileBookmark(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE, BOOKMARK_URL);
 
         openAboutHomeTab(AboutHomeTabs.BOOKMARKS);
 
+        
+        
         
         for (String url : StringHelper.DEFAULT_BOOKMARKS_URLS) {
             isBookmarkDisplayed(url);
