@@ -3198,7 +3198,7 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   }
 
   
-  SetDiscrete(*aRuleData->ValueForOSXFontSmoothing(),
+  SetDiscrete(*aRuleData->ValueForFontSmoothing(),
               aFont->mFont.smoothing, aCanStoreInRuleTree,
               SETDSC_ENUMERATED,
               aParentFont->mFont.smoothing,
