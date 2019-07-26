@@ -44,12 +44,12 @@ public:
   NS_DECL_NSISERIALIZABLE
   NS_DECL_NSICLASSINFO
 
-  nsNSSCertificate(CERTCertificate *cert);
+  nsNSSCertificate(CERTCertificate *cert,SECOidTag *evOidPolicy = nullptr);
   nsNSSCertificate();
   
   virtual ~nsNSSCertificate();
   nsresult FormatUIStrings(const nsAutoString &nickname, nsAutoString &nickWithSerial, nsAutoString &details);
-  static nsNSSCertificate* Create(CERTCertificate *cert = nullptr);
+  static nsNSSCertificate* Create(CERTCertificate *cert = nullptr, SECOidTag *evOidPolicy = nullptr);
   static nsNSSCertificate* ConstructFromDER(char *certDER, int derLen);
 
   
@@ -69,14 +69,12 @@ private:
   void destructorSafeDestroyNSSReference();
   bool InitFromDER(char* certDER, int derLen);  
 
-#ifndef NSS_NO_LIBPKIX
   enum { 
     ev_status_unknown = -1, ev_status_invalid = 0, ev_status_valid = 1
   } mCachedEVStatus;
   SECOidTag mCachedEVOidTag;
   nsresult hasValidEVOidTag(SECOidTag &resultOidTag, bool &validEV);
   nsresult getValidEVOidTag(SECOidTag &resultOidTag, bool &validEV);
-#endif
 };
 
 class nsNSSCertList: public nsIX509CertList
