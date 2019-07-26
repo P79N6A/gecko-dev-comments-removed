@@ -10,12 +10,12 @@ import android.os.Handler;
 
 
 
-public abstract class GeckoAsyncTask<Params, Progress, Result> {
+public abstract class UiAsyncTask<Params, Progress, Result> {
     private volatile boolean mCancelled = false;
     private final Handler mBackgroundThreadHandler;
     private final Handler mUiHandler;
 
-    public GeckoAsyncTask(Handler uiHandler, Handler backgroundThreadHandler) {
+    public UiAsyncTask(Handler uiHandler, Handler backgroundThreadHandler) {
         mUiHandler = uiHandler;
         mBackgroundThreadHandler = backgroundThreadHandler;
     }
