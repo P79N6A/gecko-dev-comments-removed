@@ -45,20 +45,6 @@ except Exception:
 _PAGESIZE = os.sysconf("SC_PAGE_SIZE")
 _cputimes_ntuple = namedtuple('cputimes', 'user nice system idle')
 
-_TCP_STATES_TABLE = {_psutil_osx.TCPS_ESTABLISHED : CONN_ESTABLISHED,
-                     _psutil_osx.TCPS_SYN_SENT : CONN_SYN_SENT,
-                     _psutil_osx.TCPS_SYN_RECEIVED : CONN_SYN_RECV,
-                     _psutil_osx.TCPS_FIN_WAIT_1 : CONN_FIN_WAIT1,
-                     _psutil_osx.TCPS_FIN_WAIT_2 : CONN_FIN_WAIT2,
-                     _psutil_osx.TCPS_TIME_WAIT : CONN_TIME_WAIT,
-                     _psutil_osx.TCPS_CLOSED : CONN_CLOSE,
-                     _psutil_osx.TCPS_CLOSE_WAIT : CONN_CLOSE_WAIT,
-                     _psutil_osx.TCPS_LAST_ACK : CONN_LAST_ACK,
-                     _psutil_osx.TCPS_LISTEN : CONN_LISTEN,
-                     _psutil_osx.TCPS_CLOSING : CONN_CLOSING,
-                     _psutil_osx.PSUTIL_CONN_NONE : CONN_NONE,
-                     }
-
 
 
 get_system_boot_time = _psutil_osx.get_system_boot_time
@@ -132,7 +118,7 @@ def get_system_users():
 get_pid_list = _psutil_osx.get_pid_list
 pid_exists = _psposix.pid_exists
 get_disk_usage = _psposix.get_disk_usage
-net_io_counters = _psutil_osx.get_net_io_counters
+network_io_counters = _psutil_osx.get_network_io_counters
 disk_io_counters = _psutil_osx.get_disk_io_counters
 
 
@@ -274,14 +260,8 @@ class Process(object):
             raise ValueError("invalid %r kind argument; choose between %s"
                              % (kind, ', '.join([repr(x) for x in conn_tmap])))
         families, types = conn_tmap[kind]
-        rawlist = _psutil_osx.get_process_connections(self.pid, families, types)
-        ret = []
-        for item in rawlist:
-            fd, fam, type, laddr, raddr, status = item
-            status = _TCP_STATES_TABLE[status]
-            nt = nt_connection(fd, fam, type, laddr, raddr, status)
-            ret.append(nt)
-        return ret
+        ret = _psutil_osx.get_process_connections(self.pid, families, types)
+        return [nt_connection(*conn) for conn in ret]
 
     @wrap_exceptions
     def get_num_fds(self):

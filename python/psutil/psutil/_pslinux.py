@@ -25,14 +25,8 @@ from psutil._common import *
 from psutil._compat import PY3, xrange, long, namedtuple, wraps
 
 __extra__all__ = [
-    
     "IOPRIO_CLASS_NONE", "IOPRIO_CLASS_RT", "IOPRIO_CLASS_BE",
     "IOPRIO_CLASS_IDLE",
-    
-    "CONN_ESTABLISHED", "CONN_SYN_SENT", "CONN_SYN_RECV", "CONN_FIN_WAIT1",
-    "CONN_FIN_WAIT2", "CONN_TIME_WAIT", "CONN_CLOSE", "CONN_CLOSE_WAIT",
-    "CONN_LAST_ACK", "CONN_LISTEN", "CONN_CLOSING",
-    
     "phymem_buffers", "cached_phymem"]
 
 
@@ -115,17 +109,17 @@ IOPRIO_CLASS_BE = 2
 IOPRIO_CLASS_IDLE = 3
 
 
-_TCP_STATES_TABLE = {"01" : CONN_ESTABLISHED,
-                     "02" : CONN_SYN_SENT,
-                     "03" : CONN_SYN_RECV,
-                     "04" : CONN_FIN_WAIT1,
-                     "05" : CONN_FIN_WAIT2,
-                     "06" : CONN_TIME_WAIT,
-                     "07" : CONN_CLOSE,
-                     "08" : CONN_CLOSE_WAIT,
-                     "09" : CONN_LAST_ACK,
-                     "0A" : CONN_LISTEN,
-                     "0B" : CONN_CLOSING
+_TCP_STATES_TABLE = {"01" : "ESTABLISHED",
+                     "02" : "SYN_SENT",
+                     "03" : "SYN_RECV",
+                     "04" : "FIN_WAIT1",
+                     "05" : "FIN_WAIT2",
+                     "06" : "TIME_WAIT",
+                     "07" : "CLOSE",
+                     "08" : "CLOSE_WAIT",
+                     "09" : "LAST_ACK",
+                     "0A" : "LISTEN",
+                     "0B" : "CLOSING"
                      }
 
 
@@ -334,7 +328,7 @@ def pid_exists(pid):
     """Check For the existence of a unix pid."""
     return _psposix.pid_exists(pid)
 
-def net_io_counters():
+def network_io_counters():
     """Return network I/O statistics for every network interface
     installed on the system as a dict of raw tuples.
     """
@@ -399,7 +393,6 @@ def disk_io_counters():
     finally:
         f.close()
     for line in lines:
-        
         _, _, name, reads, _, rbytes, rtime, writes, _, wbytes, wtime = \
             line.split()[:11]
         if name in partitions:
@@ -633,20 +626,11 @@ class Process(object):
                 data = {}
                 for line in f:
                     fields = line.split(None, 5)
-                    if not fields[0].endswith(':'):
-                        
+                    if len(fields) >= 5:
                         yield (current_block.pop(), data)
                         current_block.append(line)
                     else:
-                        try:
-                            data[fields[0]] = int(fields[1]) * 1024
-                        except ValueError:
-                            if fields[0].startswith('VmFlags:'):
-                                
-                                continue
-                            else:
-                                raise ValueError("don't know how to interpret" \
-                                                 " line %r" % line)
+                        data[fields[0]] = int(fields[1]) * 1024
                 yield (current_block.pop(), data)
 
             if first_line:  
@@ -691,7 +675,7 @@ class Process(object):
         f.close()
 
     if not os.path.exists('/proc/%s/smaps' % os.getpid()):
-        def get_memory_maps(self, ext):
+        def get_shared_libs(self, ext):
             msg = "couldn't find /proc/%s/smaps; kernel < 2.6.14 or CONFIG_MMU " \
                   "kernel configuration option is not enabled" % self.pid
             raise NotImplementedError(msg)
@@ -947,7 +931,7 @@ class Process(object):
                             if type_ == socket.SOCK_STREAM:
                                 status = _TCP_STATES_TABLE[status]
                             else:
-                                status = CONN_NONE
+                                status = ""
                             fd = int(inodes[inode])
                             conn = nt_connection(fd, family, type_, laddr,
                                                  raddr, status)
@@ -964,7 +948,7 @@ class Process(object):
                             fd = int(inodes[inode])
                             type_ = int(type_)
                             conn = nt_connection(fd, family, type_, path,
-                                                 None, CONN_NONE)
+                                                 None, "")
                             retlist.append(conn)
                     else:
                         raise ValueError(family)
@@ -1000,6 +984,13 @@ class Process(object):
         
         os.stat('/proc/%s' % self.pid)
         return ret
+
+
+
+
+
+
+
 
     @wrap_exceptions
     def get_num_fds(self):
