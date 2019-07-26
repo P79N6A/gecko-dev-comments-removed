@@ -24,6 +24,10 @@ public:
 
   
   NS_FORWARD_TO_NSDOMEVENT
+
+  nsresult InitFromCtor(const nsAString& aType,
+                        JSContext* aCx, jsval* aVal);
+
 };
 
-#endif
+#endif 
