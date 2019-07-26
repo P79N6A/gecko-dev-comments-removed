@@ -97,6 +97,9 @@ BaselineCompiler::compile()
         return Method_CantCompile;
     }
 
+    if (!script->ensureRanAnalysis(cx))
+        return Method_Error;
+
     
     types::AutoEnterAnalysis autoEnterAnalysis(cx);
 
@@ -203,7 +206,17 @@ BaselineCompiler::emitPrologue()
     masm.checkStackAlignment();
 
     
-    masm.store32(Imm32(0), frame.addressOfFlags());
+    
+    
+
+    
+    uint32_t flags = 0;
+    if (script->isForEval())
+        flags |= BaselineFrame::EVAL;
+    masm.store32(Imm32(flags), frame.addressOfFlags());
+
+    if (script->isForEval())
+        masm.storePtr(ImmGCPtr(script), frame.addressOfEvalScript());
 
     
     if (frame.nlocals() > 0) {
@@ -290,6 +303,10 @@ BaselineCompiler::emitDebugPrologue()
     return true;
 }
 
+typedef bool (*StrictEvalPrologueFn)(JSContext *, BaselineFrame *);
+static const VMFunction StrictEvalPrologueInfo =
+    FunctionInfo<StrictEvalPrologueFn>(ion::StrictEvalPrologue);
+
 bool
 BaselineCompiler::initScopeChain()
 {
@@ -307,10 +324,21 @@ BaselineCompiler::initScopeChain()
         
         
         JS_ASSERT(!fun->isHeavyweight());
-    } else {
+    } else if (script->isForEval()) {
         
-        JS_ASSERT(!script->isForEval());
+        masm.storePtr(R1.scratchReg(), frame.addressOfScopeChain());
 
+        if (script->strict) {
+            
+            prepareVMCall();
+
+            masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
+            pushArg(R0.scratchReg());
+
+            if (!callVM(StrictEvalPrologueInfo))
+                return false;
+        }
+    } else {
         
         masm.storePtr(ImmGCPtr(&script->global()), frame.addressOfScopeChain());
     }
@@ -1604,5 +1632,31 @@ BaselineCompiler::emit_JSOP_STOP()
     JS_ASSERT(frame.stackDepth() == 0);
 
     masm.moveValue(UndefinedValue(), JSReturnOperand);
+
+    if (!script->noScriptRval) {
+        
+        Label done;
+        Address flags = frame.addressOfFlags();
+        masm.branchTest32(Assembler::Zero, flags, Imm32(BaselineFrame::HAS_RVAL), &done);
+        masm.loadValue(frame.addressOfReturnValue(), JSReturnOperand);
+        masm.bind(&done);
+    }
+
     return emitReturn();
+}
+
+bool
+BaselineCompiler::emit_JSOP_SETRVAL()
+{
+    
+    storeValue(frame.peek(-1), frame.addressOfReturnValue(), R2);
+    masm.or32(Imm32(BaselineFrame::HAS_RVAL), frame.addressOfFlags());
+    frame.pop();
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_POPV()
+{
+    return emit_JSOP_SETRVAL();
 }

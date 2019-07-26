@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #ifndef jsion_ion_compartment_h__
 #define jsion_ion_compartment_h__
@@ -19,8 +19,13 @@ namespace ion {
 
 class FrameSizeClass;
 
+enum EnterJitType {
+    EnterJitBaseline = 0,
+    EnterJitOptimized = 1
+};
+
 typedef void (*EnterIonCode)(void *code, int argc, Value *argv, StackFrame *fp,
-                             CalleeToken calleeToken, Value *vp);
+                             CalleeToken calleeToken, JSObject *evalScopeChain, Value *vp);
 
 class IonActivation;
 class IonBuilder;
@@ -31,39 +36,42 @@ class IonRuntime
 {
     friend class IonCompartment;
 
-    // Executable allocator.
+    
     JSC::ExecutableAllocator *execAlloc_;
 
-    // Trampoline for entering JIT code. Contains OSR prologue.
+    
     IonCode *enterJIT_;
 
-    // Vector mapping frame class sizes to bailout tables.
+    
+    IonCode *enterBaselineJIT_;
+
+    
     Vector<IonCode*, 4, SystemAllocPolicy> bailoutTables_;
 
-    // Generic bailout table; used if the bailout table overflows.
+    
     IonCode *bailoutHandler_;
 
-    // Argument-rectifying thunk, in the case of insufficient arguments passed
-    // to a function call site. Pads with |undefined|.
+    
+    
     IonCode *argumentsRectifier_;
     void *argumentsRectifierReturnAddr_;
 
-    // Thunk that invalides an (Ion compiled) caller on the Ion stack.
+    
     IonCode *invalidator_;
 
-    // Thunk that calls the GC pre barrier.
+    
     IonCode *valuePreBarrier_;
     IonCode *shapePreBarrier_;
 
-    // Thunk used by the debugger for breakpoint and step mode.
+    
     IonCode *debugTrapHandler_;
 
-    // Map VMFunction addresses to the IonCode of the wrapper.
+    
     typedef WeakCache<const VMFunction *, IonCode *> VMWrapperMap;
     VMWrapperMap *functionWrappers_;
 
   private:
-    IonCode *generateEnterJIT(JSContext *cx);
+    IonCode *generateEnterJIT(JSContext *cx, EnterJitType type);
     IonCode *generateArgumentsRectifier(JSContext *cx, void **returnAddrOut);
     IonCode *generateBailoutTable(JSContext *cx, uint32_t frameClass);
     IonCode *generateBailoutHandler(JSContext *cx);
@@ -74,8 +82,8 @@ class IonRuntime
 
     IonCode *debugTrapHandler(JSContext *cx) {
         if (!debugTrapHandler_) {
-            // IonRuntime code stubs are shared across compartments and have to
-            // be allocated in the atoms compartment.
+            
+            
             AutoEnterAtomsCompartment ac(cx);
             debugTrapHandler_ = generateDebugTrapHandler(cx);
         }
@@ -94,24 +102,24 @@ class IonCompartment
 {
     friend class IonActivation;
 
-    // Ion state for the compartment's runtime.
+    
     IonRuntime *rt;
 
-    // Any scripts for which off thread compilation has successfully finished,
-    // failed, or been cancelled. All off thread compilations which are started
-    // will eventually appear in this list asynchronously. Protected by the
-    // runtime's analysis lock.
+    
+    
+    
+    
     OffThreadCompilationVector finishedOffThreadCompilations_;
 
-    // Keep track of memoryregions that are going to be flushed.
+    
     AutoFlushCache *flusher_;
 
-    // Map ICStub keys to ICStub shared code objects.
+    
     typedef WeakValueCache<uint32_t, ReadBarriered<IonCode> > ICStubCodeMap;
     ICStubCodeMap *stubCodes_;
 
-    // Keep track of offset into baseline ICCall_Scripted stub's code at return
-    // point from called script.
+    
+    
     void *baselineCallReturnAddr_;
 
   public:
@@ -128,9 +136,9 @@ class IonCompartment
         return NULL;
     }
     bool putStubCode(uint32_t key, Handle<IonCode *> stubCode) {
-        // Make sure to do a lookupForAdd(key) and then insert into that slot, because
-        // that way if stubCode gets moved due to a GC caused by lookupForAdd, then
-        // we still write the correct pointer.
+        
+        
+        
         JS_ASSERT(!stubCodes_->has(key));
         ICStubCodeMap::AddPtr p = stubCodes_->lookupForAdd(key);
         return stubCodes_->add(p, key, stubCode.get());
@@ -181,6 +189,10 @@ class IonCompartment
         return rt->enterJIT_->as<EnterIonCode>();
     }
 
+    EnterIonCode enterBaselineJIT() {
+        return rt->enterBaselineJIT_->as<EnterIonCode>();
+    }
+
     IonCode *valuePreBarrier() {
         return rt->valuePreBarrier_;
     }
@@ -215,8 +227,8 @@ class IonActivation
     uint8_t *prevIonTop_;
     JSContext *prevIonJSContext_;
 
-    // When creating an activation without a StackFrame, this field is used
-    // to communicate the calling pc for StackIter.
+    
+    
     jsbytecode *prevpc_;
 
   public:
@@ -265,9 +277,9 @@ class IonActivation
         return compartment_;
     }
     bool empty() const {
-        // If we have an entryfp, this activation is active. However, if
-        // FastInvoke is used, entryfp may be NULL and a non-NULL prevpc
-        // indicates this activation is not empty.
+        
+        
+        
         return !entryfp_ && !prevpc_;
     }
 
@@ -279,12 +291,12 @@ class IonActivation
     }
 };
 
-// Called from JSCompartment::discardJitCode().
+
 void InvalidateAll(FreeOp *fop, JSCompartment *comp);
 void FinishInvalidation(FreeOp *fop, UnrootedScript script);
 
-} // namespace ion
-} // namespace js
+} 
+} 
 
-#endif // jsion_ion_compartment_h__
+#endif 
 

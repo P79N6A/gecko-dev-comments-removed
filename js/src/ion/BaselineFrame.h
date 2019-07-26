@@ -12,9 +12,18 @@
 #include "jscompartment.h"
 
 #include "IonFrames.h"
+#include "vm/Stack.h"
 
 namespace js {
 namespace ion {
+
+
+
+
+
+
+
+
 
 
 
@@ -35,7 +44,16 @@ class BaselineFrame
         HAS_BLOCKCHAIN   = 1 << 1,
 
         
-        PREV_UP_TO_DATE  = 1 << 2,
+        HAS_CALL_OBJ     = 1 << 2,
+
+        
+        HAS_EVAL_PREV    = 1 << 3,
+
+        
+        PREV_UP_TO_DATE  = 1 << 4,
+
+        
+        EVAL             = 1 << 5
     };
 
   protected: 
@@ -48,7 +66,12 @@ class BaselineFrame
     size_t frameSize_;
     JSObject *scopeChain_;
     StaticBlockObject *blockChain_;
+    JSScript *evalScript_;
     uint32_t flags_;
+
+    
+    
+    AbstractFramePtr evalPrev_;
 
 #if JS_BITS_PER_WORD == 32
     
@@ -91,6 +114,8 @@ class BaselineFrame
         return *(CalleeToken *)pointer;
     }
     UnrootedScript script() const {
+        if (isEvalFrame())
+            return evalScript();
         return ScriptFromCalleeToken(calleeToken());
     }
     UnrootedFunction fun() const {
@@ -196,6 +221,10 @@ class BaselineFrame
         return &blockChain_;
     }
 
+    bool hasCallObj() const {
+        return flags_ & HAS_CALL_OBJ;
+    }
+
     void setFlags(uint32_t flags) {
         flags_ = flags;
     }
@@ -205,6 +234,8 @@ class BaselineFrame
 
     inline bool pushBlock(JSContext *cx, Handle<StaticBlockObject *> block);
     inline void popBlock(JSContext *cx);
+
+    bool strictEvalPrologue(JSContext *cx);
 
     bool prevUpToDate() const {
         return flags_ & PREV_UP_TO_DATE;
@@ -217,28 +248,51 @@ class BaselineFrame
         return NULL;
     }
 
+    JSScript *evalScript() const {
+        JS_ASSERT(isEvalFrame());
+        return evalScript_;
+    }
+
+    void setEvalPrev(AbstractFramePtr prev) {
+        JS_ASSERT(isEvalFrame());
+        flags_ |= HAS_EVAL_PREV;
+        evalPrev_ = prev;
+    }
+
+    AbstractFramePtr evalPrev() const {
+        JS_ASSERT(isEvalFrame());
+        JS_ASSERT(flags_ & HAS_EVAL_PREV);
+        return evalPrev_;
+    }
+
     void trace(JSTracer *trc);
 
-    bool isGlobalFrame() const {
-        return !script()->function();
+    bool isFunctionFrame() const {
+        return CalleeTokenIsFunction(calleeToken());
     }
-    bool isEvalFrame() const {
-        return false;
+    bool isGlobalFrame() const {
+        return !CalleeTokenIsFunction(calleeToken());
+    }
+     bool isEvalFrame() const {
+        return flags_ & EVAL;
+    }
+    bool isStrictEvalFrame() const {
+        return isEvalFrame() && script()->strict;
+    }
+    bool isNonStrictEvalFrame() const {
+        return isEvalFrame() && !script()->strict;
+    }
+    bool isDirectEvalFrame() const {
+        return isEvalFrame() && script()->staticLevel > 0;
+    }
+    bool isNonStrictDirectEvalFrame() const {
+        return isNonStrictEvalFrame() && isDirectEvalFrame();
+    }
+    bool isNonEvalFunctionFrame() const {
+        return isFunctionFrame() && !isEvalFrame();
     }
     bool isDebuggerFrame() const {
         return false;
-    }
-    bool isNonStrictDirectEvalFrame() const {
-        return false;
-    }
-    bool isStrictEvalFrame() const {
-        return false;
-    }
-    bool isNonEvalFunctionFrame() const {
-        return !!script()->function();
-    }
-    bool isFunctionFrame() const {
-        return !!script()->function();
     }
 
     
@@ -281,6 +335,9 @@ class BaselineFrame
     }
     static size_t reverseOffsetOfFlags() {
         return -BaselineFrame::Size() + offsetof(BaselineFrame, flags_);
+    }
+    static size_t reverseOffsetOfEvalScript() {
+        return -BaselineFrame::Size() + offsetof(BaselineFrame, evalScript_);
     }
     static size_t reverseOffsetOfReturnValue() {
         return -BaselineFrame::Size() + offsetof(BaselineFrame, loReturnValue_);
