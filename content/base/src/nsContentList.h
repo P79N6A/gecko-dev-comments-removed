@@ -96,6 +96,14 @@ public:
     MOZ_OVERRIDE = 0;
 
 protected:
+  
+
+
+
+  virtual void RemoveFromCaches()
+  {
+  }
+
   nsTArray< nsCOMPtr<nsIContent> > mElements;
 };
 
@@ -365,7 +373,8 @@ protected:
 
 
 
-  virtual void RemoveFromCaches() {
+  virtual void RemoveFromCaches() MOZ_OVERRIDE
+  {
     RemoveFromHashtable();
   }
 
