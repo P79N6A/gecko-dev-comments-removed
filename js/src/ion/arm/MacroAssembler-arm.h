@@ -26,9 +26,22 @@ JS_STATIC_ASSERT(1 << defaultShift == sizeof(jsval));
 
 class MacroAssemblerARM : public Assembler
 {
+  protected:
+    
+    
+    
+    
+    Register secondScratchReg_;
+
   public:
     MacroAssemblerARM()
+      : secondScratchReg_(lr)
     { }
+
+    void setSecondScratchReg(Register reg) {
+        JS_ASSERT(reg != ScratchRegister);
+        secondScratchReg_ = reg;
+    }
 
     void convertInt32ToDouble(const Register &src, const FloatRegister &dest);
     void convertUInt32ToDouble(const Register &src, const FloatRegister &dest);
@@ -461,8 +474,9 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void pushWithPadding(const Imm32 &imm, const Imm32 extraSpace) {
         Imm32 totSpace = Imm32(extraSpace.value + 4);
         
-        ma_mov(imm, lr);
-        ma_dtr(IsStore, sp, totSpace, lr, PreIndex);
+        
+        ma_mov(imm, secondScratchReg_);
+        ma_dtr(IsStore, sp, totSpace, secondScratchReg_, PreIndex);
     }
 
     void pop(const Register &reg) {
@@ -708,34 +722,23 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     }
     template <typename T>
     CodeOffsetJump branchPtrWithPatch(Condition cond, Address addr, T ptr, RepatchLabel *label) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        ma_ldr(addr, lr);
-        ma_cmp(lr, ptr);
+        ma_ldr(addr, secondScratchReg_);
+        ma_cmp(secondScratchReg_, ptr);
         return jumpWithPatch(label, cond);
     }
     void branchPtr(Condition cond, Address addr, ImmGCPtr ptr, Label *label) {
-        
-        ma_ldr(addr, lr);
-        ma_cmp(lr, ptr);
+        ma_ldr(addr, secondScratchReg_);
+        ma_cmp(secondScratchReg_, ptr);
         ma_b(label, cond);
     }
     void branchPtr(Condition cond, Address addr, ImmWord ptr, Label *label) {
-        
-        ma_ldr(addr, lr);
-        ma_cmp(lr, ptr);
+        ma_ldr(addr, secondScratchReg_);
+        ma_cmp(secondScratchReg_, ptr);
         ma_b(label, cond);
     }
     void branchPtr(Condition cond, const AbsoluteAddress &addr, const Register &ptr, Label *label) {
-        loadPtr(addr, lr); 
-        ma_cmp(lr, ptr);
+        loadPtr(addr, secondScratchReg_); 
+        ma_cmp(secondScratchReg_, ptr);
         ma_b(label, cond);
     }
 
@@ -761,8 +764,8 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         storeValue(val, Operand(dest));
     }
     void storeValue(JSValueType type, Register reg, Address dest) {
-        ma_mov(ImmTag(JSVAL_TYPE_TO_TAG(type)), lr);
-        ma_str(lr, Address(dest.base, dest.offset + 4));
+        ma_mov(ImmTag(JSVAL_TYPE_TO_TAG(type)), secondScratchReg_);
+        ma_str(secondScratchReg_, Address(dest.base, dest.offset + 4));
         ma_str(reg, dest);
     }
     void storeValue(JSValueType type, Register reg, BaseIndex dest) {
@@ -778,13 +781,13 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     }
     void storeValue(const Value &val, Address dest) {
         jsval_layout jv = JSVAL_TO_IMPL(val);
-        ma_mov(Imm32(jv.s.tag), lr);
-        ma_str(lr, Address(dest.base, dest.offset + 4));
+        ma_mov(Imm32(jv.s.tag), secondScratchReg_);
+        ma_str(secondScratchReg_, Address(dest.base, dest.offset + 4));
         if (val.isMarkable())
-            ma_mov(ImmGCPtr(reinterpret_cast<gc::Cell *>(val.toGCThing())), lr);
+            ma_mov(ImmGCPtr(reinterpret_cast<gc::Cell *>(val.toGCThing())), secondScratchReg_);
         else
-            ma_mov(Imm32(jv.s.payload.i32), lr);
-        ma_str(lr, dest);
+            ma_mov(Imm32(jv.s.payload.i32), secondScratchReg_);
+        ma_str(secondScratchReg_, dest);
     }
     void storeValue(const Value &val, BaseIndex dest) {
         
