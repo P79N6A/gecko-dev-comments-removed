@@ -93,7 +93,9 @@ public class MostRecentPage extends HomeFragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         mTitle = (TextView) view.findViewById(R.id.title);
-        mTitle.setText(R.string.home_most_recent_title);
+        if (mTitle != null) {
+            mTitle.setText(R.string.home_most_recent_title);
+        }
 
         mList = (ListView) view.findViewById(R.id.list);
         mList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -154,12 +156,16 @@ public class MostRecentPage extends HomeFragment {
 
     private void updateUiFromCursor(Cursor c) {
         if (c != null && c.getCount() > 0) {
-            mTitle.setVisibility(View.VISIBLE);
+            if (mTitle != null) {
+                mTitle.setVisibility(View.VISIBLE);
+            }
             return;
         }
 
         
-        mTitle.setVisibility(View.GONE);
+        if (mTitle != null) {
+            mTitle.setVisibility(View.VISIBLE);
+        }
         if (mEmptyView == null) {
             
             ViewStub emptyViewStub = (ViewStub) getActivity().findViewById(R.id.home_empty_view_stub);
