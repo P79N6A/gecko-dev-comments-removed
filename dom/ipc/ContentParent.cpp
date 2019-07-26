@@ -646,6 +646,11 @@ struct DelayedDeleteContentParentTask : public nsRunnable
 void
 ContentParent::ActorDestroy(ActorDestroyReason why)
 {
+    if (mForceKillTask) {
+        mForceKillTask->Cancel();
+        mForceKillTask = nullptr;
+    }
+
     nsRefPtr<nsFrameMessageManager> ppm = mMessageManager;
     if (ppm) {
       ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()),
@@ -752,8 +757,34 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 }
 
 void
+ContentParent::NotifyTabDestroying(PBrowserParent* aTab)
+{
+    
+    
+    
+    
+    
+    int32_t numLiveTabs = ManagedPBrowserParent().Length();
+    ++mNumDestroyingTabs;
+    if (mNumDestroyingTabs != numLiveTabs) {
+        return;
+    }
+
+    MOZ_ASSERT(!mForceKillTask);
+    int32_t timeoutSecs =
+        Preferences::GetInt("dom.ipc.tabs.shutdownTimeoutSecs", 5);
+    if (timeoutSecs > 0) {
+        MessageLoop::current()->PostDelayedTask(
+            FROM_HERE,
+            mForceKillTask = NewRunnableMethod(this, &ContentParent::KillHard),
+            timeoutSecs * 1000);
+    }
+}
+
+void
 ContentParent::NotifyTabDestroyed(PBrowserParent* aTab)
 {
+    --mNumDestroyingTabs;
     
     
     
@@ -797,6 +828,8 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
     , mRunToCompletionDepth(0)
     , mShouldCallUnblockChild(false)
     , mAppManifestURL(aAppManifestURL)
+    , mForceKillTask(nullptr)
+    , mNumDestroyingTabs(0)
     , mIsAlive(true)
     , mIsDestroyed(false)
     , mSendPermissionUpdates(false)
@@ -855,6 +888,10 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
 
 ContentParent::~ContentParent()
 {
+    if (mForceKillTask) {
+        mForceKillTask->Cancel();
+    }
+
     if (OtherProcess())
         base::CloseProcessHandle(OtherProcess());
 
@@ -1442,6 +1479,7 @@ ContentParent::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
 void
 ContentParent::KillHard()
 {
+    mForceKillTask = nullptr;
     
     
     

@@ -105,6 +105,8 @@ public:
     virtual bool CheckManifestURL(const nsAString& aManifestURL);
 
     
+    void NotifyTabDestroying(PBrowserParent* aTab);
+    
     void NotifyTabDestroyed(PBrowserParent* aTab);
 
     TestShellParent* CreateTestShell();
@@ -353,6 +355,15 @@ private:
     const nsString mAppManifestURL;
     nsRefPtr<nsFrameMessageManager> mMessageManager;
 
+    
+    
+    
+    
+    CancelableTask* mForceKillTask;
+    
+    
+    
+    int32_t mNumDestroyingTabs;
     
     
     
