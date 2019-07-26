@@ -518,16 +518,9 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     
     
     
-    
     if (!TextDecoderBinding::GetConstructorObject(aJSContext, global) ||
         !TextEncoderBinding::GetConstructorObject(aJSContext, global) ||
         !DOMErrorBinding::GetConstructorObject(aJSContext, global)) {
-        return UnexpectedFailure(NS_ERROR_FAILURE);
-    }
-
-    if (nsContentUtils::IsSystemPrincipal(aPrincipal) &&
-        !IndexedDatabaseManager::DefineIndexedDBLazyGetter(aJSContext,
-                                                           global)) {
         return UnexpectedFailure(NS_ERROR_FAILURE);
     }
 
