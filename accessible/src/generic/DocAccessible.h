@@ -214,6 +214,15 @@ public:
   
 
 
+
+
+
+  Accessible* GetAccessibleEvenIfNotInMap(nsINode* aNode) const;
+  Accessible* GetAccessibleEvenIfNotInMapOrContainer(nsINode* aNode) const;
+
+  
+
+
   bool HasAccessible(nsINode* aNode) const
     { return GetAccessible(aNode); }
 
