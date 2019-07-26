@@ -583,6 +583,7 @@ nsHTMLInputElement::nsHTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
   , mCanShowInvalidUI(true)
   , mHasRange(false)
 {
+  
   mInputData.mState = new nsTextEditorState(this);
 
   if (!gUploadLastDir)
@@ -627,8 +628,8 @@ nsHTMLInputElement::GetEditorState() const
     return nullptr;
   }
 
-  NS_ASSERTION(mInputData.mState,
-    "Single line text controls need to have a state associated with them");
+  MOZ_ASSERT(mInputData.mState, "Single line text controls need to have a state"
+                                " associated with them");
 
   return mInputData.mState;
 }
@@ -1023,7 +1024,11 @@ nsHTMLInputElement::GetValueInternal(nsAString& aValue) const
 {
   switch (GetValueMode()) {
     case VALUE_MODE_VALUE:
-      mInputData.mState->GetValue(aValue, true);
+      if (IsSingleLineTextControl(false)) {
+        mInputData.mState->GetValue(aValue, true);
+      } else {
+        aValue.Assign(mInputData.mValue);
+      }
       return NS_OK;
 
     case VALUE_MODE_FILENAME:
@@ -1959,7 +1964,15 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
         SetValueChanged(true);
       }
 
-      mInputData.mState->SetValue(value, aUserInput, aSetValueChanged);
+      if (IsSingleLineTextControl(false)) {
+        mInputData.mState->SetValue(value, aUserInput, aSetValueChanged);
+      } else {
+        mInputData.mValue = ToNewUnicode(value);
+        if (aSetValueChanged) {
+          SetValueChanged(true);
+        }
+        OnValueChanged(!mParserCreating);
+      }
 
       return NS_OK;
     }
@@ -2965,69 +2978,67 @@ void
 nsHTMLInputElement::HandleTypeChange(uint8_t aNewType)
 {
   ValueModeType aOldValueMode = GetValueMode();
+  uint8_t oldType = mType;
   nsAutoString aOldValue;
 
-  if (aOldValueMode == VALUE_MODE_VALUE && !mParserCreating) {
+  if (aOldValueMode == VALUE_MODE_VALUE) {
     GetValue(aOldValue);
   }
 
   
-  bool isNewTypeSingleLine = IsSingleLineTextControl(false, aNewType);
-  bool isCurrentTypeSingleLine = IsSingleLineTextControl(false, mType);
-
-  if (isNewTypeSingleLine && !isCurrentTypeSingleLine) {
-    FreeData();
-    mInputData.mState = new nsTextEditorState(this);
-  } else if (isCurrentTypeSingleLine && !isNewTypeSingleLine) {
-    FreeData();
-  }
-
+  FreeData();
   mType = aNewType;
 
-  if (!mParserCreating) {
-    
+  if (IsSingleLineTextControl()) {
+    mInputData.mState = new nsTextEditorState(this);
+  }
+
+  
 
 
 
-    switch (GetValueMode()) {
-      case VALUE_MODE_DEFAULT:
-      case VALUE_MODE_DEFAULT_ON:
-        
-        
-        
-        if (aOldValueMode == VALUE_MODE_VALUE && !aOldValue.IsEmpty()) {
-          SetAttr(kNameSpaceID_None, nsGkAtoms::value, aOldValue, true);
+  switch (GetValueMode()) {
+    case VALUE_MODE_DEFAULT:
+    case VALUE_MODE_DEFAULT_ON:
+      
+      
+      
+      if (aOldValueMode == VALUE_MODE_VALUE && !aOldValue.IsEmpty()) {
+        SetAttr(kNameSpaceID_None, nsGkAtoms::value, aOldValue, true);
+      }
+      break;
+    case VALUE_MODE_VALUE:
+      
+      
+      
+      {
+        nsAutoString value;
+        if (aOldValueMode != VALUE_MODE_VALUE) {
+          GetAttr(kNameSpaceID_None, nsGkAtoms::value, value);
+        } else {
+          value = aOldValue;
         }
-        break;
-      case VALUE_MODE_VALUE:
-        
-        
-        
-        {
-          nsAutoString value;
-          if (aOldValueMode != VALUE_MODE_VALUE) {
-            GetAttr(kNameSpaceID_None, nsGkAtoms::value, value);
-          } else {
-            
-            GetValue(value);
-          }
-          SetValueInternal(value, false, false);
-        }
-        break;
-      case VALUE_MODE_FILENAME:
-      default:
-        
-        
-        break;
-    }
-    
-    
-    if (isNewTypeSingleLine && !isCurrentTypeSingleLine) {
-      GetValueInternal(mFocusedValue);
-    }
-    else if (!isNewTypeSingleLine && isCurrentTypeSingleLine) {
-      mFocusedValue.Truncate();
-    } 
+        SetValueInternal(value, false, false);
+      }
+      break;
+    case VALUE_MODE_FILENAME:
+    default:
+      
+      
+      break;
+  }
+
+  
+  
+  
+  
+  
+  if (IsSingleLineTextControl(mType, false) &&
+      !IsSingleLineTextControl(oldType, false)) {
+    GetValueInternal(mFocusedValue);
+  } else if (!IsSingleLineTextControl(mType, false) &&
+             IsSingleLineTextControl(oldType, false)) {
+    mFocusedValue.Truncate();
   }
 
   UpdateHasRange();

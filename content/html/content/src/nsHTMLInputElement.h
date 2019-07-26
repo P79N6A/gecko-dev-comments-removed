@@ -740,7 +740,7 @@ protected:
     
 
 
-    char*                    mValue;
+    PRUnichar*               mValue;
     
 
 
