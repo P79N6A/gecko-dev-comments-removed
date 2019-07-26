@@ -5705,27 +5705,17 @@ struct JSStructuredCloneCallbacks {
     StructuredCloneErrorOp reportError;
 };
 
-
-
 JS_PUBLIC_API(JSBool)
-JS_ReadStructuredClone(JSContext *cx, uint64_t *data, size_t nbytes,
+JS_ReadStructuredClone(JSContext *cx, const uint64_t *data, size_t nbytes,
                        uint32_t version, jsval *vp,
                        const JSStructuredCloneCallbacks *optionalCallbacks,
                        void *closure);
 
 
-
 JS_PUBLIC_API(JSBool)
 JS_WriteStructuredClone(JSContext *cx, jsval v, uint64_t **datap, size_t *nbytesp,
                         const JSStructuredCloneCallbacks *optionalCallbacks,
-                        void *closure, jsval transferable);
-
-JS_PUBLIC_API(JSBool)
-JS_ClearStructuredClone(const uint64_t *data, size_t nbytes);
-
-JS_PUBLIC_API(JSBool)
-JS_StructuredCloneHasTransferables(const uint64_t *data, size_t nbytes,
-                                   JSBool *hasTransferable);
+                        void *closure);
 
 JS_PUBLIC_API(JSBool)
 JS_StructuredClone(JSContext *cx, jsval v, jsval *vp,
@@ -5771,14 +5761,9 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
 
     bool read(JSContext *cx, jsval *vp,
               const JSStructuredCloneCallbacks *optionalCallbacks=NULL,
-              void *closure=NULL);
+              void *closure=NULL) const;
 
     bool write(JSContext *cx, jsval v,
-               const JSStructuredCloneCallbacks *optionalCallbacks=NULL,
-               void *closure=NULL);
-
-    bool write(JSContext *cx, jsval v,
-               jsval transferable,
                const JSStructuredCloneCallbacks *optionalCallbacks=NULL,
                void *closure=NULL);
 
@@ -5803,7 +5788,6 @@ JS_BEGIN_EXTERN_C
 #define JS_SCTAG_USER_MAX  ((uint32_t) 0xFFFFFFFF)
 
 #define JS_SCERR_RECURSION 0
-#define JS_SCERR_TRANSFERABLE 1
 
 JS_PUBLIC_API(void)
 JS_SetStructuredCloneCallbacks(JSRuntime *rt, const JSStructuredCloneCallbacks *callbacks);
