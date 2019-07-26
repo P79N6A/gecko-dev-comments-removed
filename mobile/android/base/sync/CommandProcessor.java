@@ -239,6 +239,7 @@ public class CommandProcessor {
     }
   }
 
+  @SuppressWarnings("deprecation")
   public static void displayURI(final List<String> args, final Context context) {
     
     final String uri = args.get(0);

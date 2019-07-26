@@ -34,6 +34,7 @@ public class AnnouncementPresenter {
 
 
 
+  @SuppressWarnings("deprecation")
   public static void displayAnnouncement(final Context context,
                                          final int notificationID,
                                          final String title,
