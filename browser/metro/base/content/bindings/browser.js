@@ -548,6 +548,7 @@ let DOMEvents =  {
 DOMEvents.init();
 
 let ContentScroll =  {
+  
   _scrollOffset: { x: 0, y: 0 },
 
   init: function() {
@@ -617,9 +618,13 @@ let ContentScroll =  {
 
         
         if (json.scrollX >= 0 || json.scrollY >= 0) {
-          this.setScrollOffsetForElement(element, json.scrollX, json.scrollY)
-          if (json.id == 1)
+          this.setScrollOffsetForElement(element, json.scrollX, json.scrollY);
+          if (element == content.document.documentElement) {
+            
+            
+            
             this._scrollOffset = this.getScrollOffset(content);
+          }
         }
 
         
@@ -690,6 +695,9 @@ let ContentScroll =  {
 
       if (target == content.document) {
         if (this._scrollOffset.x == scrollOffset.x && this._scrollOffset.y == scrollOffset.y) {
+          
+          
+          
           return;
         }
         this._scrollOffset = scrollOffset;
