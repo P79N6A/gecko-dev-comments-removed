@@ -444,6 +444,9 @@ this.BrowserUITelemetry = {
               && menuBar.getAttribute("autohide") != "true";
 
     
+    result.titleBarEnabled = !Services.prefs.getBoolPref("browser.tabs.drawInTitlebar");
+
+    
     
     let defaultKept = [];
     let defaultMoved = [];
