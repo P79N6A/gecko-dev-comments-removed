@@ -2464,14 +2464,13 @@ class nsXPCWrappedJS : protected nsAutoXPTCStub,
                        public XPCRootSetElem
 {
 public:
-    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_NSIXPCONNECTJSOBJECTHOLDER
     NS_DECL_NSIXPCONNECTWRAPPEDJS
     NS_DECL_NSISUPPORTSWEAKREFERENCE
     NS_DECL_NSIPROPERTYBAG
 
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXPCWrappedJS, nsIXPConnectWrappedJS)
-    void DeleteCycleCollectable() {}
 
     NS_IMETHOD CallMethod(uint16_t methodIndex,
                           const XPTMethodDescriptor *info,
@@ -2516,9 +2515,6 @@ public:
     
     
     
-    
-    
-    
     bool IsSubjectToFinalization() const {return IsValid() && mRefCnt == 1;}
     bool IsObjectAboutToBeFinalized() {return JS_IsAboutToBeFinalized(&mJSObj);}
 
@@ -2537,7 +2533,8 @@ protected:
                    nsXPCWrappedJS* root,
                    nsISupports* aOuter);
 
-   void Unlink();
+    void Destroy();
+    void Unlink();
 
 private:
     JS::Heap<JSObject*> mJSObj;

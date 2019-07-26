@@ -16,6 +16,40 @@ using namespace mozilla;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 NS_IMETHODIMP
 NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Traverse
    (void *p, nsCycleCollectionTraversalCallback &cb)
@@ -38,13 +72,16 @@ NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Traverse
     }
 
     
+    if (tmp->IsSubjectToFinalization())
+        return NS_OK;
+
+    
     
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "self");
     cb.NoteXPCOMChild(s);
 
-    if (refcnt > 1) {
-        
-        
+    if (tmp->IsValid()) {
+        MOZ_ASSERT(refcnt > 1);
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mJSObj");
         cb.NoteJSChild(tmp->GetJSObjectPreserveColor());
     }
@@ -54,7 +91,7 @@ NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Traverse
         cb.NoteXPCOMChild(tmp->GetAggregatedNativeObject());
     } else {
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "root");
-        cb.NoteXPCOMChild(static_cast<nsIXPConnectWrappedJS*>(tmp->GetRootWrapper()));
+        cb.NoteXPCOMChild(ToSupports(tmp->GetRootWrapper()));
     }
 
     return NS_OK;
@@ -130,34 +167,19 @@ nsXPCWrappedJS::QueryInterface(REFNSIID aIID, void** aInstancePtr)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 nsrefcnt
 nsXPCWrappedJS::AddRef(void)
 {
     if (!MOZ_LIKELY(NS_IsMainThread()))
         MOZ_CRASH();
-    nsrefcnt cnt = ++mRefCnt;
+
+    MOZ_ASSERT(int32_t(mRefCnt) >= 0, "illegal refcnt");
+    nsrefcnt cnt = mRefCnt.incr();
     NS_LOG_ADDREF(this, cnt, "nsXPCWrappedJS", sizeof(*this));
 
     if (2 == cnt && IsValid()) {
         GetJSObject(); 
-        XPCJSRuntime* rt = mClass->GetRuntime();
-        rt->AddWrappedJSRoot(this);
+        mClass->GetRuntime()->AddWrappedJSRoot(this);
     }
 
     return cnt;
@@ -168,29 +190,42 @@ nsXPCWrappedJS::Release(void)
 {
     if (!MOZ_LIKELY(NS_IsMainThread()))
         MOZ_CRASH();
-    NS_PRECONDITION(0 != mRefCnt, "dup release");
+    MOZ_ASSERT(int32_t(mRefCnt) > 0, "dup release");
+    NS_ASSERT_OWNINGTHREAD(nsXPCWrappedJS);
 
-do_decrement:
-
-    nsrefcnt cnt = --mRefCnt;
+    bool shouldDelete = false;
+    nsISupports *base = NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Upcast(this);
+    nsrefcnt cnt = mRefCnt.decr(base, &shouldDelete);
     NS_LOG_RELEASE(this, cnt, "nsXPCWrappedJS");
 
     if (0 == cnt) {
-        delete this;   
-        return 0;
-    }
-    if (1 == cnt) {
+        if (MOZ_UNLIKELY(shouldDelete)) {
+            mRefCnt.stabilizeForDeletion();
+            DeleteCycleCollectable();
+        } else {
+            mRefCnt.incr();
+            Destroy();
+            mRefCnt.decr(base);
+        }
+    } else if (1 == cnt) {
         if (IsValid())
             RemoveFromRootSet();
 
         
         
         
-        
         if (!HasWeakReferences())
-            goto do_decrement;
+            return Release();
+
+        MOZ_ASSERT(IsRootWrapper(), "Only root wrappers should have weak references");
     }
     return cnt;
+}
+
+NS_IMETHODIMP_(void)
+nsXPCWrappedJS::DeleteCycleCollectable(void)
+{
+    delete this;
 }
 
 void
@@ -346,8 +381,11 @@ nsXPCWrappedJS::nsXPCWrappedJS(JSContext* cx,
     InitStub(GetClass()->GetIID());
 
     
+    
+    
     NS_ADDREF_THIS();
     NS_ADDREF_THIS();
+
     NS_ADDREF(aClass);
     NS_IF_ADDREF(mOuter);
 
@@ -358,7 +396,13 @@ nsXPCWrappedJS::nsXPCWrappedJS(JSContext* cx,
 
 nsXPCWrappedJS::~nsXPCWrappedJS()
 {
-    NS_PRECONDITION(0 == mRefCnt, "refcounting error");
+    Destroy();
+}
+
+void
+nsXPCWrappedJS::Destroy()
+{
+    MOZ_ASSERT(1 == int32_t(mRefCnt), "should be stabilized for deletion");
 
     if (IsRootWrapper()) {
         XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
