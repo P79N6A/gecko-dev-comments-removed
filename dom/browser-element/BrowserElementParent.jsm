@@ -321,7 +321,7 @@ BrowserElementParent.prototype = {
 
     
     
-    if (detail._payload_) {
+    if ("_payload_" in detail) {
       detail = detail._payload_;
     }
 
