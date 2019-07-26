@@ -31,6 +31,14 @@ var Appbar = {
     switch (aEvent.type) {
       case 'URLChanged':
       case 'TabSelect':
+        this.update();
+        
+        
+        if (this.activeTileset && aEvent.lastTab && aEvent.lastTab.browser.currentURI.spec == kStartURI) {
+          ContextUI.dismiss();
+        }
+        break;
+
       case 'MozAppbarShowing':
         this.update();
         break;
