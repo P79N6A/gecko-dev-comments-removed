@@ -280,8 +280,13 @@ PopupNotifications.prototype = {
 
 
 
-  locationChange: function PopupNotifications_locationChange() {
-    this._currentNotifications = this._currentNotifications.filter(function(notification) {
+  locationChange: function PopupNotifications_locationChange(aBrowser) {
+    if (!aBrowser)
+      throw "PopupNotifications_locationChange: invalid browser";
+
+    let notifications = this._getNotificationsForBrowser(aBrowser);
+
+    notifications = notifications.filter(function (notification) {
       
       
       if (notification.options.persistWhileVisible &&
@@ -310,7 +315,10 @@ PopupNotifications.prototype = {
       return false;
     }, this);
 
-    this._update();
+    this._setNotificationsForBrowser(aBrowser, notifications);
+
+    if (aBrowser == this.tabbrowser.selectedBrowser)
+      this._update();
   },
 
   
@@ -360,9 +368,6 @@ PopupNotifications.prototype = {
 
   get _currentNotifications() {
     return this._getNotificationsForBrowser(this.tabbrowser.selectedBrowser);
-  },
-  set _currentNotifications(a) {
-    return this._setNotificationsForBrowser(this.tabbrowser.selectedBrowser, a);
   },
 
   _remove: function PopupNotifications_removeHelper(notification) {

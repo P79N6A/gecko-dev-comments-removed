@@ -4342,18 +4342,6 @@ var XULBrowserWindow = {
       }
 
       
-      
-      if (aRequest) {
-        
-        
-        
-        
-        
-        if (!__lookupGetter__("PopupNotifications"))
-          PopupNotifications.locationChange();
-      }
-
-      
       if (this.hideChromeForLocation(location)) {
         document.documentElement.setAttribute("disablechrome", "true");
       } else {
@@ -4776,6 +4764,12 @@ var TabsProgressListener = {
         aBrowser._clickToPlayPluginsActivated = new Map();
         aBrowser._clickToPlayAllPluginsActivated = false;
         aBrowser._pluginScriptedState = gPluginHandler.PLUGIN_SCRIPTED_STATE_NONE;
+
+        
+        
+        
+        if (!Object.getOwnPropertyDescriptor(window, "PopupNotifications").get)
+          PopupNotifications.locationChange(aBrowser);
       }
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     }
