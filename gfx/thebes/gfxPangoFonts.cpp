@@ -195,7 +195,7 @@ protected:
 
     
     
-    nsAutoTArray<nsCountedRef<FcPattern>,1> mPatterns;
+    AutoFallibleTArray<nsCountedRef<FcPattern>,1> mPatterns;
     bool mSkipHarfBuzz;
     bool mSkipGraphiteCheck;
 
