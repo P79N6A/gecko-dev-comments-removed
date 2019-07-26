@@ -24,20 +24,17 @@
 #include "webrtc/voice_engine/include/voe_video_sync.h"
 #include "webrtc/voice_engine/include/voe_rtp_rtcp.h"
 
-
  using webrtc::VoEBase;
  using webrtc::VoENetwork;
  using webrtc::VoECodec;
  using webrtc::VoEExternalMedia;
  using webrtc::VoEAudioProcessing;
  using webrtc::VoEVideoSync;
-
-
+ using webrtc::VoERTP_RTCP;
 
 
 
 namespace mozilla {
-
 
 
 DOMHighResTimeStamp
@@ -86,13 +83,17 @@ public:
 
   virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
     const std::vector<AudioCodecConfig* >& codecConfigList);
+  
+
+
+
+  virtual MediaConduitErrorCode EnableAudioLevelExtension(bool enabled, uint8_t id);
 
   
 
 
 
   virtual MediaConduitErrorCode AttachTransport(mozilla::RefPtr<TransportInterface> aTransport);
-
   
 
 
@@ -234,13 +235,12 @@ private:
   webrtc::VoEExternalMedia* mPtrVoEXmedia;
   webrtc::VoEAudioProcessing* mPtrVoEProcessing;
   webrtc::VoEVideoSync* mPtrVoEVideoSync;
+  webrtc::VoERTP_RTCP* mPtrVoERTP_RTCP;
   webrtc::VoERTP_RTCP* mPtrRTP;
-
   
   bool mEngineTransmitting; 
   bool mEngineReceiving;    
                             
-
   
   
   

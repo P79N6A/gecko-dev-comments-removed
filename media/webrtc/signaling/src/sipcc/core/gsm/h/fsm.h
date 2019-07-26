@@ -201,17 +201,21 @@ typedef struct fsmdef_media_t_ {
     
     char **candidatesp;
     int candidate_ct;
-
     
 
 
     boolean        rtcp_mux;
+    
+
+
+
+    boolean         audio_level;
+    uint8_t         audio_level_id;
 
     
 
 
     sdp_setup_type_e setup;
-
     
 
 
