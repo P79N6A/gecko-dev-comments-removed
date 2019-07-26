@@ -468,68 +468,71 @@ nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
     return false;
   }
 
-  if (csp) {
-    bool reportViolation;
-    bool allowInlineStyle = true;
-    rv = csp->GetAllowsInlineStyle(&reportViolation, &allowInlineStyle);
-    if (NS_FAILED(rv)) {
-      if (aRv)
-        *aRv = rv;
-      return false;
-    }
+  if (!csp) {
+    
+    return true;
+  }
 
-    bool foundNonce = false;
-    nsAutoString nonce;
+  bool reportViolation;
+  bool allowInlineStyle = true;
+  rv = csp->GetAllowsInlineStyle(&reportViolation, &allowInlineStyle);
+  if (NS_FAILED(rv)) {
+    if (aRv)
+      *aRv = rv;
+    return false;
+  }
+
+  bool foundNonce = false;
+  nsAutoString nonce;
+  
+  
+  if (!allowInlineStyle) {
     
-    
-    if (!allowInlineStyle) {
+    foundNonce = !!aContent &&
+      aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::nonce, nonce);
+    if (foundNonce) {
       
-      foundNonce = !!aContent &&
-        aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::nonce, nonce);
-      if (foundNonce) {
-        
-        
-        
-        
-        
-        
-        rv = csp->GetAllowsNonce(nonce, nsIContentPolicy::TYPE_STYLESHEET,
-                                 &reportViolation, &allowInlineStyle);
-        if (NS_FAILED(rv)) {
-          if (aRv)
-            *aRv = rv;
-          return false;
-        }
+      
+      
+      
+      
+      
+      rv = csp->GetAllowsNonce(nonce, nsIContentPolicy::TYPE_STYLESHEET,
+                               &reportViolation, &allowInlineStyle);
+      if (NS_FAILED(rv)) {
+        if (aRv)
+          *aRv = rv;
+        return false;
       }
     }
+  }
 
-    if (reportViolation) {
-      
-      nsAutoCString asciiSpec;
-      aSourceURI->GetAsciiSpec(asciiSpec);
-      nsAutoString styleText(aStyleText);
+  if (reportViolation) {
+    
+    nsAutoCString asciiSpec;
+    aSourceURI->GetAsciiSpec(asciiSpec);
+    nsAutoString styleText(aStyleText);
 
-      
-      if (styleText.Length() > 40) {
-        styleText.Truncate(40);
-        styleText.AppendLiteral("...");
-      }
-
-      
-      
-      unsigned short violationType = foundNonce ?
-        nsIContentSecurityPolicy::VIOLATION_TYPE_NONCE_STYLE :
-        nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_STYLE;
-      csp->LogViolationDetails(violationType, NS_ConvertUTF8toUTF16(asciiSpec),
-                               styleText, aLineNumber, nonce);
+    
+    if (styleText.Length() > 40) {
+      styleText.Truncate(40);
+      styleText.AppendLiteral("...");
     }
 
-    if (!allowInlineStyle) {
-      NS_ASSERTION(reportViolation,
-          "CSP blocked inline style but is not reporting a violation");
-      
-      return false;
-    }
+    
+    
+    unsigned short violationType = foundNonce ?
+      nsIContentSecurityPolicy::VIOLATION_TYPE_NONCE_STYLE :
+      nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_STYLE;
+    csp->LogViolationDetails(violationType, NS_ConvertUTF8toUTF16(asciiSpec),
+                             styleText, aLineNumber, nonce);
+  }
+
+  if (!allowInlineStyle) {
+    NS_ASSERTION(reportViolation,
+        "CSP blocked inline style but is not reporting a violation");
+    
+    return false;
   }
   
   return true;
