@@ -818,9 +818,6 @@ pref("gfx.canvas.azure.accelerated", true);
 pref("gfx.canvas.skiagl.dynamic-cache", true);
 
 
-pref("dom.telephony.enabled", true);
-
-
 pref("dom.cellbroadcast.enabled", true);
 pref("ril.cellbroadcast.disabled", false);
 
