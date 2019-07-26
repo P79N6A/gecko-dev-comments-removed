@@ -40,7 +40,30 @@ static nsresult
 WriteToFile(nsIFile *lf, const char *data, uint32_t len, int32_t flags)
 {
   PRFileDesc *fd;
-  nsresult rv = lf->OpenNSPRFileDesc(flags, 0600, &fd);
+  int32_t mode = 0600;
+  nsresult rv;
+#if defined(MOZ_WIDGET_GONK)
+  
+  
+  
+  
+  nsCOMPtr<nsIFile> parent;
+  rv = lf->GetParent(getter_AddRefs(parent));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  uint32_t  parentPerm;
+  rv = parent->GetPermissions(&parentPerm);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  if ((parentPerm & 0700) == 0) {
+    
+    
+    mode = 0660;
+  }
+#endif
+  rv = lf->OpenNSPRFileDesc(flags, mode, &fd);
   if (NS_FAILED(rv))
     return rv;
 
