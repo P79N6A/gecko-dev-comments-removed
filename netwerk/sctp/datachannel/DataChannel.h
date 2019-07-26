@@ -28,6 +28,7 @@
 #include "mtransport/sigslot.h"
 #include "mtransport/transportflow.h"
 #include "mtransport/transportlayer.h"
+#include "mtransport/transportlayerdtls.h"
 #include "mtransport/transportlayerprsock.h"
 #endif
 
@@ -144,16 +145,20 @@ public:
   bool Init(unsigned short aPort, uint16_t aNumStreams, bool aUsingDtls);
   void Destroy(); 
 
+#ifdef ALLOW_DIRECT_SCTP_LISTEN_CONNECT
   
   
   
   bool Listen(unsigned short port);
   bool Connect(const char *addr, unsigned short port);
+#endif
 
 #ifdef SCTP_DTLS_SUPPORTED
   
-  bool ConnectDTLS(TransportFlow *aFlow, uint16_t localport, uint16_t remoteport,
-                   bool even);
+  void SetEvenOdd();
+  bool ConnectViaTransportFlow(TransportFlow *aFlow, uint16_t localport, uint16_t remoteport);
+  void CompleteConnect(TransportFlow *flow, TransportLayer::State state);
+  void SetSignals();
 #endif
 
   typedef enum {
@@ -198,7 +203,7 @@ public:
     CLOSING = 2U,
     CLOSED = 3U
   };
-  uint16_t GetReadyState() { return mState; }
+  uint16_t GetReadyState() { MutexAutoLock lock(mLock); return mState; }
 
   friend class DataChannel;
   Mutex  mLock;

@@ -175,7 +175,7 @@ debug_printf(const char *format, ...)
 }
 #endif
 
-  DataChannelConnection::DataChannelConnection(DataConnectionListener *listener) :
+DataChannelConnection::DataChannelConnection(DataConnectionListener *listener) :
    mLock("netwerk::sctp::DataChannelConnection")
 {
   mState = CLOSED;
@@ -217,13 +217,14 @@ DataChannelConnection::Destroy()
   ASSERT_WEBRTC(NS_IsMainThread());
   CloseAll();
 
+  MutexAutoLock lock(mLock);
   if (mSocket && mSocket != mMasterSocket)
     usrsctp_close(mSocket);
   if (mMasterSocket)
     usrsctp_close(mMasterSocket);
 
   mSocket = nullptr;
-  mMasterSocket = nullptr;
+  mMasterSocket = nullptr; 
 
   if (mUsingDtls) {
     usrsctp_deregister_address(static_cast<void *>(this));
@@ -484,21 +485,59 @@ DataChannelConnection::Notify(nsITimer *timer)
 }
 
 #ifdef MOZ_PEERCONNECTION
-bool
-DataChannelConnection::ConnectDTLS(TransportFlow *aFlow, uint16_t localport, uint16_t remoteport,
-                                   bool even)
+void
+DataChannelConnection::SetEvenOdd()
 {
-  LOG(("Connect DTLS local %d, remote %d, %s", localport, remoteport, even ? "Even" : "Odd"));
+  ASSERT_WEBRTC(IsSTSThread());
 
-  NS_PRECONDITION(mMasterSocket, "SCTP wasn't initialized before ConnectDTLS!");
+  TransportLayerDtls *dtls = static_cast<TransportLayerDtls *>(
+      mTransportFlow->GetLayer(TransportLayerDtls::ID()));
+  MOZ_ASSERT(dtls);  
+  mAllocateEven = (dtls->role() == TransportLayerDtls::CLIENT);
+}
+
+bool
+DataChannelConnection::ConnectViaTransportFlow(TransportFlow *aFlow, uint16_t localport, uint16_t remoteport)
+{
+  LOG(("Connect DTLS local %u, remote %u", localport, remoteport));
+
+  NS_PRECONDITION(mMasterSocket, "SCTP wasn't initialized before ConnectViaTransportFlow!");
   NS_ENSURE_TRUE(aFlow, false);
 
   mTransportFlow = aFlow;
-  mTransportFlow->SignalPacketReceived.connect(this, &DataChannelConnection::SctpDtlsInput);
   mLocalPort = localport;
   mRemotePort = remoteport;
-  mAllocateEven = even;
   mState = CONNECTING;
+
+  RUN_ON_THREAD(mSTS, WrapRunnable(nsRefPtr<DataChannelConnection>(this),
+                                   &DataChannelConnection::SetSignals),
+                NS_DISPATCH_NORMAL);
+  return true;
+}
+
+void
+DataChannelConnection::SetSignals()
+{
+  ASSERT_WEBRTC(IsSTSThread());
+  ASSERT_WEBRTC(mTransportFlow);
+  LOG(("Setting transport signals, state: %d", mTransportFlow->state()));
+  mTransportFlow->SignalPacketReceived.connect(this, &DataChannelConnection::SctpDtlsInput);
+  
+  mTransportFlow->SignalStateChange.connect(this, &DataChannelConnection::CompleteConnect);
+  CompleteConnect(mTransportFlow, mTransportFlow->state());
+}
+
+void
+DataChannelConnection::CompleteConnect(TransportFlow *flow, TransportLayer::State state)
+{
+  LOG(("Data transport state: %d", state));
+  MutexAutoLock lock(mLock);
+  ASSERT_WEBRTC(IsSTSThread());
+  
+  
+  
+  if (state != TransportLayer::TS_OPEN || !mMasterSocket)
+    return;
 
   struct sockaddr_conn addr;
   memset(&addr, 0, sizeof(addr));
@@ -523,33 +562,22 @@ DataChannelConnection::ConnectDTLS(TransportFlow *aFlow, uint16_t localport, uin
     if (r < 0) {
       if (errno == EINPROGRESS) {
         
-        return true;
+        return;
       } else {
         LOG(("usrsctp_connect failed: %d", errno));
         mState = CLOSED;
       }
     } else {
       
-      LOG(("%s: sending ON_CONNECTION for %p", __FUNCTION__, this));
-      mSocket = mMasterSocket;
-      mState = OPEN;
-      LOG(("DTLS connect() succeeded!  Entering connected mode"));
-
-      NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
-                                DataChannelOnMessageAvailable::ON_CONNECTION,
-                                this, true));
-
       
-      MutexAutoLock lock(mLock); 
-      ProcessQueuedOpens();
-      return true;
+      return;
     }
   }
   
   NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
                             DataChannelOnMessageAvailable::ON_CONNECTION,
                             this, false));
-  return false;
+  return;
 }
 
 
@@ -572,8 +600,8 @@ DataChannelConnection::ProcessQueuedOpens()
       OpenFinish(channel.forget()); 
     }
   }
-}
 
+}
 void
 DataChannelConnection::SctpDtlsInput(TransportFlow *flow,
                                      const unsigned char *data, size_t len)
@@ -645,7 +673,11 @@ DataChannelConnection::SctpDtlsOutput(void *addr, void *buffer, size_t length,
 }
 #endif
 
+#ifdef ALLOW_DIRECT_SCTP_LISTEN_CONNECT
 
+
+
+#error This code will not work as-is since SetEvenOdd() runs on Mainthread
 
 bool
 DataChannelConnection::Listen(unsigned short port)
@@ -689,6 +721,8 @@ DataChannelConnection::Listen(unsigned short port)
                          (const void *)&l, (socklen_t)sizeof(struct linger)) < 0) {
     LOG(("Couldn't set SO_LINGER on SCTP socket"));
   }
+
+  SetEvenOdd();
 
   
   
@@ -766,6 +800,8 @@ DataChannelConnection::Connect(const char *addr, unsigned short port)
   LOG(("connect() succeeded!  Entering connected mode"));
   mState = OPEN;
 
+  SetEvenOdd();
+
   
   
   LOG(("%s: sending ON_CONNECTION for %p", __FUNCTION__, this));
@@ -774,6 +810,7 @@ DataChannelConnection::Connect(const char *addr, unsigned short port)
                             this, (DataChannel *) nullptr));
   return true;
 }
+#endif
 
 DataChannel *
 DataChannelConnection::FindChannelByStream(uint16_t streamOut)
@@ -1269,6 +1306,8 @@ DataChannelConnection::HandleAssociationChangeEvent(const struct sctp_assoc_chan
     if (mState == CONNECTING) {
       mSocket = mMasterSocket;
       mState = OPEN;
+
+      SetEvenOdd();
 
       NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
                                 DataChannelOnMessageAvailable::ON_CONNECTION,
@@ -1806,13 +1845,9 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
   mLock.AssertCurrentThreadOwns();
 
   if (stream == INVALID_STREAM || mState != OPEN) {
-    if (stream == INVALID_STREAM) {
+    if (mState == OPEN) { 
+      
       stream = FindFreeStream(); 
-    }
-
-    LOG(("Finishing open: channel %p, stream = %u", channel.get(), stream));
-
-    if (stream == INVALID_STREAM || mState != OPEN) {
       if (stream == INVALID_STREAM) {
         if (!RequestMoreStreams()) {
           channel->mState = CLOSED;
@@ -1829,10 +1864,19 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
           
           return nullptr;
         }
-      } else if (mState != OPEN) {
-        mStreams[stream] = channel;
-        channel->mStream = stream;
       }
+      
+    }
+    if (stream != INVALID_STREAM) {
+      
+      mStreams[stream] = channel;
+      channel->mStream = stream;
+    }
+
+    LOG(("Finishing open: channel %p, stream = %u", channel.get(), stream));
+
+    if (stream == INVALID_STREAM || mState != OPEN) {
+      
 
       LOG(("Queuing channel %p (%u) to finish open", channel.get(), stream));
       
@@ -1840,14 +1884,10 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
       channel->AddRef(); 
       mPending.Push(channel);
       return channel.forget();
-    }
-    channel->mStream = stream;
-  }
-  if (!mStreams[stream]) {
-    mStreams[stream] = channel;
+    } 
   } else {
     
-    MOZ_ASSERT(mStreams[stream] == channel);
+    mStreams[stream] = channel;
   }
 
 #ifdef TEST_QUEUED_DATA
@@ -2125,7 +2165,10 @@ void DataChannelConnection::CloseAll()
   
 
   
-  mState = CLOSED;
+  {
+    MutexAutoLock lock(mLock);
+    mState = CLOSED;
+  }
 
   
   
