@@ -250,7 +250,7 @@ private:
   static void ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect, const nsIntRect &aRectToClear);
 
   
-  static bool CopyFrameImage(uint8_t *aDataSrc, const nsIntRect& aRectSrc,
+  static bool CopyFrameImage(const uint8_t *aDataSrc, const nsIntRect& aRectSrc,
                              uint8_t *aDataDest, const nsIntRect& aRectDest);
 
   
@@ -268,7 +268,7 @@ private:
 
 
 
-  static nsresult DrawFrameTo(uint8_t *aSrcData, const nsIntRect& aSrcRect,
+  static nsresult DrawFrameTo(const uint8_t *aSrcData, const nsIntRect& aSrcRect,
                               uint32_t aSrcPaletteLength, bool aSrcHasAlpha,
                               uint8_t *aDstPixels, const nsIntRect& aDstRect,
                               FrameBlendMethod aBlendMethod);
