@@ -200,12 +200,6 @@ PendingLookup::SendRemoteQuery() {
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  const nsCString userAgent = NS_LITERAL_CSTRING("CsdTesting/Mozilla");
-  rv = httpChannel->SetRequestHeader(
-    NS_LITERAL_CSTRING("User-Agent"), userAgent, false);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
   nsCOMPtr<nsIUploadChannel2> uploadChannel = do_QueryInterface(channel, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
