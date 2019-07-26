@@ -264,15 +264,10 @@ ThebesLayerComposite::GetCompositionBounds()
                                   parentMetrics.mCompositionBounds.width,
                                   parentMetrics.mCompositionBounds.height);
 
-      
-      
-      Layer* rootLayer = Manager()->GetRoot();
-      const gfx3DMatrix& rootTransform = rootLayer->GetTransform();
-      LayerToCSSScale scale(rootTransform.GetXScale(),
-                            rootTransform.GetYScale());
+      const FrameMetrics& metrics = scrollableLayer->GetFrameMetrics();
+      LayerToCSSScale scale(1 / metrics.mResolution.scale);
 
       
-      const FrameMetrics& metrics = scrollableLayer->GetFrameMetrics();
       const LayerIntRect content = RoundedToInt(metrics.mScrollableRect / scale);
       
       gfx::Point scrollOffset =

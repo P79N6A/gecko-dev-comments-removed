@@ -542,13 +542,9 @@ LayerManagerComposite::ComputeRenderIntegrity()
   if (primaryScrollable) {
     
     
-    const gfx3DMatrix& rootTransform = root->GetTransform();
-    float devPixelRatioX = 1 / rootTransform.GetXScale();
-    float devPixelRatioY = 1 / rootTransform.GetYScale();
-
-    gfx3DMatrix transform = primaryScrollable->GetEffectiveTransform();
-    transform.ScalePost(devPixelRatioX, devPixelRatioY, 1);
     const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
+    gfx3DMatrix transform = primaryScrollable->GetEffectiveTransform();
+    transform.ScalePost(metrics.mResolution.scale, metrics.mResolution.scale, 1);
 
     
     gfxRect documentBounds =

@@ -484,14 +484,8 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
                                                  &treeTransform,
                                                  scrollOffset);
 
-    const gfx3DMatrix& rootTransform = mLayerManager->GetRoot()->GetTransform();
     const FrameMetrics& metrics = container->GetFrameMetrics();
-    
-    
-    
-    
-    CSSToLayerScale paintScale = metrics.mDevPixelsPerCSSPixel
-      / LayerToLayoutDeviceScale(rootTransform.GetXScale(), rootTransform.GetYScale());
+    CSSToLayerScale paintScale = metrics.LayersPixelsPerCSSPixel();
     CSSRect displayPort(metrics.mCriticalDisplayPort.IsEmpty() ?
                         metrics.mDisplayPort : metrics.mCriticalDisplayPort);
     LayerMargin fixedLayerMargins(0, 0, 0, 0);
@@ -522,15 +516,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
 
     
     
-#ifdef MOZ_WIDGET_ANDROID
-    
-    
-    
-    LayoutDeviceToLayerScale resolution(1.0 / rootTransform.GetXScale(),
-                                        1.0 / rootTransform.GetYScale());
-#else
     LayoutDeviceToLayerScale resolution = metrics.mCumulativeResolution;
-#endif
     oldTransform.Scale(resolution.scale, resolution.scale, 1);
 
     AlignFixedAndStickyLayers(aLayer, aLayer, oldTransform, fixedLayerMargins);
@@ -542,7 +528,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
 }
 
 void
-AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDeviceToLayerScale& aResolution)
+AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
 {
   LayerComposite* layerComposite = aLayer->AsLayerComposite();
   ContainerLayer* container = aLayer->AsContainerLayer();
@@ -555,7 +541,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDev
 
   gfx3DMatrix treeTransform;
 
-  CSSToLayerScale geckoZoom = metrics.mDevPixelsPerCSSPixel * aResolution;
+  CSSToLayerScale geckoZoom = metrics.LayersPixelsPerCSSPixel();
 
   LayerIntPoint scrollOffsetLayerPixels = RoundedToInt(metrics.mScrollOffset * geckoZoom);
 
@@ -606,9 +592,9 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDev
   
   LayerToScreenScale zoomAdjust = userZoom / geckoZoom;
 
-  LayerIntPoint geckoScroll(0, 0);
+  LayerPoint geckoScroll(0, 0);
   if (metrics.IsScrollable()) {
-    geckoScroll = scrollOffsetLayerPixels;
+    geckoScroll = metrics.mScrollOffset * geckoZoom;
   }
 
   LayerPoint translation = (userScroll / zoomAdjust) - geckoScroll;
@@ -633,7 +619,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDev
 
   
   
-  oldTransform.Scale(aResolution.scale, aResolution.scale, 1);
+  oldTransform.Scale(metrics.mResolution.scale, metrics.mResolution.scale, 1);
 
   
   
@@ -706,18 +692,7 @@ AsyncCompositionManager::TransformShadowTree(TimeStamp aCurrentFrame)
 
     for (uint32_t i = 0; i < scrollableLayers.Length(); i++) {
       if (scrollableLayers[i]) {
-#ifdef MOZ_WIDGET_ANDROID
-        
-        
-        
-        const gfx3DMatrix& rootTransform = root->GetTransform();
-        LayoutDeviceToLayerScale resolution(1.0 / rootTransform.GetXScale(),
-                                            1.0 / rootTransform.GetYScale());
-#else
-        LayoutDeviceToLayerScale resolution =
-            scrollableLayers[i]->AsContainerLayer()->GetFrameMetrics().mCumulativeResolution;
-#endif
-        TransformScrollableLayer(scrollableLayers[i], resolution);
+        TransformScrollableLayer(scrollableLayers[i]);
       }
     }
   }

@@ -117,7 +117,7 @@ public:
   bool IsFirstPaint() { return mIsFirstPaint; }
 
 private:
-  void TransformScrollableLayer(Layer* aLayer, const LayoutDeviceToLayerScale& aResolution);
+  void TransformScrollableLayer(Layer* aLayer);
   
   
   
