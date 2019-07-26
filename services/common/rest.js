@@ -10,7 +10,6 @@ this.EXPORTED_SYMBOLS = [
   "RESTRequest",
   "RESTResponse",
   "TokenAuthenticatedRESTRequest",
-  "HAWKAuthenticatedRESTRequest",
 ];
 
 #endif
@@ -725,75 +724,3 @@ TokenAuthenticatedRESTRequest.prototype = {
   },
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-this.HAWKAuthenticatedRESTRequest =
- function HawkAuthenticatedRESTRequest(uri, credentials, extra={}) {
-  RESTRequest.call(this, uri);
-
-  this.credentials = credentials;
-  this.now = extra.now || Date.now();
-  this.localtimeOffsetMsec = extra.localtimeOffsetMsec || 0;
-  this._log.trace("local time, offset: " + this.now + ", " + (this.localtimeOffsetMsec));
-};
-HAWKAuthenticatedRESTRequest.prototype = {
-  __proto__: RESTRequest.prototype,
-
-  dispatch: function dispatch(method, data, onComplete, onProgress) {
-    let contentType = "text/plain";
-    if (method == "POST" || method == "PUT") {
-      contentType = "application/json";
-    }
-    if (this.credentials) {
-      let options = {
-        now: this.now,
-        localtimeOffsetMsec: this.localtimeOffsetMsec,
-        credentials: this.credentials,
-        payload: data && JSON.stringify(data) || "",
-        contentType: contentType,
-      };
-      let header = CryptoUtils.computeHAWK(this.uri, method, options);
-      this.setHeader("Authorization", header.field);
-      this._log.trace("hawk auth header: " + header.field);
-    }
-
-    this.setHeader("Content-Type", contentType);
-
-    try {
-      let acceptLanguage = Services.prefs.getComplexValue(
-          "intl.accept_languages", Ci.nsIPrefLocalizedString).data;
-      if (acceptLanguage) {
-        this.setHeader("Accept-Language", acceptLanguage);
-      }
-    } catch (err) {
-      this._log.error("Error reading intl.accept_languages pref: " + CommonUtils.exceptionStr(err));
-    }
-
-    return RESTRequest.prototype.dispatch.call(
-      this, method, data, onComplete, onProgress
-    );
-  }
-};
