@@ -12,11 +12,6 @@ this.EXPORTED_SYMBOLS = ["TelURIParser"];
 this.TelURIParser = {
   parseURI: function(scheme, uri) {
     
-    if (uri.indexOf('*') != -1 || uri.indexOf('#') != -1) {
-      return null;
-    }
-
-    
     let subscriber = uri.slice((scheme + ':').length);
 
     if (!subscriber.length) {
@@ -112,6 +107,11 @@ this.TelURIParser = {
         
         number = subscriber.substring(pos, subscriber.length) + number;
       }
+    }
+
+    
+    if (number.match(/[#\*]/) && !number.match(/^[#\*]\d+$/)) {
+      return null;
     }
 
     return number || null;
