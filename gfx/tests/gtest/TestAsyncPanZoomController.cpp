@@ -221,6 +221,8 @@ void DoPanTest(bool aShouldTriggerScroll, bool aShouldUseTouchAction, uint32_t a
 
   EXPECT_EQ(pointOut, ScreenPoint());
   EXPECT_EQ(viewTransformOut, ViewTransform());
+
+  apzc->Destroy();
 }
 
 static void
@@ -315,6 +317,8 @@ TEST(AsyncPanZoomController, Pinch) {
   EXPECT_EQ(fm.mZoom.scale, 1.0f);
   EXPECT_EQ(fm.mScrollOffset.x, 880);
   EXPECT_EQ(fm.mScrollOffset.y, 0);
+
+  apzc->Destroy();
 }
 
 TEST(AsyncPanZoomController, PinchWithTouchActionNone) {
@@ -878,9 +882,13 @@ TEST(APZCTreeManager, HitTesting2) {
   
   int time = 0;
   
-  EXPECT_CALL(*mcc, PostDelayedTask(_,_)).Times(1);
+  EXPECT_CALL(*mcc, PostDelayedTask(_,_)).Times(AtLeast(1));
   EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(AtLeast(1));
   EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(1);
+
+  
+  
+  
   ApzcPan(apzcroot, manager, time, 100, 50);
 
   
@@ -889,7 +897,9 @@ TEST(APZCTreeManager, HitTesting2) {
   
   EXPECT_EQ(gfxPoint(75, 75), transformToApzc.Transform(gfxPoint(75, 75)));
   
-  EXPECT_EQ(gfxPoint(75, 125), transformToGecko.Transform(gfxPoint(75, 75)));
+  
+  
+  EXPECT_EQ(gfxPoint(75, 75), transformToGecko.Transform(gfxPoint(75, 75)));
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(25, 25), transformToApzc, transformToGecko);
@@ -899,7 +909,31 @@ TEST(APZCTreeManager, HitTesting2) {
   EXPECT_EQ(gfxPoint(12.5, 75), transformToApzc.Transform(gfxPoint(25, 25)));
   
   
-  EXPECT_EQ(gfxPoint(25, 75), transformToGecko.Transform(gfxPoint(12.5, 75)));
+  EXPECT_EQ(gfxPoint(25, 25), transformToGecko.Transform(gfxPoint(12.5, 75)));
+
+  
+  
+  
+  
+  ApzcPan(apzcroot, manager, time, 100, 50);
+
+  
+  hit = GetTargetAPZC(manager, ScreenPoint(75, 75), transformToApzc, transformToGecko);
+  EXPECT_EQ(apzcroot, hit.get());
+  
+  EXPECT_EQ(gfxPoint(75, 75), transformToApzc.Transform(gfxPoint(75, 75)));
+  
+  
+  EXPECT_EQ(gfxPoint(75, 125), transformToGecko.Transform(gfxPoint(75, 75)));
+
+  
+  hit = GetTargetAPZC(manager, ScreenPoint(25, 25), transformToApzc, transformToGecko);
+  EXPECT_EQ(apzcroot, hit.get());
+  
+  EXPECT_EQ(gfxPoint(25, 25), transformToApzc.Transform(gfxPoint(25, 25)));
+  
+  
+  EXPECT_EQ(gfxPoint(25, 75), transformToGecko.Transform(gfxPoint(25, 25)));
 
   manager->ClearTree();
 }
