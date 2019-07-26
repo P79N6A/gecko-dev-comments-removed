@@ -30,7 +30,7 @@ specialpowers.specialPowersObserver = new specialpowers.SpecialPowersObserver();
 specialpowers.specialPowersObserver.init();
 
 Cu.import("resource://gre/modules/FileUtils.jsm");
-Cu.import("resource://gre/modules/NetUtil.jsm");  
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 Services.prefs.setBoolPref("marionette.contentListener", false);
 let appName = Services.appinfo.name;
@@ -506,7 +506,7 @@ MarionetteServerConnection.prototype = {
       let win = this.getCurrentWindow();
       if (!win ||
           (appName == "Firefox" && !win.gBrowser) ||
-          (appName == "Fennec" && !win.BrowserApp)) { 
+          (appName == "Fennec" && !win.BrowserApp)) {
         checkTimer.initWithCallback(waitForWindow.bind(this), 100, Ci.nsITimer.TYPE_ONE_SHOT);
       }
       else {
@@ -699,7 +699,7 @@ MarionetteServerConnection.prototype = {
     }
 
     if (this.importedScripts.exists()) {
-      let stream = Cc["@mozilla.org/network/file-input-stream;1"].  
+      let stream = Cc["@mozilla.org/network/file-input-stream;1"].
                     createInstance(Ci.nsIFileInputStream);
       stream.init(this.importedScripts, -1, 0, 0);
       let data = NetUtil.readInputStreamToString(stream, stream.available());
@@ -805,7 +805,7 @@ MarionetteServerConnection.prototype = {
       }
       else {
         script = "let func = function() {" +
-                       aRequest.parameters.script + 
+                       aRequest.parameters.script +
                      "};" +
                      "func.apply(null, __marionetteParams);";
       }
@@ -1066,7 +1066,7 @@ MarionetteServerConnection.prototype = {
           sendOk(command_id);
           return;
         }
-        else{ 
+        else{
           checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
         }
       }
@@ -1123,7 +1123,7 @@ MarionetteServerConnection.prototype = {
     this.command_id = this.getCommandId();
     if (this.context == "chrome"){
       let curWindow = this.getCurrentWindow();
-      let XMLSerializer = curWindow.XMLSerializer; 
+      let XMLSerializer = curWindow.XMLSerializer;
       let pageSource = new XMLSerializer().serializeToString(curWindow.document);
       this.sendResponse(pageSource, this.command_id);
     }
@@ -1174,7 +1174,7 @@ MarionetteServerConnection.prototype = {
   getWindows: function MDA_getWindows() {
     this.command_id = this.getCommandId();
     let res = [];
-    let winEn = this.getWinEnumerator(); 
+    let winEn = this.getWinEnumerator();
     while(winEn.hasMoreElements()) {
       let foundWin = winEn.getNext();
       let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
@@ -1193,7 +1193,7 @@ MarionetteServerConnection.prototype = {
 
   switchToWindow: function MDA_switchToWindow(aRequest) {
     let command_id = this.command_id = this.getCommandId();
-    let winEn = this.getWinEnumerator(); 
+    let winEn = this.getWinEnumerator();
     while(winEn.hasMoreElements()) {
       let foundWin = winEn.getNext();
       let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -1277,7 +1277,7 @@ MarionetteServerConnection.prototype = {
           let numFrames = curWindow.frames.length;
           for (let i = 0; i < numFrames; i++) {
             if (curWindow.frames[i].frameElement == wantedFrame) {
-              curWindow = curWindow.frames[i]; 
+              curWindow = curWindow.frames[i];
               this.curFrame = curWindow;
               if (aRequest.parameters.focus) {
                 this.curFrame.focus();
@@ -1943,9 +1943,7 @@ MarionetteServerConnection.prototype = {
 
 
 
-
-
-  closeWindow: function MDA_closeWindow() {
+  close: function MDA_close() {
     let command_id = this.command_id = this.getCommandId();
     if (appName == "B2G") {
       
@@ -1961,20 +1959,21 @@ MarionetteServerConnection.prototype = {
       }
 
       
-      if (numOpenWindows === 1){
+      if (numOpenWindows === 1) {
         try {
           this.sessionTearDown();
         }
         catch (e) {
-          this.sendError("Could not clear session", 500, e.name + ": " + e.message, command_id);
+          this.sendError("Could not clear session", 500,
+                         e.name + ": " + e.message, command_id);
           return;
         }
         this.sendOk(command_id);
         return;
       }
 
-      try{
-        this.messageManager.removeDelayedFrameScript(FRAME_SCRIPT); 
+      try {
+        this.messageManager.removeDelayedFrameScript(FRAME_SCRIPT);
         this.getCurrentWindow().close();
         this.sendOk(command_id);
       }
@@ -1983,7 +1982,7 @@ MarionetteServerConnection.prototype = {
                        command_id);
       }
     }
-  }, 
+  },
 
   
 
@@ -2015,7 +2014,7 @@ MarionetteServerConnection.prototype = {
       }
       let winEnum = this.getWinEnumerator();
       while (winEnum.hasMoreElements()) {
-        winEnum.getNext().messageManager.removeDelayedFrameScript(FRAME_SCRIPT); 
+        winEnum.getNext().messageManager.removeDelayedFrameScript(FRAME_SCRIPT);
       }
       this.curBrowser.frameManager.removeMessageManagerListeners(this.globalMessageManager);
     }
@@ -2089,7 +2088,7 @@ MarionetteServerConnection.prototype = {
       return;
     }
   },
-  
+
   importScript: function MDA_importScript(aRequest) {
     let command_id = this.command_id = this.getCommandId();
     let converter =
@@ -2281,7 +2280,7 @@ MarionetteServerConnection.prototype = {
         
         
         let nullPrevious = (this.curBrowser.curFrameId == null);
-        let listenerWindow = 
+        let listenerWindow =
                             Services.wm.getOuterWindowWithId(message.json.value);
 
         
@@ -2381,7 +2380,8 @@ MarionetteServerConnection.prototype.requestTypes = {
   "importScript": MarionetteServerConnection.prototype.importScript,
   "clearImportedScripts": MarionetteServerConnection.prototype.clearImportedScripts,
   "getAppCacheStatus": MarionetteServerConnection.prototype.getAppCacheStatus,
-  "closeWindow": MarionetteServerConnection.prototype.closeWindow,
+  "close": MarionetteServerConnection.prototype.close,
+  "closeWindow": MarionetteServerConnection.prototype.close,  
   "setTestName": MarionetteServerConnection.prototype.setTestName,
   "screenShot": MarionetteServerConnection.prototype.screenShot,
   "addCookie": MarionetteServerConnection.prototype.addCookie,
