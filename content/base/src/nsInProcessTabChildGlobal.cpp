@@ -1,8 +1,8 @@
-/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 8; -*- */
-/* vim: set sw=4 ts=8 et tw=80 : */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "nsInProcessTabChildGlobal.h"
 #include "nsContentUtils.h"
@@ -20,10 +20,14 @@
 #include "xpcpublic.h"
 #include "nsIMozBrowserFrame.h"
 #include "nsDOMClassInfoID.h"
+#include "mozilla/dom/StructuredCloneUtils.h"
+
+using mozilla::dom::StructuredCloneData;
+using mozilla::dom::StructuredCloneClosure;
 
 bool SendSyncMessageToParent(void* aCallbackData,
                              const nsAString& aMessage,
-                             const nsAString& aJSON,
+                             const StructuredCloneData& aData,
                              InfallibleTArray<nsString>* aJSONRetVal)
 {
   nsInProcessTabChildGlobal* tabChild =
@@ -38,7 +42,7 @@ bool SendSyncMessageToParent(void* aCallbackData,
   }
   if (tabChild->mChromeMessageManager) {
     nsRefPtr<nsFrameMessageManager> mm = tabChild->mChromeMessageManager;
-    mm->ReceiveMessage(owner, aMessage, true, aJSON, nullptr, aJSONRetVal);
+    mm->ReceiveMessage(owner, aMessage, true, &aData, nullptr, aJSONRetVal);
   }
   return true;
 }
@@ -47,32 +51,45 @@ class nsAsyncMessageToParent : public nsRunnable
 {
 public:
   nsAsyncMessageToParent(nsInProcessTabChildGlobal* aTabChild,
-                         const nsAString& aMessage, const nsAString& aJSON)
-    : mTabChild(aTabChild), mMessage(aMessage), mJSON(aJSON) {}
+                         const nsAString& aMessage,
+                         const StructuredCloneData& aData)
+    : mTabChild(aTabChild), mMessage(aMessage)
+  {
+    if (aData.mDataLength && !mData.copy(aData.mData, aData.mDataLength)) {
+      NS_RUNTIMEABORT("OOM");
+    }
+    mClosure = aData.mClosure;
+  }
 
   NS_IMETHOD Run()
   {
     mTabChild->mASyncMessages.RemoveElement(this);
     if (mTabChild->mChromeMessageManager) {
+      StructuredCloneData data;
+      data.mData = mData.data();
+      data.mDataLength = mData.nbytes();
+      data.mClosure = mClosure;
+
       nsRefPtr<nsFrameMessageManager> mm = mTabChild->mChromeMessageManager;
-      mm->ReceiveMessage(mTabChild->mOwner, mMessage, false,
-                         mJSON, nullptr, nullptr);
+      mm->ReceiveMessage(mTabChild->mOwner, mMessage, false, &data,
+                         nullptr, nullptr, nullptr);
     }
     return NS_OK;
   }
   nsRefPtr<nsInProcessTabChildGlobal> mTabChild;
   nsString mMessage;
-  nsString mJSON;
+  JSAutoStructuredCloneBuffer mData;
+  StructuredCloneClosure mClosure;
 };
 
 bool SendAsyncMessageToParent(void* aCallbackData,
                               const nsAString& aMessage,
-                              const nsAString& aJSON)
+                              const StructuredCloneData& aData)
 {
   nsInProcessTabChildGlobal* tabChild =
     static_cast<nsInProcessTabChildGlobal*>(aCallbackData);
   nsCOMPtr<nsIRunnable> ev =
-    new nsAsyncMessageToParent(tabChild, aMessage, aJSON);
+    new nsAsyncMessageToParent(tabChild, aMessage, aData);
   tabChild->mASyncMessages.AppendElement(ev);
   NS_DispatchToCurrentThread(ev);
   return true;
@@ -85,8 +102,8 @@ nsInProcessTabChildGlobal::nsInProcessTabChildGlobal(nsIDocShell* aShell,
   mDelayedDisconnect(false), mOwner(aOwner), mChromeMessageManager(aChrome)
 {
 
-  // If owner corresponds to an <iframe mozbrowser>, we'll have to tweak our
-  // PreHandleEvent implementation.
+  
+  
   nsCOMPtr<nsIMozBrowserFrame> browserFrame = do_QueryInterface(mOwner);
   bool isBrowser = false;
   if (browserFrame) {
@@ -117,8 +134,8 @@ nsInProcessTabChildGlobal::Init()
                                               nullptr,
                                               mCx);
 
-  // Set the location information for the new global, so that tools like
-  // about:memory may use that information.
+  
+  
   JSObject *global;
   nsIURI* docURI = mOwner->OwnerDoc()->GetDocumentURI();
   if (mGlobal && NS_SUCCEEDED(mGlobal->GetJSObject(&global)) && docURI) {
@@ -195,8 +212,8 @@ nsInProcessTabChildGlobal::PrivateNoteIntentionalCrash()
 void
 nsInProcessTabChildGlobal::Disconnect()
 {
-  // Let the frame scripts know the child is being closed. We do any other
-  // cleanup after the event has been fired. See DelayedDisconnect
+  
+  
   nsContentUtils::AddScriptRunner(
      NS_NewRunnableMethod(this, &nsInProcessTabChildGlobal::DelayedDisconnect)
   );
@@ -205,10 +222,10 @@ nsInProcessTabChildGlobal::Disconnect()
 void
 nsInProcessTabChildGlobal::DelayedDisconnect()
 {
-  // Don't let the event escape
+  
   mOwner = nullptr;
 
-  // Fire the "unload" event
+  
   nsCOMPtr<nsIDOMEvent> event;
   NS_NewDOMEvent(getter_AddRefs(event), nullptr, nullptr);
   if (event) {
@@ -219,7 +236,7 @@ nsInProcessTabChildGlobal::DelayedDisconnect()
     nsDOMEventTargetHelper::DispatchEvent(event, &dummy);
   }
 
-  // Continue with the Disconnect cleanup
+  
   nsCOMPtr<nsIDOMWindow> win = do_GetInterface(mDocShell);
   nsCOMPtr<nsPIDOMWindow> pwin = do_QueryInterface(win);
   if (pwin) {

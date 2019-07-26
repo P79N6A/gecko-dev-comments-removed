@@ -73,6 +73,16 @@ NS_NewCanvasRenderingContextWebGL(nsIDOMWebGLRenderingContext** aResult)
     return NS_OK;
 }
 
+WebGLContextOptions::WebGLContextOptions()
+    : alpha(true), depth(true), stencil(false),
+      premultipliedAlpha(true), antialias(true),
+      preserveDrawingBuffer(false)
+{
+    
+    if (Preferences::GetBool("webgl.default-no-alpha", false))
+        alpha = false;
+}
+
 WebGLContext::WebGLContext()
     : gl(nullptr)
 {
@@ -289,9 +299,6 @@ WebGLContext::SetContextOptions(nsIPropertyBag *aOptions)
     if (!aOptions)
         return NS_OK;
 
-    bool defaultNoAlpha =
-        Preferences::GetBool("webgl.default-no-alpha", false);
-
     WebGLContextOptions newOpts;
 
     GetBoolFromPropertyBag(aOptions, "stencil", &newOpts.stencil);
@@ -299,12 +306,7 @@ WebGLContext::SetContextOptions(nsIPropertyBag *aOptions)
     GetBoolFromPropertyBag(aOptions, "premultipliedAlpha", &newOpts.premultipliedAlpha);
     GetBoolFromPropertyBag(aOptions, "antialias", &newOpts.antialias);
     GetBoolFromPropertyBag(aOptions, "preserveDrawingBuffer", &newOpts.preserveDrawingBuffer);
-
-    
-    
-    if (!GetBoolFromPropertyBag(aOptions, "alpha", &newOpts.alpha) && defaultNoAlpha) {
-        newOpts.alpha = false;
-    }
+    GetBoolFromPropertyBag(aOptions, "alpha", &newOpts.alpha);
 
     
     newOpts.depth |= newOpts.stencil;

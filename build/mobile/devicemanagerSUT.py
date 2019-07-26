@@ -9,6 +9,7 @@ import time, datetime
 import os
 import re
 import hashlib
+import posixpath
 import subprocess
 from threading import Thread
 import traceback
@@ -30,7 +31,7 @@ class AgentError(Exception):
 class DeviceManagerSUT(DeviceManager):
   host = ''
   port = 0
-  debug = 2 
+  debug = 2
   retries = 0
   tempRoot = os.getcwd()
   base_prompt = '$>'
@@ -309,7 +310,7 @@ class DeviceManagerSUT(DeviceManager):
       return False
 
     if (self.debug >= 3): print "sending: push " + destname
-    
+
     filesize = os.path.getsize(localname)
     f = open(localname, 'rb')
     data = f.read()
@@ -321,7 +322,7 @@ class DeviceManagerSUT(DeviceManager):
     except AgentError, e:
       print "error pushing file: %s" % e.msg
       return False
-  
+
     if (self.debug >= 3): print "push returned: " + str(retVal)
 
     validated = False
@@ -345,7 +346,7 @@ class DeviceManagerSUT(DeviceManager):
     else:
       if (self.debug >= 2): print "Push File Failed to Validate!"
       return False
-  
+
   
   
   
@@ -449,7 +450,7 @@ class DeviceManagerSUT(DeviceManager):
       return None
 
     return retVal
-  
+
   
   
   
@@ -481,7 +482,7 @@ class DeviceManagerSUT(DeviceManager):
           files += [[pidproc[0], pidproc[1]]]
         elif (len(pidproc) == 3):
           
-          files += [[pidproc[1], pidproc[2], pidproc[0]]]     
+          files += [[pidproc[1], pidproc[2], pidproc[0]]]
     return files
 
   
@@ -500,7 +501,7 @@ class DeviceManagerSUT(DeviceManager):
       print "WARNING: process %s appears to be running already\n" % appname
       if (failIfRunning):
         return None
-    
+
     try:
       data = self.runCmds([{ 'cmd': 'exec ' + appname }])
     except AgentError:
@@ -535,7 +536,7 @@ class DeviceManagerSUT(DeviceManager):
         return None
       outputFile += "/process.txt"
       cmdline += " > " + outputFile
-    
+
     
     cmdline = '%s %s' % (self.formatEnvString(env), cmdline)
 
@@ -593,17 +594,17 @@ class DeviceManagerSUT(DeviceManager):
     confused if the prompt string exists within the file being catted.
     However it means we can't use the response-handling logic in sendCMD().
     """
-    
+
     def err(error_msg):
         err_str = 'error returned from pull: %s' % error_msg
         print err_str
         self._sock = None
-        raise FileError(err_str) 
+        raise FileError(err_str)
 
     
     
     
-    
+
     def uread(to_recv, error_msg):
       """ unbuffered read """
       try:
@@ -638,7 +639,7 @@ class DeviceManagerSUT(DeviceManager):
 
     prompt = self.base_prompt + self.prompt_sep
     buffer = ''
-    
+
     
     
     
@@ -693,12 +694,12 @@ class DeviceManagerSUT(DeviceManager):
   def getFile(self, remoteFile, localFile = ''):
     if localFile == '':
       localFile = os.path.join(self.tempRoot, "temp.txt")
-  
+
     try:
       retVal = self.pullFile(remoteFile)
     except:
       return None
-      
+
     if (retVal is None):
       return None
 
@@ -727,7 +728,7 @@ class DeviceManagerSUT(DeviceManager):
         return None
       if not is_dir:
         return None
-        
+
     filelist = self.listFiles(remoteDir)
     if (self.debug >= 3): print filelist
     if not os.path.exists(localDir):
@@ -753,7 +754,7 @@ class DeviceManagerSUT(DeviceManager):
         
         
         if self.getFile(remotePath, localPath) == None:
-          print 'failed to get file "%s"; continuing anyway...' % remotePath 
+          print 'failed to get file "%s"; continuing anyway...' % remotePath
     return filelist
 
   
@@ -791,7 +792,7 @@ class DeviceManagerSUT(DeviceManager):
       return True
 
     return False
-  
+
   
   
   
@@ -808,7 +809,7 @@ class DeviceManagerSUT(DeviceManager):
       retVal = data.strip()
     if (self.debug >= 3): print "remote hash returned: '" + retVal + "'"
     return retVal
-    
+
   
   
   
@@ -856,25 +857,20 @@ class DeviceManagerSUT(DeviceManager):
   
   
   
-  def unpackFile(self, filename):
+  def unpackFile(self, file_path, dest_dir=None):
     devroot = self.getDeviceRoot()
     if (devroot == None):
       return None
 
-    dir = ''
-    parts = filename.split('/')
-    if (len(parts) > 1):
-      if self.fileExists(filename):
-        dir = '/'.join(parts[:-1])
-    elif self.fileExists('/' + filename):
-      dir = '/' + filename
-    elif self.fileExists(devroot + '/' + filename):
-      dir = devroot + '/' + filename
-    else:
-      return None
+    
+    if not dest_dir:
+      dest_dir = posixpath.dirname(file_path)
+
+    if dest_dir[-1] != '/':
+      dest_dir += '/'
 
     try:
-      data = self.runCmds([{ 'cmd': 'cd ' + dir }, { 'cmd': 'unzp ' + filename }])
+      data = self.runCmds([{ 'cmd': 'unzp %s %s' % (file_path, dest_dir)}])
     except AgentError:
       return None
 
@@ -885,10 +881,10 @@ class DeviceManagerSUT(DeviceManager):
   
   
   def reboot(self, ipAddr=None, port=30000):
-    cmd = 'rebt'   
+    cmd = 'rebt'
 
     if (self.debug > 3): print "INFO: sending rebt command"
-    callbacksvrstatus = None    
+    callbacksvrstatus = None
 
     if (ipAddr is not None):
     
@@ -952,7 +948,7 @@ class DeviceManagerSUT(DeviceManager):
     
     for k, v in result.iteritems():
       result[k] = filter(lambda x: x != '', result[k])
-    
+
     
     if 'process' in result:
       proclist = []
@@ -1082,34 +1078,6 @@ class DeviceManagerSUT(DeviceManager):
     And ports starting at 30000.
     NOTE: the detection for current IP address only works on Linux!
   """
-  
-  
-  
-  
-  def unpackFile(self, filename):
-    devroot = self.getDeviceRoot()
-    if (devroot == None):
-      return None
-
-    dir = ''
-    parts = filename.split('/')
-    if (len(parts) > 1):
-      if self.fileExists(filename):
-        dir = '/'.join(parts[:-1])
-    elif self.fileExists('/' + filename):
-      dir = '/' + filename
-    elif self.fileExists(devroot + '/' + filename):
-      dir = devroot + '/' + filename
-    else:
-      return None
-
-    try:
-      data = self.runCmds(['cd ' + dir, 'unzp ' + filename])
-    except AgentError:
-      return None
-
-    return data
-
   def getCallbackIpAndPort(self, aIp, aPort):
     ip = aIp
     nettools = NetworkTools()
@@ -1209,7 +1177,7 @@ class callbackServer():
     self.debug = debuglevel
     if (self.debug >= 3): print "Creating server with " + str(ip) + ":" + str(port)
     self.server = myServer((ip, port), self.myhandler)
-    self.server_thread = Thread(target=self.server.serve_forever) 
+    self.server_thread = Thread(target=self.server.serve_forever)
     self.server_thread.setDaemon(True)
     self.server_thread.start()
 
@@ -1242,4 +1210,4 @@ class callbackServer():
       gCallbackData = self.request.recv(1024)
       
       self.request.send("OK")
-  
+

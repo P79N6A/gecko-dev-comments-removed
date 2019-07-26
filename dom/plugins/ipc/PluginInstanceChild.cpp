@@ -10,6 +10,7 @@
 #include <QApplication>
 #include <QInputMethodEvent>
 #include "nsQtKeyUtils.h"
+#include "NestedLoopTimer.h"
 #endif
 
 #include "PluginBackgroundDestroyer.h"
@@ -108,6 +109,9 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface)
     , mAsyncInvalidateTask(0)
     , mCachedWindowActor(nullptr)
     , mCachedElementActor(nullptr)
+#if defined(MOZ_WIDGET_GTK)
+    , mXEmbed(false)
+#endif 
 #if defined(OS_WIN)
     , mPluginWindowHWND(0)
     , mPluginWndProc(0)
@@ -146,13 +150,19 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface)
 #endif
 {
     memset(&mWindow, 0, sizeof(mWindow));
+    mWindow.type = NPWindowTypeWindow;
     mData.ndata = (void*) this;
     mData.pdata = nullptr;
     mAsyncBitmaps.Init();
 #if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
     mWindow.ws_info = &mWsInfo;
     memset(&mWsInfo, 0, sizeof(mWsInfo));
+#if defined(MOZ_WIDGET_GTK)
+    mWsInfo.display = NULL;
+    mXtClient.top_widget = NULL;
+#else
     mWsInfo.display = DefaultXDisplay();
+#endif
 #endif 
 #if defined(OS_WIN)
     memset(&mAlphaExtract, 0, sizeof(mAlphaExtract));
@@ -306,6 +316,15 @@ PluginInstanceChild::NPN_GetValue(NPNVariable aVar,
         *((NPNToolkitType*)aValue) = NPNVGtk2;
         return NPERR_NO_ERROR;
 
+    case NPNVxDisplay:
+        if (!mWsInfo.display) {
+            
+           Initialize();
+           NS_ASSERTION(mWsInfo.display, "We should have a valid display!");
+        }
+        *(void **)aValue = mWsInfo.display;
+        return NPERR_NO_ERROR;
+    
 #elif defined(OS_WIN)
     case NPNVToolkit:
         return NPERR_GENERIC_ERROR;
@@ -492,6 +511,21 @@ PluginInstanceChild::NPN_SetValue(NPPVariable aVar, void* aValue)
         if (!CallNPN_SetValue_NPPVpluginWindow(windowed, &rv))
             return NPERR_GENERIC_ERROR;
 
+        NPWindowType newWindowType = windowed ? NPWindowTypeWindow : NPWindowTypeDrawable;
+#if defined(MOZ_WIDGET_GTK)
+        if (mWindow.type != newWindowType && mWsInfo.display) {
+           
+           
+           if (mXEmbed || !windowed) {
+               
+               mWsInfo.display = DefaultXDisplay();
+           }
+           else {
+               mWsInfo.display = xt_client_get_display();
+           }
+        }
+#endif
+        mWindow.type = newWindowType;
         return rv;
     }
 
@@ -979,6 +1013,58 @@ PluginInstanceChild::RecvWindowPosChanged(const NPRemoteEvent& event)
 #endif
 }
 
+#if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
+
+bool PluginInstanceChild::CreateWindow(const NPRemoteWindow& aWindow)
+{ 
+    PLUGIN_LOG_DEBUG(("%s (aWindow=<window: 0x%lx, x: %d, y: %d, width: %d, height: %d>)",
+                      FULLFUNCTION,
+                      aWindow.window,
+                      aWindow.x, aWindow.y,
+                      aWindow.width, aWindow.height));
+
+#if defined(MOZ_WIDGET_GTK)
+    if (mXEmbed) {
+        mWindow.window = reinterpret_cast<void*>(aWindow.window);
+    }
+    else {
+        Window browserSocket = (Window)(aWindow.window);
+        xt_client_init(&mXtClient, mWsInfo.visual, mWsInfo.colormap, mWsInfo.depth);
+        xt_client_create(&mXtClient, browserSocket, mWindow.width, mWindow.height); 
+        mWindow.window = (void *)XtWindow(mXtClient.child_widget);
+    }  
+#else
+    mWindow.window = reinterpret_cast<void*>(aWindow.window);
+#endif
+
+    return true;
+}
+
+
+void PluginInstanceChild::DeleteWindow()
+{
+  PLUGIN_LOG_DEBUG(("%s (aWindow=<window: 0x%lx, x: %d, y: %d, width: %d, height: %d>)",
+                    FULLFUNCTION,
+                    mWindow.window,
+                    mWindow.x, mWindow.y,
+                    mWindow.width, mWindow.height));
+
+  if (!mWindow.window)
+      return;
+
+#if defined(MOZ_WIDGET_GTK)
+  if (mXtClient.top_widget) {     
+      xt_client_unrealize(&mXtClient);
+      xt_client_destroy(&mXtClient); 
+      mXtClient.top_widget = NULL;
+  }
+#endif
+
+  
+  mWindow.window = nullptr;
+}
+#endif
+
 bool
 PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
 {
@@ -992,10 +1078,11 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
     AssertPluginThread();
 
 #if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
+    NS_ASSERTION(mWsInfo.display, "We should have a valid display!");
+
     
     
 
-    mWindow.window = reinterpret_cast<void*>(aWindow.window);
     mWindow.x = aWindow.x;
     mWindow.y = aWindow.y;
     mWindow.width = aWindow.width;
@@ -1008,8 +1095,12 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
                          &mWsInfo.visual, &mWsInfo.depth))
         return false;
 
+    if (!mWindow.window && mWindow.type == NPWindowTypeWindow) {
+        CreateWindow(aWindow);
+    }
+
 #ifdef MOZ_WIDGET_GTK2
-    if (gtk_check_version(2,18,7) != NULL) { 
+    if (mXEmbed && gtk_check_version(2,18,7) != NULL) { 
         if (aWindow.type == NPWindowTypeWindow) {
             GdkWindow* socket_window = gdk_window_lookup(static_cast<GdkNativeWindow>(aWindow.window));
             if (socket_window) {
@@ -1140,6 +1231,33 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
 bool
 PluginInstanceChild::Initialize()
 {
+#if defined(MOZ_WIDGET_GTK)
+    NPError rv;
+
+    if (mWsInfo.display) {
+        
+        return false;
+    }
+
+    
+    if (mWindow.type == NPWindowTypeWindow) {
+        AnswerNPP_GetValue_NPPVpluginNeedsXEmbed(&mXEmbed, &rv);
+
+        
+        if (!mXEmbed) {
+           xt_client_xloop_create();
+        }
+    }
+
+    
+    if (mXEmbed || mWindow.type != NPWindowTypeWindow) {
+        mWsInfo.display = DefaultXDisplay();
+    }
+    else {
+        mWsInfo.display = xt_client_get_display();
+    }
+#endif 
+
     return true;
 }
 
@@ -3999,6 +4117,15 @@ PluginInstanceChild::AnswerNPP_Destroy(NPError* aResult)
         NS_ERROR("Not all AsyncBitmaps were finalized by a plugin!");
         mAsyncBitmaps.Enumerate(DeleteSurface, this);
     }
+
+#if defined(MOZ_WIDGET_GTK)
+    if (mWindow.type == NPWindowTypeWindow && !mXEmbed) {
+      xt_client_xloop_destroy();
+    }
+#endif
+#if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
+    DeleteWindow();
+#endif
 
     return true;
 }

@@ -168,6 +168,16 @@ public:
   
   void Pushback(PRUnichar aChar);
 
+  
+  void StartRecording();
+
+  
+  void StopRecording();
+
+  
+  
+  void StopRecording(nsString& aBuffer);
+
 protected:
   PRInt32 Read();
   PRInt32 Peek();
@@ -197,6 +207,9 @@ protected:
   PRUint32 mLineNumber;
   
   bool mSVGMode;
+  bool mRecording;
+  PRUint32 mRecordStartOffset;
+
 #ifdef CSS_REPORT_PARSE_ERRORS
   nsXPIDLCString mFileName;
   nsCOMPtr<nsIURI> mURI;  

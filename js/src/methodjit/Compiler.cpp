@@ -2324,7 +2324,7 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_ACTUALSFILLED)
 
           BEGIN_CASE(JSOP_ITERNEXT)
-            iterNext(GET_INT8(PC));
+            iterNext();
           END_CASE(JSOP_ITERNEXT)
 
           BEGIN_CASE(JSOP_DUP)
@@ -4120,8 +4120,7 @@ mjit::Compiler::checkCallApplySpeculation(uint32_t argc, FrameEntry *origCallee,
 
         stubcc.masm.move(Imm32(argc), Registers::ArgReg1);
         JaegerSpew(JSpew_Insns, " ---- BEGIN SLOW CALL CODE ---- \n");
-        OOL_STUBCALL_LOCAL_SLOTS(JS_FUNC_TO_DATA_PTR(void *, stubs::SlowCall),
-                                 REJOIN_FALLTHROUGH, frame.totalDepth());
+        OOL_STUBCALL(stubs::SlowCall, REJOIN_FALLTHROUGH);
         JaegerSpew(JSpew_Insns, " ---- END SLOW CALL CODE ---- \n");
 
         
@@ -4129,13 +4128,7 @@ mjit::Compiler::checkCallApplySpeculation(uint32_t argc, FrameEntry *origCallee,
 
 
 
-        JaegerSpew(JSpew_Insns, " ---- BEGIN SLOW RESTORE CODE ---- \n");
-        Address rval = frame.addressOf(origCallee);  
-        if (knownPushedType(0) == JSVAL_TYPE_DOUBLE)
-            stubcc.masm.ensureInMemoryDouble(rval);
-        stubcc.masm.loadValueAsComponents(rval, JSReturnReg_Type, JSReturnReg_Data);
         *uncachedCallSlowRejoin = stubcc.masm.jump();
-        JaegerSpew(JSpew_Insns, " ---- END SLOW RESTORE CODE ---- \n");
     }
 }
 
@@ -4458,8 +4451,16 @@ mjit::Compiler::inlineCallHelper(uint32_t argc, bool callingNew, FrameSize &call
 
     CHECK_OOL_SPACE();
 
-    if (lowerFunCallOrApply)
-        stubcc.crossJump(uncachedCallSlowRejoin, masm.label());
+    if (lowerFunCallOrApply) {
+        uncachedCallSlowRejoin.linkTo(stubcc.masm.label(), &stubcc.masm);
+        JaegerSpew(JSpew_Insns, " ---- BEGIN SLOW RESTORE CODE ---- \n");
+        Address uncachedRvalAddr = frame.addressOf(origCallee);
+        if (knownPushedType(0) == JSVAL_TYPE_DOUBLE)
+            stubcc.masm.ensureInMemoryDouble(uncachedRvalAddr);
+        frame.reloadEntry(stubcc.masm, uncachedRvalAddr, frame.peek(-1));
+        stubcc.crossJump(stubcc.masm.jump(), masm.label());
+        JaegerSpew(JSpew_Insns, " ---- END SLOW RESTORE CODE ---- \n");
+    }
 
     callICs.append(callIC);
     callPatches.append(callPatch);
@@ -6107,9 +6108,9 @@ mjit::Compiler::iter(unsigned flags)
 
 
 void
-mjit::Compiler::iterNext(ptrdiff_t offset)
+mjit::Compiler::iterNext()
 {
-    FrameEntry *fe = frame.peek(-offset);
+    FrameEntry *fe = frame.peek(-1);
     RegisterID reg = frame.tempRegForData(fe);
 
     
@@ -6150,7 +6151,6 @@ mjit::Compiler::iterNext(ptrdiff_t offset)
     frame.freeReg(T2);
 
     stubcc.leave();
-    stubcc.masm.move(Imm32(offset), Registers::ArgReg1);
     OOL_STUBCALL(stubs::IterNext, REJOIN_FALLTHROUGH);
 
     frame.pushUntypedPayload(JSVAL_TYPE_STRING, T3);

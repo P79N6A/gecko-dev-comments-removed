@@ -333,6 +333,17 @@ protected:
   already_AddRefed<nsCSSKeyframeRule> ParseKeyframeRule();
   bool ParseKeyframeSelectorList(InfallibleTArray<float>& aSelectorList);
 
+  bool ParseSupportsRule(RuleAppendFunc aAppendFunc, void* aProcessData);
+  bool ParseSupportsCondition(bool& aConditionMet);
+  bool ParseSupportsConditionNegation(bool& aConditionMet);
+  bool ParseSupportsConditionInParens(bool& aConditionMet);
+  bool ParseSupportsConditionInParensInsideParens(bool& aConditionMet);
+  bool ParseSupportsConditionTerms(bool& aConditionMet);
+  enum SupportsConditionTermOperator { eAnd, eOr };
+  bool ParseSupportsConditionTermsAfterOperator(
+                                       bool& aConditionMet,
+                                       SupportsConditionTermOperator aOperator);
+
   enum nsSelectorParsingStatus {
     
     
@@ -756,11 +767,11 @@ CSSParserImpl::CSSParserImpl()
     mUnitlessLengthQuirk(false),
     mUnsafeRulesEnabled(false),
     mHTMLMediaMode(false),
-    mParsingCompoundProperty(false)
+    mParsingCompoundProperty(false),
 #ifdef DEBUG
-    , mScannerInited(false)
+    mScannerInited(false),
 #endif
-    , mNextFree(nullptr)
+    mNextFree(nullptr)
 {
 }
 
@@ -1369,7 +1380,8 @@ CSSParserImpl::CheckEndProperty()
   if ((eCSSToken_Symbol == mToken.mType) &&
       ((';' == mToken.mSymbol) ||
        ('!' == mToken.mSymbol) ||
-       ('}' == mToken.mSymbol))) {
+       ('}' == mToken.mSymbol) ||
+       (')' == mToken.mSymbol))) {
     
     
     UngetToken();
@@ -1511,6 +1523,11 @@ CSSParserImpl::ParseAtRule(RuleAppendFunc aAppendFunc,
   } else if (mToken.mIdent.LowerCaseEqualsLiteral("-moz-keyframes") ||
              mToken.mIdent.LowerCaseEqualsLiteral("keyframes")) {
     parseFunc = &CSSParserImpl::ParseKeyframesRule;
+    newSection = eCSSSection_General;
+
+  } else if (mToken.mIdent.LowerCaseEqualsLiteral("supports") &&
+             CSSSupportsRule::PrefEnabled()) {
+    parseFunc = &CSSParserImpl::ParseSupportsRule;
     newSection = eCSSSection_General;
 
   } else {
@@ -1957,7 +1974,7 @@ CSSParserImpl::ParseGroupRule(css::GroupRule* aRule,
   for (;;) {
     
     if (! GetToken(true)) {
-      REPORT_UNEXPECTED_EOF(PEGroupRuleEOF);
+      REPORT_UNEXPECTED_EOF(PEGroupRuleEOF2);
       break;
     }
     if (mToken.IsSymbol('}')) { 
@@ -2329,6 +2346,228 @@ CSSParserImpl::ParseKeyframeSelectorList(InfallibleTArray<float>& aSelectorList)
     }
     aSelectorList.AppendElement(value);
     if (!ExpectSymbol(',', true)) {
+      return true;
+    }
+  }
+}
+
+
+
+
+bool
+CSSParserImpl::ParseSupportsRule(RuleAppendFunc aAppendFunc, void* aProcessData)
+{
+  bool conditionMet = false;
+  nsString condition;
+
+  mScanner.StartRecording();
+  bool parsed = ParseSupportsCondition(conditionMet);
+
+  if (!parsed) {
+    mScanner.StopRecording();
+    return false;
+  }
+
+  if (!ExpectSymbol('{', true)) {
+    REPORT_UNEXPECTED_TOKEN(PESupportsGroupRuleStart);
+    mScanner.StopRecording();
+    return false;
+  }
+
+  UngetToken();
+  mScanner.StopRecording(condition);
+
+  
+  if (condition.Length() != 0) {
+    condition.Truncate(condition.Length() - 1);
+  }
+
+  
+  condition.Trim(" ", true, true, false);
+
+  nsRefPtr<css::GroupRule> rule = new CSSSupportsRule(conditionMet, condition);
+  return ParseGroupRule(rule, aAppendFunc, aProcessData);
+}
+
+
+
+
+
+bool
+CSSParserImpl::ParseSupportsCondition(bool& aConditionMet)
+{
+  if (!GetToken(true)) {
+    REPORT_UNEXPECTED_EOF(PESupportsConditionStartEOF);
+    return false;
+  }
+
+  UngetToken();
+
+  if (mToken.IsSymbol('(')) {
+    return ParseSupportsConditionInParens(aConditionMet) &&
+           ParseSupportsConditionTerms(aConditionMet);
+  }
+
+  if (mToken.mType == eCSSToken_Ident &&
+      mToken.mIdent.LowerCaseEqualsLiteral("not")) {
+    return ParseSupportsConditionNegation(aConditionMet);
+  }
+
+  REPORT_UNEXPECTED_TOKEN(PESupportsConditionExpectedStart);
+  return false;
+}
+
+
+
+
+bool
+CSSParserImpl::ParseSupportsConditionNegation(bool& aConditionMet)
+{
+  if (!GetToken(true)) {
+    REPORT_UNEXPECTED_EOF(PESupportsConditionNotEOF);
+    return false;
+  }
+
+  if (mToken.mType != eCSSToken_Ident ||
+      !mToken.mIdent.LowerCaseEqualsLiteral("not")) {
+    REPORT_UNEXPECTED_TOKEN(PESupportsConditionExpectedNot);
+    return false;
+  }
+
+  if (ParseSupportsConditionInParens(aConditionMet)) {
+    aConditionMet = !aConditionMet;
+    return true;
+  }
+
+  return false;
+}
+
+
+
+
+bool
+CSSParserImpl::ParseSupportsConditionInParens(bool& aConditionMet)
+{
+  if (!ExpectSymbol('(', true)) {
+    REPORT_UNEXPECTED_TOKEN(PESupportsConditionExpectedOpenParen);
+    return false;
+  }
+
+  if (!ParseSupportsConditionInParensInsideParens(aConditionMet)) {
+    return false;
+  }
+
+  if (!(ExpectSymbol(')', true))) {
+    REPORT_UNEXPECTED_TOKEN(PESupportsConditionExpectedCloseParen);
+    SkipUntil(')');
+    return false;
+  }
+
+  return true;
+}
+
+
+
+
+
+
+bool
+CSSParserImpl::ParseSupportsConditionInParensInsideParens(bool& aConditionMet)
+{
+  if (!GetToken(true)) {
+    REPORT_UNEXPECTED_EOF(PESupportsConditionInParensStartEOF);
+    return false;
+  }
+
+  if (mToken.mType == eCSSToken_Ident) {
+    if (!mToken.mIdent.LowerCaseEqualsLiteral("not")) {
+      nsAutoString propertyName = mToken.mIdent;
+      if (!ExpectSymbol(':', true)) {
+        REPORT_UNEXPECTED_TOKEN(PEParseDeclarationNoColon);
+        return false;
+      }
+
+      nsCSSProperty propID = nsCSSProps::LookupProperty(propertyName,
+                                                        nsCSSProps::eEnabled);
+      if (propID == eCSSProperty_UNKNOWN) {
+        aConditionMet = false;
+        SkipUntil(')');
+        UngetToken();
+      } else {
+        aConditionMet = ParseProperty(propID) &&
+                        ParsePriority() != ePriority_Error;
+        if (!aConditionMet) {
+          SkipUntil(')');
+          UngetToken();
+        }
+        mTempData.ClearProperty(propID);
+        mTempData.AssertInitialState();
+      }
+      return true;
+    }
+
+    UngetToken();
+    return ParseSupportsConditionNegation(aConditionMet);
+  }
+
+  UngetToken();
+  return ParseSupportsConditionInParens(aConditionMet) &&
+         ParseSupportsConditionTerms(aConditionMet);
+}
+
+
+
+
+
+
+bool
+CSSParserImpl::ParseSupportsConditionTerms(bool& aConditionMet)
+{
+  if (!GetToken(true)) {
+    return true;
+  }
+
+  if (mToken.mType != eCSSToken_Ident) {
+    UngetToken();
+    return true;
+  }
+
+  if (mToken.mIdent.LowerCaseEqualsLiteral("and")) {
+    return ParseSupportsConditionTermsAfterOperator(aConditionMet, eAnd);
+  }
+
+  if (mToken.mIdent.LowerCaseEqualsLiteral("or")) {
+    return ParseSupportsConditionTermsAfterOperator(aConditionMet, eOr);
+  }
+
+  UngetToken();
+  return true;
+}
+
+
+
+
+bool
+CSSParserImpl::ParseSupportsConditionTermsAfterOperator(
+                         bool& aConditionMet,
+                         CSSParserImpl::SupportsConditionTermOperator aOperator)
+{
+  const char* token = aOperator == eAnd ? "and" : "or";
+  for (;;) {
+    bool termConditionMet = false;
+    if (!ParseSupportsConditionInParens(termConditionMet)) {
+      return false;
+    }
+    aConditionMet = aOperator == eAnd ? aConditionMet && termConditionMet :
+                                        aConditionMet || termConditionMet;
+
+    if (!GetToken(true)) {
+      return true;
+    }
+
+    if (mToken.mType != eCSSToken_Ident ||
+        !mToken.mIdent.LowerCaseEqualsASCII(token)) {
+      UngetToken();
       return true;
     }
   }

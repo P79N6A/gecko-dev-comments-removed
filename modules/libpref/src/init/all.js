@@ -1558,6 +1558,9 @@ pref("layout.css.dpi", -1);
 pref("layout.css.devPixelsPerPx", "1.0");
 
 
+pref("layout.css.supports-rule.enabled", true);
+
+
 
 
 
@@ -1668,6 +1671,10 @@ pref("dom.ipc.plugins.enabled.602plugin.so", false);
 pref("dom.ipc.processCount", 1);
 
 pref("svg.smil.enabled", true);
+
+
+pref("svg.display-lists.hit-testing.enabled", true);
+pref("svg.display-lists.painting.enabled", true);
 
 pref("font.minimum-size.ar", 0);
 pref("font.minimum-size.x-armn", 0);

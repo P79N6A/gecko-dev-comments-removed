@@ -1112,7 +1112,7 @@ js_PopulateObject(JSContext *cx, js::HandleObject newborn, js::HandleObject prop
 
 
 extern bool
-js_GetClassObject(JSContext *cx, js::HandleObject obj, JSProtoKey key,
+js_GetClassObject(JSContext *cx, js::RawObject obj, JSProtoKey key,
                   js::MutableHandleObject objp);
 
 
@@ -1330,7 +1330,7 @@ extern JSBool
 js_PrimitiveToObject(JSContext *cx, js::Value *vp);
 
 extern JSBool
-js_ValueToObjectOrNull(JSContext *cx, const js::Value &v, JSObject **objp);
+js_ValueToObjectOrNull(JSContext *cx, const js::Value &v, JS::MutableHandleObject objp);
 
 
 extern JSObject *

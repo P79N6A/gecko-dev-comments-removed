@@ -902,9 +902,9 @@ static JSFunctionSpec json_static_methods[] = {
 };
 
 JSObject *
-js_InitJSONClass(JSContext *cx, JSObject *obj_)
+js_InitJSONClass(JSContext *cx, JSObject *obj)
 {
-    Rooted<GlobalObject*> global(cx, &obj_->asGlobal());
+    Rooted<GlobalObject*> global(cx, &obj->asGlobal());
 
     
 

@@ -1267,6 +1267,10 @@ let WifiNetworkInterface = {
   
   dhcp: false,
 
+  httpProxyHost: null,
+
+  httpProxyPort: null,
+
 };
 
 
