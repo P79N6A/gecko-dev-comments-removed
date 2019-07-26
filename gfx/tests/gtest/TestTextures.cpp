@@ -119,20 +119,17 @@ void TestTextureClientSurface(TextureClient* texture, gfxImageSurface* surface) 
   texture->Unlock();
 
   
-  texture->SetID(1);
   SurfaceDescriptor descriptor;
   ASSERT_TRUE(texture->ToSurfaceDescriptor(descriptor));
 
   ASSERT_NE(descriptor.type(), SurfaceDescriptor::Tnull_t);
 
   
-  RefPtr<TextureHost> host = CreateBackendIndependentTextureHost(texture->GetID(),
-                                                                 descriptor, nullptr,
+  RefPtr<TextureHost> host = CreateBackendIndependentTextureHost(descriptor, nullptr,
                                                                  texture->GetFlags());
 
   ASSERT_TRUE(host.get() != nullptr);
   ASSERT_EQ(host->GetFlags(), texture->GetFlags());
-  ASSERT_EQ(host->GetID(), texture->GetID());
 
   
   ASSERT_TRUE(host->Lock());
@@ -168,22 +165,19 @@ void TestTextureClientYCbCr(TextureClient* client, PlanarYCbCrData& ycbcrData) {
   client->Unlock();
 
   
-  client->SetID(1);
   SurfaceDescriptor descriptor;
   ASSERT_TRUE(client->ToSurfaceDescriptor(descriptor));
 
   ASSERT_NE(descriptor.type(), SurfaceDescriptor::Tnull_t);
 
   
-  RefPtr<TextureHost> textureHost = CreateBackendIndependentTextureHost(client->GetID(),
-                                                                        descriptor, nullptr,
+  RefPtr<TextureHost> textureHost = CreateBackendIndependentTextureHost(descriptor, nullptr,
                                                                         client->GetFlags());
 
   RefPtr<BufferTextureHost> host = static_cast<BufferTextureHost*>(textureHost.get());
 
   ASSERT_TRUE(host.get() != nullptr);
   ASSERT_EQ(host->GetFlags(), client->GetFlags());
-  ASSERT_EQ(host->GetID(), client->GetID());
 
   
   ASSERT_EQ(host->GetFormat(), mozilla::gfx::FORMAT_YUV);

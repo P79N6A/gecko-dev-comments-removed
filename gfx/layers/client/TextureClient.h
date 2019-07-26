@@ -204,30 +204,6 @@ public:
   static PTextureChild* CreateIPDLActor();
   static bool DestroyIPDLActor(PTextureChild* actor);
 
-  
-
-
-
-
-
-
-
-
-
-  void SetID(uint64_t aID)
-  {
-    MOZ_ASSERT(mID == 0 && aID != 0);
-    mID = aID;
-    mShared = true;
-  }
-  void ClearID()
-  {
-    MOZ_ASSERT(mID != 0);
-    mID = 0;
-  }
-
-  uint64_t GetID() const { return mID; }
-
   virtual bool IsAllocated() const = 0;
 
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) = 0;
@@ -320,7 +296,6 @@ protected:
   }
 
   TextureChild* mActor;
-  uint64_t mID;
   TextureFlags mFlags;
   bool mShared;
   bool mValid;
