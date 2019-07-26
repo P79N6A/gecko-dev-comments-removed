@@ -1920,7 +1920,7 @@ Seer::AddSubresource(QueryType queryType, const int32_t parentId,
 
 void
 Seer::UpdateSubresource(QueryType queryType, const SubresourceInfo &info,
-                        const PRTime now)
+                        const PRTime now, const int32_t parentCount)
 {
   MOZ_ASSERT(!NS_IsMainThread(), "UpdateSubresource called on main thread.");
 
@@ -1939,8 +1939,12 @@ Seer::UpdateSubresource(QueryType queryType, const SubresourceInfo &info,
   }
   mozStorageStatementScoper scope(stmt);
 
+  
+  int32_t hitCount = std::min((info.hitCount + 1), parentCount);
+
   nsresult rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("hit_count"),
-                                      info.hitCount + 1);
+                                      hitCount);
+
   RETURN_IF_FAILED(rv);
 
   rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("now"), now);
@@ -1988,14 +1992,14 @@ Seer::LearnForSubresource(const UriInfo &targetURI, const UriInfo &sourceURI)
   }
 
   if (haveResource) {
-    UpdateSubresource(QUERY_PAGE, resourceInfo, pageInfo.lastLoad);
+    UpdateSubresource(QUERY_PAGE, resourceInfo, pageInfo.lastLoad, pageInfo.loadCount);
   } else if (havePage) {
     AddSubresource(QUERY_PAGE, pageInfo.id, targetURI.spec, pageInfo.lastLoad);
   }
   
 
   if (haveHost) {
-    UpdateSubresource(QUERY_ORIGIN, hostInfo, originInfo.lastLoad);
+    UpdateSubresource(QUERY_ORIGIN, hostInfo, originInfo.lastLoad, originInfo.loadCount);
   } else if (haveOrigin) {
     AddSubresource(QUERY_ORIGIN, originInfo.id, targetURI.origin, originInfo.lastLoad);
   }
