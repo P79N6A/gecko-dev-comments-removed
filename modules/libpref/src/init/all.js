@@ -3971,9 +3971,6 @@ pref("print.print_command", "lp -c -s ${MOZ_PRINTER_NAME:+-d\"$MOZ_PRINTER_NAME\
 
 
 pref("signon.rememberSignons",              true);
-pref("signon.SignonFileName",               "signons.txt"); 
-pref("signon.SignonFileName2",              "signons2.txt"); 
-pref("signon.SignonFileName3",              "signons3.txt"); 
 pref("signon.autofillForms",                true);
 pref("signon.autologin.proxy",              false);
 pref("signon.debug",                        false);

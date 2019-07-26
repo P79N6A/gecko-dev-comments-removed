@@ -96,7 +96,6 @@ pref("browser.helperApps.deleteTempFileOnExit", false);
 
 pref("signon.rememberSignons", true);
 pref("signon.expireMasterPassword", false);
-pref("signon.SignonFileName", "signons.txt");
 
 
 pref("browser.formfill.enable", true);

@@ -147,9 +147,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
     _prefBranch   : null,  
     _signonsFile  : null,  
-    _importFile   : null,  
     _debug        : false, 
-    _base64checked : false,
 
 
     
@@ -171,10 +169,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
 
-
-    initWithFile : function(aImportFile, aDBFile) {
-        if (aImportFile)
-            this._importFile = aImportFile;
+    initWithFile : function(aDBFile) {
         if (aDBFile)
             this._signonsFile = aDBFile;
 
@@ -183,8 +178,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     
-
-
 
 
 
@@ -198,6 +191,10 @@ LoginManagerStorage_mozStorage.prototype = {
         let isFirstRun;
         try {
             
+            
+            this._crypto;
+
+            
             if (!this._signonsFile) {
                 
                 this._signonsFile = this._profileDir.clone();
@@ -207,13 +204,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
             
             isFirstRun = this._dbInit();
-
-            
-            
-            if (isFirstRun && !this._importFile)
-                this._importLegacySignons();
-            else if (this._importFile)
-                this._importLegacySignons(this._importFile);
 
             this._initialized = true;
         } catch (e) {
@@ -231,28 +221,12 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     addLogin : function (login) {
-        this._addLogin(login, false);
-    },
-
-
-    
-
-
-
-
-    _addLogin : function (login, isEncrypted) {
         let encUsername, encPassword;
 
         
         this._checkLoginValues(login);
 
-        
-        
-        
-        if (isEncrypted)
-            [encUsername, encPassword, encType] = [login.username, login.password, Ci.nsILoginManagerCrypto.ENCTYPE_SDR];
-        else
-            [encUsername, encPassword, encType] = this._encryptLogin(login);
+        [encUsername, encPassword, encType] = this._encryptLogin(login);
 
         
         let loginClone = login.clone();
@@ -265,11 +239,6 @@ LoginManagerStorage_mozStorage.prototype = {
         } else {
             loginClone.guid = this._uuidService.generateUUID().toString();
         }
-
-        
-        if (isEncrypted &&
-            (encUsername.charAt(0) == '~' || encPassword.charAt(0) == '~'))
-            encType = this._crypto.ENCTYPE_BASE64;
 
         
         let currentTime = Date.now();
@@ -314,7 +283,7 @@ LoginManagerStorage_mozStorage.prototype = {
             stmt = this._dbCreateStatement(query, params);
             stmt.execute();
         } catch (e) {
-            this.log("_addLogin failed: " + e.name + " : " + e.message);
+            this.log("addLogin failed: " + e.name + " : " + e.message);
             throw "Couldn't write to database, login not added.";
         } finally {
             if (stmt) {
@@ -323,8 +292,7 @@ LoginManagerStorage_mozStorage.prototype = {
         }
 
         
-        if (!isEncrypted)
-            this._sendNotification("addLogin", loginClone);
+        this._sendNotification("addLogin", loginClone);
     },
 
 
@@ -687,9 +655,6 @@ LoginManagerStorage_mozStorage.prototype = {
         let stmt;
         let transaction = new Transaction(this._dbConnection);
  
-        
-        this._removeOldSignonsFiles();
-
         
         
         
@@ -1069,83 +1034,10 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
 
-
-    _importLegacySignons : function (importFile) {
-        this.log("Importing " + (importFile ? importFile.path : "legacy storage"));
-
-        let legacy = Cc["@mozilla.org/login-manager/storage/legacy;1"].
-                     createInstance(Ci.nsILoginManagerStorage);
-
-        
-        try {
-            if (importFile)
-                legacy.initWithFile(importFile, null);
-            else
-                legacy.init();
-
-            
-            let logins = legacy.getAllEncryptedLogins();
-
-            
-            let transaction = new Transaction(this._dbConnection);
-            for each (let login in logins) {
-                try {
-                    this._addLogin(login, true);
-                } catch (e) {
-                    this.log("_importLegacySignons failed to add login: " + e);
-                }
-            }
-            let disabledHosts = legacy.getAllDisabledHosts();
-            for each (let hostname in disabledHosts)
-                this.setLoginSavingEnabled(hostname, false);
-            transaction.commit();
-        } catch (e) {
-            this.log("_importLegacySignons failed: " + e.name + " : " + e.message);
-            throw "Import failed";
-        }
-    },
-
-
-    
-
-
-
-
-    _removeOldSignonsFiles : function () {
-        
-        
-        
-        let filenamePrefs = ["SignonFileName3", "SignonFileName2", "SignonFileName"];
-        for each (let prefname in filenamePrefs) {
-            let filename = this._prefBranch.getCharPref(prefname);
-            let file = this._profileDir.clone();
-            file.append(filename);
-
-            if (file.exists()) {
-                this.log("Deleting old " + filename + " (" + prefname + ")");
-                try {
-                    file.remove(false);
-                } catch (e) {
-                    this.log("NOTICE: Couldn't delete " + filename + ": " + e);
-                }
-            }
-        }
-    },
-
-
-    
-
-
-
-
-
     _encryptLogin : function (login) {
         let encUsername = this._crypto.encrypt(login.username);
         let encPassword = this._crypto.encrypt(login.password);
         let encType     = this._crypto.defaultEncType;
-
-        if (!this._base64checked)
-            this._reencryptBase64Logins();
 
         return [encUsername, encPassword, encType];
     },
@@ -1181,79 +1073,7 @@ LoginManagerStorage_mozStorage.prototype = {
             result.push(login);
         }
 
-        if (!this._base64checked)
-            this._reencryptBase64Logins();
-
         return result;
-    },
-
-
-    
-
-
-
-
-
-
-
-
-    _reencryptBase64Logins : function () {
-        let base64Type = Ci.nsILoginManagerCrypto.ENCTYPE_BASE64;
-        this._base64checked = true;
-        
-
-        this.log("Reencrypting Base64 logins");
-        let transaction;
-        try {
-            let [logins, ids] = this._searchLogins({ encType: base64Type });
-
-            if (!logins.length)
-                return;
-
-            try {
-                logins = this._decryptLogins(logins);
-            } catch (e) {
-                
-                return;
-            }
-
-            transaction = new Transaction(this._dbConnection);
-
-            let encUsername, encPassword, stmt;
-            for each (let login in logins) {
-                [encUsername, encPassword, encType] = this._encryptLogin(login);
-
-                let query =
-                    "UPDATE moz_logins " +
-                    "SET encryptedUsername = :encryptedUsername, " +
-                        "encryptedPassword = :encryptedPassword, " +
-                        "encType = :encType " +
-                    "WHERE guid = :guid";
-                let params = {
-                    encryptedUsername: encUsername,
-                    encryptedPassword: encPassword,
-                    encType:           encType,
-                    guid:              login.guid
-                };
-                try {
-                    stmt = this._dbCreateStatement(query, params);
-                    stmt.execute();
-                } catch (e) {
-                    
-                    this.log("_reencryptBase64Logins caught error: " + e);
-                } finally {
-                    if (stmt) {
-                        stmt.reset();
-                    }
-                }
-            }
-        } catch (e) {
-            this.log("_reencryptBase64Logins failed: " + e);
-        } finally {
-            if (transaction) {
-                transaction.commit();
-            }
-        }
     },
 
 
@@ -1284,7 +1104,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     
-
 
 
 
@@ -1481,6 +1300,7 @@ LoginManagerStorage_mozStorage.prototype = {
             stmt = this._dbCreateStatement(query);
             while (stmt.executeStep()) {
                 let params = { id: stmt.row.id };
+                
                 if (stmt.row.encryptedUsername.charAt(0) == '~' ||
                     stmt.row.encryptedPassword.charAt(0) == '~')
                     params.encType = Ci.nsILoginManagerCrypto.ENCTYPE_BASE64;

@@ -186,7 +186,6 @@ pref("browser.helperApps.deleteTempFileOnExit", false);
 
 
 pref("signon.rememberSignons", true);
-pref("signon.SignonFileName", "signons.txt");
 
 
 pref("findhelper.autozoom", true);

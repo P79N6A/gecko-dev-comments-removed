@@ -7,7 +7,6 @@
 
 
 
-const STORAGE_TYPE = "mozStorage";
 const ENCTYPE_BASE64 = 0;
 const ENCTYPE_SDR = 1;
 
@@ -16,15 +15,6 @@ function run_test() {
 try {
 
 var storage, testnum = 0;
-
-function countBase64Logins(conn) {
-    let stmt = conn.createStatement("SELECT COUNT(1) as numBase64 FROM moz_logins " +
-                                    "WHERE encType = " + ENCTYPE_BASE64);
-    do_check_true(stmt.executeStep());
-    let numBase64 = stmt.row.numBase64;
-    stmt.finalize();
-    return numBase64;
-}
 
 
 
@@ -64,58 +54,6 @@ LoginTest.deleteFile(OUTDIR, "signons.sqlite");
 
 
 
-testnum++;
-
-testdesc = "checking import of mime64-obscured entries"
-storage = LoginTest.initStorage(INDIR, "signons-380961-1.txt",
-                               OUTDIR, "output-380961-1.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser1]);
-
-testdesc = "[flush and reload for verification]"
-storage = LoginTest.reloadStorage(OUTDIR, "output-380961-1.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser1]);
-
-LoginTest.deleteFile(OUTDIR, "output-380961-1.sqlite");
-
-
-
-testnum++;
-
-testdesc = "testing import of multiple mime-64 entries for a host"
-storage = LoginTest.initStorage(INDIR, "signons-380961-2.txt",
-                               OUTDIR, "output-380961-2.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser2, dummyuser3]);
-
-testdesc = "[flush and reload for verification]"
-storage = LoginTest.reloadStorage(OUTDIR, "output-380961-2.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser2, dummyuser3]);
-
-LoginTest.deleteFile(OUTDIR, "output-380961-2.sqlite");
-
-
-
-testnum++;
-
-testdesc = "testing import of mixed encrypted and mime-64 entries."
-storage = LoginTest.initStorage(INDIR, "signons-380961-3.txt",
-                               OUTDIR, "output-380961-3.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser1, dummyuser2, dummyuser3]);
-
-testdesc = "[flush and reload for verification]"
-storage = LoginTest.reloadStorage(OUTDIR, "output-380961-3.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser1, dummyuser2, dummyuser3]);
-
-LoginTest.deleteFile(OUTDIR, "output-380961-3.sqlite");
-
-
-
-
-
-
-
-
-
-
 
 
 testnum++;
@@ -139,24 +77,8 @@ dummyuser4.httpRealm     = null;
 
 testnum++;
 
-testdesc = "testing import of non-ascii username and password."
-storage = LoginTest.initStorage(INDIR, "signons-381262.txt",
-                               OUTDIR, "output-381262-1.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser4]);
-
-testdesc = "[flush and reload for verification]"
-storage = LoginTest.reloadStorage(OUTDIR, "output-381262-1.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser4]);
-
-LoginTest.deleteFile(OUTDIR, "output-381262-1.sqlite");
-
-
-
-testnum++;
-
 testdesc = "testing storage of non-ascii username and password."
-storage = LoginTest.initStorage(INDIR, "signons-empty.txt",
-                               OUTDIR, "output-381262-2.sqlite");
+storage = LoginTest.initStorage(OUTDIR, "output-381262-2.sqlite");
 LoginTest.checkStorageData(storage, [], []);
 storage.addLogin(dummyuser4);
 LoginTest.checkStorageData(storage, [], [dummyuser4]);
@@ -167,44 +89,6 @@ LoginTest.checkStorageData(storage, [], [dummyuser4]);
 
 LoginTest.deleteFile(OUTDIR, "output-381262-2.sqlite");
 
-
-
-
-
-
-
-
-
-
-testnum++;
-
-testdesc = "checking double reading of mime64-obscured entries";
-storage = LoginTest.initStorage(INDIR, "signons-380961-1.txt",
-                               OUTDIR, "output-400751-0.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser1]);
-
-testdesc = "checking double reading of mime64-obscured entries part 2";
-LoginTest.checkStorageData(storage, [], [dummyuser1]);
-
-LoginTest.deleteFile(OUTDIR, "output-400751-0.sqlite");
-
-
-
-testnum++;
-
-testdesc = "checking correct storage of mime64 converted entries";
-storage = LoginTest.initStorage(INDIR, "signons-380961-1.txt",
-                               OUTDIR, "output-400751-1.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser1]);
-LoginTest.checkStorageData(storage, [], [dummyuser1]);
-storage.addLogin(dummyuser2); 
-LoginTest.checkStorageData(storage, [], [dummyuser1, dummyuser2]);
-
-testdesc = "[flush and reload for verification]";
-storage = LoginTest.reloadStorage(OUTDIR, "output-400751-1.sqlite");
-LoginTest.checkStorageData(storage, [], [dummyuser1, dummyuser2]);
-
-LoginTest.deleteFile(OUTDIR, "output-400751-1.sqlite");
 
 
 
@@ -228,8 +112,7 @@ function tryAddUser(storage, aUser, aExpectedError) {
 }
 
 testdesc = "preparting to try logins with bogus values";
-storage = LoginTest.initStorage(INDIR, "signons-empty.txt",
-                               OUTDIR, "output-394610-1.sqlite");
+storage = LoginTest.initStorage(OUTDIR, "output-394610-1.sqlite");
 LoginTest.checkStorageData(storage, [], []);
 
 
@@ -334,8 +217,7 @@ LoginTest.deleteFile(OUTDIR, "output-394610-1.sqlite");
 testnum++;
 
 testdesc = "storing data values with special period-only value"
-storage = LoginTest.initStorage(INDIR, "signons-empty.txt",
-                               OUTDIR, "output-394610-2.sqlite");
+storage = LoginTest.initStorage(OUTDIR, "output-394610-2.sqlite");
 LoginTest.checkStorageData(storage, [], []);
 
 
@@ -375,8 +257,7 @@ testnum++;
 
 testdesc = "create logins with parens in host/httpRealm"
 
-storage = LoginTest.initStorage(INDIR, "signons-empty.txt",
-                               OUTDIR, "output-394610-3.sqlite");
+storage = LoginTest.initStorage(OUTDIR, "output-394610-3.sqlite");
 LoginTest.checkStorageData(storage, [], []);
 
 var parenUser1 = Cc["@mozilla.org/login-manager/loginInfo;1"].
@@ -459,8 +340,7 @@ testdesc = "storing data values with embedded nulls."
 do_check_eq( "foo\0bar", "foo\0bar");
 do_check_neq("foo\0bar", "foobar");
 
-storage = LoginTest.initStorage(INDIR, "signons-empty.txt",
-                               OUTDIR, "output-394610-4.sqlite");
+storage = LoginTest.initStorage(OUTDIR, "output-394610-4.sqlite");
 LoginTest.checkStorageData(storage, [], []);
 
 var nullUser = Cc["@mozilla.org/login-manager/loginInfo;1"].
@@ -549,8 +429,7 @@ LoginTest.deleteFile(OUTDIR, "output-394610-4.sqlite");
 testnum++;
 testdesc = "ensure UCS2 strings don't get mangled."
 
-storage = LoginTest.initStorage(INDIR, "signons-empty.txt",
-                               OUTDIR, "output-451155.sqlite");
+storage = LoginTest.initStorage(OUTDIR, "output-451155.sqlite");
 LoginTest.checkStorageData(storage, [], []);
 
 var testString = String.fromCharCode(355, 277, 349, 357, 533, 537, 101, 345, 185);
@@ -578,76 +457,6 @@ storage = LoginTest.reloadStorage(OUTDIR, "output-451155.sqlite");
 LoginTest.checkStorageData(storage, [utfHost], [utfUser1, utfUser2]);
 
 LoginTest.deleteFile(OUTDIR, "output-451155.sqlite");
-
-
-
-
-
-
-
-
-
-testnum++;
-testdesc = "ensure base64 logins are reencrypted on first call to getAllLogins"
-
-
-storage = LoginTest.initStorage(INDIR, "signons-380961-3.txt",
-                               OUTDIR, "output-316984-1.sqlite");
-
-
-let dbConnection = LoginTest.openDB("output-316984-1.sqlite");
-do_check_eq(countBase64Logins(dbConnection), 2);
-
-
-LoginTest.checkStorageData(storage, [], [dummyuser1, dummyuser2, dummyuser3]);
-
-
-do_check_eq(countBase64Logins(dbConnection), 0);
-
-LoginTest.deleteFile(OUTDIR, "output-316984-1.sqlite");
-
-
-
-testnum++;
-testdesc = "ensure base64 logins are reencrypted when first new login is added"
-
-
-storage = LoginTest.initStorage(INDIR, "signons-380961-3.txt",
-                               OUTDIR, "output-316984-2.sqlite");
-
-
-dbConnection = LoginTest.openDB("output-316984-2.sqlite");
-do_check_eq(countBase64Logins(dbConnection), 2);
-
-
-storage.addLogin(dummyuser4)
-
-
-do_check_eq(countBase64Logins(dbConnection), 0);
-
-LoginTest.deleteFile(OUTDIR, "output-316984-2.sqlite");
-
-
-
-testnum++;
-testdesc = "ensure base64 logins are NOT reencrypted on call to countLogins"
-
-
-storage = LoginTest.initStorage(INDIR, "signons-380961-3.txt",
-                               OUTDIR, "output-316984-3.sqlite");
-
-
-dbConnection = LoginTest.openDB("output-316984-3.sqlite");
-do_check_eq(countBase64Logins(dbConnection), 2);
-
-
-storage.countLogins("", "", "")
-
-
-do_check_eq(countBase64Logins(dbConnection), 2);
-
-LoginTest.deleteFile(OUTDIR, "output-316984-3.sqlite");
-
 
 
 

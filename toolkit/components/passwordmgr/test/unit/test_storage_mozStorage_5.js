@@ -7,8 +7,6 @@
 
 
 
-const STORAGE_TYPE = "mozStorage";
-
 function run_test() {
 
 try {
@@ -31,27 +29,10 @@ LoginTest.deleteFile(OUTDIR, "signons.sqlite");
 
 
 
-
-
-
-
-
-
-
-
 testnum++;
 var testdesc = "Initialization, reinitialization, & importing"
 
-var storage;
-storage = LoginTest.initStorage(INDIR, "signons-00.txt", null, null, /Initialization failed/);
 
-
-
-
-storage = LoginTest.initStorage(INDIR, "signons-06.txt");
-LoginTest.checkStorageData(storage, ["https://www.site.net"], [testuser1]);
-
-LoginTest.deleteFile(OUTDIR, "signons.sqlite");
 
 
 

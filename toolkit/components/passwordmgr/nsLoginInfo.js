@@ -17,12 +17,6 @@ nsLoginInfo.prototype = {
 
     
     
-    get wrappedJSObject() {
-        return this;
-    },
-
-    
-    
     
 
     hostname      : null,

@@ -8,7 +8,6 @@
 
 
 
-const STORAGE_TYPE = "mozStorage";
 const ENCTYPE_BASE64 = 0;
 const ENCTYPE_SDR = 1;
 
@@ -192,8 +191,9 @@ for (let i = 0; i < encTypes.length; i++)
 dbConnection.close();
 
 
+
 LoginTest.checkStorageData(storage, ["https://disabled.net"],
-    [testuser1, testuser2, testuser4, testuser5]);
+    [testuser2]);
 
 LoginTest.deleteFile(OUTDIR, "signons-v2.sqlite");
 
@@ -221,9 +221,10 @@ for (let i = 0; i < encTypes.length; i++)
     do_check_eq(encTypes[i], getEncTypeForID(dbConnection, i + 1));
 
 
-LoginTest.checkStorageData(storage, ["https://disabled.net"],
-    [testuser1, testuser2, testuser4, testuser5, testuser3]);
-encTypes = [ENCTYPE_SDR, ENCTYPE_SDR, ENCTYPE_SDR, ENCTYPE_SDR, ENCTYPE_SDR];
+
+
+LoginTest.checkStorageData(storage, ["https://disabled.net"], [testuser2, testuser3]);
+encTypes = [ENCTYPE_BASE64, ENCTYPE_SDR, ENCTYPE_BASE64, ENCTYPE_BASE64, ENCTYPE_SDR];
 for (let i = 0; i < encTypes.length; i++)
     do_check_eq(encTypes[i], getEncTypeForID(dbConnection, i + 1));
 dbConnection.close();
