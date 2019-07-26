@@ -3113,16 +3113,21 @@ DrawBorderImage(nsPresContext*       aPresContext,
         break;
     }
     border.Side(s) = NS_lround(value);
+    MOZ_ASSERT(border.Side(s) >= 0);
   }
 
   
   
   
-  double scaleX = border.left + border.right > borderImgArea.width
-                  ? borderImgArea.width / double(border.left + border.right)
+  uint32_t combinedBorderWidth = uint32_t(border.left) +
+                                 uint32_t(border.right);
+  double scaleX = combinedBorderWidth > uint32_t(borderImgArea.width)
+                  ? borderImgArea.width / double(combinedBorderWidth)
                   : 1.0;
-  double scaleY = border.top + border.bottom > borderImgArea.height
-                  ? borderImgArea.height / double(border.top + border.bottom)
+  uint32_t combinedBorderHeight = uint32_t(border.top) +
+                                  uint32_t(border.bottom);
+  double scaleY = combinedBorderHeight > uint32_t(borderImgArea.height)
+                  ? borderImgArea.height / double(combinedBorderHeight)
                   : 1.0;
   double scale = std::min(scaleX, scaleY);
   if (scale < 1.0) {
