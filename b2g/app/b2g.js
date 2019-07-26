@@ -389,6 +389,7 @@ pref("dom.mozContacts.enabled", true);
 pref("dom.mozAlarms.enabled", true);
 
 
+pref("services.push.enabled", true);
 
 pref("services.push.serverURL", "");
 pref("services.push.userAgentID", "");
