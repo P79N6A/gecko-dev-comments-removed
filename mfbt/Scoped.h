@@ -49,6 +49,7 @@
 
 
 
+
 #include "mozilla/Attributes.h"
 #include "mozilla/GuardObjects.h"
 
@@ -222,6 +223,46 @@ struct ScopedDeleteArrayTraits : public ScopedFreePtrTraits<T>
     static void release(T* ptr) { delete [] ptr; }
 };
 SCOPED_TEMPLATE(ScopedDeleteArray, ScopedDeleteArrayTraits)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(name, Type, Deleter) \
+inline void TypeSpecificDelete(Type * value) { Deleter(value); } \
+typedef ::mozilla::TypeSpecificScopedPointer<Type> name;
+
+template <typename T>
+struct TypeSpecificScopedPointerTraits
+{
+    typedef T* type;
+    const static type empty() { return NULL; }
+    const static void release(type value)
+    {
+      if (value)
+        TypeSpecificDelete(value);
+    }
+};
+
+SCOPED_TEMPLATE(TypeSpecificScopedPointer, TypeSpecificScopedPointerTraits)
 
 } 
 
