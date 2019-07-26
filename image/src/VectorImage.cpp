@@ -22,8 +22,10 @@
 #include "nsMimeTypes.h"
 #include "nsPresContext.h"
 #include "nsRect.h"
+#include "nsString.h"
 #include "nsStubDocumentObserver.h"
 #include "nsSVGEffects.h" 
+#include "nsWindowMemoryReporter.h"
 #include "Orientation.h"
 #include "SVGDocumentWrapper.h"
 #include "nsIDOMEventListener.h"
@@ -359,6 +361,9 @@ VectorImage::HeapSizeOfSourceWithComputedFallback(mozilla::MallocSizeOf aMallocS
   
   
   
+  
+  
+  
   return 0;
 }
 
@@ -366,19 +371,49 @@ size_t
 VectorImage::HeapSizeOfDecodedWithComputedFallback(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   
+  
+  
   return 0;
 }
 
 size_t
 VectorImage::NonHeapSizeOfDecoded() const
 {
+  
+  
+  
   return 0;
 }
 
 size_t
 VectorImage::OutOfProcessSizeOfDecoded() const
 {
+  
+  
+  
   return 0;
+}
+
+MOZ_DEFINE_MALLOC_SIZE_OF(WindowsMallocSizeOf);
+
+size_t
+VectorImage::HeapSizeOfVectorImageDocument(nsACString* aDocURL) const
+{
+  nsIDocument* doc = mSVGDocumentWrapper->GetDocument();
+  if (!doc) {
+    if (aDocURL) {
+      mURI->GetSpec(*aDocURL);
+    }
+    return 0; 
+  }
+
+  if (aDocURL) {
+    doc->GetDocumentURI()->GetSpec(*aDocURL);
+  }
+
+  nsWindowSizes windowSizes(WindowsMallocSizeOf);
+  doc->DocAddSizeOfExcludingThis(&windowSizes);
+  return windowSizes.getTotalSize();
 }
 
 nsresult
