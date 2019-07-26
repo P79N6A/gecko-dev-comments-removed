@@ -156,6 +156,15 @@ public class DynamicPanel extends HomeFragment {
         return datasetId.hashCode();
     }
 
+    private void restartDatasetLoader(DatasetRequest request) {
+        final Bundle bundle = new Bundle();
+        bundle.putParcelable(DATASET_REQUEST, request);
+
+        
+        final int loaderId = generateLoaderId(request.getDatasetId());
+        getLoaderManager().restartLoader(loaderId, bundle, mLoaderCallbacks);
+    }
+
     
 
 
@@ -171,12 +180,7 @@ public class DynamicPanel extends HomeFragment {
                 return;
             }
 
-            final Bundle bundle = new Bundle();
-            bundle.putParcelable(DATASET_REQUEST, request);
-
-            
-            final int loaderId = generateLoaderId(request.getDatasetId());
-            getLoaderManager().restartLoader(loaderId, bundle, mLoaderCallbacks);
+            restartDatasetLoader(request);
         }
 
         @Override
