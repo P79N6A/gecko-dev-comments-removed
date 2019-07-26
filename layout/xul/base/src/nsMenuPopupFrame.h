@@ -79,6 +79,23 @@ enum FlipStyle {
 #define POPUPALIGNMENT_TOPCENTER 18
 #define POPUPALIGNMENT_BOTTOMCENTER 19
 
+
+
+#define POPUPPOSITION_UNKNOWN -1
+#define POPUPPOSITION_BEFORESTART 0
+#define POPUPPOSITION_BEFOREEND 1
+#define POPUPPOSITION_AFTERSTART 2
+#define POPUPPOSITION_AFTEREND 3
+#define POPUPPOSITION_STARTBEFORE 4
+#define POPUPPOSITION_ENDBEFORE 5
+#define POPUPPOSITION_STARTAFTER 6
+#define POPUPPOSITION_ENDAFTER 7
+#define POPUPPOSITION_OVERLAP 8
+#define POPUPPOSITION_AFTERPOINTER 9
+
+#define POPUPPOSITION_HFLIP(v) (v ^ 1)
+#define POPUPPOSITION_VFLIP(v) (v ^ 2)
+
 #define INC_TYP_INTERVAL  1000  // 1s. If the interval between two keypresses is shorter than this, 
                                 
 
@@ -315,6 +332,9 @@ public:
 
   nsIntPoint GetLastClientOffset() const { return mLastClientOffset; }
 
+  
+  int8_t GetAlignmentPosition() const;
+
 protected:
 
   
@@ -410,6 +430,8 @@ protected:
   
   int8_t mPopupAlignment;
   int8_t mPopupAnchor;
+  int8_t mPosition;
+
   
   int8_t mConsumeRollupEvent;
   bool mFlipBoth; 
