@@ -464,9 +464,6 @@ protected:
 
   void PostScrollEvent();
   void FireScrollEvent();
-  
-  virtual void ScrollbarActivityStarted() const MOZ_OVERRIDE;
-  virtual void ScrollbarActivityStopped() const MOZ_OVERRIDE;
 
   
 
