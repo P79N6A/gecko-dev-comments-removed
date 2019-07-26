@@ -144,23 +144,28 @@ class GlobalSharedContext;
 class Directives
 {
     bool strict_;
+    bool asmJS_;
 
   public:
-    explicit Directives(bool strict) : strict_(strict) {}
+    explicit Directives(bool strict) : strict_(strict), asmJS_(false) {}
     template <typename ParseHandler> explicit Directives(ParseContext<ParseHandler> *parent);
 
     void setStrict() { strict_ = true; }
     bool strict() const { return strict_; }
 
+    void setAsmJS() { asmJS_ = true; }
+    bool asmJS() const { return asmJS_; }
+
     Directives &operator=(Directives rhs) {
         strict_ = rhs.strict_;
+        asmJS_ = rhs.asmJS_;
         return *this;
     }
     bool operator==(const Directives &rhs) const {
-        return strict_ == rhs.strict_;
+        return strict_ == rhs.strict_ && asmJS_ == rhs.asmJS_;
     }
     bool operator!=(const Directives &rhs) const {
-        return strict_ != rhs.strict_;
+        return !(*this == rhs);
     }
 };
 
@@ -258,7 +263,6 @@ class FunctionBox : public ObjectBox, public SharedContext
     uint32_t        bufEnd;
     uint32_t        startLine;
     uint32_t        startColumn;
-    uint32_t        asmStart;               
     uint16_t        ndefaults;
     bool            inWith:1;               
     bool            inGenexpLambda:1;       

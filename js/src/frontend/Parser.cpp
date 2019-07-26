@@ -395,6 +395,7 @@ Parser<ParseHandler>::Parser(ExclusiveContext *cx, LifoAlloc *alloc,
     traceListHead(NULL),
     pc(NULL),
     sct(NULL),
+    ss(NULL),
     keepAtoms(cx->perThreadData),
     foldConstants(foldConstants),
     abortedSyntaxParse(false),
@@ -460,12 +461,11 @@ FunctionBox::FunctionBox(ExclusiveContext *cx, ObjectBox* traceListHead, JSFunct
     bindings(),
     bufStart(0),
     bufEnd(0),
-    asmStart(0),
     ndefaults(0),
     inWith(false),                  
     inGenexpLambda(false),
     hasDestructuringArgs(false),
-    useAsm(false),
+    useAsm(directives.asmJS()),
     insideUseAsm(outerpc && outerpc->useAsmOrInsideUseAsm()),
     usesArguments(false),
     usesApply(false),
@@ -1948,6 +1948,7 @@ Parser<ParseHandler>::functionDef(HandlePropertyName funName, const TokenStream:
 
         
         JS_ASSERT_IF(directives.strict(), newDirectives.strict());
+        JS_ASSERT_IF(directives.asmJS(), newDirectives.asmJS());
         directives = newDirectives;
 
         tokenStream.seek(start);
@@ -2394,6 +2395,55 @@ IsEscapeFreeStringLiteral(const TokenPos &pos, JSAtom *str)
     return pos.begin + str->length() + 2 == pos.end;
 }
 
+template <>
+bool
+Parser<SyntaxParseHandler>::asmJS(Node list)
+{
+    
+    
+    
+    
+    
+    
+    JS_ALWAYS_FALSE(abortIfSyntaxParser());
+    return false;
+}
+
+template <>
+bool
+Parser<FullParseHandler>::asmJS(Node list)
+{
+    
+    
+    
+    if (pc->useAsmOrInsideUseAsm())
+        return true;
+
+    
+    
+    if (ss == NULL)
+        return true;
+
+    pc->sc->asFunctionBox()->useAsm = true;
+
+#ifdef JS_ION
+    
+    
+    
+    
+    
+    bool validated;
+    if (!CompileAsmJS(context->asJSContext(), *this, list, &validated))
+        return false;
+    if (!validated) {
+        pc->newDirectives->setAsmJS();
+        return false;
+    }
+#endif
+
+    return true;
+}
+
 
 
 
@@ -2415,7 +2465,7 @@ IsEscapeFreeStringLiteral(const TokenPos &pos, JSAtom *str)
 
 template <typename ParseHandler>
 bool
-Parser<ParseHandler>::maybeParseDirective(Node pn, bool *cont)
+Parser<ParseHandler>::maybeParseDirective(Node list, Node pn, bool *cont)
 {
     TokenPos directivePos;
     JSAtom *directive = handler.isStringExprStatement(pn, &directivePos);
@@ -2458,15 +2508,9 @@ Parser<ParseHandler>::maybeParseDirective(Node pn, bool *cont)
                 }
             }
         } else if (directive == context->names().useAsm) {
-            if (pc->sc->isFunctionBox()) {
-                pc->sc->asFunctionBox()->useAsm = true;
-                pc->sc->asFunctionBox()->asmStart = handler.getPosition(pn).begin;
-                if (!abortIfSyntaxParser())
-                    return false;
-            } else {
-                if (!report(ParseWarning, false, pn, JSMSG_USE_ASM_DIRECTIVE_FAIL))
-                    return false;
-            }
+            if (pc->sc->isFunctionBox())
+                return asmJS(list);
+            return report(ParseWarning, false, pn, JSMSG_USE_ASM_DIRECTIVE_FAIL);
         }
     }
     return true;
@@ -2509,7 +2553,7 @@ Parser<ParseHandler>::statements()
         }
 
         if (canHaveDirectives) {
-            if (!maybeParseDirective(next, &canHaveDirectives))
+            if (!maybeParseDirective(pn, next, &canHaveDirectives))
                 return null();
         }
 

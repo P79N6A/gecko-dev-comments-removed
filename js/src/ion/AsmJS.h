@@ -17,9 +17,19 @@ namespace js {
 class ScriptSource;
 class SPSProfiler;
 class AsmJSModule;
-namespace frontend { class TokenStream; class ParseNode; }
-namespace ion { class MIRGenerator; class LIRGraph; }
+namespace frontend {
+    template <typename ParseHandler> struct Parser;
+    template <typename ParseHandler> struct ParseContext;
+    class FullParseHandler;
+    struct ParseNode;
+}
+namespace ion {
+    class MIRGenerator;
+    class LIRGraph;
+}
 
+typedef frontend::Parser<frontend::FullParseHandler> AsmJSParser;
+typedef frontend::ParseContext<frontend::FullParseHandler> AsmJSParseContext;
 
 
 
@@ -27,11 +37,7 @@ namespace ion { class MIRGenerator; class LIRGraph; }
 
 
 extern bool
-CompileAsmJS(JSContext *cx, frontend::TokenStream &ts, frontend::ParseNode *fn,
-             const CompileOptions &options,
-             ScriptSource *scriptSource, uint32_t bufStart, uint32_t bufEnd,
-             MutableHandleFunction moduleFun);
-
+CompileAsmJS(JSContext *cx, AsmJSParser &parser, frontend::ParseNode *stmtList, bool *validated);
 
 
 

@@ -4463,10 +4463,6 @@ EmitFunc(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     FunctionBox *funbox = pn->pn_funbox;
     RootedFunction fun(cx, funbox->function());
-    if (fun->isNative()) {
-        JS_ASSERT(IsAsmJSModuleNative(fun->native()));
-        return true;
-    }
     JS_ASSERT_IF(fun->isInterpretedLazy(), fun->lazyScript());
 
     
@@ -4489,71 +4485,47 @@ EmitFunc(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-    bool singleton =
-        cx->isJSContext() &&
-        cx->asJSContext()->typeInferenceEnabled() &&
-        bce->script->compileAndGo &&
-        (bce->checkSingletonContext() ||
-         (!bce->isInLoop() &&
-          bce->parent &&
-          bce->parent->emittingRunOnceLambda));
-    if (!JSFunction::setTypeForScriptedFunction(cx, fun, singleton))
-        return false;
+    if (fun->isInterpreted()) {
+        bool singleton =
+            cx->isJSContext() &&
+            cx->asJSContext()->typeInferenceEnabled() &&
+            bce->script->compileAndGo &&
+            fun->isInterpreted() &&
+            (bce->checkSingletonContext() ||
+             (!bce->isInLoop() &&
+              bce->parent &&
+              bce->parent->emittingRunOnceLambda));
+        if (!JSFunction::setTypeForScriptedFunction(cx, fun, singleton))
+            return false;
 
-    if (fun->isInterpretedLazy()) {
-        if (!fun->lazyScript()->sourceObject()) {
-            JSObject *scope = bce->blockChain;
-            if (!scope && bce->sc->isFunctionBox())
-                scope = bce->sc->asFunctionBox()->function();
-            fun->lazyScript()->setParent(scope, bce->script->sourceObject(), bce->script->originPrincipals);
-        }
-    } else {
-        SharedContext *outersc = bce->sc;
+        if (fun->isInterpretedLazy()) {
+            if (!fun->lazyScript()->sourceObject()) {
+                JSObject *scope = bce->blockChain;
+                if (!scope && bce->sc->isFunctionBox())
+                    scope = bce->sc->asFunctionBox()->function();
+                fun->lazyScript()->setParent(scope, bce->script->sourceObject(), bce->script->originPrincipals);
+            }
+        } else {
+            SharedContext *outersc = bce->sc;
 
-        if (outersc->isFunctionBox() && outersc->asFunctionBox()->mightAliasLocals())
-            funbox->setMightAliasLocals();      
-        JS_ASSERT_IF(outersc->strict, funbox->strict);
+            if (outersc->isFunctionBox() && outersc->asFunctionBox()->mightAliasLocals())
+                funbox->setMightAliasLocals();      
+            JS_ASSERT_IF(outersc->strict, funbox->strict);
 
-        
-        Rooted<JSScript*> parent(cx, bce->script);
-        CompileOptions options(bce->parser->options());
-        options.setPrincipals(parent->principals())
-               .setOriginPrincipals(parent->originPrincipals)
-               .setCompileAndGo(parent->compileAndGo)
-               .setSelfHostingMode(parent->selfHosted)
-               .setNoScriptRval(false)
-               .setForEval(false)
-               .setVersion(parent->getVersion());
+            
+            Rooted<JSScript*> parent(cx, bce->script);
+            CompileOptions options(bce->parser->options());
+            options.setPrincipals(parent->principals())
+                   .setOriginPrincipals(parent->originPrincipals)
+                   .setCompileAndGo(parent->compileAndGo)
+                   .setSelfHostingMode(parent->selfHosted)
+                   .setNoScriptRval(false)
+                   .setForEval(false)
+                   .setVersion(parent->getVersion());
 
-        bool generateBytecode = true;
-#ifdef JS_ION
-        if (funbox->useAsm) {
             if (!cx->shouldBeJSContext())
                 return false;
 
-            RootedFunction moduleFun(cx);
-
-            
-            
-            
-            
-            
-            
-            
-            
-            if (!CompileAsmJS(cx->asJSContext(), *bce->tokenStream(), pn, options,
-                              bce->script->scriptSource(), funbox->asmStart, funbox->bufEnd - 1,
-                              &moduleFun))
-                return false;
-
-            if (moduleFun) {
-                funbox->object = moduleFun;
-                generateBytecode = false;
-            }
-        }
-#endif
-
-        if (generateBytecode) {
             Rooted<JSObject*> enclosingScope(cx, EnclosingStaticScope(bce));
             Rooted<ScriptSourceObject *> sourceObject(cx, bce->script->sourceObject());
             Rooted<JSScript*> script(cx, JSScript::Create(cx, enclosingScope, false, options,
@@ -4579,6 +4551,8 @@ EmitFunc(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             if (funbox->usesArguments && funbox->usesApply)
                 script->usesArgumentsAndApply = true;
         }
+    } else {
+        JS_ASSERT(IsAsmJSModuleNative(fun->native()));
     }
 
     
