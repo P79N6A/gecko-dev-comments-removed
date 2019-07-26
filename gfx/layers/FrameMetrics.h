@@ -210,6 +210,12 @@ public:
     mZoom.scale *= aFactor;
   }
 
+  void CopyScrollInfoFrom(const FrameMetrics& aOther)
+  {
+    mScrollOffset = aOther.mScrollOffset;
+    mScrollGeneration = aOther.mScrollGeneration;
+  }
+
   
   
   

@@ -1545,6 +1545,14 @@ public:
 
 static ScrollFrameActivityTracker *gScrollFrameActivityTracker = nullptr;
 
+
+
+
+
+
+
+static uint32_t sScrollGenerationCounter = 0;
+
 ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
                                              bool aIsRoot)
   : mHScrollbarBox(nullptr)
@@ -1555,7 +1563,7 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
   , mOuter(aOuter)
   , mAsyncScroll(nullptr)
   , mOriginOfLastScroll(nsGkAtoms::other)
-  , mScrollGeneration(0)
+  , mScrollGeneration(++sScrollGenerationCounter)
   , mDestination(0, 0)
   , mScrollPosAtLastPaint(0, 0)
   , mRestorePos(-1, -1)
@@ -2071,7 +2079,7 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsIAtom* aOri
   
   mScrolledFrame->SetPosition(mScrollPort.TopLeft() - pt);
   mOriginOfLastScroll = aOrigin;
-  mScrollGeneration++;
+  mScrollGeneration = ++sScrollGenerationCounter;
 
   
   ScrollVisual(oldScrollFramePos);

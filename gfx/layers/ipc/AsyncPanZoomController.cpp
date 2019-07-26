@@ -67,7 +67,7 @@
 #define APZC_LOG_FM(fm, prefix, ...) \
   APZC_LOG(prefix ":" \
            " i=(%ld %lld) cb=(%d %d %d %d) rcs=(%.3f %.3f) dp=(%.3f %.3f %.3f %.3f) dpm=(%.3f %.3f %.3f %.3f) um=%d " \
-           "v=(%.3f %.3f %.3f %.3f) s=(%.3f %.3f) sr=(%.3f %.3f %.3f %.3f) z=(%.3f %.3f %.3f %.3f) u=(%d %llu)\n", \
+           "v=(%.3f %.3f %.3f %.3f) s=(%.3f %.3f) sr=(%.3f %.3f %.3f %.3f) z=(%.3f %.3f %.3f %.3f) u=(%d %lu)\n", \
            __VA_ARGS__, \
            fm.mPresShellId, fm.GetScrollId(), \
            fm.mCompositionBounds.x, fm.mCompositionBounds.y, fm.mCompositionBounds.width, fm.mCompositionBounds.height, \
@@ -1745,6 +1745,13 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     mFrameMetrics.mViewport = aLayerMetrics.mViewport;
   }
 
+  
+  
+  
+  
+  bool scrollOffsetUpdated = aLayerMetrics.GetScrollOffsetUpdated()
+        && (aLayerMetrics.GetScrollGeneration() != mFrameMetrics.GetScrollGeneration());
+
   if (aIsFirstPaint || isDefault) {
     
     
@@ -1781,14 +1788,12 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     mFrameMetrics.mCumulativeResolution = aLayerMetrics.mCumulativeResolution;
     mFrameMetrics.mHasScrollgrab = aLayerMetrics.mHasScrollgrab;
 
-    
-    
-    if (aLayerMetrics.GetScrollOffsetUpdated()) {
+    if (scrollOffsetUpdated) {
       APZC_LOG("%p updating scroll offset from (%f, %f) to (%f, %f)\n", this,
         mFrameMetrics.GetScrollOffset().x, mFrameMetrics.GetScrollOffset().y,
         aLayerMetrics.GetScrollOffset().x, aLayerMetrics.GetScrollOffset().y);
 
-      mFrameMetrics.SetScrollOffset(aLayerMetrics.GetScrollOffset());
+      mFrameMetrics.CopyScrollInfoFrom(aLayerMetrics);
 
       
       
@@ -1799,13 +1804,14 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     }
   }
 
-  if (aLayerMetrics.GetScrollOffsetUpdated()) {
+  if (scrollOffsetUpdated) {
     
     
     
     
     nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
     if (controller) {
+      APZC_LOG("%p sending scroll update acknowledgement with gen %lu\n", this, aLayerMetrics.GetScrollGeneration());
       controller->AcknowledgeScrollUpdate(aLayerMetrics.GetScrollId(),
                                           aLayerMetrics.GetScrollGeneration());
     }
