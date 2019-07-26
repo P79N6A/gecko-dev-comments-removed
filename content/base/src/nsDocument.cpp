@@ -5219,7 +5219,7 @@ nsDocument::Register(JSContext* aCx, const nsAString& aName,
     
     
     protoObject = aOptions.mPrototype;
-    if (!JS_WrapObject(aCx, protoObject.address())) {
+    if (!JS_WrapObject(aCx, &protoObject)) {
       rv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
     }

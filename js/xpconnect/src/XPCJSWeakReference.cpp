@@ -85,7 +85,7 @@ xpcJSWeakReference::Get(JSContext* aCx, JS::Value* aRetval)
     
     
     
-    if (!JS_WrapObject(aCx, obj.address())) {
+    if (!JS_WrapObject(aCx, &obj)) {
         return NS_ERROR_FAILURE;
     }
 

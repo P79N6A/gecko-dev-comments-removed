@@ -215,7 +215,7 @@ XPCWrappedNativeScope::GetComponentsJSObject()
     
     
     JS::RootedObject obj(cx, wrapper->GetFlatJSObject());
-    if (!JS_WrapObject(cx, obj.address()))
+    if (!JS_WrapObject(cx, &obj))
         return nullptr;
     return obj;
 }

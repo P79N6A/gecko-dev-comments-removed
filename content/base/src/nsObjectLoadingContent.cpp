@@ -3125,7 +3125,7 @@ nsObjectLoadingContent::LegacyCall(JSContext* aCx,
   
   
   
-  if (!JS_WrapObject(aCx, obj.address())) {
+  if (!JS_WrapObject(aCx, &obj)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return JS::UndefinedValue();
   }

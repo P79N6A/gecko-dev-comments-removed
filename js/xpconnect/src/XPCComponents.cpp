@@ -2982,29 +2982,32 @@ nsXPCComponents_Utils::GetGlobalForObject(const Value& object,
                                           JSContext *cx,
                                           Value *retval)
 {
-  
-  if (JSVAL_IS_PRIMITIVE(object))
-    return NS_ERROR_XPC_BAD_CONVERT_JS;
+    
+    if (JSVAL_IS_PRIMITIVE(object))
+        return NS_ERROR_XPC_BAD_CONVERT_JS;
 
-  
-  
-  
-  
-  
-  Rooted<JSObject*> obj(cx, JSVAL_TO_OBJECT(object));
-  obj = js::UncheckedUnwrap(obj);
-  {
-    JSAutoCompartment ac(cx, obj);
-    obj = JS_GetGlobalForObject(cx, obj);
-  }
-  JS_WrapObject(cx, obj.address());
-  *retval = OBJECT_TO_JSVAL(obj);
+    
+    
+    
+    
+    
+    Rooted<JSObject*> obj(cx, JSVAL_TO_OBJECT(object));
+    obj = js::UncheckedUnwrap(obj);
+    {
+        JSAutoCompartment ac(cx, obj);
+        obj = JS_GetGlobalForObject(cx, obj);
+    }
 
-  
-  if (JSObjectOp outerize = js::GetObjectClass(obj)->ext.outerObject)
+    if (!JS_WrapObject(cx, &obj))
+        return NS_ERROR_FAILURE;
+
+    *retval = OBJECT_TO_JSVAL(obj);
+
+    
+    if (JSObjectOp outerize = js::GetObjectClass(obj)->ext.outerObject)
       *retval = OBJECT_TO_JSVAL(outerize(cx, obj));
 
-  return NS_OK;
+    return NS_OK;
 }
 
 
@@ -3027,7 +3030,7 @@ nsXPCComponents_Utils::CreateObjectIn(const Value &vobj, JSContext *cx, Value *r
             return NS_ERROR_FAILURE;
     }
 
-    if (!JS_WrapObject(cx, obj.address()))
+    if (!JS_WrapObject(cx, &obj))
         return NS_ERROR_FAILURE;
 
     *rval = ObjectValue(*obj);
@@ -3054,7 +3057,7 @@ nsXPCComponents_Utils::CreateArrayIn(const Value &vobj, JSContext *cx, Value *rv
             return NS_ERROR_FAILURE;
     }
 
-    if (!JS_WrapObject(cx, obj.address()))
+    if (!JS_WrapObject(cx, &obj))
         return NS_ERROR_FAILURE;
 
     *rval = ObjectValue(*obj);
@@ -3081,8 +3084,9 @@ nsXPCComponents_Utils::CreateDateIn(const Value &vobj, int64_t msec, JSContext *
             return NS_ERROR_FAILURE;
     }
 
-    if (!JS_WrapObject(cx, obj.address()))
+    if (!JS_WrapObject(cx, &obj))
         return NS_ERROR_FAILURE;
+
     *rval = ObjectValue(*obj);
     return NS_OK;
 }
