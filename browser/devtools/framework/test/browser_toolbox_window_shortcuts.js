@@ -17,8 +17,7 @@ function test() {
   addTab("about:blank", function() {
     toolIDs = [];
     for (let [id, definition] of gDevTools._tools) {
-      
-      if (definition.key && id != "jsprofiler") {
+      if (definition.key) {
         toolIDs.push(id);
       }
     }
