@@ -1,0 +1,1280 @@
+
+
+
+
+
+#ifndef WritingModes_h_
+#define WritingModes_h_
+
+#include "nsRect.h"
+#include "nsStyleStruct.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define CHECK_WRITING_MODE(param) \
+   NS_ASSERTION(param == mWritingMode, "writing-mode mismatch")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+namespace mozilla {
+
+class WritingMode {
+public:
+  
+
+
+  enum InlineDir {
+    eInlineLTR = 0x00, 
+    eInlineRTL = 0x02, 
+    eInlineTTB = 0x01, 
+    eInlineBTT = 0x03, 
+  };
+
+  
+
+
+  enum BlockDir {
+    eBlockTB = 0x00, 
+    eBlockRL = 0x01, 
+    eBlockLR = 0x05, 
+  };
+
+  
+
+
+  enum BidiDir {
+    eBidiLTR = 0x00, 
+    eBidiRTL = 0x10, 
+  };
+
+  
+
+
+  enum {
+    eUnknownWritingMode = 0xff
+  };
+
+  
+
+
+  InlineDir GetInlineDir() const { return InlineDir(mWritingMode & eInlineMask); }
+
+  
+
+
+  BlockDir GetBlockDir() const { return BlockDir(mWritingMode & eBlockMask); }
+
+  
+
+
+  BidiDir GetBidiDir() const { return BidiDir(mWritingMode & eBidiMask); }
+
+  
+
+
+  bool IsBidiLTR() const { return eBidiLTR == (mWritingMode & eBidiMask); }
+
+  
+
+
+  bool IsVerticalLR() const { return eBlockLR == (mWritingMode & eBlockMask); }
+
+  
+
+
+
+#ifdef WRITING_MODE_VERTICAL_ENABLED
+  bool IsVertical() const { return !!(mWritingMode & eOrientationMask); }
+#else
+  bool IsVertical() const { return false; }
+#endif
+
+  
+
+
+
+
+
+#ifdef WRITING_MODE_VERTICAL_ENABLED
+  bool IsLineInverted() const { return !!(mWritingMode & eLineOrientMask); }
+#else
+  bool IsLineInverted() const { return false; }
+#endif
+
+  
+
+
+
+
+
+  int FlowRelativeToLineRelativeFactor() const
+  {
+    return IsLineInverted() ? -1 : 1;
+  }
+
+  
+
+
+
+
+  WritingMode()
+    : mWritingMode(0)
+  { }
+
+  
+
+
+  WritingMode(const nsStyleVisibility* aStyleVisibility)
+  {
+    NS_ASSERTION(aStyleVisibility, "we need an nsStyleVisibility here");
+
+#ifdef WRITING_MODE_VERTICAL_ENABLED
+    switch (aStyleVisibility->mWritingMode) {
+      case NS_STYLE_WRITING_MODE_HORIZONTAL_TB:
+        mWritingMode = 0;
+        break;
+
+      case NS_STYLE_WRITING_MODE_VERTICAL_LR:
+        mWritingMode = eBlockFlowMask |
+                       eLineOrientMask | 
+                       eOrientationMask;
+        break;
+
+      case NS_STYLE_WRITING_MODE_VERTICAL_RL:
+        mWritingMode = eOrientationMask;
+        break;
+
+      default:
+        NS_NOTREACHED("unknown writing mode!");
+        mWritingMode = 0;
+        break;
+    }
+#else
+    mWritingMode = 0;
+#endif
+
+    if (NS_STYLE_DIRECTION_RTL == aStyleVisibility->mDirection) {
+      mWritingMode |= eInlineFlowMask | 
+                      eBidiMask;
+    }
+  }
+
+  
+
+
+  bool operator==(const WritingMode& aOther) const
+  {
+    return mWritingMode == aOther.mWritingMode;
+  }
+
+private:
+  friend class LogicalPoint;
+  friend class LogicalSize;
+  friend class LogicalMargin;
+  friend class LogicalRect;
+
+  
+
+
+  static inline WritingMode Unknown()
+  {
+    return WritingMode(eUnknownWritingMode);
+  }
+
+  
+
+
+
+  WritingMode(uint8_t aValue)
+    : mWritingMode(aValue)
+  { }
+
+  uint8_t mWritingMode;
+
+  enum Masks {
+    
+    eOrientationMask = 0x01, 
+    eInlineFlowMask  = 0x02, 
+    eBlockFlowMask   = 0x04, 
+    eLineOrientMask  = 0x08, 
+    eBidiMask        = 0x10, 
+    
+    
+
+    
+    eInlineMask = 0x03,
+    eBlockMask  = 0x05
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class LogicalPoint {
+public:
+  LogicalPoint(WritingMode aWritingMode)
+    :
+#ifdef DEBUG
+      mWritingMode(aWritingMode),
+#endif
+      mPoint(0, 0)
+  { }
+
+  
+  
+  LogicalPoint(WritingMode aWritingMode, nscoord aI, nscoord aB)
+    :
+#ifdef DEBUG
+      mWritingMode(aWritingMode),
+#endif
+      mPoint(aI, aB)
+  { }
+
+  
+  
+  
+  LogicalPoint(WritingMode aWritingMode,
+               const nsPoint& aPoint,
+               nscoord aContainerWidth)
+#ifdef DEBUG
+    : mWritingMode(aWritingMode)
+#endif
+  {
+    if (aWritingMode.IsVertical()) {
+      I() = aPoint.y;
+      B() = aWritingMode.IsVerticalLR() ? aPoint.x : aContainerWidth - aPoint.x;
+    } else {
+      I() = aWritingMode.IsBidiLTR() ? aPoint.x : aContainerWidth - aPoint.x;
+      B() = aPoint.y;
+    }
+  }
+
+  
+
+
+
+  nscoord I(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mPoint.x;
+  }
+  nscoord B(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mPoint.y;
+  }
+
+  nscoord X(WritingMode aWritingMode, nscoord aContainerWidth) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      return aWritingMode.IsVerticalLR() ? B() : aContainerWidth - B();
+    } else {
+      return aWritingMode.IsBidiLTR() ? I() : aContainerWidth - I();
+    }
+  }
+  nscoord Y(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ? I() : B();
+  }
+
+  
+
+
+
+  nscoord& I(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mPoint.x;
+  }
+  nscoord& B(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mPoint.y;
+  }
+
+  
+
+
+  void SetX(WritingMode aWritingMode, nscoord aX, nscoord aContainerWidth)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      B() = aWritingMode.IsVerticalLR() ? aX : aContainerWidth - aX;
+    } else {
+      I() = aWritingMode.IsBidiLTR() ? aX : aContainerWidth - aX;
+    }
+  }
+  void SetY(WritingMode aWritingMode, nscoord aY)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      B() = aY;
+    } else {
+      I() = aY;
+    }
+  }
+
+  
+
+
+
+  nsPoint GetPhysicalPoint(WritingMode aWritingMode,
+                           nscoord aContainerWidth) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      return nsPoint(aWritingMode.IsVerticalLR() ? B() : aContainerWidth - B(),
+                     I());
+    } else {
+      return nsPoint(aWritingMode.IsBidiLTR() ? I() : aContainerWidth - I(),
+                     B());
+    }
+  }
+
+  
+
+
+  LogicalPoint ConvertTo(WritingMode aToMode, WritingMode aFromMode,
+                         nscoord aContainerWidth) const
+  {
+    CHECK_WRITING_MODE(aFromMode);
+    return aToMode == aFromMode ?
+      *this : LogicalPoint(aToMode,
+                           GetPhysicalPoint(aFromMode, aContainerWidth),
+                           aContainerWidth);
+  }
+
+  LogicalPoint operator+(const LogicalPoint& aOther) const
+  {
+    CHECK_WRITING_MODE(aOther.GetWritingMode());
+    
+    
+    
+    return LogicalPoint(GetWritingMode(),
+                        mPoint.x + aOther.mPoint.x,
+                        mPoint.y + aOther.mPoint.y);
+  }
+
+private:
+  friend class LogicalRect;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+#ifdef DEBUG
+  WritingMode GetWritingMode() const { return mWritingMode; }
+#else
+  WritingMode GetWritingMode() const { return WritingMode::Unknown(); }
+#endif
+
+  
+  LogicalPoint() MOZ_DELETE;
+
+  
+  
+  
+  nscoord I() const 
+  {
+    return mPoint.x;
+  }
+  nscoord B() const 
+  {
+    return mPoint.y;
+  }
+
+  nscoord& I() 
+  {
+    return mPoint.x;
+  }
+  nscoord& B() 
+  {
+    return mPoint.y;
+  }
+
+  WritingMode mWritingMode;
+
+  
+  
+  
+  
+  nsPoint mPoint;
+};
+
+
+
+
+class LogicalSize {
+public:
+  LogicalSize(WritingMode aWritingMode)
+    :
+#ifdef DEBUG
+      mWritingMode(aWritingMode),
+#endif
+      mSize(0, 0)
+  { }
+
+  LogicalSize(WritingMode aWritingMode, nscoord aISize, nscoord aBSize)
+    :
+#ifdef DEBUG
+      mWritingMode(aWritingMode),
+#endif
+      mSize(aISize, aBSize)
+  { }
+
+  LogicalSize(WritingMode aWritingMode, const nsSize& aPhysicalSize)
+#ifdef DEBUG
+    : mWritingMode(aWritingMode)
+#endif
+  {
+    if (aWritingMode.IsVertical()) {
+      ISize() = aPhysicalSize.height;
+      BSize() = aPhysicalSize.width;
+    } else {
+      ISize() = aPhysicalSize.width;
+      BSize() = aPhysicalSize.height;
+    }
+  }
+
+  
+
+
+  nscoord ISize(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mSize.width;
+  }
+  nscoord BSize(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mSize.height;
+  }
+
+  nscoord Width(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ? BSize() : ISize();
+  }
+  nscoord Height(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ? ISize() : BSize();
+  }
+
+  
+
+
+  nscoord& ISize(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mSize.width;
+  }
+  nscoord& BSize(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mSize.height;
+  }
+
+  
+
+
+  void SetWidth(WritingMode aWritingMode, nscoord aWidth)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      BSize() = aWidth;
+    } else {
+      ISize() = aWidth;
+    }
+  }
+  void SetHeight(WritingMode aWritingMode, nscoord aHeight)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      ISize() = aHeight;
+    } else {
+      BSize() = aHeight;
+    }
+  }
+
+  
+
+
+  nsSize GetPhysicalSize(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ?
+      nsSize(BSize(), ISize()) : nsSize(ISize(), BSize());
+  }
+
+  
+
+
+  LogicalSize ConvertTo(WritingMode aToMode, WritingMode aFromMode) const
+  {
+    CHECK_WRITING_MODE(aFromMode);
+    return aToMode == aFromMode ?
+      *this : LogicalSize(aToMode, GetPhysicalSize(aFromMode));
+  }
+
+private:
+  friend class LogicalRect;
+
+  LogicalSize() MOZ_DELETE;
+
+#ifdef DEBUG
+  WritingMode GetWritingMode() const { return mWritingMode; }
+#else
+  WritingMode GetWritingMode() const { return WritingMode::Unknown(); }
+#endif
+
+  nscoord ISize() const 
+  {
+    return mSize.width;
+  }
+  nscoord BSize() const 
+  {
+    return mSize.height;
+  }
+
+  nscoord& ISize() 
+  {
+    return mSize.width;
+  }
+  nscoord& BSize() 
+  {
+    return mSize.height;
+  }
+
+  WritingMode mWritingMode;
+  nsSize      mSize;
+};
+
+
+
+
+class LogicalMargin {
+public:
+  LogicalMargin(WritingMode aWritingMode)
+    :
+#ifdef DEBUG
+      mWritingMode(aWritingMode),
+#endif
+      mMargin(0, 0, 0, 0)
+  { }
+
+  LogicalMargin(WritingMode aWritingMode,
+                nscoord aBStart, nscoord aIEnd,
+                nscoord aBEnd, nscoord aIStart)
+    :
+#ifdef DEBUG
+      mWritingMode(aWritingMode),
+#endif
+      mMargin(aBStart, aIEnd, aBEnd, aIStart)
+  { }
+
+  LogicalMargin(WritingMode aWritingMode, const nsMargin& aPhysicalMargin)
+#ifdef DEBUG
+    : mWritingMode(aWritingMode)
+#endif
+  {
+    if (aWritingMode.IsVertical()) {
+      if (aWritingMode.IsVerticalLR()) {
+        mMargin.top = aPhysicalMargin.left;
+        mMargin.bottom = aPhysicalMargin.right;
+      } else {
+        mMargin.top = aPhysicalMargin.right;
+        mMargin.bottom = aPhysicalMargin.left;
+      }
+      if (aWritingMode.IsBidiLTR()) {
+        mMargin.left = aPhysicalMargin.top;
+        mMargin.right = aPhysicalMargin.bottom;
+      } else {
+        mMargin.left = aPhysicalMargin.bottom;
+        mMargin.right = aPhysicalMargin.top;
+      }
+    } else {
+      mMargin.top = aPhysicalMargin.top;
+      mMargin.bottom = aPhysicalMargin.bottom;
+      if (aWritingMode.IsBidiLTR()) {
+        mMargin.left = aPhysicalMargin.left;
+        mMargin.right = aPhysicalMargin.right;
+      } else {
+        mMargin.left = aPhysicalMargin.right;
+        mMargin.right = aPhysicalMargin.left;
+      }
+    }
+  }
+
+  nscoord IStart(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mMargin.left;
+  }
+  nscoord IEnd(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mMargin.right;
+  }
+  nscoord BStart(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mMargin.top;
+  }
+  nscoord BEnd(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mMargin.bottom;
+  }
+
+  nscoord& IStart(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mMargin.left;
+  }
+  nscoord& IEnd(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mMargin.right;
+  }
+  nscoord& BStart(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mMargin.top;
+  }
+  nscoord& BEnd(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mMargin.bottom;
+  }
+
+  nscoord IStartEnd(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mMargin.LeftRight();
+  }
+  nscoord BStartEnd(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mMargin.TopBottom();
+  }
+
+  
+
+
+
+  nscoord Top(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ?
+      (aWritingMode.IsBidiLTR() ? IStart() : IEnd()) : BStart();
+  }
+
+  nscoord Bottom(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ?
+      (aWritingMode.IsBidiLTR() ? IEnd() : IStart()) : BEnd();
+  }
+
+  nscoord Left(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ?
+      (aWritingMode.IsVerticalLR() ? BStart() : BEnd()) :
+      (aWritingMode.IsBidiLTR() ? IStart() : IEnd());
+  }
+
+  nscoord Right(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ?
+      (aWritingMode.IsVerticalLR() ? BEnd() : BStart()) :
+      (aWritingMode.IsBidiLTR() ? IEnd() : IStart());
+  }
+
+  nscoord LeftRight(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ? BStartEnd() : IStartEnd();
+  }
+
+  nscoord TopBottom(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ? IStartEnd() : BStartEnd();
+  }
+
+  void SizeTo(WritingMode aWritingMode,
+              nscoord aBStart, nscoord aIEnd, nscoord aBEnd, nscoord aIStart)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    mMargin.SizeTo(aBStart, aIEnd, aBEnd, aIStart);
+  }
+
+  
+
+
+  nsMargin GetPhysicalMargin(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ?
+      (aWritingMode.IsVerticalLR() ?
+        nsMargin(IStart(), BEnd(), IEnd(), BStart()) :
+        nsMargin(IStart(), BStart(), IEnd(), BEnd())) :
+      (aWritingMode.IsBidiLTR() ?
+        nsMargin(BStart(), IEnd(), BEnd(), IStart()) :
+        nsMargin(BStart(), IStart(), BEnd(), IEnd()));
+  }
+
+  
+
+
+
+  LogicalMargin ConvertTo(WritingMode aToMode, WritingMode aFromMode) const
+  {
+    CHECK_WRITING_MODE(aFromMode);
+    return aToMode == aFromMode ?
+      *this : LogicalMargin(aToMode, GetPhysicalMargin(aFromMode));
+  }
+
+private:
+  friend class LogicalRect;
+
+  LogicalMargin() MOZ_DELETE;
+
+#ifdef DEBUG
+  WritingMode GetWritingMode() const { return mWritingMode; }
+#else
+  WritingMode GetWritingMode() const { return WritingMode::Unknown(); }
+#endif
+
+  nscoord IStart() const 
+  {
+    return mMargin.left;
+  }
+  nscoord IEnd() const 
+  {
+    return mMargin.right;
+  }
+  nscoord BStart() const 
+  {
+    return mMargin.top;
+  }
+  nscoord BEnd() const 
+  {
+    return mMargin.bottom;
+  }
+
+  nscoord& IStart() 
+  {
+    return mMargin.left;
+  }
+  nscoord& IEnd() 
+  {
+    return mMargin.right;
+  }
+  nscoord& BStart() 
+  {
+    return mMargin.top;
+  }
+  nscoord& BEnd() 
+  {
+    return mMargin.bottom;
+  }
+
+  nscoord IStartEnd() const 
+  {
+    return mMargin.LeftRight();
+  }
+  nscoord BStartEnd() const 
+  {
+    return mMargin.TopBottom();
+  }
+
+  WritingMode mWritingMode;
+  nsMargin    mMargin;
+};
+
+
+
+
+class LogicalRect {
+public:
+  LogicalRect(WritingMode aWritingMode)
+    :
+#ifdef DEBUG
+      mWritingMode(aWritingMode),
+#endif
+      mRect(0, 0, 0, 0)
+  { }
+
+  LogicalRect(WritingMode aWritingMode,
+              nscoord aIStart, nscoord aBStart,
+              nscoord aISize, nscoord aBSize)
+    :
+#ifdef DEBUG
+      mWritingMode(aWritingMode),
+#endif
+      mRect(aIStart, aBStart, aISize, aBSize)
+  { }
+
+  LogicalRect(WritingMode aWritingMode,
+              const LogicalPoint& aOrigin,
+              const LogicalSize& aSize)
+    : 
+#ifdef DEBUG
+      mWritingMode(aWritingMode),
+#endif
+      mRect(aOrigin.mPoint, aSize.mSize)
+  {
+    CHECK_WRITING_MODE(aOrigin.GetWritingMode());
+    CHECK_WRITING_MODE(aSize.GetWritingMode());
+  }
+
+  LogicalRect(WritingMode aWritingMode,
+              const nsRect& aRect,
+              nscoord aContainerWidth)
+#ifdef DEBUG
+    : mWritingMode(aWritingMode)
+#endif
+  {
+    if (aWritingMode.IsVertical()) {
+      if (aWritingMode.IsVerticalLR()) {
+        mRect.y = aRect.x;
+      } else {
+        mRect.y = aContainerWidth - aRect.XMost();
+      }
+      mRect.height = aRect.width;
+      mRect.x = aRect.y;
+      mRect.width = aRect.height;
+    } else {
+      if (aWritingMode.IsBidiLTR()) {
+        mRect.x = aRect.x;
+      } else {
+        mRect.x = aContainerWidth - aRect.XMost();
+      }
+      mRect.width = aRect.width;
+      mRect.y = aRect.y;
+      mRect.height = aRect.height;
+    }
+  }
+
+  
+
+
+  nscoord IStart(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mRect.X();
+  }
+  nscoord IEnd(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mRect.XMost();
+  }
+  nscoord ISize(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mRect.Width();
+  }
+
+  nscoord BStart(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mRect.Y();
+  }
+  nscoord BEnd(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mRect.YMost();
+  }
+  nscoord BSize(WritingMode aWritingMode) const 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mRect.Height();
+  }
+
+  
+
+
+
+  nscoord& IStart(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mRect.x;
+  }
+  nscoord& ISize(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mRect.width;
+  }
+  nscoord& BStart(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mRect.y;
+  }
+  nscoord& BSize(WritingMode aWritingMode) 
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mRect.height;
+  }
+
+  
+
+
+  nscoord X(WritingMode aWritingMode, nscoord aContainerWidth) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      return aWritingMode.IsVerticalLR() ?
+             mRect.Y() : aContainerWidth - mRect.YMost();
+    } else {
+      return aWritingMode.IsBidiLTR() ?
+             mRect.X() : aContainerWidth - mRect.XMost();
+    }
+  }
+
+  void SetX(WritingMode aWritingMode, nscoord aX, nscoord aContainerWidth)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      if (aWritingMode.IsVerticalLR()) {
+        BStart() = aX;
+      } else {
+        BStart() = aContainerWidth - aX - BSize();
+      }
+    } else {
+      if (aWritingMode.IsBidiLTR()) {
+        IStart() = aX;
+      } else {
+        IStart() = aContainerWidth - aX - ISize();
+      }
+    }
+  }
+
+  nscoord Y(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ? mRect.X() : mRect.Y();
+  }
+
+  void SetY(WritingMode aWritingMode, nscoord aY)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      IStart() = aY;
+    } else {
+      BStart() = aY;
+    }
+  }
+
+  nscoord Width(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ? mRect.Height() : mRect.Width();
+  }
+
+  
+  
+  
+  void SetWidth(WritingMode aWritingMode, nscoord aWidth)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      if (!aWritingMode.IsVerticalLR()) {
+        BStart() = BStart() + BSize() - aWidth;
+      }
+      BSize() = aWidth;
+    } else {
+      if (!aWritingMode.IsBidiLTR()) {
+        IStart() = IStart() + ISize() - aWidth;
+      }
+      ISize() = aWidth;
+    }
+  }
+
+  nscoord Height(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ? mRect.Width() : mRect.Height();
+  }
+
+  void SetHeight(WritingMode aWritingMode, nscoord aHeight)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      ISize() = aHeight;
+    } else {
+      BSize() = aHeight;
+    }
+  }
+
+  nscoord XMost(WritingMode aWritingMode, nscoord aContainerWidth) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      return aWritingMode.IsVerticalLR() ?
+             mRect.YMost() : aContainerWidth - mRect.Y();
+    } else {
+      return aWritingMode.IsBidiLTR() ?
+             mRect.XMost() : aContainerWidth - mRect.X();
+    }
+  }
+
+  nscoord YMost(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return aWritingMode.IsVertical() ? mRect.XMost() : mRect.YMost();
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  LogicalPoint Origin(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return LogicalPoint(aWritingMode, IStart(), BStart());
+  }
+  LogicalSize Size(WritingMode aWritingMode) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    return LogicalSize(aWritingMode, ISize(), BSize());
+  }
+
+  LogicalRect operator+(const LogicalPoint& aPoint) const
+  {
+    CHECK_WRITING_MODE(aPoint.GetWritingMode());
+    return LogicalRect(GetWritingMode(),
+                       IStart() + aPoint.I(), BStart() + aPoint.B(),
+                       ISize(), BSize());
+  }
+
+  LogicalRect& operator+=(const LogicalPoint& aPoint)
+  {
+    CHECK_WRITING_MODE(aPoint.GetWritingMode());
+    mRect += aPoint.mPoint;
+    return *this;
+  }
+
+  LogicalRect operator-(const LogicalPoint& aPoint) const
+  {
+    CHECK_WRITING_MODE(aPoint.GetWritingMode());
+    return LogicalRect(GetWritingMode(),
+                       IStart() - aPoint.I(), BStart() - aPoint.B(),
+                       ISize(), BSize());
+  }
+
+  LogicalRect& operator-=(const LogicalPoint& aPoint)
+  {
+    CHECK_WRITING_MODE(aPoint.GetWritingMode());
+    mRect -= aPoint.mPoint;
+    return *this;
+  }
+
+  void MoveBy(WritingMode aWritingMode, const LogicalPoint& aDelta)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    CHECK_WRITING_MODE(aDelta.GetWritingMode());
+    IStart() += aDelta.I();
+    BStart() += aDelta.B();
+  }
+
+  void Inflate(nscoord aD) { mRect.Inflate(aD); }
+  void Inflate(nscoord aDI, nscoord aDB) { mRect.Inflate(aDI, aDB); }
+  void Inflate(WritingMode aWritingMode, const LogicalMargin& aMargin)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    CHECK_WRITING_MODE(aMargin.GetWritingMode());
+    mRect.Inflate(aMargin.mMargin);
+  }
+
+  void Deflate(nscoord aD) { mRect.Deflate(aD); }
+  void Deflate(nscoord aDI, nscoord aDB) { mRect.Deflate(aDI, aDB); }
+  void Deflate(WritingMode aWritingMode, const LogicalMargin& aMargin)
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    CHECK_WRITING_MODE(aMargin.GetWritingMode());
+    mRect.Deflate(aMargin.mMargin);
+  }
+
+  
+
+
+
+  nsRect GetPhysicalRect(WritingMode aWritingMode,
+                         nscoord aContainerWidth) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      return nsRect(aWritingMode.IsVerticalLR() ?
+                      BStart() : aContainerWidth - BEnd(),
+                    IStart(), BSize(), ISize());
+    } else {
+      return nsRect(aWritingMode.IsBidiLTR() ?
+                      IStart() : aContainerWidth - IEnd(),
+                    BStart(), ISize(), BSize());
+    }
+  }
+
+#if 0 
+  
+
+
+  LogicalRect ConvertTo(WritingMode aToMode, WritingMode aFromMode) const
+  {
+    CHECK_WRITING_MODE(aFromMode);
+    return aToMode == aFromMode ?
+      *this : LogicalRect(aToMode, GetPhysicalRect(aFromMode));
+  }
+#endif
+
+private:
+  LogicalRect() MOZ_DELETE;
+
+#ifdef DEBUG
+  WritingMode GetWritingMode() const { return mWritingMode; }
+#else
+  WritingMode GetWritingMode() const { return WritingMode::Unknown(); }
+#endif
+
+  nscoord IStart() const 
+  {
+    return mRect.X();
+  }
+  nscoord IEnd() const 
+  {
+    return mRect.XMost();
+  }
+  nscoord ISize() const 
+  {
+    return mRect.Width();
+  }
+
+  nscoord BStart() const 
+  {
+    return mRect.Y();
+  }
+  nscoord BEnd() const 
+  {
+    return mRect.YMost();
+  }
+  nscoord BSize() const 
+  {
+    return mRect.Height();
+  }
+
+  nscoord& IStart() 
+  {
+    return mRect.x;
+  }
+  nscoord& ISize() 
+  {
+    return mRect.width;
+  }
+  nscoord& BStart() 
+  {
+    return mRect.y;
+  }
+  nscoord& BSize() 
+  {
+    return mRect.height;
+  }
+
+  WritingMode mWritingMode;
+  nsRect      mRect;
+};
+
+} 
+
+#endif 
