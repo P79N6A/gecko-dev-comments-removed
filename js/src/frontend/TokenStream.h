@@ -671,8 +671,10 @@ class TokenStream
 
     class TokenBuf {
       public:
-        TokenBuf(const jschar *buf, size_t length)
-          : base_(buf), limit_(buf + length), ptr(buf) { }
+        TokenBuf(JSContext *cx, const jschar *buf, size_t length)
+          : base_(buf), limit_(buf + length), ptr(buf),
+            skipBase(cx, &base_), skipLimit(cx, &limit_), skipPtr(cx, &ptr)
+        { }
 
         bool hasRawChars() const {
             return ptr < limit_;
@@ -750,6 +752,9 @@ class TokenStream
         const jschar *base_;            
         const jschar *limit_;           
         const jschar *ptr;              
+
+        
+        SkipRoot skipBase, skipLimit, skipPtr;
     };
 
     TokenKind getTokenInternal();     
@@ -820,6 +825,10 @@ class TokenStream
 
 
     SkipRoot            tokenSkip;
+
+    
+    SkipRoot            linebaseSkip;
+    SkipRoot            prevLinebaseSkip;
 };
 
 struct KeywordInfo {
