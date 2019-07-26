@@ -35,7 +35,6 @@ webidl_files = \
   Performance.webidl \
   PerformanceNavigation.webidl \
   PerformanceTiming.webidl \
-  Screen.webidl \
   SVGLengthList.webidl \
   SVGNumberList.webidl \
   SVGPathSegList.webidl \
@@ -52,6 +51,12 @@ webidl_files = \
 ifdef MOZ_WEBGL
 webidl_files += \
   WebGLRenderingContext.webidl \
+  $(NULL)
+endif
+
+ifdef MOZ_WEBRTC
+webidl_files += \
+  MediaStreamList.webidl \
   $(NULL)
 endif
 
