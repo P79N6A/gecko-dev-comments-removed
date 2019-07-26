@@ -1432,7 +1432,7 @@ JS_GetArrayBufferViewData(JSObject *obj);
 
 
 extern JS_FRIEND_API(JSObject *)
-JS_GetArrayBufferViewBuffer(JSContext *cx, JSObject *obj);
+JS_GetArrayBufferViewBuffer(JSObject *obj);
 
 
 

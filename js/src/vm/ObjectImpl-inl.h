@@ -13,12 +13,9 @@
 #include "jsproxy.h"
 
 #include "vm/ProxyObject.h"
-#include "vm/TypedArrayObject.h"
-
-namespace js {
 
  inline bool
-ObjectImpl::isExtensible(ExclusiveContext *cx, Handle<ObjectImpl*> obj, bool *extensible)
+js::ObjectImpl::isExtensible(ExclusiveContext *cx, js::Handle<ObjectImpl*> obj, bool *extensible)
 {
     if (obj->asObjectPtr()->is<ProxyObject>()) {
         if (!cx->shouldBeJSContext())
@@ -31,25 +28,5 @@ ObjectImpl::isExtensible(ExclusiveContext *cx, Handle<ObjectImpl*> obj, bool *ex
     *extensible = obj->nonProxyIsExtensible();
     return true;
 }
-
-inline bool
-ClassCanHaveFixedData(const Class *clasp)
-{
-    
-    
-    
-    
-    return clasp == &ArrayBufferObject::class_ || IsTypedArrayClass(clasp);
-}
-
-inline void *
-ObjectImpl::fixedData(size_t nslots) const
-{
-    JS_ASSERT(ClassCanHaveFixedData(getClass()));
-    JS_ASSERT(nslots == numFixedSlots() + (hasPrivate() ? 1 : 0));
-    return &fixedSlots()[nslots];
-}
-
-} 
 
 #endif 

@@ -1256,9 +1256,14 @@ NewObject(ExclusiveContext *cx, types::TypeObject *type_, JSObject *parent, gc::
     
     
     
-    size_t nfixed = ClassCanHaveFixedData(clasp)
-                    ? GetGCKindSlots(gc::GetGCObjectKind(clasp), clasp)
-                    : GetGCKindSlots(kind, clasp);
+    
+    size_t nfixed;
+    if (clasp == &ArrayBufferObject::class_) {
+        JS_STATIC_ASSERT(ArrayBufferObject::RESERVED_SLOTS == 4);
+        nfixed = ArrayBufferObject::RESERVED_SLOTS;
+    } else {
+        nfixed = GetGCKindSlots(kind, clasp);
+    }
 
     RootedShape shape(cx, EmptyShape::getInitialShape(cx, clasp, type->proto(),
                                                       parent, metadata, nfixed));
