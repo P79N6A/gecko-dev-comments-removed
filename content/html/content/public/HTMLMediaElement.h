@@ -44,6 +44,7 @@ class MediaDecoder;
 }
 
 class nsITimer;
+class nsRange;
 
 namespace mozilla {
 namespace dom {
@@ -882,7 +883,7 @@ protected:
 
   
   
-  nsCOMPtr<nsIDOMRange> mSourcePointer;
+  nsRefPtr<nsRange> mSourcePointer;
 
   
   
