@@ -503,7 +503,7 @@ protected:
 
 
 
-  line_iterator RemoveFloat(nsIFrame* aFloat);
+  void RemoveFloat(nsIFrame* aFloat);
 
   void CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
                      bool aFromOverflow, bool aCollectFromSiblings);
