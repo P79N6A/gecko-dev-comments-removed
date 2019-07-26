@@ -139,8 +139,8 @@ nsXPConnect::~nsXPConnect()
 
 
 void
-    nsXPConnect::InitStatics()
-    {
+nsXPConnect::InitStatics()
+{
     gSelf = new nsXPConnect();
     gOnceAliveNowDead = false;
     if (!gSelf->mRuntime) {
@@ -1348,12 +1348,6 @@ PopJSContextNoScriptContext()
     XPCJSRuntime::Get()->GetJSContextStack()->Pop();
 }
 
-bool
-IsJSContextOnStack(JSContext *aCx)
-{
-  return XPCJSRuntime::Get()->GetJSContextStack()->HasJSContext(aCx);
-}
-
 } 
 
 nsIPrincipal*
@@ -1398,13 +1392,6 @@ nsXPConnect::HoldObject(JSContext *aJSContext, JSObject *aObjectArg,
 }
 
 namespace xpc {
-
-bool
-DeferredRelease(nsISupports *obj)
-{
-    nsContentUtils::DeferredFinalize(obj);
-    return true;
-}
 
 NS_EXPORT_(bool)
 Base64Encode(JSContext *cx, JS::Value val, JS::Value *out)
