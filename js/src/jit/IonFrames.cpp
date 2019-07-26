@@ -229,6 +229,13 @@ JitFrameIterator::baselineScriptAndPc(JSScript **scriptRes, jsbytecode **pcRes) 
 
     
     
+    if (jsbytecode *overridePc = baselineFrame()->getUnwoundScopeOverridePc()) {
+        *pcRes = overridePc;
+        return;
+    }
+
+    
+    
     if (BaselineDebugModeOSRInfo *info = baselineFrame()->getDebugModeOSRInfo())
         retAddr = info->resumeAddr;
 
@@ -520,8 +527,19 @@ HandleExceptionBaseline(JSContext *cx, const JitFrameIterator &frame, ResumeFrom
             continue;
 
         
-        if (cx->isExceptionPending())
-            UnwindScope(cx, si, script->main() + tn->start);
+        if (cx->isExceptionPending()) {
+            jsbytecode *unwindPc = script->main() + tn->start;
+            UnwindScope(cx, si, unwindPc);
+
+            
+            
+            
+            if (tn->kind != JSTRY_CATCH && tn->kind != JSTRY_FINALLY &&
+                cx->compartment()->debugMode() && !*calledDebugEpilogue)
+            {
+                frame.baselineFrame()->setUnwoundScopeOverridePc(unwindPc);
+            }
+        }
 
         
         rfe->framePointer = frame.fp() - BaselineFrame::FramePointerOffset;

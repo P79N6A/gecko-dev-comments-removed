@@ -63,7 +63,16 @@ class BaselineFrame
 
         
         
-        HAS_DEBUG_MODE_OSR_INFO = 1 << 10
+        HAS_DEBUG_MODE_OSR_INFO = 1 << 10,
+
+        
+        
+        
+        
+        
+        
+        
+        HAS_UNWOUND_SCOPE_OVERRIDE_PC = 1 << 11
     };
 
   protected: 
@@ -71,17 +80,15 @@ class BaselineFrame
     
     uint32_t loScratchValue_;
     uint32_t hiScratchValue_;
-    uint32_t loReturnValue_;        
+    uint32_t loReturnValue_;              
     uint32_t hiReturnValue_;
     uint32_t frameSize_;
-    JSObject *scopeChain_;          
-    JSScript *evalScript_;          
-    ArgumentsObject *argsObj_;      
-    void *hookData_;                
+    JSObject *scopeChain_;                
+    JSScript *evalScript_;                
+    ArgumentsObject *argsObj_;            
+    void *hookData_;                      
+    uint32_t unwoundScopeOverrideOffset_; 
     uint32_t flags_;
-#if JS_BITS_PER_WORD == 32
-    uint32_t padding_;              
-#endif
 
   public:
     
@@ -319,6 +326,22 @@ class BaselineFrame
     }
 
     void deleteDebugModeOSRInfo();
+
+    jsbytecode *unwoundScopeOverridePc() {
+        MOZ_ASSERT(flags_ & HAS_UNWOUND_SCOPE_OVERRIDE_PC);
+        return script()->offsetToPC(unwoundScopeOverrideOffset_);
+    }
+
+    jsbytecode *getUnwoundScopeOverridePc() {
+        if (flags_ & HAS_UNWOUND_SCOPE_OVERRIDE_PC)
+            return unwoundScopeOverridePc();
+        return nullptr;
+    }
+
+    void setUnwoundScopeOverridePc(jsbytecode *pc) {
+        flags_ |= HAS_UNWOUND_SCOPE_OVERRIDE_PC;
+        unwoundScopeOverrideOffset_ = script()->pcToOffset(pc);
+    }
 
     void trace(JSTracer *trc, JitFrameIterator &frame);
 
