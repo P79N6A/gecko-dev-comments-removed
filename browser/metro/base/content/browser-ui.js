@@ -569,11 +569,16 @@ var BrowserUI = {
         break;
       case "metro_viewstate_changed":
         this._adjustDOMforViewState();
+        let autocomplete = document.getElementById("start-autocomplete");
         if (aData == "snapped") {
           FlyoutPanelsUI.hide();
           
           
           Services.obs.notifyObservers(null, "metro_viewstate_dom_snapped", null);
+          autocomplete.setAttribute("orient", "vertical");
+        }
+        else {
+          autocomplete.setAttribute("orient", "horizontal");
         }
         break;
     }
