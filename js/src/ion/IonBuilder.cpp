@@ -5216,12 +5216,15 @@ IonBuilder::jsop_not()
 
 inline bool
 IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id,
-                   JSFunction **funcp, bool isGetter)
+                               JSFunction **funcp, bool isGetter, bool *isDOM)
 {
     JSObject *found = NULL;
     JSObject *foundProto = NULL;
 
     *funcp = NULL;
+    *isDOM = false;
+
+    bool thinkDOM = true;
 
     
     if (!types || types->unknownObject())
@@ -5252,11 +5255,18 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
                 return true;
 
             
+            thinkDOM = thinkDOM && !typeObj->hasAnyFlags(types::OBJECT_FLAG_NON_DOM);
+
+            
             curObj = typeObj->proto;
         } else {
             
             if (!isGetter && curObj->watched())
                 return true;
+
+            
+            types::TypeObject *objType = curObj->getType(cx);
+            thinkDOM = thinkDOM && !objType->hasAnyFlags(types::OBJECT_FLAG_NON_DOM);
         }
 
         
@@ -5356,6 +5366,14 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
         }
 
         
+        if (thinkDOM) {
+            
+            DebugOnly<bool> wasntDOM = types::TypeSet::HasObjectFlags(cx, curType,
+                                                           types::OBJECT_FLAG_NON_DOM);
+            JS_ASSERT(!wasntDOM);
+        }
+
+        
         
         if (obj != foundProto) {
             
@@ -5365,7 +5383,7 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
                 types::TypeSet *propSet = curType->getProperty(cx, typeId, false);
                 JS_ASSERT(propSet);
                 
-                bool isOwn = propSet->isOwnProperty(cx, curType, false);
+                DebugOnly<bool> isOwn = propSet->isOwnProperty(cx, curType, false);
                 JS_ASSERT(!isOwn);
                 
                 
@@ -5378,6 +5396,41 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
     }
 
     *funcp = found->toFunction();
+    *isDOM = thinkDOM;
+
+    return true;
+}
+
+static bool
+TestShouldDOMCall(JSContext *cx, types::TypeSet *inTypes, HandleFunction func)
+{
+    if (!func->isNative() || !func->jitInfo())
+        return false;
+    
+    
+    
+    DOMInstanceClassMatchesProto instanceChecker =
+        GetDOMCallbacks(cx->runtime)->instanceClassMatchesProto;
+
+    const JSJitInfo *jinfo = func->jitInfo();
+
+    for (unsigned i = 0; i < inTypes->getObjectCount(); i++) {
+        types::TypeObject *curType = inTypes->getTypeObject(i);
+
+        if (!curType) {
+            JSObject *curObj = inTypes->getSingleObject(i);
+
+            if (!curObj)
+                continue;
+
+            curType = curObj->getType(cx);
+        }
+
+        JSObject *typeProto = curType->proto;
+        RootedObject proto(cx, typeProto);
+        if (!instanceChecker(proto, jinfo->protoID, jinfo->depth))
+            return false;
+    }
 
     return true;
 }
@@ -5611,17 +5664,29 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
 
     
     JSFunction *commonGetter;
-    if (!TestCommonPropFunc(cx, unaryTypes.inTypes, id, &commonGetter, true))
-        return false;
-    if (commonGetter) {
+    bool isDOM;
+    if (!TestCommonPropFunc(cx, unaryTypes.inTypes, id, &commonGetter, true, &isDOM))
+         return false;
+     if (commonGetter) {
+        RootedFunction getter(cx, commonGetter);
+        if (isDOM && TestShouldDOMCall(cx, unaryTypes.inTypes, getter)) {
+            const JSJitInfo *jitinfo = getter->jitInfo();
+            MGetDOMProperty *get = MGetDOMProperty::New(jitinfo->op, obj, jitinfo->isInfallible);
+
+            current->add(get);
+            current->push(get);
+
+            if (!resumeAfter(get))
+                return false;
+
+            return pushTypeBarrier(get, types, barrier);
+        }
         
         pushConstant(ObjectValue(*commonGetter));
 
         MPassArg *wrapper = MPassArg::New(obj);
         current->push(wrapper);
         current->add(wrapper);
-
-        RootedFunction getter(cx, commonGetter);
 
         return makeCallBarrier(getter, 0, false, types, barrier);
     }
@@ -5701,13 +5766,27 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
     }
 
     RootedId id(cx, NameToId(name));
+    types::TypeSet *types = binaryTypes.lhsTypes;
 
     JSFunction *commonSetter;
-    if (!TestCommonPropFunc(cx, binaryTypes.lhsTypes, id, &commonSetter, false))
+    bool isDOM;
+    if (!TestCommonPropFunc(cx, types, id, &commonSetter, false, &isDOM))
         return false;
     if (!monitored && commonSetter) {
+        RootedFunction setter(cx, commonSetter);
+        if (isDOM && TestShouldDOMCall(cx, types, setter)) {
+            MSetDOMProperty *set = MSetDOMProperty::New(setter->jitInfo()->op, obj, value);
+            if (!set)
+                return false;
+
+            current->add(set);
+            current->push(value);
+
+            return resumeAfter(set);
+        }
+
         
-        pushConstant(ObjectValue(*commonSetter));
+        pushConstant(ObjectValue(*setter));
 
         MPassArg *wrapper = MPassArg::New(obj);
         current->push(wrapper);
@@ -5716,8 +5795,6 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
         MPassArg *arg = MPassArg::New(value);
         current->push(arg);
         current->add(arg);
-
-        RootedFunction setter(cx, commonSetter);
 
         return makeCallBarrier(setter, 1, false, NULL, NULL);
     }
