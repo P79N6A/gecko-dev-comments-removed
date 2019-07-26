@@ -7693,7 +7693,7 @@ let StkProactiveCmdHelper = {
   retrieveTextString: function retrieveTextString(length) {
     if (!length) {
       
-      return null;
+      return {textString: null};
     }
 
     let text = {
