@@ -253,7 +253,7 @@ nsSVGFilterProperty::DoUpdate()
 
   
   nsChangeHint changeHint =
-    nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_UpdateEffects);
+    nsChangeHint(nsChangeHint_RepaintFrame);
 
   
   if (!(mFrame->GetStateBits() & NS_FRAME_IN_REFLOW)) {
@@ -274,7 +274,7 @@ nsSVGMarkerProperty::DoUpdate()
 
   
   nsChangeHint changeHint =
-    nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_UpdateEffects);
+    nsChangeHint(nsChangeHint_RepaintFrame);
   
   
   if (!(mFrame->GetStateBits() & NS_FRAME_IN_REFLOW)) {

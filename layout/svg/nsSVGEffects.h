@@ -338,11 +338,22 @@ public:
 
 
   static EffectProperties GetEffectProperties(nsIFrame *aFrame);
+
   
 
 
 
+
+
+
+
+
+
+
+
+
   static void UpdateEffects(nsIFrame *aFrame);
+
   
 
 

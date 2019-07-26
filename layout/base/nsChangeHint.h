@@ -50,7 +50,6 @@ enum nsChangeHint {
 
 
 
-
   nsChangeHint_UpdateEffects = 0x80,
 
   
