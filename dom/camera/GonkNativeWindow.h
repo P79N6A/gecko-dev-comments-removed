@@ -108,6 +108,12 @@ protected:
     
     void releaseBufferFreeListUnlocked(nsTArray<SurfaceDescriptor>& freeList);
 
+    
+    
+    
+    
+    void clearRenderingStateBuffersLocked();
+
 private:
     void init();
 
@@ -195,6 +201,13 @@ private:
 
     
     mutable Condition mDequeueCondition;
+
+    
+    
+    
+    
+    
+    bool mAbandoned;
 
     
     
