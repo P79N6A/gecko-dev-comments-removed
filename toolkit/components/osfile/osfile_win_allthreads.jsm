@@ -151,6 +151,15 @@ if (typeof Components != "undefined") {
       return this.winLastError == exports.OS.Constants.Win.ERROR_INVALID_HANDLE;
     }
   });
+  
+
+
+
+  Object.defineProperty(OSError.prototype, "becauseAccessDenied", {
+    get: function becauseAccessDenied() {
+      return this.winLastError == exports.OS.Constants.Win.ERROR_ACCESS_DENIED;
+    }
+  });
 
   
 

@@ -138,6 +138,15 @@ if (typeof Components != "undefined") {
       return this.unixErrno == OS.Constants.libc.EBADF;
     }
   });
+  
+
+
+
+  Object.defineProperty(OSError.prototype, "becauseAccessDenied", {
+    get: function becauseAccessDenied() {
+      return this.unixErrno == OS.Constants.libc.EACCES;
+    }
+  });
 
   
 
