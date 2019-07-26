@@ -79,6 +79,11 @@ public:
   
 
 
+  static nsIScrollableFrame* FindScrollableFrameFor(ViewID aId);
+
+  
+
+
   static bool GetDisplayPort(nsIContent* aContent, nsRect *aResult);
 
   
@@ -573,9 +578,12 @@ public:
 
 
 
+
+
   static nsRect TransformFrameRectToAncestor(nsIFrame* aFrame,
                                              const nsRect& aRect,
-                                             const nsIFrame* aAncestor);
+                                             const nsIFrame* aAncestor,
+                                             bool* aPreservesAxisAlignedRectangles = nullptr);
 
 
   

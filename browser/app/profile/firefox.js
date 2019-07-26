@@ -223,8 +223,6 @@ pref("general.autoScroll", false);
 pref("general.autoScroll", true);
 #endif
 
-pref("general.useragent.complexOverride.moodle", false); 
-
 
 pref("browser.shell.checkDefaultBrowser", true);
 pref("browser.shell.shortcutFavicons",true);
