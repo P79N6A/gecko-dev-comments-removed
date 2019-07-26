@@ -108,46 +108,6 @@ WriteStatusApplied(LPCWSTR updateDirPath);
 
 #define NS_NATIVEAPPSUPPORT_CONTRACTID "@mozilla.org/toolkit/native-app-support;1"
 
-
-
-class ScopedAppData : public nsXREAppData
-{
-public:
-  ScopedAppData() { Zero(); this->size = sizeof(*this); }
-
-  ScopedAppData(const nsXREAppData* aAppData);
-
-  void Zero() { memset(this, 0, sizeof(*this)); }
-
-  ~ScopedAppData();
-};
-
-
-
-
-
-
-
-
-void SetAllocatedString(const char *&str, const char *newvalue);
-
-
-
-
-
-
-
-
-void SetAllocatedString(const char *&str, const nsACString &newvalue);
-
-template<class T>
-void SetStrongPtr(T *&ptr, T* newvalue)
-{
-  NS_IF_RELEASE(ptr);
-  ptr = newvalue;
-  NS_IF_ADDREF(ptr);
-}
-
 namespace mozilla {
 namespace startup {
 extern GeckoProcessType sChildProcessType;

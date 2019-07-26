@@ -11,6 +11,7 @@
 #include "nsSVGUtils.h"
 
 class nsRenderingContext;
+class nsISVGChildFrame;
 
 typedef nsSVGContainerFrame nsSVGClipPathFrameBase;
 
@@ -41,7 +42,7 @@ public:
   
   
   
-  bool IsTrivial();
+  bool IsTrivial(nsISVGChildFrame **aSingleChild = nsnull);
 
   bool IsValid();
 

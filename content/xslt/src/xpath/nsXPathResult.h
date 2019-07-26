@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsXPathResult_h__
 #define nsXPathResult_h__
@@ -14,8 +14,9 @@
 #include "nsCOMArray.h"
 #include "nsWeakPtr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "mozilla/Attributes.h"
 
-
+// {662f2c9a-c7cd-4cab-9349-e733df5a838c}
 #define NS_IXPATHRESULT_IID \
 { 0x662f2c9a, 0xc7cd, 0x4cab, {0x93, 0x49, 0xe7, 0x33, 0xdf, 0x5a, 0x83, 0x8c }}
 
@@ -32,26 +33,26 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPathResult, NS_IXPATHRESULT_IID)
 
-
-
-
-class nsXPathResult : public nsIDOMXPathResult,
-                      public nsStubMutationObserver,
-                      public nsIXPathResult
+/**
+ * A class for evaluating an XPath expression string
+ */
+class nsXPathResult MOZ_FINAL : public nsIDOMXPathResult,
+                                public nsStubMutationObserver,
+                                public nsIXPathResult
 {
 public:
     nsXPathResult();
     nsXPathResult(const nsXPathResult &aResult);
     ~nsXPathResult();
 
-    
+    // nsISupports interface
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXPathResult, nsIDOMXPathResult)
 
-    
+    // nsIDOMXPathResult interface
     NS_DECL_NSIDOMXPATHRESULT
 
-    
+    // nsIMutationObserver interface
     NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
     NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
     NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
@@ -59,7 +60,7 @@ public:
     NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
     NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
 
-    
+    // nsIXPathResult interface
     nsresult SetExprResult(txAExprResult *aExprResult, PRUint16 aResultType,
                            nsINode* aContextNode);
     nsresult GetExprResult(txAExprResult **aExprResult);

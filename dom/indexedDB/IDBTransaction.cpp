@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "base/basictypes.h"
 
@@ -50,8 +50,8 @@ DoomCachedStatements(const nsACString& aQuery,
   return PL_DHASH_REMOVE;
 }
 
-// This runnable doesn't actually do anything beyond "prime the pump" and get
-// transactions in the right order on the transaction thread pool.
+
+
 class StartTransactionRunnable : public nsIRunnable
 {
 public:
@@ -59,12 +59,12 @@ public:
 
   NS_IMETHOD Run()
   {
-    // NOP
+    
     return NS_OK;
   }
 };
 
-// Could really use those NS_REFCOUNTING_HAHA_YEAH_RIGHT macros here.
+
 NS_IMETHODIMP_(nsrefcnt) StartTransactionRunnable::AddRef()
 {
   return 2;
@@ -79,10 +79,10 @@ NS_IMPL_QUERY_INTERFACE1(StartTransactionRunnable, nsIRunnable)
 
 StartTransactionRunnable gStartTransactionRunnable;
 
-} // anonymous namespace
+} 
 
 
-// static
+
 already_AddRefed<IDBTransaction>
 IDBTransaction::CreateInternal(IDBDatabase* aDatabase,
                                nsTArray<nsString>& aObjectStoreNames,
@@ -250,6 +250,7 @@ IDBTransaction::CommitOrRollback()
     NS_ASSERTION(mActorChild, "Must have an actor!");
 
     mActorChild->SendAllRequestsFinished();
+
     return NS_OK;
   }
 
@@ -421,16 +422,16 @@ IDBTransaction::IsOpen() const
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  // If we haven't started anything then we're open.
+  
   if (mReadyState == IDBTransaction::INITIAL) {
     return true;
   }
 
-  // If we've already started then we need to check to see if we still have the
-  // mCreating flag set. If we do (i.e. we haven't returned to the event loop
-  // from the time we were created) then we are open. Otherwise check the
-  // currently running transaction to see if it's the same. We only allow other
-  // requests to be made if this transaction is currently running.
+  
+  
+  
+  
+  
   if (mReadyState == IDBTransaction::LOADING) {
     if (mCreating) {
       return true;
@@ -497,8 +498,8 @@ IDBTransaction::AbortWithCode(nsresult aAbortCode)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  // We can't use IsOpen here since we need it to be possible to call Abort()
-  // even from outside of transaction callbacks.
+  
+  
   if (mReadyState != IDBTransaction::INITIAL &&
       mReadyState != IDBTransaction::LOADING) {
     return NS_ERROR_DOM_INDEXEDDB_NOT_ALLOWED_ERR;
@@ -515,12 +516,12 @@ IDBTransaction::AbortWithCode(nsresult aAbortCode)
   mReadyState = IDBTransaction::DONE;
 
   if (Mode() == IDBTransaction::VERSION_CHANGE) {
-    // If a version change transaction is aborted, the db must be closed
+    
     mDatabase->Close();
   }
 
-  // Fire the abort event if there are no outstanding requests. Otherwise the
-  // abort event will be fired when all outstanding requests finish.
+  
+  
   if (needToCommitOrRollback) {
     return CommitOrRollback();
   }
@@ -546,7 +547,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(IDBTransaction,
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(IDBTransaction, IDBWrapperCache)
-  // Don't unlink mDatabase!
+  
   NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(error)
   NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(complete)
   NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(abort)
@@ -699,10 +700,10 @@ IDBTransaction::Run()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  // We're back at the event loop, no longer newborn.
+  
   mCreating = false;
 
-  // Maybe set the readyState to DONE if there were no requests generated.
+  
   if (mReadyState == IDBTransaction::INITIAL) {
     mReadyState = IDBTransaction::DONE;
 
@@ -757,8 +758,8 @@ CommitHelper::Run()
 
     mTransaction->mReadyState = IDBTransaction::DONE;
 
-    // Release file infos on the main thread, so they will eventually get
-    // destroyed on correct thread.
+    
+    
     mTransaction->ClearCreatedFileInfos();
     if (mUpdateFileRefcountFunction) {
       mUpdateFileRefcountFunction->ClearFileInfoEntries();
@@ -768,9 +769,9 @@ CommitHelper::Run()
     nsCOMPtr<nsIDOMEvent> event;
     if (mAbortCode) {
       if (mTransaction->GetMode() == IDBTransaction::VERSION_CHANGE) {
-        // This will make the database take a snapshot of it's DatabaseInfo
+        
         mTransaction->Database()->Close();
-        // Then remove the info from the hash as it contains invalid data.
+        
         DatabaseInfo::Remove(mTransaction->Database()->Id());
       }
 
@@ -792,7 +793,7 @@ CommitHelper::Run()
     mTransaction->mFiredCompleteOrAbort = true;
 #endif
 
-    // Tell the listener (if we have one) that we're done
+    
     if (mListener) {
       mListener->NotifyTransactionComplete(mTransaction);
     }

@@ -50,6 +50,10 @@ public:
   {
     mCanvasElement = aParentCanvas;
   }
+  nsHTMLCanvasElement* GetParentObject() const
+  {
+    return mCanvasElement;
+  }
 
   
   

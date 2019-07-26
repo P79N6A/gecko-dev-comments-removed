@@ -14,6 +14,7 @@
 #include "nsContentUtils.h" 
 #include "nsSMILValue.h"
 #include "SVGOrientSMILType.h"
+#include "mozilla/Attributes.h"
 
 using namespace mozilla;
 
@@ -25,7 +26,7 @@ using namespace mozilla;
 
 
 
-class DOMSVGAngle : public nsIDOMSVGAngle
+class DOMSVGAngle MOZ_FINAL : public nsIDOMSVGAngle
 {
 public:
   NS_DECL_ISUPPORTS

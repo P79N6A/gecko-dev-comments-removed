@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/PAudioChild.h"
@@ -23,7 +23,6 @@ using namespace mozilla::dom;
 extern "C" {
 #include "sydneyaudio/sydney_audio.h"
 }
-#include "mozilla/TimeStamp.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Preferences.h"
 
@@ -38,13 +37,11 @@ using namespace mozilla;
 #define SA_PER_STREAM_VOLUME 1
 #endif
 
-
-
+// Android's audio backend is not available in content processes, so audio must
+// be remoted to the parent chrome process.
 #if defined(ANDROID)
 #define REMOTE_AUDIO 1
 #endif
-
-using mozilla::TimeStamp;
 
 #ifdef PR_LOGGING
 PRLogModuleInfo* gAudioStreamLog = nsnull;
@@ -52,7 +49,7 @@ PRLogModuleInfo* gAudioStreamLog = nsnull;
 
 static const PRUint32 FAKE_BUFFER_SIZE = 176400;
 
-
+// Number of milliseconds per second.
 static const PRInt64 MS_PER_S = 1000;
 
 class nsNativeAudioStream : public nsAudioStream
@@ -81,10 +78,10 @@ class nsNativeAudioStream : public nsAudioStream
   double mVolume;
   void* mAudioHandle;
 
-  
+  // True if this audio stream is paused.
   bool mPaused;
 
-  
+  // True if this stream has encountered an error.
   bool mInError;
 
 };
@@ -116,7 +113,7 @@ private:
 
   PRInt32 mBytesPerFrame;
 
-  
+  // True if this audio stream is paused.
   bool mPaused;
 
   friend class AudioInitEvent;
@@ -285,12 +282,9 @@ class AudioShutdownEvent : public nsRunnable
 #define PREF_CUBEB_LATENCY "media.cubeb_latency_ms"
 
 static mozilla::Mutex* gAudioPrefsLock = nsnull;
-static double gVolumeScale = 1.0;
-static bool gUseCubeb = false;
-
-
-
-static PRUint32 gCubebLatency = 100;
+static double gVolumeScale;
+static bool gUseCubeb;
+static PRUint32 gCubebLatency;
 
 static int PrefChanged(const char* aPref, void* aClosure)
 {
@@ -308,7 +302,10 @@ static int PrefChanged(const char* aPref, void* aClosure)
     mozilla::MutexAutoLock lock(*gAudioPrefsLock);
     gUseCubeb = value;
   } else if (strcmp(aPref, PREF_CUBEB_LATENCY) == 0) {
-    PRUint32 value = Preferences::GetUint(aPref);
+    // Arbitrary default stream latency of 100ms.  The higher this
+    // value, the longer stream volume changes will take to become
+    // audible.
+    PRUint32 value = Preferences::GetUint(aPref, 100);
     mozilla::MutexAutoLock lock(*gAudioPrefsLock);
     gCubebLatency = NS_MIN<PRUint32>(NS_MAX<PRUint32>(value, 20), 1000);
   }
@@ -359,6 +356,8 @@ void nsAudioStream::InitLibrary()
 #if defined(MOZ_CUBEB)
   PrefChanged(PREF_USE_CUBEB, nsnull);
   Preferences::RegisterCallback(PrefChanged, PREF_USE_CUBEB);
+  PrefChanged(PREF_CUBEB_LATENCY, nsnull);
+  Preferences::RegisterCallback(PrefChanged, PREF_CUBEB_LATENCY);
 #endif
 }
 
@@ -528,8 +527,8 @@ nsresult nsNativeAudioStream::Write(const void* aBuf, PRUint32 aFrames)
 
 PRUint32 nsNativeAudioStream::Available()
 {
-  
-  
+  // If the audio backend failed to open, lie and say we'll accept some
+  // data.
   if (mInError)
     return FAKE_BUFFER_SIZE;
 
@@ -795,8 +794,8 @@ public:
     : mBuffer(nsnull), mCapacity(0), mStart(0), mCount(0)
   {}
 
-  
-  
+  // Set the capacity of the buffer in bytes.  Must be called before any
+  // call to append or pop elements.
   void SetCapacity(PRUint32 aCapacity) {
     NS_ABORT_IF_FALSE(!mBuffer, "Buffer allocated.");
     mCapacity = aCapacity;
@@ -815,8 +814,8 @@ public:
     return Capacity() - Length();
   }
 
-  
-  
+  // Append aLength bytes from aSrc to the buffer.  Caller must check that
+  // sufficient space is available.
   void AppendElements(const PRUint8* aSrc, PRUint32 aLength) {
     NS_ABORT_IF_FALSE(mBuffer && mCapacity, "Buffer not initialized.");
     NS_ABORT_IF_FALSE(aLength <= Available(), "Buffer full.");
@@ -829,9 +828,9 @@ public:
     mCount += aLength;
   }
 
-  
-  
-  
+  // Remove aSize bytes from the buffer.  Caller must check returned size in
+  // aSize{1,2} before using the pointer returned in aData{1,2}.  Caller
+  // must not specify an aSize larger than Length().
   void PopElements(PRUint32 aSize, void** aData1, PRUint32* aSize1,
                    void** aData2, PRUint32* aSize2) {
     NS_ABORT_IF_FALSE(mBuffer && mCapacity, "Buffer not initialized.");
@@ -888,45 +887,45 @@ private:
   long DataCallback(void* aBuffer, long aFrames);
   int StateCallback(cubeb_state aState);
 
-  
-  
+  // Shared implementation of underflow adjusted position calculation.
+  // Caller must own the monitor.
   PRInt64 GetPositionInFramesUnlocked();
 
-  
-  
-  
-  
+  // The monitor is held to protect all access to member variables.  Write()
+  // waits while mBuffer is full; DataCallback() notifies as it consumes
+  // data from mBuffer.  Drain() waits while mState is DRAINING;
+  // StateCallback() notifies when mState is DRAINED.
   Monitor mMonitor;
 
-  
-  
+  // Sum of silent frames written when DataCallback requests more frames
+  // than are available in mBuffer.
   PRUint64 mLostFrames;
 
-  
-  
-  
-  
+  // Temporary audio buffer.  Filled by Write() and consumed by
+  // DataCallback().  Once mBuffer is full, Write() blocks until sufficient
+  // space becomes available in mBuffer.  mBuffer is sized in bytes, not
+  // frames.
   nsCircularByteBuffer mBuffer;
 
-  
+  // Software volume level.  Applied during the servicing of DataCallback().
   double mVolume;
 
-  
-  
+  // Owning reference to a cubeb_stream.  cubeb_stream_destroy is called by
+  // nsAutoRef's destructor.
   nsAutoRef<cubeb_stream> mCubebStream;
 
   PRUint32 mBytesPerFrame;
 
   enum StreamState {
-    INITIALIZED, 
-    STARTED,     
-    STOPPED,     
-    DRAINING,    
-                 
-                 
-                 
-    DRAINED,     
-    ERRORED      
+    INITIALIZED, // Initialized, playback has not begun.
+    STARTED,     // Started by a call to Write() (iff INITIALIZED) or Resume().
+    STOPPED,     // Stopped by a call to Pause().
+    DRAINING,    // Drain requested.  DataCallback will indicate end of stream
+                 // once the remaining contents of mBuffer are requested by
+                 // cubeb, after which StateCallback will indicate drain
+                 // completion.
+    DRAINED,     // StateCallback has indicated that the drain is complete.
+    ERRORED      // Stream disabled due to an internal error.
   };
 
   StreamState mState;
@@ -1003,9 +1002,9 @@ nsBufferedAudioStream::Init(PRInt32 aNumChannels, PRInt32 aRate, SampleFormat aF
     return NS_ERROR_FAILURE;
   }
 
-  
-  
-  
+  // Size mBuffer for one second of audio.  This value is arbitrary, and was
+  // selected based on the observed behaviour of the existing nsAudioStream
+  // implementations.
   PRUint32 bufferLimit = aRate * mBytesPerFrame;
   NS_ABORT_IF_FALSE(bufferLimit % mBytesPerFrame == 0, "Must buffer complete frames");
   mBuffer.SetCapacity(bufferLimit);
@@ -1171,8 +1170,8 @@ nsBufferedAudioStream::GetPositionInFramesUnlocked()
     }
   }
 
-  
-  
+  // Adjust the reported position by the number of silent frames written
+  // during stream underruns.
   PRInt64 adjustedPosition = 0;
   if (position >= mLostFrames) {
     adjustedPosition = position - mLostFrames;
@@ -1193,27 +1192,27 @@ nsBufferedAudioStream::DataCallback(void* aBuffer, long aFrames)
   MonitorAutoLock mon(mMonitor);
   PRUint32 bytesWanted = aFrames * mBytesPerFrame;
 
-  
+  // Adjust bytesWanted to fit what is available in mBuffer.
   PRUint32 available = NS_MIN(bytesWanted, mBuffer.Length());
   NS_ABORT_IF_FALSE(available % mBytesPerFrame == 0, "Must copy complete frames");
 
   if (available > 0) {
-    
+    // Copy each sample from mBuffer to aBuffer, adjusting the volume during the copy.
     double scaled_volume = GetVolumeScale() * mVolume;
 
-    
+    // Fetch input pointers from the ring buffer.
     void* input[2];
     PRUint32 input_size[2];
     mBuffer.PopElements(available, &input[0], &input_size[0], &input[1], &input_size[1]);
 
     PRUint8* output = reinterpret_cast<PRUint8*>(aBuffer);
     for (int i = 0; i < 2; ++i) {
-      
+      // Fast path for unity volume case.
       if (scaled_volume == 1.0) {
         memcpy(output, input[i], input_size[i]);
         output += input_size[i];
       } else {
-        
+        // Adjust volume as each sample is copied out.
         switch (mFormat) {
         case FORMAT_S16_LE: {
           PRInt32 volume = PRInt32(1 << 16) * scaled_volume;
@@ -1243,12 +1242,12 @@ nsBufferedAudioStream::DataCallback(void* aBuffer, long aFrames)
 
     NS_ABORT_IF_FALSE(mBuffer.Length() % mBytesPerFrame == 0, "Must copy complete frames");
 
-    
+    // Notify any blocked Write() call that more space is available in mBuffer.
     mon.NotifyAll();
 
-    
-    
-    
+    // Calculate remaining bytes requested by caller.  If the stream is not
+    // draining an underrun has occurred, so fill the remaining buffer with
+    // silence.
     bytesWanted -= available;
   }
 

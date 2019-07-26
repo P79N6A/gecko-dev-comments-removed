@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "base/basictypes.h"
 
@@ -10,7 +10,6 @@
 
 #include "nsIXPConnect.h"
 
-#include "nsDOMClassInfo.h"
 #include "nsJSUtils.h"
 #include "nsThreadUtils.h"
 #include "nsContentUtils.h"
@@ -90,9 +89,7 @@ ThrowException(JSContext* aCx,
                nsresult aErrorCode)
 {
   NS_ASSERTION(NS_FAILED(aErrorCode), "Not an error code!");
-  if (!JS_IsExceptionPending(aCx)) {
-    nsDOMClassInfo::ThrowJSException(aCx, aErrorCode);
-  }
+  xpc::Throw(aCx, aErrorCode);
 }
 
 inline
@@ -216,9 +213,9 @@ const JSFunctionSpec gKeyRangeConstructors[] = {
 
 #undef KEYRANGE_FUNCTION_FLAGS
 
-} // anonymous namespace
+} 
 
-// static
+
 JSBool
 IDBKeyRange::DefineConstructors(JSContext* aCx,
                                 JSObject* aObject)
@@ -227,12 +224,12 @@ IDBKeyRange::DefineConstructors(JSContext* aCx,
   NS_ASSERTION(aCx, "Null pointer!");
   NS_ASSERTION(aObject, "Null pointer!");
 
-  // Add the constructor methods for key ranges.
+  
   return JS_DefineFunctions(aCx, aObject,
                             const_cast<JSFunctionSpec*>(gKeyRangeConstructors));
 }
 
-// static
+
 nsresult
 IDBKeyRange::FromJSVal(JSContext* aCx,
                        const jsval& aVal,
@@ -242,12 +239,12 @@ IDBKeyRange::FromJSVal(JSContext* aCx,
   nsRefPtr<IDBKeyRange> keyRange;
 
   if (JSVAL_IS_VOID(aVal) || JSVAL_IS_NULL(aVal)) {
-    // undefined and null returns no IDBKeyRange.
+    
   }
   else if (JSVAL_IS_PRIMITIVE(aVal) ||
            JS_IsArrayObject(aCx, JSVAL_TO_OBJECT(aVal)) ||
            JS_ObjectIsDate(aCx, JSVAL_TO_OBJECT(aVal))) {
-    // A valid key returns an 'only' IDBKeyRange.
+    
     keyRange = new IDBKeyRange(false, false, true);
 
     rv = GetKeyFromJSVal(aCx, aVal, keyRange->Lower());
@@ -256,7 +253,7 @@ IDBKeyRange::FromJSVal(JSContext* aCx,
     }
   }
   else {
-    // An object is not permitted unless it's another IDBKeyRange.
+    
     nsIXPConnect* xpc = nsContentUtils::XPConnect();
     NS_ASSERTION(xpc, "This should never be null!");
 
@@ -269,7 +266,7 @@ IDBKeyRange::FromJSVal(JSContext* aCx,
 
     nsCOMPtr<nsIIDBKeyRange> iface;
     if (!wrapper || !(iface = do_QueryInterface(wrapper->Native()))) {
-      // Some random JS object?
+      
       return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
     }
 
@@ -280,7 +277,7 @@ IDBKeyRange::FromJSVal(JSContext* aCx,
   return NS_OK;
 }
 
-// static
+
 template <class T>
 already_AddRefed<IDBKeyRange>
 IDBKeyRange::FromSerializedKeyRange(const T& aKeyRange)
@@ -412,7 +409,7 @@ IDBKeyRange::GetUpperOpen(bool* aUpperOpen)
   return NS_OK;
 }
 
-// Explicitly instantiate for all our key range types... Grumble.
+
 template already_AddRefed<IDBKeyRange>
 IDBKeyRange::FromSerializedKeyRange<FIXME_Bug_521898_objectstore::KeyRange>
 (const FIXME_Bug_521898_objectstore::KeyRange& aKeyRange);

@@ -20,6 +20,7 @@
 
 class JSString;
 class JSDependentString;
+class JSUndependedString;
 class JSExtensibleString;
 class JSExternalString;
 class JSLinearString;
@@ -36,6 +37,8 @@ class PropertyName;
 static const size_t UINT32_CHAR_BUFFER_LENGTH = sizeof("4294967295") - 1;
 
 } 
+
+
 
 
 
@@ -158,10 +161,6 @@ class JSString : public js::gc::Cell
   public:
     
 
-    static const size_t LENGTH_SHIFT      = 4;
-    static const size_t FLAGS_MASK        = JS_BITMASK(LENGTH_SHIFT);
-    static const size_t MAX_LENGTH        = JS_BIT(32 - LENGTH_SHIFT) - 1;
-
     
 
 
@@ -198,25 +197,24 @@ class JSString : public js::gc::Cell
 
 
 
-    static const size_t ROPE_BIT          = JS_BIT(0);
+    static const size_t LENGTH_SHIFT          = 4;
+    static const size_t FLAGS_MASK            = JS_BITMASK(LENGTH_SHIFT);
 
-    static const size_t LINEAR_MASK       = JS_BITMASK(1);
-    static const size_t LINEAR_FLAGS      = 0x0;
+    static const size_t ROPE_BIT              = JS_BIT(0);
 
-    static const size_t DEPENDENT_BIT     = JS_BIT(1);
+    static const size_t DEPENDENT_FLAGS       = JS_BIT(1);
+    static const size_t EXTENSIBLE_FLAGS      = JS_BIT(2);
+    static const size_t FIXED_FLAGS           = JS_BIT(1) | JS_BIT(2);
+    static const size_t UNDEPENDED_FLAGS      = JS_BIT(1) | JS_BIT(3);
 
-    static const size_t FLAT_MASK         = JS_BITMASK(2);
-    static const size_t FLAT_FLAGS        = 0x0;
+    static const size_t ATOM_MASK             = JS_BITMASK(3);
+    static const size_t NON_STATIC_ATOM_FLAGS = JS_BIT(3);
 
-    static const size_t FIXED_FLAGS       = JS_BIT(2);
-
-    static const size_t ATOM_MASK         = JS_BITMASK(3);
-    static const size_t ATOM_FLAGS        = 0x0;
-
-    static const size_t EXTENSIBLE_FLAGS  = JS_BIT(2) | JS_BIT(3);
-    static const size_t NON_STATIC_ATOM   = JS_BIT(3);
+    static const size_t MAX_LENGTH            = JS_BIT(32 - LENGTH_SHIFT) - 1;
 
     size_t buildLengthAndFlags(size_t length, size_t flags) {
+        JS_ASSERT(length <= MAX_LENGTH);
+        JS_ASSERT(flags <= FLAGS_MASK);
         return (length << LENGTH_SHIFT) | flags;
     }
 
@@ -288,7 +286,7 @@ class JSString : public js::gc::Cell
 
     JS_ALWAYS_INLINE
     bool isLinear() const {
-        return (d.lengthAndFlags & LINEAR_MASK) == LINEAR_FLAGS;
+        return !(d.lengthAndFlags & ROPE_BIT);
     }
 
     JS_ALWAYS_INLINE
@@ -299,9 +297,7 @@ class JSString : public js::gc::Cell
 
     JS_ALWAYS_INLINE
     bool isDependent() const {
-        bool dependent = d.lengthAndFlags & DEPENDENT_BIT;
-        JS_ASSERT_IF(dependent, (d.lengthAndFlags & FLAGS_MASK) == DEPENDENT_BIT);
-        return dependent;
+        return (d.lengthAndFlags & FLAGS_MASK) == DEPENDENT_FLAGS;
     }
 
     JS_ALWAYS_INLINE
@@ -312,7 +308,7 @@ class JSString : public js::gc::Cell
 
     JS_ALWAYS_INLINE
     bool isFlat() const {
-        return (d.lengthAndFlags & FLAT_MASK) == FLAT_FLAGS;
+        return isLinear() && !isDependent();
     }
 
     JS_ALWAYS_INLINE
@@ -352,10 +348,13 @@ class JSString : public js::gc::Cell
     }
 
     JS_ALWAYS_INLINE
+    bool isUndepended() const {
+        return (d.lengthAndFlags & FLAGS_MASK) == UNDEPENDED_FLAGS;
+    }
+
+    JS_ALWAYS_INLINE
     bool isAtom() const {
-        bool atomized = (d.lengthAndFlags & ATOM_MASK) == ATOM_FLAGS;
-        JS_ASSERT_IF(atomized, isFlat());
-        return atomized;
+        return !(d.lengthAndFlags & ATOM_MASK);
     }
 
     JS_ALWAYS_INLINE
@@ -363,6 +362,20 @@ class JSString : public js::gc::Cell
         JS_ASSERT(isAtom());
         return *(JSAtom *)this;
     }
+
+    
+
+    inline bool hasBase() const {
+        JS_STATIC_ASSERT((DEPENDENT_FLAGS | JS_BIT(3)) == UNDEPENDED_FLAGS);
+        return (d.lengthAndFlags & JS_BITMASK(3)) == DEPENDENT_FLAGS;
+    }
+
+    inline JSLinearString *base() const {
+        JS_ASSERT(hasBase());
+        return d.s.u2.base;
+    }
+
+    inline void markBase(JSTracer *trc);
 
     
 
@@ -463,26 +476,12 @@ class JSDependentString : public JSLinearString
   public:
     static inline JSDependentString *new_(JSContext *cx, JSLinearString *base,
                                           const jschar *chars, size_t length);
-
-    JSLinearString *base() const {
-        JS_ASSERT(JSString::isDependent());
-        return d.s.u2.base;
-    }
-
-    inline void markChildren(JSTracer *trc);
 };
 
 JS_STATIC_ASSERT(sizeof(JSDependentString) == sizeof(JSString));
 
 class JSFlatString : public JSLinearString
 {
-    friend class JSRope;
-    void morphExtensibleIntoDependent(JSLinearString *base) {
-        JS_ASSERT(!js::IsPoisonedPtr(base));
-        d.lengthAndFlags = buildLengthAndFlags(length(), DEPENDENT_BIT);
-        d.s.u2.base = base;
-    }
-
     
     JSFlatString *ensureFlat(JSContext *cx) MOZ_DELETE;
     bool isFlat() const MOZ_DELETE;
@@ -640,6 +639,17 @@ class JSExternalString : public JSFixedString
 
 JS_STATIC_ASSERT(sizeof(JSExternalString) == sizeof(JSString));
 
+class JSUndependedString : public JSFixedString
+{
+    
+
+
+
+
+};
+
+JS_STATIC_ASSERT(sizeof(JSUndependedString) == sizeof(JSString));
+
 class JSAtom : public JSFixedString
 {
     
@@ -658,10 +668,6 @@ class JSAtom : public JSFixedString
 };
 
 JS_STATIC_ASSERT(sizeof(JSAtom) == sizeof(JSString));
-
-namespace js {
-typedef HeapPtr<JSAtom> HeapPtrAtom;
-}
 
 class JSInlineAtom : public JSInlineString 
 {
@@ -766,6 +772,8 @@ NameToId(PropertyName *name)
     return NON_INTEGER_ATOM_TO_JSID(name);
 }
 
+typedef HeapPtr<JSAtom> HeapPtrAtom;
+
 } 
 
 
@@ -809,12 +817,8 @@ JSString::ensureFixed(JSContext *cx)
 {
     if (!ensureFlat(cx))
         return NULL;
-    if (isExtensible()) {
-        JS_ASSERT((d.lengthAndFlags & FLAT_MASK) == 0);
-        JS_STATIC_ASSERT(EXTENSIBLE_FLAGS == (JS_BIT(2) | JS_BIT(3)));
-        JS_STATIC_ASSERT(FIXED_FLAGS == JS_BIT(2));
-        d.lengthAndFlags ^= JS_BIT(3);
-    }
+    if (isExtensible())
+        d.lengthAndFlags = buildLengthAndFlags(length(), FIXED_FLAGS);
     return &asFixed();
 }
 

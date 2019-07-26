@@ -715,7 +715,7 @@ nsIMM32Handler::OnIMENotify(nsWindow* aWindow,
   
 
   
-  nsModifierKeyState modKeyState(false, false, true);
+  mozilla::widget::ModifierKeyState modKeyState(false, false, true);
   mozilla::widget::NativeKey nativeKey; 
   nsKeyEvent keyEvent(true, NS_KEY_PRESS, aWindow);
   keyEvent.keyCode = 192;
@@ -1696,7 +1696,7 @@ nsIMM32Handler::DispatchTextEvent(nsWindow* aWindow,
   event.rangeArray = textRanges.Elements();
 
   event.theText = mCompositionString.get();
-  nsModifierKeyState modKeyState;
+  mozilla::widget::ModifierKeyState modKeyState;
   modKeyState.InitInputEvent(event);
 
   aWindow->DispatchWindowEvent(&event);

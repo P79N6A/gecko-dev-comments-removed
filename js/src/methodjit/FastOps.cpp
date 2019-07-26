@@ -2480,7 +2480,6 @@ mjit::Compiler::jsop_stricteq(JSOp op)
         JS_ASSERT(reg2 != tmpReg);
 
         
-        JS_STATIC_ASSERT(JSString::ATOM_FLAGS == 0);
         Imm32 atomMask(JSString::ATOM_MASK);
 
         masm.load32(Address(reg1, JSString::offsetOfLengthAndFlags()), tmpReg);

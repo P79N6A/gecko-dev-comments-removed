@@ -197,11 +197,11 @@ CodeGenerator::visitTestVAndBranch(LTestVAndBranch *lir)
 bool
 CodeGenerator::visitIntToString(LIntToString *lir)
 {
-    typedef JSString *(*pf)(JSContext *, int);
-    static const VMFunction js_IntToStringInfo = FunctionInfo<pf>(js_IntToString);
+    typedef JSFixedString *(*pf)(JSContext *, int);
+    static const VMFunction IntToStringInfo = FunctionInfo<pf>(Int32ToString);
 
     pushArg(ToRegister(lir->input()));
-    return callVM(js_IntToStringInfo, lir);
+    return callVM(IntToStringInfo, lir);
 }
 
 bool
@@ -1330,7 +1330,6 @@ CodeGenerator::visitCompareS(LCompareS *lir)
     masm.bind(&notPointerEqual);
 
     
-    JS_STATIC_ASSERT(JSString::ATOM_FLAGS == 0);
     Imm32 atomMask(JSString::ATOM_MASK);
 
     
@@ -1505,8 +1504,7 @@ CodeGenerator::visitCharCodeAt(LCharCodeAt *lir)
     Address lengthAndFlagsAddr(str, JSString::offsetOfLengthAndFlags());
     masm.loadPtr(lengthAndFlagsAddr, output);
 
-    JS_ASSERT(JSString::LINEAR_FLAGS == 0);
-    masm.branchTest32(Assembler::NonZero, output, Imm32(JSString::LINEAR_MASK), ool->entry());
+    masm.branchTest32(Assembler::NonZero, output, Imm32(JSString::ROPE_BIT), ool->entry());
     masm.bind(ool->rejoin());
 
     

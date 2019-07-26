@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef __NS_SVGCLASS_H__
 #define __NS_SVGCLASS_H__
@@ -12,6 +12,7 @@
 #include "nsIDOMSVGAnimatedString.h"
 #include "nsISMILAttr.h"
 #include "nsString.h"
+#include "mozilla/Attributes.h"
 
 class nsSVGStylableElement;
 
@@ -35,7 +36,7 @@ public:
 
   nsresult ToDOMAnimatedString(nsIDOMSVGAnimatedString **aResult,
                                nsSVGStylableElement *aSVGElement);
-  
+  // Returns a new nsISMILAttr object that the caller must delete
   nsISMILAttr* ToSMILAttr(nsSVGStylableElement *aSVGElement);
 
 private:
@@ -43,7 +44,7 @@ private:
   nsAutoPtr<nsString> mAnimVal;
 
 public:
-  struct DOMAnimatedString : public nsIDOMSVGAnimatedString
+  struct DOMAnimatedString MOZ_FINAL : public nsIDOMSVGAnimatedString
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedString)
@@ -51,7 +52,7 @@ public:
     DOMAnimatedString(nsSVGClass *aVal, nsSVGStylableElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    nsSVGClass* mVal; 
+    nsSVGClass* mVal; // kept alive because it belongs to content
     nsRefPtr<nsSVGStylableElement> mSVGElement;
 
     NS_IMETHOD GetBaseVal(nsAString& aResult)
@@ -67,13 +68,13 @@ public:
     SMILString(nsSVGClass *aVal, nsSVGStylableElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    
-    
-    
+    // These will stay alive because a nsISMILAttr only lives as long
+    // as the Compositing step, and DOM elements don't get a chance to
+    // die during that.
     nsSVGClass* mVal;
     nsSVGStylableElement* mSVGElement;
 
-    
+    // nsISMILAttr methods
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement *aSrcElement,
                                      nsSMILValue& aValue,
@@ -83,4 +84,4 @@ public:
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
 };
-#endif 
+#endif //__NS_SVGCLASS_H__

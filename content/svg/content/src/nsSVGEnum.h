@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef __NS_SVGENUM_H__
 #define __NS_SVGENUM_H__
@@ -12,6 +12,7 @@
 #include "nsIDOMSVGAnimatedEnum.h"
 #include "nsISMILAttr.h"
 #include "nsSVGElement.h"
+#include "mozilla/Attributes.h"
 
 class nsIAtom;
 class nsISMILAnimationElement;
@@ -49,20 +50,20 @@ public:
 
   nsresult ToDOMAnimatedEnum(nsIDOMSVGAnimatedEnumeration **aResult,
                              nsSVGElement* aSVGElement);
-  
+  // Returns a new nsISMILAttr object that the caller must delete
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
 private:
   nsSVGEnumValue mAnimVal;
   nsSVGEnumValue mBaseVal;
-  PRUint8 mAttrEnum; 
+  PRUint8 mAttrEnum; // element specified tracking for attribute
   bool mIsAnimated;
   bool mIsBaseSet;
 
   nsSVGEnumMapping *GetMapping(nsSVGElement *aSVGElement);
 
 public:
-  struct DOMAnimatedEnum : public nsIDOMSVGAnimatedEnumeration
+  struct DOMAnimatedEnum MOZ_FINAL : public nsIDOMSVGAnimatedEnumeration
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedEnum)
@@ -70,7 +71,7 @@ public:
     DOMAnimatedEnum(nsSVGEnum* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    nsSVGEnum *mVal; 
+    nsSVGEnum *mVal; // kept alive because it belongs to content
     nsRefPtr<nsSVGElement> mSVGElement;
 
     NS_IMETHOD GetBaseVal(PRUint16* aResult)
@@ -78,8 +79,8 @@ public:
     NS_IMETHOD SetBaseVal(PRUint16 aValue)
       { return mVal->SetBaseValue(aValue, mSVGElement); }
 
-    
-    
+    // Script may have modified animation parameters or timeline -- DOM getters
+    // need to flush any resample requests to reflect these modifications.
     NS_IMETHOD GetAnimVal(PRUint16* aResult)
     {
       mSVGElement->FlushAnimations();
@@ -94,13 +95,13 @@ public:
     SMILEnum(nsSVGEnum* aVal, nsSVGElement* aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    
-    
-    
+    // These will stay alive because a nsISMILAttr only lives as long
+    // as the Compositing step, and DOM elements don't get a chance to
+    // die during that.
     nsSVGEnum* mVal;
     nsSVGElement* mSVGElement;
 
-    
+    // nsISMILAttr methods
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
@@ -111,4 +112,4 @@ public:
   };
 };
 
-#endif 
+#endif //__NS_SVGENUM_H__

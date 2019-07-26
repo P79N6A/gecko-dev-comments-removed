@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef TRANSFRMX_TXMOZILLAXSLTPROCESSOR_H
 #define TRANSFRMX_TXMOZILLAXSLTPROCESSOR_H
@@ -15,6 +15,7 @@
 #include "txNamespaceMap.h"
 #include "nsIJSNativeInitializer.h"
 #include "nsCycleCollectionParticipant.h"
+#include "mozilla/Attributes.h"
 
 class nsIDOMNode;
 class nsIPrincipal;
@@ -24,7 +25,7 @@ class txStylesheet;
 class txResultRecycler;
 class txIGlobalParameter;
 
-
+/* bacd8ad0-552f-11d3-a9f7-000064657374 */
 #define TRANSFORMIIX_XSLT_PROCESSOR_CID   \
 { 0xbacd8ad0, 0x552f, 0x11d3, {0xa9, 0xf7, 0x00, 0x00, 0x64, 0x65, 0x73, 0x74} }
 
@@ -33,38 +34,38 @@ class txIGlobalParameter;
 
 #define XSLT_MSGS_URL  "chrome://global/locale/xslt/xslt.properties"
 
-
-
-
-class txMozillaXSLTProcessor : public nsIXSLTProcessor,
-                               public nsIXSLTProcessorPrivate,
-                               public nsIDocumentTransformer,
-                               public nsStubMutationObserver,
-                               public nsIJSNativeInitializer
+/**
+ * txMozillaXSLTProcessor is a front-end to the XSLT Processor.
+ */
+class txMozillaXSLTProcessor MOZ_FINAL : public nsIXSLTProcessor,
+                                         public nsIXSLTProcessorPrivate,
+                                         public nsIDocumentTransformer,
+                                         public nsStubMutationObserver,
+                                         public nsIJSNativeInitializer
 {
 public:
-    
-
-
+    /**
+     * Creates a new txMozillaXSLTProcessor
+     */
     txMozillaXSLTProcessor();
 
-    
-
-
+    /**
+     * Default destructor for txMozillaXSLTProcessor
+     */
     ~txMozillaXSLTProcessor();
 
-    
+    // nsISupports interface
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(txMozillaXSLTProcessor,
                                              nsIXSLTProcessor)
 
-    
+    // nsIXSLTProcessor interface
     NS_DECL_NSIXSLTPROCESSOR
 
-    
+    // nsIXSLTProcessorPrivate interface
     NS_DECL_NSIXSLTPROCESSORPRIVATE
 
-    
+    // nsIDocumentTransformer interface
     NS_IMETHOD Init(nsIPrincipal* aPrincipal);
     NS_IMETHOD SetTransformObserver(nsITransformObserver* aObserver);
     NS_IMETHOD LoadStyleSheet(nsIURI* aUri, nsILoadGroup* aLoadGroup);
@@ -78,7 +79,7 @@ public:
                             const nsString& aValue,
                             nsIDOMNode* aContext);
 
-    
+    // nsIMutationObserver interface
     NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
     NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
     NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
@@ -102,7 +103,7 @@ public:
         return (mFlags & DISABLE_ALL_LOADS) != 0;
     }
 
-    
+    // nsIJSNativeInitializer
     NS_IMETHODIMP Initialize(nsISupports* aOwner, JSContext *cx, JSObject *obj,
                              PRUint32 argc, jsval *argv);
 
@@ -115,7 +116,7 @@ private:
     nsresult ensureStylesheet();
 
     nsRefPtr<txStylesheet> mStylesheet;
-    nsIDocument* mStylesheetDocument; 
+    nsIDocument* mStylesheetDocument; // weak
     nsCOMPtr<nsIContent> mEmbeddedStylesheetRoot;
 
     nsCOMPtr<nsIDOMNode> mSource;

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef __NS_SVGMARKERELEMENT_H__
 #define __NS_SVGMARKERELEMENT_H__
@@ -15,6 +15,7 @@
 #include "nsSVGLength2.h"
 #include "nsSVGViewBox.h"
 #include "SVGAnimatedPreserveAspectRatio.h"
+#include "mozilla/Attributes.h"
 
 class nsSVGOrientType
 {
@@ -26,11 +27,11 @@ public:
   nsresult SetBaseValue(PRUint16 aValue,
                         nsSVGElement *aSVGElement);
 
-  
-  
+  // XXX FIXME like https://bugzilla.mozilla.org/show_bug.cgi?id=545550 but
+  // without adding an mIsAnimated member...?
   void SetBaseValue(PRUint16 aValue)
     { mAnimVal = mBaseVal = PRUint8(aValue); }
-  
+  // no need to notify, since nsSVGAngle does that
   void SetAnimValue(PRUint16 aValue)
     { mAnimVal = PRUint8(aValue); }
 
@@ -46,7 +47,7 @@ private:
   nsSVGEnumValue mAnimVal;
   nsSVGEnumValue mBaseVal;
 
-  struct DOMAnimatedEnum : public nsIDOMSVGAnimatedEnumeration
+  struct DOMAnimatedEnum MOZ_FINAL : public nsIDOMSVGAnimatedEnumeration
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedEnum)
@@ -55,7 +56,7 @@ private:
                     nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    nsSVGOrientType *mVal; 
+    nsSVGOrientType *mVal; // kept alive because it belongs to content
     nsRefPtr<nsSVGElement> mSVGElement;
 
     NS_IMETHOD GetBaseVal(PRUint16* aResult)
@@ -83,18 +84,18 @@ protected:
 public:
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
 
-  
+  // interfaces:
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMSVGMARKERELEMENT
   NS_DECL_NSIDOMSVGFITTOVIEWBOX
 
-  
+  // xxx I wish we could use virtual inheritance
   NS_FORWARD_NSIDOMNODE(nsSVGElement::)
   NS_FORWARD_NSIDOMELEMENT(nsSVGElement::)
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGElement::)
 
-  
+  // nsIContent interface
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const;
 
   virtual bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
@@ -102,10 +103,10 @@ public:
   virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify);
 
-  
+  // nsSVGSVGElement methods:
   virtual bool HasValidDimensions() const;
 
-  
+  // public helpers
   gfxMatrix GetMarkerTransform(float aStrokeWidth,
                                float aX, float aY, float aAutoAngle);
   nsSVGViewBoxRect GetViewBoxRect();
@@ -148,7 +149,7 @@ protected:
   nsSVGViewBox             mViewBox;
   SVGAnimatedPreserveAspectRatio mPreserveAspectRatio;
 
-  
+  // derived properties (from 'orient') handled separately
   nsSVGOrientType                        mOrientType;
 
   nsSVGSVGElement                       *mCoordCtx;

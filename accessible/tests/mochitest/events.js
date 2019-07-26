@@ -101,6 +101,21 @@ function waitForEvent(aEventType, aTarget, aFunc, aContext, aArg1, aArg2)
 
 
 
+function waitForImageMap(aImageMapID, aTestFunc)
+{
+  synthesizeMouse(aImageMapID, 10, 10, { type: "mousemove" },
+                  aImageMapID.ownerDocument.defaultView);
+
+  var imageMapAcc = getAccessible(aImageMapID);
+  if (imageMapAcc.firstChild)
+    return aTestFunc();
+
+  waitForEvent(EVENT_REORDER, imageMapAcc, aTestFunc);
+}
+
+
+
+
 
 
 

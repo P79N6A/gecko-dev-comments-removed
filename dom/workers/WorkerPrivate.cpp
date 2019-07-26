@@ -31,7 +31,6 @@
 #include "js/MemoryMetrics.h"
 #include "nsAlgorithm.h"
 #include "nsContentUtils.h"
-#include "nsDOMClassInfo.h"
 #include "nsDOMJSUtils.h"
 #include "nsGUIEvent.h"
 #include "nsJSEnvironment.h"
@@ -39,6 +38,7 @@
 #include "nsNetUtil.h"
 #include "nsThreadUtils.h"
 #include "xpcpublic.h"
+#include "mozilla/Attributes.h"
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -141,7 +141,7 @@ struct WorkerJSRuntimeStats : public JS::RuntimeStats
   }
 };
   
-class WorkerMemoryReporter : public nsIMemoryMultiReporter
+class WorkerMemoryReporter MOZ_FINAL : public nsIMemoryMultiReporter
 {
   WorkerPrivate* mWorkerPrivate;
   nsCString mAddressString;
@@ -165,7 +165,7 @@ public:
       
       char address[21];
       uint32_t addressSize =
-        JS_snprintf(address, sizeof(address), "0x%llx", aWorkerPrivate);
+        JS_snprintf(address, sizeof(address), "%p", aWorkerPrivate);
       if (addressSize != uint32_t(-1)) {
         mAddressString.Assign(address, addressSize);
       }
@@ -977,7 +977,7 @@ public:
   }
 };
 
-class CloseRunnable : public WorkerControlRunnable
+class CloseRunnable MOZ_FINAL : public WorkerControlRunnable
 {
 public:
   CloseRunnable(WorkerPrivate* aWorkerPrivate)
@@ -1278,7 +1278,7 @@ DummyCallback(nsITimer* aTimer, void* aClosure)
   
 }
 
-class WorkerRunnableEventTarget : public nsIEventTarget
+class WorkerRunnableEventTarget MOZ_FINAL : public nsIEventTarget
 {
 protected:
   nsRefPtr<WorkerRunnable> mWorkerRunnable;
@@ -2478,7 +2478,7 @@ WorkerPrivate::Create(JSContext* aCx, JSObject* aObj, WorkerPrivate* aParent,
     
     
     if (aIsChromeWorker && !isChrome) {
-      nsDOMClassInfo::ThrowJSException(aCx, NS_ERROR_DOM_SECURITY_ERR);
+      xpc::Throw(aCx, NS_ERROR_DOM_SECURITY_ERR);
       return nsnull;
     }
 
@@ -2507,7 +2507,7 @@ WorkerPrivate::Create(JSContext* aCx, JSObject* aObj, WorkerPrivate* aParent,
       if (!window ||
           (globalWindow != window &&
            !nsContentUtils::CanCallerAccess(window))) {
-        nsDOMClassInfo::ThrowJSException(aCx, NS_ERROR_DOM_SECURITY_ERR);
+        xpc::Throw(aCx, NS_ERROR_DOM_SECURITY_ERR);
         return nsnull;
       }
 

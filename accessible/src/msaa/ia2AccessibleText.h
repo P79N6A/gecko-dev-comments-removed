@@ -18,6 +18,9 @@ class ia2AccessibleText: public IAccessibleText
 public:
 
   
+  STDMETHODIMP QueryInterface(REFIID, void**);
+
+  
   virtual HRESULT STDMETHODCALLTYPE addSelection(
        long startOffset,
        long endOffset);
@@ -116,8 +119,8 @@ public:
 
 protected:
   virtual nsresult GetModifiedText(bool aGetInsertedText, nsAString& aText,
-                                   uint32_t *aStartOffset,
-                                   uint32_t *aEndOffset) = 0;
+                                   PRUint32 *aStartOffset,
+                                   PRUint32 *aEndOffset) = 0;
 
 private:
   HRESULT GetModifiedText(bool aGetInsertedText, IA2TextSegment *aNewText);

@@ -44,9 +44,6 @@ extern const char js_parseInt_str[];
 class JSString;
 class JSFixedString;
 
-extern JSString *
-js_IntToString(JSContext *cx, int i);
-
 
 
 
@@ -56,6 +53,9 @@ extern JSString *
 js_NumberToString(JSContext *cx, double d);
 
 namespace js {
+
+extern JSFixedString *
+Int32ToString(JSContext *cx, int32_t i);
 
 
 

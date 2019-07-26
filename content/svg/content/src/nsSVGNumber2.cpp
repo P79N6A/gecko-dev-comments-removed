@@ -1,19 +1,20 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsSVGNumber2.h"
 #include "nsSVGUtils.h"
 #include "nsTextFormatter.h"
 #include "prdtoa.h"
 #include "nsMathUtils.h"
-#include "nsContentUtils.h" 
+#include "nsContentUtils.h" // NS_ENSURE_FINITE
 #include "nsSMILValue.h"
 #include "nsSMILFloatType.h"
 #include "nsIDOMSVGNumber.h"
+#include "mozilla/Attributes.h"
 
-class DOMSVGNumber : public nsIDOMSVGNumber
+class DOMSVGNumber MOZ_FINAL : public nsIDOMSVGNumber
 {
 public:
   NS_DECL_ISUPPORTS
@@ -54,7 +55,7 @@ NS_INTERFACE_MAP_BEGIN(DOMSVGNumber)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGNumber)
 NS_INTERFACE_MAP_END
 
-
+/* Implementation */
 
 static nsresult
 GetValueFromString(const nsAString &aValueAsString,
@@ -104,9 +105,9 @@ nsSVGNumber2::SetBaseValueString(const nsAString &aValueAsString,
     aSVGElement->AnimationNeedsResample();
   }
 
-  
-  
-  
+  // We don't need to call DidChange* here - we're only called by
+  // nsSVGElement::ParseAttribute under nsGenericElement::SetAttr,
+  // which takes care of notifying.
   return NS_OK;
 }
 
@@ -166,7 +167,7 @@ nsSVGNumber2::ToSMILAttr(nsSVGElement *aSVGElement)
 
 nsresult
 nsSVGNumber2::SMILNumber::ValueFromString(const nsAString& aStr,
-                                          const nsISMILAnimationElement* ,
+                                          const nsISMILAnimationElement* /*aSrcElement*/,
                                           nsSMILValue& aValue,
                                           bool& aPreventCachingOfSandwich) const
 {

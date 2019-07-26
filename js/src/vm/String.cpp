@@ -21,7 +21,7 @@ bool
 JSString::isShort() const
 {
     bool is_short = (getAllocKind() == gc::FINALIZE_SHORT_STRING);
-    JS_ASSERT_IF(is_short, isFlat());
+    JS_ASSERT_IF(is_short, isFixed());
     return is_short;
 }
 
@@ -197,7 +197,8 @@ JSRope::flattenInternal(JSContext *maybecx)
             wholeChars = const_cast<jschar *>(left.chars());
             size_t bits = left.d.lengthAndFlags;
             pos = wholeChars + (bits >> LENGTH_SHIFT);
-            left.d.lengthAndFlags = bits ^ (EXTENSIBLE_FLAGS | DEPENDENT_BIT);
+            JS_STATIC_ASSERT(!(EXTENSIBLE_FLAGS & DEPENDENT_FLAGS));
+            left.d.lengthAndFlags = bits ^ (EXTENSIBLE_FLAGS | DEPENDENT_FLAGS);
             left.d.s.u2.base = (JSLinearString *)this;  
             JSString::writeBarrierPost(left.d.s.u2.base, &left.d.s.u2.base);
             goto visit_right_child;
@@ -248,7 +249,7 @@ JSRope::flattenInternal(JSContext *maybecx)
             return &this->asFlat();
         }
         size_t progress = str->d.lengthAndFlags;
-        str->d.lengthAndFlags = buildLengthAndFlags(pos - str->d.u1.chars, DEPENDENT_BIT);
+        str->d.lengthAndFlags = buildLengthAndFlags(pos - str->d.u1.chars, DEPENDENT_FLAGS);
         str->d.s.u2.base = (JSLinearString *)this;       
         JSString::writeBarrierPost(str->d.s.u2.base, &str->d.s.u2.base);
         str = str->d.s.u3.parent;
@@ -331,9 +332,13 @@ JSDependentString::undepend(JSContext *cx)
 
     PodCopy(s, chars(), n);
     s[n] = 0;
-
-    d.lengthAndFlags = buildLengthAndFlags(n, FIXED_FLAGS);
     d.u1.chars = s;
+
+    
+
+
+
+    d.lengthAndFlags = buildLengthAndFlags(n, UNDEPENDED_FLAGS);
 
     return &this->asFixed();
 }
@@ -403,9 +408,9 @@ JSFlatString::isIndexSlow(uint32_t *indexp) const
 
 
 
-#define FROM_SMALL_CHAR(c) ((c) + ((c) < 10 ? '0' :      \
-                                   (c) < 36 ? 'a' - 10 : \
-                                   'A' - 36))
+#define FROM_SMALL_CHAR(c) jschar((c) + ((c) < 10 ? '0' :      \
+                                         (c) < 36 ? 'a' - 10 : \
+                                         'A' - 36))
 
 
 
@@ -427,7 +432,7 @@ StaticStrings::init(JSContext *cx)
     SwitchToCompartment sc(cx, cx->runtime->atomsCompartment);
 
     for (uint32_t i = 0; i < UNIT_STATIC_LIMIT; i++) {
-        jschar buffer[] = { i, 0x00 };
+        jschar buffer[] = { jschar(i), '\0' };
         JSFixedString *s = js_NewStringCopyN(cx, buffer, 1);
         if (!s)
             return false;
@@ -435,7 +440,7 @@ StaticStrings::init(JSContext *cx)
     }
 
     for (uint32_t i = 0; i < NUM_SMALL_CHARS * NUM_SMALL_CHARS; i++) {
-        jschar buffer[] = { FROM_SMALL_CHAR(i >> 6), FROM_SMALL_CHAR(i & 0x3F), 0x00 };
+        jschar buffer[] = { FROM_SMALL_CHAR(i >> 6), FROM_SMALL_CHAR(i & 0x3F), '\0' };
         JSFixedString *s = js_NewStringCopyN(cx, buffer, 2);
         if (!s)
             return false;
@@ -450,7 +455,10 @@ StaticStrings::init(JSContext *cx)
                 TO_SMALL_CHAR((i % 10) + '0');
             intStaticTable[i] = length2StaticTable[index];
         } else {
-            jschar buffer[] = { (i / 100) + '0', ((i / 10) % 10) + '0', (i % 10) + '0', 0x00 };
+            jschar buffer[] = { jschar('0' + (i / 100)),
+                                jschar('0' + ((i / 10) % 10)),
+                                jschar('0' + (i % 10)),
+                                '\0' };
             JSFixedString *s = js_NewStringCopyN(cx, buffer, 3);
             if (!s)
                 return false;

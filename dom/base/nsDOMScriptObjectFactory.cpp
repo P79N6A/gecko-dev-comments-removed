@@ -1,23 +1,23 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=2 sw=2 et tw=78:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ *
+ * This Original Code has been modified by IBM Corporation.
+ * Modifications made by IBM described herein are
+ * Copyright (c) International Business Machines
+ * Corporation, 2000
+ *
+ * Modifications to Mozilla code or documentation
+ * identified per MPL Section 3.3
+ *
+ * Date         Modified by     Description of modification
+ * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
+ *                               use in OS2
+ */
 
 #include "nsDOMScriptObjectFactory.h"
 #include "xpcexception.h"
@@ -55,7 +55,6 @@ nsDOMScriptObjectFactory::nsDOMScriptObjectFactory()
     xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM);
     xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_SVG);
     xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM_XPATH);
-    xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_XPCONNECT);
     xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM_INDEXEDDB);
     xs->RegisterExceptionProvider(provider, NS_ERROR_MODULE_DOM_FILEHANDLE);
   }
@@ -63,7 +62,7 @@ nsDOMScriptObjectFactory::nsDOMScriptObjectFactory()
   NS_ASSERTION(!gExceptionProvider, "Registered twice?!");
   provider.swap(gExceptionProvider);
 
-  
+  // And pre-create the javascript language.
   NS_CreateJSRuntime(getter_AddRefs(mJSRuntime));
 }
 
@@ -119,8 +118,8 @@ nsDOMScriptObjectFactory::Observe(nsISupports *aSubject,
 {
   if (!nsCRT::strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
 #ifdef MOZ_XUL
-    
-    
+    // Flush the XUL cache since it holds JS roots, and we're about to
+    // start the final GC.
     nsXULPrototypeCache* cache = nsXULPrototypeCache::GetInstance();
 
     if (cache)
@@ -142,8 +141,6 @@ nsDOMScriptObjectFactory::Observe(nsISupports *aSubject,
         xs->UnregisterExceptionProvider(gExceptionProvider,
                                         NS_ERROR_MODULE_DOM_XPATH);
         xs->UnregisterExceptionProvider(gExceptionProvider,
-                                        NS_ERROR_MODULE_XPCONNECT);
-        xs->UnregisterExceptionProvider(gExceptionProvider,
                                         NS_ERROR_MODULE_DOM_INDEXEDDB);
         xs->UnregisterExceptionProvider(gExceptionProvider,
                                         NS_ERROR_MODULE_DOM_FILEHANDLE);
@@ -153,27 +150,6 @@ nsDOMScriptObjectFactory::Observe(nsISupports *aSubject,
     }
   }
 
-  return NS_OK;
-}
-
-static nsresult
-CreateXPConnectException(nsresult aResult, nsIException *aDefaultException,
-                         nsIException **_retval)
-{
-  
-  
-  nsCOMPtr<nsIXPCException> exception(do_QueryInterface(aDefaultException));
-  if (!exception) {
-    nsresult rv = NS_OK;
-    exception = do_CreateInstance("@mozilla.org/js/xpc/Exception;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = exception->Initialize(nsnull, aResult, nsnull, nsnull, nsnull,
-                               nsnull);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  exception.forget(_retval);
   return NS_OK;
 }
 
@@ -199,7 +175,7 @@ nsDOMScriptObjectFactory::RegisterDOMClassInfo(const char *aName,
 }
 
 
-
+// Factories
 nsresult
 NS_GetJSRuntime(nsIScriptRuntime** aLanguage)
 {

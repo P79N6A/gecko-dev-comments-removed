@@ -543,7 +543,7 @@ nsHostResolver::ResolveHost(const char            *host,
                 LOG(("using cached record\n"));
                 
                 result = he->rec;
-                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD, METHOD_HIT);
+                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2, METHOD_HIT);
 
                 
                 
@@ -557,13 +557,13 @@ nsHostResolver::ResolveHost(const char            *host,
                     if (!he->rec->negative) {
                         
                         
-                        Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                        Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
                                               METHOD_RENEWAL);
                     }
                 }
                 
                 if (he->rec->negative) {
-                    Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                    Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
                                           METHOD_NEGATIVE_HIT);
                     status = NS_ERROR_UNKNOWN_HOST;
                 }
@@ -571,7 +571,7 @@ nsHostResolver::ResolveHost(const char            *host,
             
             
             else if (he->rec->addr) {
-                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
                                       METHOD_LITERAL);
                 result = he->rec;
             }
@@ -587,14 +587,14 @@ nsHostResolver::ResolveHost(const char            *host,
                 else
                     memcpy(he->rec->addr, &tempAddr, sizeof(PRNetAddr));
                 
-                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
                                       METHOD_LITERAL);
                 result = he->rec;
             }
             else if (mPendingCount >= MAX_NON_PRIORITY_REQUESTS &&
                      !IsHighPriority(flags) &&
                      !he->rec->resolving) {
-                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
                                       METHOD_OVERFLOW);
                 
                 rv = NS_ERROR_DNS_LOOKUP_QUEUE_FULL;
@@ -607,7 +607,7 @@ nsHostResolver::ResolveHost(const char            *host,
                 if (!he->rec->resolving) {
                     he->rec->flags = flags;
                     rv = IssueLookup(he->rec);
-                    Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                    Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
                                           METHOD_NETWORK_FIRST);
                     if (NS_FAILED(rv))
                         PR_REMOVE_AND_INIT_LINK(callback);
@@ -615,7 +615,7 @@ nsHostResolver::ResolveHost(const char            *host,
                         LOG(("dns lookup blocking pending getaddrinfo query"));
                 }
                 else if (he->rec->onQueue) {
-                    Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                    Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
                                           METHOD_NETWORK_SHARED);
 
                     

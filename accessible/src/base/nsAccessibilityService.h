@@ -26,6 +26,17 @@ namespace a11y {
 
 FocusManager* FocusMgr();
 
+enum EPlatformDisabledState {
+  ePlatformIsForceEnabled = -1,
+  ePlatformIsEnabled = 0,
+  ePlatformIsDisabled = 1
+};
+
+
+
+
+EPlatformDisabledState PlatformDisabledState();
+
 #ifdef MOZ_ACCESSIBILITY_ATK
 
 

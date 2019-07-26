@@ -19,27 +19,18 @@
 
 
 
-static inline bool
-NodeHasChildren(nsINode *aNode)
-{
-  return aNode->GetChildCount() > 0;
-}
-
-
-
-
 
 static nsINode*
-NodeToParentOffset(nsINode *aNode, PRInt32 *aOffset)
+NodeToParentOffset(nsINode* aNode, PRInt32* aOffset)
 {
-  *aOffset  = 0;
+  *aOffset = 0;
 
   nsINode* parent = aNode->GetNodeParent();
 
   if (parent) {
     *aOffset = parent->IndexOf(aNode);
   }
-  
+
   return parent;
 }
 
@@ -48,12 +39,13 @@ NodeToParentOffset(nsINode *aNode, PRInt32 *aOffset)
 
 
 static bool
-NodeIsInTraversalRange(nsINode *aNode, bool aIsPreMode,
-                       nsINode *aStartNode, PRInt32 aStartOffset,
-                       nsINode *aEndNode, PRInt32 aEndOffset)
+NodeIsInTraversalRange(nsINode* aNode, bool aIsPreMode,
+                       nsINode* aStartNode, PRInt32 aStartOffset,
+                       nsINode* aEndNode, PRInt32 aEndOffset)
 {
-  if (!aStartNode || !aEndNode || !aNode)
+  if (!aStartNode || !aEndNode || !aNode) {
     return false;
+  }
 
   
   
@@ -63,18 +55,20 @@ NodeIsInTraversalRange(nsINode *aNode, bool aIsPreMode,
   }
 
   nsINode* parent = aNode->GetNodeParent();
-  if (!parent)
+  if (!parent) {
     return false;
+  }
 
   PRInt32 indx = parent->IndexOf(aNode);
 
-  if (!aIsPreMode)
+  if (!aIsPreMode) {
     ++indx;
+  }
 
-  return (nsContentUtils::ComparePoints(aStartNode, aStartOffset,
-                                        parent, indx) <= 0) &&
-         (nsContentUtils::ComparePoints(aEndNode, aEndOffset,
-                                        parent, indx) >= 0);
+  return nsContentUtils::ComparePoints(aStartNode, aStartOffset,
+                                       parent, indx) <= 0 &&
+         nsContentUtils::ComparePoints(aEndNode, aEndOffset,
+                                       parent, indx) >= 0;
 }
 
 
@@ -82,7 +76,7 @@ NodeIsInTraversalRange(nsINode *aNode, bool aIsPreMode,
 
 
 
-class nsContentIterator : public nsIContentIterator 
+class nsContentIterator : public nsIContentIterator
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -100,42 +94,46 @@ public:
   virtual void First();
 
   virtual void Last();
-  
+
   virtual void Next();
 
   virtual void Prev();
 
-  virtual nsINode *GetCurrentNode();
+  virtual nsINode* GetCurrentNode();
 
   virtual bool IsDone();
 
   virtual nsresult PositionAt(nsINode* aCurNode);
 
-  
-  
-  
-
 protected:
 
-  nsINode* GetDeepFirstChild(nsINode *aRoot, nsTArray<PRInt32> *aIndexes);
-  nsINode* GetDeepLastChild(nsINode *aRoot, nsTArray<PRInt32> *aIndexes);
+  
+  
+  nsINode* GetDeepFirstChild(nsINode* aRoot,
+                             nsTArray<PRInt32>* aIndexes = nsnull);
+  nsIContent* GetDeepFirstChild(nsIContent* aRoot,
+                                nsTArray<PRInt32>* aIndexes = nsnull);
+  nsINode* GetDeepLastChild(nsINode* aRoot,
+                            nsTArray<PRInt32>* aIndexes = nsnull);
+  nsIContent* GetDeepLastChild(nsIContent* aRoot,
+                               nsTArray<PRInt32>* aIndexes = nsnull);
 
   
   
-  nsINode* GetNextSibling(nsINode *aNode, nsTArray<PRInt32> *aIndexes);
-
   
-  
-  nsINode* GetPrevSibling(nsINode *aNode, nsTArray<PRInt32> *aIndexes);
+  nsIContent* GetNextSibling(nsINode* aNode,
+                             nsTArray<PRInt32>* aIndexes = nsnull);
+  nsIContent* GetPrevSibling(nsINode* aNode,
+                             nsTArray<PRInt32>* aIndexes = nsnull);
 
-  nsINode* NextNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes);
-  nsINode* PrevNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes);
+  nsINode* NextNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes = nsnull);
+  nsINode* PrevNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes = nsnull);
 
   
   nsresult RebuildIndexStack();
 
   void MakeEmpty();
-  
+
   nsCOMPtr<nsINode> mCurNode;
   nsCOMPtr<nsINode> mFirst;
   nsCOMPtr<nsINode> mLast;
@@ -144,6 +142,7 @@ protected:
   
   nsAutoTArray<PRInt32, 8> mIndexes;
 
+  
   
   
   
@@ -161,9 +160,12 @@ protected:
   
   
   
+  
+  
+
   bool mIsDone;
   bool mPre;
-  
+
 private:
 
   
@@ -196,7 +198,7 @@ NS_NewPreContentIterator()
 
 
 
- 
+
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsContentIterator)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsContentIterator)
 
@@ -218,6 +220,7 @@ NS_IMPL_CYCLE_COLLECTION_4(nsContentIterator,
 
 nsContentIterator::nsContentIterator(bool aPre) :
   
+  
   mCachedIndex(0), mIsDone(false), mPre(aPre)
 {
 }
@@ -236,20 +239,18 @@ nsContentIterator::~nsContentIterator()
 nsresult
 nsContentIterator::Init(nsINode* aRoot)
 {
-  if (!aRoot) 
-    return NS_ERROR_NULL_POINTER; 
+  if (!aRoot) {
+    return NS_ERROR_NULL_POINTER;
+  }
 
   mIsDone = false;
   mIndexes.Clear();
-  
-  if (mPre)
-  {
+
+  if (mPre) {
     mFirst = aRoot;
-    mLast  = GetDeepLastChild(aRoot, nsnull);
-  }
-  else
-  {
-    mFirst = GetDeepFirstChild(aRoot, nsnull); 
+    mLast  = GetDeepLastChild(aRoot);
+  } else {
+    mFirst = GetDeepFirstChild(aRoot);
     mLast  = aRoot;
   }
 
@@ -284,8 +285,7 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
   bool startIsData = startNode->IsNodeOfType(nsINode::eDATA_NODE);
 
   
-  if (startNode == endNode)
-  {
+  if (startNode == endNode) {
     
     
     
@@ -293,19 +293,14 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
     
     
 
-    if (!startIsData && startIndx == endIndx)
-    {
+    if (!startIsData && startIndx == endIndx) {
       MakeEmpty();
       return NS_OK;
     }
 
-    if (startIsData)
-    {
+    if (startIsData) {
       
-      NS_ASSERTION(startNode->IsNodeOfType(nsINode::eCONTENT),
-                   "Data node that's not content?");
-
-      mFirst   = static_cast<nsIContent*>(startNode);
+      mFirst   = startNode->AsContent();
       mLast    = mFirst;
       mCurNode = mFirst;
 
@@ -313,71 +308,62 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
       return NS_OK;
     }
   }
-  
+
   
 
-  nsIContent *cChild = nsnull;
+  nsIContent* cChild = nsnull;
 
-  if (!startIsData && NodeHasChildren(startNode))
+  if (!startIsData && startNode->HasChildren()) {
     cChild = startNode->GetChildAt(startIndx);
+  }
 
-  if (!cChild) 
-  {
+  if (!cChild) {
     
     
-    if (mPre)
-    {
+    
+    
+
+    if (mPre) {
       
       
       
 
-      if (!startIsData)
-      {
-        mFirst = GetNextSibling(startNode, nsnull);
+      if (!startIsData) {
+        mFirst = GetNextSibling(startNode);
 
         
         
-        
-  
-        if (mFirst &&
-            !NodeIsInTraversalRange(mFirst, mPre, startNode, startIndx,
-                                    endNode, endIndx)) {
+
+        if (mFirst && !NodeIsInTraversalRange(mFirst, mPre, startNode,
+                                              startIndx, endNode, endIndx)) {
           mFirst = nsnull;
         }
+      } else {
+        mFirst = startNode->AsContent();
       }
-      else {
-        NS_ASSERTION(startNode->IsNodeOfType(nsINode::eCONTENT),
-                   "Data node that's not content?");
-
-        mFirst = static_cast<nsIContent*>(startNode);
-      }
-    }
-    else {
+    } else {
       
-      if (startNode->IsNodeOfType(nsINode::eCONTENT)) {
-        mFirst = static_cast<nsIContent*>(startNode);
+      if (startNode->IsContent()) {
+        mFirst = startNode->AsContent();
       } else {
         
         mFirst = nsnull;
       }
     }
-  }
-  else
-  {
-    if (mPre)
+  } else {
+    if (mPre) {
       mFirst = cChild;
-    else 
-    {
-      mFirst = GetDeepFirstChild(cChild, nsnull);
+    } else {
+      
+      mFirst = GetDeepFirstChild(cChild);
 
       
       
-      
-  
-      if (mFirst &&
-          !NodeIsInTraversalRange(mFirst, mPre, startNode, startIndx,
-                                  endNode, endIndx))
+
+      if (mFirst && !NodeIsInTraversalRange(mFirst, mPre, startNode, startIndx,
+                                            endNode, endIndx)) {
         mFirst = nsnull;
+      }
     }
   }
 
@@ -386,80 +372,70 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
 
   bool endIsData = endNode->IsNodeOfType(nsINode::eDATA_NODE);
 
-  if (endIsData || !NodeHasChildren(endNode) || endIndx == 0)
-  {
+  if (endIsData || !endNode->HasChildren() || endIndx == 0) {
     if (mPre) {
-      if (endNode->IsNodeOfType(nsINode::eCONTENT)) {
-        mLast = static_cast<nsIContent*>(endNode);
+      if (endNode->IsContent()) {
+        mLast = endNode->AsContent();
       } else {
         
         mLast = nsnull;
       }
-    }
-    else 
-    {
+    } else {
+      
       
       
       
 
-      if (!endIsData)
-      {
-        mLast = GetPrevSibling(endNode, nsnull);
+      if (!endIsData) {
+        mLast = GetPrevSibling(endNode);
 
         if (!NodeIsInTraversalRange(mLast, mPre, startNode, startIndx,
-                                    endNode, endIndx))
+                                    endNode, endIndx)) {
           mLast = nsnull;
-      }
-      else {
-        NS_ASSERTION(endNode->IsNodeOfType(nsINode::eCONTENT),
-                     "Data node that's not content?");
-
-        mLast = static_cast<nsIContent*>(endNode);
+        }
+      } else {
+        mLast = endNode->AsContent();
       }
     }
-  }
-  else
-  {
+  } else {
     PRInt32 indx = endIndx;
 
     cChild = endNode->GetChildAt(--indx);
 
-    if (!cChild)  
-    {
+    if (!cChild) {
+      
       NS_NOTREACHED("nsContentIterator::nsContentIterator");
-      return NS_ERROR_FAILURE; 
+      return NS_ERROR_FAILURE;
     }
 
-    if (mPre)
-    {
-      mLast  = GetDeepLastChild(cChild, nsnull);
+    if (mPre) {
+      mLast  = GetDeepLastChild(cChild);
 
       if (!NodeIsInTraversalRange(mLast, mPre, startNode, startIndx,
                                   endNode, endIndx)) {
         mLast = nsnull;
       }
-    }
-    else { 
+    } else {
+      
       mLast = cChild;
     }
   }
 
   
-  
 
-  if (!mFirst || !mLast)
-  {
+  if (!mFirst || !mLast) {
     mFirst = nsnull;
     mLast  = nsnull;
   }
-  
+
   mCurNode = mFirst;
   mIsDone  = !mCurNode;
 
-  if (!mCurNode)
+  if (!mCurNode) {
     mIndexes.Clear();
-  else
+  } else {
     RebuildIndexStack();
+  }
 
   return NS_OK;
 }
@@ -469,7 +445,8 @@ nsContentIterator::Init(nsIDOMRange* aDOMRange)
 
 
 
-nsresult nsContentIterator::RebuildIndexStack()
+nsresult
+nsContentIterator::RebuildIndexStack()
 {
   
   
@@ -483,17 +460,18 @@ nsresult nsContentIterator::RebuildIndexStack()
     return NS_OK;
   }
 
-  while (current != mCommonParent)
-  {
+  while (current != mCommonParent) {
     parent = current->GetNodeParent();
-    
-    if (!parent)
+
+    if (!parent) {
       return NS_ERROR_FAILURE;
-  
+    }
+
     mIndexes.InsertElementAt(0, parent->IndexOf(current));
 
     current = parent;
   }
+
   return NS_OK;
 }
 
@@ -509,172 +487,189 @@ nsContentIterator::MakeEmpty()
 }
 
 nsINode*
-nsContentIterator::GetDeepFirstChild(nsINode *aRoot,
-                                     nsTArray<PRInt32> *aIndexes)
+nsContentIterator::GetDeepFirstChild(nsINode* aRoot,
+                                     nsTArray<PRInt32>* aIndexes)
+{
+  if (!aRoot || !aRoot->HasChildren()) {
+    return aRoot;
+  }
+  
+  
+  
+  if (aIndexes) {
+    aIndexes->AppendElement(0);
+  }
+  return GetDeepFirstChild(aRoot->GetFirstChild(), aIndexes);
+}
+
+nsIContent*
+nsContentIterator::GetDeepFirstChild(nsIContent* aRoot,
+                                     nsTArray<PRInt32>* aIndexes)
 {
   if (!aRoot) {
     return nsnull;
   }
 
-  nsINode *n = aRoot;
-  nsINode *nChild = n->GetFirstChild();
+  nsIContent* node = aRoot;
+  nsIContent* child = node->GetFirstChild();
 
-  while (nChild)
-  {
-    if (aIndexes)
-    {
+  while (child) {
+    if (aIndexes) {
       
       aIndexes->AppendElement(0);
     }
-    n = nChild;
-    nChild = n->GetFirstChild();
+    node = child;
+    child = node->GetFirstChild();
   }
 
-  return n;
+  return node;
 }
 
 nsINode*
-nsContentIterator::GetDeepLastChild(nsINode *aRoot, nsTArray<PRInt32> *aIndexes)
+nsContentIterator::GetDeepLastChild(nsINode* aRoot,
+                                    nsTArray<PRInt32>* aIndexes)
+{
+  if (!aRoot || !aRoot->HasChildren()) {
+    return aRoot;
+  }
+  
+  
+  
+  if (aIndexes) {
+    aIndexes->AppendElement(aRoot->GetChildCount() - 1);
+  }
+  return GetDeepLastChild(aRoot->GetLastChild(), aIndexes);
+}
+
+nsIContent*
+nsContentIterator::GetDeepLastChild(nsIContent* aRoot,
+                                    nsTArray<PRInt32>* aIndexes)
 {
   if (!aRoot) {
     return nsnull;
   }
 
-  nsINode *deepLastChild = aRoot;
+  nsIContent* node = aRoot;
+  PRInt32 numChildren = node->GetChildCount();
 
-  nsINode *n = aRoot;
-  PRInt32 numChildren = n->GetChildCount();
+  while (numChildren) {
+    nsIContent* child = node->GetChildAt(--numChildren);
 
-  while (numChildren)
-  {
-    nsINode *nChild = n->GetChildAt(--numChildren);
-
-    if (aIndexes)
-    {
+    if (aIndexes) {
       
       aIndexes->AppendElement(numChildren);
     }
-    numChildren = nChild->GetChildCount();
-    n = nChild;
-
-    deepLastChild = n;
+    numChildren = child->GetChildCount();
+    node = child;
   }
 
-  return deepLastChild;
+  return node;
 }
 
 
-nsINode *
-nsContentIterator::GetNextSibling(nsINode *aNode, 
-                                  nsTArray<PRInt32> *aIndexes)
+nsIContent*
+nsContentIterator::GetNextSibling(nsINode* aNode,
+                                  nsTArray<PRInt32>* aIndexes)
 {
-  if (!aNode) 
+  if (!aNode) {
     return nsnull;
+  }
 
-  nsINode *parent = aNode->GetNodeParent();
-  if (!parent)
+  nsINode* parent = aNode->GetNodeParent();
+  if (!parent) {
     return nsnull;
+  }
 
   PRInt32 indx = 0;
 
   NS_ASSERTION(!aIndexes || !aIndexes->IsEmpty(),
                "ContentIterator stack underflow");
-  if (aIndexes && !aIndexes->IsEmpty())
-  {
+  if (aIndexes && !aIndexes->IsEmpty()) {
     
     indx = (*aIndexes)[aIndexes->Length()-1];
-  }
-  else
+  } else {
     indx = mCachedIndex;
+  }
 
   
   
   
-  nsINode *sib = parent->GetChildAt(indx);
-  if (sib != aNode)
-  {
+  nsIContent* sib = parent->GetChildAt(indx);
+  if (sib != aNode) {
     
     indx = parent->IndexOf(aNode);
   }
 
   
-  if ((sib = parent->GetChildAt(++indx)))
-  {
+  if ((sib = parent->GetChildAt(++indx))) {
     
-    if (aIndexes && !aIndexes->IsEmpty())
-    {
+    if (aIndexes && !aIndexes->IsEmpty()) {
       aIndexes->ElementAt(aIndexes->Length()-1) = indx;
+    } else {
+      mCachedIndex = indx;
     }
-    else mCachedIndex = indx;
-  }
-  else
-  {
-    if (parent != mCommonParent)
-    {
-      if (aIndexes)
-      {
+  } else {
+    if (parent != mCommonParent) {
+      if (aIndexes) {
         
         
         
-        if (aIndexes->Length() > 1)
+        if (aIndexes->Length() > 1) {
           aIndexes->RemoveElementAt(aIndexes->Length()-1);
+        }
       }
     }
 
     
     sib = GetNextSibling(parent, aIndexes);
   }
-  
+
   return sib;
 }
 
 
-nsINode*
-nsContentIterator::GetPrevSibling(nsINode *aNode, 
-                                  nsTArray<PRInt32> *aIndexes)
+nsIContent*
+nsContentIterator::GetPrevSibling(nsINode* aNode,
+                                  nsTArray<PRInt32>* aIndexes)
 {
-  if (!aNode)
+  if (!aNode) {
     return nsnull;
+  }
 
-  nsINode *parent = aNode->GetNodeParent();
-  if (!parent)
+  nsINode* parent = aNode->GetNodeParent();
+  if (!parent) {
     return nsnull;
+  }
 
   PRInt32 indx = 0;
 
   NS_ASSERTION(!aIndexes || !aIndexes->IsEmpty(),
                "ContentIterator stack underflow");
-  if (aIndexes && !aIndexes->IsEmpty())
-  {
+  if (aIndexes && !aIndexes->IsEmpty()) {
     
     indx = (*aIndexes)[aIndexes->Length()-1];
-  }
-  else
+  } else {
     indx = mCachedIndex;
+  }
 
   
   
-  nsINode *sib = parent->GetChildAt(indx);
-  if (sib != aNode)
-  {
+  nsIContent* sib = parent->GetChildAt(indx);
+  if (sib != aNode) {
     
     indx = parent->IndexOf(aNode);
   }
 
   
-  if (indx > 0 && (sib = parent->GetChildAt(--indx)))
-  {
+  if (indx > 0 && (sib = parent->GetChildAt(--indx))) {
     
-    if (aIndexes && !aIndexes->IsEmpty())
-    {
+    if (aIndexes && !aIndexes->IsEmpty()) {
       aIndexes->ElementAt(aIndexes->Length()-1) = indx;
+    } else {
+      mCachedIndex = indx;
     }
-    else mCachedIndex = indx;
-  }
-  else if (parent != mCommonParent)
-  {
-    if (aIndexes && !aIndexes->IsEmpty())
-    {
+  } else if (parent != mCommonParent) {
+    if (aIndexes && !aIndexes->IsEmpty()) {
       
       aIndexes->RemoveElementAt(aIndexes->Length()-1);
     }
@@ -685,177 +680,167 @@ nsContentIterator::GetPrevSibling(nsINode *aNode,
 }
 
 nsINode*
-nsContentIterator::NextNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes)
+nsContentIterator::NextNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes)
 {
-  nsINode *n = aNode;
-  nsINode *nextNode = nsnull;
+  nsINode* node = aNode;
 
-  if (mPre)  
-  {
+  
+  if (mPre) {
     
-    if (NodeHasChildren(n))
-    {
-      nsINode *nFirstChild = n->GetFirstChild();
+    if (node->HasChildren()) {
+      nsIContent* firstChild = node->GetFirstChild();
 
       
-      if (aIndexes)
-      {
+      if (aIndexes) {
         
         aIndexes->AppendElement(0);
+      } else {
+        mCachedIndex = 0;
       }
-      else mCachedIndex = 0;
-      
-      return nFirstChild;
+
+      return firstChild;
     }
 
     
-    nextNode = GetNextSibling(n, aIndexes);
+    return GetNextSibling(node, aIndexes);
   }
-  else  
-  {
-    nsINode *parent = n->GetNodeParent();
-    nsINode *nSibling = nsnull;
-    PRInt32 indx = 0;
 
-    
-    NS_ASSERTION(!aIndexes || !aIndexes->IsEmpty(),
-                 "ContentIterator stack underflow");
-    if (aIndexes && !aIndexes->IsEmpty())
-    {
-      
-      indx = (*aIndexes)[aIndexes->Length()-1];
-    }
-    else indx = mCachedIndex;
-
-    
-    
-    
-    if (indx >= 0)
-      nSibling = parent->GetChildAt(indx);
-    if (nSibling != n)
-    {
-      
-      indx = parent->IndexOf(n);
-    }
-
-    
-    nSibling = parent->GetChildAt(++indx);
-    if (nSibling)
-    {
-      
-      if (aIndexes && !aIndexes->IsEmpty())
-      {
-        
-        aIndexes->ElementAt(aIndexes->Length()-1) = indx;
-      }
-      else mCachedIndex = indx;
-      
-      
-      return GetDeepFirstChild(nSibling, aIndexes); 
-    }
   
+  nsINode* parent = node->GetNodeParent();
+  nsIContent* sibling = nsnull;
+  PRInt32 indx = 0;
+
+  
+  NS_ASSERTION(!aIndexes || !aIndexes->IsEmpty(),
+               "ContentIterator stack underflow");
+  if (aIndexes && !aIndexes->IsEmpty()) {
     
-    
-    if (aIndexes)
-    {
-      
-      
-      
-      if (aIndexes->Length() > 1)
-        aIndexes->RemoveElementAt(aIndexes->Length()-1);
-    }
-    else mCachedIndex = 0;   
-    nextNode = parent;
+    indx = (*aIndexes)[aIndexes->Length()-1];
+  } else {
+    indx = mCachedIndex;
   }
 
-  return nextNode;
+  
+  
+  
+  if (indx >= 0) {
+    sibling = parent->GetChildAt(indx);
+  }
+  if (sibling != node) {
+    
+    indx = parent->IndexOf(node);
+  }
+
+  
+  sibling = parent->GetChildAt(++indx);
+  if (sibling) {
+    
+    if (aIndexes && !aIndexes->IsEmpty()) {
+      
+      aIndexes->ElementAt(aIndexes->Length()-1) = indx;
+    } else {
+      mCachedIndex = indx;
+    }
+
+    
+    return GetDeepFirstChild(sibling, aIndexes);
+  }
+
+  
+  if (aIndexes) {
+    
+    
+    
+    if (aIndexes->Length() > 1) {
+      aIndexes->RemoveElementAt(aIndexes->Length()-1);
+    }
+  } else {
+    
+    mCachedIndex = 0;
+  }
+
+  return parent;
 }
 
 nsINode*
-nsContentIterator::PrevNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes)
+nsContentIterator::PrevNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes)
 {
-  nsINode *prevNode = nsnull;
-  nsINode *n = aNode;
-   
-  if (mPre)  
-  {
-    nsINode *parent = n->GetNodeParent();
-    nsINode *nSibling = nsnull;
+  nsINode* node = aNode;
+
+  
+  if (mPre) {
+    nsINode* parent = node->GetNodeParent();
+    nsIContent* sibling = nsnull;
     PRInt32 indx = 0;
 
     
     NS_ASSERTION(!aIndexes || !aIndexes->IsEmpty(),
                  "ContentIterator stack underflow");
-    if (aIndexes && !aIndexes->IsEmpty())
-    {
+    if (aIndexes && !aIndexes->IsEmpty()) {
       
       indx = (*aIndexes)[aIndexes->Length()-1];
-    }
-    else indx = mCachedIndex;
-
-    
-    
-    
-    if (indx >= 0)
-      nSibling = parent->GetChildAt(indx);
-
-    if (nSibling != n)
-    {
-      
-      indx = parent->IndexOf(n);
+    } else {
+      indx = mCachedIndex;
     }
 
     
-    if (indx && (nSibling = parent->GetChildAt(--indx)))
-    {
+    
+    
+    if (indx >= 0) {
+      sibling = parent->GetChildAt(indx);
+    }
+
+    if (sibling != node) {
       
-      if (aIndexes && !aIndexes->IsEmpty())
-      {
+      indx = parent->IndexOf(node);
+    }
+
+    
+    if (indx && (sibling = parent->GetChildAt(--indx))) {
+      
+      if (aIndexes && !aIndexes->IsEmpty()) {
         
         aIndexes->ElementAt(aIndexes->Length()-1) = indx;
+      } else {
+        mCachedIndex = indx;
       }
-      else mCachedIndex = indx;
+
       
-      
-      return GetDeepLastChild(nSibling, aIndexes); 
+      return GetDeepLastChild(sibling, aIndexes);
     }
-  
+
     
-    
-    if (aIndexes && !aIndexes->IsEmpty())
-    {
+    if (aIndexes && !aIndexes->IsEmpty()) {
       
       aIndexes->RemoveElementAt(aIndexes->Length()-1);
+    } else {
+      
+      mCachedIndex = 0;
     }
-    else mCachedIndex = 0;   
-    prevNode = parent;
+    return parent;
   }
-  else  
-  {
-    PRInt32 numChildren = n->GetChildCount();
+
   
-    
-    if (numChildren)
-    {
-      nsINode *nLastChild = n->GetLastChild();
-      numChildren--;
+  PRInt32 numChildren = node->GetChildCount();
 
+  
+  if (numChildren) {
+    nsIContent* lastChild = node->GetLastChild();
+    numChildren--;
+
+    
+    if (aIndexes) {
       
-      if (aIndexes)
-      {
-        
-        aIndexes->AppendElement(numChildren);
-      }
-      else mCachedIndex = numChildren;
-      
-      return nLastChild;
+      aIndexes->AppendElement(numChildren);
+    } else {
+      mCachedIndex = numChildren;
     }
 
-    
-    prevNode = GetPrevSibling(n, aIndexes);
+    return lastChild;
   }
 
-  return prevNode;
+  
+  return GetPrevSibling(node, aIndexes);
 }
 
 
@@ -899,11 +884,11 @@ nsContentIterator::Last()
 void
 nsContentIterator::Next()
 {
-  if (mIsDone || !mCurNode) 
+  if (mIsDone || !mCurNode) {
     return;
+  }
 
-  if (mCurNode == mLast) 
-  {
+  if (mCurNode == mLast) {
     mIsDone = true;
     return;
   }
@@ -915,11 +900,11 @@ nsContentIterator::Next()
 void
 nsContentIterator::Prev()
 {
-  if (mIsDone || !mCurNode) 
+  if (mIsDone || !mCurNode) {
     return;
+  }
 
-  if (mCurNode == mFirst) 
-  {
+  if (mCurNode == mFirst) {
     mIsDone = true;
     return;
   }
@@ -940,16 +925,16 @@ nsContentIterator::IsDone()
 nsresult
 nsContentIterator::PositionAt(nsINode* aCurNode)
 {
-  if (!aCurNode)
+  if (!aCurNode) {
     return NS_ERROR_NULL_POINTER;
+  }
 
-  nsINode *newCurNode = aCurNode;
-  nsINode *tempNode = mCurNode;
+  nsINode* newCurNode = aCurNode;
+  nsINode* tempNode = mCurNode;
 
   mCurNode = aCurNode;
   
-  if (mCurNode == tempNode)
-  {
+  if (mCurNode == tempNode) {
     mIsDone = false;  
     return NS_OK;
   }
@@ -958,30 +943,26 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
 
   nsINode* firstNode = mFirst;
   nsINode* lastNode = mLast;
-  PRInt32 firstOffset=0, lastOffset=0;
+  PRInt32 firstOffset = 0, lastOffset = 0;
 
-  if (firstNode && lastNode)
-  {
-    if (mPre)
-    {
+  if (firstNode && lastNode) {
+    if (mPre) {
       firstNode = NodeToParentOffset(mFirst, &firstOffset);
 
-      if (lastNode->GetChildCount())
+      if (lastNode->GetChildCount()) {
         lastOffset = 0;
-      else
-      {
+      } else {
         lastNode = NodeToParentOffset(mLast, &lastOffset);
         ++lastOffset;
       }
-    }
-    else
-    {
+    } else {
       PRUint32 numChildren = firstNode->GetChildCount();
 
-      if (numChildren)
+      if (numChildren) {
         firstOffset = numChildren;
-      else
+      } else {
         firstNode = NodeToParentOffset(mFirst, &firstOffset);
+      }
 
       lastNode = NodeToParentOffset(mLast, &lastOffset);
       ++lastOffset;
@@ -994,8 +975,7 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
   if (mFirst != mCurNode && mLast != mCurNode &&
       (!firstNode || !lastNode ||
        !NodeIsInTraversalRange(mCurNode, mPre, firstNode, firstOffset,
-                               lastNode, lastOffset)))
-  {
+                               lastNode, lastOffset))) {
     mIsDone = true;
     return NS_ERROR_FAILURE;
   }
@@ -1010,29 +990,28 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
   
   
   
-  
 
   
-  
-  if (!oldParentStack.SetCapacity(mIndexes.Length()+1))
+  if (!oldParentStack.SetCapacity(mIndexes.Length() + 1)) {
     return NS_ERROR_FAILURE;
+  }
 
   
   
   
   
-  for (PRInt32 i = mIndexes.Length()+1; i > 0 && tempNode; i--)
-  {
+  for (PRInt32 i = mIndexes.Length() + 1; i > 0 && tempNode; i--) {
     
     oldParentStack.InsertElementAt(0, tempNode);
 
-    nsINode *parent = tempNode->GetNodeParent();
+    nsINode* parent = tempNode->GetNodeParent();
 
-    if (!parent)  
+    if (!parent) {
+      
       break;
+    }
 
-    if (parent == mCurNode)
-    {
+    if (parent == mCurNode) {
       
       
       mIndexes.RemoveElementsAt(mIndexes.Length() - oldParentStack.Length(),
@@ -1044,12 +1023,13 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
   }
 
   
-  while (newCurNode)
-  {
-    nsINode *parent = newCurNode->GetNodeParent();
+  while (newCurNode) {
+    nsINode* parent = newCurNode->GetNodeParent();
 
-    if (!parent)  
+    if (!parent) {
+      
       break;
+    }
 
     PRInt32 indx = parent->IndexOf(newCurNode);
 
@@ -1058,16 +1038,16 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
 
     
     indx = oldParentStack.IndexOf(parent);
-    if (indx >= 0)
-    {
+    if (indx >= 0) {
       
       
       
       
       
-      PRInt32 numToDrop = oldParentStack.Length()-(1+indx);
-      if (numToDrop > 0)
+      PRInt32 numToDrop = oldParentStack.Length() - (1 + indx);
+      if (numToDrop > 0) {
         mIndexes.RemoveElementsAt(mIndexes.Length() - numToDrop, numToDrop);
+      }
       mIndexes.AppendElements(newIndexes);
 
       break;
@@ -1145,7 +1125,9 @@ protected:
   
   
   
-  nsINode* GetTopAncestorInRange(nsINode* aNode);
+  
+  
+  nsIContent* GetTopAncestorInRange(nsINode* aNode);
 
   
   nsContentSubtreeIterator(const nsContentSubtreeIterator&);
@@ -1232,8 +1214,8 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
   nsContentUtils::GetAncestorsAndOffsets(endParent->AsDOMNode(), endOffset,
                                          &mEndNodes, &mEndOffsets);
 
-  nsINode* firstCandidate = nsnull;
-  nsINode* lastCandidate = nsnull;
+  nsIContent* firstCandidate = nsnull;
+  nsIContent* lastCandidate = nsnull;
 
   
   PRInt32 offset = mRange->StartOffset();
@@ -1243,7 +1225,7 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
     
     node = startParent;
   } else {
-    nsINode* child = startParent->GetChildAt(offset);
+    nsIContent* child = startParent->GetChildAt(offset);
     if (!child) {
       
       node = startParent;
@@ -1254,7 +1236,7 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
 
   if (!firstCandidate) {
     
-    firstCandidate = GetNextSibling(node, nsnull);
+    firstCandidate = GetNextSibling(node);
 
     if (!firstCandidate) {
       MakeEmpty();
@@ -1262,7 +1244,7 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
     }
   }
 
-  firstCandidate = GetDeepFirstChild(firstCandidate, nsnull);
+  firstCandidate = GetDeepFirstChild(firstCandidate);
 
   
   
@@ -1301,10 +1283,10 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
 
   if (!lastCandidate) {
     
-    lastCandidate = GetPrevSibling(node, nsnull);
+    lastCandidate = GetPrevSibling(node);
   }
 
-  lastCandidate = GetDeepLastChild(lastCandidate, nsnull);
+  lastCandidate = GetDeepLastChild(lastCandidate);
 
   
   
@@ -1362,7 +1344,7 @@ nsContentSubtreeIterator::Next()
     return;
   }
 
-  nsINode* nextNode = GetNextSibling(mCurNode, nsnull);
+  nsINode* nextNode = GetNextSibling(mCurNode);
   NS_ASSERTION(nextNode, "No next sibling!?! This could mean deadlock!");
 
   PRInt32 i = mEndNodes.IndexOf(nextNode);
@@ -1402,11 +1384,13 @@ nsContentSubtreeIterator::Prev()
     return;
   }
 
-  nsINode* prevNode = GetDeepFirstChild(mCurNode, nsnull);
+  
+  
+  nsINode* prevNode = GetDeepFirstChild(mCurNode);
 
-  prevNode = PrevNode(prevNode, nsnull);
+  prevNode = PrevNode(prevNode);
 
-  prevNode = GetDeepLastChild(prevNode, nsnull);
+  prevNode = GetDeepLastChild(prevNode);
 
   mCurNode = GetTopAncestorInRange(prevNode);
 
@@ -1429,12 +1413,15 @@ nsContentSubtreeIterator::PositionAt(nsINode* aCurNode)
 
 
 
-nsINode*
+nsIContent*
 nsContentSubtreeIterator::GetTopAncestorInRange(nsINode* aNode)
 {
-  if (!aNode) {
+  if (!aNode || !aNode->GetNodeParent()) {
     return nsnull;
   }
+
+  
+  nsIContent* content = aNode->AsContent();
 
   
   bool nodeBefore, nodeAfter;
@@ -1446,20 +1433,24 @@ nsContentSubtreeIterator::GetTopAncestorInRange(nsINode* aNode)
     return nsnull;
   }
 
-  nsCOMPtr<nsINode> parent, tmp;
-  while (aNode) {
-    parent = aNode->GetNodeParent();
-    if (!parent) {
-      return tmp;
+  while (content) {
+    nsIContent* parent = content->GetParent();
+    
+    
+    
+    
+    
+    
+    if (!parent || !parent->GetNodeParent()) {
+      return content;
     }
     MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
       nsRange::CompareNodeToRange(parent, mRange, &nodeBefore, &nodeAfter)));
 
     if (nodeBefore || nodeAfter) {
-      return aNode;
+      return content;
     }
-    tmp = aNode;
-    aNode = parent;
+    content = parent;
   }
 
   MOZ_NOT_REACHED("This should only be possible if aNode was null");

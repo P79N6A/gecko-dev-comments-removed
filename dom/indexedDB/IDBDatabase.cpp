@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "base/basictypes.h"
 
@@ -87,7 +87,7 @@ public:
                                   MOZ_OVERRIDE;
 
 private:
-  // In-params.
+  
   PRInt64 mObjectStoreId;
 };
 
@@ -130,11 +130,11 @@ public:
   }
 
 private:
-  // In-params.
+  
   nsString mName;
   nsString mType;
 
-  // Out-params.
+  
   nsRefPtr<FileInfo> mFileInfo;
 };
 
@@ -163,9 +163,9 @@ private:
   nsString mName;
 };
 
-} // anonymous namespace
+} 
 
-// static
+
 already_AddRefed<IDBDatabase>
 IDBDatabase::Create(IDBWrapperCache* aOwnerCache,
                     already_AddRefed<DatabaseInfo> aDatabaseInfo,
@@ -196,7 +196,7 @@ IDBDatabase::Create(IDBWrapperCache* aOwnerCache,
   NS_ASSERTION(mgr, "This should never be null!");
 
   if (!mgr->RegisterDatabase(db)) {
-    // Either out of memory or shutting down.
+    
     return nsnull;
   }
 
@@ -243,12 +243,16 @@ IDBDatabase::Invalidate()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  // Make sure we're closed too.
+  if (IsInvalidated()) {
+    return;
+  }
+
+  
   Close();
 
-  // When the IndexedDatabaseManager needs to invalidate databases, all it has
-  // is an origin, so we call back into the manager to cancel any prompts for
-  // our owner.
+  
+  
+  
   nsPIDOMWindow* owner = GetOwner();
   if (owner) {
     IndexedDatabaseManager::CancelPromptsForWindow(owner);
@@ -269,7 +273,7 @@ IDBDatabase::CloseInternal(bool aIsDead)
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
   if (!mClosed) {
-    // If we're getting called from Unlink, avoid cloning the DatabaseInfo.
+    
     {
       nsRefPtr<DatabaseInfo> previousInfo;
       mDatabaseInfo.swap(previousInfo);
@@ -286,7 +290,7 @@ IDBDatabase::CloseInternal(bool aIsDead)
       mgr->OnDatabaseClosed(this);
     }
 
-    // And let the parent process know as well.
+    
     if (mActorChild) {
       NS_ASSERTION(!IndexedDatabaseManager::IsMainProcess(), "Wrong process!");
       mActorChild->SendClose(aIsDead);
@@ -322,16 +326,16 @@ IDBDatabase::OnUnlink()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  // We've been unlinked, at the very least we should be able to prevent further
-  // transactions from starting and unblock any other SetVersion callers.
+  
+  
   CloseInternal(true);
 
-  // No reason for the IndexedDatabaseManager to track us any longer.
+  
   IndexedDatabaseManager* mgr = IndexedDatabaseManager::Get();
   if (mgr) {
     mgr->UnregisterDatabase(this);
 
-    // Don't try to unregister again in the destructor.
+    
     mRegistered = false;
   }
 }
@@ -357,7 +361,7 @@ IDBDatabase::CreateObjectStoreInternal(IDBTransaction* aTransaction,
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
   }
 
-  // Don't leave this in the hash if we fail below!
+  
   AutoRemoveObjectStore autoRemove(databaseInfo, newInfo->name);
 
   nsRefPtr<IDBObjectStore> objectStore =
@@ -391,7 +395,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(IDBDatabase, IDBWrapperCache)
   NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(error)
   NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(versionchange)
 
-  // Do some cleanup.
+  
   tmp->OnUnlink();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -483,7 +487,7 @@ IDBDatabase::CreateObjectStore(const nsAString& aName,
       return rv;
     }
 
-    // Get keyPath
+    
     jsval val = params.keyPath;
     if (!JSVAL_IS_VOID(val) && !JSVAL_IS_NULL(val)) {
       if (!JSVAL_IS_PRIMITIVE(val) &&
@@ -640,7 +644,7 @@ IDBDatabase::Transaction(const jsval& aStoreNames,
   if (!JSVAL_IS_PRIMITIVE(aStoreNames)) {
     JSObject* obj = JSVAL_TO_OBJECT(aStoreNames);
 
-    // See if this is a JS array.
+    
     if (JS_IsArrayObject(aCx, obj)) {
       uint32_t length;
       if (!JS_GetArrayLength(aCx, obj, &length)) {
@@ -671,7 +675,7 @@ IDBDatabase::Transaction(const jsval& aStoreNames,
                    "misbehave!");
     }
     else {
-      // Perhaps some kind of wrapped object?
+      
       nsIXPConnect* xpc = nsContentUtils::XPConnect();
       NS_ASSERTION(xpc, "This should never be null!");
 
@@ -683,7 +687,7 @@ IDBDatabase::Transaction(const jsval& aStoreNames,
         nsISupports* wrappedObject = wrapper->Native();
         NS_ENSURE_TRUE(wrappedObject, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
-        // We only accept DOMStringList.
+        
         nsCOMPtr<nsIDOMDOMStringList> list = do_QueryInterface(wrappedObject);
         if (list) {
           PRUint32 length;
@@ -712,8 +716,8 @@ IDBDatabase::Transaction(const jsval& aStoreNames,
     }
   }
 
-  // If our list is empty here then the argument must have been an object that
-  // we don't support or a primitive. Either way we convert to a string.
+  
+  
   if (storesToOpen.IsEmpty()) {
     JSString* jsstr;
     nsDependentJSString str;
@@ -725,7 +729,7 @@ IDBDatabase::Transaction(const jsval& aStoreNames,
     storesToOpen.AppendElement(str);
   }
 
-  // Now check to make sure the object store names we collected actually exist.
+  
   DatabaseInfo* info = Info();
   for (PRUint32 index = 0; index < storesToOpen.Length(); index++) {
     if (!info->ContainsStoreName(storesToOpen[index])) {
@@ -900,10 +904,10 @@ CreateObjectStoreHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
   if (mObjectStore->UsesKeyPathArray()) {
-    // We use a comma in the beginning to indicate that it's an array of
-    // key paths. This is to be able to tell a string-keypath from an
-    // array-keypath which contains only one item.
-    // It also makes serializing easier :-)
+    
+    
+    
+    
     nsAutoString keyPath;
     const nsTArray<nsString>& keyPaths = mObjectStore->KeyPathArray();
     for (PRUint32 i = 0; i < keyPaths.Length(); ++i) {

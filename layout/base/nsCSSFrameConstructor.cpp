@@ -2600,6 +2600,8 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
 
 
 
+
+
   
 
 
@@ -2670,12 +2672,15 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
   
   bool isScrollable = !isXUL;
 
+#ifndef MOZ_WIDGET_ANDROID
+  
   
   if (isHTML) {
     nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
     if (htmlDoc && htmlDoc->GetIsFrameset())
       isScrollable = false;
   }
+#endif
 
   if (isPaginated) {
     isScrollable = presContext->HasPaginatedScrolling();
@@ -11959,7 +11964,7 @@ nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
                         nsPoint(newOffsets.left, newOffsets.top));
 
     
-    aFrame->InvalidateOverflowRect();
+    aFrame->InvalidateFrameSubtree();
 
     return true;
   }
@@ -12033,7 +12038,7 @@ nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
     }
 
     
-    aFrame->InvalidateOverflowRect();
+    aFrame->InvalidateFrameSubtree();
 
     
     nsPoint pos(parentBorder.left + reflowState.mComputedOffsets.left +
@@ -12043,7 +12048,7 @@ nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
     aFrame->SetPosition(pos);
 
     
-    aFrame->InvalidateOverflowRect();
+    aFrame->InvalidateFrameSubtree();
 
     return true;
   }

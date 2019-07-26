@@ -92,10 +92,13 @@ JSClass ExpandoObjectClass = {
 };
 
 bool
-ExpandoObjectMatchesConsumer(JSObject *expandoObject,
+ExpandoObjectMatchesConsumer(JSContext *cx,
+                             JSObject *expandoObject,
                              nsIPrincipal *consumerOrigin,
                              JSObject *exclusiveGlobal)
 {
+    MOZ_ASSERT(js::IsObjectInContextCompartment(expandoObject, cx));
+
     
     nsIPrincipal *o = GetExpandoObjectPrincipal(expandoObject);
     bool equal;
@@ -116,17 +119,30 @@ ExpandoObjectMatchesConsumer(JSObject *expandoObject,
                                         .toObjectOrNull();
     if (!owner && !exclusiveGlobal)
         return true;
+
+    
+    MOZ_ASSERT(!exclusiveGlobal || js::IsObjectInContextCompartment(exclusiveGlobal, cx));
+    MOZ_ASSERT(!owner || js::IsObjectInContextCompartment(owner, cx));
     return owner == exclusiveGlobal;
 }
 
 JSObject *
-LookupExpandoObject(JSObject *target, nsIPrincipal *origin,
+LookupExpandoObject(JSContext *cx, JSObject *target, nsIPrincipal *origin,
                     JSObject *exclusiveGlobal)
 {
     
+    
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, target) ||
+        !JS_WrapObject(cx, &exclusiveGlobal))
+    {
+        return NULL;
+    }
+
+    
     JSObject *head = GetExpandoChain(target);
     while (head) {
-        if (ExpandoObjectMatchesConsumer(head, origin, exclusiveGlobal))
+        if (ExpandoObjectMatchesConsumer(cx, head, origin, exclusiveGlobal))
             return head;
         head = JS_GetReservedSlot(head, JSSLOT_EXPANDO_NEXT).toObjectOrNull();
     }
@@ -137,11 +153,11 @@ LookupExpandoObject(JSObject *target, nsIPrincipal *origin,
 
 
 JSObject *
-LookupExpandoObject(JSObject *target, JSObject *consumer)
+LookupExpandoObject(JSContext *cx, JSObject *target, JSObject *consumer)
 {
     JSObject *consumerGlobal = js::GetGlobalForObjectCrossCompartment(consumer);
     bool isSandbox = !strcmp(js::GetObjectJSClass(consumerGlobal)->name, "Sandbox");
-    return LookupExpandoObject(target, ObjectPrincipal(consumer),
+    return LookupExpandoObject(cx, target, ObjectPrincipal(consumer),
                                isSandbox ? consumerGlobal : nsnull);
 }
 
@@ -150,10 +166,14 @@ AttachExpandoObject(JSContext *cx, JSObject *target, nsIPrincipal *origin,
                     JSObject *exclusiveGlobal)
 {
     
+    MOZ_ASSERT(js::IsObjectInContextCompartment(target, cx));
+    MOZ_ASSERT(!exclusiveGlobal || js::IsObjectInContextCompartment(exclusiveGlobal, cx));
+
+    
     MOZ_ASSERT(IS_WN_WRAPPER(target));
 
     
-    MOZ_ASSERT(!LookupExpandoObject(target, origin, exclusiveGlobal));
+    MOZ_ASSERT(!LookupExpandoObject(cx, target, origin, exclusiveGlobal));
 
     
     JSObject *expandoObject = JS_NewObjectWithGivenProto(cx, &ExpandoObjectClass,
@@ -192,12 +212,22 @@ AttachExpandoObject(JSContext *cx, JSObject *target, nsIPrincipal *origin,
 JSObject *
 EnsureExpandoObject(JSContext *cx, JSObject *wrapper, JSObject *target)
 {
-    JSObject *expandoObject = LookupExpandoObject(target, wrapper);
+    
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, target))
+        return false;
+
+    JSObject *expandoObject = LookupExpandoObject(cx, target, wrapper);
     if (!expandoObject) {
+        
+        
+        
         
         
         JSObject *consumerGlobal = js::GetGlobalForObjectCrossCompartment(wrapper);
         bool isSandbox = !strcmp(js::GetObjectJSClass(consumerGlobal)->name, "Sandbox");
+        if (!JS_WrapObject(cx, &consumerGlobal))
+            return NULL;
         expandoObject = AttachExpandoObject(cx, target, ObjectPrincipal(wrapper),
                                             isSandbox ? consumerGlobal : nsnull);
     }
@@ -215,6 +245,8 @@ CloneExpandoChain(JSContext *cx, JSObject *dst, JSObject *src)
         JSObject *exclusive = JS_GetReservedSlot(oldHead,
                                                  JSSLOT_EXPANDO_EXCLUSIVE_GLOBAL)
                                                 .toObjectOrNull();
+        if (!JS_WrapObject(cx, &exclusive))
+            return false;
         JSObject *newHead =
           AttachExpandoObject(cx, dst, GetExpandoObjectPrincipal(oldHead), exclusive);
         if (!JS_CopyPropertiesFrom(cx, newHead, oldHead))
@@ -728,11 +760,15 @@ nodePrincipal_getter(JSContext *cx, JSHandleObject wrapper, JSHandleId id, jsval
 }
 
 static bool
-IsPrivilegedScript()
+ContentScriptHasUniversalXPConnect()
 {
-    
     nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
     if (ssm) {
+        
+        
+        
+        MOZ_ASSERT(!AccessCheck::callerIsChrome());
+
         bool privileged;
         if (NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) && privileged)
             return true;
@@ -763,6 +799,9 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
                                                JSObject *wrapper, JSObject *holder, jsid id,
                                                bool set, PropertyDescriptor *desc)
 {
+    
+    
+    MOZ_ASSERT(js::IsObjectInContextCompartment(wrapper, cx));
     XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
     if (!WrapperFactory::IsPartiallyTransparent(wrapper) &&
         (((id == rt->GetStringID(XPCJSRuntime::IDX_BASEURIOBJECT) ||
@@ -770,7 +809,7 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
           Is<nsINode>(wrapper)) ||
           (id == rt->GetStringID(XPCJSRuntime::IDX_DOCUMENTURIOBJECT) &&
           Is<nsIDocument>(wrapper))) &&
-        IsPrivilegedScript()) {
+        (AccessCheck::callerIsChrome() || ContentScriptHasUniversalXPConnect())) {
         bool status;
         Wrapper::Action action = set ? Wrapper::SET : Wrapper::GET;
         desc->obj = NULL; 
@@ -797,7 +836,7 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
 
     unsigned flags = (set ? JSRESOLVE_ASSIGNING : 0) | JSRESOLVE_QUALIFIED;
     JSObject *target = GetWrappedNativeObjectFromHolder(holder);
-    JSObject *expando = LookupExpandoObject(target, wrapper);
+    JSObject *expando = LookupExpandoObject(cx, target, wrapper);
 
     
     
@@ -896,7 +935,7 @@ XPCWrappedNativeXrayTraits::delete_(JSContext *cx, JSObject *wrapper, jsid id, b
 {
     JSObject *holder = getHolderObject(wrapper);
     JSObject *target = GetWrappedNativeObjectFromHolder(holder);
-    JSObject *expando = LookupExpandoObject(target, wrapper);
+    JSObject *expando = LookupExpandoObject(cx, target, wrapper);
     JSAutoEnterCompartment ac;
     JSBool b = true;
     jsval v;
@@ -921,7 +960,7 @@ XPCWrappedNativeXrayTraits::enumerateNames(JSContext *cx, JSObject *wrapper, uns
     
     
     JSObject *target = GetWrappedNativeObjectFromHolder(holder);
-    JSObject *expando = LookupExpandoObject(target, wrapper);
+    JSObject *expando = LookupExpandoObject(cx, target, wrapper);
     if (expando) {
         JSAutoEnterCompartment ac;
         if (!ac.enter(cx, expando) ||
@@ -1134,7 +1173,9 @@ IsTransparent(JSContext *cx, JSObject *wrapper)
         return false;
 
     
-    if (IsPrivilegedScript())
+    
+    
+    if (ContentScriptHasUniversalXPConnect())
         return true;
 
     return AccessCheck::documentDomainMakesSameOrigin(cx, UnwrapObject(wrapper));

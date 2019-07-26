@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef MOZILLA_SVGANIMATEDPRESERVEASPECTRATIO_H__
 #define MOZILLA_SVGANIMATEDPRESERVEASPECTRATIO_H__
@@ -14,6 +14,7 @@
 #include "nsIDOMSVGPresAspectRatio.h"
 #include "nsISMILAttr.h"
 #include "nsSVGElement.h"
+#include "mozilla/Attributes.h"
 
 class nsISMILAnimationElement;
 class nsSMILValue;
@@ -131,7 +132,7 @@ public:
   nsresult ToDOMAnimatedPreserveAspectRatio(
     nsIDOMSVGAnimatedPreserveAspectRatio **aResult,
     nsSVGElement* aSVGElement);
-  
+  // Returns a new nsISMILAttr object that the caller must delete
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
 private:
@@ -147,7 +148,7 @@ private:
                         nsSVGElement* aSVGElement);
 
 public:
-  struct DOMBaseVal : public nsIDOMSVGPreserveAspectRatio
+  struct DOMBaseVal MOZ_FINAL : public nsIDOMSVGPreserveAspectRatio
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMBaseVal)
@@ -155,7 +156,7 @@ public:
     DOMBaseVal(SVGAnimatedPreserveAspectRatio* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
     
-    SVGAnimatedPreserveAspectRatio* mVal; 
+    SVGAnimatedPreserveAspectRatio* mVal; // kept alive because it belongs to mSVGElement
     nsRefPtr<nsSVGElement> mSVGElement;
     
     NS_IMETHOD GetAlign(PRUint16* aAlign)
@@ -169,7 +170,7 @@ public:
       { return mVal->SetBaseMeetOrSlice(aMeetOrSlice, mSVGElement); }
   };
 
-  struct DOMAnimVal : public nsIDOMSVGPreserveAspectRatio
+  struct DOMAnimVal MOZ_FINAL : public nsIDOMSVGPreserveAspectRatio
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimVal)
@@ -177,11 +178,11 @@ public:
     DOMAnimVal(SVGAnimatedPreserveAspectRatio* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
     
-    SVGAnimatedPreserveAspectRatio* mVal; 
+    SVGAnimatedPreserveAspectRatio* mVal; // kept alive because it belongs to mSVGElement
     nsRefPtr<nsSVGElement> mSVGElement;
     
-    
-    
+    // Script may have modified animation parameters or timeline -- DOM getters
+    // need to flush any resample requests to reflect these modifications.
     NS_IMETHOD GetAlign(PRUint16* aAlign)
     {
       mSVGElement->FlushAnimations();
@@ -201,7 +202,7 @@ public:
       { return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR; }
   };
 
-  struct DOMAnimPAspectRatio : public nsIDOMSVGAnimatedPreserveAspectRatio
+  struct DOMAnimPAspectRatio MOZ_FINAL : public nsIDOMSVGAnimatedPreserveAspectRatio
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimPAspectRatio)
@@ -210,7 +211,7 @@ public:
                         nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    
+    // kept alive because it belongs to content:
     SVGAnimatedPreserveAspectRatio* mVal;
 
     nsRefPtr<nsSVGElement> mSVGElement;
@@ -222,20 +223,20 @@ public:
       { return mVal->ToDOMAnimVal(aAnimVal, mSVGElement); }
   };
 
-  struct SMILPreserveAspectRatio : public nsISMILAttr
+  struct SMILPreserveAspectRatio MOZ_FINAL : public nsISMILAttr
   {
   public:
     SMILPreserveAspectRatio(SVGAnimatedPreserveAspectRatio* aVal,
                             nsSVGElement* aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    
-    
-    
+    // These will stay alive because a nsISMILAttr only lives as long
+    // as the Compositing step, and DOM elements don't get a chance to
+    // die during that.
     SVGAnimatedPreserveAspectRatio* mVal;
     nsSVGElement* mSVGElement;
 
-    
+    // nsISMILAttr methods
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
@@ -246,6 +247,6 @@ public:
   };
 };
 
-} 
+} // namespace mozilla
 
-#endif 
+#endif // MOZILLA_SVGANIMATEDPRESERVEASPECTRATIO_H__

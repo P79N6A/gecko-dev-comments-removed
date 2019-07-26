@@ -4099,6 +4099,8 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
       
       
       
+      
+      
       if (!aParent->IsNodeOfType(nsINode::eDOCUMENT)) {
         
         return true;
@@ -4159,6 +4161,11 @@ nsresult
 nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
                                nsINode* aRefChild)
 {
+  
+  
+  
+  
+  
   if (!aNewChild || (aReplace && !aRefChild)) {
     return NS_ERROR_NULL_POINTER;
   }
@@ -4235,6 +4242,8 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     nodeToInsertBefore = nodeToInsertBefore->GetNextSibling();
   }
 
+  Maybe<nsAutoTArray<nsCOMPtr<nsIContent>, 50> > fragChildren;
+
   
   nsCOMPtr<nsINode> oldParent = newContent->GetNodeParent();
   if (oldParent) {
@@ -4254,7 +4263,8 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     
     
     {
-      mozAutoDocUpdate batch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, true);
+      mozAutoDocUpdate batch(newContent->GetCurrentDoc(),
+                             UPDATE_CONTENT_MODEL, true);
       nsAutoMutationBatch mb(oldParent, true, true);
       oldParent->RemoveChildAt(removeIndex, true);
       if (nsAutoMutationBatch::GetCurrentBatch() == &mb) {
@@ -4296,6 +4306,98 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
           nodeToInsertBefore = aRefChild->GetNextSibling();
         } else {
           nodeToInsertBefore = aRefChild;
+        }
+      }
+    }
+  } else if (nodeType == nsIDOMNode::DOCUMENT_FRAGMENT_NODE) {
+    
+    
+    
+    
+    PRUint32 count = newContent->GetChildCount();
+
+    fragChildren.construct();
+
+    
+    
+    fragChildren.ref().SetCapacity(count);
+    for (nsIContent* child = newContent->GetFirstChild();
+         child;
+         child = child->GetNextSibling()) {
+      NS_ASSERTION(child->GetCurrentDoc() == nsnull,
+                   "How did we get a child with a current doc?");
+      fragChildren.ref().AppendElement(child);
+    }
+
+    
+    nsCOMPtr<nsINode> kungFuDeathGrip = nodeToInsertBefore;
+
+    nsMutationGuard guard;
+
+    
+    
+    {
+      mozAutoDocUpdate batch(newContent->GetCurrentDoc(),
+                             UPDATE_CONTENT_MODEL, true);
+      nsAutoMutationBatch mb(newContent, false, true);
+
+      for (PRUint32 i = count; i > 0;) {
+        newContent->RemoveChildAt(--i, true);
+      }
+    }
+
+    
+    if (guard.Mutated(count)) {
+      
+      
+      
+      
+      if (nodeToInsertBefore && nodeToInsertBefore->GetParent() != this) {
+        return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+      }
+
+      
+      for (PRUint32 i = 0; i < count; ++i) {
+        if (fragChildren.ref().ElementAt(i)->GetParent()) {
+          return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+        }
+      }
+
+      
+      
+      
+      
+
+      
+      if (aRefChild && aRefChild->GetParent() != this) {
+        return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+      }
+
+      
+      if (aReplace) {
+        nodeToInsertBefore = aRefChild->GetNextSibling();
+      } else {
+        nodeToInsertBefore = aRefChild;
+      }      
+
+      
+      
+      
+      
+      if (IsNodeOfType(nsINode::eDOCUMENT)) {
+        bool sawElement = false;
+        for (PRUint32 i = 0; i < count; ++i) {
+          nsIContent* child = fragChildren.ref().ElementAt(i);
+          if (child->IsElement()) {
+            if (sawElement) {
+              
+              return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+            }
+            sawElement = true;
+          }
+          if (!IsAllowedAsChild(child, this, aReplace, aRefChild)) {
+            return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+          }
         }
       }
     }
@@ -4353,30 +4455,9 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
 
 
   if (nodeType == nsIDOMNode::DOCUMENT_FRAGMENT_NODE) {
-    PRUint32 count = newContent->GetChildCount();
-
+    PRUint32 count = fragChildren.ref().Length();
     if (!count) {
       return NS_OK;
-    }
-
-    
-    
-    nsAutoTArray<nsCOMPtr<nsIContent>, 50> fragChildren;
-    fragChildren.SetCapacity(count);
-    for (nsIContent* child = newContent->GetFirstChild();
-         child;
-         child = child->GetNextSibling()) {
-      NS_ASSERTION(child->GetCurrentDoc() == nsnull,
-                   "How did we get a child with a current doc?");
-      fragChildren.AppendElement(child);
-    }
-
-    
-    {
-      nsAutoMutationBatch mb(newContent, false, true);
-      for (PRUint32 i = count; i > 0;) {
-        newContent->RemoveChildAt(--i, true);
-      }
     }
 
     if (!aReplace) {
@@ -4392,14 +4473,14 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     bool appending =
       !IsNodeOfType(eDOCUMENT) && PRUint32(insPos) == GetChildCount();
     PRInt32 firstInsPos = insPos;
-    nsIContent* firstInsertedContent = fragChildren[0];
+    nsIContent* firstInsertedContent = fragChildren.ref().ElementAt(0);
 
     
     
     for (PRUint32 i = 0; i < count; ++i, ++insPos) {
       
       
-      res = InsertChildAt(fragChildren[i], insPos, !appending);
+      res = InsertChildAt(fragChildren.ref().ElementAt(i), insPos, !appending);
       if (NS_FAILED(res)) {
         
         if (appending && i != 0) {
@@ -4425,7 +4506,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
       
       if (nsContentUtils::
             HasMutationListeners(doc, NS_EVENT_BITS_MUTATION_NODEINSERTED)) {
-        nsGenericElement::FireNodeInserted(doc, this, fragChildren);
+        nsGenericElement::FireNodeInserted(doc, this, fragChildren.ref());
       }
     }
   }

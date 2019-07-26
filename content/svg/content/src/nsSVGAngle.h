@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef __NS_SVGANGLE_H__
 #define __NS_SVGANGLE_H__
@@ -14,6 +14,7 @@
 #include "nsIDOMSVGAnimatedAngle.h"
 #include "nsISMILAttr.h"
 #include "nsSVGElement.h"
+#include "mozilla/Attributes.h"
 
 class nsISMILAnimationElement;
 class nsSMILValue;
@@ -55,7 +56,7 @@ public:
   static nsresult ToDOMSVGAngle(nsIDOMSVGAngle **aResult);
   nsresult ToDOMAnimatedAngle(nsIDOMSVGAnimatedAngle **aResult,
                               nsSVGElement* aSVGElement);
-  
+  // Returns a new nsISMILAttr object that the caller must delete
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
   static float GetDegreesPerUnit(PRUint8 aUnit);
@@ -66,7 +67,7 @@ private:
   float mBaseVal;
   PRUint8 mAnimValUnit;
   PRUint8 mBaseValUnit;
-  PRUint8 mAttrEnum; 
+  PRUint8 mAttrEnum; // element specified tracking for attribute
   bool mIsAnimated;
   
   void SetBaseValueInSpecifiedUnits(float aValue, nsSVGElement *aSVGElement);
@@ -77,7 +78,7 @@ private:
   nsresult ToDOMAnimVal(nsIDOMSVGAngle **aResult, nsSVGElement* aSVGElement);
 
 public:
-  struct DOMBaseVal : public nsIDOMSVGAngle
+  struct DOMBaseVal MOZ_FINAL : public nsIDOMSVGAngle
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMBaseVal)
@@ -85,7 +86,7 @@ public:
     DOMBaseVal(nsSVGAngle* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
     
-    nsSVGAngle* mVal; 
+    nsSVGAngle* mVal; // kept alive because it belongs to mSVGElement
     nsRefPtr<nsSVGElement> mSVGElement;
     
     NS_IMETHOD GetUnitType(PRUint16* aResult)
@@ -116,7 +117,7 @@ public:
       { return mVal->ConvertToSpecifiedUnits(unitType, mSVGElement); }
   };
 
-  struct DOMAnimVal : public nsIDOMSVGAngle
+  struct DOMAnimVal MOZ_FINAL : public nsIDOMSVGAngle
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimVal)
@@ -124,7 +125,7 @@ public:
     DOMAnimVal(nsSVGAngle* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
     
-    nsSVGAngle* mVal; 
+    nsSVGAngle* mVal; // kept alive because it belongs to mSVGElement
     nsRefPtr<nsSVGElement> mSVGElement;
     
     NS_IMETHOD GetUnitType(PRUint16* aResult)
@@ -153,7 +154,7 @@ public:
       { return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR; }
   };
 
-  struct DOMAnimatedAngle : public nsIDOMSVGAnimatedAngle
+  struct DOMAnimatedAngle MOZ_FINAL : public nsIDOMSVGAnimatedAngle
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedAngle)
@@ -161,7 +162,7 @@ public:
     DOMAnimatedAngle(nsSVGAngle* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
     
-    nsSVGAngle* mVal; 
+    nsSVGAngle* mVal; // kept alive because it belongs to content
     nsRefPtr<nsSVGElement> mSVGElement;
 
     NS_IMETHOD GetBaseVal(nsIDOMSVGAngle **aBaseVal)
@@ -171,12 +172,12 @@ public:
       { return mVal->ToDOMAnimVal(aAnimVal, mSVGElement); }
   };
 
-  
-  
-  
-  
+  // We do not currently implemente a SMILAngle struct because in SVG 1.1 the
+  // only *animatable* attribute that takes an <angle> is 'orient', on the
+  // 'marker' element, and 'orient' must be special cased since it can also
+  // take the value 'auto', making it a more complex type.
 
-  struct SMILOrient : public nsISMILAttr
+  struct SMILOrient MOZ_FINAL : public nsISMILAttr
   {
   public:
     SMILOrient(nsSVGOrientType* aOrientType,
@@ -187,14 +188,14 @@ public:
       , mSVGElement(aSVGElement)
     {}
 
-    
-    
-    
+    // These will stay alive because a nsISMILAttr only lives as long
+    // as the Compositing step, and DOM elements don't get a chance to
+    // die during that.
     nsSVGOrientType* mOrientType;
     nsSVGAngle* mAngle;
     nsSVGElement* mSVGElement;
 
-    
+    // nsISMILAttr methods
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
@@ -208,4 +209,4 @@ public:
 nsresult
 NS_NewDOMSVGAngle(nsIDOMSVGAngle** result);
 
-#endif 
+#endif //__NS_SVGANGLE_H__

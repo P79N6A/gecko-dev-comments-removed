@@ -2082,27 +2082,28 @@ nsRange::InsertNode(nsIDOMNode* aNode)
   }
 
   
+  
+  
   PRInt32 newOffset;
 
-  if (Collapsed()) {
-    if (referenceNode) {
-      newOffset = IndexOf(referenceNode);
-    } else {
-      PRUint32 length;
-      res = tChildList->GetLength(&length);
-      NS_ENSURE_SUCCESS(res, res);
-      newOffset = length;
-    }
-
-    nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
-    NS_ENSURE_STATE(node);
-    if (node->NodeType() == nsIDOMNode::DOCUMENT_FRAGMENT_NODE) {
-      newOffset += node->GetChildCount();
-    } else {
-      newOffset++;
-    }
+  if (referenceNode) {
+    newOffset = IndexOf(referenceNode);
+  } else {
+    PRUint32 length;
+    res = tChildList->GetLength(&length);
+    NS_ENSURE_SUCCESS(res, res);
+    newOffset = length;
   }
 
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  NS_ENSURE_STATE(node);
+  if (node->NodeType() == nsIDOMNode::DOCUMENT_FRAGMENT_NODE) {
+    newOffset += node->GetChildCount();
+  } else {
+    newOffset++;
+  }
+
+  
   nsCOMPtr<nsIDOMNode> tResultNode;
   res = referenceParentNode->InsertBefore(aNode, referenceNode, getter_AddRefs(tResultNode));
   NS_ENSURE_SUCCESS(res, res);

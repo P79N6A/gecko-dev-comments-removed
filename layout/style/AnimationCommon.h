@@ -15,6 +15,7 @@
 #include "mozilla/dom/Element.h"
 #include "nsSMILKeySpline.h"
 #include "nsStyleStruct.h"
+#include "mozilla/Attributes.h"
 
 class nsPresContext;
 
@@ -66,7 +67,7 @@ protected:
 
 
 
-class AnimValuesStyleRule : public nsIStyleRule
+class AnimValuesStyleRule MOZ_FINAL : public nsIStyleRule
 {
 public:
   

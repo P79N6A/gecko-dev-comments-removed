@@ -201,7 +201,8 @@ static SETTING gDDESettings[] = {
 #include "updatehelper.h"
 #include "updatehelper.cpp"
 
-static const char kPrefetchClearedPref[] = "app.update.service.prefetchCleared";
+static const char *kPrefetchClearedPref =
+  "app.update.service.lastVersionPrefetchCleared";
 static nsCOMPtr<nsIThread> sThread;
 #endif
 
@@ -1017,16 +1018,19 @@ nsWindowsShellService::nsWindowsShellService() :
 
   
   
-  bool prefetchCleared;
+  nsCString lastClearedVer;
   nsCOMPtr<nsIPrefBranch> prefBranch;
   nsCOMPtr<nsIPrefService> prefs =
     do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (!prefs || 
       NS_FAILED(prefs->GetBranch(nsnull, getter_AddRefs(prefBranch))) ||
-      (NS_SUCCEEDED(prefBranch->GetBoolPref(kPrefetchClearedPref, 
-                                            &prefetchCleared)) &&
-       prefetchCleared)) {
-    return;
+      (NS_SUCCEEDED(prefBranch->GetCharPref(kPrefetchClearedPref, 
+                                            getter_Copies(lastClearedVer))))) {
+    
+    
+    if (!strcmp(MOZ_APP_VERSION, lastClearedVer.get())) {
+      return;
+    }
   }
 
   
@@ -1097,7 +1101,7 @@ nsWindowsShellService::LaunchPrefetchClearCommand(nsITimer *aTimer, void*)
     do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefs) {
     if (NS_SUCCEEDED(prefs->GetBranch(nsnull, getter_AddRefs(prefBranch)))) {
-      prefBranch->SetBoolPref(kPrefetchClearedPref, true);
+      prefBranch->SetCharPref(kPrefetchClearedPref, MOZ_APP_VERSION);
     }
   }
 

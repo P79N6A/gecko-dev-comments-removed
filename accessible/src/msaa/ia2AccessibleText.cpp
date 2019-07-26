@@ -17,6 +17,26 @@
 
 
 STDMETHODIMP
+ia2AccessibleText::QueryInterface(REFIID iid, void** ppv)
+{
+  *ppv = NULL;
+
+  if (IID_IAccessibleText == iid) {
+    nsCOMPtr<nsIAccessibleText> textAcc(do_QueryObject(this));
+    if (!textAcc) {
+      return E_NOINTERFACE;
+    }
+    *ppv = static_cast<IAccessibleText*>(this);
+    (reinterpret_cast<IUnknown*>(*ppv))->AddRef();
+    return S_OK;
+  }
+
+  return E_NOINTERFACE;
+}
+
+
+
+STDMETHODIMP
 ia2AccessibleText::addSelection(long aStartOffset, long aEndOffset)
 {
 __try {
@@ -47,7 +67,7 @@ __try {
   if (textAcc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  int32_t startOffset = 0, endOffset = 0;
+  PRInt32 startOffset = 0, endOffset = 0;
   nsCOMPtr<nsIPersistentProperties> attributes;
   nsresult rv = textAcc->GetTextAttributes(true, aOffset,
                                            &startOffset, &endOffset,
@@ -79,7 +99,7 @@ __try {
   if (textAcc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  int32_t offset = 0;
+  PRInt32 offset = 0;
   nsresult rv = textAcc->GetCaretOffset(&offset);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -107,11 +127,11 @@ __try {
   if (textAcc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  uint32_t geckoCoordType = (aCoordType == IA2_COORDTYPE_SCREEN_RELATIVE) ?
+  PRUint32 geckoCoordType = (aCoordType == IA2_COORDTYPE_SCREEN_RELATIVE) ?
     nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE :
     nsIAccessibleCoordinateType::COORDTYPE_PARENT_RELATIVE;
 
-  int32_t x = 0, y =0, width = 0, height = 0;
+  PRInt32 x = 0, y =0, width = 0, height = 0;
   nsresult rv = textAcc->GetCharacterExtents (aOffset, &x, &y, &width, &height,
                                               geckoCoordType);
   if (NS_FAILED(rv))
@@ -137,7 +157,7 @@ __try {
   if (textAcc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  int32_t selCount = 0;
+  PRInt32 selCount = 0;
   nsresult rv = textAcc->GetSelectionCount(&selCount);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -161,11 +181,11 @@ __try {
   if (textAcc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  uint32_t geckoCoordType = (aCoordType == IA2_COORDTYPE_SCREEN_RELATIVE) ?
+  PRUint32 geckoCoordType = (aCoordType == IA2_COORDTYPE_SCREEN_RELATIVE) ?
     nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE :
     nsIAccessibleCoordinateType::COORDTYPE_PARENT_RELATIVE;
 
-  int32_t offset = 0;
+  PRInt32 offset = 0;
   nsresult rv = textAcc->GetOffsetAtPoint(aX, aY, geckoCoordType, &offset);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -189,7 +209,7 @@ __try {
   if (textAcc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  int32_t startOffset = 0, endOffset = 0;
+  PRInt32 startOffset = 0, endOffset = 0;
   nsresult rv = textAcc->GetSelectionBounds(aSelectionIndex,
                                             &startOffset, &endOffset);
   if (NS_FAILED(rv))
@@ -245,7 +265,7 @@ __try {
 
   nsresult rv = NS_OK;
   nsAutoString text;
-  int32_t startOffset = 0, endOffset = 0;
+  PRInt32 startOffset = 0, endOffset = 0;
 
   if (aBoundaryType == IA2_TEXT_BOUNDARY_ALL) {
     startOffset = 0;
@@ -292,7 +312,7 @@ __try {
 
   nsresult rv = NS_OK;
   nsAutoString text;
-  int32_t startOffset = 0, endOffset = 0;
+  PRInt32 startOffset = 0, endOffset = 0;
 
   if (aBoundaryType == IA2_TEXT_BOUNDARY_ALL) {
     startOffset = 0;
@@ -339,7 +359,7 @@ __try {
 
   nsresult rv = NS_OK;
   nsAutoString text;
-  int32_t startOffset = 0, endOffset = 0;
+  PRInt32 startOffset = 0, endOffset = 0;
 
   if (aBoundaryType == IA2_TEXT_BOUNDARY_ALL) {
     startOffset = 0;
@@ -459,7 +479,7 @@ __try {
   if (textAcc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  uint32_t geckoCoordType = (aCoordType == IA2_COORDTYPE_SCREEN_RELATIVE) ?
+  PRUint32 geckoCoordType = (aCoordType == IA2_COORDTYPE_SCREEN_RELATIVE) ?
     nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE :
     nsIAccessibleCoordinateType::COORDTYPE_PARENT_RELATIVE;
 
@@ -497,7 +517,7 @@ HRESULT
 ia2AccessibleText::GetModifiedText(bool aGetInsertedText,
                                    IA2TextSegment *aText)
 {
-  uint32_t startOffset = 0, endOffset = 0;
+  PRUint32 startOffset = 0, endOffset = 0;
   nsAutoString text;
 
   nsresult rv = GetModifiedText(aGetInsertedText, text,
