@@ -1773,31 +1773,14 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
 }
 
 
-.tab-close-button > .toolbarbutton-icon {
-  
-
-  margin: -4px;
-}
-
-
-.tabs-closebutton,
-.tab-close-button {
-  -moz-appearance: none;
-  height: 16px;
-  width: 16px;
-}
-
-.tabs-closebutton:not([selected]):not(:hover),
 .tab-close-button:not([selected]):not(:hover) {
   background-image: -moz-image-rect(url("chrome://global/skin/icons/close.svg"), 0, 64, 16, 48);
 }
 
-.tabs-closebutton:not([selected]):not(:hover):-moz-lwtheme-brighttext,
 .tab-close-button:not([selected]):not(:hover):-moz-lwtheme-brighttext {
   background-image: -moz-image-rect(url("chrome://global/skin/icons/close.svg"), 0, 80, 16, 64);
 }
 
-.tabs-closebutton:not([selected]):not(:hover):-moz-lwtheme-darktext,
 .tab-close-button:not([selected]):not(:hover):-moz-lwtheme-darktext {
   background-image: -moz-image-rect(url("chrome://global/skin/icons/close.svg"), 0, 96, 16, 80);
 }
@@ -1808,23 +1791,6 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
 #TabsToolbar > #wrapper-new-tab-button > #new-tab-button {
   list-style-image: url("moz-icon://stock/gtk-add?size=menu");
   -moz-image-region: auto;
-}
-
-.customization-tipPanel-closeBox > .close-icon {
-  -moz-appearance: none;
-  width: 16px;
-  height: 16px;
-}
-
-
-.customization-tipPanel-closeBox > .close-icon:active {
-  background-image: -moz-image-rect(url("chrome://global/skin/icons/close.svg"), 0, 48, 16, 32);
-}
-
-.tabs-closebutton > .toolbarbutton-icon {
-  
-
-  margin: -2px;
 }
 
 
@@ -1902,11 +1868,6 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   box-shadow: inset -5px 0 ThreeDShadow;
 }
 
-
-#sidebar-header > .tabs-closebutton {
-  margin-bottom: 0px !important;
-  padding: 0px 2px 0px 2px !important;
-}
 
 #sidebar-throbber[loading="true"] {
   list-style-image: url("chrome://global/skin/icons/loading_16.png");
@@ -2233,6 +2194,11 @@ chatbox {
   background-clip: padding-box;
   border-right: 3px solid transparent;
   border-left: 3px solid transparent;
+}
+
+
+.customization-tipPanel-closeBox > .close-icon:active {
+  background-image: -moz-image-rect(url("chrome://global/skin/icons/close.svg"), 0, 48, 16, 32);
 }
 
 
