@@ -365,17 +365,22 @@ ClientTiledThebesLayer::RenderLayer()
       return;
     }
 
-    TILING_PRLOG_OBJ(("TILING 0x%p: Valid region %s\n", this, tmpstr.get()), mValidRegion);
-    TILING_PRLOG_OBJ(("TILING 0x%p: Visible region %s\n", this, tmpstr.get()), mVisibleRegion);
-
+    
     
     
     mValidRegion.And(mValidRegion, mVisibleRegion);
     if (!mPaintData.mCriticalDisplayPort.IsEmpty()) {
-      
-      
       mValidRegion.And(mValidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
+      invalidRegion.And(invalidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
     }
+
+    TILING_PRLOG_OBJ(("TILING 0x%p: First-transaction valid region %s\n", this, tmpstr.get()), mValidRegion);
+    TILING_PRLOG_OBJ(("TILING 0x%p: First-transaction invalid region %s\n", this, tmpstr.get()), invalidRegion);
+  } else {
+    if (!mPaintData.mCriticalDisplayPort.IsEmpty()) {
+      invalidRegion.And(invalidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
+    }
+    TILING_PRLOG_OBJ(("TILING 0x%p: Repeat-transaction invalid region %s\n", this, tmpstr.get()), invalidRegion);
   }
 
   nsIntRegion lowPrecisionInvalidRegion;
@@ -389,8 +394,6 @@ ClientTiledThebesLayer::RenderLayer()
       lowPrecisionInvalidRegion.Sub(lowPrecisionInvalidRegion, mValidRegion);
     }
 
-    
-    invalidRegion.And(invalidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
     if (invalidRegion.IsEmpty() && lowPrecisionInvalidRegion.IsEmpty()) {
       EndPaint(true);
       return;
