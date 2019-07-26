@@ -352,15 +352,8 @@ VirtualRegister::getFirstInterval()
 }
 
 
-void
-EnsureLiveRangeAllocatorInstantiation(MIRGenerator *mir, LIRGenerator *lir, LIRGraph &graph)
-{
-    LiveRangeAllocator<LinearScanVirtualRegister> lsra(mir, lir, graph, true);
-    lsra.buildLivenessInfo();
-
-    LiveRangeAllocator<BacktrackingVirtualRegister> backtracking(mir, lir, graph, false);
-    backtracking.buildLivenessInfo();
-}
+template bool LiveRangeAllocator<LinearScanVirtualRegister>::buildLivenessInfo();
+template bool LiveRangeAllocator<BacktrackingVirtualRegister>::buildLivenessInfo();
 
 #ifdef DEBUG
 static inline bool
