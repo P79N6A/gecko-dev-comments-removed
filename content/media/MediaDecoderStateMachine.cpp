@@ -2620,21 +2620,16 @@ void MediaDecoderStateMachine::UpdateReadyState() {
   }
   mLastFrameStatus = nextFrameStatus;
 
-  nsCOMPtr<nsIRunnable> event;
-  switch (nextFrameStatus) {
-    case MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_BUFFERING:
-      event = NS_NewRunnableMethod(mDecoder, &MediaDecoder::NextFrameUnavailableBuffering);
-      break;
-    case MediaDecoderOwner::NEXT_FRAME_AVAILABLE:
-      event = NS_NewRunnableMethod(mDecoder, &MediaDecoder::NextFrameAvailable);
-      break;
-    case MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE:
-      event = NS_NewRunnableMethod(mDecoder, &MediaDecoder::NextFrameUnavailable);
-      break;
-    default:
-      PR_NOT_REACHED("unhandled frame state");
-  }
+  
 
+
+
+
+
+
+
+  nsCOMPtr<nsIRunnable> event;
+  event = NS_NewRunnableMethod(mDecoder, &MediaDecoder::UpdateReadyStateForData);
   NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 }
 

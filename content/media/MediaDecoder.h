@@ -712,12 +712,6 @@ public:
 
   
   
-  void NextFrameUnavailableBuffering();
-  void NextFrameAvailable();
-  void NextFrameUnavailable();
-
-  
-  
   void UpdateReadyStateForData();
 
   
