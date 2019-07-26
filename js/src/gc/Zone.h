@@ -26,26 +26,21 @@ class JitZone;
 
 
 
-
-
 class Allocator
 {
-    
-
-
-
-
-    friend class gc::ArenaLists;
-
-    JS::Zone *zone_;
-
   public:
     explicit Allocator(JS::Zone *zone);
 
     js::gc::ArenaLists arenas;
-};
 
-typedef Vector<JSCompartment *, 1, SystemAllocPolicy> CompartmentVector;
+  private:
+    
+    
+    
+    friend class gc::ArenaLists;
+
+    JS::Zone *zone_;
+};
 
 } 
 
@@ -94,211 +89,12 @@ namespace JS {
 
 
 
-
-
-
 struct Zone : public JS::shadow::Zone,
               public js::gc::GraphNodeBase<JS::Zone>,
               public js::MallocProvider<JS::Zone>
 {
-  private:
-    friend bool js::CurrentThreadCanAccessZone(Zone *zone);
-    friend class js::gc::GCRuntime;
-
-  public:
-    js::Allocator                allocator;
-
-    js::CompartmentVector        compartments;
-
-  private:
-    bool                         ionUsingBarriers_;
-
-  public:
-    bool                         active;  
-
-    bool compileBarriers(bool needsBarrier) const {
-        return needsBarrier || runtimeFromMainThread()->gcZeal() == js::gc::ZealVerifierPreValue;
-    }
-
-    bool compileBarriers() const {
-        return compileBarriers(needsBarrier());
-    }
-
-    enum ShouldUpdateIon {
-        DontUpdateIon,
-        UpdateIon
-    };
-
-    void setNeedsBarrier(bool needs, ShouldUpdateIon updateIon);
-
-    const bool *addressOfNeedsBarrier() const {
-        return &needsBarrier_;
-    }
-
-  public:
-    enum GCState {
-        NoGC,
-        Mark,
-        MarkGray,
-        Sweep,
-        Finished
-    };
-
-  private:
-    bool                         gcScheduled;
-    GCState                      gcState;
-    bool                         gcPreserveCode;
-    mozilla::DebugOnly<unsigned> gcLastZoneGroupIndex;
-
-  public:
-    bool isCollecting() const {
-        if (runtimeFromMainThread()->isHeapCollecting())
-            return gcState != NoGC;
-        else
-            return needsBarrier();
-    }
-
-    bool isPreservingCode() const {
-        return gcPreserveCode;
-    }
-
-    
-
-
-
-    bool requireGCTracer() const {
-        return runtimeFromMainThread()->isHeapMajorCollecting() && gcState != NoGC;
-    }
-
-    void setGCState(GCState state) {
-        JS_ASSERT(runtimeFromMainThread()->isHeapBusy());
-        JS_ASSERT_IF(state != NoGC, canCollect());
-        gcState = state;
-    }
-
-    void scheduleGC() {
-        JS_ASSERT(!runtimeFromMainThread()->isHeapBusy());
-        gcScheduled = true;
-    }
-
-    void unscheduleGC() {
-        gcScheduled = false;
-    }
-
-    bool isGCScheduled() {
-        return gcScheduled && canCollect();
-    }
-
-    void setPreservingCode(bool preserving) {
-        gcPreserveCode = preserving;
-    }
-
-    bool canCollect() {
-        
-        if (usedByExclusiveThread)
-            return false;
-        JSRuntime *rt = runtimeFromAnyThread();
-        if (rt->isAtomsZone(this) && rt->exclusiveThreadsPresent())
-            return false;
-        return true;
-    }
-
-    bool wasGCStarted() const {
-        return gcState != NoGC;
-    }
-
-    bool isGCMarking() {
-        if (runtimeFromMainThread()->isHeapCollecting())
-            return gcState == Mark || gcState == MarkGray;
-        else
-            return needsBarrier();
-    }
-
-    bool isGCMarkingBlack() {
-        return gcState == Mark;
-    }
-
-    bool isGCMarkingGray() {
-        return gcState == MarkGray;
-    }
-
-    bool isGCSweeping() {
-        return gcState == Sweep;
-    }
-
-    bool isGCFinished() {
-        return gcState == Finished;
-    }
-
-#ifdef DEBUG
-    
-
-
-
-    unsigned lastZoneGroupIndex() {
-        return gcLastZoneGroupIndex;
-    }
-#endif
-
-    
-    mozilla::Atomic<size_t, mozilla::ReleaseAcquire> gcBytes;
-
-    size_t                       gcTriggerBytes;
-    size_t                       gcMaxMallocBytes;
-    double                       gcHeapGrowthFactor;
-
-    bool                         isSystem;
-
-    
-    bool usedByExclusiveThread;
-
-    
-
-
-
-    uint64_t gcNumber();
-
-    
-
-
-
-    bool                         scheduledForDestruction;
-    bool                         maybeAlive;
-
-    
-
-
-
-
-    mozilla::Atomic<ptrdiff_t, mozilla::ReleaseAcquire> gcMallocBytes;
-
-    
-
-
-
-
-
-
-    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> gcMallocGCTriggered;
-
-    
-    js::Vector<js::GrayRoot, 0, js::SystemAllocPolicy> gcGrayRoots;
-
-    
-
-
-
-
-
-    typedef js::HashSet<Zone *, js::DefaultHasher<Zone *>, js::SystemAllocPolicy> ZoneSet;
-    ZoneSet gcZoneGroupEdges;
-
-    
-    void *data;
-
     Zone(JSRuntime *rt);
     ~Zone();
-
     bool init();
 
     void findOutgoingEdges(js::gc::ComponentFinder<JS::Zone> &finder);
@@ -316,49 +112,180 @@ struct Zone : public JS::shadow::Zone,
     void setGCMaxMallocBytes(size_t value);
     void updateMallocCounter(size_t nbytes) {
         
-
-
-
+        
         gcMallocBytes -= ptrdiff_t(nbytes);
         if (MOZ_UNLIKELY(isTooMuchMalloc()))
             onTooMuchMalloc();
     }
 
-    bool isTooMuchMalloc() const {
-        return gcMallocBytes <= 0;
-     }
-
+    bool isTooMuchMalloc() const { return gcMallocBytes <= 0; }
     void onTooMuchMalloc();
 
     void *onOutOfMemory(void *p, size_t nbytes) {
         return runtimeFromMainThread()->onOutOfMemory(p, nbytes);
     }
-    void reportAllocationOverflow() {
-        js_ReportAllocationOverflow(nullptr);
-    }
-
-    js::types::TypeZone types;
+    void reportAllocationOverflow() { js_ReportAllocationOverflow(nullptr); }
 
     void sweep(js::FreeOp *fop, bool releaseTypes, bool *oom);
 
     bool hasMarkedCompartments();
 
+    void scheduleGC() { JS_ASSERT(!runtimeFromMainThread()->isHeapBusy()); gcScheduled_ = true; }
+    void unscheduleGC() { gcScheduled_ = false; }
+    bool isGCScheduled() { return gcScheduled_ && canCollect(); }
+
+    void setPreservingCode(bool preserving) { gcPreserveCode_ = preserving; }
+    bool isPreservingCode() const { return gcPreserveCode_; }
+
+    bool canCollect() {
+        
+        if (usedByExclusiveThread)
+            return false;
+        JSRuntime *rt = runtimeFromAnyThread();
+        if (rt->isAtomsZone(this) && rt->exclusiveThreadsPresent())
+            return false;
+        return true;
+    }
+
+    enum GCState {
+        NoGC,
+        Mark,
+        MarkGray,
+        Sweep,
+        Finished
+    };
+    void setGCState(GCState state) {
+        JS_ASSERT(runtimeFromMainThread()->isHeapBusy());
+        JS_ASSERT_IF(state != NoGC, canCollect());
+        gcState_ = state;
+    }
+
+    bool isCollecting() const {
+        if (runtimeFromMainThread()->isHeapCollecting())
+            return gcState_ != NoGC;
+        else
+            return needsBarrier();
+    }
+
+    
+    
+    bool requireGCTracer() const {
+        return runtimeFromMainThread()->isHeapMajorCollecting() && gcState_ != NoGC;
+    }
+
+    bool isGCMarking() {
+        if (runtimeFromMainThread()->isHeapCollecting())
+            return gcState_ == Mark || gcState_ == MarkGray;
+        else
+            return needsBarrier();
+    }
+
+    bool wasGCStarted() const { return gcState_ != NoGC; }
+    bool isGCMarkingBlack() { return gcState_ == Mark; }
+    bool isGCMarkingGray() { return gcState_ == MarkGray; }
+    bool isGCSweeping() { return gcState_ == Sweep; }
+    bool isGCFinished() { return gcState_ == Finished; }
+
+    
+    
+    uint64_t gcNumber();
+
+    bool compileBarriers() const { return compileBarriers(needsBarrier()); }
+    bool compileBarriers(bool needsBarrier) const {
+        return needsBarrier || runtimeFromMainThread()->gcZeal() == js::gc::ZealVerifierPreValue;
+    }
+
+    enum ShouldUpdateIon { DontUpdateIon, UpdateIon };
+    void setNeedsBarrier(bool needs, ShouldUpdateIon updateIon);
+    const bool *addressOfNeedsBarrier() const { return &needsBarrier_; }
+
+    js::jit::JitZone *getJitZone(JSContext *cx) { return jitZone_ ? jitZone_ : createJitZone(cx); }
+    js::jit::JitZone *jitZone() { return jitZone_; }
+
+#ifdef DEBUG
+    
+    
+    unsigned lastZoneGroupIndex() { return gcLastZoneGroupIndex; }
+#endif
+
   private:
     void sweepBreakpoints(js::FreeOp *fop);
     void sweepCompartments(js::FreeOp *fop, bool keepAtleastOne, bool lastGC);
 
-#ifdef JS_ION
-    js::jit::JitZone *jitZone_;
     js::jit::JitZone *createJitZone(JSContext *cx);
 
   public:
-    js::jit::JitZone *getJitZone(JSContext *cx) {
-        return jitZone_ ? jitZone_ : createJitZone(cx);
-    }
-    js::jit::JitZone *jitZone() {
-        return jitZone_;
-    }
-#endif
+    js::Allocator allocator;
+
+    js::types::TypeZone types;
+
+    
+    typedef js::Vector<JSCompartment *, 1, js::SystemAllocPolicy> CompartmentVector;
+    CompartmentVector compartments;
+
+    
+    typedef js::Vector<js::GrayRoot, 0, js::SystemAllocPolicy> GrayRootVector;
+    GrayRootVector gcGrayRoots;
+
+    
+    
+    
+    
+    typedef js::HashSet<Zone *, js::DefaultHasher<Zone *>, js::SystemAllocPolicy> ZoneSet;
+    ZoneSet gcZoneGroupEdges;
+
+    
+    double gcHeapGrowthFactor;
+
+    
+    
+    
+    mozilla::Atomic<ptrdiff_t, mozilla::ReleaseAcquire> gcMallocBytes;
+
+    
+    size_t gcMaxMallocBytes;
+
+    
+    
+    
+    
+    
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> gcMallocGCTriggered;
+
+    
+    
+    mozilla::Atomic<size_t, mozilla::ReleaseAcquire> gcBytes;
+
+    
+    size_t gcTriggerBytes;
+
+    
+    void *data;
+
+    bool isSystem;
+
+    bool usedByExclusiveThread;
+
+    
+    
+    bool scheduledForDestruction;
+    bool maybeAlive;
+
+    
+    bool active;
+
+    mozilla::DebugOnly<unsigned> gcLastZoneGroupIndex;
+
+  private:
+    js::jit::JitZone *jitZone_;
+
+    GCState gcState_;
+    bool gcScheduled_;
+    bool gcPreserveCode_;
+    bool ionUsingBarriers_;
+
+    friend bool js::CurrentThreadCanAccessZone(Zone *zone);
+    friend class js::gc::GCRuntime;
 };
 
 } 
@@ -369,15 +296,13 @@ namespace js {
 
 
 
-
-
 enum ZoneSelector {
     WithAtoms,
     SkipAtoms
 };
 
-class ZonesIter {
-  private:
+class ZonesIter
+{
     JS::Zone **it, **end;
 
   public:
@@ -411,16 +336,6 @@ class ZonesIter {
 
 struct CompartmentsInZoneIter
 {
-    
-    friend class mozilla::Maybe<CompartmentsInZoneIter>;
-  private:
-    JSCompartment **it, **end;
-
-    CompartmentsInZoneIter()
-      : it(nullptr), end(nullptr)
-    {}
-
-  public:
     explicit CompartmentsInZoneIter(JS::Zone *zone) {
         it = zone->compartments.begin();
         end = zone->compartments.end();
@@ -442,16 +357,23 @@ struct CompartmentsInZoneIter
 
     operator JSCompartment *() const { return get(); }
     JSCompartment *operator->() const { return get(); }
+
+  private:
+    JSCompartment **it, **end;
+
+    CompartmentsInZoneIter()
+      : it(nullptr), end(nullptr)
+    {}
+
+    
+    friend class mozilla::Maybe<CompartmentsInZoneIter>;
 };
-
-
 
 
 
 template<class ZonesIterT>
 class CompartmentsIterT
 {
-  private:
     ZonesIterT zone;
     mozilla::Maybe<CompartmentsInZoneIter> comp;
 
