@@ -375,6 +375,8 @@ protected:
   static bool             ConvertStatus(nsEventStatus aStatus);
   static void             PostSleepWakeNotification(const bool aIsSleepMode);
   int32_t                 ClientMarginHitTestPoint(int32_t mx, int32_t my);
+  static TimeStamp        GetMessageTimeStamp(LONG aEventTime);
+  static void             UpdateFirstEventTime(DWORD aEventTime);
 
   
 
@@ -578,6 +580,11 @@ protected:
   POINT mCachedHitTestPoint;
   TimeStamp mCachedHitTestTime;
   int32_t mCachedHitTestResult;
+
+  
+  
+  static DWORD     sFirstEventTime;
+  static TimeStamp sFirstEventTimeStamp;
 
   static bool sNeedsToInitMouseWheelSettings;
   static void InitMouseWheelScrollData();

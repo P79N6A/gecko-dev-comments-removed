@@ -61,6 +61,7 @@
 
 #include "mozilla/ipc/MessageChannel.h"
 #include <algorithm>
+#include <limits>
 
 #include "nsWindow.h"
 
@@ -251,6 +252,9 @@ const wchar_t* kOOPPPluginFocusEventId   = L"OOPP Plugin Focus Widget Event";
 uint32_t        nsWindow::sOOPPPluginFocusEvent   =
                   RegisterWindowMessageW(kOOPPPluginFocusEventId);
 
+DWORD           nsWindow::sFirstEventTime = 0;
+TimeStamp       nsWindow::sFirstEventTimeStamp = TimeStamp();
+
 
 
 
@@ -300,6 +304,10 @@ static bool gIsPointerEventsEnabled = false;
 
 
 #define HITTEST_CACHE_LIFETIME_MS 50
+
+
+static const DWORD kEventTimeRange = std::numeric_limits<DWORD>::max();
+static const DWORD kEventTimeHalfRange = kEventTimeRange / 2;
 
 
 
@@ -3671,6 +3679,7 @@ void nsWindow::InitEvent(WidgetGUIEvent& event, nsIntPoint* aPoint)
   }
 
   event.time = ::GetMessageTime();
+  event.timeStamp = GetMessageTimeStamp(event.time);
 }
 
 
@@ -5657,6 +5666,107 @@ nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my)
   return testResult;
 }
 
+TimeStamp
+nsWindow::GetMessageTimeStamp(LONG aEventTime)
+{
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  DWORD eventTime = static_cast<DWORD>(aEventTime);
+
+  
+  if (sFirstEventTimeStamp.IsNull()) {
+    nsWindow::UpdateFirstEventTime(eventTime);
+  }
+  TimeStamp roughlyNow = TimeStamp::NowLoRes();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (eventTime < sFirstEventTime &&
+      sFirstEventTime - eventTime < kEventTimeHalfRange &&
+      roughlyNow - sFirstEventTimeStamp <
+        TimeDuration::FromMilliseconds(kEventTimeHalfRange)) {
+    UpdateFirstEventTime(eventTime);
+  }
+
+  double timeSinceFirstEvent =
+    sFirstEventTime <= eventTime
+      ? eventTime - sFirstEventTime
+      : static_cast<double>(kEventTimeRange) + eventTime - sFirstEventTime;
+  TimeStamp eventTimeStamp =
+    sFirstEventTimeStamp + TimeDuration::FromMilliseconds(timeSinceFirstEvent);
+
+  
+  
+  
+  double timesWrapped =
+    (roughlyNow - sFirstEventTimeStamp).ToMilliseconds() / kEventTimeRange;
+  int32_t cyclesToAdd = static_cast<int32_t>(timesWrapped); 
+
+  
+  
+  
+  
+  
+  
+  
+  double intervalFraction = fmod(timesWrapped, 1.0);
+
+  
+  
+  
+  
+  if (intervalFraction < 0.1 && timeSinceFirstEvent > kEventTimeRange * 0.9) {
+    cyclesToAdd--;
+  
+  
+  } else if (intervalFraction > 0.9 &&
+             timeSinceFirstEvent < kEventTimeRange * 0.1) {
+    cyclesToAdd++;
+  }
+
+  if (timesWrapped > 0) {
+    eventTimeStamp +=
+      TimeDuration::FromMilliseconds(kEventTimeRange * timesWrapped);
+  }
+
+  return eventTimeStamp;
+}
+
+void
+nsWindow::UpdateFirstEventTime(DWORD aEventTime)
+{
+  sFirstEventTime = aEventTime;
+  DWORD currentTime = ::GetTickCount();
+  TimeStamp currentTimeStamp = TimeStamp::Now();
+  double timeSinceFirstEvent =
+    aEventTime <= currentTime
+      ? currentTime - aEventTime
+      : static_cast<double>(kEventTimeRange) + currentTime - aEventTime;
+  sFirstEventTimeStamp =
+    currentTimeStamp - TimeDuration::FromMilliseconds(timeSinceFirstEvent);
+}
+
 void nsWindow::PostSleepWakeNotification(const bool aIsSleepMode)
 {
   if (aIsSleepMode == gIsSleepMode)
@@ -6109,6 +6219,8 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
         if (!touchEventToSend) {
           touchEventToSend = new WidgetTouchEvent(true, NS_TOUCH_MOVE, this);
           touchEventToSend->time = ::GetMessageTime();
+          touchEventToSend->timeStamp =
+            GetMessageTimeStamp(touchEventToSend->time);
           ModifierKeyState modifierKeyState;
           modifierKeyState.InitInputEvent(*touchEventToSend);
         }
@@ -6127,6 +6239,8 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
         if (!touchEndEventToSend) {
           touchEndEventToSend = new WidgetTouchEvent(true, NS_TOUCH_END, this);
           touchEndEventToSend->time = ::GetMessageTime();
+          touchEndEventToSend->timeStamp =
+            GetMessageTimeStamp(touchEndEventToSend->time);
           ModifierKeyState modifierKeyState;
           modifierKeyState.InitInputEvent(*touchEndEventToSend);
         }
@@ -6207,6 +6321,7 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
 
     wheelEvent.button      = 0;
     wheelEvent.time        = ::GetMessageTime();
+    wheelEvent.timeStamp   = GetMessageTimeStamp(wheelEvent.time);
     wheelEvent.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
 
     bool endFeedback = true;
@@ -6241,6 +6356,7 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
   modifierKeyState.InitInputEvent(event);
   event.button    = 0;
   event.time      = ::GetMessageTime();
+  event.timeStamp = GetMessageTimeStamp(event.time);
   event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
 
   nsEventStatus status;
