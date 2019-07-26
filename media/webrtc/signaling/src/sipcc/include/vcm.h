@@ -30,6 +30,8 @@
 
 #define CC_IS_VIDEO(id) ((id == CC_VIDEO_1) ? TRUE:FALSE)
 
+#define CC_IS_DATACHANNEL(id) ((id == CC_DATACHANNEL_1) ? TRUE:FALSE)
+
 
 
 #define VCM_PLAY_TONE_TO_EAR      1
@@ -673,6 +675,7 @@ int vcmTxStart(cc_mcapid_t mcap_id,
 
 
   short vcmInitializeDataChannel(const char *peerconnection,
+        int track_id,
         cc_uint16_t streams,
         int local_datachannel_port,
         int remote_datachannel_port,

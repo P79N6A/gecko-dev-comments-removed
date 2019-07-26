@@ -236,8 +236,8 @@ public:
   NS_IMETHODIMP CreateOffer(MediaConstraints& aConstraints);
   NS_IMETHODIMP CreateAnswer(MediaConstraints& aConstraints);
 
-  nsresult
-  InitializeDataChannel(uint16_t aLocalport, uint16_t aRemoteport, uint16_t aNumstreams);
+  nsresult InitializeDataChannel(int track_id, uint16_t aLocalport,
+                                 uint16_t aRemoteport, uint16_t aNumstreams);
 
   
   
