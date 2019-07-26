@@ -9,6 +9,9 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 public class StringUtils {
+
+    private static final String FILTER_URL_PREFIX = "filter://";
+
     
 
 
@@ -134,5 +137,21 @@ public class StringUtils {
         }
 
         return null;
+    }
+
+    public static boolean isFilterUrl(String url) {
+        if (TextUtils.isEmpty(url)) {
+            return false;
+        }
+
+        return url.startsWith(FILTER_URL_PREFIX);
+    }
+
+    public static String getFilterFromUrl(String url) {
+        if (TextUtils.isEmpty(url)) {
+            return null;
+        }
+
+        return url.substring(FILTER_URL_PREFIX.length());
     }
 }
