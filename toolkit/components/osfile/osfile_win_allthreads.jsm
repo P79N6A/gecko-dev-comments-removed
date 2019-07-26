@@ -170,6 +170,150 @@ if (typeof Components != "undefined") {
 
   
 
+
+
+
+  let AbstractInfo = function AbstractInfo(isDir, isSymLink, size, winBirthDate,
+                                           lastAccessDate) {
+    this._isDir = isDir;
+    this._isSymLink = isSymLink;
+    this._size = size;
+    this._winBirthDate = winBirthDate;
+    this._lastAccessDate = lastAccessDate;
+    this._lastModificationDate = lastAccessDate;
+  };
+
+  AbstractInfo.prototype = {
+    
+
+
+    get isDir() {
+      return this._isDir;
+    },
+    
+
+
+    get isSymLink() {
+      return this._isSymLink;
+    },
+    
+
+
+
+
+
+
+
+    get size() {
+      return this._size;
+    },
+    
+    get creationDate() {
+      return this._winBirthDate;
+    },
+    
+
+
+
+
+    get winBirthDate() {
+      return this._winBirthDate;
+    },
+    
+
+
+
+
+
+
+
+    get lastAccessDate() {
+      return this._lastAccessDate;
+    },
+    
+
+
+
+
+
+
+
+    get lastModificationDate() {
+      return this._lastModificationDate;
+    }
+  };
+  exports.OS.Shared.Win.AbstractInfo = AbstractInfo;
+
+  
+
+
+
+
+  let AbstractEntry = function AbstractEntry(isDir, isSymLink, name,
+                                             winCreationDate, winLastWriteDate,
+                                             winLastAccessDate, path) {
+    this._isDir = isDir;
+    this._isSymLink = isSymLink;
+    this._name = name;
+    this._winCreationDate = winCreationDate;
+    this._winLastWriteDate = winLastWriteDate;
+    this._winLastAccessDate = winLastAccessDate;
+    this._path = path;
+  };
+
+  AbstractEntry.prototype = {
+    
+
+
+    get isDir() {
+      return this._isDir;
+    },
+    
+
+
+    get isSymLink() {
+      return this._isSymLink;
+    },
+    
+
+
+
+    get name() {
+      return this._name;
+    },
+    
+
+
+
+    get winCreationDate() {
+      return this._winCreationDate;
+    },
+    
+
+
+
+    get winLastWriteDate() {
+      return this._winLastWriteDate;
+    },
+    
+
+
+
+    get winLastAccessDate() {
+      return this._winLastAccessDate;
+    },
+    
+
+
+
+    get path() {
+      return this._path;
+    }
+  };
+  exports.OS.Shared.Win.AbstractEntry = AbstractEntry;
+
+  
+
   Object.defineProperty(exports.OS.Shared, "POS_START", { value: exports.OS.Constants.Win.FILE_BEGIN });
   Object.defineProperty(exports.OS.Shared, "POS_CURRENT", { value: exports.OS.Constants.Win.FILE_CURRENT });
   Object.defineProperty(exports.OS.Shared, "POS_END", { value: exports.OS.Constants.Win.FILE_END });

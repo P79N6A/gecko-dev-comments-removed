@@ -162,6 +162,136 @@ if (typeof Components != "undefined") {
 
   
 
+
+
+
+  let AbstractInfo = function AbstractInfo(isDir, isSymLink, size, lastAccessDate,
+                                           lastModificationDate, unixLastStatusChangeDate,
+                                           unixOwner, unixGroup, unixMode) {
+    this._isDir = isDir;
+    this._isSymlLink = isSymLink;
+    this._size = size;
+    this._lastAccessDate = lastAccessDate;
+    this._lastModificationDate = lastModificationDate;
+    this._unixLastStatusChangeDate = unixLastStatusChangeDate;
+    this._unixOwner = unixOwner;
+    this._unixGroup = unixGroup;
+    this._unixMode = unixMode;
+  };
+
+  AbstractInfo.prototype = {
+    
+
+
+    get isDir() {
+      return this._isDir;
+    },
+    
+
+
+    get isSymLink() {
+      return this._isSymlLink;
+    },
+    
+
+
+
+
+
+
+
+    get size() {
+      return this._size;
+    },
+    
+
+
+
+
+
+
+
+    get lastAccessDate() {
+      return this._lastAccessDate;
+    },
+    
+
+
+    get lastModificationDate() {
+      return this._lastModificationDate;
+    },
+    
+
+
+
+
+    get unixLastStatusChangeDate() {
+      return this._unixLastStatusChangeDate;
+    },
+    
+
+
+    get unixOwner() {
+      return this._unixOwner;
+    },
+    
+
+
+    get unixGroup() {
+      return this._unixGroup;
+    },
+    
+
+
+    get unixMode() {
+      return this._unixMode;
+    }
+  };
+  exports.OS.Shared.Unix.AbstractInfo = AbstractInfo;
+
+  
+
+
+
+
+  let AbstractEntry = function AbstractEntry(isDir, isSymLink, name, path) {
+    this._isDir = isDir;
+    this._isSymlLink = isSymLink;
+    this._name = name;
+    this._path = path;
+  };
+
+  AbstractEntry.prototype = {
+    
+
+
+    get isDir() {
+      return this._isDir;
+    },
+    
+
+
+    get isSymLink() {
+      return this._isSymlLink;
+    },
+    
+
+
+
+    get name() {
+      return this._name;
+    },
+    
+
+
+    get path() {
+      return this._path;
+    }
+  };
+  exports.OS.Shared.Unix.AbstractEntry = AbstractEntry;
+
+  
+
    Object.defineProperty(exports.OS.Shared, "POS_START", { value: exports.OS.Constants.libc.SEEK_SET });
    Object.defineProperty(exports.OS.Shared, "POS_CURRENT", { value: exports.OS.Constants.libc.SEEK_CUR });
    Object.defineProperty(exports.OS.Shared, "POS_END", { value: exports.OS.Constants.libc.SEEK_END });

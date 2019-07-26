@@ -667,43 +667,15 @@
      File.DirectoryIterator.Entry = function Entry(unix_entry, parent) {
        
        
-       this._d_type = unix_entry.d_type;
-       this._name = unix_entry.d_name.readString();
+       let isDir = unix_entry.d_type == OS.Constants.libc.DT_DIR;
+       let isSymLink = unix_entry.d_type == OS.Constants.libc.DT_LNK;
+       let name = unix_entry.d_name.readString();
        this._parent = parent;
+       let path = OS.Unix.Path.join(this._parent, name);
+
+       exports.OS.Shared.Unix.AbstractEntry.call(this, isDir, isSymLink, name, path);
      };
-     File.DirectoryIterator.Entry.prototype = {
-       
-
-
-       get isDir() {
-         return this._d_type == OS.Constants.libc.DT_DIR;
-       },
-
-       
-
-
-       get isSymLink() {
-         return this._d_type == OS.Constants.libc.DT_LNK;
-       },
-
-       
-
-
-
-       get name() {
-         return this._name;
-       },
-
-       
-
-
-       get path() {
-         delete this.path;
-         let path = OS.Unix.Path.join(this._parent, this.name);
-         Object.defineProperty(this, "path", {value: path});
-         return path;
-       }
-     };
+     File.DirectoryIterator.Entry.prototype = Object.create(exports.OS.Shared.Unix.AbstractEntry.prototype);
 
      
 
@@ -729,32 +701,27 @@
      let gStatDataPtr = gStatData.address();
      let MODE_MASK = 4095 ;
      File.Info = function Info(stat) {
-       this._st_mode = stat.st_mode;
-       this._st_uid = stat.st_uid;
-       this._st_gid = stat.st_gid;
-       this._st_atime = stat.st_atime;
-       this._st_mtime = stat.st_mtime;
-       this._st_ctime = stat.st_ctime;
+       let isDir = (stat.st_mode & OS.Constants.libc.S_IFMT) == OS.Constants.libc.S_IFDIR;
+       let isSymLink = (stat.st_mode & OS.Constants.libc.S_IFMT) == OS.Constants.S_IFLNK;
+       let size = exports.OS.Shared.Type.size_t.importFromC(stat.st_size);
+
+       let lastAccessDate = new Date(stat.st_atime * 1000);
+       let lastModificationDate = new Date(stat.st_mtime * 1000);
+       let unixLastStatusChangeDate = new Date(stat.st_ctime * 1000);
+
+       let unixOwner = exports.OS.Shared.Type.uid_t.importFromC(stat.st_uid);
+       let unixGroup = exports.OS.Shared.Type.gid_t.importFromC(stat.st_gid);
+       let unixMode = exports.OS.Shared.Type.mode_t.importFromC(stat.st_mode & MODE_MASK);
+
+       exports.OS.Shared.Unix.AbstractInfo.call(this, isDir, isSymLink, size, lastAccessDate,
+                                                lastModificationDate, unixLastStatusChangeDate,
+                                                unixOwner, unixGroup, unixMode);
+
        
        if ("OSFILE_OFFSETOF_STAT_ST_BIRTHTIME" in OS.Constants.libc) {
-         this._st_birthtime = stat.st_birthtime;
-       }
-       this._st_size = stat.st_size;
-     };
-     File.Info.prototype = {
-       
+         let date = new Date(stat.st_birthtime * 1000);
 
-
-       get isDir() {
-         return (this._st_mode & OS.Constants.libc.S_IFMT) == OS.Constants.libc.S_IFDIR;
-       },
-       
-
-
-       get isSymLink() {
-         return (this._st_mode & OS.Constants.libc.S_IFMT) == OS.Constants.libc.S_IFLNK;
-       },
-       
+        
 
 
 
@@ -762,95 +729,21 @@
 
 
 
-       get size() {
-         return exports.OS.Shared.Type.size_t.importFromC(this._st_size);
-       },
-       
-       get creationDate() {
-         
-         
-         
-         return this.macBirthDate || new Date(0);
-       },
-       
 
-
-
-
-
-
-
-       get lastAccessDate() {
-         delete this.lastAccessDate;
-         let date = new Date(this._st_atime * 1000);
-         Object.defineProperty(this, "lastAccessDate", {value: date});
-         return date;
-       },
-       
-
-
-       get lastModificationDate() {
-         delete this.lastModificationDate;
-         let date = new Date(this._st_mtime * 1000);
-         Object.defineProperty(this, "lastModificationDate", {value: date});
-         return date;
-       },
-       
-
-
-
-
-       get unixLastStatusChangeDate() {
-         delete this.unixLastStatusChangeDate;
-         let date = new Date(this._st_ctime * 1000);
-         Object.defineProperty(this, "unixLastStatusChangeDate", {value: date});
-         return date;
-       },
-       
-
-
-       get unixOwner() {
-         return exports.OS.Shared.Type.uid_t.importFromC(this._st_uid);
-       },
-       
-
-
-       get unixGroup() {
-         return exports.OS.Shared.Type.gid_t.importFromC(this._st_gid);
-       },
-       
-
-
-       get unixMode() {
-         return exports.OS.Shared.Type.mode_t.importFromC(this._st_mode & MODE_MASK);
+         this.macBirthDate = date;
        }
      };
+     File.Info.prototype = Object.create(exports.OS.Shared.Unix.AbstractInfo.prototype);
 
-    
-
-
-
-
-
-
-
-
-     if ("OSFILE_OFFSETOF_STAT_ST_BIRTHTIME" in OS.Constants.libc) {
-       Object.defineProperty(
-         File.Info.prototype,
-         "macBirthDate",
-         {
-           get: function macBirthDate() {
-             delete this.macBirthDate;
-             let time;
-             time = this._st_birthtime;
-             let date = new Date(time * 1000);
-             Object.defineProperty(this, "macBirthDate", { value: date });
-             return date;
-           }
-         }
-       );
-     }
+     
+     Object.defineProperty(File.Info.prototype, "creationDate", {
+      get: function creationDate() {
+        
+        
+        
+        return this.macBirthDate || new Date(0);
+      }
+     });
 
      
 
