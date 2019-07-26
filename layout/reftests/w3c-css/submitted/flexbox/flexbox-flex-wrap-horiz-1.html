@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+
+
+
+
+<html>
+<head>
+  <title>CSS Test: Testing flex-wrap in horizontal flex containers</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://dev.w3.org/csswg/css-flexbox/#flex-wrap-property">
+  <link rel="match" href="flexbox-flex-wrap-horiz-1-ref.html">
+  <meta charset="utf-8">
+  <style>
+    div.flexbox {
+      display: flex;
+      flex-wrap: wrap;
+      border: 1px dashed black;
+      width: 100px;
+      height: 12px;
+      margin-bottom: 2px;
+    }
+    div.halfMainSize {
+      width: 48px;
+      border: 1px solid blue;
+      background: lightblue;
+    }
+    div.hugeMainSize {
+      width: 148px;
+      border: 1px solid purple;
+      background: fuchsia;
+    }
+  </style>
+</head>
+<body>
+
+  
+  <div class="flexbox">
+    <div class="halfMainSize"></div>
+  </div>
+
+  
+
+  <div class="flexbox">
+    <div class="halfMainSize" style="margin-left: 80px"></div>
+  </div>
+
+  
+
+  <div class="flexbox">
+    <div class="halfMainSize" style="margin-left: 80px; flex: none"></div>
+  </div>
+
+  
+  <div class="flexbox">
+    <div class="halfMainSize"></div>
+    <div class="halfMainSize"></div>
+  </div>
+
+  
+  <div class="flexbox">
+    <div class="halfMainSize" style="margin-right: 1px"></div>
+    <div class="halfMainSize"></div>
+  </div>
+
+  
+  <div class="flexbox">
+    <div class="halfMainSize"></div>
+    <div class="halfMainSize" style="margin-right: 1px"></div>
+  </div>
+
+  
+
+  <div class="flexbox">
+    <div class="hugeMainSize"></div>
+  </div>
+
+  
+  <div class="flexbox">
+    <div class="hugeMainSize" style="flex: none"></div>
+  </div>
+
+  
+
+  <div class="flexbox">
+    <div class="halfMainSize"></div>
+    <div class="hugeMainSize"></div>
+  </div>
+
+  
+
+  <div class="flexbox">
+    <div class="halfMainSize"></div>
+    <div class="hugeMainSize" style="flex: none"></div>
+  </div>
+
+</body>
+</html>

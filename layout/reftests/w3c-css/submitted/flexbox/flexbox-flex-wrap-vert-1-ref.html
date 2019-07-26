@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+
+
+
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    div.flexbox {
+      border: 1px dashed black;
+      width: 12px;
+      height: 100px;
+      margin-right: 2px;
+      float: left;
+    }
+    div.halfMainSize {
+      height: 48px;
+      border: 1px solid blue;
+      background: lightblue;
+    }
+    div.hugeMainSize {
+      height: 148px;
+      border: 1px solid purple;
+      background: fuchsia;
+    }
+    div.fullCrossSize {
+      width: 10px;
+    }
+    div.halfCrossSize {
+      width: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  
+  <div class="flexbox">
+    <div class="halfMainSize fullCrossSize"></div>
+  </div>
+
+  
+
+  <div class="flexbox">
+    <div class="halfMainSize fullCrossSize"
+         style="margin-top: 80px; height: 18px"></div>
+  </div>
+
+  
+
+  <div class="flexbox">
+    <div class="halfMainSize fullCrossSize"
+         style="margin-top: 80px"></div>
+  </div>
+
+  
+  <div class="flexbox">
+    <div class="halfMainSize fullCrossSize"></div>
+    <div class="halfMainSize fullCrossSize"></div>
+  </div>
+
+  
+  <div class="flexbox">
+    <div class="halfMainSize halfCrossSize" style="float: left"></div>
+    <div class="halfMainSize halfCrossSize" style="float: left"></div>
+  </div>
+
+  
+  <div class="flexbox">
+    <div class="halfMainSize halfCrossSize" style="float: left"></div>
+    <div class="halfMainSize halfCrossSize" style="float: left"></div>
+  </div>
+
+  
+
+  <div class="flexbox">
+    <div class="hugeMainSize fullCrossSize" style="height: 98px"></div>
+  </div>
+
+  
+  <div class="flexbox">
+    <div class="hugeMainSize fullCrossSize"></div>
+  </div>
+
+  
+
+  <div class="flexbox">
+    <div class="halfMainSize halfCrossSize" style="float: left"></div>
+    <div class="hugeMainSize halfCrossSize" style="float: left; height: 98px"></div>
+  </div>
+
+  
+
+  <div class="flexbox">
+    <div class="halfMainSize halfCrossSize" style="float: left"></div>
+    <div class="hugeMainSize halfCrossSize" style="float: left"></div>
+  </div>
+
+</body>
+</html>
