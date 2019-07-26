@@ -556,6 +556,19 @@ protected:
     return CurrentState().font;
   }
 
+#if USE_SKIA_GPU
+
+  
+  void Demote();
+
+  static std::vector<CanvasRenderingContext2D*>& DemotableContexts();
+  static void DemoteOldestContextIfNecessary();
+  static void AddDemotableContext(CanvasRenderingContext2D* context);
+
+  
+  bool mForceSoftware;
+#endif
+
   
   int32_t mWidth, mHeight;
 
