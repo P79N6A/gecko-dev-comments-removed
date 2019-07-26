@@ -15,6 +15,9 @@
 add_task(function test_common_terminate()
 {
   
+  continueResponses();
+
+  
   
   let deferred = Promise.defer();
   gHttpServer.stop(deferred.resolve);
