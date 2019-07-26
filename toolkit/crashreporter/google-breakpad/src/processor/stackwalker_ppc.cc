@@ -102,7 +102,7 @@ StackFrame* StackwalkerPPC::GetCallerFrame(const CallStack* stack) {
   
   
   
-  u_int32_t stack_pointer;
+  uint32_t stack_pointer;
   if (!memory_->GetMemoryAtAddress(last_frame->context.gpr[1],
                                    &stack_pointer) ||
       stack_pointer <= last_frame->context.gpr[1]) {
@@ -114,7 +114,7 @@ StackFrame* StackwalkerPPC::GetCallerFrame(const CallStack* stack) {
   
   
   
-  u_int32_t instruction;
+  uint32_t instruction;
   if (!memory_->GetMemoryAtAddress(stack_pointer + 8, &instruction) ||
       instruction <= 1) {
     return NULL;

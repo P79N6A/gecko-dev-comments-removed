@@ -79,10 +79,10 @@
 
 
 typedef struct {
-  u_int32_t data1;
-  u_int16_t data2;
-  u_int16_t data3;
-  u_int8_t  data4[8];
+  uint32_t data1;
+  uint16_t data2;
+  uint16_t data3;
+  uint8_t  data4[8];
 } MDGUID;  
 
 
@@ -110,7 +110,7 @@ typedef struct {
 
 
 typedef struct {
-  u_int32_t context_flags;
+  uint32_t context_flags;
 } MDRawContextBase;
 
 #include "minidump_cpu_amd64.h"
@@ -126,19 +126,19 @@ typedef struct {
 
 
 typedef struct {
-  u_int32_t signature;
-  u_int32_t struct_version;
-  u_int32_t file_version_hi;
-  u_int32_t file_version_lo;
-  u_int32_t product_version_hi;
-  u_int32_t product_version_lo;
-  u_int32_t file_flags_mask;    
-  u_int32_t file_flags;
-  u_int32_t file_os;
-  u_int32_t file_type;
-  u_int32_t file_subtype;
-  u_int32_t file_date_hi;
-  u_int32_t file_date_lo;
+  uint32_t signature;
+  uint32_t struct_version;
+  uint32_t file_version_hi;
+  uint32_t file_version_lo;
+  uint32_t product_version_hi;
+  uint32_t product_version_lo;
+  uint32_t file_flags_mask;    
+  uint32_t file_flags;
+  uint32_t file_os;
+  uint32_t file_type;
+  uint32_t file_subtype;
+  uint32_t file_date_hi;
+  uint32_t file_date_lo;
 } MDVSFixedFileInfo;  
 
 
@@ -231,10 +231,10 @@ typedef struct {
 
 
 
-typedef u_int32_t MDRVA;  
+typedef uint32_t MDRVA;  
 
 typedef struct {
-  u_int32_t data_size;
+  uint32_t data_size;
   MDRVA     rva;
 } MDLocationDescriptor;  
 
@@ -242,22 +242,22 @@ typedef struct {
 typedef struct {
   
 
-  u_int64_t            start_of_memory_range;
+  uint64_t            start_of_memory_range;
 
   MDLocationDescriptor memory;
 } MDMemoryDescriptor;  
 
 
 typedef struct {
-  u_int32_t signature;
-  u_int32_t version;
-  u_int32_t stream_count;
+  uint32_t signature;
+  uint32_t version;
+  uint32_t stream_count;
   MDRVA     stream_directory_rva;  
 
-  u_int32_t checksum;              
+  uint32_t checksum;              
 
-  u_int32_t time_date_stamp;       
-  u_int64_t flags;
+  uint32_t time_date_stamp;       
+  uint64_t flags;
 } MDRawHeader;  
 
 
@@ -302,7 +302,7 @@ typedef enum {
 
 
 typedef struct {
-  u_int32_t            stream_type;
+  uint32_t            stream_type;
   MDLocationDescriptor location;
 } MDRawDirectory;  
 
@@ -346,27 +346,27 @@ typedef enum {
 
 
 typedef struct {
-  u_int32_t length;     
+  uint32_t length;     
 
-  u_int16_t buffer[1];  
+  uint16_t buffer[1];  
 } MDString;  
 
 static const size_t MDString_minsize = offsetof(MDString, buffer[0]);
 
 
 typedef struct {
-  u_int32_t            thread_id;
-  u_int32_t            suspend_count;
-  u_int32_t            priority_class;
-  u_int32_t            priority;
-  u_int64_t            teb;             
+  uint32_t            thread_id;
+  uint32_t            suspend_count;
+  uint32_t            priority_class;
+  uint32_t            priority;
+  uint64_t            teb;             
   MDMemoryDescriptor   stack;
   MDLocationDescriptor thread_context;  
 } MDRawThread;  
 
 
 typedef struct {
-  u_int32_t   number_of_threads;
+  uint32_t   number_of_threads;
   MDRawThread threads[1];
 } MDRawThreadList;  
 
@@ -375,10 +375,10 @@ static const size_t MDRawThreadList_minsize = offsetof(MDRawThreadList,
 
 
 typedef struct {
-  u_int64_t            base_of_image;
-  u_int32_t            size_of_image;
-  u_int32_t            checksum;         
-  u_int32_t            time_date_stamp;  
+  uint64_t            base_of_image;
+  uint32_t            size_of_image;
+  uint32_t            checksum;         
+  uint32_t            time_date_stamp;  
   MDRVA                module_name_rva;  
   MDVSFixedFileInfo    version_info;
 
@@ -402,8 +402,8 @@ typedef struct {
 
 
 
-  u_int32_t            reserved0[2];
-  u_int32_t            reserved1[2];
+  uint32_t            reserved0[2];
+  uint32_t            reserved1[2];
 } MDRawModule;  
 
 
@@ -419,15 +419,15 @@ typedef struct {
 
 
 typedef struct {
-  u_int32_t signature;
-  u_int32_t offset;     
+  uint32_t signature;
+  uint32_t offset;     
 } MDCVHeader;
 
 typedef struct {
   MDCVHeader cv_header;
-  u_int32_t  signature;         
-  u_int32_t  age;               
-  u_int8_t   pdb_file_name[1];  
+  uint32_t  signature;         
+  uint32_t  age;               
+  uint8_t   pdb_file_name[1];  
 } MDCVInfoPDB20;
 
 static const size_t MDCVInfoPDB20_minsize = offsetof(MDCVInfoPDB20,
@@ -436,10 +436,10 @@ static const size_t MDCVInfoPDB20_minsize = offsetof(MDCVInfoPDB20,
 #define MD_CVINFOPDB20_SIGNATURE 0x3031424e  /* cvHeader.signature = '01BN' */
 
 typedef struct {
-  u_int32_t cv_signature;
+  uint32_t cv_signature;
   MDGUID    signature;         
-  u_int32_t age;               
-  u_int8_t  pdb_file_name[1];  
+  uint32_t age;               
+  uint8_t  pdb_file_name[1];  
 
 } MDCVInfoPDB70;
 
@@ -449,12 +449,12 @@ static const size_t MDCVInfoPDB70_minsize = offsetof(MDCVInfoPDB70,
 #define MD_CVINFOPDB70_SIGNATURE 0x53445352  /* cvSignature = 'SDSR' */
 
 typedef struct {
-  u_int32_t data1[2];
-  u_int32_t data2;
-  u_int32_t data3;
-  u_int32_t data4;
-  u_int32_t data5[3];
-  u_int8_t extra[2];
+  uint32_t data1[2];
+  uint32_t data2;
+  uint32_t data3;
+  uint32_t data4;
+  uint32_t data5[3];
+  uint8_t extra[2];
 } MDCVInfoELF;
 
 
@@ -479,12 +479,12 @@ typedef struct {
 
 
 typedef struct {
-  u_int32_t data_type;    
+  uint32_t data_type;    
 
-  u_int32_t length;       
-  u_int8_t  unicode;      
-  u_int8_t  reserved[3];
-  u_int8_t  data[1];
+  uint32_t length;       
+  uint8_t  unicode;      
+  uint8_t  reserved[3];
+  uint8_t  data[1];
 } MDImageDebugMisc;  
 
 static const size_t MDImageDebugMisc_minsize = offsetof(MDImageDebugMisc,
@@ -492,7 +492,7 @@ static const size_t MDImageDebugMisc_minsize = offsetof(MDImageDebugMisc,
 
 
 typedef struct {
-  u_int32_t   number_of_modules;
+  uint32_t   number_of_modules;
   MDRawModule modules[1];
 } MDRawModuleList;  
 
@@ -501,7 +501,7 @@ static const size_t MDRawModuleList_minsize = offsetof(MDRawModuleList,
 
 
 typedef struct {
-  u_int32_t          number_of_memory_ranges;
+  uint32_t          number_of_memory_ranges;
   MDMemoryDescriptor memory_ranges[1];
 } MDRawMemoryList;  
 
@@ -512,21 +512,21 @@ static const size_t MDRawMemoryList_minsize = offsetof(MDRawMemoryList,
 #define MD_EXCEPTION_MAXIMUM_PARAMETERS 15
 
 typedef struct {
-  u_int32_t exception_code;     
+  uint32_t exception_code;     
 
 
-  u_int32_t exception_flags;    
+  uint32_t exception_flags;    
 
-  u_int64_t exception_record;   
-
-
-  u_int64_t exception_address;  
+  uint64_t exception_record;   
 
 
-  u_int32_t number_parameters;  
+  uint64_t exception_address;  
 
-  u_int32_t __align;
-  u_int64_t exception_information[MD_EXCEPTION_MAXIMUM_PARAMETERS];
+
+  uint32_t number_parameters;  
+
+  uint32_t __align;
+  uint64_t exception_information[MD_EXCEPTION_MAXIMUM_PARAMETERS];
 } MDException;  
 
 #include "minidump_exception_win32.h"
@@ -535,10 +535,10 @@ typedef struct {
 #include "minidump_exception_solaris.h"
 
 typedef struct {
-  u_int32_t            thread_id;         
+  uint32_t            thread_id;         
 
 
-  u_int32_t            __align;
+  uint32_t            __align;
   MDException          exception_record;
   MDLocationDescriptor thread_context;    
 } MDRawExceptionStream;  
@@ -546,13 +546,13 @@ typedef struct {
 
 typedef union {
   struct {
-    u_int32_t vendor_id[3];               
-    u_int32_t version_information;        
-    u_int32_t feature_information;        
-    u_int32_t amd_extended_cpu_features;  
+    uint32_t vendor_id[3];               
+    uint32_t version_information;        
+    uint32_t feature_information;        
+    uint32_t amd_extended_cpu_features;  
   } x86_cpu_info;
   struct {
-    u_int64_t processor_features[2];
+    uint64_t processor_features[2];
   } other_cpu_info;
 } MDCPUInformation;  
 
@@ -560,20 +560,20 @@ typedef union {
 typedef struct {
   
 
-  u_int16_t        processor_architecture;
-  u_int16_t        processor_level;         
-  u_int16_t        processor_revision;      
+  uint16_t        processor_architecture;
+  uint16_t        processor_level;         
+  uint16_t        processor_revision;      
 
 
-  u_int8_t         number_of_processors;
-  u_int8_t         product_type;            
+  uint8_t         number_of_processors;
+  uint8_t         product_type;            
 
   
 
-  u_int32_t        major_version;
-  u_int32_t        minor_version;
-  u_int32_t        build_number;
-  u_int32_t        platform_id;
+  uint32_t        major_version;
+  uint32_t        minor_version;
+  uint32_t        build_number;
+  uint32_t        platform_id;
   MDRVA            csd_version_rva;  
 
 
@@ -582,8 +582,8 @@ typedef struct {
 
 
 
-  u_int16_t        suite_mask;       
-  u_int16_t        reserved2;
+  uint16_t        suite_mask;       
+  uint16_t        reserved2;
 
   MDCPUInformation cpu;
 } MDRawSystemInfo;  
@@ -627,29 +627,29 @@ typedef enum {
 
 
 typedef struct {
-  u_int32_t size_of_info;  
-  u_int32_t flags1;
+  uint32_t size_of_info;  
+  uint32_t flags1;
 
   
 
-  u_int32_t process_id;
+  uint32_t process_id;
 
   
 
-  u_int32_t process_create_time;  
-  u_int32_t process_user_time;    
-  u_int32_t process_kernel_time;  
+  uint32_t process_create_time;  
+  uint32_t process_user_time;    
+  uint32_t process_kernel_time;  
 
   
 
 
 
 
-  u_int32_t processor_max_mhz;
-  u_int32_t processor_current_mhz;
-  u_int32_t processor_mhz_limit;
-  u_int32_t processor_max_idle_state;
-  u_int32_t processor_current_idle_state;
+  uint32_t processor_max_mhz;
+  uint32_t processor_current_mhz;
+  uint32_t processor_mhz_limit;
+  uint32_t processor_max_idle_state;
+  uint32_t processor_current_idle_state;
 } MDRawMiscInfo;  
 
 #define MD_MISCINFO_SIZE 24
@@ -677,24 +677,24 @@ typedef enum {
 
 
 typedef struct {
-  u_int32_t size_of_header;    
-  u_int32_t size_of_entry;     
-  u_int64_t number_of_entries;
+  uint32_t size_of_header;    
+  uint32_t size_of_entry;     
+  uint64_t number_of_entries;
 } MDRawMemoryInfoList;  
 
 typedef struct {
-  u_int64_t base_address;           
-  u_int64_t allocation_base;        
+  uint64_t base_address;           
+  uint64_t allocation_base;        
 
-  u_int32_t allocation_protection;  
+  uint32_t allocation_protection;  
 
 
-  u_int32_t __alignment1;
-  u_int64_t region_size;
-  u_int32_t state;                  
-  u_int32_t protection;             
-  u_int32_t type;                   
-  u_int32_t __alignment2;
+  uint32_t __alignment1;
+  uint64_t region_size;
+  uint32_t state;                  
+  uint32_t protection;             
+  uint32_t type;                   
+  uint32_t __alignment2;
 } MDRawMemoryInfo;  
 
 
@@ -721,7 +721,7 @@ typedef enum {
 } MDMemoryProtection;
 
 
-const u_int32_t MD_MEMORY_PROTECTION_ACCESS_MASK = 0xFF;
+const uint32_t MD_MEMORY_PROTECTION_ACCESS_MASK = 0xFF;
 
 
 typedef enum {
@@ -738,7 +738,7 @@ typedef enum {
 typedef struct {
   
 
-  u_int32_t validity;
+  uint32_t validity;
 
   
 
@@ -746,7 +746,7 @@ typedef struct {
 
 
 
-  u_int32_t dump_thread_id;
+  uint32_t dump_thread_id;
 
   
 
@@ -759,7 +759,7 @@ typedef struct {
 
 
 
-  u_int32_t requesting_thread_id;
+  uint32_t requesting_thread_id;
 } MDRawBreakpadInfo;
 
 
@@ -777,11 +777,11 @@ typedef struct {
 
 
 
-  u_int16_t expression[128];  
-  u_int16_t function[128];    
-  u_int16_t file[128];        
-  u_int32_t line;             
-  u_int32_t type;
+  uint16_t expression[128];  
+  uint16_t function[128];    
+  uint16_t file[128];        
+  uint32_t line;             
+  uint32_t type;
 } MDRawAssertionInfo;
 
 
@@ -806,9 +806,9 @@ typedef struct {
 } MDRawLinkMap;
 
 typedef struct {
-  u_int32_t version;
+  uint32_t version;
   MDRVA     map;
-  u_int32_t dso_count;
+  uint32_t dso_count;
   void*     brk;
   void*     ldbase;
   void*     dynamic;

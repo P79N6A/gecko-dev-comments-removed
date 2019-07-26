@@ -423,7 +423,7 @@ TEST(ExceptionHandlerTest, InstructionPointerMemory) {
 
   
   
-  const u_int32_t kMemorySize = 256;  
+  const uint32_t kMemorySize = 256;  
   const int kOffset = kMemorySize / 2;
   
   const unsigned char instructions[] = { 0xff, 0xff, 0xff, 0xff };
@@ -483,7 +483,7 @@ TEST(ExceptionHandlerTest, InstructionPointerMemory) {
   MinidumpContext* context = exception->GetContext();
   ASSERT_TRUE(context);
 
-  u_int64_t instruction_pointer;
+  uint64_t instruction_pointer;
   ASSERT_TRUE(context->GetInstructionPointer(&instruction_pointer));
 
   MinidumpMemoryRegion* region =
@@ -491,11 +491,11 @@ TEST(ExceptionHandlerTest, InstructionPointerMemory) {
   ASSERT_TRUE(region);
 
   EXPECT_EQ(kMemorySize, region->GetSize());
-  const u_int8_t* bytes = region->GetMemory();
+  const uint8_t* bytes = region->GetMemory();
   ASSERT_TRUE(bytes);
 
-  u_int8_t prefix_bytes[kOffset];
-  u_int8_t suffix_bytes[kMemorySize - kOffset - sizeof(instructions)];
+  uint8_t prefix_bytes[kOffset];
+  uint8_t suffix_bytes[kMemorySize - kOffset - sizeof(instructions)];
   memset(prefix_bytes, 0, sizeof(prefix_bytes));
   memset(suffix_bytes, 0, sizeof(suffix_bytes));
   EXPECT_TRUE(memcmp(bytes, prefix_bytes, sizeof(prefix_bytes)) == 0);
@@ -515,7 +515,7 @@ TEST(ExceptionHandlerTest, InstructionPointerMemoryMinBound) {
 
   
   
-  const u_int32_t kMemorySize = 256;  
+  const uint32_t kMemorySize = 256;  
   const int kOffset = 0;
   
   const unsigned char instructions[] = { 0xff, 0xff, 0xff, 0xff };
@@ -575,7 +575,7 @@ TEST(ExceptionHandlerTest, InstructionPointerMemoryMinBound) {
   MinidumpContext* context = exception->GetContext();
   ASSERT_TRUE(context);
 
-  u_int64_t instruction_pointer;
+  uint64_t instruction_pointer;
   ASSERT_TRUE(context->GetInstructionPointer(&instruction_pointer));
 
   MinidumpMemoryRegion* region =
@@ -583,10 +583,10 @@ TEST(ExceptionHandlerTest, InstructionPointerMemoryMinBound) {
   ASSERT_TRUE(region);
 
   EXPECT_EQ(kMemorySize / 2, region->GetSize());
-  const u_int8_t* bytes = region->GetMemory();
+  const uint8_t* bytes = region->GetMemory();
   ASSERT_TRUE(bytes);
 
-  u_int8_t suffix_bytes[kMemorySize / 2 - sizeof(instructions)];
+  uint8_t suffix_bytes[kMemorySize / 2 - sizeof(instructions)];
   memset(suffix_bytes, 0, sizeof(suffix_bytes));
   EXPECT_TRUE(memcmp(bytes + kOffset, instructions, sizeof(instructions)) == 0);
   EXPECT_TRUE(memcmp(bytes + kOffset + sizeof(instructions),
@@ -606,7 +606,7 @@ TEST(ExceptionHandlerTest, InstructionPointerMemoryMaxBound) {
   
   
   
-  const u_int32_t kMemorySize = 4096;  
+  const uint32_t kMemorySize = 4096;  
   
   const unsigned char instructions[] = { 0xff, 0xff, 0xff, 0xff };
   const int kOffset = kMemorySize - sizeof(instructions);
@@ -665,7 +665,7 @@ TEST(ExceptionHandlerTest, InstructionPointerMemoryMaxBound) {
   MinidumpContext* context = exception->GetContext();
   ASSERT_TRUE(context);
 
-  u_int64_t instruction_pointer;
+  uint64_t instruction_pointer;
   ASSERT_TRUE(context->GetInstructionPointer(&instruction_pointer));
 
   MinidumpMemoryRegion* region =
@@ -674,10 +674,10 @@ TEST(ExceptionHandlerTest, InstructionPointerMemoryMaxBound) {
 
   const size_t kPrefixSize = 128;  
   EXPECT_EQ(kPrefixSize + sizeof(instructions), region->GetSize());
-  const u_int8_t* bytes = region->GetMemory();
+  const uint8_t* bytes = region->GetMemory();
   ASSERT_TRUE(bytes);
 
-  u_int8_t prefix_bytes[kPrefixSize];
+  uint8_t prefix_bytes[kPrefixSize];
   memset(prefix_bytes, 0, sizeof(prefix_bytes));
   EXPECT_TRUE(memcmp(bytes, prefix_bytes, sizeof(prefix_bytes)) == 0);
   EXPECT_TRUE(memcmp(bytes + kPrefixSize,
@@ -742,9 +742,9 @@ TEST(ExceptionHandlerTest, InstructionPointerMemoryNullPointer) {
 TEST(ExceptionHandlerTest, ModuleInfo) {
   
   
-  const u_int32_t kMemorySize = sysconf(_SC_PAGESIZE);
+  const uint32_t kMemorySize = sysconf(_SC_PAGESIZE);
   const char* kMemoryName = "a fake module";
-  const u_int8_t kModuleGUID[sizeof(MDGUID)] = {
+  const uint8_t kModuleGUID[sizeof(MDGUID)] = {
     0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
     0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
   };
@@ -998,15 +998,15 @@ TEST(ExceptionHandlerTest, GenerateMultipleDumpsWithPath) {
 
 
 TEST(ExceptionHandlerTest, AdditionalMemory) {
-  const u_int32_t kMemorySize = sysconf(_SC_PAGESIZE);
+  const uint32_t kMemorySize = sysconf(_SC_PAGESIZE);
 
   
-  u_int8_t* memory = new u_int8_t[kMemorySize];
+  uint8_t* memory = new uint8_t[kMemorySize];
   const uintptr_t kMemoryAddress = reinterpret_cast<uintptr_t>(memory);
   ASSERT_TRUE(memory);
 
   
-  for (u_int32_t i = 0; i < kMemorySize; ++i) {
+  for (uint32_t i = 0; i < kMemorySize; ++i) {
     memory[i] = i % 255;
   }
 
@@ -1042,10 +1042,10 @@ TEST(ExceptionHandlerTest, AdditionalMemory) {
 
 
 TEST(ExceptionHandlerTest, AdditionalMemoryRemove) {
-  const u_int32_t kMemorySize = sysconf(_SC_PAGESIZE);
+  const uint32_t kMemorySize = sysconf(_SC_PAGESIZE);
 
   
-  u_int8_t* memory = new u_int8_t[kMemorySize];
+  uint8_t* memory = new uint8_t[kMemorySize];
   const uintptr_t kMemoryAddress = reinterpret_cast<uintptr_t>(memory);
   ASSERT_TRUE(memory);
 
@@ -1109,7 +1109,7 @@ TEST(ExceptionHandlerTest, WriteMinidumpForChild) {
   
   MinidumpException* exception = minidump.GetException();
   ASSERT_TRUE(exception);
-  u_int32_t thread_id;
+  uint32_t thread_id;
   ASSERT_TRUE(exception->GetThreadID(&thread_id));
   EXPECT_EQ(child, static_cast<int32_t>(thread_id));
 

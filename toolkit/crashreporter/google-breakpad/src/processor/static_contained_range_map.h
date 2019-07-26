@@ -81,7 +81,7 @@ class StaticContainedRangeMap {
   
   
   
-  u_int32_t entry_size_;
+  uint32_t entry_size_;
   const EntryType *entry_ptr_;
 
   

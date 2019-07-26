@@ -62,7 +62,7 @@ using std::map;
 class Module {
  public:
   
-  typedef u_int64_t Address;
+  typedef uint64_t Address;
   struct File;
   struct Function;
   struct Line;

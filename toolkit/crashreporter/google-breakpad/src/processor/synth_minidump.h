@@ -166,14 +166,14 @@ class Stream: public Section {
  public:
   
   
-  Stream(const Dump &dump, u_int32_t type) : Section(dump), type_(type) { }
+  Stream(const Dump &dump, uint32_t type) : Section(dump), type_(type) { }
 
   
   void CiteStreamIn(test_assembler::Section *section) const;
 
  private:
   
-  u_int32_t type_;
+  uint32_t type_;
 };
 
 class SystemInfo: public Stream {
@@ -211,7 +211,7 @@ class String: public Section {
 
 class Memory: public Section {
  public:
-  Memory(const Dump &dump, u_int64_t address)
+  Memory(const Dump &dump, uint64_t address)
       : Section(dump), address_(address) { start() = address; }
 
   
@@ -220,7 +220,7 @@ class Memory: public Section {
  private:
   
   
-  u_int64_t address_;
+  uint64_t address_;
 };
 
 class Context: public Section {
@@ -238,13 +238,13 @@ class Thread: public Section {
   
   
   Thread(const Dump &dump,
-         u_int32_t thread_id,
+         uint32_t thread_id,
          const Memory &stack,
          const Context &context,
-         u_int32_t suspend_count = 0,
-         u_int32_t priority_class = 0,
-         u_int32_t priority = 0,
-         u_int64_t teb = 0);
+         uint32_t suspend_count = 0,
+         uint32_t priority_class = 0,
+         uint32_t priority = 0,
+         uint64_t teb = 0);
 };
 
 class Module: public Section {
@@ -253,11 +253,11 @@ class Module: public Section {
   
   
   Module(const Dump &dump,
-         u_int64_t base_of_image,
-         u_int32_t size_of_image,
+         uint64_t base_of_image,
+         uint32_t size_of_image,
          const String &name,
-         u_int32_t time_date_stamp = 1262805309,
-         u_int32_t checksum = 0,
+         uint32_t time_date_stamp = 1262805309,
+         uint32_t checksum = 0,
          const MDVSFixedFileInfo &version_info = Module::stock_version_info,
          const Section *cv_record = NULL,
          const Section *misc_record = NULL);
@@ -273,10 +273,10 @@ class Exception : public Stream {
 public:
   Exception(const Dump &dump,
             const Context &context,
-            u_int32_t thread_id = 0,
-            u_int32_t exception_code = 0,
-            u_int32_t exception_flags = 0,
-            u_int64_t exception_address = 0);
+            uint32_t thread_id = 0,
+            uint32_t exception_code = 0,
+            uint32_t exception_flags = 0,
+            uint64_t exception_address = 0);
 };
 
 
@@ -284,7 +284,7 @@ public:
 template<typename Element>
 class List: public Stream {
  public:
-  List(const Dump &dump, u_int32_t type) : Stream(dump, type), count_(0) {
+  List(const Dump &dump, uint32_t type) : Stream(dump, type), count_(0) {
     D32(count_label_);
   }
 
@@ -317,10 +317,10 @@ class Dump: public test_assembler::Section {
   
   
   
-  Dump(u_int64_t flags,
+  Dump(uint64_t flags,
        Endianness endianness = kLittleEndian,
-       u_int32_t version = MD_HEADER_VERSION,
-       u_int32_t date_time_stamp = 1262805309);
+       uint32_t version = MD_HEADER_VERSION,
+       uint32_t date_time_stamp = 1262805309);
 
   
   

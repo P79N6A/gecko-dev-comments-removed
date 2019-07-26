@@ -205,7 +205,7 @@ class ExceptionHandler {
   
   
   void AddMappingInfo(const string& name,
-                      const u_int8_t identifier[sizeof(MDGUID)],
+                      const uint8_t identifier[sizeof(MDGUID)],
                       uintptr_t start_address,
                       size_t mapping_size,
                       size_t file_offset);

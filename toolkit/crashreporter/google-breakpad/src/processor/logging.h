@@ -119,8 +119,8 @@ class LogMessageVoidify {
 };
 
 
-string HexString(u_int32_t number);
-string HexString(u_int64_t number);
+string HexString(uint32_t number);
+string HexString(uint64_t number);
 string HexString(int number);
 
 

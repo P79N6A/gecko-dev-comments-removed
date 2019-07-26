@@ -67,7 +67,7 @@ class MemoryRange {
 
   
   void Set(const void* data, size_t length) {
-    data_ = reinterpret_cast<const u_int8_t*>(data);
+    data_ = reinterpret_cast<const uint8_t*>(data);
     
     length_ = data ? length : 0;
   }
@@ -127,14 +127,14 @@ class MemoryRange {
   }
 
   
-  const u_int8_t* data() const { return data_; }
+  const uint8_t* data() const { return data_; }
 
   
   size_t length() const { return length_; }
 
  private:
   
-  const u_int8_t* data_;
+  const uint8_t* data_;
 
   
   size_t length_;

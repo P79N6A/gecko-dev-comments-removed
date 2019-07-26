@@ -111,9 +111,9 @@ class StackwalkerARMFixture {
 
   
   void BrandContext(MDRawContextARM *raw_context) {
-    u_int8_t x = 173;
+    uint8_t x = 173;
     for (size_t i = 0; i < sizeof(*raw_context); i++)
-      reinterpret_cast<u_int8_t *>(raw_context)[i] = (x += 17);
+      reinterpret_cast<uint8_t *>(raw_context)[i] = (x += 17);
   }
 
   SystemInfo system_info;
@@ -190,8 +190,8 @@ TEST_F(GetCallerFrame, ScanWithoutSymbols) {
   
   
   stack_section.start() = 0x80000000;
-  u_int32_t return_address1 = 0x50000100;
-  u_int32_t return_address2 = 0x50000900;
+  uint32_t return_address1 = 0x50000100;
+  uint32_t return_address2 = 0x50000900;
   Label frame1_sp, frame2_sp;
   stack_section
     
@@ -252,7 +252,7 @@ TEST_F(GetCallerFrame, ScanWithFunctionSymbols) {
   
   
   stack_section.start() = 0x80000000;
-  u_int32_t return_address = 0x50000200;
+  uint32_t return_address = 0x50000200;
   Label frame1_sp;
 
   stack_section
@@ -310,8 +310,8 @@ TEST_F(GetCallerFrame, ScanFirstFrame) {
   
   
   stack_section.start() = 0x80000000;
-  u_int32_t return_address1 = 0x50000100;
-  u_int32_t return_address2 = 0x50000900;
+  uint32_t return_address1 = 0x50000100;
+  uint32_t return_address2 = 0x50000900;
   Label frame1_sp, frame2_sp;
   stack_section
     
@@ -674,8 +674,8 @@ class GetFramesByFramePointer: public StackwalkerARMFixtureIOS, public Test { };
 
 TEST_F(GetFramesByFramePointer, OnlyFramePointer) {
   stack_section.start() = 0x80000000;
-  u_int32_t return_address1 = 0x50000100;
-  u_int32_t return_address2 = 0x50000900;
+  uint32_t return_address1 = 0x50000100;
+  uint32_t return_address2 = 0x50000900;
   Label frame1_sp, frame2_sp;
   Label frame1_fp, frame2_fp;
   stack_section
@@ -764,8 +764,8 @@ TEST_F(GetFramesByFramePointer, FramePointerAndCFI) {
                   );
 
   stack_section.start() = 0x80000000;
-  u_int32_t return_address1 = 0x40004010;
-  u_int32_t return_address2 = 0x50000900;
+  uint32_t return_address1 = 0x40004010;
+  uint32_t return_address2 = 0x50000900;
   Label frame1_sp, frame2_sp;
   Label frame1_fp, frame2_fp;
   stack_section

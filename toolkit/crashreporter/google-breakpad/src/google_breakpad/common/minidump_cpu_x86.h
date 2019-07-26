@@ -76,18 +76,18 @@
      
 
 typedef struct {
-  u_int32_t control_word;
-  u_int32_t status_word;
-  u_int32_t tag_word;
-  u_int32_t error_offset;
-  u_int32_t error_selector;
-  u_int32_t data_offset;
-  u_int32_t data_selector;
+  uint32_t control_word;
+  uint32_t status_word;
+  uint32_t tag_word;
+  uint32_t error_offset;
+  uint32_t error_selector;
+  uint32_t data_offset;
+  uint32_t data_selector;
 
   
 
-  u_int8_t  register_area[MD_FLOATINGSAVEAREA_X86_REGISTERAREA_SIZE];
-  u_int32_t cr0_npx_state;
+  uint8_t  register_area[MD_FLOATINGSAVEAREA_X86_REGISTERAREA_SIZE];
+  uint32_t cr0_npx_state;
 } MDFloatingSaveAreaX86;  
 
 
@@ -97,46 +97,46 @@ typedef struct {
 typedef struct {
   
 
-  u_int32_t             context_flags;
+  uint32_t             context_flags;
 
   
-  u_int32_t             dr0;
-  u_int32_t             dr1;
-  u_int32_t             dr2;
-  u_int32_t             dr3;
-  u_int32_t             dr6;
-  u_int32_t             dr7;
+  uint32_t             dr0;
+  uint32_t             dr1;
+  uint32_t             dr2;
+  uint32_t             dr3;
+  uint32_t             dr6;
+  uint32_t             dr7;
 
   
   MDFloatingSaveAreaX86 float_save;
 
   
-  u_int32_t             gs; 
-  u_int32_t             fs;
-  u_int32_t             es;
-  u_int32_t             ds;
+  uint32_t             gs; 
+  uint32_t             fs;
+  uint32_t             es;
+  uint32_t             ds;
   
-  u_int32_t             edi;
-  u_int32_t             esi;
-  u_int32_t             ebx;
-  u_int32_t             edx;
-  u_int32_t             ecx;
-  u_int32_t             eax;
-
-  
-  u_int32_t             ebp;
-  u_int32_t             eip;
-  u_int32_t             cs;      
-  u_int32_t             eflags;  
-  u_int32_t             esp;
-  u_int32_t             ss;
+  uint32_t             edi;
+  uint32_t             esi;
+  uint32_t             ebx;
+  uint32_t             edx;
+  uint32_t             ecx;
+  uint32_t             eax;
 
   
+  uint32_t             ebp;
+  uint32_t             eip;
+  uint32_t             cs;      
+  uint32_t             eflags;  
+  uint32_t             esp;
+  uint32_t             ss;
+
+  
 
 
 
 
-  u_int8_t              extended_registers[
+  uint8_t              extended_registers[
                          MD_CONTEXT_X86_EXTENDED_REGISTERS_SIZE];
 } MDRawContextX86;  
 

@@ -110,7 +110,7 @@ class ModuleSerializer {
       FastSourceLineResolver::Module::kNumberMaps_;
 
   
-  u_int32_t map_sizes_[kNumberMaps_];
+  uint32_t map_sizes_[kNumberMaps_];
 
   
   StdMapSerializer<int, string> files_serializer_;

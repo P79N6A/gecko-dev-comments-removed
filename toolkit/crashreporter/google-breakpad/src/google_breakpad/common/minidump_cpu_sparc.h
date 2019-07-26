@@ -82,10 +82,10 @@
 typedef struct {
 
   
-  u_int64_t	regs[MD_FLOATINGSAVEAREA_SPARC_FPR_COUNT];
+  uint64_t	regs[MD_FLOATINGSAVEAREA_SPARC_FPR_COUNT];
 
-  u_int64_t	filler;
-  u_int64_t	fsr;        
+  uint64_t	filler;
+  uint64_t	fsr;        
 } MDFloatingSaveAreaSPARC;  
 
 #define MD_CONTEXT_SPARC_GPR_COUNT 32
@@ -94,8 +94,8 @@ typedef struct {
   
 
 
-  u_int32_t	context_flags;
-  u_int32_t	flag_pad;
+  uint32_t	context_flags;
+  uint32_t	flag_pad;
   
 
 
@@ -110,28 +110,28 @@ typedef struct {
 
 
 
-  u_int64_t     g_r[MD_CONTEXT_SPARC_GPR_COUNT];
+  uint64_t     g_r[MD_CONTEXT_SPARC_GPR_COUNT];
 
   
 
   
 
 
-  u_int64_t     ccr;
+  uint64_t     ccr;
 
-  u_int64_t     pc;     
-  u_int64_t     npc;    
-  u_int64_t     y;      
-
-  
-
-
-  u_int64_t     asi;
+  uint64_t     pc;     
+  uint64_t     npc;    
+  uint64_t     y;      
 
   
 
 
-  u_int64_t     fprs;
+  uint64_t     asi;
+
+  
+
+
+  uint64_t     fprs;
 
   
   MDFloatingSaveAreaSPARC float_save;

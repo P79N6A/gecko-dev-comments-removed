@@ -131,9 +131,9 @@ TEST(MinidumpWriterTest, MappingInfo) {
 
   
   
-  const u_int32_t memory_size = sysconf(_SC_PAGESIZE);
+  const uint32_t memory_size = sysconf(_SC_PAGESIZE);
   const char* kMemoryName = "a fake module";
-  const u_int8_t kModuleGUID[sizeof(MDGUID)] = {
+  const uint8_t kModuleGUID[sizeof(MDGUID)] = {
     0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
     0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
   };
@@ -213,7 +213,7 @@ TEST(MinidumpWriterTest, MappingInfo) {
   EXPECT_EQ(kMemoryName, module->code_file());
   EXPECT_EQ(module_identifier, module->debug_identifier());
 
-  u_int32_t len;
+  uint32_t len;
   
   EXPECT_TRUE(minidump.SeekToStreamType(MD_THREAD_LIST_STREAM, &len));
   EXPECT_TRUE(minidump.SeekToStreamType(MD_MEMORY_LIST_STREAM, &len));
@@ -241,7 +241,7 @@ TEST(MinidumpWriterTest, MappingInfoContained) {
   
   const int32_t memory_size = sysconf(_SC_PAGESIZE);
   const char* kMemoryName = "a fake module";
-  const u_int8_t kModuleGUID[sizeof(MDGUID)] = {
+  const uint8_t kModuleGUID[sizeof(MDGUID)] = {
     0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
     0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
   };
@@ -435,15 +435,15 @@ TEST(MinidumpWriterTest, AdditionalMemory) {
 
   
   
-  const u_int32_t kMemorySize = sysconf(_SC_PAGESIZE);
+  const uint32_t kMemorySize = sysconf(_SC_PAGESIZE);
 
   
-  u_int8_t* memory = new u_int8_t[kMemorySize];
+  uint8_t* memory = new uint8_t[kMemorySize];
   const uintptr_t kMemoryAddress = reinterpret_cast<uintptr_t>(memory);
   ASSERT_TRUE(memory);
 
   
-  for (u_int32_t i = 0; i < kMemorySize; ++i) {
+  for (uint32_t i = 0; i < kMemorySize; ++i) {
     memory[i] = i % 255;
   }
 

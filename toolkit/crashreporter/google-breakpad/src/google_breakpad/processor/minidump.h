@@ -154,7 +154,7 @@ class MinidumpStream : public MinidumpObject {
   
   
   
-  virtual bool Read(u_int32_t expected_size) = 0;
+  virtual bool Read(uint32_t expected_size) = 0;
 };
 
 
@@ -176,11 +176,11 @@ class MinidumpContext : public MinidumpStream {
   
   
   
-  u_int32_t GetContextCPU() const;
+  uint32_t GetContextCPU() const;
 
   
   
-  bool GetInstructionPointer(u_int64_t* ip) const;
+  bool GetInstructionPointer(uint64_t* ip) const;
 
   
   
@@ -210,13 +210,13 @@ class MinidumpContext : public MinidumpStream {
   } context_;
 
   
-  u_int32_t context_flags_;
+  uint32_t context_flags_;
 
  private:
   friend class MinidumpThread;
   friend class MinidumpException;
 
-  bool Read(u_int32_t expected_size);
+  bool Read(uint32_t expected_size);
 
   
   void FreeContext();
@@ -226,7 +226,7 @@ class MinidumpContext : public MinidumpStream {
   
   
   
-  bool CheckAgainstSystemInfo(u_int32_t context_cpu_type);
+  bool CheckAgainstSystemInfo(uint32_t context_cpu_type);
 };
 
 
@@ -243,28 +243,28 @@ class MinidumpMemoryRegion : public MinidumpObject,
  public:
   virtual ~MinidumpMemoryRegion();
 
-  static void set_max_bytes(u_int32_t max_bytes) { max_bytes_ = max_bytes; }
-  static u_int32_t max_bytes() { return max_bytes_; }
+  static void set_max_bytes(uint32_t max_bytes) { max_bytes_ = max_bytes; }
+  static uint32_t max_bytes() { return max_bytes_; }
 
   
   
   
-  const u_int8_t* GetMemory() const;
+  const uint8_t* GetMemory() const;
 
   
-  u_int64_t GetBase() const;
+  uint64_t GetBase() const;
 
   
-  u_int32_t GetSize() const;
+  uint32_t GetSize() const;
 
   
   void FreeMemory();
 
   
-  bool GetMemoryAtAddress(u_int64_t address, u_int8_t*  value) const;
-  bool GetMemoryAtAddress(u_int64_t address, u_int16_t* value) const;
-  bool GetMemoryAtAddress(u_int64_t address, u_int32_t* value) const;
-  bool GetMemoryAtAddress(u_int64_t address, u_int64_t* value) const;
+  bool GetMemoryAtAddress(uint64_t address, uint8_t*  value) const;
+  bool GetMemoryAtAddress(uint64_t address, uint16_t* value) const;
+  bool GetMemoryAtAddress(uint64_t address, uint32_t* value) const;
+  bool GetMemoryAtAddress(uint64_t address, uint64_t* value) const;
 
   
   void Print();
@@ -281,19 +281,19 @@ class MinidumpMemoryRegion : public MinidumpObject,
   void SetDescriptor(MDMemoryDescriptor* descriptor);
 
   
-  template<typename T> bool GetMemoryAtAddressInternal(u_int64_t address,
+  template<typename T> bool GetMemoryAtAddressInternal(uint64_t address,
                                                        T*        value) const;
 
   
   
-  static u_int32_t max_bytes_;
+  static uint32_t max_bytes_;
 
   
   
   MDMemoryDescriptor* descriptor_;
 
   
-  mutable vector<u_int8_t>* memory_;
+  mutable vector<uint8_t>* memory_;
 };
 
 
@@ -319,7 +319,7 @@ class MinidumpThread : public MinidumpObject {
   
   
   
-  virtual bool GetThreadID(u_int32_t *thread_id) const;
+  virtual bool GetThreadID(uint32_t *thread_id) const;
 
   
   void Print();
@@ -348,10 +348,10 @@ class MinidumpThreadList : public MinidumpStream {
  public:
   virtual ~MinidumpThreadList();
 
-  static void set_max_threads(u_int32_t max_threads) {
+  static void set_max_threads(uint32_t max_threads) {
     max_threads_ = max_threads;
   }
-  static u_int32_t max_threads() { return max_threads_; }
+  static uint32_t max_threads() { return max_threads_; }
 
   virtual unsigned int thread_count() const {
     return valid_ ? thread_count_ : 0;
@@ -361,7 +361,7 @@ class MinidumpThreadList : public MinidumpStream {
   virtual MinidumpThread* GetThreadAtIndex(unsigned int index) const;
 
   
-  MinidumpThread* GetThreadByID(u_int32_t thread_id);
+  MinidumpThread* GetThreadByID(uint32_t thread_id);
 
   
   void Print();
@@ -372,23 +372,23 @@ class MinidumpThreadList : public MinidumpStream {
  private:
   friend class Minidump;
 
-  typedef map<u_int32_t, MinidumpThread*> IDToThreadMap;
+  typedef map<uint32_t, MinidumpThread*> IDToThreadMap;
   typedef vector<MinidumpThread> MinidumpThreads;
 
-  static const u_int32_t kStreamType = MD_THREAD_LIST_STREAM;
+  static const uint32_t kStreamType = MD_THREAD_LIST_STREAM;
 
-  bool Read(u_int32_t aExpectedSize);
+  bool Read(uint32_t aExpectedSize);
 
   
   
-  static u_int32_t max_threads_;
+  static uint32_t max_threads_;
 
   
   IDToThreadMap    id_to_thread_map_;
 
   
   MinidumpThreads* threads_;
-  u_int32_t        thread_count_;
+  uint32_t        thread_count_;
 };
 
 
@@ -401,23 +401,23 @@ class MinidumpModule : public MinidumpObject,
  public:
   virtual ~MinidumpModule();
 
-  static void set_max_cv_bytes(u_int32_t max_cv_bytes) {
+  static void set_max_cv_bytes(uint32_t max_cv_bytes) {
     max_cv_bytes_ = max_cv_bytes;
   }
-  static u_int32_t max_cv_bytes() { return max_cv_bytes_; }
+  static uint32_t max_cv_bytes() { return max_cv_bytes_; }
 
-  static void set_max_misc_bytes(u_int32_t max_misc_bytes) {
+  static void set_max_misc_bytes(uint32_t max_misc_bytes) {
     max_misc_bytes_ = max_misc_bytes;
   }
-  static u_int32_t max_misc_bytes() { return max_misc_bytes_; }
+  static uint32_t max_misc_bytes() { return max_misc_bytes_; }
 
   const MDRawModule* module() const { return valid_ ? &module_ : NULL; }
 
   
-  virtual u_int64_t base_address() const {
-    return valid_ ? module_.base_of_image : static_cast<u_int64_t>(-1);
+  virtual uint64_t base_address() const {
+    return valid_ ? module_.base_of_image : static_cast<uint64_t>(-1);
   }
-  virtual u_int64_t size() const { return valid_ ? module_.size_of_image : 0; }
+  virtual uint64_t size() const { return valid_ ? module_.size_of_image : 0; }
   virtual string code_file() const;
   virtual string code_identifier() const;
   virtual string debug_file() const;
@@ -435,14 +435,14 @@ class MinidumpModule : public MinidumpObject,
   
   
   
-  const u_int8_t* GetCVRecord(u_int32_t* size);
+  const uint8_t* GetCVRecord(uint32_t* size);
 
   
   
   
   
   
-  const MDImageDebugMisc* GetMiscRecord(u_int32_t* size);
+  const MDImageDebugMisc* GetMiscRecord(uint32_t* size);
 
   
   void Print();
@@ -469,8 +469,8 @@ class MinidumpModule : public MinidumpObject,
   
   
   
-  static u_int32_t max_cv_bytes_;
-  static u_int32_t max_misc_bytes_;
+  static uint32_t max_cv_bytes_;
+  static uint32_t max_misc_bytes_;
 
   
   
@@ -493,17 +493,17 @@ class MinidumpModule : public MinidumpObject,
   
   
   
-  vector<u_int8_t>* cv_record_;
+  vector<uint8_t>* cv_record_;
 
   
   
   
-  u_int32_t cv_record_signature_;
+  uint32_t cv_record_signature_;
 
   
   
   
-  vector<u_int8_t>* misc_record_;
+  vector<uint8_t>* misc_record_;
 };
 
 
@@ -516,16 +516,16 @@ class MinidumpModuleList : public MinidumpStream,
  public:
   virtual ~MinidumpModuleList();
 
-  static void set_max_modules(u_int32_t max_modules) {
+  static void set_max_modules(uint32_t max_modules) {
     max_modules_ = max_modules;
   }
-  static u_int32_t max_modules() { return max_modules_; }
+  static uint32_t max_modules() { return max_modules_; }
 
   
   virtual unsigned int module_count() const {
     return valid_ ? module_count_ : 0;
   }
-  virtual const MinidumpModule* GetModuleForAddress(u_int64_t address) const;
+  virtual const MinidumpModule* GetModuleForAddress(uint64_t address) const;
   virtual const MinidumpModule* GetMainModule() const;
   virtual const MinidumpModule* GetModuleAtSequence(
       unsigned int sequence) const;
@@ -543,19 +543,19 @@ class MinidumpModuleList : public MinidumpStream,
 
   typedef vector<MinidumpModule> MinidumpModules;
 
-  static const u_int32_t kStreamType = MD_MODULE_LIST_STREAM;
+  static const uint32_t kStreamType = MD_MODULE_LIST_STREAM;
 
-  bool Read(u_int32_t expected_size);
-
-  
-  
-  static u_int32_t max_modules_;
+  bool Read(uint32_t expected_size);
 
   
-  RangeMap<u_int64_t, unsigned int> *range_map_;
+  
+  static uint32_t max_modules_;
+
+  
+  RangeMap<uint64_t, unsigned int> *range_map_;
 
   MinidumpModules *modules_;
-  u_int32_t module_count_;
+  uint32_t module_count_;
 };
 
 
@@ -572,10 +572,10 @@ class MinidumpMemoryList : public MinidumpStream {
  public:
   virtual ~MinidumpMemoryList();
 
-  static void set_max_regions(u_int32_t max_regions) {
+  static void set_max_regions(uint32_t max_regions) {
     max_regions_ = max_regions;
   }
-  static u_int32_t max_regions() { return max_regions_; }
+  static uint32_t max_regions() { return max_regions_; }
 
   unsigned int region_count() const { return valid_ ? region_count_ : 0; }
 
@@ -584,7 +584,7 @@ class MinidumpMemoryList : public MinidumpStream {
 
   
   
-  MinidumpMemoryRegion* GetMemoryRegionForAddress(u_int64_t address);
+  MinidumpMemoryRegion* GetMemoryRegionForAddress(uint64_t address);
 
   
   void Print();
@@ -595,18 +595,18 @@ class MinidumpMemoryList : public MinidumpStream {
   typedef vector<MDMemoryDescriptor>   MemoryDescriptors;
   typedef vector<MinidumpMemoryRegion> MemoryRegions;
 
-  static const u_int32_t kStreamType = MD_MEMORY_LIST_STREAM;
+  static const uint32_t kStreamType = MD_MEMORY_LIST_STREAM;
 
   explicit MinidumpMemoryList(Minidump* minidump);
 
-  bool Read(u_int32_t expected_size);
+  bool Read(uint32_t expected_size);
 
   
   
-  static u_int32_t max_regions_;
+  static uint32_t max_regions_;
 
   
-  RangeMap<u_int64_t, unsigned int> *range_map_;
+  RangeMap<uint64_t, unsigned int> *range_map_;
 
   
   
@@ -616,7 +616,7 @@ class MinidumpMemoryList : public MinidumpStream {
 
   
   MemoryRegions *regions_;
-  u_int32_t region_count_;
+  uint32_t region_count_;
 };
 
 
@@ -638,7 +638,7 @@ class MinidumpException : public MinidumpStream {
   
   
   
-  bool GetThreadID(u_int32_t *thread_id) const;
+  bool GetThreadID(uint32_t *thread_id) const;
 
   MinidumpContext* GetContext();
 
@@ -648,11 +648,11 @@ class MinidumpException : public MinidumpStream {
  private:
   friend class Minidump;
 
-  static const u_int32_t kStreamType = MD_EXCEPTION_STREAM;
+  static const uint32_t kStreamType = MD_EXCEPTION_STREAM;
 
   explicit MinidumpException(Minidump* minidump);
 
-  bool Read(u_int32_t expected_size);
+  bool Read(uint32_t expected_size);
 
   MDRawExceptionStream exception_;
   MinidumpContext*     context_;
@@ -686,11 +686,11 @@ class MinidumpAssertion : public MinidumpStream {
  private:
   friend class Minidump;
 
-  static const u_int32_t kStreamType = MD_ASSERTION_INFO_STREAM;
+  static const uint32_t kStreamType = MD_ASSERTION_INFO_STREAM;
 
   explicit MinidumpAssertion(Minidump* minidump);
 
-  bool Read(u_int32_t expected_size);
+  bool Read(uint32_t expected_size);
 
   MDRawAssertionInfo assertion_;
   string expression_;
@@ -743,9 +743,9 @@ class MinidumpSystemInfo : public MinidumpStream {
  private:
   friend class Minidump;
 
-  static const u_int32_t kStreamType = MD_SYSTEM_INFO_STREAM;
+  static const uint32_t kStreamType = MD_SYSTEM_INFO_STREAM;
 
-  bool Read(u_int32_t expected_size);
+  bool Read(uint32_t expected_size);
 
   
   const string* cpu_vendor_;
@@ -767,11 +767,11 @@ class MinidumpMiscInfo : public MinidumpStream {
  private:
   friend class Minidump;
 
-  static const u_int32_t kStreamType = MD_MISC_INFO_STREAM;
+  static const uint32_t kStreamType = MD_MISC_INFO_STREAM;
 
   explicit MinidumpMiscInfo(Minidump* minidump_);
 
-  bool Read(u_int32_t expected_size_);
+  bool Read(uint32_t expected_size_);
 
   MDRawMiscInfo misc_info_;
 };
@@ -790,8 +790,8 @@ class MinidumpBreakpadInfo : public MinidumpStream {
   
   
   
-  bool GetDumpThreadID(u_int32_t *thread_id) const;
-  bool GetRequestingThreadID(u_int32_t *thread_id) const;
+  bool GetDumpThreadID(uint32_t *thread_id) const;
+  bool GetRequestingThreadID(uint32_t *thread_id) const;
 
   
   void Print();
@@ -799,11 +799,11 @@ class MinidumpBreakpadInfo : public MinidumpStream {
  private:
   friend class Minidump;
 
-  static const u_int32_t kStreamType = MD_BREAKPAD_INFO_STREAM;
+  static const uint32_t kStreamType = MD_BREAKPAD_INFO_STREAM;
 
   explicit MinidumpBreakpadInfo(Minidump* minidump_);
 
-  bool Read(u_int32_t expected_size_);
+  bool Read(uint32_t expected_size_);
 
   MDRawBreakpadInfo breakpad_info_;
 };
@@ -816,10 +816,10 @@ class MinidumpMemoryInfo : public MinidumpObject {
   const MDRawMemoryInfo* info() const { return valid_ ? &memory_info_ : NULL; }
 
   
-  u_int64_t GetBase() const { return valid_ ? memory_info_.base_address : 0; }
+  uint64_t GetBase() const { return valid_ ? memory_info_.base_address : 0; }
 
   
-  u_int32_t GetSize() const { return valid_ ? memory_info_.region_size : 0; }
+  uint32_t GetSize() const { return valid_ ? memory_info_.region_size : 0; }
 
   
   bool IsExecutable() const;
@@ -854,7 +854,7 @@ class MinidumpMemoryInfoList : public MinidumpStream {
 
   unsigned int info_count() const { return valid_ ? info_count_ : 0; }
 
-  const MinidumpMemoryInfo* GetMemoryInfoForAddress(u_int64_t address) const;
+  const MinidumpMemoryInfo* GetMemoryInfoForAddress(uint64_t address) const;
   const MinidumpMemoryInfo* GetMemoryInfoAtIndex(unsigned int index) const;
 
   
@@ -865,17 +865,17 @@ class MinidumpMemoryInfoList : public MinidumpStream {
 
   typedef vector<MinidumpMemoryInfo> MinidumpMemoryInfos;
 
-  static const u_int32_t kStreamType = MD_MEMORY_INFO_LIST_STREAM;
+  static const uint32_t kStreamType = MD_MEMORY_INFO_LIST_STREAM;
 
   explicit MinidumpMemoryInfoList(Minidump* minidump);
 
-  bool Read(u_int32_t expected_size);
+  bool Read(uint32_t expected_size);
 
   
-  RangeMap<u_int64_t, unsigned int> *range_map_;
+  RangeMap<uint64_t, unsigned int> *range_map_;
 
   MinidumpMemoryInfos* infos_;
-  u_int32_t info_count_;
+  uint32_t info_count_;
 };
 
 
@@ -896,15 +896,15 @@ class Minidump {
   virtual string path() const {
     return path_;
   }
-  static void set_max_streams(u_int32_t max_streams) {
+  static void set_max_streams(uint32_t max_streams) {
     max_streams_ = max_streams;
   }
-  static u_int32_t max_streams() { return max_streams_; }
+  static uint32_t max_streams() { return max_streams_; }
 
-  static void set_max_string_length(u_int32_t max_string_length) {
+  static void set_max_string_length(uint32_t max_string_length) {
     max_string_length_ = max_string_length;
   }
-  static u_int32_t max_string_length() { return max_string_length_; }
+  static uint32_t max_string_length() { return max_string_length_; }
 
   virtual const MDRawHeader* header() const { return valid_ ? &header_ : NULL; }
 
@@ -916,7 +916,7 @@ class Minidump {
   
   
   
-  bool GetContextCPUFlagsFromSystemInfo(u_int32_t* context_cpu_flags);
+  bool GetContextCPUFlagsFromSystemInfo(uint32_t* context_cpu_flags);
 
   
   
@@ -980,7 +980,7 @@ class Minidump {
   
   
   
-  bool SeekToStreamType(u_int32_t stream_type, u_int32_t* stream_length);
+  bool SeekToStreamType(uint32_t stream_type, uint32_t* stream_length);
 
   bool swap() const { return valid_ ? swap_ : false; }
 
@@ -1003,7 +1003,7 @@ class Minidump {
   };
 
   typedef vector<MDRawDirectory> MinidumpDirectoryEntries;
-  typedef map<u_int32_t, MinidumpStreamInfo> MinidumpStreamMap;
+  typedef map<uint32_t, MinidumpStreamInfo> MinidumpStreamMap;
 
   template<typename T> T* GetStream(T** stream);
 
@@ -1013,7 +1013,7 @@ class Minidump {
   
   
   
-  static u_int32_t max_streams_;
+  static uint32_t max_streams_;
 
   
   

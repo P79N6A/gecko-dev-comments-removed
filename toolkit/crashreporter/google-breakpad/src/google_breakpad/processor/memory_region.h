@@ -50,10 +50,10 @@ class MemoryRegion {
   virtual ~MemoryRegion() {}
 
   
-  virtual u_int64_t GetBase() const = 0;
+  virtual uint64_t GetBase() const = 0;
 
   
-  virtual u_int32_t GetSize() const = 0;
+  virtual uint32_t GetSize() const = 0;
 
   
   
@@ -63,10 +63,10 @@ class MemoryRegion {
   
   
   
-  virtual bool GetMemoryAtAddress(u_int64_t address, u_int8_t*  value) const =0;
-  virtual bool GetMemoryAtAddress(u_int64_t address, u_int16_t* value) const =0;
-  virtual bool GetMemoryAtAddress(u_int64_t address, u_int32_t* value) const =0;
-  virtual bool GetMemoryAtAddress(u_int64_t address, u_int64_t* value) const =0;
+  virtual bool GetMemoryAtAddress(uint64_t address, uint8_t*  value) const =0;
+  virtual bool GetMemoryAtAddress(uint64_t address, uint16_t* value) const =0;
+  virtual bool GetMemoryAtAddress(uint64_t address, uint32_t* value) const =0;
+  virtual bool GetMemoryAtAddress(uint64_t address, uint64_t* value) const =0;
 };
 
 

@@ -156,7 +156,7 @@ const char *kStrtabName = ".strtab";
 const int demangleLen = 20000;
 
 
-u_int64_t stringOffset = 0;
+uint64_t stringOffset = 0;
 
 
 

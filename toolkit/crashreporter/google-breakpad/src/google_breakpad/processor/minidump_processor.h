@@ -131,7 +131,7 @@ class MinidumpProcessor {
   
   
   
-  static string GetCrashReason(Minidump* dump, u_int64_t* address);
+  static string GetCrashReason(Minidump* dump, uint64_t* address);
 
   
   

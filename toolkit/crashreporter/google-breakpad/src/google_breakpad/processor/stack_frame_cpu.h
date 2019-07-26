@@ -78,7 +78,7 @@ struct StackFrameX86 : public StackFrame {
   ~StackFrameX86();
 
   
-  virtual u_int64_t ReturnAddress() const;
+  virtual uint64_t ReturnAddress() const;
 
   
   
@@ -151,7 +151,7 @@ struct StackFrameAMD64 : public StackFrame {
   StackFrameAMD64() : context(), context_validity(CONTEXT_VALID_NONE) {}
 
   
-  virtual u_int64_t ReturnAddress() const;
+  virtual uint64_t ReturnAddress() const;
 
   
   

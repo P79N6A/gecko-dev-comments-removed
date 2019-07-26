@@ -83,9 +83,9 @@
 typedef struct {
   
 
-  u_int64_t fpregs[MD_FLOATINGSAVEAREA_PPC_FPR_COUNT];
-  u_int32_t fpscr_pad;
-  u_int32_t fpscr;      
+  uint64_t fpregs[MD_FLOATINGSAVEAREA_PPC_FPR_COUNT];
+  uint32_t fpscr_pad;
+  uint32_t fpscr;      
 } MDFloatingSaveAreaPPC;  
 
 
@@ -94,11 +94,11 @@ typedef struct {
 typedef struct {
   
 
-  u_int128_t save_vr[MD_VECTORSAVEAREA_PPC_VR_COUNT];
-  u_int128_t save_vscr;  
-  u_int32_t  save_pad5[4];
-  u_int32_t  save_vrvalid;  
-  u_int32_t  save_pad6[7];
+  uint128_t save_vr[MD_VECTORSAVEAREA_PPC_VR_COUNT];
+  uint128_t save_vscr;  
+  uint32_t  save_pad5[4];
+  uint32_t  save_vrvalid;  
+  uint32_t  save_pad6[7];
 } MDVectorSaveAreaPPC;  
 
 
@@ -117,21 +117,21 @@ typedef struct {
   
 
 
-  u_int32_t             context_flags;
+  uint32_t             context_flags;
 
-  u_int32_t             srr0;    
+  uint32_t             srr0;    
 
-  u_int32_t             srr1;    
+  uint32_t             srr1;    
 
   
 
-  u_int32_t             gpr[MD_CONTEXT_PPC_GPR_COUNT];
-  u_int32_t             cr;      
-  u_int32_t             xer;     
-  u_int32_t             lr;      
-  u_int32_t             ctr;     
-  u_int32_t             mq;      
-  u_int32_t             vrsave;  
+  uint32_t             gpr[MD_CONTEXT_PPC_GPR_COUNT];
+  uint32_t             cr;      
+  uint32_t             xer;     
+  uint32_t             lr;      
+  uint32_t             ctr;     
+  uint32_t             mq;      
+  uint32_t             vrsave;  
 
   
 

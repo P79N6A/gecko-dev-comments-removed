@@ -131,7 +131,7 @@ class StaticMap {
   
   
   
-  const u_int32_t* offsets_;
+  const uint32_t* offsets_;
 
   
   const Key* keys_;

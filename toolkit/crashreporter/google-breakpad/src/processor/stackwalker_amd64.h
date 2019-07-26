@@ -64,7 +64,7 @@ class StackwalkerAMD64 : public Stackwalker {
 
  private:
   
-  typedef SimpleCFIWalker<u_int64_t, MDRawContextAMD64> CFIWalker;
+  typedef SimpleCFIWalker<uint64_t, MDRawContextAMD64> CFIWalker;
 
   
   

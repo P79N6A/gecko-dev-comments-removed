@@ -61,7 +61,7 @@ class BasicCodeModules : public CodeModules {
 
   
   virtual unsigned int module_count() const;
-  virtual const CodeModule* GetModuleForAddress(u_int64_t address) const;
+  virtual const CodeModule* GetModuleForAddress(uint64_t address) const;
   virtual const CodeModule* GetMainModule() const;
   virtual const CodeModule* GetModuleAtSequence(unsigned int sequence) const;
   virtual const CodeModule* GetModuleAtIndex(unsigned int index) const;
@@ -69,11 +69,11 @@ class BasicCodeModules : public CodeModules {
 
  private:
   
-  u_int64_t main_address_;
+  uint64_t main_address_;
 
   
   
-  RangeMap<u_int64_t, linked_ptr<const CodeModule> > *map_;
+  RangeMap<uint64_t, linked_ptr<const CodeModule> > *map_;
 
   
   BasicCodeModules(const BasicCodeModules &that);

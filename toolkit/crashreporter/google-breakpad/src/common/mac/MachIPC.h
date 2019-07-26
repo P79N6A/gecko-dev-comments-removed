@@ -164,11 +164,11 @@ class MachMessage {
  public:
 
   
-  u_int8_t *GetData() {
+  uint8_t *GetData() {
     return GetDataLength() > 0 ? GetDataPacket()->data : NULL;
   }
 
-  u_int32_t GetDataLength() {
+  uint32_t GetDataLength() {
     return EndianU32_LtoN(GetDataPacket()->data_length);
   }
 
@@ -210,7 +210,7 @@ class MachMessage {
   struct MessageDataPacket {
     int32_t      id;          
     int32_t      data_length; 
-    u_int8_t     data[1];     
+    uint8_t     data[1];     
   };
 
   MessageDataPacket* GetDataPacket();
@@ -223,7 +223,7 @@ class MachMessage {
 
   mach_msg_header_t  head;
   mach_msg_body_t    body;
-  u_int8_t           padding[1024]; 
+  uint8_t           padding[1024]; 
 };
 
 

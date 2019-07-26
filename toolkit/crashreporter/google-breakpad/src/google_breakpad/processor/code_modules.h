@@ -53,7 +53,7 @@ class CodeModules {
   
   
   
-  virtual const CodeModule* GetModuleForAddress(u_int64_t address) const = 0;
+  virtual const CodeModule* GetModuleForAddress(uint64_t address) const = 0;
 
   
   

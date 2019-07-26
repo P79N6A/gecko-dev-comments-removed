@@ -106,7 +106,7 @@ StackFrameX86::~StackFrameX86() {
   cfi_frame_info = NULL;
 }
 
-u_int64_t StackFrameX86::ReturnAddress() const
+uint64_t StackFrameX86::ReturnAddress() const
 {
   assert(context_validity & StackFrameX86::CONTEXT_VALID_EIP);
   return context.eip;   
@@ -179,7 +179,7 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
   
   
 
-  u_int32_t last_frame_callee_parameter_size = 0;
+  uint32_t last_frame_callee_parameter_size = 0;
   int frames_already_walked = frames.size();
   if (frames_already_walked >= 2) {
     const StackFrameX86* last_frame_callee
@@ -197,7 +197,7 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
   
   
   
-  PostfixEvaluator<u_int32_t>::DictionaryType dictionary;
+  PostfixEvaluator<uint32_t>::DictionaryType dictionary;
   
   dictionary.set(ustr__ZSebp(), last_frame->context.ebp);
   dictionary.set(ustr__ZSesp(), last_frame->context.esp);
@@ -210,13 +210,13 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
   dictionary.set(ustr__ZDcbSavedRegs(), last_frame_info->saved_register_size);
   dictionary.set(ustr__ZDcbLocals(), last_frame_info->local_size);
 
-  u_int32_t raSearchStart = last_frame->context.esp +
+  uint32_t raSearchStart = last_frame->context.esp +
                             last_frame_callee_parameter_size +
                             last_frame_info->local_size +
                             last_frame_info->saved_register_size;
 
-  u_int32_t raSearchStartOld = raSearchStart;
-  u_int32_t found = 0;  
+  uint32_t raSearchStartOld = raSearchStart;
+  uint32_t found = 0;  
   
   
   if (ScanForReturnAddress(raSearchStart, &raSearchStart, &found, 3) &&
@@ -326,9 +326,9 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
 
   
   
-  PostfixEvaluator<u_int32_t> evaluator =
-      PostfixEvaluator<u_int32_t>(&dictionary, memory_);
-  PostfixEvaluator<u_int32_t>::DictionaryValidityType dictionary_validity;
+  PostfixEvaluator<uint32_t> evaluator =
+      PostfixEvaluator<uint32_t>(&dictionary, memory_);
+  PostfixEvaluator<uint32_t>::DictionaryValidityType dictionary_validity;
   if (!evaluator.Evaluate(program_string, &dictionary_validity) ||
       !dictionary_validity.have(ustr__ZSeip()) ||
       !dictionary_validity.have(ustr__ZSesp())) {
@@ -338,8 +338,8 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
     
     
     
-    u_int32_t location_start = last_frame->context.esp;
-    u_int32_t location, eip;
+    uint32_t location_start = last_frame->context.esp;
+    uint32_t location, eip;
     if (!ScanForReturnAddress(location_start, &location, &eip)) {
       
       
@@ -377,12 +377,12 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
     
     
 
-    u_int32_t eip = dictionary.get(ustr__ZSeip());
+    uint32_t eip = dictionary.get(ustr__ZSeip());
     if (modules_ && !modules_->GetModuleForAddress(eip)) {
       
       
-      u_int32_t location_start = dictionary.get(ustr__ZDraSearchStart()) + 4;
-      u_int32_t location;
+      uint32_t location_start = dictionary.get(ustr__ZDraSearchStart()) + 4;
+      uint32_t location;
       if (ScanForReturnAddress(location_start, &location, &eip)) {
         
         
@@ -402,7 +402,7 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
       
       
       
-      u_int32_t ebp = dictionary.get(ustr__ZSebp());
+      uint32_t ebp = dictionary.get(ustr__ZSebp());
 
       
       
@@ -411,13 +411,13 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
       bool has_skipped_frames =
         (trust != StackFrame::FRAME_TRUST_CFI && ebp <= raSearchStart + offset);
 
-      u_int32_t value;  
+      uint32_t value;  
       if (has_skipped_frames || !memory_->GetMemoryAtAddress(ebp, &value)) {
         int fp_search_bytes = last_frame_info->saved_register_size + offset;
-        u_int32_t location_end = last_frame->context.esp +
+        uint32_t location_end = last_frame->context.esp +
                                  last_frame_callee_parameter_size;
 
-        for (u_int32_t location = location_end + fp_search_bytes;
+        for (uint32_t location = location_end + fp_search_bytes;
              location >= location_end;
              location -= 4) {
           if (!memory_->GetMemoryAtAddress(location, &ebp))
@@ -494,8 +494,8 @@ StackFrameX86* StackwalkerX86::GetCallerByEBPAtBase(
     const vector<StackFrame*> &frames) {
   StackFrame::FrameTrust trust;
   StackFrameX86* last_frame = static_cast<StackFrameX86*>(frames.back());
-  u_int32_t last_esp = last_frame->context.esp;
-  u_int32_t last_ebp = last_frame->context.ebp;
+  uint32_t last_esp = last_frame->context.esp;
+  uint32_t last_ebp = last_frame->context.ebp;
 
   
   
@@ -520,7 +520,7 @@ StackFrameX86* StackwalkerX86::GetCallerByEBPAtBase(
   
   
 
-  u_int32_t caller_eip, caller_esp, caller_ebp;
+  uint32_t caller_eip, caller_esp, caller_ebp;
 
   if (memory_->GetMemoryAtAddress(last_ebp + 4, &caller_eip) &&
       memory_->GetMemoryAtAddress(last_ebp, &caller_ebp)) {

@@ -100,20 +100,20 @@ using google_breakpad::StackwalkerSPARC;
 
 class SelfMemoryRegion : public MemoryRegion {
  public:
-  virtual u_int64_t GetBase() { return 0; }
-  virtual u_int32_t GetSize() { return 0xffffffff; }
+  virtual uint64_t GetBase() { return 0; }
+  virtual uint32_t GetSize() { return 0xffffffff; }
 
-  bool GetMemoryAtAddress(u_int64_t address, u_int8_t*  value) {
+  bool GetMemoryAtAddress(uint64_t address, uint8_t*  value) {
       return GetMemoryAtAddressInternal(address, value); }
-  bool GetMemoryAtAddress(u_int64_t address, u_int16_t* value) {
+  bool GetMemoryAtAddress(uint64_t address, uint16_t* value) {
       return GetMemoryAtAddressInternal(address, value); }
-  bool GetMemoryAtAddress(u_int64_t address, u_int32_t* value) {
+  bool GetMemoryAtAddress(uint64_t address, uint32_t* value) {
       return GetMemoryAtAddressInternal(address, value); }
-  bool GetMemoryAtAddress(u_int64_t address, u_int64_t* value) {
+  bool GetMemoryAtAddress(uint64_t address, uint64_t* value) {
       return GetMemoryAtAddressInternal(address, value); }
 
  private:
-  template<typename T> bool GetMemoryAtAddressInternal(u_int64_t address,
+  template<typename T> bool GetMemoryAtAddressInternal(uint64_t address,
                                                        T*        value) {
     
     
@@ -123,7 +123,7 @@ class SelfMemoryRegion : public MemoryRegion {
     if (address < 0x100)
       return false;
 
-    u_int8_t* memory = 0;
+    uint8_t* memory = 0;
     *value = *reinterpret_cast<const T*>(&memory[address]);
     return true;
   }
@@ -142,9 +142,9 @@ class SelfMemoryRegion : public MemoryRegion {
 
 
 
-static u_int32_t GetEBP() __attribute__((noinline));
-static u_int32_t GetEBP() {
-  u_int32_t ebp;
+static uint32_t GetEBP() __attribute__((noinline));
+static uint32_t GetEBP() {
+  uint32_t ebp;
   __asm__ __volatile__(
     "movl (%%ebp), %0"
     : "=a" (ebp)
@@ -158,9 +158,9 @@ static u_int32_t GetEBP() {
 
 
 
-static u_int32_t GetESP() __attribute__((noinline));
-static u_int32_t GetESP() {
-  u_int32_t ebp;
+static uint32_t GetESP() __attribute__((noinline));
+static uint32_t GetESP() {
+  uint32_t ebp;
   __asm__ __volatile__(
     "movl %%ebp, %0"
     : "=a" (ebp)
@@ -179,9 +179,9 @@ static u_int32_t GetESP() {
 
 
 
-static u_int32_t GetEIP() __attribute__((noinline));
-static u_int32_t GetEIP() {
-  u_int32_t eip;
+static uint32_t GetEIP() __attribute__((noinline));
+static uint32_t GetEIP() {
+  uint32_t eip;
   __asm__ __volatile__(
     "movl 4(%%ebp), %0"
     : "=a" (eip)
@@ -199,9 +199,9 @@ static u_int32_t GetEIP() {
 
 
 
-static u_int32_t GetSP() __attribute__((noinline));
-static u_int32_t GetSP() {
-  u_int32_t sp;
+static uint32_t GetSP() __attribute__((noinline));
+static uint32_t GetSP() {
+  uint32_t sp;
   __asm__ __volatile__(
     "lwz %0, 0(r1)"
     : "=r" (sp)
@@ -215,9 +215,9 @@ static u_int32_t GetSP() {
 
 
 
-static u_int32_t GetPC() __attribute__((noinline));
-static u_int32_t GetPC() {
-  u_int32_t lr;
+static uint32_t GetPC() __attribute__((noinline));
+static uint32_t GetPC() {
+  uint32_t lr;
   __asm__ __volatile__(
     "mflr %0"
     : "=r" (lr)
@@ -236,9 +236,9 @@ static u_int32_t GetPC() {
 
 
 
-static u_int32_t GetSP() __attribute__((noinline));
-static u_int32_t GetSP() {
-  u_int32_t sp;
+static uint32_t GetSP() __attribute__((noinline));
+static uint32_t GetSP() {
+  uint32_t sp;
   __asm__ __volatile__(
     "mov %%fp, %0"
     : "=r" (sp)
@@ -253,9 +253,9 @@ static u_int32_t GetSP() {
 
 
 
-static u_int32_t GetFP() __attribute__((noinline));
-static u_int32_t GetFP() {
-  u_int32_t fp;
+static uint32_t GetFP() __attribute__((noinline));
+static uint32_t GetFP() {
+  uint32_t fp;
   __asm__ __volatile__(
     "ld [%%fp+56], %0"
     : "=r" (fp)
@@ -268,9 +268,9 @@ static u_int32_t GetFP() {
 
 
 
-static u_int32_t GetPC() __attribute__((noinline));
-static u_int32_t GetPC() {
-  u_int32_t pc;
+static uint32_t GetPC() __attribute__((noinline));
+static uint32_t GetPC() {
+  uint32_t pc;
   __asm__ __volatile__(
     "mov %%i7, %0"
     : "=r" (pc)
@@ -284,15 +284,15 @@ static u_int32_t GetPC() {
 
 #if defined(__i386__)
 extern "C" {
-extern u_int32_t GetEIP();
-extern u_int32_t GetEBP();
-extern u_int32_t GetESP();
+extern uint32_t GetEIP();
+extern uint32_t GetEBP();
+extern uint32_t GetESP();
 }
 #elif defined(__sparc__)
 extern "C" {
-extern u_int32_t GetPC();
-extern u_int32_t GetFP();
-extern u_int32_t GetSP();
+extern uint32_t GetPC();
+extern uint32_t GetFP();
+extern uint32_t GetSP();
 }
 #endif 
 

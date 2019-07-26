@@ -85,7 +85,7 @@ struct StackFrame {
 
   
   
-  virtual u_int64_t ReturnAddress() const { return instruction; }
+  virtual uint64_t ReturnAddress() const { return instruction; }
 
   
   
@@ -108,7 +108,7 @@ struct StackFrame {
   
   
   
-  u_int64_t instruction;
+  uint64_t instruction;
 
   
   const CodeModule *module;
@@ -118,7 +118,7 @@ struct StackFrame {
 
   
   
-  u_int64_t function_base;
+  uint64_t function_base;
 
   
   string source_file_name;
@@ -129,7 +129,7 @@ struct StackFrame {
 
   
   
-  u_int64_t source_line_base;
+  uint64_t source_line_base;
 
   
   

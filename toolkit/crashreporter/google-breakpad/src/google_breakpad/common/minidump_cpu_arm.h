@@ -77,13 +77,13 @@
 
 
 typedef struct {
-  u_int64_t	fpscr;      
+  uint64_t	fpscr;      
 
   
-  u_int64_t	regs[MD_FLOATINGSAVEAREA_ARM_FPR_COUNT];
+  uint64_t	regs[MD_FLOATINGSAVEAREA_ARM_FPR_COUNT];
 
   
-  u_int32_t     extra[MD_FLOATINGSAVEAREA_ARM_FPEXTRA_COUNT];
+  uint32_t     extra[MD_FLOATINGSAVEAREA_ARM_FPEXTRA_COUNT];
 } MDFloatingSaveAreaARM;
 
 #define MD_CONTEXT_ARM_GPR_COUNT 16
@@ -92,7 +92,7 @@ typedef struct {
   
 
 
-  u_int32_t	context_flags;
+  uint32_t	context_flags;
 
   
 
@@ -100,7 +100,7 @@ typedef struct {
 
 
 
-  u_int32_t     iregs[MD_CONTEXT_ARM_GPR_COUNT];
+  uint32_t     iregs[MD_CONTEXT_ARM_GPR_COUNT];
 
   
 
@@ -109,7 +109,7 @@ typedef struct {
 
 
 
-  u_int32_t    cpsr;
+  uint32_t    cpsr;
 
   
   MDFloatingSaveAreaARM float_save;

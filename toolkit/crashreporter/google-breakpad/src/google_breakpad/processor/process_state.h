@@ -94,10 +94,10 @@ class ProcessState {
   void Clear();
 
   
-  u_int32_t time_date_stamp() const { return time_date_stamp_; }
+  uint32_t time_date_stamp() const { return time_date_stamp_; }
   bool crashed() const { return crashed_; }
   string crash_reason() const { return crash_reason_; }
-  u_int64_t crash_address() const { return crash_address_; }
+  uint64_t crash_address() const { return crash_address_; }
   string assertion() const { return assertion_; }
   int requesting_thread() const { return requesting_thread_; }
   const vector<CallStack*>* threads() const { return &threads_; }
@@ -113,7 +113,7 @@ class ProcessState {
   friend class MinidumpProcessor;
 
   
-  u_int32_t time_date_stamp_;
+  uint32_t time_date_stamp_;
 
   
   
@@ -129,7 +129,7 @@ class ProcessState {
   
   
   
-  u_int64_t crash_address_;
+  uint64_t crash_address_;
 
   
   

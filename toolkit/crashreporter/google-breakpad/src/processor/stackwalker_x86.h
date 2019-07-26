@@ -67,7 +67,7 @@ class StackwalkerX86 : public Stackwalker {
 
  private:
   
-  typedef SimpleCFIWalker<u_int32_t, MDRawContextX86> CFIWalker;
+  typedef SimpleCFIWalker<uint32_t, MDRawContextX86> CFIWalker;
 
   
   

@@ -110,7 +110,7 @@ namespace test_assembler {
 class Label {
  public:
   Label();                      
-  Label(u_int64_t value);       
+  Label(uint64_t value);       
   Label(const Label &value);    
   ~Label();
 
@@ -122,20 +122,20 @@ class Label {
   
   
   
-  u_int64_t Value() const;
+  uint64_t Value() const;
 
-  Label &operator=(u_int64_t value);
+  Label &operator=(uint64_t value);
   Label &operator=(const Label &value);
-  Label operator+(u_int64_t addend) const;
-  Label operator-(u_int64_t subtrahend) const;
-  u_int64_t operator-(const Label &subtrahend) const;
+  Label operator+(uint64_t addend) const;
+  Label operator-(uint64_t subtrahend) const;
+  uint64_t operator-(const Label &subtrahend) const;
 
   
   
 
   
   
-  bool IsKnownConstant(u_int64_t *value_p = NULL) const;
+  bool IsKnownConstant(uint64_t *value_p = NULL) const;
 
   
   
@@ -155,7 +155,7 @@ class Label {
   
   
   
-  bool IsKnownOffsetFrom(const Label &label, u_int64_t *offset_p = NULL) const;
+  bool IsKnownOffsetFrom(const Label &label, uint64_t *offset_p = NULL) const;
 
  private:
   
@@ -173,7 +173,7 @@ class Label {
   class Binding {
    public:
     Binding();
-    Binding(u_int64_t addend);
+    Binding(uint64_t addend);
     ~Binding();
 
     
@@ -186,7 +186,7 @@ class Label {
     
     
     
-    void Set(Binding *binding, u_int64_t value);
+    void Set(Binding *binding, uint64_t value);
 
     
     
@@ -198,7 +198,7 @@ class Label {
     
     
     
-    void Get(Binding **base, u_int64_t *addend);
+    void Get(Binding **base, uint64_t *addend);
 
    private:
     
@@ -221,7 +221,7 @@ class Label {
     
     
     Binding *base_;
-    u_int64_t addend_;
+    uint64_t addend_;
 
     
     
@@ -233,7 +233,7 @@ class Label {
   Binding *value_;
 };
 
-inline Label operator+(u_int64_t a, const Label &l) { return l + a; }
+inline Label operator+(uint64_t a, const Label &l) { return l + a; }
 
 
 
@@ -288,7 +288,7 @@ class Section {
 
   
   
-  Section &Append(const u_int8_t *data, size_t size) {
+  Section &Append(const uint8_t *data, size_t size) {
     contents_.append(reinterpret_cast<const char *>(data), size);
     return *this;
   };
@@ -299,7 +299,7 @@ class Section {
 
   
   
-  Section &Append(size_t size, u_int8_t byte) {
+  Section &Append(size_t size, uint8_t byte) {
     contents_.append(size, (char) byte);
     return *this;
   }
@@ -307,7 +307,7 @@ class Section {
   
   
   
-  Section &Append(Endianness endianness, size_t size, u_int64_t number);
+  Section &Append(Endianness endianness, size_t size, uint64_t number);
   Section &Append(Endianness endianness, size_t size, const Label &label);
 
   
@@ -352,12 +352,12 @@ class Section {
   
   
   
-  Section &L8(u_int8_t value) { contents_ += value; return *this; }
-  Section &B8(u_int8_t value) { contents_ += value; return *this; }
-  Section &D8(u_int8_t value) { contents_ += value; return *this; }
-  Section &L16(u_int16_t), &L32(u_int32_t), &L64(u_int64_t),
-          &B16(u_int16_t), &B32(u_int32_t), &B64(u_int64_t),
-          &D16(u_int16_t), &D32(u_int32_t), &D64(u_int64_t);
+  Section &L8(uint8_t value) { contents_ += value; return *this; }
+  Section &B8(uint8_t value) { contents_ += value; return *this; }
+  Section &D8(uint8_t value) { contents_ += value; return *this; }
+  Section &L16(uint16_t), &L32(uint32_t), &L64(uint64_t),
+          &B16(uint16_t), &B32(uint32_t), &B64(uint64_t),
+          &D16(uint16_t), &D32(uint32_t), &D64(uint64_t);
   Section &L8(const Label &label),  &L16(const Label &label),
           &L32(const Label &label), &L64(const Label &label),
           &B8(const Label &label),  &B16(const Label &label),
@@ -399,13 +399,13 @@ class Section {
   
   
   
-  Section &ULEB128(u_int64_t value);
+  Section &ULEB128(uint64_t value);
 
   
   
   
   
-  Section &Align(size_t alignment, u_int8_t pad_byte = 0);
+  Section &Align(size_t alignment, uint8_t pad_byte = 0);
 
   
   void Clear();

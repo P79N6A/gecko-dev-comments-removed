@@ -97,7 +97,7 @@ class TestCompilationUnit: public google_breakpad::test_assembler::Section {
 
   
   
-  u_int64_t post_length_offset_;
+  uint64_t post_length_offset_;
 
   
   Label length_;

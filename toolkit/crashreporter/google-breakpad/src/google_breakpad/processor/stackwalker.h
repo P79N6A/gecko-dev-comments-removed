@@ -78,8 +78,8 @@ class Stackwalker {
      const CodeModules* modules,
      StackFrameSymbolizer* resolver_helper);
 
-  static void set_max_frames(u_int32_t max_frames) { max_frames_ = max_frames; }
-  static u_int32_t max_frames() { return max_frames_; }
+  static void set_max_frames(uint32_t max_frames) { max_frames_ = max_frames; }
+  static uint32_t max_frames() { return max_frames_; }
 
  protected:
   
@@ -104,7 +104,7 @@ class Stackwalker {
   
   
   
-  bool InstructionAddressSeemsValid(u_int64_t address);
+  bool InstructionAddressSeemsValid(uint64_t address);
 
   
   
@@ -185,7 +185,7 @@ class Stackwalker {
 
   
   
-  static u_int32_t max_frames_;
+  static uint32_t max_frames_;
 };
 
 }  

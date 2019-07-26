@@ -48,10 +48,10 @@ class CodeModule {
 
   
   
-  virtual u_int64_t base_address() const = 0;
+  virtual uint64_t base_address() const = 0;
 
   
-  virtual u_int64_t size() const = 0;
+  virtual uint64_t size() const = 0;
 
   
   

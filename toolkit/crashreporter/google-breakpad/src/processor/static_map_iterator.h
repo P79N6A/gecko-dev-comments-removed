@@ -39,7 +39,7 @@
 #ifndef PROCESSOR_STATIC_MAP_ITERATOR_H__
 #define PROCESSOR_STATIC_MAP_ITERATOR_H__
 
-#include <sys/types.h>
+#include "google_breakpad/common/breakpad_types.h"
 
 namespace google_breakpad {
 
@@ -101,7 +101,7 @@ class StaticMapIterator {
   
   
   
-  const u_int32_t* offsets_;
+  const uint32_t* offsets_;
 
   
   const Key* keys_;
