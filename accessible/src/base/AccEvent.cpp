@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AccEvent.h"
 
@@ -22,12 +22,12 @@
 
 using namespace mozilla::a11y;
 
+////////////////////////////////////////////////////////////////////////////////
+// AccEvent
+////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccEvent constructors
 
 AccEvent::AccEvent(PRUint32 aEventType, nsAccessible* aAccessible,
                    EIsFromUserInput aIsFromUserInput, EEventRule aEventRule) :
@@ -43,8 +43,8 @@ AccEvent::AccEvent(PRUint32 aEventType, nsINode* aNode,
   CaptureIsFromUserInput(aIsFromUserInput);
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccEvent public methods
 
 nsAccessible *
 AccEvent::GetAccessible()
@@ -85,8 +85,8 @@ AccEvent::CreateXPCOMObject()
   return event;
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccEvent cycle collection
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(AccEvent)
 
@@ -102,13 +102,20 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(AccEvent, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(AccEvent, Release)
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccEvent protected methods
 
 nsAccessible*
 AccEvent::GetAccessibleForNode() const
 {
-  return mNode ? GetAccService()->GetAccessible(mNode, nsnull) : nsnull;
+  if (mNode) {
+    nsDocAccessible* document =
+      GetAccService()->GetDocAccessible(mNode->OwnerDoc());
+    if (document)
+      return document->GetAccessible(mNode);
+  }
+
+  return nsnull;
 }
 
 void
@@ -118,9 +125,9 @@ AccEvent::CaptureIsFromUserInput(EIsFromUserInput aIsFromUserInput)
 
 #ifdef DEBUG
   if (!targetNode) {
-    
-    
-    
+    // XXX: remove this hack during reorganization of 506907. Meanwhile we
+    // want to get rid an assertion for application accessible events which
+    // don't have DOM node (see bug 506206).
     ApplicationAccessible* applicationAcc =
       nsAccessNode::GetApplicationAccessible();
 
@@ -153,13 +160,13 @@ AccEvent::CaptureIsFromUserInput(EIsFromUserInput aIsFromUserInput)
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// AccStateChangeEvent
+////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-
-
-
+// Note: we pass in eAllowDupes to the base class because we don't currently
+// support correct state change coalescence (XXX Bug 569356). Also we need to
+// decide how to coalesce events created via accessible (instead of node).
 AccStateChangeEvent::
   AccStateChangeEvent(nsAccessible* aAccessible, PRUint64 aState,
                       bool aIsEnabled, EIsFromUserInput aIsFromUserInput):
@@ -183,9 +190,9 @@ AccStateChangeEvent::
            eAutoDetect, eAllowDupes),
   mState(aState)
 {
-  
-  
-  
+  // Use GetAccessibleForNode() because we do not want to store an accessible
+  // since it leads to problems with delayed events in the case when
+  // an accessible gets reorder event before delayed event is processed.
   nsAccessible *accessible = GetAccessibleForNode();
   mIsEnabled = accessible && ((accessible->State() & mState) != 0);
 }
@@ -199,18 +206,18 @@ AccStateChangeEvent::CreateXPCOMObject()
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// AccTextChangeEvent
+////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-
-
-
-
-
-
-
-
+// Note: we pass in eAllowDupes to the base class because we don't support text
+// events coalescence. We fire delayed text change events in nsDocAccessible but
+// we continue to base the event off the accessible object rather than just the
+// node. This means we won't try to create an accessible based on the node when
+// we are ready to fire the event and so we will no longer assert at that point
+// if the node was removed from the document. Either way, the AT won't work with
+// a defunct accessible so the behaviour should be equivalent.
+// XXX revisit this when coalescence is faster (eCoalesceFromSameSubtree)
 AccTextChangeEvent::
   AccTextChangeEvent(nsAccessible* aAccessible, PRInt32 aStart,
                      const nsAString& aModifiedText, bool aIsInserted,
@@ -223,8 +230,8 @@ AccTextChangeEvent::
   , mIsInserted(aIsInserted)
   , mModifiedText(aModifiedText)
 {
-  
-  
+  // XXX We should use IsFromUserInput here, but that isn't always correct
+  // when the text change isn't related to content insertion or removal.
    mIsFromUserInput = mAccessible->State() &
     (states::FOCUSED | states::EDITABLE);
 }
@@ -238,9 +245,9 @@ AccTextChangeEvent::CreateXPCOMObject()
 }
 
 
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccMutationEvent
+////////////////////////////////////////////////////////////////////////////////
 
 AccMutationEvent::
   AccMutationEvent(PRUint32 aEventType, nsAccessible* aTarget,
@@ -251,9 +258,9 @@ AccMutationEvent::
 }
 
 
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccHideEvent
+////////////////////////////////////////////////////////////////////////////////
 
 AccHideEvent::
   AccHideEvent(nsAccessible* aTarget, nsINode* aTargetNode) :
@@ -273,9 +280,9 @@ AccHideEvent::CreateXPCOMObject()
 }
 
 
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccShowEvent
+////////////////////////////////////////////////////////////////////////////////
 
 AccShowEvent::
   AccShowEvent(nsAccessible* aTarget, nsINode* aTargetNode) :
@@ -284,9 +291,9 @@ AccShowEvent::
 }
 
 
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccCaretMoveEvent
+////////////////////////////////////////////////////////////////////////////////
 
 AccCaretMoveEvent::
   AccCaretMoveEvent(nsAccessible* aAccessible, PRInt32 aCaretOffset) :
@@ -311,9 +318,9 @@ AccCaretMoveEvent::CreateXPCOMObject()
 }
 
 
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccSelChangeEvent
+////////////////////////////////////////////////////////////////////////////////
 
 AccSelChangeEvent::
   AccSelChangeEvent(nsAccessible* aWidget, nsAccessible* aItem,
@@ -333,9 +340,9 @@ AccSelChangeEvent::
 }
 
 
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccTableChangeEvent
+////////////////////////////////////////////////////////////////////////////////
 
 AccTableChangeEvent::
   AccTableChangeEvent(nsAccessible* aAccessible, PRUint32 aEventType,
@@ -354,9 +361,9 @@ AccTableChangeEvent::CreateXPCOMObject()
 }
 
 
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// AccVCChangeEvent
+////////////////////////////////////////////////////////////////////////////////
 
 AccVCChangeEvent::
   AccVCChangeEvent(nsAccessible* aAccessible,

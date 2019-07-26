@@ -4303,8 +4303,8 @@ xpc_GetJSPrivate(JSObject *obj)
 
 nsresult
 xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop,
-                        JSObject *proto, bool preferXray, const nsACString &sandboxName);
-
+                        JSObject *proto, bool preferXray, bool wantComponents,
+                        const nsACString &sandboxName);
 
 
 
@@ -4342,8 +4342,9 @@ XPC_GetIdentityObject(JSContext *cx, JSObject *obj);
 
 namespace xpc {
 
-struct CompartmentPrivate
+class CompartmentPrivate
 {
+public:
     typedef nsDataHashtable<nsPtrHashKey<XPCWrappedNative>, JSObject *> ExpandoMap;
     typedef nsTHashtable<nsPtrHashKey<JSObject> > DOMExpandoMap;
 
@@ -4360,7 +4361,6 @@ struct CompartmentPrivate
     
     nsAutoPtr<ExpandoMap> expandoMap;
     nsAutoPtr<DOMExpandoMap> domExpandoMap;
-    nsCString location;
 
     bool RegisterExpandoObject(XPCWrappedNative *wn, JSObject *expando) {
         if (!expandoMap) {
@@ -4403,6 +4403,33 @@ struct CompartmentPrivate
         if (domExpandoMap)
             domExpandoMap->RemoveEntry(expando);
     }
+
+    const nsACString& GetLocation() {
+        if (locationURI) {
+            if (NS_FAILED(locationURI->GetSpec(location)))
+                location = NS_LITERAL_CSTRING("<unknown location>");
+            locationURI = nsnull;
+        }
+        return location;
+    }
+    void SetLocation(const nsACString& aLocation) {
+        if (aLocation.IsEmpty())
+            return;
+        if (!location.IsEmpty() || locationURI)
+            return;
+        location = aLocation;
+    }
+    void SetLocation(nsIURI *aLocationURI) {
+        if (!aLocationURI)
+            return;
+        if (!location.IsEmpty() || locationURI)
+            return;
+        locationURI = aLocationURI;
+    }
+
+private:
+    nsCString location;
+    nsCOMPtr<nsIURI> locationURI;
 };
 
 }
@@ -4419,4 +4446,4 @@ struct CompartmentPrivate
 
 
 
-#endif
+#endif 

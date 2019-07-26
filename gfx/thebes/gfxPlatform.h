@@ -163,6 +163,11 @@ public:
     virtual mozilla::RefPtr<mozilla::gfx::DrawTarget>
       CreateDrawTargetForSurface(gfxASurface *aSurface);
 
+    
+
+
+
+
     virtual mozilla::RefPtr<mozilla::gfx::SourceSurface>
       GetSourceSurfaceForSurface(mozilla::gfx::DrawTarget *aTarget, gfxASurface *aSurface);
 

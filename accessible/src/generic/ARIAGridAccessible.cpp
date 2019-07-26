@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ARIAGridAccessible.h"
 
@@ -17,13 +17,13 @@
 using namespace mozilla;
 using namespace mozilla::a11y;
 
+////////////////////////////////////////////////////////////////////////////////
+// ARIAGridAccessible
+////////////////////////////////////////////////////////////////////////////////
 
 
-
-
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// Constructor
 
 ARIAGridAccessible::
   ARIAGridAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
@@ -31,15 +31,15 @@ ARIAGridAccessible::
 {
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// nsISupports
 
 NS_IMPL_ISUPPORTS_INHERITED1(ARIAGridAccessible,
                              nsAccessible,
                              nsIAccessibleTable)
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+//nsAccessNode
 
 void
 ARIAGridAccessible::Shutdown()
@@ -48,8 +48,8 @@ ARIAGridAccessible::Shutdown()
   nsAccessibleWrap::Shutdown();
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// nsIAccessibleTable
 
 PRUint32
 ARIAGridAccessible::ColCount()
@@ -80,24 +80,14 @@ ARIAGridAccessible::RowCount()
   return rowCount;
 }
 
-NS_IMETHODIMP
-ARIAGridAccessible::GetCellAt(PRInt32 aRowIndex, PRInt32 aColumnIndex,
-                              nsIAccessible** aCell)
-{
-  NS_ENSURE_ARG_POINTER(aCell);
-  *aCell = nsnull;
+nsAccessible*
+ARIAGridAccessible::CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex)
+{ 
+  nsAccessible* row = GetRowAt(aRowIndex);
+  if (!row)
+    return nsnull;
 
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
-  nsAccessible *row = GetRowAt(aRowIndex);
-  NS_ENSURE_ARG(row);
-
-  nsAccessible *cell = GetCellInRowAt(row, aColumnIndex);
-  NS_ENSURE_ARG(cell);
-
-  NS_ADDREF(*aCell = cell);
-  return NS_OK;
+  return GetCellInRowAt(row, aColumnIndex);
 }
 
 NS_IMETHODIMP
@@ -218,7 +208,7 @@ ARIAGridAccessible::GetColumnDescription(PRInt32 aColumn,
 
   NS_ENSURE_ARG(IsValidColumn(aColumn));
 
-  
+  // XXX: not implemented
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -232,7 +222,7 @@ ARIAGridAccessible::GetRowDescription(PRInt32 aRow, nsAString& aDescription)
 
   NS_ENSURE_ARG(IsValidRow(aRow));
 
-  
+  // XXX: not implemented
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -255,7 +245,7 @@ ARIAGridAccessible::IsColumnSelected(PRInt32 aColumn, bool* aIsSelected)
   do {
     if (!nsAccUtils::IsARIASelected(row)) {
       nsAccessible *cell = GetCellInRowAt(row, aColumn);
-      if (!cell) 
+      if (!cell) // Do not fail due to wrong markup
         return NS_OK;
       
       if (!nsAccUtils::IsARIASelected(cell))
@@ -581,11 +571,11 @@ ARIAGridAccessible::SelectColumn(PRInt32 aColumn)
 
   nsAccessible *row = nsnull;
   while ((row = rowIter.Next())) {
-    
+    // Unselect all cells in the row.
     nsresult rv = SetARIASelected(row, false);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
+    // Select cell at the column index.
     nsAccessible *cell = GetCellInRowAt(row, aColumn);
     if (cell) {
       rv = SetARIASelected(cell, true);
@@ -618,8 +608,8 @@ ARIAGridAccessible::UnselectCol(PRUint32 aColIdx)
   }
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// Protected
 
 bool
 ARIAGridAccessible::IsValidRow(PRInt32 aRow)
@@ -703,20 +693,20 @@ ARIAGridAccessible::SetARIASelected(nsAccessible* aAccessible,
 
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // No "smart" select/unselect for internal call.
   if (!aNotify)
     return NS_OK;
 
-  
-  
-  
+  // If row or cell accessible was selected then we're able to not bother about
+  // selection of its cells or its row because our algorithm is row oriented,
+  // i.e. we check selection on row firstly and then on cells.
   if (aIsSelected)
     return NS_OK;
 
   roles::Role role = aAccessible->Role();
 
-  
-  
+  // If the given accessible is row that was unselected then remove
+  // aria-selected from cell accessible.
   if (role == roles::ROW) {
     AccIterator cellIter(aAccessible, filters::GetCell);
     nsAccessible *cell = nsnull;
@@ -728,9 +718,9 @@ ARIAGridAccessible::SetARIASelected(nsAccessible* aAccessible,
     return NS_OK;
   }
 
-  
-  
-  
+  // If the given accessible is cell that was unselected and its row is selected
+  // then remove aria-selected from row and put aria-selected on
+  // siblings cells.
   if (role == roles::GRID_CELL || role == roles::ROWHEADER ||
       role == roles::COLUMNHEADER) {
     nsAccessible* row = aAccessible->Parent();
@@ -822,13 +812,13 @@ ARIAGridAccessible::GetSelectedColumnsArray(PRUint32* aColumnCount,
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// ARIAGridCellAccessible
+////////////////////////////////////////////////////////////////////////////////
 
 
-
-
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// Constructor
 
 ARIAGridCellAccessible::
   ARIAGridCellAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
@@ -836,15 +826,15 @@ ARIAGridCellAccessible::
 {
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// nsISupports
 
 NS_IMPL_ISUPPORTS_INHERITED1(ARIAGridCellAccessible,
                              nsHyperTextAccessible,
                              nsIAccessibleTableCell)
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// nsIAccessibleTableCell
 
 NS_IMETHODIMP
 ARIAGridCellAccessible::GetTable(nsIAccessibleTable** aTable)
@@ -1008,19 +998,19 @@ ARIAGridCellAccessible::IsSelected(bool* aIsSelected)
   return NS_OK;
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////
+// nsAccessible
 
 void
 ARIAGridCellAccessible::ApplyARIAState(PRUint64* aState) const
 {
   nsHyperTextAccessibleWrap::ApplyARIAState(aState);
 
-  
+  // Return if the gridcell has aria-selected="true".
   if (*aState & states::SELECTED)
     return;
 
-  
+  // Check aria-selected="true" on the row.
   nsAccessible* row = Parent();
   if (!row || row->Role() != roles::ROW)
     return;
@@ -1043,7 +1033,7 @@ ARIAGridCellAccessible::GetAttributesInternal(nsIPersistentProperties* aAttribut
   nsresult rv = nsHyperTextAccessibleWrap::GetAttributesInternal(aAttributes);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Expose "table-cell-index" attribute.
 
   nsAccessible* thisRow = Parent();
   if (!thisRow || thisRow->Role() != roles::ROW)

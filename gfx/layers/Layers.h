@@ -448,6 +448,12 @@ public:
   
 
 
+
+  virtual PRInt32 GetMaxTextureSize() const = 0;
+
+  
+
+
   virtual void GetBackendName(nsAString& aName) = 0;
 
   

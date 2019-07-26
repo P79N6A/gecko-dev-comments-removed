@@ -96,11 +96,6 @@ public:
   nsDOMAttributeMap(Element *aContent);
   virtual ~nsDOMAttributeMap();
 
-  
-
-
-  bool Init();
-
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
   

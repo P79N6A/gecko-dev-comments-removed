@@ -646,51 +646,6 @@ GetScopeOfObject(JSObject* obj)
 }
 
 
-#ifdef DEBUG
-void DEBUG_CheckForComponentsInScope(JSContext* cx, JSObject* obj,
-                                     JSObject* startingObj,
-                                     JSBool OKIfNotInitialized,
-                                     XPCJSRuntime* runtime)
-{
-    if (OKIfNotInitialized)
-        return;
-
-    if (!(JS_GetOptions(cx) & JSOPTION_PRIVATE_IS_NSISUPPORTS))
-        return;
-
-    const char* name = runtime->GetStringName(XPCJSRuntime::IDX_COMPONENTS);
-    jsval prop;
-    if (JS_LookupProperty(cx, obj, name, &prop) && !JSVAL_IS_PRIMITIVE(prop))
-        return;
-
-    
-    
-    
-    
-    
-    
-    NS_ERROR("XPConnect is being called on a scope without a 'Components' property!  (stack and details follow)");
-    printf("The current JS stack is:\n");
-    xpc_DumpJSStack(cx, true, true, true);
-
-    printf("And the object whose scope lacks a 'Components' property is:\n");
-    js_DumpObject(startingObj);
-
-    JSObject *p = startingObj;
-    while (js::IsWrapper(p)) {
-        p = js::GetProxyPrivate(p).toObjectOrNull();
-        if (!p)
-            break;
-        printf("which is a wrapper for:\n");
-        js_DumpObject(p);
-    }
-}
-#else
-#define DEBUG_CheckForComponentsInScope(ccx, obj, startingObj, OKIfNotInitialized, runtime) \
-    ((void)0)
-#endif
-
-
 XPCWrappedNativeScope*
 XPCWrappedNativeScope::FindInJSObjectScope(JSContext* cx, JSObject* obj,
                                            JSBool OKIfNotInitialized,
@@ -748,8 +703,6 @@ XPCWrappedNativeScope::FindInJSObjectScope(JSContext* cx, JSObject* obj,
 
     if (found) {
         
-        DEBUG_CheckForComponentsInScope(cx, obj, startingObj,
-                                        OKIfNotInitialized, runtime);
         return found;
     }
 

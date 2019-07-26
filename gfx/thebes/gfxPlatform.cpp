@@ -472,6 +472,12 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
   if (!srcBuffer) {
     nsRefPtr<gfxImageSurface> imgSurface = aSurface->GetAsImageSurface();
 
+    bool isWin32ImageSurf = false;
+
+    if (imgSurface && aSurface->GetType() != gfxASurface::SurfaceTypeWin32) {
+      isWin32ImageSurf = true;
+    }
+
     if (!imgSurface) {
       imgSurface = new gfxImageSurface(aSurface->GetSize(), gfxASurface::FormatFromContent(aSurface->GetContentType()));
       nsRefPtr<gfxContext> ctx = new gfxContext(imgSurface);
@@ -498,17 +504,36 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
         NS_RUNTIMEABORT("Invalid surface format!");
     }
 
+    IntSize size = IntSize(imgSurface->GetSize().width, imgSurface->GetSize().height);
     srcBuffer = aTarget->CreateSourceSurfaceFromData(imgSurface->Data(),
-                                                     IntSize(imgSurface->GetSize().width, imgSurface->GetSize().height),
+                                                     size,
                                                      imgSurface->Stride(),
                                                      format);
+
+    if (!srcBuffer) {
+      
+      
+      
+      if (imgSurface != aSurface && !isWin32ImageSurf) {
+        
+        
+        NS_RUNTIMEABORT("Attempt to create unsupported SourceSurface from"
+            "non-image surface.");
+        return nsnull;
+      }
+
+      srcBuffer = Factory::CreateWrappingDataSourceSurface(imgSurface->Data(),
+                                                           imgSurface->Stride(),
+                                                           size, format);
+
+    }
 
     cairo_surface_t *nullSurf =
 	cairo_null_surface_create(CAIRO_CONTENT_COLOR_ALPHA);
     cairo_surface_set_user_data(nullSurf,
-				&kSourceSurface,
-				imgSurface,
-				NULL);
+                                &kSourceSurface,
+                                imgSurface,
+                                NULL);
     cairo_surface_attach_snapshot(imgSurface->CairoSurface(), nullSurf, SourceSnapshotDetached);
     cairo_surface_destroy(nullSurf);
   }

@@ -211,6 +211,7 @@ pref("gfx.font_rendering.directwrite.use_gdi_table_loading", true);
 
 #ifdef XP_WIN
 pref("gfx.canvas.azure.enabled", true);
+pref("gfx.content.azure.enabled", true);
 #else
 #ifdef XP_MACOSX
 pref("gfx.canvas.azure.enabled", true);
@@ -3434,7 +3435,13 @@ pref("layers.acceleration.force-enabled", false);
 
 pref("layers.acceleration.draw-fps", false);
 
+
+
+
+
+#ifndef MOZ_X11
 pref("layers.offmainthreadcomposition.enabled", false);
+#endif
 
 #ifdef MOZ_X11
 #ifdef MOZ_WIDGET_GTK2
@@ -3462,6 +3469,9 @@ pref("geo.enabled", true);
 
 
 pref("device.motion.enabled", true);
+
+
+pref("device.storage.enabled", false);
 
 
 pref("html5.offmainthread", true);

@@ -1,5 +1,5 @@
-
-
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
 let contentWindow;
 
@@ -40,7 +40,7 @@ function test3() {
   whenTabViewIsHidden(function() { 
     is(gBrowser.tabs.length, 2, "There are two tabs after cmd/ctrl + t is pressed");
 
-    gBrowser.tabs[0].linkedBrowser.loadURI("about:robots");
+    gBrowser.tabs[0].linkedBrowser.loadURI("about:mozilla");
     gBrowser.tabs[1].linkedBrowser.loadURI("http://example.com/");
 
     afterAllTabsLoaded(function () {
@@ -70,7 +70,7 @@ function test4() {
   gBrowser.removeTab(gBrowser.tabs[1]);
 }
 
-
+// below key combination shouldn't trigger actions in tabview UI
 function test8() {
   showTabView(function() {
     is(gBrowser.tabs.length, 2, "There are two tabs before cmd/ctrl + w is pressed");
@@ -95,7 +95,7 @@ function test9() {
 
 function test10() {
   is(gBrowser.tabs.length, 1, "There is one tab before cmd/ctrl + shift + a is pressed");
-  
+  // it would open about:addons on a new tab if it passes through the white list.
   EventUtils.synthesizeKey("a", { accelKey: true, shiftKey: true }, contentWindow);
 
   executeSoon(function() {

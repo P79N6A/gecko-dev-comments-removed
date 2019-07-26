@@ -225,8 +225,10 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 #endif
     }
 
+    RootedVarValue key(cx, *vp);
+
     
-    if (WrapperMap::Ptr p = crossCompartmentWrappers.lookup(*vp)) {
+    if (WrapperMap::Ptr p = crossCompartmentWrappers.lookup(key)) {
         *vp = p->value;
         if (vp->isObject()) {
             RootedVarObject obj(cx, &vp->toObject());
@@ -285,7 +287,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
     if (wrapper->getProto() != proto && !SetProto(cx, wrapper, proto, false))
         return false;
 
-    if (!crossCompartmentWrappers.put(GetProxyPrivate(wrapper), *vp))
+    if (!crossCompartmentWrappers.put(key, *vp))
         return false;
 
     if (!JSObject::setParent(cx, wrapper, global))
@@ -388,9 +390,28 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
     JS_ASSERT(!isCollecting());
 
     for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
-        Value tmp = e.front().key;
-        MarkValueRoot(trc, &tmp, "cross-compartment wrapper");
-        JS_ASSERT(tmp == e.front().key);
+        Value v = e.front().value;
+        if (v.isObject()) {
+            
+
+
+
+            Value referent = GetProxyPrivate(&v.toObject());
+            MarkValueRoot(trc, &referent, "cross-compartment wrapper");
+            JS_ASSERT(referent == GetProxyPrivate(&v.toObject()));
+        } else {
+            
+
+
+
+
+
+
+            JS_ASSERT(v.isString());
+            Value v = e.front().key;
+            MarkValueRoot(trc, &v, "cross-compartment wrapper");
+            JS_ASSERT(v == e.front().key);
+        }
     }
 }
 

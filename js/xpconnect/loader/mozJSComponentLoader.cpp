@@ -570,6 +570,10 @@ mozJSComponentLoader::LoadModule(FileLocation &aFile)
     mModules.Put(spec, entry);
 
     
+    
+    xpc::SetLocationForGlobal(entry->global, spec);
+
+    
     return entry.forget();
 }
 
@@ -1125,6 +1129,10 @@ mozJSComponentLoader::ImportInto(const nsACString & aLocation,
             
             return NS_ERROR_FILE_NOT_FOUND;
         }
+
+        
+        
+        xpc::SetLocationForGlobal(newEntry->global, aLocation);
 
         mod = newEntry;
     }

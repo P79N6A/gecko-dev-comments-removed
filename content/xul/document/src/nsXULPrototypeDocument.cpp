@@ -701,6 +701,11 @@ nsXULPDGlobalObject::EnsureScriptEnvironment()
   mContext = ctxNew;
   mJSObject = global;
 
+  
+  
+  nsIURI *ownerURI = mGlobalObjectOwner->GetURI();
+  xpc::SetLocationForGlobal(mJSObject, ownerURI);
+
   return NS_OK;
 }
 

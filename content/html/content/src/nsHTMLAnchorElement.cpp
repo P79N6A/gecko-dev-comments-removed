@@ -287,8 +287,7 @@ nsHTMLAnchorElement::IsHTMLFocusable(bool aWithMouse,
 
   if (!HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
     
-    nsCOMPtr<nsIURI> absURI;
-    if (!IsLink(getter_AddRefs(absURI))) {
+    if (!Link::HasURI()) {
       
       
       if (aTabIndex) {

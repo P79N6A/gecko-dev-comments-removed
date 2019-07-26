@@ -449,6 +449,10 @@ struct JSScript : public js::gc::Cell
 
 
 
+#if !defined(JS_METHODJIT) && JS_BITS_PER_WORD == 32
+    uint32_t        pad32;
+#endif
+
 #ifdef DEBUG
     
     

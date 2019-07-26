@@ -27,13 +27,7 @@ nsDOMAttributeMap::nsDOMAttributeMap(Element* aContent)
 {
   
   
-}
-
-bool
-nsDOMAttributeMap::Init()
-{
   mAttributeCache.Init();
-  return true;
 }
 
 
