@@ -554,6 +554,10 @@ Debugger::slowPathOnEnterFrame(JSContext *cx, AbstractFramePtr frame, MutableHan
 }
 
 static void
+DebuggerFrame_maybeDecrementFrameScriptStepModeCount(FreeOp *fop, AbstractFramePtr frame,
+                                                     JSObject *frameobj);
+
+static void
 DebuggerFrame_freeScriptFrameIterData(FreeOp *fop, JSObject *obj);
 
 
@@ -630,15 +634,9 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool frame
         Debugger *dbg = r.frontDebugger();
         JS_ASSERT(dbg == Debugger::fromChildJSObject(frameobj));
 
-        DebuggerFrame_freeScriptFrameIterData(cx->runtime()->defaultFreeOp(), frameobj);
-
-        
-        if (!frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined() &&
-            !frame.script()->changeStepModeCount(cx, -1))
-        {
-            status = JSTRAP_ERROR;
-            
-        }
+        FreeOp *fop = cx->runtime()->defaultFreeOp();
+        DebuggerFrame_freeScriptFrameIterData(fop, frameobj);
+        DebuggerFrame_maybeDecrementFrameScriptStepModeCount(fop, frame, frameobj);
 
         dbg->frames.remove(frame);
     }
@@ -2288,7 +2286,7 @@ Debugger::removeDebuggeeGlobal(FreeOp *fop, GlobalObject *global,
                                GlobalObjectSet::Enum *debugEnum)
 {
     AutoDebugModeInvalidation invalidate(global->compartment());
-    return removeDebuggeeGlobal(fop, global, invalidate, compartmentEnum, debugEnum);
+    removeDebuggeeGlobal(fop, global, invalidate, compartmentEnum, debugEnum);
 }
 
 void
@@ -2319,8 +2317,10 @@ Debugger::removeDebuggeeGlobal(FreeOp *fop, GlobalObject *global,
 
     for (FrameMap::Enum e(frames); !e.empty(); e.popFront()) {
         AbstractFramePtr frame = e.front().key();
+        JSObject *frameobj = e.front().value();
         if (&frame.script()->global() == global) {
-            DebuggerFrame_freeScriptFrameIterData(fop, e.front().value());
+            DebuggerFrame_freeScriptFrameIterData(fop, frameobj);
+            DebuggerFrame_maybeDecrementFrameScriptStepModeCount(fop, frame, frameobj);
             e.removeFront();
         }
     }
@@ -4043,6 +4043,15 @@ DebuggerFrame_freeScriptFrameIterData(FreeOp *fop, JSObject *obj)
 }
 
 static void
+DebuggerFrame_maybeDecrementFrameScriptStepModeCount(FreeOp *fop, AbstractFramePtr frame,
+                                                     JSObject *frameobj)
+{
+    
+    if (!frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined())
+        frame.script()->decrementStepModeCount(fop);
+}
+
+static void
 DebuggerFrame_finalize(FreeOp *fop, JSObject *obj)
 {
     DebuggerFrame_freeScriptFrameIterData(fop, obj);
@@ -4446,12 +4455,14 @@ DebuggerFrame_setOnStep(JSContext *cx, unsigned argc, Value *vp)
     }
 
     Value prior = thisobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER);
-    int delta = !args[0].isUndefined() - !prior.isUndefined();
-    if (delta != 0) {
+    if (!args[0].isUndefined() && prior.isUndefined()) {
         
         AutoCompartment ac(cx, frame.scopeChain());
-        if (!frame.script()->changeStepModeCount(cx, delta))
+        if (!frame.script()->incrementStepModeCount(cx))
             return false;
+    } else if (args[0].isUndefined() && !prior.isUndefined()) {
+        
+        frame.script()->decrementStepModeCount(cx->runtime()->defaultFreeOp());
     }
 
     

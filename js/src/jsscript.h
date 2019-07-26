@@ -1505,13 +1505,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
   private:
     
-
-
-
-    void recompileForStepMode(js::FreeOp *fop);
-
-    
-    bool tryNewStepMode(JSContext *cx, uint32_t newValue);
+    void setNewStepMode(js::FreeOp *fop, uint32_t newValue);
 
     bool ensureHasDebugScript(JSContext *cx);
     js::DebugScript *debugScript();
@@ -1550,7 +1544,10 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
 
 
-    bool changeStepModeCount(JSContext *cx, int delta);
+
+
+    bool incrementStepModeCount(JSContext *cx);
+    void decrementStepModeCount(js::FreeOp *fop);
 
     bool stepModeEnabled() { return hasDebugScript_ && !!debugScript()->stepMode; }
 
