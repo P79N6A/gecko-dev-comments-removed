@@ -81,6 +81,35 @@ template<typename T>
 struct IsIntegral : detail::IsIntegralHelper<typename RemoveCV<T>::Type>
 {};
 
+template<typename T, typename U>
+struct IsSame;
+
+namespace detail {
+
+template<typename T>
+struct IsFloatingPointHelper
+  : IntegralConstant<bool,
+                     IsSame<T, float>::value ||
+                     IsSame<T, double>::value ||
+                     IsSame<T, long double>::value>
+{};
+
+} 
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsFloatingPoint
+  : detail::IsFloatingPointHelper<typename RemoveCV<T>::Type>
+{};
+
 
 
 
@@ -98,6 +127,19 @@ template<typename T>
 struct IsPointer<T*> : TrueType {};
 
 
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsArithmetic
+  : IntegralConstant<bool, IsIntegral<T>::value || IsFloatingPoint<T>::value>
+{};
 
 
 
