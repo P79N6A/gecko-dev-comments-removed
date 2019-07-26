@@ -5053,19 +5053,17 @@ nsIFrame::EndDeferringInvalidatesForDisplayRoot()
 
 
 static nsRect
-ComputeOutlineAndEffectsRect(nsIFrame* aFrame, bool* aAnyOutlineOrEffects,
+ComputeOutlineAndEffectsRect(nsIFrame* aFrame,
                              const nsRect& aOverflowRect,
                              const nsSize& aNewSize,
                              bool aStoreRectProperties) {
   nsRect r = aOverflowRect;
-  *aAnyOutlineOrEffects = false;
 
   if (aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
     
     
     
     if (aFrame->GetStyleSVGReset()->mFilter) {
-      *aAnyOutlineOrEffects = true;
       if (aStoreRectProperties) {
         aFrame->Properties().
           Set(nsIFrame::PreEffectsBBoxProperty(), new nsRect(r));
@@ -5096,7 +5094,6 @@ ComputeOutlineAndEffectsRect(nsIFrame* aFrame, bool* aAnyOutlineOrEffects,
       shadows.UnionRect(shadows, tmpRect);
     }
     r.UnionRect(r, shadows);
-    *aAnyOutlineOrEffects = true;
   }
 
   const nsStyleOutline* outline = aFrame->GetStyleOutline();
@@ -5122,7 +5119,6 @@ ComputeOutlineAndEffectsRect(nsIFrame* aFrame, bool* aAnyOutlineOrEffects,
       
       
       r.Inflate(inflateBy, inflateBy);
-      *aAnyOutlineOrEffects = true;
     }
   }
 
@@ -5145,8 +5141,6 @@ ComputeOutlineAndEffectsRect(nsIFrame* aFrame, bool* aAnyOutlineOrEffects,
     nsRect outsetRect(nsPoint(0, 0), aNewSize);
     outsetRect.Inflate(outsetMargin);
     r.UnionRect(r, outsetRect);
-
-    *aAnyOutlineOrEffects = true;
   }
 
   
@@ -5157,7 +5151,6 @@ ComputeOutlineAndEffectsRect(nsIFrame* aFrame, bool* aAnyOutlineOrEffects,
   
 
   if (nsSVGIntegrationUtils::UsingEffectsForFrame(aFrame)) {
-    *aAnyOutlineOrEffects = true;
     if (aStoreRectProperties) {
       aFrame->Properties().
         Set(nsIFrame::PreEffectsBBoxProperty(), new nsRect(r));
@@ -6956,14 +6949,11 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
   }
 
   
-  bool hasOutlineOrEffects;
   aOverflowAreas.VisualOverflow() =
-    ComputeOutlineAndEffectsRect(this, &hasOutlineOrEffects,
-                                 aOverflowAreas.VisualOverflow(), aNewSize,
-                                 true);
+    ComputeOutlineAndEffectsRect(this, aOverflowAreas.VisualOverflow(), 
+                                 aNewSize, true);
 
   
-  bool didHaveClipPropClip = (GetStateBits() & NS_FRAME_HAS_CLIP) != 0;
   nsRect clipPropClipRect;
   bool hasClipPropClip = GetClipPropClipRect(disp, &clipPropClipRect, aNewSize);
   if (hasClipPropClip) {
@@ -6971,13 +6961,7 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
       nsRect& o = aOverflowAreas.Overflow(otype);
       o.IntersectRect(o, clipPropClipRect);
     }
-    AddStateBits(NS_FRAME_HAS_CLIP);
-  } else {
-    RemoveStateBits(NS_FRAME_HAS_CLIP);
   }
-
-  bool preTransformVisualOverflowChanged =
-    !GetVisualOverflowRectRelativeToSelf().IsEqualInterior(aOverflowAreas.VisualOverflow());
 
   
   bool hasTransform = IsTransformed();
@@ -7013,31 +6997,6 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
     anyOverflowChanged = SetOverflowAreas(aOverflowAreas);
   } else {
     anyOverflowChanged = ClearOverflowRects();
-  }
-
-  if (preTransformVisualOverflowChanged) {
-    if (hasOutlineOrEffects) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      InvalidateFrame();
-    } else if (hasClipPropClip || didHaveClipPropClip) {
-      
-      
-      
-      
-      
-      
-      InvalidateFrame();
-    }
   }
 
   if (anyOverflowChanged) {

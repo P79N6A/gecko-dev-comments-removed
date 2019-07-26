@@ -251,9 +251,6 @@ typedef uint64_t nsFrameState;
 #define NS_FRAME_DRAWING_AS_PAINTSERVER             NS_FRAME_STATE_BIT(33)
 
 
-#define NS_FRAME_HAS_CLIP                           NS_FRAME_STATE_BIT(35)
-
-
 
 
 
