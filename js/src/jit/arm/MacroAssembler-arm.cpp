@@ -142,10 +142,10 @@ MacroAssemblerARM::convertFloat32ToInt32(FloatRegister src, Register dest,
     
     
     
-    ma_vcvt_F32_I32(src, ScratchFloat32Reg);
+    ma_vcvt_F32_I32(src, ScratchFloat32Reg.sintOverlay());
     
     ma_vxfer(ScratchFloat32Reg, dest);
-    ma_vcvt_I32_F32(ScratchFloat32Reg, ScratchFloat32Reg);
+    ma_vcvt_I32_F32(ScratchFloat32Reg.sintOverlay(), ScratchFloat32Reg);
     ma_vcmp_f32(src, ScratchFloat32Reg);
     as_vmrs(pc);
     ma_b(fail, Assembler::VFP_NotEqualOrUnordered);
@@ -168,7 +168,7 @@ MacroAssemblerARM::convertFloat32ToDouble(FloatRegister src, FloatRegister dest)
 
 void
 MacroAssemblerARM::branchTruncateFloat32(FloatRegister src, Register dest, Label *fail) {
-    ma_vcvt_F32_I32(src, ScratchFloat32Reg);
+    ma_vcvt_F32_I32(src, ScratchFloat32Reg.sintOverlay());
     ma_vxfer(ScratchFloat32Reg, dest);
     ma_cmp(dest, Imm32(0x7fffffff));
     ma_cmp(dest, Imm32(0x80000000), Assembler::NotEqual);
@@ -176,12 +176,11 @@ MacroAssemblerARM::branchTruncateFloat32(FloatRegister src, Register dest, Label
 }
 
 void
-MacroAssemblerARM::convertInt32ToFloat32(Register src, FloatRegister dest_) {
+MacroAssemblerARM::convertInt32ToFloat32(Register src, FloatRegister dest) {
     
-    VFPRegister dest = VFPRegister(dest_).singleOverlay();
     as_vxfer(src, InvalidReg, dest.sintOverlay(),
              CoreToFloat);
-    as_vcvt(dest, dest.sintOverlay());
+    as_vcvt(dest.singleOverlay(), dest.sintOverlay());
 }
 
 void
@@ -1559,22 +1558,30 @@ MacroAssemblerARM::ma_vcmpz_f32(FloatRegister src1, Condition cc)
 void
 MacroAssemblerARM::ma_vcvt_F64_I32(FloatRegister src, FloatRegister dest, Condition cc)
 {
-    as_vcvt(VFPRegister(dest).sintOverlay(), VFPRegister(src), false, cc);
+    JS_ASSERT(src.isDouble());
+    JS_ASSERT(dest.isSInt());
+    as_vcvt(dest, src, false, cc);
 }
 void
 MacroAssemblerARM::ma_vcvt_F64_U32(FloatRegister src, FloatRegister dest, Condition cc)
 {
-    as_vcvt(VFPRegister(dest).uintOverlay(), VFPRegister(src), false, cc);
+    JS_ASSERT(src.isDouble());
+    JS_ASSERT(dest.isUInt());
+    as_vcvt(dest, src, false, cc);
 }
 void
 MacroAssemblerARM::ma_vcvt_I32_F64(FloatRegister src, FloatRegister dest, Condition cc)
 {
-    as_vcvt(VFPRegister(dest), VFPRegister(src).sintOverlay(), false, cc);
+    JS_ASSERT(src.isSInt());
+    JS_ASSERT(dest.isDouble());
+    as_vcvt(dest, src, false, cc);
 }
 void
 MacroAssemblerARM::ma_vcvt_U32_F64(FloatRegister src, FloatRegister dest, Condition cc)
 {
-    as_vcvt(VFPRegister(dest), VFPRegister(src).uintOverlay(), false, cc);
+    JS_ASSERT(src.isUInt());
+    JS_ASSERT(dest.isDouble());
+    as_vcvt(dest, src, false, cc);
 }
 
 void
@@ -3151,9 +3158,9 @@ MacroAssemblerARMCompat::int32ValueToDouble(const ValueOperand &operand, FloatRe
     
     VFPRegister vfpdest = VFPRegister(dest);
     as_vxfer(operand.payloadReg(), InvalidReg,
-             vfpdest.sintOverlay(), CoreToFloat);
+             ScratchFloat32Reg.sintOverlay(), CoreToFloat);
     
-    as_vcvt(vfpdest, vfpdest.sintOverlay());
+    as_vcvt(vfpdest, ScratchFloat32Reg.sintOverlay());
 }
 
 void
@@ -4144,8 +4151,8 @@ MacroAssemblerARMCompat::floor(FloatRegister input, Register output, Label *bail
     
     
     
-    ma_vcvt_F64_U32(input, ScratchDoubleReg);
-    ma_vxfer(VFPRegister(ScratchDoubleReg).uintOverlay(), output);
+    ma_vcvt_F64_U32(input, ScratchDoubleReg.uintOverlay());
+    ma_vxfer(ScratchDoubleReg.uintOverlay(), output);
     ma_mov(output, output, SetCond);
     ma_b(bail, Signed);
     ma_b(&fin);
@@ -4161,9 +4168,9 @@ MacroAssemblerARMCompat::floor(FloatRegister input, Register output, Label *bail
     bind(&handleNeg);
     
     ma_vneg(input, input);
-    ma_vcvt_F64_U32(input, ScratchDoubleReg);
-    ma_vxfer(VFPRegister(ScratchDoubleReg).uintOverlay(), output);
-    ma_vcvt_U32_F64(ScratchDoubleReg, ScratchDoubleReg);
+    ma_vcvt_F64_U32(input, ScratchDoubleReg.uintOverlay());
+    ma_vxfer(ScratchDoubleReg.uintOverlay(), output);
+    ma_vcvt_U32_F64(ScratchDoubleReg.uintOverlay(), ScratchDoubleReg);
     compareDouble(ScratchDoubleReg, input);
     ma_add(output, Imm32(1), output, NoSetCond, NotEqual);
     
@@ -4196,7 +4203,7 @@ MacroAssemblerARMCompat::floorf(FloatRegister input, Register output, Label *bai
     
     
     
-    ma_vcvt_F32_U32(input, ScratchFloat32Reg);
+    ma_vcvt_F32_U32(input, ScratchFloat32Reg.uintOverlay());
     ma_vxfer(VFPRegister(ScratchFloat32Reg).uintOverlay(), output);
     ma_mov(output, output, SetCond);
     ma_b(bail, Signed);
@@ -4213,9 +4220,9 @@ MacroAssemblerARMCompat::floorf(FloatRegister input, Register output, Label *bai
     bind(&handleNeg);
     
     ma_vneg_f32(input, input);
-    ma_vcvt_F32_U32(input, ScratchFloat32Reg);
+    ma_vcvt_F32_U32(input, ScratchFloat32Reg.uintOverlay());
     ma_vxfer(VFPRegister(ScratchFloat32Reg).uintOverlay(), output);
-    ma_vcvt_U32_F32(ScratchFloat32Reg, ScratchFloat32Reg);
+    ma_vcvt_U32_F32(ScratchFloat32Reg.uintOverlay(), ScratchFloat32Reg);
     compareFloat(ScratchFloat32Reg, input);
     ma_add(output, Imm32(1), output, NoSetCond, NotEqual);
     
@@ -4389,7 +4396,7 @@ MacroAssemblerARMCompat::round(FloatRegister input, Register output, Label *bail
     
     
     
-    ma_vcvt_F64_U32(tmp, ScratchDoubleReg);
+    ma_vcvt_F64_U32(tmp, ScratchDoubleReg.uintOverlay());
     ma_vxfer(VFPRegister(ScratchDoubleReg).uintOverlay(), output);
     ma_mov(output, output, SetCond);
     ma_b(bail, Signed);
@@ -4405,13 +4412,13 @@ MacroAssemblerARMCompat::round(FloatRegister input, Register output, Label *bail
 
     bind(&handleNeg);
     
-    ma_vcvt_F64_U32(tmp, ScratchDoubleReg);
+    ma_vcvt_F64_U32(tmp, ScratchDoubleReg.uintOverlay());
     ma_vxfer(VFPRegister(ScratchDoubleReg).uintOverlay(), output);
 
     
     
     
-    ma_vcvt_U32_F64(ScratchDoubleReg, ScratchDoubleReg);
+    ma_vcvt_U32_F64(ScratchDoubleReg.uintOverlay(), ScratchDoubleReg);
     compareDouble(ScratchDoubleReg, tmp);
     ma_sub(output, Imm32(1), output, NoSetCond, Equal);
     
@@ -4452,7 +4459,7 @@ MacroAssemblerARMCompat::roundf(FloatRegister input, Register output, Label *bai
     
     
     
-    ma_vcvt_F32_U32(tmp, ScratchFloat32Reg);
+    ma_vcvt_F32_U32(tmp, ScratchFloat32Reg.uintOverlay());
     ma_vxfer(VFPRegister(ScratchFloat32Reg).uintOverlay(), output);
     ma_mov(output, output, SetCond);
     ma_b(bail, Signed);
@@ -4461,20 +4468,20 @@ MacroAssemblerARMCompat::roundf(FloatRegister input, Register output, Label *bai
     bind(&handleZero);
     
     
-    as_vxfer(output, InvalidReg, input, FloatToCore, Always, 1);
+    as_vxfer(output, InvalidReg, input, FloatToCore, Always, 0);
     ma_cmp(output, Imm32(0));
     ma_b(bail, NonZero);
     ma_b(&fin);
 
     bind(&handleNeg);
     
-    ma_vcvt_F32_U32(tmp, ScratchFloat32Reg);
+    ma_vcvt_F32_U32(tmp, ScratchFloat32Reg.uintOverlay());
     ma_vxfer(VFPRegister(ScratchFloat32Reg).uintOverlay(), output);
 
     
     
     
-    ma_vcvt_U32_F32(ScratchFloat32Reg, ScratchFloat32Reg);
+    ma_vcvt_U32_F32(ScratchFloat32Reg.uintOverlay(), ScratchFloat32Reg);
     compareFloat(ScratchFloat32Reg, tmp);
     ma_sub(output, Imm32(1), output, NoSetCond, Equal);
     
