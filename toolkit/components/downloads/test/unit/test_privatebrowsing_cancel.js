@@ -79,8 +79,8 @@ function trigger_pb_cleanup(expected)
 function run_test() {
   function finishTest() {
     
-    dlF.cancel();
-    dlF.remove();
+    dlG.cancel();
+    dlG.remove();
     dm.cleanUp();
     dm.cleanUpPrivate();
     do_check_eq(dm.activeDownloadCount, 0);
@@ -161,11 +161,11 @@ function run_test() {
             trigger_pb_cleanup(false);
             do_check_true(promptService.wasCalled());
             do_check_eq(dm.activePrivateDownloadCount, 0);
-            do_check_eq(dlE.state, dm.DOWNLOAD_PAUSED);
+            do_check_eq(dlE.state, dm.DOWNLOAD_CANCELED);
 
             
             dlF = addDownload({
-              isPrivate: false,
+              isPrivate: true,
               targetFile: fileF,
               sourceURI: downloadFSource,
               downloadName: downloadFName
@@ -174,14 +174,39 @@ function run_test() {
             
           } else if (aDownload.targetFile.equals(dlF.targetFile)) {
             
-            do_check_false(dlF.resumable);
+            do_check_true(dlF.resumable);
+            dlF.pause();
+
+          } else if (aDownload.targetFile.equals(dlG.targetFile)) {
+            
+            do_check_false(dlG.resumable);
 
             promptService.sayCancel();
             trigger_pb_cleanup(false);
             do_check_false(promptService.wasCalled());
             do_check_eq(dm.activeDownloadCount, 1);
-            do_check_eq(dlF.state, dm.DOWNLOAD_DOWNLOADING);
+            do_check_eq(dlG.state, dm.DOWNLOAD_DOWNLOADING);
             finishTest();
+          }
+          break;
+
+        case dm.DOWNLOAD_PAUSED:
+          if (aDownload.targetFile.equals(dlF.targetFile)) {
+            promptService.sayProceed();
+            trigger_pb_cleanup(false);
+            do_check_true(promptService.wasCalled());
+            do_check_eq(dm.activePrivateDownloadCount, 0);
+            do_check_eq(dlF.state, dm.DOWNLOAD_CANCELED);
+
+            
+            dlG = addDownload({
+              isPrivate: false,
+              targetFile: fileG,
+              sourceURI: downloadGSource,
+              downloadName: downloadGName
+            });
+
+            
           }
           break;
       }
@@ -204,9 +229,14 @@ function run_test() {
   const downloadEName = "download-E";
 
   
-  const downloadFSource = "http://localhost:4444/noresume";
+  const downloadFSource = "http://localhost:4444/file/head_download_manager.js";
   const downloadFDest = "download-file-F";
   const downloadFName = "download-F";
+
+  
+  const downloadGSource = "http://localhost:4444/noresume";
+  const downloadGDest = "download-file-G";
+  const downloadGName = "download-G";
 
   
   let fileD = tmpDir.clone();
@@ -218,6 +248,9 @@ function run_test() {
   let fileF = tmpDir.clone();
   fileF.append(downloadFDest);
   fileF.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
+  let fileG = tmpDir.clone();
+  fileG.append(downloadGDest);
+  fileG.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
 
   
   let dlD = addDownload({
@@ -227,7 +260,7 @@ function run_test() {
     downloadName: downloadDName
   });
 
-  let dlE, dlF;
+  let dlE, dlF, dlG;
 
   
 }
