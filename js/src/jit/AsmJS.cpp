@@ -1506,85 +1506,14 @@ class MOZ_STACK_CLASS ModuleCompiler
 
     bool finish(ScopedJSDeletePtr<AsmJSModule> *module)
     {
-        module_->initFuncEnd(tokenStream().currentToken().pos.end,
-                             tokenStream().peekTokenPos().end);
         masm_.finish();
         if (masm_.oom())
             return false;
 
-        module_->assignCallSites(masm_.extractCallSites());
-        module_->assignHeapAccesses(masm_.extractAsmJSHeapAccesses());
-
-#if defined(JS_CODEGEN_ARM)
-        
-        
-        for (unsigned i = 0; i < module_->numHeapAccesses(); i++) {
-            AsmJSHeapAccess &a = module_->heapAccess(i);
-            a.setOffset(masm_.actualOffset(a.offset()));
-        }
-        for (unsigned i = 0; i < module_->numCallSites(); i++) {
-            CallSite &c = module_->callSite(i);
-            c.setReturnAddressOffset(masm_.actualOffset(c.returnAddressOffset()));
-        }
-#endif
-
-        
-        if (!module_->allocateAndCopyCode(cx_, masm_))
+        if (!module_->finish(cx_, tokenStream(), masm_, interruptLabel_))
             return false;
 
         
-        JS_ASSERT(masm_.jumpRelocationTableBytes() == 0);
-        JS_ASSERT(masm_.dataRelocationTableBytes() == 0);
-        JS_ASSERT(masm_.preBarrierTableBytes() == 0);
-        JS_ASSERT(!masm_.hasEnteredExitFrame());
-
-#if defined(MOZ_VTUNE) || defined(JS_ION_PERF)
-        
-        
-        
-        for (unsigned i = 0; i < module_->numProfiledFunctions(); i++) {
-            AsmJSModule::ProfiledFunction &func = module_->profiledFunction(i);
-            func.pod.startCodeOffset = masm_.actualOffset(func.pod.startCodeOffset);
-        }
-#endif
-
-#ifdef JS_ION_PERF
-        for (unsigned i = 0; i < module_->numPerfBlocksFunctions(); i++) {
-            AsmJSModule::ProfiledBlocksFunction &func = module_->perfProfiledBlocksFunction(i);
-            func.pod.startCodeOffset = masm_.actualOffset(func.pod.startCodeOffset);
-            func.endInlineCodeOffset = masm_.actualOffset(func.endInlineCodeOffset);
-            BasicBlocksVector &basicBlocks = func.blocks;
-            for (uint32_t i = 0; i < basicBlocks.length(); i++) {
-                Record &r = basicBlocks[i];
-                r.startOffset = masm_.actualOffset(r.startOffset);
-                r.endOffset = masm_.actualOffset(r.endOffset);
-            }
-        }
-#endif
-
-        module_->setInterruptOffset(masm_.actualOffset(interruptLabel_.offset()));
-
-        
-        for (size_t i = 0; i < masm_.numCodeLabels(); i++) {
-            CodeLabel src = masm_.codeLabel(i);
-            int32_t labelOffset = src.dest()->offset();
-            int32_t targetOffset = masm_.actualOffset(src.src()->offset());
-            
-            
-            
-            while (labelOffset != LabelBase::INVALID_OFFSET) {
-                size_t patchAtOffset = masm_.labelOffsetToPatchOffset(labelOffset);
-                AsmJSModule::RelativeLink link(AsmJSModule::RelativeLink::CodeLabel);
-                link.patchAtOffset = patchAtOffset;
-                link.targetOffset = targetOffset;
-                if (!module_->addRelativeLink(link))
-                    return false;
-
-                labelOffset = Assembler::extractCodeLabelOffset(module_->codeBase() +
-                                                                patchAtOffset);
-            }
-        }
-
         
         for (unsigned tableIndex = 0; tableIndex < funcPtrTables_.length(); tableIndex++) {
             FuncPtrTable &table = funcPtrTables_[tableIndex];
@@ -1596,58 +1525,6 @@ class MOZ_STACK_CLASS ModuleCompiler
                 if (!module_->addRelativeLink(link))
                     return false;
             }
-        }
-
-#if defined(JS_CODEGEN_X86)
-        
-        
-        
-        for (unsigned i = 0; i < masm_.numAsmJSGlobalAccesses(); i++) {
-            AsmJSGlobalAccess a = masm_.asmJSGlobalAccess(i);
-            AsmJSModule::RelativeLink link(AsmJSModule::RelativeLink::InstructionImmediate);
-            link.patchAtOffset = masm_.labelOffsetToPatchOffset(a.patchAt.offset());
-            link.targetOffset = module_->offsetOfGlobalData() + a.globalDataOffset;
-            if (!module_->addRelativeLink(link))
-                return false;
-        }
-#endif
-
-#if defined(JS_CODEGEN_X64)
-        
-        
-        uint8_t *code = module_->codeBase();
-        for (unsigned i = 0; i < masm_.numAsmJSGlobalAccesses(); i++) {
-            AsmJSGlobalAccess a = masm_.asmJSGlobalAccess(i);
-            masm_.patchAsmJSGlobalAccess(a.patchAt, code, module_->globalData(), a.globalDataOffset);
-        }
-#endif
-
-#if defined(JS_CODEGEN_MIPS)
-        
-        
-        for (size_t i = 0; i < masm_.numLongJumps(); i++) {
-            uint32_t patchAtOffset = masm_.longJump(i);
-
-            AsmJSModule::RelativeLink link(AsmJSModule::RelativeLink::InstructionImmediate);
-            link.patchAtOffset = patchAtOffset;
-
-            InstImm *inst = (InstImm *)(module_->codeBase() + patchAtOffset);
-            link.targetOffset = Assembler::extractLuiOriValue(inst, inst->next()) -
-                                (uint32_t)module_->codeBase();
-
-            if (!module_->addRelativeLink(link))
-                return false;
-        }
-#endif
-
-        
-        for (size_t i = 0; i < masm_.numAsmJSAbsoluteLinks(); i++) {
-            AsmJSAbsoluteLink src = masm_.asmJSAbsoluteLink(i);
-            AsmJSModule::AbsoluteLink link;
-            link.patchAt = CodeOffsetLabel(masm_.actualOffset(src.patchAt.offset()));
-            link.target = src.target;
-            if (!module_->addAbsoluteLink(link))
-                return false;
         }
 
         *module = module_.forget();
