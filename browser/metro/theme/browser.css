@@ -268,16 +268,17 @@ documenttab[selected] .documenttab-selection {
   transition-duration: .3s;
   transition-timing-function: ease-in-out;
 }
-
 #browsers browser {
-  transition: padding-bottom @metro_animation_duration@ @metro_animation_easing@;
+  
+  transition-duration: 0s;
+  transition-delay:    0s;
+  transition-property: padding-bottom;
 }
-
 #browsers[findbar] browser {
+  
+  transition-delay:    @metro_animation_duration@;
   padding-bottom: @findbar_height@;
 }
-
-
 
 #page,
 .selection-overlay {
