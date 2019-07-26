@@ -272,6 +272,10 @@ Spectrum.prototype = {
   },
 
   updateHelperLocations: function() {
+    
+    if (!this.element.classList.contains('spectrum-show'))
+      return;
+
     let h = this.hsv[0];
     let s = this.hsv[1];
     let v = this.hsv[2];

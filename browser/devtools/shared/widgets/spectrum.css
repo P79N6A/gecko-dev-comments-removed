@@ -85,7 +85,7 @@
 }
 
 .spectrum-dragger, .spectrum-slider {
-  user-select: none;
+  -moz-user-select: none;
 }
 
 .spectrum-alpha {
