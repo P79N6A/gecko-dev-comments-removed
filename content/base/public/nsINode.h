@@ -101,7 +101,7 @@ enum {
   
   
   
-  NODE_IS_IN_ANONYMOUS_SUBTREE =          NODE_FLAG_BIT(3),
+  NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE =          NODE_FLAG_BIT(3),
 
   
   
@@ -950,7 +950,7 @@ public:
   {
     NS_ASSERTION(!(aFlagsToSet & (NODE_IS_ANONYMOUS_ROOT |
                                   NODE_IS_NATIVE_ANONYMOUS_ROOT |
-                                  NODE_IS_IN_ANONYMOUS_SUBTREE |
+                                  NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE |
                                   NODE_ATTACH_BINDING_ON_POSTCREATE |
                                   NODE_DESCENDANTS_NEED_FRAMES |
                                   NODE_NEEDS_FRAME |
@@ -964,7 +964,7 @@ public:
   {
     NS_ASSERTION(!(aFlagsToUnset &
                    (NODE_IS_ANONYMOUS_ROOT |
-                    NODE_IS_IN_ANONYMOUS_SUBTREE |
+                    NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE |
                     NODE_IS_NATIVE_ANONYMOUS_ROOT)),
                  "Trying to unset write-only flags");
     nsWrapperCache::UnsetFlags(aFlagsToUnset);
@@ -995,13 +995,13 @@ public:
   bool IsInNativeAnonymousSubtree() const
   {
 #ifdef DEBUG
-    if (HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE)) {
+    if (HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE)) {
       return true;
     }
     CheckNotNativeAnonymous();
     return false;
 #else
-    return HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE);
+    return HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE);
 #endif
   }
 
@@ -1009,7 +1009,7 @@ public:
   
   bool ChromeOnlyAccess() const
   {
-    return HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE | NODE_CHROME_ONLY_ACCESS);
+    return HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE | NODE_CHROME_ONLY_ACCESS);
   }
 
   
