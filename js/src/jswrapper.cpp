@@ -151,8 +151,7 @@ Wrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapperArg,
     RootedObject wrapper(cx, wrapperArg);
     JS_ASSERT(!hasPrototype()); 
     desc->obj = NULL; 
-    CHECKED(DirectProxyHandler::getPropertyDescriptor(cx, wrapper, id, desc, flags),
-            (flags & JSRESOLVE_ASSIGNING) ? SET : GET);
+    CHECKED(DirectProxyHandler::getPropertyDescriptor(cx, wrapper, id, desc, flags), GET);
 }
 
 bool
