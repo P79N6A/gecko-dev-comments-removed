@@ -139,18 +139,13 @@ public:
   
 
 
-
-  static bool IsARIASelected(Accessible* aAccessible);
+  static HyperTextAccessible* GetTextContainer(nsINode* aNode);
 
   
 
 
 
-
-
-
-  static HyperTextAccessible*
-    GetTextAccessibleFromSelection(nsISelection* aSelection);
+  static bool IsARIASelected(Accessible* aAccessible);
 
   
 

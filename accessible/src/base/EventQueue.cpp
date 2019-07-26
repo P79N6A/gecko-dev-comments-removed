@@ -152,6 +152,26 @@ EventQueue::CoalesceEvents()
       break; 
     }
 
+    case AccEvent::eCoalesceTextSelChange:
+    {
+      
+      
+      
+      
+      for (uint32_t index = tail - 1; index < tail; index--) {
+        AccEvent* thisEvent = mEvents[index];
+        if (thisEvent->mEventRule != AccEvent::eDoNotEmit &&
+            thisEvent->mEventType == tailEvent->mEventType) {
+          AccTextSelChangeEvent* thisTSCEvent = downcast_accEvent(thisEvent);
+          AccTextSelChangeEvent* tailTSCEvent = downcast_accEvent(tailEvent);
+          if (thisTSCEvent->mSel == tailTSCEvent->mSel ||
+              thisEvent->mAccessible == tailEvent->mAccessible)
+            thisEvent->mEventRule = AccEvent::eDoNotEmit;
+        }
+
+      }
+    } break; 
+
     case AccEvent::eRemoveDupes:
     {
       
@@ -458,21 +478,8 @@ EventQueue::ProcessEventQueue()
       }
 
       
-      if (event->mEventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
-        AccCaretMoveEvent* caretMoveEvent = downcast_accEvent(event);
-        HyperTextAccessible* hyperText = target->AsHyperText();
-        if (hyperText &&
-            NS_SUCCEEDED(hyperText->GetCaretOffset(&caretMoveEvent->mCaretOffset))) {
-
-          nsEventShell::FireEvent(caretMoveEvent);
-
-          
-          int32_t selectionCount;
-          hyperText->GetSelectionCount(&selectionCount);
-          if (selectionCount)
-            nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
-                                    hyperText);
-        }
+      if (event->mEventType == nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED) {
+        SelectionMgr()->ProcessTextSelChangeEvent(event);
         continue;
       }
 

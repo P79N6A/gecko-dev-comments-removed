@@ -164,7 +164,7 @@ public:
 
 
 
-  void UpdateSystemCaret();
+  void UpdateSystemCaretFor(Accessible* aAccessible);
 
   
 

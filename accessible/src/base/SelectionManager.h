@@ -6,15 +6,10 @@
 #ifndef mozilla_a11y_SelectionManager_h__
 #define mozilla_a11y_SelectionManager_h__
 
-#include "nsAutoPtr.h"
 #include "nsIFrame.h"
 #include "nsISelectionListener.h"
 
-class nsIContent;
-class nsIntRect;
 class nsIPresShell;
-class nsIWeakReference;
-class nsIWidget;
 
 namespace mozilla {
 
@@ -24,7 +19,7 @@ class Element;
 
 namespace a11y {
 
-class HyperTextAccessible;
+class AccEvent;
 
 
 
@@ -53,7 +48,7 @@ public:
   NS_DECL_NSISELECTIONLISTENER
 
   
-  void Shutdown();
+  void Shutdown() { ClearControlSelectionListener(); }
 
   
 
@@ -81,7 +76,8 @@ public:
   
 
 
-  nsIntRect GetCaretRect(nsIWidget** aWidget);
+
+  void ProcessTextSelChangeEvent(AccEvent* aEvent);
 
 protected:
   
@@ -89,27 +85,9 @@ protected:
 
   void ProcessSelectionChanged(nsISelection* aSelection);
 
-  
-
-
-  void NormalSelectionChanged(nsISelection* aSelection);
-
-  
-
-
-
-  void SpellcheckSelectionChanged(nsISelection* aSelection);
-
 private:
   
   nsWeakFrame mCurrCtrlFrame;
-
-  
-  
-  
-  nsCOMPtr<nsIWeakReference> mLastUsedSelection; 
-  nsRefPtr<HyperTextAccessible> mLastTextAccessible;
-  int32_t mLastCaretOffset;
 };
 
 } 

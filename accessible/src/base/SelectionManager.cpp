@@ -9,12 +9,10 @@
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 #include "nsCoreUtils.h"
-#include "nsIAccessibleEvent.h"
+#include "nsEventShell.h"
 
-#include "nsCaret.h"
 #include "nsIAccessibleTypes.h"
 #include "nsIDOMDocument.h"
-#include "nsIFrame.h"
 #include "nsIPresShell.h"
 #include "nsISelectionPrivate.h"
 #include "mozilla/Selection.h"
@@ -22,14 +20,6 @@
 
 using namespace mozilla;
 using namespace mozilla::a11y;
-
-void
-SelectionManager::Shutdown()
-{
-  ClearControlSelectionListener();
-  mLastTextAccessible = nullptr;
-  mLastUsedSelection = nullptr;
-}
 
 void
 SelectionManager::ClearControlSelectionListener()
@@ -63,8 +53,6 @@ SelectionManager::SetControlSelectionListener(dom::Element* aFocusedElm)
   
   
   ClearControlSelectionListener();
-
-  mLastTextAccessible = nullptr;
 
   mCurrCtrlFrame = aFocusedElm->GetPrimaryFrame();
   if (!mCurrCtrlFrame)
@@ -119,6 +107,37 @@ SelectionManager::RemoveDocSelectionListener(nsIPresShell* aPresShell)
   spellSel->RemoveSelectionListener(this);
 }
 
+void
+SelectionManager::ProcessTextSelChangeEvent(AccEvent* aEvent)
+{
+  AccTextSelChangeEvent* event = downcast_accEvent(aEvent);
+  Selection* sel = static_cast<Selection*>(event->mSel.get());
+
+  
+  if (sel->GetRangeCount() != 1 || !sel->IsCollapsed())
+    nsEventShell::FireEvent(aEvent);
+
+  
+  nsINode* caretCntrNode =
+    nsCoreUtils::GetDOMNodeFromDOMPoint(sel->GetFocusNode(),
+                                        sel->GetFocusOffset());
+  if (!caretCntrNode)
+    return;
+
+  HyperTextAccessible* caretCntr = nsAccUtils::GetTextContainer(caretCntrNode);
+  NS_ASSERTION(caretCntr,
+               "No text container for focus while there's one for common ancestor?!");
+  if (!caretCntr)
+    return;
+
+  int32_t caretOffset = -1;
+  if (NS_SUCCEEDED(caretCntr->GetCaretOffset(&caretOffset)) && caretOffset != -1) {
+    nsRefPtr<AccCaretMoveEvent> caretMoveEvent =
+      new AccCaretMoveEvent(caretCntr, caretOffset, aEvent->FromUserInput());
+    nsEventShell::FireEvent(caretMoveEvent);
+  }
+}
+
 NS_IMETHODIMP
 SelectionManager::NotifySelectionChanged(nsIDOMDocument* aDOMDocument,
                                          nsISelection* aSelection,
@@ -149,128 +168,34 @@ SelectionManager::NotifySelectionChanged(nsIDOMDocument* aDOMDocument,
 void
 SelectionManager::ProcessSelectionChanged(nsISelection* aSelection)
 {
-  nsCOMPtr<nsISelectionPrivate> privSel(do_QueryInterface(aSelection));
-
-  int16_t type = 0;
-  privSel->GetType(&type);
-
-  if (type == nsISelectionController::SELECTION_NORMAL)
-    NormalSelectionChanged(aSelection);
-
-  else if (type == nsISelectionController::SELECTION_SPELLCHECK)
-    SpellcheckSelectionChanged(aSelection);
-}
-
-void
-SelectionManager::NormalSelectionChanged(nsISelection* aSelection)
-{
-  mLastUsedSelection = do_GetWeakReference(aSelection);
-
-  int32_t rangeCount = 0;
-  aSelection->GetRangeCount(&rangeCount);
-  if (rangeCount == 0) {
-    mLastTextAccessible = nullptr;
-    return; 
+  Selection* selection = static_cast<Selection*>(aSelection);
+  const nsRange* range = selection->GetAnchorFocusRange();
+  nsINode* cntrNode = nullptr;
+  if (range)
+    cntrNode = range->GetCommonAncestor();
+  if (!cntrNode) {
+    cntrNode = selection->GetFrameSelection()->GetAncestorLimiter();
+    if (!cntrNode) {
+      cntrNode = selection->GetPresShell()->GetDocument();
+      NS_ASSERTION(selection->GetPresShell()->ConstFrameSelection() == selection->GetFrameSelection(),
+                   "Wrong selection container was used!");
+    }
   }
 
-  HyperTextAccessible* textAcc =
-    nsAccUtils::GetTextAccessibleFromSelection(aSelection);
-  if (!textAcc)
+  HyperTextAccessible* text = nsAccUtils::GetTextContainer(cntrNode);
+  if (!text) {
+    NS_NOTREACHED("We must reach document accessible implementing text interface!");
     return;
-
-  int32_t caretOffset = -1;
-  nsresult rv = textAcc->GetCaretOffset(&caretOffset);
-  if (NS_FAILED(rv))
-    return;
-
-  if (textAcc == mLastTextAccessible && caretOffset == mLastCaretOffset) {
-    int32_t selectionCount = 0;
-    textAcc->GetSelectionCount(&selectionCount);   
-    if (!selectionCount)
-      return;  
   }
 
-  mLastCaretOffset = caretOffset;
-  mLastTextAccessible = textAcc;
+  if (selection->GetType() == nsISelectionController::SELECTION_NORMAL) {
+    nsRefPtr<AccEvent> event = new AccTextSelChangeEvent(text, aSelection);
+    text->Document()->FireDelayedEvent(event);
 
-  nsRefPtr<AccEvent> event = new AccCaretMoveEvent(mLastTextAccessible);
-  mLastTextAccessible->Document()->FireDelayedEvent(event);
-}
-
-void
-SelectionManager::SpellcheckSelectionChanged(nsISelection* aSelection)
-{
-  
-  
-  
-  
-  
-
-  HyperTextAccessible* hyperText =
-    nsAccUtils::GetTextAccessibleFromSelection(aSelection);
-  if (hyperText) {
-    hyperText->Document()->
-      FireDelayedEvent(nsIAccessibleEvent::EVENT_TEXT_ATTRIBUTE_CHANGED,
-                       hyperText);
+  } else if (selection->GetType() == nsISelectionController::SELECTION_SPELLCHECK) {
+    
+    
+    text->Document()->FireDelayedEvent(nsIAccessibleEvent::EVENT_TEXT_ATTRIBUTE_CHANGED,
+                                       text);
   }
-}
-
-nsIntRect
-SelectionManager::GetCaretRect(nsIWidget** aWidget)
-{
-  nsIntRect caretRect;
-  NS_ENSURE_TRUE(aWidget, caretRect);
-  *aWidget = nullptr;
-
-  if (!mLastTextAccessible) {
-    return caretRect;    
-  }
-
-  nsINode *lastNodeWithCaret = mLastTextAccessible->GetNode();
-  NS_ENSURE_TRUE(lastNodeWithCaret, caretRect);
-
-  nsIPresShell *presShell = nsCoreUtils::GetPresShellFor(lastNodeWithCaret);
-  NS_ENSURE_TRUE(presShell, caretRect);
-
-  nsRefPtr<nsCaret> caret = presShell->GetCaret();
-  NS_ENSURE_TRUE(caret, caretRect);
-
-  nsCOMPtr<nsISelection> caretSelection(do_QueryReferent(mLastUsedSelection));
-  NS_ENSURE_TRUE(caretSelection, caretRect);
-  
-  bool isVisible;
-  caret->GetCaretVisible(&isVisible);
-  if (!isVisible) {
-    return nsIntRect();  
-  }
-
-  nsRect rect;
-  nsIFrame* frame = caret->GetGeometry(caretSelection, &rect);
-  if (!frame || rect.IsEmpty()) {
-    return nsIntRect(); 
-  }
-
-  nsPoint offset;
-  
-  
-  *aWidget = frame->GetNearestWidget(offset);
-  NS_ENSURE_TRUE(*aWidget, nsIntRect());
-  rect.MoveBy(offset);
-
-  caretRect = rect.ToOutsidePixels(frame->PresContext()->AppUnitsPerDevPixel());
-  
-  caretRect.MoveBy((*aWidget)->WidgetToScreenOffset() - (*aWidget)->GetClientOffset());
-
-  
-  
-  
-  int32_t charX, charY, charWidth, charHeight;
-  if (NS_SUCCEEDED(mLastTextAccessible->GetCharacterExtents(mLastCaretOffset, &charX, &charY,
-                                                            &charWidth, &charHeight,
-                                                            nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE))) {
-    caretRect.height -= charY - caretRect.y;
-    caretRect.y = charY;
-  }
-
-  return caretRect;
 }

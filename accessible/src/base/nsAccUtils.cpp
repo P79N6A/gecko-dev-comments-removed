@@ -252,32 +252,15 @@ nsAccUtils::IsARIASelected(Accessible* aAccessible)
 }
 
 HyperTextAccessible*
-nsAccUtils::GetTextAccessibleFromSelection(nsISelection* aSelection)
+nsAccUtils::GetTextContainer(nsINode* aNode)
 {
   
-  
-
-  nsCOMPtr<nsIDOMNode> focusDOMNode;
-  aSelection->GetFocusNode(getter_AddRefs(focusDOMNode));
-  if (!focusDOMNode)
+  DocAccessible* doc =
+    GetAccService()->GetDocAccessible(aNode->OwnerDoc());
+  Accessible* accessible =
+    doc ? doc->GetAccessibleOrContainer(aNode) : nullptr;
+  if (!accessible)
     return nullptr;
-
-  int32_t focusOffset = 0;
-  aSelection->GetFocusOffset(&focusOffset);
-
-  nsCOMPtr<nsINode> focusNode(do_QueryInterface(focusDOMNode));
-  nsCOMPtr<nsINode> resultNode =
-    nsCoreUtils::GetDOMNodeFromDOMPoint(focusNode, focusOffset);
-
-  
-  DocAccessible* doc = 
-    GetAccService()->GetDocAccessible(resultNode->OwnerDoc());
-  Accessible* accessible = doc ? 
-    doc->GetAccessibleOrContainer(resultNode) : nullptr;
-  if (!accessible) {
-    NS_NOTREACHED("No nsIAccessibleText for selection change event!");
-    return nullptr;
-  }
 
   do {
     HyperTextAccessible* textAcc = accessible->AsHyperText();
@@ -287,7 +270,6 @@ nsAccUtils::GetTextAccessibleFromSelection(nsISelection* aSelection)
     accessible = accessible->Parent();
   } while (accessible);
 
-  NS_NOTREACHED("We must reach document accessible implementing nsIAccessibleText!");
   return nullptr;
 }
 

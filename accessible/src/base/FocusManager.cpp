@@ -265,9 +265,6 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
   NS_PRECONDITION(aEvent->GetEventType() == nsIAccessibleEvent::EVENT_FOCUS,
                   "Focus event is expected!");
 
-  EIsFromUserInput fromUserInputFlag = aEvent->IsFromUserInput() ?
-    eFromUserInput : eNoUserInput;
-
   
   
   Accessible* target = aEvent->GetAccessible();
@@ -299,7 +296,7 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
       if (mActiveARIAMenubar) {
         nsRefPtr<AccEvent> menuEndEvent =
           new AccEvent(nsIAccessibleEvent::EVENT_MENU_END, mActiveARIAMenubar,
-                       fromUserInputFlag);
+                       aEvent->FromUserInput());
         nsEventShell::FireEvent(menuEndEvent);
       }
 
@@ -309,7 +306,7 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
       if (mActiveARIAMenubar) {
         nsRefPtr<AccEvent> menuStartEvent =
           new AccEvent(nsIAccessibleEvent::EVENT_MENU_START,
-                       mActiveARIAMenubar, fromUserInputFlag);
+                       mActiveARIAMenubar, aEvent->FromUserInput());
         nsEventShell::FireEvent(menuStartEvent);
       }
     }
@@ -317,7 +314,7 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
     
     nsRefPtr<AccEvent> menuEndEvent =
       new AccEvent(nsIAccessibleEvent::EVENT_MENU_END, mActiveARIAMenubar,
-                   fromUserInputFlag);
+                   aEvent->FromUserInput());
     nsEventShell::FireEvent(menuEndEvent);
 
     mActiveARIAMenubar = nullptr;
@@ -329,7 +326,7 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
 #endif
 
   nsRefPtr<AccEvent> focusEvent =
-    new AccEvent(nsIAccessibleEvent::EVENT_FOCUS, target, fromUserInputFlag);
+    new AccEvent(nsIAccessibleEvent::EVENT_FOCUS, target, aEvent->FromUserInput());
   nsEventShell::FireEvent(focusEvent);
 
   
@@ -342,7 +339,7 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
       
       
       nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
-                              anchorJump, fromUserInputFlag);
+                              anchorJump, aEvent->FromUserInput());
     }
     targetDocument->SetAnchorJump(nullptr);
   }

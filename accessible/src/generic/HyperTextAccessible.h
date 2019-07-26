@@ -263,6 +263,15 @@ public:
   int32_t CaretLineNumber();
 
   
+
+
+
+
+
+
+  nsIntRect GetCaretRect(nsIWidget** aWidget);
+
+  
   
 
   

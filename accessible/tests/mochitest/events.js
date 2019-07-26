@@ -1212,6 +1212,14 @@ function synthUpKey(aNodeOrID, aCheckerOrEventSeq, aArgs)
 
 
 
+function synthLeftKey(aNodeOrID, aCheckerOrEventSeq)
+{
+  this.__proto__ = new synthKey(aNodeOrID, "VK_LEFT", null, aCheckerOrEventSeq);
+}
+
+
+
+
 function synthRightKey(aNodeOrID, aCheckerOrEventSeq)
 {
   this.__proto__ = new synthKey(aNodeOrID, "VK_RIGHT", null, aCheckerOrEventSeq);
@@ -1660,6 +1668,17 @@ function invokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg, aIsAsync)
 
 
 
+function unexpectedInvokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg)
+{
+  this.__proto__ = new invokerChecker(aEventType, aTargetOrFunc,
+                                      aTargetFuncArg, true);
+
+  this.unexpected = true;
+}
+
+
+
+
 function asyncInvokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg)
 {
   this.__proto__ = new invokerChecker(aEventType, aTargetOrFunc,
@@ -1733,6 +1752,19 @@ function caretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg)
     is(aEvent.QueryInterface(nsIAccessibleCaretMoveEvent).caretOffset,
        aCaretOffset,
        "Wrong caret offset for " + prettyName(aEvent.accessible));
+  }
+}
+
+
+
+
+function textSelectionChecker(aID, aStartOffset, aEndOffset)
+{
+  this.__proto__ = new invokerChecker(EVENT_TEXT_SELECTION_CHANGED, aID);
+
+  this.check = function textSelectionChecker_check(aEvent)
+  {
+    testTextGetSelection(aID, aStartOffset, aEndOffset, 0);
   }
 }
 
