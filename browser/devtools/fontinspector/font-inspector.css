@@ -1,0 +1,16 @@
+
+
+
+
+.dim > #root,
+.font:not(.has-code) .font-css-code,
+.font-is-local,
+.font-is-remote,
+.font.is-local .font-format-url {
+  display: none;
+}
+
+.font.is-remote .font-is-remote,
+.font.is-local .font-is-local {
+  display: inline;
+}

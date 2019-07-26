@@ -1147,6 +1147,9 @@ pref("devtools.editor.expandtab", true);
 pref("devtools.editor.component", "orion");
 
 
+pref("devtools.fontinspector.enabled", true);
+
+
 
 pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
 
