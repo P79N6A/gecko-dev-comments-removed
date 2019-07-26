@@ -1811,6 +1811,13 @@ public:
   }
 
   nsIContent *originator;
+
+  void AssignFormEventData(const nsFormEvent& aEvent, bool aCopyTargets)
+  {
+    AssignEventData(aEvent, aCopyTargets);
+
+    
+  }
 };
 
 
