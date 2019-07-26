@@ -1149,7 +1149,7 @@ nsMemoryReporterManager::DumpMemoryReportsToFile(
     
     nsString identifier(aIdentifier);
     if (identifier.IsEmpty()) {
-        identifier.AppendInt(PR_Now() / 1000000);
+        identifier.AppendInt(static_cast<int64_t>(PR_Now()) / 1000000);
     }
 
     
