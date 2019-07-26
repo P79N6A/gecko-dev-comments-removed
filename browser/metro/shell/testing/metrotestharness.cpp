@@ -218,12 +218,11 @@ static bool Launch()
   
   
   
-  if (GetForegroundWindow() == GetConsoleWindow()) {
-    hr = CoAllowSetForegroundWindow(activateMgr, NULL);
-    if (FAILED(hr)) {
-      Fail(L"CoAllowSetForegroundWindow result %X", hr);
-      return false;
-    }
+  hr = CoAllowSetForegroundWindow(activateMgr, NULL);
+  if (FAILED(hr)) {
+    
+    
+    Log(L"Windows focus rights hand off failed (HRESULT=0x%X). Ignoring.", hr);
   }
 
   Log(L"Harness process id: %d", GetCurrentProcessId());
