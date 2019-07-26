@@ -1186,6 +1186,7 @@ nsNativeThemeGTK::GetMinimumWidgetSize(nsRenderingContext* aContext,
       
       aResult->width = indicator_size;
       aResult->height = indicator_size;
+      *aIsOverridable = false;
     }
     break;
   case NS_THEME_TOOLBAR_BUTTON_DROPDOWN:
