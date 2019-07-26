@@ -44,6 +44,8 @@ const NOTWANTED =       1 << 11;
 
 const COMPLETE =        1 << 12;
 
+const DONTFILL =        1 << 13;
+
 var log_c2 = true;
 function LOG_C2(o, m)
 {
@@ -177,6 +179,11 @@ OpenCallback.prototype =
           do_check_true(false);
         }
         catch (ex) {}
+      }
+
+      if (this.behavior & DONTFILL) {
+        do_check_false(this.behavior & WAITFORWRITE);
+        return;
       }
 
       var self = this;
