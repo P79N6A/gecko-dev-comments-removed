@@ -547,6 +547,7 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
     
     
     
+    nsConnectionEntry *joinedConnection;
     nsConnectionEntry *preferred =
         mSpdyPreferredHash.Get(ent->mCoalescingKey);
 
@@ -560,19 +561,23 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
             ent->mSpdyPreferred = true;
             preferred = ent;
         }
-    }
-    else if (preferred != ent) {
+    } else if ((preferred != ent) &&
+               (joinedConnection = GetSpdyPreferredEnt(ent)) &&
+               (joinedConnection != ent)) {
+        
+        
         
         
         
 
-        
-        
-        
-        
-        
+        LOG(("ReportSpdyConnection graceful close of conn=%p ent=%p to "
+                 "migrate to preferred\n", conn, ent));
 
         conn->DontReuse();
+    } else if (preferred != ent) {
+        LOG (("ReportSpdyConnection preferred host may be in false start or "
+              "may have insufficient cert. Leave mapping in place but do not "
+              "abandon this connection yet."));
     }
 
     PostEvent(&nsHttpConnectionMgr::OnMsgProcessAllSpdyPendingQ);
