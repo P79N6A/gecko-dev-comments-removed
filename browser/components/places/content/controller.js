@@ -1634,7 +1634,13 @@ function doGetPlacesControllerForCommand(aCommand)
 {
   
   
-  let popupNode = document.popupNode;
+  let popupNode; 
+  try {
+    popupNode = document.popupNode;
+  } catch (e) {
+    
+    return null;
+  }
   if (popupNode) {
     let view = PlacesUIUtils.getViewForNode(popupNode);
     if (view && view._contextMenuShown)
