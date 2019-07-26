@@ -3373,8 +3373,16 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
   
   
   
+  
+  
+  
+  
+  
+# ifndef NIGHTLY_BUILD
   if (PR_GetEnv("MOZ_USE_OMTC") ||
-      PR_GetEnv("MOZ_OMTC_ENABLED")) {
+      PR_GetEnv("MOZ_OMTC_ENABLED"))
+# endif
+  {
     XInitThreads();
   }
 #endif
