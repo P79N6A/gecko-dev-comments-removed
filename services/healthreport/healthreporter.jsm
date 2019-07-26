@@ -28,6 +28,8 @@ Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/TelemetryStopwatch.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
+                                  "resource://gre/modules/UpdateChannel.jsm");
 
 
 
@@ -43,8 +45,7 @@ const TELEMETRY_DB_OPEN = "HEALTHREPORT_DB_OPEN_MS";
 const TELEMETRY_DB_OPEN_FIRSTRUN = "HEALTHREPORT_DB_OPEN_FIRSTRUN_MS";
 const TELEMETRY_GENERATE_PAYLOAD = "HEALTHREPORT_GENERATE_JSON_PAYLOAD_MS";
 const TELEMETRY_JSON_PAYLOAD_SERIALIZE = "HEALTHREPORT_JSON_PAYLOAD_SERIALIZE_MS";
-const TELEMETRY_PAYLOAD_SIZE_UNCOMPRESSED = "HEALTHREPORT_PAYLOAD_UNCOMPRESSED_BYTES";
-const TELEMETRY_PAYLOAD_SIZE_COMPRESSED = "HEALTHREPORT_PAYLOAD_COMPRESSED_BYTES";
+const TELEMETRY_PAYLOAD_SIZE = "HEALTHREPORT_PAYLOAD_UNCOMPRESSED_BYTES";
 const TELEMETRY_SAVE_LAST_PAYLOAD = "HEALTHREPORT_SAVE_LAST_PAYLOAD_MS";
 const TELEMETRY_UPLOAD = "HEALTHREPORT_UPLOAD_MS";
 const TELEMETRY_SHUTDOWN_DELAY = "HEALTHREPORT_SHUTDOWN_DELAY_MS";
@@ -201,35 +202,6 @@ AbstractHealthReporter.prototype = Object.freeze({
     this._log.info("HealthReporter started.");
     this._initialized = true;
     Services.obs.addObserver(this, "idle-daily", false);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (!this._policy.healthReportUploadEnabled) {
-      this._log.info("Upload not enabled. Scheduling daily collection.");
-      
-      
-      
-      try {
-        let timerName = this._branch.replace(".", "-", "g") + "lastDailyCollection";
-        let tm = Cc["@mozilla.org/updates/timer-manager;1"]
-                   .getService(Ci.nsIUpdateTimerManager);
-        tm.registerTimer(timerName, this.collectMeasurements.bind(this),
-                         24 * 60 * 60);
-      } catch (ex) {
-        this._log.error("Error registering collection timer: " +
-                        CommonUtils.exceptionStr(ex));
-      }
-    }
 
     
     this._storage.compact();
@@ -611,8 +583,9 @@ AbstractHealthReporter.prototype = Object.freeze({
     this._log.info("Producing JSON payload for " + pingDateString);
 
     let o = {
-      version: 1,
+      version: 2,
       thisPingDate: pingDateString,
+      geckoAppInfo: this.obtainAppInfo(this._log),
       data: {last: {}, days: {}},
     };
 
@@ -783,6 +756,52 @@ AbstractHealthReporter.prototype = Object.freeze({
 
   _now: function _now() {
     return new Date();
+  },
+
+  
+  appInfoVersion: 1,
+  appInfoFields: {
+    
+    vendor: "vendor",
+    name: "name",
+    id: "ID",
+    version: "version",
+    appBuildID: "appBuildID",
+    platformVersion: "platformVersion",
+    platformBuildID: "platformBuildID",
+
+    
+    os: "OS",
+    xpcomabi: "XPCOMABI",
+  },
+
+  
+
+
+
+
+
+
+  obtainAppInfo: function () {
+    let out = {"_v": this.appInfoVersion};
+    try {
+      let ai = Services.appinfo;
+      for (let [k, v] in Iterator(this.appInfoFields)) {
+        out[k] = ai[v];
+      }
+    } catch (ex) {
+      this._log.warn("Could not obtain Services.appinfo: " +
+                     CommonUtils.exceptionStr(ex));
+    }
+
+    try {
+      out["updateChannel"] = UpdateChannel.get();
+    } catch (ex) {
+      this._log.warn("Could not obtain update channel: " +
+                     CommonUtils.exceptionStr(ex));
+    }
+
+    return out;
   },
 });
 
@@ -1043,7 +1062,7 @@ HealthReporter.prototype = Object.freeze({
     return Task.spawn(function doUpload() {
       let payload = yield this.getJSONPayload();
 
-      let histogram = Services.telemetry.getHistogramById(TELEMETRY_PAYLOAD_SIZE_UNCOMPRESSED);
+      let histogram = Services.telemetry.getHistogramById(TELEMETRY_PAYLOAD_SIZE);
       histogram.add(payload.length);
 
       TelemetryStopwatch.start(TELEMETRY_SAVE_LAST_PAYLOAD, this);
@@ -1058,12 +1077,8 @@ HealthReporter.prototype = Object.freeze({
       TelemetryStopwatch.start(TELEMETRY_UPLOAD, this);
       let result;
       try {
-        let options = {
-          deleteID: this.lastSubmitID,
-          telemetryCompressed: TELEMETRY_PAYLOAD_SIZE_COMPRESSED,
-        };
         result = yield client.uploadJSON(this.serverNamespace, id, payload,
-                                         options);
+                                         this.lastSubmitID);
         TelemetryStopwatch.finish(TELEMETRY_UPLOAD, this);
       } catch (ex) {
         TelemetryStopwatch.cancel(TELEMETRY_UPLOAD, this);
