@@ -120,7 +120,7 @@ static const cc_media_cap_table_t *gsmsdp_get_media_capability (fsmdef_dcb_t *dc
     config_get_value(CFGID_SDPMODE, &sdpmode, sizeof(sdpmode));
 
     if ( dcb_p->media_cap_tbl == NULL ) {
-         dcb_p->media_cap_tbl = (cc_media_cap_table_t*) cpr_malloc(sizeof(cc_media_cap_table_t));
+         dcb_p->media_cap_tbl = (cc_media_cap_table_t*) cpr_calloc(1, sizeof(cc_media_cap_table_t));
          if ( dcb_p->media_cap_tbl == NULL ) {
              GSM_ERR_MSG(GSM_L_C_F_PREFIX"media table malloc failed.\n",
                     dcb_p->line, dcb_p->call_id, fname);
@@ -128,14 +128,39 @@ static const cc_media_cap_table_t *gsmsdp_get_media_capability (fsmdef_dcb_t *dc
          }
     }
 
-    *(dcb_p->media_cap_tbl) = g_media_table;
-
     if (sdpmode) {
         
 
 
+        dcb_p->media_cap_tbl->id = g_media_table.id;
+
+        
+
+
+        dcb_p->media_cap_tbl->cap[CC_AUDIO_1].name = CC_AUDIO_1;
+        dcb_p->media_cap_tbl->cap[CC_VIDEO_1].name = CC_VIDEO_1;
+        dcb_p->media_cap_tbl->cap[CC_DATACHANNEL_1].name = CC_DATACHANNEL_1;
+
+        dcb_p->media_cap_tbl->cap[CC_AUDIO_1].type = SDP_MEDIA_AUDIO;
+        dcb_p->media_cap_tbl->cap[CC_VIDEO_1].type = SDP_MEDIA_VIDEO;
+        dcb_p->media_cap_tbl->cap[CC_DATACHANNEL_1].type = SDP_MEDIA_APPLICATION;
+
         dcb_p->media_cap_tbl->cap[CC_AUDIO_1].enabled = FALSE;
         dcb_p->media_cap_tbl->cap[CC_VIDEO_1].enabled = FALSE;
+        
+
+
+
+
+
+
+
+
+        dcb_p->media_cap_tbl->cap[CC_DATACHANNEL_1].enabled = TRUE;
+
+        dcb_p->media_cap_tbl->cap[CC_AUDIO_1].support_security = TRUE;
+        dcb_p->media_cap_tbl->cap[CC_VIDEO_1].support_security = TRUE;
+        dcb_p->media_cap_tbl->cap[CC_DATACHANNEL_1].support_security = TRUE;
 
         
 
@@ -148,17 +173,11 @@ static const cc_media_cap_table_t *gsmsdp_get_media_capability (fsmdef_dcb_t *dc
         dcb_p->media_cap_tbl->cap[CC_VIDEO_1].support_direction =
           SDP_DIRECTION_RECVONLY;
 
-        
-
-
-
-
-
-
-
-
-        dcb_p->media_cap_tbl->cap[CC_DATACHANNEL_1].enabled = TRUE;
+        dcb_p->media_cap_tbl->cap[CC_DATACHANNEL_1].support_direction =
+          SDP_DIRECTION_SENDRECV;
     } else {
+        *(dcb_p->media_cap_tbl) = g_media_table;
+
         dcb_p->media_cap_tbl->cap[CC_DATACHANNEL_1].enabled = FALSE;
 
         if ( dcb_p->video_pref == SDP_DIRECTION_INACTIVE) {
