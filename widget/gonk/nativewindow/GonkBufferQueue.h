@@ -18,9 +18,6 @@
 #ifndef NATIVEWINDOW_GONKBUFFERQUEUE_H
 #define NATIVEWINDOW_GONKBUFFERQUEUE_H
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-
 #include <gui/IGraphicBufferAlloc.h>
 #include <gui/IGraphicBufferProducer.h>
 
@@ -31,10 +28,14 @@
 #include <utils/Vector.h>
 #include <utils/threads.h>
 
+#include "mozilla/layers/LayersSurfaces.h"
+
 namespace android {
 
 
 class GonkBufferQueue : public BnGraphicBufferProducer {
+    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
+
 public:
     enum { MIN_UNDEQUEUED_BUFFERS = 2 };
     enum { NUM_BUFFER_SLOTS = 32 };
@@ -237,6 +238,7 @@ public:
 
         BufferItem()
          :
+           mSurfaceDescriptor(SurfaceDescriptor()),
            mTransform(0),
            mScalingMode(NATIVE_WINDOW_SCALING_MODE_FREEZE),
            mTimestamp(0),
@@ -248,6 +250,9 @@ public:
         
         
         sp<GraphicBuffer> mGraphicBuffer;
+
+        
+        SurfaceDescriptor mSurfaceDescriptor;
 
         
         Rect mCrop;
@@ -295,8 +300,7 @@ public:
     
     
     
-    status_t releaseBuffer(int buf, EGLDisplay display, EGLSyncKHR fence,
-            const sp<Fence>& releaseFence);
+    status_t releaseBuffer(int buf, const sp<Fence>& releaseFence);
 
     
     
@@ -360,29 +364,23 @@ public:
     
     status_t setTransformHint(uint32_t hint);
 
+    int getGeneration();
+
+    SurfaceDescriptor *getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer);
+
 private:
     
     
-    void freeBufferLocked(int index);
-
-    
-    
-    void freeAllBuffersLocked();
-
-    
-    
-    void freeAllBuffersExceptHeadLocked();
+    void releaseBufferFreeListUnlocked(nsTArray<SurfaceDescriptor>& freeList);
 
     
     
     
-    
-    status_t drainQueueLocked();
 
     
     
     
-    status_t drainQueueAndFreeBuffersLocked();
+    void freeAllBuffersLocked(nsTArray<SurfaceDescriptor>& freeList);
 
     
     
@@ -414,14 +412,13 @@ private:
     struct BufferSlot {
 
         BufferSlot()
-        : mEglDisplay(EGL_NO_DISPLAY),
+        : mSurfaceDescriptor(SurfaceDescriptor()),
           mBufferState(BufferSlot::FREE),
           mRequestBufferCalled(false),
           mTransform(0),
           mScalingMode(NATIVE_WINDOW_SCALING_MODE_FREEZE),
           mTimestamp(0),
           mFrameNumber(0),
-          mEglFence(EGL_NO_SYNC_KHR),
           mAcquireCalled(false),
           mNeedsCleanupOnRelease(false) {
             mCrop.makeInvalid();
@@ -432,7 +429,7 @@ private:
         sp<GraphicBuffer> mGraphicBuffer;
 
         
-        EGLDisplay mEglDisplay;
+        SurfaceDescriptor mSurfaceDescriptor;
 
         
         
@@ -508,7 +505,7 @@ private:
         
         
         
-        EGLSyncKHR mEglFence;
+        
 
         
         
@@ -631,6 +628,9 @@ private:
 
     
     uint32_t mTransformHint;
+
+    
+    uint32_t mGeneration;
 };
 
 

@@ -18,13 +18,13 @@
 #ifndef NATIVEWINDOW_GONKCONSUMERBASE_H
 #define NATIVEWINDOW_GONKCONSUMERBASE_H
 
-#include <gui/BufferQueue.h>
-
 #include <ui/GraphicBuffer.h>
 
 #include <utils/String8.h>
 #include <utils/Vector.h>
 #include <utils/threads.h>
+
+#include "GonkBufferQueue.h"
 
 namespace android {
 
@@ -163,8 +163,7 @@ protected:
     
     
     
-    virtual status_t releaseBufferLocked(int buf, EGLDisplay display,
-           EGLSyncKHR eglFence);
+    virtual status_t releaseBufferLocked(int buf);
 
     
     
@@ -215,7 +214,7 @@ protected:
 
     
     
-    sp<GonkBufferQueue> mGonkBufferQueue;
+    sp<GonkBufferQueue> mBufferQueue;
 
     
     

@@ -472,7 +472,11 @@ bool OmxDecoder::AllocateMediaResources()
 
   if ((mVideoTrack != nullptr) && (mVideoSource == nullptr)) {
     mNativeWindow = new GonkNativeWindow();
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 18
+    mNativeWindowClient = new GonkNativeWindowClient(mNativeWindow->getBufferQueue());
+#else
     mNativeWindowClient = new GonkNativeWindowClient(mNativeWindow);
+#endif
 
     
     
