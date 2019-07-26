@@ -10203,7 +10203,14 @@ let ICCRecordHelper = {
         
         RIL.iccInfo.mcc = imsi.substr(0,3);
         
-        RIL.iccInfo.mnc = imsi.substr(3, ad[3]);
+        let mncLength = ad && ad[3];
+        if (!mncLength) {
+          
+          
+          let index = MCC_TABLE_FOR_MNC_LENGTH_IS_3.indexOf(RIL.iccInfo.mcc);
+          mncLength = (index !== -1) ? 3 : 2;
+        }
+        RIL.iccInfo.mnc = imsi.substr(3, mncLength);
         if (DEBUG) debug("MCC: " + RIL.iccInfo.mcc + " MNC: " + RIL.iccInfo.mnc);
         ICCUtilsHelper.handleICCInfoChange();
       }

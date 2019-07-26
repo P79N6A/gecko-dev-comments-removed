@@ -2555,4 +2555,41 @@ this.PDU_CDMA_MSG_CODING_IS_91_TYPE_CLI = 0x84;
 this.PDU_CDMA_MSG_CODING_IS_91_TYPE_SMS = 0x85;
 
 
+
+
+
+
+
+
+this.MCC_TABLE_FOR_MNC_LENGTH_IS_3 = [
+  "302",  
+  "310",  
+  "311",  
+  "312",  
+  "313",  
+  "316",  
+  "330",  
+  "334",  
+  "338",  
+  "342",  
+  "344",  
+  "346",  
+  "348",  
+  "350",  
+  "352",  
+  "354",  
+  "356",  
+  "358",  
+  "360",  
+  "365",  
+  "366",  
+  "376",  
+  "405",  
+  "708",  
+  "722",  
+  "732",  
+  "750"   
+];
+
+
 this.EXPORTED_SYMBOLS = Object.keys(this);
