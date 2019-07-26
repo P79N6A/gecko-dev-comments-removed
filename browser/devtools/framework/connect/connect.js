@@ -71,7 +71,7 @@ function onConnectionReady(aType, aTraits) {
     document.body.classList.remove("connecting");
     document.body.classList.add("actors-mode");
 
-    let parent = document.getElementById("actors");
+    let parent = document.getElementById("tabActors");
 
     
     let globals = JSON.parse(JSON.stringify(aResponse));
@@ -85,6 +85,8 @@ function onConnectionReady(aType, aTraits) {
       buildLink(aResponse.tabs[i], parent, i == aResponse.selected);
     }
 
+    let gParent = document.getElementById("globalActors");
+
     
     if (Object.keys(globals).length > 1) {
       let a = document.createElement("a");
@@ -92,10 +94,10 @@ function onConnectionReady(aType, aTraits) {
         openToolbox(globals, true);
 
       }
-      a.title = a.textContent = window.l10n.GetStringFromName("remoteProcess");
+      a.title = a.textContent = window.l10n.GetStringFromName("mainProcess");
       a.className = "remote-process";
       a.href = "#";
-      parent.appendChild(a);
+      gParent.appendChild(a);
     }
     
     let selectedLink = parent.querySelector("a.selected");
@@ -164,4 +166,5 @@ function handleConnectionTimeout() {
 function openToolbox(form, chrome=false) {
   let target = TargetFactory.forRemote(form, gClient, chrome);
   gDevTools.showToolbox(target, "webconsole", Toolbox.HostType.WINDOW);
+  window.close();
 }
