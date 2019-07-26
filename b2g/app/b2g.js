@@ -818,6 +818,9 @@ pref("gfx.canvas.azure.accelerated", true);
 pref("gfx.canvas.skiagl.dynamic-cache", true);
 
 
+pref("gfx.gralloc.fence-with-readpixels", true);
+
+
 pref("dom.telephony.enabled", true);
 
 
