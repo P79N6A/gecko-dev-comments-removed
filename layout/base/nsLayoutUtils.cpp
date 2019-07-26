@@ -110,12 +110,14 @@ typedef FrameMetrics::ViewID ViewID;
 
 static ViewID sScrollIdCounter = FrameMetrics::START_SCROLL_ID;
 
+#ifdef MOZ_FLEXBOX
 
 
 static int32_t sIndexOfFlexInDisplayTable;
 static int32_t sIndexOfInlineFlexInDisplayTable;
 
 static bool sAreFlexKeywordIndicesInitialized = false;
+#endif 
 
 typedef nsDataHashtable<nsUint64HashKey, nsIContent*> ContentMap;
 static ContentMap* sContentMap = nullptr;
