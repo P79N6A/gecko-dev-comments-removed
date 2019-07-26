@@ -3,10 +3,8 @@
 
 
 
-#include "MediaDocument.h"
+#include "ImageDocument.h"
 #include "nsRect.h"
-#include "nsHTMLDocument.h"
-#include "nsIImageDocument.h"
 #include "nsIImageLoadingContent.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIDocumentInlines.h"
@@ -52,8 +50,6 @@
 namespace mozilla {
 namespace dom {
  
-class ImageDocument;
-
 class ImageListener : public MediaDocumentStreamListener
 {
 public:
@@ -62,95 +58,6 @@ public:
 
   
   NS_IMETHOD OnStartRequest(nsIRequest* request, nsISupports *ctxt);
-};
-
-class ImageDocument : public MediaDocument
-                    , public nsIImageDocument
-                    , public imgINotificationObserver
-                    , public nsIDOMEventListener
-{
-public:
-  ImageDocument();
-  virtual ~ImageDocument();
-
-  NS_DECL_ISUPPORTS_INHERITED
-
-  virtual nsresult Init();
-
-  virtual nsresult StartDocumentLoad(const char*         aCommand,
-                                     nsIChannel*         aChannel,
-                                     nsILoadGroup*       aLoadGroup,
-                                     nsISupports*        aContainer,
-                                     nsIStreamListener** aDocListener,
-                                     bool                aReset = true,
-                                     nsIContentSink*     aSink = nullptr);
-
-  virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject);
-  virtual void Destroy();
-  virtual void OnPageShow(bool aPersisted,
-                          EventTarget* aDispatchStartTarget);
-
-  NS_DECL_NSIIMAGEDOCUMENT
-  NS_DECL_IMGINOTIFICATIONOBSERVER
-
-  
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
-
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ImageDocument, MediaDocument)
-
-  friend class ImageListener;
-
-  void DefaultCheckOverflowing() { CheckOverflowing(mResizeImageByDefault); }
-
-  virtual nsXPCClassInfo* GetClassInfo();
-protected:
-  virtual nsresult CreateSyntheticDocument();
-
-  nsresult CheckOverflowing(bool changeState);
-
-  void UpdateTitleAndCharset();
-
-  nsresult ScrollImageTo(int32_t aX, int32_t aY, bool restoreImage);
-
-  float GetRatio() {
-    return std::min(mVisibleWidth / mImageWidth,
-                    mVisibleHeight / mImageHeight);
-  }
-
-  void ResetZoomLevel();
-  float GetZoomLevel();
-
-  enum eModeClasses {
-    eNone,
-    eShrinkToFit,
-    eOverflowing
-  };
-  void SetModeClass(eModeClasses mode);
-
-  nsresult OnStartContainer(imgIRequest* aRequest, imgIContainer* aImage);
-  nsresult OnStopRequest(imgIRequest *aRequest, nsresult aStatus);
-
-  nsCOMPtr<nsIContent>          mImageContent;
-
-  float                         mVisibleWidth;
-  float                         mVisibleHeight;
-  int32_t                       mImageWidth;
-  int32_t                       mImageHeight;
-
-  bool                          mResizeImageByDefault;
-  bool                          mClickResizingEnabled;
-  bool                          mImageIsOverflowing;
-  
-  bool                          mImageIsResized;
-  
-  
-  
-  bool                          mShouldResize;
-  bool                          mFirstResize;
-  
-  bool                          mObservingImageLoader;
-
-  float                         mOriginalZoomLevel;
 };
 
 ImageListener::ImageListener(ImageDocument* aDocument)
