@@ -580,9 +580,17 @@ BrowserGlue.prototype = {
           (ss.sessionType == Ci.nsISessionStartup.RECOVER_SESSION);
       }
       catch (ex) {  }
-      if (shouldCheck &&
-          !shell.isDefaultBrowser(true, false) &&
-          !willRecoverSession) {
+
+      let isDefault = shell.isDefaultBrowser(true, false); 
+      try {
+        
+        
+        Services.telemetry.getHistogramById("BROWSER_IS_USER_DEFAULT")
+                          .add(isDefault);
+      }
+      catch (ex) {  }
+
+      if (shouldCheck && !isDefault && !willRecoverSession) {
         Services.tm.mainThread.dispatch(function() {
           var win = this.getMostRecentBrowserWindow();
           var brandBundle = win.document.getElementById("bundle_brand");
