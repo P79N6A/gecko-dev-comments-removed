@@ -89,7 +89,7 @@ class RemoteAutomation(Automation):
     def checkForJavaException(self, logcat):
         found_exception = False
         for i, line in enumerate(logcat):
-            if "REPORTING UNCAUGHT EXCEPTION" in line:
+            if "REPORTING UNCAUGHT EXCEPTION" in line or "FATAL EXCEPTION" in line:
                 
                 
                 
