@@ -580,6 +580,9 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
 
         
         public void drawBackground() {
+            
+            
+
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
 
             
@@ -612,6 +615,9 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
 
         
         public void drawForeground() {
+            
+            
+
             
             if (mExtraLayers.size() > 0) {
                 for (Layer layer : mExtraLayers) {

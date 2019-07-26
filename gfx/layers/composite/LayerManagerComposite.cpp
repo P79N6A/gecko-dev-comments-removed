@@ -348,19 +348,23 @@ LayerManagerComposite::Render()
   }
 
   
+  mCompositor->SaveState();
   mCompositor->GetWidget()->DrawWindowUnderlay(this, nsIntRect(actualBounds.x,
                                                                actualBounds.y,
                                                                actualBounds.width,
                                                                actualBounds.height));
+  mCompositor->RestoreState();
 
   
   RootLayer()->RenderLayer(nsIntPoint(0, 0), clipRect);
 
   
+  mCompositor->SaveState();
   mCompositor->GetWidget()->DrawWindowOverlay(this, nsIntRect(actualBounds.x,
                                                               actualBounds.y,
                                                               actualBounds.width,
                                                               actualBounds.height));
+  mCompositor->RestoreState();
 
   
   RenderDebugOverlay(actualBounds);
