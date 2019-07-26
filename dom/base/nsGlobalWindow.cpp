@@ -35,6 +35,7 @@
 #include "nsIScriptTimeoutHandler.h"
 #include "nsIController.h"
 #include "nsScriptNameSpaceManager.h"
+#include "nsISlowScriptDebug.h"
 #include "nsWindowMemoryReporter.h"
 #include "WindowNamedPropertiesHandler.h"
 
@@ -10769,27 +10770,43 @@ nsGlobalWindow::ShowSlowScriptDialog()
   unsigned lineno;
   bool hasFrame = JS::DescribeScriptedCaller(cx, &filename, &lineno);
 
-  bool debugPossible = hasFrame && js::CanCallContextDebugHandler(cx);
-#ifdef MOZ_JSDEBUGGER
   
-  if (debugPossible) {
-    bool jsds_IsOn = false;
-    const char jsdServiceCtrID[] = "@mozilla.org/js/jsd/debugger-service;1";
-    nsCOMPtr<jsdIExecutionHook> jsdHook;
-    nsCOMPtr<jsdIDebuggerService> jsds = do_GetService(jsdServiceCtrID, &rv);
+  nsCOMPtr<nsISlowScriptDebugCallback> debugCallback;
+  bool oldDebugPossible = false;
 
-    
+  if (hasFrame) {
+    const char *debugCID = "@mozilla.org/dom/slow-script-debug;1";
+    nsCOMPtr<nsISlowScriptDebug> debugService = do_GetService(debugCID, &rv);
     if (NS_SUCCEEDED(rv)) {
-      jsds->GetDebuggerHook(getter_AddRefs(jsdHook));
-      jsds->GetIsOn(&jsds_IsOn);
+      debugService->GetActivationHandler(getter_AddRefs(debugCallback));
     }
 
-    
-    
-    
-    debugPossible = ((jsds_IsOn && (jsdHook != nullptr)) || !jsds_IsOn);
-  }
+    if (!debugCallback) {
+      oldDebugPossible = js::CanCallContextDebugHandler(cx);
+#ifdef MOZ_JSDEBUGGER
+      
+      if (oldDebugPossible) {
+        bool jsds_IsOn = false;
+        const char jsdServiceCtrID[] = "@mozilla.org/js/jsd/debugger-service;1";
+        nsCOMPtr<jsdIExecutionHook> jsdHook;
+        nsCOMPtr<jsdIDebuggerService> jsds = do_GetService(jsdServiceCtrID, &rv);
+
+        
+        if (NS_SUCCEEDED(rv)) {
+          jsds->GetDebuggerHook(getter_AddRefs(jsdHook));
+          jsds->GetIsOn(&jsds_IsOn);
+        }
+
+        
+        
+        
+        oldDebugPossible = ((jsds_IsOn && (jsdHook != nullptr)) || !jsds_IsOn);
+      }
 #endif
+    }
+  }
+
+  bool showDebugButton = debugCallback || oldDebugPossible;
 
   
   nsXPIDLString title, msg, stopButton, waitButton, debugButton, neverShowDlg;
@@ -10820,7 +10837,7 @@ nsGlobalWindow::ShowSlowScriptDialog()
   }
 
 
-  if (debugPossible) {
+  if (showDebugButton) {
     tmp = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
                                              "DebugScriptButton",
                                              debugButton);
@@ -10846,7 +10863,7 @@ nsGlobalWindow::ShowSlowScriptDialog()
 
   
   if (NS_FAILED(rv) || !title || !msg || !stopButton || !waitButton ||
-      (!debugButton && debugPossible) || !neverShowDlg) {
+      (!debugButton && showDebugButton) || !neverShowDlg) {
     NS_ERROR("Failed to get localized strings.");
     return ContinueSlowScript;
   }
@@ -10876,7 +10893,7 @@ nsGlobalWindow::ShowSlowScriptDialog()
                           (nsIPrompt::BUTTON_POS_0 + nsIPrompt::BUTTON_POS_1));
 
   
-  if (debugPossible)
+  if (showDebugButton)
     buttonFlags += nsIPrompt::BUTTON_TITLE_IS_STRING * nsIPrompt::BUTTON_POS_2;
 
   
@@ -10893,8 +10910,15 @@ nsGlobalWindow::ShowSlowScriptDialog()
   if (NS_SUCCEEDED(rv) && (buttonPressed == 0)) {
     return neverShowDlgChk ? AlwaysContinueSlowScript : ContinueSlowScript;
   }
-  if ((buttonPressed == 2) && debugPossible) {
-    return js_CallContextDebugHandler(cx) ? ContinueSlowScript : KillSlowScript;
+  if (buttonPressed == 2) {
+    if (debugCallback) {
+      rv = debugCallback->HandleSlowScriptDebug(this);
+      return NS_SUCCEEDED(rv) ? ContinueSlowScript : KillSlowScript;
+    }
+
+    if (oldDebugPossible) {
+      return js_CallContextDebugHandler(cx) ? ContinueSlowScript : KillSlowScript;
+    }
   }
   JS_ClearPendingException(cx);
   return KillSlowScript;
