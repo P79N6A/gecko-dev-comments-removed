@@ -248,12 +248,6 @@ DeviceManagerD3D9::Init()
     return false;
   }
 
-  if (!PL_strncasecmp(ident.Driver, "nvumdshim.dll", strlen(ident.Driver))) {
-    
-    
-    return false;
-  }
-
   D3DPRESENT_PARAMETERS pp;
   memset(&pp, 0, sizeof(D3DPRESENT_PARAMETERS));
 
