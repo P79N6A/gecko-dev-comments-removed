@@ -265,7 +265,7 @@ pref("gfx.font_rendering.opentype_svg.enabled", false);
 #ifdef XP_WIN
 
 
-pref("gfx.canvas.azure.backends", "direct2d,cairo");
+pref("gfx.canvas.azure.backends", "direct2d,skia,cairo");
 pref("gfx.content.azure.backends", "direct2d");
 pref("gfx.content.azure.enabled", true);
 #else
