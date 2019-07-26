@@ -5,12 +5,13 @@
 
 
 #include "TraceLogging.h"
+
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
-#include <unistd.h>
-#include <string.h>
 #include <stdint.h>
+#include <string.h>
+#include <unistd.h>
 
 using namespace js;
 

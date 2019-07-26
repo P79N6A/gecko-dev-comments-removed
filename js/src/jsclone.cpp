@@ -4,7 +4,6 @@
 
 
 
-#include "mozilla/Endian.h"
 
 
 
@@ -31,6 +30,7 @@
 #include "jsclone.h"
 #include "jswrapper.h"
 
+#include "mozilla/Endian.h"
 #include "mozilla/FloatingPoint.h"
 
 #include "jsdate.h"

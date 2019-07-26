@@ -4,16 +4,15 @@
 
 
 
-#include "jsanalyze.h"
+#include "jsanalyzeinlines.h"
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/PodOperations.h"
 
-#include "jscompartment.h"
 #include "jscntxt.h"
+#include "jscompartment.h"
 
-#include "jsanalyzeinlines.h"
 #include "jsinferinlines.h"
 #include "jsopcodeinlines.h"
 
