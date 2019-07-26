@@ -773,8 +773,9 @@ class HashTable : private AllocPolicy
         ~Enum() {
             if (rekeyed)
                 table.checkOverRemoved();
+
             if (removed)
-                table.checkUnderloaded();
+                table.compactIfUnderloaded();
         }
     };
 
@@ -952,11 +953,15 @@ class HashTable : private AllocPolicy
         return entryCount + removedCount >= ((sMaxAlphaFrac * capacity()) >> 8);
     }
 
+    
+    static bool wouldBeUnderloaded(uint32_t capacity, uint32_t entryCount)
+    {
+        return capacity > sMinSize && entryCount <= ((sMinAlphaFrac * capacity) >> 8);
+    }
+
     bool underloaded()
     {
-        uint32_t tableCapacity = capacity();
-        return tableCapacity > sMinSize &&
-               entryCount <= ((sMinAlphaFrac * tableCapacity) >> 8);
+        return wouldBeUnderloaded(capacity(), entryCount);
     }
 
     static bool match(Entry &e, const Lookup &l)
@@ -1147,6 +1152,23 @@ class HashTable : private AllocPolicy
         if (underloaded()) {
             METER(stats.shrinks++);
             (void) changeTableSize(-1);
+        }
+    }
+
+    
+    
+    
+    void compactIfUnderloaded()
+    {
+        int32_t resizeLog2 = 0;
+        uint32_t newCapacity = capacity();
+        while (wouldBeUnderloaded(newCapacity, entryCount)) {
+            newCapacity = newCapacity >> 1;
+            resizeLog2--;
+        }
+
+        if (resizeLog2 != 0) {
+            changeTableSize(resizeLog2);
         }
     }
 
