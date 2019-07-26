@@ -16,6 +16,11 @@ XPCOMUtils.defineLazyModuleGetter(this,
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
+
+function makeURI(uri, originCharset, baseURI) {
+  return Services.io.newURI(uri, originCharset, baseURI);
+}
+
 addMessageListener("Browser:HideSessionRestoreButton", function (message) {
   
   let doc = content.document;
@@ -237,11 +242,6 @@ let ClickEventHandler = {
               aNode instanceof content.HTMLLinkElement);
     }
 
-    function makeURLAbsolute(aBase, aUrl) {
-      
-      return makeURI(aUrl, null, makeURI(aBase)).spec;
-    }
-
     let node = event.target;
     while (node && !isHTMLLink(node)) {
       node = node.parentNode;
@@ -257,14 +257,15 @@ let ClickEventHandler = {
       if (node.nodeType == content.Node.ELEMENT_NODE) {
         href = node.getAttributeNS("http://www.w3.org/1999/xlink", "href");
         if (href)
-          baseURI = node.baseURI;
+          baseURI = node.ownerDocument.baseURIObject;
       }
       node = node.parentNode;
     }
 
     
     
-    return [href ? makeURLAbsolute(baseURI, href) : null, null];
+    
+    return [href ? makeURI(href, null, baseURI).spec : null, null];
   }
 };
 ClickEventHandler.init();
