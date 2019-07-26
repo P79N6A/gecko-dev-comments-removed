@@ -63,10 +63,16 @@ public:
   virtual SECStatus VerifySignedData(const CERTSignedData* signedData,
                                      const CERTCertificate* cert);
 
+  virtual SECStatus CheckRevocation(insanity::pkix::EndEntityOrCA endEntityOrCA,
+                                    const CERTCertificate* cert,
+                           CERTCertificate* issuerCert,
+                                    PRTime time,
+                        const SECItem* stapledOCSPResponse);
+
 private:
   const SECTrustType mCertDBTrustType;
-
-
+  const bool mOCSPDownloadEnabled;
+  const bool mOCSPStrict;
   void* mPinArg; 
 };
 

@@ -178,4 +178,16 @@ AppTrustDomain::VerifySignedData(const CERTSignedData* signedData,
   return ::insanity::pkix::VerifySignedData(signedData, cert, mPinArg);
 }
 
+SECStatus
+AppTrustDomain::CheckRevocation(EndEntityOrCA,
+                                const CERTCertificate*,
+                                 CERTCertificate*,
+                                PRTime time,
+                                 const SECItem*)
+{
+  
+  
+  return SECSuccess;
+}
+
 } }

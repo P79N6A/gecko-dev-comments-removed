@@ -38,12 +38,12 @@ typedef ScopedPtr<SECMODModule, SECMOD_DestroyModule> ScopedSECMODModule;
 } 
 
 NSSCertDBTrustDomain::NSSCertDBTrustDomain(SECTrustType certDBTrustType,
-                                           bool ,
-                                           bool ,
+                                           bool ocspDownloadEnabled,
+                                           bool ocspStrict,
                                            void* pinArg)
   : mCertDBTrustType(certDBTrustType)
-
-
+  , mOCSPDownloadEnabled(ocspDownloadEnabled)
+  , mOCSPStrict(ocspStrict)
   , mPinArg(pinArg)
 {
 }
@@ -122,6 +122,118 @@ NSSCertDBTrustDomain::VerifySignedData(const CERTSignedData* signedData,
                                        const CERTCertificate* cert)
 {
   return ::insanity::pkix::VerifySignedData(signedData, cert, mPinArg);
+}
+
+SECStatus
+NSSCertDBTrustDomain::CheckRevocation(
+  insanity::pkix::EndEntityOrCA endEntityOrCA,
+  const CERTCertificate* cert,
+   CERTCertificate* issuerCert,
+  PRTime time,
+   const SECItem* stapledOCSPResponse)
+{
+  
+  
+
+  
+  
+
+  PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+         ("NSSCertDBTrustDomain: Top of CheckRevocation\n"));
+
+  PORT_Assert(cert);
+  PORT_Assert(issuerCert);
+  if (!cert || !issuerCert) {
+    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+    return SECFailure;
+  }
+
+  
+  
+  
+  
+  if (stapledOCSPResponse) {
+    PR_ASSERT(endEntityOrCA == MustBeEndEntity);
+    SECStatus rv = VerifyEncodedOCSPResponse(*this, cert, issuerCert, time,
+                                             stapledOCSPResponse);
+    if (rv == SECSuccess) {
+      return rv;
+    }
+    if (PR_GetError() != SEC_ERROR_OCSP_OLD_RESPONSE) {
+      return rv;
+    }
+  }
+
+  
+
+  
+  
+  
+  
+  if (mOCSPDownloadEnabled) {
+    
+    if (endEntityOrCA == MustBeCA) {
+      PR_ASSERT(!stapledOCSPResponse);
+      return SECSuccess;
+    }
+
+    ScopedPtr<char, PORT_Free_string>
+      url(CERT_GetOCSPAuthorityInfoAccessLocation(cert));
+
+    
+    
+    
+    
+    if (!url) {
+      if (stapledOCSPResponse) {
+        PR_SetError(SEC_ERROR_OCSP_OLD_RESPONSE, 0);
+        return SECFailure;
+      }
+      return SECSuccess;
+    }
+
+    ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+    if (!arena) {
+      return SECFailure;
+    }
+
+    const SECItem* request
+      = CreateEncodedOCSPRequest(arena.get(), cert, issuerCert);
+    if (!request) {
+      return SECFailure;
+    }
+
+    const SECItem* response(CERT_PostOCSPRequest(arena.get(), url.get(),
+                                                 request));
+    if (!response) {
+      if (mOCSPStrict) {
+        return SECFailure;
+      }
+      
+    } else {
+      SECStatus rv = VerifyEncodedOCSPResponse(*this, cert, issuerCert, time,
+                                               response);
+      if (rv == SECSuccess) {
+        return SECSuccess;
+      }
+      PRErrorCode error = PR_GetError();
+      switch (error) {
+        case SEC_ERROR_OCSP_UNKNOWN_CERT:
+        case SEC_ERROR_REVOKED_CERTIFICATE:
+          return SECFailure;
+        default:
+          if (mOCSPStrict) {
+            return SECFailure;
+          }
+          break; 
+      }
+    }
+  }
+
+  PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+         ("NSSCertDBTrustDomain: end of CheckRevocation"));
+
+  return SECSuccess;
 }
 
 namespace {
