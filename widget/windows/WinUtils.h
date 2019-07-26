@@ -55,6 +55,16 @@ public:
 
 
 
+  static bool PeekMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
+                          UINT aLastMessage, UINT aOption);
+  static bool GetMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
+                         UINT aLastMessage);
+  
+
+
+
+
+
 
 
 

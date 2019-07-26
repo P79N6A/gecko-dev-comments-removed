@@ -53,6 +53,13 @@ public:
 
 
 
+  static bool ProcessRawKeyMessage(const MSG& aMsg);
+
+  
+
+
+
+
 
   static bool ProcessMessage(nsWindow* aWindow, UINT aMessage,
                              WPARAM& aWParam, LPARAM& aLParam,

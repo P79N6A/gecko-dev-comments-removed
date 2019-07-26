@@ -96,6 +96,9 @@ protected:
 public:
   static void     Initialize(void);
   static void     Terminate(void);
+
+  static bool     ProcessRawKeyMessage(const MSG& aMsg);
+
   static void     SetIMEOpenState(bool);
   static bool     GetIMEOpenState(void);
 
@@ -160,6 +163,11 @@ public:
       default:
         return nullptr;
     }
+  }
+
+  static ITfMessagePump* GetMessagePump()
+  {
+    return sMessagePump;
   }
 
   static void*    GetTextStore()
@@ -630,6 +638,10 @@ protected:
 
   
   static ITfThreadMgr*  sTsfThreadMgr;
+  
+  static ITfMessagePump* sMessagePump;
+  
+  static ITfKeystrokeMgr* sKeystrokeMgr;
   
   static ITfDisplayAttributeMgr* sDisplayAttrMgr;
   
