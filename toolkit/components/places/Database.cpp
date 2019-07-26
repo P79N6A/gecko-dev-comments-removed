@@ -344,6 +344,7 @@ Database::Database()
   , mDBPageSize(0)
   , mDatabaseStatus(nsINavHistoryService::DATABASE_STATUS_OK)
   , mShuttingDown(false)
+  , mClosed(false)
 {
   
   MOZ_ASSERT(!gDatabase);
@@ -1914,6 +1915,9 @@ Database::Shutdown()
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mShuttingDown);
+  MOZ_ASSERT(!mClosed);
+
+  mShuttingDown = true;
 
   mMainThreadStatements.FinalizeStatements();
   mMainThreadAsyncStatements.FinalizeStatements();
@@ -1929,9 +1933,7 @@ Database::Shutdown()
   (void)mMainConn->AsyncClose(closeListener);
   closeListener->Spin();
 
-  
-  
-  mShuttingDown = true;
+  mClosed = true;
 }
 
 
