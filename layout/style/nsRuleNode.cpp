@@ -2074,6 +2074,14 @@ nsRuleNode::ResolveVariableReferences(const nsStyleStructID aSID,
     nsCSSValueTokenStream* tokenStream = value->GetTokenStreamValue();
 
     
+    
+    
+    
+    
+    
+    
+
+    
     parser.ParsePropertyWithVariableReferences(
         tokenStream->mPropertyID, tokenStream->mShorthandPropertyID,
         tokenStream->mTokenStream, variables, aRuleData,

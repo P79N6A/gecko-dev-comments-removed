@@ -48,19 +48,27 @@ ShouldIgnoreColors(nsRuleData *aRuleData)
 
 
 static void
-TryToStartImageLoadOnValue(const nsCSSValue& aValue, nsIDocument* aDocument)
+TryToStartImageLoadOnValue(const nsCSSValue& aValue, nsIDocument* aDocument,
+                           nsCSSValueTokenStream* aTokenStream)
 {
   MOZ_ASSERT(aDocument);
 
   if (aValue.GetUnit() == eCSSUnit_URL) {
     aValue.StartImageLoad(aDocument);
+    if (aTokenStream) {
+      aTokenStream->mImageValues.PutEntry(aValue.GetImageStructValue());
+    }
   }
   else if (aValue.GetUnit() == eCSSUnit_Image) {
     
     imgIRequest* request = aValue.GetImageValue(nullptr);
 
     if (request) {
-      aDocument->StyleImageLoader()->MaybeRegisterCSSImage(aValue.GetImageStructValue());
+      mozilla::css::ImageValue* imageValue = aValue.GetImageStructValue();
+      aDocument->StyleImageLoader()->MaybeRegisterCSSImage(imageValue);
+      if (aTokenStream) {
+        aTokenStream->mImageValues.PutEntry(imageValue);
+      }
     }
   }
   else if (aValue.EqualsFunction(eCSSKeyword__moz_image_rect)) {
@@ -68,25 +76,27 @@ TryToStartImageLoadOnValue(const nsCSSValue& aValue, nsIDocument* aDocument)
     NS_ABORT_IF_FALSE(arguments->Count() == 6, "unexpected num of arguments");
 
     const nsCSSValue& image = arguments->Item(1);
-    TryToStartImageLoadOnValue(image, aDocument);
+    TryToStartImageLoadOnValue(image, aDocument, aTokenStream);
   }
 }
 
 static void
 TryToStartImageLoad(const nsCSSValue& aValue, nsIDocument* aDocument,
-                    nsCSSProperty aProperty)
+                    nsCSSProperty aProperty,
+                    nsCSSValueTokenStream* aTokenStream)
 {
   if (aValue.GetUnit() == eCSSUnit_List) {
     for (const nsCSSValueList* l = aValue.GetListValue(); l; l = l->mNext) {
-      TryToStartImageLoad(l->mValue, aDocument, aProperty);
+      TryToStartImageLoad(l->mValue, aDocument, aProperty, aTokenStream);
     }
   } else if (nsCSSProps::PropHasFlags(aProperty,
                                       CSS_PROPERTY_IMAGE_IS_IN_ARRAY_0)) {
     if (aValue.GetUnit() == eCSSUnit_Array) {
-      TryToStartImageLoadOnValue(aValue.GetArrayValue()->Item(0), aDocument);
+      TryToStartImageLoadOnValue(aValue.GetArrayValue()->Item(0), aDocument,
+                                 aTokenStream);
     }
   } else {
-    TryToStartImageLoadOnValue(aValue, aDocument);
+    TryToStartImageLoadOnValue(aValue, aDocument, aTokenStream);
   }
 }
 
@@ -111,9 +121,28 @@ MapSinglePropertyInto(nsCSSProperty aProp,
                       nsRuleData* aRuleData)
 {
     NS_ABORT_IF_FALSE(aValue->GetUnit() != eCSSUnit_Null, "oops");
+
+    
+    
+    
+    
+    
+    
+    
+    
+    NS_ABORT_IF_FALSE(aTarget->GetUnit() == eCSSUnit_TokenStream ||
+                      aTarget->GetUnit() == eCSSUnit_Null,
+                      "aTarget must only be a token stream (when re-parsing "
+                      "properties with variable references) or null");
+
+    nsCSSValueTokenStream* tokenStream =
+        aTarget->GetUnit() == eCSSUnit_TokenStream ?
+            aTarget->GetTokenStreamValue() :
+            nullptr;
+
     if (ShouldStartImageLoads(aRuleData, aProp)) {
         nsIDocument* doc = aRuleData->mPresContext->Document();
-        TryToStartImageLoad(*aValue, doc, aProp);
+        TryToStartImageLoad(*aValue, doc, aProp, tokenStream);
     }
     *aTarget = *aValue;
     if (nsCSSProps::PropHasFlags(aProp,

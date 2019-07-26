@@ -1355,6 +1355,18 @@ struct nsCSSValueTokenStream {
   uint32_t mLineNumber;
   uint32_t mLineOffset;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsTHashtable<nsRefPtrHashKey<mozilla::css::ImageValue> > mImageValues;
+
 private:
   nsCSSValueTokenStream(const nsCSSValueTokenStream& aOther) MOZ_DELETE;
   nsCSSValueTokenStream& operator=(const nsCSSValueTokenStream& aOther) MOZ_DELETE;
