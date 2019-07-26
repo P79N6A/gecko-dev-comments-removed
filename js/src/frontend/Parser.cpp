@@ -3066,7 +3066,6 @@ Parser<FullParseHandler>::checkDestructuring(BindData<FullParseHandler> *data,
 
     Rooted<StaticBlockObject *> blockObj(context);
     blockObj = data && data->binder == bindLet ? data->let.blockObj.get() : nullptr;
-    uint32_t blockCountBefore = blockObj ? blockObj->slotCount() : 0;
 
     if (left->isKind(PNK_ARRAY)) {
         for (ParseNode *pn = left->pn_head; pn; pn = pn->pn_next) {
@@ -3119,38 +3118,6 @@ Parser<FullParseHandler>::checkDestructuring(BindData<FullParseHandler> *data,
             if (!ok)
                 return false;
         }
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (toplevel && blockObj && blockCountBefore == blockObj->slotCount()) {
-        bool redeclared;
-        RootedId id(context, INT_TO_JSID(blockCountBefore));
-        if (!StaticBlockObject::addVar(context, blockObj, id, blockCountBefore, &redeclared))
-            return false;
-        JS_ASSERT(!redeclared);
-        JS_ASSERT(blockObj->slotCount() == blockCountBefore + 1);
     }
 
     return true;
