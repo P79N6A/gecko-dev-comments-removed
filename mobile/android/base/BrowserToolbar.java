@@ -1244,17 +1244,32 @@ public class BrowserToolbar implements TextWatcher,
         contentAnimator.start();
     }
 
-    public String stopEditing() {
-        final String url = mUrlEditText.getText().toString();
+    
 
+
+
+
+    public String cancelEdit() {
+        return stopEditing();
+    }
+
+    
+
+
+
+
+    public String commitEdit() {
+        final String url = stopEditing();
+        if (!TextUtils.isEmpty(url)) {
+            setTitle(url);
+        }
+        return url;
+    }
+
+    private String stopEditing() {
+        final String url = mUrlEditText.getText().toString();
         if (!isEditing()) {
             return url;
-        }
-
-        
-        
-        if (url != null && url.length() > 0) {
-            setTitle(url);
         }
 
         hideUrlEditContainer();
