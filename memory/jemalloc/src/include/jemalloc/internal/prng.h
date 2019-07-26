@@ -25,7 +25,7 @@
 
 
 
-#define prng32(r, lg_range, state, a, c) do {				\
+#define	prng32(r, lg_range, state, a, c) do {				\
 	assert(lg_range > 0);						\
 	assert(lg_range <= 32);						\
 									\
@@ -35,7 +35,7 @@
 } while (false)
 
 
-#define prng64(r, lg_range, state, a, c) do {				\
+#define	prng64(r, lg_range, state, a, c) do {				\
 	assert(lg_range > 0);						\
 	assert(lg_range <= 64);						\
 									\
