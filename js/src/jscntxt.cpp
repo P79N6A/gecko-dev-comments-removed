@@ -248,8 +248,6 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
     cx->remove();
     bool last = !rt->hasContexts();
     if (last) {
-        JS_ASSERT(!rt->isHeapBusy());
-
         
 
 
