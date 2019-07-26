@@ -31,6 +31,11 @@ public:
   
 
 
+  static void* GetNativeData(uint32_t aDataType);
+
+  
+
+
   static bool IsIMEEnabled(const InputContext& aInputContext);
   static bool IsIMEEnabled(IMEState::Enabled aIMEState);
 

@@ -147,20 +147,19 @@ public:
 
   
   
-  static void*    GetThreadMgr(void)
+  static void* GetNativeData(uint32_t aDataType)
   {
-    Initialize(); 
-    return (void*) & sTsfThreadMgr;
-  }
-
-  static void*    GetCategoryMgr(void)
-  {
-    return (void*) & sCategoryMgr;
-  }
-
-  static void*    GetDisplayAttrMgr(void)
-  {
-    return (void*) & sDisplayAttrMgr;
+    switch (aDataType) {
+      case NS_NATIVE_TSF_THREAD_MGR:
+        Initialize(); 
+        return static_cast<void*>(&sTsfThreadMgr);
+      case NS_NATIVE_TSF_CATEGORY_MGR:
+        return static_cast<void*>(&sCategoryMgr);
+      case NS_NATIVE_TSF_DISPLAY_ATTR_MGR:
+        return static_cast<void*>(&sDisplayAttrMgr);
+      default:
+        return nullptr;
+    }
   }
 
   static void*    GetTextStore()

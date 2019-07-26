@@ -50,6 +50,26 @@ IMEHandler::Terminate()
 }
 
 
+void*
+IMEHandler::GetNativeData(uint32_t aDataType)
+{
+#ifdef NS_ENABLE_TSF
+  void* result = nsTextStore::GetNativeData(aDataType);
+  if (!result || !(*(static_cast<void**>(result)))) {
+    return nullptr;
+  }
+  
+  
+  
+  
+  sIsInTSFMode = true;
+  return result;
+#else 
+  return nullptr;
+#endif 
+}
+
+
 bool
 IMEHandler::IsIMEEnabled(const InputContext& aInputContext)
 {
