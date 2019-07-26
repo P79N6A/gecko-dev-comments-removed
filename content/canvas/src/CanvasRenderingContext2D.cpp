@@ -59,7 +59,6 @@
 #include "gfxFont.h"
 #include "gfxBlur.h"
 #include "gfxUtils.h"
-#include "gfxFontMissingGlyphs.h"
 
 #include "nsFrameManager.h"
 #include "nsFrameLoader.h"
@@ -2358,52 +2357,7 @@ struct NS_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcesso
           mTextRun->GetDetailedGlyphs(i);
 
         if (glyphs[i].IsMissing()) {
-          float xpos;
-          float advance = detailedGlyphs[0].mAdvance * devUnitsPerAppUnit;
-          if (mTextRun->IsRightToLeft()) {
-            xpos = baselineOrigin.x - advanceSum - advance;
-          } else {
-            xpos = baselineOrigin.x + advanceSum;
-          }
-          advanceSum += advance;
-
-          
-          
-          if (advance > 0) {
-            
-            
-
-            
-            
-            Matrix matrix = mCtx->mTarget->GetTransform();
-            nsRefPtr<gfxContext> thebes;
-            if (gfxPlatform::GetPlatform()->SupportsAzureContent()) {
-              
-              
-              
-              
-              
-              
-              
-              
-              thebes = new gfxContext(mCtx->mTarget);
-            } else {
-              nsRefPtr<gfxASurface> drawSurf;
-              mCtx->GetThebesSurface(getter_AddRefs(drawSurf));
-              thebes = new gfxContext(drawSurf);
-            }
-            thebes->SetMatrix(gfxMatrix(matrix._11, matrix._12, matrix._21,
-                                        matrix._22, matrix._31, matrix._32));
-
-            gfxFloat height = font->GetMetrics().maxAscent;
-            gfxRect glyphRect(xpos, baselineOrigin.y - height,
-                              advance, height);
-            gfxFontMissingGlyphs::DrawMissingGlyph(thebes, glyphRect,
-                                                   detailedGlyphs[0].mGlyphID,
-                                                   nsDeviceContext::AppUnitsPerCSSPixel());
-
-            mCtx->mTarget->SetTransform(matrix);
-          }
+          advanceSum += detailedGlyphs[0].mAdvance * devUnitsPerAppUnit;
           continue;
         }
 
