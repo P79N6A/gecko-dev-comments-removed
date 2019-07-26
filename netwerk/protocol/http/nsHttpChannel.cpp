@@ -3349,8 +3349,11 @@ HttpCacheQuery::OpenCacheInputStream(bool startBuffering)
             NS_WARNING("failed to parse security-info");
             return rv;
         }
-        MOZ_ASSERT(mCachedSecurityInfo);
-        if (!mCachedSecurityInfo) {
+
+        
+        
+        MOZ_ASSERT(mCachedSecurityInfo || mLoadedFromApplicationCache);
+        if (!mCachedSecurityInfo && !mLoadedFromApplicationCache) {
             LOG(("mCacheEntry->GetSecurityInfo returned success but did not "
                  "return the security info [channel=%p, entry=%p]",
                  this, mCacheEntry.get()));
