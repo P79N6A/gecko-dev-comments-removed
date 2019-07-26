@@ -495,9 +495,8 @@ SPSExit(JSContext *cx, HandleScript script)
 bool
 OperatorIn(JSContext *cx, HandleValue key, HandleObject obj, JSBool *out)
 {
-    RootedValue dummy(cx); 
     RootedId id(cx);
-    if (!FetchElementId(cx, obj, key, &id, &dummy))
+    if (!ValueToId<CanGC>(cx, key, &id))
         return false;
 
     RootedObject obj2(cx);
