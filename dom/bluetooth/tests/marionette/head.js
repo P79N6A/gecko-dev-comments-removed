@@ -23,7 +23,6 @@ let bluetoothManager;
 
 
 
-
 function getSettings(aKey) {
   let deferred = Promise.defer();
 
@@ -39,7 +38,6 @@ function getSettings(aKey) {
 
   return deferred.promise;
 }
-
 
 
 
@@ -80,11 +78,9 @@ function setSettings(aSettings) {
 
 
 
-
 function getBluetoothEnabled() {
   return getSettings("bluetooth.enabled");
 }
-
 
 
 
@@ -103,7 +99,6 @@ function setBluetoothEnabled(aEnabled) {
   obj["bluetooth.enabled"] = aEnabled;
   return setSettings(obj);
 }
-
 
 
 
@@ -164,7 +159,6 @@ function ensureBluetoothManager(aPermissions) {
 
 
 
-
 function waitForManagerEvent(aEventName) {
   let deferred = Promise.defer();
 
@@ -177,7 +171,6 @@ function waitForManagerEvent(aEventName) {
 
   return deferred.promise;
 }
-
 
 
 
@@ -204,7 +197,6 @@ function setBluetoothEnabledAndWait(aEnabled) {
 
   return Promise.all(promises);
 }
-
 
 
 
@@ -244,7 +236,6 @@ function getDefaultAdapter() {
 
   return deferred.promise;
 }
-
 
 
 

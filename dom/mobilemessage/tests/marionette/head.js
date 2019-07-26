@@ -15,7 +15,6 @@ let Promise = Cu.import("resource://gre/modules/Promise.jsm").Promise;
 
 
 
-
 let manager;
 function ensureMobileMessage() {
   let deferred = Promise.defer();
@@ -59,7 +58,6 @@ function ensureMobileMessage() {
 
 
 
-
 function sendSmsWithSuccess(aReceiver, aText) {
   let deferred = Promise.defer();
 
@@ -73,7 +71,6 @@ function sendSmsWithSuccess(aReceiver, aText) {
 
   return deferred.promise;
 }
-
 
 
 
@@ -102,7 +99,6 @@ function sendMmsWithFailure(aMmsParameters) {
 
   return deferred.promise;
 }
-
 
 
 
@@ -150,11 +146,9 @@ function getMessages(aFilter, aReverse) {
 
 
 
-
 function getAllMessages() {
   return getMessages(null, false);
 }
-
 
 
 
@@ -198,7 +192,6 @@ function getAllThreads() {
 
 
 
-
 function getThreadById(aThreadId) {
   return getAllThreads()
     .then(function(aThreads) {
@@ -210,7 +203,6 @@ function getThreadById(aThreadId) {
       throw undefined;
     });
 }
-
 
 
 
@@ -255,12 +247,10 @@ function deleteMessagesById(aMessageIds) {
 
 
 
-
 function deleteMessages(aMessages) {
   let ids = messagesToIds(aMessages);
   return deleteMessagesById(ids);
 }
-
 
 
 
@@ -278,7 +268,6 @@ function deleteAllMessages() {
 }
 
 let pendingEmulatorCmdCount = 0;
-
 
 
 
@@ -322,12 +311,10 @@ function runEmulatorCmdSafe(aCommand) {
 
 
 
-
 function sendTextSmsToEmulator(aFrom, aText) {
   let command = "sms send " + aFrom + " " + aText;
   return runEmulatorCmdSafe(command);
 }
-
 
 
 
@@ -347,7 +334,6 @@ function sendRawSmsToEmulator(aPdu) {
 
 
 
-
 let MMDB;
 
 
@@ -361,7 +347,6 @@ function newMobileMessageDB() {
   ok(mmdb, "MobileMessageDB instance");
   return mmdb;
 }
-
 
 
 
@@ -397,12 +382,10 @@ function initMobileMessageDB(aMmdb, aDbName, aDbVersion) {
 
 
 
-
 function closeMobileMessageDB(aMmdb) {
   aMmdb.close();
   return aMmdb;
 }
-
 
 
 
@@ -425,7 +408,6 @@ let uuidGenerator;
 
 
 
-
 function newUUID() {
   if (!uuidGenerator) {
     uuidGenerator = Cc["@mozilla.org/uuid-generator;1"]
@@ -435,7 +417,6 @@ function newUUID() {
 
   return uuidGenerator.generateUUID().toString();
 }
-
 
 
 
@@ -452,14 +433,6 @@ function cleanUp() {
   });
 }
 
-
-
-
-
-
-
-
-
 function startTestBase(aTestCaseMain) {
   Promise.resolve()
          .then(aTestCaseMain)
@@ -468,15 +441,6 @@ function startTestBase(aTestCaseMain) {
            cleanUp();
          });
 }
-
-
-
-
-
-
-
-
-
 
 function startTestCommon(aTestCaseMain) {
   startTestBase(function() {
