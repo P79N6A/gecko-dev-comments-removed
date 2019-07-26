@@ -127,16 +127,6 @@ HTMLPropertiesCollection::NamedItem(const nsAString& aName,
   return NS_OK;
 }
 
-JSObject*
-HTMLPropertiesCollection::NamedItem(JSContext* cx, const nsAString& name,
-                                    mozilla::ErrorResult& error)
-{
-  
-  
-  
-  return nullptr;
-}
-
 Element*
 HTMLPropertiesCollection::GetElementAt(uint32_t aIndex)
 {

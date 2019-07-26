@@ -63,8 +63,16 @@ public:
 
   void SetDocument(nsIDocument* aDocument);
   nsINode* GetParentObject() MOZ_OVERRIDE;
-  virtual JSObject* NamedItem(JSContext* cx, const nsAString& name,
-                              mozilla::ErrorResult& error) MOZ_OVERRIDE;
+
+  virtual Element*
+  GetFirstNamedElement(const nsAString& aName, bool& aFound) MOZ_OVERRIDE
+  {
+    
+    
+    
+    aFound = false;
+    return nullptr;
+  }
   PropertyNodeList* NamedItem(const nsAString& aName);
   PropertyNodeList* NamedGetter(const nsAString& aName, bool& aFound)
   {
