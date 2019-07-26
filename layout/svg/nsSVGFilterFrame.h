@@ -57,48 +57,6 @@ public:
                               nsIAtom*        aAttribute,
                               int32_t         aModType) MOZ_OVERRIDE;
 
-  
-
-
-
-
-
-  nsresult PaintFilteredFrame(nsRenderingContext *aContext,
-                              nsIFrame *aFilteredFrame,
-                              nsSVGFilterPaintCallback *aPaintCallback,
-                              const nsRect* aDirtyArea,
-                              nsIFrame* aTransformRoot);
-
-  
-
-
-
-
-
-  nsRect GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
-                                const nsRect& aPreFilterDirtyRect);
-
-  
-
-
-
-
-
-  nsRect GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
-                                const nsRect& aPostFilterDirtyRect);
-
-  
-
-
-
-
-
-
-
-  nsRect GetPostFilterBounds(nsIFrame *aFilteredFrame,
-                             const gfxRect *aOverrideBBox = nullptr,
-                             const nsRect *aPreFilterBounds = nullptr);
-
 #ifdef DEBUG
   virtual void Init(nsIContent*      aContent,
                     nsIFrame*        aParent,
