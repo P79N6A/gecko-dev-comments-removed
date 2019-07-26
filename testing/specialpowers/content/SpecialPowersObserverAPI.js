@@ -165,6 +165,9 @@ SpecialPowersObserverAPI.prototype = {
 
 
   _receiveMessageAPI: function(aMessage) {
+    
+    
+    
     switch(aMessage.name) {
       case "SPPrefService":
         var prefs = Services.prefs;
@@ -178,7 +181,7 @@ SpecialPowersObserverAPI.prototype = {
 
           
           if (prefs.getPrefType(prefName) == prefs.PREF_INVALID)
-            return;
+            return null;
         } else if (aMessage.json.op == "set") {
           if (!prefName || !prefType  || prefValue === null)
             throw new SpecialPowersException("Invalid parameters for set in SPPrefService");
@@ -214,10 +217,10 @@ SpecialPowersObserverAPI.prototype = {
           case "":
             if (aMessage.json.op == "clear") {
               prefs.clearUserPref(prefName);
-              return;
+              return undefined;
             }
         }
-        break;
+        return undefined;	
 
       case "SPProcessCrashService":
         switch (aMessage.json.op) {
@@ -234,7 +237,7 @@ SpecialPowersObserverAPI.prototype = {
           default:
             throw new SpecialPowersException("Invalid operation for SPProcessCrashService");
         }
-        break;
+        return undefined;	
 
       case "SPPermissionManager":
         let msg = aMessage.json;
@@ -266,7 +269,7 @@ SpecialPowersObserverAPI.prototype = {
             throw new SpecialPowersException("Invalid operation for " +
                                              "SPPermissionManager");
         }
-        break;
+        return undefined;	
 
       case "SPWebAppService":
         let Webapps = {};
@@ -279,7 +282,7 @@ SpecialPowersObserverAPI.prototype = {
           default:
             throw new SpecialPowersException("Invalid operation for SPWebAppsService");
         }
-        break;
+        return undefined;	
 
       case "SPObserverService":
         switch (aMessage.json.op) {
@@ -291,7 +294,7 @@ SpecialPowersObserverAPI.prototype = {
           default:
             throw new SpecialPowersException("Invalid operation for SPObserverervice");
         }
-        break;
+        return undefined;	
 
       case "SPLoadChromeScript":
         var url = aMessage.json.url;
@@ -331,7 +334,7 @@ SpecialPowersObserverAPI.prototype = {
           throw new SpecialPowersException("Error while executing chrome " +
                                            "script '" + url + "':\n" + e);
         }
-        break;
+        return undefined;	
 
       case "SPChromeScriptMessage":
         var id = aMessage.json.id;
@@ -340,11 +343,16 @@ SpecialPowersObserverAPI.prototype = {
         this._chromeScriptListeners
             .filter(o => (o.name == name && o.id == id))
             .forEach(o => o.listener(message));
-        break;
+        return undefined;	
 
       default:
         throw new SpecialPowersException("Unrecognized Special Powers API");
     }
+
+    
+    
+    throw new SpecialPowersException("Unreached code");
+    return undefined;
   }
 };
 
