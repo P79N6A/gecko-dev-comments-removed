@@ -159,6 +159,17 @@ DefVarOrConst(JSContext *cx, HandlePropertyName dn, unsigned attrs, HandleObject
 }
 
 bool
+SetConst(JSContext *cx, HandlePropertyName name, HandleObject scopeChain, HandleValue rval)
+{
+    
+    RootedObject obj(cx, scopeChain);
+    while (!obj->isVarObj())
+        obj = obj->enclosingScope();
+
+    return SetConstOperation(cx, obj, name, rval);
+}
+
+bool
 InitProp(JSContext *cx, HandleObject obj, HandlePropertyName name, HandleValue value)
 {
     

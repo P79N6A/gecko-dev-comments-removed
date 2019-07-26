@@ -64,9 +64,9 @@ namespace js {
 
 
 inline bool
-ComputeImplicitThis(JSContext *cx, HandleObject obj, MutableHandleValue vp)
+ComputeImplicitThis(JSContext *cx, HandleObject obj, Value *vp)
 {
-    vp.setUndefined();
+    vp->setUndefined();
 
     if (obj->isGlobal())
         return true;
@@ -78,7 +78,7 @@ ComputeImplicitThis(JSContext *cx, HandleObject obj, MutableHandleValue vp)
     if (!nobj)
         return false;
 
-    vp.setObject(*nobj);
+    vp->setObject(*nobj);
     return true;
 }
 
@@ -99,9 +99,7 @@ ComputeThis(JSContext *cx, AbstractFramePtr frame)
 
 
 
-
-
-        JS_ASSERT_IF(frame.isEvalFrame(), thisv.isUndefined() || thisv.isNull());
+        JS_ASSERT(!frame.isEvalFrame());
     }
     bool modified;
     if (!BoxNonStrictThis(cx, &thisv, &modified))
@@ -124,6 +122,7 @@ ComputeThis(JSContext *cx, AbstractFramePtr frame)
 static inline bool
 IsOptimizedArguments(AbstractFramePtr frame, Value *vp)
 {
+    AutoAssertNoGC nogc;
     if (vp->isMagic(JS_OPTIMIZED_ARGUMENTS) && frame.script()->needsArgsObj())
         *vp = ObjectValue(frame.argsObj());
     return vp->isMagic(JS_OPTIMIZED_ARGUMENTS);
@@ -153,6 +152,7 @@ GuardFunApplyArgumentsOptimization(JSContext *cx, AbstractFramePtr frame, Handle
 static inline bool
 GuardFunApplyArgumentsOptimization(JSContext *cx)
 {
+    AssertCanGC();
     FrameRegs &regs = cx->regs();
     CallArgs args = CallArgsFromSp(GET_ARGC(regs.pc), regs.sp);
     return GuardFunApplyArgumentsOptimization(cx, cx->fp(), args.calleev(), args.array(),
@@ -539,6 +539,14 @@ DefVarOrConstOperation(JSContext *cx, HandleObject varobj, HandlePropertyName dn
     return true;
 }
 
+inline bool
+SetConstOperation(JSContext *cx, HandleObject varobj, HandlePropertyName name, HandleValue rval)
+{
+    return JSObject::defineProperty(cx, varobj, name, rval,
+                                    JS_PropertyStub, JS_StrictPropertyStub,
+                                    JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY);
+}
+
 inline void
 InterpreterFrames::enableInterruptsIfRunning(JSScript *script)
 {
@@ -748,7 +756,7 @@ GetObjectElementOperation(JSContext *cx, JSOp op, JSObject *objArg, bool wasObje
 
         uint32_t index;
         if (IsDefinitelyIndex(rref, &index)) {
-            if (analyze && !objArg->isNative() && !objArg->isTypedArray()) {
+            if (analyze && !objArg->isNative()) {
                 JSScript *script = NULL;
                 jsbytecode *pc = NULL;
                 types::TypeScript::GetPcScript(cx, &script, &pc);
@@ -775,7 +783,7 @@ GetObjectElementOperation(JSContext *cx, JSOp op, JSObject *objArg, bool wasObje
             if (script->hasAnalysis()) {
                 script->analysis()->getCode(pc).getStringElement = true;
 
-                if (!objArg->isArray() && !objArg->isNative() && !objArg->isTypedArray())
+                if (!objArg->isArray() && !objArg->isNative())
                     script->analysis()->getCode(pc).nonNativeGetElement = true;
             }
         }
@@ -863,6 +871,7 @@ static JS_ALWAYS_INLINE bool
 GetElementOperation(JSContext *cx, JSOp op, MutableHandleValue lref, HandleValue rref,
                     MutableHandleValue res)
 {
+    AssertCanGC();
     JS_ASSERT(op == JSOP_GETELEM || op == JSOP_CALLELEM);
 
     uint32_t index;
@@ -891,28 +900,20 @@ GetElementOperation(JSContext *cx, JSOp op, MutableHandleValue lref, HandleValue
 }
 
 static JS_ALWAYS_INLINE bool
-SetObjectElementOperation(JSContext *cx, Handle<JSObject*> obj, HandleId id, const Value &value,
-                          bool strict, RawScript maybeScript = NULL, jsbytecode *pc = NULL)
+SetObjectElementOperation(JSContext *cx, Handle<JSObject*> obj, HandleId id, const Value &value, bool strict)
 {
-    RootedScript script(cx, maybeScript);
     types::TypeScript::MonitorAssign(cx, obj, id);
 
     if (obj->isArray() && JSID_IS_INT(id)) {
         uint32_t length = obj->getDenseInitializedLength();
         int32_t i = JSID_TO_INT(id);
-        if ((uint32_t)i >= length) {
-            
-            
-            
-            
-            if (script || !cx->fp()->beginsIonActivation()) {
-                JS_ASSERT(!!script == !!pc);
-                if (!script)
-                    types::TypeScript::GetPcScript(cx, script.address(), &pc);
+        if ((uint32_t)i >= length && !cx->fp()->beginsIonActivation()) {
+            JSScript *script = NULL;
+            jsbytecode *pc;
+            types::TypeScript::GetPcScript(cx, &script, &pc);
 
-                if (script->hasAnalysis())
-                    script->analysis()->getCode(pc).arrayWriteHole = true;
-            }
+            if (script->hasAnalysis())
+                script->analysis()->getCode(pc).arrayWriteHole = true;
         }
     }
 
@@ -1102,7 +1103,7 @@ ReportIfNotFunction(JSContext *cx, const Value &v, MaybeConstruct construct = NO
     if (v.isObject() && v.toObject().isFunction())
         return v.toObject().toFunction();
 
-    ReportIsNotFunction(cx, v, -1, construct);
+    ReportIsNotFunction(cx, v, construct);
     return NULL;
 }
 
@@ -1118,9 +1119,7 @@ class FastInvokeGuard
     RootedFunction fun_;
     RootedScript script_;
 #ifdef JS_ION
-    
-    
-    mozilla::Maybe<ion::IonContext> ictx_;
+    ion::IonContext ictx_;
     bool useIon_;
 #endif
 
@@ -1129,6 +1128,7 @@ class FastInvokeGuard
       : fun_(cx)
       , script_(cx)
 #ifdef JS_ION
+      , ictx_(cx, cx->compartment, NULL)
       , useIon_(ion::IsEnabled(cx))
 #endif
     {
@@ -1153,8 +1153,6 @@ class FastInvokeGuard
     bool invoke(JSContext *cx) {
 #ifdef JS_ION
         if (useIon_ && fun_) {
-            if (ictx_.empty())
-                ictx_.construct(cx, (js::ion::TempAllocator *)NULL);
             JS_ASSERT(fun_->nonLazyScript() == script_);
 
             ion::MethodStatus status = ion::CanEnterUsingFastInvoke(cx, script_, args_.length());
