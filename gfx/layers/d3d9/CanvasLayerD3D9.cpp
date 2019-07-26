@@ -81,7 +81,7 @@ CanvasLayerD3D9::UpdateSurface()
   RefPtr<SourceSurface> surface;
 
   if (mGLContext) {
-    SharedSurface* surf = mGLContext->RequestFrame();
+    SharedSurface_GL* surf = mGLContext->RequestFrame();
     if (!surf)
         return;
 
