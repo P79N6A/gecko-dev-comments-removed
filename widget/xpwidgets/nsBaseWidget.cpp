@@ -888,6 +888,9 @@ CheckForBasicBackends(nsTArray<LayersBackend>& aHints)
 
 void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
 {
+  MOZ_ASSERT(gfxPlatform::UsesOffMainThreadCompositing(),
+             "This function assumes OMTC");
+
   
   
 
@@ -946,7 +949,7 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
 
 bool nsBaseWidget::ShouldUseOffMainThreadCompositing()
 {
-  return CompositorParent::CompositorLoop();
+  return gfxPlatform::UsesOffMainThreadCompositing();
 }
 
 LayerManager* nsBaseWidget::GetLayerManager(PLayerTransactionChild* aShadowManager,

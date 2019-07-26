@@ -998,7 +998,8 @@ MetroWidget::ShouldUseOffMainThreadCompositing()
     return false;
   }
   
-  return (CompositorParent::CompositorLoop() && mWindowType == eWindowType_toplevel);
+  return gfxPlatform::UsesOffMainThreadCompositing() &&
+         mWindowType == eWindowType_toplevel;
 }
 
 bool
@@ -1008,7 +1009,8 @@ MetroWidget::ShouldUseMainThreadD3D10Manager()
   if (!mView) {
     return false;
   }
-  return (!CompositorParent::CompositorLoop() && mWindowType == eWindowType_toplevel);
+  return !gfxPlatform::UsesOffMainThreadCompositing() &&
+         mWindowType == eWindowType_toplevel;
 }
 
 bool

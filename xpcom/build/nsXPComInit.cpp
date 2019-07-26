@@ -149,6 +149,8 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 
 #include "jsapi.h"
 
+#include "gfxPlatform.h"
+
 using namespace mozilla;
 using base::AtExitManager;
 using mozilla::ipc::BrowserProcessSubThread;
@@ -797,13 +799,6 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
             }
         }
 
-        
-        
-        layers::ImageBridgeChild::ShutDown();
-#ifdef MOZ_WIDGET_GONK
-        layers::SharedBufferManagerChild::ShutDown();
-#endif
-
         NS_ProcessPendingEvents(thread);
         mozilla::scache::StartupCache::DeleteSingleton();
         if (observerService)
@@ -811,7 +806,9 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
                 NotifyObservers(nullptr, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID,
                                 nullptr);
 
-        layers::CompositorParent::ShutDown();
+        
+        
+        gfxPlatform::ShutdownLayersIPC();
 
         gXPCOMThreadsShutDown = true;
         NS_ProcessPendingEvents(thread);
