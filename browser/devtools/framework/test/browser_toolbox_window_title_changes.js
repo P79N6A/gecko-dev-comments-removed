@@ -54,23 +54,32 @@ function test() {
 
     
     
-      .then(function () toolbox.destroy())
-      .then(function () gDevTools.showToolbox(target, null,
-                                              Toolbox.HostType.WINDOW))
-      .then(function (aToolbox) { toolbox = aToolbox; })
-      .then(function () toolbox.selectTool(TOOL_ID_1))
-      .then(checkTitle.bind(null, LABEL_1, URL_2,
-                            "toolbox destroyed and recreated"))
-
-    
-      .then(function () toolbox.destroy())
       .then(function () {
-        toolbox = null;
-        gBrowser.removeCurrentTab();
-        Services.prefs.clearUserPref("devtools.toolbox.host");
-        Services.prefs.clearUserPref("devtools.toolbox.selectedTool");
-        Services.prefs.clearUserPref("devtools.toolbox.sideEnabled");
-        finish();
+        
+        
+        executeSoon(function() {
+          toolbox.destroy()
+            .then(function () {
+              
+              target = TargetFactory.forTab(gBrowser.selectedTab);
+              return gDevTools.showToolbox(target, null, Toolbox.HostType.WINDOW);
+            })
+            .then(function (aToolbox) { toolbox = aToolbox; })
+            .then(function () toolbox.selectTool(TOOL_ID_1))
+            .then(checkTitle.bind(null, LABEL_1, URL_2,
+                                  "toolbox destroyed and recreated"))
+
+            
+            .then(function () toolbox.destroy())
+            .then(function () {
+              toolbox = null;
+              gBrowser.removeCurrentTab();
+              Services.prefs.clearUserPref("devtools.toolbox.host");
+              Services.prefs.clearUserPref("devtools.toolbox.selectedTool");
+              Services.prefs.clearUserPref("devtools.toolbox.sideEnabled");
+              finish();
+            });
+        });
       });
   });
 }

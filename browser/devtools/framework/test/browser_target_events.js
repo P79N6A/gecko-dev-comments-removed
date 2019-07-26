@@ -41,7 +41,9 @@ function onVisible() {
 
 function onWillNavigate(event, request) {
   ok(true, "will-navigate event received");
-  target.once("navigate", onNavigate);
+  
+  
+  target.once("navigate", executeSoon.bind(null, onNavigate));
 }
 
 function onNavigate() {

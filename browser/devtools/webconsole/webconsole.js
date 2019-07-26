@@ -15,15 +15,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "DebuggerServer",
-                                  "resource://gre/modules/devtools/dbg-server.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "DebuggerClient",
-                                  "resource://gre/modules/devtools/dbg-client.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "debuggerSocketConnect",
-                                  "resource://gre/modules/devtools/dbg-client.jsm");
-
 XPCOMUtils.defineLazyServiceGetter(this, "clipboardHelper",
                                    "@mozilla.org/widget/clipboardhelper;1",
                                    "nsIClipboardHelper");
@@ -3988,7 +3979,6 @@ function WebConsoleConnectionProxy(aWebConsole, aTarget)
   this._onNetworkEventUpdate = this._onNetworkEventUpdate.bind(this);
   this._onFileActivity = this._onFileActivity.bind(this);
   this._onTabNavigated = this._onTabNavigated.bind(this);
-  this._onListTabs = this._onListTabs.bind(this);
   this._onAttachTab = this._onAttachTab.bind(this);
   this._onAttachConsole = this._onAttachConsole.bind(this);
   this._onCachedMessages = this._onCachedMessages.bind(this);
@@ -4075,17 +4065,6 @@ WebConsoleConnectionProxy.prototype = {
   
 
 
-  initServer: function WCCP_initServer()
-  {
-    if (!DebuggerServer.initialized) {
-      DebuggerServer.init();
-      DebuggerServer.addBrowserActors();
-    }
-  },
-
-  
-
-
 
 
 
@@ -4111,16 +4090,7 @@ WebConsoleConnectionProxy.prototype = {
       this._connectTimer = null;
     }.bind(this));
 
-    
-    let transport, client;
-    if (this.target.isRemote) {
-      client = this.client = this.target.client;
-    }
-    else {
-      this.initServer();
-      transport = DebuggerServer.connectPipe();
-      client = this.client = new DebuggerClient(transport);
-    }
+    let client = this.client = this.target.client;
 
     client.addListener("pageError", this._onPageError);
     client.addListener("consoleAPICall", this._onConsoleAPICall);
@@ -4129,21 +4099,14 @@ WebConsoleConnectionProxy.prototype = {
     client.addListener("fileActivity", this._onFileActivity);
     client.addListener("tabNavigated", this._onTabNavigated);
 
-    if (this.target.isRemote) {
-      if (!this.target.chrome) {
-        
-        this._attachTab(this.target.form);
-      }
-      else {
-        
-        this._consoleActor = this.target.form.consoleActor;
-        this._attachConsole();
-      }
+    if (!this.target.chrome) {
+      
+      this._attachTab(this.target.form);
     }
     else {
-      client.connect(function(aType, aTraits) {
-        client.listTabs(this._onListTabs);
-      }.bind(this));
+      
+      this._consoleActor = this.target.form.consoleActor;
+      this._attachConsole();
     }
 
     return promise;
@@ -4161,25 +4124,6 @@ WebConsoleConnectionProxy.prototype = {
     };
 
     this._connectDefer.reject(error);
-  },
-
-  
-
-
-
-
-
-
-  _onListTabs: function WCCP__onListTabs(aResponse)
-  {
-    if (aResponse.error) {
-      Cu.reportError("listTabs failed: " + aResponse.error + " " +
-                     aResponse.message);
-      this._connectDefer.reject(aResponse);
-      return;
-    }
-
-    this._attachTab(aResponse.tabs[aResponse.selected]);
   },
 
   
@@ -4433,21 +4377,6 @@ WebConsoleConnectionProxy.prototype = {
       return this._disconnecter.promise;
     }
 
-    let onDisconnect = function() {
-      if (timer) {
-        timer.cancel();
-        timer = null;
-        this._disconnecter.resolve(null);
-      }
-    }.bind(this);
-
-    let timer = null;
-    let remoteTarget = this.target.isRemote;
-    if (!remoteTarget) {
-      timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      timer.initWithCallback(onDisconnect, 1500, Ci.nsITimer.TYPE_ONE_SHOT);
-    }
-
     this.client.removeListener("pageError", this._onPageError);
     this.client.removeListener("consoleAPICall", this._onConsoleAPICall);
     this.client.removeListener("networkEvent", this._onNetworkEvent);
@@ -4455,28 +4384,13 @@ WebConsoleConnectionProxy.prototype = {
     this.client.removeListener("fileActivity", this._onFileActivity);
     this.client.removeListener("tabNavigated", this._onTabNavigated);
 
-    let client = this.client;
-
     this.client = null;
     this.webConsoleClient = null;
     this.tabClient = null;
     this.target = null;
     this.connected = false;
     this.owner = null;
-
-    if (!remoteTarget) {
-      try {
-        client.close(onDisconnect);
-      }
-      catch (ex) {
-        Cu.reportError("Web Console disconnect exception: " + ex);
-        Cu.reportError(ex.stack);
-        onDisconnect();
-      }
-    }
-    else {
-      onDisconnect();
-    }
+    this._disconnecter.resolve(null);
 
     return this._disconnecter.promise;
   },

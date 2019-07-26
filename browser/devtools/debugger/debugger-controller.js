@@ -165,15 +165,11 @@ let DebuggerController = {
       window.dispatchEvent("Debugger:Connected");
     }
 
-    let client;
-
-    
-    if (this._target && this._target.isRemote) {
-      window._isRemoteDebugger = true;
-
-      client = this.client = this._target.client;
+    if (!window._isChromeDebugger) {
+      let client = this.client = this._target.client;
       this._target.on("close", this._onTabDetached);
       this._target.on("navigate", this._onTabNavigated);
+      this._target.on("will-navigate", this._onTabNavigated);
 
       if (this._target.chrome) {
         let dbg = this._target.form.chromeDebugger;
@@ -185,24 +181,15 @@ let DebuggerController = {
     }
 
     
-    
-    let transport = window._isChromeDebugger
-      ? debuggerSocketConnect(Prefs.remoteHost, Prefs.remotePort)
-      : DebuggerServer.connectPipe();
+    let transport = debuggerSocketConnect(Prefs.remoteHost, Prefs.remotePort);
 
-    client = this.client = new DebuggerClient(transport);
+    let client = this.client = new DebuggerClient(transport);
     client.addListener("tabNavigated", this._onTabNavigated);
     client.addListener("tabDetached", this._onTabDetached);
 
     client.connect(function(aType, aTraits) {
       client.listTabs(function(aResponse) {
-        if (window._isChromeDebugger) {
-          let dbg = aResponse.chromeDebugger;
-          this._startChromeDebugging(client, dbg, callback);
-        } else {
-          let tab = aResponse.tabs[aResponse.selected];
-          this._startDebuggingTab(client, tab, callback);
-        }
+        this._startChromeDebugging(client, aResponse.chromeDebugger, callback);
       }.bind(this));
     }.bind(this));
   },
@@ -219,7 +206,8 @@ let DebuggerController = {
     this.client.removeListener("tabDetached", this._onTabDetached);
 
     
-    if (!window._isRemoteDebugger) {
+    
+    if (window._isChromeDebugger) {
       this.client.close();
     }
 

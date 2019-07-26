@@ -12,6 +12,11 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
 Cu.import("resource:///modules/devtools/EventEmitter.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "DebuggerServer",
+  "resource://gre/modules/devtools/dbg-server.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "DebuggerClient",
+  "resource://gre/modules/devtools/dbg-client.jsm");
 
 const targets = new WeakMap();
 
@@ -20,6 +25,8 @@ const targets = new WeakMap();
 
 this.TargetFactory = {
   
+
+
 
 
 
@@ -56,26 +63,6 @@ this.TargetFactory = {
     if (target == null) {
       target = new WindowTarget(window);
       targets.set(window, target);
-    }
-    return target;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  forRemote: function TF_forRemote(form, client, chrome) {
-    let target = targets.get(form);
-    if (target == null) {
-      target = new RemoteTarget(form, client, chrome);
-      targets.set(form, target);
     }
     return target;
   },
@@ -171,8 +158,16 @@ Object.defineProperty(Target.prototype, "version", {
 
 function TabTarget(tab) {
   EventEmitter.decorate(this);
-  this._tab = tab;
-  this._setupListeners();
+  this.destroy = this.destroy.bind(this);
+  this._handleThreadState = this._handleThreadState.bind(this);
+  this.on("thread-resumed", this._handleThreadState);
+  this.on("thread-paused", this._handleThreadState);
+  
+  
+  if (tab && !["client", "form", "chrome"].every(tab.hasOwnProperty, tab)) {
+    this._tab = tab;
+    this._setupListeners();
+  }
 }
 
 TabTarget.prototype = {
@@ -185,28 +180,97 @@ TabTarget.prototype = {
     return this._tab;
   },
 
+  get form() {
+    return this._form;
+  },
+
+  get client() {
+    return this._client;
+  },
+
+  get chrome() {
+    return this._chrome;
+  },
+
   get window() {
-    return this._tab.linkedBrowser.contentWindow;
+    
+    
+    if (this._tab && this._tab.linkedBrowser) {
+      return this._tab.linkedBrowser.contentWindow;
+    }
   },
 
   get name() {
-    return this._tab.linkedBrowser.contentDocument.title;
+    return this._tab ? this._tab.linkedBrowser.contentDocument.title :
+                       this._form.title;
   },
 
   get url() {
-    return this._tab.linkedBrowser.contentDocument.location.href;
+    return this._tab ? this._tab.linkedBrowser.contentDocument.location.href :
+                       this._form.url;
   },
 
   get isRemote() {
-    return false;
+    return !this.isLocalTab;
   },
 
   get isLocalTab() {
-    return true;
+    return !!this._tab;
   },
 
   get isThreadPaused() {
     return !!this._isThreadPaused;
+  },
+
+  
+
+
+
+
+
+
+
+
+  makeRemote: function TabTarget_makeRemote(aOptions) {
+    if (this._remote) {
+      return this._remote.promise;
+    }
+
+    this._remote = Promise.defer();
+
+    if (aOptions) {
+      this._form = aOptions.form;
+      this._client = aOptions.client;
+      this._chrome = aOptions.chrome;
+    } else {
+      
+      
+      if (!DebuggerServer.initialized) {
+        DebuggerServer.init();
+        DebuggerServer.addBrowserActors();
+      }
+
+      this._client = new DebuggerClient(DebuggerServer.connectPipe());
+      
+      this._chrome = false;
+    }
+
+    this._setupRemoteListeners();
+
+    if (aOptions) {
+      
+      
+      this._remote.resolve(null);
+    } else {
+      this._client.connect(function(aType, aTraits) {
+        this._client.listTabs(function(aResponse) {
+          this._form = aResponse.tabs[aResponse.selected];
+          this._remote.resolve(null);
+        }.bind(this));
+      }.bind(this));
+    }
+
+    return this._remote.promise;
   },
 
   
@@ -218,9 +282,27 @@ TabTarget.prototype = {
     this.tab.addEventListener("TabClose", this);
     this.tab.parentNode.addEventListener("TabSelect", this);
     this.tab.ownerDocument.defaultView.addEventListener("unload", this);
-    this._handleThreadState = this._handleThreadState.bind(this);
-    this.on("thread-resumed", this._handleThreadState);
-    this.on("thread-paused", this._handleThreadState);
+  },
+
+  
+
+
+  _setupRemoteListeners: function TabTarget__setupRemoteListeners() {
+    
+    if (this._webProgressListener) {
+      this._webProgressListener.destroy();
+    }
+
+    this.client.addListener("tabDetached", this.destroy);
+
+    this._onTabNavigated = function onRemoteTabNavigated(aType, aPacket) {
+      if (aPacket.state == "start") {
+        this.emit("will-navigate", aPacket);
+      } else {
+        this.emit("navigate", aPacket);
+      }
+    }.bind(this);
+    this.client.addListener("tabNavigated", this._onTabNavigated);
   },
 
   
@@ -260,28 +342,66 @@ TabTarget.prototype = {
 
 
   destroy: function() {
-    if (!this._destroyed) {
-      this._destroyed = true;
+    
+    
+    if (this._destroyer) {
+      return this._destroyer.promise;
+    }
 
-      this.tab.linkedBrowser.removeProgressListener(this._webProgressListener)
-      this._webProgressListener.target = null;
-      this._webProgressListener = null;
-      this.tab.ownerDocument.defaultView.removeEventListener("unload", this);
-      this.tab.removeEventListener("TabClose", this);
-      this.tab.parentNode.removeEventListener("TabSelect", this);
-      this.off("thread-resumed", this._handleThreadState);
-      this.off("thread-paused", this._handleThreadState);
-      this.emit("close");
+    this._destroyer = Promise.defer();
+
+    
+    this.emit("close");
+
+    
+    
+    this.off("thread-resumed", this._handleThreadState);
+    this.off("thread-paused", this._handleThreadState);
+
+    if (this._tab) {
+      this._tab.ownerDocument.defaultView.removeEventListener("unload", this);
+      this._tab.removeEventListener("TabClose", this);
+      this._tab.parentNode.removeEventListener("TabSelect", this);
+    }
+
+    
+    
+    
+    if (this._tab && !this._client) {
+      if (this._webProgressListener) {
+        this._webProgressListener.destroy();
+      }
 
       targets.delete(this._tab);
       this._tab = null;
+      this._client = null;
+      this._form = null;
+      this._remote = null;
+
+      this._destroyer.resolve(null);
+    } else if (this._client) {
+      
+      
+      this.client.removeListener("tabNavigated", this._onTabNavigated);
+      this.client.removeListener("tabDetached", this.destroy);
+
+      this._client.close(function onClosed() {
+        let key = this._tab ? this._tab : this._form;
+        targets.delete(key);
+        this._client = null;
+        this._tab = null;
+        this._form = null;
+        this._remote = null;
+
+        this._destroyer.resolve(null);
+      }.bind(this));
     }
 
-    return Promise.resolve(null);
+    return this._destroyer.promise;
   },
 
   toString: function() {
-    return 'TabTarget:' + this.tab;
+    return 'TabTarget:' + (this._tab ? this._tab : (this._form && this._form.actor));
   },
 };
 
@@ -322,13 +442,24 @@ TabWebProgressListener.prototype = {
   onSecurityChange: function() {},
   onStatusChange: function() {},
 
-  onLocationChange: function TwPL_onLocationChange(webProgress, request, URI, flags) {
+  onLocationChange: function TWPL_onLocationChange(webProgress, request, URI, flags) {
     if (this.target &&
         !(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)) {
       let window = webProgress.DOMWindow;
       this.target.emit("navigate", window);
     }
   },
+
+  
+
+
+  destroy: function TWPL_destroy() {
+    if (this.target.tab) {
+      this.target.tab.linkedBrowser.removeProgressListener(this);
+    }
+    this.target._webProgressListener = null;
+    this.target = null;
+  }
 };
 
 
@@ -410,103 +541,5 @@ WindowTarget.prototype = {
 
   toString: function() {
     return 'WindowTarget:' + this.window;
-  },
-};
-
-
-
-
-function RemoteTarget(form, client, chrome) {
-  EventEmitter.decorate(this);
-  this._client = client;
-  this._form = form;
-  this._chrome = chrome;
-  this._setupListeners();
-}
-
-RemoteTarget.prototype = {
-  supports: supports,
-  get version() getVersion(),
-
-  get isRemote() true,
-
-  get chrome() this._chrome,
-
-  get name() this._form.title,
-
-  get url() this._form.url,
-
-  get client() this._client,
-
-  get form() this._form,
-
-  get isLocalTab() false,
-
-  get isThreadPaused() !!this._isThreadPaused,
-
-  
-
-
-  _setupListeners: function() {
-    this.destroy = this.destroy.bind(this);
-    this.client.addListener("tabDetached", this.destroy);
-
-    this._onTabNavigated = function onRemoteTabNavigated(aType, aPacket) {
-      if (aPacket.state == "start") {
-        this.emit("will-navigate", aPacket);
-      } else {
-        this.emit("navigate", aPacket);
-      }
-    }.bind(this);
-    this.client.addListener("tabNavigated", this._onTabNavigated);
-
-    this._handleThreadState = this._handleThreadState.bind(this);
-    this.on("thread-resumed", this._handleThreadState);
-    this.on("thread-paused", this._handleThreadState);
-  },
-
-  
-
-
-  _handleThreadState: function(event) {
-    switch (event) {
-      case "thread-resumed":
-        this._isThreadPaused = false;
-        break;
-      case "thread-paused":
-        this._isThreadPaused = true;
-        break;
-    }
-  },
-
-  
-
-
-  destroy: function RT_destroy() {
-    
-    
-    if (this._destroyer) {
-      return this._destroyer.promise;
-    }
-
-    this._destroyer = Promise.defer();
-
-    this.client.removeListener("tabNavigated", this._onTabNavigated);
-    this.client.removeListener("tabDetached", this.destroy);
-
-    this._client.close(function onClosed() {
-      this._client = null;
-      this.off("thread-resumed", this._handleThreadState);
-      this.off("thread-paused", this._handleThreadState);
-      this.emit("close");
-
-      this._destroyer.resolve(null);
-    }.bind(this));
-
-    return this._destroyer.promise;
-  },
-
-  toString: function() {
-    return 'RemoteTarget:' + this.form.actor;
   },
 };
