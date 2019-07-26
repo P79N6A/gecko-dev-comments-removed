@@ -45,6 +45,9 @@ public:
   ~ClientTiledThebesLayer();
 
   
+  virtual const char* Name() const { return "TiledThebesLayer"; }
+
+  
   virtual Layer* AsLayer() { return this; }
   virtual void InvalidateRegion(const nsIntRegion& aRegion) {
     mInvalidRegion.Or(mInvalidRegion, aRegion);
