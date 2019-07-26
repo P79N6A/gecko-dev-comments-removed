@@ -25,14 +25,16 @@ function deleteAllMsgs(nextFunction) {
   let msgList = new Array();
   let smsFilter = new MozSmsFilter;
 
-  let cursor = sms.getMessages(smsFilter, false);
-  ok(cursor instanceof DOMCursor,
-      "cursor is instanceof " + cursor.constructor);
+  let request = sms.getMessages(smsFilter, false);
+  ok(request instanceof MozSmsRequest,
+      "request is instanceof " + request.constructor);
 
-  cursor.onsuccess = function(event) {
+  request.onsuccess = function(event) {
+    ok(event.target.result, "smsrequest event.target.result");
+    cursor = event.target.result;
     
-    if (cursor.result) {
-      msgList.push(cursor.result.id);
+    if (cursor.message) {
+      msgList.push(cursor.message.id);
       
       cursor.continue();
     } else {
@@ -47,8 +49,8 @@ function deleteAllMsgs(nextFunction) {
     }
   };
 
-  cursor.onerror = function(event) {
-    log("Received 'onerror' event.");
+  request.onerror = function(event) {
+    log("Received 'onerror' smsrequest event.");
     ok(event.target.error, "domerror obj");
     log("sms.getMessages error: " + event.target.error.name);
     ok(false,"Could not get SMS messages");
@@ -61,7 +63,7 @@ function deleteMsgs(msgList, nextFunction) {
 
   log("Deleting SMS (id: " + smsId + ").");
   let request = sms.delete(smsId);
-  ok(request instanceof DOMRequest,
+  ok(request instanceof MozSmsRequest,
       "request is instanceof " + request.constructor);
 
   request.onsuccess = function(event) {
@@ -142,19 +144,21 @@ function getMsgs(reverse) {
 
   
   
-  let cursor = sms.getMessages(smsFilter, reverse);
-  ok(cursor instanceof DOMCursor,
-      "cursor is instanceof " + cursor.constructor);
+  let request = sms.getMessages(smsFilter, reverse);
+  ok(request instanceof MozSmsRequest,
+      "request is instanceof " + request.constructor);
 
-  cursor.onsuccess = function(event) {
-    log("Received 'onsuccess' event.");
+  request.onsuccess = function(event) {
+    log("Received 'onsuccess' smsrequest event.");
+    ok(event.target.result, "smsrequest event.target.result");
+    cursor = event.target.result;
 
-    if (cursor.result) {
+    if (cursor.message) {
       
-      log("Got SMS (id: " + cursor.result.id + ").");
+      log("Got SMS (id: " + cursor.message.id + ").");
       foundSmsCount++;
       
-      foundSmsList.push(cursor.result);
+      foundSmsList.push(cursor.message);
       
       cursor.continue();
     } else {
@@ -171,8 +175,8 @@ function getMsgs(reverse) {
     }
   };
 
-  cursor.onerror = function(event) {
-    log("Received 'onerror' event.");
+  request.onerror = function(event) {
+    log("Received 'onerror' smsrequest event.");
     ok(event.target.error, "domerror obj");
     log("sms.getMessages error: " + event.target.error.name);
     ok(false,"Could not get SMS messages");

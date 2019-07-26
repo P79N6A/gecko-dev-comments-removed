@@ -42,7 +42,7 @@ private:
   
 
 
-  nsresult Delete(int32_t aId, nsIDOMDOMRequest** aRequest);
+  nsresult Delete(int32_t aId, nsIDOMMozSmsRequest** aRequest);
 
   nsresult DispatchTrustedSmsEventToSelf(const nsAString& aEventName,
                                          nsIDOMMozSmsMessage* aMessage);
