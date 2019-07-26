@@ -93,15 +93,16 @@ public:
   }
 
   
+  
   bool CapturingVideo()
   {
     NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
-    return mVideoSource && !mStopped;
+    return mVideoSource && !mVideoSource->IsFake() && !mStopped;
   }
   bool CapturingAudio()
   {
     NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
-    return mAudioSource && !mStopped;
+    return mAudioSource && !mAudioSource->IsFake() && !mStopped;
   }
 
   void SetStopped()

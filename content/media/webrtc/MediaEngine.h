@@ -102,6 +102,11 @@ public:
                           bool aNoiseOn, uint32_t aNoise) = 0;
 
   
+
+
+  virtual bool IsFake() = 0;
+
+  
   bool IsAvailable() {
     if (mState == kAllocated || mState == kStarted) {
       return false;
