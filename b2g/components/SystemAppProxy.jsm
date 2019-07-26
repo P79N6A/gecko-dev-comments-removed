@@ -53,12 +53,17 @@ let SystemAppProxy = {
 
 
 
-  _sendCustomEvent: function systemApp_sendCustomEvent(type, details) {
+
+
+
+
+
+  _sendCustomEvent: function systemApp_sendCustomEvent(type, details, noPending) {
     let content = this._frame ? this._frame.contentWindow : null;
 
     
     
-    if (!this._isReady || !content) {
+    if (!content || (!this._isReady && !noPending)) {
       this._pendingEvents.push([type, details]);
       return null;
     }
