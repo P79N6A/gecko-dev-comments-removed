@@ -3,7 +3,7 @@
 
 
 
-#include "MathVariantTextRunFactory.h"
+#include "MathMLTextRunFactory.h"
 
 #include "mozilla/ArrayUtils.h"
  
@@ -517,8 +517,8 @@ MathVariant(uint32_t aCh, uint8_t aMathVar)
 }
 
 void
-nsMathVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
-                                            gfxContext* aRefContext)
+MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
+                                     gfxContext* aRefContext)
 {
   gfxFontGroup* fontGroup = aTextRun->GetFontGroup();
   gfxFontStyle fontStyle = *fontGroup->GetStyle();
@@ -536,6 +536,56 @@ nsMathVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   uint32_t length = aTextRun->GetLength();
   const char16_t* str = aTextRun->mString.BeginReading();
   nsRefPtr<nsStyleContext>* styles = aTextRun->mStyles.Elements();
+
+  if (mSSTYScriptLevel && length) {
+    bool found = false;
+    
+    for (uint32_t i = 0; i < fontStyle.featureSettings.Length(); i++) {
+      if (fontStyle.featureSettings[i].mTag == TRUETYPE_TAG('s','s','t','y')) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      uint8_t sstyLevel = 0;
+      float scriptScaling = pow(styles[0]->StyleFont()->mScriptSizeMultiplier,
+                                mSSTYScriptLevel);
+      static_assert(NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER < 1,
+                    "Shouldn't it make things smaller?");
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      if (scriptScaling <= (NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER +
+                            (NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER*
+                             NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER))/2) {
+        
+        
+        sstyLevel = 2;
+      } else if (scriptScaling <= NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER) {
+        sstyLevel = 1;
+      }
+      if (sstyLevel) {
+        gfxFontFeature settingSSTY;
+        settingSSTY.mTag = TRUETYPE_TAG('s','s','t','y');
+        settingSSTY.mValue = sstyLevel;
+        fontStyle.featureSettings.AppendElement(settingSSTY);
+      }
+    }
+  }
 
   uint8_t mathVar;
   bool doMathvariantStyling = true;
@@ -613,7 +663,9 @@ nsMathVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
              doMathvariantStyling) {
     fontStyle.style = NS_FONT_STYLE_ITALIC;
     fontStyle.weight = NS_FONT_WEIGHT_BOLD;
-  } else {
+  } else if (mathVar != NS_MATHML_MATHVARIANT_NONE) {
+    
+    
     
     fontStyle.style = NS_FONT_STYLE_NORMAL;
     fontStyle.weight = NS_FONT_WEIGHT_NORMAL;
