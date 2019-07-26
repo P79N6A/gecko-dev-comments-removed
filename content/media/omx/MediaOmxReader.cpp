@@ -37,6 +37,10 @@ MediaOmxReader::MediaOmxReader(AbstractMediaDecoder *aDecoder) :
 MediaOmxReader::~MediaOmxReader()
 {
   ResetDecode();
+  VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
+  if (container) {
+    container->ClearCurrentFrame();
+  }
   mOmxDecoder.clear();
 }
 
@@ -64,6 +68,12 @@ bool MediaOmxReader::IsDormantNeeded()
 void MediaOmxReader::ReleaseMediaResources()
 {
   ResetDecode();
+  
+  
+  VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
+  if (container) {
+    container->ClearCurrentFrame();
+  }
   if (mOmxDecoder.get()) {
     mOmxDecoder->ReleaseMediaResources();
   }
@@ -163,18 +173,6 @@ nsresult MediaOmxReader::ReadMetadata(MediaInfo* aInfo,
 
  *aInfo = mInfo;
 
-  return NS_OK;
-}
-
-
-nsresult MediaOmxReader::ResetDecode()
-{
-  MediaDecoderReader::ResetDecode();
-
-  VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
-  if (container) {
-    container->ClearCurrentFrame();
-  }
   return NS_OK;
 }
 
@@ -347,12 +345,11 @@ nsresult MediaOmxReader::Seek(int64_t aTarget, int64_t aStartTime, int64_t aEndT
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
 
+  ResetDecode();
   VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
   if (container && container->GetImageContainer()) {
     container->GetImageContainer()->ClearAllImagesExceptFront();
   }
-  mVideoQueue.Reset();
-  mAudioQueue.Reset();
 
   mAudioSeekTimeUs = mVideoSeekTimeUs = aTarget;
 
