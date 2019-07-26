@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef EnableWebSpeechRecognitionCheck_h
+#define EnableWebSpeechRecognitionCheck_h
 
 namespace mozilla {
 namespace dom {
@@ -17,3 +18,5 @@ public:
 
 }
 }
+
+#endif

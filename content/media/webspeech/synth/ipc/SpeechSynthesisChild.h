@@ -2,7 +2,8 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_SpeechSynthesisChild_h
+#define mozilla_dom_SpeechSynthesisChild_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/PSpeechSynthesisChild.h"
@@ -95,3 +96,5 @@ private:
 
 } 
 } 
+
+#endif

@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_SpeechSynthesisVoice_h
+#define mozilla_dom_SpeechSynthesisVoice_h
 
 #include "nsCOMPtr.h"
 #include "nsString.h"
@@ -59,3 +60,5 @@ private:
 
 } 
 } 
+
+#endif

@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef nsPicoService_h
+#define nsPicoService_h
 
 #include "mozilla/Mutex.h"
 #include "nsAutoPtr.h"
@@ -85,3 +86,5 @@ private:
 
 } 
 } 
+
+#endif

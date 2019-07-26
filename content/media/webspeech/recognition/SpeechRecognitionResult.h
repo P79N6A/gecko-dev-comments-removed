@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_SpeechRecognitionResult_h
+#define mozilla_dom_SpeechRecognitionResult_h
 
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -52,3 +53,5 @@ private:
 
 } 
 } 
+
+#endif

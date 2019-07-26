@@ -2,7 +2,8 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_SpeechSynthesisParent_h
+#define mozilla_dom_SpeechSynthesisParent_h
 
 #include "mozilla/dom/PSpeechSynthesisParent.h"
 #include "mozilla/dom/PSpeechSynthesisRequestParent.h"
@@ -91,3 +92,5 @@ private:
 
 } 
 } 
+
+#endif

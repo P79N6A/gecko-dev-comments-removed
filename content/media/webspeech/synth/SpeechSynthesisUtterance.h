@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_SpeechSynthesisUtterance_h
+#define mozilla_dom_SpeechSynthesisUtterance_h
 
 #include "nsCOMPtr.h"
 #include "nsDOMEventTargetHelper.h"
@@ -118,3 +119,5 @@ private:
 
 } 
 } 
+
+#endif

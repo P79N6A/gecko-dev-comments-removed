@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_SpeechGrammar_h
+#define mozilla_dom_SpeechGrammar_h
 
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -55,3 +56,5 @@ private:
 
 } 
 } 
+
+#endif

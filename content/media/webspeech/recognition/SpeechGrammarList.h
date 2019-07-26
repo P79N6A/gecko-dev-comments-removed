@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_SpeechGrammarList_h
+#define mozilla_dom_SpeechGrammarList_h
 
 #include "EnableWebSpeechRecognitionCheck.h"
 #include "mozilla/Attributes.h"
@@ -59,3 +60,5 @@ private:
 
 } 
 } 
+
+#endif

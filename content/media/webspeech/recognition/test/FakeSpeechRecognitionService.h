@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_FakeSpeechRecognitionService_h
+#define mozilla_dom_FakeSpeechRecognitionService_h
 
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
@@ -44,3 +45,5 @@ private:
 };
 
 } 
+
+#endif
