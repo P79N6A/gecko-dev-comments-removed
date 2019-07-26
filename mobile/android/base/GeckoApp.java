@@ -1218,6 +1218,13 @@ abstract public class GeckoApp
             return;
         }
 
+        if (GeckoThread.isCreated()) {
+            
+            
+            mIsRestoringActivity = true;
+            Telemetry.HistogramAdd("FENNEC_RESTORING_ACTIVITY", 1);
+        }
+
         
         
         
@@ -1242,40 +1249,6 @@ abstract public class GeckoApp
         
         mGeckoLayout = (RelativeLayout) findViewById(R.id.gecko_layout);
         mMainLayout = (RelativeLayout) findViewById(R.id.main_layout);
-
-        initializeChrome();
-
-        if (GeckoThread.isCreated()) {
-            
-            
-            mIsRestoringActivity = true;
-            Telemetry.HistogramAdd("FENNEC_RESTORING_ACTIVITY", 1);
-        } else {
-            String passedUri = null;
-            String uri = getURIFromIntent(intent);
-            if (uri != null && uri.length() > 0) {
-                passedUri = uri;
-            }
-            String action = intent.getAction();
-
-            GeckoThread.setArgs(intent.getStringExtra("args"));
-            GeckoThread.setAction(intent.getAction());
-            GeckoThread.setUri(passedUri);
-
-            if (!ACTION_DEBUG.equals(action) &&
-                GeckoThread.checkAndSetLaunchState(GeckoThread.LaunchState.Launching, GeckoThread.LaunchState.Launched)) {
-                GeckoThread.createAndStart();
-            } else if (ACTION_DEBUG.equals(action) &&
-                GeckoThread.checkAndSetLaunchState(GeckoThread.LaunchState.Launching, GeckoThread.LaunchState.WaitForDebugger)) {
-                ThreadUtils.getUiHandler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        GeckoThread.setLaunchState(GeckoThread.LaunchState.Launching);
-                        GeckoThread.createAndStart();
-                    }
-                }, 1000 * 5 );
-            }
-        }
 
         
         mTabsPanel = (TabsPanel) findViewById(R.id.tabs_panel);
@@ -1423,6 +1396,8 @@ abstract public class GeckoApp
 
         Tabs.registerOnTabsChangedListener(this);
 
+        initializeChrome();
+
         
         String restoreMessage = null;
         if (mRestoreMode != RESTORE_NONE && !mIsRestoringActivity) {
@@ -1465,6 +1440,25 @@ abstract public class GeckoApp
         }
 
         Telemetry.HistogramAdd("FENNEC_STARTUP_GECKOAPP_ACTION", startupAction.ordinal());
+
+        if (!mIsRestoringActivity) {
+            GeckoThread.setArgs(intent.getStringExtra("args"));
+            GeckoThread.setAction(intent.getAction());
+            GeckoThread.setUri(passedUri);
+        }
+        if (!ACTION_DEBUG.equals(action) &&
+            GeckoThread.checkAndSetLaunchState(GeckoThread.LaunchState.Launching, GeckoThread.LaunchState.Launched)) {
+            GeckoThread.createAndStart();
+        } else if (ACTION_DEBUG.equals(action) &&
+            GeckoThread.checkAndSetLaunchState(GeckoThread.LaunchState.Launching, GeckoThread.LaunchState.WaitForDebugger)) {
+            ThreadUtils.getUiHandler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    GeckoThread.setLaunchState(GeckoThread.LaunchState.Launching);
+                    GeckoThread.createAndStart();
+                }
+            }, 1000 * 5 );
+        }
 
         
         if (ACTION_LAUNCH_SETTINGS.equals(action)) {
