@@ -118,6 +118,12 @@ DownloadElementShell.prototype = {
     throw new Error("Unexpected download element state");
   },
 
+  get _downloadURIObj() {
+    if (!("__downloadURIObj" in this))
+      this.__downloadURIObj = NetUtil.newURI(this.downloadURI);
+    return this.__downloadURIObj;
+  },
+
   get _icon() {
     if (this._targetFileURI)
       return "moz-icon://" + this._targetFileURI + "?size=32";
@@ -136,7 +142,7 @@ DownloadElementShell.prototype = {
     let value;
     try {
       value = PlacesUtils.annotations.getPageAnnotation(
-        NetUtil.newURI(this.downloadURI), aAnnotation);
+        this._downloadURIObj, aAnnotation);
     }
     catch(ex) {
       if (aDefaultValue === undefined) {
@@ -466,7 +472,7 @@ DownloadElementShell.prototype = {
         if (this._dataItem)
           this._dataItem.remove();
         if (this._placesNode)
-          PlacesUtils.bhistory.removePage(NetUtil.newURI(this.downloadURI));
+          PlacesUtils.bhistory.removePage(this._downloadURIObj);
         break;
        }
       case "downloadsCmd_retry": {
@@ -578,17 +584,34 @@ DownloadsPlacesView.prototype = {
   },
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   _addDownloadData:
-  function DPV_addDownload(aDataItem, aPlacesNode, aNewest) {
+  function DPV_addDownload(aDataItem, aPlacesNode, aNewest = false, aDocumentFragment = null) {
     let downloadURI = aPlacesNode ? aPlacesNode.uri : aDataItem.uri;
     let shellsForURI = this._downloadElementsShellsForURI.get(downloadURI, null);
     if (!shellsForURI) {
@@ -658,12 +681,13 @@ DownloadsPlacesView.prototype = {
       }
       else if (aDataItem) {
         let before = this._lastSessionDownloadElement ?
-          this._lastSessionDownloadElement.nextSibling : this._richlistbox.firstChild
-        this._richlistbox.insertBefore(newOrUpdatedShell.element, before)
+          this._lastSessionDownloadElement.nextSibling : this._richlistbox.firstChild;
+        this._richlistbox.insertBefore(newOrUpdatedShell.element, before);
         this._lastSessionDownloadElement = newOrUpdatedShell.element;
       }
       else {
-        this._richlistbox.appendChild(newOrUpdatedShell.element);
+        let appendTo = aDocumentFragment || this._richlistbox;
+        appendTo.appendChild(newOrUpdatedShell.element);
       }
 
       if (this.searchTerm) {
@@ -821,18 +845,22 @@ DownloadsPlacesView.prototype = {
         this._removeHistoryDownloadFromView(element._shell.placesNode);
     }
 
+    let elementsToAppendFragment = document.createDocumentFragment();
     for (let i = 0; i < aContainer.childCount; i++) {
       try {
-        this._addDownloadData(null, aContainer.getChild(i), false)
+        this._addDownloadData(null, aContainer.getChild(i), false,
+                              elementsToAppendFragment);
       }
       catch(ex) {
         Cu.reportError(ex);
       }
     }
+
+    this._richlistbox.appendChild(elementsToAppendFragment);
   },
 
   nodeInserted: function DPV_nodeInserted(aParent, aPlacesNode) {
-    this._addDownloadData(null, aPlacesNode, false);
+    this._addDownloadData(null, aPlacesNode);
   },
 
   nodeRemoved: function DPV_nodeRemoved(aParent, aPlacesNode, aOldIndex) {
@@ -895,7 +923,7 @@ DownloadsPlacesView.prototype = {
   },
 
   onDataItemRemoved: function DPV_onDataItemRemoved(aDataItem) {
-    this._removeSessionDownloadFromView(aDataItem)
+    this._removeSessionDownloadFromView(aDataItem);
   },
 
   getViewItem: function(aDataItem)
