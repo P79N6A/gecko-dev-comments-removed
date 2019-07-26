@@ -674,7 +674,7 @@ var NodeListActor = exports.NodeListActor = protocol.ActorClass({
   form: function() {
     return {
       actor: this.actorID,
-      length: this.nodeList ? this.nodeList.length : 0
+      length: this.nodeList.length
     }
   },
 
@@ -1395,7 +1395,7 @@ var WalkerActor = protocol.ActorClass({
         sugs.classes.delete(HIDDEN_CLASS);
         for (let [className, count] of sugs.classes) {
           if (className.startsWith(completing)) {
-            result.push(["." + className, count, selectorState]);
+            result.push(["." + className, count]);
           }
         }
         break;
@@ -1409,7 +1409,7 @@ var WalkerActor = protocol.ActorClass({
         }
         for (let node of nodes) {
           if (node.id.startsWith(completing)) {
-            result.push(["#" + node.id, 1, selectorState]);
+            result.push(["#" + node.id, 1]);
           }
         }
         break;
@@ -1427,20 +1427,9 @@ var WalkerActor = protocol.ActorClass({
         }
         for (let [tag, count] of sugs.tags) {
           if ((new RegExp("^" + completing + ".*", "i")).test(tag)) {
-            result.push([tag, count, selectorState]);
+            result.push([tag, count]);
           }
         }
-
-        
-        
-        if (!query) {
-          result = [
-            ...result,
-            ...this.getSuggestionsForQuery(null, completing, "class").suggestions,
-            ...this.getSuggestionsForQuery(null, completing, "id").suggestions
-          ];
-        }
-
         break;
 
       case "null":
@@ -1468,37 +1457,10 @@ var WalkerActor = protocol.ActorClass({
     }
 
     
-    result = result.sort((a, b) => {
-      
-      let sortA = (10000-a[1]) + a[0];
-      let sortB = (10000-b[1]) + b[0];
-
-      
-      let firstA = a[0].substring(0, 1);
-      let firstB = b[0].substring(0, 1);
-
-      if (firstA === "#") {
-        sortA = "2" + sortA;
-      }
-      else if (firstA === ".") {
-        sortA = "1" + sortA;
-      }
-      else {
-        sortA = "0" + sortA;
-      }
-
-      if (firstB === "#") {
-        sortB = "2" + sortB;
-      }
-      else if (firstB === ".") {
-        sortB = "1" + sortB;
-      }
-      else {
-        sortB = "0" + sortB;
-      }
-
-      
-      return sortA.localeCompare(sortB);
+    result = result.sort();
+    
+    result = result.sort(function(a, b) {
+      return b[1] - a[1];
     });
 
     result.slice(0, 25);
