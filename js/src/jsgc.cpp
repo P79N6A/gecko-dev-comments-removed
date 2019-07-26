@@ -6,45 +6,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "jsgcinlines.h"
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 #include "mozilla/Util.h"
-
-#include "jsscriptinlines.h"
-
-using mozilla::Swap;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include <string.h>     
 #ifndef XP_WIN
@@ -85,6 +79,7 @@ using mozilla::Swap;
 #include "vm/WrapperObject.h"
 
 #include "jsobjinlines.h"
+#include "jsscriptinlines.h"
 
 #include "vm/Runtime-inl.h"
 #include "vm/Stack-inl.h"
@@ -96,6 +91,7 @@ using namespace js::gc;
 using mozilla::ArrayEnd;
 using mozilla::DebugOnly;
 using mozilla::Maybe;
+using mozilla::Swap;
 
 
 static const uint64_t GC_IDLE_FULL_SPAN = 20 * 1000 * 1000;

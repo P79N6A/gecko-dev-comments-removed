@@ -8,21 +8,17 @@
 
 
 
-#include "jsdate.h"
 
-#include "js/Date.h"
+
+
+
+
+
+
+#include "jsdate.h"
 
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Util.h"
-
-
-
-
-
-
-
-
-
 
 #include <ctype.h>
 #include <math.h>
@@ -38,6 +34,7 @@
 #include "jsutil.h"
 #include "prmjtime.h"
 
+#include "js/Date.h"
 #include "vm/DateTime.h"
 #include "vm/GlobalObject.h"
 #include "vm/Interpreter.h"
