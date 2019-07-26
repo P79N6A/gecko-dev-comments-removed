@@ -996,12 +996,36 @@ js::AsmJSFunctionToString(JSContext *cx, HandleFunction fun)
     if (!out.append("function "))
         return nullptr;
 
-    Rooted<JSFlatString*> src(cx, source->substring(cx, begin, end));
-    if (!src)
-        return nullptr;
+    if (module.strict()) {
+        
+        
+        size_t bodyStart = 0, bodyEnd;
 
-    if (!out.append(src->chars(), src->length()))
-        return nullptr;
+        
+        
+        
+        JS_ASSERT(fun->atom()); 
+        size_t nameEnd = begin + fun->atom()->length();
+
+        Rooted<JSFlatString*> src(cx, source->substring(cx, nameEnd, end));
+        ConstTwoByteChars chars(src->chars(), src->length());
+        if (!FindBody(cx, fun, chars, src->length(), &bodyStart, &bodyEnd))
+            return nullptr;
+
+        if (!out.append(fun->atom()) ||
+            !out.append(chars, bodyStart) ||
+            !out.append("\n\"use strict\";\n") ||
+            !out.append(chars + bodyStart, src->length() - bodyStart))
+        {
+            return nullptr;
+        }
+    } else {
+        Rooted<JSFlatString*> src(cx, source->substring(cx, begin, end));
+        if (!src)
+            return nullptr;
+        if (!out.append(src->chars(), src->length()))
+            return nullptr;
+    }
 
     return out.finishString();
 }
