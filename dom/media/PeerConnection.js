@@ -192,6 +192,7 @@ function PeerConnection() {
 
   
   this.onaddstream = null;
+  this.onopen = null;
   this.onremovestream = null;
   this.onicecandidate = null;
   this.onstatechange = null;
