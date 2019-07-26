@@ -52,6 +52,7 @@ namespace android {
 namespace mozilla {
     namespace gfx {
         class SharedSurface;
+        class SourceSurface;
         class DataSourceSurface;
         struct SurfaceCaps;
     }
@@ -2700,6 +2701,8 @@ public:
     
     
     void ReadScreenIntoImageSurface(gfxImageSurface* dest);
+
+    TemporaryRef<gfx::SourceSurface> ReadPixelsToSourceSurface(const gfx::IntSize &aSize);
 
     
 

@@ -10,11 +10,10 @@
 #include "GLDefs.h"                     
 #include "LayerManagerOGLProgram.h"     
 #include "Units.h"                      
-#include "gfxContext.h"                 
-#include "gfxPoint.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/2D.h"             
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/gfx/Rect.h"           
@@ -25,7 +24,6 @@
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
-#include "nsISupportsImpl.h"            
 #include "nsSize.h"                     
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
@@ -106,12 +104,12 @@ public:
 
   virtual bool SupportsPartialTextureUpdate() MOZ_OVERRIDE;
 
-  virtual bool CanUseCanvasLayerForSize(const gfxIntSize &aSize) MOZ_OVERRIDE
+  virtual bool CanUseCanvasLayerForSize(const gfx::IntSize &aSize) MOZ_OVERRIDE
   {
     if (!mGLContext)
       return false;
     int32_t maxSize = GetMaxTextureSize();
-    return aSize <= gfxIntSize(maxSize, maxSize);
+    return aSize <= gfx::IntSize(maxSize, maxSize);
   }
 
   virtual int32_t GetMaxTextureSize() const MOZ_OVERRIDE;
@@ -128,7 +126,7 @@ public:
 
   virtual void MakeCurrent(MakeCurrentFlags aFlags = 0) MOZ_OVERRIDE;
 
-  virtual void SetTargetContext(gfxContext* aTarget) MOZ_OVERRIDE
+  virtual void SetTargetContext(gfx::DrawTarget* aTarget) MOZ_OVERRIDE
   {
     mTarget = aTarget;
   }
@@ -171,7 +169,7 @@ private:
   
 
 
-  nsRefPtr<gfxContext> mTarget;
+  RefPtr<gfx::DrawTarget> mTarget;
 
   
   nsIWidget *mWidget;
@@ -300,7 +298,7 @@ private:
 
 
 
-  void CopyToTarget(gfxContext *aTarget, const gfxMatrix& aWorldMatrix);
+  void CopyToTarget(gfx::DrawTarget* aTarget, const gfxMatrix& aWorldMatrix);
 
   
 

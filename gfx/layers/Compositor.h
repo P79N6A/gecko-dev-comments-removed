@@ -7,7 +7,6 @@
 #define MOZILLA_GFX_COMPOSITOR_H
 
 #include "Units.h"                      
-#include "gfxPoint.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/Point.h"          
@@ -102,7 +101,6 @@
 
 
 
-class gfxContext;
 class nsIWidget;
 struct gfxMatrix;
 struct nsIntSize;
@@ -110,6 +108,7 @@ struct nsIntSize;
 namespace mozilla {
 namespace gfx {
 class Matrix4x4;
+class DrawTarget;
 }
 
 namespace layers {
@@ -210,7 +209,7 @@ public:
   
 
 
-  virtual bool CanUseCanvasLayerForSize(const gfxIntSize& aSize) = 0;
+  virtual bool CanUseCanvasLayerForSize(const gfx::IntSize& aSize) = 0;
   virtual int32_t GetMaxTextureSize() const = 0;
 
   
@@ -220,7 +219,7 @@ public:
 
 
 
-  virtual void SetTargetContext(gfxContext* aTarget) = 0;
+  virtual void SetTargetContext(gfx::DrawTarget* aTarget) = 0;
 
   typedef uint32_t MakeCurrentFlags;
   static const MakeCurrentFlags ForceMakeCurrent = 0x1;
