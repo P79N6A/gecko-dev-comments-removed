@@ -1193,7 +1193,7 @@ public abstract class GeckoApp
         }
 
         BrowserDB.initialize(getProfile().getName());
-        ((GeckoApplication)getApplication()).initialize();
+        ((GeckoApplication) getApplication()).initialize();
 
         sAppContext = this;
         GeckoAppShell.setContextGetter(this);
@@ -1205,6 +1205,18 @@ public abstract class GeckoApp
             Favicons.attachToContext(this);
         } catch (Exception e) {
             Log.e(LOGTAG, "Exception starting favicon cache. Corrupt resources?", e);
+        }
+
+        
+        
+        
+        
+        
+        if (LocaleManager.systemLocaleDidChange()) {
+            Log.i(LOGTAG, "System locale changed. Restarting.");
+            doRestart();
+            System.exit(0);
+            return;
         }
 
         if (GeckoThread.isCreated()) {
@@ -1285,6 +1297,7 @@ public abstract class GeckoApp
                 
                 
                 LocaleManager.setContextGetter(GeckoApp.this);
+                LocaleManager.initialize();
 
                 SessionInformation previousSession = SessionInformation.fromSharedPrefs(prefs);
                 if (previousSession.wasKilled()) {
