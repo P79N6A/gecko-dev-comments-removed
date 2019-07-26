@@ -42,6 +42,8 @@ extern UINT sAppShellGeckoMsgId;
 
 static ComPtr<ICoreWindowStatic> sCoreStatic;
 static bool sIsDispatching = false;
+static bool sWillEmptyThreadQueue = false;
+static bool sEmptyingThreadQueue = false;
 
 MetroAppShell::~MetroAppShell()
 {
@@ -214,6 +216,43 @@ MetroAppShell::Run(void)
   return rv;
 }
 
+
+
+void 
+MetroAppShell::MarkEventQueueForPurge()
+{
+  LogFunction();
+  sWillEmptyThreadQueue = true;
+
+  
+  
+  if (sIsDispatching) {
+    return;
+  }
+
+  
+  DispatchAllGeckoEvents();
+}
+
+
+void
+MetroAppShell::DispatchAllGeckoEvents()
+{
+  if (!sWillEmptyThreadQueue) {
+    return;
+  }
+
+  LogFunction();
+  NS_ASSERTION(NS_IsMainThread(), "DispatchAllXPCOMEvents should be called on the main thread");
+
+  sWillEmptyThreadQueue = false;
+
+  AutoRestore<bool> dispatching(sEmptyingThreadQueue);
+  sEmptyingThreadQueue = true;
+  nsIThread *thread = NS_GetCurrentThread();
+  NS_ProcessPendingEvents(thread, 0);
+}
+
 static void
 ProcessNativeEvents(CoreProcessEventsOption eventOption)
 {
@@ -240,14 +279,29 @@ MetroAppShell::ProcessOneNativeEventIfPresent()
   if (sIsDispatching) {
     NS_RUNTIMEABORT("Reentrant call into process events, this is not allowed in Winrt land. Goodbye!");
   }
-  AutoRestore<bool> dispatching(sIsDispatching);
-  ProcessNativeEvents(CoreProcessEventsOption::CoreProcessEventsOption_ProcessOneIfPresent);
+
+  {
+    AutoRestore<bool> dispatching(sIsDispatching);
+    sIsDispatching = true;
+    ProcessNativeEvents(CoreProcessEventsOption::CoreProcessEventsOption_ProcessOneIfPresent);
+  }
+
+  DispatchAllGeckoEvents();
+
   return !!HIWORD(::GetQueueStatus(MOZ_QS_ALLEVENT));
 }
 
 bool
 MetroAppShell::ProcessNextNativeEvent(bool mayWait)
 {
+  
+  
+  
+  
+  if (sEmptyingThreadQueue) {
+    return false;
+  }
+
   if (ProcessOneNativeEventIfPresent()) {
     return true;
   }
