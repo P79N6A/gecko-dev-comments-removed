@@ -20,11 +20,12 @@
 
 
 
-#include "nscore.h"
+#include <stdint.h>
+#include "mozilla/Attributes.h"
 #include "mozilla/GuardObjects.h"
-#include "nsIVisualEventTracer.h"
 
 #ifdef MOZ_VISUAL_EVENT_TRACER
+#include "nsIVisualEventTracer.h"
 
 
 
