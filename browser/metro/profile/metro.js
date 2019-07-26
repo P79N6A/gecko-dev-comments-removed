@@ -139,7 +139,7 @@ pref("browser.backspace_action", 0);
 pref("browser.sessionhistory.max_entries", 50);
 
 
-pref("browser.startup.sessionRestore", false);
+pref("browser.startup.page", 1);
 
 
 pref("browser.sessionstore.resume_from_crash", true);
@@ -530,7 +530,6 @@ pref("editor.singleLine.pasteNewlines", 2);
 pref("services.sync.registerEngines", "Tab,Bookmarks,Form,History,Password,Prefs");
 
 
-pref("services.sync.prefs.sync.browser.startup.sessionRestore", true);
 pref("services.sync.prefs.sync.browser.tabs.warnOnClose", true);
 pref("services.sync.prefs.sync.devtools.errorconsole.enabled", true);
 pref("services.sync.prefs.sync.lightweightThemes.isThemeSelected", true);

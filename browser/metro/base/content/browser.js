@@ -183,8 +183,11 @@ var Browser = {
       }
 
       
-      let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-      if (ss.shouldRestore() || Services.prefs.getBoolPref("browser.startup.sessionRestore")) {
+      let ss = Cc["@mozilla.org/browser/sessionstore;1"]
+               .getService(Ci.nsISessionStore);
+      let shouldRestore = ss.shouldRestore()
+                       || (3 == Services.prefs.getIntPref("browser.startup.page"));
+      if (shouldRestore) {
         let bringFront = false;
         
         if (activationURI && activationURI != kStartURI) {

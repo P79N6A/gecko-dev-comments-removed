@@ -65,11 +65,15 @@ this.WindowsPrefSync = {
 
 
 
+
+
+
   desktopControlledPrefs: ["app.update.auto",
     "app.update.enabled",
     "app.update.service.enabled",
     "app.update.metro.enabled",
-    "browser.sessionstore.resume_session_once"],
+    "browser.sessionstore.resume_session_once",
+    "browser.startup.page"],
 
   
 
