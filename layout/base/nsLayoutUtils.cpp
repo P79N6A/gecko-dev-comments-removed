@@ -2677,6 +2677,21 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
   nsRect dirtyRect = visibleRegion.GetBounds();
   builder.EnterPresShell(aFrame, dirtyRect);
   {
+    
+    
+    
+    
+    
+    ViewID id = FrameMetrics::NULL_SCROLL_ID;
+    if (ignoreViewportScrolling && presContext->IsRootContentDocument()) {
+      if (nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame()) {
+        if (nsIContent* content = rootScrollFrame->GetContent()) {
+          id = nsLayoutUtils::FindOrCreateIDFor(content);
+        }
+      }
+    }
+    nsDisplayListBuilder::AutoCurrentScrollParentIdSetter idSetter(&builder, id);
+
     PROFILER_LABEL("nsLayoutUtils","PaintFrame::BuildDisplayList");
     aFrame->BuildDisplayListForStackingContext(&builder, dirtyRect, &list);
   }
