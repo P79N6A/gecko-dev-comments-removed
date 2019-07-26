@@ -5,6 +5,12 @@
 %filter substitution
 
 %define menuPanelWidth 22.35em
+% XXXgijs This is the ugliest bit of code I think I've ever written for Mozilla.
+% Basically, the 0.1px is there to avoid CSS rounding errors causing buttons to wrap.
+% For gory details, refer to https://bugzilla.mozilla.org/show_bug.cgi?id=963365#c11
+% There's no calc() here (and therefore lots of calc() where this is used) because
+% we don't support nested calc(): https://bugzilla.mozilla.org/show_bug.cgi?id=968761
+%define menuPanelButtonWidth (@menuPanelWidth@ / 3 - 0.1px)
 %define exitSubviewGutterWidth 38px
 %define buttonStateHover :not(:-moz-any([disabled],[open],[checked="true"],:active)):-moz-any(:hover,[_moz-menuactive])
 %define buttonStateActive :not([disabled]):-moz-any([open],[checked="true"],:hover:active,[_moz-menuactive]:active)
@@ -177,7 +183,7 @@ toolbaritem[cui-areatype="menu-panel"][sdkstylewidget="true"]:not(.panel-wide-it
 .panel-customization-placeholder-child {
   -moz-appearance: none;
   -moz-box-orient: vertical;
-  width: calc(@menuPanelWidth@ / 3);
+  width: calc(@menuPanelButtonWidth@);
   height: calc(40px + 4em);
 }
 
@@ -189,7 +195,7 @@ toolbaritem[cui-areatype="menu-panel"][sdkstylewidget="true"]:not(.panel-wide-it
 .panelUI-grid .toolbarbutton-1 > .toolbarbutton-menubutton-button {
   -moz-appearance: none;
   -moz-box-orient: vertical;
-  width: calc(@menuPanelWidth@ / 3 - 2px);
+  width: calc(@menuPanelButtonWidth@ - 2px);
   height: calc(38px + 4em);
   margin-top: 3px; 
   border: 0;
@@ -232,7 +238,7 @@ toolbaritem[cui-areatype="menu-panel"][sdkstylewidget="true"]:not(.panel-wide-it
 }
 
 toolbaritem[cui-areatype="menu-panel"][sdkstylewidget="true"] {
-  width: calc(@menuPanelWidth@ / 3);
+  width: calc(@menuPanelButtonWidth@);
   margin: 0 !important;
 }
 
@@ -269,7 +275,8 @@ toolbaritem[cui-areatype="menu-panel"][sdkstylewidget="true"]:not(.panel-wide-it
 
 
 
-  margin: 4px calc(@menuPanelWidth@ / 6 - 23px);
+
+  margin: 4px calc(@menuPanelButtonWidth@ / 2 - 23px);
 }
 
 toolbarpaletteitem[place="palette"] > toolbaritem > toolbarbutton {
@@ -642,8 +649,8 @@ toolbarpaletteitem[place="palette"] > #search-container {
   -moz-box-flex: 1;
   
 
-  min-width: calc(@menuPanelWidth@ / 3 - 2px);
-  max-width: calc(@menuPanelWidth@ / 3 - 2px);
+  min-width: calc(@menuPanelButtonWidth@ - 2px);
+  max-width: calc(@menuPanelButtonWidth@ - 2px);
   
 
   height: calc(2.2em + 4px);
