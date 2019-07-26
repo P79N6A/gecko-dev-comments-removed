@@ -400,6 +400,7 @@ DumpReport(nsIGZFileWriter *aWriter, bool aIsFirst,
   DUMP(aWriter, "\", \"path\": \"");
   nsCString path(aPath);
   path.ReplaceSubstring("\\", "\\\\");    
+  path.ReplaceSubstring("\"", "\\\"");    
   DUMP(aWriter, path);
 
   DUMP(aWriter, "\", \"kind\": ");
