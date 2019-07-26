@@ -244,7 +244,8 @@ private:
   static bool sIsVirtualKeyMapInitialized;
   static void InitializeVirtualKeyMap();
   static uint32_t GetMozKeyCode(uint32_t aKey);
-
+  
+  static KeyNameIndex GetDOMKeyNameIndex(uint32_t aVirtualKey);
   
   
   
