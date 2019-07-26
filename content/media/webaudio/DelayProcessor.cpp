@@ -38,9 +38,7 @@ DelayProcessor::Process(const double *aPerFrameDelays,
                                    0.0, static_cast<double>(mMaxDelayFrames));
 
       
-      if (input) {
-        buffer[writeIndex] = input[i];
-      }
+      buffer[writeIndex] = input ? input[i] : 0.0f;
 
       
       
