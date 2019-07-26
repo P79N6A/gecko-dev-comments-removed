@@ -403,6 +403,21 @@ struct BaseRect {
     width = right - x;
     height = bottom - y;
   }
+  
+  
+  void ScaleInverseRoundIn(double aScale) { ScaleInverseRoundIn(aScale, aScale); }
+  
+  
+  
+  void ScaleInverseRoundIn(double aXScale, double aYScale)
+  {
+    T right = static_cast<T>(floor(double(XMost()) / aXScale));
+    T bottom = static_cast<T>(floor(double(YMost()) / aYScale));
+    x = static_cast<T>(ceil(double(x) / aXScale));
+    y = static_cast<T>(ceil(double(y) / aYScale));
+    width = gfx_max<T>(0, right - x);
+    height = gfx_max<T>(0, bottom - y);
+  }
 
   
 

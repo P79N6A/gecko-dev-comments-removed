@@ -30,12 +30,15 @@ public:
                                         
 
   FrameMetrics()
-    : mViewport(0, 0, 0, 0)
+    : mCompositionBounds(0, 0, 0, 0)
     , mContentRect(0, 0, 0, 0)
-    , mViewportScrollOffset(0, 0)
+    , mDisplayPort(0, 0, 0, 0)
+    , mViewport(0, 0, 0, 0)
+    , mScrollOffset(0, 0)
     , mScrollId(NULL_SCROLL_ID)
-    , mCSSContentRect(0, 0, 0, 0)
+    , mScrollableRect(0, 0, 0, 0)
     , mResolution(1, 1)
+    , mDevPixelsPerCSSPixel(1)
     , mMayHaveTouchListeners(false)
   {}
 
@@ -44,7 +47,7 @@ public:
   bool operator==(const FrameMetrics& aOther) const
   {
     return (mViewport.IsEqualEdges(aOther.mViewport) &&
-            mViewportScrollOffset == aOther.mViewportScrollOffset &&
+            mScrollOffset == aOther.mScrollOffset &&
             mDisplayPort.IsEqualEdges(aOther.mDisplayPort) &&
             mScrollId == aOther.mScrollId);
   }
@@ -68,20 +71,128 @@ public:
     return mScrollId != NULL_SCROLL_ID;
   }
 
+  gfxSize LayersPixelsPerCSSPixel() const
+  {
+    return mResolution * mDevPixelsPerCSSPixel;
+  }
+
+  gfx::Point GetScrollOffsetInLayerPixels() const
+  {
+    return gfx::Point(mScrollOffset.x * LayersPixelsPerCSSPixel().width,
+                      mScrollOffset.y * LayersPixelsPerCSSPixel().height);
+  }
+
   
-  nsIntRect mViewport;
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIntRect mCompositionBounds;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
   nsIntRect mContentRect;
-  gfx::Point mViewportScrollOffset;
-  nsIntRect mDisplayPort;
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  gfx::Rect mDisplayPort;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  gfx::Rect mViewport;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  gfx::Point mScrollOffset;
+
+  
+  
   ViewID mScrollId;
 
   
   
-  gfx::Rect mCSSContentRect;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  gfx::Rect mScrollableRect;
 
   
   
   gfxSize mResolution;
+
+  
+  
+  
+  
+  float mDevPixelsPerCSSPixel;
 
   
   bool mMayHaveTouchListeners;

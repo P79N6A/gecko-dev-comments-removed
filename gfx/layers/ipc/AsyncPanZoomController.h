@@ -103,11 +103,7 @@ public:
 
 
 
-
-
-
-
-  void UpdateViewportSize(int aWidth, int aHeight);
+  void UpdateCompositionBounds(const nsIntRect& aCompositionBounds);
 
   
 
@@ -350,7 +346,7 @@ protected:
 
 
 
-  const nsIntRect CalculatePendingDisplayPort();
+  const gfx::Rect CalculatePendingDisplayPort();
 
   
 
@@ -360,7 +356,7 @@ protected:
 
 
 
-  bool EnlargeDisplayPortAlongAxis(float aViewport, float aVelocity,
+  bool EnlargeDisplayPortAlongAxis(float aCompositionBounds, float aVelocity,
                                    float* aDisplayPortOffset, float* aDisplayPortLength);
 
   
