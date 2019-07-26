@@ -269,75 +269,68 @@ const chrome = { CC: undefined, Cc: undefined, ChromeWorker: undefined,
 
 
 if (typeof Components === "object") {
-  (function () {
-    const { Constructor: CC, classes: Cc, manager: Cm, interfaces: Ci,
-            results: Cr, utils: Cu } = Components;
+  const { Constructor: CC, classes: Cc, manager: Cm, interfaces: Ci,
+          results: Cr, utils: Cu } = Components;
 
-    const principal = CC('@mozilla.org/systemprincipal;1', 'nsIPrincipal')();
+  const principal = CC('@mozilla.org/systemprincipal;1', 'nsIPrincipal')();
 
-    
-    const createSandbox = function (name, prototype) {
-      return Cu.Sandbox(principal, {
-        invisibleToDebugger: true,
-        sandboxName: name,
-        sandboxPrototype: prototype,
-        wantComponents: false,
-        wantXrays: false
-      });
-    };
-
-    const loadSubScript = Cc['@mozilla.org/moz/jssubscript-loader;1'].
-                          getService(Ci.mozIJSSubScriptLoader).loadSubScript;
-
-    
-    const loadInSandbox = function (url, sandbox) {
-      loadSubScript(url, sandbox, "UTF-8");
-    };
-
-    
-    
-    const Debugger = (function () {
-      let sandbox = Cu.Sandbox(principal, {});
-      Cu.evalInSandbox(
-        "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
-        "addDebuggerToGlobal(this);",
-        sandbox
-      );
-      return sandbox.Debugger;
-    })();
-
-    
-    const { Promise } = Cu.import("resource://gre/modules/Promise.jsm", {});;
-    const Timer = Cu.import("resource://gre/modules/Timer.jsm", {});
-    const xpcInspector = Cc["@mozilla.org/jsinspector;1"].
-                         getService(Ci.nsIJSInspector);
-
-    this.worker = new WorkerDebuggerLoader({
-      createSandbox: createSandbox,
-      globals: {
-        "isWorker": true,
-        "Debugger": Debugger,
-        "promise": Promise,
-        "reportError": Cu.reportError,
-        "setInterval": Timer.setInterval,
-        "setTimeout": Timer.setTimeout,
-        "clearInterval": Timer.clearInterval,
-        "clearTimeout": Timer.clearTimeout,
-        "xpcInspector": xpcInspector,
-      },
-      loadInSandbox: loadInSandbox,
-      modules: {
-        "Services": {},
-        "chrome": chrome,
-      },
-      paths: {
-        "": "resource://gre/modules/commonjs/",
-        "devtools": "resource:///modules/devtools",
-        "devtools/server": "resource://gre/modules/devtools/server",
-        "devtools/toolkit": "resource://gre/modules/devtools",
-        "source-map": "resource://gre/modules/devtools/source-map",
-        "xpcshell-test": "resource://test",
-      }
+  
+  const createSandbox = function (name, prototype) {
+    return Cu.Sandbox(principal, {
+      invisibleToDebugger: true,
+      sandboxName: name,
+      sandboxPrototype: prototype,
+      wantComponents: false,
+      wantXrays: false
     });
-  }).call(this);
+  };
+
+  const loadSubScript = Cc['@mozilla.org/moz/jssubscript-loader;1'].
+                        getService(Ci.mozIJSSubScriptLoader).loadSubScript;
+
+  
+  const loadInSandbox = function (url, sandbox) {
+    loadSubScript(url, sandbox, "UTF-8");
+  };
+
+  
+  
+  let sandbox = Cu.Sandbox(principal, {});
+  Cu.evalInSandbox(
+    "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
+    "addDebuggerToGlobal(this);",
+    sandbox
+  );
+  const Debugger = sandbox.Debugger;
+
+  const Timer = Cu.import("resource://gre/modules/Timer.jsm", {});
+  const xpcInspector = Cc["@mozilla.org/jsinspector;1"].
+                       getService(Ci.nsIJSInspector);
+
+  this.worker = new WorkerDebuggerLoader({
+    createSandbox: createSandbox,
+    globals: {
+      "isWorker": true,
+      "Debugger": Debugger,
+      "setInterval": Timer.setInterval,
+      "setTimeout": Timer.setTimeout,
+      "clearInterval": Timer.clearInterval,
+      "clearTimeout": Timer.clearTimeout,
+      "xpcInspector": xpcInspector,
+      "reportError": Cu.reportError,
+    },
+    loadInSandbox: loadInSandbox,
+    modules: {
+      "Services": {},
+      "chrome": chrome,
+    },
+    paths: {
+      "": "resource://gre/modules/commonjs/",
+      "devtools": "resource:///modules/devtools",
+      "devtools/server": "resource://gre/modules/devtools/server",
+      "devtools/toolkit": "resource://gre/modules/devtools",
+      "source-map": "resource://gre/modules/devtools/source-map",
+      "xpcshell-test": "resource://test",
+    }
+  });
 }
