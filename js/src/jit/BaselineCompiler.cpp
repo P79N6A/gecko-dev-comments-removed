@@ -419,7 +419,6 @@ BaselineCompiler::emitEpilogue()
 
 
 
-
 bool
 BaselineCompiler::emitOutOfLinePostBarrierSlot()
 {
@@ -2101,15 +2100,13 @@ BaselineCompiler::emit_JSOP_SETALIASEDVAR()
     
     
     frame.syncStack(0);
+    Register temp = R1.scratchReg();
 
     Nursery &nursery = cx->runtime()->gcNursery;
     Label skipBarrier;
-    Label isTenured;
     masm.branchTestObject(Assembler::NotEqual, R0, &skipBarrier);
-    masm.branchPtr(Assembler::Below, objReg, ImmWord(nursery.start()), &isTenured);
-    masm.branchPtr(Assembler::Below, objReg, ImmWord(nursery.heapEnd()), &skipBarrier);
+    masm.branchPtrInNurseryRange(objReg, temp, &skipBarrier);
 
-    masm.bind(&isTenured);
     masm.call(&postBarrierSlot_);
 
     masm.bind(&skipBarrier);
@@ -2419,6 +2416,7 @@ BaselineCompiler::emitFormalArgAccess(uint32_t arg, bool get)
 #ifdef JSGC_GENERATIONAL
         
         frame.syncStack(0);
+        Register temp = R1.scratchReg();
 
         
         Register reg = R2.scratchReg();
@@ -2426,11 +2424,8 @@ BaselineCompiler::emitFormalArgAccess(uint32_t arg, bool get)
 
         Nursery &nursery = cx->runtime()->gcNursery;
         Label skipBarrier;
-        Label isTenured;
-        masm.branchPtr(Assembler::Below, reg, ImmWord(nursery.start()), &isTenured);
-        masm.branchPtr(Assembler::Below, reg, ImmWord(nursery.heapEnd()), &skipBarrier);
+        masm.branchPtrInNurseryRange(reg, temp, &skipBarrier);
 
-        masm.bind(&isTenured);
         masm.call(&postBarrierSlot_);
 
         masm.bind(&skipBarrier);
