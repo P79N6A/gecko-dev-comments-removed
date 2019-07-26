@@ -85,6 +85,9 @@ function MarkupView(aInspector, aFrame, aControllerWindow) {
   this._boundMutationObserver = this._mutationObserver.bind(this);
   this.walker.on("mutations", this._boundMutationObserver);
 
+  this._boundOnDisplayChange = this._onDisplayChange.bind(this);
+  this.walker.on("display-change", this._boundOnDisplayChange);
+
   this._boundOnNewSelection = this._onNewSelection.bind(this);
   this._inspector.selection.on("new-node-front", this._boundOnNewSelection);
   this._onNewSelection();
@@ -618,6 +621,19 @@ MarkupView.prototype = {
 
 
 
+  _onDisplayChange: function(nodes) {
+    for (let node of nodes) {
+      let container = this._containers.get(node);
+      if (container) {
+        container.isDisplayed = node.isDisplayed;
+      }
+    }
+  },
+
+  
+
+
+
   _flashMutatedNodes: function(aMutations) {
     let addedOrEditedContainers = new Set();
     let removedContainers = new Set();
@@ -1110,6 +1126,9 @@ MarkupView.prototype = {
     this.walker.off("mutations", this._boundMutationObserver)
     this._boundMutationObserver = null;
 
+    this.walker.off("display-change", this._boundOnDisplayChange);
+    this._boundOnDisplayChange = null;
+
     this._elt.removeEventListener("mousemove", this._onMouseMove, false);
     this._elt.removeEventListener("mouseleave", this._onMouseLeave, false);
     this._elt = null;
@@ -1268,6 +1287,9 @@ function MarkupContainer(aMarkupView, aNode, aInspector) {
 
   
   this._prepareImagePreview();
+
+  
+  this.isDisplayed = this.node.isDisplayed;
 }
 
 MarkupContainer.prototype = {
@@ -1340,6 +1362,16 @@ MarkupContainer.prototype = {
     }, () => {
       tooltip.setBrokenImageContent();
     });
+  },
+
+  
+
+
+  set isDisplayed(isDisplayed) {
+    this.elt.classList.remove("not-displayed");
+    if (!isDisplayed) {
+      this.elt.classList.add("not-displayed");
+    }
   },
 
   copyImageDataUri: function() {
