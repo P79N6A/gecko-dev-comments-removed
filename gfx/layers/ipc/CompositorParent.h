@@ -163,6 +163,15 @@ public:
 
   static const LayerTreeState* GetIndirectShadowTree(uint64_t aId);
 
+  
+
+
+
+
+
+
+  static void SetTimeAndSampleAnimations(TimeStamp aTime, bool aIsTesting);
+
 protected:
   virtual PLayerTransactionParent*
     AllocPLayerTransaction(const LayersBackend& aBackendHint,
@@ -233,6 +242,8 @@ private:
   nsIWidget* mWidget;
   CancelableTask *mCurrentCompositeTask;
   TimeStamp mLastCompose;
+  TimeStamp mTestTime;
+  bool mIsTesting;
 #ifdef COMPOSITOR_PERFORMANCE_WARNING
   TimeStamp mExpectedComposeTime;
 #endif

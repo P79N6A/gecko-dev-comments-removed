@@ -529,12 +529,11 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const gfx3DMatr
 bool
 AsyncCompositionManager::TransformShadowTree(TimeStamp aCurrentFrame)
 {
-  bool wantNextFrame = false;
   Layer* root = mLayerManager->GetRoot();
 
   
   
-  wantNextFrame |= SampleAnimations(root, aCurrentFrame);
+  bool wantNextFrame = SampleAnimations(root, aCurrentFrame);
 
   const gfx3DMatrix& rootTransform = root->GetTransform();
 
