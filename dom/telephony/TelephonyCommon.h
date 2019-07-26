@@ -24,17 +24,23 @@
 #define USING_TELEPHONY_NAMESPACE \
   using namespace mozilla::dom::telephony;
 
-BEGIN_TELEPHONY_NAMESPACE
+namespace mozilla {
+namespace dom {
+
+namespace telephony {
 
 enum {
   kOutgoingPlaceholderCallIndex = UINT32_MAX
 };
+
+} 
 
 class CallsList;
 class Telephony;
 class TelephonyCall;
 class TelephonyCallGroup;
 
-END_TELEPHONY_NAMESPACE
+} 
+} 
 
-#endif
+#endif 
