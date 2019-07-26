@@ -103,7 +103,7 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         
         if (input.canApplyInputStyle()) {
             view.setPadding(mInputPaddingSize, 0, mInputPaddingSize, 0);
-	}
+        }
         return view;
     }
 
@@ -314,6 +314,20 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         mSelected = null;
     }
 
+
+    
+
+
+    private View wrapInput(final PromptInput input) {
+        final LinearLayout linearLayout = new LinearLayout(mContext);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
+        applyInputStyle(linearLayout, input);
+
+        linearLayout.addView(input.getView(mContext));
+
+        return linearLayout;
+    }
+
     
 
 
@@ -333,18 +347,18 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
             boolean scrollable = false; 
 
             if (length == 1) {
-                root = mInputs[0].getView(mContext);
-                applyInputStyle(root, mInputs[0]);
+                root = wrapInput(mInputs[0]);
                 scrollable |= mInputs[0].getScrollable();
             } else if (length > 1) {
                 LinearLayout linearLayout = new LinearLayout(mContext);
                 linearLayout.setOrientation(LinearLayout.VERTICAL);
+
                 for (int i = 0; i < length; i++) {
-                    View content = mInputs[i].getView(mContext);
-                    applyInputStyle(content, mInputs[i]);
+                    View content = wrapInput(mInputs[i]);
                     linearLayout.addView(content);
                     scrollable |= mInputs[i].getScrollable();
                 }
+
                 root = linearLayout;
             }
 
