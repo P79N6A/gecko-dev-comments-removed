@@ -524,15 +524,7 @@ MarkBaselineJSFrame(JSTracer *trc, const IonFrameIterator &frame)
 
     
     BaselineFrame *baselineFrame = frame.baselineFrame();
-    gc::MarkObjectRoot(trc, &baselineFrame->scopeChain(), "baseline-scopechain");
-
-    
-    size_t nvalues = baselineFrame->numValueSlots();
-    if (nvalues > 0) {
-        
-        Value *last = baselineFrame->valueSlot(nvalues - 1);
-        gc::MarkValueRootRange(trc, nvalues, last, "baseline-stack");
-    }
+    baselineFrame->trace(trc);
 }
 
 static void
