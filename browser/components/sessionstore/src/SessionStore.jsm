@@ -61,15 +61,15 @@ const MESSAGES = [
 
   
   
-  "SessionStore:MozStorageChanged",
-
-  
-  
   "SessionStore:loadStart",
 
   
   
-  "SessionStore:setupSyncHandler"
+  "SessionStore:setupSyncHandler",
+
+  
+  
+  "SessionStore:update",
 ];
 
 
@@ -604,15 +604,15 @@ let SessionStoreInternal = {
       case "SessionStore:input":
         this.onTabInput(win, browser);
         break;
-      case "SessionStore:MozStorageChanged":
-        TabStateCache.delete(browser);
-        this.saveStateDelayed(win);
-        break;
       case "SessionStore:loadStart":
         TabStateCache.delete(browser);
         break;
       case "SessionStore:setupSyncHandler":
         TabState.setSyncHandler(browser, aMessage.objects.handler);
+        break;
+      case "SessionStore:update":
+        TabState.update(browser, aMessage.data);
+        this.saveStateDelayed(win);
         break;
       default:
         debug("received unknown message '" + aMessage.name + "'");
@@ -647,8 +647,8 @@ let SessionStoreInternal = {
       case "SwapDocShells":
         browser = aEvent.currentTarget;
         let otherBrowser = aEvent.detail;
-        TabState.onSwapDocShells(browser, otherBrowser);
-        TabStateCache.onSwapDocShells(browser, otherBrowser);
+        TabState.onBrowserContentsSwapped(browser, otherBrowser);
+        TabStateCache.onBrowserContentsSwapped(browser, otherBrowser);
         break;
       case "TabOpen":
         this.onTabAdd(win, aEvent.originalTarget);
@@ -986,7 +986,12 @@ let SessionStoreInternal = {
     tabbrowser.removeTabsProgressListener(gRestoreTabsProgressListener);
 
     let winData = this._windows[aWindow.__SSi];
-    if (this._loadState == STATE_RUNNING) { 
+
+    
+    if (this._loadState == STATE_RUNNING) {
+      
+      TabState.flushWindow(aWindow);
+
       
       this._collectWindowData(aWindow);
 
@@ -1037,6 +1042,9 @@ let SessionStoreInternal = {
   onQuitApplicationRequested: function ssi_onQuitApplicationRequested() {
     
     this._forEachBrowserWindow(function(aWindow) {
+      
+      
+      TabState.flushWindow(aWindow);
       this._collectWindowData(aWindow);
     });
     
@@ -1297,6 +1305,9 @@ let SessionStoreInternal = {
     }
 
     
+    TabState.flush(aTab.linkedBrowser);
+
+    
     let tabState = TabState.collectSync(aTab);
 
     
@@ -1542,6 +1553,10 @@ let SessionStoreInternal = {
     if (!aTab.ownerDocument || !aTab.ownerDocument.defaultView.__SSi ||
         !aWindow.getBrowser)
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+
+    
+    
+    TabState.flush(aTab.linkedBrowser);
 
     
     let tabState = TabState.clone(aTab);
@@ -2372,11 +2387,9 @@ let SessionStoreInternal = {
     
     
     
-    
     if (overwriteTabs) {
       for (let i = 0; i < tabbrowser.tabs.length; i++) {
         let tab = tabbrowser.tabs[i];
-        TabStateCache.delete(tab);
         if (tabbrowser.browsers[i].__SS_restoreState)
           this._resetTabRestoringState(tab);
       }
@@ -2609,6 +2622,11 @@ let SessionStoreInternal = {
         delete tab.__SS_extdata;
       }
 
+      
+      
+      
+      TabState.flush(tab.linkedBrowser);
+
       browser.__SS_tabStillLoading = true;
 
       
@@ -2617,6 +2635,13 @@ let SessionStoreInternal = {
       browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
       browser.setAttribute("pending", "true");
       tab.setAttribute("pending", "true");
+
+      
+      TabStateCache.updatePersistent(browser, {
+        storage: tabData.storage || null,
+        disallow: tabData.disallow || null,
+        pageStyle: tabData.pageStyle || null
+      });
 
       if (tabData.entries.length == 0) {
         
@@ -2719,7 +2744,7 @@ let SessionStoreInternal = {
     DocShellCapabilities.restore(browser.docShell, disallow);
 
     if (tabData.storage && browser.docShell instanceof Ci.nsIDocShell)
-      SessionStorage.deserialize(browser.docShell, tabData.storage);
+      SessionStorage.restore(browser.docShell, tabData.storage);
 
     
     var event = window.document.createEvent("Events");

@@ -14,7 +14,10 @@ let Ci = Components.interfaces;
 let Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
+Cu.import("resource://gre/modules/Timer.jsm", this);
 
+XPCOMUtils.defineLazyModuleGetter(this, "Utils",
+  "resource:///modules/sessionstore/Utils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DocShellCapabilities",
   "resource:///modules/sessionstore/DocShellCapabilities.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PageStyle",
@@ -30,10 +33,42 @@ XPCOMUtils.defineLazyModuleGetter(this, "TextAndScrollData",
 
 
 
+function createLazy(fn) {
+  let cached = false;
+  let cachedValue = null;
+
+  return function lazy() {
+    if (!cached) {
+      cachedValue = fn();
+      cached = true;
+    }
+
+    return cachedValue;
+  };
+}
+
+
+
+
+
+function isSessionStorageEvent(event) {
+  try {
+    return event.storageArea == content.sessionStorage;
+  } catch (ex if ex instanceof Ci.nsIException && ex.result == Cr.NS_ERROR_NOT_AVAILABLE) {
+    
+    
+    return false;
+  }
+}
+
+
+
+
+
 let EventListener = {
 
   DOM_EVENTS: [
-    "pageshow", "change", "input", "MozStorageChanged"
+    "pageshow", "change", "input"
   ],
 
   init: function () {
@@ -50,23 +85,6 @@ let EventListener = {
       case "change":
         sendAsyncMessage("SessionStore:input");
         break;
-      case "MozStorageChanged": {
-        let isSessionStorage = true;
-        
-        try {
-          if (event.storageArea != content.sessionStorage) {
-            isSessionStorage = false;
-          }
-        } catch (ex) {
-          
-          
-          isSessionStorage = false;
-        }
-        if (isSessionStorage) {
-          sendAsyncMessage("SessionStore:MozStorageChanged");
-        }
-        break;
-      }
       default:
         debug("received unknown event '" + event.type + "'");
         break;
@@ -80,10 +98,7 @@ let EventListener = {
 let MessageListener = {
 
   MESSAGES: [
-    "SessionStore:collectSessionHistory",
-    "SessionStore:collectSessionStorage",
-    "SessionStore:collectDocShellCapabilities",
-    "SessionStore:collectPageStyle"
+    "SessionStore:collectSessionHistory"
   ],
 
   init: function () {
@@ -103,18 +118,6 @@ let MessageListener = {
                                         docShell.isAppTab);
         }
         sendAsyncMessage(name, {id: id, data: history});
-        break;
-      case "SessionStore:collectSessionStorage":
-        let storage = SessionStorage.serialize(docShell);
-        sendAsyncMessage(name, {id: id, data: storage});
-        break;
-      case "SessionStore:collectDocShellCapabilities":
-        let disallow = DocShellCapabilities.collect(docShell);
-        sendAsyncMessage(name, {id: id, data: disallow});
-        break;
-      case "SessionStore:collectPageStyle":
-        let pageStyle = PageStyle.collect(docShell);
-        sendAsyncMessage(name, {id: id, data: pageStyle});
         break;
       default:
         debug("received unknown message '" + name + "'");
@@ -152,17 +155,29 @@ let SyncHandler = {
     return history;
   },
 
-  collectSessionStorage: function () {
-    return SessionStorage.serialize(docShell);
+  
+
+
+
+
+
+
+
+
+
+  flush: function (id) {
+    MessageQueue.flush(id);
   },
 
-  collectDocShellCapabilities: function () {
-    return DocShellCapabilities.collect(docShell);
-  },
+  
 
-  collectPageStyle: function () {
-    return PageStyle.collect(docShell);
-  },
+
+
+
+
+  flushAsync: function () {
+    MessageQueue.flushAsync();
+  }
 };
 
 let ProgressListener = {
@@ -183,7 +198,266 @@ let ProgressListener = {
                                          Ci.nsISupportsWeakReference])
 };
 
+
+
+
+
+
+
+
+
+let PageStyleListener = {
+  init: function () {
+    Services.obs.addObserver(this, "author-style-disabled-changed", true);
+    Services.obs.addObserver(this, "style-sheet-applicable-state-changed", true);
+  },
+
+  observe: function (subject, topic) {
+    if (subject.defaultView && subject.defaultView.top == content) {
+      MessageQueue.push("pageStyle", () => PageStyle.collect(docShell) || null);
+    }
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference])
+};
+
+
+
+
+
+
+
+
+
+
+let DocShellCapabilitiesListener = {
+  
+
+
+
+  _latestCapabilities: "",
+
+  init: function () {
+    let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                              .getInterface(Ci.nsIWebProgress);
+
+    webProgress.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_LOCATION);
+  },
+
+  
+
+
+
+
+  onLocationChange: function() {
+    
+    
+    let caps = DocShellCapabilities.collect(docShell).join(",");
+
+    
+    if (caps != this._latestCapabilities) {
+      this._latestCapabilities = caps;
+      MessageQueue.push("disallow", () => caps || null);
+    }
+  },
+
+  onStateChange: function () {},
+  onProgressChange: function () {},
+  onStatusChange: function () {},
+  onSecurityChange: function () {},
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                         Ci.nsISupportsWeakReference])
+};
+
+
+
+
+
+
+
+
+
+
+let SessionStorageListener = {
+  init: function () {
+    addEventListener("MozStorageChanged", this);
+    Services.obs.addObserver(this, "browser:purge-domain-data", true);
+    Services.obs.addObserver(this, "browser:purge-session-history", true);
+  },
+
+  handleEvent: function (event) {
+    
+    if (isSessionStorageEvent(event)) {
+      this.collect();
+    }
+  },
+
+  observe: function () {
+    
+    
+    setTimeout(() => this.collect(), 0);
+  },
+
+  collect: function () {
+    MessageQueue.push("storage", () => SessionStorage.collect(docShell));
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference])
+};
+
+
+
+
+
+
+
+
+let MessageQueue = {
+  
+
+
+
+
+  _id: 1,
+
+  
+
+
+
+
+  _data: new Map(),
+
+  
+
+
+
+
+  _lastUpdated: new Map(),
+
+  
+
+
+
+  BATCH_DELAY_MS: 1000,
+
+  
+
+
+
+  _timeout: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+  push: function (key, fn) {
+    this._data.set(key, createLazy(fn));
+    this._lastUpdated.set(key, this._id);
+
+    if (!this._timeout) {
+      
+      this._timeout = setTimeout(() => this.send(), this.BATCH_DELAY_MS);
+    }
+  },
+
+  
+
+
+
+
+
+
+  send: function (options = {}) {
+    
+    
+    
+    if (!docShell) {
+      return;
+    }
+
+    if (this._timeout) {
+      clearTimeout(this._timeout);
+      this._timeout = null;
+    }
+
+    let sync = options && options.sync;
+    let startID = (options && options.id) || this._id;
+    let sendMessage = sync ? sendSyncMessage : sendAsyncMessage;
+
+    let data = {};
+    for (let [key, id] of this._lastUpdated) {
+      
+      
+      if (!this._data.has(key)) {
+        continue;
+      }
+
+      if (startID > id) {
+        
+        
+        
+        this._data.delete(key);
+        continue;
+      }
+
+      data[key] = this._data.get(key)();
+    }
+
+    
+    sendMessage("SessionStore:update", {id: this._id, data: data});
+
+    
+    this._id++;
+  },
+
+  
+
+
+
+
+
+
+
+
+  flush: function (id) {
+    
+    
+    
+    this.send({id: id + 1, sync: true});
+
+    this._data.clear();
+    this._lastUpdated.clear();
+  },
+
+  
+
+
+
+
+
+  flushAsync: function () {
+    if (!Services.prefs.getBoolPref("browser.sessionstore.debug")) {
+      throw new Error("flushAsync() must be used for testing, only.");
+    }
+
+    this.send();
+  }
+};
+
 EventListener.init();
 MessageListener.init();
 SyncHandler.init();
 ProgressListener.init();
+PageStyleListener.init();
+SessionStorageListener.init();
+DocShellCapabilitiesListener.init();

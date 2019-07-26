@@ -8,7 +8,10 @@ this.EXPORTED_SYMBOLS = ["TabStateCache"];
 
 const Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm", this);
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 
+XPCOMUtils.defineLazyModuleGetter(this, "Utils",
+  "resource:///modules/sessionstore/Utils.jsm");
 
 
 
@@ -104,8 +107,34 @@ this.TabStateCache = Object.freeze({
 
 
 
-  onSwapDocShells: function(browser, otherBrowser) {
-    TabStateCacheInternal.onSwapDocShells(browser, otherBrowser);
+  onBrowserContentsSwapped: function(browser, otherBrowser) {
+    TabStateCacheInternal.onBrowserContentsSwapped(browser, otherBrowser);
+  },
+
+  
+
+
+
+
+
+
+
+  getPersistent: function (browser) {
+    return TabStateCacheInternal.getPersistent(browser);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  updatePersistent: function (browser, newData) {
+    TabStateCacheInternal.updatePersistent(browser, newData);
   },
 
   
@@ -132,6 +161,7 @@ this.TabStateCache = Object.freeze({
 
 let TabStateCacheInternal = {
   _data: new WeakMap(),
+  _persistentData: new WeakMap(),
 
   
 
@@ -233,27 +263,51 @@ let TabStateCacheInternal = {
 
 
 
-  onSwapDocShells: function(browser, otherBrowser) {
+  onBrowserContentsSwapped: function(browser, otherBrowser) {
     
-    
-    if (!this._data.has(browser)) {
-      [browser, otherBrowser] = [otherBrowser, browser];
-      if (!this._data.has(browser)) {
-        return;
+    [this._data, this._persistentData]
+      .forEach(map => Utils.swapMapEntries(map, browser, otherBrowser));
+  },
+
+  
+
+
+
+
+
+
+
+  getPersistent: function (browser) {
+    return this._persistentData.get(browser);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  updatePersistent: function (browser, newData) {
+    let data = this._persistentData.get(browser) || {};
+
+    for (let key of Object.keys(newData)) {
+      let value = newData[key];
+      if (value === null) {
+        
+        this.removeField(browser, key);
+        delete data[key];
+      } else {
+        
+        this.updateField(browser, key, value);
+        data[key] = value;
       }
     }
 
-    
-    
-    let data = this._data.get(browser);
-    if (this._data.has(otherBrowser)) {
-      let otherData = this._data.get(otherBrowser);
-      this._data.set(browser, otherData);
-      this._data.set(otherBrowser, data);
-    } else {
-      this._data.set(otherBrowser, data);
-      this._data.delete(browser);
-    }
+    this._persistentData.set(browser, data);
   },
 
   _normalizeToBrowser: function(aKey) {

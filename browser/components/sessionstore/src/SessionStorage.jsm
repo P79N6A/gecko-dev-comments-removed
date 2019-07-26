@@ -15,7 +15,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivacyLevel",
   "resource:///modules/sessionstore/PrivacyLevel.jsm");
 
-this.SessionStorage = {
+this.SessionStorage = Object.freeze({
   
 
 
@@ -23,8 +23,9 @@ this.SessionStorage = {
 
 
 
-  serialize: function ssto_serialize(aDocShell, aFullData) {
-    return DomStorage.read(aDocShell, aFullData);
+
+  collect: function (aDocShell) {
+    return SessionStorageInternal.collect(aDocShell);
   },
 
   
@@ -34,14 +35,14 @@ this.SessionStorage = {
 
 
 
-  deserialize: function ssto_deserialize(aDocShell, aStorageData) {
-    DomStorage.write(aDocShell, aStorageData);
+
+
+  restore: function (aDocShell, aStorageData) {
+    SessionStorageInternal.restore(aDocShell, aStorageData);
   }
-};
+});
 
-Object.freeze(SessionStorage);
-
-let DomStorage = {
+let SessionStorageInternal = {
   
 
 
@@ -49,33 +50,33 @@ let DomStorage = {
 
 
 
-  read: function DomStorage_read(aDocShell, aFullData) {
+
+  collect: function (aDocShell) {
     let data = {};
-    let isPinned = aDocShell.isAppTab;
     let webNavigation = aDocShell.QueryInterface(Ci.nsIWebNavigation);
     let shistory = webNavigation.sessionHistory;
 
     for (let i = 0; shistory && i < shistory.count; i++) {
       let principal = History.getPrincipalForEntry(shistory, i, aDocShell);
-      if (!principal)
+      if (!principal) {
         continue;
+      }
 
       
-      let isHttps = principal.URI && principal.URI.schemeIs("https");
-      if (aFullData || PrivacyLevel.canSave({isHttps: isHttps, isPinned: isPinned})) {
-        let origin = principal.jarPrefix + principal.origin;
-
+      
+      let origin = principal.jarPrefix + principal.origin;
+      if (data.hasOwnProperty(origin)) {
         
-        if (!(origin in data)) {
-          let originData = this._readEntry(principal, aDocShell);
-          if (Object.keys(originData).length) {
-            data[origin] = originData;
-          }
-        }
+        continue;
+      }
+
+      let originData = this._readEntry(principal, aDocShell);
+      if (Object.keys(originData).length) {
+        data[origin] = originData;
       }
     }
 
-    return data;
+    return Object.keys(data).length ? data : null;
   },
 
   
@@ -85,7 +86,9 @@ let DomStorage = {
 
 
 
-  write: function DomStorage_write(aDocShell, aStorageData) {
+
+
+  restore: function (aDocShell, aStorageData) {
     for (let [host, data] in Iterator(aStorageData)) {
       let uri = Services.io.newURI(host, null, null);
       let principal = Services.scriptSecurityManager.getDocShellCodebasePrincipal(uri, aDocShell);
@@ -114,7 +117,7 @@ let DomStorage = {
 
 
 
-  _readEntry: function DomStorage_readEntry(aPrincipal, aDocShell) {
+  _readEntry: function (aPrincipal, aDocShell) {
     let hostData = {};
     let storage;
 

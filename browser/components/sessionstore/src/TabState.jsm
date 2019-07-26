@@ -14,10 +14,14 @@ Cu.import("resource://gre/modules/Task.jsm", this);
 
 XPCOMUtils.defineLazyModuleGetter(this, "Messenger",
   "resource:///modules/sessionstore/Messenger.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivacyLevel",
+  "resource:///modules/sessionstore/PrivacyLevel.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabStateCache",
   "resource:///modules/sessionstore/TabStateCache.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabAttributes",
   "resource:///modules/sessionstore/TabAttributes.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Utils",
+  "resource:///modules/sessionstore/Utils.jsm");
 
 
 
@@ -27,8 +31,20 @@ this.TabState = Object.freeze({
     TabStateInternal.setSyncHandler(browser, handler);
   },
 
-  onSwapDocShells: function (browser, otherBrowser) {
-    TabStateInternal.onSwapDocShells(browser, otherBrowser);
+  onBrowserContentsSwapped: function (browser, otherBrowser) {
+    TabStateInternal.onBrowserContentsSwapped(browser, otherBrowser);
+  },
+
+  update: function (browser, data) {
+    TabStateInternal.update(browser, data);
+  },
+
+  flush: function (browser) {
+    TabStateInternal.flush(browser);
+  },
+
+  flushWindow: function (window) {
+    TabStateInternal.flushWindow(window);
   },
 
   collect: function (tab) {
@@ -59,10 +75,47 @@ let TabStateInternal = {
   _syncHandlers: new WeakMap(),
 
   
+  
+  _latestMessageID: new WeakMap(),
+
+  
 
 
   setSyncHandler: function (browser, handler) {
     this._syncHandlers.set(browser, handler);
+    this._latestMessageID.set(browser, 0);
+  },
+
+  
+
+
+  update: function (browser, {id, data}) {
+    
+    
+    
+    if (id > this._latestMessageID.get(browser)) {
+      this._latestMessageID.set(browser, id);
+      TabStateCache.updatePersistent(browser, data);
+    }
+  },
+
+  
+
+
+  flush: function (browser) {
+    if (this._syncHandlers.has(browser)) {
+      let lastID = this._latestMessageID.get(browser);
+      this._syncHandlers.get(browser).flush(lastID);
+    }
+  },
+
+  
+
+
+  flushWindow: function (window) {
+    for (let browser of window.gBrowser.browsers) {
+      this.flush(browser);
+    }
   },
 
   
@@ -71,7 +124,7 @@ let TabStateInternal = {
 
 
 
-  onSwapDocShells: function (browser, otherBrowser) {
+  onBrowserContentsSwapped: function (browser, otherBrowser) {
     
     
     
@@ -79,25 +132,8 @@ let TabStateInternal = {
     this.dropPendingCollections(otherBrowser);
 
     
-    
-    if (!this._syncHandlers.has(browser)) {
-      [browser, otherBrowser] = [otherBrowser, browser];
-      if (!this._syncHandlers.has(browser)) {
-        return;
-      }
-    }
-
-    
-    
-    let handler = this._syncHandlers.get(browser);
-    if (this._syncHandlers.has(otherBrowser)) {
-      let otherHandler = this._syncHandlers.get(otherBrowser);
-      this._syncHandlers.set(browser, otherHandler);
-      this._syncHandlers.set(otherBrowser, handler);
-    } else {
-      this._syncHandlers.set(otherBrowser, handler);
-      this._syncHandlers.delete(browser);
-    }
+    [this._syncHandlers, this._latestMessageID]
+      .forEach(map => Utils.swapMapEntries(map, browser, otherBrowser));
   },
 
   
@@ -133,14 +169,6 @@ let TabStateInternal = {
       let history = yield Messenger.send(tab, "SessionStore:collectSessionHistory");
 
       
-      let storage = yield Messenger.send(tab, "SessionStore:collectSessionStorage");
-
-      
-      let disallow = yield Messenger.send(tab, "SessionStore:collectDocShellCapabilities");
-
-      let pageStyle = yield Messenger.send(tab, "SessionStore:collectPageStyle");
-
-      
       let tabData = this._collectBaseTabData(tab);
 
       
@@ -149,17 +177,8 @@ let TabStateInternal = {
         tabData.index = history.index;
       }
 
-      if (Object.keys(storage).length) {
-        tabData.storage = storage;
-      }
-
-      if (disallow.length > 0) {
-        tabData.disallow = disallow.join(",");
-      }
-
-      if (pageStyle) {
-        tabData.pageStyle = pageStyle;
-      }
+      
+      this._copyFromPersistentCache(tab, tabData);
 
       
       
@@ -267,12 +286,9 @@ let TabStateInternal = {
 
     let includePrivateData = options && options.includePrivateData;
 
-    let history, storage, disallow, pageStyle;
+    let history;
     try {
       history = syncHandler.collectSessionHistory(includePrivateData);
-      storage = syncHandler.collectSessionStorage();
-      disallow = syncHandler.collectDocShellCapabilities();
-      pageStyle = syncHandler.collectPageStyle();
     } catch (e) {
       
       Cu.reportError(e);
@@ -284,19 +300,49 @@ let TabStateInternal = {
       tabData.index = history.index;
     }
 
-    if (Object.keys(storage).length) {
-      tabData.storage = storage;
-    }
-
-    if (disallow.length > 0) {
-      tabData.disallow = disallow.join(",");
-    }
-
-    if (pageStyle) {
-      tabData.pageStyle = pageStyle;
-    }
+    
+    this._copyFromPersistentCache(tab, tabData, options);
 
     return tabData;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _copyFromPersistentCache: function (tab, tabData, options = {}) {
+    let data = TabStateCache.getPersistent(tab.linkedBrowser);
+
+    
+    if (!data) {
+      return;
+    }
+
+    let includePrivateData = options && options.includePrivateData;
+
+    for (let key of Object.keys(data)) {
+      if (key != "storage" || includePrivateData) {
+        tabData[key] = data[key];
+      } else {
+        tabData.storage = {};
+        let isPinned = tab.pinned;
+
+        
+        
+        for (let host of Object.keys(data.storage)) {
+          let isHttps = host.startsWith("https:");
+          if (PrivacyLevel.canSave({isHttps: isHttps, isPinned: isPinned})) {
+            tabData.storage[host] = data.storage[host];
+          }
+        }
+      }
+    }
   },
 
   
