@@ -79,7 +79,10 @@ class PropertyId
     SpecialId asSpecial() const {
         return JSID_TO_SPECIALID(id);
     }
-    jsid asId() const {
+    const jsid &asId() const {
+        return id;
+    }
+    jsid &asId() {
         return id;
     }
 
@@ -165,7 +168,16 @@ struct PropDesc {
 
 
 
-    bool initialize(JSContext* cx, const Value &v, bool checkAccessors = true);
+    bool initialize(JSContext *cx, const Value &v, bool checkAccessors = true);
+
+    
+
+
+
+
+
+
+    void complete();
 
     
 
@@ -228,9 +240,9 @@ struct PropDesc {
         return (attrs & JSPROP_READONLY) == 0;
     }
 
-    const Value & value() const {
+    HandleValue value() const {
         MOZ_ASSERT(hasValue());
-        return value_;
+        return HandleValue::fromMarkedLocation(&value_);
     }
 
     JSObject * getterObject() const {
@@ -244,15 +256,15 @@ struct PropDesc {
         return set_.isUndefined() ? NULL : &set_.toObject();
     }
 
-    const Value & getterValue() const {
+    HandleValue getterValue() const {
         MOZ_ASSERT(!isUndefined());
         MOZ_ASSERT(hasGet());
-        return get_;
+        return HandleValue::fromMarkedLocation(&get_);
     }
-    const Value & setterValue() const {
+    HandleValue setterValue() const {
         MOZ_ASSERT(!isUndefined());
         MOZ_ASSERT(hasSet());
-        return set_;
+        return HandleValue::fromMarkedLocation(&set_);
     }
 
     
@@ -347,6 +359,10 @@ class ElementsHeader
             friend class SparseElementsHeader;
             Shape * shape;
         } sparse;
+        class {
+            friend class ArrayBufferElementsHeader;
+            JSObject * views;
+        } buffer;
     };
 
     void staticAsserts() {
@@ -739,6 +755,8 @@ class ArrayBufferElementsHeader : public ElementsHeader
     bool setElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver,
                     uint32_t index, const Value &v, unsigned resolveFlags, bool *succeeded);
 
+    JSObject **viewList() { return &buffer.views; }
+
   private:
     inline bool isArrayBufferElements() const MOZ_DELETE;
     inline ArrayBufferElementsHeader & asArrayBufferElements() MOZ_DELETE;
@@ -1043,8 +1061,6 @@ class ObjectImpl : public gc::Cell
     friend struct Shape;
     friend class NewObjectCache;
 
-    inline bool hasContiguousSlots(uint32_t start, uint32_t count) const;
-
     inline void invalidateSlotRange(uint32_t start, uint32_t count);
     inline void initializeSlotRange(uint32_t start, uint32_t count);
 
@@ -1138,15 +1154,21 @@ class ObjectImpl : public gc::Cell
     
     inline uint32_t numDynamicSlots() const;
 
-    const Shape * nativeLookup(JSContext *cx, jsid id);
-    inline const Shape * nativeLookup(JSContext *cx, PropertyId pid);
-    inline const Shape * nativeLookup(JSContext *cx, PropertyName *name);
+    Shape * nativeLookup(JSContext *cx, jsid id);
+    inline Shape * nativeLookup(JSContext *cx, PropertyId pid);
+    inline Shape * nativeLookup(JSContext *cx, PropertyName *name);
 
-#ifdef DEBUG
-    const Shape * nativeLookupNoAllocation(JSContext *cx, jsid id);
-    inline const Shape * nativeLookupNoAllocation(JSContext *cx, PropertyId pid);
-    inline const Shape * nativeLookupNoAllocation(JSContext *cx, PropertyName *name);
-#endif
+    Shape * nativeLookupNoAllocation(jsid id);
+    inline Shape * nativeLookupNoAllocation(PropertyId pid);
+    inline Shape * nativeLookupNoAllocation(PropertyName *name);
+
+    inline bool nativeContains(JSContext *cx, Handle<jsid> id);
+    inline bool nativeContains(JSContext *cx, Handle<PropertyName*> name);
+    inline bool nativeContains(JSContext *cx, Handle<Shape*> shape);
+
+    inline bool nativeContainsNoAllocation(jsid id);
+    inline bool nativeContainsNoAllocation(PropertyName *name);
+    inline bool nativeContainsNoAllocation(Shape &shape);
 
     inline Class *getClass() const;
     inline JSClass *getJSClass() const;
@@ -1206,6 +1228,7 @@ class ObjectImpl : public gc::Cell
 
     inline void setSlot(uint32_t slot, const Value &value);
     inline void initSlot(uint32_t slot, const Value &value);
+    inline void initCrossCompartmentSlot(uint32_t slot, const js::Value &value);
     inline void initSlotUnchecked(uint32_t slot, const Value &value);
 
     
@@ -1266,11 +1289,12 @@ class ObjectImpl : public gc::Cell
     }
 
     
+    static inline ThingRootKind rootKind() { return THING_ROOT_OBJECT; }
     static inline void readBarrier(ObjectImpl *obj);
     static inline void writeBarrierPre(ObjectImpl *obj);
     static inline void writeBarrierPost(ObjectImpl *obj, void *addr);
     inline void privateWriteBarrierPre(void **oldval);
-    inline void privateWriteBarrierPost(void **oldval);
+    inline void privateWriteBarrierPost(void **pprivate);
     void markChildren(JSTracer *trc);
 
     
@@ -1280,6 +1304,7 @@ class ObjectImpl : public gc::Cell
     inline bool hasPrivate() const;
     inline void *getPrivate() const;
     inline void setPrivate(void *data);
+    inline void setPrivateGCThing(gc::Cell *cell);
     inline void setPrivateUnbarriered(void *data);
     inline void initPrivate(void *data);
 
@@ -1319,6 +1344,9 @@ Downcast(Handle<ObjectImpl*> obj)
     return Handle<JSObject*>::fromMarkedLocation(reinterpret_cast<JSObject* const*>(obj.address()));
 }
 
+extern JSObject *
+ArrayBufferDelegate(JSContext *cx, Handle<ObjectImpl*> obj);
+
 
 bool
 GetOwnElement(JSContext *cx, Handle<ObjectImpl*> obj, uint32_t index, unsigned resolveFlags,
@@ -1343,6 +1371,23 @@ GetOwnProperty(JSContext *cx, Handle<ObjectImpl*> obj, Handle<SpecialId> sid, un
 extern bool
 GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver, uint32_t index,
            unsigned resolveFlags, Value *vp);
+extern bool
+GetProperty(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver,
+            Handle<PropertyId> pid, unsigned resolveFlags, MutableHandle<Value> vp);
+inline bool
+GetProperty(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver,
+            Handle<PropertyName*> name, unsigned resolveFlags, MutableHandle<Value> vp)
+{
+    Rooted<PropertyId> pid(cx, PropertyId(name));
+    return GetProperty(cx, obj, receiver, pid, resolveFlags, vp);
+}
+inline bool
+GetProperty(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver,
+            Handle<SpecialId> sid, unsigned resolveFlags, MutableHandle<Value> vp)
+{
+    Rooted<PropertyId> pid(cx, PropertyId(sid));
+    return GetProperty(cx, obj, receiver, pid, resolveFlags, vp);
+}
 
 extern bool
 DefineElement(JSContext *cx, Handle<ObjectImpl*> obj, uint32_t index, const PropDesc &desc,
@@ -1356,6 +1401,13 @@ SetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver,
 extern bool
 HasElement(JSContext *cx, Handle<ObjectImpl*> obj, uint32_t index, unsigned resolveFlags,
            bool *found);
+
+template <> struct RootMethods<PropertyId>
+{
+    static PropertyId initial() { return PropertyId(); }
+    static ThingRootKind kind() { return THING_ROOT_PROPERTY_ID; }
+    static bool poisoned(PropertyId propid) { return IsPoisonedId(propid.asId()); }
+};
 
 } 
 

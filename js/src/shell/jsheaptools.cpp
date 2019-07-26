@@ -494,7 +494,7 @@ ReferenceFinder::addReferrer(jsval referrer_, Path *path)
     AutoReleasePtr releasePathName(pathName);
 
     
-    JS::RootedValue valRoot(context);
+    RootedValue valRoot(context);
     Value &v = valRoot.get();
 
     if (!JS_GetProperty(context, result, pathName, &v))

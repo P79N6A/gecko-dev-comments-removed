@@ -17,62 +17,67 @@
 
 #include "jspubtd.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 namespace js {
-namespace gc {
-struct Cell;
-} 
-} 
 
-namespace JS {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <typename T> class MutableHandle;
 template <typename T> class Rooted;
 
 template <typename T>
 struct RootMethods { };
+
+template <typename T>
+class HandleBase {};
+
+template <typename T>
+class MutableHandleBase {};
+
+} 
+
+namespace JS {
+
+template <typename T> class MutableHandle;
 
 
 
@@ -89,9 +94,6 @@ struct NullPtr
 template <typename T>
 class MutableHandle;
 
-template <typename T>
-class HandleBase {};
-
 
 
 
@@ -101,7 +103,7 @@ class HandleBase {};
 
 
 template <typename T>
-class Handle : public HandleBase<T>
+class Handle : public js::HandleBase<T>
 {
   public:
     
@@ -142,7 +144,7 @@ class Handle : public HandleBase<T>
 
     template <typename S>
     inline
-    Handle(Rooted<S> &root,
+    Handle(js::Rooted<S> &root,
            typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
 
     
@@ -173,9 +175,6 @@ typedef Handle<JSString*>    HandleString;
 typedef Handle<jsid>         HandleId;
 typedef Handle<Value>        HandleValue;
 
-template <typename T>
-class MutableHandleBase {};
-
 
 
 
@@ -185,7 +184,7 @@ class MutableHandleBase {};
 
 
 template <typename T>
-class MutableHandle : public MutableHandleBase<T>
+class MutableHandle : public js::MutableHandleBase<T>
 {
   public:
     template <typename S>
@@ -197,12 +196,12 @@ class MutableHandle : public MutableHandleBase<T>
 
     template <typename S>
     inline
-    MutableHandle(Rooted<S> *root,
+    MutableHandle(js::Rooted<S> *root,
                   typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
 
     void set(T v)
     {
-        JS_ASSERT(!RootMethods<T>::poisoned(v));
+        JS_ASSERT(!js::RootMethods<T>::poisoned(v));
         *ptr = v;
     }
 
@@ -252,6 +251,10 @@ typedef JSString *                  RawString;
 typedef jsid                        RawId;
 typedef Value                       RawValue;
 
+} 
+
+namespace js {
+
 
 
 
@@ -279,7 +282,7 @@ class InternalHandle<T*> : public InternalHandleBase
 
 
     template<typename H>
-    InternalHandle(const Handle<H> &handle, T *field)
+    InternalHandle(const JS::Handle<H> &handle, T *field)
       : holder((void**)handle.address()), offset(uintptr_t(field) - uintptr_t(handle.get()))
     {
     }
@@ -318,8 +321,6 @@ class InternalHandle<T*> : public InternalHandleBase
     {
     }
 };
-
-extern mozilla::ThreadLocal<JSRuntime *> TlsRuntime;
 
 
 
@@ -454,30 +455,6 @@ class Rooted : public RootedBase<T>
     Rooted(const Rooted &) MOZ_DELETE;
 };
 
-template<typename T> template <typename S>
-inline
-Handle<T>::Handle(Rooted<S> &root,
-                  typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
-{
-    ptr = reinterpret_cast<const T *>(root.address());
-}
-
-template<typename T> template <typename S>
-inline
-Handle<T>::Handle(MutableHandle<S> &root,
-                  typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
-{
-    ptr = reinterpret_cast<const T *>(root.address());
-}
-
-template<typename T> template <typename S>
-inline
-MutableHandle<T>::MutableHandle(Rooted<S> *root,
-                                typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
-{
-    ptr = root->address();
-}
-
 typedef Rooted<JSObject*>    RootedObject;
 typedef Rooted<JSFunction*>  RootedFunction;
 typedef Rooted<JSScript*>    RootedScript;
@@ -545,6 +522,34 @@ class SkipRoot
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
+} 
+
+namespace JS {
+
+template<typename T> template <typename S>
+inline
+Handle<T>::Handle(js::Rooted<S> &root,
+                  typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
+{
+    ptr = reinterpret_cast<const T *>(root.address());
+}
+
+template<typename T> template <typename S>
+inline
+Handle<T>::Handle(MutableHandle<S> &root,
+                  typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
+{
+    ptr = reinterpret_cast<const T *>(root.address());
+}
+
+template<typename T> template <typename S>
+inline
+MutableHandle<T>::MutableHandle(js::Rooted<S> *root,
+                                typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
+{
+    ptr = root->address();
+}
+
 JS_FRIEND_API(void) EnterAssertNoGCScope();
 JS_FRIEND_API(void) LeaveAssertNoGCScope();
 JS_FRIEND_API(bool) InNoGCScope();
@@ -580,6 +585,10 @@ CheckStackRoots(JSContext *cx);
 
 JS_FRIEND_API(bool) NeedRelaxedRootChecks();
 
+} 
+
+namespace js {
+
 
 
 
@@ -595,6 +604,10 @@ inline void MaybeCheckStackRoots(JSContext *cx, bool relax = true)
 # endif
 #endif
 }
+
+namespace gc {
+struct Cell;
+} 
 
 
 class CompilerRootNode
