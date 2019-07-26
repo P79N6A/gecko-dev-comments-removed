@@ -1959,10 +1959,8 @@ extern NativePropertyHooks sWorkerNativePropertyHooks;
 
 
 
-
 enum {
-  CONSTRUCTOR_NATIVE_HOLDER_RESERVED_SLOT = 0,
-  CONSTRUCTOR_XRAY_EXPANDO_SLOT
+  CONSTRUCTOR_NATIVE_HOLDER_RESERVED_SLOT = 0
 };
 
 bool
@@ -2006,11 +2004,6 @@ inline void
 MustInheritFromNonRefcountedDOMObject(NonRefcountedDOMObject*)
 {
 }
-
-
-
-JSObject* GetXrayExpandoChain(JSObject *obj);
-void SetXrayExpandoChain(JSObject *obj, JSObject *chain);
 
 
 
