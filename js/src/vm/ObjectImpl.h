@@ -1150,10 +1150,6 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 #endif
 
     
-
-
-
-
     static const uint32_t SLOT_CAPACITY_MIN = 8;
 
     HeapSlot *fixedSlots() const {
@@ -1243,9 +1239,8 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
     
     uint32_t numDynamicSlots() const {
-        return dynamicSlotsCount(numFixedSlots(), slotSpan(), getClass());
+        return dynamicSlotsCount(numFixedSlots(), slotSpan());
     }
-
 
     Shape *nativeLookup(ExclusiveContext *cx, jsid id);
     Shape *nativeLookup(ExclusiveContext *cx, PropertyId pid) {
@@ -1411,7 +1406,17 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
 
 
-    static uint32_t dynamicSlotsCount(uint32_t nfixed, uint32_t span, const Class *clasp);
+    static uint32_t dynamicSlotsCount(uint32_t nfixed, uint32_t span) {
+        if (span <= nfixed)
+            return 0;
+        span -= nfixed;
+        if (span <= SLOT_CAPACITY_MIN)
+            return SLOT_CAPACITY_MIN;
+
+        uint32_t slots = mozilla::RoundUpPow2(span);
+        MOZ_ASSERT(slots >= span);
+        return slots;
+    }
 
     
     size_t tenuredSizeOfThis() const {
