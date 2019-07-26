@@ -611,6 +611,26 @@ let SessionStoreInternal = {
 
   
 
+
+
+  receiveMessage: function ssi_receiveMessage(aMessage) {
+    var browser = aMessage.target;
+    var win = browser.ownerDocument.defaultView;
+
+    switch (aMessage.name) {
+      case "SessionStore:pageshow":
+        this.onTabLoad(win, browser);
+        break;
+      default:
+        debug("received unknown message '" + aMessage.name + "'");
+        break;
+    }
+
+    this._clearRestoringWindows();
+  },
+
+  
+
   
 
 
@@ -621,11 +641,10 @@ let SessionStoreInternal = {
         
         
         
-        if (aEvent.currentTarget.__SS_restore_data)
-          this.restoreDocument(win, aEvent.currentTarget, aEvent);
-        
-      case "pageshow":
-        this.onTabLoad(win, aEvent.currentTarget, aEvent);
+        let browser = aEvent.currentTarget;
+        if (browser.__SS_restore_data)
+          this.restoreDocument(win, browser, aEvent);
+        this.onTabLoad(win, browser);
         break;
       case "change":
       case "input":
@@ -1193,10 +1212,11 @@ let SessionStoreInternal = {
   onTabAdd: function ssi_onTabAdd(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
     browser.addEventListener("load", this, true);
-    browser.addEventListener("pageshow", this, true);
     browser.addEventListener("change", this, true);
     browser.addEventListener("input", this, true);
     browser.addEventListener("DOMAutoComplete", this, true);
+
+    browser.messageManager.addMessageListener("SessionStore:pageshow", this);
 
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
@@ -1217,10 +1237,11 @@ let SessionStoreInternal = {
   onTabRemove: function ssi_onTabRemove(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
     browser.removeEventListener("load", this, true);
-    browser.removeEventListener("pageshow", this, true);
     browser.removeEventListener("change", this, true);
     browser.removeEventListener("input", this, true);
     browser.removeEventListener("DOMAutoComplete", this, true);
+
+    browser.messageManager.removeMessageListener("SessionStore:pageshow", this);
 
     delete browser.__SS_data;
     delete browser.__SS_tabStillLoading;
@@ -1290,16 +1311,13 @@ let SessionStoreInternal = {
 
 
 
-
-
-  onTabLoad: function ssi_onTabLoad(aWindow, aBrowser, aEvent) {
+  onTabLoad: function ssi_onTabLoad(aWindow, aBrowser) {
     
     
     
     
-    if ((aEvent.type != "load" && !aEvent.persisted) ||
-        (aBrowser.__SS_restoreState &&
-         aBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE)) {
+    if (aBrowser.__SS_restoreState &&
+        aBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
       return;
     }
 
