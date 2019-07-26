@@ -46,6 +46,9 @@ class IonCommonFrameLayout
     uint8_t *returnAddress() const {
         return returnAddress_;
     }
+    void setReturnAddress(uint8_t *addr) {
+        returnAddress_ = addr;
+    }
 };
 
 

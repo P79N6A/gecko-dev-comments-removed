@@ -399,7 +399,13 @@ class Assembler : public AssemblerX86Shared
         CodeOffsetLabel offset(size());
         JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
         addPendingJump(src, target->raw(), Relocation::IONCODE);
+        JS_ASSERT(size() - offset.offset() == ToggledCallSize());
         return offset;
+    }
+
+    static size_t ToggledCallSize() {
+        
+        return 5;
     }
 
     

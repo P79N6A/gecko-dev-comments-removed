@@ -1440,6 +1440,30 @@ BEGIN_CASE(JSOP_LOOPENTRY)
             goto leave_on_safe_point;
         }
     }
+
+    if (ion::IsBaselineEnabled(cx)) {
+        ion::MethodStatus status = ion::CanEnterBaselineJIT(cx, script, regs.fp(), false);
+        if (status == ion::Method_Error)
+            goto error;
+        if (status == ion::Method_Compiled) {
+            ion::IonExecStatus maybeOsr = ion::EnterBaselineAtBranch(cx, regs.fp(), regs.pc);
+
+            
+            JS_ASSERT(maybeOsr != ion::IonExec_Bailout);
+
+            
+            if (maybeOsr == ion::IonExec_Aborted)
+                goto error;
+
+            interpReturnOK = (maybeOsr == ion::IonExec_Ok);
+
+            if (entryFrame != regs.fp())
+                goto jit_return;
+
+            regs.fp()->setFinishedInInterpreter();
+            goto leave_on_safe_point;
+        }
+    }
 #endif
 
 END_CASE(JSOP_LOOPENTRY)

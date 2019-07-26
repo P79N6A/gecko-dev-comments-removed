@@ -79,6 +79,8 @@ class BaselineFrame
     
     static const uint32_t FramePointerOffset = sizeof(void *);
 
+    bool initForOsr(StackFrame *fp, uint32_t numStackValues);
+
     uint32_t frameSize() const {
         return frameSize_;
     }

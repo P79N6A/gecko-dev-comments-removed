@@ -88,8 +88,14 @@ CheckFrame(StackFrame *fp)
     return true;
 }
 
+static bool
+IsJSDEnabled(JSContext *cx)
+{
+    return cx->compartment->debugMode() && cx->runtime->debugHooks.callHook;
+}
+
 static IonExecStatus
-EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode)
+EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode, bool osr)
 {
     JS_CHECK_RECURSION(cx, return IonExec_Aborted);
     JS_ASSERT(ion::IsBaselineEnabled(cx));
@@ -156,7 +162,12 @@ EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode)
             scopeChain = fp->scopeChain();
 
         
-        enter(jitcode, maxArgc, maxArgv, fp, calleeToken, scopeChain, result.address());
+        uint32_t numStackValues = osr ? fp->script()->nfixed + cx->regs().stackDepth() : 0;
+        JS_ASSERT_IF(osr, !IsJSDEnabled(cx));
+
+        
+        enter(jitcode, maxArgc, maxArgv, osr ? fp : NULL, calleeToken, scopeChain, numStackValues,
+              result.address());
     }
 
     JS_ASSERT(fp == cx->fp());
@@ -184,7 +195,24 @@ ion::EnterBaselineMethod(JSContext *cx, StackFrame *fp)
     IonCode *code = baseline->method();
     void *jitcode = code->raw();
 
-    return EnterBaseline(cx, fp, jitcode);
+    return EnterBaseline(cx, fp, jitcode, false);
+}
+
+IonExecStatus
+ion::EnterBaselineAtBranch(JSContext *cx, StackFrame *fp, jsbytecode *pc)
+{
+    JS_ASSERT(JSOp(*pc) == JSOP_LOOPENTRY);
+
+    RootedScript script(cx, fp->script());
+    BaselineScript *baseline = script->baseline;
+    uint8_t *jitcode = baseline->nativeCodeForPC(script, pc);
+
+    
+    
+    if (cx->compartment->debugMode())
+        jitcode += MacroAssembler::ToggledCallSize();
+
+    return EnterBaseline(cx, fp, jitcode, true);
 }
 
 static MethodStatus
@@ -228,6 +256,11 @@ ion::CanEnterBaselineJIT(JSContext *cx, JSScript *scriptArg, StackFrame *fp, boo
 
     
     if (scriptArg->baseline == BASELINE_DISABLED_SCRIPT)
+        return Method_Skipped;
+
+    
+    
+    if (scriptArg->incUseCount() <= js_IonOptions.baselineUsesBeforeCompile && !IsJSDEnabled(cx))
         return Method_Skipped;
 
     if (scriptArg->length > BaselineScript::MAX_JSSCRIPT_LENGTH)

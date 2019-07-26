@@ -28,7 +28,8 @@ enum EnterJitEbpArgumentOffset {
     ARG_STACKFRAME      = 5 * sizeof(void *),
     ARG_CALLEETOKEN     = 6 * sizeof(void *),
     ARG_SCOPECHAIN      = 7 * sizeof(void *),
-    ARG_RESULT          = 8 * sizeof(void *)
+    ARG_STACKVALUES     = 8 * sizeof(void *),
+    ARG_RESULT          = 9 * sizeof(void *)
 };
 
 
@@ -124,14 +125,94 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.makeFrameDescriptor(esi, IonFrame_Entry);
     masm.push(esi);
 
-    if (type == EnterJitBaseline)
+    CodeLabel returnLabel;
+    if (type == EnterJitBaseline) {
+        
+        GeneralRegisterSet regs(GeneralRegisterSet::All());
+        regs.take(JSReturnOperand);
+        regs.takeUnchecked(OsrFrameReg);
+        regs.take(ebp);
+        regs.take(ReturnReg);
+
+        Register scratch = regs.takeAny();
+
+        Label notOsr;
+        masm.branchTestPtr(Assembler::Zero, OsrFrameReg, OsrFrameReg, &notOsr);
+
+        Register numStackValues = regs.takeAny();
+        masm.movl(Operand(ebp, ARG_STACKVALUES), numStackValues);
+
+        Register jitcode = regs.takeAny();
+        masm.movl(Operand(ebp, ARG_JITCODE), jitcode);
+
+        
+        masm.mov(returnLabel.dest(), scratch);
+        masm.push(scratch);
+        masm.push(ebp);
+
+        
+        Register framePtr = ebp;
+        masm.subPtr(Imm32(BaselineFrame::Size()), esp);
+        masm.mov(esp, framePtr);
+
+        
+        masm.mov(numStackValues, scratch);
+        masm.shll(Imm32(3), scratch);
+        masm.subPtr(scratch, esp);
+
+        
+        masm.addPtr(Imm32(BaselineFrame::Size() + BaselineFrame::FramePointerOffset), scratch);
+        masm.makeFrameDescriptor(scratch, IonFrame_BaselineJS);
+        masm.push(scratch);
+        masm.push(Imm32(0)); 
+        masm.enterFakeExitFrame();
+
+        masm.push(framePtr);
+        masm.push(jitcode);
+
+        masm.setupUnalignedABICall(3, scratch);
+        masm.passABIArg(framePtr); 
+        masm.passABIArg(OsrFrameReg); 
+        masm.passABIArg(numStackValues);
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ion::InitBaselineFrameForOsr));
+
+        masm.pop(jitcode);
+        masm.pop(framePtr);
+
+        JS_ASSERT(jitcode != ReturnReg);
+
+        Label error;
+        masm.addPtr(Imm32(IonExitFrameLayout::SizeWithFooter()), esp);
+        masm.addPtr(Imm32(BaselineFrame::Size()), framePtr);
+        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &error);
+
+        masm.jump(jitcode);
+
+        
+        
+        masm.bind(&error);
+        masm.mov(framePtr, esp);
+        masm.addPtr(Imm32(2 * sizeof(uintptr_t)), esp);
+        masm.moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
+        masm.mov(returnLabel.dest(), scratch);
+        masm.jump(scratch);
+
+        masm.bind(&notOsr);
         masm.movl(Operand(ebp, ARG_SCOPECHAIN), R1.scratchReg());
+    }
 
     
 
 
 
     masm.call(Operand(ebp, ARG_JITCODE));
+
+    if (type == EnterJitBaseline) {
+        
+        masm.bind(returnLabel.src());
+        if (!masm.addCodeLabel(returnLabel))
+            return NULL;
+    }
 
     
     
