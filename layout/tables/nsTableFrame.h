@@ -111,9 +111,6 @@ class nsTableFrame : public nsContainerFrame
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
-  static void DestroyPositionedTablePartArray(void* aPropertyValue);
-  NS_DECLARE_FRAME_PROPERTY(PositionedTablePartArray, DestroyPositionedTablePartArray)
-
   
   friend class nsTableOuterFrame;
 
@@ -149,15 +146,6 @@ public:
 
   static bool PageBreakAfter(nsIFrame* aSourceFrame,
                                nsIFrame* aNextFrame);
-  
-  
-  
-  
-  static void RegisterPositionedTablePart(nsIFrame* aFrame);
-
-  
-  static void UnregisterPositionedTablePart(nsIFrame* aFrame,
-                                            nsIFrame* aDestructRoot);
 
   nsPoint GetFirstSectionOrigin(const nsHTMLReflowState& aReflowState) const;
   
@@ -191,12 +179,6 @@ public:
   
   static nsTableFrame* GetTableFrame(nsIFrame* aSourceFrame);
                                  
-  
-
-
-  static nsTableFrame* GetTableFramePassingThrough(nsIFrame* aMustPassThrough,
-                                                   nsIFrame* aSourceFrame);
-
   typedef void (* DisplayGenericTablePartTraversal)
       (nsDisplayListBuilder* aBuilder, nsFrame* aFrame,
        const nsRect& aDirtyRect, const nsDisplayListSet& aLists);
@@ -566,18 +548,6 @@ protected:
 
   void AdjustForCollapsingRowsCols(nsHTMLReflowMetrics& aDesiredSize,
                                    nsMargin             aBorderPadding);
-
-  
-
-
-
-
-
-  void FixupPositionedTableParts(nsPresContext* aPresContext,
-                                 const nsHTMLReflowState& aReflowState);
-
-  
-  void ClearAllPositionedTableParts();
 
   nsITableLayoutStrategy* LayoutStrategy() const {
     return static_cast<nsTableFrame*>(FirstInFlow())->

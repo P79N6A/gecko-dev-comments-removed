@@ -2281,25 +2281,7 @@ public:
 
 
 
-  nsOverflowAreas GetOverflowAreasRelativeToSelf() const;
-
-  
-
-
-
-
-
-
   nsRect GetScrollableOverflowRectRelativeToParent() const;
-
-  
-
-
-
-
-
-
-  nsRect GetScrollableOverflowRectRelativeToSelf() const;
 
   
 
