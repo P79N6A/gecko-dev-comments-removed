@@ -30,7 +30,8 @@
 #include "mozilla/ErrorResult.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
-#include "nsINode.h"
+
+class nsINode;
 
 
 #define NS_ICSSDECLARATION_IID \
