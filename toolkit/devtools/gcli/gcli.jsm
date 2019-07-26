@@ -104,7 +104,7 @@ var mozl10n = {};
 
 })(mozl10n);
 
-define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli/types/selection', 'gcli/types/command', 'gcli/types/date', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/types/setting', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/connect', 'gcli/commands/context', 'gcli/commands/help', 'gcli/commands/pref', 'gcli/canon', 'gcli/converters', 'gcli/types', 'gcli/ui/ffdisplay'], function(require, exports, module) {
+define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli/types/selection', 'gcli/types/command', 'gcli/types/date', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/types/setting', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/connect', 'gcli/commands/context', 'gcli/commands/help', 'gcli/commands/pref', 'gcli/canon', 'gcli/converters', 'gcli/ui/ffdisplay'], function(require, exports, module) {
 
   'use strict';
 
@@ -143,9 +143,6 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli
   exports.removeCommand = require('gcli/canon').removeCommand;
   exports.addConverter = require('gcli/converters').addConverter;
   exports.removeConverter = require('gcli/converters').removeConverter;
-  exports.addType = require('gcli/types').addType;
-  exports.removeType = require('gcli/types').removeType;
-
   exports.lookup = mozl10n.lookup;
   exports.lookupFormat = mozl10n.lookupFormat;
 
@@ -624,7 +621,7 @@ ArrayType.prototype.parse = function(arg, context) {
   }.bind(this);
 
   var conversionPromises = arg.getArguments().map(subArgParse);
-  return util.all(conversionPromises).then(function(conversions) {
+  return Promise.all(conversionPromises).then(function(conversions) {
     return new ArrayConversion(conversions, arg);
   });
 };
@@ -657,15 +654,17 @@ exports.ArrayType = ArrayType;
 
 define('util/promise', ['require', 'exports', 'module' ], function(require, exports, module) {
 
-  'use strict';
+'use strict';
 
-  var imported = {};
-  Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js",
-                          imported);
+var imported = {};
+Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js",
+                        imported);
 
-  exports.defer = imported.Promise.defer;
-  exports.resolve = imported.Promise.resolve;
-  exports.reject = imported.Promise.reject;
+exports.defer = imported.Promise.defer;
+exports.resolve = imported.Promise.resolve;
+exports.reject = imported.Promise.reject;
+exports.promised = imported.Promise.promised;
+exports.all = imported.Promise.all;
 
 });
 
@@ -911,65 +910,6 @@ var Promise = require('util/promise');
 
 
 
-
-exports.promised = (function() {
-  
-  
-  
-
-  var call = Function.call;
-  var concat = Array.prototype.concat;
-
-  
-  
-  function execute(args) { return call.apply(call, args); }
-
-  
-  
-  function promisedConcat(promises, unknown) {
-    return promises.then(function(values) {
-      return Promise.resolve(unknown).then(function(value) {
-        return values.concat([ value ]);
-      });
-    });
-  }
-
-  return function promised(f, prototype) {
-    
-
-
-
-
-
-
-
-
-
-
-
-    return function promised() {
-      
-      return concat.apply([ f, this ], arguments).
-          
-          reduce(promisedConcat, Promise.resolve([], prototype)).
-          
-          then(execute);
-    };
-  };
-})();
-
-
-
-
-
-
-exports.all = exports.promised(Array);
-
-
-
-
-
-
 exports.synchronize = function(promise) {
   if (promise == null || typeof promise.then !== 'function') {
     return promise;
@@ -1004,29 +944,34 @@ exports.synchronize = function(promise) {
 
 
 
+
+
 exports.promiseEach = function(array, action, scope) {
   if (array.length === 0) {
     return Promise.resolve([]);
   }
 
   var deferred = Promise.defer();
+  var replies = [];
 
   var callNext = function(index) {
-    var replies = [];
-    var promiseReply = action.call(scope, array[index]);
-    Promise.resolve(promiseReply).then(function(reply) {
+    var onSuccess = function(reply) {
       replies[index] = reply;
 
-      var nextIndex = index + 1;
-      if (nextIndex >= array.length) {
+      if (index + 1 >= array.length) {
         deferred.resolve(replies);
       }
       else {
-        callNext(nextIndex);
+        callNext(index + 1);
       }
-    }).then(null, function(ex) {
+    };
+
+    var onFailure = function(ex) {
       deferred.reject(ex);
-    });
+    };
+
+    var reply = action.call(scope, array[index], index, array);
+    Promise.resolve(reply).then(onSuccess).then(null, onFailure);
   };
 
   callNext(0);
@@ -3866,6 +3811,10 @@ Canon.prototype.addProxyCommands = function(prefix, commandSpecs, remoter, to) {
 
   names.forEach(function(name) {
     var commandSpec = commandSpecs[name];
+
+    if (commandSpec.noRemote) {
+      return;
+    }
 
     if (!commandSpec.isParent) {
       commandSpec.exec = function(args, context) {
@@ -6777,7 +6726,7 @@ Requisition.prototype.complete = function(cursor, predictionChoice) {
       outstanding.push(promise);
     }
 
-    return util.all(outstanding).then(function() {
+    return Promise.all(outstanding).then(function() {
       this.onTextChange();
       this.onTextChange.resumeFire();
     }.bind(this));
@@ -7594,19 +7543,19 @@ Requisition.prototype._assign = function(args) {
 
   if (!this.commandAssignment.value) {
     this._addUnassignedArgs(args);
-    return util.all(outstanding);
+    return Promise.all(outstanding);
   }
 
   if (args.length === 0) {
     this.setBlankArguments();
-    return util.all(outstanding);
+    return Promise.all(outstanding);
   }
 
   
   
   if (this.assignmentCount === 0) {
     this._addUnassignedArgs(args);
-    return util.all(outstanding);
+    return Promise.all(outstanding);
   }
 
   
@@ -7616,7 +7565,7 @@ Requisition.prototype._assign = function(args) {
     if (assignment.param.type.name === 'string') {
       var arg = (args.length === 1) ? args[0] : new MergedArgument(args);
       outstanding.push(this.setAssignment(assignment, arg, noArgUp));
-      return util.all(outstanding);
+      return Promise.all(outstanding);
     }
   }
 
@@ -7723,7 +7672,7 @@ Requisition.prototype._assign = function(args) {
   
   this._addUnassignedArgs(args);
 
-  return util.all(outstanding);
+  return Promise.all(outstanding);
 };
 
 exports.Requisition = Requisition;
@@ -9555,10 +9504,12 @@ var connect = {
   createRemoter: function(prefix, connection) {
     return function(cmdArgs, context) {
       var typed = context.typed;
-      if (typed.indexOf(prefix) !== 0) {
-        throw new Error("Missing prefix");
+
+      
+      
+      if (typed.indexOf(prefix) === 0) {
+        typed = typed.substring(prefix.length).replace(/^ */, "");
       }
-      typed = typed.substring(prefix.length).replace(/^ */, "");
 
       return connection.execute(typed, cmdArgs).then(function(reply) {
         var typedData = context.typedData(reply.type, reply.data);
@@ -9598,12 +9549,19 @@ var disconnect = {
       name: 'prefix',
       type: 'connection',
       description: l10n.lookup('disconnectPrefixDesc'),
+    },
+    {
+      name: 'force',
+      type: 'boolean',
+      description: l10n.lookup('disconnectForceDesc'),
+      hidden: connector.disconnectSupportsForce,
+      option: true
     }
   ],
   returnType: 'string',
 
   exec: function(args, context) {
-    return args.prefix.disconnect().then(function() {
+    return args.prefix.disconnect(args.force).then(function() {
       var removed = canon.removeProxyCommands(args.prefix.prefix);
       delete connections[args.prefix.prefix];
       return l10n.lookupFormat('disconnectReply', [ removed.length ]);
@@ -9647,12 +9605,14 @@ exports.shutdown = function() {
 
 
 
-define('util/connect/connector', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('util/connect/connector', ['require', 'exports', 'module' , 'util/promise'], function(require, exports, module) {
 
 'use strict';
 
 var debuggerSocketConnect = Components.utils.import('resource://gre/modules/devtools/dbg-client.jsm', {}).debuggerSocketConnect;
 var DebuggerClient = Components.utils.import('resource://gre/modules/devtools/dbg-client.jsm', {}).DebuggerClient;
+
+var Promise = require('util/promise');
 
 
 
@@ -9741,32 +9701,12 @@ Connection.prototype.getCommandSpecs = function() {
 
 
 Connection.prototype.execute = function(typed, cmdArgs) {
-  var deferred = Promise.defer();
-
-  var request = {
-    to: this.actor,
-    type: 'execute',
-    typed: typed,
-    args: cmdArgs
-  };
-
-  this.client.request(request, function(response) {
-    deferred.resolve(response.reply);
-  });
-
-  return deferred.promise;
-};
-
-
-
-
-Connection.prototype.execute = function(typed, cmdArgs) {
   var request = new Request(this.actor, typed, cmdArgs);
-  this.requests[request.json.id] = request;
+  this.requests[request.json.requestId] = request;
 
   this.client.request(request.json, function(response) {
-    var request = this.requests[response.id];
-    delete this.requests[response.id];
+    var request = this.requests[response.requestId];
+    delete this.requests[response.requestId];
 
     request.complete(response.error, response.type, response.data);
   }.bind(this));
@@ -9774,10 +9714,12 @@ Connection.prototype.execute = function(typed, cmdArgs) {
   return request.promise;
 };
 
+exports.disconnectSupportsForce = false;
 
 
 
-Connection.prototype.disconnect = function() {
+
+Connection.prototype.disconnect = function(force) {
   var deferred = Promise.defer();
 
   this.client.close(function() {
@@ -9797,7 +9739,7 @@ function Request(actor, typed, args) {
     type: 'execute',
     typed: typed,
     args: args,
-    id: Request._nextRequestId++,
+    requestId: 'id-' + Request._nextRequestId++,
   };
 
   this._deferred = Promise.defer();
@@ -9861,6 +9803,7 @@ var contextCmdSpec = {
    }
   ],
   returnType: 'string',
+  noRemote: true,
   exec: function echo(args, context) {
     
     var requisition = context.__dlhjshfw;
@@ -10217,6 +10160,17 @@ var terminalDomConverter = {
 
 
 
+var terminalStringConverter = {
+  from: 'terminal',
+  to: 'string',
+  exec: function(data, context) {
+    return Array.isArray(data) ? data.join('') : '' + data;
+  }
+};
+
+
+
+
 function nodeFromDataToString(data, conversionContext) {
   var node = util.createElement(conversionContext.document, 'p');
   node.textContent = data.toString();
@@ -10393,6 +10347,7 @@ exports.convert = function(data, from, to, conversionContext) {
 exports.addConverter(viewDomConverter);
 exports.addConverter(viewStringConverter);
 exports.addConverter(terminalDomConverter);
+exports.addConverter(terminalStringConverter);
 exports.addConverter(stringDomConverter);
 exports.addConverter(numberDomConverter);
 exports.addConverter(booleanDomConverter);
