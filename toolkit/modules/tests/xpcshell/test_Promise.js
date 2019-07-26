@@ -137,6 +137,24 @@ tests.push(make_promise_test(
 
 
 tests.push(
+  make_promise_test(function handlers_this_value(test) {
+    return Promise.resolve().then(
+      function onResolve() {
+        
+        do_check_eq(this, undefined);
+        throw "reject";
+      }
+    ).then(
+      null,
+      function onReject() {
+        
+        do_check_eq(this, undefined);
+      }
+    );
+  }));
+
+
+tests.push(
   make_promise_test(function then_returns_before_callbacks(test) {
     let deferred = Promise.defer();
     let promise = deferred.promise;
@@ -682,11 +700,10 @@ tests.push(
     }
 
     let executorRan = false;
-    let receiver;
     let promise = new Promise(
       function executor(resolve, reject) {
         executorRan = true;
-        receiver = this;
+        do_check_eq(this, undefined);
         do_check_eq(typeof resolve, "function",
                     "resolve function should be passed to the executor");
         do_check_eq(typeof reject, "function",
@@ -695,7 +712,6 @@ tests.push(
     );
     do_check_instanceof(promise, Promise);
     do_check_true(executorRan, "Executor should execute synchronously");
-    do_check_eq(receiver, promise, "The promise is the |this| in the executor");
 
     
     let resolvePromise = new Promise(
