@@ -73,9 +73,14 @@ function WebConsoleActor(aConnection, aParentActor)
   this._prefs = {};
 
   this.dbg = new Debugger();
-  this._createGlobal();
 
   this._protoChains = new Map();
+  this._dbgGlobals = new Map();
+  this._getDebuggerGlobal(this.window);
+
+  this._onObserverNotification = this._onObserverNotification.bind(this);
+  Services.obs.addObserver(this._onObserverNotification,
+                           "inner-window-destroyed", false);
 }
 
 WebConsoleActor.prototype =
@@ -122,7 +127,8 @@ WebConsoleActor.prototype =
 
 
 
-  _dbgWindow: null,
+
+  _dbgGlobals: null,
 
   
 
@@ -222,11 +228,14 @@ WebConsoleActor.prototype =
       this.consoleProgressListener = null;
     }
     this.conn.removeActorPool(this._actorPool);
+    Services.obs.removeObserver(this._onObserverNotification,
+                                "inner-window-destroyed");
     this._actorPool = null;
     this._protoChains.clear();
+    this._dbgGlobals.clear();
+    this._jstermHelpers = null;
     this.dbg.enabled = false;
     this.dbg = null;
-    this._dbgWindow = null;
     this._globalWindowId = 0;
     this.conn = this._window = null;
   },
@@ -250,9 +259,31 @@ WebConsoleActor.prototype =
 
 
 
-  makeDebuggeeValue: function WCA_makeDebuggeeValue(aValue)
+
+
+
+  makeDebuggeeValue: function WCA_makeDebuggeeValue(aValue, aUseObjectGlobal)
   {
-    return this._dbgWindow.makeDebuggeeValue(aValue);
+    let global = this.window;
+    if (aUseObjectGlobal && typeof aValue == "object") {
+      try {
+        global = Cu.getGlobalForObject(aValue);
+      }
+      catch (ex) {
+        
+      }
+    }
+    let dbgGlobal = null;
+    try {
+      dbgGlobal = this._getDebuggerGlobal(global);
+    }
+    catch (ex) {
+      
+      
+      
+      dbgGlobal = this._getDebuggerGlobal(this.window);
+    }
+    return dbgGlobal.makeDebuggeeValue(aValue);
   },
 
   
@@ -504,8 +535,7 @@ WebConsoleActor.prototype =
     };
     let evalInfo = this.evalWithDebugger(input, evalOptions);
     let evalResult = evalInfo.result;
-    let helperResult = this._jstermHelpers.helperResult;
-    delete this._jstermHelpers.helperResult;
+    let helperResult = evalInfo.helperResult;
 
     let result, error, errorMessage;
     if (evalResult) {
@@ -590,20 +620,21 @@ WebConsoleActor.prototype =
 
 
 
-  _createGlobal: function WCA__createGlobal()
+
+
+
+
+
+
+  _getDebuggerGlobal: function WCA__getDebuggerGlobal(aGlobal)
   {
-    let windowId = WebConsoleUtils.getInnerWindowId(this.window);
-    if (this._globalWindowId == windowId) {
-      return;
+    let windowId = WebConsoleUtils.getInnerWindowId(aGlobal);
+    if (!this._dbgGlobals.has(windowId)) {
+      let dbgGlobal = this.dbg.addDebuggee(aGlobal);
+      this.dbg.removeDebuggee(aGlobal);
+      this._dbgGlobals.set(windowId, dbgGlobal);
     }
-
-    this._globalWindowId = windowId;
-
-    this._dbgWindow = this.dbg.addDebuggee(this.window);
-    this.dbg.removeDebuggee(this.window);
-
-    
-    this._jstermHelpers = this._getJSTermHelpers(this._dbgWindow);
+    return this._dbgGlobals.get(windowId);
   },
 
   
@@ -616,11 +647,14 @@ WebConsoleActor.prototype =
 
 
 
-  _getJSTermHelpers: function WCA__getJSTermHelpers(aDebuggerObject)
+
+
+
+
+  _getJSTermHelpers: function WCA__getJSTermHelpers(aDebuggerGlobal)
   {
     let helpers = Object.create(this);
     helpers.sandbox = Object.create(null);
-    helpers._dbgWindow = aDebuggerObject;
     JSTermHelpers(helpers);
 
     
@@ -629,7 +663,7 @@ WebConsoleActor.prototype =
       if (desc.get || desc.set) {
         continue;
       }
-      helpers.sandbox[name] = helpers.makeDebuggeeValue(desc.value);
+      helpers.sandbox[name] = aDebuggerGlobal.makeDebuggeeValue(desc.value);
     }
     return helpers;
   },
@@ -679,10 +713,16 @@ WebConsoleActor.prototype =
 
 
 
+
+
+
+
+
+
+
+
   evalWithDebugger: function WCA_evalWithDebugger(aString, aOptions = {})
   {
-    this._createGlobal();
-
     
     if (aString.trim() == "help" || aString.trim() == "?") {
       aString = "help()";
@@ -697,8 +737,6 @@ WebConsoleActor.prototype =
       }
     }
 
-    let helpers = this._jstermHelpers;
-    let found$ = false, found$$ = false;
     let frame = null, frameActor = null;
     if (aOptions.frameActor) {
       frameActor = this.conn.getActor(aOptions.frameActor);
@@ -712,8 +750,12 @@ WebConsoleActor.prototype =
     }
 
     let dbg = this.dbg;
-    let dbgWindow = this._dbgWindow;
+    let dbgWindow = null;
+    let helpers = null;
+    let found$ = false, found$$ = false;
 
+    
+    
     if (frame) {
       
       
@@ -728,14 +770,37 @@ WebConsoleActor.prototype =
       }
     }
     else {
-      found$ = !!this._dbgWindow.getOwnPropertyDescriptor("$");
-      found$$ = !!this._dbgWindow.getOwnPropertyDescriptor("$$");
+      
+      dbgWindow = this._getDebuggerGlobal(this.window);
+
+      let windowId = WebConsoleUtils.getInnerWindowId(this.window);
+      if (this._globalWindowId != windowId) {
+        this._jstermHelpers = null;
+        this._globalWindowId = windowId;
+      }
+      if (!this._jstermHelpers) {
+        this._jstermHelpers = this._getJSTermHelpers(dbgWindow);
+      }
+
+      helpers = this._jstermHelpers;
+      found$ = !!dbgWindow.getOwnPropertyDescriptor("$");
+      found$$ = !!dbgWindow.getOwnPropertyDescriptor("$$");
     }
 
     let bindings = helpers.sandbox;
     if (bindSelf) {
+      
       let jsObj = bindSelf.unsafeDereference();
-      bindings._self = helpers.makeDebuggeeValue(jsObj);
+      let global = Cu.getGlobalForObject(jsObj);
+
+      if (global != this.window) {
+        dbgWindow = dbg.addDebuggee(global);
+        if (dbg == this.dbg) {
+          dbg.removeDebuggee(global);
+        }
+      }
+
+      bindings._self = dbgWindow.makeDebuggeeValue(jsObj);
     }
 
     let $ = null, $$ = null;
@@ -748,7 +813,6 @@ WebConsoleActor.prototype =
       delete bindings.$$;
     }
 
-    helpers.helperResult = null;
     helpers.evalInput = aString;
 
     let result;
@@ -756,14 +820,12 @@ WebConsoleActor.prototype =
       result = frame.evalWithBindings(aString, bindings);
     }
     else {
-      result = this._dbgWindow.evalInGlobalWithBindings(aString, bindings);
+      result = dbgWindow.evalInGlobalWithBindings(aString, bindings);
     }
 
+    let helperResult = helpers.helperResult;
     delete helpers.evalInput;
-    if (helpers != this._jstermHelpers) {
-      this._jstermHelpers.helperResult = helpers.helperResult;
-      delete helpers.helperResult;
-    }
+    delete helpers.helperResult;
 
     if ($) {
       bindings.$ = $;
@@ -778,6 +840,7 @@ WebConsoleActor.prototype =
 
     return {
       result: result,
+      helperResult: helperResult,
       dbg: dbg,
       frame: frame,
       window: dbgWindow,
@@ -915,11 +978,10 @@ WebConsoleActor.prototype =
     let result = WebConsoleUtils.cloneObject(aMessage);
     delete result.wrappedJSObject;
 
-    result.arguments = Array.map(aMessage.arguments || [],
-      function(aObj) {
-        let dbgObj = this.makeDebuggeeValue(aObj);
-        return this.createValueGrip(dbgObj);
-      }, this);
+    result.arguments = Array.map(aMessage.arguments || [], (aObj) => {
+      let dbgObj = this.makeDebuggeeValue(aObj, true);
+      return this.createValueGrip(dbgObj);
+    });
 
     return result;
   },
@@ -944,6 +1006,23 @@ WebConsoleActor.prototype =
     }
 
     return window;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _onObserverNotification: function WCA__onObserverNotification(aSubject)
+  {
+    let windowId = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
+    if (this._dbgGlobals.has(windowId)) {
+      this._dbgGlobals.delete(windowId);
+    }
   },
 };
 
