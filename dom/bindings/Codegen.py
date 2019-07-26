@@ -478,7 +478,7 @@ class CGHeaders(CGWrapper):
     def __init__(self, descriptors, dictionaries, callbacks,
                  callbackDescriptors,
                  declareIncludes, defineIncludes, child,
-                 config=None, anyJSImplemented=False):
+                 config=None, jsImplementedDescriptors=[]):
         """
         Builds a set of includes to cover |descriptors|.
 
@@ -594,11 +594,19 @@ class CGHeaders(CGWrapper):
             
             declareIncludes.add("mozilla/dom/BindingUtils.h")
 
-        if len(callbackDescriptors) != 0 or anyJSImplemented:
+        if len(callbackDescriptors) != 0 or len(jsImplementedDescriptors) != 0:
             
             declareIncludes.add("mozilla/dom/CallbackInterface.h")
             
             declareIncludes.add("mozilla/dom/BindingUtils.h")
+
+        
+        
+        for jsImplemented in jsImplementedDescriptors:
+            jsParent = jsImplemented.interface.parent
+            if jsParent:
+                parentDesc = jsImplemented.getDescriptor(jsParent.identifier.name)
+                declareIncludes.add(parentDesc.headerFile)
 
         
         def _includeString(includes):
@@ -7161,7 +7169,7 @@ class CGBindingRoot(CGThing):
         for callback in workerCallbacks:
             workerIfaces.extend(getInterfacesFromCallback(callback))
 
-        for callbackDescriptor in callbackDescriptors:
+        for callbackDescriptor in callbackDescriptors + jsImplemented:
             callbackDescriptorIfaces = [
                 t.unroll().inner
                 for t in getTypesFromDescriptor(callbackDescriptor)
@@ -7217,6 +7225,13 @@ class CGBindingRoot(CGThing):
             forwardDeclares.extend(
                 declareNativeType("mozilla::dom::" + str(t.unroll()))
                 for t in getTypesFromDictionary(dictionary)
+                if t.unroll().isCallback())
+
+        
+        for desc in descriptors:
+            forwardDeclares.extend(
+                declareNativeType("mozilla::dom::" + str(t.unroll()))
+                for t in getTypesFromDescriptor(desc)
                 if t.unroll().isCallback())
 
         forwardDeclares = CGList(forwardDeclares)
@@ -7335,7 +7350,7 @@ class CGBindingRoot(CGThing):
                           ],
                          curr,
                          config,
-                         anyJSImplemented = len(jsImplemented) != 0)
+                         jsImplemented)
 
         
         curr = CGIncludeGuard(prefix, curr)
