@@ -119,6 +119,7 @@ protected:
 
 
 
+
   virtual status_t AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
                                        ABuffer* aData) = 0;
 
@@ -242,10 +243,19 @@ class OMXVideoEncoder MOZ_FINAL : public OMXCodecWrapper
 {
 public:
   
+  enum BlobFormat {
+    AVC_MP4, 
+    AVC_NAL  
+  };
+
+  
 
 
 
-  nsresult Configure(int aWidth, int aHeight, int aFrameRate);
+
+
+  nsresult Configure(int aWidth, int aHeight, int aFrameRate,
+                     BlobFormat aBlobFormat = BlobFormat::AVC_MP4);
 
   
 
@@ -256,10 +266,20 @@ public:
   nsresult Encode(const mozilla::layers::Image* aImage, int aWidth, int aHeight,
                   int64_t aTimestamp, int aInputFlags = 0);
 
+  
+  nsresult SetBitrate(int32_t aKbps);
+
+  
+
+
+
+  nsresult GetCodecConfig(nsTArray<uint8_t>* aOutputBuf);
+
 protected:
   virtual status_t AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
                                        ABuffer* aData) MOZ_OVERRIDE;
 
+  
   
   
   virtual void AppendFrame(nsTArray<uint8_t>* aOutputBuf,
@@ -276,13 +296,20 @@ private:
 
 
   OMXVideoEncoder(CodecType aCodecType)
-    : OMXCodecWrapper(aCodecType), mWidth(0), mHeight(0) {}
+    : OMXCodecWrapper(aCodecType)
+    , mWidth(0)
+    , mHeight(0)
+    , mBlobFormat(BlobFormat::AVC_MP4)
+    , mHasConfigBlob(false)
+  {}
 
   
   friend class OMXCodecWrapper;
 
   int mWidth;
   int mHeight;
+  BlobFormat mBlobFormat;
+  bool mHasConfigBlob;
 };
 
 } 

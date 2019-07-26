@@ -8,266 +8,198 @@
 namespace android {
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static const uint8_t kNALUnitStartCode[] = { 0x00, 0x00, 0x00, 0x01 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class AVCDecodeConfigDescMaker {
-public:
-  
-  
-  
-  status_t ConvertParamSetsToDescriptorBlob(ABuffer* aParamSets,
-                                            nsTArray<uint8_t>* aOutputBuf)
-  {
-    uint8_t header[] = {
-      0x01, 
-      0x00, 
-      0x00, 
-      0x00, 
-      0xFF, 
-    };
-
-    size_t paramSetsSize = ParseParamSets(aParamSets, header);
-    NS_ENSURE_TRUE(paramSetsSize > 0, ERROR_MALFORMED);
-
-    
-    aOutputBuf->SetCapacity(sizeof(header) + paramSetsSize + 2);
-    
-    aOutputBuf->AppendElements(header, sizeof(header));
-    
-    uint8_t n = mSPS.Length();
-    aOutputBuf->AppendElement(0xE0 | n);
-    
-    for (int i = 0; i < n; i++) {
-      mSPS.ElementAt(i).AppendTo(aOutputBuf);
-    }
-    
-    n = mPPS.Length();
-    aOutputBuf->AppendElement(n);
-    
-    for (int i = 0; i < n; i++) {
-      mPPS.ElementAt(i).AppendTo(aOutputBuf);
-    }
-
-    return OK;
-  }
-
-private:
-  
-  struct AVCParamSet {
-    AVCParamSet(const uint8_t* aPtr, const size_t aSize)
-      : mPtr(aPtr)
-      , mSize(aSize)
-    {}
-
-    
-    void AppendTo(nsTArray<uint8_t>* aOutputBuf)
-    {
-      MOZ_ASSERT(mPtr && mSize > 0);
-
-      
-      uint8_t size[] = {
-        (mSize & 0xFF00) >> 8, 
-        mSize & 0x00FF,        
-      };
-      aOutputBuf->AppendElements(size, sizeof(size));
-
-      aOutputBuf->AppendElements(mPtr, mSize);
-    }
-
-    const uint8_t* mPtr; 
-    const size_t mSize;  
-  };
-
-  
-  enum {
-    kNALUnitTypeSPS = 0x07, 
-    kNALUnitTypePPS = 0x08, 
-  };
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  uint8_t* ParseParamSet(uint8_t* aPtr, size_t aSize, uint8_t aType,
-                         size_t* aParamSetSize)
-  {
-    MOZ_ASSERT(aPtr && aSize > 0);
-    MOZ_ASSERT(aType == kNALUnitTypeSPS || aType == kNALUnitTypePPS);
-    MOZ_ASSERT(aParamSetSize);
-
-    
-    size_t index = 0;
-    size_t end = aSize - sizeof(kNALUnitStartCode);
-    uint8_t* nextStartCode = aPtr;
-    while (index <= end &&
-            memcmp(kNALUnitStartCode, aPtr + index, sizeof(kNALUnitStartCode))) {
-      ++index;
-    }
-    if (index <= end) {
-      
-      nextStartCode = aPtr + index;
-    } else {
-      nextStartCode = aPtr + aSize;
-    }
-
-    *aParamSetSize = nextStartCode - aPtr;
-    NS_ENSURE_TRUE(*aParamSetSize > 0, nullptr);
-
-    AVCParamSet paramSet(aPtr, *aParamSetSize);
-    if (aType == kNALUnitTypeSPS) {
-      
-      NS_ENSURE_TRUE(*aParamSetSize >= 4, nullptr);
-      mSPS.AppendElement(paramSet);
-    } else {
-      mPPS.AppendElement(paramSet);
-    }
-    return nextStartCode;
-  }
-
-  
-  
-  
-  size_t ParseParamSets(ABuffer* aParamSets, uint8_t* aHeader)
-  {
-    
-    
-    
-    uint8_t type = kNALUnitTypeSPS;
-    bool hasSPS = false;
-    bool hasPPS = false;
-    uint8_t* ptr = aParamSets->data();
-    uint8_t* nextStartCode = ptr;
-    size_t remain = aParamSets->size();
-    size_t paramSetSize = 0;
-    size_t totalSize = 0;
-    
-    while (remain > sizeof(kNALUnitStartCode) &&
-            !memcmp(kNALUnitStartCode, ptr, sizeof(kNALUnitStartCode))) {
-      ptr += sizeof(kNALUnitStartCode);
-      remain -= sizeof(kNALUnitStartCode);
-      
-      
-      
-      
-      
-      
-      type = (ptr[0] & 0x1F);
-      if (type == kNALUnitTypeSPS) {
-        
-        NS_ENSURE_FALSE(hasPPS, 0);
-        if (!hasSPS) {
-          
-          aHeader[1] = ptr[1]; 
-          aHeader[2] = ptr[2]; 
-          aHeader[3] = ptr[3]; 
-
-          hasSPS = true;
-        }
-        nextStartCode = ParseParamSet(ptr, remain, type, &paramSetSize);
-      } else if (type == kNALUnitTypePPS) {
-        
-        NS_ENSURE_TRUE(hasSPS, 0);
-        if (!hasPPS) {
-          hasPPS = true;
-        }
-        nextStartCode = ParseParamSet(ptr, remain, type, &paramSetSize);
-      } else {
-        
-        NS_ENSURE_TRUE(false, 0);
-      }
-      NS_ENSURE_TRUE(nextStartCode, 0);
-
-      
-      remain -= (nextStartCode - ptr);
-      ptr = nextStartCode;
-      totalSize += (2 + paramSetSize); 
-    }
-
-    
-    size_t n = mSPS.Length();
-    NS_ENSURE_TRUE(n > 0 && n <= 0x1F, 0); 
-    n = mPPS.Length();
-    NS_ENSURE_TRUE(n > 0 && n <= 0xFF, 0); 
-
-    return totalSize;
-  }
-
-  nsTArray<AVCParamSet> mSPS;
-  nsTArray<AVCParamSet> mPPS;
+enum {
+  kNALUnitTypeSPS = 0x07,   
+  kNALUnitTypePPS = 0x08,   
+  kNALUnitTypeBad = -1,     
 };
 
 
+struct AVCParamSet {
+  AVCParamSet(const uint8_t* aPtr, const size_t aSize)
+    : mPtr(aPtr)
+    , mSize(aSize)
+  {
+    MOZ_ASSERT(mPtr && mSize > 0);
+  }
+
+  size_t Size() {
+    return mSize + 2; 
+  }
+
+  
+  void AppendTo(nsTArray<uint8_t>* aOutputBuf)
+  {
+    
+    uint8_t size[] = {
+      (mSize & 0xFF00) >> 8, 
+      mSize & 0x00FF,        
+    };
+    aOutputBuf->AppendElements(size, sizeof(size));
+
+    aOutputBuf->AppendElements(mPtr, mSize);
+  }
+
+  const uint8_t* mPtr; 
+  const size_t mSize;  
+};
+
+
+
+static status_t
+ConvertParamSetsToDescriptorBlob(sp<ABuffer>& aSPS, sp<ABuffer>& aPPS,
+                                 nsTArray<uint8_t>* aOutputBuf)
+{
+  
+  AVCParamSet sps(aSPS->data() + sizeof(kNALUnitStartCode),
+                  aSPS->size() - sizeof(kNALUnitStartCode));
+  AVCParamSet pps(aPPS->data() + sizeof(kNALUnitStartCode),
+                  aPPS->size() - sizeof(kNALUnitStartCode));
+  size_t paramSetsSize = sps.Size() + pps.Size();
+
+  
+  uint8_t* info = aSPS->data() + 5;
+
+  uint8_t header[] = {
+    0x01,     
+    info[0],  
+    info[1],  
+    info[2],  
+    0xFF,     
+  };
+
+  
+  aOutputBuf->SetCapacity(sizeof(header) + paramSetsSize + 2);
+  
+  aOutputBuf->AppendElements(header, sizeof(header)); 
+  aOutputBuf->AppendElement(0xE0 | 1); 
+  sps.AppendTo(aOutputBuf); 
+  aOutputBuf->AppendElement(1); 
+  pps.AppendTo(aOutputBuf); 
+
+  return OK;
+}
+
+static int
+NALType(sp<ABuffer>& aBuffer)
+{
+  if (aBuffer == nullptr) {
+    return kNALUnitTypeBad;
+  }
+  
+  uint8_t* data = aBuffer->data();
+  if (aBuffer->size() <= 4 ||
+      memcmp(data, kNALUnitStartCode, sizeof(kNALUnitStartCode))) {
+    return kNALUnitTypeBad;
+  }
+
+  return data[4] & 0x1F;
+}
 
 
 
 
 status_t
-GenerateAVCDescriptorBlob(ABuffer* aData, nsTArray<uint8_t>* aOutputBuf)
+GenerateAVCDescriptorBlob(sp<AMessage>& aConfigData,
+                          nsTArray<uint8_t>* aOutputBuf,
+                          OMXVideoEncoder::BlobFormat aFormat)
 {
-  const size_t csdSize = aData->size();
-  const uint8_t* csd = aData->data();
+  
+  char key[6] = "csd-";
+  sp<ABuffer> sps;
+  sp<ABuffer> pps;
+  for (int i = 0; i < 2; i++) {
+    snprintf(key + 4, 2, "%d", i);
+    sp<ABuffer> paramSet;
+    bool found = aConfigData->findBuffer(key, &paramSet);
+    int type = NALType(paramSet);
+    bool valid = ((type == kNALUnitTypeSPS) || (type == kNALUnitTypePPS));
 
-  MOZ_ASSERT(csdSize > sizeof(kNALUnitStartCode),
-             "Size of codec specific data is too short. "
-             "There could be a serious problem in MediaCodec.");
+    MOZ_ASSERT(found && valid);
+    if (!found || !valid) {
+      return ERROR_MALFORMED;
+    }
 
-  NS_ENSURE_TRUE(csdSize > sizeof(kNALUnitStartCode), ERROR_MALFORMED);
-
-  if (memcmp(csd, kNALUnitStartCode, sizeof(kNALUnitStartCode))) {
-    
-    NS_ENSURE_TRUE(csdSize >= 13, ERROR_MALFORMED);
-
-    aOutputBuf->AppendElements(aData->data(), csdSize);
-  } else {
-    
-    AVCDecodeConfigDescMaker maker;
-    status_t result = maker.ConvertParamSetsToDescriptorBlob(aData, aOutputBuf);
-    NS_ENSURE_TRUE(result == OK, result);
+    switch (type) {
+      case kNALUnitTypeSPS:
+        sps = paramSet;
+        break;
+      case kNALUnitTypePPS:
+        pps = paramSet;
+        break;
+      default:
+        NS_NOTREACHED("Should not get here!");
+    }
   }
 
-  return OK;
+  MOZ_ASSERT(sps != nullptr && pps != nullptr);
+  if (sps == nullptr || pps == nullptr) {
+    return ERROR_MALFORMED;
+  }
+
+  status_t result = OK;
+  if (aFormat == OMXVideoEncoder::BlobFormat::AVC_NAL) {
+    
+    aOutputBuf->AppendElements(sps->data(), sps->size());
+    aOutputBuf->AppendElements(pps->data(), pps->size());
+    return OK;
+  } else {
+    status_t result = ConvertParamSetsToDescriptorBlob(sps, pps, aOutputBuf);
+    MOZ_ASSERT(result == OK);
+    return result;
+  }
 }
 
 } 

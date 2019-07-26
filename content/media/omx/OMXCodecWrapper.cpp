@@ -129,8 +129,8 @@ OMXCodecWrapper::Stop()
 }
 
 
-static
-bool IsRunningOnEmulator()
+static bool
+IsRunningOnEmulator()
 {
   char qemu[PROPERTY_VALUE_MAX];
   property_get("ro.kernel.qemu", qemu, "");
@@ -138,7 +138,8 @@ bool IsRunningOnEmulator()
 }
 
 nsresult
-OMXVideoEncoder::Configure(int aWidth, int aHeight, int aFrameRate)
+OMXVideoEncoder::Configure(int aWidth, int aHeight, int aFrameRate,
+                           BlobFormat aBlobFormat)
 {
   MOZ_ASSERT(!mStarted, "Configure() was called already.");
 
@@ -185,6 +186,7 @@ OMXVideoEncoder::Configure(int aWidth, int aHeight, int aFrameRate)
 
   mWidth = aWidth;
   mHeight = aHeight;
+  mBlobFormat = aBlobFormat;
 
   result = Start();
 
@@ -200,8 +202,7 @@ OMXVideoEncoder::Configure(int aWidth, int aHeight, int aFrameRate)
 
 
 
-static
-void
+static void
 ConvertPlanarYCbCrToNV12(const PlanarYCbCrData* aSource, uint8_t* aDestination)
 {
   
@@ -252,8 +253,7 @@ ConvertPlanarYCbCrToNV12(const PlanarYCbCrData* aSource, uint8_t* aDestination)
 
 
 
-static
-void
+static void
 ConvertGrallocImageToNV12(GrallocImage* aSource, uint8_t* aDestination)
 {
   
@@ -375,23 +375,57 @@ OMXVideoEncoder::AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
 {
   
   
-  return GenerateAVCDescriptorBlob(aData, aOutputBuf);
+  sp<AMessage> format;
+  mCodec->getOutputFormat(&format);
+
+  
+  
+  status_t result = GenerateAVCDescriptorBlob(format, aOutputBuf, mBlobFormat);
+  mHasConfigBlob = (result == OK);
+
+  return result;
 }
 
 
 
-void OMXVideoEncoder::AppendFrame(nsTArray<uint8_t>* aOutputBuf,
-                                  const uint8_t* aData, size_t aSize)
+void
+OMXVideoEncoder::AppendFrame(nsTArray<uint8_t>* aOutputBuf,
+                             const uint8_t* aData, size_t aSize)
 {
+  aOutputBuf->SetCapacity(aSize);
+
+  if (mBlobFormat == BlobFormat::AVC_NAL) {
+    
+    aOutputBuf->AppendElements(aData, aSize);
+    return;
+  }
+  
   uint8_t length[] = {
     (aSize >> 24) & 0xFF,
     (aSize >> 16) & 0xFF,
     (aSize >> 8) & 0xFF,
     aSize & 0xFF,
   };
-  aOutputBuf->SetCapacity(aSize);
   aOutputBuf->AppendElements(length, sizeof(length));
   aOutputBuf->AppendElements(aData + sizeof(length), aSize);
+}
+
+nsresult
+OMXVideoEncoder::GetCodecConfig(nsTArray<uint8_t>* aOutputBuf)
+{
+  MOZ_ASSERT(mHasConfigBlob, "Haven't received codec config yet.");
+
+  return AppendDecoderConfig(aOutputBuf, nullptr) == OK ? NS_OK : NS_ERROR_FAILURE;
+}
+
+nsresult
+OMXVideoEncoder::SetBitrate(int32_t aKbps)
+{
+  sp<AMessage> msg = new AMessage();
+  msg->setInt32("videoBitrate", aKbps * 1000 );
+  status_t result = mCodec->setParameters(msg);
+  MOZ_ASSERT(result == OK);
+  return result == OK ? NS_OK : NS_ERROR_FAILURE;
 }
 
 nsresult
