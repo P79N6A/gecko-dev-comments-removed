@@ -1231,8 +1231,10 @@ pref("devtools.hud.loglimit.console", 200);
 
 
 
+
 pref("devtools.editor.tabsize", 4);
 pref("devtools.editor.expandtab", true);
+pref("devtools.editor.keymap", "default");
 
 
 pref("devtools.fontinspector.enabled", true);
