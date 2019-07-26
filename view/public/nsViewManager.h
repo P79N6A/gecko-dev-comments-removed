@@ -302,16 +302,11 @@ public:
 
   static nsView* GetDisplayRootFor(nsView* aView);
 
-  enum UpdatingMode {
-    eNoSyncUpdate,
-    eTrySyncUpdate
-  };
-
   
 
 
 
-  void ProcessPendingUpdates(UpdatingMode aMode);
+  void ProcessPendingUpdates();
 
   
 

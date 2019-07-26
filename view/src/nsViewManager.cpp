@@ -654,7 +654,7 @@ void nsViewManager::WillPaintWindow(nsIWidget* aWidget)
     LayerManager *manager = aWidget->GetLayerManager();
     if (view &&
         (view->ForcedRepaint() || !manager->NeedsWidgetInvalidation())) {
-      ProcessPendingUpdates(eNoSyncUpdate);
+      ProcessPendingUpdates();
       
       
       view = nsView::GetViewFor(aWidget);
@@ -1037,10 +1037,10 @@ nsViewManager::IsPainting(bool& aIsPainting)
 }
 
 void
-nsViewManager::ProcessPendingUpdates(UpdatingMode aMode)
+nsViewManager::ProcessPendingUpdates()
 {
   if (!IsRootVM()) {
-    RootViewManager()->ProcessPendingUpdates(aMode);
+    RootViewManager()->ProcessPendingUpdates();
     return;
   }
 
@@ -1051,14 +1051,6 @@ nsViewManager::ProcessPendingUpdates(UpdatingMode aMode)
     CallWillPaintOnObservers();
   }
   ProcessPendingUpdatesForView(mRootView, true);
-
-  if (aMode == eTrySyncUpdate) {
-    nsCOMPtr<nsIWidget> w;
-    GetRootWidget(getter_AddRefs(w));
-    if (w) {
-      w->Update();
-    }
-  }
 }
 
 void
