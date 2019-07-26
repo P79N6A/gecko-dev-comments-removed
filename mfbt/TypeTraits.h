@@ -150,6 +150,32 @@ struct IsArithmetic
 
 
 
+template<typename T>
+struct IsConst : FalseType {};
+
+template<typename T>
+struct IsConst<const T> : TrueType {};
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsVolatile : FalseType {};
+
+template<typename T>
+struct IsVolatile<volatile T> : TrueType {};
+
+
+
+
+
+
+
+
 
 template<typename T>
 struct IsPod : public FalseType {};
