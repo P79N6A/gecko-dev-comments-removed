@@ -224,18 +224,6 @@ pref("general.autoScroll", true);
 #endif
 
 pref("general.useragent.complexOverride.moodle", true); 
-pref("general.useragent.override.bank.barclays.co.uk",   "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.bankmillennium.pl",     "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.becu.org",              "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.becuonlinebanking.org", "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.bfsfcu.org",            "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.cenfedcu.org",          "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.coastal24.com",         "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.mtb.com",               "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.mandtbank.com",         "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.natweststockbrokers.co.uk", "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.natweststockbrokers.com", "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.raiffeisen.hu",         "Gecko/[^ ]*#Gecko/20100101"); 
 
 
 pref("browser.shell.checkDefaultBrowser", true);
@@ -746,7 +734,7 @@ pref("urlclassifier.alternate_error_page", "blocked");
 pref("urlclassifier.gethashnoise", 4);
 
 
-pref("urlclassifier.randomizeclient", false);
+pref("urlclassifier.randomizeclient", true);
 
 
 pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
@@ -1052,7 +1040,8 @@ pref("devtools.debugger.ui.remote-win.height", 400);
 pref("devtools.debugger.ui.stackframes-width", 200);
 pref("devtools.debugger.ui.variables-width", 300);
 pref("devtools.debugger.ui.panes-visible-on-startup", false);
-pref("devtools.debugger.ui.non-enum-visible", true);
+pref("devtools.debugger.ui.variables-non-enum-visible", true);
+pref("devtools.debugger.ui.variables-searchbox-visible", false);
 
 
 pref("devtools.styleinspector.enabled", true);

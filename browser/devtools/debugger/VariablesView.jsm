@@ -188,15 +188,43 @@ VariablesView.prototype = {
   
 
 
+  set searchEnabled(aFlag) aFlag ? this.enableSearch() : this.disableSearch(),
+
+  
+
+
+  get searchEnabled() !!this._searchboxContainer,
+
+  
+
+
 
 
 
 
   performSearch: function VV_performSerch(aQuery) {
-    let lowerCaseQuery = aQuery.toLowerCase();
+    if (!aQuery) {
+      for (let [_, item] of this._currHierarchy) {
+        item._match = true;
+      }
+    } else {
+      for (let [_, scope] in this) {
+        scope._performSearch(aQuery.toLowerCase());
+      }
+    }
+  },
 
+  
+
+
+  expandFirstSearchResults: function VV_expandFirstSearchResults() {
     for (let [_, scope] in this) {
-      scope._performSearch(lowerCaseQuery);
+      for (let [_, variable] in scope) {
+        if (variable._isMatch) {
+          variable.expand();
+          break;
+        }
+      }
     }
   },
 
@@ -406,7 +434,7 @@ Scope.prototype = {
 
 
   expand: function S_expand(aSkipAnimationFlag) {
-    if (this._locked) {
+    if (this._isExpanded || this._locked) {
       return;
     }
     if (this._variablesView._enumVisible) {
@@ -431,7 +459,7 @@ Scope.prototype = {
 
 
   collapse: function S_collapse() {
-    if (this._locked) {
+    if (!this._isExpanded || this._locked) {
       return;
     }
     this._arrow.removeAttribute("open");
@@ -485,12 +513,6 @@ Scope.prototype = {
 
 
   get expanded() this._isExpanded,
-
-  
-
-
-
-  get toggled() this._wasToggled,
 
   
 
@@ -651,17 +673,17 @@ Scope.prototype = {
       
       if (!lowerCaseName.contains(aLowerCaseQuery) &&
           !lowerCaseValue.contains(aLowerCaseQuery)) {
-        variable.target.setAttribute("non-match", "");
+        variable._match = false;
       }
       
       else {
-        variable.target.removeAttribute("non-match");
+        variable._match = true;
 
         
         
         
 
-        if (variable.toggled) {
+        if (variable._wasToggled) {
           variable.expand(true);
         }
 
@@ -675,13 +697,32 @@ Scope.prototype = {
                 variable instanceof Property)) {
 
           
-          variable.target.removeAttribute("non-match");
+          variable._match = true;
           variable.expand(true);
         }
       }
 
       
-      currentObject._performSearch(aLowerCaseQuery);
+      if (variable._wasToggled || variable.expanded || variable.getter || variable.setter) {
+        currentObject._performSearch(aLowerCaseQuery);
+      }
+    }
+  },
+
+  
+
+
+
+  set _match(aStatus) {
+    if (this._isMatch == aStatus) {
+      return;
+    }
+    if (aStatus) {
+      this._isMatch = true;
+      this.target.removeAttribute("non-match");
+    } else {
+      this._isMatch = false;
+      this.target.setAttribute("non-match", "");
     }
   },
 
@@ -725,6 +766,7 @@ Scope.prototype = {
   _isExpanded: false,
   _wasToggled: false,
   _isArrowVisible: true,
+  _isMatch: true,
   _store: null,
   _idString: "",
   _nameString: "",
@@ -817,6 +859,16 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       this.addProperty(name, aProperties[name]);
     }
   },
+
+  
+
+
+  get getter() this._initialDescriptor.get,
+
+  
+
+
+  get setter() this._initialDescriptor.set,
 
   
 
