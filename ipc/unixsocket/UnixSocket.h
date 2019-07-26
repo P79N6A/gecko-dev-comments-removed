@@ -193,6 +193,10 @@ public:
 
   virtual void OnConnectError() = 0;
 
+  
+
+
+  virtual void OnDisconnect() = 0;
 
   
 
@@ -204,6 +208,10 @@ public:
 
   void NotifyError();
 
+  
+
+
+  void NotifyDisconnect();
 private:
   UnixSocketImpl* mImpl;
   SocketConnectionStatus mConnectionStatus;
