@@ -204,6 +204,11 @@ public:
 
 
   virtual bool IsScrollingActive() = 0;
+  
+
+
+
+  virtual void ResetScrollPositionForLayerPixelAlignment() = 0;
 };
 
 #endif

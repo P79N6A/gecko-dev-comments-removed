@@ -1593,6 +1593,7 @@ nsGfxScrollFrameInner::nsGfxScrollFrameInner(nsContainerFrame* aOuter,
   , mScrollPosAtLastPaint(0, 0)
   , mRestorePos(-1, -1)
   , mLastPos(-1, -1)
+  , mScrollPosForLayerPixelAlignment(-1, -1)
   , mNeverHasVerticalScrollbar(false)
   , mNeverHasHorizontalScrollbar(false)
   , mHasVerticalScrollbar(false)
@@ -2091,6 +2092,8 @@ nsGfxScrollFrameInner::ScrollToImpl(nsPoint aPt, const nsRect& aRange)
   
   gfxSize scale = FrameLayerBuilder::GetThebesLayerScaleForFrame(mScrolledFrame);
   nsPoint curPos = GetScrollPosition();
+  nsPoint alignWithPos = mScrollPosForLayerPixelAlignment == nsPoint(-1,-1)
+      ? curPos : mScrollPosForLayerPixelAlignment;
   
   
   
@@ -2105,10 +2108,9 @@ nsGfxScrollFrameInner::ScrollToImpl(nsPoint aPt, const nsRect& aRange)
     ClampAndAlignWithLayerPixels(aPt,
                                  GetScrollRangeForClamping(),
                                  aRange,
-                                 curPos,
+                                 alignWithPos,
                                  appUnitsPerDevPixel,
                                  scale);
-
   if (pt == curPos) {
     return;
   }
@@ -2235,6 +2237,13 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     mScrollPosAtLastPaint = GetScrollPosition();
     if (IsScrollingActive() && !CanScrollWithBlitting(mOuter)) {
       MarkInactive();
+    }
+    if (IsScrollingActive()) {
+      if (mScrollPosForLayerPixelAlignment == nsPoint(-1,-1)) {
+        mScrollPosForLayerPixelAlignment = mScrollPosAtLastPaint;
+      }
+    } else {
+      mScrollPosForLayerPixelAlignment = nsPoint(-1,-1);
     }
   }
 

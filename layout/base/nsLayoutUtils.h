@@ -323,7 +323,7 @@ public:
   
 
 
-  static nsIScrollableFrame* GetScrollableFrameFor(nsIFrame *aScrolledFrame);
+  static nsIScrollableFrame* GetScrollableFrameFor(const nsIFrame *aScrolledFrame);
 
   
 

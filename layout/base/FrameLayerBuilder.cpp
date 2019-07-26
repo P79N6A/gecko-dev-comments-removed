@@ -17,6 +17,7 @@
 #include "nsImageFrame.h"
 #include "nsRenderingContext.h"
 #include "MaskLayerImageCache.h"
+#include "nsIScrollableFrame.h"
 
 #include "mozilla/Preferences.h"
 #include "sampler.h"
@@ -1097,13 +1098,6 @@ GetTranslationForThebesLayer(ThebesLayer* aLayer)
 
 static const double SUBPIXEL_OFFSET_EPSILON = 0.02;
 
-static bool
-SubpixelOffsetFuzzyEqual(gfxPoint aV1, gfxPoint aV2)
-{
-  return fabs(aV2.x - aV1.x) < SUBPIXEL_OFFSET_EPSILON &&
-         fabs(aV2.y - aV1.y) < SUBPIXEL_OFFSET_EPSILON;
-}
-
 
 
 
@@ -1130,12 +1124,30 @@ RoundToMatchResidual(double aValue, double aOldResidual)
   return v;
 }
 
+static void
+ResetScrollPositionForLayerPixelAlignment(const nsIFrame* aActiveScrolledRoot)
+{
+  nsIScrollableFrame* sf = nsLayoutUtils::GetScrollableFrameFor(aActiveScrolledRoot);
+  if (sf) {
+    sf->ResetScrollPositionForLayerPixelAlignment();
+  }
+}
+
+static void
+InvalidateEntireThebesLayer(ThebesLayer* aLayer, const nsIFrame* aActiveScrolledRoot)
+{
+  nsIntRect invalidate = aLayer->GetValidRegion().GetBounds();
+  aLayer->InvalidateRegion(invalidate);
+  ResetScrollPositionForLayerPixelAlignment(aActiveScrolledRoot);
+}
+
 already_AddRefed<ThebesLayer>
 ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot, const nsIFrame* aReferenceFrame)
 {
   
   nsRefPtr<ThebesLayer> layer;
   ThebesDisplayItemLayerUserData* data;
+  bool didResetScrollPositionForLayerPixelAlignment = false;
   if (mNextFreeRecycledThebesLayer < mRecycledThebesLayers.Length()) {
     
     layer = mRecycledThebesLayers[mNextFreeRecycledThebesLayer];
@@ -1160,11 +1172,14 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot, 
     if (mInvalidateAllThebesContent ||
         data->mXScale != mParameters.mXScale ||
         data->mYScale != mParameters.mYScale) {
-      nsIntRect invalidate = layer->GetValidRegion().GetBounds();
-      layer->InvalidateRegion(invalidate);
+      InvalidateEntireThebesLayer(layer, aActiveScrolledRoot);
+      didResetScrollPositionForLayerPixelAlignment = true;
     } else {
-      InvalidatePostTransformRegion(layer, mInvalidThebesContent,
-                                    GetTranslationForThebesLayer(layer));
+      nsIntRect bounds = mInvalidThebesContent.GetBounds();
+      if (!bounds.IsEmpty()) {
+        InvalidatePostTransformRegion(layer, mInvalidThebesContent,
+                                      GetTranslationForThebesLayer(layer));
+      }
     }
     
     
@@ -1177,6 +1192,8 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot, 
     
     data = new ThebesDisplayItemLayerUserData();
     layer->SetUserData(&gThebesDisplayItemLayerUserData, data);
+    ResetScrollPositionForLayerPixelAlignment(aActiveScrolledRoot);
+    didResetScrollPositionForLayerPixelAlignment = true;
   }
   data->mXScale = mParameters.mXScale;
   data->mYScale = mParameters.mYScale;
@@ -1209,10 +1226,11 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot, 
   
   
   
-  if (!SubpixelOffsetFuzzyEqual(activeScrolledRootTopLeft, data->mActiveScrolledRootPosition)) {
+  if (!activeScrolledRootTopLeft.WithinEpsilonOf(data->mActiveScrolledRootPosition, SUBPIXEL_OFFSET_EPSILON)) {
     data->mActiveScrolledRootPosition = activeScrolledRootTopLeft;
-    nsIntRect invalidate = layer->GetValidRegion().GetBounds();
-    layer->InvalidateRegion(invalidate);
+    InvalidateEntireThebesLayer(layer, aActiveScrolledRoot);
+  } else if (didResetScrollPositionForLayerPixelAlignment) {
+    data->mActiveScrolledRootPosition = activeScrolledRootTopLeft;
   }
 #endif
 
