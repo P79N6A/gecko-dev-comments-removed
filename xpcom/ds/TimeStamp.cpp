@@ -32,7 +32,6 @@ TimeStamp::ProcessCreation(bool& aIsInconsistent)
       
 
       ts = sFirstTimeStamp;
-      PR_SetEnv("MOZ_APP_RESTART=");
     } else {
       TimeStamp now = Now();
       uint64_t uptime = ComputeProcessUptime();
@@ -57,7 +56,6 @@ TimeStamp::ProcessCreation(bool& aIsInconsistent)
 void
 TimeStamp::RecordProcessRestart()
 {
-  PR_SetEnv("MOZ_APP_RESTART=1");
   sProcessCreation = TimeStamp();
 }
 
