@@ -21,7 +21,6 @@
 
 
 
-
 #ifndef DECIMFMT_H
 #define DECIMFMT_H
 
@@ -57,8 +56,6 @@ class CurrencyPluralInfo;
 class Hashtable;
 class UnicodeSet;
 class FieldPositionHandler;
-class DecimalFormatStaticSets;
-class FixedDecimal;
 
 
 #if defined (_MSC_VER)
@@ -767,15 +764,6 @@ public:
                     UNumberFormatStyle style,
                     UErrorCode& status);
 
-#if UCONFIG_HAVE_PARSEALLINPUT
-    
-
-
-    void setParseAllInput(UNumberFormatAttributeValue value);
-#endif
-
-#endif  
-
 
     
 
@@ -803,7 +791,14 @@ public:
     virtual int32_t getAttribute( UNumberFormatAttribute attr,
                                   UErrorCode &status) const;
 
+#if UCONFIG_HAVE_PARSEALLINPUT
+    
 
+
+    void setParseAllInput(UNumberFormatAttributeValue value);
+#endif
+
+#endif  
 
     
 
@@ -1104,8 +1099,79 @@ public:
                                   FieldPosition& pos,
                                   UErrorCode& status) const;
 
-   using NumberFormat::parse;
 
+    
+
+
+
+
+
+
+
+
+
+
+
+    virtual UnicodeString& format(const Formattable& obj,
+                                  UnicodeString& appendTo,
+                                  FieldPosition& pos,
+                                  UErrorCode& status) const;
+
+    
+
+
+
+
+
+
+
+
+
+
+    UnicodeString& format(const Formattable& obj,
+                          UnicodeString& appendTo,
+                          UErrorCode& status) const;
+
+    
+
+
+
+
+
+
+
+
+
+    UnicodeString& format(double number,
+                          UnicodeString& appendTo) const;
+
+    
+
+
+
+
+
+
+
+
+
+
+    UnicodeString& format(int32_t number,
+                          UnicodeString& appendTo) const;
+
+    
+
+
+
+
+
+
+
+
+
+
+    UnicodeString& format(int64_t number,
+                          UnicodeString& appendTo) const;
    
 
 
@@ -1128,6 +1194,20 @@ public:
     virtual void parse(const UnicodeString& text,
                        Formattable& result,
                        ParsePosition& parsePosition) const;
+
+    
+    
+
+
+
+
+
+
+
+    virtual void parse(const UnicodeString& text,
+                       Formattable& result,
+                       UErrorCode& status) const;
+
 
     
 
@@ -1323,7 +1403,6 @@ public:
 
 
 
-
     virtual void setRoundingIncrement(double newValue);
 
     
@@ -1450,7 +1529,7 @@ public:
 
 
 
-    virtual UBool isScientificNotation(void) const;
+    virtual UBool isScientificNotation(void);
 
     
 
@@ -1507,7 +1586,7 @@ public:
 
 
 
-    virtual UBool isExponentSignAlwaysShown(void) const;
+    virtual UBool isExponentSignAlwaysShown(void);
 
     
 
@@ -1788,12 +1867,9 @@ public:
 
 
 
-
-
     void setMinimumSignificantDigits(int32_t min);
 
     
-
 
 
 
@@ -1851,32 +1927,6 @@ public:
 
     static const char fgNumberPatterns[];
 
-#ifndef U_HIDE_INTERNAL_API
-    
-
-
-
-
-
-     FixedDecimal getFixedDecimal(double number, UErrorCode &status) const;
-
-    
-
-
-
-
-
-     FixedDecimal getFixedDecimal(const Formattable &number, UErrorCode &status) const;
-
-    
-
-
-
-
-
-     FixedDecimal getFixedDecimal(DigitList &number, UErrorCode &status) const;
-#endif  
-
 public:
 
     
@@ -1915,12 +1965,12 @@ private:
 
 
 
-    void init();
+    void init(UErrorCode& status);
 
     
 
 
-    void construct(UErrorCode&              status,
+    void construct(UErrorCode&               status,
                    UParseError&             parseErr,
                    const UnicodeString*     pattern = 0,
                    DecimalFormatSymbols*    symbolsToAdopt = 0
@@ -2007,7 +2057,7 @@ private:
                    const UnicodeString* negSuffix,
                    const UnicodeString* posPrefix,
                    const UnicodeString* posSuffix,
-                   UBool complexCurrencyParsing,
+                   UBool currencyParsing,
                    int8_t type,
                    ParsePosition& parsePosition,
                    DigitList& digits, UBool* status,
@@ -2031,26 +2081,18 @@ private:
                          UBool isNegative,
                          UBool isPrefix,
                          const UnicodeString* affixPat,
-                         UBool complexCurrencyParsing,
+                         UBool currencyParsing,
                          int8_t type,
                          UChar* currency) const;
 
-    static UnicodeString& trimMarksFromAffix(const UnicodeString& affix, UnicodeString& trimmedAffix);
-
-    UBool equalWithSignCompatibility(UChar32 lhs, UChar32 rhs) const;
-
-    int32_t compareSimpleAffix(const UnicodeString& affix,
+    static int32_t compareSimpleAffix(const UnicodeString& affix,
                                       const UnicodeString& input,
                                       int32_t pos,
-                                      UBool lenient) const;
+                                      UBool lenient);
 
     static int32_t skipPatternWhiteSpace(const UnicodeString& text, int32_t pos);
 
     static int32_t skipUWhiteSpace(const UnicodeString& text, int32_t pos);
-
-    static int32_t skipUWhiteSpaceAndMarks(const UnicodeString& text, int32_t pos);
-
-    static int32_t skipBidiMarks(const UnicodeString& text, int32_t pos);
 
     int32_t compareComplexAffix(const UnicodeString& affixPat,
                                 const UnicodeString& input,
@@ -2192,7 +2234,6 @@ private:
     ChoiceFormat*           fCurrencyChoice;
 
     DigitList *             fMultiplier;   
-    int32_t                 fScale;        
     int32_t                 fGroupingSize;
     int32_t                 fGroupingSize2;
     UBool                   fDecimalSeparatorAlwaysShown;
@@ -2333,19 +2374,8 @@ private:
     UNumberFormatAttributeValue fParseAllInput;
 #endif
 
-    
-    const DecimalFormatStaticSets *fStaticSets;
-
 
 protected:
-
-#ifndef U_HIDE_INTERNAL_API
-    
-
-
-
-    DigitList& _round(const DigitList& number, DigitList& adjustedNum, UBool& isNegative, UErrorCode& status) const;
-#endif  
 
     
 
@@ -2394,10 +2424,36 @@ protected:
 #endif
 };
 
+inline UnicodeString&
+DecimalFormat::format(const Formattable& obj,
+                      UnicodeString& appendTo,
+                      UErrorCode& status) const {
+    
+    
+    return NumberFormat::format(obj, appendTo, status);
+}
+
+inline UnicodeString&
+DecimalFormat::format(double number,
+                      UnicodeString& appendTo) const {
+    FieldPosition pos(0);
+    return format(number, appendTo, pos);
+}
+
+inline UnicodeString&
+DecimalFormat::format(int32_t number,
+                      UnicodeString& appendTo) const {
+    FieldPosition pos(0);
+    return format((int64_t)number, appendTo, pos);
+}
+
+#ifndef U_HIDE_INTERNAL_API
 inline const UnicodeString &
 DecimalFormat::getConstSymbol(DecimalFormatSymbols::ENumberFormatSymbol symbol) const {
     return fSymbols->getConstSymbol(symbol);
 }
+
+#endif
 
 U_NAMESPACE_END
 

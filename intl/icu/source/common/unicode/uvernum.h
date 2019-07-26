@@ -51,13 +51,13 @@
 
 
 #define U_COPYRIGHT_STRING \
-  " Copyright (C) 2013, International Business Machines Corporation and others. All Rights Reserved. "
+  " Copyright (C) 2012, International Business Machines Corporation and others. All Rights Reserved. "
 
 
 
 
 
-#define U_ICU_VERSION_MAJOR_NUM 52
+#define U_ICU_VERSION_MAJOR_NUM 50
 
 
 
@@ -69,7 +69,7 @@
 
 
 
-#define U_ICU_VERSION_PATCHLEVEL_NUM 0
+#define U_ICU_VERSION_PATCHLEVEL_NUM 2
 
 
 
@@ -83,7 +83,7 @@
 
 
 
-#define U_ICU_VERSION_SUFFIX _52
+#define U_ICU_VERSION_SUFFIX _50
 
 
 
@@ -118,19 +118,19 @@
 
 
 
-#define U_ICU_VERSION "52.1"
+#define U_ICU_VERSION "50.1.2"
 
 
 
 
 
-#define U_ICU_VERSION_SHORT "52"
+#define U_ICU_VERSION_SHORT "50"
 
 #ifndef U_HIDE_INTERNAL_API
 
 
 
-#define U_ICU_DATA_VERSION "52.1"
+#define U_ICU_DATA_VERSION "50.1"
 #endif  
 
 

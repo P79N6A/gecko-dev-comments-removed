@@ -16,6 +16,7 @@
 
 #include "ucln.h"
 #include "ucln_io.h"
+#include "umutex.h"
 #include "uassert.h"
 
 #ifndef U_IO_IMPLEMENTATION

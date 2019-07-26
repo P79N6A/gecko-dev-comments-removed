@@ -49,7 +49,6 @@ ubrk_swap(const UDataSwapper *ds,
 
 #include "unicode/uobject.h"
 #include "unicode/unistr.h"
-#include "umutex.h"
 #include "utrie.h"
 
 U_NAMESPACE_BEGIN
@@ -181,7 +180,7 @@ public:
     UTrie               fTrie;
 
 private:
-    u_atomic_int32_t    fRefCount;
+    int32_t             fRefCount;
     UDataMemory        *fUDataMem;
     UnicodeString       fRuleString;
     UBool               fDontFreeData;

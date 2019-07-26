@@ -108,6 +108,9 @@ private:
 
     UVector32 *data;
     int32_t pos;
+
+    
+    virtual UClassID getDynamicClassID() const;
 };
 
 U_NAMESPACE_END

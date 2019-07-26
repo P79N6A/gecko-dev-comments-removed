@@ -468,6 +468,7 @@ public:
 
     static UClassID U_EXPORT2 getStaticClassID(void);
 
+
     
 
 
@@ -689,6 +690,7 @@ public:
 
 
 
+
     UDate                fGregorianCutover;
 
     
@@ -766,6 +768,53 @@ public:
 
 
     virtual int32_t defaultCenturyStartYear() const;
+
+ private:
+    
+
+
+
+
+
+    static UDate         fgSystemDefaultCenturyStart;
+
+    
+
+
+    static int32_t          fgSystemDefaultCenturyStartYear;
+
+    
+
+
+    static const int32_t    fgSystemDefaultCenturyYear;
+
+    
+
+
+    static const UDate        fgSystemDefaultCentury;
+
+    
+
+
+
+
+
+    UDate         internalGetDefaultCenturyStart(void) const;
+
+    
+
+
+
+
+
+    int32_t          internalGetDefaultCenturyStartYear(void) const;
+
+    
+
+
+
+    static void  initializeSystemDefaultCentury(void);
+
 };
 
 U_NAMESPACE_END

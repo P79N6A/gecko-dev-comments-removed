@@ -245,17 +245,64 @@ PersianCalendar::inDaylightTime(UErrorCode& status) const
 }
 
 
+const UDate     PersianCalendar::fgSystemDefaultCentury        = DBL_MIN;
+const int32_t   PersianCalendar::fgSystemDefaultCenturyYear    = -1;
 
-static UDate           gSystemDefaultCenturyStart       = DBL_MIN;
-static int32_t         gSystemDefaultCenturyStartYear   = -1;
-static icu::UInitOnce  gSystemDefaultCenturyInit        = U_INITONCE_INITIALIZER;
+UDate           PersianCalendar::fgSystemDefaultCenturyStart       = DBL_MIN;
+int32_t         PersianCalendar::fgSystemDefaultCenturyStartYear   = -1;
 
 UBool PersianCalendar::haveDefaultCentury() const
 {
     return TRUE;
 }
 
-static void U_CALLCONV initializeSystemDefaultCentury() {
+UDate PersianCalendar::defaultCenturyStart() const
+{
+    return internalGetDefaultCenturyStart();
+}
+
+int32_t PersianCalendar::defaultCenturyStartYear() const
+{
+    return internalGetDefaultCenturyStartYear();
+}
+
+UDate
+PersianCalendar::internalGetDefaultCenturyStart() const
+{
+    
+    UBool needsUpdate;
+    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
+
+    if (needsUpdate) {
+        initializeSystemDefaultCentury();
+    }
+
+    
+    
+
+    return fgSystemDefaultCenturyStart;
+}
+
+int32_t
+PersianCalendar::internalGetDefaultCenturyStartYear() const
+{
+    
+    UBool needsUpdate;
+    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
+
+    if (needsUpdate) {
+        initializeSystemDefaultCentury();
+    }
+
+    
+    
+
+    return    fgSystemDefaultCenturyStartYear;
+}
+
+void
+PersianCalendar::initializeSystemDefaultCentury()
+{
     
     
     
@@ -265,24 +312,18 @@ static void U_CALLCONV initializeSystemDefaultCentury() {
     {
         calendar.setTime(Calendar::getNow(), status);
         calendar.add(UCAL_YEAR, -80, status);
-
-        gSystemDefaultCenturyStart = calendar.getTime(status);
-        gSystemDefaultCenturyStartYear = calendar.get(UCAL_YEAR, status);
+        UDate    newStart =  calendar.getTime(status);
+        int32_t  newYear  =  calendar.get(UCAL_YEAR, status);
+        umtx_lock(NULL);
+        if (fgSystemDefaultCenturyStart == fgSystemDefaultCentury)
+        {
+            fgSystemDefaultCenturyStartYear = newYear;
+            fgSystemDefaultCenturyStart = newStart;
+        }
+        umtx_unlock(NULL);
     }
     
     
-}
-
-UDate PersianCalendar::defaultCenturyStart() const {
-    
-    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
-    return gSystemDefaultCenturyStart;
-}
-
-int32_t PersianCalendar::defaultCenturyStartYear() const {
-    
-    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
-    return gSystemDefaultCenturyStartYear;
 }
 
 UOBJECT_DEFINE_RTTI_IMPLEMENTATION(PersianCalendar)

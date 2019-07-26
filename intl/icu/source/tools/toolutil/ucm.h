@@ -47,7 +47,6 @@ enum {
 
 
 
-
 typedef struct UCMapping {
     UChar32 u;
     union {

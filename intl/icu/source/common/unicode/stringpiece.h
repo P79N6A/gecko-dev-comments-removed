@@ -183,7 +183,7 @@ class U_COMMON_API StringPiece : public UMemory {
 
 
 
-  static const int32_t npos; 
+  static const int32_t npos = 0x7fffffff;
 
   
 

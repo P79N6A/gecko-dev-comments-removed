@@ -745,24 +745,6 @@ ucal_setTimeZone(UCalendar*    cal,
                  int32_t       len,
                  UErrorCode*   status);
 
-#ifndef U_HIDE_DRAFT_API
-
-
-
-
-
-
-
-
-
- 
-U_DRAFT int32_t U_EXPORT2 
-ucal_getTimeZoneID(const UCalendar *cal,
-                   UChar *result,
-                   int32_t resultLength,
-                   UErrorCode *status);
-#endif 
-
 
 
 
@@ -879,7 +861,9 @@ enum UCalendarAttribute {
 
 
 
-  UCAL_MINIMAL_DAYS_IN_FIRST_WEEK,
+  UCAL_MINIMAL_DAYS_IN_FIRST_WEEK
+#ifndef U_HIDE_DRAFT_API
+  ,
   
 
 
@@ -892,6 +876,7 @@ enum UCalendarAttribute {
 
 
   UCAL_SKIPPED_WALL_TIME
+#endif  
 };
 
 
@@ -909,7 +894,9 @@ enum UCalendarWallTimeOption {
 
 
 
-    UCAL_WALLTIME_LAST,
+    UCAL_WALLTIME_LAST
+#ifndef U_HIDE_DRAFT_API
+    ,
     
 
 
@@ -923,6 +910,7 @@ enum UCalendarWallTimeOption {
 
 
     UCAL_WALLTIME_NEXT_VALID
+#endif  
 };
 
 typedef enum UCalendarWallTimeOption UCalendarWallTimeOption;
@@ -1380,7 +1368,6 @@ typedef enum UCalendarWeekdayType UCalendarWeekdayType;
 
 
 
-
 U_STABLE UCalendarWeekdayType U_EXPORT2
 ucal_getDayOfWeekType(const UCalendar *cal, UCalendarDaysOfWeek dayOfWeek, UErrorCode* status);
 
@@ -1445,6 +1432,7 @@ ucal_getFieldDifference(UCalendar* cal,
                         UCalendarDateFields field,
                         UErrorCode* status);
 
+#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -1476,7 +1464,8 @@ enum UTimeZoneTransitionType {
     UCAL_TZ_TRANSITION_PREVIOUS_INCLUSIVE
 };
 
-typedef enum UTimeZoneTransitionType UTimeZoneTransitionType; 
+
+typedef enum UTimeZoneTransitionType UTimeZoneTransitionType;
 
 
 
@@ -1496,67 +1485,6 @@ typedef enum UTimeZoneTransitionType UTimeZoneTransitionType;
 U_DRAFT UBool U_EXPORT2 
 ucal_getTimeZoneTransitionDate(const UCalendar* cal, UTimeZoneTransitionType type,
                                UDate* transition, UErrorCode* status);
-
-#ifndef U_HIDE_DRAFT_API
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-U_DRAFT int32_t U_EXPORT2
-ucal_getWindowsTimeZoneID(const UChar* id, int32_t len,
-                            UChar* winid, int32_t winidCapacity, UErrorCode* status);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-U_DRAFT int32_t U_EXPORT2
-ucal_getTimeZoneIDForWindowsID(const UChar* winid, int32_t len, const char* region,
-                                UChar* id, int32_t idCapacity, UErrorCode* status);
 
 #endif  
 

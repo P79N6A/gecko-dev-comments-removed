@@ -248,11 +248,8 @@ RuleBasedTransliterator::handleTransliterate(Replaceable& text, UTransPosition& 
         
         
         
-        
         UBool needToLock;
-        umtx_lock(NULL);
-        needToLock = (&text != gLockedText);
-        umtx_unlock(NULL);
+        UMTX_CHECK(NULL, (&text != gLockedText), needToLock);
         if (needToLock) {
             umtx_lock(&transliteratorDataMutex);
             gLockedText = &text;

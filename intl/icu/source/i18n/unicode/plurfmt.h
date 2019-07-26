@@ -9,6 +9,10 @@
 
 
 
+
+
+
+
 #ifndef PLURFMT
 #define PLURFMT
 
@@ -176,11 +180,6 @@ public:
     PluralFormat(const PluralRules& rules, UErrorCode& status);
 
     
-
-
-
-
-
 
 
 
@@ -384,7 +383,6 @@ public:
                           FieldPosition& pos,
                           UErrorCode& status) const;
 
-#ifndef U_HIDE_DEPRECATED_API 
     
 
 
@@ -401,7 +399,6 @@ public:
 
 
     void setLocale(const Locale& locale, UErrorCode& status);
-#endif  
 
     
 
@@ -447,9 +444,7 @@ public:
 
     virtual Format* clone(void) const;
 
-   
-
-
+    
 
 
 
@@ -539,9 +534,7 @@ private:
 
 
 
-
-
-        virtual UnicodeString select(void *context, double number, UErrorCode& ec) const = 0;
+        virtual UnicodeString select(double number, UErrorCode& ec) const = 0;
     };
 
     
@@ -554,7 +547,7 @@ private:
 
         virtual ~PluralSelectorAdapter();
 
-        virtual UnicodeString select(void *context, double number, UErrorCode& ) const; 
+        virtual UnicodeString select(double number, UErrorCode& ) const;
 
         void reset();
 
@@ -579,13 +572,7 @@ private:
 
     void copyObjects(const PluralFormat& other);
 
-    UnicodeString& format(const Formattable& numberObject, double number,
-                          UnicodeString& appendTo,
-                          FieldPosition& pos,
-                          UErrorCode& status) const; 
-
     
-
 
 
 
@@ -597,7 +584,7 @@ private:
 
     static int32_t findSubMessage(
          const MessagePattern& pattern, int32_t partIndex,
-         const PluralSelector& selector, void *context, double number, UErrorCode& ec); 
+         const PluralSelector& selector, double number, UErrorCode& ec);
 
     friend class MessageFormat;
 };

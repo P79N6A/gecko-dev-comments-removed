@@ -94,45 +94,61 @@ CopticCalendar::handleComputeFields(int32_t julianDay, UErrorCode &)
     internalSet(UCAL_DAY_OF_YEAR, (30 * month) + day);
 }
 
+const UDate     CopticCalendar::fgSystemDefaultCentury        = DBL_MIN;
+const int32_t   CopticCalendar::fgSystemDefaultCenturyYear    = -1;
 
-
-
-
-
-static UDate           gSystemDefaultCenturyStart       = DBL_MIN;
-static int32_t         gSystemDefaultCenturyStartYear   = -1;
-static icu::UInitOnce  gSystemDefaultCenturyInit        = U_INITONCE_INITIALIZER;
-
-
-static void U_CALLCONV initializeSystemDefaultCentury() {
-    UErrorCode status = U_ZERO_ERROR;
-    CopticCalendar calendar(Locale("@calendar=coptic"), status);
-    if (U_SUCCESS(status)) {
-        calendar.setTime(Calendar::getNow(), status);
-        calendar.add(UCAL_YEAR, -80, status);
-        gSystemDefaultCenturyStart = calendar.getTime(status);
-        gSystemDefaultCenturyStartYear = calendar.get(UCAL_YEAR, status);
-    }
-    
-    
-}
+UDate           CopticCalendar::fgSystemDefaultCenturyStart       = DBL_MIN;
+int32_t         CopticCalendar::fgSystemDefaultCenturyStartYear   = -1;
 
 UDate
 CopticCalendar::defaultCenturyStart() const
 {
+    initializeSystemDefaultCentury();
+
     
-    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
-    return gSystemDefaultCenturyStart;
+    
+    return fgSystemDefaultCenturyStart;
 }
 
 int32_t
 CopticCalendar::defaultCenturyStartYear() const
 {
+    initializeSystemDefaultCentury();
+
     
-    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
-    return gSystemDefaultCenturyStartYear;
+    
+    return fgSystemDefaultCenturyStartYear;
 }
 
+void
+CopticCalendar::initializeSystemDefaultCentury()
+{
+    
+    UBool needsUpdate;
+    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
+
+    if (!needsUpdate) {
+        return;
+    }
+
+    UErrorCode status = U_ZERO_ERROR;
+
+    CopticCalendar calendar(Locale("@calendar=coptic"), status);
+    if (U_SUCCESS(status)) {
+        calendar.setTime(Calendar::getNow(), status);
+        calendar.add(UCAL_YEAR, -80, status);
+        UDate    newStart = calendar.getTime(status);
+        int32_t  newYear  = calendar.get(UCAL_YEAR, status);
+        {
+            umtx_lock(NULL);
+            fgSystemDefaultCenturyStartYear = newYear;
+            fgSystemDefaultCenturyStart = newStart;
+            umtx_unlock(NULL);
+        }
+    }
+    
+    
+}
 
 int32_t
 CopticCalendar::getJDEpochOffset() const

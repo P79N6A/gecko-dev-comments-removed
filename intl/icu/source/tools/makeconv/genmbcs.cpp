@@ -1049,11 +1049,6 @@ MBCSAddTable(NewConverter *cnvData, UCMTable *table, UConverterStaticData *stati
             staticData->hasToUnicodeFallback=TRUE;
             isOK&=MBCSAddToUnicode(mbcsData, m->b.bytes, m->bLen, c, f);
             break;
-        case 4:
-            
-            m->f|=MBCS_FROM_U_EXT_FLAG;
-            m->moveFlag=UCM_MOVE_TO_EXT;
-            break;
         default:
             
             fprintf(stderr, "error: illegal fallback indicator %d\n", f);
@@ -1499,7 +1494,7 @@ MBCSWrite(NewConverter *cnvData, const UConverterStaticData *staticData,
         header.version[0]=4;
         headerLength=MBCS_HEADER_V4_LENGTH;  
     }
-    header.version[1]=4;
+    header.version[1]=3;
     
 
     header.options|=(uint32_t)headerLength;

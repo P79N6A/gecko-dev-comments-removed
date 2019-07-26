@@ -160,7 +160,7 @@ public:
 
 
 
-    void write(UDate start, UnicodeString& result, UErrorCode& status) const;
+    void write(UDate start, UnicodeString& result, UErrorCode& status) ;
 
     
 
@@ -175,7 +175,7 @@ public:
 
 
 
-    void writeSimple(UDate time, UnicodeString& result, UErrorCode& status) const;
+    void writeSimple(UDate time, UnicodeString& result, UErrorCode& status) ;
 
     
 
@@ -319,7 +319,7 @@ public:
 
 
 
-    virtual UBool getNextTransition(UDate base, UBool inclusive, TimeZoneTransition& result) const;
+    virtual UBool getNextTransition(UDate base, UBool inclusive, TimeZoneTransition& result) ;
 
     
 
@@ -329,7 +329,7 @@ public:
 
 
 
-    virtual UBool getPreviousTransition(UDate base, UBool inclusive, TimeZoneTransition& result) const;
+    virtual UBool getPreviousTransition(UDate base, UBool inclusive, TimeZoneTransition& result) ;
 
     
 
@@ -339,7 +339,7 @@ public:
 
 
 
-    virtual int32_t countTransitionRules(UErrorCode& status) const;
+    virtual int32_t countTransitionRules(UErrorCode& status) ;
 
     
 
@@ -358,7 +358,7 @@ public:
 
 
     virtual void getTimeZoneRules(const InitialTimeZoneRule*& initial,
-        const TimeZoneRule* trsrules[], int32_t& trscount, UErrorCode& status) const;
+        const TimeZoneRule* trsrules[], int32_t& trscount, UErrorCode& status) ;
 
 private:
     enum { DEFAULT_VTIMEZONE_LINES = 100 };
@@ -369,8 +369,8 @@ private:
     VTimeZone();
     static VTimeZone* createVTimeZone(VTZReader* reader);
     void write(VTZWriter& writer, UErrorCode& status) const;
-    void write(UDate start, VTZWriter& writer, UErrorCode& status) const;
-    void writeSimple(UDate time, VTZWriter& writer, UErrorCode& status) const;
+    void write(UDate start, VTZWriter& writer, UErrorCode& status) ;
+    void writeSimple(UDate time, VTZWriter& writer, UErrorCode& status) ;
     void load(VTZReader& reader, UErrorCode& status);
     void parse(UErrorCode& status);
 

@@ -29,6 +29,7 @@
 
  
 #if !UCONFIG_NO_COLLATION
+#ifndef U_HIDE_DEPRECATED_API
 
 #include "unicode/uobject.h"
 #include "unicode/unistr.h"
@@ -181,7 +182,6 @@ public:
     uint8_t*                toByteArray(int32_t& count) const;
 #endif
 
-#ifndef U_HIDE_DEPRECATED_API 
     
 
 
@@ -192,7 +192,6 @@ public:
 
 
     Collator::EComparisonResult compareTo(const CollationKey& target) const;
-#endif  
 
     
 
@@ -332,6 +331,7 @@ CollationKey::getByteArray(int32_t &count) const
 
 U_NAMESPACE_END
 
+#endif  
 #endif 
 
 #endif

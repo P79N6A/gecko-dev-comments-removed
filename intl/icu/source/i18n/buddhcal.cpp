@@ -125,13 +125,11 @@ void BuddhistCalendar::timeToFields(UDate theTime, UBool quick, UErrorCode& stat
 #endif
 
 
+const UDate     BuddhistCalendar::fgSystemDefaultCentury        = DBL_MIN;
+const int32_t   BuddhistCalendar::fgSystemDefaultCenturyYear    = -1;
 
-
-
-
-static UDate     gSystemDefaultCenturyStart       = DBL_MIN;
-static int32_t   gSystemDefaultCenturyStartYear   = -1;
-static icu::UInitOnce gBCInitOnce;
+UDate           BuddhistCalendar::fgSystemDefaultCenturyStart       = DBL_MIN;
+int32_t         BuddhistCalendar::fgSystemDefaultCenturyStartYear   = -1;
 
 
 UBool BuddhistCalendar::haveDefaultCentury() const
@@ -139,38 +137,73 @@ UBool BuddhistCalendar::haveDefaultCentury() const
     return TRUE;
 }
 
-static void U_CALLCONV
-initializeSystemDefaultCentury()
+UDate BuddhistCalendar::defaultCenturyStart() const
+{
+    return internalGetDefaultCenturyStart();
+}
+
+int32_t BuddhistCalendar::defaultCenturyStartYear() const
+{
+    return internalGetDefaultCenturyStartYear();
+}
+
+UDate
+BuddhistCalendar::internalGetDefaultCenturyStart() const
+{
+    
+    UBool needsUpdate;
+    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
+
+    if (needsUpdate) {
+        initializeSystemDefaultCentury();
+    }
+
+    
+    
+
+    return fgSystemDefaultCenturyStart;
+}
+
+int32_t
+BuddhistCalendar::internalGetDefaultCenturyStartYear() const
+{
+    
+    UBool needsUpdate;
+    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
+
+    if (needsUpdate) {
+        initializeSystemDefaultCentury();
+    }
+
+    
+    
+
+    return    fgSystemDefaultCenturyStartYear;
+}
+
+void
+BuddhistCalendar::initializeSystemDefaultCentury()
 {
     
     
     
     UErrorCode status = U_ZERO_ERROR;
     BuddhistCalendar calendar(Locale("@calendar=buddhist"),status);
-    if (U_SUCCESS(status)) {
+    if (U_SUCCESS(status))
+    {
         calendar.setTime(Calendar::getNow(), status);
         calendar.add(UCAL_YEAR, -80, status);
         UDate    newStart =  calendar.getTime(status);
         int32_t  newYear  =  calendar.get(UCAL_YEAR, status);
-        gSystemDefaultCenturyStartYear = newYear;
-        gSystemDefaultCenturyStart = newStart;
+        umtx_lock(NULL);
+        if (fgSystemDefaultCenturyStart == fgSystemDefaultCentury) {
+            fgSystemDefaultCenturyStartYear = newYear;
+            fgSystemDefaultCenturyStart = newStart;
+        }
+        umtx_unlock(NULL);
     }
     
     
-}
-
-UDate BuddhistCalendar::defaultCenturyStart() const
-{
-    
-    umtx_initOnce(gBCInitOnce, &initializeSystemDefaultCentury);
-    return gSystemDefaultCenturyStart;
-}
-
-int32_t BuddhistCalendar::defaultCenturyStartYear() const
-{
-    
-    umtx_initOnce(gBCInitOnce, &initializeSystemDefaultCentury);
-    return gSystemDefaultCenturyStartYear;
 }
 
 

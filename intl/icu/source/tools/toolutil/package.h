@@ -55,20 +55,6 @@ public:
 
 
 
-    void setAutoPrefix() { doAutoPrefix=TRUE; }
-    
-
-
-    void setAutoPrefixWithType() {
-        doAutoPrefix=TRUE;
-        prefixEndsWithType=TRUE;
-    }
-    void setPrefix(const char *p);
-
-    
-
-
-
 
     void readPackage(const char *filename);
     
@@ -155,15 +141,12 @@ private:
 
     
     char inPkgName[MAX_PKG_NAME_LENGTH];
-    char pkgPrefix[MAX_PKG_NAME_LENGTH];
 
     uint8_t *inData;
     uint8_t header[1024];
     int32_t inLength, headerLength;
     uint8_t inCharset;
     UBool inIsBigEndian;
-    UBool doAutoPrefix;
-    UBool prefixEndsWithType;
 
     int32_t itemCount;
     int32_t itemMax;

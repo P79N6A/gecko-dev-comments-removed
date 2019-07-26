@@ -68,6 +68,15 @@ operator==(const StringPiece& x, const StringPiece& y) {
 }
 
 
-const int32_t StringPiece::npos = 0x7fffffff;
+
+
+
+
+
+
+
+#if (!defined(_MSC_VER) || (_MSC_VER >= 1500)) && !defined(CYGWINMSVC)
+const int32_t StringPiece::npos;
+#endif
 
 U_NAMESPACE_END

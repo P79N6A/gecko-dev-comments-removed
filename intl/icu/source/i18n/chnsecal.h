@@ -21,7 +21,6 @@
 #if !UCONFIG_NO_FORMATTING
 
 #include "unicode/calendar.h"
-#include "unicode/timezone.h"
 
 U_NAMESPACE_BEGIN
 
@@ -94,7 +93,7 @@ U_NAMESPACE_BEGIN
 
 
 
-class U_I18N_API ChineseCalendar : public Calendar {
+class ChineseCalendar : public Calendar {
  public:
   
   
@@ -111,24 +110,6 @@ class U_I18N_API ChineseCalendar : public Calendar {
 
   ChineseCalendar(const Locale& aLocale, UErrorCode &success);
 
- protected:
- 
-   
-
-
-
-
-
-
-
-
-
-
-
-
-  ChineseCalendar(const Locale& aLocale, int32_t epochYear, const TimeZone* zoneAstroCalc, UErrorCode &success);
-
- public:
   
 
 
@@ -151,9 +132,6 @@ class U_I18N_API ChineseCalendar : public Calendar {
   
     
   UBool isLeapYear;
-  int32_t fEpochYear;   
-  const TimeZone* fZoneAstroCalc;   
-                                    
 
   
   
@@ -167,7 +145,9 @@ class U_I18N_API ChineseCalendar : public Calendar {
   virtual void handleComputeFields(int32_t julianDay, UErrorCode &status);
   virtual const UFieldResolutionTable* getFieldResolutionTable() const;
 
- public:
+
+
+public:
   virtual void add(UCalendarDateFields field, int32_t amount, UErrorCode &status);
   virtual void add(EDateFields field, int32_t amount, UErrorCode &status);
   virtual void roll(UCalendarDateFields field, int32_t amount, UErrorCode &status);
@@ -176,13 +156,14 @@ class U_I18N_API ChineseCalendar : public Calendar {
   
   
   
+  
 
- private:
+private:
 
   static const UFieldResolutionTable CHINESE_DATE_PRECEDENCE[];
 
-  double daysToMillis(double days) const;
-  double millisToDays(double millis) const;
+  static double daysToMillis(double days);
+  static double millisToDays(double millis);
   virtual int32_t winterSolstice(int32_t gyear) const;
   virtual int32_t newMoonNear(double days, UBool after) const;
   virtual int32_t synodicMonthsBetween(int32_t day1, int32_t day2) const;
@@ -193,7 +174,7 @@ class U_I18N_API ChineseCalendar : public Calendar {
                  int32_t gmonth, UBool setAllFields);
   virtual int32_t newYear(int32_t gyear) const;
   virtual void offsetMonth(int32_t newMoon, int32_t dom, int32_t delta);
-  const TimeZone* getChineseCalZoneAstroCalc(void) const;
+
 
   
  public: 
@@ -215,7 +196,7 @@ class U_I18N_API ChineseCalendar : public Calendar {
 
 
 
-  static UClassID U_EXPORT2 getStaticClassID(void);
+  U_I18N_API static UClassID U_EXPORT2 getStaticClassID(void);
 
   
 
@@ -259,6 +240,28 @@ class U_I18N_API ChineseCalendar : public Calendar {
   virtual int32_t defaultCenturyStartYear() const;
 
  private: 
+  
+
+
+
+
+
+  static UDate         fgSystemDefaultCenturyStart;
+
+  
+
+
+  static int32_t          fgSystemDefaultCenturyStartYear;
+
+  
+
+
+  static const int32_t    fgSystemDefaultCenturyYear;
+
+  
+
+
+  static const UDate        fgSystemDefaultCentury;
 
   
 
@@ -272,6 +275,13 @@ class U_I18N_API ChineseCalendar : public Calendar {
 
   int32_t          internalGetDefaultCenturyStartYear(void) const;
 
+  
+
+
+
+
+  static void  initializeSystemDefaultCentury(void);
+
   ChineseCalendar(); 
 };
 
@@ -279,3 +289,6 @@ U_NAMESPACE_END
 
 #endif
 #endif
+
+
+

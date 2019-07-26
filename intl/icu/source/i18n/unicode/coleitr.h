@@ -113,6 +113,10 @@ U_NAMESPACE_BEGIN
 
 
 
+
+
+
+
 class U_I18N_API CollationElementIterator : public UObject {
 public: 
 
@@ -283,10 +287,16 @@ public:
 
     static UClassID U_EXPORT2 getStaticClassID();
 
-private:
+protected:
+  
+    
+    
+
+
     friend class RuleBasedCollator;
 
     
+
 
 
 
@@ -307,10 +317,14 @@ private:
 
 
 
+
     CollationElementIterator(const CharacterIterator& sourceText,
         const RuleBasedCollator* order, UErrorCode& status);
 
     
+
+    
+
 
 
 
@@ -318,6 +332,7 @@ private:
     const CollationElementIterator&
         operator=(const CollationElementIterator& other);
 
+private:
     CollationElementIterator(); 
 
     
@@ -331,6 +346,7 @@ private:
 
 
     UBool isDataOwned_;
+
 };
 
 

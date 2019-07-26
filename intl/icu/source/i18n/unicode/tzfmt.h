@@ -15,6 +15,7 @@
 #include "unicode/utypes.h"
 
 #if !UCONFIG_NO_FORMATTING
+#ifndef U_HIDE_INTERNAL_API
 
 #include "unicode/format.h"
 #include "unicode/timezone.h"
@@ -56,100 +57,17 @@ typedef enum UTimeZoneFormatStyle {
 
 
 
+    UTZFMT_STYLE_RFC822,
+    
+
+
+
     UTZFMT_STYLE_LOCALIZED_GMT,
-#ifndef U_HIDE_DRAFT_API
     
 
 
 
-
-    UTZFMT_STYLE_LOCALIZED_GMT_SHORT,
-    
-
-
-
-
-
-    UTZFMT_STYLE_ISO_BASIC_SHORT,
-    
-
-
-
-
-
-    UTZFMT_STYLE_ISO_BASIC_LOCAL_SHORT,
-    
-
-
-
-
-
-    UTZFMT_STYLE_ISO_BASIC_FIXED,
-    
-
-
-
-
-
-    UTZFMT_STYLE_ISO_BASIC_LOCAL_FIXED,
-    
-
-
-
-
-
-    UTZFMT_STYLE_ISO_BASIC_FULL,
-    
-
-
-
-
-
-    UTZFMT_STYLE_ISO_BASIC_LOCAL_FULL,
-    
-
-
-
-
-
-    UTZFMT_STYLE_ISO_EXTENDED_FIXED,
-    
-
-
-
-
-
-    UTZFMT_STYLE_ISO_EXTENDED_LOCAL_FIXED,
-    
-
-
-
-
-
-    UTZFMT_STYLE_ISO_EXTENDED_FULL,
-    
-
-
-
-
-
-    UTZFMT_STYLE_ISO_EXTENDED_LOCAL_FULL,
-    
-
-
-
-    UTZFMT_STYLE_ZONE_ID,
-    
-
-
-
-    UTZFMT_STYLE_ZONE_ID_SHORT,
-    
-
-
-
-    UTZFMT_STYLE_EXEMPLAR_LOCATION
-#endif 
+    UTZFMT_STYLE_ISO8601
 } UTimeZoneFormatStyle;
 
 
@@ -176,25 +94,7 @@ typedef enum UTimeZoneFormatGMTOffsetPatternType {
 
 
 
-    UTZFMT_PAT_NEGATIVE_HMS,
-#ifndef U_HIDE_DRAFT_API
-    
-
-
-
-    UTZFMT_PAT_POSITIVE_H,
-    
-
-
-
-    UTZFMT_PAT_NEGATIVE_H,
-#endif 
-
-    
-
-
-
-    UTZFMT_PAT_COUNT = 6
+    UTZFMT_PAT_NEGATIVE_HMS
 } UTimeZoneFormatGMTOffsetPatternType;
 
 
@@ -433,7 +333,6 @@ public:
 
     void setDefaultParseOptions(uint32_t flags);
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -444,13 +343,7 @@ public:
 
 
 
-
-
-
-
-
-    UnicodeString& formatOffsetISO8601Basic(int32_t offset, UBool useUtcIndicator, UBool isShort, UBool ignoreSeconds,
-        UnicodeString& result, UErrorCode& status) const;
+    UnicodeString& formatOffsetRFC822(int32_t offset, UnicodeString& result, UErrorCode& status) const;
 
     
 
@@ -462,19 +355,9 @@ public:
 
 
 
-
-
-
-
-
-    UnicodeString& formatOffsetISO8601Extended(int32_t offset, UBool useUtcIndicator, UBool isShort, UBool ignoreSeconds,
-        UnicodeString& result, UErrorCode& status) const;
-#endif 
+    UnicodeString& formatOffsetISO8601(int32_t offset, UnicodeString& result, UErrorCode& status) const;
 
     
-
-
-
 
 
 
@@ -491,29 +374,6 @@ public:
 
 
     UnicodeString& formatOffsetLocalizedGMT(int32_t offset, UnicodeString& result, UErrorCode& status) const;
-
-#ifndef U_HIDE_DRAFT_API
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    UnicodeString& formatOffsetShortLocalizedGMT(int32_t offset, UnicodeString& result, UErrorCode& status) const;
-#endif 
 
     using Format::format;
 
@@ -546,6 +406,20 @@ public:
 
 
 
+    int32_t parseOffsetRFC822(const UnicodeString& text, ParsePosition& pos) const;
+
+    
+
+
+
+
+
+
+
+
+
+
+
 
     int32_t parseOffsetISO8601(const UnicodeString& text, ParsePosition& pos) const;
 
@@ -562,22 +436,6 @@ public:
 
 
     int32_t parseOffsetLocalizedGMT(const UnicodeString& text, ParsePosition& pos) const;
-
-#ifndef U_HIDE_DRAFT_API
-    
-
-
-
-
-
-
-
-
-
-
-
-    int32_t parseOffsetShortLocalizedGMT(const UnicodeString& text, ParsePosition& pos) const;
-#endif 
 
     
 
@@ -673,7 +531,7 @@ private:
     
     Locale fLocale;
 
-    
+     
     char fTargetRegion[ULOC_COUNTRY_CAPACITY];
 
     
@@ -686,7 +544,7 @@ private:
     UnicodeString fGMTPattern;
 
     
-    UnicodeString fGMTOffsetPatterns[UTZFMT_PAT_COUNT];
+    UnicodeString fGMTOffsetPatterns[UTZFMT_PAT_NEGATIVE_HMS + 1];
 
     
     UChar32 fGMTOffsetDigits[10];
@@ -702,9 +560,7 @@ private:
     UnicodeString fGMTPatternSuffix;    
 
     
-    UVector* fGMTOffsetPatternItems[UTZFMT_PAT_COUNT];
-
-    UBool fAbuttingOffsetHoursAndMinutes;
+    UVector* fGMTOffsetPatternItems[UTZFMT_PAT_NEGATIVE_HMS + 1];
 
     
 
@@ -735,15 +591,6 @@ private:
 
 
     const TimeZoneGenericNames* getTimeZoneGenericNames(UErrorCode& status) const;
-
-    
-
-
-
-
-
-
-    UnicodeString& formatExemplarLocation(const TimeZone& tz, UnicodeString& name) const;
 
     
 
@@ -780,18 +627,7 @@ private:
 
 
 
-
-    static UnicodeString& expandOffsetPattern(const UnicodeString& offsetHM, UnicodeString& result, UErrorCode& status);
-
-    
-
-
-
-
-
-
-
-    static UnicodeString& truncateOffsetPattern(const UnicodeString& offsetHM, UnicodeString& result, UErrorCode& status);
+    static UnicodeString& expandOffsetPattern(const UnicodeString& offsetHM, UnicodeString& result);
 
     
 
@@ -804,28 +640,6 @@ private:
 
 
     static UBool toCodePoints(const UnicodeString& str, UChar32* codeArray, int32_t capacity);
-
-    
-
-
-
-
-
-
-
-
-
-    UnicodeString& formatOffsetISO8601(int32_t offset, UBool isBasic, UBool useUtcIndicator,
-        UBool isShort, UBool ignoreSeconds, UnicodeString& result, UErrorCode& status) const;
-
-    
-
-
-
-
-
-
-    UnicodeString& formatOffsetLocalizedGMT(int32_t offset, UBool isShort, UnicodeString& result, UErrorCode& status) const;
 
     
 
@@ -864,9 +678,8 @@ private:
 
 
 
-
     int32_t parseOffsetLocalizedGMT(const UnicodeString& text, ParsePosition& pos,
-        UBool isShort, UBool* hasDigitOffset) const;
+        UBool* hasDigitOffset) const;
 
     
 
@@ -876,33 +689,8 @@ private:
 
 
 
-
-    int32_t parseOffsetLocalizedGMTPattern(const UnicodeString& text, int32_t start,
-        UBool isShort, int32_t& parsedLen) const;
-
-    
-
-
-
-
-
-
-
-    int32_t parseOffsetFields(const UnicodeString& text, int32_t start, UBool isShort, int32_t& parsedLen) const;
-
-    
-
-
-
-
-
-
-
-
-
-
-    int32_t parseOffsetFieldsWithPattern(const UnicodeString& text, int32_t start,
-        UVector* patternItems, UBool forceSingleHourDigit, int32_t& hour, int32_t& min, int32_t& sec) const;
+    int32_t parseOffsetFields(const UnicodeString& text, int32_t start, UBool minimumHourWidth,
+        int32_t& parsedLen) const;
 
     
 
@@ -1000,8 +788,9 @@ private:
 
 
 
+
     static int32_t parseAsciiOffsetFields(const UnicodeString& text, ParsePosition& pos, UChar sep,
-        OffsetFields minFields, OffsetFields maxFields);
+        OffsetFields minFields, OffsetFields maxFields, UBool fixedHourWidth);
 
     
 
@@ -1017,14 +806,6 @@ private:
 
 
     void initGMTOffsetPatterns(UErrorCode& status);
-
-    
-
-
-
-
-
-    void checkAbuttingHoursAndMinutes();
 
     
 
@@ -1049,37 +830,11 @@ private:
 
 
     UnicodeString& getTimeZoneID(const TimeZoneNames::MatchInfoCollection* matches, int32_t idx, UnicodeString& tzID) const;
-
-
-    
-
-
-
-
-
-
-    UnicodeString& parseZoneID(const UnicodeString& text, ParsePosition& pos, UnicodeString& tzID) const;
-
-    
-
-
-
-
-
-
-    UnicodeString& parseShortZoneID(const UnicodeString& text, ParsePosition& pos, UnicodeString& tzID) const;
-
-    
-
-
-
-
-
-
-    UnicodeString& parseExemplarLocation(const UnicodeString& text, ParsePosition& pos, UnicodeString& tzID) const;
 };
 
 U_NAMESPACE_END
 
-#endif 
+#endif  
 #endif
+#endif
+

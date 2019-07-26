@@ -71,7 +71,6 @@ U_NAMESPACE_BEGIN
 
 
 
-class BucketList;
 class Collator;
 class RuleBasedCollator;
 class StringEnumeration;
@@ -163,134 +162,9 @@ class UVector;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class U_I18N_API AlphabeticIndex: public UObject {
-public:
-#ifdef U_HIDE_DRAFT_API
-    class Bucket;
-#else
-     
 
-
-
-
-
-
-
-     class U_I18N_API Bucket : public UObject {
-     public:
-        
-
-
-
-        virtual ~Bucket();
-
-        
-
-
-
-
-
-        const UnicodeString &getLabel() const { return label_; }
-        
-
-
-
-
-
-        UAlphabeticIndexLabelType getLabelType() const { return labelType_; }
-
-     private:
-        friend class AlphabeticIndex;
-        friend class BucketList;
-
-        UnicodeString label_;
-        UnicodeString lowerBoundary_;
-        UAlphabeticIndexLabelType labelType_;
-        Bucket *displayBucket_;
-        int32_t displayIndex_;
-        UVector *records_;  
-
-        Bucket(const UnicodeString &label,   
-               const UnicodeString &lowerBoundary,
-               UAlphabeticIndexLabelType type);
-     };
-
-    
-
-
-
-
-
-
-
-
-
-    class U_I18N_API ImmutableIndex : public UObject {
-    public:
-        
-
-
-
-        virtual ~ImmutableIndex();
-
-        
-
-
-
-
-
-        int32_t getBucketCount() const;
-
-        
-
-
-
-
-
-
-
-        int32_t getBucketIndex(const UnicodeString &name, UErrorCode &errorCode) const;
-
-        
-
-
-
-
-
-
-        const Bucket *getBucket(int32_t index) const;
-
-    private:
-        friend class AlphabeticIndex;
-
-        ImmutableIndex(BucketList *bucketList, Collator *collatorPrimaryOnly)
-                : buckets_(bucketList), collatorPrimaryOnly_(collatorPrimaryOnly) {}
-
-        BucketList *buckets_;
-        Collator *collatorPrimaryOnly_;
-    };
-#endif  
+  public:
 
     
 
@@ -306,23 +180,7 @@ public:
 
      AlphabeticIndex(const Locale &locale, UErrorCode &status);
 
-#ifndef U_HIDE_DRAFT_API
-   
 
-
-
-
-
-
-
-
-
-
-
-
-
-    AlphabeticIndex(RuleBasedCollator *collator, UErrorCode &status);
-#endif  
 
     
 
@@ -334,7 +192,7 @@ public:
 
 
 
-    virtual AlphabeticIndex &addLabels(const UnicodeSet &additions, UErrorCode &status);
+     virtual AlphabeticIndex &addLabels(const UnicodeSet &additions, UErrorCode &status);
 
     
 
@@ -349,23 +207,14 @@ public:
 
 
 
-    virtual AlphabeticIndex &addLabels(const Locale &locale, UErrorCode &status);
+     virtual AlphabeticIndex &addLabels(const Locale &locale, UErrorCode &status);
 
      
 
 
 
-    virtual ~AlphabeticIndex();
+     virtual ~AlphabeticIndex();
 
-#ifndef U_HIDE_DRAFT_API
-    
-
-
-
-
-
-    ImmutableIndex *buildImmutableIndex(UErrorCode &errorCode);
-#endif  
 
     
 
@@ -404,6 +253,7 @@ public:
 
 
     virtual AlphabeticIndex &setInflowLabel(const UnicodeString &inflowLabel, UErrorCode &status);
+
 
 
    
@@ -470,6 +320,22 @@ public:
 
 
     virtual AlphabeticIndex &setMaxLabelCount(int32_t maxLabelCount, UErrorCode &status);
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    virtual const UnicodeString &getOverflowComparisonString(const UnicodeString &lowerLimit,
+                                                             UErrorCode &status);
 
 
     
@@ -645,6 +511,9 @@ public:
     virtual AlphabeticIndex &resetRecordIterator();
 
 private:
+    
+    virtual UClassID getDynamicClassID() const;
+
      
 
 
@@ -669,34 +538,42 @@ private:
      virtual UBool operator!=(const AlphabeticIndex& other) const;
 
      
-     void init(const Locale *locale, UErrorCode &status);
+     void init(UErrorCode &status);
 
-    
+     
+     static void staticInit(UErrorCode &status);
 
+     
+     void hackName(UnicodeString &dest, const UnicodeString &name, const Collator *coll);
+     void initPinyinBounds(const Collator *coll, UErrorCode &status);
 
-
-    void addIndexExemplars(const Locale &locale, UErrorCode &status);
-    
-
-
-    UBool addChineseIndexCharacters(UErrorCode &errorCode);
-
-    UVector *firstStringsInScript(UErrorCode &status);
-
-    static UnicodeString separated(const UnicodeString &item);
-
-    
+   public:
+#ifndef U_HIDE_INTERNAL_API
+     
 
 
 
 
-    void initLabels(UVector &indexCharacters, UErrorCode &errorCode) const;
-    BucketList *createBucketList(UErrorCode &errorCode) const;
-    void initBuckets(UErrorCode &errorCode);
-    void clearBuckets();
-    void internalResetBucketIterator();
+     static void staticCleanup();
+#endif  
+   private:
 
-public:
+     
+     
+     static void getIndexExemplars(UnicodeSet &dest, const Locale &locale, UErrorCode &status);
+
+     UVector *firstStringsInScript(UErrorCode &status);
+
+     static UnicodeString separated(const UnicodeString &item);
+
+     static UnicodeSet *getScriptSet(UnicodeSet &dest, const UnicodeString &codePoint, UErrorCode &status);
+
+     void buildIndex(UErrorCode &status);
+     void buildBucketList(UErrorCode &status);
+     void bucketRecords(UErrorCode &status);
+
+
+  public:
 
     
     
@@ -707,55 +584,144 @@ public:
 
 
 
-
-    struct Record: public UMemory {
-        const UnicodeString  name_;
-        const void           *data_;
-        Record(const UnicodeString &name, const void *data);
-        ~Record();
-    };
+     struct Record: public UMemory {
+         AlphabeticIndex     *alphaIndex_;
+         const UnicodeString  name_;
+         UnicodeString        sortingName_;  
+         const void           *data_;
+         int32_t              serialNumber_;  
+         Record(AlphabeticIndex *alphaIndex, const UnicodeString &name, const void *data);
+         ~Record();
+     };
 #endif  
 
-private:
+     
+
+
+
+
+     UVector  *inputRecords_;
+
+     
+
+
+
+
+     struct Bucket: public UMemory {
+         UnicodeString     label_;
+         UnicodeString     lowerBoundary_;
+         UAlphabeticIndexLabelType labelType_;
+         UVector           *records_; 
+
+         Bucket(const UnicodeString &label,   
+                const UnicodeString &lowerBoundary,
+                UAlphabeticIndexLabelType type, UErrorCode &status);
+         ~Bucket();
+     };
+
+  public:
 
     
 
 
 
-
-    UVector  *inputList_;
-
-    int32_t  labelsIterIndex_;        
-    int32_t  itemsIterIndex_;
-    Bucket   *currentBucket_;         
-                                      
-                                      
-
-    int32_t    maxLabelCount_;        
-
-    UnicodeSet *initialLabels_;       
-                                      
-                                      
-                                      
-
-    UVector *firstCharsInScripts_;    
-                                      
-
-    RuleBasedCollator *collator_;
-    RuleBasedCollator *collatorPrimaryOnly_;
+    enum ELangType {
+        
+        kNormal,
+        
+        kSimplified,
+        
+        kTraditional
+    };
 
     
-    BucketList *buckets_;
 
-    UnicodeString  inflowLabel_;
-    UnicodeString  overflowLabel_;
-    UnicodeString  underflowLabel_;
-    UnicodeString  overflowComparisonString_;
 
-    UnicodeString emptyString_;
+
+    static ELangType  langTypeFromLocale(const Locale &loc);
+
+
+   private:
+
+     
+     
+     UVector *bucketList_;
+
+     int32_t  labelsIterIndex_;      
+     int32_t  itemsIterIndex_;
+     Bucket   *currentBucket_;       
+                                     
+                                     
+
+     UBool    indexBuildRequired_;   
+                                     
+                                     
+
+     int32_t    maxLabelCount_;      
+
+     UHashtable *alreadyIn_;         
+
+     UnicodeSet *initialLabels_;     
+                                     
+                                     
+                                     
+
+     UVector    *labels_;            
+                                     
+
+     UnicodeSet *noDistinctSorting_; 
+                                     
+                                     
+                                     
+
+     UnicodeSet *notAlphabetic_;     
+                                     
+                                     
+                                     
+
+
+     UVector    *firstScriptCharacters_;  
+                                          
+
+     Locale    locale_;
+     Collator  *collator_;
+     Collator  *collatorPrimaryOnly_;
+
+     UnicodeString  inflowLabel_;
+     UnicodeString  overflowLabel_;
+     UnicodeString  underflowLabel_;
+     UnicodeString  overflowComparisonString_;
+
+     ELangType      langType_;        
+                                      
+
+     typedef const UChar PinyinLookup[24][3];
+     static PinyinLookup   HACK_PINYIN_LOOKUP_SHORT;
+     static PinyinLookup   HACK_PINYIN_LOOKUP_LONG;
+     
+     
+     
+     static PinyinLookup   *HACK_PINYIN_LOOKUP;
+     static const UChar    *PINYIN_LOWER_BOUNDS;
+
+
+
+     int32_t    recordCounter_;         
+
+
+
+     static UnicodeSet *ALPHABETIC;
+     static UnicodeSet *CORE_LATIN;
+     static UnicodeSet *ETHIOPIC;
+     static UnicodeSet *HANGUL;
+     static UnicodeSet *IGNORE_SCRIPTS;
+     static UnicodeSet *TO_TRY;
+     static UnicodeSet *UNIHAN;
+     static const UnicodeString *EMPTY_STRING;
+
 };
 
 U_NAMESPACE_END
 
-#endif 
+#endif
 #endif

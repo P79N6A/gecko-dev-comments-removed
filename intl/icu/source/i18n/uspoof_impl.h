@@ -15,10 +15,10 @@
 
 #include "unicode/utypes.h"
 #include "unicode/uspoof.h"
+#include "utrie2.h"
 #include "unicode/uscript.h"
 #include "unicode/udata.h"
 
-#include "utrie2.h"
 
 #if !UCONFIG_NO_NORMALIZATION
 
@@ -37,11 +37,10 @@ U_NAMESPACE_BEGIN
 
 #define USPOOF_MAGIC 0x3845fdef
 
-class IdentifierInfo;
-class ScriptSet;
 class SpoofData;
 struct SpoofDataHeader;
 struct SpoofStringLengthsElement;
+class ScriptSet;
 
 
 
@@ -66,7 +65,7 @@ public:
 
 
   
-    int32_t confusableLookup(UChar32 inChar, int32_t tableMask, UnicodeString &destBuf) const;
+    int32_t confusableLookup(UChar32 inChar, int32_t tableMask, UChar *destBuf) const;
 
     
     void setAllowedLocales(const char *localesList, UErrorCode &status);
@@ -84,17 +83,22 @@ public:
     
     
     void wholeScriptCheck(
-        const UnicodeString &text, ScriptSet *result, UErrorCode &status) const;
+        const UChar *text, int32_t length, ScriptSet *result, UErrorCode &status) const;
 	    
+    
+
+
+
+
+
+
+
+
+
+    int32_t scriptScan(const UChar *text, int32_t length, int32_t &pos, UErrorCode &status) const;
+
     static UClassID U_EXPORT2 getStaticClassID(void);
     virtual UClassID getDynamicClassID(void) const;
-
-    
-    
-    
-    
-    IdentifierInfo *getIdentifierInfo(UErrorCode &status) const; 
-    void releaseIdentifierInfo(IdentifierInfo *idInfo) const;
 
     
     
@@ -109,9 +113,6 @@ public:
                                           
 
     const char       *fAllowedLocales;    
-    URestrictionLevel fRestrictionLevel;  
-
-    IdentifierInfo    *fCachedIdentifierInfo;    
 };
 
 
@@ -188,6 +189,67 @@ struct SpoofStringLengthsElement {
 
 
 
+class ScriptSet: public UMemory {
+  public:
+    ScriptSet();
+    ~ScriptSet();
+
+    UBool operator == (const ScriptSet &other);
+    ScriptSet & operator = (const ScriptSet &other);
+
+    void Union(const ScriptSet &other);
+    void Union(UScriptCode script);
+    void intersect(const ScriptSet &other);
+    void intersect(UScriptCode script);
+    void setAll();
+    void resetAll();
+    int32_t countMembers();
+
+  private:
+    uint32_t  bits[6];
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class NFDBuffer: public UMemory {
+public:
+    NFDBuffer(const UChar *text, int32_t length, UErrorCode &status);
+    ~NFDBuffer();
+    const UChar *getBuffer();
+    int32_t getLength();
+
+  private:
+    const UChar *fOriginalText;
+    UChar       *fNormalizedText;
+    int32_t      fNormalizedTextLength;
+    UChar        fSmallBuf[USPOOF_STACK_BUFFER_SIZE];
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -242,7 +304,7 @@ class SpoofData: public UMemory {
                                                     
 
     uint32_t                    fMemLimit;          
-    u_atomic_int32_t            fRefCount;
+    int32_t                     fRefCount;
 
     
     int32_t                     *fCFUKeys;

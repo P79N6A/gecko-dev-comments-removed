@@ -264,11 +264,6 @@ public:
 
 
 
-
-
-
-
-
     static DateIntervalFormat* U_EXPORT2 createInstance(
                                                const UnicodeString& skeleton,
                                                const Locale& locale,
@@ -295,11 +290,6 @@ public:
                                               UErrorCode& status);
 
     
-
-
-
-
-
 
 
 
@@ -576,6 +566,7 @@ private:
 
 
 
+
     struct PatternInfo {
         UnicodeString firstPart;
         UnicodeString secondPart;
@@ -620,11 +611,13 @@ private:
 
 
 
+
     DateIntervalFormat(const Locale& locale, DateIntervalInfo* dtItvInfo,
                        const UnicodeString* skeleton, UErrorCode& status);
 
 
     
+
 
 
 
@@ -653,6 +646,7 @@ private:
 
 
 
+
     static SimpleDateFormat* U_EXPORT2 createSDFPatternInstance(
                                         const UnicodeString& skeleton,
                                         const Locale& locale,
@@ -666,6 +660,7 @@ private:
 
 
     
+
 
 
 
@@ -724,11 +719,13 @@ private:
 
 
 
+
     void initializePattern(UErrorCode& status);
 
 
 
     
+
 
 
 
@@ -742,6 +739,7 @@ private:
 
 
     
+
 
 
 
@@ -796,6 +794,7 @@ private:
 
 
 
+
     UBool setSeparateDateTimePtn(const UnicodeString& dateSkeleton,
                                  const UnicodeString& timeSkeleton);
 
@@ -803,6 +802,7 @@ private:
 
 
     
+
 
 
 
@@ -860,6 +860,7 @@ private:
 
 
 
+
     static void U_EXPORT2 adjustFieldWidth(
                             const UnicodeString& inputSkeleton,
                             const UnicodeString& bestMatchSkeleton,
@@ -868,6 +869,7 @@ private:
                             UnicodeString& adjustedIntervalPattern);
 
     
+
 
 
 
@@ -891,6 +893,7 @@ private:
 
 
 
+
     static UBool U_EXPORT2 fieldExistsInSkeleton(UCalendarDateFields field,
                                                  const UnicodeString& skeleton);
 
@@ -900,10 +903,12 @@ private:
 
 
 
+
     static int32_t  U_EXPORT2 splitPatternInto2Part(const UnicodeString& intervalPattern);
 
 
     
+
 
 
 
@@ -918,12 +923,14 @@ private:
 
 
 
+
     void setIntervalPattern(UCalendarDateFields field,
                             const UnicodeString& intervalPattern,
                             UBool laterDateFirst);
 
 
     
+
 
 
 

@@ -283,16 +283,7 @@ public:
          ABBREVIATED,
          WIDE,
          NARROW,
-#ifndef U_HIDE_DRAFT_API
-         
-
-
-
-         SHORT,
-#endif 
-         
-
-         DT_WIDTH_COUNT = 4
+         DT_WIDTH_COUNT
     };
 
     
@@ -339,7 +330,6 @@ public:
 
 
 
-
     const UnicodeString* getShortWeekdays(int32_t& count) const;
 
     
@@ -348,8 +338,7 @@ public:
 
 
 
-
-    void setShortWeekdays(const UnicodeString* abbrevWeekdays, int32_t count);
+    void setShortWeekdays(const UnicodeString* shortWeekdays, int32_t count);
 
     
 
@@ -505,6 +494,7 @@ public:
 
     Locale getLocale(ULocDataLocaleType type, UErrorCode& status) const;
 
+#ifndef U_HIDE_INTERNAL_API
     
 
 
@@ -527,6 +517,7 @@ public:
         kCapContextUsageMetazoneShort,
         kCapContextUsageTypeCount
     };
+#endif  
 
     
 
@@ -616,12 +607,6 @@ private:
     
 
 
-    UnicodeString*  fShorterWeekdays;
-    int32_t         fShorterWeekdaysCount;
-
-    
-
-
     UnicodeString*  fNarrowWeekdays;
     int32_t         fNarrowWeekdaysCount;
 
@@ -636,12 +621,6 @@ private:
 
     UnicodeString*  fStandaloneShortWeekdays;
     int32_t         fStandaloneShortWeekdaysCount;
-
-    
-
-
-    UnicodeString*  fStandaloneShorterWeekdays;
-    int32_t         fStandaloneShorterWeekdaysCount;
 
     
 
@@ -740,12 +719,15 @@ private:
 
     UnicodeString   fLocalPatternChars;
 
+#ifndef U_HIDE_INTERNAL_API
     
 
 
 
 
      UBool fCapitalization[kCapContextUsageTypeCount][2];
+#endif
+
 
 private:
     

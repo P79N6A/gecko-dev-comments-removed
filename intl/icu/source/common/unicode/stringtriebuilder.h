@@ -239,6 +239,9 @@ protected:
     protected:
         int32_t hash;
         int32_t offset;
+    private:
+        
+        virtual UClassID getDynamicClassID() const;
     };
 
     
@@ -393,6 +396,10 @@ protected:
     virtual int32_t writeValueAndType(UBool hasValue, int32_t value, int32_t node) = 0;
     
     virtual int32_t writeDeltaTo(int32_t jumpTarget) = 0;
+
+private:
+    
+    virtual UClassID getDynamicClassID() const;
 };
 
 U_NAMESPACE_END

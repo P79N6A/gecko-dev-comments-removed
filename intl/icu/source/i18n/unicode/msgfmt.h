@@ -36,7 +36,7 @@
 U_CDECL_BEGIN
 
 struct UHashtable;
-typedef struct UHashtable UHashtable; 
+typedef struct UHashtable UHashtable;
 U_CDECL_END
 
 U_NAMESPACE_BEGIN
@@ -709,6 +709,25 @@ public:
 
 
 
+    UnicodeString& format(const Formattable& obj,
+                          UnicodeString& appendTo,
+                          UErrorCode& status) const;
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -874,13 +893,13 @@ private:
 
     class U_I18N_API PluralSelectorProvider : public PluralFormat::PluralSelector {
     public:
-        PluralSelectorProvider(const MessageFormat &mf, UPluralType type);
+        PluralSelectorProvider(const Locale* loc, UPluralType type);
         virtual ~PluralSelectorProvider();
-        virtual UnicodeString select(void *ctx, double number, UErrorCode& ec) const;
+        virtual UnicodeString select(double number, UErrorCode& ec) const;
 
-        void reset();
+        void reset(const Locale* loc);
     private:
-        const MessageFormat &msgFormat;
+        const Locale* locale;
         PluralRules* rules;
         UPluralType type;
     };
@@ -969,7 +988,7 @@ private:
 
 
     void format(int32_t msgStart,
-                const void *plNumber,
+                double pluralNumber,
                 const Formattable* arguments,
                 const UnicodeString *argumentNames,
                 int32_t cnt,
@@ -1008,20 +1027,6 @@ private:
     FieldPosition* updateMetaData(AppendableWrapper& dest, int32_t prevLength,
                                   FieldPosition* fp, const Formattable* argId) const;
 
-    
-
-
-
-
-    int32_t findOtherSubMessage(int32_t partIndex) const;
-
-    
-
-
-
-
-    int32_t findFirstPluralNumberArg(int32_t msgStart, const UnicodeString &argName) const;
-
     Format* getCachedFormatter(int32_t argumentNumber) const;
 
     UnicodeString getLiteralStringUntilNextArgument(int32_t from) const;
@@ -1029,7 +1034,7 @@ private:
     void copyObjects(const MessageFormat& that, UErrorCode& ec);
 
     void formatComplexSubMessage(int32_t msgStart,
-                                 const void *plNumber,
+                                 double pluralNumber,
                                  const Formattable* arguments,
                                  const UnicodeString *argumentNames,
                                  int32_t cnt,
@@ -1048,6 +1053,7 @@ private:
 
 
 
+
     const Formattable::Type* getArgTypeList(int32_t& listCount) const {
         listCount = argTypeCount;
         return argTypes;
@@ -1059,6 +1065,7 @@ private:
     void resetPattern();
 
     
+
 
 
 
@@ -1080,10 +1087,19 @@ private:
         virtual void parseObject(const UnicodeString&,
                                  Formattable&,
                                  ParsePosition&) const;
+        virtual UClassID getDynamicClassID() const;
     };
 
     friend class MessageFormatAdapter; 
 };
+
+inline UnicodeString&
+MessageFormat::format(const Formattable& obj,
+                      UnicodeString& appendTo,
+                      UErrorCode& status) const {
+    return Format::format(obj, appendTo, status);
+}
+
 
 U_NAMESPACE_END
 

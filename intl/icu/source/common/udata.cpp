@@ -30,7 +30,6 @@
 #include "cmemory.h"
 #include "cstring.h"
 #include "putilimp.h"
-#include "uassert.h"
 #include "ucln_cmn.h"
 #include "ucmndata.h"
 #include "udatamem.h"
@@ -107,7 +106,6 @@ static UDataMemory *gCommonICUDataArray[10] = { NULL };
 static UBool gHaveTriedToLoadCommonData = FALSE;  
 
 static UHashtable  *gCommonDataCache = NULL;  
-static icu::UInitOnce gCommonDataCacheInitOnce = U_INITONCE_INITIALIZER;
 
 static UDataFileAccess  gDataFileAccess = UDATA_DEFAULT_ACCESS;
 
@@ -120,7 +118,6 @@ udata_cleanup(void)
         uhash_close(gCommonDataCache);  
         gCommonDataCache = NULL;        
     }
-    gCommonDataCacheInitOnce.reset();
 
     for (i = 0; i < LENGTHOF(gCommonICUDataArray) && gCommonICUDataArray[i] != NULL; ++i) {
         udata_close(gCommonICUDataArray[i]);
@@ -201,7 +198,7 @@ static UBool
 setCommonICUDataPointer(const void *pData, UBool , UErrorCode *pErrorCode) {
     UDataMemory tData;
     UDataMemory_init(&tData);
-    UDataMemory_setData(&tData, pData);
+    tData.pHeader = (const DataHeader *)pData;
     udata_checkCommonData(&tData, pErrorCode);
     return setCommonICUData(&tData, FALSE, pErrorCode);
 }
@@ -265,26 +262,42 @@ static void U_CALLCONV DataCacheElement_deleter(void *pDCEl) {
     uprv_free(pDCEl);                  
 }
 
-static void udata_initHashTable() {
-    UErrorCode err = U_ZERO_ERROR;
-    U_ASSERT(gCommonDataCache == NULL);
-    gCommonDataCache = uhash_open(uhash_hashChars, uhash_compareChars, NULL, &err);
-    if (U_FAILURE(err)) {
-        
-        gCommonDataCache = NULL;
-    }
-    if (gCommonDataCache != NULL) {
-        uhash_setValueDeleter(gCommonDataCache, DataCacheElement_deleter);
-        ucln_common_registerCleanup(UCLN_COMMON_UDATA, udata_cleanup);
-    }
-}
-
  
 
 
 
 static UHashtable *udata_getHashTable() {
-    umtx_initOnce(gCommonDataCacheInitOnce, &udata_initHashTable);
+    UErrorCode   err = U_ZERO_ERROR;
+    UBool        cacheIsInitialized;
+    UHashtable  *tHT = NULL;
+
+    UMTX_CHECK(NULL, (gCommonDataCache != NULL), cacheIsInitialized);
+
+    if (cacheIsInitialized) {
+        return gCommonDataCache;
+    }
+
+    tHT = uhash_open(uhash_hashChars, uhash_compareChars, NULL, &err);
+    
+    if (tHT == NULL) {
+    	return NULL; 
+    }
+    uhash_setValueDeleter(tHT, DataCacheElement_deleter);
+
+    umtx_lock(NULL);
+    if (gCommonDataCache == NULL) {
+        gCommonDataCache = tHT;
+        tHT = NULL;
+        ucln_common_registerCleanup(UCLN_COMMON_UDATA, udata_cleanup);
+    }
+    umtx_unlock(NULL);
+    if (tHT != NULL) {
+        uhash_close(tHT);
+    }
+
+    if (U_FAILURE(err)) {
+        return NULL;      
+    }
     return gCommonDataCache;
 }
 

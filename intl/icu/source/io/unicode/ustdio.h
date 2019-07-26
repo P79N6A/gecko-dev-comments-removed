@@ -29,7 +29,6 @@
 #include "unicode/ucnv.h"
 #include "unicode/utrans.h"
 #include "unicode/localpointer.h"
-#include "unicode/unum.h"
 
 
 
@@ -439,15 +438,6 @@ u_fsetcodepage(const char   *codepage,
 U_STABLE UConverter* U_EXPORT2 u_fgetConverter(UFILE *f);
 
 #if !UCONFIG_NO_FORMATTING
-#ifndef U_HIDE_DRAFT_API
-
-
-
-
-
-
- U_DRAFT const UNumberFormat* U_EXPORT2 u_fgetNumberFormat(UFILE *f);
-#endif 
 
 
 
@@ -458,7 +448,7 @@ U_STABLE UConverter* U_EXPORT2 u_fgetConverter(UFILE *f);
 
 
 
-U_STABLE int32_t U_EXPORT2
+U_DRAFT int32_t U_EXPORT2
 u_printf(const char *patternSpecification,
          ... );
 
@@ -499,7 +489,7 @@ u_vfprintf(UFILE        *f,
 
 
 
-U_STABLE int32_t U_EXPORT2
+U_DRAFT int32_t U_EXPORT2
 u_printf_u(const UChar *patternSpecification,
            ... );
 
@@ -508,7 +498,7 @@ u_printf_u(const UChar *patternSpecification,
 
 
 
-U_STABLE UFILE * U_EXPORT2
+U_DRAFT UFILE * U_EXPORT2
 u_get_stdout(void);
 
 

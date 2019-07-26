@@ -132,20 +132,64 @@ void TaiwanCalendar::timeToFields(UDate theTime, UBool quick, UErrorCode& status
 #endif
 
 
+const UDate     TaiwanCalendar::fgSystemDefaultCentury        = DBL_MIN;
+const int32_t   TaiwanCalendar::fgSystemDefaultCenturyYear    = -1;
 
+UDate           TaiwanCalendar::fgSystemDefaultCenturyStart       = DBL_MIN;
+int32_t         TaiwanCalendar::fgSystemDefaultCenturyStartYear   = -1;
 
-
-
-static UDate           gSystemDefaultCenturyStart       = DBL_MIN;
-static int32_t         gSystemDefaultCenturyStartYear   = -1;
-static icu::UInitOnce  gSystemDefaultCenturyInit        = U_INITONCE_INITIALIZER;
 
 UBool TaiwanCalendar::haveDefaultCentury() const
 {
     return TRUE;
 }
 
-static void U_CALLCONV initializeSystemDefaultCentury()
+UDate TaiwanCalendar::defaultCenturyStart() const
+{
+    return internalGetDefaultCenturyStart();
+}
+
+int32_t TaiwanCalendar::defaultCenturyStartYear() const
+{
+    return internalGetDefaultCenturyStartYear();
+}
+
+UDate
+TaiwanCalendar::internalGetDefaultCenturyStart() const
+{
+    
+    UBool needsUpdate;
+    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
+
+    if (needsUpdate) {
+        initializeSystemDefaultCentury();
+    }
+
+    
+    
+
+    return fgSystemDefaultCenturyStart;
+}
+
+int32_t
+TaiwanCalendar::internalGetDefaultCenturyStartYear() const
+{
+    
+    UBool needsUpdate;
+    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
+
+    if (needsUpdate) {
+        initializeSystemDefaultCentury();
+    }
+
+    
+    
+
+    return    fgSystemDefaultCenturyStartYear;
+}
+
+void
+TaiwanCalendar::initializeSystemDefaultCentury()
 {
     
     
@@ -156,25 +200,20 @@ static void U_CALLCONV initializeSystemDefaultCentury()
     {
         calendar.setTime(Calendar::getNow(), status);
         calendar.add(UCAL_YEAR, -80, status);
-
-        gSystemDefaultCenturyStart = calendar.getTime(status);
-        gSystemDefaultCenturyStartYear = calendar.get(UCAL_YEAR, status);
+        UDate    newStart =  calendar.getTime(status);
+        int32_t  newYear  =  calendar.get(UCAL_YEAR, status);
+        umtx_lock(NULL);
+        if (fgSystemDefaultCenturyStart == fgSystemDefaultCentury)
+        {
+            fgSystemDefaultCenturyStartYear = newYear;
+            fgSystemDefaultCenturyStart = newStart;
+        }
+        umtx_unlock(NULL);
     }
     
     
 }
 
-UDate TaiwanCalendar::defaultCenturyStart() const {
-    
-    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
-    return gSystemDefaultCenturyStart;
-}
-
-int32_t TaiwanCalendar::defaultCenturyStartYear() const {
-    
-    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
-    return gSystemDefaultCenturyStartYear;
-}
 
 U_NAMESPACE_END
 

@@ -81,21 +81,18 @@ U_NAMESPACE_BEGIN
 
 
 
-class U_I18N_API IslamicCalendar : public Calendar {
+class IslamicCalendar : public Calendar {
  public:
   
   
   
   
-  
 
 
 
-  enum ECalculationType {
+  enum ECivil {
     ASTRONOMICAL,
-    CIVIL,
-    UMALQURA,
-    TBLA
+    CIVIL
   };
   
   
@@ -179,11 +176,12 @@ class U_I18N_API IslamicCalendar : public Calendar {
   }; 
 
 
-  
-  
-  
 
   
+  
+  
+
+  
 
 
 
@@ -193,7 +191,7 @@ class U_I18N_API IslamicCalendar : public Calendar {
 
 
 
-  IslamicCalendar(const Locale& aLocale, UErrorCode &success, ECalculationType type = CIVIL);
+  IslamicCalendar(const Locale& aLocale, UErrorCode &success, ECivil beCivil = CIVIL);
 
   
 
@@ -214,7 +212,8 @@ class U_I18N_API IslamicCalendar : public Calendar {
 
 
 
-  void setCalculationType(ECalculationType type, UErrorCode &status);
+
+  void setCivil(ECivil beCivil, UErrorCode &status);
     
   
 
@@ -240,7 +239,7 @@ class U_I18N_API IslamicCalendar : public Calendar {
 
 
 
-  int32_t yearStart(int32_t year) const;
+  int32_t yearStart(int32_t year);
 
   
 
@@ -281,7 +280,7 @@ class U_I18N_API IslamicCalendar : public Calendar {
 
 
 
-  ECalculationType cType;
+  ECivil civil;
 
   
   
@@ -364,7 +363,7 @@ class U_I18N_API IslamicCalendar : public Calendar {
 
 
 
-   static UClassID U_EXPORT2 getStaticClassID(void);
+  U_I18N_API static UClassID U_EXPORT2 getStaticClassID(void);
 
   
 
@@ -411,7 +410,42 @@ class U_I18N_API IslamicCalendar : public Calendar {
 
   virtual int32_t defaultCenturyStartYear() const;
 
- private:
+ private: 
+  
+
+
+
+
+
+  static UDate         fgSystemDefaultCenturyStart;
+
+  
+
+
+  static int32_t          fgSystemDefaultCenturyStartYear;
+
+  
+
+
+  static const int32_t    fgSystemDefaultCenturyYear;
+
+  
+
+
+  static const UDate        fgSystemDefaultCentury;
+
+  
+
+
+
+  UDate         internalGetDefaultCenturyStart(void) const;
+
+  
+
+
+
+  int32_t          internalGetDefaultCenturyStartYear(void) const;
+
   
 
 

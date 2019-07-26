@@ -134,49 +134,58 @@ EthiopicCalendar::handleGetLimit(UCalendarDateFields field, ELimitType limitType
     return CECalendar::handleGetLimit(field, limitType);
 }
 
+const UDate     EthiopicCalendar::fgSystemDefaultCentury        = DBL_MIN;
+const int32_t   EthiopicCalendar::fgSystemDefaultCenturyYear    = -1;
 
-
-
-
-
-static UDate           gSystemDefaultCenturyStart       = DBL_MIN;
-static int32_t         gSystemDefaultCenturyStartYear   = -1;
-static icu::UInitOnce  gSystemDefaultCenturyInit        = U_INITONCE_INITIALIZER;
-
-static void U_CALLCONV initializeSystemDefaultCentury()
-{
-    UErrorCode status = U_ZERO_ERROR;
-    EthiopicCalendar calendar(Locale("@calendar=ethiopic"), status);
-    if (U_SUCCESS(status)) {
-        calendar.setTime(Calendar::getNow(), status);
-        calendar.add(UCAL_YEAR, -80, status);
-
-        gSystemDefaultCenturyStart = calendar.getTime(status);
-        gSystemDefaultCenturyStartYear = calendar.get(UCAL_YEAR, status);
-    }
-    
-    
-}
+UDate           EthiopicCalendar::fgSystemDefaultCenturyStart       = DBL_MIN;
+int32_t         EthiopicCalendar::fgSystemDefaultCenturyStartYear   = -1;
 
 UDate
 EthiopicCalendar::defaultCenturyStart() const
 {
-    
-    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
-    return gSystemDefaultCenturyStart;
+    initializeSystemDefaultCentury();
+    return fgSystemDefaultCenturyStart;
 }
 
 int32_t
 EthiopicCalendar::defaultCenturyStartYear() const
 {
-    
-    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
+    initializeSystemDefaultCentury();
     if (isAmeteAlemEra()) {
-        return gSystemDefaultCenturyStartYear + AMETE_MIHRET_DELTA;
+        return fgSystemDefaultCenturyStartYear + AMETE_MIHRET_DELTA;
     }
-    return gSystemDefaultCenturyStartYear;
+    return fgSystemDefaultCenturyStartYear;
 }
 
+void
+EthiopicCalendar::initializeSystemDefaultCentury()
+{
+    
+    UBool needsUpdate;
+    UMTX_CHECK(NULL, (fgSystemDefaultCenturyStart == fgSystemDefaultCentury), needsUpdate);
+
+    if (!needsUpdate) {
+        return;
+    }
+
+    UErrorCode status = U_ZERO_ERROR;
+
+    EthiopicCalendar calendar(Locale("@calendar=ethiopic"), status);
+    if (U_SUCCESS(status)) {
+        calendar.setTime(Calendar::getNow(), status);
+        calendar.add(UCAL_YEAR, -80, status);
+        UDate    newStart = calendar.getTime(status);
+        int32_t  newYear  = calendar.get(UCAL_YEAR, status);
+        {
+            umtx_lock(NULL);
+            fgSystemDefaultCenturyStartYear = newYear;
+            fgSystemDefaultCenturyStart = newStart;
+            umtx_unlock(NULL);
+        }
+    }
+    
+    
+}
 
 int32_t
 EthiopicCalendar::getJDEpochOffset() const

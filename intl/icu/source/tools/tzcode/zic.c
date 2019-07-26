@@ -2209,77 +2209,41 @@ wp = ecpyalloc(_("no POSIX environment variable for zone"));
 			for (j=0; j<zp->z_nrules; ++j) {
 				rp = &zp->z_rules[j];
 				if (rp->r_hiyear == INT_MAX) {
-					if (rp->r_loyear > finalRuleYear) {
-						finalRuleYear = rp->r_loyear;
-					}
 					if (finalRule1 == NULL) {
 						finalRule1 = rp;
-					} else if (finalRule2 == NULL) {
+						finalRuleYear = rp->r_loyear;
+			    	} else if (finalRule2 == NULL) {
 						finalRule2 = rp;
+						if (rp->r_loyear > finalRuleYear) {
+							finalRuleYear = rp->r_loyear;
+						}
 					} else {
 						error("more than two max rules found (ICU)");
 						exit(EXIT_FAILURE);
 					}
-				} else if (rp->r_hiyear >= finalRuleYear) {
-					
-
-
-
-
-
-
-
-
-					finalRuleYear = rp->r_hiyear + 1;
-
-					
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-					if (max_year < finalRuleYear) {
-						max_year = finalRuleYear;
-					}
 				}
 			}
+			if (finalRule1 != NULL && finalRule2 == NULL) {
+				error("only one max rule found (ICU)");
+				exit(EXIT_FAILURE);
+			}
 			if (finalRule1 != NULL) {
-				if (finalRule2 == NULL) {
-					warning("only one max rule found (ICU)");
+				if (finalRule1->r_stdoff == finalRule2->r_stdoff) {
+					
+
+
 					finalRuleYear = finalRuleIndex = -1;
-					finalRule1 = NULL;
+					finalRule1 = finalRule2 = NULL; 
 				} else {
-					if (finalRule1->r_stdoff == finalRule2->r_stdoff) {
-						
+					
 
-
-						finalRuleYear = finalRuleIndex = -1;
-						finalRule1 = finalRule2 = NULL; 
-					} else {
-						
-
-						if (finalRule1->r_month > finalRule2->r_month) {
-							const struct rule* t = finalRule1;
-							finalRule1 = finalRule2;
-							finalRule2 = t;
-						}
-						
-						finalRuleIndex = add_icu_final_rules(finalRule1, finalRule2);
+					if (finalRule1->r_month > finalRule2->r_month) {
+						const struct rule* t = finalRule1;
+						finalRule1 = finalRule2;
+						finalRule2 = t;
 					}
+					
+					finalRuleIndex = add_icu_final_rules(finalRule1, finalRule2);
 				}
 			}
 		}
@@ -2398,6 +2362,10 @@ wp = ecpyalloc(_("no POSIX environment variable for zone"));
 
 
 
+
+
+
+					
 
 
 

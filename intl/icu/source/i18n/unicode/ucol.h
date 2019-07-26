@@ -302,7 +302,6 @@ typedef enum {
 
 
      UCOL_STRENGTH,  
-#ifndef U_HIDE_DEPRECATED_API
      
 
 
@@ -313,8 +312,7 @@ typedef enum {
 
 
 
-     UCOL_HIRAGANA_QUATERNARY_MODE = UCOL_STRENGTH + 1,
-#endif  
+     UCOL_HIRAGANA_QUATERNARY_MODE,
      
 
 
@@ -324,7 +322,7 @@ typedef enum {
 
 
 
-     UCOL_NUMERIC_COLLATION = UCOL_STRENGTH + 2, 
+     UCOL_NUMERIC_COLLATION, 
      
 
 
@@ -553,7 +551,7 @@ ucol_strcoll(    const    UCollator    *coll,
 
 
  
-U_STABLE UCollationResult U_EXPORT2
+U_DRAFT UCollationResult U_EXPORT2
 ucol_strcollUTF8(
         const UCollator *coll,
         const char      *source,
@@ -1111,20 +1109,6 @@ ucol_getUCAVersion(const UCollator* coll, UVersionInfo info);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 U_STABLE int32_t U_EXPORT2 
 ucol_mergeSortkeys(const uint8_t *src1, int32_t src1Length,
                    const uint8_t *src2, int32_t src2Length,
@@ -1231,21 +1215,16 @@ ucol_restoreVariableTop(UCollator *coll, const uint32_t varTop, UErrorCode *stat
 
 
 
-
 U_STABLE UCollator* U_EXPORT2 
 ucol_safeClone(const UCollator *coll,
                void            *stackBuffer,
                int32_t         *pBufferSize,
                UErrorCode      *status);
 
-#ifndef U_HIDE_DEPRECATED_API
 
 
 
-
-#define U_COL_SAFECLONE_BUFFERSIZE 1
-
-#endif 
+#define U_COL_SAFECLONE_BUFFERSIZE 528
 
 
 

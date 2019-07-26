@@ -188,6 +188,36 @@ protected:
 
     virtual int32_t getJDEpochOffset() const;
 
+private:
+    
+
+
+
+
+
+    static UDate fgSystemDefaultCenturyStart;
+
+    
+
+
+    static int32_t fgSystemDefaultCenturyStartYear;
+
+    
+
+
+    static const int32_t fgSystemDefaultCenturyYear;
+
+    
+
+
+    static const UDate fgSystemDefaultCentury;
+
+    
+
+
+
+
+    static void initializeSystemDefaultCentury(void);
 
 public:
     

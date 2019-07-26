@@ -186,11 +186,6 @@ public:
 
 
 
-
-
-
-
-
     virtual void  setText(UText *text, UErrorCode &status) = 0;
 
     
@@ -289,52 +284,6 @@ public:
 
 
     virtual int32_t next(int32_t n) = 0;
-
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual int32_t getRuleStatus() const;
-
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual int32_t getRuleStatusVec(int32_t *fillInVec, int32_t capacity, UErrorCode &status);
 
     
 
@@ -502,13 +451,9 @@ public:
 
 
 
-
-
     virtual BreakIterator *  createBufferClone(void *stackBuffer,
                                                int32_t &BufferSize,
                                                UErrorCode &status) = 0;
-
-#ifndef U_HIDE_DEPRECATED_API
 
     
 
@@ -517,8 +462,6 @@ public:
 
 
     inline UBool isBufferClone(void);
-
-#endif 
 
 #if !UCONFIG_NO_SERVICE
     
@@ -616,7 +559,9 @@ protected:
     
     BreakIterator();
     
-    BreakIterator (const BreakIterator &other) : UObject(other) {}
+    UBool fBufferClone;
+    
+    BreakIterator (const BreakIterator &other) : UObject(other), fBufferClone(FALSE) {}
 
 private:
 
@@ -631,18 +576,15 @@ private:
     BreakIterator& operator=(const BreakIterator&);
 };
 
-#ifndef U_HIDE_DEPRECATED_API
-
 inline UBool BreakIterator::isBufferClone()
 {
-    return FALSE;
+    return fBufferClone;
 }
-
-#endif 
 
 U_NAMESPACE_END
 
 #endif 
 
 #endif 
+
 

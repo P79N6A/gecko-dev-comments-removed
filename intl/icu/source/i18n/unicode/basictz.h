@@ -47,7 +47,7 @@ public:
 
 
 
-    virtual UBool getNextTransition(UDate base, UBool inclusive, TimeZoneTransition& result) const = 0;
+    virtual UBool getNextTransition(UDate base, UBool inclusive, TimeZoneTransition& result)  = 0;
 
     
 
@@ -57,7 +57,7 @@ public:
 
 
 
-    virtual UBool getPreviousTransition(UDate base, UBool inclusive, TimeZoneTransition& result) const = 0;
+    virtual UBool getPreviousTransition(UDate base, UBool inclusive, TimeZoneTransition& result)  = 0;
 
     
 
@@ -79,8 +79,8 @@ public:
 
 
 
-    virtual UBool hasEquivalentTransitions(const BasicTimeZone& tz, UDate start, UDate end,
-        UBool ignoreDstAmount, UErrorCode& ec) const;
+    virtual UBool hasEquivalentTransitions( BasicTimeZone& tz, UDate start, UDate end,
+        UBool ignoreDstAmount, UErrorCode& ec) ;
 
     
 
@@ -90,7 +90,7 @@ public:
 
 
 
-    virtual int32_t countTransitionRules(UErrorCode& status) const = 0;
+    virtual int32_t countTransitionRules(UErrorCode& status)  = 0;
 
     
 
@@ -109,7 +109,7 @@ public:
 
 
     virtual void getTimeZoneRules(const InitialTimeZoneRule*& initial,
-        const TimeZoneRule* trsrules[], int32_t& trscount, UErrorCode& status) const = 0;
+        const TimeZoneRule* trsrules[], int32_t& trscount, UErrorCode& status)  = 0;
 
     
 
@@ -138,7 +138,7 @@ public:
 
 
     virtual void getSimpleRulesNear(UDate date, InitialTimeZoneRule*& initial,
-        AnnualTimeZoneRule*& std, AnnualTimeZoneRule*& dst, UErrorCode& status) const;
+        AnnualTimeZoneRule*& std, AnnualTimeZoneRule*& dst, UErrorCode& status) ;
 
 
 #ifndef U_HIDE_INTERNAL_API
@@ -159,7 +159,7 @@ public:
 
 
     virtual void getOffsetFromLocal(UDate date, int32_t nonExistingTimeOpt, int32_t duplicatedTimeOpt,
-        int32_t& rawOffset, int32_t& dstOffset, UErrorCode& status) const;
+        int32_t& rawOffset, int32_t& dstOffset, UErrorCode& status) ;
 
 protected:
 
@@ -202,7 +202,7 @@ protected:
 
 
     void getTimeZoneRulesAfter(UDate start, InitialTimeZoneRule*& initial, UVector*& transitionRules,
-        UErrorCode& status) const;
+        UErrorCode& status) ;
 };
 
 U_NAMESPACE_END

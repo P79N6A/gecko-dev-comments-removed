@@ -16,6 +16,8 @@
 #define FMTABLE_H
 
 #include "unicode/utypes.h"
+#include "unicode/unistr.h"
+#include "unicode/stringpiece.h"
 
 
 
@@ -23,10 +25,6 @@
 
 
 #if !UCONFIG_NO_FORMATTING
-
-#include "unicode/unistr.h"
-#include "unicode/stringpiece.h"
-#include "unicode/uformattable.h"
 
 U_NAMESPACE_BEGIN
 
@@ -42,8 +40,6 @@ class DigitList;
 #else
 #define UNUM_INTERNAL_STACKARRAY_SIZE 128
 #endif
-
-
 
 
 
@@ -185,7 +181,7 @@ public:
 
 
     UBool          operator==(const Formattable &other) const;
-
+    
     
 
 
@@ -277,7 +273,7 @@ public:
 
 
     Type            getType(void) const;
-
+    
     
 
 
@@ -285,13 +281,13 @@ public:
 
 
     UBool           isNumeric() const;
-
+    
     
 
 
 
 
-
+ 
     double          getDouble(void) const { return fValue.fDouble; }
 
     
@@ -305,7 +301,7 @@ public:
 
 
 
-
+ 
     double          getDouble(UErrorCode& status) const;
 
     
@@ -313,7 +309,7 @@ public:
 
 
 
-
+ 
     int32_t         getLong(void) const { return (int32_t)fValue.fInt64; }
 
     
@@ -331,7 +327,7 @@ public:
 
 
 
-
+ 
     int32_t         getLong(UErrorCode& status) const;
 
     
@@ -339,7 +335,7 @@ public:
 
 
 
-
+ 
     int64_t         getInt64(void) const { return fValue.fInt64; }
 
     
@@ -356,7 +352,7 @@ public:
 
 
 
-
+ 
     int64_t         getInt64(UErrorCode& status) const;
 
     
@@ -364,7 +360,7 @@ public:
 
 
 
-
+ 
     UDate           getDate() const { return fValue.fDate; }
 
     
@@ -374,7 +370,7 @@ public:
 
 
 
-
+ 
      UDate          getDate(UErrorCode& status) const;
 
     
@@ -383,7 +379,7 @@ public:
 
 
 
-
+ 
     UnicodeString&  getString(UnicodeString& result) const
       { result=*fValue.fString; return result; }
 
@@ -395,7 +391,7 @@ public:
 
 
 
-
+ 
     UnicodeString&  getString(UnicodeString& result, UErrorCode& status) const;
 
     
@@ -441,7 +437,7 @@ public:
 
 
 
-
+ 
     const Formattable* getArray(int32_t& count) const
       { count=fValue.fArrayAndCount.fCount; return fValue.fArrayAndCount.fArray; }
 
@@ -453,7 +449,7 @@ public:
 
 
 
-
+ 
     const Formattable* getArray(int32_t& count, UErrorCode& status) const;
 
     
@@ -465,7 +461,7 @@ public:
 
 
     Formattable&    operator[](int32_t index) { return fValue.fArrayAndCount.fArray[index]; }
-
+       
     
 
 
@@ -499,7 +495,7 @@ public:
 
 
 
-
+ 
     void            setDouble(double d);
 
     
@@ -507,7 +503,7 @@ public:
 
 
 
-
+ 
     void            setLong(int32_t l);
 
     
@@ -515,7 +511,7 @@ public:
 
 
 
-
+ 
     void            setInt64(int64_t ll);
 
     
@@ -523,7 +519,7 @@ public:
 
 
 
-
+ 
     void            setDate(UDate d);
 
     
@@ -531,7 +527,7 @@ public:
 
 
 
-
+ 
     void            setString(const UnicodeString& stringToCopy);
 
     
@@ -540,7 +536,7 @@ public:
 
 
 
-
+ 
     void            setArray(const Formattable* array, int32_t count);
 
     
@@ -548,16 +544,16 @@ public:
 
 
 
-
+ 
     void            adoptString(UnicodeString* stringToAdopt);
 
     
 
 
 
-
+ 
     void            adoptArray(Formattable* array, int32_t count);
-
+       
     
 
 
@@ -598,49 +594,13 @@ public:
 
     static UClassID U_EXPORT2 getStaticClassID();
 
-#ifndef U_HIDE_DRAFT_API
-    
-
-
-
-
-
-
-    static inline Formattable *fromUFormattable(UFormattable *fmt);
-
-    
-
-
-
-
-
-
-    static inline const Formattable *fromUFormattable(const UFormattable *fmt);
-
-    
-
-
-
-
-
-    inline UFormattable *toUFormattable();
-
-    
-
-
-
-
-
-    inline const UFormattable *toUFormattable() const;
-#endif  
-
 #ifndef U_HIDE_DEPRECATED_API
     
 
 
 
 
-
+ 
     inline int32_t getLong(UErrorCode* status) const;
 #endif  
 
@@ -667,15 +627,6 @@ public:
 
 
     void adoptDigitList(DigitList *dl);
-
-    
-
-
-
-
-
-    CharString *internalGetCharString(UErrorCode &status);
-
 #endif  
 
 private:
@@ -736,25 +687,8 @@ inline UnicodeString& Formattable::getString(void) {
 inline int32_t Formattable::getLong(UErrorCode* status) const {
     return getLong(*status);
 }
-#endif  
+#endif
 
-#ifndef U_HIDE_DRAFT_API
-inline UFormattable* Formattable::toUFormattable() {
-  return reinterpret_cast<UFormattable*>(this);
-}
-
-inline const UFormattable* Formattable::toUFormattable() const {
-  return reinterpret_cast<const UFormattable*>(this);
-}
-
-inline Formattable* Formattable::fromUFormattable(UFormattable *fmt) {
-  return reinterpret_cast<Formattable *>(fmt);
-}
-
-inline const Formattable* Formattable::fromUFormattable(const UFormattable *fmt) {
-  return reinterpret_cast<const Formattable *>(fmt);
-}
-#endif  
 
 U_NAMESPACE_END
 

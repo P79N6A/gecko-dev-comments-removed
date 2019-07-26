@@ -20,8 +20,6 @@
 #include "unicode/uloc.h"
 #include "unicode/umisc.h"
 #include "unicode/parseerr.h"
-#include "unicode/uformattable.h"
-
 
 
 
@@ -233,7 +231,7 @@ typedef enum UNumberFormatRoundingMode {
 
     UNUM_FOUND_HALFEVEN = UNUM_ROUND_HALFEVEN,
 #endif  
-    UNUM_ROUND_HALFDOWN = UNUM_ROUND_HALFEVEN + 1,
+    UNUM_ROUND_HALFDOWN,
     UNUM_ROUND_HALFUP,
     
 
@@ -251,20 +249,6 @@ typedef enum UNumberFormatPadPosition {
     UNUM_PAD_BEFORE_SUFFIX,
     UNUM_PAD_AFTER_SUFFIX
 } UNumberFormatPadPosition;
-
-#ifndef U_HIDE_DRAFT_API
-
-
-
-
-typedef enum UNumberCompactStyle {
-  
-  UNUM_SHORT,
-  
-  UNUM_LONG
-  
-} UNumberCompactStyle;
-#endif 
 
 
 
@@ -417,9 +401,6 @@ unum_clone(const UNumberFormat *fmt,
 
 
 
-
-
-
 U_STABLE int32_t U_EXPORT2 
 unum_format(    const    UNumberFormat*    fmt,
         int32_t            number,
@@ -427,9 +408,6 @@ unum_format(    const    UNumberFormat*    fmt,
         int32_t            resultLength,
         UFieldPosition    *pos,
         UErrorCode*        status);
-
-
-
 
 
 
@@ -481,9 +459,6 @@ unum_formatInt64(const UNumberFormat *fmt,
 
 
 
-
-
-
 U_STABLE int32_t U_EXPORT2 
 unum_formatDouble(    const    UNumberFormat*  fmt,
             double          number,
@@ -491,9 +466,6 @@ unum_formatDouble(    const    UNumberFormat*  fmt,
             int32_t         resultLength,
             UFieldPosition  *pos, 
             UErrorCode*     status);
-
-
-
 
 
 
@@ -550,47 +522,14 @@ unum_formatDecimal(    const    UNumberFormat*  fmt,
 
 
 
-
-
-
-U_STABLE int32_t U_EXPORT2
+U_STABLE int32_t U_EXPORT2 
 unum_formatDoubleCurrency(const UNumberFormat* fmt,
                           double number,
                           UChar* currency,
                           UChar* result,
                           int32_t resultLength,
-                          UFieldPosition* pos,
+                          UFieldPosition* pos, 
                           UErrorCode* status);
-
-#ifndef U_HIDE_DRAFT_API
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-U_DRAFT int32_t U_EXPORT2
-unum_formatUFormattable(const UNumberFormat* fmt,
-                        const UFormattable *number,
-                        UChar *result,
-                        int32_t resultLength,
-                        UFieldPosition *pos,
-                        UErrorCode *status);
-#endif  
 
 
 
@@ -726,34 +665,6 @@ unum_parseDoubleCurrency(const UNumberFormat* fmt,
                          UChar* currency,
                          UErrorCode* status);
 
-#ifndef U_HIDE_DRAFT_API
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-U_DRAFT UFormattable* U_EXPORT2
-unum_parseToUFormattable(const UNumberFormat* fmt,
-                         UFormattable *result,
-                         const UChar* text,
-                         int32_t textLength,
-                         int32_t* parsePos, 
-                         UErrorCode* status);
-#endif  
-
 
 
 
@@ -870,38 +781,24 @@ typedef enum UNumberFormatAttribute {
 
 
 
-  UNUM_PARSE_ALL_INPUT = UNUM_LENIENT_PARSE + 1,
+  UNUM_PARSE_ALL_INPUT,
 #endif
-#ifndef U_HIDE_DRAFT_API
+
   
 
-
-
-
-
-
-
-
-  UNUM_SCALE = UNUM_LENIENT_PARSE + 2,
-#endif 
-
-#ifndef U_HIDE_INTERNAL_API
-  
-
-  UNUM_NUMERIC_ATTRIBUTE_COUNT = UNUM_LENIENT_PARSE + 3,
+  UNUM_NUMERIC_ATTRIBUTE_COUNT,
 
   
 
 
   UNUM_MAX_NONBOOLEAN_ATTRIBUTE = 0x0FFF,
-#endif  
 
   
 
 
 
 
-  UNUM_FORMAT_FAIL_IF_MORE_THAN_MAX_DIGITS = 0x1000,
+  UNUM_FORMAT_FAIL_IF_MORE_THAN_MAX_DIGITS,
   
 
 
@@ -910,13 +807,10 @@ typedef enum UNumberFormatAttribute {
 
   UNUM_PARSE_NO_EXPONENT,
 
-#ifndef U_HIDE_INTERNAL_API
   
 
   UNUM_LIMIT_BOOLEAN_ATTRIBUTE
-#endif  
 } UNumberFormatAttribute;
-
 
 
 

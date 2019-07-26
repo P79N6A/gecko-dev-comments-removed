@@ -96,6 +96,7 @@ enum {
 
 
     UIDNA_NONTRANSITIONAL_TO_UNICODE=0x20,
+#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -106,6 +107,7 @@ enum {
 
 
     UIDNA_CHECK_CONTEXTO=0x40
+#endif  
 };
 
 
@@ -488,6 +490,7 @@ enum {
 
 
     UIDNA_ERROR_CONTEXTJ=0x1000,
+#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -501,6 +504,7 @@ enum {
 
 
     UIDNA_ERROR_CONTEXTO_DIGITS=0x4000
+#endif  
 };
 
 

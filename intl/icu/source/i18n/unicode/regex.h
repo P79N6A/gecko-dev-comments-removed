@@ -68,7 +68,6 @@ class  UVector;
 class  UVector32;
 class  UVector64;
 
-#ifndef U_HIDE_INTERNAL_API
 
 
 
@@ -80,7 +79,6 @@ U_INTERNAL void U_EXPORT2
     #undef RegexPatternDump
     #define RegexPatternDump(pat)
 #endif
-#endif  
 
 
 
@@ -360,6 +358,7 @@ public:
         
 private:
     
+
 
 
 
@@ -717,6 +716,7 @@ public:
 
 private:
     
+
 
 
 
@@ -1121,6 +1121,7 @@ public:
 
 private:
     
+
 
 
 

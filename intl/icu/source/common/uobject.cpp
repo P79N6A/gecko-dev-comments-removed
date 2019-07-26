@@ -91,7 +91,23 @@ void U_EXPORT2 UMemory::operator delete(void* p, const char* , int ) U_NO_THROW 
 
 UObject::~UObject() {}
 
-UClassID UObject::getDynamicClassID() const { return NULL; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 U_NAMESPACE_END
 

@@ -16,7 +16,7 @@
 #include "unicode/uclean.h"
 #include "utracimp.h"
 #include "ucln_cmn.h"
-#include "cmutex.h"
+#include "umutex.h"
 #include "ucln.h"
 #include "cmemory.h"
 #include "uassert.h"
@@ -25,9 +25,25 @@
 #define UCLN_TYPE_IS_COMMON
 #include "ucln_imp.h"
 
+static UBool gICUInitialized = FALSE;
+static UMutex  gICUInitMutex = U_MUTEX_INITIALIZER;
+
 static cleanupFunc *gCommonCleanupFunctions[UCLN_COMMON_COUNT];
 static cleanupFunc *gLibCleanupFunctions[UCLN_COMMON];
 
+U_CFUNC UBool ucln_mutexedInit(initFunc *func, UErrorCode *status) {
+    UBool initialized = FALSE;
+    umtx_lock(&gICUInitMutex);
+    if (!gICUInitialized && U_SUCCESS(*status)) {
+        if (func != NULL) {
+            func(status);
+        }
+        gICUInitialized = TRUE;    
+        initialized = TRUE;
+    }
+    umtx_unlock(&gICUInitMutex);
+    return initialized;
+}
 
 
 
@@ -42,7 +58,9 @@ u_cleanup(void)
 
     ucln_lib_cleanup();
 
+    umtx_cleanup();
     cmemory_cleanup();       
+    gICUInitialized = FALSE;
     UTRACE_EXIT();           
 
     utrace_cleanup();

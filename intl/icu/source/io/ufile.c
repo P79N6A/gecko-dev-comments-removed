@@ -18,13 +18,6 @@
 
 
 
-
-
-
-#if defined(__GNUC__) && defined(__STRICT_ANSI__)
-#undef __STRICT_ANSI__
-#endif
-
 #include "locmap.h"
 #include "unicode/ustdio.h"
 #include "ufile.h"
@@ -305,10 +298,4 @@ u_fgetConverter(UFILE *file)
 {
     return file->fConverter;
 }
-#if !UCONFIG_NO_FORMATTING
-U_CAPI const UNumberFormat* U_EXPORT2 u_fgetNumberFormat(UFILE *file)
-{
-    return u_locbund_getNumberFormat(&file->str.fBundle, UNUM_DECIMAL);
-}
-#endif
 

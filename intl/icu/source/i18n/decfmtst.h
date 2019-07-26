@@ -26,15 +26,14 @@ class  UnicodeSet;
 class DecimalFormatStaticSets : public UMemory
 {
 public:
-    
-    
-    DecimalFormatStaticSets(UErrorCode &status);
+    static DecimalFormatStaticSets *gStaticSets;  
+                                                  
+
+    DecimalFormatStaticSets(UErrorCode *status);
     ~DecimalFormatStaticSets();
 
-    
-
-
-    static const DecimalFormatStaticSets *getStaticSets(UErrorCode &status);
+    static void    initSets(UErrorCode *status);
+    static UBool   cleanup();
 
     static const UnicodeSet *getSimilarDecimals(UChar32 decimal, UBool strictParse);
 
@@ -50,11 +49,6 @@ public:
 
     UnicodeSet *fDefaultGroupingSeparators;
     UnicodeSet *fStrictDefaultGroupingSeparators;
-
-    UnicodeSet *fMinusSigns;
-    UnicodeSet *fPlusSigns;
-private:
-    void cleanup();
 
 };
 

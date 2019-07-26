@@ -51,7 +51,7 @@ typedef enum URegexpFlag{
 
 
     UREGEX_CANON_EQ         = 128,
-#endif 
+#endif
     
     UREGEX_CASE_INSENSITIVE = 2,
 

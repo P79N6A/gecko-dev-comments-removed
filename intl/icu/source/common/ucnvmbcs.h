@@ -237,9 +237,6 @@
 
 
 
-
-
-
 enum {
     MBCS_MAX_STATE_COUNT=128
 };

@@ -23,9 +23,9 @@ enum UDebugEnumType {
     UDBG_UPlugReason,   
     UDBG_UPlugLevel,    
     UDBG_UAcceptResult, 
-
     
-
+     
+    
 #if !UCONFIG_NO_COLLATION
     UDBG_UColAttributeValue,  
 #endif
@@ -102,50 +102,5 @@ U_CAPI int32_t udbg_getSystemParameterValueByIndex(int32_t i, char *buffer, int3
 
 
 U_CAPI void udbg_writeIcuInfo(FILE *f);
-
-
-
-
-
-#define UDBG_KNOWNISSUE_LEN 255
-
-
-
-
-
-
-
-U_CAPI char *udbg_knownIssueURLFrom(const char *ticket, char *buf);
-
-
-
-
-
-
-U_CAPI void *udbg_knownIssue_openU(void *ptr, const char *ticket, char *where, const UChar *msg, UBool *firstForTicket,
-                                   UBool *firstForWhere);
-
-
-
-
-
-
-
-U_CAPI void *udbg_knownIssue_open(void *ptr, const char *ticket, char *where, const char *msg, UBool *firstForTicket,
-                                   UBool *firstForWhere);
-
-
-
-
-
-
-U_CAPI UBool udbg_knownIssue_print(void *ptr);
-
-
-
-
-
-U_CAPI void udbg_knownIssue_close(void *ptr);
-
 
 #endif

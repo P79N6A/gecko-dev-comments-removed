@@ -48,7 +48,6 @@
 
 
 
-
 #define IRRELEVANT 4
 #define LAMTYPE    16
 #define ALEFTYPE   32
@@ -273,7 +272,7 @@ static const uint8_t presBLink[]=
 static const UChar convertFBto06[] =
 {
 
-   0x671, 0x671,     0,     0,     0,     0, 0x67E, 0x67E, 0x67E, 0x67E,     0,     0,     0,     0,     0,     0,
+   0x671, 0x671,     0,     0,     0,     0, 0x07E, 0x07E, 0x07E, 0x07E,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 0x686, 0x686, 0x686, 0x686,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 0x698, 0x698,     0,     0, 0x6A9, 0x6A9,

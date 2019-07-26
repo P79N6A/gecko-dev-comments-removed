@@ -100,7 +100,7 @@ U_NAMESPACE_BEGIN
 
 
 Replaceable::~Replaceable() {}
-
+Replaceable::Replaceable() {}
 UOBJECT_DEFINE_RTTI_IMPLEMENTATION(UnicodeString)
 
 UnicodeString U_EXPORT2
@@ -117,19 +117,23 @@ operator+ (const UnicodeString &s1, const UnicodeString &s2) {
 
 
 void
-UnicodeString::addRef() {
-  umtx_atomic_inc((u_atomic_int32_t *)fUnion.fFields.fArray - 1);
-}
+UnicodeString::addRef()
+{  umtx_atomic_inc((int32_t *)fUnion.fFields.fArray - 1);}
 
 int32_t
-UnicodeString::removeRef() {
-  return umtx_atomic_dec((u_atomic_int32_t *)fUnion.fFields.fArray - 1);
-}
+UnicodeString::removeRef()
+{ return umtx_atomic_dec((int32_t *)fUnion.fFields.fArray - 1);}
 
 int32_t
-UnicodeString::refCount() const {
-  return umtx_loadAcquire(*((u_atomic_int32_t *)fUnion.fFields.fArray - 1));
-}
+UnicodeString::refCount() const 
+{ 
+    umtx_lock(NULL);
+    
+    
+    int32_t  count = *((int32_t *)fUnion.fFields.fArray - 1);
+    umtx_unlock(NULL);
+    return count;
+ }
 
 void
 UnicodeString::releaseArray() {
@@ -143,8 +147,10 @@ UnicodeString::releaseArray() {
 
 
 
-
-
+UnicodeString::UnicodeString()
+  : fShortLength(0),
+    fFlags(kShortString)
+{}
 
 UnicodeString::UnicodeString(int32_t capacity, UChar32 c, int32_t count)
   : fShortLength(0),
@@ -1125,44 +1131,6 @@ UnicodeString::unBogus() {
   }
 }
 
-const UChar *
-UnicodeString::getTerminatedBuffer() {
-  if(!isWritable()) {
-    return 0;
-  }
-  UChar *array = getArrayStart();
-  int32_t len = length();
-  if(len < getCapacity()) {
-    if(fFlags & kBufferIsReadonly) {
-      
-      
-      
-      
-      if(array[len] == 0) {
-        return array;
-      }
-    } else if(((fFlags & kRefCounted) == 0 || refCount() == 1)) {
-      
-      
-      
-      
-
-      
-      
-      
-      array[len] = 0;
-      return array;
-    }
-  }
-  if(cloneArrayIfNeeded(len+1)) {
-    array = getArrayStart();
-    array[len] = 0;
-    return array;
-  } else {
-    return NULL;
-  }
-}
-
 
 UnicodeString &
 UnicodeString::setTo(UBool isTerminated,
@@ -1713,16 +1681,13 @@ UnicodeString::cloneArrayIfNeeded(int32_t newCapacity,
       
       if(flags & kRefCounted) {
         
-        u_atomic_int32_t *pRefCount = ((u_atomic_int32_t *)oldArray - 1);
+        int32_t *pRefCount = ((int32_t *)oldArray - 1);
         if(umtx_atomic_dec(pRefCount) == 0) {
           if(pBufferToDelete == 0) {
-              
-              
-              
-            uprv_free((void *)pRefCount);
+            uprv_free(pRefCount);
           } else {
             
-            *pBufferToDelete = (int32_t *)pRefCount;
+            *pBufferToDelete = pRefCount;
           }
         }
       }

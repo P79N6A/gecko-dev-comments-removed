@@ -146,7 +146,6 @@ private:
     UnicodeString &format(int32_t numDigits, UnicodeString &appendTo, wchar_t *format, ...) const;
 
     UBool fCurrency;
-    Locale fLocale;
     int32_t fLCID;
     FormatInfo *fFormatInfo;
     UBool fFractionDigitsSet;

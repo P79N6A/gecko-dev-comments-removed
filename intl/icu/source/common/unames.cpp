@@ -20,7 +20,6 @@
 #include "unicode/udata.h"
 #include "unicode/utf.h"
 #include "unicode/utf16.h"
-#include "uassert.h"
 #include "ustr_imp.h"
 #include "umutex.h"
 #include "cmemory.h"
@@ -28,8 +27,6 @@
 #include "ucln_cmn.h"
 #include "udataswp.h"
 #include "uprops.h"
-
-U_NAMESPACE_BEGIN
 
 
 
@@ -105,7 +102,7 @@ typedef struct {
 
 static UDataMemory *uCharNamesData=NULL;
 static UCharNames *uCharNames=NULL;
-static icu::UInitOnce gCharNamesInitOnce = U_INITONCE_INITIALIZER;
+static UErrorCode gLoadErrorCode=U_ZERO_ERROR;
 
 
 
@@ -171,7 +168,6 @@ static UBool U_CALLCONV unames_cleanup(void)
     if(uCharNames) {
         uCharNames = NULL;
     }
-    gCharNamesInitOnce.reset();
     gMaxNameLength=0;
     return TRUE;
 }
@@ -191,25 +187,52 @@ isAcceptable(void * ,
         pInfo->formatVersion[0]==1);
 }
 
-static void U_CALLCONV
-loadCharNames(UErrorCode &status) {
-    U_ASSERT(uCharNamesData == NULL);
-    U_ASSERT(uCharNames == NULL);
-
-    uCharNamesData = udata_openChoice(NULL, DATA_TYPE, DATA_NAME, isAcceptable, NULL, &status);
-    if(U_FAILURE(status)) {
-        uCharNamesData = NULL;
-    } else {
-        uCharNames = (UCharNames *)udata_getMemory(uCharNamesData);
-    }
-    ucln_common_registerCleanup(UCLN_COMMON_UNAMES, unames_cleanup);
-}
-
-
 static UBool
 isDataLoaded(UErrorCode *pErrorCode) {
-    umtx_initOnce(gCharNamesInitOnce, &loadCharNames, *pErrorCode);
-    return U_SUCCESS(*pErrorCode);
+    
+    UBool isCached;
+
+    
+    UMTX_CHECK(NULL, (uCharNames!=NULL), isCached);
+
+    if(!isCached) {
+        UCharNames *names;
+        UDataMemory *data;
+
+        
+        if(U_FAILURE(gLoadErrorCode)) {
+            *pErrorCode=gLoadErrorCode;
+            return FALSE;
+        }
+
+        
+        data=udata_openChoice(NULL, DATA_TYPE, DATA_NAME, isAcceptable, NULL, pErrorCode);
+        if(U_FAILURE(*pErrorCode)) {
+            gLoadErrorCode=*pErrorCode;
+            return FALSE;
+        }
+
+        names=(UCharNames *)udata_getMemory(data);
+
+        
+        {
+            umtx_lock(NULL);
+            if(uCharNames==NULL) {
+                uCharNamesData=data;
+                uCharNames=names;
+                data=NULL;
+                names=NULL;
+                ucln_common_registerCleanup(UCLN_COMMON_UNAMES, unames_cleanup);
+            }
+            umtx_unlock(NULL);
+        }
+
+        
+        if(data!=NULL) {
+            udata_close(data); 
+        }
+    }
+    return TRUE;
 }
 
 #define WRITE_CHAR(buffer, bufferLength, bufferPos, c) { \
@@ -2085,8 +2108,6 @@ uchar_swapNames(const UDataSwapper *ds,
 
     return headerSize+(int32_t)offset;
 }
-
-U_NAMESPACE_END
 
 
 

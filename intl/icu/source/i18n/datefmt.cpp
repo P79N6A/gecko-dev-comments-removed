@@ -74,7 +74,6 @@ DateFormat& DateFormat::operator=(const DateFormat& other)
         } else {
           fNumberFormat = NULL;
         }
-        fBoolFlags = other.fBoolFlags;
     }
     return *this;
 }
@@ -510,29 +509,6 @@ DateFormat::isLenient() const
     }
     
     return FALSE;
-}
-
-
-
-DateFormat& 
-DateFormat::setBooleanAttribute(UDateFormatBooleanAttribute attr,
-    									UBool newValue,
-    									UErrorCode &status) {
-    if(!fBoolFlags.isValidValue(newValue)) {
-        status = U_ILLEGAL_ARGUMENT_ERROR;
-    } else {
-        fBoolFlags.set(attr, newValue);
-    }
-
-    return *this;
-}
-
-
-
-UBool 
-DateFormat::getBooleanAttribute(UDateFormatBooleanAttribute attr, UErrorCode &) const {
-
-    return fBoolFlags.get(attr);
 }
 
 U_NAMESPACE_END

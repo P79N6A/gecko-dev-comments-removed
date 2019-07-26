@@ -505,7 +505,7 @@ spanOneUTF8(const UnicodeSet &set, const uint8_t *s, int32_t length) {
     }
     
     int32_t i=0;
-    U8_NEXT_OR_FFFD(s, i, length, c);
+    U8_NEXT(s, i, length, c);
     return set.contains(c) ? i : -i;
 }
 
@@ -516,7 +516,7 @@ spanOneBackUTF8(const UnicodeSet &set, const uint8_t *s, int32_t length) {
         return set.contains(c) ? 1 : -1;
     }
     int32_t i=length-1;
-    c=utf8_prevCharSafeBody(s, 0, &i, c, -3);
+    c=utf8_prevCharSafeBody(s, 0, &i, c, -1);
     length-=i;
     return set.contains(c) ? length : -length;
 }

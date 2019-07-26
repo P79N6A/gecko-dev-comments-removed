@@ -14,6 +14,7 @@
 #include "unicode/utypes.h"
 
 #if !UCONFIG_NO_FORMATTING
+#ifndef U_HIDE_INTERNAL_API
 
 #include "unicode/uloc.h"
 #include "unicode/unistr.h"
@@ -59,14 +60,7 @@ typedef enum UTimeZoneNameType {
 
 
 
-    UTZNM_SHORT_DAYLIGHT    = 0x20,
-#ifndef U_HIDE_DRAFT_API
-    
-
-
-
-    UTZNM_EXEMPLAR_LOCATION = 0x40
-#endif 
+    UTZNM_SHORT_DAYLIGHT    = 0x20
 } UTimeZoneNameType;
 
 U_CDECL_END
@@ -75,13 +69,6 @@ U_NAMESPACE_BEGIN
 
 class UVector;
 struct MatchInfo;
-
-
-
-
-
-
-
 
 
 
@@ -208,12 +195,6 @@ public:
 
 
 
-
-
-
-
-
-
     virtual UnicodeString& getReferenceZoneID(const UnicodeString& mzID, const char* region, UnicodeString& tzID) const = 0;
 
     
@@ -296,7 +277,6 @@ public:
 
         virtual ~MatchInfoCollection();
 
-#ifndef U_HIDE_INTERNAL_API
         
 
 
@@ -362,7 +342,6 @@ public:
 
 
         UBool getMetaZoneIDAt(int32_t idx, UnicodeString& mzID) const;
-#endif  
 
     private:
         UVector* fMatches;  
@@ -384,9 +363,14 @@ public:
 
 
     virtual MatchInfoCollection* find(const UnicodeString& text, int32_t start, uint32_t types, UErrorCode& status) const = 0;
+
+private:
+    
+    virtual UClassID getDynamicClassID() const;
 };
 
 U_NAMESPACE_END
 
+#endif  
 #endif
 #endif

@@ -151,11 +151,6 @@ public:
 
 
 
-
-
-
-
-
     UDateTimePatternConflict addPattern(const UnicodeString& pattern, 
                                         UBool override, 
                                         UnicodeString& conflictingPattern,
@@ -255,11 +250,6 @@ public:
 
 
 
-
-
-
-
-
      UnicodeString getBestPattern(const UnicodeString& skeleton, UErrorCode& status);
 
 
@@ -288,11 +278,6 @@ public:
 
 
     
-
-
-
-
-
 
 
 
@@ -462,13 +447,6 @@ private:
     UnicodeString hackPattern;
     UnicodeString emptyString;
     UChar fDefaultHourFormatChar;
-    
-    
-    enum {
-        kDTPGNoFlags = 0,
-        kDTPGFixFractionalSeconds = 1,
-        kDTPGSkeletonUsesCapJ = 2
-    };
 
     void initData(const Locale &locale, UErrorCode &status);
     void addCanonicalItems();
@@ -484,8 +462,8 @@ private:
     void getAppendName(UDateTimePatternField field, UnicodeString& value);
     int32_t getCanonicalIndex(const UnicodeString& field);
     const UnicodeString* getBestRaw(DateTimeMatcher& source, int32_t includeMask, DistanceInfo* missingFields, const PtnSkeleton** specifiedSkeletonPtr = 0);
-    UnicodeString adjustFieldTypes(const UnicodeString& pattern, const PtnSkeleton* specifiedSkeleton, int32_t flags, UDateTimePatternMatchOptions options = UDATPG_MATCH_NO_OPTIONS);
-    UnicodeString getBestAppending(int32_t missingFields, int32_t flags, UDateTimePatternMatchOptions options = UDATPG_MATCH_NO_OPTIONS);
+    UnicodeString adjustFieldTypes(const UnicodeString& pattern, const PtnSkeleton* specifiedSkeleton, UBool fixFractionalSeconds, UDateTimePatternMatchOptions options = UDATPG_MATCH_NO_OPTIONS);
+    UnicodeString getBestAppending(int32_t missingFields, UDateTimePatternMatchOptions options = UDATPG_MATCH_NO_OPTIONS);
     int32_t getTopBitNumber(int32_t foundMask);
     void setAvailableFormat(const UnicodeString &key, UErrorCode& status);
     UBool isAvailableFormatSet(const UnicodeString &key) const;

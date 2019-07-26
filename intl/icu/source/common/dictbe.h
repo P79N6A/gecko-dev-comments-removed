@@ -186,118 +186,6 @@ class ThaiBreakEngine : public DictionaryBreakEngine {
 
 };
 
-
-
-
-
-
-
-
-
-
-
-
-class LaoBreakEngine : public DictionaryBreakEngine {
- private:
-    
-
-
-
-
-  UnicodeSet                fLaoWordSet;
-  UnicodeSet                fEndWordSet;
-  UnicodeSet                fBeginWordSet;
-  UnicodeSet                fMarkSet;
-  DictionaryMatcher  *fDictionary;
-
- public:
-
-  
-
-
-
-
-
-  LaoBreakEngine(DictionaryMatcher *adoptDictionary, UErrorCode &status);
-
-  
-
-
-  virtual ~LaoBreakEngine();
-
- protected:
- 
-
-
-
-
-
-
-
-
-  virtual int32_t divideUpDictionaryRange( UText *text,
-                                           int32_t rangeStart,
-                                           int32_t rangeEnd,
-                                           UStack &foundBreaks ) const;
-
-};
-
-
-
- 
- 
-
-
-
-
-
-
- 
-class KhmerBreakEngine : public DictionaryBreakEngine { 
- private: 
-    
-
-
- 
- 
-  UnicodeSet                fKhmerWordSet; 
-  UnicodeSet                fEndWordSet; 
-  UnicodeSet                fBeginWordSet; 
-  UnicodeSet                fMarkSet; 
-  DictionaryMatcher  *fDictionary; 
- 
- public: 
- 
-  
-
-
-
-
- 
-  KhmerBreakEngine(DictionaryMatcher *adoptDictionary, UErrorCode &status); 
- 
-  
-
- 
-  virtual ~KhmerBreakEngine(); 
- 
- protected: 
- 
-
-
-
-
-
-
-
- 
-  virtual int32_t divideUpDictionaryRange( UText *text, 
-                                           int32_t rangeStart, 
-                                           int32_t rangeEnd, 
-                                           UStack &foundBreaks ) const; 
- 
-}; 
- 
 #if !UCONFIG_NO_NORMALIZATION
 
 
@@ -363,6 +251,63 @@ class CjkBreakEngine : public DictionaryBreakEngine {
 
 #endif
 
+
+
+ 
+ 
+
+
+
+
+
+
+ 
+class KhmerBreakEngine : public DictionaryBreakEngine { 
+ private: 
+    
+
+
+ 
+ 
+  UnicodeSet                fKhmerWordSet; 
+  UnicodeSet                fEndWordSet; 
+  UnicodeSet                fBeginWordSet; 
+  UnicodeSet                fMarkSet; 
+  DictionaryMatcher  *fDictionary; 
+ 
+ public: 
+ 
+  
+
+
+
+
+ 
+  KhmerBreakEngine(DictionaryMatcher *adoptDictionary, UErrorCode &status); 
+ 
+  
+
+ 
+  virtual ~KhmerBreakEngine(); 
+ 
+ protected: 
+ 
+
+
+
+
+
+
+
+ 
+  virtual int32_t divideUpDictionaryRange( UText *text, 
+                                           int32_t rangeStart, 
+                                           int32_t rangeEnd, 
+                                           UStack &foundBreaks ) const; 
+ 
+}; 
+ 
+ 
 U_NAMESPACE_END
 
     

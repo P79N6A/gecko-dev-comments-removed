@@ -48,7 +48,7 @@ struct U_TOOLUTIL_API UniProps {
     UBool binProps[UCHAR_BINARY_LIMIT];
     int32_t intProps[UCHAR_INT_LIMIT-UCHAR_INT_START];
     UVersionInfo age;
-    UChar32 bmg, bpb;
+    UChar32 bmg;
     UChar32 scf, slc, stc, suc;
     int32_t digitValue;
     const char *numericValue;

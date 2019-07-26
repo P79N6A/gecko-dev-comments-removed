@@ -1110,6 +1110,16 @@ RuleBasedNumberFormat::format(int64_t number,
 }
 
 
+
+UnicodeString&
+RuleBasedNumberFormat::format(const Formattable& obj,
+                              UnicodeString& toAppendTo,
+                              FieldPosition& pos,
+                              UErrorCode& status) const
+{
+    return NumberFormat::format(obj, toAppendTo, pos, status);
+}
+
 UnicodeString&
 RuleBasedNumberFormat::format(double number,
                               const UnicodeString& ruleSetName,

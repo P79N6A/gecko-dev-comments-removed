@@ -2827,7 +2827,7 @@ void RegexMatcher::MatchAt(int64_t startIdx, UBool toEnd, UErrorCode &status) {
         #ifdef REGEX_RUN_DEBUG
         if (fTraceDebug) {
             UTEXT_SETNATIVEINDEX(fInputText, fp->fInputIdx);
-            printf("inputIdx=%ld   inputChar=%x   sp=%3ld   activeLimit=%ld  ", fp->fInputIdx,
+            printf("inputIdx=%d   inputChar=%x   sp=%3d   activeLimit=%d  ", fp->fInputIdx,
                 UTEXT_CURRENT32(fInputText), (int64_t *)fp-fStack->getBuffer(), fActiveLimit);
             fPattern->dumpOp(fp->fPatIdx);
         }
@@ -3481,7 +3481,7 @@ GC_Done:
         case URX_CTR_INIT:
             {
                 U_ASSERT(opValue >= 0 && opValue < fFrameSize-2);
-                fp->fExtra[opValue] = 0;                 
+                fp->fExtra[opValue] = 0;       
 
                 
                 
@@ -3492,14 +3492,12 @@ GC_Done:
                 int32_t maxCount = (int32_t)pat[instrOperandLoc+2];
                 U_ASSERT(minCount>=0);
                 U_ASSERT(maxCount>=minCount || maxCount==-1);
-                U_ASSERT(loopLoc>=fp->fPatIdx);
+                U_ASSERT(loopLoc>fp->fPatIdx);
 
                 if (minCount == 0) {
                     fp = StateSave(fp, loopLoc+1, status);
                 }
-                if (maxCount == -1) {
-                    fp->fExtra[opValue+1] = fp->fInputIdx;   
-                } else if (maxCount == 0) {
+                if (maxCount == 0) {
                     fp = (REStackFrame *)fStack->popFrame(fFrameSize);
                 }
             }
@@ -3513,22 +3511,18 @@ GC_Done:
                 int64_t *pCounter = &fp->fExtra[URX_VAL(initOp)];
                 int32_t minCount  = (int32_t)pat[opValue+2];
                 int32_t maxCount  = (int32_t)pat[opValue+3];
+                
+                
+                
+                
+                
                 (*pCounter)++;
-                if ((uint64_t)*pCounter >= (uint32_t)maxCount && maxCount != -1) {
-                    U_ASSERT(*pCounter == maxCount);
+                U_ASSERT(*pCounter > 0);
+                if ((uint64_t)*pCounter >= (uint32_t)maxCount) {
+                    U_ASSERT(*pCounter == maxCount || maxCount == -1);
                     break;
                 }
                 if (*pCounter >= minCount) {
-                    if (maxCount == -1) {
-                        
-                        
-                        int64_t *pLastInputIdx =  &fp->fExtra[URX_VAL(initOp) + 1];
-                        if (fp->fInputIdx == *pLastInputIdx) {
-                            break;
-                        } else {
-                            *pLastInputIdx = fp->fInputIdx;
-                        }
-                    }
                     fp = StateSave(fp, fp->fPatIdx, status);
                 }
                 fp->fPatIdx = opValue + 4;    
@@ -3539,7 +3533,7 @@ GC_Done:
             {
                 
                 U_ASSERT(opValue >= 0 && opValue < fFrameSize-2);
-                fp->fExtra[opValue] = 0;                 
+                fp->fExtra[opValue] = 0;       
 
                 
                 
@@ -3551,9 +3545,6 @@ GC_Done:
                 U_ASSERT(minCount>=0);
                 U_ASSERT(maxCount>=minCount || maxCount==-1);
                 U_ASSERT(loopLoc>fp->fPatIdx);
-                if (maxCount == -1) {
-                    fp->fExtra[opValue+1] = fp->fInputIdx;   
-                }
 
                 if (minCount == 0) {
                     if (maxCount != 0) {
@@ -3573,13 +3564,19 @@ GC_Done:
                 int64_t *pCounter = &fp->fExtra[URX_VAL(initOp)];
                 int32_t minCount  = (int32_t)pat[opValue+2];
                 int32_t maxCount  = (int32_t)pat[opValue+3];
-
+                
+                
+                
+                
+                
                 (*pCounter)++;
-                if ((uint64_t)*pCounter >= (uint32_t)maxCount && maxCount != -1) {
+                U_ASSERT(*pCounter > 0);
+
+                if ((uint64_t)*pCounter >= (uint32_t)maxCount) {
                     
                     
                     
-                    U_ASSERT(*pCounter == maxCount);
+                    U_ASSERT(*pCounter == maxCount || maxCount == -1);
                     break;
                 }
 
@@ -3588,18 +3585,6 @@ GC_Done:
                     
                     fp->fPatIdx = opValue + 4;    
                 } else {
-                    
-
-                    
-                    
-                    if (maxCount == -1) {
-                        int64_t *pLastInputIdx =  &fp->fExtra[URX_VAL(initOp) + 1];
-                        if (fp->fInputIdx == *pLastInputIdx) {
-                            break;
-                        }
-                        *pLastInputIdx = fp->fInputIdx;
-                    }
-
                     
                     
                     
@@ -4226,7 +4211,7 @@ breakFromLoop:
         fMatchStart   = startIdx;
         fMatchEnd     = fp->fInputIdx;
         if (fTraceDebug) {
-            REGEX_RUN_DEBUG_PRINTF(("Match.  start=%ld   end=%ld\n\n", fMatchStart, fMatchEnd));
+            REGEX_RUN_DEBUG_PRINTF(("Match.  start=%d   end=%d\n\n", fMatchStart, fMatchEnd));
         }
     }
     else
@@ -4267,7 +4252,7 @@ void RegexMatcher::MatchChunkAt(int32_t startIdx, UBool toEnd, UErrorCode &statu
 #ifdef REGEX_RUN_DEBUG
     if (fTraceDebug)
     {
-        printf("MatchAt(startIdx=%d)\n", startIdx);
+        printf("MatchAt(startIdx=%ld)\n", startIdx);
         printf("Original Pattern: ");
         UChar32 c = utext_next32From(fPattern->fPattern, 0);
         while (c != U_SENTINEL) {
@@ -4336,7 +4321,7 @@ void RegexMatcher::MatchChunkAt(int32_t startIdx, UBool toEnd, UErrorCode &statu
 #ifdef REGEX_RUN_DEBUG
         if (fTraceDebug) {
             UTEXT_SETNATIVEINDEX(fInputText, fp->fInputIdx);
-            printf("inputIdx=%ld   inputChar=%x   sp=%3ld   activeLimit=%ld  ", fp->fInputIdx,
+            printf("inputIdx=%d   inputChar=%x   sp=%3d   activeLimit=%d  ", fp->fInputIdx,
                    UTEXT_CURRENT32(fInputText), (int64_t *)fp-fStack->getBuffer(), fActiveLimit);
             fPattern->dumpOp(fp->fPatIdx);
         }
@@ -4955,7 +4940,7 @@ GC_Done:
         case URX_CTR_INIT:
             {
                 U_ASSERT(opValue >= 0 && opValue < fFrameSize-2);
-                fp->fExtra[opValue] = 0;                 
+                fp->fExtra[opValue] = 0;       
                 
                 
                 
@@ -4966,14 +4951,12 @@ GC_Done:
                 int32_t maxCount = (int32_t)pat[instrOperandLoc+2];
                 U_ASSERT(minCount>=0);
                 U_ASSERT(maxCount>=minCount || maxCount==-1);
-                U_ASSERT(loopLoc>=fp->fPatIdx);
+                U_ASSERT(loopLoc>fp->fPatIdx);
                 
                 if (minCount == 0) {
                     fp = StateSave(fp, loopLoc+1, status);
                 }
-                if (maxCount == -1) {
-                    fp->fExtra[opValue+1] = fp->fInputIdx;   
-                } else if (maxCount == 0) {
+                if (maxCount == 0) {
                     fp = (REStackFrame *)fStack->popFrame(fFrameSize);
                 }
             }
@@ -4987,22 +4970,18 @@ GC_Done:
                 int64_t *pCounter = &fp->fExtra[URX_VAL(initOp)];
                 int32_t minCount  = (int32_t)pat[opValue+2];
                 int32_t maxCount  = (int32_t)pat[opValue+3];
+                
+                
+                
+                
+                
                 (*pCounter)++;
-                if ((uint64_t)*pCounter >= (uint32_t)maxCount && maxCount != -1) {
-                    U_ASSERT(*pCounter == maxCount);
+                U_ASSERT(*pCounter > 0);
+                if ((uint64_t)*pCounter >= (uint32_t)maxCount) {
+                    U_ASSERT(*pCounter == maxCount || maxCount == -1);
                     break;
                 }
                 if (*pCounter >= minCount) {
-                    if (maxCount == -1) {
-                        
-                        
-                        int64_t *pLastInputIdx =  &fp->fExtra[URX_VAL(initOp) + 1];
-                        if (fp->fInputIdx == *pLastInputIdx) {
-                            break;
-                        } else {
-                            *pLastInputIdx = fp->fInputIdx;
-                        }
-                    }
                     fp = StateSave(fp, fp->fPatIdx, status);
                 }
                 fp->fPatIdx = opValue + 4;    
@@ -5013,7 +4992,7 @@ GC_Done:
             {
                 
                 U_ASSERT(opValue >= 0 && opValue < fFrameSize-2);
-                fp->fExtra[opValue] = 0;                 
+                fp->fExtra[opValue] = 0;       
                 
                 
                 
@@ -5025,9 +5004,6 @@ GC_Done:
                 U_ASSERT(minCount>=0);
                 U_ASSERT(maxCount>=minCount || maxCount==-1);
                 U_ASSERT(loopLoc>fp->fPatIdx);
-                if (maxCount == -1) {
-                    fp->fExtra[opValue+1] = fp->fInputIdx;   
-                }
                 
                 if (minCount == 0) {
                     if (maxCount != 0) {
@@ -5047,13 +5023,19 @@ GC_Done:
                 int64_t *pCounter = &fp->fExtra[URX_VAL(initOp)];
                 int32_t minCount  = (int32_t)pat[opValue+2];
                 int32_t maxCount  = (int32_t)pat[opValue+3];
-
+                
+                
+                
+                
+                
                 (*pCounter)++;
-                if ((uint64_t)*pCounter >= (uint32_t)maxCount && maxCount != -1) {
+                U_ASSERT(*pCounter > 0);
+                
+                if ((uint64_t)*pCounter >= (uint32_t)maxCount) {
                     
                     
                     
-                    U_ASSERT(*pCounter == maxCount);
+                    U_ASSERT(*pCounter == maxCount || maxCount == -1);
                     break;
                 }
                 
@@ -5062,18 +5044,6 @@ GC_Done:
                     
                     fp->fPatIdx = opValue + 4;    
                 } else {
-                    
-
-                    
-                    
-                    if (maxCount == -1) {
-                        int64_t *pLastInputIdx =  &fp->fExtra[URX_VAL(initOp) + 1];
-                        if (fp->fInputIdx == *pLastInputIdx) {
-                            break;
-                        }
-                        *pLastInputIdx = fp->fInputIdx;
-                    }
-
                     
                     
                     
@@ -5665,7 +5635,7 @@ breakFromLoop:
         fMatchStart   = startIdx;
         fMatchEnd     = fp->fInputIdx;
         if (fTraceDebug) {
-            REGEX_RUN_DEBUG_PRINTF(("Match.  start=%ld   end=%ld\n\n", fMatchStart, fMatchEnd));
+            REGEX_RUN_DEBUG_PRINTF(("Match.  start=%d   end=%d\n\n", fMatchStart, fMatchEnd));
         }
     }
     else

@@ -898,6 +898,7 @@ public:
 
     UBool isLenient(void) const;
 
+#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -965,6 +966,7 @@ public:
 
 
     UCalendarWallTimeOption getSkippedWallTimeOption(void) const;
+#endif  
 
 #ifndef U_HIDE_DEPRECATED_API
     
@@ -1388,7 +1390,6 @@ public:
 
 
 
-
     virtual UCalendarWeekdayType getDayOfWeekType(UCalendarDaysOfWeek dayOfWeek, UErrorCode &status) const;
 
     
@@ -1606,13 +1607,11 @@ protected:
 
 
     enum ELimitType {
-#ifndef U_HIDE_INTERNAL_API
       UCAL_LIMIT_MINIMUM = 0,
       UCAL_LIMIT_GREATEST_MINIMUM,
       UCAL_LIMIT_LEAST_MAXIMUM,
       UCAL_LIMIT_MAXIMUM,
       UCAL_LIMIT_COUNT
-#endif  
     };
 
     
@@ -2483,4 +2482,4 @@ U_NAMESPACE_END
 
 #endif 
 
-#endif 
+#endif

@@ -135,8 +135,6 @@ readList(const char *filesPath, const char *listname, UBool readContents, Packag
         fclose(file);
     } else if((listNameEnd-listname)>4 && 0==memcmp(listNameEnd-4, ".dat", 4)) {
         
-        
-        listPkg->setAutoPrefix();
         listPkg->readPackage(listname);
     } else {
         

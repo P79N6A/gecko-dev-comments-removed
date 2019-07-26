@@ -29,7 +29,6 @@
 #include "unicode/ustring.h"
 #include "unicode/utf16.h"
 #include "normalizer2impl.h"
-#include "uassert.h"
 #include "ucol_bld.h"
 #include "ucol_elm.h"
 #include "ucol_cnt.h"
@@ -42,7 +41,6 @@
 
 static const InverseUCATableHeader* _staticInvUCA = NULL;
 static UDataMemory* invUCA_DATA_MEM = NULL;
-static icu::UInitOnce gStaticInvUCAInitOnce = U_INITONCE_INITIALIZER;
 
 U_CDECL_BEGIN
 static UBool U_CALLCONV
@@ -65,9 +63,13 @@ isAcceptableInvUCA(void * ,
         
         )
     {
-        
-        
-        return TRUE;
+        UVersionInfo UCDVersion;
+        u_getUnicodeVersion(UCDVersion);
+        return (pInfo->dataVersion[0]==UCDVersion[0] &&
+            pInfo->dataVersion[1]==UCDVersion[1]);
+            
+            
+            
     } else {
         return FALSE;
     }
@@ -1332,48 +1334,61 @@ ucol_bld_cleanup(void)
     udata_close(invUCA_DATA_MEM);
     invUCA_DATA_MEM = NULL;
     _staticInvUCA = NULL;
-    gStaticInvUCAInitOnce.reset();
     return TRUE;
 }
 U_CDECL_END
 
-static void U_CALLCONV initInverseUCA(UErrorCode &status) {
-    U_ASSERT(invUCA_DATA_MEM == NULL);
-    U_ASSERT(_staticInvUCA == NULL);
-    ucln_i18n_registerCleanup(UCLN_I18N_UCOL_BLD, ucol_bld_cleanup);
-    InverseUCATableHeader *newInvUCA = NULL;
-    UDataMemory *result = udata_openChoice(U_ICUDATA_COLL, INVC_DATA_TYPE, INVC_DATA_NAME, isAcceptableInvUCA, NULL, &status);
-
-    if(U_FAILURE(status)) {
-        if (result) {
-            udata_close(result);
-        }
-        
-        
-        
-        return;
-    }
-
-    if(result != NULL) { 
-        newInvUCA = (InverseUCATableHeader *)udata_getMemory(result);
-        UCollator *UCA = ucol_initUCA(&status);
-        
-        if(uprv_memcmp(newInvUCA->UCAVersion, UCA->image->UCAVersion, sizeof(UVersionInfo)) != 0) {
-            status = U_INVALID_FORMAT_ERROR;
-            udata_close(result);
-            return;
-        }
-
-        invUCA_DATA_MEM = result;
-        _staticInvUCA = newInvUCA;
-    }
-}
-
-
 U_CAPI const InverseUCATableHeader * U_EXPORT2
 ucol_initInverseUCA(UErrorCode *status)
 {
-    umtx_initOnce(gStaticInvUCAInitOnce, &initInverseUCA, *status);
+    if(U_FAILURE(*status)) return NULL;
+
+    UBool needsInit;
+    UMTX_CHECK(NULL, (_staticInvUCA == NULL), needsInit);
+
+    if(needsInit) {
+        InverseUCATableHeader *newInvUCA = NULL;
+        UDataMemory *result = udata_openChoice(U_ICUDATA_COLL, INVC_DATA_TYPE, INVC_DATA_NAME, isAcceptableInvUCA, NULL, status);
+
+        if(U_FAILURE(*status)) {
+            if (result) {
+                udata_close(result);
+            }
+            
+            
+            
+        }
+
+        if(result != NULL) { 
+            newInvUCA = (InverseUCATableHeader *)udata_getMemory(result);
+            UCollator *UCA = ucol_initUCA(status);
+            
+            if(uprv_memcmp(newInvUCA->UCAVersion, UCA->image->UCAVersion, sizeof(UVersionInfo)) != 0) {
+                *status = U_INVALID_FORMAT_ERROR;
+                udata_close(result);
+                return NULL;
+            }
+
+            umtx_lock(NULL);
+            if(_staticInvUCA == NULL) {
+                invUCA_DATA_MEM = result;
+                _staticInvUCA = newInvUCA;
+                result = NULL;
+                newInvUCA = NULL;
+            }
+            umtx_unlock(NULL);
+
+            if(newInvUCA != NULL) {
+                udata_close(result);
+                
+                
+                
+            }
+            else {
+                ucln_i18n_registerCleanup(UCLN_I18N_UCOL_BLD, ucol_bld_cleanup);
+            }
+        }
+    }
     return _staticInvUCA;
 }
 

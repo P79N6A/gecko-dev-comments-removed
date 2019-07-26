@@ -252,7 +252,6 @@ private:
     
     
     static const char* getTimeUnitName(TimeUnit::UTimeUnitFields field, UErrorCode& status);
-
 };
 
 

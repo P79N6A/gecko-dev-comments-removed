@@ -264,7 +264,6 @@ typedef enum UMessagePatternArgType UMessagePatternArgType;
 
 
 
-
 #define UMSGPAT_ARG_TYPE_HAS_PLURAL_STYLE(argType) \
     ((argType)==UMSGPAT_ARG_TYPE_PLURAL || (argType)==UMSGPAT_ARG_TYPE_SELECTORDINAL)
 
@@ -917,6 +916,9 @@ private:
     void addArgDoublePart(double numericValue, int32_t start, int32_t length, UErrorCode &errorCode);
 
     void setParseError(UParseError *parseError, int32_t index);
+
+    
+    virtual UClassID getDynamicClassID() const;
 
     UBool init(UErrorCode &errorCode);
     UBool copyStorage(const MessagePattern &other, UErrorCode &errorCode);

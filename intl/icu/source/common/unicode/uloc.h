@@ -760,8 +760,6 @@ U_STABLE int32_t U_EXPORT2 uloc_countAvailable(void);
 
 
 
-
-
 U_STABLE const char* const* U_EXPORT2
 uloc_getISOLanguages(void);
 
@@ -795,9 +793,6 @@ uloc_getParent(const char*    localeID,
                  char* parent,
                  int32_t parentCapacity,
                  UErrorCode* err);
-
-
-
 
 
 
@@ -856,9 +851,6 @@ uloc_getKeywordValue(const char* localeID,
                      const char* keywordName,
                      char* buffer, int32_t bufferCapacity,
                      UErrorCode* status);
-
-
-
 
 
 

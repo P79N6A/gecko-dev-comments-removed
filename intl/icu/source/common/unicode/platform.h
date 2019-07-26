@@ -144,13 +144,6 @@
 #   include <android/api-level.h>
 #elif defined(linux) || defined(__linux__) || defined(__linux)
 #   define U_PLATFORM U_PF_LINUX
-#elif defined(__APPLE__) && defined(__MACH__)
-#   include <TargetConditionals.h>
-#   if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE  
-#       define U_PLATFORM U_PF_IPHONE
-#   else
-#       define U_PLATFORM U_PF_DARWIN
-#   endif
 #elif defined(BSD) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__MirBSD__)
 #   define U_PLATFORM U_PF_BSD
 #elif defined(sun) || defined(__sun)
@@ -169,6 +162,13 @@
 #   define U_PLATFORM U_PF_HPUX
 #elif defined(sgi) || defined(__sgi)
 #   define U_PLATFORM U_PF_IRIX
+#elif defined(__APPLE__) && defined(__MACH__)
+#   include <TargetConditionals.h>
+#   if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE  
+#       define U_PLATFORM U_PF_IPHONE
+#   else
+#       define U_PLATFORM U_PF_DARWIN
+#   endif
 #elif defined(macintosh)
 #   define U_PLATFORM U_PF_CLASSIC_MACOS
 #elif defined(__QNX__) || defined(__QNXNTO__)
@@ -272,7 +272,7 @@
 #ifdef U_HAVE_STDINT_H
     
 #elif U_PLATFORM_USES_ONLY_WIN32_API
-#   if defined(__BORLANDC__) || U_PLATFORM == U_PF_MINGW || (defined(_MSC_VER) && _MSC_VER>=1600)
+#   if defined(__BORLANDC__) || (defined(_MSC_VER) && _MSC_VER>=1600)
         
 #       define U_HAVE_STDINT_H 1
 #   else
@@ -339,6 +339,8 @@
 
 #ifdef U_HAVE_STD_STRING
     
+#elif U_PLATFORM == U_PF_ANDROID
+#   define U_HAVE_STD_STRING 0
 #else
 #   define U_HAVE_STD_STRING 1
 #endif

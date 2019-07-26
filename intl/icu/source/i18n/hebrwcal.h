@@ -402,6 +402,49 @@ public:
 
 
 
+    static UDate         fgSystemDefaultCenturyStart;
+
+    
+
+
+    static int32_t          fgSystemDefaultCenturyStartYear;
+
+    
+
+
+    static const int32_t    fgSystemDefaultCenturyYear;
+
+    
+
+
+    static const UDate        fgSystemDefaultCentury;
+
+    
+
+
+
+    UDate         internalGetDefaultCenturyStart(void) const;
+
+    
+
+
+
+    int32_t          internalGetDefaultCenturyStartYear(void) const;
+
+    
+
+
+
+
+    static void  initializeSystemDefaultCentury(void);
+
+ private: 
+    
+
+
+
+
+
 
 
 

@@ -492,6 +492,18 @@ ChoiceFormat::format(const Formattable* objs,
 
 
 
+
+
+UnicodeString&
+ChoiceFormat::format(const Formattable& obj, 
+                     UnicodeString& appendTo, 
+                     FieldPosition& pos,
+                     UErrorCode& status) const
+{
+    return NumberFormat::format(obj, appendTo, pos, status);
+}
+
+
 void
 ChoiceFormat::parse(const UnicodeString& text, 
                     Formattable& result,
@@ -557,6 +569,17 @@ ChoiceFormat::matchStringUntilLimitPart(
             prevIndex = part.getLimit();  
         }
     }
+}
+
+
+
+
+void
+ChoiceFormat::parse(const UnicodeString& text, 
+                    Formattable& result,
+                    UErrorCode& status) const
+{
+    NumberFormat::parse(text, result, status);
 }
 
 

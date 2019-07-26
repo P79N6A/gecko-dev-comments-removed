@@ -56,7 +56,7 @@
 #include "ucnv_cnv.h"
 #include "cmemory.h"
 #include "cstring.h"
-#include "cmutex.h"
+#include "umutex.h"
 
 
 #define MBCS_UNROLL_SINGLE_TO_BMP 1
@@ -3940,10 +3940,9 @@ ucnv_MBCSFromUnicodeWithOffsets(UConverterFromUnicodeArgs *pArgs,
     uint32_t stage2Entry;
     uint32_t asciiRoundtrips;
     uint32_t value;
-    
-    uint8_t siBytes[2] = {0, 0};
-    uint8_t soBytes[2] = {0, 0};
-    uint8_t siLength, soLength;
+    uint8_t si_value[2] = {0, 0}; 
+    uint8_t so_value[2] = {0, 0}; 
+    uint8_t si_value_length, so_value_length;
     int32_t length = 0, prevLength;
     uint8_t unicodeMask;
 
@@ -4016,8 +4015,8 @@ ucnv_MBCSFromUnicodeWithOffsets(UConverterFromUnicodeArgs *pArgs,
     nextSourceIndex=0;
 
     
-    siLength = getSISOBytes(SI, cnv->options, siBytes);
-    soLength = getSISOBytes(SO, cnv->options, soBytes);
+    si_value_length = getSISOBytes(SI, cnv->options, si_value);
+    so_value_length = getSISOBytes(SO, cnv->options, so_value);
 
     
     
@@ -4108,12 +4107,12 @@ ucnv_MBCSFromUnicodeWithOffsets(UConverterFromUnicodeArgs *pArgs,
                             length=1;
                         } else {
                             
-                            if (siLength == 1) {
-                                value|=(uint32_t)siBytes[0]<<8;
+                            if (si_value_length == 1) {
+                                value|=(uint32_t)si_value[0]<<8;
                                 length = 2;
-                            } else if (siLength == 2) {
-                                value|=(uint32_t)siBytes[1]<<8;
-                                value|=(uint32_t)siBytes[0]<<16;
+                            } else if (si_value_length == 2) {
+                                value|=(uint32_t)si_value[1]<<8;
+                                value|=(uint32_t)si_value[0]<<16;
                                 length = 3;
                             }
                             prevLength=1;
@@ -4123,12 +4122,12 @@ ucnv_MBCSFromUnicodeWithOffsets(UConverterFromUnicodeArgs *pArgs,
                             length=2;
                         } else {
                             
-                            if (soLength == 1) {
-                                value|=(uint32_t)soBytes[0]<<16;
+                            if (so_value_length == 1) {
+                                value|=(uint32_t)so_value[0]<<16;
                                 length = 3;
-                            } else if (soLength == 2) {
-                                value|=(uint32_t)soBytes[1]<<16;
-                                value|=(uint32_t)soBytes[0]<<24;
+                            } else if (so_value_length == 2) {
+                                value|=(uint32_t)so_value[1]<<16;
+                                value|=(uint32_t)so_value[0]<<24;
                                 length = 4;
                             }
                             prevLength=2;
@@ -4340,12 +4339,12 @@ getTrail:
                             length=1;
                         } else {
                             
-                            if (siLength == 1) {
-                                value|=(uint32_t)siBytes[0]<<8;
+                            if (si_value_length == 1) {
+                                value|=(uint32_t)si_value[0]<<8;
                                 length = 2;
-                            } else if (siLength == 2) {
-                                value|=(uint32_t)siBytes[1]<<8;
-                                value|=(uint32_t)siBytes[0]<<16;
+                            } else if (si_value_length == 2) {
+                                value|=(uint32_t)si_value[1]<<8;
+                                value|=(uint32_t)si_value[0]<<16;
                                 length = 3;
                             }
                             prevLength=1;
@@ -4355,12 +4354,12 @@ getTrail:
                             length=2;
                         } else {
                             
-                            if (soLength == 1) {
-                                value|=(uint32_t)soBytes[0]<<16;
+                            if (so_value_length == 1) {
+                                value|=(uint32_t)so_value[0]<<16;
                                 length = 3;
-                            } else if (soLength == 2) {
-                                value|=(uint32_t)soBytes[1]<<16;
-                                value|=(uint32_t)soBytes[0]<<24;
+                            } else if (so_value_length == 2) {
+                                value|=(uint32_t)so_value[1]<<16;
+                                value|=(uint32_t)so_value[0]<<24;
                                 length = 4;
                             }
                             prevLength=2;
@@ -4615,14 +4614,14 @@ unassigned:
     ) {
         
         if(targetCapacity>0) {
-            *target++=(uint8_t)siBytes[0];
-            if (siLength == 2) {
+            *target++=(uint8_t)si_value[0];
+            if (si_value_length == 2) {
                 if (targetCapacity<2) {
-                    cnv->charErrorBuffer[0]=(uint8_t)siBytes[1];
+                    cnv->charErrorBuffer[0]=(uint8_t)si_value[1];
                     cnv->charErrorBufferLength=1;
                     *pErrorCode=U_BUFFER_OVERFLOW_ERROR;
                 } else {
-                    *target++=(uint8_t)siBytes[1];
+                    *target++=(uint8_t)si_value[1];
                 }
             }
             if(offsets!=NULL) {
@@ -4631,11 +4630,11 @@ unassigned:
             }
         } else {
             
-            cnv->charErrorBuffer[0]=(uint8_t)siBytes[0];
-            if (siLength == 2) {
-                cnv->charErrorBuffer[1]=(uint8_t)siBytes[1];
+            cnv->charErrorBuffer[0]=(uint8_t)si_value[0];
+            if (si_value_length == 2) {
+                cnv->charErrorBuffer[1]=(uint8_t)si_value[1];
             }
-            cnv->charErrorBufferLength=siLength;
+            cnv->charErrorBufferLength=si_value_length;
             *pErrorCode=U_BUFFER_OVERFLOW_ERROR;
         }
         prevLength=1; 

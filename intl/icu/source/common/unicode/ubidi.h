@@ -387,7 +387,7 @@ typedef uint8_t UBiDiLevel;
 
 
 
-#define UBIDI_MAX_EXPLICIT_LEVEL 125
+#define UBIDI_MAX_EXPLICIT_LEVEL 61
 
 
 

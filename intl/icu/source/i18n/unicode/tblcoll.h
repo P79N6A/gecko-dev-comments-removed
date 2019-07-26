@@ -394,7 +394,6 @@ public:
 
     virtual void getVersion(UVersionInfo info) const;
 
-#ifndef U_HIDE_DEPRECATED_API 
     
 
 
@@ -405,14 +404,7 @@ public:
 
 
 
-
-
-
-
-
-
     int32_t getMaxExpansion(int32_t order) const;
-#endif  
 
     
 
@@ -439,7 +431,6 @@ public:
 
     static UClassID U_EXPORT2 getStaticClassID(void);
 
-#ifndef U_HIDE_DEPRECATED_API 
     
 
 
@@ -448,10 +439,8 @@ public:
 
 
 
-
-
     uint8_t *cloneRuleData(int32_t &length, UErrorCode &status);
-#endif  
+
 
     
 
@@ -851,7 +840,7 @@ inline const UCollator * RuleBasedCollator::getUCollator()
 {
     return ucollator;
 }
-#endif  
+#endif
 
 U_NAMESPACE_END
 

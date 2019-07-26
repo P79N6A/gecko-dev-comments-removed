@@ -1217,10 +1217,14 @@ fillForward:
                 int32_t  cIx      = srcIx;
                 int32_t  dIx      = destIx;
                 int32_t  dIxSaved = destIx;
-                U8_NEXT_OR_FFFD(s8, srcIx, strLen, c);
+                U8_NEXT(s8, srcIx, strLen, c);
                 if (c==0 && nulTerminated) {
                     srcIx--;
                     break;
+                }
+                if (c<0) {
+                    
+                    c = 0x0fffd;
                 }
 
                 U16_APPEND_UNSAFE(buf, destIx, c);
@@ -1333,8 +1337,12 @@ fillReverse:
                 
                 
                 
-                c=utf8_prevCharSafeBody(s8, 0, &srcIx, c, -3);
-                
+                if (c<=0xbf) {
+                    c=utf8_prevCharSafeBody(s8, 0, &srcIx, c, -1);
+                    
+                } else {
+                    c=0x0fffd;
+                }
 
                 
                 if (c<0x10000) {
@@ -1407,7 +1415,10 @@ utext_strFromUTF8(UChar *dest,
         if(ch <=0x7f){
             *pDest++=(UChar)ch;
         }else{
-            ch=utf8_nextCharSafeBody(pSrc, &index, srcLength, ch, -3);
+            ch=utf8_nextCharSafeBody(pSrc, &index, srcLength, ch, -1);
+            if(ch<0){
+                ch = 0xfffd;
+            }
             if(U_IS_BMP(ch)){
                 *(pDest++)=(UChar)ch;
             }else{
@@ -1427,7 +1438,10 @@ utext_strFromUTF8(UChar *dest,
         if(ch <= 0x7f){
             reqLength++;
         }else{
-            ch=utf8_nextCharSafeBody(pSrc, &index, srcLength, ch, -3);
+            ch=utf8_nextCharSafeBody(pSrc, &index, srcLength, ch, -1);
+            if(ch<0){
+                ch = 0xfffd;
+            }
             reqLength+=U16_LENGTH(ch);
         }
     }

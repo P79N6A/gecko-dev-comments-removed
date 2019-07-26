@@ -28,7 +28,10 @@ class  UnicodeSet;
 class SimpleDateFormatStaticSets : public UMemory
 {
 public:
-    SimpleDateFormatStaticSets(UErrorCode &status);
+    static SimpleDateFormatStaticSets *gStaticSets;  
+    
+    
+    SimpleDateFormatStaticSets(UErrorCode *status);
     ~SimpleDateFormatStaticSets();
     
     static void    initSets(UErrorCode *status);
