@@ -177,15 +177,6 @@ UpdatePrompt.prototype = {
   showUpdateError: function UP_showUpdateError(aUpdate) {
     log("Update error, state: " + aUpdate.state + ", errorCode: " +
         aUpdate.errorCode);
-    if (aUpdate.state == "applied" && aUpdate.errorCode == 0) {
-      
-      
-      
-      
-      this.showApplyPrompt(aUpdate);
-      return;
-    }
-
     this.sendUpdateEvent("update-error", aUpdate);
     this.setUpdateStatus(aUpdate.statusText);
   },
@@ -314,6 +305,14 @@ UpdatePrompt.prototype = {
       return;
     }
 
+    
+    
+    
+    if (aUpdate.state == "applied" && aUpdate.errorCode == 0) {
+      this.showUpdateDownloaded(aUpdate, true);
+      return;
+    }
+
     log("Error downloading update " + aUpdate.name + ": " + aUpdate.errorCode);
     if (aUpdate.errorCode == FILE_ERROR_TOO_BIG) {
       aUpdate.statusText = "file-too-big";
@@ -412,7 +411,13 @@ UpdatePrompt.prototype = {
         break;
       case "update-available-result":
         this.handleAvailableResult(detail);
-        this._update = null;
+        
+        
+        
+        
+        if (this._applyPromptTimer == null) {
+          this._update = null;
+        }
         break;
       case "update-download-cancel":
         this.handleDownloadCancel();
@@ -503,6 +508,7 @@ UpdatePrompt.prototype = {
       log("Timed out waiting for result, restarting");
       this._applyPromptTimer = null;
       this.finishUpdate();
+      this._update = null;
     }
   },
 
