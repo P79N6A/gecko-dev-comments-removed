@@ -15,11 +15,11 @@ function testSteps()
     { key: "3", value: "baz" }
   ];
 
-  let request = mozIndexedDB.open(name, 1);
+  let request = indexedDB.open(name, 1);
   request.onerror = errorHandler;
   request.onupgradeneeded = grabEventAndContinueHandler;
   request.onsuccess = grabEventAndContinueHandler;
-  let event = yield; 
+  let event = yield undefined; 
 
   let db = event.target.result;
 
@@ -37,11 +37,11 @@ function testSteps()
       }
     }
   }
-  event = yield; 
+  event = yield undefined; 
 
   
   objectStore.createIndex("set", "", { unique: true });
-  yield; 
+  yield undefined; 
 
   let trans = db.transaction("data", "readwrite");
   objectStore = trans.objectStore("data");
@@ -51,7 +51,7 @@ function testSteps()
   request.onerror = errorHandler;
   request.onsuccess = grabEventAndContinueHandler;
   
-  let event = yield;
+  let event = yield undefined;
 
   is(event.target.result, "bar", "Got correct result");
 
@@ -59,25 +59,25 @@ function testSteps()
   request.onerror = errorHandler;
   request.onsuccess = grabEventAndContinueHandler;
 
-  yield;
+  yield undefined;
 
   let request = index.get("foopy");
   request.onerror = errorHandler;
   request.onsuccess = grabEventAndContinueHandler;
   
-  let event = yield;
+  let event = yield undefined;
 
   is(event.target.result, "foopy", "Got correct result");
 
   let request = objectStore.add("foopy", 5);
-  request.onerror = new ExpectError("ConstraintError", true);
+  request.addEventListener("error", new ExpectError("ConstraintError", true));
   request.onsuccess = unexpectedSuccessHandler;
 
   trans.oncomplete = grabEventAndContinueHandler;
 
-  yield;
-  yield;
+  yield undefined;
+  yield undefined;
 
   finishTest();
-  yield;
+  yield undefined;
 }

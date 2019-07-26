@@ -21,11 +21,11 @@ function testSteps()
     { name: undefined, keyPath: "value", options: { unique: false } },
   ];
 
-  let request = mozIndexedDB.open(name, 1);
+  let request = indexedDB.open(name, 1);
   request.onerror = errorHandler;
   request.onupgradeneeded = grabEventAndContinueHandler;
   request.onsuccess = unexpectedSuccessHandler;
-  let event = yield;
+  let event = yield undefined;
   let db = event.target.result;
 
   for (let i = 0; i < objectStoreInfo.length; i++) {
@@ -42,24 +42,20 @@ function testSteps()
       ok(true, "createIndex with no keyPath should throw");
     }
 
+    let ex;
     try {
-      request = objectStore.createIndex("Hola", ["foo"], { multiEntry: true });
-      ok(false, "createIndex with array keyPath and multiEntry should throw");
+      objectStore.createIndex("Hola", ["foo"], { multiEntry: true });
     }
     catch(e) {
-      ok(true, "createIndex with array keyPath and multiEntry should throw");
+      ex = e;
     }
+    ok(ex, "createIndex with array keyPath and multiEntry should throw");
+    is(ex.name, "InvalidAccessError", "should throw right exception");
+    ok(ex instanceof DOMException, "should throw right exception");
+    is(ex.code, DOMException.INVALID_ACCESS_ERR, "should throw right exception");
 
     try {
-      request = objectStore.createIndex("Hola", []);
-      ok(false, "createIndex with empty array keyPath should throw");
-    }
-    catch(e) {
-      ok(true, "createIndex with empty array keyPath should throw");
-    }
-
-    try {
-      request = objectStore.createIndex("foo", "bar", 10);
+      objectStore.createIndex("foo", "bar", 10);
       ok(false, "createIndex with bad options should throw");
     }
     catch(e) {
@@ -110,7 +106,7 @@ function testSteps()
          "transaction has the correct mode");
       is(event.target.transaction.objectStoreNames.length, i + 1,
          "transaction only has one object store");
-      is(event.target.transaction.objectStoreNames.item(0), objectStoreName,
+      ok(event.target.transaction.objectStoreNames.contains(objectStoreName),
          "transaction has the correct object store");
     }
   }
@@ -118,8 +114,8 @@ function testSteps()
   request.onsuccess = grabEventAndContinueHandler;
   request.onupgradeneeded = unexpectedSuccessHandler;
 
-  event = yield;
+  event = yield undefined;
 
   finishTest();
-  yield;
+  yield undefined;
 }

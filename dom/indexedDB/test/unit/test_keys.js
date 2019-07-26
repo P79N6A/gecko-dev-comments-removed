@@ -12,11 +12,11 @@ function testSteps()
   let c1 = 1;
   let c2 = 1;
 
-  let openRequest = mozIndexedDB.open(dbname, 1);
+  let openRequest = indexedDB.open(dbname, 1);
   openRequest.onerror = errorHandler;
   openRequest.onupgradeneeded = grabEventAndContinueHandler;
   openRequest.onsuccess = unexpectedSuccessHandler;
-  let event = yield;
+  let event = yield undefined;
   let db = event.target.result;
   let trans = event.target.transaction;
 
@@ -155,18 +155,18 @@ function testSteps()
 
   for (var i = 0; i < keys.length; ++i) {
     let keyI = keys[i];
-    is(mozIndexedDB.cmp(keyI, keyI), 0, i + " compared to self");
+    is(indexedDB.cmp(keyI, keyI), 0, i + " compared to self");
 
     function doCompare(keyI) {
       for (var j = i-1; j >= i-10 && j >= 0; --j) {
-        is(mozIndexedDB.cmp(keyI, keys[j]), 1, i + " compared to " + j);
-        is(mozIndexedDB.cmp(keys[j], keyI), -1, j + " compared to " + i);
+        is(indexedDB.cmp(keyI, keys[j]), 1, i + " compared to " + j);
+        is(indexedDB.cmp(keys[j], keyI), -1, j + " compared to " + i);
       }
     }
     
     doCompare(keyI);
     store.add(i, keyI).onsuccess = function(e) {
-      is(mozIndexedDB.cmp(e.target.result, keyI), 0,
+      is(indexedDB.cmp(e.target.result, keyI), 0,
          "Returned key should cmp as equal");
       ok(compareKeys(e.target.result, keyI),
          "Returned key should actually be equal");
@@ -176,24 +176,24 @@ function testSteps()
     if (keyI === 0) {
       doCompare(-0);
       let req = store.add(i, -0);
-      req.onerror = new ExpectError("ConstraintError", true);
+      req.addEventListener("error", new ExpectError("ConstraintError", true));
       req.onsuccess = unexpectedSuccessHandler;
-      yield;
+      yield undefined;
     }
     else if (Array.isArray(keyI) && keyI.length === 1 && keyI[0] === 0) {
       doCompare([-0]);
       let req = store.add(i, [-0]);
-      req.onerror = new ExpectError("ConstraintError", true);
+      req.addEventListener("error", new ExpectError("ConstraintError", true));
       req.onsuccess = unexpectedSuccessHandler;
-      yield;
+      yield undefined;
     }
   }
 
   store.openCursor().onsuccess = grabEventAndContinueHandler;
   for (i = 0; i < keys.length; ++i) {
-    event = yield;
+    event = yield undefined;
     let cursor = event.target.result;
-    is(mozIndexedDB.cmp(cursor.key, keys[i]), 0,
+    is(indexedDB.cmp(cursor.key, keys[i]), 0,
        "Read back key should cmp as equal");
     ok(compareKeys(cursor.key, keys[i]),
        "Read back key should actually be equal");
@@ -201,7 +201,7 @@ function testSteps()
 
     cursor.continue();
   }
-  event = yield;
+  event = yield undefined;
   is(event.target.result, undefined, "no more results expected");
 
   var nan = 0/0;
@@ -233,7 +233,7 @@ function testSteps()
   
   for (i = 0; i < invalidKeys.length; ++i) {
     try {
-      mozIndexedDB.cmp(invalidKeys[i], 1);
+      indexedDB.cmp(invalidKeys[i], 1);
       ok(false, "didn't throw");
     }
     catch(ex) {
@@ -242,7 +242,7 @@ function testSteps()
       is(ex.code, 0, "Threw with right code");
     }
     try {
-      mozIndexedDB.cmp(1, invalidKeys[i]);
+      indexedDB.cmp(1, invalidKeys[i]);
       ok(false, "didn't throw2");
     }
     catch(ex) {
@@ -262,8 +262,8 @@ function testSteps()
   }
 
   openRequest.onsuccess = grabEventAndContinueHandler;
-  yield;
+  yield undefined;
 
   finishTest();
-  yield;
+  yield undefined;
 }
