@@ -1139,6 +1139,10 @@ nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile, bool aLocal)
   if (!homeDir || !*homeDir)
     return NS_ERROR_FAILURE;
 
+#ifdef ANDROID 
+  aLocal = false;
+#endif
+
   if (aLocal) {
     
     const char* cacheHome = getenv("XDG_CACHE_HOME");
