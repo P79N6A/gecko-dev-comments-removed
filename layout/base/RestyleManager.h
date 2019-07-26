@@ -314,8 +314,7 @@ public:
 
 
 
-  void Restyle(nsChangeHint       aParentFrameHintsNotHandledForDescendants,
-               nsRestyleHint      aRestyleHint,
+  void Restyle(nsRestyleHint aRestyleHint,
                RestyleTracker&    aRestyleTracker,
                DesiredA11yNotifications aDesiredA11yNotifications,
                nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
@@ -333,8 +332,6 @@ public:
 private:
   void CaptureChange(nsStyleContext* aOldContext,
                      nsStyleContext* aNewContext,
-                     nsChangeHint aParentHintsNotHandledForDescendants,
-                     nsChangeHint &aHintsNotHandledForDescendants,
                      nsChangeHint aChangeToAssume);
 
 private:
@@ -352,6 +349,9 @@ private:
   
   
   nsChangeHint mHintsHandled;
+  
+  nsChangeHint mParentFrameHintsNotHandledForDescendants;
+  nsChangeHint mHintsNotHandledForDescendants;
 };
 
 } 
