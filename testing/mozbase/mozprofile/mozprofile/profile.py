@@ -359,6 +359,8 @@ class MetroFirefoxProfile(Profile):
                    'app.update.enabled' : False,
                    'app.update.metro.enabled' : False,
                    
+                   'browser.firstrun-content.dismissed' : True,
+                   
                    'browser.sessionstore.resume_from_crash': False,
                    
                    'browser.shell.checkDefaultBrowser' : False,
