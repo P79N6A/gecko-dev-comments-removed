@@ -13,7 +13,7 @@
 #include "nsIObserverService.h"
 #include "mozilla/ClearOnShutdown.h"
 
-#if defined(XP_LINUX) || defined(__FreeBSD__) || defined(XP_MACOSX) 
+#ifdef XP_UNIX 
 #include "mozilla/Preferences.h"
 #include <fcntl.h>
 #include <unistd.h>

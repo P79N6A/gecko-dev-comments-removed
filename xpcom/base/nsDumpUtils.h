@@ -26,7 +26,7 @@
 #define LOG(...)
 #endif
 
-#if defined(XP_LINUX) || defined(__FreeBSD__) || defined(XP_MACOSX) 
+#ifdef XP_UNIX 
 
 
 
