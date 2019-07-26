@@ -177,39 +177,6 @@ this.ForgetAboutSite = {
     }
 
     
-    let (cp = Cc["@mozilla.org/content-pref/service;1"].
-              getService(Ci.nsIContentPrefService)) {
-      let db = cp.DBConnection;
-      
-      let names = [];
-      let stmt = db.createStatement(
-        "SELECT name " +
-        "FROM groups " +
-        "WHERE name LIKE ?1 ESCAPE '/'"
-      );
-      let pattern = stmt.escapeStringForLIKE(aDomain, "/");
-      stmt.bindByIndex(0, "%" + pattern);
-      try {
-        while (stmt.executeStep())
-          if (hasRootDomain(stmt.getString(0), aDomain))
-            names.push(stmt.getString(0));
-      }
-      finally {
-        stmt.finalize();
-      }
-
-      
-      for (let i = 0; i < names.length; i++) {
-        let uri = names[i];
-        let enumerator = cp.getPrefs(uri, null).enumerator;
-        while (enumerator.hasMoreElements()) {
-          let pref = enumerator.getNext().QueryInterface(Ci.nsIProperty);
-          cp.removePref(uri, pref.name, null);
-        }
-      }
-    }
-
-    
     let (qm = Cc["@mozilla.org/dom/quota/manager;1"].
               getService(Ci.nsIQuotaManager)) {
       
@@ -224,7 +191,17 @@ this.ForgetAboutSite = {
       qm.clearStoragesForURI(httpsURI);
     }
 
+    function onContentPrefsRemovalFinished() {
+      
+      Services.obs.notifyObservers(null, "browser:purge-domain-data", aDomain);
+    }
+
     
-    Services.obs.notifyObservers(null, "browser:purge-domain-data", aDomain);
+    let cps2 = Cc["@mozilla.org/content-pref/service;1"].
+               getService(Ci.nsIContentPrefService2);
+    cps2.removeBySubdomain(aDomain, null, {
+      handleCompletion: function() onContentPrefsRemovalFinished(),
+      handleError: function() {}
+    });
   }
 };

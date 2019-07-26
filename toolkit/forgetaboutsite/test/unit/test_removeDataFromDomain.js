@@ -352,11 +352,13 @@ function check_permission_exists(aURI, aExists)
 
 function add_preference(aURI)
 {
-  check_preference_exists(aURI, false);
+  let deferred = Promise.defer();
   let cp = Cc["@mozilla.org/content-pref/service;1"].
-           getService(Ci.nsIContentPrefService);
-  cp.setPref(aURI, PREFERENCE_NAME, "foo", null);
-  check_preference_exists(aURI, true);
+             getService(Ci.nsIContentPrefService2);
+  cp.set(aURI.spec, PREFERENCE_NAME, "foo", null, {
+    handleCompletion: function() deferred.resolve()
+  });
+  return deferred.promise;
 }
 
 
@@ -365,14 +367,17 @@ function add_preference(aURI)
 
 
 
-
-
-function check_preference_exists(aURI, aExists)
+function preference_exists(aURI)
 {
+  let deferred = Promise.defer();
   let cp = Cc["@mozilla.org/content-pref/service;1"].
-           getService(Ci.nsIContentPrefService);
-  let checker = aExists ? do_check_true : do_check_false;
-  checker(cp.hasPref(aURI, PREFERENCE_NAME, null));
+             getService(Ci.nsIContentPrefService2);
+  let exists = false;
+  cp.getByDomainAndName(aURI.spec, PREFERENCE_NAME, null, {
+    handleResult: function() exists = true,
+    handleCompletion: function() deferred.resolve(exists)
+  });
+  return deferred.promise;
 }
 
 
@@ -561,42 +566,70 @@ function test_permission_manager_not_cleared_with_uri_contains_domain()
   check_permission_exists(TEST_URI, false);
 }
 
+function waitForPurgeNotification() {
+  let deferred = Promise.defer();
+
+  let observer = {
+    observe: function(aSubject, aTopic, aData)
+    {
+      Services.obs.removeObserver(observer, "browser:purge-domain-data");
+      
+      
+      
+      Services.tm.mainThread.dispatch(function() {
+        deferred.resolve();
+      }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+    }
+  };
+  Services.obs.addObserver(observer, "browser:purge-domain-data", false);
+
+  return deferred.promise;
+}
+
 
 function test_content_preferences_cleared_with_direct_match()
 {
   const TEST_URI = uri("http://mozilla.org");
-  add_preference(TEST_URI);
+  do_check_false(yield preference_exists(TEST_URI));
+  yield add_preference(TEST_URI);
+  do_check_true(yield preference_exists(TEST_URI));
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
-  check_preference_exists(TEST_URI, false);
+  yield waitForPurgeNotification();
+  do_check_false(yield preference_exists(TEST_URI));
 }
 
 function test_content_preferences_cleared_with_subdomain()
 {
   const TEST_URI = uri("http://www.mozilla.org");
-  add_preference(TEST_URI);
+  do_check_false(yield preference_exists(TEST_URI));
+  yield add_preference(TEST_URI);
+  do_check_true(yield preference_exists(TEST_URI));
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
-  check_preference_exists(TEST_URI, false);
+  yield waitForPurgeNotification();
+  do_check_false(yield preference_exists(TEST_URI));
 }
 
-function test_content_preferecnes_not_cleared_with_uri_contains_domain()
+function test_content_preferences_not_cleared_with_uri_contains_domain()
 {
   const TEST_URI = uri("http://ilovemozilla.org");
-  add_preference(TEST_URI);
+  do_check_false(yield preference_exists(TEST_URI));
+  yield add_preference(TEST_URI);
+  do_check_true(yield preference_exists(TEST_URI));
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
-  check_preference_exists(TEST_URI, true);
+  yield waitForPurgeNotification();
+  do_check_true(yield preference_exists(TEST_URI));
 
   
-  let cp = Cc["@mozilla.org/content-pref/service;1"].
-           getService(Ci.nsIContentPrefService);
-  cp.removePref(TEST_URI, PREFERENCE_NAME, null);
-  check_preference_exists(TEST_URI, false);
+  ForgetAboutSite.removeDataFromDomain("ilovemozilla.org");
+  yield waitForPurgeNotification();
+  do_check_false(yield preference_exists(TEST_URI));
 }
 
 
 function test_cache_cleared()
 {
   
-  do_check_eq(tests[tests.length - 1], arguments.callee);
+  do_check_true(tests[tests.length - 1] == arguments.callee);
 
   
   
@@ -646,6 +679,7 @@ function test_storage_cleared()
   }
 
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
+  yield waitForPurgeNotification();
 
   do_check_eq(s[0].getItem("test"), null);
   do_check_eq(s[0].length, 0);
@@ -688,7 +722,7 @@ let tests = [
   
   test_content_preferences_cleared_with_direct_match,
   test_content_preferences_cleared_with_subdomain,
-  test_content_preferecnes_not_cleared_with_uri_contains_domain,
+  test_content_preferences_not_cleared_with_uri_contains_domain,
 
   
   test_storage_cleared,
