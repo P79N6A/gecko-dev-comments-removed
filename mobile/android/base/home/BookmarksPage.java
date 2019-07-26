@@ -33,7 +33,7 @@ import java.util.LinkedList;
 
 
 
-public class BookmarksPage extends HomeFragment {
+public class BookmarksPage extends HomeFragment implements AdapterView.OnItemClickListener {
     public static final String LOGTAG = "GeckoBookmarksPage";
 
     private int mFolderId = Bookmarks.FIXED_ROOT_ID;
@@ -113,8 +113,7 @@ public class BookmarksPage extends HomeFragment {
         
         refreshListWithCursor(null);
 
-        EventHandlers eventHandlers = new EventHandlers();
-        mList.setOnItemClickListener(eventHandlers);
+        mList.setOnItemClickListener(this);
         mList.setOnKeyListener(GamepadUtils.getListItemClickDispatcher());
 
         registerForContextMenu(mList);
@@ -150,6 +149,44 @@ public class BookmarksPage extends HomeFragment {
         }
     }
 
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        final ListView list = (ListView) parent;
+        final int headerCount = list.getHeaderViewsCount();
+
+        
+        if (headerCount == 1 && position == 0) {
+            mCursorAdapter.moveToParentFolder();
+            return;
+        }
+
+        final Cursor cursor = mCursorAdapter.getCursor();
+        if (cursor == null) {
+            return;
+        }
+
+        
+        if (headerCount == 1) {
+            position--;
+        }
+
+        cursor.moveToPosition(position);
+
+        int type = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks.TYPE));
+        if (type == Bookmarks.TYPE_FOLDER) {
+            
+            final int folderId = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks._ID));
+            final String folderTitle = mCursorAdapter.getFolderTitle(position);
+            mCursorAdapter.moveToChildFolder(folderId, folderTitle);
+        } else {
+            
+            final String url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
+            if (mUrlOpenListener != null) {
+                mUrlOpenListener.onUrlOpen(url);
+            }
+        }
+    }
+
     private void refreshListWithCursor(Cursor cursor) {
         
         mList.setAdapter(null);
@@ -173,49 +210,6 @@ public class BookmarksPage extends HomeFragment {
 
         
         mQueryTask = null;
-    }
-
-    
-
-
-    private class EventHandlers implements AdapterView.OnItemClickListener {
-        @Override
-        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            final ListView list = (ListView) parent;
-            final int headerCount = list.getHeaderViewsCount();
-
-            
-            if (headerCount == 1 && position == 0) {
-                mCursorAdapter.moveToParentFolder();
-                return;
-            }
-
-            Cursor cursor = mCursorAdapter.getCursor();
-            if (cursor == null) {
-                return;
-            }
-
-            
-            if (headerCount == 1) {
-                position--;
-            }
-
-            cursor.moveToPosition(position);
-
-            int type = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks.TYPE));
-            if (type == Bookmarks.TYPE_FOLDER) {
-                
-                int folderId = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks._ID));
-                String folderTitle = mCursorAdapter.getFolderTitle(position);
-                mCursorAdapter.moveToChildFolder(folderId, folderTitle);
-             } else {
-                
-                String url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
-                if (mUrlOpenListener != null) {
-                    mUrlOpenListener.onUrlOpen(url);
-                }
-             }
-         }
     }
 
     
