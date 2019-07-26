@@ -1036,16 +1036,21 @@ CodeGeneratorX86Shared::visitModPowTwoI(LModPowTwoI *ins)
     Register lhs = ToRegister(ins->getOperand(0));
     int32_t shift = ins->shift();
 
-    Label negative, done;
-    
-    
-    masm.branchTest32(Assembler::Signed, lhs, lhs, &negative);
-    {
-        masm.andl(Imm32((1 << shift) - 1), lhs);
-        masm.jump(&done);
+    Label negative;
+
+    if (ins->mir()->canBeNegativeDividend()) {
+        
+        
+        masm.branchTest32(Assembler::Signed, lhs, lhs, &negative);
     }
-    
-    {
+
+    masm.andl(Imm32((1 << shift) - 1), lhs);
+
+    if (ins->mir()->canBeNegativeDividend()) {
+        Label done;
+        masm.jump(&done);
+
+        
         masm.bind(&negative);
         
         
@@ -1054,8 +1059,8 @@ CodeGeneratorX86Shared::visitModPowTwoI(LModPowTwoI *ins)
         masm.negl(lhs);
         if (!ins->mir()->isTruncated() && !bailoutIf(Assembler::Zero, ins->snapshot()))
             return false;
+        masm.bind(&done);
     }
-    masm.bind(&done);
     return true;
 
 }
