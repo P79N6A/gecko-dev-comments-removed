@@ -498,35 +498,6 @@ struct RootMethods<T *>
     static bool poisoned(T *v) { return IsPoisonedPtr(v); }
 };
 
-#if !defined(JSGC_ROOT_ANALYSIS) && !defined(JSGC_USE_EXACT_ROOTING)
-template <typename T>
-struct RootSink {
-    static inline void dispose(const T &) {}
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <>
-struct RootSink<JSStableString *> {
-    static void dispose(JSStableString *ptr) {
-        JSStableString * volatile sink;
-        sink = ptr;
-        (void)sink; 
-    }
-};
-#endif
-
 template <typename T>
 class RootedBase {};
 
@@ -616,8 +587,6 @@ class Rooted : public RootedBase<T>
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
         JS_ASSERT(*stack == this);
         *stack = prev;
-#else
-        RootSink<T>::dispose(ptr);
 #endif
     }
 
