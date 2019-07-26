@@ -50,13 +50,6 @@ enum ImageFormat {
 
 
 
-  MAC_IO_SURFACE,
-
-  
-
-
-
-
   GONK_IO_SURFACE,
 
   
