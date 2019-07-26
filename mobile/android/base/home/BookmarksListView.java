@@ -47,6 +47,9 @@ public class BookmarksListView extends HomeListView
     
     private BookmarkFolderView mFolderView;
 
+    
+    private boolean mHasFolderHeader = false;
+
     public BookmarksListView(Context context) {
         this(context, null);
     }
@@ -105,9 +108,15 @@ public class BookmarksListView extends HomeListView
         final ListView list = (ListView) parent;
         final int headerCount = list.getHeaderViewsCount();
 
-        
-        if (headerCount == 1 && position == 0) {
-            mCursorAdapter.moveToParentFolder();
+        if (mHasFolderHeader) {
+            
+            
+            if (position == headerCount - 1) {   
+                mCursorAdapter.moveToParentFolder();
+                return;
+            }
+        } else if (position < headerCount) {
+            
             return;
         }
 
@@ -117,9 +126,7 @@ public class BookmarksListView extends HomeListView
         }
 
         
-        if (headerCount == 1) {
-            position--;
-        }
+        position -= headerCount;
 
         cursor.moveToPosition(position);
 
@@ -145,12 +152,14 @@ public class BookmarksListView extends HomeListView
 
         
         if (mFolderId == Bookmarks.FIXED_ROOT_ID) {
-            if (getHeaderViewsCount() == 1) {
+            if (mHasFolderHeader) {
                 removeHeaderView(mFolderView);
+                mHasFolderHeader = false;
             }
         } else {
-            if (getHeaderViewsCount() == 0) {
+            if (!mHasFolderHeader) {
                 addHeaderView(mFolderView, null, true);
+                mHasFolderHeader = true;
             }
 
             mFolderView.setText(mFolderTitle);
