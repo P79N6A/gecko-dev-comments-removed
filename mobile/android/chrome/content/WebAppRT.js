@@ -133,8 +133,12 @@ let WebAppRT = {
   handleEvent: function(event) {
     let target = event.target;
   
-    if (!(target instanceof HTMLAnchorElement) ||
-        target.getAttribute("target") != "_blank") {
+    
+    while(target && !(target instanceof HTMLAnchorElement)) {
+      target = target.parentNode;
+    }
+
+    if (!target || target.getAttribute("target") != "_blank") {
       return;
     }
   
