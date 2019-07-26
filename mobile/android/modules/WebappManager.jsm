@@ -246,15 +246,6 @@ this.WebappManager = {
   _autoUpdate: function(aData, aOldApp) { return Task.spawn((function*() {
     log("_autoUpdate app of type " + aData.type);
 
-    
-    
-    
-    
-    
-    
-    aData.manifestURL = aData.manifestUrl;
-    delete aData.manifestUrl;
-
     if (aData.type == "hosted") {
       let oldManifest = yield DOMApplicationRegistry.getManifestFor(aData.manifestURL);
       DOMApplicationRegistry.updateHostedApp(aData, aOldApp.id, aOldApp, oldManifest, aData.manifest);
