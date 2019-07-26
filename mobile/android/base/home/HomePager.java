@@ -286,6 +286,7 @@ public class HomePager extends ViewPager {
         
         
         if (mInitialPageId != null) {
+            
             setCurrentItem(adapter.getItemPosition(mInitialPageId), false);
             mInitialPageId = null;
         } else {

@@ -5,6 +5,8 @@
 
 package org.mozilla.gecko;
 
+import android.text.TextUtils;
+
 public class AboutPages {
     
     public static final String ADDONS          = "about:addons";
@@ -25,12 +27,47 @@ public class AboutPages {
     }
 
     public static final boolean isTitlelessAboutPage(final String url) {
-        return HOME.equals(url) ||
+        return isAboutHome(url) ||
                PRIVATEBROWSING.equals(url);
     }
 
     public static final boolean isAboutHome(final String url) {
-        return HOME.equals(url);
+        if (url == null || !url.startsWith(HOME)) {
+            return false;
+        }
+        
+        
+        
+        return HOME.equals(url.split("\\?")[0]);
+    }
+
+    public static final String getPageIdFromAboutHomeUrl(final String aboutHomeUrl) {
+        if (aboutHomeUrl == null) {
+            return null;
+        }
+
+        final String[] urlParts = aboutHomeUrl.split("\\?");
+        if (urlParts.length < 2) {
+            return null;
+        }
+
+        final String query = urlParts[1];
+        for (final String param : query.split("&")) {
+            final String pair[] = param.split("=");
+            final String key = pair[0];
+
+            
+            if (TextUtils.isEmpty(key) || !key.equals("page")) {
+                continue;
+            }
+            
+            if (pair.length < 2) {
+                continue;
+            }
+            return pair[1];
+        }
+
+        return null;
     }
 
     public static final boolean isAboutReader(final String url) {
