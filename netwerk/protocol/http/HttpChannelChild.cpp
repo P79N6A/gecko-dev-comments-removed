@@ -917,6 +917,8 @@ HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
 NS_IMETHODIMP
 HttpChannelChild::Cancel(nsresult status)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (!mCanceled) {
     
     
