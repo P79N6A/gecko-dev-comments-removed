@@ -168,6 +168,38 @@ this.TranslationDocument.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function TranslationItem(node, id, isRoot) {
   this.nodeRef = node;
   this.id = id;
@@ -185,5 +217,83 @@ TranslationItem.prototype = {
                    : '';
     return "[object TranslationItem: <" + this.nodeRef.localName + ">"
            + rootType + "]";
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  parseResult: function(result) {
+    if (this.isSimpleRoot) {
+      this.translation = [result];
+      return;
+    }
+
+    let domParser = Cc["@mozilla.org/xmlextras/domparser;1"]
+                      .createInstance(Ci.nsIDOMParser);
+
+    let doc = domParser.parseFromString(result, "text/html");
+    parseResultNode(this, doc.body.firstChild);
+  },
+
+  
+
+
+
+
+
+
+  getChildById: function(id) {
+    let foundChild = null;
+    for (let child of item.children) {
+      if (("n" + child.id) == id) {
+        foundChild = child;
+        break;
+      }
+    }
+    return foundChild;
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function parseResultNode(item, node) {
+  item.translation = [];
+  for (let child of node.childNodes) {
+    if (child.nodeType == TEXT_NODE) {
+      item.translation.push(child.nodeValue);
+    } else {
+      let translationItemChild = item.getChildById(child.id);
+
+      if (translationItemChild) {
+        item.translation.push(translationItemChild);
+        parseResultNode(translationItemChild, child);
+      }
+    }
   }
 }

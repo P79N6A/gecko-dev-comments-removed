@@ -122,8 +122,47 @@ this.BingTranslation.prototype = {
     }
   },
 
-  _parseChunkResult() {
-    
+  
+
+
+
+
+
+
+
+
+
+  _parseChunkResult: function(bingRequest) {
+    let domParser = Cc["@mozilla.org/xmlextras/domparser;1"]
+                      .createInstance(Ci.nsIDOMParser);
+
+    let results;
+    try {
+      let doc = domParser.parseFromString(bingRequest.networkRequest
+                                                     .response.body, "text/xml");
+      results = doc.querySelectorAll("TranslatedText");
+    } catch (e) {
+      return false;
+    }
+
+    let len = results.length;
+    if (len != bingRequest.translationData.length) {
+      
+      
+      
+      return false;
+    }
+
+    let error = false;
+    for (let i = 0; i < len; i++) {
+      try {
+        bingRequest.translationData[i][0].parseResult(
+          results[i].firstChild.nodeValue
+        );
+      } catch (e) { error = true; }
+    }
+
+    return !error;
   },
 
   
