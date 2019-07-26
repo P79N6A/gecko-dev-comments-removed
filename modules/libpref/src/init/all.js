@@ -797,11 +797,6 @@ pref("security.fileuri.strict_origin_policy", true);
 
 
 pref("network.allow-experiments", true);
-#if defined(EARLY_BETA_OR_EARLIER)
-pref("network.dns.allow-srv-experiment", true);
-#else
-pref("network.dns.allow-srv-experiment", false);
-#endif
 
 
 
