@@ -456,6 +456,9 @@ pref("b2g.update.apply-prompt-timeout", 60000);
 
 pref("b2g.update.apply-idle-timeout", 600000); 
 
+pref("b2g.update.download-watchdog-timeout", 120000); 
+pref("b2g.update.download-watchdog-max-retries", 5);
+
 pref("app.update.enabled", true);
 pref("app.update.auto", false);
 pref("app.update.silent", false);
