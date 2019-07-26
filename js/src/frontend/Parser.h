@@ -374,6 +374,7 @@ struct Parser : private AutoGCRooter
 
 
 
+    ParseNode *moduleDecl();
     ParseNode *functionStmt();
     ParseNode *functionExpr();
     ParseNode *statements(bool *hasFunctionStmt = NULL);
