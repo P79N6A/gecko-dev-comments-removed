@@ -216,6 +216,9 @@ pref("media.autoplay.enabled", true);
 
 pref("media.video-queue.default-size", 10);
 
+
+pref("media.audio_data.enabled", true);
+
 #ifdef XP_MACOSX
 
 
