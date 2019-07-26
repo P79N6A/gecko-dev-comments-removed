@@ -591,6 +591,13 @@ pref("browser.prompt.allowNative", false);
 
 pref("network.activity.blipIntervalMilliseconds", 250);
 
+
+
+
+
+
+pref("network.gonk.manage-offline-status", true);
+
 pref("jsloader.reuseGlobal", true);
 
 
