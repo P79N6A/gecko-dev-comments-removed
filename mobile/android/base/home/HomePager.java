@@ -9,6 +9,8 @@ import org.mozilla.gecko.R;
 import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.ViewHelper;
 import org.mozilla.gecko.home.HomeAdapter.OnAddPageListener;
+import org.mozilla.gecko.home.HomeConfig.PageEntry;
+import org.mozilla.gecko.home.HomeConfig.PageType;
 import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.HardwareUtils;
 
@@ -17,6 +19,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.app.LoaderManager.LoaderCallbacks;
+import android.support.v4.content.Loader;
 import android.support.v4.view.ViewPager;
 import android.view.ViewGroup.LayoutParams;
 import android.util.AttributeSet;
@@ -25,14 +30,23 @@ import android.view.ViewGroup;
 import android.view.View;
 
 import java.util.EnumSet;
+import java.util.List;
 
 public class HomePager extends ViewPager {
+
+    private static final int LOADER_ID_CONFIG = 0;
 
     private final Context mContext;
     private volatile boolean mLoaded;
     private Decor mDecor;
+    private View mTabStrip;
 
     private final OnAddPageListener mAddPageListener;
+
+    private final HomeConfig mConfig;
+    private ConfigLoaderCallbacks mConfigLoaderCallbacks;
+
+    private Page mInitialPage;
 
     
     @RobocopTarget
@@ -40,7 +54,26 @@ public class HomePager extends ViewPager {
         HISTORY,
         TOP_SITES,
         BOOKMARKS,
-        READING_LIST
+        READING_LIST;
+
+        static Page valueOf(PageType page) {
+            switch(page) {
+                case TOP_SITES:
+                    return Page.TOP_SITES;
+
+                case BOOKMARKS:
+                    return Page.BOOKMARKS;
+
+                case HISTORY:
+                    return Page.HISTORY;
+
+                case READING_LIST:
+                    return Page.READING_LIST;
+
+                default:
+                    throw new IllegalArgumentException("Could not convert unrecognized PageType");
+            }
+        }
     }
 
     
@@ -81,6 +114,7 @@ public class HomePager extends ViewPager {
     }
 
     static final String CAN_LOAD_ARG = "canLoad";
+    static final String PAGE_ENTRY_ARG = "pageEntry";
 
     public HomePager(Context context) {
         this(context, null);
@@ -89,6 +123,9 @@ public class HomePager extends ViewPager {
     public HomePager(Context context, AttributeSet attrs) {
         super(context, attrs);
         mContext = context;
+
+        mConfig = HomeConfig.getDefault(mContext);
+        mConfigLoaderCallbacks = new ConfigLoaderCallbacks();
 
         mAddPageListener = new OnAddPageListener() {
             @Override
@@ -116,6 +153,7 @@ public class HomePager extends ViewPager {
         if (child instanceof Decor) {
             ((ViewPager.LayoutParams) params).isDecor = true;
             mDecor = (Decor) child;
+            mTabStrip = child;
 
             mDecor.setOnTitleClickListener(new OnTitleClickListener() {
                 @Override
@@ -138,16 +176,18 @@ public class HomePager extends ViewPager {
                 @Override
                 public void onPageScrollStateChanged(int state) { }
             });
+        } else if (child instanceof HomePagerTabStrip) {
+            mTabStrip = child;
         }
 
         super.addView(child, index, params);
     }
 
-    public void redisplay(FragmentManager fm) {
+    public void redisplay(LoaderManager lm, FragmentManager fm) {
         final HomeAdapter adapter = (HomeAdapter) getAdapter();
-        final Page currentPage = adapter.getPageAtPosition(getCurrentItem());
 
-        show(fm, currentPage, null);
+        Page currentPage = adapter.getPageAtPosition(getCurrentItem());
+        show(lm, fm, currentPage, null);
     }
 
     
@@ -155,43 +195,28 @@ public class HomePager extends ViewPager {
 
 
 
-    public void show(FragmentManager fm, Page page, PropertyAnimator animator) {
+    public void show(LoaderManager lm, FragmentManager fm, Page page, PropertyAnimator animator) {
         mLoaded = true;
-
-        if (mDecor != null) {
-            mDecor.removeAllPagerViews();
-        }
-
-        final HomeAdapter adapter = new HomeAdapter(mContext, fm);
-        adapter.setOnAddPageListener(mAddPageListener);
+        mInitialPage = page;
 
         
         final boolean shouldAnimate = (animator != null && Build.VERSION.SDK_INT >= 11);
 
-        adapter.addPage(Page.TOP_SITES, TopSitesPage.class, new Bundle(),
-                getContext().getString(R.string.home_top_sites_title));
-        adapter.addPage(Page.BOOKMARKS, BookmarksPage.class, new Bundle(),
-                getContext().getString(R.string.bookmarks_title));
+        final HomeAdapter adapter = new HomeAdapter(mContext, fm);
+        adapter.setOnAddPageListener(mAddPageListener);
+        adapter.setCanLoadHint(!shouldAnimate);
+        setAdapter(adapter);
+
+        setVisibility(VISIBLE);
 
         
         
-        if (!HardwareUtils.isLowMemoryPlatform()) {
-            adapter.addPage(Page.READING_LIST, ReadingListPage.class, new Bundle(),
-                    getContext().getString(R.string.reading_list_title));
+        if (mTabStrip != null) {
+            mTabStrip.setVisibility(View.INVISIBLE);
         }
 
         
-        
-        adapter.addPage(HardwareUtils.isTablet() ? -1 : 0,
-                Page.HISTORY, HistoryPage.class, new Bundle(),
-                getContext().getString(R.string.home_history_title));
-
-        adapter.setCanLoadHint(!shouldAnimate);
-
-        setAdapter(adapter);
-
-        setCurrentItem(adapter.getItemPosition(page), false);
-        setVisibility(VISIBLE);
+        lm.initLoader(LOADER_ID_CONFIG, null, mConfigLoaderCallbacks);
 
         if (shouldAnimate) {
             animator.addPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
@@ -253,5 +278,70 @@ public class HomePager extends ViewPager {
         }
 
         return super.onInterceptTouchEvent(event);
+    }
+
+    private void updateUiFromPageEntries(List<PageEntry> pageEntries) {
+        
+        
+        if (!mLoaded) {
+            return;
+        }
+
+        if (mDecor != null) {
+            mDecor.removeAllPagerViews();
+        }
+
+        final HomeAdapter adapter = (HomeAdapter) getAdapter();
+
+        
+        
+        
+        boolean originalCanLoadHint = adapter.getCanLoadHint();
+        adapter.setCanLoadHint(false);
+
+        
+        adapter.update(pageEntries);
+
+        final int count = (pageEntries != null ? pageEntries.size() : 0);
+
+        if (mTabStrip != null) {
+            mTabStrip.setVisibility(count > 0 ? View.VISIBLE : View.INVISIBLE);
+        }
+
+        
+        
+        if (mInitialPage != null) {
+            setCurrentItem(adapter.getItemPosition(mInitialPage), false);
+            mInitialPage = null;
+        } else {
+            for (int i = 0; i < count; i++) {
+                final PageEntry pageEntry = pageEntries.get(i);
+                if (pageEntry.isDefault()) {
+                    setCurrentItem(i, false);
+                    break;
+                }
+            }
+        }
+
+        
+        
+        adapter.setCanLoadHint(originalCanLoadHint);
+    }
+
+    private class ConfigLoaderCallbacks implements LoaderCallbacks<List<PageEntry>> {
+        @Override
+        public Loader<List<PageEntry>> onCreateLoader(int id, Bundle args) {
+            return new HomeConfigLoader(mContext, mConfig);
+        }
+
+        @Override
+        public void onLoadFinished(Loader<List<PageEntry>> loader, List<PageEntry> pageEntries) {
+            updateUiFromPageEntries(pageEntries);
+        }
+
+        @Override
+        public void onLoaderReset(Loader<List<PageEntry>> loader) {
+            updateUiFromPageEntries(null);
+        }
     }
 }
