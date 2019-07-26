@@ -121,6 +121,12 @@ public:
 
 
 
+  void DetectScrollableSubframe();
+
+  
+
+
+
 
   void ZoomToRect(const gfxRect& aRect);
 
@@ -548,6 +554,12 @@ private:
   
   
   bool mHandlingTouchQueue;
+
+  
+  
+  
+  
+  bool mDelayPanning;
 
   friend class Axis;
 };
