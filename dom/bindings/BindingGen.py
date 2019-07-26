@@ -52,7 +52,20 @@ def main():
 
     if all(f.endswith("Binding") or f == "ParserResults.pkl" for f in changedDeps):
         toRegenerate = filter(lambda f: f.endswith("Binding"), changedDeps)
-        toRegenerate = map(lambda f: f[:-len("Binding")] + ".webidl", toRegenerate)
+        if len(toRegenerate) == 0 and len(changedDeps) == 1:
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            toRegenerate = allWebIDLFiles
+        else:
+            toRegenerate = map(lambda f: f[:-len("Binding")] + ".webidl",
+                               toRegenerate)
     else:
         toRegenerate = allWebIDLFiles
 
