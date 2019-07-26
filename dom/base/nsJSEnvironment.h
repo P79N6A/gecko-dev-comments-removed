@@ -151,7 +151,7 @@ public:
   {
     
     
-    JSObject* global = JS_GetGlobalObject(mContext);
+    JSObject* global = GetNativeGlobal();
     return global ? mGlobalObjectRef.get() : nullptr;
   }
 protected:
