@@ -291,7 +291,14 @@ public:
   nsPoint mDestination;
   nsPoint mScrollPosAtLastPaint;
 
+  
+  
+  
+  
   nsPoint mRestorePos;
+  
+  
+  
   nsPoint mLastPos;
 
   nsExpirationState mActivityExpirationState;
