@@ -24,8 +24,8 @@ public:
 
   PRUnichar * mDateTimeStr;
   nsFont *    mHeadFootFont;
-  PRUnichar * mPageNumFormat;
-  PRUnichar * mPageNumAndTotalsFormat;
+  nsString    mPageNumFormat;
+  nsString    mPageNumAndTotalsFormat;
   nsString    mDocTitle;
   nsString    mDocURL;
 
@@ -109,7 +109,7 @@ protected:
 
   
   void SetDateTimeStr(PRUnichar * aDateTimeStr);
-  void SetPageNumberFormat(PRUnichar * aFormatStr, bool aForPageNumOnly);
+  void SetPageNumberFormat(const nsAString& aFormatStr, bool aForPageNumOnly);
 
   
   
