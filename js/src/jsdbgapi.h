@@ -11,6 +11,7 @@
 
 
 
+#include "jsbytecode.h"
 #include "jsprvtd.h"
 
 namespace js { class StackFrame; }
