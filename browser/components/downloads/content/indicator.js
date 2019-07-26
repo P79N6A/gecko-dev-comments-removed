@@ -58,9 +58,10 @@ const DownloadsButton = {
 
 
 
+
   initializeIndicator: function DB_initializeIndicator()
   {
-    DownloadsIndicatorView.ensureInitialized();
+    this._update();
   },
 
   
@@ -82,6 +83,16 @@ const DownloadsButton = {
     
     this._customizing = true;
     this._anchorRequested = false;
+
+    let indicator = DownloadsIndicatorView.indicator;
+    if (indicator) {
+      indicator.collapsed = true;
+    }
+
+    let placeholder = this._placeholder;
+    if (placeholder) {
+      placeholder.collapsed = false;
+    }
   },
 
   
@@ -90,7 +101,7 @@ const DownloadsButton = {
   customizeDone: function DB_customizeDone()
   {
     this._customizing = false;
-    DownloadsIndicatorView.afterCustomize();
+    this._update();
   },
 
   
@@ -99,19 +110,69 @@ const DownloadsButton = {
 
 
 
-  _getAnchorInternal: function DB_getAnchorInternal()
+
+
+
+
+  _update: function DB_update() {
+    this._updatePositionInternal();
+
+    if (!DownloadsCommon.useToolkitUI) {
+      DownloadsIndicatorView.ensureInitialized();
+    } else {
+      DownloadsIndicatorView.ensureTerminated();
+    }
+  },
+
+  
+
+
+
+
+
+
+  updatePosition: function DB_updatePosition()
+  {
+    if (!this._anchorRequested) {
+      this._updatePositionInternal();
+    }
+  },
+
+  
+
+
+
+
+
+  _updatePositionInternal: function DB_updatePositionInternal()
   {
     let indicator = DownloadsIndicatorView.indicator;
     if (!indicator) {
       
-      
       return null;
     }
+
+    let placeholder = this._placeholder;
+    if (!placeholder) {
+      
+      indicator.collapsed = true;
+      
+      
+      indicator.parentNode.appendChild(indicator);
+      return null;
+    }
+
+    
+    
+    
+    placeholder.parentNode.insertBefore(indicator, placeholder);
+    placeholder.collapsed = true;
+    indicator.collapsed = false;
 
     indicator.open = this._anchorRequested;
 
     
-    if (!isElementVisible(indicator.parentNode)) {
+    if (!isElementVisible(placeholder.parentNode)) {
       return null;
     }
 
@@ -164,7 +225,7 @@ const DownloadsButton = {
 
     function DB_GA_callback() {
       this._anchorRequested = true;
-      aCallback(this._getAnchorInternal());
+      aCallback(this._updatePositionInternal());
     }
 
     DownloadsOverlayLoader.ensureOverlayLoaded(this.kIndicatorOverlay,
@@ -177,7 +238,7 @@ const DownloadsButton = {
   releaseAnchor: function DB_releaseAnchor()
   {
     this._anchorRequested = false;
-    this._getAnchorInternal();
+    this._updatePositionInternal();
   },
 
   get _tabsToolbar()
@@ -256,15 +317,7 @@ const DownloadsIndicatorView = {
   _ensureOperational: function DIV_ensureOperational(aCallback)
   {
     if (this._operational) {
-      if (aCallback) {
-        aCallback();
-      }
-      return;
-    }
-
-    
-    
-    if (!DownloadsButton._placeholder) {
+      aCallback();
       return;
     }
 
@@ -277,9 +330,7 @@ const DownloadsIndicatorView = {
         DownloadsCommon.getIndicatorData(window).refreshView(this);
       }
 
-      if (aCallback) {
-        aCallback();
-      }
+      aCallback();
     }
 
     DownloadsOverlayLoader.ensureOverlayLoaded(
@@ -317,39 +368,22 @@ const DownloadsIndicatorView = {
       return;
     }
 
-    
-    
-    let anchor = DownloadsButton._placeholder;
-    if (!anchor || !isElementVisible(anchor.parentNode)) {
-      return;
+    function DIV_SEN_callback() {
+      if (this._notificationTimeout) {
+        clearTimeout(this._notificationTimeout);
+      }
+
+      
+      
+      DownloadsButton.updatePosition();
+
+      let indicator = this.indicator;
+      indicator.setAttribute("notification", aType);
+      this._notificationTimeout = setTimeout(
+        function () indicator.removeAttribute("notification"), 1000);
     }
 
-    if (this._notificationTimeout) {
-      clearTimeout(this._notificationTimeout);
-    }
-
-    
-    
-    
-    
-    
-    let notifier = this.notifier;
-    if (notifier.style.transform == '') {
-      let anchorRect = anchor.getBoundingClientRect();
-      let notifierRect = notifier.getBoundingClientRect();
-      let topDiff = anchorRect.top - notifierRect.top;
-      let leftDiff = anchorRect.left - notifierRect.left;
-      let heightDiff = anchorRect.height - notifierRect.height;
-      let widthDiff = anchorRect.width - notifierRect.width;
-      let translateX = (leftDiff + .5 * widthDiff) + "px";
-      let translateY = (topDiff + .5 * heightDiff) + "px";
-      notifier.style.transform = "translate(" +  translateX + ", " + translateY + ")";
-    }
-    notifier.setAttribute("notification", aType);
-    this._notificationTimeout = setTimeout(function () {
-      notifier.removeAttribute("notification");
-      notifier.style.transform = '';
-    }, 1000);
+    this._ensureOperational(DIV_SEN_callback.bind(this));
   },
 
   
@@ -361,12 +395,15 @@ const DownloadsIndicatorView = {
 
   set hasDownloads(aValue)
   {
-    if (this._hasDownloads != aValue || (!this._operational && aValue)) {
+    if (this._hasDownloads != aValue) {
       this._hasDownloads = aValue;
 
       
+      
       if (aValue) {
-        this._ensureOperational();
+        this._ensureOperational(function() DownloadsButton.updatePosition());
+      } else {
+        DownloadsButton.updatePosition();
       }
     }
     return aValue;
@@ -481,7 +518,21 @@ const DownloadsIndicatorView = {
 
   onCommand: function DIV_onCommand(aEvent)
   {
-    DownloadsPanel.showPanel();
+    if (DownloadsCommon.useToolkitUI) {
+      
+      DownloadsCommon.getIndicatorData(window).attention = false;
+      BrowserDownloadsUI();
+    } else {
+      
+      let widgetGroup = CustomizableUI.getWidget("downloads-button");
+      let widget = widgetGroup.forWindow(window);
+      if (widget.areaType == CustomizableUI.AREATYPE_MENU_PANEL) {
+        DownloadsPanel.showDownloadsHistory();
+      } else {
+        DownloadsPanel.showPanel();
+      }
+    }
+
     aEvent.stopPropagation();
   },
 
@@ -511,69 +562,40 @@ const DownloadsIndicatorView = {
     }
   },
 
-  _indicator: null,
-  _indicatorAnchor: null,
-  __indicatorCounter: null,
-  __indicatorProgress: null,
-
   
 
 
 
   get indicator()
   {
-    if (this._indicator) {
-      return this._indicator;
-    }
-
-    let indicator = document.getElementById("downloads-button");
-    if (!indicator || indicator.getAttribute("indicator") != "true") {
+    let indicator = document.getElementById("downloads-indicator");
+    if (!indicator) {
       return null;
     }
 
-    return this._indicator = indicator;
+    
+    delete this.indicator;
+    return this.indicator = indicator;
   },
 
   get indicatorAnchor()
   {
-    return this._indicatorAnchor ||
-      (this._indicatorAnchor = document.getElementById("downloads-indicator-anchor"));
+    delete this.indicatorAnchor;
+    return this.indicatorAnchor =
+      document.getElementById("downloads-indicator-anchor");
   },
 
   get _indicatorCounter()
   {
-    return this.__indicatorCounter ||
-      (this.__indicatorCounter = document.getElementById("downloads-indicator-counter"));
+    delete this._indicatorCounter;
+    return this._indicatorCounter =
+      document.getElementById("downloads-indicator-counter");
   },
 
   get _indicatorProgress()
   {
-    return this.__indicatorProgress ||
-      (this.__indicatorProgress = document.getElementById("downloads-indicator-progress"));
-  },
-
-  get notifier()
-  {
-    return this._notifier ||
-      (this._notifier = document.getElementById("downloads-notification-anchor"));
-  },
-
-  _onCustomizedAway: function() {
-    this._indicator = null;
-    this._indicatorAnchor = null;
-    this.__indicatorCounter = null;
-    this.__indicatorProgress = null;
-  },
-
-  afterCustomize: function() {
-    
-    
-    if (this._indicator != document.getElementById("downloads-button")) {
-      this._onCustomizedAway();
-      this._operational = false;
-      this.ensureTerminated();
-      this.ensureInitialized();
-    }
+    delete this._indicatorProgress;
+    return this._indicatorProgress =
+      document.getElementById("downloads-indicator-progress");
   }
 };
-
