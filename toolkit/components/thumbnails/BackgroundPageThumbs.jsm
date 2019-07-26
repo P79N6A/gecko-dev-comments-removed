@@ -23,6 +23,7 @@ const TELEMETRY_HISTOGRAM_ID_PREFIX = "FX_THUMBNAILS_BG_";
 const TEL_CAPTURE_DONE_OK = 0;
 const TEL_CAPTURE_DONE_TIMEOUT = 1;
 
+const TEL_CAPTURE_DONE_CRASHED = 4;
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 const HTML_NS = "http://www.w3.org/1999/xhtml";
@@ -201,7 +202,7 @@ const BackgroundPageThumbs = {
       
       
       if (curCapture && curCapture.pending) {
-        curCapture._done(null);
+        curCapture._done(null, TEL_CAPTURE_DONE_CRASHED);
         
       }
       
@@ -336,26 +337,27 @@ Capture.prototype = {
 
   
   receiveMessage: function (msg) {
-    tel("CAPTURE_DONE_REASON", TEL_CAPTURE_DONE_OK);
     tel("CAPTURE_SERVICE_TIME_MS", new Date() - this.startDate);
 
     
     
     if (msg.json.id == this.id)
-      this._done(msg.json);
+      this._done(msg.json, TEL_CAPTURE_DONE_OK);
   },
 
   
   notify: function () {
-    tel("CAPTURE_DONE_REASON", TEL_CAPTURE_DONE_TIMEOUT);
-    this._done(null);
+    this._done(null, TEL_CAPTURE_DONE_TIMEOUT);
   },
 
-  _done: function (data) {
+  _done: function (data, reason) {
     
     
     
 
+    if (typeof(reason) != "number")
+      throw new Error("A done reason must be given.");
+    tel("CAPTURE_DONE_REASON_2", reason);
     if (data && data.telemetry) {
       
       for (let id in data.telemetry) {
