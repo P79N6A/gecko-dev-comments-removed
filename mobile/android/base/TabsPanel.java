@@ -436,6 +436,13 @@ public class TabsPanel extends LinearLayout
 
         mHeader.setLayerType(View.LAYER_TYPE_NONE, null);
         mTabsContainer.setLayerType(View.LAYER_TYPE_NONE, null);
+
+        
+        
+        if (!mVisible && mPanel != null) {
+            mPanel.hide();
+            mPanel = null;
+        }
     }
 
     public void setTabsLayoutChangeListener(TabsLayoutChangeListener listener) {
