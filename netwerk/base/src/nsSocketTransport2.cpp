@@ -1163,6 +1163,28 @@ nsSocketTransport::InitiateSocket()
 
     
     
+    if (mConnectionFlags & nsISocketTransport::DISABLE_RFC1918 &&
+        IsIPAddrLocal(&mNetAddr)) {
+#ifdef PR_LOGGING
+        if (SOCKET_LOG_ENABLED()) {
+            nsAutoCString netAddrCString;
+            netAddrCString.SetCapacity(kIPv6CStrBufSize);
+            if (!NetAddrToString(&mNetAddr,
+                                 netAddrCString.BeginWriting(),
+                                 kIPv6CStrBufSize))
+                netAddrCString = NS_LITERAL_CSTRING("<IP-to-string failed>");
+            SOCKET_LOG(("nsSocketTransport::InitiateSocket skipping "
+                        "speculative connection for host [%s:%d] proxy "
+                        "[%s:%d] with Local IP address [%s]",
+                        mHost.get(), mPort, mProxyHost.get(), mProxyPort,
+                        netAddrCString.get()));
+        }
+#endif
+        return NS_ERROR_CONNECTION_REFUSED;
+    }
+
+    
+    
     
     
     
