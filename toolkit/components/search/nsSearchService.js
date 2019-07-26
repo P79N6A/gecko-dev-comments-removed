@@ -288,6 +288,20 @@ function FAIL(message, resultCode) {
 
 
 
+
+
+
+
+function limitURILength(str, len) {
+  len = len || 140;
+  if (str.length > len)
+    return str.slice(0, len) + "...";
+  return str;
+}
+
+
+
+
 const TaskUtils = {
   
 
@@ -1470,7 +1484,7 @@ Engine.prototype = {
     if (!uri)
       return;
 
-    LOG("_setIcon: Setting icon url \"" + uri.spec + "\" for engine \""
+    LOG("_setIcon: Setting icon url \"" + limitURILength(uri.spec) + "\" for engine \""
         + this.name + "\".");
     
     switch (uri.scheme) {
@@ -1683,7 +1697,7 @@ Engine.prototype = {
 
 
   _parseImage: function SRCH_ENG_parseImage(aElement) {
-    LOG("_parseImage: Image textContent: \"" + aElement.textContent + "\"");
+    LOG("_parseImage: Image textContent: \"" + limitURILength(aElement.textContent) + "\"");
     if (aElement.getAttribute("width")  == "16" &&
         aElement.getAttribute("height") == "16") {
       this._setIcon(aElement.textContent, true);
