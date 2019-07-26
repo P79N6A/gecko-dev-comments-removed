@@ -2451,6 +2451,11 @@ Element::MozRequestFullScreen()
 
 #define STRING_BUFFER_UNITS 1020
 
+namespace {
+
+
+
+
 class StringBuilder
 {
 private:
@@ -2713,6 +2718,8 @@ private:
   
   uint32_t                                mLength;
 };
+
+} 
 
 static void
 AppendEncodedCharacters(const nsTextFragment* aText, StringBuilder& aBuilder)
