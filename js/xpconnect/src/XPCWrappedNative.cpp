@@ -1160,9 +1160,8 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
         
         
 
-        RootedObject newobj(cx, JS_CloneObject(cx, flat,
-                                               newProto->GetJSProtoObject(),
-                                               aNewParent));
+        RootedObject proto(cx, newProto->GetJSProtoObject());
+        RootedObject newobj(cx, JS_CloneObject(cx, flat, proto, aNewParent));
         if (!newobj)
             return NS_ERROR_FAILURE;
 

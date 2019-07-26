@@ -123,13 +123,13 @@ StatementParams::NewEnumerate(nsIXPConnectWrappedNative *aWrapper,
       NS_ENSURE_SUCCESS(rv, rv);
 
       
-      JSString *jsname = ::JS_NewStringCopyN(aCtx, &(name.get()[1]),
-                                             name.Length() - 1);
+      JS::RootedString jsname(aCtx, ::JS_NewStringCopyN(aCtx, &(name.get()[1]),
+                                                        name.Length() - 1));
       NS_ENSURE_TRUE(jsname, NS_ERROR_OUT_OF_MEMORY);
 
       
       JS::Rooted<jsid> id(aCtx);
-      if (!::JS_ValueToId(aCtx, JS::StringValue(jsname), &id)) {
+      if (!::JS_StringToId(aCtx, jsname, &id)) {
         *_retval = false;
         return NS_OK;
       }
