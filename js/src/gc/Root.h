@@ -261,17 +261,11 @@ namespace js {
 
 
 
-class InternalHandleBase
-{
-  protected:
-    static void * const zeroPointer;
-};
-
 template <typename T>
 class InternalHandle { };
 
 template <typename T>
-class InternalHandle<T*> : public InternalHandleBase
+class InternalHandle<T*>
 {
     void * const *holder;
     size_t offset;
@@ -316,7 +310,7 @@ class InternalHandle<T*> : public InternalHandleBase
 
 
     InternalHandle(T *field)
-      : holder(reinterpret_cast<void * const *>(&zeroPointer)),
+      : holder(reinterpret_cast<void * const *>(&NullPtr::constNullValue)),
         offset(uintptr_t(field))
     {
     }
