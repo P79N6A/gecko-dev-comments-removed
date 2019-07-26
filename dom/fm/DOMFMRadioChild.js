@@ -73,6 +73,19 @@ DOMFMRadioChild.prototype = {
                       "DOMFMRadio:powerStateChange",
                       "DOMFMRadio:antennaChange"];
     this.initHelper(aWindow, messages);
+
+    let els = Cc["@mozilla.org/eventlistenerservice;1"]
+                .getService(Ci.nsIEventListenerService);
+
+    els.addSystemEventListener(aWindow, "visibilitychange",
+                               this._updateVisibility.bind(this),
+                                true);
+
+    this._visibility = aWindow.document.visibilityState;
+    
+    
+    
+    this._haveEnabledRadio = false;
   },
 
   
@@ -130,6 +143,18 @@ DOMFMRadioChild.prototype = {
     this.dispatchEvent(e);
   },
 
+  _updateVisibility: function(evt) {
+    this._visibility = evt.target.visibilityState;
+    
+    if (this._haveEnabledRadio) {
+      this._notifyVisibility();
+    }
+  },
+
+  _notifyVisibility: function() {
+    cpmm.sendAsyncMessage("DOMFMRadio:updateVisibility", this._visibility);
+  },
+
   receiveMessage: function(aMessage) {
     let msg = aMessage.json;
     if (msg.mid && msg.mid != this._id) {
@@ -153,6 +178,7 @@ DOMFMRadioChild.prototype = {
         Services.DOMRequest.fireError(request, "Failed to turn on the FM radio");
         break;
       case "DOMFMRadio:disable:Return:OK":
+        this._haveEnabledRadio = false;
         request = this.takeRequest(msg.rid);
         if (!request) {
           return;
@@ -160,6 +186,10 @@ DOMFMRadioChild.prototype = {
         Services.DOMRequest.fireSuccess(request, null);
         break;
       case "DOMFMRadio:disable:Return:NO":
+        
+        
+        
+        this._haveEnabledRadio = this.enabled;
         request = this.takeRequest(msg.rid);
         if (!request) {
           return;
@@ -291,6 +321,10 @@ DOMFMRadioChild.prototype = {
   },
 
   enable: function nsIDOMFMRadio_enable(frequency) {
+    
+    
+    this._haveEnabledRadio = true;
+    this._notifyVisibility();
     return this._call("enable", frequency);
   },
 

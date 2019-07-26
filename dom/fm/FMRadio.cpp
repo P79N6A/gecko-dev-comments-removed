@@ -38,6 +38,7 @@ using mozilla::Preferences;
 FMRadio::FMRadio()
   : mHeadphoneState(SWITCH_STATE_OFF)
   , mHasInternalAntenna(false)
+  , mHidden(true)
 {
   LOG("FMRadio is initialized.");
 
@@ -114,6 +115,23 @@ NS_IMETHODIMP FMRadio::Enable(nsIFMRadioSettings *settings)
 
   int32_t upperLimit, lowerLimit, channelWidth;
 
+  if (!mAudioChannelAgent) {
+    nsresult rv;
+    mAudioChannelAgent = do_CreateInstance("@mozilla.org/audiochannelagent;1", &rv);
+    if (!mAudioChannelAgent) {
+      return NS_ERROR_FAILURE;
+    }
+    mAudioChannelAgent->Init(AUDIO_CHANNEL_CONTENT, this);
+  }
+
+  bool canPlay;
+  mAudioChannelAgent->SetVisibilityState(!mHidden);
+  mAudioChannelAgent->StartPlaying(&canPlay);
+  
+  
+  
+  CanPlayChanged(canPlay);
+
   settings->GetUpperLimit(&upperLimit);
   settings->GetLowerLimit(&lowerLimit);
   settings->GetChannelWidth(&channelWidth);
@@ -140,12 +158,17 @@ NS_IMETHODIMP FMRadio::Disable()
   
   
   DisableFMRadio();
-  
+
   nsCOMPtr<nsIAudioManager> audioManager =
     do_GetService(NS_AUDIOMANAGER_CONTRACTID);
   NS_ENSURE_TRUE(audioManager, NS_OK);
 
   audioManager->SetFmRadioAudioEnabled(false);
+
+  if (mAudioChannelAgent) {
+    mAudioChannelAgent->StopPlaying();
+    mAudioChannelAgent = nullptr;
+  }
   return NS_OK;
 }
 
@@ -189,6 +212,15 @@ NS_IMETHODIMP FMRadio::SetFrequency(int32_t frequency)
   return NS_OK;
 }
 
+NS_IMETHODIMP FMRadio::UpdateVisible(bool aVisible)
+{
+  mHidden = !aVisible;
+  if (mAudioChannelAgent) {
+    mAudioChannelAgent->SetVisibilityState(!mHidden);
+  }
+  return NS_OK;
+}
+
 void FMRadio::Notify(const SwitchEvent& aEvent)
 {
   if (mHeadphoneState != aEvent.status()) {
@@ -211,5 +243,27 @@ void FMRadio::Notify(const FMRadioOperationInformation& info)
     case FM_RADIO_OPERATION_SEEK:
       DispatchTrustedEvent(RADIO_SEEK_COMPLETE_EVENT_NAME);
       break;
+    default:
+      MOZ_NOT_REACHED();
+      return;
   }
 }
+
+
+NS_IMETHODIMP FMRadio::CanPlayChanged(bool canPlay)
+{
+  nsCOMPtr<nsIAudioManager> audioManager =
+    do_GetService(NS_AUDIOMANAGER_CONTRACTID);
+  NS_ENSURE_TRUE(audioManager, NS_OK);
+  
+  if (canPlay) {
+    int32_t volIdx = 0;
+    
+    audioManager->GetStreamVolumeIndex(nsIAudioManager::STREAM_TYPE_MUSIC, &volIdx);
+    audioManager->SetStreamVolumeIndex(nsIAudioManager::STREAM_TYPE_FM, volIdx);
+  } else {
+    audioManager->SetStreamVolumeIndex(nsIAudioManager::STREAM_TYPE_FM, 0);
+  }
+  return NS_OK;
+}
+
