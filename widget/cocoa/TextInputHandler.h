@@ -1098,6 +1098,46 @@ public:
 
 protected:
   
+  
+  
+  struct ModifierKey
+  {
+    NSUInteger flags;
+    unsigned short keyCode;
+
+    ModifierKey(NSUInteger aFlags, unsigned short aKeyCode) :
+      flags(aFlags), keyCode(aKeyCode)
+    {
+    }
+
+    NSUInteger GetDeviceDependentFlags() const
+    {
+      return (flags & ~NSDeviceIndependentModifierFlagsMask);
+    }
+
+    NSUInteger GetDeviceIndependentFlags() const
+    {
+      return (flags & NSDeviceIndependentModifierFlagsMask);
+    }
+  };
+  typedef nsTArray<ModifierKey> ModifierKeyArray;
+  ModifierKeyArray mModifierKeys;
+
+  
+
+
+
+  ModifierKey*
+    GetModifierKeyForNativeKeyCode(unsigned short aKeyCode) const;
+
+  
+
+
+
+  ModifierKey*
+    GetModifierKeyForDeviceDependentFlags(NSUInteger aFlags) const;
+
+  
 
 
 
