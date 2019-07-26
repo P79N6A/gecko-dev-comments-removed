@@ -253,6 +253,21 @@ public:
       
       aMode = AUTOMOUNTER_DISABLE;
     }
+
+    if ((aMode == AUTOMOUNTER_DISABLE) &&
+        (mMode == AUTOMOUNTER_ENABLE) && IsUsbCablePluggedIn()) {
+      
+      
+      
+      
+      
+      
+      
+      
+      LOG("Attempting to disable UMS. Deferring until USB cable is unplugged.");
+      aMode = AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED;
+    }
+
     if (aMode != mMode) {
       LOG("Changing mode from '%s' to '%s'", ModeStr(mMode), ModeStr(aMode));
       mMode = aMode;
