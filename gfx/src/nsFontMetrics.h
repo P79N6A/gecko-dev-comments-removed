@@ -43,11 +43,10 @@ struct nsBoundingMetrics;
 
 
 
-class nsFontMetrics
+class nsFontMetrics MOZ_FINAL
 {
 public:
     nsFontMetrics();
-    ~nsFontMetrics();
 
     NS_INLINE_DECL_REFCOUNTING(nsFontMetrics)
 
@@ -212,7 +211,10 @@ public:
 
     int32_t AppUnitsPerDevPixel() { return mP2A; }
 
-protected:
+private:
+    
+    ~nsFontMetrics();
+
     const gfxFont::Metrics& GetMetrics() const;
 
     nsFont mFont;

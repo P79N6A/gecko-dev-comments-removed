@@ -174,7 +174,6 @@ public:
   {
     InitLog();
   }
-  virtual ~LayerManager() {}
 
   
 
@@ -610,6 +609,9 @@ protected:
   nsIntRegion mRegionToClear;
 
   
+  virtual ~LayerManager() {}
+
+  
   
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
@@ -665,8 +667,6 @@ public:
     TYPE_SHADOW,
     TYPE_THEBES
   };
-
-  virtual ~Layer();
 
   
 
@@ -1357,6 +1357,9 @@ public:
 
 protected:
   Layer(LayerManager* aManager, void* aImplData);
+
+  
+  virtual ~Layer();
 
   
 

@@ -90,7 +90,6 @@ public:
                          APZCTreeManager* aTreeManager,
                          GeckoContentController* aController,
                          GestureBehavior aGestures = DEFAULT_GESTURES);
-  ~AsyncPanZoomController();
 
   
   
@@ -360,6 +359,9 @@ public:
   }
 
 protected:
+  
+  ~AsyncPanZoomController();
+
   
 
 
@@ -884,9 +886,6 @@ public:
     : mRepaintInterval(aRepaintInterval)
   { }
 
-  virtual ~AsyncPanZoomAnimation()
-  { }
-
   virtual bool Sample(FrameMetrics& aFrameMetrics,
                       const TimeDuration& aDelta) = 0;
 
@@ -909,6 +908,10 @@ public:
   TimeDuration mRepaintInterval;
 
 protected:
+  
+  virtual ~AsyncPanZoomAnimation()
+  { }
+
   
 
 

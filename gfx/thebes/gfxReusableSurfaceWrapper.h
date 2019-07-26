@@ -33,7 +33,6 @@
 class gfxReusableSurfaceWrapper {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(gfxReusableSurfaceWrapper)
 public:
-  virtual ~gfxReusableSurfaceWrapper() {}
 
   
 
@@ -81,6 +80,9 @@ public:
   virtual Type GetType() = 0;
 
 protected:
+  
+  virtual ~gfxReusableSurfaceWrapper() {}
+
   NS_DECL_OWNINGTHREAD
 };
 

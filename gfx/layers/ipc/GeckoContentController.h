@@ -122,6 +122,9 @@ public:
   virtual void NotifyTransformEnd(const ScrollableLayerGuid& aGuid) {}
 
   GeckoContentController() {}
+
+protected:
+  
   virtual ~GeckoContentController() {}
 };
 

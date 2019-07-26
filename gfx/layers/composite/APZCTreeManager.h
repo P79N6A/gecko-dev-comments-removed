@@ -86,7 +86,6 @@ class APZCTreeManager {
 
 public:
   APZCTreeManager();
-  virtual ~APZCTreeManager();
 
   
 
@@ -273,6 +272,9 @@ public:
   bool FlushRepaintsForOverscrollHandoffChain();
 
 protected:
+  
+  virtual ~APZCTreeManager();
+
   
 
 

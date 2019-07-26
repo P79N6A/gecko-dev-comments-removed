@@ -1038,8 +1038,8 @@ CompositorParent::ComputeRenderIntegrity()
 
 
 
-class CrossProcessCompositorParent : public PCompositorParent,
-                                     public ShadowLayersManager
+class CrossProcessCompositorParent MOZ_FINAL : public PCompositorParent,
+                                               public ShadowLayersManager
 {
   friend class CompositorParent;
 
@@ -1048,7 +1048,6 @@ public:
   CrossProcessCompositorParent(Transport* aTransport)
     : mTransport(aTransport)
   {}
-  virtual ~CrossProcessCompositorParent();
 
   
   virtual IToplevelProtocol*
@@ -1092,6 +1091,9 @@ public:
   virtual AsyncCompositionManager* GetCompositionManager(LayerTransactionParent* aParent) MOZ_OVERRIDE;
 
 private:
+  
+  virtual ~CrossProcessCompositorParent();
+
   void DeferredDestroy();
 
   

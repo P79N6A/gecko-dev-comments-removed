@@ -55,14 +55,17 @@ public:
         mLoadOtherNames(aLoadOtherNames),
         mLoadFaceNames(aLoadFaceNames),
         mLoadCmaps(aLoadCmaps)
-   {
+    {
         MOZ_COUNT_CTOR(FontInfoData);
-   }
+    }
 
+protected:
+    
     virtual ~FontInfoData() {
         MOZ_COUNT_DTOR(FontInfoData);
     }
 
+public:
     virtual void Load();
 
     

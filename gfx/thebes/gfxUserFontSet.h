@@ -141,7 +141,6 @@ public:
     NS_INLINE_DECL_REFCOUNTING(gfxUserFontSet)
 
     gfxUserFontSet();
-    virtual ~gfxUserFontSet();
 
     enum {
         
@@ -378,6 +377,9 @@ public:
     };
 
 protected:
+    
+    virtual ~gfxUserFontSet();
+
     
     virtual bool GetPrivateBrowsing() = 0;
 

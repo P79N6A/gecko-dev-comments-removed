@@ -28,7 +28,6 @@ class nsUserFontSet : public gfxUserFontSet
 {
 public:
   nsUserFontSet(nsPresContext* aContext);
-  ~nsUserFontSet();
 
   
   void Destroy();
@@ -54,6 +53,10 @@ public:
   nsCSSFontFaceRule* FindRuleForEntry(gfxFontEntry* aFontEntry);
 
 protected:
+  
+  
+  ~nsUserFontSet();
+
   
   
   

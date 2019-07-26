@@ -189,8 +189,6 @@ class Image {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Image)
 
 public:
-  virtual ~Image() {}
-
   virtual ISharedImage* AsSharedImage() { return nullptr; }
 
   ImageFormat GetFormat() { return mFormat; }
@@ -223,6 +221,9 @@ protected:
     mSent(false)
   {}
 
+  
+  virtual ~Image() {}
+
   nsAutoPtr<ImageBackendData> mBackendData[size_t(mozilla::layers::LayersBackend::LAYERS_LAST)];
 
   void* mImplData;
@@ -239,7 +240,7 @@ protected:
 
 
 
-class BufferRecycleBin {
+class BufferRecycleBin MOZ_FINAL {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RecycleBin)
 
   
@@ -253,6 +254,11 @@ public:
 
 private:
   typedef mozilla::Mutex Mutex;
+
+  
+  ~BufferRecycleBin()
+  {
+  }
 
   
   
@@ -380,7 +386,7 @@ struct RemoteImageData {
 
 
 
-class ImageContainer : public SupportsWeakPtr<ImageContainer> {
+class ImageContainer MOZ_FINAL : public SupportsWeakPtr<ImageContainer> {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(ImageContainer)
@@ -388,8 +394,6 @@ public:
   enum { DISABLE_ASYNC = 0x0, ENABLE_ASYNC = 0x01 };
 
   ImageContainer(int flag = 0);
-
-  ~ImageContainer();
 
   
 
@@ -630,8 +634,11 @@ public:
 
   RemoteImageData *GetRemoteImageData() { return mRemoteData; }
 
-protected:
+private:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
+
+  
+  ~ImageContainer();
 
   void SetCurrentImageInternal(Image* aImage);
 

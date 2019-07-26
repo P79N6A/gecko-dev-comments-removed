@@ -36,12 +36,11 @@ class AsyncPanZoomController;
 
 
 
-class GestureEventListener {
+class GestureEventListener MOZ_FINAL {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GestureEventListener)
 
   GestureEventListener(AsyncPanZoomController* aAsyncPanZoomController);
-  ~GestureEventListener();
 
   
   
@@ -54,7 +53,9 @@ public:
 
   nsEventStatus HandleInputEvent(const MultiTouchInput& aEvent);
 
-protected:
+private:
+  
+  ~GestureEventListener();
 
   
 

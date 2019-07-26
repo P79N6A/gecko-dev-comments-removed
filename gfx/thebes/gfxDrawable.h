@@ -27,7 +27,6 @@ class gfxDrawable {
 public:
     gfxDrawable(const gfxIntSize aSize)
      : mSize(aSize) {}
-    virtual ~gfxDrawable() {}
 
     
 
@@ -45,6 +44,9 @@ public:
     virtual gfxIntSize Size() { return mSize; }
 
 protected:
+    
+    virtual ~gfxDrawable() {}
+
     const gfxIntSize mSize;
 };
 
@@ -83,9 +85,11 @@ protected:
 
 class gfxDrawingCallback {
     NS_INLINE_DECL_REFCOUNTING(gfxDrawingCallback)
-public:
+protected:
+    
     virtual ~gfxDrawingCallback() {}
 
+public:
     
 
 

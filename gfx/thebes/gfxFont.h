@@ -235,7 +235,6 @@ public:
     NS_INLINE_DECL_REFCOUNTING(gfxFontEntry)
 
     gfxFontEntry(const nsAString& aName, bool aIsStandardFace = false);
-    virtual ~gfxFontEntry();
 
     
     
@@ -471,6 +470,9 @@ protected:
 
     gfxFontEntry();
 
+    
+    virtual ~gfxFontEntry();
+
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold) {
         NS_NOTREACHED("oops, somebody didn't override CreateFontInstance");
         return nullptr;
@@ -681,8 +683,6 @@ public:
         mSkipDefaultFeatureSpaceCheck(false)
         { }
 
-    virtual ~gfxFontFamily() { }
-
     const nsString& Name() { return mName; }
 
     virtual void LocalizedName(nsAString& aLocalizedName);
@@ -806,6 +806,11 @@ public:
     }
 
 protected:
+    
+    virtual ~gfxFontFamily()
+    {
+    }
+
     
     
     virtual bool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[],
@@ -1191,6 +1196,8 @@ public:
         int32_t       mAppUnitsPerDevUnit;
     };
 
+protected:
+    
     virtual ~gfxTextRunFactory() {}
 };
 

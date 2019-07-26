@@ -79,8 +79,6 @@ public:
                        GLenum aWrapMode,
                        TextureImage::Flags aFlags = TextureImage::NoFlags);
 
-    virtual ~TextureImage() {}
-
     
 
 
@@ -236,6 +234,9 @@ protected:
     TextureImage(const gfx::IntSize& aSize,
                  GLenum aWrapMode, ContentType aContentType,
                  Flags aFlags = NoFlags);
+
+    
+    virtual ~TextureImage() {}
 
     virtual gfx::IntRect GetSrcTileRect();
 
