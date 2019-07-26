@@ -9,6 +9,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Home", "resource://gre/modules/Home.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task", "resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "gEncoder", function() { return new gChromeWin.TextEncoder(); });
 XPCOMUtils.defineLazyGetter(this, "gDecoder", function() { return new gChromeWin.TextDecoder(); });
@@ -17,6 +18,9 @@ const SNIPPETS_ENABLED = Services.prefs.getBoolPref("browser.snippets.enabled");
 
 
 const SNIPPETS_UPDATE_URL_PREF = "browser.snippets.updateUrl";
+
+
+const SNIPPETS_STATS_URL_PREF = "browser.snippets.statsUrl";
 
 
 const SNIPPETS_GEO_URL_PREF = "browser.snippets.geoUrl";
@@ -36,6 +40,20 @@ const SNIPPETS_VERSION = 1;
 XPCOMUtils.defineLazyGetter(this, "gSnippetsURL", function() {
   let updateURL = Services.prefs.getCharPref(SNIPPETS_UPDATE_URL_PREF).replace("%SNIPPETS_VERSION%", SNIPPETS_VERSION);
   return Services.urlFormatter.formatURL(updateURL);
+});
+
+
+XPCOMUtils.defineLazyGetter(this, "gSnippetsPath", function() {
+  return OS.Path.join(OS.Constants.Path.profileDir, "snippets.json");
+});
+
+XPCOMUtils.defineLazyGetter(this, "gStatsURL", function() {
+  return Services.prefs.getCharPref(SNIPPETS_STATS_URL_PREF);
+});
+
+
+XPCOMUtils.defineLazyGetter(this, "gStatsPath", function() {
+  return OS.Path.join(OS.Constants.Path.profileDir, "snippets-stats.txt");
 });
 
 XPCOMUtils.defineLazyGetter(this, "gGeoURL", function() {
@@ -109,9 +127,8 @@ function updateSnippets() {
 
 
 function cacheSnippets(response) {
-  let path = OS.Path.join(OS.Constants.Path.profileDir, "snippets.json");
   let data = gEncoder.encode(response);
-  let promise = OS.File.writeAtomic(path, data, { tmpPath: path + ".tmp" });
+  let promise = OS.File.writeAtomic(gSnippetsPath, data, { tmpPath: gSnippetsPath + ".tmp" });
   promise.then(null, e => Cu.reportError("Error caching snippets: " + e));
 }
 
@@ -119,8 +136,7 @@ function cacheSnippets(response) {
 
 
 function loadSnippetsFromCache() {
-  let path = OS.Path.join(OS.Constants.Path.profileDir, "snippets.json");
-  let promise = OS.File.read(path);
+  let promise = OS.File.read(gSnippetsPath);
   promise.then(array => updateBanner(gDecoder.decode(array)), e => {
     
     if (e instanceof OS.File.Error && e.becauseNoSuchFile) {
@@ -168,11 +184,84 @@ function updateBanner(response) {
       },
       onshown: function() {
         
+        if (Math.random() < .1) {
+          writeStat(message.id, new Date().toISOString());
+        }
       }
     });
     
     gMessageIds.push(id);
   });
+}
+
+
+
+
+
+
+
+function writeStat(snippetId, timestamp) {
+  let data = gEncoder.encode(snippetId + "," + timestamp + ";");
+
+  Task.spawn(function() {
+    try {
+      let file = yield OS.File.open(gStatsPath, { append: true, write: true });
+      try {
+        yield file.write(data);
+      } finally {
+        yield file.close();
+      }
+    } catch (ex if ex instanceof OS.File.Error && ex.becauseNoSuchFile) {
+      
+      yield OS.File.writeAtomic(gStatsPath, data, { tmpPath: gStatsPath + ".tmp" });
+    }
+  }).then(null, e => Cu.reportError("Error writing snippets stats: " + e));
+}
+
+
+
+
+function sendStats() {
+  let promise = OS.File.read(gStatsPath);
+  promise.then(array => sendStatsRequest(gDecoder.decode(array)), e => {
+    if (e instanceof OS.File.Error && e.becauseNoSuchFile) {
+      
+    } else {
+      Cu.reportError("Error eading snippets stats: " + e);
+    }
+  });
+}
+
+
+
+
+
+
+
+
+function sendStatsRequest(data) {
+  let params = [];
+  let stats = data.split(";");
+
+  
+  for (let i = 0; i < stats.length - 1; i++) {
+    let stat = stats[i].split(",");
+    params.push("s" + i + "=" + encodeURIComponent(stat[0]));
+    params.push("t" + i + "=" + encodeURIComponent(stat[1]));
+  }
+
+  let url = gStatsURL + "?" + params.join("&");
+
+  
+  _httpGetRequest(url, removeStats);
+}
+
+
+
+
+function removeStats() {
+  let promise = OS.File.remove(gStatsPath);
+  promise.then(null, e => Cu.reportError("Error removing snippets stats: " + e));
 }
 
 
@@ -227,6 +316,7 @@ Snippets.prototype = {
       return;
     }
     update();
+    sendStats();
   }
 };
 
