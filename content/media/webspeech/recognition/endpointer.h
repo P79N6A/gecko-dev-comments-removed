@@ -90,6 +90,13 @@ class Endpointer {
 
   
   
+  
+  int32_t FrameSize() const {
+    return frame_size_;
+  }
+
+  
+  
   bool DidStartReceivingSpeech() const {
     return speech_previously_detected_;
   }
