@@ -11,6 +11,7 @@
 #include "jsapi.h"
 
 #include "gc/Heap.h"
+#include "gc/Root.h"
 #include "js/HashTable.h"
 
 
@@ -215,6 +216,36 @@ class HeapPtr : public EncapsulatedPtr<T, Unioned>
     BarrieredSetPair(JSCompartment *comp,
                      HeapPtr<T1> &v1, T1 *val1,
                      HeapPtr<T2> &v2, T2 *val2);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <class T>
+class FixedHeapPtr
+{
+    T *value;
+
+  public:
+    operator T*() const { return value; }
+    T * operator->() const { return value; }
+
+    operator Handle<T*>() const {
+        return Handle<T*>::fromMarkedLocation(&value);
+    }
+
+    void init(T *ptr) {
+        value = ptr;
+    }
 };
 
 template <class T>
