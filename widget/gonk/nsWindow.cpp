@@ -161,8 +161,6 @@ nsWindow::nsWindow()
         gfxPlatform::GetPlatform();
         sUsingOMTC = ShouldUseOffMainThreadCompositing();
 
-        property_get("ro.display.colorfill", propValue, "0");
-
         
         Preferences::AddBoolVarCache(&sUsingHwc, "layers.composer2d.enabled");
 
