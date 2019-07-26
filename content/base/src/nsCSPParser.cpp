@@ -260,6 +260,14 @@ nsCSPParser::subPath(nsCSPHostSrc* aCspHost)
       ++charCounter;
     }
     if (accept(SLASH)) {
+      
+      
+      if (accept(SLASH)) {
+        const char16_t* params[] = { mCurToken.get() };
+        logWarningErrorToConsole(nsIScriptError::warningFlag, "couldntParseInvalidSource",
+                                 params, ArrayLength(params));
+        return false;
+      }
       aCspHost->appendPath(mCurValue);
       
       
@@ -289,12 +297,18 @@ nsCSPParser::path(nsCSPHostSrc* aCspHost)
   resetCurValue();
 
   if (!accept(SLASH)) {
+    const char16_t* params[] = { mCurToken.get() };
+    logWarningErrorToConsole(nsIScriptError::warningFlag, "couldntParseInvalidSource",
+                             params, ArrayLength(params));
     return false;
   }
   if (atEnd()) {
     return true;
   }
   if (!hostChar()) {
+    const char16_t* params[] = { mCurToken.get() };
+    logWarningErrorToConsole(nsIScriptError::warningFlag, "couldntParseInvalidSource",
+                             params, ArrayLength(params));
     return false;
   }
   return subPath(aCspHost);
@@ -464,7 +478,11 @@ nsCSPParser::hostSource()
   
   
   if (!path(cspHost)) {
-    return cspHost;
+    
+    
+    
+    delete cspHost;
+    return nullptr;
   }
 
   
