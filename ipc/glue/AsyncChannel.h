@@ -129,6 +129,15 @@ public:
     
     
     
+    bool Unsound_IsClosed() const;
+    uint32_t Unsound_NumQueuedMessages() const;
+
+    
+    
+    
+    
+    
+    
     
     
     
@@ -146,6 +155,9 @@ public:
         virtual void EchoMessage(Message *msg) = 0;
         virtual void SendMessage(Message *msg) = 0;
         virtual void SendClose() = 0;
+
+        virtual bool Unsound_IsClosed() const = 0;
+        virtual uint32_t Unsound_NumQueuedMessages() const = 0;
     };
 
     class ProcessLink : public Link, public Transport::Listener {
@@ -181,6 +193,9 @@ public:
         virtual void EchoMessage(Message *msg) MOZ_OVERRIDE;
         virtual void SendMessage(Message *msg) MOZ_OVERRIDE;
         virtual void SendClose() MOZ_OVERRIDE;
+
+        virtual bool Unsound_IsClosed() const MOZ_OVERRIDE;
+        virtual uint32_t Unsound_NumQueuedMessages() const MOZ_OVERRIDE;
     };
     
     class ThreadLink : public Link {
@@ -194,6 +209,9 @@ public:
         virtual void EchoMessage(Message *msg) MOZ_OVERRIDE;
         virtual void SendMessage(Message *msg) MOZ_OVERRIDE;
         virtual void SendClose() MOZ_OVERRIDE;
+
+        virtual bool Unsound_IsClosed() const MOZ_OVERRIDE;
+        virtual uint32_t Unsound_NumQueuedMessages() const MOZ_OVERRIDE;
     };
 
 protected:

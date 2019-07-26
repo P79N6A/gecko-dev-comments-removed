@@ -42,6 +42,11 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   }
   void CloseClientFileDescriptor();
 
+  
+  
+  bool Unsound_IsClosed() const;
+  uint32_t Unsound_NumQueuedMessages() const;
+
  private:
   void Init(Mode mode, Listener* listener);
   bool CreatePipe(const std::wstring& channel_id, Mode mode);
@@ -57,6 +62,9 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
 #if defined(OS_MACOSX)
   void CloseDescriptors(uint32_t pending_fd_id);
 #endif
+
+  void OutputQueuePush(Message* msg);
+  void OutputQueuePop();
 
   Mode mode_;
 
@@ -143,6 +151,12 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   
   uint32_t last_pending_fd_id_;
 #endif
+
+
+
+
+
+  size_t output_queue_length_;
 
   ScopedRunnableMethodFactory<ChannelImpl> factory_;
 

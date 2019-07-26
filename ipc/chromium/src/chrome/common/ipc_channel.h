@@ -100,6 +100,12 @@ class Channel : public Message::Sender {
   
   virtual bool Send(Message* message);
 
+  
+  
+  
+  bool Unsound_IsClosed() const;
+  uint32_t Unsound_NumQueuedMessages() const;
+
 #if defined(OS_POSIX)
   
   
