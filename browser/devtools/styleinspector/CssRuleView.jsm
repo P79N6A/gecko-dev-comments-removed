@@ -1404,7 +1404,34 @@ RuleEditor.prototype = {
 
   populate: function RuleEditor_populate()
   {
-    this.selectorText.textContent = this.rule.selectorText;
+    
+    while (this.selectorText.hasChildNodes()) {
+      this.selectorText.removeChild(this.selectorText.lastChild);
+    }
+
+    
+    
+    
+    if (this.rule.domRule && this.rule.domRule.selectorText) {
+      let selectors = CssLogic.getSelectors(this.rule.selectorText);
+      let element = this.rule.inherited || this.ruleView._viewedElement;
+      for (let i = 0; i < selectors.length; i++) {
+        let selector = selectors[i];
+        if (i != 0) {
+          createChild(this.selectorText, "span", {
+            class: "ruleview-selector-separator",
+            textContent: ", "
+          });
+        }
+        let cls = element.mozMatchesSelector(selector) ? "ruleview-selector-matched" : "ruleview-selector-unmatched";
+        createChild(this.selectorText, "span", {
+          class: cls,
+          textContent: selector
+        });
+      }
+    } else {
+      this.selectorText.textContent = this.rule.selectorText;
+    }
 
     for (let prop of this.rule.textProps) {
       if (!prop.editor) {

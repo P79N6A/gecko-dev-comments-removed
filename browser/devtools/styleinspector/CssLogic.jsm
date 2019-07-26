@@ -836,6 +836,69 @@ CssLogic.getShortNamePath = function CssLogic_getShortNamePath(aElement)
 
 
 
+
+CssLogic.getSelectors = function CssLogic_getSelectors(aSelectorText)
+{
+  let selectors = [];
+
+  let selector = aSelectorText.trim();
+  if (!selector) {
+    return selectors;
+  }
+
+  let nesting = 0;
+  let currentSelector = [];
+
+  
+  
+  
+  for (let i = 0, selLen = selector.length; i < selLen; i++) {
+    let c = selector.charAt(i);
+    switch (c) {
+      case ",":
+        if (nesting == 0 && currentSelector.length > 0) {
+          let selectorStr = currentSelector.join("").trim();
+          if (selectorStr) {
+            selectors.push(selectorStr);
+          }
+          currentSelector = [];
+        } else {
+          currentSelector.push(c);
+        }
+        break;
+
+      case "(":
+        nesting++;
+        currentSelector.push(c);
+        break;
+
+      case ")":
+        nesting--;
+        currentSelector.push(c);
+        break;
+
+      default:
+        currentSelector.push(c);
+        break;
+    }
+  }
+
+  
+  if (nesting == 0 && currentSelector.length > 0) {
+    let selectorStr = currentSelector.join("").trim();
+    if (selectorStr) {
+      selectors.push(selectorStr);
+    }
+  }
+
+  return selectors;
+}
+
+
+
+
+
+
 CssLogic.l10n = function(aName) CssLogic._strings.GetStringFromName(aName);
 
 XPCOMUtils.defineLazyGetter(CssLogic, "_strings", function() Services.strings
@@ -1268,56 +1331,8 @@ CssRule.prototype = {
       return this._selectors;
     }
 
-    let selector = this._domRule.selectorText.trim();
-    if (!selector) {
-      return this._selectors;
-    }
-
-    let nesting = 0;
-    let currentSelector = [];
-
-    
-    
-    
-    for (let i = 0, selLen = selector.length; i < selLen; i++) {
-      let c = selector.charAt(i);
-      switch (c) {
-        case ",":
-          if (nesting == 0 && currentSelector.length > 0) {
-            let selectorStr = currentSelector.join("").trim();
-            if (selectorStr) {
-              this._selectors.push(new CssSelector(this, selectorStr));
-            }
-            currentSelector = [];
-          } else {
-            currentSelector.push(c);
-          }
-          break;
-
-        case "(":
-          nesting++;
-          currentSelector.push(c);
-          break;
-
-        case ")":
-          nesting--;
-          currentSelector.push(c);
-          break;
-
-        default:
-          currentSelector.push(c);
-          break;
-      }
-    }
-
-    
-    if (nesting == 0 && currentSelector.length > 0) {
-      let selectorStr = currentSelector.join("").trim();
-      if (selectorStr) {
-        this._selectors.push(new CssSelector(this, selectorStr));
-      }
-    }
-
+    let selectors = CssLogic.getSelectors(this._domRule.selectorText);
+    this._selectors = [new CssSelector(this, text) for (text of selectors)];
     return this._selectors;
   },
 
