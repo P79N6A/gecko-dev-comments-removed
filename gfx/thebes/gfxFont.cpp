@@ -4872,6 +4872,11 @@ gfxFontGroup::ResolveGenericFontNames(FontFamilyType aGenericType,
     static const char kGeneric_fantasy[] = "fantasy";
 
     
+    if (aGenericType == eFamily_moz_fixed) {
+        aGenericType = eFamily_monospace;
+    }
+
+    
     NS_ASSERTION(aGenericType >= eFamily_serif &&
                  aGenericType <= eFamily_fantasy,
                  "standard generic font family type required");
