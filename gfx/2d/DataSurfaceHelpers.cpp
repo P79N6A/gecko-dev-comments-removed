@@ -7,6 +7,8 @@
 
 #include "2D.h"
 #include "DataSurfaceHelpers.h"
+#include "Logging.h"
+#include "mozilla/MathAlgorithms.h"
 #include "Tools.h"
 
 namespace mozilla {
@@ -165,6 +167,31 @@ ClearDataSourceSurface(DataSourceSurface *aSurface)
   }
 
   aSurface->Unmap();
+}
+
+size_t
+BufferSizeFromStrideAndHeight(int32_t aStride,
+                              int32_t aHeight,
+                              int32_t aExtraBytes)
+{
+  if (MOZ_UNLIKELY(aHeight <= 0)) {
+    return 0;
+  }
+
+  
+  
+  
+  
+  
+  
+
+  CheckedInt32 requiredBytes =
+    CheckedInt32(aStride) * CheckedInt32(aHeight) + CheckedInt32(aExtraBytes);
+  if (MOZ_UNLIKELY(!requiredBytes.isValid())) {
+    gfxWarning() << "Buffer size too big; returning zero";
+    return 0;
+  }
+  return requiredBytes.value();
 }
 
 }

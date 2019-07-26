@@ -52,6 +52,22 @@ SurfaceToPackedBGR(DataSourceSurface *aSurface);
 void
 ClearDataSourceSurface(DataSourceSurface *aSurface);
 
+
+
+
+
+
+
+
+
+
+
+
+size_t
+BufferSizeFromStrideAndHeight(int32_t aStride,
+                              int32_t aHeight,
+                              int32_t aExtraBytes = 0);
+
 }
 }
 
