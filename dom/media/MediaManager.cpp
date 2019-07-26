@@ -105,7 +105,7 @@ static nsresult CompareDictionaries(JSContext* aCx, JSObject *aA,
     if (bprop.isUndefined()) {
       
       JS::Rooted<JS::Value> nameval(aCx);
-      bool success = JS_IdToValue(aCx, props[i], nameval.address());
+      bool success = JS_IdToValue(aCx, props[i], &nameval);
       NS_ENSURE_TRUE(success, NS_ERROR_UNEXPECTED);
 
       JS::Rooted<JSString*> namestr(aCx, JS::ToString(aCx, nameval));
