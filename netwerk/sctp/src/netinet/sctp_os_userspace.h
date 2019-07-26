@@ -381,7 +381,7 @@ struct udphdr {
 #else 
 #include <sys/cdefs.h> 
 #include <sys/socket.h>
-#if defined(__Userspace_os_FreeBSD)
+#if defined(__Userspace_os_FreeBSD) || defined(__Userspace_os_Linux) || defined(__Userspace_os_Android)
 #include <pthread.h>
 #endif
 typedef pthread_mutex_t userland_mutex_t;
@@ -461,7 +461,9 @@ struct sx {int dummy;};
 
 #include <sys/types.h>
 #if !defined(__Userspace_os_Windows)
+#if !defined(ANDROID)
 #include <ifaddrs.h>
+#endif
 
 
 #include <sys/ioctl.h>
