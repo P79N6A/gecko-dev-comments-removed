@@ -273,7 +273,6 @@ using mozilla::dom::workers::ResolveWorkerClasses;
 #include "nsIDOMMozVoicemail.h"
 #include "nsIDOMIccManager.h"
 #include "nsIDOMMozCellBroadcast.h"
-#include "nsIDOMMozCellBroadcastEvent.h"
 #include "nsIDOMMobileConnection.h"
 #endif 
 
@@ -1847,11 +1846,6 @@ nsDOMClassInfo::Init()
   DOM_CLASSINFO_MAP_BEGIN(MozCellBroadcast, nsIDOMMozCellBroadcast)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozCellBroadcast)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
-  DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(MozCellBroadcastEvent, nsIDOMMozCellBroadcastEvent)
-     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozCellBroadcastEvent)
-     DOM_CLASSINFO_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 #endif 
 
