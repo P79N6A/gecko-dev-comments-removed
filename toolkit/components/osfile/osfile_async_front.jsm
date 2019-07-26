@@ -27,9 +27,7 @@ let LOG = OS.Shared.LOG.bind(OS.Shared, "Controller");
 let isTypedArray = OS.Shared.isTypedArray;
 
 
-
-
-const DEBUG = false;
+let DEBUG = OS.Shared.DEBUG;
 
 
 let OSError;
@@ -109,6 +107,24 @@ let Scheduler = {
     );
   }
 };
+
+
+if (DEBUG === true) {
+  Scheduler.post("SET_DEBUG", [DEBUG]);
+}
+
+
+
+Object.defineProperty(OS.Shared, "DEBUG", {
+    configurable: true,
+    get: function () {
+        return DEBUG;
+    },
+    set: function (newVal) {
+        Scheduler.post("SET_DEBUG", [newVal]);
+        DEBUG = newVal;
+    }
+});
 
 
 
@@ -533,6 +549,14 @@ if (OS.Constants.Win) {
 
 File.Info.fromMsg = function fromMsg(value) {
   return new File.Info(value);
+};
+
+
+
+
+
+File.GET_DEBUG = function GET_DEBUG() {
+  return Scheduler.post("GET_DEBUG");
 };
 
 

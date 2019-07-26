@@ -12,15 +12,12 @@ if (this.Components) {
 (function(exports) {
   "use strict";
 
-  
-  
-  
-  const DEBUG = false;
-
    try {
      importScripts("resource://gre/modules/osfile.jsm");
 
      let LOG = exports.OS.Shared.LOG.bind(exports.OS.Shared.LOG, "Agent");
+     
+     let DEBUG = exports.OS.Shared.DEBUG;
 
      
 
@@ -205,6 +202,15 @@ if (this.Components) {
 
 
      let Agent = {
+       
+       SET_DEBUG: function SET_DEBUG (aDEBUG) {
+         DEBUG = aDEBUG;
+       },
+       
+       
+       GET_DEBUG: function GET_DEBUG () {
+         return DEBUG;
+       },
        
        stat: function stat(path) {
          return exports.OS.File.Info.toMsg(
