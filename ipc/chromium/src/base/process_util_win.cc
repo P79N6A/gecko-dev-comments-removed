@@ -19,6 +19,8 @@
 #include "base/scoped_ptr.h"
 #include "base/win_util.h"
 
+#include <algorithm>
+
 namespace {
 
 
