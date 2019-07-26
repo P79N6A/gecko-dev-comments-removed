@@ -84,9 +84,9 @@ struct VectorImpl
 
 
     template<typename U>
-    static inline void moveConstruct(T* dst, const U* srcbeg, const U* srcend) {
-      for (const U* p = srcbeg; p < srcend; ++p, ++dst)
-        new(dst) T(OldMove(*p));
+    static inline void moveConstruct(T* dst, U* srcbeg, U* srcend) {
+      for (U* p = srcbeg; p < srcend; ++p, ++dst)
+        new(dst) T(Move(*p));
     }
 
     
@@ -115,7 +115,7 @@ struct VectorImpl
       T* dst = newbuf;
       T* src = v.beginNoCheck();
       for (; src < v.endNoCheck(); ++dst, ++src)
-        new(dst) T(OldMove(*src));
+        new(dst) T(Move(*src));
       VectorImpl::destroy(v.beginNoCheck(), v.endNoCheck());
       v.free_(v.mBegin);
       v.mBegin = newbuf;
@@ -302,7 +302,7 @@ class VectorBase : private AllocPolicy
 #endif
 
     
-    template<typename U> void internalAppend(const U& u);
+    template<typename U> void internalAppend(U&& u);
     template<typename U, size_t O, class BP, class UV>
     void internalAppendAll(const VectorBase<U, O, BP, UV>& u);
     void internalAppendN(const T& t, size_t n);
@@ -314,8 +314,8 @@ class VectorBase : private AllocPolicy
     typedef T ElementType;
 
     VectorBase(AllocPolicy = AllocPolicy());
-    VectorBase(MoveRef<ThisVector>); 
-    ThisVector& operator=(MoveRef<ThisVector>); 
+    VectorBase(ThisVector&&); 
+    ThisVector& operator=(ThisVector&&); 
     ~VectorBase();
 
     
@@ -455,13 +455,13 @@ class VectorBase : private AllocPolicy
 
     
 
+    
 
 
 
 
+    template<typename U> bool append(U&& u);
 
-
-    template<typename U> bool append(const U& u);
     template<typename U, size_t O, class BP, class UV>
     bool appendAll(const VectorBase<U, O, BP, UV>& u);
     bool appendN(const T& t, size_t n);
@@ -473,8 +473,8 @@ class VectorBase : private AllocPolicy
 
 
 
-    template<typename U> void infallibleAppend(const U& u) {
-      internalAppend(u);
+    template<typename U> void infallibleAppend(U&& u) {
+      internalAppend(Forward<U>(u));
     }
     void infallibleAppendN(const T& t, size_t n) {
       internalAppendN(t, n);
@@ -526,7 +526,8 @@ class VectorBase : private AllocPolicy
 
 
 
-    T* insert(T* p, const T& val);
+    template<typename U>
+    T* insert(T* p, U&& val);
 
     
 
@@ -550,6 +551,10 @@ class VectorBase : private AllocPolicy
   private:
     VectorBase(const VectorBase&) MOZ_DELETE;
     void operator=(const VectorBase&) MOZ_DELETE;
+
+    
+    VectorBase(VectorBase&&) MOZ_DELETE;
+    void operator=(VectorBase&&) MOZ_DELETE;
 };
 
 
@@ -579,22 +584,22 @@ VectorBase<T, N, AP, TV>::VectorBase(AP ap)
 
 template<typename T, size_t N, class AllocPolicy, class TV>
 MOZ_ALWAYS_INLINE
-VectorBase<T, N, AllocPolicy, TV>::VectorBase(MoveRef<TV> rhs)
-  : AllocPolicy(rhs)
+VectorBase<T, N, AllocPolicy, TV>::VectorBase(TV&& rhs)
+  : AllocPolicy(Move(rhs))
 #ifdef DEBUG
     , entered(false)
 #endif
 {
-  mLength = rhs->mLength;
-  mCapacity = rhs->mCapacity;
+  mLength = rhs.mLength;
+  mCapacity = rhs.mCapacity;
 #ifdef DEBUG
-  mReserved = rhs->mReserved;
+  mReserved = rhs.mReserved;
 #endif
 
-  if (rhs->usingInlineStorage()) {
+  if (rhs.usingInlineStorage()) {
     
     mBegin = static_cast<T*>(storage.addr());
-    Impl::moveConstruct(mBegin, rhs->beginNoCheck(), rhs->endNoCheck());
+    Impl::moveConstruct(mBegin, rhs.beginNoCheck(), rhs.endNoCheck());
     
 
 
@@ -604,12 +609,12 @@ VectorBase<T, N, AllocPolicy, TV>::VectorBase(MoveRef<TV> rhs)
 
 
 
-    mBegin = rhs->mBegin;
-    rhs->mBegin = static_cast<T*>(rhs->storage.addr());
-    rhs->mCapacity = sInlineCapacity;
-    rhs->mLength = 0;
+    mBegin = rhs.mBegin;
+    rhs.mBegin = static_cast<T*>(rhs.storage.addr());
+    rhs.mCapacity = sInlineCapacity;
+    rhs.mLength = 0;
 #ifdef DEBUG
-    rhs->mReserved = sInlineCapacity;
+    rhs.mReserved = sInlineCapacity;
 #endif
   }
 }
@@ -618,11 +623,12 @@ VectorBase<T, N, AllocPolicy, TV>::VectorBase(MoveRef<TV> rhs)
 template<typename T, size_t N, class AP, class TV>
 MOZ_ALWAYS_INLINE
 TV&
-VectorBase<T, N, AP, TV>::operator=(MoveRef<TV> rhs)
+VectorBase<T, N, AP, TV>::operator=(TV&& rhs)
 {
+  MOZ_ASSERT(this != &rhs, "self-move assignment is prohibited");
   TV* tv = static_cast<TV*>(this);
   tv->~TV();
-  new(tv) TV(rhs);
+  new(tv) TV(Move(rhs));
   return *tv;
 }
 
@@ -895,11 +901,11 @@ VectorBase<T, N, AP, TV>::internalAppendAll(const VectorBase<U, O, BP, UV>& othe
 template<typename T, size_t N, class AP, class TV>
 template<typename U>
 MOZ_ALWAYS_INLINE void
-VectorBase<T, N, AP, TV>::internalAppend(const U& u)
+VectorBase<T, N, AP, TV>::internalAppend(U&& u)
 {
   MOZ_ASSERT(mLength + 1 <= mReserved);
   MOZ_ASSERT(mReserved <= mCapacity);
-  new(endNoCheck()) T(u);
+  new(endNoCheck()) T(Forward<U>(u));
   ++mLength;
 }
 
@@ -930,8 +936,9 @@ VectorBase<T, N, AP, TV>::internalAppendN(const T& t, size_t needed)
 }
 
 template<typename T, size_t N, class AP, class TV>
+template<typename U>
 inline T*
-VectorBase<T, N, AP, TV>::insert(T* p, const T& val)
+VectorBase<T, N, AP, TV>::insert(T* p, U&& val)
 {
   MOZ_ASSERT(begin() <= p);
   MOZ_ASSERT(p <= end());
@@ -939,15 +946,15 @@ VectorBase<T, N, AP, TV>::insert(T* p, const T& val)
   MOZ_ASSERT(pos <= mLength);
   size_t oldLength = mLength;
   if (pos == oldLength) {
-    if (!append(val))
+    if (!append(Forward<U>(val)))
       return nullptr;
   } else {
-    T oldBack = back();
-    if (!append(oldBack)) 
+    T oldBack = Move(back());
+    if (!append(Move(oldBack))) 
       return nullptr;
     for (size_t i = oldLength; i > pos; --i)
-      (*this)[i] = (*this)[i - 1];
-    (*this)[pos] = val;
+      (*this)[i] = Move((*this)[i - 1]);
+    (*this)[pos] = Forward<U>(val);
   }
   return begin() + pos;
 }
@@ -997,7 +1004,7 @@ VectorBase<T, N, AP, TV>::internalAppend(const U* insBegin, size_t insLength)
 template<typename T, size_t N, class AP, class TV>
 template<typename U>
 MOZ_ALWAYS_INLINE bool
-VectorBase<T, N, AP, TV>::append(const U& u)
+VectorBase<T, N, AP, TV>::append(U&& u)
 {
   MOZ_REENTRANCY_GUARD_ET_AL;
   if (mLength == mCapacity && !growStorageBy(1))
@@ -1007,7 +1014,7 @@ VectorBase<T, N, AP, TV>::append(const U& u)
   if (mLength + 1 > mReserved)
     mReserved = mLength + 1;
 #endif
-  internalAppend(u);
+  internalAppend(Forward<U>(u));
   return true;
 }
 
@@ -1177,9 +1184,9 @@ class Vector
 
   public:
     Vector(AllocPolicy alloc = AllocPolicy()) : Base(alloc) {}
-    Vector(mozilla::MoveRef<Vector> vec) : Base(vec) {}
-    Vector& operator=(mozilla::MoveRef<Vector> vec) {
-      return Base::operator=(vec);
+    Vector(Vector&& vec) : Base(Move(vec)) {}
+    Vector& operator=(Vector&& vec) {
+      return Base::operator=(Move(vec));
     }
 };
 

@@ -135,45 +135,52 @@ namespace mozilla {
 
 
 
-template<typename T>
-class MoveRef
-{
-    T* pointer;
 
-  public:
-    explicit MoveRef(T& t) : pointer(&t) { }
-    T& operator*() const { return *pointer; }
-    T* operator->() const { return pointer; }
-    operator T& () const { return *pointer; }
-};
 
-template<typename T>
-inline MoveRef<T>
-OldMove(T& t)
-{
-  return MoveRef<T>(t);
-}
 
-template<typename T>
-inline MoveRef<T>
-OldMove(const T& t)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  return MoveRef<T>(const_cast<T&>(t));
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -211,9 +218,9 @@ template<typename T>
 inline void
 Swap(T& t, T& u)
 {
-  T tmp(OldMove(t));
-  t = OldMove(u);
-  u = OldMove(tmp);
+  T tmp(Move(t));
+  t = Move(u);
+  u = Move(tmp);
 }
 
 } 
