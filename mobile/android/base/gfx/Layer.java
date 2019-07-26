@@ -72,15 +72,6 @@ public abstract class Layer {
 
 
 
-    public Region getValidRegion(RenderContext context) {
-        return new Region(RectUtils.round(getBounds(context)));
-    }
-
-    
-
-
-
-
 
 
     public void beginTransaction() {
