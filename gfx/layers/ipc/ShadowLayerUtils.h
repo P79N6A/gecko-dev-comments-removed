@@ -52,9 +52,9 @@ struct ParamTraits<mozilla::layers::SurfaceDescriptorX11> {
 #endif  
 
 template<>
-struct ParamTraits<mozilla::gl::TextureImage::TextureShareType>
+struct ParamTraits<mozilla::gl::GLContext::SharedTextureShareType>
 {
-  typedef mozilla::gl::TextureImage::TextureShareType paramType;
+  typedef mozilla::gl::GLContext::SharedTextureShareType paramType;
 
   static void Write(Message* msg, const paramType& param)
   {
