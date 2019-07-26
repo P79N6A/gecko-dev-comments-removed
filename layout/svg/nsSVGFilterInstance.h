@@ -65,8 +65,7 @@ public:
 
 
 
-  static nsresult PaintFilteredFrame(nsSVGFilterFrame* aFilterFrame,
-                                     nsRenderingContext *aContext,
+  static nsresult PaintFilteredFrame(nsRenderingContext *aContext,
                                      nsIFrame *aFilteredFrame,
                                      nsSVGFilterPaintCallback *aPaintCallback,
                                      const nsRect* aDirtyArea,
@@ -78,8 +77,7 @@ public:
 
 
 
-  static nsRect GetPostFilterDirtyArea(nsSVGFilterFrame* aFilterFrame,
-                                       nsIFrame *aFilteredFrame,
+  static nsRect GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
                                        const nsRect& aPreFilterDirtyRect);
 
   
@@ -88,8 +86,7 @@ public:
 
 
 
-  static nsRect GetPreFilterNeededArea(nsSVGFilterFrame* aFilterFrame,
-                                       nsIFrame *aFilteredFrame,
+  static nsRect GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
                                        const nsRect& aPostFilterDirtyRect);
 
   
@@ -100,8 +97,7 @@ public:
 
 
 
-  static nsRect GetPostFilterBounds(nsSVGFilterFrame* aFilterFrame,
-                                    nsIFrame *aFilteredFrame,
+  static nsRect GetPostFilterBounds(nsIFrame *aFilteredFrame,
                                     const gfxRect *aOverrideBBox = nullptr,
                                     const nsRect *aPreFilterBounds = nullptr);
 
@@ -123,7 +119,6 @@ public:
 
 
   nsSVGFilterInstance(nsIFrame *aTargetFrame,
-                      nsSVGFilterFrame *aFilterFrame,
                       nsSVGFilterPaintCallback *aPaintCallback,
                       const nsRect *aPostFilterDirtyRect = nullptr,
                       const nsRect *aPreFilterDirtyRect = nullptr,
@@ -276,6 +271,11 @@ private:
   
 
 
+  nsSVGFilterFrame* GetFilterFrame();
+
+  
+
+
 
 
   nsresult BuildPrimitives();
@@ -329,12 +329,22 @@ private:
 
   nsIFrame*               mTargetFrame;
 
+  
+
+
+  const nsTArray<nsStyleFilter> mFilters;
+
   nsSVGFilterPaintCallback* mPaintCallback;
 
   
 
 
   const mozilla::dom::SVGFilterElement* mFilterElement;
+
+  
+
+
+  nsSVGFilterFrame* mFilterFrame;
 
   
 

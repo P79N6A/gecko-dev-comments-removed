@@ -266,14 +266,6 @@ nsSVGFilterProperty::Invalidate()
   }
 }
 
-nsSVGFilterFrame *
-nsSVGFilterProperty::GetFilterFrame()
-{
-  
-  
-  return mReferences.Length() > 0 ? mReferences[0]->GetFilterFrame() : nullptr;
-}
-
 NS_IMPL_ISUPPORTS_INHERITED1(nsSVGFilterReference,
                              nsSVGIDRenderingObserver,
                              nsISVGFilterReference);

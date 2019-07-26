@@ -208,11 +208,6 @@ public:
   void Invalidate();
 
   
-
-
-  nsSVGFilterFrame *GetFilterFrame();
-
-  
   NS_DECL_ISUPPORTS
 
 private:
@@ -374,20 +369,13 @@ public:
 
 
     nsSVGMaskFrame *GetMaskFrame(bool *aOK);
-    
 
+    bool HasValidFilter() {
+      return mFilter && mFilter->ReferencesValidResources();
+    }
 
-
-
-
-    nsSVGFilterFrame *GetFilterFrame(bool *aOK) {
-      if (!mFilter)
-        return nullptr;
-      nsSVGFilterFrame *filter = mFilter->GetFilterFrame();
-      if (!filter) {
-        *aOK = false;
-      }
-      return filter;
+    bool HasNoFilterOrHasValidFilter() {
+      return !mFilter || mFilter->ReferencesValidResources();
     }
   };
 
@@ -415,10 +403,6 @@ public:
 
 
   static nsSVGFilterProperty *GetFilterProperty(nsIFrame *aFrame);
-  static nsSVGFilterFrame *GetFilterFrame(nsIFrame *aFrame) {
-    nsSVGFilterProperty *prop = GetFilterProperty(aFrame);
-    return prop ? prop->GetFilterFrame() : nullptr;
-  }
 
   
 
