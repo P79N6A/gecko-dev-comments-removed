@@ -533,6 +533,12 @@ CustomizeMode.prototype = {
 
     
     
+    if (draggedWrapper == targetNode) {
+      return;
+    }
+
+    
+    
     if (targetArea.id == kPaletteId) {
       if (originArea.id !== kPaletteId) {
         let widget = this.unwrapToolbarItem(draggedWrapper);
