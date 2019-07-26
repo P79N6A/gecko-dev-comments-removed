@@ -211,7 +211,8 @@ enum InterpretStatus
 
 
 extern JS_NEVER_INLINE InterpretStatus
-Interpret(JSContext *cx, StackFrame *stopFp, InterpMode mode = JSINTERP_NORMAL);
+Interpret(JSContext *cx, StackFrame *stopFp, InterpMode mode = JSINTERP_NORMAL,
+          bool useNewType = false);
 
 extern bool
 RunScript(JSContext *cx, StackFrame *fp);
