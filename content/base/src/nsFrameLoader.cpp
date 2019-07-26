@@ -801,8 +801,7 @@ nsFrameLoader::Show(int32_t marginWidth, int32_t marginHeight,
                                          scrollbarPrefY);
     }
 
-    nsCOMPtr<nsIPresShell> presShell;
-    mDocShell->GetPresShell(getter_AddRefs(presShell));
+    nsCOMPtr<nsIPresShell> presShell = mDocShell->GetPresShell();
     if (presShell) {
       
       
@@ -847,8 +846,7 @@ nsFrameLoader::Show(int32_t marginWidth, int32_t marginHeight,
   
   
   
-  nsCOMPtr<nsIPresShell> presShell;
-  mDocShell->GetPresShell(getter_AddRefs(presShell));
+  nsCOMPtr<nsIPresShell> presShell = mDocShell->GetPresShell();
   if (presShell) {
     nsCOMPtr<nsIDOMHTMLDocument> doc =
       do_QueryInterface(presShell->GetDocument());
