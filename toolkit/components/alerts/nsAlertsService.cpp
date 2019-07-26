@@ -102,7 +102,7 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl
   if (!ShouldShowAlert()) {
     
     if (aAlertListener)
-      aAlertListener->Observe(NULL, "alertfinished", PromiseFlatString(aAlertCookie).get());
+      aAlertListener->Observe(nullptr, "alertfinished", PromiseFlatString(aAlertCookie).get());
     return NS_OK;
   }
 

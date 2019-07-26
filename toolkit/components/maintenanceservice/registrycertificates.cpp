@@ -55,8 +55,9 @@ DoesBinaryMatchAllowedCertificates(LPCWSTR basePathForUpdate, LPCWSTR filePath)
 
   
   DWORD subkeyCount = 0;
-  retCode = RegQueryInfoKeyW(baseKey, NULL, NULL, NULL, &subkeyCount, NULL,
-                             NULL, NULL, NULL, NULL, NULL, NULL);
+  retCode = RegQueryInfoKeyW(baseKey, nullptr, nullptr, nullptr, &subkeyCount,
+                             nullptr, nullptr, nullptr, nullptr, nullptr,
+                             nullptr, nullptr);
   if (retCode != ERROR_SUCCESS) {
     LOG_WARN(("Could not query info key.  (%d)", retCode));
     return FALSE;
@@ -67,8 +68,8 @@ DoesBinaryMatchAllowedCertificates(LPCWSTR basePathForUpdate, LPCWSTR filePath)
     WCHAR subkeyBuffer[MAX_KEY_LENGTH];
     DWORD subkeyBufferCount = MAX_KEY_LENGTH;  
     retCode = RegEnumKeyExW(baseKey, i, subkeyBuffer, 
-                            &subkeyBufferCount, NULL, 
-                            NULL, NULL, NULL); 
+                            &subkeyBufferCount, nullptr, 
+                            nullptr, nullptr, nullptr); 
     if (retCode != ERROR_SUCCESS) {
       LOG_WARN(("Could not enum certs.  (%d)", retCode));
       return FALSE;
@@ -93,7 +94,7 @@ DoesBinaryMatchAllowedCertificates(LPCWSTR basePathForUpdate, LPCWSTR filePath)
     WCHAR issuer[MAX_CHAR_COUNT] = { L'\0' };
 
     
-    retCode = RegQueryValueExW(subKey, L"name", 0, NULL, 
+    retCode = RegQueryValueExW(subKey, L"name", 0, nullptr, 
                                (LPBYTE)name, &valueBufSize);
     if (retCode != ERROR_SUCCESS) {
       LOG_WARN(("Could not obtain name from registry.  (%d)", retCode));
@@ -102,7 +103,7 @@ DoesBinaryMatchAllowedCertificates(LPCWSTR basePathForUpdate, LPCWSTR filePath)
 
     
     valueBufSize = MAX_CHAR_COUNT * sizeof(WCHAR);
-    retCode = RegQueryValueExW(subKey, L"issuer", 0, NULL, 
+    retCode = RegQueryValueExW(subKey, L"issuer", 0, nullptr, 
                                (LPBYTE)issuer, &valueBufSize);
     if (retCode != ERROR_SUCCESS) {
       LOG_WARN(("Could not obtain issuer from registry.  (%d)", retCode));

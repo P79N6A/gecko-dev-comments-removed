@@ -16,9 +16,9 @@
 #include "updatehelper.h"
 
 SERVICE_STATUS gSvcStatus = { 0 }; 
-SERVICE_STATUS_HANDLE gSvcStatusHandle = NULL; 
-HANDLE gWorkDoneEvent = NULL;
-HANDLE gThread = NULL;
+SERVICE_STATUS_HANDLE gSvcStatusHandle = nullptr; 
+HANDLE gWorkDoneEvent = nullptr;
+HANDLE gThread = nullptr;
 bool gServiceControlStopping = false;
 
 
@@ -100,7 +100,7 @@ wmain(int argc, WCHAR **argv)
 
   SERVICE_TABLE_ENTRYW DispatchTable[] = { 
     { SVC_NAME, (LPSERVICE_MAIN_FUNCTIONW) SvcMain }, 
-    { NULL, NULL } 
+    { nullptr, nullptr } 
   }; 
 
   
@@ -121,7 +121,7 @@ wmain(int argc, WCHAR **argv)
 BOOL
 GetLogDirectoryPath(WCHAR *path)
 {
-  HRESULT hr = SHGetFolderPathW(NULL, CSIDL_COMMON_APPDATA, NULL, 
+  HRESULT hr = SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 
     SHGFP_TYPE_CURRENT, path);
   if (FAILED(hr)) {
     return FALSE;
@@ -132,12 +132,12 @@ GetLogDirectoryPath(WCHAR *path)
   }
   
   
-  CreateDirectoryW(path, NULL);
+  CreateDirectoryW(path, nullptr);
 
   if (!PathAppendSafe(path, L"logs")) {
     return FALSE;
   }
-  CreateDirectoryW(path, NULL);
+  CreateDirectoryW(path, nullptr);
   return TRUE;
 }
 
@@ -222,8 +222,8 @@ StartTerminationThread()
 {
   
   
-  HANDLE thread = CreateThread(NULL, 0, EnsureProcessTerminatedThread, 
-                               NULL, 0, NULL);
+  HANDLE thread = CreateThread(nullptr, 0, EnsureProcessTerminatedThread,
+                               nullptr, 0, nullptr);
   if (thread) {
     CloseHandle(thread);
   }
@@ -244,7 +244,7 @@ SvcMain(DWORD argc, LPWSTR *argv)
 
   
   
-  UACHelper::DisablePrivileges(NULL);
+  UACHelper::DisablePrivileges(nullptr);
 
   
   gSvcStatusHandle = RegisterServiceCtrlHandlerW(SVC_NAME, SvcCtrlHandler);
@@ -264,7 +264,7 @@ SvcMain(DWORD argc, LPWSTR *argv)
 
   
   
-  gWorkDoneEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+  gWorkDoneEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
   if (!gWorkDoneEvent) {
     ReportSvcStatus(SERVICE_STOPPED, 1, 0);
     StartTerminationThread();
@@ -340,7 +340,7 @@ StopServiceAndWaitForCommandThread(LPVOID)
     ReportSvcStatus(SERVICE_STOP_PENDING, NO_ERROR, 1000);
   } while(WaitForSingleObject(gWorkDoneEvent, 100) == WAIT_TIMEOUT);
   CloseHandle(gWorkDoneEvent);
-  gWorkDoneEvent = NULL;
+  gWorkDoneEvent = nullptr;
   ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
   StartTerminationThread();
   return 0;
@@ -368,15 +368,16 @@ SvcCtrlHandler(DWORD dwCtrl)
 
       
       
-      HANDLE thread = CreateThread(NULL, 0, StopServiceAndWaitForCommandThread, 
-                                   NULL, 0, NULL);
+      HANDLE thread = CreateThread(nullptr, 0,
+                                   StopServiceAndWaitForCommandThread,
+                                   nullptr, 0, nullptr);
       if (thread) {
         CloseHandle(thread);
       } else {
         
         
         
-        StopServiceAndWaitForCommandThread(NULL);
+        StopServiceAndWaitForCommandThread(nullptr);
       }
     }
     break;

@@ -19,8 +19,8 @@
 
 
 
-int *gFinalizerTestResources = NULL;
-char **gFinalizerTestNames = NULL;
+int *gFinalizerTestResources = nullptr;
+char **gFinalizerTestNames = nullptr;
 size_t gFinalizerTestSize;
 
 void
@@ -31,7 +31,7 @@ test_finalizer_start(size_t size)
   gFinalizerTestSize = size;
   for (size_t i = 0; i < size; ++i) {
     gFinalizerTestResources[i] = 0;
-    gFinalizerTestNames[i] = NULL;
+    gFinalizerTestNames[i] = nullptr;
   }
 }
 
@@ -204,14 +204,14 @@ void*
 test_finalizer_acq_null_t(size_t i)
 {
   gFinalizerTestResources[0] = 1;
-  return NULL;
+  return nullptr;
 }
 
 
 void
 test_finalizer_rel_null_t(void *i)
 {
-  if (i != NULL) {
+  if (i != nullptr) {
     MOZ_CRASH("Assertion failed");
   }
   gFinalizerTestResources[0] --;
@@ -309,7 +309,7 @@ test_finalizer_cmp_struct_t(RECT a, RECT b)
 
 afun* test_finalizer_rel_null_function()
 {
-  return NULL;
+  return nullptr;
 }
 
 void
