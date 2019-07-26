@@ -358,8 +358,9 @@ public:
   
   JSObject *FastGetGlobalJSObject() const
   {
-    return mJSObject;
+    return GetWrapperPreserveColor();
   }
+
   void TraceGlobalJSObject(JSTracer* aTrc);
 
   virtual nsresult EnsureScriptEnvironment();
@@ -367,7 +368,6 @@ public:
   virtual nsIScriptContext *GetScriptContext();
 
   void PoisonOuterWindowProxy(JSObject *aObject);
-  virtual void OnFinalize(JSObject* aObject);
 
   virtual bool IsBlackForCC(bool aTracingNeeded = true);
 
@@ -1505,9 +1505,6 @@ protected:
 
   
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;
-
-  
-  JS::TenuredHeap<JSObject*> mJSObject;
 
   typedef nsCOMArray<nsIDOMStorageEvent> nsDOMStorageEventArray;
   nsDOMStorageEventArray mPendingStorageEvents;

@@ -25,10 +25,6 @@
 
 class nsWrapperCache;
 
-
-
-class nsGlobalWindow;
-
 namespace mozilla {
 namespace dom {
 
@@ -440,12 +436,6 @@ inline nsWrapperCache*
 GetWrapperCache(nsWrapperCache* cache)
 {
   return cache;
-}
-
-inline nsWrapperCache*
-GetWrapperCache(nsGlobalWindow*)
-{
-  return nullptr;
 }
 
 inline nsWrapperCache*
