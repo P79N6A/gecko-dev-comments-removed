@@ -1200,6 +1200,84 @@ add_task(function* test_invalidUrl() {
   yield removeCacheFile();
 });
 
+
+
+
+add_task(function* test_unexpectedUninstall() {
+  const OBSERVER_TOPIC = "experiments-changed";
+  let observerFireCount = 0;
+  let expectedObserverFireCount = 0;
+  let observer = () => ++observerFireCount;
+  Services.obs.addObserver(observer, OBSERVER_TOPIC, false);
+
+  
+
+  let baseDate   = new Date(2014, 5, 1, 12);
+  let startDate  = futureDate(baseDate,   100 * MS_IN_ONE_DAY);
+  let endDate    = futureDate(baseDate, 10000 * MS_IN_ONE_DAY);
+
+  
+
+  gManifestObject = {
+    "version": 1,
+    experiments: [
+      {
+        id:               EXPERIMENT1_ID,
+        xpiURL:           gDataRoot + EXPERIMENT1_XPI_NAME,
+        xpiHash:          EXPERIMENT1_XPI_SHA1,
+        startTime:        dateToSeconds(startDate),
+        endTime:          dateToSeconds(endDate),
+        maxActiveSeconds: 10 * SEC_IN_ONE_DAY,
+        appName:          ["XPCShell"],
+        channel:          ["nightly"],
+      },
+    ],
+  };
+
+  let experiments = new Experiments.Experiments(gPolicy);
+
+  
+
+  let now = baseDate;
+  defineNow(gPolicy, now);
+  yield experiments.updateManifest();
+  Assert.equal(observerFireCount, 0,
+               "Experiments observer should not have been called yet.");
+  let list = yield experiments.getExperiments();
+  Assert.equal(list.length, 0, "Experiment list should be empty.");
+
+  
+
+  now = futureDate(startDate, 10 * MS_IN_ONE_DAY);
+  defineNow(gPolicy, now);
+  yield experiments.updateManifest();
+  Assert.equal(observerFireCount, ++expectedObserverFireCount,
+               "Experiments observer should have been called.");
+
+  list = yield experiments.getExperiments();
+  Assert.equal(list.length, 1, "Experiment list should have 1 entry now.");
+  Assert.equal(list[0].id, EXPERIMENT1_ID, "Experiment 1 should be the sole entry.");
+  Assert.equal(list[0].active, true, "Experiment 1 should be active.");
+
+  
+  
+
+  let success = yield uninstallAddon(EXPERIMENT1_ID);
+  Assert.ok(success, "Addon should have been uninstalled.");
+
+  list = yield experiments.getExperiments();
+  Assert.equal(list.length, 1, "Experiment list should have 1 entry now.");
+  Assert.equal(list[0].id, EXPERIMENT1_ID, "Experiment 1 should be the sole entry.");
+  Assert.equal(list[0].active, false, "Experiment 1 should not be active anymore.");
+
+  
+
+  Services.obs.removeObserver(observer, OBSERVER_TOPIC);
+  yield experiments.uninit();
+  yield removeCacheFile();
+});
+
+
 add_task(function* shutdown() {
   yield gReporter._shutdown();
   yield removeCacheFile();
