@@ -304,11 +304,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
 
 
-    bool ShouldPreview();
-
-    
-
-
 
 
 
