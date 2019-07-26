@@ -6609,8 +6609,9 @@ var SearchEngines = {
   init: function init() {
     Services.obs.addObserver(this, "SearchEngines:Add", false);
     Services.obs.addObserver(this, "SearchEngines:GetVisible", false);
-    Services.obs.addObserver(this, "SearchEngines:SetDefault", false);
     Services.obs.addObserver(this, "SearchEngines:Remove", false);
+    Services.obs.addObserver(this, "SearchEngines:RestoreDefaults", false);
+    Services.obs.addObserver(this, "SearchEngines:SetDefault", false);
 
     let filter = {
       matches: function (aElement) {
@@ -6651,8 +6652,9 @@ var SearchEngines = {
   uninit: function uninit() {
     Services.obs.removeObserver(this, "SearchEngines:Add");
     Services.obs.removeObserver(this, "SearchEngines:GetVisible");
-    Services.obs.removeObserver(this, "SearchEngines:SetDefault");
     Services.obs.removeObserver(this, "SearchEngines:Remove");
+    Services.obs.removeObserver(this, "SearchEngines:RestoreDefaults");
+    Services.obs.removeObserver(this, "SearchEngines:SetDefault");
     if (this._contextMenuId != null)
       NativeWindow.contextmenus.remove(this._contextMenuId);
   },
@@ -6722,12 +6724,6 @@ var SearchEngines = {
       case "SearchEngines:GetVisible":
         Services.search.init(this._handleSearchEnginesGetVisible.bind(this));
         break;
-      case "SearchEngines:SetDefault":
-        engine = this._extractEngineFromJSON(aData);
-        
-        Services.search.moveEngine(engine, 0);
-        Services.search.defaultEngine = engine;
-        break;
       case "SearchEngines:Remove":
         
         
@@ -6735,6 +6731,17 @@ var SearchEngines = {
         engine.hidden = false;
         Services.search.removeEngine(engine);
         break;
+      case "SearchEngines:RestoreDefaults":
+        
+        Services.search.restoreDefaultEngines();
+        break;
+      case "SearchEngines:SetDefault":
+        engine = this._extractEngineFromJSON(aData);
+        
+        Services.search.moveEngine(engine, 0);
+        Services.search.defaultEngine = engine;
+        break;
+
       default:
         dump("Unexpected message type observed: " + aTopic);
         break;
