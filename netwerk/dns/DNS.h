@@ -55,9 +55,12 @@ namespace net {
 
 const int kIPv4CStrBufSize = 22;
 const int kIPv6CStrBufSize = 65;
+const int kNetAddrMaxCStrBufSize = kIPv6CStrBufSize;
 #else
 const int kIPv4CStrBufSize = 16;
 const int kIPv6CStrBufSize = 46;
+const int kLocalCStrBufSize = 108;
+const int kNetAddrMaxCStrBufSize = kLocalCStrBufSize;
 #endif
 
 

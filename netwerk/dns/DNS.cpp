@@ -115,9 +115,20 @@ bool NetAddrToString(const NetAddr *addr, char *buf, uint32_t bufSize)
 #if defined(XP_UNIX) || defined(XP_OS2)
   else if (addr->raw.family == AF_LOCAL) {
     if (bufSize < sizeof(addr->local.path)) {
+      
+      
+      if (bufSize > 0) {
+          buf[0] = '\0';
+      }
       return false;
     }
-    memcpy(buf, addr->local.path, bufSize);
+
+    
+    
+    
+    
+    
+    memcpy(buf, addr->local.path, sizeof(addr->local.path));
     return true;
   }
 #endif

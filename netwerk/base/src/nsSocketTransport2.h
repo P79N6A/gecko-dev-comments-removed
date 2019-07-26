@@ -130,6 +130,11 @@ public:
                                      const mozilla::net::NetAddr *addr);
 
     
+    
+    
+    nsresult InitWithFilename(const char *filename);
+
+    
     void OnSocketReady(PRFileDesc *, int16_t outFlags);
     void OnSocketDetached(PRFileDesc *);
     void IsLocal(bool *aIsLocal);
