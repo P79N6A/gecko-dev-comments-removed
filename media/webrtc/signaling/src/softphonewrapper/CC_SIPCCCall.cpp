@@ -521,31 +521,29 @@ CC_SIPCCCallMediaDataPtr CC_SIPCCCall::getMediaData()
 
 void CC_SIPCCCall::originateP2PCall (cc_sdp_direction_t video_pref, const std::string & digits, const std::string & ip)
 {
-	CCAPI_Config_set_server_address(ip.c_str());
+    CCAPI_Config_set_server_address(ip.c_str());
     CCAPI_Call_originateCall(callHandle, video_pref, digits.c_str());
 }
 
 
 
 
-
-void CC_SIPCCCall::createOffer (const std::string& hints) {
-	CCAPI_CreateOffer(callHandle);
+void CC_SIPCCCall::createOffer (const cc_media_constraints_t *constraints) {
+    CCAPI_CreateOffer(callHandle, constraints);
 }
 
 
 
-
-void CC_SIPCCCall::createAnswer (const std::string & hints, const std::string & offersdp) {
-	CCAPI_CreateAnswer(callHandle, offersdp.c_str());
+void CC_SIPCCCall::createAnswer (const cc_media_constraints_t *constraints, const std::string & offersdp) {
+    CCAPI_CreateAnswer(callHandle, constraints, offersdp.c_str());
 }
 
 void CC_SIPCCCall::setLocalDescription(cc_jsep_action_t action, const std::string & sdp) {
-	CCAPI_SetLocalDescription(callHandle, action, sdp.c_str());
+    CCAPI_SetLocalDescription(callHandle, action, sdp.c_str());
 }
 
 void CC_SIPCCCall::setRemoteDescription(cc_jsep_action_t action, const std::string & sdp) {
-	CCAPI_SetRemoteDescription(callHandle, action, sdp.c_str());
+    CCAPI_SetRemoteDescription(callHandle, action, sdp.c_str());
 }
 
 void CC_SIPCCCall::setPeerConnection(const std::string& handle)
