@@ -141,12 +141,6 @@ const PanelUI = {
       let iconAnchor =
         document.getAnonymousElementByAttribute(anchor, "class",
                                                 "toolbarbutton-icon");
-
-      
-      
-      let keyboardOpened = aEvent && aEvent.sourceEvent &&
-                           aEvent.sourceEvent.target.localName == "key";
-      this.panel.setAttribute("noautofocus", !keyboardOpened);
       this.panel.openPopup(iconAnchor || anchor, "bottomcenter topright");
 
       this.panel.addEventListener("popupshown", function onPopupShown() {
