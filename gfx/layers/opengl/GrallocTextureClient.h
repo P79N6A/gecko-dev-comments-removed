@@ -8,7 +8,7 @@
 #ifdef MOZ_WIDGET_GONK
 
 #include "mozilla/layers/TextureClient.h"
-#include "ISurfaceAllocator.h" 
+#include "mozilla/layers/ISurfaceAllocator.h" 
 #include "mozilla/layers/FenceUtils.h" 
 #include "mozilla/layers/ShadowLayerUtilsGralloc.h"
 #include <ui/GraphicBuffer.h>

@@ -1887,11 +1887,11 @@ public:
       , mTexID(0)
       , mSize(0,0)
       , mHasAlpha(false)
-      , mIsGLAlphaPremult(false)
+      , mIsGLAlphaPremult(true)
     { }
 
     
-    mozilla::gfx::DrawTarget *mDrawTarget; 
+    mozilla::gfx::DrawTarget* mDrawTarget; 
     mozilla::gl::GLContext* mGLContext; 
 
     
