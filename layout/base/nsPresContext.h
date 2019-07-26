@@ -468,7 +468,7 @@ public:
 
 
   bool IsPaginated() const { return mPaginated; }
-  
+
   
 
 
@@ -543,7 +543,7 @@ public:
     const LangGroupFontPrefs *prefs = GetFontPrefsForLang(aLanguage);
     return std::max(mBaseMinFontSize, prefs->mMinimumFontSize);
   }
-  
+
   
 
 
@@ -551,7 +551,7 @@ public:
   int32_t BaseMinFontSize() const {
     return mBaseMinFontSize;
   }
-  
+
   
 
 
@@ -681,7 +681,7 @@ public:
   {
     mDrawColorBackground = aCanDraw;
   }
-  
+
   
 
 
@@ -745,7 +745,7 @@ public:
 
   
 
-  
+
   NS_HIDDEN_(void) SetBidi(uint32_t aBidiOptions,
                            bool aForceRestyle = false);
 
@@ -807,7 +807,7 @@ public:
 
 
   NS_HIDDEN_(bool) EnsureVisible();
-  
+
 #ifdef MOZ_REFLOW_PERF
   NS_HIDDEN_(void) CountReflows(const char * aName,
                                 nsIFrame * aFrame);
@@ -850,7 +850,7 @@ public:
   bool GetPaintFlashing() const;
 
   bool             SupressingResizeReflow() const { return mSupressResizeReflow; }
-  
+
   virtual NS_HIDDEN_(gfxUserFontSet*) GetUserFontSetExternal();
   NS_HIDDEN_(gfxUserFontSet*) GetUserFontSetInternal();
 #ifdef MOZILLA_INTERNAL_API
@@ -949,7 +949,7 @@ public:
     bool mInterruptsEnabled;
     bool mHasPendingInterrupt;
   };
-    
+
   
 
 
@@ -1499,7 +1499,7 @@ protected:
 #ifdef MOZ_REFLOW_PERF
 
 #define DO_GLOBAL_REFLOW_COUNT(_name) \
-  aPresContext->CountReflows((_name), (nsIFrame*)this); 
+  aPresContext->CountReflows((_name), (nsIFrame*)this);
 #else
 #define DO_GLOBAL_REFLOW_COUNT(_name)
 #endif 

@@ -165,7 +165,7 @@ static void DumpPresContextState(nsPresContext* aPC)
 }
 
 bool
-nsPresContext::IsDOMPaintEventPending() 
+nsPresContext::IsDOMPaintEventPending()
 {
   if (mFireAfterPaintEvents) {
     return true;
@@ -266,7 +266,7 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
   SetBackgroundColorDraw(true);
 
   mBackgroundColor = NS_RGB(0xFF, 0xFF, 0xFF);
-  
+
   mUseDocumentColors = true;
   mUseDocumentFonts = true;
 
@@ -471,8 +471,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 static const char* const kGenericFont[] = {
   ".variable.",
   ".fixed.",
-  ".serif.", 
-  ".sans-serif.", 
+  ".serif.",
+  ".sans-serif.",
   ".monospace.",
   ".cursive.",
   ".fantasy."
@@ -634,7 +634,7 @@ nsPresContext::GetFontPrefsForLang(nsIAtom *aLanguage) const
         if (!value.IsEmpty()) {
           prefs->mDefaultVariableFont.name.Assign(value);
         }
-      } 
+      }
     }
     else {
       if (eType == eDefaultFont_Monospace) {
@@ -829,7 +829,7 @@ nsPresContext::GetUserPreferences()
     Preferences::GetInt("browser.display.focus_ring_style", mFocusRingStyle);
 
   mBodyTextColor = mDefaultColor;
-  
+
   
   mUseDocumentFonts =
     Preferences::GetInt("browser.display.use_document_fonts") != 0;
@@ -1155,7 +1155,7 @@ nsPresContext::SetShell(nsIPresShell* aShell)
     if (doc) {
       doc->RemoveCharSetObserver(this);
     }
-  }    
+  }
 
   mShell = aShell;
 
@@ -1254,7 +1254,7 @@ nsPresContext::UpdateCharSet(const nsCString& aCharSet)
 }
 
 NS_IMETHODIMP
-nsPresContext::Observe(nsISupports* aSubject, 
+nsPresContext::Observe(nsISupports* aSubject,
                         const char* aTopic,
                         const char16_t* aData)
 {
@@ -1407,7 +1407,7 @@ void nsPresContext::SetImgAnimations(nsIContent *aParent, uint16_t aMode)
                            getter_AddRefs(imgReq));
     SetImgAnimModeOnImgReq(imgReq, aMode);
   }
-  
+
   uint32_t count = aParent->GetChildCount();
   for (uint32_t i = 0; i < count; ++i) {
     SetImgAnimations(aParent->GetChildAt(i), aMode);
@@ -1498,7 +1498,7 @@ nsPresContext::GetDefaultFont(uint8_t aFontID, nsIAtom *aLanguage) const
     case kGenericFont_cursive:
       font = &prefs->mDefaultCursiveFont;
       break;
-    case kGenericFont_fantasy: 
+    case kGenericFont_fantasy:
       font = &prefs->mDefaultFantasyFont;
       break;
     default:
@@ -1674,7 +1674,7 @@ nsPresContext::SetBidi(uint32_t aSource, bool aForceRestyle)
     return;
   }
 
-  NS_ASSERTION(!(aForceRestyle && (GetBidi() == 0)), 
+  NS_ASSERTION(!(aForceRestyle && (GetBidi() == 0)),
                "ForceReflow on new prescontext");
 
   Document()->SetBidiOptions(aSource);
@@ -1748,14 +1748,14 @@ nsPresContext::ThemeChanged()
     if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
       mPendingThemeChanged = true;
     }
-  }    
+  }
 }
 
 void
 nsPresContext::ThemeChangedInternal()
 {
   mPendingThemeChanged = false;
-  
+
   
   
   if (mTheme && sThemeChanged) {
@@ -1797,13 +1797,13 @@ void
 nsPresContext::SysColorChangedInternal()
 {
   mPendingSysColorChanged = false;
-  
+
   if (sLookAndFeelChanged) {
      
     LookAndFeel::Refresh();
     sLookAndFeelChanged = false;
   }
-   
+
   
   
   GetDocumentColorPreferences();
@@ -2198,7 +2198,7 @@ nsPresContext::RebuildUserFontSet()
     if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
       mPostedFlushUserFontSet = true;
     }
-  }    
+  }
 }
 
 void
@@ -2385,7 +2385,7 @@ nsPresContext::NotifyInvalidation(const nsRect& aRect, uint32_t aFlags)
   
   
   
-  
+
   if (mAllInvalidated) {
     return;
   }
@@ -2412,11 +2412,11 @@ nsPresContext::NotifyInvalidation(const nsRect& aRect, uint32_t aFlags)
   request->mFlags = aFlags;
 }
 
- void 
+ void
 nsPresContext::NotifySubDocInvalidation(ContainerLayer* aContainer,
                                         const nsIntRegion& aRegion)
 {
-  ContainerLayerPresContext *data = 
+  ContainerLayerPresContext *data =
     static_cast<ContainerLayerPresContext*>(
       aContainer->GetUserData(&gNotifySubDocInvalidationData));
   if (!data) {

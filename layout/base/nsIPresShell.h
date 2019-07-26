@@ -148,11 +148,11 @@ typedef struct CapturingContentInfo {
 
 #undef NOISY_INTERRUPTIBLE_REFLOW
 
-enum nsRectVisibility { 
-  nsRectVisibility_kVisible, 
-  nsRectVisibility_kAboveViewport, 
-  nsRectVisibility_kBelowViewport, 
-  nsRectVisibility_kLeftOfViewport, 
+enum nsRectVisibility {
+  nsRectVisibility_kVisible,
+  nsRectVisibility_kAboveViewport,
+  nsRectVisibility_kBelowViewport,
+  nsRectVisibility_kLeftOfViewport,
   nsRectVisibility_kRightOfViewport
 };
 
@@ -1639,7 +1639,7 @@ protected:
   
   
   nscoord mMaxLineBoxWidth;
-  
+
   
   
   

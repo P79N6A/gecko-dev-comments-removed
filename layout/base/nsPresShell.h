@@ -422,7 +422,7 @@ protected:
   friend struct RenderingState;
 
   struct RenderingState {
-    RenderingState(PresShell* aPresShell) 
+    RenderingState(PresShell* aPresShell)
       : mXResolution(aPresShell->mXResolution)
       , mYResolution(aPresShell->mYResolution)
       , mRenderFlags(aPresShell->mRenderFlags)
@@ -598,7 +598,7 @@ protected:
     }
 
     NS_INLINE_DECL_REFCOUNTING(nsSynthMouseMoveEvent)
-    
+
     void Revoke() {
       if (mPresShell) {
         mPresShell->GetPresContext()->RefreshDriver()->
@@ -730,7 +730,7 @@ protected:
   nsPoint                   mMouseLocation;
 
   
-  nsRefPtr<nsCSSStyleSheet> mPrefStyleSheet; 
+  nsRefPtr<nsCSSStyleSheet> mPrefStyleSheet;
 
   
   
@@ -786,7 +786,7 @@ protected:
   
   
   uint16_t                  mChangeNestCount;
-  
+
   bool                      mDocumentLoading : 1;
   bool                      mIgnoreFrameDestruction : 1;
   bool                      mHaveShutDown : 1;
