@@ -10,6 +10,7 @@
 
 
 
+#include <stddef.h>
 
 struct DtoaState;
 

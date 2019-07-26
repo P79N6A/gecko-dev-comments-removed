@@ -4,11 +4,11 @@
 
 
 
-#include "jsatom.h"
 #include "jswatchpoint.h"
 
+#include "jsatom.h"
+
 #include "gc/Marking.h"
-#include "gc/StoreBuffer.h"
 
 #include "jsobjinlines.h"
 

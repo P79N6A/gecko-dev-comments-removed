@@ -4,8 +4,6 @@
 
 
 
-#include <stdlib.h>
-#include "jstypes.h"
 #include "jsnativestack.h"
 
 #ifdef XP_WIN

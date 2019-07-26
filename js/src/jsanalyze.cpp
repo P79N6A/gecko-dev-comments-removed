@@ -4,16 +4,16 @@
 
 
 
+#include "jsanalyze.h"
+
 #include "mozilla/DebugOnly.h"
 #include "mozilla/PodOperations.h"
 
-#include "jsanalyze.h"
 #include "jsautooplen.h"
 #include "jscompartment.h"
 #include "jscntxt.h"
 
 #include "jsinferinlines.h"
-#include "jsobjinlines.h"
 
 using namespace js;
 using namespace js::analyze;

@@ -4,17 +4,17 @@
 
 
 
+#include "jsproxy.h"
+
 #include <string.h>
+
 #include "jsapi.h"
 #include "jscntxt.h"
 #include "jsfun.h"
 #include "jsgc.h"
 #include "jsprvtd.h"
-#include "jsnum.h"
-#include "jsproxy.h"
 
 #include "gc/Marking.h"
-#include "vm/Shape.h"
 
 #include "jsatominlines.h"
 #include "jsinferinlines.h"

@@ -4,18 +4,17 @@
 
 
 
+#include "jsweakmap.h"
+
 #include <string.h>
+
 #include "jsapi.h"
 #include "jscntxt.h"
 #include "jsfriendapi.h"
-#include "jsgc.h"
 #include "jsobj.h"
-#include "jsweakmap.h"
 
-#include "gc/Marking.h"
 #include "vm/GlobalObject.h"
 
-#include "jsgcinlines.h"
 #include "jsobjinlines.h"
 
 using namespace js;

@@ -4,13 +4,14 @@
 
 
 
+#include "jsfriendapi.h"
+
 #include "mozilla/GuardObjects.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/StandardInteger.h"
 
 #include "jscntxt.h"
 #include "jscompartment.h"
-#include "jsfriendapi.h"
 #include "jsgc.h"
 #include "jswrapper.h"
 #include "jsweakmap.h"

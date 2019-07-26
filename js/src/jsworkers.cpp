@@ -4,11 +4,11 @@
 
 
 
-#include "mozilla/DebugOnly.h"
-
 #include "jsworkers.h"
 
-#if JS_ION
+#include "mozilla/DebugOnly.h"
+
+#ifdef JS_PARALLEL_COMPILATION
 # include "ion/AsmJS.h"
 # include "ion/IonBuilder.h"
 # include "ion/ExecutionModeInlines.h"

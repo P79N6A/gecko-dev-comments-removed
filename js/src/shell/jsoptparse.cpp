@@ -5,8 +5,11 @@
 
 
 #include "jsoptparse.h"
+
 #include <ctype.h>
 #include <stdarg.h>
+
+#include "jsutil.h"
 
 using namespace js;
 using namespace js::cli;
