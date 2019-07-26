@@ -1084,6 +1084,13 @@ NS_METHOD nsWindow::Show(bool bState)
         sDropShadowEnabled = true;
       }
     }
+
+    
+    
+    LONG_PTR exStyle = ::GetWindowLongPtrW(mWnd, GWL_EXSTYLE);
+    if (exStyle & WS_EX_LAYERED) {
+      ::SetWindowLongPtrW(mWnd, GWL_EXSTYLE, exStyle & ~WS_EX_COMPOSITED);
+    }
   }
 
   bool syncInvalidate = false;
