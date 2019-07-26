@@ -5368,7 +5368,7 @@ ${callDestructors}
 
 ${methods}
 
-  bool ToJSVal(JSContext* cx, JSObject* scopeObj, JS::Value* vp) const;
+  bool ToJSVal(JSContext* cx, JS::Handle<JSObject*> scopeObj, JS::Value* vp) const;
 
 private:
   friend class ${structName}Argument;
@@ -5411,7 +5411,7 @@ ${destructors}
                 zip(templateVars, self.type.flatMemberTypes)))
 
         return string.Template("""bool
-${structName}::ToJSVal(JSContext* cx, JSObject* scopeObj, JS::Value* vp) const
+${structName}::ToJSVal(JSContext* cx, JS::Handle<JSObject*> scopeObj, JS::Value* vp) const
 {
   switch (mType) {
 ${doConversionsToJS}
@@ -8806,7 +8806,8 @@ class CallbackMember(CGNativeMember):
                 'jsvalPtr' : "&argv[%s]" % jsvalIndex,
                 
                 
-                'obj' : 'mCallback',
+                
+                'obj' : 'CallbackPreserveColor()',
                 'isCreator': False,
                 'exceptionCode' : self.exceptionCode
                 })
