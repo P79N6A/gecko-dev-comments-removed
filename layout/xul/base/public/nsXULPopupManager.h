@@ -490,7 +490,7 @@ public:
 
 
 
-  nsTArray<nsIFrame *> GetVisiblePopups();
+  void GetVisiblePopups(nsTArray<nsIFrame *>& aPopups);
 
   
 

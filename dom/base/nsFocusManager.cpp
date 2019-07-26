@@ -3111,7 +3111,8 @@ nsFocusManager::GetNextTabbablePanel(nsIDocument* aDocument, nsIFrame* aCurrentP
     return nullptr;
 
   
-  nsTArray<nsIFrame *> popups = pm->GetVisiblePopups();
+  nsTArray<nsIFrame *> popups;
+  pm->GetVisiblePopups(popups);
   int32_t i = aForward ? 0 : popups.Length() - 1;
   int32_t end = aForward ? popups.Length() : -1;
 
