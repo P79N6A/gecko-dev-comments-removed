@@ -64,13 +64,12 @@ struct EffectChain;
 
 
 
-class CompositorTexturePoolOGL
+class CompositorTexturePoolOGL : public RefCounted<CompositorTexturePoolOGL>
 {
-protected:
-  virtual ~CompositorTexturePoolOGL() {}
-
 public:
-  NS_INLINE_DECL_REFCOUNTING(CompositorTexturePoolOGL)
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(CompositorTexturePoolOGL)
+
+  virtual ~CompositorTexturePoolOGL() {}
 
   virtual void Clear() = 0;
 
