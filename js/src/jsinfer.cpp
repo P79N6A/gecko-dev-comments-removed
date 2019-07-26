@@ -1400,6 +1400,17 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, Type type)
                 }
             }
 
+            if (native == intrinsic_UnsafeSetElement) {
+                
+                
+                JS_ASSERT((callsite->argumentCount % 3) == 0);
+                for (size_t i = 0; i < callsite->argumentCount; i += 3) {
+                    StackTypeSet *arr = callsite->argumentTypes[i];
+                    StackTypeSet *elem = callsite->argumentTypes[i+2];
+                    arr->addSetProperty(cx, script, pc, elem, JSID_VOID);
+                }
+            }
+
             if (native == js::array_pop || native == js::array_shift)
                 callsite->thisTypes->addGetProperty(cx, script, pc, callsite->returnTypes, JSID_VOID);
 
@@ -2380,9 +2391,13 @@ TypeInferenceSupported()
 #endif
 
 #if WTF_ARM_ARCH_VERSION == 6
+#ifdef  JS_ION
+    return js::ion::hasVFP();
+#else
     
     
     return false;
+#endif
 #endif
 
     return true;

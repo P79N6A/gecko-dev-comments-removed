@@ -33,17 +33,6 @@ nsSVGElement::StringInfo SVGFEOffsetElement::sStringInfo[2] =
 
 
 
-NS_IMPL_ADDREF_INHERITED(SVGFEOffsetElement,SVGFEOffsetElementBase)
-NS_IMPL_RELEASE_INHERITED(SVGFEOffsetElement,SVGFEOffsetElementBase)
-
-NS_INTERFACE_TABLE_HEAD(SVGFEOffsetElement)
-  NS_NODE_INTERFACE_TABLE3(SVGFEOffsetElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement)
-NS_INTERFACE_MAP_END_INHERITING(SVGFEOffsetElementBase)
-
-
-
-
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEOffsetElement)
 

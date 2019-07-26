@@ -21,17 +21,6 @@ SVGFESpecularLightingElement::WrapNode(JSContext* aCx, JSObject* aScope)
 
 
 
-NS_IMPL_ADDREF_INHERITED(SVGFESpecularLightingElement,SVGFESpecularLightingElementBase)
-NS_IMPL_RELEASE_INHERITED(SVGFESpecularLightingElement,SVGFESpecularLightingElementBase)
-
-NS_INTERFACE_TABLE_HEAD(SVGFESpecularLightingElement)
-  NS_NODE_INTERFACE_TABLE3(SVGFESpecularLightingElement, nsIDOMNode,
-                           nsIDOMElement, nsIDOMSVGElement)
-NS_INTERFACE_MAP_END_INHERITING(SVGFESpecularLightingElementBase)
-
-
-
-
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFESpecularLightingElement)
 
 already_AddRefed<nsIDOMSVGAnimatedString>

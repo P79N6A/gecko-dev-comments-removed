@@ -21,17 +21,6 @@ SVGFEDiffuseLightingElement::WrapNode(JSContext* aCx, JSObject* aScope)
 
 
 
-NS_IMPL_ADDREF_INHERITED(SVGFEDiffuseLightingElement,SVGFEDiffuseLightingElementBase)
-NS_IMPL_RELEASE_INHERITED(SVGFEDiffuseLightingElement,SVGFEDiffuseLightingElementBase)
-
-NS_INTERFACE_TABLE_HEAD(SVGFEDiffuseLightingElement)
-  NS_NODE_INTERFACE_TABLE3(SVGFEDiffuseLightingElement, nsIDOMNode,
-                           nsIDOMElement, nsIDOMSVGElement)
-NS_INTERFACE_MAP_END_INHERITING(SVGFEDiffuseLightingElementBase)
-
-
-
-
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEDiffuseLightingElement)
 
 
