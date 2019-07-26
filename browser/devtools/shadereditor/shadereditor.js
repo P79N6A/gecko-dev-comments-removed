@@ -15,6 +15,7 @@ Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const promise = require("sdk/core/promise");
 const EventEmitter = require("devtools/shared/event-emitter");
+const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const Editor = require("devtools/sourceeditor/editor");
 
 
@@ -31,11 +32,14 @@ const EVENTS = {
 };
 
 const STRINGS_URI = "chrome://browser/locale/devtools/shadereditor.properties"
-const HIGHLIGHT_COLOR = [1, 0, 0, 1];
-const TYPING_MAX_DELAY = 500;
+const HIGHLIGHT_COLOR = [1, 0, 0, 1]; 
+const TYPING_MAX_DELAY = 500; 
 const SHADERS_AUTOGROW_ITEMS = 4;
+const GUTTER_ERROR_PANEL_OFFSET_X = 7; 
+const GUTTER_ERROR_PANEL_DELAY = 100; 
 const DEFAULT_EDITOR_CONFIG = {
   mode: Editor.modes.text,
+  gutters: ["errors"],
   lineNumbers: true,
   showAnnotationRuler: true
 };
@@ -426,6 +430,9 @@ let ShadersEditorsView = {
 
   _onChanged: function(type) {
     setNamedTimeout("gl-typed", TYPING_MAX_DELAY, () => this._doCompile(type));
+
+    
+    this._cleanEditor(type);
   },
 
   
@@ -442,13 +449,117 @@ let ShadersEditorsView = {
 
       try {
         yield shaderActor.compile(editor.getText());
-        window.emit(EVENTS.SHADER_COMPILED, null);
-        
-      } catch (error) {
-        window.emit(EVENTS.SHADER_COMPILED, error);
-        
+        this._onSuccessfulCompilation();
+      } catch (e) {
+        this._onFailedCompilation(type, editor, e);
       }
     }.bind(this));
+  },
+
+  
+
+
+  _onSuccessfulCompilation: function() {
+    
+    window.emit(EVENTS.SHADER_COMPILED, null);
+  },
+
+  
+
+
+  _onFailedCompilation: function(type, editor, errors) {
+    let lineCount = editor.lineCount();
+    let currentLine = editor.getCursor().line;
+    let listeners = { mouseenter: this._onMarkerMouseEnter };
+
+    function matchLinesAndMessages(string) {
+      return {
+        
+        lineMatch: string.match(/\d{2,}|[1-9]/),
+        
+        textMatch: string.match(/[^\s\d:][^\r\n|]*/)
+      };
+    }
+    function discardInvalidMatches(e) {
+      
+      return e.lineMatch && e.textMatch;
+    }
+    function sanitizeValidMatches(e) {
+      return {
+        
+        
+        
+        line: e.lineMatch[0] > lineCount ? currentLine : e.lineMatch[0] - 1,
+        
+        
+        text: e.textMatch[0].trim().replace(/\s{2,}/g, " ")
+      };
+    }
+    function sortByLine(first, second) {
+      
+      return first.line > second.line ? 1 : -1;
+    }
+    function groupSameLineMessages(accumulator, current) {
+      
+      let previous = accumulator[accumulator.length - 1];
+      if (!previous || previous.line != current.line) {
+        return [...accumulator, {
+          line: current.line,
+          messages: [current.text]
+        }];
+      } else {
+        previous.messages.push(current.text);
+        return accumulator;
+      }
+    }
+    function displayErrors({ line, messages }) {
+      
+      editor.addMarker(line, "errors", "error");
+      editor.setMarkerListeners(line, "errors", "error", listeners, messages);
+      editor.addLineClass(line, "error-line");
+    }
+
+    (this._errors[type] = errors.link
+      .split("ERROR")
+      .map(matchLinesAndMessages)
+      .filter(discardInvalidMatches)
+      .map(sanitizeValidMatches)
+      .sort(sortByLine)
+      .reduce(groupSameLineMessages, []))
+      .forEach(displayErrors);
+
+    
+    window.emit(EVENTS.SHADER_COMPILED, errors);
+  },
+
+  
+
+
+  _onMarkerMouseEnter: function(line, node, messages) {
+    if (node._markerErrorsTooltip) {
+      return;
+    }
+
+    let tooltip = node._markerErrorsTooltip = new Tooltip(document);
+    tooltip.defaultOffsetX = GUTTER_ERROR_PANEL_OFFSET_X;
+    tooltip.setTextContent.apply(tooltip, messages);
+    tooltip.startTogglingOnHover(node, () => true, GUTTER_ERROR_PANEL_DELAY);
+  },
+
+  
+
+
+  _cleanEditor: function(type) {
+    this._getEditor(type).then(editor => {
+      editor.removeAllMarkers("errors");
+      this._errors[type].forEach(e => editor.removeLineClass(e.line));
+      this._errors[type].length = 0;
+    });
+  },
+
+  _errors: {
+    vs: [],
+    fs: []
   }
 };
 

@@ -359,6 +359,15 @@ Editor.prototype = {
   
 
 
+
+  insertText: function (value, at) {
+    let cm = editors.get(this);
+    cm.replaceRange(value, at, at);
+  },
+
+  
+
+
   dropSelection: function () {
     if (!this.somethingSelected())
       return;
@@ -370,7 +379,7 @@ Editor.prototype = {
 
 
 
-  markClean: function () {
+  setClean: function () {
     let cm = editors.get(this);
     this.version = cm.changeGeneration();
     return this.version;
@@ -517,6 +526,120 @@ Editor.prototype = {
     
     topLine = Math.min(topLine, this.lineCount());
     this.setFirstVisibleLine(topLine);
+  },
+
+  
+
+
+  hasMarker: function (line, gutterName, markerClass) {
+    let cm = editors.get(this);
+    let info = cm.lineInfo(line);
+    if (!info)
+      return false;
+
+    let gutterMarkers = info.gutterMarkers;
+    if (!gutterMarkers)
+      return false;
+
+    let marker = gutterMarkers[gutterName];
+    if (!marker)
+      return false;
+
+    return marker.classList.contains(markerClass);
+  },
+
+  
+
+
+
+  addMarker: function (line, gutterName, markerClass) {
+    let cm = editors.get(this);
+    let info = cm.lineInfo(line);
+    if (!info)
+      return;
+
+    let gutterMarkers = info.gutterMarkers;
+    if (gutterMarkers) {
+      let marker = gutterMarkers[gutterName];
+      if (marker) {
+        marker.classList.add(markerClass);
+        return;
+      }
+    }
+
+    let marker = cm.getWrapperElement().ownerDocument.createElement("div");
+    marker.className = markerClass;
+    cm.setGutterMarker(info.line, gutterName, marker);
+  },
+
+  
+
+
+
+  removeMarker: function (line, gutterName, markerClass) {
+    if (!this.hasMarker(line, gutterName, markerClass))
+      return;
+
+    let cm = editors.get(this);
+    cm.lineInfo(line).gutterMarkers[gutterName].classList.remove(markerClass);
+  },
+
+  
+
+
+  removeAllMarkers: function (gutterName) {
+    let cm = editors.get(this);
+    cm.clearGutter(gutterName);
+  },
+
+  
+
+
+
+
+
+
+
+
+  setMarkerListeners: function(line, gutterName, markerClass, events, data) {
+    if (!this.hasMarker(line, gutterName, markerClass))
+      return;
+
+    let cm = editors.get(this);
+    let marker = cm.lineInfo(line).gutterMarkers[gutterName];
+
+    for (let name in events) {
+      let listener = events[name].bind(this, line, marker, data);
+      marker.addEventListener(name, listener);
+    }
+  },
+
+  
+
+
+  hasLineClass: function (line, className) {
+    let cm = editors.get(this);
+    let info = cm.lineInfo(line);
+    if (!info)
+      return false;
+
+    return info.wrapClass == className;
+  },
+
+  
+
+
+  addLineClass: function (line, className) {
+    let cm = editors.get(this);
+    cm.addLineClass(line, "wrap", className);
+  },
+
+  
+
+
+  removeLineClass: function (line, className) {
+    let cm = editors.get(this);
+    cm.removeLineClass(line, "wrap", className);
   },
 
   destroy: function () {

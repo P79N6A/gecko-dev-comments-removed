@@ -95,6 +95,10 @@ function Tooltip(doc) {
 module.exports.Tooltip = Tooltip;
 
 Tooltip.prototype = {
+  defaultPosition: "before_start",
+  defaultOffsetX: 0,
+  defaultOffsetY: 0,
+
   
 
 
@@ -105,9 +109,12 @@ Tooltip.prototype = {
 
 
 
-  show: function(anchor, position="before_start") {
+  show: function(anchor,
+    position = this.defaultPosition,
+    x = this.defaultOffsetX,
+    y = this.defaultOffsetY) {
     this.panel.hidden = false;
-    this.panel.openPopup(anchor, position);
+    this.panel.openPopup(anchor, position, x, y);
   },
 
   
@@ -255,6 +262,28 @@ Tooltip.prototype = {
 
   get content() {
     return this.panel.firstChild;
+  },
+
+  
+
+
+
+
+
+  setTextContent: function(...messages) {
+    let vbox = this.doc.createElement("vbox");
+    vbox.className = "devtools-tooltip-simple-text-container";
+    vbox.setAttribute("flex", "1");
+
+    for (let text of messages) {
+      let description = this.doc.createElement("description");
+      description.setAttribute("flex", "1");
+      description.className = "devtools-tooltip-simple-text";
+      description.textContent = text;
+      vbox.appendChild(description);
+    }
+
+    this.content = vbox;
   },
 
   

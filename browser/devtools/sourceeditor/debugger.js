@@ -11,38 +11,6 @@ const dbginfo = new WeakMap();
 
 
 
-
-function addMarker(cm, line, type) {
-  let info = cm.lineInfo(line);
-
-  if (info.gutterMarkers)
-    return void info.gutterMarkers.breakpoints.classList.add(type);
-
-  let mark = cm.getWrapperElement().ownerDocument.createElement("div");
-  mark.className = type;
-  mark.innerHTML = "";
-
-  cm.setGutterMarker(info.line, "breakpoints", mark);
-}
-
-
-
-
-
-function removeMarker(cm, line, type) {
-  let info = cm.lineInfo(line);
-
-  if (!info || !info.gutterMarkers)
-    return;
-
-  info.gutterMarkers.breakpoints.classList.remove(type);
-}
-
-
-
-
-
-
 function SearchState() {
   this.posFrom = this.posTo = this.query = null;
 }
@@ -155,7 +123,7 @@ function addBreakpoint(ctx, line, cond) {
   let meta = dbginfo.get(ed);
   let info = cm.lineInfo(line);
 
-  addMarker(cm, line, "breakpoint");
+  ed.addMarker(line, "breakpoints", "breakpoint");
   meta.breakpoints[line] = { condition: cond };
 
   info.handle.on("delete", function onDelete() {
@@ -179,7 +147,7 @@ function removeBreakpoint(ctx, line) {
   let info = cm.lineInfo(line);
 
   meta.breakpoints[info.line] = null;
-  removeMarker(cm, info.line, "breakpoint");
+  ed.removeMarker(info.line, "breakpoints", "breakpoint");
   ed.emit("breakpointRemoved", line);
 }
 
@@ -203,11 +171,11 @@ function getBreakpoints(ctx) {
 
 
 function setDebugLocation(ctx, line) {
-  let { ed, cm } = ctx;
+  let { ed } = ctx;
   let meta = dbginfo.get(ed);
 
   meta.debugLocation = line;
-  addMarker(cm, line, "debugLocation");
+  ed.addMarker(line, "breakpoints", "debugLocation");
 }
 
 
@@ -226,11 +194,11 @@ function getDebugLocation(ctx) {
 
 
 function clearDebugLocation(ctx) {
-  let { ed, cm } = ctx;
+  let { ed } = ctx;
   let meta = dbginfo.get(ed);
 
   if (meta.debugLocation != null) {
-    removeMarker(cm, meta.debugLocation, "debugLocation");
+    ed.removeMarker(meta.debugLocation, "breakpoints", "debugLocation");
     meta.debugLocation = null;
   }
 }
