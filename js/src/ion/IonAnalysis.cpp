@@ -163,7 +163,7 @@ ion::EliminateDeadCode(MIRGenerator *mir, MIRGraph &graph)
 }
 
 static inline bool
-IsPhiObservable(MPhi *phi)
+IsPhiObservable(MPhi *phi, Observability observe)
 {
     
     
@@ -173,9 +173,26 @@ IsPhiObservable(MPhi *phi)
     
     
     
-    for (MUseDefIterator iter(phi); iter; iter++) {
-        if (!iter.def()->isPhi())
-            return true;
+    
+    
+    
+    
+    
+    switch (observe) {
+      case AggressiveObservability:
+        for (MUseDefIterator iter(phi); iter; iter++) {
+            if (!iter.def()->isPhi())
+                return true;
+        }
+        break;
+
+      case ConservativeObservability:
+        for (MUseIterator iter(phi->usesBegin()); iter != phi->usesEnd(); iter++) {
+            if (!iter->node()->isDefinition() ||
+                !iter->node()->toDefinition()->isPhi())
+                return true;
+        }
+        break;
     }
 
     
@@ -199,15 +216,12 @@ IsPhiObservable(MPhi *phi)
 
 
 
-static inline MDefinition *
+inline MDefinition *
 IsPhiRedundant(MPhi *phi)
 {
-    MDefinition *first = phi->getOperand(0);
-
-    for (size_t i = 1; i < phi->numOperands(); i++) {
-        if (phi->getOperand(i) != first && phi->getOperand(i) != phi)
-            return NULL;
-    }
+    MDefinition *first = phi->operandIfRedundant();
+    if (first == NULL)
+        return NULL;
 
     
     if (phi->isFolded())
@@ -217,8 +231,32 @@ IsPhiRedundant(MPhi *phi)
 }
 
 bool
-ion::EliminatePhis(MIRGenerator *mir, MIRGraph &graph)
+ion::EliminatePhis(MIRGenerator *mir, MIRGraph &graph,
+                   Observability observe)
 {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     Vector<MPhi *, 16, SystemAllocPolicy> worklist;
 
     
@@ -241,7 +279,7 @@ ion::EliminatePhis(MIRGenerator *mir, MIRGraph &graph)
             }
 
             
-            if (IsPhiObservable(*iter)) {
+            if (IsPhiObservable(*iter, observe)) {
                 iter->setInWorklist();
                 if (!worklist.append(*iter))
                     return false;
@@ -876,7 +914,10 @@ ion::AssertGraphCoherency(MIRGraph &graph)
 {
 #ifdef DEBUG
     
+    uint32_t count = 0;
     for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
+        count++;
+
         for (size_t i = 0; i < block->numSuccessors(); i++)
             JS_ASSERT(CheckSuccessorImpliesPredecessor(*block, block->getSuccessor(i)));
 
@@ -889,7 +930,61 @@ ion::AssertGraphCoherency(MIRGraph &graph)
         }
     }
 
+    JS_ASSERT(graph.numBlocks() == count);
+
     AssertReversePostOrder(graph);
+#endif
+}
+
+void
+ion::AssertExtendedGraphCoherency(MIRGraph &graph)
+{
+    
+    
+    
+
+#ifdef DEBUG
+    AssertGraphCoherency(graph);
+
+    uint32_t idx = 0;
+    for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
+        JS_ASSERT(block->id() == idx++);
+
+        
+        if (block->numSuccessors() > 1)
+            for (size_t i = 0; i < block->numSuccessors(); i++)
+                JS_ASSERT(block->getSuccessor(i)->numPredecessors() == 1);
+
+        if (block->isLoopHeader()) {
+            JS_ASSERT(block->numPredecessors() == 2);
+            MBasicBlock *backedge = block->getPredecessor(1);
+            JS_ASSERT(backedge->id() >= block->id());
+            JS_ASSERT(backedge->numSuccessors() == 1);
+            JS_ASSERT(backedge->getSuccessor(0) == *block);
+        }
+
+        if (!block->phisEmpty()) {
+            for (size_t i = 0; i < block->numPredecessors(); i++) {
+                MBasicBlock *pred = block->getPredecessor(i);
+                JS_ASSERT(pred->successorWithPhis() == *block);
+                JS_ASSERT(pred->positionInPhiSuccessor() == i);
+            }
+        }
+
+        uint32_t successorWithPhis = 0;
+        for (size_t i = 0; i < block->numSuccessors(); i++)
+            if (!block->getSuccessor(i)->phisEmpty())
+                successorWithPhis++;
+
+        JS_ASSERT(successorWithPhis <= 1);
+        JS_ASSERT_IF(successorWithPhis, block->successorWithPhis() != NULL);
+
+        
+        
+        
+        
+        
+    }
 #endif
 }
 

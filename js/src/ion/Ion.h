@@ -76,6 +76,11 @@ struct IonOptions
     
     
     
+    bool uce;
+
+    
+    
+    
     bool parallelCompilation;
 
     
@@ -178,6 +183,7 @@ struct IonOptions
         inlining(true),
         edgeCaseAnalysis(true),
         rangeAnalysis(true),
+        uce(true),
         parallelCompilation(false),
         usesBeforeCompile(10240),
         usesBeforeCompileNoJaeger(40),

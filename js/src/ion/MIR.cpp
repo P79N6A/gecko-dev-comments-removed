@@ -434,6 +434,26 @@ MPhi::New(uint32_t slot)
     return new MPhi(slot);
 }
 
+void
+MPhi::removeOperand(size_t index)
+{
+    JS_ASSERT(index < inputs_.length());
+    JS_ASSERT(inputs_.length() > 1);
+
+    
+    
+    
+    size_t length = inputs_.length();
+    for (size_t i = index + 1; i < length; i++)
+        replaceOperand(i - 1, getOperand(i));
+
+    
+    replaceOperand(length - 1, NULL);
+
+    
+    inputs_.shrinkBy(1);
+}
+
 MDefinition *
 MPhi::foldsTo(bool useValueNumbers)
 {

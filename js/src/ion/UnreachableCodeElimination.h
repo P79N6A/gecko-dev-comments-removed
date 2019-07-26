@@ -1,0 +1,44 @@
+
+
+
+
+
+
+
+#ifndef jsion_unreachable_code_elimination_h__
+#define jsion_unreachable_code_elimination_h__
+
+#include "MIR.h"
+#include "MIRGraph.h"
+
+namespace js {
+namespace ion {
+
+class MIRGraph;
+
+class UnreachableCodeElimination
+{
+    MIRGenerator *mir_;
+    MIRGraph &graph_;
+    uint32_t marked_;
+    bool redundantPhis_;
+
+    bool prunePointlessBranchesAndMarkReachableBlocks();
+    void removeUsesFromUnmarkedBlocks(MDefinition *instr);
+    bool removeUnmarkedBlocksAndClearDominators();
+
+  public:
+    UnreachableCodeElimination(MIRGenerator *mir, MIRGraph &graph)
+      : mir_(mir),
+        graph_(graph),
+        marked_(0),
+        redundantPhis_(false)
+    {}
+
+    bool analyze();
+};
+
+} 
+} 
+
+#endif
