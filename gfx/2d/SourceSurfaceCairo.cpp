@@ -3,41 +3,10 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SourceSurfaceCairo.h"
 #include "DrawTargetCairo.h"
 #include "HelpersCairo.h"
+#include "DataSourceSurfaceWrapper.h"
 
 #include "cairo.h"
 
@@ -74,7 +43,6 @@ SourceSurfaceCairo::SourceSurfaceCairo(cairo_surface_t* aSurface,
 
 SourceSurfaceCairo::~SourceSurfaceCairo()
 {
-  MarkIndependent();
   cairo_surface_destroy(mSurface);
 }
 
@@ -93,7 +61,7 @@ SourceSurfaceCairo::GetFormat() const
 TemporaryRef<DataSourceSurface>
 SourceSurfaceCairo::GetDataSurface()
 {
-  RefPtr<DataSourceSurfaceCairo> dataSurf;
+  RefPtr<DataSourceSurface> dataSurf;
 
   if (cairo_surface_get_type(mSurface) == CAIRO_SURFACE_TYPE_IMAGE) {
     dataSurf = new DataSourceSurfaceCairo(mSurface);
@@ -111,6 +79,10 @@ SourceSurfaceCairo::GetDataSurface()
     cairo_surface_destroy(imageSurf);
   }
 
+  
+  
+  dataSurf = new DataSourceSurfaceWrapper(dataSurf);
+
   return dataSurf;
 }
 
@@ -124,7 +96,7 @@ void
 SourceSurfaceCairo::DrawTargetWillChange()
 {
   if (mDrawTarget) {
-    mDrawTarget = NULL;
+    mDrawTarget = nullptr;
 
     
     cairo_surface_t* surface = cairo_surface_create_similar(mSurface,
@@ -135,19 +107,11 @@ SourceSurfaceCairo::DrawTargetWillChange()
     cairo_set_source(ctx, pat);
     cairo_paint(ctx);
     cairo_destroy(ctx);
+    cairo_pattern_destroy(pat);
 
     
     cairo_surface_destroy(mSurface);
     mSurface = surface;
-  }
-}
-
-void
-SourceSurfaceCairo::MarkIndependent()
-{
-  if (mDrawTarget) {
-    mDrawTarget->RemoveSnapshot(this);
-    mDrawTarget = NULL;
   }
 }
 
