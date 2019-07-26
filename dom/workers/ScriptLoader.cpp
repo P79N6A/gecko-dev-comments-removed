@@ -699,6 +699,20 @@ ScriptExecutorRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
   NS_ASSERTION(global, "Must have a global by now!");
 
+  
+  
+  
+  
+  
+  
+  
+  
+  if (xpc::ShouldDiscardSystemSource()) {
+    bool discard = aWorkerPrivate->UsesSystemPrincipal() ||
+                   aWorkerPrivate->IsInPrivilegedApp();
+    JS::CompartmentOptionsRef(global).setDiscardSource(discard);
+  }
+
   for (uint32_t index = mFirstIndex; index <= mLastIndex; index++) {
     ScriptLoadInfo& loadInfo = loadInfos.ElementAt(index);
 
