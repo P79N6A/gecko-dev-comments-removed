@@ -2543,6 +2543,24 @@ UpdateService.prototype = {
 
 
   notify: function AUS_notify(timer) {
+    
+    this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_ENABLED,
+                                    "UPDATER_UPDATES_ENABLED");
+    this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_METRO_ENABLED,
+                                    "UPDATER_UPDATES_METRO_ENABLED");
+    this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_AUTO,
+                                    "UPDATER_UPDATES_AUTOMATIC");
+    this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_STAGING_ENABLED,
+                                    "UPDATER_STAGE_ENABLED");
+
+#ifdef XP_WIN
+    this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_SERVICE_ENABLED,
+                                    "UPDATER_SERVICE_ENABLED");
+    this._sendIntPrefTelemetryPing(PREF_APP_UPDATE_SERVICE_ERRORS,
+                                   "UPDATER_SERVICE_ERRORS");
+    this._sendServiceInstalledTelemetryPing();
+#endif
+
     this._checkForBackgroundUpdates(true);
   },
 
@@ -2562,23 +2580,9 @@ UpdateService.prototype = {
   _checkForBackgroundUpdates: function AUS__checkForBackgroundUpdates(isNotify) {
     this._isNotify = isNotify;
     
+    
+    
     this._sendLastNotifyIntervalPing();
-    this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_ENABLED,
-                                    "UPDATER_UPDATES_ENABLED");
-    this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_METRO_ENABLED,
-                                    "UPDATER_UPDATES_METRO_ENABLED");
-    this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_AUTO,
-                                    "UPDATER_UPDATES_AUTOMATIC");
-    this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_STAGING_ENABLED,
-                                    "UPDATER_STAGE_ENABLED");
-
-#ifdef XP_WIN
-    this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_SERVICE_ENABLED,
-                                    "UPDATER_SERVICE_ENABLED");
-    this._sendIntPrefTelemetryPing(PREF_APP_UPDATE_SERVICE_ERRORS,
-                                   "UPDATER_SERVICE_ERRORS");
-    this._sendServiceInstalledTelemetryPing();
-#endif
 
     
     if (this.isDownloading) {
