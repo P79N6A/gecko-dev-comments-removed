@@ -671,7 +671,7 @@ nsIGlobalObject *
 GetNativeForGlobal(JSObject *obj)
 {
     MOZ_ASSERT(JS_IsGlobalObject(obj));
-    if (!EnsureCompartmentPrivate(obj)->scope)
+    if (!MaybeGetObjectScope(obj))
         return nullptr;
 
     
