@@ -166,6 +166,9 @@ double FFTBlock::ExtractAverageGroupDelay()
     const double kSamplePhaseDelay = (2.0 * M_PI) / double(FFTSize());
 
     
+    dft[0].r = 0.0f;
+
+    
     for (int i = 1; i < halfSize; i++) {
         Complex c(dft[i].r, dft[i].i);
         double mag = abs(c);
@@ -189,14 +192,12 @@ double FFTBlock::ExtractAverageGroupDelay()
     double aveSampleDelay = -ave / kSamplePhaseDelay;
 
     
-    if (aveSampleDelay > 20.0)
-        aveSampleDelay -= 20.0;
+    aveSampleDelay -= 20.0;
+    if (aveSampleDelay <= 0.0)
+        return 0.0;
 
     
     AddConstantGroupDelay(-aveSampleDelay);
-
-    
-    dft[0].r = 0.0f;
 
     return aveSampleDelay;
 }
