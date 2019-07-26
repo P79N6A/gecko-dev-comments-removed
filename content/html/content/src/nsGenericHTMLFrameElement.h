@@ -61,6 +61,9 @@ public:
                            bool aNotify) MOZ_OVERRIDE;
   virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify) MOZ_OVERRIDE;
+  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+                                const nsAttrValue* aValue,
+                                bool aNotify) MOZ_OVERRIDE;
   virtual void DestroyContent() MOZ_OVERRIDE;
 
   nsresult CopyInnerTo(mozilla::dom::Element* aDest);
@@ -73,6 +76,17 @@ public:
   void SwapFrameLoaders(nsXULElement& aOtherOwner, mozilla::ErrorResult& aError);
 
   static bool BrowserFramesEnabled();
+
+  
+
+
+
+
+
+
+
+  static int32_t MapScrollingAttribute(const nsAttrValue* aValue);
+
 protected:
   
   
