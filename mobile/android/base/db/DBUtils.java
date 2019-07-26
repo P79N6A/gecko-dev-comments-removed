@@ -81,4 +81,19 @@ public class DBUtils {
         Log.d(LOGTAG, "Failed to unlock database");
         GeckoAppShell.listOfOpenFiles();
     }
+
+    
+
+
+
+
+    public static void stripEmptyByteArray(ContentValues values, String columnName) {
+        if (values.containsKey(columnName)) {
+            byte[] data = values.getAsByteArray(columnName);
+            if (data == null || data.length == 0) {
+                Log.w(LOGTAG, "Tried to insert an empty or non-byte-array image. Ignoring.");
+                values.putNull(columnName);
+            }
+        }
+    }
 }
