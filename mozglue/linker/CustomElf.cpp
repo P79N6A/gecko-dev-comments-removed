@@ -418,7 +418,7 @@ CustomElf::LoadSegment(const Phdr *pt_load) const
 
 
 
-    debug("%s: Failed to mmap, retrying");
+    debug("%s: Failed to mmap, retrying", GetPath());
     align = pt_load->p_align;
   } while (1);
 
@@ -570,7 +570,7 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
         break;
       case DT_FLAGS:
         {
-           Word flags = dyn->d_un.d_val;
+           Addr flags = dyn->d_un.d_val;
            
            if (flags & DF_TEXTREL) {
              log("%s: Text relocations are not supported", GetPath());
