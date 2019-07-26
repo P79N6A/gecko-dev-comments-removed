@@ -4,7 +4,6 @@
 
 
 
-
 #include "jsarray.h"
 
 #include "mozilla/DebugOnly.h"
@@ -933,12 +932,12 @@ array_join_sub(JSContext *cx, CallArgs &args, bool locale)
 
     
     if (!locale && !seplen && obj->is<ArrayObject>() && !ObjectMayHaveExtraIndexedProperties(obj)) {
-        uint32_t i;
-        for (i = 0; i < obj->getDenseInitializedLength(); ++i) {
+        const Value *start = obj->getDenseElements();
+        const Value *end = start + obj->getDenseInitializedLength();
+        const Value *elem;
+        for (elem = start; elem < end; elem++) {
             if (!JS_CHECK_OPERATION_LIMIT(cx))
                 return false;
-
-            const Value *elem = &obj->getDenseElement(i);
 
             
 
@@ -954,7 +953,7 @@ array_join_sub(JSContext *cx, CallArgs &args, bool locale)
         }
 
         RootedValue v(cx);
-        for (; i < length; ++i) {
+        for (uint32_t i = uint32_t(PointerRangeSize(start, elem)); i < length; i++) {
             if (!JS_CHECK_OPERATION_LIMIT(cx))
                 return false;
 
