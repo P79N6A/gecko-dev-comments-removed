@@ -1208,12 +1208,12 @@ private:
   
   static const FrameConstructionData* FindTextData(nsIFrame* aParentFrame);
 
-  nsresult ConstructTextFrame(const FrameConstructionData* aData,
-                              nsFrameConstructorState& aState,
-                              nsIContent*              aContent,
-                              nsIFrame*                aParentFrame,
-                              nsStyleContext*          aStyleContext,
-                              nsFrameItems&            aFrameItems);
+  void ConstructTextFrame(const FrameConstructionData* aData,
+                          nsFrameConstructorState& aState,
+                          nsIContent*              aContent,
+                          nsIFrame*                aParentFrame,
+                          nsStyleContext*          aStyleContext,
+                          nsFrameItems&            aFrameItems);
 
   
   
