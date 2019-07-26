@@ -1677,12 +1677,14 @@ SetupDirtyRects(const nsRect& aBGClipArea, const nsRect& aCallerDirtyRect,
 }
 
 struct BackgroundClipState {
-  nsRect mBGClipArea;
+  nsRect mBGClipArea;  
+  nsRect mAdditionalBGClipArea;  
   nsRect mDirtyRect;
   gfxRect mDirtyRectGfx;
 
   gfxCornerSizes mClippedRadii;
   bool mRadiiAreOuter;
+  bool mHasAdditionalBGClipArea;
 
   
   
@@ -1691,15 +1693,49 @@ struct BackgroundClipState {
 
 static void
 GetBackgroundClip(gfxContext *aCtx, uint8_t aBackgroundClip,
+                  uint8_t aBackgroundAttachment,
                   nsIFrame* aForFrame, const nsRect& aBorderArea,
                   const nsRect& aCallerDirtyRect, bool aHaveRoundedCorners,
                   const gfxCornerSizes& aBGRadii, nscoord aAppUnitsPerPixel,
                    BackgroundClipState* aClipState)
 {
   aClipState->mBGClipArea = aBorderArea;
+  aClipState->mHasAdditionalBGClipArea = false;
   aClipState->mCustomClip = false;
   aClipState->mRadiiAreOuter = true;
   aClipState->mClippedRadii = aBGRadii;
+  if (aForFrame->GetType() == nsGkAtoms::scrollFrame &&
+        NS_STYLE_BG_ATTACHMENT_LOCAL == aBackgroundAttachment) {
+    
+    
+
+    
+    
+    
+    
+    if (aBackgroundClip == NS_STYLE_BG_CLIP_CONTENT) {
+      nsIScrollableFrame* scrollableFrame = do_QueryFrame(aForFrame);
+      
+      aClipState->mHasAdditionalBGClipArea = true;
+      aClipState->mAdditionalBGClipArea = nsRect(
+        aClipState->mBGClipArea.TopLeft()
+          + scrollableFrame->GetScrolledFrame()->GetPosition()
+          
+          + scrollableFrame->GetScrollRange().TopLeft(),
+        scrollableFrame->GetScrolledRect().Size());
+      nsMargin padding = aForFrame->GetUsedPadding();
+      
+      
+      padding.bottom = 0;
+      aForFrame->ApplySkipSides(padding);
+      aClipState->mAdditionalBGClipArea.Deflate(padding);
+    }
+
+    
+    
+    aBackgroundClip = NS_STYLE_BG_CLIP_PADDING;
+  }
+
   if (aBackgroundClip != NS_STYLE_BG_CLIP_BORDER) {
     nsMargin border = aForFrame->GetUsedBorder();
     if (aBackgroundClip == NS_STYLE_BG_CLIP_MOZ_ALMOST_PADDING) {
@@ -1731,6 +1767,13 @@ GetBackgroundClip(gfxContext *aCtx, uint8_t aBackgroundClip,
     }
   }
 
+  if (!aHaveRoundedCorners && aClipState->mHasAdditionalBGClipArea) {
+    
+    aClipState->mBGClipArea =
+      aClipState->mBGClipArea.Intersect(aClipState->mAdditionalBGClipArea);
+    aClipState->mHasAdditionalBGClipArea = false;
+  }
+
   SetupDirtyRects(aClipState->mBGClipArea, aCallerDirtyRect, aAppUnitsPerPixel,
                   &aClipState->mDirtyRect, &aClipState->mDirtyRectGfx);
 }
@@ -1759,6 +1802,20 @@ SetupBackgroundClip(BackgroundClipState& aClipState, gfxContext *aCtx,
   
   
 
+  if (aHaveRoundedCorners || aClipState.mHasAdditionalBGClipArea) {
+    aAutoSR->Reset(aCtx);
+  }
+
+  if (aClipState.mHasAdditionalBGClipArea) {
+    gfxRect bgAreaGfx = nsLayoutUtils::RectToGfxRect(
+      aClipState.mAdditionalBGClipArea, aAppUnitsPerPixel);
+    bgAreaGfx.Round();
+    bgAreaGfx.Condition();
+    aCtx->NewPath();
+    aCtx->Rectangle(bgAreaGfx, true);
+    aCtx->Clip();
+  }
+
   if (aHaveRoundedCorners) {
     gfxRect bgAreaGfx =
       nsLayoutUtils::RectToGfxRect(aClipState.mBGClipArea, aAppUnitsPerPixel);
@@ -1774,7 +1831,6 @@ SetupBackgroundClip(BackgroundClipState& aClipState, gfxContext *aCtx,
       return;
     }
 
-    aAutoSR->Reset(aCtx);
     aCtx->NewPath();
     aCtx->RoundedRectangle(bgAreaGfx, aClipState.mClippedRadii, aClipState.mRadiiAreOuter);
     aCtx->Clip();
@@ -1821,9 +1877,20 @@ DrawBackgroundColor(BackgroundClipState& aClipState, gfxContext *aCtx,
   aCtx->Rectangle(dirty, true);
   aCtx->Clip();
 
+  if (aClipState.mHasAdditionalBGClipArea) {
+    gfxRect bgAdditionalAreaGfx = nsLayoutUtils::RectToGfxRect(
+      aClipState.mAdditionalBGClipArea, aAppUnitsPerPixel);
+    bgAdditionalAreaGfx.Round();
+    bgAdditionalAreaGfx.Condition();
+    aCtx->NewPath();
+    aCtx->Rectangle(bgAdditionalAreaGfx, true);
+    aCtx->Clip();
+  }
+
   aCtx->NewPath();
   aCtx->RoundedRectangle(bgAreaGfx, aClipState.mClippedRadii,
                          aClipState.mRadiiAreOuter);
+
   aCtx->Fill();
   aCtx->Restore();
 }
@@ -2594,7 +2661,8 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
         NS_STYLE_BG_CLIP_MOZ_ALMOST_PADDING : NS_STYLE_BG_CLIP_PADDING;
     }
 
-    GetBackgroundClip(ctx, currentBackgroundClip, aForFrame, aBorderArea,
+    GetBackgroundClip(ctx, currentBackgroundClip, bg->BottomLayer().mAttachment,
+                      aForFrame, aBorderArea,
                       aDirtyRect, haveRoundedCorners, bgRadii, appUnitsPerPixel,
                       &clipState);
   }
@@ -2662,7 +2730,7 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
           
           
           if (clipSet) {
-            GetBackgroundClip(ctx, currentBackgroundClip, aForFrame,
+            GetBackgroundClip(ctx, currentBackgroundClip, layer.mAttachment, aForFrame,
                               aBorderArea, aDirtyRect, haveRoundedCorners,
                               bgRadii, appUnitsPerPixel, &clipState);
           }
@@ -2769,7 +2837,8 @@ nsCSSRendering::PaintBackgroundColorWithSC(nsPresContext* aPresContext,
   }
 
   BackgroundClipState clipState;
-  GetBackgroundClip(ctx, currentBackgroundClip, aForFrame, aBorderArea,
+  GetBackgroundClip(ctx, currentBackgroundClip, bg->BottomLayer().mAttachment,
+                    aForFrame, aBorderArea,
                     aDirtyRect, haveRoundedCorners, bgRadii, appUnitsPerPixel,
                     &clipState);
 
@@ -2833,6 +2902,31 @@ nsCSSRendering::ComputeBackgroundPositioningArea(nsPresContext* aPresContext,
     if (geometryFrame) {
       bgPositioningArea = geometryFrame->GetRect();
     }
+  } else if (frameType == nsGkAtoms::scrollFrame &&
+             NS_STYLE_BG_ATTACHMENT_LOCAL == aLayer.mAttachment) {
+    nsIScrollableFrame* scrollableFrame = do_QueryFrame(aForFrame);
+    bgPositioningArea = nsRect(
+      scrollableFrame->GetScrolledFrame()->GetPosition()
+        
+        + scrollableFrame->GetScrollRange().TopLeft(),
+      scrollableFrame->GetScrolledRect().Size());
+    
+    
+    
+    if (aLayer.mOrigin == NS_STYLE_BG_ORIGIN_BORDER) {
+      nsMargin border = geometryFrame->GetUsedBorder();
+      geometryFrame->ApplySkipSides(border);
+      bgPositioningArea.Inflate(border);
+      bgPositioningArea.Inflate(scrollableFrame->GetActualScrollbarSizes());
+    } else if (aLayer.mOrigin != NS_STYLE_BG_ORIGIN_PADDING) {
+      nsMargin padding = geometryFrame->GetUsedPadding();
+      geometryFrame->ApplySkipSides(padding);
+      bgPositioningArea.Deflate(padding);
+      NS_ASSERTION(aLayer.mOrigin == NS_STYLE_BG_ORIGIN_CONTENT,
+                   "unknown background-origin value");
+    }
+    *aAttachedToFrame = aForFrame;
+    return bgPositioningArea;
   } else {
     bgPositioningArea = nsRect(nsPoint(0,0), aBorderArea.Size());
   }
