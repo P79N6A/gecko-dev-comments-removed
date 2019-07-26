@@ -16,6 +16,7 @@
 
 #include "GLSLANG/ShaderLang.h"
 
+#include "compiler/ArrayBoundsClamper.h"
 #include "compiler/BuiltInFunctionEmulator.h"
 #include "compiler/ExtensionBehavior.h"
 #include "compiler/HashNames.h"
@@ -106,6 +107,7 @@ protected:
     
     const TExtensionBehavior& getExtensionBehavior() const;
 
+    const ArrayBoundsClamper& getArrayBoundsClamper() const;
     const BuiltInFunctionEmulator& getBuiltInFunctionEmulator() const;
 
 private:
@@ -120,6 +122,7 @@ private:
     
     TExtensionBehavior extensionBehavior;
 
+    ArrayBoundsClamper arrayBoundsClamper;
     BuiltInFunctionEmulator builtInFunctionEmulator;
 
     

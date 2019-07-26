@@ -23,6 +23,9 @@ void TranslatorESSL::translate(TIntermNode* root) {
         sink, getShaderType() == SH_FRAGMENT_SHADER);
 
     
+    getArrayBoundsClamper().OutputClampingFunctionDefinition(sink);
+
+    
     TOutputESSL outputESSL(sink, getHashFunction(), getNameMap(), getSymbolTable());
     root->traverse(&outputESSL);
 }

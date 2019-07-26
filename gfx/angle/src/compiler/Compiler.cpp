@@ -4,6 +4,7 @@
 
 
 
+#include "compiler/ArrayBoundsClamper.h"
 #include "compiler/BuiltInFunctionEmulator.h"
 #include "compiler/DetectRecursion.h"
 #include "compiler/ForLoopUnroll.h"
@@ -193,6 +194,10 @@ bool TCompiler::compile(const char* const shaderStrings[],
             builtInFunctionEmulator.MarkBuiltInFunctionsForEmulation(root);
 
         
+        if (success && (compileOptions & SH_CLAMP_INDIRECT_ARRAY_BOUNDS))
+            arrayBoundsClamper.MarkIndirectArrayBoundsForClamping(root);
+
+        
         
         
         
@@ -237,6 +242,7 @@ bool TCompiler::InitBuiltInSymbolTable(const ShBuiltInResources& resources)
 
 void TCompiler::clearResults()
 {
+    arrayBoundsClamper.Cleanup();
     infoSink.info.erase();
     infoSink.obj.erase();
     infoSink.debug.erase();
@@ -353,3 +359,9 @@ const BuiltInFunctionEmulator& TCompiler::getBuiltInFunctionEmulator() const
 {
     return builtInFunctionEmulator;
 }
+
+const ArrayBoundsClamper& TCompiler::getArrayBoundsClamper() const
+{
+    return arrayBoundsClamper;
+}
+
