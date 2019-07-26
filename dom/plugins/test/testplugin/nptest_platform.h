@@ -56,7 +56,7 @@ bool    pluginSupportsAsyncBitmapDrawing();
 
 
 
-static bool    pluginSupportsAsyncDXGIDrawing()
+inline bool    pluginSupportsAsyncDXGIDrawing()
 {
 #ifdef XP_WIN
   return true;
