@@ -7636,24 +7636,81 @@ IonBuilder::jsop_not()
     return true;
 }
 
+inline bool
+TestClassHasAccessorHook(Class *clasp, bool isGetter)
+{
+    if (isGetter && clasp->ops.getGeneric)
+        return true;
+    if (!isGetter && clasp->ops.setGeneric)
+        return true;
+    return false;
+}
 
 inline bool
-IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, HandleId id,
-                               JSFunction **funcp, bool isGetter, bool *isDOM,
-                               MDefinition **guardOut)
+TestTypeHasOwnProperty(JSContext *cx, types::TypeObject *typeObj, HandleId id, bool &cont)
 {
-    JSObject *found = NULL;
-    JSObject *foundProto = NULL;
+    cont = true;
+    types::HeapTypeSet *propSet = typeObj->getProperty(cx, types::IdToTypeId(id), false);
+    if (!propSet)
+        return false;
+    if (propSet->ownProperty(false))
+        cont = false;
+    return true;
+}
 
-    *funcp = NULL;
-    *isDOM = false;
+inline bool
+TestCommonAccessorProtoChain(JSContext *cx, HandleId id, bool isGetter, JSObject *foundProto,
+                             JSObject *obj, bool &cont)
+{
+    cont = false;
+    RootedObject curObj(cx, obj);
+    JSObject *stopAt = foundProto->getProto();
+    while (curObj != stopAt) {
+        
+        if (TestClassHasAccessorHook(curObj->getClass(), isGetter))
+            return true;
 
-    
-    if (!types || types->unknownObject())
-        return true;
+        
+        
+        
+        
+        
+        
+        if (curObj != foundProto) {
+            types::TypeObject *typeObj = curObj->getType(cx);
+            if (!typeObj)
+                return false;
 
-    
-    
+            if (typeObj->unknownProperties())
+                return true;
+
+            
+            
+            
+            
+            
+
+            
+            
+            
+            bool lcont;
+            if (!TestTypeHasOwnProperty(cx, typeObj, id, lcont))
+                return false;
+            if (!lcont)
+                return true;
+        }
+
+        curObj = curObj->getProto();
+    }
+    cont = true;
+    return true;
+}
+
+inline bool
+SearchCommonPropFunc(JSContext *cx, types::StackTypeSet *types, HandleId id, bool isGetter,
+                     JSObject *&found, JSObject *&foundProto, bool &cont)
+{
+    cont = false;
     for (unsigned i = 0; i < types->getObjectCount(); i++) {
         RootedObject curObj(cx, types->getSingleObject(i));
 
@@ -7669,17 +7726,15 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, Handle
 
             
             
-            if (isGetter && typeObj->clasp->ops.getGeneric)
-                return true;
-            if (!isGetter && typeObj->clasp->ops.setGeneric)
+            if (TestClassHasAccessorHook(typeObj->clasp, isGetter))
                 return true;
 
             
             
-            types::HeapTypeSet *propSet = typeObj->getProperty(cx, types::IdToTypeId(id), false);
-            if (!propSet)
+            bool lcont;
+            if (!TestTypeHasOwnProperty(cx, typeObj, id, lcont))
                 return false;
-            if (propSet->ownProperty(false))
+            if (!lcont)
                 return true;
 
             
@@ -7735,71 +7790,19 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, Handle
         else if (foundProto != proto)
             return true;
 
-        JSObject *stopAt = foundProto->getProto();
-        while (curObj != stopAt) {
-            
-            if (isGetter && curObj->getClass()->ops.getGeneric)
-                return true;
-            if (!isGetter && curObj->getClass()->ops.setGeneric)
-                return true;
-
-            
-            
-            
-            
-            
-            
-            if (curObj != foundProto) {
-                types::TypeObject *typeObj = curObj->getType(cx);
-                if (!typeObj)
-                    return false;
-
-                if (typeObj->unknownProperties())
-                    return true;
-
-                
-                
-                
-                
-                
-
-                
-                
-                
-                types::HeapTypeSet *propSet =
-                    typeObj->getProperty(cx, types::IdToTypeId(id), false);
-                if (!propSet)
-                    return false;
-                if (propSet->ownProperty(false))
-                    return true;
-            }
-
-            curObj = curObj->getProto();
-        }
+        bool lcont;
+        if (!TestCommonAccessorProtoChain(cx, id, isGetter, foundProto, curObj, lcont))
+            return false;
+        if (!lcont)
+            return true;
     }
+    cont = true;
+    return true;
+}
 
-    
-    if (!found)
-        return true;
-
-    JS_ASSERT(foundProto);
-
-    
-    
-    
-    
-    MInstruction *wrapper = MConstant::New(ObjectValue(*foundProto));
-    current->add(wrapper);
-    wrapper = addShapeGuard(wrapper, foundProto->lastProperty(), Bailout_ShapeGuard);
-
-    
-    if (isGetter) {
-        JS_ASSERT(wrapper->isGuardShape());
-        *guardOut = wrapper;
-    }
-
-    
-    
+inline bool
+FreezePropTypeSets(JSContext *cx, types::StackTypeSet *types, JSObject *foundProto, HandleId id)
+{
     types::TypeObject *curType;
     for (unsigned i = 0; i < types->getObjectCount(); i++) {
         curType = types->getTypeObject(i);
@@ -7839,6 +7842,56 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, Handle
             }
         }
     }
+    return true;
+}
+
+inline bool
+IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, HandleId id,
+                               JSFunction **funcp, bool isGetter, bool *isDOM,
+                               MDefinition **guardOut)
+{
+    JSObject *found = NULL;
+    JSObject *foundProto = NULL;
+
+    *funcp = NULL;
+    *isDOM = false;
+
+    
+    if (!types || types->unknownObject())
+        return true;
+
+    
+    
+    bool cont;
+    if (!SearchCommonPropFunc(cx, types, id, isGetter, found, foundProto, cont))
+        return false;
+    if (!cont)
+        return true;
+
+    
+    if (!found)
+        return true;
+
+    JS_ASSERT(foundProto);
+
+    
+    
+    
+    
+    MInstruction *wrapper = MConstant::New(ObjectValue(*foundProto));
+    current->add(wrapper);
+    wrapper = addShapeGuard(wrapper, foundProto->lastProperty(), Bailout_ShapeGuard);
+
+    
+    if (guardOut) {
+        JS_ASSERT(wrapper->isGuardShape());
+        *guardOut = wrapper;
+    }
+
+    
+    
+    if (!FreezePropTypeSets(cx, types, foundProto, id))
+        return false;
 
     *funcp = &found->as<JSFunction>();
     *isDOM = types->isDOMClass();
