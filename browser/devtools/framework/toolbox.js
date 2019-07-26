@@ -527,7 +527,9 @@ Toolbox.prototype = {
 
 
   _buildButtons: function() {
-    this._buildPickerButton();
+    if (!this.target.isAddon) {
+      this._buildPickerButton();
+    }
 
     if (!this.target.isLocalTab) {
       return;
