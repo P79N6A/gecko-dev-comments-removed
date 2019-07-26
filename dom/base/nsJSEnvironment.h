@@ -104,8 +104,8 @@ public:
   
   
   static void CycleCollectNow(nsICycleCollectorListener *aListener = nullptr,
-                              int32_t aExtraForgetSkippableCalls = 0,
-                              bool aManuallyTriggered = true);
+                              int32_t aExtraForgetSkippableCalls = 0);
+  static void ScheduledCycleCollectNow();
   static void BeginCycleCollectionCallback();
   static void EndCycleCollectionCallback(mozilla::CycleCollectorResults &aResults);
 
