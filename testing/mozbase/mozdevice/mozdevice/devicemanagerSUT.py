@@ -542,7 +542,7 @@ class DeviceManagerSUT(DeviceManager):
     def getTempDir(self):
         return self._runCmds([{ 'cmd': 'tmpd' }]).strip()
 
-    def pullFile(self, remoteFile):
+    def pullFile(self, remoteFile, offset=None, length=None):
         
         
         
@@ -604,7 +604,14 @@ class DeviceManagerSUT(DeviceManager):
         
 
         
-        self._runCmds([{ 'cmd': 'pull ' + remoteFile }])
+        if offset is not None and length is not None:
+            cmd = 'pull %s %d %d' % (remoteFile, offset, length)
+        elif offset is not None:
+            cmd = 'pull %s %d' % (remoteFile, offset)
+        else: 
+            cmd = 'pull %s' % remoteFile
+
+        self._runCmds([{ 'cmd': cmd }])
 
         
         metadata, sep, buf = read_until_char('\n', buf, 'could not find metadata')
