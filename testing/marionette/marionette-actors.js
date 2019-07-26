@@ -1567,6 +1567,40 @@ MarionetteDriverActor.prototype = {
   
 
 
+  addCookie: function MDA_addCookie(aRequest) {
+    this.command_id = this.getCommandId();
+    this.sendAsync("addCookie", {cookie:aRequest.cookie,
+                                 command_id: this.command_id});
+  },
+
+  
+
+
+  getAllCookies: function MDA_getAllCookies() {
+    this.command_id = this.getCommandId();
+    this.sendAsync("getAllCookies", {command_id: this.command_id});
+  },
+
+  
+
+
+  deleteAllCookies: function MDA_deleteAllCookies() {
+    this.command_id = this.getCommandId();
+    this.sendAsync("deleteAllCookies", {command_id: this.command_id});
+  },
+
+  
+
+
+  deleteCookie: function MDA_deleteCookie(aRequest) {
+    this.command_id = this.getCommandId();
+    this.sendAsync("deleteCookie", {name:aRequest.name,
+                                    command_id: this.command_id});
+  },
+
+  
+
+
 
 
 
@@ -1916,7 +1950,11 @@ MarionetteDriverActor.prototype.requestTypes = {
   "getAppCacheStatus": MarionetteDriverActor.prototype.getAppCacheStatus,
   "closeWindow": MarionetteDriverActor.prototype.closeWindow,
   "setTestName": MarionetteDriverActor.prototype.setTestName,
-  "screenShot": MarionetteDriverActor.prototype.screenShot
+  "screenShot": MarionetteDriverActor.prototype.screenShot,
+  "addCookie": MarionetteDriverActor.prototype.addCookie,
+  "getAllCookies": MarionetteDriverActor.prototype.getAllCookies,
+  "deleteAllCookies": MarionetteDriverActor.prototype.deleteAllCookies,
+  "deleteCookie": MarionetteDriverActor.prototype.deleteCookie
 };
 
 
