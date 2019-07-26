@@ -450,7 +450,6 @@ AudioBufferSourceNode::AudioBufferSourceNode(AudioContext* aContext)
   , mLoop(false)
   , mStartCalled(false)
   , mStopped(false)
-  , mOffsetAndDurationRemembered(false)
 {
   AudioBufferSourceNodeEngine* engine =
       new AudioBufferSourceNodeEngine(this, aContext->Destination());
@@ -499,7 +498,6 @@ AudioBufferSourceNode::Start(double aWhen, double aOffset,
     mDuration = aDuration.WasPassed() ?
                 aDuration.Value() :
                 std::numeric_limits<double>::min();
-    mOffsetAndDurationRemembered = true;
   }
 
   
@@ -527,9 +525,7 @@ AudioBufferSourceNode::SendBufferParameterToStream(JSContext* aCx)
     ns->SetBuffer(nullptr);
   }
 
-  if (mOffsetAndDurationRemembered) {
-    SendOffsetAndDurationParametersToStream(ns, mOffset, mDuration);
-  }
+  SendOffsetAndDurationParametersToStream(ns, mOffset, mDuration);
 }
 
 void
