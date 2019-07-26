@@ -156,6 +156,9 @@ const DownloadsButton = {
     if (!placeholder) {
       
       indicator.collapsed = true;
+      
+      
+      indicator.parentNode.appendChild(indicator);
       return null;
     }
 
