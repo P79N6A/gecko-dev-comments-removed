@@ -30,11 +30,6 @@ static CGRect RectToCGRect(Rect r)
   return CGRectMake(r.x, r.y, r.width, r.height);
 }
 
-static CGRect IntRectToCGRect(IntRect r)
-{
-  return CGRectMake(r.x, r.y, r.width, r.height);
-}
-
 CGBlendMode ToBlendMode(CompositionOp op)
 {
   CGBlendMode mode;
@@ -1231,32 +1226,29 @@ DrawTargetCG::CopySurface(SourceSurface *aSurface,
 
     
 
-
-    CGImageRef subimage = CGImageCreateWithImageInRect(image, IntRectToCGRect(aSourceRect));
-    CGImageRelease(image);
-    
-
     CGContextSaveGState(mCg);
 
     
     CGContextResetClip(mCg);
+    CGRect destRect = CGRectMake(aDestination.x, aDestination.y,
+                                 aSourceRect.width, aSourceRect.height);
+    CGContextClipToRect(mCg, destRect);
+
     CGContextSetBlendMode(mCg, kCGBlendModeCopy);
 
     CGContextScaleCTM(mCg, 1, -1);
 
-    CGRect flippedRect = CGRectMake(aDestination.x, -(aDestination.y + aSourceRect.height),
-                                    aSourceRect.width, aSourceRect.height);
+    CGRect flippedRect = CGRectMake(aDestination.x - aSourceRect.x, -(aDestination.y - aSourceRect.y + double(CGImageGetHeight(image))),
+                                    CGImageGetWidth(image), CGImageGetHeight(image));
 
     
     
     if (mFormat == SurfaceFormat::A8) {
       CGContextClearRect(mCg, flippedRect);
     }
-    CGContextDrawImage(mCg, flippedRect, subimage);
+    CGContextDrawImage(mCg, flippedRect, image);
 
     CGContextRestoreGState(mCg);
-
-    CGImageRelease(subimage);
   }
 }
 
