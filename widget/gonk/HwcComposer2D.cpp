@@ -245,7 +245,6 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
     
     
 
-    const bool TESTING = true;
     bool fillColor = false;
 
     const nsIntRegion& visibleRegion = aLayer->GetEffectiveVisibleRegion();
@@ -263,8 +262,7 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
         return false;
     }
 
-    if (!TESTING &&
-        visibleRegion.GetNumRects() > 1) {
+    if (visibleRegion.GetNumRects() > 1) {
         
         LOGD("Layer has nontrivial visible region");
         return false;
