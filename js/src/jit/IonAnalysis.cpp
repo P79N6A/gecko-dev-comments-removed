@@ -1273,10 +1273,8 @@ jit::BuildPhiReverseMapping(MIRGraph &graph)
     
     
     for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
-        if (block->numPredecessors() < 2) {
-            JS_ASSERT(block->phisEmpty());
+        if (block->phisEmpty())
             continue;
-        }
 
         
         for (size_t j = 0; j < block->numPredecessors(); j++) {
@@ -1523,13 +1521,7 @@ jit::AssertExtendedGraphCoherency(MIRGraph &graph)
                 successorWithPhis++;
 
         JS_ASSERT(successorWithPhis <= 1);
-        JS_ASSERT_IF(successorWithPhis, block->successorWithPhis() != nullptr);
-
-        
-        
-        
-        
-        
+        JS_ASSERT((successorWithPhis != 0) == (block->successorWithPhis() != nullptr));
     }
 
     AssertDominatorTree(graph);
