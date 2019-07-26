@@ -23,6 +23,7 @@
 #include "nsEventStates.h"
 #include "mozilla/TimeStamp.h"
 #include "nsIFrame.h"
+#include "Units.h"
 
 class nsIPresShell;
 class nsIContent;
@@ -212,7 +213,7 @@ public:
   
   
   
-  static nsIntPoint sLastClientPoint;
+  static mozilla::CSSIntPoint sLastClientPoint;
 
   static bool sIsPointerLocked;
   static nsWeakPtr sPointerLockedElement;
