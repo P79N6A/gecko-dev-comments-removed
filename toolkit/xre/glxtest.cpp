@@ -209,7 +209,7 @@ static void glxtest()
   const GLubyte *vendorString = glGetString(GL_VENDOR);
   const GLubyte *rendererString = glGetString(GL_RENDERER);
   const GLubyte *versionString = glGetString(GL_VERSION);
-  
+
   if (!vendorString || !rendererString || !versionString)
     fatal_error("glGetString returned null");
 
@@ -229,7 +229,16 @@ static void glxtest()
   glXDestroyContext(dpy, context);
   XDestroyWindow(dpy, window);
   XFreeColormap(dpy, swa.colormap);
+
+#ifdef NS_FREE_PERMANENT_DATA 
   XCloseDisplay(dpy);
+#else
+  
+  
+  
+  XSync(dpy, False);
+#endif
+
   dlclose(libgl);
 
   
