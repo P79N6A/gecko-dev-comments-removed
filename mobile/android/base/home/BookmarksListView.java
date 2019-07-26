@@ -37,20 +37,11 @@ public class BookmarksListView extends HomeListView
     
     public static final String LOGTAG = "GeckoBookmarksListView";
 
-    private int mFolderId = Bookmarks.FIXED_ROOT_ID;
-    private String mFolderTitle = "";
-
     
     private BookmarksListAdapter mCursorAdapter = null;
 
     
     private BookmarksQueryTask mQueryTask = null;
-
-    
-    private BookmarkFolderView mFolderView;
-
-    
-    private boolean mHasFolderHeader = false;
 
     
     private MotionEvent mMotionEvent;
@@ -71,10 +62,6 @@ public class BookmarksListView extends HomeListView
 
         
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
-
-        
-        mFolderView = (BookmarkFolderView) LayoutInflater.from(context).inflate(R.layout.bookmark_folder_row, null);
-        mFolderView.open();
     }
 
     @Override
@@ -83,9 +70,7 @@ public class BookmarksListView extends HomeListView
 
         
         mCursorAdapter = new BookmarksListAdapter(getContext(), null);
-
-        
-        refreshListWithCursor(null);
+        setAdapter(mCursorAdapter);
 
         setOnItemClickListener(this);
         setOnKeyListener(GamepadUtils.getListItemClickDispatcher());
@@ -149,25 +134,29 @@ public class BookmarksListView extends HomeListView
         final ListView list = (ListView) parent;
         final int headerCount = list.getHeaderViewsCount();
 
-        if (mHasFolderHeader) {
+        if (position < headerCount) {
             
-            
-            if (position == headerCount - 1) {   
+            return;
+        }
+
+        
+        position -= headerCount;
+
+        if (mCursorAdapter.isShowingChildFolder()) {
+            if (position == 0) {
+                
                 mCursorAdapter.moveToParentFolder();
                 return;
             }
-        } else if (position < headerCount) {
+
             
-            return;
+            position--;
         }
 
         final Cursor cursor = mCursorAdapter.getCursor();
         if (cursor == null) {
             return;
         }
-
-        
-        position -= headerCount;
 
         cursor.moveToPosition(position);
 
@@ -189,26 +178,7 @@ public class BookmarksListView extends HomeListView
 
     private void refreshListWithCursor(Cursor cursor) {
         
-        setAdapter(null);
-
-        
-        if (mFolderId == Bookmarks.FIXED_ROOT_ID) {
-            if (mHasFolderHeader) {
-                removeHeaderView(mFolderView);
-                mHasFolderHeader = false;
-            }
-        } else {
-            if (!mHasFolderHeader) {
-                addHeaderView(mFolderView, null, true);
-                mHasFolderHeader = true;
-            }
-
-            mFolderView.setText(mFolderTitle);
-        }
-
-        
         mCursorAdapter.changeCursor(cursor);
-        setAdapter(mCursorAdapter);
 
         
         mQueryTask = null;
@@ -234,7 +204,7 @@ public class BookmarksListView extends HomeListView
             mParentStack = new LinkedList<Pair<Integer, String>>();
 
             
-            Pair<Integer, String> rootFolder = new Pair<Integer, String>(mFolderId, mFolderTitle);
+            Pair<Integer, String> rootFolder = new Pair<Integer, String>(Bookmarks.FIXED_ROOT_ID, "");
             mParentStack.addFirst(rootFolder);
         }
 
@@ -245,12 +215,9 @@ public class BookmarksListView extends HomeListView
                 mQueryTask.cancel(false);
             }
 
-            Pair<Integer, String> folderPair = mParentStack.getFirst();
-            mFolderId = folderPair.first;
-            mFolderTitle = folderPair.second;
-
+            final Pair<Integer, String> folderPair = mParentStack.getFirst();
             mQueryTask = new BookmarksQueryTask();
-            mQueryTask.execute(new Integer(mFolderId));
+            mQueryTask.execute(folderPair.first);
         }
 
         
@@ -281,6 +248,16 @@ public class BookmarksListView extends HomeListView
 
         @Override
         public int getItemViewType(int position) {
+            
+            if (isShowingChildFolder()) {
+                if (position == 0) {
+                    return VIEW_TYPE_FOLDER;
+                }
+
+                
+                position--;
+            }
+
             Cursor c = getCursor();
 
             if (!c.moveToPosition(position)) {
@@ -343,6 +320,36 @@ public class BookmarksListView extends HomeListView
             return c.getString(c.getColumnIndexOrThrow(Bookmarks.TITLE));
         }
 
+        
+
+
+        public boolean isShowingChildFolder() {
+            return (mParentStack.peek().first != Bookmarks.FIXED_ROOT_ID);
+        }
+
+        @Override
+        public int getCount() {
+            return super.getCount() + (isShowingChildFolder() ? 1 : 0);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            
+            if (isShowingChildFolder()) {
+                if (position == 0) {
+                    BookmarkFolderView folder = (BookmarkFolderView) LayoutInflater.from(parent.getContext()).inflate(R.layout.bookmark_folder_row, null);
+                    folder.setText(mParentStack.peek().second);
+                    folder.open();
+                    return folder;
+                }
+
+                
+                position--;
+            }
+
+            return super.getView(position, convertView, parent);
+        }
+
         @Override
         public void bindView(View view, Context context, Cursor cursor) {
             final int viewType = getItemViewType(cursor);
@@ -353,6 +360,7 @@ public class BookmarksListView extends HomeListView
             } else {
                 BookmarkFolderView row = (BookmarkFolderView) view;
                 row.setText(getFolderTitle(cursor));
+                row.close();
             }
         }
 
