@@ -46,6 +46,12 @@ struct ProtoTableEntry {
 JS_FOR_EACH_PROTOTYPE(DECLARE_PROTOTYPE_CLASS_INIT)
 #undef DECLARE_PROTOTYPE_CLASS_INIT
 
+JSObject *
+js_InitViaClassSpec(JSContext *cx, Handle<JSObject*> obj)
+{
+    MOZ_ASSUME_UNREACHABLE();
+}
+
 static const ProtoTableEntry protoTable[JSProto_LIMIT] = {
 #define INIT_FUNC(name,code,init,clasp) { clasp, init },
 #define INIT_FUNC_DUMMY(name,code,init,clasp) { nullptr, nullptr },
@@ -441,10 +447,79 @@ GlobalObject::ensureConstructor(JSContext *cx, JSProtoKey key)
 {
     if (getConstructor(key).isObject())
         return true;
+    return initConstructor(cx, key);
+}
+
+bool
+GlobalObject::initConstructor(JSContext *cx, JSProtoKey key)
+{
     MOZ_ASSERT(getConstructor(key).isUndefined());
-    RootedObject self(cx, this);
+    Rooted<GlobalObject*> self(cx, this);
+
+    
+    
+    
+    
     ClassInitializerOp init = protoTable[key].init;
-    return !init || init(cx, self);
+    if (init == js_InitViaClassSpec)
+        init = nullptr;
+
+    const Class *clasp = ProtoKeyToClass(key);
+
+    
+    
+    
+    
+    
+    
+    bool haveSpec = clasp && clasp->spec.defined();
+    if (!init && !haveSpec)
+        return true;
+
+    
+    if (init) {
+        MOZ_ASSERT(!haveSpec);
+        return init(cx, self);
+    }
+
+    
+    
+    
+
+    
+    RootedObject ctor(cx, clasp->spec.createConstructor(cx, key));
+    if (!ctor)
+        return false;
+
+    
+    if (const JSFunctionSpec *funs = clasp->spec.constructorFunctions) {
+        if (!JS_DefineFunctions(cx, ctor, funs))
+            return false;
+    }
+
+    
+    
+    RootedObject proto(cx);
+    if (clasp->spec.createPrototype) {
+        proto = clasp->spec.createPrototype(cx, key);
+        if (!proto)
+            return false;
+    }
+    if (const JSFunctionSpec *funs = clasp->spec.prototypeFunctions) {
+        if (!JS_DefineFunctions(cx, proto, funs))
+            return false;
+    }
+
+    
+    if (proto && !LinkConstructorAndPrototype(cx, ctor, proto))
+        return false;
+
+    
+    if (clasp->spec.finishInit && !clasp->spec.finishInit(cx, ctor, proto))
+        return false;
+
+    
+    return DefineConstructorAndPrototype(cx, self, key, ctor, proto);
 }
 
 GlobalObject *
