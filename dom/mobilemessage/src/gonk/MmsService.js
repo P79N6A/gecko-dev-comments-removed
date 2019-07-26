@@ -30,6 +30,8 @@ const kSmsSentObserverTopic              = "sms-sent";
 const kSmsFailedObserverTopic            = "sms-failed";
 const kSmsReceivedObserverTopic          = "sms-received";
 const kSmsRetrievingObserverTopic        = "sms-retrieving";
+const kSmsDeliverySuccessObserverTopic   = "sms-delivery-success";
+const kSmsDeliveryErrorObserverTopic     = "sms-delivery-error";
 
 const kNetworkInterfaceStateChangedTopic = "network-interface-state-changed";
 const kXpcomShutdownObserverTopic        = "xpcom-shutdown";
@@ -68,11 +70,12 @@ const DELIVERY_SENDING        = "sending";
 const DELIVERY_SENT           = "sent";
 const DELIVERY_ERROR          = "error";
 
-const DELIVERY_STATUS_SUCCESS  = "success";
-const DELIVERY_STATUS_PENDING  = "pending";
-const DELIVERY_STATUS_ERROR    = "error";
-const DELIVERY_STATUS_REJECTED = "rejected";
-const DELIVERY_STATUS_MANUAL   = "manual";
+const DELIVERY_STATUS_SUCCESS        = "success";
+const DELIVERY_STATUS_PENDING        = "pending";
+const DELIVERY_STATUS_ERROR          = "error";
+const DELIVERY_STATUS_REJECTED       = "rejected";
+const DELIVERY_STATUS_MANUAL         = "manual";
+const DELIVERY_STATUS_NOT_APPLICABLE = "not-applicable";
 
 const PREF_SEND_RETRY_COUNT =
   Services.prefs.getIntPref("dom.mms.sendRetryCount");
@@ -892,7 +895,7 @@ RetrieveTransaction.prototype = Object.create(CancellableTransaction.prototype, 
 
 
 
-function SendTransaction(cancellableId, msg) {
+function SendTransaction(cancellableId, msg, requestDeliveryReport) {
   
   CancellableTransaction.call(this, cancellableId);
 
@@ -912,7 +915,7 @@ function SendTransaction(cancellableId, msg) {
   msg.headers["x-mms-expiry"] = 7 * 24 * 60 * 60;
   msg.headers["x-mms-priority"] = 129;
   msg.headers["x-mms-read-report"] = true;
-  msg.headers["x-mms-delivery-report"] = true;
+  msg.headers["x-mms-delivery-report"] = requestDeliveryReport;
 
   if (!gMmsTransactionHelper.checkMaxValuesParameters(msg)) {
     
@@ -1538,16 +1541,71 @@ MmsService.prototype = {
 
 
 
-  handleDeliveryIndication: function handleDeliveryIndication(msg) {
+  handleDeliveryIndication: function handleDeliveryIndication(aMsg) {
+    if (DEBUG) {
+      debug("handleDeliveryIndication: got delivery report" +
+            JSON.stringify(aMsg));
+    }
+
+    let headers = aMsg.headers;
+    let envelopeId = headers["message-id"];
+    let address = headers.to.address;
+    let mmsStatus = headers["x-mms-status"];
+    if (DEBUG) {
+      debug("Start updating the delivery status for envelopeId: " + envelopeId +
+            " address: " + address + " mmsStatus: " + mmsStatus);
+    }
+
     
     
     
     
-    
-    
-    
-    let messageId = msg.headers["message-id"];
-    if (DEBUG) debug("handleDeliveryIndication: got delivery report for " + messageId);
+    let deliveryStatus;
+    switch (mmsStatus) {
+      case MMS.MMS_PDU_STATUS_RETRIEVED:
+        deliveryStatus = DELIVERY_STATUS_SUCCESS;
+        break;
+      case MMS.MMS_PDU_STATUS_EXPIRED:
+      case MMS.MMS_PDU_STATUS_REJECTED:
+      case MMS.MMS_PDU_STATUS_UNRECOGNISED:
+      case MMS.MMS_PDU_STATUS_UNREACHABLE:
+        deliveryStatus = DELIVERY_STATUS_REJECTED;
+        break;
+      case MMS.MMS_PDU_STATUS_DEFERRED:
+        deliveryStatus = DELIVERY_STATUS_PENDING;
+        break;
+      case MMS.MMS_PDU_STATUS_INDETERMINATE:
+        deliveryStatus = DELIVERY_STATUS_NOT_APPLICABLE;
+        break;
+      default:
+        if (DEBUG) debug("Cannot handle this MMS status. Returning.");
+        return;
+    }
+
+    if (DEBUG) debug("Updating the delivery status to: " + deliveryStatus);
+    gMobileMessageDatabaseService
+      .setMessageDeliveryByEnvelopeId(envelopeId,
+                                      address,
+                                      null,
+                                      deliveryStatus,
+                                      function notifySetDeliveryResult(aRv, aDomMessage) {
+      if (DEBUG) debug("Marking the delivery status is done.");
+      
+
+      let topic;
+      if (mmsStatus === MMS.MMS_PDU_STATUS_RETRIEVED) {
+        topic = kSmsDeliverySuccessObserverTopic;
+      } else if (mmsStatus === MMS.MMS_PDU_STATUS_REJECTED) {
+        topic = kSmsDeliveryErrorObserverTopic;
+      }
+      if (!topic) {
+        if (DEBUG) debug("Needn't fire event for this MMS status. Returning.");
+        return;
+      }
+
+      
+      Services.obs.notifyObservers(aDomMessage, topic, null);
+    });
   },
 
   
@@ -1660,10 +1718,15 @@ MmsService.prototype = {
 
     
     aMessage["type"] = "mms";
-    aMessage["deliveryStatusRequested"] = true;
     aMessage["timestamp"] = Date.now();
     aMessage["receivers"] = receivers;
     aMessage["sender"] = this.getMsisdn();
+    try {
+      aMessage["deliveryStatusRequested"] =
+        Services.prefs.getBoolPref("dom.mms.requestStatusReport");
+    } catch (e) {
+      aMessage["deliveryStatusRequested"] = false;
+    }
 
     if (DEBUG) debug("createSavableFromParams: aMessage: " +
                      JSON.stringify(aMessage));
@@ -1717,8 +1780,13 @@ MmsService.prototype = {
 
     let self = this;
 
-    let sendTransactionCb = function sendTransactionCb(aDomMessage, aErrorCode) {
-      if (DEBUG) debug("The error code of sending transaction: " + aErrorCode);
+    let sendTransactionCb = function sendTransactionCb(aDomMessage,
+                                                       aErrorCode,
+                                                       aEnvelopeId) {
+      if (DEBUG) {
+        debug("The returned status of sending transaction: " +
+              "aErrorCode: " + aErrorCode + " aEnvelopeId: " + aEnvelopeId);
+      }
 
       
       
@@ -1734,7 +1802,7 @@ MmsService.prototype = {
                                        null,
                                        isSentSuccess ? DELIVERY_SENT : DELIVERY_ERROR,
                                        isSentSuccess ? null : DELIVERY_STATUS_ERROR,
-                                       null,
+                                       aEnvelopeId,
                                        function notifySetDeliveryResult(aRv, aDomMessage) {
         if (DEBUG) debug("Marking the delivery state/staus is done. Notify sent or failed.");
         
@@ -1790,7 +1858,9 @@ MmsService.prototype = {
       
       let sendTransaction;
       try {
-        sendTransaction = new SendTransaction(aDomMessage.id, savableMessage);
+        sendTransaction =
+          new SendTransaction(aDomMessage.id, savableMessage,
+                              savableMessage["deliveryStatusRequested"]);
       } catch (e) {
         if (DEBUG) debug("Exception: fail to create a SendTransaction instance.");
         sendTransactionCb(aDomMessage,
@@ -1808,7 +1878,8 @@ MmsService.prototype = {
           errorCode = Ci.nsIMobileMessageCallback.SUCCESS_NO_ERROR;
         }
 
-        sendTransactionCb(aDomMessage, errorCode);
+        let envelopeId = aMsg.headers ? aMsg.headers["message-id"] : null;
+        sendTransactionCb(aDomMessage, errorCode, envelopeId);
       });
     });
   },
