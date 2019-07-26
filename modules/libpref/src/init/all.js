@@ -331,6 +331,16 @@ pref("accessibility.tabfocus_applies_to_xul", true);
 
 pref("accessibility.force_disabled", 0);
 
+#ifdef XP_WIN
+
+
+
+
+
+pref("accessibility.delay_plugins", false);
+pref("accessibility.delay_plugin_time", 10000);
+#endif
+
 pref("focusmanager.testmode", false);
 
 pref("accessibility.usetexttospeech", "");
@@ -1704,18 +1714,10 @@ pref("layout.css.masking.enabled", true);
 #endif
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.supports-rule.enabled", false);
-#else
 pref("layout.css.supports-rule.enabled", true);
-#endif
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.flexbox.enabled", false);
-#else
 pref("layout.css.flexbox.enabled", true);
-#endif
 
 
 pref("layout.css.prefixes.border-image", true);

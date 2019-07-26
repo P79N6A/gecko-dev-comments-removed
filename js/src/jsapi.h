@@ -2629,8 +2629,24 @@ JS_SetFinalizeCallback(JSRuntime *rt, JSFinalizeCallback cb);
 extern JS_PUBLIC_API(JSBool)
 JS_IsGCMarkingTracer(JSTracer *trc);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 extern JS_PUBLIC_API(JSBool)
-JS_IsAboutToBeFinalized(void *thing);
+JS_IsAboutToBeFinalized(JSObject **obj);
 
 typedef enum JSGCParamKey {
     
