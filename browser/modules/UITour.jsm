@@ -817,6 +817,9 @@ this.UITour = {
           randomEffect--; 
         effect = this.highlightEffects[randomEffect];
       }
+      
+      highlighter.setAttribute("active", "none");
+      aTargetEl.ownerDocument.defaultView.getComputedStyle(highlighter).animationName;
       highlighter.setAttribute("active", effect);
       highlighter.parentElement.setAttribute("targetName", aTarget.targetName);
       highlighter.parentElement.hidden = false;
