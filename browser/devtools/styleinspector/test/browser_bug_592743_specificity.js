@@ -4,12 +4,8 @@
 
 
 
-let tempScope = {};
-Cu.import("resource:///modules/devtools/CssLogic.jsm", tempScope);
 const DOMUtils = Cc["@mozilla.org/inspector/dom-utils;1"]
                    .getService(Ci.inIDOMUtils);
-let CssLogic = tempScope.CssLogic;
-let CssSelector = tempScope.CssSelector;
 
 function createDocument()
 {

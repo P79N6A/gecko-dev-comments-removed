@@ -4,10 +4,8 @@
 
 
 
-const Cu = Components.utils;
-Cu.import("resource:///modules/devtools/EventEmitter.jsm");
-
-this.EXPORTED_SYMBOLS = ["Selection"];
+const {Cu} = require("chrome");
+let EventEmitter = require("devtools/shared/event-emitter");
 
 
 
@@ -58,12 +56,14 @@ this.EXPORTED_SYMBOLS = ["Selection"];
 
 
 
-this.Selection = function Selection(node=null, track={attributes:true,detached:true}) {
+function Selection(node=null, track={attributes:true,detached:true}) {
   EventEmitter.decorate(this);
   this._onMutations = this._onMutations.bind(this);
   this.track = track;
   this.setNode(node);
 }
+
+exports.Selection = Selection;
 
 Selection.prototype = {
   _node: null,
@@ -162,7 +162,7 @@ Selection.prototype = {
 
   isNode: function SN_isNode() {
     return (this.node &&
-            !Components.utils.isDeadWrapper(this.node) &&
+            !Cu.isDeadWrapper(this.node) &&
             this.node.ownerDocument &&
             this.node.ownerDocument.defaultView &&
             this.node instanceof this.node.ownerDocument.defaultView.Node);
