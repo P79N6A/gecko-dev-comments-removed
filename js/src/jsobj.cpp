@@ -3854,6 +3854,109 @@ baseops::GetPropertyNoGC(JSContext *cx, JSObject *obj, JSObject *receiver, jsid 
     return GetPropertyHelperInline<NoGC>(cx, obj, receiver, id, 0, vp);
 }
 
+static JS_ALWAYS_INLINE bool
+LookupPropertyPureInline(JSObject *obj, jsid id, JSObject **objp, Shape **propp)
+{
+    if (!obj->isNative())
+        return false;
+
+    JSObject *current = obj;
+    while (true) {
+        
+        {
+            if (JSID_IS_INT(id) && current->containsDenseElement(JSID_TO_INT(id))) {
+                *objp = current;
+                MarkDenseElementFound<NoGC>(propp);
+                return true;
+            }
+
+            if (Shape *shape = current->nativeLookupPure(id)) {
+                *objp = current;
+                *propp = shape;
+                return true;
+            }
+        }
+
+        
+        if (current->getClass()->resolve != JS_ResolveStub)
+            return false;
+
+        JSObject *proto = current->getProto();
+
+        if (!proto)
+            break;
+        if (!proto->isNative())
+            return false;
+
+        current = proto;
+    }
+
+    *objp = NULL;
+    *propp = NULL;
+    return true;
+}
+
+static JS_ALWAYS_INLINE bool
+NativeGetPureInline(JSObject *pobj, Shape *shape, Value *vp)
+{
+    JS_ASSERT(pobj->isNative());
+
+    if (shape->hasSlot()) {
+        *vp = pobj->nativeGetSlot(shape->slot());
+        JS_ASSERT(!vp->isMagic());
+    } else {
+        vp->setUndefined();
+    }
+
+    
+    return shape->hasDefaultGetter();
+}
+
+bool
+js::LookupPropertyPure(JSObject *obj, jsid id, JSObject **objp, Shape **propp)
+{
+    return LookupPropertyPureInline(obj, id, objp, propp);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+js::GetPropertyPure(JSObject *obj, jsid id, Value *vp)
+{
+    JSObject *obj2;
+    Shape *shape;
+    if (!LookupPropertyPureInline(obj, id, &obj2, &shape))
+        return false;
+
+    
+
+
+
+    if (!shape) {
+        
+        if (obj->getClass()->getProperty && obj->getClass()->getProperty != JS_PropertyStub)
+            return false;
+        vp->setUndefined();
+        return true;
+    }
+
+    if (IsImplicitDenseElement(shape)) {
+        *vp = obj2->getDenseElement(JSID_TO_INT(id));
+        return true;
+    }
+
+    return NativeGetPureInline(obj2, shape, vp);
+}
+
 JSBool
 baseops::GetElement(JSContext *cx, HandleObject obj, HandleObject receiver, uint32_t index,
                     MutableHandleValue vp)
@@ -5059,7 +5162,6 @@ js_DumpBacktrace(JSContext *cx)
     }
     fprintf(stdout, "%s", sprinter.string());
 }
-
 void
 JSObject::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, JS::ObjectsExtraSizes *sizes)
 {
