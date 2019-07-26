@@ -686,6 +686,10 @@ public:
   void DontEnforceRangeOrClamp(int8_t);
   void DoEnforceRange(int8_t);
   void DoClamp(int8_t);
+  void SetEnforcedByte(int8_t);
+  int8_t EnforcedByte();
+  void SetClampedByte(int8_t);
+  int8_t ClampedByte();
 
 private:
   
