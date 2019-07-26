@@ -242,6 +242,11 @@ public:
   
 
 
+  ScrollableLayerGuid GetGuid();
+
+  
+
+
   bool Matches(const ScrollableLayerGuid& aGuid);
 
   
