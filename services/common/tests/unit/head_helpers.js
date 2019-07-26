@@ -44,6 +44,26 @@ function do_check_throws(aFunc, aResult, aStack) {
 
 
 
+
+function do_check_throws_message(aFunc, aResult) {
+  try {
+    aFunc();
+  } catch (e) {
+    do_check_eq(e.message, aResult);
+    return;
+  }
+  do_throw("Expected an error, none thrown.");
+}
+
+
+
+
+
+
+
+
+
+
 let _ = function(some, debug, text, to) print(Array.slice(arguments).join(" "));
 
 function httpd_setup (handlers, port=-1) {

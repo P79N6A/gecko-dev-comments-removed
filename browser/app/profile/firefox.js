@@ -1335,3 +1335,6 @@ pref("network.disable.ipc.security", true);
 
 
 pref("browser.uiCustomization.debug", false);
+
+
+pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");

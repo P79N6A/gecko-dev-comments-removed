@@ -847,3 +847,6 @@ pref("media.webspeech.synth.enabled", true);
 
 pref("dom.mozDownloads.enabled", true);
 pref("dom.downloads.max_retention_days", 7);
+
+
+pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");
