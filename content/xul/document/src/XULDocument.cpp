@@ -1171,6 +1171,7 @@ XULDocument::ResolveForwardReferences()
     
     
 
+    nsresult rv = NS_OK;
     const nsForwardReference::Phase* pass = nsForwardReference::kPasses;
     while ((mResolutionPhase = *pass) != nsForwardReference::eDone) {
         uint32_t previous = 0;
@@ -1185,8 +1186,10 @@ XULDocument::ResolveForwardReferences()
                     nsForwardReference::Result result = fwdref->Resolve();
 
                     switch (result) {
-                    case nsForwardReference::eResolve_Succeeded:
                     case nsForwardReference::eResolve_Error:
+                        rv = NS_ERROR_FAILURE;
+                        
+                    case nsForwardReference::eResolve_Succeeded:
                         mForwardReferences.RemoveElementAt(i);
 
                         
@@ -1202,7 +1205,7 @@ XULDocument::ResolveForwardReferences()
                         
                         
                         
-                        return NS_OK;
+                        return rv;
                     }
                 }
             }
@@ -1212,7 +1215,7 @@ XULDocument::ResolveForwardReferences()
     }
 
     mForwardReferences.Clear();
-    return NS_OK;
+    return rv;
 }
 
 NS_IMETHODIMP
