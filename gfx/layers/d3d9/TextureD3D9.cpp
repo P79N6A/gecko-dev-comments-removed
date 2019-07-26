@@ -513,10 +513,13 @@ DeprecatedTextureHostDIB::UpdateImpl(const SurfaceDescriptor& aImage,
   MOZ_ASSERT(aImage.type() == SurfaceDescriptor::TSurfaceDescriptorDIB);
   MOZ_ASSERT(mCompositor, "Must have compositor to update.");
 
-  nsRefPtr<gfxWindowsSurface> surf =
-    reinterpret_cast<gfxWindowsSurface*>(aImage.get_SurfaceDescriptorDIB().surface());
+  if (!mCompositor->device()) {
+    return;
+  }
+
   
-  surf->Release();
+  nsRefPtr<gfxWindowsSurface> surf =
+    dont_AddRef(reinterpret_cast<gfxWindowsSurface*>(aImage.get_SurfaceDescriptorDIB().surface()));
 
   gfxIntSize size = surf->GetSize();
   mSize = IntSize(size.width, size.height);
@@ -728,6 +731,8 @@ DeprecatedTextureClientDIB::~DeprecatedTextureClientDIB()
 {
   MOZ_COUNT_DTOR(DeprecatedTextureClientDIB);
   Unlock();
+  
+  
   mDescriptor = SurfaceDescriptor();
   mDrawTarget = nullptr;
 }
@@ -753,17 +758,26 @@ DeprecatedTextureClientDIB::EnsureAllocated(gfx::IntSize aSize,
   {
     NS_WARNING("Could not create surface");
     mSurface = nullptr;
+    mDescriptor = SurfaceDescriptor();
     return false;
   }
   mSize = aSize;
   mContentType = aType;
 
   mDescriptor = SurfaceDescriptorDIB(reinterpret_cast<uintptr_t>(mSurface.get()));
-  
-  
-  mSurface->AddRef();
 
   return true;
+}
+
+SurfaceDescriptor*
+DeprecatedTextureClientDIB::LockSurfaceDescriptor()
+{
+  
+  
+  NS_ASSERTION(mSurface == reinterpret_cast<gfxWindowsSurface*>(mDescriptor.get_SurfaceDescriptorDIB().surface()),
+                "SurfaceDescriptor is not up to date");
+  mSurface->AddRef();
+  return GetDescriptor();
 }
 
 gfxASurface*

@@ -169,8 +169,6 @@ protected:
   virtual void UpdateImpl(const SurfaceDescriptor& aSurface,
                           nsIntRegion* aRegion,
                           nsIntPoint *aOffset = nullptr) MOZ_OVERRIDE;
-
-  nsRefPtr<IDirect3DTexture9> mTexture;
 };
 
 class DeprecatedTextureHostYCbCrD3D9 : public DeprecatedTextureHost
@@ -218,13 +216,38 @@ public:
 #ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() { return "DeprecatedTextureHostDIB"; }
 #endif
+  virtual void SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator) MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(aBuffer->type() == SurfaceDescriptor::TSurfaceDescriptorDIB);
+    
+    
+    mSurface = dont_AddRef(reinterpret_cast<gfxWindowsSurface*>(aBuffer->get_SurfaceDescriptorDIB().surface()));
+    DeprecatedTextureHost::SetBuffer(aBuffer, aAllocator);
+  }
+  virtual SurfaceDescriptor* LockSurfaceDescriptor() const MOZ_OVERRIDE
+  {
+    NS_ASSERTION(!mBuffer ||
+      (mBuffer->type() == SurfaceDescriptor::TSurfaceDescriptorDIB &&
+       mSurface == reinterpret_cast<gfxWindowsSurface*>(mBuffer->get_SurfaceDescriptorDIB().surface())),
+                 "SurfaceDescriptor is not up to date");
+    
+    
+    
+    
+    if (mBuffer) {
+      mSurface->AddRef();
+    }
+    return DeprecatedTextureHost::LockSurfaceDescriptor();
+  }
 
 protected:
   virtual void UpdateImpl(const SurfaceDescriptor& aSurface,
                           nsIntRegion* aRegion,
                           nsIntPoint *aOffset = nullptr) MOZ_OVERRIDE;
 
-  nsRefPtr<IDirect3DTexture9> mTexture;
+  
+  
+  nsRefPtr<gfxWindowsSurface> mSurface;
 };
 
 
@@ -295,6 +318,7 @@ public:
   }
   virtual void Unlock() MOZ_OVERRIDE;
 
+  virtual SurfaceDescriptor* LockSurfaceDescriptor() MOZ_OVERRIDE;
   virtual void SetDescriptor(const SurfaceDescriptor& aDescriptor) MOZ_OVERRIDE;
   virtual gfxASurface::gfxContentType GetContentType() MOZ_OVERRIDE
   {

@@ -697,6 +697,7 @@ public:
 
 
   SurfaceDescriptor* GetBuffer() const { return mBuffer; }
+  virtual SurfaceDescriptor* LockSurfaceDescriptor() const { return GetBuffer(); }
 
   
 
