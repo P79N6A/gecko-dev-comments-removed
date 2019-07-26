@@ -21,6 +21,7 @@
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/Effects.h"     
 #include "mozilla/layers/TextureHost.h"  
+#include "mozilla/layers/AsyncPanZoomController.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
@@ -315,6 +316,28 @@ ContainerRender(ContainerT* aContainer,
 
   nsAutoTArray<Layer*, 12> children;
   aContainer->SortChildrenBy3DZOrder(children);
+
+  
+  
+  
+  
+  
+  if (AsyncPanZoomController* apzc = aContainer->GetAsyncPanZoomController()) {
+    if (apzc->IsOverscrolled()) {
+      gfxRGBA color = aContainer->GetBackgroundColor();
+      
+      
+      
+      if (color.a != 0.0) {
+        EffectChain effectChain(aContainer);
+        effectChain.mPrimaryEffect = new EffectSolidColor(ToColor(color));
+        gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
+        Compositor* compositor = aManager->GetCompositor();
+        compositor->DrawQuad(compositor->ClipRectInLayersCoordinates(clipRect),
+            clipRect, effectChain, opacity, Matrix4x4());
+      }
+    }
+  }
 
   
 
