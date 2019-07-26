@@ -424,6 +424,16 @@ class BlockObject : public NestedScopeObject
         return RESERVED_SLOTS + (i - (bindings.numVars() + stackDepth()));
     }
 
+    
+
+
+
+    uint32_t shapeToIndex(const Shape &shape) {
+        uint32_t slot = shape.slot();
+        JS_ASSERT(slot - RESERVED_SLOTS < slotCount());
+        return slot - RESERVED_SLOTS;
+    }
+
   protected:
     
     const Value &slotValue(unsigned i) {
