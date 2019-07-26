@@ -8,6 +8,7 @@
 
 
 
+
 #include "mozilla/FloatingPoint.h"
 
 #include <stdlib.h>
@@ -418,8 +419,8 @@ js_math_min(JSContext *cx, unsigned argc, Value *vp)
     return JS_TRUE;
 }
 
-static double
-powi(double x, int y)
+double
+js::powi(double x, int y)
 {
     unsigned n = (y < 0) ? -y : y;
     double m = x;
@@ -444,6 +445,18 @@ powi(double x, int y)
         }
         m *= m;
     }
+}
+
+double
+js::ecmaPow(double x, double y)
+{
+    
+
+
+
+    if (!MOZ_DOUBLE_IS_FINITE(y) && (x == 1.0 || x == -1.0))
+        return js_NaN;
+    return pow(x, y);
 }
 
 JSBool
@@ -472,14 +485,6 @@ js_math_pow(JSContext *cx, unsigned argc, Value *vp)
         }
     }
     
-
-
-
-    if (!MOZ_DOUBLE_IS_FINITE(y) && (x == 1.0 || x == -1.0)) {
-        vp->setDouble(js_NaN);
-        return JS_TRUE;
-    }
-    
     if (y == 0) {
         vp->setInt32(1);
         return JS_TRUE;
@@ -493,7 +498,7 @@ js_math_pow(JSContext *cx, unsigned argc, Value *vp)
     if (int32_t(y) == y)
         z = powi(x, int32_t(y));
     else
-        z = pow(x, y);
+        z = ecmaPow(x, y);
 
     vp->setNumber(z);
     return JS_TRUE;

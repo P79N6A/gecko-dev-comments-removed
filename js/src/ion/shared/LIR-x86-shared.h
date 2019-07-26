@@ -68,6 +68,27 @@ class LModPowTwoI : public LInstructionHelper<1,1,0>
 };
 
 
+class LPowHalfD : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(PowHalfD);
+    LPowHalfD(const LAllocation &input, const LDefinition &temp) {
+        setOperand(0, input);
+        setTemp(0, temp);
+    }
+
+    const LAllocation *input() {
+        return getOperand(0);
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
 class LTableSwitch : public LInstructionHelper<0, 1, 2>
 {
   public:

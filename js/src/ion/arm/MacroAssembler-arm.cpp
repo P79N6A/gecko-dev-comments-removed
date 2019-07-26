@@ -1894,10 +1894,13 @@ MacroAssemblerARMCompat::addPtr(Imm32 imm, const Address &dest)
 void
 MacroAssemblerARMCompat::compareDouble(FloatRegister lhs, FloatRegister rhs)
 {
+    
     if (rhs == InvalidFloatReg)
         ma_vcmpz(lhs);
     else
         ma_vcmp(lhs, rhs);
+
+    
     as_vmrs(pc);
 }
 

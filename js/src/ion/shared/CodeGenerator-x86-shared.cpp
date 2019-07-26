@@ -7,6 +7,7 @@
 
 #include "jscntxt.h"
 #include "jscompartment.h"
+#include "jsmath.h"
 #include "CodeGenerator-x86-shared.h"
 #include "CodeGenerator-shared-inl.h"
 #include "ion/IonFrames.h"
@@ -417,6 +418,36 @@ CodeGeneratorX86Shared::visitSqrtD(LSqrtD *ins)
     FloatRegister input = ToFloatRegister(ins->input());
     FloatRegister output = ToFloatRegister(ins->output());
     masm.sqrtsd(input, output);
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitPowHalfD(LPowHalfD *ins)
+{
+    FloatRegister input = ToFloatRegister(ins->input());
+    Register scratch = ToRegister(ins->temp());
+    JS_ASSERT(input == ToFloatRegister(ins->output()));
+
+    const uint32_t NegInfinityFloatBits = 0xFF800000;
+    Label done, sqrt;
+
+    
+    masm.move32(Imm32(NegInfinityFloatBits), scratch);
+    masm.loadFloatAsDouble(scratch, ScratchFloatReg);
+    masm.branchDouble(Assembler::DoubleNotEqualOrUnordered, input, ScratchFloatReg, &sqrt);
+
+    
+    masm.xorpd(input, input);
+    masm.subsd(ScratchFloatReg, input);
+    masm.jump(&done);
+
+    
+    masm.bind(&sqrt);
+    masm.xorpd(ScratchFloatReg, ScratchFloatReg);
+    masm.addsd(ScratchFloatReg, input);
+    masm.sqrtsd(input, input);
+
+    masm.bind(&done);
     return true;
 }
 
