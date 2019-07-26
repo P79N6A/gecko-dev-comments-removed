@@ -1190,20 +1190,20 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
   
   
-  if (mContentConsumingTouch) {
-    TransformTouchEvent(event);
-  } else {
-    DUMP_TOUCH_IDS("APZC(2)", event);
-    status = mWidget->ApzReceiveInputEvent(event, nullptr);
-  }
-
-  
   
   if (mContentConsumingTouch) {
+    
+    
+    if (!mChromeHitTestCacheForTouch) {
+      TransformTouchEvent(event);
+    }
     DUMP_TOUCH_IDS("DOM(3)", event);
     mWidget->DispatchEvent(event, status);
     return;
   }
+
+  DUMP_TOUCH_IDS("APZC(2)", event);
+  status = mWidget->ApzReceiveInputEvent(event, nullptr);
 
   
   if (!mApzConsumingTouch) {
@@ -1211,6 +1211,9 @@ MetroInput::DeliverNextQueuedTouchEvent()
       mApzConsumingTouch = true;
       DispatchTouchCancel(event);
       return;
+    }
+    if (!mChromeHitTestCacheForTouch) {
+      TransformTouchEvent(event);
     }
     DUMP_TOUCH_IDS("DOM(4)", event);
     mWidget->DispatchEvent(event, status);

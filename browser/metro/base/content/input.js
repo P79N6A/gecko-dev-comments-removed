@@ -322,12 +322,6 @@ var TouchModule = {
       if (aEvent.defaultPrevented) {
         this._isCancelled = true;
       }
-      
-      
-      
-      if (APZCObserver.enabled && aEvent.target.ownerDocument == document) {
-        aEvent.preventDefault();
-      }
     }
 
     if (this._isCancelled)
