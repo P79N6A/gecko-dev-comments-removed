@@ -96,6 +96,9 @@ public:
 
   void InitPresContextData(nsPresContext* aPresContext);
 
+  
+  bool Init(mozilla::dom::EventTarget* aGlobal);
+
   static PopupControlState GetEventPopupControlState(nsEvent *aEvent);
 
   static void PopupAllowedEventsChanged();
