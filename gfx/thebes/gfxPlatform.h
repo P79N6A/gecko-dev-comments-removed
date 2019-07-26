@@ -716,6 +716,7 @@ private:
     nsCOMPtr<nsIObserver> mSRGBOverrideObserver;
     nsCOMPtr<nsIObserver> mFontPrefsObserver;
     nsCOMPtr<nsIObserver> mOrientationSyncPrefsObserver;
+    nsCOMPtr<nsIObserver> mMemoryPressureObserver;
 
     
     mozilla::gfx::BackendType mPreferredCanvasBackend;
