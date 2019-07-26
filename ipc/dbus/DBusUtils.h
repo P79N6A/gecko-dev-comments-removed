@@ -20,6 +20,7 @@
 #define mozilla_ipc_dbus_dbusutils_h__
 
 #include <dbus/dbus.h>
+#include "mozilla/RefPtr.h"
 #include "mozilla/Scoped.h"
 
 
@@ -50,8 +51,45 @@ private:
   DBusMessage* mMsg;
 };
 
-typedef void (*DBusCallback)(DBusMessage *, void *);
 
+
+
+
+
+
+class DBusReplyHandler : public mozilla::RefCounted<DBusReplyHandler>
+{
+public:
+  virtual ~DBusReplyHandler() {
+  }
+
+  
+
+
+
+  static void Callback(DBusMessage* aReply, void* aData);
+
+  
+
+
+  virtual void Handle(DBusMessage* aReply) = 0;
+
+protected:
+  DBusReplyHandler()
+  {
+  }
+
+  DBusReplyHandler(const DBusReplyHandler& aHandler)
+  {
+  }
+
+  DBusReplyHandler& operator = (const DBusReplyHandler& aRhs)
+  {
+    return *this;
+  }
+};
+
+typedef void (*DBusCallback)(DBusMessage *, void *);
 
 void log_and_free_dbus_error(DBusError* err,
                              const char* function,
