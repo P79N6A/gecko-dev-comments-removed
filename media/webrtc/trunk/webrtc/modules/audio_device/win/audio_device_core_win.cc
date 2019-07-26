@@ -430,8 +430,6 @@ AudioDeviceWindowsCore::AudioDeviceWindowsCore(const int32_t id) :
     _playChannels(2),
     _sndCardPlayDelay(0),
     _sndCardRecDelay(0),
-    _sampleDriftAt48kHz(0),
-    _driftAccumulator(0),
     _writtenSamples(0),
     _readSamples(0),
     _playAcc(0),
@@ -2319,11 +2317,6 @@ int32_t AudioDeviceWindowsCore::InitPlayout()
         _playSampleRate = Wfx.nSamplesPerSec;
         _devicePlaySampleRate = Wfx.nSamplesPerSec; 
         _devicePlayBlockSize = Wfx.nSamplesPerSec/100;
-        if (_playBlockSize == 441)
-        {
-            _playSampleRate = 44000;    
-            _playBlockSize = 440;       
-        }
         _playChannels = Wfx.nChannels;
 
         WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "VoE selected this rendering format:");
@@ -2339,8 +2332,6 @@ int32_t AudioDeviceWindowsCore::InitPlayout()
         WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "_playBlockSize     : %d", _playBlockSize);
         WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "_playChannels      : %d", _playChannels);
     }
-
-    _Get44kHzDrift();
 
     
     
@@ -2659,11 +2650,6 @@ int32_t AudioDeviceWindowsCore::InitRecording()
         _recSampleRate = Wfx.nSamplesPerSec;
         _recBlockSize = Wfx.nSamplesPerSec/100;
         _recChannels = Wfx.nChannels;
-        if (_recBlockSize == 441)
-        {
-            _recSampleRate = 44000; 
-            _recBlockSize = 440;    
-        }
 
         WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "VoE selected this capturing format:");
         WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "wFormatTag        : 0x%X (%u)", Wfx.wFormatTag, Wfx.wFormatTag);
@@ -2678,8 +2664,6 @@ int32_t AudioDeviceWindowsCore::InitRecording()
         WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "_recBlockSize     : %d", _recBlockSize);
         WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "_recChannels      : %d", _recChannels);
     }
-
-    _Get44kHzDrift();
 
     
     hr = _ptrClientIn->Initialize(
@@ -4104,15 +4088,9 @@ DWORD AudioDeviceWindowsCore::DoCaptureThread()
                     if (_ptrAudioBuffer)
                     {
                         _ptrAudioBuffer->SetRecordedBuffer((const int8_t*)syncBuffer, _recBlockSize);
-
-                        _driftAccumulator += _sampleDriftAt48kHz;
-                        const int32_t clockDrift =
-                            static_cast<int32_t>(_driftAccumulator);
-                        _driftAccumulator -= clockDrift;
-
                         _ptrAudioBuffer->SetVQEData(sndCardPlayDelay,
                                                     sndCardRecDelay,
-                                                    clockDrift);
+                                                    0);
 
                         QueryPerformanceCounter(&t1);    
 
@@ -5142,29 +5120,6 @@ void AudioDeviceWindowsCore::_SetThreadName(DWORD dwThreadID, LPCSTR szThreadNam
     }
     __except (EXCEPTION_CONTINUE_EXECUTION)
     {
-    }
-}
-
-
-
-
-
-void AudioDeviceWindowsCore::_Get44kHzDrift()
-{
-    
-    
-    
-    
-    _sampleDriftAt48kHz = 0;
-    _driftAccumulator = 0;
-
-    if (_playSampleRate == 44000 && _recSampleRate != 44000)
-    {
-        _sampleDriftAt48kHz = 480.0f/440;
-    }
-    else if(_playSampleRate != 44000 && _recSampleRate == 44000)
-    {
-        _sampleDriftAt48kHz = -480.0f/441;
     }
 }
 

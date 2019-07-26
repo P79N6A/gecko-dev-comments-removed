@@ -20,9 +20,6 @@
 
 
 
-
-
-
 #ifndef PA_STREAM_ADJUST_LATENCY
 #define PA_STREAM_ADJUST_LATENCY 0x2000U
 #endif
@@ -311,7 +308,7 @@ private:
     bool _inputDeviceIsSpecified;
     bool _outputDeviceIsSpecified;
 
-    uint32_t _samplingFreq;
+    int sample_rate_hz_;
     uint8_t _recChannels;
     uint8_t _playChannels;
 
