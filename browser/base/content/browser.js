@@ -2493,8 +2493,8 @@ function BrowserOnAboutPageLoad(document) {
 
     let ss = Components.classes["@mozilla.org/browser/sessionstore;1"].
              getService(Components.interfaces.nsISessionStore);
-    if (!ss.canRestoreLastSession)
-      document.getElementById("launcher").removeAttribute("session");
+    if (ss.canRestoreLastSession)
+      document.getElementById("launcher").setAttribute("session", "true");
 
     
     let docElt = document.documentElement;
