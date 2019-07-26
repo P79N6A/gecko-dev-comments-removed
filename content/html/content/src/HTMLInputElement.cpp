@@ -3,10 +3,9 @@
 
 
 
-#include "mozilla/dom/HTMLInputElement.h"
-
 #include "mozilla/DebugOnly.h"
-#include "mozilla/dom/Date.h"
+
+#include "mozilla/dom/HTMLInputElement.h"
 #include "mozilla/dom/HTMLInputElementBinding.h"
 #include "nsAsyncDOMEvent.h"
 #include "nsAttrValueInlines.h"
@@ -99,6 +98,7 @@
 
 #include "nsIColorPicker.h"
 #include "nsIStringEnumerator.h"
+#include "HTMLSplitOnSpacesTokenizer.h"
 
 
 #include "js/Date.h"
