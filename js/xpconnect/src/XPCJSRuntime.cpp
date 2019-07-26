@@ -382,7 +382,7 @@ void XPCJSRuntime::TraceBlackJS(JSTracer* trc, void* data)
 
     
     
-    if (!self->GetXPConnect()->IsShuttingDown()) {
+    if (!nsXPConnect::XPConnect()->IsShuttingDown()) {
         
         if (AutoMarkingPtr *roots = Get()->mAutoRoots)
             roots->TraceJSAll(trc);
@@ -399,7 +399,7 @@ void XPCJSRuntime::TraceBlackJS(JSTracer* trc, void* data)
     }
 
     dom::TraceBlackJS(trc, JS_GetGCParameter(self->GetJSRuntime(), JSGC_NUMBER),
-                      self->GetXPConnect()->IsShuttingDown());
+                      nsXPConnect::XPConnect()->IsShuttingDown());
 }
 
 
@@ -935,7 +935,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
 
             
             
-            if (!self->GetXPConnect()->IsShuttingDown()) {
+            if (!nsXPConnect::XPConnect()->IsShuttingDown()) {
 
                 
                 if (AutoMarkingPtr *roots = Get()->mAutoRoots)
@@ -977,7 +977,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
             
             
             
-            if (!self->GetXPConnect()->IsShuttingDown()) {
+            if (!nsXPConnect::XPConnect()->IsShuttingDown()) {
                 self->mNativeScriptableSharedMap->
                     Enumerate(JSClassSweeper, sweepArg);
             }
@@ -1023,7 +1023,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
 
             
             
-            if (!self->GetXPConnect()->IsShuttingDown()) {
+            if (!nsXPConnect::XPConnect()->IsShuttingDown()) {
                 
 
                 XPCCallContext* ccxp = XPCJSRuntime::Get()->GetCallContext();
@@ -2654,8 +2654,7 @@ SourceHook(JSContext *cx, JS::Handle<JSScript*> script, jschar **src,
 }
 
 XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
- : mXPConnect(aXPConnect),
-   mJSRuntime(nullptr),
+   : mJSRuntime(nullptr),
    mJSContextStack(new XPCJSContextStack()),
    mCallContext(nullptr),
    mAutoRoots(nullptr),
@@ -2914,7 +2913,6 @@ XPCJSRuntime::DebugDump(int16_t depth)
     depth--;
     XPC_LOG_ALWAYS(("XPCJSRuntime @ %x", this));
         XPC_LOG_INDENT();
-        XPC_LOG_ALWAYS(("mXPConnect @ %x", mXPConnect));
         XPC_LOG_ALWAYS(("mJSRuntime @ %x", mJSRuntime));
         XPC_LOG_ALWAYS(("mMapLock @ %x", mMapLock));
 
