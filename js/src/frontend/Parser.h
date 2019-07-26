@@ -263,7 +263,7 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
 {
     JSContext           *const context; 
     TokenStream         tokenStream;
-    void                *tempPoolMark;  
+    LifoAlloc::Mark     tempPoolMark;
 
     
     ObjectBox *traceListHead;

@@ -98,19 +98,13 @@ class MatchPairs
 
 class ScopedMatchPairs : public MatchPairs
 {
-    LifoAlloc *lifoAlloc_;
-    void      *mark_;        
+    LifoAllocScope lifoScope_;
 
   public:
     
     ScopedMatchPairs(LifoAlloc *lifoAlloc)
-      : lifoAlloc_(lifoAlloc),
-        mark_(lifoAlloc->mark())
+      : lifoScope_(lifoAlloc)
     { }
-
-    ~ScopedMatchPairs() {
-        lifoAlloc_->release(mark_);
-    }
 
     const MatchPair &operator[](size_t i) const { return pair(i); }
 
