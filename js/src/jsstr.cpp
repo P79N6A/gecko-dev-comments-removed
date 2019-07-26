@@ -3956,6 +3956,16 @@ template <AllowGC allowGC>
 JSFlatString *
 js_NewString(ThreadSafeContext *cx, jschar *chars, size_t length)
 {
+    if (length == 1) {
+        jschar c = chars[0];
+        if (StaticStrings::hasUnit(c)) {
+            
+            
+            js_free(chars);
+            return cx->staticStrings().getUnit(c);
+        }
+    }
+
     return JSFlatString::new_<allowGC>(cx, chars, length);
 }
 
