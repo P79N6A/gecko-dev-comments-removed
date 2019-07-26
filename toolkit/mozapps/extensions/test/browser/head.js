@@ -1268,3 +1268,17 @@ function getTestPluginTag() {
   ok(false, "Unable to find plugin");
   return null;
 }
+
+
+
+
+function setTestPluginEnabledState(newEnabledState, pluginTag) {
+  if (!pluginTag) {
+    pluginTag = getTestPluginTag();
+  }
+  var oldEnabledState = pluginTag.enabledState;
+  pluginTag.enabledState = newEnabledState;
+  SimpleTest.registerCleanupFunction(function() {
+    pluginTag.enabledState = oldEnabledState;
+  });
+}
