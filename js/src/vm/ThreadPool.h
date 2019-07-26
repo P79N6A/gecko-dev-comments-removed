@@ -56,6 +56,13 @@ class TaskExecutor
 
 
 
+
+
+
+
+
+
+
 class ThreadPool
 {
   private:
@@ -67,6 +74,9 @@ class ThreadPool
 
     
     size_t numWorkers_;
+
+    
+    uint32_t nextId_;
 
     bool lazyStartWorkers(JSContext *cx);
     void terminateWorkers();
@@ -82,6 +92,7 @@ class ThreadPool
     size_t numWorkers() { return numWorkers_; }
 
     
+    bool submitOne(JSContext *cx, TaskExecutor *executor);
     bool submitAll(JSContext *cx, TaskExecutor *executor);
 
     
