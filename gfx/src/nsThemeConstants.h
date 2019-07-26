@@ -19,6 +19,9 @@
 #define NS_THEME_BUTTON_BEVEL                              7
 
 
+#define NS_THEME_FOCUS_OUTLINE                             8
+
+
 #define NS_THEME_TOOLBOX                                   11
 
 
