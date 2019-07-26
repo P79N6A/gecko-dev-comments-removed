@@ -287,23 +287,40 @@ var SelectionHandler = {
 
 
   _performSelection: function sh_performSelection(aOptions) {
-    if (aOptions.mode == this.SELECT_ALL) {
-      if (this._targetElement instanceof HTMLPreElement)  {
-        
-        return this._domWinUtils.selectAtPoint(1, 1, Ci.nsIDOMWindowUtils.SELECT_PARAGRAPH);
-      } else {
-        
-        this._getSelectionController().selectAll();
-        return true;
-      }
-    }
-
     if (aOptions.mode == this.SELECT_AT_POINT) {
       return this._domWinUtils.selectAtPoint(aOptions.x, aOptions.y, Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE);
     }
 
-    Services.console.logStringMessage("Invalid selection mode " + aOptions.mode);
-    return false;
+    if (aOptions.mode != this.SELECT_ALL) {
+      Cu.reportError("SelectionHandler.js: _performSelection() Invalid selection mode " + aOptions.mode);
+      return false;
+    }
+
+    
+    if (this._targetElement instanceof HTMLPreElement)  {
+      return this._domWinUtils.selectAtPoint(1, 1, Ci.nsIDOMWindowUtils.SELECT_PARAGRAPH);
+    }
+
+    
+    this._getSelectionController().selectAll();
+
+    
+    let selection = this._getSelection();
+    let lastNode = selection.focusNode;
+    while (lastNode && lastNode.lastChild) {
+      lastNode = lastNode.lastChild;
+    }
+
+    if (lastNode instanceof Text) {
+      try {
+        selection.extend(lastNode, lastNode.length);
+      } catch (e) {
+        Cu.reportError("SelectionHandler.js: _performSelection() whitespace trim fails: lastNode[" + lastNode +
+          "] lastNode.length[" + lastNode.length + "]");
+      }
+    }
+
+    return true;
   },
 
   
