@@ -4,6 +4,7 @@
 
 
 
+
 #include "logging.h"
 #include "MediaPipeline.h"
 
@@ -148,15 +149,15 @@ nsresult MediaPipeline::TransportReady_s(TransportFlow *flow) {
   
   if (*state != MP_CONNECTING) {
     MOZ_MTLOG(ML_ERROR, "Transport ready for flow in wrong state:" <<
-	      description_ << ": " << (rtcp ? "rtcp" : "rtp"));
+              description_ << ": " << (rtcp ? "rtcp" : "rtp"));
     return NS_ERROR_FAILURE;
   }
 
   nsresult res;
 
   MOZ_MTLOG(ML_DEBUG, "Transport ready for pipeline " <<
-	    static_cast<void *>(this) << " flow " << description_ << ": " <<
-	    (rtcp ? "rtcp" : "rtp"));
+            static_cast<void *>(this) << " flow " << description_ << ": " <<
+            (rtcp ? "rtcp" : "rtp"));
 
   
   TransportLayerDtls *dtls = static_cast<TransportLayerDtls *>(

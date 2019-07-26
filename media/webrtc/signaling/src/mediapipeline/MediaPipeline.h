@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef mediapipeline_h__
 #define mediapipeline_h__
 
@@ -83,7 +84,6 @@ class MediaPipeline : public sigslot::has_slots<> {
         rtcp_state_(MP_CONNECTING),
         main_thread_(main_thread),
         sts_thread_(sts_thread),
-        transport_(new PipelineTransport(this)),
         rtp_send_srtp_(),
         rtcp_send_srtp_(),
         rtp_recv_srtp_(),
@@ -102,6 +102,8 @@ class MediaPipeline : public sigslot::has_slots<> {
       if (!rtcp_transport_) {
         rtcp_transport_ = rtp_transport;
       }
+      
+      transport_ = new PipelineTransport(this);
   }
 
   virtual ~MediaPipeline();
@@ -145,7 +147,7 @@ class MediaPipeline : public sigslot::has_slots<> {
     
     PipelineTransport(MediaPipeline *pipeline)
         : pipeline_(pipeline),
-	  sts_thread_(pipeline->sts_thread_) {}
+          sts_thread_(pipeline->sts_thread_) {}
 
     void Detach() { pipeline_ = NULL; }
     MediaPipeline *pipeline() const { return pipeline_; }
@@ -183,12 +185,12 @@ class MediaPipeline : public sigslot::has_slots<> {
 
   Direction direction_;
   RefPtr<MediaStream> stream_;  
-  		      		
-  		      		
+                                
+                                
   TrackID track_id_;            
                                 
   RefPtr<MediaSessionConduit> conduit_;  
-  			      		 
+                                         
 
   
   RefPtr<TransportFlow> rtp_transport_;
@@ -385,10 +387,10 @@ class MediaPipelineTransmit : public MediaPipeline {
                  const MediaSegment& media);
 
     virtual void ProcessAudioChunk(AudioSessionConduit *conduit,
-				   TrackRate rate, AudioChunk& chunk);
+                                   TrackRate rate, AudioChunk& chunk);
 #ifdef MOZILLA_INTERNAL_API
     virtual void ProcessVideoChunk(VideoSessionConduit *conduit,
-				   TrackRate rate, VideoChunk& chunk);
+                                   TrackRate rate, VideoChunk& chunk);
 #endif
     RefPtr<MediaSessionConduit> conduit_;
     volatile bool active_;
@@ -517,7 +519,7 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
       MediaPipelineReceive(pc, main_thread, sts_thread,
                            stream, track_id, conduit, rtp_transport,
                            rtcp_transport),
-      renderer_(new PipelineRenderer(this)),
+      renderer_(new PipelineRenderer(MOZ_THIS_IN_INITIALIZER_LIST())),
       listener_(new PipelineListener(stream->AsSourceStream(), track_id)) {
   }
 
