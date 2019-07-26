@@ -54,10 +54,40 @@ function removeCacheFile()
 
 
 
+function removeCache()
+{
+  let file = gProfD.clone();
+  file.append("search.json");
+  if (file.exists()) {
+    file.remove(false);
+  }
+
+}
+
+
+
+
 function afterCommit(callback)
 {
   let obs = function(result, topic, verb) {
     if (verb == "write-metadata-to-disk-complete") {
+      Services.obs.removeObserver(obs, topic);
+      callback(result);
+    } else {
+      dump("TOPIC: " + topic+ "\n");
+    }
+  }
+  Services.obs.addObserver(obs, "browser-search-service", false);
+}
+
+
+
+
+function afterCache(callback)
+{
+  let obs = function(result, topic, verb) {
+    do_print("afterCache: " + verb);
+    if (verb == "write-cache-to-disk-complete") {
       Services.obs.removeObserver(obs, topic);
       callback(result);
     } else {
