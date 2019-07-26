@@ -122,6 +122,16 @@ WeaveService.prototype = {
 
 
 
+  get allowPasswordsEngine() {
+    
+    return !this.fxAccountsEnabled || !Utils.mpEnabled();
+  },
+
+  
+
+
+
+
 
 
 

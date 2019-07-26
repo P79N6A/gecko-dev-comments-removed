@@ -173,6 +173,9 @@ var gSecurityPane = {
       this.changeMasterPassword();
 
     this._initMasterPasswordUI();
+
+    
+    gSyncPane.updateWeavePrefs();
   },
 
   

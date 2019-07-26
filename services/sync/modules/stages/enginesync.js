@@ -254,25 +254,37 @@ EngineSynchronizer.prototype = {
         continue;
       }
 
-      if (Svc.Prefs.get("engineStatusChanged." + engine.prefName, false)) {
-        
-        
-        this._log.trace("Wiping data for " + engineName + " engine.");
-        engine.wipeServer();
-        delete meta.payload.engines[engineName];
-        meta.changed = true;             
-
-        
-        
-        
-        this._log.trace("Engine " + engineName + " was disabled locally. Marking as declined.");
-        toDecline.add(engineName);
-      } else {
-        
+      let attemptedEnable = false;
+      
+      if (!Svc.Prefs.get("engineStatusChanged." + engine.prefName, false)) {
         this._log.trace("Engine " + engineName + " was enabled. Marking as non-declined.");
         toUndecline.add(engineName);
         this._log.trace(engineName + " engine was enabled remotely.");
         engine.enabled = true;
+        
+        
+        
+        
+        
+        attemptedEnable = true;
+      }
+
+      
+      
+      
+      if (!engine.enabled) {
+        this._log.trace("Wiping data for " + engineName + " engine.");
+        engine.wipeServer();
+        delete meta.payload.engines[engineName];
+        meta.changed = true; 
+        
+        
+        
+        if (!attemptedEnable) {
+          
+          this._log.trace("Engine " + engineName + " was disabled locally. Marking as declined.");
+          toDecline.add(engineName);
+        }
       }
     }
 
@@ -290,8 +302,8 @@ EngineSynchronizer.prototype = {
       }
     }
 
-    this.service.engineManager.decline(toDecline);
-    this.service.engineManager.undecline(toUndecline);
+    engineManager.decline(toDecline);
+    engineManager.undecline(toUndecline);
 
     Svc.Prefs.resetBranch("engineStatusChanged.");
     this.service._ignorePrefObserver = false;
