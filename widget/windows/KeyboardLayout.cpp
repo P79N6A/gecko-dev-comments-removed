@@ -670,6 +670,8 @@ NativeKey::GetKeyLocation() const
     case VK_MULTIPLY:
     case VK_SUBTRACT:
     case VK_ADD:
+    
+    case VK_ABNT_C2:
       return nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
 
     case VK_SHIFT:
@@ -1675,6 +1677,8 @@ KeyboardLayout::GetKeyIndex(uint8_t aVirtualKey)
 
 
 
+
+
   static const int8_t xlat[256] =
   {
   
@@ -1691,9 +1695,9 @@ KeyboardLayout::GetKeyIndex(uint8_t aVirtualKey)
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,   
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,   
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 52, 53, 54, 55, 56, 57,   
-    58, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,   
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 59, 60, 61, 62, 63,   
-    -1, 64, 65, 66, 67, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,   
+    58, 59, 60, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,   
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 61, 62, 63, 64, 65,   
+    -1, 66, 67, 68, 69, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,   
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1    
   };
 
@@ -2027,6 +2031,7 @@ KeyboardLayout::ConvertNativeKeyCodeToDOMKeyCode(UINT aNativeKeyCode) const
     case VK_OEM_7:
     case VK_OEM_8:
     case VK_OEM_102:
+    case VK_ABNT_C1:
     {
       NS_ASSERTION(IsPrintableCharKey(aNativeKeyCode),
                    "The key must be printable");
@@ -2044,6 +2049,14 @@ KeyboardLayout::ConvertNativeKeyCodeToDOMKeyCode(UINT aNativeKeyCode) const
       }
       return WidgetUtils::ComputeKeyCodeFromChar(uniChars.mChars[0]);
     }
+
+    
+    
+    
+    
+    
+    case VK_ABNT_C2:
+      return NS_VK_SEPARATOR;
 
     
     case VK_PROCESSKEY:
