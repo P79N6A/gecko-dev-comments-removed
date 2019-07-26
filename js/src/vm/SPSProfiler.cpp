@@ -266,8 +266,10 @@ SPSProfiler::ipToPC(RawScript script, size_t ip)
     return NULL;
 }
 
+
+
 jsbytecode*
-JMChunkInfo::convert(UnrootedScript script, size_t ip)
+JMChunkInfo::convert(RawScript script, size_t ip)
 {
     if (mainStart <= ip && ip < mainEnd) {
         size_t offset = 0;
