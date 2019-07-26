@@ -403,7 +403,9 @@ Telephony::CallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
   }
 
   
-  NS_ASSERTION(aCallState == nsIRadioInterfaceLayer::CALL_STATE_INCOMING,
+  
+  NS_ASSERTION(aCallState == nsIRadioInterfaceLayer::CALL_STATE_INCOMING ||
+               aCallState == nsIRadioInterfaceLayer::CALL_STATE_DIALING,
                "Serious logic problem here!");
 
   nsRefPtr<TelephonyCall> call =
@@ -412,13 +414,15 @@ Telephony::CallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
 
   NS_ASSERTION(mCalls.Contains(call), "Should have auto-added new call!");
 
-  
-  nsRefPtr<CallEvent> event = CallEvent::Create(call);
-  NS_ASSERTION(event, "This should never fail!");
+  if (aCallState == nsIRadioInterfaceLayer::CALL_STATE_INCOMING) {
+    
+    nsRefPtr<CallEvent> event = CallEvent::Create(call);
+    NS_ASSERTION(event, "This should never fail!");
 
-  nsresult rv =
-    event->Dispatch(ToIDOMEventTarget(), NS_LITERAL_STRING("incoming"));
-  NS_ENSURE_SUCCESS(rv, rv);
+    nsresult rv =
+      event->Dispatch(ToIDOMEventTarget(), NS_LITERAL_STRING("incoming"));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return NS_OK;
 }
