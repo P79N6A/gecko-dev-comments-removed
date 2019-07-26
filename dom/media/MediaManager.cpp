@@ -28,6 +28,7 @@
 #include "mozilla/dom/MediaStreamBinding.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
 #include "mozilla/dom/GetUserMediaRequestBinding.h"
+#include "MediaTrackConstraints.h"
 
 #include "Latency.h"
 
@@ -80,6 +81,8 @@ using dom::MediaTrackConstraints;
 using dom::GetUserMediaRequest;
 using dom::Sequence;
 using dom::OwningBooleanOrMediaTrackConstraints;
+using dom::SupportedAudioConstraints;
+using dom::SupportedVideoConstraints;
 
 ErrorCallbackRunnable::ErrorCallbackRunnable(
   nsCOMPtr<nsIDOMGetUserMediaSuccessCallback>& aSuccess,
@@ -655,20 +658,6 @@ GetInvariant(const OwningBooleanOrMediaTrackConstraints &aUnion) {
 
 
 
-#define lengthof(a) (sizeof(a) / sizeof(*a))
-
-static auto
-GetSupportedConstraintNames(const MediaEngineVideoSource *) ->
-    decltype((dom::SupportedVideoConstraintsValues::strings)) {
-  return dom::SupportedVideoConstraintsValues::strings;
-}
-
-static auto
-GetSupportedConstraintNames(const MediaEngineAudioSource *) ->
-    decltype((dom::SupportedAudioConstraintsValues::strings)) {
-  return dom::SupportedAudioConstraintsValues::strings;
-}
-
 
 
 static bool SatisfyConstraintSet(const MediaEngineVideoSource *,
@@ -695,60 +684,18 @@ static bool SatisfyConstraintSet(const MediaEngineAudioSource *,
   return true;
 }
 
-
-
-class TriageHelper
-{
-public:
-  TriageHelper(const nsTArray<nsString>& aRequire)
-  : mRequire(aRequire)
-  , mNumRequirementsMet(0) {}
-
-  MediaTrackConstraintSet& Triage(dom::SupportedVideoConstraints kind) {
-    return Triage(NS_ConvertUTF8toUTF16(
-        dom::SupportedVideoConstraintsValues::strings[uint32_t(kind)].value));
-  }
-  MediaTrackConstraintSet& Triage(dom::SupportedAudioConstraints kind) {
-    return Triage(NS_ConvertUTF8toUTF16(
-        dom::SupportedAudioConstraintsValues::strings[uint32_t(kind)].value));
-  }
-private:
-  MediaTrackConstraintSet& Triage(const nsAString &name) {
-    if (mRequire.IndexOf(name) != mRequire.NoIndex) {
-      mNumRequirementsMet++;
-      return mRequired;
-    } else {
-      return mNonrequired;
-    }
-  }
-public:
-  bool RequirementsAreMet() {
-    MOZ_ASSERT(mNumRequirementsMet <= mRequire.Length());
-    return mNumRequirementsMet == mRequire.Length();
-  }
-  MediaTrackConstraintSet mRequired;
-  MediaTrackConstraintSet mNonrequired;
-private:
-  const nsTArray<nsString> mRequire;
-  uint32_t mNumRequirementsMet;
-};
-
 typedef nsTArray<nsCOMPtr<nsIMediaDevice> > SourceSet;
 
 
 
-template<class SourceType>
+template<class SourceType, class ConstraintsType>
 static SourceSet *
   GetSources(MediaEngine *engine,
-             const OwningBooleanOrMediaTrackConstraints &aConstraints,
+             ConstraintsType &aConstraints,
              void (MediaEngine::* aEnumerate)(nsTArray<nsRefPtr<SourceType> >*),
              char* media_device_name = nullptr)
 {
   ScopedDeletePtr<SourceSet> result(new SourceSet);
-
-  if (!IsOn(aConstraints)) {
-    return result.forget();
-  }
 
   const SourceType * const type = nullptr;
   nsString deviceName;
@@ -782,54 +729,14 @@ static SourceSet *
 
   
 
-  auto& c = GetInvariant(aConstraints);
-  const nsTArray<nsString> empty;
-  const auto &require = c.mRequire.WasPassed()? c.mRequire.Value() : empty;
-  {
+  auto& c = aConstraints;
+  if (c.mUnsupportedRequirement) {
     
     
     
     
     
     
-
-    const auto& supported = GetSupportedConstraintNames(type);
-    for (uint32_t i = 0; i < require.Length(); i++) {
-      bool found = false;
-      
-      for (size_t j = 0; j < sizeof(supported)/sizeof(*supported) - 1; j++) {
-        if (require[i].EqualsASCII(supported[j].value)) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        return result.forget();
-      }
-    }
-  }
-
-  
-  
-  
-
-  TriageHelper helper(require);
-
-  if (c.mFacingMode.WasPassed()) {
-    helper.Triage(dom::SupportedVideoConstraints::FacingMode).
-        mFacingMode.Construct(c.mFacingMode.Value());
-  }
-  if (c.mWidth.mMin.WasPassed() || c.mWidth.mMax.WasPassed()) {
-    helper.Triage(dom::SupportedVideoConstraints::Width).mWidth = c.mWidth;
-  }
-  if (c.mHeight.mMin.WasPassed() || c.mHeight.mMax.WasPassed()) {
-    helper.Triage(dom::SupportedVideoConstraints::Height).mHeight = c.mHeight;
-  }
-  if (c.mFrameRate.mMin.WasPassed() || c.mFrameRate.mMax.WasPassed()) {
-    helper.Triage(dom::SupportedVideoConstraints::FrameRate).mFrameRate =
-        c.mFrameRate;
-  }
-  if (!helper.RequirementsAreMet()) {
     return result.forget();
   }
 
@@ -837,11 +744,23 @@ static SourceSet *
 
   for (uint32_t i = 0; i < candidateSet.Length();) {
     
-    if (!SatisfyConstraintSet(type, helper.mRequired, *candidateSet[i])) {
+    if (!SatisfyConstraintSet(type, c.mRequired, *candidateSet[i])) {
       candidateSet.RemoveElementAt(i);
     } else {
       ++i;
     }
+  }
+
+  
+  
+  
+  
+  
+  if (c.mNonrequired.Length()) {
+    if (!c.mAdvanced.WasPassed()) {
+      c.mAdvanced.Construct();
+    }
+    c.mAdvanced.Value().MoveElementsFrom(c.mNonrequired);
   }
 
   
@@ -861,7 +780,8 @@ static SourceSet *
   SourceSet tailSet;
 
   if (c.mAdvanced.WasPassed()) {
-    const auto &array = c.mAdvanced.Value();
+    auto &array = c.mAdvanced.Value();
+
     for (int i = 0; i < int(array.Length()); i++) {
       SourceSet rejects;
       for (uint32_t j = 0; j < candidateSet.Length();) {
@@ -877,8 +797,6 @@ static SourceSet *
   }
 
   
-  
-
 
   result->MoveElementsFrom(candidateSet);
   result->MoveElementsFrom(tailSet);
@@ -1053,8 +971,9 @@ public:
     MOZ_ASSERT(mSuccess);
     MOZ_ASSERT(mError);
     if (mConstraints.mPicture || IsOn(mConstraints.mVideo)) {
-      ScopedDeletePtr<SourceSet> sources (GetSources(backend,
-          mConstraints.mVideo, &MediaEngine::EnumerateVideoDevices));
+      VideoTrackConstraintsN constraints(GetInvariant(mConstraints.mVideo));
+      ScopedDeletePtr<SourceSet> sources (GetSources(backend, constraints,
+          &MediaEngine::EnumerateVideoDevices));
 
       if (!sources->Length()) {
         Fail(NS_LITERAL_STRING("NO_DEVICES_FOUND"));
@@ -1066,8 +985,9 @@ public:
     }
 
     if (IsOn(mConstraints.mAudio)) {
-      ScopedDeletePtr<SourceSet> sources (GetSources(backend,
-          mConstraints.mAudio, &MediaEngine::EnumerateAudioDevices));
+      AudioTrackConstraintsN constraints(GetInvariant(mConstraints.mAudio));
+      ScopedDeletePtr<SourceSet> sources (GetSources(backend, constraints,
+          &MediaEngine::EnumerateAudioDevices));
 
       if (!sources->Length()) {
         Fail(NS_LITERAL_STRING("NO_DEVICES_FOUND"));
@@ -1203,13 +1123,19 @@ public:
     else
       backend = mManager->GetBackend(mWindowId);
 
-    ScopedDeletePtr<SourceSet> final (GetSources(backend, mConstraints.mVideo,
-                                          &MediaEngine::EnumerateVideoDevices,
-                                          mLoopbackVideoDevice));
-    {
-      ScopedDeletePtr<SourceSet> s (GetSources(backend, mConstraints.mAudio,
-                                        &MediaEngine::EnumerateAudioDevices,
-                                        mLoopbackAudioDevice));
+    ScopedDeletePtr<SourceSet> final(new SourceSet);
+    if (IsOn(mConstraints.mVideo)) {
+      VideoTrackConstraintsN constraints(GetInvariant(mConstraints.mVideo));
+      ScopedDeletePtr<SourceSet> s(GetSources(backend, constraints,
+          &MediaEngine::EnumerateVideoDevices,
+          mLoopbackVideoDevice));
+      final->MoveElementsFrom(*s);
+    }
+    if (IsOn(mConstraints.mAudio)) {
+      AudioTrackConstraintsN constraints(GetInvariant(mConstraints.mAudio));
+      ScopedDeletePtr<SourceSet> s (GetSources(backend, constraints,
+          &MediaEngine::EnumerateAudioDevices,
+          mLoopbackAudioDevice));
       final->MoveElementsFrom(*s);
     }
     NS_DispatchToMainThread(new DeviceSuccessCallbackRunnable(mWindowId,
