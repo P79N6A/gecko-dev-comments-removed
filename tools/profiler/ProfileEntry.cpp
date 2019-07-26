@@ -3,7 +3,7 @@
 
 
 
-#include <iostream>
+#include <ostream>
 #include "GeckoProfilerImpl.h"
 #include "platform.h"
 #include "nsThreadUtils.h"

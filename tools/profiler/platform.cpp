@@ -2,7 +2,7 @@
 
 
 
-#include <iostream>
+#include <ostream>
 #include <fstream>
 #include <sstream>
 #include <errno.h>
