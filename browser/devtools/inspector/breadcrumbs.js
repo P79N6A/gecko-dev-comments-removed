@@ -376,16 +376,6 @@ HTMLBreadcrumbs.prototype = {
   
 
 
-  invalidateHierarchy: function BC_invalidateHierarchy()
-  {
-    this.inspector.hideNodeMenu();
-    this.nodeHierarchy = [];
-    this.empty();
-  },
-
-  
-
-
 
 
   setCursor: function BC_setCursor(aIdx)
@@ -615,7 +605,9 @@ HTMLBreadcrumbs.prototype = {
 
   update: function BC_update(reason)
   {
-    this.inspector.hideNodeMenu();
+    if (reason !== "markupmutation") {
+      this.inspector.hideNodeMenu();
+    }
 
     let cmdDispatcher = this.chromeDoc.commandDispatcher;
     this.hadFocus = (cmdDispatcher.focusedElement &&
