@@ -2522,12 +2522,22 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason)
     return true;
   }
 
+  
   aReason = eFallbackClickToPlay;
+  
+  uint32_t state;
+  nsresult rv = pluginHost->GetBlocklistStateForType(mContentType.get(), &state);
+  NS_ENSURE_SUCCESS(rv, false);
+  if (state == nsIBlocklistService::STATE_VULNERABLE_UPDATE_AVAILABLE) {
+    aReason = eFallbackVulnerableUpdatable;
+  }
+  else if (state == nsIBlocklistService::STATE_VULNERABLE_NO_UPDATE) {
+    aReason = eFallbackVulnerableNoUpdate;
+  }
 
   
   
   
-  nsresult rv = NS_ERROR_UNEXPECTED;
 
   nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIObjectLoadingContent*>(this));
   MOZ_ASSERT(thisContent);
@@ -2561,20 +2571,6 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason)
                                                         &permission);
     NS_ENSURE_SUCCESS(rv, false);
     allowPerm = permission == nsIPermissionManager::ALLOW_ACTION;
-  }
-
-  uint32_t state;
-  rv = pluginHost->GetBlocklistStateForType(mContentType.get(), &state);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  
-  if (state == nsIBlocklistService::STATE_VULNERABLE_UPDATE_AVAILABLE) {
-    aReason = eFallbackVulnerableUpdatable;
-    return false;
-  }
-  if (state == nsIBlocklistService::STATE_VULNERABLE_NO_UPDATE) {
-    aReason = eFallbackVulnerableNoUpdate;
-    return false;
   }
 
   return allowPerm;
