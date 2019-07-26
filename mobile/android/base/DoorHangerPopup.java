@@ -96,9 +96,14 @@ public class DoorHangerPopup extends PopupWindow
         switch(msg) {
             case CLOSED:
                 
+                
+                HashSet<DoorHanger> doorHangersToRemove = new HashSet<DoorHanger>();
                 for (DoorHanger dh : mDoorHangers) {
                     if (dh.getTabId() == tab.getId())
-                        removeDoorHanger(dh);
+                        doorHangersToRemove.add(dh);
+                }
+                for (DoorHanger dh : doorHangersToRemove) {
+                    removeDoorHanger(dh);
                 }
                 break;
 
