@@ -1,30 +1,61 @@
 
-#ifndef COMMON_UNIQUE_STRING_H
-#define COMMON_UNIQUE_STRING_H
 
-#include <string>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef COMMON_UNIQUE_STRING_H_
+#define COMMON_UNIQUE_STRING_H_
+
 #include <map>
+#include <string>
 #include "common/using_std_string.h"
 
-
-#include <stdio.h>
-#include <assert.h>
+namespace google_breakpad {
 
 
 class UniqueString;
 
 
-const UniqueString* toUniqueString(string);
+const UniqueString* ToUniqueString(string);
 
 
-const UniqueString* toUniqueString_n(char* str, size_t n);
+const UniqueString* ToUniqueString_n(const char* str, size_t n);
 
 
-const char index(const UniqueString*, int);
+const char Index(const UniqueString*, int);
 
 
-const char* const fromUniqueString(const UniqueString*);
+const char* const FromUniqueString(const UniqueString*);
 
+
+int StrcmpUniqueString(const UniqueString*, const UniqueString*);
+
+
+bool LessThan_UniqueString(const UniqueString*, const UniqueString*);
 
 
 
@@ -46,161 +77,161 @@ const char* const fromUniqueString(const UniqueString*);
 
 inline static const UniqueString* ustr__empty() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("");
+  if (!us) us = ToUniqueString("");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZSeip() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("$eip");
+  if (!us) us = ToUniqueString("$eip");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZSebp() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("$ebp");
+  if (!us) us = ToUniqueString("$ebp");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZSesp() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("$esp");
+  if (!us) us = ToUniqueString("$esp");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZSebx() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("$ebx");
+  if (!us) us = ToUniqueString("$ebx");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZSesi() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("$esi");
+  if (!us) us = ToUniqueString("$esi");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZSedi() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("$edi");
+  if (!us) us = ToUniqueString("$edi");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZDcbCalleeParams() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString(".cbCalleeParams");
+  if (!us) us = ToUniqueString(".cbCalleeParams");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZDcbSavedRegs() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString(".cbSavedRegs");
+  if (!us) us = ToUniqueString(".cbSavedRegs");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZDcbLocals() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString(".cbLocals");
+  if (!us) us = ToUniqueString(".cbLocals");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZDraSearchStart() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString(".raSearchStart");
+  if (!us) us = ToUniqueString(".raSearchStart");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZDraSearch() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString(".raSearch");
+  if (!us) us = ToUniqueString(".raSearch");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZDcbParams() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString(".cbParams");
+  if (!us) us = ToUniqueString(".cbParams");
   return us;
 }
 
 
 inline static const UniqueString* ustr__Zplus() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("+");
+  if (!us) us = ToUniqueString("+");
   return us;
 }
 
 
 inline static const UniqueString* ustr__Zminus() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("-");
+  if (!us) us = ToUniqueString("-");
   return us;
 }
 
 
 inline static const UniqueString* ustr__Zstar() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("*");
+  if (!us) us = ToUniqueString("*");
   return us;
 }
 
 
 inline static const UniqueString* ustr__Zslash() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("/");
+  if (!us) us = ToUniqueString("/");
   return us;
 }
 
 
 inline static const UniqueString* ustr__Zpercent() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("%");
+  if (!us) us = ToUniqueString("%");
   return us;
 }
 
 
 inline static const UniqueString* ustr__Zat() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("@");
+  if (!us) us = ToUniqueString("@");
   return us;
 }
 
 
 inline static const UniqueString* ustr__Zcaret() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("^");
+  if (!us) us = ToUniqueString("^");
   return us;
 }
 
 
 inline static const UniqueString* ustr__Zeq() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString("=");
+  if (!us) us = ToUniqueString("=");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZDcfa() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString(".cfa");
+  if (!us) us = ToUniqueString(".cfa");
   return us;
 }
 
 
 inline static const UniqueString* ustr__ZDra() {
   static const UniqueString* us = NULL;
-  if (!us) us = toUniqueString(".ra");
+  if (!us) us = ToUniqueString(".ra");
   return us;
 }
 
@@ -211,35 +242,21 @@ class UniqueStringMap
   static const int N_FIXED = 10;
 
  public:
-   UniqueStringMap()
-    : n_fixed_(0), n_sets_(0), n_gets_(0), n_clears_(0)
-  {
-  };
-
-   ~UniqueStringMap()
-  {
-    if (0)
-    fprintf(stderr,
-            "~UniqueStringMap: size %2d, sets %2d, gets %2d, clears %2d\n",
-            n_fixed_ + (int)map_.size(),
-            n_sets_, n_gets_, n_clears_);
-  };
+  UniqueStringMap() : n_fixed_(0), n_sets_(0), n_gets_(0), n_clears_(0) {};
+  ~UniqueStringMap() {};
 
   
-   void clear()
-  {
-    n_clears_++;
+  void clear() {
+    ++n_clears_;
     map_.clear();
     n_fixed_ = 0;
   }
 
   
-   void set(const UniqueString* ix,
-                                           ValueType v)
-  {
-    n_sets_++;
+  void set(const UniqueString* ix, ValueType v) {
+    ++n_sets_;
     int i;
-    for (i = 0; i < n_fixed_; i++) {
+    for (i = 0; i < n_fixed_; ++i) {
       if (fixed_keys_[i] == ix) {
         fixed_vals_[i] = v;
         return;
@@ -249,26 +266,24 @@ class UniqueStringMap
       i = n_fixed_;
       fixed_keys_[i] = ix;
       fixed_vals_[i] = v;
-      n_fixed_++;
+      ++n_fixed_;
     } else {
       map_[ix] = v;
     }
   }
 
   
-   ValueType get(bool* have,
-                                                const UniqueString* ix) const
-  {
-    n_gets_++;
+  ValueType get(bool* have, const UniqueString* ix) const {
+    ++n_gets_;
     int i;
-    for (i = 0; i < n_fixed_; i++) {
+    for (i = 0; i < n_fixed_; ++i) {
       if (fixed_keys_[i] == ix) {
         *have = true;
         return fixed_vals_[i];
       }
     }
     typename std::map<const UniqueString*, ValueType>::const_iterator it
-      = map_.find(ix);
+        = map_.find(ix);
     if (it == map_.end()) {
       *have = false;
       return ValueType();
@@ -279,21 +294,29 @@ class UniqueStringMap
   };
 
   
-   ValueType get(const UniqueString* ix)
-  {
-    n_gets_++;
+  ValueType get(const UniqueString* ix) const {
+    ++n_gets_;
     bool found;
     ValueType v = get(&found, ix);
     return found ? v : ValueType();
   }
 
   
-   bool have(const UniqueString* ix) const
-  {
-    n_gets_++;
+  bool have(const UniqueString* ix) const {
+    ++n_gets_;
     bool found;
     (void)get(&found, ix);
     return found;
+  }
+
+  
+  void copy_to_map(std::map<const UniqueString*, ValueType>* m) const {
+    m->clear();
+    int i;
+    for (i = 0; i < n_fixed_; ++i) {
+      (*m)[fixed_keys_[i]] = fixed_vals_[i];
+    }
+    m->insert(map_.begin(), map_.end());
   }
 
   
@@ -305,11 +328,14 @@ class UniqueStringMap
   
   const UniqueString* fixed_keys_[N_FIXED];
   ValueType           fixed_vals_[N_FIXED];
-  int                 n_fixed_; 
+  int                 n_fixed_;  
   
   std::map<const UniqueString*, ValueType> map_;
 
+  
   mutable int n_sets_, n_gets_, n_clears_;
 };
 
-#endif 
+}  
+
+#endif  

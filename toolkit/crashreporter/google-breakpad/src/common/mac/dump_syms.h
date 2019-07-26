@@ -116,6 +116,11 @@ class DumpSymbols {
   
   bool WriteSymbolFile(std::ostream &stream);
 
+  
+  
+  
+  bool ReadSymbolData(Module** module);
+
  private:
   
   class DumperLineToModule;
