@@ -3,7 +3,8 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_SVGAnimatedBoolean_h
+#define mozilla_dom_SVGAnimatedBoolean_h
 
 #include "nsWrapperCache.h"
 #include "nsSVGElement.h"
@@ -13,11 +14,10 @@
 namespace mozilla {
 namespace dom {
 
-class SVGAnimatedBoolean MOZ_FINAL : public nsISupports,
-                                     public nsWrapperCache
+class SVGAnimatedBoolean MOZ_FINAL : public nsWrapperCache
 {
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(SVGAnimatedBoolean)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(SVGAnimatedBoolean)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(SVGAnimatedBoolean)
 
   SVGAnimatedBoolean(nsSVGBoolean* aVal, nsSVGElement *aSVGElement)
     : mVal(aVal), mSVGElement(aSVGElement)
@@ -26,7 +26,7 @@ class SVGAnimatedBoolean MOZ_FINAL : public nsISupports,
   }
   ~SVGAnimatedBoolean();
 
- 
+  
   nsSVGElement* GetParentObject() const { return mSVGElement; }
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
@@ -41,3 +41,5 @@ protected:
 
 } 
 } 
+
+#endif 
