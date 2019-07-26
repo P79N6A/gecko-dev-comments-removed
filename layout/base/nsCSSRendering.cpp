@@ -4016,7 +4016,7 @@ nsImageRenderer::PrepareImage()
 {
   if (mImage->IsEmpty() || !mImage->IsComplete()) {
     
-    mImage->RequestDecode();
+    mImage->StartDecoding();
 
     
     

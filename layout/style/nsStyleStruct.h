@@ -227,7 +227,7 @@ struct nsStyleImage {
   
 
 
-  nsresult RequestDecode() const;
+  nsresult StartDecoding() const;
   
 
 
