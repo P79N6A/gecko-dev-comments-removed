@@ -5131,13 +5131,22 @@ let GsmPDUHelper = {
     if (DEBUG) debug("PDU: read dcs: " + dcs);
 
     
-    this.readMessageWaitingFromDCS(msg, dcs);
-
+    let messageClass = PDU_DCS_MSG_CLASS_UNKNOWN;
     
     let encoding = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
-    switch (dcs & 0xC0) {
-      case 0x0:
+    switch (dcs & PDU_DCS_CODING_GROUP_BITS) {
+      case 0x40: 
+      case 0x50:
+      case 0x60:
+      case 0x70:
         
+      case 0x00: 
+      case 0x10:
+      case 0x20:
+      case 0x30:
+        if (dcs & 0x10) {
+          messageClass = dcs & PDU_DCS_MSG_CLASS_BITS;
+        }
         switch (dcs & 0x0C) {
           case 0x4:
             encoding = PDU_DCS_MSG_CODING_8BITS_ALPHABET;
@@ -5147,19 +5156,51 @@ let GsmPDUHelper = {
             break;
         }
         break;
-      case 0xC0:
+
+      case 0xE0: 
+        encoding = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
         
-        switch (dcs & 0x30) {
-          case 0x20:
-            encoding = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
-            break;
-          case 0x30:
-            if (dcs & 0x04) {
-              encoding = PDU_DCS_MSG_CODING_8BITS_ALPHABET;
+        
+      case 0xC0: 
+      case 0xD0: 
+        
+        let active = (dcs & PDU_DCS_MWI_ACTIVE_BITS) == PDU_DCS_MWI_ACTIVE_VALUE;
+
+        
+        switch (dcs & PDU_DCS_MWI_TYPE_BITS) {
+          case PDU_DCS_MWI_TYPE_VOICEMAIL:
+            let mwi = msg.mwi;
+            if (!mwi) {
+              mwi = msg.mwi = {};
             }
+
+            mwi.active = active;
+            mwi.discard = (dcs & PDU_DCS_CODING_GROUP_BITS) == 0xC0;
+            mwi.msgCount = active ? GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN : 0;
+
+            if (DEBUG) {
+              debug("MWI in DCS received for voicemail: " + JSON.stringify(mwi));
+            }
+            break;
+          case PDU_DCS_MWI_TYPE_FAX:
+            if (DEBUG) debug("MWI in DCS received for fax");
+            break;
+          case PDU_DCS_MWI_TYPE_EMAIL:
+            if (DEBUG) debug("MWI in DCS received for email");
+            break;
+          default:
+            if (DEBUG) debug("MWI in DCS received for \"other\"");
             break;
         }
         break;
+
+      case 0xF0: 
+        if (dcs & 0x04) {
+          encoding = PDU_DCS_MSG_CODING_8BITS_ALPHABET;
+        }
+        messageClass = dcs & PDU_DCS_MSG_CLASS_BITS;
+        break;
+
       default:
         
         break;
@@ -5167,50 +5208,9 @@ let GsmPDUHelper = {
 
     msg.dcs = dcs;
     msg.encoding = encoding;
+    msg.messageClass = messageClass;
 
     if (DEBUG) debug("PDU: message encoding is " + encoding + " bit.");
-  },
-
-  readMessageWaitingFromDCS: function readMessageWaitingFromDCS(msg, dcs) {
-    
-    
-    
-    let codingGroup = dcs & PDU_DCS_CODING_GROUP_BITS;
-
-    if (codingGroup == PDU_DCS_CODING_GROUP_7BITS_DISCARD ||
-        codingGroup == PDU_DCS_CODING_GROUP_7BITS_STORE ||
-        codingGroup == PDU_DCS_CODING_GROUP_16BITS_STORE) {
-
-      
-      let active = (dcs & PDU_DCS_MWI_ACTIVE_BITS) == PDU_DCS_MWI_ACTIVE_VALUE;
-
-      
-      switch (dcs & PDU_DCS_MWI_TYPE_BITS) {
-        case PDU_DCS_MWI_TYPE_VOICEMAIL:
-          let mwi = msg.mwi;
-          if (!mwi) {
-            mwi = msg.mwi = {};
-          }
-
-          mwi.active = active;
-          mwi.discard = codingGroup == PDU_DCS_CODING_GROUP_7BITS_DISCARD;
-          mwi.msgCount = active ? GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN : 0;
-
-          if (DEBUG) {
-            debug("MWI in DCS received for voicemail: " + JSON.stringify(mwi));
-          }
-          break;
-        case PDU_DCS_MWI_TYPE_FAX:
-          if (DEBUG) debug("MWI in DCS received for fax");
-          break;
-        case PDU_DCS_MWI_TYPE_EMAIL:
-          if (DEBUG) debug("MWI in DCS received for email");
-          break;
-        default:
-          if (DEBUG) debug("MWI in DCS received for \"other\"");
-          break;
-      }
-    }
   },
 
   
