@@ -324,8 +324,9 @@ struct TypeObject {
 };
 
 struct BaseShape {
-    js::Class   *clasp;
-    JSObject    *parent;
+    js::Class *clasp;
+    JSObject *parent;
+    JSObject *_1;
     JSCompartment *compartment;
 };
 
@@ -1695,6 +1696,26 @@ assertEnteredPolicy(JSContext *cx, JSObject *obj, jsid id);
 #else
 inline void assertEnteredPolicy(JSContext *cx, JSObject *obj, jsid id) {};
 #endif
+
+typedef JSObject *
+(* ObjectMetadataCallback)(JSContext *cx);
+
+
+
+
+
+
+
+JS_FRIEND_API(void)
+SetObjectMetadataCallback(JSContext *cx, ObjectMetadataCallback callback);
+
+
+
+JS_FRIEND_API(bool)
+SetObjectMetadata(JSContext *cx, JSHandleObject obj, JSHandleObject metadata);
+
+JS_FRIEND_API(JSObject *)
+GetObjectMetadata(JSObject *obj);
 
 } 
 
