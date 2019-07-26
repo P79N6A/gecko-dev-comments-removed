@@ -26,6 +26,12 @@ var ItchEditor = Class({
 
   hidesToolbar: false,
 
+  
+
+
+
+  isEditable: false,
+
   toString: function() {
     return this.label || "";
   },
@@ -39,13 +45,15 @@ var ItchEditor = Class({
 
 
 
-  initialize: function(document) {
-    this.doc = document;
+  initialize: function(host) {
+    this.doc = host.document;
     this.label = "";
     this.elt = this.doc.createElement("vbox");
     this.elt.setAttribute("flex", "1");
     this.elt.editor = this;
     this.toolbar = this.doc.querySelector("#projecteditor-toolbar");
+    this.projectEditorKeyset = host.projectEditorKeyset;
+    this.projectEditorCommandset = host.projectEditorCommandset;
   },
 
   
@@ -103,6 +111,8 @@ exports.ItchEditor = ItchEditor;
 var TextEditor = Class({
   extends: ItchEditor,
 
+  isEditable: true,
+
   
 
 
@@ -114,7 +124,7 @@ var TextEditor = Class({
 
     
     
-    [...this.doc.querySelectorAll("#projecteditor-keyset key")].forEach((key) => {
+    [...this.projectEditorKeyset.querySelectorAll("key")].forEach((key) => {
       let keyUpper = key.getAttribute("key").toUpperCase();
       let toolModifiers = key.getAttribute("modifiers");
       let modifiers = {
@@ -124,9 +134,10 @@ var TextEditor = Class({
 
       
       extraKeys[Editor.accel(keyUpper, modifiers)] = () => {
-        let event = this.doc.createEvent('Event');
+        let doc = this.projectEditorCommandset.ownerDocument;
+        let event = doc.createEvent('Event');
         event.initEvent('command', true, true);
-        let command = this.doc.querySelector("#" + key.getAttribute("command"));
+        let command = this.projectEditorCommandset.querySelector("#" + key.getAttribute("command"));
         command.dispatchEvent(event);
       };
     });
@@ -227,22 +238,22 @@ var TextEditor = Class({
 
 
 
-function JSEditor(document) {
-  return TextEditor(document, Editor.modes.js);
+function JSEditor(host) {
+  return TextEditor(host, Editor.modes.js);
 }
 
 
 
 
-function CSSEditor(document) {
-  return TextEditor(document, Editor.modes.css);
+function CSSEditor(host) {
+  return TextEditor(host, Editor.modes.css);
 }
 
 
 
 
-function HTMLEditor(document) {
-  return TextEditor(document, Editor.modes.html);
+function HTMLEditor(host) {
+  return TextEditor(host, Editor.modes.html);
 }
 
 
