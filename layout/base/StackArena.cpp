@@ -11,9 +11,8 @@ namespace mozilla {
 
 struct StackBlock {
   
-  static const size_t MAX_USABLE_SIZE = 4044;
+  static const size_t MAX_USABLE_SIZE = 4096 - sizeof(StackBlock*);
 
-  
   
   char mBlock[MAX_USABLE_SIZE];
 
@@ -24,6 +23,8 @@ struct StackBlock {
   StackBlock() : mNext(nullptr) { }
   ~StackBlock() { }
 };
+
+static_assert(sizeof(StackBlock) == 4096, "StackBlock must be 4096 bytes");
 
 
 
