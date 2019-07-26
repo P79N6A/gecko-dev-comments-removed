@@ -9,6 +9,10 @@ XPCOMUtils.defineLazyGetter(this, "docShell", () => {
 
 const EXPECTED_REFLOWS = [
   
+  "_handleNewTab@chrome://browser/content/tabbrowser.xml|" +
+    "onxbltransitionend@chrome://browser/content/tabbrowser.xml|",
+
+  
   "adjustTabstrip@chrome://browser/content/tabbrowser.xml|" +
     "_handleNewTab@chrome://browser/content/tabbrowser.xml|" +
     "onxbltransitionend@chrome://browser/content/tabbrowser.xml|",
