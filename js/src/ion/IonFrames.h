@@ -210,6 +210,7 @@ class FrameSizeClass
 
     
     static FrameSizeClass FromDepth(uint32 frameDepth);
+    static FrameSizeClass ClassLimit();
     uint32 frameSize() const;
 
     uint32 classId() const {
