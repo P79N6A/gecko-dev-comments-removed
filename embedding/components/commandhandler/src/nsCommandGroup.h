@@ -9,8 +9,9 @@
 #define nsCommandGroup_h__
 
 #include "nsIController.h"
-
 #include "nsHashtable.h"
+#include "nsClassHashtable.h"
+#include "nsHashKeys.h"
 
 
 
@@ -24,30 +25,23 @@
 class nsControllerCommandGroup : public nsIControllerCommandGroup
 {
 public:
-
-                    nsControllerCommandGroup();
-  virtual           ~nsControllerCommandGroup();
+  nsControllerCommandGroup();
+  virtual ~nsControllerCommandGroup();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSICONTROLLERCOMMANDGROUP
 
+public:
+  typedef nsClassHashtable<nsCStringHashKey, nsTArray<char*>> GroupsHashtable;
 
 protected:
-
-  void              ClearGroupsHash();
-
-protected:
-
-  static bool ClearEnumerator(nsHashKey *aKey, void *aData, void* closure);
+  void ClearGroupsHash();
+  static PLDHashOperator ClearEnumerator(const nsACString &aKey, nsTArray<char*> *aData, void *closure);
 
 protected:
+	nsClassHashtable<nsCStringHashKey, nsTArray<char*>> mGroupsHash; 
+	                                                                 
 
-  nsHashtable       mGroupsHash;    
-                                    
-                                    
-  
 };
 
-
 #endif 
-
