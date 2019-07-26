@@ -45,6 +45,15 @@ struct WebAudioUtils {
 
 
 
+  static TrackTicks
+  ConvertDestinationStreamTimeToSourceStreamTime(double aTime,
+                                                 MediaStream* aSource,
+                                                 MediaStream* aDestination);
+
+  
+
+
+
 
 
 
