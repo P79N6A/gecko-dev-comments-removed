@@ -294,6 +294,7 @@ public:
 
 
   void SetGraphImpl(MediaStreamGraphImpl* aGraph);
+  void SetGraphImpl(MediaStreamGraph* aGraph);
 
   
   
@@ -302,20 +303,20 @@ public:
   
   
   
-  void AddAudioOutput(void* aKey);
-  void SetAudioOutputVolume(void* aKey, float aVolume);
-  void RemoveAudioOutput(void* aKey);
+  virtual void AddAudioOutput(void* aKey);
+  virtual void SetAudioOutputVolume(void* aKey, float aVolume);
+  virtual void RemoveAudioOutput(void* aKey);
   
   
   
-  void AddVideoOutput(VideoFrameContainer* aContainer);
-  void RemoveVideoOutput(VideoFrameContainer* aContainer);
+  virtual void AddVideoOutput(VideoFrameContainer* aContainer);
+  virtual void RemoveVideoOutput(VideoFrameContainer* aContainer);
   
   
-  void ChangeExplicitBlockerCount(int32_t aDelta);
+  virtual void ChangeExplicitBlockerCount(int32_t aDelta);
   
-  void AddListener(MediaStreamListener* aListener);
-  void RemoveListener(MediaStreamListener* aListener);
+  virtual void AddListener(MediaStreamListener* aListener);
+  virtual void RemoveListener(MediaStreamListener* aListener);
   
   
   void SetTrackEnabled(TrackID aTrackID, bool aEnabled);
