@@ -456,7 +456,7 @@ BaselineScript::Destroy(FreeOp *fop, BaselineScript *script)
 
 
 
-    JS_ASSERT(fop->runtime()->gc.nursery.isEmpty());
+    JS_ASSERT(fop->runtime()->gcNursery.isEmpty());
 #endif
     fop->delete_(script);
 }
