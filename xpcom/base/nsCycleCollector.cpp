@@ -705,14 +705,12 @@ private:
     
     
 
-    nsCycleCollectorParams &mParams;
     uint32_t mCount;
     Block mFirstBlock;
     nsPurpleBufferEntry *mFreeList;
 
 public:
-    nsPurpleBuffer(nsCycleCollectorParams &params)
-        : mParams(params)
+    nsPurpleBuffer()
     {
         InitBlocks();
     }
@@ -868,8 +866,6 @@ public:
         
         
         
-        
-        
 
         return n;
     }
@@ -1001,7 +997,6 @@ class nsCycleCollector
 {
     friend class GCGraphBuilder;
 
-    CCThreadingModel mModel;
     bool mCollectionInProgress;
     bool mScanInProgress;
     bool mFollowupCollection;
@@ -2513,7 +2508,6 @@ NS_IMPL_ISUPPORTS1(CycleCollectorMultiReporter, nsIMemoryMultiReporter)
 
 
 nsCycleCollector::nsCycleCollector(CCThreadingModel aModel) :
-    mModel(aModel),
     mCollectionInProgress(false),
     mScanInProgress(false),
     mResults(nullptr),
@@ -2527,7 +2521,6 @@ nsCycleCollector::nsCycleCollector(CCThreadingModel aModel) :
     mBeforeUnlinkCB(nullptr),
     mForgetSkippableCB(nullptr),
     mReporter(nullptr),
-    mPurpleBuf(mParams),
     mUnmergedNeeded(0),
     mMergedInARow(0)
 {
