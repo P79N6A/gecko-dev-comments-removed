@@ -226,10 +226,25 @@ SafepointWriter::writeNunboxParts(LSafepoint *safepoint)
     }
 # endif
 
-    stream_.writeUnsigned(entries.length());
+    
+    
+    
+    
+    
+    
+    
+    
+    uint32 partials = safepoint->partialNunboxes();
+
+    stream_.writeUnsigned(entries.length() - partials);
 
     for (size_t i = 0; i < entries.length(); i++) {
         SafepointNunboxEntry &entry = entries[i];
+
+        if (entry.type.isUse() || entry.payload.isUse()) {
+            partials--;
+            continue;
+        }
 
         uint16 header = 0;
 
@@ -256,6 +271,8 @@ SafepointWriter::writeNunboxParts(LSafepoint *safepoint)
         if (payloadExtra)
             stream_.writeUnsigned(payloadVal);
     }
+
+    JS_ASSERT(partials == 0);
 }
 #endif
 

@@ -19,6 +19,12 @@ namespace ion {
 
 class TempAllocator;
 
+
+enum IonRegisterAllocator {
+    RegisterAllocator_LSRA,
+    RegisterAllocator_Stupid
+};
+
 struct IonOptions
 {
     
@@ -50,8 +56,7 @@ struct IonOptions
     
     
     
-    
-    bool lsra;
+    IonRegisterAllocator registerAllocator;
 
     
     
@@ -162,7 +167,7 @@ struct IonOptions
         licm(true),
         osr(true),
         limitScriptSize(true),
-        lsra(true),
+        registerAllocator(RegisterAllocator_LSRA),
         inlining(true),
         edgeCaseAnalysis(true),
         rangeAnalysis(true),

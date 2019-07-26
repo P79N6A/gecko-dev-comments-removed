@@ -1,0 +1,336 @@
+
+
+
+
+
+
+
+#ifndef js_ion_registerallocator_h__
+#define js_ion_registerallocator_h__
+
+#include "Ion.h"
+#include "MIR.h"
+#include "MIRGraph.h"
+#include "InlineList.h"
+#include "LIR.h"
+#include "Lowering.h"
+
+
+
+namespace js {
+namespace ion {
+
+
+
+
+
+
+
+
+
+struct AllocationIntegrityState
+{
+    AllocationIntegrityState(LIRGraph &graph)
+      : graph(graph)
+    {}
+
+    
+    
+    bool record();
+
+    
+    
+    
+    
+    bool check(bool populateSafepoints);
+
+  private:
+
+    LIRGraph &graph;
+
+    
+    
+    
+    
+    
+
+    struct InstructionInfo {
+        Vector<uint32, 2, SystemAllocPolicy> inputs;
+        Vector<uint32, 1, SystemAllocPolicy> outputs;
+        InstructionInfo() {}
+        InstructionInfo(const InstructionInfo &o) {
+            for (size_t i = 0; i < o.inputs.length(); i++)
+                inputs.append(o.inputs[i]);
+            for (size_t i = 0; i < o.outputs.length(); i++)
+                outputs.append(o.outputs[i]);
+        }
+    };
+    Vector<InstructionInfo, 0, SystemAllocPolicy> instructions;
+
+    struct BlockInfo {
+        Vector<InstructionInfo, 5, SystemAllocPolicy> phis;
+        BlockInfo() {}
+        BlockInfo(const BlockInfo &o) {
+            for (size_t i = 0; i < o.phis.length(); i++)
+                phis.append(o.phis[i]);
+        }
+    };
+    Vector<BlockInfo, 0, SystemAllocPolicy> blocks;
+
+    Vector<LDefinition*, 20, SystemAllocPolicy> virtualRegisters;
+
+    
+    
+    
+    struct IntegrityItem
+    {
+        LBlock *block;
+        uint32 vreg;
+        LAllocation alloc;
+
+        
+        uint32 index;
+
+        typedef IntegrityItem Lookup;
+        static HashNumber hash(const IntegrityItem &item) {
+            HashNumber hash = item.alloc.hash();
+            hash = JS_ROTATE_LEFT32(hash, 4) ^ item.vreg;
+            hash = JS_ROTATE_LEFT32(hash, 4) ^ HashNumber(item.block->mir()->id());
+            return hash;
+        }
+        static bool match(const IntegrityItem &one, const IntegrityItem &two) {
+            return one.block == two.block
+                && one.vreg == two.vreg
+                && one.alloc == two.alloc;
+        }
+    };
+
+    
+    Vector<IntegrityItem, 10, SystemAllocPolicy> worklist;
+
+    
+    typedef HashSet<IntegrityItem, IntegrityItem, SystemAllocPolicy> IntegrityItemSet;
+    IntegrityItemSet seen;
+
+    bool checkIntegrity(LBlock *block, LInstruction *ins, uint32 vreg, LAllocation alloc,
+                        bool populateSafepoints);
+    bool addPredecessor(LBlock *block, uint32 vreg, LAllocation alloc);
+
+    void check(bool cond, const char *msg);
+    void dump();
+};
+
+
+
+
+
+
+
+
+
+
+
+class CodePosition
+{
+  private:
+    CodePosition(const uint32 &bits)
+      : bits_(bits)
+    { }
+
+    static const unsigned int INSTRUCTION_SHIFT = 1;
+    static const unsigned int SUBPOSITION_MASK = 1;
+    uint32 bits_;
+
+  public:
+    static const CodePosition MAX;
+    static const CodePosition MIN;
+
+    
+    
+    enum SubPosition {
+        INPUT,
+        OUTPUT
+    };
+
+    CodePosition() : bits_(0)
+    { }
+
+    CodePosition(uint32 instruction, SubPosition where) {
+        JS_ASSERT(instruction < 0x80000000u);
+        JS_ASSERT(((uint32)where & SUBPOSITION_MASK) == (uint32)where);
+        bits_ = (instruction << INSTRUCTION_SHIFT) | (uint32)where;
+    }
+
+    uint32 ins() const {
+        return bits_ >> INSTRUCTION_SHIFT;
+    }
+
+    uint32 pos() const {
+        return bits_;
+    }
+
+    SubPosition subpos() const {
+        return (SubPosition)(bits_ & SUBPOSITION_MASK);
+    }
+
+    bool operator <(const CodePosition &other) const {
+        return bits_ < other.bits_;
+    }
+
+    bool operator <=(const CodePosition &other) const {
+        return bits_ <= other.bits_;
+    }
+
+    bool operator !=(const CodePosition &other) const {
+        return bits_ != other.bits_;
+    }
+
+    bool operator ==(const CodePosition &other) const {
+        return bits_ == other.bits_;
+    }
+
+    bool operator >(const CodePosition &other) const {
+        return bits_ > other.bits_;
+    }
+
+    bool operator >=(const CodePosition &other) const {
+        return bits_ >= other.bits_;
+    }
+
+    CodePosition previous() const {
+        JS_ASSERT(*this != MIN);
+        return CodePosition(bits_ - 1);
+    }
+    CodePosition next() const {
+        JS_ASSERT(*this != MAX);
+        return CodePosition(bits_ + 1);
+    }
+};
+
+
+class InstructionData
+{
+    LInstruction *ins_;
+    LBlock *block_;
+    LMoveGroup *inputMoves_;
+    LMoveGroup *movesAfter_;
+
+  public:
+    void init(LInstruction *ins, LBlock *block) {
+        JS_ASSERT(!ins_);
+        JS_ASSERT(!block_);
+        ins_ = ins;
+        block_ = block;
+    }
+    LInstruction *ins() const {
+        return ins_;
+    }
+    LBlock *block() const {
+        return block_;
+    }
+    void setInputMoves(LMoveGroup *moves) {
+        inputMoves_ = moves;
+    }
+    LMoveGroup *inputMoves() const {
+        return inputMoves_;
+    }
+    void setMovesAfter(LMoveGroup *moves) {
+        movesAfter_ = moves;
+    }
+    LMoveGroup *movesAfter() const {
+        return movesAfter_;
+    }
+};
+
+
+class InstructionDataMap
+{
+    InstructionData *insData_;
+    uint32 numIns_;
+
+  public:
+    InstructionDataMap()
+      : insData_(NULL),
+        numIns_(0)
+    { }
+
+    bool init(MIRGenerator *gen, uint32 numInstructions) {
+        insData_ = gen->allocate<InstructionData>(numInstructions);
+        numIns_ = numInstructions;
+        if (!insData_)
+            return false;
+        memset(insData_, 0, sizeof(InstructionData) * numInstructions);
+        return true;
+    }
+
+    InstructionData &operator[](const CodePosition &pos) {
+        JS_ASSERT(pos.ins() < numIns_);
+        return insData_[pos.ins()];
+    }
+    InstructionData &operator[](LInstruction *ins) {
+        JS_ASSERT(ins->id() < numIns_);
+        return insData_[ins->id()];
+    }
+    InstructionData &operator[](uint32 ins) {
+        JS_ASSERT(ins < numIns_);
+        return insData_[ins];
+    }
+};
+
+
+class RegisterAllocator
+{
+  protected:
+    
+    MIRGenerator *mir;
+    LIRGenerator *lir;
+    LIRGraph &graph;
+
+    
+    RegisterSet allRegisters_;
+
+    
+    InstructionDataMap insData;
+
+  public:
+    RegisterAllocator(MIRGenerator *mir, LIRGenerator *lir, LIRGraph &graph)
+      : mir(mir),
+        lir(lir),
+        graph(graph),
+        allRegisters_(RegisterSet::All())
+    {
+        if (FramePointer != InvalidReg && lir->mir()->instrumentedProfiling())
+            allRegisters_.take(AnyRegister(FramePointer));
+    }
+
+  protected:
+    bool init();
+
+    CodePosition outputOf(uint32 pos) {
+        return CodePosition(pos, CodePosition::OUTPUT);
+    }
+    CodePosition outputOf(LInstruction *ins) {
+        return CodePosition(ins->id(), CodePosition::OUTPUT);
+    }
+    CodePosition inputOf(uint32 pos) {
+        return CodePosition(pos, CodePosition::INPUT);
+    }
+    CodePosition inputOf(LInstruction *ins) {
+        return CodePosition(ins->id(), CodePosition::INPUT);
+    }
+
+    LMoveGroup *getInputMoveGroup(uint32 ins);
+    LMoveGroup *getMoveGroupAfter(uint32 ins);
+
+    LMoveGroup *getInputMoveGroup(CodePosition pos) {
+        return getInputMoveGroup(pos.ins());
+    }
+    LMoveGroup *getMoveGroupAfter(CodePosition pos) {
+        return getMoveGroupAfter(pos.ins());
+    }
+};
+
+} 
+} 
+
+#endif
