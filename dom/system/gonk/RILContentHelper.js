@@ -732,6 +732,14 @@ RILContentHelper.prototype = {
 
   unregisterTelephonyCallback: function unregisteTelephonyCallback(callback) {
     this.unregisterCallback("_telephonyCallbacks", callback);
+
+    
+    
+    let index = this._enumerateTelephonyCallbacks.indexOf(callback);
+    if (index != -1) {
+      this._enumerateTelephonyCallbacks.splice(index, 1);
+      if (DEBUG) debug("Unregistered enumerateTelephony callback: " + callback);
+    }
   },
 
   registerVoicemailCallback: function registerVoicemailCallback(callback) {
