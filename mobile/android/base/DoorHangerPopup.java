@@ -12,6 +12,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.graphics.drawable.BitmapDrawable;
+import android.os.Build;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -274,19 +275,28 @@ public class DoorHangerPopup extends PopupWindow
 
         
         
-        if (mAnchor == null || anchorLocation[1] < 0) {
-            showAtLocation(mActivity.getView(), Gravity.TOP, 0, 0);
-            return;
+        
+        if (Build.VERSION.SDK_INT >= 14) {
+            setFocusable(true);
         }
 
         
         
-        
-        int offset = HardwareUtils.isTablet() ? mAnchor.getWidth()/2 - mArrowWidth/2 -
-                     ((RelativeLayout.LayoutParams) mArrow.getLayoutParams()).leftMargin : 0;
-        showAsDropDown(mAnchor, offset, -mYOffset);
-        
-        setFocusable(true);
+        if (mAnchor == null || anchorLocation[1] < 0) {
+            showAtLocation(mActivity.getView(), Gravity.TOP, 0, 0);
+        } else {
+            
+            
+            
+            int offset = HardwareUtils.isTablet() ? mAnchor.getWidth()/2 - mArrowWidth/2 -
+                         ((RelativeLayout.LayoutParams) mArrow.getLayoutParams()).leftMargin : 0;
+            showAsDropDown(mAnchor, offset, -mYOffset);
+        }
+
+        if (Build.VERSION.SDK_INT < 14) {
+            
+            setFocusable(true);
+        }
     }
 
     private void showDividers() {
