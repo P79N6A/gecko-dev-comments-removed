@@ -445,11 +445,6 @@ public:
     
 
 
-    virtual SharedTextureHandle CreateSharedHandle(SharedTextureShareType shareType)
-    { return 0; }
-    
-
-
 
 
 
