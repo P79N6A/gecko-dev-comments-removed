@@ -185,6 +185,10 @@ abstract public class GeckoApp
 
     @SuppressWarnings("serial")
     class SessionRestoreException extends Exception {
+        public SessionRestoreException(Exception e) {
+            super(e);
+        }
+
         public SessionRestoreException(String message) {
             super(message);
         }
@@ -1463,59 +1467,14 @@ abstract public class GeckoApp
         String restoreMessage = null;
         if (mRestoreMode != RESTORE_NONE && !mIsRestoringActivity) {
             try {
-                String sessionString = getProfile().readSessionFile(false);
-                if (sessionString == null) {
-                    throw new SessionRestoreException("Could not read from session file");
-                }
-
                 
                 
                 
-                if (mRestoreMode == RESTORE_OOM) {
-                    final JSONArray tabs = new JSONArray();
-                    SessionParser parser = new SessionParser() {
-                        @Override
-                        public void onTabRead(SessionTab sessionTab) {
-                            JSONObject tabObject = sessionTab.getTabObject();
-
-                            int flags = Tabs.LOADURL_NEW_TAB;
-                            flags |= ((isExternalURL || !sessionTab.isSelected()) ? Tabs.LOADURL_DELAY_LOAD : 0);
-                            flags |= (tabObject.optBoolean("desktopMode") ? Tabs.LOADURL_DESKTOP : 0);
-                            flags |= (tabObject.optBoolean("isPrivate") ? Tabs.LOADURL_PRIVATE : 0);
-
-                            Tab tab = Tabs.getInstance().loadUrl(sessionTab.getSelectedUrl(), flags);
-                            tab.updateTitle(sessionTab.getSelectedTitle());
-
-                            try {
-                                tabObject.put("tabId", tab.getId());
-                            } catch (JSONException e) {
-                                Log.e(LOGTAG, "JSON error", e);
-                            }
-                            tabs.put(tabObject);
-                        }
-                    };
-
-                    parser.parse(sessionString);
-                    if (mPrivateBrowsingSession != null) {
-                        parser.parse(mPrivateBrowsingSession);
-                    }
-
-                    if (tabs.length() > 0) {
-                        sessionString = new JSONObject().put("windows", new JSONArray().put(new JSONObject().put("tabs", tabs))).toString();
-                    } else {
-                        throw new SessionRestoreException("No tabs could be read from session file");
-                    }
-                }
-
-                JSONObject restoreData = new JSONObject();
-                restoreData.put("restoringOOM", mRestoreMode == RESTORE_OOM);
-                restoreData.put("sessionString", sessionString);
-                restoreMessage = restoreData.toString();
+                
+                
+                
+                restoreMessage = restoreSessionTabs(isExternalURL);
             } catch (SessionRestoreException e) {
-                
-                Log.e(LOGTAG, "An error occurred during restore", e);
-                mRestoreMode = RESTORE_NONE;
-            } catch (JSONException e) {
                 
                 Log.e(LOGTAG, "An error occurred during restore", e);
                 mRestoreMode = RESTORE_NONE;
@@ -1665,6 +1624,62 @@ abstract public class GeckoApp
 
         if (ACTION_ALERT_CALLBACK.equals(action)) {
             processAlertCallback(intent);
+        }
+    }
+
+    private String restoreSessionTabs(final boolean isExternalURL) throws SessionRestoreException {
+        try {
+            String sessionString = getProfile().readSessionFile(false);
+            if (sessionString == null) {
+                throw new SessionRestoreException("Could not read from session file");
+            }
+
+            
+            
+            
+            if (mRestoreMode == RESTORE_OOM) {
+                final JSONArray tabs = new JSONArray();
+                SessionParser parser = new SessionParser() {
+                    @Override
+                    public void onTabRead(SessionTab sessionTab) {
+                        JSONObject tabObject = sessionTab.getTabObject();
+
+                        int flags = Tabs.LOADURL_NEW_TAB;
+                        flags |= ((isExternalURL || !sessionTab.isSelected()) ? Tabs.LOADURL_DELAY_LOAD : 0);
+                        flags |= (tabObject.optBoolean("desktopMode") ? Tabs.LOADURL_DESKTOP : 0);
+                        flags |= (tabObject.optBoolean("isPrivate") ? Tabs.LOADURL_PRIVATE : 0);
+
+                        Tab tab = Tabs.getInstance().loadUrl(sessionTab.getSelectedUrl(), flags);
+                        tab.updateTitle(sessionTab.getSelectedTitle());
+
+                        try {
+                            tabObject.put("tabId", tab.getId());
+                        } catch (JSONException e) {
+                            Log.e(LOGTAG, "JSON error", e);
+                        }
+                        tabs.put(tabObject);
+                    }
+                };
+
+                parser.parse(sessionString);
+                if (mPrivateBrowsingSession != null) {
+                    parser.parse(mPrivateBrowsingSession);
+                }
+
+                if (tabs.length() > 0) {
+                    sessionString = new JSONObject().put("windows", new JSONArray().put(new JSONObject().put("tabs", tabs))).toString();
+                } else {
+                    throw new SessionRestoreException("No tabs could be read from session file");
+                }
+            }
+
+            JSONObject restoreData = new JSONObject();
+            restoreData.put("restoringOOM", mRestoreMode == RESTORE_OOM);
+            restoreData.put("sessionString", sessionString);
+            return restoreData.toString();
+
+        } catch (JSONException e) {
+            throw new SessionRestoreException(e);
         }
     }
 
