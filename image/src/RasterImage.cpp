@@ -1593,7 +1593,7 @@ RasterImage::SourceDataComplete()
 }
 
 nsresult
-RasterImage::NewSourceData(const char* aMimeType)
+RasterImage::NewSourceData()
 {
   nsresult rv;
 
@@ -1627,8 +1627,6 @@ RasterImage::NewSourceData(const char* aMimeType)
   
   mDecoded = false;
   mHasSourceData = false;
-
-  mSourceDataMimeType.Assign(aMimeType);
 
   
   

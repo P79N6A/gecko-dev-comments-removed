@@ -71,7 +71,7 @@ public:
   
   nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, bool aNotify);
 
-  void SniffMimeType(const char *buf, uint32_t len);
+  void SniffMimeType(const char *buf, uint32_t len, nsACString& newType);
 
   
   
@@ -234,6 +234,7 @@ private:
   bool mGotData : 1;
   bool mIsInCache : 1;
   bool mBlockingOnload : 1;
+  bool mResniffMimeType : 1;
 };
 
 #endif
