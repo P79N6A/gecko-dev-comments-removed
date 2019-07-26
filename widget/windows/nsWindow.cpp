@@ -6509,6 +6509,19 @@ nsWindow::StartAllowingD3D9(bool aReinitialize)
   }
 }
 
+bool
+nsWindow::ShouldUseOffMainThreadCompositing()
+{
+  
+  
+  
+  if (mTransparencyMode == eTransparencyTransparent) {
+    return false;
+  }
+
+  return nsBaseWidget::ShouldUseOffMainThreadCompositing();
+}
+
 void
 nsWindow::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
 {

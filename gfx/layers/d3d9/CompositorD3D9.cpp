@@ -26,7 +26,7 @@ CompositorD3D9::CompositorD3D9(PCompositorParent* aParent, nsIWidget *aWidget)
   , mWidget(aWidget)
   , mDeviceResetCount(0)
 {
-  sBackend = LayersBackend::LAYERS_D3D9;
+  Compositor::SetBackend(LayersBackend::LAYERS_D3D9);
 }
 
 CompositorD3D9::~CompositorD3D9()
