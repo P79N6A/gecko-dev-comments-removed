@@ -22,7 +22,6 @@
 
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
-using namespace mozilla::widget::android;
 #endif
 
 #ifdef MOZ_WIDGET_GONK
@@ -142,7 +141,7 @@ nsSystemInfo::Init()
         android_sdk_version = version;
         if (version >= 8 && mozilla::AndroidBridge::Bridge()->GetStaticStringField("android/os/Build", "HARDWARE", str))
             SetPropertyAsAString(NS_LITERAL_STRING("hardware"), str);
-        bool isTablet = GeckoAppShell::IsTablet();
+        bool isTablet = mozilla::AndroidBridge::Bridge()->IsTablet();
         SetPropertyAsBool(NS_LITERAL_STRING("tablet"), isTablet);
         
         
