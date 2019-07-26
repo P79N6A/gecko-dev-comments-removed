@@ -394,7 +394,7 @@ IDBDatabase::OnUnlink()
 
   
   QuotaManager* quotaManager = QuotaManager::Get();
-  if (quotaManager) {
+  if (mRegistered && quotaManager) {
     quotaManager->UnregisterStorage(this);
 
     
