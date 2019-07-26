@@ -155,6 +155,24 @@ WebConsoleClient.prototype = {
 
 
 
+  getPreferences: function WCC_getPreferences(aPreferences, aOnResponse)
+  {
+    let packet = {
+      to: this._actor,
+      type: "getPreferences",
+      preferences: aPreferences,
+    };
+    this._client.request(packet, aOnResponse);
+  },
+
+  
+
+
+
+
+
+
+
   setPreferences: function WCC_setPreferences(aPreferences, aOnResponse)
   {
     let packet = {

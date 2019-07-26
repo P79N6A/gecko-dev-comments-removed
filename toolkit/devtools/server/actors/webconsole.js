@@ -675,6 +675,23 @@ WebConsoleActor.prototype =
 
 
 
+
+
+  onGetPreferences: function WCA_onGetPreferences(aRequest)
+  {
+    let prefs = Object.create(null);
+    for (let key of aRequest.preferences) {
+      prefs[key] = !!this._prefs[key];
+    }
+    return { preferences: prefs };
+  },
+
+  
+
+
+
+
+
   onSetPreferences: function WCA_onSetPreferences(aRequest)
   {
     for (let key in aRequest.preferences) {
@@ -1187,6 +1204,7 @@ WebConsoleActor.prototype.requestTypes =
   evaluateJS: WebConsoleActor.prototype.onEvaluateJS,
   autocomplete: WebConsoleActor.prototype.onAutocomplete,
   clearMessagesCache: WebConsoleActor.prototype.onClearMessagesCache,
+  getPreferences: WebConsoleActor.prototype.onGetPreferences,
   setPreferences: WebConsoleActor.prototype.onSetPreferences,
   sendHTTPRequest: WebConsoleActor.prototype.onSendHTTPRequest
 };
