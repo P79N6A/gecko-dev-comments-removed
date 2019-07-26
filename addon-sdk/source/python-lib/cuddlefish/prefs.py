@@ -57,9 +57,6 @@ DEFAULT_FIREFOX_PREFS = {
     'devtools.chrome.enabled' : True,
 
     
-    'extensions.testpilot.runStudies' : False,
-
-    
     
     
     'urlclassifier.updateinterval' : 172800,
