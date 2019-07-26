@@ -1665,6 +1665,14 @@ WrapPreserve3DListInternal(nsIFrame* aFrame, nsDisplayListBuilder *aBuilder, nsD
           if (!aTemp->IsEmpty()) {
             aOutput->AppendToTop(new (aBuilder) nsDisplayTransform(aBuilder, aFrame, aTemp, aIndex++));
           }
+          
+          
+          
+          NS_ASSERTION(!item->GetClip().HasClip(), "Unexpected clip on item");
+          const DisplayItemClip* clip = aBuilder->ClipState().GetCurrentCombinedClip(aBuilder);
+          if (clip) {
+            item->SetClip(aBuilder, *clip);
+          }
           aOutput->AppendToTop(item);
           break;
         }
