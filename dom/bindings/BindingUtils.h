@@ -2023,37 +2023,6 @@ const T& Constify(T& arg)
 }
 
 
-template<typename T>
-T& NonNullHelper(T& aArg)
-{
-  return aArg;
-}
-
-template<typename T>
-T& NonNullHelper(NonNull<T>& aArg)
-{
-  return aArg;
-}
-
-template<typename T>
-const T& NonNullHelper(const NonNull<T>& aArg)
-{
-  return aArg;
-}
-
-template<typename T>
-T& NonNullHelper(OwningNonNull<T>& aArg)
-{
-  return aArg;
-}
-
-template<typename T>
-const T& NonNullHelper(const OwningNonNull<T>& aArg)
-{
-  return aArg;
-}
-
-
 
 nsresult
 ReparentWrapper(JSContext* aCx, JS::HandleObject aObj);

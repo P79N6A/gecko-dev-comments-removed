@@ -23,7 +23,6 @@
 #include "nsINodeList.h"                  
 #include "nsIWeakReference.h"             
 #include "nsNodeUtils.h"                  
-#include "nsIHTMLCollection.h"
 
 class ContentUnbinder;
 class nsContentList;
@@ -33,6 +32,7 @@ class nsIControllers;
 class nsICSSDeclaration;
 class nsIDocument;
 class nsDOMStringMap;
+class nsIHTMLCollection;
 class nsINodeInfo;
 class nsIURI;
 
@@ -229,10 +229,6 @@ public:
   NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker) MOZ_OVERRIDE;
 
   nsIHTMLCollection* Children();
-  uint32_t ChildElementCount()
-  {
-    return Children()->Length();
-  }
 
 public:
   
