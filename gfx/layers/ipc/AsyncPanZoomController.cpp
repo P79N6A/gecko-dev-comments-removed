@@ -326,6 +326,12 @@ AsyncPanZoomController::Destroy()
   mTreeManager = nullptr;
 }
 
+bool
+AsyncPanZoomController::IsDestroyed()
+{
+  return mTreeManager == nullptr;
+}
+
 float
 AsyncPanZoomController::GetTouchStartTolerance()
 {

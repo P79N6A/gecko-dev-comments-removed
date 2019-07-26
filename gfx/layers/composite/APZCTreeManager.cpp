@@ -117,7 +117,11 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
 
         apzc = container->GetAsyncPanZoomController();
 
-        bool newApzc = (apzc == nullptr);
+        
+        
+        
+        
+        bool newApzc = (apzc == nullptr || apzc->IsDestroyed());
         if (newApzc) {
           apzc = new AsyncPanZoomController(aLayersId, this, state->mController,
                                             AsyncPanZoomController::USE_GESTURE_DETECTOR);

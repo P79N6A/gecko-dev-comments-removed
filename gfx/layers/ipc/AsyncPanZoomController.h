@@ -206,6 +206,11 @@ public:
   
 
 
+  bool IsDestroyed();
+
+  
+
+
 
 
 
