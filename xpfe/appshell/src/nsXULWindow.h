@@ -138,6 +138,9 @@ protected:
    bool                    mIgnoreXULPosition;
    bool                    mChromeFlagsFrozen;
    bool                    mIgnoreXULSizeMode;
+   
+   
+   bool                    mDestroying;
    uint32_t                mContextFlags;
    uint32_t                mPersistentAttributesDirty; 
    uint32_t                mPersistentAttributesMask;
