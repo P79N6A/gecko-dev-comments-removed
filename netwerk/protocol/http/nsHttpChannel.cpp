@@ -274,10 +274,10 @@ nsHttpChannel::Connect()
 
         
         
-        NS_ASSERTION(NS_SUCCEEDED(rv),
-                     "Something is wrong with SSS: IsSecureURI failed.");
+        
+        NS_ENSURE_SUCCESS(rv, rv);
 
-        if (NS_SUCCEEDED(rv) && isStsHost) {
+        if (isStsHost) {
             LOG(("nsHttpChannel::Connect() STS permissions found\n"));
             return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
         }
