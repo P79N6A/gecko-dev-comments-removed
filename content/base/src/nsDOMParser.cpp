@@ -4,6 +4,8 @@
 
 
 #include "nsDOMParser.h"
+
+#include "nsIDOMDocument.h"
 #include "nsNetUtil.h"
 #include "nsStringStream.h"
 #include "nsIScriptSecurityManager.h"

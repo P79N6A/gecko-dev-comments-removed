@@ -4,13 +4,14 @@
 
 
 
+#include "nsGlobalWindow.h"
+
 #include <algorithm>
 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
 
 
-#include "nsGlobalWindow.h"
 #include "Navigator.h"
 #include "nsScreen.h"
 #include "nsHistory.h"

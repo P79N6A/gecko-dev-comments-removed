@@ -3,6 +3,8 @@
 
 
 #include "nsSHEntryShared.h"
+
+#include "nsIDOMDocument.h"
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
 #include "nsIDocument.h"
