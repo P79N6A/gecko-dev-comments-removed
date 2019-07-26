@@ -19,10 +19,6 @@ pref("app.update.url.manual", "https://nightly.mozilla.org");
 pref("app.update.url.details", "https://nightly.mozilla.org");
 
 
-pref("app.releaseNotesURL", "http://www.mozilla.org/projects/firefox/%VERSION%/releasenotes/");
-pref("app.vendorURL", "http://www.mozilla.org/projects/firefox/");
-
-
 pref("browser.search.param.yahoo-fr", "");
 pref("browser.search.param.yahoo-fr-cjkt", ""); 
 pref("browser.search.param.yahoo-fr-ja", "");

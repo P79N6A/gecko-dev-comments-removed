@@ -18,10 +18,6 @@ pref("app.update.url.manual", "https://www.mozilla.org/firefox/");
 
 pref("app.update.url.details", "https://www.mozilla.org/%LOCALE%/firefox/notes");
 
-
-pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/firefox/%VERSION%/releasenotes/");
-pref("app.vendorURL", "http://www.mozilla.com/%LOCALE%/firefox/");
-
 pref("browser.search.param.ms-pc", "MOZI");
 pref("browser.search.param.yahoo-fr", "moz35");
 pref("browser.search.param.yahoo-fr-cjkt", "moz35"); 
