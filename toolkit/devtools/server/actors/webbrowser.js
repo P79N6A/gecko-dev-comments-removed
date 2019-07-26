@@ -942,9 +942,15 @@ TabActor.prototype = {
 
 
   hasNativeConsoleAPI: function BTA_hasNativeConsoleAPI(aWindow) {
-    
-    
-    return WebConsoleActor.prototype.hasNativeConsoleAPI(aWindow);
+    let isNative = false;
+    try {
+      
+      
+      let console = aWindow.wrappedJSObject.console;
+      isNative = console instanceof aWindow.Console;
+    }
+    catch (ex) { }
+    return isNative;
   }
 };
 
