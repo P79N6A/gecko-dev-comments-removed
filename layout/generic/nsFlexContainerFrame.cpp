@@ -2752,6 +2752,23 @@ ResolveReflowedChildAscent(nsIFrame* aFrame,
   }
 }
 
+
+
+
+
+
+
+static nscoord
+ComputePhysicalAscentFromLogicalAscent(nscoord aLogicalAscent,
+                                       nscoord aContentBoxCrossSize,
+                                       const nsHTMLReflowState& aReflowState,
+                                       const FlexboxAxisTracker& aAxisTracker)
+{
+  return aReflowState.ComputedPhysicalBorderPadding().top +
+    PhysicalPosFromLogicalPos(aLogicalAscent, aContentBoxCrossSize,
+                              aAxisTracker.GetCrossAxis());
+}
+
 nsresult
 nsFlexContainerFrame::SizeItemInCrossAxis(
   nsPresContext* aPresContext,
@@ -3067,27 +3084,21 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
   
   
+  
+  
   nscoord flexContainerAscent;
-  nscoord firstLineBaselineOffset =
-    lines.getFirst()->GetBaselineOffset();
-  if (firstLineBaselineOffset == nscoord_MIN) {
-    
-    
-    flexContainerAscent = nscoord_MIN;
-  } else {
-    
-    
-    
-    nscoord firstLineBaselineOffsetWRTContainer =
-      firstLineBaselineOffset + crossAxisPosnTracker.GetPosition();
-
-    
-    
-    
-    flexContainerAscent = aReflowState.ComputedPhysicalBorderPadding().top +
-      PhysicalPosFromLogicalPos(firstLineBaselineOffsetWRTContainer,
-                                contentBoxCrossSize,
-                                aAxisTracker.GetCrossAxis());
+  if (!aAxisTracker.AreAxesInternallyReversed()) {
+    nscoord firstLineBaselineOffset = lines.getFirst()->GetBaselineOffset();
+    if (firstLineBaselineOffset == nscoord_MIN) {
+      
+      
+      flexContainerAscent = nscoord_MIN;
+    } else  {
+      flexContainerAscent =
+        ComputePhysicalAscentFromLogicalAscent(
+          crossAxisPosnTracker.GetPosition() + firstLineBaselineOffset,
+          contentBoxCrossSize, aReflowState, aAxisTracker);
+    }
   }
 
   for (FlexLine* line = lines.getFirst(); line; line = line->getNext()) {
@@ -3104,6 +3115,24 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
                                    aAxisTracker);
     crossAxisPosnTracker.TraverseLine(*line);
     crossAxisPosnTracker.TraversePackingSpace();
+  }
+
+  
+  
+  
+  
+  if (aAxisTracker.AreAxesInternallyReversed()) {
+    nscoord lastLineBaselineOffset = lines.getLast()->GetBaselineOffset();
+    if (lastLineBaselineOffset == nscoord_MIN) {
+      
+      
+      flexContainerAscent = nscoord_MIN;
+    } else {
+      flexContainerAscent =
+        ComputePhysicalAscentFromLogicalAscent(
+          crossAxisPosnTracker.GetPosition() - lastLineBaselineOffset,
+          contentBoxCrossSize, aReflowState, aAxisTracker);
+    }
   }
 
   
