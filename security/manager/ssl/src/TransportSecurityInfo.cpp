@@ -284,106 +284,182 @@ TransportSecurityInfo::GetInterface(const nsIID & uuid, void * *result)
   return rv;
 }
 
-
-
-
-
-#define TRANSPORTSECURITYINFOMAGIC { 0xa9863a23, 0x28ea, 0x45d2, \
-  { 0xa2, 0x5a, 0x35, 0x7c, 0xae, 0xfa, 0x7f, 0x82 } }
+static NS_DEFINE_CID(kNSSCertificateCID, NS_X509CERT_CID);
+#define TRANSPORTSECURITYINFOMAGIC { 0xa9863a23, 0x26b8, 0x4a9c, \
+  { 0x83, 0xf1, 0xe9, 0xda, 0xdb, 0x36, 0xb8, 0x30 } }
 static NS_DEFINE_CID(kTransportSecurityInfoMagic, TRANSPORTSECURITYINFOMAGIC);
 
 NS_IMETHODIMP
 TransportSecurityInfo::Write(nsIObjectOutputStream* stream)
 {
-  nsresult rv = stream->WriteID(kTransportSecurityInfoMagic);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  stream->WriteID(kTransportSecurityInfoMagic);
 
   MutexAutoLock lock(mMutex);
 
-  rv = stream->Write32(mSecurityState);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  rv = stream->Write32(mSubRequestsBrokenSecurity);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  rv = stream->Write32(mSubRequestsNoSecurity);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  RefPtr<nsSSLStatus> status(mSSLStatus);
+  nsCOMPtr<nsISerializable> certSerializable;
+
   
-  rv = formatErrorMessage(lock, mErrorCode, mErrorMessageType, true, true,
-                          mErrorMessageCached);
-  if (NS_FAILED(rv)) {
-    return rv;
+  
+  
+  
+  
+  
+
+  if (status) {
+    nsCOMPtr<nsIX509Cert> cert = status->mServerCert;
+    certSerializable = do_QueryInterface(cert);
+
+    if (!certSerializable) {
+      NS_ERROR("certificate is missing or isn't serializable");
+      return NS_ERROR_UNEXPECTED;
+    }
+  } else {
+    NS_WARNING("Serializing nsNSSSocketInfo without mSSLStatus");
   }
-  rv = stream->WriteWStringZ(mErrorMessageCached.get());
-  if (NS_FAILED(rv)) {
-    return rv;
+
+  
+  stream->WriteBoolean(certSerializable);
+  if (certSerializable) {
+    stream->WriteID(kNSSCertificateCID);
+    stream->WriteID(NS_GET_IID(nsISupports));
+    certSerializable->Write(stream);
   }
-  nsCOMPtr<nsISerializable> serializable(mSSLStatus);
-  rv = stream->WriteCompoundObject(serializable, NS_GET_IID(nsISSLStatus),
-                                   true);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+
+  
+  
+  
+  
+  
+  
+  uint32_t version = 3;
+  stream->Write32(version | 0xFFFF0000);
+  stream->Write32(mSecurityState);
+  stream->WriteWStringZ(EmptyString().get()); 
+
+  
+  nsresult rv = formatErrorMessage(lock, 
+                                   mErrorCode, mErrorMessageType,
+                                   true, true, mErrorMessageCached);
+  NS_ENSURE_SUCCESS(rv, rv);
+  stream->WriteWStringZ(mErrorMessageCached.get());
+
+  stream->WriteCompoundObject(NS_ISUPPORTS_CAST(nsISSLStatus*, status),
+                              NS_GET_IID(nsISupports), true);
+
+  stream->Write32((uint32_t)0);
+  stream->Write32((uint32_t)0);
+  stream->Write32((uint32_t)mSubRequestsBrokenSecurity);
+  stream->Write32((uint32_t)mSubRequestsNoSecurity);
   return NS_OK;
+}
+
+static bool CheckUUIDEquals(uint32_t m0,
+                            nsIObjectInputStream* stream,
+                            const nsCID& id)
+{
+  nsID tempID;
+  tempID.m0 = m0;
+  stream->Read16(&tempID.m1);
+  stream->Read16(&tempID.m2);
+  for (int i = 0; i < 8; ++i)
+    stream->Read8(&tempID.m3[i]);
+  return tempID.Equals(id);
 }
 
 NS_IMETHODIMP
 TransportSecurityInfo::Read(nsIObjectInputStream* stream)
 {
-  nsID id;
-  nsresult rv = stream->ReadID(&id);
-  if (NS_FAILED(rv)) {
-    return rv;
+  nsresult rv;
+
+  uint32_t version;
+  bool certificatePresent;
+
+  
+  uint32_t UUID_0;
+  stream->Read32(&UUID_0);
+  if (UUID_0 == kTransportSecurityInfoMagic.m0) {
+    
+    if (!CheckUUIDEquals(UUID_0, stream, kTransportSecurityInfoMagic))
+      return NS_ERROR_FAILURE;
+
+    
+    
+    stream->ReadBoolean(&certificatePresent);
+    stream->Read32(&UUID_0);
   }
-  if (!id.Equals(kTransportSecurityInfoMagic)) {
-    return NS_ERROR_UNEXPECTED;
+  else {
+    
+    
+    
+    certificatePresent = true;
+  }
+
+  if (certificatePresent && UUID_0 == kNSSCertificateCID.m0) {
+    
+    
+    if (!CheckUUIDEquals(UUID_0, stream, kNSSCertificateCID))
+      return NS_ERROR_FAILURE;
+
+    
+    nsID tempID;
+    stream->ReadID(&tempID);
+    if (!tempID.Equals(NS_GET_IID(nsISupports)))
+      return NS_ERROR_FAILURE;
+
+    nsCOMPtr<nsISerializable> serializable =
+        do_CreateInstance(kNSSCertificateCID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    serializable->Read(stream);
+
+    
+    
+    stream->Read32(&version);
+  }
+  else {
+    
+    version = UUID_0;
   }
 
   MutexAutoLock lock(mMutex);
 
-  rv = stream->Read32(&mSecurityState);
-  if (NS_FAILED(rv)) {
-    return rv;
+  
+  
+  
+  if ((version & 0xFFFF0000) == 0xFFFF0000) {
+    version &= ~0xFFFF0000;
+    stream->Read32(&mSecurityState);
   }
-  uint32_t subRequestsBrokenSecurity;
-  rv = stream->Read32(&subRequestsBrokenSecurity);
-  if (NS_FAILED(rv)) {
-    return rv;
+  else {
+    mSecurityState = version;
+    version = 1;
   }
-  if (subRequestsBrokenSecurity >
-      static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
-    return NS_ERROR_UNEXPECTED;
-  }
-  mSubRequestsBrokenSecurity = subRequestsBrokenSecurity;
-  uint32_t subRequestsNoSecurity;
-  rv = stream->Read32(&subRequestsNoSecurity);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  if (subRequestsNoSecurity >
-      static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
-    return NS_ERROR_UNEXPECTED;
-  }
-  mSubRequestsNoSecurity = subRequestsNoSecurity;
-  rv = stream->ReadString(mErrorMessageCached);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  nsAutoString dummyShortDesc;
+  stream->ReadString(dummyShortDesc);
+  stream->ReadString(mErrorMessageCached);
   mErrorCode = 0;
-  nsCOMPtr<nsISupports> supports;
-  rv = stream->ReadObject(true, getter_AddRefs(supports));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  mSSLStatus = reinterpret_cast<nsSSLStatus*>(supports.get());
+
+  nsCOMPtr<nsISupports> obj;
+  stream->ReadObject(true, getter_AddRefs(obj));
+  
+  mSSLStatus = reinterpret_cast<nsSSLStatus*>(obj.get());
+
   if (!mSSLStatus) {
-    return NS_ERROR_FAILURE;
+    NS_WARNING("deserializing nsNSSSocketInfo without mSSLStatus");
+  }
+
+  if (version >= 2) {
+    uint32_t dummySubRequests;
+    stream->Read32((uint32_t*)&dummySubRequests);
+    stream->Read32((uint32_t*)&dummySubRequests);
+    stream->Read32((uint32_t*)&mSubRequestsBrokenSecurity);
+    stream->Read32((uint32_t*)&mSubRequestsNoSecurity);
+  }
+  else {
+    mSubRequestsBrokenSecurity = 0;
+    mSubRequestsNoSecurity = 0;
   }
   return NS_OK;
 }
