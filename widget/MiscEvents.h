@@ -118,6 +118,5 @@ public:
 
 typedef mozilla::WidgetContentCommandEvent nsContentCommandEvent;
 typedef mozilla::WidgetCommandEvent        nsCommandEvent;
-typedef mozilla::WidgetPluginEvent         nsPluginEvent;
 
 #endif 

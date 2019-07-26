@@ -3213,7 +3213,7 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
     
     mSentInitialTopLevelWindowEvent = true;
 
-    nsPluginEvent pluginEvent(true, NS_PLUGIN_FOCUS_EVENT, nullptr);
+    WidgetPluginEvent pluginEvent(true, NS_PLUGIN_FOCUS_EVENT, nullptr);
     NPCocoaEvent cocoaEvent;
     InitializeNPCocoaEvent(&cocoaEvent);
     cocoaEvent.type = NPCocoaEventWindowFocusChanged;
