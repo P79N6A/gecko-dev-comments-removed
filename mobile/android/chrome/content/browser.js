@@ -7125,6 +7125,7 @@ var RemoteDebugger = {
     
     let prompt = new Prompt({
       window: null,
+      hint: "remotedebug",
       title: title,
       message: msg,
       buttons: [ agree, cancel, disable ],
