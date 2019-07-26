@@ -550,7 +550,7 @@ BluetoothService::HandleSettingsChanged(const nsAString& aData)
   
   
 
-  JSContext* cx = nsContentUtils::GetSafeJSContext();
+  AutoSafeJSContext cx;
   if (!cx) {
     return NS_OK;
   }
