@@ -58,6 +58,9 @@ const EVENTS = {
   RESPONSE_BODY_DISPLAYED: "NetMonitor:ResponseBodyAvailable",
 
   
+  RESPONSE_HTML_PREVIEW_DISPLAYED: "NetMonitor:ResponseHtmlPreviewAvailable",
+
+  
   TAB_UPDATED: "NetMonitor:TabUpdated",
 
   
@@ -412,8 +415,7 @@ TargetEventsHandler.prototype = {
       case "will-navigate": {
         
         NetMonitorView.RequestsMenu.reset();
-        NetMonitorView.Sidebar.reset();
-        NetMonitorView.NetworkDetails.reset();
+        NetMonitorView.Sidebar.toggle(false);
 
         
         if (NetMonitorController.getCurrentActivity() == ACTIVITY_TYPE.NONE) {

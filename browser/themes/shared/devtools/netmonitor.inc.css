@@ -460,6 +460,17 @@ box.requests-menu-status {
 
 
 
+#preview-tabpanel {
+  background: #fff;
+}
+
+#response-preview {
+  display: -moz-box;
+  -moz-box-flex: 1;
+}
+
+
+
 #timings-tabpanel .tabpanel-summary-label {
   width: 10em;
 }

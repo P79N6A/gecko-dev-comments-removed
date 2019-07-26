@@ -1051,6 +1051,9 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     this.filterContents();
     this.refreshSummary();
     this.refreshZebra();
+
+    
+    this._flushWaterfallViews();
   },
 
   
@@ -1185,14 +1188,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         timingsNode.insertBefore(timingBox, timingsTotal);
       }
     }
-
-    
-    if (NetMonitorView.currentFrontendMode != "network-inspector-view") {
-      return;
-    }
-
-    
-    this._flushWaterfallViews();
   },
 
   
@@ -1202,6 +1197,12 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _flushWaterfallViews: function(aReset) {
+    
+    
+    if (NetMonitorView.currentFrontendMode != "network-inspector-view" || !this.itemCount) {
+      return;
+    }
+
     
     
     
@@ -1430,11 +1431,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
   _onResize: function(e) {
     
-    if (NetMonitorView.currentFrontendMode != "network-inspector-view") {
-      return;
-    }
-
-    
     setNamedTimeout(
       "resize-events", RESIZE_REFRESH_RATE, () => this._flushWaterfallViews(true));
   },
@@ -1634,13 +1630,6 @@ SidebarView.prototype = {
       $("#details-pane").selectedIndex = isCustom ? 0 : 1
       window.emit(EVENTS.SIDEBAR_POPULATED);
     });
-  },
-
-  
-
-
-  reset: function() {
-    this.toggle(false);
   }
 }
 
@@ -1840,13 +1829,6 @@ NetworkDetailsView.prototype = {
   
 
 
-  reset: function() {
-    this._dataSrc = null;
-  },
-
-  
-
-
 
 
 
@@ -1860,6 +1842,18 @@ NetworkDetailsView.prototype = {
     $("#response-content-json-box").hidden = true;
     $("#response-content-textarea-box").hidden = true;
     $("#response-content-image-box").hidden = true;
+
+    let isHtml = RequestsMenuView.prototype.isHtml({ attachment: aData });
+
+    
+    $("#preview-tab").hidden = !isHtml;
+    $("#preview-tabpanel").hidden = !isHtml;
+
+    
+    
+    if (!isHtml && this.widget.selectedIndex == 5) {
+      this.widget.selectedIndex = 0;
+    }
 
     this._headers.empty();
     this._cookies.empty();
@@ -1906,6 +1900,9 @@ NetworkDetailsView.prototype = {
           break;
         case 4: 
           yield view._setTimingsInformation(src.eventTimings);
+          break;
+        case 5: 
+          yield view._setHtmlPreview(src.responseContent);
           break;
       }
       populated[tab] = true;
@@ -2343,6 +2340,30 @@ NetworkDetailsView.prototype = {
       .style.transform = "translateX(" + (scale * (blocked + dns + connect + send)) + "px)";
     $("#timings-summary-receive .requests-menu-timings-total")
       .style.transform = "translateX(" + (scale * (blocked + dns + connect + send + wait)) + "px)";
+  },
+
+  
+
+
+
+
+
+
+
+  _setHtmlPreview: function(aResponse) {
+    if (!aResponse) {
+      return promise.resolve();
+    }
+    let { text } = aResponse.content;
+    let iframe = $("#response-preview");
+
+    return gNetwork.getString(text).then(aString => {
+      
+      iframe.contentDocument.docShell.allowJavascript = false;
+      iframe.contentDocument.documentElement.innerHTML = aString;
+
+      window.emit(EVENTS.RESPONSE_HTML_PREVIEW_DISPLAYED);
+    });
   },
 
   _dataSrc: null,
