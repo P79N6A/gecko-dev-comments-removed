@@ -64,7 +64,13 @@ nsGenericHTMLFrameElement::GetContentDocument()
     return nullptr;
   }
 
-  return win->GetDoc();
+  nsIDocument *doc = win->GetDoc();
+
+  
+  if (!nsContentUtils::GetSubjectPrincipal()->Subsumes(doc->NodePrincipal())) {
+    return nullptr;
+  }
+  return doc;
 }
 
 nsresult

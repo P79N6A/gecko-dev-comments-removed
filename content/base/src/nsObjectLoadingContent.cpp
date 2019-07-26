@@ -2838,6 +2838,11 @@ nsObjectLoadingContent::GetContentDocument()
     return nullptr;
   }
 
+  
+  if (!nsContentUtils::GetSubjectPrincipal()->Subsumes(sub_doc->NodePrincipal())) {
+    return nullptr;
+  }
+
   return sub_doc;
 }
 
