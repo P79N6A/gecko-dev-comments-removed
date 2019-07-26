@@ -68,7 +68,7 @@ namespace detail {
 
 
 
-class MOZ_EXPORT GuardObjectNotifier
+class GuardObjectNotifier
 {
   private:
     bool* statementDone;
@@ -85,7 +85,7 @@ class MOZ_EXPORT GuardObjectNotifier
     }
 };
 
-class MOZ_EXPORT GuardObjectNotificationReceiver
+class GuardObjectNotificationReceiver
 {
   private:
     bool statementDone;
