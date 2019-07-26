@@ -37,16 +37,6 @@ public:
 
 
   virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) = 0;
-  
-  
-
-
-
-
-
-
-
-  virtual nsresult GetFormProperty(nsIAtom* aName, nsAString& aValue) const = 0;
 };
 
 #endif

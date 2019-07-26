@@ -114,22 +114,6 @@ nsGfxButtonControlFrame::CreateFrameFor(nsIContent*      aContent)
   return newFrame;
 }
 
-nsresult
-nsGfxButtonControlFrame::GetFormProperty(nsIAtom* aName, nsAString& aValue) const
-{
-  nsresult rv = NS_OK;
-  if (nsGkAtoms::defaultLabel == aName) {
-    
-    
-    nsXPIDLString temp;
-    rv = GetDefaultLabel(temp);
-    aValue = temp;
-  } else {
-    aValue.Truncate();
-  }
-  return rv;
-}
-
 NS_QUERYFRAME_HEAD(nsGfxButtonControlFrame)
   NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
 NS_QUERYFRAME_TAIL_INHERITING(nsHTMLButtonControlFrame)

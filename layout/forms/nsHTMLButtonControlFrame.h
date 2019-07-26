@@ -87,7 +87,6 @@ public:
   
   void SetFocus(bool aOn, bool aRepaint);
   virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) MOZ_OVERRIDE;
-  virtual nsresult GetFormProperty(nsIAtom* aName, nsAString& aValue) const MOZ_OVERRIDE; 
 
   
   virtual nsIFrame* GetContentInsertionFrame() {

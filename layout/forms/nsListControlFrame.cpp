@@ -1572,29 +1572,6 @@ nsListControlFrame::SetFormProperty(nsIAtom* aName,
   return NS_OK;
 }
 
-nsresult 
-nsListControlFrame::GetFormProperty(nsIAtom* aName, nsAString& aValue) const
-{
-  
-  if (nsGkAtoms::selected == aName) {
-    nsAutoString val(aValue);
-    nsresult error = NS_OK;
-    bool selected = false;
-    int32_t indx = val.ToInteger(&error, 10); 
-    if (NS_SUCCEEDED(error))
-       selected = IsContentSelectedByIndex(indx); 
-  
-    aValue.Assign(selected ? NS_LITERAL_STRING("1") : NS_LITERAL_STRING("0"));
-    
-  
-  } else if (nsGkAtoms::selectedindex == aName) {
-    
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  return NS_OK;
-}
-
 void
 nsListControlFrame::AboutToDropDown()
 {
