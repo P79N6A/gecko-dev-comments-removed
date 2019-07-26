@@ -1236,3 +1236,50 @@ Services.obs.addObserver(function(aSubject, aTopic, aData) {
   Services.prefs.setIntPref("browser.cache.disk.capacity", size);
 }) ()
 #endif
+
+#ifdef MOZ_WIDGET_GONK
+let SensorsListener = {
+  sensorsListenerDevices: ['crespo'],
+  device: libcutils.property_get("ro.product.device"),
+
+  deviceNeedsWorkaround: function SensorsListener_deviceNeedsWorkaround() {
+    return (this.sensorsListenerDevices.indexOf(this.device) != -1);
+  },
+
+  handleEvent: function SensorsListener_handleEvent(evt) {
+    switch(evt.type) {
+      case 'devicemotion':
+        
+        
+        
+        break;
+
+      default:
+        break;
+    }
+  },
+
+  observe: function SensorsListener_observe(subject, topic, data) {
+    
+    
+    
+    if (data === 'on') {
+      window.addEventListener('devicemotion', this);
+    } else {
+      window.removeEventListener('devicemotion', this);
+    }
+  },
+
+  init: function SensorsListener_init() {
+    if (this.deviceNeedsWorkaround()) {
+      
+      window.addEventListener('devicemotion', this);
+
+      
+      Services.obs.addObserver(this, 'screen-state-changed', false);
+    }
+  }
+}
+
+SensorsListener.init();
+#endif
