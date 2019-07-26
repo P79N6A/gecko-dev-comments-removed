@@ -1383,14 +1383,6 @@ MCompare::inputType()
     }
 }
 
-
-
-static bool
-CanUseDoubleCompare(ICStub::Kind kind)
-{
-    return kind == ICStub::Compare_Double || kind == ICStub::Compare_NumberWithUndefined;
-}
-
 void
 MCompare::infer(JSContext *cx, BaselineInspector *inspector, jsbytecode *pc)
 {
@@ -1505,22 +1497,8 @@ MCompare::infer(JSContext *cx, BaselineInspector *inspector, jsbytecode *pc)
     
     
 
-    if (!strictEq) {
-        ICStub::Kind kind = inspector->monomorphicStubKind(pc);
-
-        if (CanUseDoubleCompare(kind)) {
-            compareType_ = Compare_Double;
-            return;
-        }
-
-        ICStub::Kind first, second;
-        if (inspector->dimorphicStubKind(pc, &first, &second)) {
-            if (CanUseDoubleCompare(first) && CanUseDoubleCompare(second)) {
-                compareType_ = Compare_Double;
-                return;
-            }
-        }
-    }
+    if (!strictEq)
+        compareType_ = inspector->expectedCompareType(pc);
 }
 
 MBitNot *
