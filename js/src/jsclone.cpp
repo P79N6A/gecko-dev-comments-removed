@@ -331,7 +331,12 @@ SCInput::readChars(jschar *p, size_t nchars)
 bool
 SCInput::readPtr(void **p)
 {
-    return read((uint64_t *)p);
+    
+    
+    uint64_t tmp;
+    bool ret = read(&tmp);
+    *p = (void *) tmp;
+    return ret;
 }
 
 SCOutput::SCOutput(JSContext *cx) : cx(cx), buf(cx) {}
