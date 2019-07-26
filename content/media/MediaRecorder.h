@@ -111,6 +111,8 @@ protected:
   
   nsRefPtr<ProcessedMediaStream> mTrackUnionStream;
   
+  nsRefPtr<MediaInputPort> mStreamPort;
+  
   nsAutoPtr<EncodedBufferCache> mEncodedBufferCache;
   
   nsString mMimeType;
