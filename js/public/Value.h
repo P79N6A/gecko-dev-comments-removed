@@ -53,7 +53,7 @@ namespace JS { class Value; }
 
 
 
-#if defined(__cplusplus) && !defined(__SUNPRO_CC) && !defined(__xlC__)
+#if !defined(__SUNPRO_CC) && !defined(__xlC__)
 
 #if defined(_MSC_VER)
 # define JS_ENUM_HEADER(id, type)              enum id : type
@@ -265,7 +265,7 @@ typedef union jsval_layout
 typedef union jsval_layout
 {
     uint64_t asBits;
-#if (!defined(_WIN64) && defined(__cplusplus))
+#if !defined(_WIN64)
     
     struct {
         uint64_t           payload47 : 47;
