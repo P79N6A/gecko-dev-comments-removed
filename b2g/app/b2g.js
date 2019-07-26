@@ -255,7 +255,6 @@ pref("layers.async-pan-zoom.enabled", true);
 
 
 pref("notification.feature.enabled", true);
-pref("dom.webnotifications.enabled", false);
 
 
 pref("indexedDB.feature.enabled", true);
