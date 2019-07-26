@@ -148,9 +148,9 @@ function Editor(config) {
   };
 
   
-  this.config.extraKeys[Editor.keyFor("jumpToLine")] = (cm) => this.jumpToLine(cm);
-  this.config.extraKeys[Editor.keyFor("moveLineUp")] = (cm) => this.moveLineUp();
-  this.config.extraKeys[Editor.keyFor("moveLineDown")] = (cm) => this.moveLineDown();
+  this.config.extraKeys[Editor.keyFor("jumpToLine")] = () => this.jumpToLine();
+  this.config.extraKeys[Editor.keyFor("moveLineUp")] = () => this.moveLineUp();
+  this.config.extraKeys[Editor.keyFor("moveLineDown")] = () => this.moveLineDown();
   this.config.extraKeys[Editor.keyFor("toggleComment")] = "toggleComment";
 
   
@@ -175,6 +175,16 @@ function Editor(config) {
       this.config.extraKeys[key] = config.extraKeys[key];
     });
   });
+
+  
+  if (this.config.enableCodeFolding) {
+    this.config.foldGutter = true;
+
+    if (!this.config.gutters) {
+      this.config.gutters = this.config.lineNumbers ? ["CodeMirror-linenumbers"] : [];
+      this.config.gutters.push("CodeMirror-foldgutter");
+    }
+  }
 
   
   
@@ -257,7 +267,9 @@ Editor.prototype = {
       cm = win.CodeMirror(win.document.body, this.config);
       cm.getWrapperElement().addEventListener("contextmenu", (ev) => {
         ev.preventDefault();
-        this.showContextMenu(el.ownerDocument, ev.screenX, ev.screenY);
+        if (!this.config.contextMenu) return;
+        let popup = el.ownerDocument.getElementById(this.config.contextMenu);
+        popup.openPopupAtScreen(ev.screenX, ev.screenY, true);
       }, false);
 
       cm.on("focus", () => this.emit("focus"));
@@ -662,30 +674,9 @@ Editor.prototype = {
   
 
 
-  isReadOnly: function () {
-    return this.getOption("readOnly");
-  },
 
-  
-
-
-
-
-
-  showContextMenu: function (container, x, y) {
-    if (this.config.contextMenu == null)
-      return;
-
-    let popup = container.getElementById(this.config.contextMenu);
-    popup.openPopupAtScreen(x, y, true);
-  },
-
-  
-
-
-
-  jumpToLine: function (cm) {
-    let doc = cm.getWrapperElement().ownerDocument;
+  jumpToLine: function () {
+    let doc = editors.get(this).getWrapperElement().ownerDocument;
     let div = doc.createElement("div");
     let inp = doc.createElement("input");
     let txt = doc.createTextNode(L10N.GetStringFromName("gotoLineCmd.promptTitle"));
@@ -933,7 +924,7 @@ function controller(ed) {
       }
 
       if (cmd == "cmd_gotoLine")
-        ed.jumpToLine(cm);
+        ed.jumpToLine();
     },
 
     onEvent: function () {}
