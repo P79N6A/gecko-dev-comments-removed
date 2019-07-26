@@ -191,11 +191,9 @@ const BackgroundPageThumbs = {
   _onCaptureOrTimeout: function (capture) {
     
     
-    
-    let idx = this._captureQueue.indexOf(capture);
-    if (idx < 0)
-      throw new Error("The capture should be in the queue.");
-    this._captureQueue.splice(idx, 1);
+    if (capture !== this._captureQueue[0])
+      throw new Error("The capture should be at the head of the queue.");
+    this._captureQueue.shift();
     this._capturesByURL.delete(capture.url);
 
     
@@ -227,13 +225,6 @@ function Capture(url, captureCallback, options) {
   this.doneCallbacks = [];
   if (options.onDone)
     this.doneCallbacks.push(options.onDone);
-
-  
-  
-  let timeout = typeof(options.timeout) == "number" ? options.timeout :
-                DEFAULT_CAPTURE_TIMEOUT;
-  this._timeoutTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-  this._timeoutTimer.initWithCallback(this, timeout, Ci.nsITimer.TYPE_ONE_SHOT);
 }
 
 Capture.prototype = {
@@ -248,6 +239,11 @@ Capture.prototype = {
 
 
   start: function (messageManager) {
+    let timeout = typeof(this.options.timeout) == "number" ? this.options.timeout :
+                  DEFAULT_CAPTURE_TIMEOUT;
+    this._timeoutTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    this._timeoutTimer.initWithCallback(this, timeout, Ci.nsITimer.TYPE_ONE_SHOT);
+
     this._msgMan = messageManager;
     this._msgMan.sendAsyncMessage("BackgroundPageThumbs:capture",
                                   { id: this.id, url: this.url });
@@ -259,14 +255,14 @@ Capture.prototype = {
 
 
 
-
-
-
   destroy: function () {
-    this._timeoutTimer.cancel();
-    delete this._timeoutTimer;
+    
+    
+    if (this._timeoutTimer) {
+      this._timeoutTimer.cancel();
+      delete this._timeoutTimer;
+    }
     if (this._msgMan) {
-      
       this._msgMan.removeMessageListener("BackgroundPageThumbs:didCapture",
                                          this);
       delete this._msgMan;
