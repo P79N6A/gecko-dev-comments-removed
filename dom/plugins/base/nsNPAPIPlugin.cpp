@@ -1211,7 +1211,8 @@ _getwindowobject(NPP npp)
   
   
   
-  return nsJSObjWrapper::GetNewOrUsed(npp, cx, ::JS_GetGlobalObject(cx));
+  JS::Rooted<JSObject*> global(cx, ::JS_GetGlobalObject(cx));
+  return nsJSObjWrapper::GetNewOrUsed(npp, cx, global);
 }
 
 NPObject* NP_CALLBACK
