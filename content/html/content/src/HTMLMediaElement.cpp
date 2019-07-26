@@ -760,9 +760,13 @@ NS_IMETHODIMP HTMLMediaElement::Load()
 void HTMLMediaElement::ResetState()
 {
   mMediaSize = nsIntSize(-1, -1);
-  VideoFrameContainer* container = GetVideoFrameContainer();
-  if (container) {
-    container->Reset();
+  
+  
+  
+  
+  if (mVideoFrameContainer) {
+    mVideoFrameContainer->ForgetElement();
+    mVideoFrameContainer = nullptr;
   }
 }
 
@@ -3012,7 +3016,10 @@ void HTMLMediaElement::MetadataLoaded(int aChannels,
   
   
   
-  if (!aHasVideo) {
+  if (!aHasVideo && mVideoFrameContainer) {
+    
+    
+    mVideoFrameContainer->ForgetElement();
     mVideoFrameContainer = nullptr;
   }
 }
