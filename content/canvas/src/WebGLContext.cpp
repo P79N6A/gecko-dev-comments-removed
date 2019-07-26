@@ -83,17 +83,20 @@ WebGLMemoryPressureObserver::Observe(nsISupports* aSubject,
 
     if (!mContext->mCanLoseContextInForeground &&
         ProcessPriorityManager::CurrentProcessIsForeground())
+    {
         wantToLoseContext = false;
-    else if (!nsCRT::strcmp(aSomeData,
-                            MOZ_UTF16("heap-minimize")))
+    } else if (!nsCRT::strcmp(aSomeData,
+                              MOZ_UTF16("heap-minimize")))
+    {
         wantToLoseContext = mContext->mLoseContextOnHeapMinimize;
+    }
 
-    if (wantToLoseContext)
+    if (wantToLoseContext) {
         mContext->ForceLoseContext();
+    }
 
     return NS_OK;
 }
-
 
 WebGLContextOptions::WebGLContextOptions()
     : alpha(true), depth(true), stencil(false),
@@ -168,12 +171,12 @@ WebGLContext::WebGLContext()
 
     WebGLMemoryTracker::AddWebGLContext(this);
 
-    mAllowRestore = true;
+    mAllowContextRestore = true;
+    mLastLossWasSimulated = false;
     mContextLossTimerRunning = false;
-    mDrawSinceContextLossTimerSet = false;
+    mRunContextLossTimerAgain = false;
     mContextRestorer = do_CreateInstance("@mozilla.org/timer;1");
     mContextStatus = ContextNotLost;
-    mContextLostErrorSet = false;
     mLoseContextOnHeapMinimize = false;
     mCanLoseContextInForeground = true;
 
@@ -571,11 +574,8 @@ WebGLContext::SetDimensions(int32_t width, int32_t height)
     mResetLayer = true;
     mOptionsFrozen = true;
 
-    mHasRobustness = gl->HasRobustness();
-
     
     ++mGeneration;
-
 #if 0
     if (mGeneration > 0) {
         
@@ -1111,6 +1111,96 @@ WebGLContext::DummyFramebufferOperation(const char *info)
         ErrorInvalidFramebufferOperation("%s: incomplete framebuffer", info);
 }
 
+static bool
+CheckContextLost(GLContext* gl, bool* out_isGuilty)
+{
+    MOZ_ASSERT(gl);
+    MOZ_ASSERT(out_isGuilty);
+
+    bool isEGL = gl->GetContextType() == gl::GLContextType::EGL;
+
+    GLenum resetStatus = LOCAL_GL_NO_ERROR;
+    if (gl->HasRobustness()) {
+        gl->MakeCurrent();
+        resetStatus = gl->fGetGraphicsResetStatus();
+    } else if (isEGL) {
+        
+        
+        
+        if (!gl->MakeCurrent(true) && gl->IsContextLost()) {
+            resetStatus = LOCAL_GL_UNKNOWN_CONTEXT_RESET_ARB;
+        }
+    }
+
+    if (resetStatus == LOCAL_GL_NO_ERROR) {
+        *out_isGuilty = false;
+        return false;
+    }
+
+    
+    bool isGuilty = true;
+    switch (resetStatus) {
+    case LOCAL_GL_INNOCENT_CONTEXT_RESET_ARB:
+        
+        isGuilty = false;
+        break;
+    case LOCAL_GL_GUILTY_CONTEXT_RESET_ARB:
+        NS_WARNING("WebGL content on the page definitely caused the graphics"
+                   " card to reset.");
+        break;
+    case LOCAL_GL_UNKNOWN_CONTEXT_RESET_ARB:
+        NS_WARNING("WebGL content on the page might have caused the graphics"
+                   " card to reset");
+        
+        break;
+    default:
+        MOZ_ASSERT(false, "Unreachable.");
+        
+        break;
+    }
+
+    if (isGuilty) {
+        NS_WARNING("WebGL context on this page is considered guilty, and will"
+                   " not be restored.");
+    }
+
+    *out_isGuilty = isGuilty;
+    return true;
+}
+
+bool
+WebGLContext::TryToRestoreContext()
+{
+    if (NS_FAILED(SetDimensions(mWidth, mHeight)))
+        return false;
+
+    return true;
+}
+
+class UpdateContextLossStatusTask : public nsRunnable
+{
+    WebGLContext* const mContext;
+
+public:
+    UpdateContextLossStatusTask(WebGLContext* context)
+        : mContext(context)
+    {
+    }
+
+    NS_IMETHOD Run() {
+        mContext->UpdateContextLossStatus();
+
+        return NS_OK;
+    }
+};
+
+void
+WebGLContext::EnqueueUpdateContextLossStatus()
+{
+    nsCOMPtr<nsIRunnable> task = new UpdateContextLossStatusTask(this);
+    NS_DispatchToCurrentThread(task);
+}
+
 
 
 
@@ -1126,137 +1216,123 @@ WebGLContext::DummyFramebufferOperation(const char *info)
 
 
 void
-WebGLContext::RobustnessTimerCallback(nsITimer* timer)
+WebGLContext::UpdateContextLossStatus()
 {
-    TerminateContextLossTimer();
-
     if (!mCanvasElement) {
         
         
         return;
     }
+    if (mContextStatus == ContextNotLost) {
+        
+        
 
-    
-    
+        bool isGuilty = true;
+        bool isContextLost = CheckContextLost(gl, &isGuilty);
+
+        if (isContextLost) {
+            if (isGuilty)
+                mAllowContextRestore = false;
+
+            ForceLoseContext();
+        }
+
+        
+    }
+
     if (mContextStatus == ContextLostAwaitingEvent) {
-        bool defaultAction;
+        
+        
+
+        bool useDefaultHandler;
         nsContentUtils::DispatchTrustedEvent(mCanvasElement->OwnerDoc(),
                                              static_cast<nsIDOMHTMLCanvasElement*>(mCanvasElement),
                                              NS_LITERAL_STRING("webglcontextlost"),
                                              true,
                                              true,
-                                             &defaultAction);
+                                             &useDefaultHandler);
+        
+        mContextStatus = ContextLost;
+        
+        
+        
+        if (useDefaultHandler)
+            mAllowContextRestore = false;
 
         
-        if (defaultAction)
-            mAllowRestore = false;
+    }
+
+    if (mContextStatus == ContextLost) {
+        
+        
+        
+
+        
+        if (!mAllowContextRestore)
+            return;
 
         
         
+        if (mLastLossWasSimulated)
+            return;
+
+        ForceRestoreContext();
+        return;
+    }
+
+    if (mContextStatus == ContextLostAwaitingRestore) {
         
-        if (!defaultAction && mAllowRestore) {
-            ForceRestoreContext();
+
+        if (!mAllowContextRestore) {
             
             
-            SetupContextLossTimer();
-        } else {
             mContextStatus = ContextLost;
-        }
-    } else if (mContextStatus == ContextLostAwaitingRestore) {
-        
-        if (NS_FAILED(SetDimensions(mWidth, mHeight))) {
-            SetupContextLossTimer();
             return;
         }
+
+        if (!TryToRestoreContext()) {
+            
+            RunContextLossTimer();
+            return;
+        }
+
+        
         mContextStatus = ContextNotLost;
         nsContentUtils::DispatchTrustedEvent(mCanvasElement->OwnerDoc(),
                                              static_cast<nsIDOMHTMLCanvasElement*>(mCanvasElement),
                                              NS_LITERAL_STRING("webglcontextrestored"),
                                              true,
                                              true);
-        
-        
         mEmitContextLostErrorOnce = true;
-        mAllowRestore = true;
-    }
-
-    MaybeRestoreContext();
-    return;
-}
-
-void
-WebGLContext::MaybeRestoreContext()
-{
-    
-    if (mContextStatus != ContextNotLost || gl == nullptr)
         return;
-
-    bool isEGL = gl->GetContextType() == gl::GLContextType::EGL,
-         isANGLE = gl->IsANGLE();
-
-    GLContext::ContextResetARB resetStatus = GLContext::CONTEXT_NO_ERROR;
-    if (mHasRobustness) {
-        gl->MakeCurrent();
-        resetStatus = (GLContext::ContextResetARB) gl->fGetGraphicsResetStatus();
-    } else if (isEGL) {
-        
-        
-        
-        
-        if (!gl->MakeCurrent(true) && gl->IsContextLost()) {
-            resetStatus = GLContext::CONTEXT_GUILTY_CONTEXT_RESET_ARB;
-        }
-    }
-
-    if (resetStatus != GLContext::CONTEXT_NO_ERROR) {
-        
-        
-        ForceLoseContext();
-    }
-
-    switch (resetStatus) {
-        case GLContext::CONTEXT_NO_ERROR:
-            
-            
-            
-            if (mDrawSinceContextLossTimerSet)
-                SetupContextLossTimer();
-            break;
-        case GLContext::CONTEXT_GUILTY_CONTEXT_RESET_ARB:
-            NS_WARNING("WebGL content on the page caused the graphics card to reset; not restoring the context");
-            mAllowRestore = false;
-            break;
-        case GLContext::CONTEXT_INNOCENT_CONTEXT_RESET_ARB:
-            break;
-        case GLContext::CONTEXT_UNKNOWN_CONTEXT_RESET_ARB:
-            NS_WARNING("WebGL content on the page might have caused the graphics card to reset");
-            if (isEGL && isANGLE) {
-                
-                
-                
-                
-                mAllowRestore = false;
-            }
-            break;
     }
 }
 
 void
 WebGLContext::ForceLoseContext()
 {
-    if (mContextStatus == ContextLostAwaitingEvent)
-        return;
-
+    printf_stderr("WebGL(%p)::ForceLoseContext\n", this);
+    MOZ_ASSERT(!IsContextLost());
     mContextStatus = ContextLostAwaitingEvent;
+    mContextLostErrorSet = false;
+    mLastLossWasSimulated = false;
+
     
-    SetupContextLossTimer();
     DestroyResourcesAndContext();
+
+    
+    EnqueueUpdateContextLossStatus();
 }
 
 void
 WebGLContext::ForceRestoreContext()
 {
+    printf_stderr("WebGL(%p)::ForceRestoreContext\n", this);
     mContextStatus = ContextLostAwaitingRestore;
+    mAllowContextRestore = true; 
+
+    
+    EnqueueUpdateContextLossStatus();
 }
 
 void
