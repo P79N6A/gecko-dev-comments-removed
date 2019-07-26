@@ -172,7 +172,8 @@ class MediaRecorder::Session: public nsIObserver
       
       
       
-      if (recorder->mState != RecordingState::Inactive) {
+      
+      if (!mSession->mStopIssued) {
         ErrorResult result;
         recorder->Stop(result);
         NS_DispatchToMainThread(new DestroyRunnable(mSession.forget()));
@@ -182,8 +183,8 @@ class MediaRecorder::Session: public nsIObserver
 
       
       recorder->DispatchSimpleEvent(NS_LITERAL_STRING("stop"));
-      recorder->SetMimeType(NS_LITERAL_STRING(""));
-
+      mSession->mMimeType = NS_LITERAL_STRING("");
+      recorder->SetMimeType(mSession->mMimeType);
       return NS_OK;
     }
 
@@ -200,7 +201,8 @@ class MediaRecorder::Session: public nsIObserver
 public:
   Session(MediaRecorder* aRecorder, int32_t aTimeSlice)
     : mRecorder(aRecorder),
-      mTimeSlice(aTimeSlice)
+      mTimeSlice(aTimeSlice),
+      mStopIssued(false)
   {
     MOZ_ASSERT(NS_IsMainThread());
 
@@ -226,6 +228,7 @@ public:
   {
     MOZ_ASSERT(NS_IsMainThread());
 
+    mStopIssued = true;
     CleanupStreams();
     nsContentUtils::UnregisterShutdownObserver(this);
   }
@@ -248,10 +251,7 @@ public:
 
   already_AddRefed<nsIDOMBlob> GetEncodedData()
   {
-    nsString mimeType;
-    mRecorder->GetMimeType(mimeType);
-
-    return mEncodedBufferCache->ExtractBlob(mimeType);
+    return mEncodedBufferCache->ExtractBlob(mMimeType);
   }
 
   bool IsEncoderError()
@@ -274,10 +274,8 @@ private:
 
     
     nsTArray<nsTArray<uint8_t> > encodedBuf;
-    nsString mimeType;
-    mEncoder->GetEncodedData(&encodedBuf, mimeType);
-
-    mRecorder->SetMimeType(mimeType);
+    mEncoder->GetEncodedData(&encodedBuf, mMimeType);
+    mRecorder->SetMimeType(mMimeType);
 
     
     for (uint32_t i = 0; i < encodedBuf.Length(); i++) {
@@ -326,7 +324,9 @@ private:
     }
 
     
-    if (mRecorder->mState == RecordingState::Inactive) {
+    
+    
+    if (!mTrackUnionStream) {
       DoSessionEndTask(NS_OK);
       return;
     }
@@ -401,12 +401,16 @@ private:
   
   nsAutoPtr<EncodedBufferCache> mEncodedBufferCache;
   
+  nsString mMimeType;
+  
   TimeStamp mLastBlobTimeStamp;
   
   
   
   
   const int32_t mTimeSlice;
+  
+  bool mStopIssued;
 };
 
 NS_IMPL_ISUPPORTS1(MediaRecorder::Session, nsIObserver)
