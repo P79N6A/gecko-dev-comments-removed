@@ -45,6 +45,18 @@ class JSObject;
 typedef JSBool
 (* JSNative)(JSContext *cx, unsigned argc, JS::Value *vp);
 
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JS::Value)
+JS_ComputeThis(JSContext *cx, JS::Value *vp);
+
 namespace JS {
 
 
@@ -128,6 +140,13 @@ class CallReceiver
         
         
         return HandleValue::fromMarkedLocation(&argv_[-1]);
+    }
+
+    Value computeThis(JSContext *cx) const {
+        if (thisv().isObject())
+            return thisv();
+
+        return JS_ComputeThis(cx, base());
     }
 
     
@@ -242,15 +261,9 @@ class CallArgs : public CallReceiver
     }
 
     
-    MutableHandleValue handleAt(unsigned i) {
+    MutableHandleValue handleAt(unsigned i) const {
         MOZ_ASSERT(i < argc_);
         return MutableHandleValue::fromMarkedLocation(&argv_[i]);
-    }
-
-    
-    HandleValue handleAt(unsigned i) const {
-        MOZ_ASSERT(i < argc_);
-        return HandleValue::fromMarkedLocation(&argv_[i]);
     }
 
     
@@ -294,18 +307,6 @@ CallArgsFromSp(unsigned argc, Value *sp)
 }
 
 } 
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JS::Value)
-JS_ComputeThis(JSContext *cx, JS::Value *vp);
 
 
 
