@@ -104,8 +104,13 @@ public:
   
 
 
+  bool CanScroll() const;
 
-  bool Scrollable();
+  
+
+
+
+  bool CanScrollNow() const;
 
   void SetAxisLocked(bool aAxisLocked) { mAxisLocked = aAxisLocked; }
 
@@ -155,11 +160,6 @@ public:
 
 
   bool ScaleWillOverscrollBothSides(float aScale);
-
-  
-
-
-  bool HasRoomToPan() const;
 
   float GetOrigin() const;
   float GetCompositionLength() const;
