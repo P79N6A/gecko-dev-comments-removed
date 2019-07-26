@@ -90,10 +90,8 @@ this.PermissionsInstaller = {
                 continue;
               }
               
-              PermissionSettingsModule.removePermission(permName,
-                                                        aApp.manifestURL,
-                                                        aApp.origin,
-                                                        false);
+              
+              this._setPermission(permName, "unknown", aApp);
             }
           }
         }
