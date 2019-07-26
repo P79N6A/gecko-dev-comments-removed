@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_mirgraph_h__
 #define jsion_mirgraph_h__
 

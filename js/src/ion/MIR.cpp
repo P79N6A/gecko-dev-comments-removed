@@ -4,7 +4,6 @@
 
 
 
-
 #include "BaselineInspector.h"
 #include "IonBuilder.h"
 #include "LICM.h" 
@@ -2161,6 +2160,12 @@ InlinePropertyTable::buildTypeSetForFunction(JSFunction *func) const
         }
     }
     return types;
+}
+
+bool
+MInArray::needsNegativeIntCheck() const
+{
+    return !index()->range() || index()->range()->lower() < 0;
 }
 
 MDefinition *

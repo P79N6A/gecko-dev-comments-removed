@@ -5,7 +5,6 @@
 
 
 
-
 #ifndef jsion_mir_opcodes_h__
 #define jsion_mir_opcodes_h__
 
@@ -82,6 +81,7 @@ namespace ion {
     _(NewDeclEnvObject)                                                     \
     _(NewCallObject)                                                        \
     _(NewStringObject)                                                      \
+    _(InitElem)                                                             \
     _(InitProp)                                                             \
     _(Start)                                                                \
     _(OsrEntry)                                                             \

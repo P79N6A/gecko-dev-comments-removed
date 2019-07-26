@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_lir_opcodes_common_h__
 #define jsion_lir_opcodes_common_h__
 
@@ -33,6 +32,7 @@
     _(ParNewDenseArray)             \
     _(ParNewCallObject)             \
     _(ParBailout)                   \
+    _(InitElem)                     \
     _(InitProp)                     \
     _(CheckOverRecursed)            \
     _(ParCheckOverRecursed)         \

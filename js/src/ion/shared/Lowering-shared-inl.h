@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_ion_lowering_inl_h__
 #define jsion_ion_lowering_inl_h__
 

@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_caches_h__
 #define jsion_caches_h__
 
@@ -799,14 +798,14 @@ class ParallelGetPropertyIC : public DispatchIonCache
 
     
     
-    ObjectSet *stubbedObjects_;
+    ShapeSet *stubbedShapes_;
 
    public:
     ParallelGetPropertyIC(Register object, PropertyName *name, TypedOrValueRegister output)
       : object_(object),
         name_(name),
         output_(output),
-        stubbedObjects_(NULL)
+        stubbedShapes_(NULL)
     {
     }
 
@@ -826,10 +825,10 @@ class ParallelGetPropertyIC : public DispatchIonCache
         return output_;
     }
 
-    bool initStubbedObjects(JSContext *cx);
-    ObjectSet *stubbedObjects() const {
-        JS_ASSERT_IF(stubbedObjects_, stubbedObjects_->initialized());
-        return stubbedObjects_;
+    bool initStubbedShapes(JSContext *cx);
+    ShapeSet *stubbedShapes() const {
+        JS_ASSERT_IF(stubbedShapes_, stubbedShapes_->initialized());
+        return stubbedShapes_;
     }
 
     bool canAttachReadSlot(LockedJSContext &cx, JSObject *obj, MutableHandleObject holder,

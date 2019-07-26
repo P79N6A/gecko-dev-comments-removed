@@ -8,7 +8,6 @@
 
 
 
-
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/PodOperations.h"
@@ -177,7 +176,7 @@ const uint32_t JSSLOT_SAVED_ID        = 1;
 Class js_NoSuchMethodClass = {
     "NoSuchMethod",
     JSCLASS_HAS_RESERVED_SLOTS(2) | JSCLASS_IS_ANONYMOUS,
-    JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
+    JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub,
 };
 
@@ -2115,9 +2114,15 @@ BEGIN_CASE(JSOP_DELPROP)
     RootedObject &obj = rootObject0;
     FETCH_OBJECT(cx, -1, obj);
 
-    MutableHandleValue res = MutableHandleValue::fromMarkedLocation(&regs.sp[-1]);
-    if (!JSObject::deleteProperty(cx, obj, name, res, script->strict))
+    JSBool succeeded;
+    if (!JSObject::deleteProperty(cx, obj, name, &succeeded))
         goto error;
+    if (!succeeded && script->strict) {
+        obj->reportNotConfigurable(cx, NameToId(name));
+        goto error;
+    }
+    MutableHandleValue res = MutableHandleValue::fromMarkedLocation(&regs.sp[-1]);
+    res.setBoolean(succeeded);
 }
 END_CASE(JSOP_DELPROP)
 
@@ -2130,10 +2135,22 @@ BEGIN_CASE(JSOP_DELELEM)
     RootedValue &propval = rootValue0;
     propval = regs.sp[-1];
 
-    MutableHandleValue res = MutableHandleValue::fromMarkedLocation(&regs.sp[-2]);
-    if (!JSObject::deleteByValue(cx, obj, propval, res, script->strict))
+    JSBool succeeded;
+    if (!JSObject::deleteByValue(cx, obj, propval, &succeeded))
         goto error;
+    if (!succeeded && script->strict) {
+        
+        
+        
+        RootedId id(cx);
+        if (!ValueToId<CanGC>(cx, propval, &id))
+            goto error;
+        obj->reportNotConfigurable(cx, id);
+        goto error;
+    }
 
+    MutableHandleValue res = MutableHandleValue::fromMarkedLocation(&regs.sp[-2]);
+    res.setBoolean(succeeded);
     regs.sp--;
 }
 END_CASE(JSOP_DELELEM)
@@ -3600,21 +3617,16 @@ bool
 js::DeleteProperty(JSContext *cx, HandleValue v, HandlePropertyName name, JSBool *bp)
 {
     
-    *bp = true;
-
-    
     RootedObject obj(cx, ToObjectFromStack(cx, v));
     if (!obj)
         return false;
 
-    
-    RootedValue result(cx, NullValue());
-    bool delprop_ok = JSObject::deleteProperty(cx, obj, name, &result, strict);
-    if (!delprop_ok)
+    if (!JSObject::deleteProperty(cx, obj, name, bp))
         return false;
-
-    
-    *bp = result.toBoolean();
+    if (strict && !*bp) {
+        obj->reportNotConfigurable(cx, NameToId(name));
+        return false;
+    }
     return true;
 }
 
@@ -3629,16 +3641,23 @@ js::DeleteElement(JSContext *cx, HandleValue val, HandleValue index, JSBool *bp)
     if (!obj)
         return false;
 
-    RootedValue result(cx);
-    if (!JSObject::deleteByValue(cx, obj, index, &result, strict))
+    if (!JSObject::deleteByValue(cx, obj, index, bp))
         return false;
-
-    *bp = result.toBoolean();
+    if (strict && !*bp) {
+        
+        
+        
+        RootedId id(cx);
+        if (!ValueToId<CanGC>(cx, index, &id))
+            return false;
+        obj->reportNotConfigurable(cx, id);
+        return false;
+    }
     return true;
 }
 
-template bool js::DeleteElement<true> (JSContext *, HandleValue, HandleValue, JSBool *);
-template bool js::DeleteElement<false>(JSContext *, HandleValue, HandleValue, JSBool *);
+template bool js::DeleteElement<true> (JSContext *, HandleValue, HandleValue, JSBool *succeeded);
+template bool js::DeleteElement<false>(JSContext *, HandleValue, HandleValue, JSBool *succeeded);
 
 bool
 js::GetElement(JSContext *cx, MutableHandleValue lref, HandleValue rref, MutableHandleValue vp)
@@ -3747,10 +3766,16 @@ js::DeleteNameOperation(JSContext *cx, HandlePropertyName name, HandleObject sco
     if (!LookupName(cx, name, scopeObj, &scope, &pobj, &shape))
         return false;
 
-    
-    res.setBoolean(true);
-    if (shape)
-        return JSObject::deleteProperty(cx, scope, name, res, false);
+    if (!scope) {
+        
+        res.setBoolean(true);
+        return true;
+    }
+
+    JSBool succeeded;
+    if (!JSObject::deleteProperty(cx, scope, name, &succeeded))
+        return false;
+    res.setBoolean(succeeded);
     return true;
 }
 
