@@ -6550,8 +6550,7 @@ nsGlobalWindow::Close()
 
   
   
-  if (!mDocShell->GetIsApp() &&
-      !mHadOriginalOpener && !nsContentUtils::IsCallerTrustedForWrite()) {
+  if (!mHadOriginalOpener && !nsContentUtils::IsCallerTrustedForWrite()) {
     bool allowClose =
       Preferences::GetBool("dom.allow_scripts_to_close_windows", true);
     if (!allowClose) {

@@ -774,12 +774,8 @@ ContentParent::~ContentParent()
         MOZ_ASSERT(!gNonAppContentParents ||
                    !gNonAppContentParents->Contains(this));
     } else {
-        
-        
-        
-        
         MOZ_ASSERT(!gAppContentParents ||
-                   gAppContentParents->Get(mAppManifestURL) != this);
+                   !gAppContentParents->Get(mAppManifestURL));
     }
 }
 
