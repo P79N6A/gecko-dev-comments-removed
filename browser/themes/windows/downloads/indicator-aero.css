@@ -2,34 +2,27 @@
 
 
 
+%define WINDOWS_AERO
+%include indicator.css
+%undef WINDOWS_AERO
+
 @media (-moz-windows-compositor) {
   
 
 
-  #toolbar-menubar #downloads-button:not([attention]) > #downloads-indicator-anchor > #downloads-indicator-icon:not(:-moz-lwtheme),
-  #TabsToolbar[tabsontop=true] #downloads-button:not([attention]) > #downloads-indicator-anchor > #downloads-indicator-icon:not(:-moz-lwtheme),
-  #navigator-toolbox[tabsontop=false] > #nav-bar #downloads-button:not([attention]) > #downloads-indicator-anchor > #downloads-indicator-icon:not(:-moz-lwtheme),
-  #nav-bar + #customToolbars + #PersonalToolbar[collapsed=true] + #TabsToolbar[tabsontop=false]:last-child #downloads-button:not([attention]) > #downloads-indicator-anchor > #downloads-indicator-icon:not(:-moz-lwtheme),
+  :-moz-any(#toolbar-menubar, #TabsToolbar) #downloads-indicator:not([attention]) > #downloads-indicator-anchor > #downloads-indicator-icon:not(:-moz-lwtheme),
 
   
 
 
 
   
-  #toolbar-menubar #downloads-button:not([counter]) > #downloads-indicator-anchor > #downloads-indicator-progress-area > #downloads-indicator-counter,
-  
-  #TabsToolbar[tabsontop=true] #downloads-button:not(:-moz-lwtheme):not([counter]) > #downloads-indicator-anchor > #downloads-indicator-progress-area > #downloads-indicator-counter,
-  
-  #navigator-toolbox[tabsontop=false] > #nav-bar #downloads-button:not(:-moz-lwtheme):not([counter]) > #downloads-indicator-anchor > #downloads-indicator-progress-area > #downloads-indicator-counter,
-  
-  #nav-bar + #customToolbars + #PersonalToolbar[collapsed=true] + #TabsToolbar[tabsontop=false]:last-child #downloads-button:not(:-moz-lwtheme):not([counter]) > #downloads-indicator-anchor > #downloads-indicator-progress-area > #downloads-indicator-counter {
+
+  :-moz-any(#toolbar-menubar #downloads-indicator:not([counter]), #TabsToolbar #downloads-indicator:not(:-moz-lwtheme):not([counter])) > #downloads-indicator-anchor > #downloads-indicator-progress-area > #downloads-indicator-counter {
     background-image: -moz-image-rect(url("chrome://browser/skin/Toolbar-inverted.png"), 0, 108, 18, 90);
   }
 
-  #toolbar-menubar #downloads-indicator-counter:not(:-moz-lwtheme),
-  #TabsToolbar[tabsontop=true] #downloads-indicator-counter:not(:-moz-lwtheme),
-  #navigator-toolbox[tabsontop=false] > #nav-bar #downloads-indicator-counter:not(:-moz-lwtheme),
-  #nav-bar + #customToolbars + #PersonalToolbar[collapsed=true] + #TabsToolbar[tabsontop=false]:last-child #downloads-indicator-counter:not(:-moz-lwtheme) {
+  :-moz-any(#toolbar-menubar, #TabsToolbar) #downloads-indicator-counter:not(:-moz-lwtheme) {
     color: white;
     text-shadow: 0 0 1px rgba(0,0,0,.7),
                  0 1px 1.5px rgba(0,0,0,.5);
