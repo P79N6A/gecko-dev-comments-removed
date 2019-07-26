@@ -21,14 +21,14 @@ var numBatches = (scriptArgs[4]|0) || 1;
 var tmpfile = scriptArgs[5] || "tmp.txt";
 
 var gcFunctions = {};
-var text = snarf("gcFunctions.lst").split('\n');
+var text = snarf("gcFunctions.lst").split("\n");
 assert(text.pop().length == 0);
 for (var line of text) {
     gcFunctions[line] = true;
 }
 
 var suppressedFunctions = {};
-var text = snarf("suppressedFunctions.lst").split('\n');
+var text = snarf(suppressedFunctionsFile).split("\n");
 assert(text.pop().length == 0);
 for (var line of text) {
     suppressedFunctions[line] = true;
@@ -39,14 +39,14 @@ var match;
 var gcThings = {};
 var gcPointers = {};
 
-var gcTypesText = snarf(gcTypesFile).split('\n');
-for (var line of gcTypesText) {
+text = snarf(gcTypesFile).split("\n");
+for (var line of text) {
     if (match = /GCThing: (.*)/.exec(line))
         gcThings[match[1]] = true;
     if (match = /GCPointer: (.*)/.exec(line))
         gcPointers[match[1]] = true;
 }
-gcTypesText = null;
+text = null;
 
 function isUnrootedType(type)
 {
@@ -246,6 +246,10 @@ function computePredecessors(body)
 
 function variableUseFollowsGC(suppressed, variable, worklist)
 {
+    
+    
+    
+
     while (worklist.length) {
         var entry = worklist.pop();
         var body = entry.body, ppoint = entry.ppoint;
@@ -301,8 +305,8 @@ function variableUseFollowsGC(suppressed, variable, worklist)
             }
 
             var gcInfo = entry.gcInfo;
-            if (!gcInfo && !(edge.Index[0] in body.suppressed) && !suppressed) {
-                var gcName = edgeCanGC(edge);
+            if (!gcInfo && !(source in body.suppressed) && !suppressed) {
+                var gcName = edgeCanGC(edge, body);
                 if (gcName)
                     gcInfo = {name:gcName, body:body, ppoint:source};
             }
@@ -338,10 +342,14 @@ function variableUseFollowsGC(suppressed, variable, worklist)
 
 function variableLiveAcrossGC(suppressed, variable)
 {
+    
+    
+
     for (var body of functionBodies) {
         body.seen = null;
         body.minimumUse = 0;
     }
+
     for (var body of functionBodies) {
         if (!("PEdge" in body))
             continue;
