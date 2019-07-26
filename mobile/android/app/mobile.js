@@ -250,6 +250,7 @@ pref("browser.search.updateinterval", 6);
 
 
 pref("browser.search.suggest.enabled", false);
+pref("browser.search.suggest.prompted", false);
 
 
 pref("browser.search.loadFromJars", true);
