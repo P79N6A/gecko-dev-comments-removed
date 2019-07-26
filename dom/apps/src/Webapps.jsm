@@ -1626,6 +1626,7 @@ this.DOMApplicationRegistry = {
     
     
     
+    
 
     debug("downloadPackage " + JSON.stringify(aApp));
 
@@ -1659,28 +1660,6 @@ this.DOMApplicationRegistry = {
                               manifestURL:  aApp.manifestURL,
                               error: aError,
                               app: app });
-    }
-
-    function getInferedStatus() {
-      
-      return Ci.nsIPrincipal.APP_STATUS_INSTALLED;
-    }
-
-    function getAppStatus(aManifest) {
-      let manifestStatus = AppsUtils.getAppManifestStatus(aManifest);
-      let inferedStatus = getInferedStatus();
-
-      return (Services.prefs.getBoolPref("dom.mozApps.dev_mode") ? manifestStatus
-                                                                : inferedStatus);
-    }
-    
-    
-    function checkAppStatus(aManifest) {
-      if (Services.prefs.getBoolPref("dom.mozApps.dev_mode")) {
-        return true;
-      }
-
-      return (AppsUtils.getAppManifestStatus(aManifest) <= getInferedStatus());
     }
 
     function download() {
@@ -1753,50 +1732,76 @@ this.DOMApplicationRegistry = {
             return;
           }
 
-          let zipReader = Cc["@mozilla.org/libjar/zip-reader;1"]
-                          .createInstance(Ci.nsIZipReader);
-          try {
-            zipReader.open(zipFile);
-            if (!zipReader.hasEntry("manifest.webapp")) {
-              throw "MISSING_MANIFEST";
+		  let certdb;
+		  try {
+			certdb = Cc["@mozilla.org/security/x509certdb;1"]
+					   .getService(Ci.nsIX509CertDB);
+		  } catch (e) {
+		    cleanup("CERTDB_ERROR");
+			return;
+		  }
+          certdb.openSignedJARFileAsync(zipFile, function(aRv, aZipReader) {
+            try {
+              let zipReader;
+              let isSigned;
+              if (Components.isSuccessCode(aRv)) {
+                isSigned = true;
+                zipReader = aZipReader;
+              } else if (aRv != Cr.NS_ERROR_SIGNED_JAR_NOT_SIGNED) {
+                throw "INVALID_SIGNATURE";
+              } else {
+                isSigned = false;
+                zipReader = Cc["@mozilla.org/libjar/zip-reader;1"]
+                              .createInstance(Ci.nsIZipReader);
+                zipReader.open(zipFile);
+              }
+
+              if (!zipReader.hasEntry("manifest.webapp")) {
+                throw "MISSING_MANIFEST";
+              }
+
+              let istream = zipReader.getInputStream("manifest.webapp");
+
+              
+              let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                                .createInstance(Ci.nsIScriptableUnicodeConverter);
+              converter.charset = "UTF-8";
+
+              let manifest = JSON.parse(converter.ConvertToUnicode(NetUtil.readInputStreamToString(istream,
+                                                                   istream.available()) || ""));
+
+              if (!AppsUtils.checkManifest(manifest)) {
+                throw "INVALID_MANIFEST";
+              }
+
+              if (!AppsUtils.checkInstallAllowed(manifest, aApp.installOrigin)) {
+                throw "INSTALL_FROM_DENIED";
+              }
+
+              let isDevMode = Services.prefs.getBoolPref("dom.mozApps.dev_mode");
+              let maxStatus = isDevMode ? Ci.nsIPrincipal.APP_STATUS_CERTIFIED
+                            : isSigned  ? Ci.nsIPrincipal.APP_STATUS_PRIVILEGED
+                                        : Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+
+              if (AppsUtils.getAppManifestStatus(aManifest) > maxStatus) {
+                throw "INVALID_SECURITY_LEVEL";
+              }
+
+              if (aOnSuccess) {
+                aOnSuccess(id, manifest);
+              }
+              delete self.downloads[aApp.manifestURL];
+            } catch (e) {
+              
+              if (typeof e == 'object') {
+                cleanup("INVALID_PACKAGE");
+              } else {
+                cleanup(e);
+              }
+            } finally {
+              zipReader.close();
             }
-
-            let istream = zipReader.getInputStream("manifest.webapp");
-
-            
-            let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                            .createInstance(Ci.nsIScriptableUnicodeConverter);
-            converter.charset = "UTF-8";
-
-            let manifest = JSON.parse(converter.ConvertToUnicode(NetUtil.readInputStreamToString(istream,
-                                                                 istream.available()) || ""));
-
-            if (!AppsUtils.checkManifest(manifest)) {
-              throw "INVALID_MANIFEST";
-            }
-
-            if (!AppsUtils.checkInstallAllowed(manifest, aApp.installOrigin)) {
-              throw "INSTALL_FROM_DENIED";
-            }
-
-            if (!checkAppStatus(manifest)) {
-              throw "INVALID_SECURITY_LEVEL";
-            }
-
-            if (aOnSuccess) {
-              aOnSuccess(id, manifest);
-            }
-            delete self.downloads[aApp.manifestURL];
-          } catch (e) {
-            
-            if (typeof e == 'object') {
-              cleanup("INVALID_PACKAGE");
-            } else {
-              cleanup(e);
-            }
-          } finally {
-            zipReader.close();
-          }
+          });
         });
       });
     };
