@@ -16,9 +16,6 @@ const STATE_QUITTING = -1;
 const STATE_STOPPED_STR = "stopped";
 const STATE_RUNNING_STR = "running";
 
-const TAB_STATE_NEEDS_RESTORE = 1;
-const TAB_STATE_RESTORING = 2;
-
 const PRIVACY_NONE = 0;
 const PRIVACY_ENCRYPTED = 1;
 const PRIVACY_FULL = 2;
@@ -235,6 +232,29 @@ this.SessionStore = {
 
   checkPrivacyLevel: function ss_checkPrivacyLevel(aIsHTTPS, aUseDefaultPref) {
     return SessionStoreInternal.checkPrivacyLevel(aIsHTTPS, aUseDefaultPref);
+  },
+
+  
+
+
+
+
+
+
+
+  isTabStateNeedsRestore: function ss_isTabStateNeedsRestore(aBrowser) {
+    return TabRestoreStates.isNeedsRestore(aBrowser);
+  },
+
+  
+
+
+
+
+
+
+  isTabStateRestoring: function ss_isTabStateRestoring(aBrowser) {
+    return TabRestoreStates.isRestoring(aBrowser);
   }
 };
 
@@ -1057,7 +1077,7 @@ let SessionStoreInternal = {
         RestoringTabsData.remove(aTab.linkedBrowser);
         delete aTab.linkedBrowser.__SS_formDataSaved;
         delete aTab.linkedBrowser.__SS_hostSchemeData;
-        if (aTab.linkedBrowser.__SS_restoreState)
+        if (TabRestoreStates.has(aTab.linkedBrowser))
           this._resetTabRestoringState(aTab);
       });
       openWindows[aWindow.__SSi] = true;
@@ -1252,10 +1272,10 @@ let SessionStoreInternal = {
     
     
     
-    let previousState = browser.__SS_restoreState;
-    if (previousState) {
+    if (TabRestoreStates.has(browser)) {
+      let wasRestoring = TabRestoreStates.isRestoring(browser);
       this._resetTabRestoringState(aTab);
-      if (previousState == TAB_STATE_RESTORING)
+      if (wasRestoring)
         this.restoreNextTab();
     }
 
@@ -1317,8 +1337,7 @@ let SessionStoreInternal = {
     
     
     
-    if (aBrowser.__SS_restoreState &&
-        aBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
+    if (TabRestoreStates.isNeedsRestore(aBrowser)) {
       return;
     }
 
@@ -1355,10 +1374,7 @@ let SessionStoreInternal = {
 
       let tab = aWindow.gBrowser.selectedTab;
       
-      
-      
-      if (tab.linkedBrowser.__SS_restoreState &&
-          tab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE)
+      if (TabRestoreStates.isNeedsRestore(tab.linkedBrowser))
         this.restoreTab(tab);
 
       
@@ -1368,8 +1384,7 @@ let SessionStoreInternal = {
 
   onTabShow: function ssi_onTabShow(aWindow, aTab) {
     
-    if (aTab.linkedBrowser.__SS_restoreState &&
-        aTab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
+    if (TabRestoreStates.isNeedsRestore(aTab.linkedBrowser)) {
       TabRestoreQueue.hiddenToVisible(aTab);
 
       
@@ -1384,8 +1399,7 @@ let SessionStoreInternal = {
 
   onTabHide: function ssi_onTabHide(aWindow, aTab) {
     
-    if (aTab.linkedBrowser.__SS_restoreState &&
-        aTab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
+    if (TabRestoreStates.isNeedsRestore(aTab.linkedBrowser)) {
       TabRestoreQueue.visibleToHidden(aTab);
     }
 
@@ -2756,7 +2770,7 @@ let SessionStoreInternal = {
     
     if (aOverwriteTabs) {
       for (let i = 0; i < tabbrowser.tabs.length; i++) {
-        if (tabbrowser.browsers[i].__SS_restoreState)
+        if (TabRestoreStates.has(tabbrowser.browsers[i]))
           this._resetTabRestoringState(tabbrowser.tabs[i]);
       }
     }
@@ -2986,7 +3000,7 @@ let SessionStoreInternal = {
       
       
       RestoringTabsData.set(browser, tabData);
-      browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
+      TabRestoreStates.setNeedsRestore(browser);
       browser.setAttribute("pending", "true");
       tab.setAttribute("pending", "true");
 
@@ -3176,7 +3190,7 @@ let SessionStoreInternal = {
     this._tabsRestoringCount++;
 
     
-    browser.__SS_restoreState = TAB_STATE_RESTORING;
+    TabRestoreStates.setIsRestoring(browser);
     browser.removeAttribute("pending");
     aTab.removeAttribute("pending");
 
@@ -4398,10 +4412,11 @@ let SessionStoreInternal = {
     let browser = aTab.linkedBrowser;
 
     
-    let previousState = browser.__SS_restoreState;
+    let wasRestoring = TabRestoreStates.isRestoring(browser);
+    let wasNeedsRestore = TabRestoreStates.isNeedsRestore(browser);
 
     
-    delete browser.__SS_restoreState;
+    TabRestoreStates.remove(browser);
 
     aTab.removeAttribute("pending");
     browser.removeAttribute("pending");
@@ -4413,11 +4428,11 @@ let SessionStoreInternal = {
     
     this._removeTabsProgressListener(window);
 
-    if (previousState == TAB_STATE_RESTORING) {
+    if (wasRestoring) {
       if (this._tabsRestoringCount)
         this._tabsRestoringCount--;
     }
-    else if (previousState == TAB_STATE_NEEDS_RESTORE) {
+    else if (wasNeedsRestore) {
       
       
       this._removeSHistoryListener(aTab);
@@ -4673,12 +4688,46 @@ let TabAttributes = {
 
 
 
+
+
+
+
+let TabRestoreStates = {
+  _states: new WeakMap(),
+
+  has: function (browser) {
+    return this._states.has(browser);
+  },
+
+  isNeedsRestore: function ss_isNeedsRestore(browser) {
+    return this._states.get(browser) === "needs-restore";
+  },
+
+  setNeedsRestore: function (browser) {
+    this._states.set(browser, "needs-restore");
+  },
+
+  isRestoring: function ss_isRestoring(browser) {
+    return this._states.get(browser) === "restoring";
+  },
+
+  setIsRestoring: function (browser) {
+    this._states.set(browser, "restoring");
+  },
+
+  remove: function (browser) {
+    this._states.delete(browser);
+  }
+};
+
+
+
+
 let gRestoreTabsProgressListener = {
   onStateChange: function(aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
     
     
-    if (aBrowser.__SS_restoreState &&
-        aBrowser.__SS_restoreState == TAB_STATE_RESTORING &&
+    if (TabRestoreStates.isRestoring(aBrowser) &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
