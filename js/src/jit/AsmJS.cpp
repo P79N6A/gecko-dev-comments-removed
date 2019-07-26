@@ -6362,6 +6362,8 @@ GenerateStubs(ModuleCompiler &m)
 
     Label throwLabel;
 
+    
+    
     for (ModuleCompiler::ExitMap::Range r = m.allExits(); !r.empty(); r.popFront()) {
         GenerateFFIExit(m, r.front().key, r.front().value, &throwLabel);
         if (m.masm().oom())
