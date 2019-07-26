@@ -41,6 +41,10 @@ var FullZoom = {
 
   init: function FullZoom_init() {
     
+    if (gMultiProcessBrowser)
+      return;
+
+    
     window.addEventListener("DOMMouseScroll", this, false);
 
     
@@ -58,6 +62,10 @@ var FullZoom = {
   },
 
   destroy: function FullZoom_destroy() {
+    
+    if (gMultiProcessBrowser)
+      return;
+
     gPrefService.removeObserver("browser.zoom.", this);
     this._cps2.removeObserverForName(this.name, this);
     window.removeEventListener("DOMMouseScroll", this, false);
@@ -210,6 +218,10 @@ var FullZoom = {
 
 
   onLocationChange: function FullZoom_onLocationChange(aURI, aIsTabSwitch, aBrowser) {
+    
+    if (gMultiProcessBrowser)
+      return;
+
     if (!aURI || (aIsTabSwitch && !this.siteSpecific)) {
       this._notifyOnLocationChange();
       return;

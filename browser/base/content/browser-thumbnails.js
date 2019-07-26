@@ -31,6 +31,10 @@ let gBrowserThumbnails = {
   _tabEvents: ["TabClose", "TabSelect"],
 
   init: function Thumbnails_init() {
+    
+    if (gMultiProcessBrowser)
+      return;
+
     try {
       if (Services.prefs.getBoolPref("browser.pagethumbnails.capturing_disabled"))
         return;
@@ -51,6 +55,10 @@ let gBrowserThumbnails = {
   },
 
   uninit: function Thumbnails_uninit() {
+    
+    if (gMultiProcessBrowser)
+      return;
+
     PageThumbs.removeExpirationFilter(this);
     gBrowser.removeTabsProgressListener(this);
     Services.prefs.removeObserver(this.PREF_DISK_CACHE_SSL, this);

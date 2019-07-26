@@ -804,7 +804,8 @@ var gBrowserInit = {
 
     
     try {
-      gBrowser.docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
+      if (!gMultiProcessBrowser)
+        gBrowser.docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
     } catch(ex) {
       Cu.reportError("Places database may be locked: " + ex);
     }
@@ -2132,8 +2133,9 @@ function URLBarSetURI(aURI) {
 
     
     
+    
     if (gInitialPages.indexOf(uri.spec) != -1)
-      value = content.opener ? uri.spec : "";
+      value = !gMultiProcessBrowser && content.opener ? uri.spec : "";
     else
       value = losslessDecodeURI(uri);
 
@@ -3800,7 +3802,7 @@ var XULBrowserWindow = {
         this.setDefaultStatus(msg);
 
         
-        if (content.document && mimeTypeIsTextBased(content.document.contentType))
+        if (!gMultiProcessBrowser && content.document && mimeTypeIsTextBased(content.document.contentType))
           this.isImage.removeAttribute('disabled');
         else
           this.isImage.setAttribute('disabled', 'true');
@@ -3850,7 +3852,7 @@ var XULBrowserWindow = {
     }
 
     
-    if (content.document && mimeTypeIsTextBased(content.document.contentType))
+    if (!gMultiProcessBrowser && content.document && mimeTypeIsTextBased(content.document.contentType))
       this.isImage.removeAttribute('disabled');
     else
       this.isImage.setAttribute('disabled', 'true');
@@ -3866,7 +3868,7 @@ var XULBrowserWindow = {
 
     var browser = gBrowser.selectedBrowser;
     if (aWebProgress.DOMWindow == content) {
-      if ((location == "about:blank" && !content.opener) ||
+      if ((location == "about:blank" && (gMultiProcessBrowser || !content.opener)) ||
           location == "") {  
                              
         this.reloadCommand.setAttribute("disabled", "true");
@@ -3920,7 +3922,7 @@ var XULBrowserWindow = {
       }
 
       
-      if (aLocationURI &&
+      if (!gMultiProcessBrowser && aLocationURI &&
           (aLocationURI.schemeIs("about") || aLocationURI.schemeIs("chrome"))) {
         
         
@@ -4032,6 +4034,9 @@ var XULBrowserWindow = {
       if (gURLBar)
         gURLBar.removeAttribute("level");
     }
+
+    if (gMultiProcessBrowser)
+      return;
 
     
     
@@ -4253,8 +4258,9 @@ var TabsProgressListener = {
     
     
 
-    let doc = aWebProgress.DOMWindow.document;
-    if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+    let doc = gMultiProcessBrowser ? null : aWebProgress.DOMWindow.document;
+    if (!gMultiProcessBrowser &&
+        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
         Components.isSuccessCode(aStatus) &&
         doc.documentURI.startsWith("about:") &&
         !doc.documentURI.toLowerCase().startsWith("about:blank") &&
@@ -6207,7 +6213,8 @@ function isTabEmpty(aTab) {
   if (!isBlankPageURL(browser.currentURI.spec))
     return false;
 
-  if (browser.contentWindow.opener)
+  
+  if (!gMultiProcessBrowser && browser.contentWindow.opener)
     return false;
 
   if (browser.sessionHistory && browser.sessionHistory.count >= 2)
