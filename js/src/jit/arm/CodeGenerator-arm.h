@@ -75,7 +75,7 @@ class CodeGeneratorARM : public CodeGeneratorShared
     bool generateEpilogue();
     bool generateOutOfLineCode();
 
-    void emitRoundDouble(const FloatRegister &src, Register dest, Label *fail);
+    void emitRoundDouble(FloatRegister src, Register dest, Label *fail);
 
     
     

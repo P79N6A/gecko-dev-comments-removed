@@ -160,12 +160,12 @@ class RValueAllocation
     { }
 
     
-    static RValueAllocation Double(const FloatRegister &reg) {
+    static RValueAllocation Double(FloatRegister reg) {
         return RValueAllocation(DOUBLE_REG, payloadOfFloatRegister(reg));
     }
 
     
-    static RValueAllocation Float32(const FloatRegister &reg) {
+    static RValueAllocation Float32(FloatRegister reg) {
         return RValueAllocation(FLOAT32_REG, payloadOfFloatRegister(reg));
     }
     static RValueAllocation Float32(int32_t offset) {
