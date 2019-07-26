@@ -16,6 +16,8 @@ from mach.mixin.logging import LoggingMixin
 import mozpack.path as mozpath
 import manifestparser
 
+import mozinfo
+
 from .data import (
     ConfigFileSubstitution,
     Defines,
@@ -69,12 +71,16 @@ class TreeMetadataEmitter(LoggingMixin):
 
         self.config = config
 
+        mozinfo.find_and_update_from_json(config.topobjdir)
+
         
-        mozinfo_path = mozpath.join(config.topobjdir, 'mozinfo.json')
-        if os.path.exists(mozinfo_path):
-            self.mozinfo = json.load(open(mozinfo_path, 'rt'))
-        else:
-            self.mozinfo = {}
+        
+        
+        self.info = {}
+        for k, v in mozinfo.info.items():
+            if isinstance(k, unicode):
+                k = k.encode('ascii')
+            self.info[k] = v
 
         self._libs = {}
         self._final_libs = []
@@ -476,7 +482,7 @@ class TreeMetadataEmitter(LoggingMixin):
                 
                 
                 filtered = m.active_tests(exists=False, disabled=False,
-                    **self.mozinfo)
+                    **self.info)
 
                 missing = [t['name'] for t in filtered if not os.path.exists(t['path'])]
                 if missing:
