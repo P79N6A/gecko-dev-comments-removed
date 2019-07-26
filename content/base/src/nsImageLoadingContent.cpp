@@ -48,6 +48,11 @@
 #include "mozAutoDocUpdate.h"
 #include "mozilla/dom/Element.h"
 
+#if defined(XP_WIN)
+
+#undef LoadImage
+#endif
+
 using namespace mozilla;
 
 #ifdef DEBUG_chb

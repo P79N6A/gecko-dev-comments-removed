@@ -27,6 +27,11 @@
 #include "nsMathUtils.h"
 #include "Units.h"
 
+#if defined(XP_WIN)
+
+#undef LoadImage
+#endif
+
 class imgICache;
 class imgIContainer;
 class imgINotificationObserver;
