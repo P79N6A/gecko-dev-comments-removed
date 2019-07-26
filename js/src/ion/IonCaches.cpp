@@ -427,7 +427,7 @@ IsCacheableDOMProxy(JSObject *obj)
     if (!obj->is<ProxyObject>())
         return false;
 
-    BaseProxyHandler *handler = GetProxyHandler(obj);
+    BaseProxyHandler *handler = obj->as<ProxyObject>().handler();
 
     if (handler->family() != GetDOMProxyHandlerFamily())
         return false;
@@ -637,11 +637,12 @@ GenerateDOMProxyChecks(JSContext *cx, MacroAssembler &masm, JSObject *obj,
     
     
     
-    Address handlerAddr(object, JSObject::getFixedSlotOffset(JSSLOT_PROXY_HANDLER));
+    Address handlerAddr(object, ProxyObject::offsetOfHandler());
     Address expandoSlotAddr(object, JSObject::getFixedSlotOffset(GetDOMProxyExpandoSlot()));
 
     
-    masm.branchPrivatePtr(Assembler::NotEqual, handlerAddr, ImmWord(GetProxyHandler(obj)), stubFailure);
+    masm.branchPrivatePtr(Assembler::NotEqual, handlerAddr,
+                          ImmWord(obj->as<ProxyObject>().handler()), stubFailure);
 
     if (skipExpandoCheck)
         return;

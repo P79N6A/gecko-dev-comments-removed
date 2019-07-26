@@ -456,15 +456,15 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
     for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
         Value v = e.front().value;
         if (e.front().key.kind == CrossCompartmentKey::ObjectWrapper) {
-            JSObject *wrapper = &v.toObject();
+            ProxyObject *wrapper = &v.toObject().as<ProxyObject>();
 
             
 
 
 
-            Value referent = GetProxyPrivate(wrapper);
+            Value referent = wrapper->private_();
             MarkValueRoot(trc, &referent, "cross-compartment wrapper");
-            JS_ASSERT(referent == GetProxyPrivate(wrapper));
+            JS_ASSERT(referent == wrapper->private_());
         }
     }
 }
