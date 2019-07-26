@@ -30,6 +30,15 @@ public:
   nsresult Init();
 
 private:
+  
+  
+  
+#ifdef _MSC_VER
+  
+  __pragma(warning(disable:4265))
+#endif
+  ~NSSErrorsService();
+
   nsCOMPtr<nsIStringBundle> mPIPNSSBundle;
   nsCOMPtr<nsIStringBundle> mNSSErrorsBundle;
 };
