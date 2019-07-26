@@ -12,7 +12,12 @@ pref("devtools.errorconsole.enabled", true);
 #endif
 
 
+#ifdef RELEASE_BUILD
 pref("app.crashreporter.autosubmit", false);
+#else
+
+pref("app.crashreporter.autosubmit", true);
+#endif
 
 pref("app.crashreporter.prompted", false);
 
