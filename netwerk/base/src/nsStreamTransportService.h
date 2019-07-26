@@ -27,10 +27,4 @@ private:
     ~nsStreamTransportService();
 
     nsCOMPtr<nsIThreadPool> mPool;
-
-    
-
-
-
-    static bool sHasBeenShutdown;
 };
