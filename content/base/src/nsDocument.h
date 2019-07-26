@@ -1253,6 +1253,11 @@ protected:
   
   bool mIsApprovedForFullscreen:1;
 
+  
+  
+  
+  bool mHasFullscreenApprovedObserver:1;
+
   uint8_t mXMLDeclarationBits;
 
   nsInterfaceHashtable<nsPtrHashKey<nsIContent>, nsPIBoxObject> *mBoxObjectTable;
