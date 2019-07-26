@@ -557,10 +557,13 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
   private:
     
     
-    uint8_t         hasArrayBits:4;
+    uint8_t         hasArrayBits:ARRAY_KIND_BITS;
 
     
-    uint8_t         generatorKindBits_:4;
+    uint8_t         generatorKindBits_:2;
+
+    
+    uint8_t         padToByte_:2;
 
     
 
@@ -1077,10 +1080,8 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 };
 
 
-JS_STATIC_ASSERT(JSScript::ARRAY_KIND_BITS <= 4);
-
-
-JS_STATIC_ASSERT(sizeof(JSScript) % js::gc::CellSize == 0);
+static_assert(sizeof(JSScript) % js::gc::CellSize == 0,
+              "Size of JSScript must be an integral multiple of js::gc::CellSize");
 
 namespace js {
 
