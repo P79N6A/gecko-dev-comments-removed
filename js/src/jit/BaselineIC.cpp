@@ -5688,6 +5688,9 @@ TryAttachGlobalNameStub(JSContext *cx, HandleScript script, jsbytecode *pc,
         return true;
     }
 
+    
+    
+    
     bool isScripted;
     if (IsCacheableGetPropCall(cx, global, global, shape, &isScripted) && !isScripted)
     {
@@ -5740,6 +5743,10 @@ TryAttachScopeNameStub(JSContext *cx, HandleScript script, ICGetName_Fallback *s
 
         scopeChain = scopeChain->enclosingScope();
     }
+
+    
+    
+    
 
     if (!IsCacheableGetPropReadSlot(scopeChain, scopeChain, shape))
         return true;
