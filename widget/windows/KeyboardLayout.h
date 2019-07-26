@@ -348,10 +348,6 @@ private:
   nsRefPtr<nsWindowBase> mWidget;
   HKL mKeyboardLayout;
   MSG mMsg;
-  
-  
-  
-  MSG mCharMsg;
 
   uint32_t mDOMKeyCode;
   KeyNameIndex mKeyNameIndex;
@@ -408,12 +404,9 @@ private:
   {
     return (mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
   }
-  bool IsFollowedByCharMessage() const
-  {
-    MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
-    return (mCharMsg.message != 0);
-  }
-  const MSG& RemoveFollowingCharMessage() const;
+  bool IsFollowedByCharMessage() const;
+  bool IsFollowedByDeadCharMessage() const;
+  MSG RemoveFollowingCharMessage() const;
 
   
 
