@@ -414,13 +414,6 @@ pref("app.update.enabled", true);
 pref("app.update.auto", true);
 
 
-
-
-
-
-
-
-
 pref("app.update.mode", 0);
 
 
