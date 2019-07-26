@@ -513,7 +513,7 @@ TelemetryPing.prototype = {
     function payloadIter() {
       yield this.getCurrentSessionPayloadAndSlug(reason);
 
-      if (this._pendingPings.length > 0) {
+      while (this._pendingPings.length > 0) {
         let data = this._pendingPings.pop();
         
         if (reason == "test-ping") {
