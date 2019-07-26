@@ -67,12 +67,11 @@ struct nsGlobalNameStruct
   };
 
   
-  mozilla::dom::DefineInterface mDefineDOMInterface;
+  union {
+    mozilla::dom::DefineInterface mDefineDOMInterface; 
+    mozilla::dom::ConstructNavigatorProperty mConstructNavigatorProperty; 
+  };
   mozilla::dom::PrefEnabled mPrefEnabled; 
-
-private:
-
-  
 };
 
 
@@ -141,6 +140,10 @@ public:
 
   void RegisterDefineDOMInterface(const nsAFlatString& aName,
     mozilla::dom::DefineInterface aDefineDOMInterface,
+    mozilla::dom::PrefEnabled aPrefEnabled);
+
+  void RegisterNavigatorDOMConstructor(const nsAFlatString& aName,
+    mozilla::dom::ConstructNavigatorProperty aNavConstructor,
     mozilla::dom::PrefEnabled aPrefEnabled);
 
   typedef PLDHashOperator
