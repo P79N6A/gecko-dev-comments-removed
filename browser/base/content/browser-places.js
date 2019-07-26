@@ -1052,6 +1052,19 @@ let BookmarkingUI = {
     }
   },
 
+  attachPlacesView: function(event, node) {
+    
+    if (node.parentNode._placesView)
+      return;
+
+    new PlacesMenu(event, "place:folder=BOOKMARKS_MENU", {
+      extraClasses: {
+        mainLevel: "subviewbutton"
+      },
+      insertionPoint: ".panel-subview-footer"
+    });
+  },
+
   
 
 
@@ -1239,7 +1252,11 @@ let BookmarkingUI = {
     
     this._panelMenuView = new PlacesPanelMenuView("place:folder=BOOKMARKS_MENU",
                                                   "panelMenu_bookmarksMenu",
-                                                  "panelMenu_bookmarksMenu");
+                                                  "panelMenu_bookmarksMenu", {
+                                                    extraClasses: {
+                                                      mainLevel: "subviewbutton"
+                                                    }
+                                                  });
   },
 
   onPanelMenuViewHiding: function BUI_onViewHiding(aEvent) {
