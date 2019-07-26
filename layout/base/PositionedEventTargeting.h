@@ -21,7 +21,7 @@ enum {
 
 
 nsIFrame*
-FindFrameTargetedByInputEvent(nsEventStructType aEventStructType,
+FindFrameTargetedByInputEvent(const nsGUIEvent *aEvent,
                               nsIFrame* aRootFrame,
                               const nsPoint& aPointRelativeToRootFrame,
                               uint32_t aFlags = 0);

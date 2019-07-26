@@ -1964,6 +1964,10 @@ pref("ui.mouse.radius.rightmm", 8);
 pref("ui.mouse.radius.bottommm", 4);
 pref("ui.mouse.radius.visitedWeight", 120);
 
+
+
+pref("ui.mouse.radius.inputSource.touchOnly", true);
+
 #ifdef XP_WIN
 
 pref("font.name.serif.ar", "Times New Roman");
