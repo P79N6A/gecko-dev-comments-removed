@@ -137,6 +137,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   { "atkdx11disp.dll", ALL_VERSIONS },
 
+  
+  { "spvc32.dll", ALL_VERSIONS },
+
   { nullptr, 0 }
 };
 
