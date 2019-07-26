@@ -301,8 +301,7 @@ DEBUG_CheckUnwrapSafety(JSObject *obj, js::Wrapper *handler,
     if (AccessCheck::isChrome(target) || xpc::IsUniversalXPConnectEnabled(target)) {
         
         MOZ_ASSERT(handler->isSafeToUnwrap());
-    } else if (WrapperFactory::IsLocationObject(obj) ||
-               WrapperFactory::IsComponentsObject(obj) ||
+    } else if (WrapperFactory::IsComponentsObject(obj) ||
                handler == &XSOW::singleton)
     {
         
@@ -371,10 +370,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
         if (targetdata &&
             (wn = GetWrappedNative(cx, obj)) &&
             wn->HasProto() && wn->GetProto()->ClassIsDOMObject()) {
-            if (IsLocationObject(obj))
-                wrapper = &FilteringWrapper<SecurityXrayXPCWN, LocationPolicy>::singleton;
-            else
-                wrapper = &FilteringWrapper<SecurityXrayXPCWN, CrossOriginAccessiblePropertiesOnly>::singleton;
+            wrapper = &FilteringWrapper<SecurityXrayXPCWN, CrossOriginAccessiblePropertiesOnly>::singleton;
         } else if (mozilla::dom::UseDOMXray(obj)) {
             wrapper = &FilteringWrapper<SecurityXrayDOM, CrossOriginAccessiblePropertiesOnly>::singleton;
         } else if (IsComponentsObject(obj)) {
@@ -425,13 +421,10 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
         
         
         
-        
         XrayType type;
         if (AccessCheck::needsSystemOnlyWrapper(obj)) {
             wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
                                         OnlyIfSubjectIsSystem>::singleton;
-        } else if (IsLocationObject(obj)) {
-            wrapper = &FilteringWrapper<SecurityXrayXPCWN, LocationPolicy>::singleton;
         } else if (IsComponentsObject(obj)) {
             wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
                                         ComponentsObjectPolicy>::singleton;
@@ -457,14 +450,8 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
             wrapper = &FilteringWrapper<SecurityXrayDOM,
                                         CrossOriginAccessiblePropertiesOnly>::singleton;
         } else {
-            
-            
-            if (IsLocationObject(obj)) {
-                wrapper = &FilteringWrapper<SecurityXrayXPCWN, LocationPolicy>::singleton;
-            } else {
-                wrapper = &FilteringWrapper<SecurityXrayXPCWN,
-                                            CrossOriginAccessiblePropertiesOnly>::singleton;
-            }
+            wrapper = &FilteringWrapper<SecurityXrayXPCWN,
+                                        CrossOriginAccessiblePropertiesOnly>::singleton;
         }
     }
 
@@ -495,23 +482,6 @@ WrapperFactory::WrapForSameCompartment(JSContext *cx, JSObject *obj)
     JSObject *wrapper = wn->GetSameCompartmentSecurityWrapper(cx);
     MOZ_ASSERT_IF(wrapper != obj, !Wrapper::wrapperHandler(wrapper)->isSafeToUnwrap());
     return wrapper;
-}
-
-bool
-WrapperFactory::IsLocationObject(JSObject *obj)
-{
-    const char *name = js::GetObjectClass(obj)->name;
-    return name[0] == 'L' && !strcmp(name, "Location");
-}
-
-JSObject *
-WrapperFactory::WrapLocationObject(JSContext *cx, JSObject *obj)
-{
-    JSObject *proto;
-    if (!js::GetObjectProto(cx, obj, &proto))
-        return nullptr;
-    return Wrapper::New(cx, obj, proto, js::GetObjectParent(obj),
-                        &FilteringWrapper<SCSecurityXrayXPCWN, LocationPolicy>::singleton);
 }
 
 

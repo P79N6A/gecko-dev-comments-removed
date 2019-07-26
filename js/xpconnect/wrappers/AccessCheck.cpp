@@ -80,32 +80,6 @@ AccessCheck::wrapperSubsumes(JSObject *wrapper)
 }
 
 bool
-AccessCheck::isLocationObjectSameOrigin(JSContext *cx, JSObject *wrapper)
-{
-    
-    MOZ_ASSERT(WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
-
-    
-    
-    
-
-    
-    JSObject *obj = js::GetObjectParent(js::UnwrapObject(wrapper));
-    if (!js::GetObjectClass(obj)->ext.innerObject) {
-        
-        obj = js::UnwrapObject(obj);
-        MOZ_ASSERT(js::GetObjectClass(obj)->ext.innerObject);
-    }
-
-    
-    obj = JS_ObjectToInnerObject(cx, obj);
-
-    
-    return obj && subsumes(js::GetObjectCompartment(wrapper),
-                           js::GetObjectCompartment(obj));
-}
-
-bool
 AccessCheck::isChrome(JSCompartment *compartment)
 {
     nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
@@ -299,9 +273,7 @@ AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
             return true; 
     }
 
-    
-    
-    return WrapperFactory::IsLocationObject(obj) && !isLocationObjectSameOrigin(cx, wrapper);
+    return false;
 }
 
 void

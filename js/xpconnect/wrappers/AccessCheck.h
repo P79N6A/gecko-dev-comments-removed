@@ -29,7 +29,6 @@ class AccessCheck {
                                              js::Wrapper::Action act);
     static bool callerIsXBL(JSContext *cx);
     static bool isSystemOnlyAccessPermitted(JSContext *cx);
-    static bool isLocationObjectSameOrigin(JSContext *cx, JSObject *wrapper);
 
     static bool needsSystemOnlyWrapper(JSObject *obj);
 
@@ -58,49 +57,7 @@ struct OnlyIfSubjectIsSystem : public Policy {
 
 struct CrossOriginAccessiblePropertiesOnly : public Policy {
     static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
-        
-        MOZ_ASSERT(!WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
         return AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act);
-    }
-    static bool deny(JSContext *cx, jsid id, js::Wrapper::Action act) {
-        AccessCheck::deny(cx, id);
-        return false;
-    }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct LocationPolicy : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
-        
-        MOZ_ASSERT(WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
-
-        if ((AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act) ||
-             AccessCheck::isLocationObjectSameOrigin(cx, wrapper))) {
-            return true;
-        }
-        return false;
     }
     static bool deny(JSContext *cx, jsid id, js::Wrapper::Action act) {
         AccessCheck::deny(cx, id);

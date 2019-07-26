@@ -70,12 +70,6 @@ class WrapperFactory {
                                             JSObject *obj);
 
     
-    static bool IsLocationObject(JSObject *obj);
-
-    
-    static JSObject *WrapLocationObject(JSContext *cx, JSObject *obj);
-
-    
     static bool WaiveXrayAndWrap(JSContext *cx, jsval *vp);
 
     
