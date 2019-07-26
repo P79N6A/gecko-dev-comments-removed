@@ -108,6 +108,10 @@ public:
                               bool aNullParent = true);
   virtual void DoneCreatingElement();
 
+  virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable,
+                               int32_t *aTabIndex);
+  virtual int32_t TabIndexDefault();
+
   
 
 
