@@ -620,76 +620,21 @@ BrowserWindow.prototype = {
     let palette = toolbox.palette;
     palette.appendChild(node);
 
-    if (this.window.CustomizableUI) {
-      let placement = this.window.CustomizableUI.getPlacementOfWidget(node.id);
-      if (!placement) {
-        if (haveInserted(node.id)) {
-          return;
-        }
-        placement = {area: 'nav-bar', position: undefined};
-        saveInserted(node.id);
-      }
-      this.window.CustomizableUI.addWidgetToArea(node.id, placement.area, placement.position);
-      this.window.CustomizableUI.ensureWidgetPlacedInWindow(node.id, this.window);
-      return;
-    }
+    let { CustomizableUI } = this.window;
+    let { id } = node;
 
-    
-    let container = null;
-    let toolbars = this.doc.getElementsByTagName("toolbar");
-    let id = node.getAttribute("id");
-    for (let i = 0, l = toolbars.length; i < l; i++) {
-      let toolbar = toolbars[i];
-      if (toolbar.getAttribute("currentset").indexOf(id) == -1)
-        continue;
-      container = toolbar;
-    }
+    let placement = CustomizableUI.getPlacementOfWidget(id);
 
-    
-    let needToPropagateCurrentset = false;
-    if (!container) {
-      if (haveInserted(node.id)) {
+    if (!placement) {
+      if (haveInserted(id))
         return;
-      }
-      container = this.doc.getElementById("addon-bar");
-      saveInserted(node.id);
-      needToPropagateCurrentset = true;
-      
-      
-      
-      
-      if (container.collapsed)
-        this.window.toggleAddonBar();
+
+      placement = {area: 'nav-bar', position: undefined};
+      saveInserted(id);
     }
 
-    
-    
-    let nextNode = null;
-    let currentSet = container.getAttribute("currentset");
-    let ids = (currentSet == "__empty") ? [] : currentSet.split(",");
-    let idx = ids.indexOf(id);
-    if (idx != -1) {
-      for (let i = idx; i < ids.length; i++) {
-        nextNode = this.doc.getElementById(ids[i]);
-        if (nextNode)
-          break;
-      }
-    }
-
-    
-    container.insertItem(id, nextNode, null, false);
-
-    
-    
-    
-    
-    if (ids.indexOf(id) == -1) {
-      let set = container.currentSet;
-      container.setAttribute("currentset", set);
-      
-      this.window.document.persist(container.id, "currentset");
-      browserManager.propagateCurrentset(container.id, set);
-    }
+    CustomizableUI.addWidgetToArea(id, placement.area, placement.position);
+    CustomizableUI.ensureWidgetPlacedInWindow(id, this.window);
   }
 }
 
@@ -756,9 +701,8 @@ WidgetChrome.prototype._createNode = function WC__createNode() {
 
   
   node.setAttribute("sdkstylewidget", "true");
-  
-  if (this.window.CustomizableUI &&
-      this._widget.width > AUSTRALIS_PANEL_WIDE_WIDGET_CUTOFF) {
+
+  if (this._widget.width > AUSTRALIS_PANEL_WIDE_WIDGET_CUTOFF) {
     node.classList.add("panel-wide-item");
   }
 

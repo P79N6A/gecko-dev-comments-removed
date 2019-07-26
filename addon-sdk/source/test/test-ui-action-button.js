@@ -859,19 +859,4 @@ exports['test button after destroy'] = function(assert) {
   loader.unload();
 };
 
-
-
-
-try {
-  require('sdk/ui/button/action');
-}
-catch (err) {
-  if (!/^Unsupported Application/.test(err.message))
-    throw err;
-
-  module.exports = {
-    'test Unsupported Application': assert => assert.pass(err.message)
-  }
-}
-
 require('sdk/test').run(exports);

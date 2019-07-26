@@ -1058,19 +1058,4 @@ exports['test buttons can have anchored panels'] = function(assert, done) {
   button.click();
 }
 
-
-
-
-try {
-  require('sdk/ui/button/toggle');
-}
-catch (err) {
-  if (!/^Unsupported Application/.test(err.message))
-    throw err;
-
-  module.exports = {
-    'test Unsupported Application': assert => assert.pass(err.message)
-  }
-}
-
 require('sdk/test').run(exports);

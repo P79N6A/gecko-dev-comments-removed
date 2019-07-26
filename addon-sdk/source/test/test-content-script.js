@@ -260,43 +260,41 @@ exports["test Object Listener 2"] = createProxyTest("", function (helper) {
 let html = '<input id="input" type="text" /><input id="input3" type="checkbox" />' +
              '<input id="input2" type="checkbox" />';
 
+exports.testStringOverload = createProxyTest(html, function (helper, assert) {
+  
+  let originalString = "string";
+  let p = Proxy.create({
+    get: function(receiver, name) {
+      if (name == "binded")
+        return originalString.toString.bind(originalString);
+      return originalString[name];
+    }
+  });
+  assert.throws(function () {
+    p.toString();
+  },
+  /toString method called on incompatible Proxy/,
+  "toString can't be called with this being the proxy");
+  assert.equal(p.binded(), "string", "but it works if we bind this to the original string");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  helper.createWorker(
+    'new ' + function ContentScriptScope() {
+      
+      
+      
+      
+      
+      
+      String.prototype.update = function () {
+        assert(typeof this == "object", "in update, `this` is an object");
+        assert(this.toString() == "input", "in update, `this.toString works");
+        return document.querySelectorAll(this);
+      };
+      assert("input".update().length == 3, "String.prototype overload works");
+      done();
+    }
+  );
+});
 
 exports["test MozMatchedSelector"] = createProxyTest("", function (helper) {
   helper.createWorker(
@@ -515,8 +513,6 @@ exports["test Window Frames"] = createProxyTest(html, function (helper) {
     'let glob = this; new ' + function ContentScriptScope() {
       
       let iframe = document.getElementById("iframe");
-      
-      
       
       
       assert(window.test == iframe.contentWindow, "window[frameName] is valid");

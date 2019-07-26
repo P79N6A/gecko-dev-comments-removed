@@ -570,7 +570,6 @@ exports.testPageReload = function (assert, done) {
 
 
 
-
 exports.testContentContextMatch = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
@@ -3490,7 +3489,7 @@ exports.testPredicateContextTargetSrcSet = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
   let image;
-  
+
   let items = [loader.cm.Item({
     label: "item",
     context: loader.cm.PredicateContext(function (data) {
@@ -3512,7 +3511,7 @@ exports.testPredicateContextTargetSrcSet = function (assert, done) {
 exports.testPredicateContextTargetSrcNotSet = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
-  
+
   let items = [loader.cm.Item({
     label: "item",
     context: loader.cm.PredicateContext(function (data) {
@@ -3535,7 +3534,7 @@ exports.testPredicateContextTargetLinkSet = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
   let image;
-  
+
   let items = [loader.cm.Item({
     label: "item",
     context: loader.cm.PredicateContext(function (data) {
@@ -3556,7 +3555,7 @@ exports.testPredicateContextTargetLinkSet = function (assert, done) {
 exports.testPredicateContextTargetLinkNotSet = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
-  
+
   let items = [loader.cm.Item({
     label: "item",
     context: loader.cm.PredicateContext(function (data) {
@@ -3578,7 +3577,7 @@ exports.testPredicateContextTargetValueSet = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
   let image;
-  
+
   let items = [loader.cm.Item({
     label: "item",
     context: loader.cm.PredicateContext(function (data) {
@@ -3599,7 +3598,7 @@ exports.testPredicateContextTargetValueSet = function (assert, done) {
 exports.testPredicateContextTargetValueNotSet = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();
-  
+
   let items = [loader.cm.Item({
     label: "item",
     context: loader.cm.PredicateContext(function (data) {

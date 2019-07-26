@@ -224,16 +224,10 @@ const Sandbox = iced(function Sandbox(options) {
     wantGlobalProperties: 'wantGlobalProperties' in options ?
                           options.wantGlobalProperties : [],
     sandboxPrototype: 'prototype' in options ? options.prototype : {},
-    sameGroupAs: 'sandbox' in options ? options.sandbox : null,
     invisibleToDebugger: 'invisibleToDebugger' in options ?
                          options.invisibleToDebugger : false,
     metadata: 'metadata' in options ? options.metadata : {}
   };
-
-  
-  
-  if (!options.sameGroupAs)
-    delete options.sameGroupAs;
 
   let sandbox = Cu.Sandbox(options.principal, options);
 
@@ -291,9 +285,6 @@ const load = iced(function load(loader, module) {
 
   let sandbox = sandboxes[module.uri] = Sandbox({
     name: module.uri,
-    
-    
-    sandbox: sandboxes[keys(sandboxes).shift()],
     prototype: create(globals, descriptors),
     wantXrays: false,
     wantGlobalProperties: module.id == "sdk/indexed-db" ? ["indexedDB"] : [],

@@ -138,6 +138,8 @@ function display(panel, options, anchor) {
     
     
     
+    
+    
     if (CustomizableUI) {
       let node = anchor;
       ({anchor}) = CustomizableUI.getWidget(anchor.id).forWindow(window);
