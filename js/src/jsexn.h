@@ -17,7 +17,7 @@
 
 
 extern JSObject *
-js_InitExceptionClasses(JSContext *cx, JSObject *obj);
+js_InitExceptionClasses(JSContext *cx, js::HandleObject obj);
 
 
 

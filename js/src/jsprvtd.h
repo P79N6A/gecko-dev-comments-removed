@@ -370,7 +370,7 @@ typedef JSObject *
 
 
 typedef JSObject *
-(* JSClassInitializerOp)(JSContext *cx, JSObject *obj);
+(* JSClassInitializerOp)(JSContext *cx, JSHandleObject obj);
 
 
 

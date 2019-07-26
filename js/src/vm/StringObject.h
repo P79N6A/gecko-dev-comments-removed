@@ -56,7 +56,7 @@ class StringObject : public JSObject
 
     
     friend JSObject *
-    ::js_InitStringClass(JSContext *cx, JSObject *global);
+    ::js_InitStringClass(JSContext *cx, js::HandleObject global);
 
     
 

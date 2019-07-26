@@ -31,7 +31,7 @@ FinishRuntimeNumberState(JSRuntime *rt);
 
 
 extern JSObject *
-js_InitNumberClass(JSContext *cx, JSObject *obj);
+js_InitNumberClass(JSContext *cx, js::HandleObject obj);
 
 
 

@@ -70,7 +70,7 @@ extern JSSubString js_EmptySubString;
 
 
 extern JSObject *
-js_InitStringClass(JSContext *cx, JSObject *obj);
+js_InitStringClass(JSContext *cx, js::HandleObject obj);
 
 extern const char js_escape_str[];
 extern const char js_unescape_str[];

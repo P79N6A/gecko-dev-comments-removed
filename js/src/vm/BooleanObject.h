@@ -43,7 +43,7 @@ class BooleanObject : public JSObject
 
     
     friend JSObject *
-    ::js_InitBooleanClass(JSContext *cx, JSObject *global);
+    ::js_InitBooleanClass(JSContext *cx, js::HandleObject global);
 };
 
 } 

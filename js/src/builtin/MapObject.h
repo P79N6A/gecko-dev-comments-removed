@@ -136,9 +136,9 @@ class SetObject : public JSObject {
 } 
 
 extern JSObject *
-js_InitMapClass(JSContext *cx, JSObject *obj);
+js_InitMapClass(JSContext *cx, js::HandleObject obj);
 
 extern JSObject *
-js_InitSetClass(JSContext *cx, JSObject *obj);
+js_InitSetClass(JSContext *cx, js::HandleObject obj);
 
 #endif

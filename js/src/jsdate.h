@@ -41,7 +41,7 @@ TimeClip(double time)
 } 
 
 extern JSObject *
-js_InitDateClass(JSContext *cx, JSObject *obj);
+js_InitDateClass(JSContext *cx, js::HandleObject obj);
 
 
 
