@@ -785,6 +785,30 @@ pref("plugin.state.vidyoweb", 2);
 #endif
 
 
+#ifdef XP_WIN
+pref("plugin.state.npmvtplugin", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npviewright", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.viewrightwebplayer", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npmcffplg", 2);
+#endif
+
+
+#ifdef XP_MACOSX
+pref("plugin.state.f5 ssl vpn plugin", 2);
+pref("plugin.state.f5 sam inspection host plugin", 2);
+#endif
+
+
 pref("plugins.notifyMissingFlash", true);
 
 #ifdef XP_WIN
