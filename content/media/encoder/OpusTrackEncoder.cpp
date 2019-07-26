@@ -245,15 +245,42 @@ nsresult
 OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
 {
   {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    
+    while (!mCanceled && !mInitialized) {
+      mReentrantMonitor.Wait();
+    }
+    if (mCanceled || mEncodingComplete) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  
+  MOZ_ASSERT(mInitialized);
+
+  
+  const int framesLeft = mResampledLeftover.Length() / mChannels;
+  
+  
+  
+  
+  const int frameRoundUp = framesLeft ? 1 : 0;
+
+  MOZ_ASSERT(GetPacketDuration() >= framesLeft);
+  
+  
+  const int framesToFetch = !mResampler ? GetPacketDuration()
+    : (GetPacketDuration() - framesLeft) * mSamplingRate / kOpusSamplingRate
+      + frameRoundUp;
+  {
     
     
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
     
-    
-    while (!mCanceled && (!mInitialized || (mRawSegment.GetDuration() +
-           mSourceSegment.GetDuration() < GetPacketDuration() &&
-           !mEndOfStream))) {
+    while (!mCanceled && mRawSegment.GetDuration() +
+        mSourceSegment.GetDuration() < framesToFetch &&
+        !mEndOfStream) {
       mReentrantMonitor.Wait();
     }
 
@@ -276,13 +303,14 @@ OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
   pcm.SetLength(GetPacketDuration() * mChannels);
   AudioSegment::ChunkIterator iter(mSourceSegment);
   int frameCopied = 0;
-  while (!iter.IsEnded() && frameCopied < GetPacketDuration()) {
+
+  while (!iter.IsEnded() && frameCopied < framesToFetch) {
     AudioChunk chunk = *iter;
 
     
     int frameToCopy = chunk.GetDuration();
-    if (frameCopied + frameToCopy > GetPacketDuration()) {
-      frameToCopy = GetPacketDuration() - frameCopied;
+    if (frameCopied + frameToCopy > framesToFetch) {
+      frameToCopy = framesToFetch - frameCopied;
     }
 
     if (!chunk.IsNull()) {
@@ -300,6 +328,7 @@ OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
 
   nsRefPtr<EncodedFrame> audiodata = new EncodedFrame();
   audiodata->SetFrameType(EncodedFrame::AUDIO_FRAME);
+  int framesInPCM = frameCopied;
   if (mResampler) {
     nsAutoTArray<AudioDataValue, 9600> resamplingDest;
     
@@ -322,9 +351,25 @@ OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
                                                           out, &outframes);
 #endif
 
-    pcm = resamplingDest;
+    MOZ_ASSERT(pcm.Length() >= mResampledLeftover.Length());
+    PodCopy(pcm.Elements(), mResampledLeftover.Elements(),
+        mResampledLeftover.Length());
+
+    uint32_t outframesToCopy = std::min(outframes,
+        static_cast<uint32_t>(GetPacketDuration() - framesLeft));
+
+    MOZ_ASSERT(pcm.Length() - mResampledLeftover.Length() >=
+        outframesToCopy * mChannels);
+    PodCopy(pcm.Elements() + mResampledLeftover.Length(),
+        resamplingDest.Elements(), outframesToCopy * mChannels);
+    int frameLeftover = outframes - outframesToCopy;
+    mResampledLeftover.SetLength(frameLeftover * mChannels);
+    PodCopy(mResampledLeftover.Elements(),
+        resamplingDest.Elements() + outframesToCopy * mChannels,
+        mResampledLeftover.Length());
     
-    audiodata->SetDuration(outframes);
+    framesInPCM = framesLeft + outframesToCopy;
+    audiodata->SetDuration(framesInPCM);
   } else {
     
     audiodata->SetDuration(frameCopied * (kOpusSamplingRate / mSamplingRate));
@@ -342,11 +387,13 @@ OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
     LOG("[Opus] Done encoding.");
   }
 
+  MOZ_ASSERT(mEndOfStream || framesInPCM == GetPacketDuration());
+
   
   
-  if (frameCopied < GetPacketDuration() && mEndOfStream) {
-    memset(pcm.Elements() + frameCopied * mChannels, 0,
-           (GetPacketDuration()-frameCopied)*mChannels*sizeof(AudioDataValue));
+  if (framesInPCM < GetPacketDuration() && mEndOfStream) {
+    PodZero(pcm.Elements() + framesInPCM * mChannels,
+        (GetPacketDuration() - framesInPCM) * mChannels);
   }
   nsTArray<uint8_t> frameData;
   
@@ -372,6 +419,7 @@ OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
       speex_resampler_destroy(mResampler);
       mResampler = nullptr;
     }
+    mResampledLeftover.SetLength(0);
   }
 
   audiodata->SwapInFrameData(frameData);

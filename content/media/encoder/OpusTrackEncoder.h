@@ -74,6 +74,12 @@ private:
 
 
   SpeexResamplerState* mResampler;
+
+  
+
+
+
+  nsTArray<AudioDataValue> mResampledLeftover;
 };
 
 }
