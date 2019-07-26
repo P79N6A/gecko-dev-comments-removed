@@ -1569,6 +1569,8 @@ pref("browser.cache.frecency_experiment", 0);
 pref("browser.translation.detectLanguage", false);
 pref("browser.translation.neverForLanguages", "");
 
+pref("browser.translation.ui.show", false);
+
 
 pref("experiments.enabled", true);
 pref("experiments.manifest.fetchIntervalSeconds", 86400);
