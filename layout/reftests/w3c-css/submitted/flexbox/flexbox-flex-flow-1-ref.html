@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+
+
+
+
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      height: 60px;
+      width: 60px;
+      font: 10px sans-serif;
+      background: yellow;
+      float: left;
+      border: 1px solid black;
+    }
+    .flexContainer > * {
+      border: 1px dotted gray;
+      width: 28px;
+      height: 28px;
+      float: left;
+    }
+
+    /* The single-line flex containers' flex items are shrunk in main axis: */
+    .singleLineHoriz > * {
+      width: 13px;
+    }
+    .singleLineVert  > * {
+      height: 13px;
+      float: none;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="flexContainer singleLineHoriz">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer singleLineHoriz">
+    <div>4</div><div>3</div><div>2</div><div>1</div>
+  </div>
+  <div class="flexContainer singleLineVert">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer singleLineVert">
+    <div>4</div><div>3</div><div>2</div><div>1</div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  
+  <div class="flexContainer">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer">
+    <div>2</div><div>1</div><div>4</div><div>3</div>
+  </div>
+  <div class="flexContainer">
+    <div>1</div><div>3</div><div>2</div><div>4</div>
+  </div>
+  <div class="flexContainer">
+    <div>2</div><div>4</div><div>1</div><div>3</div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  
+  <div class="flexContainer">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer">
+    <div>2</div><div>1</div><div>4</div><div>3</div>
+  </div>
+  <div class="flexContainer">
+    <div>1</div><div>3</div><div>2</div><div>4</div>
+  </div>
+  <div class="flexContainer">
+    <div>2</div><div>4</div><div>1</div><div>3</div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  
+  <div class="flexContainer">
+    <div>3</div><div>4</div><div>1</div><div>2</div>
+  </div>
+  <div class="flexContainer">
+    <div>4</div><div>3</div><div>2</div><div>1</div>
+  </div>
+  <div class="flexContainer">
+    <div>3</div><div>1</div><div>4</div><div>2</div>
+  </div>
+  <div class="flexContainer">
+    <div>4</div><div>2</div><div>3</div><div>1</div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  
+  <div class="flexContainer">
+    <div>3</div><div>4</div><div>1</div><div>2</div>
+  </div>
+  <div class="flexContainer">
+    <div>4</div><div>3</div><div>2</div><div>1</div>
+  </div>
+  <div class="flexContainer"> 
+    <div>3</div><div>1</div><div>4</div><div>2</div>
+  </div>
+  <div class="flexContainer">
+    <div>4</div><div>2</div><div>3</div><div>1</div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  
+  <div class="flexContainer">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer">
+    <div>3</div><div>4</div><div>1</div><div>2</div>
+  </div>
+
+</body>
+</html>
