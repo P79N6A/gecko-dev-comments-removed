@@ -347,6 +347,28 @@ let gDevToolsBrowser = {
 
 
 
+
+
+
+
+
+  attachKeybindingsToBrowser: function DT_attachKeybindingsToBrowser(doc, keys) {
+    let devtoolsKeyset = doc.getElementById("devtoolsKeyset");
+    if (!devtoolsKeyset) {
+      devtoolsKeyset = doc.createElement("keyset");
+      devtoolsKeyset.setAttribute("id", "devtoolsKeyset");
+    }
+    devtoolsKeyset.appendChild(keys);
+    let mainKeyset = doc.getElementById("mainKeyset");
+    mainKeyset.parentNode.insertBefore(devtoolsKeyset, mainKeyset);
+  },
+
+  
+
+
+
+
+
   _addToolToWindows: function DT_addToolToWindows(toolDefinition) {
     
     
@@ -366,7 +388,7 @@ let gDevToolsBrowser = {
       doc.getElementById("mainCommandSet").appendChild(elements.cmd);
 
       if (elements.key) {
-        doc.getElementById("mainKeyset").appendChild(elements.key);
+        this.attachKeybindingsToBrowser(doc, elements.keys);
       }
 
       doc.getElementById("mainBroadcasterSet").appendChild(elements.bc);
@@ -420,8 +442,7 @@ let gDevToolsBrowser = {
     let mcs = doc.getElementById("mainCommandSet");
     mcs.appendChild(fragCommands);
 
-    let mks = doc.getElementById("mainKeyset");
-    mks.appendChild(fragKeys);
+    this.attachKeybindingsToBrowser(doc, fragKeys);
 
     let mbs = doc.getElementById("mainBroadcasterSet");
     mbs.appendChild(fragBroadcasters);
