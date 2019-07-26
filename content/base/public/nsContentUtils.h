@@ -2116,6 +2116,11 @@ public:
                                   const nsAString& aFeature,
                                   const nsAString& aVersion);
 
+  
+
+
+  static bool DOMWindowDumpEnabled();
+
 private:
   static bool InitializeEventTable();
 
@@ -2225,6 +2230,10 @@ private:
   static nsString* sOSText;
   static nsString* sAltText;
   static nsString* sModifierSeparator;
+
+#if !(defined(DEBUG) || defined(MOZ_ENABLE_JS_DUMP))
+  static bool sDOMWindowDumpEnabled;
+#endif
 };
 
 typedef nsCharSeparatedTokenizerTemplate<nsContentUtils::IsHTMLWhitespace>
