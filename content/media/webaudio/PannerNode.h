@@ -14,6 +14,7 @@
 #include "mozilla/dom/PannerNodeBinding.h"
 #include "ThreeDPoint.h"
 #include "mozilla/WeakPtr.h"
+#include "mozilla/Preferences.h"
 #include "WebAudioUtils.h"
 #include <set>
 
@@ -42,6 +43,20 @@ public:
   }
   void SetPanningModel(PanningModelType aPanningModel)
   {
+    if (!Preferences::GetBool("media.webaudio.legacy.PannerNode")) {
+      
+      
+      switch (aPanningModel) {
+      case PanningModelType::_0:
+      case PanningModelType::_1:
+        
+        return;
+      default:
+        
+        break;
+      }
+    }
+
     
     switch (aPanningModel) {
     case PanningModelType::_0: aPanningModel = PanningModelType::Equalpower; break;
@@ -61,6 +76,21 @@ public:
   }
   void SetDistanceModel(DistanceModelType aDistanceModel)
   {
+    if (!Preferences::GetBool("media.webaudio.legacy.PannerNode")) {
+      
+      
+      switch (aDistanceModel) {
+      case DistanceModelType::_0:
+      case DistanceModelType::_1:
+      case DistanceModelType::_2:
+        
+        return;
+      default:
+        
+        break;
+      }
+    }
+
     
     switch (aDistanceModel) {
     case DistanceModelType::_0: aDistanceModel = DistanceModelType::Linear; break;
