@@ -36,6 +36,18 @@ class BackendConsumeSummary(object):
         self.object_count = 0
 
         
+        self.managed_count = 0
+
+        
+        self.created_count = 0
+
+        
+        self.updated_count = 0
+
+        
+        self.unchanged_count = 0
+
+        
         
         
         self.wall_time = 0.0
@@ -189,8 +201,10 @@ class BuildBackend(LoggingMixin):
         
         age_file = os.path.join(self.environment.topobjdir,
             'backend.%s.built' % self.__class__.__name__)
-        with open(age_file, 'a'):
-            os.utime(age_file, None)
+        if self.summary.updated_count or self.summary.created_count or \
+                not os.path.exists(age_file):
+            with open(age_file, 'a'):
+                os.utime(age_file, None)
 
         finished_start = time.time()
         self.consume_finished()
