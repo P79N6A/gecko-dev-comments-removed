@@ -76,6 +76,7 @@ struct VisitData {
   , visitTime(0)
   , frecency(-1)
   , titleChanged(false)
+  , shouldUpdateFrecency(true)
   {
     guid.SetIsVoid(true);
     title.SetIsVoid(true);
@@ -91,6 +92,7 @@ struct VisitData {
   , visitTime(0)
   , frecency(-1)
   , titleChanged(false)
+  , shouldUpdateFrecency(true)
   {
     (void)aURI->GetSpec(spec);
     (void)GetReversedHostname(aURI, revHost);
@@ -157,6 +159,9 @@ struct VisitData {
 
   
   bool titleChanged;
+
+  
+  bool shouldUpdateFrecency;
 };
 
 
@@ -997,8 +1002,12 @@ private:
 
     
     
-    rv = UpdateFrecency(aPlace);
-    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    if (aPlace.shouldUpdateFrecency) {
+      rv = UpdateFrecency(aPlace);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
 
     return NS_OK;
   }
@@ -1168,10 +1177,7 @@ private:
 
   nsresult UpdateFrecency(const VisitData& aPlace)
   {
-    
-    if (aPlace.frecency == 0) {
-      return NS_OK;
-    }
+    MOZ_ASSERT(aPlace.shouldUpdateFrecency);
 
     nsresult rv;
     { 
@@ -2064,7 +2070,10 @@ History::InsertPlace(const VisitData& aPlace)
   NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("typed"), aPlace.typed);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("frecency"), aPlace.frecency);
+  
+  
+  int32_t frecency = aPlace.shouldUpdateFrecency ? aPlace.frecency : 0;
+  rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("frecency"), frecency);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("hidden"), aPlace.hidden);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2417,7 +2426,7 @@ History::VisitURI(nsIURI* aURI,
 
   
   if (aFlags & IHistory::UNRECOVERABLE_ERROR) {
-    place.frecency = 0;
+    place.shouldUpdateFrecency = false;
   }
 
   
