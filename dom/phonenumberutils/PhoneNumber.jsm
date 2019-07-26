@@ -302,6 +302,10 @@ this.PhoneNumber = (function (dataBase) {
     number = NormalizeNumber(number);
 
     
+    if (!defaultRegion && number[0] !== '+')
+      return null;
+
+    
     if (number[0] === '+')
       return ParseInternationalNumber(number.replace(PLUS_CHARS, ""));
 
