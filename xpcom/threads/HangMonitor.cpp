@@ -8,6 +8,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/ProcessedStack.h"
+#include "mozilla/Atomics.h"
 #include "nsXULAppAPI.h"
 #include "nsThreadUtils.h"
 #include "nsStackWalk.h"
@@ -55,7 +56,7 @@ bool gShutdown;
 
 
 
-volatile PRIntervalTime gTimestamp = PR_INTERVAL_NO_WAIT;
+Atomic<PRIntervalTime> gTimestamp(PR_INTERVAL_NO_WAIT);
 
 #ifdef REPORT_CHROME_HANGS
 
