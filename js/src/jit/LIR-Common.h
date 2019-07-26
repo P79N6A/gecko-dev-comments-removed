@@ -3857,6 +3857,7 @@ class LInArray : public LInstructionHelper<1, 4, 0>
 
 
 
+
 class LLoadElementHole : public LInstructionHelper<BOX_PIECES, 3, 0>
 {
   public:

@@ -6643,7 +6643,6 @@ class MLoadTypedArrayElement
 };
 
 
-
 class MLoadTypedArrayElementHole
   : public MBinaryInstruction,
     public SingleObjectPolicy
