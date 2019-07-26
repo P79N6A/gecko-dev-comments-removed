@@ -830,11 +830,6 @@ namespace detail {
 template<typename T, MemoryOrdering Order>
 class AtomicBase
 {
-    
-    
-    static_assert(sizeof(T) == 4 || (sizeof(uintptr_t) == 8 && sizeof(T) == 8),
-                  "mozilla/Atomics.h only supports 32-bit and pointer-sized types");
-
   protected:
     typedef typename detail::AtomicIntrinsics<T, Order> Intrinsics;
     typename Intrinsics::ValueType mValue;
@@ -843,12 +838,12 @@ class AtomicBase
     AtomicBase() : mValue() {}
     AtomicBase(T aInit) { Intrinsics::store(mValue, aInit); }
 
-    operator T() const { return Intrinsics::load(mValue); }
+    T operator++(int) { return Intrinsics::inc(mValue); }
+    T operator--(int) { return Intrinsics::dec(mValue); }
+    T operator++() { return Intrinsics::inc(mValue) + 1; }
+    T operator--() { return Intrinsics::dec(mValue) - 1; }
 
-    T operator=(T aValue) {
-      Intrinsics::store(mValue, aValue);
-      return aValue;
-    }
+    operator T() const { return Intrinsics::load(mValue); }
 
     
 
@@ -857,7 +852,6 @@ class AtomicBase
     T exchange(T aValue) {
       return Intrinsics::exchange(mValue, aValue);
     }
-
     
 
 
@@ -876,27 +870,6 @@ class AtomicBase
   private:
     template<MemoryOrdering AnyOrder>
     AtomicBase(const AtomicBase<T, AnyOrder>& aCopy) MOZ_DELETE;
-};
-
-template<typename T, MemoryOrdering Order>
-class AtomicBaseIncDec : public AtomicBase<T, Order>
-{
-    typedef typename detail::AtomicBase<T, Order> Base;
-
-  public:
-    AtomicBaseIncDec() : Base() {}
-    AtomicBaseIncDec(T aInit) : Base(aInit) {}
-
-    using Base::operator=;
-
-    T operator++(int) { return Base::Intrinsics::inc(Base::mValue); }
-    T operator--(int) { return Base::Intrinsics::dec(Base::mValue); }
-    T operator++() { return Base::Intrinsics::inc(Base::mValue) + 1; }
-    T operator--() { return Base::Intrinsics::dec(Base::mValue) - 1; }
-
-  private:
-    template<MemoryOrdering AnyOrder>
-    AtomicBaseIncDec(const AtomicBaseIncDec<T, AnyOrder>& aCopy) MOZ_DELETE;
 };
 
 } 
@@ -918,36 +891,34 @@ class AtomicBaseIncDec : public AtomicBase<T, Order>
 
 
 
-template<typename T,
-         MemoryOrdering Order = SequentiallyConsistent,
-         typename Enable = void>
-class Atomic;
 
 
-
-
-
-
-
-
-
-template<typename T, MemoryOrdering Order>
-class Atomic<T, Order, typename EnableIf<IsIntegral<T>::value>::Type>
-  : public detail::AtomicBaseIncDec<T, Order>
+template<typename T, MemoryOrdering Order = SequentiallyConsistent>
+class Atomic : public detail::AtomicBase<T, Order>
 {
-    typedef typename detail::AtomicBaseIncDec<T, Order> Base;
+    
+    
+    static_assert(sizeof(T) == 4 || (sizeof(uintptr_t) == 8 && sizeof(T) == 8),
+                  "mozilla/Atomics.h only supports 32-bit and pointer-sized types");
+    
+    static_assert(IsIntegral<T>::value, "can only have integral atomic variables");
+
+    typedef typename detail::AtomicBase<T, Order> Base;
 
   public:
-    Atomic() : Base() {}
-    Atomic(T aInit) : Base(aInit) {}
-
-    using Base::operator=;
+    Atomic() : detail::AtomicBase<T, Order>() {}
+    Atomic(T aInit) : detail::AtomicBase<T, Order>(aInit) {}
 
     T operator+=(T delta) { return Base::Intrinsics::add(Base::mValue, delta) + delta; }
     T operator-=(T delta) { return Base::Intrinsics::sub(Base::mValue, delta) - delta; }
     T operator|=(T val) { return Base::Intrinsics::or_(Base::mValue, val) | val; }
     T operator^=(T val) { return Base::Intrinsics::xor_(Base::mValue, val) ^ val; }
     T operator&=(T val) { return Base::Intrinsics::and_(Base::mValue, val) & val; }
+
+    T operator=(T aValue) {
+      Base::Intrinsics::store(Base::mValue, aValue);
+      return aValue;
+    }
 
   private:
     Atomic(Atomic<T, Order>& aOther) MOZ_DELETE;
@@ -961,22 +932,36 @@ class Atomic<T, Order, typename EnableIf<IsIntegral<T>::value>::Type>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 template<typename T, MemoryOrdering Order>
-class Atomic<T*, Order> : public detail::AtomicBaseIncDec<T*, Order>
+class Atomic<T*, Order> : public detail::AtomicBase<T*, Order>
 {
-    typedef typename detail::AtomicBaseIncDec<T*, Order> Base;
+    typedef typename detail::AtomicBase<T*, Order> Base;
 
   public:
-    Atomic() : Base() {}
-    Atomic(T* aInit) : Base(aInit) {}
+    Atomic() : detail::AtomicBase<T*, Order>() {}
+    Atomic(T* aInit) : detail::AtomicBase<T*, Order>(aInit) {}
 
-    using Base::operator=;
-
-    T* operator+=(ptrdiff_t delta) {
+    T* operator +=(ptrdiff_t delta) {
       return Base::Intrinsics::add(Base::mValue, delta) + delta;
     }
-    T* operator-=(ptrdiff_t delta) {
+    T* operator -=(ptrdiff_t delta) {
       return Base::Intrinsics::sub(Base::mValue, delta) - delta;
+    }
+
+    T* operator=(T* aValue) {
+      Base::Intrinsics::store(Base::mValue, aValue);
+      return aValue;
     }
 
   private:
