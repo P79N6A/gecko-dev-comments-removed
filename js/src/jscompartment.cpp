@@ -246,35 +246,35 @@ JSCompartment::wrap(JSContext *cx, MutableHandleValue vp, HandleObject existingA
     JS_ASSERT(global);
 
     
-        RootedObject obj(cx, &vp.toObject());
+    RootedObject obj(cx, &vp.toObject());
 
-        if (obj->compartment() == this)
-            return WrapForSameCompartment(cx, obj, vp);
+    if (obj->compartment() == this)
+        return WrapForSameCompartment(cx, obj, vp);
 
-        
-        if (obj->is<StopIterationObject>())
-            return js_FindClassObject(cx, JSProto_StopIteration, vp);
+    
+    if (obj->is<StopIterationObject>())
+        return js_FindClassObject(cx, JSProto_StopIteration, vp);
 
-        
-        obj = UncheckedUnwrap(obj,  true, &flags);
+    
+    obj = UncheckedUnwrap(obj,  true, &flags);
 
-        if (obj->compartment() == this)
-            return WrapForSameCompartment(cx, obj, vp);
+    if (obj->compartment() == this)
+        return WrapForSameCompartment(cx, obj, vp);
 
-        if (cx->runtime()->preWrapObjectCallback) {
-            obj = cx->runtime()->preWrapObjectCallback(cx, global, obj, flags);
-            if (!obj)
-                return false;
-        }
+    if (cx->runtime()->preWrapObjectCallback) {
+        obj = cx->runtime()->preWrapObjectCallback(cx, global, obj, flags);
+        if (!obj)
+            return false;
+    }
 
-        if (obj->compartment() == this)
-            return WrapForSameCompartment(cx, obj, vp);
+    if (obj->compartment() == this)
+        return WrapForSameCompartment(cx, obj, vp);
 
 #ifdef DEBUG
-        {
-            JSObject *outer = GetOuterObject(cx, obj);
-            JS_ASSERT(outer && outer == obj);
-        }
+    {
+        JSObject *outer = GetOuterObject(cx, obj);
+        JS_ASSERT(outer && outer == obj);
+    }
 #endif
 
     RootedValue key(cx, ObjectValue(*obj));
