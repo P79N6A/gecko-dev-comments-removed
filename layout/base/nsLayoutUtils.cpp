@@ -3824,15 +3824,20 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
   gfxRect devPixelDirty =
     nsLayoutUtils::RectToGfxRect(aDirty, aAppUnitsPerDevPixel);
 
-  bool ignoreScale = false;
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
-  ignoreScale = true;
-#endif
-  gfxRect fill = devPixelFill;
-  bool didSnap = aCtx->UserToDevicePixelSnapped(fill, ignoreScale);
   gfxMatrix currentMatrix = aCtx->CurrentMatrix();
-  if (didSnap && currentMatrix.HasNonAxisAlignedTransform()) {
-    
+  gfxRect fill = devPixelFill;
+  bool didSnap;
+  
+  
+  
+  if (!currentMatrix.HasNonAxisAlignedTransform() &&
+      currentMatrix.xx > 0.0 && currentMatrix.yy > 0.0 &&
+      aCtx->UserToDevicePixelSnapped(fill, true)) {
+    didSnap = true;
+    if (fill.IsEmpty()) {
+      return SnappedImageDrawingParameters();
+    }
+  } else {
     didSnap = false;
     fill = devPixelFill;
   }
