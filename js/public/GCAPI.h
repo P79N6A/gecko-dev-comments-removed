@@ -256,7 +256,7 @@ class ObjectPtr
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_FRIEND_API(bool)
 UnmarkGrayGCThingRecursively(void *thing, JSGCTraceKind kind);
 
 

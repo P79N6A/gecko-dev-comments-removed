@@ -128,6 +128,16 @@ GetObjectZone(JSObject *obj)
 static JS_ALWAYS_INLINE bool
 GCThingIsMarkedGray(void *thing)
 {
+#ifdef JSGC_GENERATIONAL
+    
+
+
+
+
+    JS::shadow::Runtime *rt = js::gc::GetGCThingRuntime(thing);
+    if (uintptr_t(thing) >= rt->gcNurseryStart_ && uintptr_t(thing) < rt->gcNurseryEnd_)
+        return false;
+#endif
     uintptr_t *word, mask;
     js::gc::GetGCThingMarkWordAndMask(thing, js::gc::GRAY, &word, &mask);
     return *word & mask;
