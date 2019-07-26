@@ -28,11 +28,9 @@ enum MIRType
     MIRType_Object,
     MIRType_Magic,
     MIRType_Value,
-    MIRType_Any,        
     MIRType_None,       
     MIRType_Slots,      
     MIRType_Elements,   
-    MIRType_UpvarSlots, 
     MIRType_StackFrame  
 };
 
@@ -347,16 +345,12 @@ StringFromMIRType(MIRType type)
       return "Magic";
     case MIRType_Value:
       return "Value";
-    case MIRType_Any:
-      return "Any";
     case MIRType_None:
       return "None";
     case MIRType_Slots:
       return "Slots";
     case MIRType_Elements:
       return "Elements";
-    case MIRType_UpvarSlots:
-      return "UpvarSlots";
     case MIRType_StackFrame:
       return "StackFrame";
     default:
