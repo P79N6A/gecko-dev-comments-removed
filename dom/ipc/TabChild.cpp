@@ -229,8 +229,6 @@ TabChild::PreloadSlowThings()
     }
     
     tab->TryCacheLoadAndCompileScript(BROWSER_ELEMENT_CHILD_SCRIPT);
-    tab->TryCacheLoadAndCompileScript(
-        NS_LITERAL_STRING("chrome://browser/content/forms.js"));
     
     tab->RecvLoadRemoteScript(
         NS_LITERAL_STRING("chrome://global/content/preload.js"));

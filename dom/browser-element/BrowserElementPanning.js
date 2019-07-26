@@ -5,6 +5,14 @@
 
 
 
+"use strict";
+dump("############################### browserElementPanning.js loaded\n");
+
+let { classes: Cc, interfaces: Ci, results: Cr, utils: Cu }  = Components;
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Geometry.jsm");
+
 const ContentPanning = {
   
   watchedEventsType: '',
@@ -35,8 +43,8 @@ const ContentPanning = {
       this.watchedEventsType = 'mouse';
     }
     events.forEach(function(type) {
-      addEventListener(type, ContentPanning, false);
-    });
+      addEventListener(type, this, false);
+    }.bind(this));
 
     addMessageListener("Viewport:Change", this._recvViewportChange.bind(this));
     addMessageListener("Gesture:DoubleTap", this._recvDoubleTap.bind(this));
