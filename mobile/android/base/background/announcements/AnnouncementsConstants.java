@@ -9,6 +9,9 @@ import org.mozilla.gecko.sync.GlobalConstants;
 import android.app.AlarmManager;
 
 public class AnnouncementsConstants {
+  
+  public static boolean DISABLED = true;
+
   public static final String GLOBAL_LOG_TAG = "GeckoAnnounce";
   public static final String ACTION_ANNOUNCEMENTS_PREF = "org.mozilla.gecko.ANNOUNCEMENTS_PREF";
 
