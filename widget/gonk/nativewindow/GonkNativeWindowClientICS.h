@@ -15,8 +15,8 @@
 
 
 
-#ifndef DOM_CAMERA_GONKNATIVEWINDOWCLIENT_H
-#define DOM_CAMERA_GONKNATIVEWINDOWCLIENT_H
+#ifndef NATIVEWINDOW_GONKNATIVEWINDOWCLIENT_ICS_H
+#define NATIVEWINDOW_GONKNATIVEWINDOWCLIENT_ICS_H
 
 #include <ui/egl/android_natives.h>
 
@@ -127,7 +127,7 @@ private:
     
     mutable Mutex mMutex;
 
-    bool                        mConnectedToCpu;
+    bool mConnectedToCpu;
 };
 
 
