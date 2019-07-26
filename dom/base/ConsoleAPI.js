@@ -12,6 +12,9 @@ let Cc = Components.classes;
 const MAX_PAGE_TIMERS = 10000;
 
 
+const MAX_PAGE_COUNTERS = 10000;
+
+
 
 const ARGUMENT_PATTERN = /%\d*\.?\d*([osdif])\b/g;
 
@@ -138,6 +141,9 @@ ConsoleAPI.prototype = {
           self.queueCall("assert", args);
         }
       },
+      count: function CA_count() {
+        self.queueCall("count", arguments);
+      },
       __exposedProps__: {
         log: "r",
         info: "r",
@@ -154,7 +160,8 @@ ConsoleAPI.prototype = {
         timeEnd: "r",
         profile: "r",
         profileEnd: "r",
-        assert: "r"
+        assert: "r",
+        count: "r"
       }
     };
 
@@ -182,6 +189,7 @@ ConsoleAPI.prototype = {
       profile: genPropDesc('profile'),
       profileEnd: genPropDesc('profileEnd'),
       assert: genPropDesc('assert'),
+      count: genPropDesc('count'),
       __noSuchMethod__: { enumerable: true, configurable: true, writable: true,
                           value: function() {} },
       __mozillaConsole__: { value: true }
@@ -194,6 +202,7 @@ ConsoleAPI.prototype = {
     this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     this._window = Cu.getWeakReference(aWindow);
     this.timerRegistry = new Map();
+    this.counterRegistry = new Map();
 
     return contentObj;
   },
@@ -331,6 +340,9 @@ ConsoleAPI.prototype = {
         break;
       case "timeEnd":
         consoleEvent.timer = this.stopTimer(args[0], meta.monotonicTimer);
+        break;
+      case "count":
+        consoleEvent.counter = this.increaseCounter(frame, args[0]);
         break;
       default:
         
@@ -500,6 +512,48 @@ ConsoleAPI.prototype = {
     let duration = aTimestamp - this.timerRegistry.get(key);
     this.timerRegistry.delete(key);
     return { name: aName, duration: duration };
+  },
+
+  
+
+
+
+  counterRegistry: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  increaseCounter: function CA_increaseCounter(aFrame, aLabel) {
+    let key = null, label = null;
+    try {
+      label = key = aLabel ? aLabel + "" : "";
+    } catch (ex) { }
+    if (!key) {
+      key = aFrame.filename + ":" + aFrame.lineNumber;
+    }
+    let counter = null;
+    if (!this.counterRegistry.has(key)) {
+      if (this.counterRegistry.size > MAX_PAGE_COUNTERS - 1) {
+        return { error: "maxCountersExceeded" };
+      }
+      counter = { label: label, count: 1 };
+      this.counterRegistry.set(key, counter);
+    } else {
+      counter = this.counterRegistry.get(key);
+      counter.count += 1;
+    }
+    return { label: counter.label, count: counter.count };
   }
 };
 
