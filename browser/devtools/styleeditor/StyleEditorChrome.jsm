@@ -270,20 +270,32 @@ StyleEditorChrome.prototype = {
   
 
 
+
+
+
+
+
+
+  _createStyleEditor: function SEC__createStyleEditor(aDocument, aSheet) {
+    let editor = new StyleEditor(aDocument, aSheet);
+    this._editors.push(editor);
+    editor.addActionListener(this);
+    return editor;
+  },
+
+  
+
+
   _setupChrome: function SEC__setupChrome()
   {
     
     wire(this._view.rootElement, ".style-editor-newButton", function onNewButton() {
-      let editor = new StyleEditor(this.contentDocument);
-      this._editors.push(editor);
-      editor.addActionListener(this);
+      let editor = this._createStyleEditor(this.contentDocument);
       editor.load();
     }.bind(this));
 
     wire(this._view.rootElement, ".style-editor-importButton", function onImportButton() {
-      let editor = new StyleEditor(this.contentDocument);
-      this._editors.push(editor);
-      editor.addActionListener(this);
+      let editor = this._createStyleEditor(this.contentDocument);
       editor.importFromFile(this._mockImportFile || null, this._window);
     }.bind(this));
   },
@@ -312,6 +324,34 @@ StyleEditorChrome.prototype = {
 
 
 
+
+  _showImportedStyleSheets: function SEC__showImportedStyleSheets(aSheet)
+  {
+    let document = this.contentDocument;
+    for (let j = 0; j < aSheet.cssRules.length; j++) {
+      let rule = aSheet.cssRules.item(j);
+      if (rule.type == Ci.nsIDOMCSSRule.IMPORT_RULE) {
+        
+        
+        if (!rule.styleSheet) {
+          continue;
+        }
+
+        this._createStyleEditor(document, rule.styleSheet);
+
+        this._showImportedStyleSheets(rule.styleSheet);
+      } else if (rule.type != Ci.nsIDOMCSSRule.CHARSET_RULE) {
+        
+        return;
+      }
+    }
+  },
+
+  
+
+
+
+
   _populateChrome: function SEC__populateChrome()
   {
     this.resetChrome();
@@ -323,9 +363,9 @@ StyleEditorChrome.prototype = {
     for (let i = 0; i < document.styleSheets.length; i++) {
       let styleSheet = document.styleSheets[i];
 
-      let editor = new StyleEditor(document, styleSheet);
-      editor.addActionListener(this);
-      this._editors.push(editor);
+      this._createStyleEditor(document, styleSheet);
+
+      this._showImportedStyleSheets(styleSheet);
     }
 
     

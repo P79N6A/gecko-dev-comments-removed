@@ -126,15 +126,62 @@ StyleEditor.prototype = {
 
 
 
+
+
+
+  _getImportedStyleSheetIndex: function SE__getImportedStyleSheetIndex(aIndex, aSheet)
+  {
+    let index = aIndex;
+    for (let j = 0; j < aSheet.cssRules.length; j++) {
+      let rule = aSheet.cssRules.item(j);
+      if (rule.type == Ci.nsIDOMCSSRule.IMPORT_RULE) {
+        
+        
+        if (!rule.styleSheet) {
+          continue;
+        }
+
+        if (rule.styleSheet == this.styleSheet) {
+          this._styleSheetIndex = index;
+          return index;
+        }
+        index++;
+        index = this._getImportedStyleSheetIndex(index, rule.styleSheet);
+
+        if (this._styleSheetIndex != -1) {
+          return index;
+        }
+      } else if (rule.type != Ci.nsIDOMCSSRule.CHARSET_RULE) {
+        
+        return index;
+      }
+    }
+    return index;
+  },
+
+  
+
+
+
+
   get styleSheetIndex()
   {
     let document = this.contentDocument;
     if (this._styleSheetIndex == -1) {
-      for (let i = 0; i < document.styleSheets.length; i++) {
-        if (document.styleSheets[i] == this.styleSheet) {
-          this._styleSheetIndex = i;
+      let index = 0;
+      let sheetIndex = 0;
+      while (sheetIndex <= document.styleSheets.length) {
+        let sheet = document.styleSheets[sheetIndex];
+        if (sheet == this.styleSheet) {
+          this._styleSheetIndex = index;
           break;
         }
+        index++;
+        index = this._getImportedStyleSheetIndex(index, sheet);
+        if (this._styleSheetIndex != -1) {
+          break;
+        }
+        sheetIndex++;
       }
     }
     return this._styleSheetIndex;
