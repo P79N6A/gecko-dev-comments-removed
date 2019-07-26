@@ -220,10 +220,6 @@ private:
                                             nsAutoPtr<SpdyStream3> &,
                                             void *);
 
-  static PLDHashOperator GoAwayEnumerator(nsAHttpTransaction *,
-                                          nsAutoPtr<SpdyStream3> &,
-                                          void *);
-
   static PLDHashOperator UpdateServerRwinEnumerator(nsAHttpTransaction *,
                                                     nsAutoPtr<SpdyStream3> &,
                                                     void *);
@@ -357,9 +353,6 @@ private:
   PRIntervalTime       mLastDataReadEpoch; 
   PRIntervalTime       mPingSentEpoch;
   uint32_t             mNextPingID;
-
-  
-  nsDeque  mGoAwayStreamsToRestart;
 };
 
 }} 

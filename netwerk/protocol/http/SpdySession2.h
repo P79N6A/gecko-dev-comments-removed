@@ -202,10 +202,6 @@ private:
                                             nsAutoPtr<SpdyStream2> &,
                                             void *);
 
-  static PLDHashOperator GoAwayEnumerator(nsAHttpTransaction *,
-                                          nsAutoPtr<SpdyStream2> &,
-                                          void *);
-
   
   
   
@@ -339,9 +335,6 @@ private:
   PRIntervalTime       mLastDataReadEpoch; 
   PRIntervalTime       mPingSentEpoch;
   uint32_t             mNextPingID;
-
-  
-  nsDeque  mGoAwayStreamsToRestart;
 };
 
 }} 
