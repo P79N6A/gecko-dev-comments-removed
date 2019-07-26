@@ -383,10 +383,12 @@ SystemMessageInternal.prototype = {
         page.pendingMessages.length = 0;
 
         
-        aMessage.target.sendAsyncMessage("SystemMessageManager:GetPendingMessages:Return",
-                                         { type: msg.type,
-                                           manifest: msg.manifest,
-                                           msgQueue: pendingMessages });
+        aMessage.target
+                .sendAsyncMessage("SystemMessageManager:GetPendingMessages:Return",
+                                  { type: msg.type,
+                                    manifest: msg.manifest,
+                                    uri: msg.uri,
+                                    msgQueue: pendingMessages });
         break;
       }
       case "SystemMessageManager:HasPendingMessages":
@@ -545,6 +547,7 @@ SystemMessageInternal.prototype = {
         let target = targets[index];
         
         
+        
         if (target.winCounts[aPageURI] === undefined) {
           continue;
         }
@@ -556,10 +559,15 @@ SystemMessageInternal.prototype = {
         
         this._acquireCpuWakeLock(pageKey);
 
+        
+        
+        
         let manager = target.target;
         manager.sendAsyncMessage("SystemMessageManager:Message",
                                  { type: aType,
                                    msg: aMessage,
+                                   manifest: aManifestURI,
+                                   uri: aPageURI,
                                    msgID: aMessageID });
       }
     }

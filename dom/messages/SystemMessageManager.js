@@ -159,10 +159,18 @@ SystemMessageManager.prototype = {
   
   
   receiveMessage: function sysMessMgr_receiveMessage(aMessage) {
-    debug("receiveMessage " + aMessage.name + " for [" + aMessage.data.type + "] " +
-          "with manifest = " + this._manifest + " and uri = " + this._uri);
-
     let msg = aMessage.data;
+    debug("receiveMessage " + aMessage.name + " for [" + msg.type + "] " +
+          "with manifest = " + msg.manifest + " and uri = " + msg.uri);
+
+    
+    
+    
+    if (msg.manifest !== this._manifest || msg.uri !== this._uri) {
+      debug("This page shouldn't handle the messages because its " +
+            "manifest = " + this._manifest + " and uri = " + this._uri);
+      return;
+    }
 
     if (aMessage.name == "SystemMessageManager:Message") {
       
