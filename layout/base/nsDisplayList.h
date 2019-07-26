@@ -1784,7 +1784,8 @@ private:
 
 
 
-class nsDisplayBackground : public nsDisplayItem {
+
+class nsDisplayBackgroundImage : public nsDisplayItem {
 public:
   
 
@@ -1792,10 +1793,10 @@ public:
 
 
 
-  nsDisplayBackground(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                      uint32_t aLayer, bool aIsThemed,
-                      const nsStyleBackground* aBackgroundStyle);
-  virtual ~nsDisplayBackground();
+  nsDisplayBackgroundImage(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                           uint32_t aLayer, bool aIsThemed,
+                           const nsStyleBackground* aBackgroundStyle);
+  virtual ~nsDisplayBackgroundImage();
 
   
   
@@ -1803,7 +1804,7 @@ public:
   static nsresult AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuilder,
                                              nsIFrame* aFrame,
                                              nsDisplayList* aList,
-                                             nsDisplayBackground** aBackground = nullptr);
+                                             nsDisplayBackgroundImage** aBackground = nullptr);
 
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager,

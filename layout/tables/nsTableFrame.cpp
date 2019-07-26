@@ -1165,7 +1165,7 @@ nsTableFrame::DisplayGenericTablePart(nsDisplayListBuilder* aBuilder,
     
     
     if (aBuilder->IsForEventDelivery()) {
-      nsresult rv = nsDisplayBackground::AppendBackgroundItemsToTop(aBuilder, aFrame,
+      nsresult rv = nsDisplayBackgroundImage::AppendBackgroundItemsToTop(aBuilder, aFrame,
                                                                     lists->BorderBackground());
       NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -1243,7 +1243,7 @@ nsTableFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       if (deflate == nsMargin(0, 0, 0, 0)) {
-        nsDisplayBackground* bg;
+        nsDisplayBackgroundImage* bg;
         nsresult rv = DisplayBackgroundUnconditional(aBuilder, aLists, false, &bg);
         NS_ENSURE_SUCCESS(rv, rv);
       }
