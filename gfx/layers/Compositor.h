@@ -363,7 +363,7 @@ public:
 
 
   virtual void PrepareViewport(const gfx::IntSize& aSize,
-                               const gfxMatrix& aWorldTransform) = 0;
+                               const gfx::Matrix& aWorldTransform) = 0;
 
   
 
