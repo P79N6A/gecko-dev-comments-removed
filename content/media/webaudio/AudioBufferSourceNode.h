@@ -105,6 +105,8 @@ public:
   }
   void SendDopplerShiftToStream(double aDopplerShift);
 
+  IMPL_EVENT_HANDLER(ended)
+
   virtual void NotifyMainThreadStateChanged() MOZ_OVERRIDE;
 
 private:
@@ -142,6 +144,7 @@ private:
   SelfReference<AudioBufferSourceNode> mPlayingRef; 
   bool mLoop;
   bool mStartCalled;
+  bool mStopped;
   bool mOffsetAndDurationRemembered;
 };
 
