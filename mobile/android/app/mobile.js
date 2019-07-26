@@ -472,8 +472,6 @@ pref("app.creditsURL", "http://www.mozilla.org/credits/");
 pref("app.channelURL", "http://www.mozilla.org/%LOCALE%/firefox/channel/");
 #if MOZ_UPDATE_CHANNEL == aurora
 pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/mobile/%VERSION%/auroranotes/");
-#elif MOZ_UPDATE_CHANNEL == beta
-pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/mobile/%VERSION%beta/releasenotes/");
 #else
 pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/mobile/%VERSION%/releasenotes/");
 #endif
@@ -801,9 +799,6 @@ pref("browser.ui.linkify.phone", false);
 
 
 pref("snav.enabled", true);
-
-
-pref("identity.fxaccounts.remote.uri", "https://accounts.dev.lcip.org/mobile");
 
 
 
