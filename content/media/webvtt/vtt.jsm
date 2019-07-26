@@ -129,8 +129,7 @@ this.EXPORTED_SYMBOLS = ["WebVTT"];
     
     integer: function(k, v) {
       if (/^-?\d+$/.test(v)) { 
-        
-        this.set(k, Math.min(Math.max(parseInt(v, 10), -1000), 1000));
+        this.set(k, parseInt(v, 10));
       }
     },
     
@@ -810,8 +809,6 @@ this.EXPORTED_SYMBOLS = ["WebVTT"];
   
   
   function BoxPosition(obj) {
-    var self = this;
-
     
     
     
@@ -839,24 +836,25 @@ this.EXPORTED_SYMBOLS = ["WebVTT"];
 
   
   
-  BoxPosition.prototype.move = function(axis, val) {
-    val = val !== undefined ? val : this.lineHeight;
+  
+  BoxPosition.prototype.move = function(axis, toMove) {
+    toMove = toMove !== undefined ? toMove : this.lineHeight;
     switch (axis) {
     case "+x":
-      this.left += val;
-      this.right += val;
+      this.left += toMove;
+      this.right += toMove;
       break;
     case "-x":
-      this.left -= val;
-      this.right -= val;
+      this.left -= toMove;
+      this.right -= toMove;
       break;
     case "+y":
-      this.top += val;
-      this.bottom += val;
+      this.top += toMove;
+      this.bottom += toMove;
       break;
     case "-y":
-      this.top -= val;
-      this.bottom -= val;
+      this.top -= toMove;
+      this.bottom -= toMove;
       break;
     }
   };
@@ -981,12 +979,6 @@ this.EXPORTED_SYMBOLS = ["WebVTT"];
       return bestPosition || specifiedPosition;
     }
 
-    function reverseAxis(axis) {
-      return axis.map(function(a) {
-        return a.indexOf("+") !== -1 ? a.replace("+", "-") : a.replace("-", "+");
-      });
-    }
-
     var boxPosition = new BoxPosition(styleBox),
         cue = styleBox.cue,
         linePos = computeLinePos(cue),
@@ -994,32 +986,47 @@ this.EXPORTED_SYMBOLS = ["WebVTT"];
 
     
     if (cue.snapToLines) {
+      var size;
       switch (cue.vertical) {
       case "":
         axis = [ "+y", "-y" ];
+        size = "height";
         break;
       case "rl":
         axis = [ "+x", "-x" ];
+        size = "width";
         break;
       case "lr":
         axis = [ "-x", "+x" ];
+        size = "width";
         break;
       }
 
-      
-      
-      
-      
-      var initialPosition = boxPosition.lineHeight * Math.floor(linePos + 0.5),
+      var step = boxPosition.lineHeight,
+          position = step * Math.round(linePos),
+          maxPosition = containerBox[size] + step,
           initialAxis = axis[0];
-      if (linePos < 0) {
-        initialPosition += cue.vertical === "" ? containerBox.height : containerBox.width;
-        axis = reverseAxis(axis);
+
+      
+      
+      
+      if (Math.abs(position) > maxPosition) {
+        position = position < 0 ? -1 : 1;
+        position *= Math.ceil(maxPosition / step) * step;
       }
 
       
       
-      boxPosition.move(initialAxis, initialPosition);
+      
+      
+      if (linePos < 0) {
+        position += cue.vertical === "" ? containerBox.height : containerBox.width;
+        axis = axis.reverse();
+      }
+
+      
+      
+      boxPosition.move(initialAxis, position);
 
     } else {
       
