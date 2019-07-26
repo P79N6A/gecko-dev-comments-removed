@@ -1,10 +1,10 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=2 et tw=78: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
+// Needs to be first.
 #include "base/basictypes.h"
 
 #include "Navigator.h"
@@ -25,7 +25,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 #include "BatteryManager.h"
-#include "mozilla/dom/PowerManager.h"
+#include "PowerManager.h"
 #include "nsIDOMWakeLock.h"
 #include "nsIPowerManagerService.h"
 #include "mozilla/dom/MobileMessageManager.h"
@@ -70,15 +70,15 @@
 #endif
 
 #include "nsIDOMGlobalPropertyInitializer.h"
-#include "nsIDataStoreService.h"
 #include "nsJSUtils.h"
 
 #include "nsScriptNameSpaceManager.h"
 
 #include "mozilla/dom/NavigatorBinding.h"
-#include "mozilla/dom/Promise.h"
 
+using namespace mozilla::dom::power;
 
+// This should not be in the namespace.
 DOMCI_DATA(Navigator, mozilla::dom::Navigator)
 
 namespace mozilla {
@@ -89,7 +89,7 @@ static bool sVibratorEnabled   = false;
 static uint32_t sMaxVibrateMS  = 0;
 static uint32_t sMaxVibrateListLen = 0;
 
-
+/* static */
 void
 Navigator::Init()
 {
@@ -173,8 +173,8 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(Navigator)
 void
 Navigator::Invalidate()
 {
-  
-  
+  // Don't clear mWindow here so we know we've got a non-null mWindow
+  // until we're unlinked.
 
   if (mPlugins) {
     mPlugins->Invalidate();
@@ -183,7 +183,7 @@ Navigator::Invalidate()
 
   mMimeTypes = nullptr;
 
-  
+  // If there is a page transition, make sure delete the geolocation object.
   if (mGeolocation) {
     mGeolocation->Shutdown();
     mGeolocation = nullptr;
@@ -276,9 +276,9 @@ Navigator::Invalidate()
   }
 }
 
-
-
-
+//*****************************************************************************
+//    Navigator::nsIDOMNavigator
+//*****************************************************************************
 
 NS_IMETHODIMP
 Navigator::GetUserAgent(nsAString& aUserAgent)
@@ -338,39 +338,39 @@ Navigator::GetAppName(nsAString& aAppName)
   return NS_OK;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * JS property navigator.language, exposed to web content.
+ * Take first value from Accept-Languages (HTTP header), which is
+ * the "content language" freely set by the user in the Pref window.
+ *
+ * Do not use UI language (chosen app locale) here.
+ * See RFC 2616, Section 15.1.4 "Privacy Issues Connected to Accept Headers"
+ *
+ * "en", "en-US" and "i-cherokee" and "" are valid.
+ * Fallback in case of invalid pref should be "" (empty string), to
+ * let site do fallback, e.g. to site's local language.
+ */
 NS_IMETHODIMP
 Navigator::GetLanguage(nsAString& aLanguage)
 {
-  
+  // E.g. "de-de, en-us,en".
   const nsAdoptingString& acceptLang =
     Preferences::GetLocalizedString("intl.accept_languages");
 
-  
+  // Take everything before the first "," or ";", without trailing space.
   nsCharSeparatedTokenizer langTokenizer(acceptLang, ',');
   const nsSubstring &firstLangPart = langTokenizer.nextToken();
   nsCharSeparatedTokenizer qTokenizer(firstLangPart, ';');
   aLanguage.Assign(qTokenizer.nextToken());
 
-  
-  
+  // Checks and fixups:
+  // replace "_" with "-" to avoid POSIX/Windows "en_US" notation.
   if (aLanguage.Length() > 2 && aLanguage[2] == PRUnichar('_')) {
-    aLanguage.Replace(2, 1, PRUnichar('-')); 
+    aLanguage.Replace(2, 1, PRUnichar('-')); // TODO replace all
   }
 
-  
-  
+  // Use uppercase for country part, e.g. "en-US", not "en-us", see BCP47
+  // only uppercase 2-letter country codes, not "zh-Hant", "de-DE-x-goethe".
   if (aLanguage.Length() <= 2) {
     return NS_OK;
   }
@@ -387,7 +387,7 @@ Navigator::GetLanguage(nsAString& aLanguage)
       aLanguage.Replace(pos, code.Length(), upper);
     }
 
-    pos += code.Length() + 1; 
+    pos += code.Length() + 1; // 1 is the separator
     first = false;
   }
 
@@ -450,7 +450,7 @@ Navigator::GetProduct(nsAString& aProduct)
 NS_IMETHODIMP
 Navigator::GetProductSub(nsAString& aProductSub)
 {
-  
+  // Legacy build ID hardcoded for backward compatibility (bug 776376)
   aProductSub.AssignLiteral("20100101");
   return NS_OK;
 }
@@ -484,8 +484,8 @@ Navigator::GetPlugins(ErrorResult& aRv)
   return mPlugins;
 }
 
-
-
+// Values for the network.cookie.cookieBehavior pref are documented in
+// nsCookieService.cpp.
 #define COOKIE_BEHAVIOR_REJECT 2
 
 bool
@@ -495,9 +495,9 @@ Navigator::CookieEnabled()
     (Preferences::GetInt("network.cookie.cookieBehavior",
                          COOKIE_BEHAVIOR_REJECT) != COOKIE_BEHAVIOR_REJECT);
 
-  
-  
-  
+  // Check whether an exception overrides the global cookie behavior
+  // Note that the code for getting the URI here matches that in
+  // nsHTMLDocument::SetCookie.
   if (!mWindow || !mWindow->GetDocShell()) {
     return cookieEnabled;
   }
@@ -511,8 +511,8 @@ Navigator::CookieEnabled()
   doc->NodePrincipal()->GetURI(getter_AddRefs(codebaseURI));
 
   if (!codebaseURI) {
-    
-    
+    // Not a codebase, so technically can't set cookies, but let's
+    // just return the default value.
     return cookieEnabled;
   }
 
@@ -520,7 +520,7 @@ Navigator::CookieEnabled()
     do_GetService(NS_COOKIEPERMISSION_CONTRACTID);
   NS_ENSURE_TRUE(permMgr, cookieEnabled);
 
-  
+  // Pass null for the channel, just like the cookie service does.
   nsCookieAccess access;
   nsresult rv = permMgr->CanAccess(codebaseURI, nullptr, &access);
   NS_ENSURE_SUCCESS(rv, cookieEnabled);
@@ -584,8 +584,8 @@ bool
 Navigator::JavaEnabled(ErrorResult& aRv)
 {
   Telemetry::AutoTimer<Telemetry::CHECK_JAVA_ENABLED> telemetryTimer;
-  
-  
+  // Return true if we have a handler for "application/x-java-vm",
+  // otherwise return false.
   if (!mMimeTypes) {
     if (!mWindow) {
       aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -628,9 +628,9 @@ public:
 
     NS_NAMED_LITERAL_STRING(visibilitychange, "visibilitychange");
     aDocument->AddSystemEventListener(visibilitychange,
-                                      this, 
-                                      true, 
-                                      false );
+                                      this, /* listener */
+                                      true, /* use capture */
+                                      false /* wants untrusted */);
   }
 
   virtual ~VibrateWindowListener()
@@ -658,15 +658,15 @@ VibrateWindowListener::HandleEvent(nsIDOMEvent* aEvent)
     do_QueryInterface(aEvent->InternalDOMEvent()->GetTarget());
 
   if (!doc || doc->Hidden()) {
-    
-    
-    
-    
+    // It's important that we call CancelVibrate(), not Vibrate() with an
+    // empty list, because Vibrate() will fail if we're no longer focused, but
+    // CancelVibrate() will succeed, so long as nobody else has started a new
+    // vibration pattern.
     nsCOMPtr<nsIDOMWindow> window = do_QueryReferent(mWindow);
     hal::CancelVibrate(window);
     RemoveListener();
     gVibrateWindowListener = NULL;
-    
+    // Careful: The line above might have deleted |this|!
   }
 
   return NS_OK;
@@ -681,10 +681,10 @@ VibrateWindowListener::RemoveListener()
   }
   NS_NAMED_LITERAL_STRING(visibilitychange, "visibilitychange");
   target->RemoveSystemEventListener(visibilitychange, this,
-                                    true );
+                                    true /* use capture */);
 }
 
-} 
+} // anonymous namespace
 
 void
 Navigator::AddIdleObserver(MozIdleObserver& aIdleObserver, ErrorResult& aRv)
@@ -735,37 +735,37 @@ Navigator::Vibrate(const nsTArray<uint32_t>& aPattern, ErrorResult& aRv)
     return;
   }
   if (doc->Hidden()) {
-    
+    // Hidden documents cannot start or stop a vibration.
     return;
   }
 
   if (aPattern.Length() > sMaxVibrateListLen) {
-    
+    // XXXbz this should be returning false instead
     aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return;
   }
 
   for (size_t i = 0; i < aPattern.Length(); ++i) {
     if (aPattern[i] > sMaxVibrateMS) {
-      
+      // XXXbz this should be returning false instead
       aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
       return;
     }
   }
 
-  
-  
+  // The spec says we check sVibratorEnabled after we've done the sanity
+  // checking on the pattern.
   if (!sVibratorEnabled) {
     return;
   }
 
-  
-  
+  // Add a listener to cancel the vibration if the document becomes hidden,
+  // and remove the old visibility listener, if there was one.
 
   if (!gVibrateWindowListener) {
-    
-    
-    
+    // If gVibrateWindowListener is null, this is the first time we've vibrated,
+    // and we need to register a listener to clear gVibrateWindowListener on
+    // shutdown.
     ClearOnShutdown(&gVibrateWindowListener);
   }
   else {
@@ -776,9 +776,9 @@ Navigator::Vibrate(const nsTArray<uint32_t>& aPattern, ErrorResult& aRv)
   hal::Vibrate(aPattern, mWindow);
 }
 
-
-
-
+//*****************************************************************************
+//    Navigator::nsIDOMClientInformation
+//*****************************************************************************
 
 void
 Navigator::RegisterContentHandler(const nsAString& aMIMEType,
@@ -832,7 +832,7 @@ Navigator::MozIsLocallyAvailable(const nsAString &aURI,
     return false;
   }
 
-  
+  // This method of checking the cache will only work for http/https urls.
   bool match;
   rv = uri->SchemeIs("http", &match);
   if (NS_FAILED(rv)) {
@@ -852,7 +852,7 @@ Navigator::MozIsLocallyAvailable(const nsAString &aURI,
     }
   }
 
-  
+  // Same origin check.
   JSContext *cx = nsContentUtils::GetCurrentJSContext();
   if (!cx) {
     aRv.Throw(NS_ERROR_FAILURE);
@@ -865,10 +865,10 @@ Navigator::MozIsLocallyAvailable(const nsAString &aURI,
     return false;
   }
 
-  
-  
-  
-  
+  // These load flags cause an error to be thrown if there is no
+  // valid cache entry, and skip the load if there is.
+  // If the cache is busy, assume that it is not yet available rather
+  // than waiting for it to become available.
   uint32_t loadFlags = nsIChannel::INHIBIT_CACHING |
                        nsICachingChannel::LOAD_NO_NETWORK_IO |
                        nsICachingChannel::LOAD_ONLY_IF_MODIFIED |
@@ -1077,11 +1077,11 @@ Navigator::GetMozFMRadio(ErrorResult& aRv)
   return mFMRadio;
 }
 
-#endif  
+#endif  // MOZ_B2G_FM
 
-
-
-
+//*****************************************************************************
+//    Navigator::nsINavigatorBattery
+//*****************************************************************************
 
 battery::BatteryManager*
 Navigator::GetBattery(ErrorResult& aRv)
@@ -1100,29 +1100,7 @@ Navigator::GetBattery(ErrorResult& aRv)
   return mBatteryManager;
 }
 
-already_AddRefed<Promise>
-Navigator::GetDataStores(const nsAString& aName, ErrorResult& aRv)
-{
-  if (!mWindow || !mWindow->GetDocShell()) {
-    aRv.Throw(NS_ERROR_UNEXPECTED);
-    return nullptr;
-  }
-
-  nsCOMPtr<nsIDataStoreService> service =
-    do_GetService("@mozilla.org/datastore-service;1");
-  if (!service) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return nullptr;
-  }
-
-  nsCOMPtr<nsISupports> promise;
-  aRv = service->GetDataStores(mWindow, aName, getter_AddRefs(promise));
-
-  nsRefPtr<Promise> p = static_cast<Promise*>(promise.get());
-  return p.forget();
-}
-
-PowerManager*
+power::PowerManager*
 Navigator::GetMozPower(ErrorResult& aRv)
 {
   if (!mPowerManager) {
@@ -1132,7 +1110,7 @@ Navigator::GetMozPower(ErrorResult& aRv)
     }
     mPowerManager = PowerManager::CreateInstance(mWindow);
     if (!mPowerManager) {
-      
+      // We failed to get the power manager service?
       aRv.Throw(NS_ERROR_UNEXPECTED);
     }
   }
@@ -1150,8 +1128,8 @@ Navigator::RequestWakeLock(const nsAString &aTopic, ErrorResult& aRv)
 
   nsCOMPtr<nsIPowerManagerService> pmService =
     do_GetService(POWERMANAGERSERVICE_CONTRACTID);
-  
-  
+  // Maybe it went away for some reason... Or maybe we're just called
+  // from our XPCOM method.
   NS_ENSURE_TRUE(pmService, nullptr);
 
   nsCOMPtr<nsIDOMMozWakeLock> wakelock;
@@ -1163,7 +1141,7 @@ nsIDOMMozMobileMessageManager*
 Navigator::GetMozMobileMessage()
 {
   if (!mMobileMessageManager) {
-    
+    // Check that our window has not gone away
     NS_ENSURE_TRUE(mWindow, nullptr);
     NS_ENSURE_TRUE(mWindow->GetDocShell(), nullptr);
 
@@ -1239,7 +1217,7 @@ Navigator::GetMozIccManager(ErrorResult& aRv)
   return mIccManager;
 }
 
-#endif 
+#endif // MOZ_B2G_RIL
 
 #ifdef MOZ_GAMEPAD
 void
@@ -1256,9 +1234,9 @@ Navigator::GetGamepads(nsTArray<nsRefPtr<Gamepad> >& aGamepads,
 }
 #endif
 
-
-
-
+//*****************************************************************************
+//    Navigator::nsIMozNavigatorNetwork
+//*****************************************************************************
 
 NS_IMETHODIMP
 Navigator::GetMozConnection(nsIDOMMozConnection** aConnection)
@@ -1296,7 +1274,7 @@ Navigator::GetMozMobileConnection(ErrorResult& aRv)
 
   return mMobileConnection;
 }
-#endif 
+#endif // MOZ_B2G_RIL
 
 #ifdef MOZ_B2G_BT
 bluetooth::BluetoothManager*
@@ -1312,7 +1290,7 @@ Navigator::GetMozBluetooth(ErrorResult& aRv)
 
   return mBluetooth;
 }
-#endif 
+#endif //MOZ_B2G_BT
 
 nsresult
 Navigator::EnsureMessagesManager()
@@ -1331,7 +1309,7 @@ Navigator::EnsureMessagesManager()
     do_QueryInterface(messageManager);
   NS_ENSURE_TRUE(gpi, NS_ERROR_FAILURE);
 
-  
+  // We don't do anything with the return value.
   AutoJSContext cx;
   JS::Rooted<JS::Value> prop_val(cx);
   rv = gpi->Init(mWindow, prop_val.address());
@@ -1345,7 +1323,7 @@ Navigator::EnsureMessagesManager()
 bool
 Navigator::MozHasPendingMessage(const nsAString& aType, ErrorResult& aRv)
 {
-  
+  // The WebIDL binding is responsible for the pref check here.
   nsresult rv = EnsureMessagesManager();
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
@@ -1366,7 +1344,7 @@ Navigator::MozSetMessageHandler(const nsAString& aType,
                                 systemMessageCallback* aCallback,
                                 ErrorResult& aRv)
 {
-  
+  // The WebIDL binding is responsible for the pref check here.
   nsresult rv = EnsureMessagesManager();
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
@@ -1422,10 +1400,10 @@ Navigator::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   size_t n = aMallocSizeOf(this);
 
-  
-  
-  
-  
+  // TODO: add SizeOfIncludingThis() to nsMimeTypeArray, bug 674113.
+  // TODO: add SizeOfIncludingThis() to nsPluginArray, bug 674114.
+  // TODO: add SizeOfIncludingThis() to Geolocation, bug 674115.
+  // TODO: add SizeOfIncludingThis() to DesktopNotificationCenter, bug 674116.
 
   return n;
 }
@@ -1446,7 +1424,7 @@ Navigator::OnNavigation()
   }
 
 #ifdef MOZ_MEDIA_NAVIGATOR
-  
+  // Inform MediaManager in case there are live streams or pending callbacks.
   MediaManager *manager = MediaManager::Get();
   if (manager) {
     manager->OnNavigation(mWindow->WindowID());
@@ -1463,7 +1441,7 @@ Navigator::CheckPermission(const char* type)
   return CheckPermission(mWindow, type);
 }
 
-
+/* static */
 bool
 Navigator::CheckPermission(nsPIDOMWindow* aWindow, const char* aType)
 {
@@ -1525,7 +1503,7 @@ Navigator::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
 
     JS::Rooted<JSObject*> naviObj(aCx,
                                   js::CheckedUnwrap(aObject,
-                                                     false));
+                                                    /* stopAtOuter = */ false));
     if (!naviObj) {
       return Throw(aCx, NS_ERROR_DOM_SECURITY_ERR);
     }
@@ -1534,9 +1512,9 @@ Navigator::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
     {
       JSAutoCompartment ac(aCx, naviObj);
 
-      
-      
-      
+      // Check whether our constructor is enabled after we unwrap Xrays, since
+      // we don't want to define an interface on the Xray if it's disabled in
+      // the target global, even if it's enabled in the Xray's global.
       if (name_struct->mConstructorEnabled &&
           !(*name_struct->mConstructorEnabled)(aCx, naviObj)) {
         return true;
@@ -1575,7 +1553,7 @@ Navigator::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
     return Throw(aCx, rv);
   }
 
-  JS::Rooted<JS::Value> prop_val(aCx, JS::UndefinedValue()); 
+  JS::Rooted<JS::Value> prop_val(aCx, JS::UndefinedValue()); // Property value.
 
   nsCOMPtr<nsIDOMGlobalPropertyInitializer> gpi(do_QueryInterface(native));
 
@@ -1636,32 +1614,32 @@ Navigator::WrapObject(JSContext* cx, JS::Handle<JSObject*> scope)
   return NavigatorBinding::Wrap(cx, scope, this);
 }
 
-
+/* static */
 bool
-Navigator::HasBatterySupport(JSContext* , JSObject* )
+Navigator::HasBatterySupport(JSContext* /* unused*/, JSObject* /*unused */)
 {
   return battery::BatteryManager::HasSupport();
 }
 
-
+/* static */
 bool
-Navigator::HasPowerSupport(JSContext* , JSObject* aGlobal)
+Navigator::HasPowerSupport(JSContext* /* unused */, JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && PowerManager::CheckPermission(win);
 }
 
-
+/* static */
 bool
-Navigator::HasPhoneNumberSupport(JSContext* , JSObject* aGlobal)
+Navigator::HasPhoneNumberSupport(JSContext* /* unused */, JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return CheckPermission(win, "phonenumberservice");
 }
 
-
+/* static */
 bool
-Navigator::HasIdleSupport(JSContext*  , JSObject* aGlobal)
+Navigator::HasIdleSupport(JSContext*  /* unused */, JSObject* aGlobal)
 {
   if (!nsContentUtils::IsIdleObserverAPIEnabled()) {
     return false;
@@ -1671,19 +1649,19 @@ Navigator::HasIdleSupport(JSContext*  , JSObject* aGlobal)
   return CheckPermission(win, "idle");
 }
 
-
+/* static */
 bool
-Navigator::HasWakeLockSupport(JSContext* , JSObject* )
+Navigator::HasWakeLockSupport(JSContext* /* unused*/, JSObject* /*unused */)
 {
   nsCOMPtr<nsIPowerManagerService> pmService =
     do_GetService(POWERMANAGERSERVICE_CONTRACTID);
-  
+  // No service means no wake lock support
   return !!pmService;
 }
 
-
+/* static */
 bool
-Navigator::HasMobileMessageSupport(JSContext* , JSObject* aGlobal)
+Navigator::HasMobileMessageSupport(JSContext* /* unused */, JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
 
@@ -1691,7 +1669,7 @@ Navigator::HasMobileMessageSupport(JSContext* , JSObject* aGlobal)
   return false;
 #endif
 
-  
+  // First of all, the general pref has to be turned on.
   bool enabled = false;
   Preferences::GetBool("dom.sms.enabled", &enabled);
   NS_ENSURE_TRUE(enabled, false);
@@ -1706,26 +1684,26 @@ Navigator::HasMobileMessageSupport(JSContext* , JSObject* aGlobal)
   return true;
 }
 
-
+/* static */
 bool
-Navigator::HasCameraSupport(JSContext* , JSObject* aGlobal)
+Navigator::HasCameraSupport(JSContext* /* unused */, JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && nsDOMCameraManager::CheckPermission(win);
 }
 
 #ifdef MOZ_B2G_RIL
-
+/* static */
 bool
-Navigator::HasTelephonySupport(JSContext* , JSObject* aGlobal)
+Navigator::HasTelephonySupport(JSContext* /* unused */, JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && telephony::Telephony::CheckPermission(win);
 }
 
-
+/* static */
 bool
-Navigator::HasMobileConnectionSupport(JSContext* ,
+Navigator::HasMobileConnectionSupport(JSContext* /* unused */,
                                       JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
@@ -1733,84 +1711,84 @@ Navigator::HasMobileConnectionSupport(JSContext* ,
                  CheckPermission(win, "mobilenetwork"));
 }
 
-
+/* static */
 bool
-Navigator::HasCellBroadcastSupport(JSContext* ,
+Navigator::HasCellBroadcastSupport(JSContext* /* unused */,
                                    JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && CheckPermission(win, "cellbroadcast");
 }
 
-
+/* static */
 bool
-Navigator::HasVoicemailSupport(JSContext* ,
+Navigator::HasVoicemailSupport(JSContext* /* unused */,
                                JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && CheckPermission(win, "voicemail");
 }
 
-
+/* static */
 bool
-Navigator::HasIccManagerSupport(JSContext* ,
+Navigator::HasIccManagerSupport(JSContext* /* unused */,
                                 JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && CheckPermission(win, "mobileconnection");
 }
-#endif 
+#endif // MOZ_B2G_RIL
 
 #ifdef MOZ_B2G_BT
-
+/* static */
 bool
-Navigator::HasBluetoothSupport(JSContext* , JSObject* aGlobal)
+Navigator::HasBluetoothSupport(JSContext* /* unused */, JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && bluetooth::BluetoothManager::CheckPermission(win);
 }
-#endif 
+#endif // MOZ_B2G_BT
 
 #ifdef MOZ_B2G_FM
-
+/* static */
 bool
-Navigator::HasFMRadioSupport(JSContext* , JSObject* aGlobal)
+Navigator::HasFMRadioSupport(JSContext* /* unused */, JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && CheckPermission(win, "fmradio");
 }
-#endif 
+#endif // MOZ_B2G_FM
 
 #ifdef MOZ_TIME_MANAGER
-
+/* static */
 bool
-Navigator::HasTimeSupport(JSContext* , JSObject* aGlobal)
+Navigator::HasTimeSupport(JSContext* /* unused */, JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && CheckPermission(win, "time");
 }
-#endif 
+#endif // MOZ_TIME_MANAGER
 
 #ifdef MOZ_MEDIA_NAVIGATOR
-
-bool Navigator::HasUserMediaSupport(JSContext* ,
-                                    JSObject* )
+/* static */
+bool Navigator::HasUserMediaSupport(JSContext* /* unused */,
+                                    JSObject* /* unused */)
 {
-  
+  // Make enabling peerconnection enable getUserMedia() as well
   return Preferences::GetBool("media.navigator.enabled", false) ||
          Preferences::GetBool("media.peerconnection.enabled", false);
 }
-#endif 
+#endif // MOZ_MEDIA_NAVIGATOR
 
-
-bool Navigator::HasPushNotificationsSupport(JSContext* ,
+/* static */
+bool Navigator::HasPushNotificationsSupport(JSContext* /* unused */,
                                             JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && Preferences::GetBool("services.push.enabled", false) && CheckPermission(win, "push");
 }
 
-
+/* static */
 already_AddRefed<nsPIDOMWindow>
 Navigator::GetWindowFromGlobal(JSObject* aGlobal)
 {
@@ -1820,8 +1798,8 @@ Navigator::GetWindowFromGlobal(JSObject* aGlobal)
   return win.forget();
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 nsresult
 NS_GetNavigatorUserAgent(nsAString& aUserAgent)
@@ -1858,8 +1836,8 @@ NS_GetNavigatorPlatform(nsAString& aPlatform)
     service(do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "http", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
+  // Sorry for the #if platform ugliness, but Communicator is likewise
+  // hardcoded and we are seeking backward compatibility here (bug 47080).
 #if defined(_WIN64)
   aPlatform.AssignLiteral("Win64");
 #elif defined(WIN32)
@@ -1873,9 +1851,9 @@ NS_GetNavigatorPlatform(nsAString& aPlatform)
 #elif defined(XP_OS2)
   aPlatform.AssignLiteral("OS/2");
 #else
-  
-  
-  
+  // XXX Communicator uses compiled-in build-time string defines
+  // to indicate the platform it was compiled *for*, not what it is
+  // currently running *on* which is what this does.
   nsAutoCString plat;
   rv = service->GetOscpu(plat);
   CopyASCIItoUTF16(plat, aPlatform);
