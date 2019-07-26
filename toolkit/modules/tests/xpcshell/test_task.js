@@ -118,6 +118,36 @@ add_test(function test_spawn_function()
   });
 });
 
+add_test(function test_spawn_function_this()
+{
+  Task.spawn(function () {
+    return this;
+  }).then(function (result) {
+    
+    
+    
+    do_check_eq(result, this);
+    run_next_test();
+  }, function (ex) {
+    do_throw("Unexpected error: " + ex);
+  });
+});
+
+add_test(function test_spawn_function_this_strict()
+{
+  "use strict";
+  Task.spawn(function () {
+    return this;
+  }).then(function (result) {
+    
+    
+    do_check_eq(typeof(result), "undefined");
+    run_next_test();
+  }, function (ex) {
+    do_throw("Unexpected error: " + ex);
+  });
+});
+
 add_test(function test_spawn_function_returning_promise()
 {
   Task.spawn(function () {
@@ -237,6 +267,119 @@ add_test(function test_mixed_legacy_and_star()
     })();
   }).then(function (result) {
     do_check_eq(5, result);
+    run_next_test();
+  }, function (ex) {
+    do_throw("Unexpected error: " + ex);
+  });
+});
+
+add_test(function test_async_function_from_generator()
+{
+  Task.spawn(function* () {
+    let object = {
+      asyncFunction: Task.async(function* (param) {
+        do_check_eq(this, object);
+        return param;
+      })
+    };
+
+    
+    do_check_eq((yield object.asyncFunction(1)), 1);
+
+    
+    do_check_eq((yield object.asyncFunction(3)), 3);
+  }).then(function () {
+    run_next_test();
+  }, function (ex) {
+    do_throw("Unexpected error: " + ex);
+  });
+});
+
+add_test(function test_async_function_from_function()
+{
+  Task.spawn(function* () {
+    return Task.spawn(function* () {
+      let object = {
+        asyncFunction: Task.async(function (param) {
+          do_check_eq(this, object);
+          return param;
+        })
+      };
+
+      
+      do_check_eq((yield object.asyncFunction(5)), 5);
+
+      
+      do_check_eq((yield object.asyncFunction(7)), 7);
+    });
+  }).then(function () {
+    run_next_test();
+  }, function (ex) {
+    do_throw("Unexpected error: " + ex);
+  });
+});
+
+add_test(function test_async_function_that_throws_rejects_promise()
+{
+  Task.spawn(function* () {
+    let object = {
+      asyncFunction: Task.async(function* () {
+        throw "Rejected!";
+      })
+    };
+
+    yield object.asyncFunction();
+  }).then(function () {
+    do_throw("unexpected success calling async function that throws error");
+  }, function (ex) {
+    do_check_eq(ex, "Rejected!");
+    run_next_test();
+  });
+});
+
+add_test(function test_async_return_function()
+{
+  Task.spawn(function* () {
+    
+    
+    return Task.spawn(function* () {
+      let returnValue = function () {
+        return "These aren't the droids you're looking for.";
+      };
+
+      let asyncFunction = Task.async(function () {
+        return returnValue;
+      });
+
+      do_check_eq((yield asyncFunction()), returnValue);
+    });
+  }).then(function () {
+    run_next_test();
+  }, function (ex) {
+    do_throw("Unexpected error: " + ex);
+  });
+});
+
+add_test(function test_async_throw_argument_not_function()
+{
+  Task.spawn(function* () {
+    
+    Assert.throws(() => Task.async("not a function"),
+                  /aTask argument must be a function/);
+  }).then(function () {
+    run_next_test();
+  }, function (ex) {
+    do_throw("Unexpected error: " + ex);
+  });
+});
+
+add_test(function test_async_throw_on_function_in_place_of_promise()
+{
+  Task.spawn(function* () {
+    
+    Assert.throws(() => Task.spawn(Task.async(function* () {})),
+                  /Cannot use an async function in place of a promise/);
+  }).then(function () {
     run_next_test();
   }, function (ex) {
     do_throw("Unexpected error: " + ex);

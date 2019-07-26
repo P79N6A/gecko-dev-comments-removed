@@ -4,6 +4,7 @@
 
 Components.utils.import("resource://gre/modules/Promise.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/Task.jsm");
 
 
 
@@ -525,6 +526,14 @@ tests.push(
       }
     );
     return promise;
+  }));
+
+
+tests.push(
+  make_promise_test(function test_promise_resolve_throws_with_async_function(test) {
+    Assert.throws(() => Promise.resolve(Task.async(function* () {})),
+                  /Cannot resolve a promise with an async function/);
+    return Promise.resolve();
   }));
 
 
