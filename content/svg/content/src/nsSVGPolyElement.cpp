@@ -36,7 +36,7 @@ nsSVGPolyElement::nsSVGPolyElement(already_AddRefed<nsINodeInfo> aNodeInfo)
 
 
 NS_IMETHODIMP 
-nsSVGPolyElement::GetPoints(nsIDOMSVGPointList * *aPoints)
+nsSVGPolyElement::GetPoints(nsISupports * *aPoints)
 {
   void *key = mPoints.GetBaseValKey();
   *aPoints = DOMSVGPointList::GetDOMWrapper(key, this, false).get();
@@ -45,7 +45,7 @@ nsSVGPolyElement::GetPoints(nsIDOMSVGPointList * *aPoints)
 
 
 NS_IMETHODIMP 
-nsSVGPolyElement::GetAnimatedPoints(nsIDOMSVGPointList * *aAnimatedPoints)
+nsSVGPolyElement::GetAnimatedPoints(nsISupports * *aAnimatedPoints)
 {
   void *key = mPoints.GetAnimValKey();
   *aAnimatedPoints = DOMSVGPointList::GetDOMWrapper(key, this, true).get();
