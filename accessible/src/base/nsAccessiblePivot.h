@@ -9,18 +9,11 @@
 
 #include "nsIAccessiblePivot.h"
 
+#include "Accessible-inl.h"
 #include "nsAutoPtr.h"
 #include "nsTObserverArray.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
-
-namespace mozilla {
-namespace a11y {
-
-class Accessible;
-
-} 
-} 
 
 class nsIAccessibleTraversalRule;
 
@@ -60,7 +53,7 @@ private:
   
 
 
-  bool IsRootDescendant(Accessible* aAccessible);
+  bool IsDescendantOf(Accessible* aAccessible, Accessible* aAncestor);
 
 
   
@@ -82,12 +75,30 @@ private:
   
 
 
+  Accessible* GetActiveRoot() const
+  {
+    if (mModalRoot) {
+      NS_ENSURE_FALSE(mModalRoot->IsDefunct(), mRoot);
+      return mModalRoot;
+    }
+
+    return mRoot;
+  }
+
+  
+
+
   bool MovePivotInternal(Accessible* aPosition, PivotMoveReason aReason);
 
   
 
 
   nsRefPtr<Accessible> mRoot;
+
+  
+
+
+  nsRefPtr<Accessible> mModalRoot;
 
   
 
