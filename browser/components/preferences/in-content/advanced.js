@@ -771,6 +771,16 @@ var gAdvancedPane = {
   
 
 
+  showCRLs: function ()
+  {
+    openDialog("chrome://pippki/content/crlManager.xul",
+               "mozilla:crlmanager",
+               "model=yes", null);
+  },
+
+  
+
+
   showOCSP: function ()
   {
     openDialog("chrome://mozapps/content/preferences/ocsp.xul",
