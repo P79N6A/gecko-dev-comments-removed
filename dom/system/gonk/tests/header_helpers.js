@@ -145,7 +145,7 @@ function newRadioInterfaceLayer() {
 
 
 
-function do_check_throws(func, result, stack)
+function do_check_throws(func, message, stack)
 {
   if (!stack)
     stack = Components.stack.caller;
@@ -153,13 +153,15 @@ function do_check_throws(func, result, stack)
   try {
     func();
   } catch (exc) {
-    if (exc.result == result)
+    if (exc.message === message) {
       return;
-    do_throw("expected result " + result + ", caught " + exc, stack);
+    }
+    do_throw("expecting exception '" + message
+             + "', caught '" + exc.message + "'", stack);
   }
 
-  if (result) {
-    do_throw("expected result " + result + ", none thrown", stack);
+  if (message) {
+    do_throw("expecting exception '" + message + "', none thrown", stack);
   }
 }
 
