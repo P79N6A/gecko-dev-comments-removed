@@ -197,6 +197,73 @@ KEY_MAP_ANDROID (Tab, AKEYCODE_TAB)
 
 
 
+
+
+KEY_MAP_WIN     (Down, VK_DOWN)
+KEY_MAP_COCOA   (Down, kVK_DownArrow)
+KEY_MAP_GTK     (Down, GDK_Down)
+KEY_MAP_GTK     (Down, GDK_KP_Down)
+KEY_MAP_QT      (Down, Qt::Key_Down)
+KEY_MAP_ANDROID (Down, AKEYCODE_DPAD_DOWN)
+
+
+KEY_MAP_WIN     (Left, VK_LEFT)
+KEY_MAP_COCOA   (Left, kVK_LeftArrow)
+KEY_MAP_GTK     (Left, GDK_Left)
+KEY_MAP_GTK     (Left, GDK_KP_Left)
+KEY_MAP_QT      (Left, Qt::Key_Left)
+KEY_MAP_ANDROID (Left, AKEYCODE_DPAD_LEFT)
+
+
+KEY_MAP_WIN     (Right, VK_RIGHT)
+KEY_MAP_COCOA   (Right, kVK_RightArrow)
+KEY_MAP_GTK     (Right, GDK_Right)
+KEY_MAP_GTK     (Right, GDK_KP_Right)
+KEY_MAP_QT      (Right, Qt::Key_Right)
+KEY_MAP_ANDROID (Right, AKEYCODE_DPAD_RIGHT)
+
+
+KEY_MAP_WIN     (Up, VK_UP)
+KEY_MAP_COCOA   (Up, kVK_UpArrow)
+KEY_MAP_GTK     (Up, GDK_Up)
+KEY_MAP_GTK     (Up, GDK_KP_Up)
+KEY_MAP_QT      (Up, Qt::Key_Up)
+KEY_MAP_ANDROID (Up, AKEYCODE_DPAD_UP)
+
+
+KEY_MAP_WIN     (End, VK_END)
+KEY_MAP_COCOA   (End, kVK_End)
+KEY_MAP_GTK     (End, GDK_End)
+KEY_MAP_GTK     (End, GDK_KP_End)
+KEY_MAP_QT      (End, Qt::Key_End)
+KEY_MAP_ANDROID (End, AKEYCODE_MOVE_END)
+
+
+KEY_MAP_WIN     (Home, VK_HOME)
+KEY_MAP_COCOA   (Home, kVK_Home)
+KEY_MAP_GTK     (Home, GDK_Home)
+KEY_MAP_GTK     (Home, GDK_KP_Home)
+KEY_MAP_QT      (Home, Qt::Key_Home)
+KEY_MAP_ANDROID (Home, AKEYCODE_MOVE_HOME)
+
+
+KEY_MAP_WIN     (PageDown, VK_NEXT)
+KEY_MAP_COCOA   (PageDown, kVK_PageDown)
+KEY_MAP_GTK     (PageDown, GDK_Page_Down )
+KEY_MAP_GTK     (PageDown, GDK_KP_Page_Down )
+KEY_MAP_QT      (PageDown, Qt::Key_PageDown)
+KEY_MAP_ANDROID (PageDown, AKEYCODE_PAGE_DOWN)
+
+
+KEY_MAP_WIN     (PageUp, VK_PRIOR)
+KEY_MAP_COCOA   (PageUp, kVK_PageUp)
+KEY_MAP_GTK     (PageUp, GDK_Page_Up )
+KEY_MAP_GTK     (PageUp, GDK_KP_Page_Up )
+KEY_MAP_QT      (PageUp, Qt::Key_PageUp)
+KEY_MAP_ANDROID (PageUp, AKEYCODE_PAGE_UP)
+
+
+
 KEY_MAP_WIN_OTH (Attn, VK_ATTN) 
 KEY_MAP_GTK     (Attn, GDK_3270_Attn) 
 
@@ -636,76 +703,12 @@ KEY_MAP_QT      (BrowserForward, Qt::Key_Forward)
 KEY_MAP_ANDROID (BrowserForward, AKEYCODE_FORWARD)
 
 
-KEY_MAP_WIN     (Left, VK_LEFT)
-KEY_MAP_COCOA   (Left, kVK_LeftArrow)
-KEY_MAP_GTK     (Left, GDK_Left)
-KEY_MAP_GTK     (Left, GDK_KP_Left)
-KEY_MAP_QT      (Left, Qt::Key_Left)
-KEY_MAP_ANDROID (Left, AKEYCODE_DPAD_LEFT)
-
-
-KEY_MAP_WIN     (PageDown, VK_NEXT)
-KEY_MAP_COCOA   (PageDown, kVK_PageDown)
-KEY_MAP_GTK     (PageDown, GDK_Page_Down )
-KEY_MAP_GTK     (PageDown, GDK_KP_Page_Down )
-KEY_MAP_QT      (PageDown, Qt::Key_PageDown)
-KEY_MAP_ANDROID (PageDown, AKEYCODE_PAGE_DOWN)
-
-
-KEY_MAP_WIN     (PageUp, VK_PRIOR)
-KEY_MAP_COCOA   (PageUp, kVK_PageUp)
-KEY_MAP_GTK     (PageUp, GDK_Page_Up )
-KEY_MAP_GTK     (PageUp, GDK_KP_Page_Up )
-KEY_MAP_QT      (PageUp, Qt::Key_PageUp)
-KEY_MAP_ANDROID (PageUp, AKEYCODE_PAGE_UP)
-
-
-KEY_MAP_WIN     (Right, VK_RIGHT)
-KEY_MAP_COCOA   (Right, kVK_RightArrow)
-KEY_MAP_GTK     (Right, GDK_Right)
-KEY_MAP_GTK     (Right, GDK_KP_Right)
-KEY_MAP_QT      (Right, Qt::Key_Right)
-KEY_MAP_ANDROID (Right, AKEYCODE_DPAD_RIGHT)
-
-
-KEY_MAP_WIN     (Up, VK_UP)
-KEY_MAP_COCOA   (Up, kVK_UpArrow)
-KEY_MAP_GTK     (Up, GDK_Up)
-KEY_MAP_GTK     (Up, GDK_KP_Up)
-KEY_MAP_QT      (Up, Qt::Key_Up)
-KEY_MAP_ANDROID (Up, AKEYCODE_DPAD_UP)
 
 
 
 
 
 
-KEY_MAP_WIN     (Down, VK_DOWN)
-KEY_MAP_COCOA   (Down, kVK_DownArrow)
-KEY_MAP_GTK     (Down, GDK_Down)
-KEY_MAP_GTK     (Down, GDK_KP_Down)
-KEY_MAP_QT      (Down, Qt::Key_Down)
-KEY_MAP_ANDROID (Down, AKEYCODE_DPAD_DOWN)
-
-
-
-
-
-
-KEY_MAP_WIN     (Home, VK_HOME)
-KEY_MAP_COCOA   (Home, kVK_Home)
-KEY_MAP_GTK     (Home, GDK_Home)
-KEY_MAP_GTK     (Home, GDK_KP_Home)
-KEY_MAP_QT      (Home, Qt::Key_Home)
-KEY_MAP_ANDROID (Home, AKEYCODE_MOVE_HOME)
-
-
-KEY_MAP_WIN     (End, VK_END)
-KEY_MAP_COCOA   (End, kVK_End)
-KEY_MAP_GTK     (End, GDK_End)
-KEY_MAP_GTK     (End, GDK_KP_End)
-KEY_MAP_QT      (End, Qt::Key_End)
-KEY_MAP_ANDROID (End, AKEYCODE_MOVE_END)
 
 
 KEY_MAP_WIN     (Select, VK_SELECT)
