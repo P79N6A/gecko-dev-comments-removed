@@ -544,8 +544,6 @@ public:
         return mCycleCollectionContext;
     }
 
-    unsigned GetOutstandingRequests(JSContext* cx);
-
     
     static nsCycleCollectionParticipant *JSContextParticipant();
 

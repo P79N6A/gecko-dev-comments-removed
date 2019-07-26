@@ -893,20 +893,6 @@ nsXPConnectParticipant::TraverseImpl(nsXPConnectParticipant *that, void *p,
     return NS_OK;
 }
 
-unsigned
-nsXPConnect::GetOutstandingRequests(JSContext* cx)
-{
-    unsigned n = js::GetContextOutstandingRequests(cx);
-    XPCCallContext* context = mCycleCollectionContext;
-    
-    
-    if (context && cx == context->GetJSContext()) {
-        MOZ_ASSERT(n);
-        --n;
-    }
-    return n;
-}
-
 class JSContextParticipant : public nsCycleCollectionParticipant
 {
 public:
@@ -938,7 +924,9 @@ public:
         
         
         
-        unsigned refCount = nsXPConnect::GetXPConnect()->GetOutstandingRequests(cx) + 1;
+        
+        unsigned refCount = js::ContextHasOutstandingRequests(cx) ? 2 : 1;
+
         cb.DescribeRefCountedNode(refCount, "JSContext");
         if (JSObject *global = JS_GetGlobalObject(cx)) {
             NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "[global object]");
