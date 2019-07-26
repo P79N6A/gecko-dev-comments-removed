@@ -1576,6 +1576,14 @@ RILContentHelper.prototype = {
         success = false;
     }
 
+    
+    
+    
+    if (message.mmiServiceCode === RIL.MMI_KS_SC_CALL_FORWARDING &&
+        message.additionalInformation) {
+      this._cfRulesToMobileCfInfo(message.additionalInformation);
+    }
+
     let result = {
       serviceCode: message.mmiServiceCode,
       additionalInformation: message.additionalInformation
