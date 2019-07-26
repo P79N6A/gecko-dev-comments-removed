@@ -389,7 +389,7 @@ public:
   
 
 
-  virtual Accessible* GetChildAt(uint32_t aIndex);
+  virtual Accessible* GetChildAt(uint32_t aIndex) const;
 
   
 

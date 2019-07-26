@@ -46,8 +46,8 @@ public:
   virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
                                    EWhichChildAtPoint aWhichChild);
 
-  virtual Accessible* GetChildAt(uint32_t aIndex);
-  virtual uint32_t ChildCount() const;
+  virtual Accessible* GetChildAt(uint32_t aIndex) const MOZ_OVERRIDE;
+  virtual uint32_t ChildCount() const MOZ_OVERRIDE;
   virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
 
   
@@ -77,7 +77,7 @@ public:
 
 
 
-  Accessible* GetTreeItemAccessible(int32_t aRow);
+  Accessible* GetTreeItemAccessible(int32_t aRow) const;
 
   
 
@@ -110,11 +110,12 @@ protected:
   
 
 
-  virtual already_AddRefed<Accessible> CreateTreeItemAccessible(int32_t aRow);
+  virtual already_AddRefed<Accessible>
+    CreateTreeItemAccessible(int32_t aRow) const;
 
   nsCOMPtr<nsITreeBoxObject> mTree;
   nsITreeView* mTreeView;
-  AccessibleHashtable mAccessibleCache;
+  mutable AccessibleHashtable mAccessibleCache;
 };
 
 
@@ -180,7 +181,7 @@ public:
 
 
 
-  virtual Accessible* GetCellAccessible(nsITreeColumn* aColumn)
+  virtual Accessible* GetCellAccessible(nsITreeColumn* aColumn) const
     { return nullptr; }
 
   
