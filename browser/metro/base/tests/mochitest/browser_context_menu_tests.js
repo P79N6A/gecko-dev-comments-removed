@@ -352,46 +352,52 @@ gTests.push({
   }
 });
 
-var observeLogger = {
-  observe: function (aSubject, aTopic, aData) {
-    info("observeLogger: " + aTopic);
-  },
-  QueryInterface: function (aIID) {
-    if (!aIID.equals(Ci.nsIObserver) &&
-        !aIID.equals(Ci.nsISupportsWeakReference) &&
-        !aIID.equals(Ci.nsISupports)) {
-      throw Components.results.NS_ERROR_NO_INTERFACE;
-    }
-    return this;
-  },
-  init: function init() {
-    Services.obs.addObserver(observeLogger, "dl-start", true);
-    Services.obs.addObserver(observeLogger, "dl-done", true);
-    Services.obs.addObserver(observeLogger, "dl-failed", true);
-    Services.obs.addObserver(observeLogger, "dl-scanning", true);
-    Services.obs.addObserver(observeLogger, "dl-blocked", true);
-    Services.obs.addObserver(observeLogger, "dl-dirty", true);
-    Services.obs.addObserver(observeLogger, "dl-cancel", true);
-  },
-  shutdown: function shutdown() {
-    Services.obs.removeObserver(observeLogger, "dl-start");
-    Services.obs.removeObserver(observeLogger, "dl-done");
-    Services.obs.removeObserver(observeLogger, "dl-failed");
-    Services.obs.removeObserver(observeLogger, "dl-scanning");
-    Services.obs.removeObserver(observeLogger, "dl-blocked");
-    Services.obs.removeObserver(observeLogger, "dl-dirty");
-    Services.obs.removeObserver(observeLogger, "dl-cancel");
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 gTests.push({
   desc: "image context menu",
   setUp: function() {
-    observeLogger.init();
+    
+    
   },
   tearDown: function() {
-    observeLogger.shutdown();
+    
+    
   },
   run: function test() {
     info(chromeRoot + "browser_context_menu_tests_01.html");
