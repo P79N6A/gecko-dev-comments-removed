@@ -104,7 +104,7 @@ NS_IMETHODIMP nsSVGPatternElement::GetPatternContentUnits(nsIDOMSVGAnimatedEnume
 }
 
 
-NS_IMETHODIMP nsSVGPatternElement::GetPatternTransform(nsIDOMSVGAnimatedTransformList * *aPatternTransform)
+NS_IMETHODIMP nsSVGPatternElement::GetPatternTransform(nsISupports * *aPatternTransform)
 {
   
   

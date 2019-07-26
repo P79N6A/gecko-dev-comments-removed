@@ -121,8 +121,7 @@ NS_IMETHODIMP nsSVGGraphicElement::GetTransformToElement(nsIDOMSVGElement *eleme
 
 
 
-NS_IMETHODIMP nsSVGGraphicElement::GetTransform(
-    nsIDOMSVGAnimatedTransformList **aTransform)
+NS_IMETHODIMP nsSVGGraphicElement::GetTransform(nsISupports **aTransform)
 {
   
   

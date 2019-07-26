@@ -20,15 +20,9 @@ NS_SVG_VAL_IMPL_CYCLE_COLLECTION_WRAPPERCACHED(DOMSVGAnimatedTransformList, mEle
 NS_IMPL_CYCLE_COLLECTING_ADDREF(DOMSVGAnimatedTransformList)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(DOMSVGAnimatedTransformList)
 
-} 
-DOMCI_DATA(SVGAnimatedTransformList, mozilla::DOMSVGAnimatedTransformList)
-namespace mozilla {
-
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMSVGAnimatedTransformList)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
-  NS_INTERFACE_MAP_ENTRY(nsIDOMSVGAnimatedTransformList)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGAnimatedTransformList)
 NS_INTERFACE_MAP_END
 
 JSObject*
@@ -36,8 +30,6 @@ DOMSVGAnimatedTransformList::WrapObject(JSContext* aCx, JSObject* aScope, bool* 
 {
   return mozilla::dom::SVGAnimatedTransformListBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
-
-
 
 
 already_AddRefed<DOMSVGTransformList>
@@ -50,14 +42,6 @@ DOMSVGAnimatedTransformList::BaseVal()
   return baseVal.forget();
 }
 
-
-NS_IMETHODIMP
-DOMSVGAnimatedTransformList::GetBaseVal(nsIDOMSVGTransformList** aBaseVal)
-{
-  *aBaseVal = BaseVal().get();
-  return NS_OK;
-}
-
 already_AddRefed<DOMSVGTransformList>
 DOMSVGAnimatedTransformList::AnimVal()
 {
@@ -66,14 +50,6 @@ DOMSVGAnimatedTransformList::AnimVal()
   }
   nsRefPtr<DOMSVGTransformList> animVal = mAnimVal;
   return animVal.forget();
-}
-
-
-NS_IMETHODIMP
-DOMSVGAnimatedTransformList::GetAnimVal(nsIDOMSVGTransformList** aAnimVal)
-{
-  *aAnimVal = AnimVal().get();
-  return NS_OK;
 }
 
  already_AddRefed<DOMSVGAnimatedTransformList>

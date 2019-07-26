@@ -89,7 +89,7 @@ NS_IMETHODIMP nsSVGGradientElement::GetGradientUnits(nsIDOMSVGAnimatedEnumeratio
 }
 
 
-NS_IMETHODIMP nsSVGGradientElement::GetGradientTransform(nsIDOMSVGAnimatedTransformList * *aGradientTransform)
+NS_IMETHODIMP nsSVGGradientElement::GetGradientTransform(nsISupports * *aGradientTransform)
 {
   
   
