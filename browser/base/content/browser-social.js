@@ -396,8 +396,10 @@ let SocialFlyout = {
       iframe.addEventListener("load", function panelBrowserOnload(e) {
         iframe.removeEventListener("load", panelBrowserOnload, true);
         setTimeout(function() {
-          SocialFlyout._dynamicResizer.start(panel, iframe);
-          SocialFlyout.dispatchPanelEvent("socialFrameShow");
+          if (SocialFlyout._dynamicResizer) { 
+            SocialFlyout._dynamicResizer.start(panel, iframe);
+            SocialFlyout.dispatchPanelEvent("socialFrameShow");
+          }
         }, 0);
       }, true);
     }
