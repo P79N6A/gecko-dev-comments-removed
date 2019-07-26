@@ -47,11 +47,20 @@ function uuid() {
 
 
 
-function mockDoc(aIdentity, aOrigin, aDoFunc) {
+function mockDoc(aParams, aDoFunc) {
   let mockedDoc = {};
   mockedDoc.id = uuid();
-  mockedDoc.loggedInUser = aIdentity;
-  mockedDoc.origin = aOrigin;
+
+  
+  Object.keys(aParams).forEach(function(param) {
+    mockedDoc[param] = aParams[param];
+  });
+
+  
+  
+  
+  mockedDoc.origin = "https://jedp.gov";
+
   mockedDoc['do'] = aDoFunc;
   mockedDoc.doReady = partial(aDoFunc, 'ready');
   mockedDoc.doLogin = partial(aDoFunc, 'login');
@@ -67,7 +76,12 @@ function mockDoc(aIdentity, aOrigin, aDoFunc) {
 
 
 
-function mockPipe() {
+
+
+
+
+
+function mockReceivingPipe() {
   let MockedPipe = {
     communicate: function(aRpOptions, aGaiaOptions, aMessageCallback) {
       switch (aGaiaOptions.message) {
@@ -84,6 +98,17 @@ function mockPipe() {
           throw("what the what?? " + aGaiaOptions.message);
           break;
       }
+    }
+  };
+  return MockedPipe;
+}
+
+
+
+function mockSendingPipe(aMessageCallback) {
+  let MockedPipe = {
+    communicate: function(aRpOptions, aGaiaOptions, aDummyCallback) {
+      aMessageCallback(aRpOptions, aGaiaOptions);
     }
   };
   return MockedPipe;

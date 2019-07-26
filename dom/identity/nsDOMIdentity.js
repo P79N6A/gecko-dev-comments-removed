@@ -18,12 +18,10 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/IdentityUtils.jsm");
 
+
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsIMessageSender");
-
-
-
 
 function nsDOMIdentity(aIdentityInternal) {
   this._identityInternal = aIdentityInternal;
@@ -77,7 +75,7 @@ nsDOMIdentity.prototype = {
       throw new Error("onready must be a function");
     }
 
-    let message = this.DOMIdentityMessage();
+    let message = this.DOMIdentityMessage(aOptions);
 
     
     
@@ -125,7 +123,7 @@ nsDOMIdentity.prototype = {
       throw new Error("navigator.id.request called too many times");
     }
 
-    let message = this.DOMIdentityMessage();
+    let message = this.DOMIdentityMessage(aOptions);
 
     if (aOptions) {
       
@@ -314,7 +312,6 @@ nsDOMIdentity.prototype = {
 
   _receiveMessage: function nsDOMIdentity_receiveMessage(aMessage) {
     let msg = aMessage.json;
-    this._log("receiveMessage: " + aMessage.name);
 
     switch (aMessage.name) {
       case "Identity:ResetState":
@@ -421,11 +418,22 @@ nsDOMIdentity.prototype = {
   
 
 
-  DOMIdentityMessage: function DOMIdentityMessage() {
-    return {
-      id: this._id,
-      origin: this._origin,
-    };
+
+
+  DOMIdentityMessage: function DOMIdentityMessage(aOptions) {
+    aOptions = aOptions || {};
+    let message = {};
+
+    objectCopy(aOptions, message);
+
+    
+    message.id = this._id;
+
+    
+    message.origin = this._origin;
+
+    dump("nsDOM message: " + JSON.stringify(message) + "\n");
+    return message;
   },
 
 };
