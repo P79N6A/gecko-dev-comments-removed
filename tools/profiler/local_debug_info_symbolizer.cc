@@ -34,6 +34,8 @@
 # include "nsString.h"
 # include "nsDirectoryServiceUtils.h"
 # include "nsDirectoryServiceDefs.h"
+# include <sys/stat.h>
+# include <fcntl.h>
 #endif
 
 #include "local_debug_info_symbolizer.h"
@@ -89,6 +91,7 @@ static char* get_installation_lib_dir ( void )
 
 
 
+
 static bool ReadSymbolData_ANDROID(const string& obj_filename,
                                    const std::vector<string>& debug_dirs,
                                    SymbolData symbol_data,
@@ -103,6 +106,37 @@ static bool ReadSymbolData_ANDROID(const string& obj_filename,
       obj_file_to_use = string(libdir) + "/lib/" + obj_file_to_use;
       free(libdir);
     }
+
+    
+    int fd = open(obj_file_to_use.c_str(), O_RDONLY);
+    if (fd == -1) {
+      BPLOG(INFO) << "ReadSymbolData_APK: Failed to open \'"
+                  << obj_file_to_use << "\'";
+      return false;
+    }
+
+    struct stat st;
+    if (fstat(fd, &st) != 0) {
+      close(fd);
+      BPLOG(INFO) << "ReadSymbolData_APK: Failed to fstat \'"
+                  << obj_file_to_use << "\'";
+      return false;
+    }
+
+    void* image = mmap(nullptr, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (image == MAP_FAILED) {
+      close(fd);
+      BPLOG(INFO) << "ReadSymbolData_APK: Failed to mmap \'"
+                  << obj_file_to_use << "\'";
+      return false;
+    }
+
+    bool ok = ReadSymbolDataInternal((const uint8_t*)image,
+                                     obj_file_to_use, debug_dirs,
+                                     symbol_data, module);
+    munmap(image, st.st_size);
+    close(fd);
+    return ok;
   }
 
   
