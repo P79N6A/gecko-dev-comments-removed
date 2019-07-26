@@ -35,6 +35,149 @@ let HTMLSelectElement = Ci.nsIDOMHTMLSelectElement;
 let HTMLOptGroupElement = Ci.nsIDOMHTMLOptGroupElement;
 let HTMLOptionElement = Ci.nsIDOMHTMLOptionElement;
 
+let FormVisibility = {
+  
+
+
+
+
+
+  findScrolled: function fv_findScrolled(node) {
+    let win = node.ownerDocument.defaultView;
+
+    while (!(node instanceof HTMLBodyElement)) {
+
+      
+      
+      
+      if (node.scrollTop !== 0) {
+        
+        
+        
+        
+        
+        return node;
+      } else {
+        
+        
+        
+        node = node.parentNode;
+        continue;
+      }
+    }
+
+    
+    
+    
+    if (win.scrollMaxX || win.scrollMaxY) {
+      return win;
+    }
+
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+  yAxisVisible: function fv_yAxisVisible(top, height, maxHeight) {
+    return (top > 0 && (top + height) < maxHeight);
+  },
+
+  
+
+
+
+
+
+
+  scrollablesVisible: function fv_scrollablesVisible(element, pos) {
+    while ((element = this.findScrolled(element))) {
+      if (element.window && element.self === element)
+        break;
+
+      
+      
+      
+      let offset = element.getBoundingClientRect();
+
+      
+      
+      
+      
+      let adjustedTop = pos.top - offset.top;
+
+      let visible = this.yAxisVisible(
+        adjustedTop,
+        pos.height,
+        pos.width
+      );
+
+      if (!visible)
+        return false;
+
+      element = element.parentNode;
+    }
+
+    return true;
+  },
+
+  
+
+
+
+
+
+
+  isVisible: function fv_isVisible(element) {
+    
+    let rect = element.getBoundingClientRect();
+    let parent = element.ownerDocument.defaultView;
+
+    
+    
+    
+    
+    
+    let pos = {
+      top: rect.top,
+      height: rect.height,
+      width: rect.width
+    };
+
+    let visible = true;
+
+    do {
+      let frame = parent.frameElement;
+      visible = visible &&
+                this.yAxisVisible(pos.top, pos.height, parent.innerHeight) &&
+                this.scrollablesVisible(element, pos);
+
+      
+      
+      
+      
+      if (!visible)
+        return false;
+
+      if (frame) {
+        let frameRect = frame.getBoundingClientRect();
+
+        pos.top += frameRect.top + frame.clientTop;
+      }
+    } while (
+      (parent !== parent.parent) &&
+      (parent = parent.parent)
+    );
+
+    return visible;
+  }
+};
+
 let FormAssistant = {
   init: function fa_init() {
     addEventListener("focus", this, true, false);
@@ -139,7 +282,7 @@ let FormAssistant = {
         if (this.focusedElement) {
           this.scrollIntoViewTimeout = content.setTimeout(function () {
             this.scrollIntoViewTimeout = null;
-            if (this.focusedElement) {
+            if (this.focusedElement && !FormVisibility.isVisible(this.focusedElement)) {
               this.focusedElement.scrollIntoView(false);
             }
           }.bind(this), RESIZE_SCROLL_DELAY);
