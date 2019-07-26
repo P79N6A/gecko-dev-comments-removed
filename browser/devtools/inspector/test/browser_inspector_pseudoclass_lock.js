@@ -51,11 +51,11 @@ function createDocument()
 function selectNode(aInspector)
 {
   inspector = aInspector;
-  inspector.selection.setNode(div);
   inspector.sidebar.once("ruleview-ready", function() {
     ruleview = inspector.sidebar.getWindowForTab("ruleview").ruleview.view;
     inspector.sidebar.select("ruleview");
-    performTests();
+    inspector.selection.setNode(div);
+    inspector.once("inspector-updated", performTests);
   });
 }
 
@@ -75,29 +75,37 @@ function performTests()
   
   inspector.togglePseudoClass(pseudo);
 
-  testNavigate();
-
-  
-  finishUp();
+  testNavigate(() => {
+   
+    finishUp();
+  });
 }
 
-function testNavigate()
+function testNavigate(callback)
 {
   inspector.selection.setNode(parentDiv);
+  inspector.once("inspector-updated", () => {
 
-  
-  is(DOMUtils.hasPseudoClassLock(div, pseudo), true,
-       "pseudo-class lock is still applied after inspecting ancestor");
+    
+    is(DOMUtils.hasPseudoClassLock(div, pseudo), true,
+         "pseudo-class lock is still applied after inspecting ancestor");
 
-  inspector.selection.setNode(div2);
+    inspector.selection.setNode(div2);
 
-  
-  is(DOMUtils.hasPseudoClassLock(div, pseudo), false,
-       "pseudo-class lock is removed after inspecting sibling node");
+    inspector.once("inspector-updated", () => {
 
-  
-  inspector.selection.setNode(div);
-  inspector.togglePseudoClass(pseudo);
+      
+      is(DOMUtils.hasPseudoClassLock(div, pseudo), false,
+           "pseudo-class lock is removed after inspecting sibling node");
+
+      
+      inspector.selection.setNode(div);
+      inspector.once("inspector-updated", () => {
+        inspector.togglePseudoClass(pseudo);
+        callback();
+      });
+    });
+  });
 }
 
 function testAdded()
