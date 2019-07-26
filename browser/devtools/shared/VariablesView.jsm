@@ -1884,6 +1884,15 @@ Property.prototype.__iterator__ = function VV_iterator() {
 
 
 
+VariablesView.prototype.clearHierarchy = function VV_clearHierarchy() {
+  this._prevHierarchy = new Map();
+  this._currHierarchy = new Map();
+};
+
+
+
+
+
 VariablesView.prototype.createHierarchy = function VV_createHierarchy() {
   this._prevHierarchy = this._currHierarchy;
   this._currHierarchy = new Map();
