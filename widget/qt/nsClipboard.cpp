@@ -179,15 +179,9 @@ nsClipboard::SetNativeClipboardData( nsITransferable *aTransferable,
                 if (!image)  
                    continue;
 
-                nsRefPtr<gfxASurface> thebesSurface =
+                RefPtr<SourceSurface> surface =
                   image->GetFrame(imgIContainer::FRAME_CURRENT,
                                   imgIContainer::FLAG_SYNC_DECODE);
-                if (!thebesSurface)
-                  continue;
-
-                RefPtr<SourceSurface> surface =
-                  gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(nullptr,
-                                                                         thebesSurface);
                 if (!surface)
                   continue;
 

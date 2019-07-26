@@ -651,7 +651,7 @@ VectorImage::FrameIsOpaque(uint32_t aWhichFrame)
 
 
 
-NS_IMETHODIMP_(already_AddRefed<gfxASurface>)
+NS_IMETHODIMP_(TemporaryRef<SourceSurface>)
 VectorImage::GetFrame(uint32_t aWhichFrame,
                       uint32_t aFlags)
 {
@@ -676,25 +676,12 @@ VectorImage::GetFrame(uint32_t aWhichFrame,
 
   
   
-  
-  
-  gfxIntSize surfaceSize(imageIntSize.width, imageIntSize.height);
-
-  nsRefPtr<gfxImageSurface> surface =
-    new gfxImageSurface(surfaceSize, gfxImageFormat::ARGB32);
-
-  RefPtr<DrawTarget> drawTarget =
-    Factory::CreateDrawTargetForData(BackendType::CAIRO,
-                                     surface->Data(),
-                                     IntSize(imageIntSize.width,
+  RefPtr<DrawTarget> dt = gfxPlatform::GetPlatform()->
+    CreateOffscreenContentDrawTarget(IntSize(imageIntSize.width,
                                              imageIntSize.height),
-                                     surface->Stride(),
                                      SurfaceFormat::B8G8R8A8);
+  nsRefPtr<gfxContext> context = new gfxContext(dt);
 
-  nsRefPtr<gfxContext> context = new gfxContext(drawTarget);
-
-  
-  
   nsresult rv = Draw(context, GraphicsFilter::FILTER_NEAREST, gfxMatrix(),
                      gfxRect(gfxPoint(0,0), gfxIntSize(imageIntSize.width,
                                                        imageIntSize.height)),
@@ -702,7 +689,7 @@ VectorImage::GetFrame(uint32_t aWhichFrame,
                      imageIntSize, nullptr, aWhichFrame, aFlags);
 
   NS_ENSURE_SUCCESS(rv, nullptr);
-  return surface.forget();
+  return dt->Snapshot();
 }
 
 
