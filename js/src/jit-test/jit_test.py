@@ -142,12 +142,13 @@ def main(argv):
     if options.tbpl:
         
         flags = [
-                      ['--ion-eager'], 
-                      ['--baseline-eager'],
-                      ['--baseline-eager', '--no-ti', '--no-fpu'],
-                      ['--no-baseline', '--no-ion'],
-                      ['--no-baseline', '--no-ion', '--no-ti'],
-                    ]
+            [], 
+            ['--ion-eager'], 
+            ['--baseline-eager'],
+            ['--baseline-eager', '--no-ti', '--no-fpu'],
+            ['--no-baseline', '--no-ion'],
+            ['--no-baseline', '--no-ion', '--no-ti'],
+        ]
         for test in test_list:
             for variant in flags:
                 new_test = test.copy()
