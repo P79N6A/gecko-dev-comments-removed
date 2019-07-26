@@ -86,6 +86,32 @@ ClientTiledThebesLayer::BeginPaint()
     return;
   }
 
+#ifdef MOZ_WIDGET_ANDROID
+  
+  
+  
+  
+  
+  
+  bool isPrimaryScrollableThebesLayer = false;
+  if (Layer* scrollable = ClientManager()->GetPrimaryScrollableLayer()) {
+    if (GetParent() == scrollable) {
+      for (Layer* child = scrollable->GetFirstChild(); child; child = child->GetNextSibling()) {
+        if (child->GetType() == Layer::TYPE_THEBES) {
+          if (child == this) {
+            
+            isPrimaryScrollableThebesLayer = true;
+          }
+          break;
+        }
+      }
+    }
+  }
+  if (!isPrimaryScrollableThebesLayer) {
+    return;
+  }
+#endif
+
   
   
   ContainerLayer* displayPortParent = nullptr;
