@@ -609,8 +609,15 @@ NS_IMETHODIMP _class::QueryInterface(REFNSIID aIID, void** aInstancePtr)      \
                reinterpret_cast<char*>((_class*) 0x1000))                     \
   },
 
+
+
+
+
+
+
 #define NS_INTERFACE_TABLE_END_WITH_PTR(_ptr)                                 \
   { nullptr, 0 } };                                                           \
+  static_assert((sizeof(table)/sizeof(table[0])) > 1, "need at least 1 interface"); \
   rv = NS_TableDrivenQI(static_cast<void*>(_ptr),                             \
                         table, aIID, aInstancePtr);
 
