@@ -140,17 +140,10 @@ public:
   void Clear(ErrorResult& aError);
   already_AddRefed<nsISVGPoint> Initialize(nsISVGPoint& aNewItem,
                                            ErrorResult& aError);
-  nsISVGPoint* GetItem(uint32_t aIndex, ErrorResult& aError)
-  {
-    bool found;
-    nsISVGPoint* item = IndexedGetter(aIndex, found, aError);
-    if (!found) {
-      aError.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
-    }
-    return item;
-  }
-  nsISVGPoint* IndexedGetter(uint32_t aIndex, bool& aFound,
-                             ErrorResult& aError);
+  already_AddRefed<nsISVGPoint> GetItem(uint32_t index,
+                                        ErrorResult& error);
+  already_AddRefed<nsISVGPoint> IndexedGetter(uint32_t index, bool& found,
+                                              ErrorResult& error);
   already_AddRefed<nsISVGPoint> InsertItemBefore(nsISVGPoint& aNewItem,
                                                  uint32_t aIndex,
                                                  ErrorResult& aError);
@@ -208,7 +201,7 @@ private:
   SVGAnimatedPointList& InternalAList() const;
 
   
-  void EnsureItemAt(uint32_t aIndex);
+  already_AddRefed<nsISVGPoint> GetItemAt(uint32_t aIndex);
 
   void MaybeInsertNullInAnimValListAt(uint32_t aIndex);
   void MaybeRemoveItemFromAnimValListAt(uint32_t aIndex);
