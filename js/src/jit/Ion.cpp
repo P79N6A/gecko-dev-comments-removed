@@ -496,14 +496,14 @@ bool
 JitCompartment::ensureIonStubsExist(JSContext *cx)
 {
     if (!stringConcatStub_) {
-        stringConcatStub_.set(generateStringConcatStub(cx, SequentialExecution));
+        stringConcatStub_ = generateStringConcatStub(cx, SequentialExecution);
         if (!stringConcatStub_)
             return false;
     }
 
 #ifdef JS_THREADSAFE
     if (!parallelStringConcatStub_) {
-        parallelStringConcatStub_.set(generateStringConcatStub(cx, ParallelExecution));
+        parallelStringConcatStub_ = generateStringConcatStub(cx, ParallelExecution);
         if (!parallelStringConcatStub_)
             return false;
     }
@@ -592,13 +592,6 @@ void
 JitCompartment::mark(JSTracer *trc, JSCompartment *compartment)
 {
     
-    
-    
-    JS_ASSERT(!trc->runtime()->isHeapMinorCollecting());
-    CancelOffThreadIonCompile(compartment, nullptr);
-    FinishAllOffThreadCompilations(compartment);
-
-    
     trc->runtime()->jitRuntime()->freeOsrTempData();
 
     
@@ -631,8 +624,15 @@ JitCompartment::mark(JSTracer *trc, JSCompartment *compartment)
 }
 
 void
-JitCompartment::sweep(FreeOp *fop)
+JitCompartment::sweep(FreeOp *fop, JSCompartment *compartment)
 {
+    
+    
+    
+    JS_ASSERT(!fop->runtime()->isHeapMinorCollecting());
+    CancelOffThreadIonCompile(compartment, nullptr);
+    FinishAllOffThreadCompilations(compartment);
+
     stubCodes_->sweep(fop);
 
     
@@ -644,11 +644,11 @@ JitCompartment::sweep(FreeOp *fop)
     if (!stubCodes_->lookup(static_cast<uint32_t>(ICStub::SetProp_Fallback)))
         baselineSetPropReturnAddr_ = nullptr;
 
-    if (stringConcatStub_ && !IsJitCodeMarked(stringConcatStub_.unsafeGet()))
-        stringConcatStub_.set(nullptr);
+    if (stringConcatStub_ && !IsJitCodeMarked(&stringConcatStub_))
+        stringConcatStub_ = nullptr;
 
-    if (parallelStringConcatStub_ && !IsJitCodeMarked(parallelStringConcatStub_.unsafeGet()))
-        parallelStringConcatStub_.set(nullptr);
+    if (parallelStringConcatStub_ && !IsJitCodeMarked(&parallelStringConcatStub_))
+        parallelStringConcatStub_ = nullptr;
 
     if (activeParallelEntryScripts_) {
         for (ScriptSet::Enum e(*activeParallelEntryScripts_); !e.empty(); e.popFront()) {
@@ -1673,6 +1673,9 @@ GenerateCode(MIRGenerator *mir, LIRGraph *lir)
 CodeGenerator *
 CompileBackEnd(MIRGenerator *mir)
 {
+    
+    AutoEnterIonCompilation enter;
+
     if (!OptimizeMIR(mir))
         return nullptr;
 
@@ -1759,10 +1762,8 @@ OffThreadCompilationAvailable(JSContext *cx)
     
     
     
-    
     return cx->runtime()->canUseParallelIonCompilation()
-        && HelperThreadState().cpuCount > 1
-        && cx->runtime()->gc.incrementalState == gc::NO_INCREMENTAL;
+        && HelperThreadState().cpuCount > 1;
 #else
     return false;
 #endif
@@ -1989,23 +1990,7 @@ CheckScriptSize(JSContext *cx, JSScript* script)
     if (script->length() > MAX_MAIN_THREAD_SCRIPT_SIZE ||
         numLocalsAndArgs > MAX_MAIN_THREAD_LOCALS_AND_ARGS)
     {
-#ifdef JS_THREADSAFE
-        size_t cpuCount = HelperThreadState().cpuCount;
-#else
-        size_t cpuCount = 1;
-#endif
-        if (cx->runtime()->canUseParallelIonCompilation() && cpuCount > 1) {
-            
-            
-            
-            
-            if (!OffThreadCompilationAvailable(cx)) {
-                IonSpew(IonSpew_Abort,
-                        "Script too large for main thread, skipping (%u bytes) (%u locals/args)",
-                        script->length(), numLocalsAndArgs);
-                return Method_Skipped;
-            }
-        } else {
+        if (!OffThreadCompilationAvailable(cx)) {
             IonSpew(IonSpew_Abort, "Script too large (%u bytes) (%u locals/args)",
                     script->length(), numLocalsAndArgs);
             return Method_CantCompile;

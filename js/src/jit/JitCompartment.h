@@ -407,8 +407,9 @@ class JitCompartment
     
     
     
-    ReadBarrieredJitCode stringConcatStub_;
-    ReadBarrieredJitCode parallelStringConcatStub_;
+    
+    JitCode *stringConcatStub_;
+    JitCode *parallelStringConcatStub_;
 
     
     
@@ -474,9 +475,9 @@ class JitCompartment
     bool ensureIonStubsExist(JSContext *cx);
 
     void mark(JSTracer *trc, JSCompartment *compartment);
-    void sweep(FreeOp *fop);
+    void sweep(FreeOp *fop, JSCompartment *compartment);
 
-    JitCode *stringConcatStub(ExecutionMode mode) const {
+    JitCode *stringConcatStubNoBarrier(ExecutionMode mode) const {
         switch (mode) {
           case SequentialExecution: return stringConcatStub_;
           case ParallelExecution:   return parallelStringConcatStub_;

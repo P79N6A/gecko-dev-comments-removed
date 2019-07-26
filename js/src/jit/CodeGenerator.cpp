@@ -5138,7 +5138,7 @@ CodeGenerator::emitConcat(LInstruction *lir, Register lhs, Register rhs, Registe
         return false;
 
     ExecutionMode mode = gen->info().executionMode();
-    JitCode *stringConcatStub = gen->compartment->jitCompartment()->stringConcatStub(mode);
+    JitCode *stringConcatStub = gen->compartment->jitCompartment()->stringConcatStubNoBarrier(mode);
     masm.call(stringConcatStub);
     masm.branchTestPtr(Assembler::Zero, output, output, ool->entry());
 
@@ -6802,6 +6802,10 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     
     cx->runtime()->jitRuntime()->ensureIonCodeAccessible(cx->runtime());
 
+    
+    
+    
+    
     
     
     
