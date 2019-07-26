@@ -1235,19 +1235,10 @@ CERT_VerifyCert(CERTCertDBHandle *handle, CERTCertificate *cert,
 		PRBool checkSig, SECCertUsage certUsage, PRTime t,
 		void *wincx, CERTVerifyLog *log)
 {
-    return cert_VerifyCertWithFlags(handle, cert, checkSig, certUsage, t,
-                                    CERT_VERIFYCERT_USE_DEFAULTS, wincx, log);
-}
-
-SECStatus
-cert_VerifyCertWithFlags(CERTCertDBHandle *handle, CERTCertificate *cert,
-                         PRBool checkSig, SECCertUsage certUsage, PRTime t,
-                         PRUint32 flags, void *wincx, CERTVerifyLog *log)
-{
     SECStatus rv;
     unsigned int requiredKeyUsage;
     unsigned int requiredCertType;
-    unsigned int failedFlags;
+    unsigned int flags;
     unsigned int certType;
     PRBool       trusted;
     PRBool       allowOverride;
@@ -1316,10 +1307,10 @@ cert_VerifyCertWithFlags(CERTCertDBHandle *handle, CERTCertificate *cert,
 	LOG_ERROR_OR_EXIT(log,cert,0,requiredCertType);
     }
 
-    rv = cert_CheckLeafTrust(cert, certUsage, &failedFlags, &trusted);
+    rv = cert_CheckLeafTrust(cert,certUsage, &flags, &trusted);
     if (rv  == SECFailure) {
 	PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
-	LOG_ERROR_OR_EXIT(log, cert, 0, failedFlags);
+	LOG_ERROR_OR_EXIT(log,cert,0,flags);
     } else if (trusted) {
 	goto done;
     }
@@ -1338,11 +1329,9 @@ cert_VerifyCertWithFlags(CERTCertDBHandle *handle, CERTCertificate *cert,
 
 
 
-
-    if (!(flags & CERT_VERIFYCERT_SKIP_OCSP) &&
-	certUsage != certUsageStatusResponder) {
-	statusConfig = CERT_GetStatusConfig(handle);
-	if (statusConfig && statusConfig->statusChecker) {
+    statusConfig = CERT_GetStatusConfig(handle);
+    if (certUsage != certUsageStatusResponder && statusConfig != NULL) {
+	if (statusConfig->statusChecker != NULL) {
 	    rv = (* statusConfig->statusChecker)(handle, cert,
 							 t, wincx);
 	    if (rv != SECSuccess) {

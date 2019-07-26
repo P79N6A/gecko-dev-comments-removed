@@ -263,28 +263,6 @@ void CERT_MapStanError();
 
 
 
-
-
-
-SECStatus
-cert_VerifyCertWithFlags(CERTCertDBHandle *handle, CERTCertificate *cert,
-                         PRBool checkSig, SECCertUsage certUsage, PRTime t,
-                         PRUint32 flags, void *wincx, CERTVerifyLog *log);
-
-
-
-
-
-#define CERT_VERIFYCERT_USE_DEFAULTS 0
-
-
-
-
-
-#define CERT_VERIFYCERT_SKIP_OCSP 1
-
-
-
 SECStatus
 cert_VerifyCertChainPkix(CERTCertificate *cert,
                          PRBool checkSig,
