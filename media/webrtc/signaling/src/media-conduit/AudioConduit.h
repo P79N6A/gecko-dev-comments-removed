@@ -18,12 +18,14 @@
 #include "voice_engine/include/voe_file.h"
 #include "voice_engine/include/voe_network.h"
 #include "voice_engine/include/voe_external_media.h"
+#include "voice_engine/include/voe_audio_processing.h"
 
 
  using webrtc::VoEBase;
  using webrtc::VoENetwork;
  using webrtc::VoECodec;
  using webrtc::VoEExternalMedia;
+ using webrtc::VoEAudioProcessing;
 
 
 
@@ -146,7 +148,10 @@ public:
                       mEngineTransmitting(false),
                       mEngineReceiving(false),
                       mChannel(-1),
-                      mCurSendCodecConfig(NULL)
+                      mCurSendCodecConfig(NULL),
+                      mCaptureDelay(150),
+                      mEchoOn(true),
+                      mEchoCancel(webrtc::kEcAec)
   {
   }
 
@@ -191,6 +196,7 @@ private:
   webrtc::VoEBase*     mPtrVoEBase;
   webrtc::VoECodec*    mPtrVoECodec;
   webrtc::VoEExternalMedia* mPtrVoEXmedia;
+  webrtc::VoEAudioProcessing* mPtrVoEProcessing;
 
   
   bool mEngineTransmitting; 
@@ -200,6 +206,12 @@ private:
   int mChannel;
   RecvCodecList    mRecvCodecList;
   AudioCodecConfig* mCurSendCodecConfig;
+
+  
+  int32_t mCaptureDelay;
+
+  bool mEchoOn;
+  webrtc::EcModes  mEchoCancel;
 };
 
 } 
