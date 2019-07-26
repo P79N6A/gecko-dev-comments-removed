@@ -17,6 +17,10 @@ const SESSIONS_BRANCH = ROOT_BRANCH + "sessions.";
 const HEALTHREPORT_BRANCH = ROOT_BRANCH + "healthreport.";
 const HEALTHREPORT_LOGGING_BRANCH = HEALTHREPORT_BRANCH + "logging.";
 const DEFAULT_LOAD_DELAY_MSEC = 10 * 1000;
+const DEFAULT_LOAD_DELAY_FIRST_RUN_MSEC = 60 * 1000;
+
+
+
 
 
 
@@ -136,8 +140,16 @@ DataReportingService.prototype = Object.freeze({
           return;
         }
 
-        let delayInterval = this._prefs.get("service.loadDelayMsec") ||
-                            DEFAULT_LOAD_DELAY_MSEC;
+        let haveFirstRun = this._prefs.get("service.firstRun", false);
+        let delayInterval;
+
+        if (haveFirstRun) {
+          delayInterval = this._prefs.get("service.loadDelayMsec") ||
+                          DEFAULT_LOAD_DELAY_MSEC;
+        } else {
+          delayInterval = this._prefs.get("service.loadDelayFirstRunMsec") ||
+                          DEFAULT_LOAD_DELAY_FIRST_RUN_MSEC;
+        }
 
         
         
@@ -239,6 +251,12 @@ DataReportingService.prototype = Object.freeze({
     this._healthReporter = new ns.HealthReporter(HEALTHREPORT_BRANCH,
                                                  this.policy,
                                                  this.sessionRecorder);
+
+    
+    
+    this._healthReporter.onInit().then(function onInit() {
+      this._prefs.set("service.firstRun", true);
+    }.bind(this));
   },
 });
 
