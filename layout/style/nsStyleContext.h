@@ -39,9 +39,27 @@ class nsPresContext;
 class nsStyleContext
 {
 public:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsStyleContext(nsStyleContext* aParent, nsIAtom* aPseudoTag,
                  nsCSSPseudoElements::Type aPseudoType,
-                 nsRuleNode* aRuleNode, nsPresContext* aPresContext);
+                 nsRuleNode* aRuleNode);
   ~nsStyleContext();
 
   void* operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW;
@@ -323,7 +341,7 @@ protected:
   void AddChild(nsStyleContext* aChild);
   void RemoveChild(nsStyleContext* aChild);
 
-  void ApplyStyleFixups(nsPresContext* aPresContext);
+  void ApplyStyleFixups();
 
   void FreeAllocations(nsPresContext* aPresContext);
 
@@ -416,6 +434,5 @@ already_AddRefed<nsStyleContext>
 NS_NewStyleContext(nsStyleContext* aParentContext,
                    nsIAtom* aPseudoTag,
                    nsCSSPseudoElements::Type aPseudoType,
-                   nsRuleNode* aRuleNode,
-                   nsPresContext* aPresContext);
+                   nsRuleNode* aRuleNode);
 #endif
