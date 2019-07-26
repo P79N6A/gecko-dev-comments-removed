@@ -1068,7 +1068,7 @@ NS_IMETHODIMP Navigator::GetGeolocation(nsIDOMGeoGeolocation** _retval)
     return NS_ERROR_FAILURE;
   }
 
-  mGeolocation = new nsGeolocation();
+  mGeolocation = new Geolocation();
   if (!mGeolocation) {
     return NS_ERROR_FAILURE;
   }
