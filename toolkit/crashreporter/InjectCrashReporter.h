@@ -3,6 +3,9 @@
 
 
 
+#ifndef InjectCrashReporter_h
+#define InjectCrashReporter_h
+
 #include "nsThreadUtils.h"
 #include <windows.h>
 
@@ -21,3 +24,5 @@ private:
 };
   
 } 
+
+#endif
