@@ -94,16 +94,17 @@ SwapChainD3D9::GetBackBuffer()
   return backBuffer.forget();
 }
 
-bool
+DeviceManagerState
 SwapChainD3D9::PrepareForRendering()
 {
   RECT r;
   if (!::GetClientRect(mWnd, &r)) {
-    return false;
+    return DeviceFail;
   }
 
-  if (!mDeviceManager->VerifyReadyForRendering()) {
-    return false;
+  DeviceManagerState deviceState = mDeviceManager->VerifyReadyForRendering();
+  if (deviceState != DeviceOK) {
+    return deviceState;
   }
 
   if (!mSwapChain) {
@@ -118,7 +119,7 @@ SwapChainD3D9::PrepareForRendering()
 
     if (desc.Width == r.right - r.left && desc.Height == r.bottom - r.top) {
       mDeviceManager->device()->SetRenderTarget(0, backBuffer);
-      return true;
+      return DeviceOK;
     }
 
     mSwapChain = nullptr;
@@ -126,15 +127,16 @@ SwapChainD3D9::PrepareForRendering()
     Init(mWnd);
     
     if (!mSwapChain) {
-      return false;
+      return DeviceFail;
     }
     
     backBuffer = GetBackBuffer();
     mDeviceManager->device()->SetRenderTarget(0, backBuffer);
     
-    return true;
+    return DeviceOK;
   }
-  return false;
+
+  return DeviceFail;
 }
 
 void
@@ -178,13 +180,7 @@ DeviceManagerD3D9::DeviceManagerD3D9()
 
 DeviceManagerD3D9::~DeviceManagerD3D9()
 {
-  
-  
-  
-  ReleaseTextureResources();
-
-  LayerManagerD3D9::OnDeviceManagerDestroy(this);
-  gfxWindowsPlatform::GetPlatform()->OnDeviceManagerDestroy(this);
+  DestroyDevice();
 }
 
 bool
@@ -531,7 +527,7 @@ DeviceManagerD3D9::CreateSwapChain(HWND hWnd)
   
   
   
-  if (!VerifyReadyForRendering()) {
+  if (VerifyReadyForRendering() != DeviceOK) {
     return nullptr;
   }
 
@@ -670,9 +666,24 @@ DeviceManagerD3D9::SetShaderMode(ShaderMode aMode, Layer* aMask, bool aIs2D)
   }
 }
 
-bool
+void
+DeviceManagerD3D9::DestroyDevice()
+{
+  mDeviceWasRemoved = true;
+  if (!IsD3D9Ex()) {
+    ReleaseTextureResources();
+  }
+  LayerManagerD3D9::OnDeviceManagerDestroy(this);
+  gfxWindowsPlatform::GetPlatform()->OnDeviceManagerDestroy(this);
+}
+
+DeviceManagerState
 DeviceManagerD3D9::VerifyReadyForRendering()
 {
+  if (mDeviceWasRemoved) {
+    return DeviceMustRecreate;
+  }
+
   HRESULT hr = mDevice->TestCooperativeLevel();
 
   if (SUCCEEDED(hr)) {
@@ -680,20 +691,20 @@ DeviceManagerD3D9::VerifyReadyForRendering()
       hr = mDeviceEx->CheckDeviceState(mFocusWnd);
 
       if (FAILED(hr)) {
-        mDeviceWasRemoved = true;
-        LayerManagerD3D9::OnDeviceManagerDestroy(this);
-        gfxWindowsPlatform::GetPlatform()->OnDeviceManagerDestroy(this);
+        DestroyDevice();
         ++mDeviceResetCount;
-        return false;
+        return DeviceMustRecreate;
       }
     }
-    return true;
+    return DeviceOK;
   }
 
-  for(unsigned int i = 0; i < mLayersWithResources.Length(); i++) {
+  
+  for (unsigned int i = 0; i < mLayersWithResources.Length(); i++) {
     mLayersWithResources[i]->CleanResources();
   }
-  for(unsigned int i = 0; i < mSwapChains.Length(); i++) {
+  ReleaseTextureResources();
+  for (unsigned int i = 0; i < mSwapChains.Length(); i++) {
     mSwapChains[i]->Reset();
   }
 
@@ -710,17 +721,26 @@ DeviceManagerD3D9::VerifyReadyForRendering()
   pp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
   pp.hDeviceWindow = mFocusWnd;
 
-  hr = mDevice->Reset(&pp);
-  ++mDeviceResetCount;
-
-  if (FAILED(hr) || !CreateVertexBuffer()) {
-    mDeviceWasRemoved = true;
-    LayerManagerD3D9::OnDeviceManagerDestroy(this);
-    gfxWindowsPlatform::GetPlatform()->OnDeviceManagerDestroy(this);
-    return false;
+  
+  
+  
+  
+  
+  if (hr == D3DERR_DEVICELOST) {
+    return DeviceRetry;
+  }
+  if (hr == D3DERR_DEVICENOTRESET) {
+    hr = mDevice->Reset(&pp);
+    ++mDeviceResetCount;
   }
 
-  return true;
+  if (FAILED(hr) || !CreateVertexBuffer()) {
+    DestroyDevice();
+    ++mDeviceResetCount;
+    return DeviceMustRecreate;
+  }
+
+  return DeviceOK;
 }
 
 bool

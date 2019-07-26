@@ -35,6 +35,15 @@ const int CBfLayerOpacity = 0;
 const int CBvColor = 0;
 
 
+enum DeviceManagerState {
+  DeviceOK,
+  DeviceFail,
+  DeviceMustRecreate,
+  DeviceRetry
+};
+
+
+
 
 
 
@@ -84,7 +93,7 @@ public:
 
 
 
-  bool PrepareForRendering();
+  DeviceManagerState PrepareForRendering();
 
   already_AddRefed<IDirect3DSurface9> GetBackBuffer();
 
@@ -205,7 +214,7 @@ public:
 
 
 
-  bool VerifyReadyForRendering();
+  DeviceManagerState VerifyReadyForRendering();
 
   static uint32_t sMaskQuadRegister;
 
@@ -213,6 +222,7 @@ private:
   friend class SwapChainD3D9;
 
   ~DeviceManagerD3D9();
+  void DestroyDevice();
 
   
 
