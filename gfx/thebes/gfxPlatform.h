@@ -21,6 +21,8 @@
 #include "mozilla/RefPtr.h"
 #include "GfxInfoCollector.h"
 
+#include "mozilla/layers/CompositorTypes.h"
+
 #ifdef XP_OS2
 #undef OS2EMX_PLAIN_CHAR
 #endif
@@ -560,7 +562,11 @@ public:
 
     uint32_t GetOrientationSyncMillis() const;
 
-    static bool DrawLayerBorders();
+    
+
+
+    mozilla::layers::DiagnosticTypes GetLayerDiagnosticTypes();
+
     static bool DrawFrameCounter();
     
 
@@ -675,6 +681,9 @@ private:
     uint32_t mOrientationSyncMillis;
     bool mLayersPreferMemoryOverShmem;
     bool mLayersUseDeprecated;
+    bool mDrawLayerBorders;
+    bool mDrawTileBorders;
+    bool mDrawBigImageBorders;
 };
 
 #endif 

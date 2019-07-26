@@ -96,6 +96,28 @@ TextureRequiresLocking(TextureFlags aFlags)
 
 
 
+typedef uint32_t DiagnosticTypes;
+const DiagnosticTypes DIAGNOSTIC_NONE             = 0;
+const DiagnosticTypes DIAGNOSTIC_TILE_BORDERS     = 1 << 0;
+const DiagnosticTypes DIAGNOSTIC_LAYER_BORDERS    = 1 << 1;
+const DiagnosticTypes DIAGNOSTIC_BIGIMAGE_BORDERS = 1 << 2;
+
+
+
+
+typedef uint32_t DiagnosticFlags;
+const DiagnosticFlags DIAGNOSTIC_IMAGE      = 1 << 0;
+const DiagnosticFlags DIAGNOSTIC_CONTENT    = 1 << 1;
+const DiagnosticFlags DIAGNOSTIC_CANVAS     = 1 << 2;
+const DiagnosticFlags DIAGNOSTIC_COLOR      = 1 << 3;
+const DiagnosticFlags DIAGNOSTIC_CONTAINER  = 1 << 4;
+const DiagnosticFlags DIAGNOSTIC_TILE       = 1 << 5;
+const DiagnosticFlags DIAGNOSTIC_BIGIMAGE   = 1 << 6;
+const DiagnosticFlags DIAGNOSTIC_COMPONENT_ALPHA = 1 << 7;
+
+
+
+
 enum EffectTypes
 {
   EFFECT_MASK,
