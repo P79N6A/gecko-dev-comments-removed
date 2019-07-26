@@ -2697,71 +2697,62 @@ nsXPCComponents_Utils::LookupMethod(const JS::Value& object,
     JSAutoRequest ar(cx);
 
     
-    if (JSVAL_IS_PRIMITIVE(object))
+    if (!object.isObject())
         return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-    JSObject* obj = JSVAL_TO_OBJECT(object);
-    while (obj && !js::IsWrapper(obj) && !IS_WRAPPER_CLASS(js::GetObjectClass(obj)))
-        obj = JS_GetPrototype(obj);
-
-    if (!obj)
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-    JSObject* unwrappedObject;
-    nsresult rv = nsXPConnect::GetXPConnect()->GetJSObjectOfWrapper(cx, obj, &unwrappedObject);
-    if (NS_FAILED(rv))
-        return rv;
-
-    unwrappedObject = JS_ObjectToInnerObject(cx, unwrappedObject);
-    if (!unwrappedObject)
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
+    JSObject *obj = &object.toObject();
 
     
     if (!JSVAL_IS_STRING(name))
         return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-    
-    
-    jsid name_id;
-    JS::Value dummy;
-    if (!JS_ValueToId(cx, name, &name_id) ||
-        !JS_IdToValue(cx, name_id, &dummy))
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
+    JSString *methodName = name.toString();
+    jsid methodId = INTERNED_STRING_TO_JSID(cx, JS_InternJSString(cx, methodName));
 
     
     
     
-    
-    
-    
-    XPCCallContext inner_cc(JS_CALLER, cx, unwrappedObject, nsnull, name_id);
+    if (js::IsCrossCompartmentWrapper(obj)) {
+        obj = js::UnwrapOneChecked(cx, obj);
+        if (!obj)
+            return NS_ERROR_XPC_BAD_CONVERT_JS;
+    }
+
+    {
+        
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, obj))
+            return NS_ERROR_FAILURE;
+
+        
+        
+        JSObject *xray = WrapperFactory::WrapForSameCompartmentXray(cx, obj);
+        if (!xray)
+            return NS_ERROR_XPC_BAD_CONVERT_JS;
+
+        
+        *retval = JSVAL_VOID;
+        JSPropertyDescriptor desc;
+        if (!JS_GetPropertyDescriptorById(cx, xray, methodId, 0, &desc))
+            return NS_ERROR_FAILURE;
+
+        
+        
+        JSObject *methodObj = desc.value.isObject() ? &desc.value.toObject() : NULL;
+        if (!methodObj && (desc.attrs & JSPROP_GETTER))
+            methodObj = JS_FUNC_TO_DATA_PTR(JSObject *, desc.getter);
+
+        
+        
+        if (methodObj && JS_ObjectIsCallable(cx, methodObj))
+            methodObj = JS_BindCallable(cx, methodObj, obj);
+
+        
+        *retval = methodObj ? ObjectValue(*methodObj) : JSVAL_VOID;
+    }
 
     
-    XPCWrappedNative* wrapper = inner_cc.GetWrapper();
-    if (!wrapper || !wrapper->IsValid())
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
+    if (!JS_WrapValue(cx, retval))
+        return NS_ERROR_FAILURE;;
 
-    
-    XPCNativeMember* member = inner_cc.GetMember();
-    if (!member || member->IsConstant())
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-    
-    XPCNativeInterface* iface = inner_cc.GetInterface();
-    if (!iface)
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-    jsval funval;
-
-    
-    if (!member->NewFunctionObject(inner_cc, iface, obj, &funval))
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-    NS_ASSERTION(JS_ValueToFunction(inner_cc, funval),
-                 "Function is not a function");
-
-    
-    *retval = funval;
     return NS_OK;
 }
 

@@ -500,16 +500,10 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile()
     if (iccAtom) {
         
         if (Success == XGetWindowProperty(dpy, root, iccAtom,
-                                          0, 0 ,
+                                          0, INT_MAX ,
                                           False, AnyPropertyType,
                                           &retAtom, &retFormat, &retLength,
                                           &retAfter, &retProperty)) {
-            XGetWindowProperty(dpy, root, iccAtom,
-                               0, retLength,
-                               False, AnyPropertyType,
-                               &retAtom, &retFormat, &retLength,
-                               &retAfter, &retProperty);
-
             qcms_profile* profile = NULL;
 
             if (retLength > 0)

@@ -386,37 +386,141 @@ NativeKey::NativeKey(const KeyboardLayout& aKeyboardLayout,
 {
   mScanCode = WinUtils::GetScanCode(aKeyOrCharMessage.lParam);
   mIsExtended = WinUtils::IsExtendedScanCode(aKeyOrCharMessage.lParam);
+  
+  
+  bool canComputeVirtualKeyCodeFromScanCode =
+    (!mIsExtended || WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION);
   switch (aKeyOrCharMessage.message) {
     case WM_KEYDOWN:
     case WM_KEYUP:
     case WM_SYSKEYDOWN:
-    case WM_SYSKEYUP:
-      mOriginalVirtualKeyCode = static_cast<PRUint8>(aKeyOrCharMessage.wParam);
-      switch (aKeyOrCharMessage.wParam) {
+    case WM_SYSKEYUP: {
+      
+      
+      if (aKeyOrCharMessage.wParam == VK_PROCESSKEY) {
+        mOriginalVirtualKeyCode = static_cast<PRUint8>(
+          ::ImmGetVirtualKey(aWindow->GetWindowHandle()));
+      } else {
+        mOriginalVirtualKeyCode =
+          static_cast<PRUint8>(aKeyOrCharMessage.wParam);
+      }
+
+      
+      bool isLeftRightDistinguishedKey = false;
+
+      
+      
+      switch (mOriginalVirtualKeyCode) {
+        case VK_SHIFT:
         case VK_CONTROL:
         case VK_MENU:
-        case VK_SHIFT:
-          mVirtualKeyCode = static_cast<PRUint8>(
-            ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(),
-                              MAPVK_VSC_TO_VK_EX, aKeyboardLayout.GetLayout()));
+          isLeftRightDistinguishedKey = true;
           break;
-        case VK_PROCESSKEY:
-          mVirtualKeyCode = mOriginalVirtualKeyCode =
-            static_cast<PRUint8>(
-              ::ImmGetVirtualKey(aWindow->GetWindowHandle()));
+        case VK_LSHIFT:
+        case VK_RSHIFT:
+          mVirtualKeyCode = mOriginalVirtualKeyCode;
+          mOriginalVirtualKeyCode = VK_SHIFT;
+          isLeftRightDistinguishedKey = true;
+          break;
+        case VK_LCONTROL:
+        case VK_RCONTROL:
+          mVirtualKeyCode = mOriginalVirtualKeyCode;
+          mOriginalVirtualKeyCode = VK_CONTROL;
+          isLeftRightDistinguishedKey = true;
+          break;
+        case VK_LMENU:
+        case VK_RMENU:
+          mVirtualKeyCode = mOriginalVirtualKeyCode;
+          mOriginalVirtualKeyCode = VK_MENU;
+          isLeftRightDistinguishedKey = true;
+          break;
+      }
+
+      
+      
+      if (mVirtualKeyCode) {
+        break;
+      }
+
+      
+      
+      
+      
+      
+      if (!isLeftRightDistinguishedKey) {
+        break;
+      }
+
+      if (!canComputeVirtualKeyCodeFromScanCode) {
+        
+        
+        
+        
+        
+        
+        switch (mOriginalVirtualKeyCode) {
+          case VK_CONTROL:
+            mVirtualKeyCode = VK_RCONTROL;
+            break;
+          case VK_MENU:
+            mVirtualKeyCode = VK_RMENU;
+            break;
+          case VK_SHIFT:
+            
+            
+            mVirtualKeyCode = VK_LSHIFT;
+            break;
+          default:
+            MOZ_NOT_REACHED("Unsupported mOriginalVirtualKeyCode");
+            break;
+        }
+        break;
+      }
+
+      NS_ASSERTION(!mVirtualKeyCode,
+                   "mVirtualKeyCode has been computed already");
+
+      
+      mVirtualKeyCode = static_cast<PRUint8>(
+        ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(),
+                          MAPVK_VSC_TO_VK_EX, aKeyboardLayout.GetLayout()));
+
+      
+      
+      
+      
+      
+      switch (mOriginalVirtualKeyCode) {
+        case VK_CONTROL:
+          if (mVirtualKeyCode != VK_LCONTROL &&
+              mVirtualKeyCode != VK_RCONTROL) {
+            mVirtualKeyCode = mIsExtended ? VK_RCONTROL : VK_LCONTROL;
+          }
+          break;
+        case VK_MENU:
+          if (mVirtualKeyCode != VK_LMENU && mVirtualKeyCode != VK_RMENU) {
+            mVirtualKeyCode = mIsExtended ? VK_RMENU : VK_LMENU;
+          }
+          break;
+        case VK_SHIFT:
+          if (mVirtualKeyCode != VK_LSHIFT && mVirtualKeyCode != VK_RSHIFT) {
+            
+            
+            mVirtualKeyCode = VK_LSHIFT;
+          }
           break;
         default:
-          mVirtualKeyCode = mOriginalVirtualKeyCode;
+          MOZ_NOT_REACHED("Unsupported mOriginalVirtualKeyCode");
           break;
       }
       break;
+    }
     case WM_CHAR:
     case WM_UNICHAR:
     case WM_SYSCHAR:
       
       
-      if (mIsExtended &&
-          WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION) {
+      if (!canComputeVirtualKeyCodeFromScanCode) {
         break;
       }
       mVirtualKeyCode = mOriginalVirtualKeyCode = static_cast<PRUint8>(
@@ -446,6 +550,7 @@ NativeKey::GetScanCodeWithExtendedFlag() const
   
   if (!mIsExtended ||
       WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION) {
+    NS_WARNING("GetScanCodeWithExtendedFlat() returns without extended flag");
     return mScanCode;
   }
   return (0xE000 | mScanCode);
@@ -468,6 +573,7 @@ NativeKey::GetKeyLocation() const
       return nsIDOMKeyEvent::DOM_KEY_LOCATION_RIGHT;
 
     case VK_RETURN:
+      
       return !mIsExtended ? nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD :
                             nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
 
@@ -482,6 +588,7 @@ NativeKey::GetKeyLocation() const
     case VK_HOME:
     case VK_UP:
     case VK_PRIOR:
+      
       return mIsExtended ? nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD :
                            nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
 
@@ -502,6 +609,11 @@ NativeKey::GetKeyLocation() const
     case VK_SUBTRACT:
     case VK_ADD:
       return nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
+
+    case VK_SHIFT:
+    case VK_CONTROL:
+    case VK_MENU:
+      NS_WARNING("Failed to decide the key location?");
 
     default:
       return nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD;

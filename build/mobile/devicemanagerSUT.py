@@ -222,7 +222,7 @@ class DeviceManagerSUT(DeviceManager):
             self._sock = None
             
             if err[0] == errno.ECONNRESET:
-              raise AgentError("Automation error: Error receiving data from socket (possible reboot). cmd=%s; err=%s" % (cmd, err), True)
+              raise AgentError("Automation error: Error receiving data from socket (possible reboot). cmd=%s; err=%s" % (cmd, err))
             raise AgentError("Error receiving data from socket. cmd=%s; err=%s" % (cmd, err))
 
           data += temp

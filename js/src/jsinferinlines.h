@@ -555,6 +555,66 @@ UseNewTypeAtEntry(JSContext *cx, StackFrame *fp)
            UseNewType(cx, fp->prev()->script(), fp->prevpc());
 }
 
+inline bool
+UseNewTypeForClone(JSFunction *fun)
+{
+    if (fun->hasSingletonType() || !fun->isInterpreted())
+        return false;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    JSScript *script = fun->script();
+
+    if (script->length >= 50)
+        return false;
+
+    if (script->hasConsts() ||
+        script->hasObjects() ||
+        script->hasRegexps() ||
+        script->hasClosedArgs() ||
+        script->hasClosedVars())
+    {
+        return false;
+    }
+
+    bool hasArguments = false;
+    bool hasApply = false;
+
+    for (jsbytecode *pc = script->code;
+         pc != script->code + script->length;
+         pc += GetBytecodeLength(pc))
+    {
+        if (*pc == JSOP_ARGUMENTS)
+            hasArguments = true;
+        if (*pc == JSOP_FUNAPPLY)
+            hasApply = true;
+    }
+
+    return hasArguments && hasApply;
+}
+
 
 
 

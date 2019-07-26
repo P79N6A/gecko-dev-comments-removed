@@ -25,7 +25,6 @@
 #include "nsEventListenerManager.h"
 #include "nsIRDFCompositeDataSource.h"
 #include "nsIRDFResource.h"
-#include "nsIScriptEventHandlerOwner.h"
 #include "nsBindingManager.h"
 #include "nsIURI.h"
 #include "nsIXULTemplateBuilder.h"
@@ -74,8 +73,7 @@ class nsXULPrototypeAttribute
 {
 public:
     nsXULPrototypeAttribute()
-        : mName(nsGkAtoms::id),  
-          mEventHandler(nsnull)
+        : mName(nsGkAtoms::id)  
     {
         XUL_PROTOTYPE_ATTRIBUTE_METER(gNumAttributes);
         MOZ_COUNT_CTOR(nsXULPrototypeAttribute);
@@ -85,61 +83,16 @@ public:
 
     nsAttrName mName;
     nsAttrValue mValue;
-    
-    
-    
-    JSObject* mEventHandler;
 
 #ifdef XUL_PROTOTYPE_ATTRIBUTE_METERING
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     static PRUint32   gNumElements;
     static PRUint32   gNumAttributes;
-    static PRUint32   gNumEventHandlers;
     static PRUint32   gNumCacheTests;
     static PRUint32   gNumCacheHits;
     static PRUint32   gNumCacheSets;
     static PRUint32   gNumCacheFills;
 #endif 
 };
-
-
 
 
 
@@ -195,11 +148,10 @@ public:
     nsXULPrototypeElement()
         : nsXULPrototypeNode(eType_Element),
           mNumAttributes(0),
-          mAttributes(nsnull),
           mHasIdAttribute(false),
           mHasClassAttribute(false),
           mHasStyleAttribute(false),
-          mHoldsScriptObject(false)
+          mAttributes(nsnull)
     {
     }
 
@@ -239,14 +191,11 @@ public:
 
     nsCOMPtr<nsINodeInfo>    mNodeInfo;           
 
-    PRUint32                 mNumAttributes;
+    PRUint32                 mNumAttributes:29;
+    PRUint32                 mHasIdAttribute:1;
+    PRUint32                 mHasClassAttribute:1;
+    PRUint32                 mHasStyleAttribute:1;
     nsXULPrototypeAttribute* mAttributes;         
-    
-    bool                     mHasIdAttribute:1;
-    bool                     mHasClassAttribute:1;
-    bool                     mHasStyleAttribute:1;
-    bool                     mHoldsScriptObject:1;
-
 };
 
 class nsXULDocument;
@@ -409,23 +358,6 @@ public:
                                 bool aCompileEventHandlers);
     virtual void UnbindFromTree(bool aDeep, bool aNullParent);
     virtual void RemoveChildAt(PRUint32 aIndex, bool aNotify);
-    virtual bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                           nsAString& aResult) const;
-    virtual bool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const;
-    virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
-                               const nsAString& aValue,
-                               nsCaseTreatment aCaseSensitive) const;
-    virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
-                               nsIAtom* aValue,
-                               nsCaseTreatment aCaseSensitive) const;
-    virtual PRInt32 FindAttrValueIn(PRInt32 aNameSpaceID,
-                                    nsIAtom* aName,
-                                    AttrValuesArray* aValues,
-                                    nsCaseTreatment aCaseSensitive) const;
-    virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                               bool aNotify);
-    virtual const nsAttrName* GetAttrNameAt(PRUint32 aIndex) const;
-    virtual PRUint32 GetAttrCount() const;
     virtual void DestroyContent();
 
 #ifdef DEBUG
@@ -442,11 +374,8 @@ public:
     virtual nsIContent *GetBindingParent() const;
     virtual bool IsNodeOfType(PRUint32 aFlags) const;
     virtual bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false);
-    virtual nsIAtom* DoGetID() const;
-    virtual const nsAttrValue* DoGetClasses() const;
 
     NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
-    virtual mozilla::css::StyleRule* GetInlineStyleRule();
     virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
                                                 PRInt32 aModType) const;
     NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
@@ -472,8 +401,6 @@ public:
     virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
     virtual nsEventStates IntrinsicState() const;
 
-    nsresult EnsureLocalStyle();
-
     nsresult GetFrameLoader(nsIFrameLoader** aFrameLoader);
     already_AddRefed<nsFrameLoader> GetFrameLoader();
     nsresult SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner);
@@ -488,22 +415,10 @@ public:
       mBindingParent = aBindingParent;
     }
 
-    const nsAttrValue* GetAttrValue(const nsAString& aName);
-
-    
-
-
-
-
-    virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
-
     virtual nsXPCClassInfo* GetClassInfo();
 
     virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
-    
-    
-    friend class nsNodeUtils;
 
     
     friend class nsNSElementTearoff;
@@ -537,9 +452,6 @@ protected:
     nsresult LoadSrc();
 
     
-    nsRefPtr<nsXULPrototypeElement>     mPrototype;
-
-    
 
 
 
@@ -548,12 +460,7 @@ protected:
     
 
 
-    nsresult MakeHeavyweight();
-
-    const nsAttrValue* FindLocalOrProtoAttr(PRInt32 aNameSpaceID,
-                                            nsIAtom *aName) const {
-        return nsXULElement::GetAttrInfo(aNameSpaceID, aName).mValue;
-    }
+    nsresult MakeHeavyweight(nsXULPrototypeElement* aPrototype);
 
     virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
                                    const nsAttrValueOrString* aValue,
@@ -574,11 +481,6 @@ protected:
     
 
 
-    nsXULPrototypeAttribute *FindPrototypeAttribute(PRInt32 aNameSpaceID,
-                                                    nsIAtom *aName) const;
-    
-
-
     void AddListenerFor(const nsAttrName& aName,
                         bool aCompileEventHandlers);
     void MaybeAddPopupListener(nsIAtom* aLocalName);
@@ -592,8 +494,6 @@ protected:
     void SetTitlebarColor(nscolor aColor, bool aActive);
 
     void SetDrawsInTitlebar(bool aState);
-
-    const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const;
 
     void RemoveBroadcaster(const nsAString & broadcasterId);
 
@@ -616,8 +516,6 @@ protected:
     static already_AddRefed<nsXULElement>
     Create(nsXULPrototypeElement* aPrototype, nsINodeInfo *aNodeInfo,
            bool aIsScriptable);
-
-    friend class nsScriptEventHandlerOwnerTearoff;
 
     bool IsReadWriteTextElement() const
     {

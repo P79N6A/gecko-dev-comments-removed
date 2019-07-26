@@ -1536,21 +1536,6 @@ nsresult
 nsGenericElement::GetAttribute(const nsAString& aName,
                                nsAString& aReturn)
 {
-  
-  if (IsXUL()) {
-    const nsAttrValue* val =
-      nsXULElement::FromContent(this)->GetAttrValue(aName);
-    if (val) {
-      val->ToString(aReturn);
-    }
-    else {
-      
-      
-      aReturn.Truncate();
-    }
-    return NS_OK;
-  }
-  
   const nsAttrValue* val =
     mAttrsAndChildren.GetAttr(aName,
                               IsHTML() && IsInHTMLDocument() ?
@@ -1558,7 +1543,13 @@ nsGenericElement::GetAttribute(const nsAString& aName,
   if (val) {
     val->ToString(aReturn);
   } else {
-    SetDOMStringToNull(aReturn);
+    if (IsXUL()) {
+      
+      
+      aReturn.Truncate();
+    } else {
+      SetDOMStringToNull(aReturn);
+    }
   }
 
   return NS_OK;

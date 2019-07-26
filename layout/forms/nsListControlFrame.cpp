@@ -427,7 +427,7 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
     
     
     nscoord computedHeight = CalcIntrinsicHeight(oldHeightOfARow, length);
-    state.ApplyMinMaxConstraints(nsnull, &computedHeight);
+    computedHeight = state.ApplyMinMaxHeight(computedHeight);
     state.SetComputedHeight(computedHeight);
   }
 
@@ -485,7 +485,7 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
 
   
   nscoord computedHeight = CalcIntrinsicHeight(HeightOfARow(), length); 
-  state.ApplyMinMaxConstraints(nsnull, &computedHeight);
+  computedHeight = state.ApplyMinMaxHeight(computedHeight);
   state.SetComputedHeight(computedHeight);
 
   nsHTMLScrollFrame::WillReflow(aPresContext);

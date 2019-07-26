@@ -40,7 +40,6 @@
 #include "nsMutationEvent.h"
 #include "nsIXPConnect.h"
 #include "nsDOMCID.h"
-#include "nsIScriptEventHandlerOwner.h"
 #include "nsFocusManager.h"
 #include "nsIDOMElement.h"
 #include "nsContentUtils.h"
@@ -662,20 +661,7 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
   NS_ASSERTION(!listener->GetHandler(), "What is there to compile?");
 
   nsIScriptContext *context = listener->GetEventContext();
-  nsCOMPtr<nsIScriptEventHandlerOwner> handlerOwner =
-    do_QueryInterface(mTarget);
   nsScriptObjectHolder<JSObject> handler(context);
-
-  if (handlerOwner) {
-    result = handlerOwner->GetCompiledEventHandler(aListenerStruct->mTypeAtom,
-                                                   handler);
-    if (NS_SUCCEEDED(result) && handler) {
-      aListenerStruct->mHandlerIsString = false;
-    } else {
-      
-      handler.set(nsnull);
-    }
-  }
 
   if (aListenerStruct->mHandlerIsString) {
     
@@ -745,41 +731,29 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
       return NS_ERROR_FAILURE;
     }
 
+    PRUint32 argCount;
+    const char **argNames;
+    
+    
+    
+    
+    nsContentUtils::GetEventArgNames(content ?
+                                       content->GetNameSpaceID() :
+                                       kNameSpaceID_None,
+                                     aListenerStruct->mTypeAtom,
+                                     &argCount, &argNames);
 
-    if (handlerOwner) {
-      
-      
-      
-      result = handlerOwner->CompileEventHandler(context,
-                                                 aListenerStruct->mTypeAtom,
-                                                 *body,
-                                                 url.get(), lineNo,
-                                                 handler);
-    } else {
-      PRUint32 argCount;
-      const char **argNames;
-      
-      
-      
-      
-      nsContentUtils::GetEventArgNames(content ?
-                                         content->GetNameSpaceID() :
-                                         kNameSpaceID_None,
-                                       aListenerStruct->mTypeAtom,
-                                       &argCount, &argNames);
-
-      result = context->CompileEventHandler(aListenerStruct->mTypeAtom,
-                                            argCount, argNames,
-                                            *body,
-                                            url.get(), lineNo,
-                                            SCRIPTVERSION_DEFAULT, 
-                                            handler);
-      if (result == NS_ERROR_ILLEGAL_VALUE) {
-        NS_WARNING("Probably a syntax error in the event handler!");
-        return NS_SUCCESS_LOSS_OF_INSIGNIFICANT_DATA;
-      }
-      NS_ENSURE_SUCCESS(result, result);
+    result = context->CompileEventHandler(aListenerStruct->mTypeAtom,
+                                          argCount, argNames,
+                                          *body,
+                                          url.get(), lineNo,
+                                          SCRIPTVERSION_DEFAULT, 
+                                          handler);
+    if (result == NS_ERROR_ILLEGAL_VALUE) {
+      NS_WARNING("Probably a syntax error in the event handler!");
+      return NS_SUCCESS_LOSS_OF_INSIGNIFICANT_DATA;
     }
+    NS_ENSURE_SUCCESS(result, result);
   }
 
   if (handler) {

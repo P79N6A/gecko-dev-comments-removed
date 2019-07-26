@@ -363,31 +363,31 @@ xpc_qsThrow(JSContext *cx, nsresult rv)
 static void
 GetMemberInfo(JSObject *obj, jsid memberId, const char **ifaceName)
 {
-    
-    
-    
-    
-    
     *ifaceName = "Unknown";
 
-    NS_ASSERTION(IS_WRAPPER_CLASS(js::GetObjectClass(obj)) ||
-                 js::GetObjectClass(obj) == &XPC_WN_Tearoff_JSClass,
-                 "obj must be a wrapper");
-    XPCWrappedNativeProto *proto;
-    if (IS_SLIM_WRAPPER(obj)) {
-        proto = GetSlimWrapperProto(obj);
-    } else {
-        XPCWrappedNative *wrapper = (XPCWrappedNative *) js::GetObjectPrivate(obj);
-        proto = wrapper->GetProto();
-    }
-    if (proto) {
-        XPCNativeSet *set = proto->GetSet();
-        if (set) {
-            XPCNativeMember *member;
-            XPCNativeInterface *iface;
+    
+    
+    
+    
+    if (IS_WRAPPER_CLASS(js::GetObjectClass(obj))) {
+        XPCWrappedNativeProto *proto;
+        if (IS_SLIM_WRAPPER_OBJECT(obj)) {
+            proto = GetSlimWrapperProto(obj);
+        } else {
+            MOZ_ASSERT(IS_WN_WRAPPER_OBJECT(obj));
+            XPCWrappedNative *wrapper =
+                static_cast<XPCWrappedNative *>(js::GetObjectPrivate(obj));
+            proto = wrapper->GetProto();
+        }
+        if (proto) {
+            XPCNativeSet *set = proto->GetSet();
+            if (set) {
+                XPCNativeMember *member;
+                XPCNativeInterface *iface;
 
-            if (set->FindMember(memberId, &member, &iface))
-                *ifaceName = iface->GetNameString();
+                if (set->FindMember(memberId, &member, &iface))
+                    *ifaceName = iface->GetNameString();
+            }
         }
     }
 }
