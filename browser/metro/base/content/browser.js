@@ -214,46 +214,7 @@ var Browser = {
     }
   },
 
-  _waitingToClose: false,
   closing: function closing() {
-    
-    if (this._waitingToClose)
-      return false;
-
-    
-    let numTabs = this._tabs.length;
-    if (numTabs > 1) {
-      let shouldPrompt = Services.prefs.getBoolPref("browser.tabs.warnOnClose");
-      if (shouldPrompt) {
-        let prompt = Services.prompt;
-
-        
-        let warnOnClose = { value: true };
-
-        let messageBase = Strings.browser.GetStringFromName("tabs.closeWarning");
-        let message = PluralForm.get(numTabs, messageBase).replace("#1", numTabs);
-
-        let title = Strings.browser.GetStringFromName("tabs.closeWarningTitle");
-        let closeText = Strings.browser.GetStringFromName("tabs.closeButton");
-        let checkText = Strings.browser.GetStringFromName("tabs.closeWarningPromptMe");
-        let buttons = (prompt.BUTTON_TITLE_IS_STRING * prompt.BUTTON_POS_0) +
-                      (prompt.BUTTON_TITLE_CANCEL * prompt.BUTTON_POS_1);
-
-        this._waitingToClose = true;
-        let pressed = prompt.confirmEx(window, title, message, buttons, closeText, null, null, checkText, warnOnClose);
-        this._waitingToClose = false;
-
-        
-        let reallyClose = (pressed == 0);
-        if (reallyClose && !warnOnClose.value)
-          Services.prefs.setBoolPref("browser.tabs.warnOnClose", false);
-
-        
-        if (!reallyClose)
-          return false;
-      }
-    }
-
     
     let lastBrowser = true;
     let e = Services.wm.getEnumerator("navigator:browser");
