@@ -26,14 +26,18 @@ public:
   nsVolume(const Volume* aVolume);
 
   
+  
   nsVolume(const nsAString& aName, const nsAString& aMountPoint,
-           const int32_t& aState, const int32_t& aMountGeneration)
+           const int32_t& aState, const int32_t& aMountGeneration,
+           const bool& aIsMediaPresent, const bool& aIsSharing)
     : mName(aName),
       mMountPoint(aMountPoint),
       mState(aState),
       mMountGeneration(aMountGeneration),
       mMountLocked(false),
-      mIsFake(false)
+      mIsFake(false),
+      mIsMediaPresent(aIsMediaPresent),
+      mIsSharing(aIsSharing)
   {
   }
 
@@ -44,7 +48,9 @@ public:
       mState(STATE_INIT),
       mMountGeneration(-1),
       mMountLocked(true),  
-      mIsFake(false)
+      mIsFake(false),
+      mIsMediaPresent(false),
+      mIsSharing(false)
   {
   }
 
@@ -75,7 +81,9 @@ private:
   void UpdateMountLock(bool aMountLocked);
 
   bool IsFake() const                 { return mIsFake; }
-  void SetIsFake(bool aIsFake)        { mIsFake = aIsFake; }
+  bool IsMediaPresent() const         { return mIsMediaPresent; }
+  bool IsSharing() const              { return mIsSharing; }
+  void SetIsFake(bool aIsFake);
   void SetState(int32_t aState);
 
   nsString mName;
@@ -84,6 +92,8 @@ private:
   int32_t  mMountGeneration;
   bool     mMountLocked;
   bool     mIsFake;
+  bool     mIsMediaPresent;
+  bool     mIsSharing;
 };
 
 } 

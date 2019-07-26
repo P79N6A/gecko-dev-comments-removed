@@ -443,6 +443,7 @@ AutoMounter::UpdateState()
           
           
           LOG("UpdateState: Unmounting %s", vol->NameStr());
+          vol->SetIsSharing(true);
           vol->StartUnmount(mResponseCallback);
           return; 
         }
