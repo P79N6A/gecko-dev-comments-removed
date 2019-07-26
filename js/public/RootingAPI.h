@@ -1165,7 +1165,9 @@ class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> 
         registerWithRuntime(rt);
     }
 
-    PersistentRooted(PersistentRooted &rhs) : ptr(rhs.ptr)
+    PersistentRooted(PersistentRooted &rhs)
+      : mozilla::LinkedListElement<PersistentRooted<T> >(),
+        ptr(rhs.ptr)
     {
         
 
