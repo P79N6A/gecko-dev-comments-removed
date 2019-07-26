@@ -1062,10 +1062,12 @@ Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
         }
         nsDependentCSubstring cookie = Substring(beginBuffer + nextCookie,
                                                  beginBuffer + semiSpaceIndex);
-        ProcessHeader(nvPair(name, cookie), true);
+        
+        ProcessHeader(nvPair(name, cookie), name.Length() < 20);
         nextCookie = semiSpaceIndex + 2;
       }
     } else {
+      
       ProcessHeader(nvPair(name, value), name.EqualsLiteral("authorization"));
     }
   }
