@@ -1269,10 +1269,9 @@ LookupName(JSContext *cx, HandlePropertyName name, HandleObject scopeChain,
 
 
 
-
 extern bool
-LookupNameForSet(JSContext *cx, HandlePropertyName name, HandleObject scopeChain,
-                 MutableHandleObject objp);
+LookupNameWithGlobalDefault(JSContext *cx, HandlePropertyName name, HandleObject scopeChain,
+                            MutableHandleObject objp);
 
 }
 
