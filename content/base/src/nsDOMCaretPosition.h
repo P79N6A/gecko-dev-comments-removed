@@ -8,10 +8,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsCOMPtr.h"
 #include "nsINode.h"
-#include "nsRange.h"
 #include "nsWrapperCache.h"
-#include "nsRect.h"
-#include "nsClientRect.h"
 
 
 
@@ -49,32 +46,6 @@ public:
 
   nsINode* GetOffsetNode() const;
 
-  
-
-
-
-
-
-
-  already_AddRefed<nsClientRect> GetClientRect() const;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  void SetAnonymousContentNode(nsINode* aNode)
-  {
-    mAnonymousContentNode = aNode;
-  }
-
   nsISupports* GetParentObject() const
   {
     return GetOffsetNode();
@@ -85,10 +56,8 @@ public:
 
 protected:
   virtual ~nsDOMCaretPosition();
-
   uint32_t mOffset;
   nsCOMPtr<nsINode> mOffsetNode;
-  nsCOMPtr<nsINode> mAnonymousContentNode;
 };
 #endif
 
