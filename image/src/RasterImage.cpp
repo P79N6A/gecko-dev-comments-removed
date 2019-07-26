@@ -3276,7 +3276,7 @@ RasterImage::DecodeWorker::MarkAsASAP(RasterImage* aImg)
     
     
     
-    request->remove();
+    request->removeFrom(mNormalDecodeRequests);
     mASAPDecodeRequests.insertBack(request);
 
     
