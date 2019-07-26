@@ -718,6 +718,20 @@ public:
   static bool TouchEventsEnabled(JSContext* , JSObject* );
 
   static inline bool
+  CanHaveName(nsIAtom* aTag)
+  {
+    return aTag == nsGkAtoms::img ||
+           aTag == nsGkAtoms::form ||
+           aTag == nsGkAtoms::applet ||
+           aTag == nsGkAtoms::embed ||
+           aTag == nsGkAtoms::object;
+  }
+  static inline bool
+  ShouldExposeNameAsHTMLDocumentProperty(Element* aElement)
+  {
+    return aElement->IsHTML() && CanHaveName(aElement->Tag());
+  }
+  static inline bool
   ShouldExposeIdAsHTMLDocumentProperty(Element* aElement)
   {
     if (!aElement->IsHTML()) {
