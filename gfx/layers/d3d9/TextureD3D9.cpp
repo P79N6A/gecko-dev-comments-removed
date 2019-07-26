@@ -1064,7 +1064,7 @@ DataTextureSourceD3D9::Update(gfx::DataSourceSurface* aSurface,
   
   
   
-  MOZ_ASSERT(!aSrcOffset);
+  MOZ_ASSERT(!aDestRegion && !aSrcOffset);
 
   if (!mCompositor || !mCompositor->device()) {
     NS_WARNING("No D3D device to update the texture.");

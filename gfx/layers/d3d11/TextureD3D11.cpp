@@ -171,10 +171,6 @@ bool
 TextureClientD3D11::Lock(OpenMode aMode)
 {
   MOZ_ASSERT(!mIsLocked, "The Texture is already locked!");
-  if (!mTexture) {
-    return false;
-  }
-
   LockD3DTexture(mTexture.get());
   mIsLocked = true;
 
@@ -215,10 +211,6 @@ TextureClientD3D11::GetAsDrawTarget()
     return mDrawTarget;
   }
 
-  if (!mTexture) {
-    return nullptr;
-  }
-
   mDrawTarget = Factory::CreateDrawTargetForD3D10Texture(mTexture, mFormat);
   return mDrawTarget;
 }
@@ -229,7 +221,7 @@ TextureClientD3D11::AllocateForSurface(gfx::IntSize aSize, TextureAllocationFlag
   mSize = aSize;
   ID3D10Device* device = gfxWindowsPlatform::GetPlatform()->GetD3D10Device();
 
-  CD3D10_TEXTURE2D_DESC newDesc(DXGI_FORMAT_B8G8R8A8_UNORM,
+  CD3D10_TEXTURE2D_DESC newDesc(SurfaceFormatToDXGIFormat(mFormat),
                                 aSize.width, aSize.height, 1, 1,
                                 D3D10_BIND_RENDER_TARGET | D3D10_BIND_SHADER_RESOURCE);
 
@@ -340,7 +332,7 @@ DataTextureSourceD3D11::Update(DataSourceSurface* aSurface,
   
   
   
-  MOZ_ASSERT(!aSrcOffset);
+  MOZ_ASSERT(!aDestRegion && !aSrcOffset);
   MOZ_ASSERT(aSurface);
 
   if (!mCompositor || !mCompositor->GetDevice()) {
