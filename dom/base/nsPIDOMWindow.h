@@ -574,6 +574,7 @@ public:
   virtual void EnableTimeChangeNotifications() = 0;
   virtual void DisableTimeChangeNotifications() = 0;
 
+#ifdef MOZ_B2G
   
 
 
@@ -585,6 +586,7 @@ public:
 
 
   virtual void DisableNetworkEvent(uint32_t aType) = 0;
+#endif 
 
   
 
