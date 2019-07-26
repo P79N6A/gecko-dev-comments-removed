@@ -828,9 +828,6 @@ struct ParseNode {
     bool isBound() const        { return test(PND_BOUND); }
     bool isImplicitArguments() const { return test(PND_IMPLICITARGUMENTS); }
 
-    void become(ParseNode *pn2);
-    void clear();
-
     
     bool isLiteral() const {
         return isKind(PNK_NUMBER) ||

@@ -13,8 +13,21 @@
 namespace js {
 namespace frontend {
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool
-FoldConstants(JSContext *cx, ParseNode *pn, Parser *parser, bool inGenexpLambda = false,
+FoldConstants(JSContext *cx, ParseNode **pnp, Parser *parser, bool inGenexpLambda = false,
               bool inCond = false);
 
 } 
