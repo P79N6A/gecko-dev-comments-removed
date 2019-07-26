@@ -292,7 +292,7 @@ LayerManagerOGL::Initialize(bool force)
   }
 
   
-  if (!mPrograms[gl::RGBALayerProgramType].mVariations[MaskNone]->Initialize()) {
+  if (!mPrograms[RGBALayerProgramType].mVariations[MaskNone]->Initialize()) {
 #ifdef MOZ_WIDGET_ANDROID
     NS_RUNTIMEABORT("Shader initialization failed");
 #endif
