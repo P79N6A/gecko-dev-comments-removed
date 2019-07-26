@@ -18,7 +18,6 @@
 
 
 #include "nsXPIDLString.h"
-#include "nsThreadUtils.h"
 class nsIURI;
 
 
@@ -92,8 +91,6 @@ struct nsCSSToken {
   void AppendToString(nsString& aBuffer);
 };
 
-class DeferredCleanupRunnable; 
-
 
 
 
@@ -123,9 +120,6 @@ class nsCSSScanner {
   }
 
 #ifdef CSS_REPORT_PARSE_ERRORS
-  
-  void PerformDeferredCleanup();
-
   void AddToError(const nsSubstring& aErrorText);
   void OutputError();
   void ClearError();
@@ -134,8 +128,6 @@ class nsCSSScanner {
   void ReportUnexpected(const char* aMessage);
   
 private:
-  void Reset();
-
   void ReportUnexpectedParams(const char* aMessage,
                               const PRUnichar** aParams,
                               uint32_t aParamsLength);
@@ -219,9 +211,8 @@ protected:
   uint32_t mRecordStartOffset;
 
 #ifdef CSS_REPORT_PARSE_ERRORS
-  nsRevocableEventPtr<DeferredCleanupRunnable> mDeferredCleaner;
-  nsCOMPtr<nsIURI> mCachedURI;  
-  nsString mCachedFileName;
+  nsXPIDLCString mFileName;
+  nsCOMPtr<nsIURI> mURI;  
   uint32_t mErrorLineNumber, mColNumber, mErrorColNumber;
   nsFixedString mError;
   PRUnichar mErrorBuf[200];
