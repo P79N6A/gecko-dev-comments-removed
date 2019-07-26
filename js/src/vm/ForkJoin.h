@@ -186,7 +186,7 @@ struct ForkJoinSlice
     
     
     void requestGC(gcreason::Reason reason);
-    void requestCompartmentGC(JSCompartment *compartment, gcreason::Reason reason);
+    void requestZoneGC(JS::Zone *zone, gcreason::Reason reason);
 
     
     

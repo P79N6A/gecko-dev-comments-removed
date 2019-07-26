@@ -67,7 +67,7 @@ enum Reason {
 } 
 
 extern JS_FRIEND_API(void)
-PrepareCompartmentForGC(JSCompartment *comp);
+PrepareZoneForGC(Zone *zone);
 
 extern JS_FRIEND_API(void)
 PrepareForFullGC(JSRuntime *rt);
@@ -79,7 +79,7 @@ extern JS_FRIEND_API(bool)
 IsGCScheduled(JSRuntime *rt);
 
 extern JS_FRIEND_API(void)
-SkipCompartmentForGC(JSCompartment *comp);
+SkipZoneForGC(Zone *zone);
 
 
 

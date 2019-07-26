@@ -50,7 +50,7 @@ class js::ForkJoinShared : public TaskExecutor, public Monitor
     uint32_t rendezvousIndex_;     
     bool gcRequested_;             
     gcreason::Reason gcReason_;    
-    JSCompartment *gcCompartment_; 
+    Zone *gcZone_;                 
 
     
     
@@ -126,7 +126,7 @@ class js::ForkJoinShared : public TaskExecutor, public Monitor
 
     
     void requestGC(gcreason::Reason reason);
-    void requestCompartmentGC(JSCompartment *compartment, gcreason::Reason reason);
+    void requestZoneGC(JS::Zone *zone, gcreason::Reason reason);
 
     
     void setAbortFlag();
@@ -184,7 +184,7 @@ ForkJoinShared::ForkJoinShared(JSContext *cx,
     rendezvousIndex_(0),
     gcRequested_(false),
     gcReason_(gcreason::NUM_REASONS),
-    gcCompartment_(NULL),
+    gcZone_(NULL),
     abort_(false),
     fatal_(false),
     rendezvous_(false)
@@ -277,12 +277,12 @@ ForkJoinShared::transferArenasToCompartmentAndProcessGCRequests()
         comp->adoptWorkerAllocator(allocators_[i]);
 
     if (gcRequested_) {
-        if (!gcCompartment_)
+        if (!gcZone_)
             TriggerGC(cx_->runtime, gcReason_);
         else
-            TriggerCompartmentGC(gcCompartment_, gcReason_);
+            TriggerZoneGC(gcZone_, gcReason_);
         gcRequested_ = false;
-        gcCompartment_ = NULL;
+        gcZone_ = NULL;
     }
 }
 
@@ -457,26 +457,25 @@ ForkJoinShared::requestGC(gcreason::Reason reason)
 {
     AutoLockMonitor lock(*this);
 
-    gcCompartment_ = NULL;
+    gcZone_ = NULL;
     gcReason_ = reason;
     gcRequested_ = true;
 }
 
 void
-ForkJoinShared::requestCompartmentGC(JSCompartment *compartment,
-                                     gcreason::Reason reason)
+ForkJoinShared::requestZoneGC(JS::Zone *zone, gcreason::Reason reason)
 {
     AutoLockMonitor lock(*this);
 
-    if (gcRequested_ && gcCompartment_ != compartment) {
+    if (gcRequested_ && gcZone_ != zone) {
         
         
-        gcCompartment_ = NULL;
+        gcZone_ = NULL;
         gcReason_ = reason;
         gcRequested_ = true;
     } else {
         
-        gcCompartment_ = compartment;
+        gcZone_ = zone;
         gcReason_ = reason;
         gcRequested_ = true;
     }
@@ -560,11 +559,10 @@ ForkJoinSlice::requestGC(gcreason::Reason reason)
 }
 
 void
-ForkJoinSlice::requestCompartmentGC(JSCompartment *compartment,
-                                    gcreason::Reason reason)
+ForkJoinSlice::requestZoneGC(JS::Zone *zone, gcreason::Reason reason)
 {
 #ifdef JS_THREADSAFE
-    shared->requestCompartmentGC(compartment, reason);
+    shared->requestZoneGC(zone, reason);
     triggerAbort();
 #endif
 }
