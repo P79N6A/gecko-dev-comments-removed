@@ -496,6 +496,12 @@ public:
       }
 
       mWorkerPrivate->SetPrincipal(channelPrincipal);
+
+      
+      if (parent) {
+        mWorkerPrivate->SetCSP(parent->GetCSP());
+        mWorkerPrivate->SetEvalAllowed(parent->IsEvalAllowed());
+      }
     }
 
     return NS_OK;
