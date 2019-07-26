@@ -632,6 +632,18 @@ void SourceBufferDestroy(void *srcSurfUD)
   delete static_cast<SourceSurfaceUserData*>(srcSurfUD);
 }
 
+UserDataKey kThebesSurface;
+
+struct DependentSourceSurfaceUserData
+{
+  nsRefPtr<gfxASurface> mSurface;
+};
+
+void SourceSurfaceDestroyed(void *aData)
+{
+  delete static_cast<DependentSourceSurfaceUserData*>(aData);
+}
+
 #if MOZ_TREE_CAIRO
 void SourceSnapshotDetached(cairo_surface_t *nullSurf)
 {
@@ -652,6 +664,34 @@ void
 gfxPlatform::ClearSourceSurfaceForSurface(gfxASurface *aSurface)
 {
   aSurface->SetData(&kSourceSurface, nullptr, nullptr);
+}
+
+static TemporaryRef<DataSourceSurface>
+CopySurface(gfxASurface* aSurface)
+{
+  const nsIntSize size = aSurface->GetSize();
+  gfxImageFormat format = gfxPlatform::GetPlatform()->OptimalFormatForContent(aSurface->GetContentType());
+  RefPtr<DataSourceSurface> data =
+    Factory::CreateDataSourceSurface(ToIntSize(size),
+                                     ImageFormatToSurfaceFormat(format));
+  if (!data) {
+    return nullptr;
+  }
+
+  DataSourceSurface::MappedSurface map;
+  DebugOnly<bool> result = data->Map(DataSourceSurface::WRITE, &map);
+  MOZ_ASSERT(result, "Should always succeed mapping raw data surfaces!");
+
+  nsRefPtr<gfxImageSurface> image = new gfxImageSurface(map.mData, size, map.mStride, format);
+  nsRefPtr<gfxContext> ctx = new gfxContext(image);
+
+  ctx->SetSource(aSurface);
+  ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
+  ctx->Paint();
+
+  data->Unmap();
+
+  return data;
 }
 
 RefPtr<SourceSurface>
@@ -722,18 +762,24 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
     }
   }
 
+  bool dependsOnData = false;
   if (!srcBuffer) {
     nsRefPtr<gfxImageSurface> imgSurface = aSurface->GetAsImageSurface();
 
-    bool isWin32ImageSurf = imgSurface &&
-                            aSurface->GetType() == gfxSurfaceType::Win32;
-
+    RefPtr<DataSourceSurface> copy;
     if (!imgSurface) {
-      imgSurface = new gfxImageSurface(aSurface->GetSize(), OptimalFormatForContent(aSurface->GetContentType()));
-      nsRefPtr<gfxContext> ctx = new gfxContext(imgSurface);
-      ctx->SetSource(aSurface);
-      ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-      ctx->Paint();
+      copy = CopySurface(aSurface);
+
+      if (!copy) {
+        return nullptr;
+      }
+
+      DataSourceSurface::MappedSurface map;
+      DebugOnly<bool> result = copy->Map(DataSourceSurface::WRITE, &map);
+      MOZ_ASSERT(result, "Should always succeed mapping raw data surfaces!");
+
+      imgSurface = new gfxImageSurface(map.mData, aSurface->GetSize(), map.mStride,
+                                       SurfaceFormatToImageFormat(copy->GetFormat()));
     }
 
     gfxImageFormat cairoFormat = imgSurface->Format();
@@ -760,38 +806,56 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
                                                      imgSurface->Stride(),
                                                      format);
 
+    if (copy) {
+      copy->Unmap();
+    }
+
     if (!srcBuffer) {
       
       
-      
-      if (imgSurface != aSurface && !isWin32ImageSurf) {
-        return nullptr;
+      if (copy) {
+        srcBuffer = copy;
+      } else {
+        srcBuffer = Factory::CreateWrappingDataSourceSurface(imgSurface->Data(),
+                                                             imgSurface->Stride(),
+                                                             size, format);
+        dependsOnData = true;
       }
-
-      srcBuffer = Factory::CreateWrappingDataSourceSurface(imgSurface->Data(),
-                                                           imgSurface->Stride(),
-                                                           size, format);
-
     }
 
+    if (!srcBuffer) {
+      return nullptr;
+    }
+
+    if (!dependsOnData) {
 #if MOZ_TREE_CAIRO
-    cairo_surface_t *nullSurf =
-	cairo_null_surface_create(CAIRO_CONTENT_COLOR_ALPHA);
-    cairo_surface_set_user_data(nullSurf,
-                                &kSourceSurface,
-                                imgSurface,
-                                nullptr);
-    cairo_surface_attach_snapshot(imgSurface->CairoSurface(), nullSurf, SourceSnapshotDetached);
-    cairo_surface_destroy(nullSurf);
+      cairo_surface_t *nullSurf =
+      cairo_null_surface_create(CAIRO_CONTENT_COLOR_ALPHA);
+      cairo_surface_set_user_data(nullSurf,
+                                  &kSourceSurface,
+                                  imgSurface,
+                                  nullptr);
+      cairo_surface_attach_snapshot(imgSurface->CairoSurface(), nullSurf, SourceSnapshotDetached);
+      cairo_surface_destroy(nullSurf);
 #else
-    cairo_surface_set_mime_data(imgSurface->CairoSurface(), "mozilla/magic", (const unsigned char*) "data", 4, SourceSnapshotDetached, imgSurface.get());
+      cairo_surface_set_mime_data(imgSurface->CairoSurface(), "mozilla/magic", (const unsigned char*) "data", 4, SourceSnapshotDetached, imgSurface.get());
 #endif
+    }
   }
 
-  SourceSurfaceUserData *srcSurfUD = new SourceSurfaceUserData;
-  srcSurfUD->mBackendType = aTarget->GetType();
-  srcSurfUD->mSrcSurface = srcBuffer;
-  aSurface->SetData(&kSourceSurface, srcSurfUD, SourceBufferDestroy);
+  if (dependsOnData) {
+    
+    
+    DependentSourceSurfaceUserData *srcSurfUD = new DependentSourceSurfaceUserData;
+    srcSurfUD->mSurface = aSurface;
+    srcBuffer->AddUserData(&kThebesSurface, srcSurfUD, SourceSurfaceDestroyed);
+  } else {
+    
+    SourceSurfaceUserData *srcSurfUD = new SourceSurfaceUserData;
+    srcSurfUD->mBackendType = aTarget->GetType();
+    srcSurfUD->mSrcSurface = srcBuffer;
+    aSurface->SetData(&kSourceSurface, srcSurfUD, SourceBufferDestroy);
+  }
 
   return srcBuffer;
 }
