@@ -663,8 +663,19 @@ nsRange::ParentChainChanged(nsIContent *aContent)
   NS_ASSERTION(mRoot == aContent, "Wrong ParentChainChanged notification?");
   nsINode* newRoot = IsValidBoundary(mStartParent);
   NS_ASSERTION(newRoot, "No valid boundary or root found!");
-  NS_ASSERTION(newRoot == IsValidBoundary(mEndParent),
-               "Start parent and end parent give different root!");
+  if (newRoot != IsValidBoundary(mEndParent)) {
+    
+    
+    
+    
+    NS_ASSERTION(mEndParent->IsInNativeAnonymousSubtree(),
+                 "This special case should happen only with "
+                 "native-anonymous content");
+    
+    
+    Reset();
+    return;
+  }
   
   
   DoSetRange(mStartParent, mStartOffset, mEndParent, mEndOffset, newRoot);
