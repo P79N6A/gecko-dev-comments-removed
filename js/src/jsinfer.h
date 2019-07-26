@@ -356,7 +356,7 @@ enum {
     OBJECT_FLAG_FUNCTION              = 0x1,
 
     
-    OBJECT_FLAG_NEW_SCRIPT_CLEARED    = 0x2,
+    OBJECT_FLAG_ADDENDUM_CLEARED      = 0x2,
 
     
 
@@ -866,6 +866,28 @@ struct Property
     static jsid getKey(Property *p) { return p->id; }
 };
 
+struct TypeNewScript;
+
+struct TypeObjectAddendum
+{
+    enum Kind {
+        NewScript
+    };
+
+    Kind kind;
+
+    bool isNewScript() {
+        return kind == NewScript;
+    }
+
+    TypeNewScript *asNewScript() {
+        JS_ASSERT(isNewScript());
+        return (TypeNewScript*) this;
+    }
+
+    static inline void writeBarrierPre(TypeObjectAddendum *newScript);
+    static void writeBarrierPost(TypeObjectAddendum *newScript, void *addr) {}
+};
 
 
 
@@ -876,7 +898,8 @@ struct Property
 
 
 
-struct TypeNewScript
+
+struct TypeNewScript : public TypeObjectAddendum
 {
     HeapPtrFunction fun;
 
@@ -912,7 +935,6 @@ struct TypeNewScript
     Initializer *initializerList;
 
     static inline void writeBarrierPre(TypeNewScript *newScript);
-    static void writeBarrierPost(TypeNewScript *newScript, void *addr) {}
 };
 
 
@@ -974,7 +996,20 @@ struct TypeObject : gc::Cell
 
 
 
-    HeapPtr<TypeNewScript> newScript;
+
+
+
+
+
+    HeapPtr<TypeObjectAddendum> addendum;
+
+    bool hasNewScript() {
+        return addendum && addendum->isNewScript();
+    }
+
+    TypeNewScript *newScript() {
+        return addendum->asNewScript();
+    }
 
     
 
@@ -1068,7 +1103,8 @@ struct TypeObject : gc::Cell
     void markStateChange(ExclusiveContext *cx);
     void setFlags(ExclusiveContext *cx, TypeObjectFlags flags);
     void markUnknown(ExclusiveContext *cx);
-    void clearNewScript(ExclusiveContext *cx);
+    void clearAddendum(ExclusiveContext *cx);
+    void clearNewScriptAddendum(ExclusiveContext *cx);
     void getFromPrototypes(JSContext *cx, jsid id, TypeSet *types, bool force = false);
 
     void print();
