@@ -95,6 +95,12 @@ ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint)
   
   
   
+  
+  
+  
+  
+  
+  
   if (!aFrame->OriginOfLastScroll() || aFrame->OriginOfLastScroll() == nsGkAtoms::apz) {
     aFrame->ScrollToCSSPixelsApproximate(aPoint, nsGkAtoms::apz);
   }
