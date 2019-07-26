@@ -135,6 +135,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   { "beid35cardlayer.dll", MAKE_VERSION(3, 5, 6, 6968) },
 
+  
+  { "bitguard.dll", MAKE_VERSION(2, 6, 1694, 24) },
+
   { nullptr, 0 }
 };
 
