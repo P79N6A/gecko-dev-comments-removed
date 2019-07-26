@@ -272,7 +272,7 @@ strip_signature_block(const char *src, const char * dest)
 
   fpSrc = fopen(src, "rb");
   if (!fpSrc) {
-    fprintf(stderr, "ERROR: could not open source file: %s\n", dest);
+    fprintf(stderr, "ERROR: could not open source file: %s\n", src);
     goto failure;
   }
 
@@ -600,6 +600,212 @@ failure:
 
 
 
+int
+import_signature(const char *src, uint32_t sigIndex,
+                 const char *base64SigFile, const char *dest)
+{
+  int rv = -1;
+  FILE *fpSrc, *fpDest, *fpSigFile;
+  uint32_t i;
+  uint32_t signatureCount, signatureLen, signatureAlgorithmID,
+           numChunks, leftOver;
+  char buf[BLOCKSIZE];
+  uint64_t sizeOfSrcMAR, sizeOfBase64EncodedFile;
+  char *passedInSignatureB64 = NULL;
+  uint8_t *passedInSignatureRaw = NULL;
+  uint8_t *extractedMARSignature = NULL;
+  unsigned int passedInSignatureLenRaw;
+
+  if (!src || !dest) {
+    fprintf(stderr, "ERROR: Invalid parameter passed in.\n");
+    goto failure;
+  }
+
+  fpSrc = fopen(src, "rb");
+  if (!fpSrc) {
+    fprintf(stderr, "ERROR: could not open source file: %s\n", src);
+    goto failure;
+  }
+
+  fpDest = fopen(dest, "wb");
+  if (!fpDest) {
+    fprintf(stderr, "ERROR: could not open dest file: %s\n", dest);
+    goto failure;
+  }
+
+  fpSigFile = fopen(base64SigFile , "rb");
+  if (!fpSigFile) {
+    fprintf(stderr, "ERROR: could not open sig file: %s\n", base64SigFile);
+    goto failure;
+  }
+
+  
+  if (fseeko(fpSrc, 0, SEEK_END)) {
+    fprintf(stderr, "ERROR: Could not seek to end of src file.\n");
+    goto failure;
+  }
+  sizeOfSrcMAR = ftello(fpSrc);
+  if (fseeko(fpSrc, 0, SEEK_SET)) {
+    fprintf(stderr, "ERROR: Could not seek to start of src file.\n");
+    goto failure;
+  }
+
+  
+  if (fseeko(fpSigFile, 0, SEEK_END)) {
+    fprintf(stderr, "ERROR: Could not seek to end of sig file.\n");
+    goto failure;
+  }
+  sizeOfBase64EncodedFile= ftello(fpSigFile);
+  if (fseeko(fpSigFile, 0, SEEK_SET)) {
+    fprintf(stderr, "ERROR: Could not seek to start of sig file.\n");
+    goto failure;
+  }
+
+  
+  passedInSignatureB64 = malloc(sizeOfBase64EncodedFile + 1);
+  passedInSignatureB64[sizeOfBase64EncodedFile] = '\0';
+  if (fread(passedInSignatureB64, sizeOfBase64EncodedFile, 1, fpSigFile) != 1) {
+    fprintf(stderr, "ERROR: Could read b64 sig file.\n");
+    goto failure;
+  }
+
+  
+  passedInSignatureRaw = ATOB_AsciiToData(passedInSignatureB64, &passedInSignatureLenRaw);
+  if (!passedInSignatureRaw) {
+    fprintf(stderr, "ERROR: could not obtain base64 decoded data\n");
+    goto failure;
+  }
+
+  
+  if (ReadAndWrite(fpSrc, fpDest, buf,
+                   SIGNATURE_BLOCK_OFFSET, "signature block offset")) {
+    goto failure;
+  }
+
+  
+  if (ReadAndWrite(fpSrc, fpDest, &signatureCount,
+                   sizeof(signatureCount), "signature count")) {
+    goto failure;
+  }
+  signatureCount = ntohl(signatureCount);
+  if (signatureCount > MAX_SIGNATURES) {
+    fprintf(stderr, "ERROR: Signature count was out of range\n");
+    goto failure;
+  }
+
+  if (sigIndex >= signatureCount) {
+    fprintf(stderr, "ERROR: Signature index was out of range\n");
+    goto failure;
+  }
+
+  
+
+
+  for (i = 0; i < signatureCount; i++) {
+    
+    if (ReadAndWrite(fpSrc, fpDest,
+                     &signatureAlgorithmID,
+                     sizeof(signatureAlgorithmID), "sig algorithm ID")) {
+      goto failure;
+    }
+
+    
+    if (ReadAndWrite(fpSrc, fpDest,
+                     &signatureLen, sizeof(signatureLen), "sig length")) {
+      goto failure;
+    }
+    signatureLen = ntohl(signatureLen);
+
+    
+    if (extractedMARSignature) {
+      free(extractedMARSignature);
+    }
+    extractedMARSignature = malloc(signatureLen);
+
+    if (sigIndex == i) {
+      if (passedInSignatureLenRaw != signatureLen) {
+        fprintf(stderr, "ERROR: Signature length must be the same\n");
+        goto failure;
+      }
+
+      if (fread(extractedMARSignature, signatureLen, 1, fpSrc) != 1) {
+        fprintf(stderr, "ERROR: Could not read signature\n");
+        goto failure;
+      }
+
+      if (fwrite(passedInSignatureRaw, passedInSignatureLenRaw,
+                 1, fpDest) != 1) {
+        fprintf(stderr, "ERROR: Could not write signature\n");
+        goto failure;
+      }
+    } else {
+      if (ReadAndWrite(fpSrc, fpDest,
+                       extractedMARSignature, signatureLen, "signature")) {
+        goto failure;
+      }
+    }
+  }
+
+  
+
+  numChunks = (sizeOfSrcMAR - ftello(fpSrc)) / BLOCKSIZE;
+  leftOver = (sizeOfSrcMAR - ftello(fpSrc)) % BLOCKSIZE;
+
+  
+  for (i = 0; i < numChunks; ++i) {
+    if (ReadAndWrite(fpSrc, fpDest, buf, BLOCKSIZE, "content block")) {
+      goto failure;
+    }
+  }
+
+  if (ReadAndWrite(fpSrc, fpDest, buf, leftOver, "left over content block")) {
+    goto failure;
+  }
+
+  rv = 0;
+
+failure:
+
+  if (fpSrc) {
+    fclose(fpSrc);
+  }
+
+  if (fpDest) {
+    fclose(fpDest);
+  }
+
+  if (fpSigFile) {
+    fclose(fpSigFile);
+  }
+
+  if (rv) {
+    remove(dest);
+  }
+
+  if (extractedMARSignature) {
+    free(extractedMARSignature);
+  }
+
+  if (passedInSignatureB64) {
+    free(passedInSignatureB64);
+  }
+
+  if (passedInSignatureRaw) {
+    PORT_Free(passedInSignatureRaw);
+  }
+
+  return rv;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -649,7 +855,7 @@ mar_repackage_and_sign(const char *NSSConfigDir,
 
   fpSrc = fopen(src, "rb");
   if (!fpSrc) {
-    fprintf(stderr, "ERROR: could not open source file: %s\n", dest);
+    fprintf(stderr, "ERROR: could not open source file: %s\n", src);
     goto failure;
   }
 

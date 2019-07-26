@@ -120,6 +120,22 @@ strip_signature_block(const char *src, const char * dest);
 int
 extract_signature(const char *src, uint32_t sigIndex, const char * dest);
 
+
+
+
+
+
+
+
+
+
+
+int
+import_signature(const char *src,
+                 uint32_t sigIndex,
+                 const char * base64SigFile,
+                 const char *dest);
+
 #ifdef __cplusplus
 }
 #endif
