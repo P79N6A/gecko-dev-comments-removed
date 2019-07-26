@@ -124,5 +124,14 @@ UnpackChannelOpened(const PrivateIPDLInterface&,
   return ChannelOpened::Read(aMsg, aTransport, aOtherProcess, aProtocol);
 }
 
+void
+ProtocolErrorBreakpoint(const char* aMsg)
+{
+    
+    
+    
+    printf_stderr("IPDL protocol error: %s\n", aMsg);
+}
+
 } 
 } 
