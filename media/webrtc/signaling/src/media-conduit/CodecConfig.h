@@ -50,22 +50,19 @@ struct AudioCodecConfig
 
 struct VideoCodecConfig
 {
-
   
 
 
 
   int mType;
   std::string mName;
-  int mWidth;
-  int mHeight;
 
-  VideoCodecConfig(int type, std::string name,int width,
-                    int height): mType(type),
-                                 mName(name),
-                                 mWidth(width),
-                                 mHeight(height)
+  
 
+
+
+  VideoCodecConfig(int type, std::string name): mType(type),
+                                                mName(name)
   {
   }
 

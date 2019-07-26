@@ -108,6 +108,14 @@ public:
 
 
 
+  virtual bool SelectSendResolution(unsigned short width,
+                                    unsigned short height);
+
+  
+
+
+
+
 
 
 
@@ -160,7 +168,9 @@ public:
                       mEngineReceiving(false),
                       mChannel(-1),
                       mCapId(-1),
-                      mCurSendCodecConfig(nullptr)
+                      mCurSendCodecConfig(nullptr),
+                      mSendingWidth(0),
+                      mSendingHeight(0)
   {
   }
 
@@ -218,6 +228,8 @@ private:
   int mCapId;   
   RecvCodecList    mRecvCodecList;
   VideoCodecConfig* mCurSendCodecConfig;
+  unsigned short mSendingWidth;
+  unsigned short mSendingHeight;
 
   mozilla::RefPtr<WebrtcAudioConduit> mSyncedTo;
 };
