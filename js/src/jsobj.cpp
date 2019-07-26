@@ -2548,9 +2548,6 @@ JSObject::willBeSparseElements(unsigned requiredCapacity, unsigned newElementsHi
 JSObject::maybeDensifySparseElements(JSContext *cx, HandleObject obj)
 {
     
-    JS_ASSERT(JSID_IS_INT(obj->lastProperty()->propid()));
-
-    
 
 
 
@@ -2609,8 +2606,10 @@ JSObject::maybeDensifySparseElements(JSContext *cx, HandleObject obj)
 
 
 
-    if (!obj->growElements(cx, newInitializedLength))
-        return ED_FAILED;
+    if (newInitializedLength > obj->getDenseCapacity()) {
+        if (!obj->growElements(cx, newInitializedLength))
+            return ED_FAILED;
+    }
 
     obj->ensureDenseInitializedLength(cx, newInitializedLength, 0);
 
