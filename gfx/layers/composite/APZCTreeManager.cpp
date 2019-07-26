@@ -21,6 +21,8 @@
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
 
+#include <algorithm>                    
+
 #define APZC_LOG(...)
 
 
@@ -271,6 +273,8 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
       if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_START) {
         mTouchCount++;
         mApzcForInputBlock = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint));
+        if (multiTouchInput.mTouches.Length() == 1)  
+          mApzcForInputBlock = AdjustForScrollGrab(mApzcForInputBlock);
         for (size_t i = 1; i < multiTouchInput.mTouches.Length(); i++) {
           nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[i].mScreenPoint));
           mApzcForInputBlock = CommonAncestor(mApzcForInputBlock.get(), apzc2.get());
@@ -313,6 +317,7 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
         
         if (mTouchCount == 0) {
           mApzcForInputBlock = nullptr;
+          mOverscrollHandoffChain.clear();
         }
       }
       break;
@@ -348,6 +353,8 @@ APZCTreeManager::GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent,
                                         ScreenPoint aPoint)
 {
   nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aPoint);
+  if (aEvent.touches.Length() == 1)  
+    apzc = AdjustForScrollGrab(apzc);
   gfx3DMatrix transformToApzc, transformToGecko;
   
   mCachedTransformToApzcForInputBlock = transformToApzc;
@@ -423,6 +430,7 @@ APZCTreeManager::ProcessTouchEvent(const WidgetTouchEvent& aEvent,
     }
     if (mTouchCount == 0) {
       mApzcForInputBlock = nullptr;
+      mOverscrollHandoffChain.clear();
     }
   }
   return ret;
@@ -612,34 +620,37 @@ APZCTreeManager::ClearTree()
 }
 
 void
-APZCTreeManager::HandleOverscroll(AsyncPanZoomController* aChild, ScreenPoint aStartPoint, ScreenPoint aEndPoint)
+APZCTreeManager::HandleOverscroll(AsyncPanZoomController* aPrev, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
+                                  int aOverscrollHandoffChainIndex)
 {
-  nsRefPtr<AsyncPanZoomController> parent;
-  {
+  
+  
+  
+  
+  ++aOverscrollHandoffChainIndex;
+  if (aOverscrollHandoffChainIndex >= mOverscrollHandoffChain.length()) {
     
-    
-    
-    
-    MonitorAutoLock lock(mTreeLock);
-    parent = aChild->GetParent();
+    return;
   }
-  if (parent == nullptr)
+
+  nsRefPtr<AsyncPanZoomController> next = mOverscrollHandoffChain[aOverscrollHandoffChainIndex];
+  if (next == nullptr)
     return;
 
   gfx3DMatrix transformToApzc;
   gfx3DMatrix transformToGecko;  
 
   
-  GetInputTransforms(aChild, transformToApzc, transformToGecko);
+  GetInputTransforms(aPrev, transformToApzc, transformToGecko);
   ApplyTransform(&aStartPoint, transformToApzc.Inverse());
   ApplyTransform(&aEndPoint, transformToApzc.Inverse());
 
   
-  GetInputTransforms(parent.get(), transformToApzc, transformToGecko);
+  GetInputTransforms(next, transformToApzc, transformToGecko);
   ApplyTransform(&aStartPoint, transformToApzc);
   ApplyTransform(&aEndPoint, transformToApzc);
 
-  parent->AttemptScroll(aStartPoint, aEndPoint);
+  next->AttemptScroll(aStartPoint, aEndPoint, aOverscrollHandoffChainIndex);
 }
 
 bool
@@ -673,6 +684,13 @@ APZCTreeManager::GetTargetAPZC(const ScrollableLayerGuid& aGuid)
   return target.forget();
 }
 
+struct CompareByScrollPriority
+{
+  bool operator()(const nsRefPtr<AsyncPanZoomController>& a, const nsRefPtr<AsyncPanZoomController>& b) {
+    return a->HasScrollgrab() && !b->HasScrollgrab();
+  }
+};
+
 already_AddRefed<AsyncPanZoomController>
 APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint)
 {
@@ -687,6 +705,46 @@ APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint)
     }
   }
   return target.forget();
+}
+
+already_AddRefed<AsyncPanZoomController>
+APZCTreeManager::AdjustForScrollGrab(const nsRefPtr<AsyncPanZoomController>& aInitialTarget)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  mOverscrollHandoffChain.clear();
+
+  
+  for (AsyncPanZoomController* apzc = aInitialTarget; apzc; apzc = apzc->GetParent()) {
+    if (!mOverscrollHandoffChain.append(apzc)) {
+      NS_WARNING("Vector::append failed");
+      mOverscrollHandoffChain.clear();
+      return nullptr;
+    }
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  std::stable_sort(mOverscrollHandoffChain.begin(), mOverscrollHandoffChain.end(),
+                   CompareByScrollPriority());
+
+  
+  nsRefPtr<AsyncPanZoomController> result = mOverscrollHandoffChain.length() > 0 ? mOverscrollHandoffChain[0] : nullptr;
+  return result.forget();
 }
 
 void

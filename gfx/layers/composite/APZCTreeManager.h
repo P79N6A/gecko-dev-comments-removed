@@ -18,6 +18,7 @@
 #include "nsCOMPtr.h"                   
 #include "nsISupportsImpl.h"
 #include "nsTraceRefcnt.h"              
+#include "mozilla/Vector.h"             
 
 class gfx3DMatrix;
 template <class E> class nsTArray;
@@ -221,7 +222,13 @@ public:
 
 
 
-  void HandleOverscroll(AsyncPanZoomController* aAPZC, ScreenPoint aStartPoint, ScreenPoint aEndPoint);
+
+
+
+
+
+  void HandleOverscroll(AsyncPanZoomController* aAPZC, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
+                        int aOverscrollHandoffChainIndex);
 
 protected:
   
@@ -239,6 +246,10 @@ public:
 
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScrollableLayerGuid& aGuid);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint);
+  
+
+
+  already_AddRefed<AsyncPanZoomController> AdjustForScrollGrab(const nsRefPtr<AsyncPanZoomController>& aInitialTarget);
   void GetRootAPZCsFor(const uint64_t& aLayersId,
                        nsTArray< nsRefPtr<AsyncPanZoomController> >* aOutRootApzcs);
   void GetInputTransforms(AsyncPanZoomController *aApzc, gfx3DMatrix& aTransformToApzcOut,
@@ -299,6 +310,12 @@ private:
 
 
   gfx3DMatrix mCachedTransformToApzcForInputBlock;
+  
+
+
+
+
+  Vector< nsRefPtr<AsyncPanZoomController> > mOverscrollHandoffChain;
 
   static float sDPI;
 };
