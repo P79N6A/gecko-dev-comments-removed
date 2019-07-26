@@ -110,6 +110,13 @@ DeclMarker(TypeObject, types::TypeObject)
 #undef DeclMarker
 
 
+JS_ALWAYS_INLINE bool
+IsNullTaggedPointer(void *p)
+{
+    return uintptr_t(p) < 32;
+}
+
+
 
 
 
