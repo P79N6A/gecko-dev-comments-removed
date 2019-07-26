@@ -177,12 +177,6 @@ DebuggerUI.prototype = {
 
 
 
-  get preferences() Prefs,
-
-  
-
-
-
 
   showTabSwitchNotification: function DUI_showTabSwitchNotification() {
     let gBrowser = this.chromeWindow.gBrowser;
@@ -279,7 +273,6 @@ DebuggerPane.prototype = {
     this._splitter.setAttribute("class", "devtools-horizontal-splitter");
 
     this._frame = ownerDocument.createElement("iframe");
-    this._frame.height = Prefs.height;
 
     this._nbox = gBrowser.getNotificationBox(this._tab.linkedBrowser);
     this._nbox.appendChild(this._splitter);
@@ -326,7 +319,6 @@ DebuggerPane.prototype = {
       }, true)
     }
 
-    Prefs.height = this._frame.height;
     this._frame.removeEventListener("Debugger:Unloaded", this.close, true);
     this._nbox.removeChild(this._splitter);
     this._nbox.removeChild(this._frame);
@@ -599,21 +591,7 @@ XPCOMUtils.defineLazyGetter(L10N, "stringBundle", function() {
 
 
 
-let Prefs = {
-  
-
-
-
-  get height()
-    Services.prefs.getIntPref("devtools.debugger.ui.height"),
-
-  
-
-
-
-  set height(aValue)
-    Services.prefs.setIntPref("devtools.debugger.ui.height", aValue)
-};
+let Prefs = {};
 
 
 
