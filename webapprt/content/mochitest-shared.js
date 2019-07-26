@@ -85,6 +85,5 @@ function becomeWebapp(manifestURL, parameters, onBecome) {
   Services.obs.addObserver(observeInstall, "webapps-ask-install", false);
 
   
-  let url = Services.io.newURI(manifestURL, null, null);
-  navigator.mozApps.install(url.spec, parameters);
+  navigator.mozApps.install(manifestURL, parameters);
 }

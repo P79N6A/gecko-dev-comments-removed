@@ -1,35 +1,21 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-function makeAllAppsLaunchable() {
-  var Webapps = {};
-  Components.utils.import("resource://gre/modules/Webapps.jsm", Webapps);
-  var originalValue = Webapps.DOMApplicationRegistry.allAppsLaunchable;
-  Webapps.DOMApplicationRegistry.allAppsLaunchable = true;
-
-  
-  window.addEventListener("unload", function restoreAllAppsLaunchable(event) {
-    if (event.target == window.document) {
-      window.removeEventListener("unload", restoreAllAppsLaunchable, false);
-      Webapps.DOMApplicationRegistry.allAppsLaunchable = originalValue;
-    }
-  }, false);
-}
-
 function runAll(steps) {
   SimpleTest.waitForExplicitFinish();
 
-  makeAllAppsLaunchable();
+  
+
+
+
+
+
+
+
+
+
+
+  SpecialPowers.setAllAppsLaunchable(true);
 
   
   steps = steps.concat();
