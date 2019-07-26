@@ -140,6 +140,11 @@ IsNegativeZero(double d)
 }
 
 
+
+
+
+
+
 static MOZ_ALWAYS_INLINE int_fast16_t
 ExponentComponent(double d)
 {
