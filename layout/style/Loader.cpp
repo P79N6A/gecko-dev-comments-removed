@@ -2419,5 +2419,49 @@ Loader::UnlinkCachedSheets()
   }
 }
 
+struct SheetMemoryCounter {
+  size_t size;
+  nsMallocSizeOfFun mallocSizeOf;
+};
+
+static size_t
+CountSheetMemory(URIPrincipalAndCORSModeHashKey* ,
+                 const nsRefPtr<nsCSSStyleSheet>& aSheet,
+                 nsMallocSizeOfFun aMallocSizeOf,
+                 void* )
+{
+  
+  
+  
+  
+  if (aSheet->GetOwningNode() || aSheet->GetParentSheet()) {
+    return 0;
+  }
+  return aSheet->SizeOfIncludingThis(aMallocSizeOf);
+}
+
+size_t
+Loader::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  size_t s = aMallocSizeOf(this);
+
+  s += mCompleteSheets.SizeOfExcludingThis(CountSheetMemory, aMallocSizeOf);
+
+  s += mObservers.SizeOfExcludingThis(aMallocSizeOf);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  return s;
+}
+
 } 
 } 
