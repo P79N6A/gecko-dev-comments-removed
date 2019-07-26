@@ -6271,6 +6271,13 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, HandleId id, types::StackTypeS
     }
 
     
+    if (unaryTypes.inTypes->getKnownTypeTag() != JSVAL_TYPE_OBJECT) {
+        MGuardObject *guardObj = MGuardObject::New(obj);
+        current->add(guardObj);
+        obj = guardObj;
+    }
+
+    
     pushConstant(ObjectValue(*commonGetter));
 
     MPassArg *wrapper = MPassArg::New(obj);
@@ -6421,6 +6428,13 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
             current->push(value);
 
             return resumeAfter(set);
+        }
+
+        
+        if (types->getKnownTypeTag() != JSVAL_TYPE_OBJECT) {
+            MGuardObject *guardObj = MGuardObject::New(obj);
+            current->add(guardObj);
+            obj = guardObj;
         }
 
         
