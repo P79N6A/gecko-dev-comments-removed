@@ -5,6 +5,9 @@
 #include "cpr.h"
 #include "cpr_stdlib.h"
 #include "cpr_stdio.h"
+#include "thread_monitor.h"
+#include "prtypes.h"
+#include "mozilla/Assertions.h"
 #include <pthread.h>
 #include <errno.h>
 #include <unistd.h>
@@ -104,6 +107,19 @@ cprCreateThread (const char *name,
 
 
 
+void cprJoinThread(cprThread_t thread)
+{
+    cpr_thread_t *cprThreadPtr;
+
+    cprThreadPtr = (cpr_thread_t *) thread;
+    MOZ_ASSERT(cprThreadPtr);
+    pthread_join(cprThreadPtr->u.handleInt, NULL);
+}
+
+
+
+
+
 
 
 
@@ -118,29 +134,28 @@ cprCreateThread (const char *name,
 cprRC_t
 cprDestroyThread (cprThread_t thread)
 {
-    static const char fname[] = "cprDestroyThread";
     cpr_thread_t *cprThreadPtr;
 
     cprThreadPtr = (cpr_thread_t *) thread;
-    if (cprThreadPtr != NULL) {
+    if (cprThreadPtr) {
         
 
 
         if ((pthread_t) cprThreadPtr->u.handleInt == pthread_self()) {
-            cprThreadPtr->threadId = 0;
-            cpr_free(cprThreadPtr);
+            CPR_INFO("%s: Destroying Thread %d", __FUNCTION__, cprThreadPtr->threadId);
             pthread_exit(NULL);
             return CPR_SUCCESS;
         }
 
-        CPR_ERROR("%s: Thread attempted to destroy another thread, not itself.\n",
-                  fname);
+        CPR_ERROR("%s: Thread attempted to destroy another thread, not itself.",
+                  __FUNCTION__);
+        MOZ_ASSERT(PR_FALSE);
         errno = EINVAL;
         return CPR_FAILURE;
     }
 
-    
-    CPR_ERROR("%s - NULL pointer passed in.\n", fname);
+    CPR_ERROR("%s - NULL pointer passed in.", __FUNCTION__);
+    MOZ_ASSERT(PR_FALSE);
     errno = EINVAL;
     return CPR_FAILURE;
 }

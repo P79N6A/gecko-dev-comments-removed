@@ -75,6 +75,13 @@ cprThread_t cprCreateThread(const char *name,
 
 
 
+void cprJoinThread(cprThread_t thread);
+
+
+
+
+
+
 
 
 
