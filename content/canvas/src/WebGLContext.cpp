@@ -964,6 +964,19 @@ WebGLContext::MozGetUnderlyingParamString(uint32_t pname, nsAString& retval)
 
 bool WebGLContext::IsExtensionSupported(JSContext *cx, WebGLExtensionID ext) const
 {
+    
+    
+    
+    if (xpc::AccessCheck::isChrome(js::GetContextCompartment(cx))) {
+        switch (ext) {
+            case WEBGL_debug_renderer_info:
+                return true;
+            default:
+                
+                break;
+        }
+    }
+
     if (mDisableExtensions) {
         return false;
     }
@@ -1018,8 +1031,6 @@ bool WebGLContext::IsExtensionSupported(JSContext *cx, WebGLExtensionID ext) con
                 return true;
             }
             return false;
-        case WEBGL_debug_renderer_info:
-            return xpc::AccessCheck::isChrome(js::GetContextCompartment(cx));
         default:
             
             break;
