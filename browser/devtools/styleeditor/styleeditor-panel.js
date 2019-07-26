@@ -75,12 +75,23 @@ StyleEditorPanel.prototype = {
 
 
 
-  _showError: function(event, errorCode) {
-    let message = _(errorCode);
+
+
+  _showError: function(event, code, message) {
+    if (!this._toolbox) {
+      
+      return;
+    }
+
+    let errorMessage = _(code);
+    if (message) {
+      errorMessage += " " + message;
+    }
+
     let notificationBox = this._toolbox.getNotificationBox();
     let notification = notificationBox.getNotificationWithValue("styleeditor-error");
     if (!notification) {
-      notificationBox.appendNotification(message,
+      notificationBox.appendNotification(errorMessage,
         "styleeditor-error", "", notificationBox.PRIORITY_CRITICAL_LOW);
     }
   },
