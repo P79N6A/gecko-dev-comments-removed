@@ -1009,16 +1009,12 @@ js_InvokeOperationCallback(JSContext *cx)
     JS_ASSERT(rt->interrupt);
 
     
-
-
-
-
+    
+    
     rt->interrupt = false;
 
     
-
-
-
+    
     rt->resetIonStackLimit();
 
     js::gc::GCIfNeeded(cx);
@@ -1029,19 +1025,27 @@ js_InvokeOperationCallback(JSContext *cx)
 #endif
 
     
-
-
-
+    
     jit::AttachFinishedCompilations(cx);
 #endif
 
     
-
-
-
-
+    
+    
     JSOperationCallback cb = cx->runtime()->operationCallback;
-    return !cb || cb(cx);
+    if (!cb || cb(cx))
+        return true;
+
+    
+    
+    Rooted<JSString*> stack(cx, ComputeStackString(cx));
+    const jschar *chars = stack ? stack->getCharsZ(cx) : nullptr;
+    if (!chars)
+        chars = MOZ_UTF16("(stack not available)");
+    JS_ReportErrorFlagsAndNumberUC(cx, JSREPORT_WARNING, js_GetErrorMessage, nullptr,
+                                   JSMSG_TERMINATED, chars);
+
+    return false;
 }
 
 bool
