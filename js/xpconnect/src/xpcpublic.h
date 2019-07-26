@@ -82,7 +82,10 @@ xpc_LocalizeRuntime(JSRuntime *rt);
 NS_EXPORT_(void)
 xpc_DelocalizeRuntime(JSRuntime *rt);
 
-static inline bool IS_WRAPPER_CLASS(js::Class* clazz)
+
+
+
+static inline bool IS_WN_CLASS(js::Class* clazz)
 {
     return clazz->ext.isWrappedNative;
 }
@@ -91,36 +94,11 @@ static inline bool IS_WRAPPER_CLASS(js::Class* clazz)
 
 
 
-
-
-
-
-
-
-
-
 #define WRAPPER_MULTISLOT 0
 
-static inline bool IS_WN_WRAPPER_OBJECT(JSObject *obj)
+static inline bool IS_WN_REFLECTOR(JSObject *obj)
 {
-    MOZ_ASSERT(IS_WRAPPER_CLASS(js::GetObjectClass(obj)));
-    return !js::GetReservedSlot(obj, WRAPPER_MULTISLOT).isDouble();
-}
-static inline bool IS_SLIM_WRAPPER_OBJECT(JSObject *obj)
-{
-    return !IS_WN_WRAPPER_OBJECT(obj);
-}
-
-
-
-
-static inline bool IS_WN_WRAPPER(JSObject *obj)
-{
-    return IS_WRAPPER_CLASS(js::GetObjectClass(obj)) && IS_WN_WRAPPER_OBJECT(obj);
-}
-static inline bool IS_SLIM_WRAPPER(JSObject *obj)
-{
-    return IS_WRAPPER_CLASS(js::GetObjectClass(obj)) && IS_SLIM_WRAPPER_OBJECT(obj);
+    return IS_WN_CLASS(js::GetObjectClass(obj));
 }
 
 extern bool

@@ -69,7 +69,7 @@ LookupInterfaceOrAncestor(uint32_t tableSize, const xpc_qsHashEntry *table,
 static MOZ_ALWAYS_INLINE bool
 HasBitInInterfacesBitmap(JSObject *obj, uint32_t interfaceBit)
 {
-    NS_ASSERTION(IS_WRAPPER_CLASS(js::GetObjectClass(obj)), "Not a wrapper?");
+    NS_ASSERTION(IS_WN_REFLECTOR(obj), "Not a wrapper?");
 
     XPCWrappedNativeJSClass *clasp =
       (XPCWrappedNativeJSClass*)js::GetObjectClass(obj);
@@ -178,7 +178,7 @@ GetMemberInfo(JSObject *obj, jsid memberId, const char **ifaceName)
     
     
     
-    if (IS_WRAPPER_CLASS(js::GetObjectClass(obj))) {
+    if (IS_WN_REFLECTOR(obj)) {
         XPCWrappedNative *wrapper =
             static_cast<XPCWrappedNative *>(js::GetObjectPrivate(obj));
         XPCWrappedNativeProto *proto = wrapper->GetProto();
@@ -561,7 +561,7 @@ getWrapper(JSContext *cx,
 
     
     
-    if (IS_WRAPPER_CLASS(clasp))
+    if (IS_WN_CLASS(clasp))
         *wrapper = XPCWrappedNative::Get(obj);
 
     return NS_OK;
@@ -614,7 +614,7 @@ castNativeFromWrapper(JSContext *cx,
     XPCWrappedNativeTearOff *tearoff;
     JSObject *cur;
 
-    if (IS_WRAPPER_CLASS(js::GetObjectClass(obj))) {
+    if (IS_WN_REFLECTOR(obj)) {
         cur = obj;
         wrapper = (XPCWrappedNative*)xpc_GetJSPrivate(obj);
         tearoff = nullptr;

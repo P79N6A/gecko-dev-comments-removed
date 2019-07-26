@@ -196,7 +196,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
     
     
     
-    if (!IS_WN_WRAPPER(obj) || !js::GetObjectParent(obj))
+    if (!IS_WN_REFLECTOR(obj) || !js::GetObjectParent(obj))
         return DoubleWrap(cx, obj, flags);
 
     XPCWrappedNative *wn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
@@ -295,7 +295,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
     NS_ENSURE_SUCCESS(rv, nullptr);
 
     obj = JSVAL_TO_OBJECT(v);
-    NS_ASSERTION(IS_WN_WRAPPER(obj), "bad object");
+    NS_ASSERTION(IS_WN_REFLECTOR(obj), "bad object");
 
     
     
@@ -517,7 +517,7 @@ WrapperFactory::WrapForSameCompartment(JSContext *cx, HandleObject objArg)
 
     MOZ_ASSERT(!dom::IsDOMObject(obj));
 
-    if (!IS_WN_WRAPPER(obj))
+    if (!IS_WN_REFLECTOR(obj))
         return obj;
 
     
