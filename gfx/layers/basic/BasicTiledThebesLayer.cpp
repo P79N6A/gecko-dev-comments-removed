@@ -420,6 +420,7 @@ BasicTiledThebesLayer::ProgressiveUpdate(BasicTiledLayerBuffer& aTiledBuffer,
                                          void* aCallbackData)
 {
   bool repeat = false;
+  bool isBufferChanged = false;
   do {
     
     
@@ -435,14 +436,11 @@ BasicTiledThebesLayer::ProgressiveUpdate(BasicTiledLayerBuffer& aTiledBuffer,
                                             repeat);
 
     
-    
     if (regionToPaint.IsEmpty()) {
-      if (repeat) {
-        break;
-      } else {
-        return false;
-      }
+      break;
     }
+
+    isBufferChanged |= true;
 
     
     aValidRegion.Or(aValidRegion, regionToPaint);
@@ -458,7 +456,9 @@ BasicTiledThebesLayer::ProgressiveUpdate(BasicTiledLayerBuffer& aTiledBuffer,
     aInvalidRegion.Sub(aInvalidRegion, regionToPaint);
   } while (repeat);
 
-  return true;
+  
+  
+  return isBufferChanged;
 }
 
 void
