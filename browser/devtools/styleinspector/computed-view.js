@@ -149,6 +149,7 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this._onSelectAll = this._onSelectAll.bind(this);
   this._onClick = this._onClick.bind(this);
   this._onCopy = this._onCopy.bind(this);
+  this._onCopyColor = this._onCopyColor.bind(this);
 
   this.styleDocument.addEventListener("copy", this._onCopy);
   this.styleDocument.addEventListener("mousedown", this.focusWindow);
@@ -585,6 +586,13 @@ CssHtmlTree.prototype = {
     });
 
     
+    this.menuitemCopyColor = createMenuItem(this._contextmenu, {
+      label: "ruleView.contextmenu.copyColor",
+      accesskey: "ruleView.contextmenu.copyColor.accessKey",
+      command: this._onCopyColor
+    });
+
+    
     this.menuitemSources= createMenuItem(this._contextmenu, {
       label: "ruleView.contextmenu.showOrigSources",
       accesskey: "ruleView.contextmenu.showOrigSources.accessKey",
@@ -619,6 +627,39 @@ CssHtmlTree.prototype = {
     let accessKey = label + ".accessKey";
     this.menuitemSources.setAttribute("accesskey",
                                       CssHtmlTree.l10n(accessKey));
+
+    this.menuitemCopyColor.hidden = !this._isColorPopup();
+  },
+
+  
+
+
+
+
+
+
+  _isColorPopup: function () {
+    this._colorToCopy = "";
+
+    let trigger = this.popupNode;
+    if (!trigger) {
+      return false;
+    }
+
+    let container = (trigger.nodeType == trigger.TEXT_NODE) ?
+                     trigger.parentElement : trigger;
+
+    let isColorNode = el => el.dataset && "color" in el.dataset;
+
+    while (!isColorNode(container)) {
+      container = container.parentNode;
+      if (!container) {
+        return false;
+      }
+    }
+
+    this._colorToCopy = container.dataset["color"];
+    return true;
   },
 
   
@@ -626,6 +667,7 @@ CssHtmlTree.prototype = {
 
   _onContextMenu: function(event) {
     try {
+      this.popupNode = event.explicitOriginalTarget;
       this.styleDocument.defaultView.focus();
       this._contextmenu.openPopupAtScreen(event.screenX, event.screenY, true);
     } catch(e) {
@@ -658,6 +700,10 @@ CssHtmlTree.prototype = {
                            .tab.ownerDocument.defaultView;
       browserWin.openUILinkIn(target.href, "tab");
     }
+  },
+
+  _onCopyColor: function() {
+    clipboardHelper.copyString(this._colorToCopy, this.styleDocument);
   },
 
   
@@ -752,10 +798,16 @@ CssHtmlTree.prototype = {
       this.menuitemSelectAll = null;
 
       
+      this.menuitemCopyColor.removeEventListener("command", this._onCopyColor);
+      this.menuitemCopyColor = null;
+
+      
       this._contextmenu.removeEventListener("popupshowing", this._contextMenuUpdate);
       this._contextmenu.parentNode.removeChild(this._contextmenu);
       this._contextmenu = null;
     }
+
+    this.popupNode = null;
 
     this.tooltip.stopTogglingOnHover(this.propertyContainer);
     this.tooltip.destroy();
