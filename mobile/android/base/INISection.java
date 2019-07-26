@@ -48,10 +48,9 @@ public class INISection {
     public int getIntProperty(String key) {
         Object val = getProperty(key);
         if (val == null)
-          return -1;
+            return -1;
 
-        Integer i = new Integer(val.toString());
-        return i.intValue();
+        return Integer.parseInt(val.toString());
     }
 
     

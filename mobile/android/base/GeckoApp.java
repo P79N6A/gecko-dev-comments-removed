@@ -2273,7 +2273,7 @@ abstract public class GeckoApp
     public Object onRetainNonConfigurationInstance() {
         
         
-        return new Boolean(true);
+        return Boolean.TRUE;
     } 
 
     abstract public String getPackageName();
