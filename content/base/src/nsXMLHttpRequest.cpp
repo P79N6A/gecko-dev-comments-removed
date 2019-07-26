@@ -2928,9 +2928,11 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
   if (!IsSystemXHR()) {
     
     
-    listener = new nsCORSListenerProxy(listener, mPrincipal, mChannel,
-                                       withCredentials, true, &rv);
+    nsRefPtr<nsCORSListenerProxy> corsListener =
+      new nsCORSListenerProxy(listener, mPrincipal, withCredentials);
+    rv = corsListener->Init(mChannel, true);
     NS_ENSURE_SUCCESS(rv, rv);
+    listener = corsListener;
   }
   else {
     

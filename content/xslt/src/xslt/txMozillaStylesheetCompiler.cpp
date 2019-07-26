@@ -485,10 +485,9 @@ txCompileObserver::startLoad(nsIURI* aUri, txStylesheetCompiler* aCompiler,
     parser->Parse(aUri);
 
     
-    nsCOMPtr<nsIStreamListener> listener =
-        new nsCORSListenerProxy(sink, aReferrerPrincipal, channel,
-                                false, &rv);
-    NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
+    nsRefPtr<nsCORSListenerProxy> listener =
+        new nsCORSListenerProxy(sink, aReferrerPrincipal, false);
+    rv = listener->Init(channel);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return channel->AsyncOpen(listener, parser);

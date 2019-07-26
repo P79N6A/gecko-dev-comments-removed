@@ -373,13 +373,13 @@ nsUserFontSet::StartLoad(gfxProxyFontEntry *aProxy,
     
     rv = channel->AsyncOpen(streamLoader, nullptr);
   } else {
-    nsCOMPtr<nsIStreamListener> listener =
-      new nsCORSListenerProxy(streamLoader, principal, channel,
-                              false, &rv);
+    nsRefPtr<nsCORSListenerProxy> listener =
+      new nsCORSListenerProxy(streamLoader, principal,
+                              false);
+    rv = listener->Init(channel);
     if (NS_FAILED(rv)) {
       fontLoader->DropChannel();  
     }
-    NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = channel->AsyncOpen(listener, nullptr);
