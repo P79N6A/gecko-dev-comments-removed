@@ -942,7 +942,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
 #ifdef DEBUG_INVALIDATIONS
     printf("Starting ProcessPendingUpdates\n");
 #endif
-#ifndef ANDROID
+#ifndef MOZ_WIDGET_GONK
     
     nsRefPtr<layers::LayerManager> mgr = mPresContext->GetPresShell()->GetLayerManager();
     if (mgr) {

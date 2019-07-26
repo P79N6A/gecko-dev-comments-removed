@@ -2195,7 +2195,7 @@ nsDOMWindowUtils::StopFrameTimeRecording(float** paintTimes, uint32_t *frameCoun
     
     for (uint32_t i = 0; i < *frameCount; i++) {
       (*frameIntervals)[i] = tmpFrameIntervals[i];
-#ifndef ANDROID
+#ifndef MOZ_WIDGET_GONK
       (*paintTimes)[i] = tmpPaintTimes[i];
 #else
       
