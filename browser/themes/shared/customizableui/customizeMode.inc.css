@@ -17,13 +17,13 @@
   pointer-events: none;
 }
 
-#main-window[customize-entered] .customization-target:not(#PanelUI-contents)::before,
+#main-window[customize-entered] .customization-target:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar))::before,
 #PanelUI-contents > .panel-customization-placeholder {
   -moz-outline-radius: 2.5px;
   outline: 1px dashed transparent;
 }
 
-#main-window[customize-entered] .customization-target:not(#PanelUI-contents)::before {
+#main-window[customize-entered] .customization-target:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar))::before {
   
   -moz-box-ordinal-group: 0;
   content: "";
@@ -45,16 +45,16 @@
 }
 
 
-#main-window[customize-entered] .customization-target:not(#PanelUI-contents):hover,
-#main-window[customize-entered] .customization-target[customizing-dragovertarget]:not(#PanelUI-contents),
+#main-window[customize-entered] .customization-target:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar)):hover,
+#main-window[customize-entered] .customization-target[customizing-dragovertarget]:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar)),
 #main-window[customize-entered] #nav-bar-customization-target.customization-target {
   position: relative;
 }
 
 
 
-#main-window[customize-entered] .customization-target:not(#PanelUI-contents):hover::before,
-#main-window[customize-entered] .customization-target[customizing-dragovertarget]:not(#PanelUI-contents)::before,
+#main-window[customize-entered] .customization-target:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar)):hover::before,
+#main-window[customize-entered] .customization-target[customizing-dragovertarget]:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar))::before,
 
 #nav-bar[showoutline=true] > #nav-bar-customization-target.customization-target::before {
   outline-color: rgb(102,102,102);
