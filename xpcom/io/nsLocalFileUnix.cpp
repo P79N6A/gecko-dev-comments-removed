@@ -817,6 +817,18 @@ nsLocalFile::CopyToNative(nsIFile *newParent, const nsACString &newName)
         char buf[BUFSIZ];
         int32_t bytesRead;
         
+        
+        nsresult saved_write_error = NS_OK;    
+        nsresult saved_read_error = NS_OK;
+
+        
+        
+        
+        
+        
+        
+        
+
         while ((bytesRead = PR_Read(oldFD, buf, BUFSIZ)) > 0) {
 #ifdef DEBUG_blizzard
             totalRead += bytesRead;
@@ -825,6 +837,7 @@ nsLocalFile::CopyToNative(nsIFile *newParent, const nsACString &newName)
             
             int32_t bytesWritten = PR_Write(newFD, buf, bytesRead);
             if (bytesWritten < 0) {
+                saved_write_error = NSRESULT_FOR_ERRNO();
                 bytesRead = -1;
                 break;
             }
@@ -835,18 +848,39 @@ nsLocalFile::CopyToNative(nsIFile *newParent, const nsACString &newName)
 #endif
         }
 
+        
+        
+        if ( (bytesRead < 0) && (saved_write_error == NS_OK)) {
+            saved_read_error = NSRESULT_FOR_ERRNO();
+        }
+
 #ifdef DEBUG_blizzard
         printf("read %d bytes, wrote %d bytes\n",
                  totalRead, totalWritten);
 #endif
 
         
+        
+        
+        
+        
+
+        
         PR_Close(newFD);
         PR_Close(oldFD);
 
         
-        if (bytesRead < 0) 
-            return NS_ERROR_OUT_OF_MEMORY;
+        
+        if (bytesRead < 0) {
+            if (saved_write_error != NS_OK)
+                return saved_write_error;
+            else if (saved_read_error != NS_OK)
+                return saved_read_error;
+#if DEBUG
+            else                
+                MOZ_ASSERT(0);
+#endif
+        }
     }
     return rv;
 }
