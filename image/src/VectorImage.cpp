@@ -5,6 +5,7 @@
 
 #include "VectorImage.h"
 
+#include "gfx2DGlue.h"
 #include "gfxContext.h"
 #include "gfxDrawable.h"
 #include "gfxPlatform.h"
@@ -32,6 +33,7 @@
 namespace mozilla {
 
 using namespace dom;
+using namespace gfx;
 using namespace layers;
 
 namespace image {
@@ -739,10 +741,10 @@ struct SVGDrawingParameters
     userSpaceToImageSpace = aUserSpaceToImageSpace * unscale;
 
     
-    gfxIntSize drawableSize(aViewportSize.width / scale.width,
-                            aViewportSize.height / scale.height);
+    IntSize drawableSize(aViewportSize.width / scale.width,
+                         aViewportSize.height / scale.height);
     sourceRect = userSpaceToImageSpace.Transform(aFill);
-    imageRect = nsIntRect(0, 0, drawableSize.width, drawableSize.height);
+    imageRect = IntRect(IntPoint(0, 0), drawableSize);
     subimage = gfxRect(aSubimage.x, aSubimage.y, aSubimage.width, aSubimage.height);
     subimage.ScaleRoundOut(1.0 / scale.width, 1.0 / scale.height);
   }
@@ -753,7 +755,7 @@ struct SVGDrawingParameters
   gfxRect fill;
   gfxRect subimage;
   gfxRect sourceRect;
-  nsIntRect imageRect;
+  IntRect imageRect;
   nsIntSize viewportSize;
   gfxSize scale;
   float animationTime;
@@ -838,7 +840,8 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
                            aParams.scale,
                            aParams.flags);
 
-  nsRefPtr<gfxDrawable> svgDrawable = new gfxCallbackDrawable(cb, aParams.imageRect.Size());
+  nsRefPtr<gfxDrawable> svgDrawable =
+    new gfxCallbackDrawable(cb, ThebesIntSize(aParams.imageRect.Size()));
 
   
   
@@ -851,7 +854,7 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
 
   
   mozilla::RefPtr<mozilla::gfx::DrawTarget> target =
-   gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(aParams.imageRect.Size().ToIntSize(), gfx::SurfaceFormat::B8G8R8A8);
+   gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(aParams.imageRect.Size(), gfx::SurfaceFormat::B8G8R8A8);
 
   
   
@@ -863,8 +866,10 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
 
   
   gfxUtils::DrawPixelSnapped(ctx, svgDrawable, gfxMatrix(),
-                             aParams.imageRect, aParams.imageRect,
-                             aParams.imageRect, aParams.imageRect,
+                             ThebesIntRect(aParams.imageRect),
+                             ThebesIntRect(aParams.imageRect),
+                             ThebesIntRect(aParams.imageRect),
+                             ThebesIntRect(aParams.imageRect),
                              gfxImageFormat::ARGB32,
                              GraphicsFilter::FILTER_NEAREST, aParams.flags);
 
@@ -878,7 +883,8 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
   
   
   
-  nsRefPtr<gfxDrawable> drawable = new gfxSurfaceDrawable(target, aParams.imageRect.Size());
+  nsRefPtr<gfxDrawable> drawable =
+    new gfxSurfaceDrawable(target, ThebesIntSize(aParams.imageRect.Size()));
   Show(drawable, aParams);
 }
 
@@ -890,7 +896,7 @@ VectorImage::Show(gfxDrawable* aDrawable, const SVGDrawingParameters& aParams)
   gfxUtils::DrawPixelSnapped(aParams.context, aDrawable,
                              aParams.userSpaceToImageSpace,
                              aParams.subimage, aParams.sourceRect,
-                             aParams.imageRect, aParams.fill,
+                             ThebesIntRect(aParams.imageRect), aParams.fill,
                              gfxImageFormat::ARGB32,
                              aParams.filter, aParams.flags);
 

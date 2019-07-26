@@ -13,7 +13,7 @@
 #include "mozilla/HashFunctions.h"  
 #include "gfxPoint.h"               
 #include "nsCOMPtr.h"               
-#include "nsSize.h"                 
+#include "mozilla/gfx/Point.h"      
 #include "SVGImageContext.h"        
 
 class gfxDrawable;
@@ -43,8 +43,9 @@ typedef Image* ImageKey;
 
 class SurfaceKey
 {
+  typedef gfx::IntSize IntSize;
 public:
-  SurfaceKey(const nsIntSize aSize,
+  SurfaceKey(const IntSize& aSize,
              const gfxSize aScale,
              const SVGImageContext* aSVGContext,
              const float aAnimationTime,
@@ -80,10 +81,10 @@ public:
     return hash;
   }
 
-  nsIntSize Size() const { return mSize; }
+  IntSize Size() const { return mSize; }
 
 private:
-  nsIntSize       mSize;
+  IntSize         mSize;
   gfxSize         mScale;
   SVGImageContext mSVGContext;
   bool            mSVGContextIsValid;
@@ -101,6 +102,8 @@ private:
 
 struct SurfaceCache
 {
+  typedef gfx::IntSize IntSize;
+
   
 
 
@@ -150,7 +153,7 @@ struct SurfaceCache
 
 
 
-  static bool CanHold(const nsIntSize& aSize);
+  static bool CanHold(const IntSize& aSize);
 
   
 
