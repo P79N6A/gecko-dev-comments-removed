@@ -383,8 +383,7 @@ function gatherTextUnder ( root )
       
       var altText = node.getAttribute( "alt" );
       if ( altText && altText != "" ) {
-        text = altText;
-        break;
+        text += " " + altText;
       }
     }
     
@@ -405,9 +404,7 @@ function gatherTextUnder ( root )
     }
   }
   
-  text = text.replace( /^\s+/, "" );
-  
-  text = text.replace( /\s+$/, "" );
+  text = text.trim();
   
   text = text.replace( /\s+/g, " " );
   return text;
