@@ -2,6 +2,9 @@
 
 
 
+#ifndef nsScriptElement_h
+#define nsScriptElement_h
+
 #include "mozilla/Attributes.h"
 #include "nsIScriptLoaderObserver.h"
 #include "nsIScriptElement.h"
@@ -43,3 +46,5 @@ protected:
 
   virtual bool MaybeProcessScript() MOZ_OVERRIDE;
 };
+
+#endif 
