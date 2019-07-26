@@ -499,13 +499,6 @@ void SetProcessPriority(int aPid,
 
 
 
-
-
-void SetCurrentThreadPriority(hal::ThreadPriority aPriority);
-
-
-
-
 void RegisterFMRadioObserver(hal::FMRadioObserver* aRadioObserver);
 
 
