@@ -4347,6 +4347,13 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
         nsCOMPtr<Element> element = do_QueryInterface(handler);
         element->GetAttribute(NS_LITERAL_STRING("crashedPageTitle"), messageStr);
       }
+
+      
+      
+      
+      if (messageStr.IsEmpty()) {
+        messageStr.Assign(NS_LITERAL_STRING(" "));
+      }
     }
     else {
         
