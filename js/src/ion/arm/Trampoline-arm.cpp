@@ -5,6 +5,7 @@
 
 
 
+
 #include "jscompartment.h"
 #include "assembler/assembler/MacroAssembler.h"
 #include "ion/IonCompartment.h"
@@ -304,7 +305,6 @@ IonCode *
 IonRuntime::generateInvalidator(JSContext *cx)
 {
     
-    AutoIonContextAlloc aica(cx);
     MacroAssembler masm(cx);
     
     
@@ -556,7 +556,7 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32_t frameClass)
 IonCode *
 IonRuntime::generateBailoutTable(JSContext *cx, uint32_t frameClass)
 {
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     Label bailout;
     for (size_t i = 0; i < BAILOUT_TABLE_SIZE; i++)
@@ -572,7 +572,7 @@ IonRuntime::generateBailoutTable(JSContext *cx, uint32_t frameClass)
 IonCode *
 IonRuntime::generateBailoutHandler(JSContext *cx)
 {
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
     GenerateBailoutThunk(masm, NO_FRAME_SIZE_CLASS_ID);
 
     Linker linker(masm);
@@ -591,7 +591,7 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
         return p->value;
 
     
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
     GeneralRegisterSet regs = GeneralRegisterSet(Register::Codes::WrapperMask);
 
     
@@ -732,7 +732,7 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
 IonCode *
 IonRuntime::generatePreBarrier(JSContext *cx, MIRType type)
 {
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     RegisterSet save = RegisterSet(GeneralRegisterSet(Registers::VolatileMask),
                                    FloatRegisterSet(FloatRegisters::VolatileMask));

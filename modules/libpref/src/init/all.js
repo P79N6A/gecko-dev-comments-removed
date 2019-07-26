@@ -180,6 +180,10 @@ pref("media.gstreamer.enabled", true);
 #endif
 #ifdef MOZ_WEBRTC
 pref("media.navigator.enabled", true);
+pref("media.navigator.video.default_width",640);
+pref("media.navigator.video.default_height",480);
+pref("media.navigator.video.default_fps",30);
+pref("media.navigator.video.default_minfps",10);
 pref("media.peerconnection.enabled", true);
 pref("media.navigator.permission.disabled", false);
 pref("media.peerconnection.default_iceservers", "[{\"url\": \"stun:23.21.150.121\"}]");
@@ -1045,10 +1049,6 @@ pref("network.jar.open-unsafe-types", false);
 
 
 
-pref("network.enableIDN", true);
-
-
-
 
 pref("network.IDN_show_punycode", false);
 
@@ -1157,11 +1157,8 @@ pref("network.IDN.whitelist.xn--kprw13d", true);
 pref("network.IDN.whitelist.asia", true);
 pref("network.IDN.whitelist.biz", true);
 pref("network.IDN.whitelist.cat", true);
-pref("network.IDN.whitelist.com", true);
 pref("network.IDN.whitelist.info", true);
 pref("network.IDN.whitelist.museum", true);
-pref("network.IDN.whitelist.name", true);
-pref("network.IDN.whitelist.net", true);
 pref("network.IDN.whitelist.org", true);
 pref("network.IDN.whitelist.tel", true);
 
