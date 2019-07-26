@@ -5,7 +5,6 @@
 
 
 #include "nsDOMXULCommandEvent.h"
-#include "prtime.h"
 
 nsDOMXULCommandEvent::nsDOMXULCommandEvent(mozilla::dom::EventTarget* aOwner,
                                            nsPresContext* aPresContext,

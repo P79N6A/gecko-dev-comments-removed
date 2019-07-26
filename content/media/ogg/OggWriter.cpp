@@ -3,7 +3,6 @@
 
 
 #include "OggWriter.h"
-#include "prtime.h"
 
 #undef LOG
 #ifdef MOZ_WIDGET_GONK

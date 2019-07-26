@@ -5,7 +5,6 @@
 
 
 #include "nsDOMCompositionEvent.h"
-#include "prtime.h"
 
 nsDOMCompositionEvent::nsDOMCompositionEvent(mozilla::dom::EventTarget* aOwner,
                                              nsPresContext* aPresContext,
