@@ -625,12 +625,11 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
 
     
     
-    if (fun->isBoundFunction()) {
+    if (fun->isArrow() && fun->isBoundFunction()) {
         JSObject *target = fun->getBoundFunctionTarget();
-        if (target->isFunction() && target->toFunction()->isArrow()) {
-            RootedFunction targetfun(cx, target->toFunction());
-            return FunctionToString(cx, targetfun, bodyOnly, lambdaParen);
-        }
+        RootedFunction targetFun(cx, target->toFunction());
+        JS_ASSERT(targetFun->isArrow());
+        return FunctionToString(cx, targetFun, bodyOnly, lambdaParen);
     }
 
     if (fun->hasScript()) {
@@ -1076,6 +1075,14 @@ js::CallOrConstructBoundFunction(JSContext *cx, unsigned argc, Value *vp)
     JS_ASSERT(fun->isBoundFunction());
 
     bool constructing = IsConstructing(vp);
+    if (constructing && fun->isArrow()) {
+        
+
+
+
+
+        return ReportIsNotFunction(cx, ObjectValue(*fun), -1, CONSTRUCT);
+    }
 
     
     unsigned argslen = fun->getBoundFunctionArgumentCount();

@@ -100,6 +100,18 @@ class JSFunction : public JSObject
     bool isSelfHostedConstructor()  const { return flags & SELF_HOSTED_CTOR; }
     bool hasRest()                  const { return flags & HAS_REST; }
     bool hasDefaults()              const { return flags & HAS_DEFAULTS; }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     bool isArrow()                  const { return flags & ARROW; }
 
     
