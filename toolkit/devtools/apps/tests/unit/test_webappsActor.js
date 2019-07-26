@@ -57,23 +57,6 @@ add_test(function testGetAll() {
   });
 });
 
-add_test(function testGetApp() {
-  let manifestURL = APP_ORIGIN + "/manifest.webapp";
-  let request = {type: "getApp", manifestURL: manifestURL};
-  webappActorRequest(request, function (aResponse) {
-    do_check_true("app" in aResponse);
-    let app = aResponse.app;
-    do_check_eq(app.id, gAppId);
-    do_check_eq(app.name, "Test app");
-    do_check_eq(app.manifest.description, "Testing webapps actor");
-    do_check_eq(app.manifest.launch_path, "/index.html");
-    do_check_eq(app.origin, APP_ORIGIN);
-    do_check_eq(app.installOrigin, app.origin);
-    do_check_eq(app.manifestURL, app.origin + "/manifest.webapp");
-    run_next_test();
-  });
-});
-
 add_test(function testLaunchApp() {
   let manifestURL = APP_ORIGIN + "/manifest.webapp";
   let startPoint = "/index.html";
@@ -120,39 +103,37 @@ add_test(function testCloseApp() {
 let red1px =  "data:application/xml;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAMBAQAY3Y2wAAAAAElFTkSuQmCC";
 let blue1px = "data:application/xml;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12MwZDgHAAFlAQBDpjhLAAAAAElFTkSuQmCC";
 
+add_test(function testGetIcon() {
+  let manifestURL = APP_ORIGIN + "/manifest.webapp";
+  let request = {
+    type: "getIconAsDataURL",
+    manifestURL: manifestURL
+  };
 
+  webappActorRequest(request, function (aResponse) {
+    do_check_false("error" in aResponse);
 
+    
+    do_check_eq(aResponse.url, red1px);
+    run_next_test();
+  });
+});
 
+add_test(function testGetIconWithCustomSize() {
+  let manifestURL = APP_ORIGIN + "/manifest.webapp";
+  let request = {
+    type: "getIconAsDataURL",
+    manifestURL: manifestURL,
+    size: 64
+  };
 
+  webappActorRequest(request, function (aResponse) {
+    do_check_false("error" in aResponse);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    do_check_eq(aResponse.url, blue1px);
+    run_next_test();
+  });
+});
 
 add_test(function testUninstall() {
   let manifestURL = APP_ORIGIN + "/manifest.webapp";
