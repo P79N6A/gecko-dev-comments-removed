@@ -42,6 +42,12 @@ gcli.addCommand({
           manual: gcli.lookup("screenshotClipboardManual")
         },
         {
+          name: "chrome",
+          type: "boolean",
+          description: gcli.lookup("screenshotChromeDesc"),
+          manual: gcli.lookup("screenshotChromeManual")
+        },
+        {
           name: "delay",
           type: { name: "number", min: 0 },
           defaultValue: 0,
@@ -65,7 +71,14 @@ gcli.addCommand({
     }
   ],
   exec: function Command_screenshot(args, context) {
-    var document = context.environment.contentDocument;
+    if (args.chrome && args.selector) {
+      
+      
+      
+      throw new Error(gcli.lookup("screenshotSelectorChromeConflict"));
+    }
+    var document = args.chrome? context.environment.chromeDocument
+                              : context.environment.contentDocument;
     if (args.delay > 0) {
       var promise = context.createPromise();
       document.defaultView.setTimeout(function Command_screenshotDelay() {
