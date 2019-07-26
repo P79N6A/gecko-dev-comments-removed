@@ -17,7 +17,8 @@ ChromeObjectWrapper ChromeObjectWrapper::singleton;
 using js::assertEnteredPolicy;
 
 static bool
-AllowedByBase(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act)
+AllowedByBase(JSContext *cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
+              js::Wrapper::Action act)
 {
     MOZ_ASSERT(js::Wrapper::wrapperHandler(wrapper) ==
                &ChromeObjectWrapper::singleton);
@@ -40,11 +41,9 @@ PropIsFromStandardPrototype(JSContext *cx, JSPropertyDescriptor *desc)
 
 
 static bool
-PropIsFromStandardPrototype(JSContext *cx, JSObject *wrapperArg, jsid idArg)
+PropIsFromStandardPrototype(JSContext *cx, JS::Handle<JSObject*> wrapper,
+                            JS::Handle<jsid> id)
 {
-    JS::Rooted<JSObject *> wrapper(cx, wrapperArg);
-    JS::Rooted<jsid> id(cx, idArg);
-
     MOZ_ASSERT(js::Wrapper::wrapperHandler(wrapper) ==
                &ChromeObjectWrapper::singleton);
     JSPropertyDescriptor desc;
@@ -60,7 +59,7 @@ PropIsFromStandardPrototype(JSContext *cx, JSObject *wrapperArg, jsid idArg)
 
 bool
 ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
-                                           JS::Handle<JSObject *> wrapper,
+                                           JS::Handle<JSObject*> wrapper,
                                            JS::Handle<jsid> id,
                                            js::PropertyDescriptor *desc,
                                            unsigned flags)
@@ -93,7 +92,8 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
 }
 
 bool
-ChromeObjectWrapper::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
+ChromeObjectWrapper::has(JSContext *cx, JS::Handle<JSObject*> wrapper,
+                         JS::Handle<jsid> id, bool *bp)
 {
     assertEnteredPolicy(cx, wrapper, id);
     
@@ -120,11 +120,12 @@ ChromeObjectWrapper::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 }
 
 bool
-ChromeObjectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
-                         jsid id, js::Value *vp)
+ChromeObjectWrapper::get(JSContext *cx, JS::Handle<JSObject*> wrapper,
+                         JS::Handle<JSObject*> receiver, JS::Handle<jsid> id,
+                         JS::MutableHandle<JS::Value> vp)
 {
     assertEnteredPolicy(cx, wrapper, id);
-    vp->setUndefined();
+    vp.setUndefined();
     JSPropertyDescriptor desc;
     
     
@@ -136,7 +137,7 @@ ChromeObjectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
         if (!ChromeObjectWrapperBase::get(cx, wrapper, receiver, id, vp))
             return false;
         
-        if (!vp->isUndefined())
+        if (!vp.isUndefined())
             return true;
     }
 
@@ -149,14 +150,14 @@ ChromeObjectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
 
     
     MOZ_ASSERT(js::IsObjectInContextCompartment(wrapper, cx));
-    return js::GetGeneric(cx, wrapperProto, receiver, id, vp);
+    return js::GetGeneric(cx, wrapperProto, receiver, id, vp.address());
 }
 
 
 
 
 bool
-ChromeObjectWrapper::objectClassIs(JSObject *obj, js::ESClassValue classValue,
+ChromeObjectWrapper::objectClassIs(JS::Handle<JSObject*> obj, js::ESClassValue classValue,
                                    JSContext *cx)
 {
   return CrossCompartmentWrapper::objectClassIs(obj, classValue, cx);
@@ -167,8 +168,8 @@ ChromeObjectWrapper::objectClassIs(JSObject *obj, js::ESClassValue classValue,
 
 
 bool
-ChromeObjectWrapper::enter(JSContext *cx, JSObject *wrapper, jsid id,
-                           js::Wrapper::Action act, bool *bp)
+ChromeObjectWrapper::enter(JSContext *cx, JS::Handle<JSObject*> wrapper,
+                           JS::Handle<jsid> id, js::Wrapper::Action act, bool *bp)
 {
     if (AllowedByBase(cx, wrapper, id, act))
         return true;
