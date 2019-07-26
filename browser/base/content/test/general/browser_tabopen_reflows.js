@@ -85,7 +85,7 @@ let observer = {
   reflow: function (start, end) {
     
     let path = (new Error().stack).split("\n").slice(1).map(line => {
-      return line.replace(/:\d+$/, "");
+      return line.replace(/:\d+:\d+$/, "");
     }).join("|");
     let pathWithLineNumbers = (new Error().stack).split("\n").slice(1).join("|");
 

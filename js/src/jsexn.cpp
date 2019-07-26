@@ -237,9 +237,15 @@ ComputeStackString(JSContext *cx)
             if (!sb.appendInflated(cfilename, strlen(cfilename)))
                 return nullptr;
 
+            uint32_t column = 0;
+            uint32_t line = PCToLineNumber(script, i.pc(), &column);
             
-            uint32_t line = PCToLineNumber(script, i.pc());
-            if (!sb.append(':') || !NumberValueToStringBuffer(cx, NumberValue(line), sb) ||
+            if (!sb.append(':') || !NumberValueToStringBuffer(cx, NumberValue(line), sb))
+                return nullptr;
+
+            
+            
+            if (!sb.append(':') || !NumberValueToStringBuffer(cx, NumberValue(column + 1), sb) ||
                 !sb.append('\n'))
             {
                 return nullptr;
