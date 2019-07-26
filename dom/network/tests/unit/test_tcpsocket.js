@@ -74,6 +74,12 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
+function get_platform() {
+  var xulRuntime = Components.classes["@mozilla.org/xre/app-info;1"]
+                              .getService(Components.interfaces.nsIXULRuntime);
+  return xulRuntime.OS;
+}
+
 
 
 
@@ -492,8 +498,12 @@ add_test(clientCloses);
 add_test(connectSock);
 add_test(bufferedClose);
 
-
-add_test(badConnect);
+if (get_platform() !== "Darwin") {
+  
+  
+  
+  add_test(badConnect);
+}
 
 
 add_test(connectSock);
