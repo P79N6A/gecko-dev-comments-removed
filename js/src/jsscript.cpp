@@ -864,9 +864,10 @@ JSScript::initScriptCounts(JSContext *cx)
     JS_ASSERT(size_t(cursor - base) == bytes);
 
     
-    InterpreterFrames *frames;
-    for (frames = cx->runtime()->interpreterFrames; frames; frames = frames->older)
-        frames->enableInterruptsIfRunning(this);
+    for (ActivationIterator iter(cx->runtime()); !iter.done(); ++iter) {
+        if (iter.activation()->isInterpreter())
+            iter.activation()->asInterpreter()->enableInterruptsIfRunning(this);
+    }
 
     return true;
 }
@@ -2611,9 +2612,10 @@ JSScript::ensureHasDebugScript(JSContext *cx)
 
 
 
-    InterpreterFrames *frames;
-    for (frames = cx->runtime()->interpreterFrames; frames; frames = frames->older)
-        frames->enableInterruptsIfRunning(this);
+    for (ActivationIterator iter(cx->runtime()); !iter.done(); ++iter) {
+        if (iter.activation()->isInterpreter())
+            iter.activation()->asInterpreter()->enableInterruptsIfRunning(this);
+    }
 
     return true;
 }

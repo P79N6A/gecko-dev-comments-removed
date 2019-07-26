@@ -76,7 +76,6 @@ typedef Rooted<JSLinearString*> RootedLinearString;
 class Activation;
 class ActivationIterator;
 class AsmJSActivation;
-class InterpreterFrames;
 class MathCache;
 class WorkerThreadState;
 
@@ -916,12 +915,6 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     size_t              nativeStackQuota;
-
-    
-
-
-
-    js::InterpreterFrames *interpreterFrames;
 
     
     JSContextCallback   cxCallback;

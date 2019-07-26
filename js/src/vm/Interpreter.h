@@ -316,54 +316,6 @@ extern bool
 HasInstance(JSContext *cx, HandleObject obj, HandleValue v, bool *bp);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class InterpreterFrames {
-  public:
-    class InterruptEnablerBase {
-      public:
-        virtual void enable() const = 0;
-    };
-
-    InterpreterFrames(JSContext *cx, FrameRegs *regs, const InterruptEnablerBase &enabler);
-    ~InterpreterFrames();
-
-    
-    void enableInterruptsIfRunning(JSScript *script) {
-        if (regs->fp()->script() == script)
-            enabler.enable();
-    }
-    void enableInterruptsUnconditionally() { enabler.enable(); }
-
-    InterpreterFrames *older;
-
-  private:
-    JSContext *context;
-    FrameRegs *regs;
-    const InterruptEnablerBase &enabler;
-};
-
-
 extern void
 UnwindScope(JSContext *cx, AbstractFramePtr frame, uint32_t stackDepth);
 
