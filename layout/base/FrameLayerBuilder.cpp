@@ -3739,16 +3739,16 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
 
   uint32_t maxSize = mManager->GetMaxTextureSize();
   NS_ASSERTION(maxSize > 0, "Invalid max texture size");
-  gfxSize surfaceSize(std::min<float>(boundingRect.Width(), maxSize),
-                      std::min<float>(boundingRect.Height(), maxSize));
+  nsIntSize surfaceSize(std::min<int32_t>(boundingRect.Width(), maxSize),
+                        std::min<int32_t>(boundingRect.Height(), maxSize));
 
   
   
   
   
   gfxMatrix maskTransform;
-  maskTransform.Scale(surfaceSize.width/boundingRect.Width(),
-                      surfaceSize.height/boundingRect.Height());
+  maskTransform.Scale(float(surfaceSize.width)/float(boundingRect.Width()),
+                      float(surfaceSize.height)/float(boundingRect.Height()));
   maskTransform.Translate(-boundingRect.TopLeft());
   
   gfxMatrix imageTransform = maskTransform;
@@ -3772,11 +3772,9 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
     GetMaskLayerImageCache()->FindImageFor(&lookupKey);
 
   if (!container) {
-    nsIntSize surfaceSizeInt = nsIntSize(NSToIntCeil(surfaceSize.width),
-                                         NSToIntCeil(surfaceSize.height));
     
     nsRefPtr<gfxASurface> surface =
-      aLayer->Manager()->CreateOptimalMaskSurface(surfaceSizeInt);
+      aLayer->Manager()->CreateOptimalMaskSurface(surfaceSize);
 
     
     if (!surface || surface->CairoStatus()) {
@@ -3800,7 +3798,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
     NS_ASSERTION(image, "Could not create image container for mask layer.");
     CairoImage::Data data;
     data.mSurface = surface;
-    data.mSize = surfaceSizeInt;
+    data.mSize = surfaceSize;
     static_cast<CairoImage*>(image.get())->SetData(data);
     container->SetCurrentImageInTransaction(image);
 
