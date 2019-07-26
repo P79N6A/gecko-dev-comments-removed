@@ -75,6 +75,38 @@ struct Paths {
   nsString tmpDir;
   nsString profileDir;
   nsString localProfileDir;
+  
+
+
+  nsString homeDir;
+  
+
+
+
+  nsString desktopDir;
+
+#if defined(XP_WIN)
+  
+
+
+  nsString winAppDataDir;
+  
+
+
+  nsString winStartMenuProgsDir;
+#endif 
+
+#if defined(XP_MACOSX)
+  
+
+
+  nsString macUserLibDir;
+  
+
+
+
+  nsString macLocalApplicationsDir;
+#endif 
 
   Paths()
   {
@@ -82,6 +114,18 @@ struct Paths {
     tmpDir.SetIsVoid(true);
     profileDir.SetIsVoid(true);
     localProfileDir.SetIsVoid(true);
+    homeDir.SetIsVoid(true);
+    desktopDir.SetIsVoid(true);
+
+#if defined(XP_WIN)
+    winAppDataDir.SetIsVoid(true);
+    winStartMenuProgsDir.SetIsVoid(true);
+#endif 
+
+#if defined(XP_MACOSX)
+    macUserLibDir.SetIsVoid(true);
+    macLocalApplicationsDir.SetIsVoid(true);
+#endif 
   }
 };
 
@@ -209,6 +253,18 @@ nsresult InitOSFileConstants()
   
 
   GetPathToSpecialDir(NS_OS_TEMP_DIR, paths->tmpDir);
+  GetPathToSpecialDir(NS_OS_HOME_DIR, paths->homeDir);
+  GetPathToSpecialDir(NS_OS_DESKTOP_DIR, paths->desktopDir);
+
+#if defined(XP_WIN)
+  GetPathToSpecialDir(NS_WIN_APPDATA_DIR, paths->winAppDataDir);
+  GetPathToSpecialDir(NS_WIN_PROGRAMS_DIR, paths->winStartMenuProgsDir);
+#endif 
+
+#if defined(XP_MACOSX)
+  GetPathToSpecialDir(NS_MAC_USER_LIB_DIR, paths->macUserLibDir);
+  GetPathToSpecialDir(NS_OSX_LOCAL_APPLICATIONS_DIR, paths->macLocalApplicationsDir);
+#endif 
 
   gPaths = paths.forget();
   return NS_OK;
@@ -768,6 +824,34 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
     && !SetStringProperty(cx, objPath, "localProfileDir", gPaths->localProfileDir)) {
     return false;
   }
+
+  if (!SetStringProperty(cx, objPath, "homeDir", gPaths->homeDir)) {
+    return false;
+  }
+
+  if (!SetStringProperty(cx, objPath, "desktopDir", gPaths->desktopDir)) {
+    return false;
+  }
+
+#if defined(XP_WIN)
+  if (!SetStringProperty(cx, objPath, "winAppDataDir", gPaths->winAppDataDir)) {
+    return false;
+  }
+
+  if (!SetStringProperty(cx, objPath, "winStartMenuProgsDir", gPaths->winStartMenuProgsDir)) {
+    return false;
+  }
+#endif 
+
+#if defined(XP_MACOSX)
+  if (!SetStringProperty(cx, objPath, "macUserLibDir", gPaths->macUserLibDir)) {
+    return false;
+  }
+
+  if (!SetStringProperty(cx, objPath, "macLocalApplicationsDir", gPaths->macLocalApplicationsDir)) {
+    return false;
+  }
+#endif 
 
   return true;
 }
