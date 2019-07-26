@@ -362,7 +362,7 @@ public:
 
 
 
-  NS_IMETHOD  SetVisibility(nsViewVisibility visibility);
+  void SetVisibility(nsViewVisibility visibility);
 
   
 
@@ -383,7 +383,7 @@ public:
 
 
 
-  NS_IMETHOD  SetFloating(bool aFloatingView);
+  void SetFloating(bool aFloatingView);
 
   
   
