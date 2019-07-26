@@ -120,6 +120,10 @@
 #include "nsDeviceStorage.h"
 #endif
 
+#ifdef NECKO_PROTOCOL_rtsp
+#include "nsISystemMessagesInternal.h"
+#endif
+
 using namespace mozilla;
 using namespace mozilla::ipc;
 
@@ -582,6 +586,82 @@ nsExternalHelperAppService::~nsExternalHelperAppService()
 {
 }
 
+#ifdef NECKO_PROTOCOL_rtsp
+namespace {
+
+
+
+class AutoClearPendingException {
+public:
+  AutoClearPendingException(JSContext* aCx) :
+    mCx(aCx) {
+  }
+  ~AutoClearPendingException() {
+    JS_ClearPendingException(mCx);
+  }
+private:
+  JSContext *mCx;
+};
+} 
+
+
+
+
+
+void nsExternalHelperAppService::LaunchVideoAppForRtsp(nsIURI* aURI)
+{
+  NS_NAMED_LITERAL_STRING(msgType, "rtsp-open-video");
+
+  
+  bool isRTSP = false;
+  aURI->SchemeIs("rtsp", &isRTSP);
+  NS_ASSERTION(isRTSP, "Not rtsp protocol! Something goes wrong here");
+
+  
+  AutoSafeJSContext cx;
+  AutoClearPendingException helper(cx);
+  JS::Rooted<JSObject*> msgObj(cx, JS_NewObject(cx, nullptr, nullptr, nullptr));
+  NS_ENSURE_TRUE_VOID(msgObj);
+  JS::Rooted<JS::Value> jsVal(cx);
+  bool rv;
+
+  
+  
+  {
+    nsAutoCString spec;
+    aURI->GetAsciiSpec(spec);
+    JSString *urlStr = JS_NewStringCopyN(cx, spec.get(), spec.Length());
+    NS_ENSURE_TRUE_VOID(urlStr);
+    jsVal.setString(urlStr);
+
+    rv = JS_SetProperty(cx, msgObj, "url", jsVal);
+    NS_ENSURE_TRUE_VOID(rv);
+
+    rv = JS_SetProperty(cx, msgObj, "title", jsVal);
+    NS_ENSURE_TRUE_VOID(rv);
+  }
+
+  
+  {
+    NS_NAMED_LITERAL_CSTRING(mimeType, "video/rtsp");
+    JSString *typeStr = JS_NewStringCopyN(cx, mimeType.get(), mimeType.Length());
+    NS_ENSURE_TRUE_VOID(typeStr);
+    jsVal.setString(typeStr);
+  }
+  rv = JS_SetProperty(cx, msgObj, "type", jsVal);
+  NS_ENSURE_TRUE_VOID(rv);
+
+  
+  nsCOMPtr<nsISystemMessagesInternal> systemMessenger =
+    do_GetService("@mozilla.org/system-message-internal;1");
+  NS_ENSURE_TRUE_VOID(systemMessenger);
+  jsVal.setObject(*msgObj);
+  systemMessenger->BroadcastMessage(msgType, jsVal, JS::UndefinedValue());
+
+  return;
+}
+#endif
+
 NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeContentType,
                                                     nsIRequest *aRequest,
                                                     nsIInterfaceRequestor *aWindowContext,
@@ -922,7 +1002,18 @@ nsExternalHelperAppService::LoadURI(nsIURI *aURI,
     return NS_OK; 
   }
 
- 
+#ifdef NECKO_PROTOCOL_rtsp
+  
+  {
+    bool isRTSP = false;
+    rv = aURI->SchemeIs("rtsp", &isRTSP);
+    if (NS_SUCCEEDED(rv) && isRTSP) {
+      LaunchVideoAppForRtsp(aURI);
+      return NS_OK;
+    }
+  }
+#endif
+
   nsCOMPtr<nsIHandlerInfo> handler;
   rv = GetProtocolHandlerInfo(scheme, getter_AddRefs(handler));
   NS_ENSURE_SUCCESS(rv, rv);

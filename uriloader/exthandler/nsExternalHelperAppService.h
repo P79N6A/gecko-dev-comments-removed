@@ -38,6 +38,7 @@
 #include "nsIPrompt.h"
 #include "nsAutoPtr.h"
 #include "mozilla/Attributes.h"
+#include "necko-config.h"
 
 class nsExternalAppHandler;
 class nsIMIMEInfo;
@@ -175,6 +176,15 @@ protected:
 
 
   void ExpungeTemporaryPrivateFiles();
+
+#ifdef NECKO_PROTOCOL_rtsp
+  
+
+
+
+  static void LaunchVideoAppForRtsp(nsIURI* aURI);
+#endif
+
   
 
 
