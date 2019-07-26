@@ -362,10 +362,31 @@ nsSVGPathGeometryFrame::NotifySVGChanged(uint32_t aFlags)
   
   
 
-  if ((aFlags & COORD_CONTEXT_CHANGED) &&
-      static_cast<nsSVGPathGeometryElement*>(mContent)->GeometryDependsOnCoordCtx()) {
-    nsSVGUtils::ScheduleReflowSVG(this);
+  
+  
+  
+  
+  
+
+  if (aFlags & COORD_CONTEXT_CHANGED) {
+    
+    
+    
+    
+    
+    if (static_cast<nsSVGPathGeometryElement*>(mContent)->GeometryDependsOnCoordCtx() ||
+        StyleSVG()->mStrokeWidth.HasPercent()) {
+      nsSVGUtils::ScheduleReflowSVG(this);
+    }
   }
+
+  if ((aFlags & TRANSFORM_CHANGED) &&
+      StyleSVGReset()->mVectorEffect ==
+        NS_STYLE_VECTOR_EFFECT_NON_SCALING_STROKE) {
+    
+    
+    nsSVGUtils::ScheduleReflowSVG(this);
+  } 
 }
 
 SVGBBox
