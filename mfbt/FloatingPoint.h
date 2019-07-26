@@ -12,6 +12,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Casting.h"
+#include "mozilla/Types.h"
 
 #include <stdint.h>
 
@@ -268,6 +269,18 @@ SpecificFloatNaN(int signbit, uint32_t significand)
   MOZ_ASSERT(IsFloatNaN(f));
   return f;
 }
+
+
+
+
+
+
+
+
+
+MOZ_WARN_UNUSED_RESULT
+extern MFBT_API bool
+IsFloat32Representable(double x);
 
 } 
 
