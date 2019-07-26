@@ -553,8 +553,8 @@ this.UITour = {
     if (!aWindowClosing) {
       this.hideHighlight(aWindow);
       this.hideInfo(aWindow);
-      aWindow.PanelUI.panel.removeAttribute("noautohide");
-      this.recreatePopup(aWindow.PanelUI.panel);
+      
+      this.hideMenu(aWindow, "appMenu");
     }
 
     this.endUrlbarCapture(aWindow);
