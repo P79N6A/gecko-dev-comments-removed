@@ -66,6 +66,20 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
 
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     inline LUse use(MDefinition *mir, LUse policy);
     inline LUse use(MDefinition *mir);
     inline LUse useAtStart(MDefinition *mir);
