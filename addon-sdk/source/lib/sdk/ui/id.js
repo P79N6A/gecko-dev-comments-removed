@@ -7,7 +7,7 @@ module.metadata = {
   'stability': 'experimental'
 };
 
-const method = require('method/core');
+const method = require('../../method/core');
 const { uuid } = require('../util/uuid');
 
 

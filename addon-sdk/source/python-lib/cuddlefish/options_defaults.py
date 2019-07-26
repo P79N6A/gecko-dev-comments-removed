@@ -2,7 +2,7 @@
 
 
 
-def parse_options_defaults(options, jetpack_id):
+def parse_options_defaults(options, preferencesBranch):
     
     pref_list = []
 
@@ -21,6 +21,6 @@ def parse_options_defaults(options, jetpack_id):
             else:
                 value = str(pref["value"])
 
-            pref_list.append("pref(\"extensions." + jetpack_id + "." + pref["name"] + "\", " + value + ");")
+            pref_list.append("pref(\"extensions." + preferencesBranch + "." + pref["name"] + "\", " + value + ");")
 
     return "\n".join(pref_list) + "\n"

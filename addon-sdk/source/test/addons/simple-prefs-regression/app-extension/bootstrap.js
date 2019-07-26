@@ -221,8 +221,6 @@ function startup(data, reasonCode) {
       resultFile: options.resultFile,
       
       staticArgs: options.staticArgs,
-      
-      preferencesBranch: options.preferencesBranch,
 
       
       modules: {

@@ -1,6 +1,6 @@
 "use strict";
 
-var method = require("method/core")
+var method = require("../method/core")
 var rebase = require("./rebase")
 
 
