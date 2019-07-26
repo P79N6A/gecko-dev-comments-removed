@@ -592,14 +592,6 @@ public class GeckoAppShell
             mInputConnection.notifyIMEChange(text, start, end, newEnd);
     }
 
-    
-    public static void notifyScreenShot(final ByteBuffer data, final int tabId, 
-                                        final int left, final int top,
-                                        final int right, final int bottom, 
-                                        final int bufferWidth, final int bufferHeight, final int token) {
-        ScreenshotHandler.notifyScreenShot(data, tabId, left, top, right, bottom, bufferWidth, bufferHeight, token);
-    }
-
     private static CountDownLatch sGeckoPendingAcks = null;
 
     
@@ -2264,15 +2256,6 @@ public class GeckoAppShell
         if (!sActivityHelper.showFilePicker(GeckoApp.mAppContext, aMimeType, new AsyncResultHandler(id))) {
             GeckoAppShell.notifyFilePickerResult("", id);
         }
-    }
-
-    public static void screenshotWholePage(Tab tab) {
-        ScreenshotHandler.screenshotWholePage(tab);
-    }
-
-    
-    public static void notifyPaintedRect(float top, float left, float bottom, float right) {
-        ScreenshotHandler.notifyPaintedRect(top, left, bottom, right);
     }
 
     public static void notifyWakeLockChanged(String topic, String state) {
