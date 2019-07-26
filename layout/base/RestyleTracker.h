@@ -17,9 +17,9 @@
 #include "nsTPriorityQueue.h"
 #include "mozilla/SplayTree.h"
 
-class nsCSSFrameConstructor;
-
 namespace mozilla {
+
+class RestyleManager;
 
 
 
@@ -190,8 +190,8 @@ public:
                     "Shouldn't have both root flags");
   }
 
-  void Init(nsCSSFrameConstructor* aFrameConstructor) {
-    mFrameConstructor = aFrameConstructor;
+  void Init(RestyleManager* aRestyleManager) {
+    mRestyleManager = aRestyleManager;
     mPendingRestyles.Init();
   }
 
@@ -275,7 +275,7 @@ private:
   
   
   uint32_t mRestyleBits;
-  nsCSSFrameConstructor* mFrameConstructor; 
+  RestyleManager* mRestyleManager; 
   
   
   

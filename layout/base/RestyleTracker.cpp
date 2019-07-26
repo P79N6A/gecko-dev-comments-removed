@@ -17,7 +17,7 @@ namespace mozilla {
 
 inline nsIDocument*
 RestyleTracker::Document() const {
-  return mFrameConstructor->mDocument;
+  return mRestyleManager->PresContext()->Document();
 }
 
 #define RESTYLE_ARRAY_STACKSIZE 128
@@ -118,16 +118,16 @@ RestyleTracker::ProcessOneRestyle(Element* aElement,
 
   nsIFrame* primaryFrame = aElement->GetPrimaryFrame();
   if (aRestyleHint & (eRestyle_Self | eRestyle_Subtree)) {
-    mFrameConstructor->RestyleElement(aElement, primaryFrame, aChangeHint,
-                                      *this,
-                                      (aRestyleHint & eRestyle_Subtree) != 0);
+    mRestyleManager->RestyleElement(aElement, primaryFrame, aChangeHint,
+                                    *this,
+                                    (aRestyleHint & eRestyle_Subtree) != 0);
   } else if (aChangeHint &&
              (primaryFrame ||
               (aChangeHint & nsChangeHint_ReconstructFrame))) {
     
     nsStyleChangeList changeList;
     changeList.AppendChange(primaryFrame, aElement, aChangeHint);
-    mFrameConstructor->ProcessRestyledFrames(changeList);
+    mRestyleManager->ProcessRestyledFrames(changeList);
   }
 }
 
@@ -137,9 +137,9 @@ RestyleTracker::DoProcessRestyles()
   PROFILER_LABEL("CSS", "ProcessRestyles");
   
   
-  mFrameConstructor->BeginUpdate();
+  mRestyleManager->PresContext()->FrameConstructor()->BeginUpdate();
 
-  mFrameConstructor->mInStyleRefresh = true;
+  mRestyleManager->mInStyleRefresh = true;
 
   
   while (mPendingRestyles.Count()) {
@@ -239,16 +239,16 @@ RestyleTracker::DoProcessRestyles()
     }
   }
 
-  mFrameConstructor->FlushOverflowChangedTracker();
+  mRestyleManager->FlushOverflowChangedTracker();
 
   
   
-  mFrameConstructor->mInStyleRefresh = false;
+  mRestyleManager->mInStyleRefresh = false;
 
-  mFrameConstructor->EndUpdate();
+  mRestyleManager->PresContext()->FrameConstructor()->EndUpdate();
 
 #ifdef DEBUG
-  mFrameConstructor->mPresShell->VerifyStyleTree();
+  mRestyleManager->PresContext()->PresShell()->VerifyStyleTree();
 #endif
 }
 

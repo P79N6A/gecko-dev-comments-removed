@@ -20,9 +20,9 @@
 #include "nsHashKeys.h"
 #include "nsThreadUtils.h"
 #include "nsCSSPseudoElements.h"
-#include "RestyleTracker.h"
 #include "nsIAnonymousContentCreator.h"
 #include "nsFrameManager.h"
+#include "RestyleManager.h"
 
 class nsIDocument;
 struct nsFrameItems;
@@ -40,12 +40,14 @@ struct nsGenConInitializer;
 class nsICSSAnonBoxPseudo;
 class nsPageContentFrame;
 struct PendingBinding;
-class nsRefreshDriver;
 
 class nsFrameConstructorState;
 class nsFrameConstructorSaveState;
 
 namespace mozilla {
+
+class RestyleManager;
+
 namespace dom {
 
 class FlattenedChildIterator;
@@ -55,12 +57,10 @@ class FlattenedChildIterator;
 
 class nsCSSFrameConstructor : public nsFrameManager
 {
-  friend class nsRefreshDriver;
-
 public:
   typedef mozilla::dom::Element Element;
-  typedef mozilla::RestyleTracker RestyleTracker;
-  typedef mozilla::OverflowChangedTracker OverflowChangedTracker;
+
+  friend class mozilla::RestyleManager;
 
   nsCSSFrameConstructor(nsIDocument *aDocument, nsIPresShell* aPresShell,
                         nsStyleSet* aStyleSet);
@@ -78,6 +78,9 @@ private:
   nsCSSFrameConstructor& operator=(const nsCSSFrameConstructor& aCopy) MOZ_DELETE;
 
 public:
+  mozilla::RestyleManager* RestyleManager() const
+    { return mPresShell->GetPresContext()->RestyleManager(); }
+
   nsIFrame* ConstructRootFrame();
 
   nsresult ReconstructDocElementHierarchy();
@@ -204,24 +207,12 @@ public:
   nsresult CharacterDataChanged(nsIContent* aContent,
                                 CharacterDataChangeInfo* aInfo);
 
-  nsresult ContentStateChanged(nsIContent*   aContent,
-                               nsEventStates aStateMask);
-
   
   nsresult GenerateChildFrames(nsIFrame* aFrame);
 
   
   
   void NotifyDestroyingFrame(nsIFrame* aFrame);
-
-  void AttributeWillChange(Element* aElement,
-                           int32_t  aNameSpaceID,
-                           nsIAtom* aAttribute,
-                           int32_t  aModType);
-  void AttributeChanged(Element* aElement,
-                        int32_t  aNameSpaceID,
-                        nsIAtom* aAttribute,
-                        int32_t  aModType);
 
   void BeginUpdate();
   void EndUpdate();
@@ -230,124 +221,6 @@ public:
   
   
   void WillDestroyFrameTree();
-
-  
-  
-  uint32_t GetHoverGeneration() const { return mHoverGeneration; }
-
-  
-  
-  uint64_t GetAnimationGeneration() const { return mAnimationGeneration; }
-
-  
-  
-  
-  
-  
-  nsresult ProcessRestyledFrames(nsStyleChangeList& aRestyleArray);
-
-private:
-
-  friend class mozilla::RestyleTracker;
-
-  void RestyleForEmptyChange(Element* aContainer);
-
-public:
-  
-  
-  
-  void RestyleForInsertOrChange(Element* aContainer, nsIContent* aChild);
-
-  
-  
-  
-  
-  
-  void RestyleForRemove(Element* aContainer,
-                        nsIContent* aOldChild,
-                        nsIContent* aFollowingSibling);
-  
-  
-  void RestyleForAppend(Element* aContainer, nsIContent* aFirstNewContent);
-
-  
-  
-  
-  
-  
-  
-  
-  void ProcessPendingRestyles();
-  
-  
-  
-  
-  void RebuildAllStyleData(nsChangeHint aExtraHint);
-
-  
-  
-  void DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
-                             nsChangeHint aExtraHint);
-
-  
-  void PostRestyleEvent(Element* aElement,
-                        nsRestyleHint aRestyleHint,
-                        nsChangeHint aMinChangeHint)
-  {
-    nsPresContext *presContext = mPresShell->GetPresContext();
-    if (presContext) {
-      PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint,
-                             presContext->IsProcessingAnimationStyleChange());
-    }
-  }
-
-  
-  void PostAnimationRestyleEvent(Element* aElement,
-                                 nsRestyleHint aRestyleHint,
-                                 nsChangeHint aMinChangeHint)
-  {
-    PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint, true);
-  }
-
-  void FlushOverflowChangedTracker() 
-  {
-    mOverflowChangedTracker.Flush();
-  }
-
-private:
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  void PostRestyleEventCommon(Element* aElement,
-                              nsRestyleHint aRestyleHint,
-                              nsChangeHint aMinChangeHint,
-                              bool aForAnimation);
-  void PostRestyleEventInternal(bool aForLazyConstruction);
-public:
-
-  
-
-
-
-
-
-
-
-
-
-  void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint);
 
   
   nsIFrame* CreateContinuingFrame(nsPresContext* aPresContext,
@@ -385,8 +258,6 @@ public:
   nsIFrame* GetDocElementContainingBlock()
     { return mDocElementContainingBlock; }
 
-  void SetPromoteReflowsToReframeRoot(bool aPromote) { mPromoteReflowsToReframeRoot = aPromote; }
-
 private:
   struct FrameConstructionItem;
   class FrameConstructionItemList;
@@ -396,14 +267,6 @@ private:
                                nsIFrame*      aParentFrame,
                                nsIFrame*      aPrevPageFrame,
                                nsIFrame*&     aCanvasFrame);
-
-  
-  
-  void RestyleElement(Element* aElement,
-                      nsIFrame*       aPrimaryFrame,
-                      nsChangeHint    aMinHint,
-                      RestyleTracker& aRestyleTracker,
-                      bool            aRestyleDescendants);
 
   void InitAndRestoreFrame (const nsFrameConstructorState& aState,
                             nsIContent*                    aContent,
@@ -1654,13 +1517,6 @@ private:
 
   nsresult ReframeContainingBlock(nsIFrame* aFrame);
 
-  nsresult StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
-
-  
-  
-  
-  bool RecomputePosition(nsIFrame* aFrame);
-
   
 
   
@@ -1880,28 +1736,10 @@ private:
   bool                mQuotesDirty : 1;
   bool                mCountersDirty : 1;
   bool                mIsDestroyingFrameTree : 1;
-  bool                mRebuildAllStyleData : 1;
   
   bool                mHasRootAbsPosContainingBlock : 1;
-  
-  bool                mObservingRefreshDriver : 1;
-  
-  bool                mInStyleRefresh : 1;
-  
-  bool                mPromoteReflowsToReframeRoot : 1;
-  uint32_t            mHoverGeneration;
-  nsChangeHint        mRebuildAllExtraHint;
 
   nsCOMPtr<nsILayoutHistoryState> mTempFrameTreeState;
-
-  OverflowChangedTracker mOverflowChangedTracker;
-
-  
-  
-  uint64_t mAnimationGeneration;
-
-  RestyleTracker mPendingRestyles;
-  RestyleTracker mPendingAnimationRestyles;
 };
 
 #endif 
