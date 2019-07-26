@@ -13,6 +13,7 @@
 #include "mozilla/Telemetry.h"
 #include "nsISocketTransport.h"
 #include "nsISupportsPriority.h"
+#include "nsHttpHandler.h"
 
 #ifdef DEBUG
 
@@ -43,6 +44,7 @@ SpdyStream3::SpdyStream3(nsAHttpTransaction *httpTransaction,
     mFullyOpen(0),
     mSentWaitingFor(0),
     mReceivedData(0),
+    mSetTCPSocketBuffer(0),
     mTxInlineFrameSize(SpdySession3::kDefaultBufferSize),
     mTxInlineFrameUsed(0),
     mTxStreamFrameSize(0),
@@ -488,6 +490,24 @@ void
 SpdyStream3::UpdateTransportSendEvents(uint32_t count)
 {
   mTotalSent += count;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  uint32_t bufferSize = gHttpHandler->SpdySendBufferSize();
+  fprintf(stderr,"update %u %u\n", mTotalSent, bufferSize);
+  if ((mTotalSent > bufferSize) && !mSetTCPSocketBuffer) {
+    mSetTCPSocketBuffer = 1;
+    mSocketTransport->SetSendBufferSize(bufferSize);
+  }
 
   if (mUpstreamState != SENDING_FIN_STREAM)
     mTransaction->OnTransportStatus(mSocketTransport,
