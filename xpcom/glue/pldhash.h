@@ -31,7 +31,7 @@ extern "C" {
 
 
 #undef PL_DHASH_SIZE_LIMIT
-#define PL_DHASH_SIZE_LIMIT     PR_BIT(24)
+#define PL_DHASH_SIZE_LIMIT     ((uint32_t)1 << 24)
 
 
 #ifndef PL_DHASH_MIN_SIZE
@@ -202,7 +202,8 @@ struct PLDHashTable {
 
 
 
-#define PL_DHASH_TABLE_SIZE(table)  PR_BIT(PL_DHASH_BITS - (table)->hashShift)
+#define PL_DHASH_TABLE_SIZE(table) \
+    ((uint32_t)1 << (PL_DHASH_BITS - (table)->hashShift))
 
 
 
