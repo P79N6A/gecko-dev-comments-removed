@@ -3,7 +3,8 @@
 
 
 
-#include "mozilla/layers/PLayers.h"
+#include "mozilla/layers/PLayerTransaction.h"
+
 
 
 #include "mozilla/Util.h"

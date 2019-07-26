@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/layers/PLayersParent.h"
+#include "mozilla/layers/PLayerTransactionParent.h"
 #include "BasicCanvasLayer.h"
 #include "gfxImageSurface.h"
 #include "GLContext.h"

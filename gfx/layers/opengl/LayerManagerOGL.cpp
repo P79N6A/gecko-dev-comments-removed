@@ -5,7 +5,7 @@
 
 #include "LayerManagerOGL.h"
 
-#include "mozilla/layers/PLayers.h"
+#include "mozilla/layers/PLayerTransaction.h"
 #include <algorithm>
 
 
