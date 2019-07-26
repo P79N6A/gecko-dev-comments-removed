@@ -1046,8 +1046,6 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
 #endif
   }
 
-  CheckFloats(state);
-
   
   
   
@@ -1090,6 +1088,8 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     }
     
   }
+
+  CheckFloats(state);
 
   
   nscoord bottomEdgeOfChildren;
