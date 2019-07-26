@@ -604,6 +604,10 @@ class BufferedAudioStream : public AudioStream
   int64_t GetPositionInFramesInternal();
   bool IsPaused();
   int32_t GetMinWriteSize();
+  
+  
+  
+  void EnsureTimeStretcherInitialized();
 
 private:
   static long DataCallback_S(cubeb_stream*, void* aThis, void* aBuffer, long aFrames)
@@ -700,6 +704,13 @@ BufferedAudioStream::BufferedAudioStream()
 BufferedAudioStream::~BufferedAudioStream()
 {
   Shutdown();
+}
+
+void
+BufferedAudioStream::EnsureTimeStretcherInitialized()
+{
+  MonitorAutoLock mon(mMonitor);
+  AudioStream::EnsureTimeStretcherInitialized();
 }
 
 nsresult
@@ -962,7 +973,8 @@ BufferedAudioStream::GetTimeStretched(void* aBuffer, long aFrames)
 {
   long processedFrames = 0;
 
-  EnsureTimeStretcherInitialized();
+  
+  AudioStream::EnsureTimeStretcherInitialized();
 
   uint8_t* wpos = reinterpret_cast<uint8_t*>(aBuffer);
   double playbackRate = static_cast<double>(mInRate) / mOutRate;
