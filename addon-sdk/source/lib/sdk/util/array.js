@@ -72,22 +72,12 @@ exports.remove = function remove(array, element) {
 
 
 
-function unique(array) {
-  return array.reduce(function(result, item) {
-    add(result, item);
-    return result;
+exports.unique = function unique(array) {
+  return array.reduce(function(values, element) {
+    add(values, element);
+    return values;
   }, []);
 };
-exports.unique = unique;
-
-
-
-
-
-function union() {
-  return unique(Array.concat.apply(null, arguments));
-};
-exports.union = union;
 
 exports.flatten = function flatten(array){
    var flat = [];
