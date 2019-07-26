@@ -141,6 +141,12 @@ private:
   
   nsIntSize mSurfaceSize;
 
+  
+  class ReadDrawFPSPref MOZ_FINAL : public nsRunnable {
+  public:
+    NS_IMETHOD Run() MOZ_OVERRIDE;
+  };
+
   already_AddRefed<mozilla::gl::GLContext> CreateContext();
 
   

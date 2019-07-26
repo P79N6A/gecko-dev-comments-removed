@@ -311,6 +311,16 @@ CompositorOGL::CleanupResources()
   mGLContext = nullptr;
 }
 
+
+NS_IMETHODIMP
+CompositorOGL::ReadDrawFPSPref::Run()
+{
+  
+  Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
+  Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
+  return NS_OK;
+}
+
 bool
 CompositorOGL::Initialize()
 {
@@ -481,19 +491,11 @@ CompositorOGL::Initialize()
   }
 
   if (NS_IsMainThread()) {
+    
     Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
     Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
   } else {
     
-    class ReadDrawFPSPref : public nsRunnable {
-    public:
-      NS_IMETHOD Run()
-      {
-        Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
-        Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
-        return NS_OK;
-      }
-    };
     NS_DispatchToMainThread(new ReadDrawFPSPref());
   }
 
