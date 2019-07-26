@@ -71,10 +71,16 @@ NetworkStatsDB.prototype = {
     }
   },
 
-  saveStats: function saveStats(stats, aResultCb) {
+  convertDate: function convertDate(aDate) {
     
-    let offset = new Date().getTimezoneOffset() * 60 * 1000;
-    let timestamp = Math.floor((stats.date.getTime() - offset) / SAMPLE_RATE) * SAMPLE_RATE + offset;
+    
+    let timestamp = aDate.getTime() - aDate.getTimezoneOffset() * 60 * 1000;
+    timestamp = Math.floor(timestamp / SAMPLE_RATE) * SAMPLE_RATE;
+    return timestamp;
+  },
+
+  saveStats: function saveStats(stats, aResultCb) {
+    let timestamp = this.convertDate(stats.date);
 
     stats = {connectionType: stats.connectionType,
              timestamp:      timestamp,
@@ -85,7 +91,8 @@ NetworkStatsDB.prototype = {
 
     this.dbNewTxn("readwrite", function(txn, store) {
       if (DEBUG) {
-        debug("Going to store " + JSON.stringify(stats));
+        debug("Filtered time: " + new Date(timestamp));
+        debug("New stats: " + JSON.stringify(stats));
       }
 
       let request = store.index("connectionType").openCursor(stats.connectionType, "prev");
@@ -99,7 +106,7 @@ NetworkStatsDB.prototype = {
 
         
         if (DEBUG) {
-          debug(JSON.stringify(cursor.value));
+          debug("Last value " + JSON.stringify(cursor.value));
         }
 
         
@@ -120,6 +127,13 @@ NetworkStatsDB.prototype = {
 
     
     let diff = (newSample.timestamp - lastSample.timestamp) / SAMPLE_RATE;
+    if (diff % 1) {
+      
+      
+      txn.abort();
+      throw new Error("Error processing samples");
+    }
+
     if (DEBUG) {
       debug("New: " + newSample.timestamp + " - Last: " + lastSample.timestamp + " - diff: " + diff);
     }
@@ -139,6 +153,7 @@ NetworkStatsDB.prototype = {
       return;
     }
     if (diff > 1) {
+      
       
       
       if (diff > VALUES_MAX_LENGTH) {
@@ -170,13 +185,17 @@ NetworkStatsDB.prototype = {
       lastSample.txBytes += txDiff;
       lastSample.rxTotalBytes = newSample.rxTotalBytes;
       lastSample.txTotalBytes = newSample.txTotalBytes;
+      if (DEBUG) {
+        debug("Update: " + JSON.stringify(lastSample));
+      }
       let req = lastSampleCursor.update(lastSample);
     }
     if (diff < 0) {
       
       if (DEBUG) {
-        debug("This stat record older than last one");
+        debug("This stat record is older than last one");
       }
+      this._insertSample(txn, store, newSample, lastSample.timestamp);
     }
   },
 
@@ -193,6 +212,25 @@ NetworkStatsDB.prototype = {
     } else {
       store.put(networkStats);
     }
+  },
+
+  _insertSample: function _insertSample(txn, store, sample, endTimestamp) {
+    let lowFilter = [sample.connectionType, sample.timestamp];
+    let upFilter = [sample.connectionType, endTimestamp];
+    let range = this.dbGlobal.IDBKeyRange.bound(lowFilter, upFilter, false, false);
+
+    let request = store.openCursor(range).onsuccess = function(event) {
+      var cursor = event.target.result;
+      if (cursor) {
+        sample.rxBytes += cursor.value.rxBytes;
+        sample.txBytes += cursor.value.txBytes;
+        cursor.delete();
+        cursor.continue();
+        return;
+      }
+
+      this._saveStats(txn, store, sample);
+    }.bind(this);
   },
 
   _removeOldStats: function _removeOldStats(txn, store, connType, date) {
@@ -220,12 +258,13 @@ NetworkStatsDB.prototype = {
   },
 
   find: function find(aResultCb, aOptions) {
-    
-    let offset = new Date().getTimezoneOffset() * 60 * 1000;
-    let start = Math.floor((aOptions.start - offset) / SAMPLE_RATE) * SAMPLE_RATE + offset;
-    let end = Math.floor((aOptions.end - offset) / SAMPLE_RATE) * SAMPLE_RATE + offset;
+    let start = this.convertDate(aOptions.start);
+    let end = this.convertDate(aOptions.end);
+
     if (DEBUG) {
       debug("Find: connectionType:" + aOptions.connectionType + " start: " + start + " end: " + end);
+      debug("Start time: " + new Date(start));
+      debug("End time: " + new Date(end));
     }
 
     this.dbNewTxn("readonly", function(txn, store) {
@@ -262,9 +301,9 @@ NetworkStatsDB.prototype = {
   },
 
   findAll: function findAll(aResultCb, aOptions) {
-let offset = new Date().getTimezoneOffset() * 60 * 1000;
-    let start = Math.floor((aOptions.start - offset) / SAMPLE_RATE) * SAMPLE_RATE + offset;
-    let end = Math.floor((aOptions.end - offset) / SAMPLE_RATE) * SAMPLE_RATE + offset;
+    let start = this.convertDate(aOptions.start);
+    let end = this.convertDate(aOptions.end);
+
     if (DEBUG) {
       debug("FindAll: start: " + start + " end: " + end + "\n");
     }
