@@ -238,33 +238,6 @@ extern const char       js_EscapeMap[];
 extern JSString *
 js_QuoteString(JSContext *cx, JSString *str, jschar quote);
 
-
-
-
-
-
-
-
-
-
-
-
-extern JSPrinter *
-js_NewPrinter(JSContext *cx, const char *name, JSFunction *fun,
-              unsigned indent, JSBool pretty, JSBool grouped, JSBool strict);
-
-extern void
-js_DestroyPrinter(JSPrinter *jp);
-
-extern JSString *
-js_GetPrinterOutput(JSPrinter *jp);
-
-extern int
-js_printf(JSPrinter *jp, const char *format, ...);
-
-extern JSBool
-js_puts(JSPrinter *jp, const char *s);
-
 #define GET_ATOM_FROM_BYTECODE(script, pc, pcoff, atom)                       \
     JS_BEGIN_MACRO                                                            \
         JS_ASSERT(js_CodeSpec[*(pc)].format & JOF_ATOM);                      \
@@ -288,24 +261,6 @@ extern unsigned
 StackDefs(JSScript *script, jsbytecode *pc);
 
 }  
-
-
-
-
-
-
-
-
-
-
-
-
-typedef JSBool (* JSDecompilerPtr)(JSPrinter *);
-
-extern JSString *
-js_DecompileToString(JSContext *cx, const char *name, JSFunction *fun,
-                     unsigned indent, JSBool pretty, JSBool grouped, JSBool strict,
-                     JSDecompilerPtr decompiler);
 
 
 
