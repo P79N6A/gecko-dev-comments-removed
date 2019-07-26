@@ -465,11 +465,22 @@ Range::or_(const Range *lhs, const Range *rhs)
     int64_t lower = INT32_MIN;
     int64_t upper = INT32_MAX;
 
-    
-    if (lhs->lower_ >= 0 && rhs->lower_ >= 0)
-        lower = 0;
-    else if (lhs->upper_ < 0 || rhs->upper_ < 0)
-        upper = -1;
+    if (lhs->lower_ >= 0 && rhs->lower_ >= 0) {
+        
+        lower = Max(lhs->lower_, rhs->lower_);
+        
+        upper = UINT32_MAX >> Min(js_bitscan_clz32(lhs->upper_),
+                                  js_bitscan_clz32(rhs->upper_));
+    } else {
+        
+        if (lhs->upper_ < 0)
+            lower = Max(lower, (int64_t)(int32_t)~(UINT32_MAX >> js_bitscan_clz32(~lhs->lower_)));
+        if (rhs->upper_ < 0)
+            lower = Max(lower, (int64_t)(int32_t)~(UINT32_MAX >> js_bitscan_clz32(~rhs->lower_)));
+        
+        if (lhs->upper_ < 0 && rhs->upper_ < 0)
+            upper = -1;
+    }
 
     return new Range(lower, upper);
 }
@@ -480,11 +491,31 @@ Range::xor_(const Range *lhs, const Range *rhs)
     int64_t lower = INT32_MIN;
     int64_t upper = INT32_MAX;
 
-    
-    if (lhs->lower_ >= 0 && rhs->lower_ >= 0)
+    if (lhs->lower_ >= 0 && rhs->lower_ >= 0) {
+        
+        
         lower = 0;
-    else if (lhs->upper_ < 0 && rhs->upper_ < 0)
+        upper = UINT32_MAX >> Min(js_bitscan_clz32(lhs->upper_),
+                                  js_bitscan_clz32(rhs->upper_));
+    } else if (lhs->upper_ < 0 && rhs->upper_ < 0) {
+        
+        
         lower = 0;
+        upper = UINT32_MAX >> Min(js_bitscan_clz32(~lhs->lower_),
+                                  js_bitscan_clz32(~rhs->lower_));
+    } else if (lhs->upper_ < 0 && rhs->lower_ >= 0) {
+        
+        
+        
+        upper = -1;
+        lower = (int32_t)~(UINT32_MAX >> Min(js_bitscan_clz32(~lhs->lower_),
+                                             js_bitscan_clz32(rhs->upper_)));
+    } else if (lhs->lower_ >= 0 && rhs->upper_ < 0) {
+        
+        upper = -1;
+        lower = (int32_t)~(UINT32_MAX >> Min(js_bitscan_clz32(lhs->upper_),
+                                             js_bitscan_clz32(~rhs->lower_)));
+    }
 
     return new Range(lower, upper);
 }
@@ -492,16 +523,7 @@ Range::xor_(const Range *lhs, const Range *rhs)
 Range *
 Range::not_(const Range *op)
 {
-    int64_t lower = INT32_MIN;
-    int64_t upper = INT32_MAX;
-
-    
-    if (op->lower_ >= 0)
-        upper = -1;
-    else if (op->upper_ < 0)
-        lower = 0;
-
-    return new Range(lower, upper);
+    return new Range(~op->upper_, ~op->lower_);
 }
 
 Range *
