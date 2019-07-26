@@ -508,7 +508,7 @@ pref("dom.experimental_forms", true);
 pref("gfx.gralloc.enabled", false);
 
 
-pref("javascript.options.mem.log", true);
+pref("javascript.options.mem.log", false);
 
 
 pref("javascript.options.mem.gc_incremental_slice_ms", 30);
