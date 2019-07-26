@@ -517,7 +517,17 @@ OperatorInI(JSContext *cx, uint32_t index, HandleObject obj, JSBool *out)
 bool
 GetIntrinsicValue(JSContext *cx, HandlePropertyName name, MutableHandleValue rval)
 {
-    return cx->global()->getIntrinsicValue(cx, name, rval);
+    if (!cx->global()->getIntrinsicValue(cx, name, rval))
+        return false;
+
+    
+    
+    
+    
+    
+    types::TypeScript::Monitor(cx, rval);
+
+    return true;
 }
 
 bool
