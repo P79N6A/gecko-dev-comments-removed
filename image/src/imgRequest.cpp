@@ -299,6 +299,47 @@ void imgRequest::ContinueCancel(nsresult aStatus)
   }
 }
 
+class imgRequestMainThreadEvict : public nsRunnable
+{
+public:
+  imgRequestMainThreadEvict(imgRequest *aImgRequest)
+    : mImgRequest(aImgRequest)
+  {
+    MOZ_ASSERT(!NS_IsMainThread(), "Create me off main thread only!");
+    MOZ_ASSERT(aImgRequest);
+  }
+
+  NS_IMETHOD Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread(), "I should be running on the main thread!");
+    mImgRequest->ContinueEvict();
+    return NS_OK;
+  }
+private:
+  nsRefPtr<imgRequest> mImgRequest;
+};
+
+
+void imgRequest::EvictFromCache()
+{
+  
+  LOG_SCOPE(GetImgLog(), "imgRequest::EvictFromCache");
+
+  if (NS_IsMainThread()) {
+    ContinueEvict();
+  } else {
+    NS_DispatchToMainThread(new imgRequestMainThreadEvict(this));
+  }
+}
+
+
+void imgRequest::ContinueEvict()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  RemoveFromCache();
+}
+
 nsresult imgRequest::GetURI(ImageURL **aURI)
 {
   MOZ_ASSERT(aURI);
@@ -668,6 +709,12 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   if (mpchan)
     mpchan->GetIsLastPart(&lastPart);
 
+  bool isPartial = false;
+  if (mImage && (status == NS_ERROR_NET_PARTIAL_TRANSFER)) {
+    isPartial = true;
+    status = NS_OK; 
+  }
+
   
   
   
@@ -684,12 +731,17 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
 
   
   
-  if (mImage && NS_SUCCEEDED(status)) {
+  if (mImage && NS_SUCCEEDED(status) && !isPartial) {
     
     
     UpdateCacheEntrySize();
   }
+  else if (isPartial) {
+    
+    this->EvictFromCache();
+  }
   else {
+    
     
     this->Cancel(status);
   }

@@ -69,6 +69,9 @@ public:
   void SetRecvdFin(bool aStatus);
   bool RecvdFin() { return mRecvdFin; }
 
+  void SetRecvdData(bool aStatus) { mReceivedData = aStatus ? 1 : 0; }
+  bool RecvdData() { return mReceivedData; }
+
   void SetSentFin(bool aStatus);
   bool SentFin() { return mSentFin; }
 
@@ -197,6 +200,9 @@ private:
   
   
   uint32_t                     mRecvdFin             : 1;
+
+  
+  uint32_t                     mReceivedData         : 1;
 
   
   uint32_t                     mRecvdReset           : 1;

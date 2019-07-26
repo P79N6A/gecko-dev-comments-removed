@@ -76,6 +76,9 @@ public:
   void ContinueCancel(nsresult aStatus);
 
   
+  void ContinueEvict();
+
+  
   
   nsresult LockImage();
   nsresult UnlockImage();
@@ -145,6 +148,7 @@ private:
     mLoadId = aLoadId;
   }
   void Cancel(nsresult aStatus);
+  void EvictFromCache();
   void RemoveFromCache();
 
   nsresult GetSecurityInfo(nsISupports **aSecurityInfo);

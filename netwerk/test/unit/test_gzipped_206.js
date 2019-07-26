@@ -21,7 +21,6 @@ function cachedHandler(metadata, response) {
   response.setHeader("Content-Encoding", "gzip", false);
   response.setHeader("ETag", "Just testing");
   response.setHeader("Cache-Control", "max-age=3600000"); 
-  response.setHeader("Content-Length", "" + responseBody.length);
 
   var body = responseBody;
 
@@ -36,10 +35,13 @@ function cachedHandler(metadata, response) {
       return;
     }
     body = body.slice(from, to + 1);
+    response.setHeader("Content-Length", "" + (to + 1 - from));
     
     response.setStatusLine(metadata.httpVersion, 206, "Partial Content");
     response.setHeader("Content-Range", from + "-" + to + "/" + responseBody.length, false);
   } else {
+    
+    response.setHeader("Content-Length", "" + responseBody.length);
     response.setHeader("Accept-Ranges", "bytes");
     body = body.slice(0, 17); 
     doRangeResponse = true;
@@ -55,7 +57,7 @@ function cachedHandler(metadata, response) {
 }
 
 function continue_test(request, data) {
-  do_check_true(17 == data.length);
+  do_check_eq(17, data.length);
   var chan = make_channel("http://localhost:" +
                           httpserver.identity.primaryPort + "/cached/test.gz");
   chan.asyncOpen(new ChannelListener(finish_test, null, CL_EXPECT_GZIP), null);
@@ -80,6 +82,6 @@ function run_test() {
 
   var chan = make_channel("http://localhost:" +
                           httpserver.identity.primaryPort + "/cached/test.gz");
-  chan.asyncOpen(new ChannelListener(continue_test, null, CL_EXPECT_GZIP), null);
+  chan.asyncOpen(new ChannelListener(continue_test, null, CL_EXPECT_GZIP|CL_EXPECT_LATE_FAILURE), null);
   do_test_pending();
 }
