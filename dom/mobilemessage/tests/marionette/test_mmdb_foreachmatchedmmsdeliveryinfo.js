@@ -2,11 +2,9 @@
 
 
 MARIONETTE_TIMEOUT = 60000;
-MARIONETTE_HEAD_JS = 'head.js';
+MARIONETTE_HEAD_JS = 'mmdb_head.js';
 
-
-
-let mmdb;
+const DBNAME = "test_mmdb_foreachmatchedmmsdeliveryinfo:" + newUUID();
 
 const PHONE_0 = "+15555215500";
 const PHONE_1 = "+15555215501";
@@ -51,10 +49,6 @@ function doTest(aMmdb, aNeedle, aVerifyFunc, aCount) {
 function testNotFound(aMmdb) {
   log("Testing unavailable");
 
-  
-  
-  aMmdb = mmdb;
-
   doTest(aMmdb, PHONE_0, function(aElement) {
     ok(false, "Should never have a match");
   }, 0);
@@ -64,10 +58,6 @@ function testNotFound(aMmdb) {
 
 function testDirectMatch(aMmdb) {
   log("Testing direct matching");
-
-  
-  
-  aMmdb = mmdb;
 
   for (let needle of [PHONE_1, EMAIL_1]) {
     let count = deliveryInfo.reduce(function(aCount, aElement) {
@@ -87,9 +77,6 @@ function testPhoneMatch(aMmdb) {
   let verifyFunc = function(aValid, aElement) {
     ok(aValid.indexOf(aElement.receiver) >= 0, "element.receiver");
   };
-  
-  
-  aMmdb = mmdb;
 
   let matchingGroups = [
     [PHONE_2, PHONE_2_NET],
@@ -105,10 +92,10 @@ function testPhoneMatch(aMmdb) {
 }
 
 startTestBase(function testCaseMain() {
-  mmdb = newMobileMessageDB();
-  return initMobileMessageDB(mmdb, "test_mmdb_foreachmatchedmmsdeliveryinfo", 0)
+  let mmdb = newMobileMessageDB();
+  return initMobileMessageDB(mmdb, DBNAME, 0)
     .then(testNotFound)
     .then(testDirectMatch)
     .then(testPhoneMatch)
-    .then(closeMobileMessageDB.bind(null, mmdb));
+    .then(closeMobileMessageDB);
 });

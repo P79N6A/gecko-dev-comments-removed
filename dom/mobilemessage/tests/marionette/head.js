@@ -348,65 +348,6 @@ function sendRawSmsToEmulator(aPdu) {
 
 
 
-let MMDB;
-
-
-function newMobileMessageDB() {
-  if (!MMDB) {
-    MMDB = Cu.import("resource://gre/modules/MobileMessageDB.jsm", {});
-    is(typeof MMDB.MobileMessageDB, "function", "MMDB.MobileMessageDB");
-  }
-
-  let mmdb = new MMDB.MobileMessageDB();
-  ok(mmdb, "MobileMessageDB instance");
-  return mmdb;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function initMobileMessageDB(aMmdb, aDbName, aDbVersion) {
-  let deferred = Promise.defer();
-
-  aMmdb.init(aDbName, aDbVersion, function(aError) {
-    if (aError) {
-      deferred.reject(aMmdb);
-    } else {
-      deferred.resolve(aMmdb);
-    }
-  });
-
-  return deferred.promise;
-}
-
-
-
-
-
-
-function closeMobileMessageDB(aMmdb) {
-  aMmdb.close();
-  return aMmdb;
-}
-
-
-
-
-
 
 
 
@@ -416,24 +357,6 @@ function messagesToIds(aMessages) {
     ids.push(message.id);
   }
   return ids;
-}
-
-
-let uuidGenerator;
-
-
-
-
-
-
-function newUUID() {
-  if (!uuidGenerator) {
-    uuidGenerator = Cc["@mozilla.org/uuid-generator;1"]
-                    .getService(Ci.nsIUUIDGenerator);
-    ok(uuidGenerator, "uuidGenerator");
-  }
-
-  return uuidGenerator.generateUUID().toString();
 }
 
 
