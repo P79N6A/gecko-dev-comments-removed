@@ -468,7 +468,7 @@ pref("canvas.focusring.enabled", false);
 pref("canvas.customfocusring.enabled", false);
 pref("canvas.hitregions.enabled", false);
 
-pref("canvas.path.enabled", false);
+pref("canvas.path.enabled", true);
 
 
 
@@ -534,6 +534,12 @@ pref("toolkit.scrollbox.verticalScrollDistance", 3);
 pref("toolkit.scrollbox.horizontalScrollDistance", 5);
 pref("toolkit.scrollbox.clickToScroll.scrollDelay", 150);
 
+
+#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
+pref("toolkit.telemetry.enabledPreRelease", true);
+#else
+pref("toolkit.telemetry.enabled", false);
+#endif
 pref("toolkit.telemetry.server", "https://incoming.telemetry.mozilla.org");
 
 pref("toolkit.telemetry.server_owner", "Mozilla");
