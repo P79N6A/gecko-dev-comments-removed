@@ -18,51 +18,40 @@ namespace js {
 namespace gc {
 
 
-
-
-
-class RelocationOverlay
+inline RelocationOverlay *
+RelocationOverlay::fromCell(Cell *cell)
 {
-    friend class MinorCollectionTracer;
+    JS_ASSERT(!cell->isTenured());
+    return reinterpret_cast<RelocationOverlay *>(cell);
+}
 
-    
-    static const uintptr_t Relocated = uintptr_t(0xbad0bad1);
+inline bool
+RelocationOverlay::isForwarded() const
+{
+    return magic_ == Relocated;
+}
 
-    
-    uintptr_t magic_;
+inline Cell *
+RelocationOverlay::forwardingAddress() const
+{
+    JS_ASSERT(isForwarded());
+    return newLocation_;
+}
 
-    
-    Cell *newLocation_;
+inline void
+RelocationOverlay::forwardTo(Cell *cell)
+{
+    JS_ASSERT(!isForwarded());
+    magic_ = Relocated;
+    newLocation_ = cell;
+    next_ = nullptr;
+}
 
-    
-    RelocationOverlay *next_;
-
-  public:
-    static RelocationOverlay *fromCell(Cell *cell) {
-        JS_ASSERT(!cell->isTenured());
-        return reinterpret_cast<RelocationOverlay *>(cell);
-    }
-
-    bool isForwarded() const {
-        return magic_ == Relocated;
-    }
-
-    Cell *forwardingAddress() const {
-        JS_ASSERT(isForwarded());
-        return newLocation_;
-    }
-
-    void forwardTo(Cell *cell) {
-        JS_ASSERT(!isForwarded());
-        magic_ = Relocated;
-        newLocation_ = cell;
-        next_ = nullptr;
-    }
-
-    RelocationOverlay *next() const {
-        return next_;
-    }
-};
+inline RelocationOverlay *
+RelocationOverlay::next() const
+{
+    return next_;
+}
 
 } 
 } 

@@ -628,6 +628,49 @@ void
 MacroAssembler::newGCThingPar(Register result, Register cx, Register tempReg1, Register tempReg2,
                               gc::AllocKind allocKind, Label *fail)
 {
+#ifdef JSGC_FJGENERATIONAL
+    if (IsNurseryAllocable(allocKind))
+        return newGCNurseryThingPar(result, cx, tempReg1, tempReg2, allocKind, fail);
+#endif
+    return newGCTenuredThingPar(result, cx, tempReg1, tempReg2, allocKind, fail);
+}
+
+#ifdef JSGC_FJGENERATIONAL
+void
+MacroAssembler::newGCNurseryThingPar(Register result, Register cx,
+                                     Register tempReg1, Register tempReg2,
+                                     gc::AllocKind allocKind, Label *fail)
+{
+    JS_ASSERT(IsNurseryAllocable(allocKind));
+
+    uint32_t thingSize = uint32_t(gc::Arena::thingSize(allocKind));
+
+    
+    
+    
+    
+
+    
+    size_t offsetOfPosition =
+        ForkJoinContext::offsetOfFJNursery() + gc::ForkJoinNursery::offsetOfPosition();
+    size_t offsetOfEnd =
+        ForkJoinContext::offsetOfFJNursery() + gc::ForkJoinNursery::offsetOfCurrentEnd();
+    loadPtr(Address(cx, offsetOfPosition), result);
+    loadPtr(Address(cx, offsetOfEnd), tempReg2);
+    computeEffectiveAddress(Address(result, thingSize), tempReg1);
+    branchPtr(Assembler::Below, tempReg2, tempReg1, fail);
+    storePtr(tempReg1, Address(cx, offsetOfPosition));
+}
+#endif
+
+void
+MacroAssembler::newGCTenuredThingPar(Register result, Register cx,
+                                     Register tempReg1, Register tempReg2,
+                                     gc::AllocKind allocKind, Label *fail)
+{
+    
+    
+    
     
     
     
@@ -686,14 +729,14 @@ void
 MacroAssembler::newGCStringPar(Register result, Register cx, Register tempReg1, Register tempReg2,
                                Label *fail)
 {
-    newGCThingPar(result, cx, tempReg1, tempReg2, js::gc::FINALIZE_STRING, fail);
+    newGCTenuredThingPar(result, cx, tempReg1, tempReg2, js::gc::FINALIZE_STRING, fail);
 }
 
 void
 MacroAssembler::newGCFatInlineStringPar(Register result, Register cx, Register tempReg1,
                                         Register tempReg2, Label *fail)
 {
-    newGCThingPar(result, cx, tempReg1, tempReg2, js::gc::FINALIZE_FAT_INLINE_STRING, fail);
+    newGCTenuredThingPar(result, cx, tempReg1, tempReg2, js::gc::FINALIZE_FAT_INLINE_STRING, fail);
 }
 
 void

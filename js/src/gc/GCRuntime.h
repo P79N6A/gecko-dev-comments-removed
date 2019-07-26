@@ -474,6 +474,16 @@ class GCRuntime
 
 
 
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> fjCollectionCounter;
+
+    
+
+
+
+
+
+
+
 
 
 

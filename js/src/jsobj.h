@@ -193,6 +193,10 @@ DenseRangeWriteBarrierPost(JSRuntime *rt, JSObject *obj, uint32_t start, uint32_
 #endif
 }
 
+namespace gc {
+class ForkJoinNursery;
+}
+
 }  
 
 
@@ -212,6 +216,7 @@ class JSObject : public js::ObjectImpl
     friend struct js::GCMarker;
     friend class  js::NewObjectCache;
     friend class js::Nursery;
+    friend class js::gc::ForkJoinNursery;
 
     
     static js::types::TypeObject *makeLazyType(JSContext *cx, js::HandleObject obj);

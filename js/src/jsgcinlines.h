@@ -10,6 +10,7 @@
 #include "jsgc.h"
 
 #include "gc/Zone.h"
+#include "vm/ForkJoin.h"
 
 namespace js {
 
@@ -29,8 +30,17 @@ ThreadSafeContext::isThreadLocal(T thing) const
     if (!isForkJoinContext())
         return true;
 
-    if (!IsInsideNursery(thing) &&
-        allocator_->arenas.containsArena(runtime_, thing->arenaHeader()))
+#ifdef JSGC_FJGENERATIONAL
+    ForkJoinContext *cx = static_cast<ForkJoinContext*>(const_cast<ThreadSafeContext*>(this));
+    if (cx->fjNursery().isInsideNewspace(thing))
+        return true;
+#endif
+
+    
+    JS_ASSERT(!IsInsideNursery(thing));
+
+    
+    if (allocator_->arenas.containsArena(runtime_, thing->arenaHeader()))
     {
         
         
@@ -61,6 +71,14 @@ inline bool
 ShouldNurseryAllocate(const Nursery &nursery, AllocKind kind, InitialHeap heap)
 {
     return nursery.isEnabled() && IsNurseryAllocable(kind) && heap != TenuredHeap;
+}
+#endif
+
+#ifdef JSGC_FJGENERATIONAL
+inline bool
+ShouldFJNurseryAllocate(const ForkJoinNursery &nursery, AllocKind kind, InitialHeap heap)
+{
+    return IsFJNurseryAllocable(kind) && heap != TenuredHeap;
 }
 #endif
 
@@ -103,13 +121,17 @@ class ArenaIter
         init(zone, kind);
     }
 
-    void init(JS::Zone *zone, AllocKind kind) {
-        aheader = zone->allocator.arenas.getFirstArena(kind);
-        remainingHeader = zone->allocator.arenas.getFirstArenaToSweep(kind);
+    void init(Allocator *allocator, AllocKind kind) {
+        aheader = allocator->arenas.getFirstArena(kind);
+        remainingHeader = allocator->arenas.getFirstArenaToSweep(kind);
         if (!aheader) {
             aheader = remainingHeader;
             remainingHeader = nullptr;
         }
+    }
+
+    void init(JS::Zone *zone, AllocKind kind) {
+        init(&zone->allocator, kind);
     }
 
     bool done() const {
@@ -160,7 +182,11 @@ class ArenaCellIterImpl
     }
 
   public:
-    ArenaCellIterImpl() {}
+    ArenaCellIterImpl()
+      : firstThingOffset(0)     
+      , thingSize(0)            
+    {
+    }
 
     void initUnsynchronized(ArenaHeader *aheader) {
         AllocKind kind = aheader->getAllocKind();
@@ -452,6 +478,28 @@ TryNewNurseryObject(ThreadSafeContext *cxArg, size_t thingSize, size_t nDynamicS
 }
 #endif 
 
+#ifdef JSGC_FJGENERATIONAL
+template <AllowGC allowGC>
+inline JSObject *
+TryNewFJNurseryObject(ForkJoinContext *cx, size_t thingSize, size_t nDynamicSlots)
+{
+    ForkJoinNursery &nursery = cx->fjNursery();
+    bool tooLarge = false;
+    JSObject *obj = nursery.allocateObject(thingSize, nDynamicSlots, tooLarge);
+    if (obj)
+        return obj;
+
+    if (!tooLarge && allowGC) {
+        nursery.minorGC();
+        obj = nursery.allocateObject(thingSize, nDynamicSlots, tooLarge);
+        if (obj)
+            return obj;
+    }
+
+    return nullptr;
+}
+#endif 
+
 static inline bool
 PossiblyFail()
 {
@@ -541,6 +589,16 @@ AllocateObject(ThreadSafeContext *cx, AllocKind kind, size_t nDynamicSlots, Init
             return obj;
     }
 #endif
+#ifdef JSGC_FJGENERATIONAL
+    if (cx->isForkJoinContext() &&
+        ShouldFJNurseryAllocate(cx->asForkJoinContext()->fjNursery(), kind, heap))
+    {
+        JSObject *obj =
+            TryNewFJNurseryObject<allowGC>(cx->asForkJoinContext(), thingSize, nDynamicSlots);
+        if (obj)
+            return obj;
+    }
+#endif
 
     HeapSlot *slots = nullptr;
     if (nDynamicSlots) {
@@ -581,6 +639,8 @@ AllocateNonObject(ThreadSafeContext *cx)
     CheckIncrementalZoneState(cx, t);
     return t;
 }
+
+
 
 
 

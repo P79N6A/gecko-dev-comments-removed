@@ -58,8 +58,20 @@ static const uint32_t GRAY = 1;
 
 
 
-const uint32_t ChunkLocationNursery = 0;
-const uint32_t ChunkLocationTenuredHeap = 1;
+
+
+
+
+
+
+const uintptr_t ChunkLocationBitNursery = 1;       
+const uintptr_t ChunkLocationBitTenuredHeap = 2;   
+const uintptr_t ChunkLocationBitPJSNewspace = 4;   
+const uintptr_t ChunkLocationBitPJSFromspace = 8;  
+
+const uintptr_t ChunkLocationAnyNursery = ChunkLocationBitNursery |
+                                          ChunkLocationBitPJSNewspace |
+                                          ChunkLocationBitPJSFromspace;
 
 #ifdef JS_DEBUG
 
@@ -225,9 +237,8 @@ IsInsideNursery(const js::gc::Cell *cell)
     addr &= ~js::gc::ChunkMask;
     addr |= js::gc::ChunkLocationOffset;
     uint32_t location = *reinterpret_cast<uint32_t *>(addr);
-    JS_ASSERT(location == gc::ChunkLocationNursery ||
-              location == gc::ChunkLocationTenuredHeap);
-    return location == gc::ChunkLocationNursery;
+    JS_ASSERT(location != 0);
+    return location & ChunkLocationAnyNursery;
 #else
     return false;
 #endif

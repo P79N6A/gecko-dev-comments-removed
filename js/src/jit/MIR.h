@@ -1692,6 +1692,10 @@ class MNewPar : public MUnaryInstruction
     JSObject *templateObject() const {
         return templateObject_;
     }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
 };
 
 
@@ -9827,6 +9831,10 @@ class MNewDenseArrayPar : public MBinaryInstruction
 
     bool possiblyCalls() const {
         return true;
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
     }
 };
 
