@@ -868,6 +868,13 @@ struct AllocationSiteKey {
     }
 };
 
+
+js::NewObjectKind
+UseNewTypeForInitializer(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey key);
+
+js::NewObjectKind
+UseNewTypeForInitializer(JSContext *cx, JSScript *script, jsbytecode *pc, Class *clasp);
+
  inline TypeObject *
 TypeScript::InitObject(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey kind)
 {
@@ -896,17 +903,17 @@ TypeScript::InitObject(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoK
 
 
 static inline bool
-SetInitializerObjectType(JSContext *cx, HandleScript script, jsbytecode *pc, HandleObject obj)
+SetInitializerObjectType(JSContext *cx, HandleScript script, jsbytecode *pc, HandleObject obj, NewObjectKind kind)
 {
     if (!cx->typeInferenceEnabled())
         return true;
 
     JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(obj->getClass());
     JS_ASSERT(key != JSProto_Null);
+    JS_ASSERT(kind == UseNewTypeForInitializer(cx, script, pc, key));
 
-    if (UseNewTypeForInitializer(cx, script, pc, key)) {
-        if (!JSObject::setSingletonType(cx, obj))
-            return false;
+    if (kind == SingletonObject) {
+        JS_ASSERT(obj->hasSingletonType());
 
         
 

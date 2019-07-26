@@ -46,18 +46,21 @@ namespace js {
 
 
 extern JSObject * JS_FASTCALL
-NewDenseEmptyArray(JSContext *cx, RawObject proto = NULL);
+NewDenseEmptyArray(JSContext *cx, RawObject proto = NULL,
+                   NewObjectKind newKind = GenericObject);
 
 
 extern JSObject * JS_FASTCALL
-NewDenseAllocatedArray(JSContext *cx, uint32_t length, RawObject proto = NULL);
+NewDenseAllocatedArray(JSContext *cx, uint32_t length, RawObject proto = NULL,
+                       NewObjectKind newKind = GenericObject);
 
 
 
 
 
 extern JSObject * JS_FASTCALL
-NewDenseUnallocatedArray(JSContext *cx, uint32_t length, RawObject proto = NULL);
+NewDenseUnallocatedArray(JSContext *cx, uint32_t length, RawObject proto = NULL,
+                         NewObjectKind newKind = GenericObject);
 
 
 extern JSObject *
@@ -65,7 +68,8 @@ NewDenseCopiedArray(JSContext *cx, uint32_t length, HandleObject src, uint32_t e
 
 
 extern JSObject *
-NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, RawObject proto = NULL);
+NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, RawObject proto = NULL,
+                    NewObjectKind newKind = GenericObject);
 
 
 extern UnrootedShape

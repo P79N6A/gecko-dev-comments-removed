@@ -20,7 +20,6 @@
 #include "jsatom.h"
 #include "jsclass.h"
 #include "jsfriendapi.h"
-#include "jsinfer.h"
 
 #include "gc/Barrier.h"
 #include "gc/Heap.h"
@@ -300,6 +299,7 @@ class JSObject : public js::ObjectImpl
     
     static inline JSObject *create(JSContext *cx,
                                    js::gc::AllocKind kind,
+                                   js::gc::InitialHeap heap,
                                    js::HandleShape shape,
                                    js::HandleTypeObject type,
                                    js::HeapSlot *slots);
@@ -307,6 +307,7 @@ class JSObject : public js::ObjectImpl
     
     static inline JSObject *createArray(JSContext *cx,
                                         js::gc::AllocKind kind,
+                                        js::gc::InitialHeap heap,
                                         js::HandleShape shape,
                                         js::HandleTypeObject type,
                                         uint32_t length);
@@ -1162,19 +1163,6 @@ js_FindClassObject(JSContext *cx, JSProtoKey protoKey, js::MutableHandleValue vp
 
 
 
-extern JSObject *
-js_CreateThisForFunctionWithProto(JSContext *cx, js::HandleObject callee, JSObject *proto);
-
-
-extern JSObject *
-js_CreateThisForFunction(JSContext *cx, js::HandleObject callee, bool newType);
-
-
-extern JSObject *
-js_CreateThis(JSContext *cx, js::Class *clasp, js::HandleObject callee);
-
-
-
 
 
 extern js::UnrootedShape
@@ -1188,7 +1176,50 @@ js_DefineOwnProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
 
 namespace js {
 
-JSObject *
+
+
+
+
+enum NewObjectKind {
+    
+    GenericObject,
+
+    
+
+
+
+
+    SingletonObject,
+
+    
+
+
+
+
+    MaybeSingletonObject
+};
+
+inline gc::InitialHeap
+InitialHeapForNewKind(NewObjectKind newKind)
+{
+    return newKind == GenericObject ? gc::DefaultHeap : gc::TenuredHeap;
+}
+
+
+
+extern JSObject *
+CreateThisForFunctionWithProto(JSContext *cx, js::HandleObject callee, JSObject *proto,
+                               NewObjectKind newKind = GenericObject);
+
+
+extern JSObject *
+CreateThisForFunction(JSContext *cx, js::HandleObject callee, bool newType);
+
+
+extern JSObject *
+CreateThis(JSContext *cx, js::Class *clasp, js::HandleObject callee);
+
+extern JSObject *
 CloneObject(JSContext *cx, HandleObject obj, Handle<js::TaggedProto> proto, HandleObject parent);
 
 

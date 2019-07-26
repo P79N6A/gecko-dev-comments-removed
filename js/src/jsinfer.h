@@ -1123,10 +1123,6 @@ bool
 UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
-bool
-UseNewTypeForInitializer(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey key);
-
-
 
 
 

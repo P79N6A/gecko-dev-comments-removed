@@ -341,7 +341,7 @@ class NewObjectCache
 
 
 
-    inline JSObject *newObjectFromHit(JSContext *cx, EntryIndex entry);
+    inline JSObject *newObjectFromHit(JSContext *cx, EntryIndex entry, js::gc::InitialHeap heap);
 
     
     inline void fillProto(EntryIndex entry, Class *clasp, js::TaggedProto proto, gc::AllocKind kind, JSObject *obj);

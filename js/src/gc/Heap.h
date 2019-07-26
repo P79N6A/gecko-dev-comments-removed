@@ -35,6 +35,16 @@ struct ArenaHeader;
 struct Chunk;
 
 
+
+
+
+
+enum InitialHeap {
+    DefaultHeap,
+    TenuredHeap
+};
+
+
 enum AllocKind {
     FINALIZE_OBJECT0,
     FINALIZE_OBJECT0_BACKGROUND,

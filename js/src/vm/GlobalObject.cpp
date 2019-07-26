@@ -191,8 +191,8 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
 
 
-    objectProto = NewObjectWithGivenProto(cx, &ObjectClass, NULL, self);
-    if (!objectProto || !JSObject::setSingletonType(cx, objectProto))
+    objectProto = NewObjectWithGivenProto(cx, &ObjectClass, NULL, self, SingletonObject);
+    if (!objectProto)
         return NULL;
 
     
@@ -206,7 +206,8 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     
     RootedFunction functionProto(cx);
     {
-        RawObject functionProto_ = NewObjectWithGivenProto(cx, &FunctionClass, objectProto, self);
+        RawObject functionProto_ = NewObjectWithGivenProto(cx, &FunctionClass, objectProto, self,
+                                                           SingletonObject);
         if (!functionProto_)
             return NULL;
         functionProto = functionProto_->toFunction();
@@ -216,8 +217,8 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
 
         {
-            RawObject proto = js_NewFunction(cx, functionProto, NULL, 0, JSFunction::INTERPRETED,
-                                             self, NullPtr());
+            RawObject proto = NewFunction(cx, functionProto, NULL, 0, JSFunction::INTERPRETED,
+                                          self, NullPtr());
             if (!proto)
                 return NULL;
             JS_ASSERT(proto == functionProto);
@@ -255,9 +256,6 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
         functionProto->getType(cx)->interpretedFunction = functionProto;
         script->setFunction(functionProto);
 
-        if (!JSObject::setSingletonType(cx, functionProto))
-            return NULL;
-
         
 
 
@@ -270,12 +268,13 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     
     RootedFunction objectCtor(cx);
     {
-        RootedObject ctor(cx, NewObjectWithGivenProto(cx, &FunctionClass, functionProto, self));
+        RootedObject ctor(cx, NewObjectWithGivenProto(cx, &FunctionClass, functionProto, self,
+                                                      SingletonObject));
         if (!ctor)
             return NULL;
         RootedAtom objectAtom(cx, cx->names().Object);
-        objectCtor = js_NewFunction(cx, ctor, obj_construct, 1, JSFunction::NATIVE_CTOR, self,
-                                    objectAtom);
+        objectCtor = NewFunction(cx, ctor, obj_construct, 1, JSFunction::NATIVE_CTOR, self,
+                                 objectAtom);
         if (!objectCtor)
             return NULL;
     }
@@ -290,12 +289,13 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     RootedFunction functionCtor(cx);
     {
         
-        RootedObject ctor(cx, NewObjectWithGivenProto(cx, &FunctionClass, functionProto, self));
+        RootedObject ctor(cx, NewObjectWithGivenProto(cx, &FunctionClass, functionProto, self,
+                                                      SingletonObject));
         if (!ctor)
             return NULL;
         RootedAtom functionAtom(cx, cx->names().Function);
-        functionCtor = js_NewFunction(cx, ctor, Function, 1, JSFunction::NATIVE_CTOR, self,
-                                      functionAtom);
+        functionCtor = NewFunction(cx, ctor, Function, 1, JSFunction::NATIVE_CTOR, self,
+                                   functionAtom);
         if (!functionCtor)
             return NULL;
         JS_ASSERT(ctor == functionCtor);
@@ -323,13 +323,13 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
 
 
-    RootedFunction getter(cx, js_NewFunction(cx, NullPtr(), ProtoGetter, 0, JSFunction::NATIVE_FUN,
-                                             self, NullPtr()));
+    RootedFunction getter(cx, NewFunction(cx, NullPtr(), ProtoGetter, 0, JSFunction::NATIVE_FUN,
+                                          self, NullPtr()));
     if (!getter)
         return NULL;
 #if JS_HAS_OBJ_PROTO_PROP
-    RootedFunction setter(cx, js_NewFunction(cx, NullPtr(), ProtoSetter, 0, JSFunction::NATIVE_FUN,
-                                             self, NullPtr()));
+    RootedFunction setter(cx, NewFunction(cx, NullPtr(), ProtoSetter, 0, JSFunction::NATIVE_FUN,
+                                          self, NullPtr()));
     if (!setter)
         return NULL;
     RootedValue undefinedValue(cx, UndefinedValue());
@@ -363,14 +363,14 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
     
     RootedId evalId(cx, NameToId(cx->names().eval));
-    RawObject evalobj = js_DefineFunction(cx, self, evalId, IndirectEval, 1, JSFUN_STUB_GSOPS);
+    RawObject evalobj = DefineFunction(cx, self, evalId, IndirectEval, 1, JSFUN_STUB_GSOPS);
     if (!evalobj)
         return NULL;
     self->setOriginalEval(evalobj);
 
     
-    RootedFunction throwTypeError(cx, js_NewFunction(cx, NullPtr(), ThrowTypeError, 0,
-                                                     JSFunction::NATIVE_FUN, self, NullPtr()));
+    RootedFunction throwTypeError(cx, NewFunction(cx, NullPtr(), ThrowTypeError, 0,
+                                                  JSFunction::NATIVE_FUN, self, NullPtr()));
     if (!throwTypeError)
         return NULL;
     if (!throwTypeError->preventExtensions(cx))
@@ -421,7 +421,7 @@ GlobalObject::create(JSContext *cx, Class *clasp)
 {
     JS_ASSERT(clasp->flags & JSCLASS_IS_GLOBAL);
 
-    JSObject *obj = NewObjectWithGivenProto(cx, clasp, NULL, NULL);
+    JSObject *obj = NewObjectWithGivenProto(cx, clasp, NULL, NULL, SingletonObject);
     if (!obj)
         return NULL;
 
@@ -429,7 +429,7 @@ GlobalObject::create(JSContext *cx, Class *clasp)
 
     cx->compartment->initGlobal(*global);
 
-    if (!JSObject::setSingletonType(cx, global) || !global->setVarObj(cx))
+    if (!global->setVarObj(cx))
         return NULL;
     if (!global->setDelegate(cx))
         return NULL;
@@ -502,7 +502,7 @@ GlobalObject::createConstructor(JSContext *cx, Native ctor, JSAtom *nameArg, uns
 {
     RootedAtom name(cx, nameArg);
     RootedObject self(cx, this);
-    return js_NewFunction(cx, NullPtr(), ctor, length, JSFunction::NATIVE_CTOR, self, name, kind);
+    return NewFunction(cx, NullPtr(), ctor, length, JSFunction::NATIVE_CTOR, self, name, kind);
 }
 
 static JSObject *
@@ -511,8 +511,8 @@ CreateBlankProto(JSContext *cx, Class *clasp, JSObject &proto, GlobalObject &glo
     JS_ASSERT(clasp != &ObjectClass);
     JS_ASSERT(clasp != &FunctionClass);
 
-    RootedObject blankProto(cx, NewObjectWithGivenProto(cx, clasp, &proto, &global));
-    if (!blankProto || !JSObject::setSingletonType(cx, blankProto))
+    RootedObject blankProto(cx, NewObjectWithGivenProto(cx, clasp, &proto, &global, SingletonObject));
+    if (!blankProto)
         return NULL;
 
     return blankProto;
