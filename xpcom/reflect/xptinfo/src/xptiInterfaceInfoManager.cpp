@@ -268,30 +268,32 @@ XPTInterfaceInfoManager::GetNameForIID(const nsIID * iid, char **_retval)
 static PLDHashOperator
 xpti_ArrayAppender(const char* name, xptiInterfaceEntry* entry, void* arg)
 {
-    nsCOMArray<nsIInterfaceInfo>* array = static_cast<nsCOMArray<nsIInterfaceInfo>*>(arg);
+    nsISupportsArray* array = (nsISupportsArray*) arg;
 
     nsCOMPtr<nsIInterfaceInfo> ii;
-    if (NS_SUCCEEDED(EntryToInfo(entry, getter_AddRefs(ii)))) {
-      bool scriptable = false;
-      ii->IsScriptable(&scriptable);
-      if (scriptable) {
+    if (NS_SUCCEEDED(EntryToInfo(entry, getter_AddRefs(ii))))
         array->AppendElement(ii);
-      }
-    }
     return PL_DHASH_NEXT;
 }
 
 
-void
-XPTInterfaceInfoManager::GetScriptableInterfaces(nsCOMArray<nsIInterfaceInfo>& aInterfaces)
+NS_IMETHODIMP
+XPTInterfaceInfoManager::EnumerateInterfaces(nsIEnumerator **_retval)
 {
     
     
     
     
 
+    nsCOMPtr<nsISupportsArray> array;
+    NS_NewISupportsArray(getter_AddRefs(array));
+    if (!array)
+        return NS_ERROR_UNEXPECTED;
+
     ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
-    mWorkingSet.mNameTable.EnumerateRead(xpti_ArrayAppender, &aInterfaces);
+    mWorkingSet.mNameTable.EnumerateRead(xpti_ArrayAppender, array);
+
+    return array->Enumerate(_retval);
 }
 
 struct ArrayAndPrefix
