@@ -1736,6 +1736,11 @@ public:
   
 
 
+  virtual bool IsDataValid(const Data& aData) { return true; }
+
+  
+
+
 
   void Updated() { mDirty = true; SetInvalidRectToVisibleRegion(); }
 
