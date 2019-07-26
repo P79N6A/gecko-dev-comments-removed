@@ -566,19 +566,6 @@ let SessionStoreInternal = {
     });
   },
 
-  _initWindow: function ssi_initWindow(aWindow) {
-    if (aWindow) {
-      this.onLoad(aWindow);
-    } else if (this._loadState == STATE_STOPPED) {
-      
-      
-      
-      
-      
-      this._loadState = STATE_RUNNING;
-    }
-  },
-
   
 
 
@@ -586,11 +573,15 @@ let SessionStoreInternal = {
 
 
   init: function ssi_init(aWindow) {
+    if (!aWindow) {
+      throw new Error("init() must be called with a valid window.");
+    }
+
     let self = this;
     this.initService();
     this._promiseInitialization.promise.then(
       function onSuccess() {
-        self._initWindow(aWindow);
+        self.onLoad(aWindow);
       }
     );
   },
