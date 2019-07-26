@@ -119,26 +119,18 @@ GlobalPCList.prototype = {
   },
 
   getStatsForEachPC: function(callback, errorCallback) {
-    function getStatsFromPC(pcref) {
-      try {
-        pcref.get().getStatsInternal(null, callback, errorCallback);
-      } catch (e) {
-        errorCallback("Some error getting stats from PC: " + e.toString());
-      }
-    }
-
     for (let winId in this._list) {
       if (this._list.hasOwnProperty(winId)) {
         this.removeNullRefs(winId);
         if (this._list[winId]) {
-          this._list[winId].forEach(getStatsFromPC);
+          this._list[winId].forEach(function(pcref) {
+            pcref.get().getStatsInternal(null, callback, errorCallback);
+          });
         }
       }
     }
   },
 
-  
-  
   getLoggingFromFirstPC: function(pattern, callback, errorCallback) {
     for (let winId in this._list) {
       this.removeNullRefs(winId);
@@ -162,8 +154,6 @@ WebrtcGlobalInformation.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports]),
 
   getAllStats: function(successCallback, failureCallback) {
-    
-    
     if (_globalPCList) {
       _globalPCList.getStatsForEachPC(successCallback, failureCallback);
     } else {
