@@ -455,6 +455,9 @@ pref("devtools.debugger.remote-port", 6000);
 pref("devtools.debugger.force-local", true);
 
 
+pref("devtools.debugger.enable-content-actors", false);
+
+
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
 pref("view_source.editor.external", false);
