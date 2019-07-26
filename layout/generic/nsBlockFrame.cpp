@@ -4407,24 +4407,23 @@ nsBlockFrame::DrainOverflowLines()
 bool
 nsBlockFrame::DrainSelfOverflowList()
 {
-  
-  
-  FrameLines* ourOverflowLines = RemoveOverflowLines();
-  if (ourOverflowLines) {
-    nsAutoOOFFrameList oofs(this);
-    if (oofs.mList.NotEmpty()) {
-      
-      mFloats.AppendFrames(nullptr, oofs.mList);
-    }
-  } else {
+  nsAutoPtr<FrameLines> ourOverflowLines(RemoveOverflowLines());
+  if (!ourOverflowLines) {
     return false;
+  }
+
+  
+  
+  nsAutoOOFFrameList oofs(this);
+  if (oofs.mList.NotEmpty()) {
+    
+    mFloats.AppendFrames(nullptr, oofs.mList);
   }
 
   if (!ourOverflowLines->mLines.empty()) {
     mFrames.AppendFrames(nullptr, ourOverflowLines->mFrames);
     mLines.splice(mLines.end(), ourOverflowLines->mLines);
   }
-  delete ourOverflowLines;
   return true;
 }
 
