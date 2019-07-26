@@ -15,6 +15,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PrivacyLevel",
   "resource:///modules/sessionstore/PrivacyLevel.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Utils",
+  "resource:///modules/sessionstore/Utils.jsm");
 
 function debug(msg) {
   Services.console.logStringMessage("SessionHistory: " + msg);
@@ -38,6 +40,10 @@ XPCOMUtils.defineLazyGetter(this, "gPostData", function () {
 this.SessionHistory = Object.freeze({
   collect: function (docShell, includePrivateData) {
     return SessionHistoryInternal.collect(docShell, includePrivateData);
+  },
+
+  restore: function (docShell, tabData) {
+    SessionHistoryInternal.restore(docShell, tabData);
   }
 });
 
@@ -274,5 +280,166 @@ let SessionHistoryInternal = {
     
     
     return btoa(String.fromCharCode.apply(null, ownerBytes));
-  }
+  },
+
+  
+
+
+
+
+
+
+
+  restore: function (docShell, tabData) {
+    let webNavigation = docShell.QueryInterface(Ci.nsIWebNavigation);
+    let history = webNavigation.sessionHistory;
+
+    if (history.count > 0) {
+      history.PurgeHistory(history.count);
+    }
+    history.QueryInterface(Ci.nsISHistoryInternal);
+
+    let idMap = { used: {} };
+    let docIdentMap = {};
+    for (let i = 0; i < tabData.entries.length; i++) {
+      
+      if (!tabData.entries[i].url)
+        continue;
+      history.addEntry(this.deserializeEntry(tabData.entries[i],
+                                             idMap, docIdentMap), true);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  deserializeEntry: function (entry, idMap, docIdentMap) {
+
+    var shEntry = Cc["@mozilla.org/browser/session-history-entry;1"].
+                  createInstance(Ci.nsISHEntry);
+
+    shEntry.setURI(Utils.makeURI(entry.url));
+    shEntry.setTitle(entry.title || entry.url);
+    if (entry.subframe)
+      shEntry.setIsSubFrame(entry.subframe || false);
+    shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
+    if (entry.contentType)
+      shEntry.contentType = entry.contentType;
+    if (entry.referrer)
+      shEntry.referrerURI = Utils.makeURI(entry.referrer);
+    if (entry.isSrcdocEntry)
+      shEntry.srcdocData = entry.srcdocData;
+
+    if (entry.cacheKey) {
+      var cacheKey = Cc["@mozilla.org/supports-PRUint32;1"].
+                     createInstance(Ci.nsISupportsPRUint32);
+      cacheKey.data = entry.cacheKey;
+      shEntry.cacheKey = cacheKey;
+    }
+
+    if (entry.ID) {
+      
+      
+      var id = idMap[entry.ID] || 0;
+      if (!id) {
+        for (id = Date.now(); id in idMap.used; id++);
+        idMap[entry.ID] = id;
+        idMap.used[id] = true;
+      }
+      shEntry.ID = id;
+    }
+
+    if (entry.docshellID)
+      shEntry.docshellID = entry.docshellID;
+
+    if (entry.structuredCloneState && entry.structuredCloneVersion) {
+      shEntry.stateData =
+        Cc["@mozilla.org/docshell/structured-clone-container;1"].
+        createInstance(Ci.nsIStructuredCloneContainer);
+
+      shEntry.stateData.initFromBase64(entry.structuredCloneState,
+                                       entry.structuredCloneVersion);
+    }
+
+    if (entry.scroll) {
+      var scrollPos = (entry.scroll || "0,0").split(",");
+      scrollPos = [parseInt(scrollPos[0]) || 0, parseInt(scrollPos[1]) || 0];
+      shEntry.setScrollPosition(scrollPos[0], scrollPos[1]);
+    }
+
+    if (entry.postdata_b64) {
+      var postdata = atob(entry.postdata_b64);
+      var stream = Cc["@mozilla.org/io/string-input-stream;1"].
+                   createInstance(Ci.nsIStringInputStream);
+      stream.setData(postdata, postdata.length);
+      shEntry.postData = stream;
+    }
+
+    let childDocIdents = {};
+    if (entry.docIdentifier) {
+      
+      
+      
+      
+      let matchingEntry = docIdentMap[entry.docIdentifier];
+      if (!matchingEntry) {
+        matchingEntry = {shEntry: shEntry, childDocIdents: childDocIdents};
+        docIdentMap[entry.docIdentifier] = matchingEntry;
+      }
+      else {
+        shEntry.adoptBFCacheEntry(matchingEntry.shEntry);
+        childDocIdents = matchingEntry.childDocIdents;
+      }
+    }
+
+    if (entry.owner_b64) {
+      var ownerInput = Cc["@mozilla.org/io/string-input-stream;1"].
+                       createInstance(Ci.nsIStringInputStream);
+      var binaryData = atob(entry.owner_b64);
+      ownerInput.setData(binaryData, binaryData.length);
+      var binaryStream = Cc["@mozilla.org/binaryinputstream;1"].
+                         createInstance(Ci.nsIObjectInputStream);
+      binaryStream.setInputStream(ownerInput);
+      try { 
+        shEntry.owner = binaryStream.readObject(true);
+      } catch (ex) { debug(ex); }
+    }
+
+    if (entry.children && shEntry instanceof Ci.nsISHContainer) {
+      for (var i = 0; i < entry.children.length; i++) {
+        
+        if (!entry.children[i].url)
+          continue;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        shEntry.AddChild(this.deserializeEntry(entry.children[i], idMap,
+                                               childDocIdents), i);
+      }
+    }
+
+    return shEntry;
+  },
+
 };

@@ -117,6 +117,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "TextAndScrollData",
   "resource:///modules/sessionstore/TextAndScrollData.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionFile",
   "resource:///modules/sessionstore/SessionFile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionHistory",
+  "resource:///modules/sessionstore/SessionHistory.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabAttributes",
   "resource:///modules/sessionstore/TabAttributes.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabState",
@@ -2663,23 +2665,10 @@ let SessionStoreInternal = {
     let browser = tab.linkedBrowser;
     let history = browser.webNavigation.sessionHistory;
 
-    if (history.count > 0) {
-      history.PurgeHistory(history.count);
-    }
-    history.QueryInterface(Ci.nsISHistoryInternal);
-
     browser.__SS_shistoryListener = new SessionStoreSHistoryListener(tab);
     history.addSHistoryListener(browser.__SS_shistoryListener);
 
-    let idMap = { used: {} };
-    let docIdentMap = {};
-    for (var i = 0; i < tabData.entries.length; i++) {
-      
-      if (!tabData.entries[i].url)
-        continue;
-      history.addEntry(this._deserializeHistoryEntry(tabData.entries[i],
-                                                     idMap, docIdentMap), true);
-    }
+    SessionHistory.restore(browser.docShell, tabData);
 
     
     let disallow = new Set(tabData.disallow && tabData.disallow.split(","));
@@ -2829,136 +2818,6 @@ let SessionStoreInternal = {
       if (!didStartLoad)
         this.restoreNextTab();
     }
-  },
-
-  
-
-
-
-
-
-
-
-  _deserializeHistoryEntry:
-    function ssi_deserializeHistoryEntry(aEntry, aIdMap, aDocIdentMap) {
-
-    var shEntry = Cc["@mozilla.org/browser/session-history-entry;1"].
-                  createInstance(Ci.nsISHEntry);
-
-    shEntry.setURI(Utils.makeURI(aEntry.url));
-    shEntry.setTitle(aEntry.title || aEntry.url);
-    if (aEntry.subframe)
-      shEntry.setIsSubFrame(aEntry.subframe || false);
-    shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
-    if (aEntry.contentType)
-      shEntry.contentType = aEntry.contentType;
-    if (aEntry.referrer)
-      shEntry.referrerURI = Utils.makeURI(aEntry.referrer);
-    if (aEntry.isSrcdocEntry)
-      shEntry.srcdocData = aEntry.srcdocData;
-
-    if (aEntry.cacheKey) {
-      var cacheKey = Cc["@mozilla.org/supports-PRUint32;1"].
-                     createInstance(Ci.nsISupportsPRUint32);
-      cacheKey.data = aEntry.cacheKey;
-      shEntry.cacheKey = cacheKey;
-    }
-
-    if (aEntry.ID) {
-      
-      
-      var id = aIdMap[aEntry.ID] || 0;
-      if (!id) {
-        for (id = Date.now(); id in aIdMap.used; id++);
-        aIdMap[aEntry.ID] = id;
-        aIdMap.used[id] = true;
-      }
-      shEntry.ID = id;
-    }
-
-    if (aEntry.docshellID)
-      shEntry.docshellID = aEntry.docshellID;
-
-    if (aEntry.structuredCloneState && aEntry.structuredCloneVersion) {
-      shEntry.stateData =
-        Cc["@mozilla.org/docshell/structured-clone-container;1"].
-        createInstance(Ci.nsIStructuredCloneContainer);
-
-      shEntry.stateData.initFromBase64(aEntry.structuredCloneState,
-                                       aEntry.structuredCloneVersion);
-    }
-
-    if (aEntry.scroll) {
-      var scrollPos = (aEntry.scroll || "0,0").split(",");
-      scrollPos = [parseInt(scrollPos[0]) || 0, parseInt(scrollPos[1]) || 0];
-      shEntry.setScrollPosition(scrollPos[0], scrollPos[1]);
-    }
-
-    if (aEntry.postdata_b64) {
-      var postdata = atob(aEntry.postdata_b64);
-      var stream = Cc["@mozilla.org/io/string-input-stream;1"].
-                   createInstance(Ci.nsIStringInputStream);
-      stream.setData(postdata, postdata.length);
-      shEntry.postData = stream;
-    }
-
-    let childDocIdents = {};
-    if (aEntry.docIdentifier) {
-      
-      
-      
-      
-      let matchingEntry = aDocIdentMap[aEntry.docIdentifier];
-      if (!matchingEntry) {
-        matchingEntry = {shEntry: shEntry, childDocIdents: childDocIdents};
-        aDocIdentMap[aEntry.docIdentifier] = matchingEntry;
-      }
-      else {
-        shEntry.adoptBFCacheEntry(matchingEntry.shEntry);
-        childDocIdents = matchingEntry.childDocIdents;
-      }
-    }
-
-    if (aEntry.owner_b64) {
-      var ownerInput = Cc["@mozilla.org/io/string-input-stream;1"].
-                       createInstance(Ci.nsIStringInputStream);
-      var binaryData = atob(aEntry.owner_b64);
-      ownerInput.setData(binaryData, binaryData.length);
-      var binaryStream = Cc["@mozilla.org/binaryinputstream;1"].
-                         createInstance(Ci.nsIObjectInputStream);
-      binaryStream.setInputStream(ownerInput);
-      try { 
-        shEntry.owner = binaryStream.readObject(true);
-      } catch (ex) { debug(ex); }
-    }
-
-    if (aEntry.children && shEntry instanceof Ci.nsISHContainer) {
-      for (var i = 0; i < aEntry.children.length; i++) {
-        
-        if (!aEntry.children[i].url)
-          continue;
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        shEntry.AddChild(this._deserializeHistoryEntry(aEntry.children[i], aIdMap,
-                                                       childDocIdents), i);
-      }
-    }
-
-    return shEntry;
   },
 
   
