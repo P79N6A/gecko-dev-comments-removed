@@ -1487,17 +1487,37 @@ var NativeWindow = {
       }
     },
 
+    get _target() {
+      if (this._targetRef)
+        return this._targetRef.get();
+      return null;
+    },
+  
+    set _target(aTarget) {
+      if (aTarget)
+        this._targetRef = Cu.getWeakReference(aTarget);
+      else this._targetRef = null;
+    },
+
     _sendToContent: function(aX, aY) {
       
-      let rootElement = ElementTouchHelper.elementFromPoint(aX, aY);
-      if (!rootElement)
-        rootElement = ElementTouchHelper.anyElementFromPoint(aX, aY)
+      
+      
+      let target = BrowserEventHandler._highlightElement || ElementTouchHelper.elementFromPoint(aX, aY);
+      if (!target)
+        target = ElementTouchHelper.anyElementFromPoint(aX, aY);
+
+      if (!target)
+        return;
+
+      
+      this._target = target;
 
       this.menuitems = {};
       let menuitemsSet = false;
-      let element = rootElement;
-      if (!element)
-        return;
+
+      
+      let element = target;
 
       while (element) {
         for each (let item in this.items) {
@@ -1514,34 +1534,45 @@ var NativeWindow = {
 
       
       if (menuitemsSet) {
-        let event = rootElement.ownerDocument.createEvent("MouseEvent");
+        let event = target.ownerDocument.createEvent("MouseEvent");
         event.initMouseEvent("contextmenu", true, true, content,
                              0, aX, aY, aX, aY, false, false, false, false,
                              0, null);
-        rootElement.ownerDocument.defaultView.addEventListener("contextmenu", this, false);
-        rootElement.dispatchEvent(event);
-      } else if (SelectionHandler.canSelect(rootElement)) {
-        SelectionHandler.startSelection(rootElement, aX, aY);
+        target.ownerDocument.defaultView.addEventListener("contextmenu", this, false);
+        target.dispatchEvent(event);
+      } else {
+        this._target = null;
+        BrowserEventHandler._cancelTapHighlight();
+
+        if (SelectionHandler.canSelect(rootElement))
+          SelectionHandler.startSelection(rootElement, aX, aY);
       }
     },
 
     _show: function(aEvent) {
-      if (aEvent.defaultPrevented)
+      let popupNode = this._target;
+      this._target = null;
+      if (aEvent.defaultPrevented || !popupNode) {
         return;
+      }
 
       Haptic.performSimpleAction(Haptic.LongPress);
 
-      let popupNode = aEvent.originalTarget;
-      let title = "";
-      if (popupNode.hasAttribute("title")) {
-        title = popupNode.getAttribute("title")
-      } else if ((popupNode instanceof Ci.nsIDOMHTMLAnchorElement && popupNode.href) ||
-              (popupNode instanceof Ci.nsIDOMHTMLAreaElement && popupNode.href)) {
-        title = this._getLinkURL(popupNode);
-      } else if (popupNode instanceof Ci.nsIImageLoadingContent && popupNode.currentURI) {
-        title = popupNode.currentURI.spec;
-      } else if (popupNode instanceof Ci.nsIDOMHTMLMediaElement) {
-        title = (popupNode.currentSrc || popupNode.src);
+      
+      let node = popupNode;
+      let title ="";
+      while(node && !title) {
+        if (node.hasAttribute("title")) {
+          title = node.getAttribute("title")
+        } else if ((node instanceof Ci.nsIDOMHTMLAnchorElement && node.href) ||
+                (node instanceof Ci.nsIDOMHTMLAreaElement && node.href)) {
+          title = this._getLinkURL(node);
+        } else if (node instanceof Ci.nsIImageLoadingContent && node.currentURI) {
+          title = node.currentURI.spec;
+        } else if (node instanceof Ci.nsIDOMHTMLMediaElement) {
+          title = (node.currentSrc || node.src);
+        }
+        node = node.parentNode;
       }
 
       
@@ -1574,12 +1605,12 @@ var NativeWindow = {
     },
 
     handleEvent: function(aEvent) {
+      BrowserEventHandler._cancelTapHighlight();
       aEvent.target.ownerDocument.defaultView.removeEventListener("contextmenu", this, false);
       this._show(aEvent);
     },
 
     observe: function(aSubject, aTopic, aData) {
-      BrowserEventHandler._cancelTapHighlight();
       let data = JSON.parse(aData);
       
       this._sendToContent(data.x, data.y);
