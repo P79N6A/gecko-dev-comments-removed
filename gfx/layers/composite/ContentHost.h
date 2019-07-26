@@ -84,6 +84,65 @@ protected:
 
 
 
+class ContentHostBaseNew : public ContentHost
+{
+public:
+  typedef RotatedContentBuffer::ContentType ContentType;
+  typedef RotatedContentBuffer::PaintState PaintState;
+
+  ContentHostBaseNew(const TextureInfo& aTextureInfo);
+  virtual ~ContentHostBaseNew();
+
+  virtual void Composite(EffectChain& aEffectChain,
+                         float aOpacity,
+                         const gfx::Matrix4x4& aTransform,
+                         const gfx::Filter& aFilter,
+                         const gfx::Rect& aClipRect,
+                         const nsIntRegion* aVisibleRegion = nullptr,
+                         TiledLayerProperties* aLayerProperties = nullptr);
+
+  virtual LayerRenderState GetRenderState() MOZ_OVERRIDE;
+
+  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+
+#ifdef MOZ_DUMP_PAINTING
+  virtual already_AddRefed<gfxImageSurface> GetAsSurface() MOZ_OVERRIDE;
+
+  virtual void Dump(FILE* aFile=nullptr,
+                    const char* aPrefix="",
+                    bool aDumpHtml=false) MOZ_OVERRIDE;
+#endif
+#ifdef MOZ_LAYERS_HAVE_LOG
+  virtual void PrintInfo(nsACString& aTo, const char* aPrefix) MOZ_OVERRIDE;
+#endif
+
+  virtual TextureHost* GetAsTextureHost() MOZ_OVERRIDE;
+
+  virtual void UseTextureHost(TextureHost* aTexture) MOZ_OVERRIDE;
+
+  virtual void RemoveTextureHost(TextureHost* aTexture) MOZ_OVERRIDE;
+
+  virtual void SetPaintWillResample(bool aResample) { mPaintWillResample = aResample; }
+
+protected:
+  virtual nsIntPoint GetOriginOffset()
+  {
+    return mBufferRect.TopLeft() - mBufferRotation;
+  }
+
+  bool PaintWillResample() { return mPaintWillResample; }
+
+  
+  void DestroyTextureHost();
+  void DestroyTextureHostOnWhite();
+
+  nsIntRect mBufferRect;
+  nsIntPoint mBufferRotation;
+  RefPtr<TextureHost> mTextureHost;
+  RefPtr<TextureHost> mTextureHostOnWhite;
+  bool mPaintWillResample;
+  bool mInitialised;
+};
 class ContentHostBase : public ContentHost
 {
 public:
@@ -157,6 +216,28 @@ protected:
 
 
 
+
+
+class ContentHostDoubleBufferedNew : public ContentHostBaseNew
+{
+public:
+  ContentHostDoubleBufferedNew(const TextureInfo& aTextureInfo)
+    : ContentHostBaseNew(aTextureInfo)
+  {}
+
+  virtual ~ContentHostDoubleBufferedNew() {}
+
+  virtual CompositableType GetType() { return COMPOSITABLE_CONTENT_DOUBLE; }
+
+  virtual void UpdateThebes(const ThebesBufferData& aData,
+                            const nsIntRegion& aUpdated,
+                            const nsIntRegion& aOldValidRegionBack,
+                            nsIntRegion* aUpdatedRegionBack);
+
+protected:
+  nsIntRegion mValidRegionForNextBackBuffer;
+};
+
 class ContentHostDoubleBuffered : public ContentHostBase
 {
 public:
@@ -200,6 +281,22 @@ protected:
 
 
 
+
+class ContentHostSingleBufferedNew : public ContentHostBaseNew
+{
+public:
+  ContentHostSingleBufferedNew(const TextureInfo& aTextureInfo)
+    : ContentHostBaseNew(aTextureInfo)
+  {}
+  virtual ~ContentHostSingleBufferedNew() {}
+
+  virtual CompositableType GetType() { return COMPOSITABLE_CONTENT_SINGLE; }
+
+  virtual void UpdateThebes(const ThebesBufferData& aData,
+                            const nsIntRegion& aUpdated,
+                            const nsIntRegion& aOldValidRegionBack,
+                            nsIntRegion* aUpdatedRegionBack);
+};
 
 class ContentHostSingleBuffered : public ContentHostBase
 {

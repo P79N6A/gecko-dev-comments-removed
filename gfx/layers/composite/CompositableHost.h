@@ -297,6 +297,17 @@ public:
   void AddTextureHost(TextureHost* aTexture);
   virtual void UseTextureHost(TextureHost* aTexture) {}
   virtual void RemoveTextureHost(uint64_t aTextureID);
+  
+  
+  
+  
+  
+  
+  
+  virtual void RemoveTextureHostDeferred(TextureHost* aTexture)
+  {
+    MOZ_CRASH("Compositable was not expecting to handle deferred removal of texture hosts");
+  }
   TextureHost* GetTextureHost(uint64_t aTextureID);
 
 protected:
