@@ -66,7 +66,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
     public static final String PREF_TITLEBAR_MODE = "browser.chrome.titlebarMode";
     private GeckoRelativeLayout mLayout;
     private LayoutParams mAwesomeBarParams;
-    private View mAwesomeBarContent;
+    private View mUrlDisplayContainer;
     private View mAwesomeBarEntry;
     private ImageView mAwesomeBarRightEdge;
     private BrowserToolbarBackground mAddressBarBg;
@@ -228,7 +228,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
         mAddressBarBg = (BrowserToolbarBackground) mLayout.findViewById(R.id.address_bar_bg);
         mAddressBarViewOffset = mActivity.getResources().getDimensionPixelSize(R.dimen.addressbar_offset_left);
         mDefaultForwardMargin = mActivity.getResources().getDimensionPixelSize(R.dimen.forward_default_offset);
-        mAwesomeBarContent = mLayout.findViewById(R.id.awesome_bar_content);
+        mUrlDisplayContainer = mLayout.findViewById(R.id.awesome_bar_display_container);
         mAwesomeBarEntry = mLayout.findViewById(R.id.awesome_bar_entry);
 
         
@@ -1035,9 +1035,9 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                     
                     
                     ViewGroup.MarginLayoutParams layoutParams =
-                        (ViewGroup.MarginLayoutParams)mAwesomeBarContent.getLayoutParams();
+                        (ViewGroup.MarginLayoutParams)mUrlDisplayContainer.getLayoutParams();
                     layoutParams.leftMargin = 0;
-                    mAwesomeBarContent.requestLayout();
+                    mUrlDisplayContainer.requestLayout();
                     
                     
                     
@@ -1048,7 +1048,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
             public void onPropertyAnimationEnd() {
                 if (enabled) {
                     ViewGroup.MarginLayoutParams layoutParams =
-                        (ViewGroup.MarginLayoutParams)mAwesomeBarContent.getLayoutParams();
+                        (ViewGroup.MarginLayoutParams)mUrlDisplayContainer.getLayoutParams();
                     layoutParams.leftMargin = mAddressBarViewOffset;
 
                     ViewHelper.setTranslationX(mTitle, 0);
@@ -1061,7 +1061,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                 layoutParams.leftMargin = mDefaultForwardMargin + (mForward.isEnabled() ? mForward.getWidth() / 2 : 0);
                 ViewHelper.setTranslationX(mForward, 0);
 
-                mAwesomeBarContent.requestLayout();
+                mUrlDisplayContainer.requestLayout();
                 mForwardAnim = null;
             }
         });
