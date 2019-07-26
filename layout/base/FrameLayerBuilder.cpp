@@ -1843,6 +1843,29 @@ AddTransformedBoundsToRegion(const nsIntRegion& aRegion,
   aDest->Or(*aDest, intRect);
 }
 
+static bool
+CanOptimizeAwayThebesLayer(ThebesLayerData* aData,
+                           FrameLayerBuilder* aLayerBuilder)
+{
+  bool isRetained = aData->mLayer->Manager()->IsWidgetLayerManager();
+  if (!isRetained) {
+    return false;
+  }
+
+  
+  
+  
+  if (aData->mLayer->GetValidRegion().IsEmpty()) {
+    return true;
+  }
+
+  
+  
+  
+  
+  return aLayerBuilder->CheckInLayerTreeCompressionMode();
+}
+
 void
 ContainerState::PopThebesLayerData()
 {
@@ -1858,9 +1881,8 @@ ContainerState::PopThebesLayerData()
   nsRefPtr<Layer> layer;
   nsRefPtr<ImageContainer> imageContainer = data->CanOptimizeImageLayer(mBuilder);
 
-  bool isRetained = data->mLayer->Manager()->IsWidgetLayerManager();
-  if (isRetained && (data->mIsSolidColorInVisibleRegion || imageContainer) &&
-      (data->mLayer->GetValidRegion().IsEmpty() || mLayerBuilder->CheckInLayerTreeCompressionMode())) {
+  if ((data->mIsSolidColorInVisibleRegion || imageContainer) &&
+      CanOptimizeAwayThebesLayer(data, mLayerBuilder)) {
     NS_ASSERTION(!(data->mIsSolidColorInVisibleRegion && imageContainer),
                  "Can't be a solid color as well as an image!");
     if (imageContainer) {
