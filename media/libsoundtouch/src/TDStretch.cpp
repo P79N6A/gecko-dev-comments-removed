@@ -590,7 +590,7 @@ void TDStretch::acceptNewOverlapLength(int newOverlapLength)
 
         pMidBufferUnaligned = new SAMPLETYPE[overlapLength * 2 + 16 / sizeof(SAMPLETYPE)];
         
-        pMidBuffer = (SAMPLETYPE *)((((ulong)pMidBufferUnaligned) + 15) & (ulong)-16);
+        pMidBuffer = (SAMPLETYPE *)SOUNDTOUCH_ALIGN_POINTER_16(pMidBufferUnaligned);
 
         clearMidBuffer();
     }

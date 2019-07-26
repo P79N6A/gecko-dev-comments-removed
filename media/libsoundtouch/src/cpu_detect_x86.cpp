@@ -46,9 +46,7 @@
     #if defined(__GNUC__)
         
         #include "cpuid.h"
-    #endif
-
-    #if defined(_M_IX86)
+    #elif defined(_M_IX86)
         
         #include <intrin.h>
     #endif

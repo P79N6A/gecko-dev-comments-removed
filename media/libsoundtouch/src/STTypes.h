@@ -42,6 +42,18 @@
 typedef unsigned int    uint;
 typedef unsigned long   ulong;
 
+
+#ifdef _WIN64
+    typedef unsigned long long ulongptr;
+#else
+    typedef ulong ulongptr;
+#endif
+
+
+
+#define SOUNDTOUCH_ALIGN_POINTER_16(x)      ( ( (ulongptr)(x) + 15 ) & ~(ulongptr)15 )
+
+
 #include "soundtouch_config.h"
 
 #ifdef WIN32
