@@ -581,9 +581,6 @@ let SessionStoreInternal = {
       case "nsPref:changed": 
         this.onPrefChange(aData);
         break;
-      case "timer-callback": 
-        this.onTimerCallback();
-        break;
     }
   },
 
