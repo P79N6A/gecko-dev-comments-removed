@@ -1082,6 +1082,7 @@ MmsService.prototype = {
 
 
 
+
   broadcastSentMessageEvent: function broadcastSentMessageEvent(aDomMessage) {
     
     this.broadcastMmsSystemMessage("sms-sent", aDomMessage);
@@ -1091,6 +1092,7 @@ MmsService.prototype = {
   },
 
   
+
 
 
 
@@ -1142,6 +1144,12 @@ MmsService.prototype = {
     gMobileMessageDatabaseService.saveReceivedMessage(savableMessage,
         (function (rv, domMessage) {
       let success = Components.isSuccessCode(rv);
+
+      
+      
+      
+      
+      
       let transaction =
         new NotifyResponseTransaction(transactionId,
                                       success ? MMS.MMS_PDU_STATUS_RETRIEVED
@@ -1219,7 +1227,10 @@ MmsService.prototype = {
 
     
     
-    this.retrieveMessage(url, this.retrieveMessageCallback.bind(this, wish, savableMessage));
+    this.retrieveMessage(url,
+                         this.retrieveMessageCallback.bind(this,
+                                                           wish,
+                                                           savableMessage));
   },
 
   
@@ -1389,7 +1400,11 @@ MmsService.prototype = {
 
         if (DEBUG) debug("Send MMS successful. aParams.receivers = " +
                          JSON.stringify(aParams.receivers));
-        self.broadcastSentMessageEvent(domMessage);
+
+        
+        self.broadcastSentMessageEvent(aDomMessage);
+
+        
         aRequest.notifyMessageSent(aDomMessage);
       });
     };
@@ -1490,9 +1505,18 @@ MmsService.prototype = {
             aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
             return;
           }
+
+          
+          this.broadcastReceivedMessageEvent(domMessage);
+
           
           aRequest.notifyMessageGot(domMessage);
-          this.broadcastReceivedMessageEvent(domMessage);
+
+          
+          
+          
+          
+          
           let transaction = new AcknowledgeTransaction(transactionId, reportAllowed);
           transaction.run();
         }).bind(this));
