@@ -3,6 +3,9 @@
 
 
 
+#ifndef TableTicker_h
+#define TableTicker_h
+
 #include "platform.h"
 #include "ProfileEntry.h"
 #include "mozilla/Mutex.h"
@@ -217,4 +220,6 @@ protected:
   IntelPowerGadget* mIntelPowerGadget;
 #endif
 };
+
+#endif
 
