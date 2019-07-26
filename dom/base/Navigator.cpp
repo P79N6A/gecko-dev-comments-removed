@@ -1808,6 +1808,12 @@ Navigator::HasFMRadioSupport(JSContext* , JSObject* aGlobal)
 bool
 Navigator::HasNfcSupport(JSContext* , JSObject* aGlobal)
 {
+  
+  nsCOMPtr<nsISupports> contentHelper = do_GetService("@mozilla.org/nfc/content-helper;1");
+  if (!contentHelper) {
+    return false;
+  }
+
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && (CheckPermission(win, "nfc-read") ||
                  CheckPermission(win, "nfc-write"));
