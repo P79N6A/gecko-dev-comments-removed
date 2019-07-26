@@ -271,12 +271,6 @@ struct BasicTiledLayerPaintData {
 
 
 
-  LayerRect mViewport;
-
-  
-
-
-
   CSSToParentLayerScale mResolution;
 
   

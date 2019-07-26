@@ -1007,11 +1007,6 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   TILING_PRLOG_OBJ(("TILING 0x%p: Progressive update intersected coherency rect %s\n", mThebesLayer, tmpstr.get()), typedCoherentUpdateRect);
 
   
-  
-  
-  typedCoherentUpdateRect.MoveBy(aPaintData->mViewport.TopLeft());
-
-  
   nsIntRect untypedCoherentUpdateRect(LayerIntRect::ToUntyped(
     RoundedOut(typedCoherentUpdateRect)));
 
