@@ -801,17 +801,18 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
         
         
         
-        boolean exitableReaderMode = false;
+        boolean inReaderMode = false;
         Tab tab = Tabs.getInstance().getSelectedTab();
         if (tab != null)
-            exitableReaderMode = ReaderModeUtils.isAboutReader(tab.getURL()) && tab.canDoBack();
-        mReader.setImageResource(exitableReaderMode ? R.drawable.reader_active : R.drawable.reader);
-        mReader.setVisibility(!isLoading && (mShowReader || exitableReaderMode) ? View.VISIBLE : View.GONE);
+            inReaderMode = ReaderModeUtils.isAboutReader(tab.getURL());
+        mReader.setImageResource(inReaderMode ? R.drawable.reader_active : R.drawable.reader);
+
+        mReader.setVisibility(!isLoading && (mShowReader || inReaderMode) ? View.VISIBLE : View.GONE);
 
         
         
         
-        mTitle.setPadding(0, 0, (!isLoading && !(mShowReader || exitableReaderMode) ? mTitlePadding : 0), 0);
+        mTitle.setPadding(0, 0, (!isLoading && !(mShowReader || inReaderMode) ? mTitlePadding : 0), 0);
 
         updateFocusOrder();
     }
