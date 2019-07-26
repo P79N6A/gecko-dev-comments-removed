@@ -8,7 +8,6 @@ DEFAULT_COMMON_PREFS = {
     
     'browser.dom.window.dump.enabled': True,
     
-    'javascript.options.strict': True,
     'javascript.options.showInConsole': True,
 
     
