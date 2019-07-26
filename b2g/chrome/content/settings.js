@@ -219,6 +219,24 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
 
 
 
+let devtoolsWidgetPanel;
+SettingsListener.observe('devtools.overlay', false, (value) => {
+  if (value) {
+    if (!devtoolsWidgetPanel) {
+      let scope = {};
+      Services.scriptloader.loadSubScript('chrome://browser/content/devtools.js', scope);
+      devtoolsWidgetPanel = scope.devtoolsWidgetPanel;
+    }
+    devtoolsWidgetPanel.init();
+  } else {
+    if (devtoolsWidgetPanel) {
+      devtoolsWidgetPanel.uninit();
+    }
+  }
+});
+
+
+
 #ifdef MOZ_WIDGET_GONK
 let AdbController = {
   DEBUG: false,
