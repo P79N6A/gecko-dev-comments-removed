@@ -1044,6 +1044,7 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
     virtual ~ScriptedDirectProxyHandler();
 
     
+    virtual bool preventExtensions(JSContext *cx, HandleObject proxy) MOZ_OVERRIDE;
     virtual bool getPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
                                        PropertyDescriptor *desc, unsigned flags) MOZ_OVERRIDE;
     virtual bool getOwnPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
@@ -1610,6 +1611,48 @@ ScriptedDirectProxyHandler::ScriptedDirectProxyHandler()
 
 ScriptedDirectProxyHandler::~ScriptedDirectProxyHandler()
 {
+}
+
+bool
+ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy)
+{
+    
+    RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
+
+    
+    RootedObject target(cx, GetProxyTargetObject(proxy));
+
+    
+    RootedValue trap(cx);
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().preventExtensions, &trap))
+        return false;
+
+    
+    if (trap.isUndefined())
+        return DirectProxyHandler::preventExtensions(cx, proxy);
+
+    
+    Value argv[] = {
+        ObjectValue(*target)
+    };
+    RootedValue trapResult(cx);
+    if (!Invoke(cx, ObjectValue(*handler), trap, 1, argv, trapResult.address()))
+        return false;
+
+    
+    bool success = ToBoolean(trapResult);
+    if (success) {
+        
+        if (target->isExtensible()) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_REPORT_AS_NON_EXTENSIBLE);
+            return false;
+        }
+        return true;
+    }
+
+    
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_CHANGE_EXTENSIBILITY);
+    return false;
 }
 
 
