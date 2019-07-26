@@ -285,8 +285,6 @@ XPCWrappedNative::WrapNewGlobal(XPCCallContext &ccx, xpcObjectHelper &nativeHelp
                                 nsIPrincipal *principal, bool initStandardClasses,
                                 XPCWrappedNative **wrappedGlobal)
 {
-    bool success;
-    nsresult rv;
     nsISupports *identity = nativeHelper.GetCanonical();
 
     
@@ -316,8 +314,8 @@ XPCWrappedNative::WrapNewGlobal(XPCCallContext &ccx, xpcObjectHelper &nativeHelp
     
     JSObject *global;
     JSCompartment *compartment;
-    rv = xpc_CreateGlobalObject(ccx, clasp, principal, nullptr, false,
-                                &global, &compartment);
+    nsresult rv = xpc::CreateGlobalObject(ccx, clasp, principal, false, &global,
+                                          &compartment);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -347,7 +345,7 @@ XPCWrappedNative::WrapNewGlobal(XPCCallContext &ccx, xpcObjectHelper &nativeHelp
 
     
     MOZ_ASSERT(proto->GetJSProtoObject());
-    success = JS_SplicePrototype(ccx, global, proto->GetJSProtoObject());
+    bool success = JS_SplicePrototype(ccx, global, proto->GetJSProtoObject());
     if (!success)
         return NS_ERROR_FAILURE;
 

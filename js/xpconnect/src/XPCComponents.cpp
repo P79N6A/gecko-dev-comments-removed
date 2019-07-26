@@ -3056,15 +3056,6 @@ WrapForSandbox(JSContext *cx, bool wantXrays, jsval *vp)
            : xpc::WrapperFactory::WaiveXrayAndWrap(cx, vp);
 }
 
-
-
-class Identity MOZ_FINAL : public nsISupports
-{
-    NS_DECL_ISUPPORTS
-};
-
-NS_IMPL_ISUPPORTS0(Identity)
-
 xpc::SandboxProxyHandler xpc::sandboxProxyHandler;
 
 
@@ -3270,9 +3261,8 @@ xpc_CreateSandboxObject(JSContext *cx, jsval *vp, nsISupports *prinOrSop, Sandbo
     JSCompartment *compartment;
     JSObject *sandbox;
 
-    nsRefPtr<Identity> identity = new Identity();
-    rv = xpc_CreateGlobalObject(cx, &SandboxClass, principal, identity,
-                                options.wantXrays, &sandbox, &compartment);
+    rv = xpc::CreateGlobalObject(cx, &SandboxClass, principal,
+                                 options.wantXrays, &sandbox, &compartment);
     NS_ENSURE_SUCCESS(rv, rv);
 
     JS::AutoObjectRooter tvr(cx, sandbox);

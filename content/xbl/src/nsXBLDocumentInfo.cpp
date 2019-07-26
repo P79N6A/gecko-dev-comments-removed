@@ -284,8 +284,8 @@ nsXBLDocGlobalObject::EnsureScriptEnvironment()
   nsIPrincipal *principal = GetPrincipal();
   JSCompartment *compartment;
 
-  rv = xpc_CreateGlobalObject(cx, &gSharedGlobalClass, principal, nullptr,
-                              false, &mJSObject, &compartment);
+  rv = xpc::CreateGlobalObject(cx, &gSharedGlobalClass, principal, false,
+                               &mJSObject, &compartment);
   NS_ENSURE_SUCCESS(rv, NS_OK);
 
   
