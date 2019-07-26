@@ -134,6 +134,16 @@ intl_FormatNumber(JSContext *cx, unsigned argc, Value *vp);
 
 
 
+extern JSBool
+intl_DateTimeFormat(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+
+
+
+
 
 extern JSBool
 intl_DateTimeFormat_availableLocales(JSContext *cx, unsigned argc, Value *vp);

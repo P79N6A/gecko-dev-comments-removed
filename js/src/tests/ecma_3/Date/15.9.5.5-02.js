@@ -27,15 +27,26 @@ function test()
 
   d = new Date(-maxms );
   y = d.getFullYear();
-  l = d.toLocaleString();
-  print(l);
 
   actual = y;
   expect = -271821;
   reportCompare(expect, actual, summary + ': check year');
 
-  actual = l.match(new RegExp(y)) + '';
-  expect = y + '';
+  l = d.toLocaleString();
+  print(l);
+  if (this.hasOwnProperty("Intl")) {
+    
+    
+    
+    
+    expect = Math.abs(y - 1) + '';
+  } else {
+    
+    
+    
+    expect = y + '';
+  }
+  actual = l.match(/-?[0-9]{3,}/) + '';
   reportCompare(expect, actual, summary + ': check toLocaleString');
 
   d = new Date(maxms );
