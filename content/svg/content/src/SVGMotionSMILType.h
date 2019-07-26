@@ -10,12 +10,15 @@
 
 #include "mozilla/gfx/2D.h"
 #include "mozilla/Attributes.h"
-#include "gfxMatrix.h"
 #include "nsISMILType.h"
 
 class nsSMILValue;
 
 namespace mozilla {
+
+namespace gfx {
+struct Matrix;
+}
 
 
 
@@ -63,7 +66,7 @@ protected:
                                nsSMILValue& aResult) const MOZ_OVERRIDE;
 public:
   
-  static gfxMatrix CreateMatrix(const nsSMILValue& aSMILVal);
+  static gfx::Matrix CreateMatrix(const nsSMILValue& aSMILVal);
 
   
   
