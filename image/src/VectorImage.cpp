@@ -55,6 +55,12 @@ public:
 #endif
   }
 
+  void ResumeListening()
+  {
+    
+    GetReferencedElement();
+  }
+
   virtual ~SVGRootRenderingObserver()
   {
     StopListening();
@@ -84,10 +90,7 @@ protected:
 
     
     
-    if (!mInObserverList) {
-      nsSVGEffects::AddRenderingObserver(elem, this);
-      mInObserverList = true;
-    }
+    
   }
 
   
@@ -760,6 +763,13 @@ VectorImage::Draw(gfxContext* aContext,
                              aUserSpaceToImageSpace,
                              subimage, sourceRect, imageRect, aFill,
                              gfxASurface::ImageFormatARGB32, aFilter);
+
+  MOZ_ASSERT(mRenderingObserver || mHaveRestrictedRegion, 
+      "Should have a rendering observer by now unless ExtractFrame created us");
+  if (mRenderingObserver) {
+    
+    mRenderingObserver->ResumeListening();
+  }
 
   mIsDrawing = false;
   return NS_OK;
