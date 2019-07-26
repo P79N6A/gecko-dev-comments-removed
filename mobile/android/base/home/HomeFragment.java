@@ -148,7 +148,8 @@ abstract class HomeFragment extends Fragment {
             }
 
             case R.id.home_edit_bookmark: {
-                new EditBookmarkDialog(context).show(info.url);
+                
+                new EditBookmarkDialog(getActivity()).show(info.url);
                 return true;
             }
 
