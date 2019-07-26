@@ -18,6 +18,13 @@
 #ifndef insanity_pkix__ScopedPtr_h
 #define insanity_pkix__ScopedPtr_h
 
+
+#ifdef __GNUC__
+#if __GNUC__ * 100 + __GNUC_MINOR__ < 406
+  #define nullptr __null
+#endif
+#endif
+
 namespace insanity { namespace pkix {
 
 
