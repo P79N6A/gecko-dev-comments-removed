@@ -35,8 +35,7 @@ class LIRGeneratorARM : public LIRGeneratorShared
         return LDefinition::BogusTemp();
     }
 
-    bool needTempForObjectInNurseryRange() { return false; }
-    bool needTempForValueIsNurseryObject() { return false; }
+    bool needTempForPostBarrier() { return false; }
 
     
     

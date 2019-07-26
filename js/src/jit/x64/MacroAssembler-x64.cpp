@@ -390,7 +390,6 @@ MacroAssemblerX64::branchPtrInNurseryRange(Register ptr, Register temp, Label *l
 {
     JS_ASSERT(ptr != temp);
     JS_ASSERT(ptr != ScratchReg);
-    
 
     const Nursery &nursery = GetIonContext()->runtime->gcNursery();
     movePtr(ImmWord(-ptrdiff_t(nursery.start())), ScratchReg);
@@ -401,24 +400,13 @@ MacroAssemblerX64::branchPtrInNurseryRange(Register ptr, Register temp, Label *l
 void
 MacroAssemblerX64::branchValueIsNurseryObject(ValueOperand value, Register temp, Label *label)
 {
-    JS_ASSERT(temp != InvalidReg);
-
-    Label done;
-
-    branchTestObject(Assembler::NotEqual, value, &done);
-
-    Register obj = extractObject(value, temp);
     
-    
-    if (obj == temp) {
-        const Nursery &nursery = GetIonContext()->runtime->gcNursery();
-        addPtr(ImmWord(-ptrdiff_t(nursery.start())), obj);
-        branchPtr(Assembler::Below, obj, Imm32(Nursery::NurserySize), label);
-    } else {
-        branchPtrInNurseryRange(obj, temp, label);
-    }
+    const Nursery &nursery = GetIonContext()->runtime->gcNursery();
+    Value start = ObjectValue(*reinterpret_cast<JSObject *>(nursery.start()));
 
-    bind(&done);
+    movePtr(ImmWord(-ptrdiff_t(start.asRawBits())), ScratchReg);
+    addPtr(value.valueReg(), ScratchReg);
+    branchPtr(Assembler::Below, ScratchReg, Imm32(Nursery::NurserySize), label);
 }
 
 #endif

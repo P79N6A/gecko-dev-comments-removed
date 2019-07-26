@@ -35,8 +35,7 @@ class LIRGeneratorX64 : public LIRGeneratorX86Shared
 
     LDefinition tempToUnbox();
 
-    bool needTempForObjectInNurseryRange() { return false; }
-    bool needTempForValueIsNurseryObject() { return true; }
+    bool needTempForPostBarrier() { return false; }
 
     
     
