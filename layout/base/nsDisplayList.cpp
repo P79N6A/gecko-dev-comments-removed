@@ -1034,12 +1034,14 @@ nsDisplayList::GetBounds(nsDisplayListBuilder* aBuilder) const {
 
 bool
 nsDisplayList::ComputeVisibilityForRoot(nsDisplayListBuilder* aBuilder,
-                                        nsRegion* aVisibleRegion) {
+                                        nsRegion* aVisibleRegion,
+                                        nsIFrame* aDisplayPortFrame) {
   PROFILER_LABEL("nsDisplayList", "ComputeVisibilityForRoot");
   nsRegion r;
   r.And(*aVisibleRegion, GetBounds(aBuilder));
   return ComputeVisibilityForSublist(aBuilder, aVisibleRegion,
-                                     r.GetBounds(), r.GetBounds());
+                                     r.GetBounds(), r.GetBounds(),
+                                     aDisplayPortFrame);
 }
 
 static nsRegion
@@ -1103,7 +1105,8 @@ bool
 nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
                                            nsRegion* aVisibleRegion,
                                            const nsRect& aListVisibleBounds,
-                                           const nsRect& aAllowVisibleRegionExpansion) {
+                                           const nsRect& aAllowVisibleRegionExpansion,
+                                           nsIFrame* aDisplayPortFrame) {
 #ifdef DEBUG
   nsRegion r;
   r.And(*aVisibleRegion, GetBounds(aBuilder));
@@ -1118,6 +1121,11 @@ nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
   FlattenTo(&elements);
 
   bool forceTransparentSurface = false;
+
+  nsIFrame* displayPortRoot = nullptr;
+  if (aDisplayPortFrame) {
+    displayPortRoot = aDisplayPortFrame->PresContext()->PresShell()->GetRootFrame();
+  }
 
   for (int32_t i = elements.Length() - 1; i >= 0; --i) {
     nsDisplayItem* item = elements[i];
@@ -1161,9 +1169,34 @@ nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
     if (item->ComputeVisibility(aBuilder, aVisibleRegion,
                                 aAllowVisibleRegionExpansion.Intersect(bounds))) {
       anyVisible = true;
-      nsRegion opaque = TreatAsOpaque(item, aBuilder);
+
       
-      aBuilder->SubtractFromVisibleRegion(aVisibleRegion, opaque);
+      
+      
+      
+      
+      bool occlude = true;
+      if (aDisplayPortFrame) {
+        for (nsIFrame* frame = item->Frame(); frame && frame != displayPortRoot;
+             frame = nsLayoutUtils::GetCrossDocParentFrame(frame)) {
+          
+          
+          if (frame->StyleDisplay()->mPosition == NS_STYLE_POSITION_FIXED &&
+              frame->GetParent() && !frame->GetParent()->GetParent()) {
+            if (frame->PresContext() == aDisplayPortFrame->PresContext()) {
+              occlude = false;
+            }
+            break;
+          }
+        }
+      }
+
+      if (occlude) {
+        nsRegion opaque = TreatAsOpaque(item, aBuilder);
+        
+        aBuilder->SubtractFromVisibleRegion(aVisibleRegion, opaque);
+      }
+
       if (aBuilder->NeedToForceTransparentSurfaceForItem(item) ||
           (list && list->NeedsTransparentSurface())) {
         forceTransparentSurface = true;
@@ -3593,7 +3626,8 @@ nsDisplaySubDocument::ComputeVisibility(nsDisplayListBuilder* aBuilder,
     childVisibleRegion.GetBounds().Intersect(mList.GetBounds(aBuilder));
   nsRect allowExpansion = boundedRect.Intersect(aAllowVisibleRegionExpansion);
   bool visible = mList.ComputeVisibilityForSublist(
-    aBuilder, &childVisibleRegion, boundedRect, allowExpansion);
+    aBuilder, &childVisibleRegion, boundedRect, allowExpansion,
+    usingDisplayPort ? mFrame : nullptr);
   
   
   
@@ -3876,7 +3910,8 @@ nsDisplayScrollLayer::ComputeVisibility(nsDisplayListBuilder* aBuilder,
     childVisibleRegion.GetBounds().Intersect(mList.GetBounds(aBuilder));
   nsRect allowExpansion = boundedRect.Intersect(aAllowVisibleRegionExpansion);
   bool visible = mList.ComputeVisibilityForSublist(
-    aBuilder, &childVisibleRegion, boundedRect, allowExpansion);
+    aBuilder, &childVisibleRegion, boundedRect, allowExpansion,
+    usingDisplayPort ? mScrollFrame : nullptr);
   
   
   
