@@ -386,18 +386,15 @@ DecomposeIntoNoRepeatRects(const Rect& aRect,
 
   
   
-  
-  while (texCoordRect.x >= 1.0f)
-    texCoordRect.x -= 1.0f;
-  while (texCoordRect.y >= 1.0f)
-    texCoordRect.y -= 1.0f;
+  texCoordRect.x -= uint32_t(texCoordRect.x);
+  texCoordRect.y -= uint32_t(texCoordRect.y);
 
   
   
   bool flipped = false;
   if (texCoordRect.height < 0) {
     flipped = true;
-    texCoordRect.y = texCoordRect.YMost();
+    texCoordRect.y += texCoordRect.height;
     texCoordRect.height = -texCoordRect.height;
   }
 
