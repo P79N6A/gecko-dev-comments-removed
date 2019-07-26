@@ -22,6 +22,10 @@ function test() {
     getInplaceEditorForSpan: inplaceEditor
   } = devtools.require("devtools/shared/inplace-editor");
 
+  
+  
+  requestLongerTimeout(2);
+
   waitForExplicitFinish();
 
   
