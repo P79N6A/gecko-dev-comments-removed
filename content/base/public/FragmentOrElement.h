@@ -380,6 +380,9 @@ public:
   };
 
 protected:
+  void GetMarkup(bool aIncludeSelf, nsAString& aMarkup);
+  void SetInnerHTMLInternal(const nsAString& aInnerHTML, ErrorResult& aError);
+
   
   virtual nsINode::nsSlots* CreateSlots() MOZ_OVERRIDE;
 

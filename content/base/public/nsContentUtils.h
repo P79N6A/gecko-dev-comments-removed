@@ -1851,6 +1851,18 @@ public:
 
 
 
+
+
+  static void FireMutationEventsForDirectParsing(nsIDocument* aDoc,
+                                                 nsIContent* aDest,
+                                                 int32_t aOldChildCount);
+
+  
+
+
+
+
+
   static bool HasPluginWithUncontrolledEventDispatch(nsIContent* aContent);
 
   
