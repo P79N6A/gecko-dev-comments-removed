@@ -32,7 +32,8 @@
  static webvtt_node empty_node = {
   { 1 }, 
   0, 
-  WEBVTT_EMPTY_NODE 
+  WEBVTT_EMPTY_NODE, 
+  { { 0 } } 
 };
 
 WEBVTT_EXPORT void
