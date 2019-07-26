@@ -1356,6 +1356,37 @@ XrayToString(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
+#ifdef DEBUG
+
+static void
+DEBUG_CheckXBLCallable(JSContext *cx, JSObject *obj)
+{
+    MOZ_ASSERT(!js::IsCrossCompartmentWrapper(obj));
+    MOZ_ASSERT(JS_ObjectIsCallable(cx, obj));
+}
+
+static void
+DEBUG_CheckXBLLookup(JSContext *cx, JSPropertyDescriptor *desc)
+{
+    if (!desc->obj)
+        return;
+    if (!desc->value.isUndefined()) {
+        MOZ_ASSERT(desc->value.isObject());
+        DEBUG_CheckXBLCallable(cx, &desc->value.toObject());
+    }
+    if (desc->getter) {
+        MOZ_ASSERT(desc->attrs & JSPROP_GETTER);
+        DEBUG_CheckXBLCallable(cx, JS_FUNC_TO_DATA_PTR(JSObject *, desc->getter));
+    }
+    if (desc->setter) {
+        MOZ_ASSERT(desc->attrs & JSPROP_SETTER);
+        DEBUG_CheckXBLCallable(cx, JS_FUNC_TO_DATA_PTR(JSObject *, desc->setter));
+    }
+}
+#else
+#define DEBUG_CheckXBLLookup(a, b) {}
+#endif
+
 template <typename Base, typename Traits>
 bool
 XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
@@ -1432,20 +1463,48 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JSObject *wrappe
     if (!Traits::resolveNativeProperty(cx, wrapper, holder, id, desc, flags))
         return false;
 
-    if (!desc->obj) {
-        if (id != nsXPConnect::GetRuntimeInstance()->GetStringID(XPCJSRuntime::IDX_TO_STRING))
-            return true;
+    if (!desc->obj &&
+        id == nsXPConnect::GetRuntimeInstance()->GetStringID(XPCJSRuntime::IDX_TO_STRING))
+    {
 
         JSFunction *toString = JS_NewFunction(cx, XrayToString, 0, 0, holder, "toString");
         if (!toString)
             return false;
 
+        desc->obj = wrapper;
         desc->attrs = 0;
         desc->getter = NULL;
         desc->setter = NULL;
         desc->shortid = 0;
         desc->value.setObject(*JS_GetFunctionObject(toString));
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIContent> content;
+    if (!desc->obj &&
+        EnsureCompartmentPrivate(wrapper)->scope->IsXBLScope() &&
+        (content = do_QueryInterfaceNative(cx, wrapper)))
+    {
+        js::RootedId id_(cx, id);
+        if (!nsContentUtils::LookupBindingMember(cx, content, id_, desc))
+            return false;
+        DEBUG_CheckXBLLookup(cx, desc);
+    }
+
+    
+    if (!desc->obj)
+      return true;
 
     if (!JS_DefinePropertyById(cx, holder, id, desc->value, desc->getter,
                                desc->setter, desc->attrs) ||
