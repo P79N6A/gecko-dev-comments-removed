@@ -51,9 +51,9 @@ function processCSU(csuName, csu)
     }
 }
 
-function findVirtualFunctions(csu, field, suppressed)
+function findVirtualFunctions(initialCSU, field, suppressed)
 {
-    var worklist = [csu];
+    var worklist = [initialCSU];
 
     
     
@@ -65,7 +65,7 @@ function findVirtualFunctions(csu, field, suppressed)
             suppressed[0] = true;
             return [];
         }
-        if (isOverridableField(csu, field))
+        if (isOverridableField(initialCSU, csu, field))
             return null;
 
         if (csu in superclasses) {

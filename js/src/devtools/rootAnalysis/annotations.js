@@ -76,16 +76,9 @@ var ignoreCallees = {
     "js::Class.trace" : true,
     "js::Class.finalize" : true,
     "JSRuntime.destroyPrincipals" : true,
-    "nsIGlobalObject.GetGlobalJSObject" : true, 
-    "nsAXPCNativeCallContext.GetJSContext" : true,
-    "js::jit::MDefinition.op" : true, 
-    "js::jit::MDefinition.opName" : true, 
-    "js::jit::LInstruction.getDef" : true, 
-    "js::jit::IonCache.kind" : true, 
     "icu_50::UObject.__deleting_dtor" : true, 
     "mozilla::CycleCollectedJSRuntime.DescribeCustomObjects" : true, 
     "mozilla::CycleCollectedJSRuntime.NoteCustomGCThingXPCOMChildren" : true, 
-    "nsIThreadManager.GetIsMainThread" : true,
     "PLDHashTableOps.hashKey" : true,
     "z_stream_s.zfree" : true,
 };
@@ -240,7 +233,7 @@ function isSuppressConstructor(name)
 
 
 
-function isOverridableField(csu, field)
+function isOverridableField(initialCSU, csu, field)
 {
     if (csu != 'nsISupports')
         return false;
@@ -250,7 +243,12 @@ function isOverridableField(csu, field)
         return false;
     if (field == 'GetNativeContext')
         return false;
-    if (field == 'GetThreadFromPRThread')
+    if (field == "GetGlobalJSObject")
         return false;
+    if (field == "GetIsMainThread")
+        return false;
+    if (initialCSU == 'nsIXPConnectJSObjectHolder' && field == 'GetJSObject')
+        return false;
+
     return true;
 }
