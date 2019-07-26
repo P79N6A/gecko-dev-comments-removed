@@ -730,7 +730,7 @@ HashableValue::setValue(JSContext *cx, const Value &v)
 {
     if (v.isString()) {
         
-        JSString *str = AtomizeString(cx, v.toString(), DoNotInternAtom);
+        JSString *str = AtomizeString<CanGC>(cx, v.toString(), DoNotInternAtom);
         if (!str)
             return false;
         value = StringValue(str);

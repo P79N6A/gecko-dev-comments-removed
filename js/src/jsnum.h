@@ -47,11 +47,13 @@ class JSString;
 
 
 
+template <js::AllowGC allowGC>
 extern JSString *
 js_NumberToString(JSContext *cx, double d);
 
 namespace js {
 
+template <AllowGC allowGC>
 extern JSFlatString *
 Int32ToString(JSContext *cx, int32_t i);
 

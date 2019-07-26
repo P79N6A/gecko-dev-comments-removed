@@ -249,7 +249,7 @@ RegExpObject *
 RegExpObject::createNoStatics(JSContext *cx, StableCharPtr chars, size_t length, RegExpFlag flags,
                               TokenStream *tokenStream)
 {
-    RootedAtom source(cx, AtomizeChars(cx, chars.get(), length));
+    RootedAtom source(cx, AtomizeChars<CanGC>(cx, chars.get(), length));
     if (!source)
         return NULL;
 
@@ -599,6 +599,7 @@ RegExpShared::executeMatchOnly(JSContext *cx, StableCharPtr chars, size_t length
         start = 0;
     }
 
+#ifndef _WIN64 
 #if ENABLE_YARR_JIT
     if (!codeBlock.isFallBack()) {
         MatchResult result = codeBlock.execute(chars.get(), start, length);
@@ -611,6 +612,7 @@ RegExpShared::executeMatchOnly(JSContext *cx, StableCharPtr chars, size_t length
         return RegExpRunStatus_Success;
     }
 #endif
+#endif 
 
     
 

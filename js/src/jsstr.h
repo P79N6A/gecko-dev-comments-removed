@@ -85,6 +85,7 @@ extern const char js_decodeURIComponent_str[];
 extern const char js_encodeURIComponent_str[];
 
 
+template <js::AllowGC allowGC>
 extern JSStableString *
 js_NewString(JSContext *cx, jschar *chars, size_t length);
 
@@ -92,16 +93,20 @@ extern JSLinearString *
 js_NewDependentString(JSContext *cx, JSString *base, size_t start, size_t length);
 
 
+template <js::AllowGC allowGC>
 extern JSFlatString *
 js_NewStringCopyN(JSContext *cx, const jschar *s, size_t n);
 
+template <js::AllowGC allowGC>
 extern JSFlatString *
 js_NewStringCopyN(JSContext *cx, const char *s, size_t n);
 
 
+template <js::AllowGC allowGC>
 extern JSFlatString *
 js_NewStringCopyZ(JSContext *cx, const jschar *s);
 
+template <js::AllowGC allowGC>
 extern JSFlatString *
 js_NewStringCopyZ(JSContext *cx, const char *s);
 
@@ -118,6 +123,7 @@ namespace js {
 
 
 
+template <AllowGC allowGC>
 extern JSString *
 ToStringSlow(JSContext *cx, const Value &v);
 
@@ -139,7 +145,7 @@ ToString(JSContext *cx, const js::Value &v)
 
     if (v.isString())
         return v.toString();
-    return ToStringSlow(cx, v);
+    return ToStringSlow<CanGC>(cx, v);
 }
 
 
