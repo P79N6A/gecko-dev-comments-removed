@@ -4,17 +4,18 @@
 
 
 
-#include "BaselineJIT.h"
-#include "BaselineCompiler.h"
-#include "BaselineHelpers.h"
-#include "BaselineIC.h"
-#include "IonLinker.h"
-#include "IonSpewer.h"
-#include "VMFunctions.h"
-#include "IonFrames-inl.h"
+#include "ion/BaselineJIT.h"
 
 #include "builtin/Eval.h"
+#include "ion/BaselineCompiler.h"
+#include "ion/BaselineHelpers.h"
+#include "ion/BaselineIC.h"
+#include "ion/IonLinker.h"
+#include "ion/IonSpewer.h"
+#include "ion/VMFunctions.h"
 
+#include "builtin/Iterator-inl.h"
+#include "ion/IonFrames-inl.h"
 #include "vm/Interpreter-inl.h"
 
 namespace js {
