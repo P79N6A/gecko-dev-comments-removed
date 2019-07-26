@@ -109,6 +109,10 @@ IsProcessRunning(const wchar_t *processName, bool bCheckIfMetro)
 }
 
 
+
+
+
+
 AHE_TYPE
 GetLastAHE()
 {
@@ -117,12 +121,6 @@ GetLastAHE()
     return (AHE_TYPE) ahe;
   }
   return AHE_DESKTOP;
-}
-
-bool
-SetLastAHE(AHE_TYPE ahe)
-{
-  return SetDWORDRegKey(metroLastAHE, (DWORD) ahe);
 }
 
 bool
