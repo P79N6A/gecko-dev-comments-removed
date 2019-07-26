@@ -589,9 +589,8 @@ function ConsoleAPI(aConsoleOptions = {}) {
 
   
   for (let prop in this) {
-    let desc = Object.getOwnPropertyDescriptor(this, prop);
-    if (typeof(desc.value) === "function") {
-      this[prop] = desc.value.bind(this);
+    if (typeof(this[prop]) === "function") {
+      this[prop] = this[prop].bind(this);
     }
   }
 }
