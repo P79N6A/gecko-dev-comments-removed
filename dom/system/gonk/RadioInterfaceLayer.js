@@ -1941,10 +1941,10 @@ RadioInterface.prototype = {
         this.workerMessenger.sendWithIPCMessage(msg, "getAvailableNetworks");
         break;
       case "RIL:SelectNetwork":
-        this.workerMessenger.sendWithIPCMessage(msg, "selectNetwork");
+        this.selectNetwork(msg.target, msg.json.data);
         break;
       case "RIL:SelectNetworkAuto":
-        this.workerMessenger.sendWithIPCMessage(msg, "selectNetworkAuto");
+        this.selectNetworkAuto(msg.target, msg.json.data);
         break;
       case "RIL:SetPreferredNetworkType":
         this.setPreferredNetworkType(msg.target, msg.json.data);
@@ -2443,6 +2443,53 @@ RadioInterface.prototype = {
         data: response
       });
       return false;
+    }).bind(this));
+  },
+
+  
+
+
+
+  _selectingNetwork: null,
+
+  selectNetwork: function(target, message) {
+    if (this._selectingNetwork) {
+      message.errorMsg = "AlreadySelectingANetwork";
+      target.sendAsyncMessage("RIL:SelectNetwork", {
+        clientId: this.clientId,
+        data: message
+      });
+      return;
+    }
+
+    this._selectingNetwork = message;
+    this.workerMessenger.send("selectNetwork", message, (function(response) {
+      this._selectingNetwork = null;
+      target.sendAsyncMessage("RIL:SelectNetwork", {
+        clientId: this.clientId,
+        data: response
+      });
+      return false;
+    }).bind(this));
+  },
+
+  selectNetworkAuto: function(target, message) {
+    if (this._selectingNetwork) {
+      message.errorMsg = "AlreadySelectingANetwork";
+      target.sendAsyncMessage("RIL:SelectNetworkAuto", {
+        clientId: this.clientId,
+        data: message
+      });
+      return;
+    }
+
+    this._selectingNetwork = "automatic";
+    this.workerMessenger.send("selectNetworkAuto", message, (function(response) {
+      this._selectingNetwork = null;
+      target.sendAsyncMessage("RIL:SelectNetworkAuto", {
+        clientId: this.clientId,
+        data: response
+      });
     }).bind(this));
   },
 
