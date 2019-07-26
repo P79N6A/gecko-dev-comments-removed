@@ -98,7 +98,6 @@ abstract public class BrowserApp extends GeckoApp
     private static final int FEEDBACK_LAUNCH_COUNT = 15;
 
     
-    private static final int TOOLBAR_ONLOAD_HIDE_DELAY = 2000;
     private static final float TOOLBAR_MOVEMENT_THRESHOLD = 0.3f;
     private boolean mDynamicToolbarEnabled = false;
     private View mToolbarSpacer = null;
@@ -123,7 +122,7 @@ abstract public class BrowserApp extends GeckoApp
 
                         if (mDynamicToolbarEnabled) {
                             
-                            mBrowserToolbar.animateVisibility(true, 0);
+                            mBrowserToolbar.animateVisibility(true);
                         }
                     } else {
                         hideAboutHome();
@@ -152,21 +151,12 @@ abstract public class BrowserApp extends GeckoApp
 
                     if (mDynamicToolbarEnabled) {
                         
-                        mBrowserToolbar.animateVisibility(true, 0);
+                        mBrowserToolbar.animateVisibility(true);
                     }
                 }
                 break;
             case LOAD_ERROR:
             case STOP:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
-                    if (!mAboutHomeShowing) {
-                        if (mDynamicToolbarEnabled) {
-                            
-                            mBrowserToolbar.animateVisibility(false, TOOLBAR_ONLOAD_HIDE_DELAY);
-                        }
-                    }
-                }
-                
             case MENU_UPDATED:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
                     invalidateOptionsMenu();
@@ -226,7 +216,7 @@ abstract public class BrowserApp extends GeckoApp
             
             mBrowserToolbar.animateVisibility(
                 toolbarView.getScrollY() > toolbarView.getHeight() / 2 ?
-                    false : true, 0);
+                    false : true);
         }
 
         
@@ -244,71 +234,68 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         
-        
         float eventX = event.getX();
         float eventY = event.getY();
-        if (Tabs.getInstance().getSelectedTab().getState() != Tab.STATE_LOADING) {
-            int toolbarHeight = toolbarView.getHeight();
-            float deltaX = mLastTouchX - eventX;
-            float deltaY = mLastTouchY - eventY;
-            int toolbarY = toolbarView.getScrollY();
+        float deltaX = mLastTouchX - eventX;
+        float deltaY = mLastTouchY - eventY;
+        int toolbarY = toolbarView.getScrollY();
+        int toolbarHeight = toolbarView.getHeight();
+
+        
+        if (!mToolbarThresholdPassed) {
+            float threshold = toolbarHeight * TOOLBAR_MOVEMENT_THRESHOLD;
+            if (Math.abs(deltaY) > threshold) {
+                mToolbarThresholdPassed = true;
+                
+                
+                if (deltaY > 0 && toolbarY == toolbarHeight) {
+                    mToolbarLocked = true;
+                    return super.onInterceptTouchEvent(view, event);
+                }
+            } else if (Math.abs(deltaX) > threshold) {
+                
+                
+                mToolbarLocked = true;
+                mToolbarThresholdPassed = true;
+                return super.onInterceptTouchEvent(view, event);
+            } else {
+                
+                
+                return super.onInterceptTouchEvent(view, event);
+            }
+        } else if (action == MotionEvent.ACTION_MOVE) {
+            
+            mBrowserToolbar.cancelVisibilityAnimation();
 
             
-            if (!mToolbarThresholdPassed) {
-                float threshold = toolbarHeight * TOOLBAR_MOVEMENT_THRESHOLD;
-                if (Math.abs(deltaY) > threshold) {
-                    mToolbarThresholdPassed = true;
-                    
-                    
-                    if (deltaY > 0 && toolbarY == toolbarHeight) {
-                        mToolbarLocked = true;
-                        return super.onInterceptTouchEvent(view, event);
-                    }
-                } else if (Math.abs(deltaX) > threshold) {
-                    
-                    
-                    mToolbarLocked = true;
-                    mToolbarThresholdPassed = true;
-                    return super.onInterceptTouchEvent(view, event);
-                } else {
-                    
-                    
-                    return super.onInterceptTouchEvent(view, event);
-                }
-            } else if (action == MotionEvent.ACTION_MOVE) {
-                
-                mBrowserToolbar.cancelVisibilityAnimation();
+            
 
-                
-                
+            
+            
+            ImmutableViewportMetrics metrics =
+                mLayerView.getLayerClient().getViewportMetrics();
+            float toolbarMaxY = Math.min(toolbarHeight,
+                Math.max(0, toolbarHeight - (metrics.pageRectTop -
+                                             metrics.viewportRectTop)));
 
-                
-                
-                ImmutableViewportMetrics metrics =
-                    mLayerView.getLayerClient().getViewportMetrics();
-                float toolbarMaxY = Math.min(toolbarHeight,
-                    Math.max(0, toolbarHeight - (metrics.pageRectTop -
-                                                 metrics.viewportRectTop)));
+            float newToolbarYf = Math.max(0, Math.min(toolbarMaxY,
+                toolbarY + deltaY + mToolbarSubpixelAccumulation));
+            int newToolbarY = Math.round(newToolbarYf);
+            mToolbarSubpixelAccumulation = (newToolbarYf - newToolbarY);
 
-                float newToolbarYf = Math.max(0, Math.min(toolbarMaxY,
-                    toolbarY + deltaY + mToolbarSubpixelAccumulation));
-                int newToolbarY = Math.round(newToolbarYf);
-                mToolbarSubpixelAccumulation = (newToolbarYf - newToolbarY);
+            toolbarView.scrollTo(0, newToolbarY);
 
-                toolbarView.scrollTo(0, newToolbarY);
-
-                
-                if (newToolbarY == 0 || newToolbarY == toolbarHeight) {
-                    mLastTouchY = eventY;
-                }
-            } else if (action == MotionEvent.ACTION_UP ||
-                       action == MotionEvent.ACTION_CANCEL) {
-                
-                
-                mBrowserToolbar.animateVisibilityWithVelocityBias(
-                    toolbarY > toolbarHeight / 2 ? false : true,
-                    mLayerView.getPanZoomController().getVelocityVector().y);
+            
+            if (newToolbarY == 0 || newToolbarY == toolbarHeight) {
+                mLastTouchY = eventY;
             }
+        } else if (action == MotionEvent.ACTION_UP ||
+                   action == MotionEvent.ACTION_CANCEL) {
+            
+            
+            mBrowserToolbar.animateVisibilityWithVelocityBias(
+                toolbarY > toolbarHeight / 2 ? false : true,
+                mLayerView.getPanZoomController().getVelocityVector().y);
         }
 
         
@@ -335,7 +322,7 @@ abstract public class BrowserApp extends GeckoApp
                     if (mBrowserToolbar.isVisible()) {
                         if (mDynamicToolbarEnabled &&
                             Boolean.FALSE.equals(mAboutHomeShowing)) {
-                            mBrowserToolbar.animateVisibility(false, 0);
+                            mBrowserToolbar.animateVisibility(false);
                             mLayerView.requestFocus();
                         } else {
                             
@@ -343,7 +330,7 @@ abstract public class BrowserApp extends GeckoApp
                             mBrowserToolbar.requestFocusFromTouch();
                         }
                     } else {
-                        mBrowserToolbar.animateVisibility(true, 0);
+                        mBrowserToolbar.animateVisibility(true);
                         mBrowserToolbar.requestFocusFromTouch();
                     }
                     return true;
