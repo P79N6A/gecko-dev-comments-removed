@@ -44,6 +44,7 @@ class CacheStorageService;
 class CacheStorage;
 class CacheFileOutputStream;
 class CacheOutputCloseListener;
+class CacheEntryHandle;
 
 class CacheEntry : public nsICacheEntry
                  , public nsIRunnable
@@ -59,6 +60,8 @@ public:
 
   void AsyncOpen(nsICacheEntryOpenCallback* aCallback, uint32_t aFlags);
 
+  CacheEntryHandle* NewHandle();
+
 public:
   uint32_t GetMetadataMemoryConsumption();
   nsCString const &GetStorageID() const { return mStorageID; }
@@ -66,6 +69,7 @@ public:
   nsIURI* GetURI() const { return mURI; }
   bool UsingDisk() const;
   bool SetUsingDisk(bool aUsingDisk);
+  bool IsReferenced() const;
 
   
   
@@ -113,26 +117,23 @@ private:
   
   
   
-  class Handle : public nsICacheEntry
-  {
-  public:
-    Handle(CacheEntry* aEntry);
-    virtual ~Handle();
-
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_FORWARD_NSICACHEENTRY(mEntry->)
-  private:
-    nsRefPtr<CacheEntry> mEntry;
-  };
-
   class Callback
   {
   public:
-    Callback(nsICacheEntryOpenCallback *aCallback,
+    Callback(CacheEntry* aEntry,
+             nsICacheEntryOpenCallback *aCallback,
              bool aReadOnly, bool aCheckOnAnyThread);
     Callback(Callback const &aThat);
     ~Callback();
 
+    
+    
+    void ExchangeEntry(CacheEntry* aEntry);
+
+    
+    
+    
+    nsRefPtr<CacheEntry> mEntry;
     nsCOMPtr<nsICacheEntryOpenCallback> mCallback;
     nsCOMPtr<nsIThread> mTargetThread;
     bool mReadOnly : 1;
@@ -207,8 +208,8 @@ private:
 
   
   
-  Handle* NewWriteHandle();
-  void OnWriterClosed(Handle const* aHandle);
+  CacheEntryHandle* NewWriteHandle();
+  void OnHandleClosed(CacheEntryHandle const* aHandle);
 
 private:
   friend class CacheOutputCloseListener;
@@ -223,6 +224,10 @@ private:
   void TransferCallbacks(CacheEntry & aFromEntry);
 
   mozilla::Mutex mLock;
+
+  
+  friend class CacheEntryHandle;
+  ::mozilla::ThreadSafeAutoRefCnt mHandlersCount;
 
   nsTArray<Callback> mCallbacks;
   nsCOMPtr<nsICacheEntryDoomCallback> mDoomCallback;
@@ -291,7 +296,7 @@ private:
   
   
   
-  Handle* mWriter;
+  CacheEntryHandle* mWriter;
 
   
   
@@ -318,6 +323,21 @@ private:
 
   nsCOMPtr<nsIThread> mReleaseThread;
 };
+
+
+class CacheEntryHandle : public nsICacheEntry
+{
+public:
+  CacheEntryHandle(CacheEntry* aEntry);
+  virtual ~CacheEntryHandle();
+  CacheEntry* Entry() const { return mEntry; }
+
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_FORWARD_NSICACHEENTRY(mEntry->)
+private:
+  nsRefPtr<CacheEntry> mEntry;
+};
+
 
 class CacheOutputCloseListener : public nsRunnable
 {

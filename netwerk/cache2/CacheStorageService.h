@@ -29,6 +29,7 @@ namespace net {
 class CacheStorageService;
 class CacheStorage;
 class CacheEntry;
+class CacheEntryHandle;
 class CacheEntryTable;
 
 class CacheMemoryConsumer
@@ -86,7 +87,7 @@ private:
   
 
 
-  void RemoveEntry(CacheEntry* aEntry);
+  bool RemoveEntry(CacheEntry* aEntry, bool aOnlyUnreferenced = false);
 
   
 
@@ -109,7 +110,7 @@ private:
                            const nsACString & aIdExtension,
                            bool aCreateIfNotExist,
                            bool aReplace,
-                           CacheEntry** aResult);
+                           CacheEntryHandle** aResult);
 
   
 
@@ -180,7 +181,7 @@ private:
                            bool aWriteToDisk,
                            bool aCreateIfNotExist,
                            bool aReplace,
-                           CacheEntry** aResult);
+                           CacheEntryHandle** aResult);
 
   static CacheStorageService* sSelf;
 
