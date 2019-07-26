@@ -3055,12 +3055,25 @@ Tab.prototype = {
       
       
       
-      if (((Math.round(viewport.pageBottom - viewport.pageTop)
-              <= gScreenHeight + gViewportMargins.top + gViewportMargins.bottom)
-             != this.viewportExcludesVerticalMargins) ||
-          ((Math.round(viewport.pageRight - viewport.pageLeft)
-              <= gScreenWidth + gViewportMargins.left + gViewportMargins.right)
-             != this.viewportExcludesHorizontalMargins)) {
+      let hasHorizontalMargins = gViewportMargins.left > 0 || gViewportMargins.right > 0;
+      let hasVerticalMargins = gViewportMargins.top > 0 || gViewportMargins.bottom > 0;
+      let pageHeightGreaterThanScreenHeight, pageWidthGreaterThanScreenWidth;
+
+      if (hasHorizontalMargins) {
+        pageWidthGreaterThanScreenWidth =
+            Math.round(viewport.pageRight - viewport.pageLeft)
+            > gScreenWidth + gViewportMargins.left + gViewportMargins.right;
+      }
+      if (hasVerticalMargins) {
+        pageHeightGreaterThanScreenHeight =
+            Math.round(viewport.pageBottom - viewport.pageTop)
+            > gScreenHeight + gViewportMargins.top + gViewportMargins.bottom;
+      }
+
+      if ((hasHorizontalMargins
+           && (pageWidthGreaterThanScreenWidth != this.viewportExcludesHorizontalMargins)) ||
+          (hasVerticalMargins
+           && (pageHeightGreaterThanScreenHeight != this.viewportExcludesVerticalMargins))) {
         if (!this.viewportMeasureCallback) {
           this.viewportMeasureCallback = setTimeout(function() {
             this.viewportMeasureCallback = null;
@@ -3074,6 +3087,12 @@ Tab.prototype = {
             }
           }.bind(this), kViewportRemeasureThrottle);
         }
+      } else if (this.viewportMeasureCallback) {
+        
+        
+        
+        clearTimeout(this.viewportMeasureCallback);
+        this.viewportMeasureCallback = null;
       }
     }
   },
