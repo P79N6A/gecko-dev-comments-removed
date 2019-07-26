@@ -32,6 +32,20 @@ function whenDelayedStartupFinished(aWindow, aCallback) {
 
 
 
+
+
+
+
+function getRegexForString(str) {
+  str = str.replace(/(\.|\\|\/|\(|\)|\[|\]|\*|\+|\?|\$|\^|\|)/g, "\\$1");
+  return new RegExp(str);
+}
+
+
+
+
+
+
 registerCleanupFunction(function tearDown() {
   window.QueryInterface(Ci.nsIInterfaceRequestor)
       .getInterface(Ci.nsIDOMWindowUtils)
