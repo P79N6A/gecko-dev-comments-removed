@@ -117,7 +117,9 @@ enum eGfxLog {
     
     eGfxLog_textrunui        = 3,
     
-    eGfxLog_cmapdata         = 4
+    eGfxLog_cmapdata         = 4,
+    
+    eGfxLog_textperf         = 5
 };
 
 

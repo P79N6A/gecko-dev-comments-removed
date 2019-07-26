@@ -1014,6 +1014,59 @@ protected:
     nsCOMPtr<nsITimer>      mWordCacheExpirationTimer;
 };
 
+class gfxTextPerfMetrics {
+public:
+
+    struct TextCounts {
+        uint32_t    numContentTextRuns;
+        uint32_t    numChromeTextRuns;
+        uint32_t    numChars;
+        uint32_t    maxTextRunLen;
+        uint32_t    wordCacheSpaceRules;
+        uint32_t    wordCacheLong;
+        uint32_t    wordCacheHit;
+        uint32_t    wordCacheMiss;
+        uint32_t    fallbackPrefs;
+        uint32_t    fallbackSystem;
+        uint32_t    textrunConst;
+        uint32_t    textrunDestr;
+    };
+
+    uint32_t reflowCount;
+
+    
+    TextCounts current;
+
+    
+    TextCounts cumulative;
+
+    gfxTextPerfMetrics() {
+        memset(this, 0, sizeof(gfxTextPerfMetrics));
+    }
+
+    
+    void Accumulate() {
+        if (current.numChars == 0) {
+            return;
+        }
+        cumulative.numContentTextRuns += current.numContentTextRuns;
+        cumulative.numChromeTextRuns += current.numChromeTextRuns;
+        cumulative.numChars += current.numChars;
+        if (current.maxTextRunLen > cumulative.maxTextRunLen) {
+            cumulative.maxTextRunLen = current.maxTextRunLen;
+        }
+        cumulative.wordCacheSpaceRules += current.wordCacheSpaceRules;
+        cumulative.wordCacheLong += current.wordCacheLong;
+        cumulative.wordCacheHit += current.wordCacheHit;
+        cumulative.wordCacheMiss += current.wordCacheMiss;
+        cumulative.fallbackPrefs += current.fallbackPrefs;
+        cumulative.fallbackSystem += current.fallbackSystem;
+        cumulative.textrunConst += current.textrunConst;
+        cumulative.textrunDestr += current.textrunDestr;
+        memset(&current, 0, sizeof(current));
+    }
+};
+
 class gfxTextRunFactory {
     NS_INLINE_DECL_REFCOUNTING(gfxTextRunFactory)
 
@@ -1645,7 +1698,8 @@ public:
                                  uint32_t aHash,
                                  int32_t aRunScript,
                                  int32_t aAppUnitsPerDevUnit,
-                                 uint32_t aFlags);
+                                 uint32_t aFlags,
+                                 gfxTextPerfMetrics *aTextPerf);
 
     
     
@@ -3457,6 +3511,10 @@ public:
     uint64_t GetGeneration();
 
     
+    gfxTextPerfMetrics *GetTextPerfMetrics() { return mTextPerf; }
+    void SetTextPerfMetrics(gfxTextPerfMetrics *aTextPerf) { mTextPerf = aTextPerf; }
+
+    
     
     virtual void UpdateFontList();
 
@@ -3485,6 +3543,8 @@ protected:
 
     gfxUserFontSet* mUserFontSet;
     uint64_t mCurrGeneration;  
+
+    gfxTextPerfMetrics *mTextPerf;
 
     
     
