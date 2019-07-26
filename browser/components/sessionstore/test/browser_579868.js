@@ -18,9 +18,6 @@ function test() {
     
     gBrowser.unpinTab(tab1);
 
-    is(tab1.linkedBrowser.__SS_tabStillLoading, true,
-       "_tabStillLoading should be true.");
-
     
     gBrowser.removeTab(tab1);
     let savedState = JSON.parse(ss.getClosedTabData(window))[0].state;

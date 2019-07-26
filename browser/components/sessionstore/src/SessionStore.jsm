@@ -1116,7 +1116,6 @@ let SessionStoreInternal = {
       Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
         TabStateCache.delete(aTab);
         delete aTab.linkedBrowser.__SS_data;
-        delete aTab.linkedBrowser.__SS_tabStillLoading;
         if (aTab.linkedBrowser.__SS_restoreState)
           this._resetTabRestoringState(aTab);
       }, this);
@@ -1268,7 +1267,6 @@ let SessionStoreInternal = {
     MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
 
     delete browser.__SS_data;
-    delete browser.__SS_tabStillLoading;
 
     
     
@@ -1349,7 +1347,6 @@ let SessionStoreInternal = {
     TabStateCache.delete(aBrowser);
 
     delete aBrowser.__SS_data;
-    delete aBrowser.__SS_tabStillLoading;
     this.saveStateDelayed(aWindow);
 
     
@@ -2627,8 +2624,6 @@ let SessionStoreInternal = {
       
       TabState.flush(tab.linkedBrowser);
 
-      browser.__SS_tabStillLoading = true;
-
       
       
       browser.__SS_data = tabData;
@@ -3433,7 +3428,7 @@ let SessionStoreInternal = {
 
   _canRestoreTabHistory: function ssi_canRestoreTabHistory(aTab) {
     return aTab.parentNode && aTab.linkedBrowser &&
-           aTab.linkedBrowser.__SS_tabStillLoading;
+           aTab.linkedBrowser.__SS_data;
   },
 
   

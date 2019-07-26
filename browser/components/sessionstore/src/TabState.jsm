@@ -359,8 +359,7 @@ let TabStateInternal = {
 
 
   _tabIsRestoring: function (tab) {
-    let browser = tab.linkedBrowser;
-    return (browser.__SS_data && browser.__SS_tabStillLoading);
+    return !!tab.linkedBrowser.__SS_data;
   },
 
   
@@ -424,7 +423,7 @@ let TabStateInternal = {
       
       return tabData;
     }
-    if (browser.__SS_data && browser.__SS_tabStillLoading) {
+    if (browser.__SS_data) {
       
       
       
