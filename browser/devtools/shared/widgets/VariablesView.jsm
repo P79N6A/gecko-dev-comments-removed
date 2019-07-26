@@ -225,6 +225,11 @@ VariablesView.prototype = {
   
 
 
+  lazySearch: true,
+
+  
+
+
 
 
 
@@ -455,7 +460,7 @@ VariablesView.prototype = {
 
 
   _onSearchboxInput: function() {
-    this._doSearch(this._searchboxNode.value);
+    this.scheduleSearch(this._searchboxNode.value);
   },
 
   
@@ -483,6 +488,13 @@ VariablesView.prototype = {
 
 
   scheduleSearch: function(aToken, aWait) {
+    
+    if (!this.lazySearch) {
+      this._doSearch(aToken);
+      return;
+    }
+
+    
     let maxDelay = SEARCH_ACTION_MAX_DELAY;
     let delay = aWait === undefined ? maxDelay / aToken.length : aWait;
 
@@ -513,18 +525,6 @@ VariablesView.prototype = {
         default:
           scope._performSearch(aToken.toLowerCase());
           break;
-      }
-    }
-  },
-
-  
-
-
-  expandFirstSearchResults: function() {
-    for (let scope of this._store) {
-      let match = scope._firstMatch;
-      if (match) {
-        match.expand();
       }
     }
   },

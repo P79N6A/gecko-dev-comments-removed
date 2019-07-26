@@ -727,7 +727,7 @@ function FilterView() {
   dumpn("FilterView was instantiated");
 
   this._onClick = this._onClick.bind(this);
-  this._onSearch = this._onSearch.bind(this);
+  this._onInput = this._onInput.bind(this);
   this._onKeyPress = this._onKeyPress.bind(this);
   this._onBlur = this._onBlur.bind(this);
 }
@@ -761,8 +761,8 @@ FilterView.prototype = {
     this._variableSearchKey = DevtoolsHelpers.prettyKey(document.getElementById("variableSearchKey"), true);
 
     this._searchbox.addEventListener("click", this._onClick, false);
-    this._searchbox.addEventListener("select", this._onSearch, false);
-    this._searchbox.addEventListener("input", this._onSearch, false);
+    this._searchbox.addEventListener("select", this._onInput, false);
+    this._searchbox.addEventListener("input", this._onInput, false);
     this._searchbox.addEventListener("keypress", this._onKeyPress, false);
     this._searchbox.addEventListener("blur", this._onBlur, false);
 
@@ -800,8 +800,8 @@ FilterView.prototype = {
     dumpn("Destroying the FilterView");
 
     this._searchbox.removeEventListener("click", this._onClick, false);
-    this._searchbox.removeEventListener("select", this._onSearch, false);
-    this._searchbox.removeEventListener("input", this._onSearch, false);
+    this._searchbox.removeEventListener("select", this._onInput, false);
+    this._searchbox.removeEventListener("input", this._onInput, false);
     this._searchbox.removeEventListener("keypress", this._onKeyPress, false);
     this._searchbox.removeEventListener("blur", this._onBlur, false);
   },
@@ -834,93 +834,79 @@ FilterView.prototype = {
 
 
 
-  get searchboxInfo() {
-    let operator, file, line, token;
+  get searchData() {
+    let operator = "", args = [];
 
     let rawValue = this._searchbox.value;
     let rawLength = rawValue.length;
     let globalFlagIndex = rawValue.indexOf(SEARCH_GLOBAL_FLAG);
     let functionFlagIndex = rawValue.indexOf(SEARCH_FUNCTION_FLAG);
     let variableFlagIndex = rawValue.indexOf(SEARCH_VARIABLE_FLAG);
-    let lineFlagIndex = rawValue.lastIndexOf(SEARCH_LINE_FLAG);
     let tokenFlagIndex = rawValue.lastIndexOf(SEARCH_TOKEN_FLAG);
+    let lineFlagIndex = rawValue.lastIndexOf(SEARCH_LINE_FLAG);
 
     
     if (globalFlagIndex != 0 && functionFlagIndex != 0 && variableFlagIndex != 0) {
-      let fileEnd = lineFlagIndex != -1
-        ? lineFlagIndex
-        : tokenFlagIndex != -1
-          ? tokenFlagIndex
-          : rawLength;
-
-      let lineEnd = tokenFlagIndex != -1
-        ? tokenFlagIndex
-        : rawLength;
-
-      operator = "";
-      file = rawValue.slice(0, fileEnd);
-      line = ~~(rawValue.slice(fileEnd + 1, lineEnd)) || 0;
-      token = rawValue.slice(lineEnd + 1);
+      
+      if (tokenFlagIndex != -1) {
+        operator = SEARCH_TOKEN_FLAG;
+        args.push(rawValue.slice(0, tokenFlagIndex)); 
+        args.push(rawValue.substr(tokenFlagIndex + 1, rawLength)); 
+      } else if (lineFlagIndex != -1) {
+        operator = SEARCH_LINE_FLAG;
+        args.push(rawValue.slice(0, lineFlagIndex)); 
+        args.push(+rawValue.substr(lineFlagIndex + 1, rawLength) || 0); 
+      } else {
+        args.push(rawValue);
+      }
     }
     
     else if (globalFlagIndex == 0) {
       operator = SEARCH_GLOBAL_FLAG;
-      file = "";
-      line = 0;
-      token = rawValue.slice(1);
+      args.push(rawValue.slice(1));
     }
     
     else if (functionFlagIndex == 0) {
       operator = SEARCH_FUNCTION_FLAG;
-      file = "";
-      line = 0;
-      token = rawValue.slice(1);
+      args.push(rawValue.slice(1));
     }
     
     else if (variableFlagIndex == 0) {
       operator = SEARCH_VARIABLE_FLAG;
-      file = "";
-      line = 0;
-      token = rawValue.slice(1);
+      args.push(rawValue.slice(1));
     }
 
-    return [operator, file, line, token];
+    return [operator, args];
   },
 
   
 
 
 
-  get currentOperator() this.searchboxInfo[0],
+  get searchOperator() this.searchData[0],
 
   
 
 
 
-  get searchedFile() this.searchboxInfo[1],
-
-  
-
-
-
-  get searchedLine() this.searchboxInfo[2],
-
-  
-
-
-
-  get searchedToken() this.searchboxInfo[3],
+  get searchArguments() this.searchData[1],
 
   
 
 
   clearSearch: function() {
     this._searchbox.value = "";
-    this._searchboxHelpPanel.hidePopup();
+    this.clearViews();
   },
 
   
 
+
+  clearViews: function() {
+    DebuggerView.GlobalSearch.clearView();
+    DebuggerView.FilteredSources.clearView();
+    DebuggerView.FilteredFunctions.clearView();
+    this._searchboxHelpPanel.hidePopup();
   },
 
   
@@ -932,16 +918,10 @@ FilterView.prototype = {
 
   _performLineSearch: function(aLine) {
     
-    if (this._prevSearchedLine != aLine && aLine) {
-      DebuggerView.editor.setCaretPosition(aLine - 1);
+    if (!aLine) {
+      return;
     }
-    
-    if (this._prevSearchedToken && !aLine) {
-      this._target.refresh();
-    }
-
-    
-    this._prevSearchedLine = aLine;
+    DebuggerView.editor.setCaretPosition(aLine - 1);
   },
 
   
@@ -953,16 +933,12 @@ FilterView.prototype = {
 
   _performTokenSearch: function(aToken) {
     
-    if (this._prevSearchedToken != aToken && aToken) {
-      let editor = DebuggerView.editor;
-      let offset = editor.find(aToken, { ignoreCase: true });
-      if (offset > -1) {
-        editor.setSelection(offset, offset + aToken.length)
-      }
+    if (!aToken) {
+      return;
     }
-    
-    if (this._prevSearchedLine && !aToken) {
-      this._target.refresh();
+    let offset = DebuggerView.editor.find(aToken, { ignoreCase: true });
+    if (offset > -1) {
+      DebuggerView.editor.setSelection(offset, offset + aToken.length)
     }
   },
 
@@ -976,40 +952,43 @@ FilterView.prototype = {
   
 
 
-  _onSearch: function() {
-    this._searchboxHelpPanel.hidePopup();
-    let [operator, file, line, token] = this.searchboxInfo;
+  _onInput: function() {
+    this.clearViews();
 
     
-    
-    if (operator == SEARCH_GLOBAL_FLAG) {
-      DebuggerView.GlobalSearch.scheduleSearch(token);
-      this._prevSearchedToken = token;
+    if (!this._searchbox.value) {
       return;
     }
 
     
-    
-    if (operator == SEARCH_FUNCTION_FLAG) {
-      DebuggerView.FilteredFunctions.scheduleSearch(token);
-      this._prevSearchedToken = token;
-      return;
+    switch (this.searchOperator) {
+      case SEARCH_GLOBAL_FLAG:
+        
+        DebuggerView.GlobalSearch.scheduleSearch(this.searchArguments[0]);
+        break;
+      case SEARCH_FUNCTION_FLAG:
+        
+        DebuggerView.FilteredFunctions.scheduleSearch(this.searchArguments[0]);
+        break;
+      case SEARCH_VARIABLE_FLAG:
+        
+        DebuggerView.Variables.scheduleSearch(this.searchArguments[0]);
+        break;
+      case SEARCH_TOKEN_FLAG:
+        
+        DebuggerView.FilteredSources.scheduleSearch(this.searchArguments[0]);
+        this._performTokenSearch(this.searchArguments[1]);
+        break;
+      case SEARCH_LINE_FLAG:
+        
+        DebuggerView.FilteredSources.scheduleSearch(this.searchArguments[0]);
+        this._performLineSearch(this.searchArguments[1]);
+        break;
+      default:
+        
+        DebuggerView.FilteredSources.scheduleSearch(this.searchArguments[0]);
+        break;
     }
-
-    
-    
-    if (operator == SEARCH_VARIABLE_FLAG) {
-      DebuggerView.Variables.scheduleSearch(token);
-      this._prevSearchedToken = token;
-      return;
-    }
-
-    DebuggerView.GlobalSearch.clearView();
-    DebuggerView.FilteredFunctions.clearView();
-
-    this._performFileSearch(file);
-    this._performLineSearch(line);
-    this._performTokenSearch(token);
   },
 
   
@@ -1019,53 +998,44 @@ FilterView.prototype = {
     
     e.char = String.fromCharCode(e.charCode);
 
-    let [operator, file, line, token] = this.searchboxInfo;
-    let isGlobal = operator == SEARCH_GLOBAL_FLAG;
-    let isFunction = operator == SEARCH_FUNCTION_FLAG;
-    let isVariable = operator == SEARCH_VARIABLE_FLAG;
-    let action = -1;
+    
+    let [operator, args] = this.searchData;
+    let isGlobalSearch = operator == SEARCH_GLOBAL_FLAG;
+    let isFunctionSearch = operator == SEARCH_FUNCTION_FLAG;
+    let isVariableSearch = operator == SEARCH_VARIABLE_FLAG;
+    let isTokenSearch = operator == SEARCH_TOKEN_FLAG;
+    let isLineSearch = operator == SEARCH_LINE_FLAG;
+    let isFileOnlySearch = !operator && args.length == 1;
 
-    if (file && !line && !token) {
-      var isFileSearch = true;
-    }
-    if (line && !token) {
-      var isLineSearch = true;
-    }
-    if (this._prevSearchedToken != token) {
-      var isDifferentToken = true;
-    }
+    
+    let actionToPerform;
 
     
     if ((e.char == "g" && e.metaKey) || e.char == "n" && e.ctrlKey) {
-      action = 0;
+      actionToPerform = "selectNext";
     }
     
     else if ((e.char == "G" && e.metaKey) || e.char == "p" && e.ctrlKey) {
-      action = 1;
+      actionToPerform = "selectPrev";
     }
     
     
     else switch (e.keyCode) {
       case e.DOM_VK_RETURN:
       case e.DOM_VK_ENTER:
-        var isReturnKey = true;
-        
+        var isReturnKey = true; 
       case e.DOM_VK_DOWN:
-        action = 0;
+        actionToPerform = "selectNext";
         break;
       case e.DOM_VK_UP:
-        action = 1;
-        break;
-      case e.DOM_VK_ESCAPE:
-        action = 2;
+        actionToPerform = "selectPrev";
         break;
     }
 
-    if (action == 2) {
-      DebuggerView.editor.focus();
-      return;
-    }
-    if (action == -1 || (!operator && !file && !line && !token)) {
+    
+    
+    if (!actionToPerform || (!operator && !args.length)) {
+      DebuggerView.editor.dropSelection();
       return;
     }
 
@@ -1073,71 +1043,78 @@ FilterView.prototype = {
     e.stopPropagation();
 
     
-    if (isFileSearch) {
+    
+    if (isGlobalSearch) {
+      let targetView = DebuggerView.GlobalSearch;
+      if (!isReturnKey) {
+        targetView[actionToPerform]();
+      } else if (targetView.hidden) {
+        targetView.scheduleSearch(args[0], 0);
+      }
+      return;
+    }
+
+    
+    
+    if (isFunctionSearch) {
+      let targetView = DebuggerView.FilteredFunctions;
+      if (!isReturnKey) {
+        targetView[actionToPerform]();
+      } else if (targetView.hidden) {
+        targetView.scheduleSearch(args[0], 0);
+      } else {
+        this.clearSearch();
+      }
+      return;
+    }
+
+    
+    if (isVariableSearch) {
+      let targetView = DebuggerView.Variables;
       if (isReturnKey) {
-        DebuggerView.FilteredSources.clearView();
-        DebuggerView.editor.focus();
-        this.clearSearch();
-      } else {
-        DebuggerView.FilteredSources[["selectNext", "selectPrev"][action]]();
+        targetView.scheduleSearch(args[0], 0);
       }
-      this._prevSearchedFile = file;
       return;
     }
 
     
-    if (isGlobal) {
-      if (isReturnKey && (isDifferentToken || DebuggerView.GlobalSearch.hidden)) {
-        DebuggerView.GlobalSearch.scheduleSearch(token, 0);
-      } else {
-        DebuggerView.GlobalSearch[["selectNext", "selectPrev"][action]]();
-      }
-      this._prevSearchedToken = token;
-      return;
-    }
-
     
-    if (isFunction) {
-      if (isReturnKey && (isDifferentToken || DebuggerView.FilteredFunctions.hidden)) {
-        DebuggerView.FilteredFunctions.scheduleSearch(token, 0);
-      } else if (!isReturnKey) {
-        DebuggerView.FilteredFunctions[["selectNext", "selectPrev"][action]]();
+    if (isFileOnlySearch) {
+      let targetView = DebuggerView.FilteredSources;
+      if (!isReturnKey) {
+        targetView[actionToPerform]();
+      } else if (targetView.hidden) {
+        targetView.scheduleSearch(args[0], 0);
       } else {
-        DebuggerView.FilteredFunctions.clearView();
-        DebuggerView.editor.focus();
         this.clearSearch();
       }
-      this._prevSearchedToken = token;
       return;
     }
 
     
-    if (isVariable) {
-      if (isReturnKey && isDifferentToken) {
-        DebuggerView.Variables.scheduleSearch(token, 0);
-      } else {
-        DebuggerView.Variables.expandFirstSearchResults();
+    if (isTokenSearch) {
+      let [, token] = args;
+      let methods = { selectNext: "findNext", selectPrev: "findPrevious" };
+
+      
+      let offset = DebuggerView.editor[methods[actionToPerform]](true);
+      if (offset > -1) {
+        DebuggerView.editor.setSelection(offset, offset + token.length)
       }
-      this._prevSearchedToken = token;
       return;
     }
 
     
-    if (isLineSearch && !isReturnKey) {
-      line += action == 0 ? 1 : -1;
+    if (isLineSearch) {
+      let [, line] = args;
+      let amounts = { selectNext: 1, selectPrev: -1 };
+
+      
+      line += !isReturnKey ? amounts[actionToPerform] : 0;
       let lineCount = DebuggerView.editor.getLineCount();
       let lineTarget = line < 1 ? 1 : line > lineCount ? lineCount : line;
-
-      DebuggerView.editor.setCaretPosition(lineTarget - 1);
-      this._searchbox.value = file + SEARCH_LINE_FLAG + lineTarget;
-      this._prevSearchedLine = lineTarget;
+      this._doSearch(SEARCH_LINE_FLAG, lineTarget);
       return;
-    }
-
-    let editor = DebuggerView.editor;
-    let offset = editor[["findNext", "findPrevious"][action]](true);
-    if (offset > -1) {
-      editor.setSelection(offset, offset + token.length)
     }
   },
 
@@ -1145,11 +1122,7 @@ FilterView.prototype = {
 
 
   _onBlur: function() {
-    DebuggerView.GlobalSearch.clearView();
-    DebuggerView.FilteredSources.clearView();
-    DebuggerView.FilteredFunctions.clearView();
-    DebuggerView.Variables.scheduleSearch(null, 0);
-    this._searchboxHelpPanel.hidePopup();
+    this.clearViews();
   },
 
   
@@ -1158,10 +1131,10 @@ FilterView.prototype = {
 
 
 
-  _doSearch: function(aOperator = "") {
+  _doSearch: function(aOperator = "", aText = "") {
     this._searchbox.focus();
     this._searchbox.value = ""; 
-    this._searchbox.value = aOperator + DebuggerView.editor.getSelectedText();
+    this._searchbox.value = aOperator + (aText || DebuggerView.editor.getSelectedText());
   },
 
   
@@ -1208,7 +1181,6 @@ FilterView.prototype = {
 
 
   _doVariableSearch: function() {
-    DebuggerView.Variables.scheduleSearch("", 0);
     this._doSearch(SEARCH_VARIABLE_FLAG);
     this._searchboxHelpPanel.hidePopup();
   },
@@ -1239,10 +1211,7 @@ FilterView.prototype = {
   _tokenSearchKey: "",
   _lineSearchKey: "",
   _variableSearchKey: "",
-  _target: null,
-  _prevSearchedFile: "",
-  _prevSearchedLine: 0,
-  _prevSearchedToken: ""
+  _target: null
 };
 
 
@@ -1380,16 +1349,10 @@ FilteredSourcesView.prototype = Heritage.extend(ResultsPanelContainer.prototype,
 
   _onSelect: function({ detail: locationItem }) {
     if (locationItem) {
-      let targetUrl = locationItem.attachment.url;
-      let currentLine = DebuggerView.editor.getCaretPosition().line + 1;
-
-      
-      
-      if (DebuggerView.Sources.selectedValue == targetUrl) {
-        DebuggerView.setEditorLocation(targetUrl, currentLine, { noDebug: true });
-      } else {
-        DebuggerView.setEditorLocation(targetUrl);
-      }
+      DebuggerView.setEditorLocation(locationItem.attachment.url, undefined, {
+        noCaret: true,
+        noDebug: true
+      });
     }
   }
 });
