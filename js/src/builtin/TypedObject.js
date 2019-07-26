@@ -945,18 +945,21 @@ function TypedArrayMap(a, b) {
 
 
 function TypedArrayMapPar(a, b) {
-  if (!IsObject(this) || !ObjectIsTypedObject(this))
-    return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
-  var thisType = TYPEDOBJ_TYPE_DESCR(this);
-  if (!TypeDescrIsArrayType(thisType))
-    return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
+  
 
   
-  if (typeof a === "number" && typeof b === "function")
+  
+  if (!IsObject(this) || !ObjectIsTypedObject(this))
+    return callFunction(TypedArrayMap, this, a, b);
+  var thisType = TYPEDOBJ_TYPE_DESCR(this);
+  if (!TypeDescrIsArrayType(thisType))
+    return callFunction(TypedArrayMap, this, a, b);
+
+  if (typeof a === "number" && IsCallable(b))
     return MapTypedParImpl(this, a, thisType, b);
-  else if (typeof a === "function")
+  else if (IsCallable(a))
     return MapTypedParImpl(this, 1, thisType, a);
-  return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
+  return callFunction(TypedArrayMap, this, a, b);
 }
 
 
@@ -1017,6 +1020,20 @@ function TypedObjectArrayTypeBuildPar(a,b,c) {
 
 
 function TypedObjectArrayTypeFromPar(a,b,c) {
+  
+
+  
+  
+  if (!IsObject(this) || !ObjectIsTypeDescr(this) || !TypeDescrIsArrayType(this))
+    return callFunction(TypedObjectArrayTypeFrom, this, a, b, c);
+  if (!IsObject(a) || !ObjectIsTypedObject(a))
+    return callFunction(TypedObjectArrayTypeFrom, this, a, b, c);
+
+  
+  if (typeof b === "number" && IsCallable(c))
+    return MapTypedParImpl(a, b, this, c);
+  if (IsCallable(b))
+    return MapTypedParImpl(a, 1, this, b);
   return callFunction(TypedObjectArrayTypeFrom, this, a, b, c);
 }
 
@@ -1355,6 +1372,10 @@ function MapTypedParImpl(inArray, depth, outputType, func) {
          "Map/From called on non-object or untyped input array.");
   assert(TypeDescrIsArrayType(outputType),
          "Map/From called on non array-type outputType");
+  assert(typeof depth === "number",
+         "Map/From called with non-numeric depth");
+  assert(IsCallable(func),
+         "Map/From called on something not callable");
 
   var inArrayType = TypeOfTypedObject(inArray);
 
