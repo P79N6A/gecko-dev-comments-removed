@@ -2653,7 +2653,6 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
     int32_t         num_match_payloads = 0;
     int             payload = RTP_NONE;
     int             remote_dynamic_payload_type_value = RTP_NONE;
-    int             local_dynamic_payload_type_value = RTP_NONE;
     int32_t         payload_types_count = 0; 
                                              
 
@@ -2823,17 +2822,14 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
                     
                     if (master_list_p == remote_media_types) {
                         remote_dynamic_payload_type_value = GET_DYN_PAYLOAD_TYPE_VALUE(master_list_p[i]);
-                        local_dynamic_payload_type_value = GET_DYN_PAYLOAD_TYPE_VALUE(master_list_p[i]);
                     } else {
                         remote_dynamic_payload_type_value = GET_DYN_PAYLOAD_TYPE_VALUE(slave_list_p[j]);
-                        local_dynamic_payload_type_value = GET_DYN_PAYLOAD_TYPE_VALUE(slave_list_p[j]);
                     }
                 } else { 
                       if (media->local_dynamic_payload_type_value == RTP_NONE ||
                           media->payload !=  media->previous_sdp.payload_type) {
                         
 
-                        local_dynamic_payload_type_value =  media->payload;
                     }
                     
                     if (master_list_p == remote_media_types) {
