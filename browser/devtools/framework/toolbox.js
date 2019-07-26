@@ -6,6 +6,10 @@
 
 const {Cc, Ci, Cu} = require("chrome");
 const MAX_ORDINAL = 99;
+const ZOOM_PREF = "devtools.toolbox.zoomValue";
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2;
+
 let promise = require("sdk/core/promise");
 let EventEmitter = require("devtools/shared/event-emitter");
 let Telemetry = require("devtools/shared/telemetry");
@@ -192,6 +196,13 @@ Toolbox.prototype = {
   
 
 
+  get zoomValue() {
+    return parseFloat(Services.prefs.getCharPref(ZOOM_PREF));
+  },
+
+  
+
+
   open: function TBOX_open() {
     let deferred = promise.defer();
 
@@ -210,6 +221,8 @@ Toolbox.prototype = {
         this._buildButtons();
         this._addKeysToWindow();
         this._addToolSwitchingKeys();
+        this._addZoomKeys();
+        this._loadInitialZoom();
 
         this._telemetry.toolOpened("toolbox");
 
@@ -238,6 +251,70 @@ Toolbox.prototype = {
     nextKey.addEventListener("command", this.selectNextTool.bind(this), true);
     let prevKey = this.doc.getElementById("toolbox-previous-tool-key");
     prevKey.addEventListener("command", this.selectPreviousTool.bind(this), true);
+  },
+
+  
+
+
+  _addZoomKeys: function TBOX__addZoomKeys() {
+    let inKey = this.doc.getElementById("toolbox-zoom-in-key");
+    inKey.addEventListener("command", this.zoomIn.bind(this), true);
+
+    let inKey2 = this.doc.getElementById("toolbox-zoom-in-key2");
+    inKey2.addEventListener("command", this.zoomIn.bind(this), true);
+
+    let outKey = this.doc.getElementById("toolbox-zoom-out-key");
+    outKey.addEventListener("command", this.zoomOut.bind(this), true);
+
+    let resetKey = this.doc.getElementById("toolbox-zoom-reset-key");
+    resetKey.addEventListener("command", this.zoomReset.bind(this), true);
+  },
+
+  
+
+
+  _loadInitialZoom: function TBOX__loadInitialZoom() {
+    this.setZoom(this.zoomValue);
+  },
+
+  
+
+
+  zoomIn: function TBOX__zoomIn() {
+    this.setZoom(this.zoomValue + 0.1);
+  },
+
+  
+
+
+  zoomOut: function TBOX__zoomOut() {
+    this.setZoom(this.zoomValue - 0.1);
+  },
+
+  
+
+
+  zoomReset: function TBOX__zoomReset() {
+    this.setZoom(1);
+  },
+
+  
+
+
+
+
+
+  setZoom: function TBOX__setZoom(zoomValue) {
+    
+    zoomValue = Math.max(zoomValue, MIN_ZOOM);
+    zoomValue = Math.min(zoomValue, MAX_ZOOM);
+
+    let contViewer = this.frame.docShell.contentViewer;
+    let docViewer = contViewer.QueryInterface(Ci.nsIMarkupDocumentViewer);
+
+    docViewer.fullZoom = zoomValue;
+
+    Services.prefs.setCharPref(ZOOM_PREF, zoomValue);
   },
 
   
@@ -287,7 +364,7 @@ Toolbox.prototype = {
       }, true);
       doc.getElementById("toolbox-keyset").appendChild(key);
     }
-    
+
     
     if(doc.getElementById("key_browserconsole") == null) {
       let key = doc.createElement("key");
@@ -547,6 +624,9 @@ Toolbox.prototype = {
 
     if (this._currentToolId == id) {
       
+      this.focusTool(id);
+
+      
       return promise.resolve(this._toolPanels.get(id));
     }
 
@@ -588,10 +668,23 @@ Toolbox.prototype = {
     }
 
     return this.loadTool(id).then((panel) => {
+      
+      this.focusTool(id);
+
       this.emit("select", id);
       this.emit(id + "-selected", panel);
       return panel;
     });
+  },
+
+  
+
+
+
+
+  focusTool: function(id) {
+    let iframe = this.doc.getElementById("toolbox-panel-iframe-" + id);
+    iframe.focus();
   },
 
   
