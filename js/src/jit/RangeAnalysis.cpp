@@ -2446,6 +2446,42 @@ MCompare::operandTruncateKind(size_t index) const
     return truncateOperands_ ? TruncateAfterBailouts : NoTruncate;
 }
 
+static void
+TruncateTest(TempAllocator &alloc, MTest *test)
+{
+    
+    
+
+    if (test->input()->type() != MIRType_Value)
+        return;
+
+    if (!test->input()->isPhi() || !test->input()->hasOneDefUse() || test->input()->isImplicitlyUsed())
+        return;
+
+    MPhi *phi = test->input()->toPhi();
+    for (size_t i = 0; i < phi->numOperands(); i++) {
+        MDefinition *def = phi->getOperand(i);
+        if (!def->isBox())
+            return;
+        MDefinition *inner = def->getOperand(0);
+        if (inner->type() != MIRType_Boolean && inner->type() != MIRType_Int32)
+            return;
+    }
+
+    for (size_t i = 0; i < phi->numOperands(); i++) {
+        MDefinition *inner = phi->getOperand(i)->getOperand(0);
+        if (inner->type() != MIRType_Int32) {
+            MBasicBlock *block = inner->block();
+            inner = MToInt32::New(alloc, inner);
+            block->insertBefore(block->lastIns(), inner->toInstruction());
+        }
+        JS_ASSERT(inner->type() == MIRType_Int32);
+        phi->replaceOperand(i, inner);
+    }
+
+    phi->setResultType(MIRType_Int32);
+}
+
 
 
 static MDefinition::TruncateKind
@@ -2585,8 +2621,11 @@ RangeAnalysis::truncate()
 
     for (PostorderIterator block(graph_.poBegin()); block != graph_.poEnd(); block++) {
         for (MInstructionReverseIterator iter(block->rbegin()); iter != block->rend(); iter++) {
-            if (iter->type() == MIRType_None)
+            if (iter->type() == MIRType_None) {
+                if (iter->isTest())
+                    TruncateTest(alloc(), iter->toTest());
                 continue;
+            }
 
             
             switch (iter->op()) {
