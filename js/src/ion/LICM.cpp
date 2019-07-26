@@ -4,12 +4,13 @@
 
 
 
+#include "ion/LICM.h"
+
 #include <stdio.h>
 
 #include "ion/Ion.h"
 #include "ion/IonBuilder.h"
 #include "ion/IonSpewer.h"
-#include "ion/LICM.h"
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
 

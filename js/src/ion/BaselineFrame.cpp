@@ -4,15 +4,14 @@
 
 
 
-#include "ion/BaselineFrame.h"
+#include "ion/BaselineFrame-inl.h"
+
 #include "ion/BaselineIC.h"
 #include "ion/BaselineJIT.h"
 #include "ion/Ion.h"
-
 #include "vm/Debugger.h"
 #include "vm/ScopeObject.h"
 
-#include "ion/BaselineFrame-inl.h"
 #include "ion/IonFrames-inl.h"
 #include "vm/Stack-inl.h"
 

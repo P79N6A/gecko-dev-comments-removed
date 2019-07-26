@@ -4,12 +4,13 @@
 
 
 
+#include "ion/LIR.h"
+
 #include "jsprf.h"
 
+#include "ion/IonSpewer.h"
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
-#include "ion/LIR.h"
-#include "ion/IonSpewer.h"
 #include "ion/shared/CodeGenerator-shared.h"
 
 using namespace js;

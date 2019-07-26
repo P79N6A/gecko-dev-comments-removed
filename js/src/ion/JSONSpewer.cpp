@@ -4,13 +4,14 @@
 
 
 
+#include "ion/JSONSpewer.h"
+
 #include <stdarg.h>
 
-#include "ion/JSONSpewer.h"
+#include "ion/LinearScan.h"
 #include "ion/LIR.h"
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
-#include "ion/LinearScan.h"
 #include "ion/RangeAnalysis.h"
 
 using namespace js;

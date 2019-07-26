@@ -4,17 +4,20 @@
 
 
 
+#include "ion/shared/CodeGenerator-x86-shared.h"
+
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MathAlgorithms.h"
 
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsmath.h"
-#include "ion/shared/CodeGenerator-x86-shared.h"
-#include "ion/shared/CodeGenerator-shared-inl.h"
-#include "ion/IonFrames.h"
+
 #include "ion/IonCompartment.h"
+#include "ion/IonFrames.h"
 #include "ion/ParallelFunctions.h"
+
+#include "ion/shared/CodeGenerator-shared-inl.h"
 
 using namespace js;
 using namespace js::ion;

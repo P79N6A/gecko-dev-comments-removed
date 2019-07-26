@@ -5,10 +5,12 @@
 
 
 #include "ion/x64/MacroAssembler-x64.h"
-#include "ion/BaselineFrame.h"
-#include "ion/MoveEmitter.h"
-#include "ion/IonFrames.h"
+
 #include "mozilla/Casting.h"
+
+#include "ion/BaselineFrame.h"
+#include "ion/IonFrames.h"
+#include "ion/MoveEmitter.h"
 
 using namespace js;
 using namespace js::ion;

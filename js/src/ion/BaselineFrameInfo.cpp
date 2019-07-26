@@ -5,10 +5,11 @@
 
 
 #include "ion/BaselineFrameInfo.h"
-#include "ion/IonSpewer.h"
-#include "ion/shared/BaselineCompiler-shared.h"
 
 #include "jsanalyze.h"
+
+#include "ion/IonSpewer.h"
+#include "ion/shared/BaselineCompiler-shared.h"
 
 using namespace js;
 using namespace js::ion;

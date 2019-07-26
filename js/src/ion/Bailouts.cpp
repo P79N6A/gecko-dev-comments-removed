@@ -4,18 +4,19 @@
 
 
 
+#include "ion/Bailouts.h"
+
 #include "jsanalyze.h"
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsinfer.h"
 
-#include "ion/Bailouts.h"
-#include "ion/SnapshotReader.h"
+#include "ion/BaselineJIT.h"
 #include "ion/Ion.h"
 #include "ion/IonCompartment.h"
 #include "ion/IonSpewer.h"
+#include "ion/SnapshotReader.h"
 #include "vm/Interpreter.h"
-#include "ion/BaselineJIT.h"
 
 #include "vm/Stack-inl.h"
 

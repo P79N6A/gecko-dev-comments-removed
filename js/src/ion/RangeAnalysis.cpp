@@ -4,6 +4,8 @@
 
 
 
+#include "ion/RangeAnalysis.h"
+
 #include "mozilla/MathAlgorithms.h"
 
 #include <math.h>
@@ -11,14 +13,12 @@
 
 #include "jsanalyze.h"
 
-#include "vm/NumericConversions.h"
-
 #include "ion/Ion.h"
 #include "ion/IonAnalysis.h"
+#include "ion/IonSpewer.h"
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
-#include "ion/RangeAnalysis.h"
-#include "ion/IonSpewer.h"
+#include "vm/NumericConversions.h"
 
 using namespace js;
 using namespace js::ion;

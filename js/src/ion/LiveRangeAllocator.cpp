@@ -4,9 +4,9 @@
 
 
 
-#include "mozilla/DebugOnly.h"
-
 #include "ion/LiveRangeAllocator.h"
+
+#include "mozilla/DebugOnly.h"
 
 #include "ion/BacktrackingAllocator.h"
 #include "ion/LinearScan.h"

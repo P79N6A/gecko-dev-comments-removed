@@ -9,10 +9,9 @@
 
 #include "mozilla/Array.h"
 
-#include "ion/LiveRangeAllocator.h"
-
 #include "ds/PriorityQueue.h"
 #include "ds/SplayTree.h"
+#include "ion/LiveRangeAllocator.h"
 
 
 

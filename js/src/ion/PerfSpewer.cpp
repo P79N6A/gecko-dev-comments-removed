@@ -4,17 +4,19 @@
 
 
 
+#include "ion/PerfSpewer.h"
+
 #include <stdarg.h>
+
 #if defined(__linux__)
 # include <unistd.h>
 #endif
 
-#include "ion/PerfSpewer.h"
 #include "ion/IonSpewer.h"
+#include "ion/LinearScan.h"
 #include "ion/LIR.h"
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
-#include "ion/LinearScan.h"
 #include "ion/RangeAnalysis.h"
 
 using namespace js;

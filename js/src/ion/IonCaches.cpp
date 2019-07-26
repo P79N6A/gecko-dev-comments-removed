@@ -4,16 +4,16 @@
 
 
 
+#include "ion/IonCaches.h"
+
 #include "mozilla/DebugOnly.h"
 
-#include "ion/PerfSpewer.h"
 #include "ion/CodeGenerator.h"
 #include "ion/Ion.h"
-#include "ion/IonCaches.h"
 #include "ion/IonLinker.h"
 #include "ion/IonSpewer.h"
+#include "ion/PerfSpewer.h"
 #include "ion/VMFunctions.h"
-
 #include "vm/Shape.h"
 
 #include "vm/Interpreter-inl.h"

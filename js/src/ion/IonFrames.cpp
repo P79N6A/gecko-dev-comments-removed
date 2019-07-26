@@ -4,11 +4,12 @@
 
 
 
-#include "ion/IonFrames.h"
+#include "ion/IonFrames-inl.h"
 
+#include "jsfun.h"
 #include "jsobj.h"
 #include "jsscript.h"
-#include "jsfun.h"
+
 #include "gc/Marking.h"
 #include "ion/BaselineFrame.h"
 #include "ion/BaselineIC.h"
@@ -25,7 +26,6 @@
 #include "jsfuninlines.h"
 
 #include "ion/IonFrameIterator-inl.h"
-#include "ion/IonFrames-inl.h"
 #include "vm/Probes-inl.h"
 
 namespace js {

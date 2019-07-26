@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "ion/IonMacroAssembler.h"
+
+
+
+
+
 #include "gc/Marking.h"
+#include "ion/IonMacroAssembler.h"
 
 using namespace js;
 using namespace js::ion;
@@ -39,8 +39,8 @@ TraceDataRelocations(JSTracer *trc, uint8_t *buffer, CompactBufferReader &reader
         void **ptr = JSC::X86Assembler::getPointerRef(buffer + offset);
 
 #ifdef JS_PUNBOX64
-        // All pointers on x64 will have the top bits cleared. If those bits
-        // are not cleared, this must be a Value.
+        
+        
         uintptr_t *word = reinterpret_cast<uintptr_t *>(ptr);
         if (*word >> JSVAL_TAG_SHIFT) {
             jsval_layout layout;
@@ -52,7 +52,7 @@ TraceDataRelocations(JSTracer *trc, uint8_t *buffer, CompactBufferReader &reader
         }
 #endif
 
-        // No barrier needed since these are constants.
+        
         gc::MarkGCThingUnbarriered(trc, reinterpret_cast<void **>(ptr), "ion-masm-ptr");
     }
 }

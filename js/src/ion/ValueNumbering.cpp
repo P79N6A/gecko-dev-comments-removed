@@ -4,11 +4,12 @@
 
 
 
+#include "ion/ValueNumbering.h"
+
+#include "ion/CompileInfo.h"
 #include "ion/Ion.h"
 #include "ion/IonBuilder.h"
 #include "ion/IonSpewer.h"
-#include "ion/CompileInfo.h"
-#include "ion/ValueNumbering.h"
 
 using namespace js;
 using namespace js::ion;

@@ -5,8 +5,9 @@
 
 
 #include "ion/UnreachableCodeElimination.h"
-#include "ion/IonAnalysis.h"
+
 #include "ion/AliasAnalysis.h"
+#include "ion/IonAnalysis.h"
 #include "ion/ValueNumbering.h"
 
 using namespace js;

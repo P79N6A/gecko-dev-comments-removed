@@ -4,12 +4,13 @@
 
 
 
-#include <limits.h>
+#include "ion/LinearScan.h"
 
 #include "mozilla/DebugOnly.h"
 
+#include <limits.h>
+
 #include "ion/BitSet.h"
-#include "ion/LinearScan.h"
 #include "ion/IonBuilder.h"
 #include "ion/IonSpewer.h"
 

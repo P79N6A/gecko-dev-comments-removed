@@ -4,13 +4,14 @@
 
 
 
+#include "ion/IonAnalysis.h"
+
 #include "jsanalyze.h"
 
-#include "ion/IonBuilder.h"
-#include "ion/MIRGraph.h"
 #include "ion/Ion.h"
-#include "ion/IonAnalysis.h"
+#include "ion/IonBuilder.h"
 #include "ion/LIR.h"
+#include "ion/MIRGraph.h"
 
 using namespace js;
 using namespace js::ion;

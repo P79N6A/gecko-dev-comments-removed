@@ -7,6 +7,7 @@
 #ifndef ion_shared_IonAssemblerBuffer_h
 #define ion_shared_IonAssemblerBuffer_h
 
+
 #include "ion/shared/Assembler-shared.h"
 
 namespace js {
