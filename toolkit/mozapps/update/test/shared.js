@@ -185,7 +185,7 @@ var observer = {
 
 
 function setUpdateURLOverride(aURL) {
-  let url = aURL ? aURL : URL_HOST + "update.xml";
+  let url = aURL ? aURL : URL_HOST + "/update.xml";
   debugDump("setting " + PREF_APP_UPDATE_URL_OVERRIDE + " to " + url);
   Services.prefs.setCharPref(PREF_APP_UPDATE_URL_OVERRIDE, url);
 }
