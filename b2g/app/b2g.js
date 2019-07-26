@@ -853,6 +853,9 @@ pref("gfx.canvas.azure.accelerated", true);
 pref("gfx.canvas.skiagl.dynamic-cache", true);
 
 
+pref("gfx.canvas.max-size-for-skia-gl", -1);
+
+
 pref("gfx.gralloc.fence-with-readpixels", true);
 
 
@@ -898,8 +901,6 @@ pref("apz.y_skate_size_multiplier", "1.5");
 pref("apz.x_stationary_size_multiplier", "1.5");
 pref("apz.y_stationary_size_multiplier", "1.8");
 pref("apz.enlarge_displayport_when_clipped", true);
-
-pref("apz.axis_lock_mode", 2);
 
 
 
