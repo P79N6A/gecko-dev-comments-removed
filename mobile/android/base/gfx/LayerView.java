@@ -183,7 +183,12 @@ public class LayerView extends FrameLayout {
         if (shouldUseTextureView()) {
             mTextureView = new TextureView(getContext());
             mTextureView.setSurfaceTextureListener(new SurfaceTextureListener());
-            mTextureView.setBackgroundColor(Color.WHITE);
+
+            
+            
+            
+            
+            mTextureView.setBackgroundResource(R.color.background_normal);
             addView(mTextureView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         } else {
             
@@ -191,7 +196,7 @@ public class LayerView extends FrameLayout {
             setWillNotCacheDrawing(false);
 
             mSurfaceView = new LayerSurfaceView(getContext(), this);
-            mSurfaceView.setBackgroundColor(Color.WHITE);
+            mSurfaceView.setBackgroundResource(R.color.background_normal);
             addView(mSurfaceView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
             SurfaceHolder holder = mSurfaceView.getHolder();
