@@ -257,6 +257,8 @@ pref("layers.acceleration.disabled", false);
 pref("layers.offmainthreadcomposition.async-animations", true);
 pref("layers.async-video.enabled", true);
 pref("layers.async-pan-zoom.enabled", true);
+pref("gfx.content.azure.enabled", true);
+pref("gfx.content.azure.backends", "cairo");
 #endif
 
 
@@ -734,11 +736,6 @@ pref("memory_info_dumper.watch_fifo.enabled", true);
 pref("memory_info_dumper.watch_fifo.directory", "/data/local");
 
 pref("general.useragent.enable_overrides", true);
-
-pref("general.useragent.updates.enabled", true);
-pref("general.useragent.updates.url", "");
-pref("general.useragent.updates.interval", 604800); 
-pref("general.useragent.updates.retry", 86400); 
 
 
 pref("media.useAudioChannelService", true);
