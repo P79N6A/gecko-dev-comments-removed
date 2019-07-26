@@ -330,5 +330,76 @@ void ScopedScissorRect::UnwrapImpl()
                 mSavedScissorRect[3]);
 }
 
+
+
+ScopedVertexAttribPointer::ScopedVertexAttribPointer(GLContext* aGL,
+                                                     GLuint index,
+                                                     GLint size,
+                                                     GLenum type,
+                                                     realGLboolean normalized,
+                                                     GLsizei stride,
+                                                     GLuint buffer,
+                                                     const GLvoid* pointer)
+    : ScopedGLWrapper<ScopedVertexAttribPointer>(aGL)
+{
+    WrapImpl(index);
+    mGL->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, buffer);
+    mGL->fVertexAttribPointer(index, size, type, normalized, stride, pointer);
+    mGL->fEnableVertexAttribArray(index);
+}
+
+ScopedVertexAttribPointer::ScopedVertexAttribPointer(GLContext* aGL,
+                                                     GLuint index)
+    : ScopedGLWrapper<ScopedVertexAttribPointer>(aGL)
+{
+    WrapImpl(index);
+}
+
+void
+ScopedVertexAttribPointer::WrapImpl(GLuint index)
+{
+    mAttribIndex = index;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    mGL->fGetVertexAttribiv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_ENABLED, &mAttribEnabled);
+    mGL->fGetVertexAttribiv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_SIZE, &mAttribSize);
+    mGL->fGetVertexAttribiv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_STRIDE, &mAttribStride);
+    mGL->fGetVertexAttribiv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_TYPE, &mAttribType);
+    mGL->fGetVertexAttribiv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &mAttribNormalized);
+    mGL->fGetVertexAttribiv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &mAttribBufferBinding);
+    mGL->fGetVertexAttribPointerv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_POINTER, &mAttribPointer);
+
+    
+
+    mGL->GetUIntegerv(LOCAL_GL_ARRAY_BUFFER_BINDING, &mBoundBuffer);
+}
+
+void
+ScopedVertexAttribPointer::UnwrapImpl()
+{
+    mGL->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, mAttribBufferBinding);
+    mGL->fVertexAttribPointer(mAttribIndex, mAttribSize, mAttribType, mAttribNormalized, mAttribStride, mAttribPointer);
+    if (mAttribEnabled)
+        mGL->fEnableVertexAttribArray(mAttribIndex);
+    else
+        mGL->fDisableVertexAttribArray(mAttribIndex);
+    mGL->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, mBoundBuffer);
+}
+
 } 
 } 
