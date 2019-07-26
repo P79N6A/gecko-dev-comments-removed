@@ -6,11 +6,20 @@
 #ifndef nsIScriptTimeoutHandler_h___
 #define nsIScriptTimeoutHandler_h___
 
-class nsIArray;
+#include "nsTArray.h"
+
+namespace JS {
+class Value;
+} 
+namespace mozilla {
+namespace dom {
+class Function;
+} 
+} 
 
 #define NS_ISCRIPTTIMEOUTHANDLER_IID \
-{ 0xcaf520a5, 0x8078, 0x4cba, \
-  { 0x8a, 0xb9, 0xb6, 0x8a, 0x12, 0x43, 0x4f, 0x05 } }
+{ 0x53c8e80e, 0xcc78, 0x48bc, \
+ { 0xba, 0x63, 0x0c, 0xb9, 0xdb, 0xf7, 0x06, 0x34 } }
 
 
 
@@ -24,8 +33,7 @@ public:
 
   
   
-  
-  virtual JSObject *GetScriptObject() = 0;
+  virtual mozilla::dom::Function *GetCallback() = 0;
 
   
   virtual const PRUnichar *GetHandlerText() = 0;
@@ -36,8 +44,7 @@ public:
   virtual void GetLocation(const char **aFileName, uint32_t *aLineNo) = 0;
 
   
-  
-  virtual nsIArray *GetArgv() = 0;
+  virtual const nsTArray<JS::Value>& GetArgs() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptTimeoutHandler,
