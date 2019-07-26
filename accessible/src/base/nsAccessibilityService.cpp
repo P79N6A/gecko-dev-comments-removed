@@ -997,13 +997,16 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   }
 
   nsRoleMapEntry* roleMapEntry = aria::GetRoleMap(aNode);
+
+  
+  
+  
   if (roleMapEntry && roleMapEntry->Is(nsGkAtoms::presentation)) {
-    
-    
-    if (content->IsFocusable())
-      roleMapEntry = nullptr;
-    else
+    if (!content->IsFocusable() && !HasUniversalAriaProperty(content) &&
+        !HasRelatedContent(content))
       return nullptr;
+
+    roleMapEntry = nullptr;
   }
 
   if (weakFrame.IsAlive() && !newAcc && isHTML) {  
