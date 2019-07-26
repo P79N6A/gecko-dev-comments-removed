@@ -14,6 +14,9 @@
 #include "SkTArray.h"
 #include "SkTDArray.h"
 
+
+#undef interface
+
 class GrGLContextInfo;
 
 
