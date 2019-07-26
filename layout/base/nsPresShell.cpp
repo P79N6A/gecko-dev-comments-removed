@@ -4503,7 +4503,7 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
 
     
     
-    nsDisplayList* sublist = i->GetList();
+    nsDisplayList* sublist = i->GetSameCoordinateSystemChildren();
     if (itemToInsert || sublist) {
       tmpList.AppendToTop(itemToInsert ? itemToInsert : i);
       
@@ -4835,7 +4835,7 @@ AddCanvasBackgroundColor(const nsDisplayList& aList, nsIFrame* aCanvasFrame,
       bg->SetExtraBackgroundColor(aColor);
       return true;
     }
-    nsDisplayList* sublist = i->GetList();
+    nsDisplayList* sublist = i->GetSameCoordinateSystemChildren();
     if (sublist && AddCanvasBackgroundColor(*sublist, aCanvasFrame, aColor))
       return true;
   }

@@ -1016,7 +1016,14 @@ public:
 
 
 
-  virtual nsDisplayList* GetList() { return nullptr; }
+
+  virtual nsDisplayList* GetSameCoordinateSystemChildren() { return nullptr; }
+
+  
+
+
+
+  virtual nsDisplayList* GetChildren() { return nullptr; }
 
   
 
@@ -2068,8 +2075,16 @@ public:
 
   virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder);
                                     
-  virtual nsDisplayList* GetList() MOZ_OVERRIDE { return &mList; }
-  
+  virtual nsDisplayList* GetSameCoordinateSystemChildren() MOZ_OVERRIDE
+  {
+    NS_ASSERTION(mList.IsEmpty() || !ReferenceFrame() ||
+                 !mList.GetBottom()->ReferenceFrame() ||
+                 mList.GetBottom()->ReferenceFrame() == ReferenceFrame(),
+                 "Children must have same reference frame");
+    return &mList;
+  }
+  virtual nsDisplayList* GetChildren() MOZ_OVERRIDE { return &mList; }
+
   
 
 
@@ -2593,7 +2608,7 @@ public:
     return GetBounds(aBuilder, &snap);
   }
 
-  nsDisplayWrapList* GetStoredList() { return &mStoredList; }
+  virtual nsDisplayList* GetChildren() MOZ_OVERRIDE { return mStoredList.GetChildren(); }
 
   virtual void HitTest(nsDisplayListBuilder *aBuilder, const nsRect& aRect,
                        HitTestState *aState, nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE;
