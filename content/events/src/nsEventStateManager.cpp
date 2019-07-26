@@ -2508,7 +2508,7 @@ nsEventStateManager::DoScrollZoom(nsIFrame *aTargetFrame,
   nsIContent *content = aTargetFrame->GetContent();
   if (content &&
       !content->IsNodeOfType(nsINode::eHTML_FORM_CONTROL) &&
-      !content->OwnerDoc()->IsXUL())
+      !nsContentUtils::IsInChromeDocshell(content->OwnerDoc()))
     {
       
       int32_t change = (adjustment > 0) ? -1 : 1;
