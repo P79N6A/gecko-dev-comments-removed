@@ -6051,6 +6051,14 @@ nsRuleNode::ComputeBackgroundData(void* aStartStruct,
               NS_STYLE_BG_INLINE_POLICY_CONTINUOUS, 0, 0, 0, 0);
 
   
+  SetBackgroundList(aContext, *aRuleData->ValueForBackgroundBlendMode(),
+                    bg->mLayers,
+                    parentBG->mLayers, &nsStyleBackground::Layer::mBlendMode,
+                    uint8_t(NS_STYLE_BLEND_NORMAL), parentBG->mBlendModeCount,
+                    bg->mBlendModeCount, maxItemCount, rebuild,
+                    canStoreInRuleTree);
+
+  
   SetBackgroundList(aContext, *aRuleData->ValueForBackgroundOrigin(),
                     bg->mLayers,
                     parentBG->mLayers, &nsStyleBackground::Layer::mOrigin,
@@ -6092,6 +6100,8 @@ nsRuleNode::ComputeBackgroundData(void* aStartStruct,
                        bg->mAttachmentCount, fillCount);
     FillBackgroundList(bg->mLayers, &nsStyleBackground::Layer::mClip,
                        bg->mClipCount, fillCount);
+    FillBackgroundList(bg->mLayers, &nsStyleBackground::Layer::mBlendMode,
+                       bg->mBlendModeCount, fillCount);
     FillBackgroundList(bg->mLayers, &nsStyleBackground::Layer::mOrigin,
                        bg->mOriginCount, fillCount);
     FillBackgroundList(bg->mLayers, &nsStyleBackground::Layer::mPosition,

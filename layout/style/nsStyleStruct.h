@@ -443,6 +443,7 @@ struct nsStyleBackground {
     uint8_t mAttachment;                
     uint8_t mClip;                      
     uint8_t mOrigin;                    
+    uint8_t mBlendMode;                 
     Repeat mRepeat;                     
     Position mPosition;                 
     nsStyleImage mImage;                
@@ -488,7 +489,8 @@ struct nsStyleBackground {
            mRepeatCount,
            mPositionCount,
            mImageCount,
-           mSizeCount;
+           mSizeCount,
+           mBlendModeCount;
   
   
   
