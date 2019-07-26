@@ -333,6 +333,9 @@ public:
   
   virtual void SetAudioCaptured(bool aCaptured);
 
+  void SetPlaybackRate(double aPlaybackRate);
+  void SetPreservesPitch(bool aPreservesPitch);
+
   
   
   
@@ -1047,6 +1050,9 @@ protected:
   
   
   bool mShuttingDown;
+
+  
+  bool mPausedForPlaybackRateNull;
 
   
   

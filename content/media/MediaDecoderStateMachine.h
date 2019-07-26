@@ -233,6 +233,9 @@ public:
 
   nsresult GetBuffered(nsTimeRanges* aBuffered);
 
+  void SetPlaybackRate(double aPlaybackRate);
+  void SetPreservesPitch(bool aPreservesPitch);
+
   int64_t VideoQueueMemoryInUse() {
     if (mReader) {
       return mReader->VideoQueueMemoryInUse();
@@ -399,6 +402,16 @@ private:
   
   
   int64_t GetAudioClock();
+
+  
+  
+  
+  int64_t GetVideoStreamPosition();
+
+  
+  
+  
+  int64_t GetClock();
 
   
   
@@ -580,6 +593,11 @@ private:
   
   
   
+  bool mResetPlayStartTime;
+
+  
+  
+  
   
   int64_t mPlayDuration;
 
@@ -650,6 +668,18 @@ private:
   
   
   double mVolume;
+
+  
+  
+  double mPlaybackRate;
+
+  
+  bool mPreservesPitch;
+
+  
+  
+  
+  int64_t mBasePosition;
 
   
   TimeStamp mDecodeStartTime;

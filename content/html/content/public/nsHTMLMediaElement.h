@@ -647,6 +647,11 @@ protected:
   void ProcessMediaFragmentURI();
 
   
+
+
+  void SetMutedInternal(bool aMuted);
+
+  
   
   virtual nsHTMLMediaElement* GetMediaElement() MOZ_FINAL MOZ_OVERRIDE
   {
@@ -788,6 +793,20 @@ protected:
   
   
   double mFragmentEnd;
+
+  
+  
+  double mDefaultPlaybackRate;
+
+  
+  
+  
+  
+  double mPlaybackRate;
+
+  
+  
+  bool mPreservesPitch;
 
   nsRefPtr<gfxASurface> mPrintSurface;
 

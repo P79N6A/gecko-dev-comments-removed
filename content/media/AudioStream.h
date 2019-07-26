@@ -9,8 +9,88 @@
 #include "nscore.h"
 #include "AudioSampleFormat.h"
 #include "AudioChannelCommon.h"
+#include "soundtouch/SoundTouch.h"
+#include "nsAutoRef.h"
+
+
+template <>
+class nsAutoRefTraits<soundtouch::SoundTouch> : public nsPointerRefTraits<soundtouch::SoundTouch>
+{
+public:
+  static void Release(soundtouch::SoundTouch* resamplerState) {
+    delete resamplerState;
+    resamplerState = nullptr;
+  }
+};
 
 namespace mozilla {
+
+class AudioStream;
+
+class AudioClock
+{
+  public:
+    AudioClock(mozilla::AudioStream* aStream);
+    
+    
+    void Init();
+    
+    
+    void UpdateWritePosition(uint32_t aCount);
+    
+    
+    uint64_t GetPosition();
+    
+    
+    uint64_t GetPositionInFrames();
+    
+    
+    void SetPlaybackRate(double aPlaybackRate);
+    
+    
+    double GetPlaybackRate();
+    
+    
+    void SetPreservesPitch(bool aPreservesPitch);
+    
+    
+    bool GetPreservesPitch();
+  private:
+    
+    
+    AudioStream* mAudioStream;
+    
+    
+    
+    int mOldOutRate;
+    
+    int64_t mBasePosition;
+    
+    int64_t mBaseOffset;
+    
+    
+    int64_t mOldBaseOffset;
+    
+    
+    int64_t mOldBasePosition;
+    
+    int64_t mPlaybackRateChangeOffset;
+    
+    
+    int64_t mPreviousPosition;
+    
+    int64_t mWritten;
+    
+    int mOutRate;
+    
+    int mInRate;
+    
+    bool mPreservesPitch;
+    
+    double mPlaybackRate;
+    
+    bool mCompensatingLatency;
+};
 
 
 
@@ -19,10 +99,7 @@ namespace mozilla {
 class AudioStream
 {
 public:
-  AudioStream()
-    : mRate(0),
-      mChannels(0)
-  {}
+  AudioStream();
 
   virtual ~AudioStream();
 
@@ -79,18 +156,37 @@ public:
   virtual int64_t GetPositionInFrames() = 0;
 
   
+  
+  
+  virtual int64_t GetPositionInFramesInternal() = 0;
+
+  
   virtual bool IsPaused() = 0;
 
   
   
   virtual int32_t GetMinWriteSize() = 0;
 
-  int GetRate() { return mRate; }
+  int GetRate() { return mOutRate; }
   int GetChannels() { return mChannels; }
 
+  
+  
+  bool EnsureTimeStretcherInitialized();
+  
+  
+  virtual nsresult SetPlaybackRate(double aPlaybackRate);
+  
+  virtual nsresult SetPreservesPitch(bool aPreservesPitch);
+
 protected:
-  int mRate;
+  
+  int mInRate;
+  
+  int mOutRate;
   int mChannels;
+  AudioClock mAudioClock;
+  nsAutoRef<soundtouch::SoundTouch> mTimeStretcher;
 };
 
 } 
