@@ -8,6 +8,9 @@
 
 #include "mozilla/Base64.h"
 #include "mozilla/CheckedInt.h"
+#include "mozilla/gfx/Rect.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/Telemetry.h"
 #include "nsNetUtil.h"
 #include "nsDOMFile.h"
 
@@ -21,8 +24,6 @@
 #include "nsJSUtils.h"
 #include "nsMathUtils.h"
 #include "nsStreamUtils.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/Telemetry.h"
 
 #include "nsFrameManager.h"
 #include "nsDisplayList.h"
@@ -889,7 +890,7 @@ nsHTMLCanvasElement::SetWriteOnly()
 }
 
 void
-nsHTMLCanvasElement::InvalidateCanvasContent(const gfxRect* damageRect)
+nsHTMLCanvasElement::InvalidateCanvasContent(const gfx::Rect* damageRect)
 {
   
   
@@ -904,7 +905,7 @@ nsHTMLCanvasElement::InvalidateCanvasContent(const gfxRect* damageRect)
     nsIntSize size = GetWidthHeight();
     if (size.width != 0 && size.height != 0) {
 
-      gfxRect realRect(*damageRect);
+      gfx::Rect realRect(*damageRect);
       realRect.RoundOut();
 
       

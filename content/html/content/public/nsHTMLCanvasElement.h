@@ -23,10 +23,16 @@ class nsITimerCallback;
 class nsIPropertyBag;
 
 namespace mozilla {
+
 namespace layers {
 class CanvasLayer;
 class LayerManager;
 }
+
+namespace gfx {
+struct Rect;
+}
+
 }
 
 class nsHTMLCanvasElement : public nsGenericHTMLElement,
@@ -85,7 +91,7 @@ public:
 
 
 
-  void InvalidateCanvasContent(const gfxRect* aDamageRect);
+  void InvalidateCanvasContent(const mozilla::gfx::Rect* aDamageRect);
   
 
 
