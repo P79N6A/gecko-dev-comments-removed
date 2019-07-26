@@ -32,10 +32,10 @@ var APZCObserver = {
 
     
     window.addEventListener("SizeChanged", this, true);
-
     Elements.tabList.addEventListener("TabSelect", this, true);
-    Elements.tabList.addEventListener("TabOpen", this, true);
-    Elements.tabList.addEventListener("TabClose", this, true);
+    Elements.browsers.addEventListener("pageshow", this, true);
+    messageManager.addMessageListener("Browser:ContentScroll", this);
+    messageManager.addMessageListener("Content:ZoomToRect", this);
   },
 
   shutdown: function shutdown() {
@@ -47,10 +47,10 @@ var APZCObserver = {
     os.removeObserver(this, "apzc-transform-begin");
 
     window.removeEventListener("SizeChanged", this, true);
-
     Elements.tabList.removeEventListener("TabSelect", this, true);
-    Elements.tabList.removeEventListener("TabOpen", this, true);
-    Elements.tabList.removeEventListener("TabClose", this, true);
+    Elements.browsers.removeEventListener("pageshow", this, true);
+    messageManager.removeMessageListener("Browser:ContentScroll", this);
+    messageManager.removeMessageListener("Content:ZoomToRect", this);
   },
 
   handleEvent: function APZC_handleEvent(aEvent) {
@@ -66,20 +66,6 @@ var APZCObserver = {
         }
         this._resetDisplayPort();
         break;
-
-      case 'TabOpen': {
-        let browser = aEvent.originalTarget.linkedBrowser;
-        browser.addEventListener("pageshow", this, true);
-        
-        browser.messageManager.addMessageListener("Browser:ContentScroll", this);
-        break;
-      }
-      case 'TabClose': {
-        let browser = aEvent.originalTarget.linkedBrowser;
-        browser.removeEventListener("pageshow", this, true);
-        browser.messageManager.removeMessageListener("Browser:ContentScroll", this);
-        break;
-      }
     }
   },
 
@@ -97,6 +83,7 @@ var APZCObserver = {
 
   receiveMessage: function(aMessage) {
     let json = aMessage.json;
+    let browser = aMessage.target;
     switch (aMessage.name) {
        
        
@@ -108,7 +95,33 @@ var APZCObserver = {
         Services.obs.notifyObservers(null, "apzc-scroll-offset-changed", data);
         break;
       }
+      case "Content:ZoomToRect": {
+        let { presShellId, viewId } = json;
+        let rect = Rect.fromRect(json.rect);
+        if (this.isRectZoomedIn(rect, browser.contentViewportBounds)) {
+          
+          rect = new Rect(0,0,0,0);
+        }
+        let data = [rect.x, rect.y, rect.width, rect.height, presShellId, viewId].join(",");
+        Services.obs.notifyObservers(null, "apzc-zoom-to-rect", data);
+      }
     }
+  },
+
+  
+
+
+
+
+  isRectZoomedIn: function (aRect, aViewport) {
+    let overlap = aViewport.intersect(aRect);
+    let overlapArea = overlap.width * overlap.height;
+    let availHeight = Math.min(aRect.width * aViewport.height / aViewport.width, aRect.height);
+    let showing = overlapArea / (aRect.width * availHeight);
+    let ratioW = (aRect.width / aViewport.width);
+    let ratioH = (aRect.height / aViewport.height);
+
+    return (showing > 0.9 && (ratioW > 0.9 || ratioH > 0.9));
   },
 
   _resetDisplayPort: function () {
