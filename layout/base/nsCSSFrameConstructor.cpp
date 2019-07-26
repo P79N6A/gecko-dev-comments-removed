@@ -7805,6 +7805,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
     }
     if (aChange & nsChangeHint_UpdateTransformLayer) {
       aFrame->MarkLayersActive(nsChangeHint_UpdateTransformLayer);
+      aFrame->AddStateBits(NS_FRAME_TRANSFORM_CHANGED);
       
       
       

@@ -254,6 +254,10 @@ typedef uint64_t nsFrameState;
 
 
 
+#define NS_FRAME_TRANSFORM_CHANGED                  NS_FRAME_STATE_BIT(34)
+
+
+
 
 
 #define NS_FRAME_UPDATE_LAYER_TREE                  NS_FRAME_STATE_BIT(36)
