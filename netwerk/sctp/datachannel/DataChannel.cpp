@@ -46,7 +46,7 @@ static bool sctp_initialized;
 namespace mozilla {
 
 class DataChannelShutdown;
-nsCOMPtr<DataChannelShutdown> gDataChannelShutdown;
+nsRefPtr<DataChannelShutdown> gDataChannelShutdown;
 
 class DataChannelShutdown : public nsIObserver
 {
@@ -61,7 +61,7 @@ public:
 
   DataChannelShutdown() {}
 
-  void Init() 
+  void Init()
     {
       nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
@@ -91,6 +91,18 @@ public:
         usrsctp_finish();
         sctp_initialized = false;
       }
+      nsCOMPtr<nsIObserverService> observerService =
+        mozilla::services::GetObserverService();
+      if (!observerService)
+        return NS_ERROR_FAILURE;
+
+      nsresult rv = observerService->RemoveObserver(this,
+                                                    "profile-change-net-teardown");
+      MOZ_ASSERT(rv == NS_OK);
+      (void) rv;
+
+      nsRefPtr<DataChannelShutdown> kungFuDeathGrip(this);
+      gDataChannelShutdown = nullptr;
     }
     return NS_OK;
   }
@@ -141,16 +153,30 @@ DataChannelConnection::DataChannelConnection(DataConnectionListener *listener) :
 DataChannelConnection::~DataChannelConnection()
 {
   
+  MOZ_ASSERT(mState == CLOSED);
+  MOZ_ASSERT(!mMasterSocket);
+}
+
+void
+DataChannelConnection::Destroy()
+{
   
   
   
   
-  LOG(("Destroying DataChannelConnection"));
+  LOG(("Destroying DataChannelConnection %p", (void *) this));
   CloseAll();
+
   if (mSocket && mSocket != mMasterSocket)
     usrsctp_close(mSocket);
   if (mMasterSocket)
     usrsctp_close(mMasterSocket);
+
+  mSocket = nullptr;
+  mMasterSocket = nullptr;
+
+  
+  
 }
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(DataChannelConnection,
@@ -190,7 +216,10 @@ DataChannelConnection::Init(unsigned short aPort, uint16_t aNumStreams, bool aUs
         usrsctp_init(aPort, nullptr);
       }
 
-      usrsctp_sysctl_set_sctp_debug_on(0 );
+      
+#ifdef PR_LOGGING
+      usrsctp_sysctl_set_sctp_debug_on(GetDataChannelLog()->level > 5 ? SCTP_DEBUG_ALL : 0);
+#endif
       usrsctp_sysctl_set_sctp_blackhole(2);
       sctp_initialized = true;
 
@@ -198,12 +227,12 @@ DataChannelConnection::Init(unsigned short aPort, uint16_t aNumStreams, bool aUs
       gDataChannelShutdown->Init();
     }
   }
-  
-  
 
-  nsresult res;
-  mSTS = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &res);
-  MOZ_ASSERT(NS_SUCCEEDED(res));
+  
+  
+  nsresult rv;
+  mSTS = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   
   if ((mMasterSocket = usrsctp_socket(
@@ -221,6 +250,16 @@ DataChannelConnection::Init(unsigned short aPort, uint16_t aNumStreams, bool aUs
                          (const void *)&l, (socklen_t)sizeof(struct linger)) < 0) {
     LOG(("Couldn't set SO_LINGER on SCTP socket"));
   }
+
+  
+  
+  
+  uint32_t on = 1;
+  if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_REUSE_PORT,
+                         (const void *)&on, (socklen_t)sizeof(on)) < 0) {
+    LOG(("Couldn't set SCTP_REUSE_PORT on SCTP socket"));
+  }
+
 
   if (!aUsingDtls) {
     memset(&encaps, 0, sizeof(encaps));
@@ -342,6 +381,60 @@ DataChannelConnection::Notify(nsITimer *timer)
 }
 
 #ifdef MOZ_PEERCONNECTION
+class DataChannelConnectRunnable : public nsRunnable
+{
+public:
+  DataChannelConnectRunnable(DataChannelConnection *aConnection)
+    : mConnection(aConnection) {}
+
+  NS_IMETHOD Run()
+  {
+    struct sockaddr_conn addr;
+
+    memset(&addr, 0, sizeof(addr));
+    addr.sconn_family = AF_CONN;
+#if !defined(__Userspace_os_Linux) && !defined(__Userspace_os_Windows)
+    addr.sconn_len = sizeof(addr);
+#endif
+    addr.sconn_port = htons(mConnection->mLocalPort);
+
+    int r = usrsctp_bind(mConnection->mMasterSocket, reinterpret_cast<struct sockaddr *>(&addr),
+                         sizeof(addr));
+    if (r < 0) {
+      LOG(("usrsctp_bind failed: %d", r));
+    } else {
+      
+      addr.sconn_port = htons(mConnection->mRemotePort);
+      addr.sconn_addr = static_cast<void *>(mConnection.get());
+      r = usrsctp_connect(mConnection->mMasterSocket, reinterpret_cast<struct sockaddr *>(&addr),
+                          sizeof(addr));
+      if (r < 0) {
+        LOG(("usrsctp_connect failed: %d", r));
+      } else {
+        
+        LOG(("%s: sending ON_CONNECTION for %p", __FUNCTION__, mConnection.get()));
+        mConnection->mSocket = mConnection->mMasterSocket;
+        mConnection->mState = DataChannelConnection::OPEN;
+        LOG(("DTLS connect() succeeded!  Entering connected mode"));
+
+        NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                                  DataChannelOnMessageAvailable::ON_CONNECTION,
+                                  mConnection, true));
+        return NS_OK;
+      }
+    }
+    
+    
+    NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                              DataChannelOnMessageAvailable::ON_CONNECTION,
+                              mConnection, false));
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<DataChannelConnection> mConnection;
+};
+
 bool
 DataChannelConnection::ConnectDTLS(TransportFlow *aFlow, uint16_t localport, uint16_t remoteport)
 {
@@ -355,57 +448,10 @@ DataChannelConnection::ConnectDTLS(TransportFlow *aFlow, uint16_t localport, uin
   mLocalPort = localport;
   mRemotePort = remoteport;
 
-  PR_CreateThread(
-    PR_SYSTEM_THREAD,
-    DataChannelConnection::DTLSConnectThread, this,
-    PR_PRIORITY_NORMAL,
-    PR_GLOBAL_THREAD,
-    PR_JOINABLE_THREAD, 0
-  );
+  nsCOMPtr<nsIRunnable> connect_event = new DataChannelConnectRunnable(this);
+  nsresult rv = NS_NewThread(getter_AddRefs(mConnectThread), connect_event);
 
-  return true; 
-}
-
-
-void
-DataChannelConnection::DTLSConnectThread(void *data)
-{
-  DataChannelConnection *_this = static_cast<DataChannelConnection*>(data);
-  struct sockaddr_conn addr;
-
-  memset(&addr, 0, sizeof(addr));
-  addr.sconn_family = AF_CONN;
-#if defined(__Userspace_os_Darwin)
-  addr.sconn_len = sizeof(addr);
-#endif
-  addr.sconn_port = htons(_this->mLocalPort);
-
-  int r = usrsctp_bind(_this->mMasterSocket, reinterpret_cast<struct sockaddr *>(&addr),
-                       sizeof(addr));
-  if (r < 0) {
-    LOG(("usrsctp_bind failed: %d", r));
-    return;
-  }
-
-  
-  addr.sconn_port = htons(_this->mRemotePort);
-  addr.sconn_addr = static_cast<void *>(_this);
-  r = usrsctp_connect(_this->mMasterSocket, reinterpret_cast<struct sockaddr *>(&addr),
-                      sizeof(addr));
-  if (r < 0) {
-    LOG(("usrsctp_connect failed: %d", r));
-    return;
-  }
-
-  
-  LOG(("%s: sending ON_CONNECTION for %p", __FUNCTION__, _this));
-  _this->mSocket = _this->mMasterSocket;
-  _this->mState = OPEN;
-  LOG(("DTLS connect() succeeded!  Entering connected mode"));
-
-  NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
-                            DataChannelOnMessageAvailable::ON_CONNECTION,
-                            _this, nullptr));
+  return NS_SUCCEEDED(rv);
 }
 
 void
@@ -452,8 +498,9 @@ DataChannelConnection::SctpDtlsOutput(void *addr, void *buffer, size_t length,
     
     
     peer->mSTS->Dispatch(WrapRunnable(
-      peer, &DataChannelConnection::SendPacket, data, length, true
-    ), NS_DISPATCH_NORMAL);
+                           nsRefPtr<DataChannelConnection>(peer),
+                           &DataChannelConnection::SendPacket, data, length, true),
+                         NS_DISPATCH_NORMAL);
     res = 0; 
   }
   return res;
@@ -976,7 +1023,7 @@ DataChannelConnection::OpenResponseFinish(already_AddRefed<DataChannel> aChannel
     if (SendOpenResponseMessage(streamOut, channel->mStreamIn)) {
       
       
-      LOG(("%s: sending ON_CHANNEL_CREATED for %s: %d/%d", __FUNCTION__, 
+      LOG(("%s: sending ON_CHANNEL_CREATED for %s: %d/%d", __FUNCTION__,
            channel->mLabel.get(), streamOut, channel->mStreamIn));
       NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
                                 DataChannelOnMessageAvailable::ON_CHANNEL_CREATED,
@@ -1393,7 +1440,8 @@ DataChannelConnection::ResetOutgoingStream(uint16_t streamOut)
   uint32_t i;
 
   mLock.AssertCurrentThreadOwns();
-  LOG(("Resetting outgoing stream %d",streamOut));
+  LOG(("Connection %p: Resetting outgoing stream %d",
+       (void *) this, streamOut));
   
   for (i = 0; i < mStreamsResetting.Length(); ++i) {
     if (mStreamsResetting[i] == streamOut) {
@@ -1410,8 +1458,11 @@ DataChannelConnection::SendOutgoingStreamReset()
   uint32_t i;
   size_t len;
 
+  LOG(("Connection %p: Sending outgoing stream reset for %d streams",
+       (void *) this, mStreamsResetting.Length()));
   mLock.AssertCurrentThreadOwns();
-  if (mStreamsResetting.IsEmpty() == 0) {
+  if (mStreamsResetting.IsEmpty()) {
+    LOG(("No streams to reset"));
     return;
   }
   len = sizeof(sctp_assoc_t) + (2 + mStreamsResetting.Length()) * sizeof(uint16_t);
@@ -1443,40 +1494,57 @@ DataChannelConnection::HandleStreamResetEvent(const struct sctp_stream_reset_eve
       if (strrst->strreset_flags & SCTP_STREAM_RESET_INCOMING_SSN) {
         channel = FindChannelByStreamIn(strrst->strreset_stream_list[i]);
         if (channel) {
-          LOG(("Channel %d outgoing/%d incoming closed",
-               channel->mStreamOut,channel->mStreamIn));
-          mStreamsIn[channel->mStreamIn] = nullptr;
-          channel->mStreamIn = INVALID_STREAM;
-          if (channel->mStreamOut == INVALID_STREAM) {
-            channel->mPrPolicy = SCTP_PR_SCTP_NONE;
-            channel->mPrValue = 0;
-            channel->mFlags = 0;
-            channel->mState = CLOSED;
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+
+          LOG(("Incoming: Channel %d outgoing/%d incoming closed, state %d",
+               channel->mStreamOut, channel->mStreamIn, channel->mState));
+          MOZ_ASSERT(channel->mState == OPEN || channel->mState == CLOSING);
+          if (channel->mState == OPEN) {
+            ResetOutgoingStream(channel->mStreamOut);
             NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
                                       DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
                                       channel));
-          } else {
-            ResetOutgoingStream(channel->mStreamOut);
-            channel->mState = CLOSING;
+            mStreamsOut[channel->mStreamOut] = nullptr;
           }
+          mStreamsIn[channel->mStreamIn] = nullptr;
+
+          LOG(("Disconnected DataChannel %p from connection %p",
+               (void *) channel.get(), (void *) channel->mConnection.get()));
+          channel->Destroy();
+          
+        } else {
+          LOG(("Can't find incoming channel %d",i));
         }
       }
+
       if (strrst->strreset_flags & SCTP_STREAM_RESET_OUTGOING_SSN) {
         channel = FindChannelByStreamOut(strrst->strreset_stream_list[i]);
-        if (channel != nullptr && channel->mStreamOut != INVALID_STREAM) {
-          LOG(("Channel %d outgoing/%d incoming closed",
-               channel->mStreamOut,channel->mStreamIn));
-          mStreamsOut[channel->mStreamOut] = nullptr;
-          channel->mStreamOut = INVALID_STREAM;
-          if (channel->mStreamIn == INVALID_STREAM) {
-            channel->mPrPolicy = SCTP_PR_SCTP_NONE;
-            channel->mPrValue = 0;
-            channel->mFlags = 0;
-            channel->mState = CLOSED;
-            NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
-                                      DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
-                                      channel));
+        if (channel) {
+          LOG(("Outgoing: Connection %p channel %p  streams: %d outgoing/%d incoming closed",
+               (void *) this, (void *) channel.get(), channel->mStreamOut, channel->mStreamIn));
+
+          MOZ_ASSERT(channel->mState == CLOSING);
+          if (channel->mState == CLOSING) {
+            mStreamsOut[channel->mStreamOut] = nullptr;
+            if (channel->mStreamIn != INVALID_STREAM)
+              mStreamsIn[channel->mStreamIn] = nullptr;
+            LOG(("Disconnected DataChannel %p from connection %p (refcnt will be %u)",
+                 (void *) channel.get(), (void *) channel->mConnection.get(),
+                 (uint32_t) channel->mConnection->mRefCnt-1));
+            channel->Destroy();
+            
           }
+        } else {
+          LOG(("Can't find outgoing channel %d",i));
         }
       }
     }
@@ -1691,7 +1759,7 @@ DataChannelConnection::Open(const nsACString& label, Type type, bool inOrder,
   }
 
   flags = !inOrder ? DATA_CHANNEL_FLAG_OUT_OF_ORDER_ALLOWED : 0;
-  nsRefPtr<DataChannel> channel(new DataChannel(this, 
+  nsRefPtr<DataChannel> channel(new DataChannel(this,
                                                 INVALID_STREAM, INVALID_STREAM,
                                                 DataChannel::CONNECTING,
                                                 label, type, prValue,
@@ -1938,14 +2006,17 @@ DataChannelConnection::Close(uint16_t streamOut)
   nsRefPtr<DataChannel> channel; 
 
   MutexAutoLock lock(mLock);
-  LOG(("Closing stream %d",streamOut));
   channel = FindChannelByStreamOut(streamOut);
   if (channel) {
+    LOG(("Connection %p/Channel %p: Closing stream %d",
+         (void *) channel->mConnection.get(), (void *) channel.get(), streamOut));
     channel->mBufferedData.Clear();
     if (channel->mStreamOut != INVALID_STREAM)
       ResetOutgoingStream(channel->mStreamOut);
     SendOutgoingStreamReset();
     channel->mState = CLOSING;
+  } else {
+    LOG(("!!!? no channel when closing stream %d?",streamOut));
   }
 }
 
@@ -1974,21 +2045,34 @@ void DataChannelConnection::CloseAll()
 
 DataChannel::~DataChannel()
 {
+  if (mConnection)
+    Close();
+}
+
+
+void
+DataChannel::Destroy()
+{
   LOG(("Destroying Data channel %d/%d", mStreamOut, mStreamIn));
-  Close();
+  MOZ_ASSERT_IF(mStreamOut != INVALID_STREAM,
+                !mConnection->FindChannelByStreamOut(mStreamOut));
+  MOZ_ASSERT_IF(mStreamIn != INVALID_STREAM,
+                !mConnection->FindChannelByStreamIn(mStreamIn));
+  mStreamIn  = INVALID_STREAM;
+  mStreamOut = INVALID_STREAM;
+  mState = CLOSED;
+  mConnection = nullptr;
 }
 
 void
 DataChannel::Close()
-{ 
+{
   if (mState == CLOSING || mState == CLOSED ||
       mStreamOut == INVALID_STREAM) {
     return;
   }
   mState = CLOSING;
   mConnection->Close(mStreamOut);
-  mStreamOut = INVALID_STREAM;
-  mStreamIn  = INVALID_STREAM;
 }
 
 void
@@ -2036,4 +2120,3 @@ DataChannel::GetBufferedAmount()
 }
 
 } 
-
