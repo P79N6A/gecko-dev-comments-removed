@@ -94,7 +94,7 @@ private:
 
 
 
-  static bool IsConceptualParent(a11y::role aRole, a11y::role aParentRole);
+  static bool ShouldReportRelations(a11y::role aRole, a11y::role aParentRole);
 
   uint32_t mPosInSet;
   uint32_t mSetSize;

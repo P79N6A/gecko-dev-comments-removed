@@ -108,7 +108,7 @@ AccGroupInfo::AccGroupInfo(Accessible* aItem, role aRole) :
     return;
 
   roles::Role parentRole = parent->Role();
-  if (IsConceptualParent(aRole, parentRole))
+  if (ShouldReportRelations(aRole, parentRole))
     mParent = parent;
 
   
@@ -173,7 +173,7 @@ AccGroupInfo::FirstItemOf(Accessible* aContainer)
 
   
   item = aContainer->FirstChild();
-  if (IsConceptualParent(BaseRole(item->Role()), containerRole))
+  if (ShouldReportRelations(item->Role(), containerRole))
     return item;
 
   return nullptr;
@@ -201,28 +201,20 @@ AccGroupInfo::NextItemTo(Accessible* aItem)
     }
   }
 
-  NS_NOTREACHED("Item in the midle of the group but there's no next item!");
+  NS_NOTREACHED("Item in the middle of the group but there's no next item!");
   return nullptr;
 }
 
 bool
-AccGroupInfo::IsConceptualParent(role aRole, role aParentRole)
+AccGroupInfo::ShouldReportRelations(role aRole, role aParentRole)
 {
+  
+  
   if (aParentRole == roles::OUTLINE && aRole == roles::OUTLINEITEM)
     return true;
-  if ((aParentRole == roles::TABLE || aParentRole == roles::TREE_TABLE) &&
-      aRole == roles::ROW)
+  if (aParentRole == roles::TREE_TABLE && aRole == roles::ROW)
     return true;
   if (aParentRole == roles::LIST && aRole == roles::LISTITEM)
-    return true;
-  if (aParentRole == roles::COMBOBOX_LIST && aRole == roles::COMBOBOX_OPTION)
-    return true;
-  if (aParentRole == roles::LISTBOX && aRole == roles::OPTION)
-    return true;
-  if (aParentRole == roles::PAGETABLIST && aRole == roles::PAGETAB)
-    return true;
-  if ((aParentRole == roles::POPUP_MENU || aParentRole == roles::MENUPOPUP) &&
-      aRole == roles::MENUITEM)
     return true;
 
   return false;
