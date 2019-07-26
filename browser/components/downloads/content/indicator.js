@@ -528,8 +528,7 @@ const DownloadsIndicatorView = {
     } else {
       
       let widgetGroup = CustomizableUI.getWidget("downloads-button");
-      let widget = widgetGroup.forWindow(window);
-      if (widget.areaType == CustomizableUI.TYPE_MENU_PANEL) {
+      if (widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL) {
         DownloadsPanel.showDownloadsHistory();
       } else {
         DownloadsPanel.showPanel();
