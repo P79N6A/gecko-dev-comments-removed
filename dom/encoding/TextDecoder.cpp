@@ -59,7 +59,7 @@ TextDecoder::Decode(const ArrayBufferView* aView,
                     ErrorResult& aRv)
 {
   const char* data;
-  uint32_t length;
+  int32_t length;
   
   if (!aView) {
     data = EmptyCString().BeginReading();
@@ -87,27 +87,10 @@ TextDecoder::Decode(const ArrayBufferView* aView,
     return;
   }
 
-  for (;;) {
-    int32_t srcLen = length;
-    int32_t dstLen = outLen;
-    rv = mDecoder->Convert(data, &srcLen, buf, &dstLen);
-    
-    
-    buf[dstLen] = 0;
-    aOutDecodedString.Append(buf, dstLen);
-    if (mFatal || rv != NS_ERROR_ILLEGAL_INPUT) {
-      break;
-    }
-    
-    
-    if (srcLen == -1) {
-      mDecoder->Reset();
-    } else {
-      data += srcLen + 1;
-      length -= srcLen + 1;
-      aOutDecodedString.Append(kReplacementChar);
-    }
-  }
+  rv = mDecoder->Convert(data, &length, buf, &outLen);
+  MOZ_ASSERT(mFatal || rv != NS_ERROR_ILLEGAL_INPUT);
+  buf[outLen] = 0;
+  aOutDecodedString.Append(buf, outLen);
 
   
   

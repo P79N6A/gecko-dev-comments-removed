@@ -788,36 +788,15 @@ nsXMLHttpRequest::AppendToResponseText(const char * aSrcBuffer,
 
   
   
-  
-  
-  do {
-    int32_t srclen = (int32_t)aSrcBufferLen;
-    int32_t destlen = (int32_t)destBufferLen;
-    rv = mDecoder->Convert(aSrcBuffer,
-                           &srclen,
-                           destBuffer,
-                           &destlen);
-    if (NS_FAILED(rv)) {
-      
-      
+  int32_t srclen = (int32_t)aSrcBufferLen;
+  int32_t destlen = (int32_t)destBufferLen;
+  rv = mDecoder->Convert(aSrcBuffer,
+                         &srclen,
+                         destBuffer,
+                         &destlen);
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
 
-      destBuffer[destlen] = (PRUnichar)0xFFFD; 
-      destlen++; 
-      destBuffer += destlen;
-      destBufferLen -= destlen;
-
-      if (srclen < (int32_t)aSrcBufferLen) {
-        srclen++; 
-      }
-      aSrcBuffer += srclen;
-      aSrcBufferLen -= srclen;
-
-      mDecoder->Reset();
-    }
-
-    totalChars += destlen;
-
-  } while (NS_FAILED(rv) && aSrcBufferLen > 0);
+  totalChars += destlen;
 
   mResponseText.SetLength(totalChars);
 

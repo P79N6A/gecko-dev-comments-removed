@@ -3594,27 +3594,10 @@ nsContentUtils::ConvertStringFromCharset(const nsACString& aCharset,
 
   const char* data = flatInput.get();
   aOutput.Truncate();
-  for (;;) {
-    int32_t srcLen = length;
-    int32_t dstLen = outLen;
-    rv = decoder->Convert(data, &srcLen, ustr, &dstLen);
-    
-    
-    ustr[dstLen] = 0;
-    aOutput.Append(ustr, dstLen);
-    if (rv != NS_ERROR_ILLEGAL_INPUT) {
-      break;
-    }
-    
-    
-    if (srcLen == -1) {
-      decoder->Reset();
-    } else {
-      data += srcLen + 1;
-      length -= srcLen + 1;
-      aOutput.Append(static_cast<PRUnichar>(0xFFFD));
-    }
-  }
+  rv = decoder->Convert(data, &length, ustr, &outLen);
+  MOZ_ASSERT(rv != NS_ERROR_ILLEGAL_INPUT);
+  ustr[outLen] = 0;
+  aOutput.Append(ustr, outLen);
 
   nsMemory::Free(ustr);
   return rv;

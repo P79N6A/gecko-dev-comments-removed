@@ -301,7 +301,6 @@ nsEventSource::Init(nsIPrincipal* aPrincipal,
 
   rv = convManager->GetUnicodeDecoder("UTF-8", getter_AddRefs(mUnicodeDecoder));
   NS_ENSURE_SUCCESS(rv, rv);
-  mUnicodeDecoder->SetInputErrorBehavior(nsIUnicodeDecoder::kOnError_Recover);
 
   
   
@@ -503,31 +502,16 @@ nsEventSource::StreamReaderFunc(nsIInputStream *aInputStream,
 
     thisObject->mLastConvertionResult =
       thisObject->mUnicodeDecoder->Convert(p, &srcCount, out, &outCount);
+    MOZ_ASSERT(thisObject->mLastConvertionResult != NS_ERROR_ILLEGAL_INPUT);
 
-    if (thisObject->mLastConvertionResult == NS_ERROR_ILLEGAL_INPUT) {
-      
-      
-      
-      rv = thisObject->ParseCharacter(REPLACEMENT_CHAR);
+    for (int32_t i = 0; i < outCount; ++i) {
+      rv = thisObject->ParseCharacter(out[i]);
       NS_ENSURE_SUCCESS(rv, rv);
-      p = p + srcCount + 1;
-      thisObject->mUnicodeDecoder->Reset();
-    } else {
-      for (int32_t i = 0; i < outCount; ++i) {
-        rv = thisObject->ParseCharacter(out[i]);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-      p = p + srcCount;
     }
+    p = p + srcCount;
   } while (p < end &&
            thisObject->mLastConvertionResult != NS_PARTIAL_MORE_INPUT &&
            thisObject->mLastConvertionResult != NS_OK);
-
-  
-  
-  if (thisObject->mLastConvertionResult == NS_ERROR_ILLEGAL_INPUT) {
-    thisObject->mLastConvertionResult = NS_OK;
-  }
 
   *aWriteCount = aCount;
   return NS_OK;

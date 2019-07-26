@@ -1073,31 +1073,11 @@ nsScriptLoader::ConvertToUTF16(nsIChannel* aChannel, const uint8_t* aData,
 
   PRUnichar *ustr = aString.BeginWriting();
 
-  int32_t consumedLength = 0;
-  int32_t originalLength = aLength;
-  int32_t convertedLength = 0;
-  int32_t bufferLength = unicodeLength;
-  do {
-    rv = unicodeDecoder->Convert(reinterpret_cast<const char*>(aData),
-                                 (int32_t *) &aLength, ustr,
-                                 &unicodeLength);
-    if (NS_FAILED(rv)) {
-      
-      
-      ustr[unicodeLength++] = (PRUnichar)0xFFFD;
-      ustr += unicodeLength;
-
-      unicodeDecoder->Reset();
-    }
-    aData += ++aLength;
-    consumedLength += aLength;
-    aLength = originalLength - consumedLength;
-    convertedLength += unicodeLength;
-    unicodeLength = bufferLength - convertedLength;
-  } while (NS_FAILED(rv) &&
-           (originalLength > consumedLength) &&
-           (bufferLength > convertedLength));
-  aString.SetLength(convertedLength);
+  rv = unicodeDecoder->Convert(reinterpret_cast<const char*>(aData),
+                               (int32_t *) &aLength, ustr,
+                               &unicodeLength);
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
+  aString.SetLength(unicodeLength);
   return rv;
 }
 
