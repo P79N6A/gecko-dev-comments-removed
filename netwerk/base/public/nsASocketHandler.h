@@ -71,15 +71,6 @@ public:
     
     virtual void IsLocal(bool *aIsLocal) = 0;
 
-    
-    
-    
-    
-    
-    virtual void KeepWhenOffline(bool *aKeepWhenOffline)
-    {
-        *aKeepWhenOffline = false;
-    }
 
     
     

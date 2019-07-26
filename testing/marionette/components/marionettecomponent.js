@@ -13,7 +13,7 @@ const MARIONETTE_FORCELOCAL_PREF = 'marionette.force-local';
 
 const ServerSocket = CC("@mozilla.org/network/server-socket;1",
                         "nsIServerSocket",
-                        "initSpecialConnection");
+                        "init");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -89,10 +89,9 @@ MarionetteComponent.prototype = {
         if (!marionette_forcelocal) {
           
           
-	  
           
           
-          let insaneSacrificialGoat = new ServerSocket(666, Ci.nsIServerSocket.KeepWhenOffline, 4);
+          let insaneSacrificialGoat = new ServerSocket(666, false, 4);
           insaneSacrificialGoat.asyncListen(this);
         }
 
