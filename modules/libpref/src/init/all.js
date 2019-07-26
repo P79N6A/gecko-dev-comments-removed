@@ -713,6 +713,9 @@ pref("dom.xbl_scopes", false);
 pref("dom.experimental_forms", false);
 
 
+pref("dom.experimental_forms_range", false);
+
+
 pref("dom.workers.mem.gc_allocation_threshold_mb", 30);
 
 
