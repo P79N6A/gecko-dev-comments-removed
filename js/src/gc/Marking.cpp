@@ -599,6 +599,12 @@ gc::IsValueAboutToBeFinalized(Value *v)
 
 
 
+bool
+gc::IsSlotMarked(HeapSlot *s)
+{
+    return IsMarked(s);
+}
+
 void
 gc::MarkSlot(JSTracer *trc, HeapSlot *s, const char *name)
 {
