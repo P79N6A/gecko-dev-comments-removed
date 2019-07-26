@@ -705,8 +705,9 @@ GonkGPSGeolocationProvider::NetworkLocationUpdate::Update(nsIDOMGeoPosition *pos
 
   
   
+  const int kMaxGPSDelayBeforeConsideringMLS = 10000;
   int64_t diff = PR_Now() - provider->mLastGPSDerivedLocationTime;
-  if (provider->mLocationCallback && diff > kDefaultPeriod
+  if (provider->mLocationCallback && diff > kMaxGPSDelayBeforeConsideringMLS
       && delta > kMinMLSCoordChangeInMeters)
   {
     provider->mLocationCallback->Update(position);
