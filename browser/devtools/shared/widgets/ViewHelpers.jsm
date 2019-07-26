@@ -513,7 +513,7 @@ Item.prototype = {
     if (aItem.finalize) {
       aItem.finalize(aItem);
     }
-    for (let childItem in aItem) {
+    for (let childItem of aItem) {
       aItem.remove(childItem);
     }
 
@@ -1529,7 +1529,7 @@ this.WidgetMethods = {
     if (aItem.finalize) {
       aItem.finalize(aItem);
     }
-    for (let childItem in aItem) {
+    for (let childItem of aItem) {
       aItem.remove(childItem);
     }
 
@@ -1654,9 +1654,7 @@ this.WidgetMethods = {
 
 
 
-Item.prototype.__iterator__ =
-WidgetMethods.__iterator__ = function() {
-  for (let [, item] of this._itemsByElement) {
-    yield item;
-  }
+Item.prototype["@@iterator"] =
+WidgetMethods["@@iterator"] = function*() {
+  yield* this._itemsByElement.values();
 };
