@@ -2198,6 +2198,16 @@ ParseSelectorList(nsINode* aNode,
   return NS_OK;
 }
 
+static void
+AddScopeElements(TreeMatchContext& aMatchContext,
+                 nsINode* aMatchContextNode)
+{
+  if (aMatchContextNode->IsElement()) {
+    aMatchContext.SetHasSpecifiedScope();
+    aMatchContext.AddScopeElement(aMatchContextNode->AsElement());
+  }
+}
+
 
 
 
@@ -2218,6 +2228,7 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
   TreeMatchContext matchingContext(false, nsRuleWalker::eRelevantLinkUnvisited,
                                    doc, TreeMatchContext::eNeverMatchVisited);
   doc->FlushPendingLinkUpdates();
+  AddScopeElements(matchingContext, aRoot);
 
   
   

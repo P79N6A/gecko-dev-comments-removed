@@ -149,6 +149,21 @@ struct NS_STACK_CLASS TreeMatchContext {
     return mVisitedHandling;
   }
 
+  void AddScopeElement(mozilla::dom::Element* aElement) {
+    NS_PRECONDITION(mHaveSpecifiedScope,
+                    "Should be set before calling AddScopeElement()");
+    mScopes.AppendElement(aElement);
+  }
+  bool IsScopeElement(mozilla::dom::Element* aElement) const {
+    return mScopes.Contains(aElement);
+  }
+  void SetHasSpecifiedScope() {
+    mHaveSpecifiedScope = true;
+  }
+  bool HasSpecifiedScope() const {
+    return mHaveSpecifiedScope;
+  }
+
   
   
   
@@ -164,8 +179,14 @@ struct NS_STACK_CLASS TreeMatchContext {
 
   
   
+  bool mHaveSpecifiedScope;
+
+  
+  
   nsRuleWalker::VisitedHandlingType mVisitedHandling;
 
+  
+  nsAutoTArray<mozilla::dom::Element*, 1> mScopes;
  public:
   
   nsIDocument* const mDocument;
@@ -204,6 +225,7 @@ struct NS_STACK_CLASS TreeMatchContext {
                    MatchVisited aMatchVisited = eMatchVisitedDefault)
     : mForStyling(aForStyling)
     , mHaveRelevantLink(false)
+    , mHaveSpecifiedScope(false)
     , mVisitedHandling(aVisitedHandling)
     , mDocument(aDocument)
     , mScopedRoot(nullptr)
