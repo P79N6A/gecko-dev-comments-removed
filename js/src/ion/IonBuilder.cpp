@@ -5968,7 +5968,7 @@ IonBuilder::propertyReadNeedsTypeBarrier(types::TypeObject *object, PropertyName
     
     
     
-    if (property->empty() && name && object->singleton) {
+    if (property->empty() && name && object->singleton && object->singleton->isNative()) {
         Shape *shape = object->singleton->nativeLookup(cx, name);
         if (shape && shape->hasDefaultGetter()) {
             JS_ASSERT(object->singleton->nativeGetSlot(shape->slot()).isUndefined());
