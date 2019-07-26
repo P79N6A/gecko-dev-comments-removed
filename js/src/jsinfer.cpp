@@ -4088,8 +4088,9 @@ TypeObject::sweep(FreeOp *fop)
         for (unsigned i = 0; i < oldCapacity; i++) {
             Property *prop = oldArray[i];
             if (prop) {
-                if (singleton() && !prop->types.constraintList) {
+                if (singleton() && !prop->types.constraintList && !zone()->isPreservingCode()) {
                     
+
 
 
 
@@ -4115,7 +4116,7 @@ TypeObject::sweep(FreeOp *fop)
         setBasePropertyCount(propertyCount);
     } else if (propertyCount == 1) {
         Property *prop = (Property *) propertySet;
-        if (singleton() && !prop->types.constraintList) {
+        if (singleton() && !prop->types.constraintList && !zone()->isPreservingCode()) {
             
             clearProperties();
         } else {
