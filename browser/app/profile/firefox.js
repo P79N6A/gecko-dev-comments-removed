@@ -532,6 +532,8 @@ pref("browser.gesture.twist.left", "cmd_gestureRotateLeft");
 pref("browser.gesture.twist.end", "cmd_gestureRotateEnd");
 pref("browser.gesture.tap", "cmd_fullZoomReset");
 
+pref("browser.snapshots.limit", 20);
+
 
 
 

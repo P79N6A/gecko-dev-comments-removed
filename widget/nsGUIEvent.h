@@ -337,16 +337,19 @@ enum nsEventStructType {
 
 
 #define NS_SIMPLE_GESTURE_EVENT_START    3500
-#define NS_SIMPLE_GESTURE_SWIPE          (NS_SIMPLE_GESTURE_EVENT_START)
-#define NS_SIMPLE_GESTURE_MAGNIFY_START  (NS_SIMPLE_GESTURE_EVENT_START+1)
-#define NS_SIMPLE_GESTURE_MAGNIFY_UPDATE (NS_SIMPLE_GESTURE_EVENT_START+2)
-#define NS_SIMPLE_GESTURE_MAGNIFY        (NS_SIMPLE_GESTURE_EVENT_START+3)
-#define NS_SIMPLE_GESTURE_ROTATE_START   (NS_SIMPLE_GESTURE_EVENT_START+4)
-#define NS_SIMPLE_GESTURE_ROTATE_UPDATE  (NS_SIMPLE_GESTURE_EVENT_START+5)
-#define NS_SIMPLE_GESTURE_ROTATE         (NS_SIMPLE_GESTURE_EVENT_START+6)
-#define NS_SIMPLE_GESTURE_TAP            (NS_SIMPLE_GESTURE_EVENT_START+7)
-#define NS_SIMPLE_GESTURE_PRESSTAP       (NS_SIMPLE_GESTURE_EVENT_START+8)
-#define NS_SIMPLE_GESTURE_EDGEUI         (NS_SIMPLE_GESTURE_EVENT_START+9)
+#define NS_SIMPLE_GESTURE_SWIPE_START    (NS_SIMPLE_GESTURE_EVENT_START)
+#define NS_SIMPLE_GESTURE_SWIPE_UPDATE   (NS_SIMPLE_GESTURE_EVENT_START+1)
+#define NS_SIMPLE_GESTURE_SWIPE_END      (NS_SIMPLE_GESTURE_EVENT_START+2)
+#define NS_SIMPLE_GESTURE_SWIPE          (NS_SIMPLE_GESTURE_EVENT_START+3)
+#define NS_SIMPLE_GESTURE_MAGNIFY_START  (NS_SIMPLE_GESTURE_EVENT_START+4)
+#define NS_SIMPLE_GESTURE_MAGNIFY_UPDATE (NS_SIMPLE_GESTURE_EVENT_START+5)
+#define NS_SIMPLE_GESTURE_MAGNIFY        (NS_SIMPLE_GESTURE_EVENT_START+6)
+#define NS_SIMPLE_GESTURE_ROTATE_START   (NS_SIMPLE_GESTURE_EVENT_START+7)
+#define NS_SIMPLE_GESTURE_ROTATE_UPDATE  (NS_SIMPLE_GESTURE_EVENT_START+8)
+#define NS_SIMPLE_GESTURE_ROTATE         (NS_SIMPLE_GESTURE_EVENT_START+9)
+#define NS_SIMPLE_GESTURE_TAP            (NS_SIMPLE_GESTURE_EVENT_START+10)
+#define NS_SIMPLE_GESTURE_PRESSTAP       (NS_SIMPLE_GESTURE_EVENT_START+11)
+#define NS_SIMPLE_GESTURE_EDGEUI         (NS_SIMPLE_GESTURE_EVENT_START+12)
 
 
 #define NS_PLUGIN_EVENT_START            3600
@@ -1673,20 +1676,22 @@ public:
   nsSimpleGestureEvent(bool isTrusted, uint32_t msg, nsIWidget* w,
                          uint32_t directionArg, double deltaArg)
     : nsMouseEvent_base(isTrusted, msg, w, NS_SIMPLE_GESTURE_EVENT),
-      direction(directionArg), delta(deltaArg), clickCount(0)
+      allowedDirections(0), direction(directionArg), delta(deltaArg),
+      clickCount(0)
   {
   }
 
   nsSimpleGestureEvent(const nsSimpleGestureEvent& other)
     : nsMouseEvent_base(other.mFlags.mIsTrusted,
                         other.message, other.widget, NS_SIMPLE_GESTURE_EVENT),
-      direction(other.direction), delta(other.delta), clickCount(0)
+      allowedDirections(other.allowedDirections), direction(other.direction),
+      delta(other.delta), clickCount(0)
   {
   }
-
-  uint32_t direction;   
-  double delta;         
-  uint32_t clickCount;  
+  uint32_t allowedDirections; 
+  uint32_t direction;         
+  double delta;               
+  uint32_t clickCount;        
 };
 
 class nsTransitionEvent : public nsEvent

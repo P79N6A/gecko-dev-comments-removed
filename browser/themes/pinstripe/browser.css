@@ -2050,6 +2050,17 @@ window[tabsontop="false"] richlistitem[type~="action"][actiontype="switchtab"][s
 
 
 
+#historySwipeAnimationCurrentPage,
+#historySwipeAnimationNextPage {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.6);
+}
+
+#historySwipeAnimationContainer {
+  background: url("chrome://browser/skin/linen-pattern.png") #B3B9C1;
+}
+
+
+
 #sidebar,
 sidebarheader {
   background-color: #d4dde5;

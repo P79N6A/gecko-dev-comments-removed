@@ -260,9 +260,9 @@ typedef NSInteger NSEventGestureAxis;
 
   BOOL mDidForceRefreshOpenGL;
 
-  
 #ifdef __LP64__
-  BOOL *mSwipeAnimationCancelled;
+  
+  void (^mCancelSwipeAnimation)();
 #endif
 
   

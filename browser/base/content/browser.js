@@ -156,6 +156,7 @@ let gInitialPages = [
 #include browser-tabview.js
 #include browser-thumbnails.js
 #include browser-webrtcUI.js
+#include browser-gestureSupport.js
 
 #ifdef MOZ_DATA_REPORTING
 #include browser-data-submission-info-bar.js
@@ -747,7 +748,8 @@ let gGestureSupport = {
 
 
   init: function GS_init(aAddListener) {
-    const gestureEvents = ["SwipeGesture",
+    const gestureEvents = ["SwipeGestureStart",
+      "SwipeGestureUpdate", "SwipeGestureEnd", "SwipeGesture",
       "MagnifyGestureStart", "MagnifyGestureUpdate", "MagnifyGesture",
       "RotateGestureStart", "RotateGestureUpdate", "RotateGesture",
       "TapGesture", "PressTapGesture"];
@@ -775,6 +777,18 @@ let gGestureSupport = {
       ({ threshold: aThreshold, latched: !!aLatched });
 
     switch (aEvent.type) {
+      case "MozSwipeGestureStart":
+        aEvent.preventDefault();
+        this._setupSwipeGesture(aEvent);
+        break;
+      case "MozSwipeGestureUpdate":
+        aEvent.preventDefault();
+        this._doUpdate(aEvent);
+        break;
+      case "MozSwipeGestureEnd":
+        aEvent.preventDefault();
+        this._doEnd(aEvent);
+        break;
       case "MozSwipeGesture":
         aEvent.preventDefault();
         this.onSwipe(aEvent);
@@ -869,6 +883,56 @@ let gGestureSupport = {
 
 
 
+  _swipeNavigatesHistory: function GS__swipeNavigatesHistory(aEvent) {
+    return this._getCommand(aEvent, ["swipe", "left"])
+              == "Browser:BackOrBackDuplicate" &&
+           this._getCommand(aEvent, ["swipe", "right"])
+              == "Browser:ForwardOrForwardDuplicate";
+  },
+
+  
+
+
+
+
+
+  _setupSwipeGesture: function GS__setupSwipeGesture(aEvent) {
+    if (!this._swipeNavigatesHistory(aEvent) || !gHistorySwipeAnimation.active)
+      return;
+
+    let canGoBack = gHistorySwipeAnimation.canGoBack();
+    let canGoForward = gHistorySwipeAnimation.canGoForward();
+    let isLTR = gHistorySwipeAnimation.isLTR;
+
+    if (canGoBack)
+      aEvent.allowedDirections |= isLTR ? aEvent.DIRECTION_LEFT :
+                                          aEvent.DIRECTION_RIGHT;
+    if (canGoForward)
+      aEvent.allowedDirections |= isLTR ? aEvent.DIRECTION_RIGHT :
+                                          aEvent.DIRECTION_LEFT;
+
+    gHistorySwipeAnimation.startAnimation();
+
+    this._doUpdate = function GS__doUpdate(aEvent) {
+      gHistorySwipeAnimation.updateAnimation(aEvent.delta);
+    };
+
+    this._doEnd = function GS__doEnd(aEvent) {
+      gHistorySwipeAnimation.swipeEndEventReceived();
+
+      this._doUpdate = function (aEvent) {};
+      this._doEnd = function (aEvent) {};
+    }
+  },
+
+  
+
+
+
+
+
+
+
   _power: function GS__power(aArray) {
     
     let num = 1 << aArray.length;
@@ -891,7 +955,23 @@ let gGestureSupport = {
 
 
 
+
+
   _doAction: function GS__doAction(aEvent, aGesture) {
+    let command = this._getCommand(aEvent, aGesture);
+    return command && this._doCommand(aEvent, command);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getCommand: function GS__getCommand(aEvent, aGesture) {
     
     
     
@@ -911,28 +991,38 @@ let gGestureSupport = {
         command = this._getPref(aGesture.concat(subCombo).join("."));
       } catch (e) {}
 
-      if (!command)
-        continue;
-
-      let node = document.getElementById(command);
-      if (node) {
-        if (node.getAttribute("disabled") != "true") {
-          let cmdEvent = document.createEvent("xulcommandevent");
-          cmdEvent.initCommandEvent("command", true, true, window, 0,
-                                    aEvent.ctrlKey, aEvent.altKey, aEvent.shiftKey,
-                                    aEvent.metaKey, aEvent);
-          node.dispatchEvent(cmdEvent);
-        }
-      } else {
-        goDoCommand(command);
-      }
-
-      break;
+      if (command)
+        return command;
     }
+    return null;
   },
 
   
 
+
+
+
+
+
+
+  _doCommand: function GS__doCommand(aEvent, aCommand) {
+    let node = document.getElementById(aCommand);
+    if (node) {
+      if (node.getAttribute("disabled") != "true") {
+        let cmdEvent = document.createEvent("xulcommandevent");
+        cmdEvent.initCommandEvent("command", true, true, window, 0,
+                                  aEvent.ctrlKey, aEvent.altKey,
+                                  aEvent.shiftKey, aEvent.metaKey, null);
+        node.dispatchEvent(cmdEvent);
+      }
+
+    }
+    else {
+      goDoCommand(aCommand);
+    }
+  },
+
+  
 
 
 
@@ -947,13 +1037,55 @@ let gGestureSupport = {
 
 
 
+  _doEnd: function(aEvent) {},
+
+  
+
+
+
+
+
   onSwipe: function GS_onSwipe(aEvent) {
     
     for (let dir of ["UP", "RIGHT", "DOWN", "LEFT"]) {
       if (aEvent.direction == aEvent["DIRECTION_" + dir]) {
-        this._doAction(aEvent, ["swipe", dir.toLowerCase()]);
+        this._coordinateSwipeEventWithAnimation(aEvent, dir);
         break;
       }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  processSwipeEvent: function GS_processSwipeEvent(aEvent, aDir) {
+    this._doAction(aEvent, ["swipe", aDir.toLowerCase()]);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _coordinateSwipeEventWithAnimation:
+  function GS__coordinateSwipeEventWithAnimation(aEvent, aDir) {
+    if ((gHistorySwipeAnimation.isAnimationRunning()) &&
+        (aDir == "RIGHT" || aDir == "LEFT")) {
+      gHistorySwipeAnimation.processSwipeEvent(aEvent, aDir);
+    }
+    else {
+      this.processSwipeEvent(aEvent, aDir);
     }
   },
 
@@ -1195,6 +1327,9 @@ var gBrowserInit = {
 
     
     gGestureSupport.init(true);
+
+    
+    gHistorySwipeAnimation.init();
 
     if (window.opener && !window.opener.closed) {
       let openerSidebarBox = window.opener.document.getElementById("sidebar-box");
@@ -1656,6 +1791,8 @@ var gBrowserInit = {
 
     gGestureSupport.init(false);
 
+    gHistorySwipeAnimation.uninit();
+
     FullScreen.cleanup();
 
     Services.obs.removeObserver(gPluginHandler.pluginCrashed, "plugin-crashed");
@@ -1871,7 +2008,6 @@ var nonBrowserWindowStartup        = gBrowserInit.nonBrowserWindowStartup.bind(g
 var nonBrowserWindowDelayedStartup = gBrowserInit.nonBrowserWindowDelayedStartup.bind(gBrowserInit);
 var nonBrowserWindowShutdown       = gBrowserInit.nonBrowserWindowShutdown.bind(gBrowserInit);
 #endif
-
 
 function HandleAppCommandEvent(evt) {
   switch (evt.command) {
