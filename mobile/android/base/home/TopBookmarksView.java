@@ -109,9 +109,6 @@ public class TopBookmarksView extends GridView {
                 }
             }
         });
-
-        
-        new LoadBookmarksTask().execute();
     }
 
     
@@ -120,18 +117,7 @@ public class TopBookmarksView extends GridView {
     @Override
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        if (mAdapter != null) {
-            setAdapter(null);
-            final Cursor cursor = mAdapter.getCursor();
-
-            ThreadUtils.postToBackgroundThread(new Runnable() {
-                @Override
-                public void run() {
-                if (cursor != null && !cursor.isClosed())
-                    cursor.close();
-                }
-            });
-        }
+        mAdapter = null;
     }
 
     
@@ -224,6 +210,24 @@ public class TopBookmarksView extends GridView {
 
 
 
+    public void refreshFromCursor(Cursor cursor) {
+        if (mAdapter == null) {
+            return;
+        }
+
+        mAdapter.swapCursor(cursor);
+
+        
+        if (mAdapter.getCount() > 0) {
+            new LoadThumbnailsTask().execute(cursor);
+        }
+    }
+
+    
+
+
+
+
     private void updateThumbnails(Map<String, Thumbnail> thumbnails) {
         final int count = mAdapter.getCount();
         for (int i = 0; i < count; i++) {
@@ -309,31 +313,6 @@ public class TopBookmarksView extends GridView {
         @Override
         public View newView(Context context, Cursor cursor, ViewGroup parent) {
             return new TopBookmarkItemView(context);
-        }
-    }
-
-    
-
-
-    private class LoadBookmarksTask extends UiAsyncTask<Void, Void, Cursor> {
-        public LoadBookmarksTask() {
-            super(ThreadUtils.getBackgroundHandler());
-        }
-
-        @Override
-        protected Cursor doInBackground(Void... params) {
-            return BrowserDB.getTopSites(getContext().getContentResolver(), mMaxBookmarks);
-        }
-
-        @Override
-        public void onPostExecute(Cursor cursor) {
-            
-            mAdapter.changeCursor(cursor);
-
-            
-            if (mAdapter.getCount() > 0) {
-                new LoadThumbnailsTask().execute(cursor);
-            }
         }
     }
 

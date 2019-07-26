@@ -16,6 +16,7 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.support.v4.app.LoaderManager;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
 import android.view.LayoutInflater;
@@ -30,6 +31,9 @@ public class BookmarksPage extends HomeFragment {
 
     
     private static final int BOOKMARKS_LIST_LOADER_ID = 0;
+
+    
+    private static final int TOP_BOOKMARKS_LOADER_ID = 1;
 
     
     private static final String BOOKMARKS_FOLDER_KEY = "folder_id";
@@ -90,7 +94,9 @@ public class BookmarksPage extends HomeFragment {
         mLoaderCallbacks = new CursorLoaderCallbacks();
 
         
-        getLoaderManager().initLoader(BOOKMARKS_LIST_LOADER_ID, null, mLoaderCallbacks);
+        final LoaderManager manager = getLoaderManager();
+        manager.initLoader(BOOKMARKS_LIST_LOADER_ID, null, mLoaderCallbacks);
+        manager.initLoader(TOP_BOOKMARKS_LOADER_ID, null, mLoaderCallbacks);
     }
 
     @Override
@@ -143,6 +149,21 @@ public class BookmarksPage extends HomeFragment {
     
 
 
+    private static class TopBookmarksLoader extends SimpleCursorLoader {
+        public TopBookmarksLoader(Context context) {
+            super(context);
+        }
+
+        @Override
+        public Cursor loadCursor() {
+            final int max = getContext().getResources().getInteger(R.integer.number_of_top_sites);
+            return BrowserDB.getTopSites(getContext().getContentResolver(), max);
+        }
+    }
+
+    
+
+
     private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
@@ -153,6 +174,10 @@ public class BookmarksPage extends HomeFragment {
                     } else {
                         return new BookmarksLoader(getActivity(), args.getInt(BOOKMARKS_FOLDER_KEY));
                     }
+                }
+
+                case TOP_BOOKMARKS_LOADER_ID: {
+                    return new TopBookmarksLoader(getActivity());
                 }
             }
 
@@ -167,6 +192,11 @@ public class BookmarksPage extends HomeFragment {
                     mList.refreshFromCursor(c);
                     break;
                 }
+
+                case TOP_BOOKMARKS_LOADER_ID: {
+                    mTopBookmarks.refreshFromCursor(c);
+                    break;
+                }
             }
         }
 
@@ -179,6 +209,13 @@ public class BookmarksPage extends HomeFragment {
                         mList.refreshFromCursor(null);
                     }
                     break;
+                }
+
+                case TOP_BOOKMARKS_LOADER_ID: {
+                    if (mTopBookmarks != null) {
+                        mTopBookmarks.refreshFromCursor(null);
+                        break;
+                    }
                 }
             }
         }
