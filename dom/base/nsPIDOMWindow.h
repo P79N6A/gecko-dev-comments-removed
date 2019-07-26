@@ -670,6 +670,7 @@ protected:
   
   
   nsCOMPtr<mozilla::dom::EventTarget> mChromeEventHandler; 
+  nsCOMPtr<nsIDOMDocument> mDocument; 
   nsCOMPtr<nsIDocument> mDoc; 
   
   nsCOMPtr<nsIURI> mDocumentURI; 
