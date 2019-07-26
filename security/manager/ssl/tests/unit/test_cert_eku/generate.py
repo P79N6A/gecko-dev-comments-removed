@@ -81,10 +81,7 @@ def gen_int_js_output(int_string):
     
     
     
-    
-    
-    if (("NONE" in int_string or "SA" in int_string or "NS" in int_string) and
-        "OS" not in int_string):
+    if ("NONE" in int_string or "SA" in int_string or "NS" in int_string):
       expectedResult = "0"
     return ("  checkCertErrorGeneric(certdb, load_cert('" + int_string +
             "', ',,'), " + expectedResult + ", certificateUsageSSLCA);\n")
@@ -131,8 +128,7 @@ def gen_ee_js_output(int_string, ee_string, cert_usage, ee_name):
 
     
     
-    
-    if ("OS" in ee_string or "OS" in int_string):
+    if "OS" in ee_string:
         return single_test_output(ee_name, cert_usage,
                                   "SEC_ERROR_INADEQUATE_CERT_TYPE")
 

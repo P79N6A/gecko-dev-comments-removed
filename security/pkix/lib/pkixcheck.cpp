@@ -422,18 +422,23 @@ CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
 
   
 
-  if (foundOCSPSigning) {
+  if (endEntityOrCA == MustBeEndEntity) {
     
     
     
     
     
-    if (requiredEKU != SEC_OID_OCSP_RESPONDER) {
+    
+    
+    
+    
+    
+    
+    
+    if (foundOCSPSigning && requiredEKU != SEC_OID_OCSP_RESPONDER) {
       PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
       return RecoverableError;
     }
-  } else if (requiredEKU == SEC_OID_OCSP_RESPONDER &&
-             endEntityOrCA == MustBeEndEntity) {
     
     
     
@@ -443,8 +448,10 @@ CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
     
     
     
-    PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
-    return RecoverableError;
+    if (!foundOCSPSigning && requiredEKU == SEC_OID_OCSP_RESPONDER) {
+      PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
+      return RecoverableError;
+    }
   }
 
   return Success;
