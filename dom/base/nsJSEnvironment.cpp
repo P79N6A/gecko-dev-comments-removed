@@ -122,15 +122,6 @@ static PRLogModuleInfo* gJSDiagnostics;
 #define NS_CC_SKIPPABLE_DELAY       400 // ms
 
 
-static const int64_t kICCIntersliceDelay = 32; 
-
-
-static const int64_t kICCSliceBudget = 10; 
-
-
-static const uint32_t kMaxICCDuration = 2000; 
-
-
 
 #define NS_CC_FORCED                (2 * 60 * PR_USEC_PER_SEC) // 2 min
 #define NS_CC_FORCED_PURPLE_LIMIT   10
@@ -153,7 +144,6 @@ static const uint32_t kMaxICCDuration = 2000;
 static nsITimer *sGCTimer;
 static nsITimer *sShrinkGCBuffersTimer;
 static nsITimer *sCCTimer;
-static nsITimer *sICCTimer;
 static nsITimer *sFullGCTimer;
 static nsITimer *sInterSliceGCTimer;
 
@@ -190,7 +180,6 @@ static uint32_t sCleanupsSinceLastGC = UINT32_MAX;
 static bool sNeedsFullCC = false;
 static bool sNeedsGCAfterCC = false;
 static nsJSContext *sContextList = nullptr;
-static bool sIncrementalCC = false;
 
 static nsScriptNameSpaceManager *gNameSpaceManager;
 
@@ -233,7 +222,6 @@ KillTimers()
   nsJSContext::KillGCTimer();
   nsJSContext::KillShrinkGCBuffersTimer();
   nsJSContext::KillCCTimer();
-  nsJSContext::KillICCTimer();
   nsJSContext::KillFullGCTimer();
   nsJSContext::KillInterSliceGCTimer();
 }
@@ -2025,22 +2013,6 @@ struct CycleCollectorStats
 
 CycleCollectorStats gCCStats;
 
-static int64_t
-ICCSliceTime()
-{
-  
-  if (!sIncrementalCC) {
-    return -1;
-  }
-
-  
-  if (gCCStats.mBeginTime != 0 &&
-      TimeBetween(gCCStats.mBeginTime, PR_Now()) >= kMaxICCDuration) {
-    return -1;
-  }
-
-  return kICCSliceBudget;
-}
 
 static void
 PrepareForCycleCollection(int32_t aExtraForgetSkippableCalls = 0)
@@ -2098,42 +2070,15 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
 
 
 void
-nsJSContext::ScheduledCycleCollectNow(int64_t aSliceTime)
+nsJSContext::ScheduledCycleCollectNow()
 {
   if (!NS_IsMainThread()) {
     return;
   }
 
   PROFILER_LABEL("CC", "ScheduledCycleCollectNow");
-
-  
-  
   PrepareForCycleCollection();
-  nsCycleCollector_scheduledCollect(aSliceTime);
-}
-
-static void
-ICCTimerFired(nsITimer* aTimer, void* aClosure)
-{
-  if (sDidShutdown) {
-    return;
-  }
-
-  
-  
-
-  if (sCCLockedOut) {
-    PRTime now = PR_Now();
-    if (sCCLockedOutTime == 0) {
-      sCCLockedOutTime = now;
-      return;
-    }
-    if (now - sCCLockedOutTime < NS_MAX_CC_LOCKEDOUT_TIME) {
-      return;
-    }
-  }
-
-  nsJSContext::ScheduledCycleCollectNow(ICCSliceTime());
+  nsCycleCollector_scheduledCollect();
 }
 
 
@@ -2146,20 +2091,6 @@ nsJSContext::BeginCycleCollectionCallback()
   gCCStats.mSuspected = nsCycleCollector_suspectedCount();
 
   KillCCTimer();
-
-  MOZ_ASSERT(!sICCTimer, "Tried to create a new ICC timer when one already existed.");
-
-  if (!sIncrementalCC) {
-    return;
-  }
-
-  CallCreateInstance("@mozilla.org/timer;1", &sICCTimer);
-  if (sICCTimer) {
-    sICCTimer->InitWithFuncCallback(ICCTimerFired,
-                                    nullptr,
-                                    kICCIntersliceDelay,
-                                    nsITimer::TYPE_REPEATING_SLACK);
-  }
 }
 
 
@@ -2167,8 +2098,6 @@ void
 nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
 {
   MOZ_ASSERT(NS_IsMainThread());
-
-  nsJSContext::KillICCTimer();
 
   sCCollectedWaitingForGC += aResults.mFreedRefCounted + aResults.mFreedGCed;
 
@@ -2337,17 +2266,6 @@ ShouldTriggerCC(uint32_t aSuspected)
           sLastCCEndTime + NS_CC_FORCED < PR_Now());
 }
 
-static uint32_t
-TimeToNextCC()
-{
-  if (sIncrementalCC) {
-    return NS_CC_DELAY - kMaxICCDuration;
-  }
-  return NS_CC_DELAY;
-}
-
-static_assert(NS_CC_DELAY > kMaxICCDuration, "ICC shouldn't reduce CC delay to 0");
-
 static void
 CCTimerFired(nsITimer *aTimer, void *aClosure)
 {
@@ -2357,7 +2275,7 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
 
   static uint32_t ccDelay = NS_CC_DELAY;
   if (sCCLockedOut) {
-    ccDelay = TimeToNextCC() / 3;
+    ccDelay = NS_CC_DELAY / 3;
 
     PRTime now = PR_Now();
     if (sCCLockedOutTime == 0) {
@@ -2380,7 +2298,7 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
   
   
   
-  uint32_t numEarlyTimerFires = ccDelay / NS_CC_SKIPPABLE_DELAY - 2;
+  const uint32_t numEarlyTimerFires = ccDelay / NS_CC_SKIPPABLE_DELAY - 2;
   bool isLateTimerFire = sCCTimerFireCount > numEarlyTimerFires;
   uint32_t suspected = nsCycleCollector_suspectedCount();
   if (isLateTimerFire && ShouldTriggerCC(suspected)) {
@@ -2395,7 +2313,7 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
       
       
       
-      nsJSContext::ScheduledCycleCollectNow(ICCSliceTime());
+      nsJSContext::ScheduledCycleCollectNow();
     }
   } else if ((sPreviousSuspectedCount + 100) <= suspected) {
       
@@ -2403,7 +2321,7 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
   }
 
   if (isLateTimerFire) {
-    ccDelay = TimeToNextCC();
+    ccDelay = NS_CC_DELAY;
 
     
     
@@ -2507,7 +2425,7 @@ nsJSContext::PokeShrinkGCBuffers()
 void
 nsJSContext::MaybePokeCC()
 {
-  if (sCCTimer || sICCTimer || sShuttingDown || !sHasRunGC) {
+  if (sCCTimer || sShuttingDown || !sHasRunGC) {
     return;
   }
 
@@ -2576,19 +2494,6 @@ nsJSContext::KillCCTimer()
     sCCTimer->Cancel();
 
     NS_RELEASE(sCCTimer);
-  }
-}
-
-
-void
-nsJSContext::KillICCTimer()
-{
-  sCCLockedOutTime = 0;
-
-  if (sICCTimer) {
-    sICCTimer->Cancel();
-
-    NS_RELEASE(sICCTimer);
   }
 }
 
@@ -2753,7 +2658,7 @@ void
 mozilla::dom::StartupJSEnvironment()
 {
   
-  sGCTimer = sFullGCTimer = sCCTimer = sICCTimer = nullptr;
+  sGCTimer = sFullGCTimer = sCCTimer = nullptr;
   sCCLockedOut = false;
   sCCLockedOutTime = 0;
   sLastCCEndTime = 0;
@@ -2847,13 +2752,6 @@ SetMemoryGCDynamicMarkSlicePrefChangedCallback(const char* aPrefName, void* aClo
 {
   bool pref = Preferences::GetBool(aPrefName);
   JS_SetGCParameter(sRuntime, JSGC_DYNAMIC_MARK_SLICE, pref);
-}
-
-static void
-SetIncrementalCCPrefChangedCallback(const char* aPrefName, void* aClosure)
-{
-  bool pref = Preferences::GetBool(aPrefName);
-  sIncrementalCC = pref;
 }
 
 JSObject*
@@ -3061,9 +2959,6 @@ nsJSContext::EnsureStatics()
   Preferences::RegisterCallbackAndCall(SetMemoryGCPrefChangedCallback,
                                        "javascript.options.mem.gc_decommit_threshold_mb",
                                        (void *)JSGC_DECOMMIT_THRESHOLD);
-
-  Preferences::RegisterCallbackAndCall(SetIncrementalCCPrefChangedCallback,
-                                       "dom.cycle_collector.incremental");
 
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (!obs) {
