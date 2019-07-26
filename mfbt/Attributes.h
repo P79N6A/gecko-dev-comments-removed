@@ -483,10 +483,15 @@
 
 
 
+
+
+
+
 #ifdef MOZ_CLANG_PLUGIN
 #  define MOZ_MUST_OVERRIDE __attribute__((annotate("moz_must_override")))
 #  define MOZ_STACK_CLASS __attribute__((annotate("moz_stack_class")))
 #  define MOZ_NONHEAP_CLASS __attribute__((annotate("moz_nonheap_class")))
+#  define MOZ_IMPLICIT __attribute__((annotate("moz_implicit")))
 
 
 
@@ -501,6 +506,7 @@
 #  define MOZ_MUST_OVERRIDE
 #  define MOZ_STACK_CLASS
 #  define MOZ_NONHEAP_CLASS
+#  define MOZ_IMPLICIT
 #  define MOZ_HEAP_ALLOCATOR
 #endif 
 
