@@ -533,9 +533,6 @@ extern bool
 fun_resolve(JSContext *cx, HandleObject obj, HandleId id, MutableHandleObject objp);
 
 
-bool IsConstructor(const Value &v);
-
-
 
 
 
