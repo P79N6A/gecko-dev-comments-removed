@@ -1899,6 +1899,12 @@ public:
 
 
 
+  static bool HasScrollgrab(nsIContent* aContent);
+
+  
+
+
+
 
 
   static void FlushLayoutForTree(nsIDOMWindow* aWindow);
