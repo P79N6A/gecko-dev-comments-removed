@@ -650,7 +650,6 @@ inDOMView::AttributeChanged(nsIDocument* aDocument, dom::Element* aElement,
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
   
   
-  nsCOMPtr<nsIDOMNode> content(do_QueryInterface(aElement));
   nsCOMPtr<nsIDOMElement> el(do_QueryInterface(aElement));
   nsCOMPtr<nsIDOMAttr> domAttr;
   nsDependentAtomString attrStr(aAttribute);
@@ -685,20 +684,20 @@ inDOMView::AttributeChanged(nsIDocument* aDocument, dom::Element* aElement,
     }
     
     nsCOMPtr<nsIDOMMozNamedAttrMap> attrs;
-    content->GetAttributes(getter_AddRefs(attrs));
+    el->GetAttributes(getter_AddRefs(attrs));
     uint32_t attrCount;
     attrs->GetLength(&attrCount);
 
     inDOMViewNode* contentNode = nullptr;
     int32_t contentRow;
     int32_t attrRow;
-    if (mRootNode == content &&
+    if (mRootNode == el &&
         !(mWhatToShow & nsIDOMNodeFilter::SHOW_ELEMENT)) {
       
       
       attrRow = attrCount - 1;
     } else {
-      if (NS_FAILED(NodeToRow(content, &contentRow))) {
+      if (NS_FAILED(NodeToRow(el, &contentRow))) {
         return;
       }
       RowToNode(contentRow, &contentNode);
@@ -730,11 +729,11 @@ inDOMView::AttributeChanged(nsIDocument* aDocument, dom::Element* aElement,
     inDOMViewNode* contentNode = nullptr;
     int32_t contentRow;
     int32_t baseLevel;
-    if (NS_SUCCEEDED(NodeToRow(content, &contentRow))) {
+    if (NS_SUCCEEDED(NodeToRow(el, &contentRow))) {
       RowToNode(contentRow, &contentNode);
       baseLevel = contentNode->level;
     } else {
-      if (mRootNode == content) {
+      if (mRootNode == el) {
         contentRow = -1;
         baseLevel = -1;
       } else
@@ -1180,10 +1179,13 @@ inDOMView::GetChildNodesFor(nsIDOMNode* aNode, nsCOMArray<nsIDOMNode>& aResult)
   NS_ENSURE_ARG(aNode);
   
   if (mWhatToShow & nsIDOMNodeFilter::SHOW_ATTRIBUTE) {
-    nsCOMPtr<nsIDOMMozNamedAttrMap> attrs;
-    aNode->GetAttributes(getter_AddRefs(attrs));
-    if (attrs) {
-      AppendAttrsToArray(attrs, aResult);
+    nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aNode);
+    if (element) {
+      nsCOMPtr<nsIDOMMozNamedAttrMap> attrs;
+      element->GetAttributes(getter_AddRefs(attrs));
+      if (attrs) {
+        AppendAttrsToArray(attrs, aResult);
+      }
     }
   }
 
