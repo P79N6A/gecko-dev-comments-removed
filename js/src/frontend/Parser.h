@@ -105,9 +105,18 @@ struct ParseContext : public GenericParseContext
 
     const unsigned  staticLevel;    
 
-    uint32_t        parenDepth;     
+    
+    
+    enum GeneratorParseMode { NotGenerator, LegacyGenerator };
+    GeneratorParseMode generatorParseMode;
 
-    uint32_t        yieldCount;     
+    
+    
+    static const uint32_t NoYieldOffset = UINT32_MAX;
+    uint32_t         lastYieldOffset;
+
+    bool isGenerator() const { return generatorParseMode != NotGenerator; }
+    bool isLegacyGenerator() const { return generatorParseMode == LegacyGenerator; }
 
     Node            blockNode;      
 
@@ -192,11 +201,6 @@ struct ParseContext : public GenericParseContext
     bool generateFunctionBindings(ExclusiveContext *cx, LifoAlloc &alloc,
                                   InternalHandle<Bindings*> bindings) const;
 
-  public:
-    uint32_t         yieldOffset;   
-
-
-
   private:
     ParseContext    **parserPC;     
 
@@ -246,13 +250,12 @@ struct ParseContext : public GenericParseContext
         blockChain(prs->context),
         maybeFunction(maybeFunction),
         staticLevel(staticLevel),
-        parenDepth(0),
-        yieldCount(0),
+        generatorParseMode(NotGenerator),
+        lastYieldOffset(NoYieldOffset),
         blockNode(ParseHandler::null()),
         decls_(prs->context, prs->alloc),
         args_(prs->context),
         vars_(prs->context),
-        yieldOffset(0),
         parserPC(&prs->pc),
         oldpc(prs->pc),
         lexdeps(prs->context),

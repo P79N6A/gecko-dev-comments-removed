@@ -1051,6 +1051,8 @@ Parser<ParseHandler>::functionBody(FunctionSyntaxKind kind, FunctionBodyType typ
     JS_ASSERT(pc->sc->isFunctionBox());
     JS_ASSERT(!pc->funHasReturnExpr && !pc->funHasReturnVoid);
 
+    uint32_t startYieldOffset = pc->lastYieldOffset;
+
     Node pn;
     if (type == StatementListBody) {
         pn = statements();
@@ -1067,13 +1069,24 @@ Parser<ParseHandler>::functionBody(FunctionSyntaxKind kind, FunctionBodyType typ
         pn = handler.newReturnStatement(kid, handler.getPosition(kid));
         if (!pn)
             return null();
+    }
 
-        if (pc->sc->asFunctionBox()->isLegacyGenerator()) {
+    if (pc->lastYieldOffset != startYieldOffset) {
+        JS_ASSERT(pc->isLegacyGenerator());
+        if (kind == Arrow) {
+            reportWithOffset(ParseError, false, pc->lastYieldOffset,
+                             JSMSG_YIELD_IN_ARROW, js_yield_str);
+            return null();
+        }
+        if (type == ExpressionBody) {
             reportBadReturn(pn, ParseError,
                             JSMSG_BAD_GENERATOR_RETURN,
                             JSMSG_BAD_ANON_GENERATOR_RETURN);
             return null();
         }
+        pc->sc->asFunctionBox()->setIsLegacyGenerator();
+    } else {
+        JS_ASSERT(!pc->isLegacyGenerator());
     }
 
     
@@ -2253,10 +2266,6 @@ Parser<ParseHandler>::functionArgsAndBodyGeneric(Node pn, HandleFunction fun, Fu
     }
 
     
-    Maybe<GenexpGuard<ParseHandler> > yieldGuard;
-    if (kind == Arrow)
-        yieldGuard.construct(this);
-
     FunctionBodyType bodyType = StatementListBody;
     if (tokenStream.getToken(TokenStream::Operand) != TOK_LC) {
         tokenStream.ungetToken();
@@ -2266,9 +2275,6 @@ Parser<ParseHandler>::functionArgsAndBodyGeneric(Node pn, HandleFunction fun, Fu
 
     Node body = functionBody(kind, bodyType);
     if (!body)
-        return false;
-
-    if (!yieldGuard.empty() && !yieldGuard.ref().checkValidBody(body, JSMSG_YIELD_IN_ARROW))
         return false;
 
     if (fun->name() && !checkStrictBinding(fun->name(), pn))
@@ -4410,18 +4416,31 @@ Parser<ParseHandler>::returnStatementOrYieldExpression()
     
     
     if (isYield) {
+        JS_ASSERT(tokenStream.versionNumber() >= JSVERSION_1_7);
         if (!abortIfSyntaxParser())
             return null();
 
-        
-        
-        
-        if (pc->parenDepth == 0) {
-            pc->sc->asFunctionBox()->setIsLegacyGenerator();
+        if (pc->isLegacyGenerator()) {
+            
+            
+            JS_ASSERT(pc->sc->isFunctionBox());
+            JS_ASSERT(pc->lastYieldOffset != ParseContext<ParseHandler>::NoYieldOffset);
         } else {
-            pc->yieldCount++;
-            pc->yieldOffset = begin;
+            
+            
+            
+            JS_ASSERT(tokenStream.currentToken().type == TOK_YIELD);
+            JS_ASSERT(pc->lastYieldOffset == ParseContext<ParseHandler>::NoYieldOffset);
+
+            if (!pc->sc->isFunctionBox()) {
+                report(ParseError, false, null(), JSMSG_BAD_RETURN_OR_YIELD, js_yield_str);
+                return null();
+            }
+
+            pc->generatorParseMode = ParseContext<ParseHandler>::LegacyGenerator;
         }
+
+        pc->lastYieldOffset = begin;
     }
 
     
@@ -4466,7 +4485,7 @@ Parser<ParseHandler>::returnStatementOrYieldExpression()
     if (!pn)
         return null();
 
-    if (pc->funHasReturnExpr && pc->sc->asFunctionBox()->isLegacyGenerator()) {
+    if (pc->funHasReturnExpr && pc->isLegacyGenerator()) {
         
         reportBadReturn(pn, ParseError, JSMSG_BAD_GENERATOR_RETURN,
                         JSMSG_BAD_ANON_GENERATOR_RETURN);
@@ -5420,117 +5439,6 @@ class CompExprTransplanter
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <typename ParseHandler>
-class GenexpGuard
-{
-    Parser<ParseHandler> *parser;
-    uint32_t startYieldCount;
-
-    typedef typename ParseHandler::Node Node;
-
-  public:
-    explicit GenexpGuard(Parser<ParseHandler> *parser)
-      : parser(parser)
-    {
-        ParseContext<ParseHandler> *pc = parser->pc;
-        if (pc->parenDepth == 0) {
-            pc->yieldCount = 0;
-            pc->yieldOffset = 0;
-        }
-        startYieldCount = pc->yieldCount;
-        pc->parenDepth++;
-    }
-
-    void endBody();
-    bool checkValidBody(Node pn, unsigned err = JSMSG_BAD_GENEXP_BODY);
-    bool maybeNoteLegacyGenerator(Node pn);
-};
-
-template <typename ParseHandler>
-void
-GenexpGuard<ParseHandler>::endBody()
-{
-    parser->pc->parenDepth--;
-}
-
-
-
-
-
-
-
-
-template <typename ParseHandler>
-bool
-GenexpGuard<ParseHandler>::checkValidBody(Node pn, unsigned err)
-{
-    ParseContext<ParseHandler> *pc = parser->pc;
-    if (pc->yieldCount > startYieldCount) {
-        uint32_t offset = pc->yieldOffset
-                          ? pc->yieldOffset
-                          : (pn ? parser->handler.getPosition(pn)
-                                : parser->pos()).begin;
-
-        parser->reportWithOffset(ParseError, false, offset, err, js_yield_str);
-        return false;
-    }
-
-    return true;
-}
-
-
-
-
-
-
-
-
-template <typename ParseHandler>
-bool
-GenexpGuard<ParseHandler>::maybeNoteLegacyGenerator(Node pn)
-{
-    ParseContext<ParseHandler> *pc = parser->pc;
-    
-    if (pc->yieldCount > 0) {
-        if (!pc->sc->isFunctionBox()) {
-            
-            
-            parser->report(ParseError, false, ParseHandler::null(),
-                           JSMSG_BAD_RETURN_OR_YIELD, js_yield_str);
-            return false;
-        }
-        pc->sc->asFunctionBox()->setIsLegacyGenerator();
-        if (pc->funHasReturnExpr) {
-            
-            
-            parser->reportBadReturn(pn, ParseError,
-                                    JSMSG_BAD_GENERATOR_RETURN, JSMSG_BAD_ANON_GENERATOR_RETURN);
-            return false;
-        }
-    }
-    return true;
-}
-
-
-
-
-
-
 template <typename ParseHandler>
 static bool
 BumpStaticLevel(TokenStream &ts, ParseNode *pn, ParseContext<ParseHandler> *pc)
@@ -5817,7 +5725,7 @@ Parser<FullParseHandler>::comprehensionTail(ParseNode *kid, unsigned blockid, bo
             pn2->pn_iflags |= JSITER_FOREACH;
         MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_AFTER_FOR);
 
-        GenexpGuard<FullParseHandler> guard(this);
+        uint32_t startYieldOffset = pc->lastYieldOffset;
 
         RootedPropertyName name(context);
         tt = tokenStream.getToken();
@@ -5874,14 +5782,10 @@ Parser<FullParseHandler>::comprehensionTail(ParseNode *kid, unsigned blockid, bo
             return null();
         MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_FOR_CTRL);
 
-        guard.endBody();
-
-        if (isGenexp) {
-            if (!guard.checkValidBody(pn2))
-                return null();
-        } else {
-            if (!guard.maybeNoteLegacyGenerator(pn2))
-                return null();
+        if (isGenexp && pc->lastYieldOffset != startYieldOffset) {
+            reportWithOffset(ParseError, false, pc->lastYieldOffset,
+                             JSMSG_BAD_GENEXP_BODY, js_yield_str);
+            return null();
         }
 
         switch (tt) {
@@ -6111,12 +6015,12 @@ template <typename ParseHandler>
 typename ParseHandler::Node
 Parser<ParseHandler>::assignExprWithoutYield(unsigned msg)
 {
-    GenexpGuard<ParseHandler> yieldGuard(this);
+    uint32_t startYieldOffset = pc->lastYieldOffset;
     Node res = assignExpr();
-    yieldGuard.endBody();
-    if (res) {
-        if (!yieldGuard.checkValidBody(res, msg))
-            return null();
+    if (res && pc->lastYieldOffset != startYieldOffset) {
+        reportWithOffset(ParseError, false, pc->lastYieldOffset,
+                         msg, js_yield_str);
+        return null();
     }
     return res;
 }
@@ -6128,15 +6032,13 @@ Parser<ParseHandler>::argumentList(Node listNode)
     if (tokenStream.matchToken(TOK_RP, TokenStream::Operand))
         return true;
 
-    GenexpGuard<ParseHandler> guard(this);
+    uint32_t startYieldOffset = pc->lastYieldOffset;
     bool arg0 = true;
 
     do {
         Node argNode = assignExpr();
         if (!argNode)
             return false;
-        if (arg0)
-            guard.endBody();
 
         if (handler.isOperationWithoutParens(argNode, PNK_YIELD) &&
             tokenStream.peekToken() == TOK_COMMA) {
@@ -6145,8 +6047,11 @@ Parser<ParseHandler>::argumentList(Node listNode)
         }
 #if JS_HAS_GENERATOR_EXPRS
         if (tokenStream.matchToken(TOK_FOR)) {
-            if (!guard.checkValidBody(argNode))
+            if (pc->lastYieldOffset != startYieldOffset) {
+                reportWithOffset(ParseError, false, pc->lastYieldOffset,
+                                 JSMSG_BAD_GENEXP_BODY, js_yield_str);
                 return false;
+            }
             argNode = generatorExpr(argNode);
             if (!argNode)
                 return false;
@@ -6154,11 +6059,8 @@ Parser<ParseHandler>::argumentList(Node listNode)
                 report(ParseError, false, argNode, JSMSG_BAD_GENERATOR_SYNTAX, js_generator_str);
                 return false;
             }
-        } else
+        }
 #endif
-        if (arg0 && !guard.maybeNoteLegacyGenerator(argNode))
-            return false;
-
         arg0 = false;
 
         handler.addList(listNode, argNode);
@@ -6784,7 +6686,7 @@ Parser<ParseHandler>::parenExpr(bool *genexp)
     if (genexp)
         *genexp = false;
 
-    GenexpGuard<ParseHandler> guard(this);
+    uint32_t startYieldOffset = pc->lastYieldOffset;
 
     
 
@@ -6798,12 +6700,14 @@ Parser<ParseHandler>::parenExpr(bool *genexp)
 
     if (!pn)
         return null();
-    guard.endBody();
 
 #if JS_HAS_GENERATOR_EXPRS
     if (tokenStream.matchToken(TOK_FOR)) {
-        if (!guard.checkValidBody(pn))
+        if (pc->lastYieldOffset != startYieldOffset) {
+            reportWithOffset(ParseError, false, pc->lastYieldOffset,
+                             JSMSG_BAD_GENEXP_BODY, js_yield_str);
             return null();
+        }
         if (handler.isOperationWithoutParens(pn, PNK_COMMA)) {
             report(ParseError, false, null(),
                    JSMSG_BAD_GENERATOR_SYNTAX, js_generator_str);
@@ -6822,11 +6726,8 @@ Parser<ParseHandler>::parenExpr(bool *genexp)
             handler.setEndPosition(pn, pos().end);
             *genexp = true;
         }
-    } else
+    }
 #endif 
-
-    if (!guard.maybeNoteLegacyGenerator(pn))
-        return null();
 
     return pn;
 }
