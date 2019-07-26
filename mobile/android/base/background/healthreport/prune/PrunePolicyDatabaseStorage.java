@@ -43,6 +43,11 @@ public class PrunePolicyDatabaseStorage implements PrunePolicyStorage {
 
   public void pruneEnvironments(final int count) {
     getStorage().pruneEnvironments(count);
+
+    
+    
+    this.currentEnvironmentID = -1;
+    getCurrentEnvironmentID();
   }
 
   

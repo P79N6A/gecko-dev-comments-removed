@@ -538,7 +538,7 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
         this.fieldID = integerQuery("named_fields", "field_id",
                                     "measurement_name = ? AND measurement_version = ? AND field_name = ?",
                                     new String[] {measurementName, measurementVersion, fieldName},
-                                    -1);
+                                    UNKNOWN_TYPE_OR_FIELD_ID);
         if (this.fieldID == UNKNOWN_TYPE_OR_FIELD_ID) {
           throw new IllegalStateException("No field with name " + fieldName +
                                           " (" + measurementName + ", " + measurementVersion + ")");
@@ -552,7 +552,9 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
   
   
   
-  private final ConcurrentHashMap<String, Integer> envs = new ConcurrentHashMap<String, Integer>();
+  
+  
+  protected final ConcurrentHashMap<String, Integer> envs = new ConcurrentHashMap<String, Integer>();
 
   
 
@@ -855,6 +857,12 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
   private HashMap<String, Field> fields = new HashMap<String, Field>();
   private boolean fieldsCacheUpdated = false;
 
+  private void invalidateFieldsCache() {
+    synchronized (this.fields) {
+      fieldsCacheUpdated = false;
+    }
+  }
+
   private String getFieldKey(String mName, int mVersion, String fieldName) {
     return mVersion + "." + mName + "/" + fieldName;
   }
@@ -1014,9 +1022,7 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
     notifyMeasurementVersionUpdated(measurement, version);
 
     
-    synchronized (fields) {
-      fieldsCacheUpdated = false;
-    }
+    invalidateFieldsCache();
   }
 
   
@@ -1152,10 +1158,16 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
 
     final SQLiteDatabase db = this.helper.getWritableDatabase();
     putValue(v, value);
-    try {
-      db.insertOrThrow(table, null, v);
-    } catch (SQLiteConstraintException e) {
-      throw new IllegalStateException("Event did not reference existing an environment or field.", e);
+
+    
+    
+    
+    
+    
+    
+    final long res = db.insert(table, null, v);
+    if (res == -1) {
+      Logger.error(LOG_TAG, "Unable to record daily discrete event. Ignoring.");
     }
   }
 
@@ -1516,6 +1528,11 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
     try {
       
       db.delete("measurements", null, null);
+
+      
+      invalidateFieldsCache(); 
+      populateMeasurementVersionsCache(db); 
+
       db.setTransactionSuccessful();
     } finally {
       db.endTransaction();
@@ -1538,6 +1555,9 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
           "       LIMIT " + numToPrune + ")",
           null);
       db.setTransactionSuccessful();
+
+      
+      this.envs.clear();
     } finally {
       db.endTransaction();
     }
