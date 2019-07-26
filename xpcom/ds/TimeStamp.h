@@ -145,6 +145,9 @@ public:
   bool operator==(const TimeDuration& aOther) const {
     return mValue == aOther.mValue;
   }
+  bool operator!=(const TimeDuration& aOther) const {
+    return mValue != aOther.mValue;
+  }
 
   
   
