@@ -1862,7 +1862,7 @@ nsDisplayBackground::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
   
   if (mIsThemed) {
     if (mThemeTransparency == nsITheme::eOpaque) {
-      result = GetBounds(aBuilder, aSnap);
+      result = nsRect(ToReferenceFrame(), mFrame->GetSize());
     }
     return result;
   }
@@ -1962,6 +1962,36 @@ nsDisplayBackground::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuild
 }
 
 bool
+nsDisplayBackground::RenderingMightDependOnFrameSize()
+{
+  
+  if (mIsThemed)
+    return true;
+  
+  
+  
+  nscoord radii[8];
+  if (mFrame->GetBorderRadii(radii))
+    return true;
+
+  nsPresContext* presContext = mFrame->PresContext();
+  nsStyleContext *bgSC;
+  bool hasBG =
+    nsCSSRendering::FindBackground(presContext, mFrame, &bgSC);
+  if (!hasBG)
+    return false;
+  const nsStyleBackground* bg = bgSC->GetStyleBackground();
+
+  NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
+    const nsStyleBackground::Layer &layer = bg->mLayers[i];
+    if (layer.RenderingMightDependOnFrameSize()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool
 nsDisplayBackground::ShouldFixToViewport(nsDisplayListBuilder* aBuilder)
 {
   return mIsFixed;
@@ -1984,6 +2014,28 @@ nsDisplayBackground::Paint(nsDisplayListBuilder* aBuilder,
                                   flags, nullptr, mLayer);
 }
 
+void nsDisplayBackground::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
+                                                    const nsDisplayItemGeometry* aGeometry,
+                                                    nsRegion* aInvalidRegion)
+{
+  const nsDisplayBackgroundGeometry* geometry = static_cast<const nsDisplayBackgroundGeometry*>(aGeometry);
+  if (ShouldFixToViewport(aBuilder)) {
+    
+    return;
+  }
+
+  bool snap;
+  if (!geometry->mBounds.IsEqualInterior(GetBounds(aBuilder, &snap)) ||
+      !geometry->mPaddingRect.IsEqualInterior(GetPaddingRect()) ||
+      !geometry->mContentRect.IsEqualInterior(GetContentRect())) {
+    if (!RenderingMightDependOnFrameSize() && geometry->mBounds.TopLeft() == GetBounds(aBuilder, &snap).TopLeft()) {
+      aInvalidRegion->Xor(GetBounds(aBuilder, &snap), geometry->mBounds);
+    } else {
+      aInvalidRegion->Or(GetBounds(aBuilder, &snap), geometry->mBounds);
+    }
+  }
+}
+
 nsRect
 nsDisplayBackground::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
   nsRect r(nsPoint(0,0), mFrame->GetSize());
@@ -1993,6 +2045,10 @@ nsDisplayBackground::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
     presContext->GetTheme()->
         GetWidgetOverflow(presContext->DeviceContext(), mFrame,
                           mFrame->GetStyleDisplay()->mAppearance, &r);
+#ifdef XP_MACOSX
+    
+    r.Inflate(mFrame->PresContext()->AppUnitsPerDevPixel());
+#endif
   }
 
   *aSnap = true;
@@ -2094,7 +2150,29 @@ nsDisplayBorder::ComputeVisibility(nsDisplayListBuilder* aBuilder,
 
   return true;
 }
+  
+nsDisplayItemGeometry* 
+nsDisplayBorder::AllocateGeometry(nsDisplayListBuilder* aBuilder)
+{
+  return new nsDisplayBorderGeometry(this, aBuilder);
+}
 
+void
+nsDisplayBorder::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
+                                           const nsDisplayItemGeometry* aGeometry,
+                                           nsRegion* aInvalidRegion)
+{
+  const nsDisplayBorderGeometry* geometry = static_cast<const nsDisplayBorderGeometry*>(aGeometry);
+  bool snap;
+  if (!geometry->mBounds.IsEqualInterior(GetBounds(aBuilder, &snap)) ||
+      !geometry->mContentRect.IsEqualInterior(GetContentRect())) {
+    
+    
+    
+    aInvalidRegion->Or(GetBounds(aBuilder, &snap), geometry->mBounds);
+  }
+}
+  
 void
 nsDisplayBorder::Paint(nsDisplayListBuilder* aBuilder,
                        nsRenderingContext* aCtx) {
