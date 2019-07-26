@@ -291,6 +291,12 @@ static const char* const sBluetoothDBusSignals[] = {
 };
 
 
+static const BluetoothServiceClass sAuthorizedServiceClass[] = {
+  BluetoothServiceClass::A2DP,
+  BluetoothServiceClass::HID
+};
+
+
 
 
 
@@ -316,9 +322,6 @@ static nsDataHashtable<nsStringHashKey, DBusMessage* >* sPairingReqTable;
 
 
 
-
-
-static nsTArray<BluetoothServiceClass> sAuthorizedServiceClass;
 
 
 static nsString sAdapterPath;
@@ -1219,9 +1222,8 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
     }
 
     DBusMessage* reply = nullptr;
-    uint32_t length = sAuthorizedServiceClass.Length();
     uint32_t i;
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < MOZ_ARRAY_LENGTH(sAuthorizedServiceClass); i++) {
       if (serviceClass == sAuthorizedServiceClass[i]) {
         reply = dbus_message_new_method_return(msg);
         break;
@@ -1229,7 +1231,7 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
     }
 
     
-    if (i == length) {
+    if (i == MOZ_ARRAY_LENGTH(sAuthorizedServiceClass)) {
       BT_WARNING("Uuid is not authorized.");
       reply = dbus_message_new_error(msg, "org.bluez.Error.Rejected",
                                      "The uuid is not authorized");
@@ -1548,8 +1550,6 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
 
     sAdapterPath = mAdapterPath;
-    sAuthorizedServiceClass.AppendElement(BluetoothServiceClass::A2DP);
-    sAuthorizedServiceClass.AppendElement(BluetoothServiceClass::HID);
 
     Task* task = new
       AddReservedServiceRecordsTask(NS_ConvertUTF16toUTF8(sAdapterPath));
@@ -2100,7 +2100,6 @@ public:
     sIsPairing = 0;
     sConnectedDeviceCount = 0;
 
-    sAuthorizedServiceClass.Clear();
     sControllerArray.Clear();
 
     
