@@ -4104,9 +4104,6 @@ pref("dom.idle-observers-api.enabled", true);
 
 
 pref("dom.event.handling-user-input-time-limit", 1000);
- 
-
-pref("layout.3d-transforms.enabled", true);
 
 
 pref("layout.animated-image-layers.enabled", false);
