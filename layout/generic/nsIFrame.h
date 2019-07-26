@@ -477,6 +477,7 @@ protected:
   friend class nsFrameList; 
   friend class nsLineBox;   
   friend class nsContainerFrame; 
+  friend class nsFrame; 
 public:
 
   
@@ -593,7 +594,7 @@ public:
   
 
 
-  nsContainerFrame* GetParent() const { return static_cast<nsContainerFrame*>(static_cast<void*>(mParent)); }  
+  nsContainerFrame* GetParent() const { return mParent; }
   
 
 
@@ -2921,8 +2922,8 @@ protected:
   nsRect           mRect;
   nsIContent*      mContent;
   nsStyleContext*  mStyleContext;
-  nsIFrame*        mParent;
 private:
+  nsContainerFrame* mParent;
   nsIFrame*        mNextSibling;  
   nsIFrame*        mPrevSibling;  
 
