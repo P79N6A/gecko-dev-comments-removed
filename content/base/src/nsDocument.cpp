@@ -5418,10 +5418,7 @@ nsIDocument::GetSelectedStyleSheetSet(nsAString& aSheetSet)
 
     if (aSheetSet.IsEmpty()) {
       aSheetSet = title;
-      return;
-    }
-
-    if (!title.IsEmpty() && !aSheetSet.Equals(title)) {
+    } else if (!title.IsEmpty() && !aSheetSet.Equals(title)) {
       
       SetDOMStringToNull(aSheetSet);
       return;
