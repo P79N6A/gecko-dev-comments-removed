@@ -365,12 +365,7 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
           
           final SkewHandler storageServerSkewHandler = SkewHandler.getSkewHandlerForHostname(storageHostname);
           final long storageServerSkew = storageServerSkewHandler.getSkewInSeconds();
-          
-          
-          
-          
-          final boolean includePayloadVerificationHash = false;
-          final AuthHeaderProvider authHeaderProvider = new HawkAuthHeaderProvider(token.id, token.key.getBytes("UTF-8"), includePayloadVerificationHash, storageServerSkew);
+          final AuthHeaderProvider authHeaderProvider = new HawkAuthHeaderProvider(token.id, token.key.getBytes("UTF-8"), false, storageServerSkew);
 
           final Context context = getContext();
           final SyncConfiguration syncConfig = new SyncConfiguration(token.uid, authHeaderProvider, sharedPrefs, syncKeyBundle);
