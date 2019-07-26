@@ -228,7 +228,7 @@ NetworkManager.prototype = {
             this.setAndConfigureActive();
             
             if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
-              this.mRIL.updateRILNetworkInterface();
+              this.mRIL.getRadioInterface(0).updateRILNetworkInterface();
             }
 
             this.onConnectionChanged(network);
@@ -252,7 +252,7 @@ NetworkManager.prototype = {
             this.setAndConfigureActive();
             
             if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
-              this.mRIL.updateRILNetworkInterface();
+              this.mRIL.getRadioInterface(0).updateRILNetworkInterface();
             }
             break;
         }
