@@ -702,6 +702,26 @@ class MConstant : public MNullaryInstruction
         return AliasSet::None();
     }
 
+    void analyzeTruncateBackward();
+
+    
+    
+    bool isBigIntOutput() {
+        if (value_.isInt32())
+            return true;
+        if (value_.isDouble()) {
+            double value = value_.toDouble();
+            int64_t valint = value;
+            int64_t max = 1LL<<33;
+            if (double(valint) != value)
+                return false;
+            if (valint < 0)
+                valint = -valint;
+            return valint < max;
+        }
+        return false;
+    }
+
     void computeRange();
 };
 
@@ -2653,11 +2673,11 @@ class MAdd : public MBinaryArithInstruction
     
     
     
-    virtual bool isBigIntOutput() {
+    bool isBigIntOutput() {
         return (type() == MIRType_Int32) || isBigInt_;
     }
     
-    virtual void recalculateBigInt() {
+    void recalculateBigInt() {
         isBigInt_ = (lhs()->isBigIntOutput() && rhs()->isBigIntOutput());
     }
 };
