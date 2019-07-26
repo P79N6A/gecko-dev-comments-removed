@@ -35,12 +35,12 @@ class CompilerRoot : public CompilerRootNode
   public:
     
     void setRoot(T root) {
-        JSRuntime *rt = root->compartment()->rt;
+        JS::CompilerRootNode *&rootList = GetIonContext()->temp->rootList();
 
         JS_ASSERT(!ptr);
         ptr = root;
-        next = rt->ionCompilerRootList;
-        rt->ionCompilerRootList = this;
+        next = rootList;
+        rootList = this;
     }
 
   public:
@@ -52,24 +52,6 @@ typedef CompilerRoot<JSObject*>   CompilerRootObject;
 typedef CompilerRoot<JSFunction*> CompilerRootFunction;
 typedef CompilerRoot<PropertyName*> CompilerRootPropertyName;
 typedef CompilerRoot<Value> CompilerRootValue;
-
-
-class AutoCompilerRoots
-{
-    JSRuntime *rt_;
-
-  public:
-    AutoCompilerRoots(JSRuntime *rt)
-      : rt_(rt)
-    {
-        JS_ASSERT(rt_->ionCompilerRootList == NULL);
-    }
-
-    ~AutoCompilerRoots()
-    {
-        rt_->ionCompilerRootList = NULL;
-    }
-};
 
 } 
 } 

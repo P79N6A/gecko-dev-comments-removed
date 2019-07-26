@@ -42,6 +42,8 @@
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsstr.h"
+#include "jsworkers.h"
+#include "ion/Ion.h"
 #include "ion/IonFrames.h"
 
 #ifdef JS_METHODJIT
@@ -388,6 +390,10 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
 
         for (CompartmentsIter c(rt); !c.done(); c.next())
             c->types.print(cx, false);
+
+        
+        for (CompartmentsIter c(rt); !c.done(); c.next())
+            CancelOffThreadIonCompile(c, NULL);
 
         
         FinishCommonAtoms(rt);
@@ -1009,6 +1015,12 @@ js_InvokeOperationCallback(JSContext *cx)
 
     if (rt->gcIsNeeded)
         GCSlice(rt, GC_NORMAL, rt->gcTriggerReason);
+
+    
+
+
+
+    ion::AttachFinishedCompilations(cx);
 
     
 

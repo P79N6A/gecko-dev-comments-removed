@@ -51,12 +51,6 @@ using namespace js::analyze;
             return retval;                                      \
     JS_END_MACRO
 
-
-
-
-
-static const size_t USES_BEFORE_INLINING = 10240;
-
 mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript,
                          unsigned chunkIndex, bool isConstructing)
   : BaseCompiler(cx),
@@ -104,12 +98,6 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript,
     gcNumber(cx->runtime->gcNumber),
     pcLengths(NULL)
 {
-    
-    if (!debugMode() && cx->typeInferenceEnabled() && globalObj &&
-        (outerScript->getUseCount() >= USES_BEFORE_INLINING ||
-         cx->hasRunOption(JSOPTION_METHODJIT_ALWAYS))) {
-        inlining_ = true;
-    }
 }
 
 CompileStatus
@@ -961,6 +949,11 @@ IonGetsFirstChance(JSContext *cx, JSScript *script, CompileRequest request)
     if (script->hasIonScript() && script->ion->bailoutExpected())
         return false;
 
+    
+    
+    if (script->ion == ION_COMPILING_SCRIPT)
+        return false;
+
     return true;
 #endif
     return false;
@@ -1035,19 +1028,6 @@ mjit::CanMethodJIT(JSContext *cx, JSScript *script, jsbytecode *pc,
 
     unsigned chunkIndex = jit->chunkIndex(pc);
     ChunkDescriptor &desc = jit->chunkDescriptor(chunkIndex);
-
-    if (jit->mustDestroyEntryChunk) {
-        
-        
-        
-        JS_ASSERT(jit->nchunks == 1);
-        jit->mustDestroyEntryChunk = false;
-
-        if (desc.chunk) {
-            jit->destroyChunk(cx->runtime->defaultFreeOp(), chunkIndex,  false);
-            return Compile_Skipped;
-        }
-    }
 
     if (desc.chunk)
         return Compile_Okay;
@@ -1230,7 +1210,7 @@ mjit::Compiler::generatePrologue()
 
     CompileStatus status = methodEntryHelper();
     if (status == Compile_Okay)
-        recompileCheckHelper();
+        ionCompileHelper();
 
     return status;
 }
@@ -3269,7 +3249,7 @@ mjit::Compiler::generateMethod()
             
             
             if (loop)
-                recompileCheckHelper();
+                ionCompileHelper();
           END_CASE(JSOP_LOOPENTRY)
 
           BEGIN_CASE(JSOP_DEBUGGER)
@@ -3971,56 +3951,61 @@ MaybeIonCompileable(JSContext *cx, JSScript *script, bool *recompileCheckForIon)
     return false;
 }
 
-void
-mjit::Compiler::recompileCheckHelper()
-{
-    if (inlining() || debugMode() || !globalObj || !cx->typeInferenceEnabled())
-        return;
-
-    bool recompileCheckForIon = true;
-    bool maybeIonCompileable = MaybeIonCompileable(cx, outerScript, &recompileCheckForIon);
-    bool hasFunctionCalls = analysis->hasFunctionCalls();
-
-    
-    
-    
-    if (!maybeIonCompileable && !hasFunctionCalls)
-        return;
-
-    uint32_t minUses = USES_BEFORE_INLINING;
-
 #ifdef JS_ION
-    if (recompileCheckForIon)
-        minUses = ion::UsesBeforeIonRecompile(outerScript, PC);
-#endif
-
-    uint32_t *addr = script->addressOfUseCount();
-    masm.add32(Imm32(1), AbsoluteAddress(addr));
-
-    
-    
-    
-    
-    if (!hasFunctionCalls && !recompileCheckForIon)
+void
+mjit::Compiler::ionCompileHelper()
+{
+    if (debugMode() || !globalObj || !cx->typeInferenceEnabled())
         return;
 
+    bool recompileCheckForIon = false;
+    if (!MaybeIonCompileable(cx, outerScript, &recompileCheckForIon))
+        return;
+
+    uint32_t minUses = ion::UsesBeforeIonRecompile(outerScript, PC);
+
+    uint32_t *useCountAddress = script->addressOfUseCount();
+    masm.add32(Imm32(1), AbsoluteAddress(useCountAddress));
+
+    
+    
+    
+    if (!recompileCheckForIon)
+        return;
+
+    void *ionScriptAddress = &script->ion;
+
+    
+    
+    
 #if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
-    Jump jump = masm.branch32(Assembler::GreaterThanOrEqual, AbsoluteAddress(addr),
-                              Imm32(minUses));
+    Jump first = masm.branch32(Assembler::LessThan, AbsoluteAddress(useCountAddress),
+                               Imm32(minUses));
+    Jump second = masm.branch32(Assembler::Equal, AbsoluteAddress(ionScriptAddress),
+                                Imm32(0));
 #else
     
     RegisterID reg = frame.allocReg();
-    masm.move(ImmPtr(addr), reg);
-    Jump jump = masm.branch32(Assembler::GreaterThanOrEqual, Address(reg, 0),
-                              Imm32(minUses));
+    masm.move(ImmPtr(useCountAddress), reg);
+    Jump first = masm.branch32(Assembler::LessThan, Address(reg), Imm32(minUses));
+    masm.move(ImmPtr(ionScriptAddress), reg);
+    Jump second = masm.branchPtr(Assembler::Equal, Address(reg), ImmPtr(NULL));
     frame.freeReg(reg);
 #endif
-    stubcc.linkExit(jump, Uses(0));
+    first.linkTo(masm.label(), &masm);
+
+    stubcc.linkExit(second, Uses(0));
     stubcc.leave();
 
-    OOL_STUBCALL(stubs::RecompileForInline, REJOIN_RESUME);
+    OOL_STUBCALL(stubs::TriggerIonCompile, REJOIN_RESUME);
     stubcc.rejoin(Changes(0));
 }
+#else 
+void
+mjit::Compiler::ionCompileHelper()
+{
+}
+#endif 
 
 CompileStatus
 mjit::Compiler::methodEntryHelper()

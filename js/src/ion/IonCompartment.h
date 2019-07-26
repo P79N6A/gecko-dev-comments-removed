@@ -23,6 +23,9 @@ typedef void (*EnterIonCode)(void *code, int argc, Value *argv, StackFrame *fp,
                              CalleeToken calleeToken, Value *vp);
 
 class IonActivation;
+class IonBuilder;
+
+typedef Vector<IonBuilder*, 0, SystemAllocPolicy> OffThreadCompilationVector;
 
 class IonCompartment
 {
@@ -37,7 +40,7 @@ class IonCompartment
     ReadBarriered<IonCode> enterJIT_;
 
     
-    js::Vector<ReadBarriered<IonCode>, 4, SystemAllocPolicy> bailoutTables_;
+    Vector<ReadBarriered<IonCode>, 4, SystemAllocPolicy> bailoutTables_;
 
     
     ReadBarriered<IonCode> bailoutHandler_;
@@ -56,7 +59,13 @@ class IonCompartment
     VMWrapperMap *functionWrappers_;
 
     
-    js::ion::AutoFlushCache *flusher_;
+    
+    
+    
+    OffThreadCompilationVector finishedOffThreadCompilations_;
+
+    
+    AutoFlushCache *flusher_;
 
   private:
     IonCode *generateEnterJIT(JSContext *cx);
@@ -69,6 +78,10 @@ class IonCompartment
 
   public:
     IonCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
+
+    OffThreadCompilationVector &finishedOffThreadCompilations() {
+        return finishedOffThreadCompilations_;
+    }
 
   public:
     bool initialize(JSContext *cx);
