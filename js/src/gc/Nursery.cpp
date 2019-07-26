@@ -594,13 +594,13 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason)
 
     
     MinorCollectionTracer trc(rt, this);
+    rt->gcStoreBuffer.mark(&trc); 
     MarkRuntime(&trc);
     Debugger::markAll(&trc);
     for (CompartmentsIter comp(rt); !comp.done(); comp.next()) {
         comp->markAllCrossCompartmentWrappers(&trc);
         comp->markAllInitialShapeTableEntries(&trc);
     }
-    rt->gcStoreBuffer.mark(&trc);
     rt->newObjectCache.clearNurseryObjects(rt);
 
     
