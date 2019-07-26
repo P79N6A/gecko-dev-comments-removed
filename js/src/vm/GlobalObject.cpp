@@ -104,95 +104,6 @@ ThrowTypeError(JSContext *cx, unsigned argc, Value *vp)
     return false;
 }
 
-static bool
-TestProtoThis(HandleValue v)
-{
-    return !v.isNullOrUndefined();
-}
-
-static bool
-ProtoGetterImpl(JSContext *cx, CallArgs args)
-{
-    JS_ASSERT(TestProtoThis(args.thisv()));
-
-    HandleValue thisv = args.thisv();
-    if (thisv.isPrimitive() && !BoxNonStrictThis(cx, args))
-        return false;
-
-    RootedObject obj(cx, &args.thisv().toObject());
-    RootedObject proto(cx);
-    if (!JSObject::getProto(cx, obj, &proto))
-        return false;
-    args.rval().setObjectOrNull(proto);
-    return true;
-}
-
-static bool
-ProtoGetter(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    return CallNonGenericMethod(cx, TestProtoThis, ProtoGetterImpl, args);
-}
-
-namespace js {
-size_t sSetProtoCalled = 0;
-} 
-
-static bool
-ProtoSetterImpl(JSContext *cx, CallArgs args)
-{
-    JS_ASSERT(TestProtoThis(args.thisv()));
-
-    HandleValue thisv = args.thisv();
-    if (thisv.isPrimitive()) {
-        JS_ASSERT(!thisv.isNullOrUndefined());
-
-        
-        args.rval().setUndefined();
-        return true;
-    }
-
-    if (!cx->runningWithTrustedPrincipals())
-        ++sSetProtoCalled;
-
-    Rooted<JSObject*> obj(cx, &args.thisv().toObject());
-
-    
-    if (args.length() == 0 || !args[0].isObjectOrNull()) {
-        args.rval().setUndefined();
-        return true;
-    }
-
-    Rooted<JSObject*> newProto(cx, args[0].toObjectOrNull());
-
-    bool success;
-    if (!JSObject::setProto(cx, obj, newProto, &success))
-        return false;
-
-    if (!success) {
-        js_ReportValueError(cx, JSMSG_SETPROTOTYPEOF_FAIL, JSDVG_IGNORE_STACK, thisv, js::NullPtr());
-        return false;
-    }
-
-    args.rval().setUndefined();
-    return true;
-}
-
-static bool
-ProtoSetter(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    
-    
-    
-    RootedObject callee(cx, &args.callee());
-    if (!GlobalObject::warnOnceAboutPrototypeMutation(cx, callee))
-        return false;
-
-    return CallNonGenericMethod(cx, TestProtoThis, ProtoSetterImpl, args);
-}
-
 JSObject *
 GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 {
@@ -337,35 +248,10 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
 
     if (!LinkConstructorAndPrototype(cx, objectCtor, objectProto) ||
-        !DefinePropertiesAndBrand(cx, objectProto, nullptr, object_methods))
+        !DefinePropertiesAndBrand(cx, objectProto, object_properties, object_methods))
     {
         return nullptr;
     }
-
-    
-
-
-
-
-
-    RootedFunction getter(cx, NewFunction(cx, NullPtr(), ProtoGetter, 0, JSFunction::NATIVE_FUN,
-                                          self, NullPtr()));
-    if (!getter)
-        return nullptr;
-#if JS_HAS_OBJ_PROTO_PROP
-    RootedFunction setter(cx, NewFunction(cx, NullPtr(), ProtoSetter, 0, JSFunction::NATIVE_FUN,
-                                          self, NullPtr()));
-    if (!setter)
-        return nullptr;
-    if (!JSObject::defineProperty(cx, objectProto,
-                                  cx->names().proto, UndefinedHandleValue,
-                                  JS_DATA_TO_FUNC_PTR(PropertyOp, getter.get()),
-                                  JS_DATA_TO_FUNC_PTR(StrictPropertyOp, setter.get()),
-                                  JSPROP_GETTER | JSPROP_SETTER | JSPROP_SHARED))
-    {
-        return nullptr;
-    }
-#endif 
 
     if (!DefinePropertiesAndBrand(cx, objectCtor, nullptr, object_static_methods) ||
         !LinkConstructorAndPrototype(cx, functionCtor, functionProto) ||
