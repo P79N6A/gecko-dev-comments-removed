@@ -2,6 +2,17 @@
 
 
 
+#ifdef MOZ_METRO
+
+#undef WINVER
+#undef _WIN32_WINNT
+#define WINVER 0x602
+#define _WIN32_WINNT 0x602
+#include <objbase.h>
+#include <shobjidl.h>
+#pragma comment(lib, "ole32.lib")
+#endif
+
 #include <windows.h>
 
 
@@ -15,7 +26,7 @@
 
 
 #include <shlwapi.h>
-#pragma comment(lib, "shlwapi.lib") 
+#pragma comment(lib, "shlwapi.lib")
 
 WCHAR* MakeCommandLine(int argc, WCHAR **argv);
 BOOL PathAppendSafe(LPWSTR base, LPCWSTR extra);
@@ -29,8 +40,8 @@ BOOL PathAppendSafe(LPWSTR base, LPCWSTR extra);
 
 
 BOOL
-PathGetSiblingFilePath(LPWSTR destinationBuffer, 
-                       LPCWSTR siblingFilePath, 
+PathGetSiblingFilePath(LPWSTR destinationBuffer,
+                       LPCWSTR siblingFilePath,
                        LPCWSTR newFileName)
 {
   if (wcslen(siblingFilePath) >= MAX_PATH) {
@@ -94,9 +105,9 @@ LaunchWinPostProcess(const WCHAR *installationDir,
     return FALSE;
   }
 
-  if (!GetPrivateProfileStringW(L"PostUpdateWin", L"ExeAsync", L"TRUE", 
+  if (!GetPrivateProfileStringW(L"PostUpdateWin", L"ExeAsync", L"TRUE",
                                 exeasync,
-                                sizeof(exeasync)/sizeof(exeasync[0]), 
+                                sizeof(exeasync)/sizeof(exeasync[0]),
                                 inifile)) {
     return FALSE;
   }
@@ -131,11 +142,11 @@ LaunchWinPostProcess(const WCHAR *installationDir,
   wcscat(cmdline, exearg);
 
   if (forceSync ||
-      !_wcsnicmp(exeasync, L"false", 6) || 
+      !_wcsnicmp(exeasync, L"false", 6) ||
       !_wcsnicmp(exeasync, L"0", 2)) {
     async = false;
   }
-  
+
   
   
   
@@ -192,14 +203,14 @@ BOOL
 StartServiceUpdate(LPCWSTR installDir)
 {
   
-  SC_HANDLE manager = OpenSCManager(NULL, NULL, 
+  SC_HANDLE manager = OpenSCManager(NULL, NULL,
                                     SC_MANAGER_ALL_ACCESS);
   if (!manager) {
     return FALSE;
   }
 
   
-  SC_HANDLE svc = OpenServiceW(manager, SVC_NAME, 
+  SC_HANDLE svc = OpenServiceW(manager, SVC_NAME,
                                SERVICE_ALL_ACCESS);
   if (!svc) {
     CloseServiceHandle(manager);
@@ -219,14 +230,14 @@ StartServiceUpdate(LPCWSTR installDir)
 
   WCHAR maintserviceInstallerPath[MAX_PATH + 1];
   wcscpy(maintserviceInstallerPath, installDir);
-  PathAppendSafe(maintserviceInstallerPath, 
+  PathAppendSafe(maintserviceInstallerPath,
                  L"maintenanceservice_installer.exe");
   WCHAR cmdLine[64];
   wcscpy(cmdLine, L"dummyparam.exe /Upgrade");
-  BOOL svcUpdateProcessStarted = CreateProcessW(maintserviceInstallerPath, 
-                                                cmdLine, 
-                                                NULL, NULL, FALSE, 
-                                                0, 
+  BOOL svcUpdateProcessStarted = CreateProcessW(maintserviceInstallerPath,
+                                                cmdLine,
+                                                NULL, NULL, FALSE,
+                                                0,
                                                 NULL, installDir, &si, &pi);
   if (svcUpdateProcessStarted) {
     CloseHandle(pi.hProcess);
@@ -235,7 +246,7 @@ StartServiceUpdate(LPCWSTR installDir)
   return svcUpdateProcessStarted;
 }
 
-#endif 
+#endif
 
 
 
@@ -258,16 +269,16 @@ StartServiceCommand(int argc, LPCWSTR* argv)
   }
 
   
-  SC_HANDLE serviceManager = OpenSCManager(NULL, NULL, 
-                                           SC_MANAGER_CONNECT | 
+  SC_HANDLE serviceManager = OpenSCManager(NULL, NULL,
+                                           SC_MANAGER_CONNECT |
                                            SC_MANAGER_ENUMERATE_SERVICE);
   if (!serviceManager)  {
     return 17001;
   }
 
   
-  SC_HANDLE service = OpenServiceW(serviceManager, 
-                                   SVC_NAME, 
+  SC_HANDLE service = OpenServiceW(serviceManager,
+                                   SVC_NAME,
                                    SERVICE_START);
   if (!service) {
     CloseServiceHandle(serviceManager);
@@ -362,15 +373,15 @@ WriteStatusPending(LPCWSTR updateDirPath)
   }
 
   const char pending[] = "pending";
-  HANDLE statusFile = CreateFileW(updateStatusFilePath, GENERIC_WRITE, 0, 
+  HANDLE statusFile = CreateFileW(updateStatusFilePath, GENERIC_WRITE, 0,
                                   NULL, CREATE_ALWAYS, 0, NULL);
   if (statusFile == INVALID_HANDLE_VALUE) {
     return FALSE;
   }
 
   DWORD wrote;
-  BOOL ok = WriteFile(statusFile, pending, 
-                      sizeof(pending) - 1, &wrote, NULL); 
+  BOOL ok = WriteFile(statusFile, pending,
+                      sizeof(pending) - 1, &wrote, NULL);
   CloseHandle(statusFile);
   return ok && (wrote == sizeof(pending) - 1);
 }
@@ -390,7 +401,7 @@ WriteStatusFailure(LPCWSTR updateDirPath, int errorCode)
     return FALSE;
   }
 
-  HANDLE statusFile = CreateFileW(updateStatusFilePath, GENERIC_WRITE, 0, 
+  HANDLE statusFile = CreateFileW(updateStatusFilePath, GENERIC_WRITE, 0,
                                   NULL, CREATE_ALWAYS, 0, NULL);
   if (statusFile == INVALID_HANDLE_VALUE) {
     return FALSE;
@@ -400,8 +411,8 @@ WriteStatusFailure(LPCWSTR updateDirPath, int errorCode)
 
   DWORD toWrite = strlen(failure);
   DWORD wrote;
-  BOOL ok = WriteFile(statusFile, failure, 
-                      toWrite, &wrote, NULL); 
+  BOOL ok = WriteFile(statusFile, failure,
+                      toWrite, &wrote, NULL);
   CloseHandle(statusFile);
   return ok && wrote == toWrite;
 }
@@ -447,8 +458,8 @@ WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds)
   DWORD lastServiceState = 0x000000CF;
 
   
-  SC_HANDLE serviceManager = OpenSCManager(NULL, NULL, 
-                                           SC_MANAGER_CONNECT | 
+  SC_HANDLE serviceManager = OpenSCManager(NULL, NULL,
+                                           SC_MANAGER_CONNECT |
                                            SC_MANAGER_ENUMERATE_SERVICE);
   if (!serviceManager)  {
     DWORD lastError = GetLastError();
@@ -463,8 +474,8 @@ WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds)
   }
 
   
-  SC_HANDLE service = OpenServiceW(serviceManager, 
-                                   serviceName, 
+  SC_HANDLE service = OpenServiceW(serviceManager,
+                                   serviceName,
                                    SERVICE_QUERY_STATUS);
   if (!service) {
     DWORD lastError = GetLastError();
@@ -480,7 +491,7 @@ WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds)
       return 0x000000EE;
     default:
       return 0x000000EF;
-    } 
+    }
   }
 
   DWORD currentWaitMS = 0;
@@ -559,7 +570,7 @@ IsProcessRunning(LPCWSTR filename)
   if (INVALID_HANDLE_VALUE == snapshot) {
     return GetLastError();
   }
-  
+
   PROCESSENTRY32W processEntry;
   processEntry.dwSize = sizeof(PROCESSENTRY32W);
   if (!Process32FirstW(snapshot, &processEntry)) {
@@ -616,9 +627,9 @@ BOOL
 DoesFallbackKeyExist()
 {
   HKEY testOnlyFallbackKey;
-  if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, 
+  if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
                     TEST_ONLY_FALLBACK_KEY_PATH, 0,
-                    KEY_READ | KEY_WOW64_64KEY, 
+                    KEY_READ | KEY_WOW64_64KEY,
                     &testOnlyFallbackKey) != ERROR_SUCCESS) {
     return FALSE;
   }
@@ -662,7 +673,7 @@ static BOOL
 GetDWORDValue(HKEY key, LPCWSTR valueName, DWORD &retValue)
 {
   DWORD regDWORDValueSize = sizeof(DWORD);
-  LONG retCode = RegQueryValueExW(key, valueName, 0, NULL, 
+  LONG retCode = RegQueryValueExW(key, valueName, 0, NULL,
                                   reinterpret_cast<LPBYTE>(&retValue),
                                   &regDWORDValueSize);
   return ERROR_SUCCESS == retCode;
@@ -683,16 +694,16 @@ IsUnpromptedElevation(BOOL &isUnpromptedElevation)
   LPCWSTR UACBaseRegKey =
     L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
   HKEY baseKey;
-  LONG retCode = RegOpenKeyExW(HKEY_LOCAL_MACHINE, 
+  LONG retCode = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
                                UACBaseRegKey, 0,
                                KEY_READ, &baseKey);
   if (retCode != ERROR_SUCCESS) {
     return FALSE;
-  } 
+  }
 
   DWORD enabled, consent, secureDesktop;
   BOOL success = GetDWORDValue(baseKey, L"EnableLUA", enabled);
-  success = success && 
+  success = success &&
             GetDWORDValue(baseKey, L"ConsentPromptBehaviorAdmin", consent);
   success = success &&
             GetDWORDValue(baseKey, L"PromptOnSecureDesktop", secureDesktop);
@@ -701,3 +712,76 @@ IsUnpromptedElevation(BOOL &isUnpromptedElevation)
   RegCloseKey(baseKey);
   return success;
 }
+
+#ifdef MOZ_METRO
+  
+
+
+
+
+
+  bool GetDefaultBrowserAppModelID(WCHAR* aIDBuffer, long aCharLength)
+  {
+    if (!aIDBuffer || aCharLength <= 0)
+      return false;
+
+    memset(aIDBuffer, 0, (sizeof(WCHAR)*aCharLength));
+    static const WCHAR* kDefaultMetroBrowserIDPathKey = L"FirefoxURL";
+
+    HKEY key;
+    if (RegOpenKeyExW(HKEY_CLASSES_ROOT, kDefaultMetroBrowserIDPathKey,
+                      0, KEY_READ, &key) != ERROR_SUCCESS) {
+      return false;
+    }
+    DWORD len = aCharLength * sizeof(WCHAR);
+    memset(aIDBuffer, 0, len);
+    if (RegQueryValueExW(key, L"AppUserModelID", NULL, NULL,
+                         (LPBYTE)aIDBuffer, &len) != ERROR_SUCCESS || !len) {
+      RegCloseKey(key);
+      return false;
+    }
+    RegCloseKey(key);
+    return true;
+  }
+
+  HRESULT
+  LaunchDefaultMetroBrowser()
+  {
+    CoInitialize(NULL);
+    HRESULT hr = E_FAIL;
+    
+    IApplicationActivationManager *activateMgr;
+    if (FAILED(hr = CoCreateInstance(CLSID_ApplicationActivationManager, NULL,
+                                     CLSCTX_LOCAL_SERVER,
+                                     IID_IApplicationActivationManager,
+                                     (void**)&activateMgr))) {
+      CoUninitialize();
+      return hr;
+    }
+
+    
+    WCHAR appModelID[256];
+    if (!GetDefaultBrowserAppModelID(appModelID, (sizeof(appModelID)/sizeof(WCHAR)))) {
+      activateMgr->Release();
+      CoUninitialize();
+      return hr;
+    }
+
+    
+    
+    hr = CoAllowSetForegroundWindow(activateMgr, NULL);
+    if (FAILED(hr)) {
+      activateMgr->Release();
+      CoUninitialize();
+      return hr;
+    }
+
+    
+    DWORD processID;
+    hr = activateMgr->ActivateApplication(appModelID, L"", AO_NOERRORUI,
+                                          &processID);
+    activateMgr->Release();
+    CoUninitialize();
+    return hr;
+  }
+#endif
