@@ -7,13 +7,13 @@
 #define MOZILLA_AUDIONODEENGINE_H_
 
 #include "AudioSegment.h"
+#include "mozilla/dom/AudioNode.h"
 #include "mozilla/dom/AudioParam.h"
 #include "mozilla/Mutex.h"
 
 namespace mozilla {
 
 namespace dom {
-class AudioNode;
 struct ThreeDPoint;
 }
 
@@ -154,6 +154,7 @@ public:
     , mInputCount(aNode ? aNode->NumberOfInputs() : 1)
     , mOutputCount(aNode ? aNode->NumberOfOutputs() : 0)
   {
+    MOZ_ASSERT(NS_IsMainThread());
     MOZ_COUNT_CTOR(AudioNodeEngine);
   }
   virtual ~AudioNodeEngine()

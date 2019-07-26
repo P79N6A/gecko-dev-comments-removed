@@ -264,6 +264,7 @@ public:
 
 
   void ProduceDataForStreamsBlockByBlock(uint32_t aStreamIndex,
+                                         TrackRate aSampleRate,
                                          GraphTime aFrom,
                                          GraphTime aTo);
   

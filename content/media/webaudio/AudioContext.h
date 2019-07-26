@@ -105,7 +105,7 @@ public:
 
   float SampleRate() const
   {
-    return float(IdealAudioRate());
+    return mSampleRate;
   }
 
   double CurrentTime() const;
@@ -203,6 +203,9 @@ private:
   friend struct ::mozilla::WebAudioDecodeJob;
 
 private:
+  
+  
+  const float mSampleRate;
   nsRefPtr<AudioDestinationNode> mDestination;
   nsRefPtr<AudioListener> mListener;
   MediaBufferDecoder mDecoder;

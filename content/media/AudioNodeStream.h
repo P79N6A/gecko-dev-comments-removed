@@ -47,14 +47,17 @@ public:
 
 
   AudioNodeStream(AudioNodeEngine* aEngine,
-                  MediaStreamGraph::AudioNodeStreamKind aKind)
+                  MediaStreamGraph::AudioNodeStreamKind aKind,
+                  TrackRate aSampleRate)
     : ProcessedMediaStream(nullptr),
       mEngine(aEngine),
+      mSampleRate(aSampleRate),
       mKind(aKind),
       mNumberOfInputChannels(2),
       mMarkAsFinishedAfterThisBlock(false),
       mAudioParamStream(false)
   {
+    MOZ_ASSERT(NS_IsMainThread());
     mChannelCountMode = dom::ChannelCountMode::Max;
     mChannelInterpretation = dom::ChannelInterpretation::Speakers;
     
@@ -108,6 +111,7 @@ public:
 
   
   AudioNodeEngine* Engine() { return mEngine; }
+  TrackRate SampleRate() const { return mSampleRate; }
 
 protected:
   void FinishOutput();
@@ -119,6 +123,8 @@ protected:
   nsAutoPtr<AudioNodeEngine> mEngine;
   
   OutputChunks mLastChunks;
+  
+  const TrackRate mSampleRate;
   
   MediaStreamGraph::AudioNodeStreamKind mKind;
   
@@ -135,4 +141,4 @@ protected:
 
 }
 
-#endif
+#endif 

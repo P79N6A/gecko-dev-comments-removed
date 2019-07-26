@@ -931,8 +931,11 @@ public:
 
 
 
+
+
   AudioNodeStream* CreateAudioNodeStream(AudioNodeEngine* aEngine,
-                                         AudioNodeStreamKind aKind);
+                                         AudioNodeStreamKind aKind,
+                                         TrackRate aSampleRate = 0);
   
 
 
