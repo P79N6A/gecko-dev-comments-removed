@@ -399,6 +399,14 @@ public:
                aError);
   }
 
+  
+
+
+  bool IsCombobox() const
+  {
+    return !Multiple() && Size() <= 1;
+  }
+
 protected:
   friend class SafeOptionListMutation;
 
@@ -539,19 +547,6 @@ protected:
 
 
   nsISelectControlFrame* GetSelectFrame();
-
-  
-
-
-  bool IsCombobox() {
-    if (HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
-      return false;
-    }
-
-    uint32_t size = 1;
-    GetSize(&size);
-    return size <= 1;
-  }
 
   
 

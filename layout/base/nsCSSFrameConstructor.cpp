@@ -2878,10 +2878,7 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
   
   dom::HTMLSelectElement* sel = dom::HTMLSelectElement::FromContent(content);
   MOZ_ASSERT(sel);
-  uint32_t size = sel->Size();
-  bool multipleSelect = sel->Multiple();
-  
-  if ((1 == size || 0 == size) && !multipleSelect) {
+  if (sel->IsCombobox()) {
     
     
     
