@@ -85,10 +85,6 @@ const SEARCH_DATA_XML            = Ci.nsISearchEngine.DATA_XML;
 const SEARCH_DATA_TEXT           = Ci.nsISearchEngine.DATA_TEXT;
 
 
-const XML_FILE_EXT      = "xml";
-const SHERLOCK_FILE_EXT = "src";
-
-
 const LAZY_SERIALIZE_DELAY = 100;
 
 
@@ -99,9 +95,6 @@ const CACHE_INVALIDATION_DELAY = 1000;
 const CACHE_VERSION = 7;
 
 const ICON_DATAURL_PREFIX = "data:image/x-icon;base64,";
-
-
-const SHERLOCK_ICON_EXTENSIONS = [".gif", ".png", ".jpg", ".jpeg"];
 
 const NEW_LINES = /(\r\n|\r|\n)/;
 
@@ -718,7 +711,7 @@ function getBoolPref(aName, aDefault) {
 
 
 function getSanitizedFile(aName) {
-  var fileName = sanitizeName(aName) + "." + XML_FILE_EXT;
+  var fileName = sanitizeName(aName) + ".xml";
   var file = getDir(NS_APP_USER_SEARCH_DIR);
   file.append(fileName);
   file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, PERMS_FILE);
@@ -1195,17 +1188,8 @@ Engine.prototype = {
 
         this._data = doc.documentElement;
         break;
-      case SEARCH_DATA_TEXT:
-        var binaryInStream = Cc["@mozilla.org/binaryinputstream;1"].
-                             createInstance(Ci.nsIBinaryInputStream);
-        binaryInStream.setInputStream(fileInStream);
-
-        var bytes = binaryInStream.readByteArray(binaryInStream.available());
-        this._data = bytes;
-
-        break;
       default:
-        ERROR("Bogus engine _dataType: \"" + this._dataType + "\"",
+        ERROR("Unsuppored engine _dataType in _initFromFile: \"" + this._dataType + "\"",
               Cr.NS_ERROR_UNEXPECTED);
     }
     fileInStream.close();
@@ -2973,35 +2957,18 @@ SearchService.prototype = {
       var fileExtension = fileURL.fileExtension.toLowerCase();
       var isWritable = isInProfile && file.isWritable();
 
-      var dataType;
-      switch (fileExtension) {
-        case XML_FILE_EXT:
-          dataType = SEARCH_DATA_XML;
-          break;
-        case SHERLOCK_FILE_EXT:
-          dataType = SEARCH_DATA_TEXT;
-          break;
-        default:
-          
-          continue;
+      if (fileExtension != "xml") {
+        
+        continue;
       }
 
       var addedEngine = null;
       try {
-        addedEngine = new Engine(file, dataType, !isWritable);
+        addedEngine = new Engine(file, SEARCH_DATA_XML, !isWritable);
         addedEngine._initFromFile();
       } catch (ex) {
         LOG("_loadEnginesFromDir: Failed to load " + file.path + "!\n" + ex);
         continue;
-      }
-
-      if (fileExtension == SHERLOCK_FILE_EXT) {
-        
-        if (!addedEngine._iconURI) {
-          var icon = this._findSherlockIcon(file, fileURL.fileBaseName);
-          if (icon)
-            addedEngine._iconURI = NetUtil.ioService.newFileURI(icon);
-        }
       }
 
       this._addEngineToStore(addedEngine);
@@ -3194,27 +3161,6 @@ SearchService.prototype = {
                                        return a.name.localeCompare(b.name);
                                      });
     return this.__sortedEngines = this.__sortedEngines.concat(alphaEngines);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _findSherlockIcon: function SRCH_SVC_findSherlock(aEngineFile, aBaseName) {
-    for (var i = 0; i < SHERLOCK_ICON_EXTENSIONS.length; i++) {
-      var icon = aEngineFile.parent.clone();
-      icon.append(aBaseName + SHERLOCK_ICON_EXTENSIONS[i]);
-      if (icon.exists() && icon.isFile())
-        return icon;
-    }
-    return null;
   },
 
   
