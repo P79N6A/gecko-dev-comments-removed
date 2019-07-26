@@ -82,8 +82,26 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   JSAutoCompartment ac(cx, scopeObject);
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  const char* className = aPrototypeBinding->ClassName().get();
   JS::Rooted<JSObject*> propertyHolder(cx);
-  if (scopeObject != globalObject) {
+  JS::Rooted<JSPropertyDescriptor> existingHolder(cx);
+  if (scopeObject != globalObject &&
+      !JS_GetOwnPropertyDescriptor(cx, scopeObject, className, &existingHolder)) {
+    return NS_ERROR_FAILURE;
+  }
+  bool propertyHolderIsNew = !existingHolder.object() || !existingHolder.value().isObject();
+
+  if (!propertyHolderIsNew) {
+    propertyHolder = &existingHolder.value().toObject();
+  } else if (scopeObject != globalObject) {
 
     
     propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), scopeObject);
@@ -91,8 +109,8 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
 
     
     
-    bool ok = JS_DefineProperty(cx, scopeObject, aPrototypeBinding->ClassName().get(),
-                                propertyHolder, JSPROP_PERMANENT | JSPROP_READONLY,
+    bool ok = JS_DefineProperty(cx, scopeObject, className, propertyHolder,
+                                JSPROP_PERMANENT | JSPROP_READONLY,
                                 JS_PropertyStub, JS_StrictPropertyStub);
     NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
   } else {
@@ -100,10 +118,12 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   }
 
   
-  for (nsXBLProtoImplMember* curr = mMembers;
-       curr;
-       curr = curr->GetNext())
-    curr->InstallMember(cx, propertyHolder);
+  if (propertyHolderIsNew) {
+    for (nsXBLProtoImplMember* curr = mMembers;
+         curr;
+         curr = curr->GetNext())
+      curr->InstallMember(cx, propertyHolder);
+  }
 
   
   
