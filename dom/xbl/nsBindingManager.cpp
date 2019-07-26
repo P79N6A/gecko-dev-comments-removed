@@ -121,51 +121,6 @@ LookupObject(PLDHashTable& table, nsIContent* aKey)
   return nullptr;
 }
 
-static nsresult
-SetOrRemoveObject(PLDHashTable& table, nsIContent* aKey, nsISupports* aValue)
-{
-  if (aValue) {
-    
-    if (!table.ops) {
-      PL_DHashTableInit(&table, &ObjectTableOps, nullptr,
-                        sizeof(ObjectEntry), 16);
-    }
-    aKey->SetFlags(NODE_MAY_BE_IN_BINDING_MNGR);
-
-    NS_ASSERTION(aKey, "key must be non-null");
-    if (!aKey) return NS_ERROR_INVALID_ARG;
-
-    ObjectEntry *entry = static_cast<ObjectEntry*>(PL_DHashTableOperate(&table, aKey, PL_DHASH_ADD));
-
-    if (!entry)
-      return NS_ERROR_OUT_OF_MEMORY;
-
-    
-    if (!entry->GetKey())
-      entry->SetKey(aKey);
-
-    
-    
-    entry->SetValue(aValue);
-
-    return NS_OK;
-  }
-
-  
-  if (table.ops) {
-    ObjectEntry* entry =
-      static_cast<ObjectEntry*>
-        (PL_DHashTableOperate(&table, aKey, PL_DHASH_LOOKUP));
-    if (entry && PL_DHASH_ENTRY_IS_BUSY(entry)) {
-      
-      nsCOMPtr<nsISupports> key = entry->GetKey();
-      nsCOMPtr<nsISupports> value = entry->GetValue();
-      PL_DHashTableOperate(&table, aKey, PL_DHASH_REMOVE);
-    }
-  }
-  return NS_OK;
-}
-
 
 
 
@@ -303,7 +258,48 @@ nsBindingManager::SetWrappedJS(nsIContent* aContent, nsIXPConnectWrappedJS* aWra
     return NS_OK;
   }
 
-  return SetOrRemoveObject(mWrapperTable, aContent, aWrappedJS);
+  if (aWrappedJS) {
+    
+    if (!mWrapperTable.ops) {
+      PL_DHashTableInit(&mWrapperTable, &ObjectTableOps, nullptr,
+                        sizeof(ObjectEntry), 16);
+    }
+    aContent->SetFlags(NODE_MAY_BE_IN_BINDING_MNGR);
+
+    NS_ASSERTION(aContent, "key must be non-null");
+    if (!aContent) return NS_ERROR_INVALID_ARG;
+
+    ObjectEntry *entry =
+      static_cast<ObjectEntry*>(PL_DHashTableOperate(&mWrapperTable, aContent, PL_DHASH_ADD));
+
+    if (!entry)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    
+    if (!entry->GetKey())
+      entry->SetKey(aContent);
+
+    
+    
+    entry->SetValue(aWrappedJS);
+
+    return NS_OK;
+  }
+
+  
+  if (mWrapperTable.ops) {
+    ObjectEntry* entry =
+      static_cast<ObjectEntry*>
+        (PL_DHashTableOperate(&mWrapperTable, aContent, PL_DHASH_LOOKUP));
+    if (entry && PL_DHASH_ENTRY_IS_BUSY(entry)) {
+      
+      nsCOMPtr<nsISupports> key = entry->GetKey();
+      nsCOMPtr<nsISupports> value = entry->GetValue();
+      PL_DHashTableOperate(&mWrapperTable, aContent, PL_DHASH_REMOVE);
+    }
+  }
+
+  return NS_OK;
 }
 
 void
