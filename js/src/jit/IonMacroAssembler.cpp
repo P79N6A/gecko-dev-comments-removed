@@ -1961,9 +1961,10 @@ MacroAssembler::spsMarkJit(SPSProfiler *p, Register framePtr, Register temp)
     
     spsProfileEntryAddressSafe(p, 0, temp, &stackFull);
 
+    
     storePtr(ImmPtr(enterJitLabel), Address(temp, ProfileEntry::offsetOfLabel()));
     storePtr(framePtr,              Address(temp, ProfileEntry::offsetOfSpOrScript()));
-    store32(Imm32(ProfileEntry::NullPCOffset), Address(temp, ProfileEntry::offsetOfLineOrPc()));
+    store32(Imm32(0),               Address(temp, ProfileEntry::offsetOfLineOrPc()));
     store32(Imm32(ProfileEntry::IS_CPP_ENTRY), Address(temp, ProfileEntry::offsetOfFlags()));
 
     
