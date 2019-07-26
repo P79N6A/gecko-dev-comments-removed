@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.widget;
 
 import android.content.Context;
 import android.util.AttributeSet;

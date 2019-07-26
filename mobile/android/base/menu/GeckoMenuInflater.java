@@ -2,7 +2,9 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.menu;
+
+import org.mozilla.gecko.R;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;

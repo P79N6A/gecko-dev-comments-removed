@@ -2,7 +2,10 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.menu;
+
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.widget.Divider;
 
 import android.content.ComponentName;
 import android.content.Context;

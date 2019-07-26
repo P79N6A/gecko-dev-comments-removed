@@ -3,7 +3,9 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.menu;
+
+import org.mozilla.gecko.R;
 
 import android.content.Context;
 import android.content.res.Resources;

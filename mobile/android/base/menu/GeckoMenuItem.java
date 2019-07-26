@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.menu;
 
 import android.content.Context;
 import android.content.Intent;

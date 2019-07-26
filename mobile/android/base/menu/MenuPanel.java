@@ -3,7 +3,9 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.menu;
+
+import org.mozilla.gecko.R;
 
 import android.content.Context;
 import android.os.Build;
@@ -31,7 +33,7 @@ public class MenuPanel extends LinearLayout {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
         
-        DisplayMetrics metrics = GeckoApp.mAppContext.getResources().getDisplayMetrics();
+        DisplayMetrics metrics = getContext().getResources().getDisplayMetrics();
         int restrictedHeightSpec = MeasureSpec.makeMeasureSpec((int) (0.75 * metrics.heightPixels), MeasureSpec.AT_MOST);
 
         super.onMeasure(widthMeasureSpec, restrictedHeightSpec);
