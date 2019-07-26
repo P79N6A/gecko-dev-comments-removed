@@ -1144,11 +1144,6 @@ JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
 
         JS_ASSERT(obj->lastProperty()->slotSpan() == last->slotSpan());
         JS_ALWAYS_TRUE(setLastProperty(cx, obj, last));
-
-        
-        
-        if (it == FREEZE && obj->isArray())
-            obj->getElementsHeader()->setNonwritableArrayLength();
     } else {
         RootedId id(cx);
         for (size_t i = 0; i < props.length(); i++) {
@@ -1169,6 +1164,18 @@ JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
                 return false;
         }
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (it == FREEZE && obj->isArray())
+        obj->getElementsHeader()->setNonwritableArrayLength();
 
     return true;
 }
