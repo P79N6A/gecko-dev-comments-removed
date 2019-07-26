@@ -412,6 +412,11 @@ public class GeckoLayerClient
             return mProgressiveUpdateData;
         }
 
+        
+        
+        if (lowPrecision && !aHasPendingNewThebesContent) {
+          mProgressiveUpdateData.abort = true;
+        }
         return mProgressiveUpdateData;
     }
 
