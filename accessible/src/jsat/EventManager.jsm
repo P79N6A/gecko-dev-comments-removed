@@ -2,33 +2,58 @@
 
 
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cu = Components.utils;
-var Cr = Components.results;
+'use strict';
 
-Cu.import('resource://gre/modules/accessibility/Utils.jsm');
-Cu.import('resource://gre/modules/accessibility/Presentation.jsm');
-Cu.import('resource://gre/modules/accessibility/TraversalRules.jsm');
-Cu.import('resource://gre/modules/Services.jsm');
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'Services',
+  'resource://gre/modules/Services.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'Utils',
+  'resource://gre/modules/accessibility/Utils.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'Logger',
+  'resource://gre/modules/accessibility/Utils.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'Presentation',
+  'resource://gre/modules/accessibility/Presentation.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'TraversalRules',
+  'resource://gre/modules/accessibility/TraversalRules.jsm');
 
 this.EXPORTED_SYMBOLS = ['EventManager'];
 
-this.EventManager = {
+this.EventManager = function EventManager(aContentScope) {
+  this.contentScope = aContentScope;
+  this.addEventListener = this.contentScope.addEventListener.bind(
+    this.contentScope);
+  this.removeEventListener = this.contentScope.removeEventListener.bind(
+    this.contentScope);
+  this.sendMsgFunc = this.contentScope.sendAsyncMessage.bind(
+    this.contentScope);
+  this.webProgress = this.contentScope.docShell.
+    QueryInterface(Ci.nsIInterfaceRequestor).
+    getInterface(Ci.nsIWebProgress);
+};
+
+this.EventManager.prototype = {
   editState: {},
 
-  start: function start(aSendMsgFunc) {
+  start: function start() {
     try {
       if (!this._started) {
-        this.sendMsgFunc = aSendMsgFunc || function() {};
-
         Logger.info('EventManager.start', Utils.MozBuildApp);
 
         this._started = true;
-        Services.obs.addObserver(this, 'accessible-event', false);
-      }
 
+        AccessibilityEventObserver.addListener(this);
+
+        this.webProgress.addProgressListener(this,
+          (Ci.nsIWebProgress.NOTIFY_STATE_ALL |
+           Ci.nsIWebProgress.NOTIFY_LOCATION));
+        this.addEventListener('scroll', this, true);
+        this.addEventListener('resize', this, true);
+        
+        this.addEventListener('DOMActivate', this, true);
+      }
       this.present(Presentation.tabStateChanged(null, 'newtab'));
 
     } catch (x) {
@@ -37,13 +62,25 @@ this.EventManager = {
     }
   },
 
+  
+  
   stop: function stop() {
     if (!this._started) {
       return;
     }
     Logger.info('EventManager.stop', Utils.MozBuildApp);
-    Services.obs.removeObserver(this, 'accessible-event');
-    this._started = false;
+    AccessibilityEventObserver.removeListener(this);
+    try {
+      this.webProgress.removeProgressListener(this);
+      this.removeEventListener('scroll', this, true);
+      this.removeEventListener('resize', this, true);
+      
+      this.removeEventListener('DOMActivate', this, true);
+    } catch (x) {
+      
+    } finally {
+      this._started = false;
+    }
   },
 
   handleEvent: function handleEvent(aEvent) {
@@ -82,21 +119,6 @@ this.EventManager = {
     } catch (x) {
       Logger.error('Error handling DOM event');
       Logger.logException(x);
-    }
-  },
-
-  observe: function observe(aSubject, aTopic, aData) {
-    switch (aTopic) {
-      case 'accessible-event':
-        var event;
-        try {
-          event = aSubject.QueryInterface(Ci.nsIAccessibleEvent);
-          this.handleAccEvent(event);
-        } catch (x) {
-          Logger.error('Error handing accessible event');
-          Logger.logException(x);
-          return;
-        }
     }
   },
 
@@ -227,11 +249,6 @@ this.EventManager = {
     this.sendMsgFunc("AccessFu:Present", aPresentationData);
   },
 
-  presentVirtualCursorPosition: function presentVirtualCursorPosition(aVirtualCursor) {
-    this.present(Presentation.pivotChanged(aVirtualCursor.position, null,
-                                           Ci.nsIAccessiblePivot.REASON_NONE));
-  },
-
   onStateChange: function onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
     let tabstate = '';
 
@@ -268,4 +285,146 @@ this.EventManager = {
                                          Ci.nsISupportsWeakReference,
                                          Ci.nsISupports,
                                          Ci.nsIObserver])
+};
+
+const AccessibilityEventObserver = {
+
+  
+
+
+  eventManagers: new WeakMap(),
+
+  
+
+
+  listenerCount: 0,
+
+  
+
+
+  started: false,
+
+  
+
+
+  start: function start() {
+    if (this.started || this.listenerCount === 0) {
+      return;
+    }
+    Services.obs.addObserver(this, 'accessible-event', false);
+    this.started = true;
+  },
+
+  
+
+
+  stop: function stop() {
+    if (!this.started) {
+      return;
+    }
+    Services.obs.removeObserver(this, 'accessible-event');
+    
+    this.eventManagers.clear();
+    this.listenerCount = 0;
+    this.started = false;
+  },
+
+  
+
+
+
+
+
+
+  addListener: function addListener(aEventManager) {
+    let content = aEventManager.contentScope.content;
+    if (!this.eventManagers.has(content)) {
+      this.listenerCount++;
+    }
+    this.eventManagers.set(content, aEventManager);
+    
+    Logger.debug('AccessibilityEventObserver.addListener. Total:',
+      this.listenerCount);
+    this.start();
+  },
+
+  
+
+
+
+
+
+
+  removeListener: function removeListener(aEventManager) {
+    let content = aEventManager.contentScope.content;
+    if (!this.eventManagers.delete(content)) {
+      return;
+    }
+    this.listenerCount--;
+    Logger.debug('AccessibilityEventObserver.removeListener. Total:',
+      this.listenerCount);
+    if (this.listenerCount === 0) {
+      
+      
+      this.stop();
+    }
+  },
+
+  
+
+
+
+
+
+  getListener: function getListener(content) {
+    let eventManager = this.eventManagers.get(content);
+    if (eventManager) {
+      return eventManager;
+    }
+    let parent = content.parent;
+    if (parent === content) {
+      
+      return null;
+    }
+    return this.getListener(parent);
+  },
+
+  
+
+
+  observe: function observe(aSubject, aTopic, aData) {
+    if (aTopic !== 'accessible-event') {
+      return;
+    }
+    let event = aSubject.QueryInterface(Ci.nsIAccessibleEvent);
+    if (!event.accessibleDocument) {
+      Logger.warning(
+        'AccessibilityEventObserver.observe: no accessible document:',
+        Logger.eventToString(event), "accessible:",
+        Logger.accessibleToString(event.accessible));
+      return;
+    }
+    let content = event.accessibleDocument.window;
+    
+    let eventManager = this.getListener(content);
+    if (!eventManager || !eventManager._started) {
+      if (Utils.MozBuildApp === 'browser' &&
+          !(content instanceof Ci.nsIDOMChromeWindow)) {
+        Logger.warning(
+          'AccessibilityEventObserver.observe: ignored event:',
+          Logger.eventToString(event), "accessible:",
+          Logger.accessibleToString(event.accessible), "document:",
+          Logger.accessibleToString(event.accessibleDocument));
+      }
+      return;
+    }
+    try {
+      eventManager.handleAccEvent(event);
+    } catch (x) {
+      Logger.error('Error handing accessible event');
+      Logger.logException(x);
+    } finally {
+      return;
+    }
+  }
 };
