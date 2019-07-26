@@ -2420,10 +2420,25 @@ this.DOMApplicationRegistry = {
               app.downloadSize = 0;
               app.installState = "installed";
               app.readyToApplyDownload = false;
+              if (app.staged && app.staged.manifestHash) {
+                
+                
+                
+                app.manifestHash = app.staged.manifestHash;
+                app.etag = app.staged.etag || app.etag;
+                app.staged = {};
+                
+                let dirPath = self._getAppDir(id).path;
+
+                
+                OS.File.move(OS.Path.join(dirPath, "staged-update.webapp"),
+                             OS.Path.join(dirPath, "update.webapp"));
+              }
+
               self.broadcastMessage("Webapps:PackageEvent", {
                                       type: "downloaded",
                                       manifestURL: aApp.manifestURL,
-                                      app: app })
+                                      app: app });
               self.broadcastMessage("Webapps:PackageEvent", {
                                       type: "applied",
                                       manifestURL: aApp.manifestURL,
