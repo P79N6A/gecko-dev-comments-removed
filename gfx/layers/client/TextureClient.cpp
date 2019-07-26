@@ -38,6 +38,7 @@ namespace layers {
 TextureClient::TextureClient(TextureFlags aFlags)
   : mID(0)
   , mFlags(aFlags)
+  , mShared(false)
 {}
 
 TextureClient::~TextureClient()
@@ -46,9 +47,18 @@ TextureClient::~TextureClient()
 bool
 TextureClient::ShouldDeallocateInDestructor() const
 {
-  return IsAllocated() &&
-         !IsSharedWithCompositor() &&
-         !(GetFlags() & (TEXTURE_DEALLOCATE_HOST | TEXTURE_DEALLOCATE_CLIENT));
+  if (!IsAllocated()) {
+    return false;
+  }
+  if (GetFlags() & TEXTURE_DEALLOCATE_CLIENT) {
+    return true;
+  }
+
+  
+  
+  
+  return (GetFlags() & TEXTURE_DEALLOCATE_HOST) &&
+         !IsSharedWithCompositor();
 }
 
 bool
