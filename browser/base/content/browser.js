@@ -3648,10 +3648,6 @@ var XULBrowserWindow = {
     
   },
 
-  setJSDefaultStatus: function () {
-    
-  },
-
   setDefaultStatus: function (status) {
     this.defaultStatus = status;
     this.updateStatusField();
