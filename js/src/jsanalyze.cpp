@@ -457,6 +457,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           
           case JSOP_ARGUMENTS:
           case JSOP_FUNAPPLY:
+          case JSOP_CALLEE:
             isJaegerInlineable = false;
             break;
           case JSOP_THROW:
