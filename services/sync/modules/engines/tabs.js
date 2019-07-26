@@ -18,8 +18,13 @@ Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-common/preferences.js");
 
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-  "resource://gre/modules/PrivateBrowsingUtils.jsm");
+
+
+
+
+
+const PBPrefs = new Preferences("browser.privatebrowsing.");
+
 
 this.TabSetRecord = function TabSetRecord(collection, id) {
   CryptoWrapper.call(this, collection, id);
@@ -123,9 +128,6 @@ TabStore.prototype = {
     let currentState = JSON.parse(Svc.Session.getBrowserState());
     let tabLastUsed = this.tabLastUsed;
     currentState.windows.forEach(function(window) {
-      if (window.isPrivate) {
-        return;
-      }
       window.tabs.forEach(function(tab) {
         
         if (!tab.entries.length)
@@ -158,6 +160,12 @@ TabStore.prototype = {
     record.clientName = this.engine.service.clientsEngine.localName;
 
     
+    if (Svc.Private && Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart")) {
+      record.tabs = [];
+      return record;
+    }
+
+    
     let tabs = this.getAllTabs(true).sort(function(a, b) {
       return b.lastUsed - a.lastUsed;
     });
@@ -188,20 +196,9 @@ TabStore.prototype = {
 
   getAllIDs: function TabStore_getAllIds() {
     
-    
     let ids = {};
-    let allWindowsArePrivate = true;
-    let wins = Services.wm.getEnumerator("navigator:browser");
-    while (wins.hasMoreElements()) {
-      if (!PrivateBrowsingUtils.isWindowPrivate(wins.getNext())) {
-        allWindowsArePrivate = false;
-        break;
-      }
-    }
-
-    if (allWindowsArePrivate) {
+    if (Svc.Private && Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart"))
       return ids;
-    }
 
     ids[this.engine.service.clientsEngine.localID] = true;
     return ids;
@@ -283,9 +280,7 @@ TabTracker.prototype = {
     switch (aTopic) {
       case "weave:engine:start-tracking":
         if (!this._enabled) {
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
           Svc.Obs.add("private-browsing", this);
-#endif
           Svc.Obs.add("domwindowopened", this);
           let wins = Services.wm.getEnumerator("navigator:browser");
           while (wins.hasMoreElements())
@@ -295,9 +290,7 @@ TabTracker.prototype = {
         break;
       case "weave:engine:stop-tracking":
         if (this._enabled) {
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
           Svc.Obs.remove("private-browsing", this);
-#endif
           Svc.Obs.remove("domwindowopened", this);
           let wins = Services.wm.getEnumerator("navigator:browser");
           while (wins.hasMoreElements())
@@ -314,22 +307,16 @@ TabTracker.prototype = {
           self._registerListenersForWindow(aSubject);
         }, false);
         break;
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
       case "private-browsing":
-        if (aData == "enter" && !PrivateBrowsingUtils.permanentPrivateBrowsing)
+        if (aData == "enter" && !PBPrefs.get("autostart"))
           this.modified = false;
-#endif
     }
   },
 
   onTab: function onTab(event) {
-    if (event.originalTarget.linkedBrowser) {
-      let win = event.originalTarget.linkedBrowser.contentWindow;
-      if (PrivateBrowsingUtils.isWindowPrivate(win) &&
-          !PrivateBrowsingUtils.permanentPrivateBrowsing) {
-        this._log.trace("Ignoring tab event from private browsing.");
-        return;
-      }
+    if (Svc.Private && Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart")) {
+      this._log.trace("Ignoring tab event from private browsing.");
+      return;
     }
 
     this._log.trace("onTab event: " + event.type);
