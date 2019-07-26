@@ -69,6 +69,8 @@ function WebConsoleActor(aConnection, aParentActor)
   }
 }
 
+WebConsoleActor.l10n = new WebConsoleUtils.l10n("chrome://global/locale/console.properties");
+
 WebConsoleActor.prototype =
 {
   
@@ -124,13 +126,80 @@ WebConsoleActor.prototype =
 
   get window() {
     if (this.parentActor.isRootActor) {
-      
-      
-      let window = Services.wm.getMostRecentWindow("devtools:webconsole");
-      return window || this.parentActor.window;
+      return this._getWindowForBrowserConsole();
     }
     return this.parentActor.window;
   },
+
+  
+
+
+
+
+
+
+  _getWindowForBrowserConsole: function WCA__getWindowForBrowserConsole()
+  {
+    
+    let window = this._lastChromeWindow && this._lastChromeWindow.get();
+    
+    if (!window || window.closed) {
+      window = this.parentActor.window;
+      if (!window) {
+        
+        window = Services.wm.getMostRecentWindow("devtools:webconsole");
+        
+        
+        let onChromeWindowOpened = () => {
+          
+          Services.obs.removeObserver(onChromeWindowOpened, "domwindowopened");
+          this._lastChromeWindow = null;
+        };
+        Services.obs.addObserver(onChromeWindowOpened, "domwindowopened", false);
+      }
+
+      this._handleNewWindow(window);
+    }
+
+    return window;
+  },
+
+  
+
+
+
+
+
+
+  _handleNewWindow: function WCA__handleNewWindow(window)
+  {
+    if (window) {
+      if (this._hadChromeWindow) {
+        let contextChangedMsg = WebConsoleActor.l10n.getStr("evaluationContextChanged");
+        Services.console.logStringMessage(contextChangedMsg);
+      }
+      this._lastChromeWindow = Cu.getWeakReference(window);
+      this._hadChromeWindow = true;
+    } else {
+      this._lastChromeWindow = null;
+    }
+  },
+
+  
+
+
+
+
+
+  _hadChromeWindow: false,
+
+  
+
+
+
+
+
+  _lastChromeWindow: null,
 
   
 
