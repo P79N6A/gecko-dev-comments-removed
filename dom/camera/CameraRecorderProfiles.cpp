@@ -2,8 +2,8 @@
 
 
 
-#include "CameraRecorderProfiles.h"
 #include "jsapi.h"
+#include "CameraRecorderProfiles.h"
 #include "CameraCommon.h"
 
 using namespace mozilla;
