@@ -675,8 +675,8 @@ ensure_tree_header_cell_widget()
         gtk_tree_view_append_column(GTK_TREE_VIEW(gTreeViewWidget), lastTreeViewColumn);
 
         
+        gTreeHeaderCellWidget = gtk_tree_view_column_get_button(gMiddleTreeViewColumn);
         
-        gTreeHeaderCellWidget = gtk_button_new_with_label("M");
         gTreeHeaderSortArrowWidget = gtk_button_new();
     }
     return MOZ_GTK_SUCCESS;
@@ -3256,8 +3256,6 @@ moz_gtk_shutdown()
         gtk_widget_destroy(gProtoWindow);
 
     
-    if (gTreeHeaderCellWidget)
-        gtk_widget_destroy(gTreeHeaderCellWidget);
     if (gTreeHeaderSortArrowWidget)
         gtk_widget_destroy(gTreeHeaderSortArrowWidget);
 
