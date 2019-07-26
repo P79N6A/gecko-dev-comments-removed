@@ -20,8 +20,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '0.8.558';
-PDFJS.build = 'ea50c07';
+PDFJS.version = '0.8.629';
+PDFJS.build = 'b16b3be';
 
 (function pdfjsWrapper() {
   
@@ -1231,6 +1231,11 @@ var ColorSpace = (function ColorSpaceClosure() {
         return this.singletons.rgb;
       case 'DeviceCmykCS':
         return this.singletons.cmyk;
+      case 'CalGrayCS':
+        var whitePoint = IR[1].WhitePoint;
+        var blackPoint = IR[1].BlackPoint;
+        var gamma = IR[1].Gamma;
+        return new CalGrayCS(whitePoint, blackPoint, gamma);
       case 'PatternCS':
         var basePatternCS = IR[1];
         if (basePatternCS)
@@ -1306,7 +1311,8 @@ var ColorSpace = (function ColorSpaceClosure() {
         case 'CMYK':
           return 'DeviceCmykCS';
         case 'CalGray':
-          return 'DeviceGrayCS';
+          var params = cs[1].getAll();
+          return ['CalGrayCS', params];
         case 'CalRGB':
           return 'DeviceRgbCS';
         case 'ICCBased':
@@ -1729,6 +1735,113 @@ var DeviceCmykCS = (function DeviceCmykCSClosure() {
 
 
 
+var CalGrayCS = (function CalGrayCSClosure() {
+  function CalGrayCS(whitePoint, blackPoint, gamma) {
+    this.name = 'CalGray';
+    this.numComps = 3;
+    this.defaultColor = new Float32Array([0, 0, 0]);
+
+    if (!whitePoint) {
+      error('WhitePoint missing - required for color space CalGray');
+    }
+    blackPoint = blackPoint || [0, 0, 0];
+    gamma = gamma || 1;
+
+    
+    this.XW = whitePoint[0];
+    this.YW = whitePoint[1];
+    this.ZW = whitePoint[2];
+
+    this.XB = blackPoint[0];
+    this.YB = blackPoint[1];
+    this.ZB = blackPoint[2];
+
+    this.G = gamma;
+
+    
+    if (this.XW < 0 || this.ZW < 0 || this.YW !== 1) {
+      error('Invalid WhitePoint components for ' + this.name +
+            ', no fallback available');
+    }
+
+    if (this.XB < 0 || this.YB < 0 || this.ZB < 0) {
+      info('Invalid BlackPoint for ' + this.name + ', falling back to default');
+      this.XB = this.YB = this.ZB = 0;
+    }
+
+    if (this.XB !== 0 || this.YB !== 0 || this.ZB !== 0) {
+      TODO(this.name + ', BlackPoint: XB: ' + this.XB + ', YB: ' + this.YB +
+           ', ZB: ' + this.ZB + ', only default values are supported.');
+    }
+
+    if (this.G < 1) {
+      info('Invalid Gamma: ' + this.G + ' for ' + this.name +
+           ', falling back to default');
+      this.G = 1;
+    }
+  }
+
+  CalGrayCS.prototype = {
+    getRgb: function CalGrayCS_getRgb(src, srcOffset) {
+      var rgb = new Uint8Array(3);
+      this.getRgbItem(src, srcOffset, rgb, 0);
+      return rgb;
+    },
+    getRgbItem: function CalGrayCS_getRgbItem(src, srcOffset,
+                                              dest, destOffset) {
+      
+      
+      var A = src[srcOffset];
+      var AG = Math.pow(A, this.G);
+
+      
+      
+      var M = this.XW * AG;
+      var L = this.YW * AG;
+      var N = this.ZW * AG;
+
+      
+      var X = M;
+      var Y = L;
+      var Z = N;
+
+      
+      
+      var Lstar = Math.max(116 * Math.pow(Y, 1 / 3) - 16, 0);
+
+      
+      dest[destOffset] = Lstar * 255 / 100;
+      dest[destOffset + 1] = Lstar * 255 / 100;
+      dest[destOffset + 2] = Lstar * 255 / 100;
+    },
+    getRgbBuffer: function CalGrayCS_getRgbBuffer(src, srcOffset, count,
+                                                  dest, destOffset, bits) {
+      
+      var scale = 255 / ((1 << bits) - 1);
+      var j = srcOffset, q = destOffset;
+      for (var i = 0; i < count; ++i) {
+        var c = (scale * src[j++]) | 0;
+        dest[q++] = c;
+        dest[q++] = c;
+        dest[q++] = c;
+      }
+    },
+    getOutputLength: function CalGrayCS_getOutputLength(inputLength) {
+      return inputLength * 3;
+    },
+    isPassthrough: ColorSpace.prototype.isPassthrough,
+    createRgbBuffer: ColorSpace.prototype.createRgbBuffer,
+    isDefaultDecode: function CalGrayCS_isDefaultDecode(decodeMap) {
+      return ColorSpace.isDefaultDecode(decodeMap, this.numComps);
+    },
+    usesZeroToOneRange: true
+  };
+  return CalGrayCS;
+})();
+
+
+
+
 var LabCS = (function LabCSClosure() {
   function LabCS(whitePoint, blackPoint, range) {
     this.name = 'Lab';
@@ -1866,6 +1979,7 @@ var LabCS = (function LabCSClosure() {
   };
   return LabCS;
 })();
+
 
 
 var PatternType = {
@@ -3831,8 +3945,54 @@ PDFJS.maxImageSize = PDFJS.maxImageSize === undefined ? -1 : PDFJS.maxImageSize;
 
 
 PDFJS.disableFontFace = PDFJS.disableFontFace === undefined ?
-                        false :
-                        PDFJS.disableFontFace;
+                        false : PDFJS.disableFontFace;
+
+
+
+
+
+
+PDFJS.imageResourcesPath = PDFJS.imageResourcesPath === undefined ?
+                           '' : PDFJS.imageResourcesPath;
+
+
+
+
+
+
+
+PDFJS.disableWorker = PDFJS.disableWorker === undefined ?
+                      false : PDFJS.disableWorker;
+
+
+
+
+
+PDFJS.workerSrc = PDFJS.workerSrc === undefined ? null : PDFJS.workerSrc;
+
+
+
+
+
+
+
+PDFJS.disableRange = PDFJS.disableRange === undefined ?
+                     false : PDFJS.disableRange;
+
+
+
+
+
+
+
+PDFJS.disableAutoFetch = PDFJS.disableAutoFetch === undefined ?
+                         false : PDFJS.disableAutoFetch;
+
+
+
+
+
+PDFJS.pdfBug = PDFJS.pdfBug === undefined ? false : PDFJS.pdfBug;
 
 
 
@@ -4274,7 +4434,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
     
     if (!globalScope.PDFJS.disableWorker && typeof Worker !== 'undefined') {
       var workerSrc = PDFJS.workerSrc;
-      if (typeof workerSrc === 'undefined') {
+      if (!workerSrc) {
         error('No PDFJS.workerSrc specified');
       }
 
@@ -6618,7 +6778,8 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       var heightScale = Math.max(Math.sqrt(c * c + d * d), 1);
 
       var imgToPaint;
-      if (imgData instanceof HTMLElement) {
+      
+      if (imgData instanceof HTMLElement || !imgData.data) {
         imgToPaint = imgData;
       } else {
         var tmpCanvas = CachedCanvases.getCanvas('inlineImage', width, height);
