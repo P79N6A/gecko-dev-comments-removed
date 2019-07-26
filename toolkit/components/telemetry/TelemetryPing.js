@@ -374,10 +374,13 @@ TelemetryPing.prototype = {
     if (gfxInfo) {
       for each (let field in gfxfields) {
         try {
-          let value = "";
-          value = gfxInfo[field];
-          if (value != "")
+          let value = gfxInfo[field];
+          
+          
+          
+          if (value !== "") {
             ret[field] = value;
+          }
         } catch (e) {
           continue
         }
