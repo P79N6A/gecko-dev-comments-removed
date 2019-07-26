@@ -1253,13 +1253,16 @@ GetExpandedPrincipal(JSContext *cx, HandleObject arrayObj, nsIExpandedPrincipal 
 
 
 bool
-OptionsBase::ParseValue(const char *name, MutableHandleValue prop, bool *found)
+OptionsBase::ParseValue(const char *name, MutableHandleValue prop, bool *aFound)
 {
-    MOZ_ASSERT(found);
-    bool ok = JS_HasProperty(mCx, mObject, name, found);
+    bool found;
+    bool ok = JS_HasProperty(mCx, mObject, name, &found);
     NS_ENSURE_TRUE(ok, false);
 
-    if (!*found)
+    if (aFound)
+        *aFound = found;
+
+    if (!found)
         return true;
 
     return JS_GetProperty(mCx, mObject, name, prop);
@@ -1340,6 +1343,23 @@ OptionsBase::ParseString(const char *name, nsCString &prop)
 
 
 bool
+OptionsBase::ParseId(const char *name, MutableHandleId prop)
+{
+    RootedValue value(mCx);
+    bool found;
+    bool ok = ParseValue(name, &value, &found);
+    NS_ENSURE_TRUE(ok, false);
+
+    if (!found)
+        return true;
+
+    return JS_ValueToId(mCx, value, prop.address());
+}
+
+
+
+
+bool
 SandboxOptions::ParseGlobalProperties()
 {
     RootedValue value(mCx);
@@ -1369,7 +1389,6 @@ SandboxOptions::ParseGlobalProperties()
 bool
 SandboxOptions::Parse()
 {
-    bool found;
     return ParseObject("sandboxPrototype", &proto) &&
            ParseBoolean("wantXrays", &wantXrays) &&
            ParseBoolean("wantComponents", &wantComponents) &&
@@ -1377,7 +1396,7 @@ SandboxOptions::Parse()
            ParseString("sandboxName", sandboxName) &&
            ParseObject("sameZoneAs", &sameZoneAs) &&
            ParseGlobalProperties() &&
-           ParseValue("metadata", &metadata, &found);
+           ParseValue("metadata", &metadata);
 }
 
 static nsresult
