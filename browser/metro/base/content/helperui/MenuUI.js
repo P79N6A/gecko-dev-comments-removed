@@ -194,7 +194,7 @@ var ContextMenuUI = {
 
     
     
-    if (aMessage.target) {
+    if (aMessage.target && aMessage.target.localName === "browser") {
       coords = aMessage.target.msgBrowserToClient(aMessage, true);
     }
     this._menuPopup.show(Util.extend({}, this._defaultPositionOptions, {
