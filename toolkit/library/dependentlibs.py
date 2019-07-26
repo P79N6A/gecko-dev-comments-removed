@@ -106,7 +106,7 @@ def dependentlibs(lib, libpaths, func):
                 
                 
                 
-                if not dep.startswith("icudt"):
+                if not dep.startswith("icu"):
                     deps.append(dep)
                 break
 
