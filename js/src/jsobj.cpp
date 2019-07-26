@@ -671,8 +671,8 @@ js::CheckDefineProperty(JSContext *cx, HandleObject obj, HandleId id, HandleValu
         
         
         
-        if (getter != desc.getter() ||
-            setter != desc.setter() ||
+        if ((getter != desc.getter() && !(getter == JS_PropertyStub && !desc.getter())) ||
+            (setter != desc.setter() && !(setter == JS_StrictPropertyStub && !desc.setter())) ||
             (attrs != desc.attributes() && attrs != (desc.attributes() | JSPROP_READONLY)))
         {
             return Throw(cx, id, JSMSG_CANT_REDEFINE_PROP);
