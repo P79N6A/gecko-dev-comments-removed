@@ -418,6 +418,29 @@ public:
                          const nsString& title,
                          const nsACString& aGUID);
 
+  
+
+
+  void NotifyFrecencyChanged(nsIURI* aURI,
+                             int32_t aNewFrecency,
+                             const nsACString& aGUID,
+                             bool aHidden,
+                             PRTime aLastVisitDate);
+
+  
+
+
+  void NotifyManyFrecenciesChanged();
+
+  
+
+
+  void DispatchFrecencyChangedNotification(const nsACString& aSpec,
+                                           int32_t aNewFrecency,
+                                           const nsACString& aGUID,
+                                           bool aHidden,
+                                           PRTime aLastVisitDate) const;
+
   bool isBatching() {
     return mBatchLevel > 0;
   }
