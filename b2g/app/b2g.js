@@ -645,6 +645,8 @@ pref("dom.disable_window_open_dialog_feature", true);
 
 pref("accessibility.accessfu.activate", 2);
 
+pref("accessibility.accessfu.skip_empty_images", true);
+
 
 pref("ui.touch.radius.enabled", false);
 pref("ui.touch.radius.leftmm", 3);
