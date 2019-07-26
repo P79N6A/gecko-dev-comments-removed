@@ -5,6 +5,7 @@
 
 
 
+#include "mozilla/Casting.h"
 #include "mozilla/MemoryReporting.h"
 
 #ifndef MOZILLA_INTERNAL_API
@@ -377,11 +378,11 @@ class nsTSubstring_CharT
 
       void NS_FASTCALL AssignASCII( const char* data )
         {
-          AssignASCII(data, strlen(data));
+          AssignASCII(data, mozilla::SafeCast<size_type, size_t>(strlen(data)));
         }
       bool NS_FASTCALL AssignASCII( const char* data, const fallible_t& ) NS_WARN_UNUSED_RESULT
         {
-          return AssignASCII(data, strlen(data), fallible_t());
+          return AssignASCII(data, mozilla::SafeCast<size_type, size_t>(strlen(data)), fallible_t());
         }
 
     
