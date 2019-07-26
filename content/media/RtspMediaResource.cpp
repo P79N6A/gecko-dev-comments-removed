@@ -477,6 +477,10 @@ RtspMediaResource::OnConnected(uint8_t aTrackIdx,
     mTrackBuffer[i]->Start();
   }
 
+  if (!mDecoder) {
+    return NS_ERROR_FAILURE;
+  }
+
   
   if (duration) {
     
@@ -525,6 +529,13 @@ RtspMediaResource::OnDisconnected(uint8_t aTrackIdx, nsresult aReason)
   for (uint32_t i = 0 ; i < mTrackBuffer.Length(); ++i) {
     mTrackBuffer[i]->Stop();
     mTrackBuffer[i]->Reset();
+  }
+
+  
+  
+  
+  if (!mDecoder) {
+    return NS_OK;
   }
 
   if (aReason == NS_ERROR_NOT_INITIALIZED ||
@@ -580,6 +591,12 @@ nsresult RtspMediaResource::Close()
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
   mMediaStreamController->Stop();
+  
+  
+  
+  if (mDecoder) {
+    mDecoder = nullptr;
+  }
   return NS_OK;
 }
 
