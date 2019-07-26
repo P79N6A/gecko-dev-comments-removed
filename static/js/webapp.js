@@ -5,7 +5,7 @@
 
 
 var loop = loop || {};
-loop.webapp = (function() {
+loop.webapp = (function($, TB) {
   "use strict";
 
   
@@ -61,6 +61,11 @@ loop.webapp = (function() {
         throw new Error("missing required attribute loopToken");
       }
 
+      
+      if (this.isSessionReady()) {
+        return this.trigger("session:ready", this);
+      }
+
       var request = $.ajax({
         url:         baseApiUrl + "/calls/" + this.get("loopToken"),
         method:      "POST",
@@ -79,6 +84,15 @@ loop.webapp = (function() {
         this.trigger("session:error", new Error(
           "Retrieval of session information failed: HTTP " + serverError));
       }.bind(this));
+    },
+
+    
+
+
+
+
+    isSessionReady: function() {
+      return !!this.get("sessionId");
     },
 
     
@@ -158,7 +172,51 @@ loop.webapp = (function() {
 
 
   var ConversationView = BaseView.extend({
-    el: "#conversation"
+    el: "#conversation",
+
+    
+
+
+    initialize: function() {
+      this.videoStyles = { width: "100%", height: "100%" };
+      
+      
+      
+      this.session   = TB.initSession(this.model.get("sessionId"));
+      this.publisher = TB.initPublisher(this.model.get("apiKey"), "outgoing",
+                                        this.videoStyles);
+
+      this.session.connect(this.model.get("apiKey"),
+                           this.model.get("sessionToken"));
+
+      this.listenTo(this.session, "sessionConnected", this._sessionConnected);
+      this.listenTo(this.session, "streamCreated", this._streamCreated);
+      this.listenTo(this.session, "connectionDestroyed", this._sessionEnded);
+    },
+
+    _sessionConnected: function(event) {
+      this.session.publish(this.publisher);
+      this._subscribeToStreams(event.streams);
+    },
+
+    _streamCreated: function(event) {
+      this._subscribeToStreams(event.streams);
+    },
+
+    _sessionEnded: function(event) {
+      
+      alert("Your session has ended. Reason: " + event.reason);
+      this.model.trigger("session:ended");
+    },
+
+    _subscribeToStreams: function(streams) {
+      streams.forEach(function(stream) {
+        if (stream.connection.connectionId !==
+            this.session.connection.connectionId) {
+          this.session.subscribe(stream, "incoming", this.videoStyles);
+        }
+      }.bind(this));
+    }
   });
 
   
@@ -172,6 +230,7 @@ loop.webapp = (function() {
 
     routes: {
       "": "home",
+      "call/ongoing": "conversation",
       "call/:token": "initiate"
     },
 
@@ -181,8 +240,9 @@ loop.webapp = (function() {
         throw new Error("missing required conversation");
       }
       this._conversation = options.conversation;
-      this.listenTo(this._conversation, "session:ready",
-                    this._onConversationSessionReady);
+
+      this.listenTo(this._conversation, "session:ready", this._onSessionReady);
+      this.listenTo(this._conversation, "session:ended", this._onSessionEnded);
 
       
       this.loadView(new HomeView());
@@ -191,14 +251,15 @@ loop.webapp = (function() {
     
 
 
+    _onSessionReady: function() {
+      this.navigate("call/ongoing", {trigger: true});
+    },
+
+    
 
 
-    _onConversationSessionReady: function(conversation) {
-      
-      
-      
-      alert("conversation session ready");
-      console.log("conversation session info", conversation);
+    _onSessionEnded: function() {
+      this.navigate("call/" + this._conversation.get("token"), {trigger: true});
     },
 
     
@@ -236,6 +297,15 @@ loop.webapp = (function() {
 
 
     conversation: function() {
+      if (!this._conversation.isSessionReady()) {
+        var loopToken = this._conversation.get("loopToken");
+        if (loopToken) {
+          return this.navigate("call/" + loopToken, {trigger: true});
+        } else {
+          
+          return this.navigate("home", {trigger: true});
+        }
+      }
       this.loadView(new ConversationView({model: this._conversation}));
     }
   });
@@ -253,8 +323,9 @@ loop.webapp = (function() {
     BaseView: BaseView,
     ConversationFormView: ConversationFormView,
     ConversationModel: ConversationModel,
+    ConversationView: ConversationView,
     HomeView: HomeView,
     init: init,
     Router: Router
   };
-})();
+})(jQuery, window.TB);
