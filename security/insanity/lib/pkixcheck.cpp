@@ -37,6 +37,67 @@ CheckTimes(const CERTCertificate* cert, PRTime time)
 }
 
 
+
+Result
+CheckKeyUsage(EndEntityOrCA endEntityOrCA,
+              bool isTrustAnchor,
+              const SECItem* encodedKeyUsage,
+              KeyUsages requiredKeyUsagesIfPresent,
+              PLArenaPool* arena)
+{
+  if (!encodedKeyUsage) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return Success;
+  }
+
+  SECItem tmpItem;
+  Result rv = MapSECStatus(SEC_QuickDERDecodeItem(arena, &tmpItem,
+                              SEC_ASN1_GET(SEC_BitStringTemplate),
+                              encodedKeyUsage));
+  if (rv != Success) {
+    return rv;
+  }
+
+  
+
+  KeyUsages allowedKeyUsages = tmpItem.data[0];
+  if ((allowedKeyUsages & requiredKeyUsagesIfPresent)
+        != requiredKeyUsagesIfPresent) {
+    return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
+  }
+
+  if (endEntityOrCA == MustBeCA) {
+   
+   
+   
+   if ((allowedKeyUsages & KU_KEY_CERT_SIGN) == 0) {
+      return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
+    }
+  } else {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  }
+
+  return Success;
+}
+
+
 Result
 CheckBasicConstraints(const BackCert& cert,
                       EndEntityOrCA endEntityOrCA,
@@ -122,6 +183,7 @@ Result
 CheckExtensions(BackCert& cert,
                 EndEntityOrCA endEntityOrCA,
                 bool isTrustAnchor,
+                KeyUsages requiredKeyUsagesIfPresent,
                 unsigned int subCACount)
 {
   
@@ -135,6 +197,13 @@ CheckExtensions(BackCert& cert,
   Result rv;
 
   
+
+  rv = CheckKeyUsage(endEntityOrCA, isTrustAnchor, cert.encodedKeyUsage,
+                     requiredKeyUsagesIfPresent, arena);
+  if (rv != Success) {
+    return rv;
+  }
+
   
   
   
