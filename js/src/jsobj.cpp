@@ -2587,9 +2587,10 @@ FreeSlots(ExclusiveContext *cx, HeapSlot *slots)
 {
     
 #ifdef JSGC_GENERATIONAL
-    if (!cx->isJSContext() || !cx->asJSContext()->runtime()->gcNursery.isInside(slots))
+    if (cx->isJSContext())
+        return cx->asJSContext()->runtime()->gcNursery.freeSlots(cx->asJSContext(), slots);
 #endif
-        js_free(slots);
+    js_free(slots);
 }
 
  void

@@ -80,6 +80,9 @@ class Nursery
                                        uint32_t oldCount, uint32_t newCount);
 
     
+    void freeSlots(JSContext *cx, HeapSlot *slots);
+
+    
     void notifyInitialSlots(gc::Cell *cell, HeapSlot *slots);
 
     
