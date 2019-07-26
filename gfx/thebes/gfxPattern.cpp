@@ -416,6 +416,7 @@ gfxPattern::AdjustTransformForPattern(Matrix &aPatternTransform,
   if (!aOriginalTransform) {
     
     
+    aPatternTransform.NudgeToIntegers();
     return;
   }
   
@@ -429,4 +430,5 @@ gfxPattern::AdjustTransformForPattern(Matrix &aPatternTransform,
   
   
   aPatternTransform = aPatternTransform * *aOriginalTransform * mat;
+  aPatternTransform.NudgeToIntegers();
 }
