@@ -15,7 +15,6 @@
 #include "js/Vector.h"
 
 #include "vm/MatchPairs.h"
-#include "vm/RegExpObject.h"
 
 namespace js {
 
@@ -26,7 +25,7 @@ class RegExpStatics
     HeapPtr<JSLinearString> matchesInput;
 
     
-    RegExpGuard             regexpGuard;  
+    HeapPtr<RegExpObject>   regexp;
     size_t                  lastIndex;
 
     
@@ -42,10 +41,6 @@ class RegExpStatics
     
     RegExpStatics           *bufferLink;
     bool                    copied;
-
-  public:
-    RegExpStatics() : bufferLink(NULL), copied(false) { clear(); }
-    static JSObject *create(JSContext *cx, GlobalObject *parent);
 
   private:
     bool executeLazy(JSContext *cx);
@@ -83,9 +78,14 @@ class RegExpStatics
     friend class PreserveRegExpStatics;
 
   public:
+    inline RegExpStatics();
+
+    static JSObject *create(JSContext *cx, GlobalObject *parent);
+
     
+
     inline void updateLazily(JSContext *cx, JSLinearString *input,
-                             RegExpShared *shared, size_t lastIndex);
+                             RegExpObject *regexp, size_t lastIndex);
     inline bool updateFromMatchPairs(JSContext *cx, JSLinearString *input, MatchPairs &newPairs);
     inline void setMultiline(JSContext *cx, bool enabled);
 
@@ -118,6 +118,8 @@ class RegExpStatics
     }
 
     void mark(JSTracer *trc) {
+        if (regexp)
+            gc::MarkObject(trc, &regexp, "res->regexp");
         if (pendingInput)
             MarkString(trc, &pendingInput, "res->pendingInput");
         if (matchesInput)
