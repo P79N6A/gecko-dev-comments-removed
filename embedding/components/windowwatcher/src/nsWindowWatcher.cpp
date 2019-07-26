@@ -1607,13 +1607,7 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
 
 
   
-  bool enabled = false;
-  if (securityManager) {
-    rv = securityManager->IsCapabilityEnabled("UniversalXPConnect",
-                                              &enabled);
-  }
-
-  if (NS_FAILED(rv) || !enabled || (isChrome && !aHasChromeParent)) {
+  if (!nsContentUtils::IsCallerChrome() || (isChrome && !aHasChromeParent)) {
     
     
     
@@ -2045,31 +2039,14 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
   }
 
   bool positionSpecified = aSizeSpec.PositionSpecified();
+
   
-  nsresult res;
   bool enabled = false;
-
-  
-  nsCOMPtr<nsIScriptSecurityManager>
-    securityManager(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID));
-  if (securityManager) {
-    res = securityManager->IsCapabilityEnabled("UniversalXPConnect",
-                                               &enabled);
-    if (NS_FAILED(res))
-      enabled = false;
-    else if (enabled && aParent) {
-      nsCOMPtr<nsIDOMChromeWindow> chromeWin(do_QueryInterface(aParent));
-
-      bool isChrome = false;
-      nsresult rv = securityManager->SubjectPrincipalIsSystem(&isChrome);
-      if (NS_FAILED(rv)) {
-        isChrome = false;
-      }
-
-      
-      
-      enabled = !(isChrome && chromeWin == nullptr);
-    }
+  if (nsContentUtils::IsCallerChrome()) {
+    
+    
+    nsCOMPtr<nsIDOMChromeWindow> chromeWin(do_QueryInterface(aParent));
+    enabled = !aParent || chromeWin;
   }
 
   if (!enabled) {

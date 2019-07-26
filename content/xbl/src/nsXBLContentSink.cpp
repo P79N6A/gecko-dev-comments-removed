@@ -724,18 +724,7 @@ nsXBLContentSink::ConstructImplementation(const PRUnichar **aAtts)
     else if (localName == nsGkAtoms::implements) {
       
       
-      
-      
-      
-      
-      
-      
-      
-      bool hasUniversalXPConnect;
-      nsresult rv = mDocument->NodePrincipal()->
-        IsCapabilityEnabled("UniversalXPConnect", nullptr,
-                            &hasUniversalXPConnect);
-      if (NS_SUCCEEDED(rv) && hasUniversalXPConnect) {
+      if (nsContentUtils::IsSystemPrincipal(mDocument->NodePrincipal())) {
         mBinding->ConstructInterfaceTable(nsDependentString(aAtts[1]));
       }
     }

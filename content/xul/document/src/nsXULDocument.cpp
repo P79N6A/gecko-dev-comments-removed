@@ -1338,28 +1338,12 @@ nsXULDocument::Persist(const nsAString& aID,
     return NS_OK;
 }
 
-
-bool
-nsXULDocument::IsCapabilityEnabled(const char* aCapabilityLabel)
-{
-    nsresult rv;
-
-    
-    bool enabled = false;
-    rv = NodePrincipal()->IsCapabilityEnabled(aCapabilityLabel, nullptr, &enabled);
-    if (NS_FAILED(rv))
-        return false;
- 
-    return enabled;
-}
-
-
 nsresult
 nsXULDocument::Persist(nsIContent* aElement, int32_t aNameSpaceID,
                        nsIAtom* aAttribute)
 {
     
-    if (!IsCapabilityEnabled("UniversalXPConnect"))
+    if (!nsContentUtils::IsSystemPrincipal(NodePrincipal()))
         return NS_ERROR_NOT_AVAILABLE;
 
     
@@ -2109,7 +2093,7 @@ nsresult
 nsXULDocument::ApplyPersistentAttributes()
 {
     
-    if (!IsCapabilityEnabled("UniversalXPConnect"))
+    if (!nsContentUtils::IsSystemPrincipal(NodePrincipal()))
         return NS_ERROR_NOT_AVAILABLE;
 
     

@@ -2310,14 +2310,9 @@ nsINode::WrapObject(JSContext *aCx, JSObject *aScope, bool *aTriedToWrap)
   
   
   bool hasHadScriptHandlingObject = false;
-  bool enabled;
-  nsIScriptSecurityManager* securityManager;
   if (!OwnerDoc()->GetScriptHandlingObject(hasHadScriptHandlingObject) &&
       !hasHadScriptHandlingObject &&
-      !((securityManager = nsContentUtils::GetSecurityManager()) &&
-        NS_SUCCEEDED(securityManager->IsCapabilityEnabled("UniversalXPConnect",
-                                                          &enabled)) &&
-        enabled)) {
+      !nsContentUtils::IsCallerChrome()) {
     Throw<true>(aCx, NS_ERROR_UNEXPECTED);
     *aTriedToWrap = true;
     return nullptr;

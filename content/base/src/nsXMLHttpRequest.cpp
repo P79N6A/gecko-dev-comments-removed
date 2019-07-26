@@ -174,15 +174,6 @@ static void AddLoadFlags(nsIRequest *request, nsLoadFlags newFlags)
   request->SetLoadFlags(flags);
 }
 
-static nsresult IsCapabilityEnabled(const char *capability, bool *enabled)
-{
-  nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
-  if (!secMan)
-    return NS_ERROR_FAILURE;
-
-  return secMan->IsCapabilityEnabled(capability, enabled);
-}
-
 
 
 
@@ -1475,9 +1466,7 @@ nsXMLHttpRequest::GetResponseHeader(const nsACString& header,
   }
 
   
-  bool chrome = false; 
-  IsCapabilityEnabled("UniversalXPConnect", &chrome);
-  if (!chrome &&
+  if (!nsContentUtils::IsCallerChrome() &&
        (header.LowerCaseEqualsASCII("set-cookie") ||
         header.LowerCaseEqualsASCII("set-cookie2"))) {
     NS_WARNING("blocked access to response header");
@@ -3194,11 +3183,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   
   
 
-  bool privileged;
-  if (NS_FAILED(IsCapabilityEnabled("UniversalXPConnect", &privileged)))
-    return NS_ERROR_FAILURE;
-
-  if (!privileged) {
+  if (!nsContentUtils::IsCallerChrome()) {
     
     const char *kInvalidHeaders[] = {
       "accept-charset", "accept-encoding", "access-control-request-headers",
@@ -3423,13 +3408,7 @@ nsXMLHttpRequest::SetMozBackgroundRequest(bool aMozBackgroundRequest)
 void
 nsXMLHttpRequest::SetMozBackgroundRequest(bool aMozBackgroundRequest, nsresult& aRv)
 {
-  bool privileged;
-  aRv = IsCapabilityEnabled("UniversalXPConnect", &privileged);
-  if (NS_FAILED(aRv)) {
-    return;
-  }
-
-  if (!privileged) {
+  if (!nsContentUtils::IsCallerChrome()) {
     aRv = NS_ERROR_DOM_SECURITY_ERR;
     return;
   }
@@ -4030,9 +4009,7 @@ NS_IMETHODIMP nsXMLHttpRequest::
 nsHeaderVisitor::VisitHeader(const nsACString &header, const nsACString &value)
 {
     
-    bool chrome = false; 
-    IsCapabilityEnabled("UniversalXPConnect", &chrome);
-    if (!chrome &&
+    if (!nsContentUtils::IsCallerChrome() &&
          (header.LowerCaseEqualsASCII("set-cookie") ||
           header.LowerCaseEqualsASCII("set-cookie2"))) {
         NS_WARNING("blocked access to response header");

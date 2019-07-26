@@ -1661,26 +1661,10 @@ bool
 nsDocShell::ValidateOrigin(nsIDocShellTreeItem* aOriginTreeItem,
                            nsIDocShellTreeItem* aTargetTreeItem)
 {
-    nsCOMPtr<nsIScriptSecurityManager> securityManager =
-        do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
-    NS_ENSURE_TRUE(securityManager, false);
-
-    nsCOMPtr<nsIPrincipal> subjectPrincipal;
-    nsresult rv =
-        securityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
-    NS_ENSURE_SUCCESS(rv, false);
-
-    if (subjectPrincipal) {
-        
-        
-        bool ubwEnabled = false;
-        rv = securityManager->IsCapabilityEnabled("UniversalXPConnect",
-                                                  &ubwEnabled);
-        NS_ENSURE_SUCCESS(rv, false);
-
-        if (ubwEnabled) {
-            return true;
-        }
+    
+    
+    if (nsContentUtils::GetCurrentJSContext() && nsContentUtils::IsCallerChrome()) {
+        return true;
     }
 
     
@@ -1692,8 +1676,8 @@ nsDocShell::ValidateOrigin(nsIDocShellTreeItem* aOriginTreeItem,
     NS_ENSURE_TRUE(targetDocument, false);
 
     bool equal;
-    rv = originDocument->NodePrincipal()->
-            Equals(targetDocument->NodePrincipal(), &equal);
+    nsresult rv = originDocument->NodePrincipal()->Equals(targetDocument->NodePrincipal(),
+                                                          &equal);
     if (NS_SUCCEEDED(rv) && equal) {
         return true;
     }
@@ -8187,21 +8171,13 @@ nsDocShell::CheckLoadingPermissions()
         return rv;
     }
 
-    
-    
-    
-
     nsCOMPtr<nsIScriptSecurityManager> securityManager =
-        do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
+      do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    bool ubwEnabled = false;
-    rv = securityManager->IsCapabilityEnabled("UniversalXPConnect",
-                                              &ubwEnabled);
-    if (NS_FAILED(rv) || ubwEnabled) {
-        return rv;
-    }
-
+    
+    
+    
     nsCOMPtr<nsIPrincipal> subjPrincipal;
     rv = securityManager->GetSubjectPrincipal(getter_AddRefs(subjPrincipal));
     NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && subjPrincipal, rv);

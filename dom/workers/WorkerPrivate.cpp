@@ -2515,11 +2515,7 @@ WorkerPrivate::Create(JSContext* aCx, JSObject* aObj, WorkerPrivate* aParent,
     nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
     NS_ASSERTION(ssm, "This should never be null!");
 
-    bool isChrome;
-    if (NS_FAILED(ssm->IsCapabilityEnabled("UniversalXPConnect", &isChrome))) {
-      NS_WARNING("IsCapabilityEnabled failed!");
-      isChrome = false;
-    }
+    bool isChrome = nsContentUtils::IsCallerChrome();
 
     
     
