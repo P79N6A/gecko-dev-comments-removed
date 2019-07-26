@@ -43,11 +43,6 @@ function injectController(doc, topic, data) {
     if (!window)
       return;
 
-    
-    if (doc.documentURIObject.scheme == "about") {
-      return;
-    }
-
     var containingBrowser = window.QueryInterface(Ci.nsIInterfaceRequestor)
                                   .getInterface(Ci.nsIWebNavigation)
                                   .QueryInterface(Ci.nsIDocShell)
