@@ -8,15 +8,17 @@
 
 #include "keyboardlayout.h"   
 #include "nsBaseHashtable.h"  
-#include "nsHashKeys.h"       
-#include "mozwrlbase.h"
 #include "nsDeque.h"
+#include "nsHashKeys.h"       
 #include "mozilla/EventForwards.h"
 #include "mozilla/layers/APZCTreeManager.h"
+#include "mozilla/TouchEvents.h"
+#include "mozwrlbase.h"
 
 
 #include <EventToken.h>     
 #include <stdint.h>         
+#include <windows.ui.input.h> 
 #include <wrl\client.h>     
 #include <wrl\implements.h> 
 
@@ -68,6 +70,41 @@ namespace mozilla {
 namespace widget {
 namespace winrt {
 
+class TouchEventQueueEntry {
+private:
+  typedef ABI::Windows::UI::Input::IPointerPoint IPointerPoint;
+  typedef ABI::Windows::UI::Input::PointerPoint PointerPoint;
+  typedef ABI::Windows::Foundation::Collections::IVector<PointerPoint*> PointerPointVector;
+
+  Microsoft::WRL::ComPtr<PointerPointVector> mPointerPoints;
+  Microsoft::WRL::ComPtr<IPointerPoint> mPointerPoint;
+  nsAutoPtr<WidgetTouchEvent> mTouchEvent;
+
+public:
+  TouchEventQueueEntry(WidgetTouchEvent* aTouchEvent, IPointerPoint* aPointerPoint)
+    : mTouchEvent(aTouchEvent), mPointerPoint(aPointerPoint)
+  {
+  }
+
+  TouchEventQueueEntry(WidgetTouchEvent* aTouchEvent, PointerPointVector* aPointerPoints)
+    : mTouchEvent(aTouchEvent), mPointerPoints(aPointerPoints)
+  {
+  }
+
+  IPointerPoint* GetPointerPoint() {
+    return mPointerPoint.Get();
+  }
+
+  PointerPointVector* GetPointerPoints() {
+    return mPointerPoints.Get();
+  }
+
+  WidgetTouchEvent* GetEvent() {
+    return mTouchEvent;
+  }
+};
+
+
 class MetroInput : public Microsoft::WRL::RuntimeClass<IInspectable>
 {
   InspectableClass(L"MetroInput", BaseTrust);
@@ -78,9 +115,6 @@ private:
 
   
   typedef ABI::Windows::Devices::Input::PointerDeviceType PointerDeviceType;
-
-  
-  typedef ABI::Windows::Foundation::Point Point;
 
   
   typedef ABI::Windows::UI::Core::ICoreWindow ICoreWindow;
@@ -103,6 +137,11 @@ private:
   typedef ABI::Windows::UI::Input::IRightTappedEventArgs IRightTappedEventArgs;
   typedef ABI::Windows::UI::Input::ITappedEventArgs ITappedEventArgs;
   typedef ABI::Windows::UI::Input::ManipulationDelta ManipulationDelta;
+  typedef ABI::Windows::UI::Input::PointerPoint PointerPoint;
+
+  
+  typedef ABI::Windows::Foundation::Point Point;
+  typedef ABI::Windows::Foundation::Collections::IVector<PointerPoint*> PointerPointVector;
 
   typedef mozilla::layers::ScrollableLayerGuid ScrollableLayerGuid;
 
@@ -283,11 +322,12 @@ private:
 
   
   void DispatchAsyncEventIgnoreStatus(WidgetInputEvent* aEvent);
-  void DispatchAsyncTouchEvent(WidgetTouchEvent* aEvent);
+  void DispatchAsyncTouchEvent(TouchEventQueueEntry* queueEntry);
 
   
   void DeliverNextQueuedEventIgnoreStatus();
   void DeliverNextQueuedTouchEvent();
+  void DeliverNextQueuedNoMoveTouch();
 
   void HandleFirstTouchStartEvent(WidgetTouchEvent* aEvent);
   void HandleFirstTouchMoveEvent(WidgetTouchEvent* aEvent);

@@ -14,7 +14,6 @@
 #include "UIABridgePrivate.h"
 #include "MetroAppShell.h"
 #include "mozilla/MouseEvents.h"
-#include "mozilla/TouchEvents.h"
 #include "mozilla/Preferences.h"  
 #include "WinUtils.h"
 #include "nsIPresShell.h"
@@ -22,7 +21,6 @@
 
 
 #include <windows.ui.core.h> 
-#include <windows.ui.input.h> 
 
 
 
@@ -238,20 +236,6 @@ namespace {
     aData->mChanged = false;
     return PL_DHASH_NEXT;
   }
-
-  
-  class AutoDeleteEvent
-  {
-  public:
-    AutoDeleteEvent(WidgetGUIEvent* aPtr) :
-      mPtr(aPtr) {}
-    ~AutoDeleteEvent() {
-      if (mPtr) {
-        delete mPtr;
-      }
-    }
-    WidgetGUIEvent* mPtr;
-  };
 }
 
 namespace mozilla {
@@ -540,19 +524,19 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
   LogFunction();
 #endif
 
-  WRL::ComPtr<UI::Input::IPointerPoint> currentPoint;
+  UI::Input::IPointerPoint* currentPoint;
   WRL::ComPtr<Devices::Input::IPointerDevice> device;
   Devices::Input::PointerDeviceType deviceType;
 
-  aArgs->get_CurrentPoint(currentPoint.GetAddressOf());
+  aArgs->get_CurrentPoint(&currentPoint);
   currentPoint->get_PointerDevice(device.GetAddressOf());
   device->get_PointerDeviceType(&deviceType);
 
   
   if (deviceType !=
           Devices::Input::PointerDeviceType::PointerDeviceType_Touch) {
-    OnPointerNonTouch(currentPoint.Get());
-    mGestureRecognizer->ProcessDownEvent(currentPoint.Get());
+    OnPointerNonTouch(currentPoint);
+    mGestureRecognizer->ProcessDownEvent(currentPoint);
     return S_OK;
   }
 
@@ -562,7 +546,7 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
   
   uint32_t pointerId;
   currentPoint->get_PointerId(&pointerId);
-  nsRefPtr<Touch> touch = CreateDOMTouch(currentPoint.Get());
+  nsRefPtr<Touch> touch = CreateDOMTouch(currentPoint);
   touch->mChanged = true;
   mTouches.Put(pointerId, touch);
 
@@ -582,22 +566,28 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
   }
 
   InitTouchEventTouchList(touchEvent);
-  DispatchAsyncTouchEvent(touchEvent);
+  DispatchAsyncTouchEvent(new TouchEventQueueEntry(touchEvent, currentPoint));
 
-  if (ShouldDeliverInputToRecognizer()) {
-    mGestureRecognizer->ProcessDownEvent(currentPoint.Get());
-  }
   return S_OK;
 }
 
 void
-MetroInput::AddPointerMoveDataToRecognizer(UI::Core::IPointerEventArgs* aArgs)
+MetroInput::AddPointerMoveDataToRecognizer(IPointerEventArgs* aArgs)
 {
   if (ShouldDeliverInputToRecognizer()) {
-    WRL::ComPtr<Foundation::Collections::IVector<UI::Input::PointerPoint*>>
-        pointerPoints;
+    WRL::ComPtr<PointerPointVector> pointerPoints;
     aArgs->GetIntermediatePoints(pointerPoints.GetAddressOf());
     mGestureRecognizer->ProcessMoveEvents(pointerPoints.Get());
+  }
+}
+
+void
+MetroInput::DeliverNextQueuedNoMoveTouch() {
+  nsAutoPtr<TouchEventQueueEntry> queueEntry =
+    static_cast<TouchEventQueueEntry*>(mInputEventQueue.PopFront());
+
+  if (ShouldDeliverInputToRecognizer()) {
+    mGestureRecognizer->ProcessMoveEvents(queueEntry->GetPointerPoints());
   }
 }
 
@@ -644,12 +634,19 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
     return S_OK;
   }
 
-  AddPointerMoveDataToRecognizer(aArgs);
+  PointerPointVector* pointerPoints;
+  aArgs->GetIntermediatePoints(&pointerPoints);
 
   
   
   
   if (!HasPointMoved(touch, currentPoint.Get())) {
+    
+    
+    mInputEventQueue.Push(new TouchEventQueueEntry(nullptr, pointerPoints));
+    nsCOMPtr<nsIRunnable> runnable =
+      NS_NewRunnableMethod(this, &MetroInput::DeliverNextQueuedNoMoveTouch);
+    NS_DispatchToCurrentThread(runnable);
     return S_OK;
   }
 
@@ -661,7 +658,8 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
   WidgetTouchEvent* touchEvent =
     new WidgetTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
   InitTouchEventTouchList(touchEvent);
-  DispatchAsyncTouchEvent(touchEvent);
+
+  DispatchAsyncTouchEvent(new TouchEventQueueEntry(touchEvent, pointerPoints));
 
   return S_OK;
 }
@@ -676,19 +674,19 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
   LogFunction();
 #endif
 
-  WRL::ComPtr<UI::Input::IPointerPoint> currentPoint;
+  UI::Input::IPointerPoint* currentPoint;
   WRL::ComPtr<Devices::Input::IPointerDevice> device;
   Devices::Input::PointerDeviceType deviceType;
 
-  aArgs->get_CurrentPoint(currentPoint.GetAddressOf());
+  aArgs->get_CurrentPoint(&currentPoint);
   currentPoint->get_PointerDevice(device.GetAddressOf());
   device->get_PointerDeviceType(&deviceType);
 
   
   if (deviceType !=
           Devices::Input::PointerDeviceType::PointerDeviceType_Touch) {
-    OnPointerNonTouch(currentPoint.Get());
-    mGestureRecognizer->ProcessUpEvent(currentPoint.Get());
+    OnPointerNonTouch(currentPoint);
+    mGestureRecognizer->ProcessUpEvent(currentPoint);
     return S_OK;
   }
 
@@ -705,7 +703,7 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
     WidgetTouchEvent* touchEvent =
       new WidgetTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
     InitTouchEventTouchList(touchEvent);
-    DispatchAsyncTouchEvent(touchEvent);
+    DispatchAsyncTouchEvent(new TouchEventQueueEntry(touchEvent, (IPointerPoint*)nullptr));
   }
 
   
@@ -716,12 +714,8 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
   
   WidgetTouchEvent* touchEvent =
     new WidgetTouchEvent(true, NS_TOUCH_END, mWidget.Get());
-  touchEvent->touches.AppendElement(CreateDOMTouch(currentPoint.Get()));
-  DispatchAsyncTouchEvent(touchEvent);
-
-  if (ShouldDeliverInputToRecognizer()) {
-    mGestureRecognizer->ProcessUpEvent(currentPoint.Get());
-  }
+  touchEvent->touches.AppendElement(CreateDOMTouch(currentPoint));
+  DispatchAsyncTouchEvent(new TouchEventQueueEntry(touchEvent, currentPoint));
 
   return S_OK;
 }
@@ -1136,12 +1130,13 @@ MetroInput::DeliverNextQueuedEventIgnoreStatus()
 }
 
 void
-MetroInput::DispatchAsyncTouchEvent(WidgetTouchEvent* aEvent)
+MetroInput::DispatchAsyncTouchEvent(TouchEventQueueEntry* queueEntry)
 {
-  aEvent->time = ::GetMessageTime();
+  WidgetTouchEvent* event = queueEntry->GetEvent();
+  event->time = ::GetMessageTime();
   mModifierKeyState.Update();
-  mModifierKeyState.InitInputEvent(*aEvent);
-  mInputEventQueue.Push(aEvent);
+  mModifierKeyState.InitInputEvent(*event);
+  mInputEventQueue.Push(queueEntry);
   nsCOMPtr<nsIRunnable> runnable =
     NS_NewRunnableMethod(this, &MetroInput::DeliverNextQueuedTouchEvent);
   NS_DispatchToCurrentThread(runnable);
@@ -1352,11 +1347,12 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
   nsEventStatus status = nsEventStatus_eIgnore;
 
-  WidgetTouchEvent* event =
-    static_cast<WidgetTouchEvent*>(mInputEventQueue.PopFront());
-  MOZ_ASSERT(event);
+  nsAutoPtr<TouchEventQueueEntry> queueEntry =
+    static_cast<TouchEventQueueEntry*>(mInputEventQueue.PopFront());
+  
+  WidgetTouchEvent* event = queueEntry->GetEvent();
 
-  AutoDeleteEvent wrap(event);
+  MOZ_ASSERT(event);
 
   
   
@@ -1387,6 +1383,25 @@ MetroInput::DeliverNextQueuedTouchEvent()
         mCancelable = false;
       }
     }
+  }
+
+  if (ShouldDeliverInputToRecognizer()) {
+    switch (event->message) {
+    case NS_TOUCH_START:
+      mGestureRecognizer->ProcessDownEvent(queueEntry->GetPointerPoint());
+      break;
+    case NS_TOUCH_END:
+      mGestureRecognizer->ProcessUpEvent(queueEntry->GetPointerPoint());
+      break;
+    case NS_TOUCH_MOVE:
+      if (queueEntry->GetPointerPoints()) {
+        mGestureRecognizer->ProcessMoveEvents(queueEntry->GetPointerPoints());
+      }
+      break;
+    }
+  }
+
+  if (mNonApzTargetForTouch) {
     return;
   }
 
