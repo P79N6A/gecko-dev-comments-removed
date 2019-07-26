@@ -133,8 +133,13 @@ TabChild::PreloadSlowThings()
         !tab->InitTabChildGlobal(DONT_LOAD_SCRIPTS)) {
         return;
     }
+    
     tab->TryCacheLoadAndCompileScript(BROWSER_ELEMENT_CHILD_SCRIPT);
-    tab->RecvLoadRemoteScript(NS_LITERAL_STRING("chrome://global/content/preload.js"));
+    tab->TryCacheLoadAndCompileScript(
+        NS_LITERAL_STRING("chrome://browser/content/forms.js"));
+    
+    tab->RecvLoadRemoteScript(
+        NS_LITERAL_STRING("chrome://global/content/preload.js"));
 
     nsCOMPtr<nsIDocShell> docShell = do_GetInterface(tab->mWebNav);
     nsCOMPtr<nsIPresShell> presShell;

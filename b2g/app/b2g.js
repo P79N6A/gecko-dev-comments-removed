@@ -645,3 +645,5 @@ pref("memory_info_dumper.watch_fifo.directory", "/data/local");
 
 
 pref("dom.disable_input_file", true);
+
+pref("general.useragent.enable_overrides", true);
