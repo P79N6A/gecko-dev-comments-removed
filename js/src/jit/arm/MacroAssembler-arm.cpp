@@ -3520,20 +3520,6 @@ MacroAssemblerARMCompat::storeTypeTag(ImmTag tag, Register base, Register index,
     ma_sub(base, Imm32(NUNBOX32_TYPE_OFFSET), base);
 }
 
-void
-MacroAssemblerARMCompat::linkExitFrame()
-{
-    uint8_t *dest = (uint8_t*)GetIonContext()->runtime->addressOfJitTop();
-    movePtr(ImmPtr(dest), ScratchRegister);
-    ma_str(StackPointer, Operand(ScratchRegister, 0));
-}
-
-void
-MacroAssemblerARMCompat::linkParallelExitFrame(Register pt)
-{
-    ma_str(StackPointer, Operand(pt, offsetof(PerThreadData, jitTop)));
-}
-
 
 
 

@@ -1094,12 +1094,6 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         orl(Imm32(type), frameSizeReg);
     }
 
-    
-    
-    void linkExitFrame() {
-        movl(StackPointer, Operand(AbsoluteAddress(GetIonContext()->runtime->addressOfJitTop())));
-    }
-
     void callWithExitFrame(JitCode *target, Register dynStack) {
         addPtr(Imm32(framePushed()), dynStack);
         makeFrameDescriptor(dynStack, JitFrame_IonJS);
@@ -1112,12 +1106,6 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     }
     void callExit(AsmJSImmPtr target, uint32_t stackArgBytes) {
         call(CallSiteDesc::Exit(), target);
-    }
-
-    
-    
-    void linkParallelExitFrame(Register pt) {
-        movl(StackPointer, Operand(pt, offsetof(PerThreadData, jitTop)));
     }
 
 #ifdef JSGC_GENERATIONAL

@@ -892,6 +892,24 @@ MacroAssembler::checkInterruptFlagPar(Register tempReg, Label *fail)
 #endif
 }
 
+
+
+void
+MacroAssembler::linkExitFrame()
+{
+    AbsoluteAddress jitTop(GetIonContext()->runtime->addressOfJitTop());
+    storePtr(StackPointer, jitTop);
+}
+
+
+
+void
+MacroAssembler::linkParallelExitFrame(Register pt)
+{
+    Address jitTop(pt, offsetof(PerThreadData, jitTop));
+    storePtr(StackPointer, jitTop);
+}
+
 static void
 ReportOverRecursed(JSContext *cx)
 {

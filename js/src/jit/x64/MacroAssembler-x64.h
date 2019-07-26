@@ -1301,23 +1301,11 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         orq(Imm32(type), frameSizeReg);
     }
 
-    
-    
-    void linkExitFrame() {
-        storePtr(StackPointer, AbsoluteAddress(GetIonContext()->runtime->addressOfJitTop()));
-    }
-
     void callWithExitFrame(JitCode *target, Register dynStack) {
         addPtr(Imm32(framePushed()), dynStack);
         makeFrameDescriptor(dynStack, JitFrame_IonJS);
         Push(dynStack);
         call(target);
-    }
-
-    
-    
-    void linkParallelExitFrame(Register pt) {
-        storePtr(StackPointer, Address(pt, offsetof(PerThreadData, jitTop)));
     }
 
     
