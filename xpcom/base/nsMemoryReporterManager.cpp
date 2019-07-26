@@ -33,7 +33,7 @@ using namespace mozilla;
 #  include "jemalloc.h"
 #endif  
 
-#if defined(XP_LINUX) || defined(XP_MACOSX) || defined(SOLARIS)
+#ifdef XP_UNIX
 
 #include <sys/time.h>
 #include <sys/resource.h>
