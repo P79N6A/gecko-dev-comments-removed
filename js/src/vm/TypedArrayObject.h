@@ -174,13 +174,7 @@ class ArrayBufferObject : public JSObject
 
 
 
-    bool copyData(JSContext *cx);
-
-    
-
-
-
-    bool ensureNonInline(JSContext *cx);
+    static bool ensureNonInline(JSContext *cx, Handle<ArrayBufferObject*> buffer);
 
     uint32_t byteLength() const {
         return getElementsHeader()->initializedLength;
