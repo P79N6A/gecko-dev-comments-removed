@@ -204,14 +204,6 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 
 
 
-
-
-
-#define CSS_PROPERTY_ALWAYS_ENABLED_IN_CHROME_OR_CERTIFIED_APP (1<<23)
-
-
-
-
 enum nsStyleAnimType {
   
   
@@ -266,21 +258,12 @@ public:
   static void AddRefTable(void);
   static void ReleaseTable(void);
 
+  
   enum EnabledState {
-    
-    
-    eEnabledForAllContent = 0,
-    
-    eEnabledInUASheets    = 0x01,
-    
-    eEnabledInChromeOrCertifiedApp = 0x02,
-    
-    
-    
-    
-    eIgnoreEnabledState   = 0xff
+    eEnabled,
+    eEnabledInUASheets,
+    eAny
   };
-
   
   
   
@@ -464,25 +447,11 @@ public:
     return gPropertyEnabled[aProperty];
   }
 
-  static bool IsEnabled(nsCSSProperty aProperty, EnabledState aEnabled)
-  {
-    if (IsEnabled(aProperty)) {
-      return true;
-    }
-    if (aEnabled == eIgnoreEnabledState) {
-      return true;
-    }
-    if ((aEnabled & eEnabledInUASheets) &&
-        PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS))
-    {
-      return true;
-    }
-    if ((aEnabled & eEnabledInChromeOrCertifiedApp) &&
-        PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_CHROME_OR_CERTIFIED_APP))
-    {
-      return true;
-    }
-    return false;
+  static bool IsEnabled(nsCSSProperty aProperty, EnabledState aEnabled) {
+    return IsEnabled(aProperty) ||
+      (aEnabled == eEnabledInUASheets &&
+       PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS)) ||
+      aEnabled == eAny;
   }
 
 public:
@@ -637,29 +606,5 @@ public:
   static const KTableValue kWritingModeKTable[];
   static const KTableValue kHyphensKTable[];
 };
-
-inline nsCSSProps::EnabledState operator|(nsCSSProps::EnabledState a,
-                                          nsCSSProps::EnabledState b)
-{
-  return nsCSSProps::EnabledState(int(a) | int(b));
-}
-
-inline nsCSSProps::EnabledState operator&(nsCSSProps::EnabledState a,
-                                          nsCSSProps::EnabledState b)
-{
-  return nsCSSProps::EnabledState(int(a) & int(b));
-}
-
-inline nsCSSProps::EnabledState& operator|=(nsCSSProps::EnabledState& a,
-                                            nsCSSProps::EnabledState b)
-{
-  return a = a | b;
-}
-
-inline nsCSSProps::EnabledState& operator&=(nsCSSProps::EnabledState& a,
-                                            nsCSSProps::EnabledState b)
-{
-  return a = a & b;
-}
 
 #endif 
