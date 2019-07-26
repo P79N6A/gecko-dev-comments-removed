@@ -274,7 +274,7 @@ nsXBLResourceLoader::NotifyBoundElements()
   mBoundElements.Clear();
 
   
-  NS_RELEASE(mResources->mLoader);
+  mResources->ClearLoader();
 }
 
 nsresult

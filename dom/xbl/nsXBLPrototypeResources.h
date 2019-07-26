@@ -22,6 +22,9 @@ class nsCSSStyleSheet;
 class nsXBLPrototypeResources
 {
 public:
+  nsXBLPrototypeResources(nsXBLPrototypeBinding* aBinding);
+  ~nsXBLPrototypeResources();
+
   void LoadResources(bool* aResult);
   void AddResource(nsIAtom* aResourceType, const nsAString& aSrc);
   void AddResourceListener(nsIContent* aElement);
@@ -29,13 +32,19 @@ public:
 
   nsresult Write(nsIObjectOutputStream* aStream);
 
-  nsXBLPrototypeResources(nsXBLPrototypeBinding* aBinding);
-  ~nsXBLPrototypeResources();
+  void Traverse(nsCycleCollectionTraversalCallback &cb) const;
 
+  void ClearLoader();
 
-  nsXBLResourceLoader* mLoader; 
   typedef nsTArray<nsRefPtr<nsCSSStyleSheet> > sheet_array_type;
-  sheet_array_type mStyleSheetList; 
+
+private:
+  
+  nsXBLResourceLoader* mLoader;
+
+public:
+  
+  sheet_array_type mStyleSheetList;
 
   
   nsCOMPtr<nsIStyleRuleProcessor> mRuleProcessor;
