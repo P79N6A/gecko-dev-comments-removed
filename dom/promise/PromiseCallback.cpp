@@ -219,8 +219,8 @@ WrapperPromiseCallback::Call(JSContext* aCx,
 
   
   
-  JS::Rooted<JS::Value> retValue(aCx,
-    mCallback->Call(value, rv, CallbackObject::eRethrowExceptions));
+  JS::Rooted<JS::Value> retValue(aCx);
+  mCallback->Call(value, &retValue, rv, CallbackObject::eRethrowExceptions);
 
   rv.WouldReportJSException();
 
