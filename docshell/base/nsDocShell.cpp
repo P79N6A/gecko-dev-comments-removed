@@ -3042,18 +3042,14 @@ nsDocShell::FindItemWithName(const PRUnichar * aName,
     if (!*aName)
         return NS_OK;
 
-    if (aRequestor) {
-        
-        
-        return DoFindItemWithName(aName, aRequestor, aOriginalRequestor,
-                                  _retval);
-    } else {
-
-        
-        
-        
-
+    if (!aRequestor)
+    {
         nsCOMPtr<nsIDocShellTreeItem> foundItem;
+
+        
+        
+        
+
         nsDependentString name(aName);
         if (name.LowerCaseEqualsLiteral("_self")) {
             foundItem = this;
@@ -3102,19 +3098,16 @@ nsDocShell::FindItemWithName(const PRUnichar * aName,
                 
             }
 #endif
-        } else {
-            
-            DoFindItemWithName(aName, aRequestor, aOriginalRequestor,
-                               getter_AddRefs(foundItem));
         }
 
         if (foundItem && !CanAccessItem(foundItem, aOriginalRequestor)) {
             foundItem = nullptr;
         }
 
-        
-        
         if (foundItem) {
+            
+            
+            
 
             
             uint32_t sandboxFlags = 0;
@@ -3136,14 +3129,17 @@ nsDocShell::FindItemWithName(const PRUnichar * aName,
                     bool isAncestor = false;
 
                     nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
-                    foundItem->GetSameTypeParent(getter_AddRefs(parentAsItem));
+                    GetSameTypeParent(getter_AddRefs(parentAsItem));
+
                     while (parentAsItem) {
-                        if (parentAsItem == selfAsItem) {
+                        nsCOMPtr<nsIDocShellTreeItem> tmp;
+                        parentAsItem->GetParent(getter_AddRefs(tmp));
+
+                        if (tmp && tmp == selfAsItem) {
                             isAncestor = true;
                             break;
                         }
-                        nsCOMPtr<nsIDocShellTreeItem> tmp = parentAsItem;
-                        tmp->GetSameTypeParent(getter_AddRefs(parentAsItem));
+                        parentAsItem = tmp;
                     }
 
                     if (!isAncestor) {
@@ -3171,17 +3167,12 @@ nsDocShell::FindItemWithName(const PRUnichar * aName,
             }
 
             foundItem.swap(*_retval);
+            return NS_OK;
         }
-        return NS_OK;
     }
-}
 
-nsresult
-nsDocShell::DoFindItemWithName(const PRUnichar* aName,
-                               nsISupports* aRequestor,
-                               nsIDocShellTreeItem* aOriginalRequestor,
-                               nsIDocShellTreeItem** _retval)
-{
+    
+        
     
     if (mName.Equals(aName) && ItemIsActive(this) &&
         CanAccessItem(this, aOriginalRequestor)) {
