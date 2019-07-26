@@ -33,24 +33,22 @@ function runTests(findAndRunTests) {
   
   
   
-  require("../timers").setTimeout(function () {
-    harness.runTests({
-      findAndRunTests: findAndRunTests,
-      iterations: cfxArgs.iterations || 1,
-      filter: cfxArgs.filter,
-      profileMemory: cfxArgs.profileMemory,
-      stopOnError: cfxArgs.stopOnError,
-      verbose: cfxArgs.verbose,
-      parseable: cfxArgs.parseable,
-      print: stdout.write,
-      onDone: onDone
-    });
-  }, 0);
+  require("../timers").setTimeout(_ => harness.runTests({
+    findAndRunTests: findAndRunTests,
+    iterations: cfxArgs.iterations || 1,
+    filter: cfxArgs.filter,
+    profileMemory: cfxArgs.profileMemory,
+    stopOnError: cfxArgs.stopOnError,
+    verbose: cfxArgs.verbose,
+    parseable: cfxArgs.parseable,
+    print: stdout.write,
+    onDone: onDone
+  }));
 }
 
 function printFailedTests(tests, print) {
   let iterationNumber = 0;
-  let singleIteration = tests.testRuns.length == 1;
+  let singleIteration = (tests.testRuns || []).length == 1;
   let padding = singleIteration ? "" : "  ";
 
   print("\nThe following tests failed:\n");
@@ -94,7 +92,7 @@ exports.runTestsFromModule = function runTestsFromModule(module) {
   let id = module.id;
   
   let exports = {};
-  Object.keys(module.exports).forEach(function(key) {
+  Object.keys(module.exports).forEach(key => {
     exports[key] = module.exports[key];
   });
 

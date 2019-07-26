@@ -233,7 +233,6 @@ function startup(data, reasonCode) {
       
       modules: {
         '@test/options': {
-          allTestModules: options.allTestModules,
           iterations: options.iterations,
           filter: options.filter,
           profileMemory: options.profileMemory,

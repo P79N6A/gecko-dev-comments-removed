@@ -836,12 +836,6 @@ def run(arguments=sys.argv[1:], target_cfg=None, pkg_cfg=None,
         
         harness_options['force-use-bundled-sdk'] = True
 
-    
-    if command == "test":
-        harness_options['allTestModules'] = manifest.get_all_test_modules()
-        if len(harness_options['allTestModules']) == 0:
-            sys.exit(0)
-
     from cuddlefish.rdf import gen_manifest, RDFUpdate
 
     manifest_rdf = gen_manifest(template_root_dir=app_extension_dir,
