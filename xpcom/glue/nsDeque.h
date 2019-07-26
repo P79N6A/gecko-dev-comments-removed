@@ -25,7 +25,9 @@
 #define _NSDEQUE
 
 #include "nscore.h"
+#include "nsDebug.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/fallible.h"
 
 
 
@@ -58,6 +60,7 @@ class nsDequeIterator;
 
 class NS_COM_GLUE nsDeque {
   friend class nsDequeIterator;
+  typedef mozilla::fallible_t fallible_t;
   public:
    nsDeque(nsDequeFunctor* aDeallocator = nullptr);
   ~nsDeque();
@@ -75,16 +78,26 @@ class NS_COM_GLUE nsDeque {
 
 
 
+  void Push(void* aItem) {
+    if (!Push(aItem, fallible_t())) {
+      NS_RUNTIMEABORT("OOM");
+    }
+  }
 
-  nsDeque& Push(void* aItem);
+  bool Push(void* aItem, const fallible_t&) NS_WARN_UNUSED_RESULT;
 
   
 
 
 
 
+  void PushFront(void* aItem) {
+    if (!PushFront(aItem, fallible_t())) {
+      NS_RUNTIMEABORT("OOM");
+    }
+  }
 
-  nsDeque& PushFront(void* aItem);
+  bool PushFront(void* aItem, const fallible_t&) NS_WARN_UNUSED_RESULT;
 
   
 
@@ -133,18 +146,14 @@ class NS_COM_GLUE nsDeque {
   
 
 
-
-
-  nsDeque& Empty();
+  void Empty();
 
   
 
 
 
 
-
-
-  nsDeque& Erase();
+  void Erase();
 
   
 
@@ -163,8 +172,8 @@ class NS_COM_GLUE nsDeque {
   nsDequeIterator End() const;
 
   void* Last() const;
-  
 
+  
 
 
 

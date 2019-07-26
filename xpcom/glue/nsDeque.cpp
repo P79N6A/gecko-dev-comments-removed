@@ -104,31 +104,23 @@ void nsDeque::SetDeallocator(nsDequeFunctor* aDeallocator){
 
 
 
-
-
-nsDeque& nsDeque::Empty() {
+void nsDeque::Empty() {
   if (mSize && mData) {
     memset(mData, 0, mCapacity*sizeof(mData));
   }
   mSize=0;
   mOrigin=0;
-  return *this;
 }
 
 
 
 
-
-
-nsDeque& nsDeque::Erase() {
+void nsDeque::Erase() {
   if (mDeallocator && mSize) {
     ForEach(*mDeallocator);
   }
-  return Empty();
+  Empty();
 }
-
-
-
 
 
 
@@ -172,14 +164,13 @@ bool nsDeque::GrowCapacity() {
 
 
 
-
-nsDeque& nsDeque::Push(void* aItem) {
+bool nsDeque::Push(void* aItem, const fallible_t&) {
   if (mSize==mCapacity && !GrowCapacity()) {
-    return *this;
+    return false;
   }
   mData[modulus(mOrigin + mSize, mCapacity)]=aItem;
   mSize++;
-  return *this;
+  return true;
 }
 
 
@@ -214,21 +205,19 @@ nsDeque& nsDeque::Push(void* aItem) {
 
 
 
-
-nsDeque& nsDeque::PushFront(void* aItem) {
+bool nsDeque::PushFront(void* aItem, const fallible_t&) {
   mOrigin--;
   modasgn(mOrigin,mCapacity);
   if (mSize==mCapacity) {
     if (!GrowCapacity()) {
-      NS_WARNING("out of memory");
-      return *this;
+      return false;
     }
     
     mData[mSize]=mData[mOrigin];
   }
   mData[mOrigin]=aItem;
   mSize++;
-  return *this;
+  return true;
 }
 
 
