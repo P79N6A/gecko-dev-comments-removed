@@ -99,7 +99,7 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
     vp.setNull();
 
     
-    NonBuiltinScriptFrameIter iter(cx);
+    StackIter iter(cx);
     for (; !iter.done(); ++iter) {
         if (!iter.isFunctionFrame() || iter.isEvalFrame())
             continue;
