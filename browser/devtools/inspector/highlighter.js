@@ -228,6 +228,15 @@ Highlighter.prototype = {
 
   invalidateSize: function Highlighter_invalidateSize()
   {
+    
+    
+    
+    if (!this.selection.node ||
+        !this.selection.node.ownerDocument ||
+        !this.selection.node.ownerDocument.defaultView) {
+      return;
+    }
+
     let canHiglightNode = this.selection.isNode() &&
                           this.selection.isConnected() &&
                           this.selection.isElementNode();

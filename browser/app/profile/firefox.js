@@ -632,7 +632,7 @@ pref("plugins.hide_infobar_for_outdated_plugin", false);
 pref("plugins.update.url", "https://www.mozilla.org/%LOCALE%/plugincheck/");
 pref("plugins.update.notifyUser", false);
 
-pref("plugins.click_to_play", true);
+pref("plugins.click_to_play", false);
 
 
 pref("plugins.notifyMissingFlash", true);
@@ -1058,6 +1058,7 @@ pref("devtools.toolbox.sideEnabled", true);
 pref("devtools.inspector.enabled", true);
 pref("devtools.inspector.activeSidebar", "ruleview");
 pref("devtools.inspector.markupPreview", false);
+pref("devtools.inspector.remote", false);
 
 
 pref("devtools.layoutview.enabled", true);
