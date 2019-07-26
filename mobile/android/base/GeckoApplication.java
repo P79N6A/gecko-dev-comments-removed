@@ -10,6 +10,7 @@ public class GeckoApplication extends Application {
 
     private boolean mInited;
     private boolean mInBackground;
+    private boolean mPausedGecko;
 
     private LightweightTheme mLightweightTheme;
 
@@ -32,17 +33,28 @@ public class GeckoApplication extends Application {
         mInited = true;
     }
 
-    protected void onActivityPause(GeckoActivity activity) {
+    protected void onActivityPause(GeckoActivityStatus activity) {
         mInBackground = true;
 
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createPauseEvent(true));
+        if ((activity.isFinishing() == false) &&
+            (activity.isGeckoActivityOpened() == false)) {
+            
+            
+            
+            
+            
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createPauseEvent(true));
+            mPausedGecko = true;
+        }
         GeckoConnectivityReceiver.getInstance().stop();
         GeckoNetworkManager.getInstance().stop();
     }
 
-    protected void onActivityResume(GeckoActivity activity) {
-        if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning))
+    protected void onActivityResume(GeckoActivityStatus activity) {
+        if (mPausedGecko) {
             GeckoAppShell.sendEventToGecko(GeckoEvent.createResumeEvent(true));
+            mPausedGecko = false;
+        }
         GeckoConnectivityReceiver.getInstance().start();
         GeckoNetworkManager.getInstance().start();
 
