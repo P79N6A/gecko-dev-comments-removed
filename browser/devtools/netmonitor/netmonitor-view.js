@@ -5,11 +5,19 @@
 
 "use strict";
 
+const HTML_NS = "http://www.w3.org/1999/xhtml";
 const EPSILON = 0.001;
+const RESIZE_REFRESH_RATE = 50; 
 const REQUESTS_REFRESH_RATE = 50; 
 const REQUESTS_HEADERS_SAFE_BOUNDS = 30; 
-const REQUESTS_WATERFALL_SAFE_BOUNDS = 100; 
-const REQUESTS_WATERFALL_BACKGROUND_PATTERN = [5, 250, 1000, 2000]; 
+const REQUESTS_WATERFALL_SAFE_BOUNDS = 90; 
+const REQUESTS_WATERFALL_HEADER_TICKS_MULTIPLE = 5; 
+const REQUESTS_WATERFALL_HEADER_TICKS_SPACING_MIN = 60; 
+const REQUESTS_WATERFALL_BACKGROUND_TICKS_MULTIPLE = 5; 
+const REQUESTS_WATERFALL_BACKGROUND_TICKS_SCALES = 3;
+const REQUESTS_WATERFALL_BACKGROUND_TICKS_SPACING_MIN = 10; 
+const REQUESTS_WATERFALL_BACKGROUND_TICKS_OPACITY_MIN = 10; 
+const REQUESTS_WATERFALL_BACKGROUND_TICKS_OPACITY_ADD = 16; 
 const DEFAULT_HTTP_VERSION = "HTTP/1.1";
 const HEADERS_SIZE_DECIMALS = 3;
 const CONTENT_SIZE_DECIMALS = 2;
@@ -47,8 +55,6 @@ const GENERIC_VARIABLES_VIEW_SETTINGS = {
   eval: () => {},
   switch: () => {}
 };
-
-function $(aSelector, aTarget = document) aTarget.querySelector(aSelector);
 
 
 
@@ -356,8 +362,8 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
     if (!this.lazyUpdate) {
       return void this._flushRequests();
     }
-    window.clearTimeout(this._updateTimeout);
-    this._updateTimeout = window.setTimeout(this._flushRequests, REQUESTS_REFRESH_RATE);
+    
+    drain("update-requests", REQUESTS_REFRESH_RATE, () => this._flushRequests());
   },
 
   
@@ -593,29 +599,10 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
     
     
     
+    
     if (aReset) {
       this._cachedWaterfallWidth = 0;
-
-      let table = $("#network-table");
-      let toolbar = $("#requests-menu-toolbar");
-      let columns = [
-        [".requests-menu-waterfall", "waterfall-overflows"],
-        [".requests-menu-size", "size-overflows"],
-        [".requests-menu-type", "type-overflows"],
-        [".requests-menu-domain", "domain-overflows"]
-      ];
-
-      
-      columns.forEach(([, attribute]) => table.removeAttribute(attribute));
-      let availableWidth = toolbar.getBoundingClientRect().width;
-
-      
-      columns.forEach(([className, attribute]) => {
-        let bounds = $(".requests-menu-header" + className).getBoundingClientRect();
-        if (bounds.right > availableWidth - REQUESTS_HEADERS_SAFE_BOUNDS) {
-          table.setAttribute(attribute, "");
-        }
-      });
+      this._hideOverflowingColumns();
     }
 
     
@@ -623,6 +610,11 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
     let availableWidth = this._waterfallWidth - REQUESTS_WATERFALL_SAFE_BOUNDS;
     let longestWidth = this._lastRequestEndedMillis - this._firstRequestStartedMillis;
     let scale = Math.min(Math.max(availableWidth / longestWidth, EPSILON), 1);
+
+    
+    this._showWaterfallDivisionLabels(scale);
+    this._drawWaterfallBackground(scale);
+    this._flushWaterfallBackgrounds();
 
     
     
@@ -649,6 +641,145 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
       endCapNode.style.transform = revScaleX + " translateX(-0.5px)";
       totalNode.style.transform = revScaleX;
     }
+  },
+
+  
+
+
+
+
+
+  _showWaterfallDivisionLabels: function NVRM__showWaterfallDivisionLabels(aScale) {
+    let container = $("#requests-menu-waterfall-header-box");
+    let availableWidth = this._waterfallWidth - REQUESTS_WATERFALL_SAFE_BOUNDS;
+
+    
+    while (container.hasChildNodes()) {
+      container.firstChild.remove();
+    }
+
+    
+    let timingStep = REQUESTS_WATERFALL_HEADER_TICKS_MULTIPLE;
+    let optimalTickIntervalFound = false;
+
+    while (!optimalTickIntervalFound) {
+      
+      let scaledStep = aScale * timingStep;
+      if (scaledStep < REQUESTS_WATERFALL_HEADER_TICKS_SPACING_MIN) {
+        timingStep <<= 1;
+        continue;
+      }
+      optimalTickIntervalFound = true;
+
+      
+      let fragment = document.createDocumentFragment();
+
+      for (let x = 0; x < availableWidth; x += scaledStep) {
+        let divisionMS = (x / aScale).toFixed(0);
+        let translateX = "translateX(" + (x | 0) + "px)";
+
+        let node = document.createElement("label");
+        let text = L10N.getFormatStr("networkMenu.divisionMS", divisionMS);
+        node.className = "plain requests-menu-timings-division";
+        node.style.transform = translateX;
+
+        node.setAttribute("value", text);
+        fragment.appendChild(node);
+      }
+      container.appendChild(fragment);
+    }
+  },
+
+  
+
+
+
+
+
+  _drawWaterfallBackground: function NVRM__drawWaterfallBackground(aScale) {
+    if (!this._canvas || !this._ctx) {
+      this._canvas = document.createElementNS(HTML_NS, "canvas");
+      this._ctx = this._canvas.getContext("2d");
+    }
+    let canvas = this._canvas;
+    let ctx = this._ctx;
+
+    
+    let canvasWidth = canvas.width = this._waterfallWidth;
+    let canvasHeight = canvas.height = 1; 
+
+    
+    let imageData = ctx.createImageData(canvasWidth, canvasHeight);
+    let pixelArray = imageData.data;
+
+    let buf = new ArrayBuffer(pixelArray.length);
+    let buf8 = new Uint8ClampedArray(buf);
+    let data32 = new Uint32Array(buf);
+
+    
+    let timingStep = REQUESTS_WATERFALL_BACKGROUND_TICKS_MULTIPLE;
+    let alphaComponent = REQUESTS_WATERFALL_BACKGROUND_TICKS_OPACITY_MIN;
+    let optimalTickIntervalFound = false;
+
+    while (!optimalTickIntervalFound) {
+      
+      let scaledStep = aScale * timingStep;
+      if (scaledStep < REQUESTS_WATERFALL_BACKGROUND_TICKS_SPACING_MIN) {
+        timingStep <<= 1;
+        continue;
+      }
+      optimalTickIntervalFound = true;
+
+      
+      for (let i = 1; i <= REQUESTS_WATERFALL_BACKGROUND_TICKS_SCALES; i++) {
+        let increment = scaledStep * Math.pow(2, i);
+        for (let x = 0; x < canvasWidth; x += increment) {
+          data32[x | 0] = (alphaComponent << 24) | (255 << 16) | (255 <<  8) | 255;
+        }
+        alphaComponent += REQUESTS_WATERFALL_BACKGROUND_TICKS_OPACITY_ADD;
+      }
+    }
+
+    
+    pixelArray.set(buf8);
+    ctx.putImageData(imageData, 0, 0);
+    this._cachedWaterfallBackground = "url(" + canvas.toDataURL() + ")";
+  },
+
+  
+
+
+  _flushWaterfallBackgrounds: function NVRM__flushWaterfallBackgrounds() {
+    for (let [, { target }] of this._cache) {
+      let waterfallNode = $(".requests-menu-waterfall", target);
+      waterfallNode.style.backgroundImage = this._cachedWaterfallBackground;
+    }
+  },
+
+  
+
+
+  _hideOverflowingColumns: function NVRM__hideOverflowingColumns() {
+    let table = $("#network-table");
+    let toolbar = $("#requests-menu-toolbar");
+    let columns = [
+      ["#requests-menu-waterfall-header-box", "waterfall-overflows"],
+      ["#requests-menu-size-header-label", "size-overflows"],
+      ["#requests-menu-type-header-label", "type-overflows"],
+      ["#requests-menu-domain-header-label", "domain-overflows"]
+    ];
+
+    
+    columns.forEach(([, attribute]) => table.removeAttribute(attribute));
+    let availableWidth = toolbar.getBoundingClientRect().width;
+
+    
+    columns.forEach(([id, attribute]) => {
+      let bounds = $(id).getBoundingClientRect();
+      if (bounds.right > availableWidth - REQUESTS_HEADERS_SAFE_BOUNDS) {
+        table.setAttribute(attribute, "");
+      }
+    });
   },
 
   
@@ -685,7 +816,8 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
   _onResize: function NVRM__onResize(e) {
-    this._flushWaterfallViews(true);
+    
+    drain("resize-events", RESIZE_REFRESH_RATE, () => this._flushWaterfallViews(true));
   },
 
   
@@ -721,7 +853,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   get _waterfallWidth() {
     if (this._cachedWaterfallWidth == 0) {
       let container = $("#requests-menu-toolbar");
-      let waterfall = $("#requests-menu-waterfall-label");
+      let waterfall = $("#requests-menu-waterfall-header-box");
       let containerBounds = container.getBoundingClientRect();
       let waterfallBounds = waterfall.getBoundingClientRect();
       this._cachedWaterfallWidth = containerBounds.width - waterfallBounds.left;
@@ -730,11 +862,15 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   },
 
   _cache: null,
+  _canvas: null,
+  _ctx: null,
   _cachedWaterfallWidth: 0,
+  _cachedWaterfallBackground: null,
   _firstRequestStartedMillis: -1,
   _lastRequestEndedMillis: -1,
   _updateQueue: [],
-  _updateTimeout: null
+  _updateTimeout: null,
+  _resizeTimeout: null
 });
 
 
@@ -1212,6 +1348,22 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
   _requestCookies: "",
   _responseCookies: ""
 });
+
+
+
+
+function $(aSelector, aTarget = document) aTarget.querySelector(aSelector);
+
+
+
+
+
+function drain(aId, aWait, aCallback) {
+  window.clearTimeout(drain.store.get(aId));
+  drain.store.set(aId, window.setTimeout(aCallback, aWait));
+}
+
+drain.store = new Map();
 
 
 
