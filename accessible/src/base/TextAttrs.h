@@ -215,6 +215,38 @@ protected:
   
 
 
+
+
+
+  class InvalidTextAttr : public TTextAttr<uint32_t>
+  {
+  public:
+    InvalidTextAttr(nsIContent* aRootElm, nsIContent* aElm);
+    virtual ~InvalidTextAttr() { };
+
+  protected:
+
+    enum {
+      eFalse,
+      eGrammar,
+      eSpelling,
+      eTrue
+    };
+
+    
+    virtual bool GetValueFor(Accessible* aAccessible, uint32_t* aValue);
+    virtual void ExposeValue(nsIPersistentProperties* aAttributes,
+                             const uint32_t& aValue);
+
+  private:
+    bool GetValue(nsIContent* aElm, uint32_t* aValue);
+    nsIContent* mRootElm;
+  };
+
+
+  
+
+
   class BGColorTextAttr : public TTextAttr<nscolor>
   {
   public:
