@@ -4,7 +4,7 @@
 
 
 
-#include "vm/Debugger-inl.h"
+#include "vm/Debugger.h"
 
 #include "jsapi.h"
 #include "jscntxt.h"
@@ -3820,7 +3820,7 @@ DebuggerFrame_getThis(JSContext *cx, unsigned argc, Value *vp)
     RootedValue thisv(cx);
     {
         AutoCompartment ac(cx, iter.scopeChain());
-        if (!iter.computeThis())
+        if (!iter.computeThis(cx))
             return false;
         thisv = iter.thisv();
     }
@@ -4220,7 +4220,7 @@ DebuggerGenericEval(JSContext *cx, const char *fullMethodName, const Value &code
     Rooted<Env *> env(cx);
     if (iter) {
         
-        if (!iter->computeThis())
+        if (!iter->computeThis(cx))
             return false;
         thisv = iter->thisv();
         env = GetDebugScopeForFrame(cx, iter->abstractFramePtr());
