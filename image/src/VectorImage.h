@@ -79,27 +79,10 @@ protected:
 private:
   void CancelAllListeners();
 
-  
-  
-  struct StopRequest
-  {
-    StopRequest(bool aLastPart = true, nsresult aStatus = NS_OK)
-      : lastPart(aLastPart)
-      , status(aStatus)
-    { }
-
-    bool lastPart;
-    nsresult status;
-  };
-
   nsRefPtr<SVGDocumentWrapper>       mSVGDocumentWrapper;
   nsRefPtr<SVGRootRenderingObserver> mRenderingObserver;
   nsRefPtr<SVGLoadEventListener>     mLoadEventListener;
   nsRefPtr<SVGParseCompleteListener> mParseCompleteListener;
-
-  
-  
-  Maybe<StopRequest> mStopRequest;       
 
   nsIntRect      mRestrictedRegion;       
                                           
