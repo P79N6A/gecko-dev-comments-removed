@@ -71,7 +71,7 @@ ScriptAnalysis::getValueTypes(const SSAValue &v)
         return &v.phiNode()->types;
       default:
         
-        JS_NOT_REACHED("Bad SSA value");
+        MOZ_ASSUME_NOT_REACHED("Bad SSA value");
         return NULL;
     }
 }
