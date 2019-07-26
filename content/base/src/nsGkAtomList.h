@@ -1714,11 +1714,6 @@ GK_ATOM(onMozPressTapGesture, "onMozPressTapGesture")
 GK_ATOM(onMozEdgeUIGesture, "onMozEdgeUIGesture")
 
 
-GK_ATOM(onMozTouchDown, "onMozTouchDown")
-GK_ATOM(onMozTouchMove, "onMozTouchMove")
-GK_ATOM(onMozTouchUp, "onMozTouchUp")
-
-
 GK_ATOM(ondevicemotion, "ondevicemotion")
 GK_ATOM(ondeviceorientation, "ondeviceorientation")
 GK_ATOM(ondeviceproximity, "ondeviceproximity")
