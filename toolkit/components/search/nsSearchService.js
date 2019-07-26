@@ -1565,14 +1565,51 @@ Engine.prototype = {
 
 
 
+  _getIconKey: function SRCH_ENG_getIconKey(aWidth, aHeight) {
+    let keyObj = {
+     width: aWidth,
+     height: aHeight
+    };
+
+    return JSON.stringify(keyObj);
+  },
+
+  
 
 
-  _setIcon: function SRCH_ENG_setIcon(aIconURL, aIsPreferred) {
+
+
+
+
+
+
+
+  _addIconToMap: function SRCH_ENG_addIconToMap(aWidth, aHeight, aURISpec) {
     
-    
-    if (this._hasPreferredIcon && !aIsPreferred)
-      return;
+    this._iconMapObj = this._iconMapObj || {};
+    let key = this._getIconKey(aWidth, aHeight);
+    this._iconMapObj[key] = aURISpec;
+  },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _setIcon: function SRCH_ENG_setIcon(aIconURL, aIsPreferred, aWidth, aHeight) {
     var uri = makeURI(aIconURL);
 
     
@@ -1584,9 +1621,15 @@ Engine.prototype = {
     
     switch (uri.scheme) {
       case "data":
-        this._iconURI = uri;
-        notifyAction(this, SEARCH_ENGINE_CHANGED);
-        this._hasPreferredIcon = aIsPreferred;
+        if (!this._hasPreferredIcon || aIsPreferred) {
+          this._iconURI = uri;
+          notifyAction(this, SEARCH_ENGINE_CHANGED);
+          this._hasPreferredIcon = aIsPreferred;
+        }
+
+        if (aWidth && aHeight) {
+          this._addIconToMap(aWidth, aHeight, aIconURL)
+        }
         break;
       case "http":
       case "https":
@@ -1610,7 +1653,12 @@ Engine.prototype = {
             }
 
             var str = btoa(String.fromCharCode.apply(null, aByteArray));
-            aEngine._iconURI = makeURI(ICON_DATAURL_PREFIX + str);
+            let dataURL = ICON_DATAURL_PREFIX + str;
+            aEngine._iconURI = makeURI(dataURL);
+
+            if (aWidth && aHeight) {
+              aEngine._addIconToMap(aWidth, aHeight, dataURL)
+            }
 
             
             
@@ -1804,14 +1852,17 @@ Engine.prototype = {
 
   _parseImage: function SRCH_ENG_parseImage(aElement) {
     LOG("_parseImage: Image textContent: \"" + limitURILength(aElement.textContent) + "\"");
-    if (aElement.getAttribute("width")  == "16" &&
-        aElement.getAttribute("height") == "16") {
-      this._setIcon(aElement.textContent, true);
+
+    let width = parseInt(aElement.getAttribute("width"), 10);
+    let height = parseInt(aElement.getAttribute("height"), 10);
+    let isPrefered = width == 16 && height == 16;
+
+    if (isNaN(width) || isNaN(height) || width <= 0 || height <=0) {
+      LOG("OpenSearch image element must have positive width and height.");
+      return;
     }
-    else {
-      LOG("OpenSearch image must have explicit width=16 height=16: " +
-          aElement.textContent);
-    }
+
+    this._setIcon(aElement.textContent, isPrefered, width, height);
   },
 
   _parseAsMozSearch: function SRCH_ENG_parseAsMoz() {
@@ -2209,6 +2260,7 @@ Engine.prototype = {
     else
       this._readOnly = false;
     this._iconURI = makeURI(aJson._iconURL);
+    this._iconMapObj = aJson._iconMapObj;
     for (let i = 0; i < aJson._urls.length; ++i) {
       let url = aJson._urls[i];
       let engineURL = new EngineURL(url.type || URLTYPE_SEARCH_HTML,
@@ -2233,7 +2285,8 @@ Engine.prototype = {
       description: this.description,
       __searchForm: this.__searchForm,
       _iconURL: this._iconURL,
-      _urls: [url._serializeToJSON() for each(url in this._urls)] 
+      _iconMapObj: this._iconMapObj,
+      _urls: [url._serializeToJSON() for each(url in this._urls)]
     };
 
     if (this._file instanceof Ci.nsILocalFile)
@@ -2679,8 +2732,51 @@ Engine.prototype = {
 
   get wrappedJSObject() {
     return this;
-  }
+  },
 
+  
+
+
+
+
+
+
+
+
+  getIconURLBySize: function SRCH_ENG_getIconURLBySize(aWidth, aHeight) {
+    if (!this._iconMapObj)
+      return null;
+
+    let key = this._getIconKey(aWidth, aHeight);
+    if (key in this._iconMapObj) {
+      return this._iconMapObj[key];
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+  getIcons: function SRCH_ENG_getIcons() {
+    let result = [];
+
+    if (!this._iconMapObj)
+      return result;
+
+    for (let key of Object.keys(this._iconMapObj)) {
+      let iconSize = JSON.parse(key);
+      result.push({
+        width: iconSize.width,
+        height: iconSize.height,
+        url: this._iconMapObj[key]
+      });
+    }
+
+    return result;
+  }
 };
 
 
