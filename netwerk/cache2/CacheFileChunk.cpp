@@ -2,9 +2,9 @@
 
 
 
+#include "CacheLog.h"
 #include "CacheFileChunk.h"
 
-#include "CacheLog.h"
 #include "CacheFile.h"
 #include "nsThreadUtils.h"
 #include "nsAlgorithm.h"
