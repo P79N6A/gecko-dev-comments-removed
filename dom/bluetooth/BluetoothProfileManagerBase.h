@@ -23,6 +23,7 @@
 #include "nsIObserver.h"
 
 BEGIN_BLUETOOTH_NAMESPACE
+class BluetoothProfileController;
 
 class BluetoothProfileManagerBase : public nsIObserver
 {
@@ -31,8 +32,35 @@ public:
                                    const nsAString& aServiceUuid,
                                    int aChannel) = 0;
   virtual void OnUpdateSdpRecords(const nsAString& aDeviceAddress) = 0;
+
+  
+
+
   virtual void GetAddress(nsAString& aDeviceAddress) = 0;
+
+  
+
+
   virtual bool IsConnected() = 0;
+
+  
+
+
+
+  virtual void Connect(const nsAString& aDeviceAddress,
+                       BluetoothProfileController* aController) = 0;
+
+  
+
+
+  virtual void Disconnect(BluetoothProfileController* aController) = 0;
+
+  
+
+
+
+  virtual void OnConnect(const nsAString& aErrorStr) = 0;
+  virtual void OnDisconnect(const nsAString& aErrorStr) = 0;
 };
 
 END_BLUETOOTH_NAMESPACE
