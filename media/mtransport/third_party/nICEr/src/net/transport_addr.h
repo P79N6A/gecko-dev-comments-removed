@@ -66,7 +66,9 @@ typedef struct nr_transport_addr_ {
     struct sockaddr_in6 addr6;
   } u;
   char ifname[MAXIFNAME];
-  char as_string[40];     
+  
+
+  char as_string[52];
 } nr_transport_addr;
 
 int nr_sockaddr_to_transport_addr(struct sockaddr *saddr, int saddr_len, int protocol, int keep, nr_transport_addr *addr);

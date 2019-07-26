@@ -46,9 +46,6 @@
 #include <string.h>
 #include <unistd.h>
 
-
-char *addr2ascii(int af, const void *addrp, int len,char *buf);
-
 #define ETHERTYPE_VLAN 0x8100
 
 #define STDIO_BYTES_BUFFERED(fp) (fp->_IO_read_end - fp->_IO_read_ptr)

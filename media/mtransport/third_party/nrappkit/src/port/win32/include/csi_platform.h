@@ -58,9 +58,6 @@
 #define strcasestr stristr
 
 
-char *addr2ascii(int af, const void *addrp, int len,char *buf);
-
-
 size_t strlcat(char *dst, const char *src, size_t siz);
 
 
