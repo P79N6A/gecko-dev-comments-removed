@@ -729,9 +729,14 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
 
     
     
-    const char *val = responseHead->PeekHeader(nsHttp::Connection);
-    if (!val)
-        val = responseHead->PeekHeader(nsHttp::Proxy_Connection);
+    
+
+    bool explicitKeepAlive = false;
+    bool explicitClose = responseHead->HasHeaderValue(nsHttp::Connection, "close") ||
+        responseHead->HasHeaderValue(nsHttp::Proxy_Connection, "close");
+    if (!explicitClose)
+        explicitKeepAlive = responseHead->HasHeaderValue(nsHttp::Connection, "keep-alive") ||
+            responseHead->HasHeaderValue(nsHttp::Proxy_Connection, "keep-alive");
 
     
     mSupportsPipelining = false;
@@ -739,7 +744,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     if ((responseHead->Version() < NS_HTTP_VERSION_1_1) ||
         (requestHead->Version() < NS_HTTP_VERSION_1_1)) {
         
-        if (val && !PL_strcasecmp(val, "keep-alive"))
+        if (explicitKeepAlive)
             mKeepAlive = true;
         else
             mKeepAlive = false;
@@ -750,7 +755,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     }
     else {
         
-        if (val && !PL_strcasecmp(val, "close")) {
+        if (explicitClose) {
             mKeepAlive = false;
 
             
@@ -808,7 +813,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     
     bool foundKeepAliveMax = false;
     if (mKeepAlive) {
-        val = responseHead->PeekHeader(nsHttp::Keep_Alive);
+        const char *val = responseHead->PeekHeader(nsHttp::Keep_Alive);
 
         if (!mUsingSpdyVersion) {
             const char *cp = PL_strcasestr(val, "timeout=");
