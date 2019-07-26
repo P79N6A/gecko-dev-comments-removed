@@ -308,7 +308,7 @@ ValueNumberer::findDominatingDef(InstructionMap &defs, MDefinition *ins, size_t 
     JS_ASSERT(ins->valueNumber() != 0);
     InstructionMap::Ptr p = defs.lookup(ins->valueNumber());
     MDefinition *dom;
-    if (!p || index > p->value().validUntil) {
+    if (!p || index >= p->value().validEnd) {
         DominatingValue value;
         value.def = ins;
         
@@ -318,7 +318,7 @@ ValueNumberer::findDominatingDef(InstructionMap &defs, MDefinition *ins, size_t 
         
         
         
-        value.validUntil = index + ins->block()->numDominated();
+        value.validEnd = index + ins->block()->numDominated();
 
         if(!defs.put(ins->valueNumber(), value))
             return nullptr;

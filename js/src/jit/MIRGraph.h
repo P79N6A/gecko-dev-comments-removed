@@ -397,7 +397,10 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
         return immediatelyDominated_.end();
     }
 
+    
+    
     size_t numDominated() const {
+        JS_ASSERT(numDominated_ != 0);
         return numDominated_;
     }
 
