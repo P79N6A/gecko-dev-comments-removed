@@ -16,18 +16,8 @@
 #include "VideoFrameContainer.h"
 #include "VideoSegment.h"
 #include "MainThreadUtils.h"
-#include "nsAutoRef.h"
-#include "speex/speex_resampler.h"
-#include "AudioMixer.h"
 
 class nsIRunnable;
-
-template <>
-class nsAutoRefTraits<SpeexResamplerState> : public nsPointerRefTraits<SpeexResamplerState>
-{
-  public:
-  static void Release(SpeexResamplerState* aState) { speex_resampler_destroy(aState); }
-};
 
 namespace mozilla {
 
@@ -573,8 +563,6 @@ protected:
     
     
     MediaTime mBlockedAudioTime;
-    
-    TrackTicks mLastTickWritten;
     nsAutoPtr<AudioStream> mStream;
     TrackID mTrackID;
   };
@@ -674,9 +662,6 @@ public:
 
   void AddTrack(TrackID aID, TrackRate aRate, TrackTicks aStart,
                 MediaSegment* aSegment);
-
-  struct TrackData;
-  void ResampleAudioToGraphSampleRate(TrackData* aTrackData, MediaSegment* aSegment);
   
 
 
@@ -767,13 +752,7 @@ public:
 
   struct TrackData {
     TrackID mID;
-    
-    TrackRate mInputRate;
-    
-    TrackRate mOutputRate;
-    
-    
-    nsAutoRef<SpeexResamplerState> mResampler;
+    TrackRate mRate;
     TrackTicks mStart;
     
     
@@ -784,9 +763,6 @@ public:
     nsTArray<ThreadAndRunnable> mDispatchWhenNotEnough;
     bool mHaveEnough;
   };
-
-  void RegisterForAudioMixing();
-  bool NeedsMixing();
 
 protected:
   TrackData* FindDataForTrack(TrackID aID)
@@ -821,7 +797,6 @@ protected:
   bool mPullEnabled;
   bool mUpdateFinished;
   bool mDestroyed;
-  bool mNeedsMixing;
 };
 
 
