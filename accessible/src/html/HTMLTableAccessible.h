@@ -172,7 +172,7 @@ public:
   virtual a11y::role NativeRole();
   virtual uint64_t NativeState();
   virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
-  virtual Relation RelationByType(uint32_t aRelationType);
+  virtual Relation RelationByType(RelationType aRelationType) MOZ_OVERRIDE;
 
 protected:
   
@@ -231,7 +231,7 @@ public:
 
   
   virtual a11y::role NativeRole();
-  virtual Relation RelationByType(uint32_t aRelationType);
+  virtual Relation RelationByType(RelationType aRelationType) MOZ_OVERRIDE;
 };
 
 } 

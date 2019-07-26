@@ -4,8 +4,8 @@
 
 
 
-#ifndef RELATION_H_
-#define RELATION_H_
+#ifndef mozilla_a11y_relation_h_
+#define mozilla_a11y_relation_h_
 
 #include "AccIterator.h"
 
