@@ -8,7 +8,6 @@
 #include "jscntxt.h" 
 #include "jsobj.h" 
 
-#include "jsobjinlines.h"
 #include "vm/ObjectImpl-inl.h"
 
 using JS::PerfMeasurement;

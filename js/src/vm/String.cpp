@@ -4,15 +4,16 @@
 
 
 
+#include "vm/String.h"
+
 #include "mozilla/PodOperations.h"
 #include "mozilla/RangedPtr.h"
 
 #include "gc/Marking.h"
 
-#include "String.h"
-#include "String-inl.h"
+#include "jscompartmentinlines.h"
 
-#include "jsobjinlines.h"
+#include "String-inl.h"
 
 using namespace js;
 

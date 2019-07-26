@@ -1251,7 +1251,7 @@ class ObjectImpl : public gc::Cell
     friend class NewObjectCache;
 
     inline void invalidateSlotRange(uint32_t start, uint32_t count);
-    inline void initializeSlotRange(uint32_t start, uint32_t count);
+    void initializeSlotRange(uint32_t start, uint32_t count);
 
     
 
@@ -1372,7 +1372,9 @@ class ObjectImpl : public gc::Cell
     inline bool nativeContainsPure(Shape* shape);
 
     inline JSClass *getJSClass() const;
-    inline bool hasClass(const Class *c) const;
+    inline bool hasClass(const Class *c) const {
+        return getClass() == c;
+    }
     inline const ObjectOps *getOps() const;
 
     
@@ -1509,17 +1511,33 @@ class ObjectImpl : public gc::Cell
 
     
 
-    inline void *&privateRef(uint32_t nfixed) const; 
+    inline void *&privateRef(uint32_t nfixed) const { 
+        
 
-    inline bool hasPrivate() const;
-    inline void *getPrivate() const;
+
+
+
+        MOZ_ASSERT(nfixed == numFixedSlots());
+        MOZ_ASSERT(hasPrivate());
+        HeapSlot *end = &fixedSlots()[nfixed];
+        return *reinterpret_cast<void**>(end);
+    }
+
+    inline bool hasPrivate() const {
+        return getClass()->hasPrivate();
+    }
+    inline void *getPrivate() const {
+        return privateRef(numFixedSlots());
+    }
     inline void setPrivate(void *data);
     inline void setPrivateGCThing(gc::Cell *cell);
     inline void setPrivateUnbarriered(void *data);
     inline void initPrivate(void *data);
 
     
-    inline void *getPrivate(uint32_t nfixed) const;
+    inline void *getPrivate(uint32_t nfixed) const {
+        return privateRef(nfixed);
+    }
 
     
     static size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }

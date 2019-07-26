@@ -4,8 +4,9 @@
 
 
 
-#include "jsobjinlines.h"
 #include "builtin/Module.h"
+
+#include "jsobjinlines.h"
 
 using namespace js;
 
