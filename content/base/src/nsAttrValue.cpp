@@ -1968,6 +1968,13 @@ nsAttrValue::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
       if (!container) {
         break;
       }
+      if (container->IsRefCounted() && container->mValue.mRefCount > 1) {
+        
+        
+        
+        
+        break;
+      }
       n += aMallocSizeOf(container);
 
       void* otherPtr = MISC_STR_PTR(container);
