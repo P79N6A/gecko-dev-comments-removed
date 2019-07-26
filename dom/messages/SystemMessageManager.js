@@ -230,8 +230,8 @@ SystemMessageManager.prototype = {
         
         cpmm.sendAsyncMessage("SystemMessageManager:Message:Return:OK",
                               { type: msg.type,
-                                manifest: this._manifest,
-                                uri: this._uri,
+                                manifestURL: this._manifestURL,
+                                pageURL: this._pageURL,
                                 msgID: msg.msgID });
       }
 
