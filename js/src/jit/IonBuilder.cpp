@@ -3032,13 +3032,12 @@ IonBuilder::filterTypesAtTest(MTest *test)
         return true;
 
     
-    if (!((removeUndefined && subject->resultTypeSet()->hasType(types::Type::UndefinedType())) ||
-        (removeNull && subject->resultTypeSet()->hasType(types::Type::NullType()))))
+    if ((!(removeUndefined && subject->resultTypeSet()->hasType(types::Type::UndefinedType())) &&
+         !(removeNull && subject->resultTypeSet()->hasType(types::Type::NullType()))))
     {
         return true;
     }
 
-    
     
     
     
