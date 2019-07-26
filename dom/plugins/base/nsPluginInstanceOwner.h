@@ -45,7 +45,6 @@ class nsPluginInstanceOwner : public nsIPluginInstanceOwner,
 {
 public:
   nsPluginInstanceOwner();
-  virtual ~nsPluginInstanceOwner();
   
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPLUGININSTANCEOWNER
@@ -292,7 +291,8 @@ public:
 #endif
   
 private:
-  
+  virtual ~nsPluginInstanceOwner();
+
   
   bool IsUpToDate()
   {

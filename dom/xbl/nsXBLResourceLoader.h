@@ -39,7 +39,6 @@ public:
 
   nsXBLResourceLoader(nsXBLPrototypeBinding* aBinding,
                       nsXBLPrototypeResources* aResources);
-  virtual ~nsXBLResourceLoader();
 
   void NotifyBoundElements();
 
@@ -63,6 +62,9 @@ public:
 
   
   nsCOMArray<nsIContent> mBoundElements;
+
+protected:
+  virtual ~nsXBLResourceLoader();
 };
 
 #endif

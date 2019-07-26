@@ -46,6 +46,8 @@ public:
   const ThreadData& GetData() const { return mData; }
 
 private:
+  ~MobileMessageThread() {}
+
   
   MobileMessageThread() MOZ_DELETE;
 

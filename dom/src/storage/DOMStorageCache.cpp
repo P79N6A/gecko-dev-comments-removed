@@ -242,6 +242,8 @@ namespace {
 
 class DOMStorageCacheHolder : public nsITimerCallback
 {
+  virtual ~DOMStorageCacheHolder() {}
+
   NS_DECL_ISUPPORTS
 
   NS_IMETHODIMP
@@ -250,8 +252,6 @@ class DOMStorageCacheHolder : public nsITimerCallback
     mCache = nullptr;
     return NS_OK;
   }
-
-  virtual ~DOMStorageCacheHolder() {}
 
   nsRefPtr<DOMStorageCache> mCache;
 

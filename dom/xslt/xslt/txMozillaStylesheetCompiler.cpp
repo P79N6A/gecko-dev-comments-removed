@@ -93,6 +93,8 @@ private:
     bool mCheckedForXML;
 
 protected:
+    ~txStylesheetSink() {}
+
     
     txStylesheetSink();
 };

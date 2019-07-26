@@ -45,7 +45,6 @@ class nsSMILAnimationController : public nsSMILTimeContainer,
 {
 public:
   nsSMILAnimationController(nsIDocument* aDoc);
-  ~nsSMILAnimationController();
 
   
   void Disconnect();
@@ -107,6 +106,8 @@ public:
   { return mAnimationElementTable.Count() != 0; }
 
 protected:
+  ~nsSMILAnimationController();
+
   
   typedef nsPtrHashKey<nsSMILTimeContainer> TimeContainerPtrKey;
   typedef nsTHashtable<TimeContainerPtrKey> TimeContainerHashtable;

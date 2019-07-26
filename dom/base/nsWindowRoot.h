@@ -27,7 +27,6 @@ class nsWindowRoot : public nsPIWindowRoot
 {
 public:
   nsWindowRoot(nsPIDOMWindow* aWindow);
-  virtual ~nsWindowRoot();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIDOMEVENTTARGET
@@ -66,6 +65,8 @@ public:
                                                          nsIDOMEventTarget)
 
 protected:
+  virtual ~nsWindowRoot();
+
   
   nsCOMPtr<nsPIDOMWindow> mWindow;
   

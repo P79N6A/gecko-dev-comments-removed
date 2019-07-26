@@ -260,6 +260,7 @@ NeedsGCAfterCC()
 
 class nsJSEnvironmentObserver MOZ_FINAL : public nsIObserver
 {
+  ~nsJSEnvironmentObserver() {}
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -3077,6 +3078,16 @@ mozilla::dom::ShutdownJSEnvironment()
 
   sShuttingDown = true;
   sDidShutdown = true;
+}
+
+class nsJSArgArray;
+
+namespace mozilla {
+template<>
+struct HasDangerousPublicDestructor<nsJSArgArray>
+{
+  static const bool value = true;
+};
 }
 
 

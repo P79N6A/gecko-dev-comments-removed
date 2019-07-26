@@ -27,7 +27,6 @@ class nsLocation : public nsIDOMLocation
 {
 public:
   nsLocation(nsIDocShell *aDocShell);
-  virtual ~nsLocation();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsLocation)
@@ -39,6 +38,8 @@ public:
   NS_DECL_NSIDOMLOCATION
 
 protected:
+  virtual ~nsLocation();
+
   
   
   

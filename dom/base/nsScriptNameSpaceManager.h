@@ -95,7 +95,6 @@ public:
   NS_DECL_NSIMEMORYREPORTER
 
   nsScriptNameSpaceManager();
-  virtual ~nsScriptNameSpaceManager();
 
   nsresult Init();
 
@@ -182,6 +181,8 @@ public:
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
 private:
+  virtual ~nsScriptNameSpaceManager();
+
   
   
   

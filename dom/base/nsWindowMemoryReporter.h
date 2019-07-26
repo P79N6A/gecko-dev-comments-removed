@@ -150,8 +150,6 @@ public:
 
   static void Init();
 
-  ~nsWindowMemoryReporter();
-
 #ifdef DEBUG
   
 
@@ -161,12 +159,15 @@ public:
 #endif
 
 private:
+  ~nsWindowMemoryReporter();
+
   
 
 
 
   class GhostWindowsReporter MOZ_FINAL : public nsIMemoryReporter
   {
+    ~GhostWindowsReporter() {}
   public:
     NS_DECL_ISUPPORTS
 

@@ -17,12 +17,14 @@ namespace dom {
 
 class PromiseCallback : public nsISupports
 {
+protected:
+  virtual ~PromiseCallback();
+
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(PromiseCallback)
 
   PromiseCallback();
-  virtual ~PromiseCallback();
 
   virtual void Call(JSContext* aCx,
                     JS::Handle<JS::Value> aValue) = 0;

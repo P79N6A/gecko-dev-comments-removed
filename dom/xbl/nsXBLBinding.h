@@ -42,7 +42,6 @@ class nsXBLBinding MOZ_FINAL
 public:
   nsXBLBinding(nsXBLPrototypeBinding* aProtoBinding);
   nsXBLBinding(mozilla::dom::ShadowRoot* aShadowRoot, nsXBLPrototypeBinding* aProtoBinding);
-  ~nsXBLBinding();
 
   
 
@@ -85,6 +84,8 @@ public:
   bool HasField(nsString& aName);
 
 protected:
+
+  ~nsXBLBinding();
 
   
 

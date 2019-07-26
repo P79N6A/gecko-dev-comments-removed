@@ -40,7 +40,6 @@ public:
   
 
   WakeLock();
-  virtual ~WakeLock();
 
   
   
@@ -64,6 +63,8 @@ public:
   void Unlock(ErrorResult& aRv);
 
 private:
+  virtual ~WakeLock();
+
   void     DoUnlock();
   void     DoLock();
   void     AttachEventListener();

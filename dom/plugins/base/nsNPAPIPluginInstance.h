@@ -226,7 +226,6 @@ public:
                              nsNPAPIPluginStreamListener** listener);
 
   nsNPAPIPluginInstance();
-  virtual ~nsNPAPIPluginInstance();
 
   
   
@@ -302,6 +301,8 @@ public:
   }
 
 protected:
+
+  virtual ~nsNPAPIPluginInstance();
 
   nsresult GetTagType(nsPluginTagType *result);
   nsresult GetAttributes(uint16_t& n, const char*const*& names,
