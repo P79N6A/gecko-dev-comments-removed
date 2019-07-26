@@ -189,7 +189,8 @@ protected:
     : nsSVGTextFrame2Base(aContext),
       mFontSizeScaleFactor(1.0f),
       mGetCanvasTMForFlag(FOR_OUTERSVG_TM),
-      mPositioningDirty(true)
+      mPositioningDirty(true),
+      mPositioningMayUsePercentages(false)
   {
   }
 
@@ -639,6 +640,30 @@ private:
 
 
   bool mPositioningDirty;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool mPositioningMayUsePercentages;
 };
 
 #endif
