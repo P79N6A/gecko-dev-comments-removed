@@ -1056,7 +1056,7 @@ void MediaDecoderStateMachine::AudioLoop()
     
     
     
-    nsAutoPtr<AudioStream> audioStream(new AudioStream());
+    nsAutoPtr<AudioStream> audioStream(AudioStream::AllocateStream());
     audioStream->Init(channels, rate, audioChannelType, AudioStream::HighLatency);
     audioStream->SetVolume(volume);
     if (audioStream->SetPreservesPitch(preservesPitch) != NS_OK) {
