@@ -384,6 +384,9 @@ final class GeckoEditable
         int rangeStart = composingStart;
         TextPaint tp = new TextPaint();
         TextPaint emptyTp = new TextPaint();
+        
+        
+        emptyTp.setColor(0);
         do {
             int rangeType, rangeStyles = 0, rangeLineStyle = GeckoEvent.IME_RANGE_LINE_NONE;
             boolean rangeBoldLine = false;
