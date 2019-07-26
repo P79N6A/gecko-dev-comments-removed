@@ -116,7 +116,8 @@ nsComputedDOMStyle::nsComputedDOMStyle(dom::Element* aElement,
 
     
     if (!haveTwoColons &&
-        !nsCSSPseudoElements::IsCSS2PseudoElement(mPseudo)) {
+        (!nsCSSPseudoElements::IsPseudoElement(mPseudo) ||
+         !nsCSSPseudoElements::IsCSS2PseudoElement(mPseudo))) {
       
       
       mPseudo = nullptr;
