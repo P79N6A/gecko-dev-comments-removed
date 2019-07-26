@@ -9,9 +9,7 @@
 
 
 #include "mozilla/TimeStamp.h"
-#include "nsCOMPtr.h"
-#include "nsServiceManagerUtils.h"
-#include "nsIAppStartup.h"
+#include "prenv.h"
 
 namespace mozilla {
 
@@ -24,18 +22,17 @@ TimeStamp::ProcessCreation(bool& aIsInconsistent)
   aIsInconsistent = false;
 
   if (sProcessCreation.IsNull()) {
+    char *mozAppRestart = PR_GetEnv("MOZ_APP_RESTART");
     TimeStamp ts;
 
     
-    nsCOMPtr<nsIAppStartup> appService =
-      do_GetService("@mozilla.org/toolkit/app-startup;1");
-    bool wasRestarted;
-    appService->GetWasRestarted(&wasRestarted);
 
-    if (wasRestarted) {
+
+    if (mozAppRestart && (strcmp(mozAppRestart, "") != 0)) {
       
 
       ts = sFirstTimeStamp;
+      PR_SetEnv("MOZ_APP_RESTART=");
     } else {
       TimeStamp now = Now();
       uint64_t uptime = ComputeProcessUptime();
@@ -60,6 +57,7 @@ TimeStamp::ProcessCreation(bool& aIsInconsistent)
 void
 TimeStamp::RecordProcessRestart()
 {
+  PR_SetEnv("MOZ_APP_RESTART=1");
   sProcessCreation = TimeStamp();
 }
 

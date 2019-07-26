@@ -364,9 +364,6 @@ nsAppStartup::Quit(uint32_t aMode)
 
     if (mRestart) {
       
-      PR_SetEnv("MOZ_APP_RESTART=1");
-
-      
 
       TimeStamp::RecordProcessRestart();
     }
@@ -522,19 +519,6 @@ NS_IMETHODIMP
 nsAppStartup::GetRestarting(bool *aResult)
 {
   *aResult = mRestart;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAppStartup::GetWasRestarted(bool *aResult)
-{
-  char *mozAppRestart = PR_GetEnv("MOZ_APP_RESTART");
-
-  
-
-
-  *aResult = mozAppRestart && (strcmp(mozAppRestart, "") != 0);
-
   return NS_OK;
 }
 
