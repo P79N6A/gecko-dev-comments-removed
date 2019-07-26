@@ -2128,8 +2128,7 @@ RecordShutdownEndTimeStamp() {
   
   
   
-  int fd = fileno(f);
-  MozillaRegisterDebugFD(fd);
+  MozillaRegisterDebugFILE(f);
 
   TimeStamp now = TimeStamp::Now();
   MOZ_ASSERT(now >= gRecordedShutdownStartTime);
