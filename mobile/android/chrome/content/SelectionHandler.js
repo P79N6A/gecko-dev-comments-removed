@@ -566,6 +566,23 @@ var SelectionHandler = {
 
 
 
+
+  _moveSelectionInEditable: function sh_moveSelectionInEditable(aAnchorX, aX, aCaretPos) {
+    let anchorOffset = aX < aAnchorX ? this._targetElement.selectionEnd
+                                     : this._targetElement.selectionStart;
+    let newOffset = aCaretPos.offset;
+    let [start, end] = anchorOffset <= newOffset ?
+                       [anchorOffset, newOffset] :
+                       [newOffset, anchorOffset];
+    this._targetElement.setSelectionRange(start, end);
+  },
+
+  
+
+
+
+
+
   _moveSelection: function sh_moveSelection(aIsStartHandle, aX, aY) {
     
     
@@ -597,8 +614,8 @@ var SelectionHandler = {
     
     if ((aIsStartHandle && !this._isRTL) || (!aIsStartHandle && this._isRTL)) {
       if (targetIsEditable) {
-        
-        this._targetElement.selectionStart = caretPos.offset;
+        let anchorX = this._isRTL ? this._cache.start.x : this._cache.end.x;
+        this._moveSelectionInEditable(anchorX, aX, caretPos);
       } else {
         let focusNode = selection.focusNode;
         let focusOffset = selection.focusOffset;
@@ -607,8 +624,8 @@ var SelectionHandler = {
       }
     } else {
       if (targetIsEditable) {
-        
-        this._targetElement.selectionEnd = caretPos.offset;
+        let anchorX = this._isRTL ? this._cache.end.x : this._cache.start.x;
+        this._moveSelectionInEditable(anchorX, aX, caretPos);
       } else {
         selection.extend(caretPos.offsetNode, caretPos.offset);
       }
