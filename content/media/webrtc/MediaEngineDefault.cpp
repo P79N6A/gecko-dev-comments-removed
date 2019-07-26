@@ -278,10 +278,9 @@ MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
 }
 
 
-class SineWaveGenerator : public RefCounted<SineWaveGenerator>
+class SineWaveGenerator
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(SineWaveGenerator)
   static const int bytesPerSample = 2;
   static const int millisecondsPerSecond = 1000;
   static const int frequency = 1000;
@@ -297,6 +296,7 @@ public:
     }
   }
 
+  
   void generate(int16_t* aBuffer, int16_t aLengthInSamples) {
     int16_t remaining = aLengthInSamples;
 
