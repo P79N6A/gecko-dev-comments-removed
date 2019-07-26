@@ -139,7 +139,13 @@ h2 {
 
 
 
-.hasKids:hover {
-  text-decoration: underline;
+
+button {
+  margin: 1%;
+  padding: 2%;
+}
+
+.hiddenOnMobile {
+  display: none;
 }
 
