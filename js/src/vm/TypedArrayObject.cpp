@@ -332,42 +332,42 @@ GetViewListRef(ArrayBufferObject *obj)
 void
 ArrayBufferObject::changeContents(JSContext *maybecx, ObjectElements *newHeader)
 {
-   
-   uint32_t byteLengthCopy = byteLength();
-   uintptr_t oldDataPointer = uintptr_t(dataPointer());
+    
+    uint32_t byteLengthCopy = byteLength();
+    uintptr_t oldDataPointer = uintptr_t(dataPointer());
    ArrayBufferViewObject *viewListHead = GetViewList(this);
 
-   
-   uintptr_t newDataPointer = uintptr_t(newHeader->elements());
+    
+    uintptr_t newDataPointer = uintptr_t(newHeader->elements());
    for (ArrayBufferViewObject *view = viewListHead; view; view = view->nextView()) {
-       uintptr_t newDataPtr = uintptr_t(view->getPrivate()) - oldDataPointer + newDataPointer;
-       view->setPrivate(reinterpret_cast<uint8_t*>(newDataPtr));
+        uintptr_t newDataPtr = uintptr_t(view->getPrivate()) - oldDataPointer + newDataPointer;
+        view->setPrivate(reinterpret_cast<uint8_t*>(newDataPtr));
 
-       
-       if (maybecx)
-           MarkObjectStateChange(maybecx, view);
-   }
-
-   
-   elements = newHeader->elements();
+        
+        if (maybecx)
+            MarkObjectStateChange(maybecx, view);
+    }
 
    
-   ArrayBufferObject::setElementsHeader(newHeader, byteLengthCopy);
+    elements = newHeader->elements();
+
+    
+    ArrayBufferObject::setElementsHeader(newHeader, byteLengthCopy);
    SetViewList(this, viewListHead);
 }
 
 bool
 ArrayBufferObject::uninlineData(JSContext *maybecx)
 {
-   if (hasDynamicElements())
-       return true;
+    if (hasDynamicElements())
+        return true;
 
-   ObjectElements *newHeader = AllocateArrayBufferContents(maybecx, byteLength(), dataPointer());
-   if (!newHeader)
-       return false;
+    ObjectElements *newHeader = AllocateArrayBufferContents(maybecx, byteLength(), dataPointer());
+    if (!newHeader)
+        return false;
 
-   changeContents(maybecx, newHeader);
-   return true;
+    changeContents(maybecx, newHeader);
+    return true;
 }
 
 #if defined(JS_ION) && defined(JS_CPU_X64)
@@ -4261,8 +4261,8 @@ JS_GetObjectAsArrayBufferView(JSObject *obj, uint32_t *length, uint8_t **data)
 JS_FRIEND_API(JSObject *)
 JS_GetObjectAsArrayBuffer(JSObject *obj, uint32_t *length, uint8_t **data)
 {
-   if (!(obj = CheckedUnwrap(obj)))
-       return nullptr;
+    if (!(obj = CheckedUnwrap(obj)))
+        return nullptr;
     if (!obj->is<ArrayBufferObject>())
         return nullptr;
 
