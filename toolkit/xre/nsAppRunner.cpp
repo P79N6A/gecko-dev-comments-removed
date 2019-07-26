@@ -2851,10 +2851,10 @@ XREMain::XRE_mainInit(bool* aExitFlag)
   
   
   
-  if (fire_glxtest_process()) {
-    *aExitFlag = true;
-    return 0;
-  }
+  
+  
+  
+  fire_glxtest_process();
 #endif
 
 #if defined(XP_WIN) && defined(MOZ_METRO)

@@ -260,12 +260,14 @@ bool fire_glxtest_process()
       close(pfd[1]);
       return false;
   }
+  
+  
   if (pid == 0) {
       close(pfd[0]);
       write_end_of_the_pipe = pfd[1];
       glxtest();
       close(pfd[1]);
-      return true;
+      exit(0);
   }
 
   close(pfd[1]);
