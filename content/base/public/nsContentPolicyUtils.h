@@ -19,6 +19,7 @@
 #include "nsIContent.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"
+#include "nsIURI.h"
 
 
 #include "nsIDocument.h"
