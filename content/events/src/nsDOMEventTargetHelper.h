@@ -120,6 +120,8 @@ public:
   nsIGlobalObject* GetParentObject() const { return mParentObject; }
   bool HasOrHasHadOwner() { return mHasOrHasHadOwnerWindow; }
 protected:
+  nsresult WantsUntrusted(bool* aRetVal);
+
   nsRefPtr<nsEventListenerManager> mListenerManager;
   
   nsresult DispatchTrustedEvent(const nsAString& aEventName);
