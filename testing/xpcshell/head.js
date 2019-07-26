@@ -19,7 +19,22 @@ var _cleanupFunctions = [];
 var _pendingTimers = [];
 var _profileInitialized = false;
 
+
+
+_register_modules_protocol_handler();
+
 let _Promise = Components.utils.import("resource://gre/modules/Promise.jsm", this).Promise;
+
+
+let AssertCls = Components.utils.import("resource://testing-common/Assert.jsm", null).Assert;
+
+let Assert = new AssertCls(function(err, message, stack) {
+  if (err) {
+    do_report_result(false, err.message, err.stack);
+  } else {
+    do_report_result(true, message, stack);
+  }
+});
 
 let _log = function (action, params) {
   if (typeof _XPCSHELL_PROCESS != "undefined") {
@@ -313,34 +328,48 @@ function do_get_idle() {
 
 
 function _register_protocol_handlers() {
-  let (ios = Components.classes["@mozilla.org/network/io-service;1"]
-             .getService(Components.interfaces.nsIIOService)) {
-    let protocolHandler =
-      ios.getProtocolHandler("resource")
-         .QueryInterface(Components.interfaces.nsIResProtocolHandler);
-    let curDirURI = ios.newFileURI(do_get_cwd());
-    protocolHandler.setSubstitution("test", curDirURI);
+  let ios = Components.classes["@mozilla.org/network/io-service;1"]
+                      .getService(Components.interfaces.nsIIOService);
+  let protocolHandler =
+    ios.getProtocolHandler("resource")
+       .QueryInterface(Components.interfaces.nsIResProtocolHandler);
 
-    if (this._TESTING_MODULES_DIR) {
-      let modulesFile = Components.classes["@mozilla.org/file/local;1"].
-                        createInstance(Components.interfaces.nsILocalFile);
-      modulesFile.initWithPath(_TESTING_MODULES_DIR);
+  let curDirURI = ios.newFileURI(do_get_cwd());
+  protocolHandler.setSubstitution("test", curDirURI);
 
-      if (!modulesFile.exists()) {
-        throw new Error("Specified modules directory does not exist: " +
-                        _TESTING_MODULES_DIR);
-      }
+  _register_modules_protocol_handler();
+}
 
-      if (!modulesFile.isDirectory()) {
-        throw new Error("Specified modules directory is not a directory: " +
-                        _TESTING_MODULES_DIR);
-      }
-
-      let modulesURI = ios.newFileURI(modulesFile);
-
-      protocolHandler.setSubstitution("testing-common", modulesURI);
-    }
+function _register_modules_protocol_handler() {
+  if (!this._TESTING_MODULES_DIR) {
+    throw new Error("Please define a path where the testing modules can be " +
+                    "found in a variable called '_TESTING_MODULES_DIR' before " +
+                    "head.js is included.");
   }
+
+  let ios = Components.classes["@mozilla.org/network/io-service;1"]
+                      .getService(Components.interfaces.nsIIOService);
+  let protocolHandler =
+    ios.getProtocolHandler("resource")
+       .QueryInterface(Components.interfaces.nsIResProtocolHandler);
+
+  let modulesFile = Components.classes["@mozilla.org/file/local;1"].
+                    createInstance(Components.interfaces.nsILocalFile);
+  modulesFile.initWithPath(_TESTING_MODULES_DIR);
+
+  if (!modulesFile.exists()) {
+    throw new Error("Specified modules directory does not exist: " +
+                    _TESTING_MODULES_DIR);
+  }
+
+  if (!modulesFile.isDirectory()) {
+    throw new Error("Specified modules directory is not a directory: " +
+                    _TESTING_MODULES_DIR);
+  }
+
+  let modulesURI = ios.newFileURI(modulesFile);
+
+  protocolHandler.setSubstitution("testing-common", modulesURI);
 }
 
 function _execute_test() {
@@ -364,22 +393,10 @@ function _execute_test() {
   _load_files(_TEST_FILE);
 
   
-  let Assert = Components.utils.import("resource://testing-common/Assert.jsm", null).Assert;
-  
-  let assertImpl = new Assert(function(err, message, stack) {
-    if (err) {
-      do_report_result(false, err.message, err.stack);
-    } else {
-      do_report_result(true, message, stack);
-    }
-  });
-  
-  this.export_assertions = function() {
-    for (let func in assertImpl) {
-      this[func] = assertImpl[func].bind(assertImpl);
-    }
-  };
-  this.Assert = assertImpl;
+  this.Assert = Assert;
+  for (let func in Assert) {
+    this[func] = Assert[func].bind(Assert);
+  }
 
   try {
     do_test_pending("MAIN run_test");
@@ -687,12 +704,7 @@ function do_note_exception(ex, text) {
 }
 
 function _do_check_neq(left, right, stack, todo) {
-  if (!stack)
-    stack = Components.stack.caller;
-
-  var text = _wrap_with_quotes_if_necessary(left) + " != " +
-             _wrap_with_quotes_if_necessary(right);
-  do_report_result(left != right, text, stack, todo);
+  Assert.notEqual(left, right);
 }
 
 function do_check_neq(left, right, stack) {
@@ -747,10 +759,7 @@ function _do_check_eq(left, right, stack, todo) {
 }
 
 function do_check_eq(left, right, stack) {
-  if (!stack)
-    stack = Components.stack.caller;
-
-  _do_check_eq(left, right, stack, false);
+  Assert.equal(left, right);
 }
 
 function todo_check_eq(left, right, stack) {
@@ -761,10 +770,7 @@ function todo_check_eq(left, right, stack) {
 }
 
 function do_check_true(condition, stack) {
-  if (!stack)
-    stack = Components.stack.caller;
-
-  do_check_eq(condition, true, stack);
+  Assert.ok(condition);
 }
 
 function todo_check_true(condition, stack) {
@@ -775,10 +781,7 @@ function todo_check_true(condition, stack) {
 }
 
 function do_check_false(condition, stack) {
-  if (!stack)
-    stack = Components.stack.caller;
-
-  do_check_eq(condition, false, stack);
+  Assert.ok(!condition, stack);
 }
 
 function todo_check_false(condition, stack) {
@@ -788,163 +791,15 @@ function todo_check_false(condition, stack) {
   todo_check_eq(condition, false, stack);
 }
 
-function do_check_null(condition, stack=Components.stack.caller) {
-  do_check_eq(condition, null, stack);
+function do_check_null(condition, stack) {
+  Assert.equal(condition, null);
 }
 
 function todo_check_null(condition, stack=Components.stack.caller) {
   todo_check_eq(condition, null, stack);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function do_check_matches(pattern, value, stack=Components.stack.caller, todo=false) {
-  var matcher = pattern_matcher(pattern);
-  var text = "VALUE: " + uneval(value) + "\nPATTERN: " + uneval(pattern) + "\n";
-  var diagnosis = []
-  if (matcher(value, diagnosis)) {
-    do_report_result(true, "value matches pattern:\n" + text, stack, todo);
-  } else {
-    text = ("value doesn't match pattern:\n" +
-            text +
-            "DIAGNOSIS: " +
-            format_pattern_match_failure(diagnosis[0]) + "\n");
-    do_report_result(false, text, stack, todo);
-  }
-}
-
-function todo_check_matches(pattern, value, stack=Components.stack.caller) {
-  do_check_matches(pattern, value, stack, true);
-}
-
-
-
-
-
-
-
-
-
-function pattern_matcher(pattern) {
-  function explain(diagnosis, reason) {
-    if (diagnosis) {
-      diagnosis[0] = reason;
-    }
-    return false;
-  }
-  if (typeof pattern == "function") {
-    return pattern;
-  } else if (typeof pattern == "object" && pattern) {
-    var matchers = [[p, pattern_matcher(pattern[p])] for (p in pattern)];
-    
-    
-    var ld = Object.getOwnPropertyDescriptor(pattern, 'length');
-    if (ld && !ld.enumerable) {
-      matchers.push(['length', pattern_matcher(pattern.length)])
-    }
-    return function (value, diagnosis) {
-      if (!(value && typeof value == "object")) {
-        return explain(diagnosis, "value not object");
-      }
-      for (let [p, m] of matchers) {
-        var element_diagnosis = [];
-        if (!(p in value && m(value[p], element_diagnosis))) {
-          return explain(diagnosis, { property:p,
-                                      diagnosis:element_diagnosis[0] });
-        }
-      }
-      return true;
-    };
-  } else if (pattern === undefined) {
-    return function(value) { return true; };
-  } else {
-    return function (value, diagnosis) {
-      if (value !== pattern) {
-        return explain(diagnosis, "pattern " + uneval(pattern) + " not === to value " + uneval(value));
-      }
-      return true;
-    };
-  }
-}
-
-
-
-function format_pattern_match_failure(diagnosis, indent="") {
-  var a;
-  if (!diagnosis) {
-    a = "Matcher did not explain reason for mismatch.";
-  } else if (typeof diagnosis == "string") {
-    a = diagnosis;
-  } else if (diagnosis.property) {
-    a = "Property " + uneval(diagnosis.property) + " of object didn't match:\n";
-    a += format_pattern_match_failure(diagnosis.diagnosis, indent + "  ");
-  }
-  return indent + a;
+function do_check_matches(pattern, value) {
+  Assert.deepEqual(pattern, value);
 }
 
 
