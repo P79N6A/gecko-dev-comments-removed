@@ -1271,7 +1271,7 @@ let CustomizableUIInternal = {
     
     
     
-    while (true) {
+    while (true && target) {
       let tagName = target.localName;
       inInput = tagName == "input" || tagName == "textbox";
       inItem = tagName == "toolbaritem" || tagName == "toolbarbutton";
