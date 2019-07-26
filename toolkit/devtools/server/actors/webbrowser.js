@@ -547,7 +547,12 @@ BrowserTabActor.prototype = {
 
 
   get url() {
-    return this.browser.currentURI.spec;
+    if (this.browser.currentURI) {
+      return this.browser.currentURI.spec;
+    }
+    
+    
+    return null;
   },
 
   
