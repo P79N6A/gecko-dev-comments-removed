@@ -787,12 +787,7 @@ nsFrameSelection::MoveCaret(uint32_t          aKeycode,
   }
 
   int32_t caretStyle = Preferences::GetInt("layout.selection.caret_style", 0);
-  if (caretStyle == 0
-#ifdef XP_WIN
-      && aKeycode != nsIDOMKeyEvent::DOM_VK_UP
-      && aKeycode != nsIDOMKeyEvent::DOM_VK_DOWN
-#endif
-     ) {
+  if (caretStyle == 0) {
     
     caretStyle = 2;
   }
@@ -4449,6 +4444,10 @@ Selection::CollapseToStart()
   if (!firstRange)
     return NS_ERROR_FAILURE;
 
+  if (mFrameSelection) {
+    int16_t reason = mFrameSelection->PopReason() | nsISelectionListener::COLLAPSETOSTART_REASON;
+    mFrameSelection->PostReason(reason);
+  }
   return Collapse(firstRange->GetStartParent(), firstRange->StartOffset());
 }
 
@@ -4469,6 +4468,10 @@ Selection::CollapseToEnd()
   if (!lastRange)
     return NS_ERROR_FAILURE;
 
+  if (mFrameSelection) {
+    int16_t reason = mFrameSelection->PopReason() | nsISelectionListener::COLLAPSETOEND_REASON;
+    mFrameSelection->PostReason(reason);
+  }
   return Collapse(lastRange->GetEndParent(), lastRange->EndOffset());
 }
 

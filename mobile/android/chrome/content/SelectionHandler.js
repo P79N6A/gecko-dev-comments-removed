@@ -174,6 +174,14 @@ var SelectionHandler = {
     };
   },
 
+  notifySelectionChanged: function sh_notifySelectionChanged(aDocument, aSelection, aReason) {
+    
+    if ((aReason & Ci.nsISelectionListener.COLLAPSETOSTART_REASON) ||
+        (aReason & Ci.nsISelectionListener.COLLAPSETOEND_REASON)) {
+      this._closeSelection();
+    }
+  },
+
   
 
 
@@ -202,6 +210,9 @@ var SelectionHandler = {
       this._closeSelection();
       return;
     }
+
+    
+    selection.QueryInterface(Ci.nsISelectionPrivate).addSelectionListener(this);
 
     
     this._cache = { start: {}, end: {}};
@@ -463,6 +474,8 @@ var SelectionHandler = {
     if (this._activeType == this.TYPE_SELECTION) {
       let selection = this._getSelection();
       if (selection) {
+        
+        selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
         selection.removeAllRanges();
       }
     }
