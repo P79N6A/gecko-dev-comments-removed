@@ -213,8 +213,8 @@ function setup_provisioning(identity, afterSetupCallback, doneProvisioningCallba
         doneProvisioningCallback(err);
     },
     sandbox: {
-  
-  free: function() {}
+      
+      free: function() {}
     }
   };
 
