@@ -1036,7 +1036,8 @@ int32_t checkHandshake(int32_t bytesTransfered, bool wasReading,
                        PRFileDesc* ssl_layer_fd,
                        nsNSSSocketInfo *socketInfo)
 {
-  PRErrorCode err = PR_GetError();
+  const PRErrorCode originalError = PR_GetError();
+  PRErrorCode err = originalError;
 
   
   
@@ -1114,6 +1115,14 @@ int32_t checkHandshake(int32_t bytesTransfered, bool wasReading,
   }
   
   if (bytesTransfered < 0) {
+    
+    
+    
+    
+    
+    if (originalError != PR_WOULD_BLOCK_ERROR && !socketInfo->GetErrorCode()) {
+      socketInfo->SetCanceled(originalError, PlainErrorMessage);
+    }
     PR_SetError(err, 0);
   }
 
