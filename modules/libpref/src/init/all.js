@@ -232,9 +232,7 @@ pref("gfx.filter.nearest.force-enabled", false);
 
 pref("gfx.font_rendering.fallback.always_use_cmaps", false);
 
-#ifdef MOZ_GRAPHITE
 pref("gfx.font_rendering.graphite.enabled", false);
-#endif
 
 
 

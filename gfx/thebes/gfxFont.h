@@ -216,9 +216,7 @@ public:
         mIgnoreGSUB(false),
         mSVGInitialized(false),
         mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
-#ifdef MOZ_GRAPHITE
         mCheckedForGraphiteTables(false),
-#endif
         mHasCmapTable(false),
         mUVSOffset(0), mUVSData(nullptr),
         mUserFontData(nullptr),
@@ -257,7 +255,6 @@ public:
 
     virtual bool IsSymbolFont();
 
-#ifdef MOZ_GRAPHITE
     inline bool HasGraphiteTables() {
         if (!mCheckedForGraphiteTables) {
             CheckForGraphiteTables();
@@ -265,7 +262,6 @@ public:
         }
         return mHasGraphiteTables;
     }
-#endif
 
     inline bool HasCmapTable() {
         if (!mCharacterMap) {
@@ -352,10 +348,8 @@ public:
     uint16_t         mWeight;
     int16_t          mStretch;
 
-#ifdef MOZ_GRAPHITE
     bool             mHasGraphiteTables;
     bool             mCheckedForGraphiteTables;
-#endif
     bool             mHasCmapTable;
     nsRefPtr<gfxCharacterMap> mCharacterMap;
     uint32_t         mUVSOffset;
@@ -385,9 +379,7 @@ protected:
         mIgnoreGSUB(false),
         mSVGInitialized(false),
         mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
-#ifdef MOZ_GRAPHITE
         mCheckedForGraphiteTables(false),
-#endif
         mHasCmapTable(false),
         mUVSOffset(0), mUVSData(nullptr),
         mUserFontData(nullptr),
@@ -400,9 +392,7 @@ protected:
         return nullptr;
     }
 
-#ifdef MOZ_GRAPHITE
     virtual void CheckForGraphiteTables();
-#endif
 
 private:
 
@@ -1274,12 +1264,10 @@ public:
         return mFontEntry->HasCmapTable();
     }
 
-#ifdef MOZ_GRAPHITE
     
     bool FontCanSupportGraphite() {
         return mFontEntry->HasGraphiteTables();
     }
-#endif
 
     
     
@@ -1733,9 +1721,8 @@ protected:
     
     nsAutoPtr<gfxFontShaper>   mPlatformShaper;
     nsAutoPtr<gfxFontShaper>   mHarfBuzzShaper;
-#ifdef MOZ_GRAPHITE
     nsAutoPtr<gfxFontShaper>   mGraphiteShaper;
-#endif
+
     mozilla::RefPtr<mozilla::gfx::ScaledFont> mAzureScaledFont;
 
     

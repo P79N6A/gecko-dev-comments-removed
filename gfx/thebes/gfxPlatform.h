@@ -352,13 +352,11 @@ public:
 
     bool UseCmapsDuringSystemFallback();
 
-#ifdef MOZ_GRAPHITE
     
 
 
 
     bool UseGraphiteShaping();
-#endif
 
     
 
@@ -565,9 +563,7 @@ protected:
     }
 
     int8_t  mAllowDownloadableFonts;
-#ifdef MOZ_GRAPHITE
     int8_t  mGraphiteShapingEnabled;
-#endif
 
     int8_t  mBidiNumeralOption;
 
