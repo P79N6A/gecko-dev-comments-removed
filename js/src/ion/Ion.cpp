@@ -188,11 +188,6 @@ IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
 
         
         
-        if (!activation->entryfp() || activation->entryfp()->callingIntoIon())
-            continue;
-
-        
-        
         mustMarkEnterJIT = true;
     }
 
@@ -1281,6 +1276,28 @@ ion::CanEnter(JSContext *cx, HandleScript script, StackFrame *fp, bool newType)
             ForbidCompilation(cx, script);
         return status;
     }
+
+    
+    if (!cx->compartment->ionCompartment()->enterJIT(cx))
+        return Method_Error;
+
+    if (!script->ion)
+        return Method_Skipped;
+
+    return Method_Compiled;
+}
+
+MethodStatus
+ion::CanEnterUsingFastInvoke(JSContext *cx, HandleScript script)
+{
+    JS_ASSERT(ion::IsEnabled(cx));
+
+    
+    if (!script->hasIonScript() || script->ion->bailoutExpected())
+        return Method_Skipped;
+
+    if (!cx->compartment->ensureIonCompartmentExists(cx))
+        return Method_Error;
 
     
     if (!cx->compartment->ionCompartment()->enterJIT(cx))
