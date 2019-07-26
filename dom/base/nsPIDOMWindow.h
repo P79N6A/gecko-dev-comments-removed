@@ -364,7 +364,8 @@ public:
     return !IsInnerWindow();
   }
 
-  virtual bool WouldReuseInnerWindow(nsIDocument *aNewDocument) = 0;
+  
+  virtual bool WouldReuseInnerWindow(nsIDocument* aNewDocument) = 0;
 
   
 
