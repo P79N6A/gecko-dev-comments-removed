@@ -213,11 +213,115 @@ enum MaybeCheckAliasing { CHECK_ALIASING = true, DONT_CHECK_ALIASING = false };
 
 
 
+class ion::BaselineFrame;
+
+
+class AbstractFramePtr
+{
+    uintptr_t ptr_;
+
+  protected:
+    AbstractFramePtr()
+      : ptr_(0)
+    {}
+
+  public:
+    AbstractFramePtr(StackFrame *fp)
+        : ptr_(fp ? uintptr_t(fp) | 0x1 : 0)
+    {
+        JS_ASSERT((uintptr_t(fp) & 1) == 0);
+    }
+
+    AbstractFramePtr(ion::BaselineFrame *fp)
+      : ptr_(uintptr_t(fp))
+    {
+        JS_ASSERT((uintptr_t(fp) & 1) == 0);
+    }
+
+    bool isStackFrame() const {
+        return ptr_ & 0x1;
+    }
+
+    StackFrame *asStackFrame() const {
+        JS_ASSERT(isStackFrame());
+        StackFrame *res = (StackFrame *)(ptr_ & ~0x1);
+        JS_ASSERT(res);
+        return res;
+    }
+
+    void *raw() const { return reinterpret_cast<void *>(ptr_); }
+
+    bool operator ==(const AbstractFramePtr &other) const { return ptr_ == other.ptr_; }
+    bool operator !=(const AbstractFramePtr &other) const { return ptr_ != other.ptr_; }
+
+    operator bool() const { return !!ptr_; }
+
+    inline JSGenerator *maybeSuspendedGenerator(JSRuntime *rt) const;
+
+    inline UnrootedObject scopeChain() const;
+    inline CallObject &callObj() const;
+    inline JSCompartment *compartment() const;
+
+    inline StaticBlockObject *maybeBlockChain() const;
+    inline bool hasCallObj() const;
+    inline bool isGeneratorFrame() const;
+    inline bool isYielding() const;
+    inline bool isFunctionFrame() const;
+    inline bool isGlobalFrame() const;
+    inline bool isEvalFrame() const;
+    inline bool isFramePushedByExecute() const;
+    inline bool isDebuggerFrame() const;
+
+    inline UnrootedScript script() const;
+    inline JSFunction *fun() const;
+    inline JSFunction &callee() const;
+    inline Value calleev() const;
+    inline Value &thisValue() const;
+
+    inline bool isNonEvalFunctionFrame() const;
+    inline bool isNonStrictDirectEvalFrame() const;
+    inline bool isStrictEvalFrame() const;
+
+    inline unsigned numActualArgs() const;
+    inline unsigned numFormalArgs() const;
+
+    inline Value *formals() const;
+    inline Value *actuals() const;
+
+    inline bool hasArgsObj() const;
+    inline ArgumentsObject &argsObj() const;
+    inline void initArgsObj(ArgumentsObject &argsobj) const;
+
+    inline bool copyRawFrameSlots(AutoValueVector *vec) const;
+
+    inline Value &unaliasedVar(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
+    inline Value &unaliasedLocal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
+    inline Value &unaliasedFormal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
+
+    inline bool prevUpToDate() const;
+    inline void setPrevUpToDate() const;
+    inline AbstractFramePtr evalPrev() const;
+
+    inline void *maybeHookData() const;
+    inline void setHookData(void *data) const;
+    inline void setReturnValue(const Value &rval) const;
+};
+
+class NullFramePtr : public AbstractFramePtr
+{
+  public:
+    NullFramePtr()
+      : AbstractFramePtr()
+    { }
+};
+
+
+
 
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
     INITIAL_CONSTRUCT      =       0x20, 
-    INITIAL_LOWERED        =    0x80000  
+    INITIAL_LOWERED        =    0x40000  
 };
 
 enum ExecuteType {
@@ -258,27 +362,26 @@ class StackFrame
 
         
         HAS_HOOK_DATA      =     0x1000,  
-        HAS_ANNOTATION     =     0x2000,  
-        HAS_RVAL           =     0x4000,  
-        HAS_SCOPECHAIN     =     0x8000,  
-        HAS_PREVPC         =    0x10000,  
-        HAS_BLOCKCHAIN     =    0x20000,  
+        HAS_RVAL           =     0x2000,  
+        HAS_SCOPECHAIN     =     0x4000,  
+        HAS_PREVPC         =     0x8000,  
+        HAS_BLOCKCHAIN     =    0x10000,  
 
         
-        DOWN_FRAMES_EXPANDED =  0x40000,  
-        LOWERED_CALL_APPLY   =  0x80000,  
+        DOWN_FRAMES_EXPANDED =  0x20000,  
+        LOWERED_CALL_APPLY   =  0x40000,  
 
         
-        PREV_UP_TO_DATE    =   0x100000,  
+        PREV_UP_TO_DATE    =    0x80000,  
 
         
-        HAS_PUSHED_SPS_FRAME = 0x200000,  
+        HAS_PUSHED_SPS_FRAME = 0x100000,  
 
         
-        RUNNING_IN_ION       = 0x400000,  
-        CALLING_INTO_ION     = 0x800000,  
+        RUNNING_IN_ION       = 0x200000,  
+        CALLING_INTO_ION     = 0x400000,  
 
-        JIT_REVISED_STACK   = 0x1000000   
+        JIT_REVISED_STACK    = 0x800000   
     };
 
   private:
@@ -300,7 +403,6 @@ class StackFrame
     jsbytecode          *prevpc_;       
     InlinedSite         *prevInline_;   
     void                *hookData_;     
-    void                *annotation_;   
     FrameRejoinState    rejoin_;        
 
 
@@ -353,8 +455,9 @@ class StackFrame
     void initFixupFrame(StackFrame *prev, StackFrame::Flags flags, void *ncode, unsigned nactual);
 
     
-    void initExecuteFrame(UnrootedScript script, StackFrame *prev, FrameRegs *regs,
-                          const Value &thisv, JSObject &scopeChain, ExecuteType type);
+    void initExecuteFrame(UnrootedScript script, StackFrame *prevLink, AbstractFramePtr prev,
+                          FrameRegs *regs, const Value &thisv, JSObject &scopeChain,
+                          ExecuteType type);
 
   public:
     
@@ -756,17 +859,6 @@ class StackFrame
 
 
     inline JSCompartment *compartment() const;
-
-    
-
-    void* annotation() const {
-        return (flags_ & HAS_ANNOTATION) ? annotation_ : NULL;
-    }
-
-    void setAnnotation(void *annot) {
-        flags_ |= HAS_ANNOTATION;
-        annotation_ = annot;
-    }
 
     
 
@@ -1592,7 +1684,7 @@ class ContextStack
     
     bool pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thisv,
                           JSObject &scopeChain, ExecuteType type,
-                          StackFrame *evalInFrame, ExecuteFrameGuard *efg);
+                          AbstractFramePtr evalInFrame, ExecuteFrameGuard *efg);
 
     
     bool pushBailoutArgs(JSContext *cx, const ion::IonBailoutIterator &it,
@@ -1714,206 +1806,6 @@ class GeneratorFrameGuard : public FrameGuard
     Value *stackvp_;
   public:
     ~GeneratorFrameGuard() { if (pushed()) stack_->popGeneratorFrame(*this); }
-};
-
-
-class AbstractFramePtr
-{
-    uintptr_t ptr_;
-
-  public:
-    AbstractFramePtr()
-      : ptr_(0)
-    {}
-
-    AbstractFramePtr(StackFrame *fp)
-      : ptr_(uintptr_t(fp) | 0x1)
-    {
-        JS_ASSERT(fp);
-    }
-
-    bool isStackFrame() const {
-        return ptr_ & 0x1;
-    }
-
-    StackFrame *asStackFrame() const {
-        JS_ASSERT(isStackFrame());
-        StackFrame *res = (StackFrame *)(ptr_ & ~0x1);
-        JS_ASSERT(res);
-        return res;
-    }
-
-    void *raw() const { return reinterpret_cast<void *>(ptr_); }
-
-    bool operator ==(const AbstractFramePtr &other) const { return ptr_ == other.ptr_; }
-    bool operator !=(const AbstractFramePtr &other) const { return ptr_ != other.ptr_; }
-
-    operator bool() const { return !!ptr_; }
-
-    JSGenerator *maybeSuspendedGenerator(JSRuntime *rt) const {
-        if (isStackFrame())
-            return asStackFrame()->maybeSuspendedGenerator(rt);
-        return NULL;
-    }
-
-    inline UnrootedObject scopeChain() const;
-    inline CallObject &callObj() const;
-    inline JSCompartment *compartment() const;
-
-    StaticBlockObject *maybeBlockChain() const {
-        if (isStackFrame())
-            return asStackFrame()->maybeBlockChain();
-        return NULL;
-    }
-    bool hasCallObj() const {
-        if (isStackFrame())
-            return asStackFrame()->hasCallObj();
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-    bool isGeneratorFrame() const {
-        if (isStackFrame())
-            return asStackFrame()->isGeneratorFrame();
-        return false;
-    }
-    bool isYielding() const {
-        if (isStackFrame())
-            return asStackFrame()->isYielding();
-        return false;
-    }
-    bool isFunctionFrame() const {
-        if (isStackFrame())
-            return asStackFrame()->isFunctionFrame();
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-    bool isGlobalFrame() const {
-        if (isStackFrame())
-            return asStackFrame()->isGlobalFrame();
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-    bool isEvalFrame() const {
-        if (isStackFrame())
-            return asStackFrame()->isEvalFrame();
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-    bool isFramePushedByExecute() const {
-        return isGlobalFrame() || isEvalFrame();
-    }
-    bool isDebuggerFrame() const {
-        if (isStackFrame())
-            return asStackFrame()->isDebuggerFrame();
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-    JSScript *script() const {
-        if (isStackFrame())
-            return asStackFrame()->script();
-        JS_NOT_REACHED("Invalid frame");
-        return NULL;
-    }
-    UnrootedFunction fun() const {
-        if (isStackFrame())
-            return asStackFrame()->fun();
-        JS_NOT_REACHED("Invalid frame");
-        return NULL;
-    }
-    JSFunction &callee() const {
-        if (isStackFrame())
-            return asStackFrame()->callee();
-        JS_NOT_REACHED("Invalid frame");
-        return asStackFrame()->callee();
-    }
-    bool isNonEvalFunctionFrame() const {
-        if (isStackFrame())
-            return asStackFrame()->isNonEvalFunctionFrame();
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-    bool isNonStrictDirectEvalFrame() const {
-        if (isStackFrame())
-            return asStackFrame()->isNonStrictDirectEvalFrame();
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-    bool isStrictEvalFrame() const {
-        if (isStackFrame())
-            return asStackFrame()->isStrictEvalFrame();
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-
-    inline unsigned numActualArgs() const;
-    inline unsigned numFormalArgs() const;
-
-    Value *formals() const {
-        if (isStackFrame())
-            return asStackFrame()->formals();
-        JS_NOT_REACHED("Invalid frame");
-        return NULL;
-    }
-    Value *actuals() const {
-        if (isStackFrame())
-            return asStackFrame()->actuals();
-        JS_NOT_REACHED("Invalid frame");
-        return NULL;
-    }
-    bool hasArgsObj() const {
-        if (isStackFrame())
-            return asStackFrame()->hasArgsObj();
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-    ArgumentsObject &argsObj() const {
-        if (isStackFrame())
-            return asStackFrame()->argsObj();
-        JS_NOT_REACHED("Invalid frame");
-        return asStackFrame()->argsObj();
-    }
-    void initArgsObj(ArgumentsObject &argsobj) const {
-        if (isStackFrame()) {
-            asStackFrame()->initArgsObj(argsobj);
-            return;
-        }
-        JS_NOT_REACHED("Invalid frame");
-    }
-    bool copyRawFrameSlots(AutoValueVector *vec) const {
-        if (isStackFrame())
-            return asStackFrame()->copyRawFrameSlots(vec);
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-
-    inline Value &unaliasedVar(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
-    inline Value &unaliasedLocal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
-    inline Value &unaliasedFormal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
-
-    bool prevUpToDate() const {
-        if (isStackFrame())
-            return asStackFrame()->prevUpToDate();
-        JS_NOT_REACHED("Invalid frame");
-        return false;
-    }
-    void setPrevUpToDate() const {
-        if (isStackFrame()) {
-            asStackFrame()->setPrevUpToDate();
-            return;
-        }
-        JS_NOT_REACHED("Invalid frame");
-    }
-    AbstractFramePtr evalPrev() const {
-        JS_ASSERT(isEvalFrame());
-        if (isStackFrame())
-            return AbstractFramePtr(asStackFrame()->prev());
-        JS_NOT_REACHED("Invalid frame");
-        return AbstractFramePtr();
-    }
-
-    inline void *maybeHookData() const;
-    inline void setHookData(void *data) const;
-    inline void setReturnValue(const Value &rval) const;
 };
 
 template <>

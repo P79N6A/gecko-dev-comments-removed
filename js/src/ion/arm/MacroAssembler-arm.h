@@ -510,6 +510,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     CodeOffsetLabel toggledJump(Label *label);
 
+    
+    
+    CodeOffsetLabel toggledCall(IonCode *target, bool enabled);
+
     CodeOffsetLabel pushWithPatch(ImmWord imm) {
         CodeOffsetLabel label = currentOffset();
         ma_movPatchable(Imm32(imm.value), ScratchRegister, Always, L_MOVWT);
