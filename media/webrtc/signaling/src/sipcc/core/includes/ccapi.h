@@ -385,8 +385,8 @@ typedef struct cc_sdp_data_t_ {
 } cc_sdp_data_t;
 
 typedef struct cc_sdp_t_ {
-    void          *src_sdp;     
-    void          *dest_sdp;    
+    sdp_t         *src_sdp;     
+    sdp_t         *dest_sdp;    
 } cc_sdp_t;
 
 typedef enum
