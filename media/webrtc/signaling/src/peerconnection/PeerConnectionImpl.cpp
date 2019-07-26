@@ -231,7 +231,6 @@ PeerConnectionImpl::~PeerConnectionImpl()
   PeerConnectionCtx::GetInstance()->mPeerConnections.erase(mHandle);
   CloseInt(false);
 
-#if 0
   
   
 
@@ -239,9 +238,6 @@ PeerConnectionImpl::~PeerConnectionImpl()
   
   
   
-  if (PeerConnectionCtx::GetInstance()->mPeerConnections.empty())
-    Shutdown();
-#endif
 
   
 
@@ -962,12 +958,6 @@ PeerConnectionImpl::ShutdownMedia(bool aIsSynchronous)
   RUN_ON_THREAD(mThread, WrapRunnable(mMedia.forget().get(),
                                       &PeerConnectionMedia::SelfDestruct),
                 aIsSynchronous ? NS_DISPATCH_SYNC : NS_DISPATCH_NORMAL);
-}
-
-void
-PeerConnectionImpl::Shutdown()
-{
-  PeerConnectionCtx::Destroy();
 }
 
 void
