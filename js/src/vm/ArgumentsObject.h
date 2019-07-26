@@ -114,7 +114,7 @@ class ArgumentsObject : public JSObject
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4;
 
     
-    static ArgumentsObject *createExpected(JSContext *cx, StackFrame *fp);
+    static ArgumentsObject *createExpected(JSContext *cx, TaggedFramePtr frame);
 
     
 
@@ -123,7 +123,7 @@ class ArgumentsObject : public JSObject
 
 
     static ArgumentsObject *createUnexpected(JSContext *cx, StackIter &iter);
-    static ArgumentsObject *createUnexpected(JSContext *cx, StackFrame *fp);
+    static ArgumentsObject *createUnexpected(JSContext *cx, TaggedFramePtr frame);
 
     
 
@@ -202,7 +202,7 @@ class ArgumentsObject : public JSObject
         return getFixedSlotOffset(DATA_SLOT);
     }
 
-    static void MaybeForwardToCallObject(StackFrame *fp, JSObject *obj, ArgumentsData *data);
+    static void MaybeForwardToCallObject(TaggedFramePtr frame, JSObject *obj, ArgumentsData *data);
 };
 
 class NormalArgumentsObject : public ArgumentsObject
