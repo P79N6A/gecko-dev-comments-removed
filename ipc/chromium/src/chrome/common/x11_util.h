@@ -11,7 +11,11 @@
 
 
 
+#if (MOZ_WIDGET_GTK == 2)
 typedef struct _GdkDrawable GdkWindow;
+#else
+typedef struct _GdkWindow GdkWindow;
+#endif
 typedef struct _GtkWidget GtkWidget;
 typedef unsigned long XID;
 typedef struct _XDisplay Display;
