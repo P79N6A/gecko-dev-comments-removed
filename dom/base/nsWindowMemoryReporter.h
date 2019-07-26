@@ -19,13 +19,6 @@
 #include "mozilla/TimeStamp.h"
 #include "nsArenaMemoryStats.h"
 
-
-
-
-
-#define NS_DECL_SIZEOF_EXCLUDING_THIS \
-  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
-
 class nsWindowSizes {
 #define FOR_EACH_SIZE(macro) \
   macro(DOM,   mDOMElementNodesSize) \

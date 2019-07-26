@@ -19,6 +19,7 @@
 #include "nsPIDOMWindow.h"               
 #include "nsPropertyTable.h"             
 #include "nsTHashtable.h"                
+#include "nsWeakReference.h"
 #include "mozilla/dom/DocumentBinding.h"
 #include "mozilla/WeakPtr.h"
 #include "Units.h"
