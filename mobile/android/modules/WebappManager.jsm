@@ -208,16 +208,53 @@ this.WebappManager = {
     });
   },
 
-  uninstall: function(aData) {
+  uninstall: Task.async(function*(aData, aMessageManager) {
     debug("uninstall: " + aData.manifestURL);
+
+    yield DOMApplicationRegistry.registryReady;
 
     if (this._testing) {
       
+      DOMApplicationRegistry.doUninstall(aData, aMessageManager);
       return;
     }
 
+    let app = DOMApplicationRegistry.getAppByManifestURL(aData.manifestURL);
+    if (!app) {
+      throw new Error("app not found in registry");
+    }
+
     
-  },
+    
+    let apkVersions = yield this._getAPKVersions([ app.apkPackageName ]);
+    if (app.apkPackageName in apkVersions) {
+      debug("APK is installed; requesting uninstallation");
+      sendMessageToJava({
+        type: "Webapps:UninstallApk",
+        apkPackageName: app.apkPackageName,
+      });
+
+      
+      
+      
+      
+
+      
+      
+      
+      
+      
+      
+      
+    } else {
+      
+      
+      
+      debug("APK not installed; proceeding directly to removal from registry");
+      DOMApplicationRegistry.doUninstall(aData, aMessageManager);
+    }
+
+  }),
 
   autoInstall: function(aData) {
     debug("autoInstall " + aData.manifestURL);

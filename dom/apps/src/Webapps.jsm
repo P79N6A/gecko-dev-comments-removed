@@ -306,7 +306,7 @@ this.DOMApplicationRegistry = {
   },
 
   
-  registerAppsHandlers: function(aRunUpdate) {
+  registerAppsHandlers: Task.async(function*(aRunUpdate) {
     this.notifyAppsRegistryStart();
     let ids = [];
     for (let id in this.webapps) {
@@ -318,40 +318,38 @@ this.DOMApplicationRegistry = {
       
       
       
-      this._readManifests(ids).then((aResults) => {
-        aResults.forEach((aResult) => {
-          if (!aResult.manifest) {
-            
-            
-            delete this.webapps[aResult.id];
-            return;
-          }
-          let app = this.webapps[aResult.id];
-          app.csp = aResult.manifest.csp || "";
-          app.role = aResult.manifest.role || "";
-          if (app.appStatus >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED) {
-            app.redirects = this.sanitizeRedirects(aResult.redirects);
-          }
-        });
+      let results = yield this._readManifests(ids);
+      results.forEach((aResult) => {
+        if (!aResult.manifest) {
+          
+          
+          delete this.webapps[aResult.id];
+          return;
+        }
+        let app = this.webapps[aResult.id];
+        app.csp = aResult.manifest.csp || "";
+        app.role = aResult.manifest.role || "";
+        if (app.appStatus >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED) {
+          app.redirects = this.sanitizeRedirects(aResult.redirects);
+        }
       });
 
       
       this.notifyAppsRegistryReady();
     }
-  },
+  }),
 
-  updateDataStoreForApp: function(aId) {
+  updateDataStoreForApp: Task.async(function*(aId) {
     if (!this.webapps[aId]) {
       return;
     }
 
     
-    this._readManifests([{ id: aId }]).then((aResult) => {
-      let app = this.webapps[aId];
-      this.updateDataStore(app.localId, app.origin, app.manifestURL,
-                           aResult[0].manifest, app.appStatus);
-    });
-  },
+    let results = yield this._readManifests([{ id: aId }]);
+    let app = this.webapps[aId];
+    this.updateDataStore(app.localId, app.origin, app.manifestURL,
+                         results[0].manifest, app.appStatus);
+  }),
 
   updatePermissionsForApp: function(aId, aIsPreinstalled) {
     if (!this.webapps[aId]) {
@@ -609,10 +607,10 @@ this.DOMApplicationRegistry = {
 
       
       for (let id in this.webapps) {
-        this.updateDataStoreForApp(id);
+        yield this.updateDataStoreForApp(id);
       }
 
-      this.registerAppsHandlers(runUpdate);
+      yield this.registerAppsHandlers(runUpdate);
     }.bind(this)).then(null, Cu.reportError);
   },
 
@@ -1101,7 +1099,11 @@ this.DOMApplicationRegistry = {
         this.getSelf(msg, mm);
         break;
       case "Webapps:Uninstall":
+#ifdef MOZ_WIDGET_ANDROID
+        Services.obs.notifyObservers(mm, "webapps-runtime-uninstall", JSON.stringify(msg));
+#else
         this.doUninstall(msg, mm);
+#endif
         break;
       case "Webapps:Launch":
         this.doLaunch(msg, mm);
