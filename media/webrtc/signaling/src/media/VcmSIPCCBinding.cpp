@@ -133,16 +133,13 @@ VcmSIPCCBinding::VcmSIPCCBinding ()
 
 class VcmIceOpaque : public NrIceOpaque {
  public:
-  VcmIceOpaque(cc_streamid_t stream_id,
-               cc_call_handle_t call_handle,
+  VcmIceOpaque(cc_call_handle_t call_handle,
                uint16_t level) :
-      stream_id_(stream_id),
       call_handle_(call_handle),
       level_(level) {}
 
   virtual ~VcmIceOpaque() {}
 
-  cc_streamid_t stream_id_;
   cc_call_handle_t call_handle_;
   uint16_t level_;
 };
@@ -172,8 +169,8 @@ void VcmSIPCCBinding::CandidateReady(NrIceMediaStream* stream,
     MOZ_ASSERT(opaque);
 
     VcmIceOpaque *vcm_opaque = static_cast<VcmIceOpaque *>(opaque);
-    CSFLogDebug(logTag, "Candidate ready on call %u, level %u",
-                vcm_opaque->call_handle_, vcm_opaque->level_);
+    CSFLogDebug(logTag, "Candidate ready on call %u, level %u: %s",
+                vcm_opaque->call_handle_, vcm_opaque->level_, candidate.c_str());
 
     char *candidate_tmp = (char *)malloc(candidate.size() + 1);
     if (!candidate_tmp)
@@ -596,10 +593,14 @@ static short vcmRxAllocICE_s(TemporaryRef<NrIceCtx> ctx_in,
   *candidate_ctp = 0;
 
   
-  stream->SetOpaque(new VcmIceOpaque(stream_id, call_handle, level));
-
   
-  VcmSIPCCBinding::connectCandidateSignal(stream);
+  if (!stream->opaque()) {
+    
+    stream->SetOpaque(new VcmIceOpaque(call_handle, level));
+
+    
+    VcmSIPCCBinding::connectCandidateSignal(stream);
+  }
 
   std::vector<std::string> candidates = stream->GetCandidates();
   CSFLogDebug( logTag, "%s: Got %lu candidates", __FUNCTION__, (unsigned long) candidates.size());
