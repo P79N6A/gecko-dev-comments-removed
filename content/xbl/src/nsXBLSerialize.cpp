@@ -6,6 +6,7 @@
 #include "nsXBLSerialize.h"
 #include "nsDOMScriptObjectHolder.h"
 #include "nsContentUtils.h"
+#include "jsdbgapi.h"
 
 nsresult
 XBL_SerializeFunction(nsIScriptContext* aContext,
@@ -22,5 +23,17 @@ XBL_DeserializeFunction(nsIScriptContext* aContext,
                         JSObject** aFunctionObjectp)
 {
   JSContext* cx = aContext->GetNativeContext();
-  return nsContentUtils::XPConnect()->ReadFunction(aStream, cx, aFunctionObjectp);
+  nsresult rv = nsContentUtils::XPConnect()->ReadFunction(aStream, cx, aFunctionObjectp);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  
+  
+  JSAutoRequest ar(cx);
+  JSFunction* fun = JS_ValueToFunction(cx, JS::ObjectValue(**aFunctionObjectp));
+  NS_ENSURE_TRUE(fun, NS_ERROR_UNEXPECTED);
+  JS_SetScriptUserBit(JS_GetFunctionScript(cx, fun), true);
+  return NS_OK;
 }
