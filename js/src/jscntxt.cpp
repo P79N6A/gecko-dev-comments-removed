@@ -403,6 +403,18 @@ js_ReportOutOfMemory(ThreadSafeContext *cxArg)
         AutoSuppressGC suppressGC(cx);
         onError(cx, msg, &report);
     }
+
+    
+
+
+
+
+
+
+
+
+
+    JS_ASSERT(!cx->isExceptionPending());
 }
 
 JS_FRIEND_API(void)
