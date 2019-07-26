@@ -130,12 +130,12 @@ class WEBRTC_DLLEXPORT ViECodec {
                                   const bool enable) = 0;
 
   
-  virtual int GetSendCodecStastistics(const int video_channel,
+  virtual int GetSendCodecStatistics(const int video_channel,
                                       unsigned int& key_frames,
                                       unsigned int& delta_frames) const = 0;
 
   
-  virtual int GetReceiveCodecStastistics(const int video_channel,
+  virtual int GetReceiveCodecStatistics(const int video_channel,
                                          unsigned int& key_frames,
                                          unsigned int& delta_frames) const = 0;
 
