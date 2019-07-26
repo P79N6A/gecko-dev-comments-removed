@@ -111,30 +111,6 @@ public class PromoBox extends TextView implements View.OnClickListener {
         mTypes.add(new SyncType(R.string.abouthome_about_sync,
                             R.string.abouthome_sync_bold_name,
                             R.drawable.abouthome_promo_logo_sync));
-
-        mTypes.add(new Type(R.string.abouthome_about_apps,
-                            R.string.abouthome_apps_bold_name,
-                            R.drawable.abouthome_promo_logo_apps) {
-            @Override
-            public boolean canShow() {
-                final ContentResolver resolver = mContext.getContentResolver();
-                return !BrowserDB.isVisited(resolver, "https://marketplace.firefox.com/");
-            }
-            @Override
-            public void onClick(View v) {
-                Tabs.getInstance().loadUrl("https://marketplace.firefox.com/", Tabs.LOADURL_NEW_TAB);
-
-                
-                
-                
-                v.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        showRandomPromo();
-                    }
-                }, 5000);
-            }
-        });
     }
 
     @Override
