@@ -582,15 +582,15 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
     
     
     masm.adjustStack(unusedStack);
-    masm.movePtr(StackPointer, argObj);
+    
+    Register obj = masm.extractObject(Address(StackPointer, 0), argObj);
+    JS_ASSERT(obj == argObj);
 
     
     
     masm.Push(ObjectValue(*target));
     masm.movePtr(StackPointer, argVp);
 
-    
-    Register obj = masm.extractObject(Address(argObj, 0), argArgc);
     
     masm.loadPrivate(Address(obj, JSObject::getFixedSlotOffset(0)), argPrivate);
 
@@ -600,10 +600,16 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
     masm.Push(argArgc);
 
     
+    
+    
+    masm.Push(argObj);
+    masm.movePtr(StackPointer, argObj);
+
+    
     uint32 safepointOffset;
     if (!masm.buildFakeExitFrame(argJSContext, &safepointOffset))
         return false;
-    masm.enterFakeExitFrame();
+    masm.enterFakeDOMFrame(ION_FRAME_DOMMETHOD);
 
     if (!markSafepointAt(safepointOffset, call))
         return false;
@@ -625,7 +631,7 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
     masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
 
     
-    masm.loadValue(Address(StackPointer, IonNativeExitFrameLayout::offsetOfResult()), JSReturnOperand);
+    masm.loadValue(Address(StackPointer, IonDOMMethodExitFrameLayout::offsetOfResult()), JSReturnOperand);
     masm.jump(&success);
 
     
@@ -639,7 +645,7 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
     
 
     
-    masm.adjustStack(IonNativeExitFrameLayout::Size() - unusedStack);
+    masm.adjustStack(IonDOMMethodExitFrameLayout::Size() - unusedStack);
     JS_ASSERT(masm.framePushed() == initialStack);
 
     dropArguments(call->numStackArgs() + 1);
