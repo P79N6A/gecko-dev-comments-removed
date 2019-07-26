@@ -5025,6 +5025,19 @@ if (!${obj}) {
                     self.descriptor.getDescriptor(self.returnType.unroll().inner.identifier.name).nativeOwnership == 'owned'))
 
         if self.idlNode.isAttr() and self.idlNode.slotIndex is not None:
+            
+            
+            
+            
+            
+            
+            
+            
+            if (self.idlNode.getExtendedAttribute("Cached") and
+                self.descriptor.wrapperCache):
+                preserveWrapper = "  PreserveWrapper(self);\n"
+            else:
+                preserveWrapper = ""
             successCode = (
                 "// Be careful here: Have to wrap the value into the\n"
                 "// compartment of reflector before storing, since we might\n"
@@ -5037,9 +5050,10 @@ if (!${obj}) {
                 "    return false;\n"
                 "  }\n"
                 "  js::SetReservedSlot(reflector, %d, tempVal);\n"
+                "%s"
                 "}\n"
                 "return true;" %
-                memberReservedSlot(self.idlNode))
+                (memberReservedSlot(self.idlNode), preserveWrapper))
         else:
             successCode = None
 
