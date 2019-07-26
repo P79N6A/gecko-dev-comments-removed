@@ -260,6 +260,11 @@ this.isSafeJSObject = function isSafeJSObject(aObj) {
     return true; 
   }
 
+  let principal = Services.scriptSecurityManager.getObjectPrincipal(aObj);
+  if (Services.scriptSecurityManager.isSystemPrincipal(principal)) {
+    return true; 
+  }
+
   return Cu.isXrayWrapper(aObj);
 };
 
