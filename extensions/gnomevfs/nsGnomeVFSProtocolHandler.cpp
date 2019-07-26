@@ -10,7 +10,6 @@ extern "C" {
 #include <libgnomevfs/gnome-vfs-mime-utils.h>
 }
 
-#include "NSPRFormatTime.h" 
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 #include "mozilla/ModuleUtils.h"
