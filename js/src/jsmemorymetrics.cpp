@@ -380,6 +380,9 @@ JS::GetExplicitNonHeapForRuntime(JSRuntime *rt, JSMallocSizeOfFun mallocSizeOf)
     n -= decommittedArenas;
 
     
+    n += rt->sizeOfNonHeapAsmJSArrays_;
+
+    
     
     
     
