@@ -4,6 +4,7 @@
 
 
 
+#include <fcntl.h>
 #include "UnixFdWatcher.h"
 
 #ifdef CHROMIUM_LOG
@@ -111,8 +112,16 @@ UnixFdWatcher::SetFd(int aFd)
 {
   MOZ_ASSERT(MessageLoopForIO::current() == mIOLoop);
   MOZ_ASSERT(!IsOpen());
+  MOZ_ASSERT(FdIsNonBlocking(aFd));
 
   mFd = aFd;
+}
+
+bool
+UnixFdWatcher::FdIsNonBlocking(int aFd)
+{
+  int flags = TEMP_FAILURE_RETRY(fcntl(aFd, F_GETFL));
+  return (flags > 0) && (flags & O_NONBLOCK);
 }
 
 }

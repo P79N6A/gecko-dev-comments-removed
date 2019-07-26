@@ -29,25 +29,8 @@ UnixSocketWatcher::Connect(const struct sockaddr* aAddr, socklen_t aAddrLen)
   MOZ_ASSERT(IsOpen());
   MOZ_ASSERT(aAddr || !aAddrLen);
 
-  
-  if (TEMP_FAILURE_RETRY(fcntl(GetFd(), F_SETFL, O_NONBLOCK)) < 0) {
-    OnError("fcntl", errno);
-    return NS_ERROR_FAILURE;
-  }
-
   if (connect(GetFd(), aAddr, aAddrLen) < 0) {
     if (errno == EINPROGRESS) {
-      
-      
-      int flags = TEMP_FAILURE_RETRY(fcntl(GetFd(), F_GETFL, 0));
-      if (flags < 0) {
-        OnError("fcntl", errno);
-        return NS_ERROR_FAILURE;
-      }
-      if (TEMP_FAILURE_RETRY(fcntl(GetFd(), F_SETFL, flags&~O_NONBLOCK)) < 0) {
-        OnError("fcntl", errno);
-        return NS_ERROR_FAILURE;
-      }
       mConnectionStatus = SOCKET_IS_CONNECTING;
       
       AddWatchers(WRITE_WATCHER, false);
