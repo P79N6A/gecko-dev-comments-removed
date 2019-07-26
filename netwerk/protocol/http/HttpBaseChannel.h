@@ -33,6 +33,7 @@
 #include "nsThreadUtils.h"
 #include "PrivateBrowsingChannel.h"
 #include "mozilla/net/DNS.h"
+#include "nsISecurityConsoleMessage.h"
 
 extern PRLogModuleInfo *gHttpLog;
 
@@ -151,6 +152,8 @@ public:
   NS_IMETHOD SetLoadAsBlocking(bool aLoadAsBlocking);
   NS_IMETHOD GetLoadUnblocked(bool *aLoadUnblocked);
   NS_IMETHOD SetLoadUnblocked(bool aLoadUnblocked);
+  NS_IMETHOD AddSecurityMessage(const nsAString &aMessageTag, const nsAString &aMessageCategory);
+  NS_IMETHOD TakeAllSecurityMessages(nsCOMArray<nsISecurityConsoleMessage> &aMessages);
 
   inline void CleanRedirectCacheChainIfNecessary()
   {
@@ -199,6 +202,7 @@ public:
 public: 
 
 protected:
+    nsCOMArray<nsISecurityConsoleMessage> mSecurityConsoleMessages;
 
   
   void     DoNotifyListener();
