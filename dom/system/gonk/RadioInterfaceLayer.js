@@ -692,6 +692,8 @@ function RadioInterface(options) {
     displayName: null
   };
 
+  this.operatorInfo = {};
+
   
   
   let lock = gSettingsService.createLock();
@@ -744,6 +746,19 @@ RadioInterface.prototype = {
 
   debug: function debug(s) {
     dump("-*- RadioInterface[" + this.clientId + "]: " + s + "\n");
+  },
+
+  
+
+
+
+  updateInfo: function updateInfo(srcInfo, destInfo) {
+    for (let key in srcInfo) {
+      if (key === 'rilMessageType') {
+        continue;
+      }
+      destInfo[key] = srcInfo[key];
+    }
   },
 
   
@@ -1143,18 +1158,15 @@ RadioInterface.prototype = {
 
     
     if (voiceMessage) {
-      voiceMessage.batch = true;
-      this.updateVoiceConnection(voiceMessage);
+      this.updateVoiceConnection(voiceMessage, true);
     }
 
     if (dataMessage) {
-      dataMessage.batch = true;
-      this.updateDataConnection(dataMessage);
+      this.updateDataConnection(dataMessage, true);
     }
 
     if (operatorMessage) {
-      operatorMessage.batch = true;
-      this.handleOperatorChange(operatorMessage);
+      this.handleOperatorChange(operatorMessage, true);
     }
 
     let voice = this.rilContext.voice;
@@ -1210,7 +1222,7 @@ RadioInterface.prototype = {
 
 
 
-  updateVoiceConnection: function updateVoiceConnection(newInfo) {
+  updateVoiceConnection: function updateVoiceConnection(newInfo, batch) {
     let voiceInfo = this.rilContext.voice;
     voiceInfo.state = newInfo.state;
     voiceInfo.connected = newInfo.connected;
@@ -1220,23 +1232,30 @@ RadioInterface.prototype = {
 
     
     
-    if (newInfo.regState !== RIL.NETWORK_CREG_STATE_REGISTERED_HOME &&
-        newInfo.regState !== RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING) {
+    if (newInfo.state !== RIL.GECKO_MOBILE_CONNECTION_STATE_REGISTERED) {
       voiceInfo.cell = null;
       voiceInfo.network = null;
       voiceInfo.signalStrength = null;
       voiceInfo.relSignalStrength = null;
     } else {
       voiceInfo.cell = newInfo.cell;
+      voiceInfo.network = this.operatorInfo;
     }
 
-    if (!newInfo.batch) {
+    if (!batch) {
       gMessageManager.sendMobileConnectionMessage("RIL:VoiceInfoChanged",
                                                   this.clientId, voiceInfo);
     }
   },
 
-  updateDataConnection: function updateDataConnection(newInfo) {
+  
+
+
+
+
+
+
+  updateDataConnection: function updateDataConnection(newInfo, batch) {
     let dataInfo = this.rilContext.data;
     dataInfo.state = newInfo.state;
     dataInfo.roaming = newInfo.roaming;
@@ -1253,17 +1272,17 @@ RadioInterface.prototype = {
 
     
     
-    if (newInfo.regState !== RIL.NETWORK_CREG_STATE_REGISTERED_HOME &&
-        newInfo.regState !== RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING) {
+    if (newInfo.state !== RIL.GECKO_MOBILE_CONNECTION_STATE_REGISTERED) {
       dataInfo.cell = null;
       dataInfo.network = null;
       dataInfo.signalStrength = null;
       dataInfo.relSignalStrength = null;
     } else {
       dataInfo.cell = newInfo.cell;
+      dataInfo.network = this.operatorInfo;
     }
 
-    if (!newInfo.batch) {
+    if (!batch) {
       gMessageManager.sendMobileConnectionMessage("RIL:DataInfoChanged",
                                                   this.clientId, dataInfo);
     }
@@ -1371,11 +1390,21 @@ RadioInterface.prototype = {
       destNetwork.mcc != srcNetwork.mcc;
   },
 
-  handleOperatorChange: function handleOperatorChange(message) {
+  
+
+
+
+
+
+
+  handleOperatorChange: function handleOperatorChange(message, batch) {
+    let operatorInfo = this.operatorInfo;
     let voice = this.rilContext.voice;
     let data = this.rilContext.data;
 
-    if (this.networkChanged(message, voice.network)) {
+    if (this.networkChanged(message, operatorInfo)) {
+      this.updateInfo(message, operatorInfo);
+
       
       if (message.mcc && message.mnc) {
         try {
@@ -1384,16 +1413,14 @@ RadioInterface.prototype = {
         } catch (e) {}
       }
 
-      voice.network = message;
-      if (!message.batch) {
+      
+      if (voice.network && !batch) {
         gMessageManager.sendMobileConnectionMessage("RIL:VoiceInfoChanged",
                                                     this.clientId, voice);
       }
-    }
 
-    if (this.networkChanged(message, data.network)) {
-      data.network = message;
-      if (!message.batch) {
+      
+      if (data.network && !batch) {
         gMessageManager.sendMobileConnectionMessage("RIL:DataInfoChanged",
                                                     this.clientId, data);
       }
