@@ -2849,7 +2849,9 @@ class MAsmJSUnsignedToDouble
 
 
 
-class MToInt32 : public MUnaryInstruction
+class MToInt32
+  : public MUnaryInstruction,
+    public NoFloatPolicy<0>
 {
     bool canBeNegativeZero_;
 
@@ -2888,6 +2890,10 @@ class MToInt32 : public MUnaryInstruction
         return AliasSet::None();
     }
     void computeRange();
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
 };
 
 
