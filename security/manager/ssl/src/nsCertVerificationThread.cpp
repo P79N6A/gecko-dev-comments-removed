@@ -2,8 +2,6 @@
 
 
 
-#include "nsMemory.h"
-#include "nsAutoPtr.h"
 #include "nsCertVerificationThread.h"
 #include "nsThreadUtils.h"
 
@@ -47,7 +45,7 @@ void nsCertVerificationJob::Run()
   PRUnichar **usages;
 
   nsCOMPtr<nsICertVerificationResult> ires;
-  nsRefPtr<nsCertVerificationResult> vres = new nsCertVerificationResult;
+  RefPtr<nsCertVerificationResult> vres(new nsCertVerificationResult);
   if (vres)
   {
     nsresult rv = mCert->GetUsagesArray(false, 

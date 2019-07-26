@@ -102,7 +102,7 @@ nsPKCS12Blob::ImportFromFile(nsIFile *file)
 
   if (!mToken) {
     if (!mTokenSet) {
-      rv = SetToken(NULL); 
+      rv = SetToken(nullptr); 
       if (NS_FAILED(rv)) {
         handleError(PIP_PKCS12_USER_CANCELED);
         return rv;
@@ -142,12 +142,12 @@ nsPKCS12Blob::ImportFromFileHelper(nsIFile *file,
   nsNSSShutDownPreventionLock locker;
   nsresult rv;
   SECStatus srv = SECSuccess;
-  SEC_PKCS12DecoderContext *dcx = NULL;
+  SEC_PKCS12DecoderContext *dcx = nullptr;
   SECItem unicodePw;
 
   PK11SlotInfo *slot=nullptr;
   nsXPIDLString tokenName;
-  unicodePw.data = NULL;
+  unicodePw.data = nullptr;
   
   aWantRetry = rr_do_not_retry;
 
@@ -160,7 +160,7 @@ nsPKCS12Blob::ImportFromFileHelper(nsIFile *file,
     
     rv = getPKCS12FilePassword(&unicodePw);
     if (NS_FAILED(rv)) goto finish;
-    if (unicodePw.data == NULL) {
+    if (!unicodePw.data) {
       handleError(PIP_PKCS12_USER_CANCELED);
       return NS_OK;
     }
@@ -177,7 +177,7 @@ nsPKCS12Blob::ImportFromFileHelper(nsIFile *file,
   }
 
   
-  dcx = SEC_PKCS12DecoderStart(&unicodePw, slot, NULL,
+  dcx = SEC_PKCS12DecoderStart(&unicodePw, slot, nullptr,
                                digest_open, digest_close,
                                digest_read, digest_write,
                                this);
@@ -260,7 +260,7 @@ nsPKCS12Blob::LoadCerts(const PRUnichar **certNames, int numCerts)
   
   for (int i=0; i<numCerts; i++) {
     strcpy(namecpy, NS_ConvertUTF16toUTF8(certNames[i]));
-    CERTCertificate *nssCert = PK11_FindCertFromNickname(namecpy, NULL);
+    CERTCertificate *nssCert = PK11_FindCertFromNickname(namecpy, nullptr);
     if (!nssCert) {
       if (!handleError())
         return NS_ERROR_FAILURE;
@@ -290,7 +290,7 @@ isExtractable(SECKEYPrivateKey *privKey)
   if (rv != SECSuccess) {
     return false;
   }
-  if ((value.len == 1) && (value.data != NULL)) {
+  if ((value.len == 1) && value.data) {
     isExtractable = !!(*(CK_BBOOL*)value.data);
   }
   SECITEM_FreeItem(&value, false);
@@ -314,8 +314,8 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
   nsNSSShutDownPreventionLock locker;
   nsresult rv;
   SECStatus srv = SECSuccess;
-  SEC_PKCS12ExportContext *ecx = NULL;
-  SEC_PKCS12SafeInfo *certSafe = NULL, *keySafe = NULL;
+  SEC_PKCS12ExportContext *ecx = nullptr;
+  SEC_PKCS12SafeInfo *certSafe = nullptr, *keySafe = nullptr;
   SECItem unicodePw;
   nsAutoString filePath;
   int i;
@@ -329,16 +329,16 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
   rv = mToken->Login(true);
   if (NS_FAILED(rv)) goto finish;
   
-  unicodePw.data = NULL;
+  unicodePw.data = nullptr;
   rv = newPKCS12FilePassword(&unicodePw);
   if (NS_FAILED(rv)) goto finish;
-  if (unicodePw.data == NULL) {
+  if (!unicodePw.data) {
     handleError(PIP_PKCS12_USER_CANCELED);
     return NS_OK;
   }
   
   
-  ecx = SEC_PKCS12CreateExportContext(NULL, NULL, NULL , NULL);
+  ecx = SEC_PKCS12CreateExportContext(nullptr, nullptr, nullptr , nullptr);
   if (!ecx) {
     srv = SECFailure;
     goto finish;
@@ -407,9 +407,9 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
       goto finish;
     }
     
-    srv = SEC_PKCS12AddCertAndKey(ecx, certSafe, NULL, nssCert,
+    srv = SEC_PKCS12AddCertAndKey(ecx, certSafe, nullptr, nssCert,
                                   CERT_GetDefaultCertDB(), 
-                                  keySafe, NULL, true, &unicodePw,
+                                  keySafe, nullptr, true, &unicodePw,
                       SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_3KEY_TRIPLE_DES_CBC);
     if (srv) goto finish;
     
@@ -419,7 +419,7 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
   if (!numCertsExported) goto finish;
   
   
-  this->mTmpFile = NULL;
+  this->mTmpFile = nullptr;
   file->GetPath(filePath);
   
   
@@ -449,7 +449,7 @@ finish:
     SEC_PKCS12DestroyExportContext(ecx);
   if (this->mTmpFile) {
     PR_Close(this->mTmpFile);
-    this->mTmpFile = NULL;
+    this->mTmpFile = nullptr;
   }
   SECITEM_ZfreeItem(&unicodePw, false);
   return rv;
@@ -471,7 +471,7 @@ nsPKCS12Blob::unicodeToItem(const PRUnichar *uni, SECItem *item)
 {
   int len = 0;
   while (uni[len++] != 0);
-  SECITEM_AllocItem(NULL, item, sizeof(PRUnichar) * len);
+  SECITEM_AllocItem(nullptr, item, sizeof(PRUnichar) * len);
 #ifdef IS_LITTLE_ENDIAN
   int i = 0;
   for (i=0; i<len; i++) {
