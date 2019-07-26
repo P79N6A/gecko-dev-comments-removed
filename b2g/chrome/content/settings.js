@@ -4,7 +4,7 @@
 
 
 
-"use strict;"
+"use strict";
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -21,46 +21,64 @@ XPCOMUtils.defineLazyGetter(this, "libcutils", function () {
 });
 #endif
 
-
-
 var SettingsListener = {
-  _callbacks: {},
+  
+  _timer: null,
 
-  init: function sl_init() {
-    if ('mozSettings' in navigator && navigator.mozSettings) {
-      navigator.mozSettings.onsettingchange = this.onchange.bind(this);
-    }
-  },
+  
+  _lock: null,
 
-  onchange: function sl_onchange(evt) {
-    var callback = this._callbacks[evt.settingName];
-    if (callback) {
-      callback(evt.settingValue);
+  
+
+
+
+
+  getSettingsLock: function sl_getSettingsLock() {
+    
+    clearTimeout(this._timer);
+    this._timer = setTimeout((function() {
+      this._lock = null;
+    }).bind(this), 0);
+
+    
+    if (this._lock) {
+      return this._lock;
     }
+
+    
+    let settings = window.navigator.mozSettings;
+
+    return (this._lock = settings.createLock());
   },
 
   observe: function sl_observe(name, defaultValue, callback) {
-    var settings = window.navigator.mozSettings;
-    if (!settings) {
-      window.setTimeout(function() { callback(defaultValue); });
-      return;
+    let settings = window.navigator.mozSettings;
+
+    let req;
+    try {
+      req = this.getSettingsLock().get(name);
+    } catch (e) {
+      
+      
+      
+      
+      
+      console.warn('Stale lock in settings.js.',
+                   'See https://bugzilla.mozilla.org/show_bug.cgi?id=793239');
+      this._lock = null;
+      req = this.getSettingsLock().get(name);
     }
 
-    if (!callback || typeof callback !== 'function') {
-      throw new Error('Callback is not a function');
-    }
-
-    var req = settings.createLock().get(name);
     req.addEventListener('success', (function onsuccess() {
       callback(typeof(req.result[name]) != 'undefined' ?
         req.result[name] : defaultValue);
     }));
 
-    this._callbacks[name] = callback;
+    settings.addObserver(name, function settingChanged(evt) {
+      callback(evt.settingValue);
+    });
   }
 };
-
-SettingsListener.init();
 
 
 
