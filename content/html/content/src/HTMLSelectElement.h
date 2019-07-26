@@ -464,10 +464,10 @@ protected:
 
 
 
-  nsresult InsertOptionsIntoList(nsIContent* aOptions,
-                                 int32_t aListIndex,
-                                 int32_t aDepth,
-                                 bool aNotify);
+  void InsertOptionsIntoList(nsIContent* aOptions,
+                             int32_t aListIndex,
+                             int32_t aDepth,
+                             bool aNotify);
   
 
 
@@ -484,9 +484,9 @@ protected:
 
 
 
-  nsresult InsertOptionsIntoListRecurse(nsIContent* aOptions,
-                                        int32_t* aInsertIndex,
-                                        int32_t aDepth);
+  void InsertOptionsIntoListRecurse(nsIContent* aOptions,
+                                    int32_t* aInsertIndex,
+                                    int32_t aDepth);
   
 
 
