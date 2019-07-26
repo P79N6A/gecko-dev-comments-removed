@@ -520,11 +520,8 @@ protected:
   
 
 
+
   void RemoveFloat(nsIFrame* aFloat);
-  
-
-
-  void RemoveFloatFromFloatCache(nsIFrame* aFloat);
 
   void CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
                      bool aCollectFromSiblings) {

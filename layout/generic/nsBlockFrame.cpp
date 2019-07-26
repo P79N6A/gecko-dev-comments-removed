@@ -4954,8 +4954,16 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
 }
 
 void
-nsBlockFrame::RemoveFloatFromFloatCache(nsIFrame* aFloat)
+nsBlockFrame::RemoveFloat(nsIFrame* aFloat)
 {
+#ifdef DEBUG
+  if (!mFloats.ContainsFrame(aFloat)) {
+    MOZ_ASSERT(GetOverflowOutOfFlows() &&
+               GetOverflowOutOfFlows()->ContainsFrame(aFloat),
+               "aFloat is not our child or on an unexpected frame list");
+  }
+#endif
+
   
   
   line_iterator line = begin_lines(), line_end = end_lines();
@@ -4964,36 +4972,8 @@ nsBlockFrame::RemoveFloatFromFloatCache(nsIFrame* aFloat)
       break;
     }
   }
-}
-
-void
-nsBlockFrame::RemoveFloat(nsIFrame* aFloat)
-{
-#ifdef DEBUG
-  
-  
-  if (!mFloats.ContainsFrame(aFloat)) {
-    MOZ_ASSERT((GetOverflowOutOfFlows() &&
-                GetOverflowOutOfFlows()->ContainsFrame(aFloat)) ||
-               (GetPushedFloats() &&
-                GetPushedFloats()->ContainsFrame(aFloat)),
-               "aFloat is not our child or on an unexpected frame list");
-  }
-#endif
 
   if (mFloats.StartRemoveFrame(aFloat)) {
-    return;
-  }
-
-  nsFrameList* list = GetPushedFloats();
-  if (list && list->ContinueRemoveFrame(aFloat)) {
-#if 0
-    
-    
-    if (list->IsEmpty()) {
-      delete RemovePushedFloats();
-    }
-#endif
     return;
   }
 
@@ -5003,6 +4983,8 @@ nsBlockFrame::RemoveFloat(nsIFrame* aFloat)
       return;
     }
   }
+
+  MOZ_ASSERT(false, "float child frame not found");
 }
 
 static void MarkSameFloatManagerLinesDirty(nsBlockFrame* aBlock)
@@ -5121,7 +5103,6 @@ nsBlockFrame::DoRemoveOutOfFlowFrame(nsIFrame* aFrame)
         ->DeleteNextInFlowChild(aFrame->PresContext(), nif, false);
     }
     
-    block->RemoveFloatFromFloatCache(aFrame);
     block->RemoveFloat(aFrame);
     aFrame->Destroy();
   }
