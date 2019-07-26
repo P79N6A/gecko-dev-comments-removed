@@ -1956,6 +1956,21 @@ typedef JSContext*
 JS_FRIEND_API(void)
 SetDefaultJSContextCallback(JSRuntime *rt, DefaultJSContextCallback cb);
 
+
+
+
+
+
+
+#ifdef DEBUG
+JS_FRIEND_API(void)
+Debug_SetActiveJSContext(JSRuntime *rt, JSContext *cx);
+#else
+inline void
+Debug_SetActiveJSContext(JSRuntime *rt, JSContext *cx) {};
+#endif
+
+
 enum CTypesActivityType {
     CTYPES_CALL_BEGIN,
     CTYPES_CALL_END,

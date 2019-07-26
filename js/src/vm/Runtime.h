@@ -966,6 +966,16 @@ struct JSRuntime : public JS::shadow::Runtime,
 # endif
 #endif
 
+#ifdef DEBUG
+    
+
+
+
+
+
+    JSContext          *activeContext;
+#endif
+
     
 
     
