@@ -78,8 +78,6 @@
 #include <unistd.h>     
 #endif
 
-#include "nsIJSContextStack.h"
-
 #ifdef MOZ_CRASHREPORTER
 #include "nsICrashReporter.h"
 #endif
@@ -1872,14 +1870,8 @@ main(int argc, char **argv, char **envp)
         xpc->SetFunctionThisTranslator(NS_GET_IID(nsITestXPCFunctionCallback), translator);
 #endif
 
-        nsCOMPtr<nsIJSContextStack> cxstack = do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-        if (!cxstack) {
-            printf("failed to get the nsThreadJSContextStack service!\n");
-            return 1;
-        }
-
-        if (NS_FAILED(cxstack->Push(cx))) {
-            printf("failed to push the current JSContext on the nsThreadJSContextStack!\n");
+        if (!xpc::danger::PushJSContext(cx)) {
+            printf("failed to push the current JSContext!\n");
             return 1;
         }
 
@@ -1941,22 +1933,10 @@ main(int argc, char **argv, char **envp)
 
             result = ProcessArgs(cx, glob, argv, argc, &dirprovider);
 
-
-
-
-#ifdef TEST_CALL_ON_WRAPPED_JS_AFTER_SHUTDOWN
-            
-            nsCOMPtr<nsIJSContextStack> bogus;
-            xpc->WrapJS(cx, glob, NS_GET_IID(nsIJSContextStack),
-                        (void**) getter_AddRefs(bogus));
-#endif
             JS_DropPrincipals(rt, gJSPrincipals);
             JS_SetAllNonReservedSlotsToUndefined(cx, glob);
             JS_GC(rt);
-            JSContext *oldcx;
-            cxstack->Pop(&oldcx);
-            NS_ASSERTION(oldcx == cx, "JS thread context push/pop mismatch");
-            cxstack = nullptr;
+            xpc::danger::PopJSContext();
             JS_GC(rt);
         } 
         JS_EndRequest(cx);
