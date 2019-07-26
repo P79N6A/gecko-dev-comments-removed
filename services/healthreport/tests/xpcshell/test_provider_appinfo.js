@@ -51,7 +51,8 @@ add_task(function test_collect_smoketest() {
   do_check_true(day.has("isDefaultBrowser"));
 
   
-  do_check_eq(day.get("isDefaultBrowser"), -1);
+  
+  do_check_neq(day.get("isDefaultBrowser"), 1);
 
   yield provider.shutdown();
   yield storage.close();
