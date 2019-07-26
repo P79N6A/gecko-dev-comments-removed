@@ -722,7 +722,8 @@ function handURIToExistingBrowser(uri, location, cmdLine)
     return;
 
   
-  var navWin = RecentWindow.getMostRecentBrowserWindow({private: false});
+  var allowPrivate = PrivateBrowsingUtils.permanentPrivateBrowsing;
+  var navWin = RecentWindow.getMostRecentBrowserWindow({private: allowPrivate});
   if (!navWin) {
     
     openWindow(null, gBrowserContentHandler.chromeURL, "_blank",
