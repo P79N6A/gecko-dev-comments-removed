@@ -495,6 +495,9 @@ def environment(xrePath, env=None, crashreporter=True, debugger=False, dmdPath=N
     env['MOZ_CRASHREPORTER_DISABLE'] = '1'
 
   
+  env['MOZ_DISABLE_NONLOCAL_CONNECTIONS'] = '1'
+
+  
   env.setdefault('NSPR_LOG_MODULES', 'signaling:5,mtransport:5,datachannel:5')
   env.setdefault('R_LOG_LEVEL', '6')
   env.setdefault('R_LOG_DESTINATION', 'stderr')

@@ -859,6 +859,8 @@ class XPCShellTests(object):
         
         
         self.env["NS_TRACE_MALLOC_DISABLE_STACKS"] = "1"
+        
+        self.env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
 
     def buildEnvironment(self):
         """
