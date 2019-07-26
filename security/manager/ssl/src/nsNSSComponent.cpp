@@ -972,7 +972,7 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
     = CertVerifier::classic;
 
   
-  if (Preferences::GetBool("security.use_mozillapkix_verification", false)) {
+  if (Preferences::GetBool("security.use_mozillapkix_verification", true)) {
     certVerifierImplementation = CertVerifier::mozillapkix;
   } else {
 #ifndef NSS_NO_LIBPKIX
