@@ -5005,8 +5005,14 @@ class Parser(Tokenizer):
         self.parser = yacc.yacc(module=self,
                                 outputdir=outputdir,
                                 tabmodule='webidlyacc',
-                                errorlog=yacc.NullLogger(),
-                                picklefile='WebIDLGrammar.pkl')
+                                errorlog=yacc.NullLogger()
+                                
+                                
+                                
+                                
+                                
+                                
+                            )
         self._globalScope = IDLScope(BuiltinLocation("<Global Scope>"), None, None)
         self._installBuiltins(self._globalScope)
         self._productions = []
