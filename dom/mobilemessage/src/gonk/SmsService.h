@@ -28,8 +28,7 @@ public:
   SmsService();
 
 protected:
-  
-  nsCOMPtr<nsIRadioInterface> mRadioInterface;
+  nsCOMPtr<nsIRadioInterfaceLayer> mRil;
   nsTArray<nsString> mSilentNumbers;
   uint32_t mDefaultServiceId;
 };
