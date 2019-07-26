@@ -175,7 +175,7 @@ private:
 
   
   
-  nsAutoArrayPtr<char>         mTxInlineFrame;
+  nsAutoArrayPtr<uint8_t>      mTxInlineFrame;
   uint32_t                     mTxInlineFrameSize;
   uint32_t                     mTxInlineFrameUsed;
 
