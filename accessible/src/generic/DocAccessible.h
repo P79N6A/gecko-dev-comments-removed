@@ -242,15 +242,20 @@ public:
 
 
 
-  Accessible* GetAccessibleOrContainer(nsINode* aNode);
+  Accessible* GetAccessibleOrContainer(nsINode* aNode) const;
 
   
 
 
-  Accessible* GetContainerAccessible(nsINode* aNode)
+  Accessible* GetContainerAccessible(nsINode* aNode) const
   {
     return aNode ? GetAccessibleOrContainer(aNode->GetParentNode()) : nullptr;
   }
+
+  
+
+
+  Accessible* GetAccessibleOrDescendant(nsINode* aNode) const;
 
   
 
