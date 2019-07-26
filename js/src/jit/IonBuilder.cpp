@@ -5101,33 +5101,6 @@ IonBuilder::testShouldDOMCall(types::TypeSet *inTypes,
 }
 
 static bool
-TestAreKnownDOMTypes(types::TypeSet *inTypes)
-{
-    if (inTypes->unknownObject())
-        return false;
-
-    
-    
-    for (unsigned i = 0; i < inTypes->getObjectCount(); i++) {
-        types::TypeObjectKey *curType = inTypes->getObject(i);
-        if (!curType)
-            continue;
-
-        if (curType->unknownProperties())
-            return false;
-        if (!(curType->clasp()->flags & JSCLASS_IS_DOMJSCLASS))
-            return false;
-    }
-
-    
-    if (inTypes->getObjectCount() > 0)
-        return true;
-
-    return false;
-}
-
-
-static bool
 ArgumentTypesMatch(MDefinition *def, types::StackTypeSet *calleeTypes)
 {
     if (def->resultTypeSet()) {
@@ -5253,7 +5226,7 @@ IonBuilder::makeCallHelper(JSFunction *target, CallInfo &callInfo, bool cloneAtC
         
         types::TemporaryTypeSet *thisTypes = thisArg->resultTypeSet();
         if (thisTypes &&
-            TestAreKnownDOMTypes(thisTypes) &&
+            thisTypes->isDOMClass() &&
             testShouldDOMCall(thisTypes, target, JSJitInfo::Method))
         {
             call->setDOMFunction();
