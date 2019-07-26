@@ -44,7 +44,7 @@ namespace {
 
 
   static
-  NS_ALWAYS_INLINE const_char_iterator
+  MOZ_ALWAYS_INLINE const_char_iterator
   nextWordBoundary(const_char_iterator const aStart,
                    const_char_iterator const aNext,
                    const_char_iterator const aEnd) {
@@ -91,7 +91,7 @@ namespace {
 
 
   static
-  NS_ALWAYS_INLINE bool
+  MOZ_ALWAYS_INLINE bool
   findInString(const nsDependentCSubstring &aToken,
                const nsACString &aSourceString,
                FindInStringBehavior aBehavior)
