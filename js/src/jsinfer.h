@@ -287,7 +287,7 @@ enum {
                           TYPE_FLAG_INT32 | TYPE_FLAG_DOUBLE | TYPE_FLAG_STRING,
 
     
-    TYPE_FLAG_OBJECT_COUNT_MASK   = 0xff00,
+    TYPE_FLAG_OBJECT_COUNT_MASK   = 0x1f00,
     TYPE_FLAG_OBJECT_COUNT_SHIFT  = 8,
     TYPE_FLAG_OBJECT_COUNT_LIMIT  =
         TYPE_FLAG_OBJECT_COUNT_MASK >> TYPE_FLAG_OBJECT_COUNT_SHIFT,
@@ -976,20 +976,6 @@ struct TypeObject : gc::Cell
 
 
 
-
-
-
-
-
-
-    uint32_t contribution;
-    static const uint32_t CONTRIBUTION_LIMIT = 2000;
-
-    
-
-
-
-
     HeapPtr<TypeNewScript> newScript;
 
     
@@ -1026,6 +1012,10 @@ struct TypeObject : gc::Cell
 
     
     HeapPtrFunction interpretedFunction;
+
+#if JS_BITS_PER_WORD == 32
+    uint32_t padding;
+#endif
 
     inline TypeObject(Class *clasp, TaggedProto proto, bool isFunction, bool unknown);
 

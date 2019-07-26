@@ -6288,12 +6288,6 @@ TypeObject::clearProperties()
 inline void
 TypeObject::sweep(FreeOp *fop)
 {
-    
-
-
-
-    contribution = 0;
-
     if (singleton) {
         JS_ASSERT(!newScript);
 
