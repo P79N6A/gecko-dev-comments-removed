@@ -362,9 +362,8 @@ add_task(function test_history_expiration()
   yield list.add(downloadTwo);
 
   
-  let expire = Cc["@mozilla.org/places/expiration;1"]
-                 .getService(Ci.nsIObserver);
-  expire.observe(null, "places-debug-start-expiration", -1);
+  Cc["@mozilla.org/places/expiration;1"]
+    .getService(Ci.nsIObserver).observe(null, "places-debug-start-expiration", -1);
 
   
   yield deferred.promise;
