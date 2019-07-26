@@ -330,6 +330,10 @@ class HashSet
     Ptr lookup(const Lookup &l) const                 { return impl.lookup(l); }
 
     
+    
+    Ptr readonlyThreadsafeLookup(const Lookup &l) const { return impl.readonlyThreadsafeLookup(l); }
+
+    
     void remove(Ptr p)                                { impl.remove(p); }
 
     
