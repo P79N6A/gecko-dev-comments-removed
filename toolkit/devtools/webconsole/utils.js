@@ -31,6 +31,8 @@ const REGEX_MATCH_FUNCTION_NAME = /^\(?function\s+([^(\s]+)\s*\(/;
 
 const REGEX_MATCH_FUNCTION_ARGS = /^\(?function\s*[^\s(]*\s*\((.+?)\)/;
 
+
+const CONSOLE_ENTRY_THRESHOLD = 10
 let WebConsoleUtils = {
   
 
@@ -530,7 +532,77 @@ let WebConsoleUtils = {
   {
     return aGrip && typeof(aGrip) == "object" && aGrip.actor;
   },
+  
+
+
+
+
+
+  _usageCount: 0,
+  get usageCount() {
+    if (WebConsoleUtils._usageCount < CONSOLE_ENTRY_THRESHOLD) {
+      WebConsoleUtils._usageCount = Services.prefs.getIntPref("devtools.selfxss.count")
+    }
+    return WebConsoleUtils._usageCount;
+  },
+  set usageCount(newUC) {
+    if (newUC <= CONSOLE_ENTRY_THRESHOLD) {
+      WebConsoleUtils._usageCount = newUC;
+      Services.prefs.setIntPref("devtools.selfxss.count", newUC);
+    }
+  },
+  
+
+
+
+
+
+
+  pasteHandlerGen: function WCU_pasteHandlerGen(inputField, notificationBox){
+    let handler = function WCU_pasteHandler(aEvent) {
+      if (WebConsoleUtils.usageCount >= CONSOLE_ENTRY_THRESHOLD) {
+        inputField.removeEventListener("paste", handler);
+        inputField.removeEventListener("drop", handler);
+        return true;
+      }
+      if (notificationBox.getNotificationWithValue("selfxss-notification")) {
+        aEvent.preventDefault();
+        aEvent.stopPropagation();
+        return false;
+      }
+      let l10n = new WebConsoleUtils.l10n("chrome://browser/locale/devtools/webconsole.properties");
+      let okstring = l10n.getStr("selfxss.okstring");
+      let msg = l10n.getFormatStr("selfxss.msg", [okstring]);
+
+      let notification = notificationBox.appendNotification(msg,
+        "selfxss-notification", null, notificationBox.PRIORITY_WARNING_HIGH, null,
+        function(eventType) {
+          
+          if (eventType == "removed") {
+            inputField.removeEventListener("keyup", pasteKeyUpHandler);
+          }
+        });
+
+      function pasteKeyUpHandler(aEvent2) {
+        let value = inputField.value || inputField.textContent;
+        if (value.contains(okstring)) {
+          notificationBox.removeNotification(notification);
+          inputField.removeEventListener("keyup", pasteKeyUpHandler);
+          WebConsoleUtils.usageCount = CONSOLE_ENTRY_THRESHOLD;
+        }
+      }
+      inputField.addEventListener("keyup", pasteKeyUpHandler);
+
+      aEvent.preventDefault();
+      aEvent.stopPropagation();
+      return false;
+    };
+    return handler;
+  },
+
+
 };
+
 exports.Utils = WebConsoleUtils;
 
 

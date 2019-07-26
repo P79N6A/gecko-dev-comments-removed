@@ -1398,6 +1398,10 @@ pref("devtools.webconsole.fontSize", 0);
 
 
 
+pref("devtools.selfxss.count", 0);
+
+
+
 
 pref("devtools.webconsole.persistlog", false);
 
