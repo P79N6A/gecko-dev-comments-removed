@@ -58,6 +58,10 @@
 #define PROGRESS_EXECUTE_SIZE 75.0f
 #define PROGRESS_FINISH_SIZE   5.0f
 
+
+#define PARENT_WAIT 5000
+#define IMMERSIVE_PARENT_WAIT 15000
+
 #if defined(XP_MACOSX)
 
 void LaunchChild(int argc, char **argv);
@@ -1677,6 +1681,23 @@ PatchIfFile::Finish(int status)
 #include "nsWindowsHelpers.h"
 #include "uachelper.h"
 #include "pathhash.h"
+
+#ifdef MOZ_METRO
+
+
+
+
+bool
+IsUpdateFromMetro(int argc, NS_tchar **argv)
+{
+  for (int i = 0; i < argc; i++) {
+    if (!wcsicmp(L"-ServerName:DefaultBrowserServer", argv[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+#endif
 #endif
 
 static void
@@ -1706,11 +1727,9 @@ LaunchCallbackApp(const NS_tchar *workingDir,
 #if defined(MOZ_METRO)
     
     
-    for (int i = 0; i < argc; i++) {
-      if (!wcsicmp(L"-ServerName:DefaultBrowserServer", argv[i])) {
-        LaunchDefaultMetroBrowser();
-        return;
-      }
+    if (IsUpdateFromMetro(argc, argv)) {
+      LaunchDefaultMetroBrowser();
+      return;
     }
 #endif
     WinLaunchChild(argv[0], argc, argv, NULL);
@@ -2466,9 +2485,15 @@ int NS_main(int argc, NS_tchar **argv)
     
     
     if (parent) {
-      DWORD result = WaitForSingleObject(parent, 5000);
+      bool updateFromMetro = false;
+#ifdef MOZ_METRO
+      updateFromMetro = IsUpdateFromMetro(argc, argv);
+#endif
+      DWORD waitTime = updateFromMetro ?
+                       IMMERSIVE_PARENT_WAIT : PARENT_WAIT;
+      DWORD result = WaitForSingleObject(parent, waitTime);
       CloseHandle(parent);
-      if (result != WAIT_OBJECT_0)
+      if (result != WAIT_OBJECT_0 && !updateFromMetro)
         return 1;
     }
   }
