@@ -157,7 +157,7 @@ function trigger_background_update(aCallback) {
   Services.obs.addObserver({
     observe: function(aSubject, aTopic, aData) {
       Services.obs.removeObserver(this, "addons-background-update-complete");
-      aCallback();
+      do_execute_soon(aCallback);
     }
   }, "addons-background-update-complete", false);
 
@@ -261,15 +261,17 @@ function check_compat_status(aCallback) {
     do_check_true(a10.isCompatible);
     do_check_false(a10.appDisabled);
 
-    aCallback();
+    do_execute_soon(aCallback);
   });
 }
 
 function run_test_1() {
+  do_print("Run test 1");
   check_compat_status(run_test_2);
 }
 
 function run_test_2() {
+  do_print("Run test 2");
   restartManager();
   check_compat_status(end_test);  
 }

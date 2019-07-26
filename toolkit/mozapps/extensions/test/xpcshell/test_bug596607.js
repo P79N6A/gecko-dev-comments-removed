@@ -77,14 +77,14 @@ function run_test_1() {
 
     do_check_eq(a3, null);
 
-    shutdownManager();
-
-    run_test_2();
+    do_execute_soon(run_test_2);
   });
 }
 
 
 function run_test_2() {
+  shutdownManager();
+
   MockRegistry.setValue(AM_Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
                         "SOFTWARE\\Mozilla\\XPCShell\\Extensions",
                         "addon3@tests.mozilla.org", addon3Dir.path);
@@ -106,14 +106,14 @@ function run_test_2() {
 
     do_check_eq(a3, null);
 
-    shutdownManager();
-
-    run_test_3();
+    do_execute_soon(run_test_3);
   });
 }
 
 
 function run_test_3() {
+  shutdownManager();
+
   MockRegistry.setValue(AM_Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
                         "SOFTWARE\\Mozilla\\XPCShell\\Extensions",
                         "addon3@tests.mozilla.org", null);
