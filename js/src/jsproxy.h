@@ -77,7 +77,7 @@ class JS_FRIEND_API(BaseProxyHandler) {
         return false;
     }
 
-    virtual bool finalizeInBackground(HandleValue priv) {
+    virtual bool finalizeInBackground(Value priv) {
         
 
 
