@@ -103,7 +103,10 @@ FilePicker.prototype = {
       this.mFilterTypes = this.mFilterTypes.concat(AUDIO_FILTERS);
     }
 
-    
+    if (filterMask & Ci.nsIFilePicker.filterAll) {
+      
+      this.mExtraProps['nocrop'] = true;
+    }
   },
 
   appendFilter: function(title, extensions) {
