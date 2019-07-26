@@ -210,7 +210,19 @@ let gPage = {
     for (let site of gGrid.sites) {
       if (site) {
         site.captureIfMissing();
-        let {type} = site.link;
+
+        
+        let {directoryIndex, type} = site.link;
+        if (directoryIndex !== undefined) {
+          let tileIndex = site.cell.index;
+          
+          if (directoryIndex < 9) {
+            let shownId = "NEWTAB_PAGE_DIRECTORY_LINK" + directoryIndex + "_SHOWN";
+            Services.telemetry.getHistogramById(shownId).add(Math.min(9, tileIndex));
+          }
+        }
+
+        
         if (type in directoryCount) {
           directoryCount[type]++;
         }
