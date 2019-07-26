@@ -20,7 +20,6 @@
 #include "nsString.h"
 #include "TimeZoneSettingObserver.h"
 #include "xpcpublic.h"
-#include "nsContentUtils.h"
 
 #undef LOG
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Time Zone Setting" , ## args)
@@ -51,13 +50,7 @@ public:
 
   TimeZoneSettingCb() {}
 
-  NS_IMETHOD Handle(const nsAString &aName, const JS::Value &aResult) {
-
-    JSContext *cx = nsContentUtils::GetSafeJSContext();
-    NS_ENSURE_TRUE(cx, NS_OK);
-    JSAutoRequest ar(cx);
-    JSAutoCompartment ac(cx, JSVAL_TO_OBJECT(aResult));
-
+  NS_IMETHOD Handle(const nsAString &aName, const JS::Value &aResult, JSContext *aContext) {
     
     
     
@@ -66,7 +59,7 @@ public:
       
       nsCString curTimezone = hal::GetTimezone();
       NS_ConvertUTF8toUTF16 utf16Str(curTimezone);
-      JSString *jsStr = JS_NewUCStringCopyN(cx, utf16Str.get(), utf16Str.Length());
+      JSString *jsStr = JS_NewUCStringCopyN(aContext, utf16Str.get(), utf16Str.Length());
 
       
       nsCOMPtr<nsISettingsServiceLock> lock;
@@ -83,13 +76,13 @@ public:
 
     
     if (aResult.isString()) {
-      return TimeZoneSettingObserver::SetTimeZone(aResult, cx);
+      return TimeZoneSettingObserver::SetTimeZone(aResult, aContext);
     }
 
     return NS_OK;
   }
 
-  NS_IMETHOD HandleError(const nsAString &aName) {
+  NS_IMETHOD HandleError(const nsAString &aName, JSContext *aContext) {
     ERR("TimeZoneSettingCb::HandleError: %s\n", NS_LossyConvertUTF16toASCII(aName).get());
     return NS_OK;
   }
