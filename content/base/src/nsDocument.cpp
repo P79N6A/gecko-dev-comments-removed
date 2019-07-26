@@ -2691,7 +2691,7 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   aChannel->GetURI(getter_AddRefs(selfURI));
 
   
-  csp->ScanRequestData(aChannel);
+  csp->SetRequestContext(nullptr, nullptr, nullptr, aChannel);
 
   
   if (applyAppDefaultCSP) {

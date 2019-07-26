@@ -491,8 +491,21 @@ nsPrincipal::Read(nsIObjectInputStream* aStream)
   rv = aStream->ReadBoolean(&inMozBrowser);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsCOMPtr<nsIContentSecurityPolicy> csp;
+  rv = NS_ReadOptionalObject(aStream, true, getter_AddRefs(csp));
+  NS_ENSURE_SUCCESS(rv, rv);
+
   rv = Init(codebase, appId, inMozBrowser);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = SetCsp(csp);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  if (csp) {
+    csp->SetRequestContext(codebase, nullptr, this, nullptr);
+  }
 
   SetDomain(domain);
 
@@ -518,6 +531,13 @@ nsPrincipal::Write(nsIObjectOutputStream* aStream)
 
   aStream->Write32(mAppId);
   aStream->WriteBoolean(mInMozBrowser);
+
+  rv = NS_WriteOptionalCompoundObject(aStream, mCSP,
+                                      NS_GET_IID(nsIContentSecurityPolicy),
+                                      true);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   
   

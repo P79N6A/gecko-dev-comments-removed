@@ -76,7 +76,7 @@ function makeTest(id, expectedJSON, useReportOnlyPolicy, callback) {
   dump("Created test " + id + " : " + policy + "\n\n");
 
   
-  csp.scanRequestData(selfchan);
+  csp.setRequestContext(selfuri, null, null, selfchan);
 
   
   
