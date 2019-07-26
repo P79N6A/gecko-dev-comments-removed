@@ -320,6 +320,74 @@ const CustomizableWidgets = [{
       parent.appendChild(items);
     }
   }, {
+    id: "sidebar-button",
+    type: "view",
+    viewId: "PanelUI-sidebar",
+    onViewShowing: function(aEvent) {
+      
+      
+      
+      
+      
+      let doc = aEvent.target.ownerDocument;
+      let win = doc.defaultView;
+
+      let items = doc.getElementById("PanelUI-sidebarItems");
+      let menu = doc.getElementById("viewSidebarMenu");
+
+      
+      
+      
+      win.SocialSidebar.clearProviderMenus();
+      let providerMenuSeps = menu.getElementsByClassName("social-provider-menu");
+      if (providerMenuSeps.length > 0)
+        win.SocialSidebar.populateProviderMenu(providerMenuSeps[0]);
+
+      let attrs = ["oncommand", "onclick", "label", "key", "disabled",
+                   "command", "observes", "hidden", "class", "origin",
+                   "image", "checked"];
+
+      let fragment = doc.createDocumentFragment();
+      let itemsToDisplay = [...menu.children];
+      for (let node of itemsToDisplay) {
+        if (node.hidden)
+          continue;
+
+        let item;
+        if (node.localName == "menuseparator") {
+          item = doc.createElementNS(kNSXUL, "menuseparator");
+        } else if (node.localName == "menuitem") {
+          item = doc.createElementNS(kNSXUL, "toolbarbutton");
+        } else {
+          continue;
+        }
+        for (let attr of attrs) {
+          let attrVal = node.getAttribute(attr);
+          if (attrVal)
+            item.setAttribute(attr, attrVal);
+        }
+        if (node.localName == "menuitem")
+          item.classList.add("subviewbutton");
+        fragment.appendChild(item);
+      }
+
+      items.appendChild(fragment);
+    },
+    onViewHiding: function(aEvent) {
+      let doc = aEvent.target.ownerDocument;
+      let items = doc.getElementById("PanelUI-sidebarItems");
+      let parent = items.parentNode;
+      
+      
+      parent.removeChild(items);
+
+      while (items.firstChild) {
+        items.firstChild.remove();
+      }
+
+      parent.appendChild(items);
+    }
+  }, {
     id: "add-ons-button",
     shortcutId: "key_openAddons",
     tooltiptext: "add-ons-button.tooltiptext2",
