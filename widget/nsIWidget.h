@@ -611,6 +611,19 @@ class nsIWidget : public nsISupports {
 
 
 
+
+
+
+
+
+
+
+    static double DefaultScaleOverride();
+
+    
+
+
+
     nsIWidget* GetFirstChild() const {
         return mFirstChild;
     }

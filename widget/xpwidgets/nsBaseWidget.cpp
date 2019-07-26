@@ -381,6 +381,18 @@ float nsBaseWidget::GetDPI()
 
 double nsIWidget::GetDefaultScale()
 {
+  double devPixelsPerCSSPixel = DefaultScaleOverride();
+
+  if (devPixelsPerCSSPixel <= 0.0) {
+    devPixelsPerCSSPixel = GetDefaultScaleInternal();
+  }
+
+  return devPixelsPerCSSPixel;
+}
+
+
+double nsIWidget::DefaultScaleOverride()
+{
   
   
   
@@ -389,10 +401,6 @@ double nsIWidget::GetDefaultScale()
   nsAdoptingCString prefString = Preferences::GetCString("layout.css.devPixelsPerPx");
   if (!prefString.IsEmpty()) {
     devPixelsPerCSSPixel = PR_strtod(prefString, nullptr);
-  }
-
-  if (devPixelsPerCSSPixel <= 0.0) {
-    devPixelsPerCSSPixel = GetDefaultScaleInternal();
   }
 
   return devPixelsPerCSSPixel;
