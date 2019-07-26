@@ -12,6 +12,8 @@
 #include "gfxASurface.h"
 #include "imgFrame.h"
 #include "FrameSequence.h"
+#include "nsCOMPtr.h"
+#include "nsISupportsImpl.h"
 
 namespace mozilla {
 namespace image {
@@ -26,11 +28,18 @@ class FrameBlender
 {
 public:
 
-  FrameBlender();
+  
+
+
+
+
+  FrameBlender(FrameSequence* aSequenceToUse = nullptr);
   ~FrameBlender();
 
   bool DoBlend(nsIntRect* aDirtyRect, uint32_t aPrevFrameIndex,
                uint32_t aNextFrameIndex);
+
+  already_AddRefed<FrameSequence> GetFrameSequence();
 
   
 
@@ -158,7 +167,7 @@ private:
 
 private: 
   
-  FrameSequence mFrames;
+  nsRefPtr<FrameSequence> mFrames;
   nsIntSize mSize;
   Anim* mAnim;
 };
