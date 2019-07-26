@@ -20,22 +20,6 @@ function extend(child, supertype)
 var SMILUtil =
 {
   
-  
-  
-  isSMILEnabled : function()
-  {
-    var svg = SMILUtil.getSVGRoot();
-    try {
-      SMILUtil.getSVGRoot().animationsPaused();
-    } catch(e) {
-      
-      return false;
-    }
-    
-    return true;
-  },
-
-  
   getSVGRoot : function()
   {
     return SMILUtil.getFirstElemWithTag("svg");
