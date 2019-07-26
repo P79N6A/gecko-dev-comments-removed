@@ -3908,16 +3908,10 @@ EmitIf(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-
-
-
-
         JS_ASSERT(stmtInfo.type == STMT_ELSE);
         stmtInfo.type = STMT_IF;
         stmtInfo.update = top;
         if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, jmp - beq))
-            return false;
-        if (!SetSrcNoteOffset(cx, bce, noteIndex, 1, top - beq))
             return false;
     }
 
@@ -6382,7 +6376,7 @@ JS_FRIEND_DATA(JSSrcNoteSpec) js_SrcNoteSpec[] = {
  {"null",           0},
 
  {"if",             0},
- {"if-else",        2},
+ {"if-else",        1},
  {"cond",           1},
 
  {"for",            3},
