@@ -5,11 +5,10 @@
 
 
 
-#include "LayerTransactionParent.h"
 #include "ShadowLayerParent.h"
-#include "ShadowLayers.h"
-
-#include "BasicLayers.h"
+#include "Layers.h"                     
+#include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
 
 namespace mozilla {
 namespace layers {

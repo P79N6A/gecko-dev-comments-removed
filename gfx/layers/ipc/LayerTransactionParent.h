@@ -8,12 +8,23 @@
 #ifndef MOZILLA_LAYERS_LAYERTRANSACTIONPARENT_H
 #define MOZILLA_LAYERS_LAYERTRANSACTIONPARENT_H
 
-#include "mozilla/layers/PLayerTransactionParent.h"
-#include "ShadowLayers.h"
-#include "ShadowLayersManager.h"
+#include <stddef.h>                     
+#include <stdint.h>                     
 #include "CompositableTransactionParent.h"
+#include "gfxPoint.h"                   
+#include "mozilla/Attributes.h"         
+#include "mozilla/ipc/SharedMemory.h"   
+#include "mozilla/layers/PLayerTransactionParent.h"
+#include "nsAutoPtr.h"                  
+#include "nsTArrayForwardDeclare.h"     
+
+class gfx3DMatrix;
 
 namespace mozilla {
+
+namespace ipc {
+class Shmem;
+}
 
 namespace layout {
 class RenderFrameParent;
@@ -25,6 +36,7 @@ class Layer;
 class LayerManagerComposite;
 class ShadowLayerParent;
 class CompositableParent;
+class ShadowLayersManager;
 
 class LayerTransactionParent : public PLayerTransactionParent,
                                public CompositableParentManager

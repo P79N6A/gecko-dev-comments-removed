@@ -4,9 +4,21 @@
 
 
 #include "mozilla/layers/TiledContentClient.h"
-#include "mozilla/gfx/2D.h"
-#include "mozilla/MathAlgorithms.h"
-#include "ClientTiledThebesLayer.h"
+#include <math.h>                       
+#include "ClientTiledThebesLayer.h"     
+#include "GeckoProfilerImpl.h"          
+#include "ClientLayerManager.h"         
+#include "gfxContext.h"                 
+#include "gfxPlatform.h"                
+#include "gfxRect.h"                    
+#include "mozilla/MathAlgorithms.h"     
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/layers/CompositableForwarder.h"
+#include "mozilla/layers/ShadowLayers.h"  
+#include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
+#include "nsSize.h"                     
 
 #ifdef GFX_TILEDLAYER_DEBUG_OVERLAY
 #include "cairo.h"

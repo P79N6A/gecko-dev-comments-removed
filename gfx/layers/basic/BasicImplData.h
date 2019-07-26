@@ -5,8 +5,17 @@
 #ifndef GFX_BASICIMPLDATA_H
 #define GFX_BASICIMPLDATA_H
 
+#include "Layers.h"                     
+#include "gfxContext.h"                 
+#include "nsDebug.h"                    
+#include "nsTraceRefcnt.h"              
+class gfxASurface;
+
 namespace mozilla {
 namespace layers {
+
+class ReadbackProcessor;
+class SurfaceDescriptor;
 
 
 

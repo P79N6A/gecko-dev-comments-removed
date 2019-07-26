@@ -3,18 +3,30 @@
 
 
 
-#include "ipc/AutoOpenSurface.h"
 #include "ImageHost.h"
+#include "LayersLogging.h"              
+#include "composite/CompositableHost.h"  
+#include "ipc/IPCMessageUtils.h"        
+#include "mozilla/layers/Compositor.h"  
+#include "mozilla/layers/Effects.h"     
+#include "nsAString.h"
+#include "nsDebug.h"                    
+#include "nsPrintfCString.h"            
+#include "nsString.h"                   
 
-#include "mozilla/layers/Effects.h"
-#include "LayersLogging.h"
-#include "nsPrintfCString.h"
+class gfxImageSurface;
+class nsIntRegion;
 
 namespace mozilla {
+namespace gfx {
+class Matrix4x4;
+}
 
 using namespace gfx;
 
 namespace layers {
+
+class ISurfaceAllocator;
 
 ImageHost::ImageHost(const TextureInfo& aTextureInfo)
   : CompositableHost(aTextureInfo)

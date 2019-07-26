@@ -15,28 +15,37 @@
 
 
 
+#include <stdint.h>                     
+#include "GeckoProfilerFunc.h"          
+#include "Layers.h"                     
+#include "ShadowLayersManager.h"        
+#include "base/basictypes.h"            
+#include "base/platform_thread.h"       
+#include "mozilla/Assertions.h"         
+#include "mozilla/Attributes.h"         
+#include "mozilla/Monitor.h"            
+#include "mozilla/RefPtr.h"             
+#include "mozilla/TimeStamp.h"          
+#include "mozilla/ipc/ProtocolUtils.h"
+#include "mozilla/layers/GeckoContentController.h"
+#include "mozilla/layers/LayerTransaction.h"  
 #include "mozilla/layers/PCompositorParent.h"
-#include "mozilla/layers/PLayerTransactionParent.h"
-#include "mozilla/layers/APZCTreeManager.h"
-#include "base/thread.h"
-#include "mozilla/Monitor.h"
-#include "mozilla/TimeStamp.h"
-#include "ShadowLayersManager.h"
+#include "nsAutoPtr.h"                  
+#include "nsISupportsImpl.h"
+#include "nsSize.h"                     
 
+class CancelableTask;
+class MessageLoop;
+class gfxContext;
 class nsIWidget;
-
-namespace base {
-class Thread;
-}
 
 namespace mozilla {
 namespace layers {
 
 class APZCTreeManager;
-class Layer;
-class LayerManagerComposite;
 class AsyncCompositionManager;
-struct TextureFactoryIdentifier;
+class LayerManagerComposite;
+class LayerTransactionParent;
 
 struct ScopedLayerTreeRegistration
 {

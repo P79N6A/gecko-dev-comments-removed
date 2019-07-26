@@ -6,18 +6,17 @@
 #ifndef MOZILLA_LAYERS_BLOBYCBCRSURFACE_H
 #define MOZILLA_LAYERS_BLOBYCBCRSURFACE_H
 
-#include "mozilla/DebugOnly.h"
-
-#include "base/basictypes.h"
-#include "Shmem.h"
-#include "gfxPoint.h"
+#include <stddef.h>                     
+#include <stdint.h>                     
+#include "ImageTypes.h"                 
+#include "gfxPoint.h"                   
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/Point.h"          
 
 namespace mozilla {
-namespace ipc {
-  class Shmem;
-}
 namespace gfx {
-  class DataSourceSurface;
+class DataSourceSurface;
 }
 
 namespace layers {

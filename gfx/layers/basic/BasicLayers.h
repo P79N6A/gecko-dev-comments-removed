@@ -6,29 +6,33 @@
 #ifndef GFX_BASICLAYERS_H
 #define GFX_BASICLAYERS_H
 
-#include "Layers.h"
+#include <stdint.h>                     
+#include "Layers.h"                     
+#include "gfxASurface.h"                
+#include "gfxCachedTempSurface.h"       
+#include "gfxContext.h"                 
+#include "mozilla/Attributes.h"         
+#include "mozilla/WidgetUtils.h"        
+#include "mozilla/layers/LayersTypes.h"  
+#include "nsAString.h"
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsISupportsImpl.h"            
+#include "nsRegion.h"                   
+#include "nscore.h"                     
 
-#include "gfxContext.h"
-#include "gfxCachedTempSurface.h"
-#include "mozilla/layers/ShadowLayers.h"
-#include "mozilla/WidgetUtils.h"
-#include "nsAutoRef.h"
-#include "nsThreadUtils.h"
-
+class gfxPattern;
 class nsIWidget;
 
 namespace mozilla {
 namespace layers {
 
 class BasicShadowableLayer;
-class ThebesLayerComposite;
-class ContainerLayerComposite;
-class ImageLayerComposite;
-class CanvasLayerComposite;
-class ColorLayerComposite;
-class ReadbackProcessor;
 class ImageFactory;
+class ImageLayer;
 class PaintLayerContext;
+class ReadbackLayer;
+class ReadbackProcessor;
 
 
 

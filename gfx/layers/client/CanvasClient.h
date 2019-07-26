@@ -6,14 +6,23 @@
 #ifndef MOZILLA_GFX_CANVASCLIENT_H
 #define MOZILLA_GFX_CANVASCLIENT_H
 
-#include "mozilla/layers/TextureClient.h"
-#include "mozilla/layers/CompositableClient.h"
+#include "mozilla/Assertions.h"         
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/layers/CompositableClient.h"  
+#include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/LayersSurfaces.h"  
+#include "mozilla/layers/TextureClient.h"  
+#include "mozilla/mozalloc.h"           
+
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Types.h"          
 
 namespace mozilla {
-
 namespace layers {
 
 class ClientCanvasLayer;
+class CompositableForwarder;
 
 
 

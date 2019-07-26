@@ -4,7 +4,22 @@
 
 
 #include "ReadbackProcessor.h"
-#include "ReadbackLayer.h"
+#include <sys/types.h>                  
+#include "Layers.h"                     
+#include "ReadbackLayer.h"              
+#include "gfx3DMatrix.h"                
+#include "gfxColor.h"                   
+#include "gfxContext.h"                 
+#include "gfxMatrix.h"                  
+#include "gfxRect.h"                    
+#include "mozilla/gfx/BasePoint.h"      
+#include "mozilla/gfx/BaseRect.h"       
+#include "nsAutoPtr.h"                  
+#include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
+#include "nsPoint.h"                    
+#include "nsRegion.h"                   
+#include "nsSize.h"                     
 
 namespace mozilla {
 namespace layers {

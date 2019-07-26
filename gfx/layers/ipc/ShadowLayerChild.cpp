@@ -6,8 +6,9 @@
 
 
 #include "ShadowLayerChild.h"
-#include "Layers.h"
-#include "ShadowLayers.h"
+#include "Layers.h"                     
+#include "ShadowLayers.h"               
+#include "nsDebug.h"                    
 
 namespace mozilla {
 namespace layers {

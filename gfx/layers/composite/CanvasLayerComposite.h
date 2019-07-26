@@ -6,16 +6,20 @@
 #ifndef GFX_CanvasLayerComposite_H
 #define GFX_CanvasLayerComposite_H
 
-
-#include "mozilla/layers/LayerManagerComposite.h"
-#include "gfxASurface.h"
-#if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
-#include "mozilla/X11Util.h"
-#endif
+#include "Layers.h"                     
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/layers/LayerManagerComposite.h"  
+#include "mozilla/layers/LayersTypes.h"  
+#include "nsDebug.h"                    
+#include "nsRect.h"                     
+#include "nscore.h"                     
+struct nsIntPoint;
 
 namespace mozilla {
 namespace layers {
 
+class CompositableHost;
 
 
 class ImageHost;

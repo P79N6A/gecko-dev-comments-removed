@@ -3,33 +3,53 @@
 
 
 
-#include "mozilla/dom/TabChild.h"
-#include "mozilla/Hal.h"
-#include "mozilla/layers/PLayerChild.h"
-#include "mozilla/layers/PLayerTransactionChild.h"
-#include "mozilla/layers/PLayerTransactionParent.h"
-
-#include "gfxSharedImageSurface.h"
-#include "gfxImageSurface.h"
-#include "gfxUtils.h"
-#include "gfxPlatform.h"
-#include "nsXULAppAPI.h"
-#include "RenderTrace.h"
-#include "GeckoProfiler.h"
-
+#include <stdint.h>                     
+#include <stdlib.h>                     
+#include <sys/types.h>                  
+#include "BasicContainerLayer.h"        
+#include "BasicLayersImpl.h"            
+#include "GeckoProfilerImpl.h"          
+#include "ImageContainer.h"             
+#include "Layers.h"                     
+#include "ReadbackLayer.h"              
+#include "ReadbackProcessor.h"          
+#include "RenderTrace.h"                
+#include "basic/BasicImplData.h"        
+#include "basic/BasicLayers.h"          
+#include "cairo-rename.h"               
+#include "gfx3DMatrix.h"                
+#include "gfxASurface.h"                
+#include "gfxCachedTempSurface.h"       
+#include "gfxColor.h"                   
+#include "gfxContext.h"                 
+#include "gfxImageSurface.h"            
+#include "gfxMatrix.h"                  
+#include "gfxPlatform.h"                
+#include "gfxPoint.h"                   
+#include "gfxRect.h"                    
+#include "gfxUtils.h"                   
+#include "mozilla/Assertions.h"         
+#include "mozilla/WidgetUtils.h"        
+#include "mozilla/gfx/2D.h"             
+#include "mozilla/gfx/BasePoint.h"      
+#include "mozilla/gfx/BaseRect.h"       
+#include "mozilla/gfx/Matrix.h"         
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
+#include "nsPoint.h"                    
+#include "nsRect.h"                     
+#include "nsRegion.h"                   
+#include "nsTArray.h"                   
+#include "nsTraceRefcnt.h"              
 #define PIXMAN_DONT_DEFINE_STDINT
-#include "pixman.h"
+#include "pixman.h"                     
 
-#include "BasicLayersImpl.h"
-#include "BasicThebesLayer.h"
-#include "BasicContainerLayer.h"
-#include "CompositorChild.h"
-#include "mozilla/Preferences.h"
-#include "nsIWidget.h"
-
-#ifdef MOZ_WIDGET_ANDROID
-#include "AndroidBridge.h"
-#endif
+class nsIWidget;
 
 using namespace mozilla::dom;
 using namespace mozilla::gfx;

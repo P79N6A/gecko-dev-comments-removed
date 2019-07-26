@@ -3,19 +3,31 @@
 
 
 
-#include "gfxSharedImageSurface.h"
-
-#include "ipc/AutoOpenSurface.h"
 #include "ImageLayerComposite.h"
-#include "ImageHost.h"
-#include "gfxImageSurface.h"
-#include "gfx2DGlue.h"
-#include "gfxUtils.h"
-
-#include "mozilla/layers/Compositor.h"
-#include "mozilla/layers/CompositorTypes.h" 
-#include "mozilla/layers/Effects.h"
-#include "CompositableHost.h"
+#include "mozilla-config.h"             
+#include "CompositableHost.h"           
+#include "Layers.h"                     
+#include "gfx2DGlue.h"                  
+#include "gfx3DMatrix.h"                
+#include "gfxImageSurface.h"            
+#include "gfxPoint.h"                   
+#include "gfxRect.h"                    
+#include "gfxUtils.h"                   
+#include "mozilla/Assertions.h"         
+#include "mozilla/gfx/Matrix.h"         
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/layers/Compositor.h"  
+#include "mozilla/layers/Effects.h"     
+#include "mozilla/layers/TextureHost.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsAString.h"
+#include "nsAutoPtr.h"                  
+#include "nsDebug.h"                    
+#include "nsPoint.h"                    
+#include "nsRect.h"                     
+#include "nsString.h"                   
+#include "nsTraceRefcnt.h"              
 
 using namespace mozilla::gfx;
 

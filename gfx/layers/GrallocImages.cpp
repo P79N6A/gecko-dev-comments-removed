@@ -4,11 +4,11 @@
 
 
 
-#include "mozilla/layers/ImageBridgeChild.h"
-
-#include "nsDebug.h"
-#include "ImageContainer.h"
 #include "GrallocImages.h"
+#include <stddef.h>                     
+#include <stdint.h>                     
+#include "nsDebug.h"                    
+#include "mozilla/layers/ImageBridgeChild.h"
 
 #include <OMX_IVCommon.h>
 #include <ColorConverter.h>

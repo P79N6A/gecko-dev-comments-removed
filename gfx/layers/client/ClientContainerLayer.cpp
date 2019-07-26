@@ -1,5 +1,17 @@
+
+
+
+
+
 #include "ClientContainerLayer.h"
-#include "BasicLayersImpl.h"
+#include "ClientLayerManager.h"         
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsISupportsImpl.h"            
+
+namespace mozilla {
+namespace layers {
 
 already_AddRefed<ContainerLayer>
 ClientLayerManager::CreateContainerLayer()
@@ -19,4 +31,7 @@ ClientLayerManager::CreateRefLayer()
     new ClientRefLayer(this);
   CREATE_SHADOW(Ref);
   return layer.forget();
+}
+
+}
 }

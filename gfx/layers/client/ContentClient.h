@@ -6,19 +6,39 @@
 #ifndef MOZILLA_GFX_CONTENTCLIENT_H
 #define MOZILLA_GFX_CONTENTCLIENT_H
 
-#include "mozilla/layers/LayersSurfaces.h"
-#include "mozilla/layers/CompositableClient.h"
-#include "gfxReusableSurfaceWrapper.h"
-#include "mozilla/layers/TextureClient.h"
-#include "ThebesLayerBuffer.h"
-#include "ipc/AutoOpenSurface.h"
-#include "ipc/ShadowLayerChild.h"
-#include "gfxPlatform.h"
+#include <stdint.h>                     
+#include "ThebesLayerBuffer.h"          
+#include "gfxASurface.h"                
+#include "gfxPlatform.h"                
+#include "mozilla/Assertions.h"         
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/layers/CompositableClient.h"  
+#include "mozilla/layers/CompositableForwarder.h"
+#include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/ISurfaceAllocator.h"
+#include "mozilla/layers/LayersSurfaces.h"  
+#include "mozilla/layers/TextureClient.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsCOMPtr.h"                   
+#include "nsPoint.h"                    
+#include "nsRect.h"                     
+#include "nsRegion.h"                   
+#include "nsTArray.h"                   
+
+class gfxContext;
+struct gfxMatrix;
 
 namespace mozilla {
+namespace gfx {
+class DrawTarget;
+}
+
 namespace layers {
 
 class BasicLayerManager;
+class ThebesLayer;
 
 
 

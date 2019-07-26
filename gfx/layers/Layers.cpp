@@ -5,25 +5,33 @@
 
 
 
-#include "mozilla/DebugOnly.h"
-
-#include "mozilla/layers/AsyncPanZoomController.h"
-#include "mozilla/layers/PLayerTransaction.h"
-#include "mozilla/layers/LayerManagerComposite.h"
-#include "mozilla/Telemetry.h"
-#include "CompositableHost.h"
-
-#include "ImageLayers.h"
-#include "ImageContainer.h"
 #include "Layers.h"
-#include "gfxPlatform.h"
-#include "ReadbackLayer.h"
-#include "gfxUtils.h"
-#include "nsPrintfCString.h"
-#include "LayerSorter.h"
-#include "AnimationCommon.h"
-#include "mozilla/layers/Compositor.h"
-#include "LayersLogging.h"
+#include <algorithm>                    
+#include "AnimationCommon.h"            
+#include "CompositableHost.h"           
+#include "GeckoProfilerFunc.h"          
+#include "ImageContainer.h"             
+#include "ImageLayers.h"                
+#include "LayerSorter.h"                
+#include "LayersLogging.h"              
+#include "ReadbackLayer.h"              
+#include "gfxPlatform.h"                
+#include "gfxUtils.h"                   
+#include "mozilla/DebugOnly.h"          
+#include "mozilla/Preferences.h"        
+#include "mozilla/Telemetry.h"          
+#include "mozilla/TelemetryHistogramEnums.h"
+#include "mozilla/gfx/2D.h"             
+#include "mozilla/gfx/BaseSize.h"       
+#include "mozilla/layers/AsyncPanZoomController.h"
+#include "mozilla/layers/Compositor.h"  
+#include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/LayerManagerComposite.h"  
+#include "mozilla/layers/LayerTransaction.h"  
+#include "nsAString.h"
+#include "nsCSSValue.h"                 
+#include "nsPrintfCString.h"            
+#include "nsStyleStruct.h"              
 
 using namespace mozilla::layers;
 using namespace mozilla::gfx;

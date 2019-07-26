@@ -4,12 +4,26 @@
 
 
 #include "mozilla/layers/ContentHost.h"
-#include "mozilla/layers/Effects.h"
-#include "nsPrintfCString.h"
-#include "gfx2DGlue.h"
+#include "LayersLogging.h"              
+#include "gfx2DGlue.h"                  
+#include "gfxPoint.h"                   
+#include "mozilla/Assertions.h"         
+#include "mozilla/gfx/BaseRect.h"       
+#include "mozilla/layers/Compositor.h"  
+#include "mozilla/layers/Effects.h"     
+#include "mozilla/layers/LayerTransaction.h"  
+#include "nsAString.h"
+#include "nsPrintfCString.h"            
+#include "nsString.h"                   
+
+class gfxImageSurface;
 
 namespace mozilla {
+namespace gfx {
+class Matrix4x4;
+}
 using namespace gfx;
+
 namespace layers {
 
 ContentHostBase::ContentHostBase(const TextureInfo& aTextureInfo)

@@ -6,9 +6,15 @@
 #ifndef GFX_SHAREDTEXTUREIMAGE_H
 #define GFX_SHAREDTEXTUREIMAGE_H
 
-#include "ImageContainer.h"
-#include "GLContext.h"
-#include "GLContextProvider.h"
+#include "GLContext.h"                  
+#include "GLContextProvider.h"          
+#include "ImageContainer.h"             
+#include "ImageTypes.h"                 
+#include "gfxPoint.h"                   
+#include "nsCOMPtr.h"                   
+#include "nsSize.h"                     
+
+class gfxASurface;
 
 
 

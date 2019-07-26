@@ -4,9 +4,26 @@
 
 
 #include "ContainerLayerOGL.h"
-#include "gfxUtils.h"
-#include "gfxPlatform.h"
+#include <stdint.h>                     
+#include <algorithm>                    
+#include "mozilla-config.h"             
 #include "GLContext.h"
+#include "gfx3DMatrix.h"                
+#include "gfxMatrix.h"                  
+#include "gfxPlatform.h"                
+#include "gfxUtils.h"                   
+#include "mozilla/gfx/BaseRect.h"       
+#include "mozilla/layers/CompositorTypes.h"  
+#include "nsAutoPtr.h"                  
+#include "nsDebug.h"                    
+#include "nsISupportsUtils.h"           
+#include "nsPoint.h"                    
+#include "nsRect.h"                     
+#include "nsRegion.h"                   
+#include "nsTArray.h"                   
+#include "LayerManagerOGL.h"            
+#include "LayerManagerOGLProgram.h"     
+class gfxImageSurface;
 
 namespace mozilla {
 namespace layers {

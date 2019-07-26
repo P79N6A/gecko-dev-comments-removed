@@ -5,38 +5,49 @@
 
 
 
-#include <set>
-#include <vector>
-
-#include "gfxSharedImageSurface.h"
-#include "gfxPlatform.h"
-
-#include "AutoOpenSurface.h"
-#include "mozilla/ipc/SharedMemorySysV.h"
-#include "mozilla/layers/PLayerChild.h"
-#include "mozilla/layers/PLayerTransactionChild.h"
-#include "mozilla/layers/PLayerTransactionParent.h"
-#include "mozilla/layers/LayerTransaction.h"
-#include "mozilla/layers/LayersSurfaces.h"
 #include "ShadowLayers.h"
-#include "ShadowLayerChild.h"
-#include "gfxipc/ShadowLayerUtils.h"
-#include "RenderTrace.h"
-#include "GeckoProfiler.h"
-#include "nsXULAppAPI.h"
-#include "mozilla/layers/ImageClient.h"
-#include "mozilla/layers/CanvasClient.h"
-#include "mozilla/layers/ContentClient.h"
-#include "ISurfaceAllocator.h"
+#include <set>                          
+#include <vector>                       
+#include "AutoOpenSurface.h"            
+#include "GeckoProfilerImpl.h"          
+#include "ISurfaceAllocator.h"          
+#include "Layers.h"                     
+#include "RenderTrace.h"                
+#include "ShadowLayerChild.h"           
+#include "gfxImageSurface.h"            
+#include "gfxPlatform.h"                
+#include "gfxSharedImageSurface.h"      
+#include "ipc/IPCMessageUtils.h"        
+#include "mozilla/Assertions.h"         
+#include "mozilla/layers/CompositableClient.h"  
+#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/LayersSurfaces.h"  
+#include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/layers/PLayerTransactionChild.h"
+#include "ShadowLayerUtils.h"
+#include "mozilla/layers/TextureClient.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsDebug.h"                    
+#include "nsRect.h"                     
+#include "nsSize.h"                     
+#include "nsTArray.h"                   
+#include "nsXULAppAPI.h"                
 
-#include "nsTraceRefcntImpl.h"
+struct nsIntPoint;
 
 using namespace mozilla::ipc;
 using namespace mozilla::gl;
 using namespace mozilla::dom;
 
 namespace mozilla {
+namespace ipc {
+class Shmem;
+}
+
 namespace layers {
+
+class BasicTiledLayerBuffer;
 
 typedef nsTArray<SurfaceDescriptor> BufferArray;
 typedef std::vector<Edit> EditVector;

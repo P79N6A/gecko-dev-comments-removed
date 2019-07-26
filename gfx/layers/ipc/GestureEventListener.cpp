@@ -4,13 +4,16 @@
 
 
 
-#include "base/basictypes.h"
-#include "base/thread.h"
-
 #include "GestureEventListener.h"
-#include "AsyncPanZoomController.h"
-
-#include "mozilla/Preferences.h"
+#include <math.h>                       
+#include <stddef.h>                     
+#include "AsyncPanZoomController.h"     
+#include "base/task.h"                  
+#include "mozilla/Preferences.h"        
+#include "mozilla/gfx/BasePoint.h"      
+#include "mozilla/mozalloc.h"           
+#include "nsDebug.h"                    
+#include "nsMathUtils.h"                
 
 namespace mozilla {
 namespace layers {

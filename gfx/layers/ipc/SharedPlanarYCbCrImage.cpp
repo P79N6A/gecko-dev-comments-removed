@@ -4,11 +4,21 @@
 
 
 #include "SharedPlanarYCbCrImage.h"
+#include <stddef.h>                     
+#include <stdio.h>                      
+#include "ISurfaceAllocator.h"          
+#include "gfxPoint.h"                   
+#include "mozilla/Assertions.h"         
+#include "mozilla/gfx/Types.h"          
+#include "mozilla/ipc/SharedMemory.h"   
+#include "mozilla/layers/ImageClient.h"  
+#include "mozilla/layers/LayersSurfaces.h"  
+#include "mozilla/layers/TextureClient.h"  
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
-#include "ISurfaceAllocator.h"
-#include "mozilla/layers/LayersSurfaces.h"
-#include "mozilla/layers/TextureClient.h"
-#include "mozilla/layers/ImageClient.h"
+#include "mozilla/mozalloc.h"           
+#include "nsISupportsImpl.h"            
+
+class gfxASurface;
 
 namespace mozilla {
 namespace layers {

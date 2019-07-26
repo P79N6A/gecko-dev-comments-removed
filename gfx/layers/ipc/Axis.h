@@ -7,11 +7,10 @@
 #ifndef mozilla_layers_Axis_h
 #define mozilla_layers_Axis_h
 
-#include "nsGUIEvent.h"
-#include "mozilla/TimeStamp.h"
-#include "mozilla/gfx/2D.h"
-#include "nsTArray.h"
-#include "Units.h"
+#include <sys/types.h>                  
+#include "Units.h"                      
+#include "mozilla/TimeStamp.h"          
+#include "nsTArray.h"                   
 
 namespace mozilla {
 namespace layers {

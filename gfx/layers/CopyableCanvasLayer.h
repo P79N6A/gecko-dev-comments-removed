@@ -6,18 +6,27 @@
 #ifndef GFX_COPYABLECANVASLAYER_H
 #define GFX_COPYABLECANVASLAYER_H
 
-#include "Layers.h"
-#include "mozilla/layers/CanvasClient.h"
-#include "mozilla/Preferences.h"
-
-#include "gfxPlatform.h"
+#include <stdint.h>                     
+#include "GLContext.h"                  
+#include "Layers.h"                     
+#include "gfxASurface.h"                
+#include "gfxContext.h"                 
+#include "gfxImageSurface.h"            
+#include "gfxPlatform.h"                
+#include "gfxPoint.h"                   
+#include "mozilla/Assertions.h"         
+#include "mozilla/Preferences.h"        
+#include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/2D.h"             
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsTraceRefcnt.h"              
 
 using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace layers {
 
-class CanvasClient2D;
 class CanvasClientWebGL;
 
 

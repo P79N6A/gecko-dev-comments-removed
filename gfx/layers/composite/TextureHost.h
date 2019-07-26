@@ -6,25 +6,37 @@
 #ifndef MOZILLA_GFX_TEXTUREHOST_H
 #define MOZILLA_GFX_TEXTUREHOST_H
 
-#include "mozilla/layers/LayersTypes.h"
-#include "nsRect.h"
-#include "nsRegion.h"
-#include "mozilla/gfx/Rect.h"
-#include "mozilla/layers/CompositorTypes.h"
-#include "nsAutoPtr.h"
-#include "mozilla/RefPtr.h"
-#include "mozilla/layers/ISurfaceAllocator.h"
+#include <stddef.h>                     
+#include <stdint.h>                     
+#include "./../mozilla-config.h"        
+#include "gfxASurface.h"                
+#include "mozilla/Assertions.h"         
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/2D.h"             
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Types.h"          
+#include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsRect.h"                     
+#include "nsRegion.h"                   
+#include "nsTraceRefcnt.h"              
+#include "nscore.h"                     
 
-class gfxReusableSurfaceWrapper;
 class gfxImageSurface;
+class gfxReusableSurfaceWrapper;
+struct nsIntPoint;
+struct nsIntSize;
+
 
 namespace mozilla {
-namespace gfx {
-class DataSourceSurface;
-}
+namespace ipc {
+class Shmem;
 }
 
-namespace mozilla {
 namespace layers {
 
 class Compositor;

@@ -3,13 +3,23 @@
 
 
 
-#include "ClientLayerManager.h"
-#include "mozilla/layers/LayerTransaction.h"
+#include "ClientLayerManager.h"         
+#include "Layers.h"                     
+#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
+#include "nsRegion.h"                   
+#include "nsTraceRefcnt.h"              
 
 using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace layers {
+
+class ShadowableLayer;
 
 class ClientColorLayer : public ColorLayer, 
                          public ClientLayer {

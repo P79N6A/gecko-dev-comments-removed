@@ -6,13 +6,33 @@
 #ifndef GFX_CLIENTLAYERMANAGER_H
 #define GFX_CLIENTLAYERMANAGER_H
 
+#include <stdint.h>                     
 #include "Layers.h"
-#include "mozilla/layers/ShadowLayers.h"
+#include "gfxContext.h"                 
+#include "mozilla/Attributes.h"         
+#include "mozilla/WidgetUtils.h"        
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/layers/ShadowLayers.h"  
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
+#include "nsRect.h"                     
+#include "nsTArray.h"                   
+#include "nsTraceRefcnt.h"              
+#include "nscore.h"                     
+
+class nsIWidget;
 
 namespace mozilla {
 namespace layers {
 
+class ClientThebesLayer;
 class CompositorChild;
+class ImageLayer;
+class PLayerChild;
 
 class ClientLayerManager : public LayerManager,
                            public ShadowLayerForwarder
@@ -182,7 +202,6 @@ private:
   bool mCompositorMightResample;
 };
 
-class ClientThebesLayer;
 class ClientLayer : public ShadowableLayer
 {
 public:

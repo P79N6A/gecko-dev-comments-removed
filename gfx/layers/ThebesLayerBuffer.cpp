@@ -3,19 +3,33 @@
 
 
 
-#include "base/basictypes.h"
-
-#include "BasicLayersImpl.h"
 #include "ThebesLayerBuffer.h"
-#include "Layers.h"
-#include "gfxContext.h"
-#include "gfxPlatform.h"
-#include "gfxTeeSurface.h"
-#include "gfxUtils.h"
-#include "ipc/AutoOpenSurface.h"
-#include "nsDeviceContext.h"
-#include "GeckoProfiler.h"
-#include <algorithm>
+#include <sys/types.h>                  
+#include <algorithm>                    
+#include "BasicImplData.h"              
+#include "BasicLayersImpl.h"            
+#include "GeckoProfilerImpl.h"          
+#include "Layers.h"                     
+#include "gfxColor.h"                   
+#include "gfxContext.h"                 
+#include "gfxMatrix.h"                  
+#include "gfxPattern.h"                 
+#include "gfxPlatform.h"                
+#include "gfxPoint.h"                   
+#include "gfxRect.h"                    
+#include "gfxTeeSurface.h"              
+#include "gfxUtils.h"                   
+#include "mozilla/Util.h"               
+#include "mozilla/gfx/BasePoint.h"      
+#include "mozilla/gfx/BaseRect.h"       
+#include "mozilla/gfx/BaseSize.h"       
+#include "mozilla/gfx/Matrix.h"         
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/gfx/Types.h"          
+#include "mozilla/layers/ShadowLayers.h"  
+#include "mozilla/layers/TextureClient.h"  
+#include "nsSize.h"                     
 
 namespace mozilla {
 

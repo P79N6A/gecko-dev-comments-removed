@@ -6,15 +6,27 @@
 #ifndef GFX_CANVASLAYEROGL_H
 #define GFX_CANVASLAYEROGL_H
 
-#include "LayerManagerOGL.h"
-#include "gfxASurface.h"
-#include "GLDefs.h"
-#include "mozilla/Preferences.h"
-
+#include "GLContext.h"                  
+#include "GLContextTypes.h"             
+#include "GLDefs.h"                     
+#include "LayerManagerOGL.h"            
+#include "Layers.h"                     
+#include "gfxASurface.h"                
+#include "gfxImageSurface.h"            
+#include "gfxPoint.h"                   
+#include "mozilla/Preferences.h"        
+#include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/2D.h"             
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "opengl/LayerManagerOGLProgram.h"  
+#include "./../mozilla-config.h"        
 #if defined(GL_PROVIDER_GLX)
 #include "GLXLibrary.h"
 #include "mozilla/X11Util.h"
 #endif
+
+struct nsIntPoint;
 
 
 namespace mozilla {

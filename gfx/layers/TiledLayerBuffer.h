@@ -16,9 +16,13 @@
 
 
 
-#include "nsRect.h"
-#include "nsRegion.h"
-#include "nsTArray.h"
+#include <stdint.h>                     
+#include <sys/types.h>                  
+#include "nsDebug.h"                    
+#include "nsPoint.h"                    
+#include "nsRect.h"                     
+#include "nsRegion.h"                   
+#include "nsTArray.h"                   
 
 namespace mozilla {
 namespace layers {

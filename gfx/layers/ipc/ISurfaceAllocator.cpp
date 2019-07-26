@@ -6,15 +6,18 @@
 
 
 #include "ISurfaceAllocator.h"
-#include "mozilla/ipc/SharedMemory.h"
-#include "gfxSharedImageSurface.h"
-#include "gfxPlatform.h"
-#include "gfxASurface.h"
-#include "mozilla/layers/LayersSurfaces.h"
-#include "mozilla/layers/SharedPlanarYCbCrImage.h"
-#include "mozilla/layers/SharedRGBImage.h"
-#include "nsXULAppAPI.h"
-
+#include <sys/types.h>                  
+#include "gfxASurface.h"                
+#include "gfxPlatform.h"                
+#include "gfxSharedImageSurface.h"      
+#include "mozilla/Assertions.h"         
+#include "mozilla/ipc/SharedMemory.h"   
+#include "mozilla/layers/LayersSurfaces.h"  
+#include "ShadowLayerUtils.h"
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsDebug.h"                    
+#include "nsXULAppAPI.h"                
 #ifdef DEBUG
 #include "prenv.h"
 #endif

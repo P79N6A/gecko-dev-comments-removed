@@ -6,11 +6,15 @@
 #ifndef GFX_IMAGELAYER_H
 #define GFX_IMAGELAYER_H
 
-#include "Layers.h"
+#include "Layers.h"                     
+#include "gfxPattern.h"                 
+#include "gfxPoint.h"                   
+#include "mozilla/gfx/BaseSize.h"       
+#include "mozilla/layers/LayersTypes.h"
+#include "nsAutoPtr.h"                  
+#include "nscore.h"                     
 
-#include "ImageTypes.h"
-#include "nsISupportsImpl.h"
-#include "gfxPattern.h"
+class gfx3DMatrix;
 
 namespace mozilla {
 namespace layers {

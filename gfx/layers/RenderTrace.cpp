@@ -3,11 +3,11 @@
 
 
 
-#include "Layers.h"
 #include "RenderTrace.h"
 
 
 #ifdef MOZ_RENDERTRACE
+#include "Layers.h"
 
 
 namespace mozilla {
