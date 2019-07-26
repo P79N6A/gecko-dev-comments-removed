@@ -120,7 +120,7 @@ abstract class HomeFragment extends Fragment {
 
                 
                 Bitmap bitmap = null;
-                if (info.favicon != null && info.favicon.length > 0) {
+                if (info.favicon != null) {
                     bitmap = BitmapUtils.decodeByteArray(info.favicon);
                 }
 
