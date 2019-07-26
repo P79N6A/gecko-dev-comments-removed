@@ -646,6 +646,21 @@ class MacroAssembler : public MacroAssemblerSpecific
         return ret;
     }
 
+    Condition branchTestObjectTruthy(bool truthy, Register objReg, Register scratch,
+                                     Label *slowCheck)
+    {
+        
+        
+        
+        loadObjClass(objReg, scratch);
+        branchPtr(Assembler::Equal, scratch, ImmWord(&ObjectProxyClass), slowCheck);
+        branchPtr(Assembler::Equal, scratch, ImmWord(&OuterWindowProxyClass), slowCheck);
+        branchPtr(Assembler::Equal, scratch, ImmWord(&FunctionProxyClass), slowCheck);
+
+        test32(Address(scratch, Class::offsetOfFlags()), Imm32(JSCLASS_EMULATES_UNDEFINED));
+        return truthy ? Assembler::Zero : Assembler::NonZero;
+    }
+
   private:
     
     
