@@ -92,6 +92,14 @@ nsSVGMarkerFrame::GetCanvasTM(uint32_t aFor, nsIFrame* aTransformRoot)
   return viewBoxTM * markerTM * markedTM;
 }
 
+static nsIFrame*
+GetAnonymousChildFrame(nsIFrame* aFrame)
+{
+  nsIFrame* kid = aFrame->GetFirstPrincipalChild();
+  MOZ_ASSERT(kid && kid->GetType() == nsGkAtoms::svgMarkerAnonChildFrame,
+             "expected to find anonymous child of marker frame");
+  return kid;
+}
 
 nsresult
 nsSVGMarkerFrame::PaintMark(nsRenderingContext *aContext,
@@ -132,15 +140,11 @@ nsSVGMarkerFrame::PaintMark(nsRenderingContext *aContext,
                             clipRect);
   }
 
-  for (nsIFrame* kid = mFrames.FirstChild(); kid;
-       kid = kid->GetNextSibling()) {
-    nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
-    if (SVGFrame) {
-      
-      SVGFrame->NotifySVGChanged(nsISVGChildFrame::TRANSFORM_CHANGED);
-      nsSVGUtils::PaintFrameWithEffects(aContext, nullptr, kid);
-    }
-  }
+  nsIFrame* kid = GetAnonymousChildFrame(this);
+  nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
+  
+  SVGFrame->NotifySVGChanged(nsISVGChildFrame::TRANSFORM_CHANGED);
+  nsSVGUtils::PaintFrameWithEffects(aContext, nullptr, kid);
 
   if (StyleDisplay()->IsScrollableOverflow())
     gfx->Restore();
@@ -185,20 +189,14 @@ nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
 
   gfxMatrix tm = viewBoxTM * markerTM * aToBBoxUserspace;
 
-  for (nsIFrame* kid = mFrames.FirstChild();
-       kid;
-       kid = kid->GetNextSibling()) {
-    nsISVGChildFrame* child = do_QueryFrame(kid);
-    if (child) {
-      
-      
-      
+  nsISVGChildFrame* child = do_QueryFrame(GetAnonymousChildFrame(this));
+  
+  
+  
 
-      
-      
-      bbox.UnionEdges(child->GetBBoxContribution(tm, aFlags));
-    }
-  }
+  
+  
+  bbox.UnionEdges(child->GetBBoxContribution(tm, aFlags));
 
   return bbox;
 }
@@ -232,4 +230,34 @@ nsSVGMarkerFrame::AutoMarkerReferencer::~AutoMarkerReferencer()
 
   mFrame->mMarkedFrame = nullptr;
   mFrame->mInUse = false;
+}
+
+
+
+
+nsIFrame*
+NS_NewSVGMarkerAnonChildFrame(nsIPresShell* aPresShell,
+                              nsStyleContext* aContext)
+{
+  return new (aPresShell) nsSVGMarkerAnonChildFrame(aContext);
+}
+
+NS_IMPL_FRAMEARENA_HELPERS(nsSVGMarkerAnonChildFrame)
+
+#ifdef DEBUG
+void
+nsSVGMarkerAnonChildFrame::Init(nsIContent* aContent,
+                                nsIFrame* aParent,
+                                nsIFrame* aPrevInFlow)
+{
+  NS_ABORT_IF_FALSE(aParent->GetType() == nsGkAtoms::svgMarkerFrame,
+                    "Unexpected parent");
+  nsSVGMarkerAnonChildFrameBase::Init(aContent, aParent, aPrevInFlow);
+}
+#endif
+
+nsIAtom *
+nsSVGMarkerAnonChildFrame::GetType() const
+{
+  return nsGkAtoms::svgMarkerAnonChildFrame;
 }

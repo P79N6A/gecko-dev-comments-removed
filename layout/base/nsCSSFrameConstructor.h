@@ -1216,10 +1216,24 @@ private:
                        Element* aElement,
                        nsStyleContext* aStyleContext);
 
-
   
 
 
+
+
+
+  nsIFrame* ConstructFrameWithAnonymousChild(
+                                  nsFrameConstructorState& aState,
+                                  FrameConstructionItem&   aItem,
+                                  nsIFrame*                aParentFrame,
+                                  const nsStyleDisplay*    aDisplay,
+                                  nsFrameItems&            aFrameItems,
+                                  FrameCreationFunc        aConstructor,
+                                  FrameCreationFunc        aInnerConstructor,
+                                  nsICSSAnonBoxPseudo*     aInnerPseudo,
+                                  bool                     aCandidateRootFrame);
+
+  
 
 
   nsIFrame* ConstructOuterSVG(nsFrameConstructorState& aState,
@@ -1227,6 +1241,15 @@ private:
                               nsIFrame*                aParentFrame,
                               const nsStyleDisplay*    aDisplay,
                               nsFrameItems&            aFrameItems);
+
+  
+
+
+  nsIFrame* ConstructMarker(nsFrameConstructorState& aState,
+                            FrameConstructionItem&   aItem,
+                            nsIFrame*                aParentFrame,
+                            const nsStyleDisplay*    aDisplay,
+                            nsFrameItems&            aFrameItems);
 
   static const FrameConstructionData* FindSVGData(Element* aElement,
                                                   nsIAtom* aTag,
