@@ -2629,7 +2629,7 @@ TEST_F(SignalingAgentTest, CreateOfferSetLocalTrickleTestServer) {
   PR_Sleep(1000); 
 
   
-  ASSERT_EQ(2U, agent(0)->MatchingCandidates(kBogusSrflxAddress));
+  ASSERT_LE(2U, agent(0)->MatchingCandidates(kBogusSrflxAddress));
 
   
   size_t match;
