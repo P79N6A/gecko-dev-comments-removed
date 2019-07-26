@@ -583,6 +583,38 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDev
 
   
   
+  
+  
+  
+  ScreenRect contentScreenRect = mContentRect * userZoom;
+  gfxPoint3D overscrollTranslation;
+  if (userScroll.x < contentScreenRect.x) {
+    overscrollTranslation.x = contentScreenRect.x - userScroll.x;
+  } else if (userScroll.x + metrics.mCompositionBounds.width > contentScreenRect.XMost()) {
+    overscrollTranslation.x = contentScreenRect.XMost() -
+      (userScroll.x + metrics.mCompositionBounds.width);
+  }
+  if (userScroll.y < contentScreenRect.y) {
+    overscrollTranslation.y = contentScreenRect.y - userScroll.y;
+  } else if (userScroll.y + metrics.mCompositionBounds.height > contentScreenRect.YMost()) {
+    overscrollTranslation.y = contentScreenRect.YMost() -
+      (userScroll.y + metrics.mCompositionBounds.height);
+  }
+  oldTransform.Translate(overscrollTranslation);
+
+  gfxSize underZoomScale(1.0f, 1.0f);
+  if (mContentRect.width * userZoom.scale < metrics.mCompositionBounds.width) {
+    underZoomScale.width = (mContentRect.width * userZoom.scale) /
+      metrics.mCompositionBounds.width;
+  }
+  if (mContentRect.height * userZoom.scale < metrics.mCompositionBounds.height) {
+    underZoomScale.height = (mContentRect.height * userZoom.scale) /
+      metrics.mCompositionBounds.height;
+  }
+  oldTransform.Scale(underZoomScale.width, underZoomScale.height, 1);
+
+  
+  
   AlignFixedLayersForAnchorPoint(aLayer, aLayer, oldTransform, fixedLayerMargins);
 }
 
