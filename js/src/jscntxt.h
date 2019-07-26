@@ -1430,16 +1430,6 @@ struct JSRuntime : public JS::shadow::Runtime,
   public:
     js::AutoEnterPolicy *enteredPolicy;
 #endif
-
-  private:
-    
-
-
-
-    uint64_t rngNonce;
-
-  public:
-    uint64_t nextRNGNonce() { return rngNonce++; }
 };
 
 
