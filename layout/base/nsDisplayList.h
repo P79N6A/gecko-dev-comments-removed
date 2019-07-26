@@ -1913,9 +1913,6 @@ protected:
                                   gfxRect* aDestRect);
   nsRect GetBoundsInternal();
 
-  void PaintInternal(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx,
-                     const nsRect& aBounds, nsRect* aClipRect);
-
   
   
   const nsStyleBackground* mBackgroundStyle;
