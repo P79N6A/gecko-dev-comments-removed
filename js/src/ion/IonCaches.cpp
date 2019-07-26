@@ -281,6 +281,9 @@ js::ion::GetPropertyCache(JSContext *cx, size_t cacheIndex, JSObject *obj, Value
     cache.getScriptedLocation(&script, &pc);
 
     
+    RootedVarObject objRoot(cx, obj);
+
+    
     AutoDetectInvalidation adi(cx, vp, topScript);
 
     
@@ -304,8 +307,17 @@ js::ion::GetPropertyCache(JSContext *cx, size_t cacheIndex, JSObject *obj, Value
         }
     }
 
-    if (!GetPropertyOperation(cx, pc, ObjectValue(*obj), vp))
+    jsid id = ATOM_TO_JSID(atom);
+    if (!obj->getGeneric(cx, obj, id, vp))
         return false;
+
+#if JS_HAS_NO_SUCH_METHOD
+    
+    if (JSOp(*pc) == JSOP_CALLPROP && JS_UNLIKELY(vp->isPrimitive())) {
+        if (!OnUnknownMethod(cx, objRoot, IdToValue(id), vp))
+            return false;
+    }
+#endif
 
     
     types::TypeScript::Monitor(cx, script, pc, *vp);
