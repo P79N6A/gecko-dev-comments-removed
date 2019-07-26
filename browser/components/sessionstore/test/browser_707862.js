@@ -2,7 +2,7 @@
 
 
 let tabState = {
-  entries: [{url: "about:home", children: [{url: "about:mozilla"}]}]
+  entries: [{url: "about:robots", children: [{url: "about:mozilla"}]}]
 };
 
 function test() {

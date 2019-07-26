@@ -38,7 +38,7 @@ function runTests() {
   is(disallow.size, 2, "two capabilities disallowed");
 
   
-  ss.setTabState(tab, JSON.stringify({ entries: [{url: "about:home"}] }));
+  ss.setTabState(tab, JSON.stringify({ entries: [{url: "about:robots"}] }));
   yield waitForLoad(browser);
 
   

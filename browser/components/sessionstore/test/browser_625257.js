@@ -15,7 +15,7 @@ let tab;
 
 
 
-const URI_TO_LOAD = "about:home";
+const URI_TO_LOAD = "about:mozilla";
 
 function test() {
   waitForExplicitFinish();
