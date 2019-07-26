@@ -595,7 +595,7 @@ function ArrayMapPar(func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    ForkJoin(mapThread, 0, slicesInfo.count, ForkJoinMode(mode));
+    ForkJoin(mapThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
     return buffer;
   }
 
@@ -605,16 +605,17 @@ function ArrayMapPar(func, mode) {
     UnsafePutElements(buffer, i, func(self[i], i, self));
   return buffer;
 
-  function mapThread(workerId, sliceStart, sliceEnd) {
-    var sliceShift = slicesInfo.shift;
+  function mapThread(_, warmup) {
     var sliceId;
-    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
-      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
-      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
+    while (GET_SLICE(slicesInfo, sliceId)) {
+      var indexStart = SLICE_START(slicesInfo, sliceId);
+      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
       for (var i = indexStart; i < indexEnd; i++)
         UnsafePutElements(buffer, i, func(self[i], i, self));
+      MARK_SLICE_DONE(slicesInfo, sliceId);
+      if (warmup)
+        return;
     }
-    return sliceId;
   }
 
   return undefined;
@@ -641,10 +642,10 @@ function ArrayReducePar(func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    var numSlices = slicesInfo.count;
+    var numSlices = SLICE_COUNT(slicesInfo);
     var subreductions = NewDenseArray(numSlices);
 
-    ForkJoin(reduceThread, 0, numSlices, ForkJoinMode(mode));
+    ForkJoin(reduceThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
 
     var accumulator = subreductions[0];
     for (var i = 1; i < numSlices; i++)
@@ -659,18 +660,19 @@ function ArrayReducePar(func, mode) {
     accumulator = func(accumulator, self[i]);
   return accumulator;
 
-  function reduceThread(workerId, sliceStart, sliceEnd) {
-    var sliceShift = slicesInfo.shift;
+  function reduceThread(_, warmup) {
     var sliceId;
-    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
-      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
-      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
+    while (GET_SLICE(slicesInfo, sliceId)) {
+      var indexStart = SLICE_START(slicesInfo, sliceId);
+      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
       var accumulator = self[indexStart];
       for (var i = indexStart + 1; i < indexEnd; i++)
         accumulator = func(accumulator, self[i]);
       UnsafePutElements(subreductions, sliceId, accumulator);
+      MARK_SLICE_DONE(slicesInfo, sliceId);
+      if (warmup)
+        return;
     }
-    return sliceId;
   }
 
   return undefined;
@@ -700,10 +702,10 @@ function ArrayScanPar(func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    var numSlices = slicesInfo.count;
+    var numSlices = SLICE_COUNT(slicesInfo);
 
     
-    ForkJoin(phase1, 0, numSlices, ForkJoinMode(mode));
+    ForkJoin(phase1, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
 
     
     var intermediates = [];
@@ -715,11 +717,13 @@ function ArrayScanPar(func, mode) {
     }
 
     
+    SlicesInfoClearStatuses(slicesInfo);
+
     
+    MARK_SLICE_DONE(slicesInfo, 0);
+
     
-    
-    if (numSlices > 1)
-      ForkJoin(phase2, 1, numSlices, ForkJoinMode(mode));
+    ForkJoin(phase2, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
     return buffer;
   }
 
@@ -753,23 +757,23 @@ function ArrayScanPar(func, mode) {
 
 
 
-  function phase1(workerId, sliceStart, sliceEnd) {
-    var sliceShift = slicesInfo.shift;
+  function phase1(_, warmup) {
     var sliceId;
-    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
-      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
-      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
+    while (GET_SLICE(slicesInfo, sliceId)) {
+      var indexStart = SLICE_START(slicesInfo, sliceId);
+      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
       scan(self[indexStart], indexStart, indexEnd);
+      MARK_SLICE_DONE(slicesInfo, sliceId);
+      if (warmup)
+        return;
     }
-    return sliceId;
   }
 
   
 
 
   function finalElement(sliceId) {
-    var sliceShift = slicesInfo.shift;
-    return SLICE_END_INDEX(sliceShift, SLICE_START_INDEX(sliceShift, sliceId), length) - 1;
+    return SLICE_END(slicesInfo, SLICE_START(slicesInfo, sliceId), length) - 1;
   }
 
   
@@ -805,17 +809,20 @@ function ArrayScanPar(func, mode) {
 
 
 
-  function phase2(workerId, sliceStart, sliceEnd) {
-    var sliceShift = slicesInfo.shift;
+  function phase2(_, warmup) {
     var sliceId;
-    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
-      var indexPos = SLICE_START_INDEX(sliceShift, sliceId);
-      var indexEnd = SLICE_END_INDEX(sliceShift, indexPos, length);
+    while (GET_SLICE(slicesInfo, sliceId)) {
+      var indexPos = SLICE_START(slicesInfo, sliceId);
+      var indexEnd = SLICE_END(slicesInfo, indexPos, length);
+
       var intermediate = intermediates[sliceId - 1];
       for (; indexPos < indexEnd; indexPos++)
         UnsafePutElements(buffer, indexPos, func(intermediate, buffer[indexPos]));
+
+      MARK_SLICE_DONE(slicesInfo, sliceId);
+      if (warmup)
+        return;
     }
-    return sliceId;
   }
 
   return undefined;
@@ -930,12 +937,15 @@ function ArrayFilterPar(func, mode) {
     
     
     
-    var numSlices = slicesInfo.count;
+    var numSlices = SLICE_COUNT(slicesInfo);
     var counts = NewDenseArray(numSlices);
     for (var i = 0; i < numSlices; i++)
       UnsafePutElements(counts, i, 0);
     var survivors = NewDenseArray(computeNum32BitChunks(length));
-    ForkJoin(findSurvivorsThread, 0, numSlices, ForkJoinMode(mode));
+    ForkJoin(findSurvivorsThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
+
+    
+    SlicesInfoClearStatuses(slicesInfo);
 
     
     var count = 0;
@@ -943,7 +953,7 @@ function ArrayFilterPar(func, mode) {
       count += counts[i];
     var buffer = NewDenseArray(count);
     if (count > 0)
-      ForkJoin(copySurvivorsThread, 0, numSlices, ForkJoinMode(mode));
+      ForkJoin(copySurvivorsThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
 
     return buffer;
   }
@@ -974,13 +984,12 @@ function ArrayFilterPar(func, mode) {
 
 
 
-  function findSurvivorsThread(workerId, sliceStart, sliceEnd) {
-    var sliceShift = slicesInfo.shift;
+  function findSurvivorsThread(_, warmup) {
     var sliceId;
-    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
+    while (GET_SLICE(slicesInfo, sliceId)) {
       var count = 0;
-      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
-      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
+      var indexStart = SLICE_START(slicesInfo, sliceId);
+      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
       var chunkStart = computeNum32BitChunks(indexStart);
       var chunkEnd = computeNum32BitChunks(indexEnd);
       for (var chunkPos = chunkStart; chunkPos < chunkEnd; chunkPos++, indexStart += 32) {
@@ -993,14 +1002,16 @@ function ArrayFilterPar(func, mode) {
         UnsafePutElements(survivors, chunkPos, chunkBits);
       }
       UnsafePutElements(counts, sliceId, count);
+
+      MARK_SLICE_DONE(slicesInfo, sliceId);
+      if (warmup)
+        return;
     }
-    return sliceId;
   }
 
-  function copySurvivorsThread(workerId, sliceStart, sliceEnd) {
-    var sliceShift = slicesInfo.shift;
+  function copySurvivorsThread(_, warmup) {
     var sliceId;
-    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
+    while (GET_SLICE(slicesInfo, sliceId)) {
       
       
       
@@ -1013,16 +1024,18 @@ function ArrayFilterPar(func, mode) {
 
       
       var count = total - counts[sliceId];
-      if (count === total)
+      if (count === total) {
+        MARK_SLICE_DONE(slicesInfo, sliceId);
         continue;
+      }
 
       
       
       
       
       
-      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
-      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
+      var indexStart = SLICE_START(slicesInfo, sliceId);
+      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
       var chunkStart = computeNum32BitChunks(indexStart);
       var chunkEnd = computeNum32BitChunks(indexEnd);
       for (var chunkPos = chunkStart; chunkPos < chunkEnd; chunkPos++, indexStart += 32) {
@@ -1041,9 +1054,11 @@ function ArrayFilterPar(func, mode) {
         if (count == total)
           break;
       }
-    }
 
-    return sliceId;
+      MARK_SLICE_DONE(slicesInfo, sliceId);
+      if (warmup)
+        return;
+    }
   }
 
   return undefined;
@@ -1086,7 +1101,7 @@ function ArrayStaticBuildPar(length, func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    ForkJoin(constructThread, 0, slicesInfo.count, ForkJoinMode(mode));
+    ForkJoin(constructThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
     return buffer;
   }
 
@@ -1096,16 +1111,17 @@ function ArrayStaticBuildPar(length, func, mode) {
     UnsafePutElements(buffer, i, func(i));
   return buffer;
 
-  function constructThread(workerId, sliceStart, sliceEnd) {
-    var sliceShift = slicesInfo.shift;
+  function constructThread(_, warmup) {
     var sliceId;
-    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
-      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
-      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
+    while (GET_SLICE(slicesInfo, sliceId)) {
+      var indexStart = SLICE_START(slicesInfo, sliceId);
+      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
       for (var i = indexStart; i < indexEnd; i++)
         UnsafePutElements(buffer, i, func(i));
+      MARK_SLICE_DONE(slicesInfo, sliceId);
+      if (warmup)
+        return;
     }
-    return sliceId;
   }
 
   return undefined;
