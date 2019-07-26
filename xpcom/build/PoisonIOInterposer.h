@@ -26,7 +26,7 @@ void MozillaUnRegisterDebugFILE(FILE *f);
 
 MOZ_END_EXTERN_C
 
-#if defined(MOZ_ENABLE_PROFILER_SPS) && (defined(XP_WIN) || defined(XP_MACOSX))
+#if defined(XP_WIN) || defined(XP_MACOSX)
 
 #ifdef __cplusplus
 namespace mozilla {

@@ -157,9 +157,7 @@ IOInterposeObserver::Operation IOInterposer::sObservedOperations =
     sIsMainThread.set(isMainThread);
   }
   
-#if defined(XP_WIN) || defined(XP_MACOSX)
   InitPoisonIOInterposer();
-#endif
   
   
 #if !defined(XP_WIN)
