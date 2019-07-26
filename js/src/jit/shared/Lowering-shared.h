@@ -139,6 +139,10 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
     
     inline bool defineAs(LInstruction *outLir, MDefinition *outMir, MDefinition *inMir);
 
+    TempAllocator &alloc() const {
+        return graph.alloc();
+    }
+
     uint32_t getVirtualRegister() {
         return lirGraph_.getVirtualRegister();
     }

@@ -527,7 +527,7 @@ jit::FinishOffThreadBuilder(IonBuilder *builder)
     
     
     js_delete(builder->backgroundCodegen());
-    js_delete(builder->temp().lifoAlloc());
+    js_delete(builder->alloc().lifoAlloc());
 }
 
 static inline void
@@ -1374,7 +1374,7 @@ GenerateLIR(MIRGenerator *mir)
 {
     MIRGraph &graph = mir->graph();
 
-    LIRGraph *lir = mir->temp().lifoAlloc()->new_<LIRGraph>(&graph);
+    LIRGraph *lir = mir->alloc().lifoAlloc()->new_<LIRGraph>(&graph);
     if (!lir)
         return nullptr;
 
@@ -1509,7 +1509,7 @@ AttachFinishedCompilations(JSContext *cx)
 
         if (CodeGenerator *codegen = builder->backgroundCodegen()) {
             RootedScript script(cx, builder->script());
-            IonContext ictx(cx, &builder->temp());
+            IonContext ictx(cx, &builder->alloc());
 
             
             
@@ -1519,7 +1519,7 @@ AttachFinishedCompilations(JSContext *cx)
             bool success;
             {
                 
-                AutoTempAllocatorRooter root(cx, &builder->temp());
+                AutoTempAllocatorRooter root(cx, &builder->alloc());
                 AutoUnlockWorkerThreadState unlock(cx->runtime());
                 AutoFlushCache afc("AttachFinishedCompilations", cx->runtime()->jitRuntime());
                 success = codegen->link(cx, builder->constraints());

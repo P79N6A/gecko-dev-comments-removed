@@ -46,7 +46,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     MBasicBlock(MIRGraph &graph, CompileInfo &info, jsbytecode *pc, Kind kind);
     bool init();
     void copySlots(MBasicBlock *from);
-    bool inherit(BytecodeAnalysis *analysis, MBasicBlock *pred, uint32_t popped);
+    bool inherit(TempAllocator &alloc, BytecodeAnalysis *analysis, MBasicBlock *pred, uint32_t popped);
     bool inheritResumePoint(MBasicBlock *pred);
     void assertUsesAreNotWithin(MUseIterator use, MUseIterator end);
 
@@ -168,13 +168,13 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     
     
-    bool addPredecessor(MBasicBlock *pred);
-    bool addPredecessorPopN(MBasicBlock *pred, uint32_t popped);
+    bool addPredecessor(TempAllocator &alloc, MBasicBlock *pred);
+    bool addPredecessorPopN(TempAllocator &alloc, MBasicBlock *pred, uint32_t popped);
 
     
     bool addPredecessorWithoutPhis(MBasicBlock *pred);
     void inheritSlots(MBasicBlock *parent);
-    bool initEntrySlots();
+    bool initEntrySlots(TempAllocator &alloc);
 
     
     
