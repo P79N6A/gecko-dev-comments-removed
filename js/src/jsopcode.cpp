@@ -6436,31 +6436,27 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target, jsbyteco
                 continue;
             }
 
-            if (!script->hasTrynotes()) {
-                
-                hpcdepth = unsigned(-1);
-                continue;
-            }
-
             
 
 
 
-            JSTryNote *tn = script->trynotes()->vector;
-            JSTryNote *tnEnd = tn + script->trynotes()->length;
-            for (; tn != tnEnd; tn++) {
-                jsbytecode *start = script->main() + tn->start;
-                jsbytecode *end = start + tn->length;
-                if (start < pc && pc <= end && end <= target)
-                    break;
-            }
+            if (script->hasTrynotes()) {
+                JSTryNote *tn = script->trynotes()->vector;
+                JSTryNote *tnEnd = tn + script->trynotes()->length;
+                for (; tn != tnEnd; tn++) {
+                    jsbytecode *start = script->main() + tn->start;
+                    jsbytecode *end = start + tn->length;
+                    if (start < pc && pc <= end && end <= target)
+                        break;
+                }
 
-            if (tn != tnEnd) {
-                pcdepth = tn->stackDepth;
-                hpcdepth = unsigned(-1);
-                oplen = 0;
-                pc = script->main() + tn->start + tn->length;
-                continue;
+                if (tn != tnEnd) {
+                    pcdepth = tn->stackDepth;
+                    hpcdepth = unsigned(-1);
+                    oplen = 0;
+                    pc = script->main() + tn->start + tn->length;
+                    continue;
+                }
             }
 
             
@@ -6469,6 +6465,10 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target, jsbyteco
 
             if (JSOp(*(pc + oplen)) == JSOP_THROWING)
                 hpcdepth = pcdepth + 2;
+            else
+                
+                hpcdepth = unsigned(-1);
+
             continue;
         }
 
