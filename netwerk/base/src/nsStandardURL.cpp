@@ -556,7 +556,7 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
     
     
     
-    if (!EnsureStringLength(mSpec, approxLen+1)) 
+    if (!mSpec.SetLength(approxLen+1, mozilla::fallible_t())) 
         return NS_ERROR_OUT_OF_MEMORY;
     char *buf;
     mSpec.BeginWriting(buf);

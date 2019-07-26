@@ -660,7 +660,7 @@ nsBinaryInputStream::ReadString(nsAString& aString)
     }
 
     
-    if (!EnsureStringLength(aString, length))
+    if (!aString.SetLength(length, mozilla::fallible_t()))
         return NS_ERROR_OUT_OF_MEMORY;
 
     nsAString::iterator start;

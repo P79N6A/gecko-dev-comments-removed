@@ -788,7 +788,7 @@ NS_CopyNativeToUnicode(const nsACString &input, nsAString &output)
     
     
     
-    if (!EnsureStringLength(output, inputLen))
+    if (!output.SetLength(inputLen, fallible_t()))
         return NS_ERROR_OUT_OF_MEMORY;
     nsAString::iterator out_iter;
     output.BeginWriting(out_iter);
@@ -874,6 +874,8 @@ NS_ShutdownNativeCharsetUtils()
 #include "nsAString.h"
 #include "nsReadableUtils.h"
 
+using namespace mozilla;
+
 nsresult
 NS_CopyNativeToUnicode(const nsACString &input, nsAString &output)
 {
@@ -891,7 +893,7 @@ NS_CopyNativeToUnicode(const nsACString &input, nsAString &output)
         resultLen += n;
 
     
-    if (!EnsureStringLength(output, resultLen))
+    if (!output.SetLength(resultLen, fallible_t()))
         return NS_ERROR_OUT_OF_MEMORY;
     if (resultLen > 0) {
         nsAString::iterator out_iter;
@@ -922,7 +924,7 @@ NS_CopyUnicodeToNative(const nsAString  &input, nsACString &output)
         resultLen += n;
 
     
-    if (!EnsureStringLength(output, resultLen))
+    if (!output.SetLength(resultLen, fallible_t()))
         return NS_ERROR_OUT_OF_MEMORY;
     if (resultLen > 0) {
         nsACString::iterator out_iter;
@@ -989,6 +991,8 @@ NS_ConvertWtoA(const PRUnichar *aStrInW, int aBufferSizeOut,
 #include <ulserrno.h>
 #include "nsNativeCharsetUtils.h"
 
+using namespace mozilla;
+
 static UconvObject UnicodeConverter = NULL;
 
 nsresult
@@ -1002,7 +1006,7 @@ NS_CopyNativeToUnicode(const nsACString &input, nsAString  &output)
 
     
     uint32_t resultLen = inputLen;
-    if (!EnsureStringLength(output, resultLen))
+    if (!output.SetLength(resultLen, fallible_t()))
         return NS_ERROR_OUT_OF_MEMORY;
 
     nsAString::iterator out_iter;
@@ -1043,7 +1047,7 @@ NS_CopyUnicodeToNative(const nsAString &input, nsACString &output)
     
     
     size_t resultLen = inputLen * 2;
-    if (!EnsureStringLength(output, resultLen))
+    if (!output.SetLength(resultLen, fallible_t()))
         return NS_ERROR_OUT_OF_MEMORY;
 
     nsACString::iterator out_iter;
