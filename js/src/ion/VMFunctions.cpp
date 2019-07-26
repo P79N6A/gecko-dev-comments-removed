@@ -42,7 +42,7 @@ InvokeFunction(JSContext *cx, JSFunction *fun, uint32 argc, Value *argv, Value *
             Invalidate(cx, script, false);
 
             
-            script->ion = ION_DISABLED_SCRIPT;
+            ForbidCompilation(script);
         }
     }
 

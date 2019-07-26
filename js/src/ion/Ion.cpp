@@ -1656,6 +1656,15 @@ ion::ForbidCompilation(JSScript *script)
 {
     IonSpew(IonSpew_Abort, "Disabling Ion compilation of script %s:%d",
             script->filename, script->lineno);
+
+    if (script->hasIonScript() && script->compartment()->needsBarrier()) {
+        
+        
+        
+        
+        IonScript::Trace(script->compartment()->barrierTracer(), script->ion);
+    }
+
     script->ion = ION_DISABLED_SCRIPT;
 }
 
