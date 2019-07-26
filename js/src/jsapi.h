@@ -1898,6 +1898,15 @@ JS_GetVersion(JSContext *cx);
 extern JS_PUBLIC_API(JSVersion)
 JS_SetVersion(JSContext *cx, JSVersion version);
 
+
+
+
+
+
+
+JS_PUBLIC_API(void)
+JS_SetVersionForCompartment(JSCompartment *compartment, JSVersion version);
+
 extern JS_PUBLIC_API(const char *)
 JS_VersionToString(JSVersion version);
 
