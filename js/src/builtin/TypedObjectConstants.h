@@ -12,6 +12,12 @@
 
 
 
+#define JS_TYPROTO_SLOT_DESCR            0
+#define JS_TYPROTO_SLOTS                 1
+
+
+
+
 
 
 
@@ -23,7 +29,7 @@
 #define JS_DESCR_SLOT_ALIGNMENT          2  // Alignment in bytes
 #define JS_DESCR_SLOT_SIZE               3  // Size in bytes, if sized, else 0
 #define JS_DESCR_SLOT_OPAQUE             4  // Atomized string representation
-#define JS_DESCR_SLOT_PROTO              5  // Prototype for instances, if any
+#define JS_DESCR_SLOT_TYPROTO            5  // Prototype for instances, if any
 
 
 #define JS_DESCR_SLOT_TYPE               6  // Type code

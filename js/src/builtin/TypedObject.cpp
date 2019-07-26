@@ -200,6 +200,31 @@ GetPrototype(JSContext *cx, HandleObject obj)
 
 
 
+const Class js::TypedProto::class_ = {
+    "TypedProto",
+    JSCLASS_HAS_RESERVED_SLOTS(JS_TYPROTO_SLOTS),
+    JS_PropertyStub,       
+    JS_DeletePropertyStub, 
+    JS_PropertyStub,       
+    JS_StrictPropertyStub, 
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr
+};
+
+
+
+
+
+
+
+
+
 
 const Class js::ScalarTypeDescr::class_ = {
     "Scalar",
@@ -460,16 +485,25 @@ X4TypeDescr::alignment(Type t)
 
 
 
-static JSObject *
+static TypedProto *
 CreatePrototypeObjectForComplexTypeInstance(JSContext *cx,
+                                            Handle<TypeDescr*> descr,
                                             HandleObject ctorPrototype)
 {
     RootedObject ctorPrototypePrototype(cx, GetPrototype(cx, ctorPrototype));
     if (!ctorPrototypePrototype)
         return nullptr;
 
-    return NewObjectWithProto<JSObject>(cx, &*ctorPrototypePrototype, nullptr,
-                                        TenuredObject);
+    Rooted<TypedProto*> result(cx);
+    result = NewObjectWithProto<TypedProto>(cx,
+                                            &*ctorPrototypePrototype,
+                                            nullptr,
+                                            TenuredObject);
+    if (!result)
+        return nullptr;
+
+    result->initTypeDescrSlot(*descr);
+    return result;
 }
 
 const Class UnsizedArrayTypeDescr::class_ = {
@@ -628,12 +662,12 @@ ArrayMetaTypeDescr::create(JSContext *cx,
     if (!CreateUserSizeAndAlignmentProperties(cx, obj))
         return nullptr;
 
-    RootedObject prototypeObj(cx);
-    prototypeObj = CreatePrototypeObjectForComplexTypeInstance(cx, arrayTypePrototype);
+    Rooted<TypedProto*> prototypeObj(cx);
+    prototypeObj = CreatePrototypeObjectForComplexTypeInstance(cx, obj, arrayTypePrototype);
     if (!prototypeObj)
         return nullptr;
 
-    obj->initReservedSlot(JS_DESCR_SLOT_PROTO, ObjectValue(*prototypeObj));
+    obj->initReservedSlot(JS_DESCR_SLOT_TYPROTO, ObjectValue(*prototypeObj));
 
     if (!LinkConstructorAndPrototype(cx, obj, prototypeObj))
         return nullptr;
@@ -1047,12 +1081,12 @@ StructMetaTypeDescr::create(JSContext *cx,
     if (!CreateUserSizeAndAlignmentProperties(cx, descr))
         return nullptr;
 
-    RootedObject prototypeObj(cx);
-    prototypeObj = CreatePrototypeObjectForComplexTypeInstance(cx, structTypePrototype);
+    Rooted<TypedProto*> prototypeObj(cx);
+    prototypeObj = CreatePrototypeObjectForComplexTypeInstance(cx, descr, structTypePrototype);
     if (!prototypeObj)
         return nullptr;
 
-    descr->initReservedSlot(JS_DESCR_SLOT_PROTO, ObjectValue(*prototypeObj));
+    descr->initReservedSlot(JS_DESCR_SLOT_TYPROTO, ObjectValue(*prototypeObj));
 
     if (!LinkConstructorAndPrototype(cx, descr, prototypeObj))
         return nullptr;
@@ -1188,8 +1222,13 @@ DefineSimpleTypeDescr(JSContext *cx,
                       typename T::Type type,
                       HandlePropertyName className)
 {
+    RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
+    if (!objProto)
+        return false;
+
     RootedObject funcProto(cx, global->getOrCreateFunctionPrototype(cx));
-    JS_ASSERT(funcProto);
+    if (!funcProto)
+        return false;
 
     Rooted<T*> descr(cx);
     descr = NewObjectWithProto<T>(cx, funcProto, global, TenuredObject);
@@ -1208,6 +1247,15 @@ DefineSimpleTypeDescr(JSContext *cx,
 
     if (!JS_DefineFunctions(cx, descr, T::typeObjectMethods))
         return false;
+
+    
+    
+    Rooted<TypedProto*> proto(cx);
+    proto = NewObjectWithProto<TypedProto>(cx, objProto, nullptr, TenuredObject);
+    if (!proto)
+        return nullptr;
+    proto->initTypeDescrSlot(*descr);
+    descr->initReservedSlot(JS_DESCR_SLOT_TYPROTO, ObjectValue(*proto));
 
     RootedValue descrValue(cx, ObjectValue(*descr));
     if (!JSObject::defineProperty(cx, module, className,
