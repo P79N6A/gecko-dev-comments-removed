@@ -84,6 +84,12 @@ struct NS_GFX nsFont {
   int16_t stretch;
 
   
+  uint8_t kerning;
+
+  
+  uint8_t synthesis;
+
+  
   nscoord size;
 
   
@@ -105,12 +111,6 @@ struct NS_GFX nsFont {
   
   
   nsString languageOverride;
-
-  
-  uint8_t kerning;
-
-  
-  uint8_t synthesis;
 
   
   nsFont(const char* aName, uint8_t aStyle, uint8_t aVariant,
