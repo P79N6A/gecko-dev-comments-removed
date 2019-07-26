@@ -121,7 +121,13 @@ DeprecatedCanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
 {
   if (!mDeprecatedTextureClient) {
     mDeprecatedTextureClient = CreateDeprecatedTextureClient(TEXTURE_CONTENT);
-    MOZ_ASSERT(mDeprecatedTextureClient, "Failed to create texture client");
+    if (!mDeprecatedTextureClient) {
+      mDeprecatedTextureClient = CreateDeprecatedTextureClient(TEXTURE_FALLBACK);
+      if (!mDeprecatedTextureClient) {
+        NS_WARNING("Could not create texture client");
+        return;
+      }
+    }
   }
 
   bool isOpaque = (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE);
@@ -129,8 +135,11 @@ DeprecatedCanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
                                               ? gfxASurface::CONTENT_COLOR
                                               : gfxASurface::CONTENT_COLOR_ALPHA;
 
-  mDeprecatedTextureClient->EnsureAllocated(aSize, contentType);
   if (!mDeprecatedTextureClient->EnsureAllocated(aSize, contentType)) {
+    
+    
+    
+    
     mDeprecatedTextureClient = CreateDeprecatedTextureClient(TEXTURE_FALLBACK);
     MOZ_ASSERT(mDeprecatedTextureClient, "Failed to create texture client");
     if (!mDeprecatedTextureClient->EnsureAllocated(aSize, contentType)) {
