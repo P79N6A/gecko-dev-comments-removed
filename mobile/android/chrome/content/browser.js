@@ -3731,9 +3731,12 @@ var BrowserEventHandler = {
     
     
     
-    if (!BrowserApp.isBrowserContentDocumentDisplayed())
-      return;
+    if (BrowserApp.isBrowserContentDocumentDisplayed()) {
+      this.handleUserEvent(aTopic, aData);
+    }
+  },
 
+  handleUserEvent: function(aTopic, aData) {
     if (aTopic == "Gesture:Scroll") {
       
       
