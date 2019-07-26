@@ -750,7 +750,7 @@ function getCanStageUpdates() {
 XPCOMUtils.defineLazyGetter(this, "gMetroUpdatesEnabled", function aus_gMetroUpdatesEnabled() {
 #ifdef XP_WIN
 #ifdef MOZ_METRO
-  if (Services.metro.immersive) {
+  if (Services.metro && Services.metro.immersive) {
     let metroUpdate = getPref("getBoolPref", PREF_APP_UPDATE_METRO_ENABLED, true);
     if (!metroUpdate) {
       LOG("gMetroUpdatesEnabled - unable to automatically check for metro " +
@@ -2074,7 +2074,17 @@ UpdateService.prototype = {
 
 
   _postUpdateProcessing: function AUS__postUpdateProcessing() {
-    if (!this.canCheckForUpdates) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!this.canCheckForUpdates && gMetroUpdatesEnabled) {
       LOG("UpdateService:_postUpdateProcessing - unable to check for " +
           "updates... returning early");
       return;
