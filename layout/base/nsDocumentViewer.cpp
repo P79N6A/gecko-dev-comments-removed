@@ -996,6 +996,16 @@ nsDocumentViewer::LoadComplete(nsresult aStatus)
       if (timing) {
         timing->NotifyLoadEventStart();
       }
+
+      
+      nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+      nsIPrincipal *principal = d->NodePrincipal();
+      os->NotifyObservers(d,
+                          nsContentUtils::IsSystemPrincipal(principal) ?
+                          "chrome-document-loaded" :
+                          "content-document-loaded",
+                          nullptr);
+
       nsEventDispatcher::Dispatch(window, mPresContext, &event, nullptr,
                                   &status);
       if (timing) {
