@@ -586,12 +586,9 @@ public:
 
 
     bool PreferMemoryOverShmem() const;
-    bool UseDeprecatedTextures() const { return mLayersUseDeprecated; }
 
     mozilla::gl::SkiaGLGlue* GetSkiaGLGlue();
     void PurgeSkiaCache();
-
-    virtual bool IsInGonkEmulator() const { return false; }
 
 protected:
     gfxPlatform();
@@ -701,7 +698,6 @@ private:
 
     mozilla::RefPtr<mozilla::gfx::DrawEventRecorder> mRecorder;
     bool mLayersPreferMemoryOverShmem;
-    bool mLayersUseDeprecated;
     mozilla::RefPtr<mozilla::gl::SkiaGLGlue> mSkiaGlue;
 };
 

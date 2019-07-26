@@ -4002,13 +4002,11 @@ pref("layers.offmainthreadcomposition.enabled", false);
 
 
 pref("layers.offmainthreadcomposition.frame-rate", -1);
-
 #ifndef XP_WIN
 
 
 
 pref("layers.async-video.enabled",false);
-pref("layers.use-deprecated-textures", true);
 #endif
 
 #ifdef MOZ_X11
