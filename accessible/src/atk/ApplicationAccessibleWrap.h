@@ -23,6 +23,9 @@ public:
   virtual ~ApplicationAccessibleWrap();
 
   
+  virtual void Init();
+
+  
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
   virtual bool AppendChild(Accessible* aChild);
   virtual bool RemoveChild(Accessible* aChild);

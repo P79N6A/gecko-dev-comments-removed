@@ -52,6 +52,7 @@ protected:
   
 
 
+  virtual nsresult AddEventListeners();
   virtual nsresult RemoveEventListeners();
 
   

@@ -48,35 +48,6 @@
 using namespace mozilla;
 using namespace mozilla::a11y;
 
-const char* const kEventTypes[] = {
-#ifdef DEBUG_DRAGDROPSTART
-  
-  
-  "mouseover",
-#endif
-  
-  "select",
-  
-  
-  "ValueChange",
-  "AlertActive",
-  "TreeRowCountChanged",
-  "TreeInvalidated",
-  
-  "OpenStateChange",
-  
-  "CheckboxStateChange",
-  
-  "RadioStateChange",
-  "popupshown",
-  "popuphiding",
-  "DOMMenuInactive",
-  "DOMMenuItemActive",
-  "DOMMenuItemInactive",
-  "DOMMenuBarActive",
-  "DOMMenuBarInactive"
-};
-
 
 
 
@@ -91,25 +62,6 @@ RootAccessible::
   DocAccessibleWrap(aDocument, aRootContent, aPresShell)
 {
   mFlags |= eRootAccessible;
-
-  
-  
-  
-  
-  nsCOMPtr<nsIDOMEventTarget> nstarget(do_QueryInterface(mDocument));
-  if (nstarget) {
-    for (const char* const* e = kEventTypes,
-                   * const* e_end = ArrayEnd(kEventTypes);
-         e < e_end; ++e) {
-      nstarget->AddEventListener(NS_ConvertASCIItoUTF16(*e),
-                                 this, true, true, 2);
-    }
-  }
-
-  
-  
-  mCaretAccessible = new nsCaretAccessible(this);
-  mCaretAccessible->AddDocSelectionListener(aPresShell);
 }
 
 RootAccessible::~RootAccessible()
@@ -199,13 +151,68 @@ RootAccessible::NativeState()
   return state;
 }
 
+const char* const docEvents[] = {
+#ifdef DEBUG_DRAGDROPSTART
+  
+  
+  "mouseover",
+#endif
+  
+  "select",
+  
+  "ValueChange",
+  
+  "AlertActive",
+  "TreeRowCountChanged",
+  "TreeInvalidated",
+  
+  "OpenStateChange",
+  
+  "CheckboxStateChange",
+  
+  "RadioStateChange",
+  "popupshown",
+  "popuphiding",
+  "DOMMenuInactive",
+  "DOMMenuItemActive",
+  "DOMMenuItemInactive",
+  "DOMMenuBarActive",
+  "DOMMenuBarInactive"
+};
+
+nsresult
+RootAccessible::AddEventListeners()
+{
+  
+  
+  
+  
+  nsCOMPtr<nsIDOMEventTarget> nstarget(do_QueryInterface(mDocument));
+
+  if (nstarget) {
+    for (const char* const* e = docEvents,
+                   * const* e_end = ArrayEnd(docEvents);
+         e < e_end; ++e) {
+      nsresult rv = nstarget->AddEventListener(NS_ConvertASCIItoUTF16(*e),
+                                               this, true, true, 2);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
+  if (!mCaretAccessible) {
+    mCaretAccessible = new nsCaretAccessible(this);
+  }
+
+  return DocAccessible::AddEventListeners();
+}
+
 nsresult
 RootAccessible::RemoveEventListeners()
 {
   nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(mDocument));
   if (target) { 
-    for (const char* const* e = kEventTypes,
-                   * const* e_end = ArrayEnd(kEventTypes);
+    for (const char* const* e = docEvents,
+                   * const* e_end = ArrayEnd(docEvents);
          e < e_end; ++e) {
       nsresult rv = target->RemoveEventListener(NS_ConvertASCIItoUTF16(*e), this, true);
       NS_ENSURE_SUCCESS(rv, rv);

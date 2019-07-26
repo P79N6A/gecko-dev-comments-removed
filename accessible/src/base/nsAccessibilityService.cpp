@@ -997,6 +997,7 @@ nsAccessibilityService::Init()
   ApplicationAccessibleWrap::PreCreate();
   gApplicationAccessible = new ApplicationAccessibleWrap();
   NS_ADDREF(gApplicationAccessible); 
+  gApplicationAccessible->Init();
 
   
   nsAccessNodeWrap::InitAccessibility();
