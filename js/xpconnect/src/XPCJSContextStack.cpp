@@ -189,17 +189,7 @@ XPCJSContextStack::InitSafeJSContext()
     if (!mSafeJSContextGlobal)
         MOZ_CRASH();
 
-    
-    
     nsRefPtr<SandboxPrivate> sp = new SandboxPrivate(principal, mSafeJSContextGlobal);
     JS_SetPrivate(mSafeJSContextGlobal, sp.forget().take());
-
-    
-    
-    
-    
-    if (NS_FAILED(xpc->InitClasses(mSafeJSContext, mSafeJSContextGlobal)))
-        MOZ_CRASH();
-
     return mSafeJSContext;
 }
