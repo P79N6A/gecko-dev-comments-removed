@@ -73,6 +73,9 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   }
 
   
+  int mConnectionCounter;
+
+  
   PeerConnectionImpl::SipccState mSipccState;  
   CSF::CallControlManagerPtr mCCM;
   CSF::CC_DevicePtr mDevice;

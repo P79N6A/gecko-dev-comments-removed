@@ -284,7 +284,7 @@ public:
 
 #ifdef MOZILLA_INTERNAL_API
   
-  void setStartTime();
+  void startCallTelem();
 #endif
 
 private:

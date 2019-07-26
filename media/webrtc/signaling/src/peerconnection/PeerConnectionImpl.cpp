@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "base/histogram.h"
 #include "vcm.h"
 #include "CSFLog.h"
 #include "ccapi_call_info.h"
@@ -248,7 +249,7 @@ public:
         mPC->ClearSdpParseErrorMessages();
         mObserver->OnSetRemoteDescriptionSuccess();
 #ifdef MOZILLA_INTERNAL_API
-        mPC->setStartTime();
+        mPC->startCallTelem();
 #endif
         break;
 
@@ -1559,8 +1560,17 @@ PeerConnectionImpl::GetSdpParseErrors() {
 #ifdef MOZILLA_INTERNAL_API
 
 void
-PeerConnectionImpl::setStartTime() {
+PeerConnectionImpl::startCallTelem() {
+  
   mStartTime = mozilla::TimeStamp::Now();
+
+  
+#ifdef MOZILLA_INTERNAL_API
+  int &cnt = PeerConnectionCtx::GetInstance()->mConnectionCounter;
+  Telemetry::GetHistogramById(Telemetry::WEBRTC_CALL_COUNT)->Subtract(cnt);
+  cnt++;
+  Telemetry::GetHistogramById(Telemetry::WEBRTC_CALL_COUNT)->Add(cnt);
+#endif
 }
 #endif
 
