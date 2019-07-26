@@ -142,11 +142,6 @@ public:
 
   virtual void OnDetach() {}
 
-  
-
-
-  virtual void OnActorDestroy() = 0;
-
 protected:
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;
