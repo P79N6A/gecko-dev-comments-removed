@@ -791,13 +791,13 @@ private:
       
       
       
-      inline bool SkipItemsThatNeedAnonFlexItem(
+      inline bool SkipItemsThatNeedAnonFlexOrGridItem(
         const nsFrameConstructorState& aState);
 
       
       
       
-      inline bool SkipItemsThatDontNeedAnonFlexItem(
+      inline bool SkipItemsThatDontNeedAnonFlexOrGridItem(
         const nsFrameConstructorState& aState);
 
       
@@ -930,7 +930,7 @@ private:
 
     
     
-    bool NeedsAnonFlexItem(const nsFrameConstructorState& aState);
+    bool NeedsAnonFlexOrGridItem(const nsFrameConstructorState& aState);
 
     
     
@@ -1025,9 +1025,10 @@ private:
 
 
 
-  void CreateNeededAnonFlexItems(nsFrameConstructorState& aState,
-                                    FrameConstructionItemList& aItems,
-                                    nsIFrame* aParentFrame);
+
+  void CreateNeededAnonFlexOrGridItems(nsFrameConstructorState& aState,
+                                       FrameConstructionItemList& aItems,
+                                       nsIFrame* aParentFrame);
 
   
 
