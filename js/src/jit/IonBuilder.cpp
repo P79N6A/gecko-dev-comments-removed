@@ -831,16 +831,6 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
     MBasicBlock *predecessor = callerBuilder->current;
     JS_ASSERT(predecessor == callerResumePoint->block());
 
-    
-    
-    
-    
-    if (instrumentedProfiling()) {
-        predecessor->add(MProfilerStackOp::New(alloc(), script(),
-                                               MProfilerStackOp::InlineEnter,
-                                               inliningDepth_));
-    }
-
     predecessor->end(MGoto::New(alloc(), current));
     if (!current->addPredecessorWithoutPhis(predecessor))
         return false;
@@ -3701,9 +3691,8 @@ IonBuilder::processReturn(JSOp op)
         MOZ_ASSUME_UNREACHABLE("unknown return op");
     }
 
-    if (instrumentedProfiling()) {
-        current->add(MProfilerStackOp::New(alloc(), script(), MProfilerStackOp::Exit,
-                                           inliningDepth_));
+    if (instrumentedProfiling() && inliningDepth_ == 0) {
+        current->add(MProfilerStackOp::New(alloc(), script(), MProfilerStackOp::Exit));
     }
     MReturn *ret = MReturn::New(alloc(), def);
     current->end(ret);
@@ -4047,10 +4036,6 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
     if (!returnBlock)
         return false;
     returnBlock->setCallerResumePoint(callerResumePoint_);
-
-    
-    if (instrumentedProfiling())
-        returnBlock->add(MProfilerStackOp::New(alloc(), nullptr, MProfilerStackOp::InlineExit));
 
     
     returnBlock->inheritSlots(current);
