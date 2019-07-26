@@ -1065,7 +1065,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
       
       
       if (OVERFLOW_PINDEX)
-        NS_ASSERTION(false, "Missed a whitespace match\n");
+        NS_ASSERTION(false, "Missed a whitespace match");
 #endif
       patc = patStr[pindex];
     }
