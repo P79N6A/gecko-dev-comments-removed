@@ -180,6 +180,9 @@ private:
   nsCString                       mAddress;
   int32_t                         mPort;          
 
+  
+  nsCString                       mHost;
+
   nsCOMPtr<nsISocketTransport>    mTransport;
   nsCOMPtr<nsIAsyncInputStream>   mSocketIn;
   nsCOMPtr<nsIAsyncOutputStream>  mSocketOut;

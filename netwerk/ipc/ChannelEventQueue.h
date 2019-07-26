@@ -12,6 +12,8 @@
 #include <nsAutoPtr.h>
 
 class nsISupports;
+class nsIEventTarget;
+class nsIThread;
 
 namespace mozilla {
 namespace net {
@@ -71,6 +73,9 @@ class ChannelEventQueue
   
   void Resume();
 
+  
+  nsresult RetargetDeliveryTo(nsIEventTarget* aTargetThread);
+
  private:
   inline void MaybeFlushQueue();
   void FlushQueue();
@@ -85,6 +90,9 @@ class ChannelEventQueue
 
   
   nsISupports *mOwner;
+
+  
+  nsCOMPtr<nsIThread> mTargetThread;
 
   friend class AutoEventEnqueuer;
 };

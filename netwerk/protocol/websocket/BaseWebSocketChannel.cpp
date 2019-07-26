@@ -6,6 +6,7 @@
 
 #include "WebSocketLog.h"
 #include "BaseWebSocketChannel.h"
+#include "MainThreadUtils.h"
 #include "nsILoadGroup.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsAutoPtr.h"
@@ -239,6 +240,23 @@ BaseWebSocketChannel::AllowPort(int32_t port, const char *scheme,
 
   
   *_retval = false;
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+BaseWebSocketChannel::RetargetDeliveryTo(nsIEventTarget* aTargetThread)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aTargetThread);
+  MOZ_ASSERT(!mTargetThread, "Delivery target should be set once, before AsyncOpen");
+  MOZ_ASSERT(!mWasOpened, "Should not be called after AsyncOpen!");
+
+  mTargetThread = do_QueryInterface(aTargetThread);
+  MOZ_ASSERT(mTargetThread);
   return NS_OK;
 }
 
