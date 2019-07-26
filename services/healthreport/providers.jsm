@@ -484,7 +484,26 @@ SessionsProvider.prototype = Object.freeze({
 
     let daily = this.getMeasurement("previous", 3);
 
-    for each (let session in sessions) {
+    
+    
+    
+    
+    
+    
+    
+    let lastRecordedSession = yield this.getState("lastSession");
+    if (lastRecordedSession === null) {
+      lastRecordedSession = -1;
+    }
+    this._log.debug("The last recorded session was #" + lastRecordedSession);
+
+    for (let [index, session] in Iterator(sessions)) {
+      if (index < lastRecordedSession) {
+        this._log.warn("Already recorded session " + index + ". Did the last " +
+                       "session crash or have an issue saving the prefs file?");
+        continue;
+      }
+
       let type = session.clean ? "clean" : "aborted";
       let date = session.startDate;
       yield daily.addDailyDiscreteNumeric(type + "ActiveTicks", session.activeTicks, date);
@@ -493,8 +512,11 @@ SessionsProvider.prototype = Object.freeze({
       for (let field of ["main", "firstPaint", "sessionRestored"]) {
         yield daily.addDailyDiscreteNumeric(field, session[field], date);
       }
+
+      lastRecordedSession = index;
     }
 
+    yield this.setState("lastSession", "" + lastRecordedSession);
     recorder.pruneOldSessions(new Date());
   },
 });

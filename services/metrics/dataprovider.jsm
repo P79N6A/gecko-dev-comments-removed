@@ -651,20 +651,31 @@ Provider.prototype = Object.freeze({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
   getState: function (key) {
-    let name = this.name;
-    let storage = this.storage;
-    return storage.enqueueOperation(function get() {
-      return storage.getProviderState(name, key);
-    });
+    return this.storage.getProviderState(this.name, key);
   },
 
+  
+
+
+
+
+
   setState: function (key, value) {
-    let name = this.name;
-    let storage = this.storage;
-    return storage.enqueueOperation(function set() {
-      return storage.setProviderState(name, key, value);
-    });
+    return this.storage.setProviderState(this.name, key, value);
   },
 
   _dateToDays: function (date) {
