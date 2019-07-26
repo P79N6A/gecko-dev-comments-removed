@@ -5,13 +5,6 @@
 #ifndef BASE_BASICTYPES_H_
 #define BASE_BASICTYPES_H_
 
-
-
-
-#if defined(prtypes_h___) && !defined(BUILD_BUILD_CONFIG_H_)
-#error You_must_include_basictypes.h_before_prtypes.h!
-#endif
-
 #include <limits.h>         
 #include <stddef.h>         
 #include <string.h>         
