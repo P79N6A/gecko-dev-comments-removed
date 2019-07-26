@@ -49,7 +49,16 @@ SourceSurfaceSkia::InitFromData(unsigned char* aData,
   if (!temp.copyTo(&mBitmap, GfxFormatToSkiaConfig(aFormat))) {
     return false;
   }
-  
+
+  if (aFormat == FORMAT_B8G8R8X8) {
+    mBitmap.lockPixels();
+    
+    ConvertBGRXToBGRA(reinterpret_cast<unsigned char*>(mBitmap.getPixels()), aSize, aStride);
+    mBitmap.unlockPixels();
+    mBitmap.notifyPixelsChanged();
+    mBitmap.setIsOpaque(true);
+  }
+
   mSize = aSize;
   mFormat = aFormat;
   mStride = aStride;
