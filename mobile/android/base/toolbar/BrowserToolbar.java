@@ -1118,6 +1118,14 @@ public class BrowserToolbar extends GeckoRelativeLayout
         if (tab != null) {
             setButtonEnabled(mBack, canDoBack(tab));
             setButtonEnabled(mForward, canDoForward(tab));
+
+            
+            
+            
+            
+            if (!mIsEditing) {
+                animateForwardButton(canDoForward(tab));
+            }
         }
     }
 
