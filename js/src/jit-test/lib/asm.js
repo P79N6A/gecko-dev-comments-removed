@@ -78,8 +78,15 @@ function assertAsmLinkFail(f)
     if (!isAsmJSCompilationAvailable())
         return;
 
+    assertEq(isAsmJSModule(f), true);
+
     
-    f.apply(null, Array.slice(arguments, 1));
+    var ret = f.apply(null, Array.slice(arguments, 1));
+
+    assertEq(isAsmJSFunction(ret), false);
+    if (typeof ret === 'object')
+        for (f of ret)
+            assertEq(isAsmJSFunction(f), false);
 
     
     var oldOpts = options("werror");
