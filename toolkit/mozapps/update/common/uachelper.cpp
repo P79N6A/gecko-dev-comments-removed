@@ -60,20 +60,6 @@ LPCTSTR UACHelper::PrivsToDisable[] = {
 
 
 
-BOOL
-UACHelper::IsVistaOrLater()
-{
-  
-  OSVERSIONINFO osInfo;
-  osInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-  return GetVersionEx(&osInfo) && osInfo.dwMajorVersion >= 6;
-}
-
-
-
-
-
-
 
 
 HANDLE
