@@ -143,9 +143,7 @@ public:
   private:
     int32_t ObjectAt(int32_t aIndex) {
       void* v = nsDeque::ObjectAt(aIndex);
-      
-      
-      return *(reinterpret_cast<int32_t*>(&v));
+      return reinterpret_cast<uintptr_t>(v);
     }
   };
 
