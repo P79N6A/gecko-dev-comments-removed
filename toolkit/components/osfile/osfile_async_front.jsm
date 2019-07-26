@@ -48,6 +48,20 @@ let Type = OS.Shared.Type;
 
 Components.utils.import("resource://gre/modules/commonjs/promise/core.js");
 
+
+
+
+let clone = function clone(object) {
+  let result = {};
+  for (let k in object) {
+    result[k] = object[k];
+  }
+  return result;
+};
+
+
+
+
 const noOptions = {};
 
 
@@ -306,8 +320,8 @@ File.prototype = {
     
     
     if ("byteLength" in buffer && (!options || !"bytes" in options)) {
-      options = Object.create(options || noOptions,
-        {bytes: {value: buffer.byteLength, enumerable: true}});
+      options = clone(options || noOptions);
+      options.bytes = buffer.byteLength;
     }
     
     
@@ -335,8 +349,8 @@ File.prototype = {
     
     
     if ("byteLength" in buffer && (!options || !"bytes" in options)) {
-      options = Object.create(options || noOptions,
-        {bytes: {value: buffer.byteLength, enumerable: true}});
+      options = clone(options || noOptions);
+      options.bytes = buffer.byteLength;
     }
     
     
@@ -556,6 +570,17 @@ File.removeEmptyDir = function removeEmptyDir(path, options) {
 
 
 
+File.remove = function remove(path) {
+  return Scheduler.post("remove",
+    [Type.path.toMsg(path)]);
+};
+
+
+
+
+
+
+
 
 
 
@@ -567,6 +592,58 @@ File.removeEmptyDir = function removeEmptyDir(path, options) {
 File.makeDir = function makeDir(path, options) {
   return Scheduler.post("makeDir",
     [Type.path.toMsg(path), options], path);
+};
+
+
+
+
+
+
+
+
+
+
+
+File.read = function read(path, bytes) {
+  return Scheduler.post("read",
+    [Type.path.toMsg(path), bytes], path);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+File.writeAtomic = function writeAtomic(path, buffer, options) {
+  
+  options = clone(options || noOptions);
+  
+  if ("tmpPath" in options) {
+    options.tmpPath = Type.path.toMsg(options.tmpPath);
+  };
+  if ("byteLength" in buffer && (!("bytes" in options))) {
+    options.bytes = buffer.byteLength;
+  };
+  return Scheduler.post("writeAtomic",
+    [Type.path.toMsg(path),
+    Type.void_t.in_ptr.toMsg(buffer),
+    options], [options, buffer]);
 };
 
 
