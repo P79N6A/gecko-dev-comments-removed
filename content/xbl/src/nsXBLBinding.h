@@ -22,7 +22,15 @@ class nsIContent;
 class nsIAtom;
 class nsIDocument;
 class nsIScriptContext;
-class nsXBLChildrenElement;
+
+namespace mozilla {
+namespace dom {
+
+class XBLChildrenElement;
+
+}
+}
+
 class nsAnonymousContentList;
 struct JSContext;
 class JSObject;
@@ -136,14 +144,14 @@ public:
 
   bool AllowScripts();  
 
-  nsXBLChildrenElement* FindInsertionPointFor(nsIContent* aChild);
+  mozilla::dom::XBLChildrenElement* FindInsertionPointFor(nsIContent* aChild);
 
   bool HasFilteredInsertionPoints()
   {
     return !mInsertionPoints.IsEmpty();
   }
 
-  nsXBLChildrenElement* GetDefaultInsertionPoint()
+  mozilla::dom::XBLChildrenElement* GetDefaultInsertionPoint()
   {
     return mDefaultInsertionPoint;
   }
@@ -176,11 +184,11 @@ protected:
   
   
   
-  nsRefPtr<nsXBLChildrenElement> mDefaultInsertionPoint;
-  nsTArray<nsRefPtr<nsXBLChildrenElement> > mInsertionPoints;
+  nsRefPtr<mozilla::dom::XBLChildrenElement> mDefaultInsertionPoint;
+  nsTArray<nsRefPtr<mozilla::dom::XBLChildrenElement> > mInsertionPoints;
   nsRefPtr<nsAnonymousContentList> mAnonymousContentList;
 
-  nsXBLChildrenElement* FindInsertionPointForInternal(nsIContent* aChild);
+  mozilla::dom::XBLChildrenElement* FindInsertionPointForInternal(nsIContent* aChild);
 };
 
 #endif 
