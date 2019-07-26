@@ -2824,22 +2824,30 @@ public class Tokenizer implements Locator {
                     }
                     
                 case CDATA_RSQB_RSQB:
-                    if (++pos == endPos) {
-                        break stateloop;
-                    }
-                    c = checkChar(buf, pos);
-                    switch (c) {
-                        case '>':
-                            cstart = pos + 1;
-                            state = transition(state, Tokenizer.DATA, reconsume, pos);
-                            continue stateloop;
-                        default:
-                            tokenHandler.characters(Tokenizer.RSQB_RSQB, 0, 2);
-                            cstart = pos;
-                            reconsume = true;
-                            state = transition(state, Tokenizer.CDATA_SECTION, reconsume, pos);
-                            continue stateloop;
-
+                    cdatarsqbrsqb: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        switch (c) {
+                            case ']':
+                                
+                                
+                                
+                                
+                                tokenHandler.characters(Tokenizer.RSQB_RSQB, 0, 1);                                
+                                continue;
+                            case '>':
+                                cstart = pos + 1;
+                                state = transition(state, Tokenizer.DATA, reconsume, pos);
+                                continue stateloop;
+                            default:
+                                tokenHandler.characters(Tokenizer.RSQB_RSQB, 0, 2);
+                                cstart = pos;
+                                reconsume = true;
+                                state = transition(state, Tokenizer.CDATA_SECTION, reconsume, pos);
+                                continue stateloop;
+                        }
                     }
                     
                 case ATTRIBUTE_VALUE_SINGLE_QUOTED:
