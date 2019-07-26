@@ -252,19 +252,15 @@ NS_IMPL_ISUPPORTS1(GrallocReporter, nsIMemoryReporter)
 
 int64_t GrallocReporter::sAmount = 0;
 
+void InitGralloc() {
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  RegisterStrongMemoryReporter(new GrallocReporter());
+}
+
 GrallocBufferActor::GrallocBufferActor()
 : mAllocBytes(0)
 , mTextureHost(nullptr)
 {
-  static bool registered;
-  if (!registered) {
-    
-    
-    NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-
-    RegisterStrongMemoryReporter(new GrallocReporter());
-    registered = true;
-  }
 }
 
 GrallocBufferActor::~GrallocBufferActor()
