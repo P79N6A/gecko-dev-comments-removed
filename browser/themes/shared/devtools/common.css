@@ -201,6 +201,10 @@
   margin: -4px; 
 }
 
+.devtools-tooltip-variables-view-box .variable-or-property > .title {
+  -moz-padding-end: 6px;
+}
+
 
 
 .devtools-tooltip-tiles {
