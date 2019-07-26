@@ -169,6 +169,15 @@ public:
 
 
 
+  bool IsActive() const {
+    return mIsActive;
+  }
+
+  
+
+
+
+
 
 
 
