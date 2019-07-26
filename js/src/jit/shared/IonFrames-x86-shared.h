@@ -514,8 +514,8 @@ class IonBaselineStubFrameLayout : public IonCommonFrameLayout
 
 class InvalidationBailoutStack
 {
-    double      fpregs_[FloatRegisters::Total];
-    uintptr_t   regs_[Registers::Total];
+    mozilla::Array<double, FloatRegisters::Total> fpregs_;
+    mozilla::Array<uintptr_t, Registers::Total> regs_;
     IonScript   *ionScript_;
     uint8_t       *osiPointReturnAddress_;
 
