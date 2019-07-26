@@ -210,6 +210,25 @@ AsyncChannel::ThreadLink::ThreadLink(AsyncChannel *aChan,
 
 AsyncChannel::ThreadLink::~ThreadLink()
 {
+    MonitorAutoLock lock(*mChan->mMonitor);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (mTargetChan) {
+        static_cast<ThreadLink*>(mTargetChan->mLink)->mTargetChan = 0;
+    }
     mTargetChan = 0;
 }
 
@@ -229,7 +248,8 @@ AsyncChannel::ThreadLink::SendMessage(Message *msg)
     mChan->AssertWorkerThread();
     mChan->mMonitor->AssertCurrentThreadOwns();
 
-    mTargetChan->OnMessageReceivedFromLink(*msg);
+    if (mTargetChan)
+        mTargetChan->OnMessageReceivedFromLink(*msg);
     delete msg;
 }
 
@@ -246,7 +266,8 @@ AsyncChannel::ThreadLink::SendClose()
     
     
     
-    mTargetChan->OnChannelErrorFromLink();
+    if (mTargetChan)
+        mTargetChan->OnChannelErrorFromLink();
 }
 
 AsyncChannel::AsyncChannel(AsyncListener* aListener)
