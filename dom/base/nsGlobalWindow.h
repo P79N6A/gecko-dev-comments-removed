@@ -146,16 +146,16 @@ struct nsTimeout : mozilla::LinkedListElement<nsTimeout>
   nsTimeout();
   ~nsTimeout();
 
-  NS_DECL_CYCLE_COLLECTION_LEGACY_NATIVE_CLASS(nsTimeout)
-
-  nsrefcnt Release();
-  nsrefcnt AddRef();
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsTimeout)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(nsTimeout)
 
   nsresult InitTimer(nsTimerCallbackFunc aFunc, uint32_t aDelay)
   {
     return mTimer->InitWithFuncCallback(aFunc, this, aDelay,
                                         nsITimer::TYPE_ONE_SHOT);
   }
+
+  bool HasRefCntOne();
 
   
   nsRefPtr<nsGlobalWindow> mWindow;
@@ -201,10 +201,6 @@ struct nsTimeout : mozilla::LinkedListElement<nsTimeout>
 
   
   nsCOMPtr<nsIScriptTimeoutHandler> mScriptHandler;
-
-private:
-  
-  nsAutoRefCnt mRefCnt;
 };
 
 struct IdleObserverHolder

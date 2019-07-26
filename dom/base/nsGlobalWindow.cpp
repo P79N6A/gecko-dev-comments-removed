@@ -495,6 +495,11 @@ nsTimeout::~nsTimeout()
   }
 #endif
 
+  if (mTimer) {
+    mTimer->Cancel();
+    mTimer = nullptr;
+  }
+
   MOZ_COUNT_DTOR(nsTimeout);
 }
 
@@ -506,6 +511,14 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsTimeout)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(nsTimeout, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(nsTimeout, Release)
+
+
+
+bool
+nsTimeout::HasRefCntOne()
+{
+  return mRefCnt.get() == 1;
+}
 
 nsPIDOMWindow::nsPIDOMWindow(nsPIDOMWindow *aOuterWindow)
 : mFrameElement(nullptr), mDocShell(nullptr), mModalStateDepth(0),
@@ -10302,9 +10315,8 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   NS_ASSERTION(IsInnerWindow(), "Timeout running on outer window!");
   NS_ASSERTION(!IsFrozen(), "Timeout running on a window in the bfcache!");
 
-  nsTimeout *nextTimeout, *timeout;
+  nsTimeout *nextTimeout;
   nsTimeout *last_expired_timeout, *last_insertion_point;
-  nsTimeout dummy_timeout;
   uint32_t firingDepth = mTimeoutFiringDepth + 1;
 
   
@@ -10333,7 +10345,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   
   
   last_expired_timeout = nullptr;
-  for (timeout = mTimeouts.getFirst(); timeout; timeout = timeout->getNext()) {
+  for (nsTimeout *timeout = mTimeouts.getFirst(); timeout; timeout = timeout->getNext()) {
     if (((timeout == aTimeout) || (timeout->mWhen <= deadline)) &&
         (timeout->mFiringDepth == 0)) {
       
@@ -10365,24 +10377,21 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   
   
   
-  dummy_timeout.mFiringDepth = firingDepth;
-  dummy_timeout.mWhen = now;
-  last_expired_timeout->setNext(&dummy_timeout);
-
-  
-  
-  dummy_timeout.AddRef();
-  dummy_timeout.AddRef();
+  nsRefPtr<nsTimeout> dummy_timeout = new nsTimeout();
+  dummy_timeout->mFiringDepth = firingDepth;
+  dummy_timeout->mWhen = now;
+  last_expired_timeout->setNext(dummy_timeout);
+  dummy_timeout->AddRef();
 
   last_insertion_point = mTimeoutInsertionPoint;
   
   
-  mTimeoutInsertionPoint = &dummy_timeout;
+  mTimeoutInsertionPoint = dummy_timeout;
 
   Telemetry::AutoCounter<Telemetry::DOM_TIMERS_FIRED_PER_NATIVE_TIMEOUT> timeoutsRan;
 
-  for (timeout = mTimeouts.getFirst();
-       timeout != &dummy_timeout && !IsFrozen();
+  for (nsTimeout *timeout = mTimeouts.getFirst();
+       timeout != dummy_timeout && !IsFrozen();
        timeout = nextTimeout) {
     nextTimeout = timeout->getNext();
 
@@ -10436,6 +10445,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
       
       
       
+      MOZ_ASSERT(dummy_timeout->HasRefCntOne(), "dummy_timeout may leak");
 
       mTimeoutInsertionPoint = last_insertion_point;
 
@@ -10463,35 +10473,12 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   }
 
   
-  dummy_timeout.remove();
+  dummy_timeout->remove();
+  dummy_timeout->Release();
+  MOZ_ASSERT(dummy_timeout->HasRefCntOne(), "dummy_timeout may leak");
 
   mTimeoutInsertionPoint = last_insertion_point;
 }
-
-nsrefcnt
-nsTimeout::Release()
-{
-  if (--mRefCnt > 0)
-    return mRefCnt;
-
-  
-
-  
-  if (mTimer) {
-    mTimer->Cancel();
-    mTimer = nullptr;
-  }
-
-  delete this;
-  return 0;
-}
-
-nsrefcnt
-nsTimeout::AddRef()
-{
-  return ++mRefCnt;
-}
-
 
 nsresult
 nsGlobalWindow::ClearTimeoutOrInterval(int32_t aTimerID)
