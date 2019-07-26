@@ -258,12 +258,19 @@ public:
   static void AddRefTable(void);
   static void ReleaseTable(void);
 
-  
   enum EnabledState {
-    eEnabled,
-    eEnabledInUASheets,
-    eAny
+    
+    
+    eEnabledForAllContent = 0,
+    
+    eEnabledInUASheets    = 0x01,
+    
+    
+    
+    
+    eIgnoreEnabledState   = 0xff
   };
+
   
   
   
@@ -447,11 +454,20 @@ public:
     return gPropertyEnabled[aProperty];
   }
 
-  static bool IsEnabled(nsCSSProperty aProperty, EnabledState aEnabled) {
-    return IsEnabled(aProperty) ||
-      (aEnabled == eEnabledInUASheets &&
-       PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS)) ||
-      aEnabled == eAny;
+  static bool IsEnabled(nsCSSProperty aProperty, EnabledState aEnabled)
+  {
+    if (IsEnabled(aProperty)) {
+      return true;
+    }
+    if (aEnabled == eIgnoreEnabledState) {
+      return true;
+    }
+    if ((aEnabled & eEnabledInUASheets) &&
+        PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS))
+    {
+      return true;
+    }
+    return false;
   }
 
 public:
@@ -608,5 +624,29 @@ public:
   static const KTableValue kWritingModeKTable[];
   static const KTableValue kHyphensKTable[];
 };
+
+inline nsCSSProps::EnabledState operator|(nsCSSProps::EnabledState a,
+                                          nsCSSProps::EnabledState b)
+{
+  return nsCSSProps::EnabledState(int(a) | int(b));
+}
+
+inline nsCSSProps::EnabledState operator&(nsCSSProps::EnabledState a,
+                                          nsCSSProps::EnabledState b)
+{
+  return nsCSSProps::EnabledState(int(a) & int(b));
+}
+
+inline nsCSSProps::EnabledState& operator|=(nsCSSProps::EnabledState& a,
+                                            nsCSSProps::EnabledState b)
+{
+  return a = a | b;
+}
+
+inline nsCSSProps::EnabledState& operator&=(nsCSSProps::EnabledState& a,
+                                            nsCSSProps::EnabledState b)
+{
+  return a = a & b;
+}
 
 #endif 

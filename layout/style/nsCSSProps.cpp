@@ -397,11 +397,11 @@ nsCSSProps::LookupProperty(const nsACString& aProperty,
              "'res' must be an alias at this point so we better have some!");
   
   
-  if (IsEnabled(res) || aEnabled == eAny) {
+  if (IsEnabled(res) || aEnabled == eIgnoreEnabledState) {
     res = gAliases[res - eCSSProperty_COUNT];
     NS_ABORT_IF_FALSE(0 <= res && res < eCSSProperty_COUNT,
                       "aliases must not point to other aliases");
-    if (IsEnabled(res) || aEnabled == eAny) {
+    if (IsEnabled(res) || aEnabled == eIgnoreEnabledState) {
       return res;
     }
   }
@@ -431,11 +431,11 @@ nsCSSProps::LookupProperty(const nsAString& aProperty, EnabledState aEnabled)
              "'res' must be an alias at this point so we better have some!");
   
   
-  if (IsEnabled(res) || aEnabled == eAny) {
+  if (IsEnabled(res) || aEnabled == eIgnoreEnabledState) {
     res = gAliases[res - eCSSProperty_COUNT];
     NS_ABORT_IF_FALSE(0 <= res && res < eCSSProperty_COUNT,
                       "aliases must not point to other aliases");
-    if (IsEnabled(res) || aEnabled == eAny) {
+    if (IsEnabled(res) || aEnabled == eIgnoreEnabledState) {
       return res;
     }
   }
