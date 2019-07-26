@@ -5,35 +5,39 @@
 
 
 
-
-
 #ifndef jsapi_h___
 #define jsapi_h___
 
+
+
+
 #include "mozilla/Attributes.h"
 #include "mozilla/FloatingPoint.h"
-#include "mozilla/GuardObjects.h"
-#include "mozilla/RangedPtr.h"
 #include "mozilla/StandardInteger.h"
+#include "mozilla/RangedPtr.h"
 #include "mozilla/ThreadLocal.h"
 
 #include <stddef.h>
 #include <stdio.h>
-
 #include "js-config.h"
-#include "jsalloc.h"
 #include "jspubtd.h"
 #include "jsutil.h"
+#include "jsval.h"
 
-#include "js/Anchor.h"
-#include "js/CallArgs.h"
-#include "js/CharacterEncoding.h"
-#include "js/HashTable.h"
-#include "js/PropertyKey.h"
-#include "js/RootingAPI.h"
 #include "js/Utility.h"
-#include "js/Value.h"
+#include "gc/Root.h"
+
+#include <limits> 
+
+#include "jsalloc.h"
 #include "js/Vector.h"
+
+
+
+
+#define JSVAL_INT_BITS          32
+#define JSVAL_INT_MIN           ((int32_t)0x80000000)
+#define JSVAL_INT_MAX           ((int32_t)0x7fffffff)
 
 
 
@@ -50,6 +54,949 @@ class StableCharPtr : public CharPtr {
       : CharPtr(pos, start, len)
     {}
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T> class AnchorPermitted;
+template<> class AnchorPermitted<JSObject *> { };
+template<> class AnchorPermitted<const JSObject *> { };
+template<> class AnchorPermitted<JSFunction *> { };
+template<> class AnchorPermitted<const JSFunction *> { };
+template<> class AnchorPermitted<JSString *> { };
+template<> class AnchorPermitted<const JSString *> { };
+template<> class AnchorPermitted<Value> { };
+template<> class AnchorPermitted<const JSScript *> { };
+template<> class AnchorPermitted<JSScript *> { };
+
+template<typename T>
+class Anchor: AnchorPermitted<T>
+{
+  public:
+    Anchor() { }
+    explicit Anchor(T t) { hold = t; }
+    inline ~Anchor();
+    T &get() { return hold; }
+    const T &get() const { return hold; }
+    void set(const T &t) { hold = t; }
+    void operator=(const T &t) { hold = t; }
+    void clear() { hold = 0; }
+  private:
+    T hold;
+    Anchor(const Anchor &) MOZ_DELETE;
+    const Anchor &operator=(const Anchor &) MOZ_DELETE;
+};
+
+#ifdef __GNUC__
+template<typename T>
+inline Anchor<T>::~Anchor()
+{
+    
+
+
+
+
+
+
+
+
+
+
+    asm volatile("":: "g" (hold) : "memory");
+}
+#else
+template<typename T>
+inline Anchor<T>::~Anchor()
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    volatile T sink;
+    sink = hold;
+}
+#endif  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Value
+{
+  public:
+    
+
+
+
+
+    
+
+    JS_ALWAYS_INLINE
+    void setNull() {
+        data.asBits = BUILD_JSVAL(JSVAL_TAG_NULL, 0).asBits;
+    }
+
+    JS_ALWAYS_INLINE
+    void setUndefined() {
+        data.asBits = BUILD_JSVAL(JSVAL_TAG_UNDEFINED, 0).asBits;
+    }
+
+    JS_ALWAYS_INLINE
+    void setInt32(int32_t i) {
+        data = INT32_TO_JSVAL_IMPL(i);
+    }
+
+    JS_ALWAYS_INLINE
+    int32_t &getInt32Ref() {
+        JS_ASSERT(isInt32());
+        return data.s.payload.i32;
+    }
+
+    JS_ALWAYS_INLINE
+    void setDouble(double d) {
+        data = DOUBLE_TO_JSVAL_IMPL(d);
+    }
+
+    JS_ALWAYS_INLINE
+    double &getDoubleRef() {
+        JS_ASSERT(isDouble());
+        return data.asDouble;
+    }
+
+    JS_ALWAYS_INLINE
+    void setString(JSString *str) {
+        JS_ASSERT(!IsPoisonedPtr(str));
+        data = STRING_TO_JSVAL_IMPL(str);
+    }
+
+    JS_ALWAYS_INLINE
+    void setString(const JS::Anchor<JSString *> &str) {
+        setString(str.get());
+    }
+
+    JS_ALWAYS_INLINE
+    void setObject(JSObject &obj) {
+        JS_ASSERT(!IsPoisonedPtr(&obj));
+        data = OBJECT_TO_JSVAL_IMPL(&obj);
+    }
+
+    JS_ALWAYS_INLINE
+    void setBoolean(bool b) {
+        data = BOOLEAN_TO_JSVAL_IMPL(b);
+    }
+
+    JS_ALWAYS_INLINE
+    void setMagic(JSWhyMagic why) {
+        data = MAGIC_TO_JSVAL_IMPL(why);
+    }
+
+    JS_ALWAYS_INLINE
+    bool setNumber(uint32_t ui) {
+        if (ui > JSVAL_INT_MAX) {
+            setDouble((double)ui);
+            return false;
+        } else {
+            setInt32((int32_t)ui);
+            return true;
+        }
+    }
+
+    JS_ALWAYS_INLINE
+    bool setNumber(double d) {
+        int32_t i;
+        if (MOZ_DOUBLE_IS_INT32(d, &i)) {
+            setInt32(i);
+            return true;
+        } else {
+            setDouble(d);
+            return false;
+        }
+    }
+
+    JS_ALWAYS_INLINE
+    void setObjectOrNull(JSObject *arg) {
+        if (arg)
+            setObject(*arg);
+        else
+            setNull();
+    }
+
+    JS_ALWAYS_INLINE
+    void swap(Value &rhs) {
+        uint64_t tmp = rhs.data.asBits;
+        rhs.data.asBits = data.asBits;
+        data.asBits = tmp;
+    }
+
+    
+
+    JS_ALWAYS_INLINE
+    bool isUndefined() const {
+        return JSVAL_IS_UNDEFINED_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isNull() const {
+        return JSVAL_IS_NULL_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isNullOrUndefined() const {
+        return isNull() || isUndefined();
+    }
+
+    JS_ALWAYS_INLINE
+    bool isInt32() const {
+        return JSVAL_IS_INT32_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isInt32(int32_t i32) const {
+        return JSVAL_IS_SPECIFIC_INT32_IMPL(data, i32);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isDouble() const {
+        return JSVAL_IS_DOUBLE_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isNumber() const {
+        return JSVAL_IS_NUMBER_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isString() const {
+        return JSVAL_IS_STRING_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isObject() const {
+        return JSVAL_IS_OBJECT_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isPrimitive() const {
+        return JSVAL_IS_PRIMITIVE_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isObjectOrNull() const {
+        return JSVAL_IS_OBJECT_OR_NULL_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isGCThing() const {
+        return JSVAL_IS_GCTHING_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isBoolean() const {
+        return JSVAL_IS_BOOLEAN_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isTrue() const {
+        return JSVAL_IS_SPECIFIC_BOOLEAN(data, true);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isFalse() const {
+        return JSVAL_IS_SPECIFIC_BOOLEAN(data, false);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isMagic() const {
+        return JSVAL_IS_MAGIC_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isMagic(JSWhyMagic why) const {
+        JS_ASSERT_IF(isMagic(), data.s.payload.why == why);
+        return JSVAL_IS_MAGIC_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isMarkable() const {
+        return JSVAL_IS_TRACEABLE_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    JSGCTraceKind gcKind() const {
+        JS_ASSERT(isMarkable());
+        return JSGCTraceKind(JSVAL_TRACE_KIND_IMPL(data));
+    }
+
+    JS_ALWAYS_INLINE
+    JSWhyMagic whyMagic() const {
+        JS_ASSERT(isMagic());
+        return data.s.payload.why;
+    }
+
+    
+
+    JS_ALWAYS_INLINE
+    bool operator==(const Value &rhs) const {
+        return data.asBits == rhs.data.asBits;
+    }
+
+    JS_ALWAYS_INLINE
+    bool operator!=(const Value &rhs) const {
+        return data.asBits != rhs.data.asBits;
+    }
+
+    friend inline bool SameType(const Value &lhs, const Value &rhs);
+
+    
+
+    JS_ALWAYS_INLINE
+    int32_t toInt32() const {
+        JS_ASSERT(isInt32());
+        return JSVAL_TO_INT32_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    double toDouble() const {
+        JS_ASSERT(isDouble());
+        return data.asDouble;
+    }
+
+    JS_ALWAYS_INLINE
+    double toNumber() const {
+        JS_ASSERT(isNumber());
+        return isDouble() ? toDouble() : double(toInt32());
+    }
+
+    JS_ALWAYS_INLINE
+    JSString *toString() const {
+        JS_ASSERT(isString());
+        return JSVAL_TO_STRING_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    JSObject &toObject() const {
+        JS_ASSERT(isObject());
+        return *JSVAL_TO_OBJECT_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    JSObject *toObjectOrNull() const {
+        JS_ASSERT(isObjectOrNull());
+        return JSVAL_TO_OBJECT_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    void *toGCThing() const {
+        JS_ASSERT(isGCThing());
+        return JSVAL_TO_GCTHING_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool toBoolean() const {
+        JS_ASSERT(isBoolean());
+        return JSVAL_TO_BOOLEAN_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    uint32_t payloadAsRawUint32() const {
+        JS_ASSERT(!isDouble());
+        return data.s.payload.u32;
+    }
+
+    JS_ALWAYS_INLINE
+    uint64_t asRawBits() const {
+        return data.asBits;
+    }
+
+    JS_ALWAYS_INLINE
+    JSValueType extractNonDoubleType() const {
+        return JSVAL_EXTRACT_NON_DOUBLE_TYPE_IMPL(data);
+    }
+
+    
+
+
+
+
+
+
+
+
+    JS_ALWAYS_INLINE
+    void setPrivate(void *ptr) {
+        data = PRIVATE_PTR_TO_JSVAL_IMPL(ptr);
+    }
+
+    JS_ALWAYS_INLINE
+    void *toPrivate() const {
+        JS_ASSERT(JSVAL_IS_DOUBLE_IMPL(data));
+        return JSVAL_TO_PRIVATE_PTR_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    void setPrivateUint32(uint32_t ui) {
+        data = PRIVATE_UINT32_TO_JSVAL_IMPL(ui);
+    }
+
+    JS_ALWAYS_INLINE
+    uint32_t toPrivateUint32() const {
+        JS_ASSERT(JSVAL_IS_DOUBLE_IMPL(data));
+        return JSVAL_TO_PRIVATE_UINT32_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    uint32_t &getPrivateUint32Ref() {
+        JS_ASSERT(isDouble());
+        return data.s.payload.u32;
+    }
+
+    
+
+
+
+
+
+    JS_ALWAYS_INLINE
+    void setUnmarkedPtr(void *ptr) {
+        data.asPtr = ptr;
+    }
+
+    JS_ALWAYS_INLINE
+    void *toUnmarkedPtr() const {
+        return data.asPtr;
+    }
+
+    const size_t *payloadWord() const {
+#if JS_BITS_PER_WORD == 32
+        return &data.s.payload.word;
+#elif JS_BITS_PER_WORD == 64
+        return &data.asWord;
+#endif
+    }
+
+    const uintptr_t *payloadUIntPtr() const {
+#if JS_BITS_PER_WORD == 32
+        return &data.s.payload.uintptr;
+#elif JS_BITS_PER_WORD == 64
+        return &data.asUIntPtr;
+#endif
+    }
+
+#if !defined(_MSC_VER) && !defined(__sparc)
+  
+
+
+
+
+  private:
+#endif
+
+    jsval_layout data;
+
+  private:
+    void staticAssertions() {
+        JS_STATIC_ASSERT(sizeof(JSValueType) == 1);
+        JS_STATIC_ASSERT(sizeof(JSValueTag) == 4);
+        JS_STATIC_ASSERT(sizeof(JSBool) == 4);
+        JS_STATIC_ASSERT(sizeof(JSWhyMagic) <= 4);
+        JS_STATIC_ASSERT(sizeof(Value) == 8);
+    }
+
+    friend jsval_layout (::JSVAL_TO_IMPL)(Value);
+    friend Value (::IMPL_TO_JSVAL)(jsval_layout l);
+};
+
+inline bool
+IsPoisonedValue(const Value &v)
+{
+    if (v.isString())
+        return IsPoisonedPtr(v.toString());
+    if (v.isObject())
+        return IsPoisonedPtr(&v.toObject());
+    return false;
+}
+
+
+
+static JS_ALWAYS_INLINE Value
+NullValue()
+{
+    Value v;
+    v.setNull();
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+UndefinedValue()
+{
+    Value v;
+    v.setUndefined();
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+Int32Value(int32_t i32)
+{
+    Value v;
+    v.setInt32(i32);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+DoubleValue(double dbl)
+{
+    Value v;
+    v.setDouble(dbl);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+StringValue(JSString *str)
+{
+    Value v;
+    v.setString(str);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+BooleanValue(bool boo)
+{
+    Value v;
+    v.setBoolean(boo);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+ObjectValue(JSObject &obj)
+{
+    Value v;
+    v.setObject(obj);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+ObjectValueCrashOnTouch()
+{
+    Value v;
+    v.setObject(*reinterpret_cast<JSObject *>(0x42));
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+MagicValue(JSWhyMagic why)
+{
+    Value v;
+    v.setMagic(why);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+NumberValue(float f)
+{
+    Value v;
+    v.setNumber(f);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+NumberValue(double dbl)
+{
+    Value v;
+    v.setNumber(dbl);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+NumberValue(int8_t i)
+{
+    return Int32Value(i);
+}
+
+static JS_ALWAYS_INLINE Value
+NumberValue(uint8_t i)
+{
+    return Int32Value(i);
+}
+
+static JS_ALWAYS_INLINE Value
+NumberValue(int16_t i)
+{
+    return Int32Value(i);
+}
+
+static JS_ALWAYS_INLINE Value
+NumberValue(uint16_t i)
+{
+    return Int32Value(i);
+}
+
+static JS_ALWAYS_INLINE Value
+NumberValue(int32_t i)
+{
+    return Int32Value(i);
+}
+
+static JS_ALWAYS_INLINE Value
+NumberValue(uint32_t i)
+{
+    Value v;
+    v.setNumber(i);
+    return v;
+}
+
+namespace detail {
+
+template <bool Signed>
+class MakeNumberValue
+{
+  public:
+    template<typename T>
+    static inline Value create(const T t)
+    {
+        Value v;
+        if (JSVAL_INT_MIN <= t && t <= JSVAL_INT_MAX)
+            v.setInt32(int32_t(t));
+        else
+            v.setDouble(double(t));
+        return v;
+    }
+};
+
+template <>
+class MakeNumberValue<false>
+{
+  public:
+    template<typename T>
+    static inline Value create(const T t)
+    {
+        Value v;
+        if (t <= JSVAL_INT_MAX)
+            v.setInt32(int32_t(t));
+        else
+            v.setDouble(double(t));
+        return v;
+    }
+};
+
+} 
+
+template <typename T>
+static JS_ALWAYS_INLINE Value
+NumberValue(const T t)
+{
+    MOZ_ASSERT(T(double(t)) == t, "value creation would be lossy");
+    return detail::MakeNumberValue<std::numeric_limits<T>::is_signed>::create(t);
+}
+
+static JS_ALWAYS_INLINE Value
+ObjectOrNullValue(JSObject *obj)
+{
+    Value v;
+    v.setObjectOrNull(obj);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+PrivateValue(void *ptr)
+{
+    Value v;
+    v.setPrivate(ptr);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+PrivateUint32Value(uint32_t ui)
+{
+    Value v;
+    v.setPrivateUint32(ui);
+    return v;
+}
+
+JS_ALWAYS_INLINE bool
+SameType(const Value &lhs, const Value &rhs)
+{
+    return JSVAL_SAME_TYPE_IMPL(lhs.data, rhs.data);
+}
+
+} 
+
+
+
+namespace js {
+
+template <> struct RootMethods<const JS::Value>
+{
+    static JS::Value initial() { return UndefinedValue(); }
+    static ThingRootKind kind() { return THING_ROOT_VALUE; }
+    static bool poisoned(const JS::Value &v) { return IsPoisonedValue(v); }
+};
+
+template <> struct RootMethods<JS::Value>
+{
+    static JS::Value initial() { return UndefinedValue(); }
+    static ThingRootKind kind() { return THING_ROOT_VALUE; }
+    static bool poisoned(const JS::Value &v) { return IsPoisonedValue(v); }
+};
+
+template <class Outer> class MutableValueOperations;
+
+
+
+
+
+
+
+template <class Outer>
+class ValueOperations
+{
+    friend class MutableValueOperations<Outer>;
+    const JS::Value * value() const { return static_cast<const Outer*>(this)->extract(); }
+
+  public:
+    bool isUndefined() const { return value()->isUndefined(); }
+    bool isNull() const { return value()->isNull(); }
+    bool isBoolean() const { return value()->isBoolean(); }
+    bool isTrue() const { return value()->isTrue(); }
+    bool isFalse() const { return value()->isFalse(); }
+    bool isNumber() const { return value()->isNumber(); }
+    bool isInt32() const { return value()->isInt32(); }
+    bool isDouble() const { return value()->isDouble(); }
+    bool isString() const { return value()->isString(); }
+    bool isObject() const { return value()->isObject(); }
+    bool isMagic() const { return value()->isMagic(); }
+    bool isMagic(JSWhyMagic why) const { return value()->isMagic(why); }
+    bool isMarkable() const { return value()->isMarkable(); }
+    bool isPrimitive() const { return value()->isPrimitive(); }
+    bool isGCThing() const { return value()->isGCThing(); }
+
+    bool isNullOrUndefined() const { return value()->isNullOrUndefined(); }
+    bool isObjectOrNull() const { return value()->isObjectOrNull(); }
+
+    bool toBoolean() const { return value()->toBoolean(); }
+    double toNumber() const { return value()->toNumber(); }
+    int32_t toInt32() const { return value()->toInt32(); }
+    double toDouble() const { return value()->toDouble(); }
+    JSString *toString() const { return value()->toString(); }
+    JSObject &toObject() const { return value()->toObject(); }
+    JSObject *toObjectOrNull() const { return value()->toObjectOrNull(); }
+    void *toGCThing() const { return value()->toGCThing(); }
+
+    JSValueType extractNonDoubleType() const { return value()->extractNonDoubleType(); }
+
+#ifdef DEBUG
+    JSWhyMagic whyMagic() const { return value()->whyMagic(); }
+#endif
+};
+
+
+
+
+
+
+
+template <class Outer>
+class MutableValueOperations : public ValueOperations<Outer>
+{
+    JS::Value * value() { return static_cast<Outer*>(this)->extractMutable(); }
+
+  public:
+    void setNull() { value()->setNull(); }
+    void setUndefined() { value()->setUndefined(); }
+    void setInt32(int32_t i) { value()->setInt32(i); }
+    void setDouble(double d) { value()->setDouble(d); }
+    void setString(JSString *str) { value()->setString(str); }
+    void setString(const JS::Anchor<JSString *> &str) { value()->setString(str); }
+    void setObject(JSObject &obj) { value()->setObject(obj); }
+    void setBoolean(bool b) { value()->setBoolean(b); }
+    void setMagic(JSWhyMagic why) { value()->setMagic(why); }
+    bool setNumber(uint32_t ui) { return value()->setNumber(ui); }
+    bool setNumber(double d) { return value()->setNumber(d); }
+    void setObjectOrNull(JSObject *arg) { value()->setObjectOrNull(arg); }
+};
+
+
+
+
+
+template <>
+class HandleBase<JS::Value> : public ValueOperations<Handle<JS::Value> >
+{
+    friend class ValueOperations<Handle<JS::Value> >;
+    const JS::Value * extract() const {
+        return static_cast<const Handle<JS::Value>*>(this)->address();
+    }
+};
+
+
+
+
+
+template <>
+class MutableHandleBase<JS::Value> : public MutableValueOperations<MutableHandle<JS::Value> >
+{
+    friend class ValueOperations<MutableHandle<JS::Value> >;
+    const JS::Value * extract() const {
+        return static_cast<const MutableHandle<JS::Value>*>(this)->address();
+    }
+
+    friend class MutableValueOperations<MutableHandle<JS::Value> >;
+    JS::Value * extractMutable() {
+        return static_cast<MutableHandle<JS::Value>*>(this)->address();
+    }
+};
+
+
+
+
+
+template <>
+class RootedBase<JS::Value> : public MutableValueOperations<Rooted<JS::Value> >
+{
+    friend class ValueOperations<Rooted<JS::Value> >;
+    const JS::Value * extract() const {
+        return static_cast<const Rooted<JS::Value>*>(this)->address();
+    }
+
+    friend class MutableValueOperations<Rooted<JS::Value> >;
+    JS::Value * extractMutable() {
+        return static_cast<Rooted<JS::Value>*>(this)->address();
+    }
+};
+
+} 
+
+
+
+namespace JS {
+
+#ifndef __GNUC__
+
+
+
+
+
+
+
+
+
+
+
+
+template<>
+inline Anchor<Value>::~Anchor()
+{
+    volatile uint64_t bits;
+    bits = JSVAL_TO_IMPL(hold).asBits;
+}
+
+#endif
 
 #if defined JS_THREADSAFE && defined DEBUG
 
@@ -109,7 +1056,7 @@ class JS_PUBLIC_API(AutoGCRooter) {
 
 
 
-    ptrdiff_t tag_;
+    ptrdiff_t tag;
 
     enum {
         JSVAL =        -1, 
@@ -118,8 +1065,8 @@ class JS_PUBLIC_API(AutoGCRooter) {
         SHAPEVECTOR =  -4, 
         IDARRAY =      -6, 
         DESCRIPTORS =  -7, 
-        
-        
+        NAMESPACES =   -8, 
+        XML =          -9, 
         OBJECT =      -10, 
         ID =          -11, 
         VALVECTOR =   -12, 
@@ -130,6 +1077,7 @@ class JS_PUBLIC_API(AutoGCRooter) {
         STRINGVECTOR =-17, 
         SCRIPTVECTOR =-18, 
         PROPDESC =    -19, 
+        SHAPERANGE =  -20, 
         STACKSHAPE =  -21, 
         STACKBASESHAPE=-22,
         GETTERSETTER =-24, 
@@ -140,10 +1088,7 @@ class JS_PUBLIC_API(AutoGCRooter) {
         IONALLOC =    -29, 
         WRAPVECTOR =  -30, 
         WRAPPER =     -31, 
-        OBJOBJHASHMAP=-32, 
-        OBJU32HASHMAP=-33, 
-        OBJHASHSET =  -34, 
-        JSONPARSER =  -35  
+        BASELINECOMPILER=-32, 
     };
 
   private:
@@ -158,17 +1103,17 @@ class AutoValueRooter : private AutoGCRooter
 {
   public:
     explicit AutoValueRooter(JSContext *cx
-                             MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+                             JS_GUARD_OBJECT_NOTIFIER_PARAM)
       : AutoGCRooter(cx, JSVAL), val(NullValue())
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
     AutoValueRooter(JSContext *cx, const Value &v
-                    MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
       : AutoGCRooter(cx, JSVAL), val(v)
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
     
@@ -178,27 +1123,27 @@ class AutoValueRooter : private AutoGCRooter
 
 
     void set(Value v) {
-        JS_ASSERT(tag_ == JSVAL);
+        JS_ASSERT(tag == JSVAL);
         val = v;
     }
 
     const Value &value() const {
-        JS_ASSERT(tag_ == JSVAL);
+        JS_ASSERT(tag == JSVAL);
         return val;
     }
 
     Value *addr() {
-        JS_ASSERT(tag_ == JSVAL);
+        JS_ASSERT(tag == JSVAL);
         return &val;
     }
 
     const Value &jsval_value() const {
-        JS_ASSERT(tag_ == JSVAL);
+        JS_ASSERT(tag == JSVAL);
         return val;
     }
 
     Value *jsval_addr() {
-        JS_ASSERT(tag_ == JSVAL);
+        JS_ASSERT(tag == JSVAL);
         return &val;
     }
 
@@ -206,83 +1151,82 @@ class AutoValueRooter : private AutoGCRooter
 
   private:
     Value val;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class AutoObjectRooter : private AutoGCRooter
-{
+class AutoObjectRooter : private AutoGCRooter {
   public:
     AutoObjectRooter(JSContext *cx, JSObject *obj = NULL
-                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, OBJECT), obj_(obj)
+                     JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, OBJECT), obj(obj)
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
     void setObject(JSObject *obj) {
-        obj_ = obj;
+        this->obj = obj;
     }
 
     JSObject * object() const {
-        return obj_;
+        return obj;
     }
 
     JSObject ** addr() {
-        return &obj_;
+        return &obj;
     }
 
     friend void AutoGCRooter::trace(JSTracer *trc);
 
   private:
-    JSObject *obj_;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JSObject *obj;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 class AutoStringRooter : private AutoGCRooter {
   public:
     AutoStringRooter(JSContext *cx, JSString *str = NULL
-                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, STRING), str_(str)
+                     JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, STRING), str(str)
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
     void setString(JSString *str) {
-        str_ = str;
+        this->str = str;
     }
 
     JSString * string() const {
-        return str_;
+        return str;
     }
 
     JSString ** addr() {
-        return &str_;
+        return &str;
     }
 
     JSString * const * addr() const {
-        return &str_;
+        return &str;
     }
 
     friend void AutoGCRooter::trace(JSTracer *trc);
 
   private:
-    JSString *str_;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JSString *str;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 class AutoArrayRooter : private AutoGCRooter {
   public:
     AutoArrayRooter(JSContext *cx, size_t len, Value *vec
-                    MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
       : AutoGCRooter(cx, len), array(vec), skip(cx, array, len)
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        JS_ASSERT(tag_ >= 0);
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_ASSERT(tag >= 0);
     }
 
     void changeLength(size_t newLength) {
-        tag_ = ptrdiff_t(newLength);
-        JS_ASSERT(tag_ >= 0);
+        tag = ptrdiff_t(newLength);
+        JS_ASSERT(tag >= 0);
     }
 
     void changeArray(Value *newArray, size_t newLength) {
@@ -292,21 +1236,10 @@ class AutoArrayRooter : private AutoGCRooter {
 
     Value *array;
 
-    MutableHandleValue handleAt(size_t i)
-    {
-        JS_ASSERT(i < size_t(tag_));
-        return MutableHandleValue::fromMarkedLocation(&array[i]);
-    }
-    HandleValue handleAt(size_t i) const
-    {
-        JS_ASSERT(i < size_t(tag_));
-        return HandleValue::fromMarkedLocation(&array[i]);
-    }
-
     friend void AutoGCRooter::trace(JSTracer *trc);
 
   private:
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 
     js::SkipRoot skip;
 };
@@ -316,10 +1249,10 @@ class AutoVectorRooter : protected AutoGCRooter
 {
   public:
     explicit AutoVectorRooter(JSContext *cx, ptrdiff_t tag
-                              MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
       : AutoGCRooter(cx, tag), vector(cx), vectorRoot(cx, &vector)
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
     typedef T ElementType;
@@ -393,279 +1326,148 @@ class AutoVectorRooter : protected AutoGCRooter
     
     js::SkipRoot vectorRoot;
 
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-template<class Key, class Value>
-class AutoHashMapRooter : protected AutoGCRooter
-{
-  private:
-    typedef js::HashMap<Key, Value> HashMapImpl;
-
-  public:
-    explicit AutoHashMapRooter(JSContext *cx, ptrdiff_t tag
-                               MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, tag), map(cx)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    typedef Key KeyType;
-    typedef Value ValueType;
-    typedef typename HashMapImpl::Lookup Lookup;
-    typedef typename HashMapImpl::Ptr Ptr;
-    typedef typename HashMapImpl::AddPtr AddPtr;
-
-    bool init(uint32_t len = 16) {
-        return map.init(len);
-    }
-    bool initialized() const {
-        return map.initialized();
-    }
-    Ptr lookup(const Lookup &l) const {
-        return map.lookup(l);
-    }
-    void remove(Ptr p) {
-        map.remove(p);
-    }
-    AddPtr lookupForAdd(const Lookup &l) const {
-        return map.lookupForAdd(l);
-    }
-
-    template<typename KeyInput, typename ValueInput>
-    bool add(AddPtr &p, const KeyInput &k, const ValueInput &v) {
-        return map.add(p, k, v);
-    }
-
-    bool add(AddPtr &p, const Key &k) {
-        return map.add(p, k);
-    }
-
-    template<typename KeyInput, typename ValueInput>
-    bool relookupOrAdd(AddPtr &p, const KeyInput &k, const ValueInput &v) {
-        return map.relookupOrAdd(p, k, v);
-    }
-
-    typedef typename HashMapImpl::Range Range;
-    Range all() const {
-        return map.all();
-    }
-
-    typedef typename HashMapImpl::Enum Enum;
-
-    void clear() {
-        map.clear();
-    }
-
-    void finish() {
-        map.finish();
-    }
-
-    bool empty() const {
-        return map.empty();
-    }
-
-    uint32_t count() const {
-        return map.count();
-    }
-
-    size_t capacity() const {
-        return map.capacity();
-    }
-
-    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
-        return map.sizeOfExcludingThis(mallocSizeOf);
-    }
-    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
-        return map.sizeOfIncludingThis(mallocSizeOf);
-    }
-
-    unsigned generation() const {
-        return map.generation();
-    }
-
-    
-
-    bool has(const Lookup &l) const {
-        return map.has(l);
-    }
-
-    template<typename KeyInput, typename ValueInput>
-    bool put(const KeyInput &k, const ValueInput &v) {
-        return map.put(k, v);
-    }
-
-    template<typename KeyInput, typename ValueInput>
-    bool putNew(const KeyInput &k, const ValueInput &v) {
-        return map.putNew(k, v);
-    }
-
-    Ptr lookupWithDefault(const Key &k, const Value &defaultValue) {
-        return map.lookupWithDefault(k, defaultValue);
-    }
-
-    void remove(const Lookup &l) {
-        map.remove(l);
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
-  private:
-    AutoHashMapRooter(const AutoHashMapRooter &hmr) MOZ_DELETE;
-    AutoHashMapRooter &operator=(const AutoHashMapRooter &hmr) MOZ_DELETE;
-
-    HashMapImpl map;
-
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-template<class T>
-class AutoHashSetRooter : protected AutoGCRooter
-{
-  private:
-    typedef js::HashSet<T> HashSetImpl;
-
-  public:
-    explicit AutoHashSetRooter(JSContext *cx, ptrdiff_t tag
-                               MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, tag), set(cx)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    typedef typename HashSetImpl::Lookup Lookup;
-    typedef typename HashSetImpl::Ptr Ptr;
-    typedef typename HashSetImpl::AddPtr AddPtr;
-
-    bool init(uint32_t len = 16) {
-        return set.init(len);
-    }
-    bool initialized() const {
-        return set.initialized();
-    }
-    Ptr lookup(const Lookup &l) const {
-        return set.lookup(l);
-    }
-    void remove(Ptr p) {
-        set.remove(p);
-    }
-    AddPtr lookupForAdd(const Lookup &l) const {
-        return set.lookupForAdd(l);
-    }
-
-    bool add(AddPtr &p, const T &t) {
-        return set.add(p, t);
-    }
-
-    bool relookupOrAdd(AddPtr &p, const Lookup &l, const T &t) {
-        return set.relookupOrAdd(p, l, t);
-    }
-
-    typedef typename HashSetImpl::Range Range;
-    Range all() const {
-        return set.all();
-    }
-
-    typedef typename HashSetImpl::Enum Enum;
-
-    void clear() {
-        set.clear();
-    }
-
-    void finish() {
-        set.finish();
-    }
-
-    bool empty() const {
-        return set.empty();
-    }
-
-    uint32_t count() const {
-        return set.count();
-    }
-
-    size_t capacity() const {
-        return set.capacity();
-    }
-
-    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
-        return set.sizeOfExcludingThis(mallocSizeOf);
-    }
-    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
-        return set.sizeOfIncludingThis(mallocSizeOf);
-    }
-
-    unsigned generation() const {
-        return set.generation();
-    }
-
-    
-
-    bool has(const Lookup &l) const {
-        return set.has(l);
-    }
-
-    bool put(const T &t) {
-        return set.put(t);
-    }
-
-    bool putNew(const T &t) {
-        return set.putNew(t);
-    }
-
-    void remove(const Lookup &l) {
-        set.remove(l);
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
-  private:
-    AutoHashSetRooter(const AutoHashSetRooter &hmr) MOZ_DELETE;
-    AutoHashSetRooter &operator=(const AutoHashSetRooter &hmr) MOZ_DELETE;
-
-    HashSetImpl set;
-
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 class AutoValueVector : public AutoVectorRooter<Value>
 {
   public:
     explicit AutoValueVector(JSContext *cx
-                             MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+                             JS_GUARD_OBJECT_NOTIFIER_PARAM)
         : AutoVectorRooter<Value>(cx, VALVECTOR)
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 class AutoIdVector : public AutoVectorRooter<jsid>
 {
   public:
     explicit AutoIdVector(JSContext *cx
-                          MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+                          JS_GUARD_OBJECT_NOTIFIER_PARAM)
         : AutoVectorRooter<jsid>(cx, IDVECTOR)
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 class AutoScriptVector : public AutoVectorRooter<JSScript *>
 {
   public:
     explicit AutoScriptVector(JSContext *cx
-                              MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
         : AutoVectorRooter<JSScript *>(cx, SCRIPTVECTOR)
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
+
+class CallReceiver
+{
+  protected:
+#ifdef DEBUG
+    mutable bool usedRval_;
+    void setUsedRval() const { usedRval_ = true; }
+    void clearUsedRval() const { usedRval_ = false; }
+#else
+    void setUsedRval() const {}
+    void clearUsedRval() const {}
+#endif
+    Value *argv_;
+  public:
+    friend CallReceiver CallReceiverFromVp(Value *);
+    friend CallReceiver CallReceiverFromArgv(Value *);
+    Value *base() const { return argv_ - 2; }
+    JSObject &callee() const { JS_ASSERT(!usedRval_); return argv_[-2].toObject(); }
+
+    JS::HandleValue calleev() const {
+        JS_ASSERT(!usedRval_);
+        return JS::HandleValue::fromMarkedLocation(&argv_[-2]);
+    }
+
+    JS::HandleValue thisv() const {
+        return JS::HandleValue::fromMarkedLocation(&argv_[-1]);
+    }
+
+    JS::MutableHandleValue rval() const {
+        setUsedRval();
+        return JS::MutableHandleValue::fromMarkedLocation(&argv_[-2]);
+    }
+
+    Value *spAfterCall() const {
+        setUsedRval();
+        return argv_ - 1;
+    }
+
+    void setCallee(Value calleev) const {
+        clearUsedRval();
+        argv_[-2] = calleev;
+    }
+
+    void setThis(Value thisv) const {
+        argv_[-1] = thisv;
+    }
+};
+
+JS_ALWAYS_INLINE CallReceiver
+CallReceiverFromArgv(Value *argv)
+{
+    CallReceiver receiver;
+    receiver.clearUsedRval();
+    receiver.argv_ = argv;
+    return receiver;
+}
+
+JS_ALWAYS_INLINE CallReceiver
+CallReceiverFromVp(Value *vp)
+{
+    return CallReceiverFromArgv(vp + 2);
+}
+
+
+
+class CallArgs : public CallReceiver
+{
+  protected:
+    unsigned argc_;
+  public:
+    friend CallArgs CallArgsFromVp(unsigned, Value *);
+    friend CallArgs CallArgsFromArgv(unsigned, Value *);
+    friend CallArgs CallArgsFromSp(unsigned, Value *);
+    Value &operator[](unsigned i) const { JS_ASSERT(i < argc_); return argv_[i]; }
+    Value *array() const { return argv_; }
+    unsigned length() const { return argc_; }
+    Value *end() const { return argv_ + argc_; }
+    bool hasDefined(unsigned i) const { return i < argc_ && !argv_[i].isUndefined(); }
+};
+
+JS_ALWAYS_INLINE CallArgs
+CallArgsFromArgv(unsigned argc, Value *argv)
+{
+    CallArgs args;
+    args.clearUsedRval();
+    args.argv_ = argv;
+    args.argc_ = argc;
+    return args;
+}
+
+JS_ALWAYS_INLINE CallArgs
+CallArgsFromVp(unsigned argc, Value *vp)
+{
+    return CallArgsFromArgv(argc, vp + 2);
+}
+
+JS_ALWAYS_INLINE CallArgs
+CallArgsFromSp(unsigned argc, Value *sp)
+{
+    return CallArgsFromArgv(argc, sp - argc);
+}
 
 
 typedef bool (*IsAcceptableThis)(const Value &v);
@@ -773,6 +1575,41 @@ CallNonGenericMethod(JSContext *cx, IsAcceptableThis Test, NativeImpl Impl, Call
 
 
 
+
+
+
+
+
+typedef JS::Value jsval;
+
+static JS_ALWAYS_INLINE jsval_layout
+JSVAL_TO_IMPL(jsval v)
+{
+    return v.data;
+}
+
+static JS_ALWAYS_INLINE jsval
+IMPL_TO_JSVAL(jsval_layout l)
+{
+    JS::Value v;
+    v.data = l;
+    return v;
+}
+
+#ifdef DEBUG
+struct JSValueAlignmentTester { char c; JS::Value v; };
+JS_STATIC_ASSERT(sizeof(JSValueAlignmentTester) == 16);
+#endif 
+
+#ifdef DEBUG
+typedef struct { char c; jsval_layout l; } JSLayoutAlignmentTester;
+JS_STATIC_ASSERT(sizeof(JSLayoutAlignmentTester) == 16);
+#endif 
+
+JS_STATIC_ASSERT(sizeof(jsval_layout) == sizeof(jsval));
+
+
+
 typedef JS::Handle<JSObject*> JSHandleObject;
 typedef JS::Handle<JSString*> JSHandleString;
 typedef JS::Handle<JS::Value> JSHandleValue;
@@ -785,12 +1622,12 @@ typedef JS::MutableHandle<JSString*>   JSMutableHandleString;
 typedef JS::MutableHandle<JS::Value>   JSMutableHandleValue;
 typedef JS::MutableHandle<jsid>        JSMutableHandleId;
 
-typedef js::RawObject   JSRawObject;
-typedef js::RawFunction JSRawFunction;
-typedef js::RawScript   JSRawScript;
-typedef js::RawString   JSRawString;
-typedef js::RawId       JSRawId;
-typedef js::RawValue    JSRawValue;
+typedef JS::RawObject   JSRawObject;
+typedef JS::RawFunction JSRawFunction;
+typedef JS::RawScript   JSRawScript;
+typedef JS::RawString   JSRawString;
+typedef JS::RawId       JSRawId;
+typedef JS::RawValue    JSRawValue;
 
 
 
@@ -884,6 +1721,8 @@ typedef JSBool
 
 
 
+
+
 typedef JSBool
 (* JSNewResolveOp)(JSContext *cx, JSHandleObject obj, JSHandleId id, unsigned flags,
                    JSMutableHandleObject objp);
@@ -894,6 +1733,12 @@ typedef JSBool
 
 typedef JSBool
 (* JSConvertOp)(JSContext *cx, JSHandleObject obj, JSType type, JSMutableHandleValue vp);
+
+
+
+
+typedef JSType
+(* JSTypeOfOp)(JSContext *cx, JSHandleObject obj);
 
 typedef struct JSFreeOp JSFreeOp;
 
@@ -960,6 +1805,9 @@ typedef JSBool
 
 
 
+
+
+
 typedef void
 (* JSTraceOp)(JSTracer *trc, JSRawObject obj);
 
@@ -970,8 +1818,20 @@ typedef void
 typedef void
 (* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
 
+typedef JSBool
+(* JSEqualityOp)(JSContext *cx, JSHandleObject obj, JSHandleValue v, JSBool *bp);
+
 typedef JSRawObject
 (* JSWeakmapKeyDelegateOp)(JSRawObject obj);
+
+
+
+
+
+
+
+typedef JSBool
+(* JSNative)(JSContext *cx, unsigned argc, jsval *vp);
 
 
 
@@ -1192,6 +2052,15 @@ typedef void (*StructuredCloneErrorOp)(JSContext *cx, uint32_t errorid);
 
 
 
+#ifdef _MSC_VER
+# pragma warning(disable:4190)
+#endif
+
+
+
+
+
+
 
 extern JS_PUBLIC_DATA(const jsval) JSVAL_NULL;
 extern JS_PUBLIC_DATA(const jsval) JSVAL_ZERO;
@@ -1199,6 +2068,171 @@ extern JS_PUBLIC_DATA(const jsval) JSVAL_ONE;
 extern JS_PUBLIC_DATA(const jsval) JSVAL_FALSE;
 extern JS_PUBLIC_DATA(const jsval) JSVAL_TRUE;
 extern JS_PUBLIC_DATA(const jsval) JSVAL_VOID;
+
+
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_NULL(jsval v)
+{
+    return JSVAL_IS_NULL_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_VOID(jsval v)
+{
+    return JSVAL_IS_UNDEFINED_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_INT(jsval v)
+{
+    return JSVAL_IS_INT32_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE int32_t
+JSVAL_TO_INT(jsval v)
+{
+    JS_ASSERT(JSVAL_IS_INT(v));
+    return JSVAL_TO_INT32_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE jsval
+INT_TO_JSVAL(int32_t i)
+{
+    return IMPL_TO_JSVAL(INT32_TO_JSVAL_IMPL(i));
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_DOUBLE(jsval v)
+{
+    return JSVAL_IS_DOUBLE_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE double
+JSVAL_TO_DOUBLE(jsval v)
+{
+    jsval_layout l;
+    JS_ASSERT(JSVAL_IS_DOUBLE(v));
+    l = JSVAL_TO_IMPL(v);
+    return l.asDouble;
+}
+
+static JS_ALWAYS_INLINE jsval
+DOUBLE_TO_JSVAL(double d)
+{
+    
+
+
+
+    jsval_layout l;
+    if (JS_UNLIKELY(d != d)) {
+        l.asBits = 0x7FF8000000000000LL;
+    } else {
+        l.asDouble = d;
+    }
+    return IMPL_TO_JSVAL(l);
+}
+
+static JS_ALWAYS_INLINE jsval
+UINT_TO_JSVAL(uint32_t i)
+{
+    if (i <= JSVAL_INT_MAX)
+        return INT_TO_JSVAL((int32_t)i);
+    return DOUBLE_TO_JSVAL((double)i);
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_NUMBER(jsval v)
+{
+    return JSVAL_IS_NUMBER_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_STRING(jsval v)
+{
+    return JSVAL_IS_STRING_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE JSString *
+JSVAL_TO_STRING(jsval v)
+{
+    JS_ASSERT(JSVAL_IS_STRING(v));
+    return JSVAL_TO_STRING_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE jsval
+STRING_TO_JSVAL(JSString *str)
+{
+    return IMPL_TO_JSVAL(STRING_TO_JSVAL_IMPL(str));
+}
+
+static JS_ALWAYS_INLINE JSObject *
+JSVAL_TO_OBJECT(jsval v)
+{
+    JS_ASSERT(JSVAL_IS_OBJECT_OR_NULL_IMPL(JSVAL_TO_IMPL(v)));
+    return JSVAL_TO_OBJECT_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE jsval
+OBJECT_TO_JSVAL(JSObject *obj)
+{
+    if (obj)
+        return IMPL_TO_JSVAL(OBJECT_TO_JSVAL_IMPL(obj));
+    return JSVAL_NULL;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_BOOLEAN(jsval v)
+{
+    return JSVAL_IS_BOOLEAN_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_TO_BOOLEAN(jsval v)
+{
+    JS_ASSERT(JSVAL_IS_BOOLEAN(v));
+    return JSVAL_TO_BOOLEAN_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE jsval
+BOOLEAN_TO_JSVAL(JSBool b)
+{
+    return IMPL_TO_JSVAL(BOOLEAN_TO_JSVAL_IMPL(b));
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_PRIMITIVE(jsval v)
+{
+    return JSVAL_IS_PRIMITIVE_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_GCTHING(jsval v)
+{
+    return JSVAL_IS_GCTHING_IMPL(JSVAL_TO_IMPL(v));
+}
+
+static JS_ALWAYS_INLINE void *
+JSVAL_TO_GCTHING(jsval v)
+{
+    JS_ASSERT(JSVAL_IS_GCTHING(v));
+    return JSVAL_TO_GCTHING_IMPL(JSVAL_TO_IMPL(v));
+}
+
+
+
+static JS_ALWAYS_INLINE jsval
+PRIVATE_TO_JSVAL(void *ptr)
+{
+    return IMPL_TO_JSVAL(PRIVATE_PTR_TO_JSVAL_IMPL(ptr));
+}
+
+static JS_ALWAYS_INLINE void *
+JSVAL_TO_PRIVATE(jsval v)
+{
+    JS_ASSERT(JSVAL_IS_DOUBLE(v));
+    return JSVAL_TO_PRIVATE_PTR_IMPL(JSVAL_TO_IMPL(v));
+}
 
 static JS_ALWAYS_INLINE jsval
 JS_NumberValue(double d)
@@ -1222,10 +2256,13 @@ JS_NumberValue(double d)
 
 
 
+
+
 #define JSID_TYPE_STRING                 0x0
 #define JSID_TYPE_INT                    0x1
 #define JSID_TYPE_VOID                   0x2
 #define JSID_TYPE_OBJECT                 0x4
+#define JSID_TYPE_DEFAULT_XML_NAMESPACE  0x6
 #define JSID_TYPE_MASK                   0x7
 
 
@@ -1338,10 +2375,29 @@ JSID_TO_GCTHING(jsid id)
 
 
 
+static JS_ALWAYS_INLINE JSBool
+JSID_IS_DEFAULT_XML_NAMESPACE(jsid id)
+{
+    JS_ASSERT_IF(((size_t)JSID_BITS(id) & JSID_TYPE_MASK) == JSID_TYPE_DEFAULT_XML_NAMESPACE,
+                 JSID_BITS(id) == JSID_TYPE_DEFAULT_XML_NAMESPACE);
+    return ((size_t)JSID_BITS(id) == JSID_TYPE_DEFAULT_XML_NAMESPACE);
+}
+
+#ifdef JS_USE_JSID_STRUCT_TYPES
+extern JS_PUBLIC_DATA(jsid) JS_DEFAULT_XML_NAMESPACE_ID;
+#else
+# define JS_DEFAULT_XML_NAMESPACE_ID ((jsid)JSID_TYPE_DEFAULT_XML_NAMESPACE)
+#endif
+
+
+
+
+
+
 
 
 static JS_ALWAYS_INLINE JSBool
-JSID_IS_VOID(const js::RawId id)
+JSID_IS_VOID(jsid id)
 {
     JS_ASSERT_IF(((size_t)JSID_BITS(id) & JSID_TYPE_MASK) == JSID_TYPE_VOID,
                  JSID_BITS(id) == JSID_TYPE_VOID);
@@ -1349,7 +2405,7 @@ JSID_IS_VOID(const js::RawId id)
 }
 
 static JS_ALWAYS_INLINE JSBool
-JSID_IS_EMPTY(const js::RawId id)
+JSID_IS_EMPTY(jsid id)
 {
     return ((size_t)JSID_BITS(id) == JSID_TYPE_OBJECT);
 }
@@ -1379,11 +2435,11 @@ namespace JS {
 class AutoIdRooter : private AutoGCRooter
 {
   public:
-    explicit AutoIdRooter(JSContext *cx, jsid aId = INT_TO_JSID(0)
-                          MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, ID), id_(aId)
+    explicit AutoIdRooter(JSContext *cx, jsid id = INT_TO_JSID(0)
+                          JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, ID), id_(id)
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
     jsid id() {
@@ -1398,7 +2454,7 @@ class AutoIdRooter : private AutoGCRooter
 
   private:
     jsid id_;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 } 
@@ -1560,6 +2616,7 @@ namespace JS {
 JS_ALWAYS_INLINE bool
 ToNumber(JSContext *cx, const Value &v, double *out)
 {
+    AssertCanGC();
     AssertArgumentsAreSane(cx, v);
     {
         js::SkipRoot root(cx, &v);
@@ -1580,6 +2637,8 @@ ToBoolean(const Value &v)
         return v.toBoolean();
     if (v.isInt32())
         return v.toInt32() != 0;
+    if (v.isObject())
+        return true;
     if (v.isNullOrUndefined())
         return false;
     if (v.isDouble()) {
@@ -1648,8 +2707,9 @@ ToUint64Slow(JSContext *cx, const JS::Value &v, uint64_t *out);
 namespace JS {
 
 JS_ALWAYS_INLINE bool
-ToUint16(JSContext *cx, const JS::Value &v, uint16_t *out)
+ToUint16(JSContext *cx, const js::Value &v, uint16_t *out)
 {
+    AssertCanGC();
     AssertArgumentsAreSane(cx, v);
     {
         js::SkipRoot skip(cx, &v);
@@ -1664,8 +2724,9 @@ ToUint16(JSContext *cx, const JS::Value &v, uint16_t *out)
 }
 
 JS_ALWAYS_INLINE bool
-ToInt32(JSContext *cx, const JS::Value &v, int32_t *out)
+ToInt32(JSContext *cx, const js::Value &v, int32_t *out)
 {
+    AssertCanGC();
     AssertArgumentsAreSane(cx, v);
     {
         js::SkipRoot root(cx, &v);
@@ -1680,8 +2741,9 @@ ToInt32(JSContext *cx, const JS::Value &v, int32_t *out)
 }
 
 JS_ALWAYS_INLINE bool
-ToUint32(JSContext *cx, const JS::Value &v, uint32_t *out)
+ToUint32(JSContext *cx, const js::Value &v, uint32_t *out)
 {
+    AssertCanGC();
     AssertArgumentsAreSane(cx, v);
     {
         js::SkipRoot root(cx, &v);
@@ -1696,8 +2758,9 @@ ToUint32(JSContext *cx, const JS::Value &v, uint32_t *out)
 }
 
 JS_ALWAYS_INLINE bool
-ToInt64(JSContext *cx, const JS::Value &v, int64_t *out)
+ToInt64(JSContext *cx, const js::Value &v, int64_t *out)
 {
+    AssertCanGC();
     AssertArgumentsAreSane(cx, v);
     {
         js::SkipRoot skip(cx, &v);
@@ -1713,8 +2776,9 @@ ToInt64(JSContext *cx, const JS::Value &v, int64_t *out)
 }
 
 JS_ALWAYS_INLINE bool
-ToUint64(JSContext *cx, const JS::Value &v, uint64_t *out)
+ToUint64(JSContext *cx, const js::Value &v, uint64_t *out)
 {
+    AssertCanGC();
     AssertArgumentsAreSane(cx, v);
     {
         js::SkipRoot skip(cx, &v);
@@ -1843,19 +2907,16 @@ template <> struct RootMethods<jsid>
 {
     static jsid initial() { return JSID_VOID; }
     static ThingRootKind kind() { return THING_ROOT_ID; }
-    static bool poisoned(jsid id) { return JS::IsPoisonedId(id); }
+    static bool poisoned(jsid id) { return IsPoisonedId(id); }
 };
 
 } 
 
-class JSAutoRequest
-{
+class JSAutoRequest {
   public:
-    JSAutoRequest(JSContext *cx
-                  MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : mContext(cx)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    JSAutoRequest(JSContext *cx JS_GUARD_OBJECT_NOTIFIER_PARAM)
+        : mContext(cx) {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
         JS_BeginRequest(mContext);
     }
     ~JSAutoRequest() {
@@ -1864,7 +2925,7 @@ class JSAutoRequest
 
   protected:
     JSContext *mContext;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 
 #if 0
   private:
@@ -1873,17 +2934,14 @@ class JSAutoRequest
 #endif
 };
 
-class JSAutoCheckRequest
-{
+class JSAutoCheckRequest {
   public:
-    JSAutoCheckRequest(JSContext *cx
-                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    {
+    JSAutoCheckRequest(JSContext *cx JS_GUARD_OBJECT_NOTIFIER_PARAM) {
 #if defined JS_THREADSAFE && defined DEBUG
         mContext = cx;
         JS_ASSERT(JS_IsInRequest(JS_GetRuntime(cx)));
 #endif
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
     ~JSAutoCheckRequest() {
@@ -1897,7 +2955,7 @@ class JSAutoCheckRequest
 #if defined JS_THREADSAFE && defined DEBUG
     JSContext *mContext;
 #endif
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 extern JS_PUBLIC_API(JSContextCallback)
@@ -1963,8 +3021,15 @@ JS_StringToVersion(const char *string);
                                                    script once only; enables
                                                    compile-time scope chain
                                                    resolution of consts. */
-
-
+#define JSOPTION_ATLINE         JS_BIT(5)       /* //@line number ["filename"]
+                                                   option supported for the
+                                                   XUL preprocessor and kindred
+                                                   beasts. */
+#define JSOPTION_ALLOW_XML      JS_BIT(6)       /* enable E4X syntax (deprecated)
+                                                   and define the E4X-related
+                                                   globals: XML, XMLList,
+                                                   Namespace, etc. */
+#define JSOPTION_MOAR_XML       JS_BIT(7)       
 
 
 
@@ -2009,9 +3074,12 @@ JS_StringToVersion(const char *string);
                                                    "use strict" annotations. */
 
 #define JSOPTION_ION            JS_BIT(20)      /* IonMonkey */
-#define JSOPTION_ASMJS          JS_BIT(21)      /* optimizingasm.js compiler */
 
-#define JSOPTION_MASK           JS_BITMASK(22)
+
+#define JSCOMPILEOPTION_MASK    (JSOPTION_ALLOW_XML | JSOPTION_MOAR_XML)
+
+#define JSRUNOPTION_MASK        (JS_BITMASK(21) & ~JSCOMPILEOPTION_MASK)
+#define JSALLOPTION_MASK        (JSCOMPILEOPTION_MASK | JSRUNOPTION_MASK)
 
 extern JS_PUBLIC_API(uint32_t)
 JS_GetOptions(JSContext *cx);
@@ -2051,9 +3119,6 @@ JS_WrapObject(JSContext *cx, JSObject **objp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_WrapValue(JSContext *cx, jsval *vp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_WrapId(JSContext *cx, jsid *idp);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target);
@@ -2110,6 +3175,8 @@ class JS_PUBLIC_API(JSAutoCompartment)
   public:
     JSAutoCompartment(JSContext *cx, JSRawObject target);
     JSAutoCompartment(JSContext *cx, JSScript *target);
+    JSAutoCompartment(JSContext *cx, JSStackFrame *target);
+    JSAutoCompartment(JSContext *cx, JSString *target);
     ~JSAutoCompartment();
 };
 
@@ -2215,15 +3282,6 @@ JS_GetGlobalForCompartmentOrNull(JSContext *cx, JSCompartment *c);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForScopeChain(JSContext *cx);
 
-
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSObject *)
 JS_GetScriptedGlobal(JSContext *cx);
 
@@ -2280,6 +3338,71 @@ typedef JSBool
 extern JS_PUBLIC_API(void)
 JS_EnumerateDiagnosticMemoryRegions(JSEnumerateDiagnosticMemoryCallback callback);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define JS_CALLEE(cx,vp)        ((vp)[0])
+#define JS_THIS(cx,vp)          JS_ComputeThis(cx, vp)
+#define JS_THIS_OBJECT(cx,vp)   (JSVAL_TO_OBJECT(JS_THIS(cx,vp)))
+#define JS_ARGV(cx,vp)          ((vp) + 2)
+#define JS_RVAL(cx,vp)          (*(vp))
+#define JS_SET_RVAL(cx,vp,v)    (*(vp) = (v))
+
+extern JS_PUBLIC_API(jsval)
+JS_ComputeThis(JSContext *cx, jsval *vp);
+
+#undef JS_THIS
+static JS_ALWAYS_INLINE jsval
+JS_THIS(JSContext *cx, jsval *vp)
+{
+    return JSVAL_IS_PRIMITIVE(vp[1]) ? JS_ComputeThis(cx, vp) : vp[1];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define JS_THIS_VALUE(cx,vp)    ((vp)[1])
+
+extern JS_PUBLIC_API(void)
+JS_MallocInCompartment(JSCompartment *comp, size_t nbytes);
+
+extern JS_PUBLIC_API(void)
+JS_FreeInCompartment(JSCompartment *comp, size_t nbytes);
+
 extern JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes);
 
@@ -2309,10 +3432,6 @@ JS_updateMallocCounter(JSContext *cx, size_t nbytes);
 
 extern JS_PUBLIC_API(char *)
 JS_strdup(JSContext *cx, const char *s);
-
-
-extern JS_PUBLIC_API(char *)
-JS_strdup(JSRuntime *rt, const char *s);
 
 
 
@@ -2349,19 +3468,20 @@ JS_AddStringRoot(JSContext *cx, JSString **rp);
 extern JS_PUBLIC_API(JSBool)
 JS_AddObjectRoot(JSContext *cx, JSObject **rp);
 
+extern JS_PUBLIC_API(JSBool)
+JS_AddGCThingRoot(JSContext *cx, void **rp);
+
 #ifdef NAME_ALL_GC_ROOTS
 #define JS_DEFINE_TO_TOKEN(def) #def
 #define JS_DEFINE_TO_STRING(def) JS_DEFINE_TO_TOKEN(def)
 #define JS_AddValueRoot(cx,vp) JS_AddNamedValueRoot((cx), (vp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
 #define JS_AddStringRoot(cx,rp) JS_AddNamedStringRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
 #define JS_AddObjectRoot(cx,rp) JS_AddNamedObjectRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
+#define JS_AddGCThingRoot(cx,rp) JS_AddNamedGCThingRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
 #endif
 
 extern JS_PUBLIC_API(JSBool)
 JS_AddNamedValueRoot(JSContext *cx, jsval *vp, const char *name);
-
-extern JS_PUBLIC_API(JSBool)
-JS_AddNamedValueRootRT(JSRuntime *rt, jsval *vp, const char *name);
 
 extern JS_PUBLIC_API(JSBool)
 JS_AddNamedStringRoot(JSContext *cx, JSString **rp, const char *name);
@@ -2371,6 +3491,9 @@ JS_AddNamedObjectRoot(JSContext *cx, JSObject **rp, const char *name);
 
 extern JS_PUBLIC_API(JSBool)
 JS_AddNamedScriptRoot(JSContext *cx, JSScript **rp, const char *name);
+
+extern JS_PUBLIC_API(JSBool)
+JS_AddNamedGCThingRoot(JSContext *cx, void **rp, const char *name);
 
 extern JS_PUBLIC_API(void)
 JS_RemoveValueRoot(JSContext *cx, jsval *vp);
@@ -2383,6 +3506,9 @@ JS_RemoveObjectRoot(JSContext *cx, JSObject **rp);
 
 extern JS_PUBLIC_API(void)
 JS_RemoveScriptRoot(JSContext *cx, JSScript **rp);
+
+extern JS_PUBLIC_API(void)
+JS_RemoveGCThingRoot(JSContext *cx, void **rp);
 
 extern JS_PUBLIC_API(void)
 JS_RemoveValueRootRT(JSRuntime *rt, jsval *vp);
@@ -2398,6 +3524,12 @@ JS_RemoveScriptRootRT(JSRuntime *rt, JSScript **rp);
 
 
 
+extern JS_FRIEND_API(JSBool)
+js_AddRootRT(JSRuntime *rt, jsval *vp, const char *name);
+
+extern JS_FRIEND_API(JSBool)
+js_AddGCThingRootRT(JSRuntime *rt, void **rp, const char *name);
+
 extern JS_FRIEND_API(void)
 js_RemoveRoot(JSRuntime *rt, void *rp);
 
@@ -2407,6 +3539,23 @@ js_RemoveRoot(JSRuntime *rt, void *rp);
 
 extern JS_NEVER_INLINE JS_PUBLIC_API(void)
 JS_AnchorPtr(void *p);
+
+typedef enum JSGCRootType {
+    JS_GC_ROOT_VALUE_PTR,
+    JS_GC_ROOT_GCTHING_PTR
+} JSGCRootType;
+
+extern JS_PUBLIC_API(JSBool)
+JS_LockGCThing(JSContext *cx, void *thing);
+
+extern JS_PUBLIC_API(JSBool)
+JS_LockGCThingRT(JSRuntime *rt, void *thing);
+
+extern JS_PUBLIC_API(JSBool)
+JS_UnlockGCThing(JSContext *cx, void *thing);
+
+extern JS_PUBLIC_API(JSBool)
+JS_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
 
 
@@ -2469,22 +3618,26 @@ JSVAL_TRACE_KIND(jsval v)
 typedef void
 (* JSTraceCallback)(JSTracer *trc, void **thingp, JSGCTraceKind kind);
 
-enum WeakMapTraceKind {
-    DoNotTraceWeakMaps = 0,
-    TraceWeakMapValues = 1
-};
-
 struct JSTracer {
     JSRuntime           *runtime;
     JSTraceCallback     callback;
     JSTraceNamePrinter  debugPrinter;
     const void          *debugPrintArg;
     size_t              debugPrintIndex;
-    WeakMapTraceKind    eagerlyTraceWeakMaps;
+    JSBool              eagerlyTraceWeakMaps;
 #ifdef JS_GC_ZEAL
     void                *realLocation;
 #endif
 };
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
 
 
@@ -2550,23 +3703,41 @@ struct JSTracer {
 # define JS_SET_TRACING_NAME(trc, name)                                       \
     JS_SET_TRACING_DETAILS(trc, NULL, name, (size_t)-1)
 
-extern JS_PUBLIC_API(void)
-JS_CallValueTracer(JSTracer *trc, JS::Value value, const char *name);
 
-extern JS_PUBLIC_API(void)
-JS_CallIdTracer(JSTracer *trc, jsid id, const char *name);
 
-extern JS_PUBLIC_API(void)
-JS_CallObjectTracer(JSTracer *trc, JSObject *obj, const char *name);
 
-extern JS_PUBLIC_API(void)
-JS_CallStringTracer(JSTracer *trc, JSString *str, const char *name);
 
-extern JS_PUBLIC_API(void)
-JS_CallScriptTracer(JSTracer *trc, JSScript *script, const char *name);
+# define JS_CALL_TRACER(trc, thing, kind, name)                               \
+    JS_BEGIN_MACRO                                                            \
+        JS_SET_TRACING_NAME(trc, name);                                       \
+        JS_CallTracer((trc), (thing), (kind));                                \
+    JS_END_MACRO
 
-extern JS_PUBLIC_API(void)
-JS_CallGenericTracer(JSTracer *trc, void *gcthing, const char *name);
+
+
+
+
+#define JS_CALL_VALUE_TRACER(trc, val, name)                                  \
+    JS_BEGIN_MACRO                                                            \
+        if (JSVAL_IS_TRACEABLE(val)) {                                        \
+            JS_CALL_TRACER((trc), JSVAL_TO_GCTHING(val),                      \
+                           JSVAL_TRACE_KIND(val), name);                      \
+        }                                                                     \
+    JS_END_MACRO
+
+#define JS_CALL_OBJECT_TRACER(trc, object, name)                              \
+    JS_BEGIN_MACRO                                                            \
+        JSObject *obj_ = (object);                                            \
+        JS_ASSERT(obj_);                                                      \
+        JS_CALL_TRACER((trc), obj_, JSTRACE_OBJECT, name);                    \
+    JS_END_MACRO
+
+#define JS_CALL_STRING_TRACER(trc, string, name)                              \
+    JS_BEGIN_MACRO                                                            \
+        JSString *str_ = (string);                                            \
+        JS_ASSERT(str_);                                                      \
+        JS_CALL_TRACER((trc), str_, JSTRACE_STRING, name);                    \
+    JS_END_MACRO
 
 
 
@@ -2628,24 +3799,8 @@ JS_SetFinalizeCallback(JSRuntime *rt, JSFinalizeCallback cb);
 extern JS_PUBLIC_API(JSBool)
 JS_IsGCMarkingTracer(JSTracer *trc);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSBool)
-JS_IsAboutToBeFinalized(JSObject **obj);
+JS_IsAboutToBeFinalized(void *thing);
 
 typedef enum JSGCParamKey {
     
@@ -2712,7 +3867,7 @@ typedef enum JSGCParamKey {
     JSGC_ANALYSIS_PURGE_TRIGGER = 19,
 
     
-    JSGC_ALLOCATION_THRESHOLD = 20,
+    JSGC_ALLOCATION_THRESHOLD = 20
 } JSGCParamKey;
 
 typedef enum JSGCMode {
@@ -2808,9 +3963,7 @@ struct JSClass {
 #define JSCLASS_IS_DOMJSCLASS           (1<<4)  /* objects are DOM */
 #define JSCLASS_IMPLEMENTS_BARRIERS     (1<<5)  /* Correctly implements GC read
                                                    and write barriers */
-#define JSCLASS_EMULATES_UNDEFINED      (1<<6)  
-
-
+#define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  /* DOM document observer */
 #define JSCLASS_USERBIT1                (1<<7)  /* Reserved for embeddings. */
 
 
@@ -2842,8 +3995,6 @@ struct JSClass {
 
 #define JSCLASS_USERBIT2                (1<<(JSCLASS_HIGH_FLAGS_SHIFT+6))
 #define JSCLASS_USERBIT3                (1<<(JSCLASS_HIGH_FLAGS_SHIFT+7))
-
-#define JSCLASS_BACKGROUND_FINALIZE     (1<<(JSCLASS_HIGH_FLAGS_SHIFT+8))
 
 
 
@@ -2898,14 +4049,12 @@ JS_DestroyIdArray(JSContext *cx, JSIdArray *ida);
 
 namespace JS {
 
-class AutoIdArray : private AutoGCRooter
-{
+class AutoIdArray : private AutoGCRooter {
   public:
-    AutoIdArray(JSContext *cx, JSIdArray *ida
-                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    AutoIdArray(JSContext *cx, JSIdArray *ida JS_GUARD_OBJECT_NOTIFIER_PARAM)
       : AutoGCRooter(cx, IDARRAY), context(cx), idArray(ida)
     {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
     ~AutoIdArray() {
         if (idArray)
@@ -2937,7 +4086,7 @@ class AutoIdArray : private AutoGCRooter
   private:
     JSContext *context;
     JSIdArray *idArray;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 
     
     AutoIdArray(AutoIdArray &ida) MOZ_DELETE;
@@ -2955,7 +4104,9 @@ JS_IdToValue(JSContext *cx, jsid id, jsval *vp);
 
 
 
-#define JSRESOLVE_ASSIGNING     0x01    /* resolve on the left of assignment */
+#define JSRESOLVE_QUALIFIED     0x01    /* resolve a qualified property id */
+#define JSRESOLVE_ASSIGNING     0x02    /* resolve on the left of assignment */
+#define JSRESOLVE_DETECTING     0x04    /* 'if (o.p)...' or '(o.p) ?...:...' */
 
 
 
@@ -3119,28 +4270,8 @@ JS_GetConstructor(JSContext *cx, JSObject *proto);
 extern JS_PUBLIC_API(JSBool)
 JS_GetObjectId(JSContext *cx, JSRawObject obj, jsid *idp);
 
-namespace JS {
-
-enum {
-    FreshZone,
-    SystemZone,
-    SpecificZones
-};
-
-typedef uintptr_t ZoneSpecifier;
-
-inline ZoneSpecifier
-SameZoneAs(JSObject *obj)
-{
-    JS_ASSERT(uintptr_t(obj) > SpecificZones);
-    return ZoneSpecifier(obj);
-}
-
-} 
-
 extern JS_PUBLIC_API(JSObject *)
-JS_NewGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals,
-                   JS::ZoneSpecifier zoneSpec = JS::FreshZone);
+JS_NewGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent);
@@ -3188,7 +4319,7 @@ extern JS_PUBLIC_API(JSBool)
 JS_DefineConstDoubles(JSContext *cx, JSObject *obj, JSConstDoubleSpec *cds);
 
 extern JS_PUBLIC_API(JSBool)
-JS_DefineProperties(JSContext *cx, JSObject *obj, const JSPropertySpec *ps);
+JS_DefineProperties(JSContext *cx, JSObject *obj, JSPropertySpec *ps);
 
 extern JS_PUBLIC_API(JSBool)
 JS_DefineProperty(JSContext *cx, JSObject *obj, const char *name, jsval value,
@@ -3695,7 +4826,7 @@ extern JS_PUBLIC_API(JSObject*)
 JS_BindCallable(JSContext *cx, JSObject *callable, JSRawObject newThis);
 
 extern JS_PUBLIC_API(JSBool)
-JS_DefineFunctions(JSContext *cx, JSObject *obj, const JSFunctionSpec *fs);
+JS_DefineFunctions(JSContext *cx, JSObject *obj, JSFunctionSpec *fs);
 
 extern JS_PUBLIC_API(JSFunction *)
 JS_DefineFunction(JSContext *cx, JSObject *obj, const char *name, JSNative call,
@@ -3785,7 +4916,6 @@ struct JS_PUBLIC_API(CompileOptions) {
     bool compileAndGo;
     bool noScriptRval;
     bool selfHostingMode;
-    bool userBit;
     enum SourcePolicy {
         NO_SOURCE,
         LAZY_SOURCE,
@@ -3803,7 +4933,6 @@ struct JS_PUBLIC_API(CompileOptions) {
     CompileOptions &setCompileAndGo(bool cng) { compileAndGo = cng; return *this; }
     CompileOptions &setNoScriptRval(bool nsr) { noScriptRval = nsr; return *this; }
     CompileOptions &setSelfHostingMode(bool shm) { selfHostingMode = shm; return *this; }
-    CompileOptions &setUserBit(bool bit) { userBit = bit; return *this; }
     CompileOptions &setSourcePolicy(SourcePolicy sp) { sourcePolicy = sp; return *this; }
 };
 
@@ -4235,6 +5364,13 @@ JS_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
 
 
 
+extern JS_PUBLIC_API(const jschar *)
+JS_UndependString(JSContext *cx, JSString *str);
+
+
+
+
+
 
 
 
@@ -4258,12 +5394,6 @@ JS_EncodeString(JSContext *cx, JSRawString str);
 
 
 
-JS_PUBLIC_API(char *)
-JS_EncodeStringToUTF8(JSContext *cx, JSRawString str);
-
-
-
-
 
 
 JS_PUBLIC_API(size_t)
@@ -4278,23 +5408,19 @@ JS_GetStringEncodingLength(JSContext *cx, JSString *str);
 
 
 JS_PUBLIC_API(size_t)
-JS_EncodeStringToBuffer(JSContext *cx, JSString *str, char *buffer, size_t length);
+JS_EncodeStringToBuffer(JSString *str, char *buffer, size_t length);
 
-class JSAutoByteString
-{
+class JSAutoByteString {
   public:
-    JSAutoByteString(JSContext *cx, JSString *str
-                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : mBytes(JS_EncodeString(cx, str))
-    {
+    JSAutoByteString(JSContext *cx, JSString *str JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : mBytes(JS_EncodeString(cx, str)) {
         JS_ASSERT(cx);
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
-    JSAutoByteString(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
-      : mBytes(NULL)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    JSAutoByteString(JS_GUARD_OBJECT_NOTIFIER_PARAM0)
+      : mBytes(NULL) {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
     ~JSAutoByteString() {
@@ -4307,17 +5433,10 @@ class JSAutoByteString
         mBytes = bytes;
     }
 
-    char *encodeLatin1(JSContext *cx, JSString *str) {
+    char *encode(JSContext *cx, JSString *str) {
         JS_ASSERT(!mBytes);
         JS_ASSERT(cx);
         mBytes = JS_EncodeString(cx, str);
-        return mBytes;
-    }
-
-    char *encodeUtf8(JSContext *cx, JSString *str) {
-        JS_ASSERT(!mBytes);
-        JS_ASSERT(cx);
-        mBytes = JS_EncodeStringToUTF8(cx, str);
         return mBytes;
     }
 
@@ -4334,15 +5453,9 @@ class JSAutoByteString
         return !mBytes;
     }
 
-    size_t length() const {
-        if (!mBytes)
-            return 0;
-        return strlen(mBytes);
-    }
-
   private:
     char        *mBytes;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 
     
     JSAutoByteString(const JSAutoByteString &another);
@@ -4505,26 +5618,10 @@ JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v);
 
 
 
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_SetDefaultLocale(JSRuntime *rt, const char *locale);
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_ResetDefaultLocale(JSRuntime *rt);
-
-
-
-
 struct JSLocaleCallbacks {
     JSLocaleToUpperCase     localeToUpperCase;
     JSLocaleToLowerCase     localeToLowerCase;
-    JSLocaleCompare         localeCompare; 
+    JSLocaleCompare         localeCompare;
     JSLocaleToUnicode       localeToUnicode;
     JSErrorCallback         localeGetErrorMessage;
 };
@@ -4534,14 +5631,14 @@ struct JSLocaleCallbacks {
 
 
 extern JS_PUBLIC_API(void)
-JS_SetLocaleCallbacks(JSRuntime *rt, JSLocaleCallbacks *callbacks);
+JS_SetLocaleCallbacks(JSContext *cx, JSLocaleCallbacks *callbacks);
 
 
 
 
 
 extern JS_PUBLIC_API(JSLocaleCallbacks *)
-JS_GetLocaleCallbacks(JSRuntime *rt);
+JS_GetLocaleCallbacks(JSContext *cx);
 
 
 
@@ -4827,15 +5924,15 @@ JS_SetRuntimeThread(JSRuntime *rt);
 
 class JSAutoSetRuntimeThread
 {
-    JSRuntime *runtime_;
+    JSRuntime *runtime;
 
   public:
-    JSAutoSetRuntimeThread(JSRuntime *runtime) : runtime_(runtime) {
-        JS_SetRuntimeThread(runtime_);
+    JSAutoSetRuntimeThread(JSRuntime *runtime) : runtime(runtime) {
+        JS_SetRuntimeThread(runtime);
     }
 
     ~JSAutoSetRuntimeThread() {
-        JS_ClearRuntimeThread(runtime_);
+        JS_ClearRuntimeThread(runtime);
     }
 };
 
@@ -4898,14 +5995,6 @@ JS_IndexToId(JSContext *cx, uint32_t index, jsid *id);
 
 
 
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_CharsToId(JSContext* cx, JS::TwoByteChars chars, jsid *idp);
-
-
-
-
 extern JS_PUBLIC_API(JSBool)
 JS_IsIdentifier(JSContext *cx, JSString *str, JSBool *isIdentifier);
 
@@ -4934,91 +6023,5 @@ JS_DecodeScript(JSContext *cx, const void *data, uint32_t length,
 extern JS_PUBLIC_API(JSObject *)
 JS_DecodeInterpretedFunction(JSContext *cx, const void *data, uint32_t length,
                              JSPrincipals *principals, JSPrincipals *originPrincipals);
-
-namespace JS {
-
-extern JS_PUBLIC_DATA(const HandleId) JSID_VOIDHANDLE;
-extern JS_PUBLIC_DATA(const HandleId) JSID_EMPTYHANDLE;
-
-};
-
-namespace js {
-
-
-
-
-
-
-using JS::Value;
-using JS::IsPoisonedValue;
-using JS::NullValue;
-using JS::UndefinedValue;
-using JS::Int32Value;
-using JS::DoubleValue;
-using JS::StringValue;
-using JS::BooleanValue;
-using JS::ObjectValue;
-using JS::MagicValue;
-using JS::NumberValue;
-using JS::ObjectOrNullValue;
-using JS::PrivateValue;
-using JS::PrivateUint32Value;
-
-using JS::IsPoisonedPtr;
-using JS::IsPoisonedId;
-
-using JS::StableCharPtr;
-using JS::TwoByteChars;
-using JS::Latin1CharsZ;
-
-using JS::AutoIdVector;
-using JS::AutoValueVector;
-using JS::AutoScriptVector;
-using JS::AutoIdArray;
-
-using JS::AutoGCRooter;
-using JS::AutoValueRooter;
-using JS::AutoObjectRooter;
-using JS::AutoArrayRooter;
-using JS::AutoVectorRooter;
-using JS::AutoHashMapRooter;
-using JS::AutoHashSetRooter;
-
-using JS::CallArgs;
-using JS::IsAcceptableThis;
-using JS::NativeImpl;
-using JS::CallReceiver;
-using JS::CompileOptions;
-using JS::CallNonGenericMethod;
-
-using JS::Rooted;
-using JS::RootedObject;
-using JS::RootedModule;
-using JS::RootedFunction;
-using JS::RootedScript;
-using JS::RootedString;
-using JS::RootedId;
-using JS::RootedValue;
-
-using JS::Handle;
-using JS::HandleObject;
-using JS::HandleModule;
-using JS::HandleFunction;
-using JS::HandleScript;
-using JS::HandleString;
-using JS::HandleId;
-using JS::HandleValue;
-
-using JS::MutableHandle;
-using JS::MutableHandleObject;
-using JS::MutableHandleFunction;
-using JS::MutableHandleScript;
-using JS::MutableHandleString;
-using JS::MutableHandleId;
-using JS::MutableHandleValue;
-
-using JS::Zone;
-
-}  
 
 #endif

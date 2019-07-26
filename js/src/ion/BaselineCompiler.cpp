@@ -20,7 +20,8 @@ using namespace js::ion;
 
 BaselineCompiler::BaselineCompiler(JSContext *cx, JSScript *script)
   : BaselineCompilerSpecific(cx, script),
-    return_(new HeapLabel())
+    return_(new HeapLabel()),
+    autoRooter_(cx, this)
 {
 }
 
@@ -49,6 +50,9 @@ BaselineCompiler::compile()
         IonSpew(IonSpew_Abort, "Script needs arguments object");
         return Method_CantCompile;
     }
+
+    
+    analyze::AutoEnterAnalysis autoEnterAnalysis(cx);
 
     if (!emitPrologue())
         return Method_Error;
@@ -85,6 +89,9 @@ BaselineCompiler::compile()
         baselineScript->copyICEntries(&icEntries_[0], masm);
 
     
+    baselineScript->adoptFallbackStubs(&stubSpace_);
+
+    
     for (size_t i = 0; i < icLoadLabels_.length(); i++) {
         CodeOffsetLabel label = icLoadLabels_[i];
         label.fixup(&masm);
@@ -95,6 +102,20 @@ BaselineCompiler::compile()
     }
 
     return Method_Compiled;
+}
+
+void
+BaselineCompiler::trace(JSTracer *trc)
+{
+    
+    
+    for (size_t i = 0; i < icEntries_.length(); i++) {
+        ICEntry &entry = icEntries_[i];
+        JS_ASSERT(entry.firstStub() != NULL);
+        JS_ASSERT(entry.firstStub()->isFallback());
+        JS_ASSERT(entry.firstStub()->next() == NULL);
+        entry.firstStub()->trace(trc);
+    }
 }
 
 #ifdef DEBUG
@@ -261,7 +282,7 @@ BaselineCompiler::emitToBoolean()
 {
     
     ICToBool_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
     if (!entry)
         return false;
 
@@ -332,7 +353,7 @@ BaselineCompiler::emit_JSOP_POS()
 {
     
     ICToNumber_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
     if (!entry)
         return false;
 
@@ -553,7 +574,7 @@ BaselineCompiler::emitBinaryArith()
 {
     
     ICBinaryArith_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
     if (!entry)
         return false;
 
@@ -577,7 +598,7 @@ BaselineCompiler::emitUnaryArith()
 {
     
     ICUnaryArith_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
     if (!entry)
         return false;
 
@@ -649,7 +670,7 @@ BaselineCompiler::emitCompare()
 {
     
     ICCompare_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
     if (!entry)
         return false;
 
@@ -675,7 +696,7 @@ BaselineCompiler::emit_JSOP_GETELEM()
 {
     
     ICGetElem_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
     if (!entry)
         return false;
 
@@ -699,7 +720,7 @@ BaselineCompiler::emit_JSOP_SETELEM()
 {
     
     ICSetElem_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
     if (!entry)
         return false;
 
@@ -745,7 +766,7 @@ BaselineCompiler::emit_JSOP_GETGNAME()
 
     
     ICGetName_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
     if (!entry)
         return false;
 
@@ -847,7 +868,7 @@ BaselineCompiler::emitCall()
 
     
     ICCall_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
     if (!entry)
         return false;
 
@@ -892,6 +913,8 @@ bool
 BaselineCompiler::emit_JSOP_RETURN()
 {
     JS_ASSERT(frame.stackDepth() == 1);
+
+    JS_GC(cx->runtime);
 
     frame.popValue(JSReturnOperand);
     masm.jump(return_);

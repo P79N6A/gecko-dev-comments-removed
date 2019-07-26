@@ -26,6 +26,7 @@ class BaselineCompilerShared
 
     FrameInfo frame;
 
+    ICStubSpace stubSpace_;
     js::Vector<ICEntry, 16, SystemAllocPolicy> icEntries_;
 
     
