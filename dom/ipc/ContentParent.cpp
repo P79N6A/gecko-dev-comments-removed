@@ -450,7 +450,7 @@ ContentParent::SetManifestFromPreallocated(const nsAString& aAppManifestURL)
 void
 ContentParent::ShutDownProcess()
 {
-  if (mIsAlive) {
+  if (!mIsDestroyed) {
     const InfallibleTArray<PIndexedDBParent*>& idbParents =
       ManagedPIndexedDBParent();
     for (uint32_t i = 0; i < idbParents.Length(); ++i) {
@@ -460,6 +460,7 @@ ContentParent::ShutDownProcess()
     
     
     Close();
+    mIsDestroyed = true;
   }
   
   
@@ -667,7 +668,10 @@ ContentParent::NotifyTabDestroyed(PBrowserParent* aTab)
     
     
     
-    if (IsForApp() && ManagedPBrowserParent().Length() == 1) {
+    if (ManagedPBrowserParent().Length() == 1) {
+        
+        
+        MarkAsDead();
         MessageLoop::current()->PostTask(
             FROM_HERE,
             NewRunnableMethod(this, &ContentParent::ShutDownProcess));
@@ -705,6 +709,7 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
     , mShouldCallUnblockChild(false)
     , mAppManifestURL(aAppManifestURL)
     , mIsAlive(true)
+    , mIsDestroyed(false)
     , mSendPermissionUpdates(false)
     , mIsForBrowser(aIsForBrowser)
 {
@@ -1017,7 +1022,7 @@ ContentParent::Observe(nsISupports* aSubject,
                        const PRUnichar* aData)
 {
     if (!strcmp(aTopic, "xpcom-shutdown") && mSubprocess) {
-        Close();
+        ShutDownProcess();
         NS_ASSERTION(!mSubprocess, "Close should have nulled mSubprocess");
     }
 
@@ -1149,16 +1154,18 @@ ContentParent::AllocPBrowser(const IPCTabContext& aContext,
 {
     unused << aChromeFlags;
 
+    const IPCTabAppBrowserContext& appBrowser = aContext.appBrowserContext();
+
     
     
     
     
-    if (aContext.type() != IPCTabContext::TPopupIPCTabContext) {
+    if (appBrowser.type() != IPCTabAppBrowserContext::TPopupIPCTabContext) {
         NS_ERROR("Unexpected IPCTabContext type.  Aborting AllocPBrowser.");
         return nullptr;
     }
 
-    const PopupIPCTabContext& popupContext = aContext.get_PopupIPCTabContext();
+    const PopupIPCTabContext& popupContext = appBrowser.get_PopupIPCTabContext();
     TabParent* opener = static_cast<TabParent*>(popupContext.openerParent());
     if (!opener) {
         NS_ERROR("Got null opener from child; aborting AllocPBrowser.");

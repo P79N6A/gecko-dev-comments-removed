@@ -850,7 +850,7 @@ TabChild::BrowserFrameProvideWindow(nsIDOMWindow* aOpener,
   unused << Manager()->SendPBrowserConstructor(
       
       nsRefPtr<TabChild>(newChild).forget().get(),
-      context,  0);
+      IPCTabContext(context, mScrolling),  0);
 
   nsAutoCString spec;
   if (aURI) {

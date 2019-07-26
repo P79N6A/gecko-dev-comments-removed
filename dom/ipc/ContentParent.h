@@ -321,7 +321,15 @@ private:
     const nsString mAppManifestURL;
     nsRefPtr<nsFrameMessageManager> mMessageManager;
 
+    
+    
+    
+    
     bool mIsAlive;
+    
+    
+    
+    bool mIsDestroyed;
     bool mSendPermissionUpdates;
     bool mIsForBrowser;
 

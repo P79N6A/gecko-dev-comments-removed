@@ -10,6 +10,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/PContent.h"
 #include "mozilla/dom/PBrowser.h"
+#include "mozilla/layout/RenderFrameUtils.h"
 #include "nsIScriptSecurityManager.h"
 #include "mozIApplication.h"
 
@@ -30,6 +31,9 @@ namespace dom {
 
 class TabContext
 {
+protected:
+  typedef mozilla::layout::ScrollingBehavior ScrollingBehavior;
+
 public:
   
 
@@ -118,6 +122,11 @@ public:
   already_AddRefed<mozIApplication> GetOwnOrContainingApp() const;
   bool HasOwnOrContainingApp() const;
 
+  
+
+
+  ScrollingBehavior GetScrollingBehavior() const { return mScrollingBehavior; }
+
 protected:
   
 
@@ -138,13 +147,15 @@ protected:
 
 
   bool SetTabContextForAppFrame(mozIApplication* aOwnApp,
-                                mozIApplication* aAppFrameOwnerApp);
+                                mozIApplication* aAppFrameOwnerApp,
+                                ScrollingBehavior aRequestedBehavior);
 
   
 
 
 
-  bool SetTabContextForBrowserFrame(mozIApplication* aBrowserFrameOwnerApp);
+  bool SetTabContextForBrowserFrame(mozIApplication* aBrowserFrameOwnerApp,
+                                    ScrollingBehavior aRequestedBehavior);
 
 private:
   
@@ -174,6 +185,11 @@ private:
   
 
 
+  ScrollingBehavior mScrollingBehavior;
+
+  
+
+
 
 
   bool mIsBrowser;
@@ -192,14 +208,18 @@ public:
     return TabContext::SetTabContext(aContext);
   }
 
-  bool SetTabContextForAppFrame(mozIApplication* aOwnApp, mozIApplication* aAppFrameOwnerApp)
+  bool SetTabContextForAppFrame(mozIApplication* aOwnApp, mozIApplication* aAppFrameOwnerApp,
+                                ScrollingBehavior aRequestedBehavior)
   {
-    return TabContext::SetTabContextForAppFrame(aOwnApp, aAppFrameOwnerApp);
+    return TabContext::SetTabContextForAppFrame(aOwnApp, aAppFrameOwnerApp,
+                                                aRequestedBehavior);
   }
 
-  bool SetTabContextForBrowserFrame(mozIApplication* aBrowserFrameOwnerApp)
+  bool SetTabContextForBrowserFrame(mozIApplication* aBrowserFrameOwnerApp,
+                                    ScrollingBehavior aRequestedBehavior)
   {
-    return TabContext::SetTabContextForBrowserFrame(aBrowserFrameOwnerApp);
+    return TabContext::SetTabContextForBrowserFrame(aBrowserFrameOwnerApp,
+                                                    aRequestedBehavior);
   }
 };
 

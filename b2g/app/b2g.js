@@ -375,8 +375,11 @@ pref("browser.link.open_newwindow.restriction", 0);
 
 pref("dom.mozBrowserFramesEnabled", true);
 
-pref("dom.ipc.tabs.disabled", false);
 
+
+pref("dom.ipc.processCount", 100000);
+
+pref("dom.ipc.tabs.disabled", false);
 pref("dom.ipc.browser_frames.oop_by_default", false);
 
 
