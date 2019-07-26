@@ -577,10 +577,15 @@ WebappsApplication.prototype = {
             this._fireEvent("downloadapplied", this._ondownloadapplied);
             break;
           case "downloaded":
-            this._manifest = msg.manifest;
+            
+            
+            if (msg.manifest) {
+              this._manifest = msg.manifest;
+            }
             this._fireEvent("downloadsuccess", this._ondownloadsuccess);
             break;
           case "applied":
+            this._manifest = msg.manifest;
             this._fireEvent("downloadapplied", this._ondownloadapplied);
             break;
         }

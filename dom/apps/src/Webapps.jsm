@@ -851,6 +851,7 @@ this.DOMApplicationRegistry = {
   },
 
   _writeFile: function ss_writeFile(aFile, aData, aCallbak) {
+    debug("Saving " + aFile.path);
     
     let ostream = FileUtils.openSafeFileOutputStream(aFile);
 
@@ -949,8 +950,12 @@ this.DOMApplicationRegistry = {
     app.retryingDownload = !isUpdate;
 
     
+    
     let file = FileUtils.getFile(DIRECTORY_NAME,
-                                 ["webapps", id, "update.webapp"], true);
+                                 ["webapps", id,
+                                  isUpdate ? "staged-update.webapp"
+                                           : "update.webapp"],
+                                 true);
 
     if (!file.exists()) {
       
@@ -1012,8 +1017,7 @@ this.DOMApplicationRegistry = {
             DOMApplicationRegistry.broadcastMessage("Webapps:PackageEvent",
                                                     { type: "downloaded",
                                                       manifestURL: aManifestURL,
-                                                      app: app,
-                                                      manifest: aManifest });
+                                                      app: app });
             if (app.installState == "pending") {
               
               DOMApplicationRegistry.applyDownload(aManifestURL);
@@ -1047,6 +1051,16 @@ this.DOMApplicationRegistry = {
     appFile.moveTo(dir, "application.zip");
     manFile.moveTo(dir, "manifest.webapp");
 
+    
+    let staged = dir.clone();
+    staged.append("staged-update.webapp");
+
+    
+    
+    if (staged.exists()) {
+      staged.moveTo(dir, "update.webapp");
+    }
+
     try {
       tmpDir.remove(true);
     } catch(e) { }
@@ -1064,6 +1078,15 @@ this.DOMApplicationRegistry = {
       app.downloadSize = 0;
       app.installState = "installed";
       app.readyToApplyDownload = false;
+
+      
+      if (app.staged) {
+        for (let prop in app.staged) {
+          app[prop] = app.staged[prop];
+        }
+        delete app.staged;
+      }
+
       delete app.retryingDownload;
 
       DOMApplicationRegistry._saveApps(function() {
@@ -1224,7 +1247,7 @@ this.DOMApplicationRegistry = {
       
       let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
       let manFile = dir.clone();
-      manFile.append("update.webapp");
+      manFile.append("staged-update.webapp");
       this._writeFile(manFile, JSON.stringify(aManifest), function() { });
 
       let manifest = new ManifestHelper(aManifest, app.manifestURL);
@@ -1408,6 +1431,7 @@ this.DOMApplicationRegistry = {
     xhr.addEventListener("load", (function() {
       debug("Got http status=" + xhr.status + " for " + aData.manifestURL);
       let oldHash = app.manifestHash;
+      let isPackage = app.origin.startsWith("app://");
 
       if (xhr.status == 200) {
         let manifest = xhr.response;
@@ -1425,12 +1449,19 @@ this.DOMApplicationRegistry = {
         } else {
           let hash = this.computeManifestHash(manifest);
           debug("Manifest hash = " + hash);
-          app.manifestHash = hash;
+          if (isPackage) {
+            if (!app.staged) {
+              app.staged = { };
+            }
+            app.staged.manifestHash = hash;
+            app.staged.etag = xhr.getResponseHeader("Etag");
+          } else {
+            app.manifestHash = hash;
+            app.etag = xhr.getResponseHeader("Etag");
+          }
 
-          app.etag = xhr.getResponseHeader("Etag");
-          debug("at update got app etag=" + app.etag);
           app.lastCheckedUpdate = Date.now();
-          if (app.origin.startsWith("app://")) {
+          if (isPackage) {
             if (oldHash != hash) {
               updatePackagedApp.call(this, manifest);
             } else {
@@ -1455,7 +1486,7 @@ this.DOMApplicationRegistry = {
         }
       } else if (xhr.status == 304) {
         
-        if (app.origin.startsWith("app://")) {
+        if (isPackage) {
           
           
           app.lastCheckedUpdate = Date.now();
@@ -1944,6 +1975,11 @@ this.DOMApplicationRegistry = {
 
       let download = AppDownloadManager.get(aApp.manifestURL);
       app.downloading = false;
+
+      
+      
+      app.downloadAvailable = false;
+
       
       
       
@@ -2043,16 +2079,8 @@ this.DOMApplicationRegistry = {
       listener.init(bufferedOutputStream, {
         onStartRequest: function(aRequest, aContext) {
           
-          try {
-            requestChannel.getResponseHeader("Etag");
-          } catch (e) {
-            
-            
-            debug("We found no ETag Header, canceling the request");
-            requestChannel.cancel(Cr.NS_BINDING_ABORTED);
-            AppDownloadManager.remove(aApp.manifestURL);
-          }
         },
+
         onStopRequest: function(aRequest, aContext, aStatusCode) {
           debug("onStopRequest " + aStatusCode);
           bufferedOutputStream.close();
@@ -2185,17 +2213,21 @@ this.DOMApplicationRegistry = {
                   throw "INVALID_SECURITY_LEVEL";
                 }
                 app.appStatus = AppsUtils.getAppManifestStatus(manifest);
-                app.packageHash = aHash;
+
                 
-                try {
+                if (aIsUpdate) {
+                  if (!app.staged) {
+                    app.staged = { };
+                  }
+                  app.staged.packageEtag =
+                    requestChannel.getResponseHeader("Etag");
+                  app.staged.packageHash = aHash;
+                  app.staged.appStatus =
+                    AppsUtils.getAppManifestStatus(manifest);
+                } else {
                   app.packageEtag = requestChannel.getResponseHeader("Etag");
-                  debug("Package etag=" + app.packageEtag);
-                } catch (e) {
-                  
-                  
-                  
-                  app.packageEtag = null;
-                  debug("Can't find an etag, this should not happen");
+                  app.packageHash = aHash;
+                  app.appStatus = AppsUtils.getAppManifestStatus(manifest);
                 }
 
                 if (aOnSuccess) {
