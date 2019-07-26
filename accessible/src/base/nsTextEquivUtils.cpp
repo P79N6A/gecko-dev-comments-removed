@@ -22,16 +22,23 @@ using namespace mozilla::a11y;
 
 
 
+
+
+static Accessible* sInitiatorAcc = nullptr;
+
+
+
+
 nsresult
 nsTextEquivUtils::GetNameFromSubtree(Accessible* aAccessible,
                                      nsAString& aName)
 {
   aName.Truncate();
 
-  if (gInitiatorAcc)
+  if (sInitiatorAcc)
     return NS_OK;
 
-  gInitiatorAcc = aAccessible;
+  sInitiatorAcc = aAccessible;
   if (GetRoleRule(aAccessible->Role()) == eNameFromSubtreeRule) {
     
     if (aAccessible->IsContent()) {
@@ -43,7 +50,7 @@ nsTextEquivUtils::GetNameFromSubtree(Accessible* aAccessible,
     }
   }
 
-  gInitiatorAcc = nullptr;
+  sInitiatorAcc = nullptr;
 
   return NS_OK;
 }
@@ -92,10 +99,10 @@ nsTextEquivUtils::AppendTextEquivFromContent(Accessible* aInitiatorAcc,
                                              nsAString *aString)
 {
   
-  if (gInitiatorAcc)
+  if (sInitiatorAcc)
     return NS_OK;
 
-  gInitiatorAcc = aInitiatorAcc;
+  sInitiatorAcc = aInitiatorAcc;
 
   
   
@@ -108,7 +115,7 @@ nsTextEquivUtils::AppendTextEquivFromContent(Accessible* aInitiatorAcc,
 
   if (isVisible) {
     Accessible* accessible =
-      gInitiatorAcc->Document()->GetAccessible(aContent);
+      sInitiatorAcc->Document()->GetAccessible(aContent);
     if (accessible) {
       rv = AppendFromAccessible(accessible, aString);
       goThroughDOMSubtree = false;
@@ -118,7 +125,7 @@ nsTextEquivUtils::AppendTextEquivFromContent(Accessible* aInitiatorAcc,
   if (goThroughDOMSubtree)
     rv = AppendFromDOMNode(aContent, aString);
 
-  gInitiatorAcc = nullptr;
+  sInitiatorAcc = nullptr;
   return rv;
 }
 
@@ -175,8 +182,6 @@ nsTextEquivUtils::AppendTextEquivFromTextContent(nsIContent *aContent,
 
 
 
-
-nsRefPtr<Accessible> nsTextEquivUtils::gInitiatorAcc;
 
 nsresult
 nsTextEquivUtils::AppendFromAccessibleChildren(Accessible* aAccessible,
@@ -257,7 +262,7 @@ nsTextEquivUtils::AppendFromValue(Accessible* aAccessible,
   
 
   nsAutoString text;
-  if (aAccessible != gInitiatorAcc) {
+  if (aAccessible != sInitiatorAcc) {
     aAccessible->Value(text);
 
     return AppendString(aString, text) ?

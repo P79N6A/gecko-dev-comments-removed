@@ -7,6 +7,9 @@
 
 #include "nsAccUtils.h"
 
+#include "mozilla/StaticPtr.h"
+
+using namespace mozilla;
 using namespace mozilla::a11y;
 
 
@@ -61,4 +64,4 @@ nsEventShell::GetEventAttributes(nsINode *aNode,
 
 
 bool nsEventShell::sEventFromUserInput = false;
-nsCOMPtr<nsINode> nsEventShell::sEventTargetNode;
+StaticRefPtr<nsINode> nsEventShell::sEventTargetNode;

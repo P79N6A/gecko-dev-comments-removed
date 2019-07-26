@@ -153,13 +153,6 @@ private:
 
 
   static uint32_t GetRoleRule(mozilla::a11y::roles::Role aRole);
-
-  
-
-
-
-
-  static nsRefPtr<Accessible> gInitiatorAcc;
 };
 
 #endif
