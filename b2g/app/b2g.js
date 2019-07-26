@@ -689,3 +689,6 @@ pref("consoleservice.buffered", false);
 
 pref("toolkit.storage.pageSize", 2048);
 #endif
+
+
+pref("ping.manifestURL", "https://marketplace.firefox.com/packaged.webapp");
