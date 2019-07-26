@@ -2314,7 +2314,8 @@ protected:
   mozilla::dom::Element* mCachedRootElement;
 
   
-  nsNodeInfoManager* mNodeInfoManager; 
+  
+  nsNodeInfoManager* mNodeInfoManager;
   nsRefPtr<mozilla::css::Loader> mCSSLoader;
   nsRefPtr<mozilla::css::ImageLoader> mStyleImageLoader;
   nsRefPtr<nsHTMLStyleSheet> mAttrStyleSheet;
