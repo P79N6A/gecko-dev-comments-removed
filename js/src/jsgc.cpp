@@ -667,7 +667,8 @@ ChunkPool::get(JSRuntime *rt)
         chunk = Chunk::allocate(rt);
         if (!chunk)
             return nullptr;
-        JS_ASSERT(chunk->info.numArenasFreeCommitted == 0);
+        JS_ASSERT(chunk->info.numArenasFreeCommitted == ArenasPerChunk);
+        rt->gcNumArenasFreeCommitted += ArenasPerChunk;
     }
     JS_ASSERT(chunk->unused());
     JS_ASSERT(!rt->gcChunkSet.has(chunk));
@@ -805,18 +806,23 @@ Chunk::init(JSRuntime *rt)
     bitmap.clear();
 
     
-
-
-
-    decommitAllArenas(rt);
+    decommittedArenas.clear(false);
 
     
-    info.freeArenasHead = nullptr;
+    info.freeArenasHead = &arenas[0].aheader;
     info.lastDecommittedArenaOffset = 0;
     info.numArenasFree = ArenasPerChunk;
-    info.numArenasFreeCommitted = 0;
+    info.numArenasFreeCommitted = ArenasPerChunk;
     info.age = 0;
     info.trailer.runtime = rt;
+
+    
+    for (unsigned i = 0; i < ArenasPerChunk; i++) {
+        arenas[i].aheader.setAsNotAllocated();
+        arenas[i].aheader.next = (i + 1 < ArenasPerChunk)
+                                 ? &arenas[i + 1].aheader
+                                 : nullptr;
+    }
 
     
 }
@@ -993,7 +999,6 @@ Chunk::releaseArena(ArenaHeader *aheader)
     } else {
         rt->gcChunkSet.remove(this);
         removeFromAvailableList();
-        decommitAllArenas(rt);
         rt->gcChunkPool.put(this);
     }
 }
@@ -2617,11 +2622,12 @@ GCHelperThread::threadLoop()
                 
                 if (!chunk) {
 #if JS_TRACE_LOGGING
-                    logger->log(TraceLogging::GC_ALLOCATING_STOP);
+            logger->log(TraceLogging::GC_ALLOCATING_STOP);
 #endif
                     break;
                 }
-                JS_ASSERT(chunk->info.numArenasFreeCommitted == 0);
+                JS_ASSERT(chunk->info.numArenasFreeCommitted == ArenasPerChunk);
+                rt->gcNumArenasFreeCommitted += ArenasPerChunk;
                 rt->gcChunkPool.put(chunk);
             } while (state == ALLOCATING && rt->gcChunkPool.wantBackgroundAllocation(rt));
             if (state == ALLOCATING)
