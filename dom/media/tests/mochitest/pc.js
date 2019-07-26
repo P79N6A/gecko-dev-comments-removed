@@ -351,6 +351,15 @@ MediaElementChecker.prototype = {
 
 
 
+function safeInfo(message) {
+  if (typeof(info) === "function") {
+    info(message);
+  }
+}
+
+
+
+
 
 
 
@@ -374,16 +383,16 @@ function isNetworkReady() {
         var ip = ips.value[j];
         
         if (ip.indexOf(":") < 0) {
-          info("Network interface is ready with address: " + ip);
+          safeInfo("Network interface is ready with address: " + ip);
           return true;
         }
       }
     }
     
-    info("Network interface is not ready, required additional network setup");
+    safeInfo("Network interface is not ready, required additional network setup");
     return false;
   }
-  info("Network setup is not required");
+  safeInfo("Network setup is not required");
   return true;
 }
 
