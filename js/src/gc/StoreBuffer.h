@@ -433,10 +433,6 @@ class StoreBuffer
                                     RelocValueBufferSize + RelocCellBufferSize +
                                     GenericBufferSize;
 
-    
-    void setAboutToOverflow();
-    void setOverflowed();
-
   public:
     explicit StoreBuffer(JSRuntime *rt)
       : bufferVal(this), bufferCell(this), bufferSlot(this), bufferWholeObject(this),
@@ -496,6 +492,10 @@ class StoreBuffer
     bool coalesceForVerification();
     void releaseVerificationData();
     bool containsEdgeAt(void *loc) const;
+
+    
+    void setAboutToOverflow();
+    void setOverflowed();
 };
 
 } 
