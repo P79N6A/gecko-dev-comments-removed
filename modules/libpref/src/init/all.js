@@ -1824,6 +1824,13 @@ pref("layout.css.getBoxQuads.enabled", true);
 #endif
 
 
+#ifdef RELEASE_BUILD
+pref("layout.css.convertFromNode.enabled", false);
+#else
+pref("layout.css.convertFromNode.enabled", true);
+#endif
+
+
 pref("layout.css.text-align-true-value.enabled", false);
 
 
