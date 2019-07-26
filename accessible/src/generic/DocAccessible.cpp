@@ -45,7 +45,7 @@
 #include "nsFocusManager.h"
 #include "mozilla/dom/Element.h"
 
-#ifdef DEBUG
+#ifdef A11Y_LOG
 #include "Logging.h"
 #endif
 
@@ -607,7 +607,7 @@ DocAccessible::GetAccessible(nsINode* aNode) const
 void
 DocAccessible::Init()
 {
-#ifdef DEBUG
+#ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eDocCreate))
     logging::DocCreate("document initialize", mDocument, this);
 #endif
@@ -630,7 +630,7 @@ DocAccessible::Shutdown()
   if (!mPresShell) 
     return;
 
-#ifdef DEBUG
+#ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eDocDestroy))
     logging::DocDestroy("document shutdown", mDocument, this);
 #endif
@@ -856,7 +856,7 @@ DocAccessible::AddScrollListener()
   nsIScrollableFrame* sf = mPresShell->GetRootScrollFrameAsScrollableExternal();
   if (sf) {
     sf->AddScrollPositionListener(this);
-#ifdef DEBUG
+#ifdef A11Y_LOG
     if (logging::IsEnabled(logging::eDocCreate))
       logging::Text("add scroll listener");
 #endif
@@ -1230,7 +1230,7 @@ DocAccessible::ARIAActiveDescendantChanged(nsIContent* aElm)
         Accessible* activeDescendant = GetAccessible(activeDescendantElm);
         if (activeDescendant) {
           FocusMgr()->ActiveItemChanged(activeDescendant, false);
-#ifdef DEBUG
+#ifdef A11Y_LOG
           if (logging::IsEnabled(logging::eFocus))
             logging::ActiveItemChangeCausedBy("ARIA activedescedant changed",
                                               activeDescendant);
@@ -1318,7 +1318,7 @@ DocAccessible::ParentChainChanged(nsIContent* aContent)
 
 
 
-#ifdef DEBUG
+#ifdef A11Y_LOG
 nsresult
 DocAccessible::HandleAccEvent(AccEvent* aEvent)
 {
@@ -1416,7 +1416,7 @@ DocAccessible::UnbindFromDocument(Accessible* aAccessible)
   
   if (FocusMgr()->IsActiveItem(aAccessible)) {
     FocusMgr()->ActiveItemChanged(nullptr);
-#ifdef DEBUG
+#ifdef A11Y_LOG
           if (logging::IsEnabled(logging::eFocus))
             logging::ActiveItemChangeCausedBy("tree shutdown", aAccessible);
 #endif
@@ -1764,7 +1764,7 @@ DocAccessible::FireDelayedAccessibleEvent(AccEvent* aEvent)
 {
   NS_ENSURE_ARG(aEvent);
 
-#ifdef DEBUG
+#ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eDocLoad))
     logging::DocLoadEventFired(aEvent);
 #endif
@@ -1855,7 +1855,7 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
 
   
   Accessible* child = GetAccessible(aChildNode);
-#ifdef DEBUG
+#ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eTree)) {
     logging::MsgBegin("TREE", "process content %s",
                       (aIsInsert ? "insertion" : "removal"));
