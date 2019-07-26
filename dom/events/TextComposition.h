@@ -9,6 +9,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsINode.h"
+#include "nsIWeakReference.h"
 #include "nsIWidget.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
@@ -17,8 +18,8 @@
 #include "mozilla/EventForwards.h"
 
 class nsDispatchingCallback;
+class nsIEditor;
 class nsIMEStateManager;
-class nsIWidget;
 
 namespace mozilla {
 
@@ -98,6 +99,13 @@ public:
 
   void EditorDidHandleTextEvent();
 
+  
+
+
+
+  void StartHandlingComposition(nsIEditor* aEditor);
+  void EndHandlingComposition(nsIEditor* aEditor);
+
 private:
   
   
@@ -109,6 +117,9 @@ private:
   
   
   void* mNativeContext;
+
+  
+  nsWeakPtr mEditorWeak;
 
   
   
@@ -134,6 +145,16 @@ private:
   TextComposition() {}
   TextComposition(const TextComposition& aOther);
 
+  
+
+
+  already_AddRefed<nsIEditor> GetEditor() const;
+
+  
+
+
+
+  bool HasEditor() const;
 
   
 
