@@ -109,6 +109,9 @@ static PRLogModuleInfo *gCompressedImageAccountingLog = PR_NewLogModule ("Compre
 
 static uint32_t gDecodeBytesAtATime = 0;
 static uint32_t gMaxMSBeforeYield = 0;
+static bool gHQDownscaling = false;
+
+static uint32_t gHQDownscalingMinFactor = 1000;
 
 static void
 InitPrefCaches()
@@ -117,6 +120,10 @@ InitPrefCaches()
                                "image.mem.decode_bytes_at_a_time", 200000);
   Preferences::AddUintVarCache(&gMaxMSBeforeYield,
                                "image.mem.max_ms_before_yield", 400);
+  Preferences::AddBoolVarCache(&gHQDownscaling,
+                               "image.high_quality_downscaling.enabled", false);
+  Preferences::AddUintVarCache(&gHQDownscalingMinFactor,
+                               "image.high_quality_downscaling.min_factor", 1000);
 }
 
 
@@ -189,9 +196,6 @@ namespace mozilla {
 namespace image {
 
  StaticRefPtr<RasterImage::DecodeWorker> RasterImage::DecodeWorker::sSingleton;
-
-#define PRE_DOWNSCALE_MIN_FACTOR 0.9
-
  nsRefPtr<RasterImage::ScaleWorker> RasterImage::ScaleWorker::sSingleton;
  nsRefPtr<RasterImage::DrawWorker> RasterImage::DrawWorker::sSingleton;
 static nsCOMPtr<nsIThread> sScaleWorkerThread = nullptr;
@@ -2793,14 +2797,15 @@ RasterImage::CanScale(gfxPattern::GraphicsFilter aFilter,
 {
 
 #ifdef MOZ_ENABLE_SKIA
-  return (aFilter == gfxPattern::FILTER_GOOD) &&
-          !mAnim && mDecoded &&
-          (aScale.width <= 1.0 && aScale.height <= 1.0) &&
-          (aScale.width < PRE_DOWNSCALE_MIN_FACTOR ||
-           aScale.height < PRE_DOWNSCALE_MIN_FACTOR);
-#else
-  return false;
+  if (gHQDownscaling && aFilter == gfxPattern::FILTER_GOOD &&
+      !mAnim && mDecoded &&
+      (aScale.width <= 1.0 && aScale.height <= 1.0)) {
+    gfxFloat factor = gHQDownscalingMinFactor / 1000.0;
+    return (aScale.width < factor || aScale.height < factor);
+  }
 #endif
+
+  return false;
 }
 
 void

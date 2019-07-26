@@ -91,6 +91,8 @@ RefTestCmdLineHandler.prototype =
     
     branch.setBoolPref("extensions.update.enabled", false);
     branch.setBoolPref("extensions.getAddons.cache.enabled", false);
+    
+    branch.setBoolPref("image.high_quality_downscaling.enabled", false);
 
     var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                            .getService(nsIWindowWatcher);
