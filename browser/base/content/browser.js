@@ -4440,7 +4440,8 @@ var TabsInTitlebar = {
       let tabsToolbar = $("TabsToolbar");
       let fullTabsHeight = rect(tabsToolbar).height;
       
-      let captionButtonsBoxWidth = rect($("titlebar-buttonbox")).width;
+      let captionButtonsBoxWidth = rect($("titlebar-buttonbox-container")).width;
+
 #ifdef XP_MACOSX
       let fullscreenButtonWidth = rect($("titlebar-fullscreen-button")).width;
       
