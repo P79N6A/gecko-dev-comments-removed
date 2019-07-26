@@ -128,6 +128,14 @@ public :
     return mState == ENCODE_ERROR;
   }
 
+#ifdef MOZ_WEBM_ENCODER
+  static bool IsWebMEncoderEnabled();
+#endif
+
+#ifdef MOZ_OMX_ENCODER
+  static bool IsOMXEncoderEnabled();
+#endif
+
 private:
   
   nsresult WriteEncodedDataToMuxer(TrackEncoder *aTrackEncoder);
