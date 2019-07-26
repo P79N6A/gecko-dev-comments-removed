@@ -15,10 +15,6 @@ namespace image {
 class Image : public imgIContainer
 {
 public:
-  
-  NS_IMETHOD GetAnimationMode(uint16_t *aAnimationMode);
-  NS_IMETHOD SetAnimationMode(uint16_t aAnimationMode);
-
   imgStatusTracker& GetStatusTracker() { return *mStatusTracker; }
 
   
@@ -101,6 +97,11 @@ public:
 
 protected:
   Image(imgStatusTracker* aStatusTracker);
+
+  
+  
+  nsresult GetAnimationModeInternal(uint16_t *aAnimationMode);
+  nsresult SetAnimationModeInternal(uint16_t aAnimationMode);
 
   
 

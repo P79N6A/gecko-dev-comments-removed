@@ -383,6 +383,15 @@ VectorImage::GetFrame(uint32_t aWhichFrame,
 
 
 
+NS_IMETHODIMP
+VectorImage::GetImageContainer(mozilla::layers::ImageContainer** _retval)
+{
+  *_retval = nullptr;
+  return NS_OK;
+}
+
+
+
 
 NS_IMETHODIMP
 VectorImage::CopyFrame(uint32_t aWhichFrame,
