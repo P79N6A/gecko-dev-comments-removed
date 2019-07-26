@@ -267,7 +267,7 @@ public:
   nsresult
   ReportErrorToConsole(const char*       aErrorMsgId,
                        const PRUnichar** aParams = nullptr,
-                       PRUint32          aParamCount = 0);
+                       uint32_t          aParamCount = 0);
 
   
   

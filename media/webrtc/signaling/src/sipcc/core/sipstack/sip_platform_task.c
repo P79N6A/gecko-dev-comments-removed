@@ -153,7 +153,7 @@ sip_platform_task_init (void)
 
 
 
-static PRUint32 sip_get_sock_dir_tmpl(char *out, PRUint32 outlen,
+static uint32_t sip_get_sock_dir_tmpl(char *out, uint32_t outlen,
                                       const char *suffix) {
 
     char *tmpdir;
