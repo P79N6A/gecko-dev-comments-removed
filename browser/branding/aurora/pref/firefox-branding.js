@@ -3,6 +3,8 @@
 
 
 
+
+
 pref("startup.homepage_override_url","");
 pref("startup.homepage_welcome_url","");
 
@@ -17,11 +19,11 @@ pref("app.update.promptWaitTime", 86400);
 pref("app.update.url.manual", "http://www.mozilla.com/firefox/channel/");
 
 
-pref("app.update.url.details", "http://www.mozilla.org/projects/%APP%/");
+pref("app.update.url.details", "http://www.mozilla.org/projects/firefox/");
 
 
-pref("app.releaseNotesURL", "http://www.mozilla.org/projects/%APP%/%VERSION%/releasenotes/");
-pref("app.vendorURL", "http://www.mozilla.org/projects/%APP%/");
+pref("app.releaseNotesURL", "http://www.mozilla.org/projects/firefox/%VERSION%/releasenotes/");
+pref("app.vendorURL", "http://www.mozilla.org/projects/firefox/");
 
 
 pref("browser.search.param.yahoo-fr", "");

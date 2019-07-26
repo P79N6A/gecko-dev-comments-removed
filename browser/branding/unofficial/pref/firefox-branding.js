@@ -2,8 +2,8 @@
 
 
 
-pref("startup.homepage_override_url","http://www.mozilla.org/projects/%APP%/%VERSION%/whatsnew/");
-pref("startup.homepage_welcome_url","http://www.mozilla.org/projects/%APP%/%VERSION%/firstrun/");
+pref("startup.homepage_override_url","http://www.mozilla.org/projects/firefox/%VERSION%/whatsnew/");
+pref("startup.homepage_welcome_url","http://www.mozilla.org/projects/firefox/%VERSION%/firstrun/");
 
 pref("app.update.interval", 86400); 
 
@@ -13,14 +13,14 @@ pref("app.update.download.backgroundInterval", 60);
 pref("app.update.promptWaitTime", 86400);
 
 
-pref("app.update.url.manual", "http://www.mozilla.org/products/%APP%/");
+pref("app.update.url.manual", "http://www.mozilla.org/products/firefox/");
 
 
-pref("app.update.url.details", "http://www.mozilla.org/projects/%APP%/");
+pref("app.update.url.details", "http://www.mozilla.org/projects/firefox/");
 
 
-pref("app.releaseNotesURL", "http://www.mozilla.org/projects/%APP%/%VERSION%/releasenotes/");
-pref("app.vendorURL", "http://www.mozilla.org/projects/%APP%/");
+pref("app.releaseNotesURL", "http://www.mozilla.org/projects/firefox/%VERSION%/releasenotes/");
+pref("app.vendorURL", "http://www.mozilla.org/projects/firefox/");
 
 
 pref("browser.search.param.yahoo-fr", "");
