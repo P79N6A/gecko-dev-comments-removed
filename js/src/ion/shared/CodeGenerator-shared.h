@@ -170,9 +170,6 @@ class CodeGeneratorShared : public LInstructionVisitor
     bool assignBailoutId(LSnapshot *snapshot);
 
     
-    void encodeSafepoint(LSafepoint *safepoint);
-
-    
     
     void encodeSafepoints();
 

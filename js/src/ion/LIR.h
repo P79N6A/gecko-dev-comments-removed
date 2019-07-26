@@ -925,9 +925,15 @@ class LSafepoint : public TempObject
     
     SlotList gcSlots_;
 
-#ifdef JS_NUNBOX32
+    
     SlotList valueSlots_;
+
+#ifdef JS_NUNBOX32
+    
     NunboxList nunboxParts_;
+#elif JS_PUNBOX64
+    
+    GeneralRegisterSet valueRegs_;
 #endif
 
   public:
@@ -954,18 +960,26 @@ class LSafepoint : public TempObject
         return gcSlots_;
     }
 
-#ifdef JS_NUNBOX32
     bool addValueSlot(uint32 slot) {
         return valueSlots_.append(slot);
     }
     SlotList &valueSlots() {
         return valueSlots_;
     }
+
+#ifdef JS_NUNBOX32
     bool addNunboxParts(LAllocation type, LAllocation payload) {
         return nunboxParts_.append(NunboxEntry(type, payload));
     }
     NunboxList &nunboxParts() {
         return nunboxParts_;
+    }
+#elif JS_PUNBOX64
+    void addValueRegister(Register reg) {
+        valueRegs_.add(reg);
+    }
+    GeneralRegisterSet valueRegs() {
+        return valueRegs_;
     }
 #endif
     bool encoded() const {
