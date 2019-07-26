@@ -9,14 +9,12 @@ const BRAND_SHORT_NAME = Cc["@mozilla.org/intl/stringbundle;1"]
                            .createBundle("chrome://branding/locale/brand.properties")
                            .GetStringFromName("brandShortName");
 
-this.EXPORTED_SYMBOLS = [ "CmdAddonFlags", "CmdCommands", "DEFAULT_DEBUG_PORT", "connect" ];
-
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
-Cu.import("resource://gre/modules/osfile.jsm")
+this.EXPORTED_SYMBOLS = [ "CmdAddonFlags", "CmdCommands" ];
 
 Cu.import("resource:///modules/devtools/gcli.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource:///modules/devtools/shared/event-emitter.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "gDevTools",
@@ -427,7 +425,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
     description: gcli.lookup("calllogStartDesc"),
 
     exec: function(args, context) {
-      let contentWindow = context.environment.window;
+      let contentWindow = context.environment.contentDocument.defaultView;
 
       let dbg = new Debugger(contentWindow);
       dbg.onEnterFrame = function(frame) {
@@ -531,7 +529,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
     ],
     exec: function(args, context) {
       let globalObj;
-      let contentWindow = context.environment.window;
+      let contentWindow = context.environment.contentDocument.defaultView;
 
       if (args.sourceType == "jsm") {
         try {
@@ -819,7 +817,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
     name: "console clear",
     description: gcli.lookup("consoleclearDesc"),
     exec: function Command_consoleClear(args, context) {
-      let hud = HUDService.getHudByWindow(context.environment.window);
+      let window = context.environment.contentDocument.defaultView;
+      let hud = HUDService.getHudByWindow(window);
       
       if (hud) {
         hud.jsterm.clearOutput();
@@ -1024,7 +1023,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
 
       let cookies = [];
       while (enm.hasMoreElements()) {
-        let cookie = enm.getNext().QueryInterface(Ci.nsICookie);
+        let cookie = enm.getNext().QueryInterface(Components.interfaces.nsICookie);
         if (isCookieAtHost(cookie, host)) {
           if (cookie.name == args.name) {
             cookieMgr.remove(cookie.host, cookie.name, cookie.path, false);
@@ -1155,6 +1154,30 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
       });
     }
   }
+}(this));
+
+
+
+(function(module) {
+  
+
+
+  gcli.addCommand({
+    name: "echo",
+    description: gcli.lookup("echoDesc"),
+    params: [
+      {
+        name: "message",
+        type: "string",
+        description: gcli.lookup("echoMessageDesc")
+      }
+    ],
+    returnType: "string",
+    hidden: true,
+    exec: function Command_echo(args, context) {
+      return args.message;
+    }
+  });
 }(this));
 
 
@@ -1380,6 +1403,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
       },
     ],
     exec: function(args, context) {
+      let document = context.environment.contentDocument;
       let searchTextNodes = !args.attrOnly;
       let searchAttributes = !args.contentOnly;
       let regexOptions = args.ignoreCase ? 'ig' : 'g';
@@ -1389,7 +1413,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
         attributeRegex = new RegExp(args.attributes, regexOptions);
       }
 
-      let root = args.root || context.environment.document;
+      let root = args.root || document;
       let elements = root.querySelectorAll(args.selector);
       elements = Array.prototype.slice.call(elements);
 
@@ -1474,7 +1498,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
       },
     ],
     exec: function(args, context) {
-      let root = args.root || context.environment.document;
+      let document = context.environment.contentDocument;
+      let root = args.root || document;
       let elements = Array.prototype.slice.call(root.querySelectorAll(args.search));
 
       let removed = 0;
@@ -1530,7 +1555,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
       },
     ],
     exec: function(args, context) {
-      let root = args.root || context.environment.document;
+      let document = context.environment.contentDocument;
+
+      let root = args.root || document;
       let regexOptions = args.ignoreCase ? 'ig' : 'g';
       let attributeRegex = new RegExp(args.searchAttributes, regexOptions);
       let elements = root.querySelectorAll(args.searchElements);
@@ -1595,21 +1622,22 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
     ],
     returnType: "string",
     exec: function(args, context) {
-      return OS.File.exists(args.srcdir + "/CLOBBER").then(function(exists) {
+      let promise = context.createPromise();
+      let existsPromise = OS.File.exists(args.srcdir + "/CLOBBER");
+      existsPromise.then(function(exists) {
         if (exists) {
-          let str = Cc["@mozilla.org/supports-string;1"]
-                    .createInstance(Ci.nsISupportsString);
+          var str = Cc["@mozilla.org/supports-string;1"]
+            .createInstance(Ci.nsISupportsString);
           str.data = args.srcdir;
           Services.prefs.setComplexValue("devtools.loader.srcdir",
-                                         Ci.nsISupportsString, str);
+              Components.interfaces.nsISupportsString, str);
           devtools.reload();
-
-          let msg = gcli.lookupFormat("toolsSrcdirReloaded", [args.srcdir]);
-          throw new Error(msg);
+          promise.resolve(gcli.lookupFormat("toolsSrcdirReloaded", [args.srcdir]));
+          return;
         }
-
-        return gcli.lookupFormat("toolsSrcdirNotFound", [args.srcdir]);
+        promise.reject(gcli.lookupFormat("toolsSrcdirNotFound", [args.srcdir]));
       });
+      return promise;
     }
   });
 
@@ -1643,6 +1671,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
 
 (function(module) {
   
+
 
 
 
@@ -1704,7 +1733,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
     name: "screenshot",
     description: gcli.lookup("screenshotDesc"),
     manual: gcli.lookup("screenshotManual"),
-    returnType: "dom",
+    returnType: "html",
     params: [
       {
         name: "filename",
@@ -1759,7 +1788,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
         throw new Error(gcli.lookup("screenshotSelectorChromeConflict"));
       }
       var document = args.chrome? context.environment.chromeDocument
-                                : context.environment.document;
+                                : context.environment.contentDocument;
       if (args.delay > 0) {
         var deferred = context.defer();
         document.defaultView.setTimeout(function Command_screenshotDelay() {
@@ -1774,7 +1803,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
                               args.fullpage, args.selector);
       }
     },
-    grabScreen: function(document, filename, clipboard, fullpage, node) {
+    grabScreen:
+    function Command_screenshotGrabScreen(document, filename, clipboard,
+                                          fullpage, node) {
       let window = document.defaultView;
       let canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
       let left = 0;
@@ -1919,201 +1950,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
 
 
 
-
-const { DebuggerServer } = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
-
-
-
-
-gcli.addCommand({
-  name: "listen",
-  description: gcli.lookup("listenDesc"),
-  manual: gcli.lookup("listenManual"),
-  params: [
-    {
-      name: "port",
-      type: "number",
-      get defaultValue() {
-        return Services.prefs.getIntPref("devtools.debugger.chrome-debugging-port");
-      },
-      description: gcli.lookup("listenPortDesc"),
-    }
-  ],
-  exec: function Command_screenshot(args, context) {
-    if (!DebuggerServer.initialized) {
-      DebuggerServer.init();
-      DebuggerServer.addBrowserActors();
-    }
-    var reply = DebuggerServer.openListener(args.port);
-    if (!reply) {
-      throw new Error(gcli.lookup("listenDisabledOutput"));
-    }
-
-    if (DebuggerServer.initialized) {
-      return gcli.lookupFormat("listenInitOutput", [ '' + args.port ]);
-    }
-
-    return gcli.lookup("listenNoInitOutput");
-  },
-});
-
-const {
-  debuggerSocketConnect, DebuggerClient
-} = Cu.import('resource://gre/modules/devtools/dbg-client.jsm', {});
-
-
-
-
-function connect(prefix, host, port) {
-  let connection = new Connection(prefix, host, port);
-  return connection.connect().then(function() {
-    return connection;
-  });
-}
-
-
-
-
-function Connection(prefix, host, port) {
-  this.prefix = prefix;
-  this.host = host;
-  this.port = port;
-
-  
-  this.actor = undefined;
-  this.transport = undefined;
-  this.client = undefined;
-
-  this.requests = {};
-  this.nextRequestId = 0;
-}
-
-
-
-
-
-
-
-Connection.prototype.connect = function() {
-  let deferred = Promise.defer();
-
-  this.transport = debuggerSocketConnect(this.host, this.port);
-  this.client = new DebuggerClient(this.transport);
-
-  this.client.connect(() => {
-    this.client.listTabs(response => {
-      this.actor = response.gcliActor;
-      deferred.resolve();
-    });
-  });
-
-  return deferred.promise;
-};
-
-
-
-
-
-Connection.prototype.getCommandSpecs = function() {
-  let deferred = Promise.defer();
-
-  let request = { to: this.actor, type: 'getCommandSpecs' };
-
-  this.client.request(request, (response) => {
-    deferred.resolve(response.commandSpecs);
-  });
-
-  return deferred.promise;
-};
-
-
-
-
-Connection.prototype.execute = function(typed, cmdArgs) {
-  let deferred = Promise.defer();
-
-  let request = {
-    to: this.actor,
-    type: 'execute',
-    typed: typed,
-    args: cmdArgs
-  };
-
-  this.client.request(request, (response) => {
-    deferred.resolve(response.reply);
-  });
-
-  return deferred.promise;
-};
-
-
-
-
-Connection.prototype.execute = function(typed, cmdArgs) {
-  var request = new Request(this.actor, typed, cmdArgs);
-  this.requests[request.json.id] = request;
-
-  this.client.request(request.json, (response) => {
-    let request = this.requests[response.id];
-    delete this.requests[response.id];
-
-    request.complete(response.error, response.type, response.data);
-  });
-
-  return request.promise;
-};
-
-
-
-
-Connection.prototype.disconnect = function() {
-  let deferred = Promise.defer();
-
-  this.client.close(() => {
-    deferred.resolve();
-  });
-
-  return request.promise;
-};
-
-
-
-
-
-function Request(actor, typed, args) {
-  this.json = {
-    to: actor,
-    type: 'execute',
-    typed: typed,
-    args: args,
-    id: Request._nextRequestId++,
-  };
-
-  this._deferred = Promise.defer();
-  this.promise = this._deferred.promise;
-}
-
-Request._nextRequestId = 0;
-
-
-
-
-
-
-
-Request.prototype.complete = function(error, type, data) {
-  this._deferred.resolve({
-    error: error,
-    type: type,
-    data: data
-  });
-};
-
-
-
-
 (function(module) {
   
+
 
 
   gcli.addCommand({
@@ -2137,13 +1976,15 @@ Request.prototype.complete = function(error, type, data) {
       ]
     }],
     exec: function(args, context) {
-      var window = args.chrome ?
-                  context.environment.chromeWindow :
-                  context.environment.window;
-
-      window.QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIDOMWindowUtils)
-            .paintFlashing = true;
+      var window;
+      if (args.chrome) {
+        window = context.environment.chromeDocument.defaultView;
+      } else {
+        window = context.environment.contentDocument.defaultView;
+      }
+      window.QueryInterface(Ci.nsIInterfaceRequestor).
+             getInterface(Ci.nsIDOMWindowUtils).
+             paintFlashing = true;
       onPaintFlashingChanged(context);
     }
   });
@@ -2164,13 +2005,14 @@ Request.prototype.complete = function(error, type, data) {
       ]
     }],
     exec: function(args, context) {
-      var window = args.chrome ?
-                  context.environment.chromeWindow :
-                  context.environment.window;
-
-      window.QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIDOMWindowUtils)
-            .paintFlashing = false;
+      if (args.chrome) {
+        var window = context.environment.chromeDocument.defaultView;
+      } else {
+        var window = context.environment.contentDocument.defaultView;
+      }
+      window.QueryInterface(Ci.nsIInterfaceRequestor).
+             getInterface(Ci.nsIDOMWindowUtils).
+             paintFlashing = false;
       onPaintFlashingChanged(context);
     }
   });
@@ -2283,19 +2125,20 @@ Request.prototype.complete = function(error, type, data) {
     }],
     exec: function(args, context) {
       let utils;
-      let deferred = context.defer();
+      let promise = context.createPromise();
 
       if (args.uri) {
         utils = new AppCacheUtils(args.uri);
       } else {
-        utils = new AppCacheUtils(context.environment.document);
+        let doc = context.environment.contentDocument;
+        utils = new AppCacheUtils(doc);
       }
 
       utils.validateManifest().then(function(errors) {
-        deferred.resolve([errors, utils.manifestURI || "-"]);
+        promise.resolve([errors, utils.manifestURI || "-"]);
       });
 
-      return deferred.promise;
+      return promise;
     }
   });
 
@@ -2395,8 +2238,11 @@ Request.prototype.complete = function(error, type, data) {
       ]
     }],
     exec: function(args, context) {
+      let doc = context.environment.contentDocument;
       let utils = new AppCacheUtils();
-      return utils.listEntries(args.search);
+
+      let entries = utils.listEntries(args.search);
+      return entries;
     }
   });
 
@@ -2413,8 +2259,13 @@ Request.prototype.complete = function(error, type, data) {
       }
     ],
     exec: function(args, context) {
+      let doc = context.environment.contentDocument;
       let utils = new AppCacheUtils();
-      return utils.viewEntry(args.key);
+
+      let result = utils.viewEntry(args.key);
+      if (result) {
+        return result;
+      }
     }
   });
 
