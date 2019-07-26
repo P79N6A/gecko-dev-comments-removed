@@ -4,7 +4,7 @@
 
 import datetime
 from errors import *
-from mozdevice import devicemanagerADB
+from mozdevice import devicemanagerADB, DMError
 from mozprocess import ProcessHandlerMixin
 import multiprocessing
 import os
@@ -378,28 +378,30 @@ waitFor(
         Install gecko into the emulator using adb push.  Restart b2g after the
         installation.
         """
+        
+        
+        
+        
+        push_attempts = 10
+
         print 'installing gecko binaries...'
         
         self._run_adb(['remount'])
-        
-        
-        
-        
         for root, dirs, files in os.walk(gecko_path):
             for filename in files:
-                data_local_file = os.path.join('/data/local', filename)
-                print 'pushing', data_local_file
-                self.dm.pushFile(os.path.join(root, filename), data_local_file)
-        self.dm.shellCheckOutput(['stop', 'b2g'])
-        for root, dirs, files in os.walk(gecko_path):
-            for filename in files:
-                data_local_file = os.path.join('/data/local', filename)
-                rel_file = os.path.relpath(os.path.join(root, filename), gecko_path)
-                system_file = os.path.join('/system/b2g', rel_file)
-                print 'copying', data_local_file, 'to', system_file
-                self.dm.shellCheckOutput(['dd', 'if=%s' % data_local_file,
-                                          'of=%s' % system_file])
+                rel_path = os.path.relpath(os.path.join(root, filename), gecko_path)
+                system_b2g_file = os.path.join('/system/b2g', rel_path)
+                for retry in range(1, push_attempts+1):
+                    print 'pushing', system_b2g_file, '(attempt %s of %s)' % (retry, push_attempts)
+                    try:
+                        self.dm.pushFile(os.path.join(root, filename), system_b2g_file)
+                        break
+                    except DMError:
+                        if retry == push_attempts:
+                            raise
+
         print 'restarting B2G'
+        self.dm.shellCheckOutput(['stop', 'b2g'])
         self.dm.shellCheckOutput(['start', 'b2g'])
         self.wait_for_port()
         self.wait_for_system_message(marionette)
