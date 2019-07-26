@@ -389,14 +389,6 @@ Debugger::~Debugger()
 
 
 
-    scripts.clearWithoutCallingDestructors();
-    objects.clearWithoutCallingDestructors();
-    environments.clearWithoutCallingDestructors();
-
-    
-
-
-
     JS_REMOVE_LINK(&onNewGlobalObjectWatchersLink);
 }
 
