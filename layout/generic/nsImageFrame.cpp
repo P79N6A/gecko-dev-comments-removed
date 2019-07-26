@@ -132,7 +132,8 @@ nsImageFrame::nsImageFrame(nsStyleContext* aContext) :
   mComputedSize(0, 0),
   mIntrinsicRatio(0, 0),
   mDisplayingIcon(false),
-  mFirstFrameComplete(false)
+  mFirstFrameComplete(false),
+  mReflowCallbackPosted(false)
 {
   
   
@@ -180,6 +181,11 @@ nsImageFrame::DisconnectMap()
 void
 nsImageFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
+  if (mReflowCallbackPosted) {
+    PresContext()->PresShell()->CancelReflowCallback(this);
+    mReflowCallbackPosted = false;
+  }
+
   
   
   
@@ -891,11 +897,35 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
   }
   FinishAndStoreOverflow(&aMetrics);
 
+  if ((GetStateBits() & NS_FRAME_FIRST_REFLOW) && !mReflowCallbackPosted) {
+    nsIPresShell* shell = PresContext()->PresShell();
+    if (shell && !shell->AssumeAllImagesVisible()) {
+      mReflowCallbackPosted = true;
+      shell->PostReflowCallback(this);
+    }
+  }
+
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
                   ("exit nsImageFrame::Reflow: size=%d,%d",
                   aMetrics.width, aMetrics.height));
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
   return NS_OK;
+}
+
+bool
+nsImageFrame::ReflowFinished()
+{
+  mReflowCallbackPosted = false;
+
+  nsLayoutUtils::UpdateImageVisibilityForFrame(this);
+
+  return false;
+}
+
+void
+nsImageFrame::ReflowCallbackCanceled()
+{
+  mReflowCallbackPosted = false;
 }
 
 

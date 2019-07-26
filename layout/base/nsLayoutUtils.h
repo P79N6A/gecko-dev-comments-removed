@@ -1884,6 +1884,14 @@ public:
   AssertTreeOnlyEmptyNextInFlows(nsIFrame *aSubtreeRoot);
 #endif
 
+  
+
+
+
+
+  static void
+  UpdateImageVisibilityForFrame(nsIFrame* aImageFrame);
+
 private:
   
   template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
