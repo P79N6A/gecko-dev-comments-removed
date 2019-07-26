@@ -52,6 +52,7 @@ MetroApp::CreateView(ABI::Windows::ApplicationModel::Core::IFrameworkView **aVie
 
   LogFunction();
 
+  sFrameworkView.Get()->AddRef();
   *aViewProvider = sFrameworkView.Get();
   return !sFrameworkView ? E_FAIL : S_OK;
 }
@@ -101,10 +102,14 @@ MetroApp::ShutdownXPCOM()
 
   mozilla::widget::StopAudioSession();
 
-  sCoreApp->remove_Suspending(mSuspendEvent);
-  sCoreApp->remove_Resuming(mResumeEvent);
+  if (sCoreApp) {
+    sCoreApp->remove_Suspending(mSuspendEvent);
+    sCoreApp->remove_Resuming(mResumeEvent);
+  }
 
-  MetroApp::GetView()->ShutdownXPCOM();
+  if (sFrameworkView) {
+    sFrameworkView->ShutdownXPCOM();
+  }
 
   
   XRE_metroShutdown();
@@ -122,14 +127,6 @@ MetroApp::CoreExit()
   if (SUCCEEDED(hr)) {
     coreExit->Exit();
   }
-}
-
-
-FrameworkView*
-MetroApp::GetView()
-{
-  NS_ASSERTION(sFrameworkView, "view has not been created.");
-  return sFrameworkView.Get();
 }
 
 
@@ -164,7 +161,10 @@ void
 MetroApp::SetBaseWidget(MetroWidget* aPtr)
 {
   LogThread();
+
   NS_ASSERTION(aPtr, "setting null base widget?");
+
+  
   aPtr->SetView(sFrameworkView.Get());
   sFrameworkView->SetWidget(aPtr);
 }
@@ -231,8 +231,6 @@ XRE_MetroCoreApplicationRun()
     return false;
   }
 
-  sFrameworkView = Make<FrameworkView>(sMetroApp.Get());
-
   
   
   
@@ -253,11 +251,12 @@ XRE_MetroCoreApplicationRun()
     return false;
   }
 
+  sFrameworkView = Make<FrameworkView>(sMetroApp.Get());
   hr = sCoreApp->Run(sMetroApp.Get());
+  sFrameworkView = nullptr;
 
   Log(L"Exiting CoreApplication::Run");
 
-  sFrameworkView = nullptr;
   sCoreApp = nullptr;
   sMetroApp = nullptr;
 
