@@ -13,8 +13,10 @@ import org.json.JSONObject;
 import android.app.Application;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Shader;
 import android.os.Build;
@@ -117,8 +119,7 @@ public class LightweightTheme implements GeckoEventListener {
 
 
     private void setLightweightTheme(Bitmap bitmap) {
-        mBitmap = bitmap;
-        if (mBitmap == null || mBitmap.getWidth() == 0 || mBitmap.getHeight() == 0) {
+        if (bitmap == null || bitmap.getWidth() == 0 || bitmap.getHeight() == 0) {
             mBitmap = null;
             return;
         }
@@ -126,16 +127,56 @@ public class LightweightTheme implements GeckoEventListener {
         
         DisplayMetrics dm = mApplication.getResources().getDisplayMetrics();
         int maxWidth = Math.max(dm.widthPixels, dm.heightPixels);
-        int height = (int) (mBitmap.getHeight() * 0.25);
-        Bitmap cropped = Bitmap.createBitmap(mBitmap, mBitmap.getWidth() - maxWidth,
-                                                      mBitmap.getHeight() - height, 
-                                                      maxWidth, height);
+        int height = (int) (bitmap.getHeight() * 0.25);
+
+        
+        int bitmapWidth = bitmap.getWidth();
+        int bitmapHeight = bitmap.getHeight();
+
+        
+        Bitmap cropped = Bitmap.createBitmap(bitmap,
+                                             bitmapWidth > maxWidth ? bitmapWidth - maxWidth : 0,
+                                             bitmapHeight - height, 
+                                             bitmapWidth > maxWidth ? maxWidth : bitmapWidth,
+                                             height);
+
+        
         mColor = BitmapUtils.getDominantColor(cropped, false);
 
+        
         double luminance = (0.2125 * ((mColor & 0x00FF0000) >> 16)) + 
                            (0.7154 * ((mColor & 0x0000FF00) >> 8)) + 
                            (0.0721 * (mColor &0x000000FF));
         mIsLight = (luminance > 110) ? true : false;
+
+        
+        
+        if (bitmap.getWidth() >= maxWidth) {
+            mBitmap = bitmap;
+        } else {
+            Paint paint = new Paint();
+            paint.setAntiAlias(true);
+
+            
+            
+            
+            mBitmap = Bitmap.createBitmap(maxWidth, bitmapHeight, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(mBitmap);
+
+            
+            canvas.drawColor(mColor);
+
+            
+            Rect rect = new Rect();
+            Gravity.apply(Gravity.TOP | Gravity.RIGHT,
+                          bitmapWidth,
+                          bitmapHeight,
+                          new Rect(0, 0, maxWidth, bitmapHeight),
+                          rect);
+
+            
+            canvas.drawBitmap(bitmap, null, rect, paint);
+        }
 
         for (OnChangeListener listener : mListeners)
             listener.onLightweightThemeChanged();
