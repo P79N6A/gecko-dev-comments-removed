@@ -281,59 +281,6 @@ num_parseFloat(JSContext *cx, unsigned argc, Value *vp)
     return JS_TRUE;
 }
 
-static bool
-ParseIntStringHelper(JSContext *cx, const jschar *ws, const jschar *end, int maybeRadix,
-                     bool stripPrefix, double *dp)
-{
-    JS_ASSERT(maybeRadix == 0 || (2 <= maybeRadix && maybeRadix <= 36));
-    JS_ASSERT(ws <= end);
-
-    const jschar *s = SkipSpace(ws, end);
-    JS_ASSERT(ws <= s);
-    JS_ASSERT(s <= end);
-
-    
-    bool negative = (s != end && s[0] == '-');
-
-    
-    if (s != end && (s[0] == '-' || s[0] == '+'))
-        s++;
-
-    
-    int radix = maybeRadix;
-    if (radix == 0) {
-        if (end - s >= 2 && s[0] == '0' && (s[1] != 'x' && s[1] != 'X')) {
-            
-
-
-
-
-
-            radix = 8;
-        } else {
-            radix = 10;
-        }
-    }
-
-    
-    if (stripPrefix) {
-        if (end - s >= 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) {
-            s += 2;
-            radix = 16;
-        }
-    }
-
-    
-    const jschar *actualEnd;
-    if (!GetPrefixInteger(cx, s, end, radix, &actualEnd, dp))
-        return false;
-    if (s == actualEnd)
-        *dp = js_NaN;
-    else if (negative)
-        *dp = -*dp;
-    return true;
-}
-
 
 JSBool
 js::num_parseInt(JSContext *cx, unsigned argc, Value *vp)
@@ -352,6 +299,7 @@ js::num_parseInt(JSContext *cx, unsigned argc, Value *vp)
             args.rval().set(args[0]);
             return true;
         }
+
         
 
 
@@ -388,11 +336,15 @@ js::num_parseInt(JSContext *cx, unsigned argc, Value *vp)
 
     
     bool stripPrefix = true;
-    int32_t radix = 0;
-    if (args.length() > 1) {
+    int32_t radix;
+    if (!args.hasDefined(1)) {
+        radix = 10;
+    } else {
         if (!ToInt32(cx, args[1], &radix))
             return false;
-        if (radix != 0) {
+        if (radix == 0) {
+            radix = 10;
+        } else {
             if (radix < 2 || radix > 36) {
                 args.rval().setDouble(js_NaN);
                 return true;
@@ -403,17 +355,43 @@ js::num_parseInt(JSContext *cx, unsigned argc, Value *vp)
     }
 
     
-    const jschar *ws = inputString->getChars(cx);
-    if (!ws)
-        return false;
-    const jschar *end = ws + inputString->length();
+    const jschar *s;
+    const jschar *end;
+    {
+        const jschar *ws = inputString->getChars(cx);
+        if (!ws)
+            return false;
+        end = ws + inputString->length();
+        s = SkipSpace(ws, end);
 
-    double number;
-    if (!ParseIntStringHelper(cx, ws, end, radix, stripPrefix, &number))
-        return false;
+        MOZ_ASSERT(ws <= s);
+        MOZ_ASSERT(s <= end);
+    }
 
     
-    args.rval().setNumber(number);
+    bool negative = (s != end && s[0] == '-');
+
+    
+    if (s != end && (s[0] == '-' || s[0] == '+'))
+        s++;
+
+    
+    if (stripPrefix) {
+        if (end - s >= 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) {
+            s += 2;
+            radix = 16;
+        }
+    }
+
+    
+    const jschar *actualEnd;
+    double number;
+    if (!GetPrefixInteger(cx, s, end, radix, &actualEnd, &number))
+        return false;
+    if (s == actualEnd)
+        args.rval().setNumber(js_NaN);
+    else
+        args.rval().setNumber(negative ? -number : number);
     return true;
 }
 
