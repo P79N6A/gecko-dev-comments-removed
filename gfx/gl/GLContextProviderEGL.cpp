@@ -463,42 +463,6 @@ public:
     }
 #endif
 
-
-    bool BindExternalBuffer(GLuint texture, void* buffer) MOZ_OVERRIDE
-    {
-#ifdef MOZ_WIDGET_GONK
-        EGLImage image = CreateEGLImageForNativeBuffer(buffer);
-        
-        
-        
-        fBindTexture(LOCAL_GL_TEXTURE_EXTERNAL, texture);
-        fEGLImageTargetTexture2D(LOCAL_GL_TEXTURE_EXTERNAL, image);
-        DestroyEGLImage(image);
-        return true;
-#else
-        return false;
-#endif
-    }
-
-    bool UnbindExternalBuffer(GLuint texture) MOZ_OVERRIDE
-    {
-#if defined(MOZ_WIDGET_GONK)
-        fActiveTexture(LOCAL_GL_TEXTURE0);
-        
-        
-        
-        fBindTexture(LOCAL_GL_TEXTURE_2D, texture);
-        fTexImage2D(LOCAL_GL_TEXTURE_2D, 0,
-                    LOCAL_GL_RGBA,
-                    1, 1, 0,
-                    LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE,
-                    nullptr);
-        return true;
-#else
-        return false;
-#endif
-    }
-
 #ifdef MOZ_WIDGET_GONK
     virtual already_AddRefed<TextureImage>
     CreateDirectTextureImage(GraphicBuffer* aBuffer, GLenum aWrapMode) MOZ_OVERRIDE;
@@ -711,6 +675,16 @@ protected:
     bool mShareWithEGLImage;
 #ifdef MOZ_WIDGET_GONK
     nsRefPtr<HwcComposer2D> mHwc;
+
+    
+
+
+
+
+
+
+
+
     EGLImage mNullEGLImage;
     android::sp<android::GraphicBuffer> mNullGraphicBuffer;
 #endif
