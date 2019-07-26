@@ -229,10 +229,20 @@ NS_IMETHODIMP
 CacheFileInputStream::CloseWithStatus(nsresult aStatus)
 {
   CacheFileAutoLock lock(mFile);
-  MOZ_ASSERT(!mInReadSegments);
 
   LOG(("CacheFileInputStream::CloseWithStatus() [this=%p, aStatus=0x%08x]",
        this, aStatus));
+
+  return CloseWithStatusLocked(aStatus);
+}
+
+nsresult
+CacheFileInputStream::CloseWithStatusLocked(nsresult aStatus)
+{
+  LOG(("CacheFileInputStream::CloseWithStatusLocked() [this=%p, "
+       "aStatus=0x%08x]", this, aStatus));
+
+  MOZ_ASSERT(!mInReadSegments);
 
   if (mClosed) {
     MOZ_ASSERT(!mCallback);
@@ -242,8 +252,9 @@ CacheFileInputStream::CloseWithStatus(nsresult aStatus)
   mClosed = true;
   mStatus = NS_FAILED(aStatus) ? aStatus : NS_BASE_STREAM_CLOSED;
 
-  if (mChunk)
+  if (mChunk) {
     ReleaseChunk();
+  }
 
   
 
@@ -405,7 +416,9 @@ CacheFileInputStream::OnChunkAvailable(nsresult aResult, uint32_t aChunkIdx,
     
     
     
-    mStatus = aResult;
+    CloseWithStatusLocked(aResult);
+
+    return NS_OK;
   }
 
   MaybeNotifyListener();
@@ -507,10 +520,11 @@ CacheFileInputStream::EnsureCorrectChunk(bool aReleaseOnly)
       
       
       
-      mStatus = rv;
+      CloseWithStatusLocked(rv);
+
+      return;
     }
-  }
-  else if (!mChunk) {
+  } else if (!mChunk) {
     mListeningForChunk = static_cast<int64_t>(chunkIdx);
   }
 
