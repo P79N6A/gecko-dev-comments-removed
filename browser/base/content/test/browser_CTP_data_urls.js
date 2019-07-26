@@ -100,8 +100,8 @@ function prepareTest(nextTest, url) {
 
 
 function runAfterPluginBindingAttached(func) {
-  let doc = gTestBrowser.contentDocument;
   return function() {
+    let doc = gTestBrowser.contentDocument;
     let elems = doc.getElementsByTagName('embed');
     if (elems.length < 1) {
       elems = doc.getElementsByTagName('object');

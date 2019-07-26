@@ -99,8 +99,8 @@ function prepareTest(nextTest, url) {
 
 
 function runAfterPluginBindingAttached(func) {
-  let doc = gTestBrowser.contentDocument;
   return function() {
+    let doc = gTestBrowser.contentDocument;
     let elems = doc.getElementsByTagName('embed');
     if (elems.length < 1) {
       elems = doc.getElementsByTagName('object');
@@ -240,7 +240,7 @@ function test11a() {
   var popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
   ok(popupNotification, "Test 11a, Should have a click-to-play notification");
 
-  prepareTest(runAfterPluginBindingAttached(test11b), "about:blank");
+  prepareTest(test11b, "about:blank");
 }
 
 
@@ -519,7 +519,7 @@ function test19e() {
 }
 
 function test19f() {
-  prepareTest(runAfterPluginBindingAttached(test20a), gTestRoot + "plugin_hidden_to_visible.html");
+  prepareTest(test20a, gTestRoot + "plugin_hidden_to_visible.html");
 }
 
 
