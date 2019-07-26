@@ -3,7 +3,3 @@
 
 
 %include ../../shared/devtools/shadereditor.inc.css
-
-.side-menu-widget-item-checkbox > .checkbox-spacer-box {
-  -moz-appearance: none;
-}
