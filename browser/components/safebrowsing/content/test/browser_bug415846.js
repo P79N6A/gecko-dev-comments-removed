@@ -37,11 +37,13 @@ function testNormal_PopupListener() {
   
   
   
+  window.addEventListener("DOMContentLoaded", testPhishing, true);
   content.location = "http://www.mozilla.org/firefox/its-a-trap.html";
-  setTimeout(testPhishing, 2000);
 }
 
 function testPhishing() {
+  window.removeEventListener("DOMContentLoaded", testPhishing, true);
+
   menu.addEventListener("popupshown", testPhishing_PopupListener, false);
   menu.openPopup(null, "", 0, 0, false, null);
 }
