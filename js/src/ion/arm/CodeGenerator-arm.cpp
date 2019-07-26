@@ -493,7 +493,6 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
     MDiv *mir = ins->mir();
-
     if (mir->canBeNegativeOverflow()) {
         
         
@@ -541,6 +540,10 @@ CodeGeneratorARM::visitModI(LModI *ins)
     
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
+    Register callTemp = ToRegister(ins->getTemp(2));
+    
+    JS_ASSERT(callTemp.code() > r3.code() && callTemp.code() < r12.code());
+    masm.ma_mov(lhs, callTemp);
     
     
     masm.ma_cmp(lhs, Imm32(INT_MIN)); 
@@ -568,6 +571,15 @@ CodeGeneratorARM::visitModI(LModI *ins)
     masm.passABIArg(lhs);
     masm.passABIArg(rhs);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idivmod));
+    
+    Label join;
+    
+    masm.ma_cmp(r1, Imm32(0));
+    masm.ma_b(&join, Assembler::NotEqual);
+    masm.ma_cmp(callTemp, Imm32(0));
+    if (!bailoutIf(Assembler::Signed, ins->snapshot()))
+        return false;
+    masm.bind(&join);
     return true;
 }
 
