@@ -397,6 +397,9 @@ RtspMediaResource::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
   return size;
 }
 
+
+
+
 NS_IMPL_ISUPPORTS2(RtspMediaResource::Listener,
                    nsIInterfaceRequestor, nsIStreamingProtocolListener);
 
@@ -433,6 +436,15 @@ nsresult
 RtspMediaResource::Listener::GetInterface(const nsIID & aIID, void **aResult)
 {
   return QueryInterface(aIID, aResult);
+}
+
+void
+RtspMediaResource::Listener::Revoke()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Don't call on non-main thread");
+  if (mResource) {
+    mResource = nullptr;
+  }
 }
 
 nsresult
@@ -595,25 +607,27 @@ RtspMediaResource::OnDisconnected(uint8_t aTrackIdx, nsresult aReason)
     mTrackBuffer[i]->Reset();
   }
 
-  
-  
-  
-  if (!mDecoder) {
-    return NS_OK;
+  if (mDecoder) {
+    if (aReason == NS_ERROR_NOT_INITIALIZED ||
+        aReason == NS_ERROR_CONNECTION_REFUSED ||
+        aReason == NS_ERROR_NOT_CONNECTED ||
+        aReason == NS_ERROR_NET_TIMEOUT) {
+      
+      RTSPMLOG("Error in OnDisconnected 0x%x", aReason);
+      mDecoder->NetworkError();
+    } else {
+      
+      
+      mDecoder->ResetConnectionState();
+    }
   }
 
-  if (aReason == NS_ERROR_NOT_INITIALIZED ||
-      aReason == NS_ERROR_CONNECTION_REFUSED ||
-      aReason == NS_ERROR_NOT_CONNECTED ||
-      aReason == NS_ERROR_NET_TIMEOUT) {
-    RTSPMLOG("Error in OnDisconnected 0x%x", aReason);
-    mDecoder->NetworkError();
-    return NS_OK;
+  if (mListener) {
+    
+    
+    mListener->Revoke();
   }
 
-  
-  
-  mDecoder->ResetConnectionState();
   return NS_OK;
 }
 

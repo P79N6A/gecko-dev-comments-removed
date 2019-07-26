@@ -209,7 +209,7 @@ public:
     NS_DECL_NSIINTERFACEREQUESTOR
     NS_DECL_NSISTREAMINGPROTOCOLLISTENER
 
-    void Revoke() { mResource = nullptr; }
+    void Revoke();
 
   private:
     nsRefPtr<RtspMediaResource> mResource;

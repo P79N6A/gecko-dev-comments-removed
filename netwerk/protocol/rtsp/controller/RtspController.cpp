@@ -188,7 +188,9 @@ RtspController::AsyncOpen(nsIStreamingProtocolListener *aListener)
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  mListener = aListener;
+  
+  mListener =
+    new nsMainThreadPtrHolder<nsIStreamingProtocolListener>(aListener, false);
 
   if (!mURI) {
     LOG(("RtspController::AsyncOpen() illegal URI"));
@@ -330,6 +332,9 @@ RtspController::OnDisconnected(uint8_t index,
   if (mListener) {
     nsRefPtr<SendOnDisconnectedTask> task =
       new SendOnDisconnectedTask(mListener, index, reason);
+    
+    
+    mListener = nullptr;
     return NS_DispatchToMainThread(task);
   }
   return NS_ERROR_NOT_AVAILABLE;

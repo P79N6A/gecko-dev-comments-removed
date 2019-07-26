@@ -37,7 +37,7 @@ private:
   
   nsCOMPtr<nsIURI> mURI;
   
-  nsCOMPtr<nsIStreamingProtocolListener> mListener;
+  nsMainThreadPtrHandle<nsIStreamingProtocolListener> mListener;
   
   nsCString mSpec;
   

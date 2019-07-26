@@ -47,9 +47,15 @@ class RtspControllerChild : public nsIStreamingProtocolController
   void ReleaseIPDLReference();
   void AddMetaData(already_AddRefed<nsIStreamingProtocolMetaData>&& meta);
   int  GetMetaDataLength();
+  bool OKToSendIPC();
+  void AllowIPC();
+  void DisallowIPC();
 
  private:
   bool mIPCOpen;
+  
+  
+  bool mIPCAllowed;
   
   nsCOMPtr<nsIChannel> mChannel;
   
