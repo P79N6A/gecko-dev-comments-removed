@@ -1251,24 +1251,18 @@ bool
 BaselineCompiler::emit_JSOP_INITELEM_ARRAY()
 {
     
-    frame.syncStack(1);
-
-    StackValue *array = frame.peek(-2);
-    StackValue *element = frame.peek(-1);
-
-    uint32_t index = GET_UINT24(pc);
+    frame.syncStack(0);
 
     
-    Register scratch = R2.scratchReg();
-    masm.extractObject(frame.addressOfStackValue(array), scratch);
-    masm.loadPtr(Address(scratch, JSObject::offsetOfElements()), scratch);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-2)), R0);
+    masm.moveValue(Int32Value(GET_UINT24(pc)), R1);
 
     
-    masm.store32(Imm32(index + 1), Address(scratch, ObjectElements::offsetOfInitializedLength()));
+    ICSetElem_Fallback::Compiler stubCompiler(cx);
+    if (!emitOpIC(stubCompiler.getStub(&stubSpace_)))
+        return false;
 
     
-    storeValue(element, Address(scratch, index * sizeof(Value)), R0);
-
     frame.pop();
     return true;
 }
