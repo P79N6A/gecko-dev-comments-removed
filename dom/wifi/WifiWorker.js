@@ -772,9 +772,18 @@ var WifiManager = (function() {
       if (manager.state !== "DISABLING" && manager.state !== "UNINITIALIZED") {
         notify("supplicantlost", { success: true });
       }
-      wifiCommand.closeSupplicantConnection(function() {
-        manager.connectToSupplicant = false;
-      });
+
+      if (manager.stopSupplicantCallback) {
+        cancelWaitForTerminateEventTimer();
+        
+        
+        
+        
+        let stopSupplicantCallback = manager.stopSupplicantCallback.bind(manager);
+        manager.stopSupplicantCallback = null;
+        stopSupplicantCallback();
+        stopSupplicantCallback = null;
+      }
       return false;
     }
     if (eventData.indexOf("CTRL-EVENT-DISCONNECTED") === 0) {
@@ -894,6 +903,24 @@ var WifiManager = (function() {
   manager.authenticationFailuresCount = 0;
   manager.loopDetectionCount = 0;
   manager.dhcpFailuresCount = 0;
+  manager.stopSupplicantCallback = null;
+
+  var waitForTerminateEventTimer = null;
+  function cancelWaitForTerminateEventTimer() {
+    if (waitForTerminateEventTimer) {
+      waitForTerminateEventTimer.cancel();
+      waitForTerminateEventTimer = null;
+    }
+  };
+  function createWaitForTerminateEventTimer(onTimeout) {
+    if (waitForTerminateEventTimer) {
+      return;
+    }
+    waitForTerminateEventTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    waitForTerminateEventTimer.initWithCallback(onTimeout,
+                                                4000,
+                                                Ci.nsITimer.TYPE_ONE_SHOT);
+  };
 
   var waitForDriverReadyTimer = null;
   function cancelWaitForDriverReadyTimer() {
@@ -996,14 +1023,24 @@ var WifiManager = (function() {
       
       
       let doDisableWifi = function() {
-        wifiCommand.terminateSupplicant(function (ok) {
-          manager.connectionDropped(function () {
-            wifiCommand.stopSupplicant(function (status) {
+        manager.stopSupplicantCallback = (function () {
+          wifiCommand.stopSupplicant(function (status) {
+            wifiCommand.closeSupplicantConnection(function() {
               manager.state = "UNINITIALIZED";
               netUtil.disableInterface(manager.ifname, function (ok) {
                 unloadDriver(WIFI_FIRMWARE_STATION, callback);
               });
             });
+          });
+        }).bind(this);
+
+        let terminateEventCallback = (function() {
+          handleEvent("CTRL-EVENT-TERMINATING");
+        }).bind(this);
+        createWaitForTerminateEventTimer(terminateEventCallback);
+
+        wifiCommand.terminateSupplicant(function (ok) {
+          manager.connectionDropped(function () {
           });
         });
       }
