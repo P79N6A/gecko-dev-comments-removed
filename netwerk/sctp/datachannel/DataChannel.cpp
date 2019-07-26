@@ -169,17 +169,17 @@ debug_printf(const char *format, ...)
 #endif
 
 DataChannelConnection::DataChannelConnection(DataConnectionListener *listener) :
-   mLock("netwerk::sctp::DataChannel")
+   mLock("netwerk::sctp::DataChannelConnection")
 {
   mState = CLOSED;
   mSocket = nullptr;
   mMasterSocket = nullptr;
-  mListener = listener;
+  mListener = listener->asWeakPtr();
   mLocalPort = 0;
   mRemotePort = 0;
   mDeferTimeout = 10;
   mTimerRunning = false;
-  LOG(("Constructor DataChannelConnection=%p, listener=%p", this, mListener));
+  LOG(("Constructor DataChannelConnection=%p, listener=%p", this, mListener.get()));
 }
 
 DataChannelConnection::~DataChannelConnection()
@@ -207,6 +207,7 @@ DataChannelConnection::Destroy()
   
   
   LOG(("Destroying DataChannelConnection %p", (void *) this));
+  MOZ_ASSERT(NS_IsMainThread());
   CloseAll();
 
   if (mSocket && mSocket != mMasterSocket)
@@ -2163,7 +2164,7 @@ DataChannel::Destroy()
 void
 DataChannel::SetListener(DataChannelListener *aListener, nsISupports *aContext)
 {
-  MOZ_ASSERT(!mListener); 
+  MutexAutoLock mLock(mListenerLock);
   mContext = aContext;
   mListener = aListener;
 }

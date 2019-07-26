@@ -54,6 +54,14 @@ public:
     , mBinaryType(DC_BINARY_TYPE_BLOB)
   {}
 
+  ~nsDOMDataChannel()
+  {
+    
+    
+    
+    mDataChannel->SetListener(nullptr, nullptr);
+  }
+
   nsresult Init(nsPIDOMWindow* aDOMWindow);
 
   NS_DECL_ISUPPORTS_INHERITED
