@@ -1261,13 +1261,27 @@ PostFilterExtentsForPrimitive(const FilterPrimitiveDescription& aDescription,
     {
       uint32_t op = atts.GetUint(eCompositeOperator);
       if (op == SVG_FECOMPOSITE_OPERATOR_ARITHMETIC) {
+        
+        
         const nsTArray<float>& coefficients = atts.GetFloats(eCompositeCoefficients);
         MOZ_ASSERT(coefficients.Length() == 4);
-        if (coefficients[3] > 0.0f) {
-          
-          
-          return ThebesIntRect(aDescription.PrimitiveSubregion());
+
+        
+        
+        nsIntRegion region;
+        if (coefficients[0] > 0.0f) {
+          region = aInputExtents[0].Intersect(aInputExtents[1]);
         }
+        if (coefficients[1] > 0.0f) {
+          region.Or(region, aInputExtents[0]);
+        }
+        if (coefficients[2] > 0.0f) {
+          region.Or(region, aInputExtents[1]);
+        }
+        if (coefficients[3] > 0.0f) {
+          region = ThebesIntRect(aDescription.PrimitiveSubregion());
+        }
+        return region;
       }
       if (op == SVG_FECOMPOSITE_OPERATOR_IN) {
         return aInputExtents[0].Intersect(aInputExtents[1]);
