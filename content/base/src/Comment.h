@@ -3,6 +3,9 @@
 
 
 
+#ifndef mozilla_dom_Comment_h
+#define mozilla_dom_Comment_h
+
 #include "nsIDOMComment.h"
 #include "nsGenericDOMDataNode.h"
 
@@ -13,7 +16,13 @@ class Comment : public nsGenericDOMDataNode,
                 public nsIDOMComment
 {
 public:
-  Comment(already_AddRefed<nsINodeInfo> aNodeInfo);
+  Comment(already_AddRefed<nsINodeInfo> aNodeInfo)
+    : nsGenericDOMDataNode(aNodeInfo)
+  {
+    NS_ABORT_IF_FALSE(mNodeInfo->NodeType() == nsIDOMNode::COMMENT_NODE,
+                      "Bad NodeType in aNodeInfo");
+    SetIsDOMBinding();
+  }
   virtual ~Comment();
 
   
@@ -45,8 +54,13 @@ public:
     return;
   }
 #endif
+
+protected:
+  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope,
+                             bool *aTriedToWrap) MOZ_OVERRIDE;
 };
 
 } 
 } 
 
+#endif 
