@@ -5410,7 +5410,7 @@ nsFrame::XMLQuote(nsString& aString)
 {
   int32_t i, len = aString.Length();
   for (i = 0; i < len; i++) {
-    char16_t ch = aString.CharAt(i);
+    PRUnichar ch = aString.CharAt(i);
     if (ch == '<') {
       nsAutoString tmp(NS_LITERAL_STRING("&lt;"));
       aString.Cut(i, 1);
@@ -7740,11 +7740,13 @@ nsFrame::DoLayout(nsBoxLayoutState& aState)
                                   nsSize(size.width, NS_UNCONSTRAINEDSIZE),
                                   nsHTMLReflowState::DUMMY_PARENT_REFLOW_STATE);
 
+    AddStateBits(NS_FRAME_IN_REFLOW);
     
     
     nsReflowStatus reflowStatus = NS_FRAME_COMPLETE;
     ReflowAbsoluteFrames(aState.PresContext(), desiredSize,
                          reflowState, reflowStatus);
+    RemoveStateBits(NS_FRAME_IN_REFLOW);
   }
 
   nsSize oldSize(ourRect.Size());
