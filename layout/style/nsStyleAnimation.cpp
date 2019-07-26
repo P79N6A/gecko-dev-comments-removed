@@ -3402,11 +3402,6 @@ nsStyleAnimation::Value::SetUnparsedStringValue(const nsString& aString)
   FreeValue();
   mUnit = eUnit_UnparsedString;
   mValue.mString = nsCSSValue::BufferFromString(aString).get();
-  if (MOZ_UNLIKELY(!mValue.mString)) {
-    
-    
-    mUnit = eUnit_Null;
-  }
 }
 
 void
