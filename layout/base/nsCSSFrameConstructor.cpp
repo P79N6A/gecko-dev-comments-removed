@@ -5964,10 +5964,12 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
       
       return false;
     }
-
-    return true;
+    
+    
+    
   }
-  else if (IsFrameForFieldSet(parentFrame, parentType)) {
+
+  if (IsFrameForFieldSet(parentFrame, parentType)) {
     
     nsIAtom* sibType = aSibling->GetContentInsertionFrame()->GetType();
     bool legendContent = aContent->IsHTML(nsGkAtoms::legend);
