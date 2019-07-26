@@ -46,9 +46,14 @@ typedef void
 
 
 
+
+
+
+
+
 XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
-             void *aClosure, uintptr_t aThread);
+             void *aClosure, uintptr_t aThread, void *aPlatformData);
 
 typedef struct {
     
