@@ -1304,14 +1304,17 @@ this.PushService = {
   _wsOnStop: function(context, statusCode) {
     debug("wsOnStop()");
 
-    this._shutdownWS();
-
     if (statusCode != Cr.NS_OK &&
         !(statusCode == Cr.NS_BASE_STREAM_CLOSED && this._willBeWokenUpByUDP)) {
       debug("Socket error " + statusCode);
       this._reconnectAfterBackoff();
     }
 
+    
+    
+    
+    
+    this._shutdownWS();
   },
 
   _wsOnMessageAvailable: function(context, message) {
