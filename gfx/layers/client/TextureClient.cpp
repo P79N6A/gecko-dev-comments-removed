@@ -52,12 +52,14 @@ namespace layers {
 
 
 class TextureChild : public PTextureChild
+                   , public AtomicRefCounted<TextureChild>
 {
 public:
   TextureChild()
   : mForwarder(nullptr)
   , mTextureData(nullptr)
   , mTextureClient(nullptr)
+  , mIPCOpen(false)
   {
     MOZ_COUNT_CTOR(TextureChild);
   }
@@ -87,11 +89,29 @@ public:
 
   void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
+  bool IPCOpen() const { return mIPCOpen; }
+
 private:
+
+  
+  
+  
+  
+  void AddIPDLReference() {
+    MOZ_ASSERT(mIPCOpen == false);
+    mIPCOpen = true;
+    AddRef();
+  }
+  void ReleaseIPDLReference() {
+    MOZ_ASSERT(mIPCOpen == true);
+    mIPCOpen = false;
+    Release();
+  }
 
   CompositableForwarder* mForwarder;
   TextureClientData* mTextureData;
   TextureClient* mTextureClient;
+  bool mIPCOpen;
 
   friend class TextureClient;
 };
@@ -125,14 +145,16 @@ TextureChild::ActorDestroy(ActorDestroyReason why)
 PTextureChild*
 TextureClient::CreateIPDLActor()
 {
-  return new TextureChild();
+  TextureChild* c = new TextureChild();
+  c->AddIPDLReference();
+  return c;
 }
 
 
 bool
 TextureClient::DestroyIPDLActor(PTextureChild* actor)
 {
-  delete actor;
+  static_cast<TextureChild*>(actor)->ReleaseIPDLReference();
   return true;
 }
 
@@ -151,7 +173,8 @@ TextureClient::InitIPDLActor(CompositableForwarder* aForwarder)
   mActor->mForwarder = aForwarder;
   mActor->mTextureClient = this;
   mShared = true;
-  return mActor->SendInit(desc, GetFlags());
+  return mActor->IPCOpen() &&
+         mActor->SendInit(desc, GetFlags());
 }
 
 PTextureChild*
@@ -234,8 +257,7 @@ ShmemTextureClient::DropTextureData()
 }
 
 TextureClient::TextureClient(TextureFlags aFlags)
-  : mActor(nullptr)
-  , mFlags(aFlags)
+  : mFlags(aFlags)
   , mShared(false)
   , mValid(true)
 {}
@@ -251,10 +273,14 @@ void TextureClient::ForceRemove()
   if (mValid && mActor) {
     if (GetFlags() & TEXTURE_DEALLOCATE_CLIENT) {
       mActor->SetTextureData(DropTextureData());
-      mActor->SendRemoveTextureSync();
+      if (mActor->IPCOpen()) {
+        mActor->SendRemoveTextureSync();
+      }
       mActor->DeleteTextureData();
     } else {
-      mActor->SendRemoveTexture();
+      if (mActor->IPCOpen()) {
+        mActor->SendRemoveTexture();
+      }
     }
   }
   MarkInvalid();
