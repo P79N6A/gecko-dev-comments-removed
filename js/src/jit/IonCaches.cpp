@@ -1111,18 +1111,20 @@ GetPropertyIC::canAttachNative(JSContext *cx, HandleObject obj, HandlePropertyNa
         }
         return CanAttachReadSlot;
     }
-    else if (allowGetters() && (IsCacheableGetPropCallNative(obj, holder, shape) ||
-             IsCacheableGetPropCallPropertyOp(obj, holder, shape)))
+
+    if (obj->is<ArrayObject>() && cx->names().length == name) {
+        
+        
+        
+        
+        return CanAttachArrayLength;
+    }
+
+    if (allowGetters() && (IsCacheableGetPropCallNative(obj, holder, shape) ||
+               IsCacheableGetPropCallPropertyOp(obj, holder, shape)))
     {
         
         
-
-        
-        if (obj->is<ArrayObject>() && cx->names().length == name)
-        {
-            return CanAttachArrayLength;
-        }
-
         return CanAttachCallGetter;
     }
 
