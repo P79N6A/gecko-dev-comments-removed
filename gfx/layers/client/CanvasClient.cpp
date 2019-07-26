@@ -5,7 +5,6 @@
 
 #include "mozilla/layers/CanvasClient.h"
 #include "ClientCanvasLayer.h"          
-#include "CompositorChild.h"            
 #include "GLContext.h"                  
 #include "GLScreenBuffer.h"             
 #include "SurfaceStream.h"              
@@ -173,17 +172,6 @@ CanvasClientSurfaceStream::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
     if (grallocTextureClient->GetIPDLActor()) {
       GetForwarder()->UseTexture(this, grallocTextureClient);
     }
-
-    if (mBuffer && CompositorChild::ChildProcessHasCompositor()) {
-      
-      RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker(this);
-      
-      tracker->SetTextureClient(mBuffer);
-      mBuffer->SetRemoveFromCompositableTracker(tracker);
-      
-      GetForwarder()->RemoveTextureFromCompositableAsync(tracker, this, mBuffer);
-    }
-    mBuffer = grallocTextureClient;
 #else
     printf_stderr("isCrossProcess, but not MOZ_WIDGET_GONK! Someone needs to write some code!");
     MOZ_ASSERT(false);

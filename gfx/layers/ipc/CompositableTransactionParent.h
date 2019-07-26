@@ -36,11 +36,6 @@ public:
 
   virtual void SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage) = 0;
 
-  
-
-
-  virtual base::ProcessId GetChildProcessId() = 0;
-
 protected:
   
 
@@ -55,8 +50,17 @@ protected:
 
   virtual bool IsAsync() const { return false; }
 
+  void ReturnTextureDataIfNecessary(CompositableHost* aCompositable);
+
+  void DeprecatedReturnTextureDataIfNecessary(CompositableHost* aCompositable,
+                                              EditReplyVector& replyv,
+                                              PCompositableParent* aParent);
+  void DeprecatedClearPrevFenceHandles();
+
   virtual void ReplyRemoveTexture(const OpReplyRemoveTexture& aReply) {}
 
+protected:
+  std::vector<FenceHandle> mPrevFenceHandles;
 };
 
 } 

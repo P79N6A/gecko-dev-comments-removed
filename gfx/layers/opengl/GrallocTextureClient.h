@@ -62,9 +62,7 @@ public:
 
   virtual void SetReleaseFenceHandle(FenceHandle aReleaseFenceHandle) MOZ_OVERRIDE;
 
-  virtual void SetRemoveFromCompositableTracker(AsyncTransactionTracker* aTracker) MOZ_OVERRIDE;
-
-  virtual void WaitForBufferOwnership() MOZ_OVERRIDE;
+  virtual void WaitReleaseFence() MOZ_OVERRIDE;
 
   void InitWith(MaybeMagicGrallocBufferHandle aDesc, gfx::IntSize aSize);
 
@@ -121,8 +119,6 @@ protected:
 
 
   MaybeMagicGrallocBufferHandle mGrallocHandle;
-
-  RefPtr<AsyncTransactionTracker> mRemoveFromCompositableTracker;
 
   android::sp<android::GraphicBuffer> mGraphicBuffer;
 

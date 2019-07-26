@@ -16,7 +16,6 @@
 #include "mozilla/RefPtr.h"             
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/ContentHost.h"  
-#include "mozilla/layers/ImageBridgeParent.h" 
 #include "mozilla/layers/SharedBufferManagerParent.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/LayersSurfaces.h"  
@@ -114,6 +113,8 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
         OpContentBufferSwap(op.compositableParent(), nullptr, frontUpdatedRegion));
 
       RenderTraceInvalidateEnd(thebes, "FF00FF");
+      
+      ReturnTextureDataIfNecessary(compositable);
       break;
     }
     case CompositableOperation::TOpPaintTextureIncremental: {
@@ -159,7 +160,13 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       MOZ_ASSERT(tex.get());
       compositable->RemoveTextureHost(tex);
       
-      TextureHost::SendFenceHandleIfPresent(op.textureParent());
+      if (IsAsync()) {
+        DeprecatedReturnTextureDataIfNecessary(compositable,
+                                               replyv,
+                                               op.compositableParent());
+      } else {
+        ReturnTextureDataIfNecessary(compositable);
+      }
       break;
     }
     case CompositableOperation::TOpRemoveTextureAsync: {
@@ -169,30 +176,12 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
 
       MOZ_ASSERT(tex.get());
       compositable->RemoveTextureHost(tex);
+      
+      TextureHost::SendFenceHandleIfPresent(op.textureParent());
 
-      if (!IsAsync() && GetChildProcessId()) {
-        
-        ImageBridgeParent::SendFenceHandleToTrackerIfPresent(
-                             GetChildProcessId(),
-                             op.holderId(),
-                             op.transactionId(),
-                             op.textureParent());
-
-        
-        
-        ImageBridgeParent::ReplyRemoveTexture(
-                             GetChildProcessId(),
-                             OpReplyRemoveTexture(true, 
-                                                  op.holderId(),
-                                                  op.transactionId()));
-      } else {
-        
-        TextureHost::SendFenceHandleIfPresent(op.textureParent());
-
-        ReplyRemoveTexture(OpReplyRemoveTexture(false, 
-                                                op.holderId(),
-                                                op.transactionId()));
-      }
+      ReplyRemoveTexture(OpReplyRemoveTexture(op.transactionId(),
+                                              op.compositableParent(), nullptr,
+                                              tex->GetIPDLActor(), nullptr));
       break;
     }
     case CompositableOperation::TOpUseTexture: {
@@ -211,6 +200,14 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
           compositable->GetLayer()->SetInvalidRectToVisibleRegion();
         }
       }
+      
+      if (IsAsync()) {
+        DeprecatedReturnTextureDataIfNecessary(compositable,
+                                               replyv,
+                                               op.compositableParent());
+      } else {
+        ReturnTextureDataIfNecessary(compositable);
+      }
       break;
     }
     case CompositableOperation::TOpUseComponentAlphaTextures: {
@@ -225,6 +222,8 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       if (IsAsync()) {
         ScheduleComposition(op);
       }
+      
+      ReturnTextureDataIfNecessary(compositable);
       break;
     }
     case CompositableOperation::TOpUpdateTexture: {
@@ -244,6 +243,112 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
   }
 
   return true;
+}
+
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+void
+CompositableParentManager::ReturnTextureDataIfNecessary(CompositableHost* aCompositable)
+{
+  if (!aCompositable || !aCompositable->GetCompositableBackendSpecificData()) {
+    return;
+  }
+
+  static const uint32_t MAX_FENCE_COUNT_PER_MESSAGE = 4;
+
+  const std::vector< RefPtr<TextureHost> > textureList =
+        aCompositable->GetCompositableBackendSpecificData()->GetPendingReleaseFenceTextureList();
+  InfallibleTArray<AsyncParentMessageData> messages;
+  messages.SetCapacity(MAX_FENCE_COUNT_PER_MESSAGE);
+
+  
+  for (size_t i = 0; i < textureList.size(); i++) {
+    TextureHostOGL* hostOGL = textureList[i]->AsHostOGL();
+    PTextureParent* actor = textureList[i]->GetIPDLActor();
+    if (!hostOGL || !actor) {
+      continue;
+    }
+    android::sp<android::Fence> fence = hostOGL->GetAndResetReleaseFence();
+    if (fence.get() && fence->isValid()) {
+      RefPtr<FenceDeliveryTracker> tracker = new FenceDeliveryTracker(fence);
+      FenceHandle handle = FenceHandle(fence);
+      HoldUntilComplete(tracker);
+      messages.AppendElement(OpDeliverFence(tracker->GetId(),
+                                            actor, nullptr,
+                                            handle));
+      if (messages.Length() >= MAX_FENCE_COUNT_PER_MESSAGE) {
+        SendAsyncMessage(messages);
+        messages.Clear();
+      }
+    }
+  }
+
+  if (messages.Length() > 0) {
+    SendAsyncMessage(messages);
+    messages.Clear();
+  }
+  aCompositable->GetCompositableBackendSpecificData()->ClearPendingReleaseFenceTextureList();
+}
+
+void
+CompositableParentManager::DeprecatedReturnTextureDataIfNecessary(CompositableHost* aCompositable,
+                                                                  EditReplyVector& replyv,
+                                                                  PCompositableParent* aParent)
+{
+  if (!aCompositable || !aCompositable->GetCompositableBackendSpecificData()) {
+    return;
+  }
+
+  const std::vector< RefPtr<TextureHost> > textureList =
+        aCompositable->GetCompositableBackendSpecificData()->GetPendingReleaseFenceTextureList();
+  
+  for (size_t i = 0; i < textureList.size(); i++) {
+    
+    
+    if (mPrevFenceHandles.size() >= 4) {
+      break;
+    }
+    TextureHostOGL* hostOGL = textureList[i]->AsHostOGL();
+    PTextureParent* actor = textureList[i]->GetIPDLActor();
+    if (!hostOGL || !actor) {
+      continue;
+    }
+    android::sp<android::Fence> fence = hostOGL->GetAndResetReleaseFence();
+    if (fence.get() && fence->isValid()) {
+      FenceHandle handle = FenceHandle(fence);
+      replyv.push_back(ReturnReleaseFence(aParent, nullptr, actor, nullptr, handle));
+      
+      mPrevFenceHandles.push_back(handle);
+    }
+  }
+  aCompositable->GetCompositableBackendSpecificData()->ClearPendingReleaseFenceTextureList();
+}
+
+#else
+void
+CompositableParentManager::ReturnTextureDataIfNecessary(CompositableHost* aCompositable)
+{
+  if (!aCompositable || !aCompositable->GetCompositableBackendSpecificData()) {
+    return;
+  }
+  aCompositable->GetCompositableBackendSpecificData()->ClearPendingReleaseFenceTextureList();
+}
+
+void
+CompositableParentManager::DeprecatedReturnTextureDataIfNecessary(CompositableHost* aCompositable,
+                                                                  EditReplyVector& replyv,
+                                                                  PCompositableParent* aParent)
+{
+  if (!aCompositable || !aCompositable->GetCompositableBackendSpecificData()) {
+    return;
+  }
+  aCompositable->GetCompositableBackendSpecificData()->ClearPendingReleaseFenceTextureList();
+}
+#endif
+
+void
+CompositableParentManager::DeprecatedClearPrevFenceHandles()
+{
+  mPrevFenceHandles.clear();
 }
 
 } 
