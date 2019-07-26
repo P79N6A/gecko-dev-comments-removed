@@ -39,8 +39,6 @@ using namespace mozilla;
 
 static const int32_t kBoundaryAppUnits = 61;
 
-static const int32_t kAutoScrollTimerDelay = 30;
-
 NS_IMPL_ISUPPORTS(TouchCaret, nsISelectionListener)
 
  int32_t TouchCaret::sTouchCaretMaxDistance = 0;
@@ -284,7 +282,7 @@ TouchCaret::MoveCaret(const nsPoint& movePoint)
   offsetToCanvasFrame = nsPoint(0,0);
   nsLayoutUtils::TransformPoint(capturingFrame, canvasFrame, offsetToCanvasFrame);
   pt = movePoint - offsetToCanvasFrame;
-  fs->StartAutoScrollTimer(capturingFrame, pt, kAutoScrollTimerDelay);
+  fs->StartAutoScrollTimer(capturingFrame, pt, sAutoScrollTimerDelay);
 }
 
 bool

@@ -235,6 +235,10 @@ protected:
   
   static int32_t sTouchCaretMaxDistance;
   static int32_t sTouchCaretExpirationTime;
+
+  
+  friend class SelectionCarets;
+  static const int32_t sAutoScrollTimerDelay = 30;
 };
 } 
 #endif 
