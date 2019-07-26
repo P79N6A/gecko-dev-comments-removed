@@ -4323,3 +4323,6 @@ pref("snav.enabled", false);
 
 
 pref("dom.wakelock.enabled", false);
+
+
+pref("identity.fxaccounts.auth.uri", "https://api.accounts.firefox.com/v1");

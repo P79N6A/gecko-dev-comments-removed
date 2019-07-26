@@ -863,9 +863,6 @@ pref("dom.downloads.max_retention_days", 7);
 pref("osfile.reset_worker_delay", 5000);
 
 
-pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");
-
-
 
 
 
