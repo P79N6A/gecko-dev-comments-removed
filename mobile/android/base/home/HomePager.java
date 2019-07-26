@@ -96,13 +96,6 @@ public class HomePager extends ViewPager {
         
         
         setOffscreenPageLimit(3);
-
-        
-        
-        
-        
-        
-        setFocusableInTouchMode(true);
     }
 
     @Override
@@ -331,6 +324,9 @@ public class HomePager extends ViewPager {
     @Override
     public boolean onInterceptTouchEvent(MotionEvent event) {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            
+            
+            
             
             requestFocus();
         }
