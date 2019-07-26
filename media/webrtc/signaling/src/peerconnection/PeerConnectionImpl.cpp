@@ -1001,6 +1001,9 @@ PeerConnectionImpl::CreateDataChannel(const nsAString& aLabel,
 static already_AddRefed<PeerConnectionObserver>
 do_QueryObjectReferent(nsIWeakReference* aRawPtr) {
   nsCOMPtr<nsISupportsWeakReference> tmp = do_QueryReferent(aRawPtr);
+  if (!tmp) {
+    return nullptr;
+  }
   nsRefPtr<nsSupportsWeakReference> tmp2 = do_QueryObject(tmp);
   nsRefPtr<PeerConnectionObserver> tmp3 = static_cast<PeerConnectionObserver*>(&*tmp2);
   return tmp3.forget();
