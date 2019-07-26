@@ -218,6 +218,8 @@ ThreadActor.prototype = {
       }
       packet.why = { type: "attached" };
 
+      this._restoreBreakpoints();
+
       
       
       
@@ -741,35 +743,22 @@ ThreadActor.prototype = {
   
 
 
-  _discoverScriptsAndSources: function TA__discoverScriptsAndSources() {
-    let promises = [];
-    let foundSourceMaps = false;
-    let scripts = this.dbg.findScripts();
-    for (let s of scripts) {
-      if (s.sourceMapURL && !foundSourceMaps) {
-        foundSourceMaps = true;
-        break;
-      }
+
+
+
+  _discoverSources: function TA__discoverSources() {
+    
+    let scriptsByUrl = {};
+    for (let s of this.dbg.findScripts()) {
+      scriptsByUrl[s.url] = s;
     }
-    if (this._options.useSourceMaps && foundSourceMaps) {
-      for (let s of scripts) {
-        promises.push(this._addScript(s));
-      }
-      return all(promises);
-    }
-    
-    
-    
-    
-    
-    for (let s of scripts) {
-      this._addScriptSync(s);
-    }
-    return resolve(null);
+
+    return all([this.sources.sourcesForScript(scriptsByUrl[s])
+                for (s of Object.keys(scriptsByUrl))]);
   },
 
   onSources: function TA_onSources(aRequest) {
-    return this._discoverScriptsAndSources().then(() => {
+    return this._discoverSources().then(() => {
       return {
         sources: [s.form() for (s of this.sources.iter())]
       };
@@ -1269,6 +1258,7 @@ ThreadActor.prototype = {
 
   onNewScript: function TA_onNewScript(aScript, aGlobal) {
     this._addScript(aScript);
+    this.sources.sourcesForScript(aScript);
   },
 
   onNewSource: function TA_onNewSource(aSource) {
@@ -1305,35 +1295,10 @@ ThreadActor.prototype = {
   
 
 
-
-
-
-
-
-  _addScriptSync: function TA__addScriptSync(aScript) {
-    if (!this._allowSource(aScript.url)) {
-      return false;
+  _restoreBreakpoints: function TA__restoreBreakpoints() {
+    for (let s of this.dbg.findScripts()) {
+      this._addScript(s);
     }
-
-    this.sources.source(aScript.url);
-    
-    let existing = this._breakpointStore[aScript.url];
-    if (existing) {
-      let endLine = aScript.startLine + aScript.lineCount - 1;
-      
-      
-      for (let line = existing.length - 1; line >= 0; line--) {
-        let bp = existing[line];
-        
-        
-        
-        if (bp && !bp.actor.scripts.length &&
-            line >= aScript.startLine && line <= endLine) {
-          this._setBreakpoint(bp);
-        }
-      }
-    }
-    return true;
   },
 
   
@@ -1345,34 +1310,28 @@ ThreadActor.prototype = {
 
   _addScript: function TA__addScript(aScript) {
     if (!this._allowSource(aScript.url)) {
-      return resolve(false);
+      return false;
     }
 
     
-    
-    return this.sources.sourcesForScript(aScript).then(() => {
-
+    let existing = this._breakpointStore[aScript.url];
+    if (existing) {
+      let endLine = aScript.startLine + aScript.lineCount - 1;
       
-      let existing = this._breakpointStore[aScript.url];
-      if (existing) {
-        let endLine = aScript.startLine + aScript.lineCount - 1;
+      
+      for (let line = existing.length - 1; line >= aScript.startLine; line--) {
+        let bp = existing[line];
         
         
-        for (let line = existing.length - 1; line >= 0; line--) {
-          let bp = existing[line];
-          
-          
-          
-          if (bp && !bp.actor.scripts.length &&
-              line >= aScript.startLine && line <= endLine) {
-            this._setBreakpoint(bp);
-          }
+        
+        if (bp && !bp.actor.scripts.length && line <= endLine) {
+          this._setBreakpoint(bp);
         }
       }
-
-      return true;
-    });
+    }
+    return true;
   },
+
 };
 
 ThreadActor.prototype.requestTypes = {
@@ -2638,7 +2597,8 @@ ThreadSources.prototype = {
         return [
           this.source(s, aSourceMap) for (s of aSourceMap.sources)
         ];
-      }, (e) => {
+      })
+      .then(null, (e) => {
         reportError(e);
         delete this._sourceMaps[this._normalize(aScript.sourceMapURL, aScript.url)];
         delete this._sourceMapsByGeneratedSource[aScript.url];
@@ -2682,7 +2642,7 @@ ThreadSources.prototype = {
       return this._sourceMaps[aAbsSourceMapURL];
     } else {
       let promise = fetch(aAbsSourceMapURL).then((rawSourceMap) => {
-        let map =  new SourceMapConsumer(rawSourceMap);
+        let map = new SourceMapConsumer(rawSourceMap);
         let base = aAbsSourceMapURL.replace(/\/[^\/]+$/, '/');
         if (base.indexOf("data:") !== 0) {
           map.sourceRoot = map.sourceRoot
