@@ -88,11 +88,10 @@ add_task(function test_getSystemDownloadsDirectory()
       (Services.appinfo.OS == "WINNT" &&
        parseFloat(Services.sysinfo.getProperty("version")) >= 6)) {
     downloadDir = yield DownloadIntegration.getSystemDownloadsDirectory();
-    do_check_true(downloadDir instanceof Ci.nsIFile);
-    do_check_eq(downloadDir.path, tempDir.path);
-    do_check_true(yield OS.File.exists(downloadDir.path));
+    do_check_eq(downloadDir, tempDir.path);
+    do_check_true(yield OS.File.exists(downloadDir));
 
-    let info = yield OS.File.stat(downloadDir.path);
+    let info = yield OS.File.stat(downloadDir);
     do_check_true(info.isDir);
   } else {
     let targetPath = OS.Path.join(tempDir.path,
@@ -101,10 +100,10 @@ add_task(function test_getSystemDownloadsDirectory()
       yield OS.File.removeEmptyDir(targetPath);
     } catch(e) {}
     downloadDir = yield DownloadIntegration.getSystemDownloadsDirectory();
-    do_check_eq(downloadDir.path, targetPath);
-    do_check_true(yield OS.File.exists(downloadDir.path));
+    do_check_eq(downloadDir, targetPath);
+    do_check_true(yield OS.File.exists(downloadDir));
 
-    let info = yield OS.File.stat(downloadDir.path);
+    let info = yield OS.File.stat(downloadDir);
     do_check_true(info.isDir);
     yield OS.File.removeEmptyDir(targetPath);
   }
@@ -112,7 +111,7 @@ add_task(function test_getSystemDownloadsDirectory()
   let downloadDirBefore = yield DownloadIntegration.getSystemDownloadsDirectory();
   cleanup();
   let downloadDirAfter = yield DownloadIntegration.getSystemDownloadsDirectory();
-  do_check_false(downloadDirBefore.equals(downloadDirAfter));
+  do_check_neq(downloadDirBefore, downloadDirAfter);
 });
 
 
@@ -133,21 +132,21 @@ add_task(function test_getPreferredDownloadsDirectory()
   Services.prefs.setIntPref(folderListPrefName, 1);
   let systemDir = yield DownloadIntegration.getSystemDownloadsDirectory();
   let downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
-  do_check_true(downloadDir instanceof Ci.nsIFile);
-  do_check_eq(downloadDir.path, systemDir.path);
+  do_check_neq(downloadDir, "");
+  do_check_eq(downloadDir, systemDir);
 
   
   Services.prefs.setIntPref(folderListPrefName, 0);
   downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
-  do_check_true(downloadDir instanceof Ci.nsIFile);
-  do_check_eq(downloadDir.path, Services.dirsvc.get("Desk", Ci.nsIFile).path);
+  do_check_neq(downloadDir, "");
+  do_check_eq(downloadDir, Services.dirsvc.get("Desk", Ci.nsIFile).path);
 
   
   
   Services.prefs.setIntPref(folderListPrefName, 2);
   let downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
-  do_check_true(downloadDir instanceof Ci.nsIFile);
-  do_check_eq(downloadDir.path, systemDir.path);
+  do_check_neq(downloadDir, "");
+  do_check_eq(downloadDir, systemDir);
 
   
   let time = (new Date()).getTime();
@@ -155,9 +154,9 @@ add_task(function test_getPreferredDownloadsDirectory()
   tempDir.append(time);
   Services.prefs.setComplexValue("browser.download.dir", Ci.nsIFile, tempDir);
   downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
-  do_check_true(downloadDir instanceof Ci.nsIFile);
-  do_check_eq(downloadDir.path,  tempDir.path);
-  do_check_true(yield OS.File.exists(downloadDir.path));
+  do_check_neq(downloadDir, "");
+  do_check_eq(downloadDir,  tempDir.path);
+  do_check_true(yield OS.File.exists(downloadDir));
   yield OS.File.removeEmptyDir(tempDir.path);
 
   
@@ -167,13 +166,13 @@ add_task(function test_getPreferredDownloadsDirectory()
   tempDir.append(time);
   Services.prefs.setComplexValue("browser.download.dir", Ci.nsIFile, tempDir);
   downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
-  do_check_eq(downloadDir.path, systemDir.path);
+  do_check_eq(downloadDir, systemDir);
 
   
   
   Services.prefs.setIntPref(folderListPrefName, 999);
   let downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
-  do_check_eq(downloadDir.path, systemDir.path);
+  do_check_eq(downloadDir, systemDir);
 
   cleanup();
 });
@@ -185,14 +184,14 @@ add_task(function test_getPreferredDownloadsDirectory()
 add_task(function test_getTemporaryDownloadsDirectory()
 {
   let downloadDir = yield DownloadIntegration.getTemporaryDownloadsDirectory();
-  do_check_true(downloadDir instanceof Ci.nsIFile);
+  do_check_neq(downloadDir, "");
 
   if ("nsILocalFileMac" in Ci) {
     let preferredDownloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
-    do_check_eq(downloadDir.path, preferredDownloadDir.path);
+    do_check_eq(downloadDir, preferredDownloadDir);
   } else {
     let tempDir = Services.dirsvc.get("TmpD", Ci.nsIFile);
-    do_check_eq(downloadDir.path, tempDir.path);
+    do_check_eq(downloadDir, tempDir.path);
   }
 });
 

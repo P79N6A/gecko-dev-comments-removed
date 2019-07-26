@@ -267,41 +267,40 @@ this.DownloadIntegration = {
         throw new Task.Result(this._downloadsDirectory);
       }
 
-      let directory = null;
+      let directoryPath = null;
 #ifdef XP_MACOSX
-      directory = this._getDirectory("DfltDwnld");
+      directoryPath = this._getDirectory("DfltDwnld");
 #elifdef XP_WIN
       
       
       let version = parseFloat(Services.sysinfo.getProperty("version"));
       if (version < 6) {
-        directory = yield this._createDownloadsDirectory("Pers");
+        directoryPath = yield this._createDownloadsDirectory("Pers");
       } else {
-        directory = this._getDirectory("DfltDwnld");
+        directoryPath = this._getDirectory("DfltDwnld");
       }
 #elifdef XP_UNIX
 #ifdef ANDROID
       
       
-      let directoryPath = gEnvironment.get("DOWNLOADS_DIRECTORY");
+      directoryPath = gEnvironment.get("DOWNLOADS_DIRECTORY");
       if (!directoryPath) {
         throw new Components.Exception("DOWNLOADS_DIRECTORY is not set.",
                                        Cr.NS_ERROR_FILE_UNRECOGNIZED_PATH);
       }
-      directory = new FileUtils.File(directoryPath);
 #else
       
       
       try {
-        directory = this._getDirectory("DfltDwnld");
+        directoryPath = this._getDirectory("DfltDwnld");
       } catch(e) {
-        directory = yield this._createDownloadsDirectory("Home");
+        directoryPath = yield this._createDownloadsDirectory("Home");
       }
 #endif
 #else
-      directory = yield this._createDownloadsDirectory("Home");
+      directoryPath = yield this._createDownloadsDirectory("Home");
 #endif
-      this._downloadsDirectory = directory;
+      this._downloadsDirectory = directoryPath;
       throw new Task.Result(this._downloadsDirectory);
     }.bind(this));
   },
@@ -315,7 +314,7 @@ this.DownloadIntegration = {
 
   getPreferredDownloadsDirectory: function DI_getPreferredDownloadsDirectory() {
     return Task.spawn(function() {
-      let directory = null;
+      let directoryPath = null;
       let prefValue = 1;
 
       try {
@@ -324,25 +323,26 @@ this.DownloadIntegration = {
 
       switch(prefValue) {
         case 0: 
-          directory = this._getDirectory("Desk");
+          directoryPath = this._getDirectory("Desk");
           break;
         case 1: 
-          directory = yield this.getSystemDownloadsDirectory();
+          directoryPath = yield this.getSystemDownloadsDirectory();
           break;
         case 2: 
           try {
-            directory = Services.prefs.getComplexValue("browser.download.dir",
-                                                       Ci.nsIFile);
-            yield OS.File.makeDir(directory.path, { ignoreExisting: true });
+            let directory = Services.prefs.getComplexValue("browser.download.dir",
+                                                           Ci.nsIFile);
+            directoryPath = directory.path;
+            yield OS.File.makeDir(directoryPath, { ignoreExisting: true });
           } catch(ex) {
             
-            directory = yield this.getSystemDownloadsDirectory();
+            directoryPath = yield this.getSystemDownloadsDirectory();
           }
           break;
         default:
-          directory = yield this.getSystemDownloadsDirectory();
+          directoryPath = yield this.getSystemDownloadsDirectory();
       }
-      throw new Task.Result(directory);
+      throw new Task.Result(directoryPath);
     }.bind(this));
   },
 
@@ -354,21 +354,21 @@ this.DownloadIntegration = {
 
   getTemporaryDownloadsDirectory: function DI_getTemporaryDownloadsDirectory() {
     return Task.spawn(function() {
-      let directory = null;
+      let directoryPath = null;
 #ifdef XP_MACOSX
-      directory = yield this.getPreferredDownloadsDirectory();
+      directoryPath = yield this.getPreferredDownloadsDirectory();
 #elifdef ANDROID
-      directory = yield this.getSystemDownloadsDirectory();
+      directoryPath = yield this.getSystemDownloadsDirectory();
 #else
       
       
       if (this._isImmersiveProcess()) {
-        directory = yield this.getSystemDownloadsDirectory();
+        directoryPath = yield this.getSystemDownloadsDirectory();
       } else {
-        directory = this._getDirectory("TmpD");
+        directoryPath = this._getDirectory("TmpD");
       }
 #endif
-      throw new Task.Result(directory);
+      throw new Task.Result(directoryPath);
     }.bind(this));
   },
 
@@ -652,17 +652,16 @@ this.DownloadIntegration = {
 
 
   _createDownloadsDirectory: function DI_createDownloadsDirectory(aName) {
-    let directory = this._getDirectory(aName);
+    
+    
+    
+    let directoryPath = OS.Path.join(this._getDirectory(aName),
+                                     DownloadUIHelper.strings.downloadsFolder);
 
     
-    
-    
-    directory.append(DownloadUIHelper.strings.downloadsFolder);
-
-    
-    return OS.File.makeDir(directory.path, { ignoreExisting: true }).
+    return OS.File.makeDir(directoryPath, { ignoreExisting: true }).
              then(function() {
-               return directory;
+               return directoryPath;
              });
   },
 
@@ -673,7 +672,7 @@ this.DownloadIntegration = {
 
 
   _getDirectory: function DI_getDirectory(aName) {
-    return Services.dirsvc.get(this.testMode ? "TmpD" : aName, Ci.nsIFile);
+    return Services.dirsvc.get(this.testMode ? "TmpD" : aName, Ci.nsIFile).path;
   },
 
   

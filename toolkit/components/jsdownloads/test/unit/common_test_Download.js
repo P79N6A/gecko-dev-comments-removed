@@ -1625,9 +1625,10 @@ add_task(function test_platform_integration()
     
     
     
-    let targetFile = yield DownloadIntegration.getSystemDownloadsDirectory();
-    targetFile = targetFile.clone();
-    targetFile.append("test" + (Math.floor(Math.random() * 1000000)));
+    let targetFilePath = yield DownloadIntegration.getSystemDownloadsDirectory();
+    targetFilePath = OS.Path.join(targetFilePath,
+                                  "test" + (Math.floor(Math.random() * 1000000)));
+    let targetFile = new FileUtils.File(targetFilePath);
     downloadFiles.push(targetFile);
 
     let download;

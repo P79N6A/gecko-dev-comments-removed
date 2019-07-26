@@ -142,7 +142,7 @@ add_task(function test_getSummary()
 add_task(function test_getSystemDownloadsDirectory()
 {
   let downloadDir = yield Downloads.getSystemDownloadsDirectory();
-  do_check_true(downloadDir instanceof Ci.nsIFile);
+  do_check_neq(downloadDir, "");
 });
 
 
@@ -152,7 +152,7 @@ add_task(function test_getSystemDownloadsDirectory()
 add_task(function test_getPreferredDownloadsDirectory()
 {
   let downloadDir = yield Downloads.getPreferredDownloadsDirectory();
-  do_check_true(downloadDir instanceof Ci.nsIFile);
+  do_check_neq(downloadDir, "");
 });
 
 
@@ -162,7 +162,7 @@ add_task(function test_getPreferredDownloadsDirectory()
 add_task(function test_getTemporaryDownloadsDirectory()
 {
   let downloadDir = yield Downloads.getTemporaryDownloadsDirectory();
-  do_check_true(downloadDir instanceof Ci.nsIFile);
+  do_check_neq(downloadDir, "");
 });
 
 
