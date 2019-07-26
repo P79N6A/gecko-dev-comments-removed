@@ -194,19 +194,23 @@ nsEventStatus GestureEventListener::HandleInputEvent(const MultiTouchInput& aEve
   }
   case MultiTouchInput::MULTITOUCH_CANCEL:
     
-    
-    
-    return HandlePinchGestureEvent(aEvent, true);
+    break;
   }
 
-  return HandlePinchGestureEvent(aEvent, false);
+  return HandlePinchGestureEvent(aEvent);
 }
 
-nsEventStatus GestureEventListener::HandlePinchGestureEvent(const MultiTouchInput& aEvent, bool aClearTouches)
+nsEventStatus GestureEventListener::HandlePinchGestureEvent(const MultiTouchInput& aEvent)
 {
   nsEventStatus rv = nsEventStatus_eIgnore;
 
-  if (mTouches.Length() > 1 && !aClearTouches) {
+  if (aEvent.mType == MultiTouchInput::MULTITOUCH_CANCEL) {
+    mTouches.Clear();
+    mState = GESTURE_NONE;
+    return rv;
+  }
+
+  if (mTouches.Length() > 1) {
     const ScreenIntPoint& firstTouch = mTouches[0].mScreenPoint,
                          secondTouch = mTouches[1].mScreenPoint;
     ScreenPoint focusPoint = ScreenPoint(firstTouch + secondTouch) / 2;
@@ -281,10 +285,6 @@ nsEventStatus GestureEventListener::HandlePinchGestureEvent(const MultiTouchInpu
     rv = nsEventStatus_eConsumeNoDefault;
   } else if (mState == GESTURE_WAITING_PINCH) {
     mState = GESTURE_NONE;
-  }
-
-  if (aClearTouches) {
-    mTouches.Clear();
   }
 
   return rv;

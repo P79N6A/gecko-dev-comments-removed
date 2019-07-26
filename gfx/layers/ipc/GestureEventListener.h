@@ -95,10 +95,7 @@ protected:
 
 
 
-
-
-
-  nsEventStatus HandlePinchGestureEvent(const MultiTouchInput& aEvent, bool aClearTouches);
+  nsEventStatus HandlePinchGestureEvent(const MultiTouchInput& aEvent);
 
   
 
