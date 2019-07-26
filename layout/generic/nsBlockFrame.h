@@ -615,6 +615,12 @@ protected:
 
 
 
+  void LazyMarkLinesDirty();
+
+  
+
+
+
 
 
 
