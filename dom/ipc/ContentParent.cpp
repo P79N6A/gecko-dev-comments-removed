@@ -150,6 +150,7 @@ using namespace mozilla::system;
 #endif
 
 #ifdef ENABLE_TESTS
+#include "BackgroundChildImpl.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "nsIIPCBackgroundChildCreateCallback.h"
 #endif
@@ -240,6 +241,10 @@ private:
                 
                 bool ok = BackgroundChild::GetOrCreateForCurrentThread(this);
                 MOZ_RELEASE_ASSERT(ok);
+
+                BackgroundChildImpl::ThreadLocal* threadLocal =
+                  BackgroundChildImpl::GetThreadLocalForCurrentThread();
+                MOZ_RELEASE_ASSERT(threadLocal);
 
                 
                 ok = BackgroundChild::GetOrCreateForCurrentThread(this);

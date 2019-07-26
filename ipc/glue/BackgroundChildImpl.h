@@ -8,6 +8,8 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 
+template <class> class nsAutoPtr;
+
 namespace mozilla {
 namespace ipc {
 
@@ -15,6 +17,17 @@ namespace ipc {
 
 class BackgroundChildImpl : public PBackgroundChild
 {
+public:
+  class ThreadLocal;
+
+  
+  
+  
+  
+  
+  static ThreadLocal*
+  GetThreadLocalForCurrentThread();
+
 protected:
   BackgroundChildImpl();
   virtual ~BackgroundChildImpl();
@@ -27,6 +40,20 @@ protected:
 
   virtual bool
   DeallocPBackgroundTestChild(PBackgroundTestChild* aActor) MOZ_OVERRIDE;
+};
+
+class BackgroundChildImpl::ThreadLocal
+{
+  friend class nsAutoPtr<ThreadLocal>;
+
+  
+
+public:
+  ThreadLocal();
+
+private:
+  
+  ~ThreadLocal();
 };
 
 } 
