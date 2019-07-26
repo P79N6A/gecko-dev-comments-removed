@@ -473,8 +473,6 @@ protected:
     jmethodID jGetMimeTypeFromExtensions;
     jmethodID jGetExtensionFromMimeType;
     jmethodID jMoveTaskToBack;
-    jmethodID jGetClipboardText;
-    jmethodID jSetClipboardText;
     jmethodID jShowAlertNotification;
     jmethodID jShowFilePickerForExtensions;
     jmethodID jShowFilePickerForMimeType;
@@ -561,6 +559,10 @@ protected:
 
     jmethodID jRequestContentRepaint;
     jmethodID jPostDelayedCallback;
+
+    jclass jClipboardClass;
+    jmethodID jClipboardGetText;
+    jmethodID jClipboardSetText;
 
     
     jclass jStringClass;
