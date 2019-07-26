@@ -45,7 +45,7 @@ var ContextCommands = {
       if (ContextMenuUI.popupState.string) {
         this.sendCommand("cut");
 
-        SelectionHelperUI.closeEditSessionAndClear();
+        SelectionHelperUI.closeEditSession(false, true);
       }
     } else {
       
@@ -66,7 +66,7 @@ var ContextCommands = {
       if (ContextMenuUI.popupState.string) {
         this.sendCommand("copy");
 
-        SelectionHelperUI.closeEditSessionAndClear();
+        SelectionHelperUI.closeEditSession((false, true));
       }
     } else {
       
@@ -84,7 +84,7 @@ var ContextCommands = {
       let y = ContextMenuUI.popupState.y;
       let json = {x: x, y: y, command: "paste" };
       target.messageManager.sendAsyncMessage("Browser:ContextCommand", json);
-      SelectionHelperUI.closeEditSessionAndClear();
+      SelectionHelperUI.closeEditSession();
     } else {
       
       target.editor.paste(Ci.nsIClipboard.kGlobalClipboard);

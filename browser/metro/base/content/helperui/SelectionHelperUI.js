@@ -378,24 +378,15 @@ var SelectionHelperUI = {
 
 
 
-  closeEditSession: function closeEditSession() {
-    this._sendAsyncMessage("Browser:SelectionClose");
+
+
+
+  closeEditSession: function closeEditSession(aClearSelection) {
+    let clearSelection = aClearSelection || false;
+    this._sendAsyncMessage("Browser:SelectionClose", {
+      clearSelection: clearSelection
+    });
     this._shutdown();
-  },
-
-  
-
-
-
-
-
-
-
-
-  closeEditSessionAndClear: function closeEditSessionAndClear(aClearFocus) {
-    let clearFocus = aClearFocus || false;
-    this._sendAsyncMessage("Browser:SelectionClear", { clearFocus: clearFocus });
-    this.closeEditSession();
   },
 
   
@@ -541,8 +532,7 @@ var SelectionHelperUI = {
 
   _transitionFromSelectionToCaret: function _transitionFromSelectionToCaret(aClientX, aClientY) {
     
-    this._sendAsyncMessage("Browser:SelectionClear", { clearFocus: false });
-    this._sendAsyncMessage("Browser:SelectionClose");
+    this.closeEditSession(true);
 
     
     this._selectionHandlerActive = false;
@@ -725,17 +715,13 @@ var SelectionHelperUI = {
 
     
     
-    if (this.caretMark.visible) {
+    
+    if (this._targetIsEditable && !pointInTargetElement) {
       
-      this.closeEditSessionAndClear(true);
-      return;
-    }
-
-    
-    
-    if (this.startMark.visible && !pointInTargetElement &&
-        this._targetIsEditable) {
-      this.closeEditSessionAndClear(true);
+      
+      
+      
+      this.closeEditSession(false);
       return;
     }
 
@@ -770,7 +756,7 @@ var SelectionHelperUI = {
   _onDblTap: function _onDblTap(aEvent) {
     if (!this._hitTestSelection(aEvent)) {
       
-      this.closeEditSessionAndClear();
+      this.closeEditSession(true);
       return;
     }
 
@@ -833,10 +819,12 @@ var SelectionHelperUI = {
   },
 
   _onSelectionCopied: function _onSelectionCopied(json) {
-    this.closeEditSessionAndClear();
+    this.closeEditSession(true);
   },
 
   _onSelectionRangeChange: function _onSelectionRangeChange(json) {
+    let haveSelectionRect = true;
+
     
     if (json.updateStart) {
       this.startMark.position(this._msgTarget.xbtoc(json.start.xPos, true),
@@ -852,20 +840,18 @@ var SelectionHelperUI = {
       
       
       
+      haveSelectionRect = json.selectionRangeFound;
       if (json.selectionRangeFound) {
         this.caretMark.position(this._msgTarget.xbtoc(json.caret.xPos, true),
                                 this._msgTarget.ybtoc(json.caret.yPos, true));
         this.caretMark.show();
-      } else {
-        
-        this.closeEditSession();
-        return;
       }
     }
 
     this._targetIsEditable = json.targetIsEditable;
-    this._activeSelectionRect =
-      this._msgTarget.rectBrowserToClient(json.selection, true);
+    this._activeSelectionRect = haveSelectionRect ?
+      this._msgTarget.rectBrowserToClient(json.selection, true) :
+      this._activeSelectionRect = Util.getCleanRect();
     this._targetElementRect =
       this._msgTarget.rectBrowserToClient(json.element, true);
   },
@@ -916,7 +902,7 @@ var SelectionHelperUI = {
         if (!this._checkForActiveDrag() && this._movement.active) {
           let distanceY = touch.clientY - this._movement.y;
           if (Math.abs(distanceY) > kDisableOnScrollDistance) {
-            this.closeEditSessionAndClear();
+            this.closeEditSession(true);
           }
         }
         break;
@@ -933,7 +919,7 @@ var SelectionHelperUI = {
       case "ZoomChanged":
       case "URLChanged":
       case "MozPrecisePointer":
-        this.closeEditSessionAndClear();
+        this.closeEditSession(true);
         break;
 
       case "MozContextUIShow":
