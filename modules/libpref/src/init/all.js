@@ -854,7 +854,8 @@ pref("dom.experimental_forms", false);
 pref("dom.forms.number", false);
 
 
-pref("dom.forms.color", false);
+
+pref("dom.forms.color", true);
 
 
 pref("dom.sysmsg.enabled", false);
