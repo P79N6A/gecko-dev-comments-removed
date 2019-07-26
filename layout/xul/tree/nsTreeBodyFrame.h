@@ -120,6 +120,8 @@ public:
   nsresult EndUpdateBatch();
   nsresult ClearStyleAndImageCaches();
 
+  void ManageReflowCallback(const nsRect& aRect, nscoord aHorzWidth);
+
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
   virtual void SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
                          bool aRemoveOverflowArea = false) MOZ_OVERRIDE;
@@ -576,6 +578,13 @@ protected:
 
   
   nscoord mHorzPosition;
+
+  
+  
+  
+  
+  
+  nscoord mOriginalHorzWidth;
   
   
   nscoord mHorzWidth;
