@@ -7,10 +7,13 @@
 
 #include "base/message_pump.h"
 #include "base/time.h"
+#include "nsAutoPtr.h"
 
 
 struct event_base;
 struct event;
+
+class nsDependentCSubstring;
 
 namespace base {
 
@@ -175,6 +178,38 @@ class MessagePumpLibevent : public MessagePump {
   DISALLOW_COPY_AND_ASSIGN(MessagePumpLibevent);
 };
 
+
+
+
+
+class LineWatcher : public MessagePumpLibevent::Watcher
+{
+public:
+  LineWatcher(char aTerminator, int aBufferSize) : mReceivedIndex(0),
+    mBufferSize(aBufferSize),
+    mTerminator(aTerminator)
+  {
+    mReceiveBuffer = new char[mBufferSize];
+  }
+
+  ~LineWatcher() {}
+
+protected:
+  
+
+
+
+  virtual void OnError() {}
+  virtual void OnLineRead(int aFd, nsDependentCSubstring& aMessage) = 0;
+  virtual void OnFileCanWriteWithoutBlocking(int ) {}
+private:
+  virtual void OnFileCanReadWithoutBlocking(int aFd) MOZ_FINAL;
+
+  nsAutoPtr<char> mReceiveBuffer;
+  int mReceivedIndex;
+  int mBufferSize;
+  char mTerminator;
+};
 }  
 
 #endif  

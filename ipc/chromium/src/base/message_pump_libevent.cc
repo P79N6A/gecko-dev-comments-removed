@@ -15,6 +15,7 @@
 #include "base/scoped_nsautorelease_pool.h"
 #include "base/scoped_ptr.h"
 #include "base/time.h"
+#include "nsDependentSubstring.h"
 #include "third_party/libevent/event.h"
 
 
@@ -371,4 +372,46 @@ void MessagePumpLibevent::ScheduleDelayedWork(const Time& delayed_work_time) {
   delayed_work_time_ = delayed_work_time;
 }
 
+void LineWatcher::OnFileCanReadWithoutBlocking(int aFd)
+{
+  ssize_t length = 0;
+
+  while (true) {
+    length = read(aFd, mReceiveBuffer.get(), mBufferSize - mReceivedIndex);
+    DCHECK(length <= ssize_t(mBufferSize - mReceivedIndex));
+    if (length <= 0) {
+      if (length < 0) {
+        if (errno == EINTR) {
+          continue; 
+        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+          return; 
+        }
+        DLOG(ERROR) << "Can't read from fd, error " << errno;
+      } else {
+        DLOG(ERROR) << "End of file";
+      }
+      
+      
+      OnError();
+      mReceivedIndex = 0;
+      return;
+    }
+
+    while (length-- > 0) {
+      DCHECK(mReceivedIndex < mBufferSize);
+      if (mReceiveBuffer[mReceivedIndex] == mTerminator) {
+        nsDependentCSubstring message(mReceiveBuffer.get(), mReceivedIndex);
+        OnLineRead(aFd, message);
+        if (length > 0) {
+          DCHECK(mReceivedIndex < (mBufferSize - 1));
+          memmove(&mReceiveBuffer[0], &mReceiveBuffer[mReceivedIndex + 1], length);
+        }
+        mReceivedIndex = 0;
+      } else {
+        mReceivedIndex++;
+      }
+    }
+  }
+}
 }  
