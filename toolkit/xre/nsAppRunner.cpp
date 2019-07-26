@@ -2669,7 +2669,7 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
 
 
 
-NS_VISIBILITY_DEFAULT PRBool nspr_use_zone_allocator = PR_FALSE;
+NS_VISIBILITY_DEFAULT PRBool nspr_use_zone_allocator = false;
 
 #ifdef CAIRO_HAS_DWRITE_FONT
 
