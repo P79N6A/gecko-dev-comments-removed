@@ -108,18 +108,6 @@ this.EXPORTED_SYMBOLS = ["PlacesTransactions"];
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
@@ -165,6 +153,44 @@ TransactionsHistory.__proto__ = {
                      this[this.undoPosition - 1] : null,
 
   
+  
+  
+  
+  proxifiedToRaw: new WeakMap(),
+
+  
+
+
+
+
+
+
+  proxifyTransaction: function (aRawTransaction) {
+    let proxy = Object.freeze({});
+    this.proxifiedToRaw.set(proxy, aRawTransaction);
+    return proxy;
+  },
+
+  
+
+
+
+
+
+
+  isProxifiedTransactionObject:
+  function (aValue) this.proxifiedToRaw.has(aValue),
+
+  
+
+
+
+
+
+
+  getRawTransaction: function (aProxy) this.proxifiedToRaw.get(aProxy),
+
+  
 
 
   undo: function* () {
@@ -174,7 +200,7 @@ TransactionsHistory.__proto__ = {
 
     for (let transaction of entry) {
       try {
-        yield transaction.undo();
+        yield TransactionsHistory.getRawTransaction(transaction).undo();
       }
       catch(ex) {
         
@@ -198,7 +224,7 @@ TransactionsHistory.__proto__ = {
       return;
 
     for (let i = entry.length - 1; i >= 0; i--) {
-      let transaction = entry[i];
+      let transaction = TransactionsHistory.getRawTransaction(entry[i]);
       try {
         if (transaction.redo)
           yield transaction.redo();
@@ -229,13 +255,17 @@ TransactionsHistory.__proto__ = {
 
 
 
-  add: function (aTransaction, aForceNewEntry = false) {
+
+  add: function (aProxifiedTransaction, aForceNewEntry = false) {
+    if (!this.isProxifiedTransactionObject(aProxifiedTransaction))
+      throw new Error("aProxifiedTransaction is not a proxified transaction");
+
     if (this.length == 0 || aForceNewEntry) {
       this.clearRedoEntries();
-      this.unshift([aTransaction]);
+      this.unshift([aProxifiedTransaction]);
     }
     else {
-      this[this.undoPosition].unshift(aTransaction);
+      this[this.undoPosition].unshift(aProxifiedTransaction);
     }
     updateCommandsOnActiveWindow();
   },
@@ -279,6 +309,12 @@ function Serialize(aTask) {
                                   .then(null, Components.utils.reportError);
 }
 
+
+
+
+let executedTransactions = new WeakMap(); 
+executedTransactions.add = k => executedTransactions.set(k, null);
+
 let PlacesTransactions = {
   
 
@@ -313,7 +349,20 @@ let PlacesTransactions = {
 
 
 
-  transact: function (aTransactionOrGeneratorFunction) {
+
+  transact: function (aToTransact) {
+    let generatorMode = typeof(aToTransact) == "function";
+    if (generatorMode) {
+      if (!aToTransact.isGenerator())
+        throw new Error("aToTransact is not a generator function");
+    }
+    else {
+      if (!TransactionsHistory.isProxifiedTransactionObject(aToTransact))
+        throw new Error("aToTransact is not a valid transaction object");
+      if (executedTransactions.has(aToTransact))
+        throw new Error("Transactions objects may not be recycled.");
+    }
+
     return Serialize(function* () {
       
       
@@ -323,25 +372,37 @@ let PlacesTransactions = {
       
       let forceNewEntry = true;
       function* transactOneTransaction(aTransaction) {
-        let retval = yield aTransaction.execute();
+        let retval =
+          yield TransactionsHistory.getRawTransaction(aTransaction).execute();
+        executedTransactions.add(aTransaction);
         TransactionsHistory.add(aTransaction, forceNewEntry);
         forceNewEntry = false;
         return retval;
       }
 
-      function* transactBatch(aGeneratorFunction) {
-        let generator = aGeneratorFunction(), sendValue = undefined;
+      function* transactBatch(aGenerator) {
+        let error = false;
+        let sendValue = undefined;
         while (true) {
-          let next = generator.next(sendValue);
+          let next = error ?
+                     aGenerator.throw(sendValue) : aGenerator.next(sendValue);
           sendValue = next.value;
-          if (typeof(sendValue) == "function") {
+          if (Object.prototype.toString.call(sendValue) == "[object Generator]") {
             sendValue = yield transactBatch(sendValue);
           }
           else if (typeof(sendValue) == "object" && sendValue) {
-            if ("execute" in sendValue)
-              sendValue = yield transactOneTransaction(sendValue);
-            else if ("then" in sendValue)
+            if (TransactionsHistory.isProxifiedTransactionObject(sendValue)) {
+              if (executedTransactions.has(sendValue)) {
+                sendValue = new Error("Transactions may not be recycled.");
+                error = true;
+              }
+              else {
+                sendValue = yield transactOneTransaction(sendValue);
+              }
+            }
+            else if ("then" in sendValue) {
               sendValue = yield sendValue;
+            }
           }
           if (next.done)
             break;
@@ -349,10 +410,10 @@ let PlacesTransactions = {
         return sendValue;
       }
 
-      if (typeof(aTransactionOrGeneratorFunction) == "function")
-        return yield transactBatch(aTransactionOrGeneratorFunction);
+      if (generatorMode)
+        return yield transactBatch(aToTransact());
       else
-        return yield transactOneTransaction(aTransactionOrGeneratorFunction);
+        return yield transactOneTransaction(aToTransact);
     }.bind(this));
   },
 
@@ -412,10 +473,6 @@ let PlacesTransactions = {
   get length() TransactionsHistory.length,
 
   
-
-
-
-
 
 
 
@@ -491,7 +548,7 @@ function DefineTransaction(aRequiredProps = [], aOptionalProps = []) {
                          ...[input[prop] for (prop of aOptionalProps)]];
       this.execute = Function.bind.apply(this.execute, executeArgs);
     }
-    return this;
+    return TransactionsHistory.proxifyTransaction(this);
   };
   return ctor;
 }
@@ -1166,9 +1223,8 @@ PT.TagURI.prototype = {
       
       let unfileGUID =
         yield PlacesUtils.promiseItemGUID(PlacesUtils.unfiledBookmarksFolderId);
-      let createTxn = PT.NewBookmark({ uri: aURI
-                                     , tags: aTags
-                                     , parentGUID: unfileGUID });
+      let createTxn = TransactionsHistory.getRawTransaction(
+        PT.NewBookmark({ uri: aURI, tags: aTags, parentGUID: unfileGUID }));
       yield createTxn.execute();
       this.undo = createTxn.undo.bind(createTxn);
       this.redo = createTxn.redo.bind(createTxn);
