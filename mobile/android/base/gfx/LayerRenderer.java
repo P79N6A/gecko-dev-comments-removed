@@ -599,45 +599,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             if ((rootLayer != null) &&
                 (mProfileRender || PanningPerfAPI.isRecordingCheckerboard())) {
                 
-                Rect viewport = RectUtils.round(mPageContext.viewport);
-                Region validRegion = rootLayer.getValidRegion(mPageContext);
-
-                
-
-                if (!viewport.intersect(mAbsolutePageRect)) {
-                    
-
-
-                    viewport.setEmpty();
-                }
-                validRegion.op(viewport, Region.Op.INTERSECT);
-
-                
-                
-                
-                int screenArea = viewport.width() * viewport.height();
-                float checkerboard = (screenArea > 0 &&
-                  validRegion.quickReject(viewport)) ? 1.0f : 0.0f;
-
-                if (screenArea > 0 && checkerboard < 1.0f) {
-                    validRegion.op(viewport, Region.Op.REVERSE_DIFFERENCE);
-
-                    
-                    
-                    
-                    
-                    
-                    Rect r = new Rect();
-                    int checkerboardArea = 0;
-                    for (RegionIterator i = new RegionIterator(validRegion); i.next(r);) {
-                        checkerboardArea += r.width() * r.height();
-                    }
-
-                    checkerboard = checkerboardArea / (float)screenArea;
-
-                    
-                    checkerboard += (1.0 - checkerboard) * (1.0 - GeckoAppShell.computeRenderIntegrity());
-                }
+                float checkerboard =  1.0f - GeckoAppShell.computeRenderIntegrity();
 
                 PanningPerfAPI.recordCheckerboard(checkerboard);
 

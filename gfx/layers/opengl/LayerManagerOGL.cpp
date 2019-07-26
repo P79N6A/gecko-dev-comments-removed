@@ -1702,20 +1702,87 @@ GetRegionArea(const nsIntRegion& aRegion)
   return area;
 }
 
+static float
+GetDisplayportCoverage(const gfx::Rect& aDisplayPort,
+                       const gfx3DMatrix& aTransformToScreen,
+                       const nsIntRect& aScreenRect)
+{
+  gfxRect transformedDisplayport =
+    aTransformToScreen.TransformBounds(gfxRect(aDisplayPort.x,
+                                               aDisplayPort.y,
+                                               aDisplayPort.width,
+                                               aDisplayPort.height));
+  transformedDisplayport.RoundOut();
+  nsIntRect displayport = nsIntRect(transformedDisplayport.x,
+                                    transformedDisplayport.y,
+                                    transformedDisplayport.width,
+                                    transformedDisplayport.height);
+  if (!displayport.Contains(aScreenRect)) {
+    nsIntRegion coveredRegion;
+    coveredRegion.And(aScreenRect, displayport);
+    return GetRegionArea(coveredRegion) / (float)(aScreenRect.width * aScreenRect.height);
+  }
+
+  return 1.0f;
+}
+
 float
 LayerManagerOGL::ComputeRenderIntegrity()
 {
   
-  if (!gfxPlatform::UseProgressiveTilePainting() || !GetRoot()) {
+  Layer* root = GetRoot();
+  if (!gfxPlatform::UseProgressiveTilePainting() || !root) {
     return 1.f;
   }
 
+  const FrameMetrics& rootMetrics = root->AsContainerLayer()->GetFrameMetrics();
+  nsIntRect screenRect(rootMetrics.mCompositionBounds.x,
+                       rootMetrics.mCompositionBounds.y,
+                       rootMetrics.mCompositionBounds.width,
+                       rootMetrics.mCompositionBounds.height);
+
+  float lowPrecisionMultiplier = 1.0f;
+  float highPrecisionMultiplier = 1.0f;
+#ifdef MOZ_ANDROID_OMTC
   
-  gfx3DMatrix transform;
-  nsIntRect screenRect(0, 0, mWidgetSize.width, mWidgetSize.height);
+  
+  bool hasLowPrecision = true;
+  Layer* primaryScrollable = GetPrimaryScrollableLayer();
+  if (primaryScrollable) {
+    
+    
+    const gfx3DMatrix& rootTransform = root->GetTransform();
+    float devPixelRatioX = 1 / rootTransform.GetXScale();
+    float devPixelRatioY = 1 / rootTransform.GetYScale();
+
+    gfx3DMatrix transform = primaryScrollable->GetEffectiveTransform();
+    transform.ScalePost(devPixelRatioX, devPixelRatioY, 1);
+    const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
+
+    
+    if (!metrics.mCriticalDisplayPort.IsEmpty()) {
+      hasLowPrecision = true;
+      highPrecisionMultiplier =
+        GetDisplayportCoverage(metrics.mCriticalDisplayPort, transform, screenRect);
+    }
+
+    
+    if (!metrics.mDisplayPort.IsEmpty()) {
+      if (hasLowPrecision) {
+        lowPrecisionMultiplier =
+          GetDisplayportCoverage(metrics.mDisplayPort, transform, screenRect);
+      } else {
+        highPrecisionMultiplier =
+          GetDisplayportCoverage(metrics.mDisplayPort, transform, screenRect);
+      }
+    }
+  }
+#endif
+
   nsIntRegion screenRegion(screenRect);
   nsIntRegion lowPrecisionScreenRegion(screenRect);
-  ComputeRenderIntegrityInternal(GetRoot(), screenRegion,
+  gfx3DMatrix transform;
+  ComputeRenderIntegrityInternal(root, screenRegion,
                                  lowPrecisionScreenRegion, transform);
 
   if (!screenRegion.IsEqual(screenRect)) {
@@ -1728,7 +1795,8 @@ LayerManagerOGL::ComputeRenderIntegrity()
       lowPrecisionIntegrity = GetRegionArea(lowPrecisionScreenRegion) / screenArea;
     }
 
-    return (highPrecisionIntegrity + lowPrecisionIntegrity) / 2.f;
+    return ((highPrecisionIntegrity * highPrecisionMultiplier) +
+            (lowPrecisionIntegrity * lowPrecisionMultiplier)) / 2.f;
   }
 
   return 1.f;
