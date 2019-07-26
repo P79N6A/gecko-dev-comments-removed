@@ -207,7 +207,7 @@ public class TopBookmarksView extends GridView {
 
             
             if (TextUtils.isEmpty(url)) {
-                view.displayThumbnail(R.drawable.abouthome_thumbnail_add);
+                view.displayThumbnail(R.drawable.top_bookmark_add);
             } else {
                 
                 Thumbnail thumbnail = (thumbnails != null ? thumbnails.get(url) : null);
