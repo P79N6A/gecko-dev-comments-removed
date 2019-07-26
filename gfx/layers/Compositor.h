@@ -248,9 +248,12 @@ public:
 
 
 
+
+
   virtual TemporaryRef<CompositingRenderTarget>
   CreateRenderTargetFromSource(const gfx::IntRect& aRect,
-                               const CompositingRenderTarget* aSource) = 0;
+                               const CompositingRenderTarget* aSource,
+                               const gfx::IntPoint& aSourcePoint) = 0;
 
   
 
