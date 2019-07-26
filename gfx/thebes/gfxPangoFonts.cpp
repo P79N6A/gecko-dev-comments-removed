@@ -329,6 +329,12 @@ public:
         
         
         mPatterns[0] = aFontPattern;
+
+        FcChar8 *name;
+        if (FcPatternGetString(aFontPattern,
+                               FC_FAMILY, 0, &name) == FcResultMatch) {
+            mFamilyName = NS_ConvertUTF8toUTF16((const char*)name);
+        }
     }
 
     ~gfxSystemFcFontEntry()
@@ -386,6 +392,7 @@ protected:
         mWeight = aProxyEntry.mWeight;
         mStretch = aProxyEntry.mStretch;
         mIsUserFont = true;
+        mFamilyName = aProxyEntry.mFamilyName;
     }
 
     
