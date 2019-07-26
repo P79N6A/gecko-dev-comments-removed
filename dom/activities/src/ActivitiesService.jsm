@@ -206,59 +206,73 @@ let Activities = {
     let successCb = function successCb(aResults) {
       debug(JSON.stringify(aResults));
 
-      
-      if (aResults.options.length === 0) {
-        Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireError", {
-          "id": aMsg.id,
-          "error": "NO_PROVIDER"
-        });
-        delete Activities.callers[aMsg.id];
-        return;
-      }
+      function getActivityChoice(aResultType, aResult) {
+        switch(aResultType) {
+          case Ci.nsIActivityUIGlueCallback.NATIVE_ACTIVITY: {
+            Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireSuccess", {
+              "id": aMsg.id,
+              "result": aResult
+            });
+            break;
+          }
+          case Ci.nsIActivityUIGlueCallback.WEBAPPS_ACTIVITY: {
+            debug("Activity choice: " + aResult);
 
-      function getActivityChoice(aChoice) {
-        debug("Activity choice: " + aChoice);
+            
+            
+            
+            if (aResults.options.length === 0) {
+              Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireError", {
+                "id": aMsg.id,
+                "error": "NO_PROVIDER"
+              });
+              delete Activities.callers[aMsg.id];
+              return;
+            }
 
-        
-        if (aChoice === -1) {
-          Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireError", {
-            "id": aMsg.id,
-            "error": "ActivityCanceled"
-          });
-          delete Activities.callers[aMsg.id];
-          return;
-        }
+            
+            if (aResult === -1) {
+              Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireError", {
+                "id": aMsg.id,
+                "error": "ActivityCanceled"
+              });
+              delete Activities.callers[aMsg.id];
+              return;
+            }
 
-        let sysmm = Cc["@mozilla.org/system-message-internal;1"]
-                      .getService(Ci.nsISystemMessagesInternal);
-        if (!sysmm) {
-          
-          delete Activities.callers[aMsg.id];
-          return;
-        }
+            let sysmm = Cc["@mozilla.org/system-message-internal;1"]
+                          .getService(Ci.nsISystemMessagesInternal);
+            if (!sysmm) {
+              
+              delete Activities.callers[aMsg.id];
+              return;
+            }
 
-        debug("Sending system message...");
-        let result = aResults.options[aChoice];
-        sysmm.sendMessage("activity", {
-            "id": aMsg.id,
-            "payload": aMsg.options,
-            "target": result.description
-          },
-          Services.io.newURI(result.description.href, null, null),
-          Services.io.newURI(result.manifest, null, null),
-          {
-            "manifestURL": Activities.callers[aMsg.id].manifestURL,
-            "pageURL": Activities.callers[aMsg.id].pageURL
-          });
+            debug("Sending system message...");
+            let result = aResults.options[aResult];
+            sysmm.sendMessage("activity", {
+                "id": aMsg.id,
+                "payload": aMsg.options,
+                "target": result.description
+              },
+              Services.io.newURI(result.description.href, null, null),
+              Services.io.newURI(result.manifest, null, null),
+              {
+                "manifestURL": Activities.callers[aMsg.id].manifestURL,
+                "pageURL": Activities.callers[aMsg.id].pageURL
+              });
 
-        if (!result.description.returnValue) {
-          Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireSuccess", {
-            "id": aMsg.id,
-            "result": null
-          });
-          
-          
-          delete Activities.callers[aMsg.id];
+            if (!result.description.returnValue) {
+              Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireSuccess", {
+                "id": aMsg.id,
+                "result": null
+              });
+              
+              
+              delete Activities.callers[aMsg.id];
+            }
+            break;
+          }
         }
       };
 
