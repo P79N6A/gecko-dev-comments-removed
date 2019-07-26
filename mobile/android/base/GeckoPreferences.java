@@ -7,6 +7,7 @@ package org.mozilla.gecko;
 
 import org.mozilla.gecko.background.announcements.AnnouncementsConstants;
 import org.mozilla.gecko.background.common.GlobalConstants;
+import org.mozilla.gecko.background.healthreport.HealthReportConstants;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.GeckoPreferenceFragment;
 import org.mozilla.gecko.util.ThreadUtils;
@@ -303,6 +304,17 @@ public class GeckoPreferences
         intent.putExtra("pref", pref);
         intent.putExtra("branch", GeckoApp.PREFS_NAME);
         intent.putExtra("enabled", value);
+
+        
+        
+        
+        
+        GeckoProfile profile = GeckoProfile.get(context);
+        if (profile != null) {
+            intent.putExtra("profileName", profile.getName());
+            intent.putExtra("profilePath", profile.getDir().getAbsolutePath());
+        }
+
         Log.d(LOGTAG, "Broadcast: " + action + ", " + pref + ", " + GeckoApp.PREFS_NAME + ", " + value);
         context.sendBroadcast(intent, GlobalConstants.PER_ANDROID_PACKAGE_PERMISSION);
     }
@@ -325,6 +337,26 @@ public class GeckoPreferences
     public static void broadcastAnnouncementsPref(final Context context) {
         final boolean value = getBooleanPref(context, PREFS_ANNOUNCEMENTS_ENABLED, true);
         broadcastAnnouncementsPref(context, value);
+    }
+
+    
+
+
+
+    public static void broadcastHealthReportUploadPref(final Context context, final boolean value) {
+        broadcastPrefAction(context,
+                            HealthReportConstants.ACTION_HEALTHREPORT_UPLOAD_PREF,
+                            PREFS_HEALTHREPORT_UPLOAD_ENABLED,
+                            value);
+    }
+
+    
+
+
+
+    public static void broadcastHealthReportUploadPref(final Context context) {
+        final boolean value = getBooleanPref(context, PREFS_HEALTHREPORT_UPLOAD_ENABLED, true);
+        broadcastHealthReportUploadPref(context, value);
     }
 
     
@@ -360,6 +392,10 @@ public class GeckoPreferences
             org.mozilla.gecko.updater.UpdateServiceHelper.registerForUpdates(GeckoAppShell.getContext(), (String) newValue);
         } else if (PREFS_HEALTHREPORT_UPLOAD_ENABLED.equals(prefName)) {
             
+            
+            
+            
+            broadcastHealthReportUploadPref(GeckoAppShell.getContext(), ((Boolean) newValue).booleanValue());
             return true;
         }
 

@@ -1148,6 +1148,31 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
 
 
 
+  @Override
+  public boolean hasEventSince(long time) {
+    final int start = this.getDay(time);
+    final SQLiteDatabase db = this.helper.getReadableDatabase();
+    final String dayString = Integer.toString(start, 10);
+    Cursor cur = db.query("events", COLUMNS_DATE_ENV_FIELD_VALUE,
+        "date >= ?", new String[] {dayString}, null, null, null, "1");
+    if (cur == null) {
+      
+      
+      return true;
+    }
+    try {
+      return cur.getCount() > 0;
+    } finally {
+      cur.close();
+    }
+  }
+
+  
+
+
+
+
+
 
 
 

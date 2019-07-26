@@ -1527,7 +1527,9 @@ abstract public class GeckoApp
                 
                 
                 
+                
                 GeckoPreferences.broadcastAnnouncementsPref(context);
+                GeckoPreferences.broadcastHealthReportUploadPref(context);
 
                 
 

@@ -180,6 +180,11 @@ public interface HealthReportStorage {
   
 
 
+  boolean hasEventSince(long time);
+
+  
+
+
 
   public Cursor getRawEventsSince(long time);
 
