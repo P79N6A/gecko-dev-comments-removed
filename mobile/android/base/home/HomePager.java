@@ -224,6 +224,10 @@ public class HomePager extends ViewPager {
         if (mDecor != null) {
             mDecor.onPageSelected(item);
         }
+
+        if (mHomeBanner != null) {
+            mHomeBanner.setActive(item == mDefaultPageIndex);
+        }
     }
 
     @Override
@@ -300,21 +304,29 @@ public class HomePager extends ViewPager {
         
         setAdapter(adapter);
 
-        
-        
-        
-        final int itemPosition = (mInitialPanelId == null) ? -1 : adapter.getItemPosition(mInitialPanelId);
-        if (itemPosition > -1) {
-            setCurrentItem(itemPosition, false);
-            mInitialPanelId = null;
+        if (count == 0) {
+            mDefaultPageIndex = -1;
+
+            
+            if (mHomeBanner != null) {
+                mHomeBanner.setActive(false);
+            }
         } else {
             for (int i = 0; i < count; i++) {
-                final PanelConfig panelConfig = enabledPanels.get(i);
-                if (panelConfig.isDefault()) {
+                if (enabledPanels.get(i).isDefault()) {
                     mDefaultPageIndex = i;
-                    setCurrentItem(i, false);
                     break;
                 }
+            }
+
+            
+            
+            final int itemPosition = (mInitialPanelId == null) ? -1 : adapter.getItemPosition(mInitialPanelId);
+            if (itemPosition > -1) {
+                setCurrentItem(itemPosition, false);
+                mInitialPanelId = null;
+            } else {
+                setCurrentItem(mDefaultPageIndex, false);
             }
         }
     }
