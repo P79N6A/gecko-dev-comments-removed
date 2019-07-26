@@ -10,8 +10,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Util.h"
 
-#include "jsutil.h"
-
 
 
 
@@ -5248,65 +5246,64 @@ CheckStackRootThing(uintptr_t *w, void *address, ThingRootKind kind)
     return w >= (uintptr_t*)bp && w < (uintptr_t*)(bp + 1);
 }
 
-struct Rooter {
-    Rooted<void*> *rooter;
-    ThingRootKind kind;
-};
+JS_ALWAYS_INLINE void
+CheckStackRootThings(uintptr_t *w, Rooted<void*> *rooter, ThingRootKind kind, bool *matched)
+{
+    while (rooter) {
+        if (CheckStackRootThing(w, rooter->address(), kind))
+            *matched = true;
+        rooter = rooter->previous();
+    }
+}
 
 static void
-CheckStackRoot(JSRuntime *rt, uintptr_t *w, Rooter *begin, Rooter *end)
+CheckStackRoot(JSTracer *trc, uintptr_t *w)
 {
     
 #ifdef JS_VALGRIND
     VALGRIND_MAKE_MEM_DEFINED(&w, sizeof(w));
 #endif
 
-    void *thing;
-    ArenaHeader *aheader;
-    AllocKind thingKind;
-    ConservativeGCTest status =
-        IsAddressableGCThing(rt, *w, false, &thingKind, &aheader, &thing);
-    if (status != CGCT_VALID)
-        return;
-    
+    ConservativeGCTest test = MarkIfGCThingWord(trc, *w);
+
+    if (test == CGCT_VALID) {
+        bool matched = false;
+        JSRuntime *rt = trc->runtime;
+        for (unsigned i = 0; i < THING_ROOT_LIMIT; i++) {
+            CheckStackRootThings(w, rt->mainThread.thingGCRooters[i],
+                                 ThingRootKind(i), &matched);
+            for (ContextIter cx(rt); !cx.done(); cx.next()) {
+                CheckStackRootThings(w, cx->thingGCRooters[i], ThingRootKind(i), &matched);
+                SkipRoot *skip = cx->skipGCRooters;
+                while (skip) {
+                    if (skip->contains(reinterpret_cast<uint8_t*>(w), sizeof(w)))
+                        matched = true;
+                    skip = skip->previous();
+                }
+            }
+        }
+        if (!matched) {
+            
 
 
 
 
 
-    for (Rooter *p = begin; p != end; p++) {
-        if (CheckStackRootThing(w, p->rooter->address(), p->kind))
-            return;
-    }
-
-    for (ContextIter cx(rt); !cx.done(); cx.next()) {
-        SkipRoot *skip = cx->skipGCRooters;
-        while (skip) {
-            if (skip->contains(reinterpret_cast<uint8_t*>(w), sizeof(w)))
-                return;
-            skip = skip->previous();
+            PoisonPtr(w);
         }
     }
-
-    
-
-
-
-
-
-    PoisonPtr(w);
 }
 
 static void
-CheckStackRootsRange(JSRuntime *rt, uintptr_t *begin, uintptr_t *end, Rooter *rbegin, Rooter *rend)
+CheckStackRootsRange(JSTracer *trc, uintptr_t *begin, uintptr_t *end)
 {
     JS_ASSERT(begin <= end);
     for (uintptr_t *i = begin; i != end; ++i)
-        CheckStackRoot(rt, i, rbegin, rend);
+        CheckStackRoot(trc, i);
 }
 
 static void
-CheckStackRootsRangeAndSkipIon(JSRuntime *rt, uintptr_t *begin, uintptr_t *end, Rooter *rbegin, Rooter *rend)
+CheckStackRootsRangeAndSkipIon(JSRuntime *rt, JSTracer *trc, uintptr_t *begin, uintptr_t *end)
 {
     
 
@@ -5320,82 +5317,19 @@ CheckStackRootsRangeAndSkipIon(JSRuntime *rt, uintptr_t *begin, uintptr_t *end, 
         uintptr_t *ionMin, *ionEnd;
         ion.ionStackRange(ionMin, ionEnd);
 
-        uintptr_t *upto = Min(ionMin, end);
-        if (upto > i)
-            CheckStackRootsRange(rt, i, upto, rbegin, rend);
-        else
-            break;
+        CheckStackRootsRange(trc, i, ionMin);
         i = ionEnd;
     }
 #endif
 
     
-    if (i < end)
-        CheckStackRootsRange(rt, i, end, rbegin, rend);
+    if (i <= end)
+        CheckStackRootsRange(trc, i, end);
 }
 
-static int
-CompareRooters(const void *vpA, const void *vpB)
-{
-    const Rooter *a = static_cast<const Rooter *>(vpA);
-    const Rooter *b = static_cast<const Rooter *>(vpB);
-    
-    return (a->rooter < b->rooter) ? -1 : 1;
-}
-
-
-
-
-
-
-
-
-
-
-
-static bool
-SuppressCheckRoots(Vector<Rooter, 0, SystemAllocPolicy> &rooters)
-{
-    static const unsigned int NumStackMemories = 6;
-    static const size_t StackCheckDepth = 10;
-
-    static uint32_t stacks[NumStackMemories];
-    static unsigned int numMemories = 0;
-    static unsigned int oldestMemory = 0;
-
-    
-    
-    
-    
-    qsort(rooters.begin(), rooters.length(), sizeof(Rooter), CompareRooters);
-
-    
-    
-    unsigned int pos;
-
-    
-    uint32_t hash = mozilla::HashGeneric(&pos);
-    for (unsigned int i = 0; i < Min(StackCheckDepth, rooters.length()); i++)
-        hash = mozilla::AddToHash(hash, rooters[rooters.length() - i - 1].rooter);
-
-    
-    for (pos = 0; pos < numMemories; pos++) {
-        if (stacks[pos] == hash) {
-            
-            
-            
-            return true;
-        }
-    }
-
-    
-    stacks[oldestMemory] = hash;
-    oldestMemory = (oldestMemory + 1) % NumStackMemories;
-    if (numMemories < NumStackMemories)
-        numMemories++;
-
-    return false;
-}
+static void
+EmptyMarkCallback(JSTracer *jstrc, void **thingp, JSGCTraceKind kind)
+{}
 
 void
 JS::CheckStackRoots(JSContext *cx)
@@ -5432,6 +5366,9 @@ JS::CheckStackRoots(JSContext *cx)
 
     AutoCopyFreeListToArenas copy(rt);
 
+    JSTracer checker;
+    JS_TracerInit(&checker, rt, EmptyMarkCallback);
+
     ConservativeGCData *cgcd = &rt->conservativeGC;
     cgcd->recordStackTop();
 
@@ -5443,72 +5380,45 @@ JS::CheckStackRoots(JSContext *cx)
 #else
     stackMin = cgcd->nativeStackTop + 1;
     stackEnd = reinterpret_cast<uintptr_t *>(rt->nativeStackBase);
-#endif
+
+    uintptr_t *&oldStackMin = cgcd->oldStackMin, *&oldStackEnd = cgcd->oldStackEnd;
+    uintptr_t *&oldStackData = cgcd->oldStackData;
+    uintptr_t &oldStackCapacity = cgcd->oldStackCapacity;
 
     
-    Vector< Rooter, 0, SystemAllocPolicy> rooters;
-    for (unsigned i = 0; i < THING_ROOT_LIMIT; i++) {
-        Rooted<void*> *rooter = rt->mainThread.thingGCRooters[i];
-        while (rooter) {
-            Rooter r = { rooter, ThingRootKind(i) };
-            JS_ALWAYS_TRUE(rooters.append(r));
-            rooter = rooter->previous();
+
+
+
+    if (stackEnd != oldStackEnd) {
+        js_free(oldStackData);
+        oldStackCapacity = rt->nativeStackQuota / sizeof(uintptr_t);
+        oldStackData = (uintptr_t *) rt->malloc_(oldStackCapacity * sizeof(uintptr_t));
+        if (!oldStackData) {
+            oldStackCapacity = 0;
+        } else {
+            uintptr_t *existing = stackEnd - 1, *copy = oldStackData;
+            while (existing >= stackMin && size_t(copy - oldStackData) < oldStackCapacity)
+                *copy++ = *existing--;
+            oldStackEnd = stackEnd;
+            oldStackMin = existing + 1;
         }
-        for (ContextIter cx(rt); !cx.done(); cx.next()) {
-            rooter = cx->thingGCRooters[i];
-            while (rooter) {
-                Rooter r = { rooter, ThingRootKind(i) };
-                JS_ALWAYS_TRUE(rooters.append(r));
-                rooter = rooter->previous();
-            }
+    } else {
+        uintptr_t *existing = stackEnd - 1, *copy = oldStackData;
+        while (existing >= stackMin && existing >= oldStackMin && *existing == *copy) {
+            copy++;
+            existing--;
         }
+        stackEnd = existing + 1;
+        while (existing >= stackMin && size_t(copy - oldStackData) < oldStackCapacity)
+            *copy++ = *existing--;
+        oldStackMin = existing + 1;
     }
-
-    if (SuppressCheckRoots(rooters))
-        return;
-
-    
-    
-    
-    void *firstScanned = rooters.begin();
-    for (Rooter *p = rooters.begin(); p != rooters.end(); p++) {
-        if (p->rooter->scanned) {
-            uintptr_t *addr = reinterpret_cast<uintptr_t*>(p->rooter);
-#if JS_STACK_GROWTH_DIRECTION < 0
-            if (stackEnd > addr)
-#else
-            if (stackEnd < addr)
 #endif
-            {
-                stackEnd = addr;
-                firstScanned = p->rooter;
-            }
-        }
-    }
-
-    
-    
-    Rooter *firstToScan = rooters.begin();
-    for (Rooter *p = rooters.begin(); p != rooters.end(); p++) {
-#if JS_STACK_GROWTH_DIRECTION < 0
-        if (p->rooter >= firstScanned)
-#else
-        if (p->rooter <= firstScanned)
-#endif
-        {
-            Swap(*firstToScan, *p);
-            ++firstToScan;
-        }
-    }
 
     JS_ASSERT(stackMin <= stackEnd);
-    CheckStackRootsRangeAndSkipIon(rt, stackMin, stackEnd, firstToScan, rooters.end());
-    CheckStackRootsRange(rt, cgcd->registerSnapshot.words,
-                         ArrayEnd(cgcd->registerSnapshot.words), firstToScan, rooters.end());
-
-    
-    for (Rooter *p = rooters.begin(); p != rooters.end(); p++)
-        p->rooter->scanned = true;
+    CheckStackRootsRangeAndSkipIon(rt, &checker, stackMin, stackEnd);
+    CheckStackRootsRange(&checker, cgcd->registerSnapshot.words,
+                         ArrayEnd(cgcd->registerSnapshot.words));
 }
 
 #endif 
