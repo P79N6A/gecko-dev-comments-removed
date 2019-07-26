@@ -6905,12 +6905,20 @@ let gRemoteTabsUI = {
 
 
 
-function switchToTabHavingURI(aURI, aOpenNew, aOpenParams) {
+
+
+function switchToTabHavingURI(aURI, aOpenNew, aOpenParams={}) {
   
   
   const kPrivateBrowsingWhitelist = new Set([
     "about:customizing",
   ]);
+
+  let ignoreFragment = aOpenParams.ignoreFragment;
+  
+  
+  delete aOpenParams.ignoreFragment;
+
   
   function switchIfURIInWindow(aWindow) {
     
@@ -6925,10 +6933,17 @@ function switchToTabHavingURI(aURI, aOpenNew, aOpenParams) {
     let browsers = aWindow.gBrowser.browsers;
     for (let i = 0; i < browsers.length; i++) {
       let browser = browsers[i];
-      if (browser.currentURI.equals(aURI)) {
+      if (ignoreFragment ? browser.currentURI.equalsExceptRef(aURI) :
+                           browser.currentURI.equals(aURI)) {
         
         aWindow.focus();
         aWindow.gBrowser.tabContainer.selectedIndex = i;
+        if (ignoreFragment) {
+          let spec = aURI.spec;
+          if (!aURI.ref)
+            spec += "#";
+          browser.loadURI(spec);
+        }
         return true;
       }
     }
