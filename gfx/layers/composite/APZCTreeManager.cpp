@@ -8,7 +8,7 @@
 #include "LayerManagerComposite.h"      
 #include "Compositor.h"
 
-#define APZC_LOG(args...)
+#define APZC_LOG(...)
 
 
 namespace mozilla {
