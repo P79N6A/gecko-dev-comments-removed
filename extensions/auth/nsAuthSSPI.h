@@ -26,7 +26,7 @@
 
 
 
-class nsAuthSSPI : public nsIAuthModule
+class nsAuthSSPI MOZ_FINAL : public nsIAuthModule
 {
 public:
     NS_DECL_ISUPPORTS

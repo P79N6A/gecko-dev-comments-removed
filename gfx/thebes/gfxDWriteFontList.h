@@ -183,7 +183,7 @@ protected:
 };
 
 
-class FontFallbackRenderer : public IDWriteTextRenderer
+class FontFallbackRenderer MOZ_FINAL : public IDWriteTextRenderer
 {
 public:
     FontFallbackRenderer(IDWriteFactory *aFactory)

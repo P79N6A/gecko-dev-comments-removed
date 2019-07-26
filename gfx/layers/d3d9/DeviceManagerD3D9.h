@@ -79,7 +79,7 @@ private:
 
 
 
-class THEBES_API DeviceManagerD3D9
+class THEBES_API DeviceManagerD3D9 MOZ_FINAL
 {
 public:
   DeviceManagerD3D9();

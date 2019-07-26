@@ -36,7 +36,7 @@ struct ReadbackTask {
 
 
 
-class ReadbackResultWriter : public nsIRunnable
+class ReadbackResultWriter MOZ_FINAL : public nsIRunnable
 {
   NS_DECL_ISUPPORTS
 public:
