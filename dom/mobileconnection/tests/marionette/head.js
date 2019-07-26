@@ -518,6 +518,45 @@ function sendMMI(aMmi) {
 
 
 
+ function setCallForwardingOption(aOptions) {
+  let request = mobileConnection.setCallForwardingOption(aOptions);
+  return wrapDomRequestAsPromise(request)
+    .then(null, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ function getCallForwardingOption(aReason) {
+  let request = mobileConnection.getCallForwardingOption(aReason);
+  return wrapDomRequestAsPromise(request)
+    .then(() => request.result, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function setDataEnabledAndWait(aEnabled, aServiceId) {
