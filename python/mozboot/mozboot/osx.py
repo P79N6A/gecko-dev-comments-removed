@@ -52,6 +52,14 @@ You will need to download and install Xcode to build Firefox.
 Please complete the Xcode download and then relaunch this script.
 '''
 
+XCODE_NO_DEVELOPER_DIRECTORY = '''
+xcode-select says you don't have a developer directory configured. We think
+this is due to you not having Xcode installed (properly). We're going to
+attempt to install Xcode through the App Store. If the App Store thinks you
+have Xcode installed, please run xcode-select by hand until it stops
+complaining and then re-run this script.
+'''
+
 XCODE_COMMAND_LINE_TOOLS_MISSING = '''
 The Xcode command line tools are required to build Firefox.
 '''
@@ -182,18 +190,24 @@ class OSXBootstrapper(BaseBootstrapper):
         
         elif self.os_version >= StrictVersion('10.7'):
             select = self.which('xcode-select')
-            output = self.check_output([select, '--print-path'])
+            try:
+                output = self.check_output([select, '--print-path'],
+                    stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                
+                
+                if 'unable to get active developer directory' in e.output:
+                    print(XCODE_NO_DEVELOPER_DIRECTORY)
+                    self._install_xcode_app_store()
+                    assert False 
 
             
             
             
             if '.app/' not in output:
                 print(XCODE_REQUIRED)
-
-                subprocess.check_call(['open', XCODE_APP_STORE])
-
-                print('Once the install has finished, please relaunch this script.')
-                sys.exit(1)
+                self._install_xcode_app_store()
+                assert False 
 
         
         
@@ -203,7 +217,12 @@ class OSXBootstrapper(BaseBootstrapper):
         except subprocess.CalledProcessError as e:
             if 'license' in e.output:
                 xcodebuild = self.which('xcodebuild')
-                subprocess.check_call([xcodebuild, '-license'])
+                try:
+                    subprocess.check_call([xcodebuild, '-license'],
+                        stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as e:
+                    if 'requires admin privileges' in e.output:
+                        self.run_as_root([xcodebuild, '-license'])
 
         
         
@@ -225,6 +244,11 @@ class OSXBootstrapper(BaseBootstrapper):
                 print(UPGRADE_XCODE_COMMAND_LINE_TOOLS)
                 print(INSTALL_XCODE_COMMAND_LINE_TOOLS_STEPS)
                 sys.exit(1)
+
+    def _install_xcode_app_store(self):
+        subprocess.check_call(['open', XCODE_APP_STORE])
+        print('Once the install has finished, please relaunch this script.')
+        sys.exit(1)
 
     def ensure_homebrew_packages(self):
         self.brew = self.which('brew')
