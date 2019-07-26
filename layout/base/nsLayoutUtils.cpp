@@ -1154,6 +1154,40 @@ nsLayoutUtils::GetNearestScrollableFrame(nsIFrame* aFrame)
 }
 
 
+nsRect
+nsLayoutUtils::GetScrolledRect(nsIFrame* aScrolledFrame,
+                               const nsRect& aScrolledFrameOverflowArea,
+                               const nsSize& aScrollPortSize,
+                               uint8_t aDirection)
+{
+  nscoord x1 = aScrolledFrameOverflowArea.x,
+          x2 = aScrolledFrameOverflowArea.XMost(),
+          y1 = aScrolledFrameOverflowArea.y,
+          y2 = aScrolledFrameOverflowArea.YMost();
+  if (y1 < 0) {
+    y1 = 0;
+  }
+  if (aDirection != NS_STYLE_DIRECTION_RTL) {
+    if (x1 < 0) {
+      x1 = 0;
+    }
+  } else {
+    if (x2 > aScrollPortSize.width) {
+      x2 = aScrollPortSize.width;
+    }
+    
+    
+    
+    
+    
+    
+    nscoord extraWidth = std::max(0, aScrolledFrame->GetSize().width - aScrollPortSize.width);
+    x2 += extraWidth;
+  }
+  return nsRect(x1, y1, x2 - x1, y2 - y1);
+}
+
+
 bool
 nsLayoutUtils::HasPseudoStyle(nsIContent* aContent,
                               nsStyleContext* aStyleContext,

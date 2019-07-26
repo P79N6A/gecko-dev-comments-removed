@@ -3728,28 +3728,9 @@ nsRect
 nsGfxScrollFrameInner::GetScrolledRectInternal(const nsRect& aScrolledFrameOverflowArea,
                                                const nsSize& aScrollPortSize) const
 {
-  nscoord x1 = aScrolledFrameOverflowArea.x,
-          x2 = aScrolledFrameOverflowArea.XMost(),
-          y1 = aScrolledFrameOverflowArea.y,
-          y2 = aScrolledFrameOverflowArea.YMost();
-  if (y1 < 0)
-    y1 = 0;
-  if (IsLTR()) {
-    if (x1 < 0)
-      x1 = 0;
-  } else {
-    if (x2 > aScrollPortSize.width)
-      x2 = aScrollPortSize.width;
-    
-    
-    
-    
-    
-    
-    nscoord extraWidth = std::max(0, mScrolledFrame->GetSize().width - aScrollPortSize.width);
-    x2 += extraWidth;
-  }
-  return nsRect(x1, y1, x2 - x1, y2 - y1);
+  return nsLayoutUtils::GetScrolledRect(mScrolledFrame,
+      aScrolledFrameOverflowArea, aScrollPortSize,
+      IsLTR() ? NS_STYLE_DIRECTION_LTR : NS_STYLE_DIRECTION_RTL);
 }
 
 nsMargin

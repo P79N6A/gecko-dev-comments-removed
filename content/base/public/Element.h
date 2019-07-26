@@ -1036,13 +1036,6 @@ protected:
 
   virtual Element* GetOffsetRect(nsRect& aRect);
 
-  
-
-
-
-
-  nsIntSize GetPaddingRectSize();
-
   nsIFrame* GetStyledFrame();
 
   virtual Element* GetNameSpaceElement()
