@@ -119,7 +119,9 @@ FontSizeInflationListMarginAdjustment(const nsIFrame* aFrame)
       if (listStyleType != NS_STYLE_LIST_STYLE_NONE &&
           listStyleType != NS_STYLE_LIST_STYLE_DISC &&
           listStyleType != NS_STYLE_LIST_STYLE_CIRCLE &&
-          listStyleType != NS_STYLE_LIST_STYLE_SQUARE) {
+          listStyleType != NS_STYLE_LIST_STYLE_SQUARE &&
+          listStyleType != NS_STYLE_LIST_STYLE_DISCLOSURE_CLOSED &&
+          listStyleType != NS_STYLE_LIST_STYLE_DISCLOSURE_OPEN) {
         
         
         
