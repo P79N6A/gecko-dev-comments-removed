@@ -128,6 +128,18 @@ this.FxAccountsClient.prototype = {
 
 
 
+  resendVerificationEmail: function(sessionTokenHex) {
+    return this._request("/recovery_email/resend_code", "POST",
+      this._deriveHawkCredentials(sessionTokenHex, "sessionToken"));
+  },
+
+  
+
+
+
+
+
+
 
 
 

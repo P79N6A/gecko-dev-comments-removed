@@ -64,6 +64,11 @@ function MockFxAccountsClient() {
     return deferred.promise;
   };
 
+  this.resendVerificationEmail = function(sessionToken) {
+    
+    return Promise.resolve(sessionToken);
+  };
+
   this.signCertificate = function() { throw "no" };
 
   FxAccountsClient.apply(this);
@@ -169,8 +174,6 @@ add_task(function test_get_signed_in_user_initially_unset() {
 });
 
 
-
-
 add_test(function test_client_mock() {
   do_test_pending();
 
@@ -187,8 +190,6 @@ add_test(function test_client_mock() {
       run_next_test();
     });
 });
-
-
 
 
 
@@ -224,15 +225,13 @@ add_test(function test_verification_poll() {
       
       do_check_eq(user.verified, false);
       do_timeout(200, function() {
-        
+        log.debug("Mocking verification of francine's email");
         fxa.internal.fxAccountsClient._email = test_user.email;
         fxa.internal.fxAccountsClient._verified = true;
       });
     });
   });
 });
-
-
 
 
 
@@ -304,8 +303,6 @@ add_test(function test_getKeys() {
 });
 
 
-
-
 add_test(function test_getKeys_no_token() {
   do_test_pending();
 
@@ -325,8 +322,6 @@ add_test(function test_getKeys_no_token() {
     fxa.internal.getKeys();
   });
 });
-
-
 
 
 
@@ -455,6 +450,64 @@ add_task(function test_getAssertion() {
   do_check_true(exp <= finish + 2*60*1000);
 
   _("----- DONE ----\n");
+});
+
+add_task(function test_resend_email_not_signed_in() {
+  let fxa = new MockFxAccounts();
+
+  try {
+    yield fxa.resendVerificationEmail();
+  } catch(err) {
+    do_check_eq(err.message,
+      "Cannot resend verification email; no signed-in user");
+    do_test_finished();
+    run_next_test();
+    return;
+  }
+  do_throw("Should not be able to resend email when nobody is signed in");
+});
+
+add_task(function test_resend_email() {
+  do_test_pending();
+
+  let fxa = new MockFxAccounts();
+  let alice = getTestUser("alice");
+
+  do_check_eq(fxa.internal.generationCount, 0);
+
+  
+  fxa.setSignedInUser(alice).then(() => {
+    log.debug("Alice signing in");
+
+    
+    do_check_eq(fxa.internal.generationCount, 1);
+
+    
+    do_check_true(fxa.internal.currentTimer > 0);
+
+    fxa.internal.getUserAccountData().then(user => {
+      do_check_eq(user.email, alice.email);
+      do_check_eq(user.verified, false);
+      log.debug("Alice wants verification email resent");
+
+      fxa.resendVerificationEmail().then((result) => {
+        
+        
+        do_check_eq(result, "alice's session token");
+
+        
+        do_check_eq(fxa.internal.generationCount, 1);
+
+        
+        do_check_true(fxa.internal.currentTimer > 0);
+
+        
+        fxa.internal.abortExistingFlow();
+        do_test_finished();
+        run_next_test();
+      });
+    });
+  });
 });
 
 

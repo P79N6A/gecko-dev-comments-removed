@@ -339,11 +339,22 @@ InternalMethods.prototype = {
       return Promise.resolve(data);
     }
     if (!this.whenVerifiedPromise) {
-      this.whenVerifiedPromise = Promise.defer();
       log.debug("whenVerified promise starts polling for verified email");
       this.pollEmailStatus(data.sessionToken, "start");
     }
     return this.whenVerifiedPromise.promise;
+  },
+
+  
+
+
+
+
+
+
+  resendVerificationEmail: function(data) {
+    this.pollEmailStatus(data.sessionToken, "start");
+    return this.fxAccountsClient.resendVerificationEmail(data.sessionToken);
   },
 
   notifyObservers: function(topic) {
@@ -364,12 +375,13 @@ InternalMethods.prototype = {
     let myGenerationCount = this.generationCount;
     log.debug("entering pollEmailStatus: " + why + " " + myGenerationCount);
     if (why == "start") {
-      if (this.currentTimer) {
-        
-        
-        throw new Error("Already polling for email status");
-      }
+      
+      
+      
       this.pollTimeRemaining = this.POLL_SESSION;
+      if (!this.whenVerifiedPromise) {
+        this.whenVerifiedPromise = Promise.defer();
+      }
     }
 
     this.checkEmailStatus(sessionToken)
@@ -487,7 +499,7 @@ this.FxAccounts.prototype = Object.freeze({
     log.debug("setSignedInUser - aborting any existing flows");
     internal.abortExistingFlow();
 
-    let record = {version: this.version, accountData: credentials };
+    let record = {version: this.version, accountData: credentials};
     
     internal.signedInUser = JSON.parse(JSON.stringify(record));
 
@@ -531,6 +543,22 @@ this.FxAccounts.prototype = Object.freeze({
         }
         return data;
       });
+  },
+
+  
+
+
+
+  resendVerificationEmail: function resendVerificationEmail() {
+    return this.getSignedInUser().then((data) => {
+      
+      
+      
+      if (data) {
+        return internal.resendVerificationEmail(data);
+      }
+      throw new Error("Cannot resend verification email; no signed-in user");
+    });
   },
 
   
