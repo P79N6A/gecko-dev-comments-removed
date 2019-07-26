@@ -1812,31 +1812,31 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   aBuilder->SetContainsBlendMode(false);
  
   if (isTransformed) {
+    const nsRect overflow = GetVisualOverflowRectRelativeToSelf();
     if (aBuilder->IsForPainting() &&
         nsDisplayTransform::ShouldPrerenderTransformedContent(aBuilder, this)) {
-      dirtyRect = GetVisualOverflowRectRelativeToSelf();
+      dirtyRect = overflow;
     } else {
-      
-      
-      
-
-      
-      nsRect overflow = GetVisualOverflowRectRelativeToSelf();
-      nsPoint offset = aBuilder->ToReferenceFrame(this);
-      overflow += offset;
-      overflow = nsDisplayTransform::TransformRect(overflow, this, offset);
-
-      dirtyRect += offset;
-
-      if (dirtyRect.Intersects(overflow)) {
-        
-        
-        dirtyRect = GetVisualOverflowRectRelativeToSelf();
-      } else {
-        dirtyRect.SetEmpty();
-      }
-      if (!Preserves3DChildren() && !dirtyRect.Intersects(GetVisualOverflowRectRelativeToSelf())) {
+      if (overflow.IsEmpty() && !Preserves3DChildren()) {
         return;
+      }
+      
+      
+      
+
+      
+      nsPoint offset = aBuilder->ToReferenceFrame(this);
+      nsRect trans = nsDisplayTransform::TransformRect(overflow + offset, this, offset);
+      dirtyRect += offset;
+      if (dirtyRect.Intersects(trans)) {
+        
+        
+        dirtyRect = overflow;
+      } else {
+        if (!Preserves3DChildren()) {
+          return;
+        }
+        dirtyRect.SetEmpty();
       }
     }
     inTransform = true;
