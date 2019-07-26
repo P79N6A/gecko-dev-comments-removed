@@ -1296,26 +1296,23 @@ nsFlexContainerFrame::ResolveFlexibleLengths(
 #endif 
 }
 
-const nsTArray<SortableFrame>
-BuildSortedChildArray(const nsFrameList& aChildren)
+void
+BuildSortedChildArray(const nsFrameList& aChildren,
+		      nsTArray<SortableFrame>& aSortedChildren)
 {
-  
-  
-  nsTArray<SortableFrame> sortedChildArray(aChildren.GetLength());
+  aSortedChildren.SetCapacity(aChildren.GetLength());
 
   
   uint32_t indexInFrameList = 0;
   for (nsFrameList::Enumerator e(aChildren); !e.AtEnd(); e.Next()) {
     int32_t orderValue = e.get()->GetStylePosition()->mOrder;
-    sortedChildArray.AppendElement(SortableFrame(e.get(), orderValue,
-                                                 indexInFrameList));
+    aSortedChildren.AppendElement(SortableFrame(e.get(), orderValue,
+						indexInFrameList));
     indexInFrameList++;
   }
 
   
-  sortedChildArray.Sort();
-
-  return sortedChildArray;
+  aSortedChildren.Sort();
 }
 
 MainAxisPositionTracker::
@@ -1787,7 +1784,8 @@ nsFlexContainerFrame::GenerateFlexItems(
   MOZ_ASSERT(aFlexItems.IsEmpty(), "Expecting outparam to start out empty");
 
   
-  const nsTArray<SortableFrame> sortedChildren = BuildSortedChildArray(mFrames);
+  nsTArray<SortableFrame> sortedChildren;
+  BuildSortedChildArray(mFrames, sortedChildren);
 
   
 
