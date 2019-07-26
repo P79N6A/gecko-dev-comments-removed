@@ -78,7 +78,7 @@ class Test:
         self.relpath_top = os.path.relpath(path, TOP_SRC_DIR)
 
         
-        self.relpath_js = os.path.relpath(path, JS_DIR)
+        self.relpath_tests = os.path.relpath(path, TEST_DIR)
 
         self.jitflags = []     
         self.slow = False      
@@ -558,14 +558,14 @@ def process_test_results(results, num_tests, options):
                 sys.stdout.write(res.err)
 
             ok = check_output(res.out, res.err, res.rc, res.test)
-            doing = 'after %s' % res.test.relpath_js
+            doing = 'after %s' % res.test.relpath_tests
             if not ok:
                 failures.append(res)
                 if res.timed_out:
-                    pb.message("TIMEOUT - %s" % res.test.relpath_js)
+                    pb.message("TIMEOUT - %s" % res.test.relpath_tests)
                     timeouts += 1
                 else:
-                    pb.message("FAIL - %s" % res.test.relpath_js)
+                    pb.message("FAIL - %s" % res.test.relpath_tests)
 
             if options.tinderbox:
                 print_tinderbox(ok, res)
