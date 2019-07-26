@@ -588,6 +588,8 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
 
       case UNSUPPORTED_RELOC(COUNT): 
 
+      case DT_FLAGS_1: 
+
       case DT_VERSYM: 
       case DT_VERDEF: 
       case DT_VERDEFNUM:
