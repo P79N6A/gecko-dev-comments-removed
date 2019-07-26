@@ -29,8 +29,8 @@ function ThreadActor(aHooks, aGlobal)
   this._state = "detached";
   this._frameActors = [];
   this._environmentActors = [];
-  this._hooks = {};
   this._hooks = aHooks;
+  this._sources = {};
   this.global = aGlobal;
 
   
@@ -100,6 +100,7 @@ ThreadActor.prototype = {
     this.conn.removeActorPool(this._threadLifetimePool || undefined);
     this._threadLifetimePool = null;
     this._scripts = {};
+    this._sources = {};
   },
 
   
@@ -652,12 +653,18 @@ ThreadActor.prototype = {
   
 
 
-  onScripts: function TA_onScripts(aRequest) {
-    
+  _discoverScriptsAndSources: function TA__discoverScriptsAndSources() {
     for (let s of this.dbg.findScripts()) {
       this._addScript(s);
     }
-    
+  },
+
+  
+
+
+  onScripts: function TA_onScripts(aRequest) {
+    this._discoverScriptsAndSources();
+
     let scripts = [];
     for (let url in this._scripts) {
       for (let i = 0; i < this._scripts[url].length; i++) {
@@ -669,15 +676,24 @@ ThreadActor.prototype = {
           url: url,
           startLine: i,
           lineCount: this._scripts[url][i].lineCount,
-          source: this.sourceGrip(this._scripts[url][i], this)
+          source: this._getSource(url).form()
         };
         scripts.push(script);
       }
     }
 
-    let packet = { from: this.actorID,
-                   scripts: scripts };
-    return packet;
+    return {
+      from: this.actorID,
+      scripts: scripts
+    };
+  },
+
+  onSources: function TA_onSources(aRequest) {
+    this._discoverScriptsAndSources();
+    let urls = Object.getOwnPropertyNames(this._sources);
+    return {
+      sources: [this._getSource(url).form() for (url of urls)]
+    };
   },
 
   
@@ -1099,10 +1115,10 @@ ThreadActor.prototype = {
       return this.threadLifetimePool.sourceActors[aScript.url].grip();
     }
 
-    let actor = new SourceActor(aScript, this);
+    let actor = new SourceActor(aScript.url, this);
     this.threadLifetimePool.addActor(actor);
     this.threadLifetimePool.sourceActors[aScript.url] = actor;
-    return actor.grip();
+    return actor.form();
   },
 
   
@@ -1175,7 +1191,7 @@ ThreadActor.prototype = {
         url: aScript.url,
         startLine: aScript.startLine,
         lineCount: aScript.lineCount,
-        source: this.sourceGrip(aScript, this)
+        source: this._getSource(aScript.url).form()
       });
     }
   },
@@ -1187,16 +1203,17 @@ ThreadActor.prototype = {
 
 
 
-  _allowScript: function TA__allowScript(aScript) {
+
+  _allowSource: function TA__allowScript(aSourceUrl) {
     
-    if (!aScript.url)
+    if (!aSourceUrl)
       return false;
     
-    if (aScript.url.indexOf("chrome://") == 0) {
+    if (aSourceUrl.indexOf("chrome://") == 0) {
       return false;
     }
     
-    if (aScript.url.indexOf("about:") == 0) {
+    if (aSourceUrl.indexOf("about:") == 0) {
       return false;
     }
     return true;
@@ -1210,9 +1227,14 @@ ThreadActor.prototype = {
 
 
   _addScript: function TA__addScript(aScript) {
-    if (!this._allowScript(aScript)) {
+    if (!this._allowSource(aScript.url)) {
       return false;
     }
+
+    
+    
+    this._addSource(aScript.url);
+
     
     
     if (!this._scripts[aScript.url]) {
@@ -1280,7 +1302,49 @@ ThreadActor.prototype = {
       }
     }
     return retval;
-  }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _addSource: function TA__addSource(aURL) {
+    if (!this._allowSource(aURL)) {
+      return false;
+    }
+
+    if (aURL in this._sources) {
+      return true;
+    }
+
+    let actor = new SourceActor(aURL, this);
+    this.threadLifetimePool.addActor(actor);
+    this._sources[aURL] = actor;
+
+    this.conn.send({
+      from: this.actorID,
+      type: "newSource",
+      source: actor.form()
+    });
+
+    return true;
+  },
+
+  
+
+
+  _getSource: function TA__getSource(aUrl) {
+    let source = this._sources[aUrl];
+    if (!source) {
+      throw new Error("No source for '" + aUrl + "'");
+    }
+    return source;
+  },
 
 };
 
@@ -1294,6 +1358,7 @@ ThreadActor.prototype.requestTypes = {
   "releaseMany": ThreadActor.prototype.onReleaseMany,
   "setBreakpoint": ThreadActor.prototype.onSetBreakpoint,
   "scripts": ThreadActor.prototype.onScripts,
+  "sources": ThreadActor.prototype.onSources,
   "threadGrips": ThreadActor.prototype.onThreadGrips
 };
 
@@ -1378,9 +1443,9 @@ PauseScopedActor.prototype = {
 
 
 
-function SourceActor(aScript, aThreadActor) {
+function SourceActor(aUrl, aThreadActor) {
   this._threadActor = aThreadActor;
-  this._script = aScript;
+  this._url = aUrl;
 }
 
 SourceActor.prototype = {
@@ -1389,8 +1454,12 @@ SourceActor.prototype = {
 
   get threadActor() { return this._threadActor; },
 
-  grip: function SA_grip() {
-    return this.actorID;
+  form: function SA_form() {
+    return {
+      actor: this.actorID,
+      url: this._url
+      
+    };
   },
 
   disconnect: function LSA_disconnect() {
@@ -1418,7 +1487,7 @@ SourceActor.prototype = {
         return {
           "from": this.actorID,
           "error": "loadSourceError",
-          "message": "Could not load the source for " + this._script.url + "."
+          "message": "Could not load the source for " + this._url + "."
         };
       }.bind(this));
   },
@@ -1458,8 +1527,9 @@ SourceActor.prototype = {
 
   _loadSource: function SA__loadSource() {
     let deferred = defer();
-    let url = this._script.url;
     let scheme;
+    let url = this._url;
+
     try {
       scheme = Services.io.extractScheme(url);
     } catch (e) {
@@ -2360,7 +2430,7 @@ update(ChromeDebuggerActor.prototype, {
 
 
 
-  _allowScript: function(aScript) !!aScript.url,
+  _allowSource: function(aSourceURL) !!aSourceURL,
 
    
 

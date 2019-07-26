@@ -10,8 +10,8 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
-const NEW_SCRIPT_IGNORED_URLS = ["debugger eval code", "self-hosted"];
-const NEW_SCRIPT_DISPLAY_DELAY = 200; 
+const NEW_SOURCE_IGNORED_URLS = ["debugger eval code", "self-hosted"];
+const NEW_SOURCE_DISPLAY_DELAY = 200; 
 const FETCH_SOURCE_RESPONSE_DELAY = 50; 
 const FRAME_STEP_CLEAR_DELAY = 100; 
 const CALL_STACK_PAGE_SIZE = 25; 
@@ -1065,14 +1065,10 @@ StackFrames.prototype = {
 
 
 
-
-
-
-
 function SourceScripts() {
-  this._onNewScript = this._onNewScript.bind(this);
+  this._onNewSource = this._onNewSource.bind(this);
   this._onNewGlobal = this._onNewGlobal.bind(this);
-  this._onScriptsAdded = this._onScriptsAdded.bind(this);
+  this._onSourcesAdded = this._onSourcesAdded.bind(this);
 }
 
 SourceScripts.prototype = {
@@ -1084,8 +1080,8 @@ SourceScripts.prototype = {
 
   connect: function SS_connect() {
     dumpn("SourceScripts is connecting...");
-    this.debuggerClient.addListener("newScript", this._onNewScript);
     this.debuggerClient.addListener("newGlobal", this._onNewGlobal);
+    this.activeThread.addListener("newSource", this._onNewSource);
     this._handleTabNavigation();
   },
 
@@ -1097,9 +1093,9 @@ SourceScripts.prototype = {
       return;
     }
     dumpn("SourceScripts is disconnecting...");
-    window.clearTimeout(this._newScriptTimeout);
-    this.debuggerClient.removeListener("newScript", this._onNewScript);
+    window.clearTimeout(this._newSourceTimeout);
     this.debuggerClient.removeListener("newGlobal", this._onNewGlobal);
+    this.activeThread.removeListener("newSource", this._onNewSource);
   },
 
   
@@ -1110,26 +1106,25 @@ SourceScripts.prototype = {
       return;
     }
     dumpn("Handling tab navigation in the SourceScripts");
-    window.clearTimeout(this._newScriptTimeout);
+    window.clearTimeout(this._newSourceTimeout);
 
     
     
-    this.activeThread.getScripts(this._onScriptsAdded);
+    this.activeThread.getSources(this._onSourcesAdded);
   },
 
   
 
 
-  _onNewScript: function SS__onNewScript(aNotification, aPacket) {
+  _onNewSource: function SS__onNewSource(aNotification, aPacket) {
     
-    if (NEW_SCRIPT_IGNORED_URLS.indexOf(aPacket.url) != -1) {
+    if (NEW_SOURCE_IGNORED_URLS.indexOf(aPacket.url) != -1) {
       return;
     }
 
     
     this._addSource({
-      url: aPacket.url,
-      startLine: aPacket.startLine,
+      url: aPacket.source.url,
       source: aPacket.source
     }, {
       forced: true
@@ -1144,14 +1139,14 @@ SourceScripts.prototype = {
     }
     
     else {
-      window.clearTimeout(this._newScriptTimeout);
-      this._newScriptTimeout = window.setTimeout(function() {
+      window.clearTimeout(this._newSourceTimeout);
+      this._newSourceTimeout = window.setTimeout(function() {
         
         
         if (!container.selectedValue) {
           container.selectedIndex = 0;
         }
-      }, NEW_SCRIPT_DISPLAY_DELAY);
+      }, NEW_SOURCE_DISPLAY_DELAY);
     }
 
     
@@ -1174,14 +1169,22 @@ SourceScripts.prototype = {
   
 
 
-  _onScriptsAdded: function SS__onScriptsAdded(aResponse) {
+  _onSourcesAdded: function SS__onSourcesAdded(aResponse) {
+    if (aResponse.error) {
+      Cu.reportError(new Error("Error getting sources: " + aResponse.error));
+      return;
+    }
+
     
-    for (let script of aResponse.scripts) {
+    for (let source of aResponse.sources) {
       
-      if (NEW_SCRIPT_IGNORED_URLS.indexOf(script.url) != -1) {
+      if (NEW_SOURCE_IGNORED_URLS.indexOf(source.url) != -1) {
         continue;
       }
-      this._addSource(script);
+      this._addSource({
+        url: source.url,
+        source: source
+      });
     }
 
     let container = DebuggerView.Sources;
@@ -1205,7 +1208,7 @@ SourceScripts.prototype = {
     DebuggerController.Breakpoints.updatePaneBreakpoints();
 
     
-    window.dispatchEvent("Debugger:AfterScriptsAdded");
+    window.dispatchEvent("Debugger:AfterSourcesAdded");
   },
 
   
@@ -1241,7 +1244,7 @@ SourceScripts.prototype = {
   getText: function SS_getText(aSource, aCallback, aOnTimeout) {
     
     if (aSource.loaded) {
-      aCallback(aSource.url, aSource.text);
+      aCallback(aSource.source.url, aSource.text);
       return;
     }
 
@@ -1256,13 +1259,13 @@ SourceScripts.prototype = {
       window.clearTimeout(fetchTimeout);
 
       if (aResponse.error) {
-        Cu.reportError("Error loading " + aSource.url + "\n" + aResponse.error);
-        aCallback(aSource.url, "");
+        Cu.reportError("Error loading " + aSource.source.url + "\n" + aResponse.error);
+        aCallback(aSource.source.url, "");
         return;
       }
       aSource.loaded = true;
       aSource.text = aResponse.source;
-      aCallback(aSource.url, aResponse.source);
+      aCallback(aSource.source.url, aResponse.source);
     });
   }
 };

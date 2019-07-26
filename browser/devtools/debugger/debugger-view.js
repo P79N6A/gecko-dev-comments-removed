@@ -255,7 +255,8 @@ let DebuggerView = {
     if (!this.editor) {
       return;
     }
-    dumpn("Setting the DebuggerView editor source: " + aSource.url +
+
+    dumpn("Setting the DebuggerView editor source: " + aSource.source.url +
           ", loaded: " + aSource.loaded +
           ", options: " + aOptions.toSource());
 
@@ -275,7 +276,7 @@ let DebuggerView = {
       if (this._editorSource != aSource) {
         
         if (aSource.text.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
-          this.setEditorMode(aSource.url, aSource.contentType, aSource.text);
+          this.setEditorMode(aSource.source.url, aSource.contentType, aSource.text);
         } else {
           this.editor.setMode(SourceEditor.MODES.TEXT);
         }
@@ -285,7 +286,7 @@ let DebuggerView = {
       this._editorSource = aSource;
       this.updateEditor();
 
-      DebuggerView.Sources.selectedValue = aSource.url;
+      DebuggerView.Sources.selectedValue = aSource.source.url;
       DebuggerController.Breakpoints.updateEditorBreakpoints();
 
       

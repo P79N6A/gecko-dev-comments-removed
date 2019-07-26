@@ -18,6 +18,8 @@ this.EXPORTED_SYMBOLS = ["DebuggerTransport",
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+const { defer, resolve, reject } = Promise;
 
 XPCOMUtils.defineLazyServiceGetter(this, "socketTransportService",
                                    "@mozilla.org/network/socket-transport-service;1",
@@ -176,6 +178,7 @@ const UnsolicitedNotifications = {
   "networkEventUpdate": "networkEventUpdate",
   "newGlobal": "newGlobal",
   "newScript": "newScript",
+  "newSource": "newSource",
   "tabDetached": "tabDetached",
   "tabNavigated": "tabNavigated",
   "pageError": "pageError",
@@ -211,6 +214,10 @@ this.DebuggerClient = function DebuggerClient(aTransport)
   this._pendingRequests = [];
   this._activeRequests = {};
   this._eventsEnabled = true;
+
+  this.compat = new ProtocolCompatibility(this, [
+    new SourcesShim(),
+  ]);
 }
 
 DebuggerClient.prototype = {
@@ -446,60 +453,68 @@ DebuggerClient.prototype = {
 
 
 
-  onPacket: function DC_onPacket(aPacket) {
-    if (!this._connected) {
-      
-      this._connected = true;
-      this.notify("connected",
-                  aPacket.applicationType,
-                  aPacket.traits);
-      return;
-    }
 
-    try {
-      if (!aPacket.from) {
-        let msg = "Server did not specify an actor, dropping packet: " +
-                  JSON.stringify(aPacket);
-        Cu.reportError(msg);
-        dumpn(msg);
+
+  onPacket: function DC_onPacket(aPacket, aIgnoreCompatibility=false) {
+    let packet = aIgnoreCompatibility
+      ? aPacket
+      : this.compat.onPacket(aPacket);
+
+    resolve(packet).then(function (aPacket) {
+      if (!this._connected) {
+        
+        this._connected = true;
+        this.notify("connected",
+                    aPacket.applicationType,
+                    aPacket.traits);
         return;
       }
 
-      let onResponse;
-      
-      if (aPacket.from in this._activeRequests &&
-          !(aPacket.type in UnsolicitedNotifications) &&
-          !(aPacket.type == ThreadStateTypes.paused &&
-            aPacket.why.type in UnsolicitedPauses)) {
-        onResponse = this._activeRequests[aPacket.from].onResponse;
-        delete this._activeRequests[aPacket.from];
+      try {
+        if (!aPacket.from) {
+          let msg = "Server did not specify an actor, dropping packet: " +
+                    JSON.stringify(aPacket);
+          Cu.reportError(msg);
+          dumpn(msg);
+          return;
+        }
+
+        let onResponse;
+        
+        if (aPacket.from in this._activeRequests &&
+            !(aPacket.type in UnsolicitedNotifications) &&
+            !(aPacket.type == ThreadStateTypes.paused &&
+              aPacket.why.type in UnsolicitedPauses)) {
+          onResponse = this._activeRequests[aPacket.from].onResponse;
+          delete this._activeRequests[aPacket.from];
+        }
+
+        
+        if (aPacket.type in ThreadStateTypes &&
+            aPacket.from in this._threadClients) {
+          this._threadClients[aPacket.from]._onThreadState(aPacket);
+        }
+        
+        
+        
+        if (this.activeThread &&
+            aPacket.type == UnsolicitedNotifications.tabNavigated &&
+            aPacket.from in this._tabClients) {
+          let resumption = { from: this.activeThread._actor, type: "resumed" };
+          this.activeThread._onThreadState(resumption);
+        }
+        this.notify(aPacket.type, aPacket);
+
+        if (onResponse) {
+          onResponse(aPacket);
+        }
+      } catch(ex) {
+        dumpn("Error handling response: " + ex + " - stack:\n" + ex.stack);
+        Cu.reportError(ex.message + "\n" + ex.stack);
       }
 
-      
-      if (aPacket.type in ThreadStateTypes &&
-          aPacket.from in this._threadClients) {
-        this._threadClients[aPacket.from]._onThreadState(aPacket);
-      }
-      
-      
-      
-      if (this.activeThread &&
-          aPacket.type == UnsolicitedNotifications.tabNavigated &&
-          aPacket.from in this._tabClients) {
-        let resumption = { from: this.activeThread._actor, type: "resumed" };
-        this.activeThread._onThreadState(resumption);
-      }
-      this.notify(aPacket.type, aPacket);
-
-      if (onResponse) {
-        onResponse(aPacket);
-      }
-    } catch(ex) {
-      dumpn("Error handling response: " + ex + " - stack:\n" + ex.stack);
-      Cu.reportError(ex.message + "\n" + ex.stack);
-    }
-
-    this._sendRequests();
+      this._sendRequests();
+    }.bind(this));
   },
 
   
@@ -515,6 +530,194 @@ DebuggerClient.prototype = {
 }
 
 eventSource(DebuggerClient.prototype);
+
+
+const SUPPORTED = 1;
+const NOT_SUPPORTED = 2;
+const SKIP = 3;
+
+
+
+
+
+
+
+
+
+function ProtocolCompatibility(aClient, aFeatures) {
+  this._client = aClient;
+  this._featuresWithUnknownSupport = new Set(aFeatures);
+  this._featuresWithoutSupport = new Set();
+
+  this._featureDeferreds = Object.create(null)
+  for (let f of aFeatures) {
+    this._featureDeferreds[f.name] = defer();
+  }
+}
+
+ProtocolCompatibility.prototype = {
+  
+
+
+
+
+
+
+  supportsFeature: function PC_supportsFeature(aFeatureName) {
+    return this._featureDeferreds[aFeatureName].promise;
+  },
+
+  
+
+
+
+
+
+  rejectFeature: function PC_rejectFeature(aFeatureName) {
+    this._featureDeferreds[aFeatureName].reject(false);
+  },
+
+  
+
+
+
+
+
+
+  onPacket: function PC_onPacket(aPacket) {
+    this._detectFeatures(aPacket);
+    return this._shimPacket(aPacket);
+  },
+
+  
+
+
+
+  _detectFeatures: function PC__detectFeatures(aPacket) {
+    for (let feature of this._featuresWithUnknownSupport) {
+      try {
+        switch (feature.onPacketTest(aPacket)) {
+        case SKIP:
+          break;
+        case SUPPORTED:
+          this._featuresWithUnknownSupport.delete(feature);
+          this._featureDeferreds[feature.name].resolve(true);
+          break;
+        case NOT_SUPPORTED:
+          this._featuresWithUnknownSupport.delete(feature);
+          this._featuresWithoutSupport.add(feature);
+          this.rejectFeature(feature.name);
+          break;
+        default:
+          Cu.reportError(new Error(
+            "Bad return value from `onPacketTest` for feature '"
+              + feature.name + "'"));
+        }
+      } catch (ex) {
+        Cu.reportError("Error detecting support for feature '"
+                       + feature.name + "':" + ex.message + "\n"
+                       + ex.stack);
+      }
+    }
+  },
+
+  
+
+
+
+  _shimPacket: function PC__shimPacket(aPacket) {
+    let extraPackets = [];
+
+    let loop = function (aFeatures, aPacket) {
+      if (aFeatures.length === 0) {
+        for (let packet of extraPackets) {
+          this._client.onPacket(packet, true);
+        }
+        return aPacket;
+      } else {
+        let replacePacket = function (aNewPacket) {
+          return aNewPacket;
+        };
+        let extraPacket = function (aExtraPacket) {
+          extraPackets.push(aExtraPacket);
+          return aPacket;
+        };
+        let keepPacket = function () {
+          return aPacket;
+        };
+        let newPacket = aFeatures[0].translatePacket(aPacket,
+                                                     replacePacket,
+                                                     extraPacket,
+                                                     keepPacket);
+        return resolve(newPacket).then(loop.bind(null, aFeatures.slice(1)));
+      }
+    }.bind(this);
+
+    return loop([f for (f of this._featuresWithoutSupport)],
+                aPacket);
+  }
+};
+
+
+
+
+const FeatureCompatibilityShim = {
+  
+  name: null,
+
+  
+
+
+
+  onPacketTest: function (aPacket) {
+    throw new Error("Not yet implemented");
+  },
+
+  
+
+
+
+  translatePacket: function (aPacket, aReplacePacket, aExtraPacket, aKeepPacket) {
+    throw new Error("Not yet implemented");
+  }
+};
+
+
+
+
+
+function SourcesShim() {
+  this._sourcesSeen = new Set();
+}
+
+SourcesShim.prototype = Object.create(FeatureCompatibilityShim);
+let SSProto = SourcesShim.prototype;
+
+SSProto.name = "sources";
+
+SSProto.onPacketTest = function SS_onPacketTest(aPacket) {
+  if (aPacket.traits) {
+    return aPacket.traits.sources
+      ? SUPPORTED
+      : NOT_SUPPORTED;
+  }
+  return SKIP;
+};
+
+SSProto.translatePacket = function SS_translatePacket(aPacket,
+                                                      aReplacePacket,
+                                                      aExtraPacket,
+                                                      aKeepPacket) {
+  if (aPacket.type !== "newScript" || this._sourcesSeen.has(aPacket.url)) {
+    return aKeepPacket();
+  }
+  this._sourcesSeen.add(aPacket.url);
+  return aExtraPacket({
+    from: aPacket.from,
+    type: "newSource",
+    source: aPacket.source
+  });
+};
 
 
 
@@ -583,6 +786,8 @@ ThreadClient.prototype = {
 
   _actor: null,
   get actor() { return this._actor; },
+
+  get compat() { return this._client.compat; },
 
   _assertPaused: function TC_assertPaused(aCommand) {
     if (!this.paused) {
@@ -836,6 +1041,53 @@ ThreadClient.prototype = {
     this._client.request(packet, aOnResponse);
   },
 
+  
+
+
+
+
+
+  getSources: function TC_getSources(aOnResponse) {
+    
+    
+    function getSources(aOnResponse) {
+      let packet = { to: this._actor, type: "sources" };
+      this._client.request(packet, aOnResponse);
+    }
+
+    
+    
+    function getSourcesBackwardsCompat(aOnResponse) {
+      this.getScripts(function (aResponse) {
+        if (aResponse.error) {
+          aOnResponse(aResponse);
+          return;
+        }
+        let sourceActorsByURL = aResponse.scripts.reduce(function (aSourceActorsByURL, aScript) {
+          aSourceActorsByURL[aScript.url] = aScript.source;
+          return aSourceActorsByURL;
+        }, {});
+        aOnResponse({
+          sources: [
+            { url: url, actor: sourceActorsByURL[url] }
+            for (url of Object.keys(sourceActorsByURL))
+          ]
+        });
+      });
+    }
+
+    
+    
+    let threadClient = this;
+    this.compat.supportsFeature("sources").then(function () {
+      threadClient.getSources = getSources;
+    }, function () {
+      threadClient.getSources = getSourcesBackwardsCompat;
+    }).then(function () {
+      threadClient.getSources(aOnResponse);
+    });
+  },
+
   _doInterrupted: function TC_doInterrupted(aAction, aError) {
     if (this.paused) {
       aAction();
@@ -1063,8 +1315,8 @@ ThreadClient.prototype = {
   
 
 
-  source: function TC_source(aActor) {
-    return new SourceClient(this._client, aActor);
+  source: function TC_source(aForm) {
+    return new SourceClient(this._client, aForm);
   }
 
 };
@@ -1220,8 +1472,8 @@ LongStringClient.prototype = {
 
 
 
-function SourceClient(aClient, aActor) {
-  this._actor = aActor;
+function SourceClient(aClient, aForm) {
+  this._form = aForm;
   this._client = aClient;
 }
 
@@ -1231,7 +1483,7 @@ SourceClient.prototype = {
 
   source: function SC_source(aCallback) {
     let packet = {
-      to: this._actor,
+      to: this._form.actor,
       type: "source"
     };
     this._client.request(packet, function (aResponse) {
@@ -1312,4 +1564,11 @@ this.debuggerSocketConnect = function debuggerSocketConnect(aHost, aPort)
   let transport = new DebuggerTransport(s.openInputStream(0, 0, 0),
                                         s.openOutputStream(0, 0, 0));
   return transport;
+}
+
+
+
+
+function pair(aItemOne, aItemTwo) {
+  return [aItemOne, aItemTwo];
 }
