@@ -21,7 +21,10 @@ function test() {
     }, content);
   }, true);
 
-  content.location = "data:text/html,<p>p</p>";
+  
+  
+  
+  content.location = "data:text/html,<p id='1'>p</p>";
 
   function startInspectorTests(aToolbox)
   {
