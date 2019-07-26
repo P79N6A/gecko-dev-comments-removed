@@ -178,7 +178,7 @@ ChromeObjectWrapper::enter(JSContext *cx, HandleObject wrapper,
     
     
     *bp = (act == Wrapper::GET);
-    if (!*bp || id == jsid::voidId())
+    if (!*bp || id == JSID_VOID)
         return false;
 
     

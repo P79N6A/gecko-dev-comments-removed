@@ -1410,7 +1410,7 @@ InitIds(JSContext* cx, const Prefable<Spec>* prefableSpecs, jsid* ids)
 
     
     
-    *ids = jsid::voidId();
+    *ids = JSID_VOID;
     ++ids;
   } while ((++prefableSpecs)->specs);
 

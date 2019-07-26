@@ -222,7 +222,7 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, j
     
     
     
-    if (id == jsid::voidId())
+    if (id == JSID_VOID)
         return false;
 
     const char *name;
@@ -315,7 +315,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapperArg, jsid idArg, Wr
         return false;
     }
 
-    if (id == jsid::voidId())
+    if (id == JSID_VOID)
         return true;
 
     RootedValue exposedProps(cx);
