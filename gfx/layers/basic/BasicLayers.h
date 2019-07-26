@@ -280,6 +280,12 @@ private:
   void ForwardTransaction();
 
   
+
+
+
+  void MakeSnapshotIfRequired();
+
+  
   nsIntRect mTargetBounds;
 
   LayerRefArray mKeepAlive;

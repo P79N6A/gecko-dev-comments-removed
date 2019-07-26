@@ -176,6 +176,7 @@
 #include "mozilla/css/ImageLoader.h"
 
 #include "Layers.h"
+#include "mozilla/layers/Compositor.h"
 #include "nsTransitionManager.h"
 #include "LayerTreeInvalidation.h"
 #include "nsAsyncDOMEvent.h"
@@ -5509,7 +5510,7 @@ PresShell::Paint(nsView*        aViewToPaint,
     
     
     if (!(aFlags & PAINT_LAYERS)) {
-      if (layerManager->HasShadowManager()) {
+      if (layerManager->HasShadowManager() && Compositor::GetBackend() != LAYERS_BASIC) {
         return;
       }
       layerManager->BeginTransaction();

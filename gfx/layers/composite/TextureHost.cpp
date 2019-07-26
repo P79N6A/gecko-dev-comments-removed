@@ -16,6 +16,10 @@ TemporaryRef<TextureHost> CreateTextureHostOGL(SurfaceDescriptorType aDescriptor
                                                uint32_t aTextureHostFlags,
                                                uint32_t aTextureFlags);
 
+TemporaryRef<TextureHost> CreateBasicTextureHost(SurfaceDescriptorType aDescriptorType,
+                                                 uint32_t aTextureHostFlags,
+                                                 uint32_t aTextureFlags);
+
 TemporaryRef<TextureHost> CreateTextureHostD3D9(SurfaceDescriptorType aDescriptorType,
                                                 uint32_t aTextureHostFlags,
                                                 uint32_t aTextureFlags)
@@ -38,6 +42,10 @@ TextureHost::CreateTextureHost(SurfaceDescriptorType aDescriptorType,
       return CreateTextureHostD3D9(aDescriptorType,
                                    aTextureHostFlags,
                                    aTextureFlags);
+    case LAYERS_BASIC:
+      return CreateBasicTextureHost(aDescriptorType,
+                                    aTextureHostFlags,
+                                    aTextureFlags);
     default:
       MOZ_NOT_REACHED("Couldn't create texture host");
       return nullptr;

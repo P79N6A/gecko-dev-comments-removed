@@ -285,6 +285,10 @@ LayerManagerComposite::Render()
     clipRect = nsIntRect(rect.x, rect.y, rect.width, rect.height);
   }
 
+  if (actualBounds.IsEmpty()) {
+    return;
+  }
+
   
   mCompositor->GetWidget()->DrawWindowUnderlay(this, nsIntRect(actualBounds.x,
                                                                actualBounds.y,

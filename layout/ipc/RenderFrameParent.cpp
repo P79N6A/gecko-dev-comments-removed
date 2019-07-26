@@ -712,8 +712,8 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
       return nullptr;
     }
     static_cast<RefLayer*>(layer.get())->SetReferentId(id);
-    layer->SetVisibleRegion(aVisibleRect);
     nsIntPoint offset = GetContentRectLayerOffset(aFrame, aBuilder);
+    layer->SetVisibleRegion(aVisibleRect - offset);
     
     
     
@@ -913,7 +913,7 @@ RenderFrameParent::TriggerRepaint()
     return;
   }
 
-  docFrame->SchedulePaint();
+  docFrame->InvalidateLayer(nsDisplayItem::TYPE_REMOTE);
 }
 
 LayerTransactionParent*

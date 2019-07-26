@@ -96,12 +96,15 @@ CompositableClient::CreateTextureClient(TextureClientType aTextureClientType)
     }
     break;
   case TEXTURE_YCBCR:
-    result = new TextureClientShmemYCbCr(GetForwarder(), GetTextureInfo());
+    if (parentBackend == LAYERS_OPENGL) {
+      result = new TextureClientShmemYCbCr(GetForwarder(), GetTextureInfo());
+    }
     break;
   case TEXTURE_CONTENT:
      
   case TEXTURE_SHMEM:
-    if (parentBackend == LAYERS_OPENGL) {
+    if (parentBackend == LAYERS_OPENGL ||
+        parentBackend == LAYERS_BASIC) {
       result = new TextureClientShmem(GetForwarder(), GetTextureInfo());
     }
     break;
@@ -109,7 +112,13 @@ CompositableClient::CreateTextureClient(TextureClientType aTextureClientType)
     MOZ_ASSERT(false, "Unhandled texture client type");
   }
 
-  MOZ_ASSERT(result, "Failed to create TextureClient");
+  
+  
+  
+  if (!result) {
+    return nullptr;
+  }
+
   MOZ_ASSERT(result->SupportsType(aTextureClientType),
              "Created the wrong texture client?");
   result->SetFlags(GetTextureInfo().mTextureFlags);
