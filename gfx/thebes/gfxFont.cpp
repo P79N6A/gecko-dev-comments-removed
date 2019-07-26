@@ -82,8 +82,14 @@ gfxCharacterMap::NotifyReleased()
     delete this;
 }
 
-gfxFontEntry::~gfxFontEntry() 
+gfxFontEntry::~gfxFontEntry()
 {
+    
+    
+    if (!mIsProxy && IsUserFont() && !IsLocalUserFont()) {
+        gfxUserFontSet::UserFontCache::ForgetFont(this);
+    }
+
     if (mSVGGlyphs) {
         delete mSVGGlyphs;
     }
@@ -1238,6 +1244,11 @@ gfxFontCache::gfxFontCache()
 
 gfxFontCache::~gfxFontCache()
 {
+    
+    
+    
+    gfxUserFontSet::UserFontCache::Shutdown();
+
     if (mWordCacheExpirationTimer) {
         mWordCacheExpirationTimer->Cancel();
         mWordCacheExpirationTimer = nullptr;

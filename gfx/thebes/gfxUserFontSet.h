@@ -14,10 +14,11 @@
 #include "nsCOMPtr.h"
 #include "nsIURI.h"
 #include "nsIFile.h"
+#include "nsIPrincipal.h"
 #include "nsISupportsImpl.h"
 #include "nsIScriptError.h"
+#include "nsURIHashKey.h"
 
-class nsIURI;
 class gfxMixedFontFamily;
 class nsFontFaceLoader;
 
@@ -37,8 +38,7 @@ struct gfxFontFaceSrc {
     nsString               mLocalName;     
     nsCOMPtr<nsIURI>       mURI;           
     nsCOMPtr<nsIURI>       mReferrer;      
-    nsCOMPtr<nsISupports>  mOriginPrincipal; 
-    
+    nsCOMPtr<nsIPrincipal> mOriginPrincipal; 
 };
 
 
@@ -56,6 +56,7 @@ public:
 
     nsTArray<uint8_t> mMetadata;  
     nsCOMPtr<nsIURI>  mURI;       
+    nsCOMPtr<nsIPrincipal> mPrincipal; 
     nsString          mLocalName; 
     nsString          mRealName;  
     uint32_t          mSrcIndex;  
@@ -202,10 +203,14 @@ public:
                                 bool& aFoundFamily,
                                 bool& aNeedsBold,
                                 bool& aWaitForUserFont);
-                                
+
+    
+    virtual nsresult CheckFontLoad(const gfxFontFaceSrc *aFontFaceSrc,
+                                   nsIPrincipal **aPrincipal) = 0;
+
     
     
-    virtual nsresult StartLoad(gfxProxyFontEntry *aProxy, 
+    virtual nsresult StartLoad(gfxProxyFontEntry *aProxy,
                                const gfxFontFaceSrc *aFontFaceSrc) = 0;
 
     
@@ -231,6 +236,104 @@ public:
     
     void IncrementGeneration();
 
+    class UserFontCache {
+    public:
+        
+        
+        
+        static void CacheFont(gfxFontEntry *aFontEntry);
+
+        
+        
+        static void ForgetFont(gfxFontEntry *aFontEntry);
+
+        
+        
+        static gfxFontEntry* GetFont(nsIURI            *aSrcURI,
+                                     nsIPrincipal      *aPrincipal,
+                                     gfxProxyFontEntry *aProxy);
+
+        
+        static void Shutdown();
+
+    private:
+        
+        
+        
+        
+        
+        
+        struct Key {
+            nsCOMPtr<nsIURI>        mURI;
+            nsCOMPtr<nsIPrincipal>  mPrincipal;
+            gfxFontEntry           *mFontEntry;
+
+            Key(nsIURI* aURI, nsIPrincipal* aPrincipal,
+                gfxFontEntry* aFontEntry)
+                : mURI(aURI),
+                  mPrincipal(aPrincipal),
+                  mFontEntry(aFontEntry)
+            { }
+        };
+
+        class Entry : public PLDHashEntryHdr {
+        public:
+            typedef const Key& KeyType;
+            typedef const Key* KeyTypePointer;
+
+            Entry(KeyTypePointer aKey)
+                : mURI(aKey->mURI),
+                  mPrincipal(aKey->mPrincipal),
+                  mFontEntry(aKey->mFontEntry)
+            { }
+
+            Entry(const Entry& aOther)
+                : mURI(aOther.mURI),
+                  mPrincipal(aOther.mPrincipal),
+                  mFontEntry(aOther.mFontEntry)
+            { }
+
+            ~Entry() { }
+
+            bool KeyEquals(const KeyTypePointer aKey) const;
+
+            static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
+
+            static PLDHashNumber HashKey(const KeyTypePointer aKey) {
+                uint32_t principalHash;
+                aKey->mPrincipal->GetHashValue(&principalHash);
+                return mozilla::HashGeneric(principalHash,
+                                            nsURIHashKey::HashKey(aKey->mURI),
+                                            HashFeatures(aKey->mFontEntry->mFeatureSettings),
+                                            ( aKey->mFontEntry->mItalic |
+                                             (aKey->mFontEntry->mWeight << 1) |
+                                             (aKey->mFontEntry->mStretch << 10) ) ^
+                                             aKey->mFontEntry->mLanguageOverride);
+            }
+
+            enum { ALLOW_MEMMOVE = false };
+
+            gfxFontEntry* GetFontEntry() const { return mFontEntry; }
+
+        private:
+            static uint32_t
+            HashFeatures(const nsTArray<gfxFontFeature>& aFeatures) {
+                return mozilla::HashBytes(aFeatures.Elements(),
+                                          aFeatures.Length() * sizeof(gfxFontFeature));
+            }
+
+            nsCOMPtr<nsIURI>       mURI;
+            nsCOMPtr<nsIPrincipal> mPrincipal;
+
+            
+            
+            
+            gfxFontEntry          *mFontEntry;
+        };
+
+        static nsTHashtable<Entry> *sUserFonts;
+    };
+
 protected:
     
     
@@ -247,11 +350,7 @@ protected:
     virtual nsresult SyncLoadFontData(gfxProxyFontEntry *aFontToLoad,
                                       const gfxFontFaceSrc *aFontFaceSrc,
                                       uint8_t* &aBuffer,
-                                      uint32_t &aBufferLength)
-    {
-        
-        return NS_ERROR_NOT_IMPLEMENTED;
-    }
+                                      uint32_t &aBufferLength) = 0;
 
     gfxMixedFontFamily *GetFamily(const nsAString& aName) const;
 
@@ -320,6 +419,7 @@ public:
     nsTArray<gfxFontFaceSrc> mSrcList;
     uint32_t                 mSrcIndex; 
     nsFontFaceLoader        *mLoader; 
+    nsCOMPtr<nsIPrincipal>   mPrincipal;
 };
 
 

@@ -1506,6 +1506,15 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
 
             
             
+            
+            if (isUserFont) {
+                font = FcPatternDuplicate(font);
+                FcPatternDel(font, FC_FAMILY);
+                FcPatternAddString(font, FC_FAMILY, family);
+            }
+
+            
+            
             if (!isUserFont && !SlantIsAcceptable(font, requestedSlant))
                 continue;
             if (requestedSize != -1.0 && !SizeIsAcceptable(font, requestedSize))
@@ -1524,7 +1533,12 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
             
             
             if (FcFontSetAdd(fontSet, font)) {
-                FcPatternReference(font);
+                
+                
+                
+                if (!isUserFont) {
+                    FcPatternReference(font);
+                }
             }
         }
     }
