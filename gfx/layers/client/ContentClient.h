@@ -95,8 +95,9 @@ public:
 
   virtual void Clear() = 0;
   virtual RotatedContentBuffer::PaintState BeginPaintBuffer(ThebesLayer* aLayer,
-                                                            RotatedContentBuffer::ContentType aContentType,
                                                             uint32_t aFlags) = 0;
+  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
+                                                       const RotatedContentBuffer::PaintState& aPaintState) = 0;
   virtual void ReturnDrawTarget(gfx::DrawTarget* aReturned) = 0;
 
   virtual void PrepareFrame() {}
@@ -137,10 +138,15 @@ public:
   typedef RotatedContentBuffer::ContentType ContentType;
 
   virtual void Clear() { RotatedContentBuffer::Clear(); }
-  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer, ContentType aContentType,
+  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer,
                                       uint32_t aFlags) MOZ_OVERRIDE
   {
-    return RotatedContentBuffer::BeginPaint(aLayer, aContentType, aFlags);
+    return RotatedContentBuffer::BeginPaint(aLayer, aFlags);
+  }
+  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
+                                                       const PaintState& aPaintState) MOZ_OVERRIDE
+  {
+    return RotatedContentBuffer::BorrowDrawTargetForPainting(aLayer, aPaintState);
   }
   virtual void ReturnDrawTarget(gfx::DrawTarget* aReturned) MOZ_OVERRIDE
   {
@@ -202,10 +208,15 @@ public:
 
   virtual void Clear() { RotatedContentBuffer::Clear(); }
 
-  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer, ContentType aContentType,
+  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer,
                                       uint32_t aFlags) MOZ_OVERRIDE
   {
-    return RotatedContentBuffer::BeginPaint(aLayer, aContentType, aFlags);
+    return RotatedContentBuffer::BeginPaint(aLayer, aFlags);
+  }
+  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
+                                                       const PaintState& aPaintState) MOZ_OVERRIDE
+  {
+    return RotatedContentBuffer::BorrowDrawTargetForPainting(aLayer, aPaintState);
   }
   virtual void ReturnDrawTarget(gfx::DrawTarget* aReturned) MOZ_OVERRIDE
   {
@@ -307,10 +318,15 @@ public:
 
   virtual void Clear() { RotatedContentBuffer::Clear(); }
 
-  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer, ContentType aContentType,
+  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer,
                                       uint32_t aFlags) MOZ_OVERRIDE
   {
-    return RotatedContentBuffer::BeginPaint(aLayer, aContentType, aFlags);
+    return RotatedContentBuffer::BeginPaint(aLayer, aFlags);
+  }
+  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
+                                                       const PaintState& aPaintState) MOZ_OVERRIDE
+  {
+    return RotatedContentBuffer::BorrowDrawTargetForPainting(aLayer, aPaintState);
   }
   virtual void ReturnDrawTarget(gfx::DrawTarget* aReturned) MOZ_OVERRIDE
   {
@@ -543,9 +559,10 @@ public:
     mHasBufferOnWhite = false;
   }
 
-  virtual RotatedContentBuffer::PaintState BeginPaintBuffer(ThebesLayer* aLayer,
-                                                            RotatedContentBuffer::ContentType aContentType,
-                                                            uint32_t aFlags) MOZ_OVERRIDE;
+  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer,
+                                      uint32_t aFlags) MOZ_OVERRIDE;
+  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
+                                                       const PaintState& aPaintState) MOZ_OVERRIDE;
   virtual void ReturnDrawTarget(gfx::DrawTarget* aReturned) MOZ_OVERRIDE
   {
     BorrowDrawTarget::ReturnDrawTarget(aReturned);
@@ -583,7 +600,8 @@ private:
 
   }
 
-  already_AddRefed<gfxASurface> GetUpdateSurface(BufferType aType, nsIntRegion& aUpdateRegion);
+  already_AddRefed<gfxASurface> GetUpdateSurface(BufferType aType,
+                                                 const nsIntRegion& aUpdateRegion);
 
   TextureInfo mTextureInfo;
   nsIntRect mBufferRect;
