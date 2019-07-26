@@ -688,10 +688,11 @@ BrowserElementChild.prototype = {
     let self = this;
     let maxWidth = data.json.args.width;
     let maxHeight = data.json.args.height;
+    let mimeType = data.json.args.mimeType;
     let domRequestID = data.json.id;
 
     let takeScreenshotClosure = function() {
-      self._takeScreenshot(maxWidth, maxHeight, domRequestID);
+      self._takeScreenshot(maxWidth, maxHeight, mimeType, domRequestID);
     };
 
     let maxDelayMS = 2000;
@@ -712,7 +713,10 @@ BrowserElementChild.prototype = {
 
 
 
-  _takeScreenshot: function(maxWidth, maxHeight, domRequestID) {
+  _takeScreenshot: function(maxWidth, maxHeight, mimeType, domRequestID) {
+    
+    
+    
     
     
     
@@ -732,6 +736,7 @@ BrowserElementChild.prototype = {
     
     debug("Taking a screenshot: maxWidth=" + maxWidth +
           ", maxHeight=" + maxHeight +
+          ", mimeType=" + mimeType +
           ", domRequestID=" + domRequestID + ".");
 
     if (!content) {
@@ -749,16 +754,19 @@ BrowserElementChild.prototype = {
     let canvasWidth = Math.min(maxWidth, Math.round(content.innerWidth * scale));
     let canvasHeight = Math.min(maxHeight, Math.round(content.innerHeight * scale));
 
+    let transparent = (mimeType !== 'image/jpeg');
+
     var canvas = content.document
       .createElementNS("http://www.w3.org/1999/xhtml", "canvas");
-    canvas.mozOpaque = true;
+    if (!transparent)
+      canvas.mozOpaque = true;
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
     var ctx = canvas.getContext("2d");
     ctx.scale(scale, scale);
     ctx.drawWindow(content, 0, 0, content.innerWidth, content.innerHeight,
-                   "rgb(255,255,255)");
+                   transparent ? "rgba(255,255,255,0)" : "rgb(255,255,255)");
 
     
     
@@ -769,7 +777,7 @@ BrowserElementChild.prototype = {
         id: domRequestID,
         successRv: blob
       });
-    }, 'image/jpeg');
+    }, mimeType);
   },
 
   _recvFireCtxCallback: function(data) {
