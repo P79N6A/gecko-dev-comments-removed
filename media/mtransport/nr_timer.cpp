@@ -1,0 +1,99 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsCOMPtr.h"
+#include "nsComponentManagerUtils.h"
+#include "nsIEventTarget.h"
+#include "nsITimer.h"
+#include "nsNetCID.h"
+
+extern "C" {
+#include "nr_api.h"
+#include "async_timer.h"
+}
+
+
+namespace mozilla {
+
+class nrappkitTimerCallback : public nsITimerCallback
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSITIMERCALLBACK
+
+  nrappkitTimerCallback(NR_async_cb cb, void *cb_arg) : cb_(cb), cb_arg_(cb_arg) {}
+
+private:
+  virtual ~nrappkitTimerCallback() {}
+
+protected:
+  
+  NR_async_cb cb_;
+  void *cb_arg_;
+};
+
+NS_IMPL_ISUPPORTS1(nrappkitTimerCallback, nsITimerCallback)
+
+NS_IMETHODIMP nrappkitTimerCallback::Notify(nsITimer *timer) {
+  r_log(LOG_GENERIC, LOG_DEBUG, "Timer callback fired");
+  cb_(0, 0, cb_arg_);
+
+  
+  timer->Release();
+  return NS_OK;
+}
+}  
+
+
+using namespace mozilla;
+
+int NR_async_timer_set(int timeout, NR_async_cb cb, void *arg, char *func,
+                       int l, void **handle) {
+  nsresult rv;
+
+  nsCOMPtr<nsITimer> timer = do_CreateInstance(NS_TIMER_CONTRACTID, &rv);
+
+  if (NS_FAILED(rv)) {
+    return(R_FAILED);
+  }
+
+  rv = timer->InitWithCallback(new nrappkitTimerCallback(cb, arg),
+                                        timeout, nsITimer::TYPE_ONE_SHOT);
+  if (NS_FAILED(rv)) {
+    return R_FAILED;
+  }
+
+  
+  timer->AddRef();
+
+  if (handle)
+    *handle = timer.get();
+
+  return 0;
+}
+
+int NR_async_schedule(NR_async_cb cb, void *arg, char *func, int l) {
+  return NR_async_timer_set(0, cb, arg, func, l, nullptr);
+}
+
+int NR_async_timer_cancel(void *handle) {
+  nsITimer *timer = static_cast<nsITimer *>(handle);
+
+  timer->Cancel();
+  
+  timer->Release();
+
+  return 0;
+}
+
