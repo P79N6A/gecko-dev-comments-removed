@@ -45,7 +45,8 @@ enum TokenKind {
     TOK_NAME,                      
     TOK_NUMBER,                    
     TOK_STRING,                    
-    TOK_TEMPLATE_STRING,           
+    TOK_TEMPLATE_HEAD,             
+    TOK_NO_SUBS_TEMPLATE,          
     TOK_REGEXP,                    
     TOK_TRUE,                      
     TOK_FALSE,                     
@@ -278,7 +279,9 @@ struct Token
     }
 
     void setAtom(JSAtom *atom) {
-        JS_ASSERT (type == TOK_STRING || type == TOK_TEMPLATE_STRING);
+        JS_ASSERT (type == TOK_STRING ||
+                   type == TOK_TEMPLATE_HEAD ||
+                   type == TOK_NO_SUBS_TEMPLATE);
         JS_ASSERT(!IsPoisonedPtr(atom));
         u.atom = atom;
     }
@@ -303,7 +306,9 @@ struct Token
     }
 
     JSAtom *atom() const {
-        JS_ASSERT (type == TOK_STRING || type == TOK_TEMPLATE_STRING);
+        JS_ASSERT (type == TOK_STRING ||
+                   type == TOK_TEMPLATE_HEAD ||
+                   type == TOK_NO_SUBS_TEMPLATE);
         return u.atom;
     }
 
@@ -496,6 +501,7 @@ class MOZ_STACK_CLASS TokenStream
                         
                         
         KeywordIsName,  
+        TemplateTail,   
     };
 
     
@@ -834,6 +840,8 @@ class MOZ_STACK_CLASS TokenStream
     };
 
     TokenKind getTokenInternal(Modifier modifier);
+
+    bool getStringOrTemplateToken(int qc, Token **tp);
 
     int32_t getChar();
     int32_t getCharIgnoreEOL();
