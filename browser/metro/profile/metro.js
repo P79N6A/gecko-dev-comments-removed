@@ -34,8 +34,10 @@ pref("metro.debug.selection.dumpRanges", false);
 pref("metro.debug.selection.dumpEvents", false);
 
 
-pref("prompts.tab_modal.enabled", true);
+pref("metro.private_browsing.enabled", false);
 
+
+pref("prompts.tab_modal.enabled", true);
 
 
 pref("layers.offmainthreadcomposition.enabled", true);

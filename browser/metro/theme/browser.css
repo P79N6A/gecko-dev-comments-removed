@@ -163,6 +163,12 @@ documenttab[closing] > .documenttab-container {
   background-image: none!important;
 }
 
+
+
+documenttab[private] .documenttab-thumbnail {
+  background-color: purple;
+}
+
 .documenttab-title {
   margin: @metro_spacing_normal@ @metro_spacing_snormal@;
   margin-top: 0;
