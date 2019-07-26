@@ -128,4 +128,16 @@ private:
   nsresult mResult;
 };
 
+namespace mozilla {
+
+
+
+
+
+
+
+void ScheduleMemoryPressureEvent();
+
+} 
+
 #endif  

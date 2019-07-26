@@ -5,7 +5,6 @@
 
 
 #include "mozilla/ReentrantMonitor.h"
-#include "nsMemoryPressure.h"
 #include "nsThread.h"
 #include "nsThreadManager.h"
 #include "nsIClassInfoImpl.h"
@@ -57,6 +56,23 @@ GetThreadLog()
 NS_DECL_CI_INTERFACE_GETTER(nsThread)
 
 nsIThreadObserver* nsThread::sMainThreadObserver = nullptr;
+
+namespace mozilla {
+
+
+
+static int32_t sMemoryPressurePending = 0;
+
+
+
+
+
+void ScheduleMemoryPressureEvent()
+{
+  PR_ATOMIC_SET(&sMemoryPressurePending, 1);
+}
+
+} 
 
 
 
@@ -564,20 +580,14 @@ nsThread::ProcessNextEvent(bool mayWait, bool *result)
   
   
   if (MAIN_THREAD == mIsMainThread && !ShuttingDown()) {
-    MemoryPressureState mpPending = NS_GetPendingMemoryPressure();
-    if (mpPending != MemPressure_None) {
+    bool mpPending = PR_ATOMIC_SET(&sMemoryPressurePending, 0);
+    if (mpPending) {
       nsCOMPtr<nsIObserverService> os = services::GetObserverService();
-
-      
-      
-      NS_NAMED_LITERAL_STRING(lowMem, "low-memory-no-forward");
-      NS_NAMED_LITERAL_STRING(lowMemOngoing, "low-memory-ongoing-no-forward");
-
       if (os) {
         os->NotifyObservers(nullptr, "memory-pressure",
-                            mpPending == MemPressure_New ? lowMem.get() :
-                                                           lowMemOngoing.get());
-      } else {
+                            NS_LITERAL_STRING("low-memory").get());
+      }
+      else {
         NS_WARNING("Can't get observer service!");
       }
     }
