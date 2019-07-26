@@ -916,8 +916,6 @@ nsInlineFrame::AccessibleType()
     return a11y::eHTMLButtonType;
   if (tagAtom == nsGkAtoms::img)  
     return a11y::eHyperTextType;
-  if (tagAtom == nsGkAtoms::label)  
-    return a11y::eHTMLLabelType;
 
   return a11y::eNoType;
 }
