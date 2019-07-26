@@ -6662,6 +6662,11 @@ nsLayoutUtils::DoLogTestDataForPaint(nsIPresShell* aPresShell,
   }
 }
 
+ bool
+nsLayoutUtils::IsAPZTestLoggingEnabled()
+{
+  return gfxPrefs::APZTestLoggingEnabled();
+}
 
 nsLayoutUtils::SurfaceFromElementResult::SurfaceFromElementResult()
   
