@@ -9,6 +9,7 @@
 #include "BasicLayers.h"                
 #include "gfxContext.h"                 
 #include "gfxRect.h"                    
+#include "gfx2DGlue.h"
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
@@ -45,13 +46,27 @@ public:
 
   virtual void Paint(DrawTarget* aTarget, SourceSurface* aMaskSurface)
   {
-    DeprecatedPaint(new gfxContext(aTarget), nullptr); 
+    if (IsHidden()) {
+      return;
+    }
+    CompositionOp mixBlendMode = GetEffectiveMixBlendMode();
+    CompositionOp op =
+      mixBlendMode != CompositionOp::OP_OVER ? mixBlendMode : GetOperator();
+
+    DrawOptions opts = DrawOptions();
+    opts.mCompositionOp = op;
+    ColorPattern pattern(ToColor(mColor));
+    aTarget->MaskSurface(pattern,
+                         aMaskSurface,
+                         ToIntRect(GetBounds()).TopLeft(),
+                         opts);
   }
 
   virtual void DeprecatedPaint(gfxContext* aContext, Layer* aMaskLayer)
   {
-    if (IsHidden())
+    if (IsHidden()) {
       return;
+    }
     gfxContextAutoSaveRestore contextSR(aContext);
     gfxContext::GraphicsOperator mixBlendMode = DeprecatedGetEffectiveMixBlendMode();
     AutoSetOperator setOptimizedOperator(aContext,
