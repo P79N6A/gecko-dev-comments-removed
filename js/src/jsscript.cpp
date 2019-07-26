@@ -3673,6 +3673,24 @@ LazyScript::initRuntimeFields(uint64_t packedFields)
     p_.treatAsRunOnce = p.treatAsRunOnce;
 }
 
+bool
+LazyScript::hasUncompiledEnclosingScript() const
+{
+    
+    
+    
+    
+    
+    
+    
+
+    if (!enclosingScope() || !enclosingScope()->is<JSFunction>())
+        return false;
+
+    JSFunction &fun = enclosingScope()->as<JSFunction>();
+    return fun.isInterpreted() && (!fun.mutableScript() || !fun.nonLazyScript()->code());
+}
+
 uint32_t
 LazyScript::staticLevel(JSContext *cx) const
 {
