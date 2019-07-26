@@ -679,25 +679,9 @@ DumpString(const nsAString &str)
 }
 #endif
 
-static already_AddRefed<nsIPrompt>
-GetPromptFromContext(nsJSContext* ctx)
-{
-  nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(ctx->GetGlobalObject()));
-  NS_ENSURE_TRUE(win, nullptr);
-
-  nsIDocShell *docShell = win->GetDocShell();
-  NS_ENSURE_TRUE(docShell, nullptr);
-
-  
-  nsCOMPtr<nsIPrompt> prompt = do_GetInterface(docShell);
-  return prompt.forget();
-}
-
 bool
 nsJSContext::DOMOperationCallback(JSContext *cx)
 {
-  nsresult rv;
-
   
   nsJSContext *ctx = static_cast<nsJSContext *>(::JS_GetContextPrivate(cx));
 
@@ -743,172 +727,25 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     return true;
   }
 
-  if (!nsContentUtils::IsSafeToRunScript()) {
-    
-    
-    
-    
+  nsCOMPtr<nsPIDOMWindow> domWin = do_QueryInterface(ctx->GetGlobalObject());
+  NS_ENSURE_TRUE(domWin, false);
+  nsGlobalWindow::SlowScriptResponse response =
+    static_cast<nsGlobalWindow*>(domWin.get())->ShowSlowScriptDialog();
 
-    JS_ReportWarning(cx, "A long running script was terminated");
+  if (response == nsGlobalWindow::KillSlowScript) {
     return false;
   }
-
-  
-  
-  
-  nsCOMPtr<nsIPrompt> prompt = GetPromptFromContext(ctx);
-  NS_ENSURE_TRUE(prompt, false);
-
-  
-  JS::RootedScript script(cx);
-  unsigned lineno;
-  bool hasFrame = ::JS_DescribeScriptedCaller(cx, script.address(), &lineno);
-
-  bool debugPossible = hasFrame && js::CanCallContextDebugHandler(cx);
-#ifdef MOZ_JSDEBUGGER
-  
-  if (debugPossible) {
-    bool jsds_IsOn = false;
-    const char jsdServiceCtrID[] = "@mozilla.org/js/jsd/debugger-service;1";
-    nsCOMPtr<jsdIExecutionHook> jsdHook;
-    nsCOMPtr<jsdIDebuggerService> jsds = do_GetService(jsdServiceCtrID, &rv);
-
-    
-    if (NS_SUCCEEDED(rv)) {
-      jsds->GetDebuggerHook(getter_AddRefs(jsdHook));
-      jsds->GetIsOn(&jsds_IsOn);
-    }
-
-    
-    
-    
-    debugPossible = ((jsds_IsOn && (jsdHook != nullptr)) || !jsds_IsOn);
-  }
-#endif
-
-  
-  nsXPIDLString title, msg, stopButton, waitButton, debugButton, neverShowDlg;
-
-  rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                          "KillScriptTitle",
-                                          title);
-
-  nsresult tmp = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                           "StopScriptButton",
-                                           stopButton);
-  if (NS_FAILED(tmp)) {
-    rv = tmp;
-  }
-
-  tmp = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                           "WaitForScriptButton",
-                                           waitButton);
-  if (NS_FAILED(tmp)) {
-    rv = tmp;
-  }
-
-  tmp = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                           "DontAskAgain",
-                                           neverShowDlg);
-  if (NS_FAILED(tmp)) {
-    rv = tmp;
-  }
-
-
-  if (debugPossible) {
-    tmp = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                             "DebugScriptButton",
-                                             debugButton);
-    if (NS_FAILED(tmp)) {
-      rv = tmp;
-    }
-
-    tmp = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                             "KillScriptWithDebugMessage",
-                                             msg);
-    if (NS_FAILED(tmp)) {
-      rv = tmp;
+  ctx->mOperationCallbackTime = PR_Now();
+  if (response == nsGlobalWindow::AlwaysContinueSlowScript) {
+    if (isTrackingChromeCodeTime) {
+      Preferences::SetInt("dom.max_chrome_script_run_time", 0);
+      sMaxChromeScriptRunTime = NS_UNLIMITED_SCRIPT_RUNTIME;
+    } else {
+      Preferences::SetInt("dom.max_script_run_time", 0);
+      sMaxScriptRunTime = NS_UNLIMITED_SCRIPT_RUNTIME;
     }
   }
-  else {
-    tmp = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                             "KillScriptMessage",
-                                             msg);
-    if (NS_FAILED(tmp)) {
-      rv = tmp;
-    }
-  }
-
-  
-  if (NS_FAILED(rv) || !title || !msg || !stopButton || !waitButton ||
-      (!debugButton && debugPossible) || !neverShowDlg) {
-    NS_ERROR("Failed to get localized strings.");
-    return true;
-  }
-
-  
-  if (script) {
-    const char *filename = ::JS_GetScriptFilename(cx, script);
-    if (filename) {
-      nsXPIDLString scriptLocation;
-      NS_ConvertUTF8toUTF16 filenameUTF16(filename);
-      const PRUnichar *formatParams[] = { filenameUTF16.get() };
-      rv = nsContentUtils::FormatLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                                 "KillScriptLocation",
-                                                 formatParams,
-                                                 scriptLocation);
-
-      if (NS_SUCCEEDED(rv) && scriptLocation) {
-        msg.AppendLiteral("\n\n");
-        msg.Append(scriptLocation);
-        msg.Append(':');
-        msg.AppendInt(lineno);
-      }
-    }
-  }
-
-  int32_t buttonPressed = 0; 
-  bool neverShowDlgChk = false;
-  uint32_t buttonFlags = nsIPrompt::BUTTON_POS_1_DEFAULT +
-                         (nsIPrompt::BUTTON_TITLE_IS_STRING *
-                          (nsIPrompt::BUTTON_POS_0 + nsIPrompt::BUTTON_POS_1));
-
-  
-  if (debugPossible)
-    buttonFlags += nsIPrompt::BUTTON_TITLE_IS_STRING * nsIPrompt::BUTTON_POS_2;
-
-  
-  ::JS_SetOperationCallback(cx, nullptr);
-
-  
-  rv = prompt->ConfirmEx(title, msg, buttonFlags, waitButton, stopButton,
-                         debugButton, neverShowDlg, &neverShowDlgChk,
-                         &buttonPressed);
-
-  ::JS_SetOperationCallback(cx, DOMOperationCallback);
-
-  if (NS_SUCCEEDED(rv) && (buttonPressed == 0)) {
-    
-
-    if (neverShowDlgChk) {
-      if (isTrackingChromeCodeTime) {
-        Preferences::SetInt("dom.max_chrome_script_run_time", 0);
-        sMaxChromeScriptRunTime = NS_UNLIMITED_SCRIPT_RUNTIME;
-      } else {
-        Preferences::SetInt("dom.max_script_run_time", 0);
-        sMaxScriptRunTime = NS_UNLIMITED_SCRIPT_RUNTIME;
-      }
-    }
-
-    ctx->mOperationCallbackTime = PR_Now();
-    return true;
-  }
-  else if ((buttonPressed == 2) && debugPossible) {
-    return js_CallContextDebugHandler(cx);
-  }
-
-  JS_ClearPendingException(cx);
-  return false;
+  return true;
 }
 
 void
