@@ -1191,7 +1191,7 @@ Engine.prototype = {
   
   _iconUpdateURL: null,
   
-  _lazySerializeTask: null,
+  _serializeTimer: null,
 
   
 
@@ -2244,15 +2244,28 @@ Engine.prototype = {
     return doc;
   },
 
-  get lazySerializeTask() {
-    if (!this._lazySerializeTask) {
-      let task = function taskCallback() {
-        this._serializeToFile();
-      }.bind(this);
-      this._lazySerializeTask = new DeferredTask(task, LAZY_SERIALIZE_DELAY);
+  _lazySerializeToFile: function SRCH_ENG_serializeToFile() {
+    if (this._serializeTimer) {
+      
+      this._serializeTimer.delay = LAZY_SERIALIZE_DELAY;
+    } else {
+      this._serializeTimer = Cc["@mozilla.org/timer;1"].
+                             createInstance(Ci.nsITimer);
+      var timerCallback = {
+        self: this,
+        notify: function SRCH_ENG_notify(aTimer) {
+          try {
+            this.self._serializeToFile();
+          } catch (ex) {
+            LOG("Serialization from timer callback failed:\n" + ex);
+          }
+          this.self._serializeTimer = null;
+        }
+      };
+      this._serializeTimer.initWithCallback(timerCallback,
+                                            LAZY_SERIALIZE_DELAY,
+                                            Ci.nsITimer.TYPE_ONE_SHOT);
     }
-
-    return this._lazySerializeTask;
   },
 
   
@@ -2283,9 +2296,6 @@ Engine.prototype = {
     }
 
     closeSafeOutputStream(fos);
-
-    Services.obs.notifyObservers(null, SEARCH_SERVICE_TOPIC,
-                                 "write-engine-to-disk-complete");
   },
 
   
@@ -2531,7 +2541,7 @@ Engine.prototype = {
     url.addParam(aName, aValue);
 
     
-    this.lazySerializeTask.start();
+    this._lazySerializeToFile();
   },
 
 #ifdef ANDROID
@@ -2885,17 +2895,25 @@ SearchService.prototype = {
     return false;
   },
 
-  _batchTask: null,
-  get batchTask() {
-    if (!this._batchTask) {
-      let task = function taskCallback() {
-        LOG("batchTask: Invalidating engine cache");
-        this._buildCache();
-      }.bind(this);
-      this._batchTask = new DeferredTask(task, CACHE_INVALIDATION_DELAY);
-    }
+  _batchTimer: null,
+  _batchCacheInvalidation: function SRCH_SVC__batchCacheInvalidation() {
+    let callback = {
+      self: this,
+      notify: function SRCH_SVC_batchTimerNotify(aTimer) {
+        LOG("_batchCacheInvalidation: Invalidating engine cache");
+        this.self._buildCache();
+        this.self._batchTimer = null;
+      }
+    };
 
-    return this._batchTask;
+    if (!this._batchTimer) {
+      this._batchTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      this._batchTimer.initWithCallback(callback, CACHE_INVALIDATION_DELAY,
+                                        Ci.nsITimer.TYPE_ONE_SHOT);
+    } else {
+      this._batchTimer.delay = CACHE_INVALIDATION_DELAY;
+      LOG("_batchCacheInvalidation: Batch timer reset");
+    }
   },
 
   _addEngineToStore: function SRCH_SVC_addEngineToStore(aEngine) {
@@ -3385,7 +3403,7 @@ SearchService.prototype = {
     engine._initFromMetadata(aName, aIconURL, aAlias, aDescription,
                              aMethod, aTemplate);
     this._addEngineToStore(engine);
-    this.batchTask.start();
+    this._batchCacheInvalidation();
   },
 
   addEngine: function SRCH_SVC_addEngine(aEngineURL, aDataType, aIconURL,
@@ -3449,9 +3467,9 @@ SearchService.prototype = {
       engineToRemove.alias = null;
     } else {
       
-      if (engineToRemove._lazySerializeTask) {
-        engineToRemove._lazySerializeTask.cancel();
-        engineToRemove._lazySerializeTask = null;
+      if (engineToRemove._serializeTimer) {
+        engineToRemove._serializeTimer.cancel();
+        engineToRemove._serializeTimer = null;
       }
 
       
@@ -3649,20 +3667,21 @@ SearchService.prototype = {
               LOG("nsSearchService::observe: setting current");
               this.currentEngine = aEngine;
             }
-            this.batchTask.start();
+            this._batchCacheInvalidation();
             break;
           case SEARCH_ENGINE_CHANGED:
           case SEARCH_ENGINE_REMOVED:
-            this.batchTask.start();
+            this._batchCacheInvalidation();
             break;
         }
         break;
 
       case QUIT_APPLICATION_TOPIC:
         this._removeObservers();
-        if (this._batchTask) {
+        if (this._batchTimer) {
           
-          this._batchTask.flush();
+          this._batchTimer.cancel();
+          this._buildCache();
         }
         engineMetadataService.flush();
         break;
