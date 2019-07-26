@@ -893,6 +893,38 @@ JSScript::destroyScriptCounts(FreeOp *fop)
     }
 }
 
+void
+ScriptSourceObject::finalize(FreeOp *fop, JSObject *obj)
+{
+    
+    obj->asScriptSource().setSource(NULL);
+}
+
+Class js::ScriptSourceClass = {
+    "ScriptSource",
+    JSCLASS_HAS_RESERVED_SLOTS(1) | JSCLASS_IS_ANONYMOUS,
+    JS_PropertyStub,        
+    JS_DeletePropertyStub,  
+    JS_PropertyStub,        
+    JS_StrictPropertyStub,  
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    ScriptSourceObject::finalize
+};
+
+ScriptSourceObject *
+ScriptSourceObject::create(JSContext *cx, ScriptSource *source)
+{
+    RootedObject object(cx, NewObjectWithGivenProto(cx, &ScriptSourceClass, NULL, cx->global()));
+    if (!object)
+        return NULL;
+    JS::RootedScriptSource sourceObject(cx, &object->asScriptSource());
+    sourceObject->setSlot(SOURCE_SLOT, PrivateValue(source));
+    source->incref();
+    return sourceObject;
+}
+
 #ifdef JS_THREADSAFE
 void
 SourceCompressorThread::compressorThread(void *arg)
