@@ -167,7 +167,7 @@ TCPSocket.prototype = {
   _txBytes: 0,
   _rxBytes: 0,
   _appId: Ci.nsIScriptSecurityManager.NO_APP_ID,
-  _connectionType: Ci.nsINetworkInterface.NETWORK_TYPE_UNKNOWN,
+  _activeNetwork: null,
 #endif
 
   
@@ -347,7 +347,7 @@ TCPSocket.prototype = {
       LOG("Error: Ci.nsINetworkStatsServiceProxy service is not available.");
       return;
     }
-    nssProxy.saveAppStats(this._appId, this._connectionType, Date.now(),
+    nssProxy.saveAppStats(this._appId, this._activeNetwork, Date.now(),
                           this._rxBytes, this._txBytes);
 
     
@@ -534,8 +534,8 @@ TCPSocket.prototype = {
     
     
     let networkManager = Cc["@mozilla.org/network/manager;1"].getService(Ci.nsINetworkManager);
-    if (networkManager && networkManager.active) {
-      that._connectionType = networkManager.active.type;
+    if (networkManager) {
+      that._activeNetwork = networkManager.active;
     }
 #endif
 
