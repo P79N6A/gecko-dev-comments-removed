@@ -768,6 +768,8 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
 
   
   const nsStyleOutline* ourOutline = aStyleContext->StyleOutline();
+  MOZ_ASSERT(ourOutline != NS_STYLE_BORDER_STYLE_NONE,
+             "shouldn't have created nsDisplayOutline item");
 
   nscoord width;
   ourOutline->GetOutlineWidth(width);
@@ -824,10 +826,14 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   ComputePixelRadii(twipsRadii, twipsPerPixel, &outlineRadii);
 
   uint8_t outlineStyle = ourOutline->GetOutlineStyle();
-  uint8_t outlineStyles[4] = { outlineStyle,
-                               outlineStyle,
-                               outlineStyle,
-                               outlineStyle };
+  if (outlineStyle == NS_STYLE_BORDER_STYLE_AUTO) {
+    
+    
+    outlineStyle = NS_STYLE_BORDER_STYLE_SOLID;
+  }
+
+  uint8_t outlineStyles[4] = { outlineStyle, outlineStyle,
+                               outlineStyle, outlineStyle };
 
   
   
