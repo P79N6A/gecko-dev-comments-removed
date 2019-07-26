@@ -465,7 +465,7 @@ struct JSScript : public js::gc::Cell
     bool            noScriptRval:1; 
 
     bool            savedCallerFun:1; 
-    bool            strictModeCode:1; 
+    bool            strict:1; 
     bool            explicitUseStrict:1; 
     bool            compileAndGo:1;   
     bool            bindingsAccessedDynamically:1; 
@@ -563,7 +563,7 @@ struct JSScript : public js::gc::Cell
 
 
     bool argsObjAliasesFormals() const {
-        return needsArgsObj() && !strictModeCode;
+        return needsArgsObj() && !strict;
     }
 
     bool hasAnyIonScript() const {
