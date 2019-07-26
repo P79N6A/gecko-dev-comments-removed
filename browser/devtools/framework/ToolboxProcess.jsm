@@ -109,11 +109,14 @@ BrowserToolboxProcess.prototype = {
 
       
       var enumerator = Services.dirsvc.get("ProfD", Ci.nsIFile).parent.directoryEntries;
+      dumpn("enumerator: "+enumerator);
       while (enumerator.hasMoreElements()) {
         let profileDir = enumerator.getNext().QueryInterface(Ci.nsIFile);
+        dumpn("profileDir: "+profileDir.leafName);
         if (profileDir.leafName.contains(profileName)) {
           
           this._dbgProfile = profileObject;
+          dumpn("found profile: "+profileObject);
           return;
         }
       }
