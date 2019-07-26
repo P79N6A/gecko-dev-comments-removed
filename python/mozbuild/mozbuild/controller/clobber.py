@@ -97,7 +97,7 @@ class Clobberer(object):
             with open(self.obj_clobber, 'a'):
                 pass
 
-    def maybe_do_clobber(self, cwd, allow_auto=True, fh=sys.stderr):
+    def maybe_do_clobber(self, cwd, allow_auto=False, fh=sys.stderr):
         """Perform a clobber if it is required. Maybe.
 
         This is the API the build system invokes to determine if a clobber
@@ -127,8 +127,8 @@ class Clobberer(object):
         
         
         if not allow_auto:
-            return True, False, self._message(
-                'Automatic clobbering has been disabled.')
+            return True, False, self._message('Automatic clobbering is not '
+                'enabled (add "mk_add_options AUTOCLOBBER=1" to your mozconfig).')
 
         if cwd.startswith(self.topobjdir) and cwd != self.topobjdir:
             return True, False, self._message(
@@ -175,7 +175,7 @@ def main(args, env, cwd, fh=sys.stderr):
     if not os.path.isabs(topobjdir):
         topobjdir = os.path.abspath(topobjdir)
 
-    auto = False if env.get('NO_AUTOCLOBBER', False) else True
+    auto = True if env.get('AUTOCLOBBER', False) else False
     clobber = Clobberer(topsrcdir, topobjdir)
     required, performed, message = clobber.maybe_do_clobber(cwd, auto, fh)
 
