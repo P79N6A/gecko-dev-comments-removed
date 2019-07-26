@@ -521,4 +521,11 @@ public class Utils {
     }
     return new String(asciiBytes, "UTF-8");
   }
+
+  
+
+
+  public static String obfuscateEmail(final String in) {
+    return in.replaceAll("[^@\\.]", "X");
+  }
 }

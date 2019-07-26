@@ -331,8 +331,14 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
         Logger.trace(LOG_TAG, "AccountManagerCallback invoked.");
         
         try {
-          Logger.info(LOG_TAG, "Syncing account named " + account.name +
-              " for authority " + authority + ".");
+          if (Logger.LOG_PERSONAL_INFORMATION) {
+            Logger.pii(LOG_TAG, "Syncing account named " + account.name +
+                " for authority " + authority + ".");
+          } else {
+            
+            Logger.info(LOG_TAG, "Syncing account named like " + Utils.obfuscateEmail(account.name) +
+                " for authority " + authority + ".");
+          }
 
           
           Logger.debug(LOG_TAG, "Username: " + username);
