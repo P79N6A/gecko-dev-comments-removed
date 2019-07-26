@@ -16,6 +16,12 @@ Cu.import("resource://gre/modules/Sqlite.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+
+
+
+
+
+
 const SCHEMA_VERSION = 1;
 
 XPCOMUtils.defineLazyGetter(this, "DB_PATH", function() {
@@ -172,6 +178,43 @@ this.HomeProvider = Object.freeze({
   }
 });
 
+var gDatabaseEnsured = false;
+
+
+
+
+
+
+
+
+
+function getDatabaseConnection() {
+  return Task.spawn(function get_database_connection_task() {
+    let db = yield Sqlite.openConnection({ path: DB_PATH });
+    if (gDatabaseEnsured) {
+      throw new Task.Result(db);
+    }
+
+    try {
+      
+      
+      let dbVersion = yield db.getSchemaVersion();
+      if (parseInt(dbVersion) < SCHEMA_VERSION) {
+        
+        yield db.execute(SQL.createItemsTable);
+        yield db.setSchemaVersion(SCHEMA_VERSION);
+      }
+    } catch(e) {
+      
+      yield db.close();
+      throw e;
+    }
+
+    gDatabaseEnsured = true;
+    throw new Task.Result(db);
+  });
+}
+
 this.HomeStorage = function(datasetId) {
   this.datasetId = datasetId;
 };
@@ -188,15 +231,8 @@ HomeStorage.prototype = {
 
   save: function(data) {
     return Task.spawn(function save_task() {
-      let db = yield Sqlite.openConnection({ path: DB_PATH });
-
+      let db = yield getDatabaseConnection();
       try {
-        
-        if (!(yield db.tableExists("items"))) {
-          yield db.execute(SQL.createItemsTable);
-          yield db.setSchemaVersion(SCHEMA_VERSION);
-        }
-
         
         for (let item of data) {
           
@@ -224,10 +260,8 @@ HomeStorage.prototype = {
 
   deleteAll: function() {
     return Task.spawn(function delete_all_task() {
-      let db = yield Sqlite.openConnection({ path: DB_PATH });
-
+      let db = yield getDatabaseConnection();
       try {
-        
         let params = { dataset_id: this.datasetId };
         yield db.executeCached(SQL.deleteFromDataset, params);
       } finally {
