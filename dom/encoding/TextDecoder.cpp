@@ -31,7 +31,7 @@ TextDecoder::Init(const nsAString& aEncoding,
   
   
   
-  mFatal = aFatal.mFatal;
+  mFatal = aFatal.fatal;
 
   
   nsCOMPtr<nsICharsetConverterManager> ccm =
@@ -94,7 +94,7 @@ TextDecoder::Decode(const ArrayBufferView* aView,
 
   
   
-  if (!aOptions.mStream) {
+  if (!aOptions.stream) {
     mDecoder->Reset();
     if (rv == NS_OK_UDEC_MOREINPUT) {
       if (mFatal) {
