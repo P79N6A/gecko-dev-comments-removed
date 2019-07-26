@@ -53,6 +53,9 @@ public class AnnouncementsFetchResourceDelegate extends SyncResourceDelegate {
     request.addHeader("Accept",          ACCEPT_HEADER);
 
     
+    request.addHeader("Connection", "close");
+
+    
     final long ifModifiedSince = delegate.getLastFetch();
     if (ifModifiedSince > 0) {
       final String imsHeader = DateUtils.formatDate(new Date(ifModifiedSince));
