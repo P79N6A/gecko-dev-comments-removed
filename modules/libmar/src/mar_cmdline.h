@@ -108,6 +108,18 @@ refresh_product_info_block(const char *path,
 int
 strip_signature_block(const char *src, const char * dest);
 
+
+
+
+
+
+
+
+
+
+int
+extract_signature(const char *src, uint32_t sigIndex, const char * dest);
+
 #ifdef __cplusplus
 }
 #endif
