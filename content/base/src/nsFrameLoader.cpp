@@ -642,16 +642,14 @@ SetTreeOwnerAndChromeEventHandlerOnDocshellTree(nsIDocShellTreeItem* aItem,
   NS_PRECONDITION(aItem, "Must have item");
 
   aItem->SetTreeOwner(aOwner);
+  nsCOMPtr<nsIDocShell> shell(do_QueryInterface(aItem));
+  shell->SetChromeEventHandler(aHandler);
 
   int32_t childCount = 0;
   aItem->GetChildCount(&childCount);
   for (int32_t i = 0; i < childCount; ++i) {
     nsCOMPtr<nsIDocShellTreeItem> item;
     aItem->GetChildAt(i, getter_AddRefs(item));
-    if (aHandler) {
-      nsCOMPtr<nsIDocShell> shell(do_QueryInterface(item));
-      shell->SetChromeEventHandler(aHandler);
-    }
     SetTreeOwnerAndChromeEventHandlerOnDocshellTree(item, aOwner, aHandler);
   }
 }
@@ -1059,7 +1057,6 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
 
   
   
-  
   int32_t ourType = nsIDocShellTreeItem::typeChrome;
   int32_t otherType = nsIDocShellTreeItem::typeChrome;
   ourTreeItem->GetItemType(&ourType);
@@ -1209,14 +1206,10 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   otherParentItem->AddChild(ourTreeItem);
 
   
-  ourDocshell->SetChromeEventHandler(otherChromeEventHandler);
-  otherDocshell->SetChromeEventHandler(ourChromeEventHandler);
-  
-  
   SetTreeOwnerAndChromeEventHandlerOnDocshellTree(ourTreeItem, otherOwner,
-    ourType == nsIDocShellTreeItem::typeContent ? otherChromeEventHandler : nullptr);
+                                                  otherChromeEventHandler);
   SetTreeOwnerAndChromeEventHandlerOnDocshellTree(otherTreeItem, ourOwner,
-    ourType == nsIDocShellTreeItem::typeContent ? ourChromeEventHandler : nullptr);
+                                                  ourChromeEventHandler);
 
   
   
