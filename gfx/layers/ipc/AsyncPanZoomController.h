@@ -227,7 +227,7 @@ public:
 
 
 
-  static CSSToScreenScale CalculateIntrinsicScale(const FrameMetrics& aMetrics);
+  static gfxSize CalculateIntrinsicScale(const FrameMetrics& aMetrics);
 
   
 
@@ -456,7 +456,7 @@ protected:
 
 
 
-  void SetZoomAndResolution(const ScreenToScreenScale& aZoom);
+  void SetZoomAndResolution(float aScale);
 
   
 

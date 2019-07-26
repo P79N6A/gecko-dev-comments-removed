@@ -15,7 +15,6 @@
 namespace mozilla {
 
 struct CSSPixel;
-struct LayoutDevicePixel;
 struct LayerPixel;
 struct ScreenPixel;
 
@@ -25,13 +24,6 @@ typedef gfx::SizeTyped<CSSPixel> CSSSize;
 typedef gfx::IntSizeTyped<CSSPixel> CSSIntSize;
 typedef gfx::RectTyped<CSSPixel> CSSRect;
 typedef gfx::IntRectTyped<CSSPixel> CSSIntRect;
-
-typedef gfx::PointTyped<LayoutDevicePixel> LayoutDevicePoint;
-typedef gfx::IntPointTyped<LayoutDevicePixel> LayoutDeviceIntPoint;
-typedef gfx::SizeTyped<LayoutDevicePixel> LayoutDeviceSize;
-typedef gfx::IntSizeTyped<LayoutDevicePixel> LayoutDeviceIntSize;
-typedef gfx::RectTyped<LayoutDevicePixel> LayoutDeviceRect;
-typedef gfx::IntRectTyped<LayoutDevicePixel> LayoutDeviceIntRect;
 
 typedef gfx::PointTyped<LayerPixel> LayerPoint;
 typedef gfx::IntPointTyped<LayerPixel> LayerIntPoint;
@@ -47,19 +39,12 @@ typedef gfx::IntSizeTyped<ScreenPixel> ScreenIntSize;
 typedef gfx::RectTyped<ScreenPixel> ScreenRect;
 typedef gfx::IntRectTyped<ScreenPixel> ScreenIntRect;
 
-typedef gfx::ScaleFactor<CSSPixel, LayoutDevicePixel> CSSToLayoutDeviceScale;
-typedef gfx::ScaleFactor<LayoutDevicePixel, CSSPixel> LayoutDeviceToCSSScale;
 typedef gfx::ScaleFactor<CSSPixel, LayerPixel> CSSToLayerScale;
 typedef gfx::ScaleFactor<LayerPixel, CSSPixel> LayerToCSSScale;
 typedef gfx::ScaleFactor<CSSPixel, ScreenPixel> CSSToScreenScale;
 typedef gfx::ScaleFactor<ScreenPixel, CSSPixel> ScreenToCSSScale;
-typedef gfx::ScaleFactor<LayoutDevicePixel, LayerPixel> LayoutDeviceToLayerScale;
-typedef gfx::ScaleFactor<LayerPixel, LayoutDevicePixel> LayerToLayoutDeviceScale;
-typedef gfx::ScaleFactor<LayoutDevicePixel, ScreenPixel> LayoutDeviceToScreenScale;
-typedef gfx::ScaleFactor<ScreenPixel, LayoutDevicePixel> ScreenToLayoutDeviceScale;
 typedef gfx::ScaleFactor<LayerPixel, ScreenPixel> LayerToScreenScale;
 typedef gfx::ScaleFactor<ScreenPixel, LayerPixel> ScreenToLayerScale;
-typedef gfx::ScaleFactor<ScreenPixel, ScreenPixel> ScreenToScreenScale;
 
 
 
@@ -110,17 +95,6 @@ struct CSSPixel {
                   NSFloatPixelsToAppUnits(aRect.width, float(nsDeviceContext::AppUnitsPerCSSPixel())),
                   NSFloatPixelsToAppUnits(aRect.height, float(nsDeviceContext::AppUnitsPerCSSPixel())));
   }
-};
-
-
-
-
-
-
-
-
-
-struct LayoutDevicePixel {
 };
 
 

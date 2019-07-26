@@ -38,8 +38,8 @@ public:
     , mScrollOffset(0, 0)
     , mScrollId(NULL_SCROLL_ID)
     , mScrollableRect(0, 0, 0, 0)
-    , mResolution(1)
-    , mZoom(1)
+    , mResolution(1, 1)
+    , mZoom(1, 1)
     , mDevPixelsPerCSSPixel(1)
     , mMayHaveTouchListeners(false)
     , mPresShellId(-1)
@@ -84,14 +84,18 @@ public:
     return mScrollId != NULL_SCROLL_ID;
   }
 
-  CSSToLayerScale LayersPixelsPerCSSPixel() const
+  gfxSize LayersPixelsPerCSSPixel() const
   {
     return mResolution * mDevPixelsPerCSSPixel;
   }
 
-  LayerPoint GetScrollOffsetInLayerPixels() const
+  gfx::Point GetScrollOffsetInLayerPixels() const
   {
-    return mScrollOffset * LayersPixelsPerCSSPixel();
+    return gfx::Point(
+      static_cast<gfx::Float>(
+        mScrollOffset.x * LayersPixelsPerCSSPixel().width),
+      static_cast<gfx::Float>(
+        mScrollOffset.y * LayersPixelsPerCSSPixel().height));
   }
 
   
@@ -205,7 +209,7 @@ public:
   
   
   
-  LayoutDeviceToLayerScale mResolution;
+  gfxSize mResolution;
 
   
   
@@ -220,13 +224,13 @@ public:
   
   
   
-  ScreenToScreenScale mZoom;
+  gfxSize mZoom;
 
   
   
   
   
-  CSSToLayoutDeviceScale mDevPixelsPerCSSPixel;
+  float mDevPixelsPerCSSPixel;
 
   
   bool mMayHaveTouchListeners;
