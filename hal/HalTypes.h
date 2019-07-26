@@ -81,6 +81,82 @@ enum SystemTimeChange {
   SYS_TIME_CHANGE_GUARD
 };
 
+class FMRadioOperationInformation;
+
+enum FMRadioOperation {
+  FM_RADIO_OPERATION_UNKNOWN = -1,
+  FM_RADIO_OPERATION_ENABLE,
+  FM_RADIO_OPERATION_DISABLE,
+  FM_RADIO_OPERATION_SEEK,
+  NUM_FM_RADIO_OPERATION
+};
+
+enum FMRadioOperationStatus {
+  FM_RADIO_OPERATION_STATUS_UNKNOWN = -1,
+  FM_RADIO_OPERATION_STATUS_SUCCESS,
+  FM_RADIO_OPERATION_STATUS_FAIL,
+  NUM_FM_RADIO_OPERATION_STATUS
+};
+
+enum FMRadioSeekDirection {
+  FM_RADIO_SEEK_DIRECTION_UNKNOWN = -1,
+  FM_RADIO_SEEK_DIRECTION_UP,
+  FM_RADIO_SEEK_DIRECTION_DOWN,
+  NUM_FM_RADIO_SEEK_DIRECTION
+};
+
+enum FMRadioCountry {
+  FM_RADIO_COUNTRY_UNKNOWN = -1,
+  FM_RADIO_COUNTRY_US,  
+  FM_RADIO_COUNTRY_EU,
+  FM_RADIO_COUNTRY_JP_STANDARD,
+  FM_RADIO_COUNTRY_JP_WIDE,
+  FM_RADIO_COUNTRY_DE,  
+  FM_RADIO_COUNTRY_AW,  
+  FM_RADIO_COUNTRY_AU,  
+  FM_RADIO_COUNTRY_BS,  
+  FM_RADIO_COUNTRY_BD,  
+  FM_RADIO_COUNTRY_CY,  
+  FM_RADIO_COUNTRY_VA,  
+  FM_RADIO_COUNTRY_CO,  
+  FM_RADIO_COUNTRY_KR,  
+  FM_RADIO_COUNTRY_DK,  
+  FM_RADIO_COUNTRY_EC,  
+  FM_RADIO_COUNTRY_ES,  
+  FM_RADIO_COUNTRY_FI,  
+  FM_RADIO_COUNTRY_FR,  
+  FM_RADIO_COUNTRY_GM,  
+  FM_RADIO_COUNTRY_HU,  
+  FM_RADIO_COUNTRY_IN,  
+  FM_RADIO_COUNTRY_IR,  
+  FM_RADIO_COUNTRY_IT,  
+  FM_RADIO_COUNTRY_KW,  
+  FM_RADIO_COUNTRY_LT,  
+  FM_RADIO_COUNTRY_ML,  
+  FM_RADIO_COUNTRY_MA,  
+  FM_RADIO_COUNTRY_NO,  
+  FM_RADIO_COUNTRY_NZ,  
+  FM_RADIO_COUNTRY_OM,  
+  FM_RADIO_COUNTRY_PG,  
+  FM_RADIO_COUNTRY_NL,  
+  FM_RADIO_COUNTRY_QA,  
+  FM_RADIO_COUNTRY_CZ,  
+  FM_RADIO_COUNTRY_UK,  
+  FM_RADIO_COUNTRY_RW,  
+  FM_RADIO_COUNTRY_SN,  
+  FM_RADIO_COUNTRY_SG,  
+  FM_RADIO_COUNTRY_SI,  
+  FM_RADIO_COUNTRY_ZA,  
+  FM_RADIO_COUNTRY_SE,  
+  FM_RADIO_COUNTRY_CH,  
+  FM_RADIO_COUNTRY_TW,  
+  FM_RADIO_COUNTRY_TR,  
+  FM_RADIO_COUNTRY_UA,  
+  FM_RADIO_COUNTRY_USER_DEFINED,
+  NUM_FM_RADIO_COUNTRY
+};
+
+typedef Observer<FMRadioOperationInformation> FMRadioObserver;
 } 
 } 
 
@@ -163,6 +239,45 @@ struct ParamTraits<mozilla::hal::SystemTimeChange>
                           mozilla::hal::SYS_TIME_CHANGE_GUARD>
 {};
  
+
+
+
+template <>
+struct ParamTraits<mozilla::hal::FMRadioOperation>:
+  public EnumSerializer<mozilla::hal::FMRadioOperation,
+                        mozilla::hal::FM_RADIO_OPERATION_UNKNOWN,
+                        mozilla::hal::NUM_FM_RADIO_OPERATION>
+{};
+
+
+
+
+template <>
+struct ParamTraits<mozilla::hal::FMRadioOperationStatus>:
+  public EnumSerializer<mozilla::hal::FMRadioOperationStatus,
+                        mozilla::hal::FM_RADIO_OPERATION_STATUS_UNKNOWN,
+                        mozilla::hal::NUM_FM_RADIO_OPERATION_STATUS>
+{};
+
+
+
+
+template <>
+struct ParamTraits<mozilla::hal::FMRadioSeekDirection>:
+  public EnumSerializer<mozilla::hal::FMRadioSeekDirection,
+                        mozilla::hal::FM_RADIO_SEEK_DIRECTION_UNKNOWN,
+                        mozilla::hal::NUM_FM_RADIO_SEEK_DIRECTION>
+{};
+
+
+
+
+template <>
+struct ParamTraits<mozilla::hal::FMRadioCountry>:
+  public EnumSerializer<mozilla::hal::FMRadioCountry,
+                        mozilla::hal::FM_RADIO_COUNTRY_UNKNOWN,
+                        mozilla::hal::NUM_FM_RADIO_COUNTRY>
+{};
 } 
 
 #endif 
