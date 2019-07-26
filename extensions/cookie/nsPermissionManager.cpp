@@ -722,10 +722,6 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
       id = oldPermissionEntry.mID;
       entry->GetPermissions().RemoveElementAt(index);
 
-      
-      if (entry->GetPermissions().IsEmpty())
-        mPermissionTable.RawRemoveEntry(entry);
-
       if (aDBOperation == eWriteToDB)
         
         
@@ -741,6 +737,11 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
                                       oldPermissionEntry.mExpireType,
                                       oldPermissionEntry.mExpireTime,
                                       NS_LITERAL_STRING("deleted").get());
+      }
+
+      
+      if (entry->GetPermissions().IsEmpty()) {
+        mPermissionTable.RawRemoveEntry(entry);
       }
 
       break;
