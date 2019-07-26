@@ -928,7 +928,8 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         String url = tab.getURL();
 
         
-        visible &= !(url == null || url.startsWith("about:"));
+        visible &= !(url == null || (url.startsWith("about:") && 
+                     !url.equals("about:blank")));
 
         if ((mShadow.getVisibility() == View.VISIBLE) != visible) {
             mShadow.setVisibility(visible ? View.VISIBLE : View.GONE);
