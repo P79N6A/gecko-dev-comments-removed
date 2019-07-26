@@ -9,6 +9,8 @@
 
 
 
+#include <string.h>
+
 #include "jsapi.h"
 #include "jsatom.h"
 #include "jscntxt.h"
@@ -19,11 +21,27 @@
 #include "vm/GlobalObject.h"
 #include "vm/Stack.h"
 
-#include "jsobjinlines.h"
-
+#if ENABLE_INTL_API
+#include "unicode/locid.h"
+#include "unicode/numsys.h"
+#include "unicode/ucal.h"
+#include "unicode/ucol.h"
+#include "unicode/udat.h"
+#include "unicode/udatpg.h"
+#include "unicode/uenum.h"
+#include "unicode/unum.h"
+#include "unicode/ustring.h"
+#endif
 #include "unicode/utypes.h"
 
+#include "jsobjinlines.h"
+
 using namespace js;
+
+#if ENABLE_INTL_API
+using icu::Locale;
+using icu::NumberingSystem;
+#endif
 
 
 
@@ -423,6 +441,130 @@ IntlInitialize(JSContext *cx, HandleObject obj, Handle<PropertyName*> initialize
 
     return Invoke(cx, args);
 }
+
+
+
+typedef int32_t
+(* CountAvailable)(void);
+
+typedef const char *
+(* GetAvailable)(int32_t localeIndex);
+
+SUPPRESS_UNUSED_WARNING static bool
+intl_availableLocales(JSContext *cx, CountAvailable countAvailable,
+                      GetAvailable getAvailable, MutableHandleValue result)
+{
+    RootedObject locales(cx, NewObjectWithGivenProto(cx, &ObjectClass, NULL, NULL));
+    if (!locales)
+        return false;
+
+#if ENABLE_INTL_API
+    uint32_t count = countAvailable();
+    RootedValue t(cx, BooleanValue(true));
+    for (uint32_t i = 0; i < count; i++) {
+        const char *locale = getAvailable(i);
+        ScopedJSFreePtr<char> lang(JS_strdup(cx, locale));
+        if (!lang)
+            return false;
+        char *p;
+        while ((p = strchr(lang, '_')))
+            *p = '-';
+        RootedAtom a(cx, Atomize(cx, lang, strlen(lang)));
+        if (!a)
+            return false;
+        if (!JSObject::defineProperty(cx, locales, a->asPropertyName(), t,
+                                      JS_PropertyStub, JS_StrictPropertyStub, JSPROP_ENUMERATE))
+        {
+            return false;
+        }
+    }
+#endif
+    result.setObject(*locales);
+    return true;
+}
+
+
+
+
+SUPPRESS_UNUSED_WARNING static bool
+GetInternals(JSContext *cx, HandleObject obj, MutableHandleObject internals)
+{
+    RootedValue getInternalsValue(cx);
+    if (!cx->global()->getIntrinsicValue(cx, cx->names().getInternals, &getInternalsValue))
+        return false;
+    JS_ASSERT(getInternalsValue.isObject());
+    JS_ASSERT(getInternalsValue.toObject().isFunction());
+
+    InvokeArgsGuard args;
+    if (!cx->stack.pushInvokeArgs(cx, 1, &args))
+        return false;
+
+    args.setCallee(getInternalsValue);
+    args.setThis(NullValue());
+    args[0] = ObjectValue(*obj);
+
+    if (!Invoke(cx, args))
+        return false;
+    internals.set(&args.rval().toObject());
+    return true;
+}
+
+static bool
+equal(const char *s1, const char *s2)
+{
+    return !strcmp(s1, s2);
+}
+
+SUPPRESS_UNUSED_WARNING static bool
+equal(JSAutoByteString &s1, const char *s2)
+{
+    return !strcmp(s1.ptr(), s2);
+}
+
+SUPPRESS_UNUSED_WARNING static const char *
+icuLocale(const char *locale)
+{
+    if (equal(locale, "und"))
+        return ""; 
+    return locale;
+}
+
+
+
+
+
+
+template <typename T>
+class ScopedICUObject
+{
+    T *ptr_;
+    void (* deleter_)(T*);
+
+  public:
+    ScopedICUObject(T *ptr, void (*deleter)(T*))
+      : ptr_(ptr),
+        deleter_(deleter)
+    {}
+
+    ~ScopedICUObject() {
+        if (ptr_)
+            deleter_(ptr_);
+    }
+
+    
+    
+    
+    T *forget() {
+        T *tmp = ptr_;
+        ptr_ = NULL;
+        return tmp;
+    }
+};
+
+static const size_t STACK_STRING_SIZE = 50;
+
+static const uint32_t ICU_OBJECT_SLOT = 0;
+
 
 
 
