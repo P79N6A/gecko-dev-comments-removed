@@ -11,6 +11,7 @@
 #include "nsGUIEvent.h"       
 #include "nsHashKeys.h"       
 #include "mozwrlbase.h"
+#include "nsDeque.h"
 
 
 #include <EventToken.h>     
@@ -164,7 +165,7 @@ private:
 
   
   void OnPointerNonTouch(IPointerPoint* aPoint);
-  void InitGeckoMouseEventFromPointerPoint(nsMouseEvent& aEvent,
+  void InitGeckoMouseEventFromPointerPoint(nsMouseEvent* aEvent,
                                            IPointerPoint* aPoint);
   void ProcessManipulationDelta(ManipulationDelta const& aDelta,
                                 Point const& aPosition,
@@ -252,6 +253,10 @@ private:
   EventRegistrationToken mTokenManipulationCompleted;
   EventRegistrationToken mTokenTapped;
   EventRegistrationToken mTokenRightTapped;
+
+  void DispatchAsyncEventIgnoreStatus(nsGUIEvent* aEvent);
+  void DeliverNextQueuedEventIgnoreStatus();
+  nsDeque mInputEventQueue;
 };
 
 } } }
