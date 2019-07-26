@@ -9,6 +9,10 @@ function test() {
 
   registerCleanupFunction(function() {
     gBrowser.unpinTab(pinnedTab);
+
+    
+    gBrowser.moveTabTo(gBrowser.tabs[1], 0);
+
     while (gBrowser.tabs[1])
       gBrowser.removeTab(gBrowser.tabs[1]);
     hideTabView();
