@@ -916,7 +916,8 @@ class IDLInterface(IDLObjectWithScope):
                   identifier == "JSImplementation" or
                   identifier == "HeaderFile" or
                   identifier == "NavigatorProperty" or
-                  identifier == "OverrideBuiltins"):
+                  identifier == "OverrideBuiltins" or
+                  identifier == "ChromeOnly"):
                 
                 pass
             else:
