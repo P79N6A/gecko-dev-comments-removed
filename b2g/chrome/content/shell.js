@@ -322,9 +322,6 @@ var shell = {
     ppmm.addMessageListener("mail-handler", this);
     ppmm.addMessageListener("app-notification-send", AlertsHelper);
     ppmm.addMessageListener("file-picker", this);
-    ppmm.addMessageListener("getProfD", function(message) {
-      return Services.dirsvc.get("ProfD", Ci.nsIFile).path;
-    });
   },
 
   stop: function shell_stop() {
@@ -981,7 +978,7 @@ var WebappsHelper = {
         });
         break;
       case "webapps-close":
-        shell.sendEvent(shell.getContentWindow(), "webapps-close",
+        shell.sendEvent(getContentWindow(), "webapps-close",
           {
             __exposedProps__: { "manifestURL": "r" },
             "manifestURL": json.manifestURL
