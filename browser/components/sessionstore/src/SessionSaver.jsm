@@ -256,7 +256,7 @@ let SessionSaverInternal = {
 
 
   _writeState: function (state) {
-    stopWatchStart("SERIALIZE_DATA_MS", "SERIALIZE_DATA_LONGEST_OP_MS", "WRITE_STATE_LONGEST_OP_MS");
+    stopWatchStart("SERIALIZE_DATA_MS", "SERIALIZE_DATA_LONGEST_OP_MS");
     let data = JSON.stringify(state);
     stopWatchFinish("SERIALIZE_DATA_MS", "SERIALIZE_DATA_LONGEST_OP_MS");
 
@@ -265,7 +265,6 @@ let SessionSaverInternal = {
 
     
     if (!data) {
-      stopWatchCancel("WRITE_STATE_LONGEST_OP_MS");
       return Promise.resolve();
     }
 
@@ -278,11 +277,7 @@ let SessionSaverInternal = {
     
     
     
-    stopWatchStart("SEND_SERIALIZED_STATE_LONGEST_OP_MS");
-    let promise = SessionFile.write(data);
-    stopWatchFinish("WRITE_STATE_LONGEST_OP_MS",
-                    "SEND_SERIALIZED_STATE_LONGEST_OP_MS");
-    promise.then(() => {
+    return SessionFile.write(data).then(() => {
       this.updateLastSaveTime();
       notify(null, "sessionstore-state-write-complete");
     }, console.error);
