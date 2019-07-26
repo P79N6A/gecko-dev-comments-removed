@@ -359,13 +359,11 @@ protected:
 
 
 
-
-
-  nsresult ReflowChildren(nsPresContext*         aPresContext,
-                          nsHTMLReflowMetrics&   aDesiredSize,
-                          nsRowGroupReflowState& aReflowState,
-                          nsReflowStatus&        aStatus,
-                          bool*                aPageBreakBeforeEnd = nullptr);
+  void ReflowChildren(nsPresContext*         aPresContext,
+                      nsHTMLReflowMetrics&   aDesiredSize,
+                      nsRowGroupReflowState& aReflowState,
+                      nsReflowStatus&        aStatus,
+                      bool*                aPageBreakBeforeEnd = nullptr);
 
   nsresult SplitRowGroup(nsPresContext*           aPresContext,
                          nsHTMLReflowMetrics&     aDesiredSize,

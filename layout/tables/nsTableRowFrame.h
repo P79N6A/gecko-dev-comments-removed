@@ -254,11 +254,11 @@ protected:
 
 
 
-  nsresult ReflowChildren(nsPresContext*           aPresContext,
-                          nsHTMLReflowMetrics&     aDesiredSize,
-                          const nsHTMLReflowState& aReflowState,
-                          nsTableFrame&            aTableFrame,
-                          nsReflowStatus&          aStatus);
+  void ReflowChildren(nsPresContext*           aPresContext,
+                      nsHTMLReflowMetrics&     aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nsTableFrame&            aTableFrame,
+                      nsReflowStatus&          aStatus);
 
 private:
   struct RowBits {

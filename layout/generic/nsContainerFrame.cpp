@@ -932,7 +932,7 @@ nsContainerFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
 
 
 
-nsresult
+void
 nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
                               nsPresContext*           aPresContext,
                               nsHTMLReflowMetrics&     aDesiredSize,
@@ -974,7 +974,6 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
         ->DeleteNextInFlowChild(kidNextInFlow, true);
     }
   }
-  return NS_OK;
 }
 
 
@@ -1030,7 +1029,7 @@ nsContainerFrame::PositionChildViews(nsIFrame* aFrame)
 
 
 
-nsresult
+void
 nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
                                     nsPresContext*             aPresContext,
                                     const nsHTMLReflowMetrics& aDesiredSize,
@@ -1064,7 +1063,7 @@ nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
     }
   }
 
-  return aKidFrame->DidReflow(aPresContext, aReflowState, nsDidReflowStatus::FINISHED);
+  aKidFrame->DidReflow(aPresContext, aReflowState, nsDidReflowStatus::FINISHED);
 }
 
 nsresult
@@ -1075,7 +1074,6 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
                                                   nsReflowStatus&          aStatus)
 {
   NS_PRECONDITION(aPresContext, "null pointer");
-  nsresult rv = NS_OK;
 
   nsFrameList* overflowContainers =
                GetPropTableFrames(OverflowContainersProperty());
@@ -1146,14 +1144,12 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
       nsReflowStatus frameStatus;
 
       
-      rv = ReflowChild(frame, aPresContext, desiredSize, frameState,
-                       prevRect.x, 0, aFlags, frameStatus, &tracker);
-      NS_ENSURE_SUCCESS(rv, rv);
+      ReflowChild(frame, aPresContext, desiredSize, frameState,
+                  prevRect.x, 0, aFlags, frameStatus, &tracker);
       
       
-      rv = FinishReflowChild(frame, aPresContext, desiredSize, &frameState,
-                             prevRect.x, 0, aFlags);
-      NS_ENSURE_SUCCESS(rv, rv);
+      FinishReflowChild(frame, aPresContext, desiredSize, &frameState,
+                        prevRect.x, 0, aFlags);
 
       
       if (!NS_FRAME_IS_FULLY_COMPLETE(frameStatus)) {
@@ -1177,7 +1173,7 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
         }
         else if (!(nif->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
           
-          rv = static_cast<nsContainerFrame*>(nif->GetParent())
+          nsresult rv = static_cast<nsContainerFrame*>(nif->GetParent())
                  ->StealFrame(nif);
           NS_ENSURE_SUCCESS(rv, rv);
         }
