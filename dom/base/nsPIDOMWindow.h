@@ -109,6 +109,7 @@ public:
     return mChromeEventHandler;
   }
 
+  
   virtual void SetChromeEventHandler(mozilla::dom::EventTarget* aChromeEventHandler) = 0;
 
   mozilla::dom::EventTarget* GetParentTarget()

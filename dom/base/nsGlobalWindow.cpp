@@ -9416,22 +9416,16 @@ nsGlobalWindow::DisableGamepadUpdates()
 void
 nsGlobalWindow::SetChromeEventHandler(EventTarget* aChromeEventHandler)
 {
+  MOZ_ASSERT(IsOuterWindow());
+
   SetChromeEventHandlerInternal(aChromeEventHandler);
-  if (IsOuterWindow()) {
-    
-    for (nsGlobalWindow *inner = (nsGlobalWindow *)PR_LIST_HEAD(this);
-         inner != this;
-         inner = (nsGlobalWindow*)PR_NEXT_LINK(inner)) {
-      NS_ASSERTION(!inner->mOuterWindow || inner->mOuterWindow == this,
-                   "bad outer window pointer");
-      inner->SetChromeEventHandlerInternal(aChromeEventHandler);
-    }
-  } else if (mOuterWindow) {
-    
-    
-    
-    static_cast<nsGlobalWindow*>(mOuterWindow.get())->
-      SetChromeEventHandlerInternal(aChromeEventHandler);
+  
+  for (nsGlobalWindow *inner = (nsGlobalWindow *)PR_LIST_HEAD(this);
+       inner != this;
+       inner = (nsGlobalWindow*)PR_NEXT_LINK(inner)) {
+    NS_ASSERTION(!inner->mOuterWindow || inner->mOuterWindow == this,
+                 "bad outer window pointer");
+    inner->SetChromeEventHandlerInternal(aChromeEventHandler);
   }
 }
 
