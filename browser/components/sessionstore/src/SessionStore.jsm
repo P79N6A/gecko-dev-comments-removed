@@ -125,8 +125,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "GlobalState",
   "resource:///modules/sessionstore/GlobalState.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Messenger",
   "resource:///modules/sessionstore/Messenger.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivacyFilter",
-  "resource:///modules/sessionstore/PrivacyFilter.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
   "resource:///modules/RecentWindow.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
@@ -607,6 +605,11 @@ let SessionStoreInternal = {
   receiveMessage: function ssi_receiveMessage(aMessage) {
     var browser = aMessage.target;
     var win = browser.ownerDocument.defaultView;
+    let tab = this._getTabForBrowser(browser);
+    if (!tab) {
+      
+      return;
+    }
 
     switch (aMessage.name) {
       case "SessionStore:pageshow":
@@ -630,7 +633,6 @@ let SessionStoreInternal = {
       case "SessionStore:restoreHistoryComplete":
         if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
           
-          let tab = this._getTabForBrowser(browser);
           let tabData = browser.__SS_data;
 
           
@@ -681,7 +683,6 @@ let SessionStoreInternal = {
             Services.obs.notifyObservers(browser, NOTIFY_TAB_RESTORED, null);
           }
 
-          let tab = this._getTabForBrowser(browser);
           if (tab) {
             SessionStoreInternal._resetLocalTabRestoringState(tab);
             SessionStoreInternal.restoreNextTab();
@@ -703,7 +704,6 @@ let SessionStoreInternal = {
         break;
       case "SessionStore:reloadPendingTab":
         if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
-          let tab = this._getTabForBrowser(browser);
           if (tab && browser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
             this.restoreTabContent(tab);
           }
@@ -818,6 +818,12 @@ let SessionStoreInternal = {
     
     
     aWindow.__SSi = this._generateWindowID();
+
+    let mm = aWindow.messageManager;
+    MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
+
+    
+    mm.loadFrameScript("chrome://browser/content/content-sessionStore.js", true);
 
     
     this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [], busy: false };
@@ -1111,20 +1117,13 @@ let SessionStoreInternal = {
 
       
       
-      if (!winData.isPrivate) {
+      if (!winData.isPrivate && (winData.tabs.length > 1 ||
+          (winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0])))) {
         
-        PrivacyFilter.filterPrivateTabs(winData);
+        delete winData.busy;
 
-        let hasSingleTabToSave =
-          winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0]);
-
-        if (hasSingleTabToSave || winData.tabs.length > 1) {
-          
-          delete winData.busy;
-
-          this._closedWindows.unshift(winData);
-          this._capClosedWindows();
-        }
+        this._closedWindows.unshift(winData);
+        this._capClosedWindows();
       }
 
       
@@ -1343,12 +1342,6 @@ let SessionStoreInternal = {
     let browser = aTab.linkedBrowser;
     BROWSER_EVENTS.forEach(msg => browser.addEventListener(msg, this, true));
 
-    let mm = browser.messageManager;
-    MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
-
-    
-    mm.loadFrameScript("chrome://browser/content/content-sessionStore.js", false);
-
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
     }
@@ -1415,8 +1408,7 @@ let SessionStoreInternal = {
     let tabState = TabState.collectSync(aTab);
 
     
-    let isPrivateWindow = PrivateBrowsingUtils.isWindowPrivate(aWindow);
-    if (!isPrivateWindow && tabState.isPrivate) {
+    if (tabState.isPrivate || false) {
       return;
     }
 
