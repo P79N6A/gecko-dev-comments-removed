@@ -497,6 +497,14 @@ RunDBusCallback(DBusMessage* aMsg, void* aBluetoothReplyRunnable,
   nsAutoString replyError;
   BluetoothValue v;
   aFunc(aMsg, nullptr, v, replyError);
+
+  
+  
+  
+  if (replyError.EqualsLiteral("I/O error")) {
+    replyError.AssignLiteral(ERR_INTERNAL_ERROR);
+  }
+
   DispatchBluetoothReply(replyRunnable, v, replyError);
 }
 
