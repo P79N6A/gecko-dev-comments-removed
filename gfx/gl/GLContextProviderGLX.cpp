@@ -1191,13 +1191,19 @@ GLContextProviderGLX::CreateOffscreen(const gfxIntSize& size,
 
 static StaticRefPtr<GLContext> gGlobalContext;
 
-static bool gUseContextSharing = getenv("MOZ_DISABLE_CONTEXT_SHARING_GLX") == 0;
-
 GLContext*
 GLContextProviderGLX::GetGlobalContext()
 {
+    static bool checkedContextSharing = false;
+    static bool useContextSharing = false;
+
+    if (!checkedContextSharing) {
+        useContextSharing = getenv("MOZ_DISABLE_CONTEXT_SHARING_GLX") == 0;
+        checkedContextSharing = true;
+    }
+
     
-    if (!gUseContextSharing) {
+    if (!useContextSharing) {
         return nullptr;
     }
 
