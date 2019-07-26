@@ -188,75 +188,126 @@ ThreadPoolWorker::terminate()
 
 ThreadPool::ThreadPool(JSRuntime *rt)
   : runtime_(rt),
+    numWorkers_(0), 
     nextId_(0)
-{ }
-
-ThreadPool::~ThreadPool()
 {
-    terminateWorkers();
-    while (workers_.length() > 0) {
-        ThreadPoolWorker *worker = workers_.popCopy();
-        js_delete(worker);
-    }
 }
 
 bool
 ThreadPool::init()
 {
-#ifdef JS_THREADSAFE
     
-    size_t numWorkers = 0;
-    char *pathreads = getenv("PATHREADS");
-    if (pathreads != NULL)
-        numWorkers = strtol(pathreads, NULL, 10);
-    else
-        numWorkers = GetCPUCount() - 1;
+    
+    
+    
 
-    
-    
-    
-    for (size_t workerId = 0; workerId < numWorkers; workerId++) {
-        ThreadPoolWorker *worker = js_new<ThreadPoolWorker>(workerId, this);
-        if (!worker->init()) {
-            js_delete(worker);
-            return false;
-        }
-        if (!workers_.append(worker)) {
-            js_delete(worker);
-            return false;
-        }
-        if (!worker->start())
-            return false;
-    }
+#ifdef JS_THREADSAFE
+    if (runtime_->useHelperThreads())
+        numWorkers_ = GetCPUCount() - 1;
+    else
+        numWorkers_ = 0;
+
+# ifdef DEBUG
+    if (char *pathreads = getenv("PATHREADS"))
+        numWorkers_ = strtol(pathreads, NULL, 10);
+# endif
 #endif
 
     return true;
 }
 
-void
-ThreadPool::terminateWorkers()
+ThreadPool::~ThreadPool()
 {
-    for (size_t i = 0; i < workers_.length(); i++)
-        workers_[i]->terminate();
+    terminateWorkers();
 }
 
 bool
-ThreadPool::submitOne(TaskExecutor *executor)
+ThreadPool::lazyStartWorkers(JSContext *cx)
 {
+    
+    
+    
+    
+    
+
+#ifndef JS_THREADSAFE
+    return true;
+#else
+    if (!workers_.empty()) {
+        JS_ASSERT(workers_.length() == numWorkers());
+        return true;
+    }
+
+    
+    
+    
+    
+    for (size_t workerId = 0; workerId < numWorkers(); workerId++) {
+        ThreadPoolWorker *worker = js_new<ThreadPoolWorker>(workerId, this);
+        if (!worker) {
+            terminateWorkersAndReportOOM(cx);
+            return false;
+        }
+        if (!worker->init() || !workers_.append(worker)) {
+            js_delete(worker);
+            terminateWorkersAndReportOOM(cx);
+            return false;
+        }
+        if (!worker->start()) {
+            
+            
+            
+            terminateWorkersAndReportOOM(cx);
+            return false;
+        }
+    }
+
+    return true;
+#endif
+}
+
+void
+ThreadPool::terminateWorkersAndReportOOM(JSContext *cx)
+{
+    terminateWorkers();
+    JS_ASSERT(workers_.empty());
+    JS_ReportOutOfMemory(cx);
+}
+
+void
+ThreadPool::terminateWorkers()
+{
+    while (workers_.length() > 0) {
+        ThreadPoolWorker *worker = workers_.popCopy();
+        worker->terminate();
+        js_delete(worker);
+    }
+}
+
+bool
+ThreadPool::submitOne(JSContext *cx, TaskExecutor *executor)
+{
+    JS_ASSERT(numWorkers() > 0);
+
     runtime_->assertValidThread();
 
-    if (numWorkers() == 0)
+    if (!lazyStartWorkers(cx))
         return false;
 
     
-    size_t id = JS_ATOMIC_INCREMENT(&nextId_) % workers_.length();
+    size_t id = JS_ATOMIC_INCREMENT(&nextId_) % numWorkers();
     return workers_[id]->submit(executor);
 }
 
 bool
-ThreadPool::submitAll(TaskExecutor *executor)
+ThreadPool::submitAll(JSContext *cx, TaskExecutor *executor)
 {
-    for (size_t id = 0; id < workers_.length(); id++) {
+    runtime_->assertValidThread();
+
+    if (!lazyStartWorkers(cx))
+        return false;
+
+    for (size_t id = 0; id < numWorkers(); id++) {
         if (!workers_[id]->submit(executor))
             return false;
     }
