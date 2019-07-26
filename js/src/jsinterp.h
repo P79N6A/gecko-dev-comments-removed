@@ -274,11 +274,8 @@ class InterpreterFrames {
 };
 
 
-
-
-
 extern void
-UnwindScope(JSContext *cx, uint32_t stackDepth);
+UnwindScope(JSContext *cx, AbstractFramePtr frame, uint32_t stackDepth);
 
 
 

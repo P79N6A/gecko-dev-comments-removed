@@ -62,7 +62,7 @@ FindExceptionHandler(JSContext *cx)
         for (TryNoteIter tni(cx, cx->regs()); !tni.done(); ++tni) {
             JSTryNote *tn = *tni;
 
-            UnwindScope(cx, tn->stackDepth);
+            UnwindScope(cx, cx->fp(), tn->stackDepth);
 
             
 
@@ -599,7 +599,7 @@ js_InternalThrow(VMFrame &f)
         
         
         JS_ASSERT(!f.fp()->finishedInInterpreter());
-        UnwindScope(cx, 0);
+        UnwindScope(cx, cx->fp(), 0);
         f.regs.setToEndOfScript();
 
         if (cx->compartment->debugMode()) {
