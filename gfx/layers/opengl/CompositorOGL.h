@@ -255,11 +255,6 @@ private:
   
 
 
-  virtual void clearFBRect(const gfx::Rect* aRect);
-
-  
-
-
   virtual void BeginFrame(const nsIntRegion& aInvalidRegion,
                           const gfx::Rect *aClipRectIn,
                           const gfx::Matrix& aTransform,
