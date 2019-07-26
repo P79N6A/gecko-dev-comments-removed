@@ -438,6 +438,9 @@ TiltUtils.DOM = {
 
 
 
+
+
+
   traverse: function TUD_traverse(aContentWindow, aProperties)
   {
     
@@ -447,6 +450,8 @@ TiltUtils.DOM = {
     let aMinSize = aProperties.minSize || -1;
     let aMaxX = aProperties.maxX || Number.MAX_VALUE;
     let aMaxY = aProperties.maxY || Number.MAX_VALUE;
+
+    let nodeCallback = aProperties.nodeCallback || this.getNodePosition.bind(this);
 
     let nodes = aContentWindow.document.childNodes;
     let store = { info: [], nodes: [] };
@@ -466,7 +471,7 @@ TiltUtils.DOM = {
           continue;
         }
 
-        let coord = this.getNodePosition(aContentWindow, node, parentPosition);
+        let coord = nodeCallback(aContentWindow, node, parentPosition);
         if (!coord) {
           continue;
         }

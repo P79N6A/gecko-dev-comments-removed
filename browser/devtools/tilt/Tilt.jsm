@@ -9,6 +9,8 @@ const Cu = Components.utils;
 
 
 const TILT_NOTIFICATIONS = {
+  
+  STARTUP: "tilt-startup",
 
   
   INITIALIZING: "tilt-initializing",
@@ -118,11 +120,14 @@ Tilt.prototype = {
     
     this.visualizers[id] = new TiltVisualizer({
       chromeWindow: this.chromeWindow,
-      contentWindow: this.chromeWindow.gBrowser.selectedBrowser.contentWindow,
+      contentWindow: contentWindow,
       parentNode: this.chromeWindow.gBrowser.selectedBrowser.parentNode,
       notifications: this.NOTIFICATIONS,
       tab: this.chromeWindow.gBrowser.selectedTab
     });
+
+    Services.obs.notifyObservers(contentWindow, TILT_NOTIFICATIONS.STARTUP, null);
+    this.visualizers[id].init();
 
     
     if (!this.visualizers[id].isInitialized()) {
@@ -131,8 +136,9 @@ Tilt.prototype = {
       return;
     }
 
+    this.lastInstanceId = id;
     this.emit("change", this.chromeWindow.gBrowser.selectedTab);
-    Services.obs.notifyObservers(null, TILT_NOTIFICATIONS.INITIALIZING, null);
+    Services.obs.notifyObservers(contentWindow, TILT_NOTIFICATIONS.INITIALIZING, null);
   },
 
   
@@ -166,7 +172,7 @@ Tilt.prototype = {
     }
 
     
-    Services.obs.notifyObservers(null, TILT_NOTIFICATIONS.DESTROYING, null);
+    Services.obs.notifyObservers(content, TILT_NOTIFICATIONS.DESTROYING, null);
 
     controller.removeEventListeners();
     controller.arcball.reset([-pageXOffset, -pageYOffset]);
@@ -181,6 +187,7 @@ Tilt.prototype = {
 
   _finish: function T__finish(aId)
   {
+    let contentWindow = this.visualizers[aId].presenter.contentWindow;
     this.visualizers[aId].removeOverlay();
     this.visualizers[aId].cleanup();
     this.visualizers[aId] = null;
@@ -188,7 +195,7 @@ Tilt.prototype = {
     this._isDestroying = false;
     this.chromeWindow.gBrowser.selectedBrowser.focus();
     this.emit("change", this.chromeWindow.gBrowser.selectedTab);
-    Services.obs.notifyObservers(null, TILT_NOTIFICATIONS.DESTROYED, null);
+    Services.obs.notifyObservers(contentWindow, TILT_NOTIFICATIONS.DESTROYED, null);
   },
 
   
@@ -196,11 +203,17 @@ Tilt.prototype = {
 
   _onTabSelect: function T__onTabSelect()
   {
-    if (this.currentInstance) {
-      Services.obs.notifyObservers(null, TILT_NOTIFICATIONS.SHOWN, null);
-    } else {
-      Services.obs.notifyObservers(null, TILT_NOTIFICATIONS.HIDDEN, null);
+    if (this.visualizers[this.lastInstanceId]) {
+      let contentWindow = this.visualizers[this.lastInstanceId].presenter.contentWindow;
+      Services.obs.notifyObservers(contentWindow, TILT_NOTIFICATIONS.HIDDEN, null);
     }
+
+    if (this.currentInstance) {
+      let contentWindow = this.currentInstance.presenter.contentWindow;
+      Services.obs.notifyObservers(contentWindow, TILT_NOTIFICATIONS.SHOWN, null);
+    }
+
+    this.lastInstanceId = this.currentWindowId;
   },
 
   
