@@ -855,7 +855,10 @@ ContentParent::ShutDownProcess(bool aCloseWithError)
   
   
   mMemoryReporters.Clear();
-  mMessageManager = nullptr;
+  if (mMessageManager) {
+    mMessageManager->Disconnect();
+    mMessageManager = nullptr;
+  }
 }
 
 void
@@ -994,7 +997,9 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 #endif
     }
 
-    mMessageManager->Disconnect();
+    if (ppm) {
+      ppm->Disconnect();
+    }
 
     
     InfallibleTArray<MemoryReport> empty;
