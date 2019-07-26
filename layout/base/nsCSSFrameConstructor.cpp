@@ -2392,68 +2392,64 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
   else
 #endif
   if (aDocElement->IsSVG()) {
-    if (aDocElement->Tag() == nsGkAtoms::svg) {
-      
-      
-
-      
-      
-      
-      
-      
-      static const FrameConstructionData rootSVGData = FCDATA_DECL(0, nullptr);
-      nsRefPtr<nsStyleContext> extraRef(styleContext);
-      FrameConstructionItem item(&rootSVGData, aDocElement,
-                                 aDocElement->Tag(), kNameSpaceID_SVG,
-                                 nullptr, extraRef.forget(), true, nullptr);
-
-      nsFrameItems frameItems;
-      contentFrame = ConstructOuterSVG(state, item, mDocElementContainingBlock,
-                                       styleContext->StyleDisplay(),
-                                       frameItems);
-      newFrame = frameItems.FirstChild();
-      NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
-    } else {
+    if (aDocElement->Tag() != nsGkAtoms::svg) {
       return nullptr;
     }
+    
+    
+
+    
+    
+    
+    
+    
+    static const FrameConstructionData rootSVGData = FCDATA_DECL(0, nullptr);
+    nsRefPtr<nsStyleContext> extraRef(styleContext);
+    FrameConstructionItem item(&rootSVGData, aDocElement,
+                               aDocElement->Tag(), kNameSpaceID_SVG,
+                               nullptr, extraRef.forget(), true, nullptr);
+
+    nsFrameItems frameItems;
+    contentFrame = ConstructOuterSVG(state, item, mDocElementContainingBlock,
+                                     styleContext->StyleDisplay(),
+                                     frameItems);
+    newFrame = frameItems.FirstChild();
+    NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
+  } else if (display->mDisplay == NS_STYLE_DISPLAY_TABLE) {
+    
+    
+
+    
+    
+    
+    
+    
+    static const FrameConstructionData rootTableData = FCDATA_DECL(0, nullptr);
+    nsRefPtr<nsStyleContext> extraRef(styleContext);
+    FrameConstructionItem item(&rootTableData, aDocElement,
+                               aDocElement->Tag(), kNameSpaceID_None,
+                               nullptr, extraRef.forget(), true, nullptr);
+
+    nsFrameItems frameItems;
+    
+    contentFrame = ConstructTable(state, item, mDocElementContainingBlock,
+                                  styleContext->StyleDisplay(),
+                                  frameItems);
+    newFrame = frameItems.FirstChild();
+    NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
   } else {
-    bool docElemIsTable = (display->mDisplay == NS_STYLE_DISPLAY_TABLE);
-    if (docElemIsTable) {
-      
-      
-
-      
-      
-      
-      
-      
-      static const FrameConstructionData rootTableData = FCDATA_DECL(0, nullptr);
-      nsRefPtr<nsStyleContext> extraRef(styleContext);
-      FrameConstructionItem item(&rootTableData, aDocElement,
-                                 aDocElement->Tag(), kNameSpaceID_None,
-                                 nullptr, extraRef.forget(), true, nullptr);
-
-      nsFrameItems frameItems;
-      
-      contentFrame = ConstructTable(state, item, mDocElementContainingBlock,
-                                    styleContext->StyleDisplay(),
-                                    frameItems);
-      newFrame = frameItems.FirstChild();
-      NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
-    } else {
-      contentFrame = NS_NewBlockFormattingContext(mPresShell, styleContext);
-      nsFrameItems frameItems;
-      
-      ConstructBlock(state, display, aDocElement,
-                     state.GetGeometricParent(display,
-                                              mDocElementContainingBlock),
-                     mDocElementContainingBlock, styleContext,
-                     &contentFrame, frameItems,
-                     display->IsPositioned(contentFrame) ? contentFrame : nullptr,
-                     nullptr);
-      newFrame = frameItems.FirstChild();
-      NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
-    }
+    contentFrame = NS_NewBlockFormattingContext(mPresShell, styleContext);
+    nsFrameItems frameItems;
+    
+    ConstructBlock(state, display, aDocElement,
+                   state.GetGeometricParent(display,
+                                            mDocElementContainingBlock),
+                   mDocElementContainingBlock, styleContext,
+                   &contentFrame, frameItems,
+                   display->IsPositioned(contentFrame) ? contentFrame : nullptr,
+                   nullptr);
+    newFrame = frameItems.FirstChild();
+    NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
   }
 
   MOZ_ASSERT(newFrame);
