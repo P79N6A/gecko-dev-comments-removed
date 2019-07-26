@@ -1765,7 +1765,7 @@ TemporaryTypeSet::maybeEmulatesUndefined()
         
         
         const Class *clasp = getObjectClass(i);
-        if (clasp && (clasp->emulatesUndefined() || IsProxyClass(clasp)))
+        if (clasp && (clasp->emulatesUndefined() || clasp->isProxy()))
             return true;
     }
 
