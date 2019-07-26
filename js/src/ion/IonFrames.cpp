@@ -359,7 +359,7 @@ ion::HandleException(ResumeFromException *rfe)
 void
 IonActivationIterator::settle()
 {
-    while (activation_ && !activation_->entryfp()) {
+    while (activation_ && activation_->empty()) {
         top_ = activation_->prevIonTop();
         activation_ = activation_->prev();
     }
@@ -1016,6 +1016,13 @@ IonFrameIterator::isConstructing() const
 
     JS_ASSERT(parent.done());
 
+    
+    
+    if (!activation_->entryfp())
+        return false;
+
+    
+    
     
     if (activation_->entryfp()->callingIntoIon())
         return false;

@@ -1435,6 +1435,63 @@ ion::SideCannon(JSContext *cx, StackFrame *fp, jsbytecode *pc)
     return status;
 }
 
+IonExecStatus
+ion::FastInvoke(JSContext *cx, HandleFunction fun, CallArgs &args)
+{
+    JS_CHECK_RECURSION(cx, return IonExec_Error);
+
+    HandleScript script = fun->script();
+    IonScript *ion = script->ionScript();
+    IonCode *code = ion->method();
+    void *jitcode = code->raw();
+
+    JS_ASSERT(ion::IsEnabled(cx));
+    JS_ASSERT(!script->ion->bailoutExpected());
+
+    bool clearCallingIntoIon = false;
+    StackFrame *fp = cx->fp();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!fp->beginsIonActivation()) {
+        fp->setCallingIntoIon();
+        clearCallingIntoIon = true;
+        cx->runtime->ionActivation->setEntryFp(fp);
+    } else {
+        JS_ASSERT(!cx->runtime->ionActivation->entryfp());
+    }
+
+    cx->runtime->ionActivation->setPrevPc(cx->regs().pc);
+
+    EnterIonCode enter = cx->compartment->ionCompartment()->enterJITInfallible();
+    void *calleeToken = CalleeToToken(fun);
+
+    Value result = Int32Value(fun->nargs);
+    enter(jitcode, args.length() + 1, &args[0] - 1, fp, calleeToken, &result);
+
+    if (clearCallingIntoIon)
+        fp->clearCallingIntoIon();
+
+    cx->runtime->ionActivation->setEntryFp(NULL);
+    cx->runtime->ionActivation->setPrevPc(NULL);
+
+    JS_ASSERT(fp == cx->fp());
+    JS_ASSERT(!cx->runtime->hasIonReturnOverride());
+
+    args.rval().set(result);
+
+    JS_ASSERT_IF(result.isMagic(), result.isMagic(JS_ION_ERROR));
+    return result.isMagic() ? IonExec_Error : IonExec_Ok;
+}
+
 static void
 InvalidateActivation(FreeOp *fop, uint8 *ionTop, bool invalidateAll)
 {

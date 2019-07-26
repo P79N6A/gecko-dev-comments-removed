@@ -247,7 +247,7 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
     activation->setBailout(br);
 
     StackFrame *fp;
-    if (it.isEntryJSFrame() && cx->fp()->runningInIon()) {
+    if (it.isEntryJSFrame() && cx->fp()->runningInIon() && activation->entryfp()) {
         
         
         
@@ -257,6 +257,7 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
         
         
         
+        JS_ASSERT(cx->fp() == activation->entryfp());
         fp = cx->fp();
         cx->regs().sp = fp->base();
     } else {
@@ -410,12 +411,14 @@ ion::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut)
         cx->regs().sp[-1] = cx->runtime->takeIonReturnOverride();
 
     if (retval != BAILOUT_RETURN_FATAL_ERROR) {
-        if (void *annotation = activation->entryfp()->annotation()) {
-            
-            
-            
-            activation->entryfp()->setAnnotation(NULL);
-            cx->fp()->setAnnotation(annotation);
+        if (activation->entryfp()) {
+            if (void *annotation = activation->entryfp()->annotation()) {
+                
+                
+                
+                activation->entryfp()->setAnnotation(NULL);
+                cx->fp()->setAnnotation(annotation);
+            }
         }
 
         
