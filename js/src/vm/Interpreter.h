@@ -164,31 +164,6 @@ ExecuteKernel(JSContext *cx, HandleScript script, JSObject &scopeChain, const Va
 extern bool
 Execute(JSContext *cx, HandleScript script, JSObject &scopeChain, Value *rval);
 
-
-enum InterpMode
-{
-    JSINTERP_NORMAL    = 0, 
-    JSINTERP_REJOIN    = 1, 
-    JSINTERP_SKIP_TRAP = 2, 
-    JSINTERP_BAILOUT   = 3, 
-    JSINTERP_RETHROW   = 4  
-};
-
-enum InterpretStatus
-{
-    Interpret_Error    = 0, 
-    Interpret_Ok       = 1, 
-    Interpret_OSR      = 2  
-};
-
-
-
-
-
-extern JS_NEVER_INLINE InterpretStatus
-Interpret(JSContext *cx, StackFrame *stopFp, InterpMode mode = JSINTERP_NORMAL,
-          bool useNewType = false);
-
 extern bool
 RunScript(JSContext *cx, StackFrame *fp);
 
