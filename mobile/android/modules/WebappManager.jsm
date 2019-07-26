@@ -500,6 +500,12 @@ this.WebappManager = {
           type: "Webapps:InstallApk",
           filePath: apk.filePath,
           data: msg,
+        }, (data, error) => {
+          if (!!error) {
+            
+            
+            debug("APK install failed : " + returnError);
+          }
         });
       }
     } else {
