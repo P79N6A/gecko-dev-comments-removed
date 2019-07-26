@@ -563,9 +563,6 @@ let ContentScroll =  {
   init: function() {
     addMessageListener("Content:SetWindowSize", this);
 
-    if (Services.prefs.getBoolPref("layers.async-pan-zoom.enabled")) {
-      addEventListener("scroll", this, true);
-    }
     addEventListener("pagehide", this, false);
     addEventListener("MozScrolledAreaChanged", this, false);
   },
@@ -601,11 +598,6 @@ let ContentScroll =  {
         this._scrollOffset = { x: 0, y: 0 };
         break;
 
-      case "scroll": {
-        this.notifyChromeAboutContentScroll(aEvent.target);
-        break;
-      }
-
       case "MozScrolledAreaChanged": {
         let doc = aEvent.originalTarget;
         if (content != doc.defaultView) 
@@ -627,47 +619,6 @@ let ContentScroll =  {
         break;
       }
     }
-  },
-
-  
-
-
-
-
-
-  notifyChromeAboutContentScroll: function (target) {
-    let isRoot = false;
-    if (target instanceof Ci.nsIDOMDocument) {
-      var window = target.defaultView;
-      var scrollOffset = this.getScrollOffset(window);
-      var element = target.documentElement;
-
-      if (target == content.document) {
-        if (this._scrollOffset.x == scrollOffset.x && this._scrollOffset.y == scrollOffset.y) {
-          
-          
-          return;
-        }
-        this._scrollOffset = scrollOffset;
-        isRoot = true;
-      }
-    } else {
-      var window = target.ownerDocument.defaultView;
-      var scrollOffset = this.getScrollOffsetForElement(target);
-      var element = target;
-    }
-
-    let utils = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-    let presShellId = {};
-    utils.getPresShellId(presShellId);
-    let viewId = utils.getViewId(element);
-    
-    
-    sendSyncMessage("Browser:ContentScroll",
-      { presShellId: presShellId.value,
-        viewId: viewId,
-        scrollOffset: scrollOffset,
-        isRoot: isRoot });
   }
 };
 

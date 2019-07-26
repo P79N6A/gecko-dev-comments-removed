@@ -299,53 +299,6 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
     
     
     HandlePossibleViewportChange();
-  } else if (eventType.EqualsLiteral("scroll")) {
-    nsCOMPtr<nsIDOMEventTarget> target;
-    aEvent->GetTarget(getter_AddRefs(target));
-
-    ViewID viewId;
-    uint32_t presShellId;
-
-    nsCOMPtr<nsIContent> content;
-    if (nsCOMPtr<nsIDocument> doc = do_QueryInterface(target))
-      content = doc->GetDocumentElement();
-    else
-      content = do_QueryInterface(target);
-
-    nsCOMPtr<nsIDOMWindowUtils> utils = APZCCallbackHelper::GetDOMWindowUtils(content);
-    utils->GetPresShellId(&presShellId);
-
-    if (!nsLayoutUtils::FindIDFor(content, &viewId))
-      return NS_ERROR_UNEXPECTED;
-
-    nsIScrollableFrame* scrollFrame = nsLayoutUtils::FindScrollableFrameFor(viewId);
-    if (!scrollFrame)
-      return NS_OK;
-
-    CSSIntPoint scrollOffset = scrollFrame->GetScrollPositionCSSPixels();
-
-    if (viewId == mLastRootMetrics.mScrollId) {
-      
-      
-      
-      
-      
-      if (RoundedToInt(mLastRootMetrics.mScrollOffset) == scrollOffset) {
-        return NS_OK;
-      }
-
-      
-      
-      
-      mLastRootMetrics.mScrollOffset = scrollOffset;
-    } else if (viewId == mLastSubFrameMetrics.mScrollId) {
-      if (RoundedToInt(mLastSubFrameMetrics.mScrollOffset) == scrollOffset) {
-        return NS_OK;
-      }
-      mLastSubFrameMetrics.mScrollOffset = scrollOffset;
-    }
-
-    SendUpdateScrollOffset(presShellId, viewId, scrollOffset);
   }
 
   return NS_OK;
@@ -1549,7 +1502,6 @@ TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
     if (content) {
       FrameMetrics newSubFrameMetrics(aFrameMetrics);
       APZCCallbackHelper::UpdateSubFrame(content, newSubFrameMetrics);
-      mLastSubFrameMetrics = newSubFrameMetrics;
       return true;
     }
   }
@@ -2244,7 +2196,6 @@ TabChild::InitTabChildGlobal(FrameScriptLoading aScriptLoading)
     root->SetParentTarget(scope);
 
     chromeHandler->AddEventListener(NS_LITERAL_STRING("DOMMetaAdded"), this, false);
-    chromeHandler->AddEventListener(NS_LITERAL_STRING("scroll"), this, true);
   }
 
   if (aScriptLoading != DONT_LOAD_SCRIPTS && !mTriedBrowserInit) {

@@ -34,7 +34,6 @@ var APZCObserver = {
     window.addEventListener("SizeChanged", this, true);
     Elements.tabList.addEventListener("TabSelect", this, true);
     Elements.browsers.addEventListener("pageshow", this, true);
-    messageManager.addMessageListener("Browser:ContentScroll", this);
     messageManager.addMessageListener("Content:ZoomToRect", this);
   },
 
@@ -49,7 +48,6 @@ var APZCObserver = {
     window.removeEventListener("SizeChanged", this, true);
     Elements.tabList.removeEventListener("TabSelect", this, true);
     Elements.browsers.removeEventListener("pageshow", this, true);
-    messageManager.removeMessageListener("Browser:ContentScroll", this);
     messageManager.removeMessageListener("Content:ZoomToRect", this);
   },
 
@@ -85,16 +83,6 @@ var APZCObserver = {
     let json = aMessage.json;
     let browser = aMessage.target;
     switch (aMessage.name) {
-       
-       
-       
-       
-       
-      case "Browser:ContentScroll": {
-        let data = json.viewId + " " + json.presShellId + " (" + json.scrollOffset.x + ", " + json.scrollOffset.y + ")";
-        Services.obs.notifyObservers(null, "apzc-scroll-offset-changed", data);
-        break;
-      }
       case "Content:ZoomToRect": {
         let { presShellId, viewId } = json;
         let rect = Rect.fromRect(json.rect);

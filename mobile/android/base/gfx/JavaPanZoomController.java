@@ -1458,11 +1458,6 @@ class JavaPanZoomController
     }
 
     @Override
-    public void updateScrollOffset(float cssX, float cssY) {
-        
-    }
-
-    @Override
     public void setOverscrollHandler(final Overscroll handler) {
         mOverscroll = handler;
     }

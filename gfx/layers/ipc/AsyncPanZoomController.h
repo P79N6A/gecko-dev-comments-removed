@@ -260,13 +260,6 @@ public:
 
   static void SetFrameTime(const TimeStamp& aMilliseconds);
 
-  
-
-
-
-
-  void UpdateScrollOffset(const CSSPoint& aScrollOffset);
-
   void StartAnimation(AsyncPanZoomAnimation* aAnimation);
 
   

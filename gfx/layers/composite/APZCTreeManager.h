@@ -177,14 +177,6 @@ public:
 
 
 
-  void UpdateScrollOffset(const ScrollableLayerGuid& aGuid,
-                          const CSSPoint& aScrollOffset);
-
-  
-
-
-
-
   void CancelAnimation(const ScrollableLayerGuid &aGuid);
 
   
