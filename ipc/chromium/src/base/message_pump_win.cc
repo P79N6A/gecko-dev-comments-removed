@@ -101,7 +101,7 @@ void MessagePumpForUI::ScheduleWork() {
 
   
   
-  PostMessage(message_hwnd_, WM_NULL, NULL, 0);
+  PostMessage(message_hwnd_, WM_NULL, 0, 0);
 }
 
 void MessagePumpForUI::ScheduleDelayedWork(const Time& delayed_work_time) {
@@ -416,7 +416,7 @@ bool MessagePumpForUI::ProcessPumpReplacementMessage() {
 
 
 MessagePumpForIO::MessagePumpForIO() {
-  port_.Set(CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1));
+  port_.Set(CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1));
   DCHECK(port_.IsValid());
 }
 
@@ -530,7 +530,7 @@ bool MessagePumpForIO::WaitForIOCompletion(DWORD timeout, IOHandler* filter) {
 
 bool MessagePumpForIO::GetIOItem(DWORD timeout, IOItem* item) {
   memset(item, 0, sizeof(*item));
-  ULONG_PTR key = NULL;
+  ULONG_PTR key = 0;
   OVERLAPPED* overlapped = NULL;
   if (!GetQueuedCompletionStatus(port_.Get(), &item->bytes_transfered, &key,
                                  &overlapped, timeout)) {
