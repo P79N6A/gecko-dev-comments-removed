@@ -415,10 +415,6 @@ pref("dom.mozTCPSocket.enabled", true);
 pref("layout.frame_rate.precise", true);
 
 
-pref("b2g.remote-js.enabled", true);
-pref("b2g.remote-js.port", 9999);
-
-
 pref("b2g.keys.menu.enabled", true);
 
 
