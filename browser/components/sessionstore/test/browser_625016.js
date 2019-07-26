@@ -45,6 +45,12 @@ function onSaveState() {
 
   Services.obs.addObserver(observe1, "sessionstore-state-write", false);
 
+  try {
+    ss.getWindowValue(newWin, "foobar");
+  } catch (e) {
+    ok(false, "window is untracked!");
+  }
+
   
   newWin.close();
 }
