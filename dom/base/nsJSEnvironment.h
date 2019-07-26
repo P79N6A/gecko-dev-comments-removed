@@ -181,7 +181,7 @@ private:
   
   nsCOMPtr<nsIScriptGlobalObject> mGlobalObjectRef;
 
-  static int JSOptionChangedCallback(const char *pref, void *data);
+  static void JSOptionChangedCallback(const char *pref, void *data);
 
   static bool DOMOperationCallback(JSContext *cx);
 };

@@ -273,14 +273,12 @@ nsXULTooltipListener::HandleEvent(nsIDOMEvent* aEvent)
 
 
 
-int
+void
 nsXULTooltipListener::ToolbarTipsPrefChanged(const char *aPref,
                                              void *aClosure)
 {
   sShowTooltips =
     Preferences::GetBool("browser.chrome.toolbar_tips", sShowTooltips);
-
-  return 0;
 }
 
 

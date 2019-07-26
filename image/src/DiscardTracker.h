@@ -93,7 +93,7 @@ class DiscardTracker
     
 
 
-    friend int DiscardTimeoutChangedCallback(const char* aPref, void *aClosure);
+    friend void DiscardTimeoutChangedCallback(const char* aPref, void *aClosure);
 
     
 
