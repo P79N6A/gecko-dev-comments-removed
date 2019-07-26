@@ -161,7 +161,7 @@ let ErrorPage = {
     
     try {
       if (Services.prefs.getBoolPref("dom.ipc.tabs.disabled") === true) {
-        mm.loadFrameScript(kErrorPageFrameScript, true, true);
+        mm.loadFrameScript(kErrorPageFrameScript, true);
       }
     } catch (e) {
       dump('Error loading ' + kErrorPageFrameScript + ' as frame script: ' + e + '\n');

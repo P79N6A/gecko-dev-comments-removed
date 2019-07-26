@@ -2,9 +2,6 @@
 
 
 
-let Ci = Components.interfaces;
-let Cc = Components.classes;
-
 dump("### FindHandler.js loaded\n");
 
 var FindHandler = {
@@ -86,6 +83,5 @@ var FindHandler = {
     timer.once(0);
   }
 };
-this.FindHandler = FindHandler;
 
 FindHandler.init();

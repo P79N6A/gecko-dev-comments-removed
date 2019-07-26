@@ -2,8 +2,6 @@
 
 
 
-let Ci = Components.interfaces;
-
 
 
 
