@@ -1,4 +1,6 @@
 
+if (getBuildConfiguration()['asan'] && getBuildConfiguration()['debug']) quit(0);
+
 function fatty() {
     try {
         fatty();
