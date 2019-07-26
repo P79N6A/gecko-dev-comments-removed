@@ -46,7 +46,8 @@ def preprocess_file(pp, deffile):
 def nss_preprocess_file(deffile):
     with open(deffile, 'r') as input:
         for line in input:
-            yield line.replace(';;', '')
+            
+            yield line.replace(' DATA ', '').replace(';;', '')
 
 COMMENT = re.compile(';.*')
 
@@ -69,12 +70,8 @@ def extract_symbols(lines):
         
         
         
-        if '=' in fields[0]:
-            raise BaseException, 'aliases are not supported (%s)' % line
-        if len(fields) == 1:
-            pass
-        elif len(fields) != 2 or fields[1] != 'DATA':
-            raise BaseException, 'aliases and keywords other than DATA are not supported (%s)' % line
+        if len(fields) != 1 or '=' in fields[0]:
+            raise 'aliases and keywords are not supported'
 
         symbols.add(fields[0])
 
