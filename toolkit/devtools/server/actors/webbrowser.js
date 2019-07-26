@@ -767,7 +767,7 @@ BrowserTabActor.prototype = {
 
 
   preNest: function BTA_preNest() {
-    if (!this.browser) {
+    if (!this.window) {
       
       return;
     }
@@ -782,7 +782,7 @@ BrowserTabActor.prototype = {
 
 
   postNest: function BTA_postNest(aNestData) {
-    if (!this.browser) {
+    if (!this.window) {
       
       return;
     }
