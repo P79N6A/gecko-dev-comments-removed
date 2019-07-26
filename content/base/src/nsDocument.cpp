@@ -2288,18 +2288,51 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   }
 
   nsAutoCString tCspHeaderValue, tCspROHeaderValue;
+  nsAutoCString tCspOldHeaderValue, tCspOldROHeaderValue;
+
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
   if (httpChannel) {
     httpChannel->GetResponseHeader(
         NS_LITERAL_CSTRING("x-content-security-policy"),
-        tCspHeaderValue);
+        tCspOldHeaderValue);
 
     httpChannel->GetResponseHeader(
         NS_LITERAL_CSTRING("x-content-security-policy-report-only"),
+        tCspOldROHeaderValue);
+
+    httpChannel->GetResponseHeader(
+        NS_LITERAL_CSTRING("content-security-policy"),
+        tCspHeaderValue);
+
+    httpChannel->GetResponseHeader(
+        NS_LITERAL_CSTRING("content-security-policy-report-only"),
         tCspROHeaderValue);
   }
   NS_ConvertASCIItoUTF16 cspHeaderValue(tCspHeaderValue);
   NS_ConvertASCIItoUTF16 cspROHeaderValue(tCspROHeaderValue);
+  NS_ConvertASCIItoUTF16 cspOldHeaderValue(tCspOldHeaderValue);
+  NS_ConvertASCIItoUTF16 cspOldROHeaderValue(tCspOldROHeaderValue);
+
+  
+  
+  
+  
+  
+  
+  
+  if (!cspHeaderValue.IsEmpty() || !cspROHeaderValue.IsEmpty()) {
+    bool specCompliantEnabled =
+      Preferences::GetBool("security.csp.speccompliant");
+
+    
+    
+    if (!specCompliantEnabled) {
+      PR_LOG(gCspPRLog, PR_LOG_DEBUG,
+             ("Got spec compliant CSP headers but pref was not set"));
+      cspHeaderValue.Truncate();
+      cspROHeaderValue.Truncate();
+    }
+  }
 
   
   bool applyAppDefaultCSP = false;
@@ -2336,7 +2369,9 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   
   if (!applyAppDefaultCSP &&
       cspHeaderValue.IsEmpty() &&
-      cspROHeaderValue.IsEmpty()) {
+      cspROHeaderValue.IsEmpty() &&
+      cspOldHeaderValue.IsEmpty() &&
+      cspOldROHeaderValue.IsEmpty()) {
 #ifdef PR_LOGGING
     nsCOMPtr<nsIURI> chanURI;
     aChannel->GetURI(getter_AddRefs(chanURI));
@@ -2383,34 +2418,63 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     }
 
     if (appCSP)
-      csp->RefinePolicy(appCSP, chanURI);
+      csp->RefinePolicy(appCSP, chanURI, true);
   }
 
   
-  if (!cspHeaderValue.IsEmpty()) {
+  
+  
+  bool cspSpecCompliant = (!cspHeaderValue.IsEmpty() || !cspROHeaderValue.IsEmpty());
+
+  
+  if (!cspOldHeaderValue.IsEmpty() || !cspOldROHeaderValue.IsEmpty()) {
+    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                    "CSP", this,
+                                    nsContentUtils::eDOM_PROPERTIES,
+                                    "OldCSPHeaderDeprecated");
+
+    
+    
+    if (cspSpecCompliant) {
+      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                      "CSP", this,
+                                      nsContentUtils::eDOM_PROPERTIES,
+                                      "BothCSPHeadersPresent");
+    }
+  }
+
+  
+  bool applyCSPFromHeader =
+    (( cspSpecCompliant && !cspHeaderValue.IsEmpty()) ||
+     (!cspSpecCompliant && !cspOldHeaderValue.IsEmpty()));
+
+  if (applyCSPFromHeader) {
     
     
     
-    nsCharSeparatedTokenizer tokenizer(cspHeaderValue, ',');
+    nsCharSeparatedTokenizer tokenizer(cspSpecCompliant ?
+                                       cspHeaderValue :
+                                       cspOldHeaderValue, ',');
     while (tokenizer.hasMoreTokens()) {
         const nsSubstring& policy = tokenizer.nextToken();
-        csp->RefinePolicy(policy, chanURI);
+        csp->RefinePolicy(policy, chanURI, cspSpecCompliant);
 #ifdef PR_LOGGING
         {
           PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-                  ("CSP refined with policy: \"%s\"",
-                    NS_ConvertUTF16toUTF8(policy).get()));
+                 ("CSP refined with policy: \"%s\"",
+                  NS_ConvertUTF16toUTF8(policy).get()));
         }
 #endif
     }
   }
 
   
-  if (!cspROHeaderValue.IsEmpty()) {
+  if (( cspSpecCompliant && !cspROHeaderValue.IsEmpty()) ||
+      (!cspSpecCompliant && !cspOldROHeaderValue.IsEmpty())) {
     
     
     
-    if (applyAppDefaultCSP || !cspHeaderValue.IsEmpty()) {
+    if (applyAppDefaultCSP || applyCSPFromHeader) {
       nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
                                       "CSP", this,
                                       nsContentUtils::eDOM_PROPERTIES,
@@ -2427,10 +2491,12 @@ nsDocument::InitCSP(nsIChannel* aChannel)
       
       
       
-      nsCharSeparatedTokenizer tokenizer(cspROHeaderValue, ',');
+      nsCharSeparatedTokenizer tokenizer(cspSpecCompliant ?
+                                         cspROHeaderValue :
+                                         cspOldROHeaderValue, ',');
       while (tokenizer.hasMoreTokens()) {
         const nsSubstring& policy = tokenizer.nextToken();
-        csp->RefinePolicy(policy, chanURI);
+        csp->RefinePolicy(policy, chanURI, cspSpecCompliant);
 #ifdef PR_LOGGING
         {
           PR_LOG(gCspPRLog, PR_LOG_DEBUG,
