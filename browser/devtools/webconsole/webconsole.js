@@ -801,18 +801,26 @@ WebConsoleFrame.prototype = {
           break;
         }
 
+        
+        
         let state = target.getAttribute("checked") !== "true";
+        if (aEvent.getModifierState("Alt")) {
+          let buttons = this.document
+                        .querySelectorAll(".webconsole-filter-button");
+          Array.forEach(buttons, (button) => {
+            if (button !== target) {
+              button.setAttribute("checked", false);
+              this._setMenuState(button, false);
+            }
+          });
+          state = true;
+        }
         target.setAttribute("checked", state);
 
         
         
         
-        let menuItems = target.querySelectorAll("menuitem");
-        for (let i = 0; i < menuItems.length; i++) {
-          menuItems[i].setAttribute("checked", state);
-          let prefKey = menuItems[i].getAttribute("prefKey");
-          this.setFilterState(prefKey, state);
-        }
+        this._setMenuState(target, state);
         break;
       }
 
@@ -849,6 +857,25 @@ WebConsoleFrame.prototype = {
         break;
       }
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _setMenuState: function WCF__setMenuState(aTarget, aState)
+  {
+    let menuItems = aTarget.querySelectorAll("menuitem");
+    Array.forEach(menuItems, (item) => {
+      item.setAttribute("checked", aState);
+      let prefKey = item.getAttribute("prefKey");
+      this.setFilterState(prefKey, aState);
+    });
   },
 
   
