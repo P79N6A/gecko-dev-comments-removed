@@ -7,6 +7,7 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
+const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -52,19 +53,22 @@ AppProtocolHandler.prototype = {
   newChannel: function app_phNewChannel(aURI) {
     
     
-    let noScheme = aURI.spec.substring(6);
-    let firstSlash = noScheme.indexOf("/");
-
-    let appId = noScheme;
-    let fileSpec = aURI.path;
-
-    if (firstSlash) {
-      appId = noScheme.substring(0, firstSlash);
-    }
+    let url = aURI.QueryInterface(Ci.nsIURL);
+    let appId = aURI.host;
+    let fileSpec = url.filePath;
 
     
     let appInfo = this.getAppInfo(appId);
     let uri;
+
+    if (!appInfo) {
+      
+      
+      
+      dump("!! got no appInfo for " + appId + "\n");
+      return new DummyChannel();
+    }
+
     if (this._runningInParent || appInfo.isCoreApp) {
       
       uri = "jar:file://" + appInfo.basePath + appId + "/application.zip!" + fileSpec;
@@ -81,6 +85,114 @@ AppProtocolHandler.prototype = {
 
   allowPort: function app_phAllowPort(aPort, aScheme) {
     return false;
+  }
+};
+
+
+
+
+
+
+function DummyChannel() {
+}
+
+DummyChannel.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIRequest,
+                                         Ci.nsIChannel,
+                                         Ci.nsIJARChannel]),
+
+  
+  name: "dummy_app_channel",
+
+  isPending: function dc_isPending() {
+    return this._pending;
+  },
+
+  status: Cr.NS_ERROR_FILE_NOT_FOUND,
+
+  cancel: function dc_cancel() {
+  },
+
+  suspend: function dc_suspend() {
+    this._suspendCount++;
+  },
+
+  resume: function dc_resume() {
+    if (this._suspendCount <= 0)
+      throw Cr.NS_ERROR_UNEXPECTED;
+
+    if (--this._suspendCount == 0 && this._pending) {
+      this._dispatch();
+    }
+  },
+
+  loadGroup: null,
+  loadFlags: Ci.nsIRequest.LOAD_NORMAL,
+
+  
+  originalURI: Services.io.newURI("app://unknown/nothing.html", null, null),
+  URI: Services.io.newURI("app://unknown/nothing.html", null, null),
+
+  owner: null,
+  notificationCallbacks: null,
+  securityInfo: null,
+  contentType: null,
+  contentCharset: null,
+  contentLength: 0,
+  contentDisposition: Ci.nsIChannel.DISPOSITION_INLINE,
+  contentDispositionFilename: "",
+
+  _pending: false,
+  _suspendCount: 0,
+  _listener: null,
+  _context: null,
+
+  open: function dc_open() {
+    return Cr.NS_ERROR_NOT_IMPLEMENTED;
+  },
+
+  _dispatch: function dc_dispatch() {
+    let request = this;
+
+    Services.tm.currentThread.dispatch(
+    {
+      run: function dc_run() {
+        request._listener.onStartRequest(request, request._context);
+        request._listener.onStopRequest(request, request._context,
+                                        Cr.NS_ERROR_FILE_NOT_FOUND);
+        if (request.loadGroup) {
+          request.loadGroup.removeRequest(request, request._context,
+                                          Cr.NS_ERROR_FILE_NOT_FOUND);
+        }
+        request._pending = false;
+        request.notificationCallbacks = null;
+        request._listener = null;
+        request._context = null;
+      }
+    },
+    Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+  asyncOpen: function dc_asyncopenfunction(aListener, aContext) {
+    if (this.loadGroup) {
+      this.loadGroup.addRequest(this, aContext);
+    }
+
+    this._listener = aListener;
+    this._context = aContext;
+    this._pending = true;
+
+    if (!this._suspended) {
+      this._dispatch();
+    }
+  },
+
+  
+  
+  isUnsafe: false,
+
+  setAppURI: function(aURI) {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
   }
 };
 
