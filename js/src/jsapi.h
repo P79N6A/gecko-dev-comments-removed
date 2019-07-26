@@ -118,32 +118,26 @@ class JS_PUBLIC_API(AutoGCRooter) {
         SHAPEVECTOR =  -4, 
         IDARRAY =      -6, 
         DESCRIPTORS =  -7, 
-        
-        
-        OBJECT =      -10, 
-        ID =          -11, 
-        VALVECTOR =   -12, 
-        DESCRIPTOR =  -13, 
-        STRING =      -14, 
-        IDVECTOR =    -15, 
-        OBJVECTOR =   -16, 
-        STRINGVECTOR =-17, 
-        SCRIPTVECTOR =-18, 
-        PROPDESC =    -19, 
-        STACKSHAPE =  -21, 
-        STACKBASESHAPE=-22,
-        GETTERSETTER =-24, 
-        REGEXPSTATICS=-25, 
-        NAMEVECTOR =  -26, 
-        HASHABLEVALUE=-27,
-        IONMASM =     -28, 
-        IONALLOC =    -29, 
-        WRAPVECTOR =  -30, 
-        WRAPPER =     -31, 
-        OBJOBJHASHMAP=-32, 
-        OBJU32HASHMAP=-33, 
-        OBJHASHSET =  -34, 
-        JSONPARSER =  -35  
+        OBJECT =       -8, 
+        ID =           -9, 
+        VALVECTOR =   -10, 
+        DESCRIPTOR =  -11, 
+        STRING =      -12, 
+        IDVECTOR =    -13, 
+        OBJVECTOR =   -14, 
+        STRINGVECTOR =-15, 
+        SCRIPTVECTOR =-16, 
+        NAMEVECTOR =  -17, 
+        HASHABLEVALUE=-18, 
+        IONMASM =     -19, 
+        IONALLOC =    -20, 
+        WRAPVECTOR =  -21, 
+        WRAPPER =     -22, 
+        OBJOBJHASHMAP=-23, 
+        OBJU32HASHMAP=-24, 
+        OBJHASHSET =  -25, 
+        JSONPARSER =  -26, 
+        CUSTOM =      -27  
     };
 
   private:
@@ -664,6 +658,35 @@ class AutoScriptVector : public AutoVectorRooter<JSScript *>
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+
+
+
+class JS_PUBLIC_API(CustomAutoRooter) : private AutoGCRooter
+{
+  public:
+    explicit CustomAutoRooter(JSContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, CUSTOM)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+
+  protected:
+    
+    virtual void trace(JSTracer *trc) = 0;
+
+    
+    static void traceObject(JSTracer *trc, JSObject **thingp, const char *name);
+    static void traceScript(JSTracer *trc, JSScript **thingp, const char *name);
+    static void traceString(JSTracer *trc, JSString **thingp, const char *name);
+    static void traceId(JSTracer *trc, jsid *thingp, const char *name);
+    static void traceValue(JSTracer *trc, JS::Value *thingp, const char *name);
+
+  private:
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
@@ -1995,7 +2018,7 @@ JS_StringToVersion(const char *string);
 
 #define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
 
-#define JSOPTION_BASELINE       JS_BIT(15)      /* Baseline compiler. */
+
 
 #define JSOPTION_METHODJIT_ALWAYS \
                                 JS_BIT(16)      /* Always whole-method JIT,
@@ -2009,7 +2032,6 @@ JS_StringToVersion(const char *string);
                                                    "use strict" annotations. */
 
 #define JSOPTION_ION            JS_BIT(20)      /* IonMonkey */
-
 #define JSOPTION_ASMJS          JS_BIT(21)      /* optimizingasm.js compiler */
 
 #define JSOPTION_MASK           JS_BITMASK(22)
