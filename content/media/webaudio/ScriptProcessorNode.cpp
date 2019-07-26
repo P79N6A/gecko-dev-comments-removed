@@ -314,10 +314,9 @@ private:
     
     playbackTick += mSharedBuffers->DelaySoFar();
     
+    
     double playbackTime =
-      WebAudioUtils::StreamPositionToDestinationTime(playbackTick,
-                                                     mSource,
-                                                     mDestination);
+      mSource->DestinationTimeFromTicks(mDestination, playbackTick);
 
     class Command : public nsRunnable
     {

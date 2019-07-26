@@ -128,6 +128,19 @@ public:
   AudioNodeEngine* Engine() { return mEngine; }
   TrackRate SampleRate() const { return mSampleRate; }
 
+  
+
+
+
+  TrackTicks TicksFromDestinationTime(MediaStream* aDestination,
+                                      double aSeconds);
+  
+
+
+
+  double DestinationTimeFromTicks(AudioNodeStream* aDestination,
+                                  TrackTicks aPosition);
+
 protected:
   void AdvanceOutputSegment();
   void FinishOutput();

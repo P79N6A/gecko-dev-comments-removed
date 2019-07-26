@@ -54,15 +54,6 @@ struct WebAudioUtils {
 
 
 
-  static TrackTicks
-  ConvertDestinationStreamTimeToSourceStreamTime(double aTime,
-                                                 AudioNodeStream* aSource,
-                                                 MediaStream* aDestination);
-
-  
-
-
-
 
 
 
@@ -113,14 +104,6 @@ struct WebAudioUtils {
   {
     return aTime >= 0 &&  aTime <= (MEDIA_TIME_MAX >> MEDIA_TIME_FRAC_BITS);
   }
-
-  
-
-
-
-  static double StreamPositionToDestinationTime(TrackTicks aSourcePosition,
-                                                AudioNodeStream* aSource,
-                                                AudioNodeStream* aDestination);
 
   
 
