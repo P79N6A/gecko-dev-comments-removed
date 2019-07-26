@@ -1,35 +1,35 @@
-// Copyright (c) 2010 Google Inc.
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-// Original author: Jim Blandy <jimb@mozilla.com> <jimb@red-bean.com>
 
-// module_unittest.cc: Unit tests for google_breakpad::Module.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include <errno.h>
 #include <stdio.h>
@@ -37,59 +37,17 @@
 #include <string.h>
 
 #include <algorithm>
+#include <sstream>
 #include <string>
 
 #include "breakpad_googletest_includes.h"
 #include "common/module.h"
+#include "common/using_std_string.h"
 
 using google_breakpad::Module;
-using std::string;
+using std::stringstream;
 using std::vector;
 using testing::ContainerEq;
-
-// Return a FILE * referring to a temporary file that will be deleted
-// automatically when the stream is closed or the program exits.
-static FILE *checked_tmpfile() {
-  FILE *f = tmpfile();
-  if (!f) {
-    fprintf(stderr, "error creating temporary file: %s\n", strerror(errno));
-    exit(1);
-  }
-  return f;
-}
-
-// Read from STREAM until end of file, and return the contents as a
-// string.
-static string checked_read(FILE *stream) {
-  string contents;
-  int c;
-  while ((c = getc(stream)) != EOF)
-    contents.push_back(c);
-  if (ferror(stream)) {
-    fprintf(stderr, "error reading temporary file contents: %s\n",
-            strerror(errno));
-    exit(1);
-  }
-  return contents;
-}
-
-// Apply 'fflush' to STREAM, and check for errors.
-static void checked_fflush(FILE *stream) {
-  if (fflush(stream) == EOF) {
-    fprintf(stderr, "error flushing temporary file stream: %s\n",
-            strerror(errno));
-    exit(1);
-  }
-}
-
-// Apply 'fclose' to STREAM, and check for errors.
-static void checked_fclose(FILE *stream) {
-  if (fclose(stream) == EOF) {
-    fprintf(stderr, "error closing temporary file stream: %s\n",
-            strerror(errno));
-    exit(1);
-  }
-}
 
 static Module::Function *generate_duplicate_function(const string &name) {
   const Module::Address DUP_ADDRESS = 0xd35402aac7a7ad5cLL;
@@ -110,19 +68,16 @@ static Module::Function *generate_duplicate_function(const string &name) {
 #define MODULE_ID "id-string"
 
 TEST(Write, Header) {
-  FILE *f = checked_tmpfile();
+  stringstream s;
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
-  m.Write(f);
-  checked_fflush(f);
-  rewind(f);
-  string contents = checked_read(f);
-  checked_fclose(f);
+  m.Write(s, true);
+  string contents = s.str();
   EXPECT_STREQ("MODULE os-name architecture id-string name with spaces\n",
                contents.c_str());
 }
 
 TEST(Write, OneLineFunc) {
-  FILE *f = checked_tmpfile();
+  stringstream s;
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
   Module::File *file = m.FindFile("file_name.cc");
@@ -136,11 +91,8 @@ TEST(Write, OneLineFunc) {
   function->lines.push_back(line);
   m.AddFunction(function);
 
-  m.Write(f);
-  checked_fflush(f);
-  rewind(f);
-  string contents = checked_read(f);
-  checked_fclose(f);
+  m.Write(s, true);
+  string contents = s.str();
   EXPECT_STREQ("MODULE os-name architecture id-string name with spaces\n"
                "FILE 0 file_name.cc\n"
                "FUNC e165bf8023b9d9ab 1e4bb0eb1cbf5b09 772beee89114358a"
@@ -150,21 +102,21 @@ TEST(Write, OneLineFunc) {
 }
 
 TEST(Write, RelativeLoadAddress) {
-  FILE *f = checked_tmpfile();
+  stringstream s;
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
-  // Some source files.  We will expect to see them in lexicographic order.
+  
   Module::File *file1 = m.FindFile("filename-b.cc");
   Module::File *file2 = m.FindFile("filename-a.cc");
 
-  // A function.
+  
   Module::Function *function = new(Module::Function);
   function->name = "A_FLIBBERTIJIBBET::a_will_o_the_wisp(a clown)";
   function->address = 0xbec774ea5dd935f3LL;
   function->size = 0x2922088f98d3f6fcLL;
   function->parameter_size = 0xe5e9aa008bd5f0d0LL;
 
-  // Some source lines.  The module should not sort these.
+  
   Module::Line line1 = { 0xbec774ea5dd935f3LL, 0x1c2be6d6c5af2611LL,
                          file1, 41676901 };
   Module::Line line2 = { 0xdaf35bc123885c04LL, 0xcf621b8d324d0ebLL,
@@ -174,7 +126,7 @@ TEST(Write, RelativeLoadAddress) {
 
   m.AddFunction(function);
 
-  // Some stack information.
+  
   Module::StackFrameEntry *entry = new Module::StackFrameEntry();
   entry->address = 0x30f9e5c83323973dULL;
   entry->size = 0x49fc9ca7c7c13dc2ULL;
@@ -185,15 +137,12 @@ TEST(Write, RelativeLoadAddress) {
   entry->rule_changes[0x30f9e5c83323973eULL]["Mister"] = "Death";
   m.AddStackFrameEntry(entry);
 
-  // Set the load address.  Doing this after adding all the data to
-  // the module must work fine.
+  
+  
   m.SetLoadAddress(0x2ab698b0b6407073LL);
 
-  m.Write(f);
-  checked_fflush(f);
-  rewind(f);
-  string contents = checked_read(f);
-  checked_fclose(f);
+  m.Write(s, true);
+  string contents = s.str();
   EXPECT_STREQ("MODULE os-name architecture id-string name with spaces\n"
                "FILE 0 filename-a.cc\n"
                "FILE 1 filename-b.cc\n"
@@ -213,19 +162,19 @@ TEST(Write, RelativeLoadAddress) {
 TEST(Write, OmitUnusedFiles) {
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
-  // Create some source files.
+  
   Module::File *file1 = m.FindFile("filename1");
-  m.FindFile("filename2"); // not used by any line
+  m.FindFile("filename2");  
   Module::File *file3 = m.FindFile("filename3");
 
-  // Create a function.
+  
   Module::Function *function = new(Module::Function);
   function->name = "function_name";
   function->address = 0x9b926d464f0b9384LL;
   function->size = 0x4f524a4ba795e6a6LL;
   function->parameter_size = 0xbbe8133a6641c9b7LL;
 
-  // Source files that refer to some files, but not others.
+  
   Module::Line line1 = { 0x595fa44ebacc1086LL, 0x1e1e0191b066c5b3LL,
                          file1, 137850127 };
   Module::Line line2 = { 0x401ce8c8a12d25e3LL, 0x895751c41b8d2ce2LL,
@@ -241,18 +190,15 @@ TEST(Write, OmitUnusedFiles) {
   EXPECT_EQ((size_t) 3, vec.size());
   EXPECT_STREQ("filename1", vec[0]->name.c_str());
   EXPECT_NE(-1, vec[0]->source_id);
-  // Expect filename2 not to be used.
+  
   EXPECT_STREQ("filename2", vec[1]->name.c_str());
   EXPECT_EQ(-1, vec[1]->source_id);
   EXPECT_STREQ("filename3", vec[2]->name.c_str());
   EXPECT_NE(-1, vec[2]->source_id);
 
-  FILE *f = checked_tmpfile();
-  m.Write(f);
-  checked_fflush(f);
-  rewind(f);
-  string contents = checked_read(f);
-  checked_fclose(f);
+  stringstream s;
+  m.Write(s, true);
+  string contents = s.str();
   EXPECT_STREQ("MODULE os-name architecture id-string name with spaces\n"
                "FILE 0 filename1\n"
                "FILE 1 filename3\n"
@@ -263,11 +209,57 @@ TEST(Write, OmitUnusedFiles) {
                contents.c_str());
 }
 
-TEST(Construct, AddFunctions) {
-  FILE *f = checked_tmpfile();
+TEST(Write, NoCFI) {
+  stringstream s;
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
-  // Two functions.
+  
+  Module::File *file1 = m.FindFile("filename.cc");
+
+  
+  Module::Function *function = new(Module::Function);
+  function->name = "A_FLIBBERTIJIBBET::a_will_o_the_wisp(a clown)";
+  function->address = 0xbec774ea5dd935f3LL;
+  function->size = 0x2922088f98d3f6fcLL;
+  function->parameter_size = 0xe5e9aa008bd5f0d0LL;
+
+  
+  Module::Line line1 = { 0xbec774ea5dd935f3LL, 0x1c2be6d6c5af2611LL,
+                         file1, 41676901 };
+  function->lines.push_back(line1);
+
+  m.AddFunction(function);
+
+  
+  Module::StackFrameEntry *entry = new Module::StackFrameEntry();
+  entry->address = 0x30f9e5c83323973dULL;
+  entry->size = 0x49fc9ca7c7c13dc2ULL;
+  entry->initial_rules[".cfa"] = "he was a handsome man";
+  entry->initial_rules["and"] = "what i want to know is";
+  entry->rule_changes[0x30f9e5c83323973eULL]["how"] =
+    "do you like your blueeyed boy";
+  entry->rule_changes[0x30f9e5c83323973eULL]["Mister"] = "Death";
+  m.AddStackFrameEntry(entry);
+
+  
+  
+  m.SetLoadAddress(0x2ab698b0b6407073LL);
+
+  m.Write(s, false);
+  string contents = s.str();
+  EXPECT_STREQ("MODULE os-name architecture id-string name with spaces\n"
+               "FILE 0 filename.cc\n"
+               "FUNC 9410dc39a798c580 2922088f98d3f6fc e5e9aa008bd5f0d0"
+               " A_FLIBBERTIJIBBET::a_will_o_the_wisp(a clown)\n"
+               "9410dc39a798c580 1c2be6d6c5af2611 41676901 0\n",
+               contents.c_str());
+}
+
+TEST(Construct, AddFunctions) {
+  stringstream s;
+  Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
+
+  
   Module::Function *function1 = new(Module::Function);
   function1->name = "_without_form";
   function1->address = 0xd35024aa7ca7da5cLL;
@@ -280,18 +272,15 @@ TEST(Construct, AddFunctions) {
   function2->size = 0xb369db048deb3010LL;
   function2->parameter_size = 0x938e556cb5a79988LL;
 
-  // Put them in a vector.
+  
   vector<Module::Function *> vec;
   vec.push_back(function1);
   vec.push_back(function2);
 
   m.AddFunctions(vec.begin(), vec.end());
 
-  m.Write(f);
-  checked_fflush(f);
-  rewind(f);
-  string contents = checked_read(f);
-  checked_fclose(f);
+  m.Write(s, true);
+  string contents = s.str();
   EXPECT_STREQ("MODULE os-name architecture id-string name with spaces\n"
                "FUNC 2987743d0b35b13f b369db048deb3010 938e556cb5a79988"
                " _and_void\n"
@@ -299,7 +288,7 @@ TEST(Construct, AddFunctions) {
                " _without_form\n",
                contents.c_str());
 
-  // Check that m.GetFunctions returns the functions we expect.
+  
   vec.clear();
   m.GetFunctions(&vec, vec.end());
   EXPECT_TRUE(vec.end() != find(vec.begin(), vec.end(), function1));
@@ -308,16 +297,16 @@ TEST(Construct, AddFunctions) {
 }
 
 TEST(Construct, AddFrames) {
-  FILE *f = checked_tmpfile();
+  stringstream s;
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
-  // First STACK CFI entry, with no initial rules or deltas.
+  
   Module::StackFrameEntry *entry1 = new Module::StackFrameEntry();
   entry1->address = 0xddb5f41285aa7757ULL;
   entry1->size = 0x1486493370dc5073ULL;
   m.AddStackFrameEntry(entry1);
 
-  // Second STACK CFI entry, with initial rules but no deltas.
+  
   Module::StackFrameEntry *entry2 = new Module::StackFrameEntry();
   entry2->address = 0x8064f3af5e067e38ULL;
   entry2->size = 0x0de2a5ee55509407ULL;
@@ -326,7 +315,7 @@ TEST(Construct, AddFrames) {
   entry2->initial_rules["cannoli"] = "a tree whose hungry mouth is prest";
   m.AddStackFrameEntry(entry2);
 
-  // Third STACK CFI entry, with initial rules and deltas.
+  
   Module::StackFrameEntry *entry3 = new Module::StackFrameEntry();
   entry3->address = 0x5e8d0db0a7075c6cULL;
   entry3->size = 0x1c7edb12a7aea229ULL;
@@ -341,12 +330,9 @@ TEST(Construct, AddFrames) {
     "I think I know";
   m.AddStackFrameEntry(entry3);
 
-  // Check that Write writes STACK CFI records properly.
-  m.Write(f);
-  checked_fflush(f);
-  rewind(f);
-  string contents = checked_read(f);
-  checked_fclose(f);
+  
+  m.Write(s, true);
+  string contents = s.str();
   EXPECT_STREQ("MODULE os-name architecture id-string name with spaces\n"
                "STACK CFI INIT ddb5f41285aa7757 1486493370dc5073 \n"
                "STACK CFI INIT 8064f3af5e067e38 de2a5ee55509407"
@@ -363,16 +349,16 @@ TEST(Construct, AddFrames) {
                " cannoli: he will not see me stopping here\n",
                contents.c_str());
 
-  // Check that GetStackFrameEntries works.
+  
   vector<Module::StackFrameEntry *> entries;
   m.GetStackFrameEntries(&entries);
   ASSERT_EQ(3U, entries.size());
-  // Check first entry.
+  
   EXPECT_EQ(0xddb5f41285aa7757ULL, entries[0]->address);
   EXPECT_EQ(0x1486493370dc5073ULL, entries[0]->size);
   ASSERT_EQ(0U, entries[0]->initial_rules.size());
   ASSERT_EQ(0U, entries[0]->rule_changes.size());
-  // Check second entry.
+  
   EXPECT_EQ(0x8064f3af5e067e38ULL, entries[1]->address);
   EXPECT_EQ(0x0de2a5ee55509407ULL, entries[1]->size);
   ASSERT_EQ(3U, entries[1]->initial_rules.size());
@@ -382,7 +368,7 @@ TEST(Construct, AddFrames) {
   entry2_initial["cannoli"] = "a tree whose hungry mouth is prest";
   EXPECT_THAT(entries[1]->initial_rules, ContainerEq(entry2_initial));
   ASSERT_EQ(0U, entries[1]->rule_changes.size());
-  // Check third entry.
+  
   EXPECT_EQ(0x5e8d0db0a7075c6cULL, entries[2]->address);
   EXPECT_EQ(0x1c7edb12a7aea229ULL, entries[2]->size);
   Module::RuleMap entry3_initial;
@@ -411,21 +397,18 @@ TEST(Construct, UniqueFiles) {
 }
 
 TEST(Construct, DuplicateFunctions) {
-  FILE *f = checked_tmpfile();
+  stringstream s;
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
-  // Two functions.
+  
   Module::Function *function1 = generate_duplicate_function("_without_form");
   Module::Function *function2 = generate_duplicate_function("_without_form");
 
   m.AddFunction(function1);
   m.AddFunction(function2);
 
-  m.Write(f);
-  checked_fflush(f);
-  rewind(f);
-  string contents = checked_read(f);
-  checked_fclose(f);
+  m.Write(s, true);
+  string contents = s.str();
   EXPECT_STREQ("MODULE os-name architecture id-string name with spaces\n"
                "FUNC d35402aac7a7ad5c 200b26e605f99071 f14ac4fed48c4a99"
                " _without_form\n",
@@ -433,25 +416,75 @@ TEST(Construct, DuplicateFunctions) {
 }
 
 TEST(Construct, FunctionsWithSameAddress) {
-  FILE *f = checked_tmpfile();
+  stringstream s;
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
-  // Two functions.
+  
   Module::Function *function1 = generate_duplicate_function("_without_form");
   Module::Function *function2 = generate_duplicate_function("_and_void");
 
   m.AddFunction(function1);
   m.AddFunction(function2);
 
-  m.Write(f);
-  checked_fflush(f);
-  rewind(f);
-  string contents = checked_read(f);
-  checked_fclose(f);
+  m.Write(s, true);
+  string contents = s.str();
   EXPECT_STREQ("MODULE os-name architecture id-string name with spaces\n"
                "FUNC d35402aac7a7ad5c 200b26e605f99071 f14ac4fed48c4a99"
                " _and_void\n"
                "FUNC d35402aac7a7ad5c 200b26e605f99071 f14ac4fed48c4a99"
                " _without_form\n",
+               contents.c_str());
+}
+
+
+
+TEST(Construct, Externs) {
+  stringstream s;
+  Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
+
+  
+  Module::Extern *extern1 = new(Module::Extern);
+  extern1->address = 0xffff;
+  extern1->name = "_abc";
+  Module::Extern *extern2 = new(Module::Extern);
+  extern2->address = 0xaaaa;
+  extern2->name = "_xyz";
+
+  m.AddExtern(extern1);
+  m.AddExtern(extern2);
+
+  m.Write(s, true);
+  string contents = s.str();
+
+  EXPECT_STREQ("MODULE " MODULE_OS " " MODULE_ARCH " "
+               MODULE_ID " " MODULE_NAME "\n"
+               "PUBLIC aaaa 0 _xyz\n"
+               "PUBLIC ffff 0 _abc\n",
+               contents.c_str());
+}
+
+
+
+TEST(Construct, DuplicateExterns) {
+  stringstream s;
+  Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
+
+  
+  Module::Extern *extern1 = new(Module::Extern);
+  extern1->address = 0xffff;
+  extern1->name = "_xyz";
+  Module::Extern *extern2 = new(Module::Extern);
+  extern2->address = 0xffff;
+  extern2->name = "_abc";
+
+  m.AddExtern(extern1);
+  m.AddExtern(extern2);
+
+  m.Write(s, true);
+  string contents = s.str();
+
+  EXPECT_STREQ("MODULE " MODULE_OS " " MODULE_ARCH " "
+               MODULE_ID " " MODULE_NAME "\n"
+               "PUBLIC ffff 0 _xyz\n",
                contents.c_str());
 }

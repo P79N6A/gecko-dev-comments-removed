@@ -90,7 +90,8 @@ enum MessageTag {
   MESSAGE_TAG_NONE = 0,
   MESSAGE_TAG_REGISTRATION_REQUEST = 1,
   MESSAGE_TAG_REGISTRATION_RESPONSE = 2,
-  MESSAGE_TAG_REGISTRATION_ACK = 3
+  MESSAGE_TAG_REGISTRATION_ACK = 3,
+  MESSAGE_TAG_UPLOAD_REQUEST = 4
 };
 
 struct CustomClientInfo {
@@ -102,7 +103,7 @@ struct CustomClientInfo {
 struct ProtocolMessage {
   ProtocolMessage()
       : tag(MESSAGE_TAG_NONE),
-        pid(0),
+        id(0),
         dump_type(MiniDumpNormal),
         thread_id(0),
         exception_pointers(NULL),
@@ -115,7 +116,7 @@ struct ProtocolMessage {
 
   
   ProtocolMessage(MessageTag arg_tag,
-                  DWORD arg_pid,
+                  DWORD arg_id,
                   MINIDUMP_TYPE arg_dump_type,
                   DWORD* arg_thread_id,
                   EXCEPTION_POINTERS** arg_exception_pointers,
@@ -125,7 +126,7 @@ struct ProtocolMessage {
                   HANDLE arg_dump_generated_handle,
                   HANDLE arg_server_alive)
     : tag(arg_tag),
-      pid(arg_pid),
+      id(arg_id),
       dump_type(arg_dump_type),
       thread_id(arg_thread_id),
       exception_pointers(arg_exception_pointers),
@@ -140,7 +141,8 @@ struct ProtocolMessage {
   MessageTag tag;
 
   
-  DWORD pid;
+  
+  DWORD id;
 
   
   MINIDUMP_TYPE dump_type;

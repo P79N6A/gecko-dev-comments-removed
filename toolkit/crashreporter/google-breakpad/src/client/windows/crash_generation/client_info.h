@@ -65,17 +65,10 @@ class ClientInfo {
   HANDLE process_handle() const { return process_handle_; }
   HANDLE dump_requested_handle() const { return dump_requested_handle_; }
   HANDLE dump_generated_handle() const { return dump_generated_handle_; }
-
-  HANDLE dump_request_wait_handle() const {
-    return dump_request_wait_handle_;
-  }
+  DWORD crash_id() const { return crash_id_; }
 
   void set_dump_request_wait_handle(HANDLE value) {
     dump_request_wait_handle_ = value;
-  }
-
-  HANDLE process_exit_wait_handle() const {
-    return process_exit_wait_handle_;
   }
 
   void set_process_exit_wait_handle(HANDLE value) {
@@ -83,7 +76,13 @@ class ClientInfo {
   }
 
   
-  void UnregisterWaits();
+  
+  void UnregisterDumpRequestWaitAndBlockUntilNoPending();
+
+  
+  
+  
+  void UnregisterProcessExitWait(bool block_until_no_pending);
 
   bool Initialize();
   bool GetClientExceptionInfo(EXCEPTION_POINTERS** ex_info) const;
@@ -159,6 +158,11 @@ class ClientInfo {
   
   
   FILETIME start_time_;
+
+  
+  
+  
+  DWORD crash_id_;
 
   
   ClientInfo(const ClientInfo& client_info);

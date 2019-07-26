@@ -35,9 +35,10 @@
 #ifndef COMMON_LINUX_DUMP_SYMBOLS_H__
 #define COMMON_LINUX_DUMP_SYMBOLS_H__
 
-#include <stdio.h>
-
+#include <iostream>
 #include <string>
+
+#include "common/using_std_string.h"
 
 namespace google_breakpad {
 
@@ -46,8 +47,11 @@ namespace google_breakpad {
 
 
 
-bool WriteSymbolFile(const std::string &obj_file,
-                     const std::string &debug_dir, FILE *sym_file);
+
+bool WriteSymbolFile(const string &obj_file,
+                     const string &debug_dir,
+                     bool cfi,
+                     std::ostream &sym_stream);
 
 }  
 

@@ -1,36 +1,36 @@
-// Copyright (c) 2010, Google Inc.
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-// Original author: Jim Blandy <jimb@mozilla.com> <jimb@red-bean.com>
 
-// macho_reader.cc: Implementation of google_breakpad::Mach_O::FatReader and
-// google_breakpad::Mach_O::Reader. See macho_reader.h for details.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "common/mac/macho_reader.h"
 
@@ -38,17 +38,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+#if !defined(CPU_TYPE_ARM)
+#define CPU_TYPE_ARM 12
+#endif
+
 namespace google_breakpad {
 namespace mach_o {
 
-// If NDEBUG is #defined, then the 'assert' macro doesn't evaluate its
-// arguments, so you can't place expressions that do necessary work in
-// the argument of an assert. Nor can you assign the result of the
-// expression to a variable and assert that the variable's value is
-// true: you'll get unused variable warnings when NDEBUG is #defined.
-//
-// ASSERT_ALWAYS_EVAL always evaluates its argument, and asserts that
-// the result is true if NDEBUG is not #defined.
+
+
+
+
+
+
+
+
 #if defined(NDEBUG)
 #define ASSERT_ALWAYS_EVAL(x) (x)
 #else
@@ -75,26 +80,26 @@ bool FatReader::Read(const uint8_t *buffer, size_t size) {
   buffer_.end = buffer + size;
   ByteCursor cursor(&buffer_);
 
-  // Fat binaries always use big-endian, so read the magic number in
-  // that endianness. To recognize Mach-O magic numbers, which can use
-  // either endianness, check for both the proper and reversed forms
-  // of the magic numbers.
+  
+  
+  
+  
   cursor.set_big_endian(true);
   if (cursor >> magic_) {
     if (magic_ == FAT_MAGIC) {
-      // How many object files does this fat binary contain?
+      
       uint32_t object_files_count;
-      if (!(cursor >> object_files_count)) {  // nfat_arch
+      if (!(cursor >> object_files_count)) {  
         reporter_->TooShort();
         return false;
       }
 
-      // Read the list of object files.
+      
       object_files_.resize(object_files_count);
       for (size_t i = 0; i < object_files_count; i++) {
         struct fat_arch *objfile = &object_files_[i];
 
-        // Read this object file entry, byte-swapping as appropriate.
+        
         cursor >> objfile->cputype
                >> objfile->cpusubtype
                >> objfile->offset
@@ -104,7 +109,7 @@ bool FatReader::Read(const uint8_t *buffer, size_t size) {
           reporter_->TooShort();
           return false;
         }
-        // Does the file actually have the bytes this entry refers to?
+        
         size_t fat_size = buffer_.Size();
         if (objfile->offset > fat_size ||
             objfile->size > fat_size - objfile->offset) {
@@ -116,13 +121,13 @@ bool FatReader::Read(const uint8_t *buffer, size_t size) {
       return true;
     } else if (magic_ == MH_MAGIC || magic_ == MH_MAGIC_64 ||
                magic_ == MH_CIGAM || magic_ == MH_CIGAM_64) {
-      // If this is a little-endian Mach-O file, fix the cursor's endianness.
+      
       if (magic_ == MH_CIGAM || magic_ == MH_CIGAM_64)
         cursor.set_big_endian(false);
-      // Record the entire file as a single entry in the object file list.
+      
       object_files_.resize(1);
 
-      // Get the cpu type and subtype from the Mach-O header.
+      
       if (!(cursor >> object_files_[0].cputype
                    >> object_files_[0].cpusubtype)) {
         reporter_->TooShort();
@@ -131,10 +136,10 @@ bool FatReader::Read(const uint8_t *buffer, size_t size) {
 
       object_files_[0].offset = 0;
       object_files_[0].size = static_cast<uint32_t>(buffer_.Size());
-      // This alignment is correct for 32 and 64-bit x86 and ppc.
-      // See get_align in the lipo source for other architectures:
-      // http://www.opensource.apple.com/source/cctools/cctools-773/misc/lipo.c
-      object_files_[0].align = 12;  // 2^12 == 4096
+      
+      
+      
+      object_files_[0].align = 12;  
       
       return true;
     }
@@ -228,8 +233,9 @@ bool Reader::Read(const uint8_t *buffer,
 
   if (expected_cpu_type != CPU_TYPE_ANY) {
     uint32_t expected_magic;
-    // validate that magic matches the expected cpu type
+    
     switch (expected_cpu_type) {
+      case CPU_TYPE_ARM:
       case CPU_TYPE_I386:
         expected_magic = MH_CIGAM;
         break;
@@ -253,8 +259,8 @@ bool Reader::Read(const uint8_t *buffer,
     }
   }
 
-  // Since the byte cursor is in big-endian mode, a reversed magic number
-  // always indicates a little-endian file, regardless of our own endianness.
+  
+  
   switch (magic) {
     case MH_MAGIC:    big_endian_ = true;  bits_64_ = false; break;
     case MH_CIGAM:    big_endian_ = false; bits_64_ = false; break;
@@ -298,14 +304,14 @@ bool Reader::WalkLoadCommands(Reader::LoadCommandHandler *handler) const {
   ByteCursor list_cursor(&load_commands_, big_endian_);
 
   for (size_t index = 0; index < load_command_count_; ++index) {
-    // command refers to this load command alone, so that cursor will
-    // refuse to read past the load command's end. But since we haven't
-    // read the size yet, let command initially refer to the entire
-    // remainder of the load command series.
+    
+    
+    
+    
     ByteBuffer command(list_cursor.here(), list_cursor.Available());
     ByteCursor cursor(&command, big_endian_);
     
-    // Read the command type and size --- fields common to all commands.
+    
     uint32_t type, size;
     if (!(cursor >> type)) {
       reporter_->LoadCommandsOverrun(load_command_count_, index, 0);
@@ -316,8 +322,8 @@ bool Reader::WalkLoadCommands(Reader::LoadCommandHandler *handler) const {
       return false;
     }
 
-    // Now that we've read the length, restrict command's range to this
-    // load command only.
+    
+    
     command.end = command.start + size;
 
     switch (type) {
@@ -346,17 +352,17 @@ bool Reader::WalkLoadCommands(Reader::LoadCommandHandler *handler) const {
           reporter_->MisplacedSegmentData(segment.name);
           return false;
         }
-        // Mach-O files in .dSYM bundles have the contents of the loaded
-        // segments removed, and their file offsets and file sizes zeroed
-        // out. To help us handle this special case properly, give such
-        // segments' contents NULL starting and ending pointers.
+        
+        
+        
+        
         if (file_offset == 0 && file_size == 0) {
           segment.contents.start = segment.contents.end = NULL;
         } else {
           segment.contents.start = buffer_.start + file_offset;
           segment.contents.end = segment.contents.start + file_size;
         }
-        // The section list occupies the remainder of this load command's space.
+        
         segment.section_list.start = cursor.here();
         segment.section_list.end = command.end;
 
@@ -372,11 +378,11 @@ bool Reader::WalkLoadCommands(Reader::LoadCommandHandler *handler) const {
           reporter_->LoadCommandTooShort(index, type);
           return false;
         }
-        // How big are the entries in the symbol table?
-        // sizeof(struct nlist_64) : sizeof(struct nlist),
-        // but be paranoid about alignment vs. target architecture.
+        
+        
+        
         size_t symbol_size = bits_64_ ? 16 : 12;
-        // How big is the entire symbol array?
+        
         size_t symbols_size = nsyms * symbol_size;
         if (symoff > buffer_.Size() || symbols_size > buffer_.Size() - symoff ||
             stroff > buffer_.Size() || strsize > buffer_.Size() - stroff) {
@@ -403,15 +409,15 @@ bool Reader::WalkLoadCommands(Reader::LoadCommandHandler *handler) const {
   return true;
 }
 
-// A load command handler that looks for a segment of a given name.
+
 class Reader::SegmentFinder : public LoadCommandHandler {
  public:
-  // Create a load command handler that looks for a segment named NAME,
-  // and sets SEGMENT to describe it if found.
+  
+  
   SegmentFinder(const string &name, Segment *segment) 
       : name_(name), segment_(segment), found_() { }
 
-  // Return true if the traversal found the segment, false otherwise.
+  
   bool found() const { return found_; }
 
   bool SegmentCommand(const Segment &segment) {
@@ -424,13 +430,13 @@ class Reader::SegmentFinder : public LoadCommandHandler {
   }
 
  private:
-  // The name of the segment our creator is looking for.
+  
   const string &name_;
 
-  // Where we should store the segment if found. (WEAK)
+  
   Segment *segment_;
 
-  // True if we found the segment.
+  
   bool found_;
 };
 
@@ -469,16 +475,16 @@ bool Reader::WalkSegmentSections(const Segment &segment,
       return false;
     }
     if ((section.flags & SECTION_TYPE) == S_ZEROFILL) {
-      // Zero-fill sections have a size, but no contents.
+      
       section.contents.start = section.contents.end = NULL;
     } else if (segment.contents.start == NULL && 
                segment.contents.end == NULL) {
-      // Mach-O files in .dSYM bundles have the contents of the loaded
-      // segments removed, and their file offsets and file sizes zeroed
-      // out.  However, the sections within those segments still have
-      // non-zero sizes.  There's no reason to call MisplacedSectionData in
-      // this case; the caller may just need the section's load
-      // address. But do set the contents' limits to NULL, for safety.
+      
+      
+      
+      
+      
+      
       section.contents.start = section.contents.end = NULL;
     } else {
       if (offset < size_t(segment.contents.start - buffer_.start) ||
@@ -497,19 +503,19 @@ bool Reader::WalkSegmentSections(const Segment &segment,
   return true;
 }
 
-// A SectionHandler that builds a SectionMap for the sections within a
-// given segment.
+
+
 class Reader::SectionMapper: public SectionHandler {
  public:
-  // Create a SectionHandler that populates MAP with an entry for
-  // each section it is given.
+  
+  
   SectionMapper(SectionMap *map) : map_(map) { }
   bool HandleSection(const Section &section) {
     (*map_)[section.section_name] = section;
     return true;
   }
  private:
-  // The map under construction. (WEAK)
+  
   SectionMap *map_;
 };
 
@@ -520,5 +526,5 @@ bool Reader::MapSegmentSections(const Segment &segment,
   return WalkSegmentSections(segment, &mapper);
 }
 
-}  // namespace mach_o
-}  // namespace google_breakpad
+}  
+}  

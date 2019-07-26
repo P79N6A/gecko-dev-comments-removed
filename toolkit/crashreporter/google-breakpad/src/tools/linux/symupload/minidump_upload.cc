@@ -33,6 +33,9 @@
 
 
 
+
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include <string>
@@ -66,7 +69,9 @@ static void Start(Options *options) {
                                          "upload_file_minidump",
                                          options->proxy,
                                          options->proxy_user_pwd,
+                                         "",
                                          &response,
+                                         NULL,
                                          &error);
 
   if (success) {

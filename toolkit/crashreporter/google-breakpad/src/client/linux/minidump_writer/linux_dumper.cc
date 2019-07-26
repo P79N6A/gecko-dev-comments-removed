@@ -32,80 +32,28 @@
 
 
 
+
+
+
 #include "client/linux/minidump_writer/linux_dumper.h"
 
 #include <assert.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
-#include <unistd.h>
-#include <elf.h>
-#include <errno.h>
-#include <fcntl.h>
-#if !defined(__ANDROID__)
-#include <link.h>
-#endif
-
-#include <sys/types.h>
-#include <sys/ptrace.h>
-#include <sys/wait.h>
-
-#include <algorithm>
-
-#include "client/linux/minidump_writer/directory_reader.h"
 #include "client/linux/minidump_writer/line_reader.h"
 #include "common/linux/file_id.h"
 #include "common/linux/linux_libc_support.h"
-#include "common/linux/linux_syscall_support.h"
+#include "common/linux/memory_mapped_file.h"
+#include "common/linux/safe_readlink.h"
+#include "third_party/lss/linux_syscall_support.h"
 
 static const char kMappedFileUnsafePrefix[] = "/dev/";
+static const char kDeletedSuffix[] = " (deleted)";
 
-namespace google_breakpad {
-
-bool AttachThread(pid_t pid) {
-  
-  errno = 0;
-  if (sys_ptrace(PTRACE_ATTACH, pid, NULL, NULL) != 0 &&
-      errno != 0) {
-    return false;
-  }
-  while (sys_waitpid(pid, NULL, __WALL) < 0) {
-    if (errno != EINTR) {
-      sys_ptrace(PTRACE_DETACH, pid, NULL, NULL);
-      return false;
-    }
-  }
-#if defined(__i386) || defined(__x86_64)
-  
-  
-  
-  
-  
-  
-  
-  user_regs_struct regs;
-  if (sys_ptrace(PTRACE_GETREGS, pid, NULL, &regs) == -1 ||
-#if defined(__i386)
-      !regs.esp
-#elif defined(__x86_64)
-      !regs.rsp
-#endif
-      ) {
-    sys_ptrace(PTRACE_DETACH, pid, NULL, NULL);
-    return false;
-  }
-#endif
-  return true;
-}
-
-bool DetachThread(pid_t pid) {
-  return sys_ptrace(PTRACE_DETACH, pid, NULL, NULL) >= 0;
-}
-
-inline bool IsMappedFileOpenUnsafe(
+inline static bool IsMappedFileOpenUnsafe(
     const google_breakpad::MappingInfo& mapping) {
   
   
@@ -116,173 +64,82 @@ inline bool IsMappedFileOpenUnsafe(
                     sizeof(kMappedFileUnsafePrefix) - 1) == 0;
 }
 
-bool GetThreadRegisters(ThreadInfo* info) {
-  pid_t tid = info->tid;
-
-  if (sys_ptrace(PTRACE_GETREGS, tid, NULL, &info->regs) == -1) {
-    return false;
-  }
-
-#if !defined(__ANDROID__)
-  if (sys_ptrace(PTRACE_GETFPREGS, tid, NULL, &info->fpregs) == -1) {
-    return false;
-  }
-#endif
-
-#if defined(__i386)
-  if (sys_ptrace(PTRACE_GETFPXREGS, tid, NULL, &info->fpxregs) == -1)
-    return false;
-#endif
-
-#if defined(__i386) || defined(__x86_64)
-  for (unsigned i = 0; i < ThreadInfo::kNumDebugRegisters; ++i) {
-    if (sys_ptrace(
-        PTRACE_PEEKUSER, tid,
-        reinterpret_cast<void*> (offsetof(struct user,
-                                          u_debugreg[0]) + i *
-                                 sizeof(debugreg_t)),
-        &info->dregs[i]) == -1) {
-      return false;
-    }
-  }
-#endif
-
-  return true;
-}
+namespace google_breakpad {
 
 
 #define AT_MAX AT_SYSINFO_EHDR
 
-LinuxDumper::LinuxDumper(int pid)
+LinuxDumper::LinuxDumper(pid_t pid)
     : pid_(pid),
-      threads_suspended_(false),
+      crash_address_(0),
+      crash_signal_(0),
+      crash_thread_(0),
       threads_(&allocator_, 8),
       mappings_(&allocator_),
       auxv_(&allocator_, AT_MAX + 1) {
 }
 
+LinuxDumper::~LinuxDumper() {
+}
+
 bool LinuxDumper::Init() {
-  return ReadAuxv() &&
-         EnumerateThreads(&threads_) &&
-         EnumerateMappings(&mappings_);
-}
-
-bool LinuxDumper::ThreadsAttach() {
-  if (threads_suspended_)
-    return true;
-  for (size_t i = 0; i < threads_.size(); ++i) {
-    if (!AttachThread(threads_[i])) {
-      
-      
-      
-      memmove(&threads_[i], &threads_[i+1],
-              (threads_.size() - i - 1) * sizeof(threads_[i]));
-      threads_.resize(threads_.size() - 1);
-      --i;
-    }
-  }
-  threads_suspended_ = true;
-  return threads_.size() > 0;
-}
-
-bool LinuxDumper::ThreadsDetach() {
-  if (!threads_suspended_)
-    return false;
-  bool good = true;
-  for (size_t i = 0; i < threads_.size(); ++i)
-    good &= DetachThread(threads_[i]);
-  threads_suspended_ = false;
-  return good;
-}
-
-void
-LinuxDumper::BuildProcPath(char* path, pid_t pid, const char* node) const {
-  assert(path);
-  if (!path) {
-    return;
-  }
-
-  path[0] = '\0';
-
-  const unsigned pid_len = my_int_len(pid);
-
-  assert(node);
-  if (!node) {
-    return;
-  }
-
-  size_t node_len = my_strlen(node);
-  assert(node_len < NAME_MAX);
-  if (node_len >= NAME_MAX) {
-    return;
-  }
-
-  assert(node_len > 0);
-  if (node_len == 0) {
-    return;
-  }
-
-  assert(pid > 0);
-  if (pid <= 0) {
-    return;
-  }
-
-  const size_t total_length = 6 + pid_len + 1 + node_len;
-
-  assert(total_length < NAME_MAX);
-  if (total_length >= NAME_MAX) {
-    return;
-  }
-
-  memcpy(path, "/proc/", 6);
-  my_itos(path + 6, pid, pid_len);
-  memcpy(path + 6 + pid_len, "/", 1);
-  memcpy(path + 6 + pid_len + 1, node, node_len);
-  memcpy(path + total_length, "\0", 1);
+  return ReadAuxv() && EnumerateThreads() && EnumerateMappings();
 }
 
 bool
 LinuxDumper::ElfFileIdentifierForMapping(const MappingInfo& mapping,
+                                         bool member,
+                                         unsigned int mapping_id,
                                          uint8_t identifier[sizeof(MDGUID)])
 {
+  assert(!member || mapping_id < mappings_.size());
   my_memset(identifier, 0, sizeof(MDGUID));
-  if (IsMappedFileOpenUnsafe(mapping)) {
-    return false;
-  }
-  int fd = sys_open(mapping.name, O_RDONLY, 0);
-  if (fd < 0)
+  if (IsMappedFileOpenUnsafe(mapping))
     return false;
 
-#if defined(__x86_64)
-#define sys_mmap2 sys_mmap
-  struct kernel_stat st;
-  if (sys_fstat(fd, &st) != 0) {
-#else
-  struct kernel_stat64 st;
-  if (sys_fstat64(fd, &st) != 0) {
-#endif
-    sys_close(fd);
-    return false;
+  
+  if (my_strcmp(mapping.name, kLinuxGateLibraryName) == 0) {
+    const uintptr_t kPageSize = getpagesize();
+    void* linux_gate = NULL;
+    if (pid_ == sys_getpid()) {
+      linux_gate = reinterpret_cast<void*>(mapping.start_addr);
+    } else {
+      linux_gate = allocator_.Alloc(kPageSize);
+      CopyFromProcess(linux_gate, pid_,
+                      reinterpret_cast<const void*>(mapping.start_addr),
+                      kPageSize);
+    }
+    return FileID::ElfFileIdentifierFromMappedFile(linux_gate, identifier);
   }
 
-  void* base = sys_mmap2(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-  sys_close(fd);
-  if (base == MAP_FAILED) {
+  char filename[NAME_MAX];
+  size_t filename_len = my_strlen(mapping.name);
+  assert(filename_len < NAME_MAX);
+  if (filename_len >= NAME_MAX)
     return false;
+  my_memcpy(filename, mapping.name, filename_len);
+  filename[filename_len] = '\0';
+  bool filename_modified = HandleDeletedFileInMapping(filename);
+
+  MemoryMappedFile mapped_file(filename);
+  if (!mapped_file.data())  
+    return false;
+
+  bool success =
+      FileID::ElfFileIdentifierFromMappedFile(mapped_file.data(), identifier);
+  if (success && member && filename_modified) {
+    mappings_[mapping_id]->name[filename_len -
+                                sizeof(kDeletedSuffix) + 1] = '\0';
   }
 
-  bool success = FileID::ElfFileIdentifierFromMappedFile(base, identifier);
-  sys_munmap(base, st.st_size);
   return success;
 }
 
-bool
-LinuxDumper::ReadAuxv() {
-  char auxv_path[80];
-  BuildProcPath(auxv_path, pid_, "auxv");
-
-  
-  
+bool LinuxDumper::ReadAuxv() {
+  char auxv_path[NAME_MAX];
+  if (!BuildProcPath(auxv_path, pid_, "auxv")) {
+    return false;
+  }
 
   int fd = sys_open(auxv_path, O_RDONLY, 0);
   if (fd < 0) {
@@ -300,14 +157,14 @@ LinuxDumper::ReadAuxv() {
       res = true;
     }
   }
-  close(fd);
+  sys_close(fd);
   return res;
 }
 
-bool
-LinuxDumper::EnumerateMappings(wasteful_vector<MappingInfo*>* result) const {
-  char maps_path[80];
-  BuildProcPath(maps_path, pid_, "maps");
+bool LinuxDumper::EnumerateMappings() {
+  char maps_path[NAME_MAX];
+  if (!BuildProcPath(maps_path, pid_, "maps"))
+    return false;
 
   
   
@@ -316,8 +173,12 @@ LinuxDumper::EnumerateMappings(wasteful_vector<MappingInfo*>* result) const {
   
   
   
-  const void* linux_gate_loc;
-  linux_gate_loc = reinterpret_cast<void *>(auxv_[AT_SYSINFO_EHDR]);
+  const void* linux_gate_loc =
+      reinterpret_cast<void *>(auxv_[AT_SYSINFO_EHDR]);
+  
+  
+  
+  const void* entry_point_loc = reinterpret_cast<void *>(auxv_[AT_ENTRY]);
 
   const int fd = sys_open(maps_path, O_RDONLY, 0);
   if (fd < 0)
@@ -346,8 +207,8 @@ LinuxDumper::EnumerateMappings(wasteful_vector<MappingInfo*>* result) const {
           }
           
           
-          if (name && result->size()) {
-            MappingInfo* module = (*result)[result->size() - 1];
+          if (name && !mappings_.empty()) {
+            MappingInfo* module = mappings_.back();
             if ((start_addr == module->start_addr + module->size) &&
                 (my_strlen(name) == my_strlen(module->name)) &&
                 (my_strncmp(name, module->name, my_strlen(name)) == 0)) {
@@ -357,16 +218,34 @@ LinuxDumper::EnumerateMappings(wasteful_vector<MappingInfo*>* result) const {
             }
           }
           MappingInfo* const module = new(allocator_) MappingInfo;
-          memset(module, 0, sizeof(MappingInfo));
+          my_memset(module, 0, sizeof(MappingInfo));
           module->start_addr = start_addr;
           module->size = end_addr - start_addr;
           module->offset = offset;
           if (name != NULL) {
             const unsigned l = my_strlen(name);
             if (l < sizeof(module->name))
-              memcpy(module->name, name, l);
+              my_memcpy(module->name, name, l);
           }
-          result->push_back(module);
+          
+          
+          
+          
+          
+          if (entry_point_loc &&
+              (entry_point_loc >=
+                  reinterpret_cast<void*>(module->start_addr)) &&
+              (entry_point_loc <
+                  reinterpret_cast<void*>(module->start_addr+module->size)) &&
+              !mappings_.empty()) {
+            
+            mappings_.resize(mappings_.size() + 1);
+            for (size_t idx = mappings_.size() - 1; idx > 0; idx--)
+              mappings_[idx] = mappings_[idx - 1];
+            mappings_[0] = module;
+          } else {
+            mappings_.push_back(module);
+          }
         }
       }
     }
@@ -375,93 +254,7 @@ LinuxDumper::EnumerateMappings(wasteful_vector<MappingInfo*>* result) const {
 
   sys_close(fd);
 
-  return result->size() > 0;
-}
-
-
-
-bool LinuxDumper::EnumerateThreads(wasteful_vector<pid_t>* result) const {
-  char task_path[80];
-  BuildProcPath(task_path, pid_, "task");
-
-  const int fd = sys_open(task_path, O_RDONLY | O_DIRECTORY, 0);
-  if (fd < 0)
-    return false;
-  DirectoryReader* dir_reader = new(allocator_) DirectoryReader(fd);
-
-  
-  
-  int last_tid = -1;
-  const char* dent_name;
-  while (dir_reader->GetNextEntry(&dent_name)) {
-    if (my_strcmp(dent_name, ".") &&
-        my_strcmp(dent_name, "..")) {
-      int tid = 0;
-      if (my_strtoui(&tid, dent_name) &&
-          last_tid != tid) {
-        last_tid = tid;
-        result->push_back(tid);
-      }
-    }
-    dir_reader->PopEntry();
-  }
-
-  sys_close(fd);
-  return true;
-}
-
-
-
-
-
-bool LinuxDumper::ThreadInfoGet(ThreadInfo* info) {
-  assert(info != NULL);
-  pid_t tid = info->tid;
-  char status_path[80];
-  BuildProcPath(status_path, tid, "status");
-
-  const int fd = open(status_path, O_RDONLY);
-  if (fd < 0)
-    return false;
-
-  LineReader* const line_reader = new(allocator_) LineReader(fd);
-  const char* line;
-  unsigned line_len;
-
-  info->ppid = info->tgid = -1;
-
-  while (line_reader->GetNextLine(&line, &line_len)) {
-    if (my_strncmp("Tgid:\t", line, 6) == 0) {
-      my_strtoui(&info->tgid, line + 6);
-    } else if (my_strncmp("PPid:\t", line, 6) == 0) {
-      my_strtoui(&info->ppid, line + 6);
-    }
-
-    line_reader->PopLine(line_len);
-  }
-
-  if (info->ppid == -1 || info->tgid == -1)
-    return false;
-
-  if (!GetThreadRegisters(info))
-      return false;
-
-  const uint8_t* stack_pointer;
-#if defined(__i386)
-  memcpy(&stack_pointer, &info->regs.esp, sizeof(info->regs.esp));
-#elif defined(__x86_64)
-  memcpy(&stack_pointer, &info->regs.rsp, sizeof(info->regs.rsp));
-#elif defined(__ARM_EABI__)
-  memcpy(&stack_pointer, &info->regs.ARM_sp, sizeof(info->regs.ARM_sp));
-#else
-#error "This code hasn't been ported to your platform yet."
-#endif
-
-  if (!GetStackInfo(&info->stack, &info->stack_len,
-                    (uintptr_t) stack_pointer))
-    return false;
-
-  return true;
+  return !mappings_.empty();
 }
 
 
@@ -476,7 +269,7 @@ bool LinuxDumper::GetStackInfo(const void** stack, size_t* stack_len,
       reinterpret_cast<uint8_t*>(int_stack_pointer & ~(page_size - 1));
 
   
-  static ptrdiff_t kStackToCapture = 32 * 1024;
+  static const ptrdiff_t kStackToCapture = 32 * 1024;
 
   const MappingInfo* mapping = FindMapping(stack_pointer);
   if (!mapping)
@@ -491,25 +284,6 @@ bool LinuxDumper::GetStackInfo(const void** stack, size_t* stack_len,
 }
 
 
-void LinuxDumper::CopyFromProcess(void* dest, pid_t child, const void* src,
-                                  size_t length) {
-  unsigned long tmp = 55;
-  size_t done = 0;
-  static const size_t word_size = sizeof(tmp);
-  uint8_t* const local = (uint8_t*) dest;
-  uint8_t* const remote = (uint8_t*) src;
-
-  while (done < length) {
-    const size_t l = length - done > word_size ? word_size : length - done;
-    if (sys_ptrace(PTRACE_PEEKDATA, child, remote + done, &tmp) == -1) {
-      tmp = 0;
-    }
-    memcpy(local + done, &tmp, l);
-    done += l;
-  }
-}
-
-
 const MappingInfo* LinuxDumper::FindMapping(const void* address) const {
   const uintptr_t addr = (uintptr_t) address;
 
@@ -520,6 +294,43 @@ const MappingInfo* LinuxDumper::FindMapping(const void* address) const {
   }
 
   return NULL;
+}
+
+bool LinuxDumper::HandleDeletedFileInMapping(char* path) const {
+  static const size_t kDeletedSuffixLen = sizeof(kDeletedSuffix) - 1;
+
+  
+  
+  const size_t path_len = my_strlen(path);
+  if (path_len < kDeletedSuffixLen + 2)
+    return false;
+  if (my_strncmp(path + path_len - kDeletedSuffixLen, kDeletedSuffix,
+                 kDeletedSuffixLen) != 0) {
+    return false;
+  }
+
+  
+  char exe_link[NAME_MAX];
+  char new_path[NAME_MAX];
+  if (!BuildProcPath(exe_link, pid_, "exe"))
+    return false;
+  if (!SafeReadLink(exe_link, new_path))
+    return false;
+  if (my_strcmp(path, new_path) != 0)
+    return false;
+
+  
+  struct kernel_stat exe_stat;
+  struct kernel_stat new_path_stat;
+  if (sys_stat(exe_link, &exe_stat) == 0 &&
+      sys_stat(new_path, &new_path_stat) == 0 &&
+      exe_stat.st_dev == new_path_stat.st_dev &&
+      exe_stat.st_ino == new_path_stat.st_ino) {
+    return false;
+  }
+
+  my_memcpy(path, exe_link, NAME_MAX);
+  return true;
 }
 
 }  

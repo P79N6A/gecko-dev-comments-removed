@@ -55,12 +55,6 @@
 
 @protocol GTMLogWriter, GTMLogFormatter, GTMLogFilter;
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
-#define CHECK_FORMAT_NSSTRING(a, b) __attribute__((format(__NSString__, a, b)))
-#else
-#define CHECK_FORMAT_NSSTRING(a, b)
-#endif
-
 
 
 
@@ -246,6 +240,10 @@
 
 
 
++ (id)standardLoggerWithStdoutAndStderr;
+
+
+
 
 + (id)standardLoggerWithPath:(NSString *)path;
 
@@ -274,13 +272,13 @@
 
 
 
-- (void)logDebug:(NSString *)fmt, ... CHECK_FORMAT_NSSTRING(1, 2);
+- (void)logDebug:(NSString *)fmt, ... NS_FORMAT_FUNCTION(1, 2);
 
-- (void)logInfo:(NSString *)fmt, ... CHECK_FORMAT_NSSTRING(1, 2);
+- (void)logInfo:(NSString *)fmt, ... NS_FORMAT_FUNCTION(1, 2);
 
-- (void)logError:(NSString *)fmt, ... CHECK_FORMAT_NSSTRING(1, 2);
+- (void)logError:(NSString *)fmt, ... NS_FORMAT_FUNCTION(1, 2);
 
-- (void)logAssert:(NSString *)fmt, ... CHECK_FORMAT_NSSTRING(1, 2);
+- (void)logAssert:(NSString *)fmt, ... NS_FORMAT_FUNCTION(1, 2);
 
 
 
@@ -310,15 +308,18 @@
 
 @interface GTMLogger (GTMLoggerMacroHelpers)
 - (void)logFuncDebug:(const char *)func msg:(NSString *)fmt, ...
-  CHECK_FORMAT_NSSTRING(2, 3);
+  NS_FORMAT_FUNCTION(2, 3);
 - (void)logFuncInfo:(const char *)func msg:(NSString *)fmt, ...
-  CHECK_FORMAT_NSSTRING(2, 3);
+  NS_FORMAT_FUNCTION(2, 3);
 - (void)logFuncError:(const char *)func msg:(NSString *)fmt, ...
-  CHECK_FORMAT_NSSTRING(2, 3);
+  NS_FORMAT_FUNCTION(2, 3);
 - (void)logFuncAssert:(const char *)func msg:(NSString *)fmt, ...
-  CHECK_FORMAT_NSSTRING(2, 3);
+  NS_FORMAT_FUNCTION(2, 3);
 @end  
 
+
+
+#ifndef GTMLoggerInfo
 
 
 
@@ -338,6 +339,8 @@
 #undef GTMLoggerDebug
 #define GTMLoggerDebug(...) do {} while(0)
 #endif
+
+#endif  
 
 
 typedef enum {
@@ -407,7 +410,7 @@ typedef enum {
 - (NSString *)stringForFunc:(NSString *)func
                  withFormat:(NSString *)fmt
                      valist:(va_list)args
-                      level:(GTMLoggerLevel)level;
+                      level:(GTMLoggerLevel)level NS_FORMAT_FUNCTION(2, 0);
 @end  
 
 
@@ -415,6 +418,10 @@ typedef enum {
 
 
 @interface GTMLogBasicFormatter : NSObject <GTMLogFormatter>
+
+
+- (NSString *)prettyNameForFunc:(NSString *)func;
+
 @end  
 
 
@@ -453,6 +460,45 @@ typedef enum {
 
 
 
-
 @interface GTMLogNoFilter : NSObject <GTMLogFilter>
 @end  
+
+
+
+
+@interface GTMLogAllowedLevelFilter : NSObject <GTMLogFilter> {
+ @private
+  NSIndexSet *allowedLevels_;
+}
+@end
+
+
+
+@interface GTMLogMininumLevelFilter : GTMLogAllowedLevelFilter
+
+
+- (id)initWithMinimumLevel:(GTMLoggerLevel)level;
+
+@end
+
+
+
+
+@interface GTMLogMaximumLevelFilter : GTMLogAllowedLevelFilter
+
+
+- (id)initWithMaximumLevel:(GTMLoggerLevel)level;
+
+@end
+
+
+
+@interface GTMLogger (PrivateMethods)
+
+- (void)logInternalFunc:(const char *)func
+                 format:(NSString *)fmt
+                 valist:(va_list)args
+                  level:(GTMLoggerLevel)level NS_FORMAT_FUNCTION(2, 0);
+
+@end
+

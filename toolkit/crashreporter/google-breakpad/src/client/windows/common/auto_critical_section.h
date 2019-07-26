@@ -40,13 +40,30 @@ class AutoCriticalSection {
  public:
   
   
-  explicit AutoCriticalSection(CRITICAL_SECTION* cs) : cs_(cs) {
+  explicit AutoCriticalSection(CRITICAL_SECTION* cs) : cs_(cs), taken_(false) {
     assert(cs_);
-    EnterCriticalSection(cs_);
+    Acquire();
   }
 
   
   ~AutoCriticalSection() {
+    if (taken_) {
+      Release();
+    }
+  }
+
+  
+  void Acquire() {
+    assert(!taken_);
+    EnterCriticalSection(cs_);
+    taken_ = true;
+  }
+
+  
+  
+  void Release() {
+    assert(taken_);
+    taken_ = false;
     LeaveCriticalSection(cs_);
   }
 
@@ -56,6 +73,7 @@ class AutoCriticalSection {
   AutoCriticalSection& operator=(const AutoCriticalSection&);
 
   CRITICAL_SECTION* cs_;
+  bool taken_;
 };
 
 }  

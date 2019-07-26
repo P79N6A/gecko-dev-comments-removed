@@ -45,6 +45,8 @@
 #include <string.h>
 #include <string>
 
+#include "common/using_std_string.h"
+
 namespace google_breakpad {
 
 
@@ -164,7 +166,7 @@ class ByteCursor {
   
   
   
-  ByteCursor &CString(std::string *str) {
+  ByteCursor &CString(string *str) {
     const uint8_t *end
       = static_cast<const uint8_t *>(memchr(here_, '\0', Available()));
     if (end) {
@@ -191,7 +193,7 @@ class ByteCursor {
   
   
   
-  ByteCursor &CString(std::string *str, size_t limit) {
+  ByteCursor &CString(string *str, size_t limit) {
     if (CheckAvailable(limit)) {
       const uint8_t *end
         = static_cast<const uint8_t *>(memchr(here_, '\0', limit));

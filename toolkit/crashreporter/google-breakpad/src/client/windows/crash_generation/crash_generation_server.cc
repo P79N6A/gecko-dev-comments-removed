@@ -34,6 +34,8 @@
 #include "client/windows/common/auto_critical_section.h"
 #include "processor/scoped_ptr.h"
 
+#include "client/windows/crash_generation/client_info.h"
+
 namespace google_breakpad {
 
 
@@ -74,19 +76,13 @@ static const ULONG kPipeIOThreadFlags = WT_EXECUTEINWAITTHREAD;
 static const ULONG kDumpRequestThreadFlags = WT_EXECUTEINWAITTHREAD |
                                              WT_EXECUTELONGFUNCTION;
 
-
-
-static const int kShutdownDelayMs = 10000;
-
-
-static const int kShutdownSleepIntervalMs = 5;
-
 static bool IsClientRequestValid(const ProtocolMessage& msg) {
-  return msg.tag == MESSAGE_TAG_REGISTRATION_REQUEST &&
-         msg.pid != 0 &&
-         msg.thread_id != NULL &&
-         msg.exception_pointers != NULL &&
-         msg.assert_info != NULL;
+  return msg.tag == MESSAGE_TAG_UPLOAD_REQUEST ||
+         (msg.tag == MESSAGE_TAG_REGISTRATION_REQUEST &&
+          msg.id != 0 &&
+          msg.thread_id != NULL &&
+          msg.exception_pointers != NULL &&
+          msg.assert_info != NULL);
 }
 
 CrashGenerationServer::CrashGenerationServer(
@@ -98,6 +94,8 @@ CrashGenerationServer::CrashGenerationServer(
     void* dump_context,
     OnClientExitedCallback exit_callback,
     void* exit_context,
+    OnClientUploadRequestCallback upload_request_callback,
+    void* upload_context,
     bool generate_dumps,
     const std::wstring* dump_path)
     : pipe_name_(pipe_name),
@@ -111,24 +109,40 @@ CrashGenerationServer::CrashGenerationServer(
       dump_context_(dump_context),
       exit_callback_(exit_callback),
       exit_context_(exit_context),
+      upload_request_callback_(upload_request_callback),
+      upload_context_(upload_context),
       generate_dumps_(generate_dumps),
       dump_generator_(NULL),
-      server_state_(IPC_SERVER_STATE_INITIAL),
+      server_state_(IPC_SERVER_STATE_UNINITIALIZED),
       shutting_down_(false),
       overlapped_(),
-      client_info_(NULL),
-      cleanup_item_count_(0) {
-  InitializeCriticalSection(&clients_sync_);
+      client_info_(NULL) {
+  InitializeCriticalSection(&sync_);
 
   if (dump_path) {
     dump_generator_.reset(new MinidumpGenerator(*dump_path));
   }
 }
 
+
+
 CrashGenerationServer::~CrashGenerationServer() {
   
-  shutting_down_ = true;
+  {
+    
+    
+    
+    
+    
+    AutoCriticalSection lock(&sync_);
 
+    
+    shutting_down_ = true;
+  }
+  
+  
+
+  
   
   
   
@@ -155,39 +169,23 @@ CrashGenerationServer::~CrashGenerationServer() {
 
   
   
-  {
-    AutoCriticalSection lock(&clients_sync_);
-
-    std::list<ClientInfo*>::iterator iter;
-    for (iter = clients_.begin(); iter != clients_.end(); ++iter) {
-      ClientInfo* client_info = *iter;
-      client_info->UnregisterWaits();
-    }
-  }
-
   
-  
-  int total_wait = 0;
-  while (cleanup_item_count_ > 0) {
-    Sleep(kShutdownSleepIntervalMs);
+  std::list<ClientInfo*>::iterator iter;
+  for (iter = clients_.begin(); iter != clients_.end(); ++iter) {
+    ClientInfo* client_info = *iter;
+    
+    
+    
+    
+    
+    client_info->UnregisterProcessExitWait(true);
+    client_info->UnregisterDumpRequestWaitAndBlockUntilNoPending();
 
-    total_wait += kShutdownSleepIntervalMs;
-
-    if (total_wait >= kShutdownDelayMs) {
-      break;
-    }
-  }
-
-  
-  
-  {
-    AutoCriticalSection lock(&clients_sync_);
-
-    std::list<ClientInfo*>::iterator iter;
-    for (iter = clients_.begin(); iter != clients_.end(); ++iter) {
-      ClientInfo* client_info = *iter;
-      delete client_info;
-    }
+    
+    
+    
+    
+    delete client_info;
   }
 
   if (server_alive_handle_) {
@@ -197,10 +195,18 @@ CrashGenerationServer::~CrashGenerationServer() {
     CloseHandle(server_alive_handle_);
   }
 
-  DeleteCriticalSection(&clients_sync_);
+  if (overlapped_.hEvent) {
+    CloseHandle(overlapped_.hEvent);
+  }
+  
+  DeleteCriticalSection(&sync_);
 }
 
 bool CrashGenerationServer::Start() {
+  if (server_state_ != IPC_SERVER_STATE_UNINITIALIZED) {
+    return false;
+  }
+
   server_state_ = IPC_SERVER_STATE_INITIAL;
 
   server_alive_handle_ = CreateMutex(NULL, TRUE, NULL);
@@ -241,7 +247,13 @@ bool CrashGenerationServer::Start() {
 
   
   
-  return SetEvent(overlapped_.hEvent) != FALSE;
+  if (!SetEvent(overlapped_.hEvent)) {
+    server_state_ = IPC_SERVER_STATE_ERROR;
+    return false;
+  }
+
+  
+  return true;
 }
 
 
@@ -283,33 +295,29 @@ void CrashGenerationServer::HandleInitialState() {
   assert(server_state_ == IPC_SERVER_STATE_INITIAL);
 
   if (!ResetEvent(overlapped_.hEvent)) {
-    server_state_ = IPC_SERVER_STATE_ERROR;
+    EnterErrorState();
     return;
   }
 
   bool success = ConnectNamedPipe(pipe_, &overlapped_) != FALSE;
+  DWORD error_code = success ? ERROR_SUCCESS : GetLastError();
 
   
   
   
   assert(!success);
 
-  DWORD error_code = GetLastError();
   switch (error_code) {
     case ERROR_IO_PENDING:
-      server_state_ = IPC_SERVER_STATE_CONNECTING;
+      EnterStateWhenSignaled(IPC_SERVER_STATE_CONNECTING);
       break;
 
     case ERROR_PIPE_CONNECTED:
-      if (SetEvent(overlapped_.hEvent)) {
-        server_state_ = IPC_SERVER_STATE_CONNECTED;
-      } else {
-        server_state_ = IPC_SERVER_STATE_ERROR;
-      }
+      EnterStateImmediately(IPC_SERVER_STATE_CONNECTED);
       break;
 
     default:
-      server_state_ = IPC_SERVER_STATE_ERROR;
+      EnterErrorState();
       break;
   }
 }
@@ -328,14 +336,14 @@ void CrashGenerationServer::HandleConnectingState() {
                                      &overlapped_,
                                      &bytes_count,
                                      FALSE) != FALSE;
+  DWORD error_code = success ? ERROR_SUCCESS : GetLastError();
 
   if (success) {
-    server_state_ = IPC_SERVER_STATE_CONNECTED;
-    return;
-  }
-
-  if (GetLastError() != ERROR_IO_INCOMPLETE) {
-    server_state_ = IPC_SERVER_STATE_DISCONNECTING;
+    EnterStateImmediately(IPC_SERVER_STATE_CONNECTED);
+  } else if (error_code != ERROR_IO_INCOMPLETE) {
+    EnterStateImmediately(IPC_SERVER_STATE_DISCONNECTING);
+  } else {
+    
   }
 }
 
@@ -353,16 +361,17 @@ void CrashGenerationServer::HandleConnectedState() {
                           sizeof(msg_),
                           &bytes_count,
                           &overlapped_) != FALSE;
+  DWORD error_code = success ? ERROR_SUCCESS : GetLastError();
 
   
   
   
   
   
-  if (success || GetLastError() == ERROR_IO_PENDING) {
-    server_state_ = IPC_SERVER_STATE_READING;
+  if (success || error_code == ERROR_IO_PENDING) {
+    EnterStateWhenSignaled(IPC_SERVER_STATE_READING);
   } else {
-    server_state_ = IPC_SERVER_STATE_DISCONNECTING;
+    EnterStateImmediately(IPC_SERVER_STATE_DISCONNECTING);
   }
 }
 
@@ -378,21 +387,18 @@ void CrashGenerationServer::HandleReadingState() {
                                      &overlapped_,
                                      &bytes_count,
                                      FALSE) != FALSE;
+  DWORD error_code = success ? ERROR_SUCCESS : GetLastError();
 
   if (success && bytes_count == sizeof(ProtocolMessage)) {
-    server_state_ = IPC_SERVER_STATE_READ_DONE;
-    return;
+    EnterStateImmediately(IPC_SERVER_STATE_READ_DONE);
+  } else {
+    
+    
+    
+    assert(error_code != ERROR_IO_INCOMPLETE);
+
+    EnterStateImmediately(IPC_SERVER_STATE_DISCONNECTING);
   }
-
-  DWORD error_code;
-  error_code = GetLastError();
-
-  
-  
-  
-  assert(error_code != ERROR_IO_INCOMPLETE);
-
-  server_state_ = IPC_SERVER_STATE_DISCONNECTING;
 }
 
 
@@ -405,13 +411,20 @@ void CrashGenerationServer::HandleReadDoneState() {
   assert(server_state_ == IPC_SERVER_STATE_READ_DONE);
 
   if (!IsClientRequestValid(msg_)) {
-    server_state_ = IPC_SERVER_STATE_DISCONNECTING;
+    EnterStateImmediately(IPC_SERVER_STATE_DISCONNECTING);
+    return;
+  }
+
+  if (msg_.tag == MESSAGE_TAG_UPLOAD_REQUEST) {
+    if (upload_request_callback_)
+      upload_request_callback_(upload_context_, msg_.id);
+    EnterStateImmediately(IPC_SERVER_STATE_DISCONNECTING);
     return;
   }
 
   scoped_ptr<ClientInfo> client_info(
       new ClientInfo(this,
-                     msg_.pid,
+                     msg_.id,
                      msg_.dump_type,
                      msg_.thread_id,
                      msg_.exception_pointers,
@@ -419,22 +432,27 @@ void CrashGenerationServer::HandleReadDoneState() {
                      msg_.custom_client_info));
 
   if (!client_info->Initialize()) {
-    server_state_ = IPC_SERVER_STATE_DISCONNECTING;
+    EnterStateImmediately(IPC_SERVER_STATE_DISCONNECTING);
     return;
   }
 
+  
+  
+  
   if (!RespondToClient(client_info.get())) {
-    server_state_ = IPC_SERVER_STATE_DISCONNECTING;
+    EnterStateImmediately(IPC_SERVER_STATE_DISCONNECTING);
     return;
   }
+
+  
+  client_info_ = client_info.release();
 
   
   
   
   
   
-  server_state_ = IPC_SERVER_STATE_WRITING;
-  client_info_ = client_info.release();
+  EnterStateWhenSignaled(IPC_SERVER_STATE_WRITING);
 }
 
 
@@ -449,21 +467,19 @@ void CrashGenerationServer::HandleWritingState() {
                                      &overlapped_,
                                      &bytes_count,
                                      FALSE) != FALSE;
+  DWORD error_code = success ? ERROR_SUCCESS : GetLastError();
 
   if (success) {
-    server_state_ = IPC_SERVER_STATE_WRITE_DONE;
+    EnterStateImmediately(IPC_SERVER_STATE_WRITE_DONE);
     return;
   }
-
-  DWORD error_code;
-  error_code = GetLastError();
 
   
   
   
   assert(error_code != ERROR_IO_INCOMPLETE);
 
-  server_state_ = IPC_SERVER_STATE_DISCONNECTING;
+  EnterStateImmediately(IPC_SERVER_STATE_DISCONNECTING);
 }
 
 
@@ -473,23 +489,20 @@ void CrashGenerationServer::HandleWritingState() {
 void CrashGenerationServer::HandleWriteDoneState() {
   assert(server_state_ == IPC_SERVER_STATE_WRITE_DONE);
 
-  server_state_ = IPC_SERVER_STATE_READING_ACK;
-
   DWORD bytes_count = 0;
   bool success = ReadFile(pipe_,
-                          &msg_,
-                          sizeof(msg_),
-                          &bytes_count,
-                          &overlapped_) != FALSE;
+                           &msg_,
+                           sizeof(msg_),
+                           &bytes_count,
+                           &overlapped_) != FALSE;
+  DWORD error_code = success ? ERROR_SUCCESS : GetLastError();
 
   if (success) {
-    return;
-  }
-
-  DWORD error_code = GetLastError();
-
-  if (error_code != ERROR_IO_PENDING) {
-    server_state_ = IPC_SERVER_STATE_DISCONNECTING;
+    EnterStateImmediately(IPC_SERVER_STATE_READING_ACK);
+  } else if (error_code == ERROR_IO_PENDING) {
+    EnterStateWhenSignaled(IPC_SERVER_STATE_READING_ACK);
+  } else {
+    EnterStateImmediately(IPC_SERVER_STATE_DISCONNECTING);
   }
 }
 
@@ -503,23 +516,47 @@ void CrashGenerationServer::HandleReadingAckState() {
                                      &overlapped_,
                                      &bytes_count,
                                      FALSE) != FALSE;
+  DWORD error_code = success ? ERROR_SUCCESS : GetLastError();
 
   if (success) {
     
     
     if (connect_callback_) {
-      connect_callback_(connect_context_, client_info_);
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      AutoCriticalSection lock(&sync_);
+
+      bool client_is_still_alive = false;
+      std::list<ClientInfo*>::iterator iter;
+      for (iter = clients_.begin(); iter != clients_.end(); ++iter) {
+        if (client_info_ == *iter) {
+          client_is_still_alive = true;
+          break;
+        }
+      }
+
+      if (client_is_still_alive) {
+        connect_callback_(connect_context_, client_info_);
+      }
     }
   } else {
-    DWORD error_code = GetLastError();
-
     
     
     
     assert(error_code != ERROR_IO_INCOMPLETE);
   }
 
-  server_state_ = IPC_SERVER_STATE_DISCONNECTING;
+  EnterStateImmediately(IPC_SERVER_STATE_DISCONNECTING);
 }
 
 
@@ -539,12 +576,12 @@ void CrashGenerationServer::HandleDisconnectingState() {
   overlapped_.Pointer = NULL;
 
   if (!ResetEvent(overlapped_.hEvent)) {
-    server_state_ = IPC_SERVER_STATE_ERROR;
+    EnterErrorState();
     return;
   }
 
   if (!DisconnectNamedPipe(pipe_)) {
-    server_state_ = IPC_SERVER_STATE_ERROR;
+    EnterErrorState();
     return;
   }
 
@@ -554,7 +591,21 @@ void CrashGenerationServer::HandleDisconnectingState() {
     return;
   }
 
-  server_state_ = IPC_SERVER_STATE_INITIAL;
+  EnterStateImmediately(IPC_SERVER_STATE_INITIAL);
+}
+
+void CrashGenerationServer::EnterErrorState() {
+  SetEvent(overlapped_.hEvent);
+  server_state_ = IPC_SERVER_STATE_ERROR;
+}
+
+void CrashGenerationServer::EnterStateWhenSignaled(IPCServerState state) {
+  server_state_ = state;
+}
+
+void CrashGenerationServer::EnterStateImmediately(IPCServerState state) {
+  server_state_ = state;
+
   if (!SetEvent(overlapped_.hEvent)) {
     server_state_ = IPC_SERVER_STATE_ERROR;
   }
@@ -563,22 +614,45 @@ void CrashGenerationServer::HandleDisconnectingState() {
 bool CrashGenerationServer::PrepareReply(const ClientInfo& client_info,
                                          ProtocolMessage* reply) const {
   reply->tag = MESSAGE_TAG_REGISTRATION_RESPONSE;
-  reply->pid = GetCurrentProcessId();
+  reply->id = GetCurrentProcessId();
 
   if (CreateClientHandles(client_info, reply)) {
     return true;
   }
 
+  
+  
   if (reply->dump_request_handle) {
-    CloseHandle(reply->dump_request_handle);
+    DuplicateHandle(client_info.process_handle(),  
+                    reply->dump_request_handle,    
+                    NULL,                          
+                    0,                             
+                    0,                             
+                    FALSE,                         
+                    DUPLICATE_CLOSE_SOURCE);       
+    reply->dump_request_handle = NULL;
   }
 
   if (reply->dump_generated_handle) {
-    CloseHandle(reply->dump_generated_handle);
+    DuplicateHandle(client_info.process_handle(),  
+                    reply->dump_generated_handle,  
+                    NULL,                          
+                    0,                             
+                    0,                             
+                    FALSE,                         
+                    DUPLICATE_CLOSE_SOURCE);       
+    reply->dump_generated_handle = NULL;
   }
 
   if (reply->server_alive_handle) {
-    CloseHandle(reply->server_alive_handle);
+    DuplicateHandle(client_info.process_handle(),  
+                    reply->server_alive_handle,    
+                    NULL,                          
+                    0,                             
+                    0,                             
+                    FALSE,                         
+                    DUPLICATE_CLOSE_SOURCE);       
+    reply->server_alive_handle = NULL;
   }
 
   return false;
@@ -626,18 +700,21 @@ bool CrashGenerationServer::RespondToClient(ClientInfo* client_info) {
     return false;
   }
 
-  if (!AddClient(client_info)) {
+  DWORD bytes_count = 0;
+  bool success = WriteFile(pipe_,
+                            &reply,
+                            sizeof(reply),
+                            &bytes_count,
+                            &overlapped_) != FALSE;
+  DWORD error_code = success ? ERROR_SUCCESS : GetLastError();
+
+  if (!success && error_code != ERROR_IO_PENDING) {
     return false;
   }
 
-  DWORD bytes_count = 0;
-  bool success = WriteFile(pipe_,
-                           &reply,
-                           sizeof(reply),
-                           &bytes_count,
-                           &overlapped_) != FALSE;
-
-  return success || GetLastError() == ERROR_IO_PENDING;
+  
+  
+  return AddClient(client_info);
 }
 
 
@@ -730,7 +807,11 @@ bool CrashGenerationServer::AddClient(ClientInfo* client_info) {
 
   
   {
-    AutoCriticalSection lock(&clients_sync_);
+    AutoCriticalSection lock(&sync_);
+    if (shutting_down_) {
+      
+      return false;
+    }
     clients_.push_back(client_info);
   }
 
@@ -739,7 +820,7 @@ bool CrashGenerationServer::AddClient(ClientInfo* client_info) {
 
 
 void CALLBACK CrashGenerationServer::OnPipeConnected(void* context, BOOLEAN) {
-  assert (context);
+  assert(context);
 
   CrashGenerationServer* obj =
       reinterpret_cast<CrashGenerationServer*>(context);
@@ -767,55 +848,55 @@ void CALLBACK CrashGenerationServer::OnClientEnd(void* context, BOOLEAN) {
   CrashGenerationServer* crash_server = client_info->crash_server();
   assert(crash_server);
 
-  InterlockedIncrement(&crash_server->cleanup_item_count_);
-
-  if (!QueueUserWorkItem(CleanupClient, context, WT_EXECUTEDEFAULT)) {
-    InterlockedDecrement(&crash_server->cleanup_item_count_);
-  }
+  crash_server->HandleClientProcessExit(client_info);
 }
 
-
-DWORD WINAPI CrashGenerationServer::CleanupClient(void* context) {
-  assert(context);
-  ClientInfo* client_info = reinterpret_cast<ClientInfo*>(context);
-
-  CrashGenerationServer* crash_server = client_info->crash_server();
-  assert(crash_server);
-
-  if (crash_server->exit_callback_) {
-    crash_server->exit_callback_(crash_server->exit_context_, client_info);
-  }
-
-  crash_server->DoCleanup(client_info);
-
-  InterlockedDecrement(&crash_server->cleanup_item_count_);
-  return 0;
-}
-
-void CrashGenerationServer::DoCleanup(ClientInfo* client_info) {
+void CrashGenerationServer::HandleClientProcessExit(ClientInfo* client_info) {
   assert(client_info);
 
   
+  
+  
+  client_info->UnregisterDumpRequestWaitAndBlockUntilNoPending();
+
+  if (exit_callback_) {
+    exit_callback_(exit_context_, client_info);
+  }
+
+  
   {
-    AutoCriticalSection lock(&clients_sync_);
+    AutoCriticalSection lock(&sync_);
+    if (shutting_down_) {
+      
+      
+      return;
+    }
     clients_.remove(client_info);
   }
+
+  
+  
+  
+  
+  client_info->UnregisterProcessExitWait(false);
 
   delete client_info;
 }
 
 void CrashGenerationServer::HandleDumpRequest(const ClientInfo& client_info) {
+  bool execute_callback = true;
   
   
   
   std::wstring dump_path;
   if (generate_dumps_) {
     if (!GenerateDump(client_info, &dump_path)) {
-      return;
+      
+      execute_callback = false;
     }
   }
 
-  if (dump_callback_) {
+  if (dump_callback_ && execute_callback) {
     std::wstring* ptr_dump_path = (dump_path == L"") ? NULL : &dump_path;
     dump_callback_(dump_context_, &client_info, ptr_dump_path);
   }

@@ -27,6 +27,14 @@
 
 
 
+
+
+
+
+
+
+
+
 #ifndef CLIENT_LINUX_MINIDUMP_WRITER_LINUX_DUMPER_H_
 #define CLIENT_LINUX_MINIDUMP_WRITER_LINUX_DUMPER_H_
 
@@ -34,13 +42,10 @@
 #include <linux/limits.h>
 #include <stdint.h>
 #include <sys/types.h>
-#if !defined(__ANDROID__)
 #include <sys/user.h>
-#endif
 
 #include "common/memory.h"
 #include "google_breakpad/common/minidump_format.h"
-#include <asm/ptrace.h>
 
 namespace google_breakpad {
 
@@ -50,24 +55,8 @@ typedef typeof(((struct user*) 0)->u_debugreg[0]) debugreg_t;
 
 
 #if defined(__i386) || defined(__ARM_EABI__)
-#if !defined(__ANDROID__)
 typedef Elf32_auxv_t elf_aux_entry;
-#else
-
-typedef struct
-{
-  uint32_t a_type;              
-  union
-    {
-      uint32_t a_val;           
-    } a_un;
-} elf_aux_entry;
-
-#if !defined(AT_SYSINFO_EHDR)
-#define AT_SYSINFO_EHDR 33
-#endif
-#endif  
-#elif defined(__x86_64__)
+#elif defined(__x86_64)
 typedef Elf64_auxv_t elf_aux_entry;
 #endif
 
@@ -80,7 +69,6 @@ const char kLinuxGateLibraryName[] = "linux-gate.so";
 
 
 struct ThreadInfo {
-  pid_t tid;    
   pid_t tgid;   
   pid_t ppid;   
 
@@ -101,12 +89,8 @@ struct ThreadInfo {
 
 #elif defined(__ARM_EABI__)
   
-#if defined(__ANDROID__)
-  struct pt_regs regs;
-#else
   struct user_regs regs;
   struct user_fpregs fpregs;
-#endif  
 #endif
 };
 
@@ -119,36 +103,31 @@ struct MappingInfo {
   char name[NAME_MAX];
 };
 
-
-bool AttachThread(pid_t pid);
-
-
-bool DetachThread(pid_t pid);
-
-
-
-bool GetThreadRegisters(ThreadInfo* info);
-
 class LinuxDumper {
  public:
   explicit LinuxDumper(pid_t pid);
 
-  
-  bool Init();
+  virtual ~LinuxDumper();
 
   
-  bool ThreadsAttach();
-  bool ThreadsDetach();
+  virtual bool Init();
+
+  
+  virtual bool IsPostMortem() const = 0;
+
+  
+  virtual bool ThreadsSuspend() = 0;
+  virtual bool ThreadsResume() = 0;
 
   
   
-  bool ThreadInfoGet(ThreadInfo* info);
+  virtual bool GetThreadInfoByIndex(size_t index, ThreadInfo* info) = 0;
 
   
   const wasteful_vector<pid_t> &threads() { return threads_; }
   const wasteful_vector<MappingInfo*> &mappings() { return mappings_; }
   const MappingInfo* FindMapping(const void* address) const;
-  const wasteful_vector<elf_aux_val_t> &auxv() { return auxv_; }
+  const wasteful_vector<elf_aux_val_t>& auxv() { return auxv_; }
 
   
   
@@ -159,31 +138,74 @@ class LinuxDumper {
   PageAllocator* allocator() { return &allocator_; }
 
   
-  static void CopyFromProcess(void* dest, pid_t child, const void* src,
-                              size_t length);
+  
+  virtual void CopyFromProcess(void* dest, pid_t child, const void* src,
+                               size_t length) = 0;
 
   
   
   
-  void BuildProcPath(char* path, pid_t pid, const char* node) const;
+  
+  virtual bool BuildProcPath(char* path, pid_t pid, const char* node) const = 0;
 
+  
   
   bool ElfFileIdentifierForMapping(const MappingInfo& mapping,
+                                   bool member,
+                                   unsigned int mapping_id,
                                    uint8_t identifier[sizeof(MDGUID)]);
 
- private:
-  bool ReadAuxv();
-  bool EnumerateMappings(wasteful_vector<MappingInfo*>* result) const;
-  bool EnumerateThreads(wasteful_vector<pid_t>* result) const;
+  uintptr_t crash_address() const { return crash_address_; }
+  void set_crash_address(uintptr_t crash_address) {
+    crash_address_ = crash_address;
+  }
 
+  int crash_signal() const { return crash_signal_; }
+  void set_crash_signal(int crash_signal) { crash_signal_ = crash_signal; }
+
+  pid_t crash_thread() const { return crash_thread_; }
+  void set_crash_thread(pid_t crash_thread) { crash_thread_ = crash_thread; }
+
+ protected:
+  bool ReadAuxv();
+
+  virtual bool EnumerateMappings();
+
+  virtual bool EnumerateThreads() = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool HandleDeletedFileInMapping(char* path) const;
+
+   
   const pid_t pid_;
+
+  
+  uintptr_t crash_address_;
+
+  
+  int crash_signal_;
+
+  
+  pid_t crash_thread_;
 
   mutable PageAllocator allocator_;
 
-  bool threads_suspended_;
-  wasteful_vector<pid_t> threads_;  
-  wasteful_vector<MappingInfo*> mappings_;  
-  wasteful_vector<elf_aux_val_t> auxv_;  
+  
+  wasteful_vector<pid_t> threads_;
+
+  
+  wasteful_vector<MappingInfo*> mappings_;
+
+  
+  wasteful_vector<elf_aux_val_t> auxv_;
 };
 
 }  

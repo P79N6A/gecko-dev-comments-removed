@@ -49,8 +49,7 @@
 #include "common/dwarf/bytereader.h"
 #include "common/dwarf/dwarf2enums.h"
 #include "common/dwarf/types.h"
-
-using namespace std;
+#include "common/using_std_string.h"
 
 namespace dwarf2reader {
 struct LineStateMachine;
@@ -59,8 +58,9 @@ class LineInfoHandler;
 
 
 
-typedef map<string, pair<const char*, uint64> > SectionMap;
-typedef list<pair<enum DwarfAttribute, enum DwarfForm> > AttributeList;
+typedef std::map<string, std::pair<const char*, uint64> > SectionMap;
+typedef std::list<std::pair<enum DwarfAttribute, enum DwarfForm> >
+    AttributeList;
 typedef AttributeList::iterator AttributeIterator;
 typedef AttributeList::const_iterator ConstAttributeIterator;
 
@@ -75,7 +75,7 @@ struct LineInfoHeader {
   uint8 opcode_base;
   
   
-  vector<unsigned char> *std_opcode_lengths;
+  std::vector<unsigned char> *std_opcode_lengths;
 };
 
 class LineInfo {
@@ -313,7 +313,7 @@ class CompilationUnit {
   
   
   
-  vector<Abbrev>* abbrevs_;
+  std::vector<Abbrev>* abbrevs_;
 
   
   
