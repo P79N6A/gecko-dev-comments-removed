@@ -47,13 +47,16 @@ public class HomePager extends ViewPager {
     }
 
     public HomePager(Context context) {
-        super(context);
-        mContext = context;
+        this(context, null);
     }
 
     public HomePager(Context context, AttributeSet attrs) {
         super(context, attrs);
         mContext = context;
+
+        
+        
+        setOffscreenPageLimit(2);
     }
 
     
