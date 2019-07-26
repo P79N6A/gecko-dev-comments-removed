@@ -156,7 +156,7 @@ class IonExitFooterFrame
 };
 
 class IonNativeExitFrameLayout;
-class IonOOLNativeGetterExitFrameLayout;
+class IonOOLNativeExitFrameLayout;
 class IonOOLPropertyOpExitFrameLayout;
 class IonOOLProxyGetExitFrameLayout;
 class IonDOMExitFrameLayout;
@@ -194,8 +194,8 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     inline bool isNativeExit() {
         return footer()->ionCode() == NULL;
     }
-    inline bool isOOLNativeGetterExit() {
-        return footer()->ionCode() == ION_FRAME_OOL_NATIVE_GETTER;
+    inline bool isOOLNativeExit() {
+        return footer()->ionCode() == ION_FRAME_OOL_NATIVE;
     }
     inline bool isOOLPropertyOpExit() {
         return footer()->ionCode() == ION_FRAME_OOL_PROPERTY_OP;
@@ -216,9 +216,9 @@ class IonExitFrameLayout : public IonCommonFrameLayout
         JS_ASSERT(isNativeExit());
         return reinterpret_cast<IonNativeExitFrameLayout *>(footer());
     }
-    inline IonOOLNativeGetterExitFrameLayout *oolNativeGetterExit() {
-        JS_ASSERT(isOOLNativeGetterExit());
-        return reinterpret_cast<IonOOLNativeGetterExitFrameLayout *>(footer());
+    inline IonOOLNativeExitFrameLayout *oolNativeExit() {
+        JS_ASSERT(isOOLNativeExit());
+        return reinterpret_cast<IonOOLNativeExitFrameLayout *>(footer());
     }
     inline IonOOLPropertyOpExitFrameLayout *oolPropertyOpExit() {
         JS_ASSERT(isOOLPropertyOpExit());
@@ -262,11 +262,16 @@ class IonNativeExitFrameLayout
     }
 };
 
-class IonOOLNativeGetterExitFrameLayout
+class IonOOLNativeExitFrameLayout
 {
   protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
+
+    
+    IonCode *stubCode_;
+
+    uintptr_t argc_;
 
     
     
@@ -277,16 +282,14 @@ class IonOOLNativeGetterExitFrameLayout
     uint32_t loThis_;
     uint32_t hiThis_;
 
-    
-    IonCode *stubCode_;
-
   public:
-    static inline size_t Size() {
-        return sizeof(IonOOLNativeGetterExitFrameLayout);
+    static inline size_t Size(size_t argc) {
+        
+        return sizeof(IonOOLNativeExitFrameLayout) + (argc * sizeof(Value));
     }
 
     static size_t offsetOfResult() {
-        return offsetof(IonOOLNativeGetterExitFrameLayout, loCalleeResult_);
+        return offsetof(IonOOLNativeExitFrameLayout, loCalleeResult_);
     }
 
     inline IonCode **stubCode() {
@@ -298,9 +301,8 @@ class IonOOLNativeGetterExitFrameLayout
     inline Value *thisp() {
         return reinterpret_cast<Value*>(&loThis_);
     }
-
     inline uintptr_t argc() const {
-        return 0;
+        return argc_;
     }
 };
 
