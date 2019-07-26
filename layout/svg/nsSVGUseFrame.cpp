@@ -5,7 +5,6 @@
 
 
 #include "nsIAnonymousContentCreator.h"
-#include "nsIDOMSVGUseElement.h"
 #include "nsSVGGFrame.h"
 #include "nsSVGUseElement.h"
 #include "nsContentList.h"
@@ -101,10 +100,8 @@ nsSVGUseFrame::Init(nsIContent* aContent,
                     nsIFrame* aParent,
                     nsIFrame* aPrevInFlow)
 {
-#ifdef DEBUG
-  nsCOMPtr<nsIDOMSVGUseElement> use = do_QueryInterface(aContent);
-  NS_ASSERTION(use, "Content is not an SVG use!");
-#endif 
+  NS_ASSERTION(aContent->IsSVG(nsGkAtoms::use),
+               "Content is not an SVG use!");
 
   mHasValidDimensions =
     static_cast<nsSVGUseElement*>(aContent)->HasValidDimensions();

@@ -7,7 +7,6 @@
 #include "nsSVGRect.h"
 #include "DOMSVGPoint.h"
 #include "nsSVGSVGElement.h"
-#include "nsIDOMSVGSVGElement.h"
 #include "nsIPresShell.h"
 #include "nsIDocument.h"
 #include "mozilla/dom/Element.h"
@@ -48,11 +47,10 @@ nsDOMSVGZoomEvent::nsDOMSVGZoomEvent(nsPresContext* aPresContext,
         
         
         
-        nsCOMPtr<nsIDOMSVGSVGElement> svgElement = do_QueryInterface(rootElement);
-        if (svgElement) {
+        if (rootElement->IsSVG(nsGkAtoms::svg)) {
           nsSVGSVGElement *SVGSVGElement =
             static_cast<nsSVGSVGElement*>(rootElement);
-  
+
           mNewScale = SVGSVGElement->GetCurrentScale();
           mPreviousScale = SVGSVGElement->GetPreviousScale();
 
