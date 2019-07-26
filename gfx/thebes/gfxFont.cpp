@@ -3311,6 +3311,17 @@ gfxFont::ShapeFragmentWithoutWordCache(gfxContext *aContext,
     return ok;
 }
 
+
+
+
+
+
+static bool
+IsInvalidControlChar(uint32_t aCh)
+{
+    return aCh != '\r' && ((aCh & 0x7f) < 0x20 || aCh == 0x7f);
+}
+
 template<typename T>
 bool
 gfxFont::ShapeTextWithoutWordCache(gfxContext *aContext,
@@ -3350,7 +3361,7 @@ gfxFont::ShapeTextWithoutWordCache(gfxContext *aContext,
             aTextRun->SetIsTab(aOffset + i);
         } else if (ch == '\n') {
             aTextRun->SetIsNewline(aOffset + i);
-        } else if ((ch & 0x7f) < 0x20 || ch == 0x7f) {
+        } else if (IsInvalidControlChar(ch)) {
             aTextRun->SetMissingGlyph(aOffset + i, ch, this);
         }
         fragStart = i + 1;
@@ -3494,7 +3505,7 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
             aTextRun->SetIsTab(aRunStart + i);
         } else if (ch == '\n') {
             aTextRun->SetIsNewline(aRunStart + i);
-        } else if ((ch & 0x7f) < 0x20 || ch == 0x7f) {
+        } else if (IsInvalidControlChar(ch)) {
             aTextRun->SetMissingGlyph(aRunStart + i, ch, this);
         }
 
