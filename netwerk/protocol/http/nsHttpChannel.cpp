@@ -2831,7 +2831,6 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
         LOG(("Validating based on MustValidate() returning TRUE\n"));
         doValidation = true;
     }
-
     else if (MustValidateBasedOnQueryUrl()) {
         LOG(("Validating based on RFC 2616 section 13.9 "
              "(query-url w/o explicit expiration-time)\n"));
@@ -2942,21 +2941,37 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
             (mRequestHead.Method() == nsHttp::Get ||
              mRequestHead.Method() == nsHttp::Head) &&
              !mCustomConditionalRequest) {
-            const char *val;
-            
-            
-            if (canAddImsHeader) {
-                val = mCachedResponseHead->PeekHeader(nsHttp::Last_Modified);
+
+            if (mConcurentCacheAccess) {
+                
+                
+                
+                
+                
+                
+                
+                
+                mConcurentCacheAccess = 0;
+                
+                
+                wantCompleteEntry = true;
+            } else {
+                const char *val;
+                
+                
+                if (canAddImsHeader) {
+                    val = mCachedResponseHead->PeekHeader(nsHttp::Last_Modified);
+                    if (val)
+                        mRequestHead.SetHeader(nsHttp::If_Modified_Since,
+                                               nsDependentCString(val));
+                }
+                
+                val = mCachedResponseHead->PeekHeader(nsHttp::ETag);
                 if (val)
-                    mRequestHead.SetHeader(nsHttp::If_Modified_Since,
+                    mRequestHead.SetHeader(nsHttp::If_None_Match,
                                            nsDependentCString(val));
+                mDidReval = true;
             }
-            
-            val = mCachedResponseHead->PeekHeader(nsHttp::ETag);
-            if (val)
-                mRequestHead.SetHeader(nsHttp::If_None_Match,
-                                       nsDependentCString(val));
-            mDidReval = true;
         }
     }
 
