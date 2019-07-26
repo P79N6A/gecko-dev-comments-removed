@@ -2680,7 +2680,7 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     
     Address valueAddr(BaselineStackReg, ICStackValueOffset);
     masm.loadValue(valueAddr, R0);
-    masm.patchableCallPreBarrier(element, MIRType_Value);
+    EmitPreBarrier(masm, element, MIRType_Value);
     masm.storeValue(R0, element);
     EmitReturnFromIC(masm);
 
@@ -3619,7 +3619,7 @@ ICSetProp_Native::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     masm.load32(Address(BaselineStubReg, ICSetProp_Native::offsetOfOffset()), scratch);
-    masm.patchableCallPreBarrier(BaseIndex(objReg, scratch, TimesOne), MIRType_Value);
+    EmitPreBarrier(masm, BaseIndex(objReg, scratch, TimesOne), MIRType_Value);
     masm.storeValue(R1, BaseIndex(objReg, scratch, TimesOne));
 
     

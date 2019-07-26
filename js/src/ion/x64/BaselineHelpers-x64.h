@@ -250,6 +250,12 @@ EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code, uint32_t objectOffset)
 }
 
 inline void
+EmitPreBarrier(MacroAssembler &masm, const BaseIndex &addr, MIRType type)
+{
+    masm.patchableCallPreBarrier(addr, type);
+}
+
+inline void
 EmitStubGuardFailure(MacroAssembler &masm)
 {
     
