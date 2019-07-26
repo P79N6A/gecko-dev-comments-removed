@@ -2254,12 +2254,18 @@ class MCompare
     bool operandMightEmulateUndefined_;
     bool operandsAreNeverNaN_;
 
+    
+    
+    
+    bool truncateOperands_;
+
     MCompare(MDefinition *left, MDefinition *right, JSOp jsop)
       : MBinaryInstruction(left, right),
         compareType_(Compare_Unknown),
         jsop_(jsop),
         operandMightEmulateUndefined_(true),
-        operandsAreNeverNaN_(false)
+        operandsAreNeverNaN_(false),
+        truncateOperands_(false)
     {
         setResultType(MIRType_Boolean);
         setMovable();

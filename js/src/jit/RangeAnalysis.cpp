@@ -2338,13 +2338,21 @@ MCompare::truncate()
         return false;
 
     compareType_ = Compare_Int32;
+
+    
+    
+    truncateOperands_ = true;
+
     return true;
 }
 
 bool
 MCompare::isOperandTruncated(size_t index) const
 {
-    return compareType() == Compare_Int32;
+    
+    
+    JS_ASSERT_IF(truncateOperands_, isInt32Comparison());
+    return truncateOperands_;
 }
 
 
