@@ -1199,11 +1199,11 @@ sdp_result_e sdp_parse_media (sdp_t *sdp_p, u16 level, const char *ptr)
     
 
 
-#define DATACHANNEL_NEW_TRANSPORT "DTLS/SCTP"
+#define DATACHANNEL_OLD_TRANSPORT "SCTP/DTLS"
     if (mca_p->transport == SDP_TRANSPORT_UNSUPPORTED) {
-        if (cpr_strncasecmp(tmp, DATACHANNEL_NEW_TRANSPORT,
-            strlen(DATACHANNEL_NEW_TRANSPORT)) == 0) {
-            mca_p->transport = SDP_TRANSPORT_SCTPDTLS;
+        if (cpr_strncasecmp(tmp, DATACHANNEL_OLD_TRANSPORT,
+            strlen(DATACHANNEL_OLD_TRANSPORT)) == 0) {
+            mca_p->transport = SDP_TRANSPORT_DTLSSCTP;
         }
     }
 
@@ -1231,7 +1231,7 @@ sdp_result_e sdp_parse_media (sdp_t *sdp_p, u16 level, const char *ptr)
             (mca_p->transport == SDP_TRANSPORT_UDPTL) ||
             (mca_p->transport == SDP_TRANSPORT_UDPSPRT) ||
             (mca_p->transport == SDP_TRANSPORT_LOCAL) ||
-            (mca_p->transport == SDP_TRANSPORT_SCTPDTLS)) {
+            (mca_p->transport == SDP_TRANSPORT_DTLSSCTP)) {
             
 
 
@@ -1384,7 +1384,7 @@ sdp_result_e sdp_parse_media (sdp_t *sdp_p, u16 level, const char *ptr)
     }
 
     
-    if (mca_p->transport == SDP_TRANSPORT_SCTPDTLS) {
+    if (mca_p->transport == SDP_TRANSPORT_DTLSSCTP) {
         ptr = sdp_getnextstrtok(ptr, port, sizeof(port), " \t", &result);
         if (result != SDP_SUCCESS) {
             sdp_parse_error(sdp_p->peerconnection,
@@ -1565,7 +1565,7 @@ sdp_result_e sdp_build_media (sdp_t *sdp_p, u16 level, flex_string *fs)
     flex_string_sprintf(fs, "%s",
                      sdp_get_transport_name(mca_p->transport));
 
-    if(mca_p->transport != SDP_TRANSPORT_SCTPDTLS) {
+    if(mca_p->transport != SDP_TRANSPORT_DTLSSCTP) {
 
         
         for (i=0; i < mca_p->num_payloads; i++) {
