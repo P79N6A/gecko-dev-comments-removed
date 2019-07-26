@@ -1668,6 +1668,8 @@ private:
 nsresult
 ReparentWrapper(JSContext* aCx, JS::Handle<JSObject*> aObjArg)
 {
+  js::AssertSameCompartment(aCx, aObjArg);
+
   
   
   JS_CHECK_RECURSION(aCx, return NS_ERROR_FAILURE);
