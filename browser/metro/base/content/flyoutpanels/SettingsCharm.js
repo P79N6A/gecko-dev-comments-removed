@@ -54,6 +54,17 @@ var SettingsCharm = {
 
     
     this.addEntry({
+        
+        
+        label: Elements.feedbackLabel.value,
+        onselected: function() {
+          let url = Elements.feedbackLabel.getAttribute("href");
+          BrowserUI.addAndShowTab(url, Browser.selectedTab);
+        }
+    });
+
+    
+    this.addEntry({
         label: Strings.browser.GetStringFromName("helpOnlineCharm"),
         onselected: function() {
           let url = Services.urlFormatter.formatURLPref("app.support.baseURL") +
