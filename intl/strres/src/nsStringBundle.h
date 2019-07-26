@@ -21,7 +21,6 @@ public:
     
     nsStringBundle(const char* aURLSpec, nsIStringBundleOverride*);
     nsresult LoadProperties();
-    virtual ~nsStringBundle();
 
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSISTRINGBUNDLE
@@ -29,6 +28,8 @@ public:
     nsCOMPtr<nsIPersistentProperties> mProps;
 
 protected:
+    virtual ~nsStringBundle();
+
     
     
     
@@ -49,6 +50,16 @@ public:
                                  const char16_t **aParams, uint32_t aLength,
                                  char16_t **aResult);
 };
+
+class nsExtensibleStringBundle;
+
+namespace mozilla {
+template<>
+struct HasDangerousPublicDestructor<nsExtensibleStringBundle>
+{
+  static const bool value = true;
+};
+}
 
 
 

@@ -19,14 +19,15 @@ public:
         mRealElement(aRealElement),
         mURLLength(aURLLength)
     { }
-    virtual ~URLPropertyElement() {}
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIPROPERTYELEMENT
-    
+
 private:
     nsCOMPtr<nsIPropertyElement> mRealElement;
     uint32_t mURLLength;
+
+    virtual ~URLPropertyElement() {}
 };
 
 NS_IMPL_ISUPPORTS(URLPropertyElement, nsIPropertyElement)
@@ -90,8 +91,7 @@ public:
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSISIMPLEENUMERATOR
-    
-    virtual ~nsPropertyEnumeratorByURL() {}
+
 private:
 
     
@@ -102,6 +102,8 @@ private:
 
     
     nsCString mURL;
+
+    virtual ~nsPropertyEnumeratorByURL() {}
 };
 
 

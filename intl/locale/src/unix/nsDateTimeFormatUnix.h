@@ -50,9 +50,9 @@ public:
 
   nsDateTimeFormatUnix() {mLocale.Truncate();mAppLocale.Truncate();}
 
+private:
   virtual ~nsDateTimeFormatUnix() {}
 
-private:
   
   NS_IMETHOD Initialize(nsILocale* locale);
 

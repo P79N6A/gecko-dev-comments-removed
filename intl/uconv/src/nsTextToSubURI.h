@@ -15,9 +15,10 @@ class nsTextToSubURI: public nsITextToSubURI {
 
 public:
   nsTextToSubURI();
-  virtual ~nsTextToSubURI();
 
 private:
+  virtual ~nsTextToSubURI();
+
   
   
   

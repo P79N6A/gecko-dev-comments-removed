@@ -30,7 +30,6 @@ public:
 	
 	
 	nsEntityConverter();
-	virtual ~nsEntityConverter();
 
 	
 	
@@ -62,6 +61,8 @@ protected:
 
   nsEntityVersionList *mVersionList;            
   uint32_t mVersionListLength;                  
+
+  virtual ~nsEntityConverter();
 };
 
 #endif

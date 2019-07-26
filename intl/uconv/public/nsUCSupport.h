@@ -79,11 +79,6 @@ public:
   nsBasicDecoderSupport();
 
   
-
-
-  virtual ~nsBasicDecoderSupport();
-
-  
   
 
   virtual void SetInputErrorBehavior(int32_t aBehavior);
@@ -91,6 +86,11 @@ public:
 
 protected:
   int32_t   mErrBehavior;
+
+  
+
+
+  virtual ~nsBasicDecoderSupport();
 };
 
 
@@ -282,6 +282,7 @@ public:
 
   nsBasicEncoder();
 
+protected:
   
 
 
