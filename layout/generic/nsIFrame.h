@@ -2056,6 +2056,10 @@ public:
 
 
 
+
+
+
+
   gfx3DMatrix GetTransformMatrix(const nsIFrame* aStopAtAncestor,
                                  nsIFrame **aOutAncestor);
 
