@@ -753,6 +753,7 @@ ThreadActor.prototype = {
       return { type: "resumeLimit", frameFinished: aRequest.forceCompletion };
     }
 
+    let resumeLimitHandled;
     if (aRequest && aRequest.resumeLimit) {
       
       
@@ -762,105 +763,135 @@ ThreadActor.prototype = {
       let createValueGrip = this.createValueGrip.bind(this);
 
       let startFrame = this.youngestFrame;
-      let startLine;
-      if (this.youngestFrame.script) {
-        let offset = this.youngestFrame.offset;
-        startLine = this.youngestFrame.script.getOffsetLine(offset);
-      }
-
-      
-
-      let onEnterFrame = aFrame => {
-        let { url } = this.synchronize(this.sources.getOriginalLocation({
-          url: aFrame.script.url,
-          line: aFrame.script.getOffsetLine(aFrame.offset),
-          column: getOffsetColumn(aFrame.offset, aFrame.script)
-        }));
-
-        return this.sources.isBlackBoxed(url)
-          ? undefined
-          : pauseAndRespond(aFrame);
+      let script = startFrame.script;
+      let generatedLocation = {
+        url: script ? script.url : null,
+        line: script ? script.getOffsetLine(this.youngestFrame.offset) : null,
+        column: script ? getOffsetColumn(this.youngestFrame.offset, script) : null
       };
+      resumeLimitHandled = this.sources.getOriginalLocation(generatedLocation)
+        .then((startLocation) => {
+          
 
-      let thread = this;
+          let onEnterFrame = aFrame => {
+            let script = aFrame.script;
+            let generatedLocation = {
+              url: script ? script.url : null,
+              line: script ? script.getOffsetLine(aFrame.offset) : null,
+              column: script ? getOffsetColumn(aFrame.offset, script) : null
+            };
+            let { url } = this.synchronize(
+              this.sources.getOriginalLocation(generatedLocation));
 
-      let onPop = function TA_onPop(aCompletion) {
-        
+            return this.sources.isBlackBoxed(url)
+              ? undefined
+              : pauseAndRespond(aFrame);
+          };
 
-        let { url } = thread.synchronize(thread.sources.getOriginalLocation({
-          url: this.script.url,
-          line: this.script.getOffsetLine(this.offset),
-          column: getOffsetColumn(this.offset, this.script)
-        }));
+          let thread = this;
 
-        if (thread.sources.isBlackBoxed(url)) {
-          return undefined;
-        }
-
-        
-        
-        this.reportedPop = true;
-
-        return pauseAndRespond(this, aPacket => {
-          aPacket.why.frameFinished = {};
-          if (!aCompletion) {
-            aPacket.why.frameFinished.terminated = true;
-          } else if (aCompletion.hasOwnProperty("return")) {
-            aPacket.why.frameFinished.return = createValueGrip(aCompletion.return);
-          } else if (aCompletion.hasOwnProperty("yield")) {
-            aPacket.why.frameFinished.return = createValueGrip(aCompletion.yield);
-          } else {
-            aPacket.why.frameFinished.throw = createValueGrip(aCompletion.throw);
-          }
-          return aPacket;
-        });
-      };
-
-      let onStep = function TA_onStep() {
-        
-
-        let { url } = thread.synchronize(thread.sources.getOriginalLocation({
-          url: this.script.url,
-          line: this.script.getOffsetLine(this.offset),
-          column: getOffsetColumn(this.offset, this.script)
-        }));
-
-        if (thread.sources.isBlackBoxed(url)) {
-          return undefined;
-        }
-
-        
-        if (this !== startFrame ||
-            (this.script &&
-             this.script.getOffsetLine(this.offset) != startLine)) {
-          return pauseAndRespond(this);
-        }
-
-        
-        return undefined;
-      };
-
-      let steppingType = aRequest.resumeLimit.type;
-      if (["step", "next", "finish"].indexOf(steppingType) == -1) {
-            return { error: "badParameterType",
-                     message: "Unknown resumeLimit type" };
-      }
-      
-      
-      let stepFrame = this._getNextStepFrame(startFrame);
-      if (stepFrame) {
-        switch (steppingType) {
-          case "step":
-            this.dbg.onEnterFrame = onEnterFrame;
+          let onPop = function TA_onPop(aCompletion) {
             
-          case "next":
-            stepFrame.onStep = onStep;
-            stepFrame.onPop = onPop;
-            break;
-          case "finish":
-            stepFrame.onPop = onPop;
-        }
-      }
+
+            let script = this.script;
+            let generatedLocation = {
+              url: script ? script.url : null,
+              line: script ? script.getOffsetLine(this.offset) : null,
+              column: script ? getOffsetColumn(this.offset, script) : null
+            };
+            let { url } = thread.synchronize(
+              thread.sources.getOriginalLocation(generatedLocation));
+
+            if (thread.sources.isBlackBoxed(url)) {
+              return undefined;
+            }
+
+            
+            
+            this.reportedPop = true;
+
+            return pauseAndRespond(this, aPacket => {
+              aPacket.why.frameFinished = {};
+              if (!aCompletion) {
+                aPacket.why.frameFinished.terminated = true;
+              } else if (aCompletion.hasOwnProperty("return")) {
+                aPacket.why.frameFinished.return = createValueGrip(aCompletion.return);
+              } else if (aCompletion.hasOwnProperty("yield")) {
+                aPacket.why.frameFinished.return = createValueGrip(aCompletion.yield);
+              } else {
+                aPacket.why.frameFinished.throw = createValueGrip(aCompletion.throw);
+              }
+              return aPacket;
+            });
+          };
+
+          let onStep = function TA_onStep() {
+            
+
+            const script = this.script;
+            const newLocation = thread.synchronize(
+              thread.sources.getOriginalLocation({
+                url: script ? script.url : null,
+                line: script ? this.script.getOffsetLine(this.offset) : null,
+                column: script ? getOffsetColumn(this.offset, this.script) : null
+              }));
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
+            
+            if (newLocation.url == null
+                || thread.sources.isBlackBoxed(newLocation.url)) {
+              return undefined;
+            }
+
+            
+            if (this !== startFrame
+                || startLocation.url !== newLocation.url
+                || startLocation.line !== newLocation.line) {
+              return pauseAndRespond(this);
+            }
+
+            
+            
+            return undefined;
+          };
+
+          let steppingType = aRequest.resumeLimit.type;
+          if (["step", "next", "finish"].indexOf(steppingType) == -1) {
+            throw { error: "badParameterType",
+                    message: "Unknown resumeLimit type" };
+          }
+          
+          
+          let stepFrame = this._getNextStepFrame(startFrame);
+          if (stepFrame) {
+            switch (steppingType) {
+              case "step":
+                this.dbg.onEnterFrame = onEnterFrame;
+                
+              case "next":
+                stepFrame.onStep = onStep;
+                stepFrame.onPop = onPop;
+                break;
+              case "finish":
+                stepFrame.onPop = onPop;
+            }
+          }
+          return true;
+        });
     } else {
       
       let frame = this.youngestFrame;
@@ -869,27 +900,37 @@ ThreadActor.prototype = {
         frame.onPop = undefined;
         frame = frame.older;
       }
+      resumeLimitHandled = resolve(true);
     }
 
-    if (aRequest) {
-      this._options.pauseOnExceptions = aRequest.pauseOnExceptions;
-      this._options.ignoreCaughtExceptions = aRequest.ignoreCaughtExceptions;
-      this.maybePauseOnExceptions();
-      
-      let events = aRequest.pauseOnDOMEvents;
-      if (this.global && events &&
-          (events == "*" ||
-          (Array.isArray(events) && events.length))) {
-        this._pauseOnDOMEvents = events;
-        let els = Cc["@mozilla.org/eventlistenerservice;1"]
-                  .getService(Ci.nsIEventListenerService);
-        els.addListenerForAllEvents(this.global, this._allEventsListener, true);
+    return resumeLimitHandled.then(() => {
+      if (aRequest) {
+        this._options.pauseOnExceptions = aRequest.pauseOnExceptions;
+        this._options.ignoreCaughtExceptions = aRequest.ignoreCaughtExceptions;
+        this.maybePauseOnExceptions();
+        
+        let events = aRequest.pauseOnDOMEvents;
+        if (this.global && events &&
+            (events == "*" ||
+             (Array.isArray(events) && events.length))) {
+          this._pauseOnDOMEvents = events;
+          let els = Cc["@mozilla.org/eventlistenerservice;1"]
+            .getService(Ci.nsIEventListenerService);
+          els.addListenerForAllEvents(this.global, this._allEventsListener, true);
+        }
       }
-    }
 
-    let packet = this._resumed();
-    this._popThreadPause();
-    return packet;
+      let packet = this._resumed();
+      this._popThreadPause();
+      return packet;
+    }, error => {
+      return error instanceof Error
+        ? { error: "unknownError",
+            message: safeErrorString(error) }
+        
+        
+        : error;
+    });
   },
 
   
