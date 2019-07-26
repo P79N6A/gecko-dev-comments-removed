@@ -4760,21 +4760,20 @@ var TabsProgressListener = {
   onLocationChange: function (aBrowser, aWebProgress, aRequest, aLocationURI,
                               aFlags) {
     
-    if (aBrowser.contentWindow == aWebProgress.DOMWindow) {
+    
+    if (aBrowser.contentWindow == aWebProgress.DOMWindow &&
+        !(aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)) {
       
-      
-      if (!(aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)) {
-        
-        aBrowser._clickToPlayPluginsActivated = new Map();
-        aBrowser._clickToPlayAllPluginsActivated = false;
-        aBrowser._pluginScriptedState = gPluginHandler.PLUGIN_SCRIPTED_STATE_NONE;
+      aBrowser._clickToPlayPluginsActivated = new Map();
+      aBrowser._clickToPlayAllPluginsActivated = false;
+      aBrowser._pluginScriptedState = gPluginHandler.PLUGIN_SCRIPTED_STATE_NONE;
 
-        
-        
-        
-        if (!Object.getOwnPropertyDescriptor(window, "PopupNotifications").get)
-          PopupNotifications.locationChange(aBrowser);
-      }
+      
+      
+      
+      if (!Object.getOwnPropertyDescriptor(window, "PopupNotifications").get)
+        PopupNotifications.locationChange(aBrowser);
+
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     }
   },
