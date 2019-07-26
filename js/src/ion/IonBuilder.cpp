@@ -7101,7 +7101,7 @@ IonBuilder::jsop_rest()
     
     if (inliningDepth_ == 0) {
         
-        JSObject *templateObject = getNewArrayTemplateObject(0);
+        JSObject *templateObject = NewDenseUnallocatedArray(cx, 0, NULL, TenuredObject);
         if (!templateObject)
             return false;
 
@@ -7120,7 +7120,7 @@ IonBuilder::jsop_rest()
     unsigned numActuals = inlineCallInfo_->argv().length();
     unsigned numFormals = info().nargs() - 1;
     unsigned numRest = numActuals > numFormals ? numActuals - numFormals : 0;
-    JSObject *templateObject = getNewArrayTemplateObject(numRest);
+    JSObject *templateObject = NewDenseUnallocatedArray(cx, numRest, NULL, TenuredObject);
 
     MNewArray *array = new MNewArray(numRest, templateObject, MNewArray::NewArray_Allocating);
     current->add(array);
@@ -7133,15 +7133,6 @@ IonBuilder::jsop_rest()
     MElements *elements = MElements::New(array);
     current->add(elements);
 
-    types::TypeObject *arrayType = templateObject->type();
-    types::HeapTypeSet *elemTypes = NULL;
-    Vector<MInstruction *> setElemCalls(cx);
-    if (!arrayType->unknownProperties()) {
-        elemTypes = arrayType->getProperty(cx, JSID_VOID, false);
-        if (!elemTypes)
-            return false;
-    }
-
     
     
     MConstant *index;
@@ -7149,34 +7140,15 @@ IonBuilder::jsop_rest()
         index = MConstant::New(Int32Value(i - numFormals));
         current->add(index);
 
-        MInstruction *store;
         MDefinition *arg = inlineCallInfo_->argv()[i];
-        if (elemTypes && !TypeSetIncludes(elemTypes, arg->type(), arg->resultTypeSet())) {
-            elemTypes->addFreeze(cx);
-            store = MCallSetElement::New(array, index, arg);
-            if (!setElemCalls.append(store))
-                return false;
-        } else {
-            store = MStoreElement::New(elements, index, arg,  false);
-        }
-
+        MStoreElement *store = MStoreElement::New(elements, index, arg,
+                                                   false);
         current->add(store);
     }
 
     MSetInitializedLength *initLength = MSetInitializedLength::New(elements, index);
     current->add(initLength);
-
     current->push(array);
-
-    
-    
-    
-    
-    
-    for (unsigned i = 0; i < setElemCalls.length(); i++) {
-        if (!resumeAfter(setElemCalls[i]))
-            return false;
-    }
 
     return true;
 }
