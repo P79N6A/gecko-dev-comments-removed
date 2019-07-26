@@ -132,6 +132,7 @@ namespace mozilla {
 namespace layers {
 
 typedef mozilla::layers::AllowedTouchBehavior AllowedTouchBehavior;
+typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
@@ -1992,11 +1993,11 @@ void AsyncPanZoomController::SetState(PanZoomState aNewState) {
 
   if (mGeckoContentController) {
     if (!IsTransformingState(oldState) && IsTransformingState(aNewState)) {
-      mGeckoContentController->NotifyTransformBegin(
-        ScrollableLayerGuid(mLayersId, mFrameMetrics.mPresShellId, mFrameMetrics.GetScrollId()));
+      mGeckoContentController->NotifyAPZStateChange(
+        GetGuid(), APZStateChange::TransformBegin);
     } else if (IsTransformingState(oldState) && !IsTransformingState(aNewState)) {
-      mGeckoContentController->NotifyTransformEnd(
-        ScrollableLayerGuid(mLayersId, mFrameMetrics.mPresShellId, mFrameMetrics.GetScrollId()));
+      mGeckoContentController->NotifyAPZStateChange(
+        GetGuid(), APZStateChange::TransformEnd);
     }
   }
 }
