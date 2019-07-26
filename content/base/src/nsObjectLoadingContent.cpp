@@ -2116,7 +2116,7 @@ nsObjectLoadingContent::GetTypeOfContent(const nsCString& aMIMEType)
 
   
   bool isSVG = aMIMEType.LowerCaseEqualsLiteral("image/svg+xml");
-  bool supportType = isSVG ? eSupportSVG : eSupportDocuments;
+  Capabilities supportType = isSVG ? eSupportSVG : eSupportDocuments;
   if ((caps & supportType) && IsSupportedDocument(aMIMEType)) {
     return eType_Document;
   }
