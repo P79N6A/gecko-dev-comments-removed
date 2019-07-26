@@ -38,9 +38,6 @@ public:
 
   void NotifyCloseListener();
 
-  
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
-
 private:
   virtual ~CacheFileOutputStream();
 

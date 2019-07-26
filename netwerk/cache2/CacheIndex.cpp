@@ -10,7 +10,6 @@
 #include "nsThreadUtils.h"
 #include "nsISimpleEnumerator.h"
 #include "nsIDirectoryEnumerator.h"
-#include "nsISizeOf.h"
 #include "nsPrintfCString.h"
 #include "mozilla/DebugOnly.h"
 #include "prinrval.h"
@@ -3267,74 +3266,6 @@ CacheIndex::OnFileRenamed(CacheFileHandle *aHandle, nsresult aResult)
   }
 
   return NS_OK;
-}
-
-
-
-namespace { 
-
-size_t
-CollectIndexEntryMemory(CacheIndexEntry* aEntry,
-                        mozilla::MallocSizeOf mallocSizeOf,
-                        void *arg)
-{
-  return aEntry->SizeOfExcludingThis(mallocSizeOf);
-}
-
-} 
-
-size_t
-CacheIndex::SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) const
-{
-  CacheIndexAutoLock lock(const_cast<CacheIndex*>(this));
-
-  size_t n = 0;
-  nsCOMPtr<nsISizeOf> sizeOf;
-
-  
-  
-  
-
-  sizeOf = do_QueryInterface(mCacheDirectory);
-  if (sizeOf) {
-    n += sizeOf->SizeOfIncludingThis(mallocSizeOf);
-  }
-
-  sizeOf = do_QueryInterface(mTimer);
-  if (sizeOf) {
-    n += sizeOf->SizeOfIncludingThis(mallocSizeOf);
-  }
-
-  n += mallocSizeOf(mRWBuf);
-  n += mallocSizeOf(mRWHash);
-
-  n += mIndex.SizeOfExcludingThis(&CollectIndexEntryMemory, mallocSizeOf);
-  n += mPendingUpdates.SizeOfExcludingThis(&CollectIndexEntryMemory, mallocSizeOf);
-  n += mTmpJournal.SizeOfExcludingThis(&CollectIndexEntryMemory, mallocSizeOf);
-
-  
-  
-  n += mFrecencyArray.SizeOfExcludingThis(mallocSizeOf);
-  n += mExpirationArray.SizeOfExcludingThis(mallocSizeOf);
-
-  return n;
-}
-
-
-size_t
-CacheIndex::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
-{
-  if (!gInstance)
-    return 0;
-
-  return gInstance->SizeOfExcludingThisInternal(mallocSizeOf);
-}
-
-
-size_t
-CacheIndex::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
-{
-  return mallocSizeOf(gInstance) + SizeOfExcludingThis(mallocSizeOf);
 }
 
 } 

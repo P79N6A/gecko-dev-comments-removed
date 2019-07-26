@@ -17,7 +17,6 @@
 #include "nsITimer.h"
 #include "nsISimpleEnumerator.h"
 #include "nsIDirectoryEnumerator.h"
-#include "nsISizeOf.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/DebugOnly.h"
 #include "nsDirectoryServiceUtils.h"
@@ -164,7 +163,7 @@ CacheFileHandle::Log()
 }
 
 uint32_t
-CacheFileHandle::FileSizeInK() const
+CacheFileHandle::FileSizeInK()
 {
   MOZ_ASSERT(mFileSize != -1);
   uint64_t size64 = mFileSize;
@@ -182,30 +181,6 @@ CacheFileHandle::FileSizeInK() const
   }
 
   return size;
-}
-
-
-
-size_t
-CacheFileHandle::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
-{
-  size_t n = 0;
-  nsCOMPtr<nsISizeOf> sizeOf;
-
-  sizeOf = do_QueryInterface(mFile);
-  if (sizeOf) {
-    n += sizeOf->SizeOfIncludingThis(mallocSizeOf);
-  }
-
-  n += mallocSizeOf(mFD);
-  n += mKey.SizeOfExcludingThisIfUnshared(mallocSizeOf);
-  return n;
-}
-
-size_t
-CacheFileHandle::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
-{
-  return mallocSizeOf(this) + SizeOfExcludingThis(mallocSizeOf);
 }
 
 
@@ -266,20 +241,6 @@ CacheFileHandles::HandleHashKey::AssertHandlesState()
 }
 
 #endif
-
-size_t
-CacheFileHandles::HandleHashKey::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
-{
-  MOZ_ASSERT(CacheFileIOManager::IsOnIOThread());
-
-  size_t n = 0;
-  n += mallocSizeOf(mHash);
-  for (uint32_t i = 0; i < mHandles.Length(); ++i) {
-    n += mHandles[i]->SizeOfIncludingThis(mallocSizeOf);
-  }
-
-  return n;
-}
 
 
 
@@ -469,28 +430,6 @@ CacheFileHandles::Log(CacheFileHandlesEntry *entry)
   LOG(("CacheFileHandles::Log() END [entry=%p]", entry));
 }
 #endif
-
-
-
-namespace { 
-
-size_t
-CollectHandlesMemory(CacheFileHandles::HandleHashKey* key,
-                     mozilla::MallocSizeOf mallocSizeOf,
-                     void *arg)
-{
-  return key->SizeOfExcludingThis(mallocSizeOf);
-}
-
-} 
-
-size_t
-CacheFileHandles::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
-{
-  MOZ_ASSERT(CacheFileIOManager::IsOnIOThread());
-
-  return mTable.SizeOfExcludingThis(&CollectHandlesMemory, mallocSizeOf);
-}
 
 
 
@@ -3196,129 +3135,6 @@ CacheFileIOManager::NSPRHandleUsed(CacheFileHandle *aHandle)
   MOZ_ASSERT(found);
 
   mHandlesByLastUsed.AppendElement(aHandle);
-}
-
-
-
-namespace { 
-
-
-
-
-
-
-class SizeOfHandlesRunnable : public nsRunnable
-{
-public:
-  SizeOfHandlesRunnable(mozilla::MallocSizeOf mallocSizeOf,
-                        CacheFileHandles const &handles,
-                        nsTArray<nsRefPtr<CacheFileHandle> > const &specialHandles)
-    : mMonitor("SizeOfHandlesRunnable.mMonitor")
-    , mMallocSizeOf(mallocSizeOf)
-    , mHandles(handles)
-    , mSpecialHandles(specialHandles)
-  {
-  }
-
-  size_t Get(CacheIOThread* thread)
-  {
-    nsCOMPtr<nsIEventTarget> target = thread->Target();
-    if (!target) {
-      NS_ERROR("If we have the I/O thread we also must have the I/O target");
-      return 0;
-    }
-
-    mozilla::MonitorAutoLock mon(mMonitor);
-    nsresult rv = target->Dispatch(this, nsIEventTarget::DISPATCH_NORMAL);
-    if (NS_FAILED(rv)) {
-      NS_ERROR("Dispatch failed, cannot do memory report of CacheFileHandles");
-      return 0;
-    }
-
-    mon.Wait();
-    return mSize;
-  }
-
-  NS_IMETHOD Run()
-  {
-    mozilla::MonitorAutoLock mon(mMonitor);
-    
-    
-    mSize = mHandles.SizeOfExcludingThis(mMallocSizeOf);
-    for (uint32_t i = 0; i < mSpecialHandles.Length(); ++i) {
-      mSize += mSpecialHandles[i]->SizeOfIncludingThis(mMallocSizeOf);
-    }
-
-    mon.Notify();
-    return NS_OK;
-  }
-
-private:
-  mozilla::Monitor mMonitor;
-  mozilla::MallocSizeOf mMallocSizeOf;
-  CacheFileHandles const &mHandles;
-  nsTArray<nsRefPtr<CacheFileHandle> > const &mSpecialHandles;
-  size_t mSize;
-};
-
-} 
-
-size_t
-CacheFileIOManager::SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) const
-{
-  size_t n = 0;
-  nsCOMPtr<nsISizeOf> sizeOf;
-
-  if (mIOThread) {
-    n += mIOThread->SizeOfIncludingThis(mallocSizeOf);
-
-    
-    
-    nsRefPtr<SizeOfHandlesRunnable> sizeOfHandlesRunnable =
-      new SizeOfHandlesRunnable(mallocSizeOf, mHandles, mSpecialHandles);
-    n += sizeOfHandlesRunnable->Get(mIOThread);
-  }
-
-  
-
-  sizeOf = do_QueryInterface(mCacheDirectory);
-  if (sizeOf)
-    n += sizeOf->SizeOfIncludingThis(mallocSizeOf);
-
-  sizeOf = do_QueryInterface(mMetadataWritesTimer);
-  if (sizeOf)
-    n += sizeOf->SizeOfIncludingThis(mallocSizeOf);
-
-  sizeOf = do_QueryInterface(mTrashTimer);
-  if (sizeOf)
-    n += sizeOf->SizeOfIncludingThis(mallocSizeOf);
-
-  sizeOf = do_QueryInterface(mTrashDir);
-  if (sizeOf)
-    n += sizeOf->SizeOfIncludingThis(mallocSizeOf);
-
-  for (uint32_t i = 0; i < mFailedTrashDirs.Length(); ++i) {
-    n += mFailedTrashDirs[i].SizeOfExcludingThisIfUnshared(mallocSizeOf);
-  }
-
-  return n;
-}
-
-
-size_t
-CacheFileIOManager::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
-{
-  if (!gInstance)
-    return 0;
-
-  return gInstance->SizeOfExcludingThisInternal(mallocSizeOf);
-}
-
-
-size_t
-CacheFileIOManager::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
-{
-  return mallocSizeOf(gInstance) + SizeOfExcludingThis(mallocSizeOf);
 }
 
 } 
