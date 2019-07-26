@@ -442,6 +442,8 @@ VirtualRegister::getFirstInterval()
 
 template bool LiveRangeAllocator<LinearScanVirtualRegister, true>::buildLivenessInfo();
 template bool LiveRangeAllocator<BacktrackingVirtualRegister, false>::buildLivenessInfo();
+template void LiveRangeAllocator<LinearScanVirtualRegister, true>::dumpVregs();
+template void LiveRangeAllocator<BacktrackingVirtualRegister, false>::dumpVregs();
 
 #ifdef DEBUG
 static inline bool
