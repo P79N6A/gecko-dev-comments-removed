@@ -745,8 +745,6 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
   
   
   doc->FlushPendingNotifications(Flush_Layout);
-  
-  NS_ENSURE_TRUE(mInstantiating, NS_OK);
 
   if (!thisContent->GetPrimaryFrame()) {
     LOG(("OBJLC [%p]: Not instantiating plugin with no frame", this));
@@ -769,35 +767,17 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
     appShell->SuspendNative();
   }
 
-  nsRefPtr<nsPluginInstanceOwner> newOwner;
   rv = pluginHost->InstantiatePluginInstance(mContentType.get(),
                                              mURI.get(), this,
-                                             getter_AddRefs(newOwner));
+                                             getter_AddRefs(mInstanceOwner));
 
-  
   if (appShell) {
     appShell->ResumeNative();
   }
 
-  if (!mInstantiating || NS_FAILED(rv)) {
-    LOG(("OBJLC [%p]: Plugin instantiation failed or re-entered, "
-         "killing old instance", this));
-    
-    
-    
-    if (newOwner) {
-      nsRefPtr<nsNPAPIPluginInstance> inst;
-      newOwner->GetInstance(getter_AddRefs(inst));
-      newOwner->SetFrame(nullptr);
-      if (inst) {
-        pluginHost->StopPluginInstance(inst);
-      }
-      newOwner->Destroy();
-    }
-    return NS_OK;
+  if (NS_FAILED(rv)) {
+    return rv;
   }
-
-  mInstanceOwner = newOwner;
 
   
   NotifyContentObjectWrapper();
@@ -2175,10 +2155,6 @@ nsObjectLoadingContent::UnloadObject(bool aResetState)
     mContentType.Truncate();
     mOriginalContentType.Truncate();
   }
-
-  
-  
-  mInstantiating = false;
 
   mScriptRequested = false;
 
