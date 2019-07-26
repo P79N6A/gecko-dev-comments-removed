@@ -227,8 +227,6 @@ class CompartmentChecker
         }
     }
 
-    void check(JSPrincipals *) {  }
-
     void check(JSObject *obj) {
         if (obj)
             check(obj->compartment());
