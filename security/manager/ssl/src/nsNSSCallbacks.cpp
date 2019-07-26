@@ -5,6 +5,9 @@
 
 #include "nsNSSComponent.h"
 #include "nsNSSCallbacks.h"
+
+#include "mozilla/Telemetry.h"
+
 #include "nsNSSIOLayer.h"
 #include "nsIWebProgressListener.h"
 #include "nsProtectedAuthThread.h"
@@ -20,6 +23,7 @@
 #include "nsCRT.h"
 
 #include "ssl.h"
+#include "sslproto.h"
 #include "ocsp.h"
 #include "nssb64.h"
 
@@ -930,6 +934,13 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
     else
       infoObject->SetNegotiatedNPN(nullptr, 0);
 
+    SSLChannelInfo channelInfo;
+    if (SSL_GetChannelInfo(fd, &channelInfo, sizeof(channelInfo)) == SECSuccess) {
+      
+      
+      unsigned int versionEnum = channelInfo.protocolVersion & 0xFF;
+      Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_VERSION, versionEnum);
+    }
     infoObject->SetHandshakeCompleted();
   }
 
