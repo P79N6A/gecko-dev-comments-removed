@@ -449,8 +449,10 @@ var ScrollUtils = {
   getScrollboxFromElement: function getScrollboxFromElement(elem) {
     let scrollbox = null;
     let qinterface = null;
+
     
-    if (elem.ownerDocument == Browser.selectedBrowser.contentDocument) {
+    if (!BrowserUI.isStartTabVisible &&
+        elem.ownerDocument == Browser.selectedBrowser.contentDocument) {
       elem = Browser.selectedBrowser;
     }
     for (; elem; elem = elem.parentNode) {
