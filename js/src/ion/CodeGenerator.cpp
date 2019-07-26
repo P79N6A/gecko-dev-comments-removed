@@ -3681,7 +3681,7 @@ CodeGenerator::link()
     
     
     
-    if (cx->compartment->needsBarrier())
+    if (cx->zone()->needsBarrier())
         ionScript->toggleBarriers(true);
 
     return true;

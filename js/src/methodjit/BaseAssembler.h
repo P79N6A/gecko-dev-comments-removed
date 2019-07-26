@@ -1365,7 +1365,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
 
 
         gc::FreeSpan *list = const_cast<gc::FreeSpan *>
-                             (cx->compartment->allocator.arenas.getFreeList(allocKind));
+                             (cx->zone()->allocator.arenas.getFreeList(allocKind));
         loadPtr(&list->first, result);
 
         Jump jump = branchPtr(Assembler::BelowOrEqual, AbsoluteAddress(&list->last), result);

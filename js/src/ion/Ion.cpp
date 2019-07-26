@@ -1818,13 +1818,13 @@ InvalidateActivation(FreeOp *fop, uint8_t *ionTop, bool invalidateAll)
         const SafepointIndex *si = ionScript->getSafepointIndex(it.returnAddressToFp());
         IonCode *ionCode = ionScript->method();
 
-        JSCompartment *compartment = script->compartment();
-        if (compartment->needsBarrier()) {
+        JS::Zone *zone = script->zone();
+        if (zone->needsBarrier()) {
             
             
             
             
-            ionCode->trace(compartment->barrierTracer());
+            ionCode->trace(zone->barrierTracer());
         }
         ionCode->setInvalidated();
 
@@ -1927,13 +1927,13 @@ ion::Invalidate(types::TypeCompartment &types, FreeOp *fop,
         UnrootedScript script = co.script;
         IonScript *ionScript = GetIonScript(script, executionMode);
 
-        JSCompartment *compartment = script->compartment();
-        if (compartment->needsBarrier()) {
+        Zone *zone = script->zone();
+        if (zone->needsBarrier()) {
             
             
             
             
-            IonScript::Trace(compartment->barrierTracer(), ionScript);
+            IonScript::Trace(zone->barrierTracer(), ionScript);
         }
 
         ionScript->decref(fop);

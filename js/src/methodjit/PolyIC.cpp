@@ -564,7 +564,7 @@ class SetPropCompiler : public PICStubCompiler
 
 
 
-            if (cx->compartment->compileBarriers())
+            if (cx->zone()->compileBarriers())
                 return disable("ADDPROP write barrier required");
 #endif
 
@@ -2846,7 +2846,7 @@ SetElementIC::shouldUpdate(VMFrame &f)
         return false;
     }
 #ifdef JSGC_INCREMENTAL_MJ
-    JS_ASSERT(!f.cx->compartment->compileBarriers());
+    JS_ASSERT(!f.cx->zone()->compileBarriers());
 #endif
     JS_ASSERT(stubsGenerated < MAX_PIC_STUBS);
     return true;

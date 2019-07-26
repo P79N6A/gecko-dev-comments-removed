@@ -374,7 +374,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp, JSObject *existingArg)
         if (!putWrapper(orig, *vp))
             return false;
 
-        if (str->compartment()->isGCMarking()) {
+        if (str->zone()->isGCMarking()) {
             
 
 
@@ -522,7 +522,7 @@ JSCompartment::wrap(JSContext *cx, AutoIdVector &props)
 void
 JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
 {
-    JS_ASSERT(!isCollecting());
+    JS_ASSERT(!zone()->isCollecting());
 
     for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
         Value v = e.front().value;
@@ -815,9 +815,8 @@ JSCompartment::setGCMaxMallocBytes(size_t value)
 void
 JSCompartment::onTooMuchMalloc()
 {
-    TriggerZoneGC(this, gcreason::TOO_MUCH_MALLOC);
+    TriggerZoneGC(zone(), gcreason::TOO_MUCH_MALLOC);
 }
-
 
 bool
 JSCompartment::hasScriptsOnStack()
@@ -908,7 +907,7 @@ JSCompartment::updateForDebugMode(FreeOp *fop, AutoDebugModeGC &dmgc)
     
     
     if (!rt->isHeapBusy())
-        dmgc.scheduleGC(this);
+        dmgc.scheduleGC(zone());
 #endif
 }
 
