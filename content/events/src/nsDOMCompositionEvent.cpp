@@ -35,14 +35,6 @@ nsDOMCompositionEvent::nsDOMCompositionEvent(mozilla::dom::EventTarget* aOwner,
   
 }
 
-nsDOMCompositionEvent::~nsDOMCompositionEvent()
-{
-  if (mEventIsInternal) {
-    delete static_cast<WidgetCompositionEvent*>(mEvent);
-    mEvent = nullptr;
-  }
-}
-
 NS_IMPL_ADDREF_INHERITED(nsDOMCompositionEvent, nsDOMUIEvent)
 NS_IMPL_RELEASE_INHERITED(nsDOMCompositionEvent, nsDOMUIEvent)
 
