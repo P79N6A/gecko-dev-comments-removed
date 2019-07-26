@@ -240,6 +240,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
 
     AutoPushJSContext cx(scriptContext->GetNativeContext());
     JS::Rooted<JSObject*> globalJSObject(cx, innerGlobal->GetGlobalJSObject());
+    NS_ENSURE_TRUE(globalJSObject, NS_ERROR_UNEXPECTED);
 
     if (!useSandbox) {
         
@@ -264,13 +265,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
 
         
         
-        bool ok;
-        rv = securityManager->CanExecuteScripts(cx, principal, &ok);
-        if (NS_FAILED(rv)) {
-            return rv;
-        }
-
-        if (!ok) {
+        if (!securityManager->ScriptAllowed(globalJSObject)) {
             
             
             return NS_ERROR_DOM_RETVAL_UNDEFINED;
