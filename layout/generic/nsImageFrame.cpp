@@ -546,7 +546,7 @@ nsImageFrame::OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage)
   if (SizeIsAvailable(aRequest)) {
     
     
-    mImage = aImage;
+    mImage = nsLayoutUtils::OrientImage(aImage, StyleVisibility()->mImageOrientation);
     
     intrinsicSizeChanged = UpdateIntrinsicSize(mImage);
     intrinsicSizeChanged = UpdateIntrinsicRatio(mImage) || intrinsicSizeChanged;
@@ -649,11 +649,12 @@ nsImageFrame::NotifyNewCurrentRequest(imgIRequest *aRequest,
   
   bool intrinsicSizeChanged = true;
   if (NS_SUCCEEDED(aStatus) && image && SizeIsAvailable(aRequest)) {
-    mImage = image;
+    
+    mImage = nsLayoutUtils::OrientImage(image, StyleVisibility()->mImageOrientation);
+
     intrinsicSizeChanged = UpdateIntrinsicSize(mImage);
     intrinsicSizeChanged = UpdateIntrinsicRatio(mImage) || intrinsicSizeChanged;
-  }
-  else {
+  } else {
     
     mImage = nullptr;
 

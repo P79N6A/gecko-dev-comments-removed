@@ -1376,6 +1376,18 @@ public:
 
 
 
+  static already_AddRefed<imgIContainer>
+  OrientImage(imgIContainer* aContainer,
+              const nsStyleImageOrientation& aOrientation);
+
+  
+
+
+
+
+
+
+
 
 
 
