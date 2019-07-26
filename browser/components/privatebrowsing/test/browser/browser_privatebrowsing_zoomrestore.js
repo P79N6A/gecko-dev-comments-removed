@@ -11,68 +11,45 @@ function test() {
   let windowsToClose = [];
   let windowsToReset = [];
 
-  
-  
-  function debugLogCPS(aWindow, aCallback) {
-    let pb = { usePrivateBrowsing: true };
-    let queue = [
-      ["getByDomainAndName", ["about:blank", aWindow.FullZoom.name, null]],
-      ["getByDomainAndName", ["about:blank", aWindow.FullZoom.name, pb]],
-      ["getGlobal", [aWindow.FullZoom.name, null]],
-      ["getGlobal", [aWindow.FullZoom.name, pb]],
-    ];
-    debugCallCPS(queue, aCallback);
-  }
-  function debugCallCPS(aQueue, aCallback) {
-    if (!aQueue.length) {
-      aCallback();
-      return;
-    }
-    let [methodName, args] = aQueue.shift();
-    let argsDup = args.slice();
-    argsDup.push({
-      handleResult: function debug_handleResult(pref) {
-        info("handleResult " + methodName + "(" + args.toSource() +
-             ") pref=" + pref.value);
-      },
-      handleCompletion: function debug_handleCompletion() {
-        info("handleCompletion " + methodName + "(" + args.toSource() + ")");
-        debugCallCPS(aQueue, aCallback);
-      },
-    });
-    let cps = Cc["@mozilla.org/content-pref/service;1"].
-              getService(Ci.nsIContentPrefService2);
-    cps[methodName].apply(cps, argsDup);
+  function doTestWhenReady(aIsZoomedWindow, aWindow, aCallback) {
+    
+    
+    
+    
+
+    let n = 0;
+
+    let browser = aWindow.gBrowser.selectedBrowser;
+    browser.addEventListener("load", function onLoad() {
+      browser.removeEventListener("load", onLoad, true);
+      if (++n == 2)
+        doTest(aIsZoomedWindow, aWindow, aCallback);
+    }, true);
+
+    let topic = "browser-fullZoom:locationChange";
+    Services.obs.addObserver(function onLocationChange() {
+      Services.obs.removeObserver(onLocationChange, topic);
+      if (++n == 2)
+        doTest(aIsZoomedWindow, aWindow, aCallback);
+    }, topic, false);
+
+    browser.loadURI("about:blank");
   }
 
   function doTest(aIsZoomedWindow, aWindow, aCallback) {
-    aWindow.gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-      aWindow.gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
-      if (aIsZoomedWindow) {
-        info("about:blank zoom level should be 1: " + aWindow.ZoomManager.zoom);
-        if (aWindow.ZoomManager.zoom != 1) {
-          
-          
-          
-          
-          info("zoom level != 1, logging content prefs");
-          debugLogCPS(aWindow, aCallback);
-          return;
-        }
-        
-        aWindow.FullZoom.enlarge(function () {
-          isnot(aWindow.ZoomManager.zoom, 1, "Zoom level for about:blank should be changed");
-          aCallback();
-        });
-        return;
-      }
+    if (aIsZoomedWindow) {
+      is(aWindow.ZoomManager.zoom, 1,
+         "Zoom level for freshly loaded about:blank should be 1");
       
-      is(aWindow.ZoomManager.zoom, 1, "Zoom level for about:privatebrowsing should be reset");
-
-      aCallback();
-    }, true);
-
-    aWindow.gBrowser.selectedBrowser.loadURI("about:blank");
+      aWindow.FullZoom.enlarge(function () {
+        isnot(aWindow.ZoomManager.zoom, 1, "Zoom level for about:blank should be changed");
+        aCallback();
+      });
+      return;
+    }
+    
+    is(aWindow.ZoomManager.zoom, 1, "Zoom level for about:privatebrowsing should be reset");
+    aCallback();
   }
 
   function finishTest() {
@@ -108,9 +85,9 @@ function test() {
   });
 
   testOnWindow({}, function(win) {
-    doTest(true, win, function() {
+    doTestWhenReady(true, win, function() {
       testOnWindow({private: true}, function(win) {
-        doTest(false, win, finishTest);
+        doTestWhenReady(false, win, finishTest);
       });
     });
   });
