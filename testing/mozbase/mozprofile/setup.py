@@ -2,11 +2,10 @@
 
 
 
-import os
 import sys
 from setuptools import setup
 
-PACKAGE_VERSION = '0.4'
+PACKAGE_VERSION = '0.5'
 
 
 assert sys.version_info[0] == 2
@@ -23,17 +22,10 @@ except ImportError:
     deps.append('pysqlite')
 
 
-
-here = os.path.dirname(os.path.abspath(__file__))
-try:
-    description = file(os.path.join(here, 'README.md')).read()
-except (OSError, IOError):
-    description = ''
-
 setup(name='mozprofile',
       version=PACKAGE_VERSION,
-      description="Handling of Mozilla Gecko based application profiles",
-      long_description=description,
+      description="Library to create and modify Mozilla application profiles",
+      long_description="see http://mozbase.readthedocs.org/",
       classifiers=['Environment :: Console',
                    'Intended Audience :: Developers',
                    'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',

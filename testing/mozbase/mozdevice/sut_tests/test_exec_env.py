@@ -2,17 +2,16 @@
 
 
 
-from StringIO import StringIO
 import os
 import posixpath
+from StringIO import StringIO
 
 from dmunit import DeviceManagerTestCase
 
-
-class ProcessListTestCase(DeviceManagerTestCase):
+class ExecEnvTestCase(DeviceManagerTestCase):
 
     def runTest(self):
-        """ simple exec test, does not use env vars """
+        """Exec test with env vars."""
         
         localfile = os.path.join('test-files', 'test_script.sh')
         remotefile = posixpath.join(self.dm.getDeviceRoot(), 'test_script.sh')
