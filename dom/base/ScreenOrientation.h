@@ -13,34 +13,17 @@ namespace dom {
 
 
 
-enum ScreenOrientation {
-  eScreenOrientation_None               = 0,
-  eScreenOrientation_PortraitPrimary    = 1,  
-  eScreenOrientation_PortraitSecondary  = 2,  
-  eScreenOrientation_Portrait           = 3,  
-  eScreenOrientation_LandscapePrimary   = 4,  
-  eScreenOrientation_LandscapeSecondary = 8,  
-  eScreenOrientation_Landscape          = 12, 
-  eScreenOrientation_EndGuard
-};
+typedef uint32_t ScreenOrientation;
+
+static const ScreenOrientation eScreenOrientation_None               = 0;
+static const ScreenOrientation eScreenOrientation_PortraitPrimary    = 1;  
+static const ScreenOrientation eScreenOrientation_PortraitSecondary  = 2;  
+static const ScreenOrientation eScreenOrientation_Portrait           = 3;  
+static const ScreenOrientation eScreenOrientation_LandscapePrimary   = 4;  
+static const ScreenOrientation eScreenOrientation_LandscapeSecondary = 8;  
+static const ScreenOrientation eScreenOrientation_Landscape          = 12; 
 
 } 
-} 
-
-namespace IPC {
-
-
-
-
-
-
-template <>
-struct ParamTraits<mozilla::dom::ScreenOrientation>
-  : public EnumSerializer<mozilla::dom::ScreenOrientation,
-                          mozilla::dom::eScreenOrientation_None,
-                          mozilla::dom::eScreenOrientation_EndGuard>
-{};
-
 } 
 
 #endif 
