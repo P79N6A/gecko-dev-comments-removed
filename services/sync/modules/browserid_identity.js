@@ -135,7 +135,7 @@ this.BrowserIDManager.prototype = {
     }
 
     
-    if (Weave.Status.login == LOGIN_SUCCEEDED) {
+    if (this._syncKeyBundle) {
       return Promise.resolve();
     }
 
@@ -513,7 +513,6 @@ this.BrowserIDManager.prototype = {
         
         
         this._shouldHaveSyncKeyBundle = true;
-        this._syncKeyBundle = null;
         Weave.Status.login = this._authFailureReason;
         Services.obs.notifyObservers(null, "weave:service:login:error", null);
         throw err;
