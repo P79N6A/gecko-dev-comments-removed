@@ -286,14 +286,12 @@ MBasicBlock::setVariable(uint32 index)
 void
 MBasicBlock::setArg(uint32 arg)
 {
-    
     setVariable(info_.argSlot(arg));
 }
 
 void
 MBasicBlock::setLocal(uint32 local)
 {
-    
     setVariable(info_.localSlot(local));
 }
 
@@ -333,14 +331,12 @@ MBasicBlock::pushVariable(uint32 slot)
 void
 MBasicBlock::pushArg(uint32 arg)
 {
-    
     pushVariable(info_.argSlot(arg));
 }
 
 void
 MBasicBlock::pushLocal(uint32 local)
 {
-    
     pushVariable(info_.localSlot(local));
 }
 
