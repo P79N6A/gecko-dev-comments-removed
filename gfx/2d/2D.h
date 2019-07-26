@@ -337,6 +337,13 @@ public:
 
   virtual TemporaryRef<DataSourceSurface> GetDataSurface() = 0;
 
+  
+
+
+  virtual void *GetNativeSurface(NativeSurfaceType aType) {
+    return nullptr;
+  }
+
   void AddUserData(UserDataKey *key, void *userData, void (*destroy)(void*)) {
     mUserData.Add(key, userData, destroy);
   }
