@@ -1138,9 +1138,14 @@ class PropertyDefiner:
 
 
 
+def overloadLength(arguments):
+    i = len(arguments)
+    while i > 0 and arguments[i - 1].optional:
+        i -= 1
+    return i
 def methodLength(method):
     signatures = method.signatures()
-    return max([len(arguments) for (retType, arguments) in signatures])
+    return min(overloadLength(arguments) for (retType, arguments) in signatures)
 
 class MethodDefiner(PropertyDefiner):
     """
