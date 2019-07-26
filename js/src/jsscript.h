@@ -10,12 +10,13 @@
 
 
 
+
 #include "jsdbgapi.h"
 #include "jsinfer.h"
 #include "jsopcode.h"
 
 #include "gc/Barrier.h"
-#include "gc/Root.h"
+#include "js/RootingAPI.h"
 #include "vm/Shape.h"
 
 ForwardDeclareJS(Script);

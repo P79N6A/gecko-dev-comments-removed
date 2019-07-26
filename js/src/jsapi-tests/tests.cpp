@@ -6,7 +6,7 @@
 
 
 #include "tests.h"
-#include "gc/Root.h"
+#include "js/RootingAPI.h"
 #include "jsobj.h"
 #include <stdio.h>
 
