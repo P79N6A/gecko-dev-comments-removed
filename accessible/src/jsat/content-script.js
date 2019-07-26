@@ -16,6 +16,8 @@ XPCOMUtils.defineLazyModuleGetter(this, 'Utils',
   'resource://gre/modules/accessibility/Utils.jsm');
 XPCOMUtils.defineLazyModuleGetter(this, 'EventManager',
   'resource://gre/modules/accessibility/EventManager.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'ObjectWrapper',
+  'resource://gre/modules/ObjectWrapper.jsm');
 
 Logger.debug('content-script.js');
 
@@ -183,6 +185,21 @@ function scroll(aMessage) {
       let elem = acc.DOMNode;
 
       
+      
+      
+      let uiactions = elem.getAttribute ? elem.getAttribute('uiactions') : '';
+      if (uiactions && uiactions.split(' ').indexOf('scroll') >= 0) {
+        let evt = elem.ownerDocument.createEvent('CustomEvent');
+        let details = horiz ? { deltaX: page * elem.clientWidth } :
+          { deltaY: page * elem.clientHeight };
+        evt.initCustomEvent(
+          'scrollrequest', true, true,
+          ObjectWrapper.wrap(details, elem.ownerDocument.defaultView));
+        if (!elem.dispatchEvent(evt))
+          return;
+      }
+
+      
       if (elem == content.document)
         break;
 
@@ -199,25 +216,6 @@ function scroll(aMessage) {
           let s = content.getComputedStyle(elem);
           if (s.overflowX == 'scroll' || s.overflowX == 'auto') {
             elem.scrollLeft += page * elem.clientWidth;
-            return true;
-          }
-        }
-
-        let controllers = acc.
-          getRelationByType(
-            Ci.nsIAccessibleRelation.RELATION_CONTROLLED_BY);
-        for (let i = 0; controllers.targetsCount > i; i++) {
-          let controller = controllers.getTarget(i);
-          
-          
-          if (controller.role == Ci.nsIAccessibleRole.ROLE_SLIDER) {
-            
-            let evt = content.document.createEvent('KeyboardEvent');
-            evt.initKeyEvent(
-              'keypress', true, true, null,
-              true, false, false, false,
-              (page > 0) ? evt.DOM_VK_RIGHT : evt.DOM_VK_LEFT, 0);
-            controller.DOMNode.dispatchEvent(evt);
             return true;
           }
         }
