@@ -163,6 +163,12 @@ private:
     virtual bool flushGraphicsState(DrawType, const GrDeviceCoordTexture* dstCopy) SK_OVERRIDE;
 
     
+    virtual void onInstantGpuTraceEvent(const char* marker) SK_OVERRIDE;
+    virtual void onPushGpuTraceEvent(const char* marker) SK_OVERRIDE;
+    virtual void onPopGpuTraceEvent() SK_OVERRIDE;
+
+
+    
     void setTextureUnit(int unitIdx);
 
     

@@ -52,10 +52,7 @@ public:
 
 
     static SkSurface* NewRasterPMColor(int width, int height) {
-        SkImageInfo info = {
-            width, height, kPMColor_SkColorType, kPremul_SkAlphaType
-        };
-        return NewRaster(info);
+        return NewRaster(SkImageInfo::MakeN32Premul(width, height));
     }
 
     
@@ -150,6 +147,18 @@ public:
 
 
     void draw(SkCanvas*, SkScalar x, SkScalar y, const SkPaint*);
+
+    
+
+
+
+
+
+
+
+
+
+    const void* peekPixels(SkImageInfo* info, size_t* rowBytes);
 
 protected:
     SkSurface(int width, int height);

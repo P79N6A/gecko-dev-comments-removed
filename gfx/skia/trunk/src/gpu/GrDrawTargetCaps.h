@@ -40,6 +40,7 @@ public:
     bool bufferLockSupport() const { return fBufferLockSupport; }
     bool pathRenderingSupport() const { return fPathRenderingSupport; }
     bool dstReadInShaderSupport() const { return fDstReadInShaderSupport; }
+    bool gpuTracingSupport() const { return fGpuTracingSupport; }
 
     
     
@@ -71,6 +72,7 @@ protected:
     bool fPathRenderingSupport      : 1;
     bool fDstReadInShaderSupport    : 1;
     bool fReuseScratchTextures      : 1;
+    bool fGpuTracingSupport         : 1;
 
     int fMaxRenderTargetSize;
     int fMaxTextureSize;

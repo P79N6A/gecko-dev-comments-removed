@@ -4,10 +4,7 @@
 
 
 
-
 #include "SkColorMatrix.h"
-#include "SkReadBuffer.h"
-#include "SkWriteBuffer.h"
 
 void SkColorMatrix::setIdentity() {
     memset(fMat, 0, sizeof(fMat));

@@ -255,6 +255,15 @@ struct SkConic {
 
     void computeTightBounds(SkRect* bounds) const;
     void computeFastBounds(SkRect* bounds) const;
+
+    
+
+
+
+
+
+
+    bool findMaxCurvature(SkScalar* t) const;
 };
 
 #include "SkTemplates.h"

@@ -87,7 +87,7 @@ bool SkInstallDiscardablePixelRef(SkImageGenerator* generator,
         || (!dst->setConfig(info, 0))) {
         return false;
     }
-    SkASSERT(dst->config() != SkBitmap::kNo_Config);
+    SkASSERT(dst->colorType() != kUnknown_SkColorType);
     if (dst->empty()) {  
         return dst->allocPixels();
     }

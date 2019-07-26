@@ -64,7 +64,7 @@ public:
     
 
 
-    virtual GLEffect* createGLInstance(const GrDrawEffect& drawEffect) const SK_OVERRIDE {
+    virtual GrGLEffect* createGLInstance(const GrDrawEffect& drawEffect) const SK_OVERRIDE {
         return SkNEW_ARGS(GLEffect, (*this, drawEffect));
     }
 

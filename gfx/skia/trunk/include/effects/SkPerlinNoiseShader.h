@@ -69,7 +69,7 @@ public:
 
     virtual GrEffectRef* asNewEffect(GrContext* context, const SkPaint&) const SK_OVERRIDE;
 
-    SK_DEVELOPER_TO_STRING()
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkPerlinNoiseShader)
 
 protected:
@@ -79,28 +79,28 @@ protected:
 private:
     SkPerlinNoiseShader(SkPerlinNoiseShader::Type type, SkScalar baseFrequencyX,
                         SkScalar baseFrequencyY, int numOctaves, SkScalar seed,
-                        const SkISize* tileSize = NULL);
+                        const SkISize* tileSize);
     virtual ~SkPerlinNoiseShader();
 
-    void setTileSize(const SkISize&);
-
-    void initPaint(PaintingData& paintingData);
-
     SkScalar noise2D(int channel, const PaintingData& paintingData,
-                     const StitchData& stitchData, const SkPoint& noiseVector);
+                     const StitchData& stitchData, const SkPoint& noiseVector) const;
 
     SkScalar calculateTurbulenceValueForPoint(int channel, const PaintingData& paintingData,
-                                              StitchData& stitchData, const SkPoint& point);
+                                              StitchData& stitchData, const SkPoint& point) const;
 
-    SkPMColor shade(const SkPoint& point, StitchData& stitchData);
+    SkPMColor shade(const SkPoint& point, StitchData& stitchData) const;
 
-    SkPerlinNoiseShader::Type fType;
-    SkScalar fBaseFrequencyX;
-    SkScalar fBaseFrequencyY;
-    int fNumOctaves;
-    SkScalar fSeed;
-    SkISize fTileSize;
-    bool fStitchTiles;
+    
+    
+    
+     SkPerlinNoiseShader::Type fType;
+     SkScalar                  fBaseFrequencyX;
+     SkScalar                  fBaseFrequencyY;
+     int                       fNumOctaves;
+     SkScalar                  fSeed;
+     SkISize                   fTileSize;
+     bool                      fStitchTiles;
+    
     SkMatrix fMatrix;
 
     PaintingData* fPaintingData;

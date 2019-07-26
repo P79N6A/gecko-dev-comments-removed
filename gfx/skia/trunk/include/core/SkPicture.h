@@ -35,6 +35,27 @@ public:
     SK_DECLARE_INST_COUNT(SkPicture)
 
     
+    
+    
+    class AccelData : public SkRefCnt {
+    public:
+        typedef uint8_t Domain;
+        typedef uint32_t Key;
+
+        AccelData(Key key) : fKey(key) { }
+
+        const Key& getKey() const { return fKey; }
+
+        
+        
+        static Domain GenerateDomain();
+    private:
+        Key fKey;
+
+        typedef SkRefCnt INHERITED;
+    };
+
+    
 
 
 
@@ -43,6 +64,18 @@ public:
 
 
     SkPicture(const SkPicture& src);
+
+    
+    void EXPERIMENTAL_addAccelData(const AccelData* data) {
+        SkRefCnt_SafeAssign(fAccelData, data);
+    }
+    
+    const AccelData* EXPERIMENTAL_getAccelData(AccelData::Key key) const {
+        if (NULL != fAccelData && fAccelData->getKey() == key) {
+            return fAccelData;
+        }
+        return NULL;
+    }
 
     
 
@@ -125,15 +158,6 @@ public:
 
 
         kOptimizeForClippedPlayback_RecordingFlag = 0x02,
-        
-
-
-
-
-
-
-
-        kDisableRecordOptimizations_RecordingFlag = 0x04
     };
 
     
@@ -217,6 +241,25 @@ public:
     void abortPlayback();
 #endif
 
+    
+
+
+
+
+
+
+
+    static bool InternalOnly_StreamIsSKP(SkStream*, SkPictInfo*);
+    static bool InternalOnly_BufferIsSKP(SkReadBuffer&, SkPictInfo*);
+
+    
+
+
+
+
+
+    void internalOnly_EnableOpts(bool enableOpts);
+
 protected:
     
     
@@ -239,14 +282,23 @@ protected:
     
     
     
-    static const uint32_t PICTURE_VERSION = 20;
+    
+    
+
+    
+    
+
+    
+    static const uint32_t MIN_PICTURE_VERSION = 19;
+    static const uint32_t CURRENT_PICTURE_VERSION = 22;
 
     
     
     
-    SkPicturePlayback* fPlayback;
-    SkPictureRecord* fRecord;
-    int fWidth, fHeight;
+    SkPicturePlayback*    fPlayback;
+    SkPictureRecord*      fRecord;
+    int                   fWidth, fHeight;
+    const AccelData*      fAccelData;
 
     
     
@@ -255,15 +307,9 @@ protected:
     
     
     virtual SkBBoxHierarchy* createBBoxHierarchy() const;
-
-    
-    
-    
-    
-    static bool StreamIsSKP(SkStream*, SkPictInfo*);
-    static bool BufferIsSKP(SkReadBuffer&, SkPictInfo*);
 private:
-    void createHeader(void* header) const;
+    void createHeader(SkPictInfo* info) const;
+    static bool IsValidPictInfo(const SkPictInfo& info);
 
     friend class SkFlatPicture;
     friend class SkPicturePlayback;

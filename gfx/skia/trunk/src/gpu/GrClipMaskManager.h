@@ -106,6 +106,13 @@ private:
     GrClipMaskCache fAACache;       
 
     
+    
+    bool installClipEffects(const GrReducedClip::ElementList&,
+                            GrDrawState::AutoRestoreEffects*,
+                            const SkVector& clipOffset,
+                            const SkRect* devBounds);
+
+    
     bool createStencilClipMask(int32_t elementsGenID,
                                GrReducedClip::InitialState initialState,
                                const GrReducedClip::ElementList& elements,

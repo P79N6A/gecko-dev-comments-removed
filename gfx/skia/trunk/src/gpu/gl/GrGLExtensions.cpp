@@ -120,6 +120,17 @@ bool GrGLExtensions::remove(const char ext[]) {
     }
 }
 
+void GrGLExtensions::add(const char ext[]) {
+    int idx = find_string(*fStrings, ext);
+    if (idx < 0) {
+        
+        
+        fStrings->push_back().set(ext);
+        SkTLessFunctionToFunctorAdaptor<SkString, extension_compare> cmp;
+        SkTQSort(&fStrings->front(), &fStrings->back(), cmp);
+    }
+}
+
 void GrGLExtensions::print(const char* sep) const {
     if (NULL == sep) {
         sep = " ";

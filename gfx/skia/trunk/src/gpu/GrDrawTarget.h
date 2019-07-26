@@ -426,6 +426,20 @@ public:
 
 
 
+    void instantGpuTraceEvent(const char* marker);
+    
+
+
+
+
+
+    void pushGpuTraceEvent(const char* marker);
+    void popGpuTraceEvent();
+
+    
+
+
+
 
 
 
@@ -854,6 +868,10 @@ private:
     virtual void onDrawPath(const GrPath*, SkPath::FillType,
                             const GrDeviceCoordTexture* dstCopy) = 0;
 
+    virtual void onInstantGpuTraceEvent(const char* marker) = 0;
+    virtual void onPushGpuTraceEvent(const char* marker) = 0;
+    virtual void onPopGpuTraceEvent() = 0;
+
     
     bool reserveVertexSpace(size_t vertexSize,
                             int vertexCount,
@@ -888,6 +906,8 @@ private:
     GrDrawState                                                     fDefaultDrawState;
     
     GrContext*                                                      fContext;
+    
+    int                                                             fPushGpuTraceCount;
 
     typedef SkRefCnt INHERITED;
 };

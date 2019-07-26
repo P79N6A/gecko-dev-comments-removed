@@ -290,12 +290,11 @@ bool SkScaledImageCacheDiscardableAllocator::allocPixelRef(SkBitmap* bitmap,
     }
 
     
-    if (SkBitmap::kARGB_8888_Config != bitmap->config()) {
+    if (kPMColor_SkColorType != bitmap->colorType()) {
         return false;
     }
 
-    SkImageInfo info = SkImageInfo::MakeN32(bitmap->width(), bitmap->height(),
-                                            bitmap->alphaType());
+    SkImageInfo info = bitmap->info();
     bitmap->setPixelRef(SkNEW_ARGS(SkOneShotDiscardablePixelRef,
                                    (info, dm, bitmap->rowBytes())))->unref();
     bitmap->lockPixels();
@@ -426,6 +425,7 @@ SkScaledImageCache::ID* SkScaledImageCache::addAndLock(SkScaledImageCache::Rec* 
     if (NULL != existing) {
         
         
+        existing->fBitmap = rec->fBitmap;
         SkDELETE(rec);
         return rec_to_id(existing);
     }

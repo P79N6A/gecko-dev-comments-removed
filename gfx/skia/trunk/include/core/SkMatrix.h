@@ -560,7 +560,7 @@ public:
     size_t readFromMemory(const void* buffer, size_t length);
 
     SkDEVCODE(void dump() const;)
-    SkDEVCODE(void toString(SkString*) const;)
+    SK_TO_STRING_NONVIRT()
 
     
 

@@ -63,19 +63,43 @@ size_t SkWriter32::WriteStringSize(const char* str, size_t len) {
     return SkAlign4(lenBytes + len + 1);
 }
 
-const size_t kMinBufferBytes = 4096;
-
 void SkWriter32::growToAtLeast(size_t size) {
     const bool wasExternal = (fExternal != NULL) && (fData == fExternal);
-    const size_t minCapacity = kMinBufferBytes +
-        SkTMax(size, fCapacity + (fCapacity >> 1));
 
-    
-    fInternal.setCountExact(minCapacity);
-    fData = fInternal.begin();
-    fCapacity = fInternal.reserved();
+    fCapacity = 4096 + SkTMax(size, fCapacity + (fCapacity / 2));
+    fInternal.realloc(fCapacity);
+    fData = fInternal.get();
+
     if (wasExternal) {
         
         memcpy(fData, fExternal, fUsed);
     }
+    
+    fSnapshot.reset(NULL);
+}
+
+SkData* SkWriter32::snapshotAsData() const {
+    
+    SkWriter32& mutable_this = *const_cast<SkWriter32*>(this);
+    
+    if ((fSnapshot.get() != NULL) && (fSnapshot->size() != fUsed)) {
+        mutable_this.fSnapshot.reset(NULL);
+    }
+    if (fSnapshot.get() == NULL) {
+        uint8_t* buffer = NULL;
+        if ((fExternal != NULL) && (fData == fExternal)) {
+            
+            buffer = (uint8_t*)sk_malloc_throw(fUsed);
+            memcpy(buffer, fData, fUsed);
+        } else {
+            buffer = mutable_this.fInternal.detach();
+            
+            
+            mutable_this.fData = buffer;
+            mutable_this.fCapacity = fUsed;
+            mutable_this.fExternal = buffer;
+        }
+        mutable_this.fSnapshot.reset(SkData::NewFromMalloc(buffer, fUsed));
+    }
+    return SkRef(fSnapshot.get()); 
 }

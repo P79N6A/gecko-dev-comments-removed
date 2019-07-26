@@ -165,6 +165,17 @@ void SkBitmapProcState::platformProcs() {
     }
 }
 
+static SkBlitRow::Proc platform_16_procs[] = {
+    S32_D565_Opaque_SSE2,               
+    NULL,                               
+    S32A_D565_Opaque_SSE2,              
+    NULL,                               
+    S32_D565_Opaque_Dither_SSE2,        
+    NULL,                               
+    S32A_D565_Opaque_Dither_SSE2,       
+    NULL,                               
+};
+
 static SkBlitRow::Proc32 platform_32_procs[] = {
     NULL,                               
     S32_Blend_BlitRow32_SSE2,           
@@ -173,7 +184,11 @@ static SkBlitRow::Proc32 platform_32_procs[] = {
 };
 
 SkBlitRow::Proc SkBlitRow::PlatformProcs565(unsigned flags) {
-    return NULL;
+    if (cachedHasSSE2()) {
+        return platform_16_procs[flags];
+    } else {
+        return NULL;
+    }
 }
 
 SkBlitRow::ColorProc SkBlitRow::PlatformColorProc() {

@@ -28,6 +28,8 @@ public:
       kClampToBlack_TileMode,  
     };
 
+    virtual ~SkMatrixConvolutionImageFilter();
+
     
 
 
@@ -49,17 +51,19 @@ public:
 
 
 
-
-    SkMatrixConvolutionImageFilter(const SkISize& kernelSize,
-                                   const SkScalar* kernel,
-                                   SkScalar gain,
-                                   SkScalar bias,
-                                   const SkIPoint& target,
-                                   TileMode tileMode,
-                                   bool convolveAlpha,
-                                   SkImageFilter* input = NULL,
-                                   const CropRect* cropRect = NULL);
-    virtual ~SkMatrixConvolutionImageFilter();
+    static SkMatrixConvolutionImageFilter* Create(const SkISize& kernelSize,
+                                                  const SkScalar* kernel,
+                                                  SkScalar gain,
+                                                  SkScalar bias,
+                                                  const SkIPoint& kernelOffset,
+                                                  TileMode tileMode,
+                                                  bool convolveAlpha,
+                                                  SkImageFilter* input = NULL,
+                                                  const CropRect* cropRect = NULL) {
+        return SkNEW_ARGS(SkMatrixConvolutionImageFilter, (kernelSize, kernel, gain, bias,
+                                                           kernelOffset, tileMode, convolveAlpha,
+                                                           input, cropRect));
+    }
 
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkMatrixConvolutionImageFilter)
 
@@ -67,22 +71,35 @@ protected:
     SkMatrixConvolutionImageFilter(SkReadBuffer& buffer);
     virtual void flatten(SkWriteBuffer&) const SK_OVERRIDE;
 
-    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const SkMatrix&,
+    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const Context&,
                                SkBitmap* result, SkIPoint* loc) const SK_OVERRIDE;
 
 #if SK_SUPPORT_GPU
     virtual bool asNewEffect(GrEffectRef** effect,
                              GrTexture*,
-                             const SkMatrix& matrix,
+                             const SkMatrix& ctm,
                              const SkIRect& bounds) const SK_OVERRIDE;
 #endif
+
+#ifdef SK_SUPPORT_LEGACY_PUBLICEFFECTCONSTRUCTORS
+public:
+#endif
+    SkMatrixConvolutionImageFilter(const SkISize& kernelSize,
+                                   const SkScalar* kernel,
+                                   SkScalar gain,
+                                   SkScalar bias,
+                                   const SkIPoint& kernelOffset,
+                                   TileMode tileMode,
+                                   bool convolveAlpha,
+                                   SkImageFilter* input = NULL,
+                                   const CropRect* cropRect = NULL);
 
 private:
     SkISize   fKernelSize;
     SkScalar* fKernel;
     SkScalar  fGain;
     SkScalar  fBias;
-    SkIPoint  fTarget;
+    SkIPoint  fKernelOffset;
     TileMode  fTileMode;
     bool      fConvolveAlpha;
     typedef SkImageFilter INHERITED;

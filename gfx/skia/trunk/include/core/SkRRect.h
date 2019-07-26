@@ -45,12 +45,6 @@ class SkMatrix;
 
 
 
-
-
-
-
-
-
 class SK_API SkRRect {
 public:
     
@@ -102,7 +96,23 @@ public:
     inline bool isRect() const { return kRect_Type == this->getType(); }
     inline bool isOval() const { return kOval_Type == this->getType(); }
     inline bool isSimple() const { return kSimple_Type == this->getType(); }
+    inline bool isSimpleCircular() const {
+        return this->isSimple() && fRadii[0].fX == fRadii[0].fY;
+    }
     inline bool isComplex() const { return kComplex_Type == this->getType(); }
+
+    bool allCornersCircular() const;
+
+    
+
+
+
+    bool isNinePatch() const {
+        return fRadii[kUpperLeft_Corner].fX == fRadii[kLowerLeft_Corner].fX &&
+               fRadii[kUpperRight_Corner].fX == fRadii[kLowerRight_Corner].fX &&
+               fRadii[kUpperLeft_Corner].fY == fRadii[kUpperRight_Corner].fY &&
+               fRadii[kLowerLeft_Corner].fY == fRadii[kLowerRight_Corner].fY;
+    }
 
     SkScalar width() const { return fRect.width(); }
     SkScalar height() const { return fRect.height(); }
@@ -226,6 +236,13 @@ public:
     }
     void outset(SkScalar dx, SkScalar dy) {
         this->inset(-dx, -dy, this);
+    }
+
+    
+
+
+    void offset(SkScalar dx, SkScalar dy) {
+        fRect.offset(dx, dy);
     }
 
     

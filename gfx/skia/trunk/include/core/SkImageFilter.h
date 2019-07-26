@@ -9,12 +9,12 @@
 #define SkImageFilter_DEFINED
 
 #include "SkFlattenable.h"
+#include "SkMatrix.h"
 #include "SkRect.h"
 
 class SkBitmap;
 class SkColorFilter;
 class SkBaseDevice;
-class SkMatrix;
 struct SkIPoint;
 class SkShader;
 class GrEffectRef;
@@ -49,6 +49,18 @@ public:
         uint32_t fFlags;
     };
 
+    class Context {
+    public:
+        Context(const SkMatrix& ctm, const SkIRect& clipBounds) :
+            fCTM(ctm), fClipBounds(clipBounds) {
+        }
+        const SkMatrix& ctm() const { return fCTM; }
+        const SkIRect& clipBounds() const { return fClipBounds; }
+    private:
+        SkMatrix fCTM;
+        SkIRect  fClipBounds;
+    };
+
     class Proxy {
     public:
         virtual ~Proxy() {};
@@ -59,7 +71,7 @@ public:
         
         
         virtual bool filterImage(const SkImageFilter*, const SkBitmap& src,
-                                 const SkMatrix& ctm,
+                                 const Context&,
                                  SkBitmap* result, SkIPoint* offset) = 0;
     };
 
@@ -76,7 +88,7 @@ public:
 
 
 
-    bool filterImage(Proxy*, const SkBitmap& src, const SkMatrix& ctm,
+    bool filterImage(Proxy*, const SkBitmap& src, const Context&,
                      SkBitmap* result, SkIPoint* offset) const;
 
     
@@ -104,7 +116,7 @@ public:
 
 
 
-    virtual bool filterImageGPU(Proxy*, const SkBitmap& src, const SkMatrix& ctm,
+    virtual bool filterImageGPU(Proxy*, const SkBitmap& src, const Context&,
                                 SkBitmap* result, SkIPoint* offset) const;
 
     
@@ -146,6 +158,20 @@ public:
     
     virtual void computeFastBounds(const SkRect&, SkRect*) const;
 
+#ifdef SK_SUPPORT_GPU
+    
+
+
+    static void WrapTexture(GrTexture* texture, int width, int height, SkBitmap* result);
+
+    
+
+
+
+    bool getInputResultGPU(SkImageFilter::Proxy* proxy, const SkBitmap& src, const Context&,
+                           SkBitmap* result, SkIPoint* offset) const;
+#endif
+
     SK_DEFINE_FLATTENABLE_TYPE(SkImageFilter)
 
 protected:
@@ -186,7 +212,7 @@ protected:
 
 
 
-    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const SkMatrix&,
+    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const Context&,
                                SkBitmap* result, SkIPoint* offset) const;
     
     
@@ -198,9 +224,24 @@ protected:
     virtual bool onFilterBounds(const SkIRect&, const SkMatrix&, SkIRect*) const;
 
     
+
+
+
+
+
+    bool applyCropRect(const Context&, const SkBitmap& src, const SkIPoint& srcOffset,
+                       SkIRect* bounds) const;
+
     
-    
-    bool applyCropRect(SkIRect* rect, const SkMatrix& matrix) const;
+
+
+
+
+
+
+
+    bool applyCropRect(const Context&, Proxy* proxy, const SkBitmap& src, SkIPoint* srcOffset,
+                       SkIRect* bounds, SkBitmap* result) const;
 
     
 
@@ -221,6 +262,7 @@ protected:
                              GrTexture*,
                              const SkMatrix& matrix,
                              const SkIRect& bounds) const;
+
 
 private:
     typedef SkFlattenable INHERITED;

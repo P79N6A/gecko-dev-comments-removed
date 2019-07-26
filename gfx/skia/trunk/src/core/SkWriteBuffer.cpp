@@ -270,15 +270,9 @@ void SkWriteBuffer::writeFlattenable(const SkFlattenable* flattenable) {
 
 
 
-
-    SkFlattenable::Factory factory = NULL;
-    if (flattenable) {
-        factory = flattenable->getFactory();
-    }
-    if (NULL == factory) {
+    if (NULL == flattenable) {
         if (this->isValidating()) {
             this->writeString("");
-            SkASSERT(NULL == flattenable); 
         } else if (fFactorySet != NULL || fNamedFactorySet != NULL) {
             this->write32(0);
         } else {
@@ -286,6 +280,9 @@ void SkWriteBuffer::writeFlattenable(const SkFlattenable* flattenable) {
         }
         return;
     }
+
+    SkFlattenable::Factory factory = flattenable->getFactory();
+    SkASSERT(factory != NULL);
 
     
 

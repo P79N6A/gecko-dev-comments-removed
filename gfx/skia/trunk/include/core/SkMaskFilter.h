@@ -40,8 +40,6 @@ class SK_API SkMaskFilter : public SkFlattenable {
 public:
     SK_DECLARE_INST_COUNT(SkMaskFilter)
 
-    SkMaskFilter() {}
-
     
 
 
@@ -103,6 +101,14 @@ public:
                                      GrPaint* grp,
                                      const SkStrokeRec& strokeRec,
                                      const SkPath& path) const;
+    
+
+
+
+    virtual bool directFilterRRectMaskGPU(GrContext* context,
+                                          GrPaint* grp,
+                                          const SkStrokeRec& strokeRec,
+                                          const SkRRect& rrect) const;
 
     
 
@@ -132,10 +138,11 @@ public:
 
     virtual void computeFastBounds(const SkRect& src, SkRect* dest) const;
 
-    SkDEVCODE(virtual void toString(SkString* str) const = 0;)
+    SK_TO_STRING_PUREVIRT()
     SK_DEFINE_FLATTENABLE_TYPE(SkMaskFilter)
 
 protected:
+    SkMaskFilter() {}
     
     SkMaskFilter(SkReadBuffer& buffer) : INHERITED(buffer) {}
 

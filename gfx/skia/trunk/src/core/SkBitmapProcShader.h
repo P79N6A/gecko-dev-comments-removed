@@ -12,6 +12,7 @@
 
 #include "SkShader.h"
 #include "SkBitmapProcState.h"
+#include "SkSmallAllocator.h"
 
 class SkBitmapProcShader : public SkShader {
 public:
@@ -29,7 +30,7 @@ public:
 
     static bool CanDo(const SkBitmap&, TileMode tx, TileMode ty);
 
-    SK_DEVELOPER_TO_STRING()
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkBitmapProcShader)
 
 #if SK_SUPPORT_GPU
@@ -47,5 +48,15 @@ protected:
 private:
     typedef SkShader INHERITED;
 };
+
+
+
+
+typedef SkSmallAllocator<2, sizeof(SkBitmapProcShader) + sizeof(void*) * 2> SkTBlitterAllocator;
+
+
+
+SkShader* CreateBitmapShader(const SkBitmap& src, SkShader::TileMode, SkShader::TileMode,
+                             SkTBlitterAllocator* alloc);
 
 #endif

@@ -118,6 +118,8 @@ public:
         kAutoHinting_Flag     = 0x800,  
         kVerticalText_Flag    = 0x1000,
         kGenA8FromLCD_Flag    = 0x2000, 
+        kDistanceFieldTextTEMP_Flag = 0x4000, 
+                                              
         
         
 
@@ -283,6 +285,19 @@ public:
 
 
     void setDevKernText(bool devKernText);
+
+    
+
+
+    bool isDistanceFieldTextTEMP() const {
+        return SkToBool(this->getFlags() & kDistanceFieldTextTEMP_Flag);
+    }
+
+    
+
+
+
+    void setDistanceFieldTextTEMP(bool distanceFieldText);
 
     enum FilterLevel {
         kNone_FilterLevel,
@@ -731,6 +746,15 @@ public:
     void setTextEncoding(TextEncoding encoding);
 
     struct FontMetrics {
+        
+
+
+        enum FontMetricsFlags {
+            kUnderlineThinknessIsValid_Flag = 1 << 0,
+            kUnderlinePositionIsValid_Flag = 1 << 1,
+        };
+
+        uint32_t    fFlags;       
         SkScalar    fTop;       
         SkScalar    fAscent;    
         SkScalar    fDescent;   
@@ -742,6 +766,40 @@ public:
         SkScalar    fXMax;      
         SkScalar    fXHeight;   
         SkScalar    fCapHeight;  
+        SkScalar    fUnderlineThickness; 
+
+        
+
+
+
+
+
+        SkScalar    fUnderlinePosition; 
+
+        
+
+
+
+        bool hasUnderlineThickness(SkScalar* thickness) const {
+            if (SkToBool(fFlags & kUnderlineThinknessIsValid_Flag)) {
+                *thickness = fUnderlineThickness;
+                return true;
+            }
+            return false;
+        }
+
+        
+
+
+
+        bool hasUnderlinePosition(SkScalar* position) const {
+            if (SkToBool(fFlags & kUnderlinePositionIsValid_Flag)) {
+                *position = fUnderlinePosition;
+                return true;
+            }
+            return false;
+        }
+
     };
 
     
@@ -880,10 +938,6 @@ public:
                         const SkPoint pos[], SkPath* path) const;
 
 #ifdef SK_BUILD_FOR_ANDROID
-    const SkGlyph& getUnicharMetrics(SkUnichar, const SkMatrix*);
-    const SkGlyph& getGlyphMetrics(uint16_t, const SkMatrix*);
-    const void* findImage(const SkGlyph&, const SkMatrix*);
-
     uint32_t getGenerationID() const;
     void setGenerationID(uint32_t generationID);
 
@@ -978,7 +1032,12 @@ public:
         return SetTextMatrix(matrix, fTextSize, fTextScaleX, fTextSkewX);
     }
 
-    SkDEVCODE(void toString(SkString*) const;)
+    SK_TO_STRING_NONVIRT()
+
+    struct FlatteningTraits {
+        static void Flatten(SkWriteBuffer& buffer, const SkPaint& paint);
+        static void Unflatten(SkReadBuffer& buffer, SkPaint* paint);
+    };
 
 private:
     SkTypeface*     fTypeface;
@@ -999,16 +1058,25 @@ private:
     SkColor         fColor;
     SkScalar        fWidth;
     SkScalar        fMiterLimit;
-    
-    unsigned        fFlags : 16;
-    unsigned        fTextAlign : 2;
-    unsigned        fCapType : 2;
-    unsigned        fJoinType : 2;
-    unsigned        fStyle : 2;
-    unsigned        fTextEncoding : 2;  
-    unsigned        fHinting : 2;
-    
 
+    union {
+        struct {
+            
+            unsigned        fFlags : 16;
+            unsigned        fTextAlign : 2;
+            unsigned        fCapType : 2;
+            unsigned        fJoinType : 2;
+            unsigned        fStyle : 2;
+            unsigned        fTextEncoding : 2;  
+            unsigned        fHinting : 2;
+            
+        };
+        uint32_t fBitfields;
+    };
+    uint32_t getBitfields() const { return fBitfields; }
+    void setBitfields(uint32_t bitfields);
+
+    uint32_t fDirtyBits;
 
     SkDrawCacheProc    getDrawCacheProc() const;
     SkMeasureCacheProc getMeasureCacheProc(TextBufferDirection dir,

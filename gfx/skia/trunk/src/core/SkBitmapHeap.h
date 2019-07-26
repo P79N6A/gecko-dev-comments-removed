@@ -111,7 +111,7 @@ public:
 
     SkBitmapHeap(ExternalStorage* externalStorage, int32_t heapSize = UNLIMITED_SIZE);
 
-    ~SkBitmapHeap();
+    virtual ~SkBitmapHeap();
 
     
 

@@ -125,7 +125,7 @@ void SkSurface_Raster::onCopyOnWrite(ContentChangeMode mode) {
             fBitmap.allocPixels();
         } else {
             SkBitmap prev(fBitmap);
-            prev.deepCopyTo(&fBitmap, prev.config());
+            prev.deepCopyTo(&fBitmap);
         }
         
         

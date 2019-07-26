@@ -23,6 +23,11 @@ public:
     bool operator()(const T* a, const T* b) const { return *a < *b; }
 };
 
+class GrStrLess {
+public:
+    bool operator()(const char* a, const char* b) const { return strcmp(a,b) < 0; }
+};
+
 
 
 

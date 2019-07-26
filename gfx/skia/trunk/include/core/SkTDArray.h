@@ -158,24 +158,9 @@ public:
 
 
     void setCount(int count) {
-        
         SkASSERT(count >= 0);
         if (count > fReserve) {
             this->resizeStorageToAtLeast(count);
-        }
-        fCount = count;
-    }
-
-    
-
-
-
-
-
-
-    void setCountExact(int count) {
-        if (count > fReserve) {
-            this->resizeStorageToExact(count);
         }
         fCount = count;
     }
@@ -389,28 +374,15 @@ private:
 
 
 
-    void resizeStorageToExact(int count) {
-        SkASSERT(count >= 0);
-        fArray = (T*)sk_realloc_throw(fArray, count * sizeof(T));
-#ifdef SK_DEBUG
-        fData = (ArrayT*)fArray;
-#endif
-        fReserve = count;
-    }
-
-    
-
-
-
-
-
-
 
     void resizeStorageToAtLeast(int count) {
         SkASSERT(count > fReserve);
-        int space = count + 4;
-        space += space>>2;
-        this->resizeStorageToExact(space);
+        fReserve = count + 4;
+        fReserve += fReserve / 4;
+        fArray = (T*)sk_realloc_throw(fArray, fReserve * sizeof(T));
+#ifdef SK_DEBUG
+        fData = (ArrayT*)fArray;
+#endif
     }
 };
 

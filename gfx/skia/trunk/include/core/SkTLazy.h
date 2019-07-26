@@ -77,6 +77,16 @@ public:
     
 
 
+    void reset() {
+        if (this->isValid()) {
+            fPtr->~T();
+            fPtr = NULL;
+        }
+    }
+
+    
+
+
 
     bool isValid() const { return NULL != fPtr; }
 

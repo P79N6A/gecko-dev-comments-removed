@@ -124,7 +124,7 @@ bool SkBitmapProcState::setBitmapFilterProcs() {
     }
 
     
-    if (fBitmap->config() != SkBitmap::kARGB_8888_Config) {
+    if (fBitmap->colorType() != kPMColor_SkColorType) {
         return false;
     }
 

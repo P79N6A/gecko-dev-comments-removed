@@ -57,7 +57,7 @@ static inline uint64_t first_8_bytes_as_uint64(const uint8_t *bytearray) {
     
     
     SkBitmap copyBitmap;
-    if (!bitmap.copyTo(&copyBitmap, SkBitmap::kARGB_8888_Config)) {
+    if (!bitmap.copyTo(&copyBitmap, kPMColor_SkColorType)) {
         return false;
     }
     return ComputeDigestInternal(copyBitmap, result);

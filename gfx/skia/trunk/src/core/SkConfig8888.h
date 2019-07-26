@@ -5,7 +5,8 @@
 
 
 
-
+#ifndef SkConfig8888_DEFINED
+#define SkConfig8888_DEFINED
 
 #include "SkCanvas.h"
 #include "SkColorPriv.h"
@@ -74,3 +75,5 @@ static inline void SkCopyConfig8888ToBitmap(const SkBitmap& dstBmp,
 }
 
 }
+
+#endif

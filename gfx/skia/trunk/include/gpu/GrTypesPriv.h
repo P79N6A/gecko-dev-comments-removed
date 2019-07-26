@@ -63,6 +63,8 @@ static inline GrSLType GrSLFloatVectorType(int count) {
 
 
 
+
+
 enum GrVertexAttribType {
     kFloat_GrVertexAttribType = 0,
     kVec2f_GrVertexAttribType,
@@ -165,5 +167,54 @@ struct GrVertexAttrib {
 };
 
 template <int N> class GrVertexAttribArray : public SkSTArray<N, GrVertexAttrib, true> {};
+
+
+
+
+
+
+
+
+
+enum GrEffectEdgeType {
+    kFillBW_GrEffectEdgeType,
+    kFillAA_GrEffectEdgeType,
+    kInverseFillBW_GrEffectEdgeType,
+    kInverseFillAA_GrEffectEdgeType,
+    kHairlineAA_GrEffectEdgeType,
+
+    kLast_GrEffectEdgeType = kHairlineAA_GrEffectEdgeType
+};
+
+static const int kGrEffectEdgeTypeCnt = kLast_GrEffectEdgeType + 1;
+
+static inline bool GrEffectEdgeTypeIsFill(const GrEffectEdgeType edgeType) {
+    return (kFillAA_GrEffectEdgeType == edgeType || kFillBW_GrEffectEdgeType == edgeType);
+}
+
+static inline bool GrEffectEdgeTypeIsInverseFill(const GrEffectEdgeType edgeType) {
+    return (kInverseFillAA_GrEffectEdgeType == edgeType ||
+            kInverseFillBW_GrEffectEdgeType == edgeType);
+}
+
+static inline bool GrEffectEdgeTypeIsAA(const GrEffectEdgeType edgeType) {
+    return (kFillBW_GrEffectEdgeType != edgeType && kInverseFillBW_GrEffectEdgeType != edgeType);
+}
+
+static inline GrEffectEdgeType GrInvertEffectEdgeType(const GrEffectEdgeType edgeType) {
+    switch (edgeType) {
+        case kFillBW_GrEffectEdgeType:
+            return kInverseFillBW_GrEffectEdgeType;
+        case kFillAA_GrEffectEdgeType:
+            return kInverseFillAA_GrEffectEdgeType;
+        case kInverseFillBW_GrEffectEdgeType:
+            return kFillBW_GrEffectEdgeType;
+        case kInverseFillAA_GrEffectEdgeType:
+            return kFillAA_GrEffectEdgeType;
+        case kHairlineAA_GrEffectEdgeType:
+            GrCrash("Hairline fill isn't invertible.");
+    }
+    return kFillAA_GrEffectEdgeType; 
+}
 
 #endif

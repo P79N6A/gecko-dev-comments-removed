@@ -404,14 +404,11 @@ const char* GrGLShaderBuilder::fragmentPosition() {
             return "";
         }
     }
+    
+    
+    
     if (fTopLeftFragPosRead) {
-        if (!fSetupFragPosition) {
-            fFSInputs.push_back().set(kVec4f_GrSLType,
-                                      GrGLShaderVar::kIn_TypeModifier,
-                                      "gl_FragCoord",
-                                      GrGLShaderVar::kDefault_Precision);
-            fSetupFragPosition = true;
-        }
+        fSetupFragPosition = true;
         return "gl_FragCoord";
     } else if (fGpu->glCaps().fragCoordConventionsSupport()) {
         if (!fSetupFragPosition) {

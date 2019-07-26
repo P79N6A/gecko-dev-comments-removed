@@ -168,6 +168,11 @@ private:
 
     bool quickInsideClip(const SkRect& devBounds);
 
+    virtual void onInstantGpuTraceEvent(const char* marker) SK_OVERRIDE;
+    virtual void onPushGpuTraceEvent(const char* marker) SK_OVERRIDE;
+    virtual void onPopGpuTraceEvent() SK_OVERRIDE;
+
+
     
     
     int concatInstancedDraw(const DrawInfo& info);

@@ -31,6 +31,8 @@ class GrAtlas;
 
 class GrPlot {
 public:
+    SK_DECLARE_INTERNAL_LLIST_INTERFACE(GrPlot);
+
     int getOffsetX() const { return fOffset.fX; }
     int getOffsetY() const { return fOffset.fY; }
 
@@ -41,14 +43,14 @@ public:
     GrDrawTarget::DrawToken drawToken() const { return fDrawToken; }
     void setDrawToken(GrDrawTarget::DrawToken draw) { fDrawToken = draw; }
 
+    void resetRects();
+
 private:
     GrPlot();
     ~GrPlot(); 
 
     
     GrDrawTarget::DrawToken fDrawToken;
-
-    GrPlot*                 fNext;
 
     GrTexture*              fTexture;
     GrRectanizer*           fRects;
@@ -58,6 +60,8 @@ private:
 
     friend class GrAtlasMgr;
 };
+
+typedef SkTInternalLList<GrPlot> GrPlotList;
 
 class GrAtlasMgr {
 public:
@@ -69,39 +73,40 @@ public:
     GrPlot* addToAtlas(GrAtlas*, int width, int height, const void*, GrIPoint16*);
 
     
-    bool removeUnusedPlots(GrAtlas* atlas);
+    bool removePlot(GrAtlas* atlas, const GrPlot* plot);
 
     
-    void deletePlotList(GrPlot* plot);
+    
+    GrPlot* getUnusedPlot();
 
     GrTexture* getTexture() const {
         return fTexture;
     }
 
 private:
-    GrPlot* allocPlot();
-    void freePlot(GrPlot* plot);
+    void moveToHead(GrPlot* plot);
 
     GrGpu*        fGpu;
     GrPixelConfig fPixelConfig;
     GrTexture*    fTexture;
 
     
-    GrPlot*       fPlots;
+    GrPlot*       fPlotArray;
     
-    GrPlot*       fFreePlots;
+    GrPlotList    fPlotList;
 };
 
 class GrAtlas {
 public:
-    GrAtlas(GrAtlasMgr* mgr) : fPlots(NULL), fAtlasMgr(mgr) { }
-    ~GrAtlas() { fAtlasMgr->deletePlotList(fPlots); }
+    GrAtlas() { }
+    ~GrAtlas() { }
 
-    bool isEmpty() { return NULL == fPlots; }
+    bool isEmpty() { return 0 == fPlots.count(); }
+
+    SkISize getSize() const;
 
 private:
-    GrPlot*     fPlots;
-    GrAtlasMgr* fAtlasMgr;
+    SkTDArray<GrPlot*> fPlots;
 
     friend class GrAtlasMgr;
 };

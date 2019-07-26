@@ -265,7 +265,7 @@ bool SkBitmapHeap::copyBitmap(const SkBitmap& originalBitmap, SkBitmap& copiedBi
 
     } else if (originalBitmap.empty()) {
         copiedBitmap.reset();
-    } else if (!originalBitmap.deepCopyTo(&copiedBitmap, originalBitmap.config())) {
+    } else if (!originalBitmap.deepCopyTo(&copiedBitmap)) {
         return false;
     }
     copiedBitmap.setImmutable();

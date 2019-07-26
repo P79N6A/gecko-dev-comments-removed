@@ -18,6 +18,15 @@
 #include "SkRegion.h"
 #include "SkXfermode.h"
 
+
+
+
+
+
+
+
+
+
 class SkBounder;
 class SkBaseDevice;
 class SkDraw;
@@ -28,6 +37,7 @@ class SkRRect;
 class SkSurface;
 class SkSurface_Base;
 class GrContext;
+class GrRenderTarget;
 
 
 
@@ -47,6 +57,56 @@ class GrContext;
 class SK_API SkCanvas : public SkRefCnt {
 public:
     SK_DECLARE_INST_COUNT(SkCanvas)
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static SkCanvas* NewRaster(const SkImageInfo&);
+
+    static SkCanvas* NewRasterN32(int width, int height) {
+        return NewRaster(SkImageInfo::MakeN32Premul(width, height));
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static SkCanvas* NewRasterDirect(const SkImageInfo&, void*, size_t);
+
+    static SkCanvas* NewRasterDirectN32(int width, int height, SkPMColor* pixels, size_t rowBytes) {
+        return NewRasterDirect(SkImageInfo::MakeN32Premul(width, height), pixels, rowBytes);
+    }
 
     
 
@@ -78,6 +138,12 @@ public:
 
     
 
+
+
+    SkImageInfo imageInfo() const;
+
+    
+
     
 
 
@@ -88,9 +154,16 @@ public:
 
 
 
-    SkISize getDeviceSize() const;
+    SkISize getBaseLayerSize() const;
 
     
+
+
+    SkISize getDeviceSize() const { return this->getBaseLayerSize(); }
+
+    
+
+
 
 
 
@@ -109,7 +182,11 @@ public:
 
 
 
+#ifndef SK_SUPPORT_LEGACY_GETTOPDEVICE
+private:
+#endif
     SkBaseDevice* getTopDevice(bool updateMatrixClip = false) const;
+public:
 
     
 
@@ -124,6 +201,34 @@ public:
     GrContext* getGrContext();
 
     
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    void* accessTopLayerPixels(SkImageInfo* info, size_t* rowBytes);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    const void* peekPixels(SkImageInfo* info, size_t* rowBytes);
 
     
 
@@ -208,6 +313,7 @@ public:
 
     bool readPixels(const SkIRect& srcRect, SkBitmap* bitmap);
 
+#ifdef SK_SUPPORT_LEGACY_WRITEPIXELSCONFIG
     
 
 
@@ -223,9 +329,35 @@ public:
 
 
 
-    void writePixels(const SkBitmap& bitmap,
-                     int x, int y,
-                     Config8888 config8888 = kNative_Premul_Config8888);
+
+    void writePixels(const SkBitmap& bitmap, int x, int y, Config8888 config8888);
+#endif
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool writePixels(const SkImageInfo&, const void* pixels, size_t rowBytes, int x, int y);
+
+    
+
+
+
+    bool writePixels(const SkBitmap& bitmap, int x, int y);
 
     
 
@@ -239,11 +371,17 @@ public:
         
         kFullColorLayer_SaveFlag    = 0x08,
         
+
+
+
+
         kClipToLayer_SaveFlag       = 0x10,
 
         
         kMatrixClip_SaveFlag        = 0x03,
+#ifdef SK_SUPPORT_LEGACY_CLIPTOLAYERFLAG
         kARGB_NoClipLayer_SaveFlag  = 0x0F,
+#endif
         kARGB_ClipLayer_SaveFlag    = 0x1F
     };
 
@@ -261,7 +399,7 @@ public:
 
 
 
-    virtual int save(SaveFlags flags = kMatrixClip_SaveFlag);
+    int save(SaveFlags flags = kMatrixClip_SaveFlag);
 
     
 
@@ -276,8 +414,8 @@ public:
 
 
 
-    virtual int saveLayer(const SkRect* bounds, const SkPaint* paint,
-                          SaveFlags flags = kARGB_ClipLayer_SaveFlag);
+    int saveLayer(const SkRect* bounds, const SkPaint* paint,
+                  SaveFlags flags = kARGB_ClipLayer_SaveFlag);
 
     
 
@@ -299,14 +437,16 @@ public:
 
 
 
-    virtual void restore();
+    void restore();
 
     
+
 
 
     int getSaveCount() const;
 
     
+
 
 
 
@@ -323,38 +463,38 @@ public:
 
 
 
-    virtual bool translate(SkScalar dx, SkScalar dy);
+    bool translate(SkScalar dx, SkScalar dy);
 
     
 
 
 
 
-    virtual bool scale(SkScalar sx, SkScalar sy);
+    bool scale(SkScalar sx, SkScalar sy);
 
     
 
 
 
-    virtual bool rotate(SkScalar degrees);
+    bool rotate(SkScalar degrees);
 
     
 
 
 
 
-    virtual bool skew(SkScalar sx, SkScalar sy);
+    bool skew(SkScalar sx, SkScalar sy);
 
     
 
 
 
-    virtual bool concat(const SkMatrix& matrix);
+    bool concat(const SkMatrix& matrix);
 
     
 
 
-    virtual void setMatrix(const SkMatrix& matrix);
+    void setMatrix(const SkMatrix& matrix);
 
     
 
@@ -366,21 +506,9 @@ public:
 
 
 
-
-    virtual bool clipRect(const SkRect& rect,
-                          SkRegion::Op op = SkRegion::kIntersect_Op,
-                          bool doAntiAlias = false);
-
-    
-
-
-
-
-
-
-    virtual bool clipRRect(const SkRRect& rrect,
-                           SkRegion::Op op = SkRegion::kIntersect_Op,
-                           bool doAntiAlias = false);
+    void clipRect(const SkRect& rect,
+                  SkRegion::Op op = SkRegion::kIntersect_Op,
+                  bool doAntiAlias = false);
 
     
 
@@ -388,10 +516,19 @@ public:
 
 
 
+    void clipRRect(const SkRRect& rrect,
+                   SkRegion::Op op = SkRegion::kIntersect_Op,
+                   bool doAntiAlias = false);
 
-    virtual bool clipPath(const SkPath& path,
-                          SkRegion::Op op = SkRegion::kIntersect_Op,
-                          bool doAntiAlias = false);
+    
+
+
+
+
+
+    void clipPath(const SkPath& path,
+                  SkRegion::Op op = SkRegion::kIntersect_Op,
+                  bool doAntiAlias = false);
 
     
 
@@ -415,18 +552,16 @@ public:
 
 
 
-
-    virtual bool clipRegion(const SkRegion& deviceRgn,
-                            SkRegion::Op op = SkRegion::kIntersect_Op);
+    void clipRegion(const SkRegion& deviceRgn,
+                    SkRegion::Op op = SkRegion::kIntersect_Op);
 
     
 
 
 
 
-
-    bool setClipRegion(const SkRegion& deviceRgn) {
-        return this->clipRegion(deviceRgn, SkRegion::kReplace_Op);
+    void setClipRegion(const SkRegion& deviceRgn) {
+        this->clipRegion(deviceRgn, SkRegion::kReplace_Op);
     }
 
     
@@ -463,6 +598,20 @@ public:
 
     bool quickRejectY(SkScalar top, SkScalar bottom) const {
         SkASSERT(top <= bottom);
+
+#ifndef SK_WILL_NEVER_DRAW_PERSPECTIVE_TEXT
+        
+        
+        
+        if (this->getTotalMatrix().hasPerspective()) {
+            
+            
+            
+            
+            return false;
+        }
+#endif
+
         const SkRect& clipR = this->getLocalClipBounds();
         
         
@@ -476,13 +625,13 @@ public:
 
 
 
-    bool getClipBounds(SkRect* bounds) const;
+    virtual bool getClipBounds(SkRect* bounds) const;
 
     
 
 
 
-    bool getClipDeviceBounds(SkIRect* bounds) const;
+    virtual bool getClipDeviceBounds(SkIRect* bounds) const;
 
 
     
@@ -596,8 +745,7 @@ public:
 
 
 
-    void drawIRect(const SkIRect& rect, const SkPaint& paint)
-    {
+    void drawIRect(const SkIRect& rect, const SkPaint& paint) {
         SkRect r;
         r.set(rect);    
         this->drawRect(r, paint);
@@ -629,6 +777,12 @@ public:
 
 
     virtual void drawRRect(const SkRRect& rrect, const SkPaint& paint);
+
+    
+
+
+
+    void drawDRRect(const SkRRect& outer, const SkRRect& inner, const SkPaint&);
 
     
 
@@ -835,6 +989,14 @@ public:
 
 
 
+    void EXPERIMENTAL_optimize(SkPicture* picture);
+
+    
+
+
+
+
+
     virtual void drawPicture(SkPicture& picture);
 
     enum VertexMode {
@@ -891,7 +1053,26 @@ public:
         
     }
 
+    
 
+
+
+
+
+    void pushCull(const SkRect& cullRect) {
+        ++fCullCount;
+        this->onPushCull(cullRect);
+    }
+
+    
+
+
+    void popCull() {
+        if (fCullCount > 0) {
+            --fCullCount;
+            this->onPopCull();
+        }
+    }
     
 
     
@@ -932,25 +1113,43 @@ public:
 
 
 
+
+
+
+    virtual bool isClipEmpty() const;
+
+    
+
+
+
+    virtual bool isClipRect() const;
+
+    
+
+
+
     const SkMatrix& getTotalMatrix() const;
 
+#ifdef SK_SUPPORT_LEGACY_GETCLIPTYPE
     enum ClipType {
         kEmpty_ClipType = 0,
         kRect_ClipType,
         kComplex_ClipType
     };
-
     
 
 
-    ClipType getClipType() const;
+    virtual ClipType getClipType() const;
+#endif
 
+#ifdef SK_SUPPORT_LEGACY_GETTOTALCLIP
     
 
 
 
 
     const SkRegion& getTotalClip() const;
+#endif
 
     
 
@@ -965,6 +1164,7 @@ public:
     public:
         virtual ~ClipVisitor();
         virtual void clipRect(const SkRect&, SkRegion::Op, bool antialias) = 0;
+        virtual void clipRRect(const SkRRect&, SkRegion::Op, bool antialias) = 0;
         virtual void clipPath(const SkPath&, SkRegion::Op, bool antialias) = 0;
     };
 
@@ -1015,9 +1215,50 @@ public:
         bool              fDone;
     };
 
+    
+    const SkRegion& internal_private_getTotalClip() const;
+    
+    void internal_private_getTotalClipAsPath(SkPath*) const;
+    
+    GrRenderTarget* internal_private_accessTopLayerRenderTarget();
+
 protected:
     
     virtual SkSurface* onNewSurface(const SkImageInfo&);
+
+    
+    virtual const void* onPeekPixels(SkImageInfo*, size_t* rowBytes);
+    virtual void* onAccessTopLayerPixels(SkImageInfo*, size_t* rowBytes);
+
+    
+    
+    
+    enum SaveLayerStrategy {
+        kFullLayer_SaveLayerStrategy,
+        kNoLayer_SaveLayerStrategy
+    };
+    virtual void willSave(SaveFlags);
+    virtual SaveLayerStrategy willSaveLayer(const SkRect*, const SkPaint*, SaveFlags);
+    virtual void willRestore();
+
+    virtual void didTranslate(SkScalar, SkScalar);
+    virtual void didScale(SkScalar, SkScalar);
+    virtual void didRotate(SkScalar);
+    virtual void didSkew(SkScalar, SkScalar);
+    virtual void didConcat(const SkMatrix&);
+    virtual void didSetMatrix(const SkMatrix&);
+
+    virtual void onDrawDRRect(const SkRRect&, const SkRRect&, const SkPaint&);
+
+    enum ClipEdgeStyle {
+        kHard_ClipEdgeStyle,
+        kSoft_ClipEdgeStyle
+    };
+
+    virtual void onClipRect(const SkRect& rect, SkRegion::Op op, ClipEdgeStyle edgeStyle);
+    virtual void onClipRRect(const SkRRect& rrect, SkRegion::Op op, ClipEdgeStyle edgeStyle);
+    virtual void onClipPath(const SkPath& path, SkRegion::Op op, ClipEdgeStyle edgeStyle);
+    virtual void onClipRegion(const SkRegion& deviceRgn, SkRegion::Op op);
 
     
     
@@ -1035,23 +1276,15 @@ protected:
 
     
     
-    bool updateClipConservativelyUsingBounds(const SkRect&, SkRegion::Op,
+    void updateClipConservativelyUsingBounds(const SkRect&, SkRegion::Op,
                                              bool inverseFilled);
 
     
     
     void predrawNotify();
 
-    
-
-
-
-
-
-
-
-
-    virtual SkBaseDevice* setDevice(SkBaseDevice* device);
+    virtual void onPushCull(const SkRect& cullRect);
+    virtual void onPopCull();
 
 private:
     class MCRec;
@@ -1065,6 +1298,7 @@ private:
 
     SkBounder*  fBounder;
     int         fSaveLayerCount;    
+    int         fCullCount;         
 
     SkMetaData* fMetaData;
 
@@ -1079,13 +1313,30 @@ private:
     bool fDeviceCMDirty;            
     void updateDeviceCMCache();
 
-    friend class SkDrawIter;    
+    friend class SkDrawIter;        
     friend class AutoDrawLooper;
+    friend class SkLua;             
+    friend class SkDeferredDevice;  
 
-    SkBaseDevice* createLayerDevice(SkBitmap::Config, int width, int height,
-                                    bool isOpaque);
+    SkBaseDevice* createLayerDevice(const SkImageInfo&);
 
     SkBaseDevice* init(SkBaseDevice*);
+
+    
+
+
+
+
+
+
+    SkBaseDevice* setRootDevice(SkBaseDevice* device);
+
+    
+
+
+
+    SkISize getTopLayerSize() const;
+    SkIPoint getTopLayerOrigin() const;
 
     
     
@@ -1097,7 +1348,7 @@ private:
                                 const SkRect& dst, const SkPaint* paint);
     void internalDrawPaint(const SkPaint& paint);
     int internalSaveLayer(const SkRect* bounds, const SkPaint* paint,
-                          SaveFlags, bool justForImageFilter);
+                          SaveFlags, bool justForImageFilter, SaveLayerStrategy strategy);
     void internalDrawDevice(SkBaseDevice*, int x, int y, const SkPaint*);
 
     
@@ -1205,5 +1456,48 @@ private:
     SkCanvas* fCanvas;
 };
 #define SkAutoCommentBlock(...) SK_REQUIRE_LOCAL_VAR(SkAutoCommentBlock)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class SkAutoROCanvasPixels : SkNoncopyable {
+public:
+    SkAutoROCanvasPixels(SkCanvas* canvas);
+
+    
+    const void* addr() const { return fAddr; }
+
+    
+    size_t rowBytes() const { return fRowBytes; }
+
+    
+    const SkImageInfo& info() const { return fInfo; }
+
+    
+    
+    
+    bool asROBitmap(SkBitmap*) const;
+
+private:
+    SkBitmap    fBitmap;    
+    const void* fAddr;      
+    SkImageInfo fInfo;
+    size_t      fRowBytes;
+};
 
 #endif

@@ -35,12 +35,6 @@
 
 
 
-#define BORDER      1
-
-#ifdef SK_DEBUG
-    static int gCounter;
-#endif
-
 
 #define FONT_CACHE_STATS 0
 #if FONT_CACHE_STATS
@@ -48,13 +42,12 @@ static int g_UploadCount = 0;
 #endif
 
 GrPlot::GrPlot() : fDrawToken(NULL, 0)
-                 , fNext(NULL)
                  , fTexture(NULL)
                  , fAtlasMgr(NULL)
                  , fBytesPerPixel(1)
 {
-    fRects = GrRectanizer::Factory(GR_ATLAS_WIDTH - BORDER,
-                                   GR_ATLAS_HEIGHT - BORDER);
+    fRects = GrRectanizer::Factory(GR_ATLAS_WIDTH,
+                                   GR_ATLAS_HEIGHT);
     fOffset.set(0, 0);
 }
 
@@ -67,54 +60,33 @@ static inline void adjust_for_offset(GrIPoint16* loc, const GrIPoint16& offset) 
     loc->fY += offset.fY * GR_ATLAS_HEIGHT;
 }
 
-static inline uint8_t* zero_fill(uint8_t* ptr, size_t count) {
-    sk_bzero(ptr, count);
-    return ptr + count;
-}
-
 bool GrPlot::addSubImage(int width, int height, const void* image,
                           GrIPoint16* loc) {
-    if (!fRects->addRect(width + BORDER, height + BORDER, loc)) {
+    if (!fRects->addRect(width, height, loc)) {
         return false;
     }
 
     SkAutoSMalloc<1024> storage;
-    int dstW = width + 2*BORDER;
-    int dstH = height + 2*BORDER;
-    if (BORDER) {
-        const size_t dstRB = dstW * fBytesPerPixel;
-        uint8_t* dst = (uint8_t*)storage.reset(dstH * dstRB);
-        sk_bzero(dst, dstRB);                
-        dst += dstRB;
-        for (int y = 0; y < height; y++) {
-            dst = zero_fill(dst, fBytesPerPixel);   
-            memcpy(dst, image, width * fBytesPerPixel);
-            dst += width * fBytesPerPixel;
-            dst = zero_fill(dst, fBytesPerPixel);   
-            image = (const void*)((const char*)image + width * fBytesPerPixel);
-        }
-        sk_bzero(dst, dstRB);                
-        image = storage.get();
-    }
     adjust_for_offset(loc, fOffset);
     GrContext* context = fTexture->getContext();
     
     
     
     context->writeTexturePixels(fTexture,
-                                loc->fX, loc->fY, dstW, dstH,
+                                loc->fX, loc->fY, width, height,
                                 fTexture->config(), image, 0,
                                 GrContext::kDontFlush_PixelOpsFlag);
-
-    
-    loc->fX += BORDER;
-    loc->fY += BORDER;
 
 #if FONT_CACHE_STATS
     ++g_UploadCount;
 #endif
 
     return true;
+}
+
+void GrPlot::resetRects() {
+    SkASSERT(NULL != fRects);
+    fRects->reset();
 }
 
 
@@ -127,9 +99,9 @@ GrAtlasMgr::GrAtlasMgr(GrGpu* gpu, GrPixelConfig config) {
 
     
     size_t bpp = GrBytesPerPixel(fPixelConfig);
-    fPlots = SkNEW_ARRAY(GrPlot, (GR_PLOT_WIDTH*GR_PLOT_HEIGHT));
-    fFreePlots = NULL;
-    GrPlot* currPlot = fPlots;
+    fPlotArray = SkNEW_ARRAY(GrPlot, (GR_PLOT_WIDTH*GR_PLOT_HEIGHT));
+
+    GrPlot* currPlot = fPlotArray;
     for (int y = GR_PLOT_HEIGHT-1; y >= 0; --y) {
         for (int x = GR_PLOT_WIDTH-1; x >= 0; --x) {
             currPlot->fAtlasMgr = this;
@@ -137,9 +109,7 @@ GrAtlasMgr::GrAtlasMgr(GrGpu* gpu, GrPixelConfig config) {
             currPlot->fBytesPerPixel = bpp;
 
             
-            currPlot->fNext = fFreePlots;
-            fFreePlots = currPlot;
-
+            fPlotList.addToHead(currPlot);
             ++currPlot;
         }
     }
@@ -147,7 +117,7 @@ GrAtlasMgr::GrAtlasMgr(GrGpu* gpu, GrPixelConfig config) {
 
 GrAtlasMgr::~GrAtlasMgr() {
     SkSafeUnref(fTexture);
-    SkDELETE_ARRAY(fPlots);
+    SkDELETE_ARRAY(fPlotArray);
 
     fGpu->unref();
 #if FONT_CACHE_STATS
@@ -155,25 +125,29 @@ GrAtlasMgr::~GrAtlasMgr() {
 #endif
 }
 
+void GrAtlasMgr::moveToHead(GrPlot* plot) {
+    if (fPlotList.head() == plot) {
+        return;
+    }
+
+    fPlotList.remove(plot);
+    fPlotList.addToHead(plot);
+};
+
 GrPlot* GrAtlasMgr::addToAtlas(GrAtlas* atlas,
                                int width, int height, const void* image,
                                GrIPoint16* loc) {
     
-    GrPlot* plotIter = atlas->fPlots;
-    while (plotIter) {
-        if (plotIter->addSubImage(width, height, image, loc)) {
-            return plotIter;
+    
+    for (int i = atlas->fPlots.count()-1; i >= 0; --i) {
+        GrPlot* plot = atlas->fPlots[i];
+        if (plot->addSubImage(width, height, image, loc)) {
+            this->moveToHead(plot);
+            return plot;
         }
-        plotIter = plotIter->fNext;
     }
 
     
-    
-    GrPlot* newPlot = this->allocPlot();
-    if (NULL == newPlot) {
-        return NULL;
-    }
-
     if (NULL == fTexture) {
         
         GrTextureDesc desc;
@@ -187,75 +161,55 @@ GrPlot* GrAtlasMgr::addToAtlas(GrAtlas* atlas,
             return NULL;
         }
     }
-    
-    newPlot->fTexture = fTexture;
 
-    if (!newPlot->addSubImage(width, height, image, loc)) {
-        this->freePlot(newPlot);
-        return NULL;
+    
+    GrPlotList::Iter plotIter;
+    plotIter.init(fPlotList, GrPlotList::Iter::kHead_IterStart);
+    GrPlot* plot;
+    while (NULL != (plot = plotIter.get())) {
+        
+        plot->fTexture = fTexture;
+        if (plot->addSubImage(width, height, image, loc)) {
+            this->moveToHead(plot);
+            
+            *(atlas->fPlots.append()) = plot;
+            return plot;
+        }
+        plotIter.next();
     }
 
     
-    newPlot->fNext = atlas->fPlots;
-    atlas->fPlots = newPlot;
-
-    return newPlot;
+    return NULL;
 }
 
-bool GrAtlasMgr::removeUnusedPlots(GrAtlas* atlas) {
-
+bool GrAtlasMgr::removePlot(GrAtlas* atlas, const GrPlot* plot) {
     
-    
-    GrPlot** plotRef = &atlas->fPlots;
-    GrPlot* plot = atlas->fPlots;
-    bool removed = false;
-    while (NULL != plot) {
-        if (plot->drawToken().isIssued()) {
-            *plotRef = plot->fNext;
-            this->freePlot(plot);
-            plot = *plotRef;
-            removed = true;
-        } else {
-            plotRef = &plot->fNext;
-            plot = plot->fNext;
+    int count = atlas->fPlots.count();
+    for (int i = 0; i < count; ++i) {
+        if (plot == atlas->fPlots[i]) {
+            atlas->fPlots.remove(i);
+            return true;
         }
     }
 
-    return removed;
+    return false;
 }
 
-void GrAtlasMgr::deletePlotList(GrPlot* plot) {
-    while (NULL != plot) {
-        GrPlot* next = plot->fNext;
-        this->freePlot(plot);
-        plot = next;
-    }
-}
 
-GrPlot* GrAtlasMgr::allocPlot() {
-    if (NULL == fFreePlots) {
-        return NULL;
-    } else {
-        GrPlot* alloc = fFreePlots;
-        fFreePlots = alloc->fNext;
-#ifdef SK_DEBUG
-
-        gCounter += 1;
-#endif
-        return alloc;
+GrPlot* GrAtlasMgr::getUnusedPlot() {
+    GrPlotList::Iter plotIter;
+    plotIter.init(fPlotList, GrPlotList::Iter::kTail_IterStart);
+    GrPlot* plot;
+    while (NULL != (plot = plotIter.get())) {
+        if (plot->drawToken().isIssued()) {
+            return plot;
+        }
+        plotIter.prev();
     }
 
+    return NULL;
 }
 
-void GrAtlasMgr::freePlot(GrPlot* plot) {
-    SkASSERT(this == plot->fAtlasMgr);
-
-    plot->fRects->reset();
-    plot->fNext = fFreePlots;
-    fFreePlots = plot;
-
-#ifdef SK_DEBUG
-    --gCounter;
-
-#endif
+SkISize GrAtlas::getSize() const {
+    return SkISize::Make(GR_ATLAS_TEXTURE_WIDTH, GR_ATLAS_TEXTURE_HEIGHT);
 }

@@ -37,7 +37,9 @@ public:
     GrMaskFormat getMaskFormat() const { return fMaskFormat; }
 
     inline GrGlyph* getGlyph(GrGlyph::PackedID, GrFontScaler*);
-    bool getGlyphAtlas(GrGlyph*, GrFontScaler*);
+    bool addGlyphToAtlas(GrGlyph*, GrFontScaler*);
+
+    SkISize getAtlasSize() const { return fAtlas.getSize(); }
 
     
     int countGlyphs() const { return fCache.getArray().count(); }
@@ -46,7 +48,7 @@ public:
     }
 
     
-    bool removeUnusedPlots();
+    void removePlot(const GrPlot* plot);
 
 public:
     
@@ -62,9 +64,7 @@ private:
     GrFontCache*    fFontCache;
     GrAtlasMgr*     fAtlasMgr;
     GrMaskFormat    fMaskFormat;
-#if SK_DISTANCEFIELD_FONTS
     bool            fUseDistanceField;
-#endif
 
     GrAtlas         fAtlas;
 
@@ -78,18 +78,12 @@ public:
     GrFontCache(GrGpu*);
     ~GrFontCache();
 
-#if SK_DISTANCEFIELD_FONTS
     inline GrTextStrike* getStrike(GrFontScaler*, bool useDistanceField);
-#else
-    inline GrTextStrike* getStrike(GrFontScaler*);
-#endif
 
     void freeAll();
 
-    void purgeExceptFor(GrTextStrike*);
-
     
-    void freePlotExceptFor(GrTextStrike*);
+    bool freeUnusedPlot(GrTextStrike* preserveStrike);
 
     
     int countStrikes() const { return fCache.getArray().count(); }

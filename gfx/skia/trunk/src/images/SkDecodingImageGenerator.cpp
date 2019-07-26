@@ -14,6 +14,11 @@
 #include "SkStream.h"
 #include "SkUtils.h"
 
+static bool equal_modulo_alpha(const SkImageInfo& a, const SkImageInfo& b) {
+    return a.width() == b.width() && a.height() == b.height() &&
+           a.colorType() == b.colorType();
+}
+
 namespace {
 
 
@@ -21,53 +26,38 @@ namespace {
 
 class TargetAllocator : public SkBitmap::Allocator {
 public:
-    TargetAllocator(void* target,
-                    size_t rowBytes,
-                    int width,
-                    int height,
-                    SkBitmap::Config config)
-        : fTarget(target)
+    TargetAllocator(const SkImageInfo& info,
+                    void* target,
+                    size_t rowBytes)
+        : fInfo(info)
+        , fTarget(target)
         , fRowBytes(rowBytes)
-        , fWidth(width)
-        , fHeight(height)
-        , fConfig(config) { }
+    {}
 
     bool isReady() { return (fTarget != NULL); }
 
     virtual bool allocPixelRef(SkBitmap* bm, SkColorTable* ct) {
-        if ((NULL == fTarget)
-            || (fConfig != bm->config())
-            || (fWidth != bm->width())
-            || (fHeight != bm->height())
-            || (ct != NULL)) {
+        if (NULL == fTarget || !equal_modulo_alpha(fInfo, bm->info())) {
             
             return bm->allocPixels(NULL, ct);
         }
-        
-        bm->setConfig(fConfig, fWidth, fHeight, fRowBytes, bm->alphaType());
-        
+
         
         
-        bm->setPixels(fTarget, NULL);
+        
+        bm->installPixels(fInfo, fTarget, fRowBytes, NULL, NULL);
+
         fTarget = NULL;  
         return true;
     }
 
 private:
+    const SkImageInfo fInfo;
     void* fTarget;  
                     
                     
-                    
-    size_t fRowBytes;  
-    int fWidth;   
-    int fHeight;  
-                  
-                  
-                  
-                  
-                  
-                  
-    SkBitmap::Config fConfig;
+    const size_t fRowBytes;  
+
     typedef SkBitmap::Allocator INHERITED;
 };
 
@@ -94,14 +84,13 @@ SkDecodingImageGenerator::SkDecodingImageGenerator(
         SkStreamRewindable* stream,
         const SkImageInfo& info,
         int sampleSize,
-        bool ditherImage,
-        SkBitmap::Config requestedConfig)
+        bool ditherImage)
     : fData(data)
     , fStream(stream)
     , fInfo(info)
     , fSampleSize(sampleSize)
     , fDitherImage(ditherImage)
-    , fRequestedConfig(requestedConfig) {
+{
     SkASSERT(stream != NULL);
     SkSafeRef(fData);  
 }
@@ -151,8 +140,7 @@ bool SkDecodingImageGenerator::getPixels(const SkImageInfo& info,
         
         return false;
     }
-    int bpp = SkBitmap::ComputeBytesPerPixel(fRequestedConfig);
-    if (static_cast<size_t>(bpp * info.fWidth) > rowBytes) {
+    if (info.minRowBytes() > rowBytes) {
         
         return false;
     }
@@ -166,10 +154,11 @@ bool SkDecodingImageGenerator::getPixels(const SkImageInfo& info,
     decoder->setSampleSize(fSampleSize);
 
     SkBitmap bitmap;
-    TargetAllocator allocator(pixels, rowBytes, info.fWidth,
-                              info.fHeight, fRequestedConfig);
+    TargetAllocator allocator(fInfo, pixels, rowBytes);
     decoder->setAllocator(&allocator);
-    bool success = decoder->decode(fStream, &bitmap, fRequestedConfig,
+    
+    SkBitmap::Config legacyConfig = SkColorTypeToBitmapConfig(info.colorType());
+    bool success = decoder->decode(fStream, &bitmap, legacyConfig,
                                    SkImageDecoder::kDecodePixels_Mode);
     decoder->setAllocator(NULL);
     if (!success) {
@@ -177,16 +166,16 @@ bool SkDecodingImageGenerator::getPixels(const SkImageInfo& info,
     }
     if (allocator.isReady()) {  
         SkBitmap bm;
-        SkASSERT(bitmap.canCopyTo(fRequestedConfig));
-        if (!bitmap.copyTo(&bm, fRequestedConfig, &allocator)
-            || allocator.isReady()) {
+        SkASSERT(bitmap.canCopyTo(info.colorType()));
+        bool copySuccess = bitmap.copyTo(&bm, info.colorType(), &allocator);
+        if (!copySuccess || allocator.isReady()) {
             SkDEBUGFAIL("bitmap.copyTo(requestedConfig) failed.");
             
             return false;
         }
-        SkASSERT(check_alpha(fInfo.fAlphaType, bm.alphaType()));
+        SkASSERT(check_alpha(info.alphaType(), bm.alphaType()));
     } else {
-        SkASSERT(check_alpha(fInfo.fAlphaType, bitmap.alphaType()));
+        SkASSERT(check_alpha(info.alphaType(), bitmap.alphaType()));
     }
     return true;
 }
@@ -245,38 +234,23 @@ SkImageGenerator* SkDecodingImageGenerator::Create(
         return NULL;
     }
 
-    SkImageInfo info;
-    SkBitmap::Config config;
+    SkImageInfo info = bitmap.info();
 
     if (!opts.fUseRequestedColorType) {
         
-        if (SkBitmap::kIndex8_Config == bitmap.config()) {
+        if (kIndex_8_SkColorType == bitmap.colorType()) {
             
             
-            config = SkBitmap::kARGB_8888_Config;
-            info.fWidth = bitmap.width();
-            info.fHeight = bitmap.height();
             info.fColorType = kPMColor_SkColorType;
-            info.fAlphaType = bitmap.alphaType();
-        } else {
-            config = bitmap.config();  
-            if (!bitmap.asImageInfo(&info)) {
-                SkDEBUGFAIL("Getting SkImageInfo from bitmap failed.");
-                return NULL;
-            }
         }
     } else {
-        config = SkColorTypeToBitmapConfig(opts.fRequestedColorType);
-        if (!bitmap.canCopyTo(config)) {
-            SkASSERT(bitmap.config() != config);
+        if (!bitmap.canCopyTo(opts.fRequestedColorType)) {
+            SkASSERT(bitmap.colorType() != opts.fRequestedColorType);
             return NULL;  
         }
-        info.fWidth = bitmap.width();
-        info.fHeight = bitmap.height();
         info.fColorType = opts.fRequestedColorType;
-        info.fAlphaType = bitmap.alphaType();
     }
     return SkNEW_ARGS(SkDecodingImageGenerator,
                       (data, autoStream.detach(), info,
-                       opts.fSampleSize, opts.fDitherImage, config));
+                       opts.fSampleSize, opts.fDitherImage));
 }

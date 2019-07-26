@@ -5,8 +5,7 @@
 
 
 
-
-
+#include "SkSmallAllocator.h"
 #include "SkSpriteBlitter.h"
 
 SkSpriteBlitter::SkSpriteBlitter(const SkBitmap& source)
@@ -49,11 +48,8 @@ void SkSpriteBlitter::blitMask(const SkMask&, const SkIRect& clip) {
 
 
 
-SkBlitter* SkBlitter::ChooseSprite( const SkBitmap& device,
-                                    const SkPaint& paint,
-                                    const SkBitmap& source,
-                                    int left, int top,
-                                    void* storage, size_t storageSize) {
+SkBlitter* SkBlitter::ChooseSprite(const SkBitmap& device, const SkPaint& paint,
+        const SkBitmap& source, int left, int top, SkTBlitterAllocator* allocator) {
     
 
 
@@ -63,17 +59,16 @@ SkBlitter* SkBlitter::ChooseSprite( const SkBitmap& device,
 
 
 
+    SkASSERT(allocator != NULL);
 
     SkSpriteBlitter* blitter;
 
-    switch (device.config()) {
-        case SkBitmap::kRGB_565_Config:
-            blitter = SkSpriteBlitter::ChooseD16(source, paint, storage,
-                                                 storageSize);
+    switch (device.colorType()) {
+        case kRGB_565_SkColorType:
+            blitter = SkSpriteBlitter::ChooseD16(source, paint, allocator);
             break;
-        case SkBitmap::kARGB_8888_Config:
-            blitter = SkSpriteBlitter::ChooseD32(source, paint, storage,
-                                                 storageSize);
+        case kPMColor_SkColorType:
+            blitter = SkSpriteBlitter::ChooseD32(source, paint, allocator);
             break;
         default:
             blitter = NULL;

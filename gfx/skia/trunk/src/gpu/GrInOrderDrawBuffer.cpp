@@ -441,6 +441,18 @@ void GrInOrderDrawBuffer::clear(const SkIRect* rect, GrColor color,
     renderTarget->ref();
 }
 
+void GrInOrderDrawBuffer::onInstantGpuTraceEvent(const char* marker) {
+    
+}
+
+void GrInOrderDrawBuffer::onPushGpuTraceEvent(const char* marker) {
+    
+}
+
+void GrInOrderDrawBuffer::onPopGpuTraceEvent() {
+    
+}
+
 void GrInOrderDrawBuffer::reset() {
     SkASSERT(1 == fGeoPoolStateStack.count());
     this->resetVertexSource();

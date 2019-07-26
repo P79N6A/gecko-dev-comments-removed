@@ -29,6 +29,8 @@ public:
         return true;
     }
 
+    virtual size_t bytesWritten() const SK_OVERRIDE { return SkToSizeT(this->byteCount); }
+
     
     void update(const uint8_t* input, size_t length);
 

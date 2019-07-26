@@ -42,7 +42,6 @@ public:
 
 
 
-
         kEntirePaint_Bits = -1
 
     };
@@ -59,14 +58,7 @@ public:
 
 
 
-
-
-
-
-
-
     struct SK_API LayerInfo {
-        uint32_t            fFlagsMask; 
         BitFlags            fPaintBits;
         SkXfermode::Mode    fColorMode;
         SkVector            fOffset;
@@ -102,15 +94,17 @@ public:
     
     SkPaint* addLayerOnTop(const LayerInfo&);
 
-    
-    virtual void init(SkCanvas*);
-    virtual bool next(SkCanvas*, SkPaint* paint);
+    virtual SkDrawLooper::Context* createContext(SkCanvas*, void* storage) const SK_OVERRIDE;
 
-    SK_DEVELOPER_TO_STRING()
-    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkLayerDrawLooper)
+    virtual size_t contextSize() const SK_OVERRIDE { return sizeof(LayerDrawLooperContext); }
+
+    SK_TO_STRING_OVERRIDE()
+
+    
+    virtual Factory getFactory() const SK_OVERRIDE { return CreateProc; }
+    static SkFlattenable* CreateProc(SkReadBuffer& buffer);
 
 protected:
-    SkLayerDrawLooper(SkReadBuffer&);
     virtual void flatten(SkWriteBuffer&) const SK_OVERRIDE;
 
 private:
@@ -124,9 +118,18 @@ private:
     int     fCount;
 
     
-    Rec* fCurrRec;
+    class LayerDrawLooperContext : public SkDrawLooper::Context {
+    public:
+        explicit LayerDrawLooperContext(const SkLayerDrawLooper* looper);
 
-    static void ApplyInfo(SkPaint* dst, const SkPaint& src, const LayerInfo&);
+    protected:
+        virtual bool next(SkCanvas*, SkPaint* paint) SK_OVERRIDE;
+
+    private:
+        Rec* fCurrRec;
+
+        static void ApplyInfo(SkPaint* dst, const SkPaint& src, const LayerInfo&);
+    };
 
     class MyRegistrar : public SkFlattenable::Registrar {
     public:
@@ -134,6 +137,44 @@ private:
     };
 
     typedef SkDrawLooper INHERITED;
+
+public:
+    class SK_API Builder {
+    public:
+        Builder();
+        ~Builder();
+
+        
+
+
+
+
+        SkPaint* addLayer(const LayerInfo&);
+
+        
+
+
+        void addLayer(SkScalar dx, SkScalar dy);
+
+        
+
+
+        void addLayer() { this->addLayer(0, 0); }
+
+        
+        SkPaint* addLayerOnTop(const LayerInfo&);
+
+        
+
+
+
+        SkLayerDrawLooper* detachLooper();
+
+    private:
+        Rec* fRecs;
+        Rec* fTopRec;
+        int  fCount;
+    };
 };
 
 #endif

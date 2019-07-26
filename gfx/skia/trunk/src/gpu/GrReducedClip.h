@@ -31,12 +31,13 @@ enum InitialState {
 
 
 
-void ReduceClipStack(const SkClipStack& stack,
-                     const SkIRect& queryBounds,
-                     ElementList* result,
-                     int32_t* resultGenID,
-                     InitialState* initialState,
-                     SkIRect* tighterBounds = NULL,
-                     bool* requiresAA = NULL);
+
+SK_API void ReduceClipStack(const SkClipStack& stack,
+                            const SkIRect& queryBounds,
+                            ElementList* result,
+                            int32_t* resultGenID,
+                            InitialState* initialState,
+                            SkIRect* tighterBounds = NULL,
+                            bool* requiresAA = NULL);
 
 } 

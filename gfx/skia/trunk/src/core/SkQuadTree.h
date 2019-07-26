@@ -11,6 +11,8 @@
 #include "SkRect.h"
 #include "SkTDArray.h"
 #include "SkBBoxHierarchy.h"
+#include "SkTInternalSList.h"
+#include "SkTObjectPool.h"
 
 
 
@@ -27,7 +29,11 @@ public:
     
 
 
-    static SkQuadTree* Create(const SkIRect& bounds);
+
+
+
+    SkQuadTree(const SkIRect& bounds);
+
     virtual ~SkQuadTree();
 
     
@@ -43,7 +49,7 @@ public:
     
 
 
-    virtual void flushDeferredInserts() SK_OVERRIDE {}
+    virtual void flushDeferredInserts() SK_OVERRIDE;
 
     
 
@@ -60,19 +66,44 @@ public:
     
 
 
-    virtual int getCount() const SK_OVERRIDE { return fCount; }
+    virtual int getCount() const SK_OVERRIDE { return fEntryCount; }
 
     virtual void rewindInserts() SK_OVERRIDE;
 
 private:
-    class QuadTreeNode;
+    struct Entry {
+        Entry() : fData(NULL) {}
+        SkIRect fBounds;
+        void* fData;
+        SK_DECLARE_INTERNAL_SLIST_INTERFACE(Entry);
+    };
 
-    SkQuadTree(const SkIRect& bounds);
+    static const int kChildCount = 4;
 
-    
-    int fCount;
+    struct Node {
+        Node() {
+            for (int index=0; index<kChildCount; ++index) {
+                fChildren[index] = NULL;
+            }
+        }
+        SkTInternalSList<Entry> fEntries;
+        SkIRect fBounds;
+        SkIPoint fSplitPoint; 
+        Node* fChildren[kChildCount];
+        SK_DECLARE_INTERNAL_SLIST_ADAPTER(Node, fChildren[0]);
+    };
 
-    QuadTreeNode* fRoot;
+    SkTObjectPool<Entry> fEntryPool;
+    SkTObjectPool<Node> fNodePool;
+    int fEntryCount;
+    Node* fRoot;
+    SkTInternalSList<Entry> fDeferred;
+
+    Node* pickChild(Node* node, const SkIRect& bounds) const;
+    void insert(Node* node, Entry* entry);
+    void search(Node* node, const SkIRect& query, SkTDArray<void*>* results) const;
+    void clear(Node* node);
+    int getDepth(Node* node) const;
 
     typedef SkBBoxHierarchy INHERITED;
 };

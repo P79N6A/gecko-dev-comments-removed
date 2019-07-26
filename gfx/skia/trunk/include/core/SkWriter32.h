@@ -10,6 +10,7 @@
 #ifndef SkWriter32_DEFINED
 #define SkWriter32_DEFINED
 
+#include "SkData.h"
 #include "SkMatrix.h"
 #include "SkPath.h"
 #include "SkPoint.h"
@@ -18,7 +19,7 @@
 #include "SkRegion.h"
 #include "SkScalar.h"
 #include "SkStream.h"
-#include "SkTDArray.h"
+#include "SkTemplates.h"
 #include "SkTypes.h"
 
 class SkWriter32 : SkNoncopyable {
@@ -30,12 +31,7 @@ public:
 
 
 
-    SkWriter32(void* external = NULL, size_t externalBytes = 0)
-        : fData(0)
-        , fCapacity(0)
-        , fUsed(0)
-        , fExternal(0)
-    {
+    SkWriter32(void* external = NULL, size_t externalBytes = 0) {
         this->reset(external, externalBytes);
     }
 
@@ -49,6 +45,7 @@ public:
         SkASSERT(SkIsAlign4((uintptr_t)external));
         SkASSERT(SkIsAlign4(externalBytes));
 
+        fSnapshot.reset(NULL);
         fData = (uint8_t*)external;
         fCapacity = externalBytes;
         fUsed = 0;
@@ -92,6 +89,7 @@ public:
     void overwriteTAt(size_t offset, const T& value) {
         SkASSERT(SkAlign4(offset) == offset);
         SkASSERT(offset < fUsed);
+        SkASSERT(fSnapshot.get() == NULL);
         *(T*)(fData + offset) = value;
     }
 
@@ -235,14 +233,27 @@ public:
         return stream->read(this->reservePad(length), length);
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+    SkData* snapshotAsData() const;
 private:
     void growToAtLeast(size_t size);
 
-    uint8_t* fData;                
-    size_t fCapacity;              
-    size_t fUsed;                  
-    void* fExternal;               
-    SkTDArray<uint8_t> fInternal;  
+    uint8_t* fData;                    
+    size_t fCapacity;                  
+    size_t fUsed;                      
+    void* fExternal;                   
+    SkAutoTMalloc<uint8_t> fInternal;  
+    SkAutoTUnref<SkData> fSnapshot;    
 };
 
 

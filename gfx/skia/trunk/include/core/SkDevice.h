@@ -15,6 +15,14 @@
 #include "SkCanvas.h"
 #include "SkColor.h"
 #include "SkDeviceProperties.h"
+#include "SkImageFilter.h"
+
+
+
+
+
+
+
 
 class SkClipStack;
 class SkDraw;
@@ -41,6 +49,7 @@ public:
 
     virtual ~SkBaseDevice();
 
+#ifdef SK_SUPPORT_LEGACY_COMPATIBLEDEVICE_CONFIG
     
 
 
@@ -55,13 +64,17 @@ public:
     SkBaseDevice* createCompatibleDevice(SkBitmap::Config config,
                                          int width, int height,
                                          bool isOpaque);
+#endif
+    SkBaseDevice* createCompatibleDevice(const SkImageInfo&);
 
     SkMetaData& getMetaData();
 
+#ifdef SK_SUPPORT_LEGACY_GETDEVICECAPABILITIES
     enum Capabilities {
-        kVector_Capability = 0x1,  
+        kVector_Capability = 0x1,
     };
-    virtual uint32_t getDeviceCapabilities() = 0;
+    virtual uint32_t getDeviceCapabilities() { return 0; }
+#endif
 
     
 
@@ -75,6 +88,12 @@ public:
         
         return fLeakyProperties;
     }
+
+    
+
+
+
+    virtual SkImageInfo imageInfo() const;
 
     
 
@@ -95,7 +114,6 @@ public:
 
     
 
-    SK_ATTR_DEPRECATED("want to hide configness of the device -- don't use")
     virtual SkBitmap::Config config() const = 0;
 
     
@@ -106,6 +124,7 @@ public:
 
     const SkBitmap& accessBitmap(bool changePixels);
 
+#ifdef SK_SUPPORT_LEGACY_WRITEPIXELSCONFIG
     
 
 
@@ -122,7 +141,12 @@ public:
 
 
     virtual void writePixels(const SkBitmap& bitmap, int x, int y,
-                             SkCanvas::Config8888 config8888 = SkCanvas::kNative_Premul_Config8888) = 0;
+                             SkCanvas::Config8888 config8888 = SkCanvas::kNative_Premul_Config8888);
+#endif
+
+    bool writePixelsDirect(const SkImageInfo&, const void*, size_t rowBytes, int x, int y);
+
+    void* accessPixels(SkImageInfo* info, size_t* rowBytes);
 
     
 
@@ -228,6 +252,10 @@ protected:
                            const SkPaint& paint) = 0;
 
     
+    virtual void drawDRRect(const SkDraw&, const SkRRect& outer,
+                            const SkRRect& inner, const SkPaint&);
+
+    
 
 
 
@@ -321,17 +349,6 @@ protected:
     
 
 
-
-
-
-
-    virtual bool onReadPixels(const SkBitmap& bitmap,
-                              int x, int y,
-                              SkCanvas::Config8888 config8888) = 0;
-
-    
-
-
     virtual void lockPixels() = 0;
     virtual void unlockPixels() = 0;
 
@@ -359,7 +376,8 @@ protected:
 
 
 
-    virtual bool filterImage(const SkImageFilter*, const SkBitmap&, const SkMatrix&,
+    virtual bool filterImage(const SkImageFilter*, const SkBitmap&,
+                             const SkImageFilter::Context& ctx,
                              SkBitmap* result, SkIPoint* offset) = 0;
 
     
@@ -371,12 +389,57 @@ protected:
     virtual SkSurface* newSurface(const SkImageInfo&);
 
     
+    virtual const void* peekPixels(SkImageInfo*, size_t* rowBytes);
+
+    
+
+
+
+
+
+
+    virtual bool onReadPixels(const SkBitmap& bitmap,
+                              int x, int y,
+                              SkCanvas::Config8888 config8888);
+
+    
+
+
+
+
+
+    virtual bool onWritePixels(const SkImageInfo&, const void*, size_t, int x, int y);
+
+    
+
+
+    virtual void* onAccessPixels(SkImageInfo* info, size_t* rowBytes);
+
+    
 
 
 
 
 
     SkDeviceProperties fLeakyProperties;
+
+    
+
+
+
+    virtual void EXPERIMENTAL_optimize(SkPicture* picture);
+
+    
+
+
+
+
+
+
+
+
+
+    virtual bool EXPERIMENTAL_drawPicture(const SkPicture& picture);
 
 private:
     friend class SkCanvas;
@@ -385,7 +448,7 @@ private:
     friend class SkDrawIter;
     friend class SkDeviceFilteredPaint;
     friend class SkDeviceImageFilterProxy;
-    friend class DeferredDevice;    
+    friend class SkDeferredDevice;    
 
     friend class SkSurface_Raster;
 
@@ -398,17 +461,23 @@ private:
     
     void setOrigin(int x, int y) { fOrigin.set(x, y); }
     
-    SkBaseDevice* createCompatibleDeviceForSaveLayer(SkBitmap::Config config,
-                                                     int width, int height,
-                                                     bool isOpaque);
+    SkBaseDevice* createCompatibleDeviceForSaveLayer(const SkImageInfo&);
 
+#ifdef SK_SUPPORT_LEGACY_COMPATIBLEDEVICE_CONFIG
     
+
+
 
 
     virtual SkBaseDevice* onCreateCompatibleDevice(SkBitmap::Config config,
                                                    int width, int height,
-                                                   bool isOpaque,
-                                                   Usage usage) = 0;
+                                                   bool isOpaque, Usage) {
+        return NULL;
+    }
+#endif
+    virtual SkBaseDevice* onCreateDevice(const SkImageInfo&, Usage) {
+        return NULL;
+    }
 
     
 

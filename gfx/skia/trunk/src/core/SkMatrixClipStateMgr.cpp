@@ -21,7 +21,6 @@ bool SkMatrixClipStateMgr::MatrixClipState::ClipInfo::clipPath(SkPictureRecord* 
     newClip->fOp = op;
     newClip->fDoAA = doAA;
     newClip->fMatrixID = matrixID;
-    newClip->fOffset = kInvalidJumpOffset;
     return false;
 }
 
@@ -29,14 +28,12 @@ bool SkMatrixClipStateMgr::MatrixClipState::ClipInfo::clipRegion(SkPictureRecord
                                                                  int regionID,
                                                                  SkRegion::Op op,
                                                                  int matrixID) {
-    
     ClipOp* newClip = fClips.append();
     newClip->fClipType = kRegion_ClipType;
     newClip->fGeom.fRegionID = regionID;
     newClip->fOp = op;
     newClip->fDoAA = true;      
     newClip->fMatrixID = matrixID;
-    newClip->fOffset = kInvalidJumpOffset;
     return false;
 }
 
@@ -55,16 +52,9 @@ void SkMatrixClipStateMgr::writeDeltaMat(int currentMatID, int desiredMatID) {
 
 
 void SkMatrixClipStateMgr::MatrixClipState::ClipInfo::writeClip(int* curMatID,
-                                                                SkMatrixClipStateMgr* mgr,
-                                                                bool* overrideFirstOp) {
+                                                                SkMatrixClipStateMgr* mgr) {
     for (int i = 0; i < fClips.count(); ++i) {
         ClipOp& curClip = fClips[i];
-
-        SkRegion::Op op = curClip.fOp;
-        if (*overrideFirstOp) {
-            op = SkRegion::kReplace_Op;
-            *overrideFirstOp = false;
-        }
 
         
         
@@ -79,43 +69,31 @@ void SkMatrixClipStateMgr::MatrixClipState::ClipInfo::writeClip(int* curMatID,
         mgr->writeDeltaMat(*curMatID, curClip.fMatrixID);
         *curMatID = curClip.fMatrixID;
 
+        int offset = 0;
+
         switch (curClip.fClipType) {
         case kRect_ClipType:
-            curClip.fOffset = mgr->getPicRecord()->recordClipRect(curClip.fGeom.fRRect.rect(),
-                                                                  op, curClip.fDoAA);
+            offset = mgr->getPicRecord()->recordClipRect(curClip.fGeom.fRRect.rect(),
+                                                         curClip.fOp, curClip.fDoAA);
             break;
         case kRRect_ClipType:
-            curClip.fOffset = mgr->getPicRecord()->recordClipRRect(curClip.fGeom.fRRect, op,
-                                                                   curClip.fDoAA);
+            offset = mgr->getPicRecord()->recordClipRRect(curClip.fGeom.fRRect, curClip.fOp,
+                                                         curClip.fDoAA);
             break;
         case kPath_ClipType:
-            curClip.fOffset = mgr->getPicRecord()->recordClipPath(curClip.fGeom.fPathID, op,
-                                                                  curClip.fDoAA);
+            offset = mgr->getPicRecord()->recordClipPath(curClip.fGeom.fPathID, curClip.fOp,
+                                                         curClip.fDoAA);
             break;
         case kRegion_ClipType: {
             const SkRegion* region = mgr->lookupRegion(curClip.fGeom.fRegionID);
-            curClip.fOffset = mgr->getPicRecord()->recordClipRegion(*region, op);
+            offset = mgr->getPicRecord()->recordClipRegion(*region, curClip.fOp);
             break;
         }
         default:
             SkASSERT(0);
         }
-    }
-}
 
-
-void SkMatrixClipStateMgr::MatrixClipState::ClipInfo::fillInSkips(SkWriter32* writer,
-                                                                  int32_t restoreOffset) {
-    for (int i = 0; i < fClips.count(); ++i) {
-        ClipOp& curClip = fClips[i];
-
-        if (-1 == curClip.fOffset) {
-            continue;
-        }
-
-
-        writer->overwriteTAt(curClip.fOffset, restoreOffset);
-        SkDEBUGCODE(curClip.fOffset = -1;)
+        mgr->addClipOffset(offset);
     }
 }
 
@@ -126,23 +104,29 @@ SkMatrixClipStateMgr::SkMatrixClipStateMgr()
                        sizeof(fMatrixClipStackStorage))
     , fCurOpenStateID(kIdentityWideOpenStateID) {
 
+    fSkipOffsets = SkNEW(SkTDArray<int>);
+
     
     fMatrixDict.append()->reset();
 
     fCurMCState = (MatrixClipState*)fMatrixClipStack.push_back();
     new (fCurMCState) MatrixClipState(NULL, 0);    
+
+#ifdef SK_DEBUG
+    fActualDepth = 0;
+#endif
 }
 
 SkMatrixClipStateMgr::~SkMatrixClipStateMgr() {
     for (int i = 0; i < fRegionDict.count(); ++i) {
         SkDELETE(fRegionDict[i]);
     }
+
+    SkDELETE(fSkipOffsets);
 }
 
 
-int SkMatrixClipStateMgr::save(SkCanvas::SaveFlags flags) {
-    SkDEBUGCODE(this->validate();)
-
+int SkMatrixClipStateMgr::MCStackPush(SkCanvas::SaveFlags flags) {
     MatrixClipState* newTop = (MatrixClipState*)fMatrixClipStack.push_back();
     new (newTop) MatrixClipState(fCurMCState, flags); 
     fCurMCState = newTop;
@@ -152,16 +136,47 @@ int SkMatrixClipStateMgr::save(SkCanvas::SaveFlags flags) {
     return fMatrixClipStack.count();
 }
 
+int SkMatrixClipStateMgr::save(SkCanvas::SaveFlags flags) {
+    SkDEBUGCODE(this->validate();)
+
+    return this->MCStackPush(flags);
+}
+
 int SkMatrixClipStateMgr::saveLayer(const SkRect* bounds, const SkPaint* paint,
                                     SkCanvas::SaveFlags flags) {
-    int result = this->save(flags);
+#ifdef SK_DEBUG
+    if (fCurMCState->fIsSaveLayer) {
+        SkASSERT(0 == fSkipOffsets->count());
+    }
+#endif
+
+    
+    
+    SkDEBUGCODE(bool saved =) this->call(kOther_CallType);
+
+    int result = this->MCStackPush(flags);
     ++fCurMCState->fLayerID;
     fCurMCState->fIsSaveLayer = true;
 
-    fCurMCState->fSaveLayerBracketed = this->call(kOther_CallType);
-    fCurMCState->fSaveLayerBaseStateID = fCurOpenStateID;
+#ifdef SK_DEBUG
+    if (saved) {
+        fCurMCState->fExpectedDepth++; 
+    }
+    fCurMCState->fExpectedDepth++;   
+#endif
+
+    *fStateIDStack.append() = fCurOpenStateID;
+    fCurMCState->fSavedSkipOffsets = fSkipOffsets;
+
+    
+    
+    fSkipOffsets = SkNEW(SkTDArray<int>);
+
     fPicRecord->recordSaveLayer(bounds, paint,
                                 (SkCanvas::SaveFlags)(flags| SkCanvas::kMatrixClip_SaveFlag));
+#ifdef SK_DEBUG
+    fActualDepth++;
+#endif
     return result;
 }
 
@@ -169,27 +184,53 @@ void SkMatrixClipStateMgr::restore() {
     SkDEBUGCODE(this->validate();)
 
     if (fCurMCState->fIsSaveLayer) {
-        if (fCurMCState->fSaveLayerBaseStateID != fCurOpenStateID) {
+        if (fCurMCState->fHasOpen) {
+            fCurMCState->fHasOpen = false;
             fPicRecord->recordRestore(); 
+#ifdef SK_DEBUG
+            SkASSERT(fActualDepth > 0);
+            fActualDepth--;
+#endif
+        } else {
+            SkASSERT(0 == fSkipOffsets->count());
         }
+
         
         
         
         fPicRecord->recordRestore(false); 
+#ifdef SK_DEBUG
+        SkASSERT(fActualDepth > 0);
+        fActualDepth--;
+#endif
 
-        
-        
-        if (fCurMCState->fSaveLayerBracketed) {
-            fPicRecord->recordRestore(false);
-        }
+        SkASSERT(fStateIDStack.count() >= 1);
+        fCurOpenStateID = fStateIDStack[fStateIDStack.count()-1];
+        fStateIDStack.pop();
 
-        
-        fCurOpenStateID = kIdentityWideOpenStateID;
+        SkASSERT(0 == fSkipOffsets->count());
+        SkASSERT(NULL != fCurMCState->fSavedSkipOffsets);
+
+        SkDELETE(fSkipOffsets);
+        fSkipOffsets = fCurMCState->fSavedSkipOffsets;
     }
+
+    bool prevHadOpen = fCurMCState->fHasOpen;
+    bool prevWasSaveLayer = fCurMCState->fIsSaveLayer;
 
     fCurMCState->~MatrixClipState();       
     fMatrixClipStack.pop_back();
     fCurMCState = (MatrixClipState*)fMatrixClipStack.back();
+
+    if (!prevWasSaveLayer) {
+        fCurMCState->fHasOpen = prevHadOpen;
+    }
+
+    if (fCurMCState->fIsSaveLayer) {
+        if (0 != fSkipOffsets->count()) {
+            SkASSERT(fCurMCState->fHasOpen);
+        }
+    }
 
     SkDEBUGCODE(this->validate();)
 }
@@ -201,6 +242,10 @@ int32_t SkMatrixClipStateMgr::NewMCStateID() {
     static int32_t gMCStateID = kIdentityWideOpenStateID;
     ++gMCStateID;
     return gMCStateID;
+}
+
+bool SkMatrixClipStateMgr::isNestingMCState(int stateID) {
+    return fStateIDStack.count() > 0 && fStateIDStack[fStateIDStack.count()-1] == fCurOpenStateID;
 }
 
 bool SkMatrixClipStateMgr::call(CallType callType) {
@@ -220,26 +265,85 @@ bool SkMatrixClipStateMgr::call(CallType callType) {
         return false;
     }
 
-    if (kIdentityWideOpenStateID != fCurOpenStateID) {
+    if (kIdentityWideOpenStateID != fCurOpenStateID &&
+        !this->isNestingMCState(fCurOpenStateID)) {
+        
+        
         fPicRecord->recordRestore();    
+        fCurMCState->fHasOpen = false;
+#ifdef SK_DEBUG
+        SkASSERT(fActualDepth > 0);
+        fActualDepth--;
+#endif
     }
 
     
     fCurOpenStateID = fCurMCState->fMCStateID;
 
-    fPicRecord->recordSave(SkCanvas::kMatrixClip_SaveFlag);
-
-    
-    SkDeque::F2BIter iter(fMatrixClipStack);
-    bool firstClip = true;
-
-    int curMatID = kIdentityMatID;
-    for (const MatrixClipState* state = (const MatrixClipState*) iter.next();
-         state != NULL;
-         state = (const MatrixClipState*) iter.next()) {
-         state->fClipInfo->writeClip(&curMatID, this, &firstClip);
+    if (kIdentityWideOpenStateID == fCurOpenStateID) {
+        SkASSERT(0 == fActualDepth);
+        SkASSERT(!fCurMCState->fHasOpen);
+        SkASSERT(0 == fSkipOffsets->count());
+        return false;
     }
 
+    SkASSERT(!fCurMCState->fHasOpen);
+    SkASSERT(0 == fSkipOffsets->count());
+    fCurMCState->fHasOpen = true;
+    fPicRecord->recordSave(SkCanvas::kMatrixClip_SaveFlag);
+#ifdef SK_DEBUG
+    fActualDepth++;
+    SkASSERT(fActualDepth == fCurMCState->fExpectedDepth);
+#endif
+
+    
+    SkDeque::Iter iter(fMatrixClipStack, SkDeque::Iter::kBack_IterStart);
+    const MatrixClipState* state;
+    
+    
+    for (state = (const MatrixClipState*) iter.prev();
+         state != NULL;
+         state = (const MatrixClipState*) iter.prev()) {
+        if (state->fIsSaveLayer) {
+            break;
+        }
+    }
+
+    int curMatID;
+
+    if (NULL == state) {
+        
+        iter.reset(fMatrixClipStack, SkDeque::Iter::kFront_IterStart);
+        state = (const MatrixClipState*) iter.next();
+        curMatID = kIdentityMatID;
+    } else {
+        
+        
+        iter.next();
+        SkDEBUGCODE(const MatrixClipState* test = (const MatrixClipState*)) iter.next();
+        SkASSERT(test == state);
+
+        curMatID = state->fMatrixInfo->getID(this);
+
+        
+        
+        
+        
+        if (NULL != state->fPrev && state->fClipInfo == state->fPrev->fClipInfo) {
+            
+            
+            state = (const MatrixClipState*) iter.next();
+        }
+    }
+
+    for ( ; state != NULL; state = (const MatrixClipState*) iter.next()) {
+         state->fClipInfo->writeClip(&curMatID, this);
+    }
+
+    
+    
+    
+    
     
     if (kIdentityMatID != fCurMCState->fMatrixInfo->getID(this)) {
         
@@ -249,29 +353,53 @@ bool SkMatrixClipStateMgr::call(CallType callType) {
     }
 
     SkDEBUGCODE(this->validate();)
-
     return true;
+}
+
+
+void SkMatrixClipStateMgr::fillInSkips(SkWriter32* writer, int32_t restoreOffset) {
+    for (int i = 0; i < fSkipOffsets->count(); ++i) {
+        SkDEBUGCODE(int32_t peek = writer->readTAt<int32_t>((*fSkipOffsets)[i]);)
+        SkASSERT(-1 == peek);
+        writer->overwriteTAt<int32_t>((*fSkipOffsets)[i], restoreOffset);
+    }
+
+    fSkipOffsets->rewind();
+    SkASSERT(0 == fSkipOffsets->count());
 }
 
 void SkMatrixClipStateMgr::finish() {
     if (kIdentityWideOpenStateID != fCurOpenStateID) {
         fPicRecord->recordRestore();    
+        fCurMCState->fHasOpen = false;
+#ifdef SK_DEBUG
+        SkASSERT(fActualDepth > 0);
+        fActualDepth--;
+#endif
         fCurOpenStateID = kIdentityWideOpenStateID;
+        SkASSERT(!fCurMCState->fHasOpen);
     }
 }
 
 #ifdef SK_DEBUG
 void SkMatrixClipStateMgr::validate() {
-    if (fCurOpenStateID == fCurMCState->fMCStateID) {
+    if (fCurOpenStateID == fCurMCState->fMCStateID && !this->isNestingMCState(fCurOpenStateID)) {
         
         
-        SkDeque::F2BIter iter(fMatrixClipStack);
-
-        for (const MatrixClipState* state = (const MatrixClipState*) iter.next();
+        SkDeque::Iter iter(fMatrixClipStack, SkDeque::Iter::kBack_IterStart);
+        int clipCount = 0;
+        for (const MatrixClipState* state = (const MatrixClipState*) iter.prev();
              state != NULL;
-             state = (const MatrixClipState*) iter.next()) {
-            state->fClipInfo->checkOffsetNotEqual(-1);
+             state = (const MatrixClipState*) iter.prev()) {
+            if (NULL == state->fPrev || state->fPrev->fClipInfo != state->fClipInfo) {
+                clipCount += state->fClipInfo->numClips();
+            }
+            if (state->fIsSaveLayer) {
+                break;
+            }
         }
+
+        SkASSERT(fSkipOffsets->count() == clipCount);
     }
 }
 #endif

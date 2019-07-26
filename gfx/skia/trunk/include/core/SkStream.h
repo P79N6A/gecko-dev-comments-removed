@@ -189,6 +189,8 @@ public:
     virtual void newline();
     virtual void flush();
 
+    virtual size_t bytesWritten() const = 0;
+
     
 
     bool    write8(U8CPU);
@@ -205,7 +207,7 @@ public:
     bool    writeScalar(SkScalar);
     bool    writePackedUInt(size_t);
 
-    bool writeStream(SkStream* input, size_t length);
+    bool    writeStream(SkStream* input, size_t length);
 
     
 
@@ -216,6 +218,12 @@ public:
 
 
     bool writeData(const SkData*);
+
+    
+
+
+
+    static int SizeOfPackedUInt(size_t value);
 };
 
 
@@ -365,6 +373,7 @@ public:
 
     virtual bool write(const void* buffer, size_t size) SK_OVERRIDE;
     virtual void flush() SK_OVERRIDE;
+    virtual size_t bytesWritten() const SK_OVERRIDE;
 
 private:
     SkFILE* fFILE;
@@ -378,7 +387,7 @@ public:
 
     SkMemoryWStream(void* buffer, size_t size);
     virtual bool write(const void* buffer, size_t size) SK_OVERRIDE;
-    size_t bytesWritten() const { return fBytesWritten; }
+    virtual size_t bytesWritten() const SK_OVERRIDE { return fBytesWritten; }
 
 private:
     char*   fBuffer;
@@ -396,12 +405,12 @@ public:
     virtual ~SkDynamicMemoryWStream();
 
     virtual bool write(const void* buffer, size_t size) SK_OVERRIDE;
+    virtual size_t bytesWritten() const SK_OVERRIDE { return fBytesWritten; }
     
     
     bool write(const void* buffer, size_t offset, size_t size);
     bool read(void* buffer, size_t offset, size_t size);
     size_t getOffset() const { return fBytesWritten; }
-    size_t bytesWritten() const { return fBytesWritten; }
 
     
     void copyTo(void* dst) const;
@@ -437,13 +446,16 @@ private:
 
 class SK_API SkDebugWStream : public SkWStream {
 public:
+    SkDebugWStream() : fBytesWritten(0) {}
     SK_DECLARE_INST_COUNT(SkDebugWStream)
 
     
     virtual bool write(const void* buffer, size_t size) SK_OVERRIDE;
     virtual void newline() SK_OVERRIDE;
+    virtual size_t bytesWritten() const SK_OVERRIDE { return fBytesWritten; }
 
 private:
+    size_t fBytesWritten;
     typedef SkWStream INHERITED;
 };
 

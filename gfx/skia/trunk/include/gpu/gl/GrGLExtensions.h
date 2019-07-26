@@ -19,7 +19,7 @@ struct GrGLInterface;
 
 
 
-class GrGLExtensions {
+class SK_API GrGLExtensions {
 public:
     GrGLExtensions() : fInitialized(false), fStrings(SkNEW(SkTArray<SkString>)) {}
 
@@ -53,6 +53,11 @@ public:
 
 
     bool remove(const char[]);
+
+    
+
+
+    void add(const char[]);
 
     void reset() { fStrings->reset(); }
 
