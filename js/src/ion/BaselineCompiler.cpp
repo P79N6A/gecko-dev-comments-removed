@@ -1680,7 +1680,11 @@ BaselineCompiler::emit_JSOP_CALLALIASEDVAR()
 bool
 BaselineCompiler::emit_JSOP_SETALIASEDVAR()
 {
-    Address address = getScopeCoordinateAddress(R1.scratchReg());
+    
+    
+    frame.syncStack(1);
+
+    Address address = getScopeCoordinateAddress(R2.scratchReg());
     masm.patchableCallPreBarrier(address, MIRType_Value);
     storeValue(frame.peek(-1), address, R0);
     return true;
