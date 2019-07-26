@@ -202,12 +202,14 @@ nsSVGInnerSVGFrame::AttributeChanged(int32_t  aNameSpaceID,
           this, aAttribute == nsGkAtoms::viewBox ?
                   TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED : TRANSFORM_CHANGED);
 
+      
+      
+      
+      
+
       if (aAttribute == nsGkAtoms::x || aAttribute == nsGkAtoms::y) {
         nsSVGEffects::InvalidateRenderingObservers(this);
         nsSVGUtils::ScheduleReflowSVG(this);
-      } else if (aAttribute == nsGkAtoms::transform) {
-        
-        SchedulePaint();
       } else if (aAttribute == nsGkAtoms::viewBox ||
                  (aAttribute == nsGkAtoms::preserveAspectRatio &&
                   content->HasViewBoxOrSyntheticViewBox())) {

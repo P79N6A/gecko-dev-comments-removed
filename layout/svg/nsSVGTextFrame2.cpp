@@ -3019,6 +3019,11 @@ nsSVGTextFrame2::AttributeChanged(int32_t aNameSpaceID,
     return NS_OK;
 
   if (aAttribute == nsGkAtoms::transform) {
+    
+    
+    
+    
+
     NotifySVGChanged(TRANSFORM_CHANGED);
   } else if (IsGlyphPositioningAttribute(aAttribute)) {
     NotifyGlyphMetricsChange();

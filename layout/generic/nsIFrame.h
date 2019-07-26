@@ -2282,6 +2282,12 @@ public:
 
 
 
+
+
+
+
+
+
   enum {
     PAINT_DEFAULT = 0,
     PAINT_COMPOSITE_ONLY = 1 << 0

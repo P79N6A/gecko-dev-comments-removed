@@ -107,8 +107,10 @@ nsSVGAFrame::AttributeChanged(int32_t         aNameSpaceID,
   if (aNameSpaceID == kNameSpaceID_None &&
       aAttribute == nsGkAtoms::transform) {
     
+    
+    
+    
     NotifySVGChanged(TRANSFORM_CHANGED);
-    SchedulePaint();
   }
 
  return NS_OK;

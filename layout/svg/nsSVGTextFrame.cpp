@@ -56,8 +56,10 @@ nsSVGTextFrame::AttributeChanged(int32_t         aNameSpaceID,
 
   if (aAttribute == nsGkAtoms::transform) {
     
+    
+    
+    
     NotifySVGChanged(TRANSFORM_CHANGED);
-    SchedulePaint();
   } else if (aAttribute == nsGkAtoms::x ||
              aAttribute == nsGkAtoms::y ||
              aAttribute == nsGkAtoms::dx ||
