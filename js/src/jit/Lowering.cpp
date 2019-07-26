@@ -559,9 +559,14 @@ ReorderCommutative(MDefinition **lhsp, MDefinition **rhsp)
     if (rhs->isConstant())
         return;
 
-    if (lhs->isConstant() ||
-        (rhs->defUseCount() == 1 && lhs->defUseCount() > 1))
-    {
+    
+    
+    
+    
+    
+    JS_ASSERT(lhs->defUseCount() > 0);
+    JS_ASSERT(rhs->defUseCount() > 0);
+    if (lhs->isConstant() || (rhs->hasOneDefUse() && !lhs->hasOneDefUse())) {
         *rhsp = lhs;
         *lhsp = rhs;
     }

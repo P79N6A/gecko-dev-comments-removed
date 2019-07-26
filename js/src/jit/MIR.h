@@ -480,6 +480,13 @@ class MDefinition : public MNode
     
     size_t defUseCount() const;
 
+    
+    bool hasOneUse() const;
+
+    
+    
+    bool hasOneDefUse() const;
+
     bool hasUses() const {
         return !uses_.empty();
     }

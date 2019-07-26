@@ -1141,7 +1141,7 @@ IonBuilder::traverseBytecode()
 #ifdef DEBUG
         for (size_t i = 0; i < popped.length(); i++) {
             
-            if (popped[i]->isPassArg() && popped[i]->useCount() == 0)
+            if (popped[i]->isPassArg() && !popped[i]->hasUses())
                 continue;
 
             switch (op) {
@@ -4038,13 +4038,14 @@ IonBuilder::getInlineableGetPropertyCache(CallInfo &callInfo)
             return NULL;
 
         MTypeBarrier *barrier = unbox->input()->toTypeBarrier();
-        if (barrier->useCount() != 1)
+        
+        if (!barrier->hasOneUse())
             return NULL;
         if (!barrier->input()->isGetPropertyCache())
             return NULL;
 
         MGetPropertyCache *cache = barrier->input()->toGetPropertyCache();
-        if (cache->useCount() > 1)
+        if (cache->hasUses() && !cache->hasOneUse())
             return NULL;
         if (!CanInlineGetPropertyCache(cache, thisDef))
             return NULL;
@@ -4161,7 +4162,7 @@ IonBuilder::inlineTypeObjectFallback(CallInfo &callInfo, MBasicBlock *dispatchBl
     
     
     JS_ASSERT_IF(callInfo.fun()->isGetPropertyCache(), !cache->hasUses());
-    JS_ASSERT_IF(callInfo.fun()->isUnbox(), cache->useCount() == 1);
+    JS_ASSERT_IF(callInfo.fun()->isUnbox(), cache->hasOneUse());
 
     
     
