@@ -589,4 +589,14 @@ ThreadPool::abortJob()
     mainWorker_->abort();
     for (uint32_t workerId = 0; workerId < numWorkers(); workerId++)
         workers_[workerId]->abort();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    while (hasWork());
 }
