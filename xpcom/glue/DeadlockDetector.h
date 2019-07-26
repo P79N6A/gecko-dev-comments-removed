@@ -7,6 +7,7 @@
 #define mozilla_DeadlockDetector_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/Move.h"
 
 #include <stdlib.h>
 
@@ -15,30 +16,13 @@
 
 #include "nsTArray.h"
 
-#ifdef NS_TRACE_MALLOC
-#  include "nsTraceMalloc.h"
-#endif  
-
 namespace mozilla {
-
-
 
 
 class NS_COM_GLUE CallStack
 {
 private:
-#ifdef NS_TRACE_MALLOC
-    typedef nsTMStackTraceID callstack_id;
-    
-#   define NS_GET_BACKTRACE() NS_TraceMallocGetStackTrace()
-#   define NS_DEADLOCK_DETECTOR_CONSTEXPR
-#else
-    typedef void* callstack_id;
-#   define NS_GET_BACKTRACE() 0
-#   define NS_DEADLOCK_DETECTOR_CONSTEXPR MOZ_CONSTEXPR
-#endif  
-
-    callstack_id mCallStack;
+    nsTArray<void*> mCallStack;
 
 public:
     
@@ -53,12 +37,10 @@ public:
 
 
 
-    NS_DEADLOCK_DETECTOR_CONSTEXPR
-    CallStack(const callstack_id aCallStack = NS_GET_BACKTRACE()) :
-        mCallStack(aCallStack)
+    CallStack(const nsTArray<void*>& aCallStack = GetBacktrace()) :
+        mCallStack(mozilla::Move(aCallStack))
     {
     }
-    NS_DEADLOCK_DETECTOR_CONSTEXPR
     CallStack(const CallStack& aFrom) :
         mCallStack(aFrom.mCallStack)
     {
@@ -77,22 +59,19 @@ public:
         return mCallStack != aOther.mCallStack;
     }
 
-    
-    
-    
-    void Print(FILE* f) const
+    bool IsEmpty() const
     {
-#ifdef NS_TRACE_MALLOC
-        if (this != &kNone && mCallStack) {
-            NS_TraceMallocPrintStackTrace(f, mCallStack);
-            return;
-        }
-#endif
-        fputs("  [stack trace unavailable]\n", f);
+      return mCallStack.IsEmpty();
     }
 
-    
-    static const CallStack kNone;
+    void Print(FILE* f) const;
+
+    static nsTArray<void*> GetBacktrace();
+
+    static const CallStack NullCallStack()
+    {
+      return CallStack(nsTArray<void*>());
+    }
 };
 
 
@@ -158,7 +137,7 @@ public:
 
         ResourceAcquisition(
             const T* aResource,
-            const CallStack aCallContext=CallStack::kNone) :
+            const CallStack aCallContext=CallStack::NullCallStack()) :
             mResource(aResource),
             mCallContext(aCallContext)
         {
@@ -195,7 +174,7 @@ private:
     struct OrderingEntry
     {
         OrderingEntry() :
-            mFirstSeen(CallStack::kNone),
+            mFirstSeen(CallStack::NullCallStack()),
             mOrderedLT()        
         {                       
         }
@@ -407,7 +386,7 @@ public:
 
         PLHashEntry* second = *GetEntry(aProposed);
         OrderingEntry* e = static_cast<OrderingEntry*>(second->value);
-        if (CallStack::kNone == e->mFirstSeen)
+        if (e->mFirstSeen.IsEmpty())
             e->mFirstSeen = aCallContext;
 
         if (!aLast)

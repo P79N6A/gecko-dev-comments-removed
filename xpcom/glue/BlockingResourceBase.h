@@ -74,7 +74,7 @@ private:
                               BlockingResourceType aType) :
             mName(aName),
             mType(aType),
-            mAcquisitionContext(CallStack::kNone)
+            mAcquisitionContext(CallStack::NullCallStack())
         {
             NS_ABORT_IF_FALSE(mName, "Name must be nonnull");
         }
