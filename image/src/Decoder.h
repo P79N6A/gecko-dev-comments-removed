@@ -10,7 +10,6 @@
 #include "imgDecoderObserver.h"
 #include "mozilla/RefPtr.h"
 #include "ImageMetadata.h"
-#include "Orientation.h"
 
 namespace mozilla {
 namespace image {
@@ -190,9 +189,7 @@ protected:
 
   
   
-  void PostSize(int32_t aWidth,
-                int32_t aHeight,
-                Orientation aOrientation = Orientation());
+  void PostSize(int32_t aWidth, int32_t aHeight);
 
   
   

@@ -619,12 +619,6 @@ RasterImage::GetIntrinsicRatio(nsSize* aRatio)
   return NS_OK;
 }
 
-NS_IMETHODIMP_(Orientation)
-RasterImage::GetOrientation()
-{
-  return mOrientation;
-}
-
 
 
 NS_IMETHODIMP
@@ -1208,7 +1202,7 @@ RasterImage::ApplyDecodeFlags(uint32_t aNewFlags)
 }
 
 nsresult
-RasterImage::SetSize(int32_t aWidth, int32_t aHeight, Orientation aOrientation)
+RasterImage::SetSize(int32_t aWidth, int32_t aHeight)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -1222,9 +1216,7 @@ RasterImage::SetSize(int32_t aWidth, int32_t aHeight, Orientation aOrientation)
 
   
   if (!mMultipart && mHasSize &&
-      ((aWidth != mSize.width) ||
-       (aHeight != mSize.height) ||
-       (aOrientation != mOrientation))) {
+      ((aWidth != mSize.width) || (aHeight != mSize.height))) {
     NS_WARNING("Image changed size on redecode! This should not happen!");
 
     
@@ -1238,7 +1230,6 @@ RasterImage::SetSize(int32_t aWidth, int32_t aHeight, Orientation aOrientation)
 
   
   mSize.SizeTo(aWidth, aHeight);
-  mOrientation = aOrientation;
   mHasSize = true;
 
   mFrameBlender.SetSize(mSize);
