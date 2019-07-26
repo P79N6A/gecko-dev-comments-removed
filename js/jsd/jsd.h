@@ -1056,6 +1056,17 @@ jsd_DropAtom(JSDContext* jsdc, JSDAtom* atom);
 
 #define JSD_ATOM_TO_STRING(a) ((const char*)((a)->str))
 
+struct AutoSaveExceptionState {
+    AutoSaveExceptionState(JSContext *cx) : mCx(cx) {
+        mState = JS_SaveExceptionState(cx);
+    }
+    ~AutoSaveExceptionState() {
+        JS_RestoreExceptionState(mCx, mState);
+    }
+    JSContext *mCx;
+    JSExceptionState *mState;
+};
+
 
 
 #ifdef LIVEWIRE
@@ -1083,7 +1094,6 @@ jsdlw_RawToProcessedLineNumber(JSDContext* jsdc, JSDScript* jsdscript,
 extern JSBool
 jsdlw_ProcessedToRawLineNumber(JSDContext* jsdc, JSDScript* jsdscript,
                                unsigned lineIn, unsigned* lineOut);
-
 
 #if 0
 
