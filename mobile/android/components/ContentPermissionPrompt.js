@@ -21,7 +21,7 @@ ContentPermissionPrompt.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIContentPermissionPrompt]),
 
-  handleExistingPermission: function handleExistingPermission(request) {
+  handleExistingPermission: function handleExistingPermission(request, isApp) {
     let result = Services.perms.testExactPermissionFromPrincipal(request.principal, request.type);
     if (result == Ci.nsIPermissionManager.ALLOW_ACTION) {
       request.allow();
@@ -32,7 +32,7 @@ ContentPermissionPrompt.prototype = {
       return true;
     }
 
-    if (request.principal.appId !== Ci.nsIScriptSecurityManager.NO_APP_ID && request.principal.appId !== Ci.nsIScriptSecurityManager.UNKNOWN_APP_ID && (result == Ci.nsIPermissionManager.UNKNOWN_ACTION && !!kEntities[request.type])) {
+    if (isApp && (result == Ci.nsIPermissionManager.UNKNOWN_ACTION && !!kEntities[request.type])) {
       request.cancel();
       return true;
     }
@@ -60,8 +60,10 @@ ContentPermissionPrompt.prototype = {
   },
 
   prompt: function(request) {
+    let isApp = request.principal.appId !== Ci.nsIScriptSecurityManager.NO_APP_ID && request.principal.appId !== Ci.nsIScriptSecurityManager.UNKNOWN_APP_ID;
+
     
-    if (this.handleExistingPermission(request))
+    if (this.handleExistingPermission(request, isApp))
        return;
 
     let chromeWin = this.getChromeForRequest(request);
@@ -78,8 +80,7 @@ ContentPermissionPrompt.prototype = {
         
         if (aChecked) {
           Services.perms.addFromPrincipal(request.principal, request.type, Ci.nsIPermissionManager.ALLOW_ACTION);
-        } else if (entityName == "desktopNotification") {
-          
+        } else if (isApp || entityName == "desktopNotification") {
           
           Services.perms.addFromPrincipal(request.principal, request.type, Ci.nsIPermissionManager.ALLOW_ACTION, Ci.nsIPermissionManager.EXPIRE_SESSION);
         }
