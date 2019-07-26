@@ -10,6 +10,11 @@
 #include "mozilla/ipc/BrowserProcessSubThread.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 
+#ifdef MOZ_NUWA_PROCESS
+#include "ipc/Nuwa.h"
+#include "mozilla/Preferences.h"
+#endif
+
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
 #include "nsXULAppAPI.h"
@@ -123,6 +128,17 @@ ProcessLink::Open(mozilla::ipc::Transport* aTransport, MessageLoop *aIOLoop, Sid
                 FROM_HERE,
                 NewRunnableMethod(this, &ProcessLink::OnTakeConnectedChannel));
         }
+
+#ifdef MOZ_NUWA_PROCESS
+        if (IsNuwaProcess() &&
+            Preferences::GetBool("dom.ipc.processPrelaunch.testMode")) {
+            
+            
+            
+            
+            sleep(5);
+        }
+#endif
 
         
         while (!mChan->Connected() && mChan->mChannelState != ChannelError) {
