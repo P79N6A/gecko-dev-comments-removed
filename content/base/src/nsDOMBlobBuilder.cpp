@@ -290,10 +290,11 @@ nsDOMMultipartFile::InitFile(JSContext* aCx,
     mContentType = d.mType;
   }
 
+
   
   
   nsCOMPtr<nsIFile> file;
-  nsCOMPtr<nsIDOMFile> domFile;
+  nsCOMPtr<nsIDOMBlob> blob;
   if (!aArgv[0].isString()) {
     
     if (!aArgv[0].isObject()) {
@@ -308,9 +309,9 @@ nsDOMMultipartFile::InitFile(JSContext* aCx,
       return NS_ERROR_UNEXPECTED;
     }
 
-    domFile = do_QueryInterface(supports);
+    blob = do_QueryInterface(supports);
     file = do_QueryInterface(supports);
-    if (!domFile && !file) {
+    if (!blob && !file) {
       return NS_ERROR_UNEXPECTED;
     }
   } else {
@@ -342,16 +343,16 @@ nsDOMMultipartFile::InitFile(JSContext* aCx,
       file->GetLeafName(mName);
     }
 
-    domFile = new nsDOMFileFile(file);
+    blob = new nsDOMFileFile(file);
   }
-  
+
   
   if (mContentType.IsEmpty()) {
-    domFile->GetType(mContentType);
+    blob->GetType(mContentType);
   }
 
   BlobSet blobSet;
-  blobSet.AppendBlob(domFile);
+  blobSet.AppendBlob(blob);
   mBlobs = blobSet.GetBlobs();
 
   return NS_OK;
