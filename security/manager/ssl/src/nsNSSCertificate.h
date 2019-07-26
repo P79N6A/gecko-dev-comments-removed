@@ -84,6 +84,8 @@ public:
   nsNSSCertList(insanity::pkix::ScopedCERTCertList& certList,
                 const nsNSSShutDownPreventionLock& proofOfLock);
 
+  nsNSSCertList();
+
   static CERTCertList* DupCertList(CERTCertList* aCertList,
                                    const nsNSSShutDownPreventionLock&
                                      proofOfLock);
