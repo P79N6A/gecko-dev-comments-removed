@@ -1,0 +1,17 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+var objMath=new Math;
+
+
+
