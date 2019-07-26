@@ -174,24 +174,6 @@ void SetCpuSleepAllowed(bool aAllowed);
 
 
 
-
-
-
-
-bool SetLight(hal::LightType light, const hal::LightConfiguration& aConfig);
-
-
-
-
-bool GetLight(hal::LightType light, hal::LightConfiguration* aConfig);
-
-
-
-
-
-
-
-
 void RegisterSensorObserver(hal::SensorType aSensor,
                             hal::ISensorObserver *aObserver);
 
