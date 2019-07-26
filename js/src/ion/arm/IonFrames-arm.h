@@ -154,8 +154,9 @@ class IonExitFooterFrame
     }
 
     
-    Value *outVp() {
-        return reinterpret_cast<Value *>(reinterpret_cast<char *>(this) - sizeof(Value));
+    template <typename T>
+    T *outParam() {
+        return reinterpret_cast<T *>(reinterpret_cast<char *>(this) - sizeof(T));
     }
 };
 
