@@ -77,11 +77,11 @@ var gAllTests = [
         wh.checkPrefCheckbox("history", false);
 
         wh.cancelDialog();
-        ensureHistoryClearedState(uris, false);
+        yield promiseHistoryClearedState(uris, false);
 
         
         blankSlate();
-        ensureHistoryClearedState(uris, true);
+        yield promiseHistoryClearedState(uris, true);
       });
     });
   },
@@ -133,16 +133,16 @@ var gAllTests = [
         
         wh.checkPrefCheckbox("history", true);
         wh.acceptDialog();
-        ensureHistoryClearedState(uris, true);
+        yield promiseHistoryClearedState(uris, true);
         ensureDownloadsClearedState(downloadIDs, true);
 
         
-        ensureHistoryClearedState(olderURIs, false);
+        yield promiseHistoryClearedState(olderURIs, false);
         ensureDownloadsClearedState(olderDownloadIDs, false);
 
         
         blankSlate();
-        ensureHistoryClearedState(olderURIs, true);
+        yield promiseHistoryClearedState(olderURIs, true);
         ensureDownloadsClearedState(olderDownloadIDs, true);
       });
     });
@@ -187,13 +187,13 @@ var gAllTests = [
         wh.acceptDialog();
 
         
-        ensureHistoryClearedState(uris, false);
+        yield promiseHistoryClearedState(uris, false);
         ensureDownloadsClearedState(downloadIDs, false);
         ensureFormEntriesClearedState(formEntries, true);
 
         
         blankSlate();
-        ensureHistoryClearedState(uris, true);
+        yield promiseHistoryClearedState(uris, true);
         ensureDownloadsClearedState(downloadIDs, true);
       });
     });
@@ -222,7 +222,7 @@ var gAllTests = [
         wh.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
         wh.checkPrefCheckbox("history", true);
         wh.acceptDialog();
-        ensureHistoryClearedState(uris, true);
+        yield promiseHistoryClearedState(uris, true);
       });
     });
   }
@@ -577,22 +577,6 @@ function ensureFormEntriesClearedState(aFormEntries, aShouldBeCleared) {
 
 
 
-
-
-function ensureHistoryClearedState(aURIs, aShouldBeCleared) {
-  let niceStr = aShouldBeCleared ? "no longer" : "still";
-  aURIs.forEach(function (aURI) {
-    is(PlacesUtils.bhistory.isVisited(aURI), !aShouldBeCleared,
-       "history visit " + aURI.spec + " should " + niceStr + " exist");
-  });
-}
-
-
-
-
-
-
-
 function openWindow(aOnloadCallback) {
   function windowObserver(aSubject, aTopic, aData) {
     if (aTopic != "domwindowopened")
@@ -606,8 +590,11 @@ function openWindow(aOnloadCallback) {
         
         
         try {
-          aOnloadCallback(win);
-          waitForAsyncUpdates(doNextTest);
+          Task.spawn(function() {
+            aOnloadCallback(win);
+          }).then(function() {
+            waitForAsyncUpdates(doNextTest);
+          });
         }
         catch (exc) {
           win.close();
