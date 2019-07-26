@@ -1125,6 +1125,13 @@ KeyboardLayout::ConvertNativeKeyCodeToDOMKeyCode(UINT aNativeKeyCode) const
     case VK_SLEEP:
     case VK_NUMLOCK:
     case VK_SCROLL: 
+    case VK_ATTN: 
+    case VK_CRSEL: 
+    case VK_EXSEL: 
+    case VK_EREOF: 
+    case VK_PLAY:
+    case VK_ZOOM:
+    case VK_PA1: 
       return uint32_t(aNativeKeyCode);
 
     case VK_HELP:
@@ -1158,16 +1165,21 @@ KeyboardLayout::ConvertNativeKeyCodeToDOMKeyCode(UINT aNativeKeyCode) const
     case VK_LAUNCH_MEDIA_SELECT:
     case VK_LAUNCH_APP1:
     case VK_LAUNCH_APP2:
-    case VK_ATTN: 
-    case VK_CRSEL: 
-    case VK_EXSEL: 
-    case VK_EREOF: 
-    case VK_PLAY:
-    case VK_ZOOM:
-    case VK_PA1: 
-    case VK_OEM_CLEAR:
       return 0;
 
+    
+    
+
+    
+    case VK_OEM_FJ_JISHO:
+    case VK_OEM_FJ_MASSHOU:
+    case VK_OEM_FJ_TOUROKU:
+    case VK_OEM_FJ_LOYA:
+    case VK_OEM_FJ_ROYA:
+    
+    case VK_ICO_HELP:
+    case VK_ICO_00:
+    case VK_ICO_CLEAR:
     
     case VK_OEM_RESET:
     case VK_OEM_JUMP:
@@ -1182,6 +1194,15 @@ KeyboardLayout::ConvertNativeKeyCodeToDOMKeyCode(UINT aNativeKeyCode) const
     case VK_OEM_AUTO:
     case VK_OEM_ENLW:
     case VK_OEM_BACKTAB:
+    
+    
+    case VK_OEM_CLEAR:
+      return uint32_t(aNativeKeyCode);
+
+    
+    
+    
+    case 0xE1:
       return 0;
 
     
@@ -1201,10 +1222,7 @@ KeyboardLayout::ConvertNativeKeyCodeToDOMKeyCode(UINT aNativeKeyCode) const
     case VK_OEM_6:
     case VK_OEM_7:
     case VK_OEM_8:
-    case 0xE1: 
     case VK_OEM_102:
-    case 0xE3: 
-    case 0xE4: 
     {
       NS_ASSERTION(IsPrintableCharKey(aNativeKeyCode),
                    "The key must be printable");
