@@ -2955,6 +2955,18 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
   void CreateOwnLayerIfNeeded(nsDisplayListBuilder* aBuilder, nsDisplayList* aList);
 
+  
+
+
+
+  static void AddInPopupStateBitToDescendants(nsIFrame* aFrame);
+  
+
+
+
+
+  static void RemoveInPopupStateBitFromDescendants(nsIFrame* aFrame);
+
 protected:
   
   nsRect           mRect;

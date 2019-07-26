@@ -8090,12 +8090,8 @@ nsFrame::BoxMetrics() const
   return metrics;
 }
 
-
-
-
-
-static void
-AddInPopupStateBitToDescendants(nsIFrame* aFrame)
+ void
+nsIFrame::AddInPopupStateBitToDescendants(nsIFrame* aFrame)
 {
   aFrame->AddStateBits(NS_FRAME_IN_POPUP);
 
@@ -8111,13 +8107,8 @@ AddInPopupStateBitToDescendants(nsIFrame* aFrame)
   }
 }
 
-
-
-
-
-
-static void
-RemoveInPopupStateBitFromDescendants(nsIFrame* aFrame)
+ void
+nsIFrame::RemoveInPopupStateBitFromDescendants(nsIFrame* aFrame)
 {
   if (!aFrame->HasAnyStateBits(NS_FRAME_IN_POPUP) ||
       aFrame->GetType() == nsGkAtoms::listControlFrame ||
