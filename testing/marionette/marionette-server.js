@@ -14,7 +14,7 @@ logger.info('marionette-server.js loaded');
 let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
                .getService(Ci.mozIJSSubScriptLoader);
 loader.loadSubScript("chrome://marionette/content/marionette-simpletest.js");
-loader.loadSubScript("chrome://marionette/content/marionette-log-obj.js");
+loader.loadSubScript("chrome://marionette/content/marionette-common.js");
 Cu.import("chrome://marionette/content/marionette-elements.js");
 let utils = {};
 loader.loadSubScript("chrome://marionette/content/EventUtils.js", utils);
@@ -378,37 +378,6 @@ MarionetteServerConnection.prototype = {
   sendError: function MDA_sendError(message, status, trace, command_id) {
     let error_msg = {message: message, status: status, stacktrace: trace};
     this.sendToClient({from:this.actorID, error: error_msg}, command_id);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  createStackMessage: function MDA_createStackMessage(error, fnName, pythonFile,
-      pythonLine, script) {
-    let python_stack = fnName + " @" + pythonFile + ", line " + pythonLine;
-    let stack = error.stack.split("\n");
-    let line = stack[0].substr(stack[0].lastIndexOf(':') + 1);
-    let msg = error.name + ": " + error.message;
-    let trace = python_stack +
-                "\ninline javascript, line " + line +
-                "\nsrc: \"" + script.split("\n")[line] + "\"";
-    return [msg, trace];
   },
 
   
@@ -848,11 +817,11 @@ MarionetteServerConnection.prototype = {
                                   false, command_id, timeout);
     }
     catch (e) {
-      let error = this.createStackMessage(e,
-                                          "execute_script",
-                                          aRequest.filename,
-                                          aRequest.line,
-                                          script);
+      let error = createStackMessage(e,
+                                     "execute_script",
+                                     aRequest.filename,
+                                     aRequest.line,
+                                     script);
       this.sendError(error[0], 17, error[1], command_id);
     }
   },
@@ -1036,11 +1005,11 @@ MarionetteServerConnection.prototype = {
       this.executeScriptInSandbox(_chromeSandbox, script, directInject,
                                   true, command_id, timeout);
     } catch (e) {
-      let error = this.createStackMessage(e,
-                                          "execute_async_script",
-                                          aRequest.filename,
-                                          aRequest.line,
-                                          script);
+      let error = createStackMessage(e,
+                                     "execute_async_script",
+                                     aRequest.filename,
+                                     aRequest.line,
+                                     script);
       chromeAsyncReturnFunc(error[0], 17, error[1]);
     }
   },

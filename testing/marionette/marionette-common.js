@@ -2,6 +2,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+this.createStackMessage = function createStackMessage(error, fnName, pythonFile,
+  pythonLine, script) {
+  let python_stack = fnName + " @" + pythonFile + ", line " + pythonLine;
+  let stack = error.stack.split("\n");
+  let line = stack[0].substr(stack[0].lastIndexOf(':') + 1);
+  let msg = error.name + ": " + error.message;
+  let trace = python_stack +
+    "\ninline javascript, line " + line +
+    "\nsrc: \"" + script.split("\n")[line] + "\"";
+  return [msg, trace];
+}
+
 this.MarionetteLogObj = function MarionetteLogObj() {
   this.logs = [];
 }
