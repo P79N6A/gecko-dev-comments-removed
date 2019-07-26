@@ -358,7 +358,7 @@ IsAboutToBeFinalized(const js::jit::VMFunction **vmfunc)
 
 
 
-    return true;
+    return false;
 }
 
 inline bool
