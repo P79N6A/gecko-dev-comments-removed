@@ -50,11 +50,12 @@ Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js", t
 
 Components.utils.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this);
 
+Components.utils.import("resource://gre/modules/Services.jsm", this);
+
 
 
 
 if (!("profileDir" in OS.Constants.Path) || !("localProfileDir" in OS.Constants.Path)) {
-  Components.utils.import("resource://gre/modules/Services.jsm", this);
   let observer = function observer() {
     Services.obs.removeObserver(observer, "profile-do-change");
 
@@ -124,6 +125,37 @@ Object.defineProperty(OS.Shared, "DEBUG", {
         DEBUG = newVal;
     }
 });
+
+
+
+
+let webWorkersShutdownObserver = function webWorkersShutdownObserver() {
+  
+  Scheduler.post("System_shutdown").then(function onSuccess(opened) {
+    let msg = "";
+    if (opened.openedFiles.length > 0) {
+      msg += "The following files are still opened:\n" +
+        opened.openedFiles.join("\n");
+    }
+    if (opened.openedDirectoryIterators.length > 0) {
+      msg += "The following directory iterators are still opened:\n" +
+        opened.openedDirectoryIterators.join("\n");
+    }
+    
+    if (msg) {
+      LOG("WARNING: File descriptors leaks detected.\n" + msg);
+    }
+  });
+};
+
+
+Services.obs.addObserver(webWorkersShutdownObserver, "web-workers-shutdown",
+  false);
+
+
+
+Services.obs.addObserver(webWorkersShutdownObserver,
+  "test.osfile.web-workers-shutdown", false);
 
 
 
