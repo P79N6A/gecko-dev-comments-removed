@@ -56,6 +56,9 @@ public class HomePager extends ViewPager {
     private String mCurrentPanelSession;
 
     
+    private LoadState mLoadState;
+
+    
     
     static final String LIST_TAG_HISTORY = "history";
     static final String LIST_TAG_BOOKMARKS = "bookmarks";
@@ -91,6 +94,15 @@ public class HomePager extends ViewPager {
         public void onPageSelected(int position);
         public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels);
         public void setOnTitleClickListener(OnTitleClickListener onTitleClickListener);
+    }
+
+    
+
+
+    private enum LoadState {
+        UNLOADED,
+        LOADING,
+        LOADED
     }
 
     static final String CAN_LOAD_ARG = "canLoad";
@@ -129,6 +141,8 @@ public class HomePager extends ViewPager {
 
         mOriginalBackground = getBackground();
         setOnPageChangeListener(new PageChangeListener());
+
+        mLoadState = LoadState.UNLOADED;
     }
 
     @Override
@@ -157,6 +171,8 @@ public class HomePager extends ViewPager {
 
 
     public void load(LoaderManager lm, FragmentManager fm, String panelId, PropertyAnimator animator) {
+        mLoadState = LoadState.LOADING;
+
         mVisible = true;
         mInitialPanelId = panelId;
 
@@ -209,6 +225,7 @@ public class HomePager extends ViewPager {
     public void unload() {
         mVisible = false;
         setAdapter(null);
+        mLoadState = LoadState.UNLOADED;
 
         
         stopCurrentPanelTelemetrySession();
@@ -373,11 +390,13 @@ public class HomePager extends ViewPager {
 
         @Override
         public void onLoadFinished(Loader<HomeConfig.State> loader, HomeConfig.State configState) {
+            mLoadState = LoadState.LOADED;
             updateUiFromConfigState(configState);
         }
 
         @Override
         public void onLoaderReset(Loader<HomeConfig.State> loader) {
+            mLoadState = LoadState.UNLOADED;
         }
     }
 
