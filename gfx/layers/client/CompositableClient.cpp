@@ -147,7 +147,14 @@ CompositableClient::CreateDeprecatedTextureClient(DeprecatedTextureClientType aD
     }
     if (parentBackend == LAYERS_D3D9 &&
         !GetForwarder()->ForwardsToDifferentProcess()) {
-      if (aContentType == GFX_CONTENT_COLOR_ALPHA) {
+      
+      
+      
+      
+      
+      
+      if (aContentType == GFX_CONTENT_COLOR_ALPHA ||
+          !gfxWindowsPlatform::GetPlatform()->GetD3D9Device()) {
         result = new DeprecatedTextureClientDIB(GetForwarder(), GetTextureInfo());
       } else {
         result = new DeprecatedTextureClientD3D9(GetForwarder(), GetTextureInfo());

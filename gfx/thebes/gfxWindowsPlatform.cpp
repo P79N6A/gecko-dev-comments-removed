@@ -29,6 +29,7 @@
 #include "gfxGDIFontList.h"
 #include "gfxGDIFont.h"
 
+#include "mozilla/layers/CompositorParent.h"   
 #include "DeviceManagerD3D9.h"
 
 #ifdef CAIRO_HAS_DWRITE_FONT
@@ -1471,7 +1472,11 @@ gfxWindowsPlatform::GetD3D9Device()
 DeviceManagerD3D9*
 gfxWindowsPlatform::GetD3D9DeviceManager()
 {
-  if (!mDeviceManager) {
+  
+  
+  if (!mDeviceManager &&
+      (CompositorParent::IsInCompositorThread() ||
+       !CompositorParent::CompositorLoop())) {
     mDeviceManager = new DeviceManagerD3D9();
     if (!mDeviceManager->Init()) {
       NS_WARNING("Could not initialise device manager");
