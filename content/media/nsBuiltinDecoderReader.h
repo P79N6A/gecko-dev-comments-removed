@@ -13,6 +13,10 @@
 #include "SharedBuffer.h"
 #include "ImageLayers.h"
 #include "AudioSampleFormat.h"
+#include "MediaResource.h"
+#include "nsHTMLMediaElement.h"
+
+class nsBuiltinDecoder;
 
 
 class nsVideoInfo {
@@ -31,8 +35,8 @@ public:
   
   
   static bool ValidateVideoRegion(const nsIntSize& aFrame,
-                                    const nsIntRect& aPicture,
-                                    const nsIntSize& aDisplay);
+                                  const nsIntRect& aPicture,
+                                  const nsIntSize& aDisplay);
 
   
   uint32_t mAudioRate;
@@ -228,12 +232,12 @@ template <class T> class MediaQueue : private nsDeque {
        mReentrantMonitor("mediaqueue"),
        mEndOfStream(false)
    {}
-  
+
   ~MediaQueue() {
     Reset();
   }
 
-  inline int32_t GetSize() { 
+  inline int32_t GetSize() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return nsDeque::GetSize();
   }
@@ -257,12 +261,12 @@ template <class T> class MediaQueue : private nsDeque {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return static_cast<T*>(nsDeque::PopFront());
   }
-  
+
   inline T* Peek() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return static_cast<T*>(nsDeque::Peek());
   }
-  
+
   inline T* PeekFront() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return static_cast<T*>(nsDeque::PeekFront());
@@ -472,36 +476,8 @@ public:
     return mDecoder;
   }
 
-  
-  
-  typedef bool (nsBuiltinDecoderReader::*DecodeFn)();
-
-  
-  
-  template<class Data>
-  Data* DecodeToFirstData(DecodeFn aDecodeFn,
-                          MediaQueue<Data>& aQueue)
-  {
-    bool eof = false;
-    while (!eof && aQueue.GetSize() == 0) {
-      {
-        ReentrantMonitorAutoEnter decoderMon(mDecoder->GetReentrantMonitor());
-        if (mDecoder->GetStateMachine()->IsShutdown()) {
-          return nullptr;
-        }
-      }
-      eof = !(this->*aDecodeFn)();
-    }
-    Data* d = nullptr;
-    return (d = aQueue.PeekFront()) ? d : nullptr;
-  }
-
-  
-  
-  bool DecodeVideoFrame() {
-    bool f = false;
-    return DecodeVideoFrame(f, 0);
-  }
+  AudioData* DecodeToFirstAudioData();
+  VideoData* DecodeToFirstVideoData();
 
   
   virtual void SetInitByteRange(MediaByteRange &aByteRange) { }
