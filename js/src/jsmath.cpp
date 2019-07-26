@@ -625,9 +625,21 @@ js::ecmaPow(double x, double y)
 
     if (!IsFinite(y) && (x == 1.0 || x == -1.0))
         return GenericNaN();
+
     
     if (y == 0)
         return 1;
+
+    
+
+
+
+    if (IsFinite(x) && x != 0.0) {
+        if (y == 0.5)
+            return sqrt(x);
+        if (y == -0.5)
+            return 1.0 / sqrt(x);
+    }
     return pow(x, y);
 }
 #if defined(_MSC_VER)
@@ -651,29 +663,7 @@ js_math_pow(JSContext *cx, unsigned argc, Value *vp)
     if (!ToNumber(cx, args.get(1), &y))
         return false;
 
-    
-
-
-
-    if (IsFinite(x) && x != 0.0) {
-        if (y == 0.5) {
-            args.rval().setNumber(sqrt(x));
-            return true;
-        }
-        if (y == -0.5) {
-            args.rval().setNumber(1.0/sqrt(x));
-            return true;
-        }
-    }
-
-    
-    if (y == 0) {
-        args.rval().setInt32(1);
-        return true;
-    }
-
     double z = ecmaPow(x, y);
-
     args.rval().setNumber(z);
     return true;
 }
