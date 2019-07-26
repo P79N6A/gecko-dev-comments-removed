@@ -38,29 +38,10 @@ static const char header_footer_tags[][4] =  {"", "&T", "&U", "&D", "&P", "&PT"}
 
 #define CUSTOM_VALUE_INDEX ArrayLength(header_footer_tags)
 
-
-
 static GtkWindow *
 get_gtk_window_for_nsiwidget(nsIWidget *widget)
 {
-  
-  GdkWindow *gdk_win = GDK_WINDOW(widget->GetNativeData(NS_NATIVE_WIDGET));
-  if (!gdk_win)
-    return NULL;
-
-  
-  gpointer user_data = NULL;
-  gdk_window_get_user_data(gdk_win, &user_data);
-  if (!user_data)
-    return NULL;
-
-  
-  MozContainer *parent_container = MOZ_CONTAINER(user_data);
-  if (!parent_container)
-    return NULL;
-
-  
-  return GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(parent_container)));
+  return GTK_WINDOW(widget->GetNativeData(NS_NATIVE_SHELLWIDGET));
 }
 
 static void
