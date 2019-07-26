@@ -759,7 +759,13 @@ public:
         oldStyleContext->Release();
     }
   }
+
   
+
+
+
+
+
   void SetStyleContextWithoutNotification(nsStyleContext* aContext)
   {
     if (aContext != mStyleContext) {
