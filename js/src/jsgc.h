@@ -1290,6 +1290,12 @@ class AutoEnterOOMUnsafeRegion
 class AutoEnterOOMUnsafeRegion {};
 #endif 
 
+
+
+
+bool
+IsInsideGGCNursery(const gc::Cell *cell);
+
 } 
 
 #ifdef DEBUG
