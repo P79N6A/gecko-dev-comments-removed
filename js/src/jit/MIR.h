@@ -5816,7 +5816,7 @@ class MLoadTypedArrayElementHole
 
 class MLoadTypedArrayElementStatic
   : public MUnaryInstruction,
-    public IntPolicy<0>
+    public ConvertToInt32Policy<0>
 {
     MLoadTypedArrayElementStatic(TypedArrayObject *typedArray, MDefinition *ptr)
       : MUnaryInstruction(ptr), typedArray_(typedArray), fallible_(true)

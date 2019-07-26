@@ -136,6 +136,17 @@ class IntPolicy : public BoxInputsPolicy
 
 
 template <unsigned Op>
+class ConvertToInt32Policy : public BoxInputsPolicy
+{
+  public:
+    static bool staticAdjustInputs(MInstruction *def);
+    bool adjustInputs(MInstruction *def) {
+        return staticAdjustInputs(def);
+    }
+};
+
+
+template <unsigned Op>
 class DoublePolicy : public BoxInputsPolicy
 {
   public:
