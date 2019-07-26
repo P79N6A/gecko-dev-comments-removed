@@ -725,7 +725,9 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
         storePtr(JSFrameReg, FrameAddress(VMFrame::offsetOfFp));
 
         
-        storePtr(ImmPtr(pc), FrameAddress(VMFrame::offsetOfRegsPc()));
+        
+        if (pc)
+            storePtr(ImmPtr(pc), FrameAddress(VMFrame::offsetOfRegsPc()));
 
         if (inlining) {
             
@@ -772,6 +774,10 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
         return wrapVMCall(ptr);
     }
 
+    
+    
+    
+    
     
     
     
