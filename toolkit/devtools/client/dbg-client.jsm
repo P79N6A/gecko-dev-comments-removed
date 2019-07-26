@@ -220,14 +220,21 @@ this.DebuggerClient = function DebuggerClient(aTransport)
   this._activeRequests = new Map;
   this._eventsEnabled = true;
 
-  
-  this.mainRoot = null;
-
   this.compat = new ProtocolCompatibility(this, [
     new SourcesShim(),
   ]);
 
   this.request = this.request.bind(this);
+
+  
+
+
+
+  this.mainRoot = null;
+  this.expectReply("root", (aPacket) => {
+    this.mainRoot = new RootClient(this, aPacket);
+    this.notify("connected", aPacket.applicationType, aPacket.traits);
+  });
 }
 
 
@@ -586,15 +593,6 @@ DebuggerClient.prototype = {
       : this.compat.onPacket(aPacket);
 
     resolve(packet).then((aPacket) => {
-      if (!this.mainRoot) {
-        
-        this.mainRoot = new RootClient(this, aPacket);
-        this.notify("connected",
-                    aPacket.applicationType,
-                    aPacket.traits);
-        return;
-      }
-
       if (!aPacket.from) {
         let msg = "Server did not specify an actor, dropping packet: " +
                   JSON.stringify(aPacket);
@@ -604,6 +602,8 @@ DebuggerClient.prototype = {
       }
 
       let onResponse;
+      
+      
       
       if (this._activeRequests.has(aPacket.from) &&
           !(aPacket.type in UnsolicitedNotifications) &&
