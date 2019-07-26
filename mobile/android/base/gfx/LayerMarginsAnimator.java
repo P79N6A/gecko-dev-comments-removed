@@ -10,6 +10,7 @@ import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.TouchEventInterceptor;
 import org.mozilla.gecko.util.FloatUtils;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import android.graphics.PointF;
 import android.graphics.RectF;
@@ -34,6 +35,8 @@ public class LayerMarginsAnimator implements TouchEventInterceptor {
     private float SHOW_MARGINS_THRESHOLD = 0.20f;
 
     
+
+
     private final RectF mMaxMargins;
     
     private boolean mMarginsPinned;
@@ -86,6 +89,8 @@ public class LayerMarginsAnimator implements TouchEventInterceptor {
 
 
     public synchronized void setMaxMargins(float left, float top, float right, float bottom) {
+        ThreadUtils.assertOnUiThread();
+
         mMaxMargins.set(left, top, right, bottom);
 
         
@@ -93,6 +98,10 @@ public class LayerMarginsAnimator implements TouchEventInterceptor {
             GeckoEvent.createBroadcastEvent("Viewport:FixedMarginsChanged",
                 "{ \"top\" : " + top + ", \"right\" : " + right
                 + ", \"bottom\" : " + bottom + ", \"left\" : " + left + " }"));
+    }
+
+    RectF getMaxMargins() {
+        return mMaxMargins;
     }
 
     private void animateMargins(final float left, final float top, final float right, final float bottom, boolean immediately) {

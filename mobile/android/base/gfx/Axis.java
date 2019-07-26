@@ -145,6 +145,7 @@ abstract class Axis {
     protected abstract float getViewportLength();
     protected abstract float getPageStart();
     protected abstract float getPageLength();
+    protected abstract boolean marginsHidden();
 
     Axis(SubdocumentScrollHelper subscroller) {
         mSubscroller = subscroller;
@@ -251,6 +252,13 @@ abstract class Axis {
         
         if (mScrollingDisabled) {
             return false;
+        }
+
+        
+        
+        
+        if (marginsHidden()) {
+            return true;
         }
 
         
