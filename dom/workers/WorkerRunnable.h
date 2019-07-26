@@ -314,34 +314,6 @@ protected:
                bool aDispatchResult) MOZ_OVERRIDE;
 };
 
-
-
-
-
-
-
-class WorkerSameThreadRunnable : public WorkerRunnable
-{
-protected:
-  WorkerSameThreadRunnable(WorkerPrivate* aWorkerPrivate)
-  : WorkerRunnable(aWorkerPrivate, WorkerThreadModifyBusyCount)
-  { }
-
-  virtual ~WorkerSameThreadRunnable()
-  { }
-
-  virtual bool
-  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) MOZ_OVERRIDE;
-
-  virtual void
-  PostDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-               bool aDispatchResult) MOZ_OVERRIDE;
-
-  virtual void
-  PostRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-          bool aRunResult) MOZ_OVERRIDE;
-};
-
 END_WORKERS_NAMESPACE
 
 #endif
