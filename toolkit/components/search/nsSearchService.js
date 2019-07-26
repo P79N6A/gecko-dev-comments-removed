@@ -447,7 +447,7 @@ function getDir(aKey, aIFace) {
 
 function queryCharsetFromCode(aCode) {
   const codes = [];
-  codes[0] = "x-mac-roman";
+  codes[0] = "macintosh";
   codes[6] = "x-mac-greek";
   codes[35] = "x-mac-turkish";
   codes[513] = "ISO-8859-1";
@@ -487,7 +487,7 @@ function queryCharsetFromCode(aCode) {
 }
 function fileCharsetFromCode(aCode) {
   const codes = [
-    "x-mac-roman",           
+    "macintosh",             
     "Shift_JIS",             
     "Big5",                  
     "EUC-KR",                
