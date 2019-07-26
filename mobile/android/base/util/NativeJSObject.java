@@ -57,7 +57,43 @@ public class NativeJSObject
 
 
 
+
+
+    public native boolean optBoolean(String name, boolean fallback);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     public native double getDouble(String name);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native double optDouble(String name, double fallback);
 
     
 
@@ -89,6 +125,24 @@ public class NativeJSObject
 
 
 
+
+
+    public native int optInt(String name, int fallback);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     public native NativeJSObject getObject(String name);
 
     
@@ -105,7 +159,43 @@ public class NativeJSObject
 
 
 
+
+
+    public native NativeJSObject optObject(String name, NativeJSObject fallback);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     public native String getString(String name);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native String optString(String name, String fallback);
 
     
 
