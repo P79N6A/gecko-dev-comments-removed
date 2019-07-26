@@ -27,14 +27,15 @@ function test() {
     ok(reporter, "Health Reporter available.");
     reporter.onInit().then(function onInit() {
       let provider = reporter.getProvider("org.mozilla.searches");
-      let m = provider.getMeasurement("counts", 2);
+      let m = provider.getMeasurement("counts", 3);
 
       m.getValues().then(function onData(data) {
         let now = new Date();
         let oldCount = 0;
 
         
-        let field = "other.searchbar";
+        let engine = Services.search.getEngineByName("Foo");
+        let field = (engine.identifier || "other-Foo") + ".searchbar";
 
         if (data.days.hasDay(now)) {
           let day = data.days.getDay(now);
