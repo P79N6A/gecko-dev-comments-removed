@@ -473,7 +473,7 @@ SilentFailure(JSContext *cx, HandleId id, const char *reason)
 bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
                                                   HandleObject target,
                                                   HandleObject wrapper,
-                                                  HandleId idArg,
+                                                  HandleId id,
                                                   MutableHandle<JSPropertyDescriptor> outDesc)
 {
     
@@ -483,9 +483,6 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
     MOZ_ASSERT(WrapperFactory::IsXrayWrapper(wrapper));
     MOZ_ASSERT(outDesc.object() == nullptr);
 
-    RootedId id(cx, idArg);
-    if (!JS_WrapId(cx, &id))
-        return false;
     Rooted<JSPropertyDescriptor> desc(cx);
     if (!JS_GetOwnPropertyDescriptorById(cx, target, id, &desc))
         return false;
@@ -842,7 +839,7 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
                         props.infallibleAppend(id);
                 }
             }
-            return JS_WrapAutoIdVector(cx, props);
+            return true;
         } else if (IsTypedArrayKey(key)) {
             uint32_t length = JS_GetTypedArrayLength(target);
             
@@ -1729,8 +1726,6 @@ XPCWrappedNativeXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, 
         if (!js::GetPropertyNames(cx, target, flags, &wnProps))
             return false;
     }
-    if (!JS_WrapAutoIdVector(cx, wnProps))
-        return false;
 
     
     if (!props.reserve(wnProps.length()))
@@ -2504,8 +2499,6 @@ XrayWrapper<Base, Traits>::enumerate(JSContext *cx, HandleObject wrapper, unsign
         if (!js::GetPropertyNames(cx, expando, flags, &props))
             return false;
     }
-    if (!JS_WrapAutoIdVector(cx, props))
-        return false;
 
     return Traits::singleton.enumerateNames(cx, wrapper, flags, props);
 }
