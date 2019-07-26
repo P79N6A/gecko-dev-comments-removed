@@ -2161,10 +2161,11 @@ nsHTMLMediaElement::CanPlayType(const nsAString& aType, nsAString& aResult)
 already_AddRefed<MediaDecoder>
 nsHTMLMediaElement::CreateDecoder(const nsACString& aType)
 {
+  
+  
+  
 
 #ifdef MOZ_GSTREAMER
-  
-  
   if (DecoderTraits::IsGStreamerSupportedType(aType)) {
     nsRefPtr<GStreamerDecoder> decoder = new GStreamerDecoder();
     if (decoder->Init(this)) {

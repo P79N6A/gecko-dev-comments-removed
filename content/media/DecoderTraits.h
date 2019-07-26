@@ -53,6 +53,8 @@ public:
 #endif
 
 #ifdef MOZ_GSTREAMER
+  
+  
   static bool IsGStreamerSupportedType(const nsACString& aType);
   static bool IsH264Type(const nsACString& aType);
 #endif

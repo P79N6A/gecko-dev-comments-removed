@@ -71,6 +71,17 @@ public:
 
   JSObject* GetChannelData(JSContext* aJSContext, uint32_t aChannel,
                            ErrorResult& aRv) const;
+  JSObject* GetChannelData(uint32_t aChannel) const {
+    
+    MOZ_ASSERT(aChannel < mChannels.Length());
+    return mChannels[aChannel];
+  }
+
+  
+  
+  void SetChannelDataFromArrayBufferContents(JSContext* aJSContext,
+                                             uint32_t aChannel,
+                                             void* aContents);
 
 private:
   void ClearJSChannels();

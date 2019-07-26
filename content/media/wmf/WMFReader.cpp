@@ -28,7 +28,7 @@ extern PRLogModuleInfo* gMediaDecoderLog;
 
 
 
-WMFReader::WMFReader(MediaDecoder* aDecoder)
+WMFReader::WMFReader(AbstractMediaDecoder* aDecoder)
   : MediaDecoderReader(aDecoder),
     mSourceReader(nullptr),
     mAudioChannels(0),

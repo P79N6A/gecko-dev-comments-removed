@@ -224,10 +224,6 @@ static const uint32_t FRAMEBUFFER_LENGTH_PER_CHANNEL = 1024;
 static const uint32_t FRAMEBUFFER_LENGTH_MIN = 512;
 static const uint32_t FRAMEBUFFER_LENGTH_MAX = 16384;
 
-static inline bool IsCurrentThread(nsIThread* aThread) {
-  return NS_GetCurrentThread() == aThread;
-}
-
 
 
 #ifdef GetCurrentTime
