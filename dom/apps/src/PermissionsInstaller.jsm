@@ -14,6 +14,7 @@ Cu.import("resource://gre/modules/PermissionSettings.jsm");
 this.EXPORTED_SYMBOLS = ["PermissionsInstaller",
                          "expandPermissions",
                          "PermissionsTable",
+                         "appendAccessToPermName"
                         ];
 const UNKNOWN_ACTION = Ci.nsIPermissionManager.UNKNOWN_ACTION;
 const ALLOW_ACTION = Ci.nsIPermissionManager.ALLOW_ACTION;
@@ -30,17 +31,6 @@ const PERM_TO_STRING = ["unknown", "allow", "deny", "prompt"];
 
 function debug(aMsg) {
   
-}
-
-
-
-
-
-
-
-function mapSuffixes(aPermName, aSuffixes)
-{
-  return aSuffixes.map(function(suf) { return aPermName + "-" + suf; });
 }
 
 
@@ -255,6 +245,23 @@ this.PermissionsTable =  { geolocation: {
 
 
 
+this.appendAccessToPermName = function appendAccessToPermName(aPermName, aAccess) {
+  if (aAccess.length == 0) {
+    return [aPermName];
+  }
+  return aAccess.map(function(aMode) {
+    return aPermName + "-" + aMode;
+  });
+};
+
+
+
+
+
+
+
+
+
 this.expandPermissions = function expandPermissions(aPermName, aAccess, aChannels) {
   if (!PermissionsTable[aPermName]) {
     Cu.reportError("PermissionsTable.jsm: expandPermissions: Unknown Permission: " + aPermName);
@@ -301,12 +308,12 @@ this.expandPermissions = function expandPermissions(aPermName, aAccess, aChannel
     return [];
   }
 
-  let permArr = mapSuffixes(aPermName, requestedSuffixes);
+  let permArr = appendAccessToPermName(aPermName, requestedSuffixes);
 
   
   if (tableEntry.additional) {
     for each (let additional in tableEntry.additional) {
-      permArr = permArr.concat(mapSuffixes(additional, requestedSuffixes));
+      permArr = permArr.concat(appendAccessToPermName(additional, requestedSuffixes));
     }
   }
 
