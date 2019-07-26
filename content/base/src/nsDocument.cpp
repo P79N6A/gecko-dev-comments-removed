@@ -217,6 +217,8 @@
 #include "mozilla/dom/XPathEvaluator.h"
 #include "nsIDocumentEncoder.h"
 #include "nsIStructuredCloneContainer.h"
+#include "nsIMutableArray.h"
+#include "nsContentPermissionHelper.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -8541,11 +8543,17 @@ FireOrClearDelayedEvents(nsTArray<nsCOMPtr<nsIDocument> >& aDocuments,
     return;
 
   for (uint32_t i = 0; i < aDocuments.Length(); ++i) {
+    
+    
     if (!aDocuments[i]->EventHandlingSuppressed()) {
       fm->FireDelayedEvents(aDocuments[i]);
       nsCOMPtr<nsIPresShell> shell = aDocuments[i]->GetShell();
       if (shell) {
-        shell->FireOrClearDelayedEvents(aFireEvents);
+        
+        bool fire = aFireEvents &&
+                    aDocuments[i]->GetInnerWindow() &&
+                    aDocuments[i]->GetInnerWindow()->IsCurrentInnerWindow();
+        shell->FireOrClearDelayedEvents(fire);
       }
     }
   }
@@ -10729,17 +10737,11 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsPointerLockPermissionRequest,
                              nsIContentPermissionRequest)
 
 NS_IMETHODIMP
-nsPointerLockPermissionRequest::GetType(nsACString& aType)
+nsPointerLockPermissionRequest::GetTypes(nsIArray** aTypes)
 {
-  aType = "pointerLock";
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPointerLockPermissionRequest::GetAccess(nsACString& aAccess)
-{
-  aAccess = "unused";
-  return NS_OK;
+  return CreatePermissionArray(NS_LITERAL_CSTRING("pointerLock"),
+                               NS_LITERAL_CSTRING("unused"),
+                               aTypes);
 }
 
 NS_IMETHODIMP
