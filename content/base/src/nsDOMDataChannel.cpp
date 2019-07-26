@@ -88,8 +88,7 @@ private:
   
   nsresult GetSendParams(nsIVariant *aData, nsCString &aStringOut,
                          nsCOMPtr<nsIInputStream> &aStreamOut,
-                         bool &aIsBinary, uint32_t &aOutgoingLength,
-                         JSContext *aCx);
+                         bool &aIsBinary, uint32_t &aOutgoingLength);
 
   
   nsRefPtr<mozilla::DataChannel> mDataChannel;
@@ -251,7 +250,7 @@ nsDOMDataChannel::Close()
 
 
 NS_IMETHODIMP
-nsDOMDataChannel::Send(nsIVariant* aData, JSContext* aCx)
+nsDOMDataChannel::Send(nsIVariant* aData)
 {
   MOZ_ASSERT(NS_IsMainThread());
   uint16_t state = mDataChannel->GetReadyState();
@@ -266,7 +265,7 @@ nsDOMDataChannel::Send(nsIVariant* aData, JSContext* aCx)
   nsCOMPtr<nsIInputStream> msgStream;
   bool isBinary;
   uint32_t msgLen;
-  nsresult rv = GetSendParams(aData, msgString, msgStream, isBinary, msgLen, aCx);
+  nsresult rv = GetSendParams(aData, msgString, msgStream, isBinary, msgLen);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (state == mozilla::DataChannel::CLOSING ||
@@ -294,8 +293,7 @@ nsDOMDataChannel::Send(nsIVariant* aData, JSContext* aCx)
 nsresult
 nsDOMDataChannel::GetSendParams(nsIVariant* aData, nsCString& aStringOut,
                                 nsCOMPtr<nsIInputStream>& aStreamOut,
-                                bool& aIsBinary, uint32_t& aOutgoingLength,
-                                JSContext* aCx)
+                                bool& aIsBinary, uint32_t& aOutgoingLength)
 {
   
   uint16_t dataType;

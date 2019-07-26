@@ -2650,24 +2650,10 @@ GetRequestBody(nsIVariant* aBody, nsIInputStream** aResult, uint64_t* aContentLe
 
     
     jsval realVal;
-    nsCxPusher pusher;
-    Maybe<JSAutoCompartment> ac;
-
-    
-    
-    
-    JSContext* cx = nsContentUtils::GetCurrentJSContext();
-    if (!cx) {
-      cx = nsContentUtils::GetSafeJSContext();
-      if (!pusher.Push(cx)) {
-        return NS_ERROR_FAILURE;
-      }
-    }
 
     nsresult rv = aBody->GetAsJSVal(&realVal);
     if (NS_SUCCEEDED(rv) && !JSVAL_IS_PRIMITIVE(realVal)) {
       JSObject *obj = JSVAL_TO_OBJECT(realVal);
-      ac.construct(cx, obj);
       if (JS_IsArrayBufferObject(obj)) {
           ArrayBuffer buf(obj);
           return GetRequestBody(&buf, aResult, aContentLength, aContentType, aCharset);
