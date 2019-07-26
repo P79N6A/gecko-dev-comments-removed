@@ -85,7 +85,7 @@ struct Pool {
           bias(bias_), alignment(alignment_),
           isBackref(isBackref_), canDedup(canDedup_), other(other_),
           poolData(static_cast<uint8 *>(malloc(8*immSize))), numEntries(0),
-          buffSize(8), limitingUser(), limitingUsee(INT_MIN), loadOffsets()
+          buffSize(8), loadOffsets(), limitingUser(), limitingUsee(INT_MIN)
     {
     }
     static const int garbage=0xa5a5a5a5;
@@ -302,14 +302,13 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
     int entryCount[1 << poolKindBits];
     static const int offsetBits = 32 - poolKindBits;
   public:
-    int id;
 
     class PoolEntry {
         template <int ss, int ibs, class i, class a, int pkb>
         friend struct AssemblerBufferWithConstantPool;
         uint32 offset_ : offsetBits;
         uint32 kind_ : poolKindBits;
-        PoolEntry(int offset, int kind) : kind_(kind), offset_(offset) {
+        PoolEntry(int offset, int kind) : offset_(offset), kind_(kind) {
         }
       public:
         uint32 encode() {
@@ -317,10 +316,10 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             memcpy(&ret, this, sizeof(uint32));
             return ret;
         }
-        PoolEntry(uint32 bits) : offset_((1 << offsetBits) - 1 & bits),
+        PoolEntry(uint32 bits) : offset_(((1u << offsetBits) - 1) & bits),
                                  kind_(bits >> offsetBits) {
         }
-        PoolEntry() : offset_(-1), kind_(-1) {
+        PoolEntry() : offset_((1u << offsetBits) - 1), kind_((1u << poolKindBits) - 1) {
         }
 
         uint32 poolKind() const {
@@ -368,7 +367,9 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
     
     BufferOffset perforation;
     BufferSlice *perforatedNode;
-
+  public:
+    int id;
+  private:
     static const int logBasePoolInfo = 3;
     BufferSlice ** getHead() {
         return (BufferSlice**)&this->head;
@@ -508,7 +509,6 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             return INT_MIN;
         
         
-        int codeOffset = this->size() + instSize - perforation.getOffset();
         int poolOffset = footerSize;
         Pool *cur, *tmp;
         
@@ -717,7 +717,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         for (int poolIdx = numPoolKinds-1; poolIdx >= 0; poolIdx--) {
             Pool *p =  pools[poolIdx].other;
             JS_ASSERT(p != NULL);
-            int idx = p->numEntries-1;
+            unsigned int idx = p->numEntries-1;
             
             
             
@@ -769,7 +769,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
                 }
             }
             
-            int idxDest = 0;
+            unsigned int idxDest = 0;
             
             if (numSkips != 0) {
                 for (idx = 0; idx < p->numEntries; idx++) {
