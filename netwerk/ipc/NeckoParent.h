@@ -50,10 +50,10 @@ public:
 
 
 
-
   MOZ_WARN_UNUSED_RESULT
   static const char*
   CreateChannelLoadContext(PBrowserParent* aBrowser,
+                           PContentParent* aContent,
                            const SerializedLoadContext& aSerialized,
                            nsCOMPtr<nsILoadContext> &aResult);
 

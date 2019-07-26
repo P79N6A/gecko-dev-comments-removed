@@ -94,16 +94,38 @@ NeckoParent::GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
 
   const InfallibleTArray<PBrowserParent*>& browsers = aContent->ManagedPBrowserParent();
   for (uint32_t i = 0; i < browsers.Length(); i++) {
-    
-    if (!GetValidatedAppInfo(aSerialized, browsers[i], aAppId, aInBrowserElement)) {
-      return nullptr;
+    nsRefPtr<TabParent> tabParent = static_cast<TabParent*>(browsers[i]);
+    uint32_t appId = tabParent->OwnOrContainingAppId();
+    bool inBrowserElement = aSerialized.IsNotNull() ? aSerialized.mIsInBrowserElement
+                                                    : tabParent->IsBrowserElement();
+
+    if (appId == NECKO_UNKNOWN_APP_ID) {
+      continue;
     }
+    
+    if (appId == NECKO_NO_APP_ID) {
+      if (tabParent->HasOwnApp()) {
+        continue;
+      }
+      if (UsingNeckoIPCSecurity() && tabParent->IsBrowserElement()) {
+        
+        
+        
+        
+        continue;
+      }
+    }
+    *aAppId = appId;
+    *aInBrowserElement = inBrowserElement;
+    return nullptr;
   }
 
-  if (browsers.Length() == 0) {
-    if (UsingNeckoIPCSecurity()) {
-      return "ContentParent does not have any PBrowsers";
-    }
+  if (browsers.Length() != 0) {
+    return "App does not have permission";
+  }
+
+  if (!UsingNeckoIPCSecurity()) {
+    
     if (aSerialized.IsNotNull()) {
       *aAppId = aSerialized.mAppId;
       *aInBrowserElement = aSerialized.mIsInBrowserElement;
@@ -113,78 +135,19 @@ NeckoParent::GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
     return nullptr;
   }
 
-  
-  
-  return GetValidatedAppInfo(aSerialized, browsers[0], aAppId, aInBrowserElement);
-}
-
-const char*
-NeckoParent::GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
-                                 PBrowserParent* aBrowser,
-                                 uint32_t* aAppId,
-                                 bool* aInBrowserElement)
-{
-  if (UsingNeckoIPCSecurity()) {
-    if (!aBrowser) {
-      return "missing required PBrowser argument";
-    }
-    if (!aSerialized.IsNotNull()) {
-      return "SerializedLoadContext from child is null";
-    }
-  }
-
-  *aAppId = NECKO_UNKNOWN_APP_ID;
-  *aInBrowserElement = false;
-
-  if (aBrowser) {
-    nsRefPtr<TabParent> tabParent = static_cast<TabParent*>(aBrowser);
-
-    *aAppId = tabParent->OwnOrContainingAppId();
-    *aInBrowserElement = aSerialized.IsNotNull() ? aSerialized.mIsInBrowserElement
-                                                 : tabParent->IsBrowserElement();
-
-    if (*aAppId == NECKO_UNKNOWN_APP_ID) {
-      return "TabParent reports appId=NECKO_UNKNOWN_APP_ID!";
-    }
-    
-    if (*aAppId == NECKO_NO_APP_ID) {
-      if (tabParent->HasOwnApp()) {
-        return "TabParent reports NECKO_NO_APP_ID but also is an app";
-      }
-      if (UsingNeckoIPCSecurity() && tabParent->IsBrowserElement()) {
-        
-        
-        
-        
-        return "TabParent reports appId=NECKO_NO_APP_ID but is a mozbrowser";
-      }
-    }
-  } else {
-    
-    
-    MOZ_ASSERT(!UsingNeckoIPCSecurity());
-    if (UsingNeckoIPCSecurity()) {
-      return "internal error";
-    }
-    if (aSerialized.IsNotNull()) {
-      *aAppId = aSerialized.mAppId;
-      *aInBrowserElement = aSerialized.mIsInBrowserElement;
-    } else {
-      *aAppId = NECKO_NO_APP_ID;
-    }
-  }
-  return nullptr;
+  return "ContentParent does not have any PBrowsers";
 }
 
 const char *
 NeckoParent::CreateChannelLoadContext(PBrowserParent* aBrowser,
+                                      PContentParent* aContent,
                                       const SerializedLoadContext& aSerialized,
                                       nsCOMPtr<nsILoadContext> &aResult)
 {
   uint32_t appId = NECKO_UNKNOWN_APP_ID;
   bool inBrowser = false;
   dom::Element* topFrameElement = nullptr;
-  const char* error = GetValidatedAppInfo(aSerialized, aBrowser, &appId, &inBrowser);
+  const char* error = GetValidatedAppInfo(aSerialized, aContent, &appId, &inBrowser);
   if (error) {
     return error;
   }
@@ -209,8 +172,8 @@ NeckoParent::AllocPHttpChannelParent(PBrowserParent* aBrowser,
                                      const HttpChannelCreationArgs& aOpenArgs)
 {
   nsCOMPtr<nsILoadContext> loadContext;
-  const char *error = CreateChannelLoadContext(aBrowser, aSerialized,
-                                               loadContext);
+  const char *error = CreateChannelLoadContext(aBrowser, Manager(),
+                                               aSerialized, loadContext);
   if (error) {
     printf_stderr("NeckoParent::AllocPHttpChannelParent: "
                   "FATAL error: %s: KILLING CHILD PROCESS\n",
@@ -248,8 +211,8 @@ NeckoParent::AllocPFTPChannelParent(PBrowserParent* aBrowser,
                                     const FTPChannelCreationArgs& aOpenArgs)
 {
   nsCOMPtr<nsILoadContext> loadContext;
-  const char *error = CreateChannelLoadContext(aBrowser, aSerialized,
-                                               loadContext);
+  const char *error = CreateChannelLoadContext(aBrowser, Manager(),
+                                               aSerialized, loadContext);
   if (error) {
     printf_stderr("NeckoParent::AllocPFTPChannelParent: "
                   "FATAL error: %s: KILLING CHILD PROCESS\n",
@@ -315,8 +278,8 @@ NeckoParent::AllocPWebSocketParent(PBrowserParent* browser,
                                    const SerializedLoadContext& serialized)
 {
   nsCOMPtr<nsILoadContext> loadContext;
-  const char *error = CreateChannelLoadContext(browser, serialized,
-                                               loadContext);
+  const char *error = CreateChannelLoadContext(browser, Manager(),
+                                               serialized, loadContext);
   if (error) {
     printf_stderr("NeckoParent::AllocPWebSocketParent: "
                   "FATAL error: %s: KILLING CHILD PROCESS\n",
