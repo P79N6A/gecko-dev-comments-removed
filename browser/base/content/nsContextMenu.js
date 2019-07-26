@@ -678,8 +678,13 @@ nsContextMenu.prototype = {
 
     
     var docDefaultView = this.target.ownerDocument.defaultView;
-    if (docDefaultView != docDefaultView.top)
-      this.inFrame = true;
+    if (docDefaultView != docDefaultView.top) {
+      
+      
+      
+      if (!this.target.ownerDocument.isSrcdocDocument)
+        this.inFrame = true;
+    }
 
     
     if (!this.onEditableArea) {
