@@ -3,6 +3,7 @@
 
 
 
+
 #include "ImageBridgeParent.h"
 #include <stdint.h>                     
 #include "CompositableHost.h"           
@@ -31,6 +32,7 @@
 #include "nsTArrayForwardDeclare.h"     
 #include "nsXULAppAPI.h"                
 #include "mozilla/layers/TextureHost.h"
+#include "nsThreadUtils.h"
 
 using namespace base;
 using namespace mozilla::ipc;
@@ -218,11 +220,32 @@ MessageLoop * ImageBridgeParent::GetMessageLoop() {
   return mMessageLoop;
 }
 
+class ReleaseRunnable : public nsRunnable
+{
+public:
+  ReleaseRunnable(ImageBridgeParent* aRef)
+    : mRef(aRef)
+  {
+  }
+
+  NS_IMETHOD Run()
+  {
+    mRef->Release();
+    return NS_OK;
+  }
+
+private:
+  ImageBridgeParent* mRef;
+};
+
 void
 ImageBridgeParent::DeferredDestroy()
 {
-  mSelfRef = nullptr;
-  
+  ImageBridgeParent* self;
+  mSelfRef.forget(&self);
+
+  nsCOMPtr<nsIRunnable> runnable = new ReleaseRunnable(self);
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable)));
 }
 
 IToplevelProtocol*
