@@ -20,7 +20,7 @@ var gObserver = new Observer();
 
 
 var hosts = ["http://keyerror.com", "http://subdomain.intercom.io",
-             "http://subdomain.pixi.me", "http://crypto.cat",
+             "http://subdomain.pixi.me", "http://bugzilla.mozilla.org",
              "http://logentries.com"];
 
 function cleanup() {
@@ -135,24 +135,24 @@ const IS_PRIVATE = Ci.nsISocketProvider.NO_PERMANENT_STORAGE;
 
 function test_private_browsing1() {
   
-  do_check_true(gSTSService.isStsHost("crypto.cat", IS_PRIVATE));
-  do_check_true(gSTSService.isStsHost("a.b.c.subdomain.crypto.cat", IS_PRIVATE));
+  do_check_true(gSTSService.isStsHost("bugzilla.mozilla.org", IS_PRIVATE));
+  do_check_true(gSTSService.isStsHost("a.b.c.subdomain.bugzilla.mozilla.org", IS_PRIVATE));
 
-  var uri = Services.io.newURI("http://crypto.cat", null, null);
+  var uri = Services.io.newURI("http://bugzilla.mozilla.org", null, null);
   gSTSService.processStsHeader(uri, "max-age=0", IS_PRIVATE);
-  do_check_false(gSTSService.isStsHost("crypto.cat", IS_PRIVATE));
-  do_check_false(gSTSService.isStsHost("a.b.subdomain.crypto.cat", IS_PRIVATE));
+  do_check_false(gSTSService.isStsHost("bugzilla.mozilla.org", IS_PRIVATE));
+  do_check_false(gSTSService.isStsHost("a.b.subdomain.bugzilla.mozilla.org", IS_PRIVATE));
 
   
   gSTSService.processStsHeader(uri, "max-age=1000", IS_PRIVATE);
-  do_check_true(gSTSService.isStsHost("crypto.cat", IS_PRIVATE));
+  do_check_true(gSTSService.isStsHost("bugzilla.mozilla.org", IS_PRIVATE));
   
-  do_check_false(gSTSService.isStsHost("b.subdomain.crypto.cat", IS_PRIVATE));
+  do_check_false(gSTSService.isStsHost("b.subdomain.bugzilla.mozilla.org", IS_PRIVATE));
 
   
   gSTSService.processStsHeader(uri, "max-age=0", IS_PRIVATE);
-  do_check_false(gSTSService.isStsHost("crypto.cat", IS_PRIVATE));
-  do_check_false(gSTSService.isStsHost("subdomain.crypto.cat", IS_PRIVATE));
+  do_check_false(gSTSService.isStsHost("bugzilla.mozilla.org", IS_PRIVATE));
+  do_check_false(gSTSService.isStsHost("subdomain.bugzilla.mozilla.org", IS_PRIVATE));
 
   
   
@@ -176,9 +176,9 @@ function test_private_browsing1() {
 
 function test_private_browsing2() {
   
-  do_check_true(gSTSService.isStsHost("crypto.cat", 0));
+  do_check_true(gSTSService.isStsHost("bugzilla.mozilla.org", 0));
   
-  do_check_true(gSTSService.isStsHost("subdomain.crypto.cat", 0));
+  do_check_true(gSTSService.isStsHost("subdomain.bugzilla.mozilla.org", 0));
 
   
   
