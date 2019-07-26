@@ -101,13 +101,13 @@ Enumerate(JSContext *cx, HandleObject pobj, jsid id,
 
 
 
-    if (JS_UNLIKELY(!pobj->getTaggedProto().isObject() && JSID_IS_ATOM(id, cx->names().proto)))
+    if (MOZ_UNLIKELY(!pobj->getTaggedProto().isObject() && JSID_IS_ATOM(id, cx->names().proto)))
         return true;
 
     if (!(flags & JSITER_OWNONLY) || pobj->is<ProxyObject>() || pobj->getOps()->enumerate) {
         
         IdSet::AddPtr p = ht.lookupForAdd(id);
-        if (JS_UNLIKELY(!!p))
+        if (MOZ_UNLIKELY(!!p))
             return true;
 
         

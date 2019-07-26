@@ -133,7 +133,7 @@ class BumpChunk
             return nullptr;
 
         
-        if (JS_UNLIKELY(newBump < bump))
+        if (MOZ_UNLIKELY(newBump < bump))
             return nullptr;
 
         JS_ASSERT(canAlloc(n)); 

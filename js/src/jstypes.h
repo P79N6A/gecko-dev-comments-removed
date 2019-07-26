@@ -196,34 +196,6 @@
 
 
 
-#ifdef __GNUC__
-
-# define JS_LIKELY(x)   (__builtin_expect((x), 1))
-# define JS_UNLIKELY(x) (__builtin_expect((x), 0))
-
-#else
-
-# define JS_LIKELY(x)   (x)
-# define JS_UNLIKELY(x) (x)
-
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #define JS_ARRAY_LENGTH(array) (sizeof (array) / sizeof (array)[0])
 #define JS_ARRAY_END(array)    ((array) + JS_ARRAY_LENGTH(array))
