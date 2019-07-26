@@ -1314,13 +1314,29 @@ let CustomizableUIInternal = {
       }
     }
 
-    if (aEvent.originalTarget.getAttribute("closemenu") == "none" ||
-        aEvent.originalTarget.getAttribute("widget-type") == "view") {
+    
+    
+    
+    
+    
+    let target = aEvent.originalTarget;
+    let closemenu = "auto";
+    let widgetType = "button";
+    while (target.localName != "panel") {
+      closemenu = target.getAttribute("closemenu");
+      widgetType = target.getAttribute("widget-type");
+      if (closemenu == "none" || closemenu == "single" ||
+          widgetType == "view") {
+        break;
+      }
+      target = target.parentNode;
+    }
+    if (closemenu == "none" || widgetType == "view") {
       return;
     }
 
-    if (aEvent.originalTarget.getAttribute("closemenu") == "single") {
-      let panel = this._getPanelForNode(aEvent.originalTarget);
+    if (closemenu == "single") {
+      let panel = this._getPanelForNode(target);
       let multiview = panel.querySelector("panelmultiview");
       if (multiview.showingSubView) {
         multiview.showMainView();
