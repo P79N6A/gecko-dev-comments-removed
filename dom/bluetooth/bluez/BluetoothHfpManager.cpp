@@ -1639,7 +1639,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_DISCONNECTED)) {
         
         
-        if (!(aError.Equals(NS_LITERAL_STRING("BusyError")))) {
+        if (!(aError.EqualsLiteral("BusyError"))) {
           DisconnectSco();
         } else {
           

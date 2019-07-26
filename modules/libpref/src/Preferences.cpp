@@ -1161,7 +1161,7 @@ static nsresult pref_LoadPrefsInDirList(const char *listId)
     path->GetNativeLeafName(leaf);
 
     
-    if (Substring(leaf, leaf.Length() - 4).Equals(NS_LITERAL_CSTRING(".xpi")))
+    if (Substring(leaf, leaf.Length() - 4).EqualsLiteral(".xpi"))
       ReadExtensionPrefs(path);
     else
       pref_LoadPrefsInDir(path, nullptr, 0);

@@ -592,7 +592,7 @@ public:
   void SetType(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::type, aValue, aRv);
-    if (aValue.Equals(NS_LITERAL_STRING("number"))) {
+    if (aValue.EqualsLiteral("number")) {
       
       
       
