@@ -22,6 +22,8 @@ function shared_setup() {
 
   
   setBasicCredentials("foo", "foo", "aabcdeabcdeabcdeabcdeabcde");
+  Service.serverURL  = TEST_SERVER_URL;
+  Service.clusterURL = TEST_CLUSTER_URL;
 
   
   Service.engineManager._engines = {};
@@ -78,7 +80,6 @@ add_test(function hmac_error_during_404() {
   };
 
   let server = sync_httpd_setup(handlers);
-  Service.serverURL = server.baseURI;
 
   try {
     _("Syncing.");
@@ -154,7 +155,6 @@ add_test(function hmac_error_during_node_reassignment() {
   };
 
   let server = sync_httpd_setup(handlers);
-  Service.serverURL = server.baseURI;
   _("Syncing.");
   
   

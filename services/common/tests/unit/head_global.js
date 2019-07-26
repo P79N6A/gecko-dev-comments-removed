@@ -3,6 +3,9 @@
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu, manager: Cm} = Components;
 
+
+const TEST_SERVER_URL = "http://localhost:8080/";
+
 let gSyncProfile = do_get_profile();
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
