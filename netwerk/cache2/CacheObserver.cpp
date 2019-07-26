@@ -59,7 +59,6 @@ NS_IMPL_ISUPPORTS2(CacheObserver,
                    nsIObserver,
                    nsISupportsWeakReference)
 
-
 nsresult
 CacheObserver::Init()
 {
@@ -86,7 +85,6 @@ CacheObserver::Init()
 
   return NS_OK;
 }
-
 
 nsresult
 CacheObserver::Shutdown()
@@ -129,10 +127,6 @@ CacheObserver::AttachToPreferences()
   
   mozilla::Preferences::AddUintVarCache(
     &sCompressionLevel, "browser.cache.compression_level", kDefaultCompressionLevel);
-
-  mozilla::Preferences::GetComplex(
-    "browser.cache.disk.parent_directory", NS_GET_IID(nsIFile),
-    getter_AddRefs(mCacheParentDirectoryOverride));
 
   sHalfLifeExperiment = mozilla::Preferences::GetInt(
     "browser.cache.frecency_experiment", kDefaultHalfLifeExperiment);
@@ -202,22 +196,6 @@ bool const CacheObserver::UseNewCache()
   }
 
   return true;
-}
-
-
-void CacheObserver::ParentDirOverride(nsIFile** aDir)
-{
-  if (NS_WARN_IF(!aDir))
-    return;
-
-  *aDir = nullptr;
-
-  if (!sSelf)
-    return;
-  if (!sSelf->mCacheParentDirectoryOverride)
-    return;
-
-  sSelf->mCacheParentDirectoryOverride->Clone(aDir);
 }
 
 namespace { 
