@@ -1325,11 +1325,16 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return slots[slot - fixed];
     }
 
-    HeapSlot *getSlotAddressUnchecked(uint32_t slot) {
+    const HeapSlot *getSlotAddressUnchecked(uint32_t slot) const {
         uint32_t fixed = numFixedSlots();
         if (slot < fixed)
             return fixedSlots() + slot;
         return slots + (slot - fixed);
+    }
+
+    HeapSlot *getSlotAddressUnchecked(uint32_t slot) {
+        const ObjectImpl *obj = static_cast<const ObjectImpl*>(this);
+        return const_cast<HeapSlot*>(obj->getSlotAddressUnchecked(slot));
     }
 
     HeapSlot *getSlotAddress(uint32_t slot) {
@@ -1342,7 +1347,22 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return getSlotAddressUnchecked(slot);
     }
 
+    const HeapSlot *getSlotAddress(uint32_t slot) const {
+        
+
+
+
+
+        MOZ_ASSERT(slotInRange(slot, SENTINEL_ALLOWED));
+        return getSlotAddressUnchecked(slot);
+    }
+
     HeapSlot &getSlotRef(uint32_t slot) {
+        MOZ_ASSERT(slotInRange(slot));
+        return *getSlotAddress(slot);
+    }
+
+    const HeapSlot &getSlotRef(uint32_t slot) const {
         MOZ_ASSERT(slotInRange(slot));
         return *getSlotAddress(slot);
     }

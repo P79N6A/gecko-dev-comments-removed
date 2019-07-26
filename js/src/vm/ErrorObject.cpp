@@ -5,7 +5,7 @@
 
 
 
-#include "vm/ErrorObject.h"
+#include "vm/ErrorObject-inl.h"
 
 #include "jsexn.h"
 
@@ -125,7 +125,7 @@ js::ErrorObject::getOrCreateErrorReport(JSContext *cx)
 
     
     JSAutoByteString filenameStr;
-    if (!filenameStr.encodeLatin1(cx, fileName()))
+    if (!filenameStr.encodeLatin1(cx, fileName(cx)))
         return nullptr;
     report.filename = filenameStr.ptr();
 
