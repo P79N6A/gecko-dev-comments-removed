@@ -135,7 +135,7 @@ nsHttpHeaderArray::ParseHeaderLine(const char *line,
     
     
     
-    
+
     
     
 
@@ -150,7 +150,7 @@ nsHttpHeaderArray::ParseHeaderLine(const char *line,
         LOG(("malformed header [%s]: field-name not a token\n", line));
         return NS_OK;
     }
-    
+
     *p = 0; 
 
     nsHttpAtom atom = nsHttp::ResolveAtom(line);
@@ -184,7 +184,7 @@ nsHttpHeaderArray::Flatten(nsACString &buf, bool pruneProxyHeaders)
     for (i = 0; i < count; ++i) {
         const nsEntry &entry = mHeaders[i];
         
-        if (pruneProxyHeaders && ((entry.header == nsHttp::Proxy_Authorization) || 
+        if (pruneProxyHeaders && ((entry.header == nsHttp::Proxy_Authorization) ||
                                   (entry.header == nsHttp::Proxy_Connection)))
             continue;
         buf.Append(entry.header);

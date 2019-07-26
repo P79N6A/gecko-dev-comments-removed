@@ -46,7 +46,7 @@ public:
 
   
   void ReadTimeoutTick(PRIntervalTime now);
-  
+
   
   PRIntervalTime IdleTime();
 
@@ -57,7 +57,7 @@ public:
   const static uint8_t kFlag_Data_FIN  = 0x01;
   const static uint8_t kFlag_Data_UNI  = 0x02;
   const static uint8_t kFlag_Data_ZLIB = 0x02;
-  
+
   
   
   
@@ -124,11 +124,11 @@ public:
 
   const static uint32_t kDefaultMaxConcurrent = 100;
   const static uint32_t kMaxStreamID = 0x7800000;
-  
+
   
   
   const static uint32_t kDeadStreamID = 0xffffdead;
-  
+
   static nsresult HandleSynStream(SpdySession2 *);
   static nsresult HandleSynReply(SpdySession2 *);
   static nsresult HandleRstStream(SpdySession2 *);
@@ -154,7 +154,7 @@ public:
 
   
   virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment);
-  
+
   void     PrintDiagnostics (nsCString &log);
 
 private:
@@ -197,7 +197,7 @@ private:
   
   
   nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, uint32_t, uint32_t *);
-  
+
   static PLDHashOperator ShutdownEnumerator(nsAHttpTransaction *,
                                             nsAutoPtr<SpdyStream2> &,
                                             void *);
@@ -256,7 +256,7 @@ private:
   uint32_t             mInputFrameBufferSize;
   uint32_t             mInputFrameBufferUsed;
   nsAutoArrayPtr<char> mInputFrameBuffer;
-  
+
   
   
   
@@ -268,7 +268,7 @@ private:
   
   
   SpdyStream2          *mInputFrameDataStream;
-  
+
   
   
   

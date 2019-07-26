@@ -258,7 +258,7 @@ public:
     {
         return mPipelineRescheduleTimeout;
     }
-    
+
     PRIntervalTime GetPipelineTimeout()   { return mPipelineReadTimeout; }
 
     mozilla::net::SpdyInformation *SpdyInfo() { return &mSpdyInfo; }
@@ -485,7 +485,7 @@ class nsHttpsHandler : public nsIHttpProtocolHandler
 public:
     
     
-    
+
     NS_DECL_ISUPPORTS
     NS_DECL_NSIPROTOCOLHANDLER
     NS_FORWARD_NSIPROXIEDPROTOCOLHANDLER (gHttpHandler->)

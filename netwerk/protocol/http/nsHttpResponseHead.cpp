@@ -134,10 +134,10 @@ nsHttpResponseHead::ParseStatusLine(const char *line)
     
     
     
- 
+
     
     ParseVersion(line);
-    
+
     if ((mVersion == NS_HTTP_VERSION_0_9) || !(line = PL_strchr(line, ' '))) {
         mStatus = 200;
         mStatusText.AssignLiteral("OK");
@@ -169,11 +169,11 @@ nsHttpResponseHead::ParseHeaderLine(const char *line)
     nsHttpAtom hdr = {0};
     char *val;
     nsresult rv;
-    
+
     rv = mHeaders.ParseHeaderLine(line, &hdr, &val);
     if (NS_FAILED(rv))
         return rv;
-    
+
     
 
     
@@ -278,7 +278,7 @@ nsHttpResponseHead::ComputeFreshnessLifetime(uint32_t *result) const
         
         return NS_OK;
     }
-    
+
     
     if (NS_SUCCEEDED(GetLastModifiedValue(&date2))) {
         LOG(("using last-modified to determine freshness-lifetime\n"));
@@ -335,7 +335,7 @@ nsHttpResponseHead::MustValidate() const
         LOG(("Must validate since response is an uncacheable error page\n"));
         return true;
     }
-    
+
     
     
     if (NoCache()) {
@@ -386,7 +386,7 @@ nsHttpResponseHead::IsResumable() const
     
     return mStatus == 200 &&
            mVersion >= NS_HTTP_VERSION_1_1 &&
-           PeekHeader(nsHttp::Content_Length) && 
+           PeekHeader(nsHttp::Content_Length) &&
           (PeekHeader(nsHttp::ETag) || PeekHeader(nsHttp::Last_Modified)) &&
            HasHeaderValue(nsHttp::Accept_Ranges, "bytes");
 }
@@ -395,12 +395,12 @@ bool
 nsHttpResponseHead::ExpiresInPast() const
 {
     uint32_t maxAgeVal, expiresVal, dateVal;
-    
+
     
     if (NS_SUCCEEDED(GetMaxAgeValue(&maxAgeVal))) {
         return false;
     }
-    
+
     return NS_SUCCEEDED(GetExpiresValue(&expiresVal)) &&
            NS_SUCCEEDED(GetDateValue(&dateVal)) &&
            expiresVal < dateVal;
@@ -485,7 +485,7 @@ nsHttpResponseHead::ParseDateHeader(nsHttpAtom header, uint32_t *result) const
     if (st != PR_SUCCESS)
         return NS_ERROR_NOT_AVAILABLE;
 
-    *result = PRTimeToSeconds(time); 
+    *result = PRTimeToSeconds(time);
     return NS_OK;
 }
 
@@ -539,7 +539,7 @@ nsHttpResponseHead::GetExpiresValue(uint32_t *result) const
     if (time < 0)
         *result = 0;
     else
-        *result = PRTimeToSeconds(time); 
+        *result = PRTimeToSeconds(time);
     return NS_OK;
 }
 

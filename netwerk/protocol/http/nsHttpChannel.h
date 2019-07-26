@@ -117,11 +117,11 @@ public:
     NS_IMETHOD SetNotificationCallbacks(nsIInterfaceRequestor *aCallbacks);
     NS_IMETHOD SetLoadGroup(nsILoadGroup *aLoadGroup);
 
-public:  
+public: 
 
-    void InternalSetUploadStream(nsIInputStream *uploadStream) 
+    void InternalSetUploadStream(nsIInputStream *uploadStream)
       { mUploadStream = uploadStream; }
-    void SetUploadStreamHasHeaders(bool hasHeaders) 
+    void SetUploadStreamHasHeaders(bool hasHeaders)
       { mUploadStreamHasHeaders = hasHeaders; }
 
     nsresult SetReferrerInternal(nsIURI *referrer) {

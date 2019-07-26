@@ -210,7 +210,7 @@ nsHttpConnection::StartSpdy(uint8_t spdyVersion)
         for (int32_t index = 0; index < count; ++index) {
             if (!mSpdySession) {
                 mSpdySession = ASpdySession::NewSpdySession(spdyVersion,
-                                                            list[index], mSocketTransport, 
+                                                            list[index], mSocketTransport,
                                                             mPriority);
             }
             else {
@@ -247,13 +247,13 @@ nsHttpConnection::EnsureNPNComplete()
 
     if (mNPNComplete)
         return true;
-    
+
     nsresult rv;
 
     nsCOMPtr<nsISupports> securityInfo;
     nsCOMPtr<nsISSLSocketControl> ssl;
     nsAutoCString negotiatedNPN;
-    
+
     rv = mSocketTransport->GetSecurityInfo(getter_AddRefs(securityInfo));
     if (NS_FAILED(rv))
         goto npnComplete;
@@ -264,7 +264,7 @@ nsHttpConnection::EnsureNPNComplete()
 
     rv = ssl->GetNegotiatedNPN(negotiatedNPN);
     if (rv == NS_ERROR_NOT_CONNECTED) {
-    
+
         
         
         uint32_t count = 0;
@@ -347,7 +347,7 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint32_t caps, int32_t pri
     mInputOverflow = nullptr;
 
     rv = OnOutputStreamReady(mSocketOut);
-    
+
 failed_activation:
     if (NS_FAILED(rv)) {
         mTransaction = nullptr;
@@ -444,7 +444,7 @@ nsHttpConnection::AddTransaction(nsAHttpTransaction *httpTransaction,
                "AddTransaction to live http connection without spdy");
     MOZ_ASSERT(mTransaction,
                "AddTransaction to idle http connection");
-    
+
     if (!mSpdySession->AddStream(httpTransaction, priority)) {
         MOZ_ASSERT(false, "AddStream should never fail due to"
                    "RoomForMore() admission check");
@@ -487,7 +487,7 @@ nsHttpConnection::Close(nsresult reason)
                 while (NS_SUCCEEDED(rv) && count > 0 && total < 64000);
                 LOG(("nsHttpConnection::Close drained %d bytes\n", total));
             }
-            
+
             mSocketTransport->SetSecurityCallbacks(nullptr);
             mSocketTransport->Close(reason);
             if (mSocketOut)
@@ -551,7 +551,7 @@ nsHttpConnection::CanReuse()
     }
 
     bool canReuse;
-    
+
     if (mSpdySession)
         canReuse = mSpdySession->CanReuse();
     else
@@ -581,7 +581,7 @@ nsHttpConnection::CanDirectlyActivate()
     
     
     
-    
+
     return UsingSpdy() && CanReuse() &&
         mSpdySession && mSpdySession->RoomForMoreStreams();
 }
@@ -666,14 +666,14 @@ nsHttpConnection::SupportsPipelining(nsHttpResponseHead *responseHead)
         { nullptr }, { nullptr }, { nullptr }, { nullptr },                 
         { nullptr }, { nullptr }, { nullptr },                             
         { "Microsoft-IIS/4.", "Microsoft-IIS/5.", nullptr },             
-        { "Netscape-Enterprise/3.", "Netscape-Enterprise/4.", 
+        { "Netscape-Enterprise/3.", "Netscape-Enterprise/4.",
           "Netscape-Enterprise/5.", "Netscape-Enterprise/6.", nullptr }, 
         { nullptr }, { nullptr }, { nullptr }, { nullptr },                 
         { nullptr }, { nullptr }, { nullptr }, { nullptr },                 
         { "WebLogic 3.", "WebLogic 4.","WebLogic 5.", "WebLogic 6.",
           "Winstone Servlet Engine v0.", nullptr },                      
         { nullptr }, { nullptr }, { nullptr }                              
-    };  
+    };
 
     int index = val[0] - 'A'; 
     if ((index >= 0) && (index <= 25))
@@ -744,7 +744,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
             mKeepAlive = true;
         else
             mKeepAlive = false;
-        
+
         
         gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
             mConnInfo, nsHttpConnectionMgr::RedVersionTooLow, this, 0);
@@ -799,7 +799,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
         responseStatus != 304) {
         mClassification = nsAHttpTransaction::CLASS_GENERAL;
     }
-    
+
     
     
     
@@ -830,7 +830,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
         else {
             mIdleTimeout = gHttpHandler->SpdyTimeout();
         }
-        
+
         LOG(("Connection can be reused [this=%p idle-timeout=%usec]\n",
              this, PR_IntervalToSeconds(mIdleTimeout)));
     }
@@ -871,7 +871,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
             mTransaction->SetProxyConnectFailed();
         }
     }
-    
+
     const char *upgradeReq = requestHead->PeekHeader(nsHttp::Upgrade);
     
     
@@ -879,7 +879,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
         LOG(("HTTP Upgrade in play - disable keepalive\n"));
         DontReuse();
     }
-    
+
     if (responseStatus == 101) {
         const char *upgradeResp = responseHead->PeekHeader(nsHttp::Upgrade);
         if (!upgradeReq || !upgradeResp ||
@@ -904,7 +904,7 @@ nsHttpConnection::IsReused()
         return true;
     if (!mConsiderReusedAfterInterval)
         return false;
-    
+
     
     
     return (PR_IntervalNow() - mConsiderReusedAfterEpoch) >=
@@ -942,7 +942,7 @@ nsHttpConnection::TakeTransport(nsISocketTransport  **aTransport,
     mSocketTransport = nullptr;
     mSocketIn = nullptr;
     mSocketOut = nullptr;
-    
+
     return NS_OK;
 }
 
@@ -960,7 +960,7 @@ nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
         mSpdySession->ReadTimeoutTick(now);
         return;
     }
-    
+
     if (!gHttpHandler->GetPipelineRescheduleOnTimeout())
         return;
 
@@ -1002,7 +1002,7 @@ nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
 
     if (pipelineDepth <= 1 && !mTransaction->PipelinePosition())
         return;
-    
+
     
     
     
@@ -1049,7 +1049,7 @@ nsHttpConnection::PushBack(const char *data, uint32_t length)
         NS_ERROR("nsHttpConnection::PushBack only one buffer supported");
         return NS_ERROR_UNEXPECTED;
     }
-    
+
     mInputOverflow = new nsPreloadedStream(mSocketIn, data, length);
     return NS_OK;
 }
@@ -1347,7 +1347,7 @@ nsHttpConnection::OnSocketReadable()
     
     
     
-    
+
     
     
 

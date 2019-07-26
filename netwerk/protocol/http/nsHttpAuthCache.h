@@ -17,8 +17,6 @@
 #include "nsCRT.h"
 #include "nsIObserver.h"
 
-
-
 struct nsHttpAuthPath {
     struct nsHttpAuthPath *mNext;
     char                   mPath[1];
@@ -85,9 +83,9 @@ public:
     nsHttpAuthPath *RootPath()      { return mRoot; }
 
     const nsHttpAuthIdentity &Identity() const { return mIdent; }
-            
+
     nsresult AddPath(const char *aPath);
-            
+
     nsCOMPtr<nsISupports> mMetaData;
 
 private:
@@ -250,7 +248,7 @@ private:
     };
 
     void ClearAppData(uint32_t appId, bool browserOnly);
-    
+
 private:
     PLHashTable *mDB; 
     nsRefPtr<AppDataClearObserver> mObserver;

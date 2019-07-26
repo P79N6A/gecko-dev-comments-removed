@@ -158,7 +158,7 @@ public:
         
         
         RedBannedServer = kPipelineInfoTypeRed | kPipelineInfoTypeBad | 0x0002,
-    
+
         
         
         
@@ -184,7 +184,7 @@ public:
         
         
         BadInsufficientFraming = kPipelineInfoTypeBad | 0x0008,
-        
+
         
         
         BadUnexpectedLarge = kPipelineInfoTypeBad | 0x000B,
@@ -196,7 +196,7 @@ public:
         
         GoodCompletedOK = kPipelineInfoTypeGood | 0x000A
     };
-    
+
     
     
     void     PipelineFeedbackInfo(nsHttpConnectionInfo *,
@@ -236,7 +236,7 @@ public:
     
     void ReportSpdyCWNDSetting(nsHttpConnectionInfo *host, uint32_t cwndValue);
     uint32_t GetSpdyCWNDSetting(nsHttpConnectionInfo *host);
-    
+
     bool     SupportsPipelining(nsHttpConnectionInfo *);
 
     bool GetConnectionData(nsTArray<mozilla::net::HttpRetParams> *);
@@ -262,7 +262,7 @@ private:
         
         PS_RED
     };
-    
+
     class nsHalfOpenSocket;
 
     
@@ -294,7 +294,7 @@ private:
         const static uint32_t kPipelineUnlimited  = 1024; 
         const static uint32_t kPipelineOpen       = 6;    
         const static uint32_t kPipelineRestricted = 2;    
-        
+
         nsHttpConnectionMgr::PipeliningState PipelineState();
         void OnPipelineFeedbackInfo(
             nsHttpConnectionMgr::PipelineFeedbackInfoType info,
@@ -422,7 +422,7 @@ private:
                          nsAHttpTransaction *trans,
                          uint32_t caps);
         ~nsHalfOpenSocket();
-        
+
         nsresult SetupStreams(nsISocketTransport **,
                               nsIAsyncInputStream **,
                               nsIAsyncOutputStream **,

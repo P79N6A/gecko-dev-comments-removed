@@ -168,7 +168,7 @@ private:
     PRIntervalTime IdleTime();
     bool     IsAlive();
     bool     SupportsPipelining(nsHttpResponseHead *);
-    
+
     
     
     bool     EnsureNPNComplete();

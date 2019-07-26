@@ -261,7 +261,7 @@ nsHttpTransaction::Init(uint32_t caps,
     
     
     bool pruneProxyHeaders = cinfo->UsingConnect();
-    
+
     mReqHeaderBuf.Truncate();
     requestHead->Flatten(mReqHeaderBuf, pruneProxyHeaders);
 
@@ -361,7 +361,7 @@ nsHttpTransaction::TakeResponseHead()
         mForTakeResponseHead = nullptr;
         return head;
     }
-    
+
     
     
     if (!mHaveAllHeaders) {
@@ -527,7 +527,7 @@ nsHttpTransaction::Status()
 
 uint32_t
 nsHttpTransaction::Caps()
-{ 
+{
     return mCaps;
 }
 
@@ -751,12 +751,12 @@ nsHttpTransaction::Close(nsresult reason)
         
         bool reallySentData =
             mSentData && (!mConnection || mConnection->BytesWritten());
-        
+
         if (!mReceivedData &&
             (!reallySentData || connReused || mPipelinePosition)) {
             
             
-            
+
             if (mPipelinePosition) {
                 gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
                     mConnInfo, nsHttpConnectionMgr::RedCanceledPipeline,
@@ -864,7 +864,7 @@ nsHttpTransaction::SetPipelinePosition(int32_t position)
     mPipelinePosition = position;
     return NS_OK;
 }
- 
+
 int32_t
 nsHttpTransaction::PipelinePosition()
 {
@@ -879,7 +879,7 @@ nsresult
 nsHttpTransaction::RestartInProgress()
 {
     MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
-    
+
     if ((mRestartCount + 1) >= gHttpHandler->MaxRequestAttempts()) {
         LOG(("nsHttpTransaction::RestartInProgress() "
              "reached max request attempts, failing transaction %p\n", this));
@@ -977,7 +977,7 @@ nsHttpTransaction::LocateHttpStart(char *buf, uint32_t len,
     static const uint32_t HTTPHeaderLen = sizeof(HTTPHeader) - 1;
     static const char HTTP2Header[] = "HTTP/2.0";
     static const uint32_t HTTP2HeaderLen = sizeof(HTTP2Header) - 1;
-    
+
     if (aAllowPartialMatch && (len < HTTPHeaderLen))
         return (PL_strncasecmp(buf, HTTPHeader, len) == 0) ? buf : nullptr;
 
@@ -1039,7 +1039,7 @@ nsHttpTransaction::ParseLine(char *line)
 {
     LOG(("nsHttpTransaction::ParseLine [%s]\n", line));
     nsresult rv = NS_OK;
-    
+
     if (!mHaveStatusLine) {
         mResponseHead->ParseStatusLine(line);
         mHaveStatusLine = true;
@@ -1078,7 +1078,7 @@ nsHttpTransaction::ParseLineSegment(char *segment, uint32_t len)
 
     
     mLineBuf.Append(segment, len);
-    
+
     
     if (mLineBuf.First() == '\n') {
         mLineBuf.Truncate();
@@ -1111,7 +1111,7 @@ nsHttpTransaction::ParseHead(char *buf,
     *countRead = 0;
 
     NS_PRECONDITION(!mHaveAllHeaders, "oops");
-        
+
     
     if (!mResponseHead) {
         mResponseHead = new nsHttpResponseHead();
@@ -1271,7 +1271,7 @@ nsHttpTransaction::HandleContentStart()
             LOG(("this response should not contain a body.\n"));
             break;
         }
-        
+
         if (mResponseHead->Status() == 200 &&
             mConnection->IsProxyConnectInProgress()) {
             
@@ -1292,7 +1292,7 @@ nsHttpTransaction::HandleContentStart()
             if ((mClassification != CLASS_SOLO) &&
                 (mContentLength > mMaxPipelineObjectSize))
                 CancelPipeline(nsHttpConnectionMgr::BadUnexpectedLarge);
-            
+
             
             
             
@@ -1386,7 +1386,7 @@ nsHttpTransaction::HandleContent(char *buf,
         
         *contentRead = count;
     }
-    
+
     int64_t toReadBeforeRestart =
         mRestartInProgressVerifier.ToReadBeforeRestart();
 
@@ -1465,13 +1465,13 @@ nsHttpTransaction::ProcessData(char *buf, uint32_t count, uint32_t *countRead)
             uint32_t localBytesConsumed = 0;
             char *localBuf = buf + bytesConsumed;
             uint32_t localCount = count - bytesConsumed;
-            
+
             rv = ParseHead(localBuf, localCount, &localBytesConsumed);
             if (NS_FAILED(rv) && rv != NS_ERROR_NET_INTERRUPT)
                 return rv;
             bytesConsumed += localBytesConsumed;
         } while (rv == NS_ERROR_NET_INTERRUPT);
-        
+
         count -= bytesConsumed;
 
         
@@ -1553,13 +1553,13 @@ nsHttpTransaction::DispatchedAsBlocking()
         return;
 
     LOG(("nsHttpTransaction %p dispatched as blocking\n", this));
-    
+
     if (!mLoadGroupCI)
         return;
 
     LOG(("nsHttpTransaction adding blocking channel %p from "
          "loadgroup %p\n", this, mLoadGroupCI.get()));
-    
+
     mLoadGroupCI->AddBlockingTransaction();
     mDispatchedAsBlocking = true;
 }
@@ -1569,7 +1569,7 @@ nsHttpTransaction::RemoveDispatchedAsBlocking()
 {
     if (!mLoadGroupCI || !mDispatchedAsBlocking)
         return;
-    
+
     uint32_t blockers = 0;
     nsresult rv = mLoadGroupCI->RemoveBlockingTransaction(&blockers);
 
@@ -1582,7 +1582,7 @@ nsHttpTransaction::RemoveDispatchedAsBlocking()
              this));
         gHttpHandler->ConnMgr()->ProcessPendingQ();
     }
-    
+
     mDispatchedAsBlocking = false;
 }
 
@@ -1616,7 +1616,7 @@ void
 nsHttpTransaction::DeleteSelfOnConsumerThread()
 {
     LOG(("nsHttpTransaction::DeleteSelfOnConsumerThread [this=%x]\n", this));
-    
+
     bool val;
     if (!mConsumerTarget ||
         (NS_SUCCEEDED(mConsumerTarget->IsOnCurrentThread(&val)) && val)) {
@@ -1728,7 +1728,7 @@ matchOld(nsHttpResponseHead *newHead, nsCString &old,
          nsHttpAtom headerAtom)
 {
     const char *val;
-    
+
     val = newHead->PeekHeader(headerAtom);
     if (val && old.IsEmpty())
         return false;
@@ -1763,7 +1763,7 @@ nsHttpTransaction::RestartVerifier::Verify(int64_t contentLength,
 
     if (!matchOld(newHead, mTransferEncoding, nsHttp::Transfer_Encoding))
         return false;
-    
+
     return true;
 }
 
@@ -1782,7 +1782,7 @@ nsHttpTransaction::RestartVerifier::Set(int64_t contentLength,
         return;
 
     mContentLength = contentLength;
-    
+
     if (head) {
         const char *val;
         val = head->PeekHeader(nsHttp::ETag);

@@ -34,7 +34,7 @@ public:
 
   
   bool GetFullyOpen() {return mFullyOpen;}
-  void SetFullyOpen() 
+  void SetFullyOpen()
   {
     MOZ_ASSERT(!mFullyOpen);
     mFullyOpen = 1;
@@ -115,7 +115,7 @@ private:
   void     CompressFlushFrame();
   void     ExecuteCompress(uint32_t);
   nsresult FindHeader(nsCString, nsDependentCSubstring &);
-  
+
   
   
   

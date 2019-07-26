@@ -45,7 +45,7 @@ public:
 
   
   void ReadTimeoutTick(PRIntervalTime now);
-  
+
   
   PRIntervalTime IdleTime();
 
@@ -57,7 +57,7 @@ public:
 
   const static uint8_t kFlag_Data_FIN  = 0x01;
   const static uint8_t kFlag_Data_UNI  = 0x02;
-  
+
   enum
   {
     CONTROL_TYPE_FIRST = 0,
@@ -170,7 +170,7 @@ public:
 
   
   virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment);
-  
+
   uint32_t GetServerInitialWindow() { return mServerInitialWindow; }
 
   void     PrintDiagnostics (nsCString &log);
@@ -215,7 +215,7 @@ private:
   
   
   nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, uint32_t, uint32_t *);
-  
+
   static PLDHashOperator ShutdownEnumerator(nsAHttpTransaction *,
                                             nsAutoPtr<SpdyStream3> &,
                                             void *);
@@ -273,7 +273,7 @@ private:
   uint32_t             mInputFrameBufferSize;
   uint32_t             mInputFrameBufferUsed;
   nsAutoArrayPtr<char> mInputFrameBuffer;
-  
+
   
   
   
@@ -285,7 +285,7 @@ private:
   
   
   SpdyStream3          *mInputFrameDataStream;
-  
+
   
   
   

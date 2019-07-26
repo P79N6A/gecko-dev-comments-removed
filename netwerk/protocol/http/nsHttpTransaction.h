@@ -115,7 +115,7 @@ public:
     const mozilla::TimeStamp GetPendingTime() { return mPendingTime; }
     bool UsesPipelining() const { return mCaps & NS_HTTP_ALLOW_PIPELINING; }
 
-    void SetLoadGroupConnectionInfo(nsILoadGroupConnectionInfo *aLoadGroupCI) { mLoadGroupCI = aLoadGroupCI; } 
+    void SetLoadGroupConnectionInfo(nsILoadGroupConnectionInfo *aLoadGroupCI) { mLoadGroupCI = aLoadGroupCI; }
     nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return mLoadGroupCI.get(); }
     void DispatchedAsBlocking();
     void RemoveDispatchedAsBlocking();
@@ -250,7 +250,7 @@ private:
     
     mozilla::TimeStamp              mPendingTime;
 
-    class RestartVerifier 
+    class RestartVerifier
     {
 
         
@@ -269,7 +269,7 @@ private:
             , mSetup(false)
         {}
         ~RestartVerifier() {}
-        
+
         void Set(int64_t contentLength, nsHttpResponseHead *head);
         bool Verify(int64_t contentLength, nsHttpResponseHead *head);
         bool IsDiscardingContent() { return mToReadBeforeRestart != 0; }

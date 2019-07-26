@@ -45,7 +45,7 @@ public:
 
         SetOriginServer(host, port);
     }
-    
+
    ~nsHttpConnectionInfo()
     {
         LOG(("Destroying nsHttpConnectionInfo @%x\n", this));
@@ -75,7 +75,7 @@ public:
     {
         SetOriginServer(nsDependentCString(host), port);
     }
-    
+
     
     nsHttpConnectionInfo* Clone() const;
 
@@ -102,7 +102,7 @@ public:
     bool          UsingSSL() const       { return mUsingSSL; }
     bool          UsingConnect() const   { return mUsingConnect; }
     int32_t       DefaultPort() const    { return mUsingSSL ? NS_HTTPS_DEFAULT_PORT : NS_HTTP_DEFAULT_PORT; }
-    void          SetAnonymous(bool anon)         
+    void          SetAnonymous(bool anon)
                                          { mHashKey.SetCharAt(anon ? 'A' : '.', 2); }
     bool          GetAnonymous() const   { return mHashKey.CharAt(2) == 'A'; }
     void          SetPrivate(bool priv)  { mHashKey.SetCharAt(priv ? 'P' : '.', 3); }

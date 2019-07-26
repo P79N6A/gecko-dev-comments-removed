@@ -20,7 +20,7 @@ nsHttpChunkedDecoder::HandleChunkedContent(char *buf,
     LOG(("nsHttpChunkedDecoder::HandleChunkedContent [count=%u]\n", count));
 
     *contentRead = 0;
-    
+
     
     
     
@@ -68,7 +68,7 @@ nsHttpChunkedDecoder::HandleChunkedContent(char *buf,
             }
         }
     }
-    
+
     *contentRemaining = count;
     return NS_OK;
 }
@@ -86,7 +86,7 @@ nsHttpChunkedDecoder::ParseChunkRemaining(char *buf,
     NS_PRECONDITION(count, "unexpected");
 
     *bytesConsumed = 0;
-    
+
     char *p = static_cast<char *>(memchr(buf, '\n', count));
     if (p) {
         *p = 0;

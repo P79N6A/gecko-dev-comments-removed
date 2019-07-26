@@ -35,7 +35,7 @@ public:
 
   
   bool GetFullyOpen() {return mFullyOpen;}
-  void SetFullyOpen() 
+  void SetFullyOpen()
   {
     MOZ_ASSERT(!mFullyOpen);
     mFullyOpen = 1;
@@ -93,7 +93,7 @@ private:
   void     CompressToFrame(uint16_t);
   void     CompressFlushFrame();
   void     ExecuteCompress(uint32_t);
-  
+
   
   
   

@@ -334,7 +334,7 @@ HttpBaseChannel::SetContentType(const nsACString& aContentType)
     net_ParseContentType(aContentType, mContentTypeHint, mContentCharsetHint,
                          &dummy);
   }
-  
+
   return NS_OK;
 }
 
@@ -533,9 +533,9 @@ HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
     
     nsAutoCString contentLengthStr;
     contentLengthStr.AppendInt(aContentLength);
-    SetRequestHeader(NS_LITERAL_CSTRING("Content-Length"), contentLengthStr, 
+    SetRequestHeader(NS_LITERAL_CSTRING("Content-Length"), contentLengthStr,
                      false);
-    SetRequestHeader(NS_LITERAL_CSTRING("Content-Type"), aContentType, 
+    SetRequestHeader(NS_LITERAL_CSTRING("Content-Type"), aContentType,
                      false);
   }
 
@@ -654,7 +654,7 @@ HttpBaseChannel::GetContentEncodings(nsIUTF8StringEnumerator** aEncodings)
     *aEncodings = nullptr;
     return NS_OK;
   }
-    
+
   const char *encoding = mResponseHead->PeekHeader(nsHttp::Content_Encoding);
   if (!encoding) {
     *aEncodings = nullptr;
@@ -678,7 +678,7 @@ HttpBaseChannel::nsContentEncodings::nsContentEncodings(nsIHttpChannel* aChannel
   mCurEnd = aEncodingHeader + strlen(aEncodingHeader);
   mCurStart = mCurEnd;
 }
-    
+
 HttpBaseChannel::nsContentEncodings::~nsContentEncodings()
 {
 }
@@ -730,7 +730,7 @@ HttpBaseChannel::nsContentEncodings::GetNext(nsACString& aNextEncoding)
       haveType = true;
     }
   }
-    
+
   if (!haveType) {
     encoding.BeginReading(start);
     if (CaseInsensitiveFindInReadable(NS_LITERAL_CSTRING("deflate"), start, end)) {
@@ -742,7 +742,7 @@ HttpBaseChannel::nsContentEncodings::GetNext(nsACString& aNextEncoding)
   
   mCurEnd = mCurStart;
   mReady = false;
-  
+
   if (haveType)
     return NS_OK;
 
@@ -764,10 +764,10 @@ nsresult
 HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
 {
   MOZ_ASSERT(mCurStart == mCurEnd, "Indeterminate state");
-    
+
   
   
-    
+
   while (mCurEnd != mEncodingHeader) {
     --mCurEnd;
     if (*mCurEnd != ',' && !nsCRT::IsAsciiSpace(*mCurEnd))
@@ -776,17 +776,17 @@ HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
   if (mCurEnd == mEncodingHeader)
     return NS_ERROR_NOT_AVAILABLE; 
   ++mCurEnd;
-        
+
   
   
-    
+
   mCurStart = mCurEnd - 1;
   while (mCurStart != mEncodingHeader &&
          *mCurStart != ',' && !nsCRT::IsAsciiSpace(*mCurStart))
     --mCurStart;
   if (*mCurStart == ',' || nsCRT::IsAsciiSpace(*mCurStart))
     ++mCurStart; 
-        
+
   
   
   if (Substring(mCurStart, mCurEnd).Equals("identity",
@@ -794,7 +794,7 @@ HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
     mCurEnd = mCurStart;
     return PrepareForNext();
   }
-        
+
   mReady = true;
   return NS_OK;
 }
@@ -1001,7 +1001,7 @@ HttpBaseChannel::SetRequestHeader(const nsACString& aHeader,
   
   if (!nsHttp::IsValidToken(flatHeader))
     return NS_ERROR_INVALID_ARG;
-  
+
   
   
   
@@ -1040,8 +1040,8 @@ HttpBaseChannel::GetResponseHeader(const nsACString &header, nsACString &value)
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::SetResponseHeader(const nsACString& header, 
-                                   const nsACString& value, 
+HttpBaseChannel::SetResponseHeader(const nsACString& header,
+                                   const nsACString& value,
                                    bool merge)
 {
   LOG(("HttpBaseChannel::SetResponseHeader [this=%p header=\"%s\" value=\"%s\" merge=%u]\n",
@@ -1347,7 +1347,7 @@ HttpBaseChannel::HTTPUpgrade(const nsACString &aProtocolName,
 {
     NS_ENSURE_ARG(!aProtocolName.IsEmpty());
     NS_ENSURE_ARG_POINTER(aListener);
-    
+
     mUpgradeProtocol = aProtocolName;
     mUpgradeProtocolCallback = aListener;
     return NS_OK;
@@ -1524,7 +1524,7 @@ HttpBaseChannel::AddCookiesToRequest()
     return;
   }
 
-  bool useCookieService = 
+  bool useCookieService =
     (XRE_GetProcessType() == GeckoProcessType_Default);
   nsXPIDLCString cookie;
   if (useCookieService) {
@@ -1561,7 +1561,7 @@ CopyProperties(const nsAString& aKey, nsIVariant *aData, void *aClosure)
 }
 
 nsresult
-HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI, 
+HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
                                          nsIChannel   *newChannel,
                                          bool          preserveMethod)
 {
@@ -1583,7 +1583,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   
   newLoadFlags &= ~nsICachingChannel::LOAD_CHECK_OFFLINE_CACHE;
 
-  newChannel->SetLoadGroup(mLoadGroup); 
+  newChannel->SetLoadGroup(mLoadGroup);
   newChannel->SetNotificationCallbacks(mCallbacks);
   newChannel->SetLoadFlags(newLoadFlags);
 
@@ -1681,7 +1681,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
         httpInternal->SetCacheKeysRedirectChain(mRedirectedCachekeys.forget());
     }
   }
-  
+
   
   nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
     do_QueryInterface(newChannel);

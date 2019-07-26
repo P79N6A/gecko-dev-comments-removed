@@ -61,7 +61,7 @@ public:
     void     ClearHeader(nsHttpAtom h);
 
     
-    const char *FindHeaderValue(nsHttpAtom header, const char *value) const 
+    const char *FindHeaderValue(nsHttpAtom header, const char *value) const
     {
         return nsHttp::FindToken(PeekHeader(header), value,
                                  HTTP_HEADER_VALUE_SEPS);

@@ -99,7 +99,7 @@ nsHttpPipeline::AddTransaction(nsAHttpTransaction *trans)
     NS_ADDREF(trans);
     mRequestQ.AppendElement(trans);
     uint32_t qlen = PipelineDepth();
-    
+
     if (qlen != 1) {
         trans->SetPipelinePosition(qlen);
     }
@@ -144,7 +144,7 @@ nsHttpPipeline::PipelinePosition()
     
     if (mRequestQ.Length())
         return Request(mRequestQ.Length() - 1)->PipelinePosition();
-    
+
     
     return 0;
 }
@@ -182,19 +182,19 @@ nsHttpPipeline::OnHeadersAvailable(nsAHttpTransaction *trans,
 
     MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
     MOZ_ASSERT(mConnection, "no connection");
-    
+
     nsRefPtr<nsHttpConnectionInfo> ci;
     GetConnectionInfo(getter_AddRefs(ci));
     MOZ_ASSERT(ci);
-    
+
     bool pipeliningBefore = gHttpHandler->ConnMgr()->SupportsPipelining(ci);
-    
+
     
     nsresult rv = mConnection->OnHeadersAvailable(trans,
                                                   requestHead,
                                                   responseHead,
                                                   reset);
-    
+
     if (!pipeliningBefore && gHttpHandler->ConnMgr()->SupportsPipelining(ci))
         
         
@@ -213,7 +213,7 @@ nsHttpPipeline::CloseTransaction(nsAHttpTransaction *trans, nsresult reason)
     MOZ_ASSERT(NS_FAILED(reason), "expecting failure code");
 
     
-    
+
     int32_t index;
     bool killPipeline = false;
 
@@ -288,7 +288,7 @@ nsresult
 nsHttpPipeline::PushBack(const char *data, uint32_t length)
 {
     LOG(("nsHttpPipeline::PushBack [this=%x len=%u]\n", this, length));
-    
+
     MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
     MOZ_ASSERT(mPushBackLen == 0, "push back buffer already has data!");
 
@@ -322,7 +322,7 @@ nsHttpPipeline::PushBack(const char *data, uint32_t length)
         if (!mPushBackBuf)
             return NS_ERROR_OUT_OF_MEMORY;
     }
- 
+
     memcpy(mPushBackBuf, data, length);
     mPushBackLen = length;
 
@@ -480,7 +480,7 @@ nsHttpPipeline::OnTransportStatus(nsITransport* transport,
 
         if (mSuppressSendEvents) {
             mSuppressSendEvents = false;
-            
+
             
             
             
@@ -489,7 +489,7 @@ nsHttpPipeline::OnTransportStatus(nsITransport* transport,
                 Response(i)->OnTransportStatus(transport,
                                                NS_NET_STATUS_SENDING_TO,
                                                progress);
-                Response(i)->OnTransportStatus(transport, 
+                Response(i)->OnTransportStatus(transport,
                                                NS_NET_STATUS_WAITING_FOR,
                                                progress);
             }
@@ -501,12 +501,12 @@ nsHttpPipeline::OnTransportStatus(nsITransport* transport,
         }
         
         break;
-        
-    case NS_NET_STATUS_WAITING_FOR: 
-        
-        
+
+    case NS_NET_STATUS_WAITING_FOR:
         
         
+        
+
         
         break;
 
@@ -532,7 +532,7 @@ bool
 nsHttpPipeline::IsDone()
 {
     bool done = true;
-    
+
     uint32_t i, count = mRequestQ.Length();
     for (i = 0; done && (i < count); i++)
         done = Request(i)->IsDone();
@@ -540,7 +540,7 @@ nsHttpPipeline::IsDone()
     count = mResponseQ.Length();
     for (i = 0; done && (i < count); i++)
         done = Response(i)->IsDone();
-    
+
     return done;
 }
 
@@ -643,7 +643,7 @@ nsHttpPipeline::WriteSegments(nsAHttpSegmentWriter *writer,
     if (mClosed)
         return NS_SUCCEEDED(mStatus) ? NS_BASE_STREAM_CLOSED : mStatus;
 
-    nsAHttpTransaction *trans; 
+    nsAHttpTransaction *trans;
     nsresult rv;
 
     trans = Response(0);
@@ -826,7 +826,7 @@ nsHttpPipeline::FillSendBuf()
     
 
     nsresult rv;
-    
+
     if (!mSendBufIn) {
         
         rv = NS_NewPipe(getter_AddRefs(mSendBufIn),
@@ -854,7 +854,7 @@ nsHttpPipeline::FillSendBuf()
                 response->SetPipelinePosition(1);
             rv = trans->ReadSegments(this, (uint32_t)std::min(avail, (uint64_t)UINT32_MAX), &n);
             if (NS_FAILED(rv)) return rv;
-            
+
             if (n == 0) {
                 LOG(("send pipe is full"));
                 break;

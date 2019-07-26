@@ -64,7 +64,7 @@ public:
 
     
     virtual void SetProxyConnectFailed() = 0;
-    
+
     
     virtual nsHttpRequestHead *RequestHead() = 0;
 
@@ -89,7 +89,7 @@ public:
     
     
     virtual nsresult AddTransaction(nsAHttpTransaction *transaction) = 0;
-    
+
     
     
     virtual uint32_t PipelineDepth() = 0;
@@ -109,7 +109,7 @@ public:
     
     
     virtual bool IsNullTransaction() { return false; }
-    
+
     
     
     
