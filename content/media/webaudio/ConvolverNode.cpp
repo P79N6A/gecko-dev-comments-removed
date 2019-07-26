@@ -188,7 +188,7 @@ ConvolverNode::SetBuffer(JSContext* aCx, AudioBuffer* aBuffer, ErrorResult& aRv)
     uint32_t length = mBuffer->Length();
     nsRefPtr<ThreadSharedFloatArrayBufferList> data =
       mBuffer->GetThreadSharedChannelsForRate(aCx);
-    if (length < WEBAUDIO_BLOCK_SIZE) {
+    if (data && length < WEBAUDIO_BLOCK_SIZE) {
       
       
       
