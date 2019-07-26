@@ -3844,12 +3844,15 @@ for (uint32_t i = 0; i < length; ++i) {
 
     if type.isDictionary():
         
-        assert not type.nullable()
+        assert not type.nullable() or isCallbackReturnValue
         
         
         assert not isOptional
+        
+        
+        assert not isCallbackReturnValue or defaultValue is None
 
-        typeName = CGDictionary.makeDictionaryName(type.inner)
+        typeName = CGDictionary.makeDictionaryName(type.unroll().inner)
         if not isMember and not isCallbackReturnValue:
             
             
@@ -3883,10 +3886,20 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             template = ""
 
-        template += ('if (!${declName}.Init(cx, %s, "%s")) {\n'
+        dictLoc = "${declName}"
+        if type.nullable():
+            dictLoc += ".SetValue()"
+
+        template += ('if (!%s.Init(cx, %s, "%s")) {\n'
                      "%s\n"
-                     "}" % (val, firstCap(sourceDescription),
+                     "}" % (dictLoc, val, firstCap(sourceDescription),
                             exceptionCodeIndented.define()))
+
+        if type.nullable():
+            declType = CGTemplatedType("Nullable", declType)
+            template = CGIfElseWrapper("${val}.isNullOrUndefined()",
+                                       CGGeneric("${declName}.SetNull();"),
+                                       CGGeneric(template)).define()
 
         
         
