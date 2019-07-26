@@ -325,6 +325,12 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 	    rv = ssl3_HandleRecord(ss, NULL, &ss->gs.buf);
 	} else {
 	    
+	    if (ss->recvdCloseNotify) {
+		
+
+
+		return 0;
+	    }
 	    if (!IS_DTLS(ss)) {
 		rv = ssl3_GatherData(ss, &ss->gs, flags);
 	    } else {
@@ -370,19 +376,18 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 
 	    cText.buf     = &ss->gs.inbuf;
 	    rv = ssl3_HandleRecord(ss, &cText, &ss->gs.buf);
-
-	    if (rv == (int) SECSuccess && ss->gs.buf.len > 0) {
-		
-
-
-
-		PORT_Assert(ss->firstHsDone);
-		PORT_Assert(cText.type == content_application_data);
-		break;
-	    }
 	}
 	if (rv < 0) {
 	    return ss->recvdCloseNotify ? 0 : rv;
+	}
+	if (ss->gs.buf.len > 0) {
+	    
+
+
+
+	    PORT_Assert(ss->firstHsDone);
+	    PORT_Assert(cText.type == content_application_data);
+	    break;
 	}
 
 	PORT_Assert(keepGoing);
