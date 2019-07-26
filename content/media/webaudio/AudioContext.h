@@ -200,6 +200,8 @@ public:
   void UnregisterScriptProcessorNode(ScriptProcessorNode* aNode);
   void UpdatePannerSource();
 
+  uint32_t MaxChannelCount() const;
+
   JSContext* GetJSContext() const;
 
 private:
@@ -223,6 +225,8 @@ private:
   
   
   nsTHashtable<nsPtrHashKey<ScriptProcessorNode> > mScriptProcessorNodes;
+  
+  uint32_t mNumberOfChannels;
   bool mIsOffline;
 };
 
