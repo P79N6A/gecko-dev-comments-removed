@@ -28,8 +28,6 @@ function setDefaultPrefs() {
     branch.setBoolPref("extensions.update.enabled", false);
     branch.setBoolPref("extensions.getAddons.cache.enabled", false);
     
-    user_pref("urlclassifier.updateinterval", 172800);
-    
     branch.setBoolPref("image.high_quality_downscaling.enabled", false);
 }
 
