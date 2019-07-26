@@ -23,7 +23,7 @@ nsBaseAppShell::nsBaseAppShell()
   , mEventloopNestingLevel(0)
   , mBlockedWait(nullptr)
   , mFavorPerf(0)
-  , mNativeEventPending(0)
+  , mNativeEventPending(false)
   , mStarvationDelay(0)
   , mSwitchTime(0)
   , mLastNativeEventTime(0)
@@ -61,7 +61,7 @@ nsBaseAppShell::Init()
 void
 nsBaseAppShell::NativeEventCallback()
 {
-  if (!mNativeEventPending.exchange(0))
+  if (!mNativeEventPending.exchange(false))
     return;
 
   
@@ -225,7 +225,7 @@ nsBaseAppShell::OnDispatchedEvent(nsIThreadInternal *thr)
   if (mBlockNativeEvent)
     return NS_OK;
 
-  if (mNativeEventPending.exchange(1))
+  if (mNativeEventPending.exchange(true))
     return NS_OK;
 
   

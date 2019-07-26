@@ -120,7 +120,7 @@ private:
 
   bool *mBlockedWait;
   int32_t mFavorPerf;
-  mozilla::Atomic<uint32_t> mNativeEventPending;
+  mozilla::Atomic<bool> mNativeEventPending;
   PRIntervalTime mStarvationDelay;
   PRIntervalTime mSwitchTime;
   PRIntervalTime mLastNativeEventTime;
