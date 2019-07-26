@@ -119,7 +119,7 @@ DownloadStore.prototype = {
         try {
           let download = yield Downloads.createDownload(downloadData);
           try {
-            if (("stopped" in downloadData) && !downloadData.stopped) {
+            if (!download.succeeded && !download.canceled && !download.error) {
               
               
               download.start();

@@ -136,7 +136,7 @@ this.DownloadImport.prototype = {
 
             
             let targetPath = NetUtil.newURI(target)
-                                    .QueryInterface(Ci.nsIFileURL).path;
+                                    .QueryInterface(Ci.nsIFileURL).file.path;
 
             let launchWhenSucceeded = (preferredAction != Ci.nsIMIMEInfo.saveToDisk);
 
@@ -155,12 +155,18 @@ this.DownloadImport.prototype = {
               },
               startTime: startTime,
               totalBytes: maxBytes,
-              hasPartialData: true, 
+              hasPartialData: !!tempPath,
               tryToKeepPartialData: true,
               launchWhenSucceeded: launchWhenSucceeded,
               contentType: mimeType,
               launcherPath: preferredApplication
             };
+
+            
+            
+            if (!resumeDownload) {
+              downloadOptions.canceled = true;
+            }
 
             let download = yield Downloads.createDownload(downloadOptions);
 
