@@ -179,6 +179,8 @@ cprCreateMessageQueue (const char *name, uint16_t depth)
     static const char fname[] = "cprCreateMessageQueue";
     cpr_msg_queue_t *msgq;
     static int key_id = 100; 
+    pthread_cond_t _cond = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_t _lock = PTHREAD_MUTEX_INITIALIZER;
 
     msgq = cpr_calloc(1, sizeof(cpr_msg_queue_t));
     if (msgq == NULL) {
@@ -189,12 +191,9 @@ cprCreateMessageQueue (const char *name, uint16_t depth)
     }
 
     msgq->name = name ? name : unnamed_string;
-	msgq->queueId = key_id++;
-
-	pthread_cond_t _cond = PTHREAD_COND_INITIALIZER;
-	msgq->cond = _cond;
-	pthread_mutex_t _lock = PTHREAD_MUTEX_INITIALIZER;
-	msgq->mutex = _lock;
+    msgq->queueId = key_id++;
+    msgq->cond = _cond;
+    msgq->mutex = _lock;
 
     
 
@@ -321,7 +320,7 @@ cprGetMessage (cprMsgQueue_t msgQueue, boolean waitForever, void **ppUserData)
     cpr_msgq_node_t *node;
     struct timespec timeout;
     struct timeval tv;
-    struct timezone *tz;
+    struct timezone tz;
 
     
     if (ppUserData) {
@@ -351,7 +350,6 @@ cprGetMessage (cprMsgQueue_t msgQueue, boolean waitForever, void **ppUserData)
 		timeout.tv_sec = tv.tv_sec;
 
 		pthread_cond_timedwait(&msgq->cond, &msgq->mutex, &timeout);
-
 	}
 	else
 	{
