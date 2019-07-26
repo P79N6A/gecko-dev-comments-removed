@@ -150,8 +150,17 @@ def gen_manifest(template_root_dir, target_cfg, jid,
 
     if target_cfg.get("preferences"):
         manifest.set("em:optionsType", "2")
+        
+        
+        
+        manifest.set("em:optionsURL", "data:text/xml,<placeholder/>")
+
+        
+        if (os.path.exists(os.path.join(template_root_dir, "options.xul"))):
+            manifest.remove("em:optionsURL")
     else:
         manifest.remove("em:optionsType")
+        manifest.remove("em:optionsURL")
 
     if enable_mobile:
         target_app = dom.createElement("em:targetApplication")

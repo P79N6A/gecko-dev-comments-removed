@@ -12,7 +12,7 @@ const { once } = require('../system/events');
 const { exit, env, staticArgs } = require('../system');
 const { when: unload } = require('../system/unload');
 const { loadReason } = require('../self');
-const { rootURI } = require("@loader/options");
+const { rootURI, metadata: { preferences } } = require("@loader/options");
 const globals = require('../system/globals');
 const xulApp = require('../system/xul-app');
 const appShellService = Cc['@mozilla.org/appshell/appShellService;1'].
@@ -129,20 +129,40 @@ function run(options) {
     catch(error) {
       console.exception(error);
     }
-    
-    
-    try {
-      require('../l10n/prefs');
-    }
-    catch(error) {
-      console.exception(error);
-    }
 
     
-    
-    if (options.prefsURI) {
+    if (preferences && preferences.length > 0) {
+      try {
+        require('../preferences/native-options').enable(preferences);
+      } 
+      catch (error) {
+        console.exception(error); 
+      }
+    } 
+    else {
       
-      setDefaultPrefs(options.prefsURI);
+      
+
+      
+      
+      try {
+        require('../l10n/prefs').enable();
+      }
+      catch(error) {
+        console.exception(error);
+      }
+
+      
+      
+      if (options.prefsURI) {
+        
+        try {
+          setDefaultPrefs(options.prefsURI);
+        } 
+        catch (err) {
+          
+        }
+      }
     }
 
     
