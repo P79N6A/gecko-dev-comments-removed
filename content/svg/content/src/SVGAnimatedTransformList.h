@@ -4,22 +4,22 @@
 
 
 
-#ifndef mozilla_dom_SVGAnimatedTransformList_h
-#define mozilla_dom_SVGAnimatedTransformList_h
+#ifndef MOZILLA_SVGANIMATEDTRANSFORMLIST_H__
+#define MOZILLA_SVGANIMATEDTRANSFORMLIST_H__
 
 #include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsSVGElement.h"
-#include "nsWrapperCache.h"
-#include "mozilla/Attributes.h"
+#include "nsISMILAttr.h"
+#include "SVGTransformList.h"
+
+class nsIAtom;
+class nsSMILValue;
+class nsSVGElement;
 
 namespace mozilla {
 
-class DOMSVGTransformList;
-class nsSVGAnimatedTransformList;
-
 namespace dom {
+class SVGAnimationElement;
+}
 
 
 
@@ -35,15 +35,14 @@ namespace dom {
 
 
 
-
-
-class SVGAnimatedTransformList MOZ_FINAL : public nsWrapperCache
+class SVGAnimatedTransformList
 {
+  
+  friend class DOMSVGTransform;
   friend class DOMSVGTransformList;
 
 public:
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(SVGAnimatedTransformList)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(SVGAnimatedTransformList)
+  SVGAnimatedTransformList() : mIsAttrSet(false) { }
 
   
 
@@ -52,81 +51,76 @@ public:
 
 
 
+  const SVGTransformList& GetBaseValue() const {
+    return mBaseVal;
+  }
 
+  nsresult SetBaseValueString(const nsAString& aValue);
 
+  void ClearBaseValue();
 
+  const SVGTransformList& GetAnimValue() const {
+    return mAnimVal ? *mAnimVal : mBaseVal;
+  }
 
-  static already_AddRefed<SVGAnimatedTransformList>
-    GetDOMWrapper(nsSVGAnimatedTransformList *aList, nsSVGElement *aElement);
+  nsresult SetAnimValue(const SVGTransformList& aNewAnimValue,
+                        nsSVGElement *aElement);
 
-  
+  void ClearAnimValue(nsSVGElement *aElement);
 
+  bool IsExplicitlySet() const;
 
-
-
-  static SVGAnimatedTransformList*
-    GetDOMWrapperIfExists(nsSVGAnimatedTransformList *aList);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  void InternalBaseValListWillChangeLengthTo(uint32_t aNewLength);
-  void InternalAnimValListWillChangeLengthTo(uint32_t aNewLength);
+  bool IsAnimating() const {
+    return !!mAnimVal;
+  }
 
   
-
-
-
-  bool IsAnimating() const;
-
-  
-  nsSVGElement* GetParentObject() const { return mElement; }
-  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope) MOZ_OVERRIDE;
-  
-  already_AddRefed<DOMSVGTransformList> BaseVal();
-  already_AddRefed<DOMSVGTransformList> AnimVal();
+  nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
 private:
 
   
+  
+  
+  
 
+  SVGTransformList mBaseVal;
+  nsAutoPtr<SVGTransformList> mAnimVal;
+  bool mIsAttrSet;
 
-
-  explicit SVGAnimatedTransformList(nsSVGElement *aElement)
-    : mBaseVal(nullptr)
-    , mAnimVal(nullptr)
-    , mElement(aElement)
+  struct SMILAnimatedTransformList : public nsISMILAttr
   {
-    SetIsDOMBinding();
-  }
+  public:
+    SMILAnimatedTransformList(SVGAnimatedTransformList* aVal,
+                              nsSVGElement* aSVGElement)
+      : mVal(aVal)
+      , mElement(aSVGElement)
+    {}
 
-  ~SVGAnimatedTransformList();
+    
+    virtual nsresult ValueFromString(const nsAString& aStr,
+                                     const dom::SVGAnimationElement* aSrcElement,
+                                     nsSMILValue& aValue,
+                                     bool& aPreventCachingOfSandwich) const;
+    virtual nsSMILValue GetBaseValue() const;
+    virtual void ClearAnimValue();
+    virtual nsresult SetAnimValue(const nsSMILValue& aValue);
 
-  
-  nsSVGAnimatedTransformList& InternalAList();
-  const nsSVGAnimatedTransformList& InternalAList() const;
+  protected:
+    static void ParseValue(const nsAString& aSpec,
+                           const nsIAtom* aTransformType,
+                           nsSMILValue& aResult);
+    static int32_t ParseParameterList(const nsAString& aSpec, float* aVars,
+                                      int32_t aNVars);
 
-  
-  
-  
-  DOMSVGTransformList *mBaseVal;
-  DOMSVGTransformList *mAnimVal;
-
-  
-  
-  nsRefPtr<nsSVGElement> mElement;
+    
+    
+    
+    SVGAnimatedTransformList* mVal;
+    nsSVGElement* mElement;
+  };
 };
 
-} 
 } 
 
 #endif 

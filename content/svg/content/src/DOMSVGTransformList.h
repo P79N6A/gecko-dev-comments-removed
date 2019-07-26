@@ -7,7 +7,7 @@
 #ifndef MOZILLA_DOMSVGTRANSFORMLIST_H__
 #define MOZILLA_DOMSVGTRANSFORMLIST_H__
 
-#include "mozilla/dom/SVGAnimatedTransformList.h"
+#include "DOMSVGAnimatedTransformList.h"
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDebug.h"
@@ -44,7 +44,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGTransformList)
 
-  DOMSVGTransformList(dom::SVGAnimatedTransformList *aAList,
+  DOMSVGTransformList(DOMSVGAnimatedTransformList *aAList,
                       const SVGTransformList &aInternalList)
     : mAList(aAList)
   {
@@ -162,7 +162,7 @@ private:
   
   nsTArray<DOMSVGTransform*> mItems;
 
-  nsRefPtr<dom::SVGAnimatedTransformList> mAList;
+  nsRefPtr<DOMSVGAnimatedTransformList> mAList;
 };
 
 } 
