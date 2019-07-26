@@ -522,6 +522,12 @@ const DownloadsIndicatorView = {
 
   onDrop: function DIV_onDrop(aEvent)
   {
+    let dt = aEvent.dataTransfer;
+    
+    
+    if (dt.mozGetDataAt("application/x-moz-file", 0))
+      return;
+
     let name = {};
     let url = browserDragAndDrop.drop(aEvent, name);
     if (url) {

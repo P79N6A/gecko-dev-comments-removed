@@ -682,6 +682,9 @@ var gDownloadDNDObserver =
 
     var dt = aEvent.dataTransfer;
     dt.mozSetDataAt("application/x-moz-file", f, 0);
+    var url = Services.io.newFileURI(f).spec;
+    dt.setData("text/uri-list", url);
+    dt.setData("text/plain", url);
     dt.effectAllowed = "copyMove";
     dt.addElement(dl);
   },
@@ -698,6 +701,11 @@ var gDownloadDNDObserver =
   onDrop: function(aEvent)
   {
     var dt = aEvent.dataTransfer;
+    
+    
+    if (dt.mozGetDataAt("application/x-moz-file", 0))
+      return;
+
     var url = dt.getData("URL");
     var name;
     if (!url) {
