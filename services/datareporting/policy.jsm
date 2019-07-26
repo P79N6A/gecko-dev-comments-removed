@@ -26,7 +26,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 #endif
 
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Cu.import("resource://gre/modules/commonjs/promise/core.js");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-common/utils.js");
 
@@ -306,7 +306,7 @@ DataReportingPolicy.prototype = Object.freeze({
 
 
 
-  IMPLICIT_ACCEPTANCE_INTERVAL_MSEC: 5 * 60 * 1000,
+  IMPLICIT_ACCEPTANCE_INTERVAL_MSEC: 8 * 60 * 60 * 1000,
 
   
 
