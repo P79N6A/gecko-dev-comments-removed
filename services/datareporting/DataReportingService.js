@@ -53,6 +53,8 @@ const DEFAULT_LOAD_DELAY_MSEC = 10 * 1000;
 this.DataReportingService = function () {
   this.wrappedJSObject = this;
 
+  this._quitting = false;
+
   this._os = Cc["@mozilla.org/observer-service;1"]
                .getService(Ci.nsIObserverService);
 }
@@ -130,10 +132,20 @@ DataReportingService.prototype = Object.freeze({
         this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
         this.timer.initWithCallback({
           notify: function notify() {
+            delete this.timer;
+
+            
+            
+            if (this._quitting) {
+              return;
+            }
+
+            
+            
+            
             
             
             let reporter = this.healthReporter;
-            delete this.timer;
           }.bind(this),
         }, delayInterval, this.timer.TYPE_ONE_SHOT);
 
@@ -141,6 +153,16 @@ DataReportingService.prototype = Object.freeze({
 
       case "quit-application":
         this._os.removeObserver(this, "quit-application");
+        this._quitting = true;
+
+        
+        
+        
+        
+        if (this.timer) {
+          this.timer.cancel();
+        }
+
         this.policy.stopPolling();
         break;
     }
