@@ -203,8 +203,7 @@ let gGestureSupport = {
       }
       isVerticalSwipe = true;
     }
-    if (isVerticalSwipe && !gHistorySwipeAnimation.active) {
-      
+    if (isVerticalSwipe) {
       
       
       return false;
