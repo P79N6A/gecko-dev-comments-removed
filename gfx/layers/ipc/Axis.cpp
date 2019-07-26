@@ -16,6 +16,7 @@
 #include "nsMathUtils.h"                
 #include "nsThreadUtils.h"              
 #include "nscore.h"                     
+#include "gfxPrefs.h"                   
 
 namespace mozilla {
 namespace layers {
@@ -26,65 +27,51 @@ namespace layers {
 
 
 
-static float gMaxEventAcceleration = 999.0f;
-
-
-
-
-static float gFlingFriction = 0.002f;
 
 
 
 
 
 
-static float gFlingStoppedThreshold = 0.01f;
 
 
 
 
 
 
-static uint32_t gMaxVelocityQueueSize = 5;
 
 
 
 
 
-static float gMaxVelocity = -1.0f;
 
-static void ReadAxisPrefs()
-{
-  Preferences::AddFloatVarCache(&gMaxEventAcceleration, "apz.max_event_acceleration", gMaxEventAcceleration);
-  Preferences::AddFloatVarCache(&gFlingFriction, "apz.fling_friction", gFlingFriction);
-  Preferences::AddFloatVarCache(&gFlingStoppedThreshold, "apz.fling_stopped_threshold", gFlingStoppedThreshold);
-  Preferences::AddUintVarCache(&gMaxVelocityQueueSize, "apz.max_velocity_queue_size", gMaxVelocityQueueSize);
-  Preferences::AddFloatVarCache(&gMaxVelocity, "apz.max_velocity_pixels_per_ms", gMaxVelocity);
-}
 
-class ReadAxisPref MOZ_FINAL : public nsRunnable {
-public:
-  NS_IMETHOD Run()
-  {
-    ReadAxisPrefs();
-    return NS_OK;
-  }
-};
 
-static void InitAxisPrefs()
-{
-  static bool sInitialized = false;
-  if (sInitialized)
-    return;
 
-  sInitialized = true;
-  if (NS_IsMainThread()) {
-    ReadAxisPrefs();
-  } else {
-    
-    NS_DispatchToMainThread(new ReadAxisPref());
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
   : mPos(0),
@@ -92,13 +79,12 @@ Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
     mAxisLocked(false),
     mAsyncPanZoomController(aAsyncPanZoomController)
 {
-  InitAxisPrefs();
 }
 
 void Axis::UpdateWithTouchAtDevicePoint(int32_t aPos, const TimeDuration& aTimeDelta) {
   float newVelocity = mAxisLocked ? 0 : (mPos - aPos) / aTimeDelta.ToMilliseconds();
-  if (gMaxVelocity > 0.0f) {
-    newVelocity = std::min(newVelocity, gMaxVelocity);
+  if (gfxPrefs::APZMaxVelocity() > 0.0f) {
+    newVelocity = std::min(newVelocity, gfxPrefs::APZMaxVelocity());
   }
 
   mVelocity = newVelocity;
@@ -106,7 +92,7 @@ void Axis::UpdateWithTouchAtDevicePoint(int32_t aPos, const TimeDuration& aTimeD
 
   
   mVelocityQueue.AppendElement(mVelocity);
-  if (mVelocityQueue.Length() > gMaxVelocityQueueSize) {
+  if (mVelocityQueue.Length() > gfxPrefs::APZMaxVelocityQueueSize()) {
     mVelocityQueue.RemoveElementAt(0);
   }
 }
@@ -180,14 +166,14 @@ bool Axis::Scrollable() {
 }
 
 bool Axis::FlingApplyFrictionOrCancel(const TimeDuration& aDelta) {
-  if (fabsf(mVelocity) <= gFlingStoppedThreshold) {
+  if (fabsf(mVelocity) <= gfxPrefs::APZFlingStoppedThreshold()) {
     
     
     
     mVelocity = 0.0f;
     return false;
   } else {
-    mVelocity *= pow(1.0f - gFlingFriction, float(aDelta.ToMilliseconds()));
+    mVelocity *= pow(1.0f - gfxPrefs::APZFlingFriction(), float(aDelta.ToMilliseconds()));
   }
   return true;
 }
