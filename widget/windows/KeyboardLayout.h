@@ -299,7 +299,23 @@ public:
   uint8_t GetVirtualKeyCode() const { return mVirtualKeyCode; }
   uint8_t GetOriginalVirtualKeyCode() const { return mOriginalVirtualKeyCode; }
 
+  
+
+
+  uint8_t ComputeVirtualKeyCodeFromScanCode() const;
+
+  
+
+
+  uint8_t ComputeVirtualKeyCodeFromScanCodeEx() const;
+
+  
+
+
+  PRUnichar ComputeUnicharFromScanCode() const;
+
 private:
+  HKL mKeyboardLayout;
   uint32_t mDOMKeyCode;
   KeyNameIndex mKeyNameIndex;
 

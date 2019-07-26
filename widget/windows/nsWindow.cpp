@@ -6892,14 +6892,10 @@ LRESULT nsWindow::OnChar(const MSG &aMsg,
   
   if (uniChar && (modKeyState.IsControl() || modKeyState.IsAlt())) {
     KeyboardLayout* keyboardLayout = KeyboardLayout::GetInstance();
-    UINT virtualKeyCode =
-      ::MapVirtualKeyEx(aNativeKey.GetScanCode(),
-                        MAPVK_VSC_TO_VK, keyboardLayout->GetLayout());
+    UINT virtualKeyCode = aNativeKey.ComputeVirtualKeyCodeFromScanCode();
     UINT unshiftedCharCode =
       virtualKeyCode >= '0' && virtualKeyCode <= '9' ? virtualKeyCode :
-        modKeyState.IsShift() ?
-          ::MapVirtualKeyEx(virtualKeyCode, MAPVK_VK_TO_CHAR,
-                            keyboardLayout->GetLayout()) : 0;
+        modKeyState.IsShift() ? aNativeKey.ComputeUnicharFromScanCode() : 0;
     
     if ((INT)unshiftedCharCode > 0)
       uniChar = unshiftedCharCode;

@@ -388,6 +388,7 @@ NativeKey::NativeKey(nsWindow* aWindow,
   mVirtualKeyCode(0), mOriginalVirtualKeyCode(0)
 {
   KeyboardLayout* keyboardLayout = KeyboardLayout::GetInstance();
+  mKeyboardLayout = keyboardLayout->GetLayout();
   mScanCode = WinUtils::GetScanCode(aKeyOrCharMessage.lParam);
   mIsExtended = WinUtils::IsExtendedScanCode(aKeyOrCharMessage.lParam);
   
@@ -485,9 +486,7 @@ NativeKey::NativeKey(nsWindow* aWindow,
                    "mVirtualKeyCode has been computed already");
 
       
-      mVirtualKeyCode = static_cast<uint8_t>(
-        ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(),
-                          MAPVK_VSC_TO_VK_EX, keyboardLayout->GetLayout()));
+      mVirtualKeyCode = ComputeVirtualKeyCodeFromScanCodeEx();
 
       
       
@@ -527,9 +526,8 @@ NativeKey::NativeKey(nsWindow* aWindow,
       if (!canComputeVirtualKeyCodeFromScanCode) {
         break;
       }
-      mVirtualKeyCode = mOriginalVirtualKeyCode = static_cast<uint8_t>(
-        ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(),
-                          MAPVK_VSC_TO_VK_EX, keyboardLayout->GetLayout()));
+      mVirtualKeyCode = mOriginalVirtualKeyCode =
+        ComputeVirtualKeyCodeFromScanCodeEx();
       break;
     default:
       MOZ_NOT_REACHED("Unsupported message");
@@ -625,6 +623,34 @@ NativeKey::GetKeyLocation() const
     default:
       return nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD;
   }
+}
+
+uint8_t
+NativeKey::ComputeVirtualKeyCodeFromScanCode() const
+{
+  return static_cast<uint8_t>(
+           ::MapVirtualKeyEx(mScanCode, MAPVK_VSC_TO_VK, mKeyboardLayout));
+}
+
+uint8_t
+NativeKey::ComputeVirtualKeyCodeFromScanCodeEx() const
+{
+  bool VistaOrLater =
+    (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION);
+  
+  
+  NS_ENSURE_TRUE(!mIsExtended || VistaOrLater, 0);
+  return static_cast<uint8_t>(
+           ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(), MAPVK_VSC_TO_VK_EX,
+                             mKeyboardLayout));
+}
+
+PRUnichar
+NativeKey::ComputeUnicharFromScanCode() const
+{
+  return static_cast<PRUnichar>(
+           ::MapVirtualKeyEx(ComputeVirtualKeyCodeFromScanCode(),
+                             MAPVK_VK_TO_CHAR, mKeyboardLayout));
 }
 
 
