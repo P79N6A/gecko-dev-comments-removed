@@ -151,14 +151,6 @@ public:
 
 
 
-  static nsIFrame* GetStyleFrame(const nsIContent* aContent);
-
-  
-
-
-
-
-
 
 
 
