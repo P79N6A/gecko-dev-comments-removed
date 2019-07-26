@@ -2207,6 +2207,11 @@ NS_IMETHODIMP nsExternalAppHandler::Cancel(nsresult aReason)
   if (mSaver) {
     mSaver->Finish(aReason);
     mSaver = nullptr;
+  } else if (mStopRequestIssued && mTempFile) {
+    
+    
+    
+    (void)mTempFile->Remove(false);
   }
 
   
