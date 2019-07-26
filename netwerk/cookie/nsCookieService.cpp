@@ -745,8 +745,8 @@ nsCookieService::InitDBStates()
     
     
     COOKIE_LOGSTRING(PR_LOG_WARNING, ("InitDBStates(): retrying TryInitDB()"));
-
-    CloseDefaultDBConnection();
+    CleanupCachedStatements();
+    CleanupDefaultDBConnection();
     result = TryInitDB(true);
     if (result == RESULT_RETRY) {
       
@@ -760,7 +760,8 @@ nsCookieService::InitDBStates()
 
     
     
-    CloseDefaultDBConnection();
+    CleanupCachedStatements();
+    CleanupDefaultDBConnection();
   }
 }
 
@@ -1243,6 +1244,9 @@ nsCookieService::CloseDBStates()
   if (!mDefaultDBState)
     return;
 
+  
+  CleanupCachedStatements();
+
   if (mDefaultDBState->dbConn) {
     
     
@@ -1254,21 +1258,31 @@ nsCookieService::CloseDBStates()
     mDefaultDBState->dbConn->AsyncClose(mDefaultDBState->closeListener);
   }
 
-  CloseDefaultDBConnection();
+  CleanupDefaultDBConnection();
 
   mDefaultDBState = NULL;
 }
 
 
 
+void
+nsCookieService::CleanupCachedStatements()
+{
+  mDefaultDBState->stmtInsert = nullptr;
+  mDefaultDBState->stmtDelete = nullptr;
+  mDefaultDBState->stmtUpdate = nullptr;
+}
+
+
+
+
 
 void
-nsCookieService::CloseDefaultDBConnection()
+nsCookieService::CleanupDefaultDBConnection()
 {
-  
-  mDefaultDBState->stmtInsert = NULL;
-  mDefaultDBState->stmtDelete = NULL;
-  mDefaultDBState->stmtUpdate = NULL;
+  MOZ_ASSERT(!mDefaultDBState->stmtInsert, "stmtInsert has been cleaned up");
+  MOZ_ASSERT(!mDefaultDBState->stmtDelete, "stmtDelete has been cleaned up");
+  MOZ_ASSERT(!mDefaultDBState->stmtUpdate, "stmtUpdate has been cleaned up");
 
   
   
@@ -1354,8 +1368,9 @@ nsCookieService::HandleCorruptDB(DBState* aDBState)
       mDefaultDBState->syncConn = nullptr;
     }
 
+    CleanupCachedStatements();
     mDefaultDBState->dbConn->AsyncClose(mDefaultDBState->closeListener);
-    CloseDefaultDBConnection();
+    CleanupDefaultDBConnection();
     break;
   }
   case DBState::CLOSING_FOR_REBUILD: {
@@ -1366,10 +1381,11 @@ nsCookieService::HandleCorruptDB(DBState* aDBState)
   case DBState::REBUILDING: {
     
     
+    CleanupCachedStatements();
     if (mDefaultDBState->dbConn) {
       mDefaultDBState->dbConn->AsyncClose(mDefaultDBState->closeListener);
     }
-    CloseDefaultDBConnection();
+    CleanupDefaultDBConnection();
     break;
   }
   }
@@ -1425,7 +1441,8 @@ nsCookieService::RebuildCorruptDB(DBState* aDBState)
     
     COOKIE_LOGSTRING(PR_LOG_WARNING,
       ("RebuildCorruptDB(): TryInitDB() failed with result %u", result));
-    CloseDefaultDBConnection();
+    CleanupCachedStatements();
+    CleanupDefaultDBConnection();
     mDefaultDBState->corruptFlag = DBState::OK;
     mObserverService->NotifyObservers(nullptr, "cookie-db-closed", nullptr);
     return;
@@ -1455,7 +1472,7 @@ nsCookieService::RebuildCorruptDB(DBState* aDBState)
   NS_ASSERT_SUCCESS(rv);
   nsCOMPtr<mozIStoragePendingStatement> handle;
   rv = stmt->ExecuteAsync(aDBState->insertListener, getter_AddRefs(handle));
-  NS_ASSERT_SUCCESS(rv);    
+  NS_ASSERT_SUCCESS(rv);
 }
 
 nsCookieService::~nsCookieService()
