@@ -83,8 +83,6 @@ class DSTOffsetCache {
     void sanityCheck();
 };
 
-JS_BEGIN_EXTERN_C
-
 typedef struct PRMJTime       PRMJTime;
 
 
@@ -126,8 +124,6 @@ PRMJ_LocalGMTDifference(void);
 
 extern size_t
 PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *tm);
-
-JS_END_EXTERN_C
 
 #endif 
 

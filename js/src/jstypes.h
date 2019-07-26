@@ -181,8 +181,6 @@
 #endif
 
 
-JS_BEGIN_EXTERN_C
-
 
 
 
@@ -281,7 +279,5 @@ typedef int JSBool;
 # define JS_EXTENSION
 # define JS_EXTENSION_(s) s
 #endif
-
-JS_END_EXTERN_C
 
 #endif 

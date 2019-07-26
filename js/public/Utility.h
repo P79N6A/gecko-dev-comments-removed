@@ -21,7 +21,6 @@
 
 #include "jstypes.h"
 
-#ifdef __cplusplus
 # include "js/TemplateLib.h"
 # include "mozilla/Scoped.h"
 
@@ -39,9 +38,6 @@ using namespace JS;
 using namespace mozilla;
 
 }  
-#endif  
-
-JS_BEGIN_EXTERN_C
 
 
 
@@ -170,6 +166,8 @@ static JS_INLINE void js_free(void* p)
     free(p);
 }
 #endif
+
+JS_BEGIN_EXTERN_C
 
 
 
@@ -330,6 +328,8 @@ JS_PUBLIC_API(size_t) js_FloorLog2wImpl(size_t n);
 # error "NOT SUPPORTED"
 #endif
 
+JS_END_EXTERN_C
+
 
 
 
@@ -371,9 +371,6 @@ JS_FLOOR_LOG2W(size_t n)
 #define JS_ROTATE_LEFT32(a, bits) (((a) << (bits)) | ((a) >> (32 - (bits))))
 #endif
 
-JS_END_EXTERN_C
-
-#ifdef __cplusplus
 #include <new>
 
 
@@ -902,8 +899,6 @@ inline bool IsPoisonedPtr(T *v)
 }
 
 }
-
-#endif 
 
 
 
