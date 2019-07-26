@@ -1709,17 +1709,20 @@ struct JSRuntime : public JS::shadow::Runtime,
   private:
 
     JSUseHelperThreads useHelperThreads_;
-    int32_t requestedHelperThreadCount;
+    unsigned cpuCount_;
 
     
-    bool useHelperThreadsForIonCompilation_;
-    bool useHelperThreadsForParsing_;
+    bool parallelIonCompilationEnabled_;
+    bool parallelParsingEnabled_;
 
     
     bool isWorkerRuntime_;
 
   public:
 
+    
+    
+    
     bool useHelperThreads() const {
 #ifdef JS_THREADSAFE
         return useHelperThreads_ == JS_USE_HELPER_THREADS;
@@ -1728,36 +1731,48 @@ struct JSRuntime : public JS::shadow::Runtime,
 #endif
     }
 
-    void requestHelperThreadCount(size_t count) {
-        requestedHelperThreadCount = count;
+    
+    
+    void setFakeCPUCount(size_t count) {
+        cpuCount_ = count;
     }
 
     
-    size_t helperThreadCount() const {
-#ifdef JS_WORKER_THREADS
-        if (requestedHelperThreadCount < 0) {
-            unsigned ncpus = js::GetCPUCount();
-            return ncpus == 1 ? 0 : ncpus;
-        }
-        return requestedHelperThreadCount;
-#else
-        return 0;
-#endif
+    
+    
+    unsigned cpuCount() const {
+        JS_ASSERT(cpuCount_ > 0);
+        return cpuCount_;
     }
 
-    void setCanUseHelperThreadsForIonCompilation(bool value) {
-        useHelperThreadsForIonCompilation_ = value;
-    }
-    bool useHelperThreadsForIonCompilation() const {
-        return useHelperThreadsForIonCompilation_;
+    
+    
+    unsigned workerThreadCount() const {
+        if (!useHelperThreads())
+            return 0;
+        return js::Max(2u, cpuCount());
     }
 
-    void setCanUseHelperThreadsForParsing(bool value) {
-        useHelperThreadsForParsing_ = value;
+    
+    
+    void setParallelIonCompilationEnabled(bool value) {
+        parallelIonCompilationEnabled_ = value;
     }
-    bool useHelperThreadsForParsing() const {
-        return useHelperThreadsForParsing_;
+    bool canUseParallelIonCompilation() const {
+        
+        
+        return useHelperThreads() &&
+               parallelIonCompilationEnabled_ &&
+               cpuCount_ > 1;
     }
+    void setParallelParsingEnabled(bool value) {
+        parallelParsingEnabled_ = value;
+    }
+    bool canUseParallelParsing() const {
+        return useHelperThreads() &&
+               parallelParsingEnabled_;
+    }
+
     void setIsWorkerRuntime() {
         isWorkerRuntime_ = true;
     }

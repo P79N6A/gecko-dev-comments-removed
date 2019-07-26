@@ -1560,7 +1560,7 @@ OffThreadCompilationAvailable(JSContext *cx)
     
     
     
-    return OffThreadIonCompilationEnabled(cx->runtime())
+    return cx->runtime()->canUseParallelIonCompilation()
         && cx->runtime()->gcIncrementalState == gc::NO_INCREMENTAL
         && !cx->runtime()->profilingScripts
         && !cx->runtime()->spsProfiler.enabled();
@@ -1790,7 +1790,7 @@ CheckScriptSize(JSContext *cx, JSScript* script)
         
         
         
-        JS_ASSERT(!OffThreadIonCompilationEnabled(cx->runtime()));
+        JS_ASSERT(!cx->runtime()->canUseParallelIonCompilation());
 
         if (script->length > MAX_DOM_WORKER_SCRIPT_SIZE ||
             numLocalsAndArgs > MAX_DOM_WORKER_LOCALS_AND_ARGS)
@@ -1804,7 +1804,7 @@ CheckScriptSize(JSContext *cx, JSScript* script)
     if (script->length > MAX_MAIN_THREAD_SCRIPT_SIZE ||
         numLocalsAndArgs > MAX_MAIN_THREAD_LOCALS_AND_ARGS)
     {
-        if (OffThreadIonCompilationEnabled(cx->runtime())) {
+        if (cx->runtime()->canUseParallelIonCompilation()) {
             
             
             

@@ -197,18 +197,6 @@ struct WorkerThread
 
 #endif 
 
-inline bool
-OffThreadIonCompilationEnabled(JSRuntime *rt)
-{
-#ifdef JS_WORKER_THREADS
-    return rt->useHelperThreads()
-        && rt->helperThreadCount() != 0
-        && rt->useHelperThreadsForIonCompilation();
-#else
-    return false;
-#endif
-}
-
 
 
 

@@ -1185,9 +1185,16 @@ ScriptSource::setSourceCopy(ExclusiveContext *cx, const jschar *src, uint32_t le
 
     
     
-    size_t minThreads = cx->isJSContext() ? 1 : 2;
-
-    if (task && cx->useHelperThreads() && cx->helperThreadCount() >= minThreads) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (task && cx->cpuCount() > 1 && cx->workerThreadCount() >= 2) {
         task->ss = this;
         task->chars = src;
         ready_ = false;
