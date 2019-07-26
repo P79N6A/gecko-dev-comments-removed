@@ -15,7 +15,6 @@
 
 USING_TELEPHONY_NAMESPACE
 using namespace mozilla::dom;
-using mozilla::ErrorResult;
 
 
 already_AddRefed<TelephonyCall>
