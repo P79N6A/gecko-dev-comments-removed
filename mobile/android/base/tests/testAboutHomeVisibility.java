@@ -2,7 +2,7 @@ package org.mozilla.gecko.tests;
 
 import static org.mozilla.gecko.tests.helpers.AssertionHelper.*;
 
-import org.mozilla.gecko.home.HomePager.Page;
+import org.mozilla.gecko.tests.components.AboutHomeComponent.PageType;
 import org.mozilla.gecko.tests.helpers.*;
 
 
@@ -15,7 +15,7 @@ public class testAboutHomeVisibility extends UITest {
         
         mToolbar.assertTitle(StringHelper.ABOUT_HOME_TITLE);
         mAboutHome.assertVisible()
-                  .assertCurrentPage(Page.TOP_SITES);
+                  .assertCurrentPage(PageType.TOP_SITES);
 
         
         NavigationHelper.enterAndLoadUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
@@ -30,7 +30,7 @@ public class testAboutHomeVisibility extends UITest {
         
         mToolbar.enterEditingMode();
         mAboutHome.assertVisible()
-                  .assertCurrentPage(Page.TOP_SITES);
+                  .assertCurrentPage(PageType.TOP_SITES);
 
         
         mToolbar.dismissEditingMode();
@@ -40,7 +40,7 @@ public class testAboutHomeVisibility extends UITest {
         NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
         mToolbar.assertTitle(StringHelper.ABOUT_HOME_TITLE);
         mAboutHome.assertVisible()
-                  .assertCurrentPage(Page.TOP_SITES);
+                  .assertCurrentPage(PageType.TOP_SITES);
 
         
     }

@@ -7,7 +7,6 @@ package org.mozilla.gecko.tests.components;
 import static org.mozilla.gecko.tests.helpers.AssertionHelper.*;
 
 import org.mozilla.gecko.Actions;
-import org.mozilla.gecko.home.HomePager.Page;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.tests.helpers.*;
 import org.mozilla.gecko.tests.UITestContext;
@@ -23,6 +22,14 @@ import android.view.View;
 
 
 public class AboutHomeComponent extends BaseComponent {
+    
+    public enum PageType {
+        HISTORY,
+        TOP_SITES,
+        BOOKMARKS,
+        READING_LIST
+    }
+
     
     
     
@@ -53,7 +60,7 @@ public class AboutHomeComponent extends BaseComponent {
         return (ViewPager) mSolo.getView(R.id.home_pager);
     }
 
-    public AboutHomeComponent assertCurrentPage(final Page expectedPage) {
+    public AboutHomeComponent assertCurrentPage(final PageType expectedPage) {
         assertVisible();
 
         final int expectedPageIndex = getPageIndexForDevice(expectedPage.ordinal());
@@ -126,7 +133,7 @@ public class AboutHomeComponent extends BaseComponent {
 
 
     private int getPageIndexForDevice(final int pageIndex) {
-        final String pageName = Page.values()[pageIndex].name();
+        final String pageName = PageType.values()[pageIndex].name();
         final Class devicePageEnum =
                 DeviceHelper.isTablet() ? TabletPage.class : PhonePage.class;
         return Enum.valueOf(devicePageEnum, pageName).ordinal();
