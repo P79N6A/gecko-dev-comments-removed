@@ -611,7 +611,7 @@ PluginInstanceParent::RecvShow(const NPRect& updatedRect,
         
         
 #ifdef MOZ_X11
-        if (mFrontSurface->GetType() == gfxSurfaceTypeXlib) {
+        if (mFrontSurface->GetType() == gfxSurfaceType::Xlib) {
             
             
             

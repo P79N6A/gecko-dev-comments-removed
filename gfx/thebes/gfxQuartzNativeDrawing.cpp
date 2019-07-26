@@ -74,7 +74,7 @@ gfxQuartzNativeDrawing::BeginNativeDrawing()
     
     
     
-    if (surf->GetType() == gfxSurfaceTypeQuartz &&
+    if (surf->GetType() == gfxSurfaceType::Quartz &&
         (surf->GetContentType() == GFX_CONTENT_COLOR ||
          (surf->GetContentType() == GFX_CONTENT_COLOR_ALPHA))) {
         mQuartzSurface = static_cast<gfxQuartzSurface*>(surf.get());

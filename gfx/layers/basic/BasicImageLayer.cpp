@@ -139,7 +139,7 @@ PaintContext(gfxPattern* aPattern,
   
   if (aContext->IsCairo()) {
     nsRefPtr<gfxASurface> target = aContext->CurrentSurface();
-    if (target->GetType() == gfxSurfaceTypeXlib &&
+    if (target->GetType() == gfxSurfaceType::Xlib &&
         static_cast<gfxXlibSurface*>(target.get())->IsPadSlow()) {
       extend = gfxPattern::EXTEND_NONE;
     }

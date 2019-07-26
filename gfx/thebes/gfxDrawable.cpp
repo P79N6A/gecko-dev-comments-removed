@@ -75,7 +75,7 @@ PreparePatternForUntiledDrawing(gfxPattern* aPattern,
     switch (currentTarget->GetType()) {
 
 #ifdef MOZ_X11
-        case gfxSurfaceTypeXlib:
+        case gfxSurfaceType::Xlib:
         {
             
             

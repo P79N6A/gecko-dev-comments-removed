@@ -58,34 +58,34 @@ MOZ_BEGIN_ENUM_CLASS(gfxImageFormat)
   Unknown
 MOZ_END_ENUM_CLASS(gfxImageFormat)
 
-    enum gfxSurfaceType {
-        gfxSurfaceTypeImage,
-        gfxSurfaceTypePDF,
-        gfxSurfaceTypePS,
-        gfxSurfaceTypeXlib,
-        gfxSurfaceTypeXcb,
-        gfxSurfaceTypeGlitz,           
-        gfxSurfaceTypeQuartz,
-        gfxSurfaceTypeWin32,
-        gfxSurfaceTypeBeOS,
-        gfxSurfaceTypeDirectFB,        
-        gfxSurfaceTypeSVG,
-        gfxSurfaceTypeOS2,
-        gfxSurfaceTypeWin32Printing,
-        gfxSurfaceTypeQuartzImage,
-        gfxSurfaceTypeScript,
-        gfxSurfaceTypeQPainter,
-        gfxSurfaceTypeRecording,
-        gfxSurfaceTypeVG,
-        gfxSurfaceTypeGL,
-        gfxSurfaceTypeDRM,
-        gfxSurfaceTypeTee,
-        gfxSurfaceTypeXML,
-        gfxSurfaceTypeSkia,
-        gfxSurfaceTypeSubsurface,
-        gfxSurfaceTypeD2D,
-        gfxSurfaceTypeMax
-    };
+MOZ_BEGIN_ENUM_CLASS(gfxSurfaceType)
+  Image,
+  PDF,
+  PS,
+  Xlib,
+  Xcb,
+  Glitz,           
+  Quartz,
+  Win32,
+  BeOS,
+  DirectFB,        
+  SVG,
+  OS2,
+  Win32Printing,
+  QuartzImage,
+  Script,
+  QPainter,
+  Recording,
+  VG,
+  GL,
+  DRM,
+  Tee,
+  XML,
+  Skia,
+  Subsurface,
+  D2D,
+  Max
+MOZ_END_ENUM_CLASS(gfxSurfaceType)
 
     enum gfxContentType {
         GFX_CONTENT_COLOR       = 0x1000,
@@ -105,4 +105,4 @@ MOZ_END_ENUM_CLASS(gfxImageFormat)
       GFX_MEMORY_OUT_OF_PROCESS
     };
 
-#endif
+#endif 
