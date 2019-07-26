@@ -224,12 +224,12 @@ public:
 
 
 
-    bool ClearProperty(nsCSSProperty aPropID);
+    void ClearProperty(nsCSSProperty aPropID);
 
     
 
 
-    bool ClearLonghandProperty(nsCSSProperty aPropID);
+    void ClearLonghandProperty(nsCSSProperty aPropID);
 
     
 
@@ -306,8 +306,8 @@ private:
         mPropertiesSet.AddProperty(aProperty);
     }
 
-    bool ClearPropertyBit(nsCSSProperty aProperty) {
-        return mPropertiesSet.RemoveProperty(aProperty);
+    void ClearPropertyBit(nsCSSProperty aProperty) {
+        mPropertiesSet.RemoveProperty(aProperty);
     }
 
     bool HasPropertyBit(nsCSSProperty aProperty) {
@@ -318,8 +318,8 @@ private:
         mPropertiesImportant.AddProperty(aProperty);
     }
 
-    bool ClearImportantBit(nsCSSProperty aProperty) {
-        return mPropertiesImportant.RemoveProperty(aProperty);
+    void ClearImportantBit(nsCSSProperty aProperty) {
+        mPropertiesImportant.RemoveProperty(aProperty);
     }
 
     bool HasImportantBit(nsCSSProperty aProperty) {
