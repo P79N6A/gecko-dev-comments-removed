@@ -3,7 +3,6 @@
 
 
 
-#include "prtypes.h"
 #include "prmem.h"
 #include "nsString.h"
 #include "nsBidiUtils.h"
