@@ -102,6 +102,10 @@ IsPhiObservable(MPhi *phi)
 {
     
     
+    if (phi->hasBytecodeUses())
+        return true;
+
+    
     
     
     for (MUseDefIterator iter(phi); iter; iter++) {
@@ -124,6 +128,11 @@ IsPhiRedundant(MPhi *phi)
         if (first != phi->getOperand(i))
             return NULL;
     }
+
+    
+    
+    if (phi->hasBytecodeUses() && first->isPhi())
+        first->toPhi()->setHasBytecodeUses();
 
     return first;
 }
