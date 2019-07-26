@@ -782,6 +782,10 @@ BrowserElementChild.prototype = {
     
     
     
+    
+    
+    
+    
     debug("Taking a screenshot: maxWidth=" + maxWidth +
           ", maxHeight=" + maxHeight +
           ", mimeType=" + mimeType +
@@ -794,13 +798,23 @@ BrowserElementChild.prototype = {
       return;
     }
 
-    let scaleWidth = Math.min(1, maxWidth / content.innerWidth);
-    let scaleHeight = Math.min(1, maxHeight / content.innerHeight);
+    let devicePixelRatio = content.devicePixelRatio;
+
+    let maxPixelWidth = Math.round(maxWidth * devicePixelRatio);
+    let maxPixelHeight = Math.round(maxHeight * devicePixelRatio);
+
+    let contentPixelWidth = content.innerWidth * devicePixelRatio;
+    let contentPixelHeight = content.innerHeight * devicePixelRatio;
+
+    let scaleWidth = Math.min(1, maxPixelWidth / contentPixelWidth);
+    let scaleHeight = Math.min(1, maxPixelHeight / contentPixelHeight);
 
     let scale = Math.max(scaleWidth, scaleHeight);
 
-    let canvasWidth = Math.min(maxWidth, Math.round(content.innerWidth * scale));
-    let canvasHeight = Math.min(maxHeight, Math.round(content.innerHeight * scale));
+    let canvasWidth =
+      Math.min(maxPixelWidth, Math.round(contentPixelWidth * scale));
+    let canvasHeight =
+      Math.min(maxPixelHeight, Math.round(contentPixelHeight * scale));
 
     let transparent = (mimeType !== 'image/jpeg');
 
@@ -812,7 +826,7 @@ BrowserElementChild.prototype = {
     canvas.height = canvasHeight;
 
     var ctx = canvas.getContext("2d", { willReadFrequently: true });
-    ctx.scale(scale, scale);
+    ctx.scale(scale * devicePixelRatio, scale * devicePixelRatio);
     ctx.drawWindow(content, 0, 0, content.innerWidth, content.innerHeight,
                    transparent ? "rgba(255,255,255,0)" : "rgb(255,255,255)");
 
