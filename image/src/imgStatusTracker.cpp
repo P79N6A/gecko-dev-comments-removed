@@ -312,7 +312,8 @@ imgStatusTracker::imgStatusTracker(const imgStatusTracker& aOther)
     mState(aOther.mState),
     mImageStatus(aOther.mImageStatus),
     mIsMultipart(aOther.mIsMultipart),
-    mHadLastPart(aOther.mHadLastPart)
+    mHadLastPart(aOther.mHadLastPart),
+    mHasBeenDecoded(aOther.mHasBeenDecoded)
     
     
     
