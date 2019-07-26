@@ -17,6 +17,8 @@
 #include "MediaConduitInterface.h"
 #include "AudioSegment.h"
 #include "SrtpFlow.h"
+#include "databuffer.h"
+#include "runnable_utils.h"
 #include "transportflow.h"
 
 #ifdef MOZILLA_INTERNAL_API
@@ -35,14 +37,35 @@ namespace mozilla {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class MediaPipeline : public sigslot::has_slots<> {
  public:
   enum Direction { TRANSMIT, RECEIVE };
   enum State { MP_CONNECTING, MP_OPEN, MP_CLOSED };
-  MediaPipeline(Direction direction,
+  MediaPipeline(const std::string& pc,
+                Direction direction,
                 nsCOMPtr<nsIEventTarget> main_thread,
                 nsCOMPtr<nsIEventTarget> sts_thread,
-                nsDOMMediaStream* stream,
+                MediaStream *stream,
                 RefPtr<MediaSessionConduit> conduit,
                 RefPtr<TransportFlow> rtp_transport,
                 RefPtr<TransportFlow> rtcp_transport)
@@ -64,20 +87,30 @@ class MediaPipeline : public sigslot::has_slots<> {
         rtcp_packets_sent_(0),
         rtp_packets_received_(0),
         rtcp_packets_received_(0),
-        muxed_((rtcp_transport_ == NULL) || (rtp_transport_ == rtcp_transport_)) {
-    Init();
+        muxed_((rtcp_transport_ == NULL) || (rtp_transport_ == rtcp_transport_)),
+        pc_(pc),
+        description_() {
   }
 
   virtual ~MediaPipeline() {
+    MOZ_ASSERT(!stream_);  
+  }
+
+  void Shutdown() {
+    ASSERT_ON_THREAD(main_thread_);
+    
+    
+    
+    
     DetachTransport();
+    if (stream_) {
+      DetachMediaStream();
+    }
   }
 
   virtual nsresult Init();
 
   virtual Direction direction() const { return direction_; }
-
-  virtual void DetachMediaStream() {}
-  virtual void DetachTransport();
 
   int rtp_packets_sent() const { return rtp_packets_sent_; }
   int rtcp_packets_sent() const { return rtp_packets_sent_; }
@@ -87,13 +120,17 @@ class MediaPipeline : public sigslot::has_slots<> {
   
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaPipeline)
 
-  protected:
+ protected:
+  virtual void DetachMediaStream() {}
+
   
   class PipelineTransport : public TransportInterface {
    public:
     
     PipelineTransport(MediaPipeline *pipeline)
-        : pipeline_(pipeline) {}
+        : pipeline_(pipeline),
+	  sts_thread_(pipeline->sts_thread_) {}
+
     void Detach() { pipeline_ = NULL; }
     MediaPipeline *pipeline() const { return pipeline_; }
 
@@ -101,7 +138,11 @@ class MediaPipeline : public sigslot::has_slots<> {
     virtual nsresult SendRtcpPacket(const void* data, int len);
 
    private:
+    virtual nsresult SendRtpPacket_s(nsAutoPtr<DataBuffer> data);
+    virtual nsresult SendRtcpPacket_s(nsAutoPtr<DataBuffer> data);
+
     MediaPipeline *pipeline_;  
+    nsCOMPtr<nsIEventTarget> sts_thread_;
   };
   friend class PipelineTransport;
 
@@ -124,31 +165,51 @@ class MediaPipeline : public sigslot::has_slots<> {
   void PacketReceived(TransportLayer *layer, const unsigned char *data,
                       size_t len);
 
-
   Direction direction_;
-  nsDOMMediaStream* stream_;
-  RefPtr<MediaSessionConduit> conduit_;
+  RefPtr<MediaStream> stream_;  
+  		      		
+  		      		
+  RefPtr<MediaSessionConduit> conduit_;  
+  			      		 
+
+  
   RefPtr<TransportFlow> rtp_transport_;
   State rtp_state_;
   RefPtr<TransportFlow> rtcp_transport_;
   State rtcp_state_;
+
+  
+  
   nsCOMPtr<nsIEventTarget> main_thread_;
   nsCOMPtr<nsIEventTarget> sts_thread_;
+
+  
+  
   RefPtr<PipelineTransport> transport_;
-  bool transport_connected_;
+
+  
   RefPtr<SrtpFlow> rtp_send_srtp_;
   RefPtr<SrtpFlow> rtcp_send_srtp_;
   RefPtr<SrtpFlow> rtp_recv_srtp_;
   RefPtr<SrtpFlow> rtcp_recv_srtp_;
+
+  
+  
+  
   int rtp_packets_sent_;
   int rtcp_packets_sent_;
   int rtp_packets_received_;
   int rtcp_packets_received_;
+
+  
   bool muxed_;
+  std::string pc_;
+  std::string description_;
 
  private:
-  virtual void DetachTransportInt();
-  nsresult SendPacketInt(TransportFlow *flow, const void* data, int len);
+  void DetachTransport();
+  void DetachTransport_s();
+
   nsresult TransportReadyInt(TransportFlow *flow);
 
   bool IsRtp(const unsigned char *data, size_t len);
@@ -159,47 +220,44 @@ class MediaPipeline : public sigslot::has_slots<> {
 
 class MediaPipelineTransmit : public MediaPipeline {
  public:
-  MediaPipelineTransmit(nsCOMPtr<nsIEventTarget> main_thread,
+  MediaPipelineTransmit(const std::string& pc,
+                        nsCOMPtr<nsIEventTarget> main_thread,
                         nsCOMPtr<nsIEventTarget> sts_thread,
-                        nsDOMMediaStream* stream,
+                        MediaStream *stream,
                         RefPtr<MediaSessionConduit> conduit,
                         RefPtr<TransportFlow> rtp_transport,
                         RefPtr<TransportFlow> rtcp_transport) :
-      MediaPipeline(TRANSMIT, main_thread, sts_thread,
+      MediaPipeline(pc, TRANSMIT, main_thread, sts_thread,
                     stream, conduit, rtp_transport,
                     rtcp_transport),
-      listener_(new PipelineListener(this)) {
-    Init();  
+      listener_(new PipelineListener(conduit)) {}
+
+  
+  virtual nsresult Init();
+
+  
+  virtual void DetachMediaStream() {
+    ASSERT_ON_THREAD(main_thread_);
+    stream_->RemoveListener(listener_);
+    
+    
+    listener_ = nullptr;
+    stream_ = nullptr;
   }
 
   
-  nsresult Init();
-
-  virtual ~MediaPipelineTransmit() {
-    if (stream_ && listener_){
-      stream_->GetStream()->RemoveListener(listener_);
-
-      
-      
-      
-      listener_->Detach();
-    }
-  }
-
-  virtual void DetachMediaStream() {
-    
-    stream_->GetStream()->RemoveListener(listener_);
-    stream_ = NULL;
-    listener_->Detach();
-  }
+  virtual nsresult TransportReady(TransportFlow *flow);
 
   
   class PipelineListener : public MediaStreamListener {
    public:
-    PipelineListener(MediaPipelineTransmit *pipeline) :
-    pipeline_(pipeline) {}
-    void Detach() { pipeline_ = NULL; }
+    PipelineListener(const RefPtr<MediaSessionConduit>& conduit)
+        : conduit_(conduit), active_(false) {}
 
+    
+    
+    
+    void SetActive(bool active) { active_ = active; }
 
     
     virtual void NotifyQueuedTrackChanges(MediaStreamGraph* graph, TrackID tid,
@@ -210,18 +268,19 @@ class MediaPipelineTransmit : public MediaPipeline {
     virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime) {}
 
    private:
-    MediaPipelineTransmit *pipeline_;  
+    virtual void ProcessAudioChunk(AudioSessionConduit *conduit,
+				   TrackRate rate, AudioChunk& chunk);
+#ifdef MOZILLA_INTERNAL_API
+    virtual void ProcessVideoChunk(VideoSessionConduit *conduit,
+				   TrackRate rate, VideoChunk& chunk);
+#endif
+    RefPtr<MediaSessionConduit> conduit_;
+    volatile bool active_;
   };
-  friend class PipelineListener;
 
  private:
-  virtual void ProcessAudioChunk(AudioSessionConduit *conduit,
-                                 TrackRate rate, AudioChunk& chunk);
-#ifdef MOZILLA_INTERNAL_API
-  virtual void ProcessVideoChunk(VideoSessionConduit *conduit,
-                                 TrackRate rate, VideoChunk& chunk);
-#endif
-  RefPtr<PipelineListener> listener_;
+RefPtr<PipelineListener> listener_;
+
 };
 
 
@@ -229,13 +288,14 @@ class MediaPipelineTransmit : public MediaPipeline {
 
 class MediaPipelineReceive : public MediaPipeline {
  public:
-  MediaPipelineReceive(nsCOMPtr<nsIEventTarget> main_thread,
+  MediaPipelineReceive(const std::string& pc,
+                       nsCOMPtr<nsIEventTarget> main_thread,
                        nsCOMPtr<nsIEventTarget> sts_thread,
-                       nsDOMMediaStream* stream,
+                       MediaStream *stream,
                        RefPtr<MediaSessionConduit> conduit,
                        RefPtr<TransportFlow> rtp_transport,
                        RefPtr<TransportFlow> rtcp_transport) :
-      MediaPipeline(RECEIVE, main_thread, sts_thread,
+      MediaPipeline(pc, RECEIVE, main_thread, sts_thread,
                     stream, conduit, rtp_transport,
                     rtcp_transport),
       segments_added_(0) {
@@ -254,41 +314,40 @@ class MediaPipelineReceive : public MediaPipeline {
 
 class MediaPipelineReceiveAudio : public MediaPipelineReceive {
  public:
-  MediaPipelineReceiveAudio(nsCOMPtr<nsIEventTarget> main_thread,
+  MediaPipelineReceiveAudio(const std::string& pc,
+                            nsCOMPtr<nsIEventTarget> main_thread,
                             nsCOMPtr<nsIEventTarget> sts_thread,
-                            nsDOMMediaStream* stream,
+                            MediaStream *stream,
                             RefPtr<AudioSessionConduit> conduit,
                             RefPtr<TransportFlow> rtp_transport,
                             RefPtr<TransportFlow> rtcp_transport) :
-      MediaPipelineReceive(main_thread, sts_thread,
+      MediaPipelineReceive(pc, main_thread, sts_thread,
                            stream, conduit, rtp_transport,
                            rtcp_transport),
-      listener_(new PipelineListener(this)) {
-    Init();
-  }
-
-  ~MediaPipelineReceiveAudio() {
-    if (stream_ && listener_) {
-      stream_->GetStream()->RemoveListener(listener_);
-      listener_->Detach();
-    }
+      listener_(new PipelineListener(stream->AsSourceStream(),
+                                     conduit)) {
   }
 
   virtual void DetachMediaStream() {
+    ASSERT_ON_THREAD(main_thread_);
+    stream_->RemoveListener(listener_);
     
-    stream_->GetStream()->RemoveListener(listener_);
-    stream_ = NULL;
-    listener_->Detach();
+    
+    listener_ = nullptr;
+    stream_ = nullptr;
   }
+
+  virtual nsresult Init();
 
  private:
   
   class PipelineListener : public MediaStreamListener {
    public:
-    PipelineListener(MediaPipelineReceiveAudio *pipeline)
-        : pipeline_(pipeline),
-        played_(0) {}
-    void Detach() { pipeline_ = NULL; }
+    PipelineListener(SourceMediaStream * source,
+                     const RefPtr<MediaSessionConduit>& conduit)
+        : source_(source),
+          conduit_(conduit),
+          played_(0) {}
 
     
     virtual void NotifyQueuedTrackChanges(MediaStreamGraph* graph, TrackID tid,
@@ -299,12 +358,10 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
     virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime);
 
    private:
-    MediaPipelineReceiveAudio *pipeline_;  
+    SourceMediaStream *source_;
+    RefPtr<MediaSessionConduit> conduit_;
     StreamTime played_;
   };
-  friend class PipelineListener;
-
-  nsresult Init();
 
   RefPtr<PipelineListener> listener_;
 };
@@ -314,21 +371,28 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
 
 class MediaPipelineReceiveVideo : public MediaPipelineReceive {
  public:
-  MediaPipelineReceiveVideo(nsCOMPtr<nsIEventTarget> main_thread,
+  MediaPipelineReceiveVideo(const std::string& pc,
+                            nsCOMPtr<nsIEventTarget> main_thread,
                             nsCOMPtr<nsIEventTarget> sts_thread,
-                            nsDOMMediaStream* stream,
+                            MediaStream *stream,
                             RefPtr<VideoSessionConduit> conduit,
                             RefPtr<TransportFlow> rtp_transport,
                             RefPtr<TransportFlow> rtcp_transport) :
-      MediaPipelineReceive(main_thread, sts_thread,
+      MediaPipelineReceive(pc, main_thread, sts_thread,
                            stream, conduit, rtp_transport,
                            rtcp_transport),
       renderer_(new PipelineRenderer(this)) {
-    Init();
   }
 
-  ~MediaPipelineReceiveVideo() {
+  
+  virtual void DetachMediaStream() {
+    ASSERT_ON_THREAD(main_thread_);
+    conduit_ = nullptr;  
+                         
+    stream_ = nullptr;
   }
+
+  virtual nsresult Init();
 
  private:
   class PipelineRenderer : public VideoRenderer {
@@ -360,7 +424,6 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
   };
   friend class PipelineRenderer;
 
-  nsresult Init();
   RefPtr<PipelineRenderer> renderer_;
 };
 
