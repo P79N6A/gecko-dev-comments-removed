@@ -255,13 +255,17 @@ ConsoleAPI.prototype = {
   {
     let [method, args, meta] = aCall;
 
-    let notifyMeta = {
-      isPrivate: meta.isPrivate,
+    let frame = meta.stack[0];
+    let consoleEvent = {
+      ID: this._outerID,
+      innerID: this._innerID,
+      level: method,
+      filename: frame.filename,
+      lineNumber: frame.lineNumber,
+      functionName: frame.functionName,
       timeStamp: meta.timeStamp,
-      frame: meta.stack[0],
+      arguments: args,
     };
-
-    let notifyArguments = null;
 
     switch (method) {
       case "log":
@@ -269,31 +273,37 @@ ConsoleAPI.prototype = {
       case "warn":
       case "error":
       case "debug":
-        notifyArguments = this.processArguments(args);
+        consoleEvent.arguments = this.processArguments(args);
         break;
       case "trace":
-        notifyArguments = meta.stack;
+        consoleEvent.stacktrace = meta.stack;
         break;
       case "group":
       case "groupCollapsed":
-        notifyArguments = this.beginGroup(args);
-        break;
       case "groupEnd":
+        try {
+          consoleEvent.groupName = Array.prototype.join.call(args, " ");
+        }
+        catch (ex) {
+          Cu.reportError(ex);
+          Cu.reportError(ex.stack);
+          return;
+        }
+        break;
       case "dir":
-        notifyArguments = args;
         break;
       case "time":
-        notifyArguments = this.startTimer(args[0], meta.timeStamp);
+        consoleEvent.timer = this.startTimer(args[0], meta.timeStamp);
         break;
       case "timeEnd":
-        notifyArguments = this.stopTimer(args[0], meta.timeStamp);
+        consoleEvent.timer = this.stopTimer(args[0], meta.timeStamp);
         break;
       default:
         
         return;
     }
 
-    this.notifyObservers(method, notifyArguments, notifyMeta);
+    this.notifyObservers(method, consoleEvent, meta.isPrivate);
   },
 
   
@@ -307,28 +317,16 @@ ConsoleAPI.prototype = {
 
 
 
-
-
-  notifyObservers: function CA_notifyObservers(aLevel, aArguments, aMeta) {
-    let consoleEvent = {
-      ID: this._outerID,
-      innerID: this._innerID,
-      level: aLevel,
-      filename: aMeta.frame.filename,
-      lineNumber: aMeta.frame.lineNumber,
-      functionName: aMeta.frame.functionName,
-      arguments: aArguments,
-      timeStamp: aMeta.timeStamp,
-    };
-
-    consoleEvent.wrappedJSObject = consoleEvent;
+  notifyObservers: function CA_notifyObservers(aLevel, aConsoleEvent, aPrivate)
+  {
+    aConsoleEvent.wrappedJSObject = aConsoleEvent;
 
     
-    if (!aMeta.isPrivate) {
-      ConsoleAPIStorage.recordEvent(this._innerID, consoleEvent);
+    if (!aPrivate) {
+      ConsoleAPIStorage.recordEvent(this._innerID, aConsoleEvent);
     }
 
-    Services.obs.notifyObservers(consoleEvent, "console-api-log-event",
+    Services.obs.notifyObservers(aConsoleEvent, "console-api-log-event",
                                  this._outerID);
   },
 
@@ -416,13 +414,6 @@ ConsoleAPI.prototype = {
     }
 
     return stack;
-  },
-
-  
-
-
-  beginGroup: function CA_beginGroup() {
-    return Array.prototype.join.call(arguments[0], " ");
   },
 
   
