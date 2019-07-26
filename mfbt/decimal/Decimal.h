@@ -28,14 +28,31 @@
 
 
 
+
+
+
+
+
+
 #ifndef Decimal_h
 #define Decimal_h
 
+#include "mozilla/Assertions.h"
+#include "mozilla/StandardInteger.h"
 #include "mozilla/Types.h"
 
-#include <stdint.h>
-#include <wtf/Assertions.h>
-#include <wtf/text/WTFString.h>
+#include <string>
+
+#ifndef ASSERT
+#define DEFINED_ASSERT_FOR_DECIMAL_H 1
+#define ASSERT MOZ_ASSERT
+#endif
+
+
+
+
+#define WTF_MAKE_FAST_ALLOCATED \
+  void ignore_this_dummy_method() MOZ_DELETE
 
 namespace WebCore {
 
@@ -141,7 +158,8 @@ public:
 
     MFBT_API double toDouble() const;
     
-    MFBT_API String toString() const;
+    MFBT_API std::string toString() const;
+    MFBT_API bool toString(char* strBuf, size_t bufLength) const;
 
     static MFBT_API Decimal fromDouble(double);
     
@@ -151,7 +169,7 @@ public:
     
     
     
-    static MFBT_API Decimal fromString(const String&);
+    static MFBT_API Decimal fromString(const std::string& aValue);
     static MFBT_API Decimal infinity(Sign);
     static MFBT_API Decimal nan();
     static MFBT_API Decimal zero(Sign);
@@ -179,6 +197,17 @@ private:
 };
 
 } 
+
+namespace mozilla {
+  typedef WebCore::Decimal Decimal;
+}
+
+#undef WTF_MAKE_FAST_ALLOCATED
+
+#ifdef DEFINED_ASSERT_FOR_DECIMAL_H
+#undef DEFINED_ASSERT_FOR_DECIMAL_H
+#undef ASSERT
+#endif
 
 #endif
 
