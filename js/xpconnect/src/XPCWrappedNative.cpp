@@ -1156,14 +1156,6 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
     if (!flat)
         return NS_OK;
 
-    
-    
-    
-    if (wrapper->GetProto() &&
-        !wrapper->GetProto()->ClassIsMainThreadOnly()) {
-        return NS_ERROR_FAILURE;
-    }
-
     JSAutoCompartment ac(cx, aNewScope->GetGlobalJSObject());
 
     if (aOldScope != aNewScope) {
