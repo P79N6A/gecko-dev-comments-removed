@@ -118,35 +118,19 @@ function testCharAtOffset(aIDs, aOffset, aChar, aStartOffset, aEndOffset)
 
 
 
-function testTextAtOffset(aOffset, aBoundaryType, aText,
-                          aStartOffset, aEndOffset)
+
+
+
+
+
+
+
+
+
+
+function testTextAtOffset()
 {
-  
-  if (arguments[5] instanceof Array) {
-    var ids = arguments[5];
-    for (var i = 0; i < ids.length; i++) {
-      var acc = getAccessible(ids[i], nsIAccessibleText);
-      testTextHelper(ids[i], aOffset, aBoundaryType,
-                     aText, aStartOffset, aEndOffset,
-                     kOk, kOk, kOk,
-                     acc.getTextAtOffset, "getTextAtOffset ");
-    }
-
-    return;
-  }
-
-  for (var i = 5; i < arguments.length; i = i + 4) {
-    var ID = arguments[i];
-    var acc = getAccessible(ID, nsIAccessibleText);
-    var toDoFlag1 = arguments[i + 1];
-    var toDoFlag2 = arguments[i + 2];
-    var toDoFlag3 = arguments[i + 3];
-
-    testTextHelper(ID, aOffset, aBoundaryType,
-                   aText, aStartOffset, aEndOffset,
-                   toDoFlag1, toDoFlag2, toDoFlag3,
-                   acc.getTextAtOffset, "getTextAtOffset ");
-  }
+  testTextSuperHelper("getTextAtOffset", arguments);
 }
 
 
@@ -185,36 +169,20 @@ function testCharAfterOffset(aIDs, aOffset, aChar, aStartOffset, aEndOffset)
 
 
 
+
+
+
+
+
+
+
+
+
+
 function testTextAfterOffset(aOffset, aBoundaryType,
                              aText, aStartOffset, aEndOffset)
 {
-  
-  if (arguments[5] instanceof Array) {
-    var ids = arguments[5];
-    for (var i = 0; i < ids.length; i++) {
-      var acc = getAccessible(ids[i], nsIAccessibleText);
-      testTextHelper(ids[i], aOffset, aBoundaryType,
-                     aText, aStartOffset, aEndOffset,
-                     kOk, kOk, kOk,
-                     acc.getTextAfterOffset, "getTextAfterOffset ");
-    }
-
-    return;
-  }
-
-  
-  for (var i = 5; i < arguments.length; i = i + 4) {
-    var ID = arguments[i];
-    var acc = getAccessible(ID, nsIAccessibleText);
-    var toDoFlag1 = arguments[i + 1];
-    var toDoFlag2 = arguments[i + 2];
-    var toDoFlag3 = arguments[i + 3];
-
-    testTextHelper(ID, aOffset, aBoundaryType,
-                   aText, aStartOffset, aEndOffset,
-                   toDoFlag1, toDoFlag2, toDoFlag3, 
-                   acc.getTextAfterOffset, "getTextAfterOffset ");
-  }
+  testTextSuperHelper("getTextAfterOffset", arguments);
 }
 
 
@@ -253,35 +221,20 @@ function testCharBeforeOffset(aIDs, aOffset, aChar, aStartOffset, aEndOffset)
 
 
 
+
+
+
+
+
+
+
+
+
+
 function testTextBeforeOffset(aOffset, aBoundaryType,
                               aText, aStartOffset, aEndOffset)
 {
-  
-  if (arguments[5] instanceof Array) {
-    var ids = arguments[5];
-    for (var i = 0; i < ids.length; i++) {
-      var acc = getAccessible(ids[i], nsIAccessibleText);
-      testTextHelper(ids[i], aOffset, aBoundaryType,
-                     aText, aStartOffset, aEndOffset,
-                     kOk, kOk, kOk,
-                     acc.getTextBeforeOffset, "getTextBeforeOffset ");
-    }
-
-    return;
-  }
-
-  for (var i = 5; i < arguments.length; i = i + 4) {
-    var ID = arguments[i];
-    var acc = getAccessible(ID, nsIAccessibleText);
-    var toDoFlag1 = arguments[i + 1];
-    var toDoFlag2 = arguments[i + 2];
-    var toDoFlag3 = arguments[i + 3];
-
-    testTextHelper(ID, aOffset, aBoundaryType,
-                   aText, aStartOffset, aEndOffset,
-                   toDoFlag1, toDoFlag2, toDoFlag3,
-                   acc.getTextBeforeOffset, "getTextBeforeOffset ");
-  }
+  testTextSuperHelper("getTextBeforeOffset", arguments);
 }
 
 
@@ -501,6 +454,78 @@ function testTextGetSelection(aID, aStartOffset, aEndOffset, aSelectionIndex)
 
 
 
+
+function testTextSuperHelper(aFuncName, aArgs)
+{
+  
+  if (aArgs[2] instanceof Array) {
+    var ids = (aArgs[0] instanceof Array) ? aArgs[0] : [ aArgs[0] ];
+    var boundaryType = aArgs[1];
+    var list = aArgs[2];
+    for (var i = 0; i < list.length; i++) {
+      var offset1 = list[i][0], offset2 = list[i][1];
+      var text = list[i][2], startOffset = list[i][3], endOffset = list[i][4];
+      var failureList = list[i][5];
+      for (var offset = offset1; offset <= offset2; offset++) {
+        for (var idIdx = 0; idIdx < ids.length; idIdx++) {
+          var id = ids[idIdx];
+
+          var flagOk1 = kOk, flagOk2 = kOk, flagOk3 = kOk;
+          if (failureList) {
+            for (var fIdx = 0; fIdx < failureList.length; fIdx++) {
+              if (offset == failureList[fIdx][0] && id == failureList[fIdx][1]) {
+                flagOk1 = failureList[fIdx][2];
+                flagOk2 = failureList[fIdx][3];
+                flagOk3 = failureList[fIdx][4];
+                break;
+              }
+            }
+          }
+
+          var acc = getAccessible(id, nsIAccessibleText);
+          testTextHelper(id, offset, boundaryType,
+                         text, startOffset, endOffset,
+                         flagOk1, flagOk2, flagOk3,
+                         acc[aFuncName], aFuncName + " ");
+        }
+      }
+    }
+    return;
+  }
+
+  
+  var offset = aArgs[0];
+  var boundaryType = aArgs[1];
+  var text = aArgs[2];
+  var startOffset = aArgs[3];
+  var endOffset = aArgs[4];
+  if (aArgs[5] instanceof Array) {
+    var ids = aArgs[5];
+    for (var i = 0; i < ids.length; i++) {
+      var acc = getAccessible(ids[i], nsIAccessibleText);
+      testTextHelper(ids[i], offset, boundaryType,
+                     text, startOffset, endOffset,
+                     kOk, kOk, kOk,
+                     acc[aFuncName], aFuncName + " ");
+    }
+
+    return;
+  }
+
+  
+  for (var i = 5; i < aArgs.length; i = i + 4) {
+    var ID = aArgs[i];
+    var acc = getAccessible(ID, nsIAccessibleText);
+    var toDoFlag1 = aArgs[i + 1];
+    var toDoFlag2 = aArgs[i + 2];
+    var toDoFlag3 = aArgs[i + 3];
+
+    testTextHelper(ID, offset, boundaryType,
+                   text, startOffset, endOffset,
+                   toDoFlag1, toDoFlag2, toDoFlag3,
+                   acc[aFuncName], aFuncName + " ");
+  }
+}
 
 function testTextHelper(aID, aOffset, aBoundaryType,
                         aText, aStartOffset, aEndOffset,
