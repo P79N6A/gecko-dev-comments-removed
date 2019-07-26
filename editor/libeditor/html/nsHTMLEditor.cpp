@@ -1248,11 +1248,10 @@ nsHTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString)
 {
   ForceCompositionEnd();
 
-  nsCOMPtr<nsISelection>selection;
-  nsresult res = GetSelection(getter_AddRefs(selection));
-  NS_ENSURE_SUCCESS(res, res);
+  nsRefPtr<Selection> selection = GetSelection();
+  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
-  nsCOMPtr<nsIDOMElement> bodyElement = do_QueryInterface(GetRoot());
+  nsCOMPtr<Element> bodyElement = GetRoot();
   NS_ENSURE_TRUE(bodyElement, NS_ERROR_NULL_POINTER);
 
   
@@ -1261,17 +1260,18 @@ nsHTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString)
   aSourceString.BeginReading(beginbody);
   aSourceString.EndReading(endbody);
   bool foundbody = CaseInsensitiveFindInReadable(NS_LITERAL_STRING("<body"),
-                                                   beginbody, endbody);
+                                                 beginbody, endbody);
 
   nsReadingIterator<char16_t> beginhead;
   nsReadingIterator<char16_t> endhead;
   aSourceString.BeginReading(beginhead);
   aSourceString.EndReading(endhead);
   bool foundhead = CaseInsensitiveFindInReadable(NS_LITERAL_STRING("<head"),
-                                                   beginhead, endhead);
+                                                 beginhead, endhead);
   
-  if (foundbody && beginhead.get() > beginbody.get())
+  if (foundbody && beginhead.get() > beginbody.get()) {
     foundhead = false;
+  }
 
   nsReadingIterator<char16_t> beginclosehead;
   nsReadingIterator<char16_t> endclosehead;
@@ -1282,11 +1282,13 @@ nsHTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString)
   bool foundclosehead = CaseInsensitiveFindInReadable(
            NS_LITERAL_STRING("</head>"), beginclosehead, endclosehead);
   
-  if (foundhead && beginhead.get() > beginclosehead.get())
+  if (foundhead && beginhead.get() > beginclosehead.get()) {
     foundclosehead = false;
+  }
   
-  if (foundbody && beginclosehead.get() > beginbody.get())
+  if (foundbody && beginclosehead.get() > beginbody.get()) {
     foundclosehead = false;
+  }
   
   
   nsAutoEditBatch beginBatching(this);
@@ -1294,29 +1296,34 @@ nsHTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString)
   nsReadingIterator<char16_t> endtotal;
   aSourceString.EndReading(endtotal);
 
+  nsresult res;
   if (foundhead) {
-    if (foundclosehead)
+    if (foundclosehead) {
       res = ReplaceHeadContentsWithHTML(Substring(beginhead, beginclosehead));
-    else if (foundbody)
+    } else if (foundbody) {
       res = ReplaceHeadContentsWithHTML(Substring(beginhead, beginbody));
-    else
+    } else {
       
       
       
       res = ReplaceHeadContentsWithHTML(Substring(beginhead, endtotal));
+    }
   } else {
     nsReadingIterator<char16_t> begintotal;
     aSourceString.BeginReading(begintotal);
     NS_NAMED_LITERAL_STRING(head, "<head>");
-    if (foundclosehead)
-      res = ReplaceHeadContentsWithHTML(head + Substring(begintotal, beginclosehead));
-    else if (foundbody)
-      res = ReplaceHeadContentsWithHTML(head + Substring(begintotal, beginbody));
-    else
+    if (foundclosehead) {
+      res = ReplaceHeadContentsWithHTML(head + Substring(begintotal,
+                                                         beginclosehead));
+    } else if (foundbody) {
+      res = ReplaceHeadContentsWithHTML(head + Substring(begintotal,
+                                                         beginbody));
+    } else {
       
       
       
       res = ReplaceHeadContentsWithHTML(head);
+    }
   }
   NS_ENSURE_SUCCESS(res, res);
 
@@ -1327,20 +1334,23 @@ nsHTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString)
     NS_NAMED_LITERAL_STRING(body, "<body>");
     
     
-    if (foundclosehead) 
+    if (foundclosehead) {
+      
       res = LoadHTML(body + Substring(endclosehead, endtotal));
-    else if (foundhead) 
+    } else if (foundhead) {
+      
       res = LoadHTML(body);
-    else 
+    } else {
+      
       res = LoadHTML(body + aSourceString);
+    }
     NS_ENSURE_SUCCESS(res, res);
 
-    nsCOMPtr<nsIDOMElement> divElement;
-    res = CreateElementWithDefaults(NS_LITERAL_STRING("div"), getter_AddRefs(divElement));
-    NS_ENSURE_SUCCESS(res, res);
+    nsCOMPtr<Element> divElement =
+      CreateElementWithDefaults(NS_LITERAL_STRING("div"));
+    NS_ENSURE_TRUE(divElement, NS_ERROR_FAILURE);
 
-    res = CloneAttributes(bodyElement, divElement);
-    NS_ENSURE_SUCCESS(res, res);
+    CloneAttributes(bodyElement->AsDOMNode(), divElement->AsDOMNode());
 
     return BeginningOfDocument();
   }
@@ -1356,8 +1366,9 @@ nsHTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString)
   nsReadingIterator<char16_t> beginclosebody = beginbody;
   nsReadingIterator<char16_t> endclosebody;
   aSourceString.EndReading(endclosebody);
-  if (!FindInReadable(NS_LITERAL_STRING(">"),beginclosebody,endclosebody))
+  if (!FindInReadable(NS_LITERAL_STRING(">"), beginclosebody, endclosebody)) {
     return NS_ERROR_FAILURE;
+  }
 
   
   
@@ -1365,24 +1376,20 @@ nsHTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString)
   bodyTag.AssignLiteral("<div ");
   bodyTag.Append(Substring(endbody, endclosebody));
 
-  nsCOMPtr<nsIDOMRange> range;
-  res = selection->GetRangeAt(0, getter_AddRefs(range));
-  NS_ENSURE_SUCCESS(res, res);
+  nsRefPtr<nsRange> range = selection->GetRangeAt(0);
+  NS_ENSURE_TRUE(range, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIDOMDocumentFragment> docfrag;
-  res = range->CreateContextualFragment(bodyTag, getter_AddRefs(docfrag));
-  NS_ENSURE_SUCCESS(res, res);
+  ErrorResult rv;
+  nsRefPtr<DocumentFragment> docfrag =
+    range->CreateContextualFragment(bodyTag, rv);
+  NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
+  NS_ENSURE_TRUE(docfrag, NS_ERROR_NULL_POINTER);
 
-  nsCOMPtr<nsIDOMNode> fragmentAsNode (do_QueryInterface(docfrag));
-  NS_ENSURE_TRUE(fragmentAsNode, NS_ERROR_NULL_POINTER);
-  
-  nsCOMPtr<nsIDOMNode> child;
-  res = fragmentAsNode->GetFirstChild(getter_AddRefs(child));
-  NS_ENSURE_SUCCESS(res, res);
+  nsCOMPtr<nsIContent> child = docfrag->GetFirstChild();
   NS_ENSURE_TRUE(child, NS_ERROR_NULL_POINTER);
   
   
-  res = CloneAttributes(bodyElement, child);
+  res = CloneAttributes(bodyElement->AsDOMNode(), child->AsDOMNode());
   NS_ENSURE_SUCCESS(res, res);
   
   
