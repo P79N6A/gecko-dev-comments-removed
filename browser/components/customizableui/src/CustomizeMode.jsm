@@ -689,14 +689,8 @@ CustomizeMode.prototype = {
     let dt = aEvent.dataTransfer;
     let documentId = aEvent.target.ownerDocument.documentElement.id;
     let draggedItem = item.firstChild;
-    let draggedItemWidth = draggedItem.getBoundingClientRect().width + "px";
 
-    let data = {
-      id: draggedItem.id,
-      width: draggedItemWidth,
-    };
-
-    dt.mozSetDataAt(kDragDataTypePrefix + documentId, data, 0);
+    dt.mozSetDataAt(kDragDataTypePrefix + documentId, draggedItem.id, 0);
     dt.effectAllowed = "move";
 
     
@@ -722,7 +716,7 @@ CustomizeMode.prototype = {
       return;
     }
 
-    let {id: draggedItemId, width: draggedItemWidth} =
+    let draggedItemId =
       aEvent.dataTransfer.mozGetDataAt(kDragDataTypePrefix + documentId, 0);
     let draggedWrapper = document.getElementById("wrapper-" + draggedItemId);
     let targetArea = this._getCustomizableParent(aEvent.currentTarget);
@@ -765,7 +759,7 @@ CustomizeMode.prototype = {
     }
 
     if (dragOverItem != this._dragOverItem) {
-      this._setDragActive(dragOverItem, true, draggedItemWidth, atEnd);
+      this._setDragActive(dragOverItem, true, draggedItemId, atEnd);
       this._dragOverItem = dragOverItem;
     }
 
@@ -779,10 +773,12 @@ CustomizeMode.prototype = {
     let targetArea = this._getCustomizableParent(aEvent.currentTarget);
     let document = aEvent.target.ownerDocument;
     let documentId = document.documentElement.id;
-    let {id: draggedItemId} =
+    let draggedItemId =
       aEvent.dataTransfer.mozGetDataAt(kDragDataTypePrefix + documentId, 0);
     let draggedWrapper = document.getElementById("wrapper-" + draggedItemId);
     let originArea = this._getCustomizableParent(draggedWrapper);
+    if (this._dragWidthMap)
+      this._dragWidthMap.clear()
     
     if (!targetArea || !originArea) {
       return;
@@ -910,7 +906,7 @@ CustomizeMode.prototype = {
       return;
     }
 
-    let {id: draggedItemId} =
+    let draggedItemId =
       aEvent.dataTransfer.mozGetDataAt(kDragDataTypePrefix + documentId, 0);
 
     let draggedWrapper = document.getElementById("wrapper-" + draggedItemId);
@@ -919,7 +915,7 @@ CustomizeMode.prototype = {
     this._showPanelCustomizationPlaceholders();
   },
 
-  _setDragActive: function(aItem, aValue, aWidth, aAtEnd) {
+  _setDragActive: function(aItem, aValue, aDraggedItemId, aAtEnd) {
     if (!aItem) {
       return;
     }
@@ -942,11 +938,14 @@ CustomizeMode.prototype = {
       if (!node.hasAttribute("dragover")) {
         node.setAttribute("dragover", value);
 
-        if (aWidth) {
+        
+        let draggedItem = window.document.getElementById(aDraggedItemId);
+        let width = this._getDragItemWidth(node, draggedItem);
+        if (width) {
           if (value == "left") {
-            node.style.borderLeftWidth = aWidth;
+            node.style.borderLeftWidth = width;
           } else {
-            node.style.borderRightWidth = aWidth;
+            node.style.borderRightWidth = width;
           }
         }
       }
@@ -957,6 +956,56 @@ CustomizeMode.prototype = {
       node.style.removeProperty("border-left-width");
       node.style.removeProperty("border-right-width");
     }
+  },
+
+  _getDragItemWidth: function(aDragOverNode, aDraggedItem) {
+    
+    if (!this._dragWidthMap)
+      this._dragWidthMap = new WeakMap();
+    if (!this._dragWidthMap.has(aDraggedItem))
+      this._dragWidthMap.set(aDraggedItem, new WeakMap());
+    let itemMap = this._dragWidthMap.get(aDraggedItem);
+    let targetArea = this._getCustomizableParent(aDragOverNode);
+    if (!targetArea)
+      return;
+    
+    let width = itemMap.get(targetArea);
+    if (width)
+      return width;
+
+    
+    let window = aDragOverNode.ownerDocument.defaultView;
+    let currentParent = aDraggedItem.parentNode;
+    let currentSibling = aDraggedItem.nextSibling;
+
+    
+    aDragOverNode.parentNode.insertBefore(aDraggedItem, aDragOverNode);
+    
+    let areaType = CustomizableUI.getAreaType(targetArea.id);
+    const kAreaType = "customizableui-areatype";
+    let currentType = aDraggedItem.hasAttribute(kAreaType) &&
+                      aDraggedItem.getAttribute(kAreaType);
+    if (areaType)
+      aDraggedItem.setAttribute(kAreaType, areaType);
+    CustomizableUI.onWidgetDrag(aDraggedItem.id, targetArea.id);
+    
+    width = Math.floor(aDraggedItem.getBoundingClientRect().width) + "px";
+    
+    if (currentSibling)
+      currentParent.insertBefore(aDraggedItem, currentSibling);
+    else
+      currentParent.appendChild(aDraggedItem);
+    
+    if (areaType) {
+      if (currentType === false)
+        aDraggedItem.removeAttribute(kAreaType);
+      else
+        aDraggedItem.setAttribute(kAreaType, currentType);
+    }
+    CustomizableUI.onWidgetDrag(aDraggedItem.id);
+    
+    itemMap.set(targetArea, width);
+    return width;
   },
 
   _getCustomizableParent: function(aElement) {
