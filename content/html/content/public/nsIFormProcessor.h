@@ -14,10 +14,10 @@
 #define nsIFormProcessor_h__
 
 #include "nsISupports.h"
-#include "nsIDOMHTMLInputElement.h"
-#include "nsTArray.h"
+#include "nsTArrayForwardDeclare.h"
 
 class nsString;
+class nsIDOMHTMLElement;
 
 
 #define NS_FORMPROCESSOR_CID \

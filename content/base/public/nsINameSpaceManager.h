@@ -7,10 +7,9 @@
 #define nsINameSpaceManager_h___
 
 #include "nsISupports.h"
-#include "nsStringGlue.h"
 
 class nsIAtom;
-class nsString;
+class nsAString;
 
 #define kNameSpaceID_Unknown -1
 
