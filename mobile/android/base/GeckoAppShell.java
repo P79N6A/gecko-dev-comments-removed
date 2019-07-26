@@ -56,6 +56,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.MessageQueue;
@@ -293,6 +294,19 @@ public class GeckoAppShell
     }
 
     public static void runGecko(String apkPath, String args, String url, String type) {
+        
+        MessageQueue.IdleHandler idleHandler = new MessageQueue.IdleHandler() {
+            @Override public boolean queueIdle() {
+                Handler geckoHandler = ThreadUtils.getGeckoHandler();
+                Message idleMsg = Message.obtain(geckoHandler);
+                
+                idleMsg.obj = geckoHandler;
+                geckoHandler.sendMessageAtFrontOfQueue(idleMsg);
+                
+                return true;
+            }
+        };
+        Looper.myQueue().addIdleHandler(idleHandler);
 
         
         GeckoAppShell.nativeInit();
@@ -321,6 +335,9 @@ public class GeckoAppShell
 
         
         GeckoLoader.nativeRun(combinedArgs);
+
+        
+        Looper.myQueue().removeIdleHandler(idleHandler);
     }
 
     
@@ -2463,10 +2480,16 @@ public class GeckoAppShell
     }
 
     public static boolean pumpMessageLoop() {
+        Handler geckoHandler = ThreadUtils.getGeckoHandler();
         MessageQueue mq = Looper.myQueue();
         Message msg = getNextMessageFromQueue(mq); 
         if (msg == null)
             return false;
+        if (msg.getTarget() == geckoHandler && msg.obj == geckoHandler) {
+            
+            msg.recycle();
+            return false;
+        }
         if (msg.getTarget() == null) 
             Looper.myLooper().quit();
         else
