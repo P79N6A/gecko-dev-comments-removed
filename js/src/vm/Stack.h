@@ -15,14 +15,7 @@
 struct JSContext;
 struct JSCompartment;
 
-#ifdef JS_METHODJIT
-namespace js { namespace mjit { struct CallSite; }}
-typedef js::mjit::CallSite JSInlinedSite;
-#else
-struct JSInlinedSite {};
-#endif
-
-typedef  size_t JSRejoinState;
+extern void js_DumpStackFrame(JSContext *, js::StackFrame *);
 
 namespace js {
 
@@ -45,14 +38,24 @@ class ScriptFrameIter;
 class AllFramesIter;
 
 class ArgumentsObject;
+class ScopeCoordinate;
+class ScopeObject;
 class StaticBlockObject;
 
 #ifdef JS_METHODJIT
 namespace mjit {
+    class CallCompiler;
+    class GetPropCompiler;
+    struct CallSite;
     struct JITScript;
     jsbytecode *NativeToPC(JITScript *jit, void *ncode, CallSite **pinline);
+    namespace ic { struct GetElementIC; }
 }
+typedef mjit::CallSite InlinedSite;
+#else
+struct InlinedSite {};
 #endif
+typedef size_t FrameRejoinState;
 
 namespace ion {
     class IonBailoutIterator;
@@ -61,7 +64,6 @@ namespace ion {
 namespace detail {
     struct OOMCheck;
 }
-
 
 
 
@@ -299,10 +301,14 @@ CallArgsListFromVp(unsigned argc, Value *vp, CallArgsList *prev)
 
 
 
+enum MaybeCheckAliasing { CHECK_ALIASING = true, DONT_CHECK_ALIASING = false };
+
+
+
 
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
-    INITIAL_CONSTRUCT      =       0x80, 
+    INITIAL_CONSTRUCT      =       0x40, 
     INITIAL_LOWERED        =   0x200000  
 };
 
@@ -328,20 +334,22 @@ class StackFrame
         EVAL               =        0x8,  
         DEBUGGER           =       0x10,  
         GENERATOR          =       0x20,  
-        FLOATING_GENERATOR =       0x40,  
-        CONSTRUCTING       =       0x80,  
+        CONSTRUCTING       =       0x40,  
 
         
-        YIELDING           =      0x100,  
-        FINISHED_IN_INTERP =      0x200,  
+        YIELDING           =       0x80,  
+        FINISHED_IN_INTERP =      0x100,  
 
         
-        OVERFLOW_ARGS      =      0x400,  
-        UNDERFLOW_ARGS     =      0x800,  
+        OVERFLOW_ARGS      =      0x200,  
+        UNDERFLOW_ARGS     =      0x400,  
 
         
-        HAS_CALL_OBJ       =     0x1000,  
-        HAS_ARGS_OBJ       =     0x2000,  
+        HAS_CALL_OBJ       =      0x800,  
+        HAS_ARGS_OBJ       =     0x1000,  
+        HAS_NESTING        =     0x2000,  
+
+        
         HAS_HOOK_DATA      =     0x4000,  
         HAS_ANNOTATION     =     0x8000,  
         HAS_RVAL           =    0x10000,  
@@ -352,8 +360,12 @@ class StackFrame
         
         DOWN_FRAMES_EXPANDED = 0x100000,  
         LOWERED_CALL_APPLY   = 0x200000,  
+
         
-        RUNNING_IN_ION       = 0x400000   
+        PREV_UP_TO_DATE    =   0x400000,   
+
+        
+        RUNNING_IN_ION       = 0x800000   
     };
 
   private:
@@ -363,22 +375,20 @@ class StackFrame
         JSFunction      *fun;           
     } exec;
     union {                             
-        unsigned           nactual;        
+        unsigned        nactual;        
         JSScript        *evalScript;    
     } u;
     mutable JSObject    *scopeChain_;   
     StackFrame          *prev_;         
     void                *ncode_;        
-
-    
     Value               rval_;          
     StaticBlockObject   *blockChain_;   
     ArgumentsObject     *argsObj_;      
     jsbytecode          *prevpc_;       
-    JSInlinedSite       *prevInline_;   
+    InlinedSite         *prevInline_;   
     void                *hookData_;     
     void                *annotation_;   
-    JSRejoinState       rejoin_;        
+    FrameRejoinState    rejoin_;        
 
 
     static void staticAsserts() {
@@ -387,13 +397,39 @@ class StackFrame
     }
 
     inline void initPrev(JSContext *cx);
-    jsbytecode *prevpcSlow(JSInlinedSite **pinlined);
+    jsbytecode *prevpcSlow(InlinedSite **pinlined);
+    void writeBarrierPost();
 
-  public:
     
 
 
 
+
+
+
+  public:
+    Value *slots() const { return (Value *)(this + 1); }
+    Value *base() const { return slots() + script()->nfixed; }
+    Value *formals() const { return (Value *)this - fun()->nargs; }
+    Value *actuals() const { return formals() - (flags_ & OVERFLOW_ARGS ? 2 + u.nactual : 0); }
+
+  private:
+    friend class FrameRegs;
+    friend class ContextStack;
+    friend class StackSpace;
+    friend class StackIter;
+    friend class CallObject;
+    friend class ClonedBlockObject;
+    friend class ArgumentsObject;
+    friend void ::js_DumpStackFrame(JSContext *, StackFrame *);
+    friend void ::js_ReportIsNotFunction(JSContext *, const js::Value *, unsigned);
+#ifdef JS_METHODJIT
+    friend class mjit::CallCompiler;
+    friend class mjit::GetPropCompiler;
+    friend class mjit::ic::GetElementIC;
+#endif
+
+    
 
 
 
@@ -410,17 +446,41 @@ class StackFrame
                           const Value &thisv, JSObject &scopeChain, ExecuteType type);
 
     
-    enum TriggerPostBarriers {
-        DoPostBarrier = true,
-        NoPostBarrier = false
-    };
-    template <class T, class U, TriggerPostBarriers doPostBarrier>
-    void stealFrameAndSlots(JSContext *cx, StackFrame *fp, T *vp,
-                            StackFrame *otherfp, U *othervp, Value *othersp);
-    void writeBarrierPost();
+    void initDummyFrame(JSContext *cx, JSObject &chain);
+
+  public:
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool prologue(JSContext *cx, bool newType);
+    void epilogue(JSContext *cx);
 
     
-    void initDummyFrame(JSContext *cx, JSObject &chain);
+    inline bool jitHeavyweightFunctionPrologue(JSContext *cx);
+    inline void jitTypeNestingPrologue(JSContext *cx);
+    bool jitStrictEvalPrologue(JSContext *cx);
+
+    
+    void initVarsToUndefined();
 
     
 
@@ -510,9 +570,63 @@ class StackFrame
     }
 
     inline void resetGeneratorPrev(JSContext *cx);
-    inline void resetInlinePrev(StackFrame *prevfp, jsbytecode *prevpc);
 
-    inline void initInlineFrame(JSFunction *fun, StackFrame *prevfp, jsbytecode *prevpc);
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    inline Value &unaliasedVar(unsigned i, MaybeCheckAliasing = CHECK_ALIASING);
+    inline Value &unaliasedLocal(unsigned i, MaybeCheckAliasing = CHECK_ALIASING);
+
+    bool hasArgs() const { return isNonEvalFunctionFrame(); }
+    inline Value &unaliasedFormal(unsigned i, MaybeCheckAliasing = CHECK_ALIASING);
+    inline Value &unaliasedActual(unsigned i);
+    template <class Op> inline void forEachUnaliasedActual(Op op);
+
+    inline unsigned numFormalArgs() const;
+    inline unsigned numActualArgs() const;
+
+    inline Value &canonicalActualArg(unsigned i) const;
+    template <class Op>
+    inline bool forEachCanonicalActualArg(Op op, unsigned start = 0, unsigned count = unsigned(-1));
+    template <class Op> inline bool forEachFormalArg(Op op);
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+    ArgumentsObject &argsObj() const;
+    void initArgsObj(ArgumentsObject &argsobj);
 
     inline JSObject *createRestParameter(JSContext *cx);
 
@@ -524,25 +638,63 @@ class StackFrame
 
 
 
-    Value *slots() const {
-        return (Value *)(this + 1);
+
+
+
+
+
+
+
+
+
+
+
+    inline HandleObject scopeChain() const;
+
+    inline ScopeObject &aliasedVarScope(ScopeCoordinate sc) const;
+    inline GlobalObject &global() const;
+    inline CallObject &callObj() const;
+    inline JSObject &varObj();
+
+    inline void pushOnScopeChain(ScopeObject &scope);
+    inline void popOffScopeChain();
+
+    
+
+
+
+
+
+
+
+
+
+
+    bool hasBlockChain() const {
+        return (flags_ & HAS_BLOCKCHAIN) && blockChain_;
     }
 
-    Value *base() const {
-        return slots() + script()->nfixed;
+    StaticBlockObject *maybeBlockChain() {
+        return (flags_ & HAS_BLOCKCHAIN) ? blockChain_ : NULL;
     }
 
-    Value &varSlot(unsigned i) {
-        JS_ASSERT(i < script()->nfixed);
-        JS_ASSERT_IF(maybeFun(), i < script()->bindings.numVars());
-        return slots()[i];
+    StaticBlockObject &blockChain() const {
+        JS_ASSERT(hasBlockChain());
+        return *blockChain_;
     }
 
-    Value &localSlot(unsigned i) {
-        
-        JS_ASSERT(i < script()->nslots);
-        return slots()[i];
-    }
+    bool pushBlock(JSContext *cx, StaticBlockObject &block);
+    void popBlock(JSContext *cx);
+
+    
+
+
+
+
+
+
+
+    void popWith(JSContext *cx);
 
     
 
@@ -559,10 +711,18 @@ class StackFrame
 
 
 
+    JSScript *script() const {
+        JS_ASSERT(isScriptFrame());
+        return isFunctionFrame()
+               ? isEvalFrame() ? u.evalScript : fun()->script()
+               : exec.script;
+    }
+
+    JSScript *maybeScript() const {
+        return isScriptFrame() ? script() : NULL;
+    }
+
     
-
-
-
 
 
 
@@ -580,9 +740,9 @@ class StackFrame
 
 
     jsbytecode *pcQuadratic(const ContextStack &stack, StackFrame *next = NULL,
-                            JSInlinedSite **pinlined = NULL);
+                            InlinedSite **pinlined = NULL);
 
-    jsbytecode *prevpc(JSInlinedSite **pinlined) {
+    jsbytecode *prevpc(InlinedSite **pinlined) {
         if (flags_ & HAS_PREVPC) {
             if (pinlined)
                 *pinlined = prevInline_;
@@ -591,43 +751,9 @@ class StackFrame
         return prevpcSlow(pinlined);
     }
 
-    JSInlinedSite *prevInline() {
+    InlinedSite *prevInline() {
         JS_ASSERT(flags_ & HAS_PREVPC);
         return prevInline_;
-    }
-
-    JSScript *script() const {
-        JS_ASSERT(isScriptFrame());
-        return isFunctionFrame()
-               ? isEvalFrame() ? u.evalScript : fun()->script()
-               : exec.script;
-    }
-
-    JSScript *functionScript() const {
-        JS_ASSERT(isFunctionFrame());
-        return isEvalFrame() ? u.evalScript : fun()->script();
-    }
-
-    JSScript *globalScript() const {
-        JS_ASSERT(isGlobalFrame());
-        return exec.script;
-    }
-
-    JSScript *maybeScript() const {
-        return isScriptFrame() ? script() : NULL;
-    }
-
-    size_t numFixed() const {
-        return script()->nfixed;
-    }
-
-    size_t numSlots() const {
-        return script()->nslots;
-    }
-
-    size_t numGlobalVars() const {
-        JS_ASSERT(isGlobalFrame());
-        return exec.script->nfixed;
     }
 
     
@@ -670,114 +796,22 @@ class StackFrame
 
 
 
-
-
-
-
-
-
-    
-    bool hasArgs() const {
-        return isNonEvalFunctionFrame();
-    }
-
-    unsigned numFormalArgs() const {
-        JS_ASSERT(hasArgs());
-        return fun()->nargs;
-    }
-
-    Value &formalArg(unsigned i) const {
-        JS_ASSERT(i < numFormalArgs());
-        return formalArgs()[i];
-    }
-
-    Value *formalArgs() const {
-        JS_ASSERT(hasArgs());
-        return (Value *)this - numFormalArgs();
-    }
-
-    Value *formalArgsEnd() const {
-        JS_ASSERT(hasArgs());
-        return (Value *)this;
-    }
-
-    Value *maybeFormalArgs() const {
-        return (flags_ & (FUNCTION | EVAL)) == FUNCTION
-               ? formalArgs()
-               : NULL;
-    }
-
-    inline unsigned numActualArgs() const;
-    inline Value *actualArgs() const;
-    inline Value *actualArgsEnd() const;
-
-    inline Value &canonicalActualArg(unsigned i) const;
-    template <class Op>
-    inline bool forEachCanonicalActualArg(Op op, unsigned start = 0, unsigned count = unsigned(-1));
-    template <class Op> inline bool forEachFormalArg(Op op);
-
-    bool hasArgsObj() const {
-        
-
-
-
-
-
-
-        return !!(flags_ & HAS_ARGS_OBJ);
-    }
-
-    ArgumentsObject &argsObj() const {
-        JS_ASSERT(hasArgsObj());
-        return *argsObj_;
-    }
-
-    ArgumentsObject *maybeArgsObj() const {
-        return hasArgsObj() ? &argsObj() : NULL;
-    }
-
-    void initArgsObj(ArgumentsObject &argsObj) {
-        JS_ASSERT(script()->needsArgsObj());
-        JS_ASSERT(!hasArgsObj());
-        argsObj_ = &argsObj;
-        flags_ |= HAS_ARGS_OBJ;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
     Value &functionThis() const {
         JS_ASSERT(isFunctionFrame());
         if (isEvalFrame())
             return ((Value *)this)[-1];
-        return formalArgs()[-1];
+        return formals()[-1];
     }
 
     JSObject &constructorThis() const {
         JS_ASSERT(hasArgs());
-        return formalArgs()[-1].toObject();
-    }
-
-    Value &globalThis() const {
-        JS_ASSERT(isGlobalFrame());
-        return ((Value *)this)[-1];
+        return formals()[-1].toObject();
     }
 
     Value &thisValue() const {
         if (flags_ & (EVAL | GLOBAL))
             return ((Value *)this)[-1];
-        return formalArgs()[-1];
+        return formals()[-1];
     }
 
     
@@ -803,7 +837,7 @@ class StackFrame
         JS_ASSERT(isScriptFrame());
         Value &calleev = flags_ & (EVAL | GLOBAL)
                          ? ((Value *)this)[-2]
-                         : formalArgs()[-2];
+                         : formals()[-2];
         JS_ASSERT(calleev.isObjectOrNull());
         return calleev;
     }
@@ -812,116 +846,12 @@ class StackFrame
         JS_ASSERT(isFunctionFrame());
         if (isEvalFrame())
             return ((Value *)this)[-2];
-        return formalArgs()[-2];
+        return formals()[-2];
     }
 
     CallReceiver callReceiver() const {
-        return CallReceiverFromArgv(formalArgs());
+        return CallReceiverFromArgv(formals());
     }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    inline HandleObject scopeChain() const;
-    inline GlobalObject &global() const;
-
-    bool hasCallObj() const {
-        bool ret = !!(flags_ & HAS_CALL_OBJ);
-        JS_ASSERT_IF(ret, !isNonStrictEvalFrame());
-        return ret;
-    }
-
-    inline CallObject &callObj() const;
-    inline void initScopeChain(CallObject &callobj);
-    inline void setScopeChain(JSObject &obj);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    inline JSObject &varObj();
-
-    
-
-    bool hasBlockChain() const {
-        return (flags_ & HAS_BLOCKCHAIN) && blockChain_;
-    }
-
-    StaticBlockObject *maybeBlockChain() {
-        return (flags_ & HAS_BLOCKCHAIN) ? blockChain_ : NULL;
-    }
-
-    StaticBlockObject &blockChain() const {
-        JS_ASSERT(hasBlockChain());
-        return *blockChain_;
-    }
-
-    
-    bool pushBlock(JSContext *cx, StaticBlockObject &block);
-    void popBlock(JSContext *cx);
-
-    
-    void popWith(JSContext *cx);
-
-    
-
-
-
-    inline bool functionPrologue(JSContext *cx);
-
-    
-
-
-
-
-
-    inline void functionEpilogue(JSContext *cx);
-
-    
-
-
-
-    inline void updateEpilogueFlags();
-
-    inline bool maintainNestingState() const;
 
     
 
@@ -945,11 +875,11 @@ class StackFrame
 
     
 
-    JSRejoinState rejoin() const {
+    FrameRejoinState rejoin() const {
         return rejoin_;
     }
 
-    void setRejoin(JSRejoinState state) {
+    void setRejoin(FrameRejoinState state) {
         rejoin_ = state;
     }
 
@@ -1031,27 +961,45 @@ class StackFrame
 
 
 
+
+
+
     bool isGeneratorFrame() const {
-        return !!(flags_ & GENERATOR);
+        bool ret = flags_ & GENERATOR;
+        JS_ASSERT_IF(ret, isNonEvalFunctionFrame());
+        return ret;
     }
 
-    bool isFloatingGenerator() const {
-        JS_ASSERT_IF(flags_ & FLOATING_GENERATOR, isGeneratorFrame());
-        return !!(flags_ & FLOATING_GENERATOR);
+    void initGeneratorFrame() const {
+        JS_ASSERT(!isGeneratorFrame());
+        JS_ASSERT(isNonEvalFunctionFrame());
+        flags_ |= GENERATOR;
     }
 
-    void initFloatingGenerator() {
-        JS_ASSERT(!(flags_ & GENERATOR));
-        flags_ |= (GENERATOR | FLOATING_GENERATOR);
+    Value *generatorArgsSnapshotBegin() const {
+        JS_ASSERT(isGeneratorFrame());
+        return actuals() - 2;
     }
 
-    void unsetFloatingGenerator() {
-        flags_ &= ~FLOATING_GENERATOR;
+    Value *generatorArgsSnapshotEnd() const {
+        JS_ASSERT(isGeneratorFrame());
+        return (Value *)this;
     }
 
-    void setFloatingGenerator() {
-        flags_ |= FLOATING_GENERATOR;
+    Value *generatorSlotsSnapshotBegin() const {
+        JS_ASSERT(isGeneratorFrame());
+        return (Value *)(this + 1);
     }
+
+    enum TriggerPostBarriers {
+        DoPostBarrier = true,
+        NoPostBarrier = false
+    };
+    template <class T, class U, TriggerPostBarriers doPostBarrier>
+    void copyFrameAndValues(JSContext *cx, StackFrame *fp, T *vp,
+                            StackFrame *otherfp, U *othervp, Value *othersp);
+
+    JSGenerator *maybeSuspendedGenerator(JSRuntime *rt);
 
     
 
@@ -1085,6 +1033,11 @@ class StackFrame
         return !!(flags_ & CONSTRUCTING);
     }
 
+    bool hasCallObj() const {
+        JS_ASSERT(isStrictEvalFrame() || fun()->isHeavyweight());
+        return flags_ & HAS_CALL_OBJ;
+    }
+
     
 
 
@@ -1097,6 +1050,14 @@ class StackFrame
 
     bool isDebuggerFrame() const {
         return !!(flags_ & DEBUGGER);
+    }
+
+    bool prevUpToDate() const {
+        return !!(flags_ & PREV_UP_TO_DATE);
+    }
+
+    void setPrevUpToDate() {
+        flags_ |= PREV_UP_TO_DATE;
     }
 
     bool hasOverflowArgs() const {
@@ -1126,6 +1087,9 @@ class StackFrame
   public:
     
 
+    inline void resetInlinePrev(StackFrame *prevfp, jsbytecode *prevpc);
+    inline void initInlineFrame(JSFunction *fun, StackFrame *prevfp, jsbytecode *prevpc);
+
     static size_t offsetOfFlags() {
         return offsetof(StackFrame, flags_);
     }
@@ -1150,12 +1114,12 @@ class StackFrame
         return offsetof(StackFrame, rval_);
     }
 
-    static size_t offsetOfArgsObj() {
-        return offsetof(StackFrame, argsObj_);
-    }
-
     static ptrdiff_t offsetOfNcode() {
         return offsetof(StackFrame, ncode_);
+    }
+
+    static ptrdiff_t offsetOfArgsObj() {
+        return offsetof(StackFrame, argsObj_);
     }
 
     static ptrdiff_t offsetOfCallee(JSFunction *fun) {
@@ -1241,11 +1205,11 @@ class FrameRegs
     Value *sp;
     jsbytecode *pc;
   private:
-    JSInlinedSite *inlined_;
+    InlinedSite *inlined_;
     StackFrame *fp_;
   public:
     StackFrame *fp() const { return fp_; }
-    JSInlinedSite *inlined() const { return inlined_; }
+    InlinedSite *inlined() const { return inlined_; }
 
     
     static const size_t offsetOfFp = 3 * sizeof(void *);
@@ -1255,6 +1219,16 @@ class FrameRegs
         JS_STATIC_ASSERT(offsetOfInlined == offsetof(FrameRegs, inlined_));
     }
     void clearInlined() { inlined_ = NULL; }
+
+    unsigned stackDepth() const {
+        JS_ASSERT(sp >= fp_->base());
+        return sp - fp_->base();
+    }
+
+    Value *spForStackDepth(unsigned depth) const {
+        JS_ASSERT(fp_->script()->nfixed + depth <= fp_->script()->nslots);
+        return fp_->base() + depth;
+    }
 
     
     void rebaseFromTo(const FrameRegs &from, StackFrame &to) {
@@ -1501,6 +1475,10 @@ class StackSpace
 
     StackSegment &findContainingSegment(const StackFrame *target) const;
 
+    bool containsFast(StackFrame *fp) {
+        return (Value *)fp >= base_ && (Value *)fp <= trustedEnd_;
+    }
+
   public:
     StackSpace();
     bool init();
@@ -1553,7 +1531,7 @@ class StackSpace
 
     
     void mark(JSTracer *trc);
-    void markFrameSlots(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbytecode *pc);
+    void markFrameValues(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbytecode *pc);
 
     
     void markActiveCompartments();

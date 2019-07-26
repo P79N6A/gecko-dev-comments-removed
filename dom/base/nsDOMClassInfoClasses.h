@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 DOMCI_CLASS(Window)
 DOMCI_CLASS(Location)
@@ -19,7 +19,7 @@ DOMCI_CLASS(Screen)
 DOMCI_CLASS(DOMPrototype)
 DOMCI_CLASS(DOMConstructor)
 
-// Core classes
+
 DOMCI_CLASS(XMLDocument)
 DOMCI_CLASS(DocumentType)
 DOMCI_CLASS(DOMImplementation)
@@ -36,7 +36,7 @@ DOMCI_CLASS(ProcessingInstruction)
 DOMCI_CLASS(NodeList)
 DOMCI_CLASS(NamedNodeMap)
 
-// Event classes
+
 DOMCI_CLASS(Event)
 DOMCI_CLASS(MutationEvent)
 DOMCI_CLASS(UIEvent)
@@ -54,12 +54,14 @@ DOMCI_CLASS(DeviceMotionEvent)
 DOMCI_CLASS(DeviceAcceleration)
 DOMCI_CLASS(DeviceRotationRate)
 
-// HTML classes
+
 DOMCI_CLASS(HTMLDocument)
 DOMCI_CLASS(HTMLOptionsCollection)
 DOMCI_CLASS(HTMLCollection)
+DOMCI_CLASS(HTMLPropertiesCollection)
+DOMCI_CLASS(PropertyNodeList)
 
-// HTML element classes
+
 DOMCI_CLASS(HTMLElement)
 DOMCI_CLASS(HTMLAnchorElement)
 DOMCI_CLASS(HTMLAppletElement)
@@ -120,7 +122,7 @@ DOMCI_CLASS(HTMLUListElement)
 DOMCI_CLASS(HTMLUnknownElement)
 DOMCI_CLASS(ValidityState)
 
-// CSS classes
+
 DOMCI_CLASS(CSSStyleRule)
 DOMCI_CLASS(CSSCharsetRule)
 DOMCI_CLASS(CSSImportRule)
@@ -134,11 +136,11 @@ DOMCI_CLASS(CSSStyleSheet)
 DOMCI_CLASS(CSSStyleDeclaration)
 DOMCI_CLASS(ROCSSPrimitiveValue)
 
-// Range classes
+
 DOMCI_CLASS(Range)
 DOMCI_CLASS(Selection)
 
-// XUL classes
+
 #ifdef MOZ_XUL
 DOMCI_CLASS(XULDocument)
 DOMCI_CLASS(XULElement)
@@ -151,30 +153,30 @@ DOMCI_CLASS(TreeSelection)
 DOMCI_CLASS(TreeContentView)
 #endif
 
-// Crypto classes
+
 DOMCI_CLASS(Crypto)
 DOMCI_CLASS(CRMFObject)
   
-// DOM Traversal classes
+
 DOMCI_CLASS(TreeWalker)
 
-// Rect object used by getComputedStyle
+
 DOMCI_CLASS(CSSRect)
 
-// DOM Chrome Window class, almost identical to Window
+
 DOMCI_CLASS(ChromeWindow)
 
-// RGBColor object used by getComputedStyle
+
 DOMCI_CLASS(CSSRGBColor)
 
-// CSSValueList object that represents an nsIDOMCSSValueList, used
-// by DOM CSS
+
+
 DOMCI_CLASS(CSSValueList)
 
-// ContentList object used for various live NodeLists
+
 DOMCI_CLASS(ContentList)
   
-// Processing-instruction with target "xml-stylesheet"
+
 DOMCI_CLASS(XMLStylesheetProcessingInstruction)
   
 DOMCI_CLASS(ImageDocument)
@@ -184,7 +186,7 @@ DOMCI_CLASS(XULTemplateBuilder)
 DOMCI_CLASS(XULTreeBuilder)
 #endif
 
-// DOMStringList object
+
 DOMCI_CLASS(DOMStringList)
 
 #ifdef MOZ_XUL
@@ -196,10 +198,10 @@ DOMCI_CLASS(CSSMozDocumentRule)
 
 DOMCI_CLASS(BeforeUnloadEvent)
 
-// The SVG document
+
 DOMCI_CLASS(SVGDocument)
 
-// SVG element classes
+
 DOMCI_CLASS(SVGAElement)
 DOMCI_CLASS(SVGAltGlyphElement)
 DOMCI_CLASS(SVGAnimateElement)
@@ -265,7 +267,7 @@ DOMCI_CLASS(SVGUnknownElement)
 DOMCI_CLASS(SVGUseElement)
 DOMCI_CLASS(SVGViewElement)
 
-// other SVG classes
+
 DOMCI_CLASS(SVGAngle)
 DOMCI_CLASS(SVGAnimatedAngle)
 DOMCI_CLASS(SVGAnimatedBoolean)
@@ -315,7 +317,7 @@ DOMCI_CLASS(SVGTransform)
 DOMCI_CLASS(SVGTransformList)
 DOMCI_CLASS(SVGZoomEvent)
 
-// Canvas
+
 DOMCI_CLASS(HTMLCanvasElement)
 DOMCI_CLASS(CanvasRenderingContext2D)
 DOMCI_CLASS(CanvasGradient)
@@ -323,40 +325,40 @@ DOMCI_CLASS(CanvasPattern)
 DOMCI_CLASS(TextMetrics)
 DOMCI_CLASS(ImageData)
 
-// SmartCard Events
+
 DOMCI_CLASS(SmartCardEvent)
   
-// PageTransition Events
+
 DOMCI_CLASS(PageTransitionEvent)
 
-// WindowUtils
+
 DOMCI_CLASS(WindowUtils)
 
-// XSLTProcessor
+
 DOMCI_CLASS(XSLTProcessor)
 
-// DOM Level 3 XPath objects
+
 DOMCI_CLASS(XPathEvaluator)
 DOMCI_CLASS(XPathException)
 DOMCI_CLASS(XPathExpression)
 DOMCI_CLASS(XPathNSResolver)
 DOMCI_CLASS(XPathResult)
 
-// WhatWG WebApps Objects
+
 DOMCI_CLASS(StorageObsolete)
 DOMCI_CLASS(Storage)
 DOMCI_CLASS(StorageItem)
 DOMCI_CLASS(StorageEvent)
 
-// DOMParser, XMLSerializer
+
 DOMCI_CLASS(DOMParser)
 DOMCI_CLASS(XMLSerializer)
 
-// XMLHttpRequest
+
 DOMCI_CLASS(XMLHttpProgressEvent)
 DOMCI_CLASS(XMLHttpRequest)
 
-// Server-sent events
+
 DOMCI_CLASS(EventSource)
 
 DOMCI_CLASS(ClientRect)
@@ -377,20 +379,20 @@ DOMCI_CLASS(MozBlobBuilder)
 
 DOMCI_CLASS(DOMStringMap)
 
-// DOM modal content window class, almost identical to Window
+
 DOMCI_CLASS(ModalContentWindow)
 
-// Data Events
+
 DOMCI_CLASS(DataContainerEvent)
 
-// event used for cross-domain message-passing and for server-sent events in
-// HTML5
+
+
 DOMCI_CLASS(MessageEvent)
 
 DOMCI_CLASS(DeviceStorage)
 DOMCI_CLASS(DeviceStorageCursor)
 
-// Geolocation
+
 DOMCI_CLASS(GeoGeolocation)
 DOMCI_CLASS(GeoPosition)
 DOMCI_CLASS(GeoPositionCoords)
@@ -411,19 +413,19 @@ DOMCI_CLASS(MozSmsCursor)
 DOMCI_CLASS(MozConnection)
 DOMCI_CLASS(MozMobileConnection)
 
-// @font-face in CSS
+
 DOMCI_CLASS(CSSFontFaceRule)
 DOMCI_CLASS(CSSFontFaceStyleDecl)
 
 #if defined(MOZ_MEDIA)
-// WhatWG Video Element
+
 DOMCI_CLASS(HTMLVideoElement)
 DOMCI_CLASS(HTMLSourceElement)
 DOMCI_CLASS(MediaError)
 DOMCI_CLASS(HTMLAudioElement)
 DOMCI_CLASS(TimeRanges)
 
-// Media streams
+
 DOMCI_CLASS(MediaStream)
 #endif
 
@@ -431,7 +433,7 @@ DOMCI_CLASS(ProgressEvent)
 
 DOMCI_CLASS(XMLHttpRequestUpload)
 
-// DOM Traversal NodeIterator class
+
 DOMCI_CLASS(NodeIterator)
 
 DOMCI_CLASS(DataTransfer)
@@ -446,7 +448,7 @@ DOMCI_CLASS(MozTouchEvent)
 
 DOMCI_CLASS(MathMLElement)
 
-// WebGL
+
 DOMCI_CLASS(WebGLRenderingContext)
 DOMCI_CLASS(WebGLBuffer)
 DOMCI_CLASS(WebGLTexture)
@@ -482,7 +484,7 @@ DOMCI_CLASS(FormData)
 DOMCI_CLASS(DesktopNotification)
 DOMCI_CLASS(DesktopNotificationCenter)
 
-// WebSocket
+
 DOMCI_CLASS(WebSocket)
 DOMCI_CLASS(CloseEvent)
 

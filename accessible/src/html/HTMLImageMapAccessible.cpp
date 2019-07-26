@@ -48,27 +48,27 @@ HTMLImageMapAccessible::NativeRole()
 
 
 
-uint32_t
+PRUint32
 HTMLImageMapAccessible::AnchorCount()
 {
   return ChildCount();
 }
 
 Accessible*
-HTMLImageMapAccessible::AnchorAt(uint32_t aAnchorIndex)
+HTMLImageMapAccessible::AnchorAt(PRUint32 aAnchorIndex)
 {
   return GetChildAt(aAnchorIndex);
 }
 
 already_AddRefed<nsIURI>
-HTMLImageMapAccessible::AnchorURIAt(uint32_t aAnchorIndex)
+HTMLImageMapAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
 {
   Accessible* area = GetChildAt(aAnchorIndex);
   if (!area)
-    return nullptr;
+    return nsnull;
 
   nsIContent* linkContent = area->GetContent();
-  return linkContent ? linkContent->GetHrefURI() : nullptr;
+  return linkContent ? linkContent->GetHrefURI() : nsnull;
 }
 
 
@@ -87,7 +87,7 @@ HTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
   bool doReorderEvent = false;
 
   
-  for (int32_t childIdx = mChildren.Length() - 1; childIdx >= 0; childIdx--) {
+  for (PRInt32 childIdx = mChildren.Length() - 1; childIdx >= 0; childIdx--) {
     Accessible* area = mChildren.ElementAt(childIdx);
     if (area->GetContent()->GetPrimaryFrame())
       continue;
@@ -102,8 +102,8 @@ HTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
   }
 
   
-  uint32_t areaElmCount = imageMapObj->AreaCount();
-  for (uint32_t idx = 0; idx < areaElmCount; idx++) {
+  PRUint32 areaElmCount = imageMapObj->AreaCount();
+  for (PRUint32 idx = 0; idx < areaElmCount; idx++) {
     nsIContent* areaContent = imageMapObj->GetAreaAt(idx);
 
     Accessible* area = mChildren.SafeElementAt(idx);
@@ -152,9 +152,6 @@ HTMLAreaAccessible::
   HTMLAreaAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   HTMLLinkAccessible(aContent, aDoc)
 {
-  
-  
-  mFlags |= eSharedNode;
 }
 
 
@@ -189,8 +186,19 @@ HTMLAreaAccessible::Description(nsString& aDescription)
 
 
 
+bool
+HTMLAreaAccessible::IsPrimaryForNode() const
+{
+  
+  
+  return false;
+}
+
+
+
+
 Accessible*
-HTMLAreaAccessible::ChildAtPoint(int32_t aX, int32_t aY,
+HTMLAreaAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                  EWhichChildAtPoint aWhichChild)
 {
   
@@ -200,7 +208,7 @@ HTMLAreaAccessible::ChildAtPoint(int32_t aX, int32_t aY,
 
 
 
-uint32_t
+PRUint32
 HTMLAreaAccessible::StartOffset()
 {
   
@@ -211,7 +219,7 @@ HTMLAreaAccessible::StartOffset()
   return IndexInParent();
 }
 
-uint32_t
+PRUint32
 HTMLAreaAccessible::EndOffset()
 {
   return IndexInParent() + 1;

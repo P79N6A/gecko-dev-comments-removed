@@ -153,6 +153,9 @@ private:
   
   
   bool mIsDoneAddingChildren;
+
+  virtual void GetItemValueText(nsAString& text);
+  virtual void SetItemValueText(const nsAString& text);
 };
 
 
@@ -169,6 +172,26 @@ nsHTMLSharedObjectElement::nsHTMLSharedObjectElement(already_AddRefed<nsINodeInf
 
   
   AddStatesSilently(NS_EVENT_STATE_LOADING);
+}
+
+void
+nsHTMLSharedObjectElement::GetItemValueText(nsAString& aValue)
+{
+  if (mNodeInfo->Equals(nsGkAtoms::applet)) {
+    nsGenericHTMLElement::GetItemValueText(aValue);
+  } else {
+    GetSrc(aValue);
+  }
+}
+
+void
+nsHTMLSharedObjectElement::SetItemValueText(const nsAString& aValue)
+{
+  if (mNodeInfo->Equals(nsGkAtoms::applet)) {
+    nsGenericHTMLElement::SetItemValueText(aValue);
+  } else {
+    SetSrc(aValue);
+  }
 }
 
 nsHTMLSharedObjectElement::~nsHTMLSharedObjectElement()

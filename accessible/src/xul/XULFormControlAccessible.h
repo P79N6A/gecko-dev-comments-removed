@@ -65,7 +65,7 @@ protected:
 
 
 
-class XULCheckboxAccessible : public nsLeafAccessible
+class XULCheckboxAccessible : public LeafAccessible
 {
 public:
   enum { eAction_Click = 0 };
@@ -86,7 +86,7 @@ public:
 
 
 
-class XULDropmarkerAccessible : public nsLeafAccessible
+class XULDropmarkerAccessible : public LeafAccessible
 {
 public:
   enum { eAction_Click = 0 };
@@ -200,7 +200,7 @@ public:
 
 
 
-class XULToolbarSeparatorAccessible : public nsLeafAccessible
+class XULToolbarSeparatorAccessible : public LeafAccessible
 {
 public:
   XULToolbarSeparatorAccessible(nsIContent* aContent,

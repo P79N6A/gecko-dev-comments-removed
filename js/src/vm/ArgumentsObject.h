@@ -18,14 +18,22 @@ namespace js {
 
 
 
-
 struct ArgumentsData
 {
     
 
 
 
+    unsigned    numArgs;
+
+    
+
+
+
     HeapValue   callee;
+
+    
+    JSScript    *script;
 
     
 
@@ -37,23 +45,16 @@ struct ArgumentsData
 
 
 
-    HeapValue   slots[1];
+
+
+
+
+
+    HeapValue   args[1];
+
+    
+    static ptrdiff_t offsetOfArgs() { return offsetof(ArgumentsData, args); }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -94,24 +95,23 @@ struct ArgumentsData
 
 class ArgumentsObject : public JSObject
 {
+  protected:
     static const uint32_t INITIAL_LENGTH_SLOT = 0;
     static const uint32_t DATA_SLOT = 1;
-    static const uint32_t STACK_FRAME_SLOT = 2;
+    static const uint32_t MAYBE_CALL_SLOT = 2;
 
-    
     static const uint32_t LENGTH_OVERRIDDEN_BIT = 0x1;
     static const uint32_t PACKED_BITS_COUNT = 1;
 
-    void initInitialLength(uint32_t length);
-    void initData(ArgumentsData *data);
-    static ArgumentsObject *create(JSContext *cx, uint32_t argc, HandleObject callee);
+    static ArgumentsObject *create(JSContext *cx, StackFrame *fp);
+    inline ArgumentsData *data() const;
 
   public:
     static const uint32_t RESERVED_SLOTS = 3;
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4;
 
     
-    static ArgumentsObject *create(JSContext *cx, StackFrame *fp);
+    static ArgumentsObject *createExpected(JSContext *cx, StackFrame *fp);
 
     
 
@@ -128,31 +128,11 @@ class ArgumentsObject : public JSObject
     inline uint32_t initialLength() const;
 
     
+    JSScript *containingScript() const;
+
+    
     inline bool hasOverriddenLength() const;
     inline void markLengthOverridden();
-
-    
-
-
-
-
-
-
-
-    inline bool getElement(uint32_t i, js::Value *vp);
-
-    
-
-
-
-
-
-
-
-
-    inline bool getElements(uint32_t start, uint32_t count, js::Value *vp);
-
-    inline js::ArgumentsData *data() const;
 
     
 
@@ -172,18 +152,51 @@ class ArgumentsObject : public JSObject
     inline bool isAnyElementDeleted() const;
     inline void markElementDeleted(uint32_t i);
 
-    inline const js::Value &element(uint32_t i) const;
-    inline void setElement(uint32_t i, const js::Value &v);
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    inline const Value &element(uint32_t i) const;
+    inline void setElement(uint32_t i, const Value &v);
+    inline const Value &arg(unsigned i) const;
+    inline void setArg(unsigned i, const Value &v);
 
     
-    inline js::StackFrame *maybeStackFrame() const;
-    inline void setStackFrame(js::StackFrame *frame);
+
+
+
+
+
+
+
+
+    inline bool maybeGetElement(uint32_t i, Value *vp);
+    inline bool maybeGetElements(uint32_t start, uint32_t count, js::Value *vp);
 
     
 
 
 
     inline size_t sizeOfMisc(JSMallocSizeOfFun mallocSizeOf) const;
+
+    static void finalize(FreeOp *fop, JSObject *obj);
+    static void trace(JSTracer *trc, JSObject *obj);
+
+    
+    static size_t getDataSlotOffset() {
+        return getFixedSlotOffset(DATA_SLOT);
+    }
 };
 
 class NormalArgumentsObject : public ArgumentsObject

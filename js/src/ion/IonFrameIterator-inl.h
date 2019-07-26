@@ -69,15 +69,11 @@ SnapshotIterator::readFrameArgs(Op op, const Value *argv, Value *scopeChain, Val
         
         
         Value v = maybeRead();
-        if (!op(i, &v))
-            return false;
+        op(v);
     }
     if (iterEnd >= formalEnd) {
-        for (; i < iterEnd; i++) {
-            Value v = argv[i];
-            if (!op(i, &v))
-                return false;
-        }
+        for (; i < iterEnd; i++)
+            op(argv[i]);
     }
     return true;
 }

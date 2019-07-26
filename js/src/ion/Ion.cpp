@@ -804,7 +804,12 @@ CheckFrame(StackFrame *fp)
         return false;
     }
 
-    if (fp->hasCallObj()) {
+    if (fp->isFunctionFrame() && fp->fun()->isHeavyweight()) {
+        IonSpew(IonSpew_Abort, "function is heavyweight");
+        return false;
+    }
+
+    if (fp->isFunctionFrame() && fp->isStrictEvalFrame() && fp->hasCallObj()) {
         
         
         
@@ -812,7 +817,7 @@ CheckFrame(StackFrame *fp)
         return false;
     }
 
-    if (fp->hasArgsObj() || fp->script()->argumentsHasLocalBinding()) {
+    if (fp->script()->needsArgsObj() || fp->script()->argumentsHasLocalBinding()) {
         
         
         IonSpew(IonSpew_Abort, "frame has argsobj");
@@ -1002,13 +1007,13 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
         
         
         argc = CountArgSlots(fp->fun()) - 1;
-        argv = fp->formalArgs() - 1;
+        argv = fp->formals() - 1;
 
         if (fp->hasOverflowArgs()) {
             int formalArgc = argc;
             Value *formalArgv = argv;
             argc = fp->numActualArgs() + 1;
-            argv = fp->actualArgs() - 1;
+            argv = fp->actuals() - 1;
             
             
             
@@ -1041,8 +1046,6 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
 
     
     fp->setReturnValue(result);
-    if (fp->isFunctionFrame())
-        fp->updateEpilogueFlags();
 
     
     if (!result.isMagic() && fp->isConstructing() && fp->returnValue().isPrimitive())

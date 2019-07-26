@@ -15,6 +15,8 @@
 #include "DocAccessible-inl.h"
 #include "FocusManager.h"
 #include "HTMLElementAccessibles.h"
+#include "HTMLImageMapAccessible.h"
+#include "HTMLLinkAccessible.h"
 #include "HTMLListAccessible.h"
 #include "HyperTextAccessibleWrap.h"
 #include "nsAccessiblePivot.h"
@@ -22,8 +24,6 @@
 #include "nsARIAMap.h"
 #include "nsIAccessibleProvider.h"
 #include "nsHTMLCanvasAccessible.h"
-#include "nsHTMLImageMapAccessible.h"
-#include "nsHTMLLinkAccessible.h"
 #include "nsHTMLSelectAccessible.h"
 #include "nsHTMLTableAccessibleWrap.h"
 #include "nsXFormsFormControlsAccessible.h"
@@ -170,7 +170,7 @@ nsAccessibilityService::GetRootDocumentAccessible(nsIPresShell* aPresShell,
   }
   return nsnull;
 }
- 
+
 already_AddRefed<Accessible>
 nsAccessibilityService::CreateOuterDocAccessible(nsIContent* aContent,
                                                  nsIPresShell* aPresShell)
@@ -266,7 +266,7 @@ nsAccessibilityService::CreateHTMLImageMapAccessible(nsIContent* aContent,
                                                      nsIPresShell* aPresShell)
 {
   Accessible* accessible =
-    new nsHTMLImageMapAccessible(aContent, GetDocAccessible(aPresShell));
+    new HTMLImageMapAccessible(aContent, GetDocAccessible(aPresShell));
   NS_ADDREF(accessible);
   return accessible;
 }
@@ -296,8 +296,8 @@ nsAccessibilityService::CreateHTMLMediaAccessible(nsIContent* aContent,
                                                   nsIPresShell* aPresShell)
 {
   Accessible* accessible =
-    new nsEnumRoleAccessible(aContent, GetDocAccessible(aPresShell),
-                             roles::GROUPING);
+    new EnumRoleAccessible(aContent, GetDocAccessible(aPresShell),
+                           roles::GROUPING);
   NS_ADDREF(accessible);
   return accessible;
 }
@@ -405,7 +405,7 @@ nsAccessibilityService::CreateHTMLTableRowAccessible(nsIContent* aContent,
                                                      nsIPresShell* aPresShell)
 {
   Accessible* accessible =
-    new nsEnumRoleAccessible(aContent, GetDocAccessible(aPresShell), roles::ROW);
+    new EnumRoleAccessible(aContent, GetDocAccessible(aPresShell), roles::ROW);
   NS_ADDREF(accessible);
   return accessible;
 }
@@ -562,7 +562,7 @@ nsAccessibilityService::UpdateImageMap(nsImageFrame* aImageFrame)
     Accessible* accessible =
       document->GetAccessible(aImageFrame->GetContent());
     if (accessible) {
-      nsHTMLImageMapAccessible* imageMap = accessible->AsImageMap();
+      HTMLImageMapAccessible* imageMap = accessible->AsImageMap();
       if (imageMap) {
         imageMap->UpdateChildAreas();
         return;
@@ -1173,12 +1173,10 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   if (!newAcc) {
     
     if (content->IsSVG(nsGkAtoms::svg)) {
-      newAcc = new nsEnumRoleAccessible(content, docAcc,
-                                        roles::DIAGRAM);
+      newAcc = new EnumRoleAccessible(content, docAcc, roles::DIAGRAM);
     }
     else if (content->IsMathML(nsGkAtoms::math)) {
-      newAcc = new nsEnumRoleAccessible(content, docAcc,
-                                        roles::EQUATION);
+      newAcc = new EnumRoleAccessible(content, docAcc, roles::EQUATION);
     }
   }
 
@@ -1191,7 +1189,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   
   
   
-  if (!newAcc && content->Tag() != nsGkAtoms::body && content->GetParent() && 
+  if (!newAcc && content->Tag() != nsGkAtoms::body && content->GetParent() &&
       ((weakFrame.GetFrame() && weakFrame.GetFrame()->IsFocusable()) ||
        (isHTML && nsCoreUtils::HasClickListener(content)) ||
        HasUniversalAriaProperty(content) || roleMapEntry ||
@@ -1419,8 +1417,7 @@ nsAccessibilityService::CreateAccessibleByType(nsIContent* aContent,
       break;
 
     case nsIAccessibleProvider::XULPane:
-      accessible = new nsEnumRoleAccessible(aContent, aDoc,
-                                            roles::PANE);
+      accessible = new EnumRoleAccessible(aContent, aDoc, roles::PANE);
       break;
 
     case nsIAccessibleProvider::XULProgressMeter:
@@ -1636,7 +1633,7 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
       return accessible;
     }
 
-    Accessible* accessible = new nsHTMLLinkAccessible(aContent, aDoc);
+    Accessible* accessible = new HTMLLinkAccessible(aContent, aDoc);
     NS_IF_ADDREF(accessible);
     return accessible;
   }
@@ -1786,8 +1783,8 @@ nsAccessibilityService::CreateAccessibleForDeckChild(nsIFrame* aFrame,
         return accessible;
       }
 #endif
-      Accessible* accessible = new nsEnumRoleAccessible(aContent, aDoc,
-                                                        roles::PROPERTYPAGE);
+      Accessible* accessible = new EnumRoleAccessible(aContent, aDoc,
+                                                      roles::PROPERTYPAGE);
       NS_IF_ADDREF(accessible);
       return accessible;
     }

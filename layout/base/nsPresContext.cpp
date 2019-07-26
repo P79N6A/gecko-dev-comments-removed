@@ -1822,8 +1822,10 @@ nsPresContext::EnsureVisible()
       cv->GetPresContext(getter_AddRefs(currentPresContext));
       if (currentPresContext == this) {
         
-        cv->Show();
-        return true;
+        nsresult result = cv->Show();
+        if (NS_SUCCEEDED(result)) {
+          return true;
+        }
       }
     }
   }

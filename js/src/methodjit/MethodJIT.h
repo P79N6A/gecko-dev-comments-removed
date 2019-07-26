@@ -109,7 +109,7 @@ struct VMFrame
     Value        *stackLimit;
     StackFrame   *entryfp;
     FrameRegs    *oldregs;
-    JSRejoinState stubRejoin;  
+    FrameRejoinState stubRejoin;  
 
 #if defined(JS_CPU_X86)
     void         *unused0, *unused1;  
@@ -295,9 +295,6 @@ enum RejoinState {
     REJOIN_PUSH_OBJECT,
 
     
-    REJOIN_DEFLOCALFUN,
-
-    
 
 
 
@@ -313,6 +310,7 @@ enum RejoinState {
 
 
 
+    REJOIN_EVAL_PROLOGUE,
     REJOIN_FUNCTION_PROLOGUE,
 
     
@@ -339,14 +337,14 @@ enum RejoinState {
 };
 
 
-static inline JSRejoinState
+static inline FrameRejoinState
 ScriptedRejoin(uint32_t pcOffset)
 {
     return REJOIN_SCRIPTED | (pcOffset << 1);
 }
 
 
-static inline JSRejoinState
+static inline FrameRejoinState
 StubRejoin(RejoinState rejoin)
 {
     return rejoin << 1;

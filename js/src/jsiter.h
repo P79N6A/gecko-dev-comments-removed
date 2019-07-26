@@ -265,65 +265,28 @@ ForOf(JSContext *cx, const Value &iterable, Op op)
 
 
 
-typedef enum JSGeneratorState {
+enum JSGeneratorState
+{
     JSGEN_NEWBORN,  
     JSGEN_OPEN,     
     JSGEN_RUNNING,  
     JSGEN_CLOSING,  
     JSGEN_CLOSED    
-} JSGeneratorState;
+};
 
-struct JSGenerator {
+struct JSGenerator
+{
     js::HeapPtrObject   obj;
     JSGeneratorState    state;
     js::FrameRegs       regs;
     JSObject            *enumerators;
-    js::StackFrame      *floating;
-    js::HeapValue       floatingStack[1];
-
-    js::StackFrame *floatingFrame() {
-        return floating;
-    }
-
-    js::StackFrame *liveFrame() {
-        JS_ASSERT((state == JSGEN_RUNNING || state == JSGEN_CLOSING) ==
-                  (regs.fp() != floatingFrame()));
-        return regs.fp();
-    }
+    JSGenerator         *prevGenerator;
+    js::StackFrame      *fp;
+    js::HeapValue       stackSnapshot[1];
 };
 
 extern JSObject *
 js_NewGenerator(JSContext *cx);
-
-
-
-
-
-
-
-
-
-
-
-
-inline js::StackFrame *
-js_FloatingFrameIfGenerator(JSContext *cx, js::StackFrame *fp)
-{
-    if (JS_UNLIKELY(fp->isGeneratorFrame()))
-        return cx->generatorFor(fp)->floatingFrame();
-    return fp;
-}
-
-
-extern JSGenerator *
-js_FloatingFrameToGenerator(js::StackFrame *fp);
-
-inline js::StackFrame *
-js_LiveFrameIfGenerator(js::StackFrame *fp)
-{
-    return fp->isGeneratorFrame() ? js_FloatingFrameToGenerator(fp)->liveFrame() : fp;
-}
-
 #endif
 
 extern JSObject *

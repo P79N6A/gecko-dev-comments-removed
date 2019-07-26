@@ -103,29 +103,11 @@ RestoreOneFrame(JSContext *cx, StackFrame *fp, SnapshotIterator &iter)
     
     
     
-    
-    
-    
-    
-    
-    
-    Value scopeChainv;
-    if (iter.bailoutKind() == Bailout_ArgumentCheck) {
-        scopeChainv = ObjectValue(*fp->fun()->environment());
-        iter.skip();
-    } else {
-        scopeChainv = iter.read();
-    }
-
-    if (scopeChainv.isObject()) {
-        fp->setScopeChain(scopeChainv.toObject());
-    } else {
-        JS_ASSERT(scopeChainv.isUndefined());
-    }
+    iter.skip();
 
     if (fp->isFunctionFrame()) {
         Value thisv = iter.read();
-        fp->formalArgs()[-1] = thisv;
+        fp->formals()[-1] = thisv;
 
         
         
@@ -138,7 +120,7 @@ RestoreOneFrame(JSContext *cx, StackFrame *fp, SnapshotIterator &iter)
 
         for (uint32 i = 0; i < fp->fun()->nargs; i++) {
             Value arg = iter.read();
-            fp->formalArgs()[i] = arg;
+            fp->formals()[i] = arg;
         }
     }
     exprStackSlots -= CountArgSlots(fp->maybeFun());
@@ -205,7 +187,7 @@ PushInlinedFrame(JSContext *cx, StackFrame *callerFrame)
     JS_ASSERT(fp == regs.fp());
     JS_ASSERT(fp->prev() == callerFrame);
     
-    fp->formalArgs()[-2].setObject(*fun);
+    fp->formals()[-2].setObject(*fun);
 
     return fp;
 }
@@ -260,7 +242,7 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
 
     JSFunction *callee = it.maybeCallee();
     if (callee)
-        fp->formalArgs()[-2].setObject(*callee);
+        fp->formals()[-2].setObject(*callee);
 
     if (it.isConstructing())
         fp->setConstructing();
@@ -442,7 +424,7 @@ ReflowArgTypes(JSContext *cx)
     if (!fp->isConstructing())
         types::TypeScript::SetThis(cx, script, fp->thisValue());
     for (unsigned i = 0; i < nargs; ++i)
-        types::TypeScript::SetArgument(cx, script, i, fp->formalArg(i));
+        types::TypeScript::SetArgument(cx, script, i, fp->unaliasedFormal(i));
 }
 
 uint32

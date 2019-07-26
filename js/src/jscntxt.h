@@ -1289,28 +1289,11 @@ struct JSContext : js::ContextFriendFields
 
   private:
     
-
-
-
-
-
-    js::Vector<JSGenerator *, 2, js::SystemAllocPolicy> genStack;
-
+    JSGenerator *innermostGenerator_;
   public:
-    
-    JSGenerator *generatorFor(js::StackFrame *fp) const;
-
-    
-    inline bool ensureGeneratorStackSpace();
-
-    bool enterGenerator(JSGenerator *gen) {
-        return genStack.append(gen);
-    }
-
-    void leaveGenerator(JSGenerator *gen) {
-        JS_ASSERT(genStack.back() == gen);
-        genStack.popBack();
-    }
+    JSGenerator *innermostGenerator() const { return innermostGenerator_; }
+    void enterGenerator(JSGenerator *gen);
+    void leaveGenerator(JSGenerator *gen);
 
     inline void* malloc_(size_t bytes) {
         return runtime->malloc_(bytes, this);
@@ -1342,9 +1325,6 @@ struct JSContext : js::ContextFriendFields
 
     void purge();
 
-    
-    inline void assertValidStackDepth(unsigned depth);
-
     bool isExceptionPending() {
         return throwing;
     }
@@ -1367,12 +1347,6 @@ struct JSContext : js::ContextFriendFields
 
 
     bool stackIterAssertionEnabled;
-
-    
-
-
-
-    unsigned okToAccessUnaliasedBindings;
 #endif
 
     
@@ -1408,23 +1382,6 @@ struct JSContext : js::ContextFriendFields
 }; 
 
 namespace js {
-
-class AutoAllowUnaliasedVarAccess
-{
-    JSContext *cx;
-  public:
-    AutoAllowUnaliasedVarAccess(JSContext *cx) : cx(cx) {
-#ifdef DEBUG
-        cx->okToAccessUnaliasedBindings++;
-#endif
-    }
-    ~AutoAllowUnaliasedVarAccess() {
-#ifdef DEBUG
-        JS_ASSERT(cx->okToAccessUnaliasedBindings);
-        cx->okToAccessUnaliasedBindings--;
-#endif
-    }
-};
 
 struct AutoResolving {
   public:

@@ -471,18 +471,6 @@ public:
   nsCOMPtr<nsIDocument> mTop;
 };
 
-class nsBeforeFirstPaintDispatcher : public nsRunnable
-{
-public:
-  nsBeforeFirstPaintDispatcher(nsIDocument* aDocument)
-  : mDocument(aDocument) {}
-
-  NS_IMETHOD Run();
-
-private:
-  nsCOMPtr<nsIDocument> mDocument;
-};
-
 class nsDocumentShownDispatcher : public nsRunnable
 {
 public:
@@ -2024,11 +2012,6 @@ DocumentViewerImpl::Show(void)
       mPresShell->UnsuppressPainting();
     }
   }
-
-  
-  
-  
-  nsContentUtils::AddScriptRunner(new nsBeforeFirstPaintDispatcher(mDocument));
 
   
   
@@ -4374,19 +4357,6 @@ DocumentViewerImpl::SetPrintPreviewPresentation(nsIViewManager* aViewManager,
   mViewManager = aViewManager;
   mPresContext = aPresContext;
   mPresShell = aPresShell;
-}
-
-
-
-NS_IMETHODIMP
-nsBeforeFirstPaintDispatcher::Run()
-{
-  nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
-  if (observerService) {
-    observerService->NotifyObservers(mDocument, "before-first-paint", NULL);
-  }
-  return NS_OK;
 }
 
 

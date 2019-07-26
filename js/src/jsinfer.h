@@ -23,6 +23,9 @@ struct TypeInferenceSizes;
 }
 
 namespace js {
+
+class CallObject;
+
 namespace types {
 
 
@@ -967,7 +970,7 @@ struct TypeScriptNesting
     JSScript *next;
 
     
-    JSObject *activeCall;
+    CallObject *activeCall;
 
     
 

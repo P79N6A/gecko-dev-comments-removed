@@ -80,6 +80,20 @@ nsHTMLVideoElement::~nsHTMLVideoElement()
 {
 }
 
+void
+nsHTMLVideoElement::GetItemValueText(nsAString& aValue)
+{
+  
+  GetURIAttr(nsGkAtoms::src, nsnull, aValue);
+}
+
+void
+nsHTMLVideoElement::SetItemValueText(const nsAString& aValue)
+{
+  
+  SetAttr(kNameSpaceID_None, nsGkAtoms::src, aValue, true);
+}
+
 nsresult nsHTMLVideoElement::GetVideoSize(nsIntSize* size)
 {
   if (mMediaSize.width == -1 && mMediaSize.height == -1) {

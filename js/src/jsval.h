@@ -220,10 +220,11 @@ typedef enum JSWhyMagic
     JS_ARG_POISON,               
     JS_SERIALIZE_NO_NODE,        
     JS_LAZY_ARGUMENTS,           
-    JS_UNASSIGNED_ARGUMENTS,     
     JS_OPTIMIZED_ARGUMENTS,      
     JS_IS_CONSTRUCTING,          
     JS_OVERWRITTEN_CALLEE,       
+    JS_FORWARD_TO_CALL_OBJECT,   
+    JS_BLOCK_NEEDS_CLONE,        
     JS_ION_ERROR,                
     JS_ION_BAILOUT,              
     JS_GENERIC_MAGIC             

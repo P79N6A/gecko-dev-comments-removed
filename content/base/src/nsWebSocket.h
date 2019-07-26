@@ -35,7 +35,7 @@
 
 #define NS_WEBSOCKET_CONTRACTID "@mozilla.org/websocket;1"
 
-class nsWSCloseEvent;
+class CallDispatchConnectionCloseEvents;
 class nsAutoCloseWS;
 
 class nsWebSocket: public nsDOMEventTargetHelper,
@@ -47,7 +47,7 @@ class nsWebSocket: public nsDOMEventTargetHelper,
                    public nsSupportsWeakReference,
                    public nsIRequest
 {
-friend class nsWSCloseEvent;
+friend class CallDispatchConnectionCloseEvents;
 friend class nsAutoCloseWS;
 
 public:
@@ -87,7 +87,6 @@ protected:
   
   nsresult FailConnection(PRUint16 reasonCode,
                           const nsACString& aReasonString = EmptyCString());
-  void     FailConnectionQuietly();
   nsresult CloseConnection(PRUint16 reasonCode,
                            const nsACString& aReasonString = EmptyCString());
   nsresult Disconnect();
@@ -107,6 +106,18 @@ protected:
                          JSContext *aCx);
 
   nsresult DoOnMessageAvailable(const nsACString & aMsg, bool isBinary);
+
+  
+  
+  
+  
+  nsresult ScheduleConnectionCloseEvents(nsISupports *aContext,
+                                         nsresult aStatusCode,
+                                         bool sync);
+  
+  void     DispatchConnectionCloseEvents();
+
+  
   nsresult CreateAndDispatchSimpleEvent(const nsString& aName);
   nsresult CreateAndDispatchMessageEvent(const nsACString& aData,
                                          bool isBinary);
@@ -114,8 +125,6 @@ protected:
                                        const nsString &aReason);
   nsresult CreateResponseBlob(const nsACString& aData, JSContext *aCx,
                               jsval &jsData);
-
-  void SetReadyState(PRUint16 aNewReadyState);
 
   
   
@@ -142,7 +151,8 @@ protected:
 
   bool mKeepingAlive;
   bool mCheckMustKeepAlive;
-  bool mTriggeredCloseEvent;
+  bool mOnCloseScheduled;
+  bool mFailed;
   bool mDisconnected;
 
   
