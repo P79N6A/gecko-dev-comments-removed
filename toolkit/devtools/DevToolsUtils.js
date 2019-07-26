@@ -318,3 +318,23 @@ exports.dbg_assert = function dbg_assert(cond, e) {
     return e;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+exports.update = function update(aTarget, aNewAttrs) {
+  for (let key in aNewAttrs) {
+    let desc = Object.getOwnPropertyDescriptor(aNewAttrs, key);
+
+    if (desc) {
+      Object.defineProperty(aTarget, key, desc);
+    }
+  }
+}
