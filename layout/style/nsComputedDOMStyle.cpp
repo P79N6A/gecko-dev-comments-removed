@@ -602,30 +602,41 @@ nsComputedDOMStyle::GetPropertyCSSValue(const nsAString& aPropertyName, ErrorRes
   nsCSSProperty prop = nsCSSProps::LookupProperty(aPropertyName,
                                                   nsCSSProps::eEnabled);
 
-  
-  
-  
-  
-  
-  if (prop != eCSSProperty_UNKNOWN &&
-      nsCSSProps::PropHasFlags(prop, CSS_PROPERTY_IS_ALIAS)) {
-    const nsCSSProperty* subprops = nsCSSProps::SubpropertyEntryFor(prop);
-    NS_ABORT_IF_FALSE(subprops[1] == eCSSProperty_UNKNOWN,
-                      "must have list of length 1");
-    prop = subprops[0];
-  }
+  bool needsLayoutFlush;
+  nsComputedStyleMap::Entry::ComputeMethod getter;
 
-  const nsComputedStyleMap::Entry* propEntry =
-    GetComputedStyleMap()->FindEntryForProperty(prop);
+  if (prop == eCSSPropertyExtra_variable) {
+    needsLayoutFlush = false;
+    getter = nullptr;
+  } else {
+    
+    
+    
+    
+    
+    if (prop != eCSSProperty_UNKNOWN &&
+        nsCSSProps::PropHasFlags(prop, CSS_PROPERTY_IS_ALIAS)) {
+      const nsCSSProperty* subprops = nsCSSProps::SubpropertyEntryFor(prop);
+      NS_ABORT_IF_FALSE(subprops[1] == eCSSProperty_UNKNOWN,
+                        "must have list of length 1");
+      prop = subprops[0];
+    }
 
-  if (!propEntry) {
+    const nsComputedStyleMap::Entry* propEntry =
+      GetComputedStyleMap()->FindEntryForProperty(prop);
+
+    if (!propEntry) {
 #ifdef DEBUG_ComputedDOMStyle
-    NS_WARNING(PromiseFlatCString(NS_ConvertUTF16toUTF8(aPropertyName) +
-                                  NS_LITERAL_CSTRING(" is not queryable!")).get());
+      NS_WARNING(PromiseFlatCString(NS_ConvertUTF16toUTF8(aPropertyName) +
+                                    NS_LITERAL_CSTRING(" is not queryable!")).get());
 #endif
 
-    
-    return nullptr;
+      
+      return nullptr;
+    }
+
+    needsLayoutFlush = propEntry->IsLayoutFlushNeeded();
+    getter = propEntry->mGetter;
   }
 
   
@@ -633,9 +644,9 @@ nsComputedDOMStyle::GetPropertyCSSValue(const nsAString& aPropertyName, ErrorRes
   
   
   document->FlushPendingNotifications(
-    propEntry->IsLayoutFlushNeeded() ? Flush_Layout : Flush_Style);
+    needsLayoutFlush ? Flush_Layout : Flush_Style);
 #ifdef DEBUG
-  mFlushedPendingReflows = propEntry->IsLayoutFlushNeeded();
+  mFlushedPendingReflows = needsLayoutFlush;
 #endif
 
   mPresShell = document->GetShell();
@@ -713,8 +724,13 @@ nsComputedDOMStyle::GetPropertyCSSValue(const nsAString& aPropertyName, ErrorRes
     }
   }
 
-  
-  nsRefPtr<CSSValue> val = (this->*(propEntry->mGetter))();
+  nsRefPtr<CSSValue> val;
+  if (prop == eCSSPropertyExtra_variable) {
+    val = DoGetCustomProperty(aPropertyName);
+  } else {
+    
+    val = (this->*getter)();
+  }
 
   mOuterFrame = nullptr;
   mInnerFrame = nullptr;
@@ -5215,6 +5231,25 @@ static void
 MarkComputedStyleMapDirty(const char* aPref, void* aData)
 {
   static_cast<nsComputedStyleMap*>(aData)->MarkDirty();
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetCustomProperty(const nsAString& aPropertyName)
+{
+  MOZ_ASSERT(nsCSSProps::IsCustomPropertyName(aPropertyName));
+
+  const nsStyleVariables* variables = StyleVariables();
+
+  nsString variableValue;
+  const nsAString& name = Substring(aPropertyName, 4);
+  if (!variables->mVariables.Get(name, variableValue)) {
+    return nullptr;
+  }
+
+  nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
+  val->SetString(variableValue);
+
+  return val;
 }
 
  nsComputedStyleMap*
