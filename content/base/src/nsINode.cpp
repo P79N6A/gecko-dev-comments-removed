@@ -2310,9 +2310,19 @@ ParseSelectorList(nsINode* aNode,
 {
   MOZ_ASSERT(aNode);
   nsIDocument* doc = aNode->OwnerDoc();
+  nsIDocument::SelectorCache& cache = doc->GetSelectorCache();
+  nsCSSSelectorList* selectorList = nullptr;
+  bool haveCachedList = cache.GetList(aSelectorString, &selectorList);
+  if (haveCachedList) {
+    if (!selectorList) {
+      
+      aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    }
+    return selectorList;
+  }
+
   nsCSSParser parser(doc->CSSLoader());
 
-  nsCSSSelectorList* selectorList;
   aRv = parser.ParseSelectorString(aSelectorString,
                                    doc->GetDocumentURI(),
                                    0, 
@@ -2321,6 +2331,9 @@ ParseSelectorList(nsINode* aNode,
     
     
     
+    MOZ_ASSERT(aRv.ErrorCode() == NS_ERROR_DOM_SYNTAX_ERR,
+               "Unexpected error, so cached version won't return it");
+    cache.CacheList(aSelectorString, nullptr);
     return nullptr;
   }
 
@@ -2336,6 +2349,16 @@ ParseSelectorList(nsINode* aNode,
       slot = &cur->mNext;
     }
   } while (*slot);
+
+  if (selectorList) {
+    NS_ASSERTION(selectorList->mSelectors,
+                 "How can we not have any selectors?");
+    cache.CacheList(aSelectorString, selectorList);
+  } else {
+    
+    
+    
+  }
 
   return selectorList;
 }
@@ -2411,39 +2434,14 @@ MOZ_ALWAYS_INLINE static void
 FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList,
                      ErrorResult& aRv)
 {
-  nsIDocument* doc = aRoot->OwnerDoc();
-  nsIDocument::SelectorCache& cache = doc->GetSelectorCache();
-  nsCSSSelectorList* selectorList = nullptr;
-  bool haveCachedList = cache.GetList(aSelector, &selectorList);
-
-  if (!haveCachedList) {
-    selectorList = ParseSelectorList(aRoot, aSelector, aRv);
-    if (aRv.Failed()) {
-      MOZ_ASSERT(!selectorList);
-      MOZ_ASSERT(aRv.ErrorCode() == NS_ERROR_DOM_SYNTAX_ERR,
-                 "Unexpected error, so cached version won't return it");
-      
-      
-      
-    } else if (!selectorList) {
-      
-      
-      
-      
-      return;
-    }
-
-    cache.CacheList(aSelector, selectorList);
-  }
-
+  nsCSSSelectorList* selectorList = ParseSelectorList(aRoot, aSelector, aRv);
   if (!selectorList) {
     
-    aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    
     return;
   }
 
-  NS_ASSERTION(selectorList->mSelectors,
-               "How can we not have any selectors?");
+  nsIDocument* doc = aRoot->OwnerDoc();
 
   TreeMatchContext matchingContext(false, nsRuleWalker::eRelevantLinkUnvisited,
                                    doc, TreeMatchContext::eNeverMatchVisited);
