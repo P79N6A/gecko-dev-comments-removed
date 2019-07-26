@@ -1469,23 +1469,25 @@ CssRuleView.prototype = {
   
 
 
-  nodeChanged: function() {
+  refreshPanel: function() {
     
     if (this.isEditing || !this._elementStyle) {
       return;
     }
 
-    this._clearRules();
-
     
-    this._populate();
+    this._populate(true);
   },
 
-  _populate: function() {
+  _populate: function(clearRules = false) {
     let elementStyle = this._elementStyle;
     return this._elementStyle.populate().then(() => {
       if (this._elementStyle != elementStyle) {
         return;
+      }
+
+      if (clearRules) {
+        this._clearRules();
       }
       this._createEditors();
 
