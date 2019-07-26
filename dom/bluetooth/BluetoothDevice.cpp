@@ -61,17 +61,6 @@ BluetoothDevice::BluetoothDevice(nsPIDOMWindow* aOwner,
     aValue.get_ArrayOfBluetoothNamedValue();
   for (uint32_t i = 0; i < values.Length(); ++i) {
     SetPropertyByValue(values[i]);
-    if (values[i].name().EqualsLiteral("Path")) {
-      
-      
-      
-      BluetoothService* bs = BluetoothService::Get();
-      if (!bs) {
-        NS_WARNING("BluetoothService not available!");
-      } else {
-        bs->RegisterBluetoothSignalHandler(mPath, this);
-      }
-    }
   }
 }
 

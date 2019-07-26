@@ -1260,16 +1260,6 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
       signalName = NS_LITERAL_STRING("PairedStatusChanged");
       signalPath = NS_LITERAL_STRING(LOCAL_AGENT_PATH);
       v.get_ArrayOfBluetoothNamedValue()[0].name() = NS_LITERAL_STRING("paired");
-    } else {
-     
-
-
-
-
-
-
-
-      return DBUS_HANDLER_RESULT_HANDLED;
     }
   } else if (dbus_message_is_signal(aMsg, DBUS_MANAGER_IFACE, "AdapterAdded")) {
     const char* str;
@@ -1643,6 +1633,7 @@ public:
       NS_ASSERTION(i != properties.Length(), "failed to get device name");
     } else {
       
+      properties.AppendElement(BluetoothNamedValue(NS_LITERAL_STRING("Path"), mSignal.value()));
       mSignal.value() = properties;
     }
 
