@@ -8046,20 +8046,31 @@ IonBuilder::jsop_getprop(PropertyName *name)
                                                 current->peek(-1), name, types);
 
     
-    if (!getPropTryConstant(&emitted, name, types) || emitted)
-        return emitted;
-
-    
     
     
     
     if (info().executionMode() == DefinitePropertiesAnalysis || types->empty()) {
-        MDefinition *obj = current->pop();
+        MDefinition *obj = current->peek(-1);
         MCallGetProperty *call = MCallGetProperty::New(obj, name, *pc == JSOP_CALLPROP);
         current->add(call);
+
+        
+        
+        
+        
+        if (info().executionMode() == DefinitePropertiesAnalysis) {
+            if (!getPropTryConstant(&emitted, name, types) || emitted)
+                return emitted;
+        }
+
+        current->pop();
         current->push(call);
         return resumeAfter(call) && pushTypeBarrier(call, types, true);
     }
+
+    
+    if (!getPropTryConstant(&emitted, name, types) || emitted)
+        return emitted;
 
     
     if (!getPropTryTypedObject(&emitted, name, types) || emitted)
