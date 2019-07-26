@@ -118,7 +118,6 @@ public:
   typedef mozilla::DisplayListClipState DisplayListClipState;
   typedef nsIWidget::ThemeGeometry ThemeGeometry;
   typedef mozilla::layers::Layer Layer;
-  typedef mozilla::layers::FrameMetrics FrameMetrics;
   typedef mozilla::layers::FrameMetrics::ViewID ViewID;
 
   
@@ -258,15 +257,6 @@ public:
 
 
   ViewID GetCurrentScrollParentId() const { return mCurrentScrollParentId; }
-  
-
-
-
-  void GetScrollbarInfo(ViewID* aOutScrollbarTarget, uint32_t* aOutScrollbarFlags)
-  {
-    *aOutScrollbarTarget = mCurrentScrollbarTarget;
-    *aOutScrollbarFlags = mCurrentScrollbarFlags;
-  }
   
 
 
@@ -641,29 +631,6 @@ public:
   };
 
   
-
-
-
-  class AutoCurrentScrollbarInfoSetter;
-  friend class AutoCurrentScrollbarInfoSetter;
-  class AutoCurrentScrollbarInfoSetter {
-  public:
-    AutoCurrentScrollbarInfoSetter(nsDisplayListBuilder* aBuilder, ViewID aScrollTargetID,
-                                   uint32_t aScrollbarFlags)
-     : mBuilder(aBuilder) {
-      aBuilder->mCurrentScrollbarTarget = aScrollTargetID;
-      aBuilder->mCurrentScrollbarFlags = aScrollbarFlags;
-    }
-    ~AutoCurrentScrollbarInfoSetter() {
-      
-      mBuilder->mCurrentScrollbarTarget = FrameMetrics::NULL_SCROLL_ID;
-      mBuilder->mCurrentScrollbarFlags = 0;
-    }
-  private:
-    nsDisplayListBuilder* mBuilder;
-  };
-
-  
   nsDisplayTableItem* GetCurrentTableItem() { return mCurrentTableItem; }
   void SetCurrentTableItem(nsDisplayTableItem* aTableItem) { mCurrentTableItem = aTableItem; }
 
@@ -774,8 +741,6 @@ private:
   nsTArray<DisplayItemClip*>     mDisplayItemClipsToDestroy;
   Mode                           mMode;
   ViewID                         mCurrentScrollParentId;
-  ViewID                         mCurrentScrollbarTarget;
-  uint32_t                       mCurrentScrollbarFlags;
   BlendModeSet                   mContainedBlendModes;
   bool                           mBuildCaret;
   bool                           mIgnoreSuppression;
