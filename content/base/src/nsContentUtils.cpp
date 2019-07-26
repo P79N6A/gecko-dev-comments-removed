@@ -141,6 +141,7 @@
 #include "nsIWordBreaker.h"
 #include "nsIXPConnect.h"
 #include "nsJSUtils.h"
+#include "nsLayoutStatics.h"
 #include "nsLWBrkCIID.h"
 #include "nsMutationEvent.h"
 #include "nsNetCID.h"
@@ -5611,14 +5612,35 @@ nsContentUtils::WrapNative(JSContext *cx, JS::Handle<JSObject*> scope,
 
   NS_ENSURE_TRUE(sXPConnect, NS_ERROR_UNEXPECTED);
 
-  if (!NS_IsMainThread()) {
-    MOZ_CRASH();
+  
+  
+  
+  
+  
+  
+  bool isMainThread = NS_IsMainThread();
+
+  if (isMainThread) {
+    nsLayoutStatics::AddRef();
+  }
+  else {
+    sXPConnect->AddRef();
   }
 
   nsresult rv = NS_OK;
-  AutoPushJSContext context(cx);
-  rv = sXPConnect->WrapNativeToJSVal(context, scope, native, cache, aIID,
-                                     aAllowWrapping, vp, aHolder);
+  {
+    AutoPushJSContext context(cx);
+    rv = sXPConnect->WrapNativeToJSVal(context, scope, native, cache, aIID,
+                                       aAllowWrapping, vp, aHolder);
+  }
+
+  if (isMainThread) {
+    nsLayoutStatics::Release();
+  }
+  else {
+    sXPConnect->Release();
+  }
+
   return rv;
 }
 
