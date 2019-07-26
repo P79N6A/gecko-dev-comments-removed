@@ -338,7 +338,7 @@ struct FuzzyEqualsEpsilon<float>
 {
   
   
-  static const float value() { return 1.0f / (1 << 17); }
+  static float value() { return 1.0f / (1 << 17); }
 };
 
 template<>
@@ -346,7 +346,7 @@ struct FuzzyEqualsEpsilon<double>
 {
   
   
-  static const double value() { return 1.0 / (1LL << 40); }
+  static double value() { return 1.0 / (1LL << 40); }
 };
 
 } 
