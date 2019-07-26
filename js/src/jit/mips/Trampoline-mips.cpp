@@ -337,7 +337,10 @@ JitRuntime::generateInvalidator(JSContext *cx)
 
     
     
-    for (uint32_t i = 0; i < FloatRegisters::Total; i++)
+    
+    
+    uint32_t increment = 2;
+    for (uint32_t i = 0; i < FloatRegisters::Total; i += increment)
         masm.as_sd(FloatRegister::FromCode(i), StackPointer,
                    InvalidationBailoutStack::offsetOfFpRegs() + i * sizeof(double));
 
@@ -556,7 +559,10 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
 
     
     
-    for (uintptr_t i = 0; i < FloatRegisters::Total; i++)
+    
+    
+    uint32_t increment = 2;
+    for (uint32_t i = 0; i < FloatRegisters::Total; i += increment)
         masm.as_sd(FloatRegister::FromCode(i), StackPointer,
                    BailoutStack::offsetOfFpRegs() + i * sizeof(double));
 
