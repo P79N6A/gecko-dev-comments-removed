@@ -2175,11 +2175,11 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
 
   
-  mCachedContentBoxCrossSize =
+  nscoord contentBoxCrossSize =
     axisTracker.GetCrossComponent(nsSize(aReflowState.ComputedWidth(),
                                          aReflowState.ComputedHeight()));
 
-  if (mCachedContentBoxCrossSize == NS_AUTOHEIGHT) {
+  if (contentBoxCrossSize == NS_AUTOHEIGHT) {
     
     
     nscoord minCrossSize =
@@ -2188,21 +2188,21 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     nscoord maxCrossSize =
       axisTracker.GetCrossComponent(nsSize(aReflowState.mComputedMaxWidth,
                                            aReflowState.mComputedMaxHeight));
-    mCachedContentBoxCrossSize =
+    contentBoxCrossSize =
       NS_CSS_MINMAX(lineCrossAxisPosnTracker.GetLineCrossSize(),
                     minCrossSize, maxCrossSize);
   }
   if (lineCrossAxisPosnTracker.GetLineCrossSize() !=
-      mCachedContentBoxCrossSize) {
+      contentBoxCrossSize) {
     
     
     
     
     
     
-    lineCrossAxisPosnTracker.SetLineCrossSize(mCachedContentBoxCrossSize);
+    lineCrossAxisPosnTracker.SetLineCrossSize(contentBoxCrossSize);
   }
-  frameCrossSize = mCachedContentBoxCrossSize +
+  frameCrossSize = contentBoxCrossSize +
     axisTracker.GetMarginSizeInCrossAxis(aReflowState.mComputedBorderPadding);
 
   
@@ -2212,7 +2212,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  mCachedAscent = mCachedContentBoxCrossSize +
+  nscoord flexContainerAscent = contentBoxCrossSize +
     aReflowState.mComputedBorderPadding.top;
 
   
@@ -2331,7 +2331,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     IsAxisHorizontal(axisTracker.GetCrossAxis()) ?
     frameMainSize : frameCrossSize;
 
-  aDesiredSize.ascent = mCachedAscent;
+  aDesiredSize.ascent = flexContainerAscent;
 
   
   aDesiredSize.SetOverflowAreasToDesiredBounds();

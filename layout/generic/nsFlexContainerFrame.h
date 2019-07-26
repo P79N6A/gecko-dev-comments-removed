@@ -60,8 +60,6 @@ protected:
   
   nsFlexContainerFrame(nsStyleContext* aContext) :
     nsFlexContainerFrameSuper(aContext),
-    mCachedContentBoxCrossSize(nscoord_MIN),
-    mCachedAscent(nscoord_MIN),
     mChildrenHaveBeenReordered(false)
   {}
   virtual ~nsFlexContainerFrame();
@@ -121,11 +119,6 @@ protected:
     SingleLineCrossAxisPositionTracker& aLineCrossAxisPosnTracker,
     FlexItem& aItem);
 
-  
-  
-  
-  nscoord mCachedContentBoxCrossSize; 
-  nscoord mCachedAscent;              
   bool    mChildrenHaveBeenReordered; 
                                       
 };
