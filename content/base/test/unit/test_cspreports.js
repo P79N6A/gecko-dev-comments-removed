@@ -10,15 +10,13 @@ const Cr = Components.results;
 Cu.import('resource://gre/modules/CSPUtils.jsm');
 Cu.import('resource://gre/modules/NetUtil.jsm');
 
+var httpServer = new HttpServer();
+httpServer.start(-1);
+var testsToFinish = 0;
 
-Cu.import("resource://testing-common/httpd.js");
-
-const REPORT_SERVER_PORT = 9000;
+const REPORT_SERVER_PORT = httpServer.identity.primaryPort;
 const REPORT_SERVER_URI = "http://localhost";
 const REPORT_SERVER_PATH = "/report";
-
-var httpServer = null;
-var testsToFinish = 0;
 
 
 
@@ -98,9 +96,6 @@ function run_test() {
   var selfuri = NetUtil.newURI(REPORT_SERVER_URI +
                                ":" + REPORT_SERVER_PORT +
                                "/foo/self");
-
-  httpServer = new HttpServer();
-  httpServer.start(REPORT_SERVER_PORT);
 
   
   makeTest(0, {"blocked-uri": "self"}, false,

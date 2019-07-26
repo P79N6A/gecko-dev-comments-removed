@@ -3,6 +3,8 @@
 
 
 
+Components.utils.import("resource://testing-common/httpd.js");
+
 const nsIDocumentEncoder = Components.interfaces.nsIDocumentEncoder;
 const replacementChar = Components.interfaces.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER;
 
