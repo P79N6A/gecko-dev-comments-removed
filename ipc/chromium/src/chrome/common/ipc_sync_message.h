@@ -22,7 +22,7 @@ class MessageReplyDeserializer;
 
 class SyncMessage : public Message {
  public:
-  SyncMessage(int32 routing_id, uint16 type, PriorityValue priority,
+  SyncMessage(int32_t routing_id, uint16_t type, PriorityValue priority,
               MessageReplyDeserializer* deserializer);
 
   
@@ -78,7 +78,7 @@ class SyncMessage : public Message {
   MessageReplyDeserializer* deserializer_;
   base::WaitableEvent* pump_messages_event_;
 
-  static uint32 next_id_;  
+  static uint32_t next_id_;  
 };
 
 

@@ -40,7 +40,7 @@ namespace base {
 
 
 
-typedef bool (*IdleTimeSource)(int32 *milliseconds_interval_since_last_event);
+typedef bool (*IdleTimeSource)(int32_t *milliseconds_interval_since_last_event);
 
 class IdleTimer {
  public:

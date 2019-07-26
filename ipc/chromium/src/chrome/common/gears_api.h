@@ -80,7 +80,7 @@ typedef struct _GearsShortcutList {
   
   
   GearsShortcutData* shortcuts;  
-  uint32 num_shortcuts;  
+  uint32_t num_shortcuts;  
 } GearsShortcutList;
 
 

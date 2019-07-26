@@ -159,9 +159,9 @@ class PrefService : public NonThreadSafe {
   
   
   
-  void SetInt64(const wchar_t* path, int64 value);
-  int64 GetInt64(const wchar_t* path) const;
-  void RegisterInt64Pref(const wchar_t* path, int64 default_value);
+  void SetInt64(const wchar_t* path, int64_t value);
+  int64_t GetInt64(const wchar_t* path) const;
+  void RegisterInt64Pref(const wchar_t* path, int64_t default_value);
 
   
   

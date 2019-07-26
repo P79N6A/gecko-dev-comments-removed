@@ -24,28 +24,13 @@
 #undef NO_NSPR_10_SUPPORT
 #endif
 
-#ifdef _WIN32
-#undef _WIN32
-#define _WIN32_SAVE
-#endif
-
-#include "obsolete/protypes.h"
-
-#ifdef _WIN32_SAVE
-#undef _WIN32_SAVE
-#define _WIN32
-#endif
-
 #include <limits.h>         
 #include <stddef.h>         
 #include <string.h>         
 
 #include "base/port.h"    
 
-#ifndef COMPILER_MSVC
-
-#include <stdint.h>         
-#endif
+#include "mozilla/StandardInteger.h"
 
 
 
@@ -53,18 +38,18 @@
 
 typedef signed int         char32;
 
-const uint8  kuint8max  = (( uint8) 0xFF);
-const uint16 kuint16max = ((uint16) 0xFFFF);
-const uint32 kuint32max = ((uint32) 0xFFFFFFFF);
-const uint64 kuint64max = ((uint64) GG_LONGLONG(0xFFFFFFFFFFFFFFFF));
-const  int8  kint8min   = ((  int8) 0x80);
-const  int8  kint8max   = ((  int8) 0x7F);
-const  int16 kint16min  = (( int16) 0x8000);
-const  int16 kint16max  = (( int16) 0x7FFF);
-const  int32 kint32min  = (( int32) 0x80000000);
-const  int32 kint32max  = (( int32) 0x7FFFFFFF);
-const  int64 kint64min  = (( int64) GG_LONGLONG(0x8000000000000000));
-const  int64 kint64max  = (( int64) GG_LONGLONG(0x7FFFFFFFFFFFFFFF));
+const uint8_t  kuint8max  = (( uint8_t) 0xFF);
+const uint16_t kuint16max = ((uint16_t) 0xFFFF);
+const uint32_t kuint32max = ((uint32_t) 0xFFFFFFFF);
+const uint64_t kuint64max = ((uint64_t) GG_LONGLONG(0xFFFFFFFFFFFFFFFF));
+const  int8_t  kint8min   = ((  int8_t) 0x80);
+const  int8_t  kint8max   = ((  int8_t) 0x7F);
+const  int16_t kint16min  = (( int16_t) 0x8000);
+const  int16_t kint16max  = (( int16_t) 0x7FFF);
+const  int32_t kint32min  = (( int32_t) 0x80000000);
+const  int32_t kint32max  = (( int32_t) 0x7FFFFFFF);
+const  int64_t kint64min  = (( int64_t) GG_LONGLONG(0x8000000000000000));
+const  int64_t kint64max  = (( int64_t) GG_LONGLONG(0x7FFFFFFFFFFFFFFF));
 
 
 #  if defined(OS_POSIX)
@@ -259,7 +244,7 @@ struct CompileAssert {
 
 
 
-typedef uint32 MetatagId;
+typedef uint32_t MetatagId;
 
 
 

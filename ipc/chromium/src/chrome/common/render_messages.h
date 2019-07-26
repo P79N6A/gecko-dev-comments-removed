@@ -54,7 +54,7 @@ struct ViewMsg_Navigate_Params {
   
   
   
-  int32 page_id;
+  int32_t page_id;
 
   
   GURL url;
@@ -84,7 +84,7 @@ struct ViewHostMsg_FrameNavigate_Params {
   
   
   
-  int32 page_id;
+  int32_t page_id;
 
   
   GURL url;
@@ -259,11 +259,11 @@ struct ViewHostMsg_Resource_Request {
   ResourceType::Type resource_type;
 
   
-  uint32 request_context;
+  uint32_t request_context;
 
   
   
-  int32 app_cache_context_id;
+  int32_t app_cache_context_id;
 
   
   scoped_refptr<net::UploadData> upload_data;
@@ -1062,7 +1062,7 @@ struct ParamTraits<net::UploadData::Element> {
     } else {
       DCHECK(type == net::UploadData::TYPE_FILE);
       FilePath file_path;
-      uint64 offset, length;
+      uint64_t offset, length;
       if (!ReadParam(m, iter, &file_path))
         return false;
       if (!ReadParam(m, iter, &offset))

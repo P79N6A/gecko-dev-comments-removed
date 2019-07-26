@@ -23,7 +23,7 @@ TransportDIB::~TransportDIB() {
 }
 
 
-TransportDIB* TransportDIB::Create(size_t size, uint32 sequence_num) {
+TransportDIB* TransportDIB::Create(size_t size, uint32_t sequence_num) {
   TransportDIB* dib = new TransportDIB;
   if (!dib->shared_memory_.Create("", false ,
                                   false , size)) {

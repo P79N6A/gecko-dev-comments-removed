@@ -48,17 +48,17 @@ class TimeDelta {
   }
 
   
-  static TimeDelta FromDays(int64 days);
-  static TimeDelta FromHours(int64 hours);
-  static TimeDelta FromMinutes(int64 minutes);
-  static TimeDelta FromSeconds(int64 secs);
-  static TimeDelta FromMilliseconds(int64 ms);
-  static TimeDelta FromMicroseconds(int64 us);
+  static TimeDelta FromDays(int64_t days);
+  static TimeDelta FromHours(int64_t hours);
+  static TimeDelta FromMinutes(int64_t minutes);
+  static TimeDelta FromSeconds(int64_t secs);
+  static TimeDelta FromMilliseconds(int64_t ms);
+  static TimeDelta FromMicroseconds(int64_t us);
 
   
   
   
-  int64 ToInternalValue() const {
+  int64_t ToInternalValue() const {
     return delta_;
   }
 
@@ -68,10 +68,10 @@ class TimeDelta {
   int InHours() const;
   int InMinutes() const;
   double InSecondsF() const;
-  int64 InSeconds() const;
+  int64_t InSeconds() const;
   double InMillisecondsF() const;
-  int64 InMilliseconds() const;
-  int64 InMicroseconds() const;
+  int64_t InMilliseconds() const;
+  int64_t InMicroseconds() const;
 
   TimeDelta& operator=(TimeDelta other) {
     delta_ = other.delta_;
@@ -100,21 +100,21 @@ class TimeDelta {
 
   
   
-  TimeDelta operator*(int64 a) const {
+  TimeDelta operator*(int64_t a) const {
     return TimeDelta(delta_ * a);
   }
-  TimeDelta operator/(int64 a) const {
+  TimeDelta operator/(int64_t a) const {
     return TimeDelta(delta_ / a);
   }
-  TimeDelta& operator*=(int64 a) {
+  TimeDelta& operator*=(int64_t a) {
     delta_ *= a;
     return *this;
   }
-  TimeDelta& operator/=(int64 a) {
+  TimeDelta& operator/=(int64_t a) {
     delta_ /= a;
     return *this;
   }
-  int64 operator/(TimeDelta a) const {
+  int64_t operator/(TimeDelta a) const {
     return delta_ / a.delta_;
   }
 
@@ -145,19 +145,19 @@ class TimeDelta {
  private:
   friend class Time;
   friend class TimeTicks;
-  friend TimeDelta operator*(int64 a, TimeDelta td);
+  friend TimeDelta operator*(int64_t a, TimeDelta td);
 
   
   
   
-  explicit TimeDelta(int64 delta_us) : delta_(delta_us) {
+  explicit TimeDelta(int64_t delta_us) : delta_(delta_us) {
   }
 
   
-  int64 delta_;
+  int64_t delta_;
 };
 
-inline TimeDelta operator*(int64 a, TimeDelta td) {
+inline TimeDelta operator*(int64_t a, TimeDelta td) {
   return TimeDelta(a * td.delta_);
 }
 
@@ -166,16 +166,16 @@ inline TimeDelta operator*(int64 a, TimeDelta td) {
 
 class Time {
  public:
-  static const int64 kMillisecondsPerSecond = 1000;
-  static const int64 kMicrosecondsPerMillisecond = 1000;
-  static const int64 kMicrosecondsPerSecond = kMicrosecondsPerMillisecond *
+  static const int64_t kMillisecondsPerSecond = 1000;
+  static const int64_t kMicrosecondsPerMillisecond = 1000;
+  static const int64_t kMicrosecondsPerSecond = kMicrosecondsPerMillisecond *
                                               kMillisecondsPerSecond;
-  static const int64 kMicrosecondsPerMinute = kMicrosecondsPerSecond * 60;
-  static const int64 kMicrosecondsPerHour = kMicrosecondsPerMinute * 60;
-  static const int64 kMicrosecondsPerDay = kMicrosecondsPerHour * 24;
-  static const int64 kMicrosecondsPerWeek = kMicrosecondsPerDay * 7;
-  static const int64 kNanosecondsPerMicrosecond = 1000;
-  static const int64 kNanosecondsPerSecond = kNanosecondsPerMicrosecond *
+  static const int64_t kMicrosecondsPerMinute = kMicrosecondsPerSecond * 60;
+  static const int64_t kMicrosecondsPerHour = kMicrosecondsPerMinute * 60;
+  static const int64_t kMicrosecondsPerDay = kMicrosecondsPerHour * 24;
+  static const int64_t kMicrosecondsPerWeek = kMicrosecondsPerDay * 7;
+  static const int64_t kNanosecondsPerMicrosecond = 1000;
+  static const int64_t kNanosecondsPerSecond = kNanosecondsPerMicrosecond *
                                              kMicrosecondsPerSecond;
 
   
@@ -243,7 +243,7 @@ class Time {
   
   
   
-  static Time FromInternalValue(int64 us) {
+  static Time FromInternalValue(int64_t us) {
     return Time(us);
   }
 
@@ -258,7 +258,7 @@ class Time {
   
   
   
-  int64 ToInternalValue() const {
+  int64_t ToInternalValue() const {
     return us_;
   }
 
@@ -334,15 +334,15 @@ class Time {
   
   static Time FromExploded(bool is_local, const Exploded& exploded);
 
-  Time(int64 us) : us_(us) {
+  Time(int64_t us) : us_(us) {
   }
 
   
   
-  static const int64 kTimeTToMicrosecondsOffset;
+  static const int64_t kTimeTToMicrosecondsOffset;
 
   
-  int64 us_;
+  int64_t us_;
 };
 
 inline Time TimeDelta::operator+(Time t) const {
@@ -352,32 +352,32 @@ inline Time TimeDelta::operator+(Time t) const {
 
 
 
-inline TimeDelta TimeDelta::FromDays(int64 days) {
+inline TimeDelta TimeDelta::FromDays(int64_t days) {
   return TimeDelta(days * Time::kMicrosecondsPerDay);
 }
 
 
-inline TimeDelta TimeDelta::FromHours(int64 hours) {
+inline TimeDelta TimeDelta::FromHours(int64_t hours) {
   return TimeDelta(hours * Time::kMicrosecondsPerHour);
 }
 
 
-inline TimeDelta TimeDelta::FromMinutes(int64 minutes) {
+inline TimeDelta TimeDelta::FromMinutes(int64_t minutes) {
   return TimeDelta(minutes * Time::kMicrosecondsPerMinute);
 }
 
 
-inline TimeDelta TimeDelta::FromSeconds(int64 secs) {
+inline TimeDelta TimeDelta::FromSeconds(int64_t secs) {
   return TimeDelta(secs * Time::kMicrosecondsPerSecond);
 }
 
 
-inline TimeDelta TimeDelta::FromMilliseconds(int64 ms) {
+inline TimeDelta TimeDelta::FromMilliseconds(int64_t ms) {
   return TimeDelta(ms * Time::kMicrosecondsPerMillisecond);
 }
 
 
-inline TimeDelta TimeDelta::FromMicroseconds(int64 us) {
+inline TimeDelta TimeDelta::FromMicroseconds(int64_t us) {
   return TimeDelta(us);
 }
 
@@ -405,7 +405,7 @@ class TimeTicks {
   }
 
   
-  int64 ToInternalValue() const {
+  int64_t ToInternalValue() const {
     return ticks_;
   }
 
@@ -463,11 +463,11 @@ class TimeTicks {
 
   
   
-  explicit TimeTicks(int64 ticks) : ticks_(ticks) {
+  explicit TimeTicks(int64_t ticks) : ticks_(ticks) {
   }
 
   
-  int64 ticks_;
+  int64_t ticks_;
 
 #if defined(OS_WIN)
   typedef DWORD (*TickFunctionType)(void);

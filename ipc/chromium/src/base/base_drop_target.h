@@ -86,7 +86,7 @@ class BaseDropTarget : public IDropTarget {
                        DWORD effect);
 
   
-  static int32 GetDragIdentity() { return drag_identity_; }
+  static int32_t GetDragIdentity() { return drag_identity_; }
 
  private:
   
@@ -112,7 +112,7 @@ class BaseDropTarget : public IDropTarget {
   
   
   
-  static int32 drag_identity_;
+  static int32_t drag_identity_;
 
   
   

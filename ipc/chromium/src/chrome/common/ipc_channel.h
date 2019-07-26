@@ -27,7 +27,7 @@ class Channel : public Message::Sender {
 
     
     
-    virtual void OnChannelConnected(int32 peer_pid) {}
+    virtual void OnChannelConnected(int32_t peer_pid) {}
 
     
     

@@ -45,7 +45,7 @@ class ResourceDispatcher {
     int load_flags,
     int origin_pid,
     ResourceType::Type resource_type,
-    uint32 request_context ,
+    uint32_t request_context ,
     int app_cache_context_id,
     int route_id);
 
@@ -90,10 +90,10 @@ class ResourceDispatcher {
   
   void OnUploadProgress(const IPC::Message& message,
                         int request_id,
-                        int64 position,
-                        int64 size);
+                        int64_t position,
+                        int64_t size);
   void OnDownloadProgress(const IPC::Message& message,
-                          int request_id, int64 position, int64 size);
+                          int request_id, int64_t position, int64_t size);
   void OnReceivedResponse(int request_id, const ResourceResponseHead&);
   void OnReceivedRedirect(int request_id, const GURL& new_url);
   void OnReceivedData(const IPC::Message& message,

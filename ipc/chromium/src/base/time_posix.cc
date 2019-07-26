@@ -33,7 +33,7 @@ namespace base {
 
 
 
-const int64 Time::kTimeTToMicrosecondsOffset = GG_INT64_C(0);
+const int64_t Time::kTimeTToMicrosecondsOffset = GG_INT64_C(0);
 
 
 Time Time::Now() {
@@ -78,7 +78,7 @@ Time Time::FromExploded(bool is_local, const Exploded& exploded) {
     seconds = timegm(&timestruct);
 #endif
 
-  int64 milliseconds;
+  int64_t milliseconds;
   
   
   
@@ -117,7 +117,7 @@ Time Time::FromExploded(bool is_local, const Exploded& exploded) {
 void Time::Explode(bool is_local, Exploded* exploded) const {
   
   
-  int64 milliseconds = us_ / kMicrosecondsPerMillisecond;
+  int64_t milliseconds = us_ / kMicrosecondsPerMillisecond;
   time_t seconds = milliseconds / kMillisecondsPerSecond;
 
   struct tm timestruct;
@@ -177,8 +177,8 @@ TimeTicks TimeTicks::Now() {
   }
 
   absolute_micro =
-      (static_cast<int64>(ts.tv_sec) * Time::kMicrosecondsPerSecond) +
-      (static_cast<int64>(ts.tv_nsec) / Time::kNanosecondsPerMicrosecond);
+      (static_cast<int64_t>(ts.tv_sec) * Time::kMicrosecondsPerSecond) +
+      (static_cast<int64_t>(ts.tv_nsec) / Time::kNanosecondsPerMicrosecond);
 
 #else  
 #error No usable tick clock function on this platform.

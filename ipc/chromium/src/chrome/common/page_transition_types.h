@@ -126,12 +126,12 @@ class PageTransition {
   
   typedef unsigned int Type;
 
-  static bool ValidType(int32 type) {
+  static bool ValidType(int32_t type) {
     Type t = StripQualifier(static_cast<Type>(type));
     return (t >= 0 && t <= LAST_CORE);
   }
 
-  static Type FromInt(int32 type) {
+  static Type FromInt(int32_t type) {
     if (!ValidType(type)) {
       NOTREACHED() << "Invalid transition type " << type;
 
@@ -144,7 +144,7 @@ class PageTransition {
   
   
   static bool IsMainFrame(Type type) {
-    int32 t = StripQualifier(type);
+    int32_t t = StripQualifier(type);
     return (t != AUTO_SUBFRAME && t != MANUAL_SUBFRAME);
   }
 
@@ -159,7 +159,7 @@ class PageTransition {
   }
 
   
-  static int32 GetQualifier(Type type) {
+  static int32_t GetQualifier(Type type) {
     return type & QUALIFIER_MASK;
   }
 };

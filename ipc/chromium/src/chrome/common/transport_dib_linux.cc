@@ -36,7 +36,7 @@ TransportDIB::~TransportDIB() {
 }
 
 
-TransportDIB* TransportDIB::Create(size_t size, uint32 sequence_num) {
+TransportDIB* TransportDIB::Create(size_t size, uint32_t sequence_num) {
   
   
   

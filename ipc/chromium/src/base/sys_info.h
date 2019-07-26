@@ -19,7 +19,7 @@ class SysInfo {
   static int NumberOfProcessors();
 
   
-  static int64 AmountOfPhysicalMemory();
+  static int64_t AmountOfPhysicalMemory();
 
   
   static int AmountOfPhysicalMemoryMB() {
@@ -28,7 +28,7 @@ class SysInfo {
 
   
   
-  static int64 AmountOfFreeDiskSpace(const std::wstring& path);
+  static int64_t AmountOfFreeDiskSpace(const std::wstring& path);
 
   
   
@@ -50,9 +50,9 @@ class SysInfo {
   
   
   
-  static void OperatingSystemVersionNumbers(int32 *major_version,
-                                            int32 *minor_version,
-                                            int32 *bugfix_version);
+  static void OperatingSystemVersionNumbers(int32_t *major_version,
+                                            int32_t *minor_version,
+                                            int32_t *bugfix_version);
 
   
   

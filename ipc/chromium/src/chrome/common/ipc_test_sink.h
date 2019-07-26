@@ -63,14 +63,14 @@ class TestSink {
   
   
   
-  const Message* GetFirstMessageMatching(uint16 id) const;
+  const Message* GetFirstMessageMatching(uint16_t id) const;
 
   
   
   
   
   
-  const Message* GetUniqueMessageMatching(uint16 id) const;
+  const Message* GetUniqueMessageMatching(uint16_t id) const;
 
  private:
   

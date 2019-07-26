@@ -17,7 +17,7 @@ IPC_BEGIN_MESSAGES(PluginProcess)
   
   
   IPC_MESSAGE_CONTROL1(PluginProcessMsg_PluginMessage,
-                       std::vector<uint8> )
+                       std::vector<uint8_t> )
 
   
   
@@ -47,18 +47,18 @@ IPC_BEGIN_MESSAGES(PluginProcessHost)
   
   
   IPC_MESSAGE_CONTROL1(PluginProcessHostMsg_PluginMessage,
-                       std::vector<uint8> )
+                       std::vector<uint8_t> )
 
   
   
   IPC_SYNC_MESSAGE_CONTROL1_1(PluginProcessHostMsg_PluginSyncMessage,
-                              std::vector<uint8> ,
-                              std::vector<uint8> )
+                              std::vector<uint8_t> ,
+                              std::vector<uint8_t> )
 
   
   
   IPC_SYNC_MESSAGE_CONTROL2_1(PluginProcessHostMsg_GetCookies,
-                              int32 ,
+                              int32_t ,
                               GURL ,
                               std::string )
 
@@ -263,7 +263,7 @@ IPC_BEGIN_MESSAGES(PluginHost)
                       int )
 
   IPC_SYNC_MESSAGE_ROUTED0_1(PluginHostMsg_GetCPBrowsingContext,
-                             uint32 )
+                             uint32_t )
 
   IPC_MESSAGE_ROUTED0(PluginHostMsg_CancelDocumentLoad)
 

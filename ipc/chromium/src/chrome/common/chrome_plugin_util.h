@@ -61,7 +61,7 @@ class PluginResponseUtils {
 public:
   
   
-  static uint32 CPLoadFlagsToNetFlags(uint32 flags);
+  static uint32_t CPLoadFlagsToNetFlags(uint32_t flags);
 
   
   static int GetResponseInfo(
@@ -71,7 +71,7 @@ public:
 
 
 inline char* CPB_StringDup(CPB_AllocFunc alloc, const std::string& str) {
-  char* cstr = static_cast<char*>(alloc(static_cast<uint32>(str.length() + 1)));
+  char* cstr = static_cast<char*>(alloc(static_cast<uint32_t>(str.length() + 1)));
   memcpy(cstr, str.c_str(), str.length() + 1);  
   return cstr;
 }
@@ -79,7 +79,7 @@ inline char* CPB_StringDup(CPB_AllocFunc alloc, const std::string& str) {
 CPError CPB_GetCommandLineArgumentsCommon(const char* url,
                                           std::string* arguments);
 
-void* STDCALL CPB_Alloc(uint32 size);
+void* STDCALL CPB_Alloc(uint32_t size);
 void STDCALL CPB_Free(void* memory);
 
 #endif  

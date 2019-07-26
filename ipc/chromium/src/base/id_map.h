@@ -20,7 +20,7 @@
 template<class T>
 class IDMap {
  private:
-  typedef base::hash_map<int32, T*> HashTable;
+  typedef base::hash_map<int32_t, T*> HashTable;
   typedef typename HashTable::iterator iterator;
 
  public:
@@ -42,8 +42,8 @@ class IDMap {
   }
 
   
-  int32 Add(T* data) {
-    int32 this_id = next_id_;
+  int32_t Add(T* data) {
+    int32_t this_id = next_id_;
     DCHECK(data_.find(this_id) == data_.end()) << "Inserting duplicate item";
     data_[this_id] = data;
     next_id_++;
@@ -54,12 +54,12 @@ class IDMap {
   
   
   
-  void AddWithID(T* data, int32 id) {
+  void AddWithID(T* data, int32_t id) {
     DCHECK(data_.find(id) == data_.end()) << "Inserting duplicate item";
     data_[id] = data;
   }
 
-  void Remove(int32 id) {
+  void Remove(int32_t id) {
     iterator i = data_.find(id);
     if (i == data_.end()) {
       NOTREACHED() << "Attempting to remove an item not in the list";
@@ -84,7 +84,7 @@ class IDMap {
     return false;
   }
 
-  T* Lookup(int32 id) const {
+  T* Lookup(int32_t id) const {
     const_iterator i = data_.find(id);
     if (i == data_.end())
       return NULL;
@@ -97,7 +97,7 @@ class IDMap {
 
  protected:
   
-  int32 next_id_;
+  int32_t next_id_;
 
   HashTable data_;
 };

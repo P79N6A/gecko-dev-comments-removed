@@ -334,8 +334,8 @@ class Histogram {
     
     Count counts(size_t i) const { return counts_[i]; }
     Count TotalCount() const;
-    int64 sum() const { return sum_; }
-    int64 redundant_count() const { return redundant_count_; }
+    int64_t sum() const { return sum_; }
+    int64_t redundant_count() const { return redundant_count_; }
     size_t size() const { return counts_.size(); }
 
     
@@ -352,7 +352,7 @@ class Histogram {
 
     
     
-    int64 sum_;         
+    int64_t sum_;         
 
    private:
     
@@ -365,7 +365,7 @@ class Histogram {
     
     
     
-    int64 redundant_count_;
+    int64_t redundant_count_;
   };
 
   
@@ -442,7 +442,7 @@ class Histogram {
   Sample declared_min() const { return declared_min_; }
   Sample declared_max() const { return declared_max_; }
   virtual Sample ranges(size_t i) const;
-  uint32 range_checksum() const { return range_checksum_; }
+  uint32_t range_checksum() const { return range_checksum_; }
   virtual size_t bucket_count() const;
   
   
@@ -502,7 +502,7 @@ class Histogram {
   
   bool ValidateBucketRanges() const;
 
-  virtual uint32 CalculateRangeChecksum() const;
+  virtual uint32_t CalculateRangeChecksum() const;
 
  private:
   
@@ -517,7 +517,7 @@ class Histogram {
   void Initialize();
 
   
-  static uint32 Crc32(uint32 sum, Sample range);
+  static uint32_t Crc32(uint32_t sum, Sample range);
 
   
   
@@ -531,8 +531,8 @@ class Histogram {
 
   
   
-  void WriteAsciiBucketContext(const int64 past, const Count current,
-                               const int64 remaining, const size_t i,
+  void WriteAsciiBucketContext(const int64_t past, const Count current,
+                               const int64_t remaining, const size_t i,
                                std::string* output) const;
 
   
@@ -546,7 +546,7 @@ class Histogram {
 
   
   
-  static const uint32 kCrcTable[256];
+  static const uint32_t kCrcTable[256];
   
   
 
@@ -569,7 +569,7 @@ class Histogram {
   
   
   
-  uint32 range_checksum_;
+  uint32_t range_checksum_;
 
   
   

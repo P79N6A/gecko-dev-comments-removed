@@ -68,7 +68,7 @@ bool VisitedLinkCommon::IsVisited(Fingerprint fingerprint) const {
 VisitedLinkCommon::Fingerprint VisitedLinkCommon::ComputeURLFingerprint(
     const char* canonical_url,
     size_t url_len,
-    const uint8 salt[LINK_SALT_LENGTH]) {
+    const uint8_t salt[LINK_SALT_LENGTH]) {
   DCHECK(url_len > 0) << "Canonical URLs should not be empty";
 
   MD5Context ctx;
@@ -84,6 +84,6 @@ VisitedLinkCommon::Fingerprint VisitedLinkCommon::ComputeURLFingerprint(
   
   
   
-  return bit_cast<Fingerprint, uint8[8]>(
-      *reinterpret_cast<uint8(*)[8]>(&digest.a));
+  return bit_cast<Fingerprint, uint8_t[8]>(
+      *reinterpret_cast<uint8_t(*)[8]>(&digest.a));
 }

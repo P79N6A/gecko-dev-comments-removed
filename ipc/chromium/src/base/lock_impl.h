@@ -66,7 +66,7 @@ class LockImpl {
   
   
   PlatformThreadId owning_thread_id_;
-  int32 recursion_count_shadow_;
+  int32_t recursion_count_shadow_;
   bool recursion_used_;      
 #endif  
 

@@ -79,8 +79,8 @@ void PluginHelper::Observe(NotificationType type,
 
 
 
-uint32 PluginResponseUtils::CPLoadFlagsToNetFlags(uint32 flags) {
-  uint32 net_flags = 0;
+uint32_t PluginResponseUtils::CPLoadFlagsToNetFlags(uint32_t flags) {
+  uint32_t net_flags = 0;
 #define HANDLE_FLAG(name) \
   if (flags & CPREQUEST##name) \
   net_flags |= net::name
@@ -156,7 +156,7 @@ CPError CPB_GetCommandLineArgumentsCommon(const char* url,
 
 
 
-void* STDCALL CPB_Alloc(uint32 size) {
+void* STDCALL CPB_Alloc(uint32_t size) {
   return malloc(size);
 }
 

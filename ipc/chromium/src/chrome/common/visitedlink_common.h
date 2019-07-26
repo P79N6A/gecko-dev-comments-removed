@@ -43,10 +43,10 @@
 class VisitedLinkCommon {
  public:
   
-  typedef uint64 Fingerprint;
+  typedef uint64_t Fingerprint;
 
   
-  typedef int32 Hash;
+  typedef int32_t Hash;
 
   
   static const Fingerprint null_fingerprint_;
@@ -72,7 +72,7 @@ class VisitedLinkCommon {
 
 #ifdef UNIT_TEST
   
-  void GetUsageStatistics(int32* table_size,
+  void GetUsageStatistics(int32_t* table_size,
                           VisitedLinkCommon::Fingerprint** fingerprints) {
     *table_size = table_length_;
     *fingerprints = hash_table_;
@@ -84,16 +84,16 @@ class VisitedLinkCommon {
   
   struct SharedHeader {
     
-    uint32 length;
+    uint32_t length;
 
     
-    uint8 salt[LINK_SALT_LENGTH];
+    uint8_t salt[LINK_SALT_LENGTH];
   };
 
   
   
   
-  Fingerprint FingerprintAt(int32 table_offset) const {
+  Fingerprint FingerprintAt(int32_t table_offset) const {
     if (!hash_table_)
       return null_fingerprint_;
     return hash_table_[table_offset];
@@ -105,11 +105,11 @@ class VisitedLinkCommon {
   
   static Fingerprint ComputeURLFingerprint(const char* canonical_url,
                                            size_t url_len,
-                                           const uint8 salt[LINK_SALT_LENGTH]);
+                                           const uint8_t salt[LINK_SALT_LENGTH]);
 
   
   
-  static Hash HashFingerprint(Fingerprint fingerprint, int32 table_length) {
+  static Hash HashFingerprint(Fingerprint fingerprint, int32_t table_length) {
     if (table_length == 0)
       return null_hash_;
     return static_cast<Hash>(fingerprint % table_length);
@@ -123,10 +123,10 @@ class VisitedLinkCommon {
   VisitedLinkCommon::Fingerprint* hash_table_;
 
   
-  int32 table_length_;
+  int32_t table_length_;
 
   
-  uint8 salt_[LINK_SALT_LENGTH];
+  uint8_t salt_[LINK_SALT_LENGTH];
 
  private:
   DISALLOW_EVIL_CONSTRUCTORS(VisitedLinkCommon);

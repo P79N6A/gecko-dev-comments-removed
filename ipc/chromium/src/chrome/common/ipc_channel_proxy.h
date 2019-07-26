@@ -62,7 +62,7 @@ class ChannelProxy : public Message::Sender {
 
     
     
-    virtual void OnChannelConnected(int32 peer_pid) {}
+    virtual void OnChannelConnected(int32_t peer_pid) {}
 
     
     
@@ -149,7 +149,7 @@ class ChannelProxy : public Message::Sender {
    protected:
     
     virtual void OnMessageReceived(const Message& message);
-    virtual void OnChannelConnected(int32 peer_pid);
+    virtual void OnChannelConnected(int32_t peer_pid);
     virtual void OnChannelError();
 
     

@@ -87,7 +87,7 @@ typedef struct _CPID_t* CPID;
 
 
 
-typedef uint32 CPBrowsingContext;
+typedef uint32_t CPBrowsingContext;
 
 
 typedef enum {
@@ -180,7 +180,7 @@ typedef CPError (STDCALL *CPB_HandleCommandFunc)(
 
 
 typedef void (STDCALL *CPB_EnableRequestInterceptFunc)(
-    CPID id, const char** schemes, uint32 num_schemes);
+    CPID id, const char** schemes, uint32_t num_schemes);
 
 
 
@@ -199,7 +199,7 @@ typedef CPError (STDCALL *CPB_GetCookiesFunc)(
 
 
 
-typedef void* (STDCALL *CPB_AllocFunc)(uint32 size);
+typedef void* (STDCALL *CPB_AllocFunc)(uint32_t size);
 
 
 typedef void (STDCALL *CPB_FreeFunc)(void* memory);
@@ -244,7 +244,7 @@ typedef CPBrowsingContext (STDCALL *CPB_GetBrowsingContextFromNPPFunc)(
 
 typedef int (STDCALL *CPB_GetBrowsingContextInfoFunc)(
     CPID id, CPBrowsingContext context, CPBrowsingContextInfoType type,
-    void* buf, uint32 buf_size);
+    void* buf, uint32_t buf_size);
 
 
 
@@ -288,7 +288,7 @@ typedef void (STDCALL *CPR_SetExtraRequestHeadersFunc)(CPRequest* request,
 
 
 typedef void (STDCALL *CPR_SetRequestLoadFlagsFunc)(CPRequest* request,
-                                                    uint32 flags);
+                                                    uint32_t flags);
 
 
 
@@ -308,7 +308,7 @@ typedef void (STDCALL *CPR_AppendDataToUploadFunc)(
 
 
 typedef CPError (STDCALL *CPR_AppendFileToUploadFunc)(
-    CPRequest* request, const char* filepath, uint64 offset, uint64 length);
+    CPRequest* request, const char* filepath, uint64_t offset, uint64_t length);
 
 
 
@@ -316,7 +316,7 @@ typedef CPError (STDCALL *CPR_AppendFileToUploadFunc)(
 
 typedef int (STDCALL *CPR_GetResponseInfoFunc)(
     CPRequest* request, CPResponseInfoType type,
-    void* buf, uint32 buf_size);
+    void* buf, uint32_t buf_size);
 
 
 
@@ -324,7 +324,7 @@ typedef int (STDCALL *CPR_GetResponseInfoFunc)(
 
 
 typedef int (STDCALL *CPR_ReadFunc)(
-    CPRequest* request, void* buf, uint32 buf_size);
+    CPRequest* request, void* buf, uint32_t buf_size);
 
 
 
@@ -354,8 +354,8 @@ typedef void (STDCALL *CPRR_ReadCompletedFunc)(CPRequest* request,
 
 
 typedef void (STDCALL *CPRR_UploadProgressFunc)(CPRequest* request,
-                                                uint64 position,
-                                                uint64 size);
+                                                uint64_t position,
+                                                uint64_t size);
 
 
 
@@ -372,7 +372,7 @@ typedef CPProcessType (STDCALL *CPB_GetProcessTypeFunc)(CPID id);
 
 typedef CPError (STDCALL *CPB_SendMessageFunc)(CPID id,
                                                const void *data,
-                                               uint32 data_len);
+                                               uint32_t data_len);
 
 
 
@@ -380,9 +380,9 @@ typedef CPError (STDCALL *CPB_SendMessageFunc)(CPID id,
 
 typedef CPError (STDCALL *CPB_SendSyncMessageFunc)(CPID id,
                                                    const void *data,
-                                                   uint32 data_len,
+                                                   uint32_t data_len,
                                                    void **retval,
-                                                   uint32 *retval_len);
+                                                   uint32_t *retval_len);
 
 
 
@@ -401,25 +401,25 @@ typedef CPError (STDCALL *CPB_OpenFileDialogFunc)(CPID id,
                                                   void *user_data);
 
 
-typedef void (STDCALL *CPP_OnMessageFunc)(void *data, uint32 data_len);
+typedef void (STDCALL *CPP_OnMessageFunc)(void *data, uint32_t data_len);
 
 
-typedef void (STDCALL *CPP_OnSyncMessageFunc)(void *data, uint32 data_len,
+typedef void (STDCALL *CPP_OnSyncMessageFunc)(void *data, uint32_t data_len,
                                               void **retval,
-                                              uint32 *retval_len);
+                                              uint32_t *retval_len);
 
 
 
 typedef void (STDCALL *CPP_OnFileDialogResultFunc)(void *data,
                                                    const char **files,
-                                                   uint32 files_len);
+                                                   uint32_t files_len);
 
 
 
 
 
 typedef struct _CPRequestFuncs {
-  uint16 size;
+  uint16_t size;
   CPR_SetExtraRequestHeadersFunc set_extra_request_headers;
   CPR_SetRequestLoadFlagsFunc set_request_load_flags;
   CPR_AppendDataToUploadFunc append_data_to_upload;
@@ -435,7 +435,7 @@ typedef struct _CPRequestFuncs {
 
 
 typedef struct _CPResponseFuncs {
-  uint16 size;
+  uint16_t size;
   CPRR_ReceivedRedirectFunc received_redirect;
   CPRR_StartCompletedFunc start_completed;
   CPRR_ReadCompletedFunc read_completed;
@@ -447,8 +447,8 @@ typedef struct _CPResponseFuncs {
 
 
 typedef struct _CPPluginFuncs {
-  uint16 size;
-  uint16 version;
+  uint16_t size;
+  uint16_t version;
   CPRequestFuncs* request_funcs;
   CPResponseFuncs* response_funcs;
   CPP_ShutdownFunc shutdown;
@@ -465,8 +465,8 @@ typedef struct _CPPluginFuncs {
 
 
 typedef struct _CPBrowserFuncs {
-  uint16 size;
-  uint16 version;
+  uint16_t size;
+  uint16_t version;
   CPRequestFuncs* request_funcs;
   CPResponseFuncs* response_funcs;
   CPB_EnableRequestInterceptFunc enable_request_intercept;
@@ -506,7 +506,7 @@ typedef struct _CPBrowserFuncs {
 
 
 typedef CPError (STDCALL *CP_VersionNegotiateFunc)(
-  uint16 min_version, uint16 max_version, uint16 *selected_version);
+  uint16_t min_version, uint16_t max_version, uint16_t *selected_version);
 
 
 

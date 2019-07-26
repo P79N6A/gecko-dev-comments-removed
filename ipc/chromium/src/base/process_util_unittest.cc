@@ -175,7 +175,7 @@ int GetMaxFilesOpenInProcess() {
 
   
   
-  rlim_t max_int = static_cast<rlim_t>(std::numeric_limits<int32>::max());
+  rlim_t max_int = static_cast<rlim_t>(std::numeric_limits<int32_t>::max());
   if (rlim.rlim_cur > max_int) {
     return max_int;
   }

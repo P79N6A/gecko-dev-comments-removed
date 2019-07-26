@@ -52,7 +52,7 @@ class ScopedBstr {
   
   
   
-  void SetByteLen(uint32 bytes);
+  void SetByteLen(uint32_t bytes);
 
   
   void Swap(ScopedBstr& bstr2);
@@ -64,10 +64,10 @@ class ScopedBstr {
   BSTR* Receive();
 
   
-  uint32 Length() const;
+  uint32_t Length() const;
 
   
-  uint32 ByteLength() const;
+  uint32_t ByteLength() const;
 
   operator BSTR() const {
     return bstr_;
@@ -87,7 +87,7 @@ class ScopedBstr {
 
 
 
-template <uint32 string_bytes>
+template <uint32_t string_bytes>
 class StackBstrT {
  public:
   
@@ -97,7 +97,7 @@ class StackBstrT {
   explicit StackBstrT(const wchar_t* const str) {
     
     
-    COMPILE_ASSERT(sizeof(uint32) == sizeof(UINT), UintToUint32);
+    COMPILE_ASSERT(sizeof(uint32_t) == sizeof(UINT), UintToUint32);
     COMPILE_ASSERT(sizeof(wchar_t) == sizeof(OLECHAR), WcharToOlechar);
 
     
@@ -115,7 +115,7 @@ class StackBstrT {
 
  protected:
   struct BstrInternal {
-    uint32 len_;
+    uint32_t len_;
     wchar_t str_[string_bytes / sizeof(wchar_t)];
   } bstr_;
 };

@@ -10,7 +10,7 @@
 namespace base {
 
 
-uint64 RandUint64();
+uint64_t RandUint64();
 
 
 int RandInt(int min, int max);

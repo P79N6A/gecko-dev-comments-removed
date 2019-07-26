@@ -25,14 +25,14 @@ namespace {
 
 
 
-bool ReadUnicodeCharacter(const char* src, int32 src_len,
-                          int32* char_index, uint32* code_point_out) {
+bool ReadUnicodeCharacter(const char* src, int32_t src_len,
+                          int32_t* char_index, uint32_t* code_point_out) {
   
   
   
-  int32 code_point;
+  int32_t code_point;
   U8_NEXT(src, *char_index, src_len, code_point);
-  *code_point_out = static_cast<uint32>(code_point);
+  *code_point_out = static_cast<uint32_t>(code_point);
 
   
   
@@ -43,8 +43,8 @@ bool ReadUnicodeCharacter(const char* src, int32 src_len,
 }
 
 
-bool ReadUnicodeCharacter(const char16* src, int32 src_len,
-                          int32* char_index, uint32* code_point) {
+bool ReadUnicodeCharacter(const char16* src, int32_t src_len,
+                          int32_t* char_index, uint32_t* code_point) {
   if (U16_IS_SURROGATE(src[*char_index])) {
     if (!U16_IS_SURROGATE_LEAD(src[*char_index]) ||
         *char_index + 1 >= src_len ||
@@ -67,8 +67,8 @@ bool ReadUnicodeCharacter(const char16* src, int32 src_len,
 
 #if defined(WCHAR_T_IS_UTF32)
 
-bool ReadUnicodeCharacter(const wchar_t* src, int32 src_len,
-                        int32* char_index, uint32* code_point) {
+bool ReadUnicodeCharacter(const wchar_t* src, int32_t src_len,
+                        int32_t* char_index, uint32_t* code_point) {
   
   *code_point = src[*char_index];
 
@@ -80,7 +80,7 @@ bool ReadUnicodeCharacter(const wchar_t* src, int32 src_len,
 
 
 
-void WriteUnicodeCharacter(uint32 code_point, std::string* output) {
+void WriteUnicodeCharacter(uint32_t code_point, std::string* output) {
   if (code_point <= 0x7f) {
     
     output->push_back(code_point);
@@ -88,7 +88,7 @@ void WriteUnicodeCharacter(uint32 code_point, std::string* output) {
   }
 
   
-  int32 char_offset = static_cast<int32>(output->length());
+  int32_t char_offset = static_cast<int32_t>(output->length());
   output->resize(char_offset + U8_MAX_LENGTH);
 
   U8_APPEND_UNSAFE(&(*output)[0], char_offset, code_point);
@@ -99,13 +99,13 @@ void WriteUnicodeCharacter(uint32 code_point, std::string* output) {
 }
 
 
-void WriteUnicodeCharacter(uint32 code_point, string16* output) {
+void WriteUnicodeCharacter(uint32_t code_point, string16* output) {
   if (U16_LENGTH(code_point) == 1) {
     
     output->push_back(static_cast<char16>(code_point));
   } else {
     
-    int32 char_offset = static_cast<int32>(output->length());
+    int32_t char_offset = static_cast<int32_t>(output->length());
     output->resize(char_offset + U16_MAX_LENGTH);
     U16_APPEND_UNSAFE(&(*output)[0], char_offset, code_point);
   }
@@ -113,7 +113,7 @@ void WriteUnicodeCharacter(uint32 code_point, string16* output) {
 
 #if defined(WCHAR_T_IS_UTF32)
 
-inline void WriteUnicodeCharacter(uint32 code_point, std::wstring* output) {
+inline void WriteUnicodeCharacter(uint32_t code_point, std::wstring* output) {
   
   output->push_back(code_point);
 }
@@ -131,9 +131,9 @@ bool ConvertUnicode(const SRC_CHAR* src, size_t src_len, DEST_STRING* output) {
 
   
   bool success = true;
-  int32 src_len32 = static_cast<int32>(src_len);
-  for (int32 i = 0; i < src_len32; i++) {
-    uint32 code_point;
+  int32_t src_len32 = static_cast<int32_t>(src_len);
+  for (int32_t i = 0; i < src_len32; i++) {
+    uint32_t code_point;
     if (ReadUnicodeCharacter(src, src_len32, &i, &code_point))
       WriteUnicodeCharacter(code_point, output);
     else
@@ -501,7 +501,7 @@ struct NumberFormatSingletonTraits
 
 }  
 
-std::wstring FormatNumber(int64 number) {
+std::wstring FormatNumber(int64_t number) {
   NumberFormat* number_format =
       Singleton<NumberFormat, NumberFormatSingletonTraits>::get();
 

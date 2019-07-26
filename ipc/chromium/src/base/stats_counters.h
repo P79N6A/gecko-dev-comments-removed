@@ -157,7 +157,7 @@ class StatsCounter {
   
   
   
-  int32 counter_id_;
+  int32_t counter_id_;
 };
 
 

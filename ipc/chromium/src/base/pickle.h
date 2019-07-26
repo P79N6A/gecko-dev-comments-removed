@@ -65,17 +65,17 @@ class Pickle {
   
   
   bool ReadBool(void** iter, bool* result) const;
-  bool ReadInt16(void** iter, int16* result) const;
-  bool ReadUInt16(void** iter, uint16* result) const;
+  bool ReadInt16(void** iter, int16_t* result) const;
+  bool ReadUInt16(void** iter, uint16_t* result) const;
   bool ReadShort(void** iter, short* result) const;
   bool ReadInt(void** iter, int* result) const;
   bool ReadLong(void** iter, long* result) const;
   bool ReadULong(void** iter, unsigned long* result) const;
   bool ReadSize(void** iter, size_t* result) const;
-  bool ReadInt32(void** iter, int32* result) const;
-  bool ReadUInt32(void** iter, uint32* result) const;
-  bool ReadInt64(void** iter, int64* result) const;
-  bool ReadUInt64(void** iter, uint64* result) const;
+  bool ReadInt32(void** iter, int32_t* result) const;
+  bool ReadUInt32(void** iter, uint32_t* result) const;
+  bool ReadInt64(void** iter, int64_t* result) const;
+  bool ReadUInt64(void** iter, uint64_t* result) const;
   bool ReadDouble(void** iter, double* result) const;
   bool ReadIntPtr(void** iter, intptr_t* result) const;
   bool ReadUnsignedChar(void** iter, unsigned char* result) const;
@@ -84,7 +84,7 @@ class Pickle {
   bool ReadString16(void** iter, string16* result) const;
   bool ReadData(void** iter, const char** data, int* length) const;
   bool ReadBytes(void** iter, const char** data, int length,
-                 uint32 alignment = sizeof(uint32)) const;
+                 uint32_t alignment = sizeof(uint32_t)) const;
 
   
   
@@ -97,10 +97,10 @@ class Pickle {
   bool WriteBool(bool value) {
     return WriteInt(value ? 1 : 0);
   }
-  bool WriteInt16(int16 value) {
+  bool WriteInt16(int16_t value) {
     return WriteBytes(&value, sizeof(value));
   }
-  bool WriteUInt16(uint16 value) {
+  bool WriteUInt16(uint16_t value) {
     return WriteBytes(&value, sizeof(value));
   }
   bool WriteInt(int value) {
@@ -109,28 +109,28 @@ class Pickle {
   bool WriteLong(long value) {
     
     
-    return WriteInt64(int64(value));
+    return WriteInt64(int64_t(value));
   }
   bool WriteULong(unsigned long value) {
     
     
-    return WriteUInt64(uint64(value));
+    return WriteUInt64(uint64_t(value));
   }
   bool WriteSize(size_t value) {
     
     
-    return WriteUInt64(uint64(value));
+    return WriteUInt64(uint64_t(value));
   }
-  bool WriteInt32(int32 value) {
+  bool WriteInt32(int32_t value) {
     return WriteBytes(&value, sizeof(value));
   }
-  bool WriteUInt32(uint32 value) {
+  bool WriteUInt32(uint32_t value) {
     return WriteBytes(&value, sizeof(value));
   }
-  bool WriteInt64(int64 value) {
+  bool WriteInt64(int64_t value) {
     return WriteBytes(&value, sizeof(value));
   }
-  bool WriteUInt64(uint64 value) {
+  bool WriteUInt64(uint64_t value) {
     return WriteBytes(&value, sizeof(value));
   }
   bool WriteDouble(double value) {
@@ -139,7 +139,7 @@ class Pickle {
   bool WriteIntPtr(intptr_t value) {
     
     
-    return WriteInt64(int64(value));
+    return WriteInt64(int64_t(value));
   }
   bool WriteUnsignedChar(unsigned char value) {
     return WriteBytes(&value, sizeof(value));
@@ -149,7 +149,7 @@ class Pickle {
   bool WriteString16(const string16& value);
   bool WriteData(const char* data, int length);
   bool WriteBytes(const void* data, int data_len,
-                  uint32 alignment = sizeof(uint32));
+                  uint32_t alignment = sizeof(uint32_t));
 
   
   
@@ -178,7 +178,7 @@ class Pickle {
 
   
   struct Header {
-    uint32 payload_size;  
+    uint32_t payload_size;  
   };
 
   
@@ -207,7 +207,7 @@ class Pickle {
   }
 
  protected:
-  uint32 payload_size() const { return header_->payload_size; }
+  uint32_t payload_size() const { return header_->payload_size; }
 
   char* payload() {
     return reinterpret_cast<char*>(header_) + header_size_;
@@ -225,7 +225,7 @@ class Pickle {
     return payload() + payload_size();
   }
 
-  uint32 capacity() const {
+  uint32_t capacity() const {
     return capacity_;
   }
 
@@ -233,7 +233,7 @@ class Pickle {
   
   
   
-  char* BeginWrite(uint32 length, uint32 alignment);
+  char* BeginWrite(uint32_t length, uint32_t alignment);
 
   
   
@@ -244,10 +244,10 @@ class Pickle {
   
   
   
-  bool Resize(uint32 new_capacity);
+  bool Resize(uint32_t new_capacity);
 
   
-  static uint32 AlignInt(uint32 i, int alignment) {
+  static uint32_t AlignInt(uint32_t i, int alignment) {
     return i + (alignment - (i % alignment)) % alignment;
   }
 
@@ -255,12 +255,12 @@ class Pickle {
   
   
   static void UpdateIter(void** iter, int bytes) {
-    *iter = static_cast<char*>(*iter) + AlignInt(bytes, sizeof(uint32));
+    *iter = static_cast<char*>(*iter) + AlignInt(bytes, sizeof(uint32_t));
   }
 
   
   
-  static const char* FindNext(uint32 header_size,
+  static const char* FindNext(uint32_t header_size,
                               const char* range_start,
                               const char* range_end);
 
@@ -269,9 +269,9 @@ class Pickle {
 
  private:
   Header* header_;
-  uint32 header_size_;
-  uint32 capacity_;
-  uint32 variable_buffer_offset_;
+  uint32_t header_size_;
+  uint32_t capacity_;
+  uint32_t variable_buffer_offset_;
   FRIEND_TEST(PickleTest, Resize);
   FRIEND_TEST(PickleTest, FindNext);
   FRIEND_TEST(PickleTest, IteratorHasRoom);

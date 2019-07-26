@@ -55,23 +55,23 @@ namespace {
 
 
 
-int64 FileTimeToMicroseconds(const FILETIME& ft) {
+int64_t FileTimeToMicroseconds(const FILETIME& ft) {
   
   
   
-  return bit_cast<int64, FILETIME>(ft) / 10;
+  return bit_cast<int64_t, FILETIME>(ft) / 10;
 }
 
-void MicrosecondsToFileTime(int64 us, FILETIME* ft) {
+void MicrosecondsToFileTime(int64_t us, FILETIME* ft) {
   DCHECK(us >= 0) << "Time is less than 0, negative values are not "
       "representable in FILETIME";
 
   
   
-  *ft = bit_cast<FILETIME, int64>(us * 10);
+  *ft = bit_cast<FILETIME, int64_t>(us * 10);
 }
 
-int64 CurrentWallclockMicroseconds() {
+int64_t CurrentWallclockMicroseconds() {
   FILETIME ft;
   ::GetSystemTimeAsFileTime(&ft);
   return FileTimeToMicroseconds(ft);
@@ -80,7 +80,7 @@ int64 CurrentWallclockMicroseconds() {
 
 const int kMaxMillisecondsToAvoidDrift = 60 * Time::kMillisecondsPerSecond;
 
-int64 initial_time = 0;
+int64_t initial_time = 0;
 TimeTicks initial_ticks;
 
 void InitializeClock() {
@@ -97,7 +97,7 @@ void InitializeClock() {
 
 
 
-const int64 Time::kTimeTToMicrosecondsOffset = GG_INT64_C(11644473600000000);
+const int64_t Time::kTimeTToMicrosecondsOffset = GG_INT64_C(11644473600000000);
 
 
 Time Time::Now() {
@@ -308,7 +308,7 @@ class HighResNowSingleton {
     const int kMaxTimeDrift = 50 * Time::kMicrosecondsPerMillisecond;
 
     if (IsUsingHighResClock()) {
-      int64 now = UnreliableNow();
+      int64_t now = UnreliableNow();
 
       
       DCHECK(now - ReliableNow() - skew_ < kMaxTimeDrift);
@@ -333,21 +333,21 @@ class HighResNowSingleton {
   }
 
   
-  int64 UnreliableNow() {
+  int64_t UnreliableNow() {
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
-    return static_cast<int64>(now.QuadPart / ticks_per_microsecond_);
+    return static_cast<int64_t>(now.QuadPart / ticks_per_microsecond_);
   }
 
   
-  int64 ReliableNow() {
+  int64_t ReliableNow() {
     return Singleton<NowSingleton>::get()->Now().InMicroseconds();
   }
 
   
   
   float ticks_per_microsecond_;  
-  int64 skew_;  
+  int64_t skew_;  
 
   DISALLOW_COPY_AND_ASSIGN(HighResNowSingleton);
 };

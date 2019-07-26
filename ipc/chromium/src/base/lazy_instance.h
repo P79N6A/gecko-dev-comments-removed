@@ -100,7 +100,7 @@ class LazyInstance : public LazyInstanceHelper {
   }
 
  private:
-  int8 buf_[sizeof(Type)];  
+  int8_t buf_[sizeof(Type)];  
 
   DISALLOW_COPY_AND_ASSIGN(LazyInstance);
 };

@@ -47,8 +47,8 @@ class MessageRouter : public IPC::Channel::Listener,
   virtual bool Send(IPC::Message* msg);
 
   
-  void AddRoute(int32 routing_id, IPC::Channel::Listener* listener);
-  void RemoveRoute(int32 routing_id);
+  void AddRoute(int32_t routing_id, IPC::Channel::Listener* listener);
+  void RemoveRoute(int32_t routing_id);
 
  private:
   

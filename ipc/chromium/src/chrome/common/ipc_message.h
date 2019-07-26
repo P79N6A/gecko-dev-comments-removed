@@ -34,7 +34,7 @@ struct LogData;
 
 class Message : public Pickle {
  public:
-  typedef uint32 msgid_t;
+  typedef uint32_t msgid_t;
 
   
   class Sender {
@@ -65,7 +65,7 @@ class Message : public Pickle {
 
   
   
-  Message(int32 routing_id, msgid_t type, PriorityValue priority,
+  Message(int32_t routing_id, msgid_t type, PriorityValue priority,
           MessageCompression compression = COMPRESSION_NONE,
           const char* const name="???");
 
@@ -140,37 +140,37 @@ class Message : public Pickle {
     return header()->type;
   }
 
-  int32 routing_id() const {
+  int32_t routing_id() const {
     return header()->routing;
   }
 
-  void set_routing_id(int32 new_id) {
+  void set_routing_id(int32_t new_id) {
     header()->routing = new_id;
   }
 
-  uint32 rpc_remote_stack_depth_guess() const {
+  uint32_t rpc_remote_stack_depth_guess() const {
     return header()->rpc_remote_stack_depth_guess;
   }
 
-  void set_rpc_remote_stack_depth_guess(uint32 depth) {
+  void set_rpc_remote_stack_depth_guess(uint32_t depth) {
     DCHECK(is_rpc());
     header()->rpc_remote_stack_depth_guess = depth;
   }
 
-  uint32 rpc_local_stack_depth() const {
+  uint32_t rpc_local_stack_depth() const {
     return header()->rpc_local_stack_depth;
   }
 
-  void set_rpc_local_stack_depth(uint32 depth) {
+  void set_rpc_local_stack_depth(uint32_t depth) {
     DCHECK(is_rpc());
     header()->rpc_local_stack_depth = depth;
   }
 
-  int32 seqno() const {
+  int32_t seqno() const {
     return header()->seqno;
   }
 
-  void set_seqno(int32 seqno) {
+  void set_seqno(int32_t seqno) {
     header()->seqno = seqno;
   }
 
@@ -232,11 +232,11 @@ class Message : public Pickle {
 #ifdef IPC_MESSAGE_LOG_ENABLED
   
   
-  void set_sent_time(int64 time);
-  int64 sent_time() const;
+  void set_sent_time(int64_t time);
+  int64_t sent_time() const;
 
-  void set_received_time(int64 time) const;
-  int64 received_time() const { return received_time_; }
+  void set_received_time(int64_t time) const;
+  int64_t received_time() const { return received_time_; }
   void set_output_params(const std::wstring& op) const { output_params_ = op; }
   const std::wstring& output_params() const { return output_params_; }
   
@@ -280,18 +280,18 @@ class Message : public Pickle {
 
 #pragma pack(push, 2)
   struct Header : Pickle::Header {
-    int32 routing;  
+    int32_t routing;  
     msgid_t type;   
-    uint32 flags;   
+    uint32_t flags;   
 #if defined(OS_POSIX)
-    uint32 num_fds; 
+    uint32_t num_fds; 
 #endif
     
-    uint32 rpc_remote_stack_depth_guess;
+    uint32_t rpc_remote_stack_depth_guess;
     
-    uint32 rpc_local_stack_depth;
+    uint32_t rpc_local_stack_depth;
     
-    int32 seqno;
+    int32_t seqno;
   };
 #pragma pack(pop)
 
@@ -324,7 +324,7 @@ class Message : public Pickle {
 
 #ifdef IPC_MESSAGE_LOG_ENABLED
   
-  mutable int64 received_time_;
+  mutable int64_t received_time_;
   mutable std::wstring output_params_;
   mutable LogData* log_data_;
   mutable bool dont_log_;

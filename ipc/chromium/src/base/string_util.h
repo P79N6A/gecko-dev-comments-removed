@@ -358,22 +358,22 @@ enum DataUnits {
 
 
 
-DataUnits GetByteDisplayUnits(int64 bytes);
+DataUnits GetByteDisplayUnits(int64_t bytes);
 
 
 
 
 
-std::wstring FormatBytes(int64 bytes, DataUnits units, bool show_units);
+std::wstring FormatBytes(int64_t bytes, DataUnits units, bool show_units);
 
 
 
 
-std::wstring FormatSpeed(int64 bytes, DataUnits units, bool show_units);
+std::wstring FormatSpeed(int64_t bytes, DataUnits units, bool show_units);
 
 
 
-std::wstring FormatNumber(int64 number);
+std::wstring FormatNumber(int64_t number);
 
 
 
@@ -406,10 +406,10 @@ std::string IntToString(int value);
 std::wstring IntToWString(int value);
 std::string UintToString(unsigned int value);
 std::wstring UintToWString(unsigned int value);
-std::string Int64ToString(int64 value);
-std::wstring Int64ToWString(int64 value);
-std::string Uint64ToString(uint64 value);
-std::wstring Uint64ToWString(uint64 value);
+std::string Int64ToString(int64_t value);
+std::wstring Int64ToWString(int64_t value);
+std::string Uint64ToString(uint64_t value);
+std::wstring Uint64ToWString(uint64_t value);
 
 
 std::string DoubleToString(double value);
@@ -427,8 +427,8 @@ std::wstring DoubleToWString(double value);
 
 bool StringToInt(const std::string& input, int* output);
 bool StringToInt(const string16& input, int* output);
-bool StringToInt64(const std::string& input, int64* output);
-bool StringToInt64(const string16& input, int64* output);
+bool StringToInt64(const std::string& input, int64_t* output);
+bool StringToInt64(const string16& input, int64_t* output);
 bool HexStringToInt(const std::string& input, int* output);
 bool HexStringToInt(const string16& input, int* output);
 
@@ -436,8 +436,8 @@ bool HexStringToInt(const string16& input, int* output);
 
 
 
-bool HexStringToBytes(const std::string& input, std::vector<uint8>* output);
-bool HexStringToBytes(const string16& input, std::vector<uint8>* output);
+bool HexStringToBytes(const std::string& input, std::vector<uint8_t>* output);
+bool HexStringToBytes(const string16& input, std::vector<uint8_t>* output);
 
 
 
@@ -453,8 +453,8 @@ bool StringToDouble(const string16& input, double* output);
 
 int StringToInt(const std::string& value);
 int StringToInt(const string16& value);
-int64 StringToInt64(const std::string& value);
-int64 StringToInt64(const string16& value);
+int64_t StringToInt64(const std::string& value);
+int64_t StringToInt64(const string16& value);
 int HexStringToInt(const std::string& value);
 int HexStringToInt(const string16& value);
 double StringToDouble(const std::string& value);

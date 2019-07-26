@@ -28,13 +28,13 @@ public:
   
   const std::string GetString() const;
 
-  const std::vector<uint16>& components() const { return components_; }
+  const std::vector<uint16_t>& components() const { return components_; }
 
 private:
   Version() {}
   bool InitFromString(const std::string& version_str);
 
-  std::vector<uint16> components_;
+  std::vector<uint16_t> components_;
 };
 
 #endif  

@@ -35,7 +35,7 @@ IPC_BEGIN_MESSAGES(View)
   
   
   IPC_MESSAGE_CONTROL1(ViewMsg_SetNextPageID,
-                       int32 )
+                       int32_t )
 
   
   
@@ -44,7 +44,7 @@ IPC_BEGIN_MESSAGES(View)
                        gfx::NativeViewId, 
                        ModalDialogEvent, 
                        WebPreferences,
-                       int32 )
+                       int32_t )
 
   
   IPC_MESSAGE_CONTROL3(ViewMsg_SetCacheCapacities,
@@ -173,14 +173,14 @@ IPC_BEGIN_MESSAGES(View)
   
   IPC_MESSAGE_ROUTED3(ViewMsg_Resource_DownloadProgress,
                       int ,
-                      int64 ,
-                      int64 )
+                      int64_t ,
+                      int64_t )
 
   
   IPC_MESSAGE_ROUTED3(ViewMsg_Resource_UploadProgress,
                       int ,
-                      int64 ,
-                      int64 )
+                      int64_t ,
+                      int64_t )
 
   
   IPC_MESSAGE_ROUTED2(ViewMsg_Resource_ReceivedRedirect,
@@ -423,7 +423,7 @@ IPC_BEGIN_MESSAGES(View)
 
   
   
-  IPC_MESSAGE_ROUTED1(ViewMsg_GetApplicationInfo, int32 )
+  IPC_MESSAGE_ROUTED1(ViewMsg_GetApplicationInfo, int32_t )
 
   
   
@@ -483,12 +483,12 @@ IPC_BEGIN_MESSAGES(View)
   IPC_MESSAGE_CONTROL3(AppCacheMsg_AppCacheSelected,
                        int ,
                        int ,
-                       int64 )
+                       int64_t )
 
   
   
   IPC_MESSAGE_ROUTED4(ViewMsg_AutofillSuggestions,
-                      int64 ,
+                      int64_t ,
                       int ,
                       std::vector<std::wstring> ,
                       int )
@@ -653,13 +653,13 @@ IPC_BEGIN_MESSAGES(ViewHost)
   
   
   IPC_MESSAGE_ROUTED2(ViewHostMsg_UpdateState,
-                      int32 ,
+                      int32_t ,
                       std::string )
 
   
   
   
-  IPC_MESSAGE_ROUTED2(ViewHostMsg_UpdateTitle, int32, std::wstring)
+  IPC_MESSAGE_ROUTED2(ViewHostMsg_UpdateTitle, int32_t, std::wstring)
 
   
   
@@ -668,7 +668,7 @@ IPC_BEGIN_MESSAGES(ViewHost)
 
   
   
-  IPC_MESSAGE_ROUTED2(ViewHostMsg_UpdateTargetURL, int32, GURL)
+  IPC_MESSAGE_ROUTED2(ViewHostMsg_UpdateTargetURL, int32_t, GURL)
 
   
   
@@ -791,14 +791,14 @@ IPC_BEGIN_MESSAGES(ViewHost)
   
   IPC_MESSAGE_CONTROL2(ViewHostMsg_PluginMessage,
                        FilePath ,
-                       std::vector<uint8> )
+                       std::vector<uint8_t> )
 
   
   
   IPC_SYNC_MESSAGE_CONTROL2_1(ViewHostMsg_PluginSyncMessage,
                               FilePath ,
-                              std::vector<uint8> ,
-                              std::vector<uint8> )
+                              std::vector<uint8_t> ,
+                              std::vector<uint8_t> )
 
   
   IPC_SYNC_MESSAGE_ROUTED1_2(ViewHostMsg_SpellCheck,
@@ -826,7 +826,7 @@ IPC_BEGIN_MESSAGES(ViewHost)
 
   
   
-  IPC_MESSAGE_CONTROL3(ViewHostMsg_PageContents, GURL, int32, std::wstring)
+  IPC_MESSAGE_CONTROL3(ViewHostMsg_PageContents, GURL, int32_t, std::wstring)
 
   
   
@@ -837,7 +837,7 @@ IPC_BEGIN_MESSAGES(ViewHost)
 
   
   IPC_MESSAGE_ROUTED2(ViewHostMsg_UpdateFavIconURL,
-                      int32 ,
+                      int32_t ,
                       GURL )
 
   
@@ -970,7 +970,7 @@ IPC_BEGIN_MESSAGES(ViewHost)
   
   
   IPC_MESSAGE_ROUTED3(ViewHostMsg_PageHasOSDD,
-                      int32 ,
+                      int32_t ,
                       GURL ,
                       bool )
 
@@ -1051,7 +1051,7 @@ IPC_BEGIN_MESSAGES(ViewHost)
   
   IPC_MESSAGE_ROUTED3(ViewHostMsg_AddMessageToConsole,
                       std::wstring, 
-                      int32, 
+                      int32_t, 
                       std::wstring )
 
   
@@ -1117,7 +1117,7 @@ IPC_BEGIN_MESSAGES(ViewHost)
   IPC_MESSAGE_ROUTED3(ViewHostMsg_SendSerializedHtmlData,
                       GURL ,
                       std::string ,
-                      int32 )
+                      int32_t )
 
   IPC_SYNC_MESSAGE_ROUTED4_1(ViewHostMsg_ShowModalHTMLDialog,
                              GURL ,
@@ -1127,7 +1127,7 @@ IPC_BEGIN_MESSAGES(ViewHost)
                              std::string )
 
   IPC_MESSAGE_ROUTED2(ViewHostMsg_DidGetApplicationInfo,
-                      int32 ,
+                      int32_t ,
                       webkit_glue::WebApplicationInfo)
 
   
@@ -1163,7 +1163,7 @@ IPC_BEGIN_MESSAGES(ViewHost)
   
   
   IPC_SYNC_MESSAGE_CONTROL0_1(ViewHostMsg_GetCPBrowsingContext,
-                              uint32 )
+                              uint32_t )
 
   
   
@@ -1232,7 +1232,7 @@ IPC_BEGIN_MESSAGES(ViewHost)
                        int ,
                        int ,
                        GURL  ,
-                       int64 ,
+                       int64_t ,
                        GURL  )
 
   
@@ -1245,7 +1245,7 @@ IPC_BEGIN_MESSAGES(ViewHost)
   IPC_MESSAGE_ROUTED4(ViewHostMsg_QueryFormFieldAutofill,
                       std::wstring ,
                       std::wstring ,
-                      int64 ,
+                      int64_t ,
                       int )
 
   

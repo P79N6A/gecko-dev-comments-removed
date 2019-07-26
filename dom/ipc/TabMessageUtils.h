@@ -28,7 +28,7 @@ bool ReadRemoteEvent(const IPC::Message* aMsg, void** aIter,
 typedef CrashReporter::ThreadId NativeThreadId;
 #else
 
-typedef int32 NativeThreadId;
+typedef int32_t NativeThreadId;
 #endif
 
 }

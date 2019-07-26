@@ -44,8 +44,8 @@ std::wstring SysNativeMBToWide(const StringPiece& native_mb);
 
 
 
-std::wstring SysMultiByteToWide(const StringPiece& mb, uint32 code_page);
-std::string SysWideToMultiByte(const std::wstring& wide, uint32 code_page);
+std::wstring SysMultiByteToWide(const StringPiece& mb, uint32_t code_page);
+std::string SysWideToMultiByte(const std::wstring& wide, uint32_t code_page);
 
 #endif  
 

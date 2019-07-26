@@ -31,13 +31,13 @@ namespace base {
 
 
 
-const int64 Time::kTimeTToMicrosecondsOffset = GG_INT64_C(0);
+const int64_t Time::kTimeTToMicrosecondsOffset = GG_INT64_C(0);
 
 
 Time Time::Now() {
   CFAbsoluteTime now =
       CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970;
-  return Time(static_cast<int64>(now * kMicrosecondsPerSecond));
+  return Time(static_cast<int64_t>(now * kMicrosecondsPerSecond));
 }
 
 
@@ -61,7 +61,7 @@ Time Time::FromExploded(bool is_local, const Exploded& exploded) {
       time_zone(is_local ? CFTimeZoneCopySystem() : NULL);
   CFAbsoluteTime seconds = CFGregorianDateGetAbsoluteTime(date, time_zone) +
       kCFAbsoluteTimeIntervalSince1970;
-  return Time(static_cast<int64>(seconds * kMicrosecondsPerSecond));
+  return Time(static_cast<int64_t>(seconds * kMicrosecondsPerSecond));
 }
 
 void Time::Explode(bool is_local, Exploded* exploded) const {
