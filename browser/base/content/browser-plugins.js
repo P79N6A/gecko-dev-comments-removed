@@ -316,8 +316,21 @@ var gPluginHandler = {
     
     if (eventType != "PluginCrashed" && eventType != "PluginRemoved") {
       let overlay = this.getPluginUI(plugin, "main");
-      if (overlay != null && this.isTooSmall(plugin, overlay))
-        overlay.style.visibility = "hidden";
+      if (overlay != null) {
+        if (!this.isTooSmall(plugin, overlay))
+          overlay.style.visibility = "visible";
+
+        plugin.addEventListener("overflow", function(event) {
+          overlay.style.visibility = "hidden";
+        });
+        plugin.addEventListener("underflow", function(event) {
+          
+          
+          if (!gPluginHandler.isTooSmall(plugin, overlay)) {
+            overlay.style.visibility = "visible";
+          }
+        });
+      }
     }
 
     
