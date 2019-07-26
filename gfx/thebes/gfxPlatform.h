@@ -410,6 +410,9 @@ public:
     static bool UseLowPrecisionBuffer();
 
     
+    static float GetLowPrecisionResolution();
+
+    
     
     static bool UseReusableTileStore();
 
