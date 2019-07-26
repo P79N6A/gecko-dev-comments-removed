@@ -28,7 +28,12 @@ XPCOMUtils.defineLazyServiceGetter(this, "unescapeService",
 function prefObserver(subject, topic, data) {
   let enable = Services.prefs.getBoolPref("social.enabled");
   if (enable && !Social.provider) {
-    Social.provider = Social.defaultProvider;
+    
+    SocialService.getOrderedProviderList(function(providers) {
+      Social._updateProviderCache(providers);
+      Social.enabled = true;
+      Services.obs.notifyObservers(null, "social:providers-changed", null);
+    });
   } else if (!enable && Social.provider) {
     Social.provider = null;
   }
@@ -83,7 +88,7 @@ function promiseGetAnnotation(aURI) {
 this.Social = {
   initialized: false,
   lastEventReceived: 0,
-  providers: null,
+  providers: [],
   _disabledForSafeMode: false,
 
   get _currentProviderPref() {
@@ -151,10 +156,12 @@ this.Social = {
     }
     this.initialized = true;
 
-    
-    SocialService.getOrderedProviderList(function (providers) {
-      this._updateProviderCache(providers);
-    }.bind(this));
+    if (SocialService.enabled) {
+      
+      SocialService.getOrderedProviderList(function (providers) {
+        this._updateProviderCache(providers);
+      }.bind(this));
+    }
 
     
     SocialService.registerProviderListener(function providerListener(topic, data) {
@@ -168,17 +175,13 @@ this.Social = {
         
         
         let provider = data;
-        SocialService.getOrderedProviderList(function(providers) {
-          Social._updateProviderCache(providers);
-          Services.obs.notifyObservers(null, "social:providers-changed", null);
-          
-          if (provider.enabled) {
-            Social.enabled = false;
-            Services.tm.mainThread.dispatch(function() {
-              Social.enabled = true;
-            }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
-          }
-        });
+        
+        if (provider.enabled) {
+          Social.enabled = false;
+          Services.tm.mainThread.dispatch(function() {
+            Social.enabled = true;
+          }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+        }
       }
     }.bind(this));
   },
