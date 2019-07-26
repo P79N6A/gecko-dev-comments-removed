@@ -438,14 +438,15 @@ public:
     bool             mHasSpaceFeatures : 1;
     bool             mHasSpaceFeaturesKerning : 1;
     bool             mHasSpaceFeaturesNonKerning : 1;
-    bool             mHasSpaceFeaturesSubDefault : 1;
     bool             mHasGraphiteTables : 1;
     bool             mCheckedForGraphiteTables : 1;
     bool             mHasCmapTable : 1;
     bool             mGrFaceInitialized : 1;
 
     
-    uint32_t         mHasSpaceFeaturesSub[(MOZ_NUM_SCRIPT_CODES + 31) / 32];
+    
+    uint32_t         mDefaultSubSpaceFeatures[(MOZ_NUM_SCRIPT_CODES + 31) / 32];
+    uint32_t         mNonDefaultSubSpaceFeatures[(MOZ_NUM_SCRIPT_CODES + 31) / 32];
 
     uint16_t         mWeight;
     int16_t          mStretch;
@@ -1794,53 +1795,20 @@ public:
         return mFontEntry->TryGetSVGData(this);
     }
 
+    static void DestroySingletons() {
+        delete sScriptTagToCode;
+        delete sDefaultFeatures;
+    }
+
 protected:
     void AddGlyphChangeObserver(GlyphChangeObserver *aObserver);
     void RemoveGlyphChangeObserver(GlyphChangeObserver *aObserver);
 
-    bool HasSubstitutionRulesWithSpaceLookups(int32_t aRunScript) {
-        NS_ASSERTION(GetFontEntry()->mHasSpaceFeaturesInitialized,
-                     "need to initialize space lookup flags");
-        NS_ASSERTION(aRunScript < MOZ_NUM_SCRIPT_CODES, "weird script code");
-        if (aRunScript == MOZ_SCRIPT_INVALID ||
-            aRunScript >= MOZ_NUM_SCRIPT_CODES) {
-            return false;
-        }
-        uint32_t index = aRunScript >> 5;
-        uint32_t bit = aRunScript & 0x1f;
-        return (mFontEntry->mHasSpaceFeaturesSub[index] & (1 << bit)) != 0;
-    }
+    
+    bool HasSubstitutionRulesWithSpaceLookups(int32_t aRunScript);
 
-    bool BypassShapedWordCache(int32_t aRunScript) {
-        
-        
-        
-        
-        
-        if (!mFontEntry->mHasSpaceFeaturesInitialized) {
-            CheckForFeaturesInvolvingSpace();
-        }
-
-        if (!mFontEntry->mHasSpaceFeatures) {
-            return false;
-        }
-
-        
-        
-        if (HasSubstitutionRulesWithSpaceLookups(aRunScript) ||
-            mFontEntry->mHasSpaceFeaturesNonKerning ||
-            mFontEntry->mHasSpaceFeaturesSubDefault) {
-            return true;
-        }
-
-        
-        
-        if (mKerningSet && mFontEntry->mHasSpaceFeaturesKerning) {
-            return mKerningEnabled;
-        }
-
-        return false;
-    }
+    
+    bool BypassShapedWordCache(int32_t aRunScript);
 
     
     bool ShapeText(gfxContext    *aContext,
@@ -1904,7 +1872,9 @@ protected:
     
     bool HasFeatureSet(uint32_t aFeature, bool& aFeatureOn);
 
+    
     static nsDataHashtable<nsUint32HashKey, int32_t> *sScriptTagToCode;
+    static nsTHashtable<nsUint32HashKey>             *sDefaultFeatures;
 
     nsRefPtr<gfxFontEntry> mFontEntry;
 
