@@ -1983,10 +1983,9 @@ nsCSSKeyframeRule::MapRuleInfoInto(nsRuleData* aRuleData)
   
 
   
-  
-  if (mDeclaration->HasImportantData()) {
-    mDeclaration->MapImportantRuleInfoInto(aRuleData);
-  }
+  NS_ASSERTION(!mDeclaration->HasImportantData(),
+               "Keyframe rules has !important data");
+
   mDeclaration->MapNormalRuleInfoInto(aRuleData);
 }
 
