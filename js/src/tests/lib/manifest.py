@@ -3,7 +3,7 @@
 
 
 import os, os.path, re, sys
-from subprocess import *
+from subprocess import Popen, PIPE
 
 from tests import TestCase
 

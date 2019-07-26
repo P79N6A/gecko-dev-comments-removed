@@ -4,8 +4,8 @@
 
 
 import datetime, os, sys, time
-from subprocess import *
-from threading import *
+from subprocess import Popen, PIPE
+from threading import Thread
 
 from results import TestOutput
 
