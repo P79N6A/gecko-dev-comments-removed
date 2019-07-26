@@ -12,6 +12,7 @@
 #define jsexn_h
 
 #include "jsapi.h"
+#include "NamespaceImports.h"
 
 
 

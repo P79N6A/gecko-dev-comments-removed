@@ -10,7 +10,9 @@
 
 
 
+
 #include "jsapi.h"
+#include "NamespaceImports.h"
 
 extern JSObject *
 js_InitBooleanClass(JSContext *cx, js::HandleObject obj);
