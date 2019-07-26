@@ -687,8 +687,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     DebuggerView.setEditorLocation(sourceItem.value);
 
     
-    let script = sourceItem.value.split(" -> ").pop();
-    document.title = L10N.getFormatStr("DebuggerWindowScriptTitle", script);
+    
+    document.title = L10N.getFormatStr("DebuggerWindowScriptTitle", sourceItem.value);
 
     DebuggerView.maybeShowBlackBoxMessage();
     this.updateToolbarButtonsState();
@@ -1085,38 +1085,14 @@ let SourceUtils = {
 
     try {
       
-      var uri = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
+      let url = aUrl.split(" -> ").pop();
+      var uri = Services.io.newURI(url, null, null).QueryInterface(Ci.nsIURL);
     } catch (e) {
       
       return "";
     }
 
-    let { scheme, directory, fileName } = uri;
-    let hostPort;
-    
-    if (scheme != "jar") {
-      hostPort = uri.hostPort;
-    }
-    let lastDir = directory.split("/").reverse()[1];
-    let group = [];
-
-    
-    if (scheme != "http") {
-      group.push(scheme);
-    }
-    
-    
-    if (hostPort) {
-      
-      group.push(hostPort.split(".").slice(0, 2).join("."));
-    }
-    
-    
-    if (fileName) {
-      group.push(lastDir);
-    }
-
-    let groupLabel = group.join(" ");
+    let groupLabel = uri.prePath;
     let unicodeLabel = NetworkHelper.convertToUnicode(unescape(groupLabel));
     this._groupsCache.set(aUrl, unicodeLabel)
     return unicodeLabel;
