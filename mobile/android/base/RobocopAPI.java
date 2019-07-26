@@ -4,9 +4,12 @@
 
 package org.mozilla.gecko;
 
+import android.content.Context;
 import org.mozilla.gecko.gfx.GeckoLayerClient;
 import org.mozilla.gecko.gfx.LayerView;
+import org.mozilla.gecko.gfx.PanningPerfAPI;
 import org.mozilla.gecko.mozglue.GeckoLoader;
+import org.mozilla.gecko.mozglue.RobocopJNITarget;
 import org.mozilla.gecko.sqlite.SQLiteBridge;
 import org.mozilla.gecko.util.GeckoEventListener;
 
@@ -15,6 +18,25 @@ import android.database.Cursor;
 import android.view.View;
 
 import java.nio.IntBuffer;
+import java.util.List;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 public class RobocopAPI {
     private final GeckoApp mGeckoApp;
@@ -58,5 +80,22 @@ public class RobocopAPI {
 
     public IntBuffer getViewPixels(View view) {
         return ((LayerView)view).getPixels();
+    }
+
+    
+    public static void startFrameTimeRecording() {
+        PanningPerfAPI.startFrameTimeRecording();
+    }
+
+    public static List<Long> stopFrameTimeRecording() {
+        return PanningPerfAPI.stopFrameTimeRecording();
+    }
+
+    public static void startCheckerboardRecording() {
+        PanningPerfAPI.startCheckerboardRecording();
+    }
+
+    public static List<Float> stopCheckerboardRecording() {
+        return PanningPerfAPI.stopCheckerboardRecording();
     }
 }
