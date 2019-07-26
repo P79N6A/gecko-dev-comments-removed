@@ -71,7 +71,11 @@ class MemoryMonitor extends BroadcastReceiver {
 
     public void onLowMemory() {
         Log.d(LOGTAG, "onLowMemory() notification received");
-        increaseMemoryPressure(MEMORY_PRESSURE_HIGH);
+        if (increaseMemoryPressure(MEMORY_PRESSURE_HIGH)) {
+            
+            
+            GeckoAppShell.geckoEventSync();
+        }
     }
 
     public void onTrimMemory(int level) {
@@ -116,12 +120,12 @@ class MemoryMonitor extends BroadcastReceiver {
         }
     }
 
-    private void increaseMemoryPressure(int level) {
+    private boolean increaseMemoryPressure(int level) {
         int oldLevel;
         synchronized (this) {
             
             if (mMemoryPressure > level) {
-                return;
+                return false;
             }
             oldLevel = mMemoryPressure;
             mMemoryPressure = level;
@@ -138,7 +142,7 @@ class MemoryMonitor extends BroadcastReceiver {
             
             
             
-            return;
+            return false;
         }
 
         
@@ -147,16 +151,9 @@ class MemoryMonitor extends BroadcastReceiver {
                 GeckoAppShell.onLowMemory();
             }
 
-            if (level >= MEMORY_PRESSURE_HIGH) {
-                
-                
-                
-                
-                GeckoAppShell.geckoEventSync();
-            }
-
             Favicons.getInstance().clearMemCache();
         }
+        return true;
     }
 
     private boolean decreaseMemoryPressure() {
