@@ -4282,6 +4282,45 @@ class MConvertElementsToDoubles
 };
 
 
+
+class MMaybeToDoubleElement
+  : public MBinaryInstruction,
+    public IntPolicy<1>
+{
+    MMaybeToDoubleElement(MDefinition *elements, MDefinition *value)
+      : MBinaryInstruction(elements, value)
+    {
+        JS_ASSERT(elements->type() == MIRType_Elements);
+        setMovable();
+        setResultType(MIRType_Value);
+    }
+
+  public:
+    INSTRUCTION_HEADER(MaybeToDoubleElement)
+
+    static MMaybeToDoubleElement *New(MDefinition *elements, MDefinition *value) {
+        return new MMaybeToDoubleElement(elements, value);
+    }
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+
+    MDefinition *elements() const {
+        return getOperand(0);
+    }
+    MDefinition *value() const {
+        return getOperand(1);
+    }
+    bool congruentTo(MDefinition *const &ins) const {
+        return congruentIfOperandsEqual(ins);
+    }
+    AliasSet getAliasSet() const {
+        return AliasSet::Load(AliasSet::ObjectFields);
+    }
+};
+
+
 class MInitializedLength
   : public MUnaryInstruction
 {
