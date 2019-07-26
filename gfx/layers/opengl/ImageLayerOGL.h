@@ -44,8 +44,8 @@ class GLTexture
   typedef mozilla::gl::GLContext GLContext;
 
 public:
-  GLTexture() : mTexture(0) {}
-  ~GLTexture() { Release(); }
+  GLTexture();
+  ~GLTexture();
 
   
 

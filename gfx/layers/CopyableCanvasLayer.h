@@ -7,7 +7,7 @@
 #define GFX_COPYABLECANVASLAYER_H
 
 #include <stdint.h>                     
-#include "GLContext.h"                  
+#include "GLContextTypes.h"             
 #include "Layers.h"                     
 #include "gfxASurface.h"                
 #include "gfxContext.h"                 
@@ -36,16 +36,8 @@ class CanvasClientWebGL;
 class CopyableCanvasLayer : public CanvasLayer
 {
 public:
-  CopyableCanvasLayer(LayerManager* aLayerManager, void *aImplData) :
-    CanvasLayer(aLayerManager, aImplData)
-  {
-    MOZ_COUNT_CTOR(CopyableCanvasLayer);
-    mForceReadback = Preferences::GetBool("webgl.force-layers-readback", false);
-  }
-  virtual ~CopyableCanvasLayer()
-  {
-    MOZ_COUNT_DTOR(CopyableCanvasLayer);
-  }
+  CopyableCanvasLayer(LayerManager* aLayerManager, void *aImplData);
+  virtual ~CopyableCanvasLayer();
 
   virtual void Initialize(const Data& aData);
   
