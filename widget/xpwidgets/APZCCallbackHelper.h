@@ -43,15 +43,15 @@ public:
                                const FrameMetrics& aMetrics);
 
     
-    static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(nsIDocument* aDoc);
+    static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(const nsIDocument* aDoc);
 
     
 
-    static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(nsIContent* aContent);
+    static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(const nsIContent* aContent);
 
     
 
-    static bool GetScrollIdentifiers(nsIContent* aContent,
+    static bool GetScrollIdentifiers(const nsIContent* aContent,
                                      uint32_t* aPresShellIdOut,
                                      FrameMetrics::ViewID* aViewIdOut);
 };
