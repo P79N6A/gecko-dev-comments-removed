@@ -330,7 +330,7 @@ XPCWrappedNative::WrapNewGlobal(XPCCallContext &ccx, xpcObjectHelper &nativeHelp
 
     
     
-    XPCWrappedNativeScope *scope = XPCWrappedNativeScope::GetNewOrUsed(ccx, global, identity);
+    XPCWrappedNativeScope *scope = XPCWrappedNativeScope::GetNewOrUsed(ccx, global);
     MOZ_ASSERT(scope);
 
     
