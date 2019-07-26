@@ -2755,14 +2755,10 @@ Parser<ParseHandler>::bindVarOrConst(JSContext *cx, BindData<ParseHandler> *data
 
 
 
-            HandlePropertyName arguments = cx->names().arguments;
-            if (name == arguments) {
-                Node pn = parser->newName(arguments);
-                if (!pc->define(parser->context, arguments, pn, Definition::VAR))
-                    return false;
-                funbox->setArgumentsHasLocalBinding();
-                funbox->setDefinitelyNeedsArgsObj();
-            }
+
+
+            if (name == cx->names().arguments)
+                funbox->setHasDebuggerStatement();
         }
         return true;
     }
