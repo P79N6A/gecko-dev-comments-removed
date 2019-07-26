@@ -96,8 +96,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0xa2900e47, 0x0021, 0x441c, \
-  { 0x9e, 0x94, 0xd5, 0x61, 0x5a, 0x31, 0x5d, 0x7a } }
+{ 0x1ebdb596, 0x0f90, 0x4f02, \
+  { 0x97, 0x07, 0x4e, 0xc1, 0x16, 0xcd, 0x54, 0xf6 } }
 
 
 
@@ -1745,6 +1745,13 @@ class nsIWidget : public nsISupports {
 
     virtual Composer2D* GetComposer2D()
     { return nullptr; }
+
+    
+
+
+
+
+    virtual int32_t RoundsWidgetCoordinatesTo() { return 1; }
 
 protected:
     

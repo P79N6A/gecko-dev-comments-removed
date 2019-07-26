@@ -208,9 +208,10 @@ nsIntRect nsView::CalcWidgetBounds(nsWindowType aType)
   nsRect viewBounds(mDimBounds);
 
   nsView* parent = GetParent();
+  nsIWidget* parentWidget = nullptr;
   if (parent) {
     nsPoint offset;
-    nsIWidget* parentWidget = parent->GetNearestWidget(&offset, p2a);
+    parentWidget = parent->GetNearestWidget(&offset, p2a);
     
     viewBounds += offset;
 
@@ -225,6 +226,33 @@ nsIntRect nsView::CalcWidgetBounds(nsWindowType aType)
 
   
   nsIntRect newBounds = viewBounds.ToNearestPixels(p2a);
+
+#ifdef XP_MACOSX
+  
+  
+  
+  nsIWidget* widget = parentWidget ? parentWidget : mWindow;
+  uint32_t round;
+  if (aType == eWindowType_popup && widget &&
+      ((round = widget->RoundsWidgetCoordinatesTo()) > 1)) {
+    nsIntSize pixelRoundedSize = newBounds.Size();
+    
+    newBounds.x = NSToIntRoundUp(NSAppUnitsToDoublePixels(viewBounds.x, p2a) / round) * round;
+    newBounds.y = NSToIntRoundUp(NSAppUnitsToDoublePixels(viewBounds.y, p2a) / round) * round;
+    newBounds.width =
+      NSToIntRoundUp(NSAppUnitsToDoublePixels(viewBounds.XMost(), p2a) / round) * round - newBounds.x;
+    newBounds.height =
+      NSToIntRoundUp(NSAppUnitsToDoublePixels(viewBounds.YMost(), p2a) / round) * round - newBounds.y;
+    
+    
+    if (newBounds.width > pixelRoundedSize.width) {
+      newBounds.width -= round;
+    }
+    if (newBounds.height > pixelRoundedSize.height) {
+      newBounds.height -= round;
+    }
+  }
+#endif
 
   
   
