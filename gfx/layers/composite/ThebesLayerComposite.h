@@ -7,6 +7,7 @@
 #define GFX_ThebesLayerComposite_H
 
 #include "Layers.h"                     
+#include "gfxPoint.h"                   
 #include "gfxRect.h"                    
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
@@ -85,7 +86,7 @@ protected:
 
 private:
   gfxRect GetDisplayPort();
-  LayerSize GetEffectiveResolution();
+  gfxSize GetEffectiveResolution();
   gfxRect GetCompositionBounds();
 
   RefPtr<ContentHost> mBuffer;

@@ -12,6 +12,7 @@
 #include "ContentHost.h"                
 #include "TiledLayerBuffer.h"           
 #include "CompositableHost.h"
+#include "gfxPoint.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
@@ -105,13 +106,13 @@ public:
   void Upload(const BasicTiledLayerBuffer* aMainMemoryTiledBuffer,
               const nsIntRegion& aNewValidRegion,
               const nsIntRegion& aInvalidateRegion,
-              const LayerSize& aResolution);
+              const gfxSize& aResolution);
 
   TiledTexture GetPlaceholderTile() const { return TiledTexture(); }
 
   
   
-  const LayerSize& GetFrameResolution() { return mFrameResolution; }
+  const gfxSize& GetFrameResolution() { return mFrameResolution; }
 
   void SetCompositor(Compositor* aCompositor)
   {
@@ -133,7 +134,7 @@ protected:
 private:
   Compositor* mCompositor;
   const BasicTiledLayerBuffer* mMainMemoryTiledBuffer;
-  LayerSize mFrameResolution;
+  gfxSize mFrameResolution;
 };
 
 

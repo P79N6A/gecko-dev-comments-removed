@@ -8,6 +8,7 @@
 
 #include <stdint.h>                     
 #include <stdio.h>                      
+#include "gfxPoint.h"                   
 #include "gfxRect.h"                    
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
@@ -23,7 +24,6 @@
 #include "nsCOMPtr.h"                   
 #include "nsRegion.h"                   
 #include "nscore.h"                     
-#include "Units.h"
 
 class gfxImageSurface;
 struct nsIntPoint;
@@ -42,7 +42,7 @@ struct TiledLayerProperties
   nsIntRegion mVisibleRegion;
   nsIntRegion mValidRegion;
   gfxRect mDisplayPort;
-  LayerSize mEffectiveResolution;
+  gfxSize mEffectiveResolution;
   gfxRect mCompositionBounds;
   bool mRetainTiles;
 };
