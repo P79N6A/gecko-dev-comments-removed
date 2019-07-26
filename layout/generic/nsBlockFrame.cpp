@@ -907,9 +907,6 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
 #endif
 
   const nsHTMLReflowState *reflowState = &aReflowState;
-  nscoord consumedHeight = GetConsumedHeight();
-  nscoord effectiveComputedHeight = GetEffectiveComputedHeight(aReflowState,
-                                                               consumedHeight);
   Maybe<nsHTMLReflowState> mutableReflowState;
   
   
@@ -925,7 +922,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
       heightExtras.top += aReflowState.mComputedMargin.top;
     }
 
-    if (effectiveComputedHeight + heightExtras.TopBottom() <=
+    if (GetEffectiveComputedHeight(aReflowState) + heightExtras.TopBottom() <=
         aReflowState.availableHeight) {
       mutableReflowState.construct(aReflowState);
       mutableReflowState.ref().availableHeight = NS_UNCONSTRAINEDSIZE;
@@ -960,12 +957,8 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
 
   bool topMarginRoot, bottomMarginRoot;
   IsMarginRoot(&topMarginRoot, &bottomMarginRoot);
-
-  
-  
   nsBlockReflowState state(*reflowState, aPresContext, this,
-                           topMarginRoot, bottomMarginRoot, needFloatManager,
-                           consumedHeight);
+                           topMarginRoot, bottomMarginRoot, needFloatManager);
 
 #ifdef IBMBIDI
   if (GetStateBits() & NS_BLOCK_NEEDS_BIDI_RESOLUTION)
@@ -1339,13 +1332,47 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
   }
 
   
-  if (NS_UNCONSTRAINEDSIZE != aReflowState.ComputedHeight()
-      && (mParent->GetType() != nsGkAtoms::columnSetFrame ||
-          aReflowState.parentReflowState->availableHeight == NS_UNCONSTRAINEDSIZE)) {
-    ComputeFinalHeight(aReflowState, &aState.mReflowStatus,
-                       aState.mY + nonCarriedOutVerticalMargin,
-                       borderPadding, aMetrics, aState.mConsumedHeight);
-    if (!NS_FRAME_IS_COMPLETE(aState.mReflowStatus)) {
+  if (NS_UNCONSTRAINEDSIZE != aReflowState.ComputedHeight()) {
+    
+    
+    nscoord computedHeightLeftOver = GetEffectiveComputedHeight(aReflowState);
+    NS_ASSERTION(!( IS_TRUE_OVERFLOW_CONTAINER(this)
+                    && computedHeightLeftOver ),
+                 "overflow container must not have computedHeightLeftOver");
+
+    aMetrics.height =
+      NSCoordSaturatingAdd(NSCoordSaturatingAdd(borderPadding.top,
+                                                computedHeightLeftOver),
+                           borderPadding.bottom);
+
+    if (NS_FRAME_IS_NOT_COMPLETE(aState.mReflowStatus)
+        && aMetrics.height < aReflowState.availableHeight) {
+      
+      
+      NS_FRAME_SET_OVERFLOW_INCOMPLETE(aState.mReflowStatus);
+    }
+
+    if (NS_FRAME_IS_COMPLETE(aState.mReflowStatus)) {
+      if (computedHeightLeftOver > 0 &&
+          NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight &&
+          aMetrics.height > aReflowState.availableHeight) {
+        if (ShouldAvoidBreakInside(aReflowState)) {
+          aState.mReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
+          return;
+        }
+        
+        
+        
+        
+        
+        aMetrics.height = std::max(aReflowState.availableHeight,
+                                 aState.mY + nonCarriedOutVerticalMargin);
+        NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
+        if (!GetNextInFlow())
+          aState.mReflowStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
+      }
+    }
+    else {
       
       
       
@@ -1353,10 +1380,8 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
       aMetrics.height = std::max(aReflowState.availableHeight,
                                aState.mY + nonCarriedOutVerticalMargin);
       
-      nscoord effectiveComputedHeight =
-        GetEffectiveComputedHeight(aReflowState, aState.GetConsumedHeight());
       aMetrics.height = std::min(aMetrics.height,
-                               borderPadding.top + effectiveComputedHeight);
+                               borderPadding.top + computedHeightLeftOver);
       
       
       
@@ -5994,6 +6019,24 @@ nsBlockFrame::RecoverFloatsFor(nsIFrame*       aFrame,
 
 
 
+int
+nsBlockFrame::GetSkipSides() const
+{
+  if (IS_TRUE_OVERFLOW_CONTAINER(this)) {
+    return (1 << NS_SIDE_TOP) | (1 << NS_SIDE_BOTTOM);
+  }
+
+  int skip = 0;
+  if (GetPrevInFlow()) {
+    skip |= 1 << NS_SIDE_TOP;
+  }
+  nsIFrame* nif = GetNextInFlow();
+  if (nif && !IS_TRUE_OVERFLOW_CONTAINER(nif)) {
+    skip |= 1 << NS_SIDE_BOTTOM;
+  }
+  return skip;
+}
+
 #ifdef DEBUG
 static void ComputeVisualOverflowArea(nsLineList& aLines,
                                       nscoord aWidth, nscoord aHeight,
@@ -7033,6 +7076,26 @@ nsBlockFrame::GetNearestAncestorBlock(nsIFrame* aCandidate)
   }
   NS_NOTREACHED("Fell off frame tree looking for ancestor block!");
   return nullptr;
+}
+
+nscoord
+nsBlockFrame::GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowState) const
+{
+  nscoord height = aReflowState.ComputedHeight();
+  NS_ABORT_IF_FALSE(height != NS_UNCONSTRAINEDSIZE, "Don't call me!");
+
+  if (GetPrevInFlow()) {
+    
+    for (nsIFrame* prev = GetPrevInFlow(); prev; prev = prev->GetPrevInFlow()) {
+      height -= prev->GetRect().height;
+    }
+    
+    
+    height += aReflowState.mComputedBorderPadding.top;
+    
+    height = std::max(0, height);
+  }
+  return height;
 }
 
 #ifdef IBMBIDI

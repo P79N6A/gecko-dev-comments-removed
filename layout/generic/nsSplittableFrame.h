@@ -76,54 +76,6 @@ public:
 protected:
   nsSplittableFrame(nsStyleContext* aContext) : nsFrame(aContext) {}
 
-  
-
-
-
-
-
-
-  nscoord GetConsumedHeight() const;
-
-  
-
-
-
-  nscoord GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowState,
-                                     nscoord aConsumed = NS_INTRINSICSIZE) const;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  void ComputeFinalHeight(const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus*          aStatus,
-                          nscoord                  aContentHeight,
-                          const nsMargin&          aBorderPadding,
-                          nsHTMLReflowMetrics&     aMetrics,
-                          nscoord                  aConsumed);
-
-  
-
-
-
-  virtual int GetSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const;
-
 #ifdef DEBUG
   virtual void DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, int32_t aIndent) MOZ_OVERRIDE;
 #endif

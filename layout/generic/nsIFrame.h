@@ -986,20 +986,7 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-  void ApplySkipSides(nsMargin& aMargin,
-                      const nsHTMLReflowState* aReflowState = nullptr) const;
+  void ApplySkipSides(nsMargin& aMargin) const;
 
   
 
@@ -2420,15 +2407,7 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-  virtual int GetSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const { return 0; }
+  virtual int GetSkipSides() const { return 0; }
 
   
 

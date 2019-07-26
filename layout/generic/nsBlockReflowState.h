@@ -40,8 +40,7 @@ public:
                      nsPresContext* aPresContext,
                      nsBlockFrame* aFrame,
                      bool aTopMarginRoot, bool aBottomMarginRoot,
-                     bool aBlockNeedsFloatManager,
-                     nscoord aConsumedHeight = NS_INTRINSICSIZE);
+                     bool aBlockNeedsFloatManager);
 
   
 
@@ -110,11 +109,6 @@ public:
     }
     return result;
   }
-
-  
-
-
-  nscoord GetConsumedHeight();
 
   
   void ReconstructMarginAbove(nsLineList::iterator aLine);
@@ -262,9 +256,6 @@ public:
   int16_t mFlags;
  
   uint8_t mFloatBreakType;
-
-  
-  nscoord mConsumedHeight;
 
   void SetFlag(uint32_t aFlag, bool aValue)
   {

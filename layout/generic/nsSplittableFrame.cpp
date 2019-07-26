@@ -12,7 +12,6 @@
 #include "nsIContent.h"
 #include "nsPresContext.h"
 #include "nsStyleContext.h"
-#include "nsContainerFrame.h"
 
 NS_IMPL_FRAMEARENA_HELPERS(nsSplittableFrame)
 
@@ -202,130 +201,6 @@ nsSplittableFrame::RemoveFromFlow(nsIFrame* aFrame)
 
   aFrame->SetPrevInFlow(nullptr);
   aFrame->SetNextInFlow(nullptr);
-}
-
-nscoord
-nsSplittableFrame::GetConsumedHeight() const
-{
-  nscoord height = 0;
-
-  
-  for (nsIFrame* prev = GetPrevInFlow(); prev; prev = prev->GetPrevInFlow()) {
-    height += prev->GetRect().height;
-  }
-
-  return height;
-}
-
-nscoord
-nsSplittableFrame::GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowState,
-                                              nscoord aConsumedHeight) const
-{
-  nscoord height = aReflowState.ComputedHeight();
-  if (height == NS_INTRINSICSIZE) {
-    return NS_INTRINSICSIZE;
-  }
-
-  if (aConsumedHeight == NS_INTRINSICSIZE) {
-    aConsumedHeight = GetConsumedHeight();
-  }
-
-  height -= aConsumedHeight;
-
-  if (aConsumedHeight != 0 && aConsumedHeight != NS_INTRINSICSIZE) {
-    
-    
-    height += aReflowState.mComputedBorderPadding.top;
-  }
-
-  
-  height = std::max(0, height);
-
-  return height;
-}
-
-void
-nsSplittableFrame::ComputeFinalHeight(const nsHTMLReflowState& aReflowState,
-                                      nsReflowStatus*          aStatus,
-                                      nscoord                  aContentHeight,
-                                      const nsMargin&          aBorderPadding,
-                                      nsHTMLReflowMetrics&     aMetrics,
-                                      nscoord                  aConsumed)
-{
-
-  
-  
-  nscoord computedHeightLeftOver = GetEffectiveComputedHeight(aReflowState,
-                                                              aConsumed);
-  NS_ASSERTION(!( IS_TRUE_OVERFLOW_CONTAINER(this)
-                  && computedHeightLeftOver ),
-               "overflow container must not have computedHeightLeftOver");
-
-  aMetrics.height =
-    NSCoordSaturatingAdd(NSCoordSaturatingAdd(aBorderPadding.top,
-                                              computedHeightLeftOver),
-                         aBorderPadding.bottom);
-
-  if (NS_FRAME_IS_NOT_COMPLETE(*aStatus)
-      && aMetrics.height < aReflowState.availableHeight) {
-    
-    
-    NS_FRAME_SET_OVERFLOW_INCOMPLETE(*aStatus);
-  }
-
-  if (NS_FRAME_IS_COMPLETE(*aStatus)) {
-    if (computedHeightLeftOver > 0 &&
-        NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight &&
-        aMetrics.height > aReflowState.availableHeight) {
-      
-      
-      
-      
-      
-      aMetrics.height = std::max(aReflowState.availableHeight,
-                                 aContentHeight);
-      NS_FRAME_SET_INCOMPLETE(*aStatus);
-      if (!GetNextInFlow())
-        *aStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
-    }
-  }
-}
-
-int
-nsSplittableFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
-{
-  if (IS_TRUE_OVERFLOW_CONTAINER(this)) {
-    return (1 << NS_SIDE_TOP) | (1 << NS_SIDE_BOTTOM);
-  }
-
-  int skip = 0;
-
-  if (GetPrevInFlow()) {
-    skip |= 1 << NS_SIDE_TOP;
-  }
-
-  if (aReflowState) {
-    
-    
-    
-    
-
-    if (NS_UNCONSTRAINEDSIZE != aReflowState->availableHeight) {
-      nscoord effectiveCH = this->GetEffectiveComputedHeight(*aReflowState);
-      if (effectiveCH > aReflowState->availableHeight) {
-        
-        
-        skip |= 1 << NS_SIDE_BOTTOM;
-      }
-    }
-  } else {
-    nsIFrame* nif = GetNextInFlow();
-    if (nif && !IS_TRUE_OVERFLOW_CONTAINER(nif)) {
-      skip |= 1 << NS_SIDE_BOTTOM;
-    }
-  }
-
- return skip;
 }
 
 #ifdef DEBUG
