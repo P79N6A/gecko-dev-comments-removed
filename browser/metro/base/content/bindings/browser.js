@@ -552,7 +552,6 @@ let ContentScroll =  {
   _scrollOffset: { x: 0, y: 0 },
 
   init: function() {
-    addMessageListener("Content:SetDisplayPort", this);
     addMessageListener("Content:SetWindowSize", this);
 
     if (Services.prefs.getBoolPref("layers.async-pan-zoom.enabled")) {
@@ -575,77 +574,9 @@ let ContentScroll =  {
     return { x: aElement.scrollLeft, y: aElement.scrollTop };
   },
 
-  setScrollOffsetForElement: function(aElement, aLeft, aTop) {
-    if (aElement.parentNode == aElement.ownerDocument) {
-      aElement.ownerDocument.defaultView.scrollTo(aLeft, aTop);
-    } else {
-      aElement.scrollLeft = aLeft;
-      aElement.scrollTop = aTop;
-    }
-  },
-
   receiveMessage: function(aMessage) {
     let json = aMessage.json;
     switch (aMessage.name) {
-      
-      
-      case "Content:SetDisplayPort": {
-        
-        let rootCwu = content.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-        if (json.id == 1) {
-          rootCwu.setResolution(json.scale, json.scale);
-          if (!WebProgressListener._firstPaint)
-            break;
-        }
-
-        let displayport = new Rect(json.x, json.y, json.w, json.h);
-        if (displayport.isEmpty())
-          break;
-
-        
-        let element = null;
-        try {
-          element = rootCwu.findElementWithViewId(json.id);
-        } catch(e) {
-          
-          
-        }
-
-        if (!element)
-          break;
-
-        let binding = element.ownerDocument.getBindingParent(element);
-        if (binding instanceof Ci.nsIDOMHTMLInputElement && binding.mozIsTextField(false))
-          break;
-
-        
-        if (json.scrollX >= 0 || json.scrollY >= 0) {
-          this.setScrollOffsetForElement(element, json.scrollX, json.scrollY);
-          if (element == content.document.documentElement) {
-            
-            
-            
-            this._scrollOffset = this.getScrollOffset(content);
-          }
-        }
-
-        
-        
-        let scrollOffset = this.getScrollOffsetForElement(element);
-        let x = displayport.x - scrollOffset.x;
-        let y = displayport.y - scrollOffset.y;
-
-        if (json.id == 1) {
-          x = Math.round(x * json.scale) / json.scale;
-          y = Math.round(y * json.scale) / json.scale;
-        }
-
-        let win = element.ownerDocument.defaultView;
-        let winCwu = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-        winCwu.setDisplayPortForElement(x, y, displayport.width, displayport.height, element);
-        break;
-      }
-
       case "Content:SetWindowSize": {
         let cwu = content.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
         cwu.setCSSViewport(json.width, json.height);
@@ -703,7 +634,6 @@ let ContentScroll =  {
 
       if (target == content.document) {
         if (this._scrollOffset.x == scrollOffset.x && this._scrollOffset.y == scrollOffset.y) {
-          
           
           
           return;
