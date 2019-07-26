@@ -49,6 +49,7 @@
 
 #include "nsDocLoader.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Preferences.h"
 
 #ifdef PR_LOGGING
 PRLogModuleInfo* nsURILoader::mLog = nullptr;
@@ -57,6 +58,9 @@ PRLogModuleInfo* nsURILoader::mLog = nullptr;
 #define LOG(args) PR_LOG(nsURILoader::mLog, PR_LOG_DEBUG, args)
 #define LOG_ERROR(args) PR_LOG(nsURILoader::mLog, PR_LOG_ERROR, args)
 #define LOG_ENABLED() PR_LOG_TEST(nsURILoader::mLog, PR_LOG_DEBUG)
+
+#define NS_PREF_DISABLE_BACKGROUND_HANDLING \
+    "security.exthelperapp.disable_background_handling"
 
 
 
@@ -519,6 +523,35 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
   
   
   
+
+  
+  
+  
+  
+  if (mozilla::Preferences::GetBool(NS_PREF_DISABLE_BACKGROUND_HANDLING,
+                                    false)) {
+    
+    
+    
+    nsCOMPtr<nsIDocShell> docShell(do_GetInterface(m_originalContext));
+    if (!docShell) {
+      
+      
+      LOG(("Failed to get DocShell to ensure it is active before anding off to "
+           "helper app service. Aborting."));
+      return NS_ERROR_FAILURE;
+    }
+
+    
+    bool isActive = false;
+    docShell->GetIsActive(&isActive);
+    if (!isActive) {
+      LOG(("  Check for active DocShell returned false. Aborting hand off to "
+           "helper app service."));
+      return NS_ERROR_DOM_SECURITY_ERR;
+    }
+  }
+
   nsCOMPtr<nsIExternalHelperAppService> helperAppService =
     do_GetService(NS_EXTERNALHELPERAPPSERVICE_CONTRACTID, &rv);
   if (helperAppService) {
