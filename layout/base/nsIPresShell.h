@@ -1424,6 +1424,9 @@ protected:
   
   RenderFlags               mRenderFlags;
 
+  
+  
+  
   bool                      mStylesHaveChanged : 1;
   bool                      mDidInitialize : 1;
   bool                      mIsDestroying : 1;
@@ -1446,6 +1449,15 @@ protected:
 
   bool                      mSuppressInterruptibleReflows : 1;
   bool                      mScrollPositionClampingScrollPortSizeSet : 1;
+
+  
+  
+  
+  
+  
+  
+  
+  nsAutoTArray<nsRefPtr<mozilla::dom::Element>,1> mChangedScopeStyleRoots;
 
   static nsIContent*        gKeyDownTarget;
 
