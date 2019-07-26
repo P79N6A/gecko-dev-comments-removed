@@ -193,15 +193,24 @@ StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame, nsRect* aStick,
     nsLayoutUtils::GetAllInFlowRectsUnion(aFrame, aFrame->GetParent());
 
   
+  
+  
   if (cbFrame != scrolledFrame) {
-    *aContain = nsLayoutUtils::GetAllInFlowRectsUnion(cbFrame, cbFrame);
-    aContain->MoveBy(-aFrame->GetParent()->GetOffsetTo(cbFrame));
+    *aContain = nsLayoutUtils::
+      GetAllInFlowRectsUnion(cbFrame, aFrame->GetParent(),
+                             nsLayoutUtils::RECTS_USE_CONTENT_BOX);
+    nsRect marginRect = nsLayoutUtils::
+      GetAllInFlowRectsUnion(aFrame, aFrame->GetParent(),
+                             nsLayoutUtils::RECTS_USE_MARGIN_BOX);
+
     
     
     
     
-    aContain->Deflate(cbFrame->GetUsedBorderAndPadding());
-    aContain->Deflate(aFrame->GetUsedMargin());
+    aContain->Deflate(marginRect - rect);
+
+    
+    
     aContain->Deflate(nsMargin(0, rect.width, rect.height, 0));
   }
 
@@ -246,7 +255,9 @@ StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame, nsRect* aStick,
 
   
   
-  aStick->MoveBy(aFrame->GetPosition() - rect.TopLeft());
+  nsPoint frameOffset = aFrame->GetPosition() - rect.TopLeft();
+  aStick->MoveBy(frameOffset);
+  aContain->MoveBy(frameOffset);
 }
 
 nsPoint
