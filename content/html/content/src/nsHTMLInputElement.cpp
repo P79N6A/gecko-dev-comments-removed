@@ -3112,9 +3112,6 @@ nsHTMLInputElement::PostHandleEventForRangeThumb(nsEventChainPostVisitor& aVisit
         }
       }
       aVisitor.mEvent->mFlags.mMultipleActionsPrevented = true;
-      
-      
-      aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
     } break;
 
     case NS_MOUSE_MOVE:
@@ -3130,9 +3127,6 @@ nsHTMLInputElement::PostHandleEventForRangeThumb(nsEventChainPostVisitor& aVisit
       SetValueOfRangeForUserEvent(rangeFrame->GetValueAtEventPoint(
                                     static_cast<nsInputEvent*>(aVisitor.mEvent)));
       aVisitor.mEvent->mFlags.mMultipleActionsPrevented = true;
-      
-      
-      aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
       break;
 
     case NS_MOUSE_BUTTON_UP:
