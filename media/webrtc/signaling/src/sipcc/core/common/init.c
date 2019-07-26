@@ -216,7 +216,7 @@ ccInit ()
     
 
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(CPR_TIMERS_ENABLED)
     cprTimerSystemInit();
 #endif
 
