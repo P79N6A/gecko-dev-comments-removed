@@ -76,9 +76,7 @@ public:
 
 
 
-  virtual bool GetRootZoomConstraints(bool* aOutAllowZoom,
-                                      CSSToScreenScale* aOutMinZoom,
-                                      CSSToScreenScale* aOutMaxZoom)
+  virtual bool GetRootZoomConstraints(ZoomConstraints* aOutConstraints)
   {
     return false;
   }

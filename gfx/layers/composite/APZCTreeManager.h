@@ -154,12 +154,8 @@ public:
   
 
 
-
-
   void UpdateZoomConstraints(const ScrollableLayerGuid& aGuid,
-                             bool aAllowZoom,
-                             const CSSToScreenScale& aMinScale,
-                             const CSSToScreenScale& aMaxScale);
+                             const ZoomConstraints& aConstraints);
 
   
 
@@ -265,9 +261,7 @@ private:
   nsEventStatus ProcessMouseEvent(const WidgetMouseEvent& mouseEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetMouseEvent* aOutEvent);
   nsEventStatus ProcessEvent(const WidgetInputEvent& inputEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetInputEvent* aOutEvent);
   void UpdateZoomConstraintsRecursively(AsyncPanZoomController* aApzc,
-                                        bool aAllowZoom,
-                                        const CSSToScreenScale& aMinScale,
-                                        const CSSToScreenScale& aMaxScale);
+                                        const ZoomConstraints& aConstraints);
 
   
 

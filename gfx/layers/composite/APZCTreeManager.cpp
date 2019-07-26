@@ -191,22 +191,20 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         aParent = apzc;
 
         if (newApzc) {
-          bool allowZoom;
-          CSSToScreenScale minZoom, maxZoom;
           if (apzc->IsRootForLayersId()) {
             
             
             
-            if (state->mController->GetRootZoomConstraints(&allowZoom, &minZoom, &maxZoom)) {
-              apzc->UpdateZoomConstraints(allowZoom, minZoom, maxZoom);
+            ZoomConstraints constraints;
+            if (state->mController->GetRootZoomConstraints(&constraints)) {
+              apzc->UpdateZoomConstraints(constraints);
             }
           } else {
             
             
             
             
-            apzc->GetParent()->GetZoomConstraints(&allowZoom, &minZoom, &maxZoom);
-            apzc->UpdateZoomConstraints(allowZoom, minZoom, maxZoom);
+            apzc->UpdateZoomConstraints(apzc->GetParent()->GetZoomConstraints());
           }
         }
       }
@@ -576,32 +574,28 @@ APZCTreeManager::ContentReceivedTouch(const ScrollableLayerGuid& aGuid,
 
 void
 APZCTreeManager::UpdateZoomConstraints(const ScrollableLayerGuid& aGuid,
-                                       bool aAllowZoom,
-                                       const CSSToScreenScale& aMinScale,
-                                       const CSSToScreenScale& aMaxScale)
+                                       const ZoomConstraints& aConstraints)
 {
   nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aGuid);
   
   
   if (apzc && apzc->IsRootForLayersId()) {
     MonitorAutoLock lock(mTreeLock);
-    UpdateZoomConstraintsRecursively(apzc.get(), aAllowZoom, aMinScale, aMaxScale);
+    UpdateZoomConstraintsRecursively(apzc.get(), aConstraints);
   }
 }
 
 void
 APZCTreeManager::UpdateZoomConstraintsRecursively(AsyncPanZoomController* aApzc,
-                                                  bool aAllowZoom,
-                                                  const CSSToScreenScale& aMinScale,
-                                                  const CSSToScreenScale& aMaxScale)
+                                                  const ZoomConstraints& aConstraints)
 {
   mTreeLock.AssertCurrentThreadOwns();
 
-  aApzc->UpdateZoomConstraints(aAllowZoom, aMinScale, aMaxScale);
+  aApzc->UpdateZoomConstraints(aConstraints);
   for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
     
     if (!child->IsRootForLayersId()) {
-      UpdateZoomConstraintsRecursively(child, aAllowZoom, aMinScale, aMaxScale);
+      UpdateZoomConstraintsRecursively(child, aConstraints);
     }
   }
 }
