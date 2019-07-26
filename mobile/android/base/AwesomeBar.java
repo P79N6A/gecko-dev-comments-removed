@@ -46,7 +46,13 @@ import android.widget.Toast;
 
 import java.net.URLEncoder;
 
-public class AwesomeBar extends GeckoActivity {
+interface AutocompleteHandler {
+    void onAutocomplete(String res);
+}
+
+public class AwesomeBar extends GeckoActivity
+                        implements AutocompleteHandler,
+                                   TextWatcher {
     private static final String LOGTAG = "GeckoAwesomeBar";
 
     public static final String URL_KEY = "url";
@@ -168,35 +174,7 @@ public class AwesomeBar extends GeckoActivity {
             }
         });
 
-        mText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                String text = s.toString();
-                mAwesomeTabs.filter(text);
-
-                
-                
-                if (!hasCompositionString(s)) {
-                    updateGoButton(text);
-                }
-
-                if (Build.VERSION.SDK_INT >= 11) {
-                    getActionBar().hide();
-                }
-            }
-
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count,
-                                          int after) {
-                
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before,
-                                      int count) {
-                
-            }
-        });
+        mText.addTextChangedListener(this);
 
         mText.setOnKeyListener(new View.OnKeyListener() {
             @Override
@@ -726,5 +704,76 @@ public class AwesomeBar extends GeckoActivity {
             }
         }
         return false;
+    }
+
+    
+    public void onAutocomplete(final String result) {
+        final String text = mText.getText().toString();
+
+        if (result == null) {
+            mAutoCompleteResult = "";
+            return;
+        }
+
+        if (!result.startsWith(text) || text.equals(result)) {
+            return;
+        }
+
+        mAutoCompleteResult = result;
+        mText.getText().append(result.substring(text.length()));
+        mText.setSelection(text.length(), result.length());
+    }
+
+    @Override
+    public void afterTextChanged(final Editable s) {
+        final String text = s.toString();
+        boolean useHandler = false;
+        boolean reuseAutocomplete = false;
+        if (!hasCompositionString(s) && !StringUtils.isSearchQuery(text, false)) {
+            useHandler = true;
+
+            
+            
+            if (mAutoCompletePrefix != null && (mAutoCompletePrefix.length() >= text.length())) {
+                useHandler = false;
+            } else if (mAutoCompleteResult != null && mAutoCompleteResult.startsWith(text)) {
+                
+                
+                useHandler = false;
+                reuseAutocomplete = true;
+            }
+        }
+
+        
+        if (mAutoCompleteResult == null || !mAutoCompleteResult.equals(text)) {
+            mAwesomeTabs.filter(text, useHandler ? this : null);
+            mAutoCompletePrefix = text;
+
+            if (reuseAutocomplete) {
+                onAutocomplete(mAutoCompleteResult);
+            }
+        }
+
+        
+        
+        if (!hasCompositionString(s)) {
+            updateGoButton(text);
+        }
+
+        if (Build.VERSION.SDK_INT >= 11) {
+            getActionBar().hide();
+        }
+    }
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count,
+                                  int after) {
+        
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before,
+                              int count) {
+        
     }
 }
