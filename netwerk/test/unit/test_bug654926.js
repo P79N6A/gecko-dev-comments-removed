@@ -37,16 +37,15 @@ function write_datafile(status, entry)
   var data = gen_1MiB();
 
   
-  var max_size = get_pref_service().
-                 getIntPref("browser.cache.disk.max_entry_size") / 1024;
-
-  
   var i;
-  for (i=0 ; i<(max_size+1) ; i++)
+  for (i=0 ; i<2 ; i++)
     write_and_check(os, data, data.length);
 
   os.close();
   entry.close();
+
+  
+  get_pref_service().setIntPref("browser.cache.disk.max_entry_size", 1024);
 
   
   asyncOpenCacheEntry("data",
@@ -87,10 +86,9 @@ function run_test() {
   
   evict_cache_entries();
 
-  
   asyncOpenCacheEntry("data",
                       "HTTP",
-                      Ci.nsICache.STORE_ON_DISK_AS_FILE,
+                      Ci.nsICache.STORE_ON_DISK,
                       Ci.nsICache.ACCESS_WRITE,
                       write_datafile);
 

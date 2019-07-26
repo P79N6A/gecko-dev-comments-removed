@@ -484,8 +484,7 @@ nsDiskCacheStreamIO::Flush()
 
     bool written = false;
 
-    if ((mStreamEnd <= kMaxBufferSize) &&
-        (mBinding->mCacheEntry->StoragePolicy() != nsICache::STORE_ON_DISK_AS_FILE)) {
+    if (mStreamEnd <= kMaxBufferSize) {
         
 
         mBufDirty = false;

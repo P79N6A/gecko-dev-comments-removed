@@ -847,9 +847,7 @@ nsDiskCacheDevice::OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize)
 
     
     
-    
-    if (EntryIsTooBig(newSize) &&
-        entry->StoragePolicy() != nsICache::STORE_ON_DISK_AS_FILE) {
+    if (EntryIsTooBig(newSize)) {
 #ifdef DEBUG
         nsresult rv =
 #endif

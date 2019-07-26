@@ -32,6 +32,12 @@ function write_big_datafile(status, entry)
   for (i=0 ; i<65 ; i++)
     write_and_check(os, data, data.length);
 
+  
+  try {
+    write_and_check(os, data, data.length);
+    do_throw("write should fail");
+  } catch (e) {}
+
   os.close();
   entry.close();
 
@@ -61,7 +67,7 @@ function write_big_metafile(status, entry)
   
   asyncOpenCacheEntry("smalldata",
                       "HTTP",
-                      Ci.nsICache.STORE_ON_DISK_AS_FILE,
+                      Ci.nsICache.STORE_ON_DISK,
                       Ci.nsICache.ACCESS_WRITE,
                       write_and_doom_small_datafile);
 }
@@ -88,7 +94,7 @@ function check_cache_size() {
         diskDeviceVisited = true;
         do_check_eq(deviceInfo.totalSize, 0)
       }
-      return false;
+      return true;
     },
     visitEntry: function (deviceID, entryInfo) {
       do_throw("unexpected call to visitEntry");
@@ -104,7 +110,13 @@ function check_cache_size() {
 function run_test() {
   var prefBranch = Cc["@mozilla.org/preferences-service;1"].
                      getService(Ci.nsIPrefBranch);
-  prefBranch.setIntPref("browser.cache.disk.capacity", 50000);
+
+  
+  prefBranch.setIntPref("browser.cache.disk.max_entry_size", 65*1024);
+  
+  prefBranch.setIntPref("browser.cache.disk.capacity", 8*65*1024);
+  
+  prefBranch.setBoolPref("browser.cache.disk.smart_size.enabled", false);
 
   do_get_profile();
 
@@ -114,7 +126,7 @@ function run_test() {
   
   asyncOpenCacheEntry("bigdata",
                       "HTTP",
-                      Ci.nsICache.STORE_ON_DISK_AS_FILE,
+                      Ci.nsICache.STORE_ON_DISK,
                       Ci.nsICache.ACCESS_WRITE,
                       write_big_datafile);
 
@@ -125,10 +137,17 @@ function run_test_2()
 {
   check_cache_size();
 
+  var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                     getService(Ci.nsIPrefBranch);
+
+  
+  
+  prefBranch.setIntPref("browser.cache.disk.capacity", 64*1024);
+
   
   asyncOpenCacheEntry("bigmetadata",
                       "HTTP",
-                      Ci.nsICache.STORE_ON_DISK_AS_FILE,
+                      Ci.nsICache.STORE_ON_DISK,
                       Ci.nsICache.ACCESS_WRITE,
                       write_big_metafile);
 }
