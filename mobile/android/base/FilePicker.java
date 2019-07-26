@@ -202,7 +202,7 @@ public class FilePicker implements GeckoEventListener {
 
 
     protected void showFilePickerAsync(String mimeType, final ResultHandler handler) {
-        final FilePickerResultHandler fileHandler = new FilePickerResultHandler(handler);
+        final FilePickerResultHandler fileHandler = new FilePickerResultHandler(handler, mContext);
         getFilePickerIntentAsync(mimeType, fileHandler, new IntentHandler() {
             @Override
             public void gotIntent(Intent intent) {
