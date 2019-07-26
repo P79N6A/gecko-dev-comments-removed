@@ -330,7 +330,14 @@ BasicShadowableThebesLayer::SetBackBufferAndAttrs(const OptionalThebesBuffer& aB
   mFrontAndBackBufferDiffer = true;
   mROFrontBuffer = aReadOnlyFrontBuffer;
   mFrontUpdatedRegion = aFrontUpdatedRegion;
-  mFrontValidRegion = aValidRegion;
+
+  if (OptionalThebesBuffer::Tnull_t == mROFrontBuffer.type()) {
+    
+    
+    
+    
+    mValidRegion = aValidRegion;
+  }
 }
 
 void
@@ -360,11 +367,6 @@ BasicShadowableThebesLayer::SyncFrontBufferToBackBuffer()
   }
 
   if (OptionalThebesBuffer::Tnull_t == mROFrontBuffer.type()) {
-    
-    
-    
-    
-    mValidRegion = mFrontValidRegion;
     mBuffer.SetBackingBuffer(backBuffer, mBackBufferRect, mBackBufferRectRotation);
     return;
   }
