@@ -3737,8 +3737,7 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
 
 
 
-
-        if (id == NameToId(cx->runtime->atomState.undefinedAtom))
+        if (id == NameToId(cx->runtime->atomState.typeAtoms[JSTYPE_VOID]))
             seen->addType(cx, Type::UndefinedType());
         if (id == NameToId(cx->runtime->atomState.NaNAtom))
             seen->addType(cx, Type::DoubleType());

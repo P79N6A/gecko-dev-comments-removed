@@ -22,7 +22,6 @@
 #include "jsgc.h"
 #include "jspropertycache.h"
 #include "jspropertytree.h"
-#include "jsprototypes.h"
 #include "jsutil.h"
 #include "prmjtime.h"
 
@@ -378,22 +377,6 @@ class FreeOp : public JSFreeOp {
 namespace JS {
 struct RuntimeSizes;
 }
-
-
-struct JSAtomState
-{
-#define PROPERTYNAME_FIELD(id, text)          js::PropertyName *id##Atom;
-    FOR_EACH_COMMON_PROPERTYNAME(PROPERTYNAME_FIELD)
-#undef PROPERTYNAME_FIELD
-#define PROPERTYNAME_FIELD(name, code, init)  js::PropertyName *name##Atom;
-    JS_FOR_EACH_PROTOTYPE(PROPERTYNAME_FIELD)
-#undef PROPERTYNAME_FIELD
-};
-
-#define ATOM(name) js::HandlePropertyName::fromMarkedLocation(&cx->runtime->atomState.name##Atom)
-
-#define NAME_OFFSET(name)       offsetof(JSAtomState, name##Atom)
-#define OFFSET_TO_NAME(rt,off)  (*(js::PropertyName **)((char*)&(rt)->atomState + (off)))
 
 struct JSRuntime : js::RuntimeFriendFields
 {
@@ -902,17 +885,7 @@ struct JSRuntime : js::RuntimeFriendFields
     JSPrincipals *trustedPrincipals() const { return trustedPrincipals_; }
 
     
-    js::AtomSet         atoms;
-
-    union {
-        
-
-
-
-        JSAtomState atomState;
-
-        js::PropertyName *firstCachedName;
-    };
+    JSAtomState         atomState;
 
     
     js::StaticStrings   staticStrings;
