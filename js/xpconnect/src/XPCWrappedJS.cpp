@@ -334,8 +334,7 @@ nsXPCWrappedJS::GetNewOrUsed(JS::HandleObject jsObj,
         return NS_ERROR_FAILURE;
     }
 
-    nsRefPtr<nsXPCWrappedJSClass> clasp;
-    nsXPCWrappedJSClass::GetNewOrUsed(cx, aIID, getter_AddRefs(clasp));
+    nsRefPtr<nsXPCWrappedJSClass> clasp = nsXPCWrappedJSClass::GetNewOrUsed(cx, aIID);
     if (!clasp)
         return NS_ERROR_FAILURE;
 
@@ -355,9 +354,7 @@ nsXPCWrappedJS::GetNewOrUsed(JS::HandleObject jsObj,
         
         
         
-        nsRefPtr<nsXPCWrappedJSClass> rootClasp;
-        nsXPCWrappedJSClass::GetNewOrUsed(cx, NS_GET_IID(nsISupports),
-                                          getter_AddRefs(rootClasp));
+        nsRefPtr<nsXPCWrappedJSClass> rootClasp = nsXPCWrappedJSClass::GetNewOrUsed(cx, NS_GET_IID(nsISupports));
         if (!rootClasp)
             return NS_ERROR_FAILURE;
 
