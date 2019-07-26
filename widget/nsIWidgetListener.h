@@ -13,6 +13,27 @@
 class nsView;
 class nsIPresShell;
 
+
+
+
+enum nsSizeMode
+{
+  nsSizeMode_Normal = 0,
+  nsSizeMode_Minimized,
+  nsSizeMode_Maximized,
+  nsSizeMode_Fullscreen
+};
+
+
+
+
+enum nsWindowZ
+{
+  nsWindowZTop = 0,   
+  nsWindowZBottom,    
+  nsWindowZRelative   
+};
+
 class nsIWidgetListener
 {
 public:

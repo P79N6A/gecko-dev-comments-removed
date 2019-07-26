@@ -8,10 +8,10 @@
 
 #include "keyboardlayout.h"   
 #include "nsBaseHashtable.h"  
-#include "nsGUIEvent.h"       
 #include "nsHashKeys.h"       
 #include "mozwrlbase.h"
 #include "nsDeque.h"
+#include "mozilla/EventForwards.h"
 
 
 #include <EventToken.h>     
@@ -21,8 +21,6 @@
 
 
 class MetroWidget;
-enum nsEventStatus;
-class nsGUIEvent;
 struct nsIntPoint;
 
 namespace mozilla {

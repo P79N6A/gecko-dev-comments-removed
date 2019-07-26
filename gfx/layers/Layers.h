@@ -21,6 +21,7 @@
 #include "gfxRect.h"                    
 #include "mozilla/Assertions.h"         
 #include "mozilla/DebugOnly.h"          
+#include "mozilla/EventForwards.h"      
 #include "mozilla/RefPtr.h"             
 #include "mozilla/TimeStamp.h"          
 #include "mozilla/gfx/BaseMargin.h"     
@@ -47,7 +48,6 @@
 
 
 class gfxContext;
-class nsPaintEvent;
 
 extern uint8_t gLayerManagerLayerBuilder;
 

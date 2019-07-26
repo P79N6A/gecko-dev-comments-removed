@@ -7,6 +7,7 @@
 #define __editor_h__
 
 #include "mozilla/Assertions.h"         
+#include "mozilla/EventForwards.h"      
 #include "mozilla/TypedEnum.h"          
 #include "nsAutoPtr.h"                  
 #include "nsCOMArray.h"                 
@@ -63,7 +64,6 @@ class nsISelection;
 class nsISupports;
 class nsITransaction;
 class nsIWidget;
-class nsKeyEvent;
 class nsRange;
 class nsString;
 class nsTransactionManager;

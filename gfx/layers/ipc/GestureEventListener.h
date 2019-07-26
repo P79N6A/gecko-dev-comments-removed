@@ -11,8 +11,8 @@
 #include "InputData.h"                  
 #include "Units.h"                      
 #include "mozilla/Assertions.h"         
+#include "mozilla/EventForwards.h"      
 #include "nsAutoPtr.h"                  
-#include "nsEvent.h"                    
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"                   
 

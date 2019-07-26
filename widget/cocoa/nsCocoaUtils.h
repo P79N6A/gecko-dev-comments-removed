@@ -10,12 +10,13 @@
 
 #include "nsRect.h"
 #include "imgIContainer.h"
-#include "nsEvent.h"
 #include "npapi.h"
 #include "nsTArray.h"
 
 
 #include "nsObjCExceptions.h"
+
+#include "mozilla/EventForwards.h"
 
 
 

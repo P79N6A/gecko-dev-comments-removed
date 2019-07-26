@@ -41,7 +41,6 @@
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
-#include "nsEvent.h"
 #include "nsGUIEvent.h"                 
 #include "nsISupportsImpl.h"
 #include "nsMathUtils.h"                

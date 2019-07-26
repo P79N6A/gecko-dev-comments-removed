@@ -8,12 +8,11 @@
 #define nsIScriptGlobalObject_h__
 
 #include "nsISupports.h"
-#include "nsEvent.h"
 #include "nsIGlobalObject.h"
 #include "js/TypeDecls.h"
+#include "mozilla/EventForwards.h"
 
 class nsIScriptContext;
-class nsScriptErrorEvent;
 class nsIScriptGlobalObject;
 
 
