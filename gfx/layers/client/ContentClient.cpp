@@ -73,11 +73,11 @@ ContentClient::CreateContentClient(CompositableForwarder* aForwarder)
 
 }
 
-ContentClientBasic::ContentClientBasic(CompositableForwarder* aForwarder,
-                                       BasicLayerManager* aManager)
-  : ContentClient(aForwarder)
+
+
+ContentClientBasic::ContentClientBasic()
+  : ContentClient(nullptr)
   , RotatedContentBuffer(ContainsVisibleBounds)
-  , mManager(aManager)
 {}
 
 void

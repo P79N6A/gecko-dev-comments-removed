@@ -158,7 +158,7 @@ BasicThebesLayer::Validate(LayerManager::DrawThebesLayerCallback aCallback,
   if (!mContentClient) {
     
     
-    mContentClient = new ContentClientBasic(nullptr, BasicManager());
+    mContentClient = new ContentClientBasic();
   }
 
   if (!BasicManager()->IsRetained()) {
