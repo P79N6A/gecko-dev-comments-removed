@@ -1973,6 +1973,15 @@ public:
   nsString propertyName;
   float elapsedTime;
   nsString pseudoElement;
+
+  void AssignTransitionEventData(const nsTransitionEvent& aEvent,
+                                 bool aCopyTargets)
+  {
+    AssignEventData(aEvent, aCopyTargets);
+
+    
+    
+  }
 };
 
 class nsAnimationEvent : public nsEvent
