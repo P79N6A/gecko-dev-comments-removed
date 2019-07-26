@@ -7,7 +7,7 @@ let Ci = Components.interfaces;
 let Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource:///modules/RecentWindow.jsm");
+Cu.import("resource://gre/modules/RecentWindow.jsm");
 
 const nsIWebNavigation = Ci.nsIWebNavigation;
 
@@ -1335,14 +1335,6 @@ var gBrowserInit = {
 
     var isLoadingBlank = isBlankPageURL(uriToLoad);
 
-    
-    
-    gBrowser.addEventListener("pageshow", function(event) {
-      
-      if (content && event.target == content.document)
-        setTimeout(pageShowEventHandlers, 0, event);
-    }, true);
-
     if (uriToLoad && uriToLoad != "about:blank") {
       if (uriToLoad instanceof Ci.nsISupportsArray) {
         let count = uriToLoad.Count();
@@ -1400,6 +1392,12 @@ var gBrowserInit = {
     SocialUI.init();
     AddonManager.addAddonListener(AddonsMgrListener);
     WebrtcIndicator.init();
+
+    gBrowser.addEventListener("pageshow", function(event) {
+      
+      if (content && event.target == content.document)
+        setTimeout(pageShowEventHandlers, 0, event.persisted);
+    }, true);
 
     
     Services.logins;
