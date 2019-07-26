@@ -1620,7 +1620,7 @@ ScriptSource::setSourceCopy(ExclusiveContext *cx, SourceBufferHolder &srcBuf,
     
     
     
-#ifdef JS_THREADSAFE
+#if defined(JS_THREADSAFE) && defined(USE_ZLIB)
     bool canCompressOffThread =
         WorkerThreadState().cpuCount > 1 &&
         WorkerThreadState().threadCount >= 2;
