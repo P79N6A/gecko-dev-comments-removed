@@ -4,7 +4,6 @@
 
 
 #include "DOMMediaStream.h"
-#include "nsDOMClassInfoID.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/MediaStreamBinding.h"
 #include "mozilla/dom/LocalMediaStreamBinding.h"

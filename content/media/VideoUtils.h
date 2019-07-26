@@ -11,8 +11,11 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/CheckedInt.h"
 
-#include "nsRect.h"
+#if !(defined(XP_WIN) || defined(XP_MACOSX) || defined(LINUX)) || \
+    defined(MOZ_ASAN)
+
 #include "nsIThreadManager.h"
+#endif
 #include "nsThreadUtils.h"
 #include "prtime.h"
 
@@ -20,6 +23,8 @@ using mozilla::CheckedInt64;
 using mozilla::CheckedUint64;
 using mozilla::CheckedInt32;
 using mozilla::CheckedUint32;
+
+struct nsIntSize;
 
 
 

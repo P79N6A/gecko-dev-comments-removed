@@ -4,9 +4,9 @@
 
 
 
-#include "mozilla/arm.h"
 #include "AudioNodeEngine.h"
 #ifdef BUILD_ARM_NEON
+#include "mozilla/arm.h"
 #include "AudioNodeEngineNEON.h"
 #endif
 

@@ -4,10 +4,11 @@
 
 
 
-#include "GrallocImages.h"
 #include "MediaDecoderReader.h"
+#ifdef MOZ_OMX_DECODER
+#include "GrallocImages.h"
+#endif
 #include "AbstractMediaDecoder.h"
-#include "MediaDecoderStateMachine.h"
 #include "VideoUtils.h"
 #include "ImageContainer.h"
 

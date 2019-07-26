@@ -4,10 +4,10 @@
 
 
 
-#include "nsTArray.h"
 #include "AudioAvailableEventManager.h"
 #include "VideoUtils.h"
-
+#include "MediaDecoder.h"
+#include "nsIRunnable.h"
 
 namespace mozilla {
 

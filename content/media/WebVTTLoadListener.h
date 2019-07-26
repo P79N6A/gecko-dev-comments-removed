@@ -9,11 +9,9 @@
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
-#include "nsIObserver.h"
 #include "nsAutoPtr.h"
 #include "nsAutoRef.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/dom/HTMLTrackElement.h"
 
 struct webvtt_parser_t;
 struct webvtt_cue;
@@ -30,6 +28,9 @@ public:
 
 namespace mozilla {
 namespace dom {
+
+class HTMLTrackElement;
+
 
 
 

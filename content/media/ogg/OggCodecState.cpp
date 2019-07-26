@@ -17,6 +17,18 @@
 #include "VideoUtils.h"
 #include <algorithm>
 
+
+
+
+#ifdef MOZ_WIDGET_GONK
+#ifdef version_major
+#undef version_major
+#endif
+#ifdef version_minor
+#undef version_minor
+#endif
+#endif
+
 namespace mozilla {
 
 #ifdef PR_LOGGING
