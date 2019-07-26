@@ -6,7 +6,10 @@
 #ifndef nsINameSpaceManager_h___
 #define nsINameSpaceManager_h___
 
-#include "nsISupports.h"
+#include "nsDataHashtable.h"
+#include "nsTArray.h"
+
+#include "mozilla/StaticPtr.h"
 
 class nsIAtom;
 class nsAString;
@@ -28,45 +31,81 @@ static const int32_t kNameSpaceID_None = 0;
 #define kNameSpaceID_XUL      9
 #define kNameSpaceID_SVG      10
 #define kNameSpaceID_LastBuiltin          10 // last 'built-in' namespace
- 
-#define NS_NAMESPACEMANAGER_CONTRACTID "@mozilla.org/content/namespacemanager;1"
 
-#define NS_INAMESPACEMANAGER_IID \
-  { 0xd74e83e6, 0xf932, 0x4289, \
-    { 0xac, 0x95, 0x9e, 0x10, 0x24, 0x30, 0x88, 0xd6 } }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class nsINameSpaceManager : public nsISupports
+class nsNameSpaceKey : public PLDHashEntryHdr
 {
 public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_INAMESPACEMANAGER_IID)
+  typedef const nsAString* KeyType;
+  typedef const nsAString* KeyTypePointer;
 
-  virtual nsresult RegisterNameSpace(const nsAString& aURI,
-                                     int32_t& aNameSpaceID) = 0;
+  nsNameSpaceKey(KeyTypePointer aKey) : mKey(aKey)
+  {
+  }
+  nsNameSpaceKey(const nsNameSpaceKey& toCopy) : mKey(toCopy.mKey)
+  {
+  }
 
-  virtual nsresult GetNameSpaceURI(int32_t aNameSpaceID, nsAString& aURI) = 0;
-  virtual int32_t GetNameSpaceID(const nsAString& aURI) = 0;
+  KeyType GetKey() const
+  {
+    return mKey;
+  }
+  bool KeyEquals(KeyType aKey) const
+  {
+    return mKey->Equals(*aKey);
+  }
 
-  virtual bool HasElementCreator(int32_t aNameSpaceID) = 0;
+  static KeyTypePointer KeyToPointer(KeyType aKey)
+  {
+    return aKey;
+  }
+  static PLDHashNumber HashKey(KeyTypePointer aKey) {
+    return mozilla::HashString(*aKey);
+  }
+
+  enum {
+    ALLOW_MEMMOVE = true
+  };
+
+private:
+  const nsAString* mKey;
 };
  
-NS_DEFINE_STATIC_IID_ACCESSOR(nsINameSpaceManager, NS_INAMESPACEMANAGER_IID)
 
-nsresult NS_GetNameSpaceManager(nsINameSpaceManager** aInstancePtrResult);
 
-void NS_NameSpaceManagerShutdown();
 
+
+
+
+
+
+
+
+
+
+
+
+class nsNameSpaceManager
+{
+public:
+  virtual ~nsNameSpaceManager() {}
+
+  virtual nsresult RegisterNameSpace(const nsAString& aURI,
+                                     int32_t& aNameSpaceID);
+
+  virtual nsresult GetNameSpaceURI(int32_t aNameSpaceID, nsAString& aURI);
+  virtual int32_t GetNameSpaceID(const nsAString& aURI);
+
+  virtual bool HasElementCreator(int32_t aNameSpaceID);
+
+  static nsNameSpaceManager* GetInstance();
+private:
+  bool Init();
+  nsresult AddNameSpace(const nsAString& aURI, const int32_t aNameSpaceID);
+
+  nsDataHashtable<nsNameSpaceKey,int32_t> mURIToIDTable;
+  nsTArray< nsAutoPtr<nsString> > mURIArray;
+
+  static mozilla::StaticAutoPtr<nsNameSpaceManager> sInstance;
+};
+ 
 #endif 
