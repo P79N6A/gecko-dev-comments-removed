@@ -216,7 +216,7 @@ DnsContinueVerifier.prototype = {
     
     var tstamp = (new Date().valueOf() * 1000) - (10 * 86400 * 1000000);
 
-    var dbfile = FileUtils.getFile("ProfD", ["seer.sqlite"]);
+    var dbfile = FileUtils.getFile("ProfD", ["netpredictions.sqlite"]);
     var dbconn = Services.storage.openDatabase(dbfile);
     
     

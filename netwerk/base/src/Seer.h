@@ -62,6 +62,7 @@ private:
   friend class SeerPredictionRunner;
   friend class SeerDBShutdownRunner;
 
+  void CheckForAndDeleteOldDBFile();
   nsresult EnsureInitStorage();
 
   
