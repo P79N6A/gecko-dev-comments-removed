@@ -2702,79 +2702,58 @@ RETURN:
 
 
 
-#ifndef NO_TLS
-static __thread bool	mmap_unaligned_tls __attribute__((tls_model("initial-exec")));
-#define	MMAP_UNALIGNED_GET()	mmap_unaligned_tls
-#define	MMAP_UNALIGNED_SET(v)	do {					\
-	mmap_unaligned_tls = (v);					\
-} while (0)
-#else
-#define NEEDS_PTHREAD_MMAP_UNALIGNED_TSD
-static pthread_key_t	mmap_unaligned_tsd;
-#define	MMAP_UNALIGNED_GET()	((bool)pthread_getspecific(mmap_unaligned_tsd))
-#define	MMAP_UNALIGNED_SET(v)	do {					\
-	pthread_setspecific(mmap_unaligned_tsd, (void *)(v));		\
-} while (0)
-#endif
+#define        ALIGNMENT_ADDR2OFFSET(a, alignment)                                \
+        ((size_t)((uintptr_t)(a) & (alignment - 1)))
 
 
-
+#define        ALIGNMENT_CEILING(s, alignment)                                        \
+        (((s) + (alignment - 1)) & (-(alignment)))
 
 static void *
-chunk_alloc_mmap_slow(size_t size, bool unaligned)
+pages_trim(void *addr, size_t alloc_size, size_t leadsize, size_t size)
 {
-	void *ret;
-	size_t offset;
+        void *ret = (void *)((uintptr_t)addr + leadsize);
 
-	
-	if (size + chunksize <= size)
-		return (NULL);
+        assert(alloc_size >= leadsize + size);
+        size_t trailsize = alloc_size - leadsize - size;
 
-	ret = pages_map(NULL, size + chunksize, -1);
-	if (ret == NULL)
-		return (NULL);
+        if (leadsize != 0)
+                pages_unmap(addr, leadsize);
+        if (trailsize != 0)
+                pages_unmap((void *)((uintptr_t)ret + size), trailsize);
+        return (ret);
+}
 
-	
-	offset = CHUNK_ADDR2OFFSET(ret);
-	if (offset != 0) {
-		
-		unaligned = true;
+static void *
+chunk_alloc_mmap_slow(size_t size, size_t alignment)
+{
+        void *ret, *pages;
+        size_t alloc_size, leadsize;
 
-		
-		pages_unmap(ret, chunksize - offset);
+        alloc_size = size + alignment - pagesize;
+        
+        if (alloc_size < size)
+                return (NULL);
+        do {
+                pages = pages_map(NULL, alloc_size, -1);
+                if (pages == NULL)
+                        return (NULL);
+                leadsize = ALIGNMENT_CEILING((uintptr_t)pages, alignment) -
+                        (uintptr_t)pages;
+                ret = pages_trim(pages, alloc_size, leadsize, size);
+        } while (ret == NULL);
 
-		ret = (void *)((uintptr_t)ret +
-		    (chunksize - offset));
-
-		
-		pages_unmap((void *)((uintptr_t)ret + size),
-		    offset);
-	} else {
-		
-		pages_unmap((void *)((uintptr_t)ret + size),
-		    chunksize);
-	}
-
-	
-
-
-
-
-	if (unaligned == false)
-		MMAP_UNALIGNED_SET(false);
-
-	return (ret);
+        assert(ret != NULL);
+        return (ret);
 }
 
 static void *
 chunk_alloc_mmap(size_t size, bool pagefile)
 {
-	void *ret;
+        void *ret;
+        size_t offset;
 
-	
-
-
-
+        
 
 
 
@@ -2787,48 +2766,17 @@ chunk_alloc_mmap(size_t size, bool pagefile)
 
 
 
+        ret = pages_map(NULL, size, -1);
+        if (ret == NULL)
+                return (NULL);
+        offset = ALIGNMENT_ADDR2OFFSET(ret, chunksize);
+        if (offset != 0) {
+                pages_unmap(ret, size);
+                return (chunk_alloc_mmap_slow(size, chunksize));
+        }
 
-
-
-
-
-
-
-
-
-
-
-
-	if (MMAP_UNALIGNED_GET() == false) {
-		size_t offset;
-
-		ret = pages_map(NULL, size, -1);
-		if (ret == NULL)
-			return (NULL);
-
-		offset = CHUNK_ADDR2OFFSET(ret);
-		if (offset != 0) {
-			MMAP_UNALIGNED_SET(true);
-			
-			if (pages_map((void *)((uintptr_t)ret + size),
-			    chunksize - offset, -1) == NULL) {
-				
-
-
-
-				pages_unmap(ret, size);
-				ret = chunk_alloc_mmap_slow(size, true);
-			} else {
-				
-				pages_unmap(ret, chunksize - offset);
-				ret = (void *)((uintptr_t)ret + (chunksize -
-				    offset));
-			}
-		}
-	} else
-		ret = chunk_alloc_mmap_slow(size, false);
-
-	return (ret);
+        assert(ret != NULL);
+        return (ret);
 }
 
 #endif 
