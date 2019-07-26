@@ -282,9 +282,9 @@ public:
   static bool HasFMRadioSupport(JSContext* , JSObject* aGlobal);
 #endif 
 #ifdef MOZ_NFC
-  static bool HasNfcSupport(JSContext* , JSObject* aGlobal);
-  static bool HasNfcPeerSupport(JSContext* , JSObject* aGlobal);
-  static bool HasNfcManagerSupport(JSContext* , JSObject* aGlobal);
+  static bool HasNFCSupport(JSContext* , JSObject* aGlobal);
+  static bool HasNFCPeerSupport(JSContext* , JSObject* aGlobal);
+  static bool HasNFCManagerSupport(JSContext* , JSObject* aGlobal);
 #endif 
 #ifdef MOZ_TIME_MANAGER
   static bool HasTimeSupport(JSContext* , JSObject* aGlobal);
