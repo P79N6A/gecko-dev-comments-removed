@@ -119,8 +119,9 @@ nsSVGTranslatePoint::DOMVal::SetY(float aY)
   return rv.ErrorCode();
 }
 
+
 NS_IMETHODIMP
-nsSVGTranslatePoint::DOMVal::MatrixTransform(nsIDOMSVGMatrix *matrix,
+nsSVGTranslatePoint::DOMVal::MatrixTransform(nsISupports *matrix,
                                              nsIDOMSVGPoint **_retval)
 {
   nsCOMPtr<DOMSVGMatrix> domMatrix = do_QueryInterface(matrix);
@@ -131,7 +132,6 @@ nsSVGTranslatePoint::DOMVal::MatrixTransform(nsIDOMSVGMatrix *matrix,
   *_retval = MatrixTransform(*domMatrix).get();
   return NS_OK;
 }
-
 
 already_AddRefed<nsISVGPoint>
 nsSVGTranslatePoint::DOMVal::MatrixTransform(DOMSVGMatrix& matrix)
@@ -582,7 +582,7 @@ nsSVGSVGElement::CreateSVGPoint(nsIDOMSVGPoint **_retval)
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::CreateSVGMatrix(nsIDOMSVGMatrix **_retval)
+nsSVGSVGElement::CreateSVGMatrix(nsISupports **_retval)
 {
   NS_ADDREF(*_retval = new DOMSVGMatrix());
   return NS_OK;
@@ -605,7 +605,7 @@ nsSVGSVGElement::CreateSVGTransform(nsISupports **_retval)
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::CreateSVGTransformFromMatrix(nsIDOMSVGMatrix *matrix,
+nsSVGSVGElement::CreateSVGTransformFromMatrix(nsISupports *matrix,
                                               nsISupports **_retval)
 {
   nsCOMPtr<DOMSVGMatrix> domItem = do_QueryInterface(matrix);
@@ -691,7 +691,7 @@ nsSVGSVGElement::GetBBox(nsIDOMSVGRect **_retval)
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::GetCTM(nsIDOMSVGMatrix * *aCTM)
+nsSVGSVGElement::GetCTM(nsISupports * *aCTM)
 {
   gfxMatrix m = SVGContentUtils::GetCTM(this, false);
   *aCTM = m.IsSingular() ? nullptr : new DOMSVGMatrix(m);
@@ -701,7 +701,7 @@ nsSVGSVGElement::GetCTM(nsIDOMSVGMatrix * *aCTM)
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::GetScreenCTM(nsIDOMSVGMatrix **aCTM)
+nsSVGSVGElement::GetScreenCTM(nsISupports **aCTM)
 {
   gfxMatrix m = SVGContentUtils::GetCTM(this, true);
   *aCTM = m.IsSingular() ? nullptr : new DOMSVGMatrix(m);
@@ -712,16 +712,15 @@ nsSVGSVGElement::GetScreenCTM(nsIDOMSVGMatrix **aCTM)
 
 NS_IMETHODIMP
 nsSVGSVGElement::GetTransformToElement(nsIDOMSVGElement *element,
-                                       nsIDOMSVGMatrix **_retval)
+                                       nsISupports **_retval)
 {
   if (!element)
     return NS_ERROR_DOM_SVG_WRONG_TYPE_ERR;
 
   nsresult rv;
   *_retval = nullptr;
-  nsCOMPtr<nsIDOMSVGMatrix> ourScreenCTM;
-  nsCOMPtr<nsIDOMSVGMatrix> targetScreenCTM;
-  nsCOMPtr<nsIDOMSVGMatrix> tmp;
+  nsCOMPtr<DOMSVGMatrix> ourScreenCTM;
+  nsCOMPtr<DOMSVGMatrix> targetScreenCTM;
   nsCOMPtr<nsIDOMSVGLocatable> target = do_QueryInterface(element, &rv);
   if (NS_FAILED(rv)) return rv;
 
@@ -730,9 +729,12 @@ nsSVGSVGElement::GetTransformToElement(nsIDOMSVGElement *element,
   if (!ourScreenCTM) return NS_ERROR_DOM_SVG_MATRIX_NOT_INVERTABLE;
   target->GetScreenCTM(getter_AddRefs(targetScreenCTM));
   if (!targetScreenCTM) return NS_ERROR_DOM_SVG_MATRIX_NOT_INVERTABLE;
-  rv = targetScreenCTM->Inverse(getter_AddRefs(tmp));
+  ErrorResult result;
+  nsCOMPtr<DOMSVGMatrix> tmp = targetScreenCTM->Inverse(result);
+  if (result.Failed()) return result.ErrorCode();
   if (NS_FAILED(rv)) return rv;
-  return tmp->Multiply(ourScreenCTM, _retval);  
+  *_retval = tmp->Multiply(*ourScreenCTM).get();  
+  return NS_OK;
 }
 
 
