@@ -153,16 +153,30 @@ XPCWrappedNativeScope::IsDyingScope(XPCWrappedNativeScope *scope)
     return false;
 }
 
-void
-XPCWrappedNativeScope::SetComponents(nsXPCComponents* aComponents)
+JSObject*
+XPCWrappedNativeScope::GetComponentsJSObject(XPCCallContext& ccx)
 {
-    mComponents = aComponents;
-}
+    if (!mComponents)
+        mComponents = new nsXPCComponents(this);
 
-nsXPCComponents*
-XPCWrappedNativeScope::GetComponents()
-{
-    return mComponents;
+    AutoMarkingNativeInterfacePtr iface(ccx);
+    iface = XPCNativeInterface::GetNewOrUsed(ccx, &NS_GET_IID(nsIXPCComponents));
+    if (!iface)
+        return nullptr;
+
+    nsCOMPtr<nsIXPCComponents> cholder(mComponents);
+    xpcObjectHelper helper(cholder);
+    nsCOMPtr<XPCWrappedNative> wrapper;
+    XPCWrappedNative::GetNewOrUsed(ccx, helper, this, iface, getter_AddRefs(wrapper));
+    if (!wrapper)
+        return nullptr;
+
+    
+    
+    JSObject *obj = wrapper->GetFlatJSObject();
+    if (!JS_WrapObject(ccx, &obj))
+        return nullptr;
+    return obj;
 }
 
 
