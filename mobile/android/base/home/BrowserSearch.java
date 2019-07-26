@@ -95,7 +95,6 @@ public class BrowserSearch extends HomeFragment
     private HomeListView mList;
 
     
-    @RobocopTarget
     private volatile SuggestClient mSuggestClient;
 
     
@@ -519,8 +518,8 @@ public class BrowserSearch extends HomeFragment
                     
                     
                     if (mSuggestClient == null && !isPrivate) {
-                        mSuggestClient = new SuggestClient(getActivity(), suggestTemplate,
-                                SUGGESTION_TIMEOUT, SUGGESTION_MAX);
+                        setSuggestClient(new SuggestClient(getActivity(), suggestTemplate,
+                                    SUGGESTION_TIMEOUT, SUGGESTION_MAX));
                     }
                 } else {
                     searchEngines.add(engine);
@@ -543,6 +542,20 @@ public class BrowserSearch extends HomeFragment
         }
 
         filterSuggestions();
+    }
+
+    
+
+
+
+
+    @RobocopTarget
+    public void setSuggestClient(final SuggestClient client) {
+        if (mSuggestClient != null) {
+            throw new IllegalStateException("Can only set the SuggestClient if it has not " +
+                    "yet been initialized!");
+        }
+        mSuggestClient = client;
     }
 
     private void showSuggestionsOptIn() {
