@@ -14,7 +14,7 @@ TBPL_FLAGS = [
     [], 
     ['--ion-eager', '--ion-offthread-compile=off'], 
     ['--ion-eager', '--ion-offthread-compile=off', '--ion-check-range-analysis', '--no-sse3'],
-    ['--baseline-eager'],
+    ['--baseline-eager', '--latin1-strings'],
     ['--baseline-eager', '--no-fpu'],
     ['--no-baseline', '--no-ion'],
 ]
