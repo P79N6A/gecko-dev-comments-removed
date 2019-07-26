@@ -15,7 +15,7 @@
 
 namespace js {
 
-namespace Probes {
+namespace probes {
 
 
 
@@ -57,37 +57,37 @@ extern const char anonymousName[];
 
 
 
-bool callTrackingActive(JSContext *);
+bool CallTrackingActive(JSContext *);
 
 
 
 
 
-bool wantNativeAddressInfo(JSContext *);
+bool WantNativeAddressInfo(JSContext *);
 
 
-bool enterScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
+bool EnterScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
 
 
-bool exitScript(JSContext *, JSScript *, JSFunction *, AbstractFramePtr);
-bool exitScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
+bool ExitScript(JSContext *, JSScript *, JSFunction *, AbstractFramePtr);
+bool ExitScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
 
 
-bool startExecution(JSScript *script);
+bool StartExecution(JSScript *script);
 
 
-bool stopExecution(JSScript *script);
-
-
-
-
-bool createObject(ExclusiveContext *cx, JSObject *obj);
+bool StopExecution(JSScript *script);
 
 
 
 
+bool CreateObject(ExclusiveContext *cx, JSObject *obj);
 
-bool finalizeObject(JSObject *obj);
+
+
+
+
+bool FinalizeObject(JSObject *obj);
 
 
 
@@ -109,7 +109,7 @@ JITGranularityRequested(JSContext *cx);
 
 
 void
-discardExecutableRegion(void *start, size_t size);
+DiscardExecutableRegion(void *start, size_t size);
 
 
 
@@ -137,7 +137,7 @@ static const char *ObjectClassname(JSObject *obj) {
 #endif
 
 inline bool
-Probes::createObject(ExclusiveContext *cx, JSObject *obj)
+probes::CreateObject(ExclusiveContext *cx, JSObject *obj)
 {
     bool ok = true;
 
@@ -150,7 +150,7 @@ Probes::createObject(ExclusiveContext *cx, JSObject *obj)
 }
 
 inline bool
-Probes::finalizeObject(JSObject *obj)
+probes::FinalizeObject(JSObject *obj)
 {
     bool ok = true;
 

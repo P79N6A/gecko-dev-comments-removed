@@ -554,7 +554,7 @@ HandleException(ResumeFromException *rfe)
                 
                 
                 JSScript *script = frames.script();
-                Probes::exitScript(cx, script, script->function(), nullptr);
+                probes::ExitScript(cx, script, script->function(), nullptr);
                 if (!frames.more())
                     break;
                 ++frames;
@@ -574,7 +574,7 @@ HandleException(ResumeFromException *rfe)
 
             
             JSScript *script = iter.script();
-            Probes::exitScript(cx, script, script->function(), iter.baselineFrame());
+            probes::ExitScript(cx, script, script->function(), iter.baselineFrame());
             
             
             
