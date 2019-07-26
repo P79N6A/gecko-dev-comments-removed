@@ -323,5 +323,62 @@ APZCCallbackHelper::AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollI
     }
 }
 
+static void
+DestroyCSSPoint(void* aObject, nsIAtom* aPropertyName,
+                void* aPropertyValue, void* aData)
+{
+  CSSPoint* point = static_cast<CSSPoint*>(aPropertyValue);
+  delete point;
+}
+
+void
+APZCCallbackHelper::UpdateCallbackTransform(const FrameMetrics& aApzcMetrics, const FrameMetrics& aActualMetrics)
+{
+    nsCOMPtr<nsIContent> content = nsLayoutUtils::FindContentFor(aApzcMetrics.mScrollId);
+    if (!content) {
+        return;
+    }
+    CSSPoint scrollDelta = aApzcMetrics.mScrollOffset - aActualMetrics.mScrollOffset;
+    content->SetProperty(nsGkAtoms::apzCallbackTransform, new CSSPoint(scrollDelta), DestroyCSSPoint);
+}
+
+CSSPoint
+APZCCallbackHelper::ApplyCallbackTransform(const CSSPoint& aInput, const ScrollableLayerGuid& aGuid)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    if (aGuid.mScrollId != FrameMetrics::NULL_SCROLL_ID) {
+        nsCOMPtr<nsIContent> content = nsLayoutUtils::FindContentFor(aGuid.mScrollId);
+        if (content) {
+            void* property = content->GetProperty(nsGkAtoms::apzCallbackTransform);
+            if (property) {
+                CSSPoint delta = (*static_cast<CSSPoint*>(property));
+                return aInput + delta;
+            }
+        }
+    }
+    return aInput;
+}
+
+nsIntPoint
+APZCCallbackHelper::ApplyCallbackTransform(const nsIntPoint& aPoint,
+                                        const ScrollableLayerGuid& aGuid,
+                                        const CSSToLayoutDeviceScale& aScale)
+{
+    LayoutDevicePoint point = LayoutDevicePoint(aPoint.x, aPoint.y);
+    point = ApplyCallbackTransform(point / aScale, aGuid) * aScale;
+    LayoutDeviceIntPoint ret = gfx::RoundedToInt(point);
+    return nsIntPoint(ret.x, ret.y);
+}
+
 }
 }

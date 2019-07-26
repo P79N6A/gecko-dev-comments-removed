@@ -23,6 +23,7 @@ namespace widget {
 class APZCCallbackHelper
 {
     typedef mozilla::layers::FrameMetrics FrameMetrics;
+    typedef mozilla::layers::ScrollableLayerGuid ScrollableLayerGuid;
 
 public:
     
@@ -67,6 +68,33 @@ public:
 
     static void AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollId,
                                         const uint32_t& aScrollGeneration);
+
+    
+
+
+
+
+
+
+
+
+
+    static void UpdateCallbackTransform(const FrameMetrics& aApzcMetrics,
+                                        const FrameMetrics& aActualMetrics);
+
+    
+
+
+
+    static CSSPoint ApplyCallbackTransform(const CSSPoint& aInput,
+                                           const ScrollableLayerGuid& aGuid);
+
+    
+
+
+    static nsIntPoint ApplyCallbackTransform(const nsIntPoint& aPoint,
+                                             const ScrollableLayerGuid& aGuid,
+                                             const CSSToLayoutDeviceScale& aScale);
 };
 
 }
