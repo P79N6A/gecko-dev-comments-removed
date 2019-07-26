@@ -218,6 +218,17 @@ JS::CheckStackRoots(JSContext *cx)
         return;
 
     
+    
+    
+    
+    
+    
+    
+    
+    
+    JS_ASSERT(!InNoGCScope());
+
+    
     if (cx->compartment->activeAnalysis)
         return;
 
