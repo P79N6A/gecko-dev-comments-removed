@@ -119,8 +119,12 @@ private:
     SAMPLE_RATE,
     START,
     STOP,
-    OFFSET,
-    DURATION,
+    
+    
+    BUFFERSTART,
+    
+    
+    BUFFEREND,
     LOOP,
     LOOPSTART,
     LOOPEND,
