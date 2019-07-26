@@ -71,8 +71,7 @@ class nsGeolocationRequest
   void Shutdown();
 
   
-  
-  bool Update(nsIDOMGeoPosition* aPosition, bool aIsBetter);
+  bool Update(nsIDOMGeoPosition* aPosition);
 
   void SendLocation(nsIDOMGeoPosition* location, bool aCachePosition);
   void MarkCleared();
@@ -135,7 +134,6 @@ public:
 
   void SetCachedPosition(nsIDOMGeoPosition* aPosition);
   nsIDOMGeoPosition* GetCachedPosition();
-  bool IsBetterPosition(nsIDOMGeoPosition *aSomewhere);
 
   
   nsresult StartDevice(nsIPrincipal* aPrincipal, bool aRequestPrivate);
@@ -160,7 +158,7 @@ private:
   nsCOMPtr<nsITimer> mDisconnectTimer;
 
   
-  nsCOMArray<nsIGeolocationProvider> mProviders;
+  nsCOMPtr<nsIGeolocationProvider> mProvider;
 
   
   
@@ -202,7 +200,7 @@ public:
   void GetCurrentPosition(PositionCallback& aCallback, PositionErrorCallback* aErrorCallback, const PositionOptions& aOptions, ErrorResult& aRv);
 
   
-  void Update(nsIDOMGeoPosition* aPosition, bool aIsBetter);
+  void Update(nsIDOMGeoPosition* aPosition);
 
   void SetCachedPosition(Position* aPosition);
   Position* GetCachedPosition();

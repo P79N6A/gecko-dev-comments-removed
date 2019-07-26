@@ -579,7 +579,7 @@ nsGeolocationRequest::GetPrincipal()
 }
 
 bool
-nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition, bool aIsBetter)
+nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition)
 {
   if (!mAllowed) {
     return false;
@@ -592,10 +592,10 @@ nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition, bool aIsBetter)
   
   
   nsCOMPtr<nsIRunnable> ev;
-  if (mIsFirstUpdate || aIsBetter) {
+  if (mIsFirstUpdate) {
     mIsFirstUpdate = false;
     ev  = new RequestSendLocationEvent(aPosition,
-                                       aIsBetter,
+                                       true,
                                        this,
                                        mIsWatchPositionRequest ? nullptr :  mLocator);
   } else {
@@ -666,17 +666,6 @@ nsresult nsGeolocationService::Init()
     return NS_OK;
   }
 
-  nsCOMPtr<nsIGeolocationProvider> provider = do_GetService(NS_GEOLOCATION_PROVIDER_CONTRACTID);
-  if (provider) {
-    mProviders.AppendObject(provider);
-  }
-
-  
-  nsCOMPtr<nsICategoryManager> catMan(do_GetService("@mozilla.org/categorymanager;1"));
-  if (!catMan) {
-    return NS_ERROR_FAILURE;
-  }
-
   
   nsCOMPtr<nsISettingsService> settings =
     do_GetService("@mozilla.org/settingsService;1");
@@ -704,59 +693,26 @@ nsresult nsGeolocationService::Init()
   obs->AddObserver(this, "quit-application", false);
   obs->AddObserver(this, "mozsettings-changed", false);
 
-  nsCOMPtr<nsISimpleEnumerator> geoproviders;
-  catMan->EnumerateCategory("geolocation-provider", getter_AddRefs(geoproviders));
-  if (geoproviders) {
-
-    bool hasMore;
-    while (NS_SUCCEEDED(geoproviders->HasMoreElements(&hasMore)) && hasMore) {
-      nsCOMPtr<nsISupports> elem;
-      geoproviders->GetNext(getter_AddRefs(elem));
-
-      nsCOMPtr<nsISupportsCString> elemString = do_QueryInterface(elem);
-
-      nsAutoCString name;
-      elemString->GetData(name);
-
-      nsXPIDLCString spec;
-      catMan->GetCategoryEntry("geolocation-provider", name.get(), getter_Copies(spec));
-
-      provider = do_GetService(spec);
-      if (provider) {
-        mProviders.AppendObject(provider);
-      }
-    }
-  }
-
-  
-
 #ifdef MOZ_MAEMO_LIBLOCATION
-  provider = new MaemoLocationProvider();
-  if (provider) {
-    mProviders.AppendObject(provider);
-  }
+  mProvider = new MaemoLocationProvider();
 #endif
 
 #ifdef MOZ_ENABLE_QTMOBILITY
-  provider = new QTMLocationProvider();
-  if (provider) {
-    mProviders.AppendObject(provider);
-  }
+  mProvider = new QTMLocationProvider();
 #endif
 
 #ifdef MOZ_WIDGET_ANDROID
-  provider = new AndroidLocationProvider();
-  if (provider) {
-    mProviders.AppendObject(provider);
-  }
+  mProvider = new AndroidLocationProvider();
 #endif
 
 #ifdef MOZ_WIDGET_GONK
-  provider = do_GetService(GONK_GPS_GEOLOCATION_PROVIDER_CONTRACTID);
-  if (provider) {
-    mProviders.AppendObject(provider);
-  }
+  mProvider = do_GetService(GONK_GPS_GEOLOCATION_PROVIDER_CONTRACTID);
 #endif
+
+  nsCOMPtr<nsIGeolocationProvider> providerOveride = do_GetService(NS_GEOLOCATION_PROVIDER_CONTRACTID); 
+  if (providerOveride) {
+    mProvider = providerOveride;
+  }
 
   return NS_OK;
 }
@@ -864,106 +820,14 @@ nsGeolocationService::Observe(nsISupports* aSubject,
 NS_IMETHODIMP
 nsGeolocationService::Update(nsIDOMGeoPosition *aSomewhere)
 {
-  
-  
-
-  bool isBetter = IsBetterPosition(aSomewhere);
-
-  if (isBetter) {
-    SetCachedPosition(aSomewhere);
-  }
+  SetCachedPosition(aSomewhere);
 
   for (uint32_t i = 0; i< mGeolocators.Length(); i++) {
-    mGeolocators[i]->Update(aSomewhere, isBetter);
+    mGeolocators[i]->Update(aSomewhere);
   }
   return NS_OK;
 }
 
-bool
-nsGeolocationService::IsBetterPosition(nsIDOMGeoPosition *aSomewhere)
-{
-  if (!aSomewhere) {
-    return false;
-  }
-
-  if (mProviders.Count() == 1 || !mLastPosition) {
-    return true;
-  }
-
-  nsCOMPtr<nsIDOMGeoPositionCoords> coords;
-  mLastPosition->GetCoords(getter_AddRefs(coords));
-  if (!coords) {
-    return false;
-  }
-
-  double oldAccuracy;
-  nsresult rv = coords->GetAccuracy(&oldAccuracy);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  double oldLat, oldLon;
-  rv = coords->GetLongitude(&oldLon);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  rv = coords->GetLatitude(&oldLat);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  aSomewhere->GetCoords(getter_AddRefs(coords));
-  if (!coords) {
-    return false;
-  }
-
-  double newAccuracy;
-  rv = coords->GetAccuracy(&newAccuracy);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  double newLat, newLon;
-  rv = coords->GetLongitude(&newLon);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  rv = coords->GetLatitude(&newLat);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  
-  
-  
-  double radsInDeg = M_PI / 180.0;
-
-  newLat *= radsInDeg;
-  newLon *= radsInDeg;
-  oldLat *= radsInDeg;
-  oldLon *= radsInDeg;
-
-  
-  
-  double radius = 6378137;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  double delta = acos( (sin(newLat) * sin(oldLat)) +
-                       (cos(newLat) * cos(oldLat) * cos(oldLon - newLon)) ) * radius; 
-
-  
-  
-  
-  double max_accuracy = std::max(oldAccuracy, newAccuracy);
-  if (delta > max_accuracy)
-    return true;
-
-  
-  if (oldAccuracy >= newAccuracy)
-    return true;
-
-  return false;
-}
 
 void
 nsGeolocationService::SetCachedPosition(nsIDOMGeoPosition* aPosition)
@@ -1002,13 +866,15 @@ nsGeolocationService::StartDevice(nsIPrincipal *aPrincipal, bool aRequestPrivate
     return NS_ERROR_FAILURE;
   }
 
-  for (int32_t i = 0; i < mProviders.Count(); i++) {
-    mProviders[i]->Startup();
-    mProviders[i]->Watch(this, aRequestPrivate);
-    obs->NotifyObservers(mProviders[i],
-                         "geolocation-device-events",
-                         NS_LITERAL_STRING("starting").get());
+  if (!mProvider) {
+    return NS_ERROR_FAILURE;
   }
+
+  mProvider->Startup();
+  mProvider->Watch(this, aRequestPrivate);
+  obs->NotifyObservers(mProvider,
+                       "geolocation-device-events",
+                       NS_LITERAL_STRING("starting").get());
 
   return NS_OK;
 }
@@ -1050,15 +916,11 @@ nsGeolocationService::SetHigherAccuracy(bool aEnable)
   }
 
   if (!mHigherAccuracy && highRequired) {
-    for (int32_t i = 0; i < mProviders.Count(); i++) {
-      mProviders[i]->SetHighAccuracy(true);
-    }
+      mProvider->SetHighAccuracy(true);
   }
 
   if (mHigherAccuracy && !highRequired) {
-    for (int32_t i = 0; i < mProviders.Count(); i++) {
-      mProviders[i]->SetHighAccuracy(false);
-    }
+      mProvider->SetHighAccuracy(false);
   }
 
   mHigherAccuracy = highRequired;
@@ -1083,12 +945,14 @@ nsGeolocationService::StopDevice()
     return;
   }
 
-  for (int32_t i = 0; i < mProviders.Count(); i++) {
-    mProviders[i]->Shutdown();
-    obs->NotifyObservers(mProviders[i],
-                         "geolocation-device-events",
-                         NS_LITERAL_STRING("shutdown").get());
+  if (!mProvider) {
+    return;
   }
+
+  mProvider->Shutdown();
+  obs->NotifyObservers(mProvider,
+                       "geolocation-device-events",
+                       NS_LITERAL_STRING("shutdown").get());
 }
 
 nsRefPtr<nsGeolocationService> nsGeolocationService::sService;
@@ -1277,21 +1141,21 @@ Geolocation::RemoveRequest(nsGeolocationRequest* aRequest)
 }
 
 void
-Geolocation::Update(nsIDOMGeoPosition *aSomewhere, bool aIsBetter)
+Geolocation::Update(nsIDOMGeoPosition *aSomewhere)
 {
   if (!WindowOwnerStillExists()) {
     return Shutdown();
   }
 
   for (uint32_t i = mPendingCallbacks.Length(); i> 0; i--) {
-    if (mPendingCallbacks[i-1]->Update(aSomewhere, aIsBetter)) {
+    if (mPendingCallbacks[i-1]->Update(aSomewhere)) {
       mPendingCallbacks.RemoveElementAt(i-1);
     }
   }
 
   
   for (uint32_t i = 0; i< mWatchingCallbacks.Length(); i++) {
-    mWatchingCallbacks[i]->Update(aSomewhere, aIsBetter);
+    mWatchingCallbacks[i]->Update(aSomewhere);
   }
 }
 
