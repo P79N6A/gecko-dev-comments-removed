@@ -40,6 +40,7 @@ class GeckoInputConnection
 
     private static final int INLINE_IME_MIN_DISPLAY_SIZE = 480;
 
+    
     private int mIMEState;
     private String mIMETypeHint = "";
     private String mIMEModeHint = "";
@@ -244,9 +245,9 @@ class GeckoInputConnection
         mBatchTextChanged = false;
         mUpdateRequest = null;
 
-        mIMEState = IME_STATE_DISABLED;
-        mIMETypeHint = mIMEModeHint = mIMEActionHint = "";
         mCurrentInputMethod = "";
+
+        
     }
 
     public void onTextChange(String text, int start, int oldEnd, int newEnd) {
@@ -551,6 +552,13 @@ class GeckoInputConnection
             return;
         }
 
+        
+        
+        
+        
+        
+        
+        
         
 
         mIMEState = state;
