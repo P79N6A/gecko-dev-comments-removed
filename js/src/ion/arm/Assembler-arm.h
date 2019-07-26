@@ -1394,14 +1394,14 @@ class Assembler
 
     
     
-    BufferOffset as_bx(Register r, Condition c = Always);
+    BufferOffset as_bx(Register r, Condition c = Always, bool isPatchable = false);
 
     
     
     
-    BufferOffset as_b(BOffImm off, Condition c);
+    BufferOffset as_b(BOffImm off, Condition c, bool isPatchable = false);
 
-    BufferOffset as_b(Label *l, Condition c = Always);
+    BufferOffset as_b(Label *l, Condition c = Always, bool isPatchable = false);
     BufferOffset as_b(BOffImm off, Condition c, BufferOffset inst);
 
     

@@ -1051,9 +1051,9 @@ MacroAssemblerARM::ma_vpush(VFPRegister r)
 
 
 void
-MacroAssemblerARM::ma_b(Label *dest, Assembler::Condition c)
+MacroAssemblerARM::ma_b(Label *dest, Assembler::Condition c, bool isPatchable)
 {
-    as_b(dest, c);
+    as_b(dest, c, isPatchable);
 }
 
 void
@@ -2851,7 +2851,7 @@ MacroAssemblerARMCompat::toggledJump(Label *label)
 {
     
     CodeOffsetLabel ret(nextOffset().getOffset());
-    ma_b(label);
+    ma_b(label, Always, true);
     return ret;
 }
 
