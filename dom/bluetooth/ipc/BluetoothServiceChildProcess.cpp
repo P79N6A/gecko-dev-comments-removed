@@ -333,7 +333,8 @@ BluetoothServiceChildProcess::SendFile(
   BlobChild* aBlobChild,
   BluetoothReplyRunnable* aRunnable)
 {
-  
+  SendRequest(aRunnable,
+              SendFileRequest(nsString(aDeviceAddress), nullptr, aBlobChild));
   return true;
 }
 
