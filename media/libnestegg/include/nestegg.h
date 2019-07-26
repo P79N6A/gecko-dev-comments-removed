@@ -201,6 +201,15 @@ int nestegg_get_cue_point(nestegg * context, unsigned int cluster_num,
 
 
 
+int nestegg_offset_seek(nestegg * context, uint64_t offset);
+
+
+
+
+
+
+
+
 
 int nestegg_track_seek(nestegg * context, unsigned int track, uint64_t tstamp);
 
