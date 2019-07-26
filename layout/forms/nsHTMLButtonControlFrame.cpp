@@ -331,8 +331,9 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
                     xoffset, yoffset, 0);
 
   
-  if (contentsDesiredSize.TopAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
-    contentsDesiredSize.SetTopAscent(aFirstKid->GetBaseline());
+  if (contentsDesiredSize.BlockStartAscent() ==
+      nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+    contentsDesiredSize.SetBlockStartAscent(aFirstKid->GetBaseline());
   }
 
   
@@ -346,7 +347,8 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
 
   
   
-  aButtonDesiredSize.SetTopAscent(contentsDesiredSize.TopAscent() + yoffset);
+  aButtonDesiredSize.SetBlockStartAscent(contentsDesiredSize.BlockStartAscent() +
+                                         yoffset);
 
   aButtonDesiredSize.SetOverflowAreasToDesiredBounds();
 }

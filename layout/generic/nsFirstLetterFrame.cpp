@@ -204,7 +204,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
 
     
     
-    mBaseline = aMetrics.TopAscent();
+    mBaseline = aMetrics.BlockStartAscent();
   }
   else {
     
@@ -226,7 +226,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
 
   aMetrics.Width() += lr;
   aMetrics.Height() += tb;
-  aMetrics.SetTopAscent(aMetrics.TopAscent() + bp.top);
+  aMetrics.SetBlockStartAscent(aMetrics.BlockStartAscent() + bp.top);
 
   
   

@@ -2916,13 +2916,14 @@ static void
 ResolveReflowedChildAscent(nsIFrame* aFrame,
                            nsHTMLReflowMetrics& aChildDesiredSize)
 {
-  if (aChildDesiredSize.TopAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+  if (aChildDesiredSize.BlockStartAscent() ==
+      nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
     
     nscoord ascent;
     if (nsLayoutUtils::GetFirstLineBaseline(aFrame, &ascent)) {
-      aChildDesiredSize.SetTopAscent(ascent);
+      aChildDesiredSize.SetBlockStartAscent(ascent);
     } else {
-      aChildDesiredSize.SetTopAscent(aFrame->GetBaseline());
+      aChildDesiredSize.SetBlockStartAscent(aFrame->GetBaseline());
     }
   }
 }
@@ -3025,7 +3026,7 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
   
   if (aItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_BASELINE) {
     ResolveReflowedChildAscent(aItem.Frame(), childDesiredSize);
-    aItem.SetAscent(childDesiredSize.TopAscent());
+    aItem.SetAscent(childDesiredSize.BlockStartAscent());
   }
 
   return NS_OK;
@@ -3416,8 +3417,11 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
         
         
         
-        flexContainerAscent = item->Frame()->GetNormalPosition().y +
-          childDesiredSize.TopAscent();
+        WritingMode wm = aReflowState.GetWritingMode();
+        flexContainerAscent =
+          item->Frame()->GetLogicalNormalPosition(wm,
+                                                  childDesiredSize.Width()).B(wm) +
+          childDesiredSize.BlockStartAscent();
       }
     }
   }
@@ -3443,7 +3447,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
     
     flexContainerAscent = aDesiredSize.Height();
   }
-  aDesiredSize.SetTopAscent(flexContainerAscent);
+  aDesiredSize.SetBlockStartAscent(flexContainerAscent);
 
   
   

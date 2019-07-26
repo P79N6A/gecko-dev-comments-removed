@@ -294,7 +294,7 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   
   aDesiredSize.Width() = mRect.width;
   aDesiredSize.Height() = mRect.height;
-  aDesiredSize.SetTopAscent(GetBoxAscent(state));
+  aDesiredSize.SetBlockStartAscent(GetBoxAscent(state));
 
   
   aDesiredSize.mOverflowAreas = GetOverflowAreas();
