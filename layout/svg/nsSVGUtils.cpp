@@ -1295,22 +1295,6 @@ nsSVGUtils::CanOptimizeOpacity(nsIFrame *aFrame)
   return false;
 }
 
-float
-nsSVGUtils::MaxExpansion(const gfxMatrix &aMatrix)
-{
-  
-  
-  
-  double a = aMatrix.xx;
-  double b = aMatrix.yx;
-  double c = aMatrix.xy;
-  double d = aMatrix.yy;
-  double f = (a * a + b * b + c * c + d * d) / 2;
-  double g = (a * a + b * b - c * c - d * d) / 2;
-  double h = a * c + b * d;
-  return sqrt(f + sqrt(g * g + h * h));
-}
-
 gfxMatrix
 nsSVGUtils::AdjustMatrixForUnits(const gfxMatrix &aMatrix,
                                  nsSVGEnum *aUnits,

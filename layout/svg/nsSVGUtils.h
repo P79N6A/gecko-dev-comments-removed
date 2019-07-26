@@ -508,10 +508,6 @@ public:
   CanOptimizeOpacity(nsIFrame *aFrame);
 
   
-  static float
-  MaxExpansion(const gfxMatrix &aMatrix);
-
-  
 
 
 
