@@ -101,11 +101,17 @@ public:
                                 IsShrinking aShrinking = NonShrinkingGC,
                                 int64_t aSliceMillis = 0);
   static void ShrinkGCBuffersNow();
+
   
   
   static void CycleCollectNow(nsICycleCollectorListener *aListener = nullptr,
                               int32_t aExtraForgetSkippableCalls = 0);
-  static void ScheduledCycleCollectNow();
+
+  
+  
+  
+  static void ScheduledCycleCollectNow(int64_t aSliceTime);
+
   static void BeginCycleCollectionCallback();
   static void EndCycleCollectionCallback(mozilla::CycleCollectorResults &aResults);
 
