@@ -23,7 +23,8 @@ NS_INTERFACE_MAP_END_INHERITING(AudioNode)
 NS_IMPL_ADDREF_INHERITED(OscillatorNode, AudioNode)
 NS_IMPL_RELEASE_INHERITED(OscillatorNode, AudioNode)
 
-static const float sLeak = 0.995f;
+static const float sLeakTriangle = 0.995f;
+static const float sLeak = 0.999f;
 
 class DCBlocker
 {
@@ -320,7 +321,7 @@ public:
       UpdateParametersIfNeeded(ticks, i);
       
       
-      mSquare += BipolarBLIT();
+      mSquare = mSquare * sLeak + BipolarBLIT();
       aOutput[i] = mSquare;
       
       aOutput[i] *= 1.5;
@@ -337,7 +338,7 @@ public:
       dcoffset = mFinalFrequency / mSource->SampleRate();
       
       
-      mSaw += UnipolarBLIT() - dcoffset;
+      mSaw = mSaw * sLeak + (UnipolarBLIT() - dcoffset);
       
       aOutput[i] = -mSaw * 1.5;
 
@@ -356,7 +357,7 @@ public:
       
       
       float C6 = 0.25 / (mSource->SampleRate() / mFinalFrequency);
-      mTriangle = mTriangle * sLeak + mSquare + C6;
+      mTriangle = mTriangle * sLeakTriangle + mSquare + C6;
       
       aOutput[i] = mDCBlocker.Process(mTriangle) / (mSignalPeriod/2) * 1.5;
 
