@@ -332,7 +332,7 @@ let SocialShareButton = {
     if (profile && profile.displayName) {
       profileRow.hidden = false;
       let portrait = document.getElementById("socialUserPortrait");
-      portrait.setAttribute("src", profile.portrait || "chrome://browser/skin/social/social.png");
+      portrait.setAttribute("src", profile.portrait || "chrome://global/skin/icons/information-32.png");
       let displayName = document.getElementById("socialUserDisplayName");
       displayName.setAttribute("label", profile.displayName);
     } else {
@@ -540,7 +540,7 @@ var SocialToolbar = {
     
     
     let profile = Social.provider.profile || {};
-    let userPortrait = profile.portrait || "chrome://browser/skin/social/social.png";
+    let userPortrait = profile.portrait || "chrome://global/skin/icons/information-32.png";
     document.getElementById("social-statusarea-user-portrait").setAttribute("src", userPortrait);
 
     let notLoggedInLabel = document.getElementById("social-statusarea-notloggedin");
