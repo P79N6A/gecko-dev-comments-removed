@@ -176,23 +176,6 @@ public final class GeckoProfile {
 
 
 
-
-
-    public boolean shouldRestoreSession() {
-        File sessionFile = getFile("sessionstore.js");
-        return sessionFile != null && sessionFile.exists();
-    }
-
-    
-
-
-
-
-
-
-
-
-
     public void moveSessionFile() {
         File sessionFile = getFile("sessionstore.js");
         if (sessionFile != null && sessionFile.exists()) {

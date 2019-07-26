@@ -223,7 +223,7 @@ SessionStore.prototype = {
 
           
           let data = JSON.parse(aData);
-          this.restoreLastSession(data.restoringOOM, data.sessionString);
+          this.restoreLastSession(data.normalRestore, data.sessionString);
         } else if (this._shouldRestore) {
           
           
@@ -956,7 +956,7 @@ SessionStore.prototype = {
     return this._shouldRestore;
   },
 
-  restoreLastSession: function ss_restoreLastSession(aRestoringOOM, aSessionString) {
+  restoreLastSession: function ss_restoreLastSession(aNormalRestore, aSessionString) {
     let self = this;
 
     function restoreWindow(data) {
@@ -972,7 +972,10 @@ SessionStore.prototype = {
     }
 
     try {
-      if (!aRestoringOOM && !this._shouldRestore) {
+      if (!aNormalRestore && !this._shouldRestore) {
+        
+        
+        
         
         
         
