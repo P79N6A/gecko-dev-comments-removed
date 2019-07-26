@@ -1281,7 +1281,8 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 			   SECCertUsage certusage,
 			   const SECItem *detached_digest,
 			   HASH_HashType digest_type,
-			   PRBool keepcerts)
+			   PRBool keepcerts,
+			   PRTime atTime)
 {
     SECAlgorithmID **digestalgs, *bulkid;
     const SECItem *digest;
@@ -1299,7 +1300,8 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
     SECItem *content_type;
     PK11SymKey *sigkey;
     SECItem *encoded_stime;
-    int64 stime;
+    PRTime stime;
+    PRTime verificationTime;
     SECStatus rv;
 
     
@@ -1436,8 +1438,10 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 
 
 
+    verificationTime = atTime ? atTime
+			      : (encoded_stime ? stime : PR_Now());
     if (CERT_VerifyCert (certdb, cert, PR_TRUE, certusage,
-			 encoded_stime != NULL ? stime : PR_Now(),
+			 verificationTime,
 			 cinfo->pwfn_arg, NULL) != SECSuccess)
 	{
 	
@@ -1757,7 +1761,7 @@ SEC_PKCS7VerifySignature(SEC_PKCS7ContentInfo *cinfo,
 			 PRBool keepcerts)
 {
     return sec_pkcs7_verify_signature (cinfo, certusage,
-				       NULL, HASH_AlgNULL, keepcerts);
+				       NULL, HASH_AlgNULL, keepcerts, 0);
 }
 
 
@@ -1779,9 +1783,34 @@ SEC_PKCS7VerifyDetachedSignature(SEC_PKCS7ContentInfo *cinfo,
 {
     return sec_pkcs7_verify_signature (cinfo, certusage,
 				       detached_digest, digest_type,
-				       keepcerts);
+				       keepcerts, 0);
 }
 
+
+
+
+
+
+
+
+
+
+PRBool
+SEC_PKCS7VerifyDetachedSignatureAtTime(SEC_PKCS7ContentInfo *cinfo,
+				       SECCertUsage certusage,
+				       const SECItem *detached_digest,
+				       HASH_HashType digest_type,
+				       PRBool keepcerts,
+				       PRTime atTime)
+{
+    if (!atTime) {
+	atTime = PR_Now();
+    }
+
+    return sec_pkcs7_verify_signature (cinfo, certusage,
+				       detached_digest, digest_type,
+				       keepcerts, atTime);
+}
 
 
 
@@ -1844,7 +1873,7 @@ sec_pkcs7_get_signer_cert_info(SEC_PKCS7ContentInfo *cinfo, int selector)
 
 
 	(void) sec_pkcs7_verify_signature (cinfo, certUsageEmailSigner,
-					   NULL, HASH_AlgNULL, PR_FALSE);
+					   NULL, HASH_AlgNULL, PR_FALSE, 0);
 	signercert = signerinfos[0]->cert;
 	if (signercert == NULL)
 	    return NULL;
