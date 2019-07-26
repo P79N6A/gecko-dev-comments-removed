@@ -341,7 +341,7 @@ public:
 struct BytecodePattern {
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    BytecodePattern(PassOwnPtr<ByteDisjunction> body, Vector<ByteDisjunction*> &allParenthesesInfo, YarrPattern& pattern, BumpPointerAllocator* allocator)
+    BytecodePattern(PassOwnPtr<ByteDisjunction> body, const Vector<ByteDisjunction*> &allParenthesesInfo, YarrPattern& pattern, BumpPointerAllocator* allocator)
         : m_body(body)
         , m_ignoreCase(pattern.m_ignoreCase)
         , m_multiline(pattern.m_multiline)
@@ -350,17 +350,12 @@ public:
         newlineCharacterClass = pattern.newlineCharacterClass();
         wordcharCharacterClass = pattern.wordcharCharacterClass();
 
+        m_allParenthesesInfo.append(allParenthesesInfo);
+        m_userCharacterClasses.append(pattern.m_userCharacterClasses);
         
         
         
-        JS_ASSERT(m_allParenthesesInfo.size() == 0);
-        m_allParenthesesInfo.swap(allParenthesesInfo);
-
-        
-        
-        
-        JS_ASSERT(m_userCharacterClasses.size() == 0);
-        m_userCharacterClasses.swap(pattern.m_userCharacterClasses);
+        pattern.m_userCharacterClasses.clear();
     }
 
     ~BytecodePattern()
