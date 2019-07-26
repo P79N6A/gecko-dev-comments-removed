@@ -241,7 +241,8 @@ const ContentPanning = {
     }
 
     let isPan = KineticPanning.isPan();
-    if (!isPan) {
+    if (!isPan && this.detectingScrolling) {
+      
       
       
       return;
@@ -271,6 +272,8 @@ const ContentPanning = {
     }
 
     if (this.panning) {
+      
+      
       evt.stopPropagation();
       evt.preventDefault();
     }
