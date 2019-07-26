@@ -324,8 +324,6 @@ class ForOfIterator
 
 } 
 
-#if JS_HAS_GENERATORS
-
 
 
 
@@ -357,7 +355,6 @@ bool
 GeneratorHasMarkableFrame(JSGenerator *gen);
 
 } 
-#endif
 
 extern JSObject *
 js_InitIteratorClasses(JSContext *cx, js::HandleObject obj);
