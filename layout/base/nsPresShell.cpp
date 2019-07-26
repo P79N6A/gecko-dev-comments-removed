@@ -6625,10 +6625,9 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
       case NS_KEY_UP: {
         nsIDocument *doc = mCurrentEventContent ?
                            mCurrentEventContent->OwnerDoc() : nullptr;
-        nsIDocument* root = nullptr;
+        nsIDocument* fullscreenAncestor = nullptr;
         if (static_cast<const nsKeyEvent*>(aEvent)->keyCode == NS_VK_ESCAPE &&
-            (root = nsContentUtils::GetRootDocument(doc)) &&
-            root->IsFullScreenDoc()) {
+            (fullscreenAncestor = nsContentUtils::GetFullscreenAncestor(doc))) {
           
           
           
@@ -6640,7 +6639,14 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
             
             
             
-            nsIDocument::ExitFullscreen(nullptr,  true);
+            
+            
+            
+            
+            
+            nsIDocument::ExitFullscreen(
+              nsContentUtils::IsFullscreenApiContentOnly() ? fullscreenAncestor : nullptr,
+               true);
           }
         }
         

@@ -1813,6 +1813,32 @@ public:
   
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool IsFullscreenApiContentOnly();
+
+  
+
+
   static bool IsIdleObserverAPIEnabled() { return sIsIdleObserverAPIEnabled; }
   
   
@@ -1835,7 +1861,9 @@ public:
 
 
 
-  static nsIDocument* GetRootDocument(nsIDocument* aDoc);
+
+
+  static nsIDocument* GetFullscreenAncestor(nsIDocument* aDoc);
 
   
 
@@ -2161,6 +2189,7 @@ private:
   static bool sAllowXULXBL_for_file;
   static bool sIsFullScreenApiEnabled;
   static bool sTrustedFullScreenOnly;
+  static bool sFullscreenApiIsContentOnly;
   static uint32_t sHandlingInputTimeout;
   static bool sIsIdleObserverAPIEnabled;
 

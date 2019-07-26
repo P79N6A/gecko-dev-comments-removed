@@ -580,3 +580,18 @@ pref("media.realtime_decoder.enabled", true);
 
 
 pref("network.manage-offline-status", true);
+
+
+pref("full-screen-api.enabled", true);
+
+
+pref("full-screen-api.approval-required", false);
+
+
+pref("full-screen-api.content-only", true);
+
+
+
+
+
+pref("full-screen-api.ignore-widgets", true);

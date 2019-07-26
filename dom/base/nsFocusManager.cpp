@@ -1158,15 +1158,16 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, int32_t aFlags,
   
   
 #ifndef XP_MACOSX
+  nsIDocument* fullscreenAncestor;
   if (contentToFocus &&
-      nsContentUtils::GetRootDocument(contentToFocus->OwnerDoc())->IsFullScreenDoc() &&
+      (fullscreenAncestor = nsContentUtils::GetFullscreenAncestor(contentToFocus->OwnerDoc())) &&
       nsContentUtils::HasPluginWithUncontrolledEventDispatch(contentToFocus)) {
     nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
                                     "DOM",
                                     contentToFocus->OwnerDoc(),
                                     nsContentUtils::eDOM_PROPERTIES,
                                     "FocusedWindowedPluginWhileFullScreen");
-    nsIDocument::ExitFullscreen(contentToFocus->OwnerDoc(),  true);
+    nsIDocument::ExitFullscreen(fullscreenAncestor,  true);
   }
 #endif
 

@@ -873,6 +873,11 @@ public:
 
 
 
+
+
+
+
+
   virtual void AsyncRequestFullScreen(Element* aElement) = 0;
 
   
@@ -936,6 +941,19 @@ public:
   virtual void SetApprovedForFullscreen(bool aIsApproved) = 0;
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
