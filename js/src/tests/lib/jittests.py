@@ -327,6 +327,13 @@ def check_output(out, err, rc, test):
         
         
         
+        if sys.platform in ['win32', 'cygwin']:
+            if rc != 3 and rc != 0:
+                return False
+        else:
+            if rc != 3:
+                return False
+
         return test.expect_error in err
 
     for line in out.split('\n'):
