@@ -1307,6 +1307,20 @@ class DebugScopeProxy : public BaseProxyHandler
 
     DebugScopeProxy() : BaseProxyHandler(&family) {}
 
+    bool isExtensible(JSObject *proxy) MOZ_OVERRIDE
+    {
+        
+        
+        return true;
+    }
+
+    bool preventExtensions(JSContext *cx, HandleObject proxy) MOZ_OVERRIDE
+    {
+        
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_CHANGE_EXTENSIBILITY);
+        return false;
+    }
+
     bool getPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id, PropertyDescriptor *desc,
                                unsigned flags) MOZ_OVERRIDE
     {

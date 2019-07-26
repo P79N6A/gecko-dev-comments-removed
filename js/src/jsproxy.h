@@ -48,7 +48,8 @@ class JS_FRIEND_API(Wrapper);
 
 
 
-class JS_FRIEND_API(BaseProxyHandler) {
+class JS_FRIEND_API(BaseProxyHandler)
+{
     void *mFamily;
     bool mHasPrototype;
     bool mHasPolicy;
@@ -104,6 +105,7 @@ class JS_FRIEND_API(BaseProxyHandler) {
                        bool *bp);
 
     
+    virtual bool preventExtensions(JSContext *cx, HandleObject proxy) = 0;
     virtual bool getPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
                                        PropertyDescriptor *desc, unsigned flags) = 0;
     virtual bool getOwnPropertyDescriptor(JSContext *cx, HandleObject proxy,
@@ -128,6 +130,7 @@ class JS_FRIEND_API(BaseProxyHandler) {
                          MutableHandleValue vp);
 
     
+    virtual bool isExtensible(JSObject *proxy) = 0;
     virtual bool call(JSContext *cx, HandleObject proxy, unsigned argc, Value *vp);
     virtual bool construct(JSContext *cx, HandleObject proxy, unsigned argc,
                            Value *argv, MutableHandleValue rval);
@@ -153,11 +156,13 @@ class JS_FRIEND_API(BaseProxyHandler) {
 
 
 
-class JS_PUBLIC_API(DirectProxyHandler) : public BaseProxyHandler {
-public:
+class JS_PUBLIC_API(DirectProxyHandler) : public BaseProxyHandler
+{
+  public:
     explicit DirectProxyHandler(void *family);
 
     
+    virtual bool preventExtensions(JSContext *cx, HandleObject proxy) MOZ_OVERRIDE;
     virtual bool getPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
                                        PropertyDescriptor *desc, unsigned flags) MOZ_OVERRIDE;
     virtual bool getOwnPropertyDescriptor(JSContext *cx, HandleObject proxy,
@@ -187,6 +192,7 @@ public:
                          MutableHandleValue vp) MOZ_OVERRIDE;
 
     
+    virtual bool isExtensible(JSObject *proxy) MOZ_OVERRIDE;
     virtual bool call(JSContext *cx, HandleObject proxy, unsigned argc, Value *vp) MOZ_OVERRIDE;
     virtual bool construct(JSContext *cx, HandleObject proxy, unsigned argc,
                            Value *argv, MutableHandleValue rval) MOZ_OVERRIDE;
@@ -207,9 +213,11 @@ public:
 };
 
 
-class Proxy {
+class Proxy
+{
   public:
     
+    static bool preventExtensions(JSContext *cx, HandleObject proxy);
     static bool getPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
                                       PropertyDescriptor *desc, unsigned flags);
     static bool getPropertyDescriptor(JSContext *cx, HandleObject proxy, unsigned flags, HandleId id,
@@ -237,6 +245,7 @@ class Proxy {
     static bool iterate(JSContext *cx, HandleObject proxy, unsigned flags, MutableHandleValue vp);
 
     
+    static bool isExtensible(JSObject *proxy);
     static bool call(JSContext *cx, HandleObject proxy, unsigned argc, Value *vp);
     static bool construct(JSContext *cx, HandleObject proxy, unsigned argc, Value *argv,
                           MutableHandleValue rval);
