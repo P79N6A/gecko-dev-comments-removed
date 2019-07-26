@@ -564,38 +564,6 @@ SCOPED_TEMPLATE(ScopedReleasePtr, ScopedReleasePtrTraits)
 
 namespace js {
 
-
-class ReentrancyGuard
-{
-    
-    ReentrancyGuard(const ReentrancyGuard &);
-    void operator=(const ReentrancyGuard &);
-
-#ifdef DEBUG
-    bool &entered;
-#endif
-  public:
-    template <class T>
-#ifdef DEBUG
-    ReentrancyGuard(T &obj)
-      : entered(obj.entered)
-#else
-    ReentrancyGuard(T &/*obj*/)
-#endif
-    {
-#ifdef DEBUG
-        JS_ASSERT(!entered);
-        entered = true;
-#endif
-    }
-    ~ReentrancyGuard()
-    {
-#ifdef DEBUG
-        entered = false;
-#endif
-    }
-};
-
 template <class T>
 JS_ALWAYS_INLINE static void
 Swap(T &t, T &u)
