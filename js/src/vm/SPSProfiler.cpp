@@ -9,6 +9,7 @@
 #include "mozilla/DebugOnly.h"
 
 #include "jsnum.h"
+#include "jsprf.h"
 #include "jsscript.h"
 
 #include "jit/BaselineJIT.h"
@@ -76,13 +77,13 @@ SPSProfiler::enable(bool enabled)
 
 
 const char*
-SPSProfiler::profileString(JSContext *cx, JSScript *script, JSFunction *maybeFun)
+SPSProfiler::profileString(JSScript *script, JSFunction *maybeFun)
 {
     JS_ASSERT(strings.initialized());
     ProfileStringMap::AddPtr s = strings.lookupForAdd(script);
     if (s)
         return s->value();
-    const char *str = allocProfileString(cx, script, maybeFun);
+    const char *str = allocProfileString(script, maybeFun);
     if (str == nullptr)
         return nullptr;
     if (!strings.add(s, script, str)) {
@@ -112,9 +113,9 @@ SPSProfiler::onScriptFinalized(JSScript *script)
 }
 
 bool
-SPSProfiler::enter(JSContext *cx, JSScript *script, JSFunction *maybeFun)
+SPSProfiler::enter(JSScript *script, JSFunction *maybeFun)
 {
-    const char *str = profileString(cx, script, maybeFun);
+    const char *str = profileString(script, maybeFun);
     if (str == nullptr)
         return false;
 
@@ -125,14 +126,14 @@ SPSProfiler::enter(JSContext *cx, JSScript *script, JSFunction *maybeFun)
 }
 
 void
-SPSProfiler::exit(JSContext *cx, JSScript *script, JSFunction *maybeFun)
+SPSProfiler::exit(JSScript *script, JSFunction *maybeFun)
 {
     pop();
 
 #ifdef DEBUG
     
     if (*size_ < max_) {
-        const char *str = profileString(cx, script, maybeFun);
+        const char *str = profileString(script, maybeFun);
         
         JS_ASSERT(str != nullptr);
 
@@ -207,44 +208,53 @@ SPSProfiler::pop()
 
 
 
-const char*
-SPSProfiler::allocProfileString(JSContext *cx, JSScript *script, JSFunction *maybeFun)
+const char *
+SPSProfiler::allocProfileString(JSScript *script, JSFunction *maybeFun)
 {
     
     
-    DebugOnly<uint64_t> gcBefore = cx->runtime()->gcNumber;
-    StringBuffer buf(cx);
-    bool hasAtom = maybeFun != nullptr && maybeFun->displayAtom() != nullptr;
-    if (hasAtom) {
-        if (!buf.append(maybeFun->displayAtom()))
-            return nullptr;
-        if (!buf.append(" ("))
-            return nullptr;
-    }
-    if (script->filename()) {
-        if (!buf.appendInflated(script->filename(), strlen(script->filename())))
-            return nullptr;
-    } else if (!buf.append("<unknown>")) {
-        return nullptr;
-    }
-    if (!buf.append(":"))
-        return nullptr;
-    if (!NumberValueToStringBuffer(cx, NumberValue(script->lineno()), buf))
-        return nullptr;
-    if (hasAtom && !buf.append(")"))
-        return nullptr;
 
-    size_t len = buf.length();
+    
+    bool hasAtom = maybeFun && maybeFun->displayAtom();
+
+    
+    const jschar *atom = nullptr;
+    size_t lenAtom = 0;
+    if (hasAtom) {
+        atom = maybeFun->displayAtom()->charsZ();
+        lenAtom = maybeFun->displayAtom()->length();
+    }
+
+    
+    const char *filename = script->filename();
+    if (filename == nullptr)
+        filename = "<unknown>";
+    size_t lenFilename = strlen(filename);
+
+    
+    uint64_t lineno = script->lineno();
+    size_t lenLineno = 1;
+    for (uint64_t i = lineno; i /= 10; lenLineno++);
+
+    
+    size_t len = lenFilename + lenLineno + 1; 
+    if (hasAtom)
+        len += lenAtom + 3; 
+
+    
     char *cstr = js_pod_malloc<char>(len + 1);
     if (cstr == nullptr)
         return nullptr;
 
-    const jschar *ptr = buf.begin();
-    for (size_t i = 0; i < len; i++)
-        cstr[i] = ptr[i];
-    cstr[len] = 0;
+    
+    size_t ret;
+    if (hasAtom)
+        ret = JS_snprintf(cstr, len + 1, "%hs (%s:%llu)", atom, filename, lineno);
+    else
+        ret = JS_snprintf(cstr, len + 1, "%s:%llu", filename, lineno);
 
-    JS_ASSERT(gcBefore == cx->runtime()->gcNumber);
+    MOZ_ASSERT(ret == len, "Computed length should match actual length!");
+
     return cstr;
 }
 

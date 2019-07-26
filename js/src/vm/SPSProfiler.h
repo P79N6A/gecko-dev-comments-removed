@@ -124,8 +124,7 @@ class SPSProfiler
     bool                 slowAssertions;
     uint32_t             enabled_;
 
-    const char *allocProfileString(JSContext *cx, JSScript *script,
-                                   JSFunction *function);
+    const char *allocProfileString(JSScript *script, JSFunction *function);
     void push(const char *string, void *sp, JSScript *script, jsbytecode *pc);
     void pop();
 
@@ -165,8 +164,8 @@ class SPSProfiler
 
 
 
-    bool enter(JSContext *cx, JSScript *script, JSFunction *maybeFun);
-    void exit(JSContext *cx, JSScript *script, JSFunction *maybeFun);
+    bool enter(JSScript *script, JSFunction *maybeFun);
+    void exit(JSScript *script, JSFunction *maybeFun);
     void updatePC(JSScript *script, jsbytecode *pc) {
         if (enabled() && *size_ - 1 < max_) {
             JS_ASSERT(*size_ > 0);
@@ -182,7 +181,7 @@ class SPSProfiler
     jsbytecode *ipToPC(JSScript *script, size_t ip) { return nullptr; }
 
     void setProfilingStack(ProfileEntry *stack, uint32_t *size, uint32_t max);
-    const char *profileString(JSContext *cx, JSScript *script, JSFunction *maybeFun);
+    const char *profileString(JSScript *script, JSFunction *maybeFun);
     void onScriptFinalized(JSScript *script);
 
     
@@ -320,11 +319,10 @@ class SPSInstrumentation
 
 
 
-    bool push(JSContext *cx, JSScript *script, Assembler &masm, Register scratch) {
+    bool push(JSScript *script, Assembler &masm, Register scratch) {
         if (!enabled())
             return true;
-        const char *string = profiler_->profileString(cx, script,
-                                                      script->functionNonDelazifying());
+        const char *string = profiler_->profileString(script, script->functionNonDelazifying());
         if (string == nullptr)
             return false;
         masm.spsPushFrame(profiler_, string, script, scratch);
