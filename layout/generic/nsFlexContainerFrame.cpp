@@ -274,9 +274,18 @@ public:
       nsSize(aCrossSize, aMainSize);
   }
 
+  
+  
+  
+  bool AreAxesInternallyReversed() const
+  {
+    return mAreAxesInternallyReversed;
+  }
+
 private:
   AxisOrientationType mMainAxis;
   AxisOrientationType mCrossAxis;
+  bool mAreAxesInternallyReversed;
 };
 
 
@@ -2262,7 +2271,9 @@ SingleLineCrossAxisPositionTracker::
   }
 }
 
-FlexboxAxisTracker::FlexboxAxisTracker(nsFlexContainerFrame* aFlexContainerFrame)
+FlexboxAxisTracker::FlexboxAxisTracker(
+  nsFlexContainerFrame* aFlexContainerFrame)
+  : mAreAxesInternallyReversed(false)
 {
   const nsStylePosition* pos = aFlexContainerFrame->StylePosition();
   uint32_t flexDirection = pos->mFlexDirection;
@@ -2322,6 +2333,27 @@ FlexboxAxisTracker::FlexboxAxisTracker(nsFlexContainerFrame* aFlexContainerFrame
   
   if (pos->mFlexWrap == NS_STYLE_FLEX_WRAP_WRAP_REVERSE) {
     mCrossAxis = GetReverseAxis(mCrossAxis);
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static bool sPreventBottomToTopChildOrdering = false;
+
+  if (sPreventBottomToTopChildOrdering) {
+    
+    
+    if (eAxis_BT == mMainAxis || eAxis_BT == mCrossAxis) {
+      mMainAxis = GetReverseAxis(mMainAxis);
+      mCrossAxis = GetReverseAxis(mCrossAxis);
+      mAreAxesInternallyReversed = true;
+    }
   }
 
   MOZ_ASSERT(IsAxisHorizontal(mMainAxis) != IsAxisHorizontal(mCrossAxis),
