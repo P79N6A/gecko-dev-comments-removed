@@ -3202,6 +3202,13 @@ GetLayerManagerPrefs(LayerManagerPrefs* aManagerPrefs)
     aManagerPrefs->mDisableAcceleration || safeMode;
 }
 
+bool
+nsWindow::ShouldUseOffMainThreadCompositing()
+{
+  
+  return false;
+}
+
 LayerManager*
 nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
                           LayersBackend aBackendHint,
@@ -3233,18 +3240,9 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
   RECT windowRect;
   ::GetClientRect(mWnd, &windowRect);
 
-  
-  if (!mLayerManager && ShouldUseOffMainThreadCompositing()) {
-    
-    
-    NS_ASSERTION(aShadowManager == nullptr, "Async Compositor not supported with e10s");
-    CreateCompositor();
-  }
-
   if (!mLayerManager ||
       (!sAllowD3D9 && aPersistence == LAYER_MANAGER_PERSISTENT &&
-        mLayerManager->GetBackendType() == LAYERS_BASIC &&
-        !ShouldUseOffMainThreadCompositing())) {
+        mLayerManager->GetBackendType() == LAYERS_BASIC)) {
     
     
     LayerManagerPrefs prefs;
@@ -7271,7 +7269,7 @@ bool nsWindow::AutoErase(HDC dc)
 void
 nsWindow::AllowD3D9Callback(nsWindow *aWindow)
 {
-  if (aWindow->mLayerManager && !aWindow->ShouldUseOffMainThreadCompositing()) {
+  if (aWindow->mLayerManager) {
     aWindow->mLayerManager->Destroy();
     aWindow->mLayerManager = NULL;
   }
@@ -7280,7 +7278,7 @@ nsWindow::AllowD3D9Callback(nsWindow *aWindow)
 void
 nsWindow::AllowD3D9WithReinitializeCallback(nsWindow *aWindow)
 {
-  if (aWindow->mLayerManager && !aWindow->ShouldUseOffMainThreadCompositing()) {
+  if (aWindow->mLayerManager) {
     aWindow->mLayerManager->Destroy();
     aWindow->mLayerManager = NULL;
     (void) aWindow->GetLayerManager();
@@ -7295,8 +7293,6 @@ nsWindow::StartAllowingD3D9(bool aReinitialize)
   LayerManagerPrefs prefs;
   GetLayerManagerPrefs(&prefs);
   if (prefs.mDisableAcceleration) {
-    
-    
     
     
     

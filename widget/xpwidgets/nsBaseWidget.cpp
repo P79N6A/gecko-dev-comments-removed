@@ -877,9 +877,6 @@ void nsBaseWidget::CreateCompositor()
 
 void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
 {
-  
-  
-
   mCompositorParent = NewCompositorParent(aWidth, aHeight);
   AsyncChannel *parentChannel = mCompositorParent->GetIPCChannel();
   LayerManager* lm = new ClientLayerManager(this);
@@ -890,8 +887,12 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
 
   TextureFactoryIdentifier textureFactoryIdentifier;
   PLayerTransactionChild* shadowManager;
-  mozilla::layers::LayersBackend backendHint = GetPreferredCompositorBackend();
-
+  mozilla::layers::LayersBackend backendHint;
+  if (mUseLayersAcceleration) {
+    backendHint = mozilla::layers::LAYERS_OPENGL;
+  } else {
+    backendHint = mozilla::layers::LAYERS_BASIC;
+  }
   shadowManager = mCompositorChild->SendPLayerTransactionConstructor(
     backendHint, 0, &textureFactoryIdentifier);
 
@@ -906,14 +907,12 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
     lf->IdentifyTextureHost(textureFactoryIdentifier);
 
     mLayerManager = lm;
-    return;
+  } else {
+    
+    NS_RUNTIMEABORT("failed to construct LayersChild");
+    delete lm;
+    mCompositorChild = nullptr;
   }
-
-  
-  NS_WARNING("Failed to create an OMT compositor.");
-  DestroyCompositor();
-  
-  
 }
 
 bool nsBaseWidget::ShouldUseOffMainThreadCompositing()
