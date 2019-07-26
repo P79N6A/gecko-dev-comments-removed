@@ -535,23 +535,24 @@ public class TopSitesPanel extends HomeFragment {
 
             
             
-            if (mThumbnails == null || thumbnail != null) {
-                return;
-            }
-
-            
-            
             
             if (!updated) {
                 debug("bindView called twice for same values; short-circuiting.");
                 return;
             }
 
-            final int imageUrlIndex = cursor.getColumnIndex(TopSites.IMAGE_URL);
-            if (!cursor.isNull(imageUrlIndex)) {
-                String imageUrl = cursor.getString(imageUrlIndex);
-                String bgColor = cursor.getString(cursor.getColumnIndex(TopSites.BG_COLOR));
-                view.displayThumbnail(imageUrl, Color.parseColor(bgColor));
+            
+            
+            final String imageUrl = BrowserDB.getSuggestedImageUrlForUrl(url);
+            if (!TextUtils.isEmpty(imageUrl)) {
+                final int bgColor = BrowserDB.getSuggestedBackgroundColorForUrl(url);
+                view.displayThumbnail(imageUrl, bgColor);
+                return;
+            }
+
+            
+            
+            if (mThumbnails == null || thumbnail != null) {
                 return;
             }
 
@@ -635,7 +636,15 @@ public class TopSitesPanel extends HomeFragment {
             final ArrayList<String> urls = new ArrayList<String>();
             int i = 1;
             do {
-                urls.add(c.getString(col));
+                final String url = c.getString(col);
+
+                
+                
+                if (BrowserDB.hasSuggestedImageUrl(url)) {
+                    continue;
+                }
+
+                urls.add(url);
             } while (i++ < mMaxGridEntries && c.moveToNext());
 
             if (urls.isEmpty()) {
