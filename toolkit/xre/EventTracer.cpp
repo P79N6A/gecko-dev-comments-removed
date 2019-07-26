@@ -48,7 +48,7 @@
 
 
 
-#include "sampler.h"
+#include "GeckoProfiler.h"
 
 #include "EventTracer.h"
 
@@ -121,7 +121,7 @@ void TracerThread(void *arg)
 
   while (!sExit) {
     TimeStamp start(TimeStamp::Now());
-    SAMPLER_RESPONSIVENESS(start);
+    profiler_responsiveness(start);
     PRIntervalTime next_sleep = interval;
 
     
