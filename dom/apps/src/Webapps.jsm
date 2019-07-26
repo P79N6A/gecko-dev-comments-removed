@@ -1868,6 +1868,7 @@ this.DOMApplicationRegistry = {
             
             debug("We found no ETag Header, canceling the request");
             requestChannel.cancel(Cr.NS_BINDING_ABORTED);
+            AppDownloadManager.remove(aApp.manifestURL);
           }
         },
         onStopRequest: function(aRequest, aContext, aStatusCode) {
