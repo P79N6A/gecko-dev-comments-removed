@@ -25,7 +25,6 @@
 #include "nsRect.h"                     
 #include "nsSize.h"                     
 #include "nsTArray.h"                   
-#include "nsThreadUtils.h"              
 #include "mozilla/Atomics.h"
 
 class nsMainThreadSurfaceRef;
@@ -817,7 +816,6 @@ public:
 
   virtual already_AddRefed<gfxASurface> GetAsSurface()
   {
-    NS_ASSERTION(NS_IsMainThread(), "Must be main thread");
     nsRefPtr<gfxASurface> surface = mSurface.get();
     return surface.forget();
   }

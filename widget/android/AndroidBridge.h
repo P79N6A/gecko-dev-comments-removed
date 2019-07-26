@@ -13,9 +13,6 @@
 
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
-#include "nsIRunnable.h"
-#include "nsIObserver.h"
-#include "nsThreadUtils.h"
 
 #include "AndroidJavaWrappers.h"
 
@@ -38,6 +35,7 @@
 
 class nsWindow;
 class nsIDOMMozSmsMessage;
+class nsIObserver;
 
 
 extern "C" JNIEnv * GetJNIForThread();

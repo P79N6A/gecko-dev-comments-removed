@@ -15,7 +15,6 @@
 #include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
 #include "nsIEventTarget.h"
-#include "nsThreadUtils.h"
 
 #include "m_cpp_utils.h"
 
@@ -62,20 +61,7 @@ class TransportLayer : public sigslot::has_slots<> {
 
   
   
-  nsresult RunOnThread(nsIRunnable *event) {
-    if (target_) {
-      nsIThread *thr;
-
-      DebugOnly<nsresult> rv = NS_GetCurrentThread(&thr);
-      MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-      if (target_ != thr) {
-        return target_->Dispatch(event, NS_DISPATCH_SYNC);
-      }
-    }
-
-    return event->Run();
-  }
+  nsresult RunOnThread(nsIRunnable *event);
 
   
   State state() const { return state_; }
