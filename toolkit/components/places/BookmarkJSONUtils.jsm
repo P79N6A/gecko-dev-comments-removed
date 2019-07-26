@@ -65,6 +65,35 @@ this.BookmarkJSONUtils = Object.freeze({
   exportToFile: function BJU_exportToFile(aLocalFile) {
     let exporter = new BookmarkExporter();
     return exporter.exportToFile(aLocalFile);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  importJSONNode: function BJU_importJSONNode(aData, aContainer, aIndex,
+                                              aGrandParentId) {
+    let deferred = Promise.defer();
+    Services.tm.mainThread.dispatch(function() {
+      try {
+        let importer = new BookmarkImporter();
+        deferred.resolve(importer.importJSONNode(aData, aContainer, aIndex, aGrandParentId));
+      } catch (ex) {
+        deferred.reject(ex);
+      }
+    }, Ci.nsIThread.DISPATCH_NORMAL);
+    return deferred.promise;
   }
 });
 
