@@ -1299,25 +1299,26 @@ NS_METHOD nsWindow::Move(double aX, double aY)
       mWindowType == eWindowType_dialog) {
     SetSizeMode(nsSizeMode_Normal);
   }
-  
-  
-  
-  
-
-  
-  
-  
-  if (mWindowType != eWindowType_popup && (mBounds.x == aX) && (mBounds.y == aY))
-  {
-    
-    return NS_OK;
-  }
 
   
   
   double scale = BoundsUseDisplayPixels() ? GetDefaultScale() : 1.0;
   int32_t x = NSToIntRound(aX * scale);
   int32_t y = NSToIntRound(aY * scale);
+
+  
+  
+  
+  
+
+  
+  
+  
+  if (mWindowType != eWindowType_popup && (mBounds.x == x) && (mBounds.y == y))
+  {
+    
+    return NS_OK;
+  }
 
   mBounds.x = x;
   mBounds.y = y;
