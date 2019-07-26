@@ -289,7 +289,7 @@ ExposeGCThingToActiveJS(void *thing, JSGCTraceKind kind)
 
 
 
-    if (uintptr_t(thing) >= rt->gcNurseryStart_ && uintptr_t(thing) < rt->gcNurseryEnd_)
+    if (js::gc::IsInsideNursery(rt, thing))
         return;
 #endif
     if (IsIncrementalBarrierNeededOnGCThing(rt, thing, kind))
