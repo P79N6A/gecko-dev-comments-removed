@@ -400,6 +400,7 @@ protected:
 
 
 
+
   void SetupFontInflation();
 
   friend struct AutoRenderingStateSaveRestore;

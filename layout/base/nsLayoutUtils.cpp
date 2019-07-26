@@ -5370,66 +5370,11 @@ nsLayoutUtils::FontSizeInflationEnabled(nsPresContext *aPresContext)
 {
   nsIPresShell* presShell = aPresContext->GetPresShell();
 
-  if (!presShell ||
-      (presShell->FontSizeInflationEmPerLine() == 0 &&
-       presShell->FontSizeInflationMinTwips() == 0) ||
-       aPresContext->IsChrome()) {
+  if (!presShell) {
     return false;
   }
-  
-  if (!presShell->FontSizeInflationForceEnabled()) {
-    if (TabChild* tab = GetTabChildFrom(presShell)) {
-      
-      
-      if (!tab->IsAsyncPanZoomEnabled()) {
-        return false;
-      }
-    } else if (XRE_GetProcessType() == GeckoProcessType_Default) {
-      
-      
-      if (presShell->FontSizeInflationDisabledInMasterProcess()) {
-        return false;
-      }
-    }
-  }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  nsresult rv;
-  nsCOMPtr<nsIScreenManager> screenMgr =
-    do_GetService("@mozilla.org/gfx/screenmanager;1", &rv);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  nsCOMPtr<nsIScreen> screen;
-  screenMgr->GetPrimaryScreen(getter_AddRefs(screen));
-  if (screen) {
-    int32_t screenLeft, screenTop, screenWidth, screenHeight;
-    screen->GetRect(&screenLeft, &screenTop, &screenWidth, &screenHeight);
-
-    nsViewportInfo vInf =
-      nsContentUtils::GetViewportInfo(aPresContext->PresShell()->GetDocument(),
-                                      screenWidth, screenHeight);
-
-  if (vInf.GetDefaultZoom() >= 1.0 || vInf.IsAutoSizeEnabled()) {
-      return false;
-    }
-  }
-
-  return true;
+  return presShell->FontSizeInflationEnabled();
 }
 
  nsRect

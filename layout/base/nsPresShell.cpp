@@ -87,6 +87,7 @@
 #include "nsIBaseWindow.h"
 #include "nsError.h"
 #include "nsLayoutUtils.h"
+#include "nsViewportInfo.h"
 #include "nsCSSRendering.h"
   
 #include "prenv.h"
@@ -4056,6 +4057,12 @@ PresShell::ContentAppended(nsIDocument *aDocument,
   mFrameConstructor->RestyleForAppend(aContainer->AsElement(), aFirstNewContent);
 
   mFrameConstructor->ContentAppended(aContainer, aFirstNewContent, true);
+
+  if (static_cast<nsINode*>(aContainer) == static_cast<nsINode*>(aDocument) &&
+      aFirstNewContent->NodeType() == nsIDOMNode::DOCUMENT_TYPE_NODE) {
+    NotifyFontSizeInflationEnabledIsDirty();
+  }
+
   VERIFY_STYLE_TREE;
 }
 
@@ -4081,6 +4088,13 @@ PresShell::ContentInserted(nsIDocument* aDocument,
     mFrameConstructor->RestyleForInsertOrChange(aContainer->AsElement(), aChild);
 
   mFrameConstructor->ContentInserted(aContainer, aChild, nullptr, true);
+
+  if (((!aContainer && aDocument) ||
+      (static_cast<nsINode*>(aContainer) == static_cast<nsINode*>(aDocument))) &&
+      aChild->NodeType() == nsIDOMNode::DOCUMENT_TYPE_NODE) {
+    NotifyFontSizeInflationEnabledIsDirty();
+  }
+
   VERIFY_STYLE_TREE;
 }
 
@@ -4099,6 +4113,12 @@ PresShell::ContentRemoved(nsIDocument *aDocument,
     mCaret->InvalidateOutsideCaret();
   }
 
+  
+  
+
+  
+  
+  
   
   
   mPresContext->EventStateManager()->ContentRemoved(aDocument, aChild);
@@ -4124,6 +4144,13 @@ PresShell::ContentRemoved(nsIDocument *aDocument,
   mFrameConstructor->ContentRemoved(aContainer, aChild, oldNextSibling,
                                     nsCSSFrameConstructor::REMOVE_CONTENT,
                                     &didReconstruct);
+
+
+  if (((aContainer &&
+      static_cast<nsINode*>(aContainer) == static_cast<nsINode*>(aDocument)) ||
+      aDocument) && aChild->NodeType() == nsIDOMNode::DOCUMENT_TYPE_NODE) {
+    NotifyFontSizeInflationEnabledIsDirty();
+  }
 
   VERIFY_STYLE_TREE;
 }
@@ -9472,6 +9499,91 @@ PresShell::SetupFontInflation()
   mFontSizeInflationLineThreshold = nsLayoutUtils::FontSizeInflationLineThreshold();
   mFontSizeInflationForceEnabled = nsLayoutUtils::FontSizeInflationForceEnabled();
   mFontSizeInflationDisabledInMasterProcess = nsLayoutUtils::FontSizeInflationDisabledInMasterProcess();
+
+  NotifyFontSizeInflationEnabledIsDirty();
+}
+
+void
+nsIPresShell::RecomputeFontSizeInflationEnabled()
+{
+  mFontSizeInflationEnabledIsDirty = false;
+
+  MOZ_ASSERT(mPresContext, "our pres context should not be null");
+  if ((FontSizeInflationEmPerLine() == 0 &&
+      FontSizeInflationMinTwips() == 0) || mPresContext->IsChrome()) {
+    mFontSizeInflationEnabled = false;
+    return;
+  }
+
+  
+  if (!FontSizeInflationForceEnabled()) {
+    if (TabChild* tab = GetTabChildFrom(this)) {
+      
+      
+      if (!tab->IsAsyncPanZoomEnabled()) {
+        mFontSizeInflationEnabled = false;
+        return;
+      }
+    } else if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      
+      
+      if (FontSizeInflationDisabledInMasterProcess()) {
+        mFontSizeInflationEnabled = false;
+        return;
+      }
+    }
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  nsresult rv;
+  nsCOMPtr<nsIScreenManager> screenMgr =
+    do_GetService("@mozilla.org/gfx/screenmanager;1", &rv);
+  if (!NS_SUCCEEDED(rv)) {
+    mFontSizeInflationEnabled = false;
+    return;
+  }
+
+  nsCOMPtr<nsIScreen> screen;
+  screenMgr->GetPrimaryScreen(getter_AddRefs(screen));
+  if (screen) {
+    int32_t screenLeft, screenTop, screenWidth, screenHeight;
+    screen->GetRect(&screenLeft, &screenTop, &screenWidth, &screenHeight);
+
+    nsViewportInfo vInf =
+      nsContentUtils::GetViewportInfo(GetDocument(), screenWidth, screenHeight);
+
+    if (vInf.GetDefaultZoom() >= 1.0 || vInf.IsAutoSizeEnabled()) {
+      mFontSizeInflationEnabled = false;
+      return;
+    }
+  }
+
+  mFontSizeInflationEnabled = true;
+}
+
+bool
+nsIPresShell::FontSizeInflationEnabled()
+{
+  if (mFontSizeInflationEnabledIsDirty) {
+    RecomputeFontSizeInflationEnabled();
+  }
+
+  return mFontSizeInflationEnabled;
 }
 
 void

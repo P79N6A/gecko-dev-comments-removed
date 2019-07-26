@@ -1311,6 +1311,25 @@ public:
     return mFontSizeInflationDisabledInMasterProcess;
   }
 
+  
+
+
+
+
+
+  bool FontSizeInflationEnabled();
+
+  
+
+
+
+
+
+  void NotifyFontSizeInflationEnabledIsDirty()
+  {
+    mFontSizeInflationEnabledIsDirty = true;
+  }
+
   virtual void AddInvalidateHiddenPresShellObserver(nsRefreshDriver *aDriver) = 0;
 
   void InvalidatePresShellIfHidden();
@@ -1337,6 +1356,14 @@ protected:
                                                mozFlushType aFlushType);
   bool RemoveRefreshObserverInternal(nsARefreshObserver* aObserver,
                                        mozFlushType aFlushType);
+
+  
+
+
+
+
+  void RecomputeFontSizeInflationEnabled();
+
 public:
   bool AddRefreshObserver(nsARefreshObserver* aObserver,
                             mozFlushType aFlushType) {
@@ -1518,6 +1545,10 @@ protected:
   uint32_t mFontSizeInflationLineThreshold;
   bool mFontSizeInflationForceEnabled;
   bool mFontSizeInflationDisabledInMasterProcess;
+  bool mFontSizeInflationEnabled;
+
+  
+  bool mFontSizeInflationEnabledIsDirty;
 
   
   
