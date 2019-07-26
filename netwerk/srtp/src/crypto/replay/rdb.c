@@ -104,7 +104,7 @@ rdb_add_index(rdb_t *rdb, uint32_t p_index) {
   
 
   delta = (p_index - rdb->window_start);    
-  if (delta < rdb_bits_in_bitmask) {
+  if (delta < (int)rdb_bits_in_bitmask) {
 
     
     v128_set_bit(&rdb->bitmask, delta);

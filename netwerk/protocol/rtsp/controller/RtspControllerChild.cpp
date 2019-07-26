@@ -123,7 +123,7 @@ RtspControllerChild::RecvOnConnected(
   AddMetaData(meta.forget());
 
   
-  if ((index + 1) == mTotalTracks) {
+  if ((static_cast<uint32_t>(index) + 1) == mTotalTracks) {
     
     if (mListener) {
       mListener->OnConnected(index, nullptr);
