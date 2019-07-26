@@ -7,7 +7,7 @@
 
 #include "nsDOMEvent.h"
 #include "nsIDOMTransitionEvent.h"
-#include "mozilla/ContentEvents.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/dom/TransitionEventBinding.h"
 
 class nsAString;
@@ -40,17 +40,7 @@ public:
   
   
 
-  float ElapsedTime()
-  {
-    return TransitionEvent()->elapsedTime;
-  }
-
-private:
-  mozilla::InternalTransitionEvent* TransitionEvent() {
-    NS_ABORT_IF_FALSE(mEvent->eventStructType == NS_TRANSITION_EVENT,
-                      "unexpected struct type");
-    return static_cast<mozilla::InternalTransitionEvent*>(mEvent);
-  }
+  float ElapsedTime();
 };
 
 #endif 
