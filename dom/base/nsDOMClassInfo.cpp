@@ -6742,12 +6742,12 @@ nsWindowSH::OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
   }
 
   JSObject *winObj = win->FastGetGlobalJSObject();
-  if (!winObj) {
-    NS_ASSERTION(origWin->IsOuterWindow(), "What window is this?");
-    *_retval = obj;
-    return NS_OK;
-  }
+  MOZ_ASSERT(winObj);
 
+  
+  
+  
+  
   if (!JS_WrapObject(cx, &winObj)) {
     *_retval = nullptr;
     return NS_ERROR_UNEXPECTED;
