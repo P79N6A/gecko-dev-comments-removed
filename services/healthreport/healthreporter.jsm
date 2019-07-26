@@ -137,6 +137,7 @@ function HealthReporter(branch, policy, sessionRecorder) {
   this._shutdownCompleteCallback = null;
 
   this._constantOnlyProviders = {};
+  this._lastDailyDate = null;
 
   TelemetryStopwatch.start(TELEMETRY_INIT, this);
 
@@ -613,9 +614,8 @@ HealthReporter.prototype = Object.freeze({
         }
       }
 
-      let result;
       try {
-        result = yield this._collector.collectConstantData();
+        yield this._collector.collectConstantData();
       } finally {
         for (let provider of this._collector.providers) {
           if (!provider.constantOnly) {
@@ -636,7 +636,25 @@ HealthReporter.prototype = Object.freeze({
         }
       }
 
-      throw new Task.Result(result);
+      
+      
+      
+      
+      
+      
+      if (!this._lastDailyDate ||
+          Date.now() - this._lastDailyDate > MILLISECONDS_PER_DAY) {
+
+        try {
+          this._lastDailyDate = new Date();
+          yield this._collector.collectDailyData();
+        } catch (ex) {
+          this._log.warn("Error collecting daily data from providers: " +
+                         CommonUtils.exceptionStr(ex));
+        }
+      }
+
+      throw new Task.Result();
     }.bind(this));
   },
 
