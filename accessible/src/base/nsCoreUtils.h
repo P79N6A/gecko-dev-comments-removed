@@ -16,7 +16,6 @@
 #include "nsTArray.h"
 
 class nsRange;
-class nsIDOMNode;
 class nsIFrame;
 class nsIDocShellTreeItem;
 class nsITreeColumn;
@@ -208,12 +207,6 @@ public:
   {
     return aNode->OwnerDoc()->GetShell();
   }
-
-  
-
-
-  static already_AddRefed<nsIDOMNode>
-    GetDOMNodeForContainer(nsIDocShellTreeItem *aContainer);
 
   
 
