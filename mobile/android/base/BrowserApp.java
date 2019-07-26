@@ -1432,6 +1432,13 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         
+        final FragmentManager fm = getSupportFragmentManager();
+        final Fragment subPage = fm.findFragmentByTag(HomePager.SUBPAGE_TAG);
+        if (subPage != null) {
+            fm.beginTransaction().remove(subPage).commitAllowingStateLoss();
+        }
+
+        
         mHomePager.hide();
 
         mBrowserToolbar.setShadowVisibility(true);

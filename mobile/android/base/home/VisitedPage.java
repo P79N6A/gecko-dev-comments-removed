@@ -44,6 +44,12 @@ public class VisitedPage extends HomeFragment {
     private ListView mList;
 
     
+    private View mEmptyMessage;
+
+    
+    private View mButtonsContainer;
+
+    
     private CursorLoaderCallbacks mCursorLoaderCallbacks;
 
     
@@ -74,15 +80,14 @@ public class VisitedPage extends HomeFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        
-        
-        mList = new HomeListView(container.getContext());
-        return mList;
+        return inflater.inflate(R.layout.home_visited_page, container, false);
     }
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        mList = (HomeListView) view.findViewById(R.id.visited_list);
 
         mList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -98,12 +103,33 @@ public class VisitedPage extends HomeFragment {
         });
 
         registerForContextMenu(mList);
+
+        mEmptyMessage = view.findViewById(R.id.empty_message);
+        mButtonsContainer = view.findViewById(R.id.buttons_container);
+
+        final View historyButton = view.findViewById(R.id.history_button);
+        historyButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showHistoryPage();
+            }
+        });
+
+        final View tabsButton = view.findViewById(R.id.tabs_button);
+        tabsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showTabsPage();
+            }
+        });
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         mList = null;
+        mButtonsContainer = null;
+        mEmptyMessage = null;
     }
 
     @Override
@@ -119,6 +145,16 @@ public class VisitedPage extends HomeFragment {
 
         
         getLoaderManager().initLoader(FRECENCY_LOADER_ID, null, mCursorLoaderCallbacks);
+    }
+
+    private void showHistoryPage() {
+        final HistoryPage historyPage = HistoryPage.newInstance();
+        showSubPage(historyPage);
+    }
+
+    private void showTabsPage() {
+        final LastTabsPage lastTabsPage = LastTabsPage.newInstance();
+        showSubPage(lastTabsPage);
     }
 
     private static class FrecencyCursorLoader extends SimpleCursorLoader {
@@ -172,6 +208,13 @@ public class VisitedPage extends HomeFragment {
             final int loaderId = loader.getId();
             switch(loaderId) {
             case FRECENCY_LOADER_ID:
+                
+                
+                mList.setEmptyView(mEmptyMessage);
+
+                final int buttonsVisibility = (c.getCount() == 0 ? View.GONE : View.VISIBLE);
+                mButtonsContainer.setVisibility(buttonsVisibility);
+
                 mAdapter.swapCursor(c);
 
                 FaviconsLoader.restartFromCursor(getLoaderManager(), FAVICONS_LOADER_ID,
