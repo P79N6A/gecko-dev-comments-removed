@@ -33,12 +33,21 @@
 
 
 
+
+
+
 #if defined(_MSC_VER)
-#  define MOZ_ALWAYS_INLINE     __forceinline
+#  define MOZ_ALWAYS_INLINE_EVEN_DEBUG     __forceinline
 #elif defined(__GNUC__)
-#  define MOZ_ALWAYS_INLINE     __attribute__((always_inline)) MOZ_INLINE
+#  define MOZ_ALWAYS_INLINE_EVEN_DEBUG     __attribute__((always_inline)) MOZ_INLINE
 #else
+#  define MOZ_ALWAYS_INLINE_EVEN_DEBUG     MOZ_INLINE
+#endif
+
+#if defined(DEBUG)
 #  define MOZ_ALWAYS_INLINE     MOZ_INLINE
+#else
+#  define MOZ_ALWAYS_INLINE     MOZ_ALWAYS_INLINE_EVEN_DEBUG
 #endif
 
 
