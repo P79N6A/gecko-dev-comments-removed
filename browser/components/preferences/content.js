@@ -34,28 +34,6 @@ var gContentPane = {
 
   
 
-
-  _exceptionsParams: {
-    popup:   { blockVisible: false, sessionVisible: false, allowVisible: true, prefilledHost: "", permissionType: "popup"   }
-  },
-
-  
-
-
-  
-  _showExceptions: function (aPermissionType)
-  {
-    var bundlePreferences = document.getElementById("bundlePreferences");
-    var params = this._exceptionsParams[aPermissionType];
-    params.windowTitle = bundlePreferences.getString(aPermissionType + "permissionstitle");
-    params.introText = bundlePreferences.getString(aPermissionType + "permissionstext");
-    document.documentElement.openWindow("Browser:Permissions",
-                                        "chrome://browser/content/preferences/permissions.xul",
-                                        "", params);
-  },
-
-  
-
   
 
 
@@ -71,7 +49,13 @@ var gContentPane = {
 
   showPopupExceptions: function ()
   {
-    this._showExceptions("popup");
+    var bundlePreferences = document.getElementById("bundlePreferences");
+    var params = { blockVisible: false, sessionVisible: false, allowVisible: true, prefilledHost: "", permissionType: "popup" };
+    params.windowTitle = bundlePreferences.getString("popuppermissionstitle");
+    params.introText = bundlePreferences.getString("popuppermissionstext");
+    document.documentElement.openWindow("Browser:Permissions",
+                                        "chrome://browser/content/preferences/permissions.xul",
+                                        "", params);
   },
 
 
