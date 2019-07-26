@@ -94,6 +94,7 @@ public:
   {
     aError = SetIntAttr(nsGkAtoms::tabindex, aTabIndex);
   }
+  virtual void Focus(mozilla::ErrorResult& aError);
   virtual bool Draggable() const
   {
     return AttrValueIs(kNameSpaceID_None, nsGkAtoms::draggable,
@@ -136,6 +137,11 @@ public:
     SetTabIndex(aTabIndex, rv);
     return rv.ErrorCode();
   }
+  nsresult DOMFocus() {
+    mozilla::ErrorResult rv;
+    Focus(rv);
+    return rv.ErrorCode();
+  }
   nsresult GetDraggable(bool* aDraggable)
   {
     *aDraggable = Draggable();
@@ -163,7 +169,6 @@ public:
   
   
   
-  NS_IMETHOD Focus();
   NS_IMETHOD Blur();
   NS_IMETHOD GetHidden(bool* aHidden);
   NS_IMETHOD SetHidden(bool aHidden);
@@ -1405,7 +1410,6 @@ protected:
 
 
 
-
 #define NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(_to) \
   NS_IMETHOD GetId(nsAString& aId) { \
     return _to GetId(aId); \
@@ -1454,6 +1458,9 @@ protected:
   } \
   NS_IMETHOD SetTabIndex(int32_t aTabIndex) { \
     return _to SetTabIndex(aTabIndex); \
+  } \
+  NS_IMETHOD DOMFocus() { \
+    return _to DOMFocus(); \
   } \
   NS_IMETHOD Blur() { \
     return _to Blur(); \
