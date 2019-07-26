@@ -3,28 +3,35 @@
 
 
 
-#ifndef NS_SVGAELEMENT_H_
-#define NS_SVGAELEMENT_H_
+#ifndef mozilla_dom_SVGAElement_h
+#define mozilla_dom_SVGAElement_h
 
 #include "Link.h"
 #include "nsIDOMSVGAElement.h"
 #include "nsIDOMSVGURIReference.h"
 #include "nsILink.h"
 #include "nsSVGString.h"
-#include "SVGGraphicsElement.h"
+#include "mozilla/dom/SVGGraphicsElement.h"
 
-typedef mozilla::dom::SVGGraphicsElement nsSVGAElementBase;
+nsresult NS_NewSVGAElement(nsIContent **aResult,
+                           already_AddRefed<nsINodeInfo> aNodeInfo);
 
-class nsSVGAElement : public nsSVGAElementBase,
-                      public nsIDOMSVGAElement,
-                      public nsIDOMSVGURIReference,
-                      public nsILink,
-                      public mozilla::dom::Link
+namespace mozilla {
+namespace dom {
+
+typedef SVGGraphicsElement SVGAElementBase;
+
+class SVGAElement MOZ_FINAL : public SVGAElementBase,
+                              public nsIDOMSVGAElement,
+                              public nsIDOMSVGURIReference,
+                              public nsILink,
+                              public Link
 {
 protected:
-  friend nsresult NS_NewSVGAElement(nsIContent **aResult,
-                                    already_AddRefed<nsINodeInfo> aNodeInfo);
-  nsSVGAElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  SVGAElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  friend nsresult (::NS_NewSVGAElement(nsIContent **aResult,
+                                       already_AddRefed<nsINodeInfo> aNodeInfo));
+  virtual JSObject* WrapNode(JSContext *cx, JSObject *scope, bool *triedToWrap) MOZ_OVERRIDE;
 
 public:
   
@@ -36,7 +43,7 @@ public:
   
   NS_FORWARD_NSIDOMNODE_TO_NSINODE
   NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(nsSVGAElementBase::)
+  NS_FORWARD_NSIDOMSVGELEMENT(SVGAElementBase::)
 
   
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
@@ -74,6 +81,11 @@ public:
   virtual nsXPCClassInfo* GetClassInfo();
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
+
+  
+  already_AddRefed<nsIDOMSVGAnimatedString> Href();
+  already_AddRefed<nsIDOMSVGAnimatedString> Target();
+
 protected:
 
   virtual StringAttributesInfo GetStringInfo();
@@ -82,5 +94,8 @@ protected:
   nsSVGString mStringAttributes[2];
   static StringInfo sStringInfo[2];
 };
+
+} 
+} 
 
 #endif 
