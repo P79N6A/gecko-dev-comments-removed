@@ -78,6 +78,12 @@ struct VideoCodecConfig
                                      mMaxFrameRate(0),
                                      mLoadManager(load_manager)
   {
+    
+    
+    
+    
+    if (mName == "H264_P0")
+      mName = "I420";
   }
 
   VideoCodecConfig(int type,
@@ -93,6 +99,12 @@ struct VideoCodecConfig
                                          mMaxFrameRate(max_fr),
                                          mLoadManager(load_manager)
   {
+    
+    
+    
+    
+    if (mName == "H264_P0")
+      mName = "I420";
   }
 
 
