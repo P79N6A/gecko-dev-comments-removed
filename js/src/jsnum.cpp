@@ -16,24 +16,19 @@
 
 #include "double-conversion.h"
 
-#undef ASSERT
-
 #ifdef XP_OS2
 #define _PC_53  PC_53
 #define _MCW_EM MCW_EM
 #define _MCW_PC MCW_PC
 #endif
 #include <locale.h>
-#include <limits.h>
 #include <math.h>
 #include <string.h>
 
 #include "jstypes.h"
-#include "jsutil.h"
 #include "jsapi.h"
 #include "jsatom.h"
 #include "jscntxt.h"
-#include "jsversion.h"
 #include "jsdtoa.h"
 #include "jsobj.h"
 #include "jsstr.h"

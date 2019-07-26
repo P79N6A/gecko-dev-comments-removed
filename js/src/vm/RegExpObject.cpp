@@ -4,16 +4,18 @@
 
 
 
+#include "vm/RegExpObject.h"
+
 #include "frontend/TokenStream.h"
+
 #include "vm/MatchPairs.h"
-#include "vm/RegExpStatics.h"
 #include "vm/StringBuffer.h"
-#include "vm/Xdr.h"
 
 #include "jsobjinlines.h"
 
 #include "vm/RegExpObject-inl.h"
 #include "vm/RegExpStatics-inl.h"
+#include "vm/Xdr.h"
 
 using namespace js;
 using js::frontend::TokenStream;

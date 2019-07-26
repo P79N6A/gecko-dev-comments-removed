@@ -4,22 +4,20 @@
 
 
 
+#include "builtin/TestingFunctions.h"
+
 #include "jsapi.h"
-#include "jsbool.h"
 #include "jscntxt.h"
-#include "jscompartment.h"
 #include "jsfriendapi.h"
 #include "jsgc.h"
 #include "jsobj.h"
 #include "jsprf.h"
 #include "jswrapper.h"
 
-#include "builtin/TestingFunctions.h"
+#include "ion/AsmJS.h"
 #include "vm/ForkJoin.h"
 
-#include "jsobjinlines.h"
-
-#include "vm/Stack-inl.h"
+#include "vm/ObjectImpl-inl.h"
 
 using namespace js;
 using namespace JS;

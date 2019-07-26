@@ -4,14 +4,10 @@
 
 
 
-#include "jsapi.h"
 #include "jscntxt.h"
 #include "jsgc.h"
-#include "jsprf.h"
 
 #include "vm/Debugger.h"
-#include "js/HashTable.h"
-#include "gc/GCInternals.h"
 
 #ifdef JS_ION
 #include "ion/BaselineJIT.h"

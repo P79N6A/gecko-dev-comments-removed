@@ -7,6 +7,8 @@
 #ifndef MatchPairs_h__
 #define MatchPairs_h__
 
+#include "ds/LifoAlloc.h"
+
 
 
 

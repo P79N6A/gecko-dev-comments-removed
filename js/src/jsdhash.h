@@ -13,7 +13,8 @@
 
 
 #include "jstypes.h"
-#include "jsutil.h"
+
+#include "js/Utility.h"
 
 #if defined(__GNUC__) && defined(__i386__) && !defined(XP_OS2)
 #define JS_DHASH_FASTCALL __attribute__ ((regparm (3),stdcall))

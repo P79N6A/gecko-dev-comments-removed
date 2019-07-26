@@ -4,7 +4,6 @@
 
 
 
-#include "mozilla/Attributes.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Util.h"
 
@@ -19,7 +18,6 @@
 #include "frontend/BytecodeCompiler.h"
 #include "gc/GCInternals.h"
 #include "gc/Marking.h"
-#include "ion/IonCode.h"
 #ifdef JS_ION
 # include "ion/IonMacroAssembler.h"
 # include "ion/IonFrameIterator.h"

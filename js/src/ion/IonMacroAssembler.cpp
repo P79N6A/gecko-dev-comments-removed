@@ -4,8 +4,11 @@
 
 
 
+#include "ion/IonMacroAssembler.h"
+
 #include "jsinfer.h"
 
+#include "ion/AsmJS.h"
 #include "ion/Bailouts.h"
 #include "ion/BaselineIC.h"
 #include "ion/BaselineJIT.h"

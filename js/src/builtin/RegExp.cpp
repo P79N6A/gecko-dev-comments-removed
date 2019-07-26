@@ -4,11 +4,11 @@
 
 
 
+#include "builtin/RegExp.h"
+
 #include "jscntxt.h"
 
 #include "vm/StringBuffer.h"
-
-#include "builtin/RegExp.h"
 
 #include "jsobjinlines.h"
 
