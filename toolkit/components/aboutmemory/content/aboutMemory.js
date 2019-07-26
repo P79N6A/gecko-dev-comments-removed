@@ -134,29 +134,18 @@ function onUnload()
 
 
 
-
-
-
-
-
-
-function processMemoryReporters(aIgnoreReporter, aIgnoreReport, aHandleReport)
+function processMemoryReporters(aHandleReport)
 {
   let handleReport = function(aProcess, aUnsafePath, aKind, aUnits,
                               aAmount, aDescription) {
-    if (!aIgnoreReport(aUnsafePath)) {
-      aHandleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
-                    aDescription,  undefined);
-    }
+    aHandleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
+                  aDescription,  undefined);
   }
 
   let e = gMgr.enumerateReporters();
   while (e.hasMoreElements()) {
     let mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-    if (!aIgnoreReporter(mr.name)) {
-      
-      mr.collectReports(handleReport, null);
-    }
+    mr.collectReports(handleReport, null);
   }
 }
 
@@ -168,19 +157,14 @@ function processMemoryReporters(aIgnoreReporter, aIgnoreReport, aHandleReport)
 
 
 
-
-
-
-function processMemoryReportsFromFile(aReports, aIgnoreReport, aHandleReport)
+function processMemoryReportsFromFile(aReports, aHandleReport)
 {
   
 
   for (let i = 0; i < aReports.length; i++) {
     let r = aReports[i];
-    if (!aIgnoreReport(r.path)) {
-      aHandleReport(r.process, r.path, r.kind, r.units, r.amount,
-                    r.description, r._presence);
-    }
+    aHandleReport(r.process, r.path, r.kind, r.units, r.amount,
+                  r.description, r._presence);
   }
 }
 
@@ -199,7 +183,6 @@ let gVerbose;
 
 let HIDE_FOOTER = 0;
 let SHOW_FOOTER = 1;
-let IGNORE_FOOTER = 2;
 
 function updateMainAndFooter(aMsg, aFooterAction, aClassName)
 {
@@ -226,7 +209,6 @@ function updateMainAndFooter(aMsg, aFooterAction, aClassName)
   switch (aFooterAction) {
    case HIDE_FOOTER:   gFooter.classList.add('hidden');    break;
    case SHOW_FOOTER:   gFooter.classList.remove('hidden'); break;
-   case IGNORE_FOOTER:                                     break;
    default: assertInput(false, "bad footer action in updateMainAndFooter");
   }
 }
@@ -504,8 +486,8 @@ function updateAboutMemoryFromJSONObject(aObj)
                 "missing 'hasMozMallocUsableSize' property");
     assertInput(aObj.reports && aObj.reports instanceof Array,
                 "missing or non-array 'reports' property");
-    let process = function(aIgnoreReporter, aIgnoreReport, aHandleReport) {
-      processMemoryReportsFromFile(aObj.reports, aIgnoreReport, aHandleReport);
+    let process = function(aHandleReport) {
+      processMemoryReportsFromFile(aObj.reports, aHandleReport);
     }
     appendAboutMemoryMain(process, aObj.hasMozMallocUsableSize);
   } catch (ex) {
@@ -937,19 +919,6 @@ function getPCollsByProcess(aProcessReports)
   
   const gSentenceRegExp = /^[A-Z].*\.\)?$/m;
 
-  
-  
-
-  function ignoreReporter(aName)
-  {
-    return aName.startsWith("redundant/");
-  }
-
-  function ignoreReport(aUnsafePath)
-  {
-    return aUnsafePath.startsWith("redundant/");
-  }
-
   function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
                         aDescription, aPresence)
   {
@@ -988,7 +957,8 @@ function getPCollsByProcess(aProcessReports)
 
     assert(aPresence === undefined ||
            aPresence == DReport.PRESENT_IN_FIRST_ONLY ||
-           aPresence == DReport.PRESENT_IN_SECOND_ONLY);
+           aPresence == DReport.PRESENT_IN_SECOND_ONLY,
+           "bad presence");
 
     let process = aProcess === "" ? gUnnamedProcessStr : aProcess;
     let unsafeNames = aUnsafePath.split('/');
@@ -1046,7 +1016,7 @@ function getPCollsByProcess(aProcessReports)
     }
   }
 
-  aProcessReports(ignoreReporter, ignoreReport, handleReport);
+  aProcessReports(handleReport);
 
   return pcollsByProcess;
 }

@@ -50,15 +50,9 @@ const TELEMETRY_DELAY = 60000;
 
 
 
-
-
-
 const MEM_HISTOGRAMS = {
   "js-main-runtime-gc-heap": "MEMORY_JS_GC_HEAP",
-  "redundant/js-main-runtime-compartments/system": "MEMORY_JS_COMPARTMENTS_SYSTEM",
-  "redundant/js-main-runtime-compartments/user": "MEMORY_JS_COMPARTMENTS_USER",
   "js-main-runtime-temporary-peak": "MEMORY_JS_MAIN_RUNTIME_TEMPORARY_PEAK",
-  "redundant/resident-fast": "MEMORY_RESIDENT",
   "vsize": "MEMORY_VSIZE",
   "storage-sqlite": "MEMORY_STORAGE_SQLITE",
   "images-content-used-uncompressed":
@@ -447,6 +441,8 @@ TelemetryPing.prototype = {
 
     let histogram = Telemetry.getHistogramById("TELEMETRY_MEMORY_REPORTER_MS");
     let startTime = new Date();
+
+    
     let e = mgr.enumerateReporters();
     while (e.hasMoreElements()) {
       let mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
@@ -480,6 +476,17 @@ TelemetryPing.prototype = {
       catch (e) {
       }
     }
+
+    
+    let h = this.handleMemoryReport.bind(this);
+    let b = (id, n) => h(id, Ci.nsIMemoryReporter.UNITS_BYTES, n);
+    let c = (id, n) => h(id, Ci.nsIMemoryReporter.UNITS_COUNT, n);
+    let p = (id, n) => h(id, Ci.nsIMemoryReporter.UNITS_PERCENTAGE, n);
+
+    try { b("MEMORY_RESIDENT", mgr.residentFast); } catch (e) {}
+    try { c("MEMORY_JS_COMPARTMENTS_SYSTEM", mgr.JSMainRuntimeCompartmentsSystem); } catch (e) {}
+    try { c("MEMORY_JS_COMPARTMENTS_USER", mgr.JSMainRuntimeCompartmentsUser); } catch (e) {}
+
     histogram.add(new Date() - startTime);
   },
 
