@@ -600,6 +600,7 @@ PdfStreamConverter.prototype = {
   onStartRequest: function(aRequest, aContext) {
     
     aRequest.QueryInterface(Ci.nsIChannel);
+    aRequest.QueryInterface(Ci.nsIWritablePropertyBag);
     
     var contentLength = aRequest.contentLength;
     var dataListener = new PdfDataListener(contentLength);
@@ -612,6 +613,7 @@ PdfStreamConverter.prototype = {
                         .createInstance(Ci.nsIBinaryInputStream);
 
     
+    aRequest.setProperty('contentType', aRequest.contentType);
     aRequest.contentType = 'text/html';
 
     
