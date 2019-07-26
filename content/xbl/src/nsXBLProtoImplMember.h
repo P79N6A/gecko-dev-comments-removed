@@ -11,7 +11,7 @@
 #include "jsapi.h"
 #include "nsString.h"
 #include "nsIServiceManager.h"
-#include "nsContentUtils.h"
+#include "nsContentUtils.h" 
 #include "nsCycleCollectionParticipant.h"
 
 class nsIContent;
