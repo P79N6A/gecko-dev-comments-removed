@@ -358,7 +358,7 @@ const TranslationItem_NodePlaceholder = {
 
 function generateTranslationHtmlForItem(item, content) {
   let localName = item.isRoot ? "div" : "b";
-  return '<' + localName + ' id="n' + item.id + '">' +
+  return '<' + localName + ' id=n' + item.id + '>' +
          content +
          "</" + localName + ">";
 }
@@ -431,6 +431,63 @@ function parseResultNode(item, node) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function swapTextForItem(item, target) {
   
   
@@ -446,8 +503,6 @@ function swapTextForItem(item, target) {
       continue;
     }
 
-    let sourceNodeCount = 0;
-
     if (!curItem[target]) {
       
       
@@ -457,60 +512,162 @@ function swapTextForItem(item, target) {
       continue;
     }
 
+    domNode.normalize();
+
     
     
     
-    for (let child of curItem[target]) {
-      
-      
-      if (child instanceof TranslationItem) {
+    
+    
+    
+    
+    
+    
+    
+    let curNode = domNode.firstChild;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    while (curNode &&
+           curNode.nodeType == TEXT_NODE &&
+           curNode.nodeValue.trim() == "") {
+      curNode = curNode.nextSibling;
+    }
+
+    
+    
+    
+    for (let targetItem of curItem[target]) {
+
+      if (targetItem instanceof TranslationItem) {
         
-        visitStack.push(child);
-        continue;
+        
+        visitStack.push(targetItem);
+
+        let targetNode = targetItem.nodeRef;
+
+            
+            
+        if (curNode != targetNode &&
+            
+            
+            
+            
+            targetNode.parentNode == domNode) {
+
+          
+          
+          
+          domNode.insertBefore(targetNode, curNode);
+          curNode = targetNode;
+        }
+
+        
+        
+        
+        
+        if (curNode) {
+          curNode = getNextSiblingSkippingEmptyTextNodes(curNode);
+        }
+
+      } else if (targetItem === TranslationItem_NodePlaceholder) {
+        
+        
+        
+        
+        
+        
+
+        while (curNode &&
+               (curNode.nodeType != TEXT_NODE ||
+                curNode.nodeValue.trim() == "")) {
+          curNode = curNode.nextSibling;
+        }
+
+      } else {
+        
+        
+        
+        while (curNode && curNode.nodeType != TEXT_NODE) {
+          curNode = curNode.nextSibling;
+        }
+
+        
+        
+        if (!curNode) {
+          
+          
+          
+          curNode = domNode.appendChild(domNode.ownerDocument.createTextNode(" "));
+        }
+
+        
+        
+        let preSpace = /^\s/.test(curNode.nodeValue) ? " " : "";
+        let endSpace = /\s$/.test(curNode.nodeValue) ? " " : "";
+
+        curNode.nodeValue = preSpace + targetItem + endSpace;
+        curNode = getNextSiblingSkippingEmptyTextNodes(curNode);
       }
-
-      
-      
-      
-      
-      
-      let targetTextNode = getNthNonEmptyTextNodeFromElement(sourceNodeCount++, domNode);
-
-      
-      let preSpace = targetTextNode.nodeValue.startsWith(" ") ? " " : "";
-      let endSpace = targetTextNode.nodeValue.endsWith(" ") ? " " : "";
-      targetTextNode.nodeValue = preSpace + child + endSpace;
     }
 
     
     
-    if (sourceNodeCount > 0) {
-      clearRemainingNonEmptyTextNodesFromElement(sourceNodeCount, domNode);
+    if (curNode) {
+      clearRemainingNonEmptyTextNodesFromElement(curNode);
     }
+
+    
+    domNode.normalize();
   }
 }
 
-function getNthNonEmptyTextNodeFromElement(n, element) {
-  for (let childNode of element.childNodes) {
-    if (childNode.nodeType == Ci.nsIDOMNode.TEXT_NODE &&
-        childNode.nodeValue.trim() != "") {
-      if (n-- == 0)
-        return childNode;
-    }
+function getNextSiblingSkippingEmptyTextNodes(startSibling) {
+  let item = startSibling.nextSibling;
+  while (item &&
+         item.nodeType == TEXT_NODE &&
+         item.nodeValue.trim() == "") {
+    item = item.nextSibling;
   }
-
-  
-  return element.appendChild(element.ownerDocument.createTextNode(""));
+  return item;
 }
 
-function clearRemainingNonEmptyTextNodesFromElement(start, element) {
-  let count = 0;
-  for (let childNode of element.childNodes) {
-    if (childNode.nodeType == Ci.nsIDOMNode.TEXT_NODE &&
-        childNode.nodeValue.trim() != "") {
-      if (count++ >= start) {
-        childNode.nodeValue = "";
-      }
+function clearRemainingNonEmptyTextNodesFromElement(startSibling) {
+  let item = startSibling;
+  while (item) {
+    if (item.nodeType == TEXT_NODE &&
+        item.nodeValue != "") {
+      item.nodeValue = "";
     }
+    item = item.nextSibling;
   }
 }
