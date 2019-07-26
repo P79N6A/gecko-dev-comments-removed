@@ -388,7 +388,24 @@ public:
   }
   const StreamBuffer& GetStreamBuffer() { return mBuffer; }
   GraphTime GetStreamBufferStartTime() { return mBufferStartTime; }
+  
+
+
+
+
   StreamTime GraphTimeToStreamTime(GraphTime aTime);
+  
+
+
+
+
+  StreamTime GraphTimeToStreamTimeOptimistic(GraphTime aTime);
+  
+
+
+
+
+  GraphTime StreamTimeToGraphTime(StreamTime aTime);
   bool IsFinishedOnGraphThread() { return mFinished; }
   void FinishOnGraphThread();
 

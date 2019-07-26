@@ -262,6 +262,12 @@ public:
 
 
   StreamTime GraphTimeToStreamTime(MediaStream* aStream, GraphTime aTime);
+  
+
+
+
+
+  StreamTime GraphTimeToStreamTimeOptimistic(MediaStream* aStream, GraphTime aTime);
   enum {
     INCLUDE_TRAILING_BLOCKED_INTERVAL = 0x01
   };
