@@ -19,7 +19,7 @@
 
 
 
-#ifdef HAVE_64BIT_OS
+#ifdef __LP64__
 #define Elf_(type) Elf64_ ## type
 #define ELFCLASS ELFCLASS64
 #define ELF_R_TYPE ELF64_R_TYPE
