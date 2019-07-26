@@ -365,6 +365,15 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
+  copyUrl: function() {
+    let selected = this.selectedItem.attachment;
+
+    clipboardHelper.copyString(selected.url, this.document);
+  },
+
+  
+
+
   sendCustomRequest: function() {
     let selected = this.selectedItem.attachment;
 
@@ -1162,8 +1171,11 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _onContextShowing: function() {
-    let element = $("#request-menu-context-resend");
-    element.hidden = !this.selectedItem || this.selectedItem.attachment.isCustom;
+    let resendElement = $("#request-menu-context-resend");
+    resendElement.hidden = !this.selectedItem || this.selectedItem.attachment.isCustom;
+
+    let copyUrlElement = $("#request-menu-context-copy-url");
+    copyUrlElement.hidden = !this.selectedItem;
   },
 
   
