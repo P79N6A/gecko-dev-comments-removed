@@ -52,8 +52,10 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
                                                  : SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageObjectSigner); 
   check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INVALID_ARGS,
-                         certificateUsageVerifyCA); 
+                                                 : 0,
+                         certificateUsageVerifyCA);
+  
+  
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder); 
 
@@ -75,7 +77,7 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
                                                  : SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageObjectSigner);
   check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INVALID_ARGS,
+                                                 : 0,
                          certificateUsageVerifyCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
@@ -111,7 +113,7 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
                                                             : SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageObjectSigner);
   check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INVALID_ARGS,
+                                                 : 0,
                          certificateUsageVerifyCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
@@ -133,7 +135,7 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
                                                  : SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageObjectSigner);
   check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INVALID_ARGS,
+                                                 : 0,
                          certificateUsageVerifyCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
@@ -157,7 +159,7 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
                                                  : SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageObjectSigner);
   check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INVALID_ARGS,
+                                                 : 0,
                          certificateUsageVerifyCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
@@ -180,7 +182,7 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
                                                  : SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageObjectSigner);
   check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INVALID_ARGS,
+                                                 : 0,
                          certificateUsageVerifyCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
@@ -208,7 +210,7 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
                                                  : SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageObjectSigner);
   check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
-                                                 : SEC_ERROR_INVALID_ARGS,
+                                                 : 0,
                          certificateUsageVerifyCA);
   check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
