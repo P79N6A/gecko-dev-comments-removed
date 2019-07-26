@@ -4270,6 +4270,10 @@ nsTextFrame::GetCursor(const nsPoint& aPoint,
   FillCursorInformationFromStyle(GetStyleUserInterface(), aCursor);  
   if (NS_STYLE_CURSOR_AUTO == aCursor.mCursor) {
     aCursor.mCursor = NS_STYLE_CURSOR_TEXT;
+    
+    if (mContent->IsEditable()) {
+      return NS_OK;
+    }
 
     
     nsIFrame *ancestorFrame = this;
