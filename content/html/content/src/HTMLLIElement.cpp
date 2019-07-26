@@ -4,6 +4,7 @@
 
 
 #include "mozilla/dom/HTMLLIElement.h"
+#include "mozilla/dom/HTMLLIElementBinding.h"
 
 #include "nsAttrValueInlines.h"
 #include "nsGkAtoms.h"
@@ -114,6 +115,12 @@ nsMapRuleToAttributesFunc
 HTMLLIElement::GetAttributeMappingFunction() const
 {
   return &MapAttributesIntoRule;
+}
+
+JSObject*
+HTMLLIElement::WrapNode(JSContext *aCx, JSObject *aScope, bool *aTriedToWrap)
+{
+  return HTMLLIElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
 
 } 
