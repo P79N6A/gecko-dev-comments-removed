@@ -582,25 +582,17 @@ FilterNodeSoftware::Draw(DrawTarget* aDrawTarget,
     return;
   }
 
-  
-  result = GetDataSurfaceInRect(result, outputRect, renderIntRect, EDGE_MODE_NONE);
-  if (!result) {
-#ifdef DEBUG_DUMP_SURFACES
-    printf("GetDataSurfaceInRect for output returned null\n");
-    printf("</pre>\n");
-#endif
-    return;
-  }
-
 #ifdef DEBUG_DUMP_SURFACES
   printf("output:\n");
   printf("<img src='"); DumpAsPNG(result); printf("'>\n");
   printf("</pre>\n");
 #endif
 
-  
-  aDrawTarget->DrawSurface(result, Rect(aDestPoint, aSourceRect.Size()),
-                           aSourceRect - renderIntRect.TopLeft(),
+  Point sourceToDestOffset = aDestPoint - aSourceRect.TopLeft();
+  Rect renderedSourceRect = Rect(outputRect).Intersect(aSourceRect);
+  Rect renderedDestRect = renderedSourceRect + sourceToDestOffset;
+  aDrawTarget->DrawSurface(result, renderedDestRect,
+                           renderedSourceRect - Point(outputRect.TopLeft()),
                            DrawSurfaceOptions(), aOptions);
 }
 
