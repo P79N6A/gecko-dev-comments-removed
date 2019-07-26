@@ -347,6 +347,20 @@ public:
     mMainThreadListeners.RemoveElement(aListener);
   }
   
+
+
+
+
+
+
+
+
+
+
+
+  void RunAfterPendingUpdates(nsRefPtr<nsIRunnable> aRunnable);
+
+  
   virtual void Destroy();
   
   

@@ -1920,6 +1920,40 @@ MediaStream::RemoveListener(MediaStreamListener* aListener)
 }
 
 void
+MediaStream::RunAfterPendingUpdates(nsRefPtr<nsIRunnable> aRunnable)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MediaStreamGraphImpl* graph = GraphImpl();
+
+  
+  
+  if (!(graph->mRealtime || graph->mNonRealtimeProcessing)) {
+    aRunnable->Run();
+  }
+
+  class Message : public ControlMessage {
+  public:
+    explicit Message(MediaStream* aStream,
+                     already_AddRefed<nsIRunnable> aRunnable)
+      : ControlMessage(aStream)
+      , mRunnable(aRunnable) {}
+    virtual void Run() MOZ_OVERRIDE
+    {
+      mStream->Graph()->
+        DispatchToMainThreadAfterStreamStateUpdate(mRunnable.forget());
+    }
+    virtual void RunDuringShutdown() MOZ_OVERRIDE
+    {
+      mRunnable->Run();
+    }
+  private:
+    nsRefPtr<nsIRunnable> mRunnable;
+  };
+
+  graph->AppendMessage(new Message(this, aRunnable.forget()));
+}
+
+void
 MediaStream::SetTrackEnabledImpl(TrackID aTrackID, bool aEnabled)
 {
   if (aEnabled) {

@@ -76,7 +76,7 @@ struct StreamUpdate {
 
 class ControlMessage {
 public:
-  ControlMessage(MediaStream* aStream) : mStream(aStream)
+  explicit ControlMessage(MediaStream* aStream) : mStream(aStream)
   {
     MOZ_COUNT_CTOR(ControlMessage);
   }
