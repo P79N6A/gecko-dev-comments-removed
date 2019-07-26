@@ -73,6 +73,8 @@ struct UndisplayedNode {
 
 
 
+
+
 class nsFrameManager : public nsFrameManagerBase
 {
   typedef mozilla::layout::FrameChildListID ChildListID;
@@ -157,11 +159,6 @@ public:
 
   void RestoreFrameStateFor(nsIFrame*              aFrame,
                                         nsILayoutHistoryState* aState);
-
-  nsIPresShell* GetPresShell() const { return mPresShell; }
-  nsPresContext* GetPresContext() const {
-    return mPresShell->GetPresContext();
-  }
 };
 
 #endif
