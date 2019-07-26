@@ -90,7 +90,7 @@ SECKEYPrivateKey *SECKEY_CreateECPrivateKey(SECKEYECParams *param,
 
 
 extern CERTSubjectPublicKeyInfo *
-SECKEY_CreateSubjectPublicKeyInfo(SECKEYPublicKey *k);
+SECKEY_CreateSubjectPublicKeyInfo(const SECKEYPublicKey *k);
 
 
 
@@ -115,7 +115,7 @@ SECKEY_ConvertAndDecodePublicKeyAndChallenge(char *pkacstr, char *challenge,
 
 
 SECItem *
-SECKEY_EncodeDERSubjectPublicKeyInfo(SECKEYPublicKey *pubk);
+SECKEY_EncodeDERSubjectPublicKeyInfo(const SECKEYPublicKey *pubk);
 
 
 
