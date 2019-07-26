@@ -14,6 +14,7 @@
 #include "nsThreadUtils.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
+#include <algorithm>
 
 
 
@@ -699,7 +700,7 @@ nsDiskCacheStreamIO::FlushBufferToFile()
 
         int64_t dataSize = mBinding->mCacheEntry->PredictedDataSize();
         if (dataSize != -1)
-            mozilla::fallocate(mFD, NS_MIN<int64_t>(dataSize, kPreallocateLimit));
+            mozilla::fallocate(mFD, std::min<int64_t>(dataSize, kPreallocateLimit));
     }
     
     

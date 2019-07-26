@@ -8,6 +8,7 @@
 #include "nsUCSupport.h"
 #include "nsUTF8ToUnicode.h"
 #include "mozilla/SSE.h"
+#include <algorithm>
 
 #define UNICODE_BYTE_ORDER_MARK    0xFEFF
 
@@ -219,7 +220,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
       
       
       if (c < 0x80) {  
-        int32_t max_loops = NS_MIN(inend - in, outend - out);
+        int32_t max_loops = std::min(inend - in, outend - out);
         Convert_ascii_run(in, out, max_loops);
         --in; 
         mBytes = 1;

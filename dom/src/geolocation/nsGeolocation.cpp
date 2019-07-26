@@ -45,6 +45,7 @@
 #include "mozilla/ClearOnShutdown.h"
 
 #include <math.h>
+#include <algorithm>
 
 #ifdef MOZ_MAEMO_LIBLOCATION
 #include "MaemoLocationProvider.h"
@@ -941,7 +942,7 @@ nsGeolocationService::IsBetterPosition(nsIDOMGeoPosition *aSomewhere)
   
   
   
-  double max_accuracy = NS_MAX(oldAccuracy, newAccuracy);
+  double max_accuracy = std::max(oldAccuracy, newAccuracy);
   if (delta > max_accuracy)
     return true;
 

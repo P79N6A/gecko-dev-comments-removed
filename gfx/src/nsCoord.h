@@ -13,6 +13,7 @@
 #include <float.h>
 
 #include "nsDebug.h"
+#include <algorithm>
 
 
 
@@ -119,8 +120,8 @@ inline nscoord _nscoordSaturatingMultiply(nscoord aCoord, float aScale,
 
   float product = aCoord * aScale;
   if (requireNotNegative ? aCoord > 0 : (aCoord > 0) == (aScale > 0))
-    return NSToCoordRoundWithClamp(NS_MIN<float>(nscoord_MAX, product));
-  return NSToCoordRoundWithClamp(NS_MAX<float>(nscoord_MIN, product));
+    return NSToCoordRoundWithClamp(std::min<float>(nscoord_MAX, product));
+  return NSToCoordRoundWithClamp(std::max<float>(nscoord_MIN, product));
 #endif
 }
 
@@ -178,7 +179,7 @@ NSCoordSaturatingAdd(nscoord a, nscoord b)
                      "nscoord addition capped to nscoord_MAX");
 
     
-    return NS_MIN(nscoord_MAX, a + b);
+    return std::min(nscoord_MAX, a + b);
   }
 #endif
 }
@@ -237,7 +238,7 @@ NSCoordSaturatingSubtract(nscoord a, nscoord b,
                        "nscoord subtraction capped to nscoord_MAX");
 
       
-      return NS_MIN(nscoord_MAX, a - b);
+      return std::min(nscoord_MAX, a - b);
     }
   }
 #endif

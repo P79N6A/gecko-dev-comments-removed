@@ -6,6 +6,7 @@
 #include "nsSMILTimeContainer.h"
 #include "nsSMILTimeValue.h"
 #include "nsSMILTimedElement.h"
+#include <algorithm>
 
 nsSMILTimeContainer::nsSMILTimeContainer()
 :
@@ -117,7 +118,7 @@ nsSMILTimeContainer::SetCurrentTime(nsSMILTime aSeekTo)
 {
   
   
-  aSeekTo = NS_MAX<nsSMILTime>(0, aSeekTo);
+  aSeekTo = std::max<nsSMILTime>(0, aSeekTo);
 
   
   

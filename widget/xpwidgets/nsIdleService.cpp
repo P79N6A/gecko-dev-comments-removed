@@ -16,6 +16,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
+#include <algorithm>
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -533,7 +534,7 @@ nsIdleService::ResetIdleTimeOut(uint32_t idleDeltaInMS)
     }
 
     
-    mDeltaToNextIdleSwitchInS = NS_MIN(mDeltaToNextIdleSwitchInS,
+    mDeltaToNextIdleSwitchInS = std::min(mDeltaToNextIdleSwitchInS,
                                        curListener.reqIdleTime);
   }
 
@@ -615,7 +616,7 @@ nsIdleService::GetIdleTime(uint32_t* idleTime)
   }
 
   
-  *idleTime = NS_MIN(timeSinceResetInMS, polledIdleTimeMS);
+  *idleTime = std::min(timeSinceResetInMS, polledIdleTimeMS);
 
   return NS_OK;
 }
@@ -719,7 +720,7 @@ nsIdleService::IdleTimerCallback(void)
         mAnyObserverIdle = true;
       } else {
         
-        mDeltaToNextIdleSwitchInS = NS_MIN(mDeltaToNextIdleSwitchInS,
+        mDeltaToNextIdleSwitchInS = std::min(mDeltaToNextIdleSwitchInS,
                                            curListener.reqIdleTime);
       }
     }

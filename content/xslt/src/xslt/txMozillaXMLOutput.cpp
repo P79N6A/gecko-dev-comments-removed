@@ -39,6 +39,7 @@
 #include "nsContentCreatorFunctions.h"
 #include "nsError.h"
 #include "nsIFrame.h"
+#include <algorithm>
 
 using namespace mozilla::dom;
 
@@ -656,7 +657,7 @@ txMozillaXMLOutput::createTxWrapper()
             
             
             
-            rootLocation = NS_MAX(rootLocation, j + 1);
+            rootLocation = std::max(rootLocation, j + 1);
 #endif
             ++j;
         }

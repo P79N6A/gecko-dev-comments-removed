@@ -20,6 +20,7 @@
 
 #include "nsView.h"
 #include "nsAsyncDOMEvent.h"
+#include <algorithm>
 
 
 #include "nsIPrintSettings.h"
@@ -2559,13 +2560,13 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
             if (startRect.y < 0) {
               
               
-              startRect.height = NS_MAX(0, startRect.YMost());
+              startRect.height = std::max(0, startRect.YMost());
               startRect.y = 0;
             }
             if (endRect.y < 0) {
               
               
-              endRect.height = NS_MAX(0, endRect.YMost());
+              endRect.height = std::max(0, endRect.YMost());
               endRect.y = 0;
             }
             NS_ASSERTION(endRect.y >= startRect.y,

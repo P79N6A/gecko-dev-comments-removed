@@ -246,7 +246,7 @@ void ResizeFilter::ComputeFilters(int src_size,
   
   
   
-  float clamped_scale = NS_MIN(1.0f, scale);
+  float clamped_scale = std::min(1.0f, scale);
 
   
   float inv_scale = 1.0f / scale;
@@ -273,8 +273,8 @@ void ResizeFilter::ComputeFilters(int src_size,
     float src_pixel = (static_cast<float>(dest_subset_i) + 0.5f) * inv_scale;
 
     
-    int src_begin = NS_MAX(0, FloorInt(src_pixel - src_support));
-    int src_end = NS_MIN(src_size - 1, CeilInt(src_pixel + src_support));
+    int src_begin = std::max(0, FloorInt(src_pixel - src_support));
+    int src_end = std::min(src_size - 1, CeilInt(src_pixel + src_support));
 
     
     

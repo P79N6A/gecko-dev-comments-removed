@@ -39,6 +39,7 @@
 #include "nsIContentIterator.h"
 #include "nsIDocumentEncoder.h"
 #include "nsTextFragment.h"
+#include <algorithm>
 
 
 #include "nsFrameTraversal.h"
@@ -2474,10 +2475,10 @@ nsFrameSelection::UnselectCells(nsIContent *aTableContent,
   if (!tableFrame)
     return NS_ERROR_FAILURE;
 
-  int32_t minRowIndex = NS_MIN(aStartRowIndex, aEndRowIndex);
-  int32_t maxRowIndex = NS_MAX(aStartRowIndex, aEndRowIndex);
-  int32_t minColIndex = NS_MIN(aStartColumnIndex, aEndColumnIndex);
-  int32_t maxColIndex = NS_MAX(aStartColumnIndex, aEndColumnIndex);
+  int32_t minRowIndex = std::min(aStartRowIndex, aEndRowIndex);
+  int32_t maxRowIndex = std::max(aStartRowIndex, aEndRowIndex);
+  int32_t minColIndex = std::min(aStartColumnIndex, aEndColumnIndex);
+  int32_t maxColIndex = std::max(aStartColumnIndex, aEndColumnIndex);
 
   
   nsRefPtr<nsRange> range = GetFirstCellRange();
@@ -4111,8 +4112,8 @@ Selection::LookUpSelection(nsIContent* aContent, int32_t aContentOffset,
       if (startOffset < (aContentOffset + aContentLength)  &&
           endOffset > aContentOffset) {
         
-        start = NS_MAX(0, startOffset - aContentOffset);
-        end = NS_MIN(aContentLength, endOffset - aContentOffset);
+        start = std::max(0, startOffset - aContentOffset);
+        end = std::min(aContentLength, endOffset - aContentOffset);
       }
       
       
@@ -4120,7 +4121,7 @@ Selection::LookUpSelection(nsIContent* aContent, int32_t aContentOffset,
       if (startOffset < (aContentOffset + aContentLength)) {
         
         
-        start = NS_MAX(0, startOffset - aContentOffset);
+        start = std::max(0, startOffset - aContentOffset);
         end = aContentLength;
       }
     } else if (endNode == aContent) {
@@ -4128,7 +4129,7 @@ Selection::LookUpSelection(nsIContent* aContent, int32_t aContentOffset,
         
         
         start = 0;
-        end = NS_MIN(aContentLength, endOffset - aContentOffset);
+        end = std::min(aContentLength, endOffset - aContentOffset);
       }
     } else {
       
@@ -5573,7 +5574,7 @@ Selection::SelectionLanguageChange(bool aLangRTL)
     
     
     if ((level != levelBefore) && (level != levelAfter))
-      level = NS_MIN(levelBefore, levelAfter);
+      level = std::min(levelBefore, levelAfter);
     if ((level & 1) == aLangRTL)
       mFrameSelection->SetCaretBidiLevel(level);
     else

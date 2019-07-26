@@ -16,6 +16,7 @@
 #include "nsIHttpChannelInternal.h"
 #include "nsURLHelper.h"
 #include "nsIStreamConverterService.h"
+#include <algorithm>
 
 
 
@@ -637,7 +638,7 @@ nsMultiMixedConv::OnDataAvailable(nsIRequest *request, nsISupports *context,
         
         
         if (!mPartChannel || !(cursor[bufLen-1] == nsCRT::LF) )
-            bufAmt = NS_MIN(mTokenLen - 1, bufLen);
+            bufAmt = std::min(mTokenLen - 1, bufLen);
     }
 
     if (bufAmt) {

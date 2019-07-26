@@ -46,6 +46,7 @@
 #include "nsIPresShell.h"
 
 #include "nsBoxLayoutState.h"
+#include <algorithm>
 
 #include "nsIDOMEventTarget.h"
 #include "nsIDocument.h" 
@@ -200,7 +201,7 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
   
   
   if (charWidth != charMaxAdvance) {
-    nscoord internalPadding = NS_MAX(0, charMaxAdvance -
+    nscoord internalPadding = std::max(0, charMaxAdvance -
                                         nsPresContext::CSSPixelsToAppUnits(4));
     nscoord t = nsPresContext::CSSPixelsToAppUnits(1); 
    
@@ -567,8 +568,8 @@ nsTextControlFrame::ReflowTextControlChild(nsIFrame*                aKid,
   
   nsSize availSize(aReflowState.ComputedWidth(), 
                    aReflowState.ComputedHeight());
-  availSize.width = NS_MAX(availSize.width, 0);
-  availSize.height = NS_MAX(availSize.height, 0);
+  availSize.width = std::max(availSize.width, 0);
+  availSize.height = std::max(availSize.height, 0);
   
   nsHTMLReflowState kidReflowState(aPresContext, aReflowState, 
                                    aKid, availSize);
@@ -577,13 +578,13 @@ nsTextControlFrame::ReflowTextControlChild(nsIFrame*                aKid,
   nscoord width = availSize.width;
   width -= kidReflowState.mComputedMargin.LeftRight() +
               kidReflowState.mComputedBorderPadding.LeftRight();
-  width = NS_MAX(width, 0);
+  width = std::max(width, 0);
   kidReflowState.SetComputedWidth(width);
 
   nscoord height = availSize.height;
   height -= kidReflowState.mComputedMargin.TopBottom() +
               kidReflowState.mComputedBorderPadding.TopBottom();
-  height = NS_MAX(height, 0);       
+  height = std::max(height, 0);       
   kidReflowState.SetComputedHeight(height); 
 
   
@@ -1036,7 +1037,7 @@ nsTextControlFrame::OffsetToDOMPoint(int32_t aOffset,
     } else {
       
       NS_IF_ADDREF(*aResult = firstNode);
-      *aPosition = NS_MIN(aOffset, int32_t(textLength));
+      *aPosition = std::min(aOffset, int32_t(textLength));
     }
   } else {
     NS_IF_ADDREF(*aResult = rootNode);

@@ -6,6 +6,7 @@
 #include "LayerManagerOGL.h"
 
 #include "mozilla/layers/PLayers.h"
+#include <algorithm>
 
 
 #include "mozilla/Util.h"
@@ -176,7 +177,7 @@ private:
       const TimeStamp& frame = mFrames[i];
       if (!frame.IsNull() && frame > beginningOfWindow) {
         ++numFramesDrawnInWindow;
-        earliestFrameInWindow = NS_MIN(earliestFrameInWindow, frame);
+        earliestFrameInWindow = std::min(earliestFrameInWindow, frame);
       }
     }
     double realWindowSecs = (aNow - earliestFrameInWindow).ToSeconds();

@@ -14,6 +14,7 @@
 #include "nsJSUtils.h"
 #include "AudioSampleFormat.h"
 #include "AudioChannelCommon.h"
+#include <algorithm>
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -166,7 +167,7 @@ nsHTMLAudioElement::MozWriteAudio(const JS::Value& aData, JSContext* aCx, uint32
   }
 
   
-  uint32_t writeLen = NS_MIN(mAudioStream->Available(), dataLength / mChannels);
+  uint32_t writeLen = std::min(mAudioStream->Available(), dataLength / mChannels);
 
   float* frames = JS_GetFloat32ArrayData(tsrc);
   

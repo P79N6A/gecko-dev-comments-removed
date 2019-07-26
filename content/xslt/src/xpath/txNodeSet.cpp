@@ -7,6 +7,7 @@
 #include "txLog.h"
 #include "nsMemory.h"
 #include "txXPathTreeWalker.h"
+#include <algorithm>
 
 
 
@@ -519,7 +520,7 @@ bool txNodeSet::ensureGrowSize(int32_t aSize)
 
     
     
-    int32_t newLength = NS_MAX(oldLength, kTxNodeSetMinSize);
+    int32_t newLength = std::max(oldLength, kTxNodeSetMinSize);
 
     while (newLength < ensureSize) {
         newLength *= kTxNodeSetGrowFactor;

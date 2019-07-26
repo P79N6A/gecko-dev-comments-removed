@@ -9,6 +9,7 @@
 #include "nsIStreamListener.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
+#include <algorithm>
 
 
 
@@ -142,7 +143,7 @@ TestListener::OnDataAvailable( nsIChannel *aChannel,
         unsigned int bytesRead;
         
         rv = aStream->Read( buffer,
-                            NS_MIN( sizeof( buffer ), bytesRemaining ),
+                            std::min( sizeof( buffer ), bytesRemaining ),
                             &bytesRead );
         if ( NS_SUCCEEDED( rv ) ) {
             

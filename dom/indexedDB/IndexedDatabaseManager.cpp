@@ -47,6 +47,7 @@
 #include "TransactionThreadPool.h"
 
 #include "IndexedDatabaseInlines.h"
+#include <algorithm>
 
 
 
@@ -901,7 +902,7 @@ IndexedDatabaseManager::OnDatabaseClosed(IDBDatabase* aDatabase)
 uint32_t
 IndexedDatabaseManager::GetIndexedDBQuotaMB()
 {
-  return uint32_t(NS_MAX(gIndexedDBQuotaMB, 0));
+  return uint32_t(std::max(gIndexedDBQuotaMB, 0));
 }
 
 nsresult

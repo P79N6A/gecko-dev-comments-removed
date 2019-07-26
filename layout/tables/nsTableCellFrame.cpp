@@ -28,6 +28,7 @@
 #include "nsLayoutUtils.h"
 #include "nsTextFrame.h"
 #include "FrameLayerBuilder.h"
+#include <algorithm>
 
 
 #include "nsFrameSelection.h"
@@ -227,7 +228,7 @@ nsTableCellFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     
     
     nsIntRect damageArea(colIndex, rowIndex, GetColSpan(),
-      NS_MIN(GetRowSpan(), tableFrame->GetRowCount() - rowIndex));
+      std::min(GetRowSpan(), tableFrame->GetRowCount() - rowIndex));
     tableFrame->AddBCDamageArea(damageArea);
   }
 }
@@ -574,7 +575,7 @@ void nsTableCellFrame::VerticallyAlignChild(nscoord aMaxAscent)
       kidYTop = (height - childHeight - bottomInset + topInset) / 2;
   }
   
-  kidYTop = NS_MAX(0, kidYTop);
+  kidYTop = std::max(0, kidYTop);
 
   if (kidYTop != kidRect.y) {
     

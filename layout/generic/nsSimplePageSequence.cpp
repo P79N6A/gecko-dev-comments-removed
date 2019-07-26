@@ -22,6 +22,7 @@
 #include "nsHTMLCanvasFrame.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "nsICanvasRenderingContextInternal.h"
+#include <algorithm>
 
 
 #include "nsDateTimeFormatCID.h"
@@ -138,9 +139,9 @@ nsSimplePageSequenceFrame::SetDesiredSize(nsHTMLReflowMetrics& aDesiredSize,
     
     
     
-    aDesiredSize.width = NS_MAX(aReflowState.availableWidth,
+    aDesiredSize.width = std::max(aReflowState.availableWidth,
                                 nscoord(aWidth * PresContext()->GetPrintPreviewScale()));
-    aDesiredSize.height = NS_MAX(aReflowState.ComputedHeight(),
+    aDesiredSize.height = std::max(aReflowState.ComputedHeight(),
                                  nscoord(aHeight * PresContext()->GetPrintPreviewScale()));
 }
 
@@ -254,7 +255,7 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     y += kidSize.height;
     y += pageCSSMargin.bottom;
 
-    maxXMost = NS_MAX(maxXMost, x + kidSize.width + pageCSSMargin.right);
+    maxXMost = std::max(maxXMost, x + kidSize.width + pageCSSMargin.right);
 
     
     nsIFrame* kidNextInFlow = kidFrame->GetNextInFlow();

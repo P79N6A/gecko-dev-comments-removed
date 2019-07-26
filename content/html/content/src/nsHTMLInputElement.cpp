@@ -60,6 +60,7 @@
 #include "nsEventListenerManager.h"
 
 #include "nsRuleData.h"
+#include <algorithm>
 
 
 #include "nsIRadioGroupContainer.h"
@@ -1505,10 +1506,10 @@ nsHTMLInputElement::ApplyStep(int32_t aStep)
     value = max;
   
   } else if (aStep < 0 && min == min) {
-    value = NS_MAX(value, min);
+    value = std::max(value, min);
   
   } else if (aStep > 0 && max == max) {
-    value = NS_MIN(value, max);
+    value = std::min(value, max);
   }
 
   SetValue(value);

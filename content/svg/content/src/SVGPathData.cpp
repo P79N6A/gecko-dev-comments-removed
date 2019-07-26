@@ -13,6 +13,7 @@
 #include <stdarg.h>
 #include "SVGContentUtils.h"
 #include "SVGPathSegUtils.h"
+#include <algorithm>
 
 using namespace mozilla;
 
@@ -199,7 +200,7 @@ SVGPathData::GetPathSegAtLength(float aDistance) const
 
   NS_ABORT_IF_FALSE(i == mData.Length(), "Very, very bad - mData corrupt");
 
-  return NS_MAX(0U, segIndex - 1); 
+  return std::max(0U, segIndex - 1); 
 }
 
 

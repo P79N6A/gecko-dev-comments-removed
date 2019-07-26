@@ -68,6 +68,7 @@
 #include "nsIScrollableFrame.h"
 #include "mozilla/Preferences.h"
 #include "sampler.h"
+#include <algorithm>
 
 
 #include "nsIScriptGlobalObject.h"
@@ -530,8 +531,8 @@ nsObjectFrame::GetDesiredSize(nsPresContext* aPresContext,
     
     
     
-    aMetrics.height = NS_MIN(aPresContext->DevPixelsToAppUnits(INT16_MAX), aMetrics.height);
-    aMetrics.width = NS_MIN(aPresContext->DevPixelsToAppUnits(INT16_MAX), aMetrics.width);
+    aMetrics.height = std::min(aPresContext->DevPixelsToAppUnits(INT16_MAX), aMetrics.height);
+    aMetrics.width = std::min(aPresContext->DevPixelsToAppUnits(INT16_MAX), aMetrics.width);
 #endif
   }
 

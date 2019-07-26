@@ -32,6 +32,7 @@
 
 #include "WinUtils.h"
 #include "mozilla/LazyIdleThread.h"
+#include <algorithm>
 
 
 using namespace mozilla;
@@ -193,7 +194,7 @@ STDMETHODIMP nsDataObj::CStream::Read(void* pvBuffer,
   
   ULONG bytesLeft = mChannelData.Length() - mStreamRead;
   
-  *nBytesRead = NS_MIN(bytesLeft, nBytesToRead);
+  *nBytesRead = std::min(bytesLeft, nBytesToRead);
   
   memcpy(pvBuffer, ((char*)mChannelData.Elements() + mStreamRead), *nBytesRead);
   
@@ -941,7 +942,7 @@ CreateFilenameFromTextA(nsString & aText, const char * aExtension,
   
   
   int maxUsableFilenameLen = aFilenameLen - strlen(aExtension) - 1; 
-  int currLen, textLen = (int) NS_MIN(aText.Length(), aFilenameLen);
+  int currLen, textLen = (int) std::min(aText.Length(), aFilenameLen);
   char defaultChar = '_';
   do {
     currLen = WideCharToMultiByte(CP_ACP, 

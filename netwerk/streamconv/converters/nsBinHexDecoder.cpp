@@ -18,6 +18,7 @@
 
 #include "nsIMIMEService.h"
 #include "nsMimeTypes.h"
+#include <algorithm>
 
 
 
@@ -130,7 +131,7 @@ nsBinHexDecoder::OnDataAvailable(nsIRequest* request,
     uint32_t numBytesRead = 0;
     while (aCount > 0) 
     {
-      aStream->Read(mDataBuffer, NS_MIN(aCount, nsIOService::gDefaultSegmentSize - 1), &numBytesRead);
+      aStream->Read(mDataBuffer, std::min(aCount, nsIOService::gDefaultSegmentSize - 1), &numBytesRead);
       if (aCount >= numBytesRead)
         aCount -= numBytesRead; 
       else

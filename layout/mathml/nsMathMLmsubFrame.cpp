@@ -11,6 +11,7 @@
 #include "nsStyleConsts.h"
 
 #include "nsMathMLmsubFrame.h"
+#include <algorithm>
 
 
 
@@ -94,7 +95,7 @@ nsMathMLmsubFrame::PlaceSubScript (nsPresContext*      aPresContext,
                                    nscoord              aScriptSpace)
 {
   
-  aScriptSpace = NS_MAX(nsPresContext::CSSPixelsToAppUnits(1), aScriptSpace);
+  aScriptSpace = std::max(nsPresContext::CSSPixelsToAppUnits(1), aScriptSpace);
 
   
   
@@ -144,31 +145,31 @@ nsMathMLmsubFrame::PlaceSubScript (nsPresContext*      aPresContext,
   GetSubScriptShifts (fm, subScriptShift, dummy);
 
   subScriptShift = 
-    NS_MAX(subScriptShift, aUserSubScriptShift);
+    std::max(subScriptShift, aUserSubScriptShift);
 
   
   
   nscoord actualSubScriptShift = 
-    NS_MAX(minSubScriptShift,NS_MAX(subScriptShift,minShiftFromXHeight));
+    std::max(minSubScriptShift,std::max(subScriptShift,minShiftFromXHeight));
   
   nsBoundingMetrics boundingMetrics;
   boundingMetrics.ascent = 
-    NS_MAX(bmBase.ascent, bmSubScript.ascent - actualSubScriptShift);
+    std::max(bmBase.ascent, bmSubScript.ascent - actualSubScriptShift);
   boundingMetrics.descent = 
-    NS_MAX(bmBase.descent, bmSubScript.descent + actualSubScriptShift);
+    std::max(bmBase.descent, bmSubScript.descent + actualSubScriptShift);
 
   
   boundingMetrics.width = bmBase.width + bmSubScript.width + aScriptSpace;
   boundingMetrics.leftBearing = bmBase.leftBearing;
-  boundingMetrics.rightBearing = NS_MAX(bmBase.rightBearing, bmBase.width +
-    NS_MAX(bmSubScript.width + aScriptSpace, bmSubScript.rightBearing));
+  boundingMetrics.rightBearing = std::max(bmBase.rightBearing, bmBase.width +
+    std::max(bmSubScript.width + aScriptSpace, bmSubScript.rightBearing));
   aFrame->SetBoundingMetrics (boundingMetrics);
 
   
   aDesiredSize.ascent = 
-    NS_MAX(baseSize.ascent, subScriptSize.ascent - actualSubScriptShift);
+    std::max(baseSize.ascent, subScriptSize.ascent - actualSubScriptShift);
   aDesiredSize.height = aDesiredSize.ascent +
-    NS_MAX(baseSize.height - baseSize.ascent,
+    std::max(baseSize.height - baseSize.ascent,
            subScriptSize.height - subScriptSize.ascent + actualSubScriptShift);
   aDesiredSize.width = boundingMetrics.width;
   aDesiredSize.mBoundingMetrics = boundingMetrics;

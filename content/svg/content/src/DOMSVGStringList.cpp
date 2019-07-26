@@ -8,6 +8,7 @@
 #include "nsError.h"
 #include "nsCOMPtr.h"
 #include "nsSVGAttrTearoffTable.h"
+#include <algorithm>
 
 
 
@@ -114,7 +115,7 @@ DOMSVGStringList::InsertItemBefore(const nsAString & newItem,
   if (newItem.IsEmpty()) { 
     return NS_ERROR_DOM_SYNTAX_ERR;
   }
-  index = NS_MIN(index, InternalList().Length());
+  index = std::min(index, InternalList().Length());
 
   
   if (!InternalList().SetCapacity(InternalList().Length() + 1)) {

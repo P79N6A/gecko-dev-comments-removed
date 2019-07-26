@@ -13,6 +13,7 @@
 #include "nsISMILAnimationElement.h"
 #include "nsIDOMSVGAnimationElement.h"
 #include "nsSMILTimedElement.h"
+#include <algorithm>
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -118,7 +119,7 @@ nsSMILAnimationController::WillRefresh(mozilla::TimeStamp aTime)
   
   
   
-  aTime = NS_MAX(mCurrentSampleTime, aTime);
+  aTime = std::max(mCurrentSampleTime, aTime);
 
   
   
@@ -562,7 +563,7 @@ nsSMILAnimationController::DoMilestoneSamples()
     
     
     
-    sampleTime = NS_MAX(nextMilestone.mTime, sampleTime);
+    sampleTime = std::max(nextMilestone.mTime, sampleTime);
 
     for (uint32_t i = 0; i < length; ++i) {
       nsISMILAnimationElement* elem = params.mElements[i].get();
@@ -579,7 +580,7 @@ nsSMILAnimationController::DoMilestoneSamples()
         continue;
 
       
-      nsSMILTime containerTime = NS_MAX<nsSMILTime>(0, containerTimeValue.GetMillis());
+      nsSMILTime containerTime = std::max<nsSMILTime>(0, containerTimeValue.GetMillis());
 
       if (nextMilestone.mIsEnd) {
         elem->TimedElement().SampleEndAt(containerTime);

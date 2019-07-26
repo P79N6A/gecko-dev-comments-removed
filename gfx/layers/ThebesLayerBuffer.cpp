@@ -13,6 +13,7 @@
 #include "ipc/AutoOpenSurface.h"
 #include "nsDeviceContext.h"
 #include "sampler.h"
+#include <algorithm>
 
 namespace mozilla {
 namespace layers {
@@ -178,7 +179,7 @@ ComputeBufferRect(const nsIntRect& aRequestedRect)
   
   
   
-  rect.width = NS_MAX(aRequestedRect.width, 64);
+  rect.width = std::max(aRequestedRect.width, 64);
   return rect;
 }
 

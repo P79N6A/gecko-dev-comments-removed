@@ -23,6 +23,7 @@
 #include "nsViewManager.h"
 #include "nsContainerFrame.h"
 #include "nsDisplayList.h"
+#include <algorithm>
 
 
 
@@ -282,7 +283,7 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   
   
   
-  computedSize.height = NS_MAX(0, computedSize.height - m.TopBottom());
+  computedSize.height = std::max(0, computedSize.height - m.TopBottom());
   computedSize.height = NS_CSS_MINMAX(computedSize.height,
                                       aReflowState.mComputedMinHeight,
                                       aReflowState.mComputedMaxHeight);

@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "mozilla/DebugOnly.h"
+#include <algorithm>
 
 #ifdef MOZ_ENABLE_GNOMEUI
 
@@ -575,7 +576,7 @@ nsIconChannel::Init(nsIURI* aURI)
     
     gint width, height;
     if (gtk_icon_size_lookup(icon_size, &width, &height)) {
-      gint size = NS_MIN(width, height);
+      gint size = std::min(width, height);
       
       
       

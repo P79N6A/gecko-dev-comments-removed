@@ -28,6 +28,7 @@
 #include "nsIScreenManager.h"
 #include "mozilla/dom/Element.h"
 #include "nsError.h"
+#include <algorithm>
 
 using namespace mozilla;
 
@@ -399,7 +400,7 @@ nsResizerFrame::AdjustDimensions(int32_t* aPos, int32_t* aSize,
     *aSize = 1;
 
   
-  *aSize = NS_MAX(aMinSize, NS_MIN(aMaxSize, *aSize));
+  *aSize = std::max(aMinSize, std::min(aMaxSize, *aSize));
 
   
   

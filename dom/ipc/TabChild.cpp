@@ -30,6 +30,7 @@
 #include "nsContentUtils.h"
 #include "nsEmbedCID.h"
 #include "nsEventListenerManager.h"
+#include <algorithm>
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #endif
@@ -443,8 +444,8 @@ TabChild::HandlePossibleViewportChange()
 
   float pageWidth, pageHeight;
   if (htmlDOMElement || bodyDOMElement) {
-    pageWidth = NS_MAX(htmlWidth, bodyWidth);
-    pageHeight = NS_MAX(htmlHeight, bodyHeight);
+    pageWidth = std::max(htmlWidth, bodyWidth);
+    pageHeight = std::max(htmlHeight, bodyHeight);
   } else {
     
     pageWidth = viewportW;
@@ -457,7 +458,7 @@ TabChild::HandlePossibleViewportChange()
                      viewportInfo.GetMaxZoom());
   NS_ENSURE_TRUE_VOID(minScale); 
 
-  viewportH = NS_MAX(viewportH, screenH / minScale);
+  viewportH = std::max(viewportH, screenH / minScale);
   SetCSSViewport(viewportW, viewportH);
 
   

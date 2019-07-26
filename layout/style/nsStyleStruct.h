@@ -32,6 +32,7 @@
 #include "nsAlgorithm.h"
 #include "imgRequestProxy.h"
 #include "gfxRect.h"
+#include <algorithm>
 
 class nsIFrame;
 class imgIContainer;
@@ -711,14 +712,14 @@ class nsCSSShadowArray {
 
 
 #define NS_ROUND_BORDER_TO_PIXELS(l,tpp) \
-  ((l) == 0) ? 0 : NS_MAX((tpp), (l) / (tpp) * (tpp))
+  ((l) == 0) ? 0 : std::max((tpp), (l) / (tpp) * (tpp))
 
 
 
 #define NS_ROUND_OFFSET_TO_PIXELS(l,tpp) \
   (((l) == 0) ? 0 : \
-    ((l) > 0) ? NS_MAX( (tpp), ((l) + ((tpp) / 2)) / (tpp) * (tpp)) : \
-                NS_MIN(-(tpp), ((l) - ((tpp) / 2)) / (tpp) * (tpp)))
+    ((l) > 0) ? std::max( (tpp), ((l) + ((tpp) / 2)) / (tpp) * (tpp)) : \
+                std::min(-(tpp), ((l) - ((tpp) / 2)) / (tpp) * (tpp)))
 
 
 static bool IsVisibleBorderStyle(uint8_t aStyle)

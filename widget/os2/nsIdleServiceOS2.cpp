@@ -5,6 +5,7 @@
 
 
 #include "nsIdleServiceOS2.h"
+#include <algorithm>
 
 
 static int (*_System DSSaver_GetInactivityTime)(ULONG *, ULONG *);
@@ -44,7 +45,7 @@ nsIdleServiceOS2::PollIdleTime(uint32_t *aIdleTime)
 
   
   
-  *aIdleTime = NS_MIN(mouse, keyboard);
+  *aIdleTime = std::min(mouse, keyboard);
   return true;
 }
 
