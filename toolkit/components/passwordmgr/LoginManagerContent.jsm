@@ -705,12 +705,10 @@ var LoginManagerContent = {
                 
                 
                 
-                dump("field value: " + usernameField.value + "\n");
-                dump("selectedLogin value: " + selectedLogin.username + "\n");
                 let userEnteredDifferentCase = userTriggered &&
                       (usernameField.value != selectedLogin.username &&
                        usernameField.value.toLowerCase() == selectedLogin.username.toLowerCase());
-    
+
                 if (!disabledOrReadOnly && !userEnteredDifferentCase) {
                     usernameField.setUserInput(selectedLogin.username);
                 }
