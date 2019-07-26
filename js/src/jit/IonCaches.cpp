@@ -1078,6 +1078,22 @@ GenerateTypedArrayLength(JSContext *cx, MacroAssembler &masm, IonCache::StubAtta
     attacher.jumpNextStub(masm);
 }
 
+static bool
+IsCacheableArrayLength(JSContext *cx, HandleObject obj, HandlePropertyName name,
+                       TypedOrValueRegister output)
+{
+    if (!obj->is<ArrayObject>())
+        return false;
+
+    if (output.type() != MIRType_Value && output.type() != MIRType_Int32) {
+        
+        
+        return false;
+    }
+
+    return true;
+}
+
 template <class GetPropCache>
 static GetPropertyIC::NativeGetPropCacheability
 CanAttachNativeGetProp(typename GetPropCache::Context cx, const GetPropCache &cache,
@@ -1111,7 +1127,9 @@ CanAttachNativeGetProp(typename GetPropCache::Context cx, const GetPropCache &ca
         return GetPropertyIC::CanAttachReadSlot;
     }
 
-    if (obj->is<ArrayObject>() && cx->names().length == name) {
+    if (cx->names().length == name &&
+        IsCacheableArrayLength(cx, obj, name, cache.output()))
+    {
         
         
         
