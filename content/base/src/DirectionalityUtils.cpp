@@ -304,7 +304,7 @@ GetDirectionFromText(const PRUnichar* aText, const uint32_t aLength,
   }
 
   if (aFirstStrong) {
-    *aFirstStrong = PR_UINT32_MAX;
+    *aFirstStrong = UINT32_MAX;
   }
   return eDir_NotSet;
 }
@@ -330,7 +330,7 @@ GetDirectionFromText(const char* aText, const uint32_t aLength,
   }
 
   if (aFirstStrong) {
-    *aFirstStrong = PR_UINT32_MAX;
+    *aFirstStrong = UINT32_MAX;
   }
   return eDir_NotSet;
 }
