@@ -592,10 +592,10 @@ public:
 
   
   bool IsEditable(nsIDOMNode *aNode);
-  virtual bool IsEditable(nsIContent *aNode);
+  virtual bool IsEditable(nsINode* aNode);
 
   
-  bool IsMozEditorBogusNode(nsIContent *aNode);
+  bool IsMozEditorBogusNode(nsINode* aNode);
 
   
   uint32_t CountEditableChildren(nsINode* aNode);
