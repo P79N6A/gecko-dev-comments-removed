@@ -360,9 +360,12 @@ class MochitestUtilsMixin(object):
       manifest.read(options.manifestFile)
       
       tests = manifest.active_tests(disabled=True, **mozinfo.info)
+      
+      
+      test_root = os.path.sep + self.getTestRoot(options) + os.path.sep
       paths = []
       for test in tests:
-        tp = test['path'].split(self.getTestRoot(options), 1)[1].strip('/')
+        tp = test['path'].split(test_root, 1)[1].replace('\\', '/').strip('/')
 
         
         if options.testPath and not tp.startswith(options.testPath):
