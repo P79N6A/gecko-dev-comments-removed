@@ -191,7 +191,9 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
     
     
     gfxMatrix transform;
-    const gfx3DMatrix& transform3D = aLayer->GetEffectiveTransform();
+    gfx3DMatrix transform3D;
+    gfx::To3DMatrix(aLayer->GetEffectiveTransform(), transform3D);
+
     if (!transform3D.Is2D(&transform) || !transform.PreservesAxisAlignedRectangles()) {
         LOGD("Layer has a 3D transform or a non-square angle rotation");
         return false;

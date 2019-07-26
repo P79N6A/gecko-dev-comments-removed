@@ -45,6 +45,7 @@
 #include "nsTArrayForwardDeclare.h"     
 #include "nscore.h"                     
 #include "prlog.h"                      
+#include "gfx2DGlue.h"
 
 class gfxASurface;
 class gfxContext;
@@ -1218,7 +1219,7 @@ public:
 
 
 
-  const gfx3DMatrix& GetEffectiveTransform() const { return mEffectiveTransform; }
+  const gfx::Matrix4x4& GetEffectiveTransform() const { return mEffectiveTransform; }
 
   
 
@@ -1405,7 +1406,7 @@ protected:
   nsAutoPtr<gfx3DMatrix> mPendingTransform;
   float mPostXScale;
   float mPostYScale;
-  gfx3DMatrix mEffectiveTransform;
+  gfx::Matrix4x4 mEffectiveTransform;
   AnimationArray mAnimations;
   InfallibleTArray<AnimData> mAnimationData;
   float mOpacity;
@@ -1481,8 +1482,9 @@ public:
   {
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
     gfxMatrix residual;
-    mEffectiveTransform = SnapTransformTranslation(idealTransform,
+    gfx3DMatrix snappedTransform = SnapTransformTranslation(idealTransform,
         mAllowResidualTranslation ? &residual : nullptr);
+    gfx::ToMatrix4x4(snappedTransform, mEffectiveTransform);
     
     
     NS_ASSERTION(!residual.HasNonTranslation(),
@@ -1752,7 +1754,8 @@ public:
   virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
   {
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
-    mEffectiveTransform = SnapTransformTranslation(idealTransform, nullptr);
+    gfx3DMatrix snappedTransform = SnapTransformTranslation(idealTransform, nullptr);
+    gfx::ToMatrix4x4(snappedTransform, mEffectiveTransform);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
@@ -1895,10 +1898,11 @@ public:
     
     
     
-    mEffectiveTransform =
+    gfx3DMatrix snappedTransform =
         SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.width, mBounds.height),
                       nullptr)*
         SnapTransformTranslation(aTransformToSurface, nullptr);
+    gfx::ToMatrix4x4(snappedTransform, mEffectiveTransform);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 

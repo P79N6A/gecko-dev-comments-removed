@@ -4,7 +4,6 @@
 
 
 #include "ColorLayerComposite.h"
-#include "gfx2DGlue.h"                  
 #include "gfxColor.h"                   
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/Matrix.h"         
@@ -42,9 +41,7 @@ ColorLayerComposite::RenderLayer(const nsIntRect& aClipRect)
 
   float opacity = GetEffectiveOpacity();
 
-  gfx::Matrix4x4 transform;
-  ToMatrix4x4(GetEffectiveTransform(), transform);
-
+  const gfx::Matrix4x4& transform = GetEffectiveTransform();
   mCompositor->DrawQuad(rect, clipRect, effects, opacity, transform);
   mCompositor->DrawDiagnostics(DIAGNOSTIC_COLOR,
                                rect, clipRect,

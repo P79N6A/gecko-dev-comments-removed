@@ -47,9 +47,10 @@ void ImageLayer::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurfa
   
   
   
-  mEffectiveTransform =
+  gfx3DMatrix snappedTransform =
       SnapTransform(local, sourceRect, nullptr) *
       SnapTransformTranslation(aTransformToSurface, nullptr);
+  gfx::ToMatrix4x4(snappedTransform, mEffectiveTransform);
   ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
 }
 

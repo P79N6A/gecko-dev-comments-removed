@@ -89,7 +89,8 @@ ContainerLayerD3D9::RenderLayer()
       
       mSupportsComponentAlphaChildren = true;
     } else {
-      const gfx3DMatrix& transform3D = GetEffectiveTransform();
+      gfx3DMatrix transform3D;
+      gfx::To3DMatrix(GetEffectiveTransform(), transform3D);
       gfxMatrix transform;
       
       

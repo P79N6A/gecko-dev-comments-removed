@@ -90,10 +90,11 @@ public:
     
     
     
-    mEffectiveTransform =
+    gfx3DMatrix snappedTransform =
         SnapTransform(GetLocalTransform(), gfxRect(0, 0, mSize.width, mSize.height),
                       nullptr)*
         SnapTransformTranslation(aTransformToSurface, nullptr);
+    gfx::ToMatrix4x4(snappedTransform, mEffectiveTransform);
   }
 
   

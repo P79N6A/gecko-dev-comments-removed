@@ -80,7 +80,7 @@ public:
     if (!BasicManager()->IsRetained()) {
       
       
-      mEffectiveTransform = GetLocalTransform()*aTransformToSurface;
+      gfx::ToMatrix4x4(GetLocalTransform() * aTransformToSurface, mEffectiveTransform);
       if (gfxPoint(0,0) != mResidualTranslation) {
         mResidualTranslation = gfxPoint(0,0);
         mValidRegion.SetEmpty();
