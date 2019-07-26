@@ -1293,7 +1293,3 @@ pref("geo.wifi.uri", "https://www.googleapis.com/geolocation/v1/geolocate?key=%G
 
 
 pref("network.disable.ipc.security", true);
-
-
-
-pref("firefox.accounts.remoteUrl", "http://accounts.dev.lcip.org/flow");
