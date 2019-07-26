@@ -623,13 +623,14 @@ MenuContainer.prototype = {
 
 
 
+
   push: function DVMC_push(aLabel, aValue, aOptions = {}) {
     let item = new MenuItem(
       aLabel, aValue, aOptions.description, aOptions.attachment);
 
     
     if (!aOptions.forced) {
-      this._stagedItems.push(item);
+      this._stagedItems.push({ item: item, options: aOptions });
     }
     
     else if (aOptions.forced && aOptions.forced.atIndex !== undefined) {
@@ -657,11 +658,12 @@ MenuContainer.prototype = {
 
     
     if (!aOptions.unsorted) {
-      stagedItems.sort(function(a, b) a.label.toLowerCase() > b.label.toLowerCase());
+      stagedItems.sort(function(a, b) a.item.label.toLowerCase() >
+                                      b.item.label.toLowerCase());
     }
     
-    for (let item of stagedItems) {
-      this._appendItem(item, aOptions);
+    for (let { item, options } of stagedItems) {
+      this._appendItem(item, options);
     }
     
     this._stagedItems = [];
@@ -750,7 +752,7 @@ MenuContainer.prototype = {
 
   containsLabel: function DVMC_containsLabel(aLabel) {
     return this._itemsByLabel.has(aLabel) ||
-           this._stagedItems.some(function(o) o.label == aLabel);
+           this._stagedItems.some(function({item}) item.label == aLabel);
   },
 
   
@@ -764,7 +766,7 @@ MenuContainer.prototype = {
 
   containsValue: function DVMC_containsValue(aValue) {
     return this._itemsByValue.has(aValue) ||
-           this._stagedItems.some(function(o) o.value == aValue);
+           this._stagedItems.some(function({item}) item.value == aValue);
   },
 
   
@@ -788,7 +790,7 @@ MenuContainer.prototype = {
         return true;
       }
     }
-    return this._stagedItems.some(function(o) aTrim(o.value) == trimmedValue);
+    return this._stagedItems.some(function({item}) aTrim(item.value) == trimmedValue);
   },
 
   
@@ -1046,8 +1048,15 @@ MenuContainer.prototype = {
       return null;
     }
 
-    return this._entangleItem(aItem, this._container.appendItem(
+    this._entangleItem(aItem, this._container.appendItem(
       aItem.label, aItem.value, "", aOptions.attachment));
+
+    
+    if (aOptions.tooltip) {
+      aItem._target.setAttribute("tooltiptext", aOptions.tooltip);
+    }
+
+    return aItem;
   },
 
   
@@ -1068,8 +1077,15 @@ MenuContainer.prototype = {
       return null;
     }
 
-    return this._entangleItem(aItem, this._container.insertItemAt(
+    this._entangleItem(aItem, this._container.insertItemAt(
       aIndex, aItem.label, aItem.value, "", aOptions.attachment));
+
+    
+    if (aOptions.tooltip) {
+      aItem._target.setAttribute("tooltiptext", aOptions.tooltip);
+    }
+
+    return aItem;
   },
 
   
