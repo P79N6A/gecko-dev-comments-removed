@@ -28,9 +28,9 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     Assembler::Condition cond = JSOpToCondition(op, true);
+    masm.xorl(ScratchReg, ScratchReg);
     masm.cmpl(R0.valueReg(), R1.valueReg());
     masm.setCC(cond, ScratchReg);
-    masm.movzxbl(ScratchReg, ScratchReg);
 
     
     masm.boxValue(JSVAL_TYPE_BOOLEAN, ScratchReg, R0.valueReg());
