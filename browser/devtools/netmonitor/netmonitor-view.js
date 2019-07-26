@@ -1074,20 +1074,20 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
             
             let currentItem = requestItem;
             let currentStore = { headers: [], headersSize: 0 };
-            gNetwork.getString(value.postData.text).then(aPostData => {
-              for (let section of aPostData.split(/\r\n|\r|\n/)) {
-                
-                
-                
-                
-                let headerTuples = parseHeadersText(section);
-                currentStore.headersSize += headerTuples.length ? section.length : 0;
-                Array.prototype.push.apply(currentStore.headers, headerTuples);
-              }
+
+            Task.spawn(function*() {
+              let postData = yield gNetwork.getString(value.postData.text);
+              let payloadHeaders = CurlUtils.getHeadersFromMultipartText(postData);
+
+              currentStore.headers = payloadHeaders;
+              currentStore.headersSize = payloadHeaders.reduce(
+                (acc, { name, value }) => acc + name.length + value.length + 2, 0);
+
               
               
               refreshNetworkDetailsPaneIfNecessary(currentItem);
             });
+
             requestItem.attachment.requestPostData = value;
             requestItem.attachment.requestHeadersFromUploadStream = currentStore;
             break;
