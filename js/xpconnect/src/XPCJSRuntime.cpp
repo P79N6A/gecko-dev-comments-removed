@@ -561,6 +561,10 @@ XPCJSRuntime::TraverseAdditionalNativeRoots(nsCycleCollectionNoteRootCallback &c
 {
     XPCAutoLock lock(mMapLock);
 
+    
+    
+    dom::TraverseOuterWindows(cb);
+
     XPCWrappedNativeScope::SuspectAllWrappers(this, cb);
 
     for (XPCRootSetElem *e = mVariantRoots; e ; e = e->GetNextRoot()) {

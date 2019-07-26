@@ -715,32 +715,9 @@ CycleCollectedJSRuntime::TraverseObjectShim(void* aData, void* aThing)
                                  JSTRACE_OBJECT, closure->cb);
 }
 
-
-
-
-
-
-
-
-void
-CycleCollectedJSRuntime::MaybeTraverseGlobals(nsCycleCollectionNoteRootCallback& aCb) const
-{
-  JSContext *iter = nullptr, *acx;
-  while ((acx = JS_ContextIterator(Runtime(), &iter))) {
-    
-    
-    JSObject* global = js::DefaultObjectForContextOrNull(acx);
-    if (global && xpc_IsGrayGCThing(global)) {
-      aCb.NoteNativeRoot(acx, JSContextParticipant());
-    }
-  }
-}
-
 void
 CycleCollectedJSRuntime::TraverseNativeRoots(nsCycleCollectionNoteRootCallback& aCb)
 {
-  MaybeTraverseGlobals(aCb);
-
   
   
   TraverseAdditionalNativeRoots(aCb);
