@@ -467,6 +467,7 @@ BluetoothOppManager::AfterOppDisconnected()
   mConnected = false;
   mLastCommand = 0;
   mBlob = nullptr;
+  mPacketLeftLength = 0;
 
   
   
