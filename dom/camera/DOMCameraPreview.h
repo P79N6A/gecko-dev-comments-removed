@@ -40,7 +40,7 @@ public:
 
   void Start();   
   void Started(); 
-  void StopPreview();    
+  void Stop();    
   void Stopped(bool aForced = false);
                   
   void Error();   
