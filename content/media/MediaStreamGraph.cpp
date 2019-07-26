@@ -983,18 +983,30 @@ MediaStreamGraphImpl::EnsureNextIterationLocked(MonitorAutoLock& aLock)
   }
 }
 
+
+
+
+
+
+
 static GraphTime
-RoundUpToAudioBlock(TrackRate aSampleRate, GraphTime aTime)
+RoundUpToNextAudioBlock(TrackRate aSampleRate, GraphTime aTime)
 {
-  int64_t ticksAtIdealaSampleRate = (aTime*aSampleRate) >> MEDIA_TIME_FRAC_BITS;
+  TrackTicks ticks = TimeToTicksRoundUp(aSampleRate, aTime);
+  uint64_t block = ticks >> WEBAUDIO_BLOCK_SIZE_BITS;
+  uint64_t nextBlock = block + 1;
+  TrackTicks nextTicks = nextBlock << WEBAUDIO_BLOCK_SIZE_BITS;
   
-  int64_t blocksAtIdealaSampleRate =
-    (ticksAtIdealaSampleRate + (WEBAUDIO_BLOCK_SIZE - 1)) >>
-    WEBAUDIO_BLOCK_SIZE_BITS;
   
-  return
-    ((((blocksAtIdealaSampleRate + 1)*WEBAUDIO_BLOCK_SIZE) << MEDIA_TIME_FRAC_BITS)
-     + aSampleRate - 1)/aSampleRate;
+  
+  
+  
+  
+  
+  
+  
+  
+  return ((nextTicks - 1) << MEDIA_TIME_FRAC_BITS)/aSampleRate + 1;
 }
 
 void
@@ -1005,7 +1017,7 @@ MediaStreamGraphImpl::ProduceDataForStreamsBlockByBlock(uint32_t aStreamIndex,
 {
   GraphTime t = aFrom;
   while (t < aTo) {
-    GraphTime next = RoundUpToAudioBlock(aSampleRate, t + 1);
+    GraphTime next = RoundUpToNextAudioBlock(aSampleRate, t);
     for (uint32_t i = aStreamIndex; i < mStreams.Length(); ++i) {
       nsRefPtr<ProcessedMediaStream> ps = mStreams[i]->AsProcessedStream();
       if (ps) {
@@ -1069,7 +1081,7 @@ MediaStreamGraphImpl::RunThread()
     }
 
     GraphTime endBlockingDecisions =
-      RoundUpToAudioBlock(sampleRate, mCurrentTime + MillisecondsToMediaTime(AUDIO_TARGET_MS));
+      RoundUpToNextAudioBlock(sampleRate, mCurrentTime + MillisecondsToMediaTime(AUDIO_TARGET_MS));
     bool ensureNextIteration = false;
 
     
