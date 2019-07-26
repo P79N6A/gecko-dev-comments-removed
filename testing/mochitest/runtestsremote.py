@@ -526,6 +526,8 @@ def main():
         dm.killProcess(procName)
 
     if options.robocop != "":
+        
+        dm.default_timeout = 320
         mp = manifestparser.TestManifest(strict=False)
         
         mp.read(options.robocop)
