@@ -2338,30 +2338,21 @@ template<bool onlyFirstMatch, class T>
 inline static nsresult
 FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
 {
-
-  nsIDocument* doc = aRoot->OwnerDoc();
-  nsIDocument::SelectorCache& cache = doc->GetSelectorCache();
-  nsCSSSelectorList* selectorList = cache.GetList(aSelector);
-
-  if (!selectorList) {
-    nsresult rv = ParseSelectorList(aRoot, aSelector,
-                                    &selectorList);
-    if (NS_FAILED(rv)) {
-      delete selectorList;
-      
-      
-      
-      return rv;
-    }
-
-    NS_ENSURE_TRUE(selectorList, NS_OK);
-
-    cache.CacheList(aSelector, selectorList);
+  nsAutoPtr<nsCSSSelectorList> selectorList;
+  nsresult rv = ParseSelectorList(aRoot, aSelector,
+                                  getter_Transfers(selectorList));
+  if (NS_FAILED(rv)) {
+    
+    
+    
+    return rv;
   }
+  NS_ENSURE_TRUE(selectorList, NS_OK);
 
   NS_ASSERTION(selectorList->mSelectors,
                "How can we not have any selectors?");
 
+  nsIDocument* doc = aRoot->OwnerDoc();
   TreeMatchContext matchingContext(false, nsRuleWalker::eRelevantLinkUnvisited,
                                    doc, TreeMatchContext::eNeverMatchVisited);
   doc->FlushPendingLinkUpdates();

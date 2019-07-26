@@ -27,8 +27,6 @@
 #include "nsTHashtable.h"                
 #include "mozilla/dom/DocumentBinding.h"
 #include "Units.h"
-#include "nsExpirationTracker.h"
-#include "nsClassHashtable.h"
 
 class imgIRequest;
 class nsAString;
@@ -82,7 +80,6 @@ class nsDOMCaretPosition;
 class nsViewportInfo;
 class nsDOMEvent;
 class nsIGlobalObject;
-class nsCSSSelectorList;
 
 namespace mozilla {
 class ErrorResult;
@@ -663,56 +660,7 @@ public:
 protected:
   virtual Element *GetRootElementInternal() const = 0;
 
-private:
-  class SelectorCacheKey
-  {
-    public:
-      SelectorCacheKey(const nsAString& aString) : mKey(aString) { }
-
-      nsString mKey;
-      nsExpirationState mState;
-
-      nsExpirationState* GetExpirationState() { return &mState; }
-  };
-
 public:
-  class SelectorCache MOZ_FINAL
-    : public nsExpirationTracker<SelectorCacheKey, 4>
-  {
-    public:
-      SelectorCache();
-
-      
-      void CacheList(const nsAString& aSelector, nsCSSSelectorList* aSelectorList);
-
-      
-      
-      
-      nsCSSSelectorList* GetList(const nsAString& aSelector)
-      {
-        return mTable.Get(aSelector);
-      }
-
-      virtual void NotifyExpired(SelectorCacheKey* aSelector)
-      {
-        RemoveObject(aSelector);
-        mTable.Remove(aSelector->mKey);
-        delete aSelector;
-      }
-
-      ~SelectorCache()
-      {
-        MOZ_COUNT_DTOR(SelectorCache);
-      }
-
-    private:
-      nsClassHashtable<nsStringHashKey, nsCSSSelectorList> mTable;
-  };
-
-  SelectorCache& GetSelectorCache()
-  {
-    return mSelectorCache;
-  }
   
   
   Element* GetHtmlElement() const;
@@ -2185,7 +2133,6 @@ public:
 
 private:
   uint64_t mWarnedAbout;
-  SelectorCache mSelectorCache;
 
 protected:
   ~nsIDocument();
