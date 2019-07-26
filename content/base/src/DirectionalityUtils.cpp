@@ -244,7 +244,11 @@ DoesNotParticipateInAutoDirection(const Element* aElement)
 static inline bool
 IsBdiWithoutDirAuto(const Element* aElement)
 {
-  return aElement->IsHTML(nsGkAtoms::bdi) && !aElement->HasDirAuto();
+  
+  
+  
+  return (aElement->IsHTML(nsGkAtoms::bdi) &&
+          (!aElement->HasValidDir() || aElement->HasFixedDir()));
 }
 
 
