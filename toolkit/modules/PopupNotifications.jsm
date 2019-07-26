@@ -262,6 +262,10 @@ PopupNotifications.prototype = {
 
 
 
+
+
+
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -547,6 +551,11 @@ PopupNotifications.prototype = {
 
       if (n.options.popupIconURL)
         popupnotification.setAttribute("icon", n.options.popupIconURL);
+      if (n.options.learnMoreURL)
+        popupnotification.setAttribute("learnmoreurl", n.options.learnMoreURL);
+      else
+        popupnotification.removeAttribute("learnmoreurl");
+
       popupnotification.notification = n;
 
       if (n.secondaryActions) {
