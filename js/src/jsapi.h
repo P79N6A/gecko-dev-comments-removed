@@ -2107,15 +2107,6 @@ JS_ResolveStandardClass(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
 extern JS_PUBLIC_API(JSBool)
 JS_EnumerateStandardClasses(JSContext *cx, JS::HandleObject obj);
 
-
-
-
-
-
-extern JS_PUBLIC_API(JSIdArray *)
-JS_EnumerateResolvedStandardClasses(JSContext *cx, JSObject *obj,
-                                    JSIdArray *ida);
-
 extern JS_PUBLIC_API(JSBool)
 JS_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key, JSObject **objp);
 
