@@ -5,19 +5,43 @@
 
 package org.mozilla.gecko.home;
 
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.db.BrowserDB.TopSitesCursorWrapper;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.support.v4.widget.CursorAdapter;
+import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
+
+import java.util.Map;
 
 
 
 
 public class TopBookmarksAdapter extends CursorAdapter {
+    
+    private Map<String, Thumbnail> mThumbnails;
+
+    
+
+
+    public static class Thumbnail {
+        
+        private final boolean isThumbnail;
+
+        
+        private final Bitmap bitmap;
+
+        public Thumbnail(Bitmap bitmap, boolean isThumbnail) {
+            this.bitmap = bitmap;
+            this.isThumbnail = isThumbnail;
+        }
+    }
+
     public TopBookmarksAdapter(Context context, Cursor cursor) {
         super(context, cursor);
     }
@@ -26,10 +50,20 @@ public class TopBookmarksAdapter extends CursorAdapter {
 
 
     @Override
-    protected void onContentChanged () {
+    protected void onContentChanged() {
         
         
         return;
+    }
+
+    
+
+
+
+
+    public void updateThumbnails(Map<String, Thumbnail> thumbnails) {
+        mThumbnails = thumbnails;
+        notifyDataSetChanged();
     }
 
     
@@ -52,6 +86,21 @@ public class TopBookmarksAdapter extends CursorAdapter {
         view.setTitle(title);
         view.setUrl(url);
         view.setPinned(pinned);
+
+        
+        if (TextUtils.isEmpty(url)) {
+            view.displayThumbnail(R.drawable.top_bookmark_add);
+        } else {
+            
+            Thumbnail thumbnail = (mThumbnails != null ? mThumbnails.get(url) : null);
+            if (thumbnail == null) {
+                view.displayThumbnail(null);
+            } else if (thumbnail.isThumbnail) {
+                view.displayThumbnail(thumbnail.bitmap);
+            } else {
+                view.displayFavicon(thumbnail.bitmap);
+            }
+        }
     }
 
     

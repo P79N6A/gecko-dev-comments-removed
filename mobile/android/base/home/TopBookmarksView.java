@@ -13,7 +13,6 @@ import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.graphics.Bitmap;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -21,8 +20,6 @@ import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.GridView;
-
-import java.util.Map;
 
 
 
@@ -50,25 +47,6 @@ public class TopBookmarksView extends GridView {
 
     
     private TopBookmarksContextMenuInfo mContextMenuInfo;
-
-    
-    private Map<String, Thumbnail> mThumbnailsCache;
-
-    
-
-
-    public static class Thumbnail {
-        
-        private final boolean isThumbnail;
-
-        
-        private final Bitmap bitmap;
-
-        public Thumbnail(Bitmap bitmap, boolean isThumbnail) {
-            this.bitmap = bitmap;
-            this.isThumbnail = isThumbnail;
-        }
-    }
 
     public TopBookmarksView(Context context) {
         this(context, null);
@@ -128,7 +106,6 @@ public class TopBookmarksView extends GridView {
 
         mUrlOpenListener = null;
         mPinBookmarkListener = null;
-        mThumbnailsCache = null;
     }
 
     
@@ -193,20 +170,6 @@ public class TopBookmarksView extends GridView {
         setMeasuredDimension(measuredWidth, measuredHeight);
     }
 
-    
-
-
-    @Override
-    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        super.onLayout(changed, left, top, right, bottom);
-
-        
-        if (mThumbnailsCache != null) {
-            updateThumbnails(mThumbnailsCache);
-            mThumbnailsCache = null;
-        }
-    }
-
     @Override
     public ContextMenuInfo getContextMenuInfo() {
         return mContextMenuInfo;
@@ -228,53 +191,6 @@ public class TopBookmarksView extends GridView {
 
     public void setOnPinBookmarkListener(OnPinBookmarkListener listener) {
         mPinBookmarkListener = listener;
-    }
-
-    
-
-
-
-
-    public void updateThumbnails(Map<String, Thumbnail> thumbnails) {
-        if (thumbnails == null) {
-            return;
-        }
-
-        
-        
-        if (isLayoutRequested()) {
-            mThumbnailsCache = thumbnails;
-            return;
-        }
-
-        final int count = getAdapter().getCount();
-        for (int i = 0; i < count; i++) {
-            final View child = getChildAt(i);
-
-            
-            
-            if (child == null) {
-                continue;
-            }
-
-            TopBookmarkItemView view = (TopBookmarkItemView) child;
-            final String url = view.getUrl();
-
-            
-            if (TextUtils.isEmpty(url)) {
-                view.displayThumbnail(R.drawable.top_bookmark_add);
-            } else {
-                
-                Thumbnail thumbnail = (thumbnails != null ? thumbnails.get(url) : null);
-                if (thumbnail == null) {
-                    view.displayThumbnail(null);
-                } else if (thumbnail.isThumbnail) {
-                    view.displayThumbnail(thumbnail.bitmap);
-                } else {
-                    view.displayFavicon(thumbnail.bitmap);
-                }
-            }
-        }
     }
 
     
