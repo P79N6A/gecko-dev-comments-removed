@@ -540,7 +540,6 @@ struct JSScript : public js::gc::Cell
     bool            debugMode:1;      
     bool            failedBoundsCheck:1; 
 #endif
-    bool            invalidatedIdempotentCache:1; 
     bool            callDestroyHook:1;
     bool            isGenerator:1;    
     bool            hasScriptCounts:1;
