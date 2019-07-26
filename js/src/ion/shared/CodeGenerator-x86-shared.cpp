@@ -379,35 +379,40 @@ CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
 
     JS_ASSERT(first == output);
 
-    Assembler::Condition cond = ins->mir()->isMax()
-                               ? Assembler::Above
-                               : Assembler::Below;
-    Label nan, equal, returnSecond, done;
-
-    masm.ucomisd(second, first);
-    masm.j(Assembler::Parity, &nan); 
-    masm.j(Assembler::Equal, &equal); 
-    masm.j(cond, &returnSecond);
-    masm.jmp(&done);
+    Label done, nan, minMaxInst;
 
     
-    masm.bind(&equal);
-    masm.xorpd(ScratchFloatReg, ScratchFloatReg);
-    masm.ucomisd(first, ScratchFloatReg);
-    masm.j(Assembler::NotEqual, &done); 
+    
+    
+    
+    
+    masm.ucomisd(first, second);
+    masm.j(Assembler::NotEqual, &minMaxInst);
+    masm.j(Assembler::Parity, &nan);
+
+    
+    
     
     if (ins->mir()->isMax())
-        masm.addsd(second, first); 
+        masm.andpd(second, first);
     else
-        masm.orpd(second, first); 
-    masm.jmp(&done);
+        masm.orpd(second, first);
+    masm.jump(&done);
 
+    
+    
+    
     masm.bind(&nan);
-    masm.loadStaticDouble(&js_NaN, output);
-    masm.jmp(&done);
+    masm.ucomisd(first, first);
+    masm.j(Assembler::Parity, &done);
 
-    masm.bind(&returnSecond);
-    masm.movsd(second, output);
+    
+    
+    masm.bind(&minMaxInst);
+    if (ins->mir()->isMax())
+        masm.maxsd(second, first);
+    else
+        masm.minsd(second, first);
 
     masm.bind(&done);
     return true;
