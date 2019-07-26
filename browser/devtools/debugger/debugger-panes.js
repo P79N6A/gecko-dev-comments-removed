@@ -2483,7 +2483,7 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
 
     
     this.items
-      .filter(e => e.description == description)
+      .filter(e => e.attachment.group == description)
       .forEach(e => this.callMethod("checkItem", e.target, checked));
   },
 
