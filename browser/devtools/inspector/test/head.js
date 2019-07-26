@@ -98,6 +98,7 @@ function getNode(nodeOrSelector) {
 
 
 
+
 function selectNode(nodeOrSelector, inspector, reason="test") {
   info("Selecting the node " + nodeOrSelector);
   let node = getNode(nodeOrSelector);

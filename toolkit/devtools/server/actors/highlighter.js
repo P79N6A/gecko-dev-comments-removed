@@ -925,53 +925,63 @@ BoxModelHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototype, {
 
   _moveInfobar: function() {
     let bounds = this._getOuterBounds();
+    let winHeight = this.win.innerHeight * this.zoom;
+    let winWidth = this.win.innerWidth * this.zoom;
 
-    if (bounds.width > 0 || bounds.height > 0) {
-      let winHeight = this.win.innerHeight * this.zoom;
-      let winWidth = this.win.innerWidth * this.zoom;
+    
+    
+    let positionerBottom = Math.max(0, bounds.bottom);
+    let positionerTop = Math.max(0, bounds.top);
 
-      this.nodeInfo.positioner.removeAttribute("disabled");
+    
+    if (this.chromeDoc.defaultView.gBrowser) {
       
-      if (bounds.top < this.nodeInfo.barHeight) {
+      let viewportTop = this.browser.getBoundingClientRect().top;
+
+      
+      let findbar = this.chromeDoc.defaultView.gBrowser.getFindBar();
+      let findTop = findbar.getBoundingClientRect().top - viewportTop;
+
+      
+      positionerTop = Math.min(positionerTop, findTop);
+    }
+
+    this.nodeInfo.positioner.removeAttribute("disabled");
+    
+    if (positionerTop < this.nodeInfo.barHeight) {
+      
+      if (positionerBottom + this.nodeInfo.barHeight > winHeight) {
         
-        if (bounds.bottom + this.nodeInfo.barHeight > winHeight) {
-          
-          this.nodeInfo.positioner.style.top = bounds.top + "px";
-          this.nodeInfo.positioner.setAttribute("position", "overlap");
-        } else {
-          
-          this.nodeInfo.positioner.style.top = bounds.bottom - INFO_BAR_OFFSET + "px";
-          this.nodeInfo.positioner.setAttribute("position", "bottom");
-        }
+        this.nodeInfo.positioner.style.top = positionerTop + "px";
+        this.nodeInfo.positioner.setAttribute("position", "overlap");
       } else {
         
-        this.nodeInfo.positioner.style.top =
-          bounds.top + INFO_BAR_OFFSET - this.nodeInfo.barHeight + "px";
-        this.nodeInfo.positioner.setAttribute("position", "top");
+        this.nodeInfo.positioner.style.top = positionerBottom - INFO_BAR_OFFSET + "px";
+        this.nodeInfo.positioner.setAttribute("position", "bottom");
       }
-
-      let barWidth = this.nodeInfo.positioner.getBoundingClientRect().width;
-      let left = bounds.right - bounds.width / 2 - barWidth / 2;
-
+    } else {
       
-      if (left < 0) {
-        left = 0;
+      this.nodeInfo.positioner.style.top =
+        positionerTop + INFO_BAR_OFFSET - this.nodeInfo.barHeight + "px";
+      this.nodeInfo.positioner.setAttribute("position", "top");
+    }
+
+    let barWidth = this.nodeInfo.positioner.getBoundingClientRect().width;
+    let left = bounds.right - bounds.width / 2 - barWidth / 2;
+
+    
+    if (left < 0) {
+      left = 0;
+      this.nodeInfo.positioner.setAttribute("hide-arrow", "true");
+    } else {
+      if (left + barWidth > winWidth) {
+        left = winWidth - barWidth;
         this.nodeInfo.positioner.setAttribute("hide-arrow", "true");
       } else {
-        if (left + barWidth > winWidth) {
-          left = winWidth - barWidth;
-          this.nodeInfo.positioner.setAttribute("hide-arrow", "true");
-        } else {
-          this.nodeInfo.positioner.removeAttribute("hide-arrow");
-        }
+        this.nodeInfo.positioner.removeAttribute("hide-arrow");
       }
-      this.nodeInfo.positioner.style.left = left + "px";
-    } else {
-      this.nodeInfo.positioner.style.left = "0";
-      this.nodeInfo.positioner.style.top = "0";
-      this.nodeInfo.positioner.setAttribute("position", "top");
-      this.nodeInfo.positioner.setAttribute("hide-arrow", "true");
     }
+    this.nodeInfo.positioner.style.left = left + "px";
   }
 });
 
