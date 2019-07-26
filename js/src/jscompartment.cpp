@@ -289,19 +289,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
     RootedObject obj(cx, &vp->toObject());
 
-    
-
-
-
-
-
-
-
-
-
-    RootedObject proto(cx, obj->getTaggedProto().raw());
-    if (!wrap(cx, proto.address()))
-        return false;
+    JSObject *proto = Proxy::LazyProto;
 
     
 

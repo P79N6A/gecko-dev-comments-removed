@@ -1576,7 +1576,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
         
         
         map.remove(p);
-        NukeCrossCompartmentWrapper(newIdentity);
+        NukeCrossCompartmentWrapper(cx, newIdentity);
 
         if (!newIdentity->swap(cx, target))
             return NULL;
@@ -1649,7 +1649,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         
         
         map.remove(p);
-        NukeCrossCompartmentWrapper(newWrapper);
+        NukeCrossCompartmentWrapper(cx, newWrapper);
 
         if (!newWrapper->swap(cx, targetwrapper))
             return NULL;
