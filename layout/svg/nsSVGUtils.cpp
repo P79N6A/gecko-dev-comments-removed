@@ -148,12 +148,6 @@ NS_SVGDisplayListPaintingEnabled()
   return sSVGDisplayListPaintingEnabled;
 }
 
-bool
-NS_SVGTextCSSFramesEnabled()
-{
-  return true;
-}
-
 
 static mozilla::gfx::UserDataKey sSVGAutoRenderStateKey;
 

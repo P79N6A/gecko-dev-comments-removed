@@ -136,7 +136,6 @@ class Element;
 
 bool NS_SVGDisplayListHitTestingEnabled();
 bool NS_SVGDisplayListPaintingEnabled();
-bool NS_SVGTextCSSFramesEnabled();
 
 
 
