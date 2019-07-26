@@ -11,7 +11,6 @@ const Cu = Components.utils;
 
 const PANE_APPEARANCE_DELAY = 50;
 const PAGE_SIZE_ITEM_COUNT_RATIO = 5;
-const WIDGET_FOCUSABLE_NODES = new Set(["vbox", "hbox"]);
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -1118,21 +1117,16 @@ this.WidgetMethods = {
   _focusChange: function(aDirection) {
     let commandDispatcher = this._commandDispatcher;
     let prevFocusedElement = commandDispatcher.focusedElement;
-    let currFocusedElement;
 
-    do {
-      commandDispatcher.suppressFocusScroll = true;
-      commandDispatcher[aDirection]();
-      currFocusedElement = commandDispatcher.focusedElement;
+    commandDispatcher.suppressFocusScroll = true;
+    commandDispatcher[aDirection]();
 
-      
-      
-      if (!this.getItemForElement(currFocusedElement)) {
-        prevFocusedElement.focus();
-        return false;
-      }
-    } while (!WIDGET_FOCUSABLE_NODES.has(currFocusedElement.tagName));
-
+    
+    
+    if (!this.getItemForElement(commandDispatcher.focusedElement)) {
+      prevFocusedElement.focus();
+      return false;
+    }
     
     return true;
   },
@@ -1214,10 +1208,7 @@ this.WidgetMethods = {
 
   getItemForElement: function(aElement) {
     while (aElement) {
-      let item =
-        this._itemsByElement.get(aElement) ||
-        this._itemsByElement.get(aElement.nextElementSibling) ||
-        this._itemsByElement.get(aElement.previousElementSibling);
+      let item = this._itemsByElement.get(aElement);
       if (item) {
         return item;
       }
