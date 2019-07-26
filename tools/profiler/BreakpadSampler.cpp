@@ -194,7 +194,7 @@ void populateBuffer(UnwinderThreadBuffer* utb, TickSample* sample,
       
       
       if (!sLastTracerEvent.IsNull()) {
-        mozilla::TimeDuration delta = sample->timestamp - sLastTracerEvent;
+        TimeDuration delta = sample->timestamp - sLastTracerEvent;
         if (delta.ToMilliseconds() > 100.0) {
             recordSample = true;
         }
@@ -234,12 +234,12 @@ void populateBuffer(UnwinderThreadBuffer* utb, TickSample* sample,
 
   
   if (!sLastTracerEvent.IsNull() && sample) {
-    mozilla::TimeDuration delta = sample->timestamp - sLastTracerEvent;
+    TimeDuration delta = sample->timestamp - sLastTracerEvent;
     utb__addEntry( utb, ProfileEntry('r', static_cast<float>(delta.ToMilliseconds())) );
   }
 
   if (sample) {
-    mozilla::TimeDuration delta = sample->timestamp - sStartTime;
+    TimeDuration delta = sample->timestamp - sStartTime;
     utb__addEntry( utb, ProfileEntry('t', static_cast<float>(delta.ToMilliseconds())) );
   }
 
