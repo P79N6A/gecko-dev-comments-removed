@@ -1722,8 +1722,13 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         
         
         if (Build.VERSION.SDK_INT >= 11) {
-            db.enableWriteAheadLogging();
-            db.setLockingEnabled(false);
+            
+            if (Build.VERSION.SDK_INT < 16) {
+                db.enableWriteAheadLogging();
+
+                
+                db.setLockingEnabled(false);
+            }
         } else {
             
             cursor = null;
