@@ -1,11 +1,10 @@
 
 
-load(libdir + "asserts.js");
-load(libdir + "eqArrayHelper.js");
+load(libdir + "iteration.js");
 
 var map = Map();
-var iter0 = map.iterator(), iter1 = map.iterator();
-assertThrowsValue(function () { iter0.next(); }, StopIteration);  
+var iter0 = map[std_iterator](), iter1 = map[std_iterator]();
+assertIteratorResult(iter0.next(), undefined, true);  
 map.set(1, 2);
-assertThrowsValue(function () { iter0.next(); }, StopIteration);  
-assertEqArray(iter1.next(), [1, 2]);  
+assertIteratorResult(iter0.next(), undefined, true);  
+assertIteratorResult(iter1.next(), [1, 2], false);  

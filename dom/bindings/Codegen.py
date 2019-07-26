@@ -1514,9 +1514,9 @@ class MethodDefiner(PropertyDefiner):
 
         
         if any(m.isGetter() and m.isIndexed() for m in methods):
-            self.regular.append({"name": 'iterator',
+            self.regular.append({"name": "@@iterator",
                                  "methodInfo": False,
-                                 "nativeName": "JS_ArrayIterator",
+                                 "selfHostedName": "ArrayIterator",
                                  "length": 0,
                                  "flags": "JSPROP_ENUMERATE",
                                  "condition": MemberCondition(None, None) })

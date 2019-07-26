@@ -363,6 +363,7 @@ enum StmtType {
     STMT_DO_LOOP,               
     STMT_FOR_LOOP,              
     STMT_FOR_IN_LOOP,           
+    STMT_FOR_OF_LOOP,           
     STMT_WHILE_LOOP,            
     STMT_LIMIT
 };

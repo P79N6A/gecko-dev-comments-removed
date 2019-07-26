@@ -1,8 +1,10 @@
 
 
 load(libdir + "asserts.js");
+load(libdir + "iteration.js");
+
 function test(v) {
-    Array.prototype.iterator = v;
+    Array.prototype[std_iterator] = v;
     assertThrowsInstanceOf(function () { for (var x of []) ; }, TypeError);
 }
 test(undefined);
