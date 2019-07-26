@@ -9,10 +9,12 @@
 #include "mozilla/NullPtr.h"
 #include <stdint.h>
 #include "mozilla/TimeStamp.h"
-#include "jsfriendapi.h"
 
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
+
+struct JSContext;
+class JSObject;
 
 
 

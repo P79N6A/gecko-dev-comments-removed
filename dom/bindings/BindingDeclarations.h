@@ -14,7 +14,8 @@
 #define mozilla_dom_BindingDeclarations_h__
 
 #include "nsStringGlue.h"
-#include "jsapi.h"
+#include "js/Value.h"
+#include "js/RootingAPI.h"
 #include "mozilla/Util.h"
 #include "nsCOMPtr.h"
 #include "nsDOMString.h"
@@ -22,6 +23,8 @@
 #include "nsTArray.h"
 #include "nsAutoPtr.h" 
 
+struct JSContext;
+class JSObject;
 class nsWrapperCache;
 
 
@@ -72,7 +75,7 @@ public:
   }
 
 private:
-  JS::RootedObject mGlobalJSObject;
+  JS::Rooted<JSObject*> mGlobalJSObject;
   nsISupports* mGlobalObject;
   nsCOMPtr<nsISupports> mGlobalObjectRef;
 };
@@ -624,6 +627,34 @@ struct ParentObject {
 
   nsISupports* const mObject;
   nsWrapperCache* const mWrapperCache;
+};
+
+
+class Date {
+public:
+  
+  Date();
+  Date(double aMilliseconds) :
+    mMsecSinceEpoch(aMilliseconds)
+  {}
+
+  bool IsUndefined() const;
+  double TimeStamp() const
+  {
+    return mMsecSinceEpoch;
+  }
+  void SetTimeStamp(double aMilliseconds)
+  {
+    mMsecSinceEpoch = aMilliseconds;
+  }
+  
+  
+  bool SetTimeStamp(JSContext* cx, JSObject* obj);
+
+  bool ToDateObject(JSContext* cx, JS::MutableHandle<JS::Value> rval) const;
+
+private:
+  double mMsecSinceEpoch;
 };
 
 } 

@@ -14,13 +14,16 @@
 #include "sqlite3.h"
 #include "nsIVariant.h"
 #include "nsError.h"
-#include "jsapi.h"
 #include "nsAutoPtr.h"
 
 class mozIStorageCompletionCallback;
 class mozIStorageBaseStatement;
 class mozIStorageBindingParams;
 class nsIRunnable;
+
+namespace JS {
+class Value;
+}
 
 namespace mozilla {
 namespace storage {
@@ -66,7 +69,7 @@ void checkAndLogStatementPerformance(sqlite3_stmt *aStatement);
 
 
 
-nsIVariant *convertJSValToVariant(JSContext *aCtx, jsval aValue);
+nsIVariant *convertJSValToVariant(JSContext *aCtx, JS::Value aValue);
 
 
 

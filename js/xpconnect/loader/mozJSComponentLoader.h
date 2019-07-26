@@ -5,7 +5,6 @@
 
 
 #include "plhash.h"
-#include "jsapi.h"
 #include "mozilla/ModuleLoader.h"
 #include "nsIJSRuntimeService.h"
 #include "nsISupports.h"

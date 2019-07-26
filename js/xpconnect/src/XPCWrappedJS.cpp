@@ -7,6 +7,7 @@
 
 
 #include "xpcprivate.h"
+#include "jsprf.h"
 #include "nsCxPusher.h"
 #include "nsContentUtils.h"
 #include "nsProxyRelease.h"

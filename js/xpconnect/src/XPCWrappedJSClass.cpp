@@ -8,6 +8,7 @@
 
 
 #include "xpcprivate.h"
+#include "jsprf.h"
 #include "nsArrayEnumerator.h"
 #include "nsContentUtils.h"
 #include "nsWrapperCache.h"

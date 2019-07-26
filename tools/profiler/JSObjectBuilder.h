@@ -11,6 +11,7 @@
 class JSCustomObject;
 class JSCustomObjectBuilder;
 struct JSContext;
+class JSObject;
 class nsAString;
 
 

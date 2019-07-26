@@ -7,6 +7,8 @@
 
 
 #include "xpcprivate.h"
+#include "jsdbgapi.h"
+#include "jsprf.h"
 
 class XPCJSStackFrame : public nsIStackFrame
 {

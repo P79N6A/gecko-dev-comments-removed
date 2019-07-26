@@ -12,7 +12,7 @@
 #include "nsISupports.h"
 #include "xpt_struct.h"
 #include "xptinfo.h"
-#include "jsapi.h"
+#include "js/Value.h"
 
 struct nsXPTCMiniVariant
 {
@@ -38,7 +38,7 @@ struct nsXPTCMiniVariant
         
         
         
-        jsval j;
+        JS::Value j;
     } val;
 };
 

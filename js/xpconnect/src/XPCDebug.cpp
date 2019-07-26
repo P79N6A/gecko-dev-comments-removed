@@ -5,6 +5,8 @@
 
 
 #include "xpcprivate.h"
+#include "jsdbgapi.h"
+#include "jsprf.h"
 
 #ifdef XP_WIN
 #include <windows.h>

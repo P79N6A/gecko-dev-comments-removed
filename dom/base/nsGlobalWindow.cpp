@@ -4,14 +4,13 @@
 
 
 
-#include "nsGlobalWindow.h"
-
 #include <algorithm>
 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
 
 
+#include "nsGlobalWindow.h"
 #include "Navigator.h"
 #include "nsScreen.h"
 #include "nsHistory.h"
@@ -184,6 +183,7 @@
 #endif
 #include "prlog.h"
 #include "prenv.h"
+#include "prprf.h"
 
 #include "mozilla/dom/indexedDB/IDBFactory.h"
 #include "mozilla/dom/quota/QuotaManager.h"
@@ -1546,6 +1546,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsGlobalWindow)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventTarget)
   NS_INTERFACE_MAP_ENTRY(mozilla::dom::EventTarget)
   NS_INTERFACE_MAP_ENTRY(nsPIDOMWindow)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMStorageIndexedDB)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
   NS_INTERFACE_MAP_ENTRY(nsIDOMWindowPerformance)
@@ -8961,6 +8962,10 @@ nsGlobalWindow::GetLocalStorage(nsIDOMStorage ** aLocalStorage)
   NS_ADDREF(*aLocalStorage = mLocalStorage);
   return NS_OK;
 }
+
+
+
+
 
 NS_IMETHODIMP
 nsGlobalWindow::GetIndexedDB(nsISupports** _retval)

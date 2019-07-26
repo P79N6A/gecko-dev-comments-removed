@@ -5,6 +5,7 @@
 
 
 #include "jsdbgapi.h"
+#include "jsfriendapi.h"
 #include "jsd_xpc.h"
 
 #include "js/GCAPI.h"

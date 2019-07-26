@@ -2,8 +2,6 @@
 
 
 
-#include "jsapi.h"
-
 #define EXPORT_CDECL(type)   NS_EXPORT type
 
 NS_EXTERN_C
