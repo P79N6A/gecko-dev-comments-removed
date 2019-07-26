@@ -990,7 +990,7 @@ JSD_EvaluateUCScriptInStackFrame(JSDContext* jsdc,
                                  JSDStackFrameInfo* jsdframe,
                                  const jschar *bytes, unsigned length,
                                  const char *filename, unsigned lineno,
-                                 jsval *rval);
+                                 JS::MutableHandleValue rval);
 
 
 
@@ -1001,7 +1001,7 @@ JSD_AttemptUCScriptInStackFrame(JSDContext* jsdc,
                                 JSDStackFrameInfo* jsdframe,
                                 const jschar *bytes, unsigned length,
                                 const char *filename, unsigned lineno,
-                                jsval *rval);
+                                JS::MutableHandleValue rval);
 
 
 extern JSD_PUBLIC_API(JSBool)
@@ -1009,7 +1009,7 @@ JSD_EvaluateScriptInStackFrame(JSDContext* jsdc,
                                JSDThreadState* jsdthreadstate,
                                JSDStackFrameInfo* jsdframe,
                                const char *bytes, unsigned length,
-                               const char *filename, unsigned lineno, jsval *rval);
+                               const char *filename, unsigned lineno, JS::MutableHandleValue rval);
 
 
 
@@ -1019,7 +1019,7 @@ JSD_AttemptScriptInStackFrame(JSDContext* jsdc,
                               JSDThreadState* jsdthreadstate,
                               JSDStackFrameInfo* jsdframe,
                               const char *bytes, unsigned length,
-                              const char *filename, unsigned lineno, jsval *rval);
+                              const char *filename, unsigned lineno, JS::MutableHandleValue rval);
 
 
 
