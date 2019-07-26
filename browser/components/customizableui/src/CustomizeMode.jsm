@@ -48,6 +48,8 @@ function CustomizeMode(aWindow) {
   
   
   this.visiblePalette = this.document.getElementById(kPaletteId);
+  this.paletteEmptyNotice = this.document.getElementById("customization-empty");
+  this.paletteSpacer = this.document.getElementById("customization-spacer");
 };
 
 CustomizeMode.prototype = {
@@ -228,6 +230,8 @@ CustomizeMode.prototype = {
 
       
       this.visiblePalette.hidden = false;
+      this.paletteSpacer.hidden = true;
+      this._updateEmptyPaletteNotice();
 
       this._handler.isEnteringCustomizeMode = false;
       this.dispatchToolboxEvent("customizationready");
@@ -273,7 +277,9 @@ CustomizeMode.prototype = {
     let documentElement = document.documentElement;
 
     
+    this.paletteSpacer.hidden = false;
     this.visiblePalette.hidden = true;
+    this.paletteEmptyNotice.hidden = true;
 
     this._transitioning = true;
 
@@ -913,7 +919,13 @@ CustomizeMode.prototype = {
   _onUIChange: function() {
     this._changed = true;
     this._updateResetButton();
+    this._updateEmptyPaletteNotice();
     this.dispatchToolboxEvent("customizationchange");
+  },
+
+  _updateEmptyPaletteNotice: function() {
+    let paletteItems = this.visiblePalette.getElementsByTagName("toolbarpaletteitem");
+    this.paletteEmptyNotice.hidden = !!paletteItems.length;
   },
 
   _updateResetButton: function() {
