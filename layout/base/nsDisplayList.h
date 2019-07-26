@@ -47,6 +47,10 @@ class ImageContainer;
 
 
 
+typedef mozilla::EnumSet<mozilla::gfx::CompositionOp> BlendModeSet;
+
+
+
 
 
 
@@ -688,8 +692,14 @@ public:
 
 
 
-  void SetContainsBlendMode(bool aContainsBlendMode) { mContainsBlendMode = aContainsBlendMode; }
-  bool ContainsBlendMode() const { return mContainsBlendMode; }
+  void SetContainsBlendMode(uint8_t aBlendMode);
+  void SetContainsBlendModes(const BlendModeSet& aModes) {
+    mContainedBlendModes = aModes;
+  }
+  bool ContainsBlendMode() const { return !mContainedBlendModes.isEmpty(); }
+  BlendModeSet& ContainedBlendModes() {
+    return mContainedBlendModes;
+  }
 
   DisplayListClipState& ClipState() { return mClipState; }
 
@@ -731,6 +741,7 @@ private:
   nsTArray<DisplayItemClip*>     mDisplayItemClipsToDestroy;
   Mode                           mMode;
   ViewID                         mCurrentScrollParentId;
+  BlendModeSet                   mContainedBlendModes;
   bool                           mBuildCaret;
   bool                           mIgnoreSuppression;
   bool                           mHadToIgnoreSuppression;
@@ -749,7 +760,6 @@ private:
   bool                           mIsPaintingToWindow;
   bool                           mIsCompositingCheap;
   bool                           mContainsPluginItem;
-  bool                           mContainsBlendMode;
   bool                           mAncestorHasTouchEventHandler;
   
   
@@ -2730,10 +2740,7 @@ public:
   }
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager,
-                                   const ContainerLayerParameters& aParameters) MOZ_OVERRIDE
-  {
-    return mozilla::LAYER_INACTIVE;
-  }
+                                   const ContainerLayerParameters& aParameters) MOZ_OVERRIDE;
   virtual bool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                  nsRegion* aVisibleRegion,
                                  const nsRect& aAllowVisibleRegionExpansion) MOZ_OVERRIDE;
@@ -2744,7 +2751,10 @@ public:
 class nsDisplayBlendContainer : public nsDisplayWrapList {
 public:
     nsDisplayBlendContainer(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                          nsDisplayList* aList, uint32_t aFlags = 0);
+                            nsDisplayList* aList,
+                            BlendModeSet& aContainedBlendModes);
+    nsDisplayBlendContainer(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                            nsDisplayList* aList);
 #ifdef NS_BUILD_REFCNT_LOGGING
     virtual ~nsDisplayBlendContainer();
 #endif
@@ -2756,10 +2766,20 @@ public:
                                      LayerManager* aManager,
                                      const ContainerLayerParameters& aParameters) MOZ_OVERRIDE
     {
-        return mozilla::LAYER_INACTIVE;
+      if (mCanBeActive && aManager->SupportsMixBlendModes(mContainedBlendModes)) {
+        return mozilla::LAYER_ACTIVE;
+      }
+      return mozilla::LAYER_INACTIVE;
     }
     virtual bool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem) MOZ_OVERRIDE;
     NS_DISPLAY_DECL_NAME("BlendContainer", TYPE_BLEND_CONTAINER)
+
+private:
+    
+    BlendModeSet mContainedBlendModes;
+    
+    
+    bool mCanBeActive;
 };
 
 
