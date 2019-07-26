@@ -63,8 +63,10 @@ void
 TraceXPCGlobal(JSTracer *trc, JSObject *obj);
 
 
+NS_EXPORT_(bool)
+xpc_LocalizeRuntime(JSRuntime *rt);
 NS_EXPORT_(void)
-xpc_LocalizeContext(JSContext *cx);
+xpc_DelocalizeRuntime(JSRuntime *rt);
 
 nsresult
 xpc_MorphSlimWrapper(JSContext *cx, nsISupports *tomorph);

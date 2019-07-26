@@ -1224,6 +1224,8 @@ XPCJSRuntime::~XPCJSRuntime()
 
     js::SetGCSliceCallback(mJSRuntime, mPrevGCSliceCallback);
 
+    xpc_DelocalizeRuntime(mJSRuntime);
+
     if (mWatchdogWakeup) {
         
         
@@ -2597,6 +2599,12 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     
     
     JS_SetSourceHook(mJSRuntime, SourceHook);
+
+    
+    
+    
+    if (!xpc_LocalizeRuntime(mJSRuntime))
+        NS_RUNTIMEABORT("xpc_LocalizeRuntime failed.");
 
     NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(XPConnectJSGCHeap));
     NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(XPConnectJSSystemCompartmentCount));

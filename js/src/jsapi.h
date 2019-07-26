@@ -2499,6 +2499,10 @@ extern JS_PUBLIC_API(char *)
 JS_strdup(JSContext *cx, const char *s);
 
 
+extern JS_PUBLIC_API(char *)
+JS_strdup(JSRuntime *rt, const char *s);
+
+
 
 
 
@@ -4675,13 +4679,13 @@ JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v);
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_SetDefaultLocale(JSContext *cx, const char *locale);
+JS_SetDefaultLocale(JSRuntime *rt, const char *locale);
 
 
 
 
 extern JS_PUBLIC_API(void)
-JS_ResetDefaultLocale(JSContext *cx);
+JS_ResetDefaultLocale(JSRuntime *rt);
 
 
 
@@ -4699,14 +4703,14 @@ struct JSLocaleCallbacks {
 
 
 extern JS_PUBLIC_API(void)
-JS_SetLocaleCallbacks(JSContext *cx, JSLocaleCallbacks *callbacks);
+JS_SetLocaleCallbacks(JSRuntime *rt, JSLocaleCallbacks *callbacks);
 
 
 
 
 
 extern JS_PUBLIC_API(JSLocaleCallbacks *)
-JS_GetLocaleCallbacks(JSContext *cx);
+JS_GetLocaleCallbacks(JSRuntime *rt);
 
 
 

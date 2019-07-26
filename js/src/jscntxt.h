@@ -594,6 +594,12 @@ struct JSRuntime : js::RuntimeFriendFields,
     js::CompartmentVector compartments;
 
     
+    JSLocaleCallbacks *localeCallbacks;
+
+    
+    char *defaultLocale;
+
+    
 #ifdef JS_THREADSAFE
   public:
     void *ownerThread() const { return ownerThread_; }
@@ -676,6 +682,10 @@ struct JSRuntime : js::RuntimeFriendFields,
         return ionRuntime_ ? ionRuntime_ : createIonRuntime(cx);
     }
 
+    
+    
+    
+
     bool initSelfHosting(JSContext *cx);
     void markSelfHostingGlobal(JSTracer *trc);
     bool isSelfHostingGlobal(js::HandleObject global) {
@@ -685,6 +695,25 @@ struct JSRuntime : js::RuntimeFriendFields,
                                        js::Handle<JSFunction*> targetFun);
     bool cloneSelfHostedValue(JSContext *cx, js::Handle<js::PropertyName*> name,
                               js::MutableHandleValue vp);
+
+    
+    
+    
+
+    
+
+
+
+
+
+
+    bool setDefaultLocale(const char *locale);
+
+    
+    void resetDefaultLocale();
+
+    
+    const char *getDefaultLocale();
 
     
     uintptr_t           nativeStackBase;
@@ -1369,29 +1398,8 @@ struct JSContext : js::ContextFriendFields,
     
     unsigned            options_;            
 
-    
-    char                *defaultLocale;
-
   public:
     int32_t             reportGranularity;  
-
-    
-
-
-
-
-
-
-    bool setDefaultLocale(const char *locale);
-
-    
-    void resetDefaultLocale();
-
-    
-    const char *getDefaultLocale();
-
-    
-    JSLocaleCallbacks   *localeCallbacks;
 
     js::AutoResolving   *resolvingList;
 
