@@ -421,10 +421,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             
             Layer rootLayer = mView.getLayerClient().getRoot();
             mRenderOffset = mFrameMetrics.getMarginOffset();
-            float scaleDiff = mFrameMetrics.zoomFactor / rootLayer.getResolution();
-            mRenderOffset.set(mRenderOffset.x * scaleDiff,
-                              mRenderOffset.y * scaleDiff);
-
             mPageContext = createPageContext(metrics, mRenderOffset);
             mScreenContext = createScreenContext(metrics, mRenderOffset);
 
