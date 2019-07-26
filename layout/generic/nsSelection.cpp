@@ -1466,7 +1466,7 @@ nsFrameSelection::TakeFocus(nsIContent *aNewFocus,
       
       mDomSelections[index]->RemoveCollapsedRanges();
 
-      nsRefPtr<nsRange> newRange = new nsRange(aNewFocus);
+      nsRefPtr<nsRange> newRange = new nsRange();
 
       newRange->SetStart(aNewFocus, aContentOffset);
       newRange->SetEnd(aNewFocus, aContentOffset);
@@ -2866,7 +2866,7 @@ nsFrameSelection::CreateAndAddRange(nsINode *aParentNode, int32_t aOffset)
 {
   if (!aParentNode) return NS_ERROR_NULL_POINTER;
 
-  nsRefPtr<nsRange> range = new nsRange(aParentNode);
+  nsRefPtr<nsRange> range = new nsRange();
 
   
   nsresult result = range->SetStart(aParentNode, aOffset);
@@ -3276,7 +3276,7 @@ Selection::SubtractRange(RangeData* aRange, nsRange* aSubtract,
   if (cmp2 > 0) {
     
     
-    nsRefPtr<nsRange> postOverlap = new nsRange(aSubtract->GetEndParent());
+    nsRefPtr<nsRange> postOverlap = new nsRange();
 
     rv =
       postOverlap->SetStart(aSubtract->GetEndParent(), aSubtract->EndOffset());
@@ -3294,7 +3294,7 @@ Selection::SubtractRange(RangeData* aRange, nsRange* aSubtract,
   if (cmp < 0) {
     
     
-    nsRefPtr<nsRange> preOverlap = new nsRange(range->GetStartParent());
+    nsRefPtr<nsRange> preOverlap = new nsRange();
 
     nsresult rv =
      preOverlap->SetStart(range->GetStartParent(), range->StartOffset());
@@ -4398,7 +4398,7 @@ Selection::Collapse(nsINode* aParentNode, int32_t aOffset)
   
   mFrameSelection->ClearTableCellSelection();
 
-  nsRefPtr<nsRange> range = new nsRange(aParentNode);
+  nsRefPtr<nsRange> range = new nsRange();
   result = range->SetEnd(aParentNode, aOffset);
   if (NS_FAILED(result))
     return result;
@@ -4654,7 +4654,7 @@ Selection::Extend(nsINode* aParentNode, int32_t aOffset)
                                                   &disconnected);
 
   nsRefPtr<nsPresContext>  presContext = GetPresContext();
-  nsRefPtr<nsRange> difRange = new nsRange(aParentNode);
+  nsRefPtr<nsRange> difRange = new nsRange();
   if ((result1 == 0 && result3 < 0) || (result1 <= 0 && result2 < 0)){
     
     res = range->SetEnd(aParentNode, aOffset);
