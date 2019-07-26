@@ -199,16 +199,6 @@ public class AwesomeBarTabs extends TabHost
         styleSelectedTab();
     }
 
-    @Override
-    public void setCurrentTabByTag(String tag) {
-        for (int i = 0; i < mTabs.length; i++) {
-            if (tag.equals(mTabs[i].getTag())) {
-                mViewPager.setCurrentItem(i);
-                break;
-            }
-        }
-    }
-
     private void styleSelectedTab() {
         int selIndex = mViewPager.getCurrentItem();
         TabWidget tabWidget = getTabWidget();
