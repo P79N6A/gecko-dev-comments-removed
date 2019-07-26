@@ -132,6 +132,10 @@ class OmxDecoder : public RefBase {
   bool ToVideoFrame(VideoFrame *aFrame, int64_t aTimeUs, void *aData, size_t aSize, bool aKeyFrame);
   bool ToAudioFrame(AudioFrame *aFrame, int64_t aTimeUs, void *aData, size_t aDataOffset, size_t aSize,
                     int32_t aAudioChannels, int32_t aAudioSampleRate);
+
+  
+  bool mPaused;
+
 public:
   OmxDecoder(MediaResource *aResource, AbstractMediaDecoder *aDecoder);
   ~OmxDecoder();
@@ -172,6 +176,12 @@ public:
   }
 
   bool ReleaseVideoBuffer(MediaBuffer *aBuffer);
+
+  
+  nsresult Play();
+
+  
+  void Pause();
 };
 
 }
