@@ -19,11 +19,11 @@ IterNext(JSContext *cx, unsigned argc, jsval *vp)
 static JSObject *
 IterHook(JSContext *cx, JS::HandleObject obj, bool keysonly)
 {
-    JS::RootedObject iterObj(cx, JS_NewObject(cx, NULL, NULL, NULL));
+    JS::RootedObject iterObj(cx, JS_NewObject(cx, nullptr, nullptr, nullptr));
     if (!iterObj)
-        return NULL;
+        return nullptr;
     if (!JS_DefineFunction(cx, iterObj, "next", IterNext, 0, 0))
-        return NULL;
+        return nullptr;
     return iterObj;
 }
 
@@ -37,15 +37,15 @@ const js::Class HasCustomIterClass = {
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    NULL,
-    NULL, 
-    NULL, 
-    NULL, 
-    NULL, 
-    NULL, 
+    nullptr,
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     {
-        NULL,       
-        NULL,       
+        nullptr,     
+        nullptr,     
         IterHook,
         false        
     }
@@ -63,8 +63,8 @@ IterClassConstructor(JSContext *cx, unsigned argc, jsval *vp)
 
 BEGIN_TEST(testCustomIterator_bug612523)
 {
-    CHECK(JS_InitClass(cx, global, NULL, Jsvalify(&HasCustomIterClass),
-                       IterClassConstructor, 0, NULL, NULL, NULL, NULL));
+    CHECK(JS_InitClass(cx, global, nullptr, Jsvalify(&HasCustomIterClass),
+                       IterClassConstructor, 0, nullptr, nullptr, nullptr, nullptr));
 
     JS::RootedValue result(cx);
     EVAL("var o = new HasCustomIter(); \n"
