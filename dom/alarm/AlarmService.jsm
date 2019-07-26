@@ -515,6 +515,11 @@ this.AlarmService = {
           return;
         }
 
+        
+        if (params.browserOnly) {
+          return;
+        }
+
         let manifestURL = appsService.getManifestURLByLocalId(params.appId);
         if (!manifestURL) {
           debug("Error! Fail to remove alarms for an uninstalled app.");
