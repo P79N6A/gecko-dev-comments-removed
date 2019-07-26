@@ -27,6 +27,9 @@ public final class ThreadUtils {
     public static MessageQueue sGeckoQueue;
     public static Thread sGeckoThread;
 
+    
+    private static volatile Runnable sPriorityResetRunnable;
+
     @SuppressWarnings("serial")
     public static class UiThreadBlockedException extends RuntimeException {
         public UiThreadBlockedException() {
@@ -126,5 +129,38 @@ public final class ThreadUtils {
 
     public static boolean isOnThread(Thread thread) {
         return (Thread.currentThread().getId() == thread.getId());
+    }
+
+    
+
+
+
+
+
+
+
+
+    public static void reduceGeckoPriority(long timeout) {
+        sGeckoThread.setPriority(Thread.MIN_PRIORITY);
+        sPriorityResetRunnable = new Runnable() {
+            @Override
+            public void run() {
+                resetGeckoPriority();
+            }
+        };
+        getUiHandler().postDelayed(sPriorityResetRunnable, timeout);
+    }
+
+    
+
+
+
+    public static void resetGeckoPriority() {
+        if (sPriorityResetRunnable != null) {
+            sGeckoThread.setPriority(Thread.NORM_PRIORITY);
+
+            getUiHandler().removeCallbacks(sPriorityResetRunnable);
+            sPriorityResetRunnable = null;
+        }
     }
 }

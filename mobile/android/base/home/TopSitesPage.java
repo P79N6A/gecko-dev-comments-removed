@@ -109,6 +109,9 @@ public class TopSitesPage extends HomeFragment {
     private int mMaxGridEntries;
 
     
+    private static final long PRIORITY_RESET_TIMEOUT = 10000;
+
+    
 
 
     public static class Thumbnail {
@@ -359,6 +362,14 @@ public class TopSitesPage extends HomeFragment {
     @Override
     protected void load() {
         getLoaderManager().initLoader(LOADER_ID_TOP_SITES, null, mCursorLoaderCallbacks);
+
+        
+        
+        
+        
+        
+        
+        ThreadUtils.reduceGeckoPriority(PRIORITY_RESET_TIMEOUT);
     }
 
     
@@ -769,6 +780,10 @@ public class TopSitesPage extends HomeFragment {
             if (mGridAdapter != null) {
                 mGridAdapter.updateThumbnails(thumbnails);
             }
+
+            
+            
+            ThreadUtils.resetGeckoPriority();
         }
 
         @Override
