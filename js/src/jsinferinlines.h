@@ -104,17 +104,29 @@ CompilerOutput::ion() const
 }
 
 inline CompilerOutput*
-RecompileInfo::compilerOutput(TypeCompartment &types) const
+RecompileInfo::compilerOutput(TypeZone &types) const
 {
-    if (!types.constrainedOutputs || outputIndex >= types.constrainedOutputs->length())
+    if (!types.compilerOutputs || outputIndex >= types.compilerOutputs->length())
         return nullptr;
-    return &(*types.constrainedOutputs)[outputIndex];
+    return &(*types.compilerOutputs)[outputIndex];
 }
 
 inline CompilerOutput*
 RecompileInfo::compilerOutput(JSContext *cx) const
 {
-    return compilerOutput(cx->compartment()->types);
+    return compilerOutput(cx->zone()->types);
+}
+
+inline bool
+RecompileInfo::shouldSweep(TypeZone &types)
+{
+    CompilerOutput *output = compilerOutput(types);
+    if (!output || !output->isValid())
+        return true;
+
+    
+    outputIndex = output->sweepIndex();
+    return false;
 }
 
 
@@ -289,13 +301,12 @@ struct AutoEnterAnalysis
 
 
 
-
         if (!compartment->activeAnalysis) {
-            TypeCompartment *types = &compartment->types;
-            if (compartment->zone()->types.pendingNukeTypes)
-                compartment->zone()->types.nukeTypes(freeOp);
-            else if (types->pendingRecompiles)
-                types->processPendingRecompiles(freeOp);
+            TypeZone &types = compartment->zone()->types;
+            if (types.pendingNukeTypes)
+                types.nukeTypes(freeOp);
+            else if (types.pendingRecompiles)
+                types.processPendingRecompiles(freeOp);
         }
     }
 
@@ -852,50 +863,6 @@ TypeCompartment::compartment()
     return (JSCompartment *)((char *)this - offsetof(JSCompartment, types));
 }
 
-inline void
-TypeCompartment::addPending(JSContext *cx, TypeConstraint *constraint,
-                            ConstraintTypeSet *source, Type type)
-{
-    JS_ASSERT(this == &cx->compartment()->types);
-    JS_ASSERT(!cx->runtime()->isHeapBusy());
-
-    InferSpew(ISpewOps, "pending: %sC%p%s %s",
-              InferSpewColor(constraint), constraint, InferSpewColorReset(),
-              TypeString(type));
-
-    if ((pendingCount == pendingCapacity) && !growPendingArray(cx))
-        return;
-
-    PendingWork &pending = pendingArray[pendingCount++];
-    pending.constraint = constraint;
-    pending.source = source;
-    pending.type = type;
-}
-
-inline void
-TypeCompartment::resolvePending(JSContext *cx)
-{
-    JS_ASSERT(this == &cx->compartment()->types);
-
-    if (resolving) {
-        
-        return;
-    }
-
-    resolving = true;
-
-    
-    while (pendingCount) {
-        const PendingWork &pending = pendingArray[--pendingCount];
-        InferSpew(ISpewOps, "resolve: %sC%p%s %s",
-                  InferSpewColor(pending.constraint), pending.constraint,
-                  InferSpewColorReset(), TypeString(pending.type));
-        pending.constraint->newType(cx, pending.source, pending.type);
-    }
-
-    resolving = false;
-}
-
 
 
 
@@ -1219,10 +1186,9 @@ ConstraintTypeSet::addType(ExclusiveContext *cxArg, Type type)
     if (JSContext *cx = cxArg->maybeJSContext()) {
         TypeConstraint *constraint = constraintList;
         while (constraint) {
-            cx->compartment()->types.addPending(cx, constraint, this, type);
+            constraint->newType(cx, this, type);
             constraint = constraint->next;
         }
-        cx->compartment()->types.resolvePending(cx);
     } else {
         JS_ASSERT(!constraintList);
     }
