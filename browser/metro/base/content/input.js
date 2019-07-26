@@ -146,10 +146,12 @@ var TouchModule = {
             
             
             
-            setTimeout(function () {
-              SelectionHelperUI.attachEditSession(Browser.selectedTab.browser,
-                                                  aEvent.clientX, aEvent.clientY);
-            }, 50);
+            if (!SelectionHelperUI.isActive) {
+              setTimeout(function () {
+                SelectionHelperUI.attachEditSession(Browser.selectedTab.browser,
+                                                    aEvent.clientX, aEvent.clientY);
+              }, 50);
+            }
             break;
         }
       }

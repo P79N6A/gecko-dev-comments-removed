@@ -76,6 +76,7 @@ function Marker(aParent, aTag, aElementId, xPos, yPos) {
   this._yPos = yPos;
   this._selectionHelperUI = aParent;
   this._element = document.getElementById(aElementId);
+  this._elementId = aElementId;
   
   this._element.customDragger = new MarkerDragger(this);
   this.tag = aTag;
@@ -83,6 +84,7 @@ function Marker(aParent, aTag, aElementId, xPos, yPos) {
 
 Marker.prototype = {
   _element: null,
+  _elementId: "",
   _selectionHelperUI: null,
   _xPos: 0,
   _yPos: 0,
@@ -171,8 +173,12 @@ Marker.prototype = {
   moveBy: function moveBy(aDx, aDy, aClientX, aClientY) {
     this._xPos -= aDx;
     this._yPos -= aDy;
-    this._selectionHelperUI.markerDragMove(this);
-    this._setPosition();
+    let direction = (aDx < 0 || aDy < 0 ? "end" : "start");
+    
+    
+    if (this._selectionHelperUI.markerDragMove(this, direction)) {
+      this._setPosition();
+    }
   },
 
   hitTest: function hitTest(aX, aY) {
@@ -187,6 +193,23 @@ Marker.prototype = {
       return true;
     return false;
   },
+
+  swapMonocle: function swapMonocle(aCaret) {
+    let targetElement = aCaret._element;
+    let targetElementId = aCaret._elementId;
+
+    aCaret._element = this._element;
+    aCaret._element.customDragger._marker = aCaret;
+    aCaret._elementId = this._elementId;
+
+    this._xPos = aCaret._xPos;
+    this._yPos = aCaret._yPos;
+    this._element = targetElement;
+    this._element.customDragger._marker = this;
+    this._elementId = targetElementId;
+    this._element.visible = true;
+  },
+
 };
 
 
@@ -203,24 +226,29 @@ var SelectionHelperUI = {
   _movement: { active: false, x:0, y: 0 },
   _activeSelectionRect: null,
   _selectionHandlerActive: false,
+  _selectionMarkIds: [],
+
+  
+
+
 
   get startMark() {
     if (this._startMark == null) {
-      this._startMark = new Marker(this, "start", "selectionhandle-start", 0, 0);
+      this._startMark = new Marker(this, "start", this._selectionMarkIds.pop(), 0, 0);
     }
     return this._startMark;
   },
 
   get endMark() {
     if (this._endMark == null) {
-      this._endMark = new Marker(this, "end", "selectionhandle-end", 0, 0);
+      this._endMark = new Marker(this, "end", this._selectionMarkIds.pop(), 0, 0);
     }
     return this._endMark;
   },
 
   get caretMark() {
     if (this._caretMark == null) {
-      this._caretMark = new Marker(this, "caret", "selectionhandle-caret", 0, 0);
+      this._caretMark = new Marker(this, "caret", this._selectionMarkIds.pop(), 0, 0);
     }
     return this._caretMark;
   },
@@ -234,16 +262,26 @@ var SelectionHelperUI = {
 
 
 
+  get isActive() {
+    return (this._msgTarget &&
+            this._selectionHandlerActive);
+  },
+
+  
+
+
+
+  
+
+
+
+
 
   openEditSession: function openEditSession(aContent, aClientX, aClientY) {
     if (!aContent || this.isActive)
       return;
     this._init(aContent);
     this._setupDebugOptions();
-
-    
-    this.startMark.setTrackBounds(aClientX, aClientY);
-    this.endMark.setTrackBounds(aClientX, aClientY);
 
     
     
@@ -265,10 +303,6 @@ var SelectionHelperUI = {
       return;
     this._init(aContent);
     this._setupDebugOptions();
-
-    
-    this.startMark.setTrackBounds(aClientX, aClientY);
-    this.endMark.setTrackBounds(aClientX, aClientY);
 
     
     
@@ -324,16 +358,6 @@ var SelectionHelperUI = {
 
 
 
-  get isActive() {
-    return (this._msgTarget &&
-            this._selectionHandlerActive);
-  },
-
-  
-
-
-
-
 
   closeEditSession: function closeEditSession() {
     this._sendAsyncMessage("Browser:SelectionClose");
@@ -358,6 +382,11 @@ var SelectionHelperUI = {
   _init: function _init(aMsgTarget) {
     
     this._msgTarget = aMsgTarget;
+
+    
+    this._selectionMarkIds = ["selectionhandle-mark1",
+                              "selectionhandle-mark2",
+                              "selectionhandle-mark3"];
 
     
     messageManager.addMessageListener("Content:SelectionRange", this);
@@ -419,10 +448,11 @@ var SelectionHelperUI = {
     if (this._caretMark != null)
       this._caretMark.shutdown();
 
-    delete this._startMark;
-    delete this._endMark;
-    delete this._caretMark;
+    this._startMark = null;
+    this._endMark = null;
+    this._caretMark = null;
 
+    this._selectionMarkIds = [];
     this._msgTarget = null;
     this._activeSelectionRect = null;
     this._selectionHandlerActive = false;
@@ -434,6 +464,54 @@ var SelectionHelperUI = {
   
 
 
+
+  
+
+
+
+
+
+
+  _swapCaretMarker: function _swapCaretMarker(aDirection) {
+    let targetMark = null;
+    if (aDirection == "start")
+      targetMark = this.startMark;
+    else
+      targetMark = this.endMark;
+    let caret = this.caretMark;
+    targetMark.swapMonocle(caret);
+    let id = caret._elementId;
+    caret.shutdown();
+    this._caretMark = null;
+    this._selectionMarkIds.push(id);
+  },
+
+  
+
+
+
+
+  _transitionFromCaretToSelection: function _transitionFromCaretToSelection(aDirection) {
+    
+    { let mark = this.startMark; mark = this.endMark; }
+
+    
+    
+    this._swapCaretMarker(aDirection);
+
+    let targetMark = null;
+    if (aDirection == "start")
+      targetMark = this.startMark;
+    else
+      targetMark = this.endMark;
+    
+    
+    
+    
+    targetMark._setPosition();
+    this.markerDragStart(targetMark);
+    this.markerDragMove(targetMark, aDirection);
+  },
 
   
 
@@ -731,13 +809,17 @@ var SelectionHelperUI = {
     this._sendAsyncMessage("Browser:SelectionMoveEnd", json);
   },
 
-  markerDragMove: function markerDragMove(aMarker) {
+  markerDragMove: function markerDragMove(aMarker, aDirection) {
     let json = this._getMarkerBaseMessage();
     json.change = aMarker.tag;
     if (aMarker.tag == "caret") {
-      this._sendAsyncMessage("Browser:CaretMove", json);
-      return;
+      
+      
+      
+      this._transitionFromCaretToSelection(aDirection);
+      return false;
     }
     this._sendAsyncMessage("Browser:SelectionMove", json);
+    return true;
   },
 };

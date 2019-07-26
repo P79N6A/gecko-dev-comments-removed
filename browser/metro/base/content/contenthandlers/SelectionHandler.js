@@ -412,7 +412,14 @@ var SelectionHandler = {
 
     
     
-    this._updateUIMarkerRects(selection);
+    
+    
+    try {
+      this._updateUIMarkerRects(selection);
+    } catch (ex) {
+      Util.dumpLn(ex.message);
+      return;
+    }
 
     this._cache.updateStart = aUpdateStart;
     this._cache.updateEnd = aUpdateEnd;
