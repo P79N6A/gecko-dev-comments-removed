@@ -587,7 +587,6 @@ protected:
       mText = aText;
       mMinTextModifiedOffset = NOT_MODIFIED;
       mInitialized = true;
-      mNotifyTSFOfLayoutChange = false;
     }
 
     const nsDependentSubstring GetSelectedText() const;
@@ -620,16 +619,6 @@ protected:
       return mInitialized && (mMinTextModifiedOffset != NOT_MODIFIED);
     }
 
-    void NeedsToNotifyTSFOfLayoutChange()
-    {
-      mNotifyTSFOfLayoutChange = true;
-    }
-
-    bool NeedToNotifyTSFOfLayoutChange() const
-    {
-      return mInitialized && mNotifyTSFOfLayoutChange;
-    }
-
     nsTextStore::Composition& Composition() { return mComposition; }
     nsTextStore::Selection& Selection() { return mSelection; }
 
@@ -646,7 +635,6 @@ protected:
     uint32_t mMinTextModifiedOffset;
 
     bool mInitialized;
-    bool mNotifyTSFOfLayoutChange;
   };
   
   
@@ -672,7 +660,13 @@ protected:
   
   
   
-  bool                         mNotifySelectionChange;
+  bool                         mPendingOnSelectionChange;
+  
+  
+  
+  
+  
+  bool                         mPendingOnLayoutChange;
   
   bool                         mNativeCaretIsCreated;
 
