@@ -115,6 +115,8 @@ public:
     
     eColorID__moz_menuhovertext,
     
+    eColorID__moz_menubar,
+    
     eColorID__moz_menubartext,
     
     eColorID__moz_menubarhovertext,
