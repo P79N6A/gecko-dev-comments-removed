@@ -3,7 +3,7 @@
 
 
 
-import os, posixpath, shlex, shutil, subprocess, sys, traceback
+import math, os, posixpath, shlex, shutil, subprocess, sys, traceback
 
 def add_libdir_to_path():
     from os.path import dirname, exists, join, realpath
@@ -97,6 +97,10 @@ def main(argv):
                   help='The location of libraries to push -- preferably stripped')
     op.add_option('--repeat', type=int, default=1,
                   help='Repeat tests the given number of times.')
+    op.add_option('--this-chunk', type=int, default=1,
+                  help='The test chunk to run.')
+    op.add_option('--total-chunks', type=int, default=1,
+                  help='The total number of test chunks.')
 
     options, args = op.parse_args(argv)
     if len(args) < 1:
@@ -159,6 +163,15 @@ def main(argv):
 
     if not options.run_slow:
         test_list = [ _ for _ in test_list if not _.slow ]
+
+    
+    
+    if options.total_chunks > 1:
+        total_tests = len(test_list)
+        tests_per_chunk = math.ceil(total_tests / float(options.total_chunks))
+        start = int(round((options.this_chunk - 1) * tests_per_chunk))
+        end = int(round(options.this_chunk * tests_per_chunk))
+        test_list = test_list[start:end]
 
     
     job_list = []
