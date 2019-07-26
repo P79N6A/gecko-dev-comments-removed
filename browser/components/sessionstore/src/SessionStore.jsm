@@ -3414,7 +3414,7 @@ let SessionStoreInternal = {
 
 
   isCurrentEpoch: function (browser, epoch) {
-    return this._browserEpochs.get(browser.permanentKey, 0) == epoch;
+    return (this._browserEpochs.get(browser.permanentKey) || 0) == epoch;
   },
 
 };
