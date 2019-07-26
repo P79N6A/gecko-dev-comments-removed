@@ -3,21 +3,24 @@
 
 
 
-#ifndef nsDOMKeyboardEvent_h__
-#define nsDOMKeyboardEvent_h__
+#ifndef mozilla_dom_KeyboardEvent_h_
+#define mozilla_dom_KeyboardEvent_h_
 
 #include "nsIDOMKeyEvent.h"
 #include "nsDOMUIEvent.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/dom/KeyboardEventBinding.h"
 
-class nsDOMKeyboardEvent : public nsDOMUIEvent,
-                           public nsIDOMKeyEvent
+namespace mozilla {
+namespace dom {
+
+class KeyboardEvent : public nsDOMUIEvent,
+                      public nsIDOMKeyEvent
 {
 public:
-  nsDOMKeyboardEvent(mozilla::dom::EventTarget* aOwner,
-                     nsPresContext* aPresContext,
-                     mozilla::WidgetKeyboardEvent* aEvent);
+  KeyboardEvent(EventTarget* aOwner,
+                nsPresContext* aPresContext,
+                WidgetKeyboardEvent* aEvent);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -30,7 +33,7 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
   {
-    return mozilla::dom::KeyboardEventBinding::Wrap(aCx, aScope, this);
+    return KeyboardEventBinding::Wrap(aCx, aScope, this);
   }
 
   bool AltKey();
@@ -53,7 +56,7 @@ public:
                     nsIDOMWindow* aView, bool aCtrlKey, bool aAltKey,
                     bool aShiftKey, bool aMetaKey,
                     uint32_t aKeyCode, uint32_t aCharCode,
-                    mozilla::ErrorResult& aRv)
+                    ErrorResult& aRv)
   {
     aRv = InitKeyEvent(aType, aCanBubble, aCancelable, aView,
                        aCtrlKey, aAltKey, aShiftKey,aMetaKey,
@@ -61,5 +64,7 @@ public:
   }
 };
 
+} 
+} 
 
 #endif 
