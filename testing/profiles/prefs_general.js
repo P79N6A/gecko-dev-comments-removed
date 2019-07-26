@@ -159,3 +159,6 @@ user_pref("browser.firstrun.count", 0);
 
 
 user_pref("browser.webapps.testing", true);
+
+
+user_pref("browser.snippets.enabled", false);
