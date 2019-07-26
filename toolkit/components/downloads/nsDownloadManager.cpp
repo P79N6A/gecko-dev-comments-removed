@@ -2525,6 +2525,13 @@ nsDownload::~nsDownload()
 {
 }
 
+NS_IMETHODIMP nsDownload::SetSha256Hash(const nsACString& aHash) {
+  MOZ_ASSERT(NS_IsMainThread(), "Must call SetSha256Hash on main thread");
+  
+  mHash = aHash;
+  return NS_OK;
+}
+
 #ifdef MOZ_ENABLE_GIO
 static void gio_set_metadata_done(GObject *source_obj, GAsyncResult *res, gpointer user_data)
 {
@@ -2587,7 +2594,6 @@ nsDownload::SetState(DownloadState aState)
 #endif
     case nsIDownloadManager::DOWNLOAD_FINISHED:
     {
-      
       nsresult rv = ExecuteDesiredAction();
       if (NS_FAILED(rv)) {
         
@@ -2929,6 +2935,8 @@ nsDownload::OnStateChange(nsIWebProgress *aWebProgress,
                           nsIRequest *aRequest, uint32_t aStateFlags,
                           nsresult aStatus)
 {
+  MOZ_ASSERT(NS_IsMainThread(), "Must call OnStateChange in main thread");
+
   
   nsRefPtr<nsDownload> kungFuDeathGrip = this;
 
@@ -3190,8 +3198,10 @@ nsDownload::ExecuteDesiredAction()
 {
   
   
-  if (!mTempFile || !WasResumed())
+  
+  if (!mTempFile) {
     return NS_OK;
+  }
 
   
   bool fileExists;

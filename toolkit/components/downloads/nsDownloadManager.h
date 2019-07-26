@@ -421,6 +421,11 @@ private:
   enum AutoResume { DONT_RESUME, AUTO_RESUME };
   AutoResume mAutoResume;
 
+  
+
+
+  nsAutoCString mHash;
+
   friend class nsDownloadManager;
 };
 
