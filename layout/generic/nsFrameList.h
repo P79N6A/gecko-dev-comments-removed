@@ -163,6 +163,36 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  inline bool StartRemoveFrame(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
+  inline bool ContinueRemoveFrame(nsIFrame* aFrame);
+
+  
+
+
+
   void DestroyFrame(nsIFrame* aFrame);
 
   
@@ -452,6 +482,14 @@ private:
   static const nsFrameList* sEmptyList;
 
 protected:
+  
+
+
+
+
+
+  static void UnhookFrameFromSiblings(nsIFrame* aFrame);
+
   nsIFrame* mFirstChild;
   nsIFrame* mLastChild;
 };
