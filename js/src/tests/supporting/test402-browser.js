@@ -22,11 +22,3 @@ setRestoreFunction((function () {
         Array.prototype.sort = Array_sort;
     };
 }()));
-
-
-
-
-
-
-include("supporting/testBuiltInObject.js");
-include("supporting/testIntl.js");
