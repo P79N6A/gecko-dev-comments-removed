@@ -72,16 +72,32 @@ class WeakCache : public HashMap<Key, Value, HashPolicy, AllocPolicy> {
     void sweep(FreeOp *fop) {
         
         for (Enum e(*this); !e.empty(); e.popFront()) {
-            if (!gc::IsMarked(e.front().key) || !gc::IsMarked(e.front().value))
+            
+            
+            Key k(e.front().key);
+            bool isKeyMarked = gc::IsMarked(&k);
+
+            if (!isKeyMarked || !gc::IsMarked(e.front().value)) {
                 e.removeFront();
+            } else {
+                
+                
+                
+                e.rekeyFront(k);
+            }
         }
 
 #if DEBUG
         
         
         for (Range r = Base::all(); !r.empty(); r.popFront()) {
-            JS_ASSERT(gc::IsMarked(r.front().key));
+            Key k(r.front().key);
+
+            JS_ASSERT(gc::IsMarked(&k));
             JS_ASSERT(gc::IsMarked(r.front().value));
+
+            
+            JS_ASSERT(k == r.front().key);
         }
 #endif
     }

@@ -50,7 +50,7 @@ class nsAccessNodeWrap :  public nsAccessNode,
     STDMETHODIMP QueryService(REFGUID guidService, REFIID riid, void** ppv);
 
 public: 
-  nsAccessNodeWrap(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsAccessNodeWrap(nsIContent* aContent, DocAccessible* aDoc);
   virtual ~nsAccessNodeWrap();
 
     
@@ -119,7 +119,7 @@ public:
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT Msg,
                                      WPARAM WParam, LPARAM lParam);
 
-  static nsRefPtrHashtable<nsPtrHashKey<void>, nsDocAccessible> sHWNDCache;
+  static nsRefPtrHashtable<nsPtrHashKey<void>, DocAccessible> sHWNDCache;
 
 protected:
 

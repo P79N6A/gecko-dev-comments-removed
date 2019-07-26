@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var dtdTests = ["attrdefaultvalue","attrnotspecifiedvalue", "attrremovechild1",
                 "attrreplacechild1", "attrsetvaluenomodificationallowederr",
                 "attrsetvaluenomodificationallowederrEE", "attrspecifiedvalueremove",

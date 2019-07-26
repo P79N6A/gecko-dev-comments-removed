@@ -20,7 +20,7 @@ class nsHTMLImageAccessible : public nsLinkableAccessible,
                               public nsIAccessibleImage
 {
 public:
-  nsHTMLImageAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsHTMLImageAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -75,7 +75,7 @@ private:
 
 
 inline nsHTMLImageAccessible*
-nsAccessible::AsImage()
+Accessible::AsImage()
 {
   return IsImage() ?
     static_cast<nsHTMLImageAccessible*>(this) : nsnull;

@@ -472,7 +472,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
           
           
           
-          version = js::VersionSetXML(JSVersion(version), true);
+          version = js::VersionSetMoarXML(JSVersion(version), true);
       }
     }
   } else {

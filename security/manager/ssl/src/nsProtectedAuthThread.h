@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSPROTECTEDAUTHTHREAD_H_
 #define NSPROTECTEDAUTHTHREAD_H_
 

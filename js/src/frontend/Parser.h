@@ -35,6 +35,7 @@ enum VarContext { HoistVars, DontHoistVars };
 struct Parser : private AutoGCRooter
 {
     JSContext           *const context; 
+    StrictModeGetter    strictModeGetter; 
     TokenStream         tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    
@@ -54,8 +55,9 @@ struct Parser : private AutoGCRooter
     
     const bool          compileAndGo:1;
 
-    Parser(JSContext *cx, JSPrincipals *prin = NULL, JSPrincipals *originPrin = NULL,
-           StackFrame *cfp = NULL, bool fold = true, bool compileAndGo = false);
+    Parser(JSContext *cx, JSPrincipals *prin, JSPrincipals *originPrin,
+           const jschar *chars, size_t length, const char *fn, unsigned ln, JSVersion version,
+           StackFrame *cfp, bool foldConstants, bool compileAndGo);
     ~Parser();
 
     friend void AutoGCRooter::trace(JSTracer *trc);
@@ -67,16 +69,13 @@ struct Parser : private AutoGCRooter
 
 
 
-
-    bool init(const jschar *base, size_t length, const char *filename, unsigned lineno,
-              JSVersion version);
+    bool init();
 
     void setPrincipals(JSPrincipals *prin, JSPrincipals *originPrin);
 
     const char *getFilename() const { return tokenStream.getFilename(); }
     JSVersion versionWithFlags() const { return tokenStream.versionWithFlags(); }
     JSVersion versionNumber() const { return tokenStream.versionNumber(); }
-    bool hasXML() const { return tokenStream.hasXML(); }
 
     
 
@@ -146,6 +145,8 @@ struct Parser : private AutoGCRooter
     enum FunctionBodyType { StatementListBody, ExpressionBody };
     ParseNode *functionBody(FunctionBodyType type);
 
+    bool checkForArgumentsAndRest();
+
   private:
     
 
@@ -179,6 +180,7 @@ struct Parser : private AutoGCRooter
                          VarContext varContext = HoistVars);
     ParseNode *expr();
     ParseNode *assignExpr();
+    ParseNode *assignExprWithoutYield(unsigned err);
     ParseNode *condExpr1();
     ParseNode *orExpr1();
     ParseNode *andExpr1i();
@@ -208,7 +210,7 @@ struct Parser : private AutoGCRooter
 
 
     enum FunctionType { Getter, Setter, Normal };
-    bool functionArguments(ParseNode **list);
+    bool functionArguments(ParseNode **list, bool &hasDefaults, bool &hasRest);
 
     ParseNode *functionDef(HandlePropertyName name, FunctionType type, FunctionSyntaxKind kind);
 
@@ -229,6 +231,9 @@ struct Parser : private AutoGCRooter
     ParseNode *identifierName(bool afterDoubleDot);
 
 #if JS_HAS_XML_SUPPORT
+    
+    bool allowsXML() const { return !tc->sc->inStrictMode() && tokenStream.allowsXML(); }
+
     ParseNode *endBracketedExpr();
 
     ParseNode *propertySelector();

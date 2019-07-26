@@ -33,10 +33,10 @@ NS_INTERFACE_MAP_END
 
 SpdySession2::SpdySession2(nsAHttpTransaction *aHttpTransaction,
                          nsISocketTransport *aSocketTransport,
-                         int32_t firstPriority)
+                         PRInt32 firstPriority)
   : mSocketTransport(aSocketTransport),
-    mSegmentReader(nullptr),
-    mSegmentWriter(nullptr),
+    mSegmentReader(nsnull),
+    mSegmentWriter(nsnull),
     mSendingChunkSize(ASpdySession::kSendingChunkSize),
     mNextStreamID(1),
     mConcurrentHighWater(0),
@@ -44,8 +44,8 @@ SpdySession2::SpdySession2(nsAHttpTransaction *aHttpTransaction,
     mInputFrameBufferSize(kDefaultBufferSize),
     mInputFrameBufferUsed(0),
     mInputFrameDataLast(false),
-    mInputFrameDataStream(nullptr),
-    mNeedsCleanup(nullptr),
+    mInputFrameDataStream(nsnull),
+    mNeedsCleanup(nsnull),
     mDecompressBufferSize(kDefaultBufferSize),
     mDecompressBufferUsed(0),
     mShouldGoAway(false),
@@ -77,8 +77,7 @@ SpdySession2::SpdySession2(nsAHttpTransaction *aHttpTransaction,
   zlibInit();
   
   mSendingChunkSize = gHttpHandler->SpdySendingChunkSize();
-  if (!aHttpTransaction->IsNullTransaction())
-    AddStream(aHttpTransaction, firstPriority);
+  AddStream(aHttpTransaction, firstPriority);
   mLastDataReadEpoch = mLastReadEpoch;
   
   DeterminePingThreshold();
@@ -92,7 +91,7 @@ SpdySession2::DeterminePingThreshold()
   if (!mPingThreshold || !gHttpHandler->AllowExperiments())
     return;
 
-  uint32_t randomVal = gHttpHandler->Get32BitsOfPseudoRandom();
+  PRUint32 randomVal = gHttpHandler->Get32BitsOfPseudoRandom();
   
   
   
@@ -129,9 +128,9 @@ SpdySession2::ShutdownEnumerator(nsAHttpTransaction *key,
   
   
   if (self->mCleanShutdown && (stream->StreamID() > self->mGoAwayID))
-    self->CloseStream(stream, NS_ERROR_NET_RESET); 
+    stream->Close(NS_ERROR_NET_RESET); 
   else
-    self->CloseStream(stream, NS_ERROR_ABORT);
+    stream->Close(NS_ERROR_ABORT);
 
   return PL_DHASH_NEXT;
 }
@@ -153,7 +152,7 @@ SpdySession2::~SpdySession2()
 
 void
 SpdySession2::LogIO(SpdySession2 *self, SpdyStream2 *stream, const char *label,
-                   const char *data, uint32_t datalen)
+                   const char *data, PRUint32 datalen)
 {
   if (!LOG4_ENABLED())
     return;
@@ -163,7 +162,7 @@ SpdySession2::LogIO(SpdySession2 *self, SpdyStream2 *stream, const char *label,
 
   
   char linebuf[128];
-  uint32_t index;
+  PRUint32 index;
   char *line = linebuf;
 
   linebuf[127] = 0;
@@ -191,7 +190,7 @@ SpdySession2::LogIO(SpdySession2 *self, SpdyStream2 *stream, const char *label,
 typedef nsresult  (*Control_FX) (SpdySession2 *self);
 static Control_FX sControlFunctions[] = 
 {
-  nullptr,
+  nsnull,
   SpdySession2::HandleSynStream,
   SpdySession2::HandleSynReply,
   SpdySession2::HandleRstStream,
@@ -299,7 +298,7 @@ SpdySession2::ClearPing(bool pingOK)
   }
 }
 
-uint32_t
+PRUint32
 SpdySession2::RegisterStreamID(SpdyStream2 *stream)
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
@@ -310,7 +309,7 @@ SpdySession2::RegisterStreamID(SpdyStream2 *stream)
   NS_ABORT_IF_FALSE(mNextStreamID < 0xfffffff0,
                     "should have stopped admitting streams");
   
-  uint32_t result = mNextStreamID;
+  PRUint32 result = mNextStreamID;
   mNextStreamID += 2;
 
   
@@ -333,7 +332,7 @@ SpdySession2::RegisterStreamID(SpdyStream2 *stream)
 
 bool
 SpdySession2::AddStream(nsAHttpTransaction *aHttpTransaction,
-                       int32_t aPriority)
+                       PRInt32 aPriority)
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
   NS_ABORT_IF_FALSE(!mStreamTransactionHash.Get(aHttpTransaction),
@@ -393,8 +392,8 @@ SpdySession2::ActivateStream(SpdyStream2 *stream)
   
   
   if (mSegmentReader) {
-    uint32_t countRead;
-    ReadSegments(nullptr, kDefaultBufferSize, &countRead);
+    PRUint32 countRead;
+    ReadSegments(nsnull, kDefaultBufferSize, &countRead);
   }
 }
 
@@ -415,7 +414,7 @@ SpdySession2::ProcessPending()
 
 nsresult
 SpdySession2::NetworkRead(nsAHttpSegmentWriter *writer, char *buf,
-                         uint32_t count, uint32_t *countWritten)
+                         PRUint32 count, PRUint32 *countWritten)
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
@@ -439,8 +438,8 @@ SpdySession2::FlushOutputQueue()
     return;
   
   nsresult rv;
-  uint32_t countRead;
-  uint32_t avail = mOutputQueueUsed - mOutputQueueSent;
+  PRUint32 countRead;
+  PRUint32 avail = mOutputQueueUsed - mOutputQueueSent;
 
   rv = mSegmentReader->
     OnReadSegment(mOutputQueueBuffer.get() + mOutputQueueSent, avail,
@@ -481,7 +480,7 @@ SpdySession2::DontReuse()
     Close(NS_OK);
 }
 
-uint32_t
+PRUint32
 SpdySession2::GetWriteQueueSize()
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
@@ -516,14 +515,14 @@ SpdySession2::ResetDownstreamState()
     }
   }
   mInputFrameBufferUsed = 0;
-  mInputFrameDataStream = nullptr;
+  mInputFrameDataStream = nsnull;
 }
 
 void
 SpdySession2::EnsureBuffer(nsAutoArrayPtr<char> &buf,
-                          uint32_t newSize,
-                          uint32_t preserve,
-                          uint32_t &objSize)
+                          PRUint32 newSize,
+                          PRUint32 preserve,
+                          PRUint32 &objSize)
 {
   if (objSize >= newSize)
       return;
@@ -552,9 +551,7 @@ SpdySession2::zlibInit()
   mUpstreamZlib.zfree = SpdyStream2::zlib_destructor;
   mUpstreamZlib.opaque = Z_NULL;
 
-  
-  
-  deflateInit(&mUpstreamZlib, Z_NO_COMPRESSION);
+  deflateInit(&mUpstreamZlib, Z_DEFAULT_COMPRESSION);
   deflateSetDictionary(&mUpstreamZlib,
                        reinterpret_cast<const unsigned char *>
                        (SpdyStream2::kDictionary),
@@ -563,13 +560,12 @@ SpdySession2::zlibInit()
 }
 
 nsresult
-SpdySession2::DownstreamUncompress(char *blockStart, uint32_t blockLen)
+SpdySession2::DownstreamUncompress(char *blockStart, PRUint32 blockLen)
 {
   mDecompressBufferUsed = 0;
 
   mDownstreamZlib.avail_in = blockLen;
   mDownstreamZlib.next_in = reinterpret_cast<unsigned char *>(blockStart);
-  bool triedDictionary = false;
 
   do {
     mDownstreamZlib.next_out =
@@ -578,18 +574,11 @@ SpdySession2::DownstreamUncompress(char *blockStart, uint32_t blockLen)
     mDownstreamZlib.avail_out = mDecompressBufferSize - mDecompressBufferUsed;
     int zlib_rv = inflate(&mDownstreamZlib, Z_NO_FLUSH);
 
-    if (zlib_rv == Z_NEED_DICT) {
-      if (triedDictionary) {
-        LOG3(("SpdySession2::DownstreamUncompress %p Dictionary Error\n", this));
-        return NS_ERROR_FAILURE;
-      }
-      
-      triedDictionary = true;
+    if (zlib_rv == Z_NEED_DICT)
       inflateSetDictionary(&mDownstreamZlib,
                            reinterpret_cast<const unsigned char *>
                            (SpdyStream2::kDictionary),
                            strlen(SpdyStream2::kDictionary) + 1);
-    }
     
     if (zlib_rv == Z_DATA_ERROR || zlib_rv == Z_MEM_ERROR)
       return NS_ERROR_FAILURE;
@@ -623,12 +612,12 @@ SpdySession2::FindHeader(nsCString name,
     (mDecompressBuffer.get()) + mDecompressBufferUsed;
   if (lastHeaderByte < nvpair)
     return NS_ERROR_ILLEGAL_VALUE;
-  uint16_t numPairs =
-    PR_ntohs(reinterpret_cast<uint16_t *>(mDecompressBuffer.get())[0]);
-  for (uint16_t index = 0; index < numPairs; ++index) {
+  PRUint16 numPairs =
+    PR_ntohs(reinterpret_cast<PRUint16 *>(mDecompressBuffer.get())[0]);
+  for (PRUint16 index = 0; index < numPairs; ++index) {
     if (lastHeaderByte < nvpair + 2)
       return NS_ERROR_ILLEGAL_VALUE;
-    uint32_t nameLen = (nvpair[0] << 8) + nvpair[1];
+    PRUint32 nameLen = (nvpair[0] << 8) + nvpair[1];
     if (lastHeaderByte < nvpair + 2 + nameLen)
       return NS_ERROR_ILLEGAL_VALUE;
     nsDependentCSubstring nameString =
@@ -636,7 +625,7 @@ SpdySession2::FindHeader(nsCString name,
                 reinterpret_cast<const char *>(nvpair) + 2 + nameLen);
     if (lastHeaderByte < nvpair + 4 + nameLen)
       return NS_ERROR_ILLEGAL_VALUE;
-    uint16_t valueLen = (nvpair[2 + nameLen] << 8) + nvpair[3 + nameLen];
+    PRUint16 valueLen = (nvpair[2 + nameLen] << 8) + nvpair[3 + nameLen];
     if (lastHeaderByte < nvpair + 4 + nameLen + valueLen)
       return NS_ERROR_ILLEGAL_VALUE;
     if (nameString.Equals(name)) {
@@ -675,14 +664,14 @@ SpdySession2::ConvertHeaders(nsDependentCSubstring &status,
   if (lastHeaderByte < nvpair)
     return NS_ERROR_ILLEGAL_VALUE;
 
-  uint16_t numPairs =
-    PR_ntohs(reinterpret_cast<uint16_t *>(mDecompressBuffer.get())[0]);
+  PRUint16 numPairs =
+    PR_ntohs(reinterpret_cast<PRUint16 *>(mDecompressBuffer.get())[0]);
 
-  for (uint16_t index = 0; index < numPairs; ++index) {
+  for (PRUint16 index = 0; index < numPairs; ++index) {
     if (lastHeaderByte < nvpair + 2)
       return NS_ERROR_ILLEGAL_VALUE;
 
-    uint32_t nameLen = (nvpair[0] << 8) + nvpair[1];
+    PRUint32 nameLen = (nvpair[0] << 8) + nvpair[1];
     if (lastHeaderByte < nvpair + 2 + nameLen)
       return NS_ERROR_ILLEGAL_VALUE;
 
@@ -727,7 +716,7 @@ SpdySession2::ConvertHeaders(nsDependentCSubstring &status,
       return NS_ERROR_ILLEGAL_VALUE;
     }
 
-    uint16_t valueLen = (nvpair[2 + nameLen] << 8) + nvpair[3 + nameLen];
+    PRUint16 valueLen = (nvpair[2 + nameLen] << 8) + nvpair[3 + nameLen];
     if (lastHeaderByte < nvpair + 4 + nameLen + valueLen)
       return NS_ERROR_ILLEGAL_VALUE;
 
@@ -772,7 +761,7 @@ SpdySession2::ConvertHeaders(nsDependentCSubstring &status,
 }
 
 void
-SpdySession2::GeneratePing(uint32_t aID)
+SpdySession2::GeneratePing(PRUint32 aID)
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
   LOG3(("SpdySession2::GeneratePing %p 0x%X\n", this, aID));
@@ -798,7 +787,7 @@ SpdySession2::GeneratePing(uint32_t aID)
 }
 
 void
-SpdySession2::GenerateRstStream(uint32_t aStatusCode, uint32_t aID)
+SpdySession2::GenerateRstStream(PRUint32 aStatusCode, PRUint32 aID)
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
   LOG3(("SpdySession2::GenerateRst %p 0x%X %d\n", this, aID, aStatusCode));
@@ -851,20 +840,15 @@ SpdySession2::GenerateGoAway()
 
 
 bool
-SpdySession2::VerifyStream(SpdyStream2 *aStream, uint32_t aOptionalID = 0)
+SpdySession2::VerifyStream(SpdyStream2 *aStream, PRUint32 aOptionalID = 0)
 {
   
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
-#ifndef DEBUG
-  
-  return true;
-#endif
-
   if (!aStream)
     return true;
 
-  uint32_t test = 0;
+  PRUint32 test = 0;
   
   do {
     if (aStream->StreamID() == kDeadStreamID)
@@ -927,39 +911,17 @@ SpdySession2::CleanupStream(SpdyStream2 *aStream, nsresult aResult,
     ProcessPending();
   }
   
-  CloseStream(aStream, aResult);
-
-  
-  
-  mStreamIDHash.Remove(aStream->StreamID());
-
-  
-  
-  
-  mStreamTransactionHash.Remove(aStream->Transaction());
-
-  if (mShouldGoAway && !mStreamTransactionHash.Count())
-    Close(NS_OK);
-}
-
-void
-SpdySession2::CloseStream(SpdyStream2 *aStream, nsresult aResult)
-{
-  NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
-  LOG3(("SpdySession2::CloseStream %p %p 0x%x %X\n",
-        this, aStream, aStream->StreamID(), aResult));
-
   
   if (aStream == mInputFrameDataStream) {
     LOG3(("Stream had active partial read frame on close"));
     ChangeDownstreamState(DISCARDING_DATA_FRAME);
-    mInputFrameDataStream = nullptr;
+    mInputFrameDataStream = nsnull;
   }
 
   
   
-  uint32_t size = mReadyForWrite.GetSize();
-  for (uint32_t count = 0; count < size; ++count) {
+  PRUint32 size = mReadyForWrite.GetSize();
+  for (PRUint32 count = 0; count < size; ++count) {
     SpdyStream2 *stream = static_cast<SpdyStream2 *>(mReadyForWrite.PopFront());
     if (stream != aStream)
       mReadyForWrite.Push(stream);
@@ -968,7 +930,7 @@ SpdySession2::CloseStream(SpdyStream2 *aStream, nsresult aResult)
   
   
   size = mUrgentForWrite.GetSize();
-  for (uint32_t count = 0; count < size; ++count) {
+  for (PRUint32 count = 0; count < size; ++count) {
     SpdyStream2 *stream = static_cast<SpdyStream2 *>(mUrgentForWrite.PopFront());
     if (stream != aStream)
       mUrgentForWrite.Push(stream);
@@ -977,14 +939,26 @@ SpdySession2::CloseStream(SpdyStream2 *aStream, nsresult aResult)
   
   
   size = mQueuedStreams.GetSize();
-  for (uint32_t count = 0; count < size; ++count) {
+  for (PRUint32 count = 0; count < size; ++count) {
     SpdyStream2 *stream = static_cast<SpdyStream2 *>(mQueuedStreams.PopFront());
     if (stream != aStream)
       mQueuedStreams.Push(stream);
   }
 
   
+  
+  mStreamIDHash.Remove(aStream->StreamID());
+
+  
   aStream->Close(aResult);
+
+  
+  
+  
+  mStreamTransactionHash.Remove(aStream->Transaction());
+
+  if (mShouldGoAway && !mStreamTransactionHash.Count())
+    Close(NS_OK);
 }
 
 nsresult
@@ -999,10 +973,10 @@ SpdySession2::HandleSynStream(SpdySession2 *self)
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  uint32_t streamID =
-    PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
-  uint32_t associatedID =
-    PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[3]);
+  PRUint32 streamID =
+    PR_ntohl(reinterpret_cast<PRUint32 *>(self->mInputFrameBuffer.get())[2]);
+  PRUint32 associatedID =
+    PR_ntohl(reinterpret_cast<PRUint32 *>(self->mInputFrameBuffer.get())[3]);
 
   LOG3(("SpdySession2::HandleSynStream %p recv SYN_STREAM (push) "
         "for ID 0x%X associated with 0x%X.",
@@ -1037,7 +1011,7 @@ SpdySession2::HandleSynStream(SpdySession2 *self)
 }
 
 nsresult
-SpdySession2::SetInputFrameDataStream(uint32_t streamID)
+SpdySession2::SetInputFrameDataStream(PRUint32 streamID)
 {
   mInputFrameDataStream = mStreamIDHash.Get(streamID);
   if (VerifyStream(mInputFrameDataStream, streamID))
@@ -1045,7 +1019,7 @@ SpdySession2::SetInputFrameDataStream(uint32_t streamID)
 
   LOG(("SpdySession2::SetInputFrameDataStream failed to verify 0x%X\n",
        streamID));
-  mInputFrameDataStream = nullptr;
+  mInputFrameDataStream = nsnull;
   return NS_ERROR_UNEXPECTED;
 }
 
@@ -1075,8 +1049,8 @@ SpdySession2::HandleSynReply(SpdySession2 *self)
 
   LOG3(("SpdySession2::HandleSynReply %p lookup via streamID in syn_reply.\n",
         self));
-  uint32_t streamID =
-    PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
+  PRUint32 streamID =
+    PR_ntohl(reinterpret_cast<PRUint32 *>(self->mInputFrameBuffer.get())[2]);
   nsresult rv = self->SetInputFrameDataStream(streamID);
   if (NS_FAILED(rv))
     return rv;
@@ -1136,7 +1110,7 @@ SpdySession2::HandleSynReplyForValidStream()
   Telemetry::Accumulate(Telemetry::SPDY_SYN_REPLY_SIZE,
                         mInputFrameDataSize - 6);
   if (mDecompressBufferUsed) {
-    uint32_t ratio =
+    PRUint32 ratio =
       (mInputFrameDataSize - 6) * 100 / mDecompressBufferUsed;
     Telemetry::Accumulate(Telemetry::SPDY_SYN_REPLY_RATIO, ratio);
   }
@@ -1178,13 +1152,13 @@ SpdySession2::HandleRstStream(SpdySession2 *self)
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  uint8_t flags = reinterpret_cast<uint8_t *>(self->mInputFrameBuffer.get())[4];
+  PRUint8 flags = reinterpret_cast<PRUint8 *>(self->mInputFrameBuffer.get())[4];
 
-  uint32_t streamID =
-    PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
+  PRUint32 streamID =
+    PR_ntohl(reinterpret_cast<PRUint32 *>(self->mInputFrameBuffer.get())[2]);
 
   self->mDownstreamRstReason =
-    PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[3]);
+    PR_ntohl(reinterpret_cast<PRUint32 *>(self->mInputFrameBuffer.get())[3]);
 
   LOG3(("SpdySession2::HandleRstStream %p RST_STREAM Reason Code %u ID %x "
         "flags %x", self, self->mDownstreamRstReason, streamID, flags));
@@ -1233,8 +1207,8 @@ SpdySession2::HandleSettings(SpdySession2 *self)
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  uint32_t numEntries =
-    PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
+  PRUint32 numEntries =
+    PR_ntohl(reinterpret_cast<PRUint32 *>(self->mInputFrameBuffer.get())[2]);
 
   
   
@@ -1248,7 +1222,7 @@ SpdySession2::HandleSettings(SpdySession2 *self)
   LOG3(("SpdySession2::HandleSettings %p SETTINGS Control Frame with %d entries",
         self, numEntries));
 
-  for (uint32_t index = 0; index < numEntries; ++index) {
+  for (PRUint32 index = 0; index < numEntries; ++index) {
     
     
     
@@ -1257,9 +1231,9 @@ SpdySession2::HandleSettings(SpdySession2 *self)
     unsigned char *setting = reinterpret_cast<unsigned char *>
       (self->mInputFrameBuffer.get()) + 12 + index * 8;
 
-    uint32_t id = (setting[2] << 16) + (setting[1] << 8) + setting[0];
-    uint32_t flags = setting[3];
-    uint32_t value =  PR_ntohl(reinterpret_cast<uint32_t *>(setting)[1]);
+    PRUint32 id = (setting[2] << 16) + (setting[1] << 8) + setting[0];
+    PRUint32 flags = setting[3];
+    PRUint32 value =  PR_ntohl(reinterpret_cast<PRUint32 *>(setting)[1]);
 
     LOG3(("Settings ID %d, Flags %X, Value %d", id, flags, value));
 
@@ -1334,8 +1308,8 @@ SpdySession2::HandlePing(SpdySession2 *self)
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  uint32_t pingID =
-    PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
+  PRUint32 pingID =
+    PR_ntohl(reinterpret_cast<PRUint32 *>(self->mInputFrameBuffer.get())[2]);
 
   LOG3(("SpdySession2::HandlePing %p PING ID 0x%X.", self, pingID));
 
@@ -1366,7 +1340,7 @@ SpdySession2::HandleGoAway(SpdySession2 *self)
 
   self->mShouldGoAway = true;
   self->mGoAwayID =
-    PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
+    PR_ntohl(reinterpret_cast<PRUint32 *>(self->mInputFrameBuffer.get())[2]);
   self->mCleanShutdown = true;
   
   LOG3(("SpdySession2::HandleGoAway %p GOAWAY Last-Good-ID 0x%X.",
@@ -1388,8 +1362,8 @@ SpdySession2::HandleHeaders(SpdySession2 *self)
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  uint32_t streamID =
-    PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
+  PRUint32 streamID =
+    PR_ntohl(reinterpret_cast<PRUint32 *>(self->mInputFrameBuffer.get())[2]);
 
   
   
@@ -1426,7 +1400,7 @@ SpdySession2::HandleWindowUpdate(SpdySession2 *self)
 void
 SpdySession2::OnTransportStatus(nsITransport* aTransport,
                                nsresult aStatus,
-                               uint64_t aProgress)
+                               PRUint64 aProgress)
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
@@ -1480,8 +1454,8 @@ SpdySession2::OnTransportStatus(nsITransport* aTransport,
 
 nsresult
 SpdySession2::ReadSegments(nsAHttpSegmentReader *reader,
-                          uint32_t count,
-                          uint32_t *countRead)
+                          PRUint32 count,
+                          PRUint32 *countRead)
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
   
@@ -1587,8 +1561,8 @@ SpdySession2::ReadSegments(nsAHttpSegmentReader *reader,
 
 nsresult
 SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
-                           uint32_t count,
-                           uint32_t *countWritten)
+                           PRUint32 count,
+                           PRUint32 *countWritten)
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
   
@@ -1624,7 +1598,7 @@ SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
       return rv;
     }
 
-    LogIO(this, nullptr, "Reading Frame Header",
+    LogIO(this, nsnull, "Reading Frame Header",
           mInputFrameBuffer + mInputFrameBufferUsed, *countWritten);
 
     mInputFrameBufferUsed += *countWritten;
@@ -1640,7 +1614,7 @@ SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
     
     
     mInputFrameDataSize =
-      PR_ntohl(reinterpret_cast<uint32_t *>(mInputFrameBuffer.get())[1]);
+      PR_ntohl(reinterpret_cast<PRUint32 *>(mInputFrameBuffer.get())[1]);
     mInputFrameDataSize &= 0x00ffffff;
     mInputFrameDataRead = 0;
     
@@ -1651,12 +1625,12 @@ SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
       
       
       
-      uint16_t version =
-        PR_ntohs(reinterpret_cast<uint16_t *>(mInputFrameBuffer.get())[0]);
+      PRUint16 version =
+        PR_ntohs(reinterpret_cast<PRUint16 *>(mInputFrameBuffer.get())[0]);
       version &= 0x7fff;
       
       mFrameControlType =
-        PR_ntohs(reinterpret_cast<uint16_t *>(mInputFrameBuffer.get())[1]);
+        PR_ntohs(reinterpret_cast<PRUint16 *>(mInputFrameBuffer.get())[1]);
       
       LOG3(("SpdySession2::WriteSegments %p - Control Frame Identified "
             "type %d version %d data len %d",
@@ -1676,8 +1650,8 @@ SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
     else {
       ChangeDownstreamState(PROCESSING_DATA_FRAME);
 
-      uint32_t streamID =
-        PR_ntohl(reinterpret_cast<uint32_t *>(mInputFrameBuffer.get())[0]);
+      PRUint32 streamID =
+        PR_ntohl(reinterpret_cast<PRUint32 *>(mInputFrameBuffer.get())[0]);
       rv = SetInputFrameDataStream(streamID);
       if (NS_FAILED(rv)) {
         LOG(("SpdySession2::WriteSegments %p lookup streamID 0x%X failed. "
@@ -1738,11 +1712,11 @@ SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
     
     
     NS_ABORT_IF_FALSE(!mNeedsCleanup, "cleanup stream set unexpectedly");
-    mNeedsCleanup = nullptr;                     
+    mNeedsCleanup = nsnull;                     
 
     mSegmentWriter = writer;
     rv = mInputFrameDataStream->WriteSegments(this, count, countWritten);
-    mSegmentWriter = nullptr;
+    mSegmentWriter = nsnull;
 
     mLastDataReadEpoch = mLastReadEpoch;
 
@@ -1759,7 +1733,7 @@ SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
             mNeedsCleanup));
       CleanupStream(stream, NS_OK, RST_CANCEL);
       NS_ABORT_IF_FALSE(!mNeedsCleanup, "double cleanup out of data frame");
-      mNeedsCleanup = nullptr;                     
+      mNeedsCleanup = nsnull;                     
       return NS_OK;
     }
     
@@ -1768,7 +1742,7 @@ SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
             "cleanup stream based on mNeedsCleanup.\n",
             this, mNeedsCleanup, mNeedsCleanup ? mNeedsCleanup->StreamID() : 0));
       CleanupStream(mNeedsCleanup, NS_OK, RST_CANCEL);
-      mNeedsCleanup = nullptr;
+      mNeedsCleanup = nsnull;
     }
 
     
@@ -1778,7 +1752,7 @@ SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
 
   if (mDownstreamState == DISCARDING_DATA_FRAME) {
     char trash[4096];
-    uint32_t count = NS_MIN(4096U, mInputFrameDataSize - mInputFrameDataRead);
+    PRUint32 count = NS_MIN(4096U, mInputFrameDataSize - mInputFrameDataRead);
 
     if (!count) {
       ResetDownstreamState();
@@ -1796,7 +1770,7 @@ SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
       return rv;
     }
 
-    LogIO(this, nullptr, "Discarding Frame", trash, *countWritten);
+    LogIO(this, nsnull, "Discarding Frame", trash, *countWritten);
 
     mInputFrameDataRead += *countWritten;
 
@@ -1826,7 +1800,7 @@ SpdySession2::WriteSegments(nsAHttpSegmentWriter *writer,
     return rv;
   }
 
-  LogIO(this, nullptr, "Reading Control Frame",
+  LogIO(this, nsnull, "Reading Control Frame",
         mInputFrameBuffer + 8 + mInputFrameDataRead, *countWritten);
 
   mInputFrameDataRead += *countWritten;
@@ -1865,19 +1839,12 @@ SpdySession2::Close(nsresult aReason)
   LOG3(("SpdySession2::Close %p %X", this, aReason));
 
   mClosed = true;
-
-  NS_ABORT_IF_FALSE(mStreamTransactionHash.Count() ==
-                    mStreamIDHash.Count(),
-                    "index corruption");
   mStreamTransactionHash.Enumerate(ShutdownEnumerator, this);
-  mStreamIDHash.Clear();
-  mStreamTransactionHash.Clear();
-
   if (NS_SUCCEEDED(aReason))
     GenerateGoAway();
-  mConnection = nullptr;
-  mSegmentReader = nullptr;
-  mSegmentWriter = nullptr;
+  mConnection = nsnull;
+  mSegmentReader = nsnull;
+  mSegmentWriter = nsnull;
 }
 
 void
@@ -1910,8 +1877,8 @@ SpdySession2::CloseTransaction(nsAHttpTransaction *aTransaction,
 
 nsresult
 SpdySession2::OnReadSegment(const char *buf,
-                           uint32_t count,
-                           uint32_t *countRead)
+                           PRUint32 count,
+                           PRUint32 *countRead)
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
   
@@ -1932,7 +1899,7 @@ SpdySession2::OnReadSegment(const char *buf,
       return rv;
     
     if (*countRead < count) {
-      uint32_t required = count - *countRead;
+      PRUint32 required = count - *countRead;
       
       
       
@@ -1967,7 +1934,7 @@ SpdySession2::OnReadSegment(const char *buf,
 }
 
 nsresult
-SpdySession2::CommitToSegmentSize(uint32_t count)
+SpdySession2::CommitToSegmentSize(PRUint32 count)
 {
   if (mOutputQueueUsed)
     FlushOutputQueue();
@@ -2002,8 +1969,8 @@ SpdySession2::CommitToSegmentSize(uint32_t count)
 
 nsresult
 SpdySession2::OnWriteSegment(char *buf,
-                            uint32_t count,
-                            uint32_t *countWritten)
+                            PRUint32 count,
+                            PRUint32 *countWritten)
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
   nsresult rv;
@@ -2136,10 +2103,10 @@ nsHttpConnection *
 SpdySession2::TakeHttpConnection()
 {
   NS_ABORT_IF_FALSE(false, "TakeHttpConnection of SpdySession2");
-  return nullptr;
+  return nsnull;
 }
 
-uint32_t
+PRUint32
 SpdySession2::CancelPipeline(nsresult reason)
 {
   
@@ -2176,9 +2143,9 @@ SpdySession2::GetSecurityCallbacks(nsIInterfaceRequestor **,
 }
 
 void
-SpdySession2::SetProxyConnectFailed()
+SpdySession2::SetSSLConnectFailed()
 {
-  NS_ABORT_IF_FALSE(false, "SpdySession2::SetProxyConnectFailed()");
+  NS_ABORT_IF_FALSE(false, "SpdySession2::SetSSLConnectFailed()");
 }
 
 bool
@@ -2194,14 +2161,14 @@ SpdySession2::Status()
   return NS_ERROR_UNEXPECTED;
 }
 
-uint8_t
+PRUint8
 SpdySession2::Caps()
 {
   NS_ABORT_IF_FALSE(false, "SpdySession2::Caps()");
   return 0;
 }
 
-uint64_t
+PRUint32
 SpdySession2::Available()
 {
   NS_ABORT_IF_FALSE(false, "SpdySession2::Available()");
@@ -2218,7 +2185,7 @@ SpdySession2::RequestHead()
   return NULL;
 }
 
-uint32_t
+PRUint32
 SpdySession2::Http1xTransactionCount()
 {
   return 0;
@@ -2270,14 +2237,14 @@ SpdySession2::AddTransaction(nsAHttpTransaction *)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-uint32_t
+PRUint32
 SpdySession2::PipelineDepth()
 {
   return IsDone() ? 0 : 1;
 }
 
 nsresult
-SpdySession2::SetPipelinePosition(int32_t position)
+SpdySession2::SetPipelinePosition(PRInt32 position)
 {
   
   
@@ -2288,7 +2255,7 @@ SpdySession2::SetPipelinePosition(int32_t position)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-int32_t
+PRInt32
 SpdySession2::PipelinePosition()
 {
     return 0;
@@ -2324,7 +2291,7 @@ SpdySession2::IsReused()
 }
 
 nsresult
-SpdySession2::PushBack(const char *buf, uint32_t len)
+SpdySession2::PushBack(const char *buf, PRUint32 len)
 {
   return mConnection->PushBack(buf, len);
 }

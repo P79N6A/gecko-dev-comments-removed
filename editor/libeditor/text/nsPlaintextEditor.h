@@ -39,7 +39,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsPlaintextEditor, nsEditor)
 
   
-  enum {
+  enum ETypingAction {
     eTypedText,  
     eTypedBR,    
     eTypedBreak  
@@ -119,7 +119,7 @@ public:
   virtual already_AddRefed<nsIContent> GetInputEventTargetContent();
 
   
-  NS_IMETHOD TypedText(const nsAString& aString, PRInt32 aAction);
+  NS_IMETHOD TypedText(const nsAString& aString, ETypingAction aAction);
 
   
 

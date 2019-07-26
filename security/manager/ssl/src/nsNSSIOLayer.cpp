@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsNSSComponent.h"
 #include "nsNSSIOLayer.h"
 
@@ -98,8 +63,6 @@ extern PRLogModuleInfo* gPIPNSSLog;
 nsNSSSocketInfo::nsNSSSocketInfo()
   : mFd(nsnull),
     mCertVerificationState(before_cert_verification),
-    mCertVerificationStarted(0),
-    mCertVerificationEnded(0),
     mForSTARTTLS(false),
     mSSL3Enabled(false),
     mTLSEnabled(false),
@@ -109,6 +72,7 @@ nsNSSSocketInfo::nsNSSSocketInfo()
     mAllowTLSIntoleranceTimeout(true),
     mRememberClientAuthCertificate(false),
     mHandshakeStartTime(0),
+    mFirstServerHelloReceived(false),
     mNPNCompleted(false),
     mHandshakeCompleted(false),
     mJoined(false),
@@ -423,7 +387,6 @@ nsNSSSocketInfo::SetCertVerificationWaiting()
   NS_ASSERTION(mCertVerificationState != waiting_for_cert_verification,
                "Invalid state transition to waiting_for_cert_verification");
   mCertVerificationState = waiting_for_cert_verification;
-  mCertVerificationStarted = PR_IntervalNow();
 }
 
 
@@ -436,8 +399,6 @@ nsNSSSocketInfo::SetCertVerificationResult(PRErrorCode errorCode,
 {
   NS_ASSERTION(mCertVerificationState == waiting_for_cert_verification,
                "Invalid state transition to cert_verification_finished");
-
-  mCertVerificationEnded = PR_IntervalNow();
 
   if (mFd) {
     SECStatus rv = SSL_AuthCertificateComplete(mFd, errorCode);
@@ -474,40 +435,30 @@ void nsNSSSocketInfo::SetAllowTLSIntoleranceTimeout(bool aAllow)
   mAllowTLSIntoleranceTimeout = aAllow;
 }
 
-#define HANDSHAKE_TIMEOUT_SECONDS 25
-
 bool nsNSSSocketInfo::HandshakeTimeout()
 {
-  if (mCertVerificationState == waiting_for_cert_verification) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  if (!mAllowTLSIntoleranceTimeout)
     return false;
-  }
 
-  if (!mHandshakeInProgress || !mAllowTLSIntoleranceTimeout)
+  if (!mHandshakeInProgress)
+    return false; 
+
+  if (mFirstServerHelloReceived)
     return false;
+
+  
+  
+  
+  
+  
+  
+
+  static const PRIntervalTime handshakeTimeoutInterval
+    = PR_SecondsToInterval(25);
 
   PRIntervalTime now = PR_IntervalNow();
-  PRIntervalTime certVerificationTime =
-      mCertVerificationEnded - mCertVerificationStarted;
-  PRIntervalTime totalTime = now - mHandshakeStartTime;
-  PRIntervalTime totalTimeExceptCertVerificationTime =
-      totalTime - certVerificationTime;
-
-  return totalTimeExceptCertVerificationTime > 
-      PR_SecondsToInterval(HANDSHAKE_TIMEOUT_SECONDS);
+  bool result = (now - mHandshakeStartTime) > handshakeTimeoutInterval;
+  return result;
 }
 
 void nsSSLIOLayerHelpers::Cleanup()

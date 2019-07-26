@@ -177,7 +177,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
 
-    RootedVarObject global(cx);
+    RootedObject global(cx);
     if (cx->hasfp()) {
         global = &cx->fp()->global();
     } else {
@@ -215,19 +215,19 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 #ifdef DEBUG
         {
-            JSObject *outer = GetOuterObject(cx, RootedVarObject(cx, obj));
+            JSObject *outer = GetOuterObject(cx, RootedObject(cx, obj));
             JS_ASSERT(outer && outer == obj);
         }
 #endif
     }
 
-    RootedVarValue key(cx, *vp);
+    RootedValue key(cx, *vp);
 
     
     if (WrapperMap::Ptr p = crossCompartmentWrappers.lookup(key)) {
         *vp = p->value;
         if (vp->isObject()) {
-            RootedVarObject obj(cx, &vp->toObject());
+            RootedObject obj(cx, &vp->toObject());
             JS_ASSERT(obj->isCrossCompartmentWrapper());
             if (global->getClass() != &dummy_class && obj->getParent() != global) {
                 do {
@@ -241,7 +241,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
     }
 
     if (vp->isString()) {
-        RootedVarValue orig(cx, *vp);
+        RootedValue orig(cx, *vp);
         JSString *str = vp->toString();
         const jschar *chars = str->getChars(cx);
         if (!chars)
@@ -253,7 +253,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         return crossCompartmentWrappers.put(orig, *vp);
     }
 
-    RootedVarObject obj(cx, &vp->toObject());
+    RootedObject obj(cx, &vp->toObject());
 
     
 
@@ -265,7 +265,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
 
-    RootedVarObject proto(cx, obj->getProto());
+    RootedObject proto(cx, obj->getProto());
     if (!wrap(cx, proto.address()))
         return false;
 
@@ -274,7 +274,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
 
-    RootedVarObject wrapper(cx, cx->runtime->wrapObjectCallback(cx, obj, proto, global, flags));
+    RootedObject wrapper(cx, cx->runtime->wrapObjectCallback(cx, obj, proto, global, flags));
     if (!wrapper)
         return false;
 
@@ -294,7 +294,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 bool
 JSCompartment::wrap(JSContext *cx, JSString **strp)
 {
-    RootedVarValue value(cx, StringValue(*strp));
+    RootedValue value(cx, StringValue(*strp));
     if (!wrap(cx, value.address()))
         return false;
     *strp = value.reference().toString();
@@ -304,7 +304,7 @@ JSCompartment::wrap(JSContext *cx, JSString **strp)
 bool
 JSCompartment::wrap(JSContext *cx, HeapPtrString *strp)
 {
-    RootedVarValue value(cx, StringValue(*strp));
+    RootedValue value(cx, StringValue(*strp));
     if (!wrap(cx, value.address()))
         return false;
     *strp = value.reference().toString();
@@ -316,7 +316,7 @@ JSCompartment::wrap(JSContext *cx, JSObject **objp)
 {
     if (!*objp)
         return true;
-    RootedVarValue value(cx, ObjectValue(**objp));
+    RootedValue value(cx, ObjectValue(**objp));
     if (!wrap(cx, value.address()))
         return false;
     *objp = &value.reference().toObject();
@@ -328,7 +328,7 @@ JSCompartment::wrapId(JSContext *cx, jsid *idp)
 {
     if (JSID_IS_INT(*idp))
         return true;
-    RootedVarValue value(cx, IdToValue(*idp));
+    RootedValue value(cx, IdToValue(*idp));
     if (!wrap(cx, value.address()))
         return false;
     return ValueToId(cx, value.reference(), idp);
@@ -388,25 +388,21 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
     for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
         Value v = e.front().value;
         if (v.isObject()) {
+            JSObject *wrapper = &v.toObject();
+
             
 
 
 
-            Value referent = GetProxyPrivate(&v.toObject());
+            Value referent = GetProxyPrivate(wrapper);
             MarkValueRoot(trc, &referent, "cross-compartment wrapper");
-            JS_ASSERT(referent == GetProxyPrivate(&v.toObject()));
-        } else {
-            
+            JS_ASSERT(referent == GetProxyPrivate(wrapper));
 
-
-
-
-
-
-            JS_ASSERT(v.isString());
-            Value v = e.front().key;
-            MarkValueRoot(trc, &v, "cross-compartment wrapper");
-            JS_ASSERT(v == e.front().key);
+            if (IsFunctionProxy(wrapper)) {
+                Value call = GetProxyCall(wrapper);
+                MarkValueRoot(trc, &call, "cross-compartment wrapper");
+                JS_ASSERT(call == GetProxyCall(wrapper));
+            }
         }
     }
 }
@@ -463,6 +459,9 @@ JSCompartment::discardJitCode(FreeOp *fop)
 
 
     mjit::ClearAllFrames(this);
+# ifdef JS_ION
+    ion::InvalidateAll(fop, this);
+# endif
 
     if (gcPreserveCode) {
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
@@ -474,10 +473,27 @@ JSCompartment::discardJitCode(FreeOp *fop)
                         jit->purgeCaches();
                 }
             }
+
+# ifdef JS_ION
+            
+            ion::FinishInvalidation(fop, script);
+# endif
         }
-		ReleaseAllJITCode(fop, this, true, true);
     } else {
-        ReleaseAllJITCode(fop, this, true);
+        for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+            JSScript *script = i.get<JSScript>();
+            mjit::ReleaseScriptCode(fop, script);
+# ifdef JS_ION
+            ion::FinishInvalidation(fop, script);
+# endif
+
+            
+
+
+
+
+            script->resetUseCount();
+        }
     }
 
 #endif 
@@ -486,16 +502,7 @@ JSCompartment::discardJitCode(FreeOp *fop)
 void
 JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
 {
-    
-    for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
-        JS_ASSERT_IF(IsAboutToBeFinalized(e.front().key) &&
-                     !IsAboutToBeFinalized(e.front().value),
-                     e.front().key.isString());
-        if (IsAboutToBeFinalized(e.front().key) ||
-            IsAboutToBeFinalized(e.front().value)) {
-            e.removeFront();
-        }
-    }
+    sweepCrossCompartmentWrappers();
 
     
 
@@ -504,7 +511,7 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
     sweepNewTypeObjectTable(newTypeObjects);
     sweepNewTypeObjectTable(lazyTypeObjects);
 
-    if (emptyTypeObject && IsAboutToBeFinalized(emptyTypeObject))
+    if (emptyTypeObject && !IsTypeObjectMarked(emptyTypeObject.unsafeGet()))
         emptyTypeObject = NULL;
 
     sweepBreakpoints(fop);
@@ -577,6 +584,27 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
     }
 
     active = false;
+}
+
+
+
+
+
+
+void
+JSCompartment::sweepCrossCompartmentWrappers()
+{
+    
+    for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
+        Value key = e.front().key;
+        bool keyMarked = IsValueMarked(&key);
+        bool valMarked = IsValueMarked(e.front().value.unsafeGet());
+        JS_ASSERT_IF(!keyMarked && valMarked, key.isString());
+        if (!keyMarked || !valMarked)
+            e.removeFront();
+        else if (key != e.front().key)
+            e.rekeyFront(key);
+    }
 }
 
 void
@@ -759,7 +787,8 @@ JSCompartment::sweepBreakpoints(FreeOp *fop)
         JSScript *script = i.get<JSScript>();
         if (!script->hasAnyBreakpointsOrStepMode())
             continue;
-        bool scriptGone = IsAboutToBeFinalized(script);
+        bool scriptGone = !IsScriptMarked(&script);
+        JS_ASSERT(script == i.get<JSScript>());
         for (unsigned i = 0; i < script->length; i++) {
             BreakpointSite *site = script->getBreakpointSite(script->code + i);
             if (!site)
@@ -769,7 +798,7 @@ JSCompartment::sweepBreakpoints(FreeOp *fop)
             Breakpoint *nextbp;
             for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = nextbp) {
                 nextbp = bp->nextInSite();
-                if (scriptGone || IsAboutToBeFinalized(bp->debugger->toJSObject()))
+                if (scriptGone || !IsObjectMarked(&bp->debugger->toJSObjectRef()))
                     bp->destroy(fop);
             }
         }

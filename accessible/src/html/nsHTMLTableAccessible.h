@@ -21,7 +21,7 @@ class nsHTMLTableCellAccessible : public nsHyperTextAccessibleWrap,
                                   public nsIAccessibleTableCell
 {
 public:
-  nsHTMLTableCellAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsHTMLTableCellAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -39,7 +39,7 @@ protected:
 
 
   already_AddRefed<nsIAccessibleTable> GetTableAccessible();
-  
+
   
 
 
@@ -49,7 +49,7 @@ protected:
 
 
   nsresult GetCellIndexes(PRInt32& aRowIdx, PRInt32& aColIdx);
-  
+
   
 
 
@@ -65,7 +65,7 @@ class nsHTMLTableHeaderCellAccessible : public nsHTMLTableCellAccessible
 {
 public:
   nsHTMLTableHeaderCellAccessible(nsIContent* aContent,
-                                  nsDocAccessible* aDoc);
+                                  DocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
@@ -81,13 +81,13 @@ public:
 
 
 
-class nsHTMLTableAccessible : public nsAccessibleWrap,
+class nsHTMLTableAccessible : public AccessibleWrap,
                               public xpcAccessibleTable,
                               public nsIAccessibleTable,
                               public mozilla::a11y::TableAccessible
 {
 public:
-  nsHTMLTableAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsHTMLTableAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -95,12 +95,14 @@ public:
   NS_DECL_OR_FORWARD_NSIACCESSIBLETABLE_WITH_XPCACCESSIBLETABLE
 
   
-  virtual nsAccessible* Caption();
+  virtual Accessible* Caption();
   virtual void Summary(nsString& aSummary);
   virtual PRUint32 ColCount();
   virtual PRUint32 RowCount();
-  virtual nsAccessible* CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex);
+  virtual Accessible* CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex);
   virtual PRInt32 CellIndexAt(PRUint32 aRowIdx, PRUint32 aColIdx);
+  virtual PRUint32 ColExtentAt(PRUint32 aRowIdx, PRUint32 aColIdx);
+  virtual PRUint32 RowExtentAt(PRUint32 aRowIdx, PRUint32 aColIdx);
   virtual void UnselectCol(PRUint32 aColIdx);
   virtual void UnselectRow(PRUint32 aRowIdx);
   virtual bool IsProbablyLayoutTable();
@@ -179,7 +181,7 @@ protected:
 class nsHTMLCaptionAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  nsHTMLCaptionAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsHTMLCaptionAccessible(nsIContent* aContent, DocAccessible* aDoc) :
     nsHyperTextAccessibleWrap(aContent, aDoc) { }
   virtual ~nsHTMLCaptionAccessible() { }
 

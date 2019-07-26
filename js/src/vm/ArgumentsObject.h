@@ -119,7 +119,7 @@ class ArgumentsObject : public JSObject
 
 
 
-    static ArgumentsObject *createUnexpected(JSContext *cx, StackIter& iter);
+    static ArgumentsObject *createUnexpected(JSContext *cx, StackFrame *fp);
 
     
 

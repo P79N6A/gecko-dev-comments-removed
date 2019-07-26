@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHtml5StreamParser.h"
 #include "nsICharsetConverterManager.h"
 #include "nsCharsetAlias.h"
@@ -157,9 +123,7 @@ class nsHtml5ExecutorFlusher : public nsRunnable
     {}
     NS_IMETHODIMP Run()
     {
-      if (!mExecutor->isInList()) {
-        mExecutor->RunFlushLoop();
-      }
+      mExecutor->RunFlushLoop();
       return NS_OK;
     }
 };

@@ -31,7 +31,7 @@
 #endif 
 
 #ifdef ACCESSIBILITY
-#include "nsAccessible.h"
+#include "mozilla/a11y/Accessible.h"
 #endif
 
 #include "nsGtkIMModule.h"
@@ -375,7 +375,7 @@ private:
     nsRefPtr<gfxASurface> mThebesSurface;
 
 #ifdef ACCESSIBILITY
-    nsRefPtr<nsAccessible> mRootAccessible;
+    nsRefPtr<Accessible> mRootAccessible;
 
     
 
@@ -386,7 +386,7 @@ private:
 
 
 
-    nsAccessible       *DispatchAccessibleEvent();
+    Accessible       *DispatchAccessibleEvent();
 
     
 

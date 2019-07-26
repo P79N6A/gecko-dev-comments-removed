@@ -8,23 +8,29 @@
 #include "Compatibility.h"
 #include "DocAccessible-inl.h"
 #include "EnumVariant.h"
-#include "ia2AccessibleRelation.h"
 #include "nsAccUtils.h"
 #include "nsCoreUtils.h"
-#include "nsIAccessibleEvent.h"
-#include "nsIAccessibleRelation.h"
 #include "nsWinUtils.h"
 #include "Relation.h"
 #include "Role.h"
-#include "RootAccessible.h"
 #include "States.h"
-#include "uiaRawElmProvider.h"
+
+#include "ia2AccessibleRelation.h"
+
+#include "nsIAccessibleEvent.h"
+#include "nsIAccessibleRelation.h"
+
+#include "Accessible2_i.c"
+#include "AccessibleRole.h"
+#include "AccessibleStates.h"
+#include "RootAccessible.h"
 
 #ifdef DEBUG
 #include "Logging.h"
 #endif
 
 #include "nsIMutableArray.h"
+#include "nsIDOMDocument.h"
 #include "nsIFrame.h"
 #include "nsIScrollableFrame.h"
 #include "nsINameSpaceManager.h"
@@ -35,17 +41,13 @@
 #include "nsIViewManager.h"
 #include "nsEventMap.h"
 #include "nsArrayUtils.h"
-#include "mozilla/Preferences.h"
 
-#include "Accessible2_i.c"
-#include "AccessibleRole.h"
-#include "AccessibleStates.h"
 #include "OLEACC.H"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
 
-const uint32_t USE_ROLE_STRING = 0;
+const PRUint32 USE_ROLE_STRING = 0;
 
 
 
@@ -60,7 +62,7 @@ static gAccessibles = 0;
 EXTERN_C GUID CDECL CLSID_Accessible =
 { 0x61044601, 0xa811, 0x4e2b, { 0xbb, 0xba, 0x17, 0xbf, 0xab, 0xd3, 0x29, 0xd7 } };
 
-static const int32_t kIEnumVariantDisconnected = -1;
+static const PRInt32 kIEnumVariantDisconnected = -1;
 
 
 
@@ -101,7 +103,7 @@ __try {
   }
 
   if (NULL == *ppv) {
-    HRESULT hr = ia2AccessibleHyperlink::QueryInterface(iid, ppv);
+    HRESULT hr = CAccessibleHyperlink::QueryInterface(iid, ppv);
     if (SUCCEEDED(hr))
       return hr;
   }
@@ -119,32 +121,6 @@ __try {
 } __except(FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
 
   return S_OK;
-}
-
-
-
-
-STDMETHODIMP
-AccessibleWrap::QueryService(REFGUID aGuidService, REFIID aIID,
-                             void** aInstancePtr)
-{
-  if (!aInstancePtr)
-    return E_INVALIDARG;
-
-  *aInstancePtr = NULL;
-
-  
-  if (aGuidService == IID_IAccessibleEx &&
-      Preferences::GetBool("accessibility.uia.enable")) {
-    IAccessibleEx* accEx = new uiaRawElmProvider(this);
-    HRESULT hr = accEx->QueryInterface(aIID, aInstancePtr);
-    if (FAILED(hr))
-      delete accEx;
-
-    return hr;
-  }
-
-  return nsAccessNodeWrap::QueryService(aGuidService, aIID, aInstancePtr);
 }
 
 
@@ -368,10 +344,9 @@ __try {
 #endif
 
   a11y::role geckoRole = xpAccessible->Role();
-  uint32_t msaaRole = 0;
+  PRUint32 msaaRole = 0;
 
-#define ROLE(_geckoRole, stringRole, atkRole, macRole, \
-             _msaaRole, ia2Role, nameRule) \
+#define ROLE(_geckoRole, stringRole, atkRole, macRole, _msaaRole, ia2Role) \
   case roles::_geckoRole: \
     msaaRole = _msaaRole; \
     break;
@@ -464,8 +439,8 @@ __try {
   
   
 
-  uint32_t msaaState = 0;
-  nsAccUtils::To32States(xpAccessible->State(), &msaaState, nullptr);
+  PRUint32 msaaState = 0;
+  nsAccUtils::To32States(xpAccessible->State(), &msaaState, nsnull);
   pvarState->lVal = msaaState;
 } __except(FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
   return S_OK;
@@ -597,7 +572,7 @@ public:
 
 private:
   nsCOMPtr<nsIArray> mArray;
-  uint32_t mCurIndex;
+  PRUint32 mCurIndex;
   nsAutoRefCnt mRefCnt;
 };
 
@@ -640,7 +615,7 @@ STDMETHODIMP
 AccessibleEnumerator::Next(unsigned long celt, VARIANT FAR* rgvar, unsigned long FAR* pceltFetched)
 {
 __try {
-  uint32_t length = 0;
+  PRUint32 length = 0;
   mArray->GetLength(&length);
 
   HRESULT hr = S_OK;
@@ -651,7 +626,7 @@ __try {
     celt = length - mCurIndex;
   }
 
-  for (uint32_t i = 0; i < celt; ++i, ++mCurIndex) {
+  for (PRUint32 i = 0; i < celt; ++i, ++mCurIndex) {
     
     nsCOMPtr<nsIAccessible> accel(do_QueryElementAt(mArray, mCurIndex));
     NS_ASSERTION(accel, "Invalid pointer in mArray");
@@ -687,7 +662,7 @@ STDMETHODIMP
 AccessibleEnumerator::Skip(unsigned long celt)
 {
 __try {
-  uint32_t length = 0;
+  PRUint32 length = 0;
   mArray->GetLength(&length);
   
   if (celt > length - mCurIndex) {
@@ -834,7 +809,7 @@ __try {
   if (xpAccessible->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  int32_t x, y, width, height;
+  PRInt32 x, y, width, height;
   if (NS_FAILED(xpAccessible->GetBounds(&x, &y, &width, &height)))
     return E_FAIL;
 
@@ -871,8 +846,8 @@ __try {
 
   VariantInit(pvarEndUpAt);
 
-  Accessible* navAccessible = nullptr;
-  uint32_t xpRelation = 0;
+  Accessible* navAccessible = nsnull;
+  PRUint32 xpRelation = 0;
 
   switch(navDir) {
     case NAVDIR_FIRSTCHILD:
@@ -1051,7 +1026,7 @@ __try {
   if (IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  for (uint32_t relType = nsIAccessibleRelation::RELATION_FIRST;
+  for (PRUint32 relType = nsIAccessibleRelation::RELATION_FIRST;
        relType <= nsIAccessibleRelation::RELATION_LAST; relType++) {
     Relation rel = RelationByType(relType);
     if (rel.Next())
@@ -1075,8 +1050,8 @@ __try {
   if (IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  uint32_t relIdx = 0;
-  for (uint32_t relType = nsIAccessibleRelation::RELATION_FIRST;
+  PRUint32 relIdx = 0;
+  for (PRUint32 relType = nsIAccessibleRelation::RELATION_FIRST;
        relType <= nsIAccessibleRelation::RELATION_LAST; relType++) {
     Relation rel = RelationByType(relType);
     nsRefPtr<ia2AccessibleRelation> ia2Relation =
@@ -1110,7 +1085,7 @@ __try {
   if (IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  for (uint32_t relType = nsIAccessibleRelation::RELATION_FIRST;
+  for (PRUint32 relType = nsIAccessibleRelation::RELATION_FIRST;
        relType <= nsIAccessibleRelation::RELATION_LAST &&
        *aNRelations < aMaxRelations; relType++) {
     Relation rel = RelationByType(relType);
@@ -1136,8 +1111,7 @@ __try {
   if (IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-#define ROLE(_geckoRole, stringRole, atkRole, macRole, \
-             msaaRole, ia2Role, nameRule) \
+#define ROLE(_geckoRole, stringRole, atkRole, macRole, msaaRole, ia2Role) \
   case roles::_geckoRole: \
     *aRole = ia2Role; \
     break;
@@ -1187,7 +1161,7 @@ __try {
   if (IsDefunct())
       return CO_E_OBJNOTCONNECTED;
 
-  uint32_t geckoCoordType = (aCoordType == IA2_COORDTYPE_SCREEN_RELATIVE) ?
+  PRUint32 geckoCoordType = (aCoordType == IA2_COORDTYPE_SCREEN_RELATIVE) ?
     nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE :
     nsIAccessibleCoordinateType::COORDTYPE_PARENT_RELATIVE;
 
@@ -1233,7 +1207,7 @@ __try {
 
   
 
-  uint64_t state = State();
+  PRUint64 state = State();
 
   if (state & states::INVALID)
     *aStates |= IA2_STATE_INVALID_ENTRY;
@@ -1398,7 +1372,7 @@ __try {
   Language(lang);
 
   
-  int32_t offset = lang.FindChar('-', 0);
+  PRInt32 offset = lang.FindChar('-', 0);
   if (offset == -1) {
     if (lang.Length() == 2) {
       aLocale->language = ::SysAllocString(lang.get());
@@ -1534,17 +1508,17 @@ AccessibleWrap::HandleAccEvent(AccEvent* aEvent)
 nsresult
 AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
 {
-  uint32_t eventType = aEvent->GetEventType();
+  PRUint32 eventType = aEvent->GetEventType();
 
   NS_ENSURE_TRUE(eventType > 0 &&
                  eventType < nsIAccessibleEvent::EVENT_LAST_ENTRY,
                  NS_ERROR_FAILURE);
 
-  uint32_t winLastEntry = gWinEventMap[nsIAccessibleEvent::EVENT_LAST_ENTRY];
+  PRUint32 winLastEntry = gWinEventMap[nsIAccessibleEvent::EVENT_LAST_ENTRY];
   NS_ASSERTION(winLastEntry == kEVENT_LAST_ENTRY,
                "MSAA event map skewed");
 
-  uint32_t winEvent = gWinEventMap[eventType];
+  PRUint32 winEvent = gWinEventMap[eventType];
   if (!winEvent)
     return NS_OK;
 
@@ -1560,7 +1534,7 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
     UpdateSystemCaret();
   }
 
-  int32_t childID = GetChildIDFor(accessible); 
+  PRInt32 childID = GetChildIDFor(accessible); 
   if (!childID)
     return NS_OK; 
 
@@ -1568,7 +1542,7 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
   NS_ENSURE_TRUE(hWnd, NS_ERROR_FAILURE);
 
   nsAutoString tag;
-  nsAutoCString id;
+  nsCAutoString id;
   nsIContent* cnt = accessible->GetContent();
   if (cnt) {
     cnt->Tag()->ToString(tag);
@@ -1601,7 +1575,7 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
 
 
 
-int32_t
+PRInt32
 AccessibleWrap::GetChildIDFor(Accessible* aAccessible)
 {
   
@@ -1620,7 +1594,7 @@ AccessibleWrap::GetHWNDFor(Accessible* aAccessible)
   if (aAccessible) {
     DocAccessible* document = aAccessible->Document();
     if(!document)
-      return nullptr;
+      return nsnull;
 
     
     
@@ -1628,24 +1602,28 @@ AccessibleWrap::GetHWNDFor(Accessible* aAccessible)
     nsIFrame* frame = aAccessible->GetFrame();
     if (frame) {
       nsIWidget* widget = frame->GetNearestWidget();
-      if (widget && widget->IsVisible()) {
-        nsIPresShell* shell = document->PresShell();
-        nsIViewManager* vm = shell->GetViewManager();
-        if (vm) {
-          nsCOMPtr<nsIWidget> rootWidget;
-          vm->GetRootWidget(getter_AddRefs(rootWidget));
-          
-          
-          
-          if (rootWidget != widget)
-            return static_cast<HWND>(widget->GetNativeData(NS_NATIVE_WINDOW));
+      if (widget) {
+        bool isVisible = false;
+        widget->IsVisible(isVisible);
+        if (isVisible) {
+          nsIPresShell* shell = document->PresShell();
+          nsIViewManager* vm = shell->GetViewManager();
+          if (vm) {
+            nsCOMPtr<nsIWidget> rootWidget;
+            vm->GetRootWidget(getter_AddRefs(rootWidget));
+            
+            
+            
+            if (rootWidget != widget)
+              return static_cast<HWND>(widget->GetNativeData(NS_NATIVE_WINDOW));
+          }
         }
       }
     }
 
     return static_cast<HWND>(document->GetNativeWindow());
   }
-  return nullptr;
+  return nsnull;
 }
 
 HRESULT
@@ -1678,11 +1656,11 @@ AccessibleWrap::ConvertToIA2Attributes(nsIPersistentProperties *aAttributes,
     if (!propElem)
       return E_FAIL;
 
-    nsAutoCString name;
+    nsCAutoString name;
     if (NS_FAILED(propElem->GetKey(name)))
       return E_FAIL;
 
-    uint32_t offset = 0;
+    PRUint32 offset = 0;
     while ((offset = name.FindCharInSet(kCharsToEscape, offset)) != kNotFound) {
       name.Insert('\\', offset);
       offset += 2;
@@ -1719,7 +1697,7 @@ AccessibleWrap::NativeAccessible(nsIAccessible* aAccessible)
    return NULL;
   }
 
-  IAccessible* msaaAccessible = nullptr;
+  IAccessible* msaaAccessible = nsnull;
   aAccessible->GetNativeInterface(reinterpret_cast<void**>(&msaaAccessible));
   return static_cast<IDispatch*>(msaaAccessible);
 }
@@ -1728,14 +1706,14 @@ Accessible*
 AccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
 {
   if (aVarChild.vt != VT_I4)
-    return nullptr;
+    return nsnull;
 
   
   if (aVarChild.lVal == CHILDID_SELF)
     return this;
 
   if (nsAccUtils::MustPrune(this))
-    return nullptr;
+    return nsnull;
 
   
   
@@ -1757,7 +1735,7 @@ AccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
 
       
       
-      Accessible* parent = child ? child->Parent() : nullptr;
+      Accessible* parent = child ? child->Parent() : nsnull;
       while (parent && parent != document) {
         if (parent == this)
           return child;
@@ -1766,7 +1744,7 @@ AccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
       }
     }
 
-    return nullptr;
+    return nsnull;
   }
 
   

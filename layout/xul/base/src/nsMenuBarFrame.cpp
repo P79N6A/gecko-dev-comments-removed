@@ -149,15 +149,15 @@ nsMenuBarFrame::ToggleMenuActiveState()
     
     if (mCurrentMenu)
       mCurrentMenu->SelectMenu(false);
-    
-    
-    SetActive(true);
 
     
     
     
     nsMenuFrame* firstFrame = nsXULPopupManager::GetNextMenuItem(this, nsnull, false);
     if (firstFrame) {
+      
+      SetActive(true);
+
 #ifdef MOZ_WIDGET_GTK2
       firstFrame->OpenMenu(true);
 #else

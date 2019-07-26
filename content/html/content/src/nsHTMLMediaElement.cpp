@@ -593,7 +593,8 @@ void nsHTMLMediaElement::AbortExistingLoads()
   mSuspendedAfterFirstFrame = false;
   mAllowSuspendAfterFirstFrame = true;
   mHaveQueuedSelectResource = false;
-  mLoadIsSuspended = false;
+  mSuspendedForPreloadNone = false;
+  mDownloadSuspendedByCache = false;
   mSourcePointer = nsnull;
 
   
@@ -905,7 +906,7 @@ void nsHTMLMediaElement::LoadFromSourceChildren()
 
 void nsHTMLMediaElement::SuspendLoad()
 {
-  mLoadIsSuspended = true;
+  mSuspendedForPreloadNone = true;
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_IDLE;
   DispatchAsyncEvent(NS_LITERAL_STRING("suspend"));
   ChangeDelayLoadStatus(false);
@@ -913,8 +914,9 @@ void nsHTMLMediaElement::SuspendLoad()
 
 void nsHTMLMediaElement::ResumeLoad(PreloadAction aAction)
 {
-  NS_ASSERTION(mLoadIsSuspended, "Can only resume preload if halted for one");
-  mLoadIsSuspended = false;
+  NS_ASSERTION(mSuspendedForPreloadNone,
+    "Must be halted for preload:none to resume from preload:none suspended load.");
+  mSuspendedForPreloadNone = false;
   mPreloadAction = aAction;
   ChangeDelayLoadStatus(true);
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_LOADING;
@@ -987,7 +989,7 @@ void nsHTMLMediaElement::UpdatePreloadAction()
 
   mPreloadAction = nextAction;
   if (nextAction == nsHTMLMediaElement::PRELOAD_ENOUGH) {
-    if (mLoadIsSuspended) {
+    if (mSuspendedForPreloadNone) {
       
       
       
@@ -1001,7 +1003,7 @@ void nsHTMLMediaElement::UpdatePreloadAction()
   } else if (nextAction == nsHTMLMediaElement::PRELOAD_METADATA) {
     
     mAllowSuspendAfterFirstFrame = true;
-    if (mLoadIsSuspended) {
+    if (mSuspendedForPreloadNone) {
       
       
       
@@ -1650,10 +1652,11 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mHasPlayedOrSeeked(false),
     mHasSelfReference(false),
     mShuttingDown(false),
-    mLoadIsSuspended(false),
+    mSuspendedForPreloadNone(false),
     mMediaSecurityVerified(false),
     mCORSMode(CORS_NONE),
-    mHasAudio(false)
+    mHasAudio(false),
+    mDownloadSuspendedByCache(false)
 {
 #ifdef PR_LOGGING
   if (!gMediaElementLog) {
@@ -1733,7 +1736,7 @@ NS_IMETHODIMP nsHTMLMediaElement::Play()
     nsresult rv = Load();
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  if (mLoadIsSuspended) {
+  if (mSuspendedForPreloadNone) {
     ResumeLoad(PRELOAD_ENOUGH);
   }
   
@@ -2636,6 +2639,20 @@ void nsHTMLMediaElement::FirstFrameLoaded(bool aResourceFullyLoaded)
       mPreloadAction == nsHTMLMediaElement::PRELOAD_METADATA) {
     mSuspendedAfterFirstFrame = true;
     mDecoder->Suspend();
+  } else if (mLoadedFirstFrame &&
+             mDownloadSuspendedByCache && 
+             mDecoder &&
+             !mDecoder->IsEnded()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
+    return;
   }
 }
 
@@ -2645,7 +2662,11 @@ void nsHTMLMediaElement::ResourceLoaded()
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_IDLE;
   AddRemoveSelfReference();
   if (mReadyState >= nsIDOMHTMLMediaElement::HAVE_METADATA) {
-    ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
+    
+    
+    
+    ChangeReadyState(mStream ? nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA
+                     : nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
   }
   
   DispatchAsyncEvent(NS_LITERAL_STRING("progress"));
@@ -2730,6 +2751,7 @@ void nsHTMLMediaElement::PlaybackEnded()
 void nsHTMLMediaElement::SeekStarted()
 {
   DispatchAsyncEvent(NS_LITERAL_STRING("seeking"));
+  ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
   FireTimeUpdate(false);
 }
 
@@ -2742,6 +2764,11 @@ void nsHTMLMediaElement::SeekCompleted()
   AddRemoveSelfReference();
 }
 
+void nsHTMLMediaElement::NotifySuspendedByCache(bool aIsSuspended)
+{
+  mDownloadSuspendedByCache = aIsSuspended;
+}
+
 void nsHTMLMediaElement::DownloadSuspended()
 {
   DispatchAsyncEvent(NS_LITERAL_STRING("progress"));
@@ -2752,9 +2779,9 @@ void nsHTMLMediaElement::DownloadSuspended()
   }
 }
 
-void nsHTMLMediaElement::DownloadResumed()
+void nsHTMLMediaElement::DownloadResumed(bool aForceNetworkLoading)
 {
-  if (mBegun) {
+  if (mBegun || aForceNetworkLoading) {
     mNetworkState = nsIDOMHTMLMediaElement::NETWORK_LOADING;
     AddRemoveSelfReference();
   }
@@ -2779,6 +2806,21 @@ void nsHTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
     
     
     
+    return;
+  }
+
+  if (mReadyState > nsIDOMHTMLMediaElement::HAVE_METADATA &&
+      mDownloadSuspendedByCache &&
+      mDecoder &&
+      !mDecoder->IsEnded()) {
+    
+    
+    
+    
+    
+    
+    
+    ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
     return;
   }
 

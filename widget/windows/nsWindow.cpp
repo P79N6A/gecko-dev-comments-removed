@@ -3194,8 +3194,20 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
     }
 
     
-    if (!mLayerManager)
-      mLayerManager = CreateBasicLayerManager();
+    if (!mLayerManager) {
+      
+      bool useCompositor =
+        Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
+      if (useCompositor) {
+        
+        
+        NS_ASSERTION(aShadowManager == nsnull, "Async Compositor not supported with e10s");
+        CreateCompositor();
+      }
+
+      if (!mLayerManager)
+        mLayerManager = CreateBasicLayerManager();
+    }
   }
 
   NS_ASSERTION(mLayerManager, "Couldn't provide a valid layer manager.");
@@ -3902,7 +3914,7 @@ bool nsWindow::DispatchMouseEvent(PRUint32 aEventType, WPARAM wParam,
 
 
 #ifdef ACCESSIBILITY
-nsAccessible*
+Accessible*
 nsWindow::DispatchAccessibleEvent(PRUint32 aEventType)
 {
   if (nsnull == mEventCallback) {
@@ -5077,7 +5089,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       
       DWORD objId = static_cast<DWORD>(lParam);
       if (objId == OBJID_CLIENT) { 
-        nsAccessible *rootAccessible = GetRootAccessible(); 
+        Accessible* rootAccessible = GetRootAccessible(); 
         if (rootAccessible) {
           IAccessible *msaaAccessible = NULL;
           rootAccessible->GetNativeInterface((void**)&msaaAccessible); 
@@ -6523,9 +6535,33 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
         nsAlternativeCharCode chars(unshiftedChar, shiftedChar);
         altArray.AppendElement(chars);
       }
-      if (cnt == num - 1 && (unshiftedLatinChar || shiftedLatinChar)) {
-        nsAlternativeCharCode chars(unshiftedLatinChar, shiftedLatinChar);
-        altArray.AppendElement(chars);
+      if (cnt == num - 1) {
+        if (unshiftedLatinChar || shiftedLatinChar) {
+          nsAlternativeCharCode chars(unshiftedLatinChar, shiftedLatinChar);
+          altArray.AppendElement(chars);
+        }
+
+        
+        
+        
+        
+        
+        
+        PRUnichar charForOEMKeyCode = 0;
+        switch (virtualKeyCode) {
+          case VK_OEM_PLUS:   charForOEMKeyCode = '+'; break;
+          case VK_OEM_COMMA:  charForOEMKeyCode = ','; break;
+          case VK_OEM_MINUS:  charForOEMKeyCode = '-'; break;
+          case VK_OEM_PERIOD: charForOEMKeyCode = '.'; break;
+        }
+        if (charForOEMKeyCode &&
+            charForOEMKeyCode != unshiftedChars[0] &&
+            charForOEMKeyCode != shiftedChars[0] &&
+            charForOEMKeyCode != unshiftedLatinChar &&
+            charForOEMKeyCode != shiftedLatinChar) {
+          nsAlternativeCharCode OEMChars(charForOEMKeyCode, charForOEMKeyCode);
+          altArray.AppendElement(OEMChars);
+        }
       }
 
       nsKeyEvent keypressEvent(true, NS_KEY_PRESS, this);
@@ -7222,7 +7258,7 @@ bool nsWindow::AssociateDefaultIMC(bool aAssociate)
 
 #ifdef DEBUG_WMGETOBJECT
 #define NS_LOG_WMGETOBJECT_WNDACC(aWnd)                                        \
-  nsAccessible* acc = aWnd ?                                                   \
+  Accessible* acc = aWnd ?                                                   \
     aWnd->DispatchAccessibleEvent(NS_GETACCESSIBLE) : nsnull;                  \
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS, ("     acc: %p", acc));                   \
   if (acc) {                                                                   \
@@ -7261,7 +7297,7 @@ bool nsWindow::AssociateDefaultIMC(bool aAssociate)
 #define NS_LOG_WMGETOBJECT_WND(aMsg, aHwnd)
 #endif 
 
-nsAccessible*
+Accessible*
 nsWindow::GetRootAccessible()
 {
   

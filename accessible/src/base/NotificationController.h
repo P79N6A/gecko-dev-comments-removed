@@ -10,8 +10,8 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsRefreshDriver.h"
 
-class nsAccessible;
-class nsDocAccessible;
+class Accessible;
+class DocAccessible;
 class nsIContent;
 
 
@@ -87,7 +87,7 @@ private:
 class NotificationController : public nsARefreshObserver
 {
 public:
-  NotificationController(nsDocAccessible* aDocument, nsIPresShell* aPresShell);
+  NotificationController(DocAccessible* aDocument, nsIPresShell* aPresShell);
   virtual ~NotificationController();
 
   NS_IMETHOD_(nsrefcnt) AddRef(void);
@@ -108,7 +108,7 @@ public:
   
 
 
-  void ScheduleChildDocBinding(nsDocAccessible* aDocument);
+  void ScheduleChildDocBinding(DocAccessible* aDocument);
 
   
 
@@ -122,7 +122,7 @@ public:
   
 
 
-  void ScheduleContentInsertion(nsAccessible* aContainer,
+  void ScheduleContentInsertion(Accessible* aContainer,
                                 nsIContent* aStartChildNode,
                                 nsIContent* aEndChildNode);
 
@@ -254,7 +254,7 @@ private:
   
 
 
-  nsRefPtr<nsDocAccessible> mDocument;
+  nsRefPtr<DocAccessible> mDocument;
 
   
 
@@ -264,7 +264,7 @@ private:
   
 
 
-  nsTArray<nsRefPtr<nsDocAccessible> > mHangingChildDocuments;
+  nsTArray<nsRefPtr<DocAccessible> > mHangingChildDocuments;
 
   
 
@@ -272,7 +272,7 @@ private:
   class ContentInsertion
   {
   public:
-    ContentInsertion(nsDocAccessible* aDocument, nsAccessible* aContainer);
+    ContentInsertion(DocAccessible* aDocument, Accessible* aContainer);
     virtual ~ContentInsertion() { mDocument = nsnull; }
 
     NS_INLINE_DECL_REFCOUNTING(ContentInsertion)
@@ -289,10 +289,10 @@ private:
     
     
     
-    nsDocAccessible* mDocument;
+    DocAccessible* mDocument;
 
     
-    nsRefPtr<nsAccessible> mContainer;
+    nsRefPtr<Accessible> mContainer;
 
     
     nsTArray<nsCOMPtr<nsIContent> > mInsertedContent;

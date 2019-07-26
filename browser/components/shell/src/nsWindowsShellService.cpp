@@ -26,6 +26,7 @@
 #include "nsUnicharUtils.h"
 #include "nsIWinTaskbar.h"
 #include "nsISupportsPrimitives.h"
+#include "nsThreadUtils.h"
 
 #include "windows.h"
 #include "shellapi.h"
@@ -51,6 +52,11 @@
   (val != ERROR_SUCCESS)
 
 #define NS_TASKBAR_CONTRACTID "@mozilla.org/windows-taskbar;1"
+
+
+
+
+#define CLEAR_PREFETCH_TIMEOUT_MS 180000
 
 NS_IMPL_ISUPPORTS2(nsWindowsShellService, nsIWindowsShellService, nsIShellService)
 
@@ -188,6 +194,16 @@ static SETTING gDDESettings[] = {
   { MAKE_KEY_NAME1("Software\\Classes\\HTTP", SOD) },
   { MAKE_KEY_NAME1("Software\\Classes\\HTTPS", SOD) }
 };
+
+#if defined(MOZ_MAINTENANCE_SERVICE)
+
+#define ONLY_SERVICE_LAUNCHING
+#include "updatehelper.h"
+#include "updatehelper.cpp"
+
+static const char kPrefetchClearedPref[] = "app.update.service.prefetchCleared";
+static nsCOMPtr<nsIThread> sThread;
+#endif
 
 nsresult
 GetHelperPath(nsAutoString& aPath)
@@ -907,6 +923,123 @@ nsWindowsShellService::SetDesktopBackgroundColor(PRUint32 aColor)
 
   return regKey->Close();
 }
+
+nsWindowsShellService::nsWindowsShellService() : 
+  mCheckedThisSession(false) 
+{
+#if defined(MOZ_MAINTENANCE_SERVICE)
+
+  
+  PRUint32 installed = 0;
+  nsCOMPtr<nsIWindowsRegKey> regKey = 
+    do_CreateInstance("@mozilla.org/windows-registry-key;1");
+  if (!regKey || 
+      NS_FAILED(regKey->Open(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE,
+                             NS_LITERAL_STRING(
+                               "SOFTWARE\\Mozilla\\MaintenanceService"),
+                             nsIWindowsRegKey::ACCESS_READ |
+                             nsIWindowsRegKey::WOW64_64)) ||
+      NS_FAILED(regKey->ReadIntValue(NS_LITERAL_STRING("Installed"), 
+                &installed)) ||
+      !installed) {
+    return;
+  }
+
+  
+  
+  bool prefetchCleared;
+  nsCOMPtr<nsIPrefBranch> prefBranch;
+  nsCOMPtr<nsIPrefService> prefs =
+    do_GetService(NS_PREFSERVICE_CONTRACTID);
+  if (!prefs || 
+      NS_FAILED(prefs->GetBranch(nsnull, getter_AddRefs(prefBranch))) ||
+      (NS_SUCCEEDED(prefBranch->GetBoolPref(kPrefetchClearedPref, 
+                                            &prefetchCleared)) &&
+       prefetchCleared)) {
+    return;
+  }
+
+  
+  
+  mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+  if (mTimer) {
+    mTimer->InitWithFuncCallback(
+      nsWindowsShellService::LaunchPrefetchClearCommand, 
+      nsnull, CLEAR_PREFETCH_TIMEOUT_MS, nsITimer::TYPE_ONE_SHOT);
+  }
+#endif
+}
+
+nsWindowsShellService::~nsWindowsShellService()
+{
+#if defined(MOZ_MAINTENANCE_SERVICE)
+ if (mTimer) {
+    mTimer->Cancel();
+    mTimer = nsnull;
+  }
+  if (sThread) {
+    sThread->Shutdown();
+    sThread = nsnull;
+  }
+#endif
+}
+
+#if defined(MOZ_MAINTENANCE_SERVICE)
+
+class ClearPrefetchEvent : public nsRunnable {
+public:
+  ClearPrefetchEvent()
+  {
+  }
+
+  NS_IMETHOD Run() 
+  {
+    
+    LPCWSTR updaterServiceArgv[2];
+    updaterServiceArgv[0] = L"MozillaMaintenance";
+    updaterServiceArgv[1] = L"clear-prefetch";
+    
+    
+    StartServiceCommand(NS_ARRAY_LENGTH(updaterServiceArgv), 
+                        updaterServiceArgv);
+    return NS_OK;
+  }
+};
+#endif
+
+
+
+
+
+
+
+
+
+ 
+#if defined(MOZ_MAINTENANCE_SERVICE)
+void
+nsWindowsShellService::LaunchPrefetchClearCommand(nsITimer *aTimer, void*)
+{
+  
+  
+  nsCOMPtr<nsIPrefBranch> prefBranch;
+  nsCOMPtr<nsIPrefService> prefs =
+    do_GetService(NS_PREFSERVICE_CONTRACTID);
+  if (prefs) {
+    if (NS_SUCCEEDED(prefs->GetBranch(nsnull, getter_AddRefs(prefBranch)))) {
+      prefBranch->SetBoolPref(kPrefetchClearedPref, true);
+    }
+  }
+
+  
+  
+  NS_NewThread(getter_AddRefs(sThread));
+  if (sThread) {
+    nsCOMPtr<nsIRunnable> prefetchEvent = new ClearPrefetchEvent();
+    sThread->Dispatch(prefetchEvent, NS_DISPATCH_NORMAL);
+  }
+}
+#endif
 
 NS_IMETHODIMP
 nsWindowsShellService::OpenApplicationWithURI(nsILocalFile* aApplication,

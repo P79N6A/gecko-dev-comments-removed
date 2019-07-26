@@ -149,13 +149,45 @@ static int do_main(int argc, char* argv[])
       Output("Couldn't read application.ini");
       return 255;
     }
-    int result = XRE_main(argc, argv, appData);
+    int result = XRE_main(argc, argv, appData, 0);
     XRE_FreeAppData(appData);
     return result;
   }
 
-  return XRE_main(argc, argv, &sAppData);
+  return XRE_main(argc, argv, &sAppData, 0);
 }
+
+#ifdef XP_WIN
+
+
+
+
+
+
+bool IsPrefetchDisabledViaService()
+{
+  
+  
+  
+  
+  
+  
+  HKEY baseKey;
+  LONG retCode = RegOpenKeyExW(HKEY_LOCAL_MACHINE, 
+                               L"SOFTWARE\\Mozilla\\MaintenanceService", 0,
+                               KEY_READ | KEY_WOW64_64KEY, &baseKey);
+  if (retCode != ERROR_SUCCESS) {
+    return false;
+  }
+  DWORD disabledValue = 0;
+  DWORD disabledValueSize = sizeof(DWORD);
+  RegQueryValueExW(baseKey, L"FFPrefetchDisabled", 0, NULL,
+                   reinterpret_cast<LPBYTE>(&disabledValue),
+                   &disabledValueSize);
+  RegCloseKey(baseKey);
+  return disabledValue == 1;
+}
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -185,16 +217,31 @@ int main(int argc, char* argv[])
   
   
   
+  enum PreloadReason { PRELOAD_NONE, PRELOAD_SERVICE, PRELOAD_IOCOUNT };
+  PreloadReason preloadReason = PRELOAD_NONE;
+
+  
+  
+  
+  
+  
+  
   
   
   IO_COUNTERS ioCounters;
   gotCounters = GetProcessIoCounters(GetCurrentProcess(), &ioCounters);
-  if (gotCounters && !ioCounters.ReadOperationCount)
+
+  if (IsPrefetchDisabledViaService()) {
+    preloadReason = PRELOAD_SERVICE;
+  } else if ((gotCounters && !ioCounters.ReadOperationCount)) {
+    preloadReason = PRELOAD_IOCOUNT;
+  }
+
+  if (preloadReason != PRELOAD_NONE)
 #endif
   {
       XPCOMGlueEnablePreload();
   }
-
 
   rv = XPCOMGlueStartup(exePath);
   if (NS_FAILED(rv)) {
@@ -212,6 +259,11 @@ int main(int argc, char* argv[])
 
 #ifdef XRE_HAS_DLL_BLOCKLIST
   XRE_SetupDllBlocklist();
+#endif
+
+#if defined(XP_WIN)
+  XRE_TelemetryAccumulate(mozilla::Telemetry::STARTUP_USING_PRELOAD,
+                          preloadReason);
 #endif
 
   if (gotCounters) {

@@ -322,11 +322,38 @@ private:
     off_t        mOff;
 };
 
+#ifdef MOZ_OTS_REPORT_ERRORS
+struct OTSCallbackUserData {
+    gfxUserFontSet    *mFontSet;
+    gfxProxyFontEntry *mProxy;
+};
+
+ bool
+gfxUserFontSet::OTSMessage(void *aUserData, const char *format, ...)
+{
+    va_list va;
+    va_start(va, format);
+
+    
+    
+    char buf[512];
+    (void)vsnprintf(buf, sizeof(buf), format, va);
+
+    va_end(va);
+
+    OTSCallbackUserData *d = static_cast<OTSCallbackUserData*>(aUserData);
+    d->mFontSet->LogMessage(d->mProxy, buf);
+
+    return false;
+}
+#endif
 
 
-static const PRUint8*
-SanitizeOpenTypeData(const PRUint8* aData, PRUint32 aLength,
-                     PRUint32& aSaneLength, bool aIsCompressed)
+
+const PRUint8*
+gfxUserFontSet::SanitizeOpenTypeData(gfxProxyFontEntry *aProxy,
+                                     const PRUint8* aData, PRUint32 aLength,
+                                     PRUint32& aSaneLength, bool aIsCompressed)
 {
     
     ExpandingMemoryStream output(aIsCompressed ? aLength * 2 : aLength,
@@ -336,7 +363,19 @@ SanitizeOpenTypeData(const PRUint8* aData, PRUint32 aLength,
 #else
 #define PRESERVE_GRAPHITE false
 #endif
-    if (ots::Process(&output, aData, aLength, PRESERVE_GRAPHITE)) {
+
+#ifdef MOZ_OTS_REPORT_ERRORS
+    OTSCallbackUserData userData;
+    userData.mFontSet = this;
+    userData.mProxy = aProxy;
+#define ERROR_REPORTING_ARGS &gfxUserFontSet::OTSMessage, &userData,
+#else
+#define ERROR_REPORTING_ARGS
+#endif
+
+    if (ots::Process(&output, aData, aLength,
+                     ERROR_REPORTING_ARGS
+                     PRESERVE_GRAPHITE)) {
         aSaneLength = output.Tell();
         return static_cast<PRUint8*>(output.forget());
     } else {
@@ -632,7 +671,7 @@ gfxUserFontSet::LoadFont(gfxProxyFontEntry *aProxy,
         
         PRUint32 saneLen;
         const PRUint8* saneData =
-            SanitizeOpenTypeData(aFontData, aLength, saneLen,
+            SanitizeOpenTypeData(aProxy, aFontData, aLength, saneLen,
                                  fontType == GFX_USERFONT_WOFF);
         if (!saneData) {
             LogMessage(aProxy, "rejected by sanitizer");

@@ -303,15 +303,21 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
 
   do {
     MSG msg;
+    bool uiMessage = PeekUIMessage(&msg);
+
     
-    if (PeekUIMessage(&msg) ||
-        ::PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
+    if (uiMessage ||
+        PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
       gotMessage = true;
       if (msg.message == WM_QUIT) {
         ::PostQuitMessage(msg.wParam);
         Exit();
       } else {
-        mozilla::HangMonitor::NotifyActivity();
+        
+        
+        mozilla::HangMonitor::NotifyActivity(
+          uiMessage ? mozilla::HangMonitor::kUIActivity :
+                      mozilla::HangMonitor::kActivityNoUIAVail);
         ::TranslateMessage(&msg);
         ::DispatchMessageW(&msg);
       }

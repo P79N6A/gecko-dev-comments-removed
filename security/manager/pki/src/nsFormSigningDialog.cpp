@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsFormSigningDialog.h"
 #include "nsNSSDialogHelper.h"
 #include "nsCOMPtr.h"

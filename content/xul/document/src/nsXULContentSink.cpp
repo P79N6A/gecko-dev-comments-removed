@@ -695,7 +695,7 @@ XULContentSinkImpl::ReportError(const PRUnichar* aErrorText,
   rv = HandleStartElement(parsererror.get(), noAtts, 0, -1, 0);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  rv = HandleCharacterData(aErrorText, nsCRT::strlen(aErrorText));
+  rv = HandleCharacterData(aErrorText, NS_strlen(aErrorText));
   NS_ENSURE_SUCCESS(rv,rv);  
   
   nsAutoString sourcetext(errorNs);
@@ -705,7 +705,7 @@ XULContentSinkImpl::ReportError(const PRUnichar* aErrorText,
   rv = HandleStartElement(sourcetext.get(), noAtts, 0, -1, 0);
   NS_ENSURE_SUCCESS(rv,rv);
   
-  rv = HandleCharacterData(aSourceText, nsCRT::strlen(aSourceText));
+  rv = HandleCharacterData(aSourceText, NS_strlen(aSourceText));
   NS_ENSURE_SUCCESS(rv,rv);
   
   rv = HandleEndElement(sourcetext.get());
@@ -919,9 +919,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
           if (langID == nsIProgrammingLanguage::JAVASCRIPT) {
               
               
-              
-              
-              version = js::VersionSetXML(JSVersion(version), true);
+              version = js::VersionSetMoarXML(JSVersion(version), true);
 
               nsAutoString value;
               rv = parser.GetParameter("e4x", value);
@@ -930,7 +928,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
                       return rv;
               } else {
                   if (value.Length() == 1 && value[0] == '0')
-                    version = js::VersionSetXML(JSVersion(version), false);
+                    version = js::VersionSetMoarXML(JSVersion(version), false);
               }
           }
       }
@@ -944,7 +942,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
 
               
               
-              version = js::VersionSetXML(JSVersion(version), true);
+              version = js::VersionSetMoarXML(JSVersion(version), true);
           }
       }
       aAttributes += 2;

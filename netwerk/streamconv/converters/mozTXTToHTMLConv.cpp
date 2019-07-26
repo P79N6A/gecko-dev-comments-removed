@@ -292,34 +292,39 @@ mozTXTToHTMLConv::FindURLEnd(const PRUnichar * aInString, PRInt32 aInStringLengt
       end = PRUint32(i);
       return end > pos;
     }
-    else
-      return false;
+    return false;
   }
   case freetext:
   case abbreviated:
   {
     PRUint32 i = pos + 1;
     bool isEmail = aInString[pos] == (PRUnichar)'@';
-    bool haveOpeningBracket = false;
+    bool seenOpeningParenthesis = false; 
+    bool seenOpeningSquareBracket = false; 
     for (; PRInt32(i) < aInStringLength; i++)
     {
       
       if (aInString[i] == '>' || aInString[i] == '<' ||
           aInString[i] == '"' || aInString[i] == '`' ||
-          aInString[i] == '}' || aInString[i] == ']' ||
-          aInString[i] == '{' || aInString[i] == '[' ||
+          aInString[i] == '}' || aInString[i] == '{' ||
           aInString[i] == '|' ||
-          (aInString[i] == ')' && !haveOpeningBracket) ||
-          IsSpace(aInString[i])    )
+          (aInString[i] == ')' && !seenOpeningParenthesis) ||
+          (aInString[i] == ']' && !seenOpeningSquareBracket) ||
+          
+          (aInString[i] == '[' && i > 2 &&
+           (aInString[i - 1] != '/' || aInString[i - 2] != '/')) ||
+          IsSpace(aInString[i]))
           break;
       
       
       if (isEmail && (
             aInString[i] == '(' || aInString[i] == '\'' ||
-            !nsCRT::IsAscii(aInString[i])       ))
+            !nsCRT::IsAscii(aInString[i])))
           break;
       if (aInString[i] == '(')
-        haveOpeningBracket = true;
+        seenOpeningParenthesis = true;
+      if (aInString[i] == '[')
+        seenOpeningSquareBracket = true;
     }
     
     
@@ -334,8 +339,7 @@ mozTXTToHTMLConv::FindURLEnd(const PRUnichar * aInString, PRInt32 aInStringLengt
       end = i;
       return true;
     }
-    else
-      return false;
+    return false;
   }
   default:
     return false;
@@ -1023,7 +1027,7 @@ mozTXTToHTMLConv::CiteLevelTXT(const PRUnichar *line,
 				    PRUint32& logLineStart)
 {
   PRInt32 result = 0;
-  PRInt32 lineLength = nsCRT::strlen(line);
+  PRInt32 lineLength = NS_strlen(line);
 
   bool moreCites = true;
   while (moreCites)
@@ -1062,7 +1066,7 @@ mozTXTToHTMLConv::CiteLevelTXT(const PRUnichar *line,
       
       const PRUnichar * indexString = &line[logLineStart];
            
-      PRUint32 minlength = MinInt(6,nsCRT::strlen(indexString));
+      PRUint32 minlength = MinInt(6, NS_strlen(indexString));
       if (Substring(indexString,
                     indexString+minlength).Equals(Substring(NS_LITERAL_STRING(">From "), 0, minlength),
                                                   nsCaseInsensitiveStringComparator()))
@@ -1337,7 +1341,7 @@ mozTXTToHTMLConv::ScanTXT(const PRUnichar *text, PRUint32 whattodo,
 
   
   nsString outString;
-  PRInt32 inLength = nsCRT::strlen(text);
+  PRInt32 inLength = NS_strlen(text);
   
   
   

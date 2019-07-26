@@ -7,7 +7,6 @@
 
 #include "nsIXBLAccessible.h"
 
-#include "AccCollector.h"
 #include "AccGroupInfo.h"
 #include "AccIterator.h"
 #include "nsAccUtils.h"
@@ -68,7 +67,7 @@
 #include "nsNetUtil.h"
 #include "nsEventStates.h"
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 #include "nsIDOMCharacterData.h"
 #endif
 
@@ -89,7 +88,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(Accessible, nsAccessNode)
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mParent");
   cb.NoteXPCOMChild(static_cast<nsIAccessible*>(tmp->mParent.get()));
 
-  uint32_t i, length = tmp->mChildren.Length();
+  PRUint32 i, length = tmp->mChildren.Length();
   for (i = 0; i < length; ++i) {
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mChildren[i]");
     cb.NoteXPCOMChild(static_cast<nsIAccessible*>(tmp->mChildren[i].get()));
@@ -109,10 +108,10 @@ Accessible::QueryInterface(REFNSIID aIID, void** aInstancePtr)
 {
   
   
-  *aInstancePtr = nullptr;
+  *aInstancePtr = nsnull;
 
   if (aIID.Equals(NS_GET_IID(nsXPCOMCycleCollectionParticipant))) {
-    *aInstancePtr = NS_CYCLE_COLLECTION_PARTICIPANT(Accessible);
+    *aInstancePtr = &NS_CYCLE_COLLECTION_NAME(Accessible);
     return NS_OK;
   }
 
@@ -159,8 +158,8 @@ Accessible::QueryInterface(REFNSIID aIID, void** aInstancePtr)
 
 Accessible::Accessible(nsIContent* aContent, DocAccessible* aDoc) :
   nsAccessNodeWrap(aContent, aDoc),
-  mParent(nullptr), mIndexInParent(-1), mFlags(eChildrenUninitialized),
-  mIndexOfEmbeddedChild(-1), mRoleMapEntry(nullptr)
+  mParent(nsnull), mIndexInParent(-1), mFlags(eChildrenUninitialized),
+  mIndexOfEmbeddedChild(-1), mRoleMapEntry(nsnull)
 {
 #ifdef NS_DEBUG_X
    {
@@ -195,11 +194,6 @@ Accessible::SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
   mRoleMapEntry = aRoleMapEntry;
 }
 
-void
-Accessible::Init()
-{
-}
-
 NS_IMETHODIMP
 Accessible::GetDocument(nsIAccessibleDocument** aDocument)
 {
@@ -213,7 +207,7 @@ NS_IMETHODIMP
 Accessible::GetDOMNode(nsIDOMNode** aDOMNode)
 {
   NS_ENSURE_ARG_POINTER(aDOMNode);
-  *aDOMNode = nullptr;
+  *aDOMNode = nsnull;
 
   nsINode *node = GetNode();
   if (node)
@@ -328,7 +322,7 @@ Accessible::Description(nsString& aDescription)
     if (isXUL) {
       
       XULDescriptionIterator iter(Document(), mContent);
-      Accessible* descr = nullptr;
+      Accessible* descr = nsnull;
       while ((descr = iter.Next()))
         nsTextEquivUtils::AppendTextEquivFromContent(this, descr->GetContent(),
                                                      &aDescription);
@@ -351,7 +345,7 @@ Accessible::Description(nsString& aDescription)
 }
 
 NS_IMETHODIMP
-Accessible::GetAccessKey(nsAString& aAccessKey)
+Accessible::GetKeyboardShortcut(nsAString& aAccessKey)
 {
   aAccessKey.Truncate();
 
@@ -365,9 +359,9 @@ Accessible::GetAccessKey(nsAString& aAccessKey)
 KeyBinding
 Accessible::AccessKey() const
 {
-  uint32_t key = nsCoreUtils::GetAccessKeyFor(mContent);
+  PRUint32 key = nsCoreUtils::GetAccessKeyFor(mContent);
   if (!key && mContent->IsElement()) {
-    Accessible* label = nullptr;
+    Accessible* label = nsnull;
 
     
     if (mContent->IsHTML()) {
@@ -417,7 +411,7 @@ Accessible::AccessKey() const
     return KeyBinding();
 
   nsresult rv = NS_ERROR_FAILURE;
-  int32_t itemType = 0, modifierMask = 0;
+  PRInt32 itemType = 0, modifierMask = 0;
   treeItem->GetItemType(&itemType);
   switch (itemType) {
     case nsIDocShellTreeItem::typeChrome:
@@ -453,7 +447,7 @@ NS_IMETHODIMP
 Accessible::GetNextSibling(nsIAccessible** aNextSibling)
 {
   NS_ENSURE_ARG_POINTER(aNextSibling);
-  *aNextSibling = nullptr;
+  *aNextSibling = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -468,7 +462,7 @@ NS_IMETHODIMP
 Accessible::GetPreviousSibling(nsIAccessible ** aPreviousSibling)
 {
   NS_ENSURE_ARG_POINTER(aPreviousSibling);
-  *aPreviousSibling = nullptr;
+  *aPreviousSibling = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -483,7 +477,7 @@ NS_IMETHODIMP
 Accessible::GetFirstChild(nsIAccessible** aFirstChild)
 {
   NS_ENSURE_ARG_POINTER(aFirstChild);
-  *aFirstChild = nullptr;
+  *aFirstChild = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -497,7 +491,7 @@ NS_IMETHODIMP
 Accessible::GetLastChild(nsIAccessible** aLastChild)
 {
   NS_ENSURE_ARG_POINTER(aLastChild);
-  *aLastChild = nullptr;
+  *aLastChild = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -507,10 +501,10 @@ Accessible::GetLastChild(nsIAccessible** aLastChild)
 }
 
 NS_IMETHODIMP
-Accessible::GetChildAt(int32_t aChildIndex, nsIAccessible** aChild)
+Accessible::GetChildAt(PRInt32 aChildIndex, nsIAccessible** aChild)
 {
   NS_ENSURE_ARG_POINTER(aChild);
-  *aChild = nullptr;
+  *aChild = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -533,7 +527,7 @@ NS_IMETHODIMP
 Accessible::GetChildren(nsIArray** aOutChildren)
 {
   NS_ENSURE_ARG_POINTER(aOutChildren);
-  *aOutChildren = nullptr;
+  *aOutChildren = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -543,8 +537,8 @@ Accessible::GetChildren(nsIArray** aOutChildren)
     do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  uint32_t childCount = ChildCount();
-  for (uint32_t childIdx = 0; childIdx < childCount; childIdx++) {
+  PRUint32 childCount = ChildCount();
+  for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
     nsIAccessible* child = GetChildAt(childIdx);
     children->AppendElement(child, false);
   }
@@ -561,7 +555,7 @@ Accessible::CanHaveAnonChildren()
 
 
 NS_IMETHODIMP
-Accessible::GetChildCount(int32_t* aChildCount)
+Accessible::GetChildCount(PRInt32* aChildCount)
 {
   NS_ENSURE_ARG_POINTER(aChildCount);
 
@@ -574,7 +568,7 @@ Accessible::GetChildCount(int32_t* aChildCount)
 
 
 NS_IMETHODIMP
-Accessible::GetIndexInParent(int32_t* aIndexInParent)
+Accessible::GetIndexInParent(PRInt32* aIndexInParent)
 {
   NS_ENSURE_ARG_POINTER(aIndexInParent);
 
@@ -603,10 +597,10 @@ Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut)
     aStringOut.Assign(xsValue);
 }
 
-uint64_t
+PRUint64
 Accessible::VisibilityState()
 {
-  uint64_t vstates = states::INVISIBLE | states::OFFSCREEN;
+  PRUint64 vstates = states::INVISIBLE | states::OFFSCREEN;
 
   nsIFrame* frame = GetFrame();
   if (!frame)
@@ -618,7 +612,7 @@ Accessible::VisibilityState()
 
   
   
-  const uint16_t kMinPixels  = 12;
+  const PRUint16 kMinPixels  = 12;
   const nsSize frameSize = frame->GetSize();
   const nsRectVisibility rectVisibility =
     shell->GetRectVisibility(frame, nsRect(nsPoint(0,0), frameSize),
@@ -636,7 +630,7 @@ Accessible::VisibilityState()
       !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
       frame->GetRect().IsEmpty()) {
     nsAutoString renderedText;
-    frame->GetRenderedText(&renderedText, nullptr, nullptr, 0, 1);
+    frame->GetRenderedText(&renderedText, nsnull, nsnull, 0, 1);
     if (renderedText.IsEmpty())
       return vstates;
 
@@ -650,14 +644,16 @@ Accessible::VisibilityState()
   return vstates &= ~states::INVISIBLE;
 }
 
-uint64_t
+PRUint64
 Accessible::NativeState()
 {
-  uint64_t state = 0;
+  PRUint64 state = 0;
 
-  if (!IsInDocument())
+  DocAccessible* document = Document();
+  if (!document || !document->IsInDocument(this))
     state |= states::STALE;
 
+  bool disabled = false;
   if (mContent->IsElement()) {
     nsEventStates elementState = mContent->AsElement()->State();
 
@@ -667,7 +663,23 @@ Accessible::NativeState()
     if (elementState.HasState(NS_EVENT_STATE_REQUIRED))
       state |= states::REQUIRED;
 
-    state |= NativeInteractiveState();
+    disabled = mContent->IsHTML() ? 
+      (elementState.HasState(NS_EVENT_STATE_DISABLED)) :
+      (mContent->AttrValueIs(kNameSpaceID_None,
+                             nsGkAtoms::disabled,
+                             nsGkAtoms::_true,
+                             eCaseMatters));
+  }
+
+  
+  if (disabled) {
+    state |= states::UNAVAILABLE;
+  }
+  else if (mContent->IsElement()) {
+    nsIFrame* frame = GetFrame();
+    if (frame && frame->IsFocusable())
+      state |= states::FOCUSABLE;
+
     if (FocusMgr()->IsFocused(this))
       state |= states::FOCUSED;
   }
@@ -676,28 +688,13 @@ Accessible::NativeState()
   state |= VisibilityState();
 
   nsIFrame *frame = GetFrame();
-  if (frame) {
-    if (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
-      state |= states::FLOATING;
-
-    
-    
-    if (mContent->IsXUL() && frame->IsBoxFrame()) {
-      const nsStyleXUL* xulStyle = frame->GetStyleXUL();
-      if (xulStyle && frame->IsBoxFrame()) {
-        
-        if (xulStyle->mBoxOrient == NS_STYLE_BOX_ORIENT_VERTICAL)
-          state |= states::VERTICAL;
-        else
-          state |= states::HORIZONTAL;
-      }
-    }
-  }
+  if (frame && (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW))
+    state |= states::FLOATING;
 
   
-      if (mContent->IsXUL() && mContent->HasAttr(kNameSpaceID_None,
-                                                 nsGkAtoms::popup))
-        state |= states::HASPOPUP;
+  if (mContent->IsXUL())
+    if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popup))
+      state |= states::HASPOPUP;
 
   
   if (!mRoleMapEntry || mRoleMapEntry->roleRule == kUseNativeRole ||
@@ -707,37 +704,11 @@ Accessible::NativeState()
   return state;
 }
 
-uint64_t
-Accessible::NativeInteractiveState() const
-{
-  if (!mContent->IsElement())
-    return 0;
-
-  if (NativelyUnavailable())
-    return states::UNAVAILABLE;
-
-  nsIFrame* frame = GetFrame();
-  if (frame && frame->IsFocusable())
-    return states::FOCUSABLE;
-
-  return 0;
-}
-
-uint64_t
+PRUint64
 Accessible::NativeLinkState() const
 {
   
   return nsCoreUtils::IsXLink(mContent) ? states::LINKED : 0;
-}
-
-bool
-Accessible::NativelyUnavailable() const
-{
-  if (mContent->IsHTML())
-    return mContent->AsElement()->State().HasState(NS_EVENT_STATE_DISABLED);
-
-  return mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::disabled,
-                               nsGkAtoms::_true, eCaseMatters);
 }
 
   
@@ -745,7 +716,7 @@ NS_IMETHODIMP
 Accessible::GetFocusedChild(nsIAccessible** aChild)
 {
   NS_ENSURE_ARG_POINTER(aChild);
-  *aChild = nullptr;
+  *aChild = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -761,20 +732,20 @@ Accessible::FocusedChild()
   if (focus && (focus == this || focus->Parent() == this))
     return focus;
 
-  return nullptr;
+  return nsnull;
 }
 
 Accessible*
-Accessible::ChildAtPoint(int32_t aX, int32_t aY,
+Accessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
                          EWhichChildAtPoint aWhichChild)
 {
   
   
-  int32_t x = 0, y = 0, width = 0, height = 0;
+  PRInt32 x = 0, y = 0, width = 0, height = 0;
   nsresult rv = GetBounds(&x, &y, &width, &height);
-  NS_ENSURE_SUCCESS(rv, nullptr);
+  NS_ENSURE_SUCCESS(rv, nsnull);
 
-  Accessible* fallbackAnswer = nullptr;
+  Accessible* fallbackAnswer = nsnull;
   if (aX >= x && aX < x + width && aY >= y && aY < y + height)
     fallbackAnswer = this;
 
@@ -788,10 +759,10 @@ Accessible::ChildAtPoint(int32_t aX, int32_t aY,
   
   
   DocAccessible* accDocument = Document();
-  NS_ENSURE_TRUE(accDocument, nullptr);
+  NS_ENSURE_TRUE(accDocument, nsnull);
 
   nsIFrame *frame = accDocument->GetFrame();
-  NS_ENSURE_TRUE(frame, nullptr);
+  NS_ENSURE_TRUE(frame, nsnull);
 
   nsPresContext *presContext = frame->PresContext();
 
@@ -799,9 +770,10 @@ Accessible::ChildAtPoint(int32_t aX, int32_t aY,
   nsPoint offset(presContext->DevPixelsToAppUnits(aX) - screenRect.x,
                  presContext->DevPixelsToAppUnits(aY) - screenRect.y);
 
-  nsIFrame *foundFrame = nsLayoutUtils::GetFrameForPoint(frame, offset);
+  nsIPresShell* presShell = presContext->PresShell();
+  nsIFrame *foundFrame = presShell->GetFrameForPoint(frame, offset);
 
-  nsIContent* content = nullptr;
+  nsIContent* content = nsnull;
   if (!foundFrame || !(content = foundFrame->GetContent()))
     return fallbackAnswer;
 
@@ -819,11 +791,38 @@ Accessible::ChildAtPoint(int32_t aX, int32_t aY,
   if (!accessible)
     return fallbackAnswer;
 
-  
+  if (accessible == this) {
+    
+    
+    
+    
+    
+    PRUint32 childCount = ChildCount();
+    for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
+      Accessible* child = GetChildAt(childIdx);
+
+      PRInt32 childX, childY, childWidth, childHeight;
+      child->GetBounds(&childX, &childY, &childWidth, &childHeight);
+      if (aX >= childX && aX < childX + childWidth &&
+          aY >= childY && aY < childY + childHeight &&
+          (child->State() & states::INVISIBLE) == 0) {
+
+        if (aWhichChild == eDeepestChild)
+          return child->ChildAtPoint(aX, aY, eDeepestChild);
+
+        return child;
+      }
+    }
+
+    
+    
+    return accessible;
+  }
+
   
   
   Accessible* child = accessible;
-  while (child != this) {
+  while (true) {
     Accessible* parent = child->Parent();
     if (!parent) {
       
@@ -831,46 +830,22 @@ Accessible::ChildAtPoint(int32_t aX, int32_t aY,
       return fallbackAnswer;
     }
 
-    
-    
-    if (parent == this && aWhichChild == eDirectChild)
-        return child;
+    if (parent == this)
+      return aWhichChild == eDeepestChild ? accessible : child;
 
     child = parent;
   }
 
-  
-  
-  
-  
-  
-  uint32_t childCount = accessible->ChildCount();
-  for (uint32_t childIdx = 0; childIdx < childCount; childIdx++) {
-    Accessible* child = accessible->GetChildAt(childIdx);
-
-    int32_t childX, childY, childWidth, childHeight;
-    child->GetBounds(&childX, &childY, &childWidth, &childHeight);
-    if (aX >= childX && aX < childX + childWidth &&
-        aY >= childY && aY < childY + childHeight &&
-        (child->State() & states::INVISIBLE) == 0) {
-
-      if (aWhichChild == eDeepestChild)
-        return child->ChildAtPoint(aX, aY, eDeepestChild);
-
-      return child;
-    }
-  }
-
-  return accessible;
+  return nsnull;
 }
 
 
 NS_IMETHODIMP
-Accessible::GetChildAtPoint(int32_t aX, int32_t aY,
+Accessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
                             nsIAccessible** aAccessible)
 {
   NS_ENSURE_ARG_POINTER(aAccessible);
-  *aAccessible = nullptr;
+  *aAccessible = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -881,11 +856,11 @@ Accessible::GetChildAtPoint(int32_t aX, int32_t aY,
 
 
 NS_IMETHODIMP
-Accessible::GetDeepestChildAtPoint(int32_t aX, int32_t aY,
+Accessible::GetDeepestChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    nsIAccessible** aAccessible)
 {
   NS_ENSURE_ARG_POINTER(aAccessible);
-  *aAccessible = nullptr;
+  *aAccessible = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -897,19 +872,93 @@ Accessible::GetDeepestChildAtPoint(int32_t aX, int32_t aY,
 void
 Accessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame)
 {
-  nsIFrame* frame = GetFrame();
-  if (frame) {
-    *aBoundingFrame = nsLayoutUtils::GetContainingBlockForClientRect(frame);
-    aTotalBounds = nsLayoutUtils::
-      GetAllInFlowRectsUnion(frame, *aBoundingFrame,
-                             nsLayoutUtils::RECTS_ACCOUNT_FOR_TRANSFORMS);
+
+
+
+
+
+
+
+
+
+
+
+  
+  *aBoundingFrame = nsnull;
+  nsIFrame* firstFrame = GetFrame();
+  if (!firstFrame)
+    return;
+
+  
+  
+  
+  nsIFrame *ancestorFrame = firstFrame;
+
+  while (ancestorFrame) {  
+    *aBoundingFrame = ancestorFrame;
+    
+    
+    if (ancestorFrame->GetType() != nsGkAtoms::inlineFrame &&
+        ancestorFrame->GetType() != nsGkAtoms::textFrame)
+      break;
+    ancestorFrame = ancestorFrame->GetParent();
+  }
+
+  nsIFrame *iterFrame = firstFrame;
+  nsCOMPtr<nsIContent> firstContent(mContent);
+  nsIContent* iterContent = firstContent;
+  PRInt32 depth = 0;
+
+  
+  while (iterContent == firstContent || depth > 0) {
+    
+    nsRect currFrameBounds = iterFrame->GetRect();
+    
+    
+    currFrameBounds +=
+      iterFrame->GetParent()->GetOffsetToExternal(*aBoundingFrame);
+
+    
+    aTotalBounds.UnionRect(aTotalBounds, currFrameBounds);
+
+    nsIFrame *iterNextFrame = nsnull;
+
+    if (iterFrame->GetType() == nsGkAtoms::inlineFrame) {
+      
+      
+      iterNextFrame = iterFrame->GetFirstPrincipalChild();
+    }
+
+    if (iterNextFrame) 
+      ++depth;  
+    else {  
+      
+      
+      while (iterFrame) {
+        iterNextFrame = iterFrame->GetNextContinuation();
+        if (!iterNextFrame)
+          iterNextFrame = iterFrame->GetNextSibling();
+        if (iterNextFrame || --depth < 0) 
+          break;
+        iterFrame = iterFrame->GetParent();
+      }
+    }
+
+    
+    iterFrame = iterNextFrame;
+    if (iterFrame == nsnull)
+      break;
+    iterContent = nsnull;
+    if (depth == 0)
+      iterContent = iterFrame->GetContent();
   }
 }
 
 
+
 NS_IMETHODIMP
-Accessible::GetBounds(int32_t* aX, int32_t* aY,
-                      int32_t* aWidth, int32_t* aHeight)
+Accessible::GetBounds(PRInt32* aX, PRInt32* aY,
+                      PRInt32* aWidth, PRInt32* aHeight)
 {
   NS_ENSURE_ARG_POINTER(aX);
   *aX = 0;
@@ -932,7 +981,7 @@ Accessible::GetBounds(int32_t* aX, int32_t* aY,
   
 
   nsRect unionRectTwips;
-  nsIFrame* boundingFrame = nullptr;
+  nsIFrame* boundingFrame = nsnull;
   GetBoundsRect(unionRectTwips, &boundingFrame);   
   NS_ENSURE_STATE(boundingFrame);
 
@@ -1033,7 +1082,7 @@ Accessible::GetHTMLName(nsAString& aLabel)
 {
   nsAutoString label;
 
-  Accessible* labelAcc = nullptr;
+  Accessible* labelAcc = nsnull;
   HTMLLabelIterator iter(Document(), this);
   while ((labelAcc = iter.Next())) {
     nsresult rv = nsTextEquivUtils::
@@ -1095,7 +1144,7 @@ Accessible::GetXULName(nsAString& aLabel)
   if (NS_FAILED(rv) || label.IsEmpty()) {
     label.Truncate();
 
-    Accessible* labelAcc = nullptr;
+    Accessible* labelAcc = nsnull;
     XULLabelIterator iter(Document(), mContent);
     while ((labelAcc = iter.Next())) {
       nsCOMPtr<nsIDOMXULLabelElement> xulLabel =
@@ -1153,14 +1202,14 @@ Accessible::HandleAccEvent(AccEvent* aEvent)
   observers->HasMoreElements(&hasObservers);
   if (hasObservers) {
     nsRefPtr<nsAccEvent> evnt(aEvent->CreateXPCOMObject());
-    return obsService->NotifyObservers(evnt, NS_ACCESSIBLE_EVENT_TOPIC, nullptr);
+    return obsService->NotifyObservers(evnt, NS_ACCESSIBLE_EVENT_TOPIC, nsnull);
   }
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-Accessible::GetRole(uint32_t *aRole)
+Accessible::GetRole(PRUint32 *aRole)
 {
   NS_ENSURE_ARG_POINTER(aRole);
   *aRole = nsIAccessibleRole::ROLE_NOTHING;
@@ -1224,11 +1273,25 @@ Accessible::GetAttributes(nsIPersistentProperties **aAttributes)
                                groupPos.setSize, groupPos.posInSet);
 
   
-  aria::AttrIterator attribIter(mContent);
-  nsAutoString name, value;
-  while(attribIter.Next(name, value)) {
-    attributes->SetStringProperty(NS_ConvertUTF16toUTF8(name), value, 
-                                  oldValueUnused);
+  PRUint32 numAttrs = mContent->GetAttrCount();
+  for (PRUint32 count = 0; count < numAttrs; count ++) {
+    const nsAttrName *attr = mContent->GetAttrNameAt(count);
+    if (attr && attr->NamespaceEquals(kNameSpaceID_None)) {
+      nsIAtom *attrAtom = attr->Atom();
+      nsDependentAtomString attrStr(attrAtom);
+      if (!StringBeginsWith(attrStr, NS_LITERAL_STRING("aria-"))) 
+        continue; 
+      PRUint8 attrFlags = nsAccUtils::GetAttributeCharacteristics(attrAtom);
+      if (attrFlags & ATTR_BYPASSOBJ)
+        continue; 
+      if ((attrFlags & ATTR_VALTOKEN) &&
+          !nsAccUtils::HasDefinedARIAToken(mContent, attrAtom))
+        continue; 
+      nsAutoString value;
+      if (mContent->GetAttr(kNameSpaceID_None, attrAtom, value)) {
+        attributes->SetStringProperty(NS_ConvertUTF16toUTF8(Substring(attrStr, 5)), value, oldValueUnused);
+      }
+    }
   }
 
   
@@ -1375,14 +1438,14 @@ Accessible::GroupPosition()
 
   
   if (groupPos.level == 0) {
-    int32_t level = GetLevelInternal();
+    PRInt32 level = GetLevelInternal();
     if (level != 0)
       groupPos.level = level;
   }
 
   
   if (groupPos.posInSet == 0 || groupPos.setSize == 0) {
-    int32_t posInSet = 0, setSize = 0;
+    PRInt32 posInSet = 0, setSize = 0;
     GetPositionAndSizeInternal(&posInSet, &setSize);
     if (posInSet != 0 && setSize != 0) {
       if (groupPos.posInSet == 0)
@@ -1397,9 +1460,9 @@ Accessible::GroupPosition()
 }
 
 NS_IMETHODIMP
-Accessible::GroupPosition(int32_t* aGroupLevel,
-                          int32_t* aSimilarItemsInGroup,
-                          int32_t* aPositionInGroup)
+Accessible::GroupPosition(PRInt32* aGroupLevel,
+                          PRInt32* aSimilarItemsInGroup,
+                          PRInt32* aPositionInGroup)
 {
   NS_ENSURE_ARG_POINTER(aGroupLevel);
   *aGroupLevel = 0;
@@ -1423,7 +1486,7 @@ Accessible::GroupPosition(int32_t* aGroupLevel,
 }
 
 NS_IMETHODIMP
-Accessible::GetState(uint32_t* aState, uint32_t* aExtraState)
+Accessible::GetState(PRUint32* aState, PRUint32* aExtraState)
 {
   NS_ENSURE_ARG_POINTER(aState);
 
@@ -1431,13 +1494,13 @@ Accessible::GetState(uint32_t* aState, uint32_t* aExtraState)
   return NS_OK;
 }
 
-uint64_t
+PRUint64
 Accessible::State()
 {
   if (IsDefunct())
     return states::DEFUNCT;
 
-  uint64_t state = NativeState();
+  PRUint64 state = NativeState();
   
   ApplyARIAState(&state);
 
@@ -1456,7 +1519,7 @@ Accessible::State()
       } else {
         
         Relation rel = RelationByType(nsIAccessibleRelation::RELATION_LABEL_FOR);
-        Accessible* relTarget = nullptr;
+        Accessible* relTarget = nsnull;
         while ((relTarget = rel.Next())) {
           if (relTarget->Role() == roles::PROPERTYPAGE &&
               FocusMgr()->IsFocusWithin(relTarget))
@@ -1473,7 +1536,7 @@ Accessible::State()
     }
   }
 
-  const uint32_t kExpandCollapseStates = states::COLLAPSED | states::EXPANDED;
+  const PRUint32 kExpandCollapseStates = states::COLLAPSED | states::EXPANDED;
   if ((state & kExpandCollapseStates) == kExpandCollapseStates) {
     
     
@@ -1510,11 +1573,22 @@ Accessible::State()
     state |= states::OPAQUE1;
   }
 
+  const nsStyleXUL *xulStyle = frame->GetStyleXUL();
+  if (xulStyle) {
+    
+    if (xulStyle->mBoxOrient == NS_STYLE_BOX_ORIENT_VERTICAL) {
+      state |= states::VERTICAL;
+    }
+    else {
+      state |= states::HORIZONTAL;
+    }
+  }
+
   return state;
 }
 
 void
-Accessible::ApplyARIAState(uint64_t* aState) const
+Accessible::ApplyARIAState(PRUint64* aState) const
 {
   if (!mContent->IsElement())
     return;
@@ -1522,7 +1596,7 @@ Accessible::ApplyARIAState(uint64_t* aState) const
   dom::Element* element = mContent->AsElement();
 
   
-  *aState |= aria::UniversalStatesFor(element);
+  *aState |= nsARIAMap::UniversalStatesFor(element);
 
   if (mRoleMapEntry) {
 
@@ -1535,7 +1609,7 @@ Accessible::ApplyARIAState(uint64_t* aState) const
     if (mContent->HasAttr(kNameSpaceID_None, mContent->GetIDAttributeName())) {
       
       nsIContent *ancestorContent = mContent;
-      while ((ancestorContent = ancestorContent->GetParent()) != nullptr) {
+      while ((ancestorContent = ancestorContent->GetParent()) != nsnull) {
         if (ancestorContent->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_activedescendant)) {
             
           *aState |= states::FOCUSABLE;
@@ -1548,7 +1622,7 @@ Accessible::ApplyARIAState(uint64_t* aState) const
   if (*aState & states::FOCUSABLE) {
     
     nsIContent *ancestorContent = mContent;
-    while ((ancestorContent = ancestorContent->GetParent()) != nullptr) {
+    while ((ancestorContent = ancestorContent->GetParent()) != nsnull) {
       if (ancestorContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::aria_disabled,
                                        nsGkAtoms::_true, eCaseMatters)) {
           
@@ -1643,7 +1717,7 @@ Accessible::SetCurrentValue(double aValue)
   if (!mRoleMapEntry || mRoleMapEntry->valueRule == eNoValue)
     return NS_OK_NO_ARIA_VALUE;
 
-  const uint32_t kValueCannotChange = states::READONLY | states::UNAVAILABLE;
+  const PRUint32 kValueCannotChange = states::READONLY | states::UNAVAILABLE;
 
   if (State() & kValueCannotChange)
     return NS_ERROR_FAILURE;
@@ -1670,13 +1744,34 @@ Accessible::SetName(const nsAString& aName)
 }
 
 NS_IMETHODIMP
-Accessible::GetKeyboardShortcut(nsAString& aKeyBinding)
+Accessible::GetDefaultKeyBinding(nsAString& aKeyBinding)
 {
   aKeyBinding.Truncate();
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
   KeyboardShortcut().ToString(aKeyBinding);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Accessible::GetKeyBindings(PRUint8 aActionIndex,
+                             nsIDOMDOMStringList** aKeyBindings)
+{
+  
+  NS_ENSURE_TRUE(aActionIndex == 0, NS_ERROR_INVALID_ARG);
+
+  nsAccessibleDOMStringList* keyBindings = new nsAccessibleDOMStringList();
+  NS_ENSURE_TRUE(keyBindings, NS_ERROR_OUT_OF_MEMORY);
+
+  nsAutoString defaultKey;
+  nsresult rv = GetDefaultKeyBinding(defaultKey);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!defaultKey.IsEmpty())
+    keyBindings->Add(defaultKey);
+
+  NS_ADDREF(*aKeyBindings = keyBindings);
   return NS_OK;
 }
 
@@ -1707,7 +1802,7 @@ Accessible::ARIATransformRole(role aRole)
       return roles::COMBOBOX_LIST;
 
       Relation rel = RelationByType(nsIAccessibleRelation::RELATION_NODE_CHILD_OF);
-      Accessible* targetAcc = nullptr;
+      Accessible* targetAcc = nsnull;
       while ((targetAcc = rel.Next()))
         if (targetAcc->Role() == roles::COMBOBOX)
           return roles::COMBOBOX_LIST;
@@ -1729,7 +1824,7 @@ Accessible::NativeRole()
 
 
 NS_IMETHODIMP
-Accessible::GetActionCount(uint8_t* aActionCount)
+Accessible::GetActionCount(PRUint8* aActionCount)
 {
   NS_ENSURE_ARG_POINTER(aActionCount);
   *aActionCount = 0;
@@ -1740,15 +1835,15 @@ Accessible::GetActionCount(uint8_t* aActionCount)
   return NS_OK;
 }
 
-uint8_t
+PRUint8
 Accessible::ActionCount()
 {
-  return GetActionRule() == eNoAction ? 0 : 1;
+  return GetActionRule(State()) == eNoAction ? 0 : 1;
 }
 
 
 NS_IMETHODIMP
-Accessible::GetActionName(uint8_t aIndex, nsAString& aName)
+Accessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   aName.Truncate();
 
@@ -1758,7 +1853,8 @@ Accessible::GetActionName(uint8_t aIndex, nsAString& aName)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  uint32_t actionRule = GetActionRule();
+  PRUint64 states = State();
+  PRUint32 actionRule = GetActionRule(states);
 
  switch (actionRule) {
    case eActivateAction:
@@ -1774,23 +1870,20 @@ Accessible::GetActionName(uint8_t aIndex, nsAString& aName)
      return NS_OK;
 
    case eCheckUncheckAction:
-   {
-     uint64_t state = State();
-     if (state & states::CHECKED)
+     if (states & states::CHECKED)
        aName.AssignLiteral("uncheck");
-     else if (state & states::MIXED)
+     else if (states & states::MIXED)
        aName.AssignLiteral("cycle");
      else
        aName.AssignLiteral("check");
      return NS_OK;
-   }
 
    case eJumpAction:
      aName.AssignLiteral("jump");
      return NS_OK;
 
    case eOpenCloseAction:
-     if (State() & states::COLLAPSED)
+     if (states & states::COLLAPSED)
        aName.AssignLiteral("open");
      else
        aName.AssignLiteral("close");
@@ -1803,13 +1896,13 @@ Accessible::GetActionName(uint8_t aIndex, nsAString& aName)
    case eSwitchAction:
      aName.AssignLiteral("switch");
      return NS_OK;
-
+     
    case eSortAction:
      aName.AssignLiteral("sort");
      return NS_OK;
-
+   
    case eExpandAction:
-     if (State() & states::COLLAPSED)
+     if (states & states::COLLAPSED)
        aName.AssignLiteral("expand");
      else
        aName.AssignLiteral("collapse");
@@ -1821,7 +1914,7 @@ Accessible::GetActionName(uint8_t aIndex, nsAString& aName)
 
 
 NS_IMETHODIMP
-Accessible::GetActionDescription(uint8_t aIndex, nsAString& aDescription)
+Accessible::GetActionDescription(PRUint8 aIndex, nsAString& aDescription)
 {
   
   nsAutoString name;
@@ -1834,7 +1927,7 @@ Accessible::GetActionDescription(uint8_t aIndex, nsAString& aDescription)
 
 
 NS_IMETHODIMP
-Accessible::DoAction(uint8_t aIndex)
+Accessible::DoAction(PRUint8 aIndex)
 {
   if (aIndex != 0)
     return NS_ERROR_INVALID_ARG;
@@ -1842,7 +1935,7 @@ Accessible::DoAction(uint8_t aIndex)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  if (GetActionRule() != eNoAction) {
+  if (GetActionRule(State()) != eNoAction) {
     DoCommand();
     return NS_OK;
   }
@@ -1864,16 +1957,16 @@ Accessible::GetAtomicRegion() const
   while (loopContent && !loopContent->GetAttr(kNameSpaceID_None, nsGkAtoms::aria_atomic, atomic))
     loopContent = loopContent->GetParent();
 
-  return atomic.EqualsLiteral("true") ? loopContent : nullptr;
+  return atomic.EqualsLiteral("true") ? loopContent : nsnull;
 }
 
 
 NS_IMETHODIMP
-Accessible::GetRelationByType(uint32_t aType,
+Accessible::GetRelationByType(PRUint32 aType,
                                 nsIAccessibleRelation** aRelation)
 {
   NS_ENSURE_ARG_POINTER(aRelation);
-  *aRelation = nullptr;
+  *aRelation = nsnull;
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
@@ -1883,7 +1976,7 @@ Accessible::GetRelationByType(uint32_t aType,
 }
 
 Relation
-Accessible::RelationByType(uint32_t aType)
+Accessible::RelationByType(PRUint32 aType)
 {
   
   
@@ -2002,11 +2095,11 @@ Accessible::RelationByType(uint32_t aType)
                                          NS_LITERAL_STRING("true"),
                                          getter_AddRefs(possibleDefaultButtons));
           if (possibleDefaultButtons) {
-            uint32_t length;
+            PRUint32 length;
             possibleDefaultButtons->GetLength(&length);
             nsCOMPtr<nsIDOMNode> possibleButton;
             
-            for (uint32_t count = 0; count < length && !buttonEl; count ++) {
+            for (PRUint32 count = 0; count < length && !buttonEl; count ++) {
               possibleDefaultButtons->Item(count, getter_AddRefs(possibleButton));
               buttonEl = do_QueryInterface(possibleButton);
             }
@@ -2042,7 +2135,7 @@ NS_IMETHODIMP
 Accessible::GetRelations(nsIArray **aRelations)
 {
   NS_ENSURE_ARG_POINTER(aRelations);
-  *aRelations = nullptr;
+  *aRelations = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -2050,7 +2143,7 @@ Accessible::GetRelations(nsIArray **aRelations)
   nsCOMPtr<nsIMutableArray> relations = do_CreateInstance(NS_ARRAY_CONTRACTID);
   NS_ENSURE_TRUE(relations, NS_ERROR_OUT_OF_MEMORY);
 
-  for (uint32_t relType = nsIAccessibleRelation::RELATION_FIRST;
+  for (PRUint32 relType = nsIAccessibleRelation::RELATION_FIRST;
        relType < nsIAccessibleRelation::RELATION_LAST;
        ++relType) {
 
@@ -2058,7 +2151,7 @@ Accessible::GetRelations(nsIArray **aRelations)
     nsresult rv = GetRelationByType(relType, getter_AddRefs(relation));
 
     if (NS_SUCCEEDED(rv) && relation) {
-      uint32_t targets = 0;
+      PRUint32 targets = 0;
       relation->GetTargetsCount(&targets);
       if (targets)
         relations->AppendElement(relation, false);
@@ -2083,7 +2176,7 @@ NS_IMETHODIMP Accessible::GetNativeInterface(void **aOutAccessible)
 }
 
 void
-Accessible::DoCommand(nsIContent *aContent, uint32_t aActionIndex)
+Accessible::DoCommand(nsIContent *aContent, PRUint32 aActionIndex)
 {
   nsIContent* content = aContent ? aContent : mContent.get();
   NS_DISPATCH_RUNNABLEMETHOD_ARG2(DispatchClickEvent, this, content,
@@ -2091,7 +2184,7 @@ Accessible::DoCommand(nsIContent *aContent, uint32_t aActionIndex)
 }
 
 void
-Accessible::DispatchClickEvent(nsIContent *aContent, uint32_t aActionIndex)
+Accessible::DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex)
 {
   if (IsDefunct())
     return;
@@ -2114,7 +2207,7 @@ Accessible::DispatchClickEvent(nsIContent *aContent, uint32_t aActionIndex)
 }
 
 NS_IMETHODIMP
-Accessible::ScrollTo(uint32_t aHow)
+Accessible::ScrollTo(PRUint32 aHow)
 {
   if (IsDefunct())
     return NS_ERROR_FAILURE;
@@ -2124,7 +2217,7 @@ Accessible::ScrollTo(uint32_t aHow)
 }
 
 NS_IMETHODIMP
-Accessible::ScrollToPoint(uint32_t aCoordinateType, int32_t aX, int32_t aY)
+Accessible::ScrollToPoint(PRUint32 aCoordinateType, PRInt32 aX, PRInt32 aY)
 {
   nsIFrame *frame = GetFrame();
   if (!frame)
@@ -2147,14 +2240,14 @@ NS_IMETHODIMP
 Accessible::GetSelectedChildren(nsIArray** aSelectedAccessibles)
 {
   NS_ENSURE_ARG_POINTER(aSelectedAccessibles);
-  *aSelectedAccessibles = nullptr;
+  *aSelectedAccessibles = nsnull;
 
   if (IsDefunct() || !IsSelect())
     return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIArray> items = SelectedItems();
   if (items) {
-    uint32_t length = 0;
+    PRUint32 length = 0;
     items->GetLength(&length);
     if (length)
       items.swap(*aSelectedAccessibles);
@@ -2165,10 +2258,10 @@ Accessible::GetSelectedChildren(nsIArray** aSelectedAccessibles)
 
 
 NS_IMETHODIMP
-Accessible::RefSelection(int32_t aIndex, nsIAccessible** aSelected)
+Accessible::RefSelection(PRInt32 aIndex, nsIAccessible** aSelected)
 {
   NS_ENSURE_ARG_POINTER(aSelected);
-  *aSelected = nullptr;
+  *aSelected = nsnull;
 
   if (IsDefunct() || !IsSelect())
     return NS_ERROR_FAILURE;
@@ -2187,7 +2280,7 @@ Accessible::RefSelection(int32_t aIndex, nsIAccessible** aSelected)
 }
 
 NS_IMETHODIMP
-Accessible::GetSelectionCount(int32_t* aSelectionCount)
+Accessible::GetSelectionCount(PRInt32* aSelectionCount)
 {
   NS_ENSURE_ARG_POINTER(aSelectionCount);
   *aSelectionCount = 0;
@@ -2199,7 +2292,7 @@ Accessible::GetSelectionCount(int32_t* aSelectionCount)
   return NS_OK;
 }
 
-NS_IMETHODIMP Accessible::AddChildToSelection(int32_t aIndex)
+NS_IMETHODIMP Accessible::AddChildToSelection(PRInt32 aIndex)
 {
   if (IsDefunct() || !IsSelect())
     return NS_ERROR_FAILURE;
@@ -2208,7 +2301,7 @@ NS_IMETHODIMP Accessible::AddChildToSelection(int32_t aIndex)
     NS_OK : NS_ERROR_INVALID_ARG;
 }
 
-NS_IMETHODIMP Accessible::RemoveChildFromSelection(int32_t aIndex)
+NS_IMETHODIMP Accessible::RemoveChildFromSelection(PRInt32 aIndex)
 {
   if (IsDefunct() || !IsSelect())
     return NS_ERROR_FAILURE;
@@ -2217,7 +2310,7 @@ NS_IMETHODIMP Accessible::RemoveChildFromSelection(int32_t aIndex)
     NS_OK : NS_ERROR_INVALID_ARG;
 }
 
-NS_IMETHODIMP Accessible::IsChildSelected(int32_t aIndex, bool *aIsSelected)
+NS_IMETHODIMP Accessible::IsChildSelected(PRInt32 aIndex, bool *aIsSelected)
 {
   NS_ENSURE_ARG_POINTER(aIsSelected);
   *aIsSelected = false;
@@ -2261,7 +2354,7 @@ Accessible::SelectAllSelection(bool* aIsMultiSelect)
 
 
 NS_IMETHODIMP
-Accessible::GetAnchorCount(int32_t *aAnchorCount)
+Accessible::GetAnchorCount(PRInt32 *aAnchorCount)
 {
   NS_ENSURE_ARG_POINTER(aAnchorCount);
   *aAnchorCount = 0;
@@ -2275,7 +2368,7 @@ Accessible::GetAnchorCount(int32_t *aAnchorCount)
 
 
 NS_IMETHODIMP
-Accessible::GetStartIndex(int32_t *aStartIndex)
+Accessible::GetStartIndex(PRInt32 *aStartIndex)
 {
   NS_ENSURE_ARG_POINTER(aStartIndex);
   *aStartIndex = 0;
@@ -2289,7 +2382,7 @@ Accessible::GetStartIndex(int32_t *aStartIndex)
 
 
 NS_IMETHODIMP
-Accessible::GetEndIndex(int32_t *aEndIndex)
+Accessible::GetEndIndex(PRInt32 *aEndIndex)
 {
   NS_ENSURE_ARG_POINTER(aEndIndex);
   *aEndIndex = 0;
@@ -2302,14 +2395,14 @@ Accessible::GetEndIndex(int32_t *aEndIndex)
 }
 
 NS_IMETHODIMP
-Accessible::GetURI(int32_t aIndex, nsIURI **aURI)
+Accessible::GetURI(PRInt32 aIndex, nsIURI **aURI)
 {
   NS_ENSURE_ARG_POINTER(aURI);
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  if (aIndex < 0 || aIndex >= static_cast<int32_t>(AnchorCount()))
+  if (aIndex < 0 || aIndex >= static_cast<PRInt32>(AnchorCount()))
     return NS_ERROR_INVALID_ARG;
 
   nsRefPtr<nsIURI>(AnchorURIAt(aIndex)).forget(aURI);
@@ -2318,15 +2411,15 @@ Accessible::GetURI(int32_t aIndex, nsIURI **aURI)
 
 
 NS_IMETHODIMP
-Accessible::GetAnchor(int32_t aIndex, nsIAccessible** aAccessible)
+Accessible::GetAnchor(PRInt32 aIndex, nsIAccessible** aAccessible)
 {
   NS_ENSURE_ARG_POINTER(aAccessible);
-  *aAccessible = nullptr;
+  *aAccessible = nsnull;
 
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  if (aIndex < 0 || aIndex >= static_cast<int32_t>(AnchorCount()))
+  if (aIndex < 0 || aIndex >= static_cast<PRInt32>(AnchorCount()))
     return NS_ERROR_INVALID_ARG;
 
   NS_IF_ADDREF(*aAccessible = AnchorAt(aIndex));
@@ -2363,8 +2456,8 @@ Accessible::GetSelected(bool *aSelected)
 }
 
 void
-Accessible::AppendTextTo(nsAString& aText, uint32_t aStartOffset,
-                         uint32_t aLength)
+Accessible::AppendTextTo(nsAString& aText, PRUint32 aStartOffset,
+                         PRUint32 aLength)
 {
   
   
@@ -2447,7 +2540,7 @@ Accessible::GetNameInternal(nsAString& aName)
 
 
 void
-Accessible::BindToParent(Accessible* aParent, uint32_t aIndexInParent)
+Accessible::BindToParent(Accessible* aParent, PRUint32 aIndexInParent)
 {
   NS_PRECONDITION(aParent, "This method isn't used to set null parent!");
 
@@ -2468,22 +2561,22 @@ Accessible::BindToParent(Accessible* aParent, uint32_t aIndexInParent)
 void
 Accessible::UnbindFromParent()
 {
-  mParent = nullptr;
+  mParent = nsnull;
   mIndexInParent = -1;
   mIndexOfEmbeddedChild = -1;
-  mGroupInfo = nullptr;
+  mGroupInfo = nsnull;
 }
 
 void
 Accessible::InvalidateChildren()
 {
-  int32_t childCount = mChildren.Length();
-  for (int32_t childIdx = 0; childIdx < childCount; childIdx++) {
+  PRInt32 childCount = mChildren.Length();
+  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
     Accessible* child = mChildren.ElementAt(childIdx);
     child->UnbindFromParent();
   }
 
-  mEmbeddedObjCollector = nullptr;
+  mEmbeddedObjCollector = nsnull;
   mChildren.Clear();
   SetChildrenFlag(eChildrenUninitialized);
 }
@@ -2505,7 +2598,7 @@ Accessible::AppendChild(Accessible* aChild)
 }
 
 bool
-Accessible::InsertChildAt(uint32_t aIndex, Accessible* aChild)
+Accessible::InsertChildAt(PRUint32 aIndex, Accessible* aChild)
 {
   if (!aChild)
     return false;
@@ -2513,7 +2606,7 @@ Accessible::InsertChildAt(uint32_t aIndex, Accessible* aChild)
   if (!mChildren.InsertElementAt(aIndex, aChild))
     return false;
 
-  for (uint32_t idx = aIndex + 1; idx < mChildren.Length(); idx++) {
+  for (PRUint32 idx = aIndex + 1; idx < mChildren.Length(); idx++) {
     NS_ASSERTION(mChildren[idx]->mIndexInParent == idx - 1, "Accessible child index doesn't match");
     mChildren[idx]->mIndexInParent = idx;
   }
@@ -2521,7 +2614,7 @@ Accessible::InsertChildAt(uint32_t aIndex, Accessible* aChild)
   if (nsAccUtils::IsText(aChild))
     SetChildrenFlag(eMixedChildren);
 
-  mEmbeddedObjCollector = nullptr;
+  mEmbeddedObjCollector = nsnull;
 
   aChild->BindToParent(this, aIndex);
   return true;
@@ -2536,31 +2629,31 @@ Accessible::RemoveChild(Accessible* aChild)
   if (aChild->mParent != this || aChild->mIndexInParent == -1)
     return false;
 
-  uint32_t index = static_cast<uint32_t>(aChild->mIndexInParent);
+  PRUint32 index = static_cast<PRUint32>(aChild->mIndexInParent);
   if (index >= mChildren.Length() || mChildren[index] != aChild) {
     NS_ERROR("Child is bound to parent but parent hasn't this child at its index!");
     aChild->UnbindFromParent();
     return false;
   }
 
-  for (uint32_t idx = index + 1; idx < mChildren.Length(); idx++) {
+  for (PRUint32 idx = index + 1; idx < mChildren.Length(); idx++) {
     NS_ASSERTION(mChildren[idx]->mIndexInParent == idx, "Accessible child index doesn't match");
     mChildren[idx]->mIndexInParent = idx - 1;
   }
 
   aChild->UnbindFromParent();
   mChildren.RemoveElementAt(index);
-  mEmbeddedObjCollector = nullptr;
+  mEmbeddedObjCollector = nsnull;
 
   return true;
 }
 
 Accessible*
-Accessible::GetChildAt(uint32_t aIndex)
+Accessible::GetChildAt(PRUint32 aIndex)
 {
-  Accessible* child = mChildren.SafeElementAt(aIndex, nullptr);
+  Accessible* child = mChildren.SafeElementAt(aIndex, nsnull);
   if (!child)
-    return nullptr;
+    return nsnull;
 
 #ifdef DEBUG
   Accessible* realParent = child->mParent;
@@ -2571,25 +2664,25 @@ Accessible::GetChildAt(uint32_t aIndex)
   return child;
 }
 
-uint32_t
+PRUint32
 Accessible::ChildCount() const
 {
   return mChildren.Length();
 }
 
-int32_t
+PRInt32
 Accessible::GetIndexOf(Accessible* aChild)
 {
   return (aChild->mParent != this) ? -1 : aChild->IndexInParent();
 }
 
-int32_t
+PRInt32
 Accessible::IndexInParent() const
 {
   return mIndexInParent;
 }
 
-uint32_t
+PRUint32
 Accessible::EmbeddedChildCount()
 {
   if (IsChildrenFlag(eMixedChildren)) {
@@ -2602,19 +2695,19 @@ Accessible::EmbeddedChildCount()
 }
 
 Accessible*
-Accessible::GetEmbeddedChildAt(uint32_t aIndex)
+Accessible::GetEmbeddedChildAt(PRUint32 aIndex)
 {
   if (IsChildrenFlag(eMixedChildren)) {
     if (!mEmbeddedObjCollector)
       mEmbeddedObjCollector = new EmbeddedObjCollector(this);
     return mEmbeddedObjCollector ?
-      mEmbeddedObjCollector->GetAccessibleAt(aIndex) : nullptr;
+      mEmbeddedObjCollector->GetAccessibleAt(aIndex) : nsnull;
   }
 
   return GetChildAt(aIndex);
 }
 
-int32_t
+PRInt32
 Accessible::GetIndexOfEmbeddedChild(Accessible* aChild)
 {
   if (IsChildrenFlag(eMixedChildren)) {
@@ -2638,21 +2731,21 @@ Accessible::IsLink()
   return mParent && mParent->IsHyperText() && nsAccUtils::IsEmbeddedObject(this);
 }
 
-uint32_t
+PRUint32
 Accessible::StartOffset()
 {
   NS_PRECONDITION(IsLink(), "StartOffset is called not on hyper link!");
 
-  HyperTextAccessible* hyperText = mParent ? mParent->AsHyperText() : nullptr;
+  nsHyperTextAccessible* hyperText = mParent ? mParent->AsHyperText() : nsnull;
   return hyperText ? hyperText->GetChildOffset(this) : 0;
 }
 
-uint32_t
+PRUint32
 Accessible::EndOffset()
 {
   NS_PRECONDITION(IsLink(), "EndOffset is called on not hyper link!");
 
-  HyperTextAccessible* hyperText = mParent ? mParent->AsHyperText() : nullptr;
+  nsHyperTextAccessible* hyperText = mParent ? mParent->AsHyperText() : nsnull;
   return hyperText ? (hyperText->GetChildOffset(this) + 1) : 0;
 }
 
@@ -2664,7 +2757,7 @@ Accessible::IsLinkSelected()
   return FocusMgr()->IsFocused(this);
 }
 
-uint32_t
+PRUint32
 Accessible::AnchorCount()
 {
   NS_PRECONDITION(IsLink(), "AnchorCount is called on not hyper link!");
@@ -2672,19 +2765,19 @@ Accessible::AnchorCount()
 }
 
 Accessible*
-Accessible::AnchorAt(uint32_t aAnchorIndex)
+Accessible::AnchorAt(PRUint32 aAnchorIndex)
 {
   NS_PRECONDITION(IsLink(), "GetAnchor is called on not hyper link!");
-  return aAnchorIndex == 0 ? this : nullptr;
+  return aAnchorIndex == 0 ? this : nsnull;
 }
 
 already_AddRefed<nsIURI>
-Accessible::AnchorURIAt(uint32_t aAnchorIndex)
+Accessible::AnchorURIAt(PRUint32 aAnchorIndex)
 {
   NS_PRECONDITION(IsLink(), "AnchorURIAt is called on not hyper link!");
 
   if (aAnchorIndex != 0)
-    return nullptr;
+    return nsnull;
 
   
   if (nsCoreUtils::IsXLink(mContent)) {
@@ -2693,14 +2786,14 @@ Accessible::AnchorURIAt(uint32_t aAnchorIndex)
 
     nsCOMPtr<nsIURI> baseURI = mContent->GetBaseURI();
     nsCOMPtr<nsIDocument> document = mContent->OwnerDoc();
-    nsIURI* anchorURI = nullptr;
+    nsIURI* anchorURI = nsnull;
     NS_NewURI(&anchorURI, href,
-              document ? document->GetDocumentCharacterSet().get() : nullptr,
+              document ? document->GetDocumentCharacterSet().get() : nsnull,
               baseURI);
     return anchorURI;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -2726,24 +2819,24 @@ Accessible::SelectedItems()
 {
   nsCOMPtr<nsIMutableArray> selectedItems = do_CreateInstance(NS_ARRAY_CONTRACTID);
   if (!selectedItems)
-    return nullptr;
+    return nsnull;
 
-  AccIterator iter(this, filters::GetSelected);
-  nsIAccessible* selected = nullptr;
+  AccIterator iter(this, filters::GetSelected, AccIterator::eTreeNav);
+  nsIAccessible* selected = nsnull;
   while ((selected = iter.Next()))
     selectedItems->AppendElement(selected, false);
 
-  nsIMutableArray* items = nullptr;
+  nsIMutableArray* items = nsnull;
   selectedItems.forget(&items);
   return items;
 }
 
-uint32_t
+PRUint32
 Accessible::SelectedItemCount()
 {
-  uint32_t count = 0;
-  AccIterator iter(this, filters::GetSelected);
-  Accessible* selected = nullptr;
+  PRUint32 count = 0;
+  AccIterator iter(this, filters::GetSelected, AccIterator::eTreeNav);
+  Accessible* selected = nsnull;
   while ((selected = iter.Next()))
     ++count;
 
@@ -2751,12 +2844,12 @@ Accessible::SelectedItemCount()
 }
 
 Accessible*
-Accessible::GetSelectedItem(uint32_t aIndex)
+Accessible::GetSelectedItem(PRUint32 aIndex)
 {
-  AccIterator iter(this, filters::GetSelected);
-  Accessible* selected = nullptr;
+  AccIterator iter(this, filters::GetSelected, AccIterator::eTreeNav);
+  Accessible* selected = nsnull;
 
-  uint32_t index = 0;
+  PRUint32 index = 0;
   while ((selected = iter.Next()) && index < aIndex)
     index++;
 
@@ -2764,11 +2857,11 @@ Accessible::GetSelectedItem(uint32_t aIndex)
 }
 
 bool
-Accessible::IsItemSelected(uint32_t aIndex)
+Accessible::IsItemSelected(PRUint32 aIndex)
 {
-  uint32_t index = 0;
-  AccIterator iter(this, filters::GetSelectable);
-  Accessible* selected = nullptr;
+  PRUint32 index = 0;
+  AccIterator iter(this, filters::GetSelectable, AccIterator::eTreeNav);
+  Accessible* selected = nsnull;
   while ((selected = iter.Next()) && index < aIndex)
     index++;
 
@@ -2777,11 +2870,11 @@ Accessible::IsItemSelected(uint32_t aIndex)
 }
 
 bool
-Accessible::AddItemToSelection(uint32_t aIndex)
+Accessible::AddItemToSelection(PRUint32 aIndex)
 {
-  uint32_t index = 0;
-  AccIterator iter(this, filters::GetSelectable);
-  Accessible* selected = nullptr;
+  PRUint32 index = 0;
+  AccIterator iter(this, filters::GetSelectable, AccIterator::eTreeNav);
+  Accessible* selected = nsnull;
   while ((selected = iter.Next()) && index < aIndex)
     index++;
 
@@ -2792,11 +2885,11 @@ Accessible::AddItemToSelection(uint32_t aIndex)
 }
 
 bool
-Accessible::RemoveItemFromSelection(uint32_t aIndex)
+Accessible::RemoveItemFromSelection(PRUint32 aIndex)
 {
-  uint32_t index = 0;
-  AccIterator iter(this, filters::GetSelectable);
-  Accessible* selected = nullptr;
+  PRUint32 index = 0;
+  AccIterator iter(this, filters::GetSelectable, AccIterator::eTreeNav);
+  Accessible* selected = nsnull;
   while ((selected = iter.Next()) && index < aIndex)
     index++;
 
@@ -2810,9 +2903,9 @@ bool
 Accessible::SelectAll()
 {
   bool success = false;
-  Accessible* selectable = nullptr;
+  Accessible* selectable = nsnull;
 
-  AccIterator iter(this, filters::GetSelectable);
+  AccIterator iter(this, filters::GetSelectable, AccIterator::eTreeNav);
   while((selectable = iter.Next())) {
     success = true;
     selectable->SetSelected(true);
@@ -2824,9 +2917,9 @@ bool
 Accessible::UnselectAll()
 {
   bool success = false;
-  Accessible* selected = nullptr;
+  Accessible* selected = nsnull;
 
-  AccIterator iter(this, filters::GetSelected);
+  AccIterator iter(this, filters::GetSelected, AccIterator::eTreeNav);
   while ((selected = iter.Next())) {
     success = true;
     selected->SetSelected(false);
@@ -2846,21 +2939,7 @@ Accessible::IsWidget() const
 bool
 Accessible::IsActiveWidget() const
 {
-  if (FocusMgr()->HasDOMFocus(mContent))
-    return true;
-
-  
-  
-  if (mRoleMapEntry && mRoleMapEntry->Is(nsGkAtoms::combobox)) {
-    uint32_t childCount = ChildCount();
-    for (uint32_t idx = 0; idx < childCount; idx++) {
-      Accessible* child = mChildren.ElementAt(idx);
-      if (child->Role() == roles::ENTRY)
-        return FocusMgr()->HasDOMFocus(child->GetContent());
-    }
-  }
-
-  return false;
+  return FocusMgr()->IsFocused(this);
 }
 
 bool
@@ -2887,7 +2966,7 @@ Accessible::CurrentItem()
         return document->GetAccessible(activeDescendantElm);
     }
   }
-  return nullptr;
+  return nsnull;
 }
 
 void
@@ -2919,7 +2998,7 @@ Accessible::ContainerWidget() const
         break;
     }
   }
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -2933,7 +3012,7 @@ Accessible::CacheChildren()
 
   nsAccTreeWalker walker(doc, mContent, CanHaveAnonChildren());
 
-  Accessible* child = nullptr;
+  Accessible* child = nsnull;
   while ((child = walker.NextChild()) && AppendChild(child));
 }
 
@@ -2941,15 +3020,15 @@ void
 Accessible::TestChildCache(Accessible* aCachedChild) const
 {
 #ifdef DEBUG
-  int32_t childCount = mChildren.Length();
+  PRInt32 childCount = mChildren.Length();
   if (childCount == 0) {
     NS_ASSERTION(IsChildrenFlag(eChildrenUninitialized),
                  "No children but initialized!");
     return;
   }
 
-  Accessible* child = nullptr;
-  for (int32_t childIdx = 0; childIdx < childCount; childIdx++) {
+  Accessible* child = nsnull;
+  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
     child = mChildren[childIdx];
     if (child == aCachedChild)
       break;
@@ -2980,19 +3059,19 @@ Accessible::EnsureChildren()
 }
 
 Accessible*
-Accessible::GetSiblingAtOffset(int32_t aOffset, nsresult* aError) const
+Accessible::GetSiblingAtOffset(PRInt32 aOffset, nsresult* aError) const
 {
   if (!mParent || mIndexInParent == -1) {
     if (aError)
       *aError = NS_ERROR_UNEXPECTED;
 
-    return nullptr;
+    return nsnull;
   }
 
   if (aError &&
-      mIndexInParent + aOffset >= static_cast<int32_t>(mParent->ChildCount())) {
+      mIndexInParent + aOffset >= static_cast<PRInt32>(mParent->ChildCount())) {
     *aError = NS_OK; 
-    return nullptr;
+    return nsnull;
   }
 
   Accessible* child = mParent->GetChildAt(mIndexInParent + aOffset);
@@ -3010,21 +3089,21 @@ Accessible::GetFirstAvailableAccessible(nsINode *aStartNode) const
     return accessible;
 
   nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(aStartNode->OwnerDoc());
-  NS_ENSURE_TRUE(domDoc, nullptr);
+  NS_ENSURE_TRUE(domDoc, nsnull);
 
   nsCOMPtr<nsIDOMNode> currentNode = do_QueryInterface(aStartNode);
   nsCOMPtr<nsIDOMNode> rootNode = do_QueryInterface(GetNode());
   nsCOMPtr<nsIDOMTreeWalker> walker;
   domDoc->CreateTreeWalker(rootNode,
                            nsIDOMNodeFilter::SHOW_ELEMENT | nsIDOMNodeFilter::SHOW_TEXT,
-                           nullptr, false, getter_AddRefs(walker));
-  NS_ENSURE_TRUE(walker, nullptr);
+                           nsnull, false, getter_AddRefs(walker));
+  NS_ENSURE_TRUE(walker, nsnull);
 
   walker->SetCurrentNode(currentNode);
   while (true) {
     walker->NextNode(getter_AddRefs(currentNode));
     if (!currentNode)
-      return nullptr;
+      return nsnull;
 
     nsCOMPtr<nsINode> node(do_QueryInterface(currentNode));
     Accessible* accessible = mDoc->GetAccessible(node);
@@ -3032,7 +3111,7 @@ Accessible::GetFirstAvailableAccessible(nsINode *aStartNode) const
       return accessible;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 nsresult
@@ -3054,7 +3133,7 @@ Accessible::GetAttrValue(nsIAtom *aProperty, double *aValue)
   if (attrValue.IsEmpty())
     return NS_OK;
 
-  nsresult error = NS_OK;
+  PRInt32 error = NS_OK;
   double value = attrValue.ToDouble(&error);
   if (NS_SUCCEEDED(error))
     *aValue = value;
@@ -3062,12 +3141,12 @@ Accessible::GetAttrValue(nsIAtom *aProperty, double *aValue)
   return NS_OK;
 }
 
-uint32_t
-Accessible::GetActionRule()
+PRUint32
+Accessible::GetActionRule(PRUint64 aStates)
 {
-  if (InteractiveState() & states::UNAVAILABLE)
+  if (aStates & states::UNAVAILABLE)
     return eNoAction;
-
+  
   
   if (nsCoreUtils::IsXLink(mContent))
     return eJumpAction;
@@ -3107,7 +3186,7 @@ Accessible::GetGroupInfo()
 }
 
 void
-Accessible::GetPositionAndSizeInternal(int32_t *aPosInSet, int32_t *aSetSize)
+Accessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet, PRInt32 *aSetSize)
 {
   AccGroupInfo* groupInfo = GetGroupInfo();
   if (groupInfo) {
@@ -3116,10 +3195,10 @@ Accessible::GetPositionAndSizeInternal(int32_t *aPosInSet, int32_t *aSetSize)
   }
 }
 
-int32_t
+PRInt32
 Accessible::GetLevelInternal()
 {
-  int32_t level = nsAccUtils::GetDefaultLevel(this);
+  PRInt32 level = nsAccUtils::GetDefaultLevel(this);
 
   if (!IsBoundToParent())
     return level;
@@ -3165,8 +3244,8 @@ Accessible::GetLevelInternal()
       
       
       parent = Parent();
-      uint32_t siblingCount = parent->ChildCount();
-      for (uint32_t siblingIdx = 0; siblingIdx < siblingCount; siblingIdx++) {
+      PRUint32 siblingCount = parent->ChildCount();
+      for (PRUint32 siblingIdx = 0; siblingIdx < siblingCount; siblingIdx++) {
         Accessible* sibling = parent->GetChildAt(siblingIdx);
 
         Accessible* siblingChild = sibling->LastChild();
@@ -3257,4 +3336,3 @@ KeyBinding::ToAtkFormat(nsAString& aValue) const
 
   aValue.Append(mKey);
 }
-

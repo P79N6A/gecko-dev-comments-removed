@@ -266,6 +266,17 @@ protected:
   BasicLayerManager* CreateBasicLayerManager();
 
 protected:
+  
+
+
+
+
+
+
+
+
+  void DestroyCompositor();
+
   void*             mClientData;
   ViewWrapper*      mViewWrapperPtr;
   EVENT_CALLBACK    mEventCallback;

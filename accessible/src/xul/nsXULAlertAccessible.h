@@ -6,16 +6,16 @@
 #ifndef _nsXULAlertAccessible_H_
 #define _nsXULAlertAccessible_H_
 
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 
 
 
 
 
-class nsXULAlertAccessible : public nsAccessibleWrap
+class nsXULAlertAccessible : public AccessibleWrap
 {
 public:
-  nsXULAlertAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsXULAlertAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -26,7 +26,7 @@ public:
 
   
   virtual bool IsWidget() const;
-  virtual nsAccessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const;
 };
 
 #endif

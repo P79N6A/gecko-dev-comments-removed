@@ -58,6 +58,10 @@ public:
 
 private:
 
+  
+  
+  nsresult ResetDecode(bool start);
+
   bool HasSkeleton() {
     return mSkeletonState != 0 && mSkeletonState->mActive;
   }

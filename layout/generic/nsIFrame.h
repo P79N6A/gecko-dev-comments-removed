@@ -65,7 +65,7 @@ class nsBoxLayoutState;
 class nsBoxLayout;
 class nsILineIterator;
 #ifdef ACCESSIBILITY
-class nsAccessible;
+class Accessible;
 #endif
 class nsDisplayListBuilder;
 class nsDisplayListSet;
@@ -284,6 +284,9 @@ typedef PRUint64 nsFrameState;
 
 
 #define NS_FRAME_SVG_LAYOUT                         NS_FRAME_STATE_BIT(43)
+
+
+#define NS_FRAME_MAY_HAVE_GENERATED_CONTENT         NS_FRAME_STATE_BIT(44)
 
 
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
@@ -1289,6 +1292,11 @@ public:
     
     bool associateWithNext;
   };
+  enum {
+    IGNORE_SELECTION_STYLE = 0x01,
+    
+    SKIP_HIDDEN = 0x02
+  };
   
 
 
@@ -1297,11 +1305,11 @@ public:
 
 
   ContentOffsets GetContentOffsetsFromPoint(nsPoint aPoint,
-                                            bool aIgnoreSelectionStyle = false);
+                                            PRUint32 aFlags = 0);
 
   virtual ContentOffsets GetContentOffsetsFromPointExternal(nsPoint aPoint,
-                                                            bool aIgnoreSelectionStyle = false)
-  { return GetContentOffsetsFromPoint(aPoint, aIgnoreSelectionStyle); }
+                                                            PRUint32 aFlags = 0)
+  { return GetContentOffsetsFromPoint(aPoint, aFlags); }
 
   
 
@@ -2414,7 +2422,7 @@ public:
 
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<nsAccessible> CreateAccessible() = 0;
+  virtual already_AddRefed<Accessible> CreateAccessible() = 0;
 #endif
 
   

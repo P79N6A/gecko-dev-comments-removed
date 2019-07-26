@@ -1,3 +1,7 @@
+
+
+
+ 
 #highlighter-container {
   pointer-events: none;
 }
@@ -112,7 +116,7 @@ html|*#highlighter-nodeinfobar-tagname {
 
 #inspector-layoutview-container > iframe {
   
-  height: 22px;
+  height: 28px;
 }
 
 #inspector-layoutview-container:not([disable-transitions]) > iframe {
@@ -122,5 +126,5 @@ html|*#highlighter-nodeinfobar-tagname {
 
 #inspector-layoutview-container > iframe[open] {
   
-  height: 177px;
+  height: 173px;
 }

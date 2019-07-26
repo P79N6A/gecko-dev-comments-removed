@@ -29,13 +29,13 @@ using namespace mozilla::a11y;
 
 
 nsHTMLImageAccessible::
-  nsHTMLImageAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsHTMLImageAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   nsLinkableAccessible(aContent, aDoc)
 {
   mFlags |= eImageAccessible;
 }
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsHTMLImageAccessible, nsAccessible,
+NS_IMPL_ISUPPORTS_INHERITED1(nsHTMLImageAccessible, Accessible,
                              nsIAccessibleImage)
 
 
@@ -78,7 +78,7 @@ nsHTMLImageAccessible::GetNameInternal(nsAString& aName)
   if (!aName.IsEmpty())
     return NS_OK;
 
-  nsresult rv = nsAccessible::GetNameInternal(aName);
+  nsresult rv = Accessible::GetNameInternal(aName);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aName.IsEmpty() && hasAltAttrib) {
@@ -208,7 +208,7 @@ nsHTMLImageAccessible::GetLongDescURI() const
     }
   }
 
-  nsDocAccessible* document = Document();
+  DocAccessible* document = Document();
   if (document) {
     IDRefsIterator iter(document, mContent, nsGkAtoms::aria_describedby);
     while (nsIContent* target = iter.NextElem()) {

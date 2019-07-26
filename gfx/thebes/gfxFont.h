@@ -1457,6 +1457,8 @@ public:
     
     virtual bool SetupCairoFont(gfxContext *aContext) = 0;
 
+    virtual bool AllowSubpixelAA() { return true; }
+
     bool IsSyntheticBold() { return mApplySyntheticBold; }
 
     

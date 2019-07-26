@@ -178,7 +178,7 @@ nsCaretAccessible::NotifySelectionChanged(nsIDOMDocument* aDOMDocument,
   NS_ENSURE_STATE(mRootAccessible);
 
   nsCOMPtr<nsIDocument> documentNode(do_QueryInterface(aDOMDocument));
-  nsDocAccessible* document = GetAccService()->GetDocAccessible(documentNode);
+  DocAccessible* document = GetAccService()->GetDocAccessible(documentNode);
 
 #ifdef DEBUG_NOTIFICATIONS
   nsCOMPtr<nsISelectionPrivate> privSel(do_QueryInterface(aSelection));

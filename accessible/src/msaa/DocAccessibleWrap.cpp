@@ -8,7 +8,6 @@
 #include "Compatibility.h"
 #include "DocAccessibleWrap.h"
 #include "ISimpleDOMDocument_i.c"
-#include "nsCoreUtils.h"
 #include "nsIAccessibilityService.h"
 #include "nsWinUtils.h"
 #include "Role.h"
@@ -17,6 +16,7 @@
 
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeNode.h"
+#include "nsIFrame.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsISelectionController.h"
 #include "nsIServiceManager.h"
@@ -67,7 +67,7 @@ DocAccessibleWrap::QueryInterface(REFIID iid, void** ppv)
   *ppv = NULL;
 
   if (IID_ISimpleDOMDocument != iid)
-    return HyperTextAccessibleWrap::QueryInterface(iid, ppv);
+    return nsHyperTextAccessibleWrap::QueryInterface(iid, ppv);
 
   statistics::ISimpleDOMUsed();
   *ppv = static_cast<ISimpleDOMDocument*>(this);
@@ -227,7 +227,7 @@ DocAccessibleWrap::Shutdown()
       ::DestroyWindow(static_cast<HWND>(mHWND));
     }
 
-    mHWND = nullptr;
+    mHWND = nsnull;
   }
 
   DocAccessible::Shutdown();
@@ -258,7 +258,7 @@ DocAccessibleWrap::DoInitialUpdate()
 
       a11y::RootAccessible* rootDocument = RootAccessible();
 
-      mozilla::WindowsHandle nativeData = NULL;
+      mozilla::WindowsHandle nativeData = nsnull;
       if (tabChild)
         tabChild->SendGetWidgetNativeData(&nativeData);
       else
@@ -266,10 +266,10 @@ DocAccessibleWrap::DoInitialUpdate()
           rootDocument->GetNativeWindow());
 
       bool isActive = true;
-      int32_t x = CW_USEDEFAULT, y = CW_USEDEFAULT, width = 0, height = 0;
+      PRInt32 x = CW_USEDEFAULT, y = CW_USEDEFAULT, width = 0, height = 0;
       if (Compatibility::IsDolphin()) {
         GetBounds(&x, &y, &width, &height);
-        int32_t rootX = 0, rootY = 0, rootWidth = 0, rootHeight = 0;
+        PRInt32 rootX = 0, rootY = 0, rootWidth = 0, rootHeight = 0;
         rootDocument->GetBounds(&rootX, &rootY, &rootWidth, &rootHeight);
         x = rootX - x;
         y -= rootY;

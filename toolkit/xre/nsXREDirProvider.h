@@ -36,6 +36,15 @@ public:
 
   static nsXREDirProvider* GetSingleton();
 
+  nsresult GetUserProfilesRootDir(nsIFile** aResult,
+                                  const nsACString* aProfileName,
+                                  const nsACString* aAppName,
+                                  const nsACString* aVendorName);
+  nsresult GetUserProfilesLocalDir(nsIFile** aResult,
+                                   const nsACString* aProfileName,
+                                   const nsACString* aAppName,
+                                   const nsACString* aVendorName);
+
   
   
   
@@ -47,11 +56,18 @@ public:
   nsresult GetProfileDefaultsDir(nsIFile* *aResult);
 
   static nsresult GetUserAppDataDirectory(nsILocalFile* *aFile) {
-    return GetUserDataDirectory(aFile, false);
+    return GetUserDataDirectory(aFile, false, nsnull, nsnull, nsnull);
   }
   static nsresult GetUserLocalDataDirectory(nsILocalFile* *aFile) {
-    return GetUserDataDirectory(aFile, true);
+    return GetUserDataDirectory(aFile, true, nsnull, nsnull, nsnull);
   }
+
+  
+  
+  static nsresult GetUserDataDirectory(nsILocalFile** aFile, bool aLocal,
+                                       const nsACString* aProfileName,
+                                       const nsACString* aAppName,
+                                       const nsACString* aVendorName);
 
   
   nsIFile* GetGREDir() { return mGREDir; }
@@ -84,7 +100,6 @@ public:
 
 protected:
   nsresult GetFilesInternal(const char* aProperty, nsISimpleEnumerator** aResult);
-  static nsresult GetUserDataDirectory(nsILocalFile* *aFile, bool aLocal);
   static nsresult GetUserDataDirectoryHome(nsILocalFile* *aFile, bool aLocal);
   static nsresult GetSysUserExtensionsDirectory(nsILocalFile* *aFile);
 #if defined(XP_UNIX) || defined(XP_MACOSX)
@@ -95,7 +110,10 @@ protected:
 
   
   
-  static nsresult AppendProfilePath(nsIFile* aFile);
+  static nsresult AppendProfilePath(nsIFile* aFile,
+                                    const nsACString* aProfileName,
+                                    const nsACString* aAppName,
+                                    const nsACString* aVendorName);
 
   static nsresult AppendSysUserExtensionPath(nsIFile* aFile);
 

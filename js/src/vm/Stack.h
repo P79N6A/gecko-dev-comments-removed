@@ -160,6 +160,10 @@ namespace detail {
 
 
 
+
+
+
+
 class CallReceiver
 {
   protected:
@@ -509,6 +513,8 @@ class StackFrame
     inline void resetInlinePrev(StackFrame *prevfp, jsbytecode *prevpc);
 
     inline void initInlineFrame(JSFunction *fun, StackFrame *prevfp, jsbytecode *prevpc);
+
+    inline JSObject *createRestParameter(JSContext *cx);
 
     
 

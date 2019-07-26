@@ -3,43 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsNSSComponent.h"
 #include "nsNSSCallbacks.h"
 #include "nsNSSIOLayer.h"
@@ -830,6 +793,11 @@ void PR_CALLBACK HandshakeCallback(PRFileDesc* fd, void* client_data) {
   PRInt32 encryptBits;
 
   nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
+
+  if (infoObject) {
+    
+    infoObject->SetFirstServerHelloReceived();
+  }
 
   
   

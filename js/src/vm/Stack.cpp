@@ -229,7 +229,7 @@ StackFrame::pushBlock(JSContext *cx, StaticBlockObject &block)
     JS_ASSERT_IF(hasBlockChain(), blockChain_ == block.enclosingBlock());
 
     if (block.needsClone()) {
-        RootedVar<StaticBlockObject *> blockHandle(cx, &block);
+        Rooted<StaticBlockObject *> blockHandle(cx, &block);
         ClonedBlockObject *clone = ClonedBlockObject::create(cx, blockHandle, this);
         if (!clone)
             return false;
@@ -1143,6 +1143,27 @@ CrashIfInvalidSlot(StackFrame *fp, Value *vp)
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 StackIter::settleOnNewState()
 {
@@ -1164,7 +1185,8 @@ StackIter::settleOnNewState()
         bool containsFrame = seg_->contains(fp_);
         bool containsCall = seg_->contains(calls_);
         while (!containsFrame && !containsCall) {
-            seg_ = seg_->prevInContext();
+            
+            seg_ = seg_->prevInMemory();
             containsFrame = seg_->contains(fp_);
             containsCall = seg_->contains(calls_);
 
@@ -1179,8 +1201,10 @@ StackIter::settleOnNewState()
                 *this = tmp;
                 return;
             }
+
             
             JS_ASSERT_IF(containsCall, &seg_->calls() == calls_);
+
             settleOnNewSegment();
         }
 

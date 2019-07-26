@@ -131,7 +131,7 @@ GfxInfo::GetData()
 
     
     
-    utsname unameobj;
+    struct utsname unameobj;
     if (!uname(&unameobj))
     {
       mOS.Assign(unameobj.sysname);

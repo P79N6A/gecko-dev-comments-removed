@@ -647,11 +647,15 @@ void nsBuiltinDecoder::NotifySuspendedStatusChanged()
   MediaResource* activeStream;
   bool suspended = mResource->IsSuspendedByCache(&activeStream);
   
-  if (suspended && mElement) {
-    
-    
-    mElement->NotifyAutoplayDataReady();
-  }
+  if (mElement) {
+    if (suspended) {
+      
+      
+      mElement->NotifyAutoplayDataReady();
+    }
+    mElement->NotifySuspendedByCache(suspended);
+    UpdateReadyStateForData();
+  } 
 }
 
 void nsBuiltinDecoder::NotifyBytesDownloaded()

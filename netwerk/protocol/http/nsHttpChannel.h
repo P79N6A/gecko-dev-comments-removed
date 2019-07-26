@@ -142,6 +142,16 @@ public:
 
     OfflineCacheEntryAsForeignMarker* GetOfflineCacheEntryAsForeignMarker();
 
+    
+
+
+
+    bool UsingPrivateBrowsing() {
+        bool usingPB;
+        GetUsingPrivateBrowsing(&usingPB);
+        return usingPB;
+    }
+
 private:
     typedef nsresult (nsHttpChannel::*nsContinueRedirectionFunc)(nsresult result);
 

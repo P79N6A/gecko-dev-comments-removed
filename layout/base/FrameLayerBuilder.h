@@ -374,6 +374,13 @@ public:
                              PRUint32 aBegin, PRUint32 aEnd) const;
 
     
+    void DrawRoundedRectsTo(gfxContext* aContext, PRInt32 A2D,
+                            PRUint32 aBegin, PRUint32 aEnd) const;
+    
+    void AddRoundedRectPathTo(gfxContext* aContext, PRInt32 A2D,
+                              const RoundedRect &aRoundRect) const;
+
+    
     
     
     nsRect ApproximateIntersect(const nsRect& aRect) const;

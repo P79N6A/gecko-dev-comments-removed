@@ -500,7 +500,17 @@ public:
 
 
 
-  nsMouseEvent* GetDelayedCaretData();
+  bool HasDelayedCaretData() { return mDelayedMouseEventValid; }
+  bool IsShiftDownInDelayedCaretData()
+  {
+    NS_ASSERTION(mDelayedMouseEventValid, "No valid delayed caret data");
+    return mDelayedMouseEventIsShift;
+  }
+  PRUint32 GetClickCountInDelayedCaretData()
+  {
+    NS_ASSERTION(mDelayedMouseEventValid, "No valid delayed caret data");
+    return mDelayedMouseEventClickCount;
+  }
 
   
 
@@ -696,9 +706,8 @@ private:
 #endif
 
   PRInt32 mDesiredX;
-
-  nsMouseEvent mDelayedMouseEvent;
-
+  PRUint32 mDelayedMouseEventClickCount;
+  bool mDelayedMouseEventIsShift;
   bool mDelayedMouseEventValid;
 
   bool mChangesDuringBatching;

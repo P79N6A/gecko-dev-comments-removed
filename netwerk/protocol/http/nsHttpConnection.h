@@ -13,7 +13,7 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "prinrval.h"
-#include "SpdySession.h"
+#include "ASpdySession.h"
 #include "mozilla/TimeStamp.h"
 
 #include "nsIStreamListener.h"
@@ -74,7 +74,7 @@ public:
     
 
     bool     SupportsPipelining();
-    bool     IsKeepAlive() { return mUsingSpdy ||
+    bool     IsKeepAlive() { return mUsingSpdyVersion ||
                                     (mKeepAliveMask && mKeepAlive); }
     bool     CanReuse();   
     bool     CanDirectlyActivate();
@@ -131,7 +131,7 @@ public:
     void BeginIdleMonitoring();
     void EndIdleMonitoring();
 
-    bool UsingSpdy() { return mUsingSpdy; }
+    bool UsingSpdy() { return !!mUsingSpdyVersion; }
     bool EverUsedSpdy() { return mEverUsedSpdy; }
 
     
@@ -176,7 +176,7 @@ private:
     void     HandleAlternateProtocol(nsHttpResponseHead *);
 
     
-    void     StartSpdy();
+    void     StartSpdy(PRUint8 versionLevel);
 
     
     nsresult AddTransaction(nsAHttpTransaction *, PRInt32);
@@ -238,8 +238,11 @@ private:
     
     bool                            mNPNComplete;
     bool                            mSetupNPNCalled;
-    bool                            mUsingSpdy;
-    nsRefPtr<mozilla::net::SpdySession> mSpdySession;
+
+    
+    PRUint8                         mUsingSpdyVersion;
+
+    nsRefPtr<mozilla::net::ASpdySession> mSpdySession;
     PRInt32                         mPriority;
     bool                            mReportedSpdy;
 

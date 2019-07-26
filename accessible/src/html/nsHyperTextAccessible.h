@@ -11,7 +11,7 @@
 #include "nsIAccessibleEditableText.h"
 
 #include "AccCollector.h"
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 
 #include "nsFrameSelection.h"
 #include "nsISelectionController.h"
@@ -35,13 +35,13 @@ const PRUnichar kForcedNewLineChar = '\n';
 
 
 
-class nsHyperTextAccessible : public nsAccessibleWrap,
+class nsHyperTextAccessible : public AccessibleWrap,
                               public nsIAccessibleText,
                               public nsIAccessibleHyperText,
                               public nsIAccessibleEditableText
 {
 public:
-  nsHyperTextAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsHyperTextAccessible(nsIContent* aContent, DocAccessible* aDoc);
   virtual ~nsHyperTextAccessible() { }
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -58,7 +58,7 @@ public:
   virtual PRUint64 NativeState();
 
   virtual void InvalidateChildren();
-  virtual bool RemoveChild(nsAccessible* aAccessible);
+  virtual bool RemoveChild(Accessible* aAccessible);
 
   
 
@@ -76,15 +76,15 @@ public:
   
 
 
-  inline PRUint32 GetLinkCount()
+  PRUint32 GetLinkCount()
   {
-    return GetEmbeddedChildCount();
+    return EmbeddedChildCount();
   }
 
   
 
 
-  inline nsAccessible* GetLinkAt(PRUint32 aIndex)
+  Accessible* GetLinkAt(PRUint32 aIndex)
   {
     return GetEmbeddedChildAt(aIndex);
   }
@@ -92,7 +92,7 @@ public:
   
 
 
-  inline PRInt32 GetLinkIndex(nsAccessible* aLink)
+  PRInt32 GetLinkIndex(Accessible* aLink)
   {
     return GetIndexOfEmbeddedChild(aLink);
   }
@@ -100,9 +100,9 @@ public:
   
 
 
-  inline PRInt32 GetLinkIndexAtOffset(PRUint32 aOffset)
+  PRInt32 GetLinkIndexAtOffset(PRUint32 aOffset)
   {
-    nsAccessible* child = GetChildAtOffset(aOffset);
+    Accessible* child = GetChildAtOffset(aOffset);
     return child ? GetLinkIndex(child) : -1;
   }
 
@@ -134,10 +134,10 @@ public:
 
 
 
-  nsAccessible *DOMPointToHypertextOffset(nsINode *aNode,
-                                          PRInt32 aNodeOffset,
-                                          PRInt32 *aHypertextOffset,
-                                          bool aIsEndOffset = false);
+  Accessible* DOMPointToHypertextOffset(nsINode *aNode,
+                                        PRInt32 aNodeOffset,
+                                        PRInt32* aHypertextOffset,
+                                        bool aIsEndOffset = false);
 
   
 
@@ -179,9 +179,9 @@ public:
   
 
 
-  inline PRUint32 CharacterCount()
+  PRUint32 CharacterCount()
   {
-    return GetChildOffset(GetChildCount());
+    return GetChildOffset(ChildCount());
   }
 
   
@@ -206,7 +206,7 @@ public:
 
 
 
-  PRInt32 GetChildOffset(nsAccessible* aChild,
+  PRInt32 GetChildOffset(Accessible* aChild,
                          bool aInvalidateAfter = false)
   {
     PRInt32 index = GetIndexOf(aChild);
@@ -231,7 +231,7 @@ public:
 
 
 
-  nsAccessible* GetChildAtOffset(PRUint32 aOffset)
+  Accessible* GetChildAtOffset(PRUint32 aOffset)
   {
     return GetChildAt(GetChildIndexAtOffset(aOffset));
   }
@@ -266,7 +266,7 @@ protected:
   
 
 
-  inline PRInt32 ConvertMagicOffset(PRInt32 aOffset)
+  PRInt32 ConvertMagicOffset(PRInt32 aOffset)
   {
     if (aOffset == nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT)
       return CharacterCount();
@@ -290,7 +290,7 @@ protected:
 
 
 
-  nsresult GetTextHelper(EGetTextType aType, nsAccessibleTextBoundary aBoundaryType,
+  nsresult GetTextHelper(EGetTextType aType, AccessibleTextBoundary aBoundaryType,
                          PRInt32 aOffset, PRInt32 *aStartOffset, PRInt32 *aEndOffset,
                          nsAString & aText);
 
@@ -309,7 +309,7 @@ protected:
 
 
   PRInt32 GetRelativeOffset(nsIPresShell *aPresShell, nsIFrame *aFromFrame,
-                            PRInt32 aFromOffset, nsAccessible *aFromAccessible,
+                            PRInt32 aFromOffset, Accessible* aFromAccessible,
                             nsSelectionAmount aAmount, nsDirection aDirection,
                             bool aNeedsStart);
 
@@ -342,8 +342,8 @@ protected:
                           nsAString *aText = nsnull,
                           nsIFrame **aEndFrame = nsnull,
                           nsIntRect *aBoundsRect = nsnull,
-                          nsAccessible **aStartAcc = nsnull,
-                          nsAccessible **aEndAcc = nsnull);
+                          Accessible** aStartAcc = nsnull,
+                          Accessible** aEndAcc = nsnull);
 
   nsIntRect GetBoundsForString(nsIFrame *aFrame, PRUint32 aStartRenderedOffset, PRUint32 aEndRenderedOffset);
 
@@ -363,7 +363,7 @@ protected:
 
   
   nsresult GetDOMPointByFrameOffset(nsIFrame* aFrame, PRInt32 aOffset,
-                                    nsAccessible* aAccessible,
+                                    Accessible* aAccessible,
                                     nsIDOMNode** aNode, PRInt32* aNodeOffset);
 
   
@@ -418,7 +418,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsHyperTextAccessible,
 
 
 inline nsHyperTextAccessible*
-nsAccessible::AsHyperText()
+Accessible::AsHyperText()
 {
   return mFlags & eHyperTextAccessible ?
     static_cast<nsHyperTextAccessible*>(this) : nsnull;

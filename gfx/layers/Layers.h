@@ -25,7 +25,9 @@
 #if defined(DEBUG) || defined(PR_LOGGING)
 #  include <stdio.h>            
 #  include "prlog.h"
-#  define MOZ_LAYERS_HAVE_LOG
+#  ifndef MOZ_LAYERS_HAVE_LOG
+#    define MOZ_LAYERS_HAVE_LOG
+#  endif
 #  define MOZ_LAYERS_LOG(_args)                             \
   PR_LOG(LayerManager::GetLog(), PR_LOG_DEBUG, _args)
 #else
@@ -77,10 +79,10 @@ public:
 
   FrameMetrics()
     : mViewport(0, 0, 0, 0)
-    , mContentSize(0, 0)
+    , mContentRect(0, 0, 0, 0)
     , mViewportScrollOffset(0, 0)
     , mScrollId(NULL_SCROLL_ID)
-    , mCSSContentSize(0, 0)
+    , mCSSContentRect(0, 0, 0, 0)
     , mResolution(1, 1)
   {}
 
@@ -115,14 +117,14 @@ public:
 
   
   nsIntRect mViewport;
-  nsIntSize mContentSize;
+  nsIntRect mContentRect;
   nsIntPoint mViewportScrollOffset;
   nsIntRect mDisplayPort;
   ViewID mScrollId;
 
   
   
-  gfx::Size mCSSContentSize;
+  gfx::Rect mCSSContentRect;
 
   
   
@@ -722,6 +724,12 @@ public:
     mTransform = aMatrix;
     Mutated();
   }
+
+  
+
+
+
+
 
   void SetIsFixedPosition(bool aFixedPosition) { mIsFixedPosition = aFixedPosition; }
 

@@ -56,6 +56,7 @@ function Templater(options) {
   else {
     this.stack = [];
   }
+  this.nodes = [];
 }
 
 
@@ -93,6 +94,7 @@ Templater.prototype.processNode = function(node, data) {
     data = {};
   }
   this.stack.push(node.nodeName + (node.id ? '#' + node.id : ''));
+  var pushedNode = false;
   try {
     
     if (node.attributes && node.attributes.length) {
@@ -109,7 +111,9 @@ Templater.prototype.processNode = function(node, data) {
         }
       }
       
+      this.nodes.push(data.__element);
       data.__element = node;
+      pushedNode = true;
       
       
       var attrs = Array.prototype.slice.call(node.attributes);
@@ -172,7 +176,9 @@ Templater.prototype.processNode = function(node, data) {
       this._processTextNode(node, data);
     }
   } finally {
-    delete data.__element;
+    if (pushedNode) {
+      data.__element = this.nodes.pop();
+    }
     this.stack.pop();
   }
 };
@@ -348,10 +354,13 @@ Templater.prototype._processTextNode = function(node, data) {
           siblingNode.parentNode.insertBefore(reply, siblingNode);
         } else if (typeof reply.item === 'function' && reply.length) {
           
-          for (var i = 0; i < reply.length; i++) {
-            var child = this._maybeImportNode(reply.item(i), doc);
-            siblingNode.parentNode.insertBefore(child, siblingNode);
-          }
+          
+          
+          var list = Array.prototype.slice.call(reply, 0);
+          list.forEach(function(child) {
+            var imported = this._maybeImportNode(child, doc);
+            siblingNode.parentNode.insertBefore(imported, siblingNode);
+          }.bind(this));
         }
         else {
           

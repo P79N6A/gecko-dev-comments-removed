@@ -54,6 +54,7 @@ nsContextMenu.prototype = {
     this.initSaveItems();
     this.initClipboardItems();
     this.initMediaPlayerItems();
+    this.initLeaveDOMFullScreenItems();
   },
 
   initPageMenuSeparator: function CM_initPageMenuSeparator() {
@@ -153,6 +154,16 @@ nsContextMenu.prototype = {
 
     
     
+  },
+
+  initLeaveDOMFullScreenItems: function CM_initLeaveFullScreenItem() {
+    
+    var shouldShow = (this.target.ownerDocument.mozFullScreenElement != null);
+    this.showItem("context-leave-dom-fullscreen", shouldShow);
+
+    
+    if (shouldShow)
+        this.showItem("context-media-sep-commands", true);
   },
 
   initSaveItems: function CM_initSaveItems() {
@@ -817,6 +828,10 @@ nsContextMenu.prototype = {
     let video = this.target;
     if (document.mozFullScreenEnabled)
       video.mozRequestFullScreen();
+  },
+
+  leaveDOMFullScreen: function() {
+    document.mozCancelFullScreen();
   },
 
   

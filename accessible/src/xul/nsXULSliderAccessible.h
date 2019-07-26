@@ -6,17 +6,17 @@
 #ifndef _nsXULSliderAccessible_H_
 #define _nsXULSliderAccessible_H_
 
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 
 #include "nsIDOMElement.h"
 
 
 
 
-class nsXULSliderAccessible : public nsAccessibleWrap
+class nsXULSliderAccessible : public AccessibleWrap
 {
 public:
-  nsXULSliderAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsXULSliderAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -38,7 +38,10 @@ public:
   virtual PRUint8 ActionCount();
 
 protected:
-  already_AddRefed<nsIContent> GetSliderNode();
+  
+
+
+  nsIContent* GetSliderElement();
 
   nsresult GetSliderAttr(nsIAtom *aName, nsAString& aValue);
   nsresult SetSliderAttr(nsIAtom *aName, const nsAString& aValue);
@@ -47,17 +50,17 @@ protected:
   nsresult SetSliderAttr(nsIAtom *aName, double aValue);
 
 private:
-  nsCOMPtr<nsIDOMElement> mSliderNode;
+  nsCOMPtr<nsIContent> mSliderNode;
 };
 
 
 
 
 
-class nsXULThumbAccessible : public nsAccessibleWrap
+class nsXULThumbAccessible : public AccessibleWrap
 {
 public:
-  nsXULThumbAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsXULThumbAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();

@@ -22,10 +22,10 @@
 #include "nsPoint.h"
 
 class nsAccessNode;
-class nsAccessible;
+class Accessible;
 class nsHyperTextAccessible;
 class nsHTMLTableAccessible;
-class nsDocAccessible;
+class DocAccessible;
 struct nsRoleMapEntry;
 #ifdef MOZ_XUL
 class nsXULTreeAccessible;
@@ -66,13 +66,13 @@ public:
   
 
 
-  static PRInt32 GetDefaultLevel(nsAccessible *aAcc);
+  static PRInt32 GetDefaultLevel(Accessible* aAcc);
 
   
 
 
 
-  static PRInt32 GetARIAOrDefaultLevel(nsAccessible *aAccessible);
+  static PRInt32 GetARIAOrDefaultLevel(Accessible* aAccessible);
 
   
 
@@ -107,7 +107,7 @@ public:
   
 
 
-  static nsDocAccessible *GetDocAccessibleFor(nsINode *aNode)
+  static DocAccessible* GetDocAccessibleFor(nsINode* aNode)
   {
     nsIPresShell *presShell = nsCoreUtils::GetPresShellFor(aNode);
     return GetAccService()->GetDocAccessible(presShell);
@@ -116,7 +116,7 @@ public:
   
 
 
-  static nsDocAccessible *GetDocAccessibleFor(nsIDocShellTreeItem *aContainer)
+  static DocAccessible* GetDocAccessibleFor(nsIDocShellTreeItem* aContainer)
   {
     nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(aContainer));
     nsCOMPtr<nsIPresShell> presShell;
@@ -132,8 +132,8 @@ public:
 
 
 
-   static nsAccessible * GetAncestorWithRole(nsAccessible *aDescendant,
-                                             PRUint32 aRole);
+   static Accessible* GetAncestorWithRole(Accessible* aDescendant,
+                                          PRUint32 aRole);
 
   
 
@@ -141,14 +141,14 @@ public:
 
 
 
-  static nsAccessible* GetSelectableContainer(nsAccessible* aAccessible,
-                                              PRUint64 aState);
+  static Accessible* GetSelectableContainer(Accessible* aAccessible,
+                                            PRUint64 aState);
 
   
 
 
 
-  static bool IsARIASelected(nsAccessible *aAccessible);
+  static bool IsARIASelected(Accessible* aAccessible);
 
   
 
@@ -242,7 +242,7 @@ public:
 
 
 
-  static bool IsTextInterfaceSupportCorrect(nsAccessible *aAccessible);
+  static bool IsTextInterfaceSupportCorrect(Accessible* aAccessible);
 #endif
 
   
@@ -258,7 +258,7 @@ public:
   
 
 
-  static PRUint32 TextLength(nsAccessible *aAccessible);
+  static PRUint32 TextLength(Accessible* aAccessible);
 
   
 
@@ -295,7 +295,7 @@ public:
 
 
 
-  static bool MustPrune(nsAccessible* aAccessible);
+  static bool MustPrune(Accessible* aAccessible);
 
   
 

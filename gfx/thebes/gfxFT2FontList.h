@@ -52,11 +52,12 @@ public:
 
     
     
+    
+    
     static FT2FontEntry* 
     CreateFontEntry(FT_Face aFace, const char *aFilename, PRUint8 aIndex,
+                    const nsAString& aName,
                     const PRUint8 *aFontData = nsnull);
-        
-        
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle,
                                         bool aNeedsBold);
@@ -66,6 +67,10 @@ public:
 
     nsresult ReadCMAP();
     nsresult GetFontTable(PRUint32 aTableTag, FallibleTArray<PRUint8>& aBuffer);
+
+    
+    
+    void CheckForBrokenFont();
 
     virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
                                      FontListSizes*    aSizes) const;

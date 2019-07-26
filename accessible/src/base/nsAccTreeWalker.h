@@ -9,8 +9,8 @@
 #include "nsAutoPtr.h"
 #include "nsIContent.h"
 
-class nsAccessible;
-class nsDocAccessible;
+class Accessible;
+class DocAccessible;
 struct WalkState;
 
 
@@ -19,7 +19,7 @@ struct WalkState;
 class nsAccTreeWalker
 {
 public:
-  nsAccTreeWalker(nsDocAccessible* aDoc, nsIContent* aNode, 
+  nsAccTreeWalker(DocAccessible* aDoc, nsIContent* aNode, 
                   bool aWalkAnonymousContent, bool aWalkCache = false);
   virtual ~nsAccTreeWalker();
 
@@ -30,7 +30,7 @@ public:
 
 
 
-  inline nsAccessible* NextChild()
+  Accessible* NextChild()
   {
     return NextChildInternal(false);
   }
@@ -44,7 +44,7 @@ private:
 
 
 
-  nsAccessible* NextChildInternal(bool aNoWalkUp);
+  Accessible* NextChildInternal(bool aNoWalkUp);
 
   
 
@@ -59,7 +59,7 @@ private:
 
   void PopState();
 
-  nsDocAccessible* mDoc;
+  DocAccessible* mDoc;
   PRInt32 mChildFilter;
   bool mWalkCache;
   WalkState* mState;

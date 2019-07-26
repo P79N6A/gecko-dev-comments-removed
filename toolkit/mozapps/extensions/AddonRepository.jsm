@@ -1,42 +1,6 @@
-/*
-# ***** BEGIN LICENSE BLOCK *****
-# Version: MPL 1.1/GPL 2.0/LGPL 2.1
-#
-# The contents of this file are subject to the Mozilla Public License Version
-# 1.1 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS IS" basis,
-# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-# for the specific language governing rights and limitations under the
-# License.
-#
-# The Original Code is the Extension Manager.
-#
-# The Initial Developer of the Original Code is mozilla.org
-# Portions created by the Initial Developer are Copyright (C) 2008
-# the Initial Developer. All Rights Reserved.
-#
-# Contributor(s):
-#   Dave Townsend <dtownsend@oxymoronical.com>
-#   Ben Parr <bparr@bparr.com>
-#   Blair McBride <bmcbride@mozilla.com>
-#
-# Alternatively, the contents of this file may be used under the terms of
-# either the GNU General Public License Version 2 or later (the "GPL"), or
-# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
-# in which case the provisions of the GPL or the LGPL are applicable instead
-# of those above. If you wish to allow use of your version of this file only
-# under the terms of either the GPL or the LGPL, and not to allow others to
-# use your version of this file under the terms of the MPL, indicate your
-# decision by deleting the provisions above and replace them with the notice
-# and other provisions required by the GPL or the LGPL. If you do not delete
-# the provisions above, a recipient may use your version of this file under
-# the terms of any one of the MPL, the GPL or the LGPL.
-#
-# ***** END LICENSE BLOCK *****
-*/
+
+
+
 
 "use strict";
 
@@ -87,9 +51,9 @@ const TOOLKIT_ID     = "toolkit@mozilla.org";
 }, this);
 
 
-// Add-on properties parsed out of AMO results
-// Note: the 'install' property is added for results from
-// retrieveRecommendedAddons and searchAddons
+
+
+
 const PROP_SINGLE = ["id", "type", "name", "version", "creator", "description",
                      "fullDescription", "developerComments", "eula", "iconURL",
                      "homepageURL", "supportURL", "contributionURL",
@@ -99,8 +63,8 @@ const PROP_SINGLE = ["id", "type", "name", "version", "creator", "description",
                      "updateDate"];
 const PROP_MULTI = ["developers", "screenshots"]
 
-// A map between XML keys to AddonSearchResult keys for string values
-// that require no extra parsing from XML
+
+
 const STRING_KEY_MAP = {
   name:               "name",
   version:            "version",
@@ -109,8 +73,8 @@ const STRING_KEY_MAP = {
   support:            "supportURL"
 };
 
-// A map between XML keys to AddonSearchResult keys for string values
-// that require parsing from HTML
+
+
 const HTML_KEY_MAP = {
   summary:            "description",
   description:        "fullDescription",
@@ -118,8 +82,8 @@ const HTML_KEY_MAP = {
   eula:               "eula"
 };
 
-// A map between XML keys to AddonSearchResult keys for integer values
-// that require no extra parsing from XML
+
+
 const INTEGER_KEY_MAP = {
   total_downloads:  "totalDownloads",
   weekly_downloads: "weeklyDownloads",
@@ -164,11 +128,11 @@ function getAddonsToCache(aIds, aCallback) {
         if (!Services.prefs.getBoolPref(preference))
           continue;
       } catch(e) {
-        // If the preference doesn't exist caching is enabled by default
+        
       }
 
-      // The add-ons manager may not know about this ID yet if it is a pending
-      // install. In that case we'll just cache it regardless
+      
+      
       if (aAddons[i] && (types.indexOf(aAddons[i].type) == -1))
         continue;
 
@@ -184,249 +148,249 @@ function AddonSearchResult(aId) {
 }
 
 AddonSearchResult.prototype = {
-  /**
-   * The ID of the add-on
-   */
+  
+
+
   id: null,
 
-  /**
-   * The add-on type (e.g. "extension" or "theme")
-   */
+  
+
+
   type: null,
 
-  /**
-   * The name of the add-on
-   */
+  
+
+
   name: null,
 
-  /**
-   * The version of the add-on
-   */
+  
+
+
   version: null,
 
-  /**
-   * The creator of the add-on
-   */
+  
+
+
   creator: null,
 
-  /**
-   * The developers of the add-on
-   */
+  
+
+
   developers: null,
 
-  /**
-   * A short description of the add-on
-   */
+  
+
+
   description: null,
 
-  /**
-   * The full description of the add-on
-   */
+  
+
+
   fullDescription: null,
 
-  /**
-   * The developer comments for the add-on. This includes any information
-   * that may be helpful to end users that isn't necessarily applicable to
-   * the add-on description (e.g. known major bugs)
-   */
+  
+
+
+
+
   developerComments: null,
 
-  /**
-   * The end-user licensing agreement (EULA) of the add-on
-   */
+  
+
+
   eula: null,
 
-  /**
-   * The url of the add-on's icon
-   */
+  
+
+
   iconURL: null,
 
-  /**
-   * An array of screenshot urls for the add-on
-   */
+  
+
+
   screenshots: null,
 
-  /**
-   * The homepage for the add-on
-   */
+  
+
+
   homepageURL: null,
 
-  /**
-   * The support URL for the add-on
-   */
+  
+
+
   supportURL: null,
 
-  /**
-   * The contribution url of the add-on
-   */
+  
+
+
   contributionURL: null,
 
-  /**
-   * The suggested contribution amount
-   */
+  
+
+
   contributionAmount: null,
 
-  /**
-   * The URL to visit in order to purchase the add-on
-   */
+  
+
+
   purchaseURL: null,
 
-  /**
-   * The numerical cost of the add-on in some currency, for sorting purposes
-   * only
-   */
+  
+
+
+
   purchaseAmount: null,
 
-  /**
-   * The display cost of the add-on, for display purposes only
-   */
+  
+
+
   purchaseDisplayAmount: null,
 
-  /**
-   * The rating of the add-on, 0-5
-   */
+  
+
+
   averageRating: null,
 
-  /**
-   * The number of reviews for this add-on
-   */
+  
+
+
   reviewCount: null,
 
-  /**
-   * The URL to the list of reviews for this add-on
-   */
+  
+
+
   reviewURL: null,
 
-  /**
-   * The total number of times the add-on was downloaded
-   */
+  
+
+
   totalDownloads: null,
 
-  /**
-   * The number of times the add-on was downloaded the current week
-   */
+  
+
+
   weeklyDownloads: null,
 
-  /**
-   * The number of daily users for the add-on
-   */
+  
+
+
   dailyUsers: null,
 
-  /**
-   * AddonInstall object generated from the add-on XPI url
-   */
+  
+
+
   install: null,
 
-  /**
-   * nsIURI storing where this add-on was installed from
-   */
+  
+
+
   sourceURI: null,
 
-  /**
-   * The status of the add-on in the repository (e.g. 4 = "Public")
-   */
+  
+
+
   repositoryStatus: null,
 
-  /**
-   * The size of the add-on's files in bytes. For an add-on that have not yet
-   * been downloaded this may be an estimated value.
-   */
+  
+
+
+
   size: null,
 
-  /**
-   * The Date that the add-on was most recently updated
-   */
+  
+
+
   updateDate: null,
 
-  /**
-   * True or false depending on whether the add-on is compatible with the
-   * current version of the application
-   */
+  
+
+
+
   isCompatible: true,
 
-  /**
-   * True or false depending on whether the add-on is compatible with the
-   * current platform
-   */
+  
+
+
+
   isPlatformCompatible: true,
 
-  /**
-   * Array of AddonCompatibilityOverride objects, that describe overrides for
-   * compatibility with an application versions.
-   **/
+  
+
+
+
   compatibilityOverrides: null,
 
-  /**
-   * True if the add-on has a secure means of updating
-   */
+  
+
+
   providesUpdatesSecurely: true,
 
-  /**
-   * The current blocklist state of the add-on
-   */
+  
+
+
   blocklistState: Ci.nsIBlocklistService.STATE_NOT_BLOCKED,
 
-  /**
-   * True if this add-on cannot be used in the application based on version
-   * compatibility, dependencies and blocklisting
-   */
+  
+
+
+
   appDisabled: false,
 
-  /**
-   * True if the user wants this add-on to be disabled
-   */
+  
+
+
   userDisabled: false,
 
-  /**
-   * Indicates what scope the add-on is installed in, per profile, user,
-   * system or application
-   */
+  
+
+
+
   scope: AddonManager.SCOPE_PROFILE,
 
-  /**
-   * True if the add-on is currently functional
-   */
+  
+
+
   isActive: true,
 
-  /**
-   * A bitfield holding all of the current operations that are waiting to be
-   * performed for this add-on
-   */
+  
+
+
+
   pendingOperations: AddonManager.PENDING_NONE,
 
-  /**
-   * A bitfield holding all the the operations that can be performed on
-   * this add-on
-   */
+  
+
+
+
   permissions: 0,
 
-  /**
-   * Tests whether this add-on is known to be compatible with a
-   * particular application and platform version.
-   *
-   * @param  appVersion
-   *         An application version to test against
-   * @param  platformVersion
-   *         A platform version to test against
-   * @return Boolean representing if the add-on is compatible
-   */
+  
+
+
+
+
+
+
+
+
+
   isCompatibleWith: function(aAppVerison, aPlatformVersion) {
     return true;
   },
 
-  /**
-   * Starts an update check for this add-on. This will perform
-   * asynchronously and deliver results to the given listener.
-   *
-   * @param  aListener
-   *         An UpdateListener for the update process
-   * @param  aReason
-   *         A reason code for performing the update
-   * @param  aAppVersion
-   *         An application version to check for updates for
-   * @param  aPlatformVersion
-   *         A platform version to check for updates for
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
   findUpdates: function(aListener, aReason, aAppVersion, aPlatformVersion) {
     if ("onNoCompatibilityUpdateAvailable" in aListener)
       aListener.onNoCompatibilityUpdateAvailable(this);
@@ -437,24 +401,24 @@ AddonSearchResult.prototype = {
   }
 }
 
-/**
- * The add-on repository is a source of add-ons that can be installed. It can
- * be searched in three ways. The first takes a list of IDs and returns a
- * list of the corresponding add-ons. The second returns a list of add-ons that
- * come highly recommended. This list should change frequently. The third is to
- * search for specific search terms entered by the user. Searches are
- * asynchronous and results should be passed to the provided callback object
- * when complete. The results passed to the callback should only include add-ons
- * that are compatible with the current application and are not already
- * installed.
- */
+
+
+
+
+
+
+
+
+
+
+
 var AddonRepository = {
-  /**
-   * Whether caching is currently enabled
-   */
+  
+
+
   get cacheEnabled() {
-    // Act as though caching is disabled if there was an unrecoverable error
-    // openning the database.
+    
+    
     if (!AddonDatabase.databaseOk)
       return false;
 
@@ -469,50 +433,50 @@ var AddonRepository = {
     return enabled;
   },
 
-  // A cache of the add-ons stored in the database
+  
   _addons: null,
 
-  // An array of callbacks pending the retrieval of add-ons from AddonDatabase
+  
   _pendingCallbacks: null,
 
-  // Whether a search is currently in progress
+  
   _searching: false,
 
-  // XHR associated with the current request
+  
   _request: null,
 
-  /*
-   * Addon search results callback object that contains two functions
-   *
-   * searchSucceeded - Called when a search has suceeded.
-   *
-   * @param  aAddons
-   *         An array of the add-on results. In the case of searching for
-   *         specific terms the ordering of results may be determined by
-   *         the search provider.
-   * @param  aAddonCount
-   *         The length of aAddons
-   * @param  aTotalResults
-   *         The total results actually available in the repository
-   *
-   *
-   * searchFailed - Called when an error occurred when performing a search.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   _callback: null,
 
-  // Maximum number of results to return
+  
   _maxResults: null,
   
-  /**
-   * Initialize AddonRepository.
-   */
+  
+
+
   initialize: function() {
     Services.obs.addObserver(this, "xpcom-shutdown", false);
   },
 
-  /**
-   * Observe xpcom-shutdown notification, so we can shutdown cleanly.
-   */
+  
+
+
   observe: function (aSubject, aTopic, aData) {
     if (aTopic == "xpcom-shutdown") {
       Services.obs.removeObserver(this, "xpcom-shutdown");
@@ -520,9 +484,9 @@ var AddonRepository = {
     }
   },
 
-  /**
-   * Shut down AddonRepository
-   */
+  
+
+
   shutdown: function() {
     this.cancelSearch();
 
@@ -533,16 +497,16 @@ var AddonRepository = {
     });
   },
 
-  /**
-   * Asynchronously get a cached add-on by id. The add-on (or null if the
-   * add-on is not found) is passed to the specified callback. If caching is
-   * disabled, null is passed to the specified callback.
-   *
-   * @param  aId
-   *         The id of the add-on to get
-   * @param  aCallback
-   *         The callback to pass the result back to
-   */
+  
+
+
+
+
+
+
+
+
+
   getCachedAddonByID: function(aId, aCallback) {
     if (!aId || !this.cacheEnabled) {
       aCallback(null);
@@ -556,18 +520,18 @@ var AddonRepository = {
 
     if (this._addons == null) {
       if (this._pendingCallbacks == null) {
-        // Data has not been retrieved from the database, so retrieve it
+        
         this._pendingCallbacks = [];
         this._pendingCallbacks.push(getAddon);
         AddonDatabase.retrieveStoredData(function(aAddons) {
           let pendingCallbacks = self._pendingCallbacks;
 
-          // Check if cache was shutdown or deleted before callback was called
+          
           if (pendingCallbacks == null)
             return;
 
-          // Callbacks may want to trigger a other caching operations that may
-          // affect _addons and _pendingCallbacks, so set to final values early
+          
+          
           self._pendingCallbacks = null;
           self._addons = aAddons;
 
@@ -577,31 +541,31 @@ var AddonRepository = {
         return;
       }
 
-      // Data is being retrieved from the database, so wait
+      
       this._pendingCallbacks.push(getAddon);
       return;
     }
 
-    // Data has been retrieved, so immediately return result
+    
     getAddon(this._addons);
   },
 
-  /**
-   * Asynchronously repopulate cache so it only contains the add-ons
-   * corresponding to the specified ids. If caching is disabled,
-   * the cache is completely removed.
-   *
-   * @param  aIds
-   *         The array of add-on ids to repopulate the cache with
-   * @param  aCallback
-   *         The optional callback to call once complete
-   */
+  
+
+
+
+
+
+
+
+
+
   repopulateCache: function(aIds, aCallback) {
     this._repopulateCache(aIds, aCallback, false);
   },
 
   _repopulateCache: function(aIds, aCallback, aSendPerformance) {
-    // Completely remove cache if caching is not enabled
+    
     if (!this.cacheEnabled) {
       this._addons = null;
       this._pendingCallbacks = null;
@@ -611,7 +575,7 @@ var AddonRepository = {
 
     let self = this;
     getAddonsToCache(aIds, function(aAddons) {
-      // Completely remove cache if there are no add-ons to cache
+      
       if (aAddons.length == 0) {
         self._addons = null;
         self._pendingCallbacks = null;
@@ -634,16 +598,16 @@ var AddonRepository = {
     });
   },
 
-  /**
-   * Asynchronously add add-ons to the cache corresponding to the specified
-   * ids. If caching is disabled, the cache is unchanged and the callback is
-   * immediatly called if it is defined.
-   *
-   * @param  aIds
-   *         The array of add-on ids to add to the cache
-   * @param  aCallback
-   *         The optional callback to call once complete
-   */
+  
+
+
+
+
+
+
+
+
+
   cacheAddons: function(aIds, aCallback) {
     if (!this.cacheEnabled) {
       if (aCallback)
@@ -653,7 +617,7 @@ var AddonRepository = {
 
     let self = this;
     getAddonsToCache(aIds, function(aAddons) {
-      // If there are no add-ons to cache, act as if caching is disabled
+      
       if (aAddons.length == 0) {
         if (aCallback)
           aCallback();
@@ -674,40 +638,40 @@ var AddonRepository = {
     });
   },
 
-  /**
-   * The homepage for visiting this repository. If the corresponding preference
-   * is not defined, defaults to about:blank.
-   */
+  
+
+
+
   get homepageURL() {
     let url = this._formatURLPref(PREF_GETADDONS_BROWSEADDONS, {});
     return (url != null) ? url : "about:blank";
   },
 
-  /**
-   * Returns whether this instance is currently performing a search. New
-   * searches will not be performed while this is the case.
-   */
+  
+
+
+
   get isSearching() {
     return this._searching;
   },
 
-  /**
-   * The url that can be visited to see recommended add-ons in this repository.
-   * If the corresponding preference is not defined, defaults to about:blank.
-   */
+  
+
+
+
   getRecommendedURL: function() {
     let url = this._formatURLPref(PREF_GETADDONS_BROWSERECOMMENDED, {});
     return (url != null) ? url : "about:blank";
   },
 
-  /**
-   * Retrieves the url that can be visited to see search results for the given
-   * terms. If the corresponding preference is not defined, defaults to
-   * about:blank.
-   *
-   * @param  aSearchTerms
-   *         Search terms used to search the repository
-   */
+  
+
+
+
+
+
+
+
   getSearchURL: function(aSearchTerms) {
     let url = this._formatURLPref(PREF_GETADDONS_BROWSESEARCHRESULTS, {
       TERMS : encodeURIComponent(aSearchTerms)
@@ -715,10 +679,10 @@ var AddonRepository = {
     return (url != null) ? url : "about:blank";
   },
 
-  /**
-   * Cancels the search in progress. If there is no search in progress this
-   * does nothing.
-   */
+  
+
+
+
   cancelSearch: function() {
     this._searching = false;
     if (this._request) {
@@ -728,30 +692,30 @@ var AddonRepository = {
     this._callback = null;
   },
 
-  /**
-   * Begins a search for add-ons in this repository by ID. Results will be
-   * passed to the given callback.
-   *
-   * @param  aIDs
-   *         The array of ids to search for
-   * @param  aCallback
-   *         The callback to pass results to
-   */
+  
+
+
+
+
+
+
+
+
   getAddonsByIDs: function(aIDs, aCallback) {
     return this._beginGetAddons(aIDs, aCallback, false);
   },
 
-  /**
-   * Begins a search of add-ons, potentially sending performance data.
-   *
-   * @param  aIDs
-   *         Array of ids to search for.
-   * @param  aCallback
-   *         Function to pass results to.
-   * @param  aSendPerformance
-   *         Boolean indicating whether to send performance data with the
-   *         request.
-   */
+  
+
+
+
+
+
+
+
+
+
+
   _beginGetAddons: function(aIDs, aCallback, aSendPerformance) {
     let ids = aIDs.slice(0);
 
@@ -791,32 +755,32 @@ var AddonRepository = {
 
     let self = this;
     function handleResults(aElements, aTotalResults, aCompatData) {
-      // Don't use this._parseAddons() so that, for example,
-      // incompatible add-ons are not filtered out
+      
+      
       let results = [];
       for (let i = 0; i < aElements.length && results.length < self._maxResults; i++) {
         let result = self._parseAddon(aElements[i], null, aCompatData);
         if (result == null)
           continue;
 
-        // Ignore add-on if it wasn't actually requested
+        
         let idIndex = ids.indexOf(result.addon.id);
         if (idIndex == -1)
           continue;
 
         results.push(result);
-        // Ignore this add-on from now on
+        
         ids.splice(idIndex, 1);
       }
 
-      // Include any compatibility overrides for addons not hosted by the
-      // remote repository.
+      
+      
       for each (let addonCompat in aCompatData) {
         if (addonCompat.hosted)
           continue;
 
         let addon = new AddonSearchResult(addonCompat.id);
-        // Compatibility overrides can only be for extensions.
+        
         addon.type = "extension";
         addon.compatibilityOverrides = addonCompat.compatRanges;
         let result = {
@@ -827,51 +791,51 @@ var AddonRepository = {
         results.push(result);
       }
 
-      // aTotalResults irrelevant
+      
       self._reportSuccess(results, -1);
     }
 
     this._beginSearch(url, ids.length, aCallback, handleResults);
   },
 
-  /**
-   * Performs the daily background update check.
-   *
-   * This API both searches for the add-on IDs specified and sends performance
-   * data. It is meant to be called as part of the daily update ping. It should
-   * not be used for any other purpose. Use repopulateCache instead.
-   *
-   * @param  aIDs
-   *         Array of add-on IDs to repopulate the cache with.
-   * @param  aCallback
-   *         Function to call when data is received. Function must be an object
-   *         with the keys searchSucceeded and searchFailed.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
   backgroundUpdateCheck: function(aIDs, aCallback) {
     this._repopulateCache(aIDs, aCallback, true);
   },
 
-  /**
-   * Begins a search for recommended add-ons in this repository. Results will
-   * be passed to the given callback.
-   *
-   * @param  aMaxResults
-   *         The maximum number of results to return
-   * @param  aCallback
-   *         The callback to pass results to
-   */
+  
+
+
+
+
+
+
+
+
   retrieveRecommendedAddons: function(aMaxResults, aCallback) {
     let url = this._formatURLPref(PREF_GETADDONS_GETRECOMMENDED, {
       API_VERSION : API_VERSION,
 
-      // Get twice as many results to account for potential filtering
+      
       MAX_RESULTS : 2 * aMaxResults
     });
 
     let self = this;
     function handleResults(aElements, aTotalResults) {
       self._getLocalAddonIds(function(aLocalAddonIds) {
-        // aTotalResults irrelevant
+        
         self._parseAddons(aElements, -1, aLocalAddonIds);
       });
     }
@@ -879,17 +843,17 @@ var AddonRepository = {
     this._beginSearch(url, aMaxResults, aCallback, handleResults);
   },
 
-  /**
-   * Begins a search for add-ons in this repository. Results will be passed to
-   * the given callback.
-   *
-   * @param  aSearchTerms
-   *         The terms to search for
-   * @param  aMaxResults
-   *         The maximum number of results to return
-   * @param  aCallback
-   *         The callback to pass results to
-   */
+  
+
+
+
+
+
+
+
+
+
+
   searchAddons: function(aSearchTerms, aMaxResults, aCallback) {
     let compatMode = "normal";
     if (!AddonManager.checkCompatibility)
@@ -900,7 +864,7 @@ var AddonRepository = {
     let substitutions = {
       API_VERSION : API_VERSION,
       TERMS : encodeURIComponent(aSearchTerms),
-      // Get twice as many results to account for potential filtering
+      
       MAX_RESULTS : 2 * aMaxResults,
       COMPATIBILITY_MODE : compatMode,
     };
@@ -917,75 +881,75 @@ var AddonRepository = {
     this._beginSearch(url, aMaxResults, aCallback, handleResults);
   },
 
-  // Posts results to the callback
+  
   _reportSuccess: function(aResults, aTotalResults) {
     this._searching = false;
     this._request = null;
-    // The callback may want to trigger a new search so clear references early
+    
     let addons = [result.addon for each(result in aResults)];
     let callback = this._callback;
     this._callback = null;
     callback.searchSucceeded(addons, addons.length, aTotalResults);
   },
 
-  // Notifies the callback of a failure
+  
   _reportFailure: function() {
     this._searching = false;
     this._request = null;
-    // The callback may want to trigger a new search so clear references early
+    
     let callback = this._callback;
     this._callback = null;
     callback.searchFailed();
   },
 
-  // Get descendant by unique tag name. Returns null if not unique tag name.
+  
   _getUniqueDescendant: function(aElement, aTagName) {
     let elementsList = aElement.getElementsByTagName(aTagName);
     return (elementsList.length == 1) ? elementsList[0] : null;
   },
 
-  // Get direct descendant by unique tag name.
-  // Returns null if not unique tag name.
+  
+  
   _getUniqueDirectDescendant: function(aElement, aTagName) {
     let elementsList = Array.filter(aElement.children,
                                     function(aChild) aChild.tagName == aTagName);
     return (elementsList.length == 1) ? elementsList[0] : null;
   },
 
-  // Parse out trimmed text content. Returns null if text content empty.
+  
   _getTextContent: function(aElement) {
     let textContent = aElement.textContent.trim();
     return (textContent.length > 0) ? textContent : null;
   },
 
-  // Parse out trimmed text content of a descendant with the specified tag name
-  // Returns null if the parsing unsuccessful.
+  
+  
   _getDescendantTextContent: function(aElement, aTagName) {
     let descendant = this._getUniqueDescendant(aElement, aTagName);
     return (descendant != null) ? this._getTextContent(descendant) : null;
   },
 
-  // Parse out trimmed text content of a direct descendant with the specified
-  // tag name.
-  // Returns null if the parsing unsuccessful.
+  
+  
+  
   _getDirectDescendantTextContent: function(aElement, aTagName) {
     let descendant = this._getUniqueDirectDescendant(aElement, aTagName);
     return (descendant != null) ? this._getTextContent(descendant) : null;
   },
 
-  /*
-   * Creates an AddonSearchResult by parsing an <addon> element
-   *
-   * @param  aElement
-   *         The <addon> element to parse
-   * @param  aSkip
-   *         Object containing ids and sourceURIs of add-ons to skip.
-   * @param  aCompatData
-   *         Array of parsed addon_compatibility elements to accosiate with the
-   *         resulting AddonSearchResult. Optional.
-   * @return Result object containing the parsed AddonSearchResult, xpiURL and
-   *         xpiHash if the parsing was successful. Otherwise returns null.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
   _parseAddon: function(aElement, aSkip, aCompatData) {
     let skipIDs = (aSkip && aSkip.ids) ? aSkip.ids : [];
     let skipSourceURIs = (aSkip && aSkip.sourceURIs) ? aSkip.sourceURIs : [];
@@ -1011,20 +975,20 @@ var AddonRepository = {
 
       let localName = node.localName;
 
-      // Handle case where the wanted string value is located in text content
-      // but only if the content is not empty
+      
+      
       if (localName in STRING_KEY_MAP) {
         addon[STRING_KEY_MAP[localName]] = this._getTextContent(node) || addon[STRING_KEY_MAP[localName]];
         continue;
       }
 
-      // Handle case where the wanted string value is html located in text content
+      
       if (localName in HTML_KEY_MAP) {
         addon[HTML_KEY_MAP[localName]] = convertHTMLToPlainText(this._getTextContent(node));
         continue;
       }
 
-      // Handle case where the wanted integer value is located in text content
+      
       if (localName in INTEGER_KEY_MAP) {
         let value = parseInt(this._getTextContent(node));
         if (value >= 0)
@@ -1032,10 +996,10 @@ var AddonRepository = {
         continue;
       }
 
-      // Handle cases that aren't as simple as grabbing the text content
+      
       switch (localName) {
         case "type":
-          // Map AMO's type id to corresponding string
+          
           let id = parseInt(node.getAttribute("id"));
           switch (id) {
             case 1:
@@ -1150,10 +1114,10 @@ var AddonRepository = {
           });
           break;
         case "install":
-          // No os attribute means the xpi is compatible with any os
+          
           if (node.hasAttribute("os")) {
             let os = node.getAttribute("os").trim().toLowerCase();
-            // If the os is not ALL and not the current OS then ignore this xpi
+            
             if (os != "all" && os != Services.appinfo.OS.toLowerCase())
               break;
           }
@@ -1219,7 +1183,7 @@ var AddonRepository = {
                  Services.vc.compare(currentVersion, maxVersion) <= 0));
       });
 
-      // Ignore add-ons not compatible with this Application
+      
       if (!compatible) {
         if (AddonManager.checkCompatibility)
           continue;
@@ -1228,42 +1192,42 @@ var AddonRepository = {
           continue;
       }
 
-      // Add-on meets all requirements, so parse out data.
-      // Don't pass in compatiblity override data, because that's only returned
-      // in GUID searches, which don't use _parseAddons().
+      
+      
+      
       let result = this._parseAddon(element, aSkip);
       if (result == null)
         continue;
 
-      // Ignore add-on missing a required attribute
+      
       let requiredAttributes = ["id", "name", "version", "type", "creator"];
       if (requiredAttributes.some(function(aAttribute) !result.addon[aAttribute]))
         continue;
 
-      // Add only if the add-on is compatible with the platform
+      
       if (!result.addon.isPlatformCompatible)
         continue;
 
-      // Add only if there was an xpi compatible with this OS or there was a
-      // way to purchase the add-on
+      
+      
       if (!result.xpiURL && !result.addon.purchaseURL)
         continue;
 
       result.addon.isCompatible = compatible;
 
       results.push(result);
-      // Ignore this add-on from now on by adding it to the skip array
+      
       aSkip.ids.push(result.addon.id);
     }
 
-    // Immediately report success if no AddonInstall instances to create
+    
     let pendingResults = results.length;
     if (pendingResults == 0) {
       this._reportSuccess(results, aTotalResults);
       return;
     }
 
-    // Create an AddonInstall for each result
+    
     let self = this;
     results.forEach(function(aResult) {
       let addon = aResult.addon;
@@ -1285,7 +1249,7 @@ var AddonRepository = {
     });
   },
 
-  // Parses addon_compatibility nodes, that describe compatibility overrides.
+  
   _parseAddonCompatElement: function(aResultObj, aElement) {
     let guid = this._getDescendantTextContent(aElement, "guid");
     if (!guid) {
@@ -1298,8 +1262,7 @@ var AddonRepository = {
 
     function findMatchingAppRange(aNodes) {
       let toolkitAppRange = null;
-      for (let i = 0; i < aNodes.length; i++) {
-        let node = aNodes[i];
+      for (let node of aNodes) {
         let appID = this._getDescendantTextContent(node, "appID");
         if (appID != Services.appinfo.ID && appID != TOOLKIT_ID)
           continue;
@@ -1313,7 +1276,7 @@ var AddonRepository = {
                          appMinVersion: minVersion,
                          appMaxVersion: maxVersion };
 
-        // Only use Toolkit app ranges if no ranges match the application ID.
+        
         if (appID == TOOLKIT_ID)
           toolkitAppRange = appRange;
         else
@@ -1324,7 +1287,7 @@ var AddonRepository = {
 
     function parseRangeNode(aNode) {
       let type = aNode.getAttribute("type");
-      // Only "incompatible" (blacklisting) is supported for now.
+      
       if (type != "incompatible") {
         LOG("Compatibility override of unsupported type found.");
         return null;
@@ -1367,14 +1330,14 @@ var AddonRepository = {
     aResultObj[compat.id] = compat;
   },
 
-  // Parses addon_compatibility elements.
+  
   _parseAddonCompatData: function(aElements) {
     let compatData = {};
     Array.forEach(aElements, this._parseAddonCompatElement.bind(this, compatData));
     return compatData;
   },
 
-  // Begins a new search if one isn't currently executing
+  
   _beginSearch: function(aURI, aMaxResults, aCallback, aHandleResults) {
     if (this._searching || aURI == null || aMaxResults <= 0) {
       aCallback.searchFailed();
@@ -1411,7 +1374,7 @@ var AddonRepository = {
       let elements = documentElement.getElementsByTagName("addon");
       let totalResults = elements.length;
       let parsedTotalResults = parseInt(documentElement.getAttribute("total_results"));
-      // Parsed value of total results only makes sense if >= elements.length
+      
       if (parsedTotalResults >= totalResults)
         totalResults = parsedTotalResults;
 
@@ -1423,8 +1386,8 @@ var AddonRepository = {
     this._request.send(null);
   },
 
-  // Gets the id's of local add-ons, and the sourceURI's of local installs,
-  // passing the results to aCallback
+  
+  
   _getLocalAddonIds: function(aCallback) {
     let self = this;
     let localAddonIds = {ids: null, sourceURIs: null};
@@ -1447,7 +1410,7 @@ var AddonRepository = {
     });
   },
 
-  // Create url from preference, returning null if preference does not exist
+  
   _formatURLPref: function(aPreference, aSubstitutions) {
     let url = null;
     try {
@@ -1464,14 +1427,13 @@ var AddonRepository = {
     return Services.urlFormatter.formatURL(url);
   },
 
-  // Find a AddonCompatibilityOverride that matches a given aAddonVersion and
-  // application/platform version.
+  
+  
   findMatchingCompatOverride: function AR_findMatchingCompatOverride(aAddonVersion,
                                                                      aCompatOverrides,
                                                                      aAppVersion,
                                                                      aPlatformVersion) {
-    for (let i = 0; i < aCompatOverrides.length; i++) {
-      let override = aCompatOverrides[i];
+    for (let override of aCompatOverrides) {
 
       let appVersion = null;
       if (override.appID == TOOLKIT_ID)
@@ -1493,14 +1455,14 @@ var AddonRepository = {
 AddonRepository.initialize();
 
 var AddonDatabase = {
-  // true if the database connection has been opened
+  
   initialized: false,
-  // false if there was an unrecoverable error openning the database
+  
   databaseOk: true,
-  // A cache of statements that are used and need to be finalized on shutdown
+  
   asyncStatementsCache: {},
 
-  // The queries used by the database
+  
   queries: {
     getAllAddons: "SELECT internal_id, id, type, name, version, " +
                   "creator, creatorURL, description, fullDescription, " +
@@ -1532,8 +1494,8 @@ var AddonDatabase = {
     insertDeveloper:  "INSERT INTO developer VALUES (:addon_internal_id, " +
                       ":num, :name, :url)",
 
-    // We specify column names here because the columns
-    // could be out of order due to schema changes.
+    
+    
     insertScreenshot: "INSERT INTO screenshot (addon_internal_id, " +
                       "num, url, width, height, thumbnailURL, " +
                       "thumbnailWidth, thumbnailHeight, caption) " +
@@ -1549,35 +1511,35 @@ var AddonDatabase = {
     emptyAddon:       "DELETE FROM addon"
   },
 
-  /**
-   * A helper function to log an SQL error.
-   *
-   * @param  aError
-   *         The storage error code associated with the error
-   * @param  aErrorString
-   *         An error message
-   */
+  
+
+
+
+
+
+
+
   logSQLError: function AD_logSQLError(aError, aErrorString) {
     ERROR("SQL error " + aError + ": " + aErrorString);
   },
 
-  /**
-   * A helper function to log any errors that occur during async statements.
-   *
-   * @param  aError
-   *         A mozIStorageError to log
-   */
+  
+
+
+
+
+
   asyncErrorLogger: function AD_asyncErrorLogger(aError) {
     ERROR("Async SQL error " + aError.result + ": " + aError.message);
   },
 
-  /**
-   * Synchronously opens a new connection to the database file.
-   *
-   * @param  aSecondAttempt
-   *         Whether this is a second attempt to open the database
-   * @return the mozIStorageConnection for the database
-   */
+  
+
+
+
+
+
+
   openConnection: function AD_openConnection(aSecondAttempt) {
     this.initialized = true;
     delete this.connection;
@@ -1609,7 +1571,7 @@ var AddonDatabase = {
 
     this.connection.executeSimpleSQL("PRAGMA locking_mode = EXCLUSIVE");
 
-    // Any errors in here should rollback
+    
     try {
       this.connection.beginTransaction();
       switch (this.connection.schemaVersion) {
@@ -1653,20 +1615,20 @@ var AddonDatabase = {
     return this.connection;
   },
 
-  /**
-   * A lazy getter for the database connection.
-   */
+  
+
+
   get connection() {
     return this.openConnection();
   },
 
-  /**
-   * Asynchronously shuts down the database connection and releases all
-   * cached objects
-   *
-   * @param  aCallback
-   *         An optional callback to call once complete
-   */
+  
+
+
+
+
+
+
   shutdown: function AD_shutdown(aCallback) {
     this.databaseOk = true;
     if (!this.initialized) {
@@ -1689,8 +1651,8 @@ var AddonDatabase = {
     let connection = this.connection;
     delete this.connection;
 
-    // Re-create the connection smart getter to allow the database to be
-    // re-loaded during testing.
+    
+    
     this.__defineGetter__("connection", function() {
       return this.openConnection();
     });
@@ -1698,13 +1660,13 @@ var AddonDatabase = {
     connection.asyncClose(aCallback);
   },
 
-  /**
-   * Asynchronously deletes the database, shutting down the connection
-   * first if initialized
-   *
-   * @param  aCallback
-   *         An optional callback to call once complete
-   */
+  
+
+
+
+
+
+
   delete: function AD_delete(aCallback) {
     this.shutdown(function() {
       let dbfile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true);
@@ -1716,15 +1678,15 @@ var AddonDatabase = {
     });
   },
 
-  /**
-   * Gets a cached async statement or creates a new statement if it doesn't
-   * already exist.
-   *
-   * @param  aKey
-   *         A unique key to reference the statement
-   * @return a mozIStorageAsyncStatement for the SQL corresponding to the
-   *         unique key
-   */
+  
+
+
+
+
+
+
+
+
   getAsyncStatement: function AD_getAsyncStatement(aKey) {
     if (aKey in this.asyncStatementsCache)
       return this.asyncStatementsCache[aKey];
@@ -1738,18 +1700,18 @@ var AddonDatabase = {
     }
   },
 
-  /**
-   * Asynchronously retrieve all add-ons from the database, and pass it
-   * to the specified callback
-   *
-   * @param  aCallback
-   *         The callback to pass the add-ons back to
-   */
+  
+
+
+
+
+
+
   retrieveStoredData: function AD_retrieveStoredData(aCallback) {
     let self = this;
     let addons = {};
 
-    // Retrieve all data from the addon table
+    
     function getAllAddons() {
       self.getAsyncStatement("getAllAddons").executeAsync({
         handleResult: function(aResults) {
@@ -1774,7 +1736,7 @@ var AddonDatabase = {
       });
     }
 
-    // Retrieve all data from the developer table
+    
     function getAllDevelopers() {
       self.getAsyncStatement("getAllDevelopers").executeAsync({
         handleResult: function(aResults) {
@@ -1808,7 +1770,7 @@ var AddonDatabase = {
       });
     }
 
-    // Retrieve all data from the screenshot table
+    
     function getAllScreenshots() {
       self.getAsyncStatement("getAllScreenshots").executeAsync({
         handleResult: function(aResults) {
@@ -1876,23 +1838,23 @@ var AddonDatabase = {
       });
     }
 
-    // Begin asynchronous process
+    
     getAllAddons();
   },
 
-  /**
-   * Asynchronously repopulates the database so it only contains the
-   * specified add-ons
-   *
-   * @param  aAddons
-   *         The array of add-ons to repopulate the database with
-   * @param  aCallback
-   *         An optional callback to call once complete
-   */
+  
+
+
+
+
+
+
+
+
   repopulate: function AD_repopulate(aAddons, aCallback) {
     let self = this;
 
-    // Completely empty the database
+    
     let stmts = [this.getAsyncStatement("emptyAddon")];
 
     this.connection.executeAsync(stmts, stmts.length, {
@@ -1903,25 +1865,25 @@ var AddonDatabase = {
         if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED)
           ERROR("Error emptying database. Attempting to continue repopulating database");
 
-        // Insert the specified add-ons
+        
         self.insertAddons(aAddons, aCallback);
       }
     });
   },
 
-  /**
-   * Asynchronously inserts an array of add-ons into the database
-   *
-   * @param  aAddons
-   *         The array of add-ons to insert
-   * @param  aCallback
-   *         An optional callback to call once complete
-   */
+  
+
+
+
+
+
+
+
   insertAddons: function AD_insertAddons(aAddons, aCallback) {
     let self = this;
     let currentAddon = -1;
 
-    // Chain insertions
+    
     function insertNextAddon() {
       if (++currentAddon == aAddons.length) {
         if (aCallback)
@@ -1935,27 +1897,27 @@ var AddonDatabase = {
     insertNextAddon();
   },
 
-  /**
-   * Inserts an individual add-on into the database. If the add-on already
-   * exists in the database (by id), then the specified add-on will not be
-   * inserted.
-   *
-   * @param  aAddon
-   *         The add-on to insert into the database
-   * @param  aCallback
-   *         The callback to call once complete
-   */
+  
+
+
+
+
+
+
+
+
+
   _insertAddon: function AD__insertAddon(aAddon, aCallback) {
     let self = this;
     let internal_id = null;
     this.connection.beginTransaction();
 
-    // Simultaneously insert the developers, screenshots, and compatibility
-    // overrides of the add-on.
+    
+    
     function insertAdditionalData() {
       let stmts = [];
 
-      // Initialize statement and parameters for inserting an array
+      
       function initializeArrayInsert(aStatementKey, aArray, aAddParams) {
         if (!aArray || aArray.length == 0)
           return;
@@ -1970,8 +1932,8 @@ var AddonDatabase = {
         stmts.push(stmt);
       }
 
-      // Initialize statements to insert developers, screenshots, and
-      // compatibility overrides
+      
+      
       initializeArrayInsert("insertDeveloper", aAddon.developers,
                             self._addDeveloperParams);
       initializeArrayInsert("insertScreenshot", aAddon.screenshots,
@@ -1980,7 +1942,7 @@ var AddonDatabase = {
                             aAddon.compatibilityOverrides,
                             self._addCompatOverrideParams);
 
-      // Immediately call callback if nothing to insert
+      
       if (stmts.length == 0) {
         self.connection.commitTransaction();
         aCallback();
@@ -2004,7 +1966,7 @@ var AddonDatabase = {
       });
     }
 
-    // Insert add-on into database
+    
     this._makeAddonStatement(aAddon).executeAsync({
       handleResult: function() {},
       handleError: self.asyncErrorLogger,
@@ -2023,13 +1985,13 @@ var AddonDatabase = {
     });
   },
 
-  /**
-   * Make an asynchronous statement that will insert the specified add-on
-   *
-   * @param  aAddon
-   *         The add-on to make the statement for
-   * @return The asynchronous mozIStorageStatement
-   */
+  
+
+
+
+
+
+
   _makeAddonStatement: function AD__makeAddonStatement(aAddon) {
     let stmt = this.getAsyncStatement("insertAddon");
     let params = stmt.params;
@@ -2054,19 +2016,19 @@ var AddonDatabase = {
     return stmt;
   },
 
-  /**
-   * Add developer parameters to the specified mozIStorageBindingParamsArray
-   *
-   * @param  aParams
-   *         The mozIStorageBindingParamsArray to add the parameters to
-   * @param  aInternalID
-   *         The internal_id of the add-on that this developer is for
-   * @param  aDeveloper
-   *         The developer to make the parameters from
-   * @param  aIndex
-   *         The index of this developer
-   * @return The asynchronous mozIStorageStatement
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
   _addDeveloperParams: function AD__addDeveloperParams(aParams, aInternalID,
                                                        aDeveloper, aIndex) {
     let bp = aParams.newBindingParams();
@@ -2077,18 +2039,18 @@ var AddonDatabase = {
     aParams.addParams(bp);
   },
 
-  /**
-   * Add screenshot parameters to the specified mozIStorageBindingParamsArray
-   *
-   * @param  aParams
-   *         The mozIStorageBindingParamsArray to add the parameters to
-   * @param  aInternalID
-   *         The internal_id of the add-on that this screenshot is for
-   * @param  aScreenshot
-   *         The screenshot to make the parameters from
-   * @param  aIndex
-   *         The index of this screenshot
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   _addScreenshotParams: function AD__addScreenshotParams(aParams, aInternalID,
                                                          aScreenshot, aIndex) {
     let bp = aParams.newBindingParams();
@@ -2104,19 +2066,19 @@ var AddonDatabase = {
     aParams.addParams(bp);
   },
 
-  /**
-   * Add compatibility override parameters to the specified
-   * mozIStorageBindingParamsArray.
-   *
-   * @param  aParams
-   *         The mozIStorageBindingParamsArray to add the parameters to
-   * @param  aInternalID
-   *         The internal_id of the add-on that this override is for
-   * @param  aOverride
-   *         The override to make the parameters from
-   * @param  aIndex
-   *         The index of this override
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
   _addCompatOverrideParams: function AD_addCompatOverrideParams(aParams,
                                                                 aInternalID,
                                                                 aOverride,
@@ -2133,14 +2095,14 @@ var AddonDatabase = {
     aParams.addParams(bp);
   },
 
-  /**
-   * Make add-on from an asynchronous row
-   * Note: This add-on will be lacking both developers and screenshots
-   *
-   * @param  aRow
-   *         The asynchronous row to use
-   * @return The created add-on
-   */
+  
+
+
+
+
+
+
+
   _makeAddonFromAsyncRow: function AD__makeAddonFromAsyncRow(aRow) {
     let addon = {};
 
@@ -2169,26 +2131,26 @@ var AddonDatabase = {
     return addon;
   },
 
-  /**
-   * Make a developer from an asynchronous row
-   *
-   * @param  aRow
-   *         The asynchronous row to use
-   * @return The created developer
-   */
+  
+
+
+
+
+
+
   _makeDeveloperFromAsyncRow: function AD__makeDeveloperFromAsyncRow(aRow) {
     let name = aRow.getResultByName("name");
     let url = aRow.getResultByName("url")
     return new AddonManagerPrivate.AddonAuthor(name, url);
   },
 
-  /**
-   * Make a screenshot from an asynchronous row
-   *
-   * @param  aRow
-   *         The asynchronous row to use
-   * @return The created screenshot
-   */
+  
+
+
+
+
+
+
   _makeScreenshotFromAsyncRow: function AD__makeScreenshotFromAsyncRow(aRow) {
     let url = aRow.getResultByName("url");
     let width = aRow.getResultByName("width");
@@ -2201,13 +2163,13 @@ var AddonDatabase = {
                                                    thumbnailWidth, thumbnailHeight, caption);
   },
 
-  /**
-   * Make a CompatibilityOverride from an asynchronous row
-   *
-   * @param  aRow
-   *         The asynchronous row to use
-   * @return The created CompatibilityOverride
-   */
+  
+
+
+
+
+
+
   _makeCompatOverrideFromAsyncRow: function AD_makeCompatOverrideFromAsyncRow(aRow) {
     let type = aRow.getResultByName("type");
     let minVersion = aRow.getResultByName("minVersion");
@@ -2223,9 +2185,9 @@ var AddonDatabase = {
                                                               appMaxVersion);
   },
 
-  /**
-   * Synchronously creates the schema in the database.
-   */
+  
+
+
   _createSchema: function AD__createSchema() {
     LOG("Creating database schema");
 
@@ -2293,9 +2255,9 @@ var AddonDatabase = {
       this.connection.schemaVersion = DB_SCHEMA;
   },
 
-  /**
-   * Synchronously creates the triggers in the database.
-   */
+  
+
+
   _createTriggers: function AD__createTriggers() {
     this.connection.executeSimpleSQL("DROP TRIGGER IF EXISTS delete_addon");
     this.connection.executeSimpleSQL("CREATE TRIGGER delete_addon AFTER DELETE " +
@@ -2306,9 +2268,9 @@ var AddonDatabase = {
       "END");
   },
 
-  /**
-   * Synchronously creates the indices in the database.
-   */
+  
+
+
   _createIndices: function AD__createIndices() {
       this.connection.executeSimpleSQL("CREATE INDEX IF NOT EXISTS developer_idx " +
                                        "ON developer (addon_internal_id)");

@@ -452,13 +452,13 @@ class TypeSet
     bool knownNonEmpty(JSContext *cx);
 
     
-    bool knownSubset(JSContext *cx, TypeSet *other);
-
-    
 
 
 
     bool knownNonStringPrimitive(JSContext *cx);
+
+    
+    bool knownSubset(JSContext *cx, TypeSet *other);
 
     
 

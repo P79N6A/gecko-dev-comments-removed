@@ -14,8 +14,8 @@
 #include "nsIAccessibleHyperLink.h"
 #include "nsIAccessibleSelectable.h"
 #include "nsIAccessibleValue.h"
+#include "nsIAccessibleRole.h"
 #include "nsIAccessibleStates.h"
-#include "nsIContent.h"
 
 #include "nsStringGlue.h"
 #include "nsTArray.h"
@@ -23,23 +23,21 @@
 
 class AccEvent;
 class AccGroupInfo;
+class EmbeddedObjCollector;
 class KeyBinding;
 class Accessible;
-class HyperTextAccessible;
+class nsHyperTextAccessible;
+class nsHTMLImageAccessible;
+class nsHTMLImageMapAccessible;
 struct nsRoleMapEntry;
+class Relation;
 
 namespace mozilla {
 namespace a11y {
 
-class EmbeddedObjCollector;
-class HTMLImageMapAccessible;
 class HTMLLIAccessible;
-class ImageAccessible;
-class Relation;
 class TableAccessible;
-class TableCellAccessible;
 class TextLeafAccessible;
-class XULTreeAccessible;
 
 
 
@@ -62,13 +60,15 @@ struct GroupPos
 {
   GroupPos() : level(0), posInSet(0), setSize(0) { }
 
-  int32_t level;
-  int32_t posInSet;
-  int32_t setSize;
+  PRInt32 level;
+  PRInt32 posInSet;
+  PRInt32 setSize;
 };
 
 } 
 } 
+
+class nsXULTreeAccessible;
 
 struct nsRect;
 class nsIContent;
@@ -80,6 +80,18 @@ typedef nsRefPtrHashtable<nsPtrHashKey<const void>, Accessible>
   AccessibleHashtable;
 
 
+#define NS_OK_NO_ARIA_VALUE \
+NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_GENERAL, 0x21)
+
+
+#define NS_OK_EMPTY_NAME \
+NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_GENERAL, 0x23)
+
+
+#define NS_OK_NAME_FROM_TOOLTIP \
+NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_GENERAL, 0x25)
+
+
 #define NS_ACCESSIBLE_IMPL_IID                          \
 {  /* 133c8bf4-4913-4355-bd50-426bd1d6e1ad */           \
   0x133c8bf4,                                           \
@@ -88,8 +100,8 @@ typedef nsRefPtrHashtable<nsPtrHashKey<const void>, Accessible>
   { 0xbd, 0x50, 0x42, 0x6b, 0xd1, 0xd6, 0xe1, 0xad }    \
 }
 
-class Accessible : public nsAccessNodeWrap,
-                   public nsIAccessible,
+class Accessible : public nsAccessNodeWrap, 
+                   public nsIAccessible, 
                    public nsIAccessibleHyperLink,
                    public nsIAccessibleSelectable,
                    public nsIAccessibleValue
@@ -118,11 +130,6 @@ public:
   
 
 
-  virtual void Init();
-
-  
-
-
   virtual void Description(nsString& aDescription);
 
   
@@ -140,7 +147,7 @@ public:
 
   inline already_AddRefed<nsIDOMNode> DOMNode() const
   {
-    nsIDOMNode *DOMNode = nullptr;
+    nsIDOMNode *DOMNode = nsnull;
     if (GetNode())
       CallQueryInterface(GetNode(), &DOMNode);
     return DOMNode;
@@ -158,7 +165,7 @@ public:
 
 
 
-  virtual void ApplyARIAState(uint64_t* aState) const;
+  virtual void ApplyARIAState(PRUint64* aState) const;
 
   
 
@@ -198,25 +205,14 @@ public:
   
 
 
-  virtual uint64_t State();
+  virtual PRUint64 State();
 
   
 
 
-
-  uint64_t InteractiveState() const
+  PRUint64 LinkState() const
   {
-    uint64_t state = NativeInteractiveState();
-    ApplyARIAState(&state);
-    return state;
-  }
-
-  
-
-
-  uint64_t LinkState() const
-  {
-    uint64_t state = NativeLinkState();
+    PRUint64 state = NativeLinkState();
     ApplyARIAState(&state);
     return state;
   }
@@ -225,27 +221,17 @@ public:
 
 
 
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
 
   
 
 
-  virtual uint64_t NativeInteractiveState() const;
+  virtual PRUint64 NativeLinkState() const;
 
   
 
 
-  virtual uint64_t NativeLinkState() const;
-
-  
-
-
-  uint64_t VisibilityState();
-
-  
-
-
-  virtual bool NativelyUnavailable() const;
+  PRUint64 VisibilityState();
 
   
 
@@ -261,6 +247,7 @@ public:
   
 
 
+
   enum EWhichChildAtPoint {
     eDirectChild,
     eDeepestChild
@@ -274,7 +261,7 @@ public:
 
 
 
-  virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
+  virtual Accessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    EWhichChildAtPoint aWhichChild);
 
   
@@ -285,7 +272,7 @@ public:
   
 
 
-  virtual int32_t GetLevelInternal();
+  virtual PRInt32 GetLevelInternal();
 
   
 
@@ -294,13 +281,13 @@ public:
 
 
 
-  virtual void GetPositionAndSizeInternal(int32_t *aPosInSet,
-                                          int32_t *aSetSize);
+  virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
+                                          PRInt32 *aSetSize);
 
   
 
 
-  virtual mozilla::a11y::Relation RelationByType(uint32_t aType);
+  virtual Relation RelationByType(PRUint32 aType);
 
   
   
@@ -340,7 +327,7 @@ public:
 
 
   virtual bool AppendChild(Accessible* aChild);
-  virtual bool InsertChildAt(uint32_t aIndex, Accessible* aChild);
+  virtual bool InsertChildAt(PRUint32 aIndex, Accessible* aChild);
   virtual bool RemoveChild(Accessible* aChild);
 
   
@@ -354,22 +341,22 @@ public:
   
 
 
-  virtual Accessible* GetChildAt(uint32_t aIndex);
+  virtual Accessible* GetChildAt(PRUint32 aIndex);
 
   
 
 
-  virtual uint32_t ChildCount() const;
+  virtual PRUint32 ChildCount() const;
 
   
 
 
-  virtual int32_t GetIndexOf(Accessible* aChild);
+  virtual PRInt32 GetIndexOf(Accessible* aChild);
 
   
 
 
-  virtual int32_t IndexInParent() const;
+  virtual PRInt32 IndexInParent() const;
 
   
 
@@ -387,33 +374,33 @@ public:
     { return GetChildAt(0); }
   inline Accessible* LastChild()
   {
-    uint32_t childCount = ChildCount();
-    return childCount != 0 ? GetChildAt(childCount - 1) : nullptr;
+    PRUint32 childCount = ChildCount();
+    return childCount != 0 ? GetChildAt(childCount - 1) : nsnull;
   }
 
 
   
 
 
-  uint32_t EmbeddedChildCount();
+  PRUint32 EmbeddedChildCount();
 
   
 
 
-  Accessible* GetEmbeddedChildAt(uint32_t aIndex);
+  Accessible* GetEmbeddedChildAt(PRUint32 aIndex);
 
   
 
 
-  int32_t GetIndexOfEmbeddedChild(Accessible* aChild);
+  PRInt32 GetIndexOfEmbeddedChild(Accessible* aChild);
 
   
 
 
 
 
-  uint32_t ContentChildCount() const { return mChildren.Length(); }
-  Accessible* ContentChildAt(uint32_t aIndex) const
+  PRUint32 ContentChildCount() const { return mChildren.Length(); }
+  Accessible* ContentChildAt(PRUint32 aIndex) const
     { return mChildren.ElementAt(aIndex); }
 
   
@@ -451,8 +438,8 @@ public:
 
 
 
-  virtual void AppendTextTo(nsAString& aText, uint32_t aStartOffset = 0,
-                            uint32_t aLength = PR_UINT32_MAX);
+  virtual void AppendTextTo(nsAString& aText, PRUint32 aStartOffset = 0,
+                            PRUint32 aLength = PR_UINT32_MAX);
 
   
 
@@ -486,7 +473,7 @@ public:
   DocAccessible* AsDoc();
 
   inline bool IsHyperText() const { return mFlags & eHyperTextAccessible; }
-  HyperTextAccessible* AsHyperText();
+  nsHyperTextAccessible* AsHyperText();
 
   inline bool IsHTMLFileInput() const { return mFlags & eHTMLFileInputAccessible; }
 
@@ -494,15 +481,13 @@ public:
   mozilla::a11y::HTMLLIAccessible* AsHTMLListItem();
 
   inline bool IsImage() const { return mFlags & eImageAccessible; }
-  mozilla::a11y::ImageAccessible* AsImage();
+  nsHTMLImageAccessible* AsImage();
 
   bool IsImageMapAccessible() const { return mFlags & eImageMapAccessible; }
-  mozilla::a11y::HTMLImageMapAccessible* AsImageMap();
+  nsHTMLImageMapAccessible* AsImageMap();
 
   inline bool IsXULTree() const { return mFlags & eXULTreeAccessible; }
-  mozilla::a11y::XULTreeAccessible* AsXULTree();
-
-  inline bool IsXULDeck() const { return mFlags & eXULDeckAccessible; }
+  nsXULTreeAccessible* AsXULTree();
 
   inline bool IsListControl() const { return mFlags & eListControlAccessible; }
 
@@ -513,9 +498,7 @@ public:
   inline bool IsRoot() const { return mFlags & eRootAccessible; }
   mozilla::a11y::RootAccessible* AsRoot();
 
-  virtual mozilla::a11y::TableAccessible* AsTable() { return nullptr; }
-
-  virtual mozilla::a11y::TableCellAccessible* AsTableCell() { return nullptr; }
+  virtual mozilla::a11y::TableAccessible* AsTable() { return nsnull; }
 
   inline bool IsTextLeaf() const { return mFlags & eTextLeafAccessible; }
   mozilla::a11y::TextLeafAccessible* AsTextLeaf();
@@ -526,7 +509,7 @@ public:
   
 
 
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
   
 
@@ -550,12 +533,12 @@ public:
   
 
 
-  virtual uint32_t StartOffset();
+  virtual PRUint32 StartOffset();
 
   
 
 
-  virtual uint32_t EndOffset();
+  virtual PRUint32 EndOffset();
 
   
 
@@ -579,17 +562,17 @@ public:
   
 
 
-  virtual uint32_t AnchorCount();
+  virtual PRUint32 AnchorCount();
 
   
 
 
-  virtual Accessible* AnchorAt(uint32_t aAnchorIndex);
+  virtual Accessible* AnchorAt(PRUint32 aAnchorIndex);
 
   
 
 
-  virtual already_AddRefed<nsIURI> AnchorURIAt(uint32_t aAnchorIndex);
+  virtual already_AddRefed<nsIURI> AnchorURIAt(PRUint32 aAnchorIndex);
 
   
   
@@ -608,27 +591,27 @@ public:
   
 
 
-  virtual uint32_t SelectedItemCount();
+  virtual PRUint32 SelectedItemCount();
 
   
 
 
-  virtual Accessible* GetSelectedItem(uint32_t aIndex);
+  virtual Accessible* GetSelectedItem(PRUint32 aIndex);
 
   
 
 
-  virtual bool IsItemSelected(uint32_t aIndex);
+  virtual bool IsItemSelected(PRUint32 aIndex);
 
   
 
 
-  virtual bool AddItemToSelection(uint32_t aIndex);
+  virtual bool AddItemToSelection(PRUint32 aIndex);
 
   
 
 
-  virtual bool RemoveItemFromSelection(uint32_t aIndex);
+  virtual bool RemoveItemFromSelection(PRUint32 aIndex);
 
   
 
@@ -687,20 +670,6 @@ public:
 
   bool IsDefunct() const { return mFlags & eIsDefunct; }
 
-  
-
-
-  bool IsInDocument() const { return !(mFlags & eIsNotInDocument); }
-
-  
-
-
-
-
-
-
-  bool IsPrimaryForNode() const { return !(mFlags & eSharedNode); }
-
 protected:
 
   
@@ -714,14 +683,14 @@ protected:
   
 
 
-  virtual void BindToParent(Accessible* aParent, uint32_t aIndexInParent);
+  virtual void BindToParent(Accessible* aParent, PRUint32 aIndexInParent);
   virtual void UnbindFromParent();
 
   
 
 
-  virtual Accessible* GetSiblingAtOffset(int32_t aOffset,
-                                         nsresult *aError = nullptr) const;
+  virtual Accessible* GetSiblingAtOffset(PRInt32 aOffset,
+                                         nsresult *aError = nsnull) const;
 
   
 
@@ -749,9 +718,7 @@ protected:
 
 
   enum StateFlags {
-    eIsDefunct = 1 << 2, 
-    eIsNotInDocument = 1 << 3, 
-    eSharedNode = 1 << 4 
+    eIsDefunct = 1 << 2 
   };
 
   
@@ -759,23 +726,22 @@ protected:
 
 
   enum AccessibleTypes {
-    eApplicationAccessible = 1 << 5,
-    eAutoCompleteAccessible = 1 << 6,
-    eAutoCompletePopupAccessible = 1 << 7,
-    eComboboxAccessible = 1 << 8,
-    eDocAccessible = 1 << 9,
-    eHyperTextAccessible = 1 << 10,
-    eHTMLFileInputAccessible = 1 << 11,
-    eHTMLListItemAccessible = 1 << 12,
-    eImageAccessible = 1 << 13,
-    eImageMapAccessible = 1 << 14,
-    eListControlAccessible = 1 << 15,
-    eMenuButtonAccessible = 1 << 16,
-    eMenuPopupAccessible = 1 << 17,
-    eRootAccessible = 1 << 18,
-    eTextLeafAccessible = 1 << 19,
-    eXULDeckAccessible = 1 << 20,
-    eXULTreeAccessible = 1 << 21
+    eApplicationAccessible = 1 << 3,
+    eAutoCompleteAccessible = 1 << 4,
+    eAutoCompletePopupAccessible = 1 << 5,
+    eComboboxAccessible = 1 << 6,
+    eDocAccessible = 1 << 7,
+    eHyperTextAccessible = 1 << 8,
+    eHTMLFileInputAccessible = 1 << 9,
+    eHTMLListItemAccessible = 1 << 10,
+    eImageAccessible = 1 << 11,
+    eImageMapAccessible = 1 << 12,
+    eListControlAccessible = 1 << 13,
+    eMenuButtonAccessible = 1 << 14,
+    eMenuPopupAccessible = 1 << 15,
+    eRootAccessible = 1 << 16,
+    eTextLeafAccessible = 1 << 17,
+    eXULTreeAccessible = 1 << 18
   };
 
   
@@ -827,15 +793,15 @@ protected:
 
 
 
-  void DoCommand(nsIContent *aContent = nullptr, uint32_t aActionIndex = 0);
+  void DoCommand(nsIContent *aContent = nsnull, PRUint32 aActionIndex = 0);
 
   
 
 
-  virtual void DispatchClickEvent(nsIContent *aContent, uint32_t aActionIndex);
+  virtual void DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex);
 
   NS_DECL_RUNNABLEMETHOD_ARG2(Accessible, DispatchClickEvent,
-                              nsCOMPtr<nsIContent>, uint32_t)
+                              nsCOMPtr<nsIContent>, PRUint32)
 
   
   
@@ -860,7 +826,9 @@ protected:
 
 
 
-  uint32_t GetActionRule();
+
+
+  PRUint32 GetActionRule(PRUint64 aStates);
 
   
 
@@ -880,21 +848,20 @@ protected:
   
   nsRefPtr<Accessible> mParent;
   nsTArray<nsRefPtr<Accessible> > mChildren;
-  int32_t mIndexInParent;
+  PRInt32 mIndexInParent;
 
-  static const uint32_t kChildrenFlagsMask =
+  static const PRUint32 kChildrenFlagsMask =
     eChildrenUninitialized | eMixedChildren | eEmbeddedChildren;
 
-  uint32_t mFlags;
-  friend class DocAccessible;
+  PRUint32 mFlags;
 
-  nsAutoPtr<mozilla::a11y::EmbeddedObjCollector> mEmbeddedObjCollector;
-  int32_t mIndexOfEmbeddedChild;
-  friend class mozilla::a11y::EmbeddedObjCollector;
+  nsAutoPtr<EmbeddedObjCollector> mEmbeddedObjCollector;
+  PRInt32 mIndexOfEmbeddedChild;
+  friend class EmbeddedObjCollector;
 
   nsAutoPtr<AccGroupInfo> mGroupInfo;
   friend class AccGroupInfo;
-
+  
   
 
 
@@ -915,19 +882,18 @@ public:
   
 
 
-  static const uint32_t kShift = 1;
-  static const uint32_t kControl = 2;
-  static const uint32_t kAlt = 4;
-  static const uint32_t kMeta = 8;
-  static const uint32_t kOS = 16;
+  static const PRUint32 kShift = 1;
+  static const PRUint32 kControl = 2;
+  static const PRUint32 kAlt = 4;
+  static const PRUint32 kMeta = 8;
 
   KeyBinding() : mKey(0), mModifierMask(0) {}
-  KeyBinding(uint32_t aKey, uint32_t aModifierMask) :
+  KeyBinding(PRUint32 aKey, PRUint32 aModifierMask) :
     mKey(aKey), mModifierMask(aModifierMask) {};
 
   inline bool IsEmpty() const { return !mKey; }
-  inline uint32_t Key() const { return mKey; }
-  inline uint32_t ModifierMask() const { return mModifierMask; }
+  inline PRUint32 Key() const { return mKey; }
+  inline PRUint32 ModifierMask() const { return mModifierMask; }
 
   enum Format {
     ePlatformFormat,
@@ -958,8 +924,8 @@ private:
   void ToPlatformFormat(nsAString& aValue) const;
   void ToAtkFormat(nsAString& aValue) const;
 
-  uint32_t mKey;
-  uint32_t mModifierMask;
+  PRUint32 mKey;
+  PRUint32 mModifierMask;
 };
 
 #endif

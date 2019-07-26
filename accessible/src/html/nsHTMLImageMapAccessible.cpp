@@ -7,7 +7,7 @@
 
 #include "nsAccUtils.h"
 #include "nsARIAMap.h"
-#include "nsDocAccessible.h"
+#include "DocAccessible.h"
 #include "Role.h"
 
 #include "nsIDOMHTMLCollection.h"
@@ -25,7 +25,7 @@ using namespace mozilla::a11y;
 
 
 nsHTMLImageMapAccessible::
-  nsHTMLImageMapAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsHTMLImageMapAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   nsHTMLImageAccessibleWrap(aContent, aDoc)
 {
   mFlags |= eImageMapAccessible;
@@ -51,10 +51,10 @@ nsHTMLImageMapAccessible::NativeRole()
 PRUint32
 nsHTMLImageMapAccessible::AnchorCount()
 {
-  return GetChildCount();
+  return ChildCount();
 }
 
-nsAccessible*
+Accessible*
 nsHTMLImageMapAccessible::AnchorAt(PRUint32 aAnchorIndex)
 {
   return GetChildAt(aAnchorIndex);
@@ -63,7 +63,7 @@ nsHTMLImageMapAccessible::AnchorAt(PRUint32 aAnchorIndex)
 already_AddRefed<nsIURI>
 nsHTMLImageMapAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
 {
-  nsAccessible* area = GetChildAt(aAnchorIndex);
+  Accessible* area = GetChildAt(aAnchorIndex);
   if (!area)
     return nsnull;
 
@@ -88,7 +88,7 @@ nsHTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
 
   
   for (PRInt32 childIdx = mChildren.Length() - 1; childIdx >= 0; childIdx--) {
-    nsAccessible* area = mChildren.ElementAt(childIdx);
+    Accessible* area = mChildren.ElementAt(childIdx);
     if (area->GetContent()->GetPrimaryFrame())
       continue;
 
@@ -106,9 +106,9 @@ nsHTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
   for (PRUint32 idx = 0; idx < areaElmCount; idx++) {
     nsIContent* areaContent = imageMapObj->GetAreaAt(idx);
 
-    nsAccessible* area = mChildren.SafeElementAt(idx);
+    Accessible* area = mChildren.SafeElementAt(idx);
     if (!area || area->GetContent() != areaContent) {
-      nsRefPtr<nsAccessible> area = new nsHTMLAreaAccessible(areaContent, mDoc);
+      nsRefPtr<Accessible> area = new nsHTMLAreaAccessible(areaContent, mDoc);
       if (!mDoc->BindToDocument(area, aria::GetRoleMap(areaContent)))
         break;
 
@@ -149,7 +149,7 @@ nsHTMLImageMapAccessible::CacheChildren()
 
 
 nsHTMLAreaAccessible::
-  nsHTMLAreaAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsHTMLAreaAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   nsHTMLLinkAccessible(aContent, aDoc)
 {
 }
@@ -160,7 +160,7 @@ nsHTMLAreaAccessible::
 nsresult
 nsHTMLAreaAccessible::GetNameInternal(nsAString & aName)
 {
-  nsresult rv = nsAccessible::GetNameInternal(aName);
+  nsresult rv = Accessible::GetNameInternal(aName);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!aName.IsEmpty())
@@ -197,7 +197,7 @@ nsHTMLAreaAccessible::IsPrimaryForNode() const
 
 
 
-nsAccessible*
+Accessible*
 nsHTMLAreaAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    EWhichChildAtPoint aWhichChild)
 {

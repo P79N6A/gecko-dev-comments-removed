@@ -5,7 +5,7 @@
 
 
 #include "nsCOMPtr.h"
-#include "nsIXBLService.h"
+#include "nsXBLService.h"
 #include "nsIInputStream.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -845,11 +845,9 @@ nsBindingManager::AddLayeredBinding(nsIContent* aContent, nsIURI* aURL,
                                     nsIPrincipal* aOriginPrincipal)
 {
   
-  nsresult rv;
-  nsCOMPtr<nsIXBLService> xblService = 
-           do_GetService("@mozilla.org/xbl;1", &rv);
+  nsXBLService* xblService = nsXBLService::GetInstance();
   if (!xblService)
-    return rv;
+    return NS_ERROR_FAILURE;
 
   
   nsRefPtr<nsXBLBinding> binding;
@@ -920,11 +918,9 @@ nsBindingManager::LoadBindingDocument(nsIDocument* aBoundDoc,
   NS_PRECONDITION(aURL, "Must have a URI to load!");
   
   
-  nsresult rv;
-  nsCOMPtr<nsIXBLService> xblService = 
-           do_GetService("@mozilla.org/xbl;1", &rv);
+  nsXBLService* xblService = nsXBLService::GetInstance();
   if (!xblService)
-    return rv;
+    return NS_ERROR_FAILURE;
 
   
   nsRefPtr<nsXBLDocumentInfo> info;

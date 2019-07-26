@@ -94,43 +94,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SSLServerCertVerification.h"
 #include "nsIBadCertListener2.h"
 #include "nsICertOverrideService.h"
@@ -801,7 +764,8 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo *infoObject,
   NS_ASSERTION(NS_SUCCEEDED(rv),
                "GetNegotiatedNPN() failed during renegotiation");
 
-  if (NS_SUCCEEDED(rv) && !negotiatedNPN.Equals(NS_LITERAL_CSTRING("spdy/2")))
+  if (NS_SUCCEEDED(rv) && !StringBeginsWith(negotiatedNPN,
+                                            NS_LITERAL_CSTRING("spdy/")))
     return SECSuccess;
 
   
@@ -1112,6 +1076,12 @@ AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
   NS_ASSERTION(!isServer, "AuthCertificateHook: isServer unexpectedly true");
 
   nsNSSSocketInfo *socketInfo = static_cast<nsNSSSocketInfo*>(arg);
+  
+  if (socketInfo) {
+    
+    socketInfo->SetFirstServerHelloReceived();
+  }
+
   CERTCertificate *serverCert = SSL_PeerCertificate(fd);
   CERTCertificateCleaner serverCertCleaner(serverCert);
 

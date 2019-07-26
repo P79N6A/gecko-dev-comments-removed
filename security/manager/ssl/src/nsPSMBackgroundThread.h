@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _NSPSMBACKGROUNDTHREAD_H_
 #define _NSPSMBACKGROUNDTHREAD_H_
 

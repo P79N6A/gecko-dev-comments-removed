@@ -11,12 +11,12 @@
 
 
 
-class nsXULComboboxAccessible : public nsAccessibleWrap
+class nsXULComboboxAccessible : public AccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
 
-  nsXULComboboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsXULComboboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_IMETHOD DoAction(PRUint8 aIndex);

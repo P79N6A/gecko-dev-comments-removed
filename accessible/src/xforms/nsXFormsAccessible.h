@@ -37,7 +37,7 @@ class nsXFormsAccessible : public nsHyperTextAccessibleWrap,
                            public nsXFormsAccessibleBase
 {
 public:
-  nsXFormsAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsXFormsAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   
@@ -89,7 +89,7 @@ protected:
 class nsXFormsContainerAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsContainerAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsXFormsContainerAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
@@ -107,7 +107,7 @@ public:
 class nsXFormsEditableAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsEditableAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsXFormsEditableAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   virtual already_AddRefed<nsIEditor> GetEditor() const;
@@ -124,13 +124,13 @@ public:
 class nsXFormsSelectableAccessible : public nsXFormsEditableAccessible
 {
 public:
-  nsXFormsSelectableAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsXFormsSelectableAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   virtual bool IsSelect();
   virtual already_AddRefed<nsIArray> SelectedItems();
   virtual PRUint32 SelectedItemCount();
-  virtual nsAccessible* GetSelectedItem(PRUint32 aIndex);
+  virtual Accessible* GetSelectedItem(PRUint32 aIndex);
   virtual bool IsItemSelected(PRUint32 aIndex);
   virtual bool AddItemToSelection(PRUint32 aIndex);
   virtual bool RemoveItemFromSelection(PRUint32 aIndex);
@@ -139,7 +139,7 @@ public:
 
 protected:
   nsIContent* GetItemByIndex(PRUint32* aIndex,
-                             nsAccessible* aAccessible = nsnull);
+                             Accessible* aAccessible = nsnull);
 
   bool mIsSelect1Element;
 };
@@ -152,7 +152,7 @@ class nsXFormsSelectableItemAccessible : public nsXFormsAccessible
 {
 public:
   nsXFormsSelectableItemAccessible(nsIContent* aContent,
-                                   nsDocAccessible* aDoc);
+                                   DocAccessible* aDoc);
 
   NS_IMETHOD DoAction(PRUint8 aIndex);
 

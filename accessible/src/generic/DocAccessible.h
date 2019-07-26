@@ -10,8 +10,9 @@
 #include "nsIAccessibleDocument.h"
 #include "nsIAccessiblePivot.h"
 
-#include "AccEvent.h"
-#include "HyperTextAccessibleWrap.h"
+#include "nsEventShell.h"
+#include "nsHyperTextAccessibleWrap.h"
+#include "NotificationController.h"
 
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
@@ -22,26 +23,15 @@
 #include "nsIScrollPositionListener.h"
 #include "nsITimer.h"
 #include "nsIWeakReference.h"
+#include "nsCOMArray.h"
 #include "nsIDocShellTreeNode.h"
-
-template<class Class, class Arg>
-class TNotification;
-class NotificationController;
 
 class nsIScrollableView;
 class nsAccessiblePivot;
 
-const uint32_t kDefaultCacheSize = 256;
+const PRUint32 kDefaultCacheSize = 256;
 
-namespace mozilla {
-namespace a11y {
-
-class RelatedAccIterator;
-
-} 
-} 
-
-class DocAccessible : public HyperTextAccessibleWrap,
+class DocAccessible : public nsHyperTextAccessibleWrap,
                       public nsIAccessibleDocument,
                       public nsIDocumentObserver,
                       public nsIObserver,
@@ -79,7 +69,7 @@ public:
   NS_DECL_NSIDOCUMENTOBSERVER
 
   
-  virtual void Init();
+  virtual bool Init();
   virtual void Shutdown();
   virtual nsIFrame* GetFrame() const;
   virtual nsINode* GetNode() const { return mDocument; }
@@ -90,10 +80,8 @@ public:
   virtual void Description(nsString& aDescription);
   virtual Accessible* FocusedChild();
   virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
-  virtual bool NativelyUnavailable() const;
-  virtual void ApplyARIAState(uint64_t* aState) const;
+  virtual PRUint64 NativeState();
+  virtual void ApplyARIAState(PRUint64* aState) const;
 
   virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
 
@@ -150,8 +138,8 @@ public:
 
 
   bool HasLoadState(LoadState aState) const
-    { return (mLoadState & static_cast<uint32_t>(aState)) == 
-        static_cast<uint32_t>(aState); }
+    { return (mLoadState & static_cast<PRUint32>(aState)) == 
+        static_cast<PRUint32>(aState); }
 
   
 
@@ -161,20 +149,19 @@ public:
   
 
 
-  DocAccessible* ParentDocument() const
-    { return mParent ? mParent->Document() : nullptr; }
+  DocAccessible* ParentDocument() const;
 
   
 
 
-  uint32_t ChildDocumentCount() const
+  PRUint32 ChildDocumentCount() const
     { return mChildDocuments.Length(); }
 
   
 
 
-  DocAccessible* GetChildDocumentAt(uint32_t aIndex) const
-    { return mChildDocuments.SafeElementAt(aIndex, nullptr); }
+  DocAccessible* GetChildDocumentAt(PRUint32 aIndex) const
+    { return mChildDocuments.SafeElementAt(aIndex, nsnull); }
 
   
 
@@ -183,7 +170,7 @@ public:
 
 
 
-  nsresult FireDelayedAccessibleEvent(uint32_t aEventType, nsINode *aNode,
+  nsresult FireDelayedAccessibleEvent(PRUint32 aEventType, nsINode *aNode,
                                       AccEvent::EEventRule aAllowDupes = AccEvent::eRemoveDupes,
                                       EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
@@ -197,7 +184,17 @@ public:
   
 
 
-  void MaybeNotifyOfValueChange(Accessible* aAccessible);
+  void MaybeNotifyOfValueChange(Accessible* aAccessible)
+  {
+    mozilla::a11y::role role = aAccessible->Role();
+    if (role == mozilla::a11y::roles::ENTRY ||
+        role == mozilla::a11y::roles::COMBOBOX) {
+      nsRefPtr<AccEvent> valueChangeEvent =
+        new AccEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, aAccessible,
+                     eAutoDetect, AccEvent::eRemoveDupes);
+      FireDelayedAccessibleEvent(valueChangeEvent);
+    }
+  }
 
   
 
@@ -211,7 +208,10 @@ public:
   
 
 
-  void BindChildDocument(DocAccessible* aDocument);
+  void BindChildDocument(DocAccessible* aDocument)
+  {
+    mNotificationController->ScheduleChildDocBinding(aDocument);
+  }
 
   
 
@@ -222,8 +222,14 @@ public:
 
   template<class Class, class Arg>
   void HandleNotification(Class* aInstance,
-                          typename TNotification<Class, Arg>::Callback aMethod,
-                          Arg* aArg);
+                                 typename TNotification<Class, Arg>::Callback aMethod,
+                                 Arg* aArg)
+  {
+    if (mNotificationController) {
+      mNotificationController->HandleNotification<Class, Arg>(aInstance,
+                                                              aMethod, aArg);
+    }
+  }
 
   
 
@@ -238,6 +244,18 @@ public:
 
   bool HasAccessible(nsINode* aNode) const
     { return GetAccessible(aNode); }
+
+  
+
+
+  bool IsInDocument(Accessible* aAccessible) const
+  {
+    Accessible* acc = aAccessible;
+    while (acc && !acc->IsPrimaryForNode())
+      acc = acc->Parent();
+
+    return acc ? mNodeToAccessibleMap.Get(acc->GetNode()) : false;
+  }
 
   
 
@@ -269,7 +287,7 @@ public:
 
   Accessible* GetContainerAccessible(nsINode* aNode)
   {
-    return aNode ? GetAccessibleOrContainer(aNode->GetNodeParent()) : nullptr;
+    return aNode ? GetAccessibleOrContainer(aNode->GetNodeParent()) : nsnull;
   }
 
   
@@ -280,7 +298,7 @@ public:
 
 
   bool IsDependentID(const nsAString& aID) const
-    { return mDependentIDsHash.Get(aID, nullptr); }
+    { return mDependentIDsHash.Get(aID, nsnull); }
 
   
 
@@ -311,7 +329,14 @@ public:
   
 
 
-  void UpdateText(nsIContent* aTextNode);
+  void UpdateText(nsIContent* aTextNode)
+  {
+    NS_ASSERTION(mNotificationController, "The document was shut down!");
+
+    
+    if (mNotificationController && HasLoadState(eTreeConstructed))
+      mNotificationController->ScheduleTextUpdate(aTextNode);
+  }
 
   
 
@@ -332,7 +357,7 @@ protected:
   
 
 
-  void NotifyOfLoad(uint32_t aLoadEventType)
+  void NotifyOfLoad(PRUint32 aLoadEventType)
   {
     mLoadState |= eDOMLoaded;
     mLoadEventType = aLoadEventType;
@@ -384,7 +409,7 @@ protected:
 
 
   void AddDependentIDsFor(Accessible* aRelProvider,
-                          nsIAtom* aRelAttr = nullptr);
+                          nsIAtom* aRelAttr = nsnull);
 
   
 
@@ -395,7 +420,7 @@ protected:
 
 
   void RemoveDependentIDsFor(Accessible* aRelProvider,
-                             nsIAtom* aRelAttr = nullptr);
+                             nsIAtom* aRelAttr = nsnull);
 
   
 
@@ -414,7 +439,7 @@ protected:
 
 
 
-    void AttributeChangedImpl(nsIContent* aContent, int32_t aNameSpaceID, nsIAtom* aAttribute);
+    void AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID, nsIAtom* aAttribute);
 
     
 
@@ -466,7 +491,7 @@ protected:
     eAlertAccessible = 2
   };
 
-  uint32_t UpdateTreeInternal(Accessible* aChild, bool aIsInsert);
+  PRUint32 UpdateTreeInternal(Accessible* aChild, bool aIsInsert);
 
   
 
@@ -516,17 +541,17 @@ protected:
 
     nsCOMPtr<nsIDocument> mDocument;
     nsCOMPtr<nsITimer> mScrollWatchTimer;
-    uint16_t mScrollPositionChangedTicks; 
+    PRUint16 mScrollPositionChangedTicks; 
 
   
 
 
-  uint32_t mLoadState;
+  PRUint32 mLoadState;
 
   
 
 
-  uint32_t mLoadEventType;
+  PRUint32 mLoadEventType;
 
   
 
@@ -575,7 +600,7 @@ protected:
   typedef nsTArray<nsAutoPtr<AttrRelProvider> > AttrRelProviderArray;
   nsClassHashtable<nsStringHashKey, AttrRelProviderArray> mDependentIDsHash;
 
-  friend class mozilla::a11y::RelatedAccIterator;
+  friend class RelatedAccIterator;
 
   
 
@@ -600,7 +625,7 @@ inline DocAccessible*
 Accessible::AsDoc()
 {
   return mFlags & eDocAccessible ?
-    static_cast<DocAccessible*>(this) : nullptr;
+    static_cast<DocAccessible*>(this) : nsnull;
 }
 
 #endif

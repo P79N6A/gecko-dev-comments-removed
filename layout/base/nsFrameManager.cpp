@@ -1420,8 +1420,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         childRestyleHint) {
       
       
-      if (!pseudoTag && localContent && localContent->IsElement() &&
-          !aFrame->IsLeaf()) {
+      if (!pseudoTag &&
+          (aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)) {
         
         
         nsIFrame* prevContinuation = aFrame->GetPrevContinuation();
@@ -1448,8 +1448,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         childRestyleHint) {
       
       
-      if (!pseudoTag && localContent && localContent->IsElement() &&
-          !aFrame->IsLeaf()) {
+      if (!pseudoTag &&
+          (aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)) {
         
         
         nsIFrame* nextContinuation = aFrame->GetNextContinuation();

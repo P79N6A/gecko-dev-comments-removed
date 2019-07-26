@@ -16,7 +16,6 @@
 #include "nsDeque.h"
 #include "nsHashKeys.h"
 #include "zlib.h"
-#include "mozilla/Attributes.h"
 
 class nsHttpConnection;
 class nsISocketTransport;
@@ -25,10 +24,10 @@ namespace mozilla { namespace net {
 
 class SpdyStream2;
 
-class SpdySession2 MOZ_FINAL : public ASpdySession
-                             , public nsAHttpConnection
-                             , public nsAHttpSegmentReader
-                             , public nsAHttpSegmentWriter
+class SpdySession2 : public ASpdySession
+                   , public nsAHttpConnection
+                   , public nsAHttpSegmentReader
+                   , public nsAHttpSegmentWriter
 {
 public:
   NS_DECL_ISUPPORTS
@@ -37,10 +36,10 @@ public:
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
 
-  SpdySession2(nsAHttpTransaction *, nsISocketTransport *, int32_t);
+  SpdySession2(nsAHttpTransaction *, nsISocketTransport *, PRInt32);
   ~SpdySession2();
 
-  bool AddStream(nsAHttpTransaction *, int32_t);
+  bool AddStream(nsAHttpTransaction *, PRInt32);
   bool CanReuse() { return !mShouldGoAway && !mClosed; }
   bool RoomForMoreStreams();
 
@@ -50,13 +49,13 @@ public:
   
   PRIntervalTime IdleTime();
 
-  uint32_t RegisterStreamID(SpdyStream2 *);
+  PRUint32 RegisterStreamID(SpdyStream2 *);
 
-  const static uint8_t kFlag_Control   = 0x80;
+  const static PRUint8 kFlag_Control   = 0x80;
 
-  const static uint8_t kFlag_Data_FIN  = 0x01;
-  const static uint8_t kFlag_Data_UNI  = 0x02;
-  const static uint8_t kFlag_Data_ZLIB = 0x02;
+  const static PRUint8 kFlag_Data_FIN  = 0x01;
+  const static PRUint8 kFlag_Data_UNI  = 0x02;
+  const static PRUint8 kFlag_Data_ZLIB = 0x02;
   
   
   
@@ -67,10 +66,10 @@ public:
   
   
 
-  const static uint8_t kPri00   = 0 << 6; 
-  const static uint8_t kPri01   = 1 << 6;
-  const static uint8_t kPri02   = 2 << 6;
-  const static uint8_t kPri03   = 3 << 6; 
+  const static PRUint8 kPri00   = 0 << 6; 
+  const static PRUint8 kPri01   = 1 << 6;
+  const static PRUint8 kPri02   = 2 << 6;
+  const static PRUint8 kPri03   = 3 << 6; 
 
   enum
   {
@@ -114,20 +113,20 @@ public:
   
   
   
-  const static uint32_t kDefaultBufferSize = 2048;
+  const static PRUint32 kDefaultBufferSize = 2048;
 
   
-  const static uint32_t kDefaultQueueSize =  16384;
-  const static uint32_t kQueueMinimumCleanup = 8192;
-  const static uint32_t kQueueTailRoom    =  4096;
-  const static uint32_t kQueueReserved    =  1024;
+  const static PRUint32 kDefaultQueueSize =  16384;
+  const static PRUint32 kQueueMinimumCleanup = 8192;
+  const static PRUint32 kQueueTailRoom    =  4096;
+  const static PRUint32 kQueueReserved    =  1024;
 
-  const static uint32_t kDefaultMaxConcurrent = 100;
-  const static uint32_t kMaxStreamID = 0x7800000;
+  const static PRUint32 kDefaultMaxConcurrent = 100;
+  const static PRUint32 kMaxStreamID = 0x7800000;
   
   
   
-  const static uint32_t kDeadStreamID = 0xffffdead;
+  const static PRUint32 kDeadStreamID = 0xffffdead;
   
   static nsresult HandleSynStream(SpdySession2 *);
   static nsresult HandleSynReply(SpdySession2 *);
@@ -140,11 +139,11 @@ public:
   static nsresult HandleWindowUpdate(SpdySession2 *);
 
   static void EnsureBuffer(nsAutoArrayPtr<char> &,
-                           uint32_t, uint32_t, uint32_t &);
+                           PRUint32, PRUint32, PRUint32 &);
 
   
   static void LogIO(SpdySession2 *, SpdyStream2 *, const char *,
-                    const char *, uint32_t);
+                    const char *, PRUint32);
 
   
   void TransactionHasDataToWrite(nsAHttpTransaction *);
@@ -153,10 +152,8 @@ public:
   void TransactionHasDataToWrite(SpdyStream2 *);
 
   
-  virtual nsresult CommitToSegmentSize(uint32_t size);
+  virtual nsresult CommitToSegmentSize(PRUint32 size);
   
-  void     PrintDiagnostics (nsCString &log);
-
 private:
 
   enum stateType {
@@ -170,20 +167,19 @@ private:
 
   void        DeterminePingThreshold();
   nsresult    HandleSynReplyForValidStream();
-  uint32_t    GetWriteQueueSize();
+  PRUint32    GetWriteQueueSize();
   void        ChangeDownstreamState(enum stateType);
   void        ResetDownstreamState();
-  nsresult    DownstreamUncompress(char *, uint32_t);
+  nsresult    DownstreamUncompress(char *, PRUint32);
   void        zlibInit();
   nsresult    FindHeader(nsCString, nsDependentCSubstring &);
   nsresult    ConvertHeaders(nsDependentCSubstring &,
                              nsDependentCSubstring &);
-  void        GeneratePing(uint32_t);
+  void        GeneratePing(PRUint32);
   void        ClearPing(bool);
-  void        GenerateRstStream(uint32_t, uint32_t);
+  void        GenerateRstStream(PRUint32, PRUint32);
   void        GenerateGoAway();
   void        CleanupStream(SpdyStream2 *, nsresult, rstReason);
-  void        CloseStream(SpdyStream2 *, nsresult);
 
   void        SetWriteCallbacks();
   void        FlushOutputQueue();
@@ -191,13 +187,13 @@ private:
   bool        RoomForMoreConcurrent();
   void        ActivateStream(SpdyStream2 *);
   void        ProcessPending();
-  nsresult    SetInputFrameDataStream(uint32_t);
-  bool        VerifyStream(SpdyStream2 *, uint32_t);
+  nsresult    SetInputFrameDataStream(PRUint32);
+  bool        VerifyStream(SpdyStream2 *, PRUint32);
   void        SetNeedsCleanup();
 
   
   
-  nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, uint32_t, uint32_t *);
+  nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, PRUint32, PRUint32 *);
   
   static PLDHashOperator ShutdownEnumerator(nsAHttpTransaction *,
                                             nsAutoPtr<SpdyStream2> &,
@@ -217,9 +213,9 @@ private:
   nsAHttpSegmentReader       *mSegmentReader;
   nsAHttpSegmentWriter       *mSegmentWriter;
 
-  uint32_t          mSendingChunkSize;        
-  uint32_t          mNextStreamID;            
-  uint32_t          mConcurrentHighWater;     
+  PRUint32          mSendingChunkSize;        
+  PRUint32          mNextStreamID;            
+  PRUint32          mConcurrentHighWater;     
 
   stateType         mDownstreamState; 
 
@@ -250,15 +246,15 @@ private:
 
   
   
-  uint32_t             mInputFrameBufferSize;
-  uint32_t             mInputFrameBufferUsed;
+  PRUint32             mInputFrameBufferSize;
+  PRUint32             mInputFrameBufferUsed;
   nsAutoArrayPtr<char> mInputFrameBuffer;
   
   
   
   
-  uint32_t             mInputFrameDataSize;
-  uint32_t             mInputFrameDataRead;
+  PRUint32             mInputFrameDataSize;
+  PRUint32             mInputFrameDataRead;
   bool                 mInputFrameDataLast; 
 
   
@@ -274,22 +270,22 @@ private:
   SpdyStream2          *mNeedsCleanup;
 
   
-  uint32_t             mFrameControlType;
+  PRUint32             mFrameControlType;
 
   
-  uint32_t             mDownstreamRstReason;
+  PRUint32             mDownstreamRstReason;
 
   
   
   
   
-  uint32_t             mDecompressBufferSize;
-  uint32_t             mDecompressBufferUsed;
+  PRUint32             mDecompressBufferSize;
+  PRUint32             mDecompressBufferUsed;
   nsAutoArrayPtr<char> mDecompressBuffer;
 
   
   nsCString            mFlatHTTPResponseHeaders;
-  uint32_t             mFlatHTTPResponseHeadersOut;
+  PRUint32             mFlatHTTPResponseHeadersOut;
 
   
   
@@ -306,36 +302,36 @@ private:
 
   
   
-  uint32_t             mGoAwayID;
+  PRUint32             mGoAwayID;
 
   
   
   
-  uint32_t             mMaxConcurrent;
+  PRUint32             mMaxConcurrent;
 
   
   
   
-  uint32_t             mConcurrent;
+  PRUint32             mConcurrent;
 
   
-  uint32_t             mServerPushedResources;
+  PRUint32             mServerPushedResources;
 
   
   
   
   
   
-  uint32_t             mOutputQueueSize;
-  uint32_t             mOutputQueueUsed;
-  uint32_t             mOutputQueueSent;
+  PRUint32             mOutputQueueSize;
+  PRUint32             mOutputQueueUsed;
+  PRUint32             mOutputQueueSent;
   nsAutoArrayPtr<char> mOutputQueueBuffer;
 
   PRIntervalTime       mPingThreshold;
   PRIntervalTime       mLastReadEpoch;     
   PRIntervalTime       mLastDataReadEpoch; 
   PRIntervalTime       mPingSentEpoch;
-  uint32_t             mNextPingID;
+  PRUint32             mNextPingID;
   bool                 mPingThresholdExperiment;
 };
 

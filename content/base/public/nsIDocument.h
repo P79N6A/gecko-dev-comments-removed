@@ -92,8 +92,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x8c6a1e62, 0xd5ad, 0x4297, \
-  { 0xb9, 0x41, 0x64, 0x49, 0x22, 0x2e, 0xc4, 0xf0 } }
+{ 0x7bac702d, 0xca67, 0x4ce1, \
+ { 0x80, 0x3c, 0x35, 0xde, 0x81, 0x26, 0x04, 0x97 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -674,12 +674,6 @@ public:
     return mWindow ? mWindow->GetOuterWindow() : GetWindowInternal();
   }
 
-  bool IsInBackgroundWindow() const
-  {
-    nsPIDOMWindow* outer = mWindow ? mWindow->GetOuterWindow() : nsnull;
-    return outer && outer->IsBackground();
-  }
-  
   
 
 
@@ -1118,6 +1112,14 @@ public:
 
   virtual nsresult GetContentListFor(nsIContent* aContent,
                                      nsIDOMNodeList** aResult) = 0;
+
+  
+
+
+  virtual nsIContent*
+    GetAnonymousElementByAttribute(nsIContent* aElement,
+                                   nsIAtom* aAttrName,
+                                   const nsAString& aAttrValue) const = 0;
 
   
 

@@ -11,7 +11,6 @@
 #include "InterfaceInitFuncs.h"
 #include "nsAccUtils.h"
 #include "nsIAccessibleRelation.h"
-#include "nsIAccessibleTable.h"
 #include "RootAccessible.h"
 #include "nsIAccessibleValue.h"
 #include "nsMai.h"
@@ -142,8 +141,8 @@ struct MaiAtkObjectClass
 static guint mai_atk_object_signals [LAST_SIGNAL] = { 0, };
 
 #ifdef MAI_LOGGING
-int32_t sMaiAtkObjCreated = 0;
-int32_t sMaiAtkObjDeleted = 0;
+PRInt32 sMaiAtkObjCreated = 0;
+PRInt32 sMaiAtkObjDeleted = 0;
 #endif
 
 G_BEGIN_DECLS
@@ -199,8 +198,8 @@ static AtkRelationSet*     refRelationSetCB(AtkObject *aAtkObj);
 
 G_END_DECLS
 
-static GType GetMaiAtkType(uint16_t interfacesBits);
-static const char * GetUniqueMaiAtkTypeName(uint16_t interfacesBits);
+static GType GetMaiAtkType(PRUint16 interfacesBits);
+static const char * GetUniqueMaiAtkTypeName(PRUint16 interfacesBits);
 
 static gpointer parent_class = NULL;
 
@@ -233,13 +232,13 @@ mai_atk_object_get_type(void)
 }
 
 #ifdef MAI_LOGGING
-int32_t AccessibleWrap::mAccWrapCreated = 0;
-int32_t AccessibleWrap::mAccWrapDeleted = 0;
+PRInt32 AccessibleWrap::mAccWrapCreated = 0;
+PRInt32 AccessibleWrap::mAccWrapDeleted = 0;
 #endif
 
 AccessibleWrap::
   AccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
-  Accessible(aContent, aDoc), mAtkObject(nullptr)
+  Accessible(aContent, aDoc), mAtkObject(nsnull)
 {
 #ifdef MAI_LOGGING
   ++mAccWrapCreated;
@@ -266,11 +265,11 @@ AccessibleWrap::ShutdownAtkObject()
 {
     if (mAtkObject) {
         if (IS_MAI_OBJECT(mAtkObject)) {
-            MAI_ATK_OBJECT(mAtkObject)->accWrap = nullptr;
+            MAI_ATK_OBJECT(mAtkObject)->accWrap = nsnull;
         }
-        SetMaiHyperlink(nullptr);
+        SetMaiHyperlink(nsnull);
         g_object_unref(mAtkObject);
-        mAtkObject = nullptr;
+        mAtkObject = nsnull;
     }
 }
 
@@ -289,7 +288,7 @@ AccessibleWrap::GetMaiHyperlink(bool aCreate )
 
     NS_ASSERTION(quark_mai_hyperlink, "quark_mai_hyperlink not initialized");
     NS_ASSERTION(IS_MAI_OBJECT(mAtkObject), "Invalid AtkObject");
-    MaiHyperlink* maiHyperlink = nullptr;
+    MaiHyperlink* maiHyperlink = nsnull;
     if (quark_mai_hyperlink && IS_MAI_OBJECT(mAtkObject)) {
         maiHyperlink = (MaiHyperlink*)g_object_get_qdata(G_OBJECT(mAtkObject),
                                                          quark_mai_hyperlink);
@@ -320,7 +319,7 @@ AccessibleWrap::SetMaiHyperlink(MaiHyperlink* aMaiHyperlink)
 NS_IMETHODIMP
 AccessibleWrap::GetNativeInterface(void** aOutAccessible)
 {
-    *aOutAccessible = nullptr;
+    *aOutAccessible = nsnull;
 
     if (!mAtkObject) {
         if (IsDefunct() || !nsAccUtils::IsEmbeddedObject(this)) {
@@ -348,7 +347,7 @@ AccessibleWrap::GetNativeInterface(void** aOutAccessible)
 AtkObject *
 AccessibleWrap::GetAtkObject(void)
 {
-    void *atkObj = nullptr;
+    void *atkObj = nsnull;
     GetNativeInterface(&atkObj);
     return static_cast<AtkObject *>(atkObj);
 }
@@ -358,16 +357,16 @@ AccessibleWrap::GetAtkObject(void)
 AtkObject *
 AccessibleWrap::GetAtkObject(nsIAccessible* acc)
 {
-    void *atkObjPtr = nullptr;
+    void *atkObjPtr = nsnull;
     acc->GetNativeInterface(&atkObjPtr);
-    return atkObjPtr ? ATK_OBJECT(atkObjPtr) : nullptr;    
+    return atkObjPtr ? ATK_OBJECT(atkObjPtr) : nsnull;    
 }
 
 
-uint16_t
+PRUint16
 AccessibleWrap::CreateMaiInterfaces(void)
 {
-  uint16_t interfacesBits = 0;
+  PRUint16 interfacesBits = 0;
     
   
   interfacesBits |= 1 << MAI_INTERFACE_COMPONENT;
@@ -377,7 +376,7 @@ AccessibleWrap::CreateMaiInterfaces(void)
     interfacesBits |= 1 << MAI_INTERFACE_ACTION;
 
   
-  HyperTextAccessible* hyperText = AsHyperText();
+  nsHyperTextAccessible* hyperText = AsHyperText();
   if (hyperText && hyperText->IsTextRole()) {
     interfacesBits |= 1 << MAI_INTERFACE_TEXT;
     interfacesBits |= 1 << MAI_INTERFACE_EDITABLE_TEXT;
@@ -423,7 +422,7 @@ AccessibleWrap::CreateMaiInterfaces(void)
 }
 
 static GType
-GetMaiAtkType(uint16_t interfacesBits)
+GetMaiAtkType(PRUint16 interfacesBits)
 {
     GType type;
     static const GTypeInfo tinfo = {
@@ -455,7 +454,7 @@ GetMaiAtkType(uint16_t interfacesBits)
 
 
 
-    static uint16_t typeRegCount = 0;
+    static PRUint16 typeRegCount = 0;
     if (typeRegCount++ >= 4095) {
         return G_TYPE_INVALID;
     }
@@ -463,7 +462,7 @@ GetMaiAtkType(uint16_t interfacesBits)
                                   atkTypeName,
                                   &tinfo, GTypeFlags(0));
 
-    for (uint32_t index = 0; index < ArrayLength(atk_if_infos); index++) {
+    for (PRUint32 index = 0; index < ArrayLength(atk_if_infos); index++) {
       if (interfacesBits & (1 << index)) {
         g_type_add_interface_static(type,
                                     GetAtkTypeForMai((MaiInterfaceType)index),
@@ -475,9 +474,9 @@ GetMaiAtkType(uint16_t interfacesBits)
 }
 
 static const char*
-GetUniqueMaiAtkTypeName(uint16_t interfacesBits)
+GetUniqueMaiAtkTypeName(PRUint16 interfacesBits)
 {
-#define MAI_ATK_TYPE_NAME_LEN (30)     /* 10+sizeof(uint16_t)*8/4+1 < 30 */
+#define MAI_ATK_TYPE_NAME_LEN (30)     /* 10+sizeof(PRUint16)*8/4+1 < 30 */
 
     static gchar namePrefix[] = "MaiAtkType";   
     static gchar name[MAI_ATK_TYPE_NAME_LEN + 1];
@@ -621,7 +620,7 @@ finalizeCB(GObject *aObj)
 {
     if (!IS_MAI_OBJECT(aObj))
         return;
-    NS_ASSERTION(MAI_ATK_OBJECT(aObj)->accWrap == nullptr, "AccWrap NOT null");
+    NS_ASSERTION(MAI_ATK_OBJECT(aObj)->accWrap == nsnull, "AccWrap NOT null");
 
 #ifdef MAI_LOGGING
     ++sMaiAtkObjDeleted;
@@ -641,7 +640,7 @@ getNameCB(AtkObject* aAtkObj)
 {
   AccessibleWrap* accWrap = GetAccessibleWrap(aAtkObj);
   if (!accWrap)
-    return nullptr;
+    return nsnull;
 
   nsAutoString uniName;
   accWrap->Name(uniName);
@@ -658,7 +657,7 @@ getDescriptionCB(AtkObject *aAtkObj)
 {
     AccessibleWrap* accWrap = GetAccessibleWrap(aAtkObj);
     if (!accWrap || accWrap->IsDefunct())
-        return nullptr;
+        return nsnull;
 
     
     nsAutoString uniDesc;
@@ -687,8 +686,7 @@ getRoleCB(AtkObject *aAtkObj)
   if (aAtkObj->role != ATK_ROLE_INVALID)
     return aAtkObj->role;
 
-#define ROLE(geckoRole, stringRole, atkRole, macRole, \
-             msaaRole, ia2Role, nameRule) \
+#define ROLE(geckoRole, stringRole, atkRole, macRole, msaaRole, ia2Role) \
   case roles::geckoRole: \
     aAtkObj->role = atkRole; \
     break;
@@ -709,12 +707,12 @@ AtkAttributeSet*
 ConvertToAtkAttributeSet(nsIPersistentProperties* aAttributes)
 {
     if (!aAttributes)
-        return nullptr;
+        return nsnull;
 
-    AtkAttributeSet *objAttributeSet = nullptr;
+    AtkAttributeSet *objAttributeSet = nsnull;
     nsCOMPtr<nsISimpleEnumerator> propEnum;
     nsresult rv = aAttributes->Enumerate(getter_AddRefs(propEnum));
-    NS_ENSURE_SUCCESS(rv, nullptr);
+    NS_ENSURE_SUCCESS(rv, nsnull);
 
     bool hasMore;
     while (NS_SUCCEEDED(propEnum->HasMoreElements(&hasMore)) && hasMore) {
@@ -725,7 +723,7 @@ ConvertToAtkAttributeSet(nsIPersistentProperties* aAttributes)
         nsCOMPtr<nsIPropertyElement> propElem(do_QueryInterface(sup));
         NS_ENSURE_TRUE(propElem, objAttributeSet);
 
-        nsAutoCString name;
+        nsCAutoString name;
         rv = propElem->GetKey(name);
         NS_ENSURE_SUCCESS(rv, objAttributeSet);
 
@@ -761,14 +759,14 @@ GetAttributeSet(Accessible* aAccessible)
         return ConvertToAtkAttributeSet(attributes);
     }
 
-    return nullptr;
+    return nsnull;
 }
 
 AtkAttributeSet *
 getAttributesCB(AtkObject *aAtkObj)
 {
   AccessibleWrap* accWrap = GetAccessibleWrap(aAtkObj);
-  return accWrap ? GetAttributeSet(accWrap) : nullptr;
+  return accWrap ? GetAttributeSet(accWrap) : nsnull;
 }
 
 AtkObject *
@@ -777,11 +775,11 @@ getParentCB(AtkObject *aAtkObj)
   if (!aAtkObj->accessible_parent) {
     AccessibleWrap* accWrap = GetAccessibleWrap(aAtkObj);
     if (!accWrap)
-      return nullptr;
+      return nsnull;
 
     Accessible* accParent = accWrap->Parent();
     if (!accParent)
-      return nullptr;
+      return nsnull;
 
     AtkObject* parent = AccessibleWrap::GetAtkObject(accParent);
     if (parent)
@@ -806,23 +804,23 @@ refChildCB(AtkObject *aAtkObj, gint aChildIndex)
 {
     
     if (aChildIndex < 0) {
-      return nullptr;
+      return nsnull;
     }
 
     AccessibleWrap* accWrap = GetAccessibleWrap(aAtkObj);
     if (!accWrap || nsAccUtils::MustPrune(accWrap)) {
-        return nullptr;
+        return nsnull;
     }
 
     Accessible* accChild = accWrap->GetEmbeddedChildAt(aChildIndex);
     if (!accChild)
-        return nullptr;
+        return nsnull;
 
     AtkObject* childAtkObj = AccessibleWrap::GetAtkObject(accChild);
 
     NS_ASSERTION(childAtkObj, "Fail to get AtkObj");
     if (!childAtkObj)
-        return nullptr;
+        return nsnull;
     g_object_ref(childAtkObj);
 
   if (aAtkObj != childAtkObj->accessible_parent)
@@ -849,12 +847,12 @@ getIndexInParentCB(AtkObject *aAtkObj)
 }
 
 static void
-TranslateStates(uint64_t aState, AtkStateSet* aStateSet)
+TranslateStates(PRUint64 aState, AtkStateSet* aStateSet)
 {
 
   
-  uint32_t stateIndex = 0;
-  uint64_t bitMask = 1;
+  PRUint32 stateIndex = 0;
+  PRUint64 bitMask = 1;
   while (gAtkStateMap[stateIndex].stateMapEntryType != kNoSuchState) {
     if (gAtkStateMap[stateIndex].atkState) { 
       bool isStateOn = (aState & bitMask) != 0;
@@ -873,7 +871,7 @@ TranslateStates(uint64_t aState, AtkStateSet* aStateSet)
 AtkStateSet *
 refStateSetCB(AtkObject *aAtkObj)
 {
-    AtkStateSet *state_set = nullptr;
+    AtkStateSet *state_set = nsnull;
     state_set = ATK_OBJECT_CLASS(parent_class)->ref_state_set(aAtkObj);
 
     AccessibleWrap* accWrap = GetAccessibleWrap(aAtkObj);
@@ -898,7 +896,7 @@ refRelationSetCB(AtkObject *aAtkObj)
   if (!accWrap)
     return relation_set;
 
-  uint32_t relationTypes[] = {
+  PRUint32 relationTypes[] = {
     nsIAccessibleRelation::RELATION_LABELLED_BY,
     nsIAccessibleRelation::RELATION_LABEL_FOR,
     nsIAccessibleRelation::RELATION_NODE_CHILD_OF,
@@ -911,7 +909,7 @@ refRelationSetCB(AtkObject *aAtkObj)
     nsIAccessibleRelation::RELATION_DESCRIPTION_FOR,
   };
 
-  for (uint32_t i = 0; i < ArrayLength(relationTypes); i++) {
+  for (PRUint32 i = 0; i < ArrayLength(relationTypes); i++) {
     AtkRelationType atkType = static_cast<AtkRelationType>(relationTypes[i]);
     AtkRelation* atkRelation =
       atk_relation_set_get_relation_by_type(relation_set, atkType);
@@ -920,7 +918,7 @@ refRelationSetCB(AtkObject *aAtkObj)
 
     Relation rel(accWrap->RelationByType(relationTypes[i]));
     nsTArray<AtkObject*> targets;
-    Accessible* tempAcc = nullptr;
+    Accessible* tempAcc = nsnull;
     while ((tempAcc = rel.Next()))
       targets.AppendElement(AccessibleWrap::GetAtkObject(tempAcc));
 
@@ -939,18 +937,18 @@ refRelationSetCB(AtkObject *aAtkObj)
 AccessibleWrap*
 GetAccessibleWrap(AtkObject* aAtkObj)
 {
-  NS_ENSURE_TRUE(IS_MAI_OBJECT(aAtkObj), nullptr);
+  NS_ENSURE_TRUE(IS_MAI_OBJECT(aAtkObj), nsnull);
   AccessibleWrap* accWrap = MAI_ATK_OBJECT(aAtkObj)->accWrap;
 
   
   if (!accWrap)
-    return nullptr;
+    return nsnull;
 
-  NS_ENSURE_TRUE(accWrap->GetAtkObject() == aAtkObj, nullptr);
+  NS_ENSURE_TRUE(accWrap->GetAtkObject() == aAtkObj, nsnull);
 
   AccessibleWrap* appAccWrap = nsAccessNode::GetApplicationAccessible();
   if (appAccWrap != accWrap && !accWrap->IsValidObject())
-    return nullptr;
+    return nsnull;
 
   return accWrap;
 }
@@ -970,7 +968,7 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
     Accessible* accessible = aEvent->GetAccessible();
     NS_ENSURE_TRUE(accessible, NS_ERROR_FAILURE);
 
-    uint32_t type = aEvent->GetEventType();
+    PRUint32 type = aEvent->GetEventType();
 
     AtkObject* atkObj = AccessibleWrap::GetAtkObject(accessible);
 
@@ -1063,7 +1061,7 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
         if (!caretMoveEvent)
             break;
 
-        int32_t caretOffset = caretMoveEvent->GetCaretOffset();
+        PRInt32 caretOffset = caretMoveEvent->GetCaretOffset();
 
         MAI_LOG_DEBUG(("\n\nCaret postion: %d", caretOffset));
         g_signal_emit_by_name(atkObj,
@@ -1090,8 +1088,8 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
         AccTableChangeEvent* tableEvent = downcast_accEvent(aEvent);
         NS_ENSURE_TRUE(tableEvent, NS_ERROR_FAILURE);
 
-        int32_t rowIndex = tableEvent->GetIndex();
-        int32_t numRows = tableEvent->GetCount();
+        PRInt32 rowIndex = tableEvent->GetIndex();
+        PRInt32 numRows = tableEvent->GetCount();
 
         g_signal_emit_by_name(atkObj,
                               "row_inserted",
@@ -1107,8 +1105,8 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
         AccTableChangeEvent* tableEvent = downcast_accEvent(aEvent);
         NS_ENSURE_TRUE(tableEvent, NS_ERROR_FAILURE);
 
-        int32_t rowIndex = tableEvent->GetIndex();
-        int32_t numRows = tableEvent->GetCount();
+        PRInt32 rowIndex = tableEvent->GetIndex();
+        PRInt32 numRows = tableEvent->GetCount();
 
         g_signal_emit_by_name(atkObj,
                               "row_deleted",
@@ -1131,8 +1129,8 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
         AccTableChangeEvent* tableEvent = downcast_accEvent(aEvent);
         NS_ENSURE_TRUE(tableEvent, NS_ERROR_FAILURE);
 
-        int32_t colIndex = tableEvent->GetIndex();
-        int32_t numCols = tableEvent->GetCount();
+        PRInt32 colIndex = tableEvent->GetIndex();
+        PRInt32 numCols = tableEvent->GetCount();
 
         g_signal_emit_by_name(atkObj,
                               "column_inserted",
@@ -1148,8 +1146,8 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
         AccTableChangeEvent* tableEvent = downcast_accEvent(aEvent);
         NS_ENSURE_TRUE(tableEvent, NS_ERROR_FAILURE);
 
-        int32_t colIndex = tableEvent->GetIndex();
-        int32_t numCols = tableEvent->GetCount();
+        PRInt32 colIndex = tableEvent->GetIndex();
+        PRInt32 numCols = tableEvent->GetCount();
 
         g_signal_emit_by_name(atkObj,
                               "column_deleted",
@@ -1274,7 +1272,7 @@ AccessibleWrap::FireAtkStateChangeEvent(AccEvent* aEvent,
     NS_ENSURE_TRUE(event, NS_ERROR_FAILURE);
 
     bool isEnabled = event->IsStateEnabled();
-    int32_t stateIndex = AtkStateMap::GetStateIndexFor(event->GetState());
+    PRInt32 stateIndex = AtkStateMap::GetStateIndexFor(event->GetState());
     if (stateIndex >= 0) {
         NS_ASSERTION(gAtkStateMap[stateIndex].stateMapEntryType != kNoSuchState,
                      "No such state");
@@ -1305,11 +1303,11 @@ AccessibleWrap::FireAtkTextChangedEvent(AccEvent* aEvent,
     AccTextChangeEvent* event = downcast_accEvent(aEvent);
     NS_ENSURE_TRUE(event, NS_ERROR_FAILURE);
 
-    int32_t start = event->GetStartOffset();
-    uint32_t length = event->GetLength();
+    PRInt32 start = event->GetStartOffset();
+    PRUint32 length = event->GetLength();
     bool isInserted = event->IsTextInserted();
     bool isFromUserInput = aEvent->IsFromUserInput();
-    char* signal_name = nullptr;
+    char* signal_name = nsnull;
 
   if (gAvailableAtkSignals == eUnknown)
     gAvailableAtkSignals =
@@ -1347,7 +1345,7 @@ AccessibleWrap::FireAtkShowHideEvent(AccEvent* aEvent,
         MAI_LOG_DEBUG(("\n\nReceived: Hide event\n"));
     }
 
-    int32_t indexInParent = getIndexInParentCB(aObject);
+    PRInt32 indexInParent = getIndexInParentCB(aObject);
     AtkObject *parentObject = getParentCB(aObject);
     NS_ENSURE_STATE(parentObject);
 
