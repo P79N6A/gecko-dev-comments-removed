@@ -1420,6 +1420,7 @@ pref("network.proxy.socks",                 "");
 pref("network.proxy.socks_port",            0);
 pref("network.proxy.socks_version",         5);
 pref("network.proxy.socks_remote_dns",      false);
+pref("network.proxy.proxy_over_tls",        true);
 pref("network.proxy.no_proxies_on",         "localhost, 127.0.0.1");
 pref("network.proxy.failover_timeout",      1800); 
 pref("network.online",                      true); 
@@ -2087,6 +2088,13 @@ pref("svg.svg-iframe.enabled", false);
 pref("svg.svg-iframe.enabled", false);
 #endif
 
+
+
+#ifdef RELEASE_BUILD
+pref("svg.new-getBBox.enabled", false);
+#else
+pref("svg.new-getBBox.enabled", true);
+#endif
 
 
 pref("font.default.ar", "sans-serif");
