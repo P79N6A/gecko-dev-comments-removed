@@ -24,6 +24,15 @@
 
 namespace mozilla { namespace pkix { namespace test {
 
+class OCSPResponseExtension
+{
+public:
+  SECItem id;
+  bool critical;
+  SECItem value;
+  OCSPResponseExtension* next;
+};
+
 class OCSPResponseContext
 {
 public:
@@ -53,6 +62,8 @@ public:
     ByKeyHash = 2
   };
   ResponderIDType responderIDType;
+
+  OCSPResponseExtension* extensions;
 };
 
 

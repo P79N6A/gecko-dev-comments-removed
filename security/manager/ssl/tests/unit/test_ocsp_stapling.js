@@ -43,6 +43,8 @@ function add_tests_in_mode(useMozillaPKIX, certDB, otherTestCA) {
   add_ocsp_test("ocsp-stapling-expired.example.com", Cr.NS_OK, false);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com", Cr.NS_OK, false);
   add_ocsp_test("ocsp-stapling-skip-responseBytes.example.com", Cr.NS_OK, false);
+  add_ocsp_test("ocsp-stapling-critical-extension.example.com", Cr.NS_OK, false);
+  add_ocsp_test("ocsp-stapling-noncritical-extension.example.com", Cr.NS_OK, false);
 
   
   
@@ -118,6 +120,13 @@ function add_tests_in_mode(useMozillaPKIX, certDB, otherTestCA) {
                   getXPCOMStatusFromNSS(SEC_ERROR_OCSP_MALFORMED_RESPONSE), true);
   }
 
+  add_ocsp_test("ocsp-stapling-critical-extension.example.com",
+                useMozillaPKIX
+                  ? getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION)
+                  : Cr.NS_OK, 
+                true);
+  add_ocsp_test("ocsp-stapling-noncritical-extension.example.com", Cr.NS_OK, true);
+
   
   
   
@@ -129,10 +138,10 @@ function check_ocsp_stapling_telemetry() {
                     .getHistogramById("SSL_OCSP_STAPLING")
                     .snapshot();
   do_check_eq(histogram.counts[0], 2 * 0); 
-  do_check_eq(histogram.counts[1], 2 * 1); 
-  do_check_eq(histogram.counts[2], 2 * 15); 
+  do_check_eq(histogram.counts[1], 2 + 3); 
+  do_check_eq(histogram.counts[2], 2 * 17); 
   do_check_eq(histogram.counts[3], 2 * 0); 
-  do_check_eq(histogram.counts[4], 12 + 11); 
+  do_check_eq(histogram.counts[4], 13 + 11); 
   run_next_test();
 }
 
