@@ -35,24 +35,12 @@ function test()
     inspector = aInspector;
 
     executeSoon(function() {
-      inspector.selection.once("new-node", highlightBodyNode);
-      
-      
-      node = doc.querySelector("body");
-      let bc = inspector.breadcrumbs;
-      bc.nodeHierarchy[bc.currentIndex].button.focus();
-      EventUtils.synthesizeKey("VK_RIGHT", { });
-    });
-  }
-
-  function highlightBodyNode()
-  {
-    is(inspector.selection.node, node, "selected body element");
-
-    executeSoon(function() {
       inspector.selection.once("new-node", highlightHeaderNode);
       
+      
       node = doc.querySelector("h1");
+      let bc = inspector.breadcrumbs;
+      bc.nodeHierarchy[bc.currentIndex].button.focus();
       EventUtils.synthesizeKey("VK_RIGHT", { });
     });
   }
