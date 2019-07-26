@@ -28,7 +28,6 @@
 #ifdef MOZ_MEDIA
 #include "nsHTMLMediaElement.h"
 #endif 
-#include "jsgc.h"
 #include "nsWrapperCacheInlines.h"
 #include "nsObjectLoadingContent.h"
 #include "nsDOMMutationObserver.h"
@@ -46,7 +45,8 @@ using namespace mozilla::dom;
   nsINode* node = content_;                                       \
   NS_ASSERTION(node->OwnerDoc() == doc, "Bogus document");        \
   if (doc) {                                                      \
-    doc->BindingManager()->func_ params_;                         \
+    static_cast<nsIMutationObserver*>(doc->BindingManager())->    \
+      func_ params_;                                              \
   }                                                               \
   do {                                                            \
     nsINode::nsSlots* slots = node->GetExistingSlots();           \

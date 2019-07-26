@@ -1026,7 +1026,6 @@ Cell::isAligned() const
 #endif
 
 } 
-
 } 
 
 #endif 
