@@ -7170,11 +7170,11 @@ nsFrame::ConsiderChildOverflow(nsOverflowAreas& aOverflowAreas,
 
 
 static nsIFrame*
-GetIBSpecialSiblingForAnonymousBlock(const nsIFrame* aFrame)
+GetIBSplitSiblingForAnonymousBlock(const nsIFrame* aFrame)
 {
   NS_PRECONDITION(aFrame, "Must have a non-null frame!");
   NS_ASSERTION(aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT,
-               "GetIBSpecialSibling should not be called on a non-special frame");
+               "GetIBSplitSibling should not be called on a non-special frame");
 
   nsIAtom* type = aFrame->StyleContext()->GetPseudo();
   if (type != nsCSSAnonBoxes::mozAnonymousBlock &&
@@ -7249,7 +7249,7 @@ nsFrame::CorrectStyleParentFrame(nsIFrame* aProspectiveParent,
   nsIFrame* parent = aProspectiveParent;
   do {
     if (parent->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) {
-      nsIFrame* sibling = GetIBSpecialSiblingForAnonymousBlock(parent);
+      nsIFrame* sibling = GetIBSplitSiblingForAnonymousBlock(parent);
 
       if (sibling) {
         
@@ -7303,7 +7303,7 @@ nsFrame::DoGetParentStyleContextFrame() const
 
 
     if (mState & NS_FRAME_PART_OF_IBSPLIT) {
-      nsIFrame* specialSibling = GetIBSpecialSiblingForAnonymousBlock(this);
+      nsIFrame* specialSibling = GetIBSplitSiblingForAnonymousBlock(this);
       if (specialSibling) {
         return specialSibling;
       }
