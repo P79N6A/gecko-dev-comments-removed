@@ -1,5 +1,9 @@
 
 
+"use strict";
+
+
+
 
 
 
@@ -346,11 +350,11 @@ var testCases = [
     name: "Switch statements",
     input: "switch(x){case a:foo();break;default:bar()}",
     output: "switch (x) {\n" +
-            "case a:\n" +
-            "  foo();\n" +
-            "  break;\n" +
-            "default:\n" +
-            "  bar()\n" +
+            "  case a:\n" +
+            "    foo();\n" +
+            "    break;\n" +
+            "  default:\n" +
+            "    bar()\n" +
             "}\n"
   },
 
@@ -480,6 +484,44 @@ var testCases = [
     input: "'\\0'\n",
     output: "'\\0'\n"
   },
+
+  {
+    name: "Bug 977082 - space between grouping operator and dot notation",
+    input: "JSON.stringify(3).length;\n" +
+           "([1,2,3]).length;\n" +
+           "(new Date()).toLocaleString();\n",
+    output: "JSON.stringify(3).length;\n" +
+            "([1,\n" +
+            "2,\n" +
+            "3]).length;\n" +
+            "(new Date()).toLocaleString();\n"
+  },
+
+  {
+    name: "Bug 975477 don't move end of line comments to next line",
+    input: "switch (request.action) {\n" +
+           "  case 'show': //$NON-NLS-0$\n" +
+           "    if (localStorage.hideicon !== 'true') { //$NON-NLS-0$\n" +
+           "      chrome.pageAction.show(sender.tab.id);\n" +
+           "    }\n" +
+           "    break;\n" +
+           "  default:\n" +
+           "    console.warn('unknown request'); //$NON-NLS-0$\n" +
+           "    // don't respond if you don't understand the message.\n" +
+           "    return;\n" +
+           "}\n",
+    output: "switch (request.action) {\n" +
+            "  case 'show': //$NON-NLS-0$\n" +
+            "    if (localStorage.hideicon !== 'true') { //$NON-NLS-0$\n" +
+            "      chrome.pageAction.show(sender.tab.id);\n" +
+            "    }\n" +
+            "    break;\n" +
+            "  default:\n" +
+            "    console.warn('unknown request'); //$NON-NLS-0$\n" +
+            "    // don't respond if you don't understand the message.\n" +
+            "    return;\n" +
+            "}\n"
+  }
 
 ];
 
