@@ -911,6 +911,41 @@ BaselineCompiler::emit_JSOP_CALLGNAME()
 }
 
 bool
+BaselineCompiler::emit_JSOP_BINDGNAME()
+{
+    frame.push(ObjectValue(script->global()));
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_SETPROP()
+{
+    
+    frame.popRegsAndSync(2);
+
+    
+    ICSetProp_Fallback::Compiler compiler(cx);
+    if (!emitIC(compiler.getStub(&stubSpace_)))
+        return false;
+
+    
+    frame.push(R0);
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_SETNAME()
+{
+    return emit_JSOP_SETPROP();
+}
+
+bool
+BaselineCompiler::emit_JSOP_SETGNAME()
+{
+    return emit_JSOP_SETPROP();
+}
+
+bool
 BaselineCompiler::emit_JSOP_GETPROP()
 {
     
