@@ -168,7 +168,11 @@ IsInlinableCall(jsbytecode *pc)
     
     
     
+    
     return op == JSOP_CALL || op == JSOP_FUNCALL || op == JSOP_FUNAPPLY ||
+#ifdef JS_ION
+           op == JSOP_NEW ||
+#endif
            op == JSOP_GETPROP || op == JSOP_CALLPROP || op == JSOP_LENGTH ||
            op == JSOP_SETPROP || op == JSOP_SETGNAME || op == JSOP_SETNAME;
 
@@ -1540,4 +1544,4 @@ JSCompartment::getEmptyType(JSContext *cx)
     return emptyTypeObject;
 }
 
-#endif 
+#endif

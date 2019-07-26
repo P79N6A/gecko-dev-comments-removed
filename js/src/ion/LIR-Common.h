@@ -432,6 +432,30 @@ class LCreateThis : public LInstructionHelper<1, 2, 0>
 };
 
 
+
+class LReturnFromCtor : public LInstructionHelper<1, BOX_PIECES + 1, 0>
+{
+  public:
+    LIR_HEADER(ReturnFromCtor);
+
+    LReturnFromCtor(const LAllocation &object)
+    {
+        
+        setOperand(LReturnFromCtor::ObjectIndex, object);
+    }
+
+    const LAllocation *getObject() {
+        return getOperand(LReturnFromCtor::ObjectIndex);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+
+    static const size_t ValueIndex = 0;
+    static const size_t ObjectIndex = BOX_PIECES;
+};
+
+
 class LStackArg : public LInstructionHelper<0, BOX_PIECES, 0>
 {
     uint32 argslot_; 

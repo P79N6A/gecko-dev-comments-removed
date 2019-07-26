@@ -1525,6 +1525,42 @@ class MCreateThis
 
 
 
+class MReturnFromCtor
+  : public MAryInstruction<2>,
+    public MixPolicy<BoxPolicy<0>, ObjectPolicy<1> >
+{
+    MReturnFromCtor(MDefinition *value, MDefinition *object) {
+        initOperand(0, value);
+        initOperand(1, object);
+        setResultType(MIRType_Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(ReturnFromCtor);
+    static MReturnFromCtor *New(MDefinition *value, MDefinition *object)
+    {
+        return new MReturnFromCtor(value, object);
+    }
+
+    MDefinition *getValue() const {
+        return getOperand(0);
+    }
+    MDefinition *getObject() const {
+        return getOperand(1);
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+    TypePolicy *typePolicy() {
+        return this;
+    }
+};
+
+
+
+
+
 
 class MPassArg
   : public MUnaryInstruction,
