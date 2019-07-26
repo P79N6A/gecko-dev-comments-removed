@@ -968,19 +968,21 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   if (aReflowState.AvailableHeight() != NS_UNCONSTRAINEDSIZE &&
       aReflowState.ComputedHeight() != NS_AUTOHEIGHT &&
       ShouldApplyOverflowClipping(this, aReflowState.mStyleDisplay)) {
-    nsMargin heightExtras = aReflowState.ComputedPhysicalBorderPadding();
-    if (GetSkipSides() & (1 << NS_SIDE_TOP)) {
-      heightExtras.top = 0;
+    LogicalMargin blockDirExtras = aReflowState.ComputedLogicalBorderPadding();
+    WritingMode wm = aReflowState.GetWritingMode();
+    if (GetLogicalSkipSides() & (LOGICAL_SIDE_B_START)) {
+      blockDirExtras.BStart(wm) = 0;
     } else {
       
       
-      heightExtras.top += aReflowState.ComputedPhysicalMargin().top;
+      blockDirExtras.BStart(wm) +=
+        aReflowState.ComputedLogicalMargin().BStart(wm);
     }
 
-    if (effectiveComputedHeight + heightExtras.TopBottom() <=
-        aReflowState.AvailableHeight()) {
+    if (effectiveComputedHeight + blockDirExtras.BStartEnd(wm) <=
+        aReflowState.AvailableBSize()) {
       mutableReflowState.construct(aReflowState);
-      mutableReflowState.ref().AvailableHeight() = NS_UNCONSTRAINEDSIZE;
+      mutableReflowState.ref().AvailableBSize() = NS_UNCONSTRAINEDSIZE;
       reflowState = mutableReflowState.addr();
     }
   }
