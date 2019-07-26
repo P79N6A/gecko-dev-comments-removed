@@ -43,7 +43,7 @@ typedef void *EGLNativeWindowType;
 
 
 
-#define APITRACE_LIB "/data/local/egltrace.so"
+#define APITRACE_LIB "/data/local/tmp/egltrace.so"
 
 #ifdef MOZ_WIDGET_ANDROID
 
