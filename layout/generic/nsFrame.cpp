@@ -4892,7 +4892,13 @@ nsIFrame::InvalidateLayer(uint32_t aDisplayItemKey,
     
     
     
-    if (aDisplayItemKey == nsDisplayItem::TYPE_PLUGIN) {
+    
+    
+    
+    
+    
+    if (aDisplayItemKey == nsDisplayItem::TYPE_PLUGIN ||
+        aDisplayItemKey == nsDisplayItem::TYPE_REMOTE) {
       InvalidateFrame();
     } else {
       InvalidateFrame(aDisplayItemKey);
