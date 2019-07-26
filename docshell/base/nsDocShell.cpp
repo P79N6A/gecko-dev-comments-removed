@@ -5565,11 +5565,19 @@ nsDocShell::GetVisibility(bool * aVisibility)
             return NS_OK;
         }
 
-        nsIContent *shellContent =
-            pPresShell->GetDocument()->FindContentForSubDocument(presShell->GetDocument());
-        NS_ASSERTION(shellContent, "subshell not in the map");
+        vm = presShell->GetViewManager();
+        if (vm) {
+          view = vm->GetRootView();
+        }
 
-        nsIFrame* frame = shellContent ? shellContent->GetPrimaryFrame() : nullptr;
+        if (view) {
+          view = view->GetParent(); 
+          if (view) {
+            view = view->GetParent(); 
+          }
+        }
+
+        nsIFrame* frame = view ? view->GetFrame() : nullptr;
         bool isDocShellOffScreen = false;
         docShell->GetIsOffScreenBrowser(&isDocShellOffScreen);
         if (frame &&
