@@ -2120,33 +2120,41 @@ static int vcmEnsureExternalCodec(
     mozilla::VideoCodecConfig* config,
     bool send)
 {
-#ifdef MOZ_WEBRTC_OMX
-  
-  
-  
-  
-  if (config->mName != "I420") {
+  if (config->mName == "VP8") {
     
+    return 0;
+#ifdef MOZ_WEBRTC_OMX
+  } else if (config->mName == "I420") {
+    
+    
+    
+    
+
+    
+    if (send) {
+      VideoEncoder* encoder = OMXVideoCodec::CreateEncoder(OMXVideoCodec::CodecType::CODEC_H264);
+      if (encoder) {
+        return conduit->SetExternalSendCodec(config->mType, encoder);
+      } else {
+        return kMediaConduitInvalidSendCodec;
+      }
+    } else {
+      VideoDecoder* decoder = OMXVideoCodec::CreateDecoder(OMXVideoCodec::CodecType::CODEC_H264);
+      if (decoder) {
+        return conduit->SetExternalRecvCodec(config->mType, decoder);
+      } else {
+        return kMediaConduitInvalidReceiveCodec;
+      }
+    }
+    NS_NOTREACHED("Shouldn't get here!");
+#else
+  } else if (config->mName == "I420") {
+    return 0;
+#endif
+  } else {
+    CSFLogError( logTag, "%s: Invalid video codec configured: %s", __FUNCTION__, config->mName.c_str());
     return send ? kMediaConduitInvalidSendCodec : kMediaConduitInvalidReceiveCodec;
   }
-  
-  if (send) {
-    VideoEncoder* encoder = OMXVideoCodec::CreateEncoder(OMXVideoCodec::CodecType::CODEC_H264);
-    if (encoder) {
-      return conduit->SetExternalSendCodec(config->mType, encoder);
-    } else {
-      return kMediaConduitInvalidSendCodec;
-    }
-  } else {
-    VideoDecoder* decoder = OMXVideoCodec::CreateDecoder(OMXVideoCodec::CodecType::CODEC_H264);
-    if (decoder) {
-      return conduit->SetExternalRecvCodec(config->mType, decoder);
-    } else {
-      return kMediaConduitInvalidReceiveCodec;
-    }
-  }
-  NS_NOTREACHED("Shouldn't get here!");
-#endif
 
   return 0;
 }
