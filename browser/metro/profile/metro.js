@@ -137,6 +137,8 @@ pref("browser.display.startUI.maxresults", 16);
 
 pref("browser.firstrun.count", 3);
 
+pref("browser.firstrun-content.dismissed", false);
+
 
 
 
