@@ -7,7 +7,7 @@
 
 
 
-#include "jsobj.h"
+#include "jsobjinlines.h"
 
 #include <stdlib.h>
 #include <string.h>
