@@ -92,6 +92,7 @@ var AccessFuTest = {
   finish: function AccessFuTest_finish() {
     
     Logger.test = false;
+    Logger.logLevel = Logger.INFO;
     AccessFu.doneCallback = function doneCallback() {
       
       
@@ -136,6 +137,7 @@ var AccessFuTest = {
     AccessFu.readyCallback = function readyCallback() {
       
       Logger.test = true;
+      Logger.logLevel = Logger.DEBUG;
       
 
       if (AccessFuTest._waitForExplicitFinish) {
