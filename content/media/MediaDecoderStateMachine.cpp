@@ -24,6 +24,7 @@
 namespace mozilla {
 
 using namespace layers;
+using namespace mozilla::dom;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gMediaDecoderLog;
@@ -985,7 +986,14 @@ void MediaDecoderStateMachine::AudioLoop()
   
   
   nsRefPtr<AudioStream> audioStream = AudioStream::AllocateStream();
-  audioStream->Init(channels, rate);
+  
+  
+  AudioChannelType audioChannelType;
+  {
+    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+    audioChannelType = mDecoder->GetAudioChannelType();
+  }
+  audioStream->Init(channels, rate, audioChannelType);
 
   {
     

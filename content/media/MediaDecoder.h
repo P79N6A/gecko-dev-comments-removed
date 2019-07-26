@@ -192,12 +192,15 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "MediaStreamGraph.h"
 #include "MediaDecoderOwner.h"
+#include "AudioChannelCommon.h"
 
 class nsIStreamListener;
 class nsTimeRanges;
 class nsIMemoryReporter;
 class nsIPrincipal;
 class nsITimer;
+
+using namespace mozilla::dom;
 
 namespace mozilla {
 namespace layers {
@@ -601,6 +604,10 @@ public:
   
   
   void UpdatePlaybackPosition(int64_t aTime);
+
+  void SetAudioChannelType(AudioChannelType aType) { mAudioChannelType = aType; }
+  AudioChannelType GetAudioChannelType() { return mAudioChannelType; }
+
   
 
 
@@ -1027,6 +1034,10 @@ protected:
   
   
   bool mShuttingDown;
+
+  
+  
+  AudioChannelType mAudioChannelType;
 };
 
 } 

@@ -23,6 +23,7 @@
 #include "mozilla/Mutex.h"
 #include "nsTimeRanges.h"
 #include "nsIDOMWakeLock.h"
+#include "AudioChannelCommon.h"
 
 
 
@@ -578,7 +579,7 @@ protected:
 
 
   void DoRemoveSelfReference();
-  
+
   
 
 
@@ -917,6 +918,9 @@ protected:
   
   
   nsCString mMimeType;
+
+  
+  mozilla::dom::AudioChannelType mAudioChannelType;
 };
 
 #endif

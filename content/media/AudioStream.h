@@ -11,6 +11,7 @@
 #include "nsIThread.h"
 #include "nsAutoPtr.h"
 #include "AudioSampleFormat.h"
+#include "AudioChannelCommon.h"
 
 namespace mozilla {
 
@@ -50,7 +51,8 @@ public:
   
   
   
-  virtual nsresult Init(int32_t aNumChannels, int32_t aRate) = 0;
+  virtual nsresult Init(int32_t aNumChannels, int32_t aRate,
+                        const mozilla::dom::AudioChannelType aAudioStreamType) = 0;
 
   
   
