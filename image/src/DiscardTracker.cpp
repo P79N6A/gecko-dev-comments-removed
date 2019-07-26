@@ -22,7 +22,7 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
  int64_t DiscardTracker::sCurrentDecodedImageBytes = 0;
  uint32_t DiscardTracker::sMinDiscardTimeoutMs = 10000;
  uint32_t DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
- PRLock * DiscardTracker::sAllocationLock = NULL;
+ PRLock * DiscardTracker::sAllocationLock = nullptr;
 
 
 
@@ -100,7 +100,7 @@ DiscardTracker::Shutdown()
 
   if (sTimer) {
     sTimer->Cancel();
-    sTimer = NULL;
+    sTimer = nullptr;
   }
 
   
