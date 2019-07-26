@@ -20,6 +20,9 @@ loader.lazyGetter(this, "DOMUtils", () => Cc["@mozilla.org/inspector/dom-utils;1
 const ELEMENT_STYLE = 100;
 exports.ELEMENT_STYLE = ELEMENT_STYLE;
 
+const PSEUDO_ELEMENTS = [":first-line", ":first-letter", ":before", ":after", ":-moz-selection"];
+exports.PSEUDO_ELEMENTS = PSEUDO_ELEMENTS;
+
 
 types.addActorType("domnode");
 
@@ -360,36 +363,46 @@ var PageStyleActor = protocol.ActorClass({
       });
     }
 
-    
-    let domRules = DOMUtils.getCSSStyleRules(element);
+    let pseudoElements = inherited ? [null] : [null, ...PSEUDO_ELEMENTS];
+    for (let pseudo of pseudoElements) {
 
-    
-    
-    for (let i = domRules.Count() - 1; i >= 0; i--) {
-      let domRule = domRules.GetElementAt(i);
+      
+      let domRules = DOMUtils.getCSSStyleRules(element, pseudo);
 
-      let isSystem = !CssLogic.isContentStylesheet(domRule.parentStyleSheet);
-
-      if (isSystem && options.filter != CssLogic.FILTER.UA) {
+      if (!domRules) {
         continue;
       }
 
-      if (inherited) {
-        
-        
-        let hasInherited = Array.prototype.some.call(domRule.style, prop => {
-          return DOMUtils.isInheritedProperty(prop);
-        });
-        if (!hasInherited) {
+      
+      
+      for (let i = domRules.Count() - 1; i >= 0; i--) {
+        let domRule = domRules.GetElementAt(i);
+
+        let isSystem = !CssLogic.isContentStylesheet(domRule.parentStyleSheet);
+
+        if (isSystem && options.filter != CssLogic.FILTER.UA) {
           continue;
         }
+
+        if (inherited) {
+          
+          
+          let hasInherited = Array.prototype.some.call(domRule.style, prop => {
+            return DOMUtils.isInheritedProperty(prop);
+          });
+          if (!hasInherited) {
+            continue;
+          }
+        }
+
+        let ruleActor = this._styleRef(domRule);
+        rules.push({
+          rule: ruleActor,
+          inherited: inherited,
+          pseudoElement: pseudo
+        });
       }
 
-      let ruleActor = this._styleRef(domRule);
-      rules.push({
-        rule: ruleActor,
-        inherited: inherited,
-      });
     }
   },
 

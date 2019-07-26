@@ -11,7 +11,7 @@ const promise = require("sdk/core/promise");
 
 let {CssLogic} = require("devtools/styleinspector/css-logic");
 let {InplaceEditor, editableField, editableItem} = require("devtools/shared/inplace-editor");
-let {ELEMENT_STYLE} = require("devtools/server/actors/styles");
+let {ELEMENT_STYLE, PSEUDO_ELEMENTS} = require("devtools/server/actors/styles");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -203,7 +203,9 @@ ElementStyle.prototype = {
         }
 
         
-        this.markOverridden();
+        this.markOverriddenAll();
+
+        this._sortRulesForPseudoElement();
 
         
         delete this._refreshRules;
@@ -214,6 +216,16 @@ ElementStyle.prototype = {
     this.populated = populated;
     return this.populated;
   },
+
+  
+
+
+   _sortRulesForPseudoElement: function ElementStyle_sortRulesForPseudoElement()
+   {
+      this.rules = this.rules.sort((a, b) => {
+        return (a.pseudoElement || "z") > (b.pseudoElement || "z");
+      });
+   },
 
   
 
@@ -268,20 +280,36 @@ ElementStyle.prototype = {
   
 
 
+  markOverriddenAll: function ElementStyle_markOverriddenAll()
+  {
+    this.markOverridden();
+    for (let pseudo of PSEUDO_ELEMENTS) {
+      this.markOverridden(pseudo);
+    }
+  },
 
-  markOverridden: function ElementStyle_markOverridden()
+  
+
+
+
+
+
+
+  markOverridden: function ElementStyle_markOverridden(pseudo="")
   {
     
     
     let textProps = [];
-    for each (let rule in this.rules) {
-      textProps = textProps.concat(rule.textProps.slice(0).reverse());
+    for (let rule of this.rules) {
+      if (rule.pseudoElement == pseudo) {
+        textProps = textProps.concat(rule.textProps.slice(0).reverse());
+      }
     }
 
     
     
     let computedProps = [];
-    for each (let textProp in textProps) {
+    for (let textProp of textProps) {
       computedProps = computedProps.concat(textProp.computed);
     }
 
@@ -302,7 +330,7 @@ ElementStyle.prototype = {
     
     
     let taken = {};
-    for each (let computedProp in computedProps) {
+    for (let computedProp of computedProps) {
       let earlier = taken[computedProp.name];
       let overridden;
       if (earlier
@@ -328,7 +356,7 @@ ElementStyle.prototype = {
     
     
     
-    for each (let textProp in textProps) {
+    for (let textProp of textProps) {
       
       
       if (this._updatePropertyOverridden(textProp)) {
@@ -384,6 +412,7 @@ function Rule(aElementStyle, aOptions)
   this.domRule = aOptions.rule || null;
   this.style = aOptions.rule;
   this.matchedSelectors = aOptions.matchedSelectors || [];
+  this.pseudoElement = aOptions.pseudoElement || "";
 
   this.inherited = aOptions.inherited || null;
   this._modificationDepth = 0;
@@ -558,7 +587,7 @@ Rule.prototype = {
         textProp.priority = cssProp.priority;
       }
 
-      this.elementStyle.markOverridden();
+      this.elementStyle.markOverriddenAll();
 
       if (promise === this._applyingModifications) {
         this._applyingModifications = null;
@@ -1077,6 +1106,7 @@ CssRuleView.prototype = {
       }
       this._createEditors();
 
+
       
       var evt = this.doc.createEvent("Events");
       evt.initEvent("CssRuleViewRefreshed", true, false);
@@ -1134,23 +1164,106 @@ CssRuleView.prototype = {
   
 
 
+  get selectedElementLabel ()
+  {
+    if (this._selectedElementLabel) {
+      return this._selectedElementLabel;
+    }
+    this._selectedElementLabel = CssLogic.l10n("rule.selectedElement");
+    return this._selectedElementLabel;
+  },
+
+  
+
+
+  get pseudoElementLabel ()
+  {
+    if (this._pseudoElementLabel) {
+      return this._pseudoElementLabel;
+    }
+    this._pseudoElementLabel = CssLogic.l10n("rule.pseudoElement");
+    return this._pseudoElementLabel;
+  },
+
+  togglePseudoElementVisibility: function(value)
+  {
+    this._showPseudoElements = !!value;
+    let isOpen = this.showPseudoElements;
+
+    Services.prefs.setBoolPref("devtools.inspector.show_pseudo_elements",
+      isOpen);
+
+    this.element.classList.toggle("show-pseudo-elements", isOpen);
+
+    if (this.pseudoElementTwisty) {
+      if (isOpen) {
+        this.pseudoElementTwisty.setAttribute("open", "true");
+      }
+      else {
+        this.pseudoElementTwisty.removeAttribute("open");
+      }
+    }
+  },
+
+  get showPseudoElements ()
+  {
+    if (this._showPseudoElements === undefined) {
+      this._showPseudoElements =
+        Services.prefs.getBoolPref("devtools.inspector.show_pseudo_elements");
+    }
+    return this._showPseudoElements;
+  },
+
+  
+
+
   _createEditors: function CssRuleView_createEditors()
   {
     
     
     let lastInheritedSource = "";
+    let seenPseudoElement = false;
+    let seenNormalElement = false;
+
     for (let rule of this._elementStyle.rules) {
       if (rule.domRule.system) {
         continue;
       }
 
+      
+      if (seenPseudoElement && !seenNormalElement && !rule.pseudoElement) {
+        seenNormalElement = true;
+        let div = this.doc.createElementNS(HTML_NS, "div");
+        div.className = "theme-gutter ruleview-header";
+        div.textContent = this.selectedElementLabel;
+        this.element.appendChild(div);
+      }
+
       let inheritedSource = rule.inheritedSource;
       if (inheritedSource != lastInheritedSource) {
-        let h2 = this.doc.createElementNS(HTML_NS, "div");
-        h2.className = "ruleview-rule-inheritance theme-gutter";
-        h2.textContent = inheritedSource;
+        let div = this.doc.createElementNS(HTML_NS, "div");
+        div.className = "theme-gutter ruleview-header";
+        div.textContent = inheritedSource;
         lastInheritedSource = inheritedSource;
-        this.element.appendChild(h2);
+        this.element.appendChild(div);
+      }
+
+      if (!seenPseudoElement && rule.pseudoElement) {
+        seenPseudoElement = true;
+
+        let div = this.doc.createElementNS(HTML_NS, "div");
+        div.className = "theme-gutter ruleview-header";
+        div.textContent = this.pseudoElementLabel;
+
+        let twisty = this.pseudoElementTwisty =
+          this.doc.createElementNS(HTML_NS, "span");
+        twisty.className = "ruleview-expander theme-twisty";
+        twisty.addEventListener("click", () => {
+          this.togglePseudoElementVisibility(!this.showPseudoElements);
+        }, false);
+
+        div.insertBefore(twisty, div.firstChild);
+        this.element.appendChild(div);
       }
 
       if (!rule.editor) {
@@ -1159,6 +1272,8 @@ CssRuleView.prototype = {
 
       this.element.appendChild(rule.editor.element);
     }
+
+    this.togglePseudoElementVisibility(this.showPseudoElements);
   },
 
   
@@ -1226,6 +1341,9 @@ RuleEditor.prototype = {
     this.element = this.doc.createElementNS(HTML_NS, "div");
     this.element.className = "ruleview-rule theme-separator";
     this.element._ruleEditor = this;
+    if (this.rule.pseudoElement) {
+      this.element.classList.add("ruleview-rule-pseudo-element");
+    }
 
     
     
@@ -1358,11 +1476,14 @@ RuleEditor.prototype = {
 
 
 
+
+
   addProperty: function RuleEditor_addProperty(aName, aValue, aPriority)
   {
     let prop = this.rule.createProperty(aName, aValue, aPriority);
     let editor = new TextPropertyEditor(this, prop);
     this.propertyList.appendChild(editor.element);
+    return prop;
   },
 
   
