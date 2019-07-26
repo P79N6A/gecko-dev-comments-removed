@@ -13,20 +13,8 @@
 
 
 
-
-
-
-
-
-
-function createRootActor(aConnection)
-{
-  let parameters = {
-    tabList: new MobileTabList(aConnection),
-    globalActorFactories: DebuggerServer.globalActorFactories,
-    onShutdown: sendShutdownEvent
-  };
-  return new RootActor(aConnection, parameters);
+function createRootActor(aConnection) {
+  return new DeviceRootActor(aConnection);
 }
 
 
@@ -38,65 +26,99 @@ function createRootActor(aConnection)
 
 
 
-
-
-
-
-
-
-
-function MobileTabList(aConnection)
-{
-  BrowserTabList.call(this, aConnection);
+function DeviceRootActor(aConnection) {
+  BrowserRootActor.call(this, aConnection);
 }
 
-MobileTabList.prototype = Object.create(BrowserTabList.prototype);
+DeviceRootActor.prototype = new BrowserRootActor();
 
-MobileTabList.prototype.constructor = MobileTabList;
 
-MobileTabList.prototype.iterator = function() {
-  
-  
-  let initialMapSize = this._actorByBrowser.size;
-  let foundCount = 0;
 
-  
+
+
+
+DeviceRootActor.prototype.onListTabs = function DRA_onListTabs() {
   
   
   
 
+  let actorPool = new ActorPool(this.conn);
+  let tabActorList = [];
+
+  let win = windowMediator.getMostRecentWindow("navigator:browser");
+  this.browser = win.BrowserApp.selectedBrowser;
+
   
-  for (let win of allAppShellDOMWindows("navigator:browser")) {
-    let selectedTab = win.BrowserApp.selectedBrowser;
+  
+  this.watchWindow(win);
 
-    
-    
-    
-    
-    for (let tab of win.BrowserApp.tabs) {
-      let browser = tab.browser;
-      
-      let actor = this._actorByBrowser.get(browser);
-      if (actor) {
-        foundCount++;
-      } else {
-        actor = new BrowserTabActor(this._connection, browser);
-        this._actorByBrowser.set(browser, actor);
-      }
+  let tabs = win.BrowserApp.tabs;
+  let selected;
 
-      
-      actor.selected = (browser === selectedTab);
+  for each (let tab in tabs) {
+    let browser = tab.browser;
+
+    if (browser == this.browser) {
+      selected = tabActorList.length;
     }
+
+    let actor = this._tabActors.get(browser);
+    if (!actor) {
+      actor = new BrowserTabActor(this.conn, browser);
+      actor.parentID = this.actorID;
+      this._tabActors.set(browser, actor);
+    }
+
+    actorPool.addActor(actor);
+    tabActorList.push(actor);
   }
 
-  if (this._testing && initialMapSize !== foundCount)
-    throw Error("_actorByBrowser map contained actors for dead tabs");
-
-  this._mustNotify = true;
-  this._checkListening();
+  this._createExtraActors(DebuggerServer.globalActorFactories, actorPool);
 
   
-  for (let [browser, actor] of this._actorByBrowser) {
-    yield actor;
+  
+  
+  if (this._tabActorPool) {
+    this.conn.removeActorPool(this._tabActorPool);
   }
+
+  this._tabActorPool = actorPool;
+  this.conn.addActorPool(this._tabActorPool);
+
+  let response = {
+    "from": "root",
+    "selected": selected,
+    "tabs": [actor.grip() for (actor of tabActorList)]
+  };
+  this._appendExtraActors(response);
+  return response;
+};
+
+
+
+
+DeviceRootActor.prototype.getTabContainer = function DRA_getTabContainer(aWindow) {
+  return aWindow.document.getElementById("browsers");
+};
+
+
+
+
+
+DeviceRootActor.prototype.onTabClosed = function DRA_onTabClosed(aEvent) {
+  this.exitTabActor(aEvent.target.browser);
+};
+
+
+DeviceRootActor.prototype.onCloseWindow = function DRA_onCloseWindow(aWindow) {
+  if (aWindow.BrowserApp) {
+    this.unwatchWindow(aWindow);
+  }
+};
+
+
+
+
+DeviceRootActor.prototype.requestTypes = {
+  "listTabs": DeviceRootActor.prototype.onListTabs
 };

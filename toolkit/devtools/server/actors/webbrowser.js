@@ -14,31 +14,49 @@
 
 
 
-function allAppShellDOMWindows(aWindowType)
-{
-  let e = windowMediator.getEnumerator(aWindowType);
-  while (e.hasMoreElements()) {
-    yield e.getNext();
-  }
-}
 
 
 
 
 
-function appShellDOMWindowType(aWindow) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function CommonCreateExtraActors(aFactories, aPool) {
   
-  return aWindow.document.documentElement.getAttribute('windowtype');
-}
-
-
-
-
-function sendShutdownEvent() {
-  for (let win of allAppShellDOMWindows("navigator:browser")) {
-    let evt = win.document.createEvent("Event");
-    evt.initEvent("Debugger:Shutdown", true, false);
-    win.document.documentElement.dispatchEvent(evt);
+  for (let name in aFactories) {
+    let actor = this._extraActors[name];
+    if (!actor) {
+      actor = aFactories[name].bind(null, this.conn, this);
+      actor.prototype = aFactories[name].prototype;
+      actor.parentID = this.actorID;
+      this._extraActors[name] = actor;
+    }
+    aPool.addActor(actor);
   }
 }
 
@@ -53,390 +71,264 @@ function sendShutdownEvent() {
 
 
 
-function createRootActor(aConnection)
-{
-  return new RootActor(aConnection,
-                       {
-                         tabList: new BrowserTabList(aConnection),
-                         globalActorFactories: DebuggerServer.globalActorFactories,
-                         onShutdown: sendShutdownEvent
-                       });
+
+
+function CommonAppendExtraActors(aObject) {
+  for (let name in this._extraActors) {
+    let actor = this._extraActors[name];
+    aObject[name] = actor.actorID;
+  }
 }
 
 var windowMediator = Cc["@mozilla.org/appshell/window-mediator;1"]
-                     .getService(Ci.nsIWindowMediator);
+  .getService(Ci.nsIWindowMediator);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function BrowserTabList(aConnection)
+function createRootActor(aConnection)
 {
-  this._connection = aConnection;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this._actorByBrowser = new Map();
-
-  
-  this._onListChanged = null;
-
-  
-
-
-
-  this._mustNotify = false;
-
-  
-  this._testing = false;
+  return new BrowserRootActor(aConnection);
 }
 
-BrowserTabList.prototype.constructor = BrowserTabList;
 
-BrowserTabList.prototype.iterator = function() {
-  let topXULWindow = windowMediator.getMostRecentWindow("navigator:browser");
+
+
+
+
+
+
+
+
+function BrowserRootActor(aConnection)
+{
+  this.conn = aConnection;
+  this._tabActors = new WeakMap();
+  this._tabActorPool = null;
+  
+  this._extraActors = {};
+
+  this.onTabClosed = this.onTabClosed.bind(this);
+  windowMediator.addListener(this);
+}
+
+BrowserRootActor.prototype = {
 
   
-  
-  let initialMapSize = this._actorByBrowser.size;
-  let foundCount = 0;
 
-  
-  
-  
-  
 
-  
-  for (let win of allAppShellDOMWindows("navigator:browser")) {
-    let selectedTab = win.gBrowser.selectedBrowser;
-
-    
-    
-    
-    
-    for (let browser of win.gBrowser.browsers) {
-      
-      let actor = this._actorByBrowser.get(browser);
-      if (actor) {
-        foundCount++;
-      } else {
-        actor = new BrowserTabActor(this._connection, browser, win.gBrowser);
-        this._actorByBrowser.set(browser, actor);
+  sayHello: function BRA_sayHello() {
+    return {
+      from: "root",
+      applicationType: "browser",
+      traits: {
+        sources: true
       }
+    };
+  },
+
+  
+
+
+  disconnect: function BRA_disconnect() {
+    windowMediator.removeListener(this);
+    this._extraActors = null;
+
+    
+    
+    let e = windowMediator.getEnumerator("navigator:browser");
+    while (e.hasMoreElements()) {
+      let win = e.getNext();
+      this.unwatchWindow(win);
+      
+      let evt = win.document.createEvent("Event");
+      evt.initEvent("Debugger:Shutdown", true, false);
+      win.document.documentElement.dispatchEvent(evt);
+    }
+  },
+
+  
+
+
+
+
+  onListTabs: function BRA_onListTabs() {
+    
+    
+
+    let actorPool = new ActorPool(this.conn);
+    let tabActorList = [];
+
+    
+    let e = windowMediator.getEnumerator("navigator:browser");
+    let top = windowMediator.getMostRecentWindow("navigator:browser");
+    let selected;
+    while (e.hasMoreElements()) {
+      let win = e.getNext();
 
       
-      actor.selected = (win === topXULWindow && browser === selectedTab);
-    }
-  }
+      this.watchWindow(win);
 
-  if (this._testing && initialMapSize !== foundCount)
-    throw Error("_actorByBrowser map contained actors for dead tabs");
+      
+      let selectedBrowser = win.getBrowser().selectedBrowser;
 
-  this._mustNotify = true;
-  this._checkListening();
-
-  
-  for (let [browser, actor] of this._actorByBrowser) {
-    yield actor;
-  }
-};
-
-Object.defineProperty(BrowserTabList.prototype, 'onListChanged', {
-  enumerable: true, configurable:true,
-  get: function() { return this._onListChanged; },
-  set: function(v) {
-    if (v !== null && typeof v !== 'function') {
-      throw Error("onListChanged property may only be set to 'null' or a function");
-    }
-    this._onListChanged = v;
-    this._checkListening();
-  }
-});
-
-
-
-
-
-BrowserTabList.prototype._notifyListChanged = function() {
-  if (!this._onListChanged)
-    return;
-  if (this._mustNotify) {
-    this._onListChanged();
-    this._mustNotify = false;
-  }
-};
-
-
-
-
-
-BrowserTabList.prototype._handleActorClose = function(aActor, aBrowser) {
-  if (this._testing) {
-    if (this._actorByBrowser.get(aBrowser) !== aActor) {
-      throw Error("BrowserTabActor not stored in map under given browser");
-    }
-    if (aActor.browser !== aBrowser) {
-      throw Error("actor's browser and map key don't match");
-    }
-  }
-
-  this._actorByBrowser.delete(aBrowser);
-  aActor.exit();
-
-  this._notifyListChanged();
-  this._checkListening();
-};
-
-
-
-
-
-
-
-BrowserTabList.prototype._checkListening = function() {
-  
-
-
-
-
-
-
-
-
-
-  this._listenForEventsIf(this._onListChanged && this._mustNotify,
-                          "_listeningForTabOpen", ["TabOpen", "TabSelect"]);
-
-  
-  this._listenForEventsIf(this._actorByBrowser.size > 0,
-                          "_listeningForTabClose", ["TabClose"]);
-
-  
-
-
-
-
-  this._listenToMediatorIf((this._onListChanged && this._mustNotify) ||
-                           (this._actorByBrowser.size > 0));
-};
-
-
-
-
-
-
-
-
-
-
-
-
-BrowserTabList.prototype._listenForEventsIf = function(aShouldListen, aGuard, aEventNames) {
-  if (!aShouldListen !== !this[aGuard]) {
-    let op = aShouldListen ? "addEventListener" : "removeEventListener";
-    for (let win of allAppShellDOMWindows("navigator:browser")) {
-      for (let name of aEventNames) {
-        win[op](name, this, false);
+      let browsers = win.getBrowser().browsers;
+      for each (let browser in browsers) {
+        if (browser == selectedBrowser && win == top) {
+          selected = tabActorList.length;
+        }
+        let actor = this._tabActors.get(browser);
+        if (!actor) {
+          actor = new BrowserTabActor(this.conn, browser, win.gBrowser);
+          actor.parentID = this.actorID;
+          this._tabActors.set(browser, actor);
+        }
+        actorPool.addActor(actor);
+        tabActorList.push(actor);
       }
     }
-    this[aGuard] = aShouldListen;
-  }
-};
 
+    this._createExtraActors(DebuggerServer.globalActorFactories, actorPool);
 
-
-
-BrowserTabList.prototype.handleEvent = makeInfallible(function(aEvent) {
-  switch (aEvent.type) {
-  case "TabOpen":
-  case "TabSelect":
     
-    this._notifyListChanged();
-    this._checkListening();
-    break;
-  case "TabClose":
-    let browser = aEvent.target.linkedBrowser;
-    let actor = this._actorByBrowser.get(browser);
+    
+    if (this._tabActorPool) {
+      this.conn.removeActorPool(this._tabActorPool);
+    }
+    this._tabActorPool = actorPool;
+    this.conn.addActorPool(this._tabActorPool);
+
+    let response = {
+      "from": "root",
+      "selected": selected,
+      "tabs": [actor.grip() for (actor of tabActorList)]
+    };
+    this._appendExtraActors(response);
+    return response;
+  },
+
+  
+  _createExtraActors: CommonCreateExtraActors,
+  _appendExtraActors: CommonAppendExtraActors,
+
+  
+
+
+
+  watchWindow: function BRA_watchWindow(aWindow) {
+    this.getTabContainer(aWindow).addEventListener("TabClose",
+                                                   this.onTabClosed,
+                                                   false);
+  },
+
+  
+
+
+  unwatchWindow: function BRA_unwatchWindow(aWindow) {
+    this.getTabContainer(aWindow).removeEventListener("TabClose",
+                                                      this.onTabClosed);
+    this.exitTabActor(aWindow);
+  },
+
+  
+
+
+  getTabContainer: function BRA_getTabContainer(aWindow) {
+    return aWindow.getBrowser().tabContainer;
+  },
+
+  
+
+
+
+  onTabClosed:
+  makeInfallible(function BRA_onTabClosed(aEvent) {
+    this.exitTabActor(aEvent.target.linkedBrowser);
+  }, "BrowserRootActor.prototype.onTabClosed"),
+
+  
+
+
+  exitTabActor: function BRA_exitTabActor(aWindow) {
+    let actor = this._tabActors.get(aWindow);
     if (actor) {
-      this._handleActorClose(actor, browser);
+      this._tabActors.delete(actor.browser);
+      actor.exit();
     }
-    break;
-  }
-}, "BrowserTabList.prototype.handleEvent");
+  },
+
+  
+
+  
 
 
 
 
 
-BrowserTabList.prototype._listenToMediatorIf = function(aShouldListen) {
-  if (!aShouldListen !== !this._listeningToMediator) {
-    let op = aShouldListen ? "addListener" : "removeListener";
-    windowMediator[op](this);
-    this._listeningToMediator = aShouldListen;
-  }
+
+
+  addToParentPool: function BRA_addToParentPool(aActor) {
+    this.conn.addActor(aActor);
+  },
+
+  
+
+
+
+
+
+  removeFromParentPool: function BRA_removeFromParentPool(aActor) {
+    this.conn.removeActor(aActor);
+  },
+
+  
+
+
+  preNest: function BRA_preNest() {
+    
+    let e = windowMediator.getEnumerator(null);
+    while (e.hasMoreElements()) {
+      let win = e.getNext();
+      let windowUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+      windowUtils.suppressEventHandling(true);
+      windowUtils.suspendTimeouts();
+    }
+  },
+
+  
+
+
+  postNest: function BRA_postNest(aNestData) {
+    
+    let e = windowMediator.getEnumerator(null);
+    while (e.hasMoreElements()) {
+      let win = e.getNext();
+      let windowUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+      windowUtils.resumeTimeouts();
+      windowUtils.suppressEventHandling(false);
+    }
+  },
+
+  
+
+  onWindowTitleChange: function BRA_onWindowTitleChange(aWindow, aTitle) { },
+  onOpenWindow: function BRA_onOpenWindow(aWindow) { },
+  onCloseWindow:
+  makeInfallible(function BRA_onCloseWindow(aWindow) {
+    
+    
+    
+    if (aWindow.getBrowser) {
+      this.unwatchWindow(aWindow);
+    }
+  }, "BrowserRootActor.prototype.onCloseWindow"),
 };
 
 
 
 
-
-
-
-
-
-
-BrowserTabList.prototype.onWindowTitleChange = () => { };
-
-BrowserTabList.prototype.onOpenWindow = makeInfallible(function(aWindow) {
-  
-
-
-
-
-
-  aWindow = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                   .getInterface(Ci.nsIDOMWindow);
-  aWindow.addEventListener("load", makeInfallible(handleLoad.bind(this)), false);
-
-  function handleLoad(aEvent) {
-    
-    aWindow.removeEventListener("load", handleLoad, false);
-
-    if (appShellDOMWindowType(aWindow) !== "navigator:browser")
-      return;
-
-    
-    if (this._listeningForTabOpen) {
-      aWindow.addEventListener("TabOpen", this, false);
-      aWindow.addEventListener("TabSelect", this, false);
-    }
-    if (this._listeningForTabClose) {
-      aWindow.addEventListener("TabClose", this, false);
-    }
-
-    
-    
-    
-    this._notifyListChanged();
-  }
-}, "BrowserTabList.prototype.onOpenWindow");
-
-BrowserTabList.prototype.onCloseWindow = makeInfallible(function(aWindow) {
-  aWindow = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                   .getInterface(Ci.nsIDOMWindow);
-
-  if (appShellDOMWindowType(aWindow) !== "navigator:browser")
-    return;
-
-  
-
-
-
-
-  Services.tm.currentThread.dispatch(makeInfallible(() => {
-    
-
-
-
-    for (let [browser, actor] of this._actorByBrowser) {
-      
-      if (!browser.ownerDocument.defaultView) {
-        this._handleActorClose(actor, browser);
-      }
-    }
-  }, "BrowserTabList.prototype.onCloseWindow's delayed body"), 0);
-}, "BrowserTabList.prototype.onCloseWindow");
-
+BrowserRootActor.prototype.requestTypes = {
+  "listTabs": BrowserRootActor.prototype.onListTabs
+};
 
 
 
@@ -468,7 +360,7 @@ BrowserTabActor.prototype = {
   get browser() { return this._browser; },
 
   get exited() { return !this.browser; },
-  get attached() { return !!this._attached; },
+  get attached() { return !!this._attached },
 
   _tabPool: null,
   get tabActorPool() { return this._tabPool; },
@@ -547,7 +439,7 @@ BrowserTabActor.prototype = {
     let response = {
       actor: this.actorID,
       title: this.title,
-      url: this.url
+      url: this.url,
     };
 
     
@@ -774,7 +666,7 @@ BrowserTabActor.prototype = {
     }
     catch (ex) { }
     return isNative;
-  }
+  },
 };
 
 
@@ -830,7 +722,7 @@ DebuggerProgressListener.prototype = {
         type: "tabNavigated",
         url: aRequest.URI.spec,
         nativeConsoleAPI: true,
-        state: "start"
+        state: "start",
       });
     } else if (isStop) {
       if (this._tabActor.threadActor.state == "running") {
@@ -844,7 +736,7 @@ DebuggerProgressListener.prototype = {
         url: this._tabActor.url,
         title: this._tabActor.title,
         nativeConsoleAPI: this._tabActor.hasNativeConsoleAPI(window),
-        state: "stop"
+        state: "stop",
       });
     }
   }, "DebuggerProgressListener.prototype.onStateChange"),

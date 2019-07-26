@@ -14,26 +14,8 @@
 
 
 
-
-
-
-
-
-
-function createRootActor(connection)
-{
-  let parameters = {
-#ifndef MOZ_WIDGET_GONK
-    tabList: new ContentTabList(connection),
-#else
-    tabList: [],
-#endif
-    globalActorFactories: DebuggerServer.globalActorFactories,
-    onShutdown: sendShutdownEvent
-  };
-  let root = new RootActor(connection, parameters);
-  root.applicationType = "operating-system";
-  return root;
+function createRootActor(connection) {
+  return new DeviceRootActor(connection);
 }
 
 
@@ -45,46 +27,72 @@ function createRootActor(connection)
 
 
 
-
-
-function ContentTabList(connection)
-{
-  BrowserTabList.call(this, connection);
+function DeviceRootActor(connection) {
+  BrowserRootActor.call(this, connection);
+  this.browser = Services.wm.getMostRecentWindow('navigator:browser');
 }
 
-ContentTabList.prototype = Object.create(BrowserTabList.prototype);
+DeviceRootActor.prototype = new BrowserRootActor();
 
-ContentTabList.prototype.constructor = ContentTabList;
 
-ContentTabList.prototype.iterator = function() {
-  let browser = Services.wm.getMostRecentWindow('navigator:browser');
-  
-  let actor = this._actorByBrowser.get(browser);
-  if (!actor) {
-    actor = new ContentTabActor(this._connection, browser);
-    this._actorByBrowser.set(browser, actor);
-    actor.selected = true;
+
+
+DeviceRootActor.prototype.disconnect = function DRA_disconnect() {
+  this._extraActors = null;
+  let actor = this._tabActors.get(this.browser);
+  if (actor) {
+    actor.exit();
   }
-
-  yield actor;
 };
 
-ContentTabList.prototype.onCloseWindow = makeInfallible(function(aWindow) {
-  
 
 
 
 
-  Services.tm.currentThread.dispatch(makeInfallible(() => {
+
+DeviceRootActor.prototype.onListTabs = function DRA_onListTabs() {
+  let actorPool = new ActorPool(this.conn);
+
+#ifndef MOZ_WIDGET_GONK
+  let actor = this._tabActors.get(this.browser);
+  if (!actor) {
+    actor = new DeviceTabActor(this.conn, this.browser);
     
+    actor.parentID = this.actorID;
+    this._tabActors.set(this.browser, actor);
+  }
+  actorPool.addActor(actor);
+#endif
+
+  this._createExtraActors(DebuggerServer.globalActorFactories, actorPool);
+
+  
+  
+  if (this._tabActorPool) {
+    this.conn.removeActorPool(this._tabActorPool);
+  }
+  this._tabActorPool = actorPool;
+  this.conn.addActorPool(this._tabActorPool);
+
+  let response = {
+    'from': 'root',
+    'selected': 0,
+#ifndef MOZ_WIDGET_GONK
+    'tabs': [actor.grip()]
+#else
+    'tabs': []
+#endif
+  };
+  this._appendExtraActors(response);
+  return response;
+};
 
 
 
-    for (let [browser, actor] of this._actorByBrowser) {
-      this._handleActorClose(actor, browser);
-    }
-  }, "ContentTabList.prototype.onCloseWindow's delayed body"), 0);
-}, "ContentTabList.prototype.onCloseWindow");
+
+DeviceRootActor.prototype.requestTypes = {
+  'listTabs': DeviceRootActor.prototype.onListTabs
+};
 
 
 
@@ -95,17 +103,13 @@ ContentTabList.prototype.onCloseWindow = makeInfallible(function(aWindow) {
 
 
 
-
-function ContentTabActor(connection, browser)
-{
+function DeviceTabActor(connection, browser) {
   BrowserTabActor.call(this, connection, browser);
 }
 
-ContentTabActor.prototype.constructor = ContentTabActor;
+DeviceTabActor.prototype = new BrowserTabActor();
 
-ContentTabActor.prototype = Object.create(BrowserTabActor.prototype);
-
-Object.defineProperty(ContentTabActor.prototype, "title", {
+Object.defineProperty(DeviceTabActor.prototype, "title", {
   get: function() {
     return this.browser.title;
   },
@@ -113,7 +117,7 @@ Object.defineProperty(ContentTabActor.prototype, "title", {
   configurable: false
 });
 
-Object.defineProperty(ContentTabActor.prototype, "url", {
+Object.defineProperty(DeviceTabActor.prototype, "url", {
   get: function() {
     return this.browser.document.documentURI;
   },
@@ -121,7 +125,7 @@ Object.defineProperty(ContentTabActor.prototype, "url", {
   configurable: false
 });
 
-Object.defineProperty(ContentTabActor.prototype, "contentWindow", {
+Object.defineProperty(DeviceTabActor.prototype, "contentWindow", {
   get: function() {
     return this.browser;
   },
