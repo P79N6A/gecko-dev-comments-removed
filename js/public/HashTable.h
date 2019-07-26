@@ -656,9 +656,6 @@ class HashTableEntry
     static const HashNumber sRemovedKey = 1;
     static const HashNumber sCollisionBit = 1;
 
-    
-    JS_STATIC_ASSERT(sFreeKey == 0);
-
     static bool isLiveHash(HashNumber hash)
     {
         return hash > sRemovedKey;
@@ -925,20 +922,16 @@ class HashTable : private AllocPolicy
     static const unsigned sMaxInit      = JS_BIT(23);
     static const unsigned sMaxCapacity  = JS_BIT(24);
     static const unsigned sHashBits     = mozilla::tl::BitSize<HashNumber>::value;
-    static const uint8_t  sMinAlphaFrac = 64;  
-    static const uint8_t  sMaxAlphaFrac = 192; 
-    static const uint8_t  sInvMaxAlpha  = 171; 
+
+    
+    
+    static const uint8_t sAlphaDenominator = 4;
+    static const uint8_t sMinAlphaNumerator = 1; 
+    static const uint8_t sMaxAlphaNumerator = 3; 
+
     static const HashNumber sFreeKey = Entry::sFreeKey;
     static const HashNumber sRemovedKey = Entry::sRemovedKey;
     static const HashNumber sCollisionBit = Entry::sCollisionBit;
-
-    static void staticAsserts()
-    {
-        
-        JS_STATIC_ASSERT(((sMaxInit * sInvMaxAlpha) >> 7) < sMaxCapacity);
-        JS_STATIC_ASSERT((sMaxCapacity * sInvMaxAlpha) <= UINT32_MAX);
-        JS_STATIC_ASSERT((sMaxCapacity * sizeof(Entry)) <= UINT32_MAX);
-    }
 
     static bool isLiveHash(HashNumber hash)
     {
@@ -957,8 +950,11 @@ class HashTable : private AllocPolicy
 
     static Entry *createTable(AllocPolicy &alloc, uint32_t capacity)
     {
-        
-        return (Entry *)alloc.calloc_(capacity * sizeof(Entry));
+        static_assert(sFreeKey == 0,
+                      "newly-calloc'd tables have to be considered empty");
+        static_assert(sMaxCapacity <= SIZE_MAX / sizeof(Entry),
+                      "would overflow allocating max number of entries");
+        return static_cast<Entry*>(alloc.calloc_(capacity * sizeof(Entry)));
     }
 
     static void destroyTable(AllocPolicy &alloc, Entry *oldTable, uint32_t capacity)
@@ -986,12 +982,22 @@ class HashTable : private AllocPolicy
 
         
         
+        
         if (length > sMaxInit) {
             this->reportAllocOverflow();
             return false;
         }
-        uint32_t newCapacity = (length * sInvMaxAlpha) >> 7;
 
+        static_assert((sMaxInit * sAlphaDenominator) / sAlphaDenominator == sMaxInit,
+                      "multiplication in numerator below could overflow");
+        static_assert(sMaxInit * sAlphaDenominator <= UINT32_MAX - sMaxAlphaNumerator,
+                      "numerator calculation below could potentially overflow");
+
+        
+        
+        
+        uint32_t newCapacity =
+            (length * sAlphaDenominator + sMaxAlphaNumerator - 1) / sMaxAlphaNumerator;
         if (newCapacity < sMinCapacity)
             newCapacity = sMinCapacity;
 
@@ -1003,7 +1009,8 @@ class HashTable : private AllocPolicy
         }
 
         newCapacity = roundUp;
-        JS_ASSERT(newCapacity <= sMaxCapacity);
+        MOZ_ASSERT(newCapacity >= length);
+        MOZ_ASSERT(newCapacity <= sMaxCapacity);
 
         table = createTable(*this, newCapacity);
         if (!table)
@@ -1054,13 +1061,19 @@ class HashTable : private AllocPolicy
 
     bool overloaded()
     {
-        return entryCount + removedCount >= ((sMaxAlphaFrac * capacity()) >> 8);
+        static_assert(sMaxCapacity <= UINT32_MAX / sMaxAlphaNumerator,
+                      "multiplication below could overflow");
+        return entryCount + removedCount >=
+               capacity() * sMaxAlphaNumerator / sAlphaDenominator;
     }
 
     
     static bool wouldBeUnderloaded(uint32_t capacity, uint32_t entryCount)
     {
-        return capacity > sMinCapacity && entryCount <= ((sMinAlphaFrac * capacity) >> 8);
+        static_assert(sMaxCapacity <= UINT32_MAX / sMinAlphaNumerator,
+                      "multiplication below could overflow");
+        return capacity > sMinCapacity &&
+               entryCount <= capacity * sMinAlphaNumerator / sAlphaDenominator;
     }
 
     bool underloaded()
