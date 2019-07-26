@@ -32,7 +32,7 @@
 #include "nsIContentViewerContainer.h"
 #include "nsIContentViewer.h"
 #include "nsIMarkupDocumentViewer.h"
-#include "nsDocShell.h"
+#include "nsIDocShell.h"
 #include "nsDocShellLoadTypes.h"
 #include "nsIWebNavigation.h"
 #include "nsIBaseWindow.h"
@@ -1362,7 +1362,7 @@ nsHTMLDocument::Open(JSContext* cx,
   }
 
   
-  nsCOMPtr<nsIDocShell> shell(mDocumentContainer);
+  nsCOMPtr<nsIDocShell> shell = do_QueryReferent(mDocumentContainer);
   if (!shell) {
     
     nsCOMPtr<nsIDocument> ret = this;

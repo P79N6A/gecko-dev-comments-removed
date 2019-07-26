@@ -958,7 +958,9 @@ nsPresContext::Init(nsDeviceContext* aDeviceContext)
                    "How did we get a presshell?");
 
       
-      nsCOMPtr<nsIDocShellTreeItem> ourItem = mDocument->GetDocShell();
+      nsCOMPtr<nsISupports> ourContainer = mDocument->GetContainer();
+
+      nsCOMPtr<nsIDocShellTreeItem> ourItem = do_QueryInterface(ourContainer);
       if (ourItem) {
         nsCOMPtr<nsIDocShellTreeItem> parentItem;
         ourItem->GetSameTypeParent(getter_AddRefs(parentItem));

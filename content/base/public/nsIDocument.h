@@ -20,7 +20,6 @@
 #include "nsPropertyTable.h"             
 #include "nsTHashtable.h"                
 #include "mozilla/dom/DocumentBinding.h"
-#include "mozilla/WeakPtr.h"
 #include "Units.h"
 #include "nsExpirationTracker.h"
 #include "nsClassHashtable.h"
@@ -29,8 +28,6 @@ class imgIRequest;
 class nsAString;
 class nsBindingManager;
 class nsCSSStyleSheet;
-class nsIDocShell;
-class nsDocShell;
 class nsDOMNavigationTiming;
 class nsDOMTouchList;
 class nsEventStates;
@@ -1153,22 +1150,21 @@ public:
 
 
 
-  virtual void SetContainer(nsDocShell* aContainer);
+  virtual void SetContainer(nsISupports *aContainer);
 
   
 
 
-  nsISupports* GetContainer() const;
+  already_AddRefed<nsISupports> GetContainer() const
+  {
+    nsCOMPtr<nsISupports> container = do_QueryReferent(mDocumentContainer);
+    return container.forget();
+  }
 
   
 
 
   nsILoadContext* GetLoadContext() const;
-
-  
-
-
-  nsIDocShell* GetDocShell() const;
 
   
 
@@ -1530,7 +1526,7 @@ public:
   void SetDisplayDocument(nsIDocument* aDisplayDocument)
   {
     NS_PRECONDITION(!GetShell() &&
-                    !GetContainer() &&
+                    !nsCOMPtr<nsISupports>(GetContainer()) &&
                     !GetWindow(),
                     "Shouldn't set mDisplayDocument on documents that already "
                     "have a presentation or a docshell or a window");
@@ -1700,7 +1696,7 @@ public:
 
 
   virtual already_AddRefed<nsIDocument>
-  CreateStaticClone(nsIDocShell* aCloneContainer);
+  CreateStaticClone(nsISupports* aCloneContainer);
 
   
 
@@ -2231,7 +2227,7 @@ protected:
 
   nsWeakPtr mDocumentLoadGroup;
 
-  mozilla::WeakPtr<nsDocShell> mDocumentContainer;
+  nsWeakPtr mDocumentContainer;
 
   nsCString mCharacterSet;
   int32_t mCharacterSetSource;
