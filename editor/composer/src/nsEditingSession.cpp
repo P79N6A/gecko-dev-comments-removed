@@ -260,7 +260,7 @@ const char* const gSupportedTextTypes[] = {
   "application/x-javascript",  
   "text/xul",                  
   "application/vnd.mozilla.xul+xml",
-  NULL      
+  nullptr   
 };
 
 bool
@@ -995,7 +995,7 @@ nsEditingSession::EndDocumentLoad(nsIWebProgress *aWebProgress,
           {
             
             mLoadBlankDocTimer->Cancel();
-            mLoadBlankDocTimer = NULL;
+            mLoadBlankDocTimer = nullptr;
           }
   
           mLoadBlankDocTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);

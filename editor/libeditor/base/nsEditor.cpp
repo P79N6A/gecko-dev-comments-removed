@@ -562,7 +562,7 @@ nsEditor::GetPresShell()
 {
   NS_PRECONDITION(mDocWeak, "bad state, null mDocWeak");
   nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocWeak);
-  NS_ENSURE_TRUE(doc, NULL);
+  NS_ENSURE_TRUE(doc, nullptr);
   nsCOMPtr<nsIPresShell> ps = doc->GetShell();
   return ps.forget();
 }
@@ -746,7 +746,7 @@ nsEditor::GetTransactionManager(nsITransactionManager* *aTxnManager)
 {
   NS_ENSURE_ARG_POINTER(aTxnManager);
   
-  *aTxnManager = NULL;
+  *aTxnManager = nullptr;
   NS_ENSURE_TRUE(mTxnMgr, NS_ERROR_FAILURE);
 
   NS_ADDREF(*aTxnManager = mTxnMgr);

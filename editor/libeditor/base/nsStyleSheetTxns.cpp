@@ -47,7 +47,7 @@ RemoveStyleSheet(nsIEditor *aEditor, nsIStyleSheet *aSheet)
 
 AddStyleSheetTxn::AddStyleSheetTxn()
 :  EditTxn()
-,  mEditor(NULL)
+,  mEditor(nullptr)
 {
 }
 
@@ -102,7 +102,7 @@ AddStyleSheetTxn::GetTxnDescription(nsAString& aString)
 
 RemoveStyleSheetTxn::RemoveStyleSheetTxn()
 :  EditTxn()
-,  mEditor(NULL)
+,  mEditor(nullptr)
 {
 }
 

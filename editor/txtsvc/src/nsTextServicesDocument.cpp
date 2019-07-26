@@ -2063,7 +2063,7 @@ nsTextServicesDocument::GetDocumentContentRootNode(nsIDOMNode **aNode)
 nsresult
 nsTextServicesDocument::CreateDocumentContentRange(nsIDOMRange **aRange)
 {
-  *aRange = NULL;
+  *aRange = nullptr;
 
   nsCOMPtr<nsIDOMNode> node;
   nsresult rv = GetDocumentContentRootNode(getter_AddRefs(node));
