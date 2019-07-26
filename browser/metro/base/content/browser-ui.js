@@ -94,6 +94,7 @@ var BrowserUI = {
     window.addEventListener("MozImprecisePointer", this, true);
 
     Services.prefs.addObserver("browser.tabs.tabsOnly", this, false);
+    Services.prefs.addObserver("browser.cache.disk_cache_ssl", this, false);
     Services.obs.addObserver(this, "metro_viewstate_changed", false);
 
     
@@ -528,8 +529,14 @@ var BrowserUI = {
   observe: function BrowserUI_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
       case "nsPref:changed":
-        if (aData == "browser.tabs.tabsOnly")
-          this._updateTabsOnly();
+        switch (aData) {
+          case "browser.tabs.tabsOnly":
+            this._updateTabsOnly();
+            break;
+          case "browser.cache.disk_cache_ssl":
+            this._sslDiskCacheEnabled = Services.prefs.getBoolPref(aData);
+            break;
+        }
         break;
       case "metro_viewstate_changed":
         this._adjustDOMforViewState();
@@ -882,13 +889,21 @@ var BrowserUI = {
       }
 
       
-      
-      if (uri.schemeIs("https")) {
+      if (uri.schemeIs("https") && !this.sslDiskCacheEnabled) {
         return false;
       }
     }
 
     return true;
+  },
+
+  _sslDiskCacheEnabled: null,
+
+  get sslDiskCacheEnabled() {
+    if (this._sslDiskCacheEnabled === null) {
+      this._sslDiskCacheEnabled = Services.prefs.getBoolPref("browser.cache.disk_cache_ssl");
+    }
+    return this._sslDiskCacheEnabled;
   },
 
   supportsCommand : function(cmd) {
