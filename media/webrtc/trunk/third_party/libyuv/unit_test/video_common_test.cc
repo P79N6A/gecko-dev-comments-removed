@@ -1,12 +1,12 @@
-/*
- *  Copyright 2012 The LibYuv Project Authors. All rights reserved.
- *
- *  Use of this source code is governed by a BSD-style license
- *  that can be found in the LICENSE file in the root of the source
- *  tree. An additional intellectual property rights grant can be found
- *  in the file PATENTS. All contributing project authors may
- *  be found in the AUTHORS file in the root of the source tree.
- */
+
+
+
+
+
+
+
+
+
 
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +16,7 @@
 
 namespace libyuv {
 
-// Tests FourCC codes in video common, which are used for ConvertToI420().
+
 
 static bool TestValidChar(uint32 onecc) {
   if ((onecc >= '0' && onecc <= '9') ||
@@ -108,4 +108,4 @@ TEST_F(libyuvTest, TestFourCC) {
   EXPECT_TRUE(TestValidFourCC(FOURCC_ANY,  FOURCC_BPP_ANY));
 }
 
-}  // namespace libyuv
+}  

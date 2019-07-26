@@ -1,12 +1,12 @@
-/*
- *  Copyright 2011 The LibYuv Project Authors. All rights reserved.
- *
- *  Use of this source code is governed by a BSD-style license
- *  that can be found in the LICENSE file in the root of the source
- *  tree. An additional intellectual property rights grant can be found
- *  in the file PATENTS. All contributing project authors may
- *  be found in the AUTHORS file in the root of the source tree.
- */
+
+
+
+
+
+
+
+
+
 
 #include <stdlib.h>
 #include <time.h>
@@ -17,7 +17,7 @@
 
 namespace libyuv {
 
-// Test scaling with C vs Opt and return maximum pixel difference. 0 = exact.
+
 static int TestFilter(int src_width, int src_height,
                       int dst_width, int dst_height,
                       FilterMode f, int benchmark_iterations) {
@@ -57,7 +57,7 @@ static int TestFilter(int src_width, int src_height,
   align_buffer_page_end(dst_v_opt, dst_uv_plane_size)
 
 
-  MaskCpuFlags(0);  // Disable all CPU optimization.
+  MaskCpuFlags(0);  
   double c_time = get_time();
   I420Scale(src_y + (src_stride_y * b) + b, src_stride_y,
             src_u + (src_stride_uv * b) + b, src_stride_uv,
@@ -69,7 +69,7 @@ static int TestFilter(int src_width, int src_height,
             dst_width, dst_height, f);
   c_time = (get_time() - c_time);
 
-  MaskCpuFlags(-1);  // Enable all CPU optimization.
+  MaskCpuFlags(-1);  
   double opt_time = get_time();
   for (i = 0; i < benchmark_iterations; ++i) {
     I420Scale(src_y + (src_stride_y * b) + b, src_stride_y,
@@ -82,16 +82,16 @@ static int TestFilter(int src_width, int src_height,
               dst_width, dst_height, f);
   }
   opt_time = (get_time() - opt_time) / benchmark_iterations;
-  // Report performance of C vs OPT
+  
   printf("filter %d - %8d us C - %8d us OPT\n",
          f,
          static_cast<int>(c_time * 1e6),
          static_cast<int>(opt_time * 1e6));
 
-  // C version may be a little off from the optimized. Order of
-  //  operations may introduce rounding somewhere. So do a difference
-  //  of the buffers and look to see that the max difference isn't
-  //  over 2.
+  
+  
+  
+  
   int max_diff = 0;
   for (i = b; i < (dst_height + b); ++i) {
     for (j = b; j < (dst_width + b); ++j) {
@@ -141,8 +141,8 @@ static int TestFilter(int src_width, int src_height,
       EXPECT_LE(diff, max_diff);                                               \
     }
 
-// Test a scale factor with all 4 filters.  Expect unfiltered to be exact, but
-// filtering is different fixed point implementations for SSSE3, Neon and C.
+
+
 #define TEST_FACTOR(name, hfactor, vfactor)                                    \
     TEST_FACTOR1(name, None, hfactor, vfactor, 0)                              \
     TEST_FACTOR1(name, Linear, hfactor, vfactor, 3)                            \
@@ -170,7 +170,7 @@ TEST_FACTOR(3by4, 3 / 4, 3 / 4)
       EXPECT_LE(diff, max_diff);                                               \
     }
 
-// Test scale to a specified size with all 4 filters.
+
 #define TEST_SCALETO(name, width, height)                                      \
     TEST_SCALETO1(name, width, height, None, 0)                                \
     TEST_SCALETO1(name, width, height, Linear, 3)                              \
@@ -185,4 +185,4 @@ TEST_SCALETO(Scale, 1280, 720)
 #undef TEST_SCALETO1
 #undef TEST_SCALETO
 
-}  // namespace libyuv
+}  

@@ -1,12 +1,12 @@
-/*
- *  Copyright 2011 The LibYuv Project Authors. All rights reserved.
- *
- *  Use of this source code is governed by a BSD-style license
- *  that can be found in the LICENSE file in the root of the source
- *  tree. An additional intellectual property rights grant can be found
- *  in the file PATENTS. All contributing project authors may
- *  be found in the AUTHORS file in the root of the source tree.
- */
+
+
+
+
+
+
+
+
+
 
 #include <stdlib.h>
 #include <time.h>
@@ -18,7 +18,7 @@
 
 namespace libyuv {
 
-// Test scaling with C vs Opt and return maximum pixel difference. 0 = exact.
+
 static int ARGBTestFilter(int src_width, int src_height,
                           int dst_width, int dst_height,
                           FilterMode f, int benchmark_iterations) {
@@ -40,19 +40,19 @@ static int ARGBTestFilter(int src_width, int src_height,
   memset(dst_argb_c, 2, dst_argb_plane_size);
   memset(dst_argb_opt, 3, dst_argb_plane_size);
 
-  // Warm up both versions for consistent benchmarks.
-  MaskCpuFlags(0);  // Disable all CPU optimization.
+  
+  MaskCpuFlags(0);  
   ARGBScale(src_argb + (src_stride_argb * b) + b * 4, src_stride_argb,
             src_width, src_height,
             dst_argb_c + (dst_stride_argb * b) + b * 4, dst_stride_argb,
             dst_width, dst_height, f);
-  MaskCpuFlags(-1);  // Enable all CPU optimization.
+  MaskCpuFlags(-1);  
   ARGBScale(src_argb + (src_stride_argb * b) + b * 4, src_stride_argb,
             src_width, src_height,
             dst_argb_opt + (dst_stride_argb * b) + b * 4, dst_stride_argb,
             dst_width, dst_height, f);
 
-  MaskCpuFlags(0);  // Disable all CPU optimization.
+  MaskCpuFlags(0);  
   double c_time = get_time();
   ARGBScale(src_argb + (src_stride_argb * b) + b * 4, src_stride_argb,
             src_width, src_height,
@@ -61,7 +61,7 @@ static int ARGBTestFilter(int src_width, int src_height,
 
   c_time = (get_time() - c_time);
 
-  MaskCpuFlags(-1);  // Enable all CPU optimization.
+  MaskCpuFlags(-1);  
   double opt_time = get_time();
   for (i = 0; i < benchmark_iterations; ++i) {
     ARGBScale(src_argb + (src_stride_argb * b) + b * 4, src_stride_argb,
@@ -71,14 +71,14 @@ static int ARGBTestFilter(int src_width, int src_height,
   }
   opt_time = (get_time() - opt_time) / benchmark_iterations;
 
-  // Report performance of C vs OPT
+  
   printf("filter %d - %8d us C - %8d us OPT\n",
          f, static_cast<int>(c_time * 1e6), static_cast<int>(opt_time * 1e6));
 
-  // C version may be a little off from the optimized. Order of
-  //  operations may introduce rounding somewhere. So do a difference
-  //  of the buffers and look to see that the max difference isn't
-  //  over 2.
+  
+  
+  
+  
   int max_diff = 0;
   for (i = b; i < (dst_height + b); ++i) {
     for (j = b * 4; j < (dst_width + b) * 4; ++j) {
@@ -155,7 +155,7 @@ static int ARGBClipTestFilter(int src_width, int src_height,
   memset(dst_argb_c, 2, dst_argb_plane_size);
   memset(dst_argb_opt, 3, dst_argb_plane_size);
 
-  // Do full image, no clipping.
+  
   double c_time = get_time();
   ARGBScale(src_argb + (src_stride_argb * b) + b * 4, src_stride_argb,
             src_width, src_height,
@@ -163,7 +163,7 @@ static int ARGBClipTestFilter(int src_width, int src_height,
             dst_width, dst_height, f);
   c_time = (get_time() - c_time);
 
-  // Do tiled image, clipping scale to a tile at a time.
+  
   double opt_time = get_time();
   for (i = 0; i < benchmark_iterations; ++i) {
     TileARGBScale(src_argb + (src_stride_argb * b) + b * 4, src_stride_argb,
@@ -173,11 +173,11 @@ static int ARGBClipTestFilter(int src_width, int src_height,
   }
   opt_time = (get_time() - opt_time) / benchmark_iterations;
 
-  // Report performance of Full vs Tiled.
+  
   printf("filter %d - %8d us Full - %8d us Tiled\n",
          f, static_cast<int>(c_time * 1e6), static_cast<int>(opt_time * 1e6));
 
-  // Compare full scaled image vs tiled image.
+  
   int max_diff = 0;
   for (i = b; i < (dst_height + b); ++i) {
     for (j = b * 4; j < (dst_width + b) * 4; ++j) {
@@ -211,8 +211,8 @@ static int ARGBClipTestFilter(int src_width, int src_height,
       EXPECT_LE(diff, max_diff);                                               \
     }
 
-// Test a scale factor with 2 filters.  Expect unfiltered to be exact, but
-// filtering is different fixed point implementations for SSSE3, Neon and C.
+
+
 #define TEST_FACTOR(name, hfactor, vfactor)                                    \
     TEST_FACTOR1(name, None, hfactor, vfactor, 2)                              \
     TEST_FACTOR1(name, Linear, hfactor, vfactor, 2)                            \
@@ -252,7 +252,7 @@ TEST_FACTOR(3by4, 3 / 4, 3 / 4)
       EXPECT_LE(diff, max_diff);                                               \
     }
 
-/// Test scale to a specified size with all 4 filters.
+
 #define TEST_SCALETO(name, width, height)                                      \
     TEST_SCALETO1(name, width, height, None, 0)                                \
     TEST_SCALETO1(name, width, height, Linear, 3)                              \
@@ -267,4 +267,4 @@ TEST_SCALETO(ARGBScale, 1280, 720)
 #undef TEST_SCALETO1
 #undef TEST_SCALETO
 
-}  // namespace libyuv
+}  

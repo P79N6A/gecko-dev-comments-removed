@@ -1,22 +1,22 @@
-/*
- *  Copyright 2013 The LibYuv Project Authors. All rights reserved.
- *
- *  Use of this source code is governed by a BSD-style license
- *  that can be found in the LICENSE file in the root of the source
- *  tree. An additional intellectual property rights grant can be found
- *  in the file PATENTS. All contributing project authors may
- *  be found in the AUTHORS file in the root of the source tree.
- */
 
-// Get PSNR or SSIM for video sequence. Assuming RAW 4:2:0 Y:Cb:Cr format
-// To build: g++ -O3 -o psnr psnr.cc ssim.cc psnr_main.cc
-// or VisualC: cl /Ox psnr.cc ssim.cc psnr_main.cc
-//
-// To enable OpenMP and SSE2
-// gcc: g++ -msse2 -O3 -fopenmp -o psnr psnr.cc ssim.cc psnr_main.cc
-// vc:  cl /arch:SSE2 /Ox /openmp psnr.cc ssim.cc psnr_main.cc
-//
-// Usage: psnr org_seq rec_seq -s width height [-skip skip_org skip_rec]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
@@ -40,7 +40,7 @@ struct metric {
   int min_frame;
 };
 
-// options
+
 bool verbose = false;
 bool quiet = false;
 bool show_name = false;
@@ -50,8 +50,8 @@ bool do_ssim = false;
 bool do_mse = false;
 bool do_lssim = false;
 int image_width = 0, image_height = 0;
-int fileindex_org = 0;  // argv argument contains the source file name.
-int fileindex_rec = 0;  // argv argument contains the destination file name.
+int fileindex_org = 0;  
+int fileindex_rec = 0;  
 int num_rec = 0;
 int num_skip_org = 0;
 int num_skip_rec = 0;
@@ -60,16 +60,16 @@ int num_frames = 0;
 int num_threads = 0;
 #endif
 
-// Parse PYUV format. ie name.1920x800_24Hz_P420.yuv
+
 bool ExtractResolutionFromFilename(const char* name,
                                    int* width_ptr,
                                    int* height_ptr) {
-  // Isolate the .width_height. section of the filename by searching for a
-  // dot or underscore followed by a digit.
+  
+  
   for (int i = 0; name[i]; ++i) {
     if ((name[i] == '.' || name[i] == '_') &&
         name[i + 1] >= '0' && name[i + 1] <= '9') {
-      int n = sscanf(name + i + 1, "%dx%d", width_ptr, height_ptr);  // NOLINT
+      int n = sscanf(name + i + 1, "%dx%d", width_ptr, height_ptr);  
       if (2 == n) {
         return true;
       }
@@ -78,8 +78,8 @@ bool ExtractResolutionFromFilename(const char* name,
   return false;
 }
 
-// Scale Y channel from 16..240 to 0..255.
-// This can be useful when comparing codecs that are inconsistant about Y
+
+
 uint8 ScaleY(uint8 y) {
   int ny = (y - 16) * 256 / 224;
   if (ny < 0) ny = 0;
@@ -87,7 +87,7 @@ uint8 ScaleY(uint8 y) {
   return static_cast<uint8>(ny);
 }
 
-// MSE = Mean Square Error
+
 double GetMSE(double sse, double size) {
   return sse / size;
 }
@@ -138,16 +138,16 @@ void ParseOptions(int argc, const char* argv[]) {
     } else if (!strcmp(argv[c], "-h") || !strcmp(argv[c], "-help")) {
       PrintHelp(argv[0]);
     } else if (!strcmp(argv[c], "-s") && c + 2 < argc) {
-      image_width = atoi(argv[++c]);    // NOLINT
-      image_height = atoi(argv[++c]);   // NOLINT
+      image_width = atoi(argv[++c]);    
+      image_height = atoi(argv[++c]);   
     } else if (!strcmp(argv[c], "-skip") && c + 2 < argc) {
-      num_skip_org = atoi(argv[++c]);   // NOLINT
-      num_skip_rec = atoi(argv[++c]);   // NOLINT
+      num_skip_org = atoi(argv[++c]);   
+      num_skip_rec = atoi(argv[++c]);   
     } else if (!strcmp(argv[c], "-frames") && c + 1 < argc) {
-      num_frames = atoi(argv[++c]);     // NOLINT
+      num_frames = atoi(argv[++c]);     
 #ifdef _OPENMP
     } else if (!strcmp(argv[c], "-t") && c + 1 < argc) {
-      num_threads = atoi(argv[++c]);    // NOLINT
+      num_threads = atoi(argv[++c]);    
 #endif
     } else if (argv[c][0] == '-') {
       fprintf(stderr, "Unknown option. %s\n", argv[c]);
@@ -283,16 +283,16 @@ int main(int argc, const char* argv[]) {
     printf("OpenMP %d procs\n", omp_get_num_procs());
   }
 #endif
-  // Open original file (first file argument)
+  
   FILE* const file_org = fopen(argv[fileindex_org], "rb");
   if (file_org == NULL) {
     fprintf(stderr, "Cannot open %s\n", argv[fileindex_org]);
     exit(1);
   }
 
-  // Open all files to compare to
+  
   FILE** file_rec = new FILE* [num_rec];
-  memset(file_rec, 0, num_rec * sizeof(FILE*)); // NOLINT
+  memset(file_rec, 0, num_rec * sizeof(FILE*)); 
   for (int cur_rec = 0; cur_rec < num_rec; ++cur_rec) {
     file_rec[cur_rec] = fopen(argv[fileindex_rec + cur_rec], "rb");
     if (file_rec[cur_rec] == NULL) {
@@ -308,7 +308,7 @@ int main(int argc, const char* argv[]) {
 
   const int y_size = image_width * image_height;
   const int uv_size = ((image_width + 1) / 2) * ((image_height + 1) / 2);
-  const size_t total_size = y_size + 2 * uv_size;    // NOLINT
+  const size_t total_size = y_size + 2 * uv_size;    
 #if defined(_MSC_VER)
   _fseeki64(file_org,
             static_cast<__int64>(num_skip_org) *
@@ -439,7 +439,7 @@ int main(int argc, const char* argv[]) {
     }
   }
 
-  // Final PSNR computation.
+  
   for (int cur_rec = 0; cur_rec < num_rec; ++cur_rec) {
     metric* cur_distortion_psnr = &distortion_psnr[cur_rec];
     metric* cur_distortion_ssim = &distortion_ssim[cur_rec];

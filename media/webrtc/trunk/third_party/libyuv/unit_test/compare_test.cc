@@ -1,12 +1,12 @@
-/*
- *  Copyright 2011 The LibYuv Project Authors. All rights reserved.
- *
- *  Use of this source code is governed by a BSD-style license
- *  that can be found in the LICENSE file in the root of the source
- *  tree. An additional intellectual property rights grant can be found
- *  in the file PATENTS. All contributing project authors may
- *  be found in the AUTHORS file in the root of the source tree.
- */
+
+
+
+
+
+
+
+
+
 
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +20,7 @@
 
 namespace libyuv {
 
-// hash seed of 5381 recommended.
+
 static uint32 ReferenceHashDjb2(const uint8* src, uint64 count, uint32 seed) {
   uint32 hash = seed;
   if (count > 0) {
@@ -47,18 +47,18 @@ TEST_F(libyuvTest, Djb2_Test) {
     src_a[i] = (random() & 0xff);
     src_b[i] = (random() & 0xff);
   }
-  // Compare different buffers. Expect hash is different.
+  
   uint32 h1 = HashDjb2(src_a, kMaxTest, 5381);
   uint32 h2 = HashDjb2(src_b, kMaxTest, 5381);
   EXPECT_NE(h1, h2);
 
-  // Make last half same. Expect hash is different.
+  
   memcpy(src_a + kMaxTest / 2, src_b + kMaxTest / 2, kMaxTest / 2);
   h1 = HashDjb2(src_a, kMaxTest, 5381);
   h2 = HashDjb2(src_b, kMaxTest, 5381);
   EXPECT_NE(h1, h2);
 
-  // Make first half same. Expect hash is different.
+  
   memcpy(src_a + kMaxTest / 2, src_a, kMaxTest / 2);
   memcpy(src_b + kMaxTest / 2, src_b, kMaxTest / 2);
   memcpy(src_a, src_b, kMaxTest / 2);
@@ -66,46 +66,46 @@ TEST_F(libyuvTest, Djb2_Test) {
   h2 = HashDjb2(src_b, kMaxTest, 5381);
   EXPECT_NE(h1, h2);
 
-  // Make same. Expect hash is same.
+  
   memcpy(src_a, src_b, kMaxTest);
   h1 = HashDjb2(src_a, kMaxTest, 5381);
   h2 = HashDjb2(src_b, kMaxTest, 5381);
   EXPECT_EQ(h1, h2);
 
-  // Mask seed different. Expect hash is different.
+  
   memcpy(src_a, src_b, kMaxTest);
   h1 = HashDjb2(src_a, kMaxTest, 5381);
   h2 = HashDjb2(src_b, kMaxTest, 1234);
   EXPECT_NE(h1, h2);
 
-  // Make one byte different in middle. Expect hash is different.
+  
   memcpy(src_a, src_b, kMaxTest);
   ++src_b[kMaxTest / 2];
   h1 = HashDjb2(src_a, kMaxTest, 5381);
   h2 = HashDjb2(src_b, kMaxTest, 5381);
   EXPECT_NE(h1, h2);
 
-  // Make first byte different. Expect hash is different.
+  
   memcpy(src_a, src_b, kMaxTest);
   ++src_b[0];
   h1 = HashDjb2(src_a, kMaxTest, 5381);
   h2 = HashDjb2(src_b, kMaxTest, 5381);
   EXPECT_NE(h1, h2);
 
-  // Make last byte different. Expect hash is different.
+  
   memcpy(src_a, src_b, kMaxTest);
   ++src_b[kMaxTest - 1];
   h1 = HashDjb2(src_a, kMaxTest, 5381);
   h2 = HashDjb2(src_b, kMaxTest, 5381);
   EXPECT_NE(h1, h2);
 
-  // Make a zeros. Test different lengths. Expect hash is different.
+  
   memset(src_a, 0, kMaxTest);
   h1 = HashDjb2(src_a, kMaxTest, 5381);
   h2 = HashDjb2(src_a, kMaxTest / 2, 5381);
   EXPECT_NE(h1, h2);
 
-  // Make a zeros and seed of zero. Test different lengths. Expect hash is same.
+  
   memset(src_a, 0, kMaxTest);
   h1 = HashDjb2(src_a, kMaxTest, 0);
   h2 = HashDjb2(src_a, kMaxTest / 2, 0);
@@ -342,7 +342,7 @@ TEST_F(libyuvTest, DISABLED_BenchmarkSsim_Opt) {
   opt_time = (get_time() - opt_time) / benchmark_iterations_;
   printf("BenchmarkSsim_Opt - %8.2f us opt\n", opt_time * 1e6);
 
-  EXPECT_EQ(0, 0);  // Pass if we get this far.
+  EXPECT_EQ(0, 0);  
 
   free_aligned_buffer_64(src_a);
   free_aligned_buffer_64(src_b);
@@ -435,4 +435,4 @@ TEST_F(libyuvTest, Ssim) {
   free_aligned_buffer_64(src_b);
 }
 
-}  // namespace libyuv
+}  
