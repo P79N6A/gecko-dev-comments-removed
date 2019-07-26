@@ -1963,153 +1963,165 @@ var XPIProvider = {
       XPIProvider.installLocationsByName[location.name] = location;
     }
 
-    let hasRegistry = ("nsIWindowsRegKey" in Ci);
+    try {
+      let hasRegistry = ("nsIWindowsRegKey" in Ci);
 
-    let enabledScopes = Prefs.getIntPref(PREF_EM_ENABLED_SCOPES,
-                                         AddonManager.SCOPE_ALL);
-
-    
-    if (enabledScopes & AddonManager.SCOPE_SYSTEM) {
-      if (hasRegistry) {
-        addRegistryInstallLocation("winreg-app-global",
-                                   Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE,
-                                   AddonManager.SCOPE_SYSTEM);
-      }
-      addDirectoryInstallLocation(KEY_APP_SYSTEM_LOCAL, "XRESysLExtPD",
-                                  [Services.appinfo.ID],
-                                  AddonManager.SCOPE_SYSTEM, true);
-      addDirectoryInstallLocation(KEY_APP_SYSTEM_SHARE, "XRESysSExtPD",
-                                  [Services.appinfo.ID],
-                                  AddonManager.SCOPE_SYSTEM, true);
-    }
-
-    if (enabledScopes & AddonManager.SCOPE_APPLICATION) {
-      addDirectoryInstallLocation(KEY_APP_GLOBAL, KEY_APPDIR,
-                                  [DIR_EXTENSIONS],
-                                  AddonManager.SCOPE_APPLICATION, true);
-    }
-
-    if (enabledScopes & AddonManager.SCOPE_USER) {
-      if (hasRegistry) {
-        addRegistryInstallLocation("winreg-app-user",
-                                   Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-                                   AddonManager.SCOPE_USER);
-      }
-      addDirectoryInstallLocation(KEY_APP_SYSTEM_USER, "XREUSysExt",
-                                  [Services.appinfo.ID],
-                                  AddonManager.SCOPE_USER, true);
-    }
-
-    
-    addDirectoryInstallLocation(KEY_APP_PROFILE, KEY_PROFILEDIR,
-                                [DIR_EXTENSIONS],
-                                AddonManager.SCOPE_PROFILE, false);
-
-    this.defaultSkin = Prefs.getDefaultCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN,
-                                                "classic/1.0");
-    this.currentSkin = Prefs.getCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN,
-                                         this.defaultSkin);
-    this.selectedSkin = this.currentSkin;
-    this.applyThemeChange();
-
-    this.minCompatibleAppVersion = Prefs.getCharPref(PREF_EM_MIN_COMPAT_APP_VERSION,
-                                                     null);
-    this.minCompatiblePlatformVersion = Prefs.getCharPref(PREF_EM_MIN_COMPAT_PLATFORM_VERSION,
-                                                          null);
-    this.enabledAddons = "";
-
-    Services.prefs.addObserver(PREF_EM_MIN_COMPAT_APP_VERSION, this, false);
-    Services.prefs.addObserver(PREF_EM_MIN_COMPAT_PLATFORM_VERSION, this, false);
-    Services.obs.addObserver(this, NOTIFICATION_FLUSH_PERMISSIONS, false);
-
-    let flushCaches = this.checkForChanges(aAppChanged, aOldAppVersion,
-                                           aOldPlatformVersion);
-
-    
-    this.applyThemeChange();
-
-    
-    
-    
-    if (aAppChanged && !this.allAppGlobal &&
-        Prefs.getBoolPref(PREF_EM_SHOW_MISMATCH_UI, true)) {
-      this.showUpgradeUI();
-      flushCaches = true;
-    }
-    else if (aAppChanged === undefined) {
-      
-      Services.prefs.setBoolPref(PREF_SHOWN_SELECTION_UI, true);
-    }
-
-    if (flushCaches) {
-      flushStartupCache();
+      let enabledScopes = Prefs.getIntPref(PREF_EM_ENABLED_SCOPES,
+                                           AddonManager.SCOPE_ALL);
 
       
-      
-      
-      
-      Services.obs.notifyObservers(null, "chrome-flush-skin-caches", null);
-      Services.obs.notifyObservers(null, "chrome-flush-caches", null);
-    }
-
-    this.enabledAddons = Prefs.getCharPref(PREF_EM_ENABLED_ADDONS, "");
-    if ("nsICrashReporter" in Ci &&
-        Services.appinfo instanceof Ci.nsICrashReporter) {
-      
-      try {
-        Services.appinfo.annotateCrashReport("Theme", this.currentSkin);
-      } catch (e) { }
-      try {
-        Services.appinfo.annotateCrashReport("EMCheckCompatibility",
-                                             AddonManager.checkCompatibility);
-      } catch (e) { }
-      this.addAddonsToCrashReporter();
-    }
-
-    AddonManagerPrivate.recordTimestamp("XPI_bootstrap_addons_begin");
-    for (let id in this.bootstrappedAddons) {
-      let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
-      file.persistentDescriptor = this.bootstrappedAddons[id].descriptor;
-      let reason = BOOTSTRAP_REASONS.APP_STARTUP;
-      
-      
-      if (AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_INSTALLED)
-                      .indexOf(id) !== -1)
-        reason = BOOTSTRAP_REASONS.ADDON_INSTALL;
-      this.callBootstrapMethod(id, this.bootstrappedAddons[id].version,
-                               this.bootstrappedAddons[id].type, file,
-                               "startup", reason);
-    }
-    AddonManagerPrivate.recordTimestamp("XPI_bootstrap_addons_end");
-
-    
-    
-    Services.obs.addObserver({
-      observe: function shutdownObserver(aSubject, aTopic, aData) {
-        for (let id in XPIProvider.bootstrappedAddons) {
-          let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
-          file.persistentDescriptor = XPIProvider.bootstrappedAddons[id].descriptor;
-          XPIProvider.callBootstrapMethod(id, XPIProvider.bootstrappedAddons[id].version,
-                                          XPIProvider.bootstrappedAddons[id].type, file, "shutdown",
-                                          BOOTSTRAP_REASONS.APP_SHUTDOWN);
+      if (enabledScopes & AddonManager.SCOPE_SYSTEM) {
+        if (hasRegistry) {
+          addRegistryInstallLocation("winreg-app-global",
+                                     Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE,
+                                     AddonManager.SCOPE_SYSTEM);
         }
-        Services.obs.removeObserver(this, "quit-application-granted");
+        addDirectoryInstallLocation(KEY_APP_SYSTEM_LOCAL, "XRESysLExtPD",
+                                    [Services.appinfo.ID],
+                                    AddonManager.SCOPE_SYSTEM, true);
+        addDirectoryInstallLocation(KEY_APP_SYSTEM_SHARE, "XRESysSExtPD",
+                                    [Services.appinfo.ID],
+                                    AddonManager.SCOPE_SYSTEM, true);
       }
-    }, "quit-application-granted", false);
 
-    
-    Services.obs.addObserver({
-      observe: function uiStartupObserver(aSubject, aTopic, aData) {
-        AddonManagerPrivate.recordTimestamp("XPI_finalUIStartup");
-        XPIProvider.runPhase = XPI_AFTER_UI_STARTUP;
-        Services.obs.removeObserver(this, "final-ui-startup");
+      if (enabledScopes & AddonManager.SCOPE_APPLICATION) {
+        addDirectoryInstallLocation(KEY_APP_GLOBAL, KEY_APPDIR,
+                                    [DIR_EXTENSIONS],
+                                    AddonManager.SCOPE_APPLICATION, true);
       }
-    }, "final-ui-startup", false);
 
-    AddonManagerPrivate.recordTimestamp("XPI_startup_end");
+      if (enabledScopes & AddonManager.SCOPE_USER) {
+        if (hasRegistry) {
+          addRegistryInstallLocation("winreg-app-user",
+                                     Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+                                     AddonManager.SCOPE_USER);
+        }
+        addDirectoryInstallLocation(KEY_APP_SYSTEM_USER, "XREUSysExt",
+                                    [Services.appinfo.ID],
+                                    AddonManager.SCOPE_USER, true);
+      }
 
-    this.extensionsActive = true;
-    this.runPhase = XPI_BEFORE_UI_STARTUP;
+      
+      addDirectoryInstallLocation(KEY_APP_PROFILE, KEY_PROFILEDIR,
+                                  [DIR_EXTENSIONS],
+                                  AddonManager.SCOPE_PROFILE, false);
+
+      this.defaultSkin = Prefs.getDefaultCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN,
+                                                  "classic/1.0");
+      this.currentSkin = Prefs.getCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN,
+                                           this.defaultSkin);
+      this.selectedSkin = this.currentSkin;
+      this.applyThemeChange();
+
+      this.minCompatibleAppVersion = Prefs.getCharPref(PREF_EM_MIN_COMPAT_APP_VERSION,
+                                                       null);
+      this.minCompatiblePlatformVersion = Prefs.getCharPref(PREF_EM_MIN_COMPAT_PLATFORM_VERSION,
+                                                            null);
+      this.enabledAddons = "";
+
+      Services.prefs.addObserver(PREF_EM_MIN_COMPAT_APP_VERSION, this, false);
+      Services.prefs.addObserver(PREF_EM_MIN_COMPAT_PLATFORM_VERSION, this, false);
+      Services.obs.addObserver(this, NOTIFICATION_FLUSH_PERMISSIONS, false);
+
+      let flushCaches = this.checkForChanges(aAppChanged, aOldAppVersion,
+                                             aOldPlatformVersion);
+
+      
+      this.applyThemeChange();
+
+      
+      
+      
+      if (aAppChanged && !this.allAppGlobal &&
+          Prefs.getBoolPref(PREF_EM_SHOW_MISMATCH_UI, true)) {
+        this.showUpgradeUI();
+        flushCaches = true;
+      }
+      else if (aAppChanged === undefined) {
+        
+        Services.prefs.setBoolPref(PREF_SHOWN_SELECTION_UI, true);
+      }
+
+      if (flushCaches) {
+        flushStartupCache();
+
+        
+        
+        
+        
+        Services.obs.notifyObservers(null, "chrome-flush-skin-caches", null);
+        Services.obs.notifyObservers(null, "chrome-flush-caches", null);
+      }
+
+      this.enabledAddons = Prefs.getCharPref(PREF_EM_ENABLED_ADDONS, "");
+      if ("nsICrashReporter" in Ci &&
+          Services.appinfo instanceof Ci.nsICrashReporter) {
+        
+        try {
+          Services.appinfo.annotateCrashReport("Theme", this.currentSkin);
+        } catch (e) { }
+        try {
+          Services.appinfo.annotateCrashReport("EMCheckCompatibility",
+                                               AddonManager.checkCompatibility);
+        } catch (e) { }
+        this.addAddonsToCrashReporter();
+      }
+
+      try {
+        AddonManagerPrivate.recordTimestamp("XPI_bootstrap_addons_begin");
+        for (let id in this.bootstrappedAddons) {
+          let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+          file.persistentDescriptor = this.bootstrappedAddons[id].descriptor;
+          let reason = BOOTSTRAP_REASONS.APP_STARTUP;
+          
+          
+          if (AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_INSTALLED)
+                          .indexOf(id) !== -1)
+            reason = BOOTSTRAP_REASONS.ADDON_INSTALL;
+          this.callBootstrapMethod(id, this.bootstrappedAddons[id].version,
+                                   this.bootstrappedAddons[id].type, file,
+                                   "startup", reason);
+        }
+        AddonManagerPrivate.recordTimestamp("XPI_bootstrap_addons_end");
+      }
+      catch (e) {
+        ERROR("bootstrap startup failed", e);
+        AddonManagerPrivate.recordException("XPI-BOOTSTRAP", "startup failed", e);
+      }
+
+      
+      
+      Services.obs.addObserver({
+        observe: function shutdownObserver(aSubject, aTopic, aData) {
+          for (let id in XPIProvider.bootstrappedAddons) {
+            let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+            file.persistentDescriptor = XPIProvider.bootstrappedAddons[id].descriptor;
+            XPIProvider.callBootstrapMethod(id, XPIProvider.bootstrappedAddons[id].version,
+                                            XPIProvider.bootstrappedAddons[id].type, file, "shutdown",
+                                            BOOTSTRAP_REASONS.APP_SHUTDOWN);
+          }
+          Services.obs.removeObserver(this, "quit-application-granted");
+        }
+      }, "quit-application-granted", false);
+
+      
+      Services.obs.addObserver({
+        observe: function uiStartupObserver(aSubject, aTopic, aData) {
+          AddonManagerPrivate.recordTimestamp("XPI_finalUIStartup");
+          XPIProvider.runPhase = XPI_AFTER_UI_STARTUP;
+          Services.obs.removeObserver(this, "final-ui-startup");
+        }
+      }, "final-ui-startup", false);
+
+      AddonManagerPrivate.recordTimestamp("XPI_startup_end");
+
+      this.extensionsActive = true;
+      this.runPhase = XPI_BEFORE_UI_STARTUP;
+    }
+    catch (e) {
+      ERROR("startup failed", e);
+      AddonManagerPrivate.recordException("XPI", "startup failed", e);
+    }
   },
 
   
