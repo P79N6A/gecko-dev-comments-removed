@@ -19,11 +19,10 @@
 
 
 
-
 #ifndef js_LegacyIntTypes_h
 #define js_LegacyIntTypes_h
 
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 
 #include "js-config.h"
 
