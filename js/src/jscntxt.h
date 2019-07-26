@@ -761,18 +761,18 @@ struct JSRuntime : js::RuntimeFriendFields
     bool                gcFoundBlackGrayEdges;
 
     
-    JSCompartment       *gcSweepingCompartments;
+    JS::Zone            *gcSweepingZones;
 
     
-    unsigned            gcCompartmentGroupIndex;
+    unsigned            gcZoneGroupIndex;
 
     
 
 
-    JSCompartment       *gcCompartmentGroups;
-    JSCompartment       *gcCurrentCompartmentGroup;
+    JS::Zone            *gcZoneGroups;
+    JS::Zone            *gcCurrentZoneGroup;
     int                 gcSweepPhase;
-    JSCompartment       *gcSweepCompartment;
+    JS::Zone            *gcSweepZone;
     int                 gcSweepKindIndex;
     bool                gcAbortSweepAfterCurrentGroup;
 
