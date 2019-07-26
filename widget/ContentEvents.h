@@ -247,7 +247,4 @@ public:
 
 } 
 
-
-typedef mozilla::InternalScriptErrorEvent nsScriptErrorEvent;
-
 #endif

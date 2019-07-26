@@ -22,7 +22,7 @@ class nsIScriptGlobalObject;
 
 bool
 NS_HandleScriptError(nsIScriptGlobalObject *aScriptGlobal,
-                     nsScriptErrorEvent *aErrorEvent,
+                     mozilla::InternalScriptErrorEvent *aErrorEvent,
                      nsEventStatus *aStatus);
 
 
@@ -78,8 +78,9 @@ public:
   
 
 
-  virtual nsresult HandleScriptError(nsScriptErrorEvent *aErrorEvent,
-                                     nsEventStatus *aEventStatus) {
+  virtual nsresult HandleScriptError(
+                     mozilla::InternalScriptErrorEvent *aErrorEvent,
+                     nsEventStatus *aEventStatus) {
     NS_ENSURE_STATE(NS_HandleScriptError(this, aErrorEvent, aEventStatus));
     return NS_OK;
   }

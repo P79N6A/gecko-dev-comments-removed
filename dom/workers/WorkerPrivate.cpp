@@ -71,6 +71,7 @@
 
 #define IDLE_GC_TIMER_DELAY_MS 5000
 
+using mozilla::InternalScriptErrorEvent;
 using mozilla::MutexAutoLock;
 using mozilla::TimeDuration;
 using mozilla::TimeStamp;
@@ -1059,7 +1060,7 @@ public:
         }
         else {
           
-          nsScriptErrorEvent event(true, NS_LOAD_ERROR);
+          InternalScriptErrorEvent event(true, NS_LOAD_ERROR);
           event.lineNr = aLineNumber;
           event.errorMsg = aMessage.get();
           event.fileName = aFilename.get();
