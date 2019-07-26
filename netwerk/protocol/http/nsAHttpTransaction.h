@@ -124,6 +124,8 @@ public:
     
     virtual nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return nullptr; }
 
+    virtual bool ResponseTimeoutEnabled() const { return false; }
+
     
     
     

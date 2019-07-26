@@ -278,6 +278,8 @@ private:
 
     
     uint32_t                        mTransactionCaps;
+
+    bool                            mResponseTimeoutEnabled;
 };
 
 #endif 
