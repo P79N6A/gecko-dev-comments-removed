@@ -1666,6 +1666,11 @@ ContainerState::FindFixedPosFrameForLayerData(const nsIFrame* aAnimatedGeometryR
                                               nsIntRegion* aVisibleRegion,
                                               bool* aIsSolidColorInVisibleRegion)
 {
+  if (!mManager->IsWidgetLayerManager()) {
+    
+    return nullptr;
+  }
+
   nsPresContext* presContext = mContainerFrame->PresContext();
   nsIFrame* viewport = presContext->PresShell()->GetRootFrame();
   const nsIFrame* result = nullptr;
