@@ -1122,6 +1122,9 @@ pref("network.dns.disableIPv6", false);
 pref("network.dnsCacheExpirationGracePeriod", 2592000);
 
 
+pref("network.dns.disablePrefetch", false);
+
+
 
 pref("network.standard-url.escape-utf8", true);
 
