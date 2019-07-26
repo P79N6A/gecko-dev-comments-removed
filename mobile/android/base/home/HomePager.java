@@ -138,8 +138,13 @@ public class HomePager extends ViewPager {
                 getContext().getString(R.string.home_top_sites_title));
         adapter.addTab(Page.BOOKMARKS, BookmarksPage.class, new Bundle(),
                 getContext().getString(R.string.bookmarks_title));
-        adapter.addTab(Page.READING_LIST, ReadingListPage.class, new Bundle(),
-                getContext().getString(R.string.reading_list_title));
+
+        
+        
+        if (!HardwareUtils.isLowMemoryPlatform()) {
+            adapter.addTab(Page.READING_LIST, ReadingListPage.class, new Bundle(),
+                    getContext().getString(R.string.reading_list_title));
+        }
 
         
         
