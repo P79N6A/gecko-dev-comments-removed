@@ -1084,9 +1084,9 @@ MarionetteDriverActor.prototype = {
   getPageSource: function MDA_getPageSource(){
     this.command_id = this.getCommandId();
     if (this.context == "chrome"){
-      var curWindow = this.getCurrentWindow();
-      var XMLSerializer = curWindow.XMLSerializer; 
-      var pageSource = new XMLSerializer().serializeToString(curWindow.document);
+      let curWindow = this.getCurrentWindow();
+      let XMLSerializer = curWindow.XMLSerializer; 
+      let pageSource = new XMLSerializer().serializeToString(curWindow.document);
       this.sendResponse(pageSource, this.command_id);
     }
     else {
@@ -1192,6 +1192,7 @@ MarionetteDriverActor.prototype = {
     let command_id = this.command_id = this.getCommandId();
     this.logRequest("switchToFrame", aRequest);
     let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    let curWindow = this.getCurrentWindow();
     let checkLoad = function() { 
       let errorRegex = /about:.+(error)|(blocked)\?/;
       if (curWindow.document.readyState == "complete") { 
@@ -1205,7 +1206,6 @@ MarionetteDriverActor.prototype = {
       
       checkTimer.initWithCallback(checkLoad.bind(this), 100, Ci.nsITimer.TYPE_ONE_SHOT);
     }
-    let curWindow = this.getCurrentWindow();
     if (this.context == "chrome") {
       let foundFrame = null;
       if ((aRequest.value == null) && (aRequest.element == null)) {
@@ -2167,9 +2167,9 @@ MarionetteDriverActor.prototype = {
         let reg = {};
         if (!browserType || browserType != "content") {
           reg.id = this.curBrowser.register(this.generateFrameId(message.json.value),
-                                         message.json.href); 
+                                            listenerWindow);
         }
-        this.curBrowser.elementManager.seenItems[reg.id] = Cu.getWeakReference(listenerWindow); 
+        this.curBrowser.elementManager.seenItems[reg.id] = Cu.getWeakReference(listenerWindow);
         reg.importedScripts = this.importedScripts.path;
         if (nullPrevious && (this.curBrowser.curFrameId != null)) {
           if (!this.sendAsync("newSession",
@@ -2299,7 +2299,7 @@ BrowserObj.prototype = {
       callback(win, newTab);
     }
     else if (newTab) {
-      this.addTab(this.startPage);
+      this.tab = this.addTab(this.startPage);
       
       this.browser.selectedTab = this.tab;
       let newTabBrowser = this.browser.getBrowserForTab(this.tab);
@@ -2335,7 +2335,7 @@ BrowserObj.prototype = {
 
 
   addTab: function BO_addTab(uri) {
-    this.tab = this.browser.addTab(uri, true);
+    return this.browser.addTab(uri, true);
   },
 
   
@@ -2361,10 +2361,15 @@ BrowserObj.prototype = {
 
 
 
-  register: function BO_register(uid, href) {
+  register: function BO_register(uid, frameWindow) {
     if (this.curFrameId == null) {
-      if ((!this.newSession) || (this.newSession && 
-          ((appName != "Firefox") || href.indexOf(this.startPage) > -1))) {
+      
+      
+      
+      if ((!this.newSession) ||
+          (this.newSession &&
+            ((appName != "Firefox") ||
+             frameWindow == this.browser.getBrowserForTab(this.tab).contentWindow))) {
         this.curFrameId = uid;
         this.mainContentId = uid;
       }
