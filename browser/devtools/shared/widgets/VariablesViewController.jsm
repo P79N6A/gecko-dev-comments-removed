@@ -39,7 +39,7 @@ this.EXPORTED_SYMBOLS = ["VariablesViewController"];
 
 
 
-function VariablesViewController(aView, aOptions = {}) {
+function VariablesViewController(aView, aOptions) {
   this.addExpander = this.addExpander.bind(this);
 
   this._getGripClient = aOptions.getGripClient;
@@ -330,34 +330,6 @@ VariablesViewController.prototype = {
         this.releaseActor(actor);
       }
     }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  setSingleVariable: function(aOptions) {
-    let scope = this.view.addScope(aOptions.label);
-    scope.expanded = true;
-    scope.locked = true;
-
-    let container = scope.addItem();
-
-    if (aOptions.objectActor) {
-      this.expand(container, aOptions.objectActor);
-    } else if (aOptions.rawObject) {
-      container.populate(aOptions.rawObject, { expanded: true });
-    }
-
-    return container;
   },
 };
 
