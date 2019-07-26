@@ -4,15 +4,13 @@
 
 
 
-#ifndef RtspChannelChild_h
-#define RtspChannelChild_h
+#ifndef RtspChannelParent_h
+#define RtspChannelParent_h
 
-#include "mozilla/net/PRtspChannelChild.h"
-#include "mozilla/net/NeckoChild.h"
+#include "mozilla/net/PRtspChannelParent.h"
+#include "mozilla/net/NeckoParent.h"
 #include "nsBaseChannel.h"
-#include "nsIChildChannel.h"
-#include "nsIStreamingProtocolController.h"
-#include "nsIStreamingProtocolService.h"
+#include "nsIParentChannel.h"
 
 namespace mozilla {
 namespace net {
@@ -27,26 +25,25 @@ namespace net {
 
 
 
-
-class RtspChannelChild : public PRtspChannelChild
-                       , public nsBaseChannel
-                       , public nsIChildChannel
+class RtspChannelParent : public PRtspChannelParent
+                        , public nsBaseChannel
+                        , public nsIParentChannel
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSICHILDCHANNEL
+  NS_DECL_NSIPARENTCHANNEL
 
-  RtspChannelChild(nsIURI *aUri);
-  ~RtspChannelChild();
+  RtspChannelParent(nsIURI *aUri);
+  ~RtspChannelParent();
 
   
   NS_IMETHOD GetContentType(nsACString & aContentType) MOZ_OVERRIDE MOZ_FINAL;
-  NS_IMETHOD AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
-                       MOZ_OVERRIDE MOZ_FINAL;
+  NS_IMETHOD AsyncOpen(nsIStreamListener *listener,
+                       nsISupports *aContext) MOZ_OVERRIDE MOZ_FINAL;
 
   
-  NS_IMETHOD OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
-                            MOZ_OVERRIDE MOZ_FINAL;
+  NS_IMETHOD OnStartRequest(nsIRequest *aRequest,
+                            nsISupports *aContext) MOZ_OVERRIDE MOZ_FINAL;
   NS_IMETHOD OnStopRequest(nsIRequest *aRequest,
                            nsISupports *aContext,
                            nsresult aStatusCode) MOZ_OVERRIDE MOZ_FINAL;
@@ -69,17 +66,16 @@ public:
                                nsIChannel **aChannel) MOZ_OVERRIDE MOZ_FINAL;
 
   
-  void AddIPDLReference();
-  void ReleaseIPDLReference();
+  bool Init(const RtspChannelConnectArgs& aArgs);
 
+protected:
   
-  nsIStreamingProtocolController* GetController();
-  void ReleaseController();
+  
+  bool ConnectChannel(const uint32_t& channelId);
 
 private:
-  bool mIPCOpen;
-  bool mCanceled;
-  nsCOMPtr<nsIStreamingProtocolController> mMediaStreamController;
+  bool mIPCClosed;
+  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 };
 
 } 
