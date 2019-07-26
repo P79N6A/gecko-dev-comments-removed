@@ -16,7 +16,6 @@
 #define SCREEN_BUFFER_H_
 
 #include "SurfaceTypes.h"
-#include "SurfaceStream.h"
 #include "GLContextTypes.h"
 #include "GLDefs.h"
 #include "mozilla/gfx/2D.h"
@@ -157,7 +156,7 @@ protected:
     GLContext* const mGL;         
     SurfaceCaps mCaps;
     SurfaceFactory_GL* mFactory;  
-    RefPtr<SurfaceStream> mStream;
+    SurfaceStream* mStream;       
 
     DrawBuffer* mDraw;            
     ReadBuffer* mRead;            

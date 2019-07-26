@@ -31,7 +31,6 @@ class nsXULElement;
 namespace mozilla {
 namespace gfx {
 class SourceSurface;
-class SurfaceStream;
 }
 
 namespace dom {
@@ -594,6 +593,7 @@ protected:
     return CurrentState().font;
   }
 
+#if USE_SKIA_GPU
   static std::vector<CanvasRenderingContext2D*>& DemotableContexts();
   static void DemoteOldestContextIfNecessary();
 
@@ -602,6 +602,7 @@ protected:
 
   
   bool mForceSoftware;
+#endif
 
   
   int32_t mWidth, mHeight;
@@ -627,8 +628,6 @@ protected:
   
   
   mozilla::RefPtr<mozilla::gfx::DrawTarget> mTarget;
-
-  RefPtr<gfx::SurfaceStream> mStream;
 
   
 
