@@ -69,20 +69,9 @@ protected:
   GetAndPaintCurrentImage(DrawTarget* aTarget,
                           float aOpacity,
                           SourceSurface* aMaskSurface);
-  already_AddRefed<gfxPattern>
-  DeprecatedGetAndPaintCurrentImage(gfxContext* aContext,
-                                    float aOpacity,
-                                    Layer* aMaskLayer);
 
   gfx::IntSize mSize;
 };
-
-static void
-DeprecatedPaintContext(gfxPattern* aPattern,
-                       const nsIntRegion& aVisible,
-                       float aOpacity,
-                       gfxContext* aContext,
-                       Layer* aMaskLayer);
 
 void
 BasicImageLayer::Paint(DrawTarget* aTarget, SourceSurface* aMaskSurface)
@@ -96,13 +85,28 @@ BasicImageLayer::Paint(DrawTarget* aTarget, SourceSurface* aMaskSurface)
 void
 BasicImageLayer::DeprecatedPaint(gfxContext* aContext, Layer* aMaskLayer)
 {
-  if (IsHidden()) {
+  if (IsHidden() || !mContainer) {
     return;
   }
-  nsRefPtr<gfxPattern> dontcare =
-    DeprecatedGetAndPaintCurrentImage(aContext,
-                                      GetEffectiveOpacity(),
-                                      aMaskLayer);
+
+  mContainer->SetImageFactory(mManager->IsCompositingCheap() ? nullptr : BasicManager()->GetImageFactory());
+
+  RefPtr<gfx::SourceSurface> surface;
+  AutoLockImage autoLock(mContainer, &surface);
+  Image *image = autoLock.GetImage();
+  gfx::IntSize size = mSize = autoLock.GetSize();
+
+  if (!surface || !surface->IsValid()) {
+    return;
+  }
+
+  FillRectWithMask(aContext->GetDrawTarget(),
+                   Rect(0, 0, size.width, size.height),
+                   surface, ToFilter(mFilter),
+                   DrawOptions(GetEffectiveOpacity(), GetEffectiveOperator(this)),
+                   aMaskLayer);
+
+  GetContainer()->NotifyPaintedImage(image);
 }
 
 void
@@ -139,83 +143,6 @@ BasicImageLayer::GetAndPaintCurrentImage(DrawTarget* aTarget,
   }
 
   mContainer->UnlockCurrentImage();
-}
-
-already_AddRefed<gfxPattern>
-BasicImageLayer::DeprecatedGetAndPaintCurrentImage(gfxContext* aContext,
-                                                   float aOpacity,
-                                                   Layer* aMaskLayer)
-{
-  if (!mContainer)
-    return nullptr;
-
-  mContainer->SetImageFactory(mManager->IsCompositingCheap() ? nullptr : BasicManager()->GetImageFactory());
-
-  RefPtr<gfx::SourceSurface> surface;
-  AutoLockImage autoLock(mContainer, &surface);
-  Image *image = autoLock.GetImage();
-  gfx::IntSize size = mSize = autoLock.GetSize();
-
-  if (!surface || !surface->IsValid()) {
-    return nullptr;
-  }
-
-  nsRefPtr<gfxPattern> pat = new gfxPattern(surface, gfx::Matrix());
-  if (!pat) {
-    return nullptr;
-  }
-
-  pat->SetFilter(mFilter);
-
-  
-  
-  if (aContext) {
-    CompositionOp op = GetEffectiveOperator(this);
-    AutoSetOperator setOptimizedOperator(aContext, ThebesOp(op));
-
-    DeprecatedPaintContext(pat,
-                 nsIntRegion(nsIntRect(0, 0, size.width, size.height)),
-                 aOpacity, aContext, aMaskLayer);
-
-    GetContainer()->NotifyPaintedImage(image);
-  }
-
-  return pat.forget();
-}
-
-static void
-DeprecatedPaintContext(gfxPattern* aPattern,
-                       const nsIntRegion& aVisible,
-                       float aOpacity,
-                       gfxContext* aContext,
-                       Layer* aMaskLayer)
-{
-  
-  
-  gfxPattern::GraphicsExtend extend = gfxPattern::EXTEND_PAD;
-
-#ifdef MOZ_X11
-  
-  
-  if (aContext->IsCairo()) {
-    nsRefPtr<gfxASurface> target = aContext->CurrentSurface();
-    if (target->GetType() == gfxSurfaceType::Xlib &&
-        static_cast<gfxXlibSurface*>(target.get())->IsPadSlow()) {
-      extend = gfxPattern::EXTEND_NONE;
-    }
-  }
-#endif
-
-  aContext->NewPath();
-  
-  
-  gfxUtils::PathFromRegion(aContext, aVisible);
-  aPattern->SetExtend(extend);
-  aContext->SetPattern(aPattern);
-  FillWithMask(aContext, aOpacity, aMaskLayer);
-
-  
-  aPattern->SetExtend(extend);
 }
 
 bool
