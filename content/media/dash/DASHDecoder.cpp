@@ -631,6 +631,12 @@ DASHDecoder::LoadRepresentations()
       mVideoRepDecoders[i]->SetStateMachine(mDecoderStateMachine);
     }
   }
+
+  
+  if (mPlayState == PLAY_STATE_PLAYING) {
+    mNextState = PLAY_STATE_PLAYING;
+  }
+
   
   return InitializeStateMachine(nullptr);
 }
