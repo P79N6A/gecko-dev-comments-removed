@@ -71,14 +71,42 @@ if (!("profileDir" in OS.Constants.Path) || !("localProfileDir" in OS.Constants.
 
 
 
+const noRefs = [];
 
 
 
 
-let clone = function clone(object) {
+
+
+
+
+
+
+
+
+
+
+
+let clone = function clone(object, refs = noRefs) {
   let result = {};
+  
+  let refer = function refer(result, key, object) {
+    Object.defineProperty(result, key, {
+        enumerable: true,
+        get: function() {
+            return object[key];
+        },
+        set: function(value) {
+            object[key] = value;
+        }
+    });
+  };
   for (let k in object) {
-    result[k] = object[k];
+    if (refs.indexOf(k) < 0) {
+      result[k] = object[k];
+    } else {
+      refer(result, k, object);
+    }
   }
   return result;
 };
@@ -88,14 +116,32 @@ let clone = function clone(object) {
 
 const noOptions = {};
 
-
 let worker = new PromiseWorker(
   "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
 let Scheduler = {
   post: function post(...args) {
     let promise = worker.post.apply(worker, args);
     return promise.then(
-      null,
+      function onSuccess(data) {
+        
+        let methodArgs = args[1];
+        if (!methodArgs) {
+          return data.ok;
+        }
+        let options = methodArgs[methodArgs.length - 1];
+        
+        if (typeof options !== "object" ||
+          !("outExecutionDuration" in options)) {
+          return data.ok;
+        }
+        
+        
+        if (!("durationMs" in data)) {
+          return data.ok;
+        }
+        options.outExecutionDuration = data.durationMs;
+        return data.ok;
+      },
       function onError(error) {
         
         if (error instanceof PromiseWorker.WorkerError) {
@@ -227,7 +273,9 @@ File.prototype = {
     
     
     if (isTypedArray(buffer) && (!options || !"bytes" in options)) {
-      options = clone(options || noOptions);
+      
+      
+      options = clone(options || noOptions, ["outExecutionDuration"]);
       options.bytes = buffer.byteLength;
     }
     
@@ -263,7 +311,9 @@ File.prototype = {
     
     
     if (isTypedArray(buffer) && (!options || !"bytes" in options)) {
-      options = clone(options || noOptions);
+      
+      
+      options = clone(options || noOptions, ["outExecutionDuration"]);
       options.bytes = buffer.byteLength;
     }
     
@@ -558,7 +608,8 @@ File.exists = function exists(path) {
 
 File.writeAtomic = function writeAtomic(path, buffer, options) {
   
-  options = clone(options || noOptions);
+  
+  options = clone(options || noOptions, ["outExecutionDuration"]);
   
   if ("tmpPath" in options) {
     options.tmpPath = Type.path.toMsg(options.tmpPath);

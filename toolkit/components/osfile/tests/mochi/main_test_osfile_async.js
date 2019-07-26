@@ -152,6 +152,7 @@ let test = maketest("Main", function main(test) {
     yield test_exists();
     yield test_debug_test();
     yield test_system_shutdown();
+    yield test_duration();
     info("Test is over");
     SimpleTest.finish();
   });
@@ -842,5 +843,50 @@ let test_system_shutdown = maketest("system_shutdown", function system_shutdown(
     Services.obs.notifyObservers(null, "test.osfile.web-workers-shutdown",
       null);
     yield openedFile.close();
+  });
+});
+
+
+
+
+let test_duration = maketest("duration", function duration(test) {
+  return Task.spawn(function() {
+    
+    let copyOptions = {
+      
+      
+      outExecutionDuration: null
+    };
+    let currentDir = yield OS.File.getCurrentDirectory();
+    let pathSource = OS.Path.join(currentDir, EXISTING_FILE);
+    let copyFile = pathSource + ".bak";
+    let testOptions = function testOptions(options) {
+      test.info("Gathered method duration time: " +
+        options.outExecutionDuration + " MS");
+      
+      test.ok(typeof options.outExecutionDuration === "number" &&
+        options.outExecutionDuration >= 0,
+        "Operation duration time was updated correctly with a numeric value.");
+    };
+    
+    yield OS.File.copy(pathSource, copyFile, copyOptions);
+    testOptions(copyOptions);
+    yield OS.File.remove(copyFile);
+
+    
+    let pathDest = OS.Path.join(OS.Constants.Path.tmpDir,
+      "osfile async test read writeAtomic.tmp");
+    let tmpPath = pathDest + ".tmp";
+    let contents = yield OS.File.read(pathSource);
+    
+    let writeAtomicOptions = {
+      
+      
+      outExecutionDuration: null,
+      tmpPath: tmpPath
+    };
+    yield OS.File.writeAtomic(pathDest, contents, writeAtomicOptions);
+    testOptions(writeAtomicOptions);
+    OS.File.remove(pathDest);
   });
 });

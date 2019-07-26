@@ -117,6 +117,9 @@ PromiseWorker.prototype = {
 
 
 
+
+
+
     worker.onmessage = function onmessage(msg) {
       self._log("Received message from worker", msg.data);
       let handler = self._queue.pop();
@@ -127,7 +130,8 @@ PromiseWorker.prototype = {
                         " got " + data.id + ": " + JSON.stringify(msg.data));
       }
       if ("ok" in data) {
-        deferred.resolve(data.ok);
+        
+        deferred.resolve(data);
       } else if ("StopIteration" in data) {
         
         deferred.reject(StopIteration);
