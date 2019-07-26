@@ -877,7 +877,7 @@ GenerateScopeChainGuards(MacroAssembler &masm, JSObject *scopeChain, JSObject *h
     
     
     while (true) {
-        JS_ASSERT(IsCacheableNonGlobalScope(tobj));
+        JS_ASSERT(IsCacheableNonGlobalScope(tobj) || tobj->isGlobal());
 
         GenerateScopeChainGuard(masm, tobj, outputReg, NULL, failures);
         if (tobj == holder)
