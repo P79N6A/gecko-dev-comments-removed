@@ -332,138 +332,16 @@ js::math_clz32(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static double polevl_sin(double z, double zz)
+double
+js::math_cos_impl(MathCache *cache, double x)
 {
-    
-    double ans = 1.59046813973877163292e-10; 
-    ans *= zz;
-    ans += -2.50509001624159785668e-08; 
-    ans *= zz;
-    ans +=  2.75573146431678644161e-06; 
-    ans *= zz;
-    ans += -1.98412698327005105692e-04; 
-    ans *= zz;
-    ans +=  8.33333333332626768897e-03; 
-    ans *= zz;
-    ans += -1.66666666666666490881e-01; 
-    ans *= zz * z;
-    ans += z;
-    return ans;
-}
-
-static double polevl_cos(double zz)
-{
-    
-    
-    
-    double ans = 2.06467337476762997948e-9;
-    ans *= zz;
-    ans += -2.75555495413759160741e-7;
-    ans *= zz;
-    ans +=  2.48015808595638122085e-5;
-    ans *= zz;
-    ans += -1.38888888779622760722e-3;
-    ans *= zz;
-    ans +=  4.16666666665987187046e-2;
-    ans *= zz;
-    ans += -4.99999999999999888978e-1;
-    ans *= zz;
-    ans += 1.0;
-    return ans;
-}
-
-namespace {
-struct sincos_result { double s, c; };
-}
-
-static sincos_result fast_sincos(double x)
-{
-    
-    double orig_sign = js_copysign(1.0, x);
-    double absx = fabs(x);
-
-    
-    
-    
-    
-    if (MOZ_UNLIKELY(!(absx < 3.37325942455970764160e9))) {
-        sincos_result result = {
-            sin(x),
-            cos(x)
-        };
-        return result;
-    }
-
-    static const double m_4_pi = 1.27323954473516276487; 
-    uint32_t i = static_cast<uint32_t>(absx * m_4_pi);
-
-    
-    uint32_t quad_index = ((i + 1) >> 1) & 3;
-    double y = static_cast<double>(i + (i & 1));
-
-    
-    double e0 = y * -7.85398006439208984375e-1;  
-    double e1 = y * -1.56958208208379801363e-7;  
-    double e2 = y * -3.11168608594830669189e-14; 
-    double z = absx + e0 + e1 + e2;
-
-    
-    double zz = z * z;
-    double q0_sin = polevl_sin(z, zz);
-    double q0_cos = polevl_cos(zz);
-
-    
-    const double reflect[4] = {
-      q0_sin, q0_cos, -q0_sin, -q0_cos
-    };
-
-    
-    
-    
-    
-    
-    sincos_result result = {
-        reflect[quad_index] * orig_sign,
-        reflect[(quad_index + 1) & 3]
-    };
-    return result;
+    return cache->lookup(cos, x);
 }
 
 double
-js::math_cos_impl(double x)
+js::math_cos_uncached(double x)
 {
-    return fast_sincos(x).c;
+    return cos(x);
 }
 
 bool
@@ -480,7 +358,11 @@ js::math_cos(JSContext *cx, unsigned argc, Value *vp)
     if (!ToNumber(cx, args[0], &x))
         return false;
 
-    double z = math_cos_impl(x);
+    MathCache *mathCache = cx->runtime()->getMathCache(cx);
+    if (!mathCache)
+        return false;
+
+    double z = math_cos_impl(mathCache, x);
     args.rval().setDouble(z);
     return true;
 }
@@ -931,9 +813,15 @@ js::math_round(JSContext *cx, unsigned argc, Value *vp)
 }
 
 double
-js::math_sin_impl(double x)
+js::math_sin_impl(MathCache *cache, double x)
 {
-    return fast_sincos(x).s;
+    return cache->lookup(sin, x);
+}
+
+double
+js::math_sin_uncached(double x)
+{
+    return sin(x);
 }
 
 bool
@@ -950,7 +838,11 @@ js::math_sin(JSContext *cx, unsigned argc, Value *vp)
     if (!ToNumber(cx, args[0], &x))
         return false;
 
-    double z = math_sin_impl(x);
+    MathCache *mathCache = cx->runtime()->getMathCache(cx);
+    if (!mathCache)
+        return false;
+
+    double z = math_sin_impl(mathCache, x);
     args.rval().setDouble(z);
     return true;
 }
