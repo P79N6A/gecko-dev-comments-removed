@@ -375,7 +375,8 @@ function updateAboutMemory()
     let process = function(aIgnoreSingle, aIgnoreMulti, aHandleReport) {
       processMemoryReporters(aIgnoreSingle, aIgnoreMulti, aHandleReport);
     }
-    appendAboutMemoryMain(body, process, gMgr.hasMozMallocUsableSize);
+    appendAboutMemoryMain(body, process, gMgr.hasMozMallocUsableSize,
+                           false);
 
   } catch (ex) {
     handleException(ex);
@@ -411,7 +412,8 @@ function updateAboutMemoryFromJSONString(aJSONString)
       processMemoryReportsFromFile(json.reports, aIgnoreSingle,
                                    aHandleReport);
     }
-    appendAboutMemoryMain(body, process, json.hasMozMallocUsableSize);
+    appendAboutMemoryMain(body, process, json.hasMozMallocUsableSize,
+                           true);
   } catch (ex) {
     handleException(ex);
   } finally {
@@ -494,11 +496,15 @@ function updateAboutMemoryFromClipboard()
 
 
 
-function appendAboutMemoryMain(aBody, aProcess, aHasMozMallocUsableSize)
+
+
+
+function appendAboutMemoryMain(aBody, aProcess, aHasMozMallocUsableSize,
+                               aForceShowSmaps)
 {
   let treesByProcess = {}, degeneratesByProcess = {}, heapTotalByProcess = {};
   getTreesByProcess(aProcess, treesByProcess, degeneratesByProcess,
-                    heapTotalByProcess);
+                    heapTotalByProcess, aForceShowSmaps);
 
   
   
@@ -648,9 +654,14 @@ const gSentenceRegExp = /^[A-Z].*\.\)?$/m;
 
 
 
+
+
+
 function getTreesByProcess(aProcessMemoryReports, aTreesByProcess,
-                           aDegeneratesByProcess, aHeapTotalByProcess)
+                           aDegeneratesByProcess, aHeapTotalByProcess,
+                           aForceShowSmaps)
 {
+  
   
   
   
@@ -658,16 +669,16 @@ function getTreesByProcess(aProcessMemoryReports, aTreesByProcess,
 
   function ignoreSingle(aUnsafePath)
   {
-    return (isSmapsPath(aUnsafePath) && !gVerbose) ||
+    return (isSmapsPath(aUnsafePath) && !gVerbose && !aForceShowSmaps) ||
            aUnsafePath.startsWith("compartments/") ||
            aUnsafePath.startsWith("ghost-windows/");
   }
 
   function ignoreMulti(aMRName)
   {
-    return (aMRName === "smaps" && !gVerbose) ||
-           aMRName === "compartments" ||
-           aMRName === "ghost-windows";
+    return (aMRName === "smaps" && !gVerbose && !aForceShowSmaps) ||
+            aMRName === "compartments" ||
+            aMRName === "ghost-windows";
   }
 
   function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
@@ -1064,23 +1075,22 @@ function appendProcessAboutMemoryElements(aP, aProcess, aTrees, aDegenerates,
   }
 
   
-  if (gVerbose) {
-    kSmapsTreeNames.forEach(function(aTreeName) {
-      
-      
-      let t = aTrees[aTreeName];
-      if (t) {
-        fillInTree(t);
-        sortTreeAndInsertAggregateNodes(t._amount, t);
-        t._description = kTreeDescriptions[aTreeName];
-        t._hideKids = true;   
-        let pre = appendSectionHeader(aP, kSectionNames[aTreeName]);
-        appendTreeElements(pre, t, aProcess, "");
-        appendTextNode(aP, "\n");  
-        delete aTrees[aTreeName];
-      }
-    });
-  }
+  
+  kSmapsTreeNames.forEach(function(aTreeName) {
+    
+    
+    let t = aTrees[aTreeName];
+    if (t) {
+      fillInTree(t);
+      sortTreeAndInsertAggregateNodes(t._amount, t);
+      t._description = kTreeDescriptions[aTreeName];
+      t._hideKids = true;   
+      let pre = appendSectionHeader(aP, kSectionNames[aTreeName]);
+      appendTreeElements(pre, t, aProcess, "");
+      appendTextNode(aP, "\n");  
+      delete aTrees[aTreeName];
+    }
+  });
 
   
   let otherTrees = [];
