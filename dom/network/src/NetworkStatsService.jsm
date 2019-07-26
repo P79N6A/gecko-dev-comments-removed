@@ -46,12 +46,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSettingsService",
                                    "@mozilla.org/settingsService;1",
                                    "nsISettingsService");
 
-XPCOMUtils.defineLazyGetter(this, "gRadioInterface", function () {
-  let ril = Cc["@mozilla.org/ril;1"].getService(Ci["nsIRadioInterfaceLayer"]);
-  
-  return ril.getRadioInterface(0);
-});
-
 this.NetworkStatsService = {
   init: function() {
     debug("Service started");
@@ -202,10 +196,13 @@ this.NetworkStatsService = {
 
     let id = '0';
     if (aNetwork.type == NET_TYPE_MOBILE) {
-      
-      
-      
-      id = gRadioInterface.rilContext.iccInfo.iccid;
+      if (!(aNetwork instanceof Ci.nsIRilNetworkInterface)) {
+        debug("Error! Mobile network should be an nsIRilNetworkInterface!");
+        return null;
+      }
+
+      let rilNetwork = aNetwork.QueryInterface(Ci.nsIRilNetworkInterface);
+      id = rilNetwork.iccId;
     }
 
     let netId = this.getNetworkId(id, aNetwork.type);
