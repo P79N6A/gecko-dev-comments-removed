@@ -3,7 +3,7 @@
 
 
 
-#include "primpl.h"
+#include "prlong.h"
 
 static PRInt64 ll_zero = LL_INIT( 0x00000000,0x00000000 );
 static PRInt64 ll_maxint = LL_INIT( 0x7fffffff, 0xffffffff );

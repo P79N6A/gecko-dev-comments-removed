@@ -142,6 +142,13 @@ NSPR_API(PRThreadPriority) PR_GetThreadPriority(const PRThread *thread);
 
 
 
+
+
+
+
+
+
+
 NSPR_API(void) PR_SetThreadPriority(PRThread *thread, PRThreadPriority priority);
 
 

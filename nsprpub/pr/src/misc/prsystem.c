@@ -56,24 +56,6 @@
 #include <sys/cfgodm.h>
 #endif
 
-#if defined(WIN32)
-
-typedef struct {
-    DWORD dwLength;
-    DWORD dwMemoryLoad;
-    DWORDLONG ullTotalPhys;
-    DWORDLONG ullAvailPhys;
-    DWORDLONG ullToalPageFile;
-    DWORDLONG ullAvailPageFile;
-    DWORDLONG ullTotalVirtual;
-    DWORDLONG ullAvailVirtual;
-    DWORDLONG ullAvailExtendedVirtual;
-} PR_MEMORYSTATUSEX;
-
-
-typedef BOOL (WINAPI *GlobalMemoryStatusExFn)(PR_MEMORYSTATUSEX *);
-#endif
-
 PR_IMPLEMENT(char) PR_GetDirectorySeparator(void)
 {
     return PR_DIRECTORY_SEPARATOR;
@@ -327,29 +309,10 @@ PR_IMPLEMENT(PRUint64) PR_GetPhysicalMemorySize(void)
 
 #elif defined(WIN32)
 
-    
-    GlobalMemoryStatusExFn globalMemory = (GlobalMemoryStatusExFn) NULL;
-    HMODULE module = GetModuleHandleW(L"kernel32.dll");
-
-    if (module) {
-        globalMemory = (GlobalMemoryStatusExFn)GetProcAddress(module, "GlobalMemoryStatusEx");
-
-        if (globalMemory) {
-            PR_MEMORYSTATUSEX memStat;
-            memStat.dwLength = sizeof(memStat);
-
-            if (globalMemory(&memStat))
-                bytes = memStat.ullTotalPhys;
-        }
-    }
-
-    if (!bytes) {
-        
-        MEMORYSTATUS memStat;
-        memset(&memStat, 0, sizeof(memStat));
-        GlobalMemoryStatus(&memStat);
-        bytes = memStat.dwTotalPhys;
-    }
+    MEMORYSTATUSEX memStat;
+    memStat.dwLength = sizeof(memStat);
+    if (GlobalMemoryStatusEx(&memStat))
+        bytes = memStat.ullTotalPhys;
 
 #elif defined(OS2)
 

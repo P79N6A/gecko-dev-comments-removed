@@ -62,9 +62,7 @@ static void _pt_thread_death(void *arg);
 static void _pt_thread_death_internal(void *arg, PRBool callDestructors);
 static void init_pthread_gc_support(void);
 
-#if defined(_PR_DCETHREADS) || \
-    defined(_POSIX_THREAD_PRIORITY_SCHEDULING) || \
-    defined(_PR_NICE_PRIORITY_SCHEDULING)
+#if defined(_PR_DCETHREADS) || defined(_POSIX_THREAD_PRIORITY_SCHEDULING)
 static PRIntn pt_PriorityMap(PRThreadPriority pri)
 {
 #ifdef NTO
@@ -74,17 +72,25 @@ static PRIntn pt_PriorityMap(PRThreadPriority pri)
 
 
     return 10;
-#elif defined(_PR_NICE_PRIORITY_SCHEDULING)
-    
-
-
-
-
-    return 1 - pri;
 #else
     return pt_book.minPrio +
 	    pri * (pt_book.maxPrio - pt_book.minPrio) / PR_PRIORITY_LAST;
 #endif
+}
+#elif defined(_PR_NICE_PRIORITY_SCHEDULING)
+
+
+
+
+
+
+
+
+
+
+static int pt_RelativePriority(int nice, PRThreadPriority pri)
+{
+    return nice + (1 - pri);
 }
 #endif
 
@@ -136,8 +142,15 @@ static void *_pt_root(void *arg)
 
 
     tid = gettid();
+    errno = 0;
+    rv = getpriority(PRIO_PROCESS, 0);
 
-    rv = setpriority(PRIO_PROCESS, tid, pt_PriorityMap(thred->priority));
+    
+
+    if (errno == 0) {
+        setpriority(PRIO_PROCESS, tid,
+                    pt_RelativePriority(rv, thred->priority));
+    }
 
     PR_Lock(pt_book.ml);
     thred->tid = tid;
@@ -688,14 +701,22 @@ PR_IMPLEMENT(void) PR_SetThreadPriority(PRThread *thred, PRThreadPriority newPri
         PR_WaitCondVar(pt_book.cv, PR_INTERVAL_NO_TIMEOUT);
     PR_Unlock(pt_book.ml);
 
-    rv = setpriority(PRIO_PROCESS, thred->tid, pt_PriorityMap(newPri));
+    errno = 0;
+    rv = getpriority(PRIO_PROCESS, 0);
 
-    if (rv == -1 && errno == EPERM)
-    {
-        
+    
+    if (errno == 0) {
+        rv = setpriority(PRIO_PROCESS, thred->tid,
+                         pt_RelativePriority(rv, newPri));
 
-        PR_LOG(_pr_thread_lm, PR_LOG_MIN,
-            ("PR_SetThreadPriority: no thread scheduling privilege"));
+        if (rv == -1)
+        {
+            
+
+
+            PR_LOG(_pr_thread_lm, PR_LOG_MIN,
+                ("PR_SetThreadPriority: no thread scheduling privilege"));
+        }
     }
 #endif
 
