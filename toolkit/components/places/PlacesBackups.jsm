@@ -29,7 +29,7 @@ XPCOMUtils.defineLazyGetter(this, "localFileCtor",
                                "nsILocalFile", "initWithPath"));
 
 XPCOMUtils.defineLazyGetter(this, "filenamesRegex",
-  () => new RegExp("^bookmarks-([0-9\-]+)(?:_([0-9]+)){0,1}(?:_([a-z0-9=\+\-]{24})){0,1}\.(json|html)", "i")
+  () => new RegExp("^bookmarks-([0-9\-]+)(?:_([0-9]+)){0,1}(?:_([a-z0-9=\+\-]{24})){0,1}\.(json(lz4)?)$", "i")
 );
 
 
@@ -227,11 +227,15 @@ this.PlacesBackups = {
 
 
 
-  getFilenameForDate: function PB_getFilenameForDate(aDateObj) {
+
+
+
+  getFilenameForDate: function PB_getFilenameForDate(aDateObj, aCompress) {
     let dateObj = aDateObj || new Date();
     
     
-    return "bookmarks-" + dateObj.toLocaleFormat("%Y-%m-%d") + ".json";
+      return "bookmarks-" + dateObj.toLocaleFormat("%Y-%m-%d") + ".json" +
+                            (aCompress ? "lz4" : "");
   },
 
   
@@ -262,7 +266,7 @@ this.PlacesBackups = {
       "https://bugzilla.mozilla.org/show_bug.cgi?id=859695");
 
     for (let i = 0; i < this._entries.length; i++) {
-      let rx = new RegExp("\.json$");
+      let rx = new RegExp("\.json(lz4)?$");
       if (this._entries[i].leafName.match(rx))
         return this._entries[i];
     }
@@ -279,7 +283,7 @@ this.PlacesBackups = {
      return Task.spawn(function* () {
        let entries = yield this.getBackupFiles();
        for (let entry of entries) {
-         let rx = new RegExp("\.json$");
+         let rx = new RegExp("\.json(lz4)?$");
          if (OS.Path.basename(entry).match(rx)) {
            return entry;
          }
@@ -327,7 +331,7 @@ this.PlacesBackups = {
         let mostRecentBackupFile = yield this.getMostRecentBackup();
         if (!mostRecentBackupFile ||
             hash != getHashFromFilename(OS.Path.basename(mostRecentBackupFile))) {
-          let name = this.getFilenameForDate();
+          let name = this.getFilenameForDate(undefined, true);
           let newFilename = appendMetaDataToFilename(name,
                                                      { count: nodeCount,
                                                        hash: hash });
@@ -348,8 +352,8 @@ this.PlacesBackups = {
               yield this.getBackupFiles();
             this._backupFiles.unshift(newFilePath);
           }
-
-          yield OS.File.copy(aFilePath, newFilePath);
+          let jsonString = yield OS.File.read(aFilePath);
+          yield OS.File.writeAtomic(newFilePath, jsonString, { compression: "lz4" });
         }
       }
 
@@ -396,7 +400,7 @@ this.PlacesBackups = {
       
       if (!this._backupFiles)
         yield this.getBackupFiles();
-      let newBackupFilename = this.getFilenameForDate();
+      let newBackupFilename = this.getFilenameForDate(undefined, true);
       
       
       let backupFile = yield getBackupFileForSameDate(newBackupFilename);
@@ -423,7 +427,8 @@ this.PlacesBackups = {
       try {
         let { count: nodeCount, hash: hash } =
           yield BookmarkJSONUtils.exportToFile(newBackupFile,
-                                               { failIfHashIs: mostRecentHash });
+                                               { compress: true,
+                                                 failIfHashIs: mostRecentHash });
         newFilenameWithMetaData = appendMetaDataToFilename(newBackupFilename,
                                                            { count: nodeCount,
                                                              hash: hash });

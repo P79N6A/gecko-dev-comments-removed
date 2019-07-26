@@ -101,8 +101,11 @@ this.BookmarkJSONUtils = Object.freeze({
           throw new Error("Cannot restore from nonexisting json file");
 
         let importer = new BookmarkImporter(aReplace);
-        yield importer.importFromURL(OS.Path.toFileURI(aFilePath));
-
+        if (aFilePath.endsWith("jsonlz4")) {
+          yield importer.importFromCompressedFile(aFilePath);
+        } else {
+          yield importer.importFromURL(OS.Path.toFileURI(aFilePath));
+        }
         notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_SUCCESS);
       } catch(ex) {
         Cu.reportError("Failed to restore bookmarks from " + aFilePath + ": " + ex);
@@ -113,6 +116,7 @@ this.BookmarkJSONUtils = Object.freeze({
   },
 
   
+
 
 
 
@@ -169,8 +173,11 @@ this.BookmarkJSONUtils = Object.freeze({
       
       
       
-      yield OS.File.writeAtomic(aFilePath, jsonString,
-                                { tmpPath: OS.Path.join(aFilePath + ".tmp") });
+      let writeOptions = { tmpPath: OS.Path.join(aFilePath + ".tmp") };
+      if (aOptions.compress)
+        writeOptions.compression = "lz4";
+
+      yield OS.File.writeAtomic(aFilePath, jsonString, writeOptions);
       return { count: count, hash: hash };
     });
   }
@@ -224,6 +231,25 @@ BookmarkImporter.prototype = {
     }
 
     return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  importFromCompressedFile: function* BI_importFromCompressedFile(aFilePath) {
+      let aResult = yield OS.File.read(aFilePath, { compression: "lz4" });
+      let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
+                        createInstance(Ci.nsIScriptableUnicodeConverter);
+      converter.charset = "UTF-8";
+      let jsonString = converter.convertFromByteArray(aResult, aResult.length);
+      yield this.importFromJSON(jsonString);
   },
 
   

@@ -12,12 +12,11 @@ add_task(function check_max_backups_is_respected() {
   let backupFolder = yield PlacesBackups.getBackupFolder();
 
   
-  let htmlPath = OS.Path.join(backupFolder, "bookmarks-2008-01-01.html");
-  let htmlFile = yield OS.File.open(htmlPath, { truncate: true });
-  htmlFile.close();
-  do_check_true(yield OS.File.exists(htmlPath));
+  let oldJsonPath = OS.Path.join(backupFolder, "bookmarks-2008-01-01.json");
+  let oldJsonFile = yield OS.File.open(oldJsonPath, { truncate: true });
+  oldJsonFile.close();
+  do_check_true(yield OS.File.exists(oldJsonPath));
 
-  
   let jsonPath = OS.Path.join(backupFolder, "bookmarks-2008-01-31.json");
   let jsonFile = yield OS.File.open(jsonPath, { truncate: true });
   jsonFile.close();
@@ -43,7 +42,7 @@ add_task(function check_max_backups_is_respected() {
 
   do_check_eq(count, 2);
   do_check_neq(lastBackupPath, null);
-  do_check_false(yield OS.File.exists(htmlPath));
+  do_check_false(yield OS.File.exists(oldJsonPath));
   do_check_true(yield OS.File.exists(jsonPath));
 });
 
