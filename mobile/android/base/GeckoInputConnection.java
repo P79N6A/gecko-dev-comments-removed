@@ -503,16 +503,28 @@ class GeckoInputConnection
             }
         }
 
-        if (imm != null && imm.isFullscreenMode()) {
-            View v = getView();
-            if (hasCompositionString()) {
-                Span span = getComposingSpan();
-                imm.updateSelection(v, start, end, span.start, span.end);
-            } else {
-                imm.updateSelection(v, start, end, -1, -1);
+        
+        final int oldStart = start;
+        final int oldEnd = end;
+        postToUiThread(new Runnable() {
+            public void run() {
+                InputMethodManager imm = getInputMethodManager();
+                if (imm != null && imm.isFullscreenMode()) {
+                    int newStart;
+                    int newEnd;
+                    if (hasCompositionString()) {
+                        Span span = getComposingSpan();
+                        newStart = span.start;
+                        newEnd = span.end;
+                    } else {
+                        newStart = -1;
+                        newEnd = -1;
+                    }
+                    View v = getView();
+                    imm.updateSelection(v, oldStart, oldEnd, newStart, newEnd);
+                }
             }
-
-        }
+        });
     }
 
     protected void resetCompositionState() {
@@ -1006,54 +1018,58 @@ class GeckoInputConnection
         return mIMEState != IME_STATE_DISABLED;
     }
 
-    public void notifyIME(int type, int state) {
-        View v = getView();
-        if (v == null)
-            return;
+    public void notifyIME(final int type, final int state) {
+        postToUiThread(new Runnable() {
+            public void run() {
+                View v = getView();
+                if (v == null)
+                    return;
 
-        switch (type) {
-        case NOTIFY_IME_RESETINPUTSTATE:
-            if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: reset");
+                switch (type) {
+                    case NOTIFY_IME_RESETINPUTSTATE:
+                        if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: reset");
 
-            
-            
-            resetCompositionState();
+                        
+                        
+                        resetCompositionState();
 
-            
-            
-            
-            
-            InputMethodManager imm = getInputMethodManager();
-            if (imm == null) {
-                
-                IMEStateUpdater.resetIME();
-            } else {
-                imm.restartInput(v);
+                        
+                        
+                        
+                        
+                        InputMethodManager imm = getInputMethodManager();
+                        if (imm == null) {
+                            
+                            IMEStateUpdater.resetIME();
+                        } else {
+                            imm.restartInput(v);
+                        }
+
+                        
+                        IMEStateUpdater.enableIME();
+                        break;
+
+                    case NOTIFY_IME_CANCELCOMPOSITION:
+                        if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: cancel");
+                        IMEStateUpdater.resetIME();
+                        break;
+
+                    case NOTIFY_IME_FOCUSCHANGE:
+                        if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: focus");
+                        IMEStateUpdater.resetIME();
+                        break;
+
+                    case NOTIFY_IME_SETOPENSTATE:
+                    default:
+                        if (DEBUG)
+                            throw new IllegalArgumentException("Unexpected NOTIFY_IME=" + type);
+                        break;
+                }
             }
-
-            
-            IMEStateUpdater.enableIME();
-            break;
-
-        case NOTIFY_IME_CANCELCOMPOSITION:
-            if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: cancel");
-            IMEStateUpdater.resetIME();
-            break;
-
-        case NOTIFY_IME_FOCUSCHANGE:
-            if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: focus");
-            IMEStateUpdater.resetIME();
-            break;
-
-        case NOTIFY_IME_SETOPENSTATE:
-        default:
-            if (DEBUG)
-                throw new IllegalArgumentException("Unexpected NOTIFY_IME=" + type);
-            break;
-        }
+        });
     }
 
-    public void notifyIMEEnabled(int state, String typeHint, final String modeHint, String actionHint) {
+    public void notifyIMEEnabled(final int state, final String typeHint, final String modeHint, final String actionHint) {
         
         
         
@@ -1064,29 +1080,45 @@ class GeckoInputConnection
             return;
         }
 
-        View v = getView();
+        postToUiThread(new Runnable() {
+            public void run() {
+                View v = getView();
+                if (v == null)
+                    return;
 
-        if (v == null)
-            return;
+                
 
-        
-
-        mIMEState = state;
-        mIMETypeHint = (typeHint == null) ? "" : typeHint;
-        mIMEModeHint = (modeHint == null) ? "" : modeHint;
-        mIMEActionHint = (actionHint == null) ? "" : actionHint;
-        IMEStateUpdater.enableIME();
+                mIMEState = state;
+                mIMETypeHint = (typeHint == null) ? "" : typeHint;
+                mIMEModeHint = (modeHint == null) ? "" : modeHint;
+                mIMEActionHint = (actionHint == null) ? "" : actionHint;
+                IMEStateUpdater.enableIME();
+            }
+        });
     }
 
-    public void notifyIMEChange(String text, int start, int end, int newEnd) {
-        InputMethodManager imm = getInputMethodManager();
-        if (imm == null)
-            return;
-
-        if (newEnd < 0)
-            notifySelectionChange(imm, start, end);
-        else
-            notifyTextChange(imm, text, start, end, newEnd);
+    public final void notifyIMEChange(final String text, final int start, final int end,
+                                      final int newEnd) {
+        if (newEnd < 0) {
+            
+            
+            
+            
+            
+            
+            
+            InputMethodManager imm = getInputMethodManager();
+            if (imm != null)
+                notifySelectionChange(imm, start, end);
+        } else {
+            postToUiThread(new Runnable() {
+                public void run() {
+                    InputMethodManager imm = getInputMethodManager();
+                    if (imm != null)
+                        notifyTextChange(imm, text, start, end, newEnd);
+                }
+            });
+        }
     }
 
     
@@ -1117,25 +1149,30 @@ class GeckoInputConnection
                 instance = null;
             }
 
-            final View v = getView();
-            if (v == null)
+            
+            postToUiThread(new Runnable() {
+                public void run() {
+                    final View v = getView();
+                    if (v == null)
                         return;
 
-            final InputMethodManager imm = getInputMethodManager();
-            if (imm == null)
-                return;
+                    final InputMethodManager imm = getInputMethodManager();
+                    if (imm == null)
+                        return;
 
-            if (mReset)
-                imm.restartInput(v);
+                    if (mReset)
+                        imm.restartInput(v);
 
-            if (!mEnable)
-                return;
+                    if (!mEnable)
+                        return;
 
-            if (mIMEState != IME_STATE_DISABLED) {
-                imm.showSoftInput(v, 0);
-            } else if (imm.isActive(v)) {
-                imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-            }
+                    if (mIMEState != IME_STATE_DISABLED) {
+                        imm.showSoftInput(v, 0);
+                    } else if (imm.isActive(v)) {
+                        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                    }
+                }
+            });
         }
     }
 
