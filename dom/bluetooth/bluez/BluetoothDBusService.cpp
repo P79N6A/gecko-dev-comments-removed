@@ -309,6 +309,15 @@ static const int sWaitingForAdapterNameInterval = 1000;
 
 
 
+static nsTArray<nsRefPtr<BluetoothProfileController> > sControllerArray;
+
+
+
+
+
+
+
+
 static StaticAutoPtr<RawDBusConnection> sDBusConnection;
 
 
@@ -337,9 +346,6 @@ static int sConnectedDeviceCount = 0;
 
 static StaticAutoPtr<Monitor> sGetPropertyMonitor;
 static StaticAutoPtr<Monitor> sStopBluetoothMonitor;
-
-
-static nsTArray<nsRefPtr<BluetoothProfileController> > sControllerArray;
 
 typedef void (*UnpackFunc)(DBusMessage*, DBusError*, BluetoothValue&, nsAString&);
 typedef bool (*FilterFunc)(const BluetoothValue&);
@@ -2022,6 +2028,8 @@ public:
   {
     if (NS_IsMainThread()) {
       
+      sControllerArray.Clear();
+      
       return DispatchToBtThread(this);
     }
 
@@ -2088,8 +2096,6 @@ public:
 
     sIsPairing = 0;
     sConnectedDeviceCount = 0;
-
-    sControllerArray.Clear();
 
     
     
