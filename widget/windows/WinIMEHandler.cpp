@@ -155,6 +155,19 @@ IMEHandler::NotifyIMEOfTextChange(uint32_t aStart,
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+
+nsIMEUpdatePreference
+IMEHandler::GetUpdatePreference()
+{
+#ifdef NS_ENABLE_TSF
+  if (sIsInTSFMode) {
+    return nsTextStore::GetIMEUpdatePreference();
+  }
+#endif 
+
+  return nsIMEUpdatePreference(false, false);
+}
+
 #ifdef DEBUG
 
 bool
