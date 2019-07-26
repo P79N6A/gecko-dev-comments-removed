@@ -78,7 +78,7 @@ protected:
   
   bool SetTextStyle();
 
-  void ForceTrimChildTextFrames();
+  void MarkTextFramesAsTokenMathML();
 };
 
 #endif 

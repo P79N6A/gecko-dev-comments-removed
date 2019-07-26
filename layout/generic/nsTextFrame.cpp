@@ -7669,7 +7669,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     }
   }
   if ((atStartOfLine && !textStyle->WhiteSpaceIsSignificant()) ||
-      (GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE)) {
+      (GetStateBits() & TEXT_IS_IN_TOKEN_MATHML)) {
     
     
     int32_t skipLength = newLineOffset >= 0 ? length - 1 : length;
@@ -7835,7 +7835,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   gfxFloat trimmedWidth = 0;
   gfxFloat availWidth = aAvailableWidth;
   bool canTrimTrailingWhitespace = !textStyle->WhiteSpaceIsSignificant() ||
-                                   (GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE);
+                                   (GetStateBits() & TEXT_IS_IN_TOKEN_MATHML);
   int32_t unusedOffset;  
   gfxBreakPriority breakPriority;
   aLineLayout.GetLastOptionalBreakPosition(&unusedOffset, &breakPriority);
@@ -7905,11 +7905,11 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     
     
     if (brokeText ||
-        (GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE)) {
+        (GetStateBits() & TEXT_IS_IN_TOKEN_MATHML)) {
       
       
       AddStateBits(TEXT_TRIMMED_TRAILING_WHITESPACE);
-    } else if (!(GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE)) {
+    } else if (!(GetStateBits() & TEXT_IS_IN_TOKEN_MATHML)) {
       
       
       
