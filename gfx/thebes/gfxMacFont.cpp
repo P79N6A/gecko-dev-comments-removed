@@ -419,18 +419,18 @@ gfxMacFont::GetScaledFont(DrawTarget *aTarget)
 }
 
 void
-gfxMacFont::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
-                                FontCacheSizes*   aSizes) const
+gfxMacFont::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
+                                   FontCacheSizes* aSizes) const
 {
-    gfxFont::SizeOfExcludingThis(aMallocSizeOf, aSizes);
+    gfxFont::AddSizeOfExcludingThis(aMallocSizeOf, aSizes);
     
     
 }
 
 void
-gfxMacFont::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf,
-                                FontCacheSizes*   aSizes) const
+gfxMacFont::AddSizeOfIncludingThis(MallocSizeOf aMallocSizeOf,
+                                   FontCacheSizes* aSizes) const
 {
     aSizes->mFontInstances += aMallocSizeOf(this);
-    SizeOfExcludingThis(aMallocSizeOf, aSizes);
+    AddSizeOfExcludingThis(aMallocSizeOf, aSizes);
 }
