@@ -5,7 +5,6 @@
 
 
 #include "jsdbgapi.h"
-#include "jslock.h"
 #include "jsd_xpc.h"
 
 #include "js/GCAPI.h"
