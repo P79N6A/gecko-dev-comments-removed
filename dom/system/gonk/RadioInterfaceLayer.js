@@ -965,7 +965,7 @@ XPCOMUtils.defineLazyGetter(this, "gDataConnectionManager", function () {
           
           
           
-          if (network.state == Ci.nsINetworkInterface.NETWORK_STATE_UNKNOWN) {
+          if (network.state == Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED) {
             let connHandler = this._connectionHandlers[this._currentDataClientId];
             let radioInterface = connHandler.radioInterface;
             if (connHandler.allDataDisconnected() &&
@@ -1514,7 +1514,7 @@ DataConnectionHandler.prototype = {
 
     
     
-    if (datacall.state == RIL.GECKO_NETWORK_STATE_UNKNOWN &&
+    if (datacall.state == RIL.GECKO_NETWORK_STATE_DISCONNECTED &&
         this.allDataDisconnected()) {
       if (gRadioEnabledController.isDeactivatingDataCalls()) {
         if (DEBUG) {
@@ -4618,6 +4618,8 @@ RILNetworkInterface.prototype = {
       this.prefixLengths = [];
       this.dnses = [];
       this.gateways = [];
+
+      this.state = RIL.GECKO_NETWORK_STATE_UNKNOWN;
     }
 
     
