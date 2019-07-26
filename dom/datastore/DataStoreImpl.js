@@ -59,7 +59,6 @@ function validateId(aId) {
 
 function DataStore() {
   debug("DataStore created");
-  this.wrappedJSObject = this;
 }
 
 DataStore.prototype = {
