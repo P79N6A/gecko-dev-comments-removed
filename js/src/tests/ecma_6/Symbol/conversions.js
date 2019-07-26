@@ -7,7 +7,25 @@ var symbols = [
     Symbol.iterator
 ];
 
+if (Symbol.toPrimitive in Symbol.prototype) {
+    
+    
+    
+    throw new Error("Congratulations on implementing @@toPrimitive! Please update this test.");
+}
+
 for (var sym of symbols) {
+    
+    var symobj = Object(sym);
+    assertThrowsInstanceOf(() => Number(symobj), TypeError);
+    assertThrowsInstanceOf(() => String(symobj), TypeError);
+    assertThrowsInstanceOf(() => symobj < 0, TypeError);
+    assertThrowsInstanceOf(() => 0 < symobj, TypeError);
+    assertThrowsInstanceOf(() => symobj == 0, TypeError);
+    assertThrowsInstanceOf(() => 0 != symobj, TypeError);
+    assertThrowsInstanceOf(() => symobj + 1, TypeError);
+    assertThrowsInstanceOf(() => "" + symobj, TypeError);
+
     
     assertEq(Boolean(sym), true);
     assertEq(!sym, false);
