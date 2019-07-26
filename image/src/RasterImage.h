@@ -647,10 +647,6 @@ private:
   
 
   
-  ImageStatusDiff            mStatusDiff;
-  bool                       mNotifying:1;
-
-  
   bool                       mHasSize:1;       
   bool                       mDecodeOnDraw:1;  
   bool                       mMultipart:1;     
@@ -676,10 +672,6 @@ private:
   bool                       mWantFullDecode:1;
 
   
-  nsresult RequestDecodeIfNeeded(nsresult aStatus,
-                                 eShutdownIntent aIntent,
-                                 bool aDone,
-                                 bool aWasSize);
   nsresult WantDecodedFrames();
   nsresult SyncDecode();
   nsresult InitDecoder(bool aDoSizeDecode, bool aIsSynchronous = false);
