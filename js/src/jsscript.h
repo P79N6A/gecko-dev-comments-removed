@@ -671,13 +671,9 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
     
 
-    uint16_t        PADDING16;
     uint16_t        version;    
 
     uint16_t        funLength_; 
-
-    uint16_t        nfixed_;    
-
 
     uint16_t        nTypeSets_; 
 
@@ -876,7 +872,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
     size_t nfixed() const {
         js::AutoThreadSafeAccess ts(this);
-        return nfixed_;
+        return function_ ? bindings.numVars() : 0;
     }
 
     size_t nslots() const {
