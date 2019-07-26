@@ -110,7 +110,7 @@ public:
   
   
   
-  static void ScheduledCycleCollectNow(int64_t aSliceTime);
+  static void RunCycleCollectorSlice(int64_t aSliceTime);
 
   static void BeginCycleCollectionCallback();
   static void EndCycleCollectionCallback(mozilla::CycleCollectorResults &aResults);

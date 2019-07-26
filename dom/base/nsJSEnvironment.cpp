@@ -2133,18 +2133,18 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
 
 
 void
-nsJSContext::ScheduledCycleCollectNow(int64_t aSliceTime)
+nsJSContext::RunCycleCollectorSlice(int64_t aSliceTime)
 {
   if (!NS_IsMainThread()) {
     return;
   }
 
-  PROFILER_LABEL("CC", "ScheduledCycleCollectNow");
+  PROFILER_LABEL("CC", "RunCycleCollectorSlice");
 
   
   
   gCCStats.PrepareForCycleCollectionSlice();
-  nsCycleCollector_scheduledCollect(aSliceTime);
+  nsCycleCollector_collectSlice(aSliceTime);
   gCCStats.FinishCycleCollectionSlice();
 }
 
@@ -2169,7 +2169,7 @@ ICCTimerFired(nsITimer* aTimer, void* aClosure)
     }
   }
 
-  nsJSContext::ScheduledCycleCollectNow(ICCSliceTime());
+  nsJSContext::RunCycleCollectorSlice(ICCSliceTime());
 }
 
 
@@ -2438,7 +2438,7 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
       
       
       
-      nsJSContext::ScheduledCycleCollectNow(ICCSliceTime());
+      nsJSContext::RunCycleCollectorSlice(ICCSliceTime());
     }
   } else if ((sPreviousSuspectedCount + 100) <= suspected) {
       

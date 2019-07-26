@@ -45,7 +45,7 @@ void nsCycleCollector_collect(nsICycleCollectorListener *aManualListener);
 
 
 
-void nsCycleCollector_scheduledCollect(int64_t aSliceTime);
+void nsCycleCollector_collectSlice(int64_t aSliceTime);
 
 uint32_t nsCycleCollector_suspectedCount();
 void nsCycleCollector_shutdown();
