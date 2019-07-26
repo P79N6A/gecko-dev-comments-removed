@@ -6371,6 +6371,9 @@ static int
 SimulateOp(JSScript *script, JSOp op, const JSCodeSpec *cs,
            jsbytecode *pc, jsbytecode **pcstack, unsigned &pcdepth)
 {
+    if (cs->format & JOF_DECOMPOSE)
+        return pcdepth;
+
     unsigned nuses = StackUses(script, pc);
     unsigned ndefs = StackDefs(script, pc);
     LOCAL_ASSERT(pcdepth >= nuses);
@@ -6422,6 +6425,19 @@ SimulateOp(JSScript *script, JSOp op, const JSCodeSpec *cs,
     return pcdepth;
 }
 
+
+static void
+AssertPCDepth(JSScript *script, jsbytecode *pc, unsigned pcdepth) {
+    
+
+
+
+
+
+    JS_ASSERT_IF(script->hasAnalysis() && script->analysis()->maybeCode(pc),
+                 script->analysis()->getCode(pc).stackDepth == pcdepth);
+}
+
 static int
 ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target, jsbytecode **pcstack)
 {
@@ -6434,122 +6450,83 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target, jsbyteco
 
 
     LOCAL_ASSERT(script->code <= target && target < script->code + script->length);
-    jsbytecode *pc = script->code;
-    unsigned pcdepth = 0;
     unsigned hpcdepth = unsigned(-1);
+    unsigned cpcdepth = unsigned(-1);
+
+    jsbytecode *pc;
+    unsigned pcdepth;
     ptrdiff_t oplen;
-    for (; pc < target; pc += oplen) {
-        JS_ASSERT_IF(script->hasAnalysis() && script->analysis()->maybeCode(pc),
-                     script->analysis()->getCode(pc).stackDepth ==
-                     ((hpcdepth == unsigned(-1)) ? pcdepth : hpcdepth));
+    for (pc = script->code, pcdepth = 0; ; pc += oplen) {
         JSOp op = JSOp(*pc);
-        const JSCodeSpec *cs = &js_CodeSpec[op];
         oplen = GetBytecodeLength(pc);
-
-        if (cs->format & JOF_DECOMPOSE)
-            continue;
-
-        if (op == JSOP_GOTO) {
-            ptrdiff_t jmpoff = GET_JUMP_OFFSET(pc);
-            if (0 < jmpoff && pc + jmpoff <= target) {
-                pc += jmpoff;
-                oplen = 0;
-                
-                if (hpcdepth != unsigned(-1)) {
-                    pcdepth = hpcdepth;
-                    hpcdepth = unsigned(-1);
-                }
-                continue;
-            }
-
-            
-
-
-
-            if (script->hasTrynotes()) {
-                JSTryNote *tn = script->trynotes()->vector;
-                JSTryNote *tnEnd = tn + script->trynotes()->length;
-                for (; tn != tnEnd; tn++) {
-                    jsbytecode *start = script->main() + tn->start;
-                    jsbytecode *end = start + tn->length;
-                    if (start < pc && pc <= end && end <= target)
-                        break;
-                }
-
-                if (tn != tnEnd) {
-                    pcdepth = tn->stackDepth;
-                    hpcdepth = unsigned(-1);
-                    oplen = 0;
-                    pc = script->main() + tn->start + tn->length;
-                    continue;
-                }
-            }
-
-            
-
-
-
-            if (JSOp(*(pc + oplen)) == JSOP_THROWING)
-                hpcdepth = pcdepth + 2;
-            else
-                
-                hpcdepth = unsigned(-1);
-
-            continue;
-        }
-
-        
-
-
-
-
-
-
+        const JSCodeSpec *cs = &js_CodeSpec[op];
         jssrcnote *sn = js_GetSrcNote(cx, script, pc);
-        if (sn && SN_TYPE(sn) == SRC_COND) {
-            ptrdiff_t jmpoff = js_GetSrcNoteOffset(sn, 0);
-            if (pc + jmpoff < target) {
-                pc += jmpoff;
-                op = JSOp(*pc);
-                JS_ASSERT(op == JSOP_GOTO);
-                cs = &js_CodeSpec[op];
-                oplen = cs->length;
-                JS_ASSERT(oplen > 0);
-                ptrdiff_t jmplen = GET_JUMP_OFFSET(pc);
-                if (pc + jmplen < target) {
-                    oplen = (unsigned) jmplen;
-                    continue;
-                }
 
-                
+        bool exitPath =
+            op == JSOP_GOTO ||
+            op == JSOP_RETRVAL ||
+            op == JSOP_THROW;
 
-
-
-                LOCAL_ASSERT(pcdepth != 0);
-                --pcdepth;
-            }
-        }
-
-        
-
-
-
+        bool isHiddenGoto = false;
 
         if (sn && SN_TYPE(sn) == SRC_HIDDEN) {
+            isHiddenGoto = op == JSOP_GOTO;
             if (hpcdepth == unsigned(-1))
                 hpcdepth = pcdepth;
-            if (SimulateOp(script, op, cs, pc, pcstack, hpcdepth) < 0)
-                return -1;
-        } else {
+        } else if (!exitPath) {
             hpcdepth = unsigned(-1);
-            if (SimulateOp(script, op, cs, pc, pcstack, pcdepth) < 0)
-                return -1;
         }
 
+        if (op == JSOP_LEAVEBLOCK && sn && SN_TYPE(sn) == SRC_CATCH) {
+            LOCAL_ASSERT(cpcdepth == unsigned(-1));
+            cpcdepth = pcdepth;
+        } else if (sn && SN_TYPE(sn) == SRC_HIDDEN &&
+                   (op == JSOP_THROW || op == JSOP_THROWING))
+        {
+            LOCAL_ASSERT(cpcdepth != unsigned(-1));
+            pcdepth = cpcdepth + 1;
+            cpcdepth = unsigned(-1);
+        } else if (!(op == JSOP_GOTO && sn && SN_TYPE(sn) == SRC_HIDDEN) &&
+                   !(op == JSOP_GOSUB && cpcdepth != unsigned(-1)))
+        {
+            if (cpcdepth != unsigned(-1))
+                LOCAL_ASSERT((op == JSOP_NOP && sn && SN_TYPE(sn) == SRC_ENDBRACE) ||
+                             op == JSOP_FINALLY);
+            cpcdepth = unsigned(-1);
+        }
+
+        
+        AssertPCDepth(script, pc, pcdepth);
+        if (pc >= target)
+            break;
+
+        
+        if (SimulateOp(script, op, cs, pc, pcstack, pcdepth) < 0)
+            return -1;
+
+        
+
+        if (exitPath && hpcdepth != unsigned(-1)) {
+            pcdepth = hpcdepth;
+            if (!isHiddenGoto)
+                hpcdepth = unsigned(-1);
+        }
+
+        
+
+
+
+
+        if (sn && SN_TYPE(sn) == SRC_COND) {
+            ptrdiff_t jmplen = GET_JUMP_OFFSET(pc);
+            if (pc + jmplen <= target) {
+                
+                oplen = jmplen;
+            }
+        }
     }
     LOCAL_ASSERT(pc == target);
-    if (hpcdepth != unsigned(-1))
-        return hpcdepth;
+    AssertPCDepth(script, pc, pcdepth);
     return pcdepth;
 }
 
