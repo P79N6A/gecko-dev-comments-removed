@@ -32,8 +32,8 @@ import java.util.EnumSet;
 
 
 
-public class ListPanel extends HomeFragment {
-    private static final String LOGTAG = "GeckoListPanel";
+public class DynamicPanel extends HomeFragment {
+    private static final String LOGTAG = "GeckoDynamicPanel";
 
     
     private static final int LOADER_ID_LIST = 0;
@@ -42,9 +42,8 @@ public class ListPanel extends HomeFragment {
     private PanelConfig mPanelConfig;
 
     
-    private HomeListAdapter mAdapter;
-
     
+    private HomeListAdapter mAdapter;
     private ListView mList;
 
     
@@ -82,12 +81,13 @@ public class ListPanel extends HomeFragment {
         }
 
         if (mPanelConfig == null) {
-            throw new IllegalStateException("Can't create a ListPanel without a PanelConfig");
+            throw new IllegalStateException("Can't create a DynamicPanel without a PanelConfig");
         }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        
         mList = new HomeListView(getActivity());
         return mList;
     }
@@ -122,6 +122,7 @@ public class ListPanel extends HomeFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
+        
         mAdapter = new HomeListAdapter(getActivity(), null);
         mList.setAdapter(mAdapter);
 

@@ -14,12 +14,18 @@ import java.util.EnumSet;
 import java.util.List;
 
 final class HomeConfig {
+    
+
+
+
+
+
     public static enum PanelType implements Parcelable {
         TOP_SITES("top_sites", TopSitesPanel.class),
         BOOKMARKS("bookmarks", BookmarksPanel.class),
         HISTORY("history", HistoryPanel.class),
         READING_LIST("reading_list", ReadingListPanel.class),
-        LIST("list", ListPanel.class);
+        DYNAMIC("dynamic", DynamicPanel.class);
 
         private final String mId;
         private final Class<?> mPanelClass;
