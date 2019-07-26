@@ -151,9 +151,23 @@ private:
   
   static bool
   JSCallback(JSContext *aCx, unsigned aArgc, JS::Value *aVp);
+
+  static bool
+  ThenableResolverCommon(JSContext* aCx, uint32_t  aTask,
+                         unsigned aArgc, JS::Value* aVp);
+  static bool
+  JSCallbackThenableResolver(JSContext *aCx, unsigned aArgc, JS::Value *aVp);
+  static bool
+  JSCallbackThenableRejecter(JSContext *aCx, unsigned aArgc, JS::Value *aVp);
+
   static JSObject*
   CreateFunction(JSContext* aCx, JSObject* aParent, Promise* aPromise,
                 int32_t aTask);
+
+  static JSObject*
+  CreateThenableFunction(JSContext* aCx, Promise* aPromise, uint32_t aTask);
+
+  void HandleException(JSContext* aCx);
 
   nsRefPtr<nsPIDOMWindow> mWindow;
 
