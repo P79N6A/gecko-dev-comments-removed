@@ -1121,12 +1121,13 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
 
         
         
+        
         AutoSuppressGC suppressGC(cx);
 
         fun->flags &= ~INTERPRETED_LAZY;
         fun->flags |= INTERPRETED;
 
-        JSScript *script = lazy->maybeScript();
+        RootedScript script(cx, lazy->maybeScript());
 
         if (script) {
             fun->initScript(script);
@@ -1155,13 +1156,12 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
         
         if (!lazy->numInnerFunctions() && !JS::IsIncrementalGCInProgress(cx->runtime())) {
             LazyScriptCache::Lookup lookup(cx, lazy);
-            cx->runtime()->lazyScriptCache.lookup(lookup, &script);
+            cx->runtime()->lazyScriptCache.lookup(lookup, script.address());
         }
 
         if (script) {
             RootedObject enclosingScope(cx, lazy->enclosingScope());
-            RootedScript scriptRoot(cx, script);
-            RootedScript clonedScript(cx, CloneScript(cx, enclosingScope, fun, scriptRoot));
+            RootedScript clonedScript(cx, CloneScript(cx, enclosingScope, fun, script));
             if (!clonedScript) {
                 fun->initLazyScript(lazy);
                 return false;
@@ -1182,7 +1182,8 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
         JS_ASSERT(lazy->source()->hasSourceData());
 
         
-        const jschar *chars = lazy->source()->chars(cx);
+        SourceDataCache::AutoSuppressPurge asp(cx);
+        const jschar *chars = lazy->source()->chars(cx, asp);
         if (!chars) {
             fun->initLazyScript(lazy);
             return false;
