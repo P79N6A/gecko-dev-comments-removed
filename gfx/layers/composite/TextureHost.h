@@ -80,12 +80,15 @@ public:
 
 
 
-class TextureSource : public RefCounted<TextureSource>
+class TextureSource
 {
-public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(TextureSource)
-  TextureSource();
+protected:
   virtual ~TextureSource();
+
+public:
+  NS_INLINE_DECL_REFCOUNTING(TextureSource)
+
+  TextureSource();
 
   
 
