@@ -64,28 +64,30 @@ let WebAppRT = {
   },
 
   getManifestFor: function (aUrl, aCallback) {
-    let request = navigator.mozApps.mgmt.getAll();
-    request.onsuccess = function() {
-      let apps = request.result;
-      for (let i = 0; i < apps.length; i++) {
-        let app = apps[i];
-        let manifest = new ManifestHelper(app.manifest, app.origin);
+    DOMApplicationRegistry.registryReady.then(() => {
+      let request = navigator.mozApps.mgmt.getAll();
+      request.onsuccess = function() {
+        let apps = request.result;
+        for (let i = 0; i < apps.length; i++) {
+          let app = apps[i];
+          let manifest = new ManifestHelper(app.manifest, app.origin);
+
+          
+          if (app.manifestURL == aUrl || manifest.fullLaunchPath() == aUrl) {
+            aCallback(manifest, app);
+            return;
+          }
+        }
 
         
-        if (app.manifestURL == aUrl || manifest.fullLaunchPath() == aUrl) {
-          aCallback(manifest, app);
-          return;
-        }
-      }
+        aCallback(undefined);
+      };
 
-      
-      aCallback(undefined);
-    };
-
-    request.onerror = function() {
-      
-      aCallback(undefined);
-    };
+      request.onerror = function() {
+        
+        aCallback(undefined);
+      };
+    });
   },
 
   findManifestUrlFor: function(aUrl, aCallback) {
