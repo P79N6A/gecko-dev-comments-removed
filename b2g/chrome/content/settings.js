@@ -199,34 +199,90 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
 })();
 
 
-SettingsListener.observe('devtools.debugger.remote-enabled', false, function(value) {
-  Services.prefs.setBoolPref('devtools.debugger.remote-enabled', value);
-  
-  Services.prefs.savePrefFile(null);
-  try {
-    value ? RemoteDebugger.start() : RemoteDebugger.stop();
-  } catch(e) {
-    dump("Error while initializing devtools: " + e + "\n" + e.stack + "\n");
-  }
 
 #ifdef MOZ_WIDGET_GONK
-  let enableAdb = value;
+let AdbController = {
+  DEBUG: false,
+  locked: undefined,
+  remoteDebuggerEnabled: undefined,
+  lockEnabled: undefined,
 
-  try {
-    if (Services.prefs.getBoolPref('marionette.defaultPrefs.enabled')) {
-      
-      
-      
+  debug: function(str) {
+    dump("AdbController: " + str + "\n");
+  },
 
-      enableAdb = true;
+  setLockscreenEnabled: function(value) {
+    this.lockEnabled = value;
+    if (this.DEBUG) {
+      this.debug("setLockscreenEnabled = " + this.lockEnabled);
     }
-  } catch (e) {
-    
-    
-  }
+    this.updateState();
+  },
 
-  
-  try {
+  setLockscreenState: function(value) {
+    this.locked = value;
+    if (this.DEBUG) {
+      this.debug("setLockscreenState = " + this.locked);
+    }
+    this.updateState();
+  },
+
+  setRemoteDebuggerState: function(value) {
+    this.remoteDebuggerEnabled = value;
+    if (this.DEBUG) {
+      this.debug("setRemoteDebuggerState = " + this.remoteDebuggerEnabled);
+    }
+    this.updateState();
+  },
+
+  updateState: function() {
+    if (this.remoteDebuggerEnabled === undefined ||
+        this.lockEnabled === undefined ||
+        this.locked === undefined) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (this.DEBUG) {
+        this.debug("updateState: Waiting for all vars to be initialized");
+      }
+      return;
+    }
+    let enableAdb = this.remoteDebuggerEnabled &&
+      !(this.lockEnabled && this.locked);
+    try {
+      if (Services.prefs.getBoolPref("marionette.defaultPrefs.enabled")) {
+        
+        
+        
+        
+        enableAdb = true;
+      }
+    } catch (e) {
+      
+      
+    }
+    if (this.DEBUG) {
+      this.debug("updateState: enableAdb = " + enableAdb +
+                 " remoteDebuggerEnabled = " + this.remoteDebuggerEnabled +
+                 " lockEnabled = " + this.lockEnabled +
+                 " locked = " + this.locked);
+    }
+
+    
     let currentConfig = libcutils.property_get("persist.sys.usb.config");
     let configFuncs = currentConfig.split(",");
     let adbIndex = configFuncs.indexOf("adb");
@@ -239,16 +295,42 @@ SettingsListener.observe('devtools.debugger.remote-enabled', false, function(val
     } else {
       
       if (adbIndex >= 0) {
-        configFuncs.splice(adbIndex,1);
+        configFuncs.splice(adbIndex, 1);
       }
     }
     let newConfig = configFuncs.join(",");
     if (newConfig != currentConfig) {
-      libcutils.property_set("persist.sys.usb.config", newConfig);
+      if (this.DEBUG) {
+        this.debug("updateState: currentConfig = " + currentConfig);
+        this.debug("updateState:     newConfig = " + newConfig);
+      }
+      try {
+        libcutils.property_set("persist.sys.usb.config", newConfig);
+      } catch(e) {
+        dump("Error configuring adb: " + e);
+      }
     }
-  } catch(e) {
-    dump("Error configuring adb: " + e);
   }
+};
+
+SettingsListener.observe("lockscreen.locked", false,
+                         AdbController.setLockscreenState.bind(AdbController));
+SettingsListener.observe("lockscreen.enabled", false,
+                         AdbController.setLockscreenEnabled.bind(AdbController));
+#endif
+
+SettingsListener.observe('devtools.debugger.remote-enabled', false, function(value) {
+  Services.prefs.setBoolPref('devtools.debugger.remote-enabled', value);
+  
+  Services.prefs.savePrefFile(null);
+  try {
+    value ? RemoteDebugger.start() : RemoteDebugger.stop();
+  } catch(e) {
+    dump("Error while initializing devtools: " + e + "\n" + e.stack + "\n");
+  }
+
+#ifdef MOZ_WIDGET_GONK
+  AdbController.setRemoteDebuggerState(value);
 #endif
 });
 
