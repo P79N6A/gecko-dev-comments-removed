@@ -1271,6 +1271,11 @@ public:
   
   bool HasOpacity() const;
 
+   
+
+
+  virtual bool HasTransformGetter() const { return false; }
+
   
 
 
@@ -2225,7 +2230,7 @@ public:
 
 
   virtual void InvalidateFrameForRemoval() {}
-  
+
   
 
 

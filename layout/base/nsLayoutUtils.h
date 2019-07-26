@@ -542,6 +542,15 @@ public:
 
 
 
+  static bool GetLayerTransformForFrame(nsIFrame* aFrame,
+                                        gfx3DMatrix* aTransform);
+
+  
+
+
+
+
+
 
 
 

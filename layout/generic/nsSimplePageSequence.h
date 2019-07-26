@@ -91,6 +91,8 @@ public:
   
   virtual bool HonorPrintBackgroundSettings() { return false; }
 
+  virtual bool HasTransformGetter() const MOZ_OVERRIDE { return true; }
+
   
 
 
