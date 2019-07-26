@@ -17,6 +17,7 @@
 #include "builtin/Module.h"
 #include "frontend/ParseMaps.h"
 #include "frontend/ParseNode.h"
+#include "frontend/TokenStream.h"
 #include "vm/ScopeObject.h"
 
 namespace js {
@@ -200,6 +201,8 @@ class FunctionBox : public ObjectBox, public SharedContext
     Bindings        bindings;               
     uint32_t        bufStart;
     uint32_t        bufEnd;
+    uint32_t        startLine;
+    uint32_t        startColumn;
     uint32_t        asmStart;               
     uint16_t        ndefaults;
     bool            inWith:1;               
@@ -233,6 +236,12 @@ class FunctionBox : public ObjectBox, public SharedContext
     
     bool useAsmOrInsideUseAsm() const {
         return useAsm || insideUseAsm;
+    }
+
+    void setStart(const TokenStream &tokenStream) {
+        bufStart = tokenStream.currentToken().pos.begin;
+        startLine = tokenStream.getLineno();
+        startColumn = tokenStream.getColumn();
     }
 };
 

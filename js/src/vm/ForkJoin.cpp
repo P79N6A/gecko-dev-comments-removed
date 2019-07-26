@@ -615,12 +615,11 @@ js::ParallelDo::enqueueInitialScript(ExecutionStatus *status)
     if (!callee->isInterpreted() || !callee->isSelfHostedBuiltin())
         return sequentialExecution(true, status);
 
-    if (callee->isInterpretedLazy() && !callee->initializeLazyScript(cx_))
-        return sequentialExecution(true, status);
-
     
     
-    RootedScript script(cx_, callee->nonLazyScript());
+    RootedScript script(cx_, callee->getOrCreateScript(cx_));
+    if (!script)
+        return RedLight;
     if (script->getUseCount() < js_IonOptions.usesBeforeCompileParallel) {
         if (warmupExecution(status) == RedLight)
             return RedLight;

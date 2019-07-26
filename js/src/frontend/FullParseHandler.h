@@ -15,6 +15,13 @@
 namespace js {
 namespace frontend {
 
+template <typename ParseHandler>
+class Parser;
+
+class SyntaxParseHandler;
+
+
+
 class FullParseHandler
 {
     ParseNodeAllocator allocator;
@@ -34,17 +41,38 @@ class FullParseHandler
         return node;
     }
 
+    
+
+
+
+
+    LazyScript * const lazyOuterFunction_;
+    size_t lazyInnerFunctionIndex;
+
   public:
+
+    
+
+
+
+
+
+    Parser<SyntaxParseHandler> *syntaxParser;
+
     
     JS_DECLARE_NEW_METHODS(new_, allocParseNode, inline)
 
     typedef ParseNode *Node;
     typedef Definition *DefinitionNode;
 
-    FullParseHandler(JSContext *cx, TokenStream &tokenStream, bool foldConstants)
+    FullParseHandler(JSContext *cx, TokenStream &tokenStream, bool foldConstants,
+                     Parser<SyntaxParseHandler> *syntaxParser, LazyScript *lazyOuterFunction)
       : allocator(cx),
         tokenStream(tokenStream),
-        foldConstants(foldConstants)
+        foldConstants(foldConstants),
+        lazyOuterFunction_(lazyOuterFunction),
+        lazyInnerFunctionIndex(0),
+        syntaxParser(syntaxParser)
     {}
 
     static ParseNode *null() { return NULL; }
@@ -61,8 +89,8 @@ class FullParseHandler
         pn->setOp(JSOP_NAME);
         return pn;
     }
-    Definition *newPlaceholder(ParseNode *pn, ParseContext<FullParseHandler> *pc) {
-        Definition *dn = (Definition *) NameNode::create(PNK_NAME, pn->pn_atom, this, pc);
+    Definition *newPlaceholder(JSAtom *atom, ParseContext<FullParseHandler> *pc) {
+        Definition *dn = (Definition *) NameNode::create(PNK_NAME, atom, this, pc);
         if (!dn)
             return NULL;
 
@@ -312,6 +340,17 @@ class FullParseHandler
     }
     static Definition *nullDefinition() {
         return NULL;
+    }
+    void disableSyntaxParser() {
+        syntaxParser = NULL;
+    }
+
+    LazyScript *lazyOuterFunction() {
+        return lazyOuterFunction_;
+    }
+    JSFunction *nextLazyInnerFunction() {
+        JS_ASSERT(lazyInnerFunctionIndex < lazyOuterFunction()->numInnerFunctions());
+        return lazyOuterFunction()->innerFunctions()[lazyInnerFunctionIndex++];
     }
 };
 

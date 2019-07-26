@@ -1550,7 +1550,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     masm.branchIfFunctionHasNoScript(calleereg, &uncompiled);
 
     
-    masm.loadPtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
+    masm.loadPtr(Address(calleereg, JSFunction::offsetOfNativeOrScript()), objreg);
 
     
     masm.loadBaselineOrIonRaw(objreg, objreg, executionMode, &uncompiled);
@@ -1685,7 +1685,7 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
     }
 
     
-    masm.loadPtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
+    masm.loadPtr(Address(calleereg, JSFunction::offsetOfNativeOrScript()), objreg);
 
     
     if (call->mir()->needsArgCheck())
@@ -1894,7 +1894,7 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
     }
 
     
-    masm.loadPtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
+    masm.loadPtr(Address(calleereg, JSFunction::offsetOfNativeOrScript()), objreg);
 
     
     masm.loadBaselineOrIonRaw(objreg, objreg, executionMode, &invoke);

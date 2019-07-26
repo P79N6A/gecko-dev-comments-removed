@@ -491,8 +491,13 @@ JSFunction::trace(JSTracer *trc)
         MarkString(trc, &atom_, "atom");
 
     if (isInterpreted()) {
-        if (hasScript())
-            MarkScriptUnbarriered(trc, &u.i.script_, "script");
+        
+        
+        
+        if (hasScript() && u.i.s.script_)
+            MarkScriptUnbarriered(trc, &u.i.s.script_, "script");
+        else if (isInterpretedLazy() && u.i.s.lazy_)
+            MarkLazyScriptUnbarriered(trc, &u.i.s.lazy_, "lazyScript");
         if (u.i.env_)
             MarkObjectUnbarriered(trc, &u.i.env_, "fun_callscope");
     }
@@ -584,8 +589,8 @@ FindBody(JSContext *cx, HandleFunction fun, StableCharPtr chars, size_t length,
 JSString *
 js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lambdaParen)
 {
-    StringBuffer out(cx);
-    RootedScript script(cx);
+    if (fun->isInterpretedLazy() && !fun->getOrCreateScript(cx))
+        return NULL;
 
     
     
@@ -595,6 +600,9 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
         JS_ASSERT(targetFun->isArrow());
         return FunctionToString(cx, targetFun, bodyOnly, lambdaParen);
     }
+
+    StringBuffer out(cx);
+    RootedScript script(cx);
 
     if (fun->hasScript()) {
         script = fun->nonLazyScript();
@@ -1061,17 +1069,65 @@ JSFunction::getBoundFunctionArgumentCount() const
     return getSlot(JSSLOT_BOUND_FUNCTION_ARGS_COUNT).toPrivateUint32();
 }
 
-bool
-JSFunction::initializeLazyScript(JSContext *cx)
+ bool
+JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFunction fun)
 {
-    JS_ASSERT(isInterpretedLazy());
-    const JSFunctionSpec *fs = static_cast<JSFunctionSpec *>(getExtendedSlot(0).toPrivate());
-    Rooted<JSFunction*> self(cx, this);
+    JS_ASSERT(fun->isInterpretedLazy());
+
+    if (LazyScript *lazy = fun->lazyScriptOrNull()) {
+        
+        if (cx->zone()->needsBarrier())
+            LazyScript::writeBarrierPre(lazy);
+
+        if (JSScript *script = lazy->maybeScript()) {
+            fun->flags &= ~INTERPRETED_LAZY;
+            fun->flags |= INTERPRETED;
+            fun->initScript(script);
+
+            
+
+
+
+            if (script->function()->isHeavyweight())
+                fun->setIsHeavyweight();
+            fun->nargs = script->function()->nargs;
+            return true;
+        }
+
+        
+        const jschar *chars = lazy->source()->chars(cx);
+        if (!chars)
+            return false;
+
+        
+
+
+
+        AutoSuppressGC suppressGC(cx);
+
+        fun->flags &= ~INTERPRETED_LAZY;
+        fun->flags |= INTERPRETED;
+        fun->initScript(NULL);
+
+        const jschar *lazyStart = chars + lazy->begin();
+        size_t lazyLength = lazy->end() - lazy->begin();
+
+        if (!frontend::CompileLazyFunction(cx, fun, lazy, lazyStart, lazyLength)) {
+            fun->initLazyScript(lazy);
+            return false;
+        }
+
+        lazy->initScript(fun->nonLazyScript());
+        return true;
+    }
+
+    
+    JSFunctionSpec *fs = static_cast<JSFunctionSpec *>(fun->getExtendedSlot(0).toPrivate());
     RootedAtom funAtom(cx, Atomize(cx, fs->selfHostedName, strlen(fs->selfHostedName)));
     if (!funAtom)
         return false;
     Rooted<PropertyName *> funName(cx, funAtom->asPropertyName());
-    return cx->runtime->cloneSelfHostedFunctionScript(cx, funName, self);
+    return cx->runtime->cloneSelfHostedFunctionScript(cx, funName, fun);
 }
 
 
@@ -1504,6 +1560,10 @@ js::CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent, 
     bool useSameScript = cx->compartment == fun->compartment() &&
                          !fun->hasSingletonType() &&
                          !types::UseNewTypeForClone(fun);
+
+    if (!useSameScript && fun->isInterpretedLazy() && !fun->getOrCreateScript(cx))
+        return NULL;
+
     NewObjectKind newKind = useSameScript ? newKindArg : SingletonObject;
     JSObject *cloneobj = NewObjectWithClassProto(cx, &FunctionClass, NULL, SkipScopeParent(parent),
                                                  allocKind, newKind);
@@ -1513,15 +1573,12 @@ js::CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent, 
 
     clone->nargs = fun->nargs;
     clone->flags = fun->flags & ~JSFunction::EXTENDED;
-    if (fun->isInterpreted()) {
-        if (fun->isInterpretedLazy()) {
-            RootedFunction cloneRoot(cx, clone);
-            AutoCompartment ac(cx, fun);
-            if (!fun->getOrCreateScript(cx))
-                return NULL;
-            clone = cloneRoot;
-        }
+    if (fun->hasScript()) {
         clone->initScript(fun->nonLazyScript());
+        clone->initEnvironment(parent);
+    } else if (fun->isInterpretedLazy()) {
+        LazyScript *lazy = fun->lazyScriptOrNull();
+        clone->initLazyScript(lazy);
         clone->initEnvironment(parent);
     } else {
         clone->initNative(fun->native(), fun->jitInfo());

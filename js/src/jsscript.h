@@ -336,6 +336,7 @@ class JSScript : public js::gc::Cell
 
     uint32_t        natoms;     
 
+    
     uint32_t        sourceStart;
     uint32_t        sourceEnd;
 
@@ -415,6 +416,9 @@ class JSScript : public js::gc::Cell
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
     bool            uninlineable:1;   
+
+    
+    bool directlyInsideEval:1;
 
     
 
@@ -792,6 +796,11 @@ class JSScript : public js::gc::Cell
         return arr->vector[index];
     }
 
+    size_t innerObjectsStart() {
+        
+        return savedCallerFun ? 1 : 0;
+    }
+
     JSObject *getObject(jsbytecode *pc) {
         JS_ASSERT(pc >= code && pc + sizeof(uint32_t) < code + length);
         return getObject(GET_UINT32_INDEX(pc));
@@ -1041,6 +1050,7 @@ struct ScriptSource
         JS_ASSERT(hasSourceData());
         return argumentsNotIncluded_;
     }
+    const jschar *chars(JSContext *cx);
     JSStableString *substring(JSContext *cx, uint32_t start, uint32_t stop);
     size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf);
 
@@ -1101,6 +1111,161 @@ class ScriptSourceObject : public JSObject {
 
   private:
     static const uint32_t SOURCE_SLOT = 0;
+};
+
+
+
+class LazyScript : public js::gc::Cell
+{
+    
+    
+    
+    JSScript *parent_;
+
+    
+    
+    JSScript *script_;
+
+    
+    void *table_;
+
+#if JS_BITS_PER_WORD == 32
+    uint32_t padding;
+#endif
+
+    uint32_t numFreeVariables_;
+    uint32_t numInnerFunctions_ : 26;
+
+    bool strict_ : 1;
+    bool bindingsAccessedDynamically_ : 1;
+    bool hasDebuggerStatement_ : 1;
+    bool directlyInsideEval_:1;
+    bool hasBeenCloned_:1;
+
+    
+    uint32_t begin_;
+    uint32_t end_;
+    uint32_t lineno_;
+    uint32_t column_;
+
+    LazyScript(void *table, uint32_t numFreeVariables, uint32_t numInnerFunctions,
+               uint32_t begin, uint32_t end, uint32_t lineno, uint32_t column)
+      : parent_(NULL),
+        script_(NULL),
+        table_(table),
+        numFreeVariables_(numFreeVariables),
+        numInnerFunctions_(numInnerFunctions),
+        strict_(false),
+        bindingsAccessedDynamically_(false),
+        hasDebuggerStatement_(false),
+        directlyInsideEval_(false),
+        hasBeenCloned_(false),
+        begin_(begin),
+        end_(end),
+        lineno_(lineno),
+        column_(column)
+    {
+        JS_ASSERT(begin <= end);
+    }
+
+  public:
+    static LazyScript *Create(JSContext *cx, uint32_t numFreeVariables, uint32_t numInnerFunctions,
+                              uint32_t begin, uint32_t end, uint32_t lineno, uint32_t column);
+
+    void initParent(JSScript *parent) {
+        JS_ASSERT(parent && !parent_);
+        parent_ = parent;
+    }
+    JSScript *parent() const {
+        return parent_;
+    }
+
+    void initScript(JSScript *script) {
+        JS_ASSERT(script && !script_);
+        script_ = script;
+    }
+    JSScript *maybeScript() {
+        return script_;
+    }
+
+    uint32_t numFreeVariables() const {
+        return numFreeVariables_;
+    }
+    HeapPtrAtom *freeVariables() {
+        return (HeapPtrAtom *)table_;
+    }
+
+    uint32_t numInnerFunctions() const {
+        return numInnerFunctions_;
+    }
+    HeapPtrFunction *innerFunctions() {
+        return (HeapPtrFunction *)&freeVariables()[numFreeVariables()];
+    }
+
+    bool strict() const {
+        return strict_;
+    }
+    void setStrict() {
+        strict_ = true;
+    }
+
+    bool bindingsAccessedDynamically() const {
+        return bindingsAccessedDynamically_;
+    }
+    void setBindingsAccessedDynamically() {
+        bindingsAccessedDynamically_ = true;
+    }
+
+    bool hasDebuggerStatement() const {
+        return hasDebuggerStatement_;
+    }
+    void setHasDebuggerStatement() {
+        hasDebuggerStatement_ = true;
+    }
+
+    bool directlyInsideEval() const {
+        return directlyInsideEval_;
+    }
+    void setDirectlyInsideEval() {
+        directlyInsideEval_ = true;
+    }
+
+    bool hasBeenCloned() const {
+        return hasBeenCloned_;
+    }
+    void setHasBeenCloned() {
+        hasBeenCloned_ = true;
+    }
+
+    ScriptSource *source() const {
+        return parent()->scriptSource();
+    }
+    uint32_t begin() const {
+        return begin_;
+    }
+    uint32_t end() const {
+        return end_;
+    }
+    uint32_t lineno() const {
+        return lineno_;
+    }
+    uint32_t column() const {
+        return column_;
+    }
+
+    Zone *zone() const {
+        return Cell::tenuredZone();
+    }
+
+    void markChildren(JSTracer *trc);
+    void finalize(js::FreeOp *fop);
+
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf)
+    {
+        return mallocSizeOf(table_);
+    }
+
+    static inline void writeBarrierPre(LazyScript *lazy);
 };
 
 #ifdef JS_THREADSAFE

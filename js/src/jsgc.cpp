@@ -121,6 +121,7 @@ const uint32_t Arena::ThingSizes[] = {
     sizeof(JSObject_Slots16),   
     sizeof(JSObject_Slots16),   
     sizeof(JSScript),           
+    sizeof(LazyScript),         
     sizeof(Shape),              
     sizeof(BaseShape),          
     sizeof(types::TypeObject),  
@@ -146,6 +147,7 @@ const uint32_t Arena::FirstThingOffsets[] = {
     OFFSET(JSObject_Slots16),   
     OFFSET(JSObject_Slots16),   
     OFFSET(JSScript),           
+    OFFSET(LazyScript),         
     OFFSET(Shape),              
     OFFSET(BaseShape),          
     OFFSET(types::TypeObject),  
@@ -211,6 +213,7 @@ static const AllocKind BackgroundPhaseStrings[] = {
 };
 
 static const AllocKind BackgroundPhaseShapes[] = {
+    FINALIZE_LAZY_SCRIPT,
     FINALIZE_SHAPE,
     FINALIZE_BASE_SHAPE,
     FINALIZE_TYPE_OBJECT
@@ -427,6 +430,8 @@ FinalizeArenas(FreeOp *fop,
         return FinalizeTypedArenas<JSObject>(fop, src, dest, thingKind, budget);
       case FINALIZE_SCRIPT:
         return FinalizeTypedArenas<JSScript>(fop, src, dest, thingKind, budget);
+      case FINALIZE_LAZY_SCRIPT:
+        return FinalizeTypedArenas<LazyScript>(fop, src, dest, thingKind, budget);
       case FINALIZE_SHAPE:
         return FinalizeTypedArenas<Shape>(fop, src, dest, thingKind, budget);
       case FINALIZE_BASE_SHAPE:
@@ -1435,6 +1440,7 @@ ArenaLists::queueScriptsForSweep(FreeOp *fop)
 {
     gcstats::AutoPhase ap(fop->runtime()->gcStats, gcstats::PHASE_SWEEP_SCRIPT);
     queueForForegroundSweep(fop, FINALIZE_SCRIPT);
+    queueForBackgroundSweep(fop, FINALIZE_LAZY_SCRIPT);
 }
 
 void

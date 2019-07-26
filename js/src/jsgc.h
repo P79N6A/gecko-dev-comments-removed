@@ -119,6 +119,7 @@ MapAllocToTraceKind(AllocKind kind)
         JSTRACE_OBJECT,     
         JSTRACE_OBJECT,     
         JSTRACE_SCRIPT,     
+        JSTRACE_LAZY_SCRIPT,
         JSTRACE_SHAPE,      
         JSTRACE_BASE_SHAPE, 
         JSTRACE_TYPE_OBJECT,
@@ -140,6 +141,7 @@ template <> struct MapTypeToTraceKind<DebugScopeObject> { const static JSGCTrace
 template <> struct MapTypeToTraceKind<GlobalObject>     { const static JSGCTraceKind kind = JSTRACE_OBJECT; };
 template <> struct MapTypeToTraceKind<ScopeObject>      { const static JSGCTraceKind kind = JSTRACE_OBJECT; };
 template <> struct MapTypeToTraceKind<JSScript>         { const static JSGCTraceKind kind = JSTRACE_SCRIPT; };
+template <> struct MapTypeToTraceKind<LazyScript>       { const static JSGCTraceKind kind = JSTRACE_LAZY_SCRIPT; };
 template <> struct MapTypeToTraceKind<Shape>            { const static JSGCTraceKind kind = JSTRACE_SHAPE; };
 template <> struct MapTypeToTraceKind<BaseShape>        { const static JSGCTraceKind kind = JSTRACE_BASE_SHAPE; };
 template <> struct MapTypeToTraceKind<UnownedBaseShape> { const static JSGCTraceKind kind = JSTRACE_BASE_SHAPE; };
@@ -177,6 +179,7 @@ IsNurseryAllocable(AllocKind kind)
         false,     
         false,     
         false,     
+        false,     
     };
     JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
     return map[kind];
@@ -201,6 +204,7 @@ IsBackgroundFinalized(AllocKind kind)
         false,     
         true,      
         false,     
+        true,      
         true,      
         true,      
         true,      

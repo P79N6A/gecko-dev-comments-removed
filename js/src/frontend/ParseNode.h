@@ -632,6 +632,7 @@ struct ParseNode {
                                            'arguments' that has been converted
                                            into a definition after the function
                                            body has been parsed. */
+#define PND_EMITTEDFUNCTION    0x400    /* hoisted function that was emitted */
 
 
 #define PND_USE2DEF_FLAGS (PND_ASSIGNED | PND_CLOSED)

@@ -10,6 +10,16 @@
 namespace js {
 namespace frontend {
 
+
+
+
+
+
+
+
+
+
+
 class SyntaxParseHandler
 {
     
@@ -28,7 +38,8 @@ class SyntaxParseHandler
     };
     typedef Definition::Kind DefinitionNode;
 
-    SyntaxParseHandler(JSContext *cx, TokenStream &tokenStream, bool foldConstants)
+    SyntaxParseHandler(JSContext *cx, TokenStream &tokenStream, bool foldConstants,
+                       Parser<SyntaxParseHandler> *syntaxParser, LazyScript *lazyOuterFunction)
       : lastAtom(NULL),
         tokenStream(tokenStream)
     {}
@@ -42,7 +53,7 @@ class SyntaxParseHandler
         lastAtom = name;
         return NodeName;
     }
-    DefinitionNode newPlaceholder(Node pn, ParseContext<SyntaxParseHandler> *pc) {
+    DefinitionNode newPlaceholder(JSAtom *atom, ParseContext<SyntaxParseHandler> *pc) {
         return Definition::PLACEHOLDER;
     }
     Node newAtom(ParseNodeKind kind, JSAtom *atom, JSOp op = JSOP_NOP) {
@@ -181,6 +192,8 @@ class SyntaxParseHandler
     }
     static DefinitionNode nullDefinition() {
         return Definition::MISSING;
+    }
+    void disableSyntaxParser() {
     }
 };
 

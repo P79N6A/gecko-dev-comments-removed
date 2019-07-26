@@ -130,10 +130,24 @@ struct BytecodeEmitter
     const bool      hasGlobalScope:1;   
 
 
-    const bool      selfHostingMode:1;  
+    enum EmitterMode {
+        Normal,
+
+        
 
 
 
+
+        SelfHosting,
+
+        
+
+
+
+        LazyFunction
+    };
+
+    const EmitterMode emitterMode;
 
     
 
@@ -143,7 +157,7 @@ struct BytecodeEmitter
 
     BytecodeEmitter(BytecodeEmitter *parent, Parser<FullParseHandler> *parser, SharedContext *sc,
                     HandleScript script, bool insideEval, HandleScript evalCaller,
-                    bool hasGlobalScope, uint32_t lineNum, bool selfHostingMode = false);
+                    bool hasGlobalScope, uint32_t lineNum, EmitterMode emitterMode = Normal);
     bool init();
 
     bool isAliasedName(ParseNode *pn);

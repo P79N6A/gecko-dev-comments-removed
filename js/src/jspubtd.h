@@ -153,6 +153,7 @@ typedef enum {
 
 
 
+    JSTRACE_LAZY_SCRIPT,
     JSTRACE_IONCODE,
     JSTRACE_SHAPE,
     JSTRACE_BASE_SHAPE,
