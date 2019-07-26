@@ -3,8 +3,8 @@
 
 
 
-#ifndef __NS_SVGZOOMEVENT_H__
-#define __NS_SVGZOOMEVENT_H__
+#ifndef mozilla_dom_SVGZoomEvent_h
+#define mozilla_dom_SVGZoomEvent_h
 
 #include "nsAutoPtr.h"
 #include "nsDOMUIEvent.h"
@@ -15,16 +15,15 @@ class nsPresContext;
 
 namespace mozilla {
 class DOMSVGPoint;
-}
 
-class nsDOMSVGZoomEvent : public nsDOMUIEvent,
-                          public nsIDOMSVGZoomEvent
+namespace dom {
+
+class SVGZoomEvent : public nsDOMUIEvent,
+                     public nsIDOMSVGZoomEvent
 {
 public:
-  typedef mozilla::DOMSVGPoint DOMSVGPoint;
-
-  nsDOMSVGZoomEvent(mozilla::dom::EventTarget* aOwner,
-                    nsPresContext* aPresContext, nsGUIEvent* aEvent);
+  SVGZoomEvent(EventTarget* aOwner, nsPresContext* aPresContext,
+               nsGUIEvent* aEvent);
                      
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -41,5 +40,8 @@ private:
   nsRefPtr<DOMSVGPoint> mPreviousTranslate;
   nsRefPtr<DOMSVGPoint> mNewTranslate;
 };
+
+} 
+} 
 
 #endif 
