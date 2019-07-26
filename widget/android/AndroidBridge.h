@@ -14,7 +14,7 @@
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
 
-#include "GeneratedJNIWrappers.h"
+#include "AndroidJavaWrappers.h"
 
 #include "nsIMutableArray.h"
 #include "nsIMIMEInfo.h"
@@ -41,14 +41,13 @@ class nsIObserver;
 extern "C" JNIEnv * GetJNIForThread();
 
 extern bool mozilla_AndroidBridge_SetMainThread(pthread_t);
+extern jclass GetGeckoAppShellClass();
 
 namespace base {
 class Thread;
 } 
 
 typedef void* EGLSurface;
-
-using namespace mozilla::widget::android;
 
 namespace mozilla {
 
@@ -161,6 +160,10 @@ public:
         return nullptr;
     }
 
+    static jclass GetGeckoAppShellClass() {
+        return sBridge->mGeckoAppShellClass;
+    }
+
     
     
     
@@ -180,7 +183,7 @@ public:
     bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent, const LayerRect& aDisplayPort, float aDisplayResolution, bool aDrawingCritical, gfx::Rect& aViewport, float& aScaleX, float& aScaleY);
 
     void SetLayerClient(JNIEnv* env, jobject jobj);
-    GeckoLayerClient* GetLayerClient() { return mLayerClient; }
+    AndroidGeckoLayerClient &GetLayerClient() { return *mLayerClient; }
 
     bool GetHandlersForURL(const nsAString& aURL,
                            nsIMutableArray* handlersArray = nullptr,
@@ -196,6 +199,10 @@ public:
     void GetExtensionFromMimeType(const nsACString& aMimeType, nsACString& aFileExt);
 
     bool GetClipboardText(nsAString& aText);
+    
+    void EmptyClipboard();
+
+    bool ClipboardHasText();
 
     void ShowAlertNotification(const nsAString& aImageUrl,
                                const nsAString& aAlertTitle,
@@ -212,6 +219,8 @@ public:
     void ShowFilePickerAsync(const nsAString& aMimeType, nsFilePickerCallback* callback);
 
     void Vibrate(const nsTArray<uint32_t>& aPattern);
+
+    void HideProgressDialogOnce();
 
     void GetSystemColors(AndroidSystemColors *aColors);
 
@@ -332,7 +341,7 @@ protected:
     JNIEnv *mJNIEnv;
     pthread_t mThread;
 
-    GeckoLayerClient *mLayerClient = NULL;
+    AndroidGeckoLayerClient *mLayerClient;
 
     
     jclass mAndroidSmsMessageClass;
@@ -373,7 +382,7 @@ protected:
     jclass jLayerView;
 
     jfieldID jEGLSurfacePointerField;
-    GLController *mGLControllerObj;
+    jobject mGLControllerObj;
 
     
     jclass jStringClass;
@@ -397,14 +406,15 @@ protected:
     void (* Region_set)(void* region, void* rect);
 
 private:
-    NativePanZoomController* mNativePanZoomController;
+    jobject mNativePanZoomController;
     
     
     
     nsTArray<DelayedTask*> mDelayedTaskQueue;
 
 public:
-    NativePanZoomController* SetNativePanZoomController(jobject obj);
+    #include "GeneratedJNIWrappers.h"
+    jobject SetNativePanZoomController(jobject obj);
     
     void RequestContentRepaint(const mozilla::layers::FrameMetrics& aFrameMetrics) MOZ_OVERRIDE;
     void HandleDoubleTap(const CSSIntPoint& aPoint) MOZ_OVERRIDE;

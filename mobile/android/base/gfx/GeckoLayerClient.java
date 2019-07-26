@@ -11,7 +11,6 @@ import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.ZoomConstraints;
-import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
 import org.mozilla.gecko.util.EventDispatcher;
 import org.mozilla.gecko.util.FloatUtils;
 import org.mozilla.gecko.util.ThreadUtils;
@@ -410,7 +409,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         return mDisplayPort;
     }
 
-    @WrapElementForJNI
+    
     DisplayPortMetrics getDisplayPort(boolean pageSizeUpdate, boolean isBrowserContentDisplayed, int tabId, ImmutableViewportMetrics metrics) {
         Tabs tabs = Tabs.getInstance();
         if (tabs.isSelectedTab(tabs.getTab(tabId)) && isBrowserContentDisplayed) {
@@ -427,12 +426,12 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         }
     }
 
-    @WrapElementForJNI
+    
     void contentDocumentChanged() {
         mContentDocumentIsDisplayed = false;
     }
 
-    @WrapElementForJNI
+    
     boolean isContentDocumentDisplayed() {
         return mContentDocumentIsDisplayed;
     }
@@ -442,7 +441,6 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
     
     
     
-    @WrapElementForJNI(allowMultithread = true)
     public ProgressiveUpdateData progressiveUpdateCallback(boolean aHasPendingNewThebesContent,
                                                            float x, float y, float width, float height,
                                                            float resolution, boolean lowPrecision) {
@@ -556,7 +554,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
 
 
-    @WrapElementForJNI(allowMultithread = true)
+
     public void setFirstPaintViewport(float offsetX, float offsetY, float zoom,
             float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
         synchronized (getLock()) {
@@ -614,7 +612,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
 
 
-    @WrapElementForJNI(allowMultithread = true)
+
     public void setPageRect(float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
         synchronized (getLock()) {
             RectF cssPageRect = new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
@@ -635,7 +633,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
 
 
-    @WrapElementForJNI(allowMultithread = true)
+
     public ViewTransform syncViewportInfo(int x, int y, int width, int height, float resolution, boolean layersUpdated) {
         
         
@@ -689,7 +687,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         return mCurrentViewTransform;
     }
 
-    @WrapElementForJNI(allowMultithread = true)
+    
     public ViewTransform syncFrameMetrics(float offsetX, float offsetY, float zoom,
                 float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom,
                 boolean layersUpdated, int x, int y, int width, int height, float resolution,
@@ -703,7 +701,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         return syncViewportInfo(x, y, width, height, resolution, layersUpdated);
     }
 
-    @WrapElementForJNI(allowMultithread = true)
+    
     public LayerRenderer.Frame createFrame() {
         
         if (!mLayerRendererInitialized) {
@@ -715,12 +713,12 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         return mLayerRenderer.createFrame(mFrameMetrics);
     }
 
-    @WrapElementForJNI(allowMultithread = true)
+    
     public void activateProgram() {
         mLayerRenderer.activateDefaultProgram();
     }
 
-    @WrapElementForJNI(allowMultithread = true)
+    
     public void deactivateProgram() {
         mLayerRenderer.deactivateDefaultProgram();
     }

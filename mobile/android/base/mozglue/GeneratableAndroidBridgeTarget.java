@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko.mozglue.generatorannotations;
+package org.mozilla.gecko.mozglue;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -21,7 +21,7 @@ import java.lang.annotation.RetentionPolicy;
 
 
 @Retention(RetentionPolicy.RUNTIME)
-public @interface WrapElementForJNI {
+public @interface GeneratableAndroidBridgeTarget {
     
     
     String stubName() default "";
