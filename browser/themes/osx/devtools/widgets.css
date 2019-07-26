@@ -285,6 +285,24 @@
 
 
 
+.fast-list-widget-container {
+  
+  transform: translateZ(1px);
+}
+
+.theme-dark .fast-list-widget-empty-text {
+  padding: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.theme-light .fast-list-widget-empty-text {
+  padding: 4px 8px;
+  color: GrayText;
+}
+
+
+
 .side-menu-widget-container {
   
   transform: translateZ(1px);

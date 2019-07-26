@@ -22,6 +22,12 @@
 
 
 
+.fast-list-widget-container {
+  overflow: auto;
+}
+
+
+
 .side-menu-widget-container {
   overflow-x: hidden;
   overflow-y: auto;

@@ -767,7 +767,11 @@ this.WidgetMethods = {
 
   set emptyText(aValue) {
     this._emptyText = aValue;
-    this._widget.setAttribute("emptyText", aValue);
+
+    
+    if (!this._itemsByElement.size) {
+      this._widget.setAttribute("emptyText", aValue);
+    }
   },
 
   

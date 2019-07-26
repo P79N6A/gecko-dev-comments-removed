@@ -101,36 +101,16 @@
   -moz-image-region: rect(0px,32px,16px,16px);
 }
 
-#start-tracing {
-  padding: 4px;
-  margin: 4px;
-}
-
 #clear-tracer {
   
   min-width: 1px;
-}
-
-#tracer-message {
-  
-  min-height: 1px;
 }
 
 .trace-name {
   -moz-padding-start: 4px !important;
 }
 
-#tracer-traces > scrollbox {
-  overflow: scroll;
-  
-  transform: translateZ(0);
-}
 
-
-
-.theme-dark #tracer-message {
-  color: #f5f7fa; 
-}
 
 .theme-dark .trace-item {
   color: #f5f7fa; 
@@ -166,10 +146,6 @@
 }
 
 
-
-.theme-light #tracer-message {
-  color: #292e33; 
-}
 
 .theme-light .trace-item {
   color: #292e33; 

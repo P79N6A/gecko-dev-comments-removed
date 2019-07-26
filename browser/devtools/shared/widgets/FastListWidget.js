@@ -45,6 +45,7 @@ const FastListWidget = module.exports = function FastListWidget(aNode) {
 
   
   
+  ViewHelpers.delegateWidgetAttributeMethods(this, aNode);
   ViewHelpers.delegateWidgetEventMethods(this, aNode);
 }
 
@@ -160,20 +161,12 @@ FastListWidget.prototype = {
 
 
 
-  getAttribute: function(name) {
-    return this._parent.getAttribute(name);
-  },
-
-  
-
-
-
-
-
-
-
   setAttribute: function(name, value) {
     this._parent.setAttribute(name, value);
+
+    if (name == "emptyText") {
+      this._textWhenEmpty = value;
+    }
   },
 
   
@@ -184,6 +177,10 @@ FastListWidget.prototype = {
 
   removeAttribute: function(name) {
     this._parent.removeAttribute(name);
+
+    if (name == "emptyText") {
+      this._removeEmptyText();
+    }
   },
 
   
@@ -203,11 +200,51 @@ FastListWidget.prototype = {
     boxObject.scrollBy(-this._list.clientWidth, 0);
   },
 
+  
+
+
+
+  set _textWhenEmpty(aValue) {
+    if (this._emptyTextNode) {
+      this._emptyTextNode.setAttribute("value", aValue);
+    }
+    this._emptyTextValue = aValue;
+    this._showEmptyText();
+  },
+
+  
+
+
+  _showEmptyText: function() {
+    if (this._emptyTextNode || !this._emptyTextValue) {
+      return;
+    }
+    let label = this.document.createElement("label");
+    label.className = "plain fast-list-widget-empty-text";
+    label.setAttribute("value", this._emptyTextValue);
+
+    this._parent.insertBefore(label, this._list);
+    this._emptyTextNode = label;
+  },
+
+  
+
+
+  _removeEmptyText: function() {
+    if (!this._emptyTextNode) {
+      return;
+    }
+    this._parent.removeChild(this._emptyTextNode);
+    this._emptyTextNode = null;
+  },
+
   window: null,
   document: null,
   _parent: null,
   _list: null,
   _selectedItem: null,
   _orderedMenuElementsArray: null,
-  _itemsByElement: null
+  _itemsByElement: null,
+  _emptyTextNode: null,
+  _emptyTextValue: ""
 };
