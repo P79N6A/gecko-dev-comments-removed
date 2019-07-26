@@ -96,6 +96,16 @@ TextTrack::SetMode(TextTrackMode aValue)
 }
 
 void
+TextTrack::GetId(nsAString& aId) const
+{
+  
+  
+  if (mTrackElement) {
+    mTrackElement->GetAttribute(NS_LITERAL_STRING("id"), aId);
+  }
+}
+
+void
 TextTrack::AddCue(TextTrackCue& aCue)
 {
   mCueList->AddCue(aCue);
