@@ -673,7 +673,8 @@ struct MaskLayerUserData : public LayerUserData
   {
     return mRoundedClipRects == aOther.mRoundedClipRects &&
            mScaleX == aOther.mScaleX &&
-           mScaleY == aOther.mScaleY;
+           mScaleY == aOther.mScaleY &&
+           mOffset == aOther.mOffset;
   }
 
   nsRefPtr<const MaskLayerImageCache::MaskLayerImageKey> mImageKey;
@@ -682,6 +683,8 @@ struct MaskLayerUserData : public LayerUserData
   nsTArray<FrameLayerBuilder::Clip::RoundedRect> mRoundedClipRects;
   
   float mScaleX, mScaleY;
+  
+  nsIntPoint mOffset;
 };
 
 
@@ -3721,6 +3724,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   }
   newData.mScaleX = mParameters.mXScale;
   newData.mScaleY = mParameters.mYScale;
+  newData.mOffset = mParameters.mOffset;
 
   if (*userData == newData) {
     aLayer->SetMaskLayer(maskLayer);
