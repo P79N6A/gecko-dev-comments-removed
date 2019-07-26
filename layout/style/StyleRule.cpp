@@ -1164,7 +1164,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(DOMCSSStyleRule)
   
   
   
-  nsContentUtils::TraceWrapper(tmp->DOMDeclaration(), aCallback, aClosure);
+  tmp->DOMDeclaration()->TraceWrapper(aCallbacks, aClosure);
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMCSSStyleRule)

@@ -261,7 +261,7 @@ nsXBLProtoImpl::LookupMember(JSContext* aCx, nsString& aName,
 }
 
 void
-nsXBLProtoImpl::Trace(TraceCallback aCallback, void *aClosure) const
+nsXBLProtoImpl::Trace(const TraceCallbacks& aCallbacks, void *aClosure)
 {
   
   
@@ -272,7 +272,7 @@ nsXBLProtoImpl::Trace(TraceCallback aCallback, void *aClosure) const
 
   nsXBLProtoImplMember *member;
   for (member = mMembers; member; member = member->GetNext()) {
-    member->Trace(aCallback, aClosure);
+    member->Trace(aCallbacks, aClosure);
   }
 }
 
