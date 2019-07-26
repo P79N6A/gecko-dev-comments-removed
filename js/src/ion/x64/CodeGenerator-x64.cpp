@@ -325,7 +325,7 @@ CodeGeneratorX64::visitRecompileCheck(LRecompileCheck *lir)
     
     
     
-    const size_t *useCount = gen->info().script()->addressOfUseCount();
+    const uint32_t *useCount = gen->info().script()->addressOfUseCount();
     masm.movq(ImmWord(useCount), ScratchReg);
 
     Operand addr(ScratchReg, 0);
