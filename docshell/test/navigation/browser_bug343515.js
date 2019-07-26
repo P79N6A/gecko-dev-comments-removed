@@ -12,51 +12,26 @@ function isActive(aWindow) {
   return docshell.isActive;
 }
 
-function oneShotListener(aElem, aType, aCallback) {
-  aElem.addEventListener(aType, function () {
-    aElem.removeEventListener(aType, arguments.callee, true);
 
-    
-    
-    executeSoon(aCallback);
+
+
+
+
+function nShotsListener(aElem, aType, aCallback, aCount) {
+  let count = aCount;
+  aElem.addEventListener(aType, function listenerCallback() {
+    if (--count == 0) {
+      aElem.removeEventListener(aType, listenerCallback, true);
+
+      
+      
+      executeSoon(aCallback);
+    }
   }, true);
 }
 
-
-
-
-function frameLoadWaiter(aInitialWindow, aFinalCallback) {
-
-  
-  var curr = aInitialWindow;
-
-  
-  var waitQueue = [];
-
-  
-  var finalCallback = aFinalCallback;
-
-  function frameLoadCallback() {
-
-    
-    for (var i = 0; i < curr.frames.length; ++i)
-      waitQueue.push(curr.frames[i]);
-
-    
-    if (waitQueue.length >= 1) {
-      curr = waitQueue.shift();
-      if (curr.document.readyState == "complete")
-        frameLoadCallback();
-      else
-        oneShotListener(curr, "load", frameLoadCallback);
-      return;
-    }
-
-    
-    finalCallback();
-  }
-
-  return frameLoadCallback;
+function oneShotListener(aElem, aType, aCallback) {
+  nShotsListener(aElem, aType, aCallback, 1);
 }
 
 
@@ -105,7 +80,10 @@ function step2() {
   ctx.tab2 = gBrowser.addTab(testPath + "bug343515_pg2.html");
   ctx.tab2Browser = gBrowser.getBrowserForTab(ctx.tab2);
   ctx.tab2Window = ctx.tab2Browser.contentWindow;
-  oneShotListener(ctx.tab2Browser, "load", frameLoadWaiter(ctx.tab2Window, step3));
+
+  
+  
+  nShotsListener(ctx.tab2Browser, "load", step3, 3);
 }
 
 function step3() {
@@ -126,7 +104,10 @@ function step3() {
 
   
   ctx.tab2Window.location = testPath + "bug343515_pg3.html";
-  oneShotListener(ctx.tab2Browser, "load", frameLoadWaiter(ctx.tab2Window, step4));
+
+  
+  
+  nShotsListener(ctx.tab2Browser, "load", step4, 4);
 }
 
 function step4() {
@@ -159,13 +140,12 @@ function step4() {
   ok(isActive(ctx.tab2Window.frames[1]), "Tab2 iframe 1 should be active");
 
   
-  oneShotListener(ctx.tab2Browser, "pageshow", frameLoadWaiter(ctx.tab2Window, step5));
+  oneShotListener(ctx.tab2Browser, "pageshow", step5);
   ctx.tab2Browser.goBack();
 
 }
 
 function step5() {
-
   
   ok(!isActive(ctx.tab0Window), "Tab 0 should be inactive");
   ok(!isActive(ctx.tab1Window), "Tab 1 should be inactive");
@@ -178,7 +158,10 @@ function step5() {
 
   
   ctx.tab1Window.location = testPath + "bug343515_pg3.html";
-  oneShotListener(ctx.tab1Browser, "load", frameLoadWaiter(ctx.tab1Window, step6));
+
+  
+  
+  nShotsListener(ctx.tab1Browser, "load", step6, 4);
 }
 
 function step6() {
@@ -194,7 +177,7 @@ function step6() {
   ok(!isActive(ctx.tab2Window.frames[1]), "Tab2 iframe 1 should be inactive");
 
   
-  oneShotListener(ctx.tab2Browser, "pageshow", frameLoadWaiter(ctx.tab2Window, step7));
+  oneShotListener(ctx.tab2Browser, "pageshow", step7);
   var tab2docshell = ctx.tab2Window.QueryInterface(Ci.nsIInterfaceRequestor)
                                    .getInterface(Ci.nsIWebNavigation);
   tab2docshell.goForward();
