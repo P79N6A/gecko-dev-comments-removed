@@ -552,13 +552,16 @@ var BrowserApp = {
     if (this._selectedTab == aTab)
       return;
 
-    if (this._selectedTab)
+    if (this._selectedTab) {
+      Tabs.touch(this._selectedTab);
       this._selectedTab.setActive(false);
+    }
 
     this._selectedTab = aTab;
     if (!aTab)
       return;
 
+    Tabs.touch(aTab);
     aTab.setActive(true);
     aTab.setResolution(aTab._zoom, true);
     this.displayedDocumentChanged();
@@ -2288,6 +2291,7 @@ let gScreenHeight = 1;
 function Tab(aURL, aParams) {
   this.browser = null;
   this.id = 0;
+  this.lastTouchedAt = Date.now();
   this.showProgress = true;
   this._zoom = 1.0;
   this._drawZoom = 1.0;
@@ -7411,6 +7415,7 @@ var MemoryObserver = {
   },
 
   zombify: function(tab) {
+    dump("Zombifying tab at index [" + tab.id + "]");
     let browser = tab.browser;
     let data = browser.__SS_data;
     let extra = browser.__SS_extdata;
@@ -7505,4 +7510,50 @@ var Distribution = {
     defaults.setCharPref("distribution.id", aData.id);
     defaults.setCharPref("distribution.version", aData.version);
   }
+};
+
+var Tabs = {
+  
+  
+  
+
+  touch: function(aTab) {
+    aTab.lastTouchedAt = Date.now();
+  },
+
+  zombifyLru: function() {
+    let zombieTimeMs = Services.prefs.getIntPref("browser.tabs.zombieTime") * 1000;
+    if (zombieTimeMs < 0) {
+      
+      return false;
+    }
+    let tabs = BrowserApp.tabs;
+    let selected = BrowserApp.selectedTab;
+    let lruTab = null;
+    
+    for (let i = 0; i < tabs.length; i++) {
+      if (tabs[i] == selected || tabs[i].browser.__SS_restore) {
+        
+        continue;
+      }
+      if (lruTab == null || tabs[i].lastTouchedAt < lruTab.lastTouchedAt) {
+        lruTab = tabs[i];
+      }
+    }
+    
+    
+    if (lruTab && (Date.now() - lruTab.lastTouchedAt) > zombieTimeMs) {
+      MemoryObserver.zombify(lruTab);
+      return true;
+    }
+    return false;
+  },
+
+  
+  dump: function(aPrefix) {
+    let tabs = BrowserApp.tabs;
+    for (let i = 0; i < tabs.length; i++) {
+      dump(aPrefix + " | " + "Tab [" + tabs[i].browser.contentWindow.location.href + "]: lastTouchedAt:" + tabs[i].lastTouchedAt + ", zombie:" + tabs[i].browser.__SS_restore);
+    }
+  },
 };
