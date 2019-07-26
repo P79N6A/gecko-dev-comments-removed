@@ -433,7 +433,13 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
     }
 
     
-    if (packet.markerBit && last_packet_seq_num_ == -1) {
+    
+
+    
+    
+    
+    if ((packet.completeNALU == kNaluComplete || packet.completeNALU == kNaluEnd) &&
+        last_packet_seq_num_ == -1) {
       last_packet_seq_num_ = static_cast<int>(packet.seqNum);
     } else if (last_packet_seq_num_ != -1 &&
       IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
@@ -442,17 +448,8 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
       return -3;
     }
 
-    if (first_packet_seq_num_ == packet.seqNum &&
-        packet.completeNALU != kNaluComplete) {
-      VCMPacket& npacket = const_cast<VCMPacket&> (packet);
-      npacket.isFirstPacket = true;
-      npacket.completeNALU = kNaluStart;
-      
-      packet_list_it = packets_.insert(rit.base(), npacket);
-    } else {
-      
-      packet_list_it = packets_.insert(rit.base(), packet);
-    }
+    
+    packet_list_it = packets_.insert(rit.base(), packet);
   } else {
     
     

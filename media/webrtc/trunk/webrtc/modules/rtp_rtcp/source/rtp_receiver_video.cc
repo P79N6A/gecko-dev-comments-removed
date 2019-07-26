@@ -277,12 +277,23 @@ int32_t RTPReceiverVideo::ReceiveH264Codec(WebRtcRTPHeader* rtp_header,
     h264_header->single_nalu        = true;
 
     
-    if (nal_type == RtpFormatH264::kH264NALU_SPS ||
-        nal_type == RtpFormatH264::kH264NALU_PPS ||
-        nal_type == RtpFormatH264::kH264NALU_IDR) {
-      rtp_header->frameType = kVideoFrameKey; 
-    } else {
-      rtp_header->frameType = kVideoFrameDelta;
+    switch (nal_type) {
+      
+      
+      
+      
+      case RtpFormatH264::kH264NALU_SPS:
+        rtp_header->header.timestamp -= 10;
+        
+      case RtpFormatH264::kH264NALU_PPS:
+        rtp_header->header.timestamp -= 10;
+        
+      case RtpFormatH264::kH264NALU_IDR:
+        rtp_header->frameType = kVideoFrameKey;
+        break;
+      default:
+        rtp_header->frameType = kVideoFrameDelta;
+        break;
     }
   }
 
