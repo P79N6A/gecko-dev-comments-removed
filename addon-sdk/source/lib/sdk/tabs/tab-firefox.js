@@ -1,4 +1,4 @@
-
+ 
 
 
 'use strict';
@@ -14,6 +14,8 @@ const { activateTab, getOwnerWindow, getBrowserForTab, getTabTitle, setTabTitle,
         getTabURL, setTabURL, getTabContentType, getTabId } = require('./utils');
 const { getOwnerWindow: getPBOwnerWindow } = require('../private-browsing/window/utils');
 const viewNS = require('sdk/core/namespace').ns();
+const { deprecateUsage } = require('sdk/util/deprecate');
+const { getURL } = require('sdk/url/utils');
 
 
 const TABS = [];
@@ -62,6 +64,9 @@ const TabTrait = Trait.compose(EventEmitter, {
 
     viewNS(this._public).tab = this._tab;
     getPBOwnerWindow.implement(this._public, getChromeTab);
+
+    
+    getURL.implement(this._public, (function (obj) this._public.url).bind(this));
 
     
     
@@ -171,7 +176,13 @@ const TabTrait = Trait.compose(EventEmitter, {
 
 
 
-  get favicon() this._tab ? getFaviconURIForLocation(this.url) : undefined,
+  get favicon() {
+    deprecateUsage(
+      'tab.favicon is deprecated, ' +
+      'please use require("sdk/places/favicon").getFavicon instead.'
+    );
+    return this._tab ? getFaviconURIForLocation(this.url) : undefined
+  },
   
 
 
