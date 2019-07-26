@@ -37,12 +37,12 @@ let StyleEditorDebuggee = function(target) {
 
   this.clear = this.clear.bind(this);
   this._onNewDocument = this._onNewDocument.bind(this);
-  this._onStyleSheetsAdded = this._onStyleSheetsAdded.bind(this);
+  this._onDocumentLoad = this._onDocumentLoad.bind(this);
 
   this._target = target;
   this._actor = this.target.form.styleEditorActor;
 
-  this.client.addListener("styleSheetsAdded", this._onStyleSheetsAdded);
+  this.client.addListener("documentLoad", this._onDocumentLoad);
   this._target.on("navigate", this._onNewDocument);
 
   this._onNewDocument();
@@ -135,11 +135,14 @@ StyleEditorDebuggee.prototype = {
 
 
 
-  _onStyleSheetsAdded: function(type, request) {
+
+  _onDocumentLoad: function(type, request) {
+    let sheets = [];
     for (let form of request.styleSheets) {
       let sheet = this._addStyleSheet(form);
-      this.emit("stylesheet-added", sheet);
+      sheets.push(sheet);
     }
+    this.emit("document-load", sheets);
   },
 
   
@@ -191,7 +194,6 @@ StyleEditorDebuggee.prototype = {
   destroy: function() {
     this.clear();
 
-    this._target.off("will-navigate", this.clear);
     this._target.off("navigate", this._onNewDocument);
   }
 }

@@ -49,12 +49,12 @@ function StyleEditorUI(debuggee, panelDoc) {
   this.editors = [];
   this.selectedStyleSheetIndex = -1;
 
-  this._onStyleSheetAdded = this._onStyleSheetAdded.bind(this);
   this._onStyleSheetCreated = this._onStyleSheetCreated.bind(this);
   this._onStyleSheetsCleared = this._onStyleSheetsCleared.bind(this);
+  this._onDocumentLoad = this._onDocumentLoad.bind(this);
   this._onError = this._onError.bind(this);
 
-  debuggee.on("stylesheet-added", this._onStyleSheetAdded);
+  debuggee.on("document-load", this._onDocumentLoad);
   debuggee.on("stylesheets-cleared", this._onStyleSheetsCleared);
 
   this.createUI();
@@ -163,10 +163,14 @@ StyleEditorUI.prototype = {
 
 
 
-  _onStyleSheetAdded: function(event, styleSheet) {
+
+  _onDocumentLoad: function(event, styleSheets) {
+    for (let sheet of styleSheets) {
+      this._addStyleSheetEditor(sheet);
+    }
     
     this._root.classList.remove("loading");
-    this._addStyleSheetEditor(styleSheet);
+    this.emit("document-load");
   },
 
   
@@ -421,7 +425,7 @@ StyleEditorUI.prototype = {
   destroy: function() {
     this._clearStyleSheetEditors();
 
-    this._debuggee.off("stylesheet-added", this._onStyleSheetAdded);
+    this._debuggee.off("document-load", this._onDocumentLoad);
     this._debuggee.off("stylesheets-cleared", this._onStyleSheetsCleared);
   }
 }

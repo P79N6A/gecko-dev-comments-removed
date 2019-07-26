@@ -145,49 +145,33 @@ StyleEditorActor.prototype = {
   
 
 
+
   _onDocumentLoaded: function(event) {
     if (event) {
       this.win.removeEventListener("load", this._onDocumentLoaded, false);
     }
 
     let documents = [this.doc];
+    var forms = [];
     for (let doc of documents) {
-      this._addStyleSheets(doc.styleSheets);
+      let sheetForms = this._addStyleSheets(doc.styleSheets);
+      forms = forms.concat(sheetForms);
       
       for (let iframe of doc.getElementsByTagName("iframe")) {
         documents.push(iframe.contentDocument);
       }
     }
+
+    this.conn.send({
+      from: this.actorID,
+      type: "documentLoad",
+      styleSheets: forms
+    });
   },
 
   
 
 
-  _clearStyleSheetActors: function() {
-    for (let actor in this._sheets) {
-      this.releaseActor(this._sheets[actor]);
-    }
-    this._sheets.clear();
-  },
-
-  
-
-
-
-
-  onGetStyleSheets: function() {
-    let styleSheets = [];
-
-    for (let i = 0; i < this.doc.styleSheets.length; ++i) {
-      let styleSheet = this.doc.styleSheets[i];
-      let actor = this._createStyleSheetActor(styleSheet);
-      styleSheets.push(actor.form());
-    }
-
-    return { "styleSheets": styleSheets };
-  },
-
-  
 
 
 
@@ -207,27 +191,12 @@ StyleEditorActor.prototype = {
       sheets = sheets.concat(imports);
     }
 
-    let actors = sheets.map((sheet) => {
+    let forms = sheets.map((sheet) => {
       let actor = this._createStyleSheetActor(sheet);
       return actor.form();
     });
 
-    this._notifyStyleSheetsAdded(actors);
-  },
-
-  
-
-
-
-
-
-  _notifyStyleSheetsAdded: function(actors)
-  {
-    this.conn.send({
-      from: this.actorID,
-      type: "styleSheetsAdded",
-      styleSheets: actors
-    });
+    return forms;
   },
 
   
@@ -280,6 +249,26 @@ StyleEditorActor.prototype = {
     this._actorPool.addActor(actor);
     this._sheets.set(aStyleSheet, actor);
     return actor;
+  },
+
+  
+
+
+  _clearStyleSheetActors: function() {
+    for (let actor in this._sheets) {
+      this.releaseActor(this._sheets[actor]);
+    }
+    this._sheets.clear();
+  },
+
+  
+
+
+
+
+  onGetStyleSheets: function() {
+    let forms = this._addStyleSheets(this.doc.styleSheets);
+    return { "styleSheets": forms };
   },
 
   
