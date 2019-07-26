@@ -4,9 +4,10 @@
 
 
 
-#include "nsError.h"
 #include "nsDOMStringMap.h"
 
+#include "jsapi.h"
+#include "nsError.h"
 #include "nsGenericHTMLElement.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/DOMStringMapBinding.h"
