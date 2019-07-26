@@ -53,15 +53,17 @@ class Context
 {
 public:
   Context(TrustDomain& trustDomain,
-          const CERTCertificate& cert,
-          CERTCertificate& issuerCert,
+          const SECItem& certSerialNumber,
+          const SECItem& issuerSubject,
+          const SECItem& issuerSubjectPublicKeyInfo,
           PRTime time,
           uint16_t maxLifetimeInDays,
           PRTime* thisUpdate,
           PRTime* validThrough)
     : trustDomain(trustDomain)
-    , cert(cert)
-    , issuerCert(issuerCert)
+    , certSerialNumber(certSerialNumber)
+    , issuerSubject(issuerSubject)
+    , issuerSubjectPublicKeyInfo(issuerSubjectPublicKeyInfo)
     , time(time)
     , maxLifetimeInDays(maxLifetimeInDays)
     , certStatus(CertStatus::Unknown)
@@ -77,8 +79,9 @@ public:
   }
 
   TrustDomain& trustDomain;
-  const CERTCertificate& cert;
-  CERTCertificate& issuerCert;
+  const SECItem& certSerialNumber;
+  const SECItem& issuerSubject;
+  const SECItem& issuerSubjectPublicKeyInfo;
   const PRTime time;
   const uint16_t maxLifetimeInDays;
   CertStatus certStatus;
@@ -113,17 +116,13 @@ HashBuf(const SECItem& item,  uint8_t *hashBuf, size_t hashBufLen)
 
 static Result
 CheckOCSPResponseSignerCert(TrustDomain& trustDomain,
-                            CERTCertificate& potentialSigner,
-                            const CERTCertificate& issuerCert, PRTime time)
+                            BackCert& potentialSigner,
+                            const SECItem& issuerSubject,
+                            const SECItem& issuerSubjectPublicKeyInfo,
+                            PRTime time)
 {
   Result rv;
 
-  BackCert cert(&potentialSigner, nullptr, BackCert::IncludeCN::No);
-  rv = cert.Init();
-  if (rv != Success) {
-    return rv;
-  }
-
   
   
   
@@ -147,7 +146,7 @@ CheckOCSPResponseSignerCert(TrustDomain& trustDomain,
   
   
   
-  rv = CheckIssuerIndependentProperties(trustDomain, cert, time,
+  rv = CheckIssuerIndependentProperties(trustDomain, potentialSigner, time,
                                         EndEntityOrCA::MustBeEndEntity, 0,
                                         KeyPurposeId::id_kp_OCSPSigning,
                                         CertPolicyId::anyPolicy, 0);
@@ -158,25 +157,19 @@ CheckOCSPResponseSignerCert(TrustDomain& trustDomain,
   
   
   
-  if (!SECITEM_ItemsAreEqual(&cert.GetNSSCert()->derIssuer,
-                             &issuerCert.derSubject) &&
-      CERT_CompareName(&cert.GetNSSCert()->issuer,
-                       &issuerCert.subject) != SECEqual) {
+  
+  
+  if (!SECITEM_ItemsAreEqual(&potentialSigner.GetIssuer(), &issuerSubject)) {
     return Fail(RecoverableError, SEC_ERROR_OCSP_RESPONDER_CERT_INVALID);
   }
 
   
-
-  if (trustDomain.VerifySignedData(&potentialSigner.signatureWrap,
-                                   &issuerCert) != SECSuccess) {
-    return MapSECStatus(SECFailure);
-  }
+  return potentialSigner.VerifyOwnSignatureWithKey(trustDomain,
+                                                   issuerSubjectPublicKeyInfo);
 
   
   
   
-
-  return Success;
 }
 
 MOZILLA_PKIX_ENUM_CLASS ResponderIDType : uint8_t
@@ -198,134 +191,117 @@ static inline der::Result CheckExtensionsForCriticality(der::Input&);
 static inline der::Result CertID(der::Input& input,
                                   const Context& context,
                                    bool& match);
-static der::Result MatchKeyHash(const SECItem& issuerKeyHash,
-                                const CERTCertificate& issuer,
-                                 bool& match);
+static Result MatchKeyHash(const SECItem& issuerKeyHash,
+                           const SECItem& issuerSubjectPublicKeyInfo,
+                            bool& match);
 
-
-
-
-
-
-
-static CERTCertificate*
-GetOCSPSignerCertificate(TrustDomain& trustDomain,
-                         ResponderIDType responderIDType,
-                         const SECItem& responderIDItem,
-                         const SECItem* certs, size_t numCerts,
-                         CERTCertificate& issuerCert, PRTime time)
+static Result
+MatchResponderID(ResponderIDType responderIDType,
+                 const SECItem& responderIDItem,
+                 const SECItem& potentialSignerSubject,
+                 const SECItem& potentialSignerSubjectPublicKeyInfo,
+                  bool& match)
 {
-  bool isIssuer = true;
-  size_t i = 0;
-  for (;;) {
-    ScopedCERTCertificate potentialSigner;
-    if (isIssuer) {
-      potentialSigner = CERT_DupCertificate(&issuerCert);
-    } else if (i < numCerts) {
-      potentialSigner = CERT_NewTempCertificate(
-                          CERT_GetDefaultCertDB(),
-                          const_cast<SECItem*>(&certs[i]), nullptr,
-                          false, false);
-      if (!potentialSigner) {
-        return nullptr;
+  match = false;
+
+  switch (responderIDType) {
+    case ResponderIDType::byName:
+      
+      
+      match = SECITEM_ItemsAreEqual(&responderIDItem, &potentialSignerSubject);
+      return Success;
+
+    case ResponderIDType::byKey:
+    {
+      der::Input responderID;
+      if (responderID.Init(responderIDItem.data, responderIDItem.len)
+            != der::Success) {
+        return RecoverableError;
       }
-      ++i;
-    } else {
-      PR_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT, 0);
-      return nullptr;
-    }
-
-    bool match;
-    switch (responderIDType) {
-      case ResponderIDType::byName:
-        
-        
-        
-        
-        
-        
-        
-        match = SECITEM_ItemsAreEqual(&responderIDItem,
-                                      &potentialSigner->derSubject);
-        if (!match) {
-          ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
-          if (!arena) {
-            return nullptr;
-          }
-          CERTName name;
-          if (SEC_QuickDERDecodeItem(arena.get(), &name,
-                                     SEC_ASN1_GET(CERT_NameTemplate),
-                                     &responderIDItem) != SECSuccess) {
-            return nullptr;
-          }
-          match = CERT_CompareName(&name, &potentialSigner->subject) == SECEqual;
-        }
-        break;
-
-      case ResponderIDType::byKey:
-      {
-        der::Input responderID;
-        if (responderID.Init(responderIDItem.data, responderIDItem.len)
-              != der::Success) {
-          return nullptr;
-        }
-        SECItem keyHash;
-        if (der::ExpectTagAndGetValue(responderID, der::OCTET_STRING, keyHash)
-              != der::Success) {
-          return nullptr;
-        }
-        if (MatchKeyHash(keyHash, *potentialSigner.get(), match) != der::Success) {
-          return nullptr;
-        }
-        break;
+      SECItem keyHash;
+      if (der::ExpectTagAndGetValue(responderID, der::OCTET_STRING, keyHash)
+            != der::Success) {
+        return RecoverableError;
       }
-
-      default:
-        PR_SetError(SEC_ERROR_OCSP_MALFORMED_RESPONSE, 0);
-        return nullptr;
+      return MatchKeyHash(keyHash, potentialSignerSubjectPublicKeyInfo, match);
     }
 
-    if (match && !isIssuer) {
-      Result rv = CheckOCSPResponseSignerCert(trustDomain,
-                                              *potentialSigner.get(),
-                                              issuerCert, time);
-      if (rv == RecoverableError) {
-        match = false;
-      } else if (rv != Success) {
-        return nullptr;
-      }
-    }
-
-    if (match) {
-      return potentialSigner.release();
-    }
-
-    isIssuer = false;
+    default:
+      return Fail(RecoverableError, SEC_ERROR_OCSP_MALFORMED_RESPONSE);
   }
 }
 
-static SECStatus
+static Result
+VerifyOCSPSignedData(TrustDomain& trustDomain,
+                     const CERTSignedData& signedResponseData,
+                     const SECItem& spki)
+{
+  SECStatus srv(trustDomain.VerifySignedData(&signedResponseData, spki));
+  if (srv != SECSuccess) {
+    if (PR_GetError() == SEC_ERROR_BAD_SIGNATURE) {
+      PR_SetError(SEC_ERROR_OCSP_BAD_SIGNATURE, 0);
+    }
+  }
+  return MapSECStatus(srv);
+}
+
+
+
+
+
+
+
+static Result
 VerifySignature(Context& context, ResponderIDType responderIDType,
                 const SECItem& responderID, const SECItem* certs,
                 size_t numCerts, const CERTSignedData& signedResponseData)
 {
-  ScopedCERTCertificate signer(
-    GetOCSPSignerCertificate(context.trustDomain, responderIDType, responderID,
-                             certs, numCerts, context.issuerCert,
-                             context.time));
-  if (!signer) {
-    return SECFailure;
+  bool match;
+  Result rv = MatchResponderID(responderIDType, responderID,
+                               context.issuerSubject,
+                               context.issuerSubjectPublicKeyInfo, match);
+  if (rv != Success) {
+    return rv;
+  }
+  if (match) {
+    return VerifyOCSPSignedData(context.trustDomain, signedResponseData,
+                                context.issuerSubjectPublicKeyInfo);
   }
 
-  if (context.trustDomain.VerifySignedData(&signedResponseData, signer.get())
-        != SECSuccess) {
-    if (PR_GetError() == SEC_ERROR_BAD_SIGNATURE) {
-      PR_SetError(SEC_ERROR_OCSP_BAD_SIGNATURE, 0);
+  for (size_t i = 0; i < numCerts; ++i) {
+    BackCert cert(nullptr, BackCert::IncludeCN::No);
+    rv = cert.Init(certs[i]);
+    if (rv != Success) {
+      return rv;
     }
-    return SECFailure;
+    rv = MatchResponderID(responderIDType, responderID,
+                          cert.GetSubject(), cert.GetSubjectPublicKeyInfo(),
+                          match);
+    if (rv == FatalError) {
+      return rv;
+    }
+    if (rv == RecoverableError) {
+      continue;
+    }
+
+    if (match) {
+      rv = CheckOCSPResponseSignerCert(context.trustDomain, cert,
+                                       context.issuerSubject,
+                                       context.issuerSubjectPublicKeyInfo,
+                                       context.time);
+      if (rv == FatalError) {
+        return rv;
+      }
+      if (rv == RecoverableError) {
+        continue;
+      }
+
+      return VerifyOCSPSignedData(context.trustDomain, signedResponseData,
+                                  cert.GetSubjectPublicKeyInfo());
+    }
   }
 
-  return SECSuccess;
+  return Fail(RecoverableError, SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
 }
 
 static inline void
@@ -359,7 +335,8 @@ VerifyEncodedOCSPResponse(TrustDomain& trustDomain,
     SetErrorToMalformedResponseOnBadDERError();
     return SECFailure;
   }
-  Context context(trustDomain, *cert, *issuerCert, time, maxOCSPLifetimeInDays,
+  Context context(trustDomain, cert->serialNumber, issuerCert->derSubject,
+                  issuerCert->derPublicKey, time, maxOCSPLifetimeInDays,
                   thisUpdate, validThrough);
 
   if (der::Nested(input, der::SEQUENCE,
@@ -541,7 +518,7 @@ ResponseData(der::Input& input, Context& context,
   
   
   if (VerifySignature(context, responderIDType, responderID, certs, numCerts,
-                      signedResponseData) != SECSuccess) {
+                      signedResponseData) != Success) {
     return der::Failure;
   }
 
@@ -735,10 +712,7 @@ CertID(der::Input& input, const Context& context,  bool& match)
     return der::Failure;
   }
 
-  const CERTCertificate& cert = context.cert;
-  const CERTCertificate& issuerCert = context.issuerCert;
-
-  if (!SECITEM_ItemsAreEqual(&serialNumber, &cert.serialNumber)) {
+  if (!SECITEM_ItemsAreEqual(&serialNumber, &context.certSerialNumber)) {
     
     
     
@@ -763,7 +737,8 @@ CertID(der::Input& input, const Context& context,  bool& match)
   
   
   uint8_t hashBuf[SHA1_LENGTH];
-  if (HashBuf(cert.derIssuer, hashBuf, sizeof(hashBuf)) != der::Success) {
+  if (HashBuf(context.issuerSubject, hashBuf, sizeof(hashBuf))
+        != der::Success) {
     return der::Failure;
   }
   if (memcmp(hashBuf, issuerNameHash.data, issuerNameHash.len)) {
@@ -772,18 +747,30 @@ CertID(der::Input& input, const Context& context,  bool& match)
     return der::Success;
   }
 
-  return MatchKeyHash(issuerKeyHash, issuerCert, match);
+  if (MatchKeyHash(issuerKeyHash, context.issuerSubjectPublicKeyInfo,
+                   match) != Success) {
+    return der::Failure;
+  }
+
+  return der::Success;
 }
 
 
 
 
-static der::Result
-MatchKeyHash(const SECItem& keyHash, const CERTCertificate& cert,
+
+
+
+
+
+
+
+static Result
+MatchKeyHash(const SECItem& keyHash, const SECItem& subjectPublicKeyInfo,
               bool& match)
 {
   if (keyHash.len != SHA1_LENGTH)  {
-    return der::Fail(SEC_ERROR_OCSP_MALFORMED_RESPONSE);
+    return Fail(RecoverableError, SEC_ERROR_OCSP_MALFORMED_RESPONSE);
   }
 
   
@@ -791,16 +778,56 @@ MatchKeyHash(const SECItem& keyHash, const CERTCertificate& cert,
   
   
   
-  SECItem spk = cert.subjectPublicKeyInfo.subjectPublicKey;
-  DER_ConvertBitString(&spk);
+  
+  
+
+  der::Input spki;
+
+  {
+    
+    
+    der::Input input;
+    if (input.Init(subjectPublicKeyInfo.data, subjectPublicKeyInfo.len)
+          != der::Success) {
+      return MapSECStatus(SECFailure);
+    }
+
+    if (der::ExpectTagAndGetValue(input, der::SEQUENCE, spki) != der::Success) {
+      return MapSECStatus(SECFailure);
+    }
+    if (der::End(input) != der::Success) {
+      return MapSECStatus(SECFailure);
+    }
+  }
+
+  
+  if (der::ExpectTagAndSkipValue(spki, der::SEQUENCE) != der::Success) {
+    return MapSECStatus(SECFailure);
+  }
+
+  SECItem subjectPublicKey;
+  if (der::ExpectTagAndGetValue(spki, der::BIT_STRING, subjectPublicKey)
+        != der::Success) {
+    return MapSECStatus(SECFailure);
+  }
+
+  if (der::End(spki) != der::Success) {
+    return MapSECStatus(SECFailure);
+  }
+
+  
+  if (subjectPublicKey.len == 0 || subjectPublicKey.data[0] != 0) {
+    return Fail(RecoverableError, SEC_ERROR_BAD_DER);
+  }
+  ++subjectPublicKey.data;
+  --subjectPublicKey.len;
 
   static uint8_t hashBuf[SHA1_LENGTH];
-  if (HashBuf(spk, hashBuf, sizeof(hashBuf)) != der::Success) {
-    return der::Failure;
+  if (HashBuf(subjectPublicKey, hashBuf, sizeof(hashBuf)) != der::Success) {
+    return MapSECStatus(SECFailure);
   }
-
   match = !memcmp(hashBuf, keyHash.data, keyHash.len);
-  return der::Success;
+  return Success;
 }
 
 

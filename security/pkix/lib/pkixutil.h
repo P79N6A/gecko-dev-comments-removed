@@ -95,7 +95,7 @@ public:
   MOZILLA_PKIX_ENUM_CLASS IncludeCN { No = 0, Yes = 1 };
 
   
-  BackCert(CERTCertificate* nssCert, BackCert* childCert, IncludeCN includeCN)
+  BackCert(BackCert* childCert, IncludeCN includeCN)
     : encodedBasicConstraints(nullptr)
     , encodedCertificatePolicies(nullptr)
     , encodedExtendedKeyUsage(nullptr)
@@ -103,15 +103,23 @@ public:
     , encodedNameConstraints(nullptr)
     , encodedInhibitAnyPolicy(nullptr)
     , childCert(childCert)
-    , nssCert(nssCert)
     , constrainedNames(nullptr)
     , includeCN(includeCN)
   {
   }
 
-  Result Init();
+  Result Init(const SECItem& certDER);
 
   const SECItem& GetDER() const { return nssCert->derCert; }
+  const SECItem& GetIssuer() const { return nssCert->derIssuer; }
+  const SECItem& GetSubject() const { return nssCert->derSubject; }
+  const SECItem& GetSubjectPublicKeyInfo() const
+  {
+    return nssCert->derPublicKey;
+  }
+
+  Result VerifyOwnSignatureWithKey(TrustDomain& trustDomain,
+                                   const SECItem& subjectPublicKeyInfo) const;
 
   const SECItem* encodedBasicConstraints;
   const SECItem* encodedCertificatePolicies;
@@ -127,7 +135,7 @@ public:
   
   
   
-   CERTCertificate* GetNSSCert() const { return nssCert; }
+   CERTCertificate* GetNSSCert() const { return nssCert.get(); }
 
   
   
@@ -142,7 +150,7 @@ public:
   PLArenaPool* GetArena();
 
 private:
-  CERTCertificate* nssCert;
+  ScopedCERTCertificate nssCert;
 
   ScopedPLArenaPool arena;
   CERTGeneralName* constrainedNames;

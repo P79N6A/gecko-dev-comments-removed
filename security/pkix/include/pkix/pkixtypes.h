@@ -46,8 +46,6 @@ typedef ScopedPtr<PLArenaPool, ArenaFalseCleaner> ScopedPLArenaPool;
 typedef ScopedPtr<CERTCertificate, CERT_DestroyCertificate>
         ScopedCERTCertificate;
 typedef ScopedPtr<CERTCertList, CERT_DestroyCertList> ScopedCERTCertList;
-typedef ScopedPtr<SECKEYPublicKey, SECKEY_DestroyPublicKey>
-        ScopedSECKEYPublicKey;
 
 MOZILLA_PKIX_ENUM_CLASS EndEntityOrCA { MustBeEndEntity = 0, MustBeCA = 1 };
 
@@ -121,11 +119,8 @@ public:
   
   
   
-  
-  
-  
   virtual SECStatus VerifySignedData(const CERTSignedData* signedData,
-                                     const CERTCertificate* cert) = 0;
+                                     const SECItem& subjectPublicKeyInfo) = 0;
 
   
   

@@ -38,8 +38,20 @@ namespace mozilla { namespace pkix {
 
 
 Result
-BackCert::Init()
+BackCert::Init(const SECItem& certDER)
 {
+  
+  
+  
+  
+  
+  nssCert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
+                                    const_cast<SECItem*>(&certDER),
+                                    nullptr, false, true);
+  if (!nssCert) {
+    return MapSECStatus(SECFailure);
+  }
+
   const CERTCertExtension* const* exts = nssCert->extensions;
   if (!exts) {
     return Success;
@@ -109,6 +121,15 @@ BackCert::Init()
   return Success;
 }
 
+
+Result
+BackCert::VerifyOwnSignatureWithKey(TrustDomain& trustDomain,
+                                    const SECItem& subjectPublicKeyInfo) const
+{
+  return MapSECStatus(trustDomain.VerifySignedData(&nssCert->signatureWrap,
+                                                   subjectPublicKeyInfo));
+}
+
 static Result BuildForward(TrustDomain& trustDomain,
                            BackCert& subject,
                            PRTime time,
@@ -127,15 +148,12 @@ BuildForwardInner(TrustDomain& trustDomain,
                   PRTime time,
                   KeyPurposeId requiredEKUIfPresent,
                   const CertPolicyId& requiredPolicy,
-                  CERTCertificate* potentialIssuerCertToDup,
+                  const SECItem& potentialIssuerDER,
                   unsigned int subCACount,
                   ScopedCERTCertList& results)
 {
-  PORT_Assert(potentialIssuerCertToDup);
-
-  BackCert potentialIssuer(potentialIssuerCertToDup, &subject,
-                           BackCert::IncludeCN::No);
-  Result rv = potentialIssuer.Init();
+  BackCert potentialIssuer(&subject, BackCert::IncludeCN::No);
+  Result rv = potentialIssuer.Init(potentialIssuerDER);
   if (rv != Success) {
     return rv;
   }
@@ -169,12 +187,8 @@ BuildForwardInner(TrustDomain& trustDomain,
     return rv;
   }
 
-  if (trustDomain.VerifySignedData(&subject.GetNSSCert()->signatureWrap,
-                                   potentialIssuer.GetNSSCert()) != SECSuccess) {
-    return MapSECStatus(SECFailure);
-  }
-
-  return Success;
+  return subject.VerifyOwnSignatureWithKey(
+                   trustDomain, potentialIssuer.GetSubjectPublicKeyInfo());
 }
 
 
@@ -279,7 +293,8 @@ BuildForward(TrustDomain& trustDomain,
   for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
        !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
     rv = BuildForwardInner(trustDomain, subject, time, requiredEKUIfPresent,
-                           requiredPolicy, n->cert, subCACount, results);
+                           requiredPolicy, n->cert->derCert, subCACount,
+                           results);
     if (rv == Success) {
       
       
@@ -329,7 +344,7 @@ BuildForward(TrustDomain& trustDomain,
 
 SECStatus
 BuildCertChain(TrustDomain& trustDomain,
-               CERTCertificate* certToDup,
+               const CERTCertificate* nssCert,
                PRTime time,
                EndEntityOrCA endEntityOrCA,
                 KeyUsages requiredKeyUsagesIfPresent,
@@ -338,15 +353,11 @@ BuildCertChain(TrustDomain& trustDomain,
                 const SECItem* stapledOCSPResponse,
                 ScopedCERTCertList& results)
 {
-  PORT_Assert(certToDup);
-
-  if (!certToDup) {
+  if (!nssCert) {
+    PR_NOT_REACHED("null cert passed to BuildCertChain");
     PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
     return SECFailure;
   }
-
-  
-  
 
   
   
@@ -356,8 +367,8 @@ BuildCertChain(TrustDomain& trustDomain,
     ? BackCert::IncludeCN::Yes
     : BackCert::IncludeCN::No;
 
-  BackCert cert(certToDup, nullptr, includeCN);
-  Result rv = cert.Init();
+  BackCert cert(nullptr, includeCN);
+  Result rv = cert.Init(nssCert->derCert);
   if (rv != Success) {
     return SECFailure;
   }
@@ -387,7 +398,7 @@ BackCert::PrependNSSCertToList(CERTCertList* results)
 {
   PORT_Assert(results);
 
-  CERTCertificate* dup = CERT_DupCertificate(nssCert);
+  CERTCertificate* dup = CERT_DupCertificate(nssCert.get());
   if (CERT_AddCertToListHead(results, dup) != SECSuccess) { 
     CERT_DestroyCertificate(dup);
     return FatalError;

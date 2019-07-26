@@ -90,7 +90,7 @@ namespace mozilla { namespace pkix {
 
 
 SECStatus BuildCertChain(TrustDomain& trustDomain,
-                         CERTCertificate* cert,
+                         const CERTCertificate* cert,
                          PRTime time,
                          EndEntityOrCA endEntityOrCA,
              KeyUsages requiredKeyUsagesIfPresent,
@@ -100,9 +100,8 @@ SECStatus BuildCertChain(TrustDomain& trustDomain,
                   ScopedCERTCertList& results);
 
 
-
 SECStatus VerifySignedData(const CERTSignedData* sd,
-                           const CERTCertificate* cert,
+                           const SECItem& subjectPublicKeyInfo,
                            void* pkcs11PinArg);
 
 
