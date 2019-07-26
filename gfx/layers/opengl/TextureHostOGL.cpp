@@ -593,9 +593,22 @@ SurfaceFormatForAndroidPixelFormat(android::PixelFormat aFormat)
     return FORMAT_R5G6B5;
   case android::PIXEL_FORMAT_A_8:
     return FORMAT_A8;
+  case 17: 
+    return FORMAT_B8G8R8A8; 
   default:
     MOZ_NOT_REACHED("Unknown Android pixel format");
-    return FORMAT_B8G8R8A8;
+    return FORMAT_UNKNOWN;
+  }
+}
+
+static GLenum
+TextureTargetForAndroidPixelFormat(android::PixelFormat aFormat)
+{
+  switch (aFormat) {
+  case 17: 
+    return LOCAL_GL_TEXTURE_EXTERNAL;
+  default:
+    return LOCAL_GL_TEXTURE_2D;
   }
 }
 
@@ -615,7 +628,7 @@ GrallocTextureHostOGL::DeleteTextures()
     mGL->MakeCurrent();
     if (mGLTexture) {
       mGL->fDeleteTextures(1, &mGLTexture);
-      mGLTexture= 0;
+      mGLTexture = 0;
     }
     if (mEGLImage) {
       mGL->DestroyEGLImage(mEGLImage);
@@ -641,6 +654,7 @@ GrallocTextureHostOGL::SwapTexturesImpl(const SurfaceDescriptor& aImage,
   const SurfaceDescriptorGralloc& desc = aImage.get_SurfaceDescriptorGralloc();
   mGraphicBuffer = GrallocBufferActor::GetFrom(desc);
   mFormat = SurfaceFormatForAndroidPixelFormat(mGraphicBuffer->getPixelFormat());
+  mTextureTarget = TextureTargetForAndroidPixelFormat(mGraphicBuffer->getPixelFormat());
 
   DeleteTextures();
 }
@@ -651,7 +665,7 @@ void GrallocTextureHostOGL::BindTexture(GLenum aTextureUnit)
 
   mGL->MakeCurrent();
   mGL->fActiveTexture(aTextureUnit);
-  mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mGLTexture);
+  mGL->fBindTexture(mTextureTarget, mGLTexture);
   mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
 }
 
@@ -688,11 +702,11 @@ GrallocTextureHostOGL::Lock()
     mGL->fGenTextures(1, &mGLTexture);
   }
   mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
-  mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mGLTexture);
+  mGL->fBindTexture(mTextureTarget, mGLTexture);
   if (!mEGLImage) {
     mEGLImage = mGL->CreateEGLImageForNativeBuffer(mGraphicBuffer->getNativeBuffer());
   }
-  mGL->fEGLImageTargetTexture2D(LOCAL_GL_TEXTURE_2D, mEGLImage);
+  mGL->fEGLImageTargetTexture2D(mTextureTarget, mEGLImage);
   return true;
 }
 
@@ -708,19 +722,10 @@ GrallocTextureHostOGL::Unlock()
 
 
 
-
-
-
-
-
   mGL->MakeCurrent();
   mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
-  mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mGLTexture);
-  mGL->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0,
-                   LOCAL_GL_RGBA,
-                   1, 1, 0,
-                   LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE,
-                   nullptr);
+  mGL->fBindTexture(mTextureTarget, mGLTexture);
+  mGL->fEGLImageTargetTexture2D(mTextureTarget, mGL->GetNullEGLImage());
 }
 
 gfx::SurfaceFormat
