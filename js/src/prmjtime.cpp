@@ -351,24 +351,22 @@ PRMJ_Now()
                     
                     
                     
-                    returnedTime = int64_t(lowresTime);
-                    needsCalibration = false;
-                } else {
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    needsCalibration = true;
+                    return int64_t(lowresTime);
                 }
+
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                needsCalibration = true;
             } else {
                 
-                returnedTime = int64_t(highresTime);
-                needsCalibration = false;
+                return int64_t(highresTime);
             }
         } else {
             
