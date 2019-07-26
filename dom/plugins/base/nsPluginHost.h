@@ -164,8 +164,6 @@ public:
   
   static bool IsJavaMIMEType(const char *aType);
 
-  static nsresult GetPrompt(nsIPluginInstanceOwner *aOwner, nsIPrompt **aPrompt);
-
   static nsresult PostPluginUnloadEvent(PRLibrary* aLibrary);
 
   void PluginCrashed(nsNPAPIPlugin* plugin,
