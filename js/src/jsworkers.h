@@ -405,6 +405,7 @@ struct ParseTask
     
     
     PersistentRootedObject optionsElement;
+    PersistentRootedScript optionsIntroductionScript;
 
     
     JS::OffThreadCompileCallback callback;
