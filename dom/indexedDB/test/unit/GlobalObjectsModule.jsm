@@ -3,8 +3,6 @@
 
 
 
-Components.utils.importGlobalProperties(["indexedDB"]);
-
 this.EXPORTED_SYMBOLS = [
   "GlobalObjectsModule"
 ];
