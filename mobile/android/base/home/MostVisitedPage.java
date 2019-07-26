@@ -42,6 +42,9 @@ public class MostVisitedPage extends HomeFragment {
     private ListView mList;
 
     
+    private View mEmptyMessage;
+
+    
     private CursorLoaderCallbacks mCursorLoaderCallbacks;
 
     
@@ -84,6 +87,7 @@ public class MostVisitedPage extends HomeFragment {
         final TextView title = (TextView) view.findViewById(R.id.title);
         title.setText(R.string.home_most_visited_title);
 
+        mEmptyMessage = view.findViewById(R.id.empty_message);
         mList = (HomeListView) view.findViewById(R.id.list);
 
         mList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -106,6 +110,7 @@ public class MostVisitedPage extends HomeFragment {
     public void onDestroyView() {
         super.onDestroyView();
         mList = null;
+        mEmptyMessage = null;
     }
 
     @Override
@@ -177,6 +182,10 @@ public class MostVisitedPage extends HomeFragment {
         @Override
         public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
             if (loader.getId() == LOADER_ID_FRECENCY) {
+                
+                
+                mList.setEmptyView(mEmptyMessage);
+
                 mAdapter.swapCursor(c);
                 loadFavicons(c);
             } else {
