@@ -177,6 +177,8 @@ private:
     NS_ConvertASCIItoUTF16 key(aKey);
     return AddToHash(aTable, &key, aClassName);
   }
+  
+  void RemoveFromHash(PLDHashTable *aTable, const nsAString *aKey);
 
   nsresult FillHash(nsICategoryManager *aCategoryManager,
                     const char *aCategory);
@@ -196,6 +198,24 @@ private:
   nsresult AddCategoryEntryToHash(nsICategoryManager* aCategoryManager,
                                   const char* aCategory,
                                   nsISupports* aEntry);
+
+  
+
+
+
+
+
+
+
+  nsresult RemoveCategoryEntryFromHash(nsICategoryManager* aCategoryManager,
+                                       const char* aCategory,
+                                       nsISupports* aEntry);
+
+  
+  nsresult OperateCategoryEntryHash(nsICategoryManager* aCategoryManager,
+                                    const char* aCategory,
+                                    nsISupports* aEntry,
+                                    bool aRemove);
 
   nsGlobalNameStruct* LookupNameInternal(const nsAString& aName,
                                          const PRUnichar **aClassName = nullptr);
