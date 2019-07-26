@@ -62,13 +62,18 @@ public:
       }
     }
 
-    
-    
-    mCallback = aCallback;
-    
-    nsLayoutStatics::AddRef();
-    NS_HOLD_JS_OBJECTS(this, CallbackObject);
+    Init(aCallback);
     *aInited = true;
+  }
+
+  
+
+
+
+
+  explicit CallbackObject(JSObject* aCallback)
+  {
+    Init(aCallback);
   }
 
   virtual ~CallbackObject()
@@ -101,16 +106,23 @@ public:
   };
 
 protected:
-  explicit CallbackObject(CallbackObject* aCallbackFunction)
-    : mCallback(aCallbackFunction->mCallback)
+  explicit CallbackObject(CallbackObject* aCallbackObject)
+  {
+    Init(aCallbackObject->mCallback);
+  }
+
+private:
+  inline void Init(JSObject* aCallback)
   {
     
     
+    mCallback = aCallback;
     
     nsLayoutStatics::AddRef();
     NS_HOLD_JS_OBJECTS(this, CallbackObject);
   }
 
+protected:
   void DropCallback()
   {
     if (mCallback) {

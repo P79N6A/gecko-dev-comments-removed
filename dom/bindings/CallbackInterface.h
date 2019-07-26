@@ -37,6 +37,16 @@ public:
   {
   }
 
+  
+
+
+
+
+  explicit CallbackInterface(JSObject* aCallback)
+    : CallbackObject(aCallback)
+  {
+  }
+
 protected:
   bool GetCallableProperty(JSContext* cx, const char* aPropName,
                            JS::Value* aCallable);
