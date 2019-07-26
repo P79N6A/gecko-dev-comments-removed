@@ -680,23 +680,12 @@ public:
 
   void StartNumberControlSpinnerSpin();
   void StopNumberControlSpinnerSpin();
-  void StepNumberControlForUserEvent(int32_t aDirection);
 
   
 
 
 
   static void HandleNumberControlSpin(void* aData);
-
-  bool NumberSpinnerUpButtonIsDepressed() const
-  {
-    return mNumberControlSpinnerIsSpinning && mNumberControlSpinnerSpinsUp;
-  }
-
-  bool NumberSpinnerDownButtonIsDepressed() const
-  {
-    return mNumberControlSpinnerIsSpinning && !mNumberControlSpinnerSpinsUp;
-  }
 
   bool MozIsTextField(bool aExcludePassword);
 
