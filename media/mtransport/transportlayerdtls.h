@@ -59,7 +59,7 @@ class TransportLayerDtls : public TransportLayer {
 
   enum Role { CLIENT, SERVER};
   enum Verification { VERIFY_UNSET, VERIFY_ALLOW_ALL, VERIFY_DIGEST};
-  const static int kMaxDigestLength = HASH_LENGTH_MAX;
+  const static size_t kMaxDigestLength = HASH_LENGTH_MAX;
 
   
   void SetRole(Role role) { role_ = role;}
