@@ -1392,9 +1392,6 @@ function Tab(aURI, aParams, aOwner) {
 
   this.owner = aOwner || null;
 
-  this.hostChanged = false;
-  this.state = null;
-
   
   
   this.lastSelected = 0;
