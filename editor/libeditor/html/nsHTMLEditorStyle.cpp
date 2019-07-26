@@ -1783,6 +1783,10 @@ nsHTMLEditor::RelativeFontChangeHelper(int32_t aSizeChange, nsINode* aNode)
       nsresult rv = RelativeFontChangeOnNode(aSizeChange, aNode->GetChildAt(i));
       NS_ENSURE_SUCCESS(rv, rv);
     }
+
+    
+    
+    return NS_OK;
   }
 
   
