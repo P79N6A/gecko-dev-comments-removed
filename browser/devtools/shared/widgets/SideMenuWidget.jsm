@@ -117,7 +117,9 @@ SideMenuWidget.prototype = {
 
 
   removeChild: function SMW_removeChild(aChild) {
-    aChild.parentNode.removeChild(aChild);
+    
+    let item = aChild.parentNode;
+    item.parentNode.removeChild(item);
     this._orderedMenuElementsArray.splice(
       this._orderedMenuElementsArray.indexOf(aChild), 1);
 
