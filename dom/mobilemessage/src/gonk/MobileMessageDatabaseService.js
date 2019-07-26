@@ -1215,17 +1215,6 @@ MobileMessageDatabaseService.prototype = {
         delete messageRecord.envelopeIdIndex;
       }
 
-      
-      
-      for (let field of ["x-mms-cancel-status",
-                         "x-mms-sender-visibility",
-                         "x-mms-read-status"]) {
-        let value = messageRecord.headers[field];
-        if (value !== undefined) {
-          messageRecord.headers[field] = value ? 128 : 129;
-        }
-      }
-
       cursor.update(messageRecord);
       cursor.continue();
     };
