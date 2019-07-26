@@ -71,12 +71,12 @@ static gfxIntSize gAndroidScreenBounds;
 #include "mozilla/Mutex.h"
 #include "nsThreadUtils.h"
 
-
 class ContentCreationNotifier;
 static nsCOMPtr<ContentCreationNotifier> gContentCreationNotifier;
 
 
-class ContentCreationNotifier : public nsIObserver
+
+class ContentCreationNotifier MOZ_FINAL : public nsIObserver
 {
     NS_DECL_ISUPPORTS
 
