@@ -78,7 +78,11 @@ public:
 
 
 
-  float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut);
+
+
+
+  float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut,
+                           bool aScrollingDisabled);
 
   
 
@@ -107,7 +111,7 @@ public:
 
   bool Scrollable();
 
-  void SetScrollingDisabled(bool aDisabled) { mScrollingDisabled = aDisabled; }
+  void SetAxisLocked(bool aAxisLocked) { mAxisLocked = aAxisLocked; }
 
   
 
@@ -190,7 +194,7 @@ protected:
   
   
   int32_t mAcceleration;
-  bool mScrollingDisabled;     
+  bool mAxisLocked;     
   AsyncPanZoomController* mAsyncPanZoomController;
   nsTArray<float> mVelocityQueue;
 };

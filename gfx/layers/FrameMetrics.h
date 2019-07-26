@@ -12,6 +12,10 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/ScaleFactor.h"    
 
+namespace IPC {
+template <typename T> struct ParamTraits;
+} 
+
 namespace mozilla {
 namespace layers {
 
@@ -32,6 +36,7 @@ typedef gfx::ScaleFactor<ParentLayerPixel, ScreenPixel> ParentLayerToScreenScale
 
 
 struct FrameMetrics {
+  friend struct IPC::ParamTraits<mozilla::layers::FrameMetrics>;
 public:
   
   typedef uint64_t ViewID;
@@ -51,11 +56,13 @@ public:
     , mCumulativeResolution(1)
     , mZoom(1)
     , mDevPixelsPerCSSPixel(1)
-    , mMayHaveTouchListeners(false)
     , mPresShellId(-1)
+    , mMayHaveTouchListeners(false)
     , mIsRoot(false)
     , mHasScrollgrab(false)
     , mUpdateScrollOffset(false)
+    , mDisableScrollingX(false)
+    , mDisableScrollingY(false)
   {}
 
   
@@ -75,6 +82,9 @@ public:
            mMayHaveTouchListeners == aOther.mMayHaveTouchListeners &&
            mPresShellId == aOther.mPresShellId &&
            mIsRoot == aOther.mIsRoot &&
+           mHasScrollgrab == aOther.mHasScrollgrab &&
+           mDisableScrollingX == aOther.mDisableScrollingX &&
+           mDisableScrollingY == aOther.mDisableScrollingY &&
            mUpdateScrollOffset == aOther.mUpdateScrollOffset;
   }
   bool operator!=(const FrameMetrics& aOther) const
@@ -277,10 +287,10 @@ public:
   
   CSSToLayoutDeviceScale mDevPixelsPerCSSPixel;
 
+  uint32_t mPresShellId;
+
   
   bool mMayHaveTouchListeners;
-
-  uint32_t mPresShellId;
 
   
   bool mIsRoot;
@@ -291,6 +301,36 @@ public:
   
   
   bool mUpdateScrollOffset;
+
+public:
+  bool GetDisableScrollingX() const
+  {
+    return mDisableScrollingX;
+  }
+
+  void SetDisableScrollingX(bool aDisableScrollingX)
+  {
+    mDisableScrollingX = aDisableScrollingX;
+  }
+
+  bool GetDisableScrollingY() const
+  {
+    return mDisableScrollingY;
+  }
+
+  void SetDisableScrollingY(bool aDisableScrollingY)
+  {
+    mDisableScrollingY = aDisableScrollingY;
+  }
+
+private:
+  
+  
+
+  
+  
+  bool mDisableScrollingX;
+  bool mDisableScrollingY;
 };
 
 
