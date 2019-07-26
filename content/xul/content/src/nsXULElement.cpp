@@ -2314,6 +2314,9 @@ nsXULPrototypeElement::SetAttrAt(uint32_t aPos, const nsAString& aValue,
         nsCSSParser parser;
 
         
+        
+        
+        
         parser.ParseStyleAttribute(aValue, aDocumentURI, aDocumentURI,
                                    
                                    

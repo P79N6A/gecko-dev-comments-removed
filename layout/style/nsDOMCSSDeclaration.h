@@ -119,11 +119,13 @@ protected:
   
   
   
+  
   struct CSSParsingEnvironment {
     nsIURI* mSheetURI;
     nsCOMPtr<nsIURI> mBaseURI;
     nsIPrincipal* mPrincipal;
     mozilla::css::Loader* mCSSLoader;
+    nsIDocument* mDocument;
   };
   
   

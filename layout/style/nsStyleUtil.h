@@ -78,6 +78,22 @@ public:
   static bool IsSignificantChild(nsIContent* aChild,
                                    bool aTextIsSignificant,
                                    bool aWhitespaceIsSignificant);
+  
+
+
+
+
+
+
+
+
+
+  static bool CSPAllowsInlineStyle(nsIPrincipal* aPrincipal,
+                                   nsIURI* aSourceURI,
+                                   uint32_t aLineNumber,
+                                   const nsSubstring& aStyleText,
+                                   nsresult* aRv);
+
 };
 
 

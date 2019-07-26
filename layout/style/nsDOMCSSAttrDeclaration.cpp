@@ -16,7 +16,6 @@
 #include "nsIPrincipal.h"
 #include "nsIURI.h"
 #include "nsNodeUtils.h"
-#include "nsGenericElement.h"
 #include "nsContentUtils.h"
 #include "xpcpublic.h"
 #include "nsWrapperCacheInlines.h"
@@ -45,7 +44,7 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_1(nsDOMCSSAttributeDeclaration, mElement)
 
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsDOMCSSAttributeDeclaration)
-  if (tmp->mElement && nsGenericElement::CanSkip(tmp->mElement, true)) {
+  if (tmp->mElement && Element::CanSkip(tmp->mElement, true)) {
     if (tmp->PreservingWrapper()) {
       
       
@@ -59,12 +58,12 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsDOMCSSAttributeDeclaration)
   return tmp->IsBlack() ||
-    (tmp->mElement && nsGenericElement::CanSkipInCC(tmp->mElement));
+    (tmp->mElement && Element::CanSkipInCC(tmp->mElement));
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsDOMCSSAttributeDeclaration)
   return tmp->IsBlack() ||
-    (tmp->mElement && nsGenericElement::CanSkipThis(tmp->mElement));
+    (tmp->mElement && Element::CanSkipThis(tmp->mElement));
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMCSSAttributeDeclaration)
@@ -155,11 +154,11 @@ nsDOMCSSAttributeDeclaration::GetCSSParsingEnvironment(CSSParsingEnvironment& aC
 {
   NS_ASSERTION(mElement, "Something is severely broken -- there should be an Element here!");
 
-  nsIDocument* doc = mElement->OwnerDoc();
-  aCSSParseEnv.mSheetURI = doc->GetDocumentURI();
+  aCSSParseEnv.mDocument = mElement->OwnerDoc();
+  aCSSParseEnv.mSheetURI = aCSSParseEnv.mDocument->GetDocumentURI();
   aCSSParseEnv.mBaseURI = mElement->GetBaseURI();
   aCSSParseEnv.mPrincipal = mElement->NodePrincipal();
-  aCSSParseEnv.mCSSLoader = doc->CSSLoader();
+  aCSSParseEnv.mCSSLoader = aCSSParseEnv.mDocument->CSSLoader();
 }
 
 NS_IMETHODIMP

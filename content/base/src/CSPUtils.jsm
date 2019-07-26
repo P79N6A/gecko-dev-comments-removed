@@ -181,6 +181,9 @@ this.CSPRep = function CSPRep(aSpecCompliant) {
   
   
   this._specCompliant = (aSpecCompliant !== undefined) ? aSpecCompliant : false;
+
+  
+  this._allowInlineStyles = !aSpecCompliant;
 }
 
 
@@ -717,7 +720,8 @@ CSPRep.prototype = {
       }
     }
     return (this.allowsInlineScripts === that.allowsInlineScripts)
-        && (this.allowsEvalInScripts === that.allowsEvalInScripts);
+        && (this.allowsEvalInScripts === that.allowsEvalInScripts)
+        && (this.allowsInlineStyles == that.allowsInlineStyles);
   },
 
   
@@ -812,6 +816,9 @@ CSPRep.prototype = {
     newRep._allowInlineScripts = this.allowsInlineScripts
                            && aCSPRep.allowsInlineScripts;
 
+    newRep._allowInlineStyles = this.allowsInlineStyles
+                           && aCSPRep.allowsInlineStyles;
+
     newRep._innerWindowID = this._innerWindowID ?
                               this._innerWindowID : aCSPRep._innerWindowID;
 
@@ -870,6 +877,14 @@ CSPRep.prototype = {
 
   get allowsInlineScripts () {
     return this._allowInlineScripts;
+  },
+
+  
+
+
+
+  get allowsInlineStyles () {
+    return this._allowInlineStyles;
   },
 
   
