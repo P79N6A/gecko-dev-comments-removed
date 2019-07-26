@@ -375,12 +375,7 @@ protected:
   
 
 
-
-
-
-
-
-  void NotifyTransfer(nsresult aStatus);
+  nsresult NotifyTransfer();
 
   
 

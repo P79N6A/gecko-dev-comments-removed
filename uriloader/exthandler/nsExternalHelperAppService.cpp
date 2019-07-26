@@ -1812,55 +1812,63 @@ NS_IMETHODIMP
 nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
                                      nsresult aStatus)
 {
-  if (!mCanceled) {
-    
-    (void)mSaver->GetSha256Hash(mHash);
-    
-    
-    mSaver = nullptr;
+  if (mCanceled)
+    return NS_OK;
+
   
-    if (NS_FAILED(aStatus)) {
-      nsAutoString path;
-      mTempFile->GetPath(path);
-      SendStatusChange(kWriteError, aStatus, nullptr, path);
-      if (!mCanceled)
-        Cancel(aStatus);
-      return NS_OK;
-    }
+  nsresult rv = mSaver->GetSha256Hash(mHash);
+  
+  
+  mSaver = nullptr;
+
+  if (NS_FAILED(aStatus)) {
+    nsAutoString path;
+    mTempFile->GetPath(path);
+    SendStatusChange(kWriteError, aStatus, nullptr, path);
+    if (!mCanceled)
+      Cancel(aStatus);
+    return NS_OK;
   }
 
   
   
   
   if (mTransfer) {
-    NotifyTransfer(aStatus);
+    rv = NotifyTransfer();
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   return NS_OK;
 }
 
-void nsExternalAppHandler::NotifyTransfer(nsresult aStatus)
+nsresult nsExternalAppHandler::NotifyTransfer()
 {
   MOZ_ASSERT(NS_IsMainThread(), "Must notify on main thread");
+  MOZ_ASSERT(!mCanceled, "Can't notify if canceled or action "
+             "hasn't been chosen");
   MOZ_ASSERT(mTransfer, "We must have an nsITransfer");
 
   LOG(("Notifying progress listener"));
 
-  if (NS_SUCCEEDED(aStatus)) {
-    (void)mTransfer->SetSha256Hash(mHash);
-    (void)mTransfer->OnProgressChange64(nullptr, nullptr, mProgress,
-      mContentLength, mProgress, mContentLength);
-  }
+  nsresult rv = mTransfer->SetSha256Hash(mHash);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  (void)mTransfer->OnStateChange(nullptr, nullptr,
+  rv = mTransfer->OnProgressChange64(nullptr, nullptr, mProgress,
+    mContentLength, mProgress, mContentLength);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mTransfer->OnStateChange(nullptr, nullptr,
     nsIWebProgressListener::STATE_STOP |
     nsIWebProgressListener::STATE_IS_REQUEST |
-    nsIWebProgressListener::STATE_IS_NETWORK, aStatus);
+    nsIWebProgressListener::STATE_IS_NETWORK, NS_OK);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
   
   mTransfer = nullptr;
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsExternalAppHandler::GetMIMEInfo(nsIMIMEInfo ** aMIMEInfo)
@@ -1958,7 +1966,7 @@ nsresult nsExternalAppHandler::CreateTransfer()
   
   
   if (mStopRequestIssued && !mSaver && mTransfer) {
-    NotifyTransfer(NS_OK);
+    return NotifyTransfer();
   }
 
   return rv;
@@ -2195,31 +2203,17 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
 NS_IMETHODIMP nsExternalAppHandler::Cancel(nsresult aReason)
 {
   NS_ENSURE_ARG(NS_FAILED(aReason));
+  
 
-  if (mCanceled) {
-    return NS_OK;
-  }
   mCanceled = true;
-
   if (mSaver) {
-    
-    
-    
     mSaver->Finish(aReason);
     mSaver = nullptr;
-  } else {
-    if (mStopRequestIssued && mTempFile) {
-      
-      
-      
-      (void)mTempFile->Remove(false);
-    }
-
+  } else if (mStopRequestIssued && mTempFile) {
     
     
-    if (mTransfer) {
-      NotifyTransfer(aReason);
-    }
+    
+    (void)mTempFile->Remove(false);
   }
 
   
@@ -2231,6 +2225,7 @@ NS_IMETHODIMP nsExternalAppHandler::Cancel(nsresult aReason)
   
   
   mDialogProgressListener = nullptr;
+  mTransfer = nullptr;
 
   return NS_OK;
 }
