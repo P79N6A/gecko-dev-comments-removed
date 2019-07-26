@@ -69,10 +69,6 @@ protected:
                                nsIFrame* aCurrent, nsIFrame* aRight);
 
   
-  double GetProgressValue(nsIFrame* aFrame);
-  double GetProgressMaxValue(nsIFrame* aFrame);
-
-  
   void DrawFrame(CGContextRef context, HIThemeFrameKind inKind,
                  const HIRect& inBoxRect, bool inReadOnly,
                  nsEventStates inState);

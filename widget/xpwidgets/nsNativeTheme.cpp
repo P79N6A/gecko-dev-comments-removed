@@ -14,6 +14,7 @@
 #include "nsString.h"
 #include "nsINameSpaceManager.h"
 #include "nsIDOMHTMLInputElement.h"
+#include "nsIDOMHTMLProgressElement.h"
 #include "nsIDOMXULMenuListElement.h"
 #include "nsThemeConstants.h"
 #include "nsIComponentManager.h"
@@ -101,6 +102,7 @@ nsNativeTheme::GetContentState(nsIFrame* aFrame, uint8_t aWidgetType)
   return flags;
 }
 
+
 bool
 nsNativeTheme::CheckBooleanAttr(nsIFrame* aFrame, nsIAtom* aAtom)
 {
@@ -121,6 +123,7 @@ nsNativeTheme::CheckBooleanAttr(nsIFrame* aFrame, nsIAtom* aAtom)
                               NS_LITERAL_STRING("true"), eCaseMatters);
 }
 
+
 int32_t
 nsNativeTheme::CheckIntAttr(nsIFrame* aFrame, nsIAtom* aAtom, int32_t defaultValue)
 {
@@ -135,6 +138,44 @@ nsNativeTheme::CheckIntAttr(nsIFrame* aFrame, nsIAtom* aAtom, int32_t defaultVal
     return defaultValue;
 
   return value;
+}
+
+
+double
+nsNativeTheme::GetProgressValue(nsIFrame* aFrame)
+{
+  
+  
+  if (aFrame) {
+    nsCOMPtr<nsIDOMHTMLProgressElement> progress =
+      do_QueryInterface(aFrame->GetContent());
+    if (progress) {
+      double value;
+      progress->GetValue(&value);
+      return value;
+    }
+  }
+
+  return (double)nsNativeTheme::CheckIntAttr(aFrame, nsGkAtoms::value, 0);
+}
+
+
+double
+nsNativeTheme::GetProgressMaxValue(nsIFrame* aFrame)
+{
+  
+  
+  if (aFrame) {
+    nsCOMPtr<nsIDOMHTMLProgressElement> progress =
+      do_QueryInterface(aFrame->GetContent());
+    if (progress) {
+      double max;
+      progress->GetMax(&max);
+      return max;
+    }
+  }
+
+  return (double)std::max(nsNativeTheme::CheckIntAttr(aFrame, nsGkAtoms::max, 100), 1);
 }
 
 bool
