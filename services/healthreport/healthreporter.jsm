@@ -108,6 +108,7 @@ function HealthReporter(branch) {
   this._storage = null;
   this._storageInProgress = false;
   this._collector = null;
+  this._collectorInProgress = false;
   this._initialized = false;
   this._initializeHadError = false;
   this._initializedDeferred = Promise.defer();
@@ -269,6 +270,7 @@ HealthReporter.prototype = Object.freeze({
 
     this._log.info("Initializing collector.");
     this._collector = new Metrics.Collector(this._storage);
+    this._collectorInProgress = true;
 
     let catString = this._prefs.get("service.providerCategories") || "";
     if (catString.length) {
@@ -279,6 +281,9 @@ HealthReporter.prototype = Object.freeze({
   },
 
   _onCollectorInitialized: function () {
+    this._log.debug("Collector initialized.");
+    this._collectorInProgress = false;
+
     if (this._shutdownRequested) {
       this._initiateShutdown();
       return;
@@ -324,6 +329,11 @@ HealthReporter.prototype = Object.freeze({
 
     
     this._policy.stopPolling();
+
+    if (this._collectorInProgress) {
+      this._log.warn("Collector is in progress of initializing. Waiting to finish.");
+      return;
+    }
 
     
     
