@@ -3,8 +3,10 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.prompts;
 
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.util.GeckoEventResponder;
 import org.mozilla.gecko.util.ThreadUtils;
 
@@ -27,7 +29,7 @@ public class PromptService implements GeckoEventResponder {
         mContext = context;
     }
 
-    void destroy() {
+    public void destroy() {
         GeckoAppShell.getEventDispatcher().unregisterEventListener("Prompt:Show", this);
         GeckoAppShell.getEventDispatcher().unregisterEventListener("Prompt:ShowTop", this);
     }

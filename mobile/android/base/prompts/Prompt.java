@@ -3,11 +3,14 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.prompts;
 
 import org.mozilla.gecko.util.GeckoEventResponder;
+import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.widget.DateTimePicker;
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.GeckoAppShell;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
