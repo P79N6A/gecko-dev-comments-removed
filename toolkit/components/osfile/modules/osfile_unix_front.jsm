@@ -179,6 +179,33 @@
 
 
 
+
+
+
+
+     File.prototype.setDates = function setDates(accessDate, modificationDate) {
+       accessDate = normalizeDate("File.prototype.setDates", accessDate);
+       modificationDate = normalizeDate("File.prototype.setDates",
+                                        modificationDate);
+       gTimevals[0].tv_sec = (accessDate / 1000) | 0;
+       gTimevals[0].tv_usec = 0;
+       gTimevals[1].tv_sec = (modificationDate / 1000) | 0;
+       gTimevals[1].tv_usec = 0;
+       throw_on_negative("setDates",
+                         UnixFile.futimes(this.fd, gTimevalsPtr));
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
      File.prototype.flush = function flush() {
        throw_on_negative("flush", UnixFile.fsync(this.fd));
      };
@@ -756,6 +783,8 @@
 
      let gStatData = new Type.stat.implementation();
      let gStatDataPtr = gStatData.address();
+     let gTimevals = new Type.timevals.implementation();
+     let gTimevalsPtr = gTimevals.address();
      let MODE_MASK = 4095 ;
      File.Info = function Info(stat) {
        let isDir = (stat.st_mode & Const.S_IFMT) == Const.S_IFDIR;
@@ -839,6 +868,33 @@
        return new File.Info(gStatData);
      };
 
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     File.setDates = function setDates(path, accessDate, modificationDate) {
+       accessDate = normalizeDate("File.setDates", accessDate);
+       modificationDate = normalizeDate("File.setDates", modificationDate);
+       gTimevals[0].tv_sec = (accessDate / 1000) | 0;
+       gTimevals[0].tv_usec = 0;
+       gTimevals[1].tv_sec = (modificationDate / 1000) | 0;
+       gTimevals[1].tv_usec = 0;
+       throw_on_negative("setDates",
+                         UnixFile.utimes(path, gTimevalsPtr));
+     };
+
      File.read = exports.OS.Shared.AbstractFile.read;
      File.writeAtomic = exports.OS.Shared.AbstractFile.writeAtomic;
      File.openUnique = exports.OS.Shared.AbstractFile.openUnique;
@@ -910,6 +966,33 @@
        }
        return result;
      }
+
+     
+
+
+
+
+
+
+
+
+
+
+     function normalizeDate(fn, date) {
+       if (typeof date !== "number" && !date) {
+         
+         date = Date.now();
+       } else if (typeof date.getTime === "function") {
+         
+         date = date.getTime();
+       }
+
+       if (isNaN(date)) {
+         throw new TypeError("|date| parameter of " + fn + " must be a " +
+                             "|Date| instance or number");
+       }
+       return date;
+     };
 
      File.Unix = exports.OS.Unix.File;
      File.Error = SysAll.Error;

@@ -201,6 +201,24 @@
        };
 
        
+       {
+         let timeval = new SharedAll.HollowStructure(
+           "timeval",
+           Const.OSFILE_SIZEOF_TIMEVAL);
+         timeval.add_field_at(
+           Const.OSFILE_OFFSETOF_TIMEVAL_TV_SEC,
+           "tv_sec",
+           Type.long.implementation);
+         timeval.add_field_at(
+           Const.OSFILE_OFFSETOF_TIMEVAL_TV_USEC,
+           "tv_usec",
+           Type.long.implementation);
+         Type.timeval = timeval.getType();
+         Type.timevals = new SharedAll.Type("two timevals",
+           ctypes.ArrayType(Type.timeval.implementation, 2));
+       }
+
+       
 
        
        SharedAll.declareLazy(SysFile, "_close", libc,
@@ -570,6 +588,17 @@
          array[1] = ctypes.CDataFinalizer(_pipebuf[1], SysFile._close);
          return result;
        };
+
+       declareLazyFFI(SysFile, "utimes", libc, "utimes", ctypes.default_abi,
+                           Type.negativeone_or_nothing,
+                             Type.path,
+                       Type.timevals.out_ptr
+                      );
+       declareLazyFFI(SysFile, "futimes", libc, "futimes", ctypes.default_abi,
+                           Type.negativeone_or_nothing,
+                               Type.fd,
+                       Type.timevals.out_ptr
+                      );
      };
 
      exports.OS.Unix = {
