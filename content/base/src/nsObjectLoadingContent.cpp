@@ -2622,7 +2622,7 @@ nsObjectLoadingContent::ScriptRequestPluginInstance(JSContext* aCx,
       NS_NOTREACHED("failed to dispatch PluginScripted event");
     }
     mScriptRequested = true;
-  } else if (mType == eType_Plugin && !mInstanceOwner &&
+  } else if (callerIsContentJS && mType == eType_Plugin && !mInstanceOwner &&
              nsContentUtils::IsSafeToRunScript() &&
              InActiveDocument(thisContent)) {
     
@@ -3434,6 +3434,7 @@ nsObjectLoadingContent::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObje
                                      JS::Handle<jsid> aId,
                                      JS::MutableHandle<JSPropertyDescriptor> aDesc)
 {
+  
   
 
   nsRefPtr<nsNPAPIPluginInstance> pi;
