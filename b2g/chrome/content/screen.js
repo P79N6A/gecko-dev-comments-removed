@@ -18,7 +18,7 @@ window.addEventListener('ContentStart', function() {
     .getInterface(Components.interfaces.nsIDOMWindowUtils);
   let hostDPI = windowUtils.displayDPI;
 
-  let DEFAULT_SCREEN = "320x480";
+  let DEFAULT_SCREEN = '320x480';
 
   
   
@@ -120,43 +120,93 @@ window.addEventListener('ContentStart', function() {
     if (!width || !height || !dpi)
       usage();
   }
-  
-  
-  
-  
-  
-  let scale = rescale ? hostDPI / dpi : 1;
 
-  
-  
-  
-  let controls = document.getElementById('controls');
-  let controlsHeight = 0;
-  if (controls) {
-    controlsHeight = controls.getBoundingClientRect().height;
+  Cu.import("resource://gre/modules/GlobalSimulatorScreen.jsm");
+  function resize(width, height, dpi, shouldFlip) {
+    GlobalSimulatorScreen.width = width;
+    GlobalSimulatorScreen.height = height;
+
+    
+    
+    
+    
+    let scale = rescale ? hostDPI / dpi : 1;
+
+    
+    
+    let controls = document.getElementById('controls');
+    let controlsHeight = 0;
+    if (controls) {
+      controlsHeight = controls.getBoundingClientRect().height;
+    }
+    let chromewidth = window.outerWidth - window.innerWidth;
+    let chromeheight = window.outerHeight - window.innerHeight + controlsHeight;
+    window.resizeTo(Math.round(width * scale) + chromewidth,
+                    Math.round(height * scale) + chromeheight);
+
+    let frameWidth = width, frameHeight = height;
+    if (shouldFlip) {
+      frameWidth = height;
+      frameHeight = width;
+    }
+
+    
+    let style = browser.style;
+    style.width = style.minWidth = style.maxWidth =
+      frameWidth + 'px';
+    style.height = style.minHeight = style.maxHeight =
+      frameHeight + 'px';
+    browser.setAttribute('flex', '0');  
+
+    style.transformOrigin = '';
+    style.transform = '';
+
+    
+    if (scale !== 1) {
+      style.transformOrigin = 'top left';
+      style.transform += ' scale(' + scale + ',' + scale + ')';
+    }
+
+    if (shouldFlip) {
+      
+      let shift = Math.floor(Math.abs(frameWidth-frameHeight) / 2);
+      style.transform +=
+        ' rotate(0.25turn) translate(-' + shift + 'px, -' + shift + 'px)';
+    }
+
+    
+    
+    
+    Services.prefs.setIntPref('layout.css.dpi', dpi);
   }
-  let chromewidth = window.outerWidth - window.innerWidth;
-  let chromeheight = window.outerHeight - window.innerHeight + controlsHeight;
-  window.resizeTo(Math.round(width * scale) + chromewidth,
-                  Math.round(height * scale) + chromeheight);
 
   
-  browser.style.width = browser.style.minWidth = browser.style.maxWidth =
-    width + 'px';
-  browser.style.height = browser.style.minHeight = browser.style.maxHeight =
-    height + 'px';
-  browser.setAttribute('flex', '0');  
+  resize(width, height, dpi, false);
 
-  
-  if (scale !== 1) {
-    browser.style.transformOrigin = 'top left';
-    browser.style.transform = 'scale(' + scale + ',' + scale + ')';
-  }
+  let defaultOrientation = width < height ? 'portrait' : 'landscape';
 
   
   
-  
-  Services.prefs.setIntPref('layout.css.dpi', dpi);
+  Services.obs.addObserver(function orientationChangeListener(subject) {
+    let screen = subject.wrappedJSObject;
+    let { mozOrientation, screenOrientation } = screen;
+
+    let newWidth = width;
+    let newHeight = height;
+    
+    
+    if (screenOrientation != defaultOrientation) {
+      newWidth = height;
+      newHeight = width;
+    }
+
+    
+    
+    
+    let shouldFlip = mozOrientation != screenOrientation;
+
+    resize(newWidth, newHeight, dpi, shouldFlip);
+  }, 'simulator-adjust-window-size', false);
 
   
   
@@ -164,7 +214,7 @@ window.addEventListener('ContentStart', function() {
     let dump_enabled =
       Services.prefs.getBoolPref('browser.dom.window.dump.enabled');
 
-    if (!dump_enabled) 
+    if (!dump_enabled)
       Services.prefs.setBoolPref('browser.dom.window.dump.enabled', true);
 
     dump(Array.prototype.join.call(arguments, ' ') + '\n');
