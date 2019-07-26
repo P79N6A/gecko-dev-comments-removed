@@ -49,7 +49,7 @@ typedef enum {
 
 
 
-extern cprMsgQueue_t gsm_msgq;
+extern cprMsgQueue_t gsm_msg_queue;
 
 extern void kpml_process_msg(uint32_t cmd, void *msg);
 extern void dp_process_msg(uint32_t cmd, void *msg);
