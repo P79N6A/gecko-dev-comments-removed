@@ -8,10 +8,6 @@
 
 
 let TopSites = {
-  _initialized: false,
-
-  Site: Site,
-
   prepareCache: function(aForce){
     
     
@@ -151,6 +147,7 @@ let TopSites = {
     this._sitesDirty.clear();
     this.update();
   },
+
   _linkFromNode: function _linkFromNode(aNode) {
     return {
       url: aNode.getAttribute("value"),
