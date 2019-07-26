@@ -30,6 +30,10 @@ typedef uint32_t nscolor;
   ((nscolor) (((_a) << 24) | ((_b)<<16) | ((_g)<<8) | (_r)))
 
 
+#define NS_RGBA_FROM_GFXRGBA(gfxColor) \
+  ((nscolor) (gfxColor.Packed()))
+
+
 #define NS_GET_R(_rgba) ((uint8_t) ((_rgba) & 0xff))
 #define NS_GET_G(_rgba) ((uint8_t) (((_rgba) >> 8) & 0xff))
 #define NS_GET_B(_rgba) ((uint8_t) (((_rgba) >> 16) & 0xff))
