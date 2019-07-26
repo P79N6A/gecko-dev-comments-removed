@@ -44,6 +44,7 @@
 #ifndef nricemediastream_h__
 #define nricemediastream_h__
 
+#include <string>
 #include <vector>
 
 #include "sigslot.h"
@@ -78,6 +79,33 @@ struct NrIceCandidate {
   Type type;
 };
 
+struct NrIceCandidatePair {
+
+  enum State {
+    STATE_FROZEN,
+    STATE_WAITING,
+    STATE_IN_PROGRESS,
+    STATE_FAILED,
+    STATE_SUCCEEDED,
+    STATE_CANCELLED
+  };
+
+  State state;
+  uint64_t priority;
+  
+  
+  
+  
+  
+  bool nominated;
+  
+  
+  bool selected;
+  NrIceCandidate local;
+  NrIceCandidate remote;
+  
+};
+
 class NrIceMediaStream {
  public:
   static RefPtr<NrIceMediaStream> Create(NrIceCtx *ctx,
@@ -94,6 +122,10 @@ class NrIceMediaStream {
 
   
   std::vector<std::string> GetCandidates() const;
+
+  
+  
+  nsresult GetCandidatePairs(std::vector<NrIceCandidatePair>* outPairs) const;
 
   
   nsresult GetDefaultCandidate(int component, std::string *host, int *port);
