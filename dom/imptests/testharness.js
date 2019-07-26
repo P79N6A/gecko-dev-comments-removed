@@ -311,38 +311,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 (function ()
 {
     var debug = false;
@@ -408,19 +376,11 @@
         }
     }
 
-    function async_test(func, name, properties)
+    function async_test(name, properties)
     {
-        if (typeof func !== "function") {
-            properties = name;
-            name = func;
-            func = null;
-        }
         var test_name = name ? name : next_default_name();
         properties = properties ? properties : {};
         var test_obj = new Test(test_name, properties);
-        if (func) {
-            test_obj.step(func, test_obj, test_obj);
-        }
         return test_obj;
     }
 
@@ -692,7 +652,7 @@
                  }
                  else
                  {
-                     assert(same_value(actual[p], expected[p]), "assert_object_equals", description,
+                     assert(actual[p] === expected[p], "assert_object_equals", description,
                                                        "property ${p} expected ${expected} got ${actual}",
                                                        {p:p, expected:expected, actual:actual});
                  }
@@ -723,7 +683,7 @@
                    "property ${i}, property expected to be $expected but was $actual",
                    {i:i, expected:expected.hasOwnProperty(i) ? "present" : "missing",
                    actual:actual.hasOwnProperty(i) ? "present" : "missing"});
-            assert(same_value(expected[i], actual[i]),
+            assert(expected[i] === actual[i],
                    "assert_array_equals", description,
                    "property ${i}, expected ${expected} but got ${actual}",
                    {i:i, expected:expected[i], actual:actual[i]});
@@ -817,7 +777,7 @@
              
              
              object[property_name] = initial_value + "a"; 
-             assert(same_value(object[property_name], initial_value),
+             assert(object[property_name] === initial_value,
                     "assert_readonly", description,
                     "changing property ${p} succeeded",
                     {p:property_name});
@@ -878,7 +838,7 @@
                 QUOTA_EXCEEDED_ERR: 'QuotaExceededError',
                 TIMEOUT_ERR: 'TimeoutError',
                 INVALID_NODE_TYPE_ERR: 'InvalidNodeTypeError',
-                DATA_CLONE_ERR: 'DataCloneError'
+                DATA_CLONE_ERR: 'DataCloneError',
             };
 
             var name = code in code_name_map ? code_name_map[code] : code;
@@ -911,7 +871,7 @@
                 DataError: 0,
                 TransactionInactiveError: 0,
                 ReadOnlyError: 0,
-                VersionError: 0
+                VersionError: 0,
             };
 
             if (!(name in name_code_map))
@@ -994,29 +954,13 @@
         tests.push(this);
     }
 
-    Test.statuses = {
+    Test.prototype = {
         PASS:0,
         FAIL:1,
         TIMEOUT:2,
         NOTRUN:3
     };
 
-    Test.prototype = merge({}, Test.statuses);
-
-    Test.prototype.structured_clone = function()
-    {
-        if(!this._structured_clone)
-        {
-            var msg = this.message;
-            msg = msg ? String(msg) : msg;
-            this._structured_clone = merge({
-                name:String(this.name),
-                status:this.status,
-                message:msg
-            }, Test.statuses);
-        }
-        return this._structured_clone;
-    };
 
     Test.prototype.step = function(func, this_obj)
     {
@@ -1141,27 +1085,10 @@
         this.status = null;
         this.message = null;
     }
-
-    TestsStatus.statuses = {
+    TestsStatus.prototype = {
         OK:0,
         ERROR:1,
         TIMEOUT:2
-    };
-
-    TestsStatus.prototype = merge({}, TestsStatus.statuses);
-
-    TestsStatus.prototype.structured_clone = function()
-    {
-        if(!this._structured_clone)
-        {
-            var msg = this.message;
-            msg = msg ? String(msg) : msg;
-            this._structured_clone = merge({
-                status:this.status,
-                message:msg
-            }, TestsStatus.statuses);
-        }
-        return this._structured_clone;
     };
 
     function Tests()
@@ -1305,10 +1232,10 @@
                  {
                      callback(this_obj.properties);
                  });
-        forEach_windows(
-                function(w, is_same_origin)
+        forEach(ancestor_windows(),
+                function(w)
                 {
-                    if(is_same_origin && w.start_callback)
+                    if(w.start_callback)
                     {
                         try
                         {
@@ -1321,13 +1248,6 @@
                                 throw(e);
                             }
                         }
-                    }
-                    if (supports_post_message(w) && w !== self)
-                    {
-                        w.postMessage({
-                            type: "start",
-                            properties: this_obj.properties
-                        }, "*");
                     }
                 });
     };
@@ -1352,10 +1272,10 @@
                     callback(test, this_obj);
                 });
 
-        forEach_windows(
-                function(w, is_same_origin)
+        forEach(ancestor_windows(),
+                function(w)
                 {
-                    if(is_same_origin && w.result_callback)
+                    if(w.result_callback)
                     {
                         try
                         {
@@ -1367,13 +1287,6 @@
                                 throw e;
                             }
                         }
-                    }
-                    if (supports_post_message(w) && w !== self)
-                    {
-                        w.postMessage({
-                            type: "result",
-                            test: test.structured_clone()
-                        }, "*");
                     }
                 });
         this.processing_callbacks = false;
@@ -1405,11 +1318,6 @@
     {
         clearTimeout(this.timeout_id);
         var this_obj = this;
-        var tests = map(this_obj.tests,
-                        function(test)
-                        {
-                            return test.structured_clone();
-                        });
         if (this.status.status === null)
         {
             this.status.status = this.status.OK;
@@ -1421,10 +1329,10 @@
                      callback(this_obj.tests, this_obj.status);
                  });
 
-        forEach_windows(
-                function(w, is_same_origin)
+        forEach(ancestor_windows(),
+                function(w)
                 {
-                    if(is_same_origin && w.completion_callback)
+                    if(w.completion_callback)
                     {
                         try
                         {
@@ -1437,14 +1345,6 @@
                                 throw e;
                             }
                         }
-                    }
-                    if (supports_post_message(w) && w !== self)
-                    {
-                        w.postMessage({
-                            type: "complete",
-                            tests: tests,
-                            status: this_obj.status.structured_clone()
-                        }, "*");
                     }
                 });
     };
@@ -1482,7 +1382,7 @@
 
 
     function Output() {
-      this.output_document = document;
+      this.output_document = null;
       this.output_node = null;
       this.done_count = 0;
       this.enabled = settings.output;
@@ -2039,107 +1939,22 @@
         target[components[components.length - 1]] = object;
     }
 
-    function forEach_windows(callback) {
-        
-        
-        
-        
-        var cache = forEach_windows.result_cache;
-        if (!cache) {
-            cache = [[self, true]];
-            var w = self;
-            var i = 0;
-            var so;
-            var origins = location.ancestorOrigins;
-            while (w != w.parent)
-            {
-                w = w.parent;
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                if(origins) {
-                    so = (location.origin == origins[i]);
-                }
-                else
-                {
-                    so = is_same_origin(w);
-                }
-                cache.push([w, so]);
-                i++;
-            }
-            w = window.opener;
-            if(w)
-            {
-                
-                
-                
-                cache.push([w, is_same_origin(w)]);
-            }
-            forEach_windows.result_cache = cache;
-        }
+ function ancestor_windows() {
+     
+     if ("result_cache" in ancestor_windows)
+     {
+         return ancestor_windows.result_cache;
+     }
+     var rv = [self];
+     var w = self;
+     while (w != w.parent)
+     {
+         w = w.parent;
+         rv.push(w);
+     }
+     ancestor_windows.result_cache = rv;
+     return rv;
+ }
 
-        forEach(cache,
-                function(a)
-                {
-                    callback.apply(null, a);
-                });
-    }
-
-    function is_same_origin(w) {
-        try {
-            'random_prop' in w;
-            return true;
-        } catch(e) {
-            return false;
-        }
-    }
-
-    function supports_post_message(w)
-    {
-        var supports;
-        var type;
-        
-        
-        
-        
-        
-        
-        
-        
-        try
-        {
-            type = typeof w.postMessage;
-            if (type === "function")
-            {
-                supports = true;
-            }
-            
-            
-            else if (type === "object")
-            {
-                supports = true;
-            }
-            
-            
-            else
-            {
-                supports = false;
-            }
-        }
-        catch(e) {
-            
-            
-            supports = false;
-        }
-        return supports;
-    }
 })();
 
