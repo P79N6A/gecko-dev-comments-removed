@@ -441,8 +441,7 @@ var BrowserApp = {
     event.initEvent("UIReady", true, false);
     window.dispatchEvent(event);
 
-    if (this._startupStatus)
-      this.onAppUpdated();
+    Services.obs.addObserver(this, "browser-delayed-startup-finished", false);
 
     
     this.gUseLowPrecision = Services.prefs.getBoolPref("layers.low-precision-buffer");
@@ -1628,6 +1627,11 @@ var BrowserApp = {
         
         Services.prefs.setBoolPref("intl.locale.matchOS", false);
         Services.prefs.setCharPref("general.useragent.locale", aData);
+        break;
+
+      case "browser-delayed-startup-finished":
+        if (this._startupStatus)
+          this.onAppUpdated();
         break;
 
       default:
