@@ -21,6 +21,13 @@ from mozbuild.base import BuildConfig
 from mozbuild.config import ConfigSettings
 from mozbuild.logger import LoggingManager
 
+
+from mach.base import (
+    CommandArgument,
+    CommandProvider,
+    Command,
+)
+
 from mach.registrar import populate_argument_parser
 
 
@@ -112,6 +119,7 @@ class ArgumentParser(argparse.ArgumentParser):
         return text
 
 
+@CommandProvider
 class Mach(object):
     """Contains code for the command-line `mach` interface."""
 
@@ -263,11 +271,17 @@ To see more help for a specific command, run:
             parser.print_usage()
             return 0
 
-        if argv[0] == 'help':
-            parser.print_help()
-            return 0
-
         args = parser.parse_args(argv)
+
+        if args.command == 'help':
+            if args.subcommand is None:
+                parser.print_help()
+                return 0
+
+            
+            
+            
+            return self._run([args.subcommand, '--help'])
 
         
         if args.logfile:
@@ -436,3 +450,11 @@ To see more help for a specific command, run:
         populate_argument_parser(subparser)
 
         return parser
+
+    @Command('help', help='Show mach usage info or help for a command.')
+    @CommandArgument('subcommand', default=None, nargs='?',
+        help='Command to show help info for.')
+    def _help(self, subcommand=None):
+        
+        
+        assert False
