@@ -196,6 +196,12 @@ CSSVariableResolver::Resolve(const CSSVariableValues* aInherited,
         
         
         
+        if (data.HasReferenceToVariable(id)) {
+          mVariables[id].mValue.Truncate();
+        }
+        
+        
+        
         mVariables[id].mReferencesNonExistentVariable =
           data.ReferencesNonExistentVariable();
       } else {
