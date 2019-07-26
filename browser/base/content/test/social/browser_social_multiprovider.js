@@ -60,10 +60,6 @@ var tests = {
 function checkUIStateMatchesProvider(provider) {
   let profileData = getExpectedProfileData(provider);
   
-  
-  let displayNameEl = document.getElementById("socialUserDisplayName");
-  is(displayNameEl.getAttribute("label"), profileData.displayName, "display name matches provider profile");
-  
   let loginStatus = document.getElementsByClassName("social-statusarea-loggedInStatus");
   for (let label of loginStatus) {
     is(label.value, profileData.userName, "username name matches provider profile");
