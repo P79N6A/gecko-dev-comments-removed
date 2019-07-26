@@ -395,7 +395,6 @@ class MOZ_STACK_CLASS TokenStream
     ~TokenStream();
 
     
-    bool onCurrentLine(const TokenPos &pos) const { return srcCoords.isOnThisLine(pos.end, lineno); }
     const Token &currentToken() const { return tokens[cursor]; }
     bool isCurrentTokenType(TokenKind type) const {
         return currentToken().type == type;
@@ -447,13 +446,12 @@ class MOZ_STACK_CLASS TokenStream
     struct Flags
     {
         bool isEOF:1;           
-        bool sawEOL:1;          
         bool isDirtyLine:1;     
         bool sawOctalEscape:1;  
         bool hadError:1;        
 
         Flags()
-          : isEOF(), sawEOL(), isDirtyLine(), sawOctalEscape(), hadError()
+          : isEOF(), isDirtyLine(), sawOctalEscape(), hadError()
         {}
     };
 
@@ -499,23 +497,35 @@ class MOZ_STACK_CLASS TokenStream
         return tt;
     }
 
-    TokenKind peekTokenSameLine(Modifier modifier = None) {
-        if (!onCurrentLine(currentToken().pos))
-            return TOK_EOL;
+    
+    
+    
+    
+    
+    JS_ALWAYS_INLINE TokenKind peekTokenSameLine(Modifier modifier = None) {
+       const Token &curr = currentToken();
 
-        if (lookahead != 0)
+        
+        
+        
+        
+        
+        if (lookahead != 0 && srcCoords.isOnThisLine(curr.pos.end, lineno))
             return tokens[(cursor + 1) & ntokensMask].type;
 
         
         
-        flags.sawEOL = false;
-        TokenKind tt = getToken(modifier);
-        if (flags.sawEOL) {
-            tt = TOK_EOL;
-            flags.sawEOL = false;
-        }
+        
+        
+        
+        
+        
+        (void)getToken(modifier);
+        const Token &next = currentToken();
         ungetToken();
-        return tt;
+        return srcCoords.lineNum(curr.pos.end) == srcCoords.lineNum(next.pos.begin)
+               ? next.type
+               : TOK_EOL;
     }
 
     

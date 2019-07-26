@@ -360,7 +360,6 @@ JS_ALWAYS_INLINE void
 TokenStream::updateFlagsForEOL()
 {
     flags.isDirtyLine = false;
-    flags.sawEOL = true;
 }
 
 
