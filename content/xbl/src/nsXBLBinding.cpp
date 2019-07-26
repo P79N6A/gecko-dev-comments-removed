@@ -154,8 +154,9 @@ nsXBLService::getClass(nsCStringKey *k)
 
 
 nsXBLBinding::nsXBLBinding(nsXBLPrototypeBinding* aBinding)
-  : mMarkedForDeath(false),
-    mPrototypeBinding(aBinding)
+  : mMarkedForDeath(false)
+  , mUsingXBLScope(false)
+  , mPrototypeBinding(aBinding)
 {
   NS_ASSERTION(mPrototypeBinding, "Must have a prototype binding!");
   
@@ -297,6 +298,20 @@ nsXBLBinding::SetBoundElement(nsIContent* aElement)
   mBoundElement = aElement;
   if (mNextBinding)
     mNextBinding->SetBoundElement(aElement);
+
+  if (!mBoundElement) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIGlobalObject> go = mBoundElement->OwnerDoc()->GetScopeObject();
+  NS_ENSURE_TRUE_VOID(go && go->GetGlobalJSObject());
+  mUsingXBLScope = xpc::UseXBLScope(js::GetObjectCompartment(go->GetGlobalJSObject()));
 }
 
 bool
@@ -530,7 +545,7 @@ nsXBLBinding::InstallEventHandlers()
 
           bool hasAllowUntrustedAttr = curr->HasAllowUntrustedAttr();
           if ((hasAllowUntrustedAttr && curr->AllowUntrustedEvents()) ||
-              (!hasAllowUntrustedAttr && !isChromeDoc)) {
+              (!hasAllowUntrustedAttr && !isChromeDoc && !mUsingXBLScope)) {
             flags.mAllowUntrustedEvents = true;
           }
 
@@ -546,6 +561,7 @@ nsXBLBinding::InstallEventHandlers()
       for (i = 0; i < keyHandlers->Count(); ++i) {
         nsXBLKeyEventHandler* handler = keyHandlers->ObjectAt(i);
         handler->SetIsBoundToChrome(isChromeDoc);
+        handler->SetUsingXBLScope(mUsingXBLScope);
 
         nsAutoString type;
         handler->GetEventName(type);

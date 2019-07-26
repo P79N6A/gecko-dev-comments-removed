@@ -54,6 +54,13 @@ GetXBLScope(JSContext *cx, JSObject *contentScope);
 bool
 AllowXBLScope(JSCompartment *c);
 
+
+
+
+
+bool
+UseXBLScope(JSCompartment *c);
+
 bool
 IsSandboxPrototypeProxy(JSObject *obj);
 
