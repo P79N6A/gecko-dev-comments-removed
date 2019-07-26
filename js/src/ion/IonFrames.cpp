@@ -16,6 +16,8 @@
 #include "Safepoints.h"
 #include "IonSpewer.h"
 #include "IonMacroAssembler.h"
+#include "PcScriptCache.h"
+#include "PcScriptCache-inl.h"
 #include "gc/Marking.h"
 #include "SnapshotReader.h"
 #include "Safepoints.h"
@@ -678,15 +680,37 @@ ion::GetPcScript(JSContext *cx, MutableHandleScript scriptRes, jsbytecode **pcRe
     JS_ASSERT(cx->fp()->beginsIonActivation());
     IonSpew(IonSpew_Snapshots, "Recover PC & Script from the last frame.");
 
+    JSRuntime *rt = cx->runtime;
+
     
-    IonFrameIterator it(cx->runtime->ionTop);
-    ++it;
+    IonFrameIterator it(rt->ionTop);
+    uint8_t *retAddr = it.returnAddress();
+    uint32_t hash = PcScriptCache::Hash(retAddr);
+    JS_ASSERT(retAddr != NULL);
+
+    
+    if (JS_UNLIKELY(rt->ionPcScriptCache == NULL)) {
+        rt->ionPcScriptCache = (PcScriptCache *)js_malloc(sizeof(struct PcScriptCache));
+        if (rt->ionPcScriptCache)
+            rt->ionPcScriptCache->clear(rt->gcNumber);
+    }
+
+    
+    if (rt->ionPcScriptCache && rt->ionPcScriptCache->get(rt, hash, retAddr, scriptRes, pcRes))
+        return;
+
+    
+    ++it; 
     InlineFrameIterator ifi(&it);
 
     
     scriptRes.set(ifi.script());
     if (pcRes)
         *pcRes = ifi.pc();
+
+    
+    if (rt->ionPcScriptCache)
+        rt->ionPcScriptCache->add(hash, retAddr, ifi.pc(), ifi.script());
 }
 
 void

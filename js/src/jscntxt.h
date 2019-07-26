@@ -33,6 +33,8 @@
 #include "vm/Stack.h"
 #include "vm/SPSProfiler.h"
 
+#include "ion/PcScriptCache.h"
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100) /* Silence unreferenced formal parameter warnings */
@@ -946,6 +948,9 @@ struct JSRuntime : js::RuntimeFriendFields
 
     
     js::ion::IonActivation  *ionActivation;
+
+    
+    js::ion::PcScriptCache *ionPcScriptCache;
 
   private:
     
