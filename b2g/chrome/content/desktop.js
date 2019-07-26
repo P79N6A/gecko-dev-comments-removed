@@ -46,34 +46,7 @@ function setupButtons() {
   });
 }
 
-function checkDebuggerPort() {
-  
-  
-  
-  
-
-  if (!window.arguments) {
-    return;
-  }
-
-  
-  let args = window.arguments[0].QueryInterface(Ci.nsICommandLine);
-
-  let dbgport;
-  try {
-    dbgport = args.handleFlagWithParam('start-debugger-server', false);
-  } catch(e) {}
-
-  if (dbgport) {
-    dump('Opening debugger server on ' + dbgport + '\n');
-    Services.prefs.setCharPref('devtools.debugger.unix-domain-socket', dbgport);
-    navigator.mozSettings.createLock().set(
-      {'debugger.remote-mode': 'adb-devtools'});
-  }
-}
-
 window.addEventListener('ContentStart', function() {
   enableTouch();
   setupButtons();
-  checkDebuggerPort();
 });
