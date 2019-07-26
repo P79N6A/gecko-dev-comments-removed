@@ -401,7 +401,7 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
         
         Components.utils.reportError(e);
       }
-  } 
+  }
 
   try {
     var updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
@@ -752,6 +752,7 @@ function writeStatusFile(dir, state) {
   writeStringToFile(statusFile, state);
 }
 
+#ifdef MOZ_WIDGET_GONK
 
 
 
@@ -759,12 +760,20 @@ function writeStatusFile(dir, state) {
 
 
 
-function readLinkFile(dir) {
+
+
+
+function getFileFromUpdateLink(dir) {
   var linkFile = dir.clone();
   linkFile.append(FILE_UPDATE_LINK);
-  var link = readStringFromFile(linkFile) || STATE_NONE;
-  LOG("readLinkFile - link: " + link + ", path: " + linkFile.path);
-  return status;
+  var link = readStringFromFile(linkFile);
+  LOG("getFileFromUpdateLink linkFile.path: " + linkFile.path + ", link: " + link);
+  if (!link) {
+    return null;
+  }
+  let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+  file.initWithPath(link);
+  return file;
 }
 
 
@@ -780,14 +789,12 @@ function writeLinkFile(dir, patchFile) {
   var linkFile = dir.clone();
   linkFile.append(FILE_UPDATE_LINK);
   writeStringToFile(linkFile, patchFile.path);
-#ifdef MOZ_B2G
   if (patchFile.path.indexOf(gExtStorage) == 0) {
     
     
     
     acquireSDCardMountLock();
   }
-#endif
 }
 
 
@@ -797,13 +804,11 @@ function writeLinkFile(dir, patchFile) {
 
 
 function acquireSDCardMountLock() {
-#ifdef MOZ_B2G
   let volsvc = Cc["@mozilla.org/telephony/volume-service;1"].
                     getService(Ci.nsIVolumeService);
   if (volsvc) {
     gSDCardMountLock = volsvc.createMountLock("sdcard");
   }
-#endif
 }
 
 
@@ -811,8 +816,26 @@ function acquireSDCardMountLock() {
 
 
 
+
+
+
+function isInterruptedUpdate(status) {
+  return (status == STATE_DOWNLOADING) ||
+         (status == STATE_PENDING) ||
+         (status == STATE_APPLYING);
+}
+#endif 
+
+
+
+
+
+
+
+
+
 function releaseSDCardMountLock() {
-#ifdef MOZ_B2G
+#ifdef MOZ_WIDGET_GONK
   if (gSDCardMountLock) {
     gSDCardMountLock.unlock();
     gSDCardMountLock = null;
@@ -829,7 +852,7 @@ function releaseSDCardMountLock() {
 
 function shouldUseService() {
 #ifdef MOZ_MAINTENANCE_SERVICE
-  return getPref("getBoolPref", 
+  return getPref("getBoolPref",
                  PREF_APP_UPDATE_SERVICE_ENABLED, false);
 #else
   return false;
@@ -1130,7 +1153,7 @@ function handleUpdateFailure(update, errorCode) {
     return true;
   }
 
-  if (update.errorCode == WRITE_ERROR || 
+  if (update.errorCode == WRITE_ERROR ||
       update.errorCode == WRITE_ERROR_ACCESS_DENIED ||
       update.errorCode == WRITE_ERROR_SHARING_VIOLATION_SIGNALED ||
       update.errorCode == WRITE_ERROR_SHARING_VIOLATION_NOPROCESSFORPID ||
@@ -1160,10 +1183,10 @@ function handleUpdateFailure(update, errorCode) {
       update.errorCode == SERVICE_COULD_NOT_LOCK_UPDATER ||
       update.errorCode == SERVICE_INSTALLDIR_ERROR) {
 
-    var failCount = getPref("getIntPref", 
+    var failCount = getPref("getIntPref",
                             PREF_APP_UPDATE_SERVICE_ERRORS, 0);
-    var maxFail = getPref("getIntPref", 
-                          PREF_APP_UPDATE_SERVICE_MAX_ERRORS, 
+    var maxFail = getPref("getIntPref",
+                          PREF_APP_UPDATE_SERVICE_MAX_ERRORS,
                           DEFAULT_SERVICE_MAX_ERRORS);
 
     
@@ -1174,14 +1197,14 @@ function handleUpdateFailure(update, errorCode) {
       Services.prefs.clearUserPref(PREF_APP_UPDATE_SERVICE_ERRORS);
     } else {
       failCount++;
-      Services.prefs.setIntPref(PREF_APP_UPDATE_SERVICE_ERRORS, 
+      Services.prefs.setIntPref(PREF_APP_UPDATE_SERVICE_ERRORS,
                                 failCount);
     }
 
     writeStatusFile(getUpdatesDir(), update.state = STATE_PENDING);
     return true;
   }
-  
+
   return false;
 }
 
@@ -1761,6 +1784,29 @@ UpdateService.prototype = {
 
     var um = Cc["@mozilla.org/updates/update-manager;1"].
              getService(Ci.nsIUpdateManager);
+
+#ifdef MOZ_WIDGET_GONK
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (isInterruptedUpdate(status)) {
+      LOG("UpdateService:_postUpdateProcessing - interrupted update detected - wait for user consent");
+      um.activeUpdate = null;
+      return;
+    }
+#endif
+
     var update = um.activeUpdate;
 
     if (status == STATE_DOWNLOADING) {
@@ -2103,7 +2149,7 @@ UpdateService.prototype = {
       if (status == STATE_NONE) {
         cleanupActiveUpdate();
       }
-      return; 
+      return;
     }
 
     this.backgroundChecker.checkForUpdates(this, false);
@@ -2118,7 +2164,7 @@ UpdateService.prototype = {
     
     if (this.isDownloading ||
         this._downloader && this._downloader.patchIsStaged) {
-      return; 
+      return;
     }
 
     this.backgroundChecker.checkForUpdates(this, false);
@@ -3467,7 +3513,61 @@ Downloader.prototype = {
     }
     this.isCompleteUpdate = this._patch.type == "complete";
 
-    var patchFile = this._getUpdateArchiveFile();
+    var patchFile = null;
+
+#ifdef MOZ_WIDGET_GONK
+    let status = readStatusFile(updateDir);
+LOG("status read " + status);
+    if (isInterruptedUpdate(status)) {
+      LOG("Downloader:downloadUpdate - interruptted update");
+      
+      
+      
+      patchFile = getFileFromUpdateLink(updateDir);
+      if (!patchFile) {
+        
+        
+        patchFile = updateDir.clone();
+        patchFile.append(FILE_UPDATE_ARCHIVE);
+      }
+      if (patchFile.exists()) {
+        LOG("Downloader:downloadUpdate - resuming with patchFile " + patchFile.path);
+      } else {
+        LOG("Downloader:downloadUpdate - patchFile " + patchFile.path + " doesn't exist - performing full download");
+        
+        
+        patchFile = null;
+      }
+      if (patchFile && (status != STATE_DOWNLOADING)) {
+        
+        
+
+        writeStatusFile(updateDir, STATE_PENDING);
+
+        
+        
+        
+
+        this._downloadTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+        this._downloadTimer.initWithCallback(function() {
+          this._downloadTimer = null;
+          
+          
+          this._request = {destination: patchFile};
+          this.onStopRequest(this._request, null, Cr.NS_OK);
+        }.bind(this), 0, Ci.nsITimer.TYPE_ONE_SHOT);
+
+        
+        
+        
+        return STATE_DOWNLOADING;
+      }
+    }
+#endif
+    if (!patchFile) {
+      
+      patchFile = this._getUpdateArchiveFile();
+    }
     if (!patchFile) {
       return STATE_NONE;
     }
