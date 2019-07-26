@@ -5040,15 +5040,13 @@ TypeScript::SetScope(JSContext *cx, JSScript *script, JSObject *scope)
     if (!script->bindings.setParent(cx, script->types->global))
         return false;
 
-    if (!cx->typeInferenceEnabled())
-        return true;
-
+#ifdef JS_ION
     
 
 
 
-    if (ion::IsEnabled(cx))
-        return true;
+    return true;
+#endif
 
     if (!script->isInnerFunction || nullClosure) {
         
