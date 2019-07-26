@@ -1706,7 +1706,11 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
 
 
-  _onFetchSourceFinished: function DVGS__onFetchSourceFinished(aLocation, aContents) {
+  _onFetchSourceFinished: function DVGS__onFetchSourceFinished(aLocation, aContents, aError) {
+    if (aError) {
+      return;
+    }
+
     
     this._cache.set(aLocation, aContents);
 
