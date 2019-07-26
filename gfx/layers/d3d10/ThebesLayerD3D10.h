@@ -51,13 +51,7 @@ private:
   
   void VerifyContentType(SurfaceMode aMode);
 
-  
-  nsRefPtr<gfxASurface> mD2DSurface;
-
   mozilla::RefPtr<mozilla::gfx::DrawTarget> mDrawTarget;
-
-  
-  nsRefPtr<gfxASurface> mD2DSurfaceOnWhite;
 
   
   void DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode);
