@@ -172,7 +172,10 @@ CompositableQuirksGonkOGL::CompositableQuirksGonkOGL()
 }
 CompositableQuirksGonkOGL::~CompositableQuirksGonkOGL()
 {
-  DeleteTextureIfPresent();
+  if (mTexture) {
+    gl()->MakeCurrent();
+    gl()->fDeleteTextures(1, &mTexture);
+  }
 }
 
 gl::GLContext*
@@ -193,15 +196,6 @@ GLuint CompositableQuirksGonkOGL::GetTexture()
     gl()->fGenTextures(1, &mTexture);
   }
   return mTexture;
-}
-
-void
-CompositableQuirksGonkOGL::DeleteTextureIfPresent()
-{
-  if (mTexture) {
-    gl()->MakeCurrent();
-    gl()->fDeleteTextures(1, &mTexture);
-  }
 }
 
 bool
@@ -505,19 +499,6 @@ TextureImageDeprecatedTextureHostOGL::UpdateImpl(const SurfaceDescriptor& aImage
     NS_WARNING("trying to update TextureImageDeprecatedTextureHostOGL without a compositor?");
     return;
   }
-
-#ifdef MOZ_WIDGET_GONK
-  if (mQuirks) {
-    
-    
-    
-    
-    
-    
-    
-    static_cast<CompositableQuirksGonkOGL*>(mQuirks.get())->DeleteTextureIfPresent();
-  }
-#endif
 
   AutoOpenSurface surf(OPEN_READ_ONLY, aImage);
   nsIntSize size = surf.Size();
