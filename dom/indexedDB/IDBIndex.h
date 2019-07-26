@@ -36,7 +36,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIIDBINDEX
 
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(IDBIndex)
+  NS_DECL_CYCLE_COLLECTION_CLASS(IDBIndex)
 
   static already_AddRefed<IDBIndex>
   Create(IDBObjectStore* aObjectStore,
@@ -48,7 +48,7 @@ public:
     return mObjectStore;
   }
 
-  const int64_t Id() const
+  const PRInt64 Id() const
   {
     return mId;
   }
@@ -101,25 +101,20 @@ public:
   }
 
   nsresult GetInternal(IDBKeyRange* aKeyRange,
-                       JSContext* aCx,
                        IDBRequest** _retval);
 
   nsresult GetKeyInternal(IDBKeyRange* aKeyRange,
-                          JSContext* aCx,
                           IDBRequest** _retval);
 
   nsresult GetAllInternal(IDBKeyRange* aKeyRange,
-                          uint32_t aLimit,
-                          JSContext* aCx,
+                          PRUint32 aLimit,
                           IDBRequest** _retval);
 
   nsresult GetAllKeysInternal(IDBKeyRange* aKeyRange,
-                              uint32_t aLimit,
-                              JSContext* aCx,
+                              PRUint32 aLimit,
                               IDBRequest** _retval);
 
   nsresult CountInternal(IDBKeyRange* aKeyRange,
-                         JSContext* aCx,
                          IDBRequest** _retval);
 
   nsresult OpenCursorFromChildProcess(
@@ -131,12 +126,10 @@ public:
 
   nsresult OpenKeyCursorInternal(IDBKeyRange* aKeyRange,
                                  size_t aDirection,
-                                 JSContext* aCx,
                                  IDBRequest** _retval);
 
   nsresult OpenCursorInternal(IDBKeyRange* aKeyRange,
                               size_t aDirection,
-                              JSContext* aCx,
                               IDBRequest** _retval);
 
   nsresult OpenCursorFromChildProcess(
@@ -145,7 +138,6 @@ public:
                             const Key& aKey,
                             const Key& aObjectKey,
                             const SerializedStructuredCloneReadInfo& aCloneInfo,
-                            nsTArray<StructuredCloneFile>& aBlobs,
                             IDBCursor** _retval);
 
 private:
@@ -154,17 +146,15 @@ private:
 
   nsRefPtr<IDBObjectStore> mObjectStore;
 
-  int64_t mId;
+  PRInt64 mId;
   nsString mName;
   KeyPath mKeyPath;
-  JS::Value mCachedKeyPath;
 
   IndexedDBIndexChild* mActorChild;
   IndexedDBIndexParent* mActorParent;
 
   bool mUnique;
   bool mMultiEntry;
-  bool mRooted;
 };
 
 END_INDEXEDDB_NAMESPACE

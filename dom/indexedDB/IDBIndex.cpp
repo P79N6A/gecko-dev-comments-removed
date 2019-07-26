@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "base/basictypes.h"
 
@@ -95,10 +95,10 @@ public:
                                   MOZ_OVERRIDE;
 
 protected:
-  // In-params.
+  
   nsRefPtr<IDBKeyRange> mKeyRange;
 
-  // Out-params.
+  
   Key mKey;
 };
 
@@ -251,18 +251,18 @@ public:
 protected:
   virtual nsresult EnsureCursor();
 
-  // In-params.
+  
   nsRefPtr<IDBKeyRange> mKeyRange;
   const IDBCursor::Direction mDirection;
 
-  // Out-params.
+  
   Key mKey;
   Key mObjectKey;
   nsCString mContinueQuery;
   nsCString mContinueToQuery;
   Key mRangeKey;
 
-  // Only used in the parent process.
+  
   nsRefPtr<IDBCursor> mCursor;
 };
 
@@ -298,7 +298,7 @@ private:
 
   StructuredCloneReadInfo mCloneReadInfo;
 
-  // Only used in the parent process.
+  
   SerializedStructuredCloneReadInfo mSerializedCloneReadInfo;
 };
 
@@ -345,9 +345,9 @@ GenerateRequest(IDBIndex* aIndex)
   return IDBRequest::Create(aIndex, database, transaction);
 }
 
-} // anonymous namespace
+} 
 
-// static
+
 already_AddRefed<IDBIndex>
 IDBIndex::Create(IDBObjectStore* aObjectStore,
                  const IndexInfo* aIndexInfo,
@@ -363,7 +363,6 @@ IDBIndex::Create(IDBObjectStore* aObjectStore,
   index->mId = aIndexInfo->id;
   index->mName = aIndexInfo->name;
   index->mKeyPath = aIndexInfo->keyPath;
-  index->mKeyPathArray = aIndexInfo->keyPathArray;
   index->mUnique = aIndexInfo->unique;
   index->mMultiEntry = aIndexInfo->multiEntry;
 
@@ -396,6 +395,7 @@ IDBIndex::IDBIndex()
 : mId(LL_MININT),
   mActorChild(nsnull),
   mActorParent(nsnull),
+  mKeyPath(0),
   mUnique(false),
   mMultiEntry(false)
 {
@@ -655,7 +655,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(IDBIndex)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IDBIndex)
-  // Don't unlink mObjectStore!
+  
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(IDBIndex)
@@ -692,34 +692,7 @@ IDBIndex::GetKeyPath(JSContext* aCx,
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  if (UsesKeyPathArray()) {
-    JSObject* array = JS_NewArrayObject(aCx, mKeyPathArray.Length(), nsnull);
-    if (!array) {
-      NS_WARNING("Failed to make array!");
-      return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
-    }
-
-    for (PRUint32 i = 0; i < mKeyPathArray.Length(); ++i) {
-      jsval val;
-      nsString tmp(mKeyPathArray[i]);
-      if (!xpc::StringToJsval(aCx, tmp, &val)) {
-        return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
-      }
-
-      if (!JS_SetElement(aCx, array, i, &val)) {
-        return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
-      }
-    }
-
-    *aVal = OBJECT_TO_JSVAL(array);
-  }
-  else {
-    nsString tmp(mKeyPath);
-    if (!xpc::StringToJsval(aCx, tmp, aVal)) {
-      return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
-    }
-  }
-  return NS_OK;
+  return GetKeyPath().ToJSVal(aCx, aVal);
 }
 
 NS_IMETHODIMP
@@ -767,7 +740,7 @@ IDBIndex::Get(const jsval& aKey,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!keyRange) {
-    // Must specify a key or keyRange for get().
+    
     return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
   }
 
@@ -796,7 +769,7 @@ IDBIndex::GetKey(const jsval& aKey,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!keyRange) {
-    // Must specify a key or keyRange for get().
+    
     return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
   }
 
@@ -1014,7 +987,7 @@ IndexHelper::Dispatch(nsIEventTarget* aDatabaseThread)
 }
 
 nsresult
-GetKeyHelper::DoDatabaseWork(mozIStorageConnection* /* aConnection */)
+GetKeyHelper::DoDatabaseWork(mozIStorageConnection* )
 {
   NS_ASSERTION(mKeyRange, "Must have a key range here!");
 
@@ -1128,7 +1101,7 @@ GetKeyHelper::UnpackResponseFromParentProcess(
 }
 
 nsresult
-GetHelper::DoDatabaseWork(mozIStorageConnection* /* aConnection */)
+GetHelper::DoDatabaseWork(mozIStorageConnection* )
 {
   NS_ASSERTION(mKeyRange, "Must have a key range here!");
 
@@ -1266,7 +1239,7 @@ GetHelper::UnpackResponseFromParentProcess(const ResponseValue& aResponseValue)
 }
 
 nsresult
-GetAllKeysHelper::DoDatabaseWork(mozIStorageConnection* /* aConnection */)
+GetAllKeysHelper::DoDatabaseWork(mozIStorageConnection* )
 {
   nsCString tableName;
   if (mIndex->IsUnique()) {
@@ -1433,7 +1406,7 @@ GetAllKeysHelper::UnpackResponseFromParentProcess(
 }
 
 nsresult
-GetAllHelper::DoDatabaseWork(mozIStorageConnection* /* aConnection */)
+GetAllHelper::DoDatabaseWork(mozIStorageConnection* )
 {
   nsCString indexTable;
   if (mIndex->IsUnique()) {
@@ -1685,7 +1658,7 @@ OpenKeyCursorHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
   rv = mObjectKey.SetFromStatement(stmt, 1);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Now we need to make the query to get the next match.
+  
   nsCAutoString queryStart = NS_LITERAL_CSTRING("SELECT value, object_data_key"
                                                 " FROM ") + table +
                              NS_LITERAL_CSTRING(" WHERE index_id = :id");
@@ -2025,7 +1998,7 @@ OpenCursorHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
     mDatabase, mCloneReadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Now we need to make the query to get the next match.
+  
   nsCAutoString queryStart =
     NS_LITERAL_CSTRING("SELECT index_table.value, "
                        "index_table.object_data_key, object_data.data, "
@@ -2145,8 +2118,8 @@ OpenCursorHelper::ReleaseMainThreadObjects()
 {
   IDBObjectStore::ClearStructuredCloneBuffer(mCloneReadInfo.mCloneBuffer);
 
-  // These don't need to be released on the main thread but they're only valid
-  // as long as mCursor is set.
+  
+  
   mSerializedCloneReadInfo.data = nsnull;
   mSerializedCloneReadInfo.dataLength = 0;
 
