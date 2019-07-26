@@ -218,7 +218,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
              .setVersion(JSVERSION_LATEST)
              .setUserBit(true); 
       nsCString name = NS_LITERAL_CSTRING("get_") + NS_ConvertUTF16toUTF8(mName);
-      JS::RootedObject rootedNull(cx, nullptr); 
+      js::RootedObject rootedNull(cx, nullptr); 
       rv = nsJSUtils::CompileFunction(cx, rootedNull, options, name, 0, nullptr,
                                       getter, &getterObject);
 
@@ -268,7 +268,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
              .setVersion(JSVERSION_LATEST)
              .setUserBit(true); 
       nsCString name = NS_LITERAL_CSTRING("set_") + NS_ConvertUTF16toUTF8(mName);
-      JS::RootedObject rootedNull(cx, nullptr); 
+      js::RootedObject rootedNull(cx, nullptr); 
       rv = nsJSUtils::CompileFunction(cx, rootedNull, options, name, 1,
                                       gPropertyArgs, setter, &setterObject);
 

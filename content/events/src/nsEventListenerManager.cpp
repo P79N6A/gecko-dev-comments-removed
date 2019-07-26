@@ -840,7 +840,7 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     options.setFileAndLine(url.get(), lineNo)
            .setVersion(SCRIPTVERSION_DEFAULT);
 
-    JS::RootedObject rootedNull(cx, nullptr); 
+    js::RootedObject rootedNull(cx, nullptr); 
     JSObject *handlerFun = nullptr;
     result = nsJSUtils::CompileFunction(cx, rootedNull, options,
                                         nsAtomCString(aListenerStruct->mTypeAtom),

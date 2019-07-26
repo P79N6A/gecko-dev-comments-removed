@@ -390,7 +390,7 @@ nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
          .setVersion(JSVERSION_LATEST)
          .setUserBit(true); 
 
-  JS::RootedObject rootedNull(cx, nullptr); 
+  js::RootedObject rootedNull(cx, nullptr); 
   JSObject* handlerFun = nullptr;
   nsresult rv = nsJSUtils::CompileFunction(cx, rootedNull, options,
                                            nsAtomCString(aName), argCount,

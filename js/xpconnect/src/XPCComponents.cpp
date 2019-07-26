@@ -2700,7 +2700,7 @@ nsXPCComponents_Utils::LookupMethod(const JS::Value& object,
     
     if (!object.isObject())
         return NS_ERROR_XPC_BAD_CONVERT_JS;
-    JS::RootedObject obj(cx, &object.toObject());
+    js::RootedObject obj(cx, &object.toObject());
 
     
     if (!JSVAL_IS_STRING(name))
@@ -3140,8 +3140,8 @@ xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext *cx, JSObject *proxy,
                                                 PropertyDescriptor *desc,
                                                 unsigned flags)
 {
-    JS::RootedObject obj(cx, wrappedObject(proxy));
-    JS::RootedId id(cx, id_);
+    js::RootedObject obj(cx, wrappedObject(proxy));
+    js::RootedId id(cx, id_);
 
     MOZ_ASSERT(js::GetObjectCompartment(obj) == js::GetObjectCompartment(proxy));
     if (!JS_GetPropertyDescriptorById(cx, obj, id,
@@ -3914,7 +3914,7 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
         JS::CompileOptions options(sandcx);
         options.setPrincipals(nsJSPrincipals::get(prin))
                .setFileAndLine(filename, lineNo);
-        JS::RootedObject rootedSandbox(sandcx, sandbox);
+        js::RootedObject rootedSandbox(sandcx, sandbox);
         ok = JS::Evaluate(sandcx, rootedSandbox, options,
                           PromiseFlatString(source).get(), source.Length(), &v);
         if (ok && returnStringOnly && !(JSVAL_IS_VOID(v))) {
@@ -4127,7 +4127,7 @@ nsXPCComponents_Utils::GetGlobalForObject(const JS::Value& object,
   
   
   
-  JS::Rooted<JSObject*> obj(cx, JSVAL_TO_OBJECT(object));
+  js::Rooted<JSObject*> obj(cx, JSVAL_TO_OBJECT(object));
   obj = js::UnwrapObject(obj);
   {
     JSAutoCompartment ac(cx, obj);
