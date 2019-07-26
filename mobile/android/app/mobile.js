@@ -470,7 +470,7 @@ pref("app.faqURL", "http://www.mozilla.com/%LOCALE%/mobile/beta/faq/");
 #else
 pref("app.faqURL", "http://www.mozilla.com/%LOCALE%/mobile/faq/");
 #endif
-pref("app.marketplaceURL", "https://marketplace.mozilla.org/");
+pref("app.marketplaceURL", "https://marketplace.firefox.com/");
 
 
 pref("security.alternate_certificate_error_page", "certerror");
