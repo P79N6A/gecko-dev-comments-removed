@@ -768,6 +768,15 @@ XULTextFieldAccessible::CanHaveAnonChildren()
   return false;
 }
 
+bool
+XULTextFieldAccessible::IsAcceptableChild(Accessible* aPossibleChild) const
+{
+  
+  
+  
+  return aPossibleChild->IsTextLeaf();
+}
+
 already_AddRefed<nsIEditor>
 XULTextFieldAccessible::GetEditor() const
 {
@@ -794,17 +803,9 @@ XULTextFieldAccessible::CacheChildren()
   if (!inputContent)
     return;
 
-  
-  
-  
   TreeWalker walker(this, inputContent);
-  Accessible* child = nullptr;
-  while ((child = walker.NextChild())) {
-    if (child->IsTextLeaf())
-      AppendChild(child);
-    else
-      Document()->UnbindFromDocument(child);
-  }
+  while (Accessible* child = walker.NextChild())
+    AppendChild(child);
 }
 
 
