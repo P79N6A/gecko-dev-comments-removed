@@ -6691,7 +6691,7 @@ nsFrame::BreakWordBetweenPunctuation(const PeekWordState* aState,
   if (!Preferences::GetBool("layout.word_select.stop_at_punctuation")) {
     
     
-    return false;
+    return aWhitespaceAfter;
   }
   if (!aIsKeyboardSelect) {
     
