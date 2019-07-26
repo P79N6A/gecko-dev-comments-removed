@@ -224,6 +224,14 @@ public:
 
 
 
+  virtual unsigned short SendingWidth() = 0;
+
+  virtual unsigned short SendingHeight() = 0;
+
+  
+
+
+
     FrameRequestType FrameRequestMethod() const {
       return mFrameRequestMethod;
     }
