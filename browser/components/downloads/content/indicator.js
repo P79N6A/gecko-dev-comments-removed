@@ -359,6 +359,11 @@ const DownloadsIndicatorView = {
       return;
     }
 
+    
+    if (DownloadsPanel.isPanelShowing) {
+      return;
+    }
+
     function DIV_SEN_callback() {
       if (this._notificationTimeout) {
         clearTimeout(this._notificationTimeout);
