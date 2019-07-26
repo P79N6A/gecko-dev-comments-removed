@@ -2629,6 +2629,27 @@ class LGuardClass : public LInstructionHelper<0, 1, 1>
     }
 };
 
+
+
+
+
+class LGuardObject : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(GuardObject);
+
+    LGuardObject(const LAllocation &in) {
+        setOperand(0, in);
+    }
+
+    const LAllocation *input() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
 class MPhi;
 
 

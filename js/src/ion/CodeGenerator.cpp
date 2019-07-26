@@ -2681,6 +2681,14 @@ CodeGenerator::visitBitOpV(LBitOpV *lir)
     return false;
 }
 
+bool
+CodeGenerator::visitGuardObject(LGuardObject *lir)
+{
+    
+    
+    return true;
+}
+
 class OutOfLineTypeOfV : public OutOfLineCodeBase<CodeGenerator>
 {
     LTypeOfV *ins_;
