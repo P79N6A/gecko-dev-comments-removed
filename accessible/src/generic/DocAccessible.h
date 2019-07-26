@@ -175,20 +175,8 @@ public:
   
 
 
-
-
-
-
-  nsresult FireDelayedAccessibleEvent(uint32_t aEventType, nsINode *aNode,
-                                      AccEvent::EEventRule aAllowDupes = AccEvent::eRemoveDupes,
-                                      EIsFromUserInput aIsFromUserInput = eAutoDetect);
-
-  
-
-
-
-
-  nsresult FireDelayedAccessibleEvent(AccEvent* aEvent);
+  void FireDelayedEvent(AccEvent* aEvent);
+  void FireDelayedEvent(uint32_t aEventType, Accessible* aTarget);
 
   
 
@@ -398,27 +386,28 @@ protected:
   bool UpdateAccessibleOnAttrChange(mozilla::dom::Element* aElement,
                                     nsIAtom* aAttribute);
 
-    
+  
 
 
 
 
 
 
-    void AttributeChangedImpl(nsIContent* aContent, int32_t aNameSpaceID, nsIAtom* aAttribute);
-
-    
-
-
-
-
-
-    void ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute);
+  void AttributeChangedImpl(Accessible* aAccessible,
+                            int32_t aNameSpaceID, nsIAtom* aAttribute);
 
   
 
 
-  void ARIAActiveDescendantChanged(nsIContent* aElm);
+
+
+
+  void ARIAAttributeChanged(Accessible* aAccessible, nsIAtom* aAttribute);
+
+  
+
+
+  void ARIAActiveDescendantChanged(Accessible* aAccessible);
 
   
 

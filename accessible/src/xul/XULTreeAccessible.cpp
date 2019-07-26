@@ -6,6 +6,7 @@
 
 #include "XULTreeAccessible.h"
 
+#include "DocAccessible-inl.h"
 #include "nsAccCache.h"
 #include "nsAccUtils.h"
 #include "nsCoreUtils.h"
@@ -663,7 +664,7 @@ XULTreeAccessible::TreeViewChanged(nsITreeView* aView)
   
   
   nsRefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(this);
-  Document()->FireDelayedAccessibleEvent(reorderEvent);
+  Document()->FireDelayedEvent(reorderEvent);
 
   
   ClearCache(mAccessibleCache);

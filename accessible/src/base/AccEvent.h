@@ -38,17 +38,18 @@ public:
   
   
   enum EEventRule {
-     
-     
-     eAllowDupes,
+    
+    
+    
+    eAllowDupes,
 
      
      
-     eCoalesceReorder,
+    eCoalesceReorder,
 
      
      
-     eCoalesceMutationTextChange,
+    eCoalesceMutationTextChange,
 
     
     
@@ -59,18 +60,14 @@ public:
 
      
      
-     eRemoveDupes,
+    eRemoveDupes,
 
      
-     eDoNotEmit
+    eDoNotEmit
   };
 
   
   AccEvent(uint32_t aEventType, Accessible* aAccessible,
-           EIsFromUserInput aIsFromUserInput = eAutoDetect,
-           EEventRule aEventRule = eRemoveDupes);
-  
-  AccEvent(uint32_t aEventType, nsINode* aNode,
            EIsFromUserInput aIsFromUserInput = eAutoDetect,
            EEventRule aEventRule = eRemoveDupes);
   virtual ~AccEvent() {}
@@ -80,9 +77,8 @@ public:
   EEventRule GetEventRule() const { return mEventRule; }
   bool IsFromUserInput() const { return mIsFromUserInput; }
 
-  Accessible* GetAccessible();
-  DocAccessible* GetDocAccessible();
-  nsINode* GetNode();
+  Accessible* GetAccessible() const { return mAccessible; }
+  DocAccessible* GetDocAccessible() const { return mAccessible->Document(); }
 
   
 
@@ -119,10 +115,6 @@ public:
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(AccEvent)
 
 protected:
-  
-
-
-  Accessible* GetAccessibleForNode() const;
 
   
 
@@ -134,7 +126,6 @@ protected:
   uint32_t mEventType;
   EEventRule mEventRule;
   nsRefPtr<Accessible> mAccessible;
-  nsCOMPtr<nsINode> mNode;
 
   friend class NotificationController;
   friend class AccReorderEvent;
@@ -149,11 +140,15 @@ class AccStateChangeEvent: public AccEvent
 public:
   AccStateChangeEvent(Accessible* aAccessible, uint64_t aState,
                       bool aIsEnabled,
-                      EIsFromUserInput aIsFromUserInput = eAutoDetect);
+                      EIsFromUserInput aIsFromUserInput = eAutoDetect) :
+    AccEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE, aAccessible,
+             aIsFromUserInput, eAllowDupes),
+             mState(aState), mIsEnabled(aIsEnabled) { }
 
-  AccStateChangeEvent(nsINode* aNode, uint64_t aState, bool aIsEnabled);
-
-  AccStateChangeEvent(nsINode* aNode, uint64_t aState);
+  AccStateChangeEvent(Accessible* aAccessible, uint64_t aState) :
+    AccEvent(::nsIAccessibleEvent::EVENT_STATE_CHANGE, aAccessible,
+             eAutoDetect, eAllowDupes), mState(aState)
+    { mIsEnabled = (mAccessible->State() & mState) != 0; }
 
   
   virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
@@ -239,6 +234,7 @@ public:
   bool IsHide() const { return mEventType == nsIAccessibleEvent::EVENT_HIDE; }
 
 protected:
+  nsCOMPtr<nsINode> mNode;
   nsRefPtr<Accessible> mParent;
   nsRefPtr<AccTextChangeEvent> mTextChangeEvent;
 
@@ -350,8 +346,10 @@ protected:
 class AccCaretMoveEvent: public AccEvent
 {
 public:
-  AccCaretMoveEvent(Accessible* aAccessible, int32_t aCaretOffset);
-  AccCaretMoveEvent(nsINode* aNode);
+  AccCaretMoveEvent(Accessible* aAccessible) :
+    AccEvent(::nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED, aAccessible),
+    mCaretOffset(-1) { }
+  virtual ~AccCaretMoveEvent() { }
 
   
   virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
@@ -367,6 +365,8 @@ public:
 
 private:
   int32_t mCaretOffset;
+
+  friend class NotificationController;
 };
 
 

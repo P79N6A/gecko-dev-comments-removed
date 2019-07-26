@@ -35,46 +35,8 @@ AccEvent::AccEvent(uint32_t aEventType, Accessible* aAccessible,
   CaptureIsFromUserInput(aIsFromUserInput);
 }
 
-AccEvent::AccEvent(uint32_t aEventType, nsINode* aNode,
-                   EIsFromUserInput aIsFromUserInput, EEventRule aEventRule) :
-  mEventType(aEventType), mEventRule(aEventRule), mNode(aNode)
-{
-  CaptureIsFromUserInput(aIsFromUserInput);
-}
 
 
-
-
-Accessible* 
-AccEvent::GetAccessible()
-{
-  if (!mAccessible)
-    mAccessible = GetAccessibleForNode();
-
-  return mAccessible;
-}
-
-nsINode*
-AccEvent::GetNode()
-{
-  if (!mNode && mAccessible)
-    mNode = mAccessible->GetNode();
-
-  return mNode;
-}
-
-DocAccessible*
-AccEvent::GetDocAccessible()
-{
-  if (mAccessible)
-    return mAccessible->Document();
-
-  nsINode* node = GetNode();
-  if (node)
-    return GetAccService()->GetDocAccessible(node->OwnerDoc());
-
-  return nullptr;
-}
 
 already_AddRefed<nsAccEvent>
 AccEvent::CreateXPCOMObject()
@@ -104,95 +66,29 @@ NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(AccEvent, Release)
 
 
 
-Accessible*
-AccEvent::GetAccessibleForNode() const
-{
-  if (mNode) {
-    DocAccessible* document =
-      GetAccService()->GetDocAccessible(mNode->OwnerDoc());
-    if (document)
-      return document->GetAccessible(mNode);
-  }
-
-  return nullptr;
-}
-
 void
 AccEvent::CaptureIsFromUserInput(EIsFromUserInput aIsFromUserInput)
 {
-  nsINode *targetNode = GetNode();
-
-#ifdef DEBUG
-  if (!targetNode) {
-    
-    
-    
-
-    if (mAccessible != static_cast<nsIAccessible*>(ApplicationAcc()))
-      NS_ASSERTION(targetNode, "There should always be a DOM node for an event");
-  }
-#endif
-
   if (aIsFromUserInput != eAutoDetect) {
     mIsFromUserInput = aIsFromUserInput == eFromUserInput ? true : false;
     return;
   }
 
-  if (!targetNode)
-    return;
-
-  nsIPresShell *presShell = nsCoreUtils::GetPresShellFor(targetNode);
-  if (!presShell) {
-    NS_NOTREACHED("Threre should always be an pres shell for an event");
+  DocAccessible* document = mAccessible->Document();
+  if (!document) {
+    NS_ASSERTION(mAccessible == ApplicationAcc(),
+                 "Accessible other than application should always have a doc!");
     return;
   }
 
-  nsEventStateManager *esm = presShell->GetPresContext()->EventStateManager();
-  if (!esm) {
-    NS_NOTREACHED("There should always be an ESM for an event");
-    return;
-  }
-
-  mIsFromUserInput = esm->IsHandlingUserInputExternal();
+  mIsFromUserInput =
+    document->PresContext()->EventStateManager()->IsHandlingUserInputExternal();
 }
 
 
 
 
 
-
-
-
-
-AccStateChangeEvent::
-  AccStateChangeEvent(Accessible* aAccessible, uint64_t aState,
-                      bool aIsEnabled, EIsFromUserInput aIsFromUserInput):
-  AccEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE, aAccessible,
-           aIsFromUserInput, eAllowDupes),
-  mState(aState), mIsEnabled(aIsEnabled)
-{
-}
-
-AccStateChangeEvent::
-  AccStateChangeEvent(nsINode* aNode, uint64_t aState, bool aIsEnabled):
-  AccEvent(::nsIAccessibleEvent::EVENT_STATE_CHANGE, aNode,
-           eAutoDetect, eAllowDupes),
-  mState(aState), mIsEnabled(aIsEnabled)
-{
-}
-
-AccStateChangeEvent::
-  AccStateChangeEvent(nsINode* aNode, uint64_t aState) :
-  AccEvent(::nsIAccessibleEvent::EVENT_STATE_CHANGE, aNode,
-           eAutoDetect, eAllowDupes),
-  mState(aState)
-{
-  
-  
-  
-  Accessible* accessible = GetAccessibleForNode();
-  mIsEnabled = accessible && ((accessible->State() & mState) != 0);
-}
 
 already_AddRefed<nsAccEvent>
 AccStateChangeEvent::CreateXPCOMObject()
@@ -295,20 +191,6 @@ AccShowEvent::
 
 
 
-
-AccCaretMoveEvent::
-  AccCaretMoveEvent(Accessible* aAccessible, int32_t aCaretOffset) :
-  AccEvent(::nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED, aAccessible),
-  mCaretOffset(aCaretOffset)
-{
-}
-
-AccCaretMoveEvent::
-  AccCaretMoveEvent(nsINode* aNode) :
-  AccEvent(::nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED, aNode),
-  mCaretOffset(-1)
-{
-}
 
 already_AddRefed<nsAccEvent>
 AccCaretMoveEvent::CreateXPCOMObject()
