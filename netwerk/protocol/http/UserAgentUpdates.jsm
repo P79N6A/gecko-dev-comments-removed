@@ -118,13 +118,6 @@ this.UserAgentUpdates = {
     let bytes = gEncoder.encode(JSON.stringify(update));
     OS.File.writeAtomic(path, bytes, {tmpPath: path + ".tmp"}).then(
       () => {
-        if (gApp.widgetToolkit === 'gonk') {
-          
-          
-          file.permissions = OS.Constants.libc.S_IRUSR |
-            OS.Constants.libc.S_IWUSR | OS.Constants.libc.S_IRGRP |
-            OS.Constants.libc.S_IROTH;
-        }
         this._lastUpdated = Date.now();
         Services.prefs.setCharPref(
           PREF_UPDATES_LASTUPDATED, this._lastUpdated.toString());
