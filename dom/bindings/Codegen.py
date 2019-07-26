@@ -6069,8 +6069,10 @@ class CppKeywords():
 
     @staticmethod
     def checkMethodName(name):
+        
+        
         if name in CppKeywords.keywords:
-          name = '_' + name
+          name = '_' + name + '_'
         return name
 
 class CGStaticMethod(CGAbstractStaticBindingMethod):
