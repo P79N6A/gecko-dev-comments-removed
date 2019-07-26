@@ -521,8 +521,6 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
     if (!ent)
         return;
 
-    ent->mTestedSpdy = true;
-
     if (!usingSpdy)
         return;
 
@@ -564,7 +562,28 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
         
         
 
-        conn->DontReuse();
+      LOG(("ReportSpdyConnection shutting down connection because "
+	   "of desharding\n"));
+      conn->DontReuse();
+    }
+    else if (ent->mActiveConns.Length() > 1) {
+      
+      
+      
+      
+      
+      
+      for (uint32_t index = 0; index < ent->mActiveConns.Length(); ++index) {
+	nsHttpConnection *otherConn = ent->mActiveConns[index];
+	if (otherConn == conn)
+	  continue;
+	if (conn->CanDirectlyActivate()) {
+	  LOG(("ReportSpdyConnection shutting down connection because more "
+	       "than 1 active spdy connection is live to this host\n"));
+	  conn->DontReuse();
+	  break;
+	}
+      }
     }
 
     PostEvent(&nsHttpConnectionMgr::OnMsgProcessAllSpdyPendingQ);
@@ -951,9 +970,8 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(const nsACString &key,
         ent->mActiveConns.Length() == 0 &&
         ent->mHalfOpens.Length()   == 0 &&
         ent->mPendingQ.Length()    == 0 &&
-        ((!ent->mTestedSpdy && !ent->mUsingSpdy) ||
-         !gHttpHandler->IsSpdyEnabled() ||
-         self->mCT.Count() > 300)) {
+        !ent->mUsingSpdy &&
+	self->mCT.Count() > 300) {
         LOG(("    removing empty connection entry\n"));
         return PL_DHASH_REMOVE;
     }
@@ -1289,7 +1307,7 @@ nsHttpConnectionMgr::RestrictConnections(nsConnectionEntry *ent)
     
     bool doRestrict = ent->mConnInfo->UsingSSL() &&
         gHttpHandler->IsSpdyEnabled() &&
-        (!ent->mTestedSpdy || ent->mUsingSpdy) &&
+        ent->mUsingSpdy &&
         (ent->mHalfOpens.Length() || ent->mActiveConns.Length());
 
     
@@ -3104,7 +3122,6 @@ nsConnectionEntry::nsConnectionEntry(nsHttpConnectionInfo *ci)
     , mPipeliningPenalty(0)
     , mSpdyCWND(0)
     , mUsingSpdy(false)
-    , mTestedSpdy(false)
     , mSpdyPreferred(false)
     , mPreferIPv4(false)
     , mPreferIPv6(false)
