@@ -190,3 +190,18 @@ function unexpectedCallbackAndFinish(error) {
     SimpleTest.finish();
   }
 }
+
+
+
+
+
+
+
+function unexpectedEventAndFinish(description, eventName) {
+  return function () {
+    var e = new Error();
+    ok(false, "Unexpected event '" + eventName + "' fired for " + description +
+       " " + e.stack.split("\n")[1]);
+    SimpleTest.finish();
+  }
+}

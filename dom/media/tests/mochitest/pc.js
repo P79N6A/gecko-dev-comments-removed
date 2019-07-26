@@ -295,20 +295,118 @@ var commandsPeerConnection = [
     }
   ],
   [
-    'PC_LOCAL_CHECK_MEDIA',
+    'PC_LOCAL_CHECK_MEDIA_STREAMS',
     function (test) {
-      test.pcLocal.checkMedia(test.pcRemote.constraints);
+      test.pcLocal.checkMediaStreams(test.pcRemote.constraints);
       test.next();
     }
   ],
   [
-    'PC_REMOTE_CHECK_MEDIA',
+    'PC_REMOTE_CHECK_MEDIA_STREAMS',
     function (test) {
-      test.pcRemote.checkMedia(test.pcLocal.constraints);
+      test.pcRemote.checkMediaStreams(test.pcLocal.constraints);
       test.next();
+    }
+  ],
+  [
+    'PC_LOCAL_CHECK_MEDIA_FLOW_PRESENT',
+    function (test) {
+      test.pcLocal.checkMediaFlowPresent(function () {
+        test.next();
+      });
+    }
+  ],
+  [
+    'PC_REMOTE_CHECK_MEDIA_FLOW_PRESENT',
+    function (test) {
+      test.pcRemote.checkMediaFlowPresent(function () {
+        test.next();
+      });
     }
   ]
 ];
+
+
+
+
+
+
+
+
+
+
+function MediaElementChecker(element) {
+  this.element = element;
+  this.canPlayThroughFired = false;
+  this.timeUpdateFired = false;
+  this.timePassed = false;
+
+  var self = this;
+  var elementId = self.element.getAttribute('id');
+
+  
+  
+  var canPlayThroughCallback = function() {
+    info('canplaythrough fired for media element ' + elementId);
+    self.canPlayThroughFired = true;
+    self.element.removeEventListener('canplaythrough', canPlayThroughCallback,
+                                     false);
+  };
+
+  
+  
+  var timeUpdateCallback = function() {
+    self.timeUpdateFired = true;
+    info('timeupdate fired for media element ' + elementId);
+
+    
+    
+    if(element.mozSrcObject && element.mozSrcObject.currentTime > 0 &&
+       element.currentTime > 0) {
+      info('time passed for media element ' + elementId);
+      self.timePassed = true;
+      self.element.removeEventListener('timeupdate', timeUpdateCallback,
+                                       false);
+    }
+  };
+
+  element.addEventListener('canplaythrough', canPlayThroughCallback, false);
+  element.addEventListener('timeupdate', timeUpdateCallback, false);
+}
+
+MediaElementChecker.prototype = {
+
+  
+
+
+
+
+
+
+  waitForMediaFlow : function MEC_WaitForMediaFlow(onSuccess) {
+    var self = this;
+    var elementId = self.element.getAttribute('id');
+    info('Analyzing element: ' + elementId);
+
+    if(self.canPlayThroughFired && self.timeUpdateFired && self.timePassed) {
+      ok(true, 'Media flowing for ' + elementId);
+      onSuccess();
+    } else {
+      setTimeout(function() {
+        self.waitForMediaFlow(onSuccess);
+      }, 100);
+    }
+  },
+
+  
+
+
+
+  checkForNoMediaFlow : function MEC_CheckForNoMediaFlow() {
+    ok(this.element.readyState === HTMLMediaElement.HAVE_METADATA,
+       'Media element has a ready state of HAVE_METADATA');
+  }
+};
 
 
 
@@ -411,14 +509,20 @@ function PeerConnectionWrapper(label, configuration) {
   this.constraints = [ ];
   this.offerConstraints = {};
   this.streams = [ ];
+  this.mediaCheckers = [ ];
+
+  this.onaddstream = unexpectedEventAndFinish(this.label, 'onaddstream');
 
   info("Creating new PeerConnectionWrapper: " + this.label);
   this._pc = new mozRTCPeerConnection(this.configuration);
 
   var self = this;
   this._pc.onaddstream = function (event) {
-    
-    self.attachMedia(event.stream, 'video', 'remote');
+    info(this.label + ': onaddstream event fired');
+
+    self.onaddstream(event.stream);
+    self.onaddstream = unexpectedEventAndFinish(this.label,
+      'onaddstream');
   };
 }
 
@@ -482,6 +586,7 @@ PeerConnectionWrapper.prototype = {
     }
 
     var element = createMediaElement(type, this._label + '_' + side);
+    this.mediaCheckers.push(new MediaElementChecker(element));
     element.mozSrcObject = stream;
     element.play();
   },
@@ -579,11 +684,32 @@ PeerConnectionWrapper.prototype = {
 
 
 
+
   setRemoteDescription : function PCW_setRemoteDescription(desc, onSuccess) {
     var self = this;
+    var onAddStreamFired = false;
+    var setRemoteDescriptionFinished = false;
+
+    
+    
+    function isFinished() {
+      if(onAddStreamFired && setRemoteDescriptionFinished) {
+        onSuccess();
+      }
+    }
+
+    
+    this.onaddstream = function(stream) {
+      
+      self.attachMedia(stream, 'video', 'remote');
+      onAddStreamFired = true;
+      isFinished();
+    };
+
     this._pc.setRemoteDescription(desc, function () {
       info("Successfully set remote description for " + self.label);
-      onSuccess();
+      setRemoteDescriptionFinished = true;
+      isFinished();
     }, unexpectedCallbackAndFinish(new Error));
   },
 
@@ -593,13 +719,48 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  checkMedia : function PCW_checkMedia(constraintsRemote) {
+  checkMediaStreams : function PCW_checkMediaStreams(constraintsRemote) {
     is(this._pc.localStreams.length, this.constraints.length,
        this.label + ' has ' + this.constraints.length + ' local streams');
 
     
     is(this._pc.remoteStreams.length, 1,
        this.label + ' has ' + 1 + ' remote streams');
+  },
+
+  
+
+
+
+
+
+
+  checkMediaFlowPresent : function PCW_checkMediaFlowPresent(onSuccess) {
+    var self = this;
+
+    function _checkMediaFlowPresent(index, onSuccess) {
+      if(index >= self.mediaCheckers.length) {
+        onSuccess();
+      } else {
+        var mediaChecker = self.mediaCheckers[index];
+        mediaChecker.waitForMediaFlow(function() {
+          _checkMediaFlowPresent(index + 1, onSuccess);
+        });
+      }
+    }
+
+    _checkMediaFlowPresent(0, onSuccess);
+  },
+
+  
+
+
+
+
+  checkMediaFlowNotPresent : function PCW_checkMediaFlowNotPresent() {
+    for(var mediaChecker of this.mediaCheckers) {
+      mediaChecker.checkForNoMediaFlow();
+    }
   },
 
   
