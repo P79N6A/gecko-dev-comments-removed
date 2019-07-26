@@ -407,6 +407,10 @@ public:
 
     
     
+    static bool UseLowPrecisionBuffer();
+
+    
+    
     static bool UseReusableTileStore();
 
     static bool OffMainThreadCompositingEnabled();
