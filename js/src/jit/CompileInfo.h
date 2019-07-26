@@ -24,6 +24,7 @@ StartArgSlot(JSScript *script, JSFunction *fun)
     
     
 
+    
     return 2 + (script->argumentsHasVarBinding() ? 1 : 0);
 }
 
@@ -33,6 +34,8 @@ CountArgSlots(JSScript *script, JSFunction *fun)
     
     
     
+    
+
     
     return StartArgSlot(script, fun) + (fun ? fun->nargs + 1 : 0);
 }

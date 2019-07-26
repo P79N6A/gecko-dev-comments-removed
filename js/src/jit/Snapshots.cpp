@@ -301,7 +301,10 @@ SnapshotWriter::startSnapshot(uint32_t frameCount, BailoutKind kind, bool resume
 void
 SnapshotWriter::startFrame(JSFunction *fun, JSScript *script, jsbytecode *pc, uint32_t exprStack)
 {
-    JS_ASSERT(CountArgSlots(script, fun) < SNAPSHOT_MAX_NARGS);
+    
+    
+    
+    JS_ASSERT(CountArgSlots(script, fun) < SNAPSHOT_MAX_NARGS + 4);
 
     uint32_t implicit = StartArgSlot(script, fun);
     uint32_t formalArgs = CountArgSlots(script, fun);
