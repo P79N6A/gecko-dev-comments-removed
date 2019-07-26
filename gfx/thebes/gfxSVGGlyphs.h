@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_SVG_GLYPHS_WRAPPER_H
 #define GFX_SVG_GLYPHS_WRAPPER_H
 
