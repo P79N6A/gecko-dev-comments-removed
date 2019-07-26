@@ -52,11 +52,13 @@ let WebAudioGraphView = {
   initialize: function() {
     this._onGraphNodeClick = this._onGraphNodeClick.bind(this);
     this._onThemeChange = this._onThemeChange.bind(this);
+    this._onNodeSelect = this._onNodeSelect.bind(this);
 
     this.draw = debounce(this.draw.bind(this), GRAPH_DEBOUNCE_TIMER);
     $('#graph-target').addEventListener('click', this._onGraphNodeClick, false);
 
     window.on(EVENTS.THEME_CHANGE, this._onThemeChange);
+    window.on(EVENTS.UI_INSPECTOR_NODE_SET, this._onNodeSelect);
   },
 
   
@@ -68,6 +70,7 @@ let WebAudioGraphView = {
     }
     $('#graph-target').removeEventListener('click', this._onGraphNodeClick, false);
     window.off(EVENTS.THEME_CHANGE, this._onThemeChange);
+    window.off(EVENTS.UI_INSPECTOR_NODE_SET, this._onNodeSelect);
   },
 
   
@@ -103,18 +106,16 @@ let WebAudioGraphView = {
   
 
 
+
+
+
   focusNode: function (actorID) {
     
-    Array.prototype.forEach.call($$(".nodes > g"), $node => $node.classList.remove("selected"));
+    Array.forEach($$(".nodes > g"), $node => $node.classList.remove("selected"));
     
-    this._getNodeByID(actorID).classList.add("selected");
-  },
-
-  
-
-
-  blurNode: function (actorID) {
-    this._getNodeByID(actorID).classList.remove("selected");
+    if (actorID) {
+      this._getNodeByID(actorID).classList.add("selected");
+    }
   },
 
   
@@ -233,6 +234,10 @@ let WebAudioGraphView = {
   
 
 
+
+  _onNodeSelect: function (eventName, id) {
+    this.focusNode(id);
+  },
 
   
 

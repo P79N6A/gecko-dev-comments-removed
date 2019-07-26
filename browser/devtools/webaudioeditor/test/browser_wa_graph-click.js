@@ -52,21 +52,3 @@ function spawnTest() {
   yield teardown(panel);
   finish();
 }
-
-function clickGraphNode (panelWin, el, waitForToggle = false) {
-  let { promise, resolve } = Promise.defer();
-  let promises = [
-    once(panelWin, EVENTS.UI_INSPECTOR_NODE_SET)
-  ];
-
-  if (waitForToggle) {
-    promises.push(once(panelWin, EVENTS.UI_INSPECTOR_TOGGLED));
-  }
-
-  
-  
-  let element = el.tagName ? el : findGraphNode(panelWin, el);
-  click(panelWin, element);
-
-  return Promise.all(promises);
-}
