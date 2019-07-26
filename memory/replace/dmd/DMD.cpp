@@ -1637,6 +1637,13 @@ BadArg(const char* aArg)
   exit(1);
 }
 
+#ifdef XP_MACOSX
+static void
+NopStackWalkCallback(void* aPc, void* aSp, void* aClosure)
+{
+}
+#endif
+
 
 static FILE*
 OpenTestOrStressFile(const char* aFilename)
@@ -1728,6 +1735,16 @@ Init(const malloc_table_t* aMallocTable)
   
 
   StatusMsg("DMD is enabled\n");
+
+#ifdef XP_MACOSX
+  
+  
+  
+  
+  
+  
+  (void)NS_StackWalk(NopStackWalkCallback, 0, nullptr, 0, nullptr);
+#endif
 
   gStateLock = InfallibleAllocPolicy::new_<Mutex>();
 
