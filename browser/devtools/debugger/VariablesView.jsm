@@ -5,6 +5,8 @@
 
 "use strict";
 
+const LAZY_EMPTY_DELAY = 150; 
+
 Components.utils.import('resource://gre/modules/Services.jsm');
 
 let EXPORTED_SYMBOLS = ["VariablesView", "create"];
@@ -46,13 +48,28 @@ VariablesView.prototype = {
 
     let scope = new Scope(this, aName);
     this._store.set(scope.id, scope);
+    this._currHierarchy.set(aName, scope);
     return scope;
   },
 
   
 
 
-  empty: function VV_empty() {
+
+
+
+
+  empty: function VV_empty(aTimeout = LAZY_EMPTY_DELAY) {
+    
+    if (!this._store.size()) {
+      return;
+    }
+    
+    if (this.lazyEmpty && aTimeout > 0) {
+      this._emptySoon(aTimeout);
+      return;
+    }
+
     let list = this._list;
     let firstChild;
 
@@ -62,6 +79,41 @@ VariablesView.prototype = {
 
     this._store = new Map();
     this._appendEmptyNotice();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _emptySoon: function VV__emptySoon(aTimeout) {
+    let window = this.window;
+    let document = this.document;
+
+    let prevList = this._list;
+    let currList = this._list = this.document.createElement("vbox");
+    this._store = new Map();
+
+    this._emptyTimeout = window.setTimeout(function() {
+      this._emptyTimeout = null;
+
+      this._parent.removeChild(prevList);
+      this._parent.appendChild(currList);
+
+      if (!this._store.size()) {
+        this._appendEmptyNotice();
+      }
+    }.bind(this), aTimeout);
   },
 
   
@@ -146,9 +198,11 @@ VariablesView.prototype = {
   get window() this.document.defaultView,
 
   eval: null,
+  lazyEmpty: false,
   _store: null,
   _prevHierarchy: null,
   _currHierarchy: null,
+  _emptyTimeout: null,
   _enumVisible: true,
   _nonEnumVisible: true,
   _list: null,
@@ -702,7 +756,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     if (aDescriptor.get || aDescriptor.set) {
       this.addProperty("get ", { value: aDescriptor.get });
       this.addProperty("set ", { value: aDescriptor.set });
-      this.expand();
+      this.expand(true);
       separatorLabel.hidden = true;
       valueLabel.hidden = true;
     }
@@ -972,6 +1026,11 @@ VariablesView.prototype.commitHierarchy = function VV_commitHierarchy() {
       let prevString = prevVariable._valueString;
       let currString = currVariable._valueString;
       changed = prevString != currString;
+
+      
+      if (prevVariable.expanded) {
+        currVariable.expand(true);
+      }
     }
 
     
@@ -986,14 +1045,14 @@ VariablesView.prototype.commitHierarchy = function VV_commitHierarchy() {
     
     
     
-    Services.tm.currentThread.dispatch({ run: function(aTarget) {
+    this.window.setTimeout(function(aTarget) {
       aTarget.setAttribute("changed", "");
 
       aTarget.addEventListener("transitionend", function onEvent() {
         aTarget.removeEventListener("transitionend", onEvent, false);
         aTarget.removeAttribute("changed");
       }, false);
-    }.bind(this, currVariable.target)}, 0);
+    }.bind(this, currVariable.target), LAZY_EMPTY_DELAY + 1);
   }
 };
 

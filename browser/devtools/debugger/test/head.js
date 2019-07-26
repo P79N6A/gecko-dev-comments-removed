@@ -172,6 +172,7 @@ function debug_tab_pane(aURL, aOnDebugging) {
 
       
       pane.contentWindow.gClient.addOneTimeListener("resumed", function() {
+        pane.contentWindow.DebuggerView.Variables.lazyEmpty = false;
         aOnDebugging(tab, debuggee, pane);
       });
     }, true);
@@ -192,6 +193,7 @@ function debug_remote(aURL, aOnDebugging, aBeforeTabAdded) {
 
       
       win.contentWindow.gClient.addOneTimeListener("resumed", function() {
+        win._dbgwin.DebuggerView.Variables.lazyEmpty = false;
         aOnDebugging(tab, debuggee, win);
       });
     }, true);
