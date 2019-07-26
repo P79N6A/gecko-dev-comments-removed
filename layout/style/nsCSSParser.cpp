@@ -9669,6 +9669,7 @@ CSSParserImpl::ParseTextOverflow(nsCSSValue& aValue)
 
 
 
+
 bool
 CSSParserImpl::ParseFunctionInternals(const int32_t aVariantMask[],
                                       int32_t aVariantMaskAll,
@@ -9684,21 +9685,28 @@ CSSParserImpl::ParseFunctionInternals(const int32_t aVariantMask[],
     nsCSSValue newValue;
     int32_t m = aVariantMaskAll ? aVariantMaskAll : aVariantMask[index];
     if (!ParseVariant(newValue, m, nullptr)) {
-      return false;
+      break;
     }
 
     aOutput.AppendElement(newValue);
 
-    
-    if (!ExpectSymbol(',', true)) {
+    if (ExpectSymbol(',', true)) {
       
-      
-      return ExpectSymbol(')', true) && (index + 1) >= aMinElems;
+      continue;
     }
+
+    if (ExpectSymbol(')', true)) {
+      
+      return (index + 1) >= aMinElems;
+    }
+
+    
+    break;
   }
 
   
   
+  SkipUntil(')');
   return false;
 }
 
