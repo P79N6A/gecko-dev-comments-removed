@@ -228,6 +228,7 @@ private:
   gfx::SurfaceFormat mFormat;
   bool mIsLocked;
   bool mNeedsClear;
+  bool mLockRect;
 };
 
 
