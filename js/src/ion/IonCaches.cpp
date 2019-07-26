@@ -448,6 +448,10 @@ IonCacheSetProperty::attachNativeAdding(JSContext *cx, JSObject *obj, const Shap
     Label failures;
 
     
+    masm.branchPtr(Assembler::NotEqual, Address(object(), JSObject::offsetOfType()),
+                   ImmGCPtr(obj->type()), &failures);
+
+    
     masm.branchTestObjShape(Assembler::NotEqual, object(), oldShape, &failures);
 
     Label protoFailures;
