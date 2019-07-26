@@ -202,7 +202,11 @@ public:
   
 
   
-  bool ApzHitTest(mozilla::ScreenPoint& pt);
+  bool ApzHitTest(mozilla::ScreenIntPoint& pt);
+  
+  
+  void ApzTransformGeckoCoordinate(const mozilla::ScreenIntPoint& pt,
+                                   mozilla::LayoutDeviceIntPoint* aRefPointOut);
   
   void ApzContentConsumingTouch(const ScrollableLayerGuid& aGuid);
   void ApzContentIgnoringTouch(const ScrollableLayerGuid& aGuid);

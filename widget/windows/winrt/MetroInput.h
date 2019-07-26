@@ -171,6 +171,7 @@ private:
   
   void TransformRefPoint(const Point& aPosition,
                          LayoutDeviceIntPoint& aRefPointOut);
+  void TransformTouchEvent(WidgetTouchEvent* aEvent);
   void OnPointerNonTouch(IPointerPoint* aPoint);
   void AddPointerMoveDataToRecognizer(IPointerEventArgs* aArgs);
   void InitGeckoMouseEventFromPointerPoint(WidgetMouseEvent* aEvent,

@@ -196,6 +196,15 @@ public:
 
 
 
+  void TransformCoordinateToGecko(const ScreenIntPoint& aPoint,
+                                  LayoutDeviceIntPoint* aOutTransformedPoint);
+
+  
+
+
+
+
+
 
   void UpdateCompositionBounds(const ScrollableLayerGuid& aGuid,
                                const ScreenIntRect& aCompositionBounds);
@@ -254,7 +263,7 @@ public:
   
 
 
-  bool HitTestAPZC(const ScreenPoint& aPoint);
+  bool HitTestAPZC(const ScreenIntPoint& aPoint);
 
   
 
