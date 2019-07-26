@@ -2883,8 +2883,8 @@ CanOptimizeDenseSetElem(JSContext *cx, HandleObject obj, uint32_t index,
 }
 
 static bool
-DoSetElemFallback(JSContext *cx, ICSetElem_Fallback *stub, HandleValue rhs, HandleValue objv,
-                  HandleValue index)
+DoSetElemFallback(JSContext *cx, ICSetElem_Fallback *stub, Value *stack, HandleValue objv,
+                  HandleValue index, HandleValue rhs)
 {
     RootedScript script(cx, GetTopIonJSScript(cx));
     jsbytecode *pc = stub->icEntry()->pc(script);
@@ -2922,6 +2922,10 @@ DoSetElemFallback(JSContext *cx, ICSetElem_Fallback *stub, HandleValue rhs, Hand
         if (!SetObjectElement(cx, obj, index, rhs, script->strict, script, pc))
             return false;
     }
+
+    
+    JS_ASSERT(stack[2] == objv);
+    stack[2] = rhs;
 
     if (stub->numOptimizedStubs() >= ICSetElem_Fallback::MAX_OPTIMIZED_STUBS) {
         
@@ -2997,9 +3001,10 @@ DoSetElemFallback(JSContext *cx, ICSetElem_Fallback *stub, HandleValue rhs, Hand
     return true;
 }
 
-typedef bool (*DoSetElemFallbackFn)(JSContext *, ICSetElem_Fallback *, HandleValue, HandleValue,
-                                    HandleValue);
-static const VMFunction DoSetElemFallbackInfo = FunctionInfo<DoSetElemFallbackFn>(DoSetElemFallback);
+typedef bool (*DoSetElemFallbackFn)(JSContext *, ICSetElem_Fallback *, Value *, HandleValue,
+                                    HandleValue, HandleValue);
+static const VMFunction DoSetElemFallbackInfo =
+    FunctionInfo<DoSetElemFallbackFn>(DoSetElemFallback, PopValues(2));
 
 bool
 ICSetElem_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
@@ -3009,13 +3014,27 @@ ICSetElem_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     EmitRestoreTailCallReg(masm);
 
     
+    
+    
+    
     masm.pushValue(R1);
-    masm.pushValue(R0);
+    masm.loadValue(Address(BaselineStackReg, sizeof(Value)), R1);
+    masm.storeValue(R0, Address(BaselineStackReg, sizeof(Value)));
+    masm.pushValue(R1);
+
+    
+    masm.pushValue(R1); 
 
     
     
-    masm.mov(BaselineStackReg, R0.scratchReg());
-    masm.pushValue(Address(R0.scratchReg(), 2 * sizeof(Value)));
+    masm.mov(BaselineStackReg, R1.scratchReg());
+    masm.pushValue(Address(R1.scratchReg(), 2 * sizeof(Value)));
+    masm.pushValue(R0); 
+
+    
+    
+    masm.computeEffectiveAddress(Address(BaselineStackReg, 3 * sizeof(Value)), R0.scratchReg());
+    masm.push(R0.scratchReg());
 
     masm.push(BaselineStubReg);
 
