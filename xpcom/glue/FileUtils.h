@@ -145,7 +145,14 @@ NS_COM_GLUE void ReadAhead(filedesc_t aFd, const size_t aOffset = 0,
                            const size_t aCount = SIZE_MAX);
 
 
-#ifdef MOZ_WIDGET_GONK
+
+
+
+#if (defined(MOZ_WIDGET_GONK) || defined(DEBUG)) && defined(XP_UNIX)
+
+#ifndef ReadSysFile_PRESENT
+#define ReadSysFile_PRESENT
+#endif 
 
 
 

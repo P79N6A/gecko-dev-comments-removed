@@ -117,7 +117,7 @@ mozilla::fallocate(PRFileDesc *aFD, int64_t aLength)
   return false;
 }
 
-#ifdef MOZ_WIDGET_GONK
+#ifdef ReadSysFile_PRESENT
 
 #undef TEMP_FAILURE_RETRY
 #define TEMP_FAILURE_RETRY(exp) (__extension__({ \
