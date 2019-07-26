@@ -196,20 +196,17 @@ IsPhiObservable(MPhi *phi, Observability observe)
 
     
     uint32_t slot = phi->slot();
-    CompileInfo &info = phi->block()->info();
-    if (info.fun() && slot == info.thisSlot())
+    if (slot == 1)
         return true;
 
     
     
     
+    CompileInfo &info = phi->block()->info();
     if (info.fun() && info.hasArguments()) {
-        uint32_t first = info.firstActualArgSlot();
-        if (first <= slot && slot - first < info.nargs()) {
-            
-            JS_ASSERT(!info.argsObjAliasesFormals());
+        uint32_t first = info.firstArgSlot();
+        if (first <= slot && slot - first < info.nargs())
             return true;
-        }
     }
     return false;
 }

@@ -96,31 +96,17 @@ StackFrame::initFromBailout(JSContext *cx, SnapshotIterator &iter)
         
         
         
-        
         iter.skip();
         flags_ &= ~StackFrame::HAS_SCOPECHAIN;
-
-        
-        
-        if (script()->argumentsHasVarBinding())
-            iter.skip();
-        flags_ &= ~StackFrame::HAS_ARGS_OBJ;
     } else {
-        Value scopeChain = iter.read();
-        JS_ASSERT(scopeChain.isObject() || scopeChain.isUndefined());
-        if (scopeChain.isObject()) {
-            scopeChain_ = &scopeChain.toObject();
+        Value v = iter.read();
+        if (v.isObject()) {
+            scopeChain_ = &v.toObject();
             flags_ |= StackFrame::HAS_SCOPECHAIN;
             if (isFunctionFrame() && fun()->isHeavyweight())
                 flags_ |= StackFrame::HAS_CALL_OBJ;
-        }
-
-        
-        if (script()->argumentsHasVarBinding()) {
-            Value argsObj = iter.read();
-            JS_ASSERT(argsObj.isObject() || argsObj.isUndefined());
-            if (argsObj.isObject())
-                initArgsObj(argsObj.toObject().asArguments());
+        } else {
+            JS_ASSERT(v.isUndefined());
         }
     }
 
@@ -139,7 +125,7 @@ StackFrame::initFromBailout(JSContext *cx, SnapshotIterator &iter)
         if (isConstructing())
             JS_ASSERT(!thisv.isPrimitive());
 
-        JS_ASSERT(iter.slots() >= CountArgSlots(script(), fun()));
+        JS_ASSERT(iter.slots() >= CountArgSlots(fun()));
         IonSpew(IonSpew_Bailouts, " frame slots %u, nargs %u, nfixed %u",
                 iter.slots(), fun()->nargs, script()->nfixed);
 
@@ -148,7 +134,7 @@ StackFrame::initFromBailout(JSContext *cx, SnapshotIterator &iter)
             formals()[i] = arg;
         }
     }
-    exprStackSlots -= CountArgSlots(script(), maybeFun());
+    exprStackSlots -= CountArgSlots(maybeFun());
 
     for (uint32_t i = 0; i < script()->nfixed; i++) {
         Value slot = iter.read();
@@ -617,22 +603,20 @@ ion::ThunkToInterpreter(Value *vp)
             fp = iter.interpFrame();
             script = iter.script();
             if (script->needsArgsObj()) {
-                ArgumentsObject *argsObj;
-                if (fp->hasArgsObj()) {
-                    argsObj = &fp->argsObj();
-                } else {
-                    argsObj = ArgumentsObject::createExpected(cx, fp);
-                    if (!argsObj) {
-                        resumeMode = JSINTERP_RETHROW;
-                        break;
-                    }
+                
+                
+                
+                JS_ASSERT(!fp->hasArgsObj());
+                ArgumentsObject *argsobj = ArgumentsObject::createExpected(cx, fp);
+                if (!argsobj) {
+                    resumeMode = JSINTERP_RETHROW;
+                    break;
                 }
-
                 
                 
                 
                 
-                SetFrameArgumentsObject(cx, fp, script, argsObj);
+                SetFrameArgumentsObject(cx, fp, script, argsobj);
             }
             ++iter;
         } while (fp != br->entryfp());

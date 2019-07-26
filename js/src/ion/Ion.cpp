@@ -1448,11 +1448,11 @@ CheckFrame(AbstractFramePtr fp)
 }
 
 static bool
-CheckScript(RawScript script, bool osr)
+CheckScript(RawScript script)
 {
-    if (osr && script->needsArgsObj()) {
+    if (script->needsArgsObj()) {
         
-        IonSpew(IonSpew_Abort, "OSR script has argsobj");
+        IonSpew(IonSpew_Abort, "script has argsobj");
         return false;
     }
 
@@ -1508,9 +1508,9 @@ SequentialCompileContext::checkScriptSize(JSContext *cx, RawScript script)
 }
 
 bool
-CanIonCompileScript(JSContext *cx, HandleScript script, bool osr)
+CanIonCompileScript(JSContext *cx, HandleScript script)
 {
-    if (!script->canIonCompile() || !CheckScript(script, osr))
+    if (!script->canIonCompile() || !CheckScript(script))
         return false;
 
     SequentialCompileContext compileContext;
@@ -1519,8 +1519,8 @@ CanIonCompileScript(JSContext *cx, HandleScript script, bool osr)
 
 template <typename CompileContext>
 static MethodStatus
-Compile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *osrPc,
-        bool constructing, CompileContext &compileContext)
+Compile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *osrPc, bool constructing,
+        CompileContext &compileContext)
 {
     JS_ASSERT(ion::IsEnabled(cx));
     JS_ASSERT_IF(osrPc != NULL, (JSOp)*osrPc == JSOP_LOOPENTRY);
@@ -1540,7 +1540,7 @@ Compile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *osrP
         return Method_CantCompile;
     }
 
-    if (!CheckScript(script, bool(osrPc))) {
+    if (!CheckScript(script)) {
         IonSpew(IonSpew_Abort, "Aborted compilation of %s:%d", script->filename(), script->lineno);
         return Method_CantCompile;
     }
@@ -1923,8 +1923,7 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
         fp->cleanupTornValues();
 
         
-        
-        maxArgc = CountArgSlots(fp->script(), fp->fun()) - StartArgSlot(fp->script(), fp->fun());
+        maxArgc = CountArgSlots(fp->fun()) - 1; 
         maxArgv = fp->formals() - 1;            
 
         

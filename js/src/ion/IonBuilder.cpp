@@ -336,13 +336,6 @@ IonBuilder::build()
     }
 
     
-    if (info().hasArguments()) {
-        MInstruction *argsObj = MConstant::New(UndefinedValue());
-        current->add(argsObj);
-        current->initSlot(info().argsObjSlot(), argsObj);
-    }
-
-    
     current->makeStart(MStart::New(MStart::StartType_Default));
     if (instrumentedProfiling())
         current->add(MFunctionBoundary::New(script(), MFunctionBoundary::Enter));
@@ -353,9 +346,6 @@ IonBuilder::build()
 
     
     if (!initScopeChain())
-        return false;
-
-    if (info().needsArgsObj() && !initArgumentsObject())
         return false;
 
     
@@ -382,14 +372,13 @@ IonBuilder::build()
     
     
     
-    for (uint32_t i = 0; i < info().endArgSlot(); i++) {
+    for (uint32_t i = 0; i < CountArgSlots(info().fun()); i++) {
         MInstruction *ins = current->getEntrySlot(i)->toInstruction();
         if (ins->type() == MIRType_Value)
             ins->setResumePoint(current->entryResumePoint());
     }
 
-    
-    if (info().hasArguments() && !info().argsObjAliasesFormals()) {
+    if (script()->argumentsHasVarBinding()) {
         lazyArguments_ = MConstant::New(MagicValue(JS_OPTIMIZED_ARGUMENTS));
         current->add(lazyArguments_);
     }
@@ -492,23 +481,13 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
         return false;
 
     
-    
     JS_ASSERT(!script()->analysis()->usesScopeChain());
     MInstruction *scope = MConstant::New(UndefinedValue());
     current->add(scope);
     current->initSlot(info().scopeChainSlot(), scope);
-    if (info().hasArguments()) {
-        MInstruction *argsObj = MConstant::New(UndefinedValue());
-        current->add(argsObj);
-        current->initSlot(info().argsObjSlot(), argsObj);
-    }
     current->initSlot(info().thisSlot(), callInfo.thisArg());
 
     IonSpew(IonSpew_Inlining, "Initializing %u arg slots", info().nargs());
-
-    
-    
-    JS_ASSERT(!info().needsArgsObj());
 
     
     uint32_t existing_args = Min<uint32_t>(callInfo.argc(), info().nargs());
@@ -537,7 +516,7 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
             (void *) current->entryResumePoint(), current->entryResumePoint()->numOperands());
 
     
-    JS_ASSERT(current->entryResumePoint()->numOperands() == info().totalSlots());
+    JS_ASSERT(current->entryResumePoint()->numOperands() == info().nargs() + info().nlocals() + 2);
 
     if (script_->argumentsHasVarBinding()) {
         lazyArguments_ = MConstant::New(MagicValue(JS_OPTIMIZED_ARGUMENTS));
@@ -547,55 +526,6 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
     return traverseBytecode();
 }
 
-void
-IonBuilder::rewriteParameter(uint32_t slotIdx, MDefinition *param, int32_t argIndex)
-{
-    JS_ASSERT(param->isParameter() || param->isGetArgumentsObjectArg());
-
-    
-    
-    types::StackTypeSet *types;
-    if (argIndex == MParameter::THIS_SLOT)
-        types = oracle->thisTypeSet(script());
-    else
-        types = oracle->parameterTypeSet(script(), argIndex);
-    if (!types)
-        return;
-
-    JSValueType definiteType = types->getKnownTypeTag();
-    if (definiteType == JSVAL_TYPE_UNKNOWN)
-        return;
-
-    MInstruction *actual = NULL;
-    switch (definiteType) {
-      case JSVAL_TYPE_UNDEFINED:
-        param->setFoldedUnchecked();
-        actual = MConstant::New(UndefinedValue());
-        break;
-
-      case JSVAL_TYPE_NULL:
-        param->setFoldedUnchecked();
-        actual = MConstant::New(NullValue());
-        break;
-
-      default:
-        actual = MUnbox::New(param, MIRTypeFromValueType(definiteType), MUnbox::Infallible);
-        break;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    current->add(actual);
-    current->rewriteSlot(slotIdx, actual);
-}
-
 
 
 
@@ -603,13 +533,53 @@ void
 IonBuilder::rewriteParameters()
 {
     JS_ASSERT(info().scopeChainSlot() == 0);
+    static const uint32_t START_SLOT = 1;
 
-    if (!info().fun())
-        return;
+    for (uint32_t i = START_SLOT; i < CountArgSlots(info().fun()); i++) {
+        MParameter *param = current->getSlot(i)->toParameter();
 
-    for (uint32_t i = info().startArgSlot(); i < info().endArgSlot(); i++) {
-        MDefinition *param = current->getSlot(i);
-        rewriteParameter(i, param, param->toParameter()->index());
+        
+        
+        types::StackTypeSet *types;
+        if (param->index() == MParameter::THIS_SLOT)
+            types = oracle->thisTypeSet(script());
+        else
+            types = oracle->parameterTypeSet(script(), param->index());
+        if (!types)
+            continue;
+
+        JSValueType definiteType = types->getKnownTypeTag();
+        if (definiteType == JSVAL_TYPE_UNKNOWN)
+            continue;
+
+        MInstruction *actual = NULL;
+        switch (definiteType) {
+          case JSVAL_TYPE_UNDEFINED:
+            param->setFoldedUnchecked();
+            actual = MConstant::New(UndefinedValue());
+            break;
+
+          case JSVAL_TYPE_NULL:
+            param->setFoldedUnchecked();
+            actual = MConstant::New(NullValue());
+            break;
+
+          default:
+            actual = MUnbox::New(param, MIRTypeFromValueType(definiteType), MUnbox::Infallible);
+            break;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        current->add(actual);
+        current->rewriteSlot(i, actual);
     }
 }
 
@@ -627,7 +597,7 @@ IonBuilder::initParameters()
     for (uint32_t i = 0; i < info().nargs(); i++) {
         param = MParameter::New(i, cloneTypeSet(oracle->parameterTypeSet(script(), i)));
         current->add(param);
-        current->initSlot(info().argSlotUnchecked(i), param);
+        current->initSlot(info().argSlot(i), param);
     }
 
     return true;
@@ -640,9 +610,7 @@ IonBuilder::initScopeChain()
 
     
     
-    
-    
-    if (!info().needsArgsObj() && !script()->analysis()->usesScopeChain())
+    if (!script()->analysis()->usesScopeChain())
         return true;
 
     
@@ -677,18 +645,6 @@ IonBuilder::initScopeChain()
     }
 
     current->setScopeChain(scope);
-    return true;
-}
-
-bool
-IonBuilder::initArgumentsObject()
-{
-    IonSpew(IonSpew_MIR, "%s:%d - Emitting code to initialize arguments object! block=%p",
-                              script()->filename(), script()->lineno, current);
-    JS_ASSERT(info().needsArgsObj());
-    MCreateArgumentsObject *argsObj = MCreateArgumentsObject::New(current->scopeChain());
-    current->add(argsObj);
-    current->setArgumentsObject(argsObj);
     return true;
 }
 
@@ -945,14 +901,7 @@ IonBuilder::inspectOpcode(JSOp op)
 
       case JSOP_GETARG:
       case JSOP_CALLARG:
-        if (info().argsObjAliasesFormals()) {
-            MGetArgumentsObjectArg *getArg = MGetArgumentsObjectArg::New(current->argumentsObject(),
-                                                                         GET_SLOTNO(pc));
-            current->add(getArg);
-            current->push(getArg);
-        } else {
-            current->pushArg(GET_SLOTNO(pc));
-        }
+        current->pushArg(GET_SLOTNO(pc));
         return true;
 
       case JSOP_SETARG:
@@ -961,16 +910,9 @@ IonBuilder::inspectOpcode(JSOp op)
         
         
         
-        if (info().argsObjAliasesFormals()) {
-            current->add(MSetArgumentsObjectArg::New(current->argumentsObject(), GET_SLOTNO(pc),
-                                                     current->peek(-1)));
-        } else {
-            
-            
-            if (info().hasArguments())
-                return abort("NYI: arguments & setarg.");
-            current->setArg(GET_SLOTNO(pc));
-        }
+        if (info().hasArguments())
+            return abort("NYI: arguments & setarg.");
+        current->setArg(GET_SLOTNO(pc));
         return true;
 
       case JSOP_GETLOCAL:
@@ -4013,7 +3955,7 @@ IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
     for (AliasedFormalIter i(script()); i; i++) {
         unsigned slot = i.scopeSlot();
         unsigned formal = i.frameIndex();
-        MDefinition *param = current->getSlot(info().argSlotUnchecked(formal));
+        MDefinition *param = current->getSlot(info().argSlot(formal));
         if (slot >= templateObj->numFixedSlots())
             current->add(MStoreSlot::New(slots, slot - templateObj->numFixedSlots(), param));
         else
@@ -5045,15 +4987,6 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
         osrBlock->initSlot(slot, scopev);
     }
 
-    
-    
-    JS_ASSERT(!info().needsArgsObj());
-    if (info().hasArguments()) {
-        MInstruction *argsObj = MConstant::New(UndefinedValue());
-        osrBlock->add(argsObj);
-        osrBlock->initSlot(info().argsObjSlot(), argsObj);
-    }
-
     if (info().fun()) {
         
         uint32_t slot = info().thisSlot();
@@ -5065,8 +4998,6 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
 
         
         for (uint32_t i = 0; i < info().nargs(); i++) {
-            
-            
             uint32_t slot = info().argSlot(i);
             ptrdiff_t offset = StackFrame::offsetOfFormalArg(info().fun(), i);
 
@@ -5087,8 +5018,8 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
     }
 
     
-    uint32_t numStackSlots = preheader->stackDepth() - info().firstStackSlot();
-    for (uint32_t i = 0; i < numStackSlots; i++) {
+    uint32_t numSlots = preheader->stackDepth() - CountArgSlots(info().fun()) - info().nlocals();
+    for (uint32_t i = 0; i < numSlots; i++) {
         uint32_t slot = info().stackSlot(i);
         ptrdiff_t offset = StackFrame::offsetOfFixed(info().nlocals() + i);
 
@@ -5119,26 +5050,19 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
     JS_ASSERT(info().scopeChainSlot() == 0);
     JS_ASSERT(osrBlock->scopeChain()->type() == MIRType_Object);
 
-    
-    
-    
-    bool argsSlotAdj = info().hasArguments() ? 1 : 0;
     Vector<MIRType> slotTypes(cx);
-    if (!slotTypes.growByUninitialized(osrBlock->stackDepth() - argsSlotAdj))
+    if (!slotTypes.growByUninitialized(osrBlock->stackDepth()))
         return NULL;
 
     
-    for (uint32_t i = 0; i < osrBlock->stackDepth() - argsSlotAdj; i++)
+    for (uint32_t i = 0; i < osrBlock->stackDepth(); i++)
         slotTypes[i] = MIRType_Value;
 
     
     if (!oracle->getOsrTypes(loopEntry, slotTypes))
         return NULL;
 
-    
-    for (uint32_t i = 1; i < slotTypes.length(); i++) {
-        uint32_t slotNo = i + argsSlotAdj;
-
+    for (uint32_t i = 1; i < osrBlock->stackDepth(); i++) {
         
         switch (slotTypes[i]) {
           case MIRType_Boolean:
@@ -5147,12 +5071,12 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
           case MIRType_String:
           case MIRType_Object:
           {
-            MDefinition *def = osrBlock->getSlot(slotNo);
+            MDefinition *def = osrBlock->getSlot(i);
             JS_ASSERT(def->type() == MIRType_Value);
 
             MInstruction *actual = MUnbox::New(def, slotTypes[i], MUnbox::Infallible);
             osrBlock->add(actual);
-            osrBlock->rewriteSlot(slotNo, actual);
+            osrBlock->rewriteSlot(i, actual);
             break;
           }
 
@@ -5160,7 +5084,7 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
           {
             MConstant *c = MConstant::New(NullValue());
             osrBlock->add(c);
-            osrBlock->rewriteSlot(slotNo, c);
+            osrBlock->rewriteSlot(i, c);
             break;
           }
 
@@ -5168,13 +5092,13 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
           {
             MConstant *c = MConstant::New(UndefinedValue());
             osrBlock->add(c);
-            osrBlock->rewriteSlot(slotNo, c);
+            osrBlock->rewriteSlot(i, c);
             break;
           }
 
           case MIRType_Magic:
             JS_ASSERT(lazyArguments_);
-            osrBlock->rewriteSlot(slotNo, lazyArguments_);
+            osrBlock->rewriteSlot(i, lazyArguments_);
             break;
 
           default:
@@ -6286,10 +6210,6 @@ IonBuilder::jsop_length_fastPath()
 bool
 IonBuilder::jsop_arguments()
 {
-    if (info().needsArgsObj()) {
-        current->push(current->argumentsObject());
-        return true;
-    }
     JS_ASSERT(lazyArguments_);
     current->push(lazyArguments_);
     return true;

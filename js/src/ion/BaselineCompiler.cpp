@@ -411,7 +411,7 @@ BaselineCompiler::emitUseCountIncrement()
     
     
 
-    if (!ionCompileable_ && !ionOSRCompileable_)
+    if (!ionCompileable_)
         return true;
 
     Register scriptReg = R2.scratchReg();
