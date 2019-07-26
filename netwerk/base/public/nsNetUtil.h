@@ -1355,8 +1355,6 @@ NS_UsePrivateBrowsing(nsIChannel *channel)
 #define NECKO_NO_APP_ID 0
 #define NECKO_UNKNOWN_APP_ID UINT32_MAX
 
-#define NECKO_SAFEBROWSING_APP_ID UINT32_MAX - 1
-
 
 
 

@@ -11,7 +11,6 @@
 #include "mozilla/Attributes.h"
 #include "nsIWeakReferenceUtils.h"
 #include "mozilla/dom/Element.h"
-#include "nsIInterfaceRequestor.h"
 
 class mozIApplication;
 
@@ -27,16 +26,11 @@ namespace mozilla {
 
 
 
-
-
-
-class LoadContext MOZ_FINAL : public nsILoadContext,
-                              public nsIInterfaceRequestor
+class LoadContext MOZ_FINAL : public nsILoadContext
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSILOADCONTEXT
-  NS_DECL_NSIINTERFACEREQUESTOR
 
   
   
@@ -50,18 +44,6 @@ public:
     , mIsInBrowserElement(aInBrowser)
 #ifdef DEBUG
     , mIsNotNull(aToCopy.mIsNotNull)
-#endif
-  {}
-
-  
-  LoadContext(uint32_t aAppId)
-    : mTopFrameElement(nullptr)
-    , mAppId(aAppId)
-    , mIsContent(false)
-    , mUsePrivateBrowsing(false)
-    , mIsInBrowserElement(false)
-#ifdef DEBUG
-    , mIsNotNull(true)
 #endif
   {}
 
