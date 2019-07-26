@@ -3217,20 +3217,6 @@ Tab.prototype = {
     
     
     let isZooming = !fuzzyEquals(aViewport.zoom, this._zoom);
-    if (BrowserApp.selectedTab.reflozPinchSeen &&
-        isZooming && aViewport.zoom < 1.0) {
-      
-      
-      BrowserEventHandler.resetMaxLineBoxWidth();
-      BrowserApp.selectedTab.reflozPinchSeen = false;
-    } else if (BrowserApp.selectedTab.reflozPinchSeen &&
-               isZooming) {
-      
-      
-      BrowserApp.selectedTab.probablyNeedRefloz = false;
-      BrowserApp.selectedTab.clearReflowOnZoomPendingActions();
-      BrowserApp.selectedTab._mReflozPoint = null;
-    }
 
     let docViewer = null;
 
