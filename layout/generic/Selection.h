@@ -52,7 +52,7 @@ public:
   NS_DECL_NSISELECTIONPRIVATE
 
   
-  nsresult      GetPresContext(nsPresContext **aPresContext);
+  nsPresContext* GetPresContext() const;
   nsIPresShell* GetPresShell() const;
   
   
