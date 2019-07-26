@@ -520,6 +520,7 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
 
     RootedObject target(cx, getTargetObject(wrapper));
     if (!isPrototype(holder)) {
+        JSProtoKey key = getProtoKey(holder);
         
         
         
@@ -529,19 +530,13 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
         
         
         
-        switch (getProtoKey(holder)) {
-          case JSProto_Object:
-          case JSProto_Array:
+        if (key == JSProto_Object || key == JSProto_Array) {
             {
                 JSAutoCompartment ac(cx, target);
                 if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, desc))
                     return false;
             }
             return JS_WrapPropertyDescriptor(cx, desc);
-
-          default:
-            
-            break;
         }
 
         
@@ -763,11 +758,10 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
         return false;
 
     if (!isPrototype(holder)) {
+        JSProtoKey key = getProtoKey(holder);
         
         
-        switch (getProtoKey(holder)) {
-          case JSProto_Object:
-          case JSProto_Array:
+        if (key == JSProto_Object || key == JSProto_Array) {
             MOZ_ASSERT(props.empty());
             {
                 JSAutoCompartment ac(cx, target);
@@ -786,9 +780,6 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
                 }
             }
             return JS_WrapAutoIdVector(cx, props);
-          default:
-            
-            break;
         }
 
         
