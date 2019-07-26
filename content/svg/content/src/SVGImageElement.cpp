@@ -91,9 +91,7 @@ NS_IMETHODIMP SVGImageElement::GetX(nsIDOMSVGAnimatedLength * *aX)
 already_AddRefed<nsIDOMSVGAnimatedLength>
 SVGImageElement::X()
 {
-  nsCOMPtr<nsIDOMSVGAnimatedLength> x;
-  mLengthAttributes[ATTR_X].ToDOMAnimatedLength(getter_AddRefs(x), this);
-  return x.forget();
+  return mLengthAttributes[ATTR_X].ToDOMAnimatedLength(this);
 }
 
 
@@ -106,9 +104,7 @@ NS_IMETHODIMP SVGImageElement::GetY(nsIDOMSVGAnimatedLength * *aY)
 already_AddRefed<nsIDOMSVGAnimatedLength>
 SVGImageElement::Y()
 {
-  nsCOMPtr<nsIDOMSVGAnimatedLength> y;
-  mLengthAttributes[ATTR_Y].ToDOMAnimatedLength(getter_AddRefs(y), this);
-  return y.forget();
+  return mLengthAttributes[ATTR_Y].ToDOMAnimatedLength(this);
 }
 
 
@@ -121,9 +117,7 @@ NS_IMETHODIMP SVGImageElement::GetWidth(nsIDOMSVGAnimatedLength * *aWidth)
 already_AddRefed<nsIDOMSVGAnimatedLength>
 SVGImageElement::Width()
 {
-  nsCOMPtr<nsIDOMSVGAnimatedLength> width;
-  mLengthAttributes[ATTR_WIDTH].ToDOMAnimatedLength(getter_AddRefs(width), this);
-  return width.forget();
+  return mLengthAttributes[ATTR_WIDTH].ToDOMAnimatedLength(this);
 }
 
 
@@ -136,9 +130,7 @@ NS_IMETHODIMP SVGImageElement::GetHeight(nsIDOMSVGAnimatedLength * *aHeight)
 already_AddRefed<nsIDOMSVGAnimatedLength>
 SVGImageElement::Height()
 {
-  nsCOMPtr<nsIDOMSVGAnimatedLength> height;
-  mLengthAttributes[ATTR_HEIGHT].ToDOMAnimatedLength(getter_AddRefs(height), this);
-  return height.forget();
+  return mLengthAttributes[ATTR_HEIGHT].ToDOMAnimatedLength(this);
 }
 
 

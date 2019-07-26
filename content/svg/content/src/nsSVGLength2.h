@@ -85,6 +85,10 @@ public:
   
   nsresult ToDOMAnimatedLength(nsIDOMSVGAnimatedLength **aResult,
                                nsSVGElement* aSVGElement);
+
+  already_AddRefed<nsIDOMSVGAnimatedLength>
+  ToDOMAnimatedLength(nsSVGElement* aSVGElement);
+
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
