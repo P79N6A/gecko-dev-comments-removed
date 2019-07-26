@@ -90,11 +90,6 @@ public:
   virtual nsresult Stop(SourceMediaStream *aSource, TrackID aID) = 0;
 
   
-  virtual nsresult Config(bool aEchoOn, uint32_t aEcho,
-                          bool aAgcOn, uint32_t aAGC,
-                          bool aNoiseOn, uint32_t aNoise) = 0;
-
-  
   bool IsAvailable() {
     if (mState == kAllocated || mState == kStarted) {
       return false;
