@@ -193,9 +193,7 @@ public:
   WrappableJSErrorResult(WrappableJSErrorResult &other) : mRv(), isCopy(true) {}
   ~WrappableJSErrorResult() {
     if (isCopy) {
-#ifdef MOZILLA_INTERNAL_API
       MOZ_ASSERT(NS_IsMainThread());
-#endif
     }
   }
   operator JSErrorResult &() { return mRv; }
@@ -707,9 +705,7 @@ PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
 
   
   MOZ_ASSERT(!aConfiguration != !aRTCConfiguration);
-#ifdef MOZILLA_INTERNAL_API
   MOZ_ASSERT(NS_IsMainThread());
-#endif
   MOZ_ASSERT(aThread);
   mThread = do_QueryInterface(aThread);
 
