@@ -25,8 +25,6 @@
 namespace js {
 namespace gc {
 
-class AccumulateEdgesTracer;
-
 
 
 
