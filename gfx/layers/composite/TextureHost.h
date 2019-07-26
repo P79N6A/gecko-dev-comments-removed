@@ -384,6 +384,10 @@ public:
 
   virtual void SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData);
 
+  
+  
+  virtual void OnActorDestroy() {}
+
   virtual const char *Name() { return "TextureHost"; }
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
 
@@ -479,6 +483,8 @@ public:
   virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
 
   virtual const char *Name() MOZ_OVERRIDE { return "ShmemTextureHost"; }
+
+  virtual void OnActorDestroy() MOZ_OVERRIDE;
 
 protected:
   mozilla::ipc::Shmem* mShmem;
@@ -709,6 +715,8 @@ public:
   
   
   virtual void ForgetBuffer() {}
+
+  void OnActorDestroy();
 
 protected:
   
