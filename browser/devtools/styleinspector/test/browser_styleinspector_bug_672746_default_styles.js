@@ -65,7 +65,7 @@ function SI_toggleDefaultStyles()
 {
   
   let doc = computedView.styleDocument;
-  let checkbox = doc.querySelector(".onlyuserstyles");
+  let checkbox = doc.querySelector(".includebrowserstyles");
   Services.obs.addObserver(SI_checkDefaultStyles, "StyleInspector-populated", false);
 
   checkbox.click();

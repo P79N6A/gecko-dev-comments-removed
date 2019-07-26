@@ -228,7 +228,7 @@ CssHtmlTree.prototype = {
   searchField: null,
 
   
-  onlyUserStylesCheckbox: null,
+  includeBrowserStylesCheckbox: null,
 
   
   _panelRefreshTimeout: null,
@@ -239,9 +239,9 @@ CssHtmlTree.prototype = {
   
   numVisibleProperties: 0,
 
-  get showOnlyUserStyles()
+  get includeBrowserStyles()
   {
-    return this.onlyUserStylesCheckbox.checked;
+    return this.includeBrowserStylesCheckbox.checked;
   },
 
   
@@ -373,7 +373,8 @@ CssHtmlTree.prototype = {
 
 
 
-  onlyUserStylesChanged: function CssHtmltree_onlyUserStylesChanged(aEvent)
+  includeBrowserStylesChanged:
+  function CssHtmltree_includeBrowserStylesChanged(aEvent)
   {
     this.refreshSourceFilter();
     this.refreshPanel();
@@ -388,9 +389,9 @@ CssHtmlTree.prototype = {
   refreshSourceFilter: function CssHtmlTree_setSourceFilter()
   {
     this._matchedProperties = null;
-    this.cssLogic.sourceFilter = this.showOnlyUserStyles ?
-                                 CssLogic.FILTER.ALL :
-                                 CssLogic.FILTER.UA;
+    this.cssLogic.sourceFilter = this.includeBrowserStyles ?
+                                 CssLogic.FILTER.UA :
+                                 CssLogic.FILTER.ALL;
   },
 
   
@@ -651,8 +652,8 @@ CssHtmlTree.prototype = {
     delete this.viewedElement;
 
     
-    this.onlyUserStylesCheckbox.removeEventListener("command",
-      this.onlyUserStylesChanged);
+    this.includeBrowserStylesCheckbox.removeEventListener("command",
+      this.includeBrowserStylesChanged);
     this.searchField.removeEventListener("command", this.filterChanged);
 
     
@@ -784,7 +785,7 @@ PropertyView.prototype = {
 
   get visible()
   {
-    if (this.tree.showOnlyUserStyles && !this.hasMatchedSelectors) {
+    if (!this.tree.includeBrowserStyles && !this.hasMatchedSelectors) {
       return false;
     }
 
