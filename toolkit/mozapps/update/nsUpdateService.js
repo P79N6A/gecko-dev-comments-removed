@@ -1805,13 +1805,8 @@ UpdateService.prototype = {
     
     
     
-    
-    
-    
-    
     if (isInterruptedUpdate(status)) {
       LOG("UpdateService:_postUpdateProcessing - interrupted update detected - wait for user consent");
-      um.activeUpdate = null;
       return;
     }
 #endif
@@ -2259,8 +2254,14 @@ UpdateService.prototype = {
     
     var um = Cc["@mozilla.org/updates/update-manager;1"].
              getService(Ci.nsIUpdateManager);
-    if (um.activeUpdate)
+    if (um.activeUpdate) {
+#ifdef MOZ_WIDGET_GONK
+      
+      
+      this._showPrompt(um.activeUpdate);
+#endif
       return;
+    }
 
     var update = this.selectUpdate(updates, updates.length);
     if (!update)
@@ -2580,6 +2581,21 @@ UpdateService.prototype = {
       }
       this._downloader.cancel();
     }
+#ifdef MOZ_WIDGET_GONK
+    var um = Cc["@mozilla.org/updates/update-manager;1"].
+             getService(Ci.nsIUpdateManager);
+    var activeUpdate = um.activeUpdate;
+    if (activeUpdate &&
+        (activeUpdate.appVersion != update.appVersion ||
+         activeUpdate.buildID != update.buildID)) {
+      
+      
+      
+      
+      LOG("UpdateService:downloadUpdate - removing stale active update.");
+      cleanupActiveUpdate();
+    }
+#endif
     
     update.previousAppVersion = Services.appinfo.version;
     this._downloader = new Downloader(background, this);
@@ -3418,10 +3434,17 @@ Downloader.prototype = {
       case STATE_DOWNLOADING:
         LOG("Downloader:_selectPatch - resuming download");
         return selectedPatch;
+#ifdef MOZ_WIDGET_GONK
+      case STATE_PENDING:
+      case STATE_APPLYING:
+        LOG("Downloader:_selectPatch - resuming interrupted apply");
+        return selectedPatch;
+#else
       case STATE_PENDING_SVC:
       case STATE_PENDING:
         LOG("Downloader:_selectPatch - already downloaded and staged");
         return null;
+#endif
       default:
         
         
@@ -3540,8 +3563,14 @@ Downloader.prototype = {
       }
       if (patchFile.exists()) {
         LOG("Downloader:downloadUpdate - resuming with patchFile " + patchFile.path);
+        if (patchFile.fileSize == this._patch.size) {
+          LOG("Downloader:downloadUpdate - patchFile appears to be fully downloaded");
+          
+          status = STATE_PENDING;
+        }
       } else {
-        LOG("Downloader:downloadUpdate - patchFile " + patchFile.path + " doesn't exist - performing full download");
+        LOG("Downloader:downloadUpdate - patchFile " + patchFile.path +
+            " doesn't exist - performing full download");
         
         
         patchFile = null;

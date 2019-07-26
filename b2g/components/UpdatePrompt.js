@@ -55,7 +55,11 @@ UpdateCheckListener.prototype = {
   _updatePrompt: null,
 
   onCheckComplete: function UCL_onCheckComplete(request, updates, updateCount) {
-    if (Services.um.activeUpdate) {
+    if (Services.um.activeUpdate && Services.aus.isDownloading) {
+      
+      
+      this._updatePrompt.setUpdateStatus("active-update");
+      this._updatePrompt.showUpdateAvailable(Services.um.activeUpdate);
       return;
     }
 
@@ -177,6 +181,14 @@ UpdatePrompt.prototype = {
   showUpdateError: function UP_showUpdateError(aUpdate) {
     log("Update error, state: " + aUpdate.state + ", errorCode: " +
         aUpdate.errorCode);
+    if (aUpdate.state == "applied" && aUpdate.errorCode == 0) {
+      
+      
+      
+      
+      this.showApplyPrompt(aUpdate);
+      return;
+    }
 
     this.sendUpdateEvent("update-error", aUpdate);
     this.setUpdateStatus(aUpdate.statusText);

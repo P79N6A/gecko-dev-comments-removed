@@ -27,7 +27,14 @@ function run_test() {
 
   standardInit();
 
-  do_check_eq(gUpdateManager.activeUpdate, null);
+  if (IS_TOOLKIT_GONK) {
+    
+    
+    
+    do_check_neq(gUpdateManager.activeUpdate, null);
+  } else {
+    do_check_eq(gUpdateManager.activeUpdate, null);
+  }
   do_check_eq(gUpdateManager.updateCount, 0);
 
   do_test_finished();
