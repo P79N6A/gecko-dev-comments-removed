@@ -7,7 +7,6 @@
 #include "gmock/gmock.h"
 
 #include "mozilla/Attributes.h"
-#include "mozilla/gfx/Tools.h"  
 #include "mozilla/layers/AsyncCompositionManager.h" 
 #include "mozilla/layers/AsyncPanZoomController.h"
 #include "mozilla/layers/LayerManagerComposite.h"
@@ -21,6 +20,7 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
 using ::testing::_;
+using ::testing::NiceMock; 
 
 class MockContentController : public GeckoContentController {
 public:
@@ -151,13 +151,13 @@ ApzcPinch(AsyncPanZoomController* aApzc, int aFocusX, int aFocusY, float aScale)
 
 TEST(AsyncPanZoomController, Constructor) {
   
-  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
   nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(0, mcc);
   apzc->SetFrameMetrics(TestFrameMetrics());
 }
 
 TEST(AsyncPanZoomController, Pinch) {
-  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
   nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(0, mcc);
 
   FrameMetrics fm;
@@ -197,7 +197,7 @@ TEST(AsyncPanZoomController, Pinch) {
 }
 
 TEST(AsyncPanZoomController, Overzoom) {
-  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
   nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(0, mcc);
 
   FrameMetrics fm;
@@ -225,7 +225,7 @@ TEST(AsyncPanZoomController, Overzoom) {
 TEST(AsyncPanZoomController, SimpleTransform) {
   TimeStamp testStartTime = TimeStamp::Now();
   
-  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
   nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(0, mcc);
   apzc->SetFrameMetrics(TestFrameMetrics());
 
@@ -257,7 +257,7 @@ TEST(AsyncPanZoomController, ComplexTransform) {
   
   
 
-  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
   nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(0, mcc);
   nsRefPtr<TestAsyncPanZoomController> childApzc = new TestAsyncPanZoomController(0, mcc);
 
@@ -346,7 +346,7 @@ TEST(AsyncPanZoomController, Pan) {
   TimeStamp testStartTime = TimeStamp::Now();
   AsyncPanZoomController::SetFrameTime(testStartTime);
 
-  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
   nsRefPtr<TestAPZCTreeManager> tm = new TestAPZCTreeManager();
   nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(0, mcc, tm);
 
@@ -379,7 +379,7 @@ TEST(AsyncPanZoomController, Fling) {
   TimeStamp testStartTime = TimeStamp::Now();
   AsyncPanZoomController::SetFrameTime(testStartTime);
 
-  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
   nsRefPtr<TestAPZCTreeManager> tm = new TestAPZCTreeManager();
   nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(0, mcc, tm);
 
@@ -409,7 +409,7 @@ TEST(AsyncPanZoomController, OverScrollPanning) {
   TimeStamp testStartTime = TimeStamp::Now();
   AsyncPanZoomController::SetFrameTime(testStartTime);
 
-  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
   nsRefPtr<TestAPZCTreeManager> tm = new TestAPZCTreeManager();
   nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(0, mcc, tm);
 
@@ -491,20 +491,6 @@ SetScrollableFrameMetrics(Layer* aLayer, FrameMetrics::ViewID aScrollId,
   container->SetFrameMetrics(metrics);
 }
 
-static gfxPoint
-NudgeToIntegers(const gfxPoint& aPoint)
-{
-  
-  
-  
-  
-  float x = aPoint.x;
-  float y = aPoint.y;
-  NudgeToInteger(&x);
-  NudgeToInteger(&y);
-  return gfxPoint(x, y);
-}
-
 static already_AddRefed<AsyncPanZoomController>
 GetTargetAPZC(APZCTreeManager* manager, const ScreenPoint& aPoint,
               gfx3DMatrix& aTransformToApzcOut, gfx3DMatrix& aTransformToGeckoOut)
@@ -524,7 +510,7 @@ TEST(APZCTreeManager, HitTesting1) {
 
   TimeStamp testStartTime = TimeStamp::Now();
   AsyncPanZoomController::SetFrameTime(testStartTime);
-  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
   ScopedLayerTreeRegistration controller(0, root, mcc);
 
   nsRefPtr<APZCTreeManager> manager = new TestAPZCTreeManager();
@@ -596,7 +582,7 @@ TEST(APZCTreeManager, HitTesting2) {
 
   TimeStamp testStartTime = TimeStamp::Now();
   AsyncPanZoomController::SetFrameTime(testStartTime);
-  nsRefPtr<MockContentController> mcc = new MockContentController();
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
   ScopedLayerTreeRegistration controller(0, root, mcc);
 
   nsRefPtr<TestAPZCTreeManager> manager = new TestAPZCTreeManager();
