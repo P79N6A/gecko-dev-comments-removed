@@ -23,6 +23,11 @@ this.EXPORTED_SYMBOLS = ["VariablesView", "create"];
 
 
 
+const STR = Services.strings.createBundle(DBG_STRINGS_URI);
+
+
+
+
 
 
 
@@ -143,6 +148,97 @@ VariablesView.prototype = {
       }
     }.bind(this), aTimeout);
   },
+
+  
+
+
+
+  lazyEmpty: false,
+
+  
+
+
+
+  lazyAppend: true,
+
+  
+
+
+
+
+
+
+  eval: null,
+
+  
+
+
+
+
+
+
+  switch: null,
+
+  
+
+
+
+
+
+
+  delete: null,
+
+  
+
+
+
+
+
+
+  editableValueTooltip: STR.GetStringFromName("variablesEditableValueTooltip"),
+
+  
+
+
+
+
+
+
+  editableNameTooltip: STR.GetStringFromName("variablesEditableNameTooltip"),
+
+  
+
+
+
+
+
+
+  deleteButtonTooltip: STR.GetStringFromName("variablesCloseButtonTooltip"),
+
+  
+
+
+
+
+
+
+  descriptorTooltip: true,
+
+  
+
+
+
+
+
+  contextMenuId: "",
+
+  
+
+
+
+
+
+  separatorStr: STR.GetStringFromName("variablesSeparatorLabel"),
 
   
 
@@ -477,19 +573,14 @@ VariablesView.prototype = {
   _document: null,
   _window: null,
 
-  eval: null,
-  switch: null,
-  delete: null,
-  lazyEmpty: false,
-  lazyAppend: true,
   _store: null,
   _prevHierarchy: null,
   _currHierarchy: null,
+  _enumVisible: true,
+  _nonEnumVisible: true,
   _emptyTimeout: null,
   _searchTimeout: null,
   _searchFunction: null,
-  _enumVisible: true,
-  _nonEnumVisible: true,
   _parent: null,
   _list: null,
   _searchboxNode: null,
@@ -511,6 +602,8 @@ VariablesView.prototype = {
 
 
 function Scope(aView, aName, aFlags = {}) {
+  this.ownerView = aView;
+
   this.expand = this.expand.bind(this);
   this.toggle = this.toggle.bind(this);
   this._openEnum = this._openEnum.bind(this);
@@ -518,10 +611,17 @@ function Scope(aView, aName, aFlags = {}) {
   this._batchAppend = this._batchAppend.bind(this);
   this._batchItems = [];
 
-  this.ownerView = aView;
+  
+  
   this.eval = aView.eval;
   this.switch = aView.switch;
   this.delete = aView.delete;
+  this.editableValueTooltip = aView.editableValueTooltip;
+  this.editableNameTooltip = aView.editableNameTooltip;
+  this.deleteButtonTooltip = aView.deleteButtonTooltip;
+  this.descriptorTooltip = aView.descriptorTooltip;
+  this.contextMenuId = aView.contextMenuId;
+  this.separatorStr = aView.separatorStr;
 
   this._store = new Map();
   this._init(aName.trim(), aFlags);
@@ -632,12 +732,12 @@ Scope.prototype = {
     
     
     if (!this._isExpanding &&
-         this._store.size > LAZY_APPEND_BATCH && this._variablesView.lazyAppend) {
+         this._variablesView.lazyAppend && this._store.size > LAZY_APPEND_BATCH) {
       this._isExpanding = true;
 
       
-      this._startThrobber();
       
+      this._startThrobber();
       this.window.setTimeout(this.expand, LAZY_EXPAND_DELAY);
       return;
     }
@@ -819,36 +919,6 @@ Scope.prototype = {
   removeEventListener: function S_removeEventListener(aName, aCallback, aCapture) {
     this._title.removeEventListener(aName, aCallback, aCapture);
   },
-
-  
-
-
-
-
-  showDescriptorTooltip: true,
-
-  
-
-
-
-  allowNameInput: false,
-
-  
-
-
-
-  allowValueInput: true,
-
-  
-
-
-
-  allowDeletion: false,
-
-  
-
-
-  contextMenu: "",
 
   
 
@@ -1041,7 +1111,7 @@ Scope.prototype = {
     for (let [, variable] of this._store) {
       variable._enumVisible = aFlag;
 
-      if (!this.expanded) {
+      if (!this._isExpanded) {
         continue;
       }
       if (aFlag) {
@@ -1060,7 +1130,7 @@ Scope.prototype = {
     for (let [, variable] of this._store) {
       variable._nonEnumVisible = aFlag;
 
-      if (!this.expanded) {
+      if (!this._isExpanded) {
         continue;
       }
       if (aFlag) {
@@ -1185,6 +1255,13 @@ Scope.prototype = {
   eval: null,
   switch: null,
   delete: null,
+  editableValueTooltip: "",
+  editableNameTooltip: "",
+  deleteButtonTooltip: "",
+  descriptorTooltip: true,
+  contextMenuId: "",
+  separatorStr: "",
+
   _store: null,
   _fetched: false,
   _retrieved: false,
@@ -1385,14 +1462,24 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   
 
 
+
+
+  get symbolicName() this._symbolicName,
+
+  
+
+
+
   get value() this._initialDescriptor.value,
 
   
 
 
+
   get getter() this._initialDescriptor.get,
 
   
+
 
 
   get setter() this._initialDescriptor.set,
@@ -1489,7 +1576,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
     let separatorLabel = this._separatorLabel = document.createElement("label");
     separatorLabel.className = "plain";
-    separatorLabel.setAttribute("value", this.ownerView.separator);
+    separatorLabel.setAttribute("value", this.ownerView.separatorStr);
 
     let valueLabel = this._valueLabel = document.createElement("label");
     valueLabel.className = "plain value";
@@ -1517,14 +1604,14 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
   _customizeVariable: function V__customizeVariable() {
-    if (this.ownerView.allowDeletion) {
-      let closeNode = this._closeNode = this.document.createElement("toolbarbutton");
-      closeNode.className = "plain dbg-variable-delete devtools-closebutton";
-      closeNode.addEventListener("click", this._onClose.bind(this), false);
-      this._title.appendChild(closeNode);
+    if (this.ownerView.delete) {
+      let deleteNode = this._deleteNode = this.document.createElement("toolbarbutton");
+      deleteNode.className = "plain dbg-variable-delete devtools-closebutton";
+      deleteNode.addEventListener("click", this._onDelete.bind(this), false);
+      this._title.appendChild(deleteNode);
     }
-    if (this.ownerView.contextMenu) {
-      this._title.setAttribute("context", this.ownerView.contextMenu);
+    if (this.ownerView.contextMenuId) {
+      this._title.setAttribute("context", this.ownerView.contextMenuId);
     }
   },
 
@@ -1541,7 +1628,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   _displayTooltip: function V__displayTooltip() {
     this._target.removeEventListener("mouseover", this._displayTooltip, false);
 
-    if (this.ownerView.showDescriptorTooltip) {
+    if (this.ownerView.descriptorTooltip) {
       let document = this.document;
 
       let tooltip = document.createElement("tooltip");
@@ -1562,14 +1649,14 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       this._target.appendChild(tooltip);
       this._target.setAttribute("tooltip", tooltip.id);
     }
-    if (this.ownerView.allowNameInput) {
-      this._name.setAttribute("tooltiptext", L10N.getStr("variablesEditableNameTooltip"));
+    if (this.ownerView.eval) {
+      this._valueLabel.setAttribute("tooltiptext", this.ownerView.editableValueTooltip);
     }
-    if (this.ownerView.allowValueInput) {
-      this._valueLabel.setAttribute("tooltiptext", L10N.getStr("variablesEditableValueTooltip"));
+    if (this.ownerView.switch) {
+      this._name.setAttribute("tooltiptext", this.ownerView.editableNameTooltip);
     }
-    if (this.ownerView.allowDeletion) {
-      this._closeNode.setAttribute("tooltiptext", L10N.getStr("variablesCloseButtonTooltip"));
+    if (this.ownerView.delete) {
+      this._deleteNode.setAttribute("tooltiptext", this.ownerView.deleteButtonTooltip);
     }
   },
 
@@ -1578,27 +1665,25 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
   _setAttributes: function V__setAttributes() {
-    let name = this._nameString;
     let descriptor = this._initialDescriptor;
+    let name = this._nameString;
 
-    if (descriptor) {
-      if (!descriptor.configurable) {
-        this._target.setAttribute("non-configurable", "");
-      }
-      if (!descriptor.enumerable) {
-        this._target.setAttribute("non-enumerable", "");
-      }
-      if (!descriptor.writable) {
-        this._target.setAttribute("non-writable", "");
-      }
+    if (!descriptor.configurable) {
+      this._target.setAttribute("non-configurable", "");
+    }
+    if (!descriptor.enumerable) {
+      this._target.setAttribute("non-enumerable", "");
+    }
+    if (!descriptor.writable) {
+      this._target.setAttribute("non-writable", "");
     }
     if (name == "this") {
       this._target.setAttribute("self", "");
     }
-    if (name == "<exception>") {
+    else if (name == "<exception>") {
       this._target.setAttribute("exception", "");
     }
-    if (name == "__proto__") {
+    else if (name == "__proto__") {
       this._target.setAttribute("proto", "");
     }
   },
@@ -1684,7 +1769,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       
       return;
     }
-    if (!this.ownerView.allowNameInput || !this.switch) {
+    if (!this.ownerView.switch) {
       return;
     }
     this._activateInput(this._name, "element-name-input", {
@@ -1715,7 +1800,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       
       return;
     }
-    if (!this.ownerView.allowValueInput || !this.eval) {
+    if (!this.ownerView.eval) {
       return;
     }
     this._activateInput(this._valueLabel, "element-value-input", {
@@ -1757,7 +1842,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     if (initialString != currentString) {
       this._disable();
       this._name.value = currentString;
-      this.switch(this, currentString);
+      this.ownerView.switch(this, currentString);
     }
   },
 
@@ -1772,7 +1857,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
     if (initialString != currentString) {
       this._disable();
-      this.eval(this._symbolicName + "=" + currentString);
+      this.ownerView.eval(this._symbolicName + "=" + currentString);
     }
   },
 
@@ -1809,11 +1894,11 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   
 
 
-  _onClose: function V__onClose() {
+  _onDelete: function V__onDelete() {
     this.hide();
 
-    if (this.delete) {
-      this.delete(this);
+    if (this.ownerView.delete) {
+      this.ownerView.delete(this);
     }
   },
 
@@ -1822,7 +1907,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   _initialDescriptor: null,
   _separatorLabel: null,
   _valueLabel: null,
-  _closeNode: null,
+  _deleteNode: null,
   _tooltip: null,
   _valueGrip: null,
   _valueString: "",
@@ -2155,31 +2240,6 @@ VariablesView.getClass = function VV_getClass(aGrip) {
   }
   return "token-other";
 };
-
-
-
-
-let L10N = {
-  
-
-
-
-
-
-  getStr: function L10N_getStr(aName) {
-    return this.stringBundle.GetStringFromName(aName);
-  }
-};
-
-XPCOMUtils.defineLazyGetter(L10N, "stringBundle", function() {
-  return Services.strings.createBundle(DBG_STRINGS_URI);
-});
-
-
-
-
-
-Scope.prototype.separator = L10N.getStr("variablesSeparatorLabel");
 
 
 
