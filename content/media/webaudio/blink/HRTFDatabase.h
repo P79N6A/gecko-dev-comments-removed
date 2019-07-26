@@ -29,21 +29,17 @@
 #ifndef HRTFDatabase_h
 #define HRTFDatabase_h
 
-#include "core/platform/audio/HRTFElevation.h"
-#include <wtf/Forward.h>
-#include <wtf/Noncopyable.h>
-#include <wtf/OwnPtr.h>
-#include <wtf/PassRefPtr.h>
-#include <wtf/Vector.h>
+#include "HRTFElevation.h"
+#include "nsAutoRef.h"
+#include "nsTArray.h"
 
 namespace WebCore {
 
 class HRTFKernel;
 
 class HRTFDatabase {
-    WTF_MAKE_NONCOPYABLE(HRTFDatabase);
 public:
-    static PassOwnPtr<HRTFDatabase> create(float sampleRate);
+    static nsReturnRef<HRTFDatabase> create(float sampleRate);
 
     
     
@@ -59,9 +55,10 @@ public:
     
     static const unsigned NumberOfRawElevations;
 
-    void reportMemoryUsage(MemoryObjectInfo*) const;
-
 private:
+    HRTFDatabase(const HRTFDatabase& other) MOZ_DELETE;
+    void operator=(const HRTFDatabase& other) MOZ_DELETE;
+
     explicit HRTFDatabase(float sampleRate);
 
     
@@ -78,10 +75,17 @@ private:
     
     static unsigned indexFromElevationAngle(double);
 
-    Vector<OwnPtr<HRTFElevation> > m_elevations;                                            
+    nsTArray<nsAutoRef<HRTFElevation> > m_elevations;
     float m_sampleRate;
 };
 
 } 
+
+template <>
+class nsAutoRefTraits<WebCore::HRTFDatabase> :
+    public nsPointerRefTraits<WebCore::HRTFDatabase> {
+public:
+    static void Release(WebCore::HRTFDatabase* ptr) { delete(ptr); }
+};
 
 #endif 

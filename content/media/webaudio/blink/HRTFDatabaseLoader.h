@@ -29,24 +29,23 @@
 #ifndef HRTFDatabaseLoader_h
 #define HRTFDatabaseLoader_h
 
-#include "core/platform/audio/HRTFDatabase.h"
-#include "wtf/HashMap.h"
-#include "wtf/PassRefPtr.h"
-#include "wtf/RefCounted.h"
-#include "wtf/RefPtr.h"
-#include "wtf/Threading.h"
+#include "HRTFDatabase.h"
+#include "nsTHashtable.h"
+#include "mozilla/RefPtr.h"
+#include "nsIThread.h"
+#include "mozilla/Mutex.h"
 
 namespace WebCore {
 
 
 
-class HRTFDatabaseLoader : public RefCounted<HRTFDatabaseLoader> {
+class HRTFDatabaseLoader : public mozilla::RefCounted<HRTFDatabaseLoader> {
 public:
     
     
     
     
-    static PassRefPtr<HRTFDatabaseLoader> createAndLoadAsynchronouslyIfNecessary(float sampleRate);
+    static mozilla::TemporaryRef<HRTFDatabaseLoader> createAndLoadAsynchronouslyIfNecessary(float sampleRate);
 
     
     ~HRTFDatabaseLoader();
@@ -54,6 +53,7 @@ public:
     
     bool isLoaded() const;
 
+    
     
     void waitForLoaderThreadCompletion();
     
@@ -64,8 +64,6 @@ public:
     
     void load();
 
-    void reportMemoryUsage(MemoryObjectInfo*) const;
-
 private:
     
     explicit HRTFDatabaseLoader(float sampleRate);
@@ -75,16 +73,23 @@ private:
     void loadAsynchronously();
 
     
-    typedef HashMap<double, HRTFDatabaseLoader*> LoaderMap;
+    class LoaderByRateEntry : public nsFloatHashKey {
+    public:
+        LoaderByRateEntry(KeyTypePointer aKey)
+            : nsFloatHashKey(aKey)
+            , mLoader() 
+        {
+        }
+        HRTFDatabaseLoader* mLoader;
+    };
+    
+    static nsTHashtable<LoaderByRateEntry> *s_loaderMap; 
+
+    nsAutoRef<HRTFDatabase> m_hrtfDatabase;
 
     
-    static LoaderMap* s_loaderMap; 
-
-    OwnPtr<HRTFDatabase> m_hrtfDatabase;
-
-    
-    Mutex m_threadLock;
-    ThreadIdentifier m_databaseLoaderThread;
+    mozilla::Mutex m_threadLock;
+    PRThread* m_databaseLoaderThread;
 
     float m_databaseSampleRate;
 };
