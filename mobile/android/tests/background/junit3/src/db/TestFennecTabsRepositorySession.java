@@ -9,12 +9,15 @@ import org.mozilla.gecko.background.sync.helpers.ExpectFetchDelegate;
 import org.mozilla.gecko.background.sync.helpers.SessionTestHelper;
 import org.mozilla.gecko.background.testhelpers.MockClientsDataDelegate;
 import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.db.BrowserContract.Clients;
 import org.mozilla.gecko.sync.repositories.NoContentProviderException;
 import org.mozilla.gecko.sync.repositories.RepositorySession;
 import org.mozilla.gecko.sync.repositories.android.BrowserContractHelpers;
+import org.mozilla.gecko.sync.repositories.android.ClientsDatabaseAccessor;
 import org.mozilla.gecko.sync.repositories.android.FennecTabsRepository;
 import org.mozilla.gecko.sync.repositories.android.FennecTabsRepository.FennecTabsRepositorySession;
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionCreationDelegate;
+import org.mozilla.gecko.sync.repositories.domain.ClientRecord;
 import org.mozilla.gecko.sync.repositories.domain.Record;
 import org.mozilla.gecko.sync.repositories.domain.TabsRecord;
 
@@ -28,10 +31,14 @@ public class TestFennecTabsRepositorySession extends AndroidSyncTestCase {
   public static final MockClientsDataDelegate clientsDataDelegate = new MockClientsDataDelegate();
   public static final String TEST_CLIENT_GUID = clientsDataDelegate.getAccountGUID();
   public static final String TEST_CLIENT_NAME = clientsDataDelegate.getClientName();
+  public static final String TEST_CLIENT_DEVICE_TYPE = "phablet";
 
   
   public static final String TEST_TABS_CLIENT_GUID_IS_LOCAL_SELECTION = BrowserContract.Tabs.CLIENT_GUID + " IS ?";
   public static final String[] TEST_TABS_CLIENT_GUID_IS_LOCAL_SELECTION_ARGS = new String[] { TEST_CLIENT_GUID };
+
+  public static final String TEST_CLIENTS_GUID_IS_LOCAL_SELECTION = BrowserContract.Clients.GUID + " IS ?";
+  public static final String[] TEST_CLIENTS_GUID_IS_LOCAL_SELECTION_ARGS = new String[] { TEST_CLIENT_GUID };
 
   protected ContentProviderClient tabsClient = null;
 
@@ -214,5 +221,56 @@ public class TestFennecTabsRepositorySession extends AndroidSyncTestCase {
     performWait(fetchSinceRunnable(session, now, new Record[] { tabsRecord }));
 
     session.abort();
+  }
+
+  
+  
+  public void testStore() throws NoContentProviderException, RemoteException {
+    
+    final TabsRecord tabsRecord = insertTestTabsAndExtractTabsRecord();
+    deleteAllTestTabs(tabsClient);
+
+    final ContentResolver cr = getApplicationContext().getContentResolver();
+    final ContentProviderClient clientsClient = cr.acquireContentProviderClient(BrowserContractHelpers.CLIENTS_CONTENT_URI);
+
+    try {
+      
+      clientsClient.delete(BrowserContractHelpers.CLIENTS_CONTENT_URI, null, null);
+
+      
+      final ClientsDatabaseAccessor db = new ClientsDatabaseAccessor(getApplicationContext());
+      try {
+        ClientRecord clientRecord = new ClientRecord(TEST_CLIENT_GUID);
+        clientRecord.name = TEST_CLIENT_NAME;
+        clientRecord.type = TEST_CLIENT_DEVICE_TYPE;
+        db.store(clientRecord);
+      } finally {
+        db.close();
+      }
+
+      final FennecTabsRepositorySession session = createAndBeginSession();
+      performWait(AndroidBrowserRepositoryTestCase.storeRunnable(session, tabsRecord));
+
+      session.abort();
+
+      
+      final Cursor cursor = clientsClient.query(BrowserContractHelpers.CLIENTS_CONTENT_URI, null,
+          TEST_CLIENTS_GUID_IS_LOCAL_SELECTION, TEST_CLIENTS_GUID_IS_LOCAL_SELECTION_ARGS, null);
+      assertNotNull(cursor);
+
+      try {
+        assertTrue(cursor.moveToFirst());
+        assertEquals(TEST_CLIENT_GUID, cursor.getString(cursor.getColumnIndex(Clients.GUID)));
+        assertEquals(TEST_CLIENT_NAME, cursor.getString(cursor.getColumnIndex(Clients.NAME)));
+        assertEquals(TEST_CLIENT_DEVICE_TYPE, cursor.getString(cursor.getColumnIndex(Clients.DEVICE_TYPE)));
+        assertTrue(cursor.isLast());
+      } finally {
+        cursor.close();
+      }
+    } finally {
+      
+      clientsClient.delete(BrowserContractHelpers.CLIENTS_CONTENT_URI, null, null);
+      clientsClient.release();
+    }
   }
 }
