@@ -85,8 +85,7 @@ public:
 
   
   static void GetListItemSuffix(int32_t aListStyleType,
-                                nsString& aResult,
-                                bool& aSuppressPadding);
+                                nsString& aResult);
 
   
   void GetListItemText(const nsStyleList& aStyleList, nsString& aResult);
@@ -124,13 +123,6 @@ protected:
 
   nsSize mIntrinsicSize;
   int32_t mOrdinal;
-  bool mTextIsRTL;
-
-  
-  
-  
-  
-  bool mSuppressPadding;
 
 private:
 
