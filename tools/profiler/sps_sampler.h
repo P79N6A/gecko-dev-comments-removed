@@ -178,8 +178,13 @@ JSObject *mozilla_sampler_get_profile_data(JSContext *aCx);
 const char** mozilla_sampler_get_features();
 void mozilla_sampler_init();
 void mozilla_sampler_shutdown();
-
 void mozilla_sampler_print_location();
+
+
+
+void mozilla_sampler_lock();
+
+void mozilla_sampler_unlock();
 
 namespace mozilla {
 
