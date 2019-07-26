@@ -1467,7 +1467,7 @@ BluetoothOppManager::OnSocketConnectError(BluetoothSocket* aSocket)
   }
 
   
-  if (!ProcessNextBatch()) {
+  if (!ProcessNextBatch() && !mIsServer) {
     Listen();
   }
 }
