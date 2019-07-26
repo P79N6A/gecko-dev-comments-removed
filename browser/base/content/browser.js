@@ -784,8 +784,7 @@ var gBrowserInit = {
     gPageStyleMenu.init();
     LanguageDetectionListener.init();
 
-    let mm = window.getGroupMessageManager("browsers");
-    mm.loadFrameScript("chrome://browser/content/content.js", true);
+    messageManager.loadFrameScript("chrome://browser/content/content.js", true);
 
     
     
@@ -1128,6 +1127,18 @@ var gBrowserInit = {
         Cu.reportError(ex);
       }
     }, 10000);
+
+    
+    
+    
+    
+    setTimeout(function() {
+      try {
+        Services.logins;
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
+    }, 3000);
 
     
     
