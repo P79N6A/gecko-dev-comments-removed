@@ -88,8 +88,15 @@ public class ActivityUtils {
 
   public static void linkTextView(TextView view, int text, int link) {
     final Context context = view.getContext();
-    final String url = context.getString(link);
-    view.setText("<a href=\"" + url + "\">" + context.getString(text) + "</a>");
+    linkTextView(view, context.getString(text), context.getString(link));
+  }
+
+  
+
+
+
+  public static void linkTextView(TextView view, String text, String url) {
+    view.setText("<a href=\"" + url + "\">" + text + "</a>");
     linkifyTextView(view, false);
   }
 
