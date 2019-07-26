@@ -528,6 +528,10 @@ public:
   
   void ClearSdpParseErrorMessages();
 
+  void OnAddIceCandidateError() {
+    ++mAddCandidateErrorCount;
+  }
+
   
   const std::vector<std::string> &GetSdpParseErrors();
 
@@ -707,6 +711,7 @@ private:
 
   
   std::vector<std::string> mSDPParseErrorMessages;
+  unsigned int mAddCandidateErrorCount;
 
   bool mTrickle;
 
