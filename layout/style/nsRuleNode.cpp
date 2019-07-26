@@ -6613,12 +6613,6 @@ nsRuleNode::ComputeTableData(void* aStartStruct,
               NS_STYLE_TABLE_LAYOUT_AUTO, 0, 0, 0, 0);
 
   
-  const nsCSSValue* colsValue = aRuleData->ValueForCols();
-  if (eCSSUnit_Enumerated == colsValue->GetUnit() ||
-      eCSSUnit_Integer == colsValue->GetUnit())
-    table->mCols = colsValue->GetIntValue();
-
-  
   const nsCSSValue* spanValue = aRuleData->ValueForSpan();
   if (eCSSUnit_Enumerated == spanValue->GetUnit() ||
       eCSSUnit_Integer == spanValue->GetUnit())
