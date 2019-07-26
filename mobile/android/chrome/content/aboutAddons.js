@@ -228,12 +228,12 @@ var Addons = {
   },
 
   getAddons: function getAddons() {
-    
-    let list = document.getElementById("addons-list");
-    list.innerHTML = "";
-
     let self = this;
     AddonManager.getAddonsByTypes(["extension", "theme", "locale"], function(aAddons) {
+      
+      let list = document.getElementById("addons-list");
+      list.innerHTML = "";
+
       for (let i=0; i<aAddons.length; i++) {
         let item = self._createItemForAddon(aAddons[i]);
         list.appendChild(item);
