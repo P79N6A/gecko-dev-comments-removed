@@ -90,14 +90,24 @@
              return INVALID_HANDLE;
            }
          return ctypes.CDataFinalizer(maybe, _CloseHandle);
-         };
+       };
 
        
 
 
 
        Types.maybe_find_HANDLE =
-         Types.maybe_HANDLE.withName("maybe_find_HANDLE");
+         Types.HANDLE.withName("maybe_find_HANDLE");
+       Types.maybe_find_HANDLE.importFromC =
+         function maybe_find_HANDLE_importFromC(maybe) {
+           if (Types.int.cast(maybe).value == INVALID_HANDLE) {
+             
+             
+             
+             return INVALID_HANDLE;
+           }
+         return ctypes.CDataFinalizer(maybe, _FindClose);
+       };
 
        let INVALID_HANDLE = exports.OS.Constants.Win.INVALID_HANDLE_VALUE;
 
@@ -187,7 +197,7 @@
        };
 
        let _FindClose =
-         libc.declare("CloseHandle", ctypes.winapi_abi,
+         libc.declare("FindClose", ctypes.winapi_abi,
                         ctypes.bool,
                          ctypes.voidptr_t);
 
