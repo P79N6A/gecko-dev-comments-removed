@@ -1377,7 +1377,11 @@ nsObjectLoadingContent::UpdateObjectParameters()
   
   
   bool useChannel = mChannelLoaded && !(retval & eParamChannelChanged);
-  if (mChannel && useChannel) {
+  
+  
+  bool newChannel = useChannel && mType == eType_Loading;
+
+  if (newChannel && mChannel) {
     nsCString channelType;
     rv = mChannel->GetContentType(channelType);
     if (NS_FAILED(rv)) {
@@ -1465,11 +1469,8 @@ nsObjectLoadingContent::UpdateObjectParameters()
         stateInvalid = true;
       }
     }
-  }
-
-  if (useChannel && !mChannel) {
-    
-    
+  } else if (newChannel) {
+    LOG(("OBJLC [%p]: We failed to open a channel, marking invalid", this));
     stateInvalid = true;
   }
 
@@ -1491,7 +1492,7 @@ nsObjectLoadingContent::UpdateObjectParameters()
   if (stateInvalid) {
     newType = eType_Null;
     newMime.Truncate();
-  } else if (useChannel) {
+  } else if (newChannel) {
       
       newType = GetTypeOfContent(newMime);
       LOG(("OBJLC [%p]: Using channel type", this));
@@ -1507,6 +1508,22 @@ nsObjectLoadingContent::UpdateObjectParameters()
     
     
     newType = eType_Null;
+  }
+
+  
+  
+  
+
+  if (useChannel && newType == eType_Loading) {
+    
+    
+    newType = mType;
+    newMime = mContentType;
+    newURI = mURI;
+  } else if (useChannel && !newChannel) {
+    
+    retval = (ParameterUpdateFlags)(retval | eParamChannelChanged);
+    useChannel = false;
   }
 
   
@@ -1546,6 +1563,13 @@ nsObjectLoadingContent::UpdateObjectParameters()
     LOG(("OBJLC [%p]: Object effective mime type changed (%s -> %s)",
          this, mContentType.get(), newMime.get()));
     mContentType = newMime;
+  }
+
+  
+  
+  if (useChannel && !newChannel && (retval & eParamStateChanged)) {
+    mType = eType_Loading;
+    retval = (ParameterUpdateFlags)(retval | eParamChannelChanged);
   }
 
   return retval;
