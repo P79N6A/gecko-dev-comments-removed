@@ -1923,6 +1923,10 @@ MToDouble::foldsTo(bool useValueNumbers)
         }
     }
 
+    
+    if (input()->isToInt32())
+        replaceOperand(0, input()->getOperand(0));
+
     return this;
 }
 
