@@ -2047,9 +2047,19 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
     if (mCachedContentBoxCrossSize == NS_AUTOHEIGHT) {
       
+      
+      nscoord minCrossSize =
+        axisTracker.GetCrossComponent(nsSize(aReflowState.mComputedMinWidth,
+                                             aReflowState.mComputedMinHeight));
+      nscoord maxCrossSize =
+        axisTracker.GetCrossComponent(nsSize(aReflowState.mComputedMaxWidth,
+                                             aReflowState.mComputedMaxHeight));
       mCachedContentBoxCrossSize =
-        lineCrossAxisPosnTracker.GetLineCrossSize();
-    } else {
+        NS_CSS_MINMAX(lineCrossAxisPosnTracker.GetLineCrossSize(),
+                      minCrossSize, maxCrossSize);
+    }
+    if (lineCrossAxisPosnTracker.GetLineCrossSize() !=
+        mCachedContentBoxCrossSize) {
       
       
       
