@@ -64,6 +64,7 @@ namespace mozilla {
         class GLScreenBuffer;
         class TextureGarbageBin;
         class GLBlitHelper;
+        class GLBlitTextureImageHelper;
     }
 
     namespace layers {
@@ -2787,34 +2788,6 @@ public:
 
 
 
-    void BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
-                          TextureImage *aDst, const nsIntRect& aDstRect);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2943,16 +2916,13 @@ protected:
 #endif
     bool mFlipped;
 
-    
-    GLuint mBlitProgram, mBlitFramebuffer;
-    void UseBlitProgram();
-    void SetBlitFramebufferForDestTexture(GLuint aTexture);
-
     ScopedDeletePtr<GLBlitHelper> mBlitHelper;
+    ScopedDeletePtr<GLBlitTextureImageHelper> mBlitTextureImageHelper;
 
 public:
 
     GLBlitHelper* BlitHelper();
+    GLBlitTextureImageHelper* BlitTextureImageHelper();
 
     
     bool SharesWith(const GLContext* other) const {
