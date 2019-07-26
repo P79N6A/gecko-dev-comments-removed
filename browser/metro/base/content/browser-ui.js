@@ -788,7 +788,7 @@ var BrowserUI = {
 
     
     if (Elements.urlbarState.getAttribute("mode") != "edit") {
-      this._editURI(true, touchEvent);
+      this._editURI(true);
       if (touchEvent) {
         SelectionHelperUI.attachEditSession(ChromeSelectionHandler,
                                             aEvent.clientX, aEvent.clientY);
@@ -803,7 +803,7 @@ var BrowserUI = {
     }
   },
 
-  _editURI: function _editURI(aEvent, aShouldDismiss) {
+  _editURI: function _editURI(aShouldDismiss) {
     this._edit.focus();
     this._edit.select();
 
