@@ -676,21 +676,13 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
   if (aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
     computedSize.height = prefSize.height;
     
-    
-    nscoord outsideBoxSizing = 0;
-    switch (GetStylePosition()->mBoxSizing) {
-      case NS_STYLE_BOX_SIZING_CONTENT:
-        outsideBoxSizing = aReflowState.mComputedBorderPadding.TopBottom();
-        
-      case NS_STYLE_BOX_SIZING_PADDING:
-        outsideBoxSizing -= aReflowState.mComputedPadding.TopBottom();
-        break;
-    }
-    computedSize.height -= outsideBoxSizing;
+    nscoord verticalBorderPadding =
+      aReflowState.mComputedBorderPadding.TopBottom();
+    nscoord contentHeight = computedSize.height - verticalBorderPadding;
     
     
-    computedSize.height = aReflowState.ApplyMinMaxHeight(computedSize.height);
-    computedSize.height += outsideBoxSizing;
+    computedSize.height = aReflowState.ApplyMinMaxHeight(contentHeight) +
+                          verticalBorderPadding;
   } else {
     computedSize.height += m.top + m.bottom;
   }
