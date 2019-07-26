@@ -32,8 +32,8 @@ nsBaseContentStream::DispatchCallback(bool async)
 
 
 
-NS_IMPL_THREADSAFE_ADDREF(nsBaseContentStream)
-NS_IMPL_THREADSAFE_RELEASE(nsBaseContentStream)
+NS_IMPL_ADDREF(nsBaseContentStream)
+NS_IMPL_RELEASE(nsBaseContentStream)
 
 
 NS_INTERFACE_MAP_BEGIN(nsBaseContentStream)

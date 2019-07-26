@@ -1514,11 +1514,11 @@ nsHttpConnection::SetupProxyConnect()
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS4(nsHttpConnection,
-                              nsIInputStreamCallback,
-                              nsIOutputStreamCallback,
-                              nsITransportEventSink,
-                              nsIInterfaceRequestor)
+NS_IMPL_ISUPPORTS4(nsHttpConnection,
+                   nsIInputStreamCallback,
+                   nsIOutputStreamCallback,
+                   nsITransportEventSink,
+                   nsIInterfaceRequestor)
 
 
 

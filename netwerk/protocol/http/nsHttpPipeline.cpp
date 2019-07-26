@@ -161,8 +161,8 @@ nsHttpPipeline::QueryPipeline()
 
 
 
-NS_IMPL_THREADSAFE_ADDREF(nsHttpPipeline)
-NS_IMPL_THREADSAFE_RELEASE(nsHttpPipeline)
+NS_IMPL_ADDREF(nsHttpPipeline)
+NS_IMPL_RELEASE(nsHttpPipeline)
 
 
 NS_INTERFACE_MAP_BEGIN(nsHttpPipeline)

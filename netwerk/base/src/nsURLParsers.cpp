@@ -32,11 +32,8 @@ CountConsecutiveSlashes(const char *str, int32_t len)
 
 
 
-
-
-
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsAuthURLParser, nsIURLParser)
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsNoAuthURLParser, nsIURLParser)
+NS_IMPL_ISUPPORTS1(nsAuthURLParser, nsIURLParser)
+NS_IMPL_ISUPPORTS1(nsNoAuthURLParser, nsIURLParser)
 
 #define SET_RESULT(component, pos, len) \
     PR_BEGIN_MACRO \
