@@ -691,7 +691,6 @@
     lineno  = 1;
     buf[0]  = 0;
     start   = 0;
-    end     = 0;
     avail   = 0;
     cursor  = 0;
     refill  = 1;
@@ -1409,7 +1408,7 @@
 
     
     
-    if ( ft_memcmp( name, "COMMENT", 7 ) != 0 )
+    if ( ft_strncmp( name, "COMMENT", 7 ) != 0 )
     {
       
       error = hash_insert( fp->name,
@@ -1427,13 +1426,13 @@
     
     
     
-    if ( ft_memcmp( name, "DEFAULT_CHAR", 12 ) == 0 )
+    if ( ft_strncmp( name, "DEFAULT_CHAR", 12 ) == 0 )
       font->default_char = fp->value.l;
-    else if ( ft_memcmp( name, "FONT_ASCENT", 11 ) == 0 )
+    else if ( ft_strncmp( name, "FONT_ASCENT", 11 ) == 0 )
       font->font_ascent = fp->value.l;
-    else if ( ft_memcmp( name, "FONT_DESCENT", 12 ) == 0 )
+    else if ( ft_strncmp( name, "FONT_DESCENT", 12 ) == 0 )
       font->font_descent = fp->value.l;
-    else if ( ft_memcmp( name, "SPACING", 7 ) == 0 )
+    else if ( ft_strncmp( name, "SPACING", 7 ) == 0 )
     {
       if ( !fp->value.atom )
       {
@@ -1491,7 +1490,7 @@
     memory = font->memory;
 
     
-    if ( ft_memcmp( line, "COMMENT", 7 ) == 0 )
+    if ( ft_strncmp( line, "COMMENT", 7 ) == 0 )
     {
       linelen -= 7;
 
@@ -1508,7 +1507,7 @@
     
     if ( !( p->flags & _BDF_GLYPHS ) )
     {
-      if ( ft_memcmp( line, "CHARS", 5 ) != 0 )
+      if ( ft_strncmp( line, "CHARS", 5 ) != 0 )
       {
         FT_ERROR(( "_bdf_parse_glyphs: " ERRMSG1, lineno, "CHARS" ));
         error = FT_THROW( Missing_Chars_Field );
@@ -1542,7 +1541,7 @@
     }
 
     
-    if ( ft_memcmp( line, "ENDFONT", 7 ) == 0 )
+    if ( ft_strncmp( line, "ENDFONT", 7 ) == 0 )
     {
       
       ft_qsort( (char *)font->glyphs,
@@ -1556,7 +1555,7 @@
     }
 
     
-    if ( ft_memcmp( line, "ENDCHAR", 7 ) == 0 )
+    if ( ft_strncmp( line, "ENDCHAR", 7 ) == 0 )
     {
       p->glyph_enc = 0;
       p->flags    &= ~_BDF_GLYPH_BITS;
@@ -1572,7 +1571,7 @@
       goto Exit;
 
     
-    if ( ft_memcmp( line, "STARTCHAR", 9 ) == 0 )
+    if ( ft_strncmp( line, "STARTCHAR", 9 ) == 0 )
     {
       
       
@@ -1606,7 +1605,7 @@
     }
 
     
-    if ( ft_memcmp( line, "ENCODING", 8 ) == 0 )
+    if ( ft_strncmp( line, "ENCODING", 8 ) == 0 )
     {
       if ( !( p->flags & _BDF_GLYPH ) )
       {
@@ -1792,7 +1791,7 @@
     }
 
     
-    if ( ft_memcmp( line, "SWIDTH", 6 ) == 0 )
+    if ( ft_strncmp( line, "SWIDTH", 6 ) == 0 )
     {
       if ( !( p->flags & _BDF_ENCODING ) )
         goto Missing_Encoding;
@@ -1808,7 +1807,7 @@
     }
 
     
-    if ( ft_memcmp( line, "DWIDTH", 6 ) == 0 )
+    if ( ft_strncmp( line, "DWIDTH", 6 ) == 0 )
     {
       if ( !( p->flags & _BDF_ENCODING ) )
         goto Missing_Encoding;
@@ -1836,7 +1835,7 @@
     }
 
     
-    if ( ft_memcmp( line, "BBX", 3 ) == 0 )
+    if ( ft_strncmp( line, "BBX", 3 ) == 0 )
     {
       if ( !( p->flags & _BDF_ENCODING ) )
         goto Missing_Encoding;
@@ -1904,7 +1903,7 @@
     }
 
     
-    if ( ft_memcmp( line, "BITMAP", 6 ) == 0 )
+    if ( ft_strncmp( line, "BITMAP", 6 ) == 0 )
     {
       unsigned long  bitmap_size;
 
@@ -1979,7 +1978,7 @@
     p    = (_bdf_parse_t *)    client_data;
 
     
-    if ( ft_memcmp( line, "ENDPROPERTIES", 13 ) == 0 )
+    if ( ft_strncmp( line, "ENDPROPERTIES", 13 ) == 0 )
     {
       
       
@@ -2020,12 +2019,12 @@
     }
 
     
-    if ( ft_memcmp( line, "_XFREE86_GLYPH_RANGES", 21 ) == 0 )
+    if ( ft_strncmp( line, "_XFREE86_GLYPH_RANGES", 21 ) == 0 )
       goto Exit;
 
     
     
-    if ( ft_memcmp( line, "COMMENT", 7 ) == 0 )
+    if ( ft_strncmp( line, "COMMENT", 7 ) == 0 )
     {
       name = value = line;
       value += 7;
@@ -2089,7 +2088,7 @@
 
     
     
-    if ( ft_memcmp( line, "COMMENT", 7 ) == 0 )
+    if ( ft_strncmp( line, "COMMENT", 7 ) == 0 )
     {
       if ( p->opts->keep_comments != 0 && p->font != 0 )
       {
@@ -2115,7 +2114,7 @@
     {
       memory = p->memory;
 
-      if ( ft_memcmp( line, "STARTFONT", 9 ) != 0 )
+      if ( ft_strncmp( line, "STARTFONT", 9 ) != 0 )
       {
         
         
@@ -2163,7 +2162,7 @@
     }
 
     
-    if ( ft_memcmp( line, "STARTPROPERTIES", 15 ) == 0 )
+    if ( ft_strncmp( line, "STARTPROPERTIES", 15 ) == 0 )
     {
       if ( !( p->flags & _BDF_FONT_BBX ) )
       {
@@ -2192,7 +2191,7 @@
     }
 
     
-    if ( ft_memcmp( line, "FONTBOUNDINGBOX", 15 ) == 0 )
+    if ( ft_strncmp( line, "FONTBOUNDINGBOX", 15 ) == 0 )
     {
       if ( !( p->flags & _BDF_SIZE ) )
       {
@@ -2223,7 +2222,7 @@
     }
 
     
-    if ( ft_memcmp( line, "FONT", 4 ) == 0 )
+    if ( ft_strncmp( line, "FONT", 4 ) == 0 )
     {
       error = _bdf_list_split( &p->list, (char *)" +", line, linelen );
       if ( error )
@@ -2258,7 +2257,7 @@
     }
 
     
-    if ( ft_memcmp( line, "SIZE", 4 ) == 0 )
+    if ( ft_strncmp( line, "SIZE", 4 ) == 0 )
     {
       if ( !( p->flags & _BDF_FONT_NAME ) )
       {
@@ -2312,7 +2311,7 @@
     }
 
     
-    if ( ft_memcmp( line, "CHARS", 5 ) == 0 )
+    if ( ft_strncmp( line, "CHARS", 5 ) == 0 )
     {
       char  nbuf[128];
 
@@ -2376,8 +2375,8 @@
     unsigned long  lineno = 0; 
     _bdf_parse_t   *p     = NULL;
 
-    FT_Memory      memory = extmemory;
-    FT_Error       error  = FT_Err_Ok;
+    FT_Memory  memory = extmemory; 
+    FT_Error   error  = FT_Err_Ok;
 
 
     if ( FT_NEW( p ) )
@@ -2399,7 +2398,6 @@
     {
       
       
-      memory = p->font->memory;
 
       if ( p->font->spacing != BDF_PROPORTIONAL )
         p->font->monowidth = p->font->bbx.width;

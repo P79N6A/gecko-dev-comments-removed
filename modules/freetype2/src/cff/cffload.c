@@ -689,6 +689,13 @@
       if ( FT_READ_USHORT( num_ranges ) )
         goto Exit;
 
+      if ( !num_ranges )
+      {
+        FT_TRACE0(( "CFF_Load_FD_Select: empty FDSelect array\n" ));
+        error = FT_THROW( Invalid_File_Format );
+        goto Exit;
+      }
+
       fdselect->data_size = num_ranges * 3 + 2;
 
     Load_Data:
@@ -750,7 +757,7 @@
 
             
             fdselect->cache_first = first;
-            fdselect->cache_count = limit-first;
+            fdselect->cache_count = limit - first;
             fdselect->cache_fd    = fd2;
             break;
           }

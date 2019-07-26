@@ -386,7 +386,7 @@ FT_BEGIN_HEADER
     __asm__ __volatile__ (
       "smull  %1, %2, %4, %3\n\t"       
       "mov    %0, %2, asr #31\n\t"      
-#ifdef __clang__
+#if defined( __clang__ ) && defined( __thumb2__ )
       "add.w  %0, %0, #0x8000\n\t"      
 #else
       "add    %0, %0, #0x8000\n\t"      

@@ -743,8 +743,8 @@
 
       root->face_index = face_index;
 
-      root->face_flags = FT_FACE_FLAG_FIXED_SIZES |
-                         FT_FACE_FLAG_HORIZONTAL;
+      root->face_flags |= FT_FACE_FLAG_FIXED_SIZES |
+                          FT_FACE_FLAG_HORIZONTAL;
 
       if ( font->header.avg_width == font->header.max_width )
         root->face_flags |= FT_FACE_FLAG_FIXED_WIDTH;
@@ -977,7 +977,7 @@
 
     font = face->font;
 
-    if ( !font ||
+    if ( !font                                                   ||
          glyph_index >= (FT_UInt)( FT_FACE( face )->num_glyphs ) )
     {
       error = FT_THROW( Invalid_Argument );
@@ -995,10 +995,20 @@
     len        = new_format ? 6 : 4;
 
     
-    p = font->fnt_frame + ( new_format ? 148 : 118 ) + len * glyph_index;
+    offset = ( new_format ? 148 : 118 ) + len * glyph_index;
+
+    if ( offset >= font->header.file_size - 2 - ( new_format ? 4 : 2 ) )
+    {
+      FT_TRACE2(( "invalid FNT offset\n" ));
+      error = FT_THROW( Invalid_File_Format );
+      goto Exit;
+    }
+
+    p = font->fnt_frame + offset;
 
     bitmap->width = FT_NEXT_SHORT_LE( p );
 
+    
     if ( new_format )
       offset = FT_NEXT_ULONG_LE( p );
     else

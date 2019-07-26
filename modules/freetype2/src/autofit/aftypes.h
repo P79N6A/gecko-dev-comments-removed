@@ -197,55 +197,31 @@ extern void*  _af_debug_hints;
             (a)->y_delta == (b)->y_delta )
 
 
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-
-  typedef struct AF_WritingSystemClassRec_ const*  AF_WritingSystemClass;
-  typedef struct AF_ScriptClassRec_ const*         AF_ScriptClass;
-  typedef struct AF_FaceGlobalsRec_*               AF_FaceGlobals;
-
-  typedef struct  AF_ScriptMetricsRec_
-  {
-    AF_ScriptClass  script_class;
-    AF_ScalerRec    scaler;
-    FT_Bool         digits_have_same_width;
-
-    AF_FaceGlobals  globals;    
-
-  } AF_ScriptMetricsRec, *AF_ScriptMetrics;
-
+  typedef struct AF_StyleMetricsRec_*  AF_StyleMetrics;
 
   
 
 
   typedef FT_Error
-  (*AF_Script_InitMetricsFunc)( AF_ScriptMetrics  metrics,
-                                FT_Face           face );
+  (*AF_WritingSystem_InitMetricsFunc)( AF_StyleMetrics  metrics,
+                                       FT_Face          face );
 
   typedef void
-  (*AF_Script_ScaleMetricsFunc)( AF_ScriptMetrics  metrics,
-                                 AF_Scaler         scaler );
+  (*AF_WritingSystem_ScaleMetricsFunc)( AF_StyleMetrics  metrics,
+                                        AF_Scaler        scaler );
 
   typedef void
-  (*AF_Script_DoneMetricsFunc)( AF_ScriptMetrics  metrics );
+  (*AF_WritingSystem_DoneMetricsFunc)( AF_StyleMetrics  metrics );
 
 
   typedef FT_Error
-  (*AF_Script_InitHintsFunc)( AF_GlyphHints     hints,
-                              AF_ScriptMetrics  metrics );
+  (*AF_WritingSystem_InitHintsFunc)( AF_GlyphHints    hints,
+                                     AF_StyleMetrics  metrics );
 
   typedef void
-  (*AF_Script_ApplyHintsFunc)( AF_GlyphHints     hints,
-                               FT_Outline*       outline,
-                               AF_ScriptMetrics  metrics );
+  (*AF_WritingSystem_ApplyHintsFunc)( AF_GlyphHints    hints,
+                                      FT_Outline*      outline,
+                                      AF_StyleMetrics  metrics );
 
 
   
@@ -297,15 +273,17 @@ extern void*  _af_debug_hints;
   {
     AF_WritingSystem  writing_system;
 
-    FT_Offset                   script_metrics_size;
-    AF_Script_InitMetricsFunc   script_metrics_init;
-    AF_Script_ScaleMetricsFunc  script_metrics_scale;
-    AF_Script_DoneMetricsFunc   script_metrics_done;
+    FT_Offset                          style_metrics_size;
+    AF_WritingSystem_InitMetricsFunc   style_metrics_init;
+    AF_WritingSystem_ScaleMetricsFunc  style_metrics_scale;
+    AF_WritingSystem_DoneMetricsFunc   style_metrics_done;
 
-    AF_Script_InitHintsFunc     script_hints_init;
-    AF_Script_ApplyHintsFunc    script_hints_apply;
+    AF_WritingSystem_InitHintsFunc     style_hints_init;
+    AF_WritingSystem_ApplyHintsFunc    style_hints_apply;
 
   } AF_WritingSystemClassRec;
+
+  typedef const AF_WritingSystemClassRec*  AF_WritingSystemClass;
 
 
   
@@ -325,7 +303,7 @@ extern void*  _af_debug_hints;
 
 
 #undef  SCRIPT
-#define SCRIPT( s, S, d ) \
+#define SCRIPT( s, S, d, h, sc1, sc2, sc3 ) \
           AF_SCRIPT_ ## S,
 
   
@@ -353,14 +331,146 @@ extern void*  _af_debug_hints;
 
   typedef struct  AF_ScriptClassRec_
   {
-    AF_Script          script;
-    AF_Blue_Stringset  blue_stringset;
-    AF_WritingSystem   writing_system;
+    AF_Script  script;
 
     AF_Script_UniRange  script_uni_ranges; 
-    FT_UInt32           standard_char;     
+
+    FT_UInt32  standard_char1;             
+    FT_UInt32  standard_char2;             
+    FT_UInt32  standard_char3;             
 
   } AF_ScriptClassRec;
+
+  typedef const AF_ScriptClassRec*  AF_ScriptClass;
+
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#undef  COVERAGE
+#define COVERAGE( name, NAME, description, \
+                  tag1, tag2, tag3, tag4 ) \
+          AF_COVERAGE_ ## NAME,
+
+
+  typedef enum  AF_Coverage_
+  {
+#include "afcover.h"
+
+    AF_COVERAGE_DEFAULT
+
+  } AF_Coverage;
+
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+
+
+
+
+#undef  STYLE
+#define STYLE( s, S, d, ws, sc, ss, c ) \
+          AF_STYLE_ ## S,
+
+  
+  typedef enum  AF_Style_
+  {
+
+#include "afstyles.h"
+
+    AF_STYLE_MAX   
+
+  } AF_Style;
+
+
+  typedef struct  AF_StyleClassRec_
+  {
+    AF_Style  style;
+
+    AF_WritingSystem   writing_system;
+    AF_Script          script;
+    AF_Blue_Stringset  blue_stringset;
+    AF_Coverage        coverage;
+
+  } AF_StyleClassRec;
+
+  typedef const AF_StyleClassRec*  AF_StyleClass;
+
+
+  
+  
+  
+  
+  
+  
+  
+
+  typedef struct AF_FaceGlobalsRec_*  AF_FaceGlobals;
+
+  
+  
+  
+
+  typedef struct  AF_StyleMetricsRec_
+  {
+    AF_StyleClass   style_class;
+    AF_ScalerRec    scaler;
+    FT_Bool         digits_have_same_width;
+
+    AF_FaceGlobals  globals;    
+
+  } AF_StyleMetricsRec;
 
 
   
@@ -401,19 +511,41 @@ extern void*  _af_debug_hints;
 
 #define AF_DEFINE_SCRIPT_CLASS(           \
           script_class,                   \
-          script_,                        \
-          blue_stringset_,                \
-          writing_system_,                \
+          script,                         \
           ranges,                         \
-          std_char )                      \
+          std_char1,                      \
+          std_char2,                      \
+          std_char3 )                     \
   FT_CALLBACK_TABLE_DEF                   \
   const AF_ScriptClassRec  script_class = \
   {                                       \
-    script_,                              \
-    blue_stringset_,                      \
-    writing_system_,                      \
+    script,                               \
     ranges,                               \
-    std_char                              \
+    std_char1,                            \
+    std_char2,                            \
+    std_char3                             \
+  };
+
+
+#define AF_DECLARE_STYLE_CLASS( style_class ) \
+  FT_CALLBACK_TABLE const AF_StyleClassRec    \
+  style_class;
+
+#define AF_DEFINE_STYLE_CLASS(          \
+          style_class,                  \
+          style,                        \
+          writing_system,               \
+          script,                       \
+          blue_stringset,               \
+          coverage )                    \
+  FT_CALLBACK_TABLE_DEF                 \
+  const AF_StyleClassRec  style_class = \
+  {                                     \
+    style,                              \
+    writing_system,                     \
+    script,                             \
+    blue_stringset,                     \
+    coverage                            \
   };
 
 #else 
@@ -434,16 +566,16 @@ extern void*  _af_debug_hints;
   FT_LOCAL_DEF( void )                                                    \
   FT_Init_Class_ ## writing_system_class( AF_WritingSystemClassRec*  ac ) \
   {                                                                       \
-    ac->writing_system       = system;                                    \
+    ac->writing_system      = system;                                     \
                                                                           \
-    ac->script_metrics_size  = m_size;                                    \
+    ac->style_metrics_size  = m_size;                                     \
                                                                           \
-    ac->script_metrics_init  = m_init;                                    \
-    ac->script_metrics_scale = m_scale;                                   \
-    ac->script_metrics_done  = m_done;                                    \
+    ac->style_metrics_init  = m_init;                                     \
+    ac->style_metrics_scale = m_scale;                                    \
+    ac->style_metrics_done  = m_done;                                     \
                                                                           \
-    ac->script_hints_init    = h_init;                                    \
-    ac->script_hints_apply   = h_apply;                                   \
+    ac->style_hints_init    = h_init;                                     \
+    ac->style_hints_apply   = h_apply;                                    \
   }
 
 
@@ -454,18 +586,40 @@ extern void*  _af_debug_hints;
 #define AF_DEFINE_SCRIPT_CLASS(                            \
           script_class,                                    \
           script_,                                         \
-          blue_string_set_,                                \
-          writing_system_,                                 \
           ranges,                                          \
-          std_char )                                       \
+          std_char1,                                       \
+          std_char2,                                       \
+          std_char3 )                                      \
   FT_LOCAL_DEF( void )                                     \
   FT_Init_Class_ ## script_class( AF_ScriptClassRec*  ac ) \
   {                                                        \
     ac->script            = script_;                       \
-    ac->blue_stringset    = blue_stringset_;               \
-    ac->writing_system    = writing_system_;               \
     ac->script_uni_ranges = ranges;                        \
-    ac->standard_char     = std_char;                      \
+    ac->standard_char1    = std_char1;                     \
+    ac->standard_char2    = std_char2;                     \
+    ac->standard_char3    = std_char3;                     \
+  }
+
+
+#define AF_DECLARE_STYLE_CLASS( style_class )             \
+  FT_LOCAL( void )                                        \
+  FT_Init_Class_ ## style_class( AF_StyleClassRec*  ac );
+
+#define AF_DEFINE_STYLE_CLASS(                           \
+          style_class,                                   \
+          style_,                                        \
+          writing_system_,                               \
+          script_,                                       \
+          blue_stringset_,                               \
+          coverage_ )                                    \
+  FT_LOCAL_DEF( void )                                   \
+  FT_Init_Class_ ## style_class( AF_StyleClassRec*  ac ) \
+  {                                                      \
+    ac->style          = style_;                         \
+    ac->writing_system = writing_system_;                \
+    ac->script         = script_;                        \
+    ac->blue_stringset = blue_stringset_;                \
+    ac->coverage       = coverage_;                      \
   }
 
 #endif 

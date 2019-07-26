@@ -35,7 +35,7 @@
   
   
   void
-  FT_Init_Table_raccess_guess_table( ft_raccess_guess_rec*  record );
+  FT_Init_Table_ft_raccess_guess_table( ft_raccess_guess_rec*  record );
 #endif
 
   
@@ -92,7 +92,7 @@
     FT_Init_Class_ft_bitmap_glyph_class(
       &container->ft_bitmap_glyph_class );
 #ifdef FT_CONFIG_OPTION_MAC_FONTS
-    FT_Init_Table_raccess_guess_table(
+    FT_Init_Table_ft_raccess_guess_table(
       (ft_raccess_guess_rec*)&container->ft_raccess_guess_table );
 #endif
 

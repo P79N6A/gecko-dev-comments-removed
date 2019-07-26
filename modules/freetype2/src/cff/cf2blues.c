@@ -408,11 +408,10 @@
       
       
 
-      blues->boost = FT_MulFix(
-                       cf2_floatToFixed( .6 ),
-                       ( cf2_intToFixed( 1 ) -
-                         FT_DivFix( blues->scale,
-                                    blues->blueScale ) ) );
+      blues->boost = cf2_floatToFixed( .6 ) -
+                       FT_MulDiv( cf2_floatToFixed ( .6 ),
+                                  blues->scale,
+                                  blues->blueScale );
       if ( blues->boost > 0x7FFF )
       {
         

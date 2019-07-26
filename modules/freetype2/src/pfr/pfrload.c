@@ -813,7 +813,6 @@
           phy_font->ascent  = PFR_NEXT_SHORT( q );
           phy_font->descent = PFR_NEXT_SHORT( q );
           phy_font->leading = PFR_NEXT_SHORT( q );
-          q += 16;
           break;
 
         case 3:

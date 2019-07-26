@@ -45,7 +45,7 @@
 #define FT_COMPONENT  trace_afmodule
 
 
-  FT_Error
+  static FT_Error
   af_property_get_face_globals( FT_Face          face,
                                 AF_FaceGlobals*  aglobals,
                                 AF_Module        module )
@@ -79,7 +79,7 @@
   }
 
 
-  FT_Error
+  static FT_Error
   af_property_set( FT_Module    ft_module,
                    const char*  property_name,
                    const void*  value )
@@ -92,8 +92,40 @@
     {
       FT_UInt*  fallback_script = (FT_UInt*)value;
 
+      FT_UInt  ss;
 
-      module->fallback_script = *fallback_script;
+
+      
+      
+      
+      for ( ss = 0; AF_STYLE_CLASSES_GET[ss]; ss++ )
+      {
+        AF_StyleClass  style_class = AF_STYLE_CLASSES_GET[ss];
+
+
+        if ( style_class->script == *fallback_script      &&
+             style_class->coverage == AF_COVERAGE_DEFAULT )
+        {
+          module->fallback_style = ss;
+          break;
+        }
+      }
+
+      if ( !AF_STYLE_CLASSES_GET[ss] )
+      {
+        FT_TRACE0(( "af_property_set: Invalid value %d for property `%s'\n",
+                    fallback_script, property_name ));
+        return FT_THROW( Invalid_Argument );
+      }
+
+      return error;
+    }
+    else if ( !ft_strcmp( property_name, "default-script" ) )
+    {
+      FT_UInt*  default_script = (FT_UInt*)value;
+
+
+      module->default_script = *default_script;
 
       return error;
     }
@@ -116,14 +148,15 @@
   }
 
 
-  FT_Error
+  static FT_Error
   af_property_get( FT_Module    ft_module,
                    const char*  property_name,
                    void*        value )
   {
-    FT_Error   error           = FT_Err_Ok;
-    AF_Module  module          = (AF_Module)ft_module;
-    FT_UInt    fallback_script = module->fallback_script;
+    FT_Error   error          = FT_Err_Ok;
+    AF_Module  module         = (AF_Module)ft_module;
+    FT_UInt    fallback_style = module->fallback_style;
+    FT_UInt    default_script = module->default_script;
 
 
     if ( !ft_strcmp( property_name, "glyph-to-script-map" ) )
@@ -134,7 +167,7 @@
 
       error = af_property_get_face_globals( prop->face, &globals, module );
       if ( !error )
-        prop->map = globals->glyph_scripts;
+        prop->map = globals->glyph_styles;
 
       return error;
     }
@@ -142,8 +175,19 @@
     {
       FT_UInt*  val = (FT_UInt*)value;
 
+      AF_StyleClass  style_class = AF_STYLE_CLASSES_GET[fallback_style];
 
-      *val = fallback_script;
+
+      *val = style_class->script;
+
+      return error;
+    }
+    else if ( !ft_strcmp( property_name, "default-script" ) )
+    {
+      FT_UInt*  val = (FT_UInt*)value;
+
+
+      *val = default_script;
 
       return error;
     }
@@ -206,7 +250,8 @@
     AF_Module  module = (AF_Module)ft_module;
 
 
-    module->fallback_script = AF_SCRIPT_FALLBACK;
+    module->fallback_style = AF_STYLE_FALLBACK;
+    module->default_script = AF_SCRIPT_DEFAULT;
 
     return af_loader_init( module );
   }

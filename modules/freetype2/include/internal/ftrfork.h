@@ -94,7 +94,7 @@ FT_BEGIN_HEADER
   
 #define CONST_FT_RFORK_RULE_ARRAY_BEGIN( name, type )  \
           void                                         \
-          FT_Init_ ## name( type*  storage )           \
+          FT_Init_Table_ ## name( type*  storage )     \
           {                                            \
             type*  local = storage;                    \
                                                        \
@@ -240,12 +240,20 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
   FT_BASE( FT_Error )
   FT_Raccess_Get_DataOffsets( FT_Library  library,
                               FT_Stream   stream,
                               FT_Long     map_offset,
                               FT_Long     rdata_pos,
                               FT_Long     tag,
+                              FT_Bool     sort_by_res_id,
                               FT_Long   **offsets,
                               FT_Long    *count );
 

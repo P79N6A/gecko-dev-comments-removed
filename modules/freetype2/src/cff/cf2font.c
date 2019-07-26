@@ -167,7 +167,7 @@
         if ( !xdelta )
           goto Try_x3;
 
-        *darkenAmount = FT_MulFix( x, FT_DivFix( ydelta, xdelta ) ) +
+        *darkenAmount = FT_MulDiv( x, ydelta, xdelta ) +
                           FT_DivFix( cf2_intToFixed( y1 ), ppem );
       }
 
@@ -184,7 +184,7 @@
           if ( !xdelta )
             goto Try_x4;
 
-          *darkenAmount = FT_MulFix( x, FT_DivFix( ydelta, xdelta ) ) +
+          *darkenAmount = FT_MulDiv( x, ydelta, xdelta ) +
                             FT_DivFix( cf2_intToFixed( y2 ), ppem );
         }
       }
@@ -202,7 +202,7 @@
           if ( !xdelta )
             goto Use_y4;
 
-          *darkenAmount = FT_MulFix( x, FT_DivFix( ydelta, xdelta ) ) +
+          *darkenAmount = FT_MulDiv( x, ydelta, xdelta ) +
                             FT_DivFix( cf2_intToFixed( y3 ), ppem );
         }
       }
@@ -233,13 +233,14 @@
     
     CFF_Decoder*  decoder = font->decoder;
 
-    FT_Bool  needExtraSetup;
+    FT_Bool  needExtraSetup = FALSE;
 
     
     CF2_Fixed  boldenX = font->syntheticEmboldeningAmountX;
     CF2_Fixed  boldenY = font->syntheticEmboldeningAmountY;
 
-    CF2_Fixed  ppem;
+    CFF_SubFont  subFont;
+    CF2_Fixed    ppem;
 
 
     
@@ -247,8 +248,12 @@
 
     
     
-    needExtraSetup =
-      (FT_Bool)( font->lastSubfont != cf2_getSubfont( decoder ) );
+    subFont = cf2_getSubfont( decoder );
+    if ( font->lastSubfont != subFont )
+    {
+      font->lastSubfont = subFont;
+      needExtraSetup    = TRUE;
+    }
 
     
     

@@ -57,6 +57,38 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
 
@@ -2273,6 +2305,8 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
   FT_EXPORT( FT_Error )
   FT_Request_Size( FT_Face          face,
                    FT_Size_Request  req );
@@ -2322,6 +2356,8 @@ FT_BEGIN_HEADER
                     FT_UInt     vert_resolution );
 
 
+  
+  
   
   
   
@@ -2817,6 +2853,10 @@ FT_BEGIN_HEADER
 #define ft_render_mode_mono    FT_RENDER_MODE_MONO
 
 
+  
+  
+  
+  
   
   
   
@@ -3925,7 +3965,7 @@ FT_BEGIN_HEADER
 
 #define FREETYPE_MAJOR  2
 #define FREETYPE_MINOR  5
-#define FREETYPE_PATCH  2
+#define FREETYPE_PATCH  3
 
 
   

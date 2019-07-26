@@ -16,6 +16,7 @@
 
 
 
+
 #ifndef __AFLATIN_H__
 #define __AFLATIN_H__
 
@@ -27,17 +28,6 @@ FT_BEGIN_HEADER
   
 
   AF_DECLARE_WRITING_SYSTEM_CLASS( af_latin_writing_system_class )
-
-
-  
-
-  AF_DECLARE_SCRIPT_CLASS( af_cyrl_script_class )
-  AF_DECLARE_SCRIPT_CLASS( af_grek_script_class )
-  AF_DECLARE_SCRIPT_CLASS( af_latn_script_class )
-  AF_DECLARE_SCRIPT_CLASS( af_hebr_script_class )
-#if 0
-  AF_DECLARE_SCRIPT_CLASS( af_armn_script_class )
-#endif
 
 
   
@@ -113,9 +103,9 @@ FT_BEGIN_HEADER
 
   typedef struct  AF_LatinMetricsRec_
   {
-    AF_ScriptMetricsRec  root;
-    FT_UInt              units_per_em;
-    AF_LatinAxisRec      axis[AF_DIMENSION_MAX];
+    AF_StyleMetricsRec  root;
+    FT_UInt             units_per_em;
+    AF_LatinAxisRec     axis[AF_DIMENSION_MAX];
 
   } AF_LatinMetricsRec, *AF_LatinMetrics;
 

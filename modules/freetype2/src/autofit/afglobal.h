@@ -23,6 +23,7 @@
 
 #include "aftypes.h"
 #include "afmodule.h"
+#include "hbshim.h"
 
 
 FT_BEGIN_HEADER
@@ -31,13 +32,32 @@ FT_BEGIN_HEADER
   FT_LOCAL_ARRAY( AF_WritingSystemClass )
   af_writing_system_classes[];
 
+
+#undef  SCRIPT
+#define SCRIPT( s, S, d, h, sc1, sc2, sc3 )                    \
+          AF_DECLARE_SCRIPT_CLASS( af_ ## s ## _script_class )
+
+#include "afscript.h"
+
   FT_LOCAL_ARRAY( AF_ScriptClass )
   af_script_classes[];
 
+
+#undef  STYLE
+#define STYLE( s, S, d, ws, sc, ss, c )                      \
+          AF_DECLARE_STYLE_CLASS( af_ ## s ## _style_class )
+
+#include "afstyles.h"
+
+  FT_LOCAL_ARRAY( AF_StyleClass )
+  af_style_classes[];
+
+
 #ifdef FT_DEBUG_LEVEL_TRACE
   FT_LOCAL_ARRAY( char* )
-  af_script_names[];
+  af_style_names[];
 #endif
+
 
   
 
@@ -46,14 +66,16 @@ FT_BEGIN_HEADER
 
   
 #ifdef AF_CONFIG_OPTION_CJK
-#define AF_SCRIPT_FALLBACK  AF_SCRIPT_HANI
+#define AF_STYLE_FALLBACK  AF_STYLE_HANI_DFLT
 #else
-#define AF_SCRIPT_FALLBACK  AF_SCRIPT_DFLT
+#define AF_STYLE_FALLBACK  AF_STYLE_NONE_DFLT
 #endif
   
-#define AF_SCRIPT_NONE      0x7F
+#define AF_SCRIPT_DEFAULT  AF_SCRIPT_LATN
   
-#define AF_DIGIT            0x80
+#define AF_STYLE_UNASSIGNED  0x7F
+  
+#define AF_DIGIT              0x80
 
   
 #define AF_PROP_INCREASE_X_HEIGHT_MIN  6
@@ -76,16 +98,20 @@ FT_BEGIN_HEADER
 
   typedef struct  AF_FaceGlobalsRec_
   {
-    FT_Face           face;
-    FT_Long           glyph_count;    
-    FT_Byte*          glyph_scripts;
+    FT_Face          face;
+    FT_Long          glyph_count;    
+    FT_Byte*         glyph_styles;
+
+#ifdef FT_CONFIG_OPTION_USE_HARFBUZZ
+    hb_font_t*       hb_font;
+#endif
 
     
-    FT_UInt           increase_x_height;
+    FT_UInt          increase_x_height;
 
-    AF_ScriptMetrics  metrics[AF_SCRIPT_MAX];
+    AF_StyleMetrics  metrics[AF_STYLE_MAX];
 
-    AF_Module         module;         
+    AF_Module        module;         
 
   } AF_FaceGlobalsRec;
 
@@ -101,10 +127,10 @@ FT_BEGIN_HEADER
                        AF_Module        module );
 
   FT_LOCAL( FT_Error )
-  af_face_globals_get_metrics( AF_FaceGlobals     globals,
-                               FT_UInt            gindex,
-                               FT_UInt            options,
-                               AF_ScriptMetrics  *ametrics );
+  af_face_globals_get_metrics( AF_FaceGlobals    globals,
+                               FT_UInt           gindex,
+                               FT_UInt           options,
+                               AF_StyleMetrics  *ametrics );
 
   FT_LOCAL( void )
   af_face_globals_free( AF_FaceGlobals  globals );

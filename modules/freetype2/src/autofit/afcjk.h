@@ -32,11 +32,6 @@ FT_BEGIN_HEADER
 
 
   
-
-  AF_DECLARE_SCRIPT_CLASS( af_hani_script_class )
-
-
-  
   
   
   
@@ -105,9 +100,9 @@ FT_BEGIN_HEADER
 
   typedef struct  AF_CJKMetricsRec_
   {
-    AF_ScriptMetricsRec  root;
-    FT_UInt              units_per_em;
-    AF_CJKAxisRec        axis[AF_DIMENSION_MAX];
+    AF_StyleMetricsRec  root;
+    FT_UInt             units_per_em;
+    AF_CJKAxisRec       axis[AF_DIMENSION_MAX];
 
   } AF_CJKMetricsRec, *AF_CJKMetrics;
 

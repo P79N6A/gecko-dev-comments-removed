@@ -44,7 +44,7 @@ FT_BEGIN_HEADER
     
     FT_GlyphLoader    gloader;
     AF_GlyphHintsRec  hints;
-    AF_ScriptMetrics  metrics;
+    AF_StyleMetrics   metrics;
     FT_Bool           transformed;
     FT_Matrix         trans_matrix;
     FT_Vector         trans_delta;

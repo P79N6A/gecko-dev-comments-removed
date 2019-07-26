@@ -1406,7 +1406,6 @@
 
       point  = first;
       before = point;
-      after  = point;
 
       do
       {
@@ -2079,8 +2078,6 @@
       start = first;
       do
       {
-        point = first;
-
         
         for (;;)
         {

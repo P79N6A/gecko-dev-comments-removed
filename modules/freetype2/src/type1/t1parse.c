@@ -332,9 +332,11 @@
       
 
       
-      FT_Byte*  cur   = parser->base_dict;
-      FT_Byte*  limit = cur + parser->base_len;
-      FT_Byte   c;
+      FT_Byte*    cur   = parser->base_dict;
+      FT_Byte*    limit = cur + parser->base_len;
+      FT_Byte     c;
+      FT_Pointer  pos_lf;
+      FT_Bool     test_cr;
 
 
     Again:
@@ -404,11 +406,20 @@
       
       
       
-      while ( cur < limit       &&
-              ( *cur == ' '  ||
-                *cur == '\t' ||
-                *cur == '\r' ||
-                *cur == '\n' ) )
+      
+      
+      
+      
+
+      pos_lf  = ft_memchr( cur, '\n', limit - cur );
+      test_cr = FT_BOOL( !pos_lf                                      ||
+                         pos_lf > ft_memchr( cur, '\r', limit - cur ) );
+
+      while ( cur < limit                    &&
+              ( *cur == ' '                ||
+                *cur == '\t'               ||
+                (test_cr && *cur == '\r' ) ||
+                *cur == '\n'               ) )
         ++cur;
       if ( cur >= limit )
       {

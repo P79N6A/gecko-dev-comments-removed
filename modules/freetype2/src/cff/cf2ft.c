@@ -61,7 +61,9 @@
 
     FT_ASSERT( unitsPerEm > 0 );
 
-    FT_ASSERT( transform->a > 0 && transform->d > 0 );
+    if ( transform->a <= 0 || transform->d <= 0 )
+      return FT_THROW( Invalid_Size_Handle );
+
     FT_ASSERT( transform->b == 0 && transform->c == 0 );
     FT_ASSERT( transform->tx == 0 && transform->ty == 0 );
 
@@ -236,10 +238,8 @@
 
     if ( *hinted )
     {
-      *x_scale = FT_DivFix( decoder->builder.glyph->x_scale,
-                            cf2_intToFixed( 64 ) );
-      *y_scale = FT_DivFix( decoder->builder.glyph->y_scale,
-                            cf2_intToFixed( 64 ) );
+      *x_scale = ( decoder->builder.glyph->x_scale + 32 ) / 64;
+      *y_scale = ( decoder->builder.glyph->y_scale + 32 ) / 64;
     }
     else
     {
@@ -357,9 +357,12 @@
       
       font->unitsPerEm = (CF2_Int)cf2_getUnitsPerEm( decoder );
 
-      error2 = cf2_checkTransform( &transform, font->unitsPerEm );
-      if ( error2 )
-        return error2;
+      if ( scaled )
+      {
+        error2 = cf2_checkTransform( &transform, font->unitsPerEm );
+        if ( error2 )
+          return error2;
+      }
 
       error2 = cf2_getGlyphOutline( font, &buf, &transform, &glyphWidth );
       if ( error2 )
@@ -389,7 +392,15 @@
     FT_ASSERT( decoder                          &&
                decoder->builder.face            &&
                decoder->builder.face->root.size );
-    FT_ASSERT( decoder->builder.face->root.size->metrics.y_ppem );
+
+    
+
+
+
+
+
+
+
 
     return cf2_intToFixed(
              decoder->builder.face->root.size->metrics.y_ppem );
@@ -508,13 +519,15 @@
                               CF2_UInt      idx,
                               CF2_Buffer    buf )
   {
-    FT_ASSERT( decoder && decoder->globals );
+    FT_ASSERT( decoder );
 
     FT_ZERO( buf );
 
     idx += decoder->globals_bias;
     if ( idx >= decoder->num_globals )
       return TRUE;     
+
+    FT_ASSERT( decoder->globals );
 
     buf->start =
     buf->ptr   = decoder->globals[idx];
@@ -581,13 +594,15 @@
                              CF2_UInt      idx,
                              CF2_Buffer    buf )
   {
-    FT_ASSERT( decoder && decoder->locals );
+    FT_ASSERT( decoder );
 
     FT_ZERO( buf );
 
     idx += decoder->locals_bias;
     if ( idx >= decoder->num_locals )
       return TRUE;     
+
+    FT_ASSERT( decoder->locals );
 
     buf->start =
     buf->ptr   = decoder->locals[idx];

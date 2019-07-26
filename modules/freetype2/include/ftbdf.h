@@ -114,6 +114,7 @@ FT_BEGIN_HEADER
 
 
 
+
   typedef struct  BDF_PropertyRec_
   {
     BDF_PropertyType  type;

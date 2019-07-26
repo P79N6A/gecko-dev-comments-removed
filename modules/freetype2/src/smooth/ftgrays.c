@@ -1364,7 +1364,6 @@ typedef ptrdiff_t  FT_PtrDist;
         ras.num_gray_spans = 0;
         ras.span_y         = (int)y;
 
-        count = 0;
         span  = ras.gray_spans;
       }
       else

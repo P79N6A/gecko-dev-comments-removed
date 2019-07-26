@@ -847,6 +847,8 @@
   
   
   
+  
+  
 
   static FT_Int
   ps_tofixedarray( FT_Byte*  *acur,
@@ -1200,7 +1202,7 @@
 
           result = ps_tofixedarray( &cur, limit, 4, temp, 0 );
 
-          if ( result < 0 )
+          if ( result < 4 )
           {
             FT_ERROR(( "ps_parser_load_field:"
                        " expected four integers in bounding box\n" ));
@@ -1230,7 +1232,7 @@
           {
             result = ps_tofixedarray( &cur, limit, max_objects,
                                       temp + i * max_objects, 0 );
-            if ( result < 0 )
+            if ( result < 0 || (FT_UInt)result < max_objects )
             {
               FT_ERROR(( "ps_parser_load_field:"
                          " expected %d integers in the %s subarray\n"

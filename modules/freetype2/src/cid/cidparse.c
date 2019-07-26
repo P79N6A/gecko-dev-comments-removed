@@ -178,8 +178,6 @@
         if ( ft_strncmp( (char*)arg1, "(Hex)", 5 ) == 0 )
           parser->binary_length = ft_atol( (const char *)arg2 );
 
-        limit = parser->root.limit;
-        cur   = parser->root.cursor;
         goto Exit;
       }
       else if ( cur[1] == 's' && ft_strncmp( (char*)cur, "/sfnts", 6 ) == 0 )

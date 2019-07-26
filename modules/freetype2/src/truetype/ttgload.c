@@ -738,7 +738,6 @@
 #endif
 
     TT_GlyphZone  zone = &loader->zone;
-    FT_Pos        origin;
 
 #ifdef TT_USE_BYTECODE_INTERPRETER
     FT_UInt       n_ins;
@@ -755,14 +754,7 @@
                  loader->glyph->control_len ));
     }
     n_ins = (FT_UInt)( loader->glyph->control_len );
-#endif
 
-    origin = zone->cur[zone->n_points - 4].x;
-    origin = FT_PIX_ROUND( origin ) - origin;
-    if ( origin )
-      translate_array( zone->n_points, zone->cur, origin, 0 );
-
-#ifdef TT_USE_BYTECODE_INTERPRETER
     
     if ( n_ins > 0 )
       FT_ARRAY_COPY( zone->org, zone->cur, zone->n_points );
@@ -1083,9 +1075,9 @@
       if ( !x && !y )
         return FT_Err_Ok;
 
-  
-  
-  
+      
+      
+      
 
       if ( have_scale &&
 #ifdef TT_CONFIG_OPTION_COMPONENT_OFFSET_SCALED
@@ -1097,10 +1089,10 @@
 
 #if 0
 
-  
-  
-  
-  
+        
+        
+        
+        
         int  a = subglyph->transform.xx > 0 ?  subglyph->transform.xx
                                             : -subglyph->transform.xx;
         int  b = subglyph->transform.yx > 0 ?  subglyph->transform.yx
@@ -1122,10 +1114,10 @@
 
 #else 
 
-  
-  
-  
-  
+        
+        
+        
+        
         FT_Fixed  mac_xscale = FT_Hypot( subglyph->transform.xx,
                                          subglyph->transform.xy );
         FT_Fixed  mac_yscale = FT_Hypot( subglyph->transform.yy,
@@ -1360,12 +1352,10 @@
 #define TT_LOADER_SET_PP( loader )                                          \
           do                                                                \
           {                                                                 \
-            FT_Bool  subpixel_  = loader->exec                              \
-                                    ? loader->exec->subpixel_hinting        \
-                                    : 0;                                    \
-            FT_Bool  grayscale_ = loader->exec                              \
-                                    ? loader->exec->grayscale_hinting       \
-                                    : 0;                                    \
+            FT_Bool  subpixel_  = loader->exec ? loader->exec->subpixel     \
+                                               : 0;                         \
+            FT_Bool  grayscale_ = loader->exec ? loader->exec->grayscale    \
+                                               : 0;                         \
             FT_Bool  use_aw_2_  = (FT_Bool)( subpixel_ && grayscale_ );     \
                                                                             \
                                                                             \
@@ -1373,6 +1363,7 @@
             (loader)->pp1.y = 0;                                            \
             (loader)->pp2.x = (loader)->pp1.x + (loader)->advance;          \
             (loader)->pp2.y = 0;                                            \
+                                                                            \
             (loader)->pp3.x = use_aw_2_ ? (loader)->advance / 2 : 0;        \
             (loader)->pp3.y = (loader)->bbox.yMax + (loader)->top_bearing;  \
             (loader)->pp4.x = use_aw_2_ ? (loader)->advance / 2 : 0;        \
@@ -1388,6 +1379,7 @@
             (loader)->pp1.y = 0;                                            \
             (loader)->pp2.x = (loader)->pp1.x + (loader)->advance;          \
             (loader)->pp2.y = 0;                                            \
+                                                                            \
             (loader)->pp3.x = 0;                                            \
             (loader)->pp3.y = (loader)->bbox.yMax + (loader)->top_bearing;  \
             (loader)->pp4.x = 0;                                            \
@@ -1567,21 +1559,32 @@
         if ( error )
           goto Exit;
 
-        loader->pp1.x += deltas[0].x; loader->pp1.y += deltas[0].y;
-        loader->pp2.x += deltas[1].x; loader->pp2.y += deltas[1].y;
-        loader->pp3.x += deltas[2].x; loader->pp3.y += deltas[2].y;
-        loader->pp4.x += deltas[3].x; loader->pp4.y += deltas[3].y;
+        loader->pp1.x += deltas[0].x;
+        loader->pp1.y += deltas[0].y;
+        loader->pp2.x += deltas[1].x;
+        loader->pp2.y += deltas[1].y;
+
+        loader->pp3.x += deltas[2].x;
+        loader->pp3.y += deltas[2].y;
+        loader->pp4.x += deltas[3].x;
+        loader->pp4.y += deltas[3].y;
 
         FT_FREE( deltas );
       }
 
-#endif
+#endif 
 
+      
+      
       if ( ( loader->load_flags & FT_LOAD_NO_SCALE ) == 0 )
       {
         loader->pp1.x = FT_MulFix( loader->pp1.x, x_scale );
         loader->pp2.x = FT_MulFix( loader->pp2.x, x_scale );
+        
+
+        loader->pp3.x = FT_MulFix( loader->pp3.x, x_scale );
         loader->pp3.y = FT_MulFix( loader->pp3.y, y_scale );
+        loader->pp4.x = FT_MulFix( loader->pp4.x, x_scale );
         loader->pp4.y = FT_MulFix( loader->pp4.y, y_scale );
       }
 
@@ -1663,7 +1666,7 @@
                          face,
                          glyph_index,
                          &deltas,
-                         gloader->current.num_subglyphs + 4 )) != 0 )
+                         gloader->current.num_subglyphs + 4 ) ) != 0 )
           goto Exit;
 
         subglyph = gloader->current.subglyphs + gloader->base.num_subglyphs;
@@ -1681,21 +1684,32 @@
           }
         }
 
-        loader->pp1.x += deltas[i + 0].x; loader->pp1.y += deltas[i + 0].y;
-        loader->pp2.x += deltas[i + 1].x; loader->pp2.y += deltas[i + 1].y;
-        loader->pp3.x += deltas[i + 2].x; loader->pp3.y += deltas[i + 2].y;
-        loader->pp4.x += deltas[i + 3].x; loader->pp4.y += deltas[i + 3].y;
+        loader->pp1.x += deltas[i + 0].x;
+        loader->pp1.y += deltas[i + 0].y;
+        loader->pp2.x += deltas[i + 1].x;
+        loader->pp2.y += deltas[i + 1].y;
+
+        loader->pp3.x += deltas[i + 2].x;
+        loader->pp3.y += deltas[i + 2].y;
+        loader->pp4.x += deltas[i + 3].x;
+        loader->pp4.y += deltas[i + 3].y;
 
         FT_FREE( deltas );
       }
 
 #endif 
 
+      
+      
       if ( ( loader->load_flags & FT_LOAD_NO_SCALE ) == 0 )
       {
         loader->pp1.x = FT_MulFix( loader->pp1.x, x_scale );
         loader->pp2.x = FT_MulFix( loader->pp2.x, x_scale );
+        
+
+        loader->pp3.x = FT_MulFix( loader->pp3.x, x_scale );
         loader->pp3.y = FT_MulFix( loader->pp3.y, y_scale );
+        loader->pp4.x = FT_MulFix( loader->pp4.x, x_scale );
         loader->pp4.y = FT_MulFix( loader->pp4.y, y_scale );
       }
 
@@ -1755,6 +1769,7 @@
           
           subglyph = gloader->base.subglyphs + num_base_subgs + n;
 
+          
           if ( !( subglyph->flags & USE_MY_METRICS ) )
           {
             loader->pp1 = pp[0];
@@ -2091,8 +2106,7 @@
 #ifdef TT_CONFIG_OPTION_SUBPIXEL_HINTING
       TT_Driver  driver = (TT_Driver)FT_FACE_DRIVER( face );
 
-      FT_Bool  subpixel_hinting  = FALSE;
-      FT_Bool  grayscale_hinting = TRUE;
+      FT_Bool  subpixel = FALSE;
 
 #if 0
       
@@ -2125,24 +2139,24 @@
 
       if ( driver->interpreter_version == TT_INTERPRETER_VERSION_38 )
       {
-        subpixel_hinting = FT_BOOL( ( FT_LOAD_TARGET_MODE( load_flags )
-                                      != FT_RENDER_MODE_MONO )          &&
-                                    SPH_OPTION_SET_SUBPIXEL             );
+        subpixel = FT_BOOL( ( FT_LOAD_TARGET_MODE( load_flags ) !=
+                              FT_RENDER_MODE_MONO               )  &&
+                            SPH_OPTION_SET_SUBPIXEL                );
 
-        if ( subpixel_hinting )
-          grayscale = grayscale_hinting = FALSE;
+        if ( subpixel )
+          grayscale = FALSE;
         else if ( SPH_OPTION_SET_GRAYSCALE )
         {
-          grayscale = grayscale_hinting = TRUE;
-          subpixel_hinting              = FALSE;
+          grayscale = TRUE;
+          subpixel  = FALSE;
         }
         else
-          grayscale = grayscale_hinting = FALSE;
+          grayscale = FALSE;
 
         if ( FT_IS_TRICKY( glyph->face ) )
-          subpixel_hinting = grayscale_hinting = FALSE;
+          subpixel = FALSE;
 
-        exec->ignore_x_mode      = subpixel_hinting || grayscale_hinting;
+        exec->ignore_x_mode      = subpixel || grayscale;
         exec->rasterizer_version = SPH_OPTION_SET_RASTERIZER_VERSION;
         if ( exec->sph_tweak_flags & SPH_TWEAK_RASTERIZER_35 )
           exec->rasterizer_version = TT_INTERPRETER_VERSION_35;
@@ -2185,24 +2199,24 @@
       {
         
         
-        if ( subpixel_hinting != exec->subpixel_hinting )
+        if ( subpixel != exec->subpixel )
         {
           FT_TRACE4(( "tt_loader_init: subpixel hinting change,"
                       " re-executing `prep' table\n" ));
 
-          exec->subpixel_hinting = subpixel_hinting;
-          reexecute              = TRUE;
+          exec->subpixel = subpixel;
+          reexecute      = TRUE;
         }
 
         
         
-        if ( grayscale != exec->grayscale_hinting )
+        if ( grayscale != exec->grayscale )
         {
           FT_TRACE4(( "tt_loader_init: grayscale hinting change,"
                       " re-executing `prep' table\n" ));
 
-          exec->grayscale_hinting = grayscale_hinting;
-          reexecute               = TRUE;
+          exec->grayscale = grayscale;
+          reexecute       = TRUE;
         }
       }
       else
@@ -2331,8 +2345,6 @@
     FT_Error      error;
     TT_LoaderRec  loader;
 
-
-    error = FT_Err_Ok;
 
     FT_TRACE1(( "TT_Load_Glyph: glyph index %d\n", glyph_index ));
 

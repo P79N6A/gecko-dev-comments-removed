@@ -160,15 +160,25 @@
     {
       FT_Matrix*  matrix;
       FT_Vector*  offset;
+      FT_Int      result;
 
 
       dict   = face->cid.font_dicts + parser->num_dict;
       matrix = &dict->font_matrix;
       offset = &dict->font_offset;
 
-      (void)cid_parser_to_fixed_array( parser, 6, temp, 3 );
+      result = cid_parser_to_fixed_array( parser, 6, temp, 3 );
+
+      if ( result < 6 )
+        return FT_THROW( Invalid_File_Format );
 
       temp_scale = FT_ABS( temp[3] );
+
+      if ( temp_scale == 0 )
+      {
+        FT_ERROR(( "cid_parse_font_matrix: invalid font matrix\n" ));
+        return FT_THROW( Invalid_File_Format );
+      }
 
       
       
@@ -184,7 +194,7 @@
         temp[2] = FT_DivFix( temp[2], temp_scale );
         temp[4] = FT_DivFix( temp[4], temp_scale );
         temp[5] = FT_DivFix( temp[5], temp_scale );
-        temp[3] = 0x10000L;
+        temp[3] = temp[3] < 0 ? -0x10000L : 0x10000L;
       }
 
       matrix->xx = temp[0];
@@ -197,8 +207,7 @@
       offset->y  = temp[5] >> 16;
     }
 
-    return FT_Err_Ok;      
-                            
+    return FT_Err_Ok;
   }
 
 

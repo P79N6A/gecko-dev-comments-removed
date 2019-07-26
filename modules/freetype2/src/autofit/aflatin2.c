@@ -78,7 +78,7 @@
 
       glyph_index = FT_Get_Char_Index(
                       face,
-                      metrics->root.script_class->standard_char );
+                      metrics->root.style_class->standard_char );
       if ( glyph_index == 0 )
         goto Exit;
 
@@ -95,7 +95,7 @@
       scaler->render_mode = FT_RENDER_MODE_NORMAL;
       scaler->flags       = 0;
 
-      af_glyph_hints_rescale( hints, (AF_ScriptMetrics)dummy );
+      af_glyph_hints_rescale( hints, (AF_StyleMetrics)dummy );
 
       error = af_glyph_hints_reload( hints, &face->glyph->outline );
       if ( error )
@@ -1501,7 +1501,7 @@
     FT_Face         face = metrics->root.scaler.face;
 
 
-    af_glyph_hints_rescale( hints, (AF_ScriptMetrics)metrics );
+    af_glyph_hints_rescale( hints, (AF_StyleMetrics)metrics );
 
     
 
@@ -2387,61 +2387,12 @@
 
     sizeof ( AF_LatinMetricsRec ),
 
-    (AF_Script_InitMetricsFunc) af_latin2_metrics_init,
-    (AF_Script_ScaleMetricsFunc)af_latin2_metrics_scale,
-    (AF_Script_DoneMetricsFunc) NULL,
+    (AF_WritingSystem_InitMetricsFunc) af_latin2_metrics_init,
+    (AF_WritingSystem_ScaleMetricsFunc)af_latin2_metrics_scale,
+    (AF_WritingSystem_DoneMetricsFunc) NULL,
 
-    (AF_Script_InitHintsFunc)   af_latin2_hints_init,
-    (AF_Script_ApplyHintsFunc)  af_latin2_hints_apply
-  )
-
-
-  
-  
-
-  static const AF_Script_UniRangeRec  af_ltn2_uniranges[] =
-  {
-    AF_UNIRANGE_REC(  0x0020UL,  0x007FUL ),  
-    AF_UNIRANGE_REC(  0x00A0UL,  0x00FFUL ),  
-    AF_UNIRANGE_REC(  0x0100UL,  0x017FUL ),  
-    AF_UNIRANGE_REC(  0x0180UL,  0x024FUL ),  
-    AF_UNIRANGE_REC(  0x0250UL,  0x02AFUL ),  
-    AF_UNIRANGE_REC(  0x02B0UL,  0x02FFUL ),  
-    AF_UNIRANGE_REC(  0x0300UL,  0x036FUL ),  
-    AF_UNIRANGE_REC(  0x0370UL,  0x03FFUL ),  
-    AF_UNIRANGE_REC(  0x0400UL,  0x04FFUL ),  
-    AF_UNIRANGE_REC(  0x0500UL,  0x052FUL ),  
-    AF_UNIRANGE_REC(  0x1D00UL,  0x1D7FUL ),  
-    AF_UNIRANGE_REC(  0x1D80UL,  0x1DBFUL ),  
-    AF_UNIRANGE_REC(  0x1DC0UL,  0x1DFFUL ),  
-    AF_UNIRANGE_REC(  0x1E00UL,  0x1EFFUL ),  
-    AF_UNIRANGE_REC(  0x1F00UL,  0x1FFFUL ),  
-    AF_UNIRANGE_REC(  0x2000UL,  0x206FUL ),  
-    AF_UNIRANGE_REC(  0x2070UL,  0x209FUL ),  
-    AF_UNIRANGE_REC(  0x20A0UL,  0x20CFUL ),  
-    AF_UNIRANGE_REC(  0x2150UL,  0x218FUL ),  
-    AF_UNIRANGE_REC(  0x2460UL,  0x24FFUL ),  
-    AF_UNIRANGE_REC(  0x2C60UL,  0x2C7FUL ),  
-    AF_UNIRANGE_REC(  0x2DE0UL,  0x2DFFUL ),  
-    AF_UNIRANGE_REC(  0x2E00UL,  0x2E7FUL ),  
-    AF_UNIRANGE_REC(  0xA640UL,  0xA69FUL ),  
-    AF_UNIRANGE_REC(  0xA720UL,  0xA7FFUL ),  
-    AF_UNIRANGE_REC(  0xFB00UL,  0xFB06UL ),  
-    AF_UNIRANGE_REC( 0x1D400UL, 0x1D7FFUL ),  
-    AF_UNIRANGE_REC( 0x1F100UL, 0x1F1FFUL ),  
-    AF_UNIRANGE_REC(       0UL,       0UL )
-  };
-
-
-  AF_DEFINE_SCRIPT_CLASS(
-    af_ltn2_script_class,
-
-    AF_SCRIPT_LTN2,
-    AF_BLUE_STRINGSET_LATN,
-    AF_WRITING_SYSTEM_LATIN2,
-
-    af_ltn2_uniranges,
-    'o'
+    (AF_WritingSystem_InitHintsFunc)   af_latin2_hints_init,
+    (AF_WritingSystem_ApplyHintsFunc)  af_latin2_hints_apply
   )
 
 

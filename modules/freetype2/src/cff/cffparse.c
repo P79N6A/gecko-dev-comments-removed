@@ -66,7 +66,6 @@
         goto Bad;
 
       val = (FT_Short)( ( (FT_UShort)p[0] << 8 ) | p[1] );
-      p  += 2;
     }
     else if ( v == 29 )
     {
@@ -77,7 +76,6 @@
                        ( (FT_ULong)p[1] << 16 ) |
                        ( (FT_ULong)p[2] <<  8 ) |
                          (FT_ULong)p[3]         );
-      p += 4;
     }
     else if ( v < 247 )
     {
@@ -89,7 +87,6 @@
         goto Bad;
 
       val = ( v - 247 ) * 256 + p[0] + 108;
-      p++;
     }
     else
     {
@@ -97,7 +94,6 @@
         goto Bad;
 
       val = -( v - 251 ) * 256 - p[0] - 108;
-      p++;
     }
 
   Exit:

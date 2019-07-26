@@ -796,16 +796,13 @@
   FT_EXPORT_DEF( TT_ExecContext )
   TT_New_Context( TT_Driver  driver )
   {
-    TT_ExecContext  exec;
-    FT_Memory       memory;
+    FT_Memory  memory = driver->root.root.memory;
 
-
-    memory = driver->root.root.memory;
-    exec   = driver->context;
 
     if ( !driver->context )
     {
-      FT_Error  error;
+      FT_Error        error;
+      TT_ExecContext  exec;
 
 
       
@@ -1470,7 +1467,7 @@
     __asm__ __volatile__ (
       "smull  %1, %2, %4, %3\n\t"       
       "mov    %0, %2, asr #31\n\t"      
-#ifdef __clang__
+#if defined( __clang__ ) && defined( __thumb2__ )
       "add.w  %0, %0, #0x2000\n\t"      
 #else
       "add    %0, %0, #0x2000\n\t"      
@@ -7169,7 +7166,7 @@
         org_dist = CUR_fast_dualproj( &vec );
       }
 
-      cur_dist = CUR_Func_project ( &CUR.zp2.cur[point], cur_base );
+      cur_dist = CUR_Func_project( &CUR.zp2.cur[point], cur_base );
 
       if ( org_dist )
       {
@@ -7186,8 +7183,14 @@
           
           
           
+          
+          
+          
+          
+          
+          
 
-          new_dist = -org_dist;
+          new_dist = org_dist;
         }
       }
       else
@@ -7820,13 +7823,6 @@
          CUR.ignore_x_mode                                   &&
          CUR.rasterizer_version >= TT_INTERPRETER_VERSION_35 )
     {
-      
-      
-      
-      
-      
-      if ( ( args[0] & 32 ) != 0 && CUR.grayscale_hinting )
-        K |= 1 << 12;
 
       if ( CUR.rasterizer_version >= 37 )
       {
@@ -7835,7 +7831,7 @@
         
         
         
-        if ( ( args[0] & 64 ) != 0 && CUR.subpixel_hinting )
+        if ( ( args[0] & 64 ) != 0 && CUR.subpixel )
           K |= 1 << 13;
 
         

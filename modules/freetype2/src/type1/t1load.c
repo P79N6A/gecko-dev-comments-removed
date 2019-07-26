@@ -377,8 +377,6 @@
     if ( blend && blend->num_axis == num_coords )
     {
       
-      error = FT_Err_Ok;
-
       for ( n = 0; n < blend->num_designs; n++ )
       {
         FT_Fixed  result = 0x10000L;  
@@ -1107,7 +1105,7 @@
 
     result = T1_ToFixedArray( parser, 6, temp, 3 );
 
-    if ( result < 0 )
+    if ( result < 6 )
     {
       parser->root.error = FT_THROW( Invalid_File_Format );
       return;
@@ -1274,6 +1272,13 @@
           {
             charcode = (FT_Int)T1_ToInt( parser );
             T1_Skip_Spaces( parser );
+
+            
+            if ( cur == parser->root.cursor )
+            {
+              parser->root.error = FT_THROW( Unknown_File_Format );
+              return;
+            }
           }
 
           cur = parser->root.cursor;

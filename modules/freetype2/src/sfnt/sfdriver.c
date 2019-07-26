@@ -266,7 +266,7 @@
       {
         FT_Stream   stream = face->name_table.stream;
         FT_String*  r      = (FT_String*)result;
-        FT_Byte*    p      = (FT_Byte*)name->string;
+        FT_Byte*    p;
 
 
         if ( FT_STREAM_SEEK( name->stringOffset ) ||
