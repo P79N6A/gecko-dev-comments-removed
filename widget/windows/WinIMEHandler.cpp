@@ -109,18 +109,8 @@ IMEHandler::ProcessMessage(nsWindow* aWindow, UINT aMessage,
 {
 #ifdef NS_ENABLE_TSF
   if (IsTSFAvailable()) {
-    if (aMessage == WM_IME_SETCONTEXT) {
-      
-      
-      
-      
-      
-      if (aWParam) {
-        aLParam &= ~ISC_SHOWUICOMPOSITIONWINDOW;
-      }
-    } else if (aMessage == WM_USER_TSF_TEXTCHANGE) {
-      nsTextStore::OnTextChangeMsg();
-      aResult.mConsumed = true;
+    nsTextStore::ProcessMessage(aWindow, aMessage, aWParam, aLParam, aResult);
+    if (aResult.mConsumed) {
       return true;
     }
     

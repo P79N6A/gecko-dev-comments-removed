@@ -3089,10 +3089,10 @@ nsTextStore::OnTextChangeInternal(uint32_t aStart,
 }
 
 void
-nsTextStore::OnTextChangeMsgInternal(void)
+nsTextStore::OnTextChangeMsg()
 {
   PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
-         ("TSF: 0x%p nsTextStore::OnTextChangeMsgInternal(), "
+         ("TSF: 0x%p nsTextStore::OnTextChangeMsg(), "
           "mSink=0x%p, mSinkMask=%s, mTextChange={ acpStart=%ld, "
           "acpOldEnd=%ld, acpNewEnd=%ld }",
           this, mSink.get(),
@@ -3102,7 +3102,7 @@ nsTextStore::OnTextChangeMsgInternal(void)
   if (!mLock && mSink && 0 != (mSinkMask & TS_AS_TEXT_CHANGE) &&
       INT32_MAX > mTextChange.acpStart) {
     PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
-           ("TSF: 0x%p   nsTextStore::OnTextChangeMsgInternal(), calling"
+           ("TSF: 0x%p   nsTextStore::OnTextChangeMsg(), calling"
             "mSink->OnTextChange(0, { acpStart=%ld, acpOldEnd=%ld, "
             "acpNewEnd=%ld })...", this, mTextChange.acpStart,
             mTextChange.acpOldEnd, mTextChange.acpNewEnd));
@@ -3553,6 +3553,48 @@ nsTextStore::ProcessRawKeyMessage(const MSG& aMsg)
     return SUCCEEDED(hr) && eaten;
   }
   return false;
+}
+
+
+void
+nsTextStore::ProcessMessage(nsWindowBase* aWindow, UINT aMessage,
+                            WPARAM& aWParam, LPARAM& aLParam,
+                            MSGResult& aResult)
+{
+  switch (aMessage) {
+    case WM_IME_SETCONTEXT:
+      
+      
+      
+      
+      
+      if (aWParam) {
+        aLParam &= ~ISC_SHOWUICOMPOSITIONWINDOW;
+      }
+      break;
+
+    case WM_INPUTLANGCHANGE:
+      if (IsVistaOrLater()) {
+        break;
+      }
+      
+      
+      NS_ENSURE_TRUE_VOID(sTsfTextStore);
+      sTsfTextStore->mIsIMM_IME = IsIMM_IME(::GetKeyboardLayout(0));
+
+      PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
+        ("TSF: nsTextStore::ProcessMessage(aWindow=0x%p, "
+         "aMessage=WM_INPUTLANGCHANGE, aWParam=0x%08X, aLParam=0x%08X), "
+         "mIsIMM_IME=%s", aWindow, aWParam, aLParam,
+         GetBoolName(sTsfTextStore->mIsIMM_IME)));
+      break;
+
+    case WM_USER_TSF_TEXTCHANGE:
+      NS_ENSURE_TRUE_VOID(sTsfTextStore);
+      sTsfTextStore->OnTextChangeMsg();
+      aResult.mConsumed = true;
+      break;
+  }
 }
 
 
