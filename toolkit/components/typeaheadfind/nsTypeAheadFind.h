@@ -70,6 +70,8 @@ protected:
   
   NS_HIDDEN_(already_AddRefed<nsIPresShell>) GetPresShell();
 
+  void ReleaseStrongMemberVariables();
+
   
   nsString mTypeAheadBuffer;
   nsCString mNotFoundSoundURL;
@@ -78,6 +80,7 @@ protected:
   
   bool mStartLinksOnlyPref;
   bool mCaretBrowsingOn;
+  bool mDidAddObservers;
   nsCOMPtr<nsIDOMElement> mFoundLink;     
   nsCOMPtr<nsIDOMElement> mFoundEditable; 
   nsCOMPtr<nsIDOMRange> mFoundRange;      
