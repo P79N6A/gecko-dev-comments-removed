@@ -22,7 +22,6 @@
 #include "nsIDNSRecord.h"
 #include "nsICancelable.h"
 #include "nsIClassInfo.h"
-#include "mozilla/net/DNS.h"
 
 class nsSocketTransport;
 
@@ -122,7 +121,7 @@ public:
     
     
     nsresult InitWithConnectedSocket(PRFileDesc *socketFD,
-                                     const mozilla::net::NetAddr *addr);
+                                     const PRNetAddr *addr);
 
     
     void OnSocketReady(PRFileDesc *, int16_t outFlags); 
@@ -200,7 +199,7 @@ private:
 
     
     
-    mozilla::net::NetAddr   mNetAddr;
+    PRNetAddr               mNetAddr;
     bool                    mNetAddrIsSet;
 
     
