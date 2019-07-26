@@ -40,8 +40,6 @@ const TELEMETRY_INTERVAL = 60000;
 
 const TELEMETRY_DELAY = 60000;
 
-const TELEMETRY_TEST_DELAY = 100;
-
 
 
 
@@ -218,8 +216,6 @@ TelemetryPing.prototype = {
     }
     if (!forSavedSession || hasPingBeenSent) {
       ret.savedPings = TelemetryFile.pingsLoaded;
-      ret.pingsOverdue = TelemetryFile.pingsOverdue;
-      ret.pingsDiscarded = TelemetryFile.pingsDiscarded;
     }
 
     return ret;
@@ -765,7 +761,7 @@ TelemetryPing.prototype = {
   
 
 
-  setup: function setup(aTesting) {
+  setup: function setup() {
     
     this._thirdPartyCookies = new ThirdPartyCookieProbe();
     this._thirdPartyCookies.init();
@@ -828,17 +824,7 @@ TelemetryPing.prototype = {
         {
           let success_histogram = Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS");
           success_histogram.add(success);
-        }), () =>
-        {
-          
-          
-          if (TelemetryFile.pingsOverdue > 0) {
-            
-            
-            
-            this.send("overdue-flush", this._server);
-          }
-        });
+        }));
       this.attachObservers();
       this.gatherMemory();
 
@@ -846,8 +832,7 @@ TelemetryPing.prototype = {
       });
       delete this._timer;
     }
-    this._timer.initWithCallback(timerCallback.bind(this),
-                                 aTesting ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY,
+    this._timer.initWithCallback(timerCallback.bind(this), TELEMETRY_DELAY,
                                  Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
