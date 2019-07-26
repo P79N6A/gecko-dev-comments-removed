@@ -1,8 +1,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/Timer.jsm");
-
 const Ci = Components.interfaces;
 
 let tab;
