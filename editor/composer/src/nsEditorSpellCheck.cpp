@@ -752,6 +752,12 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
 
   
   nsAutoString preferedDict(Preferences::GetLocalizedString("spellchecker.dictionary"));
+  
+  
+  int32_t underScore = preferedDict.FindChar('_');
+  if (underScore != -1) {
+    preferedDict.Replace(underScore, 1, '-');
+  }
   if (dictName.IsEmpty()) {
     dictName.Assign(preferedDict);
   }
@@ -844,6 +850,11 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
         int32_t dot_pos = lang.FindChar('.');
         if (dot_pos != -1) {
           lang = Substring(lang, 0, dot_pos - 1);
+        }
+        
+        int32_t underScore = lang.FindChar('_');
+        if (underScore != -1) {
+          lang.Replace(underScore, 1, '-');
         }
         rv = SetCurrentDictionary(lang);
       }
