@@ -1270,6 +1270,31 @@ ScriptSourceObject::elementAttributeName() const
 }
 
 void
+ScriptSourceObject::initIntroductionScript(JSScript *script)
+{
+    JS_ASSERT(!getReservedSlot(INTRODUCTION_SCRIPT_SLOT).toPrivate());
+
+    
+    
+    
+    
+    
+    if (script && script->compartment() == compartment())
+        setReservedSlot(INTRODUCTION_SCRIPT_SLOT, PrivateValue(script));
+}
+
+void
+ScriptSourceObject::trace(JSTracer *trc, JSObject *obj)
+{
+    ScriptSourceObject *sso = static_cast<ScriptSourceObject *>(obj);
+
+    if (JSScript *script = sso->introductionScript()) {
+        MarkScriptUnbarriered(trc, &script, "ScriptSourceObject introductionScript");
+        sso->setReservedSlot(INTRODUCTION_SCRIPT_SLOT, PrivateValue(script));
+    }
+}
+
+void
 ScriptSourceObject::finalize(FreeOp *fop, JSObject *obj)
 {
     
@@ -1287,7 +1312,11 @@ const Class ScriptSourceObject::class_ = {
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    ScriptSourceObject::finalize
+    finalize,
+    nullptr,                
+    nullptr,                
+    nullptr,                
+    trace
 };
 
 ScriptSourceObject *
@@ -1306,6 +1335,9 @@ ScriptSourceObject::create(ExclusiveContext *cx, ScriptSource *source,
         sourceObject->initSlot(ELEMENT_PROPERTY_SLOT, StringValue(options.elementAttributeName()));
     else
         sourceObject->initSlot(ELEMENT_PROPERTY_SLOT, UndefinedValue());
+
+    sourceObject->initSlot(INTRODUCTION_SCRIPT_SLOT, PrivateValue(nullptr));
+    sourceObject->initIntroductionScript(options.introductionScript());
 
     return sourceObject;
 }
