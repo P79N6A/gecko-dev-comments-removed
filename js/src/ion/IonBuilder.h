@@ -467,6 +467,10 @@ class IonBuilder : public MIRGenerator
     
     
     bool failedBoundsCheck_;
+
+    
+    
+    MInstruction *lazyArguments_;
 };
 
 } 
