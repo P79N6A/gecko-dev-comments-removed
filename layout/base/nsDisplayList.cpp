@@ -1886,9 +1886,7 @@ nsDisplayBackgroundImage::TryOptimizeToImageLayer(LayerManager* aManager,
   }
 
   
-  if (state.mAnchor != nsPoint(0.0f, 0.0f)) {
-    return false;
-  }
+  
 
   int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
   mDestRect = nsLayoutUtils::RectToGfxRect(state.mDestArea, appUnitsPerDevPixel);
