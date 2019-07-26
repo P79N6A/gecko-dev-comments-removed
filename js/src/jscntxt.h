@@ -1356,9 +1356,6 @@ struct JSContext : js::ContextFriendFields
     js::ObjectSet       cycleDetectorSet;
 
     
-    char                *lastMessage;
-
-    
     JSErrorReporter     errorReporter;
 
     
