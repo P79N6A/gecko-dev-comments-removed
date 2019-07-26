@@ -26,18 +26,21 @@ function isnot(a, b, description) {
   let outcome = a != b; 
   send({kind: "isnot", outcome: outcome, description: description, a:""+a, b:""+b});
 }
+function info(description) {
+  send({kind: "info", description:description});
+}
 
 
 
 let samples;
 
 self.onmessage = function(msg) {
-  ok(true, "Initializing");
+  info("Initializing");
   self.onmessage = function on_unexpected_message(msg) {
     throw new Error("Unexpected message " + JSON.stringify(msg.data));
   };
   importScripts("resource://gre/modules/osfile.jsm");
-  ok(true, "Initialization complete");
+  info("Initialization complete");
 
   samples = [
     { typename: "OS.Shared.Type.char.in_ptr",
@@ -101,7 +104,7 @@ self.onmessage = function(msg) {
            prefix + "Error code is correct");
         try {
           let string = candidate.toString();
-          ok(true, prefix + ".toString() works " + string);
+          info(prefix + ".toString() works " + string);
         } catch (x) {
           ok(false, prefix + ".toString() fails " + x);
         }
@@ -112,7 +115,7 @@ self.onmessage = function(msg) {
     let type = sample.type;
     let value = sample.value;
     let check = sample.check;
-    ok(true, "Testing handling of type " + sample.typename + " communicating " + sample.valuedescr);
+    info("Testing handling of type " + sample.typename + " communicating " + sample.valuedescr);
 
     
     let serialized;
@@ -142,11 +145,11 @@ self.onmessage = function(msg) {
     }
 
     
-    ok(true, "Running test on deserialized value " + serialized);
+    info("Running test on deserialized value " + serialized);
     check(deserialized, "Local test: ");
 
     
-    ok(true, "Attempting to send message");
+    info("Attempting to send message");
     try {
       self.postMessage({kind:"value",
         typename: sample.typename,
