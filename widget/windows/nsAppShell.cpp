@@ -161,9 +161,12 @@ nsAppShell::ScheduleNativeEventCallback()
 {
   
   NS_ADDREF_THIS(); 
-  
-  
-  mLastNativeEventScheduled = TimeStamp::NowLoRes();
+  {
+    MutexAutoLock lock(mLastNativeEventScheduledMutex);
+    
+    
+    mLastNativeEventScheduled = TimeStamp::NowLoRes();
+  }
   ::PostMessage(mEventWnd, sAppShellGeckoMsgId, 0, reinterpret_cast<LPARAM>(this));
 }
 
@@ -238,8 +241,13 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
   static const mozilla::TimeDuration nativeEventStarvationLimit =
     mozilla::TimeDuration::FromSeconds(NATIVE_EVENT_STARVATION_LIMIT);
 
-  if ((TimeStamp::NowLoRes() - mLastNativeEventScheduled) >
-      nativeEventStarvationLimit) {
+  TimeDuration timeSinceLastNativeEventScheduled;
+  {
+    MutexAutoLock lock(mLastNativeEventScheduledMutex);
+    timeSinceLastNativeEventScheduled =
+        TimeStamp::NowLoRes() - mLastNativeEventScheduled;
+  }
+  if (timeSinceLastNativeEventScheduled > nativeEventStarvationLimit) {
     ScheduleNativeEventCallback();
   }
   
