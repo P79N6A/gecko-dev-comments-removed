@@ -400,7 +400,8 @@ const sdp_namearray_t sdp_fmtp_codec_param[SDP_MAX_FMTP_PARAM] =
     {"stereo",                          sizeof("stereo")}, 
     {"useinbandfec",                    sizeof("useinbandfec")}, 
     {"maxcodedaudiobandwidth",          sizeof("maxcodedaudiobandwidth")}, 
-    {"cbr",                             sizeof("cbr")} 
+    {"cbr",                             sizeof("cbr")}, 
+    {"max-fr",                          sizeof("max-fr")} 
 } ;
 
 
