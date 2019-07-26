@@ -1216,7 +1216,7 @@ TryConvertToGname(BytecodeEmitter *bce, ParseNode *pn, JSOp *op)
 static bool
 BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
-    JS_ASSERT(pn->isKind(PNK_NAME) || pn->isKind(PNK_INTRINSICNAME));
+    JS_ASSERT(pn->isKind(PNK_NAME));
 
     JS_ASSERT_IF(pn->isKind(PNK_FUNCTION), pn->isBound());
 
@@ -5353,11 +5353,7 @@ EmitCallOrNew(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
     ParseNode *pn2 = pn->pn_head;
     switch (pn2->getKind()) {
       case PNK_NAME:
-        if (!EmitNameOp(cx, bce, pn2, callop))
-            return false;
-        break;
-      case PNK_INTRINSICNAME:
-        if (pn2->name() == cx->names()._CallFunction)
+        if (bce->selfHostingMode && pn2->name() == cx->names()._CallFunction)
         {
             
 
@@ -5371,7 +5367,7 @@ EmitCallOrNew(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 
 
             if (pn->pn_count < 3) {
-                bce->reportError(pn, JSMSG_MORE_ARGS_NEEDED, "%_CallFunction", "1", "s");
+                bce->reportError(pn, JSMSG_MORE_ARGS_NEEDED, "_CallFunction", "1", "s");
                 return false;
             }
             ParseNode *funNode = pn2->pn_next;

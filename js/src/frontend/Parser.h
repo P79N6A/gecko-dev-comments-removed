@@ -441,7 +441,6 @@ struct Parser : private AutoGCRooter
     bool checkForFunctionNode(PropertyName *name, ParseNode *node);
 
     ParseNode *identifierName(bool afterDoubleDot);
-    ParseNode *intrinsicName();
 
 #if JS_HAS_XML_SUPPORT
     
