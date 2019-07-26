@@ -826,7 +826,7 @@ class MControlInstruction : public MInstruction
     void printOpcode(FILE *fp);
 };
 
-class MTableSwitch
+class MTableSwitch MOZ_FINAL
   : public MControlInstruction
 {
     
@@ -3603,7 +3603,7 @@ class MFromCharCode
     }
 };
 
-class MPhi : public MDefinition, public InlineForwardListNode<MPhi>
+class MPhi MOZ_FINAL : public MDefinition, public InlineForwardListNode<MPhi>
 {
     js::Vector<MUse, 2, IonAllocPolicy> inputs_;
 
@@ -5797,7 +5797,7 @@ class MFunctionDispatch : public MDispatchInstruction
 };
 
 
-class MPolyInlineDispatch : public MControlInstruction, public SingleObjectPolicy
+class MPolyInlineDispatch MOZ_FINAL : public MControlInstruction, public SingleObjectPolicy
 {
     
     struct Entry {
@@ -8171,7 +8171,7 @@ class MAsmJSPassStackArg : public MUnaryInstruction
     }
 };
 
-class MAsmJSCall : public MInstruction
+class MAsmJSCall MOZ_FINAL : public MInstruction
 {
   public:
     class Callee {

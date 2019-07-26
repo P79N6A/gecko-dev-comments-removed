@@ -4469,7 +4469,7 @@ class MPhi;
 
 
 
-class LPhi : public LInstruction
+class LPhi MOZ_FINAL : public LInstruction
 {
     uint32_t numInputs_;
     LAllocation *inputs_;
@@ -4770,7 +4770,7 @@ class LAsmJSPassStackArg : public LInstructionHelper<0, 1, 0>
     }
 };
 
-class LAsmJSCall : public LInstruction
+class LAsmJSCall MOZ_FINAL : public LInstruction
 {
     LAllocation *operands_;
     uint32_t numOperands_;
