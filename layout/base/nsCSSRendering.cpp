@@ -2262,6 +2262,8 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   
   
   double stopScale;
+  double stopOrigin = firstStop;
+  double stopEnd = lastStop;
   double stopDelta = lastStop - firstStop;
   bool zeroRadius = aGradient->mShape != NS_STYLE_GRADIENT_SHAPE_LINEAR &&
                       (radiusX < 1e-6 || radiusY < 1e-6);
@@ -2270,14 +2272,22 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
     
     
     
-    stopScale = 0.0;
     if (aGradient->mRepeating || zeroRadius) {
       radiusX = radiusY = 0.0;
     }
+    stopDelta = 0.0;
     lastStop = firstStop;
-  } else {
-    stopScale = 1.0/stopDelta;
   }
+
+  
+  
+  
+  
+  if (!aGradient->mRepeating || stopDelta == 0.0) {
+    stopOrigin = std::min(stopOrigin, 0.0);
+    stopEnd = std::max(stopEnd, 1.0);
+  }
+  stopScale = 1.0/(stopEnd - stopOrigin);
 
   
   nsRefPtr<gfxPattern> gradientPattern;
@@ -2285,10 +2295,10 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   if (aGradient->mShape == NS_STYLE_GRADIENT_SHAPE_LINEAR) {
     
     
-    gfxPoint gradientStart = lineStart + (lineEnd - lineStart)*firstStop;
-    gfxPoint gradientEnd = lineStart + (lineEnd - lineStart)*lastStop;
+    gfxPoint gradientStart = lineStart + (lineEnd - lineStart)*stopOrigin;
+    gfxPoint gradientEnd = lineStart + (lineEnd - lineStart)*stopEnd;
 
-    if (stopScale == 0.0) {
+    if (stopDelta == 0.0) {
       
       
       
@@ -2317,9 +2327,9 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
 
     
     
-    double innerRadius = radiusX*firstStop;
-    double outerRadius = radiusX*lastStop;
-    if (stopScale == 0.0) {
+    double innerRadius = radiusX*stopOrigin;
+    double outerRadius = radiusX*stopEnd;
+    if (stopDelta == 0.0) {
       
       
       outerRadius = innerRadius + 1;
@@ -2342,7 +2352,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   if (gradientPattern->CairoStatus())
     return;
 
-  if (stopScale == 0.0) {
+  if (stopDelta == 0.0) {
     
     
     
@@ -2372,7 +2382,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
     rawStops.SetLength(stops.Length());
     for(uint32_t i = 0; i < stops.Length(); i++) {
       rawStops[i].color = gfx::Color(stops[i].mColor.r, stops[i].mColor.g, stops[i].mColor.b, stops[i].mColor.a);
-      rawStops[i].offset =  stopScale * (stops[i].mPosition - firstStop);
+      rawStops[i].offset =  stopScale * (stops[i].mPosition - stopOrigin);
     }
     GradientCacheData* cached = gGradientCache->Lookup(rawStops, isRepeat, backendType);
     mozilla::RefPtr<mozilla::gfx::GradientStops> gs = cached ? cached->mStops : nullptr;
@@ -2387,7 +2397,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
     gradientPattern->SetColorStops(gs);
   } else {
     for (uint32_t i = 0; i < stops.Length(); i++) {
-      double pos = stopScale*(stops[i].mPosition - firstStop);
+      double pos = stopScale*(stops[i].mPosition - stopOrigin);
       gradientPattern->AddColorStop(pos, stops[i].mColor);
     }
     
