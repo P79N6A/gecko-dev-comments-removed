@@ -37,7 +37,6 @@
 #include "nsCSSStyleSheet.h"
 #include "nsIDOMStyleSheet.h"
 
-#include "nsIEnumerator.h"
 #include "nsIContent.h"
 #include "nsIContentIterator.h"
 #include "nsIDOMRange.h"
@@ -2388,7 +2387,7 @@ nsHTMLEditor::GetSelectedElement(const nsAString& aTagName, nsIDOMElement** aRet
   nsresult res = GetSelection(getter_AddRefs(selection));
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-  nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(selection));
+  Selection* sel = static_cast<Selection*>(selection.get());
 
   bool bNodeFound = false;
   bool isCollapsed = selection->Collapsed();
@@ -2453,7 +2452,7 @@ nsHTMLEditor::GetSelectedElement(const nsAString& aTagName, nsIDOMElement** aRet
       int32_t anchorOffset = -1;
       if (anchorNode)
         selection->GetAnchorOffset(&anchorOffset);
-    
+
       nsCOMPtr<nsIDOMNode> focusNode;
       res = selection->GetFocusNode(getter_AddRefs(focusNode));
       NS_ENSURE_SUCCESS(res, res);
@@ -2464,19 +2463,6 @@ nsHTMLEditor::GetSelectedElement(const nsAString& aTagName, nsIDOMElement** aRet
       
       if (NS_SUCCEEDED(res) && anchorNode)
       {
-  #ifdef DEBUG_cmanske
-        {
-        nsAutoString name;
-        anchorNode->GetNodeName(name);
-        printf("GetSelectedElement: Anchor node of selection: ");
-        wprintf(name.get());
-        printf(" Offset: %d\n", anchorOffset);
-        focusNode->GetNodeName(name);
-        printf("Focus node of selection: ");
-        wprintf(name.get());
-        printf(" Offset: %d\n", focusOffset);
-        }
-  #endif
         nsCOMPtr<nsIDOMElement> parentLinkOfAnchor;
         res = GetElementOrParentByTagName(NS_LITERAL_STRING("href"), anchorNode, getter_AddRefs(parentLinkOfAnchor));
         
@@ -2493,7 +2479,7 @@ nsHTMLEditor::GetSelectedElement(const nsAString& aTagName, nsIDOMElement** aRet
             if (NS_SUCCEEDED(res) && parentLinkOfFocus == parentLinkOfAnchor)
               bNodeFound = true;
           }
-      
+
           
           if (bNodeFound) {
             
@@ -2518,77 +2504,63 @@ nsHTMLEditor::GetSelectedElement(const nsAString& aTagName, nsIDOMElement** aRet
 
     if (!isCollapsed)   
     {
-      nsCOMPtr<nsIEnumerator> enumerator;
-      res = selPriv->GetEnumerator(getter_AddRefs(enumerator));
-      if (NS_SUCCEEDED(res))
-      {
-        if(!enumerator)
-          return NS_ERROR_NULL_POINTER;
+      nsRefPtr<nsRange> currange = sel->GetRangeAt(0);
+      if (currange) {
+        nsCOMPtr<nsIContentIterator> iter =
+          do_CreateInstance("@mozilla.org/content/post-content-iterator;1", &res);
+        NS_ENSURE_SUCCESS(res, res);
 
-        enumerator->First(); 
-        nsCOMPtr<nsISupports> currentItem;
-        res = enumerator->CurrentItem(getter_AddRefs(currentItem));
-        if ((NS_SUCCEEDED(res)) && currentItem)
+        iter->Init(currange);
+        
+        while (!iter->IsDone())
         {
-          nsCOMPtr<nsIDOMRange> currange( do_QueryInterface(currentItem) );
-          nsCOMPtr<nsIContentIterator> iter =
-            do_CreateInstance("@mozilla.org/content/post-content-iterator;1", &res);
-          NS_ENSURE_SUCCESS(res, res);
-
-          iter->Init(currange);
           
-          while (!iter->IsDone())
+          
+          
+          selectedElement = do_QueryInterface(iter->GetCurrentNode());
+          if (selectedElement)
           {
             
             
-            
-            selectedElement = do_QueryInterface(iter->GetCurrentNode());
-            if (selectedElement)
+            if (bNodeFound)
+            {
+              bNodeFound = false;
+              break;
+            }
+
+            selectedElement->GetNodeName(domTagName);
+            ToLowerCase(domTagName);
+
+            if (anyTag)
             {
               
-              
-              if (bNodeFound)
-              {
-                bNodeFound = false;
-                break;
-              }
-
-              selectedElement->GetNodeName(domTagName);
-              ToLowerCase(domTagName);
-
-              if (anyTag)
-              {
-                
-                selectedElement->GetTagName(TagName);
-                ToLowerCase(TagName);
-                anyTag = false;
-              }
-
-              
-              
-              nsCOMPtr<nsIDOMNode> selectedNode = do_QueryInterface(selectedElement);
-              if ( (isLinkTag && nsHTMLEditUtils::IsLink(selectedNode)) ||
-                   (isNamedAnchorTag && nsHTMLEditUtils::IsNamedAnchor(selectedNode)) )
-              {
-                bNodeFound = true;
-              } else if (TagName == domTagName) { 
-                bNodeFound = true;
-              }
-              if (!bNodeFound)
-              {
-                
-                break;
-              }
+              selectedElement->GetTagName(TagName);
+              ToLowerCase(TagName);
+              anyTag = false;
             }
-            iter->Next();
+
+            
+            
+            nsCOMPtr<nsIDOMNode> selectedNode = do_QueryInterface(selectedElement);
+            if ( (isLinkTag && nsHTMLEditUtils::IsLink(selectedNode)) ||
+                (isNamedAnchorTag && nsHTMLEditUtils::IsNamedAnchor(selectedNode)) )
+            {
+              bNodeFound = true;
+            } else if (TagName == domTagName) { 
+              bNodeFound = true;
+            }
+            if (!bNodeFound)
+            {
+              
+              break;
+            }
           }
-        } else {
-          
-          isCollapsed = true;
-          printf("isCollapsed was FALSE, but no elements found in selection\n");
+          iter->Next();
         }
       } else {
-        printf("Could not create enumerator for GetSelectionProperties\n");
+        
+        isCollapsed = true;
+        NS_WARNING("isCollapsed was FALSE, but no elements found in selection\n");
       }
     }
   }
@@ -4679,22 +4651,12 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
   if (!cancel && !handled)
   {
     
-    nsCOMPtr<nsIEnumerator> enumerator;
-    res = selection->GetEnumerator(getter_AddRefs(enumerator));
-    NS_ENSURE_SUCCESS(res, res);
-    NS_ENSURE_TRUE(enumerator, NS_ERROR_FAILURE);
-
-    
-    enumerator->First(); 
-    nsCOMPtr<nsISupports> currentItem;
     nsAutoString bgcolor; bgcolor.AssignLiteral("bgcolor");
-    nsCOMPtr<nsIDOMNode> cachedBlockParent = nullptr;
-    while (static_cast<nsresult>(NS_ENUMERATOR_FALSE) == enumerator->IsDone()) {
-      res = enumerator->CurrentItem(getter_AddRefs(currentItem));
-      NS_ENSURE_SUCCESS(res, res);
-      NS_ENSURE_TRUE(currentItem, NS_ERROR_FAILURE);
-      
-      nsCOMPtr<nsIDOMRange> range( do_QueryInterface(currentItem) );
+    uint32_t rangeCount = selection->GetRangeCount();
+    for (uint32_t rangeIdx = 0; rangeIdx < rangeCount; ++rangeIdx) {
+      nsCOMPtr<nsIDOMNode> cachedBlockParent = nullptr;
+      nsRefPtr<nsRange> range = selection->GetRangeAt(rangeIdx);
+      NS_ENSURE_TRUE(range, NS_ERROR_FAILURE);
       
       
       nsCOMPtr<nsIDOMNode> startNode, endNode;
@@ -4854,7 +4816,6 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
           }
         }
       }
-      enumerator->Next();
     }
   }
   if (!cancel)

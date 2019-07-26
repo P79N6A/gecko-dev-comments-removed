@@ -34,12 +34,11 @@
 #include "nsICharsetConverterManager.h"
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
-#include "nsIEnumerator.h"
 #include "nsIParserService.h"
 #include "nsIScriptContext.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptSecurityManager.h"
-#include "nsISelection.h"
+#include "mozilla/Selection.h"
 #include "nsISelectionPrivate.h"
 #include "nsITransferable.h" 
 #include "nsContentUtils.h"
@@ -1348,19 +1347,17 @@ nsHTMLCopyEncoder::SetSelection(nsISelection* aSelection)
   
   nsCOMPtr<nsIDOMRange> range;
   nsCOMPtr<nsIDOMNode> commonParent;
-  int32_t count = 0;
-
-  nsresult rv = aSelection->GetRangeCount(&count);
-  NS_ENSURE_SUCCESS(rv, rv);
+  Selection* selection = static_cast<Selection*>(aSelection);
+  uint32_t rangeCount = selection->GetRangeCount();
 
   
-  if (!count)
+  if (!rangeCount)
     return NS_ERROR_FAILURE;
   
   
   
   
-  rv = aSelection->GetRangeAt(0, getter_AddRefs(range));
+  nsresult rv = aSelection->GetRangeAt(0, getter_AddRefs(range));
   NS_ENSURE_SUCCESS(rv, rv);
   if (!range)
     return NS_ERROR_NULL_POINTER;
@@ -1412,25 +1409,10 @@ nsHTMLCopyEncoder::SetSelection(nsISelection* aSelection)
   
   NS_NewDomSelection(getter_AddRefs(mSelection));
   NS_ENSURE_TRUE(mSelection, NS_ERROR_FAILURE);
-  nsCOMPtr<nsISelectionPrivate> privSelection( do_QueryInterface(aSelection) );
-  NS_ENSURE_TRUE(privSelection, NS_ERROR_FAILURE);
   
   
-  nsCOMPtr<nsIEnumerator> enumerator;
-  rv = privSelection->GetEnumerator(getter_AddRefs(enumerator));
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(enumerator, NS_ERROR_FAILURE);
-
-  
-  enumerator->First(); 
-  nsCOMPtr<nsISupports> currentItem;
-  while (static_cast<nsresult>(NS_ENUMERATOR_FALSE) == enumerator->IsDone())
-  {
-    rv = enumerator->CurrentItem(getter_AddRefs(currentItem));
-    NS_ENSURE_SUCCESS(rv, rv);
-    NS_ENSURE_TRUE(currentItem, NS_ERROR_FAILURE);
-    
-    range = do_QueryInterface(currentItem);
+  for (uint32_t rangeIdx = 0; rangeIdx < rangeCount; ++rangeIdx) {
+    range = selection->GetRangeAt(rangeIdx);
     NS_ENSURE_TRUE(range, NS_ERROR_FAILURE);
     nsCOMPtr<nsIDOMRange> myRange;
     range->CloneRange(getter_AddRefs(myRange));
@@ -1442,8 +1424,6 @@ nsHTMLCopyEncoder::SetSelection(nsISelection* aSelection)
     
     rv = mSelection->AddRange(myRange);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    enumerator->Next();
   }
 
   return NS_OK;
