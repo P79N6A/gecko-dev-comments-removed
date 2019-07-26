@@ -120,8 +120,11 @@ class ActionModeCompatView extends LinearLayout implements GeckoMenu.ActionItemB
         }
 
         
-        mMenuButton.measure(SPEC, SPEC);
-        maxWidth -= mMenuButton.getMeasuredWidth();
+        if (mMenuButton.getVisibility() == View.GONE) {
+            
+            mMenuButton.measure(SPEC, SPEC);
+            maxWidth -= mMenuButton.getMeasuredWidth();
+        }
 
         if (mActionButtonsWidth <= 0) {
             mActionButtonsWidth = 0;
@@ -142,12 +145,14 @@ class ActionModeCompatView extends LinearLayout implements GeckoMenu.ActionItemB
             mActionButtonBar.addView(actionItem);
             return true;
         }
+
         return false;
     }
 
     
     @Override
     public void removeActionItem(View actionItem) {
+        actionItem.measure(SPEC, SPEC);
         mActionButtonsWidth -= actionItem.getMeasuredWidth();
         mActionButtonBar.removeView(actionItem);
     }
