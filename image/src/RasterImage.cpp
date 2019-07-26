@@ -2749,15 +2749,18 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     return NS_ERROR_FAILURE;
 
   
-  
-  if (mDecoder && !mDecoder->IsSizeDecode() && mBytesDecoded) {
+  if (mDecoded)
     return NS_OK;
-  }
 
   
   
   
   if (mFinishing)
+    return NS_OK;
+
+  
+  
+  if (mDecoder && mDecoder->NeedsNewFrame())
     return NS_OK;
 
   
@@ -2784,13 +2787,28 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     }
   }
 
-  
-  
-  
-  if (mDecoded)
-    return NS_OK;
-
   MutexAutoLock lock(mDecodingMutex);
+
+  
+  if (mDecodeRequest &&
+      mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
+    nsresult rv = FinishedSomeDecoding();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  
+  
+  
+  if (mDecoded) {
+    return NS_OK;
+  }
+
+  
+  
+  if (mDecoder && !mDecoder->IsSizeDecode() && mBytesDecoded) {
+    return NS_OK;
+  }
 
   
   
@@ -2808,13 +2826,6 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     CONTAINER_ENSURE_SUCCESS(rv);
 
     MOZ_ASSERT(mDecoder);
-  }
-
-  
-  if (mDecodeRequest &&
-      mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
-    nsresult rv = FinishedSomeDecoding();
-    CONTAINER_ENSURE_SUCCESS(rv);
   }
 
   
