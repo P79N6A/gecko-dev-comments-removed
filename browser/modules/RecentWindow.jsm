@@ -29,12 +29,9 @@ this.RecentWindow = {
     let checkPrivacy = typeof aOptions == "object" &&
                        "private" in aOptions;
 
-    let allowPopups = typeof aOptions == "object" && !!aOptions.allowPopups;
-
     function isSuitableBrowserWindow(win) {
       return (!win.closed &&
               win.toolbar.visible &&
-              (allowPopups || win.toolbar.visible) &&
               (!checkPrivacy ||
                PrivateBrowsingUtils.permanentPrivateBrowsing ||
                PrivateBrowsingUtils.isWindowPrivate(win) == aOptions.private));
