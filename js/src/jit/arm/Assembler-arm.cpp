@@ -2741,7 +2741,8 @@ void Assembler::updateBoundsCheck(uint32_t logHeapSize, Instruction *inst)
     
 
     *inst = InstALU(ScratchRegister, InvalidReg, lsr(index, logHeapSize), op_mov, SetCond, Always);
-    AutoFlushCache::updateTop(uintptr_t(inst), 4);
+    
+    
 }
 
 void
