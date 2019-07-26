@@ -612,14 +612,16 @@ js::Nursery::MinorGCCallback(JSTracer *jstrc, void **thingp, JSGCTraceKind kind)
 static void
 CheckHashTablesAfterMovingGC(JSRuntime *rt)
 {
-#if defined(DEBUG)
-    
-    for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
-        c->checkNewTypeObjectTableAfterMovingGC();
-        c->checkInitialShapesTableAfterMovingGC();
-        c->checkWrapperMapAfterMovingGC();
-        if (c->debugScopes)
-            c->debugScopes->checkHashTablesAfterMovingGC(rt);
+#ifdef JS_GC_ZEAL
+    if (rt->gcZeal() == ZealCheckHashTablesOnMinorGC) {
+        
+        for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
+            c->checkNewTypeObjectTableAfterMovingGC();
+            c->checkInitialShapesTableAfterMovingGC();
+            c->checkWrapperMapAfterMovingGC();
+            if (c->debugScopes)
+                c->debugScopes->checkHashTablesAfterMovingGC(rt);
+        }
     }
 #endif
 }
