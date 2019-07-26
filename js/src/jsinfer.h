@@ -439,7 +439,7 @@ class TypeSet
 
     void print();
 
-    inline void sweep(JS::Zone *zone);
+    inline void sweep(JSCompartment *compartment);
 
     
     inline bool hasType(Type type) const;
@@ -1342,6 +1342,15 @@ struct TypeCompartment
     bool resolving;
 
     
+    bool inferenceEnabled;
+
+    
+
+
+
+    bool pendingNukeTypes;
+
+    
     unsigned scriptCount;
 
     
@@ -1383,7 +1392,7 @@ struct TypeCompartment
     unsigned typeCounts[TYPE_COUNT_LIMIT];
     unsigned typeCountOver;
 
-    TypeCompartment();
+    void init(JSContext *cx);
     ~TypeCompartment();
 
     inline JSCompartment *compartment();
@@ -1410,10 +1419,12 @@ struct TypeCompartment
     
     TypeObject *addAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);
 
+    void nukeTypes(FreeOp *fop);
     void processPendingRecompiles(FreeOp *fop);
 
     
     void setPendingNukeTypes(JSContext *cx);
+    void setPendingNukeTypesNoReport();
 
     
     void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
@@ -1432,37 +1443,6 @@ struct TypeCompartment
     void maybePurgeAnalysis(JSContext *cx, bool force = false);
 
     void finalizeObjects();
-};
-
-struct TypeZone
-{
-    JS::Zone                     *zone_;
-
-    
-    static const size_t TYPE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 8 * 1024;
-    js::LifoAlloc                typeLifoAlloc;
-
-    
-
-
-
-    bool                         pendingNukeTypes;
-
-    
-    bool                         inferenceEnabled;
-
-    TypeZone(JS::Zone *zone);
-    ~TypeZone();
-    void init(JSContext *cx);
-
-    JS::Zone *zone() const { return zone_; }
-
-    void sweep(FreeOp *fop, bool releaseTypes);
-
-    
-    void setPendingNukeTypes();
-
-    void nukeTypes(FreeOp *fop);
 };
 
 enum SpewChannel {

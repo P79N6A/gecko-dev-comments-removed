@@ -368,7 +368,7 @@ class JSScript : public js::gc::Cell
     const char      *filename;  
     js::HeapPtrAtom *atoms;     
 
-    JSCompartment   *compartment_;
+    void            *principalsPad;
     JSPrincipals    *originPrincipals; 
 
     
@@ -531,8 +531,6 @@ class JSScript : public js::gc::Cell
                                      js::frontend::BytecodeEmitter *bce);
 
     inline JSPrincipals *principals();
-
-    JSCompartment *compartment() const { return compartment_; }
 
     void setVersion(JSVersion v) { version = v; }
 

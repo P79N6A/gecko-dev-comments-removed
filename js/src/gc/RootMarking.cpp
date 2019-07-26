@@ -740,23 +740,14 @@ js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
     for (ContextIter acx(rt); !acx.done(); acx.next())
         acx->mark(trc);
 
-    for (ZonesIter zone(rt); !zone.done(); zone.next()) {
-        if (IS_GC_MARKING_TRACER(trc) && !zone->isCollecting())
-            continue;
+    if (IS_GC_MARKING_TRACER(trc)) {
+        for (ZonesIter zone(rt); !zone.done(); zone.next()) {
+            if (!zone->isCollecting())
+                continue;
 
-        if (IS_GC_MARKING_TRACER(trc) && zone->isPreservingCode()) {
-            gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_MARK_TYPES);
-            zone->markTypes(trc);
-        }
-
-        
-        if (rt->profilingScripts) {
-            for (CellIterUnderGC i(zone, FINALIZE_SCRIPT); !i.done(); i.next()) {
-                JSScript *script = i.get<JSScript>();
-                if (script->hasScriptCounts) {
-                    MarkScriptRoot(trc, &script, "profilingScripts");
-                    JS_ASSERT(script == i.get<JSScript>());
-                }
+            if (zone->isPreservingCode()) {
+                gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_MARK_TYPES);
+                zone->markTypes(trc);
             }
         }
     }
@@ -773,14 +764,25 @@ js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
         }
 
         
+        if (rt->profilingScripts) {
+            for (CellIterUnderGC i(c, FINALIZE_SCRIPT); !i.done(); i.next()) {
+                JSScript *script = i.get<JSScript>();
+                if (script->hasScriptCounts) {
+                    MarkScriptRoot(trc, &script, "profilingScripts");
+                    JS_ASSERT(script == i.get<JSScript>());
+                }
+            }
+        }
+
+        
         if (c->debugScopes)
             c->debugScopes->mark(trc);
     }
 
 #ifdef JS_METHODJIT
     
-    for (ZonesIter zone(rt); !zone.done(); zone.next())
-        mjit::ExpandInlineFrames(zone);
+    for (CompartmentsIter c(rt); !c.done(); c.next())
+        mjit::ExpandInlineFrames(c);
 #endif
 
     rt->stackSpace.mark(trc);

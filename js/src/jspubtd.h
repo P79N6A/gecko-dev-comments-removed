@@ -14,17 +14,13 @@
 #include "jsprototypes.h"
 #include "jstypes.h"
 
-namespace JS {
 
 
 
 
-
-class Value;
-
-struct Zone;
-
-} 
+#ifdef __cplusplus
+namespace JS { class Value; }
+#endif
 
 
 
@@ -262,11 +258,8 @@ struct ContextFriendFields {
     
     JSCompartment       *compartment;
 
-    
-    JS::Zone            *zone_;
-
     explicit ContextFriendFields(JSRuntime *rt)
-      : runtime(rt), compartment(NULL), zone_(NULL)
+      : runtime(rt), compartment(NULL)
     { }
 
     static const ContextFriendFields *get(const JSContext *cx) {

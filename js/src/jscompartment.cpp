@@ -46,36 +46,52 @@ using namespace js::gc;
 
 using mozilla::DebugOnly;
 
-JSCompartment::JSCompartment(Zone *zone)
-  : zone_(zone),
-    rt(zone->rt),
+JSCompartment::JSCompartment(JSRuntime *rt)
+  : rt(rt),
     principals(NULL),
-    isSystem(false),
-    marked(true),
     global_(NULL),
     enterCompartmentDepth(0),
+    allocator(this),
+    ionUsingBarriers_(false),
+    gcScheduled(false),
+    gcState(NoGC),
+    gcPreserveCode(false),
+    gcBytes(0),
+    gcTriggerBytes(0),
+    gcHeapGrowthFactor(3.0),
+    hold(false),
+    isSystem(false),
     lastCodeRelease(0),
     analysisLifoAlloc(ANALYSIS_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
+    typeLifoAlloc(TYPE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
     data(NULL),
+    active(false),
+    scheduledForDestruction(false),
+    maybeAlive(true),
     lastAnimationTime(0),
     regExps(rt),
     propertyTree(thisForCtor()),
     gcIncomingGrayPointers(NULL),
     gcLiveArrayBuffers(NULL),
     gcWeakMapList(NULL),
+    gcGrayRoots(),
+    gcMallocBytes(0),
     debugModeBits(rt->debugMode ? DebugFromC : 0),
     rngState(0),
     watchpointMap(NULL),
     scriptCountsMap(NULL),
     debugScriptMap(NULL),
     debugScopes(NULL),
-    enumerators(NULL),
-    compartmentStats(NULL)
+    enumerators(NULL)
 #ifdef JS_ION
     , ionCompartment_(NULL)
 #endif
 {
-    rt->numCompartments++;
+    
+    JS_ASSERT(reinterpret_cast<JS::shadow::Zone *>(this) ==
+              static_cast<JS::shadow::Zone *>(this));
+
+    setGCMaxMallocBytes(rt->gcMaxMallocBytes * 0.9);
 }
 
 JSCompartment::~JSCompartment()
@@ -89,8 +105,6 @@ JSCompartment::~JSCompartment()
     js_delete(debugScriptMap);
     js_delete(debugScopes);
     js_free(enumerators);
-
-    rt->numCompartments--;
 }
 
 bool
@@ -106,6 +120,7 @@ JSCompartment::init(JSContext *cx)
         cx->runtime->dateTimeInfo.updateTimeZoneAdjustment();
 
     activeAnalysis = false;
+    types.init(cx);
 
     if (!crossCompartmentWrappers.init(0))
         return false;
@@ -121,6 +136,26 @@ JSCompartment::init(JSContext *cx)
         return false;
 
     return debuggees.init(0);
+}
+
+void
+JSCompartment::setNeedsBarrier(bool needs, ShouldUpdateIon updateIon)
+{
+#ifdef JS_METHODJIT
+    
+    bool old = compileBarriers();
+    if (compileBarriers(needs) != old)
+        mjit::ClearAllFrames(this);
+#endif
+
+#ifdef JS_ION
+    if (updateIon == UpdateIon && needs != ionUsingBarriers_) {
+        ion::ToggleBarriers(this, needs);
+        ionUsingBarriers_ = needs;
+    }
+#endif
+
+    needsBarrier_ = needs;
 }
 
 #ifdef JS_ION
@@ -513,9 +548,87 @@ JSCompartment::mark(JSTracer *trc)
 }
 
 void
+JSCompartment::markTypes(JSTracer *trc)
+{
+    
+
+
+
+
+    JS_ASSERT(!activeAnalysis);
+    JS_ASSERT(isPreservingCode());
+
+    for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+        JSScript *script = i.get<JSScript>();
+        MarkScriptRoot(trc, &script, "mark_types_script");
+        JS_ASSERT(script == i.get<JSScript>());
+    }
+
+    for (size_t thingKind = FINALIZE_OBJECT0; thingKind < FINALIZE_OBJECT_LIMIT; thingKind++) {
+        ArenaHeader *aheader = allocator.arenas.getFirstArena(static_cast<AllocKind>(thingKind));
+        if (aheader)
+            rt->gcMarker.pushArenaList(aheader);
+    }
+
+    for (CellIterUnderGC i(this, FINALIZE_TYPE_OBJECT); !i.done(); i.next()) {
+        types::TypeObject *type = i.get<types::TypeObject>();
+        MarkTypeObjectRoot(trc, &type, "mark_types_scan");
+        JS_ASSERT(type == i.get<types::TypeObject>());
+    }
+}
+
+void
+JSCompartment::discardJitCode(FreeOp *fop, bool discardConstraints)
+{
+#ifdef JS_METHODJIT
+
+    
+
+
+
+
+
+
+
+    mjit::ClearAllFrames(this);
+
+    if (isPreservingCode()) {
+        PurgeJITCaches(this);
+    } else {
+# ifdef JS_ION
+        
+        ion::InvalidateAll(fop, this);
+# endif
+        for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+            JSScript *script = i.get<JSScript>();
+            mjit::ReleaseScriptCode(fop, script);
+# ifdef JS_ION
+            ion::FinishInvalidation(fop, script);
+# endif
+
+            
+
+
+
+
+            script->resetUseCount();
+        }
+
+        types.sweepCompilerOutputs(fop, discardConstraints);
+    }
+
+#endif 
+}
+
+void
 JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
 {
     JS_ASSERT(!activeAnalysis);
+
+    {
+        gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_DISCARD_CODE);
+        discardJitCode(fop, !zone()->isPreservingCode());
+    }
 
     
     sweepCrossCompartmentWrappers();
@@ -557,8 +670,61 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
     if (!zone()->isPreservingCode()) {
         JS_ASSERT(!types.constrainedOutputs);
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_DISCARD_ANALYSIS);
-        gcstats::AutoPhase ap2(rt->gcStats, gcstats::PHASE_FREE_TI_ARENA);
-        rt->freeLifoAlloc.transferFrom(&analysisLifoAlloc);
+
+        
+
+
+
+        LifoAlloc oldAlloc(typeLifoAlloc.defaultChunkSize());
+        oldAlloc.steal(&typeLifoAlloc);
+
+        
+
+
+
+        if (active)
+            releaseTypes = false;
+
+        
+
+
+
+
+        if (types.inferenceEnabled) {
+            gcstats::AutoPhase ap2(rt->gcStats, gcstats::PHASE_DISCARD_TI);
+
+            for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+                RawScript script = i.get<JSScript>();
+                if (script->types) {
+                    types::TypeScript::Sweep(fop, script);
+
+                    if (releaseTypes) {
+                        script->types->destroy();
+                        script->types = NULL;
+                    }
+                }
+            }
+        }
+
+        {
+            gcstats::AutoPhase ap2(rt->gcStats, gcstats::PHASE_SWEEP_TYPES);
+            types.sweep(fop);
+        }
+
+        {
+            gcstats::AutoPhase ap2(rt->gcStats, gcstats::PHASE_CLEAR_SCRIPT_ANALYSIS);
+            for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+                JSScript *script = i.get<JSScript>();
+                script->clearAnalysis();
+                script->clearPropertyReadTypes();
+            }
+        }
+
+        {
+            gcstats::AutoPhase ap2(rt->gcStats, gcstats::PHASE_FREE_TI_ARENA);
+            rt->freeLifoAlloc.transferFrom(&analysisLifoAlloc);
+            rt->freeLifoAlloc.transferFrom(&oldAlloc);
+        }
     }
 
     NativeIterator *ni = enumerators->next();
@@ -569,6 +735,8 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
             ni->unlink();
         ni = next;
     }
+
+    active = false;
 }
 
 
@@ -601,6 +769,29 @@ void
 JSCompartment::purge()
 {
     dtoaCache.purge();
+}
+
+void
+Zone::resetGCMallocBytes()
+{
+    gcMallocBytes = ptrdiff_t(gcMaxMallocBytes);
+}
+
+void
+Zone::setGCMaxMallocBytes(size_t value)
+{
+    
+
+
+
+    gcMaxMallocBytes = (ptrdiff_t(value) >= 0) ? value : size_t(-1) >> 1;
+    resetGCMallocBytes();
+}
+
+void
+Zone::onTooMuchMalloc()
+{
+    TriggerZoneGC(this, gcreason::TOO_MUCH_MALLOC);
 }
 
 bool
@@ -672,10 +863,9 @@ JSCompartment::updateForDebugMode(FreeOp *fop, AutoDebugModeGC &dmgc)
 
     JS_ASSERT_IF(enabled, !hasScriptsOnStack());
 
-    for (gc::CellIter i(zone(), gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
+    for (gc::CellIter i(this, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
-        if (script->compartment() == this)
-            script->debugMode = enabled;
+        script->debugMode = enabled;
     }
 
     
@@ -755,9 +945,9 @@ JSCompartment::removeDebuggee(FreeOp *fop,
 void
 JSCompartment::clearBreakpointsIn(FreeOp *fop, js::Debugger *dbg, JSObject *handler)
 {
-    for (gc::CellIter i(zone(), gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
+    for (gc::CellIter i(this, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
-        if (script->compartment() == this && script->hasAnyBreakpointsOrStepMode())
+        if (script->hasAnyBreakpointsOrStepMode())
             script->clearBreakpointsIn(fop, dbg, handler);
     }
 }
@@ -765,9 +955,9 @@ JSCompartment::clearBreakpointsIn(FreeOp *fop, js::Debugger *dbg, JSObject *hand
 void
 JSCompartment::clearTraps(FreeOp *fop)
 {
-    for (gc::CellIter i(zone(), gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
+    for (gc::CellIter i(this, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
-        if (script->compartment() == this && script->hasAnyBreakpointsOrStepMode())
+        if (script->hasAnyBreakpointsOrStepMode())
             script->clearTraps(fop);
     }
 }
@@ -780,9 +970,9 @@ JSCompartment::sweepBreakpoints(FreeOp *fop)
     if (rt->debuggerList.isEmpty())
         return;
 
-    for (CellIterUnderGC i(zone(), FINALIZE_SCRIPT); !i.done(); i.next()) {
+    for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
-        if (script->compartment() != this || !script->hasAnyBreakpointsOrStepMode())
+        if (!script->hasAnyBreakpointsOrStepMode())
             continue;
         bool scriptGone = IsScriptAboutToBeFinalized(&script);
         JS_ASSERT(script == i.get<JSScript>());

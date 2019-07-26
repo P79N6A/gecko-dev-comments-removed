@@ -885,8 +885,8 @@ js::SetGCZeal(JSRuntime *rt, uint8_t zeal, uint32_t frequency)
 
 #ifdef JS_METHODJIT
     
-    for (ZonesIter zone(rt); !zone.done(); zone.next())
-        mjit::ClearAllFrames(zone);
+    for (CompartmentsIter c(rt); !c.done(); c.next())
+        mjit::ClearAllFrames(c);
 #endif
 
     bool schedule = zeal >= js::gc::ZealAllocValue;
@@ -1016,13 +1016,9 @@ js_FinishGC(JSRuntime *rt)
 #endif
 
     
-    for (ZonesIter zone(rt); !zone.done(); zone.next()) {
-        for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next())
-            js_delete(comp.get());
-        js_delete(zone.get());
-    }
-
-    rt->zones.clear();
+    for (CompartmentsIter c(rt); !c.done(); c.next())
+        js_delete(c.get());
+    rt->compartments.clear();
     rt->atomsCompartment = NULL;
 
     rt->gcSystemAvailableChunkListHead = NULL;
@@ -1117,7 +1113,7 @@ ComputeTriggerBytes(Zone *zone, size_t lastBytes, size_t maxBytes, JSGCInvocatio
 }
 
 void
-Zone::setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind)
+JSCompartment::setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind)
 {
     
 
@@ -1158,7 +1154,7 @@ Zone::setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind)
 }
 
 void
-Zone::reduceGCTriggerBytes(size_t amount)
+JSCompartment::reduceGCTriggerBytes(size_t amount)
 {
     JS_ASSERT(amount > 0);
     JS_ASSERT(gcTriggerBytes >= amount);
@@ -1948,7 +1944,7 @@ js::SetMarkStackLimit(JSRuntime *rt, size_t limit)
 void
 js::MarkCompartmentActive(StackFrame *fp)
 {
-    fp->script()->compartment()->zone()->active = true;
+    fp->script()->compartment()->active = true;
 }
 
 static void
@@ -2533,78 +2529,38 @@ ReleaseObservedTypes(JSRuntime *rt)
     return releaseTypes;
 }
 
-
-
-
-
-
-
-
-
-
 static void
-SweepCompartments(FreeOp *fop, Zone *zone, bool keepAtleastOne, bool lastGC)
-{
-    JSRuntime *rt = zone->rt;
-    JSDestroyCompartmentCallback callback = rt->destroyCompartmentCallback;
-
-    JSCompartment **read = zone->compartments.begin();
-    JSCompartment **end = zone->compartments.end();
-    JSCompartment **write = read;
-    bool foundOne = false;
-    while (read < end) {
-        JSCompartment *comp = *read++;
-        JS_ASSERT(comp != rt->atomsCompartment);
-
-        
-
-
-
-        bool dontDelete = read == end && !foundOne && keepAtleastOne;
-        if ((!comp->marked && !dontDelete) || lastGC) {
-            if (callback)
-                callback(fop, comp);
-            if (comp->principals)
-                JS_DropPrincipals(rt, comp->principals);
-            js_delete(comp);
-        } else {
-            *write++ = comp;
-            foundOne = true;
-        }
-    }
-    zone->compartments.resize(write - zone->compartments.begin());
-    JS_ASSERT_IF(keepAtleastOne, !zone->compartments.empty());
-}
-
-static void
-SweepZones(FreeOp *fop, bool lastGC)
+SweepCompartments(FreeOp *fop, bool lastGC)
 {
     JSRuntime *rt = fop->runtime();
     JS_ASSERT_IF(lastGC, !rt->hasContexts());
 
+    JSDestroyCompartmentCallback callback = rt->destroyCompartmentCallback;
+
     
-    Zone **read = rt->zones.begin() + 1;
-    Zone **end = rt->zones.end();
-    Zone **write = read;
-    JS_ASSERT(rt->zones.length() >= 1);
-    JS_ASSERT(rt->zones[0] == rt->atomsCompartment->zone());
+    JSCompartment **read = rt->compartments.begin() + 1;
+    JSCompartment **end = rt->compartments.end();
+    JSCompartment **write = read;
+    JS_ASSERT(rt->compartments.length() >= 1);
+    JS_ASSERT(*rt->compartments.begin() == rt->atomsCompartment);
 
     while (read < end) {
-        Zone *zone = *read++;
+        JSCompartment *compartment = *read++;
 
-        if (!zone->hold && zone->wasGCStarted()) {
-            if (zone->allocator.arenas.arenaListsAreEmpty() || lastGC) {
-                zone->allocator.arenas.checkEmptyFreeLists();
-                SweepCompartments(fop, zone, false, lastGC);
-                JS_ASSERT(zone->compartments.empty());
-                fop->delete_(zone);
-                continue;
-            }
-            SweepCompartments(fop, zone, true, lastGC);
+        if (!compartment->hold && compartment->zone()->wasGCStarted() &&
+            (compartment->zone()->allocator.arenas.arenaListsAreEmpty() || lastGC))
+        {
+            compartment->zone()->allocator.arenas.checkEmptyFreeLists();
+            if (callback)
+                callback(fop, compartment);
+            if (compartment->principals)
+                JS_DropPrincipals(rt, compartment->principals);
+            fop->delete_(compartment);
+            continue;
         }
-        *write++ = zone;
+        *write++ = compartment;
     }
-    rt->zones.resize(write - rt->zones.begin());
+    rt->compartments.resize(write - rt->compartments.begin());
 }
 
 static void
@@ -2629,7 +2585,7 @@ PurgeRuntime(JSRuntime *rt)
 static bool
 ShouldPreserveJITCode(JSCompartment *comp, int64_t currentTime)
 {
-    if (comp->rt->gcShouldCleanUpEverything || !comp->zone()->types.inferenceEnabled)
+    if (comp->rt->gcShouldCleanUpEverything || !comp->types.inferenceEnabled)
         return false;
 
     if (comp->rt->alwaysPreserveCode)
@@ -2649,7 +2605,6 @@ struct CompartmentCheckTracer : public JSTracer
 {
     Cell *src;
     JSGCTraceKind srcKind;
-    Zone *zone;
     JSCompartment *compartment;
 };
 
@@ -2679,43 +2634,14 @@ InCrossCompartmentMap(JSObject *src, Cell *dst, JSGCTraceKind dstKind)
 }
 
 static void
-CheckCompartment(CompartmentCheckTracer *trc, JSCompartment *thingCompartment,
-                 Cell *thing, JSGCTraceKind kind)
-{
-    JS_ASSERT(thingCompartment == trc->compartment ||
-              thingCompartment == trc->runtime->atomsCompartment ||
-              (trc->srcKind == JSTRACE_OBJECT &&
-               InCrossCompartmentMap((JSObject *)trc->src, thing, kind)));
-}
-
-static JSCompartment *
-CompartmentOfCell(Cell *thing, JSGCTraceKind kind)
-{
-    if (kind == JSTRACE_OBJECT)
-        return static_cast<JSObject *>(thing)->compartment();
-    else if (kind == JSTRACE_SHAPE)
-        return static_cast<Shape *>(thing)->compartment();
-    else if (kind == JSTRACE_BASE_SHAPE)
-        return static_cast<BaseShape *>(thing)->compartment();
-    else if (kind == JSTRACE_SCRIPT)
-        return static_cast<JSScript *>(thing)->compartment();
-    else
-        return NULL;
-}
-
-static void
 CheckCompartmentCallback(JSTracer *trcArg, void **thingp, JSGCTraceKind kind)
 {
     CompartmentCheckTracer *trc = static_cast<CompartmentCheckTracer *>(trcArg);
     Cell *thing = (Cell *)*thingp;
-
-    JSCompartment *comp = CompartmentOfCell(thing, kind);
-    if (comp && trc->compartment) {
-        CheckCompartment(trc, comp, thing, kind);
-    } else {
-        JS_ASSERT(thing->zone() == trc->zone ||
-                  thing->zone() == trc->runtime->atomsCompartment->zone());
-    }
+    JS_ASSERT(thing->compartment() == trc->compartment ||
+              thing->compartment() == trc->runtime->atomsCompartment ||
+              (trc->srcKind == JSTRACE_OBJECT &&
+               InCrossCompartmentMap((JSObject *)trc->src, thing, kind)));
 }
 
 static void
@@ -2727,13 +2653,12 @@ CheckForCompartmentMismatches(JSRuntime *rt)
     CompartmentCheckTracer trc;
     JS_TracerInit(&trc, rt, CheckCompartmentCallback);
 
-    for (ZonesIter zone(rt); !zone.done(); zone.next()) {
-        trc.zone = zone;
+    for (CompartmentsIter c(rt); !c.done(); c.next()) {
+        trc.compartment = c;
         for (size_t thingKind = 0; thingKind < FINALIZE_LAST; thingKind++) {
-            for (CellIterUnderGC i(zone, AllocKind(thingKind)); !i.done(); i.next()) {
+            for (CellIterUnderGC i(c, AllocKind(thingKind)); !i.done(); i.next()) {
                 trc.src = i.getCell();
                 trc.srcKind = MapAllocToTraceKind(AllocKind(thingKind));
-                trc.compartment = CompartmentOfCell(trc.src, trc.srcKind);
                 JS_TraceChildren(&trc, trc.src, trc.srcKind);
             }
         }
@@ -2756,7 +2681,6 @@ BeginMarkPhase(JSRuntime *rt)
     for (ZonesIter zone(rt); !zone.done(); zone.next()) {
         
         JS_ASSERT(!zone->isCollecting());
-        JS_ASSERT(!zone->compartments.empty());
         for (unsigned i = 0; i < FINALIZE_LIMIT; ++i)
             JS_ASSERT(!zone->allocator.arenas.arenaListsToSweep[i]);
 
@@ -2771,13 +2695,12 @@ BeginMarkPhase(JSRuntime *rt)
         }
 
         zone->scheduledForDestruction = false;
-        zone->maybeAlive = zone->hold;
+        zone->maybeAlive = false;
         zone->setPreservingCode(false);
     }
 
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
         JS_ASSERT(!c->gcLiveArrayBuffers);
-        c->marked = false;
         if (ShouldPreserveJITCode(c, currentTime))
             c->zone()->setPreservingCode(true);
     }
@@ -2816,9 +2739,9 @@ BeginMarkPhase(JSRuntime *rt)
 
     
     if (rt->gcIsIncremental) {
-        for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
+        for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
             gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_MARK_DISCARD_CODE);
-            zone->discardJitCode(rt->defaultFreeOp(), false);
+            c->discardJitCode(rt->defaultFreeOp(), false);
         }
     }
 
@@ -2895,6 +2818,9 @@ BeginMarkPhase(JSRuntime *rt)
             Cell *dst = e.front().key.wrapped;
             dst->zone()->maybeAlive = true;
         }
+
+        if (c->hold)
+            c->zone()->maybeAlive = true;
     }
 
     
@@ -3257,7 +3183,7 @@ DropStringWrappers(JSRuntime *rt)
 
 
 void
-JSCompartment::findOutgoingEdges(ComponentFinder<JS::Zone> &finder)
+JSCompartment::findOutgoingEdgesFromCompartment(ComponentFinder<JS::Zone> &finder)
 {
     for (js::WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
         CrossCompartmentKey::Kind kind = e.front().key.kind;
@@ -3298,17 +3224,16 @@ JSCompartment::findOutgoingEdges(ComponentFinder<JS::Zone> &finder)
 }
 
 void
-Zone::findOutgoingEdges(ComponentFinder<JS::Zone> &finder)
+JSCompartment::findOutgoingEdges(ComponentFinder<JS::Zone> &finder)
 {
     
 
 
 
-    if (rt->atomsCompartment->zone()->isGCMarking())
-        finder.addEdgeTo(rt->atomsCompartment->zone());
+    if (rt->atomsCompartment->isGCMarking())
+        finder.addEdgeTo(rt->atomsCompartment);
 
-    for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next())
-        comp->findOutgoingEdges(finder);
+    findOutgoingEdgesFromCompartment(finder);
 }
 
 static void
@@ -3335,10 +3260,6 @@ GetNextZoneGroup(JSRuntime *rt)
 {
     rt->gcCurrentZoneGroup = rt->gcCurrentZoneGroup->nextGroup();
     ++rt->gcZoneGroupIndex;
-    if (!rt->gcCurrentZoneGroup) {
-        rt->gcAbortSweepAfterCurrentGroup = false;
-        return;
-    }
 
     if (!rt->gcIsIncremental)
         ComponentFinder<Zone>::mergeGroups(rt->gcCurrentZoneGroup);
@@ -3413,11 +3334,11 @@ AssertNotOnGrayList(RawObject obj)
 }
 #endif
 
-static JSObject *
+static Cell *
 CrossCompartmentPointerReferent(RawObject obj)
 {
     JS_ASSERT(IsGrayListObject(obj));
-    return &GetProxyPrivate(obj).toObject();
+    return (Cell *)GetProxyPrivate(obj).toGCThing();
 }
 
 static RawObject
@@ -3440,7 +3361,7 @@ js::DelayCrossCompartmentGrayMarking(RawObject src)
 
     
     unsigned slot = GrayLinkSlot(src);
-    JSObject *dest = CrossCompartmentPointerReferent(src);
+    Cell *dest = CrossCompartmentPointerReferent(src);
     JSCompartment *comp = dest->compartment();
 
     if (src->getReservedSlot(slot).isUndefined()) {
@@ -3489,7 +3410,7 @@ MarkIncomingCrossCompartmentPointers(JSRuntime *rt, const uint32_t color)
              src;
              src = NextIncomingCrossCompartmentPointer(src, unlinkList))
         {
-            JSObject *dst = CrossCompartmentPointerReferent(src);
+            Cell *dst = CrossCompartmentPointerReferent(src);
             JS_ASSERT(dst->compartment() == c);
 
             if (color == GRAY) {
@@ -3683,20 +3604,10 @@ BeginSweepingZoneGroup(JSRuntime *rt)
     {
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_COMPARTMENTS);
 
-        for (GCZoneGroupIter zone(rt); !zone.done(); zone.next()) {
-            gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_DISCARD_CODE);
-            zone->discardJitCode(&fop, !zone->isPreservingCode());
-        }
-
         bool releaseTypes = ReleaseObservedTypes(rt);
         for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
             gcstats::AutoSCC scc(rt->gcStats, rt->gcZoneGroupIndex);
             c->sweep(&fop, releaseTypes);
-        }
-
-        for (GCZoneGroupIter zone(rt); !zone.done(); zone.next()) {
-            gcstats::AutoSCC scc(rt->gcStats, rt->gcZoneGroupIndex);
-            zone->sweep(&fop, releaseTypes);
         }
     }
 
@@ -3940,7 +3851,7 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool lastGC)
 
 
         if (!lastGC)
-            SweepZones(&fop, lastGC);
+            SweepCompartments(&fop, lastGC);
 
         if (!rt->gcSweepOnBackgroundThread) {
             
@@ -3982,7 +3893,7 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool lastGC)
 
         
         if (lastGC)
-            SweepZones(&fop, lastGC);
+            SweepCompartments(&fop, lastGC);
     }
 
     for (ZonesIter zone(rt); !zone.done(); zone.next()) {
@@ -4693,49 +4604,33 @@ AutoPrepareForTracing::AutoPrepareForTracing(JSRuntime *rt)
 }
 
 JSCompartment *
-js::NewCompartment(JSContext *cx, Zone *zone, JSPrincipals *principals)
+gc::NewCompartment(JSContext *cx, JSPrincipals *principals)
 {
     JSRuntime *rt = cx->runtime;
     JS_AbortIfWrongThread(rt);
 
-    ScopedJSDeletePtr<Zone> zoneHolder;
-    if (!zone) {
-        zone = cx->new_<Zone>(rt);
-        if (!zone)
-            return NULL;
+    JSCompartment *compartment = cx->new_<JSCompartment>(rt);
+    if (compartment && compartment->init(cx)) {
 
-        zoneHolder.reset(zone);
+        
+        JS_SetCompartmentPrincipals(compartment, principals);
 
-        if (!zone->init(cx))
-            return NULL;
+        compartment->setGCLastBytes(8192, GC_NORMAL);
 
-        zone->setGCLastBytes(8192, GC_NORMAL);
+        
 
-        JSPrincipals *trusted = rt->trustedPrincipals();
-        zone->isSystem = principals && principals == trusted;
-    }
 
-    ScopedJSDeletePtr<JSCompartment> compartment(cx->new_<JSCompartment>(zone));
-    if (!compartment || !compartment->init(cx))
-        return NULL;
 
-    
-    JS_SetCompartmentPrincipals(compartment, principals);
+        {
+            AutoLockGC lock(rt);
+            if (rt->compartments.append(compartment))
+                return compartment;
+        }
 
-    AutoLockGC lock(rt);
-
-    if (!zone->compartments.append(compartment.get())) {
         js_ReportOutOfMemory(cx);
-        return NULL;
     }
-
-    if (zoneHolder && !rt->zones.append(zone)) {
-        js_ReportOutOfMemory(cx);
-        return NULL;
-    }
-
-    zoneHolder.forget();
-    return compartment.forget();
+    js_delete(compartment);
+    return NULL;
 }
 
 void
@@ -4822,13 +4717,13 @@ void
 js::ReleaseAllJITCode(FreeOp *fop)
 {
 #ifdef JS_METHODJIT
-    for (ZonesIter zone(fop->runtime()); !zone.done(); zone.next()) {
-        mjit::ClearAllFrames(zone);
+    for (CompartmentsIter c(fop->runtime()); !c.done(); c.next()) {
+        mjit::ClearAllFrames(c);
 # ifdef JS_ION
-        ion::InvalidateAll(fop, zone);
+        ion::InvalidateAll(fop, c);
 # endif
 
-        for (CellIter i(zone, FINALIZE_SCRIPT); !i.done(); i.next()) {
+        for (CellIter i(c, FINALIZE_SCRIPT); !i.done(); i.next()) {
             JSScript *script = i.get<JSScript>();
             mjit::ReleaseScriptCode(fop, script);
 # ifdef JS_ION
@@ -4909,8 +4804,8 @@ js::StopPCCountProfiling(JSContext *cx)
     if (!vec)
         return;
 
-    for (ZonesIter zone(rt); !zone.done(); zone.next()) {
-        for (CellIter i(zone, FINALIZE_SCRIPT); !i.done(); i.next()) {
+    for (CompartmentsIter c(rt); !c.done(); c.next()) {
+        for (CellIter i(c, FINALIZE_SCRIPT); !i.done(); i.next()) {
             RawScript script = i.get<JSScript>();
             if (script->hasScriptCounts && script->types) {
                 ScriptAndCounts sac;
@@ -4939,20 +4834,22 @@ js::PurgePCCounts(JSContext *cx)
 }
 
 void
-js::PurgeJITCaches(Zone *zone)
+js::PurgeJITCaches(JSCompartment *c)
 {
 #ifdef JS_METHODJIT
-    mjit::ClearAllFrames(zone);
+    mjit::ClearAllFrames(c);
 
-    for (CellIterUnderGC i(zone, FINALIZE_SCRIPT); !i.done(); i.next()) {
+    for (CellIterUnderGC i(c, FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
 
         
         mjit::PurgeCaches(script);
 
 #ifdef JS_ION
+
         
-        ion::PurgeCaches(script, zone);
+        ion::PurgeCaches(script, c);
+
 #endif
     }
 #endif

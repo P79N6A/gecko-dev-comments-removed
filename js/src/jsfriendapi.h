@@ -195,15 +195,6 @@ GetContextCompartment(const JSContext *cx)
     return ContextFriendFields::get(cx)->compartment;
 }
 
-inline JS::Zone *
-GetContextZone(const JSContext *cx)
-{
-    return ContextFriendFields::get(cx)->zone_;
-}
-
-extern JS_FRIEND_API(JS::Zone *)
-GetCompartmentZone(JSCompartment *comp);
-
 typedef bool
 (* PreserveWrapperCallback)(JSContext *cx, JSObject *obj);
 
@@ -233,13 +224,10 @@ JS_FRIEND_API(JSBool) obj_defineSetter(JSContext *cx, unsigned argc, js::Value *
 #endif
 
 extern JS_FRIEND_API(bool)
-IsSystemCompartment(JSCompartment *comp);
+IsSystemCompartment(const JSCompartment *compartment);
 
 extern JS_FRIEND_API(bool)
-IsSystemZone(JS::Zone *zone);
-
-extern JS_FRIEND_API(bool)
-IsAtomsCompartment(JSCompartment *comp);
+IsAtomsCompartment(const JSCompartment *c);
 
 
 
@@ -282,7 +270,7 @@ typedef void
 (*GCThingCallback)(void *closure, void *gcthing);
 
 extern JS_FRIEND_API(void)
-VisitGrayWrapperTargets(JS::Zone *zone, GCThingCallback callback, void *closure);
+VisitGrayWrapperTargets(JSCompartment *comp, GCThingCallback callback, void *closure);
 
 extern JS_FRIEND_API(JSObject *)
 GetWeakmapKeyDelegate(JSObject *key);
@@ -294,15 +282,12 @@ GCThingTraceKind(void *thing);
 
 
 extern JS_FRIEND_API(void)
-IterateGrayObjects(JS::Zone *zone, GCThingCallback cellCallback, void *data);
+IterateGrayObjects(JSCompartment *compartment, GCThingCallback cellCallback, void *data);
 
 #ifdef JS_HAS_CTYPES
 extern JS_FRIEND_API(size_t)
 SizeOfDataIfCDataObject(JSMallocSizeOfFun mallocSizeOf, JSObject *obj);
 #endif
-
-extern JS_FRIEND_API(JSCompartment *)
-GetAnyCompartmentInZone(JS::Zone *zone);
 
 
 
@@ -320,7 +305,6 @@ struct TypeObject {
 struct BaseShape {
     js::Class   *clasp;
     JSObject    *parent;
-    JSCompartment *compartment;
 };
 
 class Shape {
@@ -406,12 +390,6 @@ GetObjectParent(RawObject obj)
 {
     JS_ASSERT(!IsScopeObject(obj));
     return reinterpret_cast<shadow::Object*>(obj)->shape->base->parent;
-}
-
-static JS_ALWAYS_INLINE JSCompartment *
-GetObjectCompartment(JSObject *obj)
-{
-    return reinterpret_cast<shadow::Object*>(obj)->shape->base->compartment;
 }
 
 JS_FRIEND_API(JSObject *)
@@ -744,6 +722,11 @@ CallContextDebugHandler(JSContext *cx, JSScript *script, jsbytecode *bc, Value *
 
 extern JS_FRIEND_API(bool)
 IsContextRunningJS(JSContext *cx);
+
+class SystemAllocPolicy;
+typedef Vector<JSCompartment*, 0, SystemAllocPolicy> CompartmentVector;
+extern JS_FRIEND_API(const CompartmentVector&)
+GetRuntimeCompartments(JSRuntime *rt);
 
 typedef void
 (* AnalysisPurgeCallback)(JSRuntime *rt, JSFlatString *desc);

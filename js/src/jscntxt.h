@@ -570,8 +570,6 @@ namespace gc {
 class MarkingValidator;
 } 
 
-typedef Vector<JS::Zone *, 1, SystemAllocPolicy> ZoneVector;
-
 } 
 
 struct JSRuntime : js::RuntimeFriendFields,
@@ -593,13 +591,7 @@ struct JSRuntime : js::RuntimeFriendFields,
     JSCompartment       *atomsCompartment;
 
     
-    JS::Zone            *systemZone;
-
-    
-    js::ZoneVector      zones;
-
-    
-    size_t              numCompartments;
+    js::CompartmentVector compartments;
 
     
     JSLocaleCallbacks *localeCallbacks;
@@ -688,12 +680,6 @@ struct JSRuntime : js::RuntimeFriendFields,
 #endif
     js::ion::IonRuntime *getIonRuntime(JSContext *cx) {
         return ionRuntime_ ? ionRuntime_ : createIonRuntime(cx);
-    }
-    js::ion::IonRuntime *ionRuntime() {
-        return ionRuntime_;
-    }
-    bool hasIonRuntime() const {
-        return !!ionRuntime_;
     }
 
     
@@ -1397,7 +1383,7 @@ struct JSContext : js::ContextFriendFields,
     JSContext *thisDuringConstruction() { return this; }
     ~JSContext();
 
-    inline JS::Zone *zone() const;
+    inline JS::Zone *zone();
     js::PerThreadData &mainThread() { return runtime->mainThread; }
 
   private:
@@ -1421,7 +1407,7 @@ struct JSContext : js::ContextFriendFields,
     
     bool                generatingError;
 
-    inline void setCompartment(JSCompartment *comp);
+    inline void setCompartment(JSCompartment *c) { compartment = c; }
 
     
 
@@ -2022,7 +2008,7 @@ namespace js {
 
 #ifdef JS_METHODJIT
 namespace mjit {
-void ExpandInlineFrames(JS::Zone *zone);
+    void ExpandInlineFrames(JSCompartment *compartment);
 }
 #endif
 

@@ -17,7 +17,7 @@
 #include "jsgc.h"
 #include "jsobj.h"
 
-#include "gc/Zone.h"
+#include "gc/FindSCCs.h"
 #include "vm/GlobalObject.h"
 #include "vm/RegExpObject.h"
 #include "vm/Shape.h"
@@ -120,16 +120,39 @@ class AutoDebugModeGC;
 class DebugScopes;
 }
 
-struct JSCompartment
-{
-    JS::Zone                     *zone_;
+namespace js {
 
+
+
+
+
+
+
+
+
+
+class Allocator : public MallocProvider<Allocator>
+{
+    JS::Zone *zone;
+
+  public:
+    explicit Allocator(JS::Zone *zone);
+
+    js::gc::ArenaLists arenas;
+
+    inline void *parallelNewGCThing(gc::AllocKind thingKind, size_t thingSize);
+
+    inline void *onOutOfMemory(void *p, size_t nbytes);
+    inline void updateMallocCounter(size_t nbytes);
+    inline void reportAllocationOverflow();
+};
+
+} 
+
+struct JSCompartment : private JS::shadow::Zone, public js::gc::GraphNodeBase<JSCompartment>
+{
     JSRuntime                    *rt;
     JSPrincipals                 *principals;
-    bool                         isSystem;
-    bool                         marked;
-
-    void mark() { marked = true; }
 
   private:
     friend struct JSRuntime;
@@ -141,9 +164,6 @@ struct JSCompartment
   public:
     void enter() { enterCompartmentDepth++; }
     void leave() { enterCompartmentDepth--; }
-
-    JS::Zone *zone() { return zone_; }
-    const JS::Zone *zone() const { return zone_; }
 
     
 
@@ -158,9 +178,15 @@ struct JSCompartment
 
     inline js::GlobalObject *maybeGlobal() const;
 
-    inline void initGlobal(js::GlobalObject &global);
+    void initGlobal(js::GlobalObject &global) {
+        JS_ASSERT(global.compartment() == this);
+        JS_ASSERT(!global_);
+        global_ = &global;
+    }
 
   public:
+    js::Allocator                    allocator;
+
     
 
 
@@ -168,12 +194,144 @@ struct JSCompartment
 
     void adoptWorkerAllocator(js::Allocator *workerAllocator);
 
+  private:
+    bool                         ionUsingBarriers_;
+  public:
+
+    JS::Zone *zone() {
+        return this;
+    }
+
+    const JS::Zone *zone() const {
+        return this;
+    }
+
+    bool needsBarrier() const {
+        return needsBarrier_;
+    }
+
+    bool compileBarriers(bool needsBarrier) const {
+        return needsBarrier || rt->gcZeal() == js::gc::ZealVerifierPreValue;
+    }
+
+    bool compileBarriers() const {
+        return compileBarriers(needsBarrier());
+    }
+
+    enum ShouldUpdateIon {
+        DontUpdateIon,
+        UpdateIon
+    };
+
+    void setNeedsBarrier(bool needs, ShouldUpdateIon updateIon);
+
+    static size_t OffsetOfNeedsBarrier() {
+        return offsetof(JSCompartment, needsBarrier_);
+    }
+
+    js::GCMarker *barrierTracer() {
+        JS_ASSERT(needsBarrier_);
+        return &rt->gcMarker;
+    }
+
+  public:
+    enum CompartmentGCState {
+        NoGC,
+        Mark,
+        MarkGray,
+        Sweep,
+        Finished
+    };
+
+  private:
+    bool                         gcScheduled;
+    CompartmentGCState           gcState;
+    bool                         gcPreserveCode;
+
+  public:
+    bool isCollecting() const {
+        if (rt->isHeapCollecting())
+            return gcState != NoGC;
+        else
+            return needsBarrier();
+    }
+
+    bool isPreservingCode() const {
+        return gcPreserveCode;
+    }
+
+    
+
+
+
+    bool requireGCTracer() const {
+        return rt->isHeapCollecting() && gcState != NoGC;
+    }
+
+    void setGCState(CompartmentGCState state) {
+        JS_ASSERT(rt->isHeapBusy());
+        gcState = state;
+    }
+
+    void scheduleGC() {
+        JS_ASSERT(!rt->isHeapBusy());
+        gcScheduled = true;
+    }
+
+    void unscheduleGC() {
+        gcScheduled = false;
+    }
+
+    bool isGCScheduled() const {
+        return gcScheduled;
+    }
+
+    void setPreservingCode(bool preserving) {
+        gcPreserveCode = preserving;
+    }
+
+    bool wasGCStarted() const {
+        return gcState != NoGC;
+    }
+
+    bool isGCMarking() {
+        if (rt->isHeapCollecting())
+            return gcState == Mark || gcState == MarkGray;
+        else
+            return needsBarrier();
+    }
+
+    bool isGCMarkingBlack() {
+        return gcState == Mark;
+    }
+
+    bool isGCMarkingGray() {
+        return gcState == MarkGray;
+    }
+
+    bool isGCSweeping() {
+        return gcState == Sweep;
+    }
+
+    bool isGCFinished() {
+        return gcState == Finished;
+    }
+
+    size_t                       gcBytes;
+    size_t                       gcTriggerBytes;
+    size_t                       gcMaxMallocBytes;
+    double                       gcHeapGrowthFactor;
+
+    bool                         hold;
+    bool                         isSystem;
 
     int64_t                      lastCodeRelease;
 
     
     static const size_t ANALYSIS_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 32 * 1024;
+    static const size_t TYPE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 8 * 1024;
     js::LifoAlloc                analysisLifoAlloc;
+    js::LifoAlloc                typeLifoAlloc;
 
     bool                         activeAnalysis;
 
@@ -181,11 +339,19 @@ struct JSCompartment
     js::types::TypeCompartment   types;
 
     void                         *data;
+    bool                         active;  
 
   private:
     js::WrapperMap               crossCompartmentWrappers;
 
   public:
+    
+
+
+
+    bool                         scheduledForDestruction;
+    bool                         maybeAlive;
+
     
     int64_t                      lastAnimationTime;
 
@@ -249,13 +415,23 @@ struct JSCompartment
     
     js::WeakMapBase              *gcWeakMapList;
 
+    
+    js::Vector<js::GrayRoot, 0, js::SystemAllocPolicy> gcGrayRoots;
+
   private:
+    
+
+
+
+
+    ptrdiff_t                    gcMallocBytes;
+
     enum { DebugFromC = 1, DebugFromJS = 2 };
 
     unsigned                     debugModeBits;  
 
   public:
-    JSCompartment(JS::Zone *zone);
+    JSCompartment(JSRuntime *rt);
     ~JSCompartment();
 
     bool init(JSContext *cx);
@@ -288,12 +464,38 @@ struct JSCompartment
     };
 
     void mark(JSTracer *trc);
+    void markTypes(JSTracer *trc);
+    void discardJitCode(js::FreeOp *fop, bool discardConstraints);
     bool isDiscardingJitCode(JSTracer *trc);
     void sweep(js::FreeOp *fop, bool releaseTypes);
     void sweepCrossCompartmentWrappers();
     void purge();
 
+    void findOutgoingEdgesFromCompartment(js::gc::ComponentFinder<JS::Zone> &finder);
     void findOutgoingEdges(js::gc::ComponentFinder<JS::Zone> &finder);
+
+    void setGCLastBytes(size_t lastBytes, js::JSGCInvocationKind gckind);
+    void reduceGCTriggerBytes(size_t amount);
+
+    void resetGCMallocBytes();
+    void setGCMaxMallocBytes(size_t value);
+    void updateMallocCounter(size_t nbytes) {
+        
+
+
+
+        ptrdiff_t oldCount = gcMallocBytes;
+        ptrdiff_t newCount = oldCount - ptrdiff_t(nbytes);
+        gcMallocBytes = newCount;
+        if (JS_UNLIKELY(newCount <= 0 && oldCount > 0))
+            onTooMuchMalloc();
+    }
+
+    bool isTooMuchMalloc() const {
+        return gcMallocBytes <= 0;
+     }
+
+    void onTooMuchMalloc();
 
     js::DtoaCache dtoaCache;
 
@@ -361,9 +563,6 @@ struct JSCompartment
 
     js::NativeIterator *enumerators;
 
-    
-    void               *compartmentStats;
-
 #ifdef JS_ION
   private:
     js::ion::IonCompartment *ionCompartment_;
@@ -375,6 +574,10 @@ struct JSCompartment
     }
 #endif
 };
+
+namespace JS {
+typedef JSCompartment Zone;
+} 
 
 
 
@@ -406,7 +609,7 @@ class js::AutoDebugModeGC
 inline bool
 JSContext::typeInferenceEnabled() const
 {
-    return compartment->zone()->types.inferenceEnabled;
+    return compartment->types.inferenceEnabled;
 }
 
 inline js::Handle<js::GlobalObject*>
@@ -465,6 +668,32 @@ class AutoCompartment
 
 
 
+
+
+
+class AutoEnterAtomsCompartment
+{
+    JSContext *cx;
+    JSCompartment *oldCompartment;
+  public:
+    AutoEnterAtomsCompartment(JSContext *cx)
+      : cx(cx),
+        oldCompartment(cx->compartment)
+    {
+        cx->setCompartment(cx->runtime->atomsCompartment);
+    }
+
+    ~AutoEnterAtomsCompartment()
+    {
+        cx->setCompartment(oldCompartment);
+    }
+};
+
+
+
+
+
+
 class ErrorCopier
 {
     mozilla::Maybe<AutoCompartment> &ac;
@@ -475,6 +704,34 @@ class ErrorCopier
       : ac(ac), scope(ac.ref().context(), scope) {}
     ~ErrorCopier();
 };
+
+class CompartmentsIter {
+  private:
+    JSCompartment **it, **end;
+
+  public:
+    CompartmentsIter(JSRuntime *rt) {
+        it = rt->compartments.begin();
+        end = rt->compartments.end();
+    }
+
+    bool done() const { return it == end; }
+
+    void next() {
+        JS_ASSERT(!done());
+        it++;
+    }
+
+    JSCompartment *get() const {
+        JS_ASSERT(!done());
+        return *it;
+    }
+
+    operator JSCompartment *() const { return get(); }
+    JSCompartment *operator->() const { return get(); }
+};
+
+typedef CompartmentsIter ZonesIter;
 
 
 

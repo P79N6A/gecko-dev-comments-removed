@@ -25,7 +25,6 @@
 #include "nsIURL.h"
 #include "nsIXPConnect.h"
 #include "nsIXPCScriptNotify.h"
-#include "nsPrintfCString.h"
 
 #include "jsfriendapi.h"
 #include "jsdbgapi.h"
@@ -1412,29 +1411,10 @@ public:
 
   ~WorkerJSRuntimeStats()
   {
-    for (size_t i = 0; i != zoneStatsVector.length(); i++) {
-      free(zoneStatsVector[i].extra1);
-    }
-
     for (size_t i = 0; i != compartmentStatsVector.length(); i++) {
       free(compartmentStatsVector[i].extra1);
       
     }
-  }
-
-  virtual void
-  initExtraZoneStats(JS::Zone* aZone,
-                     JS::ZoneStats* aZoneStats)
-                     MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(!aZoneStats->extra1);
-
-    
-    
-
-    nsAutoCString pathPrefix(mRtPath);
-    pathPrefix += nsPrintfCString("zone(%p)/", (void *)aZone);
-    aZoneStats->extra1 = strdup(pathPrefix.get());
   }
 
   virtual void
@@ -1451,8 +1431,6 @@ public:
     
     
     nsAutoCString cJSPathPrefix(mRtPath);
-    cJSPathPrefix += nsPrintfCString("zone(%p)/",
-                                     (void *)js::GetCompartmentZone(aCompartment));
     cJSPathPrefix += js::IsAtomsCompartment(aCompartment)
                    ? NS_LITERAL_CSTRING("compartment(web-worker-atoms)/")
                    : NS_LITERAL_CSTRING("compartment(web-worker)/");

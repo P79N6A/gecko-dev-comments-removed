@@ -1132,7 +1132,6 @@ void
 MarkStackRangeConservatively(JSTracer *trc, Value *begin, Value *end);
 
 typedef void (*IterateChunkCallback)(JSRuntime *rt, void *data, gc::Chunk *chunk);
-typedef void (*IterateZoneCallback)(JSRuntime *rt, void *data, JS::Zone *zone);
 typedef void (*IterateArenaCallback)(JSRuntime *rt, void *data, gc::Arena *arena,
                                      JSGCTraceKind traceKind, size_t thingSize);
 typedef void (*IterateCellCallback)(JSRuntime *rt, void *data, void *thing,
@@ -1144,11 +1143,10 @@ typedef void (*IterateCellCallback)(JSRuntime *rt, void *data, void *thing,
 
 
 extern void
-IterateZonesCompartmentsArenasCells(JSRuntime *rt, void *data,
-                                    IterateZoneCallback zoneCallback,
-                                    JSIterateCompartmentCallback compartmentCallback,
-                                    IterateArenaCallback arenaCallback,
-                                    IterateCellCallback cellCallback);
+IterateCompartmentsArenasCells(JSRuntime *rt, void *data,
+                               JSIterateCompartmentCallback compartmentCallback,
+                               IterateArenaCallback arenaCallback,
+                               IterateCellCallback cellCallback);
 
 
 
@@ -1156,15 +1154,13 @@ IterateZonesCompartmentsArenasCells(JSRuntime *rt, void *data,
 extern void
 IterateChunks(JSRuntime *rt, void *data, IterateChunkCallback chunkCallback);
 
-typedef void (*IterateScriptCallback)(JSRuntime *rt, void *data, JSScript *script);
-
 
 
 
 
 extern void
-IterateScripts(JSRuntime *rt, JSCompartment *compartment,
-               void *data, IterateScriptCallback scriptCallback);
+IterateCells(JSRuntime *rt, JSCompartment *compartment, gc::AllocKind thingKind,
+             void *data, IterateCellCallback cellCallback);
 
 } 
 
@@ -1178,11 +1174,10 @@ js_FinalizeStringRT(JSRuntime *rt, JSString *str);
     ((trc)->callback == NULL || (trc)->callback == GCMarker::GrayCallback)
 
 namespace js {
+namespace gc {
 
 JSCompartment *
-NewCompartment(JSContext *cx, JS::Zone *zone, JSPrincipals *principals);
-
-namespace gc {
+NewCompartment(JSContext *cx, JSPrincipals *principals);
 
 
 void
@@ -1246,7 +1241,7 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false)
 } 
 
 void
-PurgeJITCaches(JS::Zone *zone);
+PurgeJITCaches(JSCompartment *c);
 
 } 
 
