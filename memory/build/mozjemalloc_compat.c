@@ -76,10 +76,14 @@ jemalloc_stats_impl(jemalloc_stats_t *stats)
   
   CTL_I_GET("stats.arenas.0.pdirty", pdirty, narenas);
 
-  stats->allocated = allocated;
   stats->mapped = mapped;
-  stats->dirty = pdirty * page;
-  stats->committed = active + stats->dirty;
+  stats->allocated = allocated;
+  stats->waste = active - allocated;
+  stats->page_cache = pdirty * page;
+
+  
+  
+  stats->bookkeeping = 0;
 }
 
 MOZ_JEMALLOC_API void
