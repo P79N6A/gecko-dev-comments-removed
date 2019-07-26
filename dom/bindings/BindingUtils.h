@@ -409,6 +409,64 @@ MaybeWrapValue(JSContext* cx, JSObject* obj, JS::Value* vp)
   return true;
 }
 
+#ifdef _MSC_VER
+#define HAS_MEMBER_CHECK(_name)                                           \
+  template<typename V> static yes& Check(char (*)[(&V::_name == 0) + 1])
+#else
+#define HAS_MEMBER_CHECK(_name)                                           \
+  template<typename V> static yes& Check(char (*)[sizeof(&V::_name) + 1])
+#endif
+
+#define HAS_MEMBER(_name)                                                 \
+template<typename T>                                                      \
+class Has##_name##Member {                                                \
+  typedef char yes[1];                                                    \
+  typedef char no[2];                                                     \
+  HAS_MEMBER_CHECK(_name);                                                \
+  template<typename V> static no& Check(...);                             \
+                                                                          \
+public:                                                                   \
+  static bool const Value = sizeof(Check<T>(nullptr)) == sizeof(yes);     \
+};
+
+HAS_MEMBER(AddRef)
+HAS_MEMBER(Release)
+HAS_MEMBER(QueryInterface)
+
+template<typename T>
+struct IsRefCounted
+{
+  static bool const Value = HasAddRefMember<T>::Value &&
+                            HasReleaseMember<T>::Value;
+};
+
+template<typename T>
+struct IsISupports
+{
+  static bool const Value = IsRefCounted<T>::Value &&
+                            HasQueryInterfaceMember<T>::Value;
+};
+
+HAS_MEMBER(WrapObject)
+
+
+
+template<typename T>
+struct HasWrapObject
+{
+private:
+  typedef char yes[1];
+  typedef char no[2];
+  typedef JSObject* (nsWrapperCache::*WrapObject)(JSContext*, JSObject*, bool*);
+  template<typename U, U> struct SFINAE;
+  template <typename V> static no& Check(SFINAE<WrapObject, &V::WrapObject>*);
+  template <typename V> static yes& Check(...);
+
+public:
+  static bool const Value = HasWrapObjectMember<T>::Value &&
+                            sizeof(Check<T>(nullptr)) == sizeof(yes);
+};
+
 template <class T>
 inline bool
 WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
@@ -430,6 +488,24 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
       return false;
     }
   }
+
+#ifdef DEBUG
+  
+  
+  
+  
+  
+  
+  const DOMClass* clasp = nullptr;
+  DOMObjectSlot slot = GetDOMClass(obj, clasp);
+  MOZ_ASSERT(slot != eNonDOMObject, "Totally unexpected object here");
+  MOZ_ASSERT(clasp, "What happened here?");
+  MOZ_ASSERT_IF(clasp->mDOMObjectIsISupports, IsISupports<T>::Value);
+  MOZ_ASSERT_IF(!clasp->mDOMObjectIsISupports,
+                reinterpret_cast<uintptr_t>(
+                  static_cast<nsWrapperCache*>(
+                    reinterpret_cast<T*>(1))) == 1);
+#endif
 
   
   
@@ -744,64 +820,6 @@ WrapObject<JSObject>(JSContext* cx, JSObject* scope, JSObject* p, JS::Value* vp)
 bool
 WrapCallbackInterface(JSContext *cx, JSObject *scope, nsISupports* callback,
                       JS::Value* vp);
-
-#ifdef _MSC_VER
-#define HAS_MEMBER_CHECK(_name)                                           \
-  template<typename V> static yes& Check(char (*)[(&V::_name == 0) + 1])
-#else
-#define HAS_MEMBER_CHECK(_name)                                           \
-  template<typename V> static yes& Check(char (*)[sizeof(&V::_name) + 1])
-#endif
-
-#define HAS_MEMBER(_name)                                                 \
-template<typename T>                                                      \
-class Has##_name##Member {                                                \
-  typedef char yes[1];                                                    \
-  typedef char no[2];                                                     \
-  HAS_MEMBER_CHECK(_name);                                                \
-  template<typename V> static no& Check(...);                             \
-                                                                          \
-public:                                                                   \
-  static bool const Value = sizeof(Check<T>(nullptr)) == sizeof(yes);     \
-};
-
-HAS_MEMBER(AddRef)
-HAS_MEMBER(Release)
-HAS_MEMBER(QueryInterface)
-
-template<typename T>
-struct IsRefCounted
-{
-  static bool const Value = HasAddRefMember<T>::Value &&
-                            HasReleaseMember<T>::Value;
-};
-
-template<typename T>
-struct IsISupports
-{
-  static bool const Value = IsRefCounted<T>::Value &&
-                            HasQueryInterfaceMember<T>::Value;
-};
-
-HAS_MEMBER(WrapObject)
-
-
-
-template<typename T>
-struct HasWrapObject
-{
-private:
-  typedef char yes[1];
-  typedef char no[2];
-  typedef JSObject* (nsWrapperCache::*WrapObject)(JSContext*, JSObject*, bool*);
-  template<typename U, U> struct SFINAE;
-  template <typename V> static no& Check(SFINAE<WrapObject, &V::WrapObject>*);
-  template <typename V> static yes& Check(...);
-
-public:
-  static bool const Value = HasWrapObjectMember<T>::Value &&
-                            sizeof(Check<T>(nullptr)) == sizeof(yes);
-};
 
 template<typename T>
 static inline JSObject*
