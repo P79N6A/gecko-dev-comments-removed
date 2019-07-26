@@ -4,6 +4,19 @@
 
 
 
+"""
+file for interface to transform introspected system information to a format
+pallatable to Mozilla
+
+Information:
+- os : what operating system ['win', 'mac', 'linux', ...]
+- bits : 32 or 64
+- processor : processor architecture ['x86', 'x86_64', 'ppc', ...]
+- version : operating system version string
+
+For windows, the service pack information is also included
+"""
+
 
 
 
@@ -12,13 +25,6 @@ import os
 import platform
 import re
 import sys
-
-try:
-    import json
-except ImportError:
-    import simplejson as json
-
-import mozfile
 
 
 _os = os
@@ -52,10 +58,7 @@ if system in ["Microsoft", "Windows"]:
         service_pack = os.sys.getwindowsversion()[4]
         info['service_pack'] = service_pack
 elif system == "Linux":
-    if hasattr(platform, "linux_distribution"):
-        (distro, version, codename) = platform.linux_distribution()
-    else:
-        (distro, version, codename) = platform.dist()
+    (distro, version, codename) = platform.dist()
     version = "%s %s" % (distro, version)
     if not processor:
         processor = machine
@@ -108,15 +111,7 @@ def sanitize(info):
 
 
 def update(new_info):
-    """Update the info.
-    new_info can either be a dict or a path/url
-    to a json file containing a dict."""
-
-    if isinstance(new_info, basestring):
-        f = mozfile.load(new_info)
-        new_info = json.loads(f.read())
-        f.close()
-
+    """update the info"""
     info.update(new_info)
     sanitize(info)
     globals().update(info)
@@ -149,12 +144,21 @@ def main(args=None):
 
     
     if args:
+        try:
+            from json import loads
+        except ImportError:
+            try:
+                from simplejson import loads
+            except ImportError:
+                def loads(string):
+                    """*really* simple json; will not work with unicode"""
+                    return eval(string, {'true': True, 'false': False, 'null': None})
         for arg in args:
             if _os.path.exists(arg):
                 string = file(arg).read()
             else:
                 string = arg
-            update(json.loads(string))
+            update(loads(string))
 
     
     flag = False
