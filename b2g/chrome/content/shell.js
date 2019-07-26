@@ -245,7 +245,7 @@ var shell = {
       case 'keypress':
         return;
     }
-  
+
     
     
     
@@ -420,6 +420,10 @@ Services.obs.addObserver(function(aSubject, aTopic, aData) {
   shell.sendChromeEvent({ type: "fullscreenoriginchange",
                           fullscreenorigin: aData });
 }, "fullscreen-origin-change", false);
+
+Services.obs.addObserver(function onWebappsReady(subject, topic, data) {
+  shell.sendChromeEvent({ type: 'webapps-registry-ready' });
+}, 'webapps-registry-ready', false);
 
 (function Repl() {
   if (!Services.prefs.getBoolPref('b2g.remote-js.enabled')) {
