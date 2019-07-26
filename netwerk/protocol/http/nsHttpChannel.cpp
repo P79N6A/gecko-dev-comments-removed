@@ -370,8 +370,7 @@ nsHttpChannel::Connect()
         NS_ENSURE_TRUE(stss, NS_ERROR_OUT_OF_MEMORY);
 
         bool isStsHost = false;
-        uint32_t flags = mPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-        rv = stss->IsStsURI(mURI, flags, &isStsHost);
+        rv = stss->IsStsURI(mURI, &isStsHost);
 
         
         
@@ -1113,9 +1112,7 @@ nsHttpChannel::ProcessSTSHeader()
     
     
     bool wasAlreadySTSHost;
-    uint32_t flags =
-      NS_UsePrivateBrowsing(this) ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-    rv = stss->IsStsURI(mURI, flags, &wasAlreadySTSHost);
+    rv = stss->IsStsURI(mURI, &wasAlreadySTSHost);
     
     
     NS_ENSURE_SUCCESS(rv, NS_OK);
@@ -1143,7 +1140,7 @@ nsHttpChannel::ProcessSTSHeader()
     
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = stss->ProcessStsHeader(mURI, stsHeader.get(), flags, NULL, NULL);
+    rv = stss->ProcessStsHeader(mURI, stsHeader.get(), NULL, NULL);
     if (NS_FAILED(rv)) {
         LOG(("STS: Failed to parse STS header, continuing load.\n"));
         return NS_OK;

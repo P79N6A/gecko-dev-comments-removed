@@ -46,7 +46,7 @@ function cleanup() {
 
   for (var host of hosts) {
     var uri = Services.io.newURI(host, null, null);
-    gSTSService.removeStsState(uri, 0);
+    gSTSService.removeStsState(uri);
   }
 }
 
@@ -66,65 +66,65 @@ function run_test() {
 
 function test_part1() {
   
-  do_check_false(gSTSService.isStsHost("nonexistent.mozilla.com", 0));
+  do_check_false(gSTSService.isStsHost("nonexistent.mozilla.com"));
 
   
-  do_check_false(gSTSService.isStsHost("com", 0));
+  do_check_false(gSTSService.isStsHost("com"));
 
   
   
   
   Services.prefs.setBoolPref("network.stricttransportsecurity.preloadlist", false);
-  do_check_false(gSTSService.isStsHost("factor.cc", 0));
+  do_check_false(gSTSService.isStsHost("factor.cc"));
   Services.prefs.setBoolPref("network.stricttransportsecurity.preloadlist", true);
-  do_check_true(gSTSService.isStsHost("factor.cc", 0));
+  do_check_true(gSTSService.isStsHost("factor.cc"));
 
   
-  do_check_true(gSTSService.isStsHost("arivo.com.br", 0));
+  do_check_true(gSTSService.isStsHost("arivo.com.br"));
 
   
-  do_check_true(gSTSService.isStsHost("subdomain.arivo.com.br", 0));
+  do_check_true(gSTSService.isStsHost("subdomain.arivo.com.br"));
 
   
-  do_check_true(gSTSService.isStsHost("a.b.c.subdomain.arivo.com.br", 0));
+  do_check_true(gSTSService.isStsHost("a.b.c.subdomain.arivo.com.br"));
 
   
-  do_check_true(gSTSService.isStsHost("neg9.org", 0));
+  do_check_true(gSTSService.isStsHost("neg9.org"));
 
   
-  do_check_false(gSTSService.isStsHost("subdomain.neg9.org", 0));
+  do_check_false(gSTSService.isStsHost("subdomain.neg9.org"));
 
   
-  do_check_true(gSTSService.isStsHost("www.noisebridge.net", 0));
+  do_check_true(gSTSService.isStsHost("www.noisebridge.net"));
 
   
-  do_check_false(gSTSService.isStsHost("a.subdomain.www.noisebridge.net", 0));
+  do_check_false(gSTSService.isStsHost("a.subdomain.www.noisebridge.net"));
 
   
-  do_check_false(gSTSService.isStsHost("notsts.nonexistent.mozilla.com.", 0));
+  do_check_false(gSTSService.isStsHost("notsts.nonexistent.mozilla.com."));
 
   
   
   var uri = Services.io.newURI("http://keyerror.com", null, null);
-  gSTSService.processStsHeader(uri, "max-age=0", 0);
-  do_check_false(gSTSService.isStsHost("keyerror.com", 0));
-  do_check_false(gSTSService.isStsHost("subdomain.keyerror.com", 0));
+  gSTSService.processStsHeader(uri, "max-age=0");
+  do_check_false(gSTSService.isStsHost("keyerror.com"));
+  do_check_false(gSTSService.isStsHost("subdomain.keyerror.com"));
   
   
-  gSTSService.processStsHeader(uri, "max-age=1000", 0);
-  do_check_true(gSTSService.isStsHost("keyerror.com", 0));
+  gSTSService.processStsHeader(uri, "max-age=1000");
+  do_check_true(gSTSService.isStsHost("keyerror.com"));
   
-  do_check_false(gSTSService.isStsHost("subdomain.keyerror.com", 0));
+  do_check_false(gSTSService.isStsHost("subdomain.keyerror.com"));
 
   
   
   var uri = Services.io.newURI("http://subdomain.intercom.io", null, null);
-  gSTSService.processStsHeader(uri, "max-age=0", 0);
-  do_check_true(gSTSService.isStsHost("intercom.io", 0));
-  do_check_false(gSTSService.isStsHost("subdomain.intercom.io", 0));
+  gSTSService.processStsHeader(uri, "max-age=0");
+  do_check_true(gSTSService.isStsHost("intercom.io"));
+  do_check_false(gSTSService.isStsHost("subdomain.intercom.io"));
 
   var uri = Services.io.newURI("http://subdomain.pixi.me", null, null);
-  gSTSService.processStsHeader(uri, "max-age=0", 0);
+  gSTSService.processStsHeader(uri, "max-age=0");
   
   
   
@@ -134,19 +134,19 @@ function test_part1() {
   
   
   
-  do_check_true(gSTSService.isStsHost("subdomain.pixi.me", 0));
-  do_check_true(gSTSService.isStsHost("sibling.pixi.me", 0));
-  do_check_true(gSTSService.isStsHost("another.subdomain.pixi.me", 0));
+  do_check_true(gSTSService.isStsHost("subdomain.pixi.me"));
+  do_check_true(gSTSService.isStsHost("sibling.pixi.me"));
+  do_check_true(gSTSService.isStsHost("another.subdomain.pixi.me"));
 
-  gSTSService.processStsHeader(uri, "max-age=1000", 0);
+  gSTSService.processStsHeader(uri, "max-age=1000");
   
   
   
   
   
-  do_check_true(gSTSService.isStsHost("subdomain.pixi.me", 0));
-  do_check_true(gSTSService.isStsHost("sibling.pixi.me", 0));
-  do_check_false(gSTSService.isStsHost("another.subdomain.pixi.me", 0));
+  do_check_true(gSTSService.isStsHost("subdomain.pixi.me"));
+  do_check_true(gSTSService.isStsHost("sibling.pixi.me"));
+  do_check_false(gSTSService.isStsHost("another.subdomain.pixi.me"));
 
   
   
@@ -159,28 +159,26 @@ function test_part1() {
   }
 }
 
-const IS_PRIVATE = Ci.nsISocketProvider.NO_PERMANENT_STORAGE;
-
 function test_private_browsing1() {
   
-  do_check_true(gSTSService.isStsHost("crypto.cat", IS_PRIVATE));
-  do_check_true(gSTSService.isStsHost("a.b.c.subdomain.crypto.cat", IS_PRIVATE));
+  do_check_true(gSTSService.isStsHost("crypto.cat"));
+  do_check_true(gSTSService.isStsHost("a.b.c.subdomain.crypto.cat"));
 
   var uri = Services.io.newURI("http://crypto.cat", null, null);
-  gSTSService.processStsHeader(uri, "max-age=0", IS_PRIVATE);
-  do_check_false(gSTSService.isStsHost("crypto.cat", IS_PRIVATE));
-  do_check_false(gSTSService.isStsHost("a.b.subdomain.crypto.cat", IS_PRIVATE));
+  gSTSService.processStsHeader(uri, "max-age=0");
+  do_check_false(gSTSService.isStsHost("crypto.cat"));
+  do_check_false(gSTSService.isStsHost("a.b.subdomain.crypto.cat"));
 
   
-  gSTSService.processStsHeader(uri, "max-age=1000", IS_PRIVATE);
-  do_check_true(gSTSService.isStsHost("crypto.cat", IS_PRIVATE));
+  gSTSService.processStsHeader(uri, "max-age=1000");
+  do_check_true(gSTSService.isStsHost("crypto.cat"));
   
-  do_check_false(gSTSService.isStsHost("b.subdomain.crypto.cat", IS_PRIVATE));
+  do_check_false(gSTSService.isStsHost("b.subdomain.crypto.cat"));
 
   
-  gSTSService.processStsHeader(uri, "max-age=0", IS_PRIVATE);
-  do_check_false(gSTSService.isStsHost("crypto.cat", IS_PRIVATE));
-  do_check_false(gSTSService.isStsHost("subdomain.crypto.cat", IS_PRIVATE));
+  gSTSService.processStsHeader(uri, "max-age=0");
+  do_check_false(gSTSService.isStsHost("crypto.cat"));
+  do_check_false(gSTSService.isStsHost("subdomain.crypto.cat"));
 
   
   
@@ -191,12 +189,12 @@ function test_private_browsing1() {
   
   
   
-  do_check_true(gSTSService.isStsHost("logentries.com", IS_PRIVATE));
+  do_check_true(gSTSService.isStsHost("logentries.com"));
   var uri = Services.io.newURI("http://logentries.com", null, null);
   
   
-  gSTSService.processStsHeader(uri, "max-age=-1000", IS_PRIVATE);
-  do_check_false(gSTSService.isStsHost("logentries.com", IS_PRIVATE));
+  gSTSService.processStsHeader(uri, "max-age=-1000");
+  do_check_false(gSTSService.isStsHost("logentries.com"));
 
   
   getPBSvc().privateBrowsingEnabled = false;
@@ -204,13 +202,13 @@ function test_private_browsing1() {
 
 function test_private_browsing2() {
   
-  do_check_true(gSTSService.isStsHost("crypto.cat", 0));
+  do_check_true(gSTSService.isStsHost("crypto.cat"));
   
-  do_check_true(gSTSService.isStsHost("subdomain.crypto.cat", 0));
+  do_check_true(gSTSService.isStsHost("subdomain.crypto.cat"));
 
   
   
-  do_check_true(gSTSService.isStsHost("logentries.com", 0));
+  do_check_true(gSTSService.isStsHost("logentries.com"));
 
   run_next_test();
 }

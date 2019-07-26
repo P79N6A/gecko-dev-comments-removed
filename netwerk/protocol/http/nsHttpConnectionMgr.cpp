@@ -2457,9 +2457,6 @@ nsHalfOpenSocket::SetupStreams(nsISocketTransport **transport,
     if (mCaps & NS_HTTP_LOAD_ANONYMOUS)
         tmpFlags |= nsISocketTransport::ANONYMOUS_CONNECT;
 
-    if (mEnt->mConnInfo->GetPrivate())
-        tmpFlags |= nsISocketTransport::NO_PERMANENT_STORAGE;
-
     
     
     
