@@ -127,6 +127,22 @@ ClientThebesLayer::RenderLayer()
   mContentClient->EndPaint();
 }
 
+bool
+ClientLayerManager::IsOptimizedFor(ThebesLayer* aLayer, ThebesLayerCreationHint aHint)
+{
+#ifdef MOZ_B2G
+  
+  
+  
+  
+  
+  
+  return aHint == aLayer->GetCreationHint();
+#else
+  return LayerManager::IsOptimizedFor(aLayer, aHint);
+#endif
+}
+
 already_AddRefed<ThebesLayer>
 ClientLayerManager::CreateThebesLayer()
 {
@@ -150,19 +166,19 @@ ClientLayerManager::CreateThebesLayerWithHint(ThebesLayerCreationHint aHint)
     }
     if (gfxPrefs::LayersUseSimpleTiles()) {
       nsRefPtr<SimpleClientTiledThebesLayer> layer =
-        new SimpleClientTiledThebesLayer(this);
+        new SimpleClientTiledThebesLayer(this, aHint);
       CREATE_SHADOW(Thebes);
       return layer.forget();
     } else {
       nsRefPtr<ClientTiledThebesLayer> layer =
-        new ClientTiledThebesLayer(this);
+        new ClientTiledThebesLayer(this, aHint);
       CREATE_SHADOW(Thebes);
       return layer.forget();
     }
   } else
   {
     nsRefPtr<ClientThebesLayer> layer =
-      new ClientThebesLayer(this);
+      new ClientThebesLayer(this, aHint);
     CREATE_SHADOW(Thebes);
     return layer.forget();
   }

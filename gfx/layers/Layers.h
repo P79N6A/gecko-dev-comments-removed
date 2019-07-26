@@ -360,6 +360,13 @@ public:
   
 
 
+  virtual bool IsOptimizedFor(ThebesLayer* aLayer,
+                              ThebesLayerCreationHint aCreationHint)
+  { return true; }
+
+  
+
+
 
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer() = 0;
   
@@ -1549,6 +1556,8 @@ public:
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
+  LayerManager::ThebesLayerCreationHint GetCreationHint() const { return mCreationHint; }
+
   bool UsedForReadback() { return mUsedForReadback; }
   void SetUsedForReadback(bool aUsed) { mUsedForReadback = aUsed; }
   
@@ -1562,9 +1571,11 @@ public:
   gfxPoint GetResidualTranslation() const { return mResidualTranslation; }
 
 protected:
-  ThebesLayer(LayerManager* aManager, void* aImplData)
+  ThebesLayer(LayerManager* aManager, void* aImplData,
+              LayerManager::ThebesLayerCreationHint aCreationHint = LayerManager::NONE)
     : Layer(aManager, aImplData)
     , mValidRegion()
+    , mCreationHint(aCreationHint)
     , mUsedForReadback(false)
     , mAllowResidualTranslation(false)
   {
@@ -1580,6 +1591,10 @@ protected:
 
   gfxPoint mResidualTranslation;
   nsIntRegion mValidRegion;
+  
+
+
+  const LayerManager::ThebesLayerCreationHint mCreationHint;
   
 
 
