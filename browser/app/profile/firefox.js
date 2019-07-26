@@ -368,6 +368,11 @@ pref("browser.search.update.interval", 21600);
 
 pref("browser.search.suggest.enabled", true);
 
+#ifdef MOZ_OFFICIAL_BRANDING
+
+pref("browser.search.official", true);
+#endif
+
 pref("browser.sessionhistory.max_entries", 50);
 
 
@@ -859,10 +864,6 @@ pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 pref("toolkit.crashreporter.pluginHangSubmitURL",
      "https://hang-reports.mozilla.org/submit");
-
-
-pref("toolkit.crashreporter.infoURL",
-     "http://www.mozilla.com/legal/privacy/firefox.html#crash-reporter");
 
 
 pref("app.support.baseURL", "http://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");

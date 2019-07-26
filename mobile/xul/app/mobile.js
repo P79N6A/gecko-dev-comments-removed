@@ -256,6 +256,11 @@ pref("browser.search.jarURIs", "chrome://browser/locale/searchplugins/");
 
 pref("browser.search.noCurrentEngine", true);
 
+#ifdef MOZ_OFFICIAL_BRANDING
+
+pref("browser.search.official", true);
+#endif
+
 
 pref("browser.xul.error_pages.enabled", true);
 
