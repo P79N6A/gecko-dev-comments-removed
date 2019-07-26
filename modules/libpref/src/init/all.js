@@ -752,6 +752,9 @@ pref("dom.experimental_forms", false);
 pref("dom.experimental_forms_range", true);
 
 
+pref("dom.forms.color", false);
+
+
 pref("dom.sysmsg.enabled", false);
 
 

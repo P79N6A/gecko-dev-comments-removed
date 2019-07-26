@@ -977,6 +977,14 @@ protected:
 
 
 
+  bool IsValidSimpleColor(const nsAString& aValue) const;
+
+  
+
+
+
+
+
   bool IsValidDate(const nsAString& aValue) const;
 
   
@@ -1229,6 +1237,9 @@ private:
     NS_IMETHOD Run();
 
   protected:
+    nsresult InitFilePicker();
+    nsresult InitColorPicker();
+
     nsRefPtr<HTMLInputElement> mInput;
     PopupControlState mPopupControlState;
   };
