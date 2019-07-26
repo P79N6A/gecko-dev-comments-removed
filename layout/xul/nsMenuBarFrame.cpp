@@ -149,7 +149,12 @@ nsMenuBarFrame::ToggleMenuActiveState()
     if (firstFrame) {
       
       SetActive(true);
+
+#if (MOZ_WIDGET_GTK == 2)
+      firstFrame->OpenMenu(true);
+#else
       firstFrame->SelectMenu(true);
+#endif
       
       
       mCurrentMenu = firstFrame;
