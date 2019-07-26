@@ -632,8 +632,7 @@ HandleException(ResumeFromException *rfe)
                     popSPSFrame = ionScript->hasSPSInstrumentation();
 
                 
-                
-                if (frames.more() && !js_JitOptions.profileInlineFrames)
+                if (frames.more())
                     popSPSFrame = false;
 
                 
