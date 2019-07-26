@@ -13,6 +13,13 @@ const backgroundPageThumbsContent = {
   init: function () {
     
     
+    let dwu = content.
+                QueryInterface(Ci.nsIInterfaceRequestor).
+                getInterface(Ci.nsIDOMWindowUtils);
+    dwu.preventFurtherDialogs();
+
+    
+    
     this._webNav.stop(Ci.nsIWebNavigation.STOP_NETWORK);
     addMessageListener("BackgroundPageThumbs:capture",
                        this._onCapture.bind(this));
