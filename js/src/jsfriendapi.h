@@ -16,6 +16,7 @@
 #include "jspubtd.h"
 
 #include "js/CallArgs.h"
+#include "js/CallNonGenericMethod.h"
 
 
 
