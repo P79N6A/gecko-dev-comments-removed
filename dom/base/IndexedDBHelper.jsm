@@ -119,8 +119,13 @@ IndexedDBHelper.prototype = {
       txn.onabort = function (event) {
         debug("Caught error on transaction");
         
-        
-        failureCb("UnknownError");
+
+
+
+        if (event.target.error)
+            failureCb(event.target.error.name);
+        else
+            failureCb("UnknownError");
       };
       callback(txn, store);
     }.bind(this), failureCb);
