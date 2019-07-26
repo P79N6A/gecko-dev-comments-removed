@@ -37,5 +37,15 @@ class WebIDLProvider(MachCommandBase):
         sys.path.insert(0, os.path.join(self.topsrcdir, 'other-licenses',
             'ply'))
 
+        
+        
+        os.chdir(self.topobjdir)
+
+        
+        
+        
+        
+        sys.path.insert(0, self.topobjdir);
+
         from runtests import run_tests
         return run_tests(None, verbose=verbose)
