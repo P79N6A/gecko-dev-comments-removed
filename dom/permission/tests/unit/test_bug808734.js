@@ -2,32 +2,25 @@ const Cu = Components.utils;
 const READWRITE = "readwrite";
 const UNKNOWN = "foobar";
 
-
-
-
-
-
-
 var gData = [
 
 {
   permission: "contacts",
   access: READWRITE,
-  expected: ["contacts", "contacts-read", "contacts-create",
+  expected: ["contacts-read", "contacts-create",
              "contacts-write"] 
 },
 
 {
   permission: "settings",
   access: READWRITE,
-  expected: ["settings", "settings-read", "settings-write",
-             "indexedDB-chrome-settings", "indexedDB-chrome-settings-read",
+  expected: ["settings-read", "settings-write",
+             "indexedDB-chrome-settings-read",
              "indexedDB-chrome-settings-write"] 
 },
 
 {
   permission: "storage",
-  access: READWRITE,
   expected: ["indexedDB-unlimited", "offline-app", "pin-app"]
 },
 
