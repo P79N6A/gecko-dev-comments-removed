@@ -315,27 +315,6 @@ public:
   
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  void* Alloc(size_t aSize);
-
-  
-
-
   void StartBackgroundImageLoads() {
     
     StyleBackground();
@@ -351,8 +330,6 @@ protected:
   void RemoveChild(nsStyleContext* aChild);
 
   void ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup);
-
-  void FreeAllocations(nsPresContext* aPresContext);
 
   
   
@@ -413,15 +390,6 @@ protected:
   
   
   nsRuleNode* const       mRuleNode;
-
-  
-  struct AllocationHeader {
-    AllocationHeader* mNext;
-    size_t mSize;
-
-    void* mStorageStart; 
-  };
-  AllocationHeader*       mAllocations;
 
   
   
