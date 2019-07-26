@@ -2741,7 +2741,7 @@ CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
 
     
     
-    const void *limitAddr = GetIonContext()->runtime->addressOfIonStackLimit();
+    const void *limitAddr = GetIonContext()->runtime->addressOfJitStackLimit();
 
     CheckOverRecursedFailure *ool = new(alloc()) CheckOverRecursedFailure(lir);
     if (!addOutOfLineCode(ool))
@@ -2844,7 +2844,7 @@ CodeGenerator::visitCheckOverRecursedPar(LCheckOverRecursedPar *lir)
     Register tempReg = ToRegister(lir->getTempReg());
 
     masm.loadPtr(Address(cxReg, offsetof(ForkJoinContext, perThreadData)), tempReg);
-    masm.loadPtr(Address(tempReg, offsetof(PerThreadData, ionStackLimit)), tempReg);
+    masm.loadPtr(Address(tempReg, offsetof(PerThreadData, jitStackLimit)), tempReg);
 
     
     CheckOverRecursedFailurePar *ool = new(alloc()) CheckOverRecursedFailurePar(lir);

@@ -534,10 +534,21 @@ class PerThreadData : public PerThreadDataFriendFields
 
 
     uint8_t             *ionTop;
-    JSContext           *ionJSContext;
-    uintptr_t            ionStackLimit;
 
-    inline void setIonStackLimit(uintptr_t limit);
+    
+
+
+
+
+    JSContext           *jitJSContext;
+
+    
+
+
+
+    uintptr_t            jitStackLimit;
+
+    inline void setJitStackLimit(uintptr_t limit);
 
     
 
@@ -1568,7 +1579,7 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     
-    void resetIonStackLimit();
+    void resetJitStackLimit();
 
     
     js::jit::PcScriptCache *ionPcScriptCache;
@@ -1778,7 +1789,7 @@ namespace js {
 static inline JSContext *
 GetJSContextFromJitCode()
 {
-    JSContext *cx = TlsPerThreadData.get()->ionJSContext;
+    JSContext *cx = TlsPerThreadData.get()->jitJSContext;
     JS_ASSERT(cx);
     return cx;
 }
@@ -1915,10 +1926,10 @@ class MOZ_STACK_CLASS AutoKeepAtoms
 };
 
 inline void
-PerThreadData::setIonStackLimit(uintptr_t limit)
+PerThreadData::setJitStackLimit(uintptr_t limit)
 {
     JS_ASSERT(runtime_->currentThreadOwnsOperationCallbackLock());
-    ionStackLimit = limit;
+    jitStackLimit = limit;
 }
 
 inline JSRuntime *

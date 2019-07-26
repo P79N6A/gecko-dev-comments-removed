@@ -1015,7 +1015,7 @@ js_InvokeOperationCallback(JSContext *cx)
 
     
     
-    rt->resetIonStackLimit();
+    rt->resetJitStackLimit();
 
     js::gc::GCIfNeeded(cx);
 

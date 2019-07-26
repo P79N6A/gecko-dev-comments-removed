@@ -2151,10 +2151,10 @@ js::RecomputeStackLimit(JSRuntime *rt, StackKind kind)
 #ifdef JS_ION
     if (kind == StackForUntrustedScript) {
         JSRuntime::AutoLockForOperationCallback lock(rt);
-        if (rt->mainThread.ionStackLimit != uintptr_t(-1)) {
-            rt->mainThread.ionStackLimit = rt->mainThread.nativeStackLimit[kind];
+        if (rt->mainThread.jitStackLimit != uintptr_t(-1)) {
+            rt->mainThread.jitStackLimit = rt->mainThread.nativeStackLimit[kind];
 #ifdef JS_ARM_SIMULATOR
-            rt->mainThread.ionStackLimit = jit::Simulator::StackLimit();
+            rt->mainThread.jitStackLimit = jit::Simulator::StackLimit();
 #endif
         }
     }

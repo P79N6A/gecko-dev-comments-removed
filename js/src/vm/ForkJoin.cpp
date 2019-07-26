@@ -1468,7 +1468,7 @@ ForkJoinShared::executeFromWorker(uint32_t workerId, uintptr_t stackLimit)
 
     
     
-    thisThread.ionStackLimit = stackLimit;
+    thisThread.jitStackLimit = stackLimit;
     executePortion(&thisThread, workerId);
     TlsPerThreadData.set(nullptr);
 

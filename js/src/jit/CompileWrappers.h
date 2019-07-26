@@ -35,7 +35,7 @@ class CompileRuntime
     const void *addressOfIonTop();
 
     
-    const void *addressOfIonStackLimit();
+    const void *addressOfJitStackLimit();
 
     
     const void *addressOfJSContext();
