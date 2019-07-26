@@ -97,29 +97,6 @@ protected:
 
 
 
-inline ShaderProgramType
-GetProgramTypeForSurfaceFormat(gfx::SurfaceFormat aFormat)
- {
-  switch (aFormat) {
-  case gfx::FORMAT_B8G8R8A8:
-    return BGRALayerProgramType;;
-  case gfx::FORMAT_B8G8R8X8:
-    return BGRXLayerProgramType;;
-  case gfx::FORMAT_R8G8B8X8:
-    return RGBXLayerProgramType;;
-  case gfx::FORMAT_R8G8B8A8:
-    return RGBALayerProgramType;;
-  default:
-    MOZ_CRASH("unhandled program type");
-  }
-}
-
-inline ShaderProgramType
-GetProgramTypeForTexture(const DeprecatedTextureHost *aDeprecatedTextureHost)
-{
-  return GetProgramTypeForSurfaceFormat(aDeprecatedTextureHost->GetFormat());
-}
-
 
 
 
@@ -144,6 +121,14 @@ public:
   virtual gfx3DMatrix GetTextureTransform() { return gfx3DMatrix(); }
 
   virtual TextureImageDeprecatedTextureHostOGL* AsTextureImageDeprecatedTextureHost() { return nullptr; }
+
+  
+  
+  const gfx3DMatrix GetEffectiveTextureTransform() {
+    if (GetTextureTarget() == LOCAL_GL_TEXTURE_RECTANGLE_ARB)
+      return GetTextureTransform() * gfx3DMatrix::ScalingMatrix(GetSize().width, GetSize().height, 1.0f);
+    return GetTextureTransform();
+  }
 };
 
 

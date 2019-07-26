@@ -347,6 +347,7 @@ CanvasLayerOGL::RenderLayer(int aPreviousDestination,
   gl()->ApplyFilterToBoundTexture(mFilter);
 
   program->Activate();
+  program->SetProjectionMatrix(mOGLManager->mProjMatrix);
   if (mLayerProgram == RGBARectLayerProgramType ||
       mLayerProgram == RGBXRectLayerProgramType) {
     
