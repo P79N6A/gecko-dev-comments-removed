@@ -16,7 +16,6 @@ Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/WebappOSUtils.jsm");
 Cu.import("resource://gre/modules/AppsUtils.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource://gre/modules/Promise.jsm");
 
 this.WebappsInstaller = {
   shell: null,
@@ -62,26 +61,34 @@ this.WebappsInstaller = {
 
 
 
+
+
   install: function(aData, aManifest) {
     try {
       if (Services.prefs.getBoolPref("browser.mozApps.installer.dry_run")) {
-        return Promise.resolve();
+        return true;
       }
     } catch (ex) {}
 
     this.shell.init(aData, aManifest);
 
-    return this.shell.install().then(() => {
-      let data = {
-        "installDir": this.shell.installDir.path,
-        "app": {
-          "manifest": aManifest,
-          "origin": aData.app.origin
-        }
-      };
+    try {
+      this.shell.install();
+    } catch (ex) {
+      Cu.reportError("Error installing app: " + ex);
+      return false;
+    }
 
-      Services.obs.notifyObservers(null, "webapp-installed", JSON.stringify(data));
-    });
+    let data = {
+      "installDir": this.shell.installDir.path,
+      "app": {
+        "manifest": aManifest,
+        "origin": aData.app.origin
+      }
+    };
+    Services.obs.notifyObservers(null, "webapp-installed", JSON.stringify(data));
+
+    return true;
   }
 }
 
@@ -115,7 +122,6 @@ NativeApp.prototype = {
   categories: null,
   webappJson: null,
   runtimeFolder: null,
-  manifest: null,
 
   
 
@@ -126,8 +132,7 @@ NativeApp.prototype = {
 
 
   init: function(aData, aManifest) {
-    let manifest = this.manifest = new ManifestHelper(aManifest,
-                                                      aData.app.origin);
+    let manifest = new ManifestHelper(aManifest, aData.app.origin);
 
     let origin = Services.io.newURI(aData.app.origin, null, null);
 
@@ -146,16 +151,10 @@ NativeApp.prototype = {
       catch (ex) {}
     }
 
-    if (manifest.developer) {
-      if (manifest.developer.name) {
-        let devName = sanitize(manifest.developer.name.substr(0, 128));
-        if (devName) {
-          this.developerName = devName;
-        }
-      }
-
-      if (manifest.developer.url) {
-        this.developerUrl = manifest.developer.url;
+    if (manifest.developer && manifest.developer.name) {
+      let devName = sanitize(manifest.developer.name.substr(0, 128));
+      if (devName) {
+        this.developerName = devName;
       }
     }
 
@@ -185,30 +184,7 @@ NativeApp.prototype = {
     };
 
     this.runtimeFolder = Services.dirsvc.get("GreD", Ci.nsIFile);
-  },
-
-  
-
-
-
-  getIcon: function() {
-    try {
-      let [ mimeType, icon ] = yield downloadIcon(this.iconURI);
-      yield this.processIcon(mimeType, icon);
-    }
-    catch(e) {
-      Cu.reportError("Failure retrieving icon: " + e);
-
-      let iconURI = Services.io.newURI(DEFAULT_ICON_URL, null, null);
-
-      let [ mimeType, icon ] = yield downloadIcon(iconURI);
-      yield this.processIcon(mimeType, icon);
-
-      
-      
-      this.iconURI = iconURI;
-    }
-  },
+  }
 };
 
 #ifdef XP_WIN
@@ -242,35 +218,28 @@ NativeApp.prototype = {
 
 function WinNativeApp(aData) {
   NativeApp.call(this, aData);
-
-  if (aData.isPackage) {
-    this.size = aData.app.updateManifest.size / 1024;
-  }
-
   this._init();
 }
 
 WinNativeApp.prototype = {
   __proto__: NativeApp.prototype,
-  size: null,
 
   
 
 
 
   install: function() {
-    return Task.spawn(function() {
-      try {
-        this._copyPrebuiltFiles();
-        this._createShortcutFiles();
-        this._createConfigFiles();
-        this._writeSystemKeys();
-        yield this.getIcon();
-      } catch (ex) {
-        this._removeInstallation(false);
-        throw(ex);
-      }
-    }.bind(this));
+    try {
+      this._copyPrebuiltFiles();
+      this._createShortcutFiles();
+      this._createConfigFiles();
+      this._writeSystemKeys();
+    } catch (ex) {
+      this._removeInstallation(false);
+      throw(ex);
+    }
+
+    getIconForApp(this, function() {});
   },
 
   
@@ -483,28 +452,6 @@ WinNativeApp.prototype = {
         subKey.writeStringValue("DisplayIcon", this.iconFile.path);
       }
 
-      let date = new Date();
-      let year = date.getYear().toString();
-      let month = date.getMonth();
-      if (month < 10) {
-        month = "0" + month;
-      }
-      let day = date.getDate();
-      if (day < 10) {
-        day = "0" + day;
-      }
-      subKey.writeStringValue("InstallDate", year + month + day);
-      if (this.manifest.version) {
-        subKey.writeStringValue("DisplayVersion", this.manifest.version);
-      }
-      if (this.developerName) {
-        subKey.writeStringValue("Publisher", this.developerName);
-      }
-      subKey.writeStringValue("URLInfoAbout", this.developerUrl);
-      if (this.size) {
-        subKey.writeIntValue("EstimatedSize", this.size);
-      }
-
       subKey.writeIntValue("NoModify", 1);
       subKey.writeIntValue("NoRepair", 1);
     } catch(ex) {
@@ -549,32 +496,37 @@ WinNativeApp.prototype = {
 
 
 
+  useTmpForIcon: false,
+
+  
 
 
-  processIcon: function(aMimeType, aImageStream) {
-    let deferred = Promise.defer();
 
-    let imgTools = Cc["@mozilla.org/image/tools;1"]
-                     .createInstance(Ci.imgITools);
 
-    let imgContainer = imgTools.decodeImage(aImageStream, aMimeType);
-    let iconStream = imgTools.encodeImage(imgContainer,
-                                          "image/vnd.microsoft.icon",
-                                          "format=bmp;bpp=32");
 
-    if (!this.iconFile.parent.exists()) {
-      this.iconFile.parent.create(Ci.nsIFile.DIRECTORY_TYPE, parseInt("0755", 8));
+
+
+
+
+  processIcon: function(aMimeType, aImageStream, aCallback) {
+    let iconStream;
+    try {
+      let imgTools = Cc["@mozilla.org/image/tools;1"]
+                       .createInstance(Ci.imgITools);
+      let imgContainer = { value: null };
+
+      imgTools.decodeImageData(aImageStream, aMimeType, imgContainer);
+      iconStream = imgTools.encodeImage(imgContainer.value,
+                                        "image/vnd.microsoft.icon",
+                                        "format=bmp;bpp=32");
+    } catch (e) {
+      throw("processIcon - Failure converting icon (" + e + ")");
     }
-    let outputStream = FileUtils.openSafeFileOutputStream(this.iconFile);
-    NetUtil.asyncCopy(iconStream, outputStream, function(aResult) {
-      if (Components.isSuccessCode(aResult)) {
-        deferred.resolve();
-      } else {
-        deferred.reject("Failure copying icon: " + aResult);
-      }
-    });
 
-    return deferred.promise;
+    if (!this.iconFile.parent.exists())
+      this.iconFile.parent.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
+    let outputStream = FileUtils.openSafeFileOutputStream(this.iconFile);
+    NetUtil.asyncCopy(iconStream, outputStream);
   }
 }
 
@@ -625,17 +577,15 @@ MacNativeApp.prototype = {
   },
 
   install: function() {
-    return Task.spawn(function() {
-      try {
-        this._copyPrebuiltFiles();
-        this._createConfigFiles();
-        yield this.getIcon();
-        this._moveToApplicationsFolder();
-      } catch (ex) {
-        this._removeInstallation(false);
-        throw(ex);
-      }
-    }.bind(this));
+    try {
+      this._copyPrebuiltFiles();
+      this._createConfigFiles();
+    } catch (ex) {
+      this._removeInstallation(false);
+      throw(ex);
+    }
+
+    getIconForApp(this, this._moveToApplicationsFolder);
   },
 
   _removeInstallation: function(keepProfile) {
@@ -736,7 +686,7 @@ MacNativeApp.prototype = {
                                                this.appNameAsFilename,
                                               ".app");
     if (!destinationName) {
-      throw("No available filename");
+      return false;
     }
     this.installDir.moveTo(appDir, destinationName);
   },
@@ -747,34 +697,38 @@ MacNativeApp.prototype = {
 
 
 
+  useTmpForIcon: true,
+
+  
 
 
-  processIcon: function(aMimeType, aIcon) {
-    let deferred = Promise.defer();
 
-    function conversionDone(aSubject, aTopic) {
-      if (aTopic == "process-finished") {
-        deferred.resolve();
-      } else {
-        deferred.reject("Failure converting icon.");
-      }
+
+
+
+
+
+
+  processIcon: function(aMimeType, aIcon, aCallback) {
+    try {
+      let process = Cc["@mozilla.org/process/util;1"]
+                    .createInstance(Ci.nsIProcess);
+      let sipsFile = Cc["@mozilla.org/file/local;1"]
+                    .createInstance(Ci.nsILocalFile);
+      sipsFile.initWithPath("/usr/bin/sips");
+
+      process.init(sipsFile);
+      process.run(true, ["-s",
+                  "format", "icns",
+                  aIcon.path,
+                  "--out", this.iconFile.path,
+                  "-z", "128", "128"],
+                  9);
+    } catch(e) {
+      throw(e);
+    } finally {
+      aCallback.call(this);
     }
-
-    let process = Cc["@mozilla.org/process/util;1"].
-                  createInstance(Ci.nsIProcess);
-    let sipsFile = Cc["@mozilla.org/file/local;1"].
-                   createInstance(Ci.nsILocalFile);
-    sipsFile.initWithPath("/usr/bin/sips");
-
-    process.init(sipsFile);
-    process.runAsync(["-s",
-                "format", "icns",
-                aIcon.path,
-                "--out", this.iconFile.path,
-                "-z", "128", "128"],
-                9, conversionDone);
-
-    return deferred.promise;
   }
 
 }
@@ -832,16 +786,15 @@ LinuxNativeApp.prototype = {
   },
 
   install: function() {
-    return Task.spawn(function() {
-      try {
-        this._copyPrebuiltFiles();
-        this._createConfigFiles();
-        yield this.getIcon();
-      } catch (ex) {
-        this._removeInstallation(false);
-        throw(ex);
-      }
-    }.bind(this));
+    try {
+      this._copyPrebuiltFiles();
+      this._createConfigFiles();
+    } catch (ex) {
+      this._removeInstallation(false);
+      throw(ex);
+    }
+
+    getIconForApp(this, function() {});
   },
 
   _removeInstallation: function(keepProfile) {
@@ -966,26 +919,32 @@ LinuxNativeApp.prototype = {
 
 
 
+  useTmpForIcon: false,
 
-  processIcon: function(aMimeType, aImageStream) {
-    let deferred = Promise.defer();
+  
 
-    let imgTools = Cc["@mozilla.org/image/tools;1"]
-                     .createInstance(Ci.imgITools);
 
-    let imgContainer = imgTools.decodeImage(aImageStream, aMimeType);
-    let iconStream = imgTools.encodeImage(imgContainer, "image/png");
+
+
+
+
+
+
+  processIcon: function(aMimeType, aImageStream, aCallback) {
+    let iconStream;
+    try {
+      let imgTools = Cc["@mozilla.org/image/tools;1"]
+                       .createInstance(Ci.imgITools);
+      let imgContainer = { value: null };
+
+      imgTools.decodeImageData(aImageStream, aMimeType, imgContainer);
+      iconStream = imgTools.encodeImage(imgContainer.value, "image/png");
+    } catch (e) {
+      throw("processIcon - Failure converting icon (" + e + ")");
+    }
 
     let outputStream = FileUtils.openSafeFileOutputStream(this.iconFile);
-    NetUtil.asyncCopy(iconStream, outputStream, function(aResult) {
-      if (Components.isSuccessCode(aResult)) {
-        deferred.resolve();
-      } else {
-        deferred.reject("Failure copying icon: " + aResult);
-      }
-    });
-
-    return deferred.promise;
+    NetUtil.asyncCopy(iconStream, outputStream);
   }
 }
 
