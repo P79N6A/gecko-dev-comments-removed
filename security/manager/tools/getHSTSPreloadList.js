@@ -212,7 +212,7 @@ function output(sortedStatuses, currentList) {
     writeTo(HEADER, fos);
     writeTo(getExpirationTimeString(), fos);
     writeTo(PREFIX, fos);
-    for (var status of hstsStatuses) {
+    for (var status of sortedStatuses) {
 
       
       
