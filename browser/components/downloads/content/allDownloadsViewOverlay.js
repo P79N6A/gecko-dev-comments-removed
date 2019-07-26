@@ -78,7 +78,7 @@ function DownloadElementShell(aDataItem, aPlacesNode, aAnnotations) {
   this._element.classList.add("download");
   this._element.classList.add("download-state");
 
- if (aAnnotations)
+  if (aAnnotations)
     this._annotations = aAnnotations;
   if (aDataItem)
     this.dataItem = aDataItem;
@@ -91,11 +91,29 @@ DownloadElementShell.prototype = {
   get element() this._element,
 
   
+
+
+
+
+
+  ensureActive: function DES_ensureActive() {
+    if (this._active)
+      return;
+    this._active = true;
+    this._element.setAttribute("active", true);
+    this._updateStatusUI();
+    this._fetchTargetFileInfo();
+  },
+  get active() !!this._active,
+
+  
   _dataItem: null,
   get dataItem() this._dataItem,
 
   set dataItem(aValue) {
-    if ((this._dataItem = aValue)) {
+    this._dataItem = aValue;
+    if (this._dataItem) {
+      this._active = true;
       this._wasDone = this._dataItem.done;
       this._wasInProgress = this._dataItem.inProgress;
       this._targetFileInfoFetched = false;
@@ -105,10 +123,12 @@ DownloadElementShell.prototype = {
       this._wasInProgress = false;
       this._wasDone = this.getDownloadState(true) == nsIDM.DOWNLOAD_FINISHED;
       this._targetFileInfoFetched = false;
-      this._fetchTargetFileInfo();
+      if (this.active)
+        this._fetchTargetFileInfo();
     }
 
-    this._updateStatusUI();
+    it (this.active)
+      this._updateStatusUI();
     return aValue;
   },
 
@@ -129,8 +149,10 @@ DownloadElementShell.prototype = {
         this._wasInProgress = false;
         this._wasDone = this.getDownloadState(true) == nsIDM.DOWNLOAD_FINISHED;
         this._targetFileInfoFetched = false;
-        this._updateStatusUI();
-        this._fetchTargetFileInfo();
+        if (this.active) {
+          this._updateStatusUI();
+          this._fetchTargetFileInfo();
+        }
       }
     }
     return aNode;
@@ -228,6 +250,8 @@ DownloadElementShell.prototype = {
   _fetchTargetFileInfo: function DES__fetchTargetFileInfo() {
     if (this._targetFileInfoFetched)
       throw new Error("_fetchTargetFileInfo should not be called if the information was already fetched");
+    if (!this.active)
+      throw new Error("Trying to _fetchTargetFileInfo on an inactive download shell");
 
     let path = this._targetFilePath;
 
@@ -411,6 +435,8 @@ DownloadElementShell.prototype = {
   },
 
   _updateStatusUI: function DES__updateStatusUI() {
+    if (!this.active)
+      throw new Error("Trying to _updateStatusUI on an inactive download shell");
     this._element.setAttribute("displayName", this._displayName);
     this._element.setAttribute("image", this._icon);
     this._updateDownloadStatusUI();
@@ -451,7 +477,8 @@ DownloadElementShell.prototype = {
       this._element.setAttribute("image", this._icon + "&state=normal");
 
       this._targetFileInfoFetched = false;
-      this._fetchTargetFileInfo();
+      if (this.active)
+        this._fetchTargetFileInfo();
     }
 
     this._wasDone = this._dataItem.done;
@@ -476,6 +503,9 @@ DownloadElementShell.prototype = {
 
   
   isCommandEnabled: function DES_isCommandEnabled(aCommand) {
+    
+    if (!this.active && aCommand != "cmd_delete")
+      return false;
     switch (aCommand) {
       case "downloadsCmd_open": {
         
@@ -579,7 +609,8 @@ DownloadElementShell.prototype = {
   
   
   matchesSearchTerm: function DES_matchesSearchTerm(aTerm) {
-    
+    if (!aTerm)
+      return true;
     aTerm = aTerm.toLowerCase();
     return this._displayName.toLowerCase().indexOf(aTerm) != -1 ||
            this.downloadURI.toLowerCase().indexOf(aTerm) != -1;
@@ -628,7 +659,7 @@ DownloadElementShell.prototype = {
 
 
 
-function DownloadsPlacesView(aRichListBox) {
+function DownloadsPlacesView(aRichListBox, aActive = true) {
   this._richlistbox = aRichListBox;
   this._richlistbox._placesView = this;
   this._richlistbox.controllers.appendController(this);
@@ -645,6 +676,8 @@ function DownloadsPlacesView(aRichListBox) {
 
   this._searchTerm = "";
 
+  this._active = aActive;
+
   
   
   let downloadsData = DownloadsCommon.getData(window.opener || window);
@@ -656,10 +689,22 @@ function DownloadsPlacesView(aRichListBox) {
     downloadsData.removeView(this);
     this.result = null;
   }.bind(this), true);
+  
+  window.addEventListener("resize", function() {
+    this._ensureVisibleElementsAreActive();
+  }.bind(this), true);
 }
 
 DownloadsPlacesView.prototype = {
   get associatedElement() this._richlistbox,
+
+  get active() this._active,
+  set active(val) {
+    this._active = val;
+    if (this._active)
+      this._ensureVisibleElementsAreActive();
+    return this._active;
+  },
 
   _forEachDownloadElementShellForURI:
   function DPV__forEachDownloadElementShellForURI(aURI, aCallback) {
@@ -816,6 +861,11 @@ DownloadsPlacesView.prototype = {
           !newOrUpdatedShell.element._shell.matchesSearchTerm(this.searchTerm);
       }
     }
+
+    
+    
+    if (!aDocumentFragment)
+      this._ensureVisibleElementsAreActive();
   },
 
   _removeElement: function DPV__removeElement(aElement) {
@@ -828,6 +878,7 @@ DownloadsPlacesView.prototype = {
       this._richlistbox.selectItem(aElement.nextSibling);
     }
     this._richlistbox.removeChild(aElement);
+    this._ensureVisibleElementsAreActive();
   },
 
   _removeHistoryDownloadFromView:
@@ -882,6 +933,38 @@ DownloadsPlacesView.prototype = {
         this._richlistbox.insertBefore(shell.element, before);
       }
     }
+  },
+
+  _ensureVisibleElementsAreActive:
+  function DPV__ensureVisibleElementsAreActive() {
+    if (!this.active || this._ensureVisibleTimer || !this._richlistbox.firstChild)
+      return;
+
+    this._ensureVisibleTimer = setTimeout(function() {
+      delete this._ensureVisibleTimer;
+
+      let rlRect = this._richlistbox.getBoundingClientRect();
+      let fcRect = this._richlistbox.firstChild.getBoundingClientRect();
+      
+      
+      
+      let offset = fcRect.left - rlRect.left + 1;
+
+      let firstVisible = document.elementFromPoint(fcRect.left, rlRect.top + offset);
+      if (!firstVisible || firstVisible.localName != "richlistitem")
+        throw new Error("_ensureVisibleElementsAreActive invoked on the wrong view");
+
+      let lastVisible = document.elementFromPoint(fcRect.left, rlRect.bottom - offset);
+      
+      
+      if (!lastVisible || lastVisible.localName != "richlistitem")
+        lastVisible = this._richlistbox.lastChild;
+
+      for (let elt = firstVisible; elt != lastVisible.nextSibling; elt = elt.nextSibling) {
+        if (elt._shell)
+          elt._shell.ensureActive();
+      }
+    }.bind(this), 10);
   },
 
   _place: "",
@@ -980,6 +1063,7 @@ DownloadsPlacesView.prototype = {
     }
 
     this._richlistbox.appendChild(elementsToAppendFragment);
+    this._ensureVisibleElementsAreActive();
   },
 
   nodeInserted: function DPV_nodeInserted(aParent, aPlacesNode) {
@@ -1027,6 +1111,7 @@ DownloadsPlacesView.prototype = {
       for (let element of this._richlistbox.childNodes) {
         element.hidden = !element._shell.matchesSearchTerm(aValue);
       }
+      this._ensureVisibleElementsAreActive();
     }
     return this._searchTerm = aValue;
   },
@@ -1203,6 +1288,10 @@ DownloadsPlacesView.prototype = {
     let element = selectedElements[0];
     if (element._shell)
       element._shell.doDefaultCommand();
+  },
+
+  onScroll: function DPV_onScroll() {
+    this._ensureVisibleElementsAreActive();
   }
 };
 
