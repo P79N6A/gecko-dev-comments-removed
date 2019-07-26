@@ -1020,12 +1020,10 @@ PR_IMPLEMENT(PRStatus) PR_Cleanup(void)
 
 
 
-        if (0 == pt_book.system && NULL == pt_book.first)
+        if (0 == pt_book.system)
         {
             PR_DestroyCondVar(pt_book.cv); pt_book.cv = NULL;
             PR_DestroyLock(pt_book.ml); pt_book.ml = NULL;
-            rv = pthread_key_delete(pt_book.key);
-            PR_ASSERT(0 == rv);
         }
         PR_DestroyLock(_pr_sleeplock);
         _pr_sleeplock = NULL;
