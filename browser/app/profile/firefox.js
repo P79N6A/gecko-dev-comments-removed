@@ -1417,6 +1417,10 @@ pref("ui.key.menuAccessKeyFocuses", true);
 pref("browser.cache.auto_delete_cache_version", 1);
 
 
+
+pref("browser.cache.frecency_experiment", 0);
+
+
 pref("experiments.enabled", false);
 pref("experiments.manifest.fetchIntervalSeconds", 86400);
 pref("experiments.manifest.uri", "https://telemetry-experiment.cdn.mozilla.net/manifest/v1/firefox/%VERSION%/%CHANNEL%");

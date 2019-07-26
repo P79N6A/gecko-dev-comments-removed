@@ -134,15 +134,26 @@ CacheObserver::AttachToPreferences()
     "browser.cache.disk.parent_directory", NS_GET_IID(nsIFile),
     getter_AddRefs(mCacheParentDirectoryOverride));
 
-  sHalfLifeExperiment = mozilla::Preferences::GetInt(
+  
+  
+  
+  sHalfLifeExperiment = mozilla::Preferences::GetDefaultInt(
     "browser.cache.frecency_experiment", kDefaultHalfLifeExperiment);
 
   if (sHalfLifeExperiment == 0) {
     
     
+    sHalfLifeExperiment = mozilla::Preferences::GetInt(
+      "browser.cache.frecency_experiment", sHalfLifeExperiment);
+  }
+
+  if (sHalfLifeExperiment == 0) {
+    
     
     srand(time(NULL));
     sHalfLifeExperiment = (rand() % 4) + 1;
+    
+    
     mozilla::Preferences::SetInt(
       "browser.cache.frecency_experiment", sHalfLifeExperiment);
   }
