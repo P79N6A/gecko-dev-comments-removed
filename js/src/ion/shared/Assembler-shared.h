@@ -342,36 +342,6 @@ class CodeLabel : public TempObject
 
 
 
-
-class DeferredData : public TempObject
-{
-    
-    AbsoluteLabel label_;
-
-    
-    int32_t offset_;
-
-  public:
-    DeferredData() : offset_(-1)
-    { }
-    int32_t offset() const {
-        JS_ASSERT(offset_ > -1);
-        return offset_;
-    }
-    void setOffset(int32_t offset) {
-        offset_ = offset;
-    }
-    AbsoluteLabel *label() {
-        return &label_;
-    }
-
-    
-    virtual void copy(IonCode *code, uint8_t *buffer) const = 0;
-};
-
-
-
-
 class CodeOffsetJump
 {
     size_t offset_;

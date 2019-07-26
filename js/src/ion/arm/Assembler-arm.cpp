@@ -745,33 +745,35 @@ Assembler::trace(JSTracer *trc)
 }
 
 void
-Assembler::processDeferredData(IonCode *code, uint8_t *data)
-{
-    
-    
-    
-    
-    
-    
-    JS_ASSERT(dataSize() == 0);
-
-    for (size_t i = 0; i < data_.length(); i++) {
-        DeferredData *deferred = data_[i];
-        
-        deferred->copy(code, data + deferred->offset());
-    }
-
-}
-
-
-
-void
 Assembler::processCodeLabels(IonCode *code)
 {
     for (size_t i = 0; i < codeLabels_.length(); i++) {
-        
-        JS_NOT_REACHED("dead code?");
+        CodeLabel *label = codeLabels_[i];
+        Bind(code, label->dest(), code->raw() + actualOffset(label->src()->offset()));
     }
+}
+
+void
+Assembler::writeCodePointer(AbsoluteLabel *absoluteLabel) {
+    JS_ASSERT(!absoluteLabel->bound());
+    BufferOffset off = writeInst(-1);
+
+    
+    
+    
+    
+    
+    LabelBase *label = absoluteLabel;
+    label->bind(off.getOffset());
+}
+
+void
+Assembler::Bind(IonCode *code, AbsoluteLabel *label, const void *address)
+{
+    
+    uint8_t *raw = code->raw();
+    uint32_t off = actualOffset(label->offset());
+    *reinterpret_cast<const void **>(raw + off) = address;
 }
 
 Assembler::Condition
@@ -1142,16 +1144,6 @@ Assembler::oom() const
 }
 
 bool
-Assembler::addDeferredData(DeferredData *data, size_t bytes)
-{
-    data->setOffset(dataBytesNeeded_);
-    dataBytesNeeded_ += bytes;
-    if (dataBytesNeeded_ >= MAX_BUFFER_SIZE)
-        return false;
-    return data_.append(data);
-}
-
-bool
 Assembler::addCodeLabel(CodeLabel *label)
 {
     return codeLabels_.append(label);
@@ -1185,15 +1177,9 @@ Assembler::preBarrierTableBytes() const
 
 
 size_t
-Assembler::dataSize() const
-{
-    return dataBytesNeeded_;
-}
-size_t
 Assembler::bytesNeeded() const
 {
     return size() +
-        dataSize() +
         jumpRelocationTableBytes() +
         dataRelocationTableBytes() +
         preBarrierTableBytes();
@@ -2165,19 +2151,6 @@ void
 Assembler::leaveNoPool()
 {
     m_buffer.leaveNoPool();
-}
-
-BufferOffset
-Assembler::as_jumpPool(uint32_t numCases)
-{
-    if (numCases == 0)
-        return BufferOffset();
-
-    BufferOffset ret = writeInst(-1);
-    for (uint32_t i = 1; i < numCases; i++)
-        writeInst(-1);
-
-    return ret;
 }
 
 ptrdiff_t

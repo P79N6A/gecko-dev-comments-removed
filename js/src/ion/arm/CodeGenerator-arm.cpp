@@ -26,32 +26,6 @@
 using namespace js;
 using namespace js::ion;
 
-class DeferredJumpTable : public DeferredData
-{
-    MTableSwitch *mswitch;
-    BufferOffset off;
-    MacroAssembler *masm;
-  public:
-    DeferredJumpTable(MTableSwitch *mswitch, BufferOffset off_, MacroAssembler *masm_)
-      : mswitch(mswitch), off(off_), masm(masm_)
-    { }
-
-    void copy(IonCode *code, uint8_t *ignore__) const {
-        void **jumpData = (void **)(((char*)code->raw()) + masm->actualOffset(off).getOffset());
-        int numCases =  mswitch->numCases();
-        
-        for (int j = 0; j < numCases; j++) {
-            LBlock *caseblock = mswitch->getCase(numCases - 1 - j)->lir();
-            Label *caseheader = caseblock->label();
-
-            uint32_t offset = caseheader->offset();
-            *jumpData = (void *)(code->raw() + masm->actualOffset(offset));
-            jumpData++;
-        }
-    }
-};
-
-
 
 CodeGeneratorARM::CodeGeneratorARM(MIRGenerator *gen, LIRGraph *graph)
   : CodeGeneratorShared(gen, graph),
@@ -898,6 +872,54 @@ CodeGeneratorARM::visitMoveGroup(LMoveGroup *group)
     return true;
 }
 
+class js::ion::OutOfLineTableSwitch : public OutOfLineCodeBase<CodeGeneratorARM>
+{
+    MTableSwitch *mir_;
+    Vector<CodeLabel*, 8, IonAllocPolicy> codeLabels_;
+
+    bool accept(CodeGeneratorARM *codegen) {
+        return codegen->visitOutOfLineTableSwitch(this);
+    }
+
+  public:
+    OutOfLineTableSwitch(MTableSwitch *mir)
+      : mir_(mir)
+    {}
+
+    MTableSwitch *mir() const {
+        return mir_;
+    }
+
+    bool addCodeLabel(CodeLabel *label) {
+        return codeLabels_.append(label);
+    }
+    CodeLabel *codeLabel(unsigned i) {
+        return codeLabels_[i];
+    }
+};
+
+bool
+CodeGeneratorARM::visitOutOfLineTableSwitch(OutOfLineTableSwitch *ool)
+{
+    MTableSwitch *mir = ool->mir();
+
+    int numCases = mir->numCases();
+    for (size_t i = 0; i < numCases; i++) {
+        LBlock *caseblock = mir->getCase(numCases - 1 - i)->lir();
+        Label *caseheader = caseblock->label();
+        uint32_t caseoffset = caseheader->offset();
+
+        
+        
+        CodeLabel *cl = ool->codeLabel(i);
+        cl->src()->bind(caseoffset);
+        if (!masm.addCodeLabel(cl))
+            return false;
+    }
+
+    return true;
+}
+
 bool
 CodeGeneratorARM::emitTableSwitchDispatch(MTableSwitch *mir, const Register &index,
                                           const Register &base)
@@ -937,11 +959,20 @@ CodeGeneratorARM::emitTableSwitchDispatch(MTableSwitch *mir, const Register &ind
     AutoForbidPools afp(&masm);
     masm.ma_ldr(DTRAddr(pc, DtrRegImmShift(index, LSL, 2)), pc, Offset, Assembler::Unsigned);
     masm.ma_b(defaultcase);
-    DeferredJumpTable *d = new DeferredJumpTable(mir, masm.nextOffset(), &masm);
-    masm.as_jumpPool(cases);
 
-    if (!masm.addDeferredData(d, 0))
+    
+    
+    
+    OutOfLineTableSwitch *ool = new OutOfLineTableSwitch(mir);
+    for (int32_t i = 0; i < cases; i++) {
+        CodeLabel *cl = new CodeLabel();
+        masm.writeCodePointer(cl->dest());
+        if (!ool->addCodeLabel(cl))
+            return false;
+    }
+    if (!addOutOfLineCode(ool))
         return false;
+
     return true;
 }
 

@@ -2442,6 +2442,11 @@ public:
         return label();
     }
 
+    void jumpTablePointer(uintptr_t ptr)
+    {
+        m_formatter.jumpTablePointer(ptr);
+    }
+
     
     
     
@@ -2449,7 +2454,7 @@ public:
     
     
     
-    
+
     
     
     
@@ -2987,6 +2992,18 @@ private:
         {
             m_buffer.putIntUnchecked(0);
             return JmpSrc(m_buffer.size());
+        }
+
+        
+
+        void jumpTablePointer(uintptr_t ptr)
+        {
+            m_buffer.ensureSpace(sizeof(uintptr_t));
+#if WTF_CPU_X86_64
+            m_buffer.putInt64Unchecked(ptr);
+#else
+            m_buffer.putIntUnchecked(ptr);
+#endif
         }
 
         
