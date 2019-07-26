@@ -197,6 +197,7 @@ class IonExitFrameLayout : public IonCommonFrameLayout
 
 class IonNativeExitFrameLayout
 {
+  protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
     uintptr_t argc_;
@@ -224,6 +225,7 @@ class IonNativeExitFrameLayout
 
 class IonDOMExitFrameLayout
 {
+  protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
     JSObject *thisObj;
@@ -257,6 +259,7 @@ class IonDOMExitFrameLayout
 
 class IonDOMMethodExitFrameLayout
 {
+  protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
     
