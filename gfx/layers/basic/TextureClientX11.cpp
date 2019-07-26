@@ -41,8 +41,8 @@ TextureClientX11::Lock(OpenMode aMode)
 {
   
   NS_WARN_IF_FALSE(!mLocked, "The TextureClient is already Locked!");
-  mLocked = true;
-  return IsValid() && IsAllocated();
+  mLocked = IsValid() && IsAllocated();
+  return mLocked;
 }
 
 void
