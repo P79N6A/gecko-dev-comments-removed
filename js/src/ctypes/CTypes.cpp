@@ -2414,7 +2414,10 @@ ImplicitConvert(JSContext* cx,
       
       
       
-      *static_cast<void**>(buffer) = JS_GetArrayBufferData(valObj);
+      void* p = JS_GetStableArrayBufferData(cx, valObj);
+      if (!p)
+          return false;
+      *static_cast<void**>(buffer) = p;
       break;
     } if (!JSVAL_IS_PRIMITIVE(val) && JS_IsTypedArrayObject(valObj)) {
       if(!CanConvertTypedArrayItemTo(baseType, valObj, cx)) {

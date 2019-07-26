@@ -176,13 +176,13 @@ class ArrayBufferObject : public JSObject
 
 
 
-    bool copyData(JSContext *maybecx);
+    bool copyData(JSContext *cx);
 
     
 
 
 
-    bool ensureNonInline(JSContext *maybecx);
+    bool ensureNonInline(JSContext *cx);
 
     uint32_t byteLength() const {
         return getElementsHeader()->initializedLength;
@@ -194,7 +194,7 @@ class ArrayBufferObject : public JSObject
 
 
 
-    ObjectElements *getTransferableContents(JSContext *maybecx, bool *callerOwns);
+    ObjectElements *getTransferableContents(JSContext *cx, bool *callerOwns);
 
     
 
@@ -209,7 +209,7 @@ class ArrayBufferObject : public JSObject
 
 
 
-    void neuter(JSContext *maybecx);
+    void neuter(JSContext *cx);
 
     
 

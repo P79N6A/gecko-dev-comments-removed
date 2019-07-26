@@ -1354,18 +1354,6 @@ JS_GetArrayBufferByteLength(JSObject *obj);
 
 
 
-
-
-extern JS_FRIEND_API(uint8_t *)
-JS_GetArrayBufferData(JSObject *obj);
-
-
-
-
-
-
-
-
 extern JS_FRIEND_API(uint32_t)
 JS_GetTypedArrayLength(JSObject *obj);
 
@@ -1414,6 +1402,10 @@ JS_GetArrayBufferViewByteLength(JSObject *obj);
 
 
 
+
+
+extern JS_FRIEND_API(uint8_t *)
+JS_GetArrayBufferData(JSObject *obj);
 extern JS_FRIEND_API(int8_t *)
 JS_GetInt8ArrayData(JSObject *obj);
 extern JS_FRIEND_API(uint8_t *)
@@ -1432,6 +1424,13 @@ extern JS_FRIEND_API(float *)
 JS_GetFloat32ArrayData(JSObject *obj);
 extern JS_FRIEND_API(double *)
 JS_GetFloat64ArrayData(JSObject *obj);
+
+
+
+
+
+extern JS_FRIEND_API(uint8_t *)
+JS_GetStableArrayBufferData(JSContext *cx, JSObject *obj);
 
 
 
