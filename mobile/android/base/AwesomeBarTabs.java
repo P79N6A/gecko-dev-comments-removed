@@ -173,7 +173,7 @@ public class AwesomeBarTabs extends TabHost
         }
 
         
-        filter("", null);
+        filter("");
     }
 
     @Override
@@ -308,7 +308,7 @@ public class AwesomeBarTabs extends TabHost
         return (HistoryTab)getAwesomeBarTabForTag("history");
     }
 
-    public void filter(String searchTerm, AutocompleteHandler handler) {
+    public void filter(String searchTerm) {
 
         
         mSearching = searchTerm.length() != 0;
@@ -322,7 +322,7 @@ public class AwesomeBarTabs extends TabHost
         styleSelectedTab();
 
         
-        allPages.filter(searchTerm, handler);
+        allPages.filter(searchTerm);
 
         
         findViewById(R.id.tab_widget_container).setVisibility(mSearching ? View.GONE : View.VISIBLE);

@@ -44,26 +44,4 @@ public class StringUtils {
         
         return wasSearchQuery;
     }
-
-    public static String stripScheme(String url) {
-        if (url == null)
-            return url;
-
-        if (url.startsWith("http://")) {
-            return url.substring(7);
-        }
-        return url;
-    }
-
-    public static String stripCommonSubdomains(String host) {
-        if (host == null)
-            return host;
-        
-        
-        if (host.startsWith("www.")) return host.substring(4);
-        else if (host.startsWith("mobile.")) return host.substring(7);
-        else if (host.startsWith("m.")) return host.substring(2);
-        return host;
-    }
-
 }
