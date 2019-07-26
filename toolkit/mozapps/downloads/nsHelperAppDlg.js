@@ -102,6 +102,8 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/DownloadLastDir.jsm", downloadModule);
 Components.utils.import("resource://gre/modules/DownloadPaths.jsm");
 Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
+Components.utils.import("resource://gre/modules/Downloads.jsm");
+Components.utils.import("resource://gre/modules/Task.jsm");
 
 
 
@@ -203,115 +205,113 @@ nsUnknownContentTypeDialog.prototype = {
                             getService(Components.interfaces.nsIStringBundleService).
                             createBundle("chrome://mozapps/locale/downloads/unknownContentType.properties");
 
-    if (!aForcePrompt) {
-      
-      
-      let autodownload = false;
-      try {
-        autodownload = prefs.getBoolPref(PREF_BD_USEDOWNLOADDIR);
-      } catch (e) { }
-
-      if (autodownload) {
+    Task.spawn(function() {
+      if (!aForcePrompt) {
         
-        let dnldMgr = Components.classes["@mozilla.org/download-manager;1"]
-                                .getService(Components.interfaces.nsIDownloadManager);
-        let defaultFolder = dnldMgr.userDownloadsDirectory;
-
+        
+        let autodownload = false;
         try {
-          result = this.validateLeafName(defaultFolder, aDefaultFile, aSuggestedFileExtension);
-        }
-        catch (ex) {
-          if (ex.result == Components.results.NS_ERROR_FILE_ACCESS_DENIED) {
-            let prompter = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].
-                                      getService(Components.interfaces.nsIPromptService);
+          autodownload = prefs.getBoolPref(PREF_BD_USEDOWNLOADDIR);
+        } catch (e) { }
 
-            
-            prompter.alert(this.dialog,
-                           bundle.GetStringFromName("badPermissions.title"),
-                           bundle.GetStringFromName("badPermissions"));
+        if (autodownload) {
+          
+          let defaultFolder = yield Downloads.getPreferredDownloadsDirectory();
 
-            aLauncher.saveDestinationAvailable(null);
+          try {
+            result = this.validateLeafName(defaultFolder, aDefaultFile, aSuggestedFileExtension);
+          }
+          catch (ex) {
+            if (ex.result == Components.results.NS_ERROR_FILE_ACCESS_DENIED) {
+              let prompter = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].
+                                        getService(Components.interfaces.nsIPromptService);
+
+              
+              prompter.alert(this.dialog,
+                             bundle.GetStringFromName("badPermissions.title"),
+                             bundle.GetStringFromName("badPermissions"));
+
+              aLauncher.saveDestinationAvailable(null);
+              return;
+            }
+          }
+
+          
+          if (result) {
+            aLauncher.saveDestinationAvailable(result);
             return;
           }
         }
+      }
 
+      
+      var nsIFilePicker = Components.interfaces.nsIFilePicker;
+      var picker = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+      var windowTitle = bundle.GetStringFromName("saveDialogTitle");
+      var parent = aContext.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindow);
+      picker.init(parent, windowTitle, nsIFilePicker.modeSave);
+      picker.defaultString = aDefaultFile;
+
+      let gDownloadLastDir = new downloadModule.DownloadLastDir(parent);
+
+      if (aSuggestedFileExtension) {
         
-        if (result) {
-          aLauncher.saveDestinationAvailable(result);
+        picker.defaultExtension = aSuggestedFileExtension.substring(1);
+      }
+      else {
+        try {
+          picker.defaultExtension = this.mLauncher.MIMEInfo.primaryExtension;
+        }
+        catch (ex) { }
+      }
+
+      var wildCardExtension = "*";
+      if (aSuggestedFileExtension) {
+        wildCardExtension += aSuggestedFileExtension;
+        picker.appendFilter(this.mLauncher.MIMEInfo.description, wildCardExtension);
+      }
+
+      picker.appendFilters( nsIFilePicker.filterAll );
+
+      
+      
+      
+      picker.displayDirectory = yield Downloads.getPreferredDownloadsDirectory();
+
+      gDownloadLastDir.getFileAsync(aLauncher.source, function LastDirCallback(lastDir) {
+        if (lastDir && isUsableDirectory(lastDir))
+          picker.displayDirectory = lastDir;
+
+        if (picker.show() == nsIFilePicker.returnCancel) {
+          
+          aLauncher.saveDestinationAvailable(null);
           return;
         }
-      }
-    }
 
-    
-    var nsIFilePicker = Components.interfaces.nsIFilePicker;
-    var picker = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
-    var windowTitle = bundle.GetStringFromName("saveDialogTitle");
-    var parent = aContext.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindow);
-    picker.init(parent, windowTitle, nsIFilePicker.modeSave);
-    picker.defaultString = aDefaultFile;
-
-    let gDownloadLastDir = new downloadModule.DownloadLastDir(parent);
-
-    if (aSuggestedFileExtension) {
-      
-      picker.defaultExtension = aSuggestedFileExtension.substring(1);
-    }
-    else {
-      try {
-        picker.defaultExtension = this.mLauncher.MIMEInfo.primaryExtension;
-      }
-      catch (ex) { }
-    }
-
-    var wildCardExtension = "*";
-    if (aSuggestedFileExtension) {
-      wildCardExtension += aSuggestedFileExtension;
-      picker.appendFilter(this.mLauncher.MIMEInfo.description, wildCardExtension);
-    }
-
-    picker.appendFilters( nsIFilePicker.filterAll );
-
-    
-    
-    
-    var dnldMgr = Components.classes["@mozilla.org/download-manager;1"]
-                            .getService(Components.interfaces.nsIDownloadManager);
-    picker.displayDirectory = dnldMgr.userDownloadsDirectory;
-
-    gDownloadLastDir.getFileAsync(aLauncher.source, function LastDirCallback(lastDir) {
-      if (lastDir && isUsableDirectory(lastDir))
-        picker.displayDirectory = lastDir;
-
-      if (picker.show() == nsIFilePicker.returnCancel) {
         
-        aLauncher.saveDestinationAvailable(null);
-        return;
-      }
+        
+        
+        result = picker.file;
 
-      
-      
-      
-      result = picker.file;
+        if (result) {
+          try {
+            
+            
+            
+            if (result.exists())
+              result.remove(false);
+          }
+          catch (e) { }
+          var newDir = result.parent.QueryInterface(Components.interfaces.nsILocalFile);
 
-      if (result) {
-        try {
           
-          
-          
-          if (result.exists())
-            result.remove(false);
+          gDownloadLastDir.setFile(aLauncher.source, newDir);
+
+          result = this.validateLeafName(newDir, result.leafName, null);
         }
-        catch (e) { }
-        var newDir = result.parent.QueryInterface(Components.interfaces.nsILocalFile);
-
-        
-        gDownloadLastDir.setFile(aLauncher.source, newDir);
-
-        result = this.validateLeafName(newDir, result.leafName, null);
-      }
-      aLauncher.saveDestinationAvailable(result);
-    }.bind(this));
+        aLauncher.saveDestinationAvailable(result);
+      }.bind(this));
+    }.bind(this)).then(null, Components.utils.reportError);
   },
 
   
