@@ -205,6 +205,19 @@ nsEffectiveTLDService::GetBaseDomainFromHost(const nsACString &aHostname,
   return GetBaseDomainInternal(normHostname, aAdditionalParts + 1, aBaseDomain);
 }
 
+NS_IMETHODIMP
+nsEffectiveTLDService::GetNextSubDomain(const nsACString& aHostname,
+                                        nsACString&       aBaseDomain)
+{
+  
+  
+  nsAutoCString normHostname(aHostname);
+  nsresult rv = NormalizeHostname(normHostname);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return GetBaseDomainInternal(normHostname, -1, aBaseDomain);
+}
+
 
 
 
@@ -212,7 +225,7 @@ nsEffectiveTLDService::GetBaseDomainFromHost(const nsACString &aHostname,
 
 nsresult
 nsEffectiveTLDService::GetBaseDomainInternal(nsCString  &aHostname,
-                                             uint32_t    aAdditionalParts,
+                                             int32_t    aAdditionalParts,
                                              nsACString &aBaseDomain)
 {
   if (aHostname.IsEmpty())
@@ -280,17 +293,33 @@ nsEffectiveTLDService::GetBaseDomainInternal(nsCString  &aHostname,
     nextDot = strchr(currDomain, '.');
   }
 
-  
-  const char *begin = aHostname.get();
-  const char *iter = eTLD;
-  while (1) {
-    if (iter == begin)
-      break;
+  const char *begin, *iter;
+  if (aAdditionalParts < 0) {
+    NS_ASSERTION(aAdditionalParts == -1,
+                 "aAdditionalParts should can't be negative and different from -1");
 
-    if (*(--iter) == '.' && aAdditionalParts-- == 0) {
-      ++iter;
-      ++aAdditionalParts;
-      break;
+    for (iter = aHostname.get(); iter != eTLD && *iter != '.'; iter++);
+
+    if (iter != eTLD) {
+      iter++;
+    }
+    if (iter != eTLD) {
+      aAdditionalParts = 0;
+    }
+  } else {
+    
+    begin = aHostname.get();
+    iter = eTLD;
+
+    while (1) {
+      if (iter == begin)
+        break;
+
+      if (*(--iter) == '.' && aAdditionalParts-- == 0) {
+        ++iter;
+        ++aAdditionalParts;
+        break;
+      }
     }
   }
 
