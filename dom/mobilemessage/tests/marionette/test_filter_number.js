@@ -2,200 +2,100 @@
 
 
 MARIONETTE_TIMEOUT = 60000;
+MARIONETTE_HEAD_JS = 'head.js';
 
-const NUM_THREADS = 10;
-const REMOTE_NATIONAL_NUMBER = "555531555";
+const REMOTE_NATIONAL_NUMBER = "552522555";
 const REMOTE_INTERNATIONAL_NUMBER = "+1" + REMOTE_NATIONAL_NUMBER;
 
-SpecialPowers.addPermission("sms", true, document);
-SpecialPowers.setBoolPref("dom.sms.enabled", true);
+const TEXT_1 = "Nice to meet you";
+const TEXT_2 = "Nice to meet you, too";
 
-let pendingEmulatorCmdCount = 0;
-function sendSmsToEmulator(from, text) {
-  ++pendingEmulatorCmdCount;
 
-  let cmd = "sms send " + from + " " + text;
-  runEmulatorCmd(cmd, function(result) {
-    --pendingEmulatorCmdCount;
 
-    is(result[0], "OK", "Emulator response");
-  });
+const MMS_MAX_LENGTH_SUBJECT = 40;
+function genMmsSubject(sep) {
+  return "Hello " + (new Array(MMS_MAX_LENGTH_SUBJECT).join(sep)) + " World!";
 }
 
-let tasks = {
-  
-  
-  _tasks: [],
-  _nextTaskIndex: 0,
-
-  push: function(func) {
-    this._tasks.push(func);
-  },
-
-  next: function() {
-    let index = this._nextTaskIndex++;
-    let task = this._tasks[index];
-    try {
-      task();
-    } catch (ex) {
-      ok(false, "test task[" + index + "] throws: " + ex);
-      
-      if (index != this._tasks.length - 1) {
-        this.finish();
-      }
-    }
-  },
-
-  finish: function() {
-    this._tasks[this._tasks.length - 1]();
-  },
-
-  run: function() {
-    this.next();
-  }
-};
-
-let manager;
-function getAllMessages(callback, filter, reverse) {
-  if (!filter) {
-    filter = new MozSmsFilter;
-  }
-  let messages = [];
-  let request = manager.getMessages(filter, reverse || false);
-  request.onsuccess = function(event) {
-    if (request.result) {
-      messages.push(request.result);
-      request.continue();
-      return;
-    }
-
-    window.setTimeout(callback.bind(null, messages), 0);
-  }
+function genFailingMms(aReceivers) {
+  return {
+    receivers: aReceivers,
+    subject: genMmsSubject(' '),
+    attachments: [],
+  };
 }
 
-function deleteAllMessages() {
-  log("Deleting all messages.");
-  getAllMessages(function deleteAll(messages) {
-    let message = messages.shift();
-    if (!message) {
-      ok(true, "all messages deleted");
-      tasks.next();
-      return;
-    }
-
-    let request = manager.delete(message.id);
-    request.onsuccess = deleteAll.bind(null, messages);
-    request.onerror = function(event) {
-      ok(false, "failed to delete all messages");
-      tasks.finish();
-    }
-  });
-}
-
-function checkMessage(needle, secondary) {
-  log("  Verifying " + needle);
+function checkMessage(aNeedle, aValidNumbers) {
+  log("  Verifying " + aNeedle);
 
   let filter = new MozSmsFilter();
-  filter.numbers = [needle];
-  getAllMessages(function(messages) {
-    is(messages.length, 2, "should have exactly 2 messages");
+  filter.numbers = [aNeedle];
+  return getMessages(filter)
+    .then(function(messages) {
+      
+      is(messages.length, aValidNumbers.length, "messages.length");
 
-    
-    
-    let validNumbers = [needle, secondary];
-    for (let message of messages) {
-      let number = (message.delivery === "received") ? message.sender
+      for (let message of messages) {
+        let number;
+        if (message.type == "sms") {
+          number = (message.delivery === "received") ? message.sender
                                                      : message.receiver;
-      let index = validNumbers.indexOf(number);
-      ok(index >= 0, "message.number");
-      validNumbers.splice(index, 1); 
-    }
+        } else {
+          number = message.receivers[0];
+        }
 
-    tasks.next();
-  }, filter);
+        let index = aValidNumbers.indexOf(number);
+        ok(index >= 0, "message.number");
+        aValidNumbers.splice(index, 1); 
+      }
+
+      is(aValidNumbers.length, 0, "aValidNumbers.length");
+    });
 }
 
-tasks.push(function verifyInitialState() {
-  log("Verifying initial state.");
-  manager = window.navigator.mozMobileMessage;
-  ok(manager instanceof MozMobileMessageManager,
-     "manager is instance of " + manager.constructor);
-  tasks.next();
+startTestCommon(function testCaseMain() {
+  return Promise.resolve()
+
+    
+    .then(() => sendSmsWithSuccess(REMOTE_INTERNATIONAL_NUMBER + '1', TEXT_1))
+    .then(() => sendTextSmsToEmulator(REMOTE_NATIONAL_NUMBER + '1', TEXT_2))
+    
+    .then(() => sendSmsWithSuccess(REMOTE_NATIONAL_NUMBER + '2', TEXT_1))
+    .then(() => sendTextSmsToEmulator(REMOTE_INTERNATIONAL_NUMBER + '2', TEXT_2))
+    
+    .then(() => sendMmsWithFailure(genFailingMms([REMOTE_INTERNATIONAL_NUMBER + '3'])))
+    
+    .then(() => sendMmsWithFailure(genFailingMms([REMOTE_NATIONAL_NUMBER + '3'])))
+    
+    .then(() => sendSmsWithSuccess(REMOTE_INTERNATIONAL_NUMBER + '4', TEXT_1))
+    .then(() => sendTextSmsToEmulator(REMOTE_NATIONAL_NUMBER + '4', TEXT_2))
+    .then(() => sendMmsWithFailure(genFailingMms(["jkalbcjklg"])))
+    .then(() => sendMmsWithFailure(genFailingMms(["jk.alb.cjk.lg"])))
+    
+    .then(() => sendMmsWithFailure(genFailingMms(["jk@alb.cjk.lg"])))
+    
+    .then(() => sendMmsWithFailure(genFailingMms(["55.252.255.54"])))
+    
+    .then(() => sendMmsWithFailure(genFailingMms(["5:5:2:5:2:2:55:54"])))
+
+    .then(() => checkMessage(REMOTE_INTERNATIONAL_NUMBER + '1',
+                             [ REMOTE_INTERNATIONAL_NUMBER + '1',
+                               REMOTE_NATIONAL_NUMBER + '1' ]))
+    .then(() => checkMessage(REMOTE_NATIONAL_NUMBER + '2',
+                             [ REMOTE_NATIONAL_NUMBER + '2',
+                               REMOTE_INTERNATIONAL_NUMBER + '2' ]))
+    .then(() => checkMessage(REMOTE_INTERNATIONAL_NUMBER + '3',
+                             [ REMOTE_INTERNATIONAL_NUMBER + '3',
+                               REMOTE_NATIONAL_NUMBER + '3' ]))
+    .then(() => checkMessage(REMOTE_NATIONAL_NUMBER + '3',
+                             [ REMOTE_NATIONAL_NUMBER + '3',
+                               REMOTE_INTERNATIONAL_NUMBER + '3' ]))
+    .then(() => checkMessage(REMOTE_NATIONAL_NUMBER + '4',
+                             [ REMOTE_NATIONAL_NUMBER + '4',
+                               REMOTE_INTERNATIONAL_NUMBER + '4',
+                               "jkalbcjklg",
+                               "jk.alb.cjk.lg" ]))
+    .then(() => checkMessage("jk@alb.cjk.lg", ["jk@alb.cjk.lg"]))
+    .then(() => checkMessage("55.252.255.54", ["55.252.255.54"]))
+    .then(() => checkMessage("5:5:2:5:2:2:55:54", ["5:5:2:5:2:2:55:54"]))
 });
-
-tasks.push(deleteAllMessages);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-tasks.push(function populateMessages() {
-  log("Populating messages.");
-  let count = 0;
-
-  function sendMessage(iter) {
-    let request = manager.send(REMOTE_INTERNATIONAL_NUMBER + iter,
-                               "Nice to meet you");
-    request.onsuccess = function onRequestSuccess(event) {
-      sendSmsToEmulator(REMOTE_NATIONAL_NUMBER + iter,
-                        "Nice to meet you, too");
-    }
-    request.onerror = function onRequestError(event) {
-      tasks.finish();
-    }
-  }
-
-  manager.addEventListener("received", function onReceived(event) {
-    ++count;
-    if (count < NUM_THREADS) {
-      sendMessage(count);
-    } else {
-      manager.removeEventListener("received", onReceived);
-      tasks.next();
-    }
-  });
-
-  sendMessage(count);
-});
-
-tasks.push(function() {
-  log("Verifying number of messages in database");
-  getAllMessages(function(messages) {
-    is(messages.length, NUM_THREADS * 2,
-       "should have exactly " + (NUM_THREADS * 2) + " messages");
-
-    tasks.next();
-  });
-});
-
-for (let iter = 0; iter < NUM_THREADS; iter++) {
-  let national = REMOTE_NATIONAL_NUMBER + iter;
-  let international = REMOTE_INTERNATIONAL_NUMBER + iter;
-  tasks.push(checkMessage.bind(null, national, international));
-  tasks.push(checkMessage.bind(null, international, national));
-}
-
-tasks.push(deleteAllMessages);
-
-
-tasks.push(function cleanUp() {
-  if (pendingEmulatorCmdCount) {
-    window.setTimeout(cleanUp, 100);
-    return;
-  }
-
-  SpecialPowers.removePermission("sms", document);
-  SpecialPowers.clearUserPref("dom.sms.enabled");
-  finish();
-});
-
-tasks.run();
