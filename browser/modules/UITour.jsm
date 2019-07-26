@@ -71,7 +71,7 @@ this.UITour = {
       widgetName: "PanelUI-fxa-status",
     }],
     ["addons",      {query: "#add-ons-button"}],
-    ["appMenu",     {query: "#PanelUI-menu-button"}],
+    ["appMenu",     {query: "#PanelUI-button"}],
     ["backForward", {
       query: "#back-button",
       widgetName: "urlbar-container",
@@ -703,7 +703,7 @@ this.UITour = {
 
     
     return targetElement.id.startsWith("PanelUI-")
-             && targetElement.id != "PanelUI-menu-button";
+             && targetElement.id != "PanelUI-button";
   },
 
   
@@ -813,7 +813,7 @@ this.UITour = {
 
       
       
-      if (maxDimension / minDimension <= 1.4) {
+      if (maxDimension / minDimension <= 2.1) {
         highlightHeight = highlightWidth = maxDimension;
         highlighter.style.borderRadius = "100%";
       } else {
