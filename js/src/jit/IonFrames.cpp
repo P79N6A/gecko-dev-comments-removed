@@ -1241,22 +1241,6 @@ SnapshotIterator::slotValue(const Slot &slot)
       case SnapshotReader::DOUBLE_REG:
         return DoubleValue(machine_.read(slot.floatReg()));
 
-      case SnapshotReader::FLOAT32_REG:
-      {
-        double asDouble = machine_.read(slot.floatReg());
-        
-        
-        float asFloat = *(float*) &asDouble;
-        return DoubleValue(asFloat);
-      }
-
-      case SnapshotReader::FLOAT32_STACK:
-      {
-        double asDouble = ReadFrameDoubleSlot(fp_, slot.stackSlot());
-        float asFloat = *(float*) &asDouble; 
-        return DoubleValue(asFloat);
-      }
-
       case SnapshotReader::TYPED_REG:
         return FromTypedPayload(slot.knownType(), machine_.read(slot.reg()));
 
