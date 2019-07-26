@@ -491,13 +491,13 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
                                                            float x, float y, float width, float height,
                                                            float resolution, boolean lowPrecision) {
         
-        if (lowPrecision && !mProgressiveUpdateWasInDanger) {
-            mProgressiveUpdateData.abort = true;
-            return mProgressiveUpdateData;
-        }
-
         
-        if (!lowPrecision && mLastProgressiveUpdateWasLowPrecision) {
+        if (lowPrecision && !mLastProgressiveUpdateWasLowPrecision) {
+            
+            if (!mProgressiveUpdateWasInDanger) {
+                mProgressiveUpdateData.abort = true;
+                return mProgressiveUpdateData;
+            }
             mProgressiveUpdateWasInDanger = false;
         }
         mLastProgressiveUpdateWasLowPrecision = lowPrecision;
@@ -532,6 +532,15 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
         
         
+        if (!lowPrecision && !mProgressiveUpdateWasInDanger) {
+            if (DisplayPortCalculator.aboutToCheckerboard(viewportMetrics,
+                  mPanZoomController.getVelocityVector(), mProgressiveUpdateDisplayPort)) {
+                mProgressiveUpdateWasInDanger = true;
+            }
+        }
+
+        
+        
         
         
         
@@ -547,15 +556,6 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
             return mProgressiveUpdateData;
         }
 
-        if (!lowPrecision && !mProgressiveUpdateWasInDanger) {
-            
-            
-            if (DisplayPortCalculator.aboutToCheckerboard(viewportMetrics,
-                  mPanZoomController.getVelocityVector(), mProgressiveUpdateDisplayPort)) {
-                mProgressiveUpdateWasInDanger = true;
-            }
-        }
-
         
         
         
@@ -567,6 +567,11 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
             Math.min(viewportMetrics.viewportRectBottom, viewportMetrics.pageRectBottom) - 1 > y + height) {
             Log.d(LOGTAG, "Aborting update due to viewport not in display-port");
             mProgressiveUpdateData.abort = true;
+
+            
+            
+            mProgressiveUpdateWasInDanger = true;
+
             return mProgressiveUpdateData;
         }
 
