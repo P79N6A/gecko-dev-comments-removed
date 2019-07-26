@@ -193,7 +193,7 @@ nsNPAPIPluginInstance::nsNPAPIPluginInstance()
 #endif
   , mHaveJavaC2PJSObjectQuirk(false)
 {
-  mNPP.pdata = NULL;
+  mNPP.pdata = nullptr;
   mNPP.ndata = this;
 
   PLUGIN_LOG(PLUGIN_LOG_BASIC, ("nsNPAPIPluginInstance ctor: this=%p\n",this));
@@ -536,7 +536,9 @@ nsNPAPIPluginInstance::Start()
   
   mRunning = RUNNING;
 
-  nsresult newResult = library->NPP_New((char*)mimetype, &mNPP, (uint16_t)mode, count, (char**)names, (char**)values, NULL, &error);
+  nsresult newResult = library->NPP_New((char*)mimetype, &mNPP, (uint16_t)mode,
+                                        count, (char**)names, (char**)values,
+                                        nullptr, &error);
   mInPluginInitCall = oldVal;
 
   NPP_PLUGIN_LOG(PLUGIN_LOG_NORMAL,
@@ -1439,7 +1441,7 @@ PluginTimerCallback(nsITimer *aTimer, void *aClosure)
   
   
   nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance*)npp->ndata;
-  if (!inst || !inst->TimerWithID(id, NULL))
+  if (!inst || !inst->TimerWithID(id, nullptr))
     return;
 
   
@@ -1476,7 +1478,7 @@ nsNPAPIPluginInstance::ScheduleTimer(uint32_t interval, NPBool repeat, void (*ti
 
   
   uint32_t uniqueID = mTimers.Length();
-  while ((uniqueID == 0) || TimerWithID(uniqueID, NULL))
+  while ((uniqueID == 0) || TimerWithID(uniqueID, nullptr))
     uniqueID++;
   newTimer->id = uniqueID;
 
@@ -1599,7 +1601,7 @@ nsNPAPIPluginInstance::GetJSContext(JSContext* *outContext)
 
   nsRefPtr<nsPluginInstanceOwner> deathGrip(mOwner);
 
-  *outContext = NULL;
+  *outContext = nullptr;
   nsCOMPtr<nsIDocument> document;
 
   nsresult rv = mOwner->GetDocument(getter_AddRefs(document));

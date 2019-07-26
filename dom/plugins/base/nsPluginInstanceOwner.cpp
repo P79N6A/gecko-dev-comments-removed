@@ -166,7 +166,7 @@ nsPluginInstanceOwner::GetImageContainer()
   
   
   if (AndroidBridge::Bridge()->GetAPIVersion() < 11)
-    return NULL;
+    return nullptr;
   
   container = LayerManager::CreateImageContainer();
 
@@ -1354,8 +1354,8 @@ NPEventModel nsPluginInstanceOwner::GetEventModel()
 
 #define DEFAULT_REFRESH_RATE 20 // 50 FPS
 
-nsCOMPtr<nsITimer>                *nsPluginInstanceOwner::sCATimer = NULL;
-nsTArray<nsPluginInstanceOwner*>  *nsPluginInstanceOwner::sCARefreshListeners = NULL;
+nsCOMPtr<nsITimer>               *nsPluginInstanceOwner::sCATimer = nullptr;
+nsTArray<nsPluginInstanceOwner*> *nsPluginInstanceOwner::sCARefreshListeners = nullptr;
 
 void nsPluginInstanceOwner::CARefresh(nsITimer *aTimer, void *aClosure) {
   if (!sCARefreshListeners) {
@@ -1412,7 +1412,7 @@ void nsPluginInstanceOwner::AddToCARefreshTimer() {
 
   if (sCARefreshListeners->Length() == 1) {
     *sCATimer = do_CreateInstance("@mozilla.org/timer;1");
-    (*sCATimer)->InitWithFuncCallback(CARefresh, NULL, 
+    (*sCATimer)->InitWithFuncCallback(CARefresh, nullptr, 
                    DEFAULT_REFRESH_RATE, nsITimer::TYPE_REPEATING_SLACK);
   }
 }
@@ -1428,10 +1428,10 @@ void nsPluginInstanceOwner::RemoveFromCARefreshTimer() {
     if (sCATimer) {
       (*sCATimer)->Cancel();
       delete sCATimer;
-      sCATimer = NULL;
+      sCATimer = nullptr;
     }
     delete sCARefreshListeners;
-    sCARefreshListeners = NULL;
+    sCARefreshListeners = nullptr;
   }
 }
 
@@ -1477,7 +1477,7 @@ void nsPluginInstanceOwner::RenderCoreAnimation(CGContextRef aCGContext,
   }
 
   if (mCARenderer->isInit() == false) {
-    void *caLayer = NULL;
+    void *caLayer = nullptr;
     nsresult rv = mInstance->GetValueFromPlugin(NPPVpluginCoreAnimationLayer, &caLayer);
     if (NS_FAILED(rv) || !caLayer) {
       return;
@@ -1494,12 +1494,12 @@ void nsPluginInstanceOwner::RenderCoreAnimation(CGContextRef aCGContext,
     FixUpPluginWindow(ePluginPaintEnable);
   }
 
-  CGImageRef caImage = NULL;
+  CGImageRef caImage = nullptr;
   nsresult rt = mCARenderer->Render(aWidth, aHeight, scaleFactor, &caImage);
   if (rt == NS_OK && mIOSurface && mColorProfile) {
     nsCARenderer::DrawSurfaceToCGContext(aCGContext, mIOSurface, mColorProfile,
                                          0, 0, aWidth, aHeight);
-  } else if (rt == NS_OK && caImage != NULL) {
+  } else if (rt == NS_OK && caImage != nullptr) {
     
     ::CGContextSetInterpolationQuality(aCGContext, kCGInterpolationNone );
     ::CGContextTranslateCTM(aCGContext, 0, (double) aHeight * scaleFactor);
@@ -2989,7 +2989,7 @@ void* nsPluginInstanceOwner::GetPluginPortFromWidget()
 {
 
 
-  void* result = NULL;
+  void* result = nullptr;
   if (mWidget) {
 #ifdef XP_WIN
     if (mPluginWindow && (mPluginWindow->type == NPWindowTypeDrawable))

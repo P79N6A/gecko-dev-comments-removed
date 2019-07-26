@@ -134,13 +134,13 @@ public:
   nsresult
   GetURLWithHeaders(nsNPAPIPluginInstance *pluginInst, 
                     const char* url, 
-                    const char* target = NULL,
-                    nsNPAPIPluginStreamListener* streamListener = NULL,
-                    const char* altHost = NULL,
-                    const char* referrer = NULL,
+                    const char* target = nullptr,
+                    nsNPAPIPluginStreamListener* streamListener = nullptr,
+                    const char* altHost = nullptr,
+                    const char* referrer = nullptr,
                     bool forceJSEnabled = false,
                     uint32_t getHeadersLength = 0, 
-                    const char* getHeaders = NULL);
+                    const char* getHeaders = nullptr);
 
   nsresult
   DoURLLoadSecurityCheck(nsNPAPIPluginInstance *aInstance,
