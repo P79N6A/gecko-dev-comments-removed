@@ -30,6 +30,10 @@ protected:
   static NS_METHOD WriteSegmentFun(nsIInputStream *, void *, const char *,
                                    uint32_t, uint32_t, uint32_t *);
 
+  
+  
+  void ReleaseData();
+
   nsCOMPtr<nsIStreamLoaderObserver> mObserver;
   nsCOMPtr<nsISupports>             mContext;  
   nsCOMPtr<nsIRequest>              mRequest;
