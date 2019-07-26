@@ -111,9 +111,21 @@
 
 
 
-#main-menubar > menu:not(:-moz-lwtheme) {
-  color: inherit;
+%ifdef WINDOWS_AERO
+@media not all and (-moz-windows-compositor) {
+%endif
+  #main-window[tabsintitlebar] #main-menubar > menu:not(:-moz-lwtheme) {
+    color: inherit;
+  }
+%ifdef WINDOWS_AERO
 }
+
+@media (-moz-windows-compositor) {
+  #main-menubar > menu:not(:-moz-lwtheme) {
+    color: inherit;
+  }
+}
+%endif
 
 
 

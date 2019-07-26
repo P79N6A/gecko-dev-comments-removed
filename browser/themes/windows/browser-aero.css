@@ -144,6 +144,18 @@
     border-right-style: none !important;
   }
 
+  
+
+
+
+  @media not all and (-moz-os-version: windows-vista) {
+    @media not all and (-moz-os-version: windows-win7) {
+      #toolbar-menubar:not(:-moz-lwtheme):-moz-window-inactive {
+        color: ThreeDShadow;
+      }
+    }
+  }
+
   #main-window[darkwindowframe="true"] #toolbar-menubar:not(:-moz-lwtheme):not(:-moz-window-inactive),
   #main-window[darkwindowframe="true"] #TabsToolbar:not(:-moz-lwtheme):not(:-moz-window-inactive) {
     color: white;
