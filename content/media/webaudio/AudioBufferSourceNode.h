@@ -23,8 +23,8 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope,
                                bool* aTriedToWrap);
 
-  void NoteOn(double) {  }
-  void NoteOff(double) {  }
+  void Start(double) {  }
+  void Stop(double) {  }
 
   AudioBuffer* GetBuffer() const
   {
