@@ -51,9 +51,7 @@ bool JSAPITest::definePrint()
 JSObject * JSAPITest::createGlobal(JSPrincipals *principals)
 {
     
-    JS::CompartmentOptions options;
-    options.setVersion(JSVERSION_LATEST);
-    global = JS_NewGlobalObject(cx, getGlobalClass(), principals, options);
+    global = JS_NewGlobalObject(cx, getGlobalClass(), principals);
     if (!global)
         return NULL;
     JS_AddNamedObjectRoot(cx, &global, "test-global");

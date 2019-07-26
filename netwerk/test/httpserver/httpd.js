@@ -2727,7 +2727,7 @@ ServerHandler.prototype =
           
           
           var line = new Error().lineNumber;
-          Cu.evalInSandbox(sis.read(file.fileSize), s, "latest");
+          Cu.evalInSandbox(sis.read(file.fileSize), s);
         }
         catch (e)
         {

@@ -720,9 +720,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     char *defaultLocale;
 
     
-    JSVersion defaultVersion_;
-
-    
 #ifdef JS_THREADSAFE
   public:
     void *ownerThread() const { return ownerThread_; }
@@ -830,9 +827,6 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     const char *getDefaultLocale();
-
-    JSVersion defaultVersion() { return defaultVersion_; }
-    void setDefaultVersion(JSVersion v) { defaultVersion_ = v; }
 
     
     uintptr_t           nativeStackBase;
@@ -1540,6 +1534,11 @@ struct JSContext : js::ContextFriendFields,
 
   private:
     
+    JSVersion           defaultVersion;      
+    JSVersion           versionOverride;     
+    bool                hasVersionOverride;
+
+    
     bool                throwing;            
     js::Value           exception;           
 
@@ -1647,6 +1646,46 @@ struct JSContext : js::ContextFriendFields,
     inline js::RegExpStatics *regExpStatics();
 
   public:
+    
+
+
+
+    inline bool canSetDefaultVersion() const;
+
+    
+    inline void overrideVersion(JSVersion newVersion);
+
+    
+    void setDefaultVersion(JSVersion version) {
+        defaultVersion = version;
+    }
+
+    void clearVersionOverride() { hasVersionOverride = false; }
+    JSVersion getDefaultVersion() const { return defaultVersion; }
+    bool isVersionOverridden() const { return hasVersionOverride; }
+
+    JSVersion getVersionOverride() const {
+        JS_ASSERT(isVersionOverridden());
+        return versionOverride;
+    }
+
+    
+
+
+
+    inline bool maybeOverrideVersion(JSVersion newVersion);
+
+    
+
+
+
+    void maybeMigrateVersionOverride() {
+        JS_ASSERT(stack.empty());
+        if (JS_UNLIKELY(isVersionOverridden())) {
+            defaultVersion = versionOverride;
+            clearVersionOverride();
+        }
+    }
 
     
 

@@ -1890,14 +1890,8 @@ JS_ContextIterator(JSRuntime *rt, JSContext **iterp);
 extern JS_PUBLIC_API(JSVersion)
 JS_GetVersion(JSContext *cx);
 
-
-
-
-
-
-
-JS_PUBLIC_API(void)
-JS_SetVersionForCompartment(JSCompartment *compartment, JSVersion version);
+extern JS_PUBLIC_API(JSVersion)
+JS_SetVersion(JSContext *cx, JSVersion version);
 
 extern JS_PUBLIC_API(const char *)
 JS_VersionToString(JSVersion version);
@@ -3150,25 +3144,11 @@ SameZoneAs(JSObject *obj)
     return ZoneSpecifier(obj);
 }
 
-struct JS_PUBLIC_API(CompartmentOptions) {
-    ZoneSpecifier zoneSpec;
-    bool hasVersion;
-    JSVersion version;
-
-    explicit CompartmentOptions() : zoneSpec(JS::FreshZone)
-                                  , hasVersion(false)
-                                  , version(JSVERSION_UNKNOWN)
-    {}
-
-    CompartmentOptions &setZone(ZoneSpecifier spec) { zoneSpec = spec; return *this; }
-    CompartmentOptions &setVersion(JSVersion version_) { hasVersion = true; version = version_; return *this; }
-};
-
 } 
 
 extern JS_PUBLIC_API(JSObject *)
 JS_NewGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals,
-                   const JS::CompartmentOptions &options = JS::CompartmentOptions());
+                   JS::ZoneSpecifier zoneSpec = JS::FreshZone);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent);

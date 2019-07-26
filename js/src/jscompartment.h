@@ -123,7 +123,6 @@ class DebugScopes;
 struct JSCompartment
 {
     JS::Zone                     *zone_;
-    JS::CompartmentOptions       options_;
 
     JSRuntime                    *rt;
     JSPrincipals                 *principals;
@@ -145,8 +144,6 @@ struct JSCompartment
 
     JS::Zone *zone() { return zone_; }
     const JS::Zone *zone() const { return zone_; }
-    JS::CompartmentOptions &options() { return options_; }
-    const JS::CompartmentOptions &options() const { return options_; }
 
     
 
@@ -262,7 +259,7 @@ struct JSCompartment
     unsigned                     debugModeBits;  
 
   public:
-    JSCompartment(JS::Zone *zone, const JS::CompartmentOptions &options);
+    JSCompartment(JS::Zone *zone);
     ~JSCompartment();
 
     bool init(JSContext *cx);
