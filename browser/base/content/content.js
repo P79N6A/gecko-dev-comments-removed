@@ -3,9 +3,7 @@
 
 
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let Cu = Components.utils;
+let {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -453,8 +451,11 @@ let TranslationHandler = {
 
   
   onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
+    
+    
     if (!aWebProgress.isTopLevel ||
-        !(aStateFlags & Ci.nsIWebProgressListener.STATE_STOP))
+        !(aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) ||
+        !content)
       return;
 
     let url = aRequest.name;
