@@ -134,7 +134,6 @@ this.log = function log()
 
 
 
-
 this.wire = function wire(aRoot, aSelectorOrElement, aDescriptor)
 {
   let matches;
@@ -157,7 +156,6 @@ this.wire = function wire(aRoot, aSelectorOrElement, aDescriptor)
       element.addEventListener(aName, aHandler, false);
     });
     forEach(aDescriptor.attributes, element.setAttribute);
-    forEach(aDescriptor.userData, element.setUserData);
   }
 }
 
