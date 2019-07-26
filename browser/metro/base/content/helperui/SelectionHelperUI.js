@@ -400,9 +400,7 @@ var SelectionHelperUI = {
     this._msgTarget = aMsgTarget;
 
     
-    this._selectionMarkIds = ["selectionhandle-mark1",
-                              "selectionhandle-mark2",
-                              "selectionhandle-mark3"];
+    this._setupMonocleIdArray();
 
     
     this._activeSelectionRect = Util.getCleanRect();
@@ -461,16 +459,7 @@ var SelectionHelperUI = {
 
     window.removeEventListener("MozPrecisePointer", this, true);
 
-    if (this.startMark != null)
-      this.startMark.shutdown();
-    if (this.endMark != null)
-      this.endMark.shutdown();
-    if (this._caretMark != null)
-      this._caretMark.shutdown();
-
-    this._startMark = null;
-    this._endMark = null;
-    this._caretMark = null;
+    this._shutdownAllMarkers();
 
     this._selectionMarkIds = [];
     this._msgTarget = null;
@@ -546,6 +535,36 @@ var SelectionHelperUI = {
 
 
 
+  _transitionFromSelectionToCaret: function _transitionFromSelectionToCaret(aX, aY) {
+    
+    this._sendAsyncMessage("Browser:SelectionClear", { clearFocus: false });
+    this._sendAsyncMessage("Browser:SelectionClose");
+
+    
+    this._selectionHandlerActive = false;
+    this._activeSelectionRect = null;
+
+    
+    this._shutdownAllMarkers();
+    this._setupMonocleIdArray();
+
+    
+    
+    
+    this._sendAsyncMessage("Browser:CaretAttach", {
+      xPos: aX,
+      yPos: aY
+    });
+
+    
+    this._setCaretPositionAtPoint(aX, aY);
+  },
+
+  
+
+
+
+
 
   _setupDebugOptions: function _setupDebugOptions() {
     
@@ -574,6 +593,7 @@ var SelectionHelperUI = {
   },
 
   
+
 
 
 
@@ -606,6 +626,36 @@ var SelectionHelperUI = {
     json.caret.xPos = aX;
     json.caret.yPos = aY;
     this._sendAsyncMessage("Browser:CaretUpdate", json);
+  },
+
+  
+
+
+
+
+
+  _shutdownAllMarkers: function _shutdownAllMarkers() {
+    if (this._startMark)
+      this._startMark.shutdown();
+    if (this._endMark)
+      this._endMark.shutdown();
+    if (this._caretMark)
+      this._caretMark.shutdown();
+
+    this._startMark = null;
+    this._endMark = null;
+    this._caretMark = null;
+  },
+
+  
+
+
+
+
+  _setupMonocleIdArray: function _setupMonocleIdArray() {
+    this._selectionMarkIds = ["selectionhandle-mark1",
+                              "selectionhandle-mark2",
+                              "selectionhandle-mark3"];
   },
 
   
@@ -658,6 +708,24 @@ var SelectionHelperUI = {
         this._targetIsEditable) {
       this.closeEditSessionAndClear(true);
       return;
+    }
+
+    let selectionTap = this._hitTestSelection(aEvent);
+
+    
+    
+    
+    if (selectionTap) {
+      aEvent.stopPropagation();
+      aEvent.preventDefault();
+      return;
+    }
+
+    
+    
+    if (this.startMark.visible && pointInTargetElement &&
+        this._targetIsEditable) {
+      this._transitionFromSelectionToCaret(aEvent.clientX, aEvent.clientY);
     }
 
     

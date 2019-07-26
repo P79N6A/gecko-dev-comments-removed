@@ -429,8 +429,12 @@ var SelectionHandler = {
     this._clearTimers();
     this._cache = null;
     this._contentWindow = null;
+    this._targetElement = null;
     this.selectedText = "";
     this._selectionMoveActive = false;
+    this._contentOffset = null;
+    this._domWinUtils = null;
+    this._targetIsEditable = false;
   },
 
   
@@ -461,7 +465,7 @@ var SelectionHandler = {
     try {
       this._updateUIMarkerRects(selection);
     } catch (ex) {
-      Util.dumpLn(ex.message);
+      Util.dumpLn("_updateUIMarkerRects:", ex.message);
       return;
     }
 
