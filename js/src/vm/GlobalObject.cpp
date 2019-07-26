@@ -442,19 +442,18 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     return functionProto;
 }
 
-bool
-GlobalObject::ensureConstructor(JSContext *cx, JSProtoKey key)
+ bool
+GlobalObject::ensureConstructor(JSContext *cx, Handle<GlobalObject*> global, JSProtoKey key)
 {
-    if (getConstructor(key).isObject())
+    if (global->getConstructor(key).isObject())
         return true;
-    return initConstructor(cx, key);
+    return initConstructor(cx, global, key);
 }
 
-bool
-GlobalObject::initConstructor(JSContext *cx, JSProtoKey key)
+ bool
+GlobalObject::initConstructor(JSContext *cx, Handle<GlobalObject*> global, JSProtoKey key)
 {
-    MOZ_ASSERT(getConstructor(key).isUndefined());
-    Rooted<GlobalObject*> self(cx, this);
+    MOZ_ASSERT(global->getConstructor(key).isUndefined());
 
     
     
@@ -479,7 +478,7 @@ GlobalObject::initConstructor(JSContext *cx, JSProtoKey key)
     
     if (init) {
         MOZ_ASSERT(!haveSpec);
-        return init(cx, self);
+        return init(cx, global);
     }
 
     
@@ -519,7 +518,7 @@ GlobalObject::initConstructor(JSContext *cx, JSProtoKey key)
         return false;
 
     
-    return DefineConstructorAndPrototype(cx, self, key, ctor, proto);
+    return DefineConstructorAndPrototype(cx, global, key, ctor, proto);
 }
 
 GlobalObject *
@@ -578,7 +577,7 @@ GlobalObject::initStandardClasses(JSContext *cx, Handle<GlobalObject*> global)
     }
 
     for (size_t k = 0; k < JSProto_LIMIT; ++k) {
-        if (!global->ensureConstructor(cx, static_cast<JSProtoKey>(k)))
+        if (!ensureConstructor(cx, global, static_cast<JSProtoKey>(k)))
             return false;
     }
     return true;
