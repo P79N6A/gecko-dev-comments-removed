@@ -94,6 +94,13 @@
   display: none;
 }
 
+.hidden-message {
+  display: block;
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+}
+
 
 
 .webconsole-filter-button[checked] {
