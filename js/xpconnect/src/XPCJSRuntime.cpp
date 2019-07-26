@@ -2986,17 +2986,17 @@ ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, size_t
         ptr += bytesRead;
     }
 
-    nsString decoded;
     rv = nsScriptLoader::ConvertToUTF16(scriptChannel, buf, rawLen, EmptyString(),
-                                        nullptr, decoded);
+                                        nullptr, *src, *len);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    *len = decoded.Length();
-    *src = static_cast<jschar *>(JS_malloc(cx, decoded.Length()*sizeof(jschar)));
     if (!*src)
         return NS_ERROR_FAILURE;
-    memcpy(*src, decoded.get(), decoded.Length()*sizeof(jschar));
+
+    
+    
+    
+    JS_updateMallocCounter(cx, *len);
 
     return NS_OK;
 }
