@@ -311,6 +311,7 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     UNSAFE_OP(AsmJSParameter)
     UNSAFE_OP(AsmJSCall)
     UNSAFE_OP(AsmJSCheckOverRecursed)
+    DROP_OP(RecompileCheck)
 
     
     UNSAFE_OP(ConvertElementsToDoubles)
