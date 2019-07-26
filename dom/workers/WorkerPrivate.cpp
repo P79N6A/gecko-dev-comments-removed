@@ -3759,8 +3759,11 @@ WorkerPrivate::GetLoadInfo(JSContext* aCx, nsPIDOMWindow* aWindow,
       return NS_ERROR_FAILURE;
     }
 
+    
+    
+    
     rv = ChannelFromScriptURLWorkerThread(aCx, aParent, aScriptURL,
-                                          getter_AddRefs(loadInfo.mChannel));
+                                          loadInfo.mChannel.StartAssignment());
     NS_ENSURE_SUCCESS(rv, rv);
 
     
