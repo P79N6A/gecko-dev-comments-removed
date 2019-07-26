@@ -290,6 +290,10 @@ nsresult VP8TrackEncoder::PrepareRawFrame(VideoChunk &aChunk)
     
     
     MOZ_ASSERT(yuv);
+    if (!yuv->IsValid()) {
+      NS_WARNING("PlanarYCbCrImage is not valid");
+      return NS_ERROR_FAILURE;
+    }
     const PlanarYCbCrImage::Data *data = yuv->GetData();
 
     if (isYUV420(data) && !data->mCbSkip) { 
