@@ -86,8 +86,89 @@ WebappsActor.prototype = {
       });
   },
 
-  installHostedApp: function wa_actorInstallHosted(aDir, aId, aType) {
+  _getAppType: function wa_actorGetAppType(aType) {
+    let type = Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+
+    if (aType) {
+      type = aType == "privileged" ? Ci.nsIPrincipal.APP_STATUS_PRIVILEGED
+           : aType == "certified" ? Ci.nsIPrincipal.APP_STATUS_CERTIFIED
+           : Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+    }
+
+    return type;
+  },
+
+  installHostedApp: function wa_actorInstallHosted(aDir, aId) {
     debug("installHostedApp");
+    let self = this;
+
+    let runnable = {
+      run: function run() {
+        try {
+          
+          let manFile = aDir.clone();
+          manFile.append("manifest.webapp");
+          DOMApplicationRegistry._loadJSONAsync(manFile, function(aManifest) {
+            if (!aManifest) {
+              self._sendError("Error Parsing manifest.webapp", aId);
+              return;
+            }
+
+            let appType = self._getAppType(aManifest.type);
+
+            
+#ifdef MOZ_OFFICIAL
+            if (appType == Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+              self._sendError("Installing certified apps is not allowed.", aId);
+              return;
+            }
+#endif
+            
+            let installDir = FileUtils.getDir(DIRECTORY_NAME,
+                                              ["webapps", aId], true);
+            manFile.moveTo(installDir, "manifest.webapp");
+
+            
+            let metaFile = aDir.clone();
+            metaFile.append("metadata.json");
+            DOMApplicationRegistry._loadJSONAsync(metaFile, function(aMetadata) {
+              if (!aMetadata) {
+                self._sendError("Error Parsing metadata.json", aId);
+                return;
+              }
+
+              if (!aMetadata.origin) {
+                self._sendError("Missing 'origin' property in metadata.json", aId);
+                return;
+              }
+
+              let origin = aMetadata.origin;
+              let manifestURL = aMetadata.manifestURL ||
+                                origin + "/manifest.webapp";
+              
+              let app = {
+                origin: origin,
+                installOrigin: aMetadata.installOrigin || origin,
+                manifestURL: manifestURL,
+                appStatus: appType
+              };
+
+              self._registerApp(app, aId, aDir);
+            });
+          });
+        } catch(e) {
+          
+          self._sendError(e.toString(), aId);
+        }
+      }
+    }
+
+    Services.tm.currentThread.dispatch(runnable,
+                                       Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+  installPackagedApp: function wa_actorInstallPackaged(aDir, aId) {
+    debug("installPackagedApp");
     let self = this;
 
     let runnable = {
@@ -98,33 +179,40 @@ WebappsActor.prototype = {
                                             ["webapps", aId], true);
 
           
-          let manFile = aDir.clone();
-          manFile.append("manifest.webapp");
-          manFile.moveTo(installDir, "manifest.webapp");
-
           
-          let metaFile = aDir.clone();
-          metaFile.append("metadata.json");
-          DOMApplicationRegistry._loadJSONAsync(metaFile, function(aMetadata) {
-            if (!aMetadata) {
-              self._sendError("Error Parsing metadata.json", aId);
-              return;
+          let zipFile = aDir.clone();
+          zipFile.append("application.zip");
+          let zipReader = Cc["@mozilla.org/libjar/zip-reader;1"]
+                            .createInstance(Ci.nsIZipReader);
+          zipReader.open(zipFile);
+          let manFile = installDir.clone();
+          manFile.append("manifest.webapp");
+          zipReader.extract("manifest.webapp", manFile);
+          zipReader.close();
+          zipFile.moveTo(installDir, "application.zip");
+
+          DOMApplicationRegistry._loadJSONAsync(manFile, function(aManifest) {
+            if (!aManifest) {
+              self._sendError("Error Parsing manifest.webapp", aId);
             }
 
-            if (!aMetadata.origin) {
-              self._sendError("Missing 'origin' propery in metadata.json", aId);
+            let appType = self._getAppType(aManifest.type);
+
+            
+#ifdef MOZ_OFFICIAL
+            if (appType == Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+              self._sendError("Installing certified apps is not allowed.", aId);
               return;
             }
+#endif
+            let origin = "app://" + aId;
 
-            let origin = aMetadata.origin;
-            let manifestURL = aMetadata.manifestURL ||
-                              origin + "/manifest.webapp";
             
             let app = {
               origin: origin,
-              installOrigin: aMetadata.installOrigin || origin,
-              manifestURL: manifestURL,
-              appStatus: aType
+              installOrigin: origin,
+              manifestURL: origin + "/manifest.webapp",
+              appStatus: appType
             }
 
             self._registerApp(app, aId, aDir);
@@ -140,60 +228,7 @@ WebappsActor.prototype = {
                                        Ci.nsIThread.DISPATCH_NORMAL);
   },
 
-  installPackagedApp: function wa_actorInstallPackaged(aDir, aId, aType) {
-    debug("installPackagedApp");
-    let self = this;
-
-    let runnable = {
-      run: function run() {
-        try {
-          
-          let installDir = FileUtils.getDir(DIRECTORY_NAME,
-                                            ["webapps", aId], true);
-
-          
-          let zipFile = aDir.clone();
-          zipFile.append("application.zip");
-          zipFile.moveTo(installDir, "application.zip");
-
-          
-          zipFile = installDir.clone();
-          zipFile.append("application.zip");
-          let zipReader = Cc["@mozilla.org/libjar/zip-reader;1"]
-                            .createInstance(Ci.nsIZipReader);
-          zipReader.open(zipFile);
-
-          let manFile = installDir.clone();
-          manFile.append("manifest.webapp");
-          zipReader.extract("manifest.webapp", manFile);
-          zipReader.close();
-
-          let origin = "app://" + aId;
-
-          
-          let app = {
-            origin: origin,
-            installOrigin: origin,
-            manifestURL: origin + "/manifest.webapp",
-            appStatus: aType
-          }
-
-          self._registerApp(app, aId, aDir);
-        } catch(e) {
-          
-          self._sendError(e.toString(), aId);
-        }
-      }
-    }
-
-    Services.tm.currentThread.dispatch(runnable,
-                                       Ci.nsIThread.DISPATCH_NORMAL);
-  },
-
   
-
-
-
 
 
 
@@ -212,8 +247,6 @@ WebappsActor.prototype = {
                message: "missing parameter appId" }
     }
 
-    let appType = aRequest.appType || Ci.nsIPrincipal.APP_STATUS_INSTALLED;
-
     
     let reg = DOMApplicationRegistry;
     if (appId in reg.webapps && reg.webapps[appId].removable === false) {
@@ -221,15 +254,6 @@ WebappsActor.prototype = {
                message: "The application " + appId + " can't be overriden."
              }
     }
-
-    
-#ifdef MOZ_OFFICIAL
-    if (appType == Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
-      return { error: "badParameterType",
-               message: "Installing certified apps is not allowed."
-             }
-    }
-#endif
 
     let appDir = FileUtils.getDir("TmpD", ["b2g", appId], false, false);
 
@@ -243,7 +267,7 @@ WebappsActor.prototype = {
     testFile.append("application.zip");
 
     if (testFile.exists()) {
-      this.installPackagedApp(appDir, appId, appType);
+      this.installPackagedApp(appDir, appId);
     } else {
       let missing =
         ["manifest.webapp", "metadata.json"]
@@ -261,7 +285,7 @@ WebappsActor.prototype = {
                  message: "hosted app file is missing" }
       }
 
-      this.installHostedApp(appDir, appId, appType);
+      this.installHostedApp(appDir, appId);
     }
 
     return { appId: appId, path: appDir.path }
