@@ -92,6 +92,10 @@ this.ProviderManager.prototype = Object.freeze({
 
 
 
+
+
+
+
   registerProvidersFromCategoryManager: function (category) {
     this._log.info("Registering providers from category: " + category);
     let cm = Cc["@mozilla.org/categorymanager;1"]
