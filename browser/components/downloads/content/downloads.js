@@ -783,6 +783,12 @@ const DownloadsView = {
       case KeyEvent.DOM_VK_RETURN:
         goDoCommand("downloadsCmd_doDefault");
         break;
+      case KeyEvent.DOM_VK_DOWN:
+        
+        if (this.richListBox.currentIndex == (this.richListBox.itemCount - 1)) {
+          DownloadsFooter.focus();
+        }
+        break;
     }
   },
 
@@ -1429,7 +1435,7 @@ const DownloadsSummary = {
   set visible(aVisible)
   {
     if (aVisible == this._visible || !this._summaryNode) {
-      return;
+      return this._visible;
     }
     if (aVisible) {
       DownloadsCommon.getSummary(DownloadsView.kItemCountLimit)
@@ -1441,6 +1447,15 @@ const DownloadsSummary = {
     this._summaryNode.collapsed = !aVisible;
     return this._visible = aVisible;
   },
+
+  
+
+
+  get visible()
+  {
+    return this._visible;
+  },
+
   _visible: false,
 
   
@@ -1509,6 +1524,42 @@ const DownloadsSummary = {
   
 
 
+  focus: function()
+  {
+    if (this._summaryNode) {
+      this._summaryNode.focus();
+    }
+  },
+
+  
+
+
+
+
+
+  onKeyPress: function DS_onKeyPress(aEvent)
+  {
+    if (aEvent.charCode == " ".charCodeAt(0) ||
+        aEvent.keyCode == KeyEvent.DOM_VK_ENTER ||
+        aEvent.keyCode == KeyEvent.DOM_VK_RETURN) {
+      DownloadsPanel.showDownloadsHistory();
+    }
+  },
+
+  
+
+
+
+
+
+  onClick: function DS_onClick(aEvent)
+  {
+    DownloadsPanel.showDownloadsHistory();
+  },
+
+  
+
+
   get _summaryNode()
   {
     let node = document.getElementById("downloadsSummary");
@@ -1560,3 +1611,42 @@ const DownloadsSummary = {
     return this._detailsNode = node;
   }
 }
+
+
+
+
+
+
+
+
+const DownloadsFooter = {
+
+  
+
+
+
+
+  focus: function DF_focus()
+  {
+    if (DownloadsSummary.visible) {
+      DownloadsSummary.focus();
+    } else {
+      DownloadsView.downloadsHistory.focus();
+    }
+  },
+
+  
+
+
+  onKeyPress: function DF_onKeyPress(aEvent)
+  {
+    
+    
+    if (aEvent.keyCode == KeyEvent.DOM_VK_UP &&
+        DownloadsView.richListBox.itemCount > 0) {
+      DownloadsView.richListBox.focus();
+      DownloadsView.richListBox.selectedIndex =
+        (DownloadsView.richListBox.itemCount - 1);
+    }
+  }
+};
