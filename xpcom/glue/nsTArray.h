@@ -751,9 +751,7 @@ public:
 
   
   
-  enum {
-    NoIndex = index_type(-1)
-  };
+  static const index_type NoIndex = index_type(-1);
 
   using base_type::Length;
 
