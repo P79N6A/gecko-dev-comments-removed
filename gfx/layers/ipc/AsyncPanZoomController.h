@@ -242,6 +242,17 @@ public:
 
   static void SetFrameTime(const TimeStamp& aMilliseconds);
 
+  
+
+
+
+
+
+  static void GetAPZCAtPoint(const ContainerLayer& aLayerTree,
+                             const ScreenIntPoint& aPoint,
+                             AsyncPanZoomController** aApzcOut,
+                             LayerIntPoint* aRelativePointOut);
+
 protected:
   
 

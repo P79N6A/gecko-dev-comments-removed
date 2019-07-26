@@ -438,7 +438,7 @@ public:
 
 
 
-  LayerUserData* GetUserData(void* aKey)
+  LayerUserData* GetUserData(void* aKey) const
   {
     return static_cast<LayerUserData*>(mUserData.Get(static_cast<gfx::UserDataKey*>(aKey)));
   }
@@ -895,17 +895,19 @@ public:
   const nsIntRegion& GetVisibleRegion() { return mVisibleRegion; }
   ContainerLayer* GetParent() { return mParent; }
   Layer* GetNextSibling() { return mNextSibling; }
+  const Layer* GetNextSibling() const { return mNextSibling; }
   Layer* GetPrevSibling() { return mPrevSibling; }
-  virtual Layer* GetFirstChild() { return nullptr; }
-  virtual Layer* GetLastChild() { return nullptr; }
-  const gfx3DMatrix GetTransform();
-  const gfx3DMatrix& GetBaseTransform() { return mTransform; }
-  float GetPostXScale() { return mPostXScale; }
-  float GetPostYScale() { return mPostYScale; }
+  const Layer* GetPrevSibling() const { return mPrevSibling; }
+  virtual Layer* GetFirstChild() const { return nullptr; }
+  virtual Layer* GetLastChild() const { return nullptr; }
+  const gfx3DMatrix GetTransform() const;
+  const gfx3DMatrix& GetBaseTransform() const { return mTransform; }
+  float GetPostXScale() const { return mPostXScale; }
+  float GetPostYScale() const { return mPostYScale; }
   bool GetIsFixedPosition() { return mIsFixedPosition; }
   gfxPoint GetFixedPositionAnchor() { return mAnchor; }
   const gfx::Margin& GetFixedPositionMargins() { return mMargins; }
-  Layer* GetMaskLayer() { return mMaskLayer; }
+  Layer* GetMaskLayer() const { return mMaskLayer; }
 
   
   
@@ -991,7 +993,7 @@ public:
 
 
 
-  LayerUserData* GetUserData(void* aKey)
+  LayerUserData* GetUserData(void* aKey) const
   {
     return static_cast<LayerUserData*>(mUserData.Get(static_cast<gfx::UserDataKey*>(aKey)));
   }
@@ -1018,6 +1020,7 @@ public:
 
 
   virtual ContainerLayer* AsContainerLayer() { return nullptr; }
+  virtual const ContainerLayer* AsContainerLayer() const { return nullptr; }
 
    
 
@@ -1420,7 +1423,7 @@ public:
   
   
   void SetAsyncPanZoomController(AsyncPanZoomController *controller);
-  AsyncPanZoomController* GetAsyncPanZoomController();
+  AsyncPanZoomController* GetAsyncPanZoomController() const;
 
   void SetPreScale(float aXScale, float aYScale)
   {
@@ -1453,14 +1456,15 @@ public:
   
 
   virtual ContainerLayer* AsContainerLayer() { return this; }
+  virtual const ContainerLayer* AsContainerLayer() const { return this; }
 
-  virtual Layer* GetFirstChild() { return mFirstChild; }
-  virtual Layer* GetLastChild() { return mLastChild; }
-  const FrameMetrics& GetFrameMetrics() { return mFrameMetrics; }
-  float GetPreXScale() { return mPreXScale; }
-  float GetPreYScale() { return mPreYScale; }
-  float GetInheritedXScale() { return mInheritedXScale; }
-  float GetInheritedYScale() { return mInheritedYScale; }
+  virtual Layer* GetFirstChild() const { return mFirstChild; }
+  virtual Layer* GetLastChild() const { return mLastChild; }
+  const FrameMetrics& GetFrameMetrics() const { return mFrameMetrics; }
+  float GetPreXScale() const { return mPreXScale; }
+  float GetPreYScale() const { return mPreYScale; }
+  float GetInheritedXScale() const { return mInheritedXScale; }
+  float GetInheritedYScale() const { return mInheritedYScale; }
 
   MOZ_LAYER_DECL_NAME("ContainerLayer", TYPE_CONTAINER)
 
