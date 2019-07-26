@@ -45,8 +45,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x95870c91, 0xe21d, 0x4499, \
-  { 0x9b, 0x61, 0x45, 0x79, 0x5f, 0x12, 0x0c, 0x98 } }
+{ 0xa786f089, 0xafda, 0x4442, \
+ { 0xb9, 0xe3, 0x06, 0xc3, 0xb3, 0xf0, 0xda, 0x22 } }
 
 
 
@@ -182,22 +182,6 @@ public:
                                        uint32_t aVersion,
                                        bool aIsXBL,
                                        nsScriptObjectHolder<JSObject>& aHandler) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  virtual nsresult CallEventHandler(nsISupports* aTarget,
-                                    JSObject* aScope, JSObject* aHandler,
-                                    nsIArray *argv, nsIVariant **rval) = 0;
 
   
 
