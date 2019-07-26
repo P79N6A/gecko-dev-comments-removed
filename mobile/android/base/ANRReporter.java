@@ -58,6 +58,7 @@ public final class ANRReporter extends BroadcastReceiver
     private static final ANRReporter sInstance = new ANRReporter();
     private static int sRegisteredCount;
     private Handler mHandler;
+    private volatile boolean mPendingANR;
 
     public static void register(Context context) {
         if (sRegisteredCount++ != 0) {
@@ -444,6 +445,27 @@ public final class ANRReporter extends BroadcastReceiver
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        if (mPendingANR) {
+            
+            if (DEBUG) {
+                Log.d(LOGTAG, "skipping duplicate ANR");
+            }
+            return;
+        }
+        if (GeckoApp.mAppContext != null && GeckoApp.mAppContext.mMainHandler != null) {
+            mPendingANR = true;
+            
+            GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    
+                    mPendingANR = false;
+                    if (DEBUG) {
+                        Log.d(LOGTAG, "yay we got unstuck!");
+                    }
+                }
+            });
+        }
         if (DEBUG) {
             Log.d(LOGTAG, "receiving " + String.valueOf(intent));
         }
