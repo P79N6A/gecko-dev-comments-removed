@@ -68,8 +68,12 @@ this.DataStoreChangeNotifier = {
   receiveMessage: function(aMessage) {
     debug("receiveMessage");
 
+    
+    
+    
     let prefName = 'dom.testing.datastore_enabled_for_hosted_apps';
-    if ((Services.prefs.getPrefType(prefName) == Services.prefs.PREF_INVALID ||
+    if (aMessage.name != 'child-process-shutdown' &&
+        (Services.prefs.getPrefType(prefName) == Services.prefs.PREF_INVALID ||
          !Services.prefs.getBoolPref(prefName)) &&
         !aMessage.target.assertAppHasStatus(Ci.nsIPrincipal.APP_STATUS_CERTIFIED)) {
       return;
