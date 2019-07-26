@@ -29,9 +29,11 @@ var tests = {
 
     function triggerIconPanel() {
       waitForCondition(function() {
-        let button = document.getElementById("social-toolbar-item");
+        let mButton = document.getElementById("social-mark-button");
+        let pButton = document.getElementById("social-provider-button");
         
-        return button.childNodes.length > 2;
+        
+        return pButton.nextSibling != mButton;
       }, function() {
         
         let statusIcon = document.getElementById("social-provider-button").nextSibling;
