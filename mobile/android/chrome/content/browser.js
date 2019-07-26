@@ -4283,7 +4283,9 @@ var BrowserEventHandler = {
     if (closest) {
       let uri = this._getLinkURI(closest);
       if (uri) {
-        Services.io.QueryInterface(Ci.nsISpeculativeConnect).speculativeConnect(uri, null);
+        try {
+          Services.io.QueryInterface(Ci.nsISpeculativeConnect).speculativeConnect(uri, null);
+        } catch (e) {}
       }
       this._doTapHighlight(closest);
     }
@@ -6707,7 +6709,9 @@ var SearchEngines = {
     let searchURI = Services.search.defaultEngine.getSubmission("dummy").uri;
     let callbacks = window.QueryInterface(Ci.nsIInterfaceRequestor)
                           .getInterface(Ci.nsIWebNavigation).QueryInterface(Ci.nsILoadContext);
-    connector.speculativeConnect(searchURI, callbacks);
+    try {
+      connector.speculativeConnect(searchURI, callbacks);
+    } catch (e) {}
   },
 
   _handleSearchEnginesGetAll: function _handleSearchEnginesGetAll(rv) {
@@ -8109,11 +8113,8 @@ var Distribution = {
 };
 
 var Tabs = {
-  
-  
-  
-
   _enableTabExpiration: false,
+  _domains: new Set(),
 
   init: function() {
     
@@ -8123,6 +8124,10 @@ var Tabs = {
     } else {
       Services.obs.addObserver(this, "memory-pressure", false);
     }
+
+    Services.obs.addObserver(this, "Session:Prefetch", false);
+
+    BrowserApp.deck.addEventListener("pageshow", this, false);
   },
 
   uninit: function() {
@@ -8131,12 +8136,40 @@ var Tabs = {
       
       Services.obs.removeObserver(this, "memory-pressure");
     }
+
+    Services.obs.removeObserver(this, "Session:Prefetch");
+
+    BrowserApp.deck.removeEventListener("pageshow", this);
   },
 
   observe: function(aSubject, aTopic, aData) {
-    if (aTopic == "memory-pressure" && aData != "heap-minimize") {
-      this._enableTabExpiration = true;
-      Services.obs.removeObserver(this, "memory-pressure");
+    switch (aTopic) {
+      case "memory-pressure":
+        if (aData != "heap-minimize") {
+          this._enableTabExpiration = true;
+          Services.obs.removeObserver(this, "memory-pressure");
+        }
+        break;
+      case "Session:Prefetch":
+        if (aData) {
+          let uri = Services.io.newURI(aData, null, null);
+          if (uri && !this._domains.has(uri.host)) {
+            try {
+              Services.io.QueryInterface(Ci.nsISpeculativeConnect).speculativeConnect(uri, null);
+              this._domains.add(uri.host);
+            } catch (e) {}
+          }
+        }
+        break;
+    }
+  },
+
+  handleEvent: function(aEvent) {
+    switch (aEvent.type) {
+      case "pageshow":
+        
+        this._domains.clear();
+        break;
     }
   },
 
@@ -8144,6 +8177,8 @@ var Tabs = {
     aTab.lastTouchedAt = Date.now();
   },
 
+  
+  
   expireLruTab: function() {
     if (!this._enableTabExpiration) {
       return false;
