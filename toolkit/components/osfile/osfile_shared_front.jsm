@@ -347,12 +347,6 @@ AbstractFile.writeAtomic =
     throw OS.File.Error.exists("writeAtomic");
   }
 
-  if (typeof buffer == "string") {
-    
-    let encoding = options.encoding || "utf-8";
-    buffer = new TextEncoder(encoding).encode(buffer);
-  }
-
   if ("flush" in options && !options.flush) {
     
     let dest;
@@ -363,6 +357,7 @@ AbstractFile.writeAtomic =
       dest.close();
     }
   }
+
 
   let tmpPath = options.tmpPath;
   if (!tmpPath) {
