@@ -60,6 +60,8 @@ XPCOMUtils.defineLazyGetter(this, "gUnicodeConverter", function () {
 
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
+  "resource://gre/modules/Deprecated.jsm");
 
 
 
@@ -521,6 +523,14 @@ this.PageThumbsStorage = {
     for (let i = 0; i < aData.length; i++)
       hex += ("0" + aData.charCodeAt(i).toString(16)).slice(-2);
     return hex;
+  },
+
+  
+  getFileForURL: function Storage_getFileForURL_DEPRECATED(aURL) {
+    Deprecated.warning("PageThumbs.getFileForURL is deprecated. Please use PageThumbs.getFilePathForURL and OS.File",
+                       "https://developer.mozilla.org/docs/JavaScript_OS.File");
+    
+    return new FileUtils.File(PageThumbsStorage.getFilePathForURL(aURL));
   }
 };
 

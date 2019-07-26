@@ -69,6 +69,15 @@ function runTests() {
   
   is(getFileContents(file), "no-overwrite-plz",
     "existing thumbnail was not overwritten");
+
+  
+  
+  
+  if ("getFileForURL" in PageThumbsStorage) {
+    let file = PageThumbsStorage.getFileForURL(URL);
+    is(file.path, PageThumbsStorage.getFilePathForURL(URL),
+       "Deprecated getFileForURL and getFilePathForURL return the same path");
+  }
 }
 
 function changeLocation(aLocation, aNewDir) {
