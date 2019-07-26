@@ -2017,16 +2017,13 @@ GCGraphBuilder::AddWeakMapNode(void *node)
 NS_IMETHODIMP_(void)
 GCGraphBuilder::NoteWeakMapping(void *map, void *key, void *kdelegate, void *val)
 {
-    PtrInfo *valNode = AddWeakMapNode(val);
-
-    if (!valNode)
-        return;
-
+    
+    
     WeakMapping *mapping = mWeakMaps.AppendElement();
     mapping->mMap = map ? AddWeakMapNode(map) : nullptr;
     mapping->mKey = key ? AddWeakMapNode(key) : nullptr;
     mapping->mKeyDelegate = kdelegate ? AddWeakMapNode(kdelegate) : mapping->mKey;
-    mapping->mVal = valNode;
+    mapping->mVal = val ? AddWeakMapNode(val) : nullptr;
 }
 
 static bool
@@ -2255,7 +2252,7 @@ nsCycleCollector::ScanWeakMaps()
             uint32_t mColor = wm->mMap ? wm->mMap->mColor : black;
             uint32_t kColor = wm->mKey ? wm->mKey->mColor : black;
             uint32_t kdColor = wm->mKeyDelegate ? wm->mKeyDelegate->mColor : black;
-            PtrInfo *v = wm->mVal;
+            uint32_t vColor = wm->mVal ? wm->mVal->mColor : black;
 
             
             
@@ -2264,15 +2261,15 @@ nsCycleCollector::ScanWeakMaps()
             MOZ_ASSERT(mColor != grey, "Uncolored weak map");
             MOZ_ASSERT(kColor != grey, "Uncolored weak map key");
             MOZ_ASSERT(kdColor != grey, "Uncolored weak map key delegate");
-            MOZ_ASSERT(v->mColor != grey, "Uncolored weak map value");
+            MOZ_ASSERT(vColor != grey, "Uncolored weak map value");
 
             if (mColor == black && kColor != black && kdColor == black) {
                 GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mWhiteNodeCount)).Walk(wm->mKey);
                 anyChanged = true;
             }
 
-            if (mColor == black && kColor == black && v->mColor != black) {
-                GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mWhiteNodeCount)).Walk(v);
+            if (mColor == black && kColor == black && vColor != black) {
+                GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mWhiteNodeCount)).Walk(wm->mVal);
                 anyChanged = true;
             }
         }
