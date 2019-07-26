@@ -519,19 +519,6 @@ nsNPAPIPluginInstance::Start()
   
   mRunning = RUNNING;
 
-#if MOZ_WIDGET_ANDROID
-  
-  
-  
-  
-  
-  JNIEnv* env = AndroidBridge::GetJNIEnv();
-  if (!env)
-    return NS_ERROR_FAILURE;
-
-  mozilla::AutoLocalJNIFrame frame(env);
-#endif
-
   nsresult newResult = library->NPP_New((char*)mimetype, &mNPP, (uint16_t)mode, count, (char**)names, (char**)values, NULL, &error);
   mInPluginInitCall = oldVal;
 
@@ -690,6 +677,7 @@ nsresult nsNPAPIPluginInstance::HandleEvent(void* event, int16_t* result)
 #if defined(XP_WIN) || defined(XP_OS2)
     NS_TRY_SAFE_CALL_RETURN(tmpResult, (*pluginFunctions->event)(&mNPP, event), this);
 #else
+    MAIN_THREAD_JNI_REF_GUARD;
     tmpResult = (*pluginFunctions->event)(&mNPP, event);
 #endif
     NPP_PLUGIN_LOG(PLUGIN_LOG_NOISY,
@@ -1403,6 +1391,9 @@ PluginTimerCallback(nsITimer *aTimer, void *aClosure)
   NPP npp = t->npp;
   uint32_t id = t->id;
 
+  PLUGIN_LOG(PLUGIN_LOG_NOISY, ("nsNPAPIPluginInstance running plugin timer callback this=%p\n", npp->ndata));
+
+  MAIN_THREAD_JNI_REF_GUARD;
   (*(t->callback))(npp, id);
 
   

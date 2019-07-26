@@ -5,6 +5,7 @@
 
 
 #include "mozilla/PluginPRLibrary.h"
+#include "nsPluginSafety.h"
 
 
 
@@ -38,6 +39,8 @@ PluginPRLibrary::NP_Initialize(NPNetscapeFuncs* bFuncs,
   JNIEnv* env = GetJNIForThread();
   if (!env)
     return NS_ERROR_FAILURE;
+
+  mozilla::AutoLocalJNIFrame jniFrame(env);
 
   if (mNP_Initialize) {
     *error = mNP_Initialize(bFuncs, pFuncs, env);
@@ -194,6 +197,8 @@ PluginPRLibrary::NPP_New(NPMIMEType pluginType, NPP instance,
 {
   if (!mNPP_New)
     return NS_ERROR_FAILURE;
+
+  MAIN_THREAD_JNI_REF_GUARD;
   *error = mNPP_New(pluginType, instance, mode, argc, argn, argv, saved);
   return NS_OK;
 }
@@ -206,6 +211,7 @@ PluginPRLibrary::NPP_ClearSiteData(const char* site, uint64_t flags,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  MAIN_THREAD_JNI_REF_GUARD;
   NPError result = mNPP_ClearSiteData(site, flags, maxAge);
 
   switch (result) {
@@ -229,6 +235,7 @@ PluginPRLibrary::NPP_GetSitesWithData(InfallibleTArray<nsCString>& result)
 
   result.Clear();
 
+  MAIN_THREAD_JNI_REF_GUARD;
   char** sites = mNPP_GetSitesWithData();
   if (!sites) {
     return NS_OK;
