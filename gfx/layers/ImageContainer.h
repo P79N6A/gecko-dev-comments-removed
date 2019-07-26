@@ -511,6 +511,11 @@ public:
     mImageFactory = aFactory ? aFactory : new ImageFactory();
   }
 
+  ImageFactory* GetImageFactory() const
+  {
+    return mImageFactory;
+  }
+
   
 
 
