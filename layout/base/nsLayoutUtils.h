@@ -107,12 +107,12 @@ public:
   
 
 
-  static bool GetDisplayPort(nsIContent* aContent, nsRect *aResult);
+  static bool GetDisplayPort(nsIContent* aContent, nsRect *aResult = nullptr);
 
   
 
 
-  static bool GetCriticalDisplayPort(nsIContent* aContent, nsRect* aResult);
+  static bool GetCriticalDisplayPort(nsIContent* aContent, nsRect* aResult = nullptr);
 
   
 
