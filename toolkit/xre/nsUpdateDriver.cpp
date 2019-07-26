@@ -987,8 +987,17 @@ nsUpdateProcessor::ProcessUpdate(nsIUpdate* aUpdate)
   if (dirProvider) { 
     
     bool persistent;
-    nsresult rv = dirProvider->GetFile(XRE_UPDATE_ROOT_DIR, &persistent,
-                                       getter_AddRefs(updRoot));
+    nsresult rv = NS_ERROR_FAILURE; 
+#ifdef MOZ_WIDGET_GONK
+    
+    
+    rv = dirProvider->GetFile(XRE_UPDATE_ARCHIVE_DIR, &persistent,
+                              getter_AddRefs(updRoot));
+#endif
+    if (NS_FAILED(rv)) {
+      rv = dirProvider->GetFile(XRE_UPDATE_ROOT_DIR, &persistent,
+                                getter_AddRefs(updRoot));
+    }
     
     if (NS_FAILED(rv))
       updRoot = dirProvider->GetAppDir();
