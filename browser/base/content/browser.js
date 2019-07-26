@@ -3529,6 +3529,8 @@ function OpenBrowserWindow(options)
       "private" in options &&
       options.private) {
     extraFeatures = ",private";
+    
+    defaultArgs = "about:privatebrowsing";
   }
 #endif
 
