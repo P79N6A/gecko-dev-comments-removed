@@ -174,72 +174,73 @@ function LocalMediaStreamPlayback(mediaElement, mediaStream) {
   MediaStreamPlayback.call(this, mediaElement, mediaStream);
 }
 
-
-LocalMediaStreamPlayback.prototype = new MediaStreamPlayback();
-LocalMediaStreamPlayback.prototype.constructor = LocalMediaStreamPlayback;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-LocalMediaStreamPlayback.prototype.playMediaWithStreamStop = function(
-  isResume, onSuccess, onError) {
-  var self = this;
-
-  this.startMedia(isResume, function() {
-    self.stopStreamInMediaPlayback(function() {
-      self.stopMediaElement();
-      onSuccess();
-    }, onError);
-  }, onError);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-LocalMediaStreamPlayback.prototype.stopStreamInMediaPlayback = function(
-  onSuccess, onError) {
-  var endedFired = false;
-  var self = this;
+LocalMediaStreamPlayback.prototype = Object.create(MediaStreamPlayback.prototype, {
 
   
 
 
 
-  var endedCallback = function() {
-    endedFired = true;
-    self.mediaElement.removeEventListener('ended', endedCallback, false);
-    ok(true, "ended event successfully fired");
-    onSuccess();
-  };
 
-  this.mediaElement.addEventListener('ended', endedCallback, false);
-  this.mediaStream.stop();
 
-  
-  setTimeout(function() {
-    if (!endedFired) {
-      ok(false, "ended event never fired");
-      onError();
+
+
+
+
+
+
+
+  playMediaWithStreamStop : {
+    value: function (isResume, onSuccess, onError) {
+      var self = this;
+
+      this.startMedia(isResume, function() {
+        self.stopStreamInMediaPlayback(function() {
+          self.stopMediaElement();
+          onSuccess();
+        }, onError);
+      }, onError);
     }
-  }, TIMEOUT_LENGTH);
-}
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  stopStreamInMediaPlayback : {
+    value: function (onSuccess, onError) {
+      var endedFired = false;
+      var self = this;
+
+      
+
+
+
+      var endedCallback = function() {
+        endedFired = true;
+        self.mediaElement.removeEventListener('ended', endedCallback, false);
+        ok(true, "ended event successfully fired");
+        onSuccess();
+      };
+
+      this.mediaElement.addEventListener('ended', endedCallback, false);
+      this.mediaStream.stop();
+
+      
+      setTimeout(function() {
+        if (!endedFired) {
+          ok(false, "ended event never fired");
+          onError();
+        }
+      }, TIMEOUT_LENGTH);
+    }
+  }
+});
