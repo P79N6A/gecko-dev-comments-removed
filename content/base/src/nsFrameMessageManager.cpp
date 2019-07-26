@@ -108,7 +108,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsFrameMessageManager)
                                      mChrome && !mIsProcessManager)
 
   
-  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIPermissionChecker,
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIProcessChecker,
                                      mChrome && !mIsBroadcaster)
 
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO_CONDITIONAL(ChromeMessageBroadcaster,
@@ -425,10 +425,12 @@ nsFrameMessageManager::Atob(const nsAString& aAsciiString,
 
 
 
-NS_IMETHODIMP
-nsFrameMessageManager::AssertPermission(const nsAString& aPermission, bool* aHasPermission)
+nsresult
+nsFrameMessageManager::AssertProcessInternal(ProcessCheckerType aType,
+                                             const nsAString& aCapability,
+                                             bool* aValid)
 {
-  *aHasPermission = false;
+  *aValid = false;
 
   
   if (!mChrome || mIsBroadcaster) {
@@ -437,8 +439,35 @@ nsFrameMessageManager::AssertPermission(const nsAString& aPermission, bool* aHas
   if (!mCallback) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  *aHasPermission = mCallback->CheckPermission(aPermission);
+  switch (aType) {
+    case PROCESS_CHECKER_PERMISSION:
+      *aValid = mCallback->CheckPermission(aCapability);
+      break;
+    case PROCESS_CHECKER_MANIFEST_URL:
+      *aValid = mCallback->CheckManifestURL(aCapability);
+      break;
+    default:
+      break;
+  }
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFrameMessageManager::AssertPermission(const nsAString& aPermission,
+                                        bool* aHasPermission)
+{
+  return AssertProcessInternal(PROCESS_CHECKER_PERMISSION,
+                               aPermission,
+                               aHasPermission);
+}
+
+NS_IMETHODIMP
+nsFrameMessageManager::AssertContainApp(const nsAString& aManifestURL,
+                                        bool* aHasManifestURL)
+{
+  return AssertProcessInternal(PROCESS_CHECKER_MANIFEST_URL,
+                               aManifestURL,
+                               aHasManifestURL);
 }
 
 class MMListenerRemover
@@ -1090,6 +1119,11 @@ public:
     return true;
   }
 
+  bool CheckManifestURL(const nsAString& aManifestURL)
+  {
+    
+    return true;
+  }
 };
 
 

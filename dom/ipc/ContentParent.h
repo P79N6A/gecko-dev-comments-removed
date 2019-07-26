@@ -26,7 +26,6 @@
 #include "nsCOMArray.h"
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
-#include "PermissionMessageUtils.h"
 
 #define CHILD_PROCESS_SHUTDOWN_MESSAGE NS_LITERAL_STRING("child-process-shutdown")
 
@@ -102,6 +101,7 @@ public:
     virtual bool DoSendAsyncMessage(const nsAString& aMessage,
                                     const mozilla::dom::StructuredCloneData& aData);
     virtual bool CheckPermission(const nsAString& aPermission);
+    virtual bool CheckManifestURL(const nsAString& aManifestURL);
 
     
     void NotifyTabDestroyed(PBrowserParent* aTab);
@@ -301,7 +301,7 @@ private:
     virtual bool RecvAsyncMessage(const nsString& aMsg,
                                   const ClonedMessageData& aData);
 
-    virtual bool RecvAddGeolocationListener(const IPC::Principal& aPrincipal);
+    virtual bool RecvAddGeolocationListener();
     virtual bool RecvRemoveGeolocationListener();
     virtual bool RecvSetGeolocationHigherAccuracy(const bool& aEnable);
 
