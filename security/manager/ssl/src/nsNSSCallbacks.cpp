@@ -824,6 +824,186 @@ PK11PasswordPrompt(PK11SlotInfo* slot, PRBool retry, void* arg)
   return runnable->mResult;
 }
 
+
+static void
+PreliminaryHandshakeDone(PRFileDesc* fd)
+{
+  nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
+  if (!infoObject)
+    return;
+
+  if (infoObject->IsPreliminaryHandshakeDone())
+    return;
+
+  infoObject->SetPreliminaryHandshakeDone();
+  infoObject->SetFirstServerHelloReceived();
+
+  
+  SSLNextProtoState state;
+  unsigned char npnbuf[256];
+  unsigned int npnlen;
+
+  if (SSL_GetNextProto(fd, &state, npnbuf, &npnlen, 256) == SECSuccess) {
+    if (state == SSL_NEXT_PROTO_NEGOTIATED) {
+      infoObject->SetNegotiatedNPN(reinterpret_cast<char *>(npnbuf), npnlen);
+    }
+    else {
+      infoObject->SetNegotiatedNPN(nullptr, 0);
+    }
+    mozilla::Telemetry::Accumulate(Telemetry::SSL_NPN_TYPE, state);
+  }
+  else {
+    infoObject->SetNegotiatedNPN(nullptr, 0);
+  }
+}
+
+SECStatus
+CanFalseStartCallback(PRFileDesc* fd, void* client_data, PRBool *canFalseStart)
+{
+  *canFalseStart = false;
+
+  nsNSSShutDownPreventionLock locker;
+
+  nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
+  if (!infoObject) {
+    PR_SetError(PR_INVALID_STATE_ERROR, 0);
+    return SECFailure;
+  }
+
+  if (infoObject->isAlreadyShutDown()) {
+    MOZ_CRASH("SSL socket used after NSS shut down");
+    PR_SetError(PR_INVALID_STATE_ERROR, 0);
+    return SECFailure;
+  }
+
+  PreliminaryHandshakeDone(fd);
+
+  SSLChannelInfo channelInfo;
+  if (SSL_GetChannelInfo(fd, &channelInfo, sizeof(channelInfo)) != SECSuccess) {
+    return SECSuccess;
+  }
+
+  SSLCipherSuiteInfo cipherInfo;
+  if (SSL_GetCipherSuiteInfo(channelInfo.cipherSuite, &cipherInfo,
+                             sizeof (cipherInfo)) != SECSuccess) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
+                                      " KEA %d\n", fd,
+                                      static_cast<int32_t>(cipherInfo.keaType)));
+    return SECSuccess;
+  }
+
+  if (channelInfo.protocolVersion < SSL_LIBRARY_VERSION_TLS_1_0) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
+                                      "SSL Version must be >= TLS1 %x\n", fd,
+                                      static_cast<int32_t>(channelInfo.protocolVersion)));
+    return SECSuccess;
+  }
+
+  
+  if (cipherInfo.keaType != ssl_kea_rsa &&
+      cipherInfo.keaType != ssl_kea_dh &&
+      cipherInfo.keaType != ssl_kea_ecdh) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
+                                      "unsupported KEA %d\n", fd,
+                                      static_cast<int32_t>(cipherInfo.keaType)));
+    return SECSuccess;
+  }
+
+  
+  
+  if (cipherInfo.effectiveKeyBits < 80) {
+    MOZ_CRASH("NSS is not enforcing the precondition that the effective "
+              "key size must be >= 80 bits for false start");
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
+                                      "key too small %d\n", fd,
+                                      static_cast<int32_t>(cipherInfo.effectiveKeyBits)));
+    PR_SetError(PR_INVALID_STATE_ERROR, 0);
+    return SECFailure;
+  }
+
+  
+  
+  
+  
+  
+
+  
+  
+  nsSSLIOLayerHelpers& helpers = infoObject->SharedState().IOLayerHelpers();
+  if (helpers.mFalseStartRequireNPN) {
+    nsAutoCString negotiatedNPN;
+    if (NS_FAILED(infoObject->GetNegotiatedNPN(negotiatedNPN)) ||
+        !negotiatedNPN.Length()) {
+      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
+                                        "NPN cannot be verified\n", fd));
+      return SECSuccess;
+    }
+  }
+
+  
+  
+  
+  if (cipherInfo.keaType != ssl_kea_ecdh) {
+
+    if (helpers.mFalseStartRequireForwardSecrecy) {
+      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
+                                        "KEA used is %d, but "
+                                        "require-forward-secrecy configured.\n",
+                                        fd, static_cast<int32_t>(cipherInfo.keaType)));
+      return SECSuccess;
+    }
+
+    int16_t expected = infoObject->GetKEAExpected();
+    if (cipherInfo.keaType != expected) {
+      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
+                                        "KEA used is %d, expected %d\n", fd,
+                                        static_cast<int32_t>(cipherInfo.keaType),
+                                        static_cast<int32_t>(expected)));
+      return SECSuccess;
+    }
+
+    
+    
+    if (expected != ssl_kea_rsa && expected != ssl_kea_dh &&
+        expected != ssl_kea_ecdh) {
+      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
+                                        "KEA used, %d, "
+                                        "is not supported with False Start.\n",
+                                        fd, static_cast<int32_t>(expected)));
+      return SECSuccess;
+    }
+  }
+
+  
+  
+  if (cipherInfo.symCipher != ssl_calg_aes) {
+    int16_t expected = infoObject->GetSymmetricCipherExpected();
+    if (cipherInfo.symCipher != expected) {
+      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
+                                        "Symmetric cipher used is %d, expected %d\n",
+                                        fd, static_cast<int32_t>(cipherInfo.symCipher),
+                                        static_cast<int32_t>(expected)));
+      return SECSuccess;
+    }
+
+    
+    
+    if ((expected != ssl_calg_rc4) && (expected != ssl_calg_3des) &&
+        (expected != ssl_calg_aes)) {
+      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
+                                        "Symmetric cipher used, %d, "
+                                        "is not supported with False Start.\n",
+                                        fd, static_cast<int32_t>(expected)));
+      return SECSuccess;
+    }
+  }
+
+  infoObject->NoteTimeUntilReady();
+  *canFalseStart = true;
+  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] ok\n", fd));
+  return SECSuccess;
+}
+
 void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   nsNSSShutDownPreventionLock locker;
   int32_t sslStatus;
@@ -835,10 +1015,13 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
 
   
   
+  
   bool isResumedSession = !(infoObject->GetFirstServerHelloReceived());
 
   
-  infoObject->SetFirstServerHelloReceived();
+  
+  
+  PreliminaryHandshakeDone(fd);
 
   
   
@@ -930,21 +1113,6 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   status->mSecretKeyLength = encryptBits;
   status->mCipherName.Assign(cipherName);
 
-  
-  SSLNextProtoState state;
-  unsigned char npnbuf[256];
-  unsigned int npnlen;
-    
-  if (SSL_GetNextProto(fd, &state, npnbuf, &npnlen, 256) == SECSuccess) {
-    if (state == SSL_NEXT_PROTO_NEGOTIATED)
-      infoObject->SetNegotiatedNPN(reinterpret_cast<char *>(npnbuf), npnlen);
-    else
-      infoObject->SetNegotiatedNPN(nullptr, 0);
-    mozilla::Telemetry::Accumulate(Telemetry::SSL_NPN_TYPE, state);
-  }
-  else
-    infoObject->SetNegotiatedNPN(nullptr, 0);
-
   SSLChannelInfo channelInfo;
   if (SSL_GetChannelInfo(fd, &channelInfo, sizeof(channelInfo)) == SECSuccess) {
     
@@ -954,13 +1122,16 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
 
     SSLCipherSuiteInfo cipherInfo;
     if (SSL_GetCipherSuiteInfo(channelInfo.cipherSuite, &cipherInfo,
-                                sizeof (cipherInfo)) == SECSuccess) {
+                               sizeof (cipherInfo)) == SECSuccess) {
       
       Telemetry::Accumulate(Telemetry::SSL_KEY_EXCHANGE_ALGORITHM,
                             cipherInfo.keaType);
+      infoObject->SetKEAUsed(cipherInfo.keaType);
+      infoObject->SetSymmetricCipherUsed(cipherInfo.symCipher);
     }
-      
   }
+
+  infoObject->NoteTimeUntilReady();
   infoObject->SetHandshakeCompleted(isResumedSession);
 
   PORT_Free(cipherName);

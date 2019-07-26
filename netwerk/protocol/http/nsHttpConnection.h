@@ -158,6 +158,7 @@ public:
     void    SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks);
     void    PrintDiagnostics(nsCString &log);
 
+    void    SetTransactionCaps(uint32_t aCaps) { mTransactionCaps = aCaps; }
 private:
     
     nsresult ProxyStartSSL();
@@ -175,7 +176,7 @@ private:
     
     
     bool     EnsureNPNComplete();
-    void     SetupNPN(uint32_t caps);
+    void     SetupSSL(uint32_t caps);
 
     
     void     StartSpdy(uint8_t versionLevel);
@@ -240,7 +241,7 @@ private:
 
     
     bool                            mNPNComplete;
-    bool                            mSetupNPNCalled;
+    bool                            mSetupSSLCalled;
 
     
     uint8_t                         mUsingSpdyVersion;
@@ -251,6 +252,9 @@ private:
 
     
     bool                            mEverUsedSpdy;
+
+    
+    uint32_t                        mTransactionCaps;
 };
 
 #endif 

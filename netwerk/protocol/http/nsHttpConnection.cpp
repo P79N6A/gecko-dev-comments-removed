@@ -17,6 +17,7 @@
 #include "nsISocketTransport.h"
 #include "nsIServiceManager.h"
 #include "nsISSLSocketControl.h"
+#include "sslt.h"
 #include "nsStringStream.h"
 #include "netCore.h"
 #include "nsNetCID.h"
@@ -64,11 +65,12 @@ nsHttpConnection::nsHttpConnection()
     , mRemainingConnectionUses(0xffffffff)
     , mClassification(nsAHttpTransaction::CLASS_GENERAL)
     , mNPNComplete(false)
-    , mSetupNPNCalled(false)
+    , mSetupSSLCalled(false)
     , mUsingSpdyVersion(0)
     , mPriority(nsISupportsPriority::PRIORITY_NORMAL)
     , mReportedSpdy(false)
     , mEverUsedSpdy(false)
+    , mTransactionCaps(0)
 {
     LOG(("Creating nsHttpConnection @%x\n", this));
 
@@ -238,8 +240,6 @@ nsHttpConnection::EnsureNPNComplete()
 {
     
     
-    
-    
 
     MOZ_ASSERT(mSocketTransport);
     if (!mSocketTransport) {
@@ -308,6 +308,7 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint32_t caps, int32_t pri
     LOG(("nsHttpConnection::Activate [this=%p trans=%x caps=%x]\n",
          this, trans, caps));
 
+    mTransactionCaps = caps;
     mPriority = pri;
     if (mTransaction && mUsingSpdyVersion)
         return AddTransaction(trans, pri);
@@ -323,7 +324,7 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint32_t caps, int32_t pri
     trans->GetSecurityCallbacks(getter_AddRefs(callbacks));
     SetSecurityCallbacks(callbacks);
 
-    SetupNPN(caps); 
+    SetupSSL(caps);
 
     
     mTransaction = trans;
@@ -360,55 +361,70 @@ failed_activation:
 }
 
 void
-nsHttpConnection::SetupNPN(uint32_t caps)
+nsHttpConnection::SetupSSL(uint32_t caps)
 {
-    if (mSetupNPNCalled)                                
+    LOG(("nsHttpConnection::SetupSSL %p caps=0x%X\n", this, caps));
+
+    if (mSetupSSLCalled) 
         return;
-    mSetupNPNCalled = true;
+    mSetupSSLCalled = true;
+
+    if (mNPNComplete)
+        return;
 
     
-    if (!mNPNComplete) {
+    
+    mNPNComplete = true;
 
-        mNPNComplete = true;
+    if (!mConnInfo->UsingSSL())
+        return;
 
-        if (mConnInfo->UsingSSL()) {
-            LOG(("nsHttpConnection::SetupNPN Setting up "
-                 "Next Protocol Negotiation"));
-            nsCOMPtr<nsISupports> securityInfo;
-            nsresult rv =
-                mSocketTransport->GetSecurityInfo(getter_AddRefs(securityInfo));
-            if (NS_FAILED(rv))
-                return;
+    LOG(("nsHttpConnection::SetupSSL Setting up "
+         "Next Protocol Negotiation"));
+    nsCOMPtr<nsISupports> securityInfo;
+    nsresult rv =
+        mSocketTransport->GetSecurityInfo(getter_AddRefs(securityInfo));
+    if (NS_FAILED(rv))
+        return;
 
-            nsCOMPtr<nsISSLSocketControl> ssl =
-                do_QueryInterface(securityInfo, &rv);
-            if (NS_FAILED(rv))
-                return;
+    nsCOMPtr<nsISSLSocketControl> ssl = do_QueryInterface(securityInfo, &rv);
+    if (NS_FAILED(rv))
+        return;
 
-            nsTArray<nsCString> protocolArray;
+    if (caps & NS_HTTP_ALLOW_RSA_FALSESTART) {
+        LOG(("nsHttpConnection::SetupSSL %p "
+             ">= RSA Key Exchange Expected\n", this));
+        ssl->SetKEAExpected(ssl_kea_rsa);
+    }
 
-            
-            
-            
-            
-            protocolArray.AppendElement(NS_LITERAL_CSTRING("http/1.1"));
+    if (caps & NS_HTTP_ALLOW_RC4_FALSESTART) {
+        LOG(("nsHttpConnection::SetupSSL %p "
+             ">= RC4 Key Exchange Expected\n", this));
+        ssl->SetSymmetricCipherExpected(ssl_calg_rc4);
+    }
 
-            if (gHttpHandler->IsSpdyEnabled() &&
-                !(caps & NS_HTTP_DISALLOW_SPDY)) {
-                LOG(("nsHttpConnection::SetupNPN Allow SPDY NPN selection"));
-                if (gHttpHandler->SpdyInfo()->ProtocolEnabled(0))
-                    protocolArray.AppendElement(
-                        gHttpHandler->SpdyInfo()->VersionString[0]);
-                if (gHttpHandler->SpdyInfo()->ProtocolEnabled(1))
-                    protocolArray.AppendElement(
-                        gHttpHandler->SpdyInfo()->VersionString[1]);
-            }
+    nsTArray<nsCString> protocolArray;
 
-            if (NS_SUCCEEDED(ssl->SetNPNList(protocolArray))) {
-                LOG(("nsHttpConnection::Init Setting up SPDY Negotiation OK"));
-                mNPNComplete = false;
-            }
-        }
+    
+    
+    
+    
+    protocolArray.AppendElement(NS_LITERAL_CSTRING("http/1.1"));
+
+    if (gHttpHandler->IsSpdyEnabled() &&
+        !(caps & NS_HTTP_DISALLOW_SPDY)) {
+        LOG(("nsHttpConnection::SetupSSL Allow SPDY NPN selection"));
+        if (gHttpHandler->SpdyInfo()->ProtocolEnabled(0))
+            protocolArray.AppendElement(
+                gHttpHandler->SpdyInfo()->VersionString[0]);
+        if (gHttpHandler->SpdyInfo()->ProtocolEnabled(1))
+            protocolArray.AppendElement(
+                gHttpHandler->SpdyInfo()->VersionString[1]);
+    }
+
+    if (NS_SUCCEEDED(ssl->SetNPNList(protocolArray))) {
+        LOG(("nsHttpConnection::Init Setting up SPDY Negotiation OK"));
+        mNPNComplete = false;
     }
 }
 
@@ -596,7 +612,7 @@ nsHttpConnection::IsAlive()
 
     
     
-    SetupNPN(0);
+    SetupSSL(mTransactionCaps);
 
     bool alive;
     nsresult rv = mSocketTransport->IsAlive(&alive);

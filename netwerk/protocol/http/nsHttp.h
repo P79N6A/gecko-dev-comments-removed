@@ -60,6 +60,11 @@ typedef uint8_t nsHttpVersion;
 
 
 
+#define NS_HTTP_ALLOW_RSA_FALSESTART (1<<9)
+#define NS_HTTP_ALLOW_RC4_FALSESTART (1<<10)
+
+
+
 
 
 #define NS_HTTP_DEFAULT_PORT  80

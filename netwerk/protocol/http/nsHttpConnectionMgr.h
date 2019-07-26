@@ -113,7 +113,8 @@ public:
     
     
     nsresult SpeculativeConnect(nsHttpConnectionInfo *,
-                                nsIInterfaceRequestor *);
+                                nsIInterfaceRequestor *,
+                                uint32_t caps = 0);
 
     
     

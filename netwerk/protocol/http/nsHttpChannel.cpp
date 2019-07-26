@@ -40,6 +40,14 @@
 #include "NullHttpTransaction.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/VisualEventTracer.h"
+#include "nsISSLSocketControl.h"
+#include "sslt.h"
+#include "nsContentUtils.h"
+#include "nsIPermissionManager.h"
+#include "nsIPrincipal.h"
+#include "nsIScriptSecurityManager.h"
+#include "nsISSLStatus.h"
+#include "nsISSLStatusProvider.h"
 
 namespace mozilla { namespace net {
 
@@ -391,6 +399,7 @@ nsHttpChannel::Connect()
         return NS_ERROR_UNKNOWN_HOST;
 
     
+    RetrieveSSLOptions();
     SpeculativeConnect();
 
     
@@ -527,8 +536,9 @@ nsHttpChannel::SpeculativeConnect()
 
     mConnectionInfo->SetAnonymous((mLoadFlags & LOAD_ANONYMOUS) != 0);
     mConnectionInfo->SetPrivate(mPrivateBrowsing);
-    gHttpHandler->SpeculativeConnect(mConnectionInfo,
-                                     callbacks);
+    gHttpHandler->SpeculativeConnect(
+        mConnectionInfo, callbacks,
+        mCaps & (NS_HTTP_ALLOW_RSA_FALSESTART | NS_HTTP_ALLOW_RC4_FALSESTART | NS_HTTP_DISALLOW_SPDY));
 }
 
 void
@@ -691,6 +701,37 @@ nsHttpChannel::SetupTransactionLoadGroupInfo()
     rootLoadGroup->GetConnectionInfo(getter_AddRefs(ci));
     if (ci)
         mTransaction->SetLoadGroupConnectionInfo(ci);
+}
+
+void
+nsHttpChannel::RetrieveSSLOptions()
+{
+    if (!IsHTTPS() || mPrivateBrowsing)
+        return;
+
+    nsIPrincipal *principal = GetPrincipal();
+    if (!principal)
+        return;
+
+    nsCOMPtr<nsIPermissionManager> permMgr =
+        do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
+    if (!permMgr)
+        return;
+
+    uint32_t perm;
+    nsresult rv = permMgr->TestPermissionFromPrincipal(principal,
+                                                       "falsestart-rsa", &perm);
+    if (NS_SUCCEEDED(rv) && perm == nsIPermissionManager::ALLOW_ACTION) {
+        LOG(("nsHttpChannel::RetrieveSSLOptions [this=%p] "
+             "falsestart-rsa permission found\n", this));
+        mCaps |= NS_HTTP_ALLOW_RSA_FALSESTART;
+    }
+    rv = permMgr->TestPermissionFromPrincipal(principal, "falsestart-rc4", &perm);
+    if (NS_SUCCEEDED(rv) && perm == nsIPermissionManager::ALLOW_ACTION) {
+        LOG(("nsHttpChannel::RetrieveSSLOptions [this=%p] "
+             "falsestart-rc4 permission found\n", this));
+        mCaps |= NS_HTTP_ALLOW_RC4_FALSESTART;
+    }
 }
 
 nsresult
@@ -1160,6 +1201,89 @@ nsHttpChannel::ProcessSTSHeader()
     return NS_OK;
 }
 
+bool
+nsHttpChannel::IsHTTPS()
+{
+    bool isHttps;
+    if (NS_FAILED(mURI->SchemeIs("https", &isHttps)) || !isHttps)
+        return false;
+    return true;
+}
+
+void
+nsHttpChannel::ProcessSSLInformation()
+{
+    
+    
+    
+    
+
+    if (mCanceled || NS_FAILED(mStatus) || !mSecurityInfo ||
+        !IsHTTPS() || mPrivateBrowsing)
+        return;
+
+    nsCOMPtr<nsISSLSocketControl> ssl = do_QueryInterface(mSecurityInfo);
+    nsCOMPtr<nsISSLStatusProvider> statusProvider =
+        do_QueryInterface(mSecurityInfo);
+    if (!ssl || !statusProvider)
+        return;
+    nsCOMPtr<nsISSLStatus> sslstat;
+    statusProvider->GetSSLStatus(getter_AddRefs(sslstat));
+    if (!sslstat)
+        return;
+
+    
+    
+    bool trustCheck;
+    if (NS_FAILED(sslstat->GetIsDomainMismatch(&trustCheck)) || trustCheck)
+        return;
+    if (NS_FAILED(sslstat->GetIsNotValidAtThisTime(&trustCheck)) || trustCheck)
+        return;
+    if (NS_FAILED(sslstat->GetIsUntrusted(&trustCheck)) || trustCheck)
+        return;
+
+    int16_t kea = ssl->GetKEAUsed();
+    int16_t symcipher = ssl->GetSymmetricCipherUsed();
+
+    nsIPrincipal *principal = GetPrincipal();
+    if (!principal)
+        return;
+
+    
+    
+
+    nsCOMPtr<nsIPermissionManager> permMgr =
+        do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
+    if (!permMgr)
+        return;
+
+    
+    int64_t expireTime = (PR_Now() / PR_USEC_PER_MSEC) +
+        (86400 * 7 * PR_MSEC_PER_SEC);
+
+    if (kea == ssl_kea_rsa) {
+        permMgr->AddFromPrincipal(principal, "falsestart-rsa",
+                                  nsIPermissionManager::ALLOW_ACTION,
+                                  nsIPermissionManager::EXPIRE_TIME,
+                                  expireTime);
+        LOG(("nsHttpChannel::ProcessSSLInformation [this=%p] "
+             "falsestart-rsa permission granted for this host\n", this));
+    } else {
+        permMgr->RemoveFromPrincipal(principal, "falsestart-rsa");
+    }
+
+    if (symcipher == ssl_calg_rc4) {
+        permMgr->AddFromPrincipal(principal, "falsestart-rc4",
+                                  nsIPermissionManager::ALLOW_ACTION,
+                                  nsIPermissionManager::EXPIRE_TIME,
+                                  expireTime);
+        LOG(("nsHttpChannel::ProcessSSLInformation [this=%p] "
+             "falsestart-rc4 permission granted for this host\n", this));
+    } else {
+        permMgr->RemoveFromPrincipal(principal, "falsestart-rc4");
+    }
+}
+
 nsresult
 nsHttpChannel::ProcessResponse()
 {
@@ -1191,6 +1315,8 @@ nsHttpChannel::ProcessResponse()
     }
 
     MOZ_ASSERT(!mCachedContentIsValid);
+
+    ProcessSSLInformation();
 
     
     gHttpHandler->OnExamineResponse(this);
@@ -6036,6 +6162,30 @@ nsHttpChannel::ShouldSkipCache()
     gHttpHandler->SetCacheSkippedUntil(cacheSkippedUntil);
     return true;
 }
+
+nsIPrincipal *
+nsHttpChannel::GetPrincipal()
+{
+    if (mPrincipal)
+        return mPrincipal;
+
+    nsIScriptSecurityManager *securityManager =
+        nsContentUtils::GetSecurityManager();
+
+    if (!securityManager)
+        return nullptr;
+
+    securityManager->GetChannelPrincipal(this, getter_AddRefs(mPrincipal));
+    if (!mPrincipal)
+        return nullptr;
+
+    
+    if (mPrincipal->GetUnknownAppId())
+        mPrincipal = nullptr;
+
+    return mPrincipal;
+}
+
 
 NS_IMETHODIMP
 nsHttpChannel::SetLoadGroup(nsILoadGroup *aLoadGroup)
