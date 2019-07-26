@@ -121,6 +121,11 @@ class LoggingManager(object):
         self.root_logger = logging.getLogger()
         self.root_logger.setLevel(logging.DEBUG)
 
+        
+        
+        
+        self.root_logger.addHandler(logging.NullHandler())
+
         self.mozbuild_logger = logging.getLogger('mozbuild')
         self.mozbuild_logger.setLevel(logging.DEBUG)
 
