@@ -230,86 +230,6 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(
 
 
 
-class ServiceMainThreadInitializer : public nsRunnable
-{
-public:
-  ServiceMainThreadInitializer(Service *aService,
-                               nsIObserver *aObserver,
-                               nsIXPConnect **aXPConnectPtr,
-                               int32_t *aSynchronousPrefValPtr,
-                               int32_t *aPageSizePtr)
-  : mService(aService)
-  , mObserver(aObserver)
-  , mXPConnectPtr(aXPConnectPtr)
-  , mSynchronousPrefValPtr(aSynchronousPrefValPtr)
-  , mPageSizePtr(aPageSizePtr)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    NS_PRECONDITION(NS_IsMainThread(), "Must be running on the main thread!");
-    NS_PRECONDITION(*mPageSizePtr == PREF_TS_PAGESIZE_DEFAULT,
-                    "Must be set to the default value here!");
-
-    
-    
-    
-    
-    
-
-    
-    
-    nsCOMPtr<nsIObserverService> os =
-      mozilla::services::GetObserverService();
-    NS_ENSURE_TRUE(os, NS_ERROR_FAILURE);
-    nsresult rv = os->AddObserver(mObserver, "xpcom-shutdown", false);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = os->AddObserver(mObserver, "xpcom-shutdown-threads", false);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    (void)CallGetService(nsIXPConnect::GetCID(), mXPConnectPtr);
-
-    
-    
-    
-    int32_t synchronous =
-      Preferences::GetInt(PREF_TS_SYNCHRONOUS, PREF_TS_SYNCHRONOUS_DEFAULT);
-    ::PR_ATOMIC_SET(mSynchronousPrefValPtr, synchronous);
-
-    
-    
-    
-    int32_t pageSize =
-      Preferences::GetInt(PREF_TS_PAGESIZE, PREF_TS_PAGESIZE_DEFAULT);
-    if (Service::pageSizeIsValid(pageSize) &&
-        PREF_TS_PAGESIZE_DEFAULT != pageSize) {
-      ::PR_ATOMIC_SET(mPageSizePtr, pageSize);
-    }
-
-    
-    
-    mService->mStorageSQLiteReporter = new NS_MEMORY_REPORTER_NAME(StorageSQLite);
-    mService->mStorageSQLiteMultiReporter = new StorageSQLiteMultiReporter(mService);
-    (void)::NS_RegisterMemoryReporter(mService->mStorageSQLiteReporter);
-    (void)::NS_RegisterMemoryMultiReporter(mService->mStorageSQLiteMultiReporter);
-
-    return NS_OK;
-  }
-
-private:
-  Service *mService;
-  nsIObserver *mObserver;
-  nsIXPConnect **mXPConnectPtr;
-  int32_t *mSynchronousPrefValPtr;
-  int32_t *mPageSizePtr;
-};
-
-
-
-
 NS_IMPL_THREADSAFE_ISUPPORTS2(
   Service,
   mozIStorageService,
@@ -578,6 +498,8 @@ const sqlite3_mem_methods memMethods = {
 nsresult
 Service::initialize()
 {
+  MOZ_ASSERT(NS_IsMainThread(), "Must be initialized on the main thread");
+
   int rc;
 
 #ifdef MOZ_STORAGE_MEMORY
@@ -604,18 +526,35 @@ Service::initialize()
 
   
   
-  sSynchronousPref = PREF_TS_SYNCHRONOUS_DEFAULT;
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  NS_ENSURE_TRUE(os, NS_ERROR_FAILURE);
+  nsresult rv = os->AddObserver(this, "xpcom-shutdown", false);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = os->AddObserver(this, "xpcom-shutdown-threads", false);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsCOMPtr<nsIRunnable> event =
-    new ServiceMainThreadInitializer(this, this, &sXPConnect,
-                                     &sSynchronousPref, &sDefaultPageSize);
-  if (event && ::NS_IsMainThread()) {
-    (void)event->Run();
-  }
-  else {
-    (void)::NS_DispatchToMainThread(event);
-  }
+  
+  (void)CallGetService(nsIXPConnect::GetCID(), &sXPConnect);
+
+  
+  
+  
+  sSynchronousPref =
+    Preferences::GetInt(PREF_TS_SYNCHRONOUS, PREF_TS_SYNCHRONOUS_DEFAULT);
+
+  
+  
+  
+  sDefaultPageSize =
+      Preferences::GetInt(PREF_TS_PAGESIZE, PREF_TS_PAGESIZE_DEFAULT);
+
+  
+  
+  mStorageSQLiteReporter = new NS_MEMORY_REPORTER_NAME(StorageSQLite);
+  mStorageSQLiteMultiReporter = new StorageSQLiteMultiReporter(this);
+  (void)::NS_RegisterMemoryReporter(mStorageSQLiteReporter);
+  (void)::NS_RegisterMemoryMultiReporter(mStorageSQLiteMultiReporter);
 
   return NS_OK;
 }
