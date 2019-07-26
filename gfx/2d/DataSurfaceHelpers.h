@@ -17,6 +17,16 @@ ConvertBGRXToBGRA(uint8_t* aData, const IntSize &aSize, int32_t aStride);
 
 
 
+
+
+void
+CopySurfaceDataToPackedArray(uint8_t* aSrc, uint8_t* aDst, IntSize aSrcSize,
+                             int32_t aSrcStride, int32_t aBytesPerPixel);
+
+
+
+
+
 uint8_t*
 SurfaceToPackedBGRA(DataSourceSurface *aSurface);
 
