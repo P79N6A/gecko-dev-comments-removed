@@ -334,6 +334,8 @@ void
 MappableDeflate::finalize()
 {
   
+  inflateEnd(&zStream);
+  
   buffer = NULL;
   
   zip = NULL;
