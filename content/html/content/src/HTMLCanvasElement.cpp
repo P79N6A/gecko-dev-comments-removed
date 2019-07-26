@@ -342,7 +342,7 @@ HTMLCanvasElement::ParseAttribute(int32_t aNamespaceID,
 
 NS_IMETHODIMP
 HTMLCanvasElement::ToDataURL(const nsAString& aType, nsIVariant* aParams,
-                             uint8_t optional_argc, nsAString& aDataURL)
+                             nsAString& aDataURL)
 {
   
   if (mWriteOnly && !nsContentUtils::IsCallerChrome()) {
@@ -551,9 +551,7 @@ HTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
 
 NS_IMETHODIMP
 HTMLCanvasElement::ToBlob(nsIFileCallback* aCallback,
-                          const nsAString& aType,
-                          nsIVariant* aParams,
-                          uint8_t optional_argc)
+                          const nsAString& aType)
 {
   
   if (mWriteOnly && !nsContentUtils::IsCallerChrome()) {
@@ -605,7 +603,6 @@ HTMLCanvasElement::ToBlob(nsIFileCallback* aCallback,
 NS_IMETHODIMP
 HTMLCanvasElement::MozGetAsFile(const nsAString& aName,
                                 const nsAString& aType,
-                                uint8_t optional_argc,
                                 nsIDOMFile** aResult)
 {
   
