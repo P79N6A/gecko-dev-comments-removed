@@ -4485,11 +4485,7 @@ pref("dom.mozInputMethod.enabled", false);
 pref("dom.datastore.enabled", false);
 
 
-#ifdef MOZ_B2G_RIL
-pref("dom.telephony.enabled", true);
-#else
 pref("dom.telephony.enabled", false);
-#endif
 
 
 pref("dom.telephony.defaultServiceId", 0);
