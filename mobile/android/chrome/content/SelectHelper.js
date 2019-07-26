@@ -13,7 +13,7 @@ var SelectHelper = {
   handleClick: function(aTarget) {
     
     
-    if (this._uiBusy || !this._isMenu(aTarget))
+    if (this._uiBusy || !this._isMenu(aTarget) || aTarget.disabled)
         return;
 
     this._uiBusy = true;
