@@ -291,7 +291,7 @@ let Content = {
     this.formAssistant.focusSync = false;
 
     
-    if (Util.isTextInput(element) &&
+    if (Util.isEditable(element) &&
         aEvent.mozInputSource == Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH) {
       let { offsetX, offsetY } = Util.translateToTopLevelWindow(element);
       sendAsyncMessage("Content:SelectionCaret", {

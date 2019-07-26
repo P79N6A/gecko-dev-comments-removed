@@ -243,7 +243,7 @@ SelectionPrototype.prototype = {
     clientPoint.yPos -= halfLineHeight;
 
     
-    if (this._targetIsEditable) {
+    if (this._targetIsEditable && !Util.isEditableContent(this._targetElement)) {
       this._adjustEditableSelection(aMarker, clientPoint, aEndOfSelection);
     } else {
       this._adjustSelectionAtPoint(aMarker, clientPoint, aEndOfSelection);
@@ -307,8 +307,7 @@ SelectionPrototype.prototype = {
       let cp =
         this._contentWindow.document.caretPositionFromPoint(constrainedPoint.xPos,
                                                             constrainedPoint.yPos);
-      if (!cp || (cp.offsetNode != this._targetElement &&
-          this._contentWindow.document.getBindingParent(cp.offsetNode) != this._targetElement)) {
+      if (!cp || !this._offsetNodeIsValid(cp.offsetNode)) {
         return;
       }
       if (aMarker == "start") {
@@ -317,6 +316,19 @@ SelectionPrototype.prototype = {
         this._targetElement.selectionEnd = cp.offset;
       }
     }
+  },
+
+  
+
+
+
+
+  _offsetNodeIsValid: function (aNode) {
+    if (aNode == this._targetElement ||
+        this._contentWindow.document.getBindingParent(aNode) == this._targetElement) {
+      return true;
+    }
+    return false;
   },
 
   
