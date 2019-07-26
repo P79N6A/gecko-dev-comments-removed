@@ -709,7 +709,7 @@ AndroidBridge::ShowAlertNotification(const nsAString& aImageUrl,
 
     if (nsAppShell::gAppShell && aAlertListener) {
         
-        nsAppShell::gAppShell->AddObserver(aAlertName, aAlertListener);
+        nsAppShell::gAppShell->PostEvent(AndroidGeckoEvent::MakeAddObserver(aAlertName, aAlertListener));
     }
 
     jvalue args[5];
