@@ -140,6 +140,10 @@ void __stdcall InetStatusCallback(HINTERNET hInternet, DWORD_PTR dwContext,
     
     StatsLock_AcquireExclusive();
     wsprintf(g_ServerIP, _T("%S"), lpvStatusInformation);
+    if (wcslen(g_ServerIP) == 1)
+    {
+      wsprintf(g_ServerIP, _T("%s"), lpvStatusInformation);
+    }
     StatsLock_ReleaseExclusive();
   }
 
