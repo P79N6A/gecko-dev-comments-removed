@@ -591,11 +591,22 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
     size_t endOfBaselineJSFrameStack = builder.framePushed();
 
     
-    uint32_t pcOff = iter.pcOffset();
-    jsbytecode *pc = script->code + pcOff;
+    jsbytecode *pc = script->code + iter.pcOffset();
+    bool resumeAfter = iter.resumeAfter();
+
+    
+    
+    
+    if (!resumeAfter) {
+        while (JSOp(*pc) == JSOP_GOTO)
+            pc += GET_JUMP_OFFSET(pc);
+        if (JSOp(*pc) == JSOP_LOOPENTRY)
+            pc = GetNextPc(pc);
+    }
+
+    uint32_t pcOff = pc - script->code;
     JSOp op = JSOp(*pc);
     bool isCall = js_CodeSpec[op].format & JOF_INVOKE;
-    bool resumeAfter = iter.resumeAfter();
     BaselineScript *baselineScript = script->baselineScript();
 
     
