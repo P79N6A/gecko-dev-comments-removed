@@ -12,6 +12,7 @@
 #include "imgIContainer.h"
 #include "nsEvent.h"
 #include "npapi.h"
+#include "nsTArray.h"
 
 
 #include "nsObjCExceptions.h"
@@ -77,6 +78,26 @@ private:
 - (void)setHelpMenu:(NSMenu *)helpMenu;
 
 @end
+
+struct KeyBindingsCommand
+{
+  SEL selector;
+  id data;
+};
+
+@interface NativeKeyBindingsRecorder : NSResponder
+{
+@private
+  nsTArray<KeyBindingsCommand>* mCommands;
+}
+
+- (void)startRecording:(nsTArray<KeyBindingsCommand>&)aCommands;
+
+- (void)doCommandBySelector:(SEL)aSelector;
+
+- (void)insertText:(id)aString;
+
+@end 
 
 class nsCocoaUtils
 {
@@ -286,6 +307,14 @@ class nsCocoaUtils
 
 
   static bool HiDPIEnabled();
+
+  
+
+
+
+
+  static void GetCommandsFromKeyEvent(NSEvent* aEvent,
+                                      nsTArray<KeyBindingsCommand>& aCommands);
 };
 
 #endif 
