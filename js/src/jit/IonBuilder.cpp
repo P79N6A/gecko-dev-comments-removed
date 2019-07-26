@@ -2789,7 +2789,7 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
             defaultcase->addPredecessor(caseblock);
         }
 
-        tableswitch->addCase(caseblock);
+        tableswitch->addCase(tableswitch->addSuccessor(caseblock));
 
         
         
