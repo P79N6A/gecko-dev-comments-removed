@@ -797,7 +797,7 @@ PeerConnectionImpl::ConvertConstraints(
       return NS_ERROR_FAILURE;
     }
 
-    JSObject* opts = JSVAL_TO_OBJECT(mandatory);
+    JSObject* opts = &mandatory.toObject();
     JS::AutoIdArray mandatoryOpts(aCx, JS_Enumerate(aCx, opts));
 
     
@@ -806,7 +806,7 @@ PeerConnectionImpl::ConvertConstraints(
       if (!JS_GetPropertyById(aCx, opts, mandatoryOpts[i], &option) ||
           !JS_IdToValue(aCx, mandatoryOpts[i], &optionName) ||
           
-          !JSVAL_IS_BOOLEAN(option)) {
+          !option.isBoolean()) {
         return NS_ERROR_FAILURE;
       }
       JSString* optionNameString = JS_ValueToString(aCx, optionName);
@@ -827,23 +827,39 @@ PeerConnectionImpl::ConvertConstraints(
       return NS_ERROR_FAILURE;
     }
 
-    JSObject* opts = JSVAL_TO_OBJECT(optional);
+    JSObject* array = &optional.toObject();
     uint32_t length;
-    if (!JS_IsArrayObject(aCx, opts) ||
-        !JS_GetArrayLength(aCx, opts, &length)) {
+    if (!JS_GetArrayLength(aCx, array, &length)) {
       return NS_ERROR_FAILURE;
     }
     for (uint32_t i = 0; i < length; i++) {
-      JS::Value val;
-      if (!JS_GetElement(aCx, opts, i, &val) ||
-          !val.isObject()) {
+      JS::Value element;
+      if (!JS_GetElement(aCx, array, i, &element) ||
+          !element.isObject()) {
+        return NS_ERROR_FAILURE;
+      }
+      JSObject* opts = &element.toObject();
+      JS::AutoIdArray optionalOpts(aCx, JS_Enumerate(aCx, opts));
+      
+      if (optionalOpts.length() != 1) {
+        return NS_ERROR_FAILURE;
+      }
+      JS::Value option, optionName;
+      if (!JS_GetPropertyById(aCx, opts, optionalOpts[0], &option) ||
+          !JS_IdToValue(aCx, optionalOpts[0], &optionName)) {
         return NS_ERROR_FAILURE;
       }
       
-      
+      if (option.isBoolean()) {
+        JSString* optionNameString = JS_ValueToString(aCx, optionName);
+        if (!optionNameString) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
+        NS_ConvertUTF16toUTF8 stringVal(JS_GetStringCharsZ(aCx, optionNameString));
+        aObj->setBooleanConstraint(stringVal.get(), JSVAL_TO_BOOLEAN(option), false);
+      }
     }
   }
-
   return NS_OK;
 }
 
