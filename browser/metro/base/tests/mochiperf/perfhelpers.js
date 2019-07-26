@@ -36,10 +36,10 @@ var PerfTest = {
 
 
 
-  declareTest: function declareTest(aUID, aName, aCategory, aSubCategory, aDescription) {
-    this._uid = aUID;
+  declareTest: function declareTest(aUUID, aName, aCategory, aSubCategory, aDescription) {
+    this._uid = aUUID;
     this._print(kDeclareId, this._toJsonStr({
-      id: aUID,
+      id: aUUID,
       version: kDataSetVersion,
       name: aName,
       category: aCategory,
@@ -225,7 +225,6 @@ StopWatch.prototype = {
   },
 
   
-
 
 
 
