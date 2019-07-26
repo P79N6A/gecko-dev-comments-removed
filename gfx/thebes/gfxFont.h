@@ -1137,6 +1137,11 @@ public:
 
 
         TEXT_RUN_SIZE_ACCOUNTED      = 0x0200,
+        
+
+
+
+        TEXT_HIDE_CONTROL_CHARACTERS = 0x0400,
 
         
 
