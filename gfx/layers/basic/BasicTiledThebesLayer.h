@@ -67,6 +67,20 @@ struct BasicTiledLayerTile {
   }
 };
 
+
+
+
+
+struct BasicTiledLayerPaintData {
+  gfx::Point mScrollOffset;
+  gfx3DMatrix mTransformScreenToLayer;
+  nsIntRect mLayerCriticalDisplayPort;
+  gfxSize mResolution;
+  nsIntRect mCompositionBounds;
+  uint16_t mLowPrecisionPaintCount;
+  bool mPaintFinished : 1;
+};
+
 class BasicTiledThebesLayer;
 
 
@@ -266,11 +280,25 @@ private:
                          void* aCallbackData);
 
   
+
+
+
+  void BeginPaint();
+
+  
+
+
+
+
+  void EndPaint(bool aFinish);
+
+  
   BasicTiledLayerBuffer mTiledBuffer;
   BasicTiledLayerBuffer mLowPrecisionTiledBuffer;
   nsIntRegion mLowPrecisionValidRegion;
   gfx::Point mLastScrollOffset;
   bool mFirstPaint;
+  BasicTiledLayerPaintData mPaintData;
 };
 
 } 
