@@ -952,6 +952,27 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
     } else {
       mContentPainterStatus = CONTENT_IDLE;
     }
+  } else {
+    
+    
+    
+    
+    
+    
+    switch (mState) {
+    case NOTHING:
+    case FLING:
+    case TOUCHING:
+    case WAITING_LISTENERS:
+      
+      
+      mFrameMetrics.mViewportScrollOffset =
+        aViewportFrame.mViewportScrollOffset / aViewportFrame.mResolution.width;
+      break;
+    
+    default:
+      break;
+    }
   }
 
   if (aIsFirstPaint || mFrameMetrics.IsDefault()) {
