@@ -417,6 +417,7 @@ public:
     }
   }
   void GetAllResponseHeaders(nsString& aResponseHeaders);
+  bool IsSafeHeader(const nsACString& aHeaderName, nsIHttpChannel* aHttpChannel);
   void OverrideMimeType(const nsAString& aMimeType)
   {
     
@@ -552,11 +553,14 @@ protected:
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIHTTPHEADERVISITOR
-    nsHeaderVisitor() { }
+    nsHeaderVisitor(nsXMLHttpRequest* aXMLHttpRequest, nsIHttpChannel* aHttpChannel)
+      : mXHR(aXMLHttpRequest), mHttpChannel(aHttpChannel) {}
     virtual ~nsHeaderVisitor() {}
     const nsACString &Headers() { return mHeaders; }
   private:
     nsCString mHeaders;
+    nsXMLHttpRequest* mXHR;
+    nsCOMPtr<nsIHttpChannel> mHttpChannel;
   };
 
   
