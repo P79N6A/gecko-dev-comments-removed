@@ -643,12 +643,16 @@ public:
   
   
   
-  
   void AddItem(FlexItem* aItem,
+               bool aShouldInsertAtFront,
                nscoord aItemInnerHypotheticalMainSize,
                nscoord aItemOuterHypotheticalMainSize)
   {
-    mItems.insertBack(aItem);
+    if (aShouldInsertAtFront) {
+      mItems.insertFront(aItem);
+    } else {
+      mItems.insertBack(aItem);
+    }
     mNumItems++;
     mTotalInnerHypotheticalMainSize += aItemInnerHypotheticalMainSize;
     mTotalOuterHypotheticalMainSize += aItemOuterHypotheticalMainSize;
@@ -2362,13 +2366,16 @@ FlexboxAxisTracker::FlexboxAxisTracker(
 
 
 
-
-
 static FlexLine*
-AddNewFlexLineToList(LinkedList<FlexLine>& aLines)
+AddNewFlexLineToList(LinkedList<FlexLine>& aLines,
+                     bool aShouldInsertAtFront)
 {
   FlexLine* newLine = new FlexLine();
-  aLines.insertBack(newLine);
+  if (aShouldInsertAtFront) {
+    aLines.insertFront(newLine);
+  } else {
+    aLines.insertBack(newLine);
+  }
   return newLine;
 }
 
@@ -2389,7 +2396,15 @@ nsFlexContainerFrame::GenerateFlexLines(
 
   
   
-  FlexLine* curLine = AddNewFlexLineToList(aLines);
+  
+  
+  
+  
+  const bool shouldInsertAtFront = aAxisTracker.AreAxesInternallyReversed();
+
+  
+  
+  FlexLine* curLine = AddNewFlexLineToList(aLines, shouldInsertAtFront);
 
   nscoord wrapThreshold;
   if (isSingleLine) {
@@ -2433,7 +2448,7 @@ nsFlexContainerFrame::GenerateFlexLines(
     
     if (!isSingleLine && !curLine->IsEmpty() &&
         childFrame->StyleDisplay()->mBreakBefore) {
-      curLine = AddNewFlexLineToList(aLines);
+      curLine = AddNewFlexLineToList(aLines, shouldInsertAtFront);
     }
 
     nsAutoPtr<FlexItem> item;
@@ -2463,19 +2478,19 @@ nsFlexContainerFrame::GenerateFlexLines(
         !curLine->IsEmpty() && 
         wrapThreshold < (curLine->GetTotalOuterHypotheticalMainSize() +
                          itemOuterHypotheticalMainSize)) {
-      curLine = AddNewFlexLineToList(aLines);
+      curLine = AddNewFlexLineToList(aLines, shouldInsertAtFront);
     }
 
     
     
-    curLine->AddItem(item.forget(),
+    curLine->AddItem(item.forget(), shouldInsertAtFront,
                      itemInnerHypotheticalMainSize,
                      itemOuterHypotheticalMainSize);
 
     
     if (!isSingleLine && childFrame->GetNextSibling() &&
         childFrame->StyleDisplay()->mBreakAfter) {
-      curLine = AddNewFlexLineToList(aLines);
+      curLine = AddNewFlexLineToList(aLines, shouldInsertAtFront);
     }
     itemIdxInContainer++;
   }
