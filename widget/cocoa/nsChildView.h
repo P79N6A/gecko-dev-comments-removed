@@ -272,7 +272,8 @@ typedef NSInteger NSEventGestureAxis;
 
 #ifdef __LP64__
   
-  void (^mCancelSwipeAnimation)();
+  BOOL* mCancelSwipeAnimation;
+  PRUint32 mCurrentSwipeDir;
 #endif
 
   
@@ -340,7 +341,8 @@ typedef NSInteger NSEventGestureAxis;
 
 #ifdef __LP64__
 - (void)maybeTrackScrollEventAsSwipe:(NSEvent *)anEvent
-                      scrollOverflow:(double)overflow;
+                     scrollOverflowX:(double)overflowX
+                     scrollOverflowY:(double)overflowY;
 #endif
 
 - (void)setUsingOMTCompositor:(BOOL)aUseOMTC;

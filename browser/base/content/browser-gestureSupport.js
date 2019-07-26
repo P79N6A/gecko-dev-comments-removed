@@ -191,7 +191,19 @@ let gGestureSupport = {
       aEvent.allowedDirections |= isLTR ? aEvent.DIRECTION_RIGHT :
                                           aEvent.DIRECTION_LEFT;
 
-    gHistorySwipeAnimation.startAnimation();
+    let isVerticalSwipe = false;
+    if (aEvent.direction == aEvent.DIRECTION_UP) {
+      isVerticalSwipe = true;
+      
+      content.scrollTo(content.scrollX, 0);
+    }
+    else if (aEvent.direction == aEvent.DIRECTION_DOWN) {
+      isVerticalSwipe = true;
+      
+      content.scrollTo(content.scrollX, content.scrollMaxY);
+    }
+
+    gHistorySwipeAnimation.startAnimation(isVerticalSwipe);
 
     this._doUpdate = function GS__doUpdate(aEvent) {
       gHistorySwipeAnimation.updateAnimation(aEvent.delta);
@@ -541,10 +553,13 @@ let gHistorySwipeAnimation = {
     this.isLTR = document.documentElement.mozMatchesSelector(
                                             ":-moz-locale-dir(ltr)");
     this._trackedSnapshots = [];
+    this._startingIndex = -1;
     this._historyIndex = -1;
     this._boxWidth = -1;
+    this._boxHeight = -1;
     this._maxSnapshots = this._getMaxSnapshots();
     this._lastSwipeDir = "";
+    this._isVerticalSwipe = false;
 
     
     
@@ -553,6 +568,7 @@ let gHistorySwipeAnimation = {
       gBrowser.addEventListener("pagehide", this, false);
       gBrowser.addEventListener("pageshow", this, false);
       gBrowser.addEventListener("popstate", this, false);
+      gBrowser.addEventListener("DOMModalDialogClosed", this, false);
       gBrowser.tabContainer.addEventListener("TabClose", this, false);
     }
   },
@@ -564,6 +580,7 @@ let gHistorySwipeAnimation = {
     gBrowser.removeEventListener("pagehide", this, false);
     gBrowser.removeEventListener("pageshow", this, false);
     gBrowser.removeEventListener("popstate", this, false);
+    gBrowser.removeEventListener("DOMModalDialogClosed", this, false);
     gBrowser.tabContainer.removeEventListener("TabClose", this, false);
 
     this.active = false;
@@ -574,16 +591,31 @@ let gHistorySwipeAnimation = {
 
 
 
-  startAnimation: function HSA_startAnimation() {
+
+
+
+  startAnimation: function HSA_startAnimation(aIsVerticalSwipe) {
+    this._isVerticalSwipe = aIsVerticalSwipe;
+
     if (this.isAnimationRunning()) {
-      gBrowser.stop();
-      this._lastSwipeDir = "RELOAD"; 
-      this._canGoBack = this.canGoBack();
-      this._canGoForward = this.canGoForward();
-      this._handleFastSwiping();
+      
+      
+      
+      
+      
+      
+      
+      if (!this._isVerticalSwipe || this._lastSwipeDir != "") {
+        gBrowser.stop();
+        this._lastSwipeDir = "RELOAD"; 
+        this._canGoBack = this.canGoBack();
+        this._canGoForward = this.canGoForward();
+        this._handleFastSwiping();
+      }
     }
     else {
-      this._historyIndex = gBrowser.webNavigation.sessionHistory.index;
+      this._startingIndex = gBrowser.webNavigation.sessionHistory.index;
+      this._historyIndex = this._startingIndex;
       this._canGoBack = this.canGoBack();
       this._canGoForward = this.canGoForward();
       if (this.active) {
@@ -614,20 +646,29 @@ let gHistorySwipeAnimation = {
     if (!this.isAnimationRunning())
       return;
 
-    if ((aVal >= 0 && this.isLTR) ||
-        (aVal <= 0 && !this.isLTR)) {
-      if (aVal > 1)
-        aVal = 1; 
-
+    
+    
+    
+    let dampValue = 4;
+    if (this._isVerticalSwipe) {
+      this._prevBox.collapsed = true;
+      this._nextBox.collapsed = true;
+      this._positionBox(this._curBox, -1 * aVal / dampValue);
+    }
+    else if ((aVal >= 0 && this.isLTR) ||
+             (aVal <= 0 && !this.isLTR)) {
+      let tempDampValue = 1;
       if (this._canGoBack)
         this._prevBox.collapsed = false;
-      else
+      else {
+        tempDampValue = dampValue;
         this._prevBox.collapsed = true;
+      }
 
       
       
       
-      this._positionBox(this._curBox, aVal);
+      this._positionBox(this._curBox, aVal / tempDampValue);
 
       
       this._positionBox(this._nextBox, 1);
@@ -643,13 +684,14 @@ let gHistorySwipeAnimation = {
       
       
       if (this._canGoForward) {
+        this._nextBox.collapsed = false;
         let offset = this.isLTR ? 1 : -1;
         this._positionBox(this._curBox, 0);
-        this._positionBox(this._nextBox, offset + aVal); 
+        this._positionBox(this._nextBox, offset + aVal);
       }
       else {
         this._prevBox.collapsed = true;
-        this._positionBox(this._curBox, aVal);
+        this._positionBox(this._curBox, aVal / dampValue);
       }
     }
   },
@@ -666,13 +708,14 @@ let gHistorySwipeAnimation = {
         let browser = gBrowser.getBrowserForTab(aEvent.target);
         this._removeTrackedSnapshot(-1, browser);
         break;
+      case "DOMModalDialogClosed":
+        this.stopAnimation();
+        break;
       case "pageshow":
       case "popstate":
-        if (this.isAnimationRunning()) {
-          if (aEvent.target != gBrowser.selectedBrowser.contentDocument)
-            break;
-          this.stopAnimation();
-        }
+        if (aEvent.target != gBrowser.selectedBrowser.contentDocument)
+          break;
+        this.stopAnimation();
         this._historyIndex = gBrowser.webNavigation.sessionHistory.index;
         break;
       case "pagehide":
@@ -740,7 +783,7 @@ let gHistorySwipeAnimation = {
 
 
   swipeEndEventReceived: function HSA_swipeEndEventReceived() {
-    if (this._lastSwipeDir != "")
+    if (this._lastSwipeDir != "" && this._historyIndex != this._startingIndex)
       this._navigateToHistoryIndex();
     else
       this.stopAnimation();
@@ -768,9 +811,10 @@ let gHistorySwipeAnimation = {
 
 
   _navigateToHistoryIndex: function HSA__navigateToHistoryIndex() {
-    if (this._doesIndexExistInHistory(this._historyIndex)) {
+    if (this._doesIndexExistInHistory(this._historyIndex))
       gBrowser.webNavigation.gotoIndex(this._historyIndex);
-    }
+    else
+      this.stopAnimation();
   },
 
   
@@ -816,7 +860,9 @@ let gHistorySwipeAnimation = {
                                         "box");
     this._container.appendChild(this._nextBox);
 
-    this._boxWidth = this._curBox.getBoundingClientRect().width; 
+    
+    this._boxWidth = this._curBox.getBoundingClientRect().width;
+    this._boxHeight = this._curBox.getBoundingClientRect().height;
   },
 
   
@@ -830,6 +876,7 @@ let gHistorySwipeAnimation = {
       this._container.parentNode.removeChild(this._container);
     this._container = null;
     this._boxWidth = -1;
+    this._boxHeight = -1;
   },
 
   
@@ -857,7 +904,14 @@ let gHistorySwipeAnimation = {
 
 
   _positionBox: function HSA__positionBox(aBox, aPosition) {
-    aBox.style.transform = "translateX(" + this._boxWidth * aPosition + "px)";
+    let transform = "";
+
+    if (this._isVerticalSwipe)
+      transform = "translateY(" + this._boxHeight * aPosition + "px)";
+    else
+      transform = "translateX(" + this._boxWidth * aPosition + "px)";
+
+    aBox.style.transform = transform;
   },
 
   
@@ -996,12 +1050,17 @@ let gHistorySwipeAnimation = {
       return aBlob;
 
     let img = new Image();
-    let url = URL.createObjectURL(aBlob);
-    img.onload = function() {
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
-    return img;
+    let url = "";
+    try {
+      url = URL.createObjectURL(aBlob);
+      img.onload = function() {
+        URL.revokeObjectURL(url);
+      };
+    }
+    finally {
+      img.src = url;
+      return img;
+    }
   },
 
   
