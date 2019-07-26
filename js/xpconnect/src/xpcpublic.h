@@ -406,6 +406,13 @@ GetJunkScopeGlobal();
 
 
 
+
+
+nsGlobalWindow*
+WindowGlobalOrNull(JSObject *aObj);
+
+
+
 void
 SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep);
 

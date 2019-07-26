@@ -26,6 +26,7 @@
 #include "nsJSPrincipals.h"
 #include "xpcpublic.h"
 #include "nsContentUtils.h"
+#include "nsGlobalWindow.h"
 
 bool
 nsJSUtils::GetCallingLocation(JSContext* aContext, const char* *aFilename,
@@ -47,46 +48,9 @@ nsJSUtils::GetCallingLocation(JSContext* aContext, const char* *aFilename,
 nsIScriptGlobalObject *
 nsJSUtils::GetStaticScriptGlobal(JSObject* aObj)
 {
-  const JSClass* clazz;
-  JSObject* glob = aObj; 
-
-  if (!glob)
+  if (!aObj)
     return nullptr;
-
-  glob = js::GetGlobalForObjectCrossCompartment(glob);
-  NS_ABORT_IF_FALSE(glob, "Infallible returns null");
-
-  clazz = JS_GetClass(glob);
-
-  
-  
-  
-  MOZ_ASSERT(!(clazz->flags & JSCLASS_IS_DOMJSCLASS));
-  nsISupports* supports;
-  if (!(clazz->flags & JSCLASS_HAS_PRIVATE) ||
-      !(clazz->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS) ||
-      !(supports = (nsISupports*)::JS_GetPrivate(glob))) {
-    return nullptr;
-  }
-
-  
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryInterface(supports));
-  if (!sgo) {
-    nsCOMPtr<nsIXPConnectWrappedNative> wrapper(do_QueryInterface(supports));
-    if (!wrapper) {
-      return nullptr;
-    }
-    sgo = do_QueryWrappedNative(wrapper);
-  }
-
-  
-  
-  return sgo;
+  return xpc::WindowGlobalOrNull(aObj);
 }
 
 nsIScriptContext *
