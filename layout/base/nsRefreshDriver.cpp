@@ -9,9 +9,25 @@
 
 
 
+
+
+
+
+
+
+
+
+#ifdef XP_WIN
+#include <windows.h>
+
+
+#include <mmsystem.h>
+#endif
+
 #include "mozilla/Util.h"
 
 #include "nsRefreshDriver.h"
+#include "nsITimer.h"
 #include "nsPresContext.h"
 #include "nsComponentManagerUtils.h"
 #include "prlog.h"
@@ -31,17 +47,393 @@ using mozilla::TimeDuration;
 
 using namespace mozilla;
 
+#ifdef PR_LOGGING
+static PRLogModuleInfo *gLog = nullptr;
+#define LOG(...) PR_LOG(gLog, PR_LOG_NOTICE, (__VA_ARGS__))
+#else
+#define LOG(...) do { } while(0)
+#endif
+
 #define DEFAULT_FRAME_RATE 60
 #define DEFAULT_THROTTLED_FRAME_RATE 1
 
-static bool sPrecisePref;
+#define DEFAULT_INACTIVE_TIMER_DISABLE_SECONDS 600
+
+namespace mozilla {
+
+
+
+
+
+
+
+
+
+
+
+class RefreshDriverTimer {
+public:
+  
+
+
+  RefreshDriverTimer(double aRate)
+  {
+    SetRate(aRate);
+  }
+
+  virtual ~RefreshDriverTimer()
+  {
+    NS_ASSERTION(mRefreshDrivers.Length() == 0, "Should have removed all refresh drivers from here by now!");
+  }
+
+  virtual void AddRefreshDriver(nsRefreshDriver* aDriver)
+  {
+    LOG("[%p] AddRefreshDriver %p", this, aDriver);
+
+    NS_ASSERTION(!mRefreshDrivers.Contains(aDriver), "AddRefreshDriver for a refresh driver that's already in the list!");
+    mRefreshDrivers.AppendElement(aDriver);
+
+    if (mRefreshDrivers.Length() == 1) {
+      StartTimer();
+    }
+  }
+
+  virtual void RemoveRefreshDriver(nsRefreshDriver* aDriver)
+  {
+    LOG("[%p] RemoveRefreshDriver %p", this, aDriver);
+
+    NS_ASSERTION(mRefreshDrivers.Contains(aDriver), "RemoveRefreshDriver for a refresh driver that's not in the list!");
+    mRefreshDrivers.RemoveElement(aDriver);
+
+    if (mRefreshDrivers.Length() == 0) {
+      StopTimer();
+    }
+  }
+
+  double GetRate() const
+  {
+    return mRateMilliseconds;
+  }
+
+  
+  virtual void SetRate(double aNewRate)
+  {
+    mRateMilliseconds = aNewRate;
+    mRateDuration = TimeDuration::FromMilliseconds(mRateMilliseconds);
+  }
+
+  TimeStamp MostRecentRefresh() const { return mLastFireTime; }
+  int64_t MostRecentRefreshEpochTime() const { return mLastFireEpoch; }
+
+protected:
+  virtual void StartTimer() = 0;
+  virtual void StopTimer() = 0;
+  virtual void ScheduleNextTick(TimeStamp aNowTime) = 0;
+
+  
+
+
+
+  void Tick()
+  {
+    int64_t jsnow = JS_Now();
+    TimeStamp now = TimeStamp::Now();
+
+    ScheduleNextTick(now);
+
+    mLastFireEpoch = jsnow;
+    mLastFireTime = now;
+
+    LOG("[%p] ticking drivers...", this);
+    nsTArray<nsRefPtr<nsRefreshDriver> > drivers(mRefreshDrivers);
+    for (size_t i = 0; i < drivers.Length(); ++i) {
+      
+      if (drivers[i]->IsTestControllingRefreshesEnabled()) {
+        continue;
+      }
+
+      TickDriver(drivers[i], jsnow, now);
+    }
+    LOG("[%p] done.", this);
+  }
+
+  static void TickDriver(nsRefreshDriver* driver, int64_t jsnow, TimeStamp now)
+  {
+    LOG(">> TickDriver: %p (jsnow: %lld)", driver, jsnow);
+    driver->Tick(jsnow, now);
+  }
+
+  double mRateMilliseconds;
+  TimeDuration mRateDuration;
+
+  int64_t mLastFireEpoch;
+  TimeStamp mLastFireTime;
+  TimeStamp mTargetTime;
+
+  nsTArray<nsRefPtr<nsRefreshDriver> > mRefreshDrivers;
+
+  
+  
+  static void TimerTick(nsITimer* aTimer, void* aClosure)
+  {
+    RefreshDriverTimer *timer = static_cast<RefreshDriverTimer*>(aClosure);
+    timer->Tick();
+  }
+};
+
+
+
+
+
+
+
+
+class SimpleTimerBasedRefreshDriverTimer :
+    public RefreshDriverTimer
+{
+public:
+  SimpleTimerBasedRefreshDriverTimer(double aRate)
+    : RefreshDriverTimer(aRate)
+  {
+    mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+  }
+
+  virtual ~SimpleTimerBasedRefreshDriverTimer()
+  {
+    StopTimer();
+  }
+
+protected:
+
+  virtual void StartTimer()
+  {
+    mLastFireTime = TimeStamp::Now();
+    mTargetTime = mLastFireTime;
+
+    mTimer->InitWithFuncCallback(TimerTick, this, 0, nsITimer::TYPE_ONE_SHOT);
+  }
+
+  virtual void StopTimer()
+  {
+    mTimer->Cancel();
+  }
+
+  nsRefPtr<nsITimer> mTimer;
+};
+
+
+
+
+
+
+
+
+
+
+class PreciseRefreshDriverTimer :
+    public SimpleTimerBasedRefreshDriverTimer
+{
+public:
+  PreciseRefreshDriverTimer(double aRate)
+    : SimpleTimerBasedRefreshDriverTimer(aRate)
+  {
+  }
+
+protected:
+  virtual void ScheduleNextTick(TimeStamp aNowTime)
+  {
+    
+    
+    
+    int numElapsedIntervals = static_cast<int>((aNowTime - mTargetTime) / mRateDuration);
+
+    
+    
+    
+    
+    
+    
+    
+    TimeStamp newTarget = mTargetTime + mRateDuration * (numElapsedIntervals + 1);
+
+    
+    uint32_t delay = static_cast<uint32_t>((newTarget - aNowTime).ToMilliseconds());
+
+    
+    
+    
+#if 0
+    if (numElapsedIntervals > 0) {
+      
+      newTarget = aNowTime;
+      delay = 0;
+    }
+#endif
+
+    
+    LOG("[%p] precise timer last tick late by %f ms, next tick in %d ms",
+        this,
+        (aNowTime - mTargetTime).ToMilliseconds(),
+        delay);
+
+    
+    mTimer->InitWithFuncCallback(TimerTick, this, delay, nsITimer::TYPE_ONE_SHOT);
+
+    mTargetTime = newTarget;
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class InactiveRefreshDriverTimer :
+    public RefreshDriverTimer
+{
+public:
+  InactiveRefreshDriverTimer(double aRate)
+    : RefreshDriverTimer(aRate),
+      mNextTickDuration(aRate),
+      mDisableAfterMilliseconds(-1.0),
+      mNextDriverIndex(0)
+  {
+    mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+  }
+
+  InactiveRefreshDriverTimer(double aRate, double aDisableAfterMilliseconds)
+    : RefreshDriverTimer(aRate),
+      mNextTickDuration(aRate),
+      mDisableAfterMilliseconds(aDisableAfterMilliseconds),
+      mNextDriverIndex(0)
+  {
+    mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+  }
+
+  virtual void AddRefreshDriver(nsRefreshDriver* aDriver)
+  {
+    RefreshDriverTimer::AddRefreshDriver(aDriver);
+
+    LOG("[%p] inactive timer got new refresh driver %p, resetting rate",
+        this, aDriver);
+
+    
+    mNextTickDuration = mRateMilliseconds;
+
+    
+    
+    mNextDriverIndex = mRefreshDrivers.Length() - 1;
+
+    StopTimer();
+    StartTimer();
+  }
+
+protected:
+  virtual void StartTimer()
+  {
+    mLastFireTime = TimeStamp::Now();
+    mTargetTime = mLastFireTime;
+
+    mTimer->InitWithFuncCallback(TimerTickOne, this, 0, nsITimer::TYPE_ONE_SHOT);
+  }
+
+  virtual void StopTimer()
+  {
+    mTimer->Cancel();
+  }
+
+  virtual void ScheduleNextTick(TimeStamp aNowTime)
+  {
+    if (mDisableAfterMilliseconds > 0.0 &&
+        mNextTickDuration > mDisableAfterMilliseconds)
+    {
+      
+      
+      
+      return;
+    }
+
+    
+    if (mNextDriverIndex >= mRefreshDrivers.Length()) {
+      mNextTickDuration *= 2.0;
+      mNextDriverIndex = 0;
+    }
+
+    
+    uint32_t delay = static_cast<uint32_t>(mNextTickDuration);
+    mTimer->InitWithFuncCallback(TimerTickOne, this, delay, nsITimer::TYPE_ONE_SHOT);
+
+    LOG("[%p] inactive timer next tick in %f ms [index %d/%d]", this, mNextTickDuration,
+        mNextDriverIndex, mRefreshDrivers.Length());
+  }
+
+  
+  void TickOne()
+  {
+    int64_t jsnow = JS_Now();
+    TimeStamp now = TimeStamp::Now();
+
+    ScheduleNextTick(now);
+
+    mLastFireEpoch = jsnow;
+    mLastFireTime = now;
+
+    nsTArray<nsRefPtr<nsRefreshDriver> > drivers(mRefreshDrivers);
+    if (mNextDriverIndex < drivers.Length() &&
+        !drivers[mNextDriverIndex]->IsTestControllingRefreshesEnabled())
+    {
+      TickDriver(drivers[mNextDriverIndex], jsnow, now);
+    }
+
+    mNextDriverIndex++;
+  }
+
+  static void TimerTickOne(nsITimer* aTimer, void* aClosure)
+  {
+    InactiveRefreshDriverTimer *timer = static_cast<InactiveRefreshDriverTimer*>(aClosure);
+    timer->TickOne();
+  }
+
+  nsRefPtr<nsITimer> mTimer;
+  double mNextTickDuration;
+  double mDisableAfterMilliseconds;
+  uint32_t mNextDriverIndex;
+};
+
+} 
+
+static PreciseRefreshDriverTimer *sRegularRateTimer = nullptr;
+static InactiveRefreshDriverTimer *sThrottledRateTimer = nullptr;
+
+static int32_t sHighPrecisionTimerRequests = 0;
 
  void
 nsRefreshDriver::InitializeStatics()
 {
-  Preferences::AddBoolVarCache(&sPrecisePref,
-                               "layout.frame_rate.precise",
-                               false);
+#ifdef PR_LOGGING
+  if (!gLog) {
+    gLog = PR_NewLogModule("nsRefreshDriver");
+  }
+#endif
+}
+
+ void
+nsRefreshDriver::Shutdown()
+{
+  
+  delete sRegularRateTimer;
+  delete sThrottledRateTimer;
+
+  sRegularRateTimer = nullptr;
+  sThrottledRateTimer = nullptr;
 }
 
  int32_t
@@ -52,46 +444,60 @@ nsRefreshDriver::DefaultInterval()
 
 
 
-int32_t
-nsRefreshDriver::GetRefreshTimerInterval() const
+double
+nsRefreshDriver::GetRegularTimerInterval() const
 {
-  const char* prefName =
-    mThrottled ? "layout.throttled_frame_rate" : "layout.frame_rate";
-  int32_t rate = Preferences::GetInt(prefName, -1);
+  int32_t rate = Preferences::GetInt("layout.frame_rate", -1);
   if (rate <= 0) {
     
-    rate = mThrottled ? DEFAULT_THROTTLED_FRAME_RATE : DEFAULT_FRAME_RATE;
+    rate = DEFAULT_FRAME_RATE;
   }
-  NS_ASSERTION(rate > 0, "Must have positive rate here");
-  int32_t interval = NSToIntRound(1000.0/rate);
-  if (mThrottled) {
-    interval = NS_MAX(interval, mLastTimerInterval * 2);
-  }
-  mLastTimerInterval = interval;
-  return interval;
+  return 1000.0 / rate;
 }
 
-int32_t
-nsRefreshDriver::GetRefreshTimerType() const
+double
+nsRefreshDriver::GetThrottledTimerInterval() const
+{
+  int32_t rate = Preferences::GetInt("layout.throttled_frame_rate", -1);
+  if (rate <= 0) {
+    rate = DEFAULT_THROTTLED_FRAME_RATE;
+  }
+  return 1000.0 / rate;
+}
+
+double
+nsRefreshDriver::GetRefreshTimerInterval() const
+{
+  return mThrottled ? GetThrottledTimerInterval() : GetRegularTimerInterval();
+}
+
+RefreshDriverTimer*
+nsRefreshDriver::ChooseTimer() const
 {
   if (mThrottled) {
-    return nsITimer::TYPE_ONE_SHOT;
+    if (!sThrottledRateTimer) 
+      sThrottledRateTimer = new InactiveRefreshDriverTimer(GetThrottledTimerInterval(),
+                                                           DEFAULT_INACTIVE_TIMER_DISABLE_SECONDS * 1000.0);
+    return sThrottledRateTimer;
   }
-  if (HaveFrameRequestCallbacks() || sPrecisePref) {
-    return nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP;
-  }
-  return nsITimer::TYPE_REPEATING_SLACK;
+
+  if (!sRegularRateTimer)
+    sRegularRateTimer = new PreciseRefreshDriverTimer(GetRegularTimerInterval());
+  return sRegularRateTimer;
 }
 
-nsRefreshDriver::nsRefreshDriver(nsPresContext *aPresContext)
+nsRefreshDriver::nsRefreshDriver(nsPresContext* aPresContext)
   : mPresContext(aPresContext),
+    mActiveTimer(nullptr),
     mFrozen(false),
     mThrottled(false),
     mTestControllingRefreshes(false),
-    mTimerIsPrecise(false),
     mViewManagerFlushIsPending(false),
-    mLastTimerInterval(0)
+    mRequestedHighPrecision(false)
 {
+  mMostRecentRefreshEpochTime = JS_Now();
+  mMostRecentRefresh = TimeStamp::Now();
+
   mRequests.Init();
 }
 
@@ -99,7 +505,7 @@ nsRefreshDriver::~nsRefreshDriver()
 {
   NS_ABORT_IF_FALSE(ObserverCount() == 0,
                     "observers should have unregistered");
-  NS_ABORT_IF_FALSE(!mTimer, "timer should be gone");
+  NS_ABORT_IF_FALSE(!mActiveTimer, "timer should be gone");
   
   for (uint32_t i = 0; i < mPresShellsToInvalidateIfHidden.Length(); i++) {
     mPresShellsToInvalidateIfHidden[i]->InvalidatePresShellIfHidden();
@@ -112,12 +518,22 @@ nsRefreshDriver::~nsRefreshDriver()
 void
 nsRefreshDriver::AdvanceTimeAndRefresh(int64_t aMilliseconds)
 {
-  mTestControllingRefreshes = true;
+  
+  StopTimer();
+
+  if (!mTestControllingRefreshes) {
+    mMostRecentRefreshEpochTime = JS_Now();
+    mMostRecentRefresh = TimeStamp::Now();
+
+    mTestControllingRefreshes = true;
+  }
+
   mMostRecentRefreshEpochTime += aMilliseconds * 1000;
-  mMostRecentRefresh += TimeDuration::FromMilliseconds(aMilliseconds);
+  mMostRecentRefresh += TimeDuration::FromMilliseconds((double) aMilliseconds);
+
   nsCxPusher pusher;
   if (pusher.PushNull()) {
-    Notify(nullptr);
+    DoTick();
     pusher.Pop();
   }
 }
@@ -126,31 +542,23 @@ void
 nsRefreshDriver::RestoreNormalRefresh()
 {
   mTestControllingRefreshes = false;
-  nsCxPusher pusher;
-  if (pusher.PushNull()) {
-    Notify(nullptr); 
-    pusher.Pop();
-  }
+  EnsureTimerStarted(false);
 }
 
 TimeStamp
 nsRefreshDriver::MostRecentRefresh() const
 {
-  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted(false);
-
   return mMostRecentRefresh;
 }
 
 int64_t
 nsRefreshDriver::MostRecentRefreshEpochTime() const
 {
-  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted(false);
-
   return mMostRecentRefreshEpochTime;
 }
 
 bool
-nsRefreshDriver::AddRefreshObserver(nsARefreshObserver *aObserver,
+nsRefreshDriver::AddRefreshObserver(nsARefreshObserver* aObserver,
                                     mozFlushType aFlushType)
 {
   ObserverArray& array = ArrayFor(aFlushType);
@@ -162,7 +570,7 @@ nsRefreshDriver::AddRefreshObserver(nsARefreshObserver *aObserver,
 }
 
 bool
-nsRefreshDriver::RemoveRefreshObserver(nsARefreshObserver *aObserver,
+nsRefreshDriver::RemoveRefreshObserver(nsARefreshObserver* aObserver,
                                        mozFlushType aFlushType)
 {
   ObserverArray& array = ArrayFor(aFlushType);
@@ -195,47 +603,67 @@ void nsRefreshDriver::ClearAllImageRequests()
 void
 nsRefreshDriver::EnsureTimerStarted(bool aAdjustingTimer)
 {
-  if (mTimer || mFrozen || !mPresContext) {
+  if (mTestControllingRefreshes)
+    return;
+
+  
+  
+  if (!mThrottled && !mRequestedHighPrecision && mFrameRequestCallbackDocs.Length() > 0) {
+    SetHighPrecisionTimersEnabled(true);
+  } else if (mRequestedHighPrecision) {
+    SetHighPrecisionTimersEnabled(false);
+  }
+
+  
+  if (mActiveTimer && !aAdjustingTimer)
+    return;
+
+  if (mFrozen || !mPresContext) {
     
-    
+    StopTimer();
     return;
   }
 
-  if (!aAdjustingTimer) {
-    
-    
-    
-    
-    
-    
-    UpdateMostRecentRefresh();
-  }
+  
+  
+  StopTimer();
 
-  mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
-  if (!mTimer) {
-    return;
-  }
-
-  int32_t timerType = GetRefreshTimerType();
-  mTimerIsPrecise = (timerType == nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP);
-
-  nsresult rv = mTimer->InitWithCallback(this,
-                                         GetRefreshTimerInterval(),
-                                         timerType);
-  if (NS_FAILED(rv)) {
-    mTimer = nullptr;
-  }
+  mActiveTimer = ChooseTimer();
+  mActiveTimer->AddRefreshDriver(this);
 }
 
 void
 nsRefreshDriver::StopTimer()
 {
-  if (!mTimer) {
+  if (!mActiveTimer)
     return;
-  }
 
-  mTimer->Cancel();
-  mTimer = nullptr;
+  mActiveTimer->RemoveRefreshDriver(this);
+  mActiveTimer = nullptr;
+
+  if (mRequestedHighPrecision) {
+    SetHighPrecisionTimersEnabled(false);
+  }
+}
+
+void
+nsRefreshDriver::SetHighPrecisionTimersEnabled(bool aEnable)
+{
+  if (aEnable) {
+    NS_ASSERTION(!mRequestedHighPrecision, "SetHighPrecisionTimersEnabled(true) called when already requested!");
+#ifdef XP_WIN
+    if (++sHighPrecisionTimerRequests == 1)
+      timeBeginPeriod(1);
+#endif
+    mRequestedHighPrecision = true;
+  } else {
+    NS_ASSERTION(mRequestedHighPrecision, "SetHighPrecisionTimersEnabled(false) called when not requested!");
+#ifdef XP_WIN
+    if (--sHighPrecisionTimerRequests == 0)
+      timeEndPeriod(1);
+#endif
+    mRequestedHighPrecision = false;
+  }
 }
 
 uint32_t
@@ -263,18 +691,6 @@ nsRefreshDriver::ImageRequestCount() const
   return mRequests.Count();
 }
 
-void
-nsRefreshDriver::UpdateMostRecentRefresh()
-{
-  if (mTestControllingRefreshes) {
-    return;
-  }
-
-  
-  mMostRecentRefreshEpochTime = JS_Now();
-  mMostRecentRefresh = TimeStamp::Now();
-}
-
 nsRefreshDriver::ObserverArray&
 nsRefreshDriver::ArrayFor(mozFlushType aFlushType)
 {
@@ -295,28 +711,44 @@ nsRefreshDriver::ArrayFor(mozFlushType aFlushType)
 
 
 
-NS_IMPL_ISUPPORTS1(nsRefreshDriver, nsITimerCallback)
+NS_IMPL_ISUPPORTS1(nsRefreshDriver, nsISupports)
 
 
 
 
 
-NS_IMETHODIMP
-nsRefreshDriver::Notify(nsITimer *aTimer)
+void
+nsRefreshDriver::DoTick()
 {
-  SAMPLE_LABEL("nsRefreshDriver", "Notify");
-
   NS_PRECONDITION(!mFrozen, "Why are we notified while frozen?");
   NS_PRECONDITION(mPresContext, "Why are we notified after disconnection?");
   NS_PRECONDITION(!nsContentUtils::GetCurrentJSContext(),
                   "Shouldn't have a JSContext on the stack");
 
-  if (mTestControllingRefreshes && aTimer) {
-    
-    return NS_OK;
+  if (mTestControllingRefreshes) {
+    Tick(mMostRecentRefreshEpochTime, mMostRecentRefresh);
+  } else {
+    Tick(JS_Now(), TimeStamp::Now());
+  }
+}
+
+void
+nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
+{
+  NS_PRECONDITION(!nsContentUtils::GetCurrentJSContext(),
+                  "Shouldn't have a JSContext on the stack");
+
+  SAMPLE_LABEL("nsRefreshDriver", "Tick");
+
+  
+  
+  
+  if (mFrozen || !mPresContext) {
+    return;
   }
 
-  UpdateMostRecentRefresh();
+  mMostRecentRefresh = aNowTime;
+  mMostRecentRefreshEpochTime = aNowEpoch;
 
   nsCOMPtr<nsIPresShell> presShell = mPresContext->GetPresShell();
   if (!presShell || (ObserverCount() == 0 && ImageRequestCount() == 0)) {
@@ -328,7 +760,7 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
     
     
     StopTimer();
-    return NS_OK;
+    return;
   }
 
   
@@ -341,11 +773,11 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
     ObserverArray::EndLimitedIterator etor(mObservers[i]);
     while (etor.HasMore()) {
       nsRefPtr<nsARefreshObserver> obs = etor.GetNext();
-      obs->WillRefresh(mMostRecentRefresh);
+      obs->WillRefresh(aNowTime);
       
       if (!mPresContext || !mPresContext->GetPresShell()) {
         StopTimer();
-        return NS_OK;
+        return;
       }
     }
 
@@ -360,7 +792,7 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
       
       mFrameRequestCallbackDocs.Clear();
 
-      int64_t eventTime = mMostRecentRefreshEpochTime / PR_USEC_PER_MSEC;
+      int64_t eventTime = aNowEpoch / PR_USEC_PER_MSEC;
       for (uint32_t i = 0; i < frameRequestCallbacks.Length(); ++i) {
         nsAutoMicroTask mt;
         frameRequestCallbacks[i]->Sample(eventTime);
@@ -412,10 +844,9 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
 
 
 
-  ImageRequestParameters parms = {mMostRecentRefresh};
+  ImageRequestParameters parms = {aNowTime};
   if (mRequests.Count()) {
     mRequests.EnumerateEntries(nsRefreshDriver::ImageRequestEnumerator, &parms);
-    EnsureTimerStarted(false);
   }
     
   for (uint32_t i = 0; i < mPresShellsToInvalidateIfHidden.Length(); i++) {
@@ -433,25 +864,6 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
     printf("Ending ProcessPendingUpdates\n");
 #endif
   }
-
-  if (mThrottled ||
-      (mTimerIsPrecise !=
-       (GetRefreshTimerType() == nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP))) {
-    
-    
-    
-    
-    
-    
-
-    
-    
-    
-    StopTimer();
-    EnsureTimerStarted(true);
-  }
-
-  return NS_OK;
 }
 
 PLDHashOperator
@@ -500,10 +912,9 @@ nsRefreshDriver::SetThrottled(bool aThrottled)
 {
   if (aThrottled != mThrottled) {
     mThrottled = aThrottled;
-    if (mTimer) {
+    if (mActiveTimer) {
       
       
-      StopTimer();
       EnsureTimerStarted(true);
     }
   }
@@ -513,14 +924,14 @@ void
 nsRefreshDriver::DoRefresh()
 {
   
-  if (!mFrozen && mPresContext && mTimer) {
-    Notify(nullptr);
+  if (!mFrozen && mPresContext && mActiveTimer) {
+    DoTick();
   }
 }
 
 #ifdef DEBUG
 bool
-nsRefreshDriver::IsRefreshObserver(nsARefreshObserver *aObserver,
+nsRefreshDriver::IsRefreshObserver(nsARefreshObserver* aObserver,
                                    mozFlushType aFlushType)
 {
   ObserverArray& array = ArrayFor(aFlushType);
@@ -544,7 +955,7 @@ nsRefreshDriver::ScheduleFrameRequestCallbacks(nsIDocument* aDocument)
                mFrameRequestCallbackDocs.NoIndex,
                "Don't schedule the same document multiple times");
   mFrameRequestCallbackDocs.AppendElement(aDocument);
-  
+
   
   EnsureTimerStarted(false);
 }

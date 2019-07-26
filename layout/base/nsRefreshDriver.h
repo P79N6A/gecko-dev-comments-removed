@@ -8,12 +8,12 @@
 
 
 
+
 #ifndef nsRefreshDriver_h_
 #define nsRefreshDriver_h_
 
 #include "mozilla/TimeStamp.h"
 #include "mozFlushType.h"
-#include "nsITimer.h"
 #include "nsCOMPtr.h"
 #include "nsTObserverArray.h"
 #include "nsTArray.h"
@@ -32,6 +32,10 @@ class imgIRequest;
 
 
 
+namespace mozilla {
+    class RefreshDriverTimer;
+}
+
 class nsARefreshObserver {
 public:
   
@@ -46,18 +50,16 @@ public:
   virtual void WillRefresh(mozilla::TimeStamp aTime) = 0;
 };
 
-class nsRefreshDriver MOZ_FINAL : public nsITimerCallback {
+class nsRefreshDriver MOZ_FINAL : public nsISupports {
 public:
   nsRefreshDriver(nsPresContext *aPresContext);
   ~nsRefreshDriver();
 
   static void InitializeStatics();
+  static void Shutdown();
 
   
   NS_DECL_ISUPPORTS
-
-  
-  NS_DECL_NSITIMERCALLBACK
 
   
 
@@ -65,6 +67,11 @@ public:
 
   void AdvanceTimeAndRefresh(int64_t aMilliseconds);
   void RestoreNormalRefresh();
+  void DoTick();
+  bool IsTestControllingRefreshesEnabled() const
+  {
+    return mTestControllingRefreshes;
+  }
 
   
 
@@ -226,6 +233,8 @@ private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
   typedef nsTHashtable<nsISupportsHashKey> RequestTable;
 
+  void Tick(int64_t aNowEpoch, mozilla::TimeStamp aNowTime);
+
   void EnsureTimerStarted(bool aAdjustingTimer);
   void StopTimer();
 
@@ -233,22 +242,20 @@ private:
   uint32_t ImageRequestCount() const;
   static PLDHashOperator ImageRequestEnumerator(nsISupportsHashKey* aEntry,
                                           void* aUserArg);
-  void UpdateMostRecentRefresh();
   ObserverArray& ArrayFor(mozFlushType aFlushType);
   
   void DoRefresh();
 
-  int32_t GetRefreshTimerInterval() const;
-  int32_t GetRefreshTimerType() const;
+  double GetRefreshTimerInterval() const;
+  double GetRegularTimerInterval() const;
+  double GetThrottledTimerInterval() const;
 
   bool HaveFrameRequestCallbacks() const {
     return mFrameRequestCallbackDocs.Length() != 0;
   }
 
-  nsCOMPtr<nsITimer> mTimer;
-  mozilla::TimeStamp mMostRecentRefresh; 
-  int64_t mMostRecentRefreshEpochTime;   
-                                         
+  mozilla::RefreshDriverTimer* ChooseTimer() const;
+  mozilla::RefreshDriverTimer *mActiveTimer;
 
   nsPresContext *mPresContext; 
                                
@@ -256,11 +263,11 @@ private:
   bool mFrozen;
   bool mThrottled;
   bool mTestControllingRefreshes;
-  
-
-
-  bool mTimerIsPrecise;
   bool mViewManagerFlushIsPending;
+  bool mRequestedHighPrecision;
+
+  int64_t mMostRecentRefreshEpochTime;
+  mozilla::TimeStamp mMostRecentRefresh;
 
   
   ObserverArray mObservers[3];
@@ -273,13 +280,13 @@ private:
   nsTArray<nsIDocument*> mFrameRequestCallbackDocs;
 
   
-  
-  mutable int32_t mLastTimerInterval;
-
-  
   struct ImageRequestParameters {
       mozilla::TimeStamp ts;
   };
+
+  friend class mozilla::RefreshDriverTimer;
+
+  void SetHighPrecisionTimersEnabled(bool aEnable);
 };
 
 #endif 
