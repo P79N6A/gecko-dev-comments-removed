@@ -8,6 +8,7 @@
 
 #include "mozilla/MemoryReporting.h"
 #include "gfxASurface.h"
+#include "nsAutoPtr.h"
 #include "gfxPoint.h"
 
 

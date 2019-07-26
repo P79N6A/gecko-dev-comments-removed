@@ -8,6 +8,7 @@
 
 #include "gfxASurface.h"
 #include "nsTArray.h"
+#include "nsSize.h"
 
 
 

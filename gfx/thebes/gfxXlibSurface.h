@@ -15,6 +15,8 @@
 #include "GLXLibrary.h"
 #endif
 
+#include "nsSize.h"
+
 class gfxXlibSurface : public gfxASurface {
 public:
     

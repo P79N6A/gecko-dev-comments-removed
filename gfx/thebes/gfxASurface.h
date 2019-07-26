@@ -12,8 +12,14 @@
 
 #include "mozilla/MemoryReporting.h"
 #include "gfxTypes.h"
-#include "gfxRect.h"
-#include "nsAutoPtr.h"
+#include "mozilla/Scoped.h"
+#include "nscore.h"
+
+#ifdef MOZILLA_INTERNAL_API
+#include "nsStringFwd.h"
+#else
+#include "nsStringAPI.h"
+#endif
 
 typedef struct _cairo_surface cairo_surface_t;
 typedef struct _cairo_user_data_key cairo_user_data_key_t;
@@ -23,6 +29,12 @@ typedef void (*thebes_destroy_func_t) (void *data);
 class gfxImageSurface;
 struct nsIntPoint;
 struct nsIntRect;
+struct gfxRect;
+struct gfxPoint;
+struct nsIntSize;
+
+template <typename T>
+struct already_AddRefed;
 
 
 
@@ -35,14 +47,8 @@ public:
     nsrefcnt Release(void);
 
     
-    virtual nsrefcnt AddRefExternal(void)
-    {
-      return AddRef();
-    }
-    virtual nsrefcnt ReleaseExternal(void)
-    {
-      return Release();
-    }
+    virtual nsrefcnt AddRefExternal(void);
+    virtual nsrefcnt ReleaseExternal(void);
 #else
     virtual nsrefcnt AddRef(void);
     virtual nsrefcnt Release(void);
@@ -105,7 +111,6 @@ public:
 
     
     cairo_surface_t *CairoSurface() {
-        NS_ASSERTION(mSurface != nullptr, "gfxASurface::CairoSurface called with mSurface == nullptr!");
         return mSurface;
     }
 
@@ -142,17 +147,14 @@ public:
 
 
     virtual already_AddRefed<gfxASurface> CreateSimilarSurface(gfxContentType aType,
-                                                               const gfxIntSize& aSize);
+                                                               const nsIntSize& aSize);
 
     
 
 
 
 
-    virtual already_AddRefed<gfxImageSurface> GetAsImageSurface()
-    {
-      return nullptr;
-    }
+    virtual already_AddRefed<gfxImageSurface> GetAsImageSurface();
 
     
 
@@ -173,7 +175,7 @@ public:
 
 
 
-    static bool CheckSurfaceSize(const gfxIntSize& sz, int32_t limit = 0);
+    static bool CheckSurfaceSize(const nsIntSize& sz, int32_t limit = 0);
 
     
 
@@ -239,7 +241,7 @@ public:
 
     static int32_t BytePerPixelFromFormat(gfxImageFormat format);
 
-    virtual const gfxIntSize GetSize() const { return gfxIntSize(-1, -1); }
+    virtual const nsIntSize GetSize() const;
 
     
 
@@ -264,23 +266,15 @@ public:
 
 
     void CopyAsDataURL();
-    
+
     void WriteAsPNG_internal(FILE* aFile, bool aBinary);
 
-    void SetOpaqueRect(const gfxRect& aRect) {
-        if (aRect.IsEmpty()) {
-            mOpaqueRect = nullptr;
-        } else if (mOpaqueRect) {
-            *mOpaqueRect = aRect;
-        } else {
-            mOpaqueRect = new gfxRect(aRect);
-        }
-    }
+    void SetOpaqueRect(const gfxRect& aRect);
+
     const gfxRect& GetOpaqueRect() {
-        if (mOpaqueRect)
+        if (!!mOpaqueRect)
             return *mOpaqueRect;
-        static const gfxRect empty(0, 0, 0, 0);
-        return empty;
+        return GetEmptyOpaqueRect();
     }
 
     
@@ -305,11 +299,7 @@ public:
     static uint8_t BytesPerPixel(gfxImageFormat aImageFormat);
 
 protected:
-    gfxASurface() : mSurface(nullptr), mFloatingRefs(0), mBytesRecorded(0),
-                    mSurfaceValid(false), mAllowUseAsSource(true)
-    {
-        MOZ_COUNT_CTOR(gfxASurface);
-    }
+    gfxASurface();
 
     static gfxASurface* GetSurfaceWrapper(cairo_surface_t *csurf);
     static void SetSurfaceWrapper(cairo_surface_t *csurf, gfxASurface *asurf);
@@ -327,15 +317,14 @@ protected:
     
     void Init(cairo_surface_t *surface, bool existingSurface = false);
 
-    virtual ~gfxASurface()
-    {
-        RecordMemoryFreed();
+    
+    
+    static const gfxRect& GetEmptyOpaqueRect();
 
-        MOZ_COUNT_DTOR(gfxASurface);
-    }
+    virtual ~gfxASurface();
 
     cairo_surface_t *mSurface;
-    nsAutoPtr<gfxRect> mOpaqueRect;
+    mozilla::ScopedDeletePtr<gfxRect> mOpaqueRect;
 
 private:
     static void SurfaceDestroyFunc(void *data);
