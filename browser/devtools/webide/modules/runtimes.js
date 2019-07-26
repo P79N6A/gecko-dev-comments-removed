@@ -61,7 +61,6 @@ SimulatorRuntime.prototype = {
 }
 
 let gLocalRuntime = {
-  supportApps: false, 
   connect: function(connection) {
     if (!DebuggerServer.initialized) {
       DebuggerServer.init();
