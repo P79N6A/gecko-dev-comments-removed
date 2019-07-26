@@ -4093,7 +4093,6 @@ JSObject::lookupGeneric(JSContext *cx, HandleObject obj, js::HandleId id,
 
 
 
-
     LookupGenericOp op = obj->getOps()->lookupGeneric;
     if (op)
         return op(cx, obj, id, objp, propp);
