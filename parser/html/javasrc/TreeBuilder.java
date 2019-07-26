@@ -4560,14 +4560,36 @@ public abstract class TreeBuilder<T> implements TokenHandler,
         listPtr--;
     }
 
+    
+
+
+
+
+
+
+
+
     private boolean adoptionAgencyEndTag(@Local String name) throws SAXException {
+        
+        
+        if (stack[currentPtr].ns == "http://www.w3.org/1999/xhtml" &&
+                stack[currentPtr].name == name &&
+                findInListOfActiveFormattingElements(stack[currentPtr]) == -1) {
+            
+            
+            
+            
+            
+            pop();
+            return true;
+        }
+
         
         
         for (int i = 0; i < 8; ++i) {
             int formattingEltListPos = listPtr;
             while (formattingEltListPos > -1) {
                 StackNode<T> listNode = listOfActiveFormattingElements[formattingEltListPos]; 
-                                                                                              
                 if (listNode == null) {
                     formattingEltListPos = -1;
                     break;
@@ -4579,18 +4601,8 @@ public abstract class TreeBuilder<T> implements TokenHandler,
             if (formattingEltListPos == -1) {
                 return false;
             }
-            StackNode<T> formattingElt = listOfActiveFormattingElements[formattingEltListPos]; 
             
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+            StackNode<T> formattingElt = listOfActiveFormattingElements[formattingEltListPos];
             int formattingEltStackPos = currentPtr;
             boolean inScope = true;
             while (formattingEltStackPos > -1) {
@@ -4632,7 +4644,6 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                 return true;
             }
             StackNode<T> commonAncestor = stack[formattingEltStackPos - 1]; 
-            
             StackNode<T> furthestBlock = stack[furthestBlockPos]; 
             
             int bookmark = formattingEltListPos;
@@ -4659,7 +4670,6 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                     assert bookmark < nodePos;
                     assert furthestBlockPos > nodePos;
                     removeFromStack(nodePos); 
-                    
                     furthestBlockPos--;
                     continue;
                 }
@@ -4676,12 +4686,8 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                         node.name, clone, node.popName, node.attributes
                         
                         , node.getLocator()
-                
+                        
                 ); 
-                
-                
-                
-                
                 node.dropAttributes(); 
                 stack[nodePos] = newNode;
                 newNode.retain(); 
@@ -4711,12 +4717,8 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                     formattingElt.attributes
                     
                     , errorHandler == null ? null : new TaintableLocatorImpl(tokenizer)
-            
+                    
             ); 
-            
-            
-            
-            
             formattingElt.dropAttributes(); 
                                             
             appendChildrenToNewParent(furthestBlock.node, clone);
