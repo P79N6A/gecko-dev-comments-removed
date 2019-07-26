@@ -1883,8 +1883,8 @@ let RIL = {
     Buf.simpleRequest(REQUEST_SIGNAL_STRENGTH);
   },
 
-  getIMEI: function getIMEI() {
-    Buf.simpleRequest(REQUEST_GET_IMEI);
+  getIMEI: function getIMEI(options) {
+    Buf.simpleRequest(REQUEST_GET_IMEI, options);
   },
 
   getIMEISV: function getIMEISV() {
@@ -2370,7 +2370,15 @@ let RIL = {
       
       case MMI_SC_IMEI:
         
-        _sendMMIError("GET_IMEI_NOT_SUPPORTED_VIA_MMI");
+        if (this.IMEI == null) {
+          this.getIMEI({mmi: true});
+          return;
+        }
+        
+        options.rilMessageType = "sendMMI";
+        options.success = true;
+        options.result = this.IMEI;
+        this.sendDOMMessage(options);
         return;
 
       
@@ -4420,11 +4428,20 @@ RIL[REQUEST_SET_CALL_WAITING] = function REQUEST_SET_CALL_WAITING(length, option
 };
 RIL[REQUEST_SMS_ACKNOWLEDGE] = null;
 RIL[REQUEST_GET_IMEI] = function REQUEST_GET_IMEI(length, options) {
-  if (options.rilRequestError) {
+  this.IMEI = Buf.readString();
+  
+  if (!options.mmi) {
     return;
   }
 
-  this.IMEI = Buf.readString();
+  options.rilMessageType = "sendMMI";
+  options.success = options.rilRequestError == 0;
+  options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  if ((!options.success || this.IMEI == null) && !options.errorMsg) {
+    options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+  }
+  options.result = this.IMEI;
+  this.sendDOMMessage(options);
 };
 RIL[REQUEST_GET_IMEISV] = function REQUEST_GET_IMEISV(length, options) {
   if (options.rilRequestError) {
