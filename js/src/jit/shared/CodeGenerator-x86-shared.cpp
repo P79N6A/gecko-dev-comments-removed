@@ -1590,9 +1590,7 @@ CodeGeneratorX86Shared::visitFloor(LFloor *lir)
         
         masm.roundsd(input, scratch, JSC::X86Assembler::RoundDown);
 
-        masm.cvttsd2si(scratch, output);
-        masm.cmp32(output, Imm32(INT_MIN));
-        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+        if (!bailoutCvttsd2si(scratch, output, lir->snapshot()))
             return false;
     } else {
         Label negative, end;
@@ -1607,9 +1605,7 @@ CodeGeneratorX86Shared::visitFloor(LFloor *lir)
             return false;
 
         
-        masm.cvttsd2si(input, output);
-        masm.cmp32(output, Imm32(INT_MIN));
-        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+        if (!bailoutCvttsd2si(input, output, lir->snapshot()))
             return false;
 
         masm.jump(&end);
@@ -1621,9 +1617,7 @@ CodeGeneratorX86Shared::visitFloor(LFloor *lir)
         {
             
             
-            masm.cvttsd2si(input, output);
-            masm.cmp32(output, Imm32(INT_MIN));
-            if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+            if (!bailoutCvttsd2si(input, output, lir->snapshot()))
                 return false;
 
             
@@ -1659,9 +1653,7 @@ CodeGeneratorX86Shared::visitFloorF(LFloorF *lir)
         
         masm.roundss(input, scratch, JSC::X86Assembler::RoundDown);
 
-        masm.cvttss2si(scratch, output);
-        masm.cmp32(output, Imm32(INT_MIN));
-        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+        if (!bailoutCvttss2si(scratch, output, lir->snapshot()))
             return false;
     } else {
         Label negative, end;
@@ -1676,9 +1668,7 @@ CodeGeneratorX86Shared::visitFloorF(LFloorF *lir)
             return false;
 
         
-        masm.cvttss2si(input, output);
-        masm.cmp32(output, Imm32(INT_MIN));
-        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+        if (!bailoutCvttss2si(input, output, lir->snapshot()))
             return false;
 
         masm.jump(&end);
@@ -1690,9 +1680,7 @@ CodeGeneratorX86Shared::visitFloorF(LFloorF *lir)
         {
             
             
-            masm.cvttss2si(input, output);
-            masm.cmp32(output, Imm32(INT_MIN));
-            if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+            if (!bailoutCvttss2si(input, output, lir->snapshot()))
                 return false;
 
             
@@ -1735,12 +1723,7 @@ CodeGeneratorX86Shared::visitCeil(LCeil *lir)
         masm.bind(&lessThanMinusOne);
         
         masm.roundsd(input, scratch, JSC::X86Assembler::RoundUp);
-
-        masm.cvttsd2si(scratch, output);
-        masm.cmp32(output, Imm32(1));
-        if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
-            return false;
-        return true;
+        return bailoutCvttsd2si(scratch, output, lir->snapshot());
     }
 
     
@@ -1750,9 +1733,7 @@ CodeGeneratorX86Shared::visitCeil(LCeil *lir)
     
     
     
-    masm.cvttsd2si(input, output);
-    masm.cmp32(output, Imm32(1));
-    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+    if (!bailoutCvttsd2si(input, output, lir->snapshot()))
         return false;
     masm.convertInt32ToDouble(output, scratch);
     masm.branchDouble(Assembler::DoubleEqualOrUnordered, input, scratch, &end);
@@ -1766,9 +1747,7 @@ CodeGeneratorX86Shared::visitCeil(LCeil *lir)
 
     
     masm.bind(&lessThanMinusOne);
-    masm.cvttsd2si(input, output);
-    masm.cmp32(output, Imm32(1));
-    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+    if (!bailoutCvttsd2si(input, output, lir->snapshot()))
         return false;
 
     masm.bind(&end);
@@ -1800,12 +1779,7 @@ CodeGeneratorX86Shared::visitCeilF(LCeilF *lir)
         masm.bind(&lessThanMinusOne);
         
         masm.roundss(input, scratch, JSC::X86Assembler::RoundUp);
-
-        masm.cvttss2si(scratch, output);
-        masm.cmp32(output, Imm32(1));
-        if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
-            return false;
-        return true;
+        return bailoutCvttss2si(scratch, output, lir->snapshot());
     }
 
     
@@ -1815,9 +1789,7 @@ CodeGeneratorX86Shared::visitCeilF(LCeilF *lir)
     
     
     
-    masm.cvttss2si(input, output);
-    masm.cmp32(output, Imm32(1));
-    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+    if (!bailoutCvttss2si(input, output, lir->snapshot()))
         return false;
     masm.convertInt32ToFloat32(output, scratch);
     masm.branchFloat(Assembler::DoubleEqualOrUnordered, input, scratch, &end);
@@ -1831,9 +1803,7 @@ CodeGeneratorX86Shared::visitCeilF(LCeilF *lir)
 
     
     masm.bind(&lessThanMinusOne);
-    masm.cvttss2si(input, output);
-    masm.cmp32(output, Imm32(1));
-    if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+    if (!bailoutCvttss2si(input, output, lir->snapshot()))
         return false;
 
     masm.bind(&end);
@@ -1866,10 +1836,7 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
     
     
     masm.addsd(input, temp);
-
-    masm.cvttsd2si(temp, output);
-    masm.cmp32(output, Imm32(INT_MIN));
-    if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+    if (!bailoutCvttsd2si(temp, output, lir->snapshot()))
         return false;
 
     masm.jump(&end);
@@ -1885,9 +1852,7 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
         masm.roundsd(temp, scratch, JSC::X86Assembler::RoundDown);
 
         
-        masm.cvttsd2si(scratch, output);
-        masm.cmp32(output, Imm32(INT_MIN));
-        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+        if (!bailoutCvttsd2si(scratch, output, lir->snapshot()))
             return false;
 
         
@@ -1908,9 +1873,7 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
 
             
             
-            masm.cvttsd2si(temp, output);
-            masm.cmp32(output, Imm32(INT_MIN));
-            if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+            if (!bailoutCvttsd2si(temp, output, lir->snapshot()))
                 return false;
 
             
@@ -1955,9 +1918,7 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
     
     masm.addss(input, temp);
 
-    masm.cvttss2si(temp, output);
-    masm.cmp32(output, Imm32(INT_MIN));
-    if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+    if (!bailoutCvttss2si(temp, output, lir->snapshot()))
         return false;
 
     masm.jump(&end);
@@ -1973,9 +1934,7 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
         masm.roundss(temp, scratch, JSC::X86Assembler::RoundDown);
 
         
-        masm.cvttss2si(scratch, output);
-        masm.cmp32(output, Imm32(INT_MIN));
-        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+        if (!bailoutCvttss2si(scratch, output, lir->snapshot()))
             return false;
 
         
@@ -1995,9 +1954,7 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
 
             
             
-            masm.cvttss2si(temp, output);
-            masm.cmp32(output, Imm32(INT_MIN));
-            if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+            if (!bailoutCvttss2si(temp, output, lir->snapshot()))
                 return false;
 
             

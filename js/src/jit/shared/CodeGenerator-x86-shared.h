@@ -75,6 +75,21 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
         masm.test32(lhs, rhs);
         return bailoutIf(c, snapshot);
     }
+    bool bailoutCvttsd2si(FloatRegister src, Register dest, LSnapshot *snapshot) {
+        
+        
+        
+        
+        masm.cvttsd2si(src, dest);
+        masm.cmp32(dest, Imm32(1));
+        return bailoutIf(Assembler::Overflow, snapshot);
+    }
+    bool bailoutCvttss2si(FloatRegister src, Register dest, LSnapshot *snapshot) {
+        
+        masm.cvttss2si(src, dest);
+        masm.cmp32(dest, Imm32(1));
+        return bailoutIf(Assembler::Overflow, snapshot);
+    }
 
   protected:
     bool generatePrologue();
