@@ -652,7 +652,7 @@ RunDBusCallback(DBusMessage* aMsg, void* aBluetoothReplyRunnable,
   
   
   
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(!NS_IsMainThread()); 
 #endif
   nsRefPtr<BluetoothReplyRunnable> replyRunnable =
     dont_AddRef(static_cast< BluetoothReplyRunnable* >(aBluetoothReplyRunnable));
@@ -717,7 +717,7 @@ public:
     , mConnect(aConnect)
     , mErrorString(aErrorString)
   {
-    MOZ_ASSERT(!NS_IsMainThread());
+    MOZ_ASSERT(!NS_IsMainThread()); 
   }
 
   nsresult Run()
@@ -752,7 +752,7 @@ private:
 static void
 CheckDBusReply(DBusMessage* aMsg, void* aServiceClass, bool aConnect)
 {
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(!NS_IsMainThread()); 
 
   NS_ENSURE_TRUE_VOID(aMsg);
 
@@ -1568,7 +1568,7 @@ class RequestPlayStatusTask : public nsRunnable
 public:
   RequestPlayStatusTask()
   {
-    MOZ_ASSERT(!NS_IsMainThread());
+    MOZ_ASSERT(!NS_IsMainThread()); 
   }
 
   nsresult Run()
@@ -1592,6 +1592,7 @@ public:
 static DBusHandlerResult
 EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
 {
+  
   MOZ_ASSERT(!NS_IsMainThread(), "Shouldn't be called from Main Thread!");
 
   if (dbus_message_get_type(aMsg) != DBUS_MESSAGE_TYPE_SIGNAL) {
@@ -2315,7 +2316,7 @@ BluetoothDBusService::GetDefaultAdapterPathInternal(
 static void
 OnSendDiscoveryMessageReply(DBusMessage *aReply, void *aData)
 {
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(!NS_IsMainThread()); 
 
   nsAutoString errorStr;
 
