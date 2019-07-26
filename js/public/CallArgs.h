@@ -317,13 +317,7 @@ class MOZ_STACK_CLASS CallArgsBase :
     unsigned length() const { return argc_; }
 
     
-    Value &operator[](unsigned i) const {
-        MOZ_ASSERT(i < argc_);
-        return this->argv_[i];
-    }
-
-    
-    MutableHandleValue handleAt(unsigned i) const {
+    MutableHandleValue operator[](unsigned i) const {
         MOZ_ASSERT(i < argc_);
         return MutableHandleValue::fromMarkedLocation(&this->argv_[i]);
     }
@@ -332,15 +326,7 @@ class MOZ_STACK_CLASS CallArgsBase :
 
 
 
-    Value get(unsigned i) const {
-        return i < length() ? this->argv_[i] : UndefinedValue();
-    }
-
-    
-
-
-
-    HandleValue handleOrUndefinedAt(unsigned i) const {
+    HandleValue get(unsigned i) const {
         return i < length()
                ? HandleValue::fromMarkedLocation(&this->argv_[i])
                : UndefinedHandleValue;

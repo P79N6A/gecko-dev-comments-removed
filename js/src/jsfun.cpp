@@ -1206,7 +1206,7 @@ js::CallOrConstructBoundFunction(JSContext *cx, unsigned argc, Value *vp)
 
     
     for (unsigned i = 0; i < argslen; i++)
-        invokeArgs[i] = fun->getBoundFunctionArgument(i);
+        invokeArgs[i].set(fun->getBoundFunctionArgument(i));
     PodCopy(invokeArgs.array() + argslen, vp + 2, argc);
 
     
@@ -1381,7 +1381,7 @@ js::Function(JSContext *cx, unsigned argc, Value *vp)
         size_t args_length = 0;
         for (unsigned i = 0; i < n; i++) {
             
-            arg = ToString<CanGC>(cx, args.handleAt(i));
+            arg = ToString<CanGC>(cx, args[i]);
             if (!arg)
                 return false;
             args[i].setString(arg);
@@ -1501,7 +1501,7 @@ js::Function(JSContext *cx, unsigned argc, Value *vp)
     if (!args.length())
         str = cx->runtime()->emptyString;
     else
-        str = ToString<CanGC>(cx, args.handleAt(args.length() - 1));
+        str = ToString<CanGC>(cx, args[args.length() - 1]);
     if (!str)
         return false;
     JSLinearString *linear = str->ensureLinear(cx);
