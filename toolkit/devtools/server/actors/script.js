@@ -1892,8 +1892,7 @@ ThreadActor.prototype = {
 
 
 
-  createEnvironmentActor:
-  function (aEnvironment, aPool) {
+  createEnvironmentActor: function (aEnvironment, aPool) {
     if (!aEnvironment) {
       return undefined;
     }
@@ -1954,8 +1953,7 @@ ThreadActor.prototype = {
 
 
 
-  createProtocolCompletionValue:
-  function (aCompletion) {
+  createProtocolCompletionValue: function (aCompletion) {
     let protoValue = {};
     if ("return" in aCompletion) {
       protoValue.return = this.createValueGrip(aCompletion.return);
@@ -2194,6 +2192,14 @@ ThreadActor.prototype = {
 
   onNewScript: function (aScript, aGlobal) {
     this._addScript(aScript);
+
+    
+    
+    
+    for (let s of aScript.getChildScripts()) {
+      this._addScript(s);
+    }
+
     this.sources.sourcesForScript(aScript);
   },
 
