@@ -448,11 +448,11 @@ GlobalObject::ensureConstructor(JSContext *cx, Handle<GlobalObject*> global, JSP
 {
     if (global->getConstructor(key).isObject())
         return true;
-    return initConstructor(cx, global, key);
+    return resolveConstructor(cx, global, key);
 }
 
  bool
-GlobalObject::initConstructor(JSContext *cx, Handle<GlobalObject*> global, JSProtoKey key)
+GlobalObject::resolveConstructor(JSContext *cx, Handle<GlobalObject*> global, JSProtoKey key)
 {
     MOZ_ASSERT(global->getConstructor(key).isUndefined());
 
@@ -519,7 +519,30 @@ GlobalObject::initConstructor(JSContext *cx, Handle<GlobalObject*> global, JSPro
         return false;
 
     
-    return DefineConstructorAndPrototype(cx, global, key, ctor, proto);
+    return initBuiltinConstructor(cx, global, key, ctor, proto);
+}
+
+ bool
+GlobalObject::initBuiltinConstructor(JSContext *cx, Handle<GlobalObject*> global,
+                                     JSProtoKey key, HandleObject ctor, HandleObject proto)
+{
+    JS_ASSERT(!global->nativeEmpty()); 
+    JS_ASSERT(key != JSProto_Null);
+    JS_ASSERT(ctor);
+    JS_ASSERT(proto);
+
+    RootedId id(cx, NameToId(ClassName(key, cx)));
+    JS_ASSERT(!global->nativeLookup(cx, id));
+
+    if (!global->addDataProperty(cx, id, constructorPropertySlot(key), 0))
+        return false;
+
+    global->setConstructor(key, ObjectValue(*ctor));
+    global->setPrototype(key, ObjectValue(*proto));
+    global->setConstructorPropertySlot(key, ObjectValue(*ctor));
+
+    types::AddTypePropertyId(cx, global, id, ObjectValue(*ctor));
+    return true;
 }
 
 GlobalObject *

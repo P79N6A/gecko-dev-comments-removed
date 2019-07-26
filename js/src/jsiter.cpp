@@ -2005,8 +2005,11 @@ GlobalObject::initIteratorClasses(JSContext *cx, Handle<GlobalObject *> global)
             return false;
         if (!DefinePropertiesAndBrand(cx, iteratorProto, nullptr, iterator_methods))
             return false;
-        if (!DefineConstructorAndPrototype(cx, global, JSProto_Iterator, ctor, iteratorProto))
+        if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_Iterator,
+                                                  ctor, iteratorProto))
+        {
             return false;
+        }
     }
 
     RootedObject proto(cx);
@@ -2069,7 +2072,7 @@ GlobalObject::initIteratorClasses(JSContext *cx, Handle<GlobalObject *> global)
             return false;
 
         
-        if (!DefineConstructorAndPrototype(cx, global, JSProto_StopIteration, proto, proto))
+        if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_StopIteration, proto, proto))
             return false;
 
         global->setConstructor(JSProto_StopIteration, ObjectValue(*proto));
