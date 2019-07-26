@@ -222,11 +222,10 @@ TabChild::PreloadSlowThings()
         return;
     }
     
-    tab->TryCacheLoadAndCompileScript(BROWSER_ELEMENT_CHILD_SCRIPT, true);
+    tab->TryCacheLoadAndCompileScript(BROWSER_ELEMENT_CHILD_SCRIPT);
     
     tab->RecvLoadRemoteScript(
-        NS_LITERAL_STRING("chrome://global/content/preload.js"),
-        true);
+        NS_LITERAL_STRING("chrome://global/content/preload.js"));
 
     nsCOMPtr<nsIDocShell> docShell = do_GetInterface(tab->mWebNav);
     if (nsIPresShell* presShell = docShell->GetPresShell()) {
@@ -2076,14 +2075,14 @@ TabChild::DeallocPOfflineCacheUpdateChild(POfflineCacheUpdateChild* actor)
 }
 
 bool
-TabChild::RecvLoadRemoteScript(const nsString& aURL, const bool& aRunInGlobalScope)
+TabChild::RecvLoadRemoteScript(const nsString& aURL)
 {
   if (!mGlobal && !InitTabChildGlobal())
     
     
     return true;
 
-  LoadFrameScriptInternal(aURL, aRunInGlobalScope);
+  LoadFrameScriptInternal(aURL);
   return true;
 }
 
@@ -2214,7 +2213,7 @@ TabChild::InitTabChildGlobal(FrameScriptLoading aScriptLoading)
     
     
     if (IsBrowserOrApp()) {
-      RecvLoadRemoteScript(BROWSER_ELEMENT_CHILD_SCRIPT, true);
+      RecvLoadRemoteScript(BROWSER_ELEMENT_CHILD_SCRIPT);
     }
   }
 
