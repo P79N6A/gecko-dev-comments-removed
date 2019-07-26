@@ -431,6 +431,7 @@ mozJSComponentLoader::ReallyInit()
     mModules.Init(32);
     mImports.Init(32);
     mInProgressImports.Init(32);
+    mThisObjects.Init(32);
 
     nsCOMPtr<nsIObserverService> obsSvc =
         do_GetService(kObserverServiceContractID, &rv);
@@ -576,6 +577,52 @@ mozJSComponentLoader::LoadModule(FileLocation &aFile)
 
     
     return entry.forget();
+}
+
+nsresult
+mozJSComponentLoader::FindTargetObject(JSContext* aCx,
+                                       JSObject** aTargetObject)
+{
+    JSObject* targetObject = nullptr;
+    *aTargetObject = nullptr;
+
+    if (mReuseLoaderGlobal) {
+        JSScript* script =
+            js::GetOutermostEnclosingFunctionOfScriptedCaller(aCx);
+        if (script) {
+            targetObject = mThisObjects.Get(script);
+        }
+    }
+
+    
+    
+    
+    if (!targetObject) {
+        
+        nsresult rv;
+        nsCOMPtr<nsIXPConnect> xpc =
+            do_GetService(kXPConnectServiceContractID, &rv);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        nsAXPCNativeCallContext *cc = nullptr;
+        rv = xpc->GetCurrentNativeCallContext(&cc);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        nsCOMPtr<nsIXPConnectWrappedNative> wn;
+        rv = cc->GetCalleeWrapper(getter_AddRefs(wn));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        wn->GetJSObject(&targetObject);
+        if (!targetObject) {
+            NS_ERROR("null calling object");
+            return NS_ERROR_FAILURE;
+        }
+
+        targetObject = JS_GetGlobalForObject(aCx, targetObject);
+    }
+
+    *aTargetObject = targetObject;
+    return NS_OK;
 }
 
 
@@ -977,6 +1024,14 @@ mozJSComponentLoader::ObjectForLocation(nsIFile *aComponentFile,
     
     *aObject = obj;
 
+    JSScript* tableScript = script;
+    if (!tableScript) {
+        tableScript = JS_GetFunctionScript(cx, function);
+        MOZ_ASSERT(tableScript);
+    }
+
+    mThisObjects.Put(tableScript, obj);
+
     uint32_t oldopts = JS_GetOptions(cx);
     JS_SetOptions(cx, oldopts |
                   (exception ? JSOPTION_DONT_REPORT_UNCAUGHT : 0));
@@ -1040,6 +1095,7 @@ mozJSComponentLoader::UnloadModules()
 
     mInProgressImports.Clear();
     mImports.Clear();
+    mThisObjects.Clear();
 
     mModules.Enumerate(ClearModules, NULL);
 
@@ -1089,28 +1145,8 @@ mozJSComponentLoader::Import(const nsACString& registryLocation,
                                   PromiseFlatCString(registryLocation).get());
         }
     } else {
-        
-        
-        nsresult rv;
-        nsCOMPtr<nsIXPConnect> xpc =
-            do_GetService(kXPConnectServiceContractID, &rv);
+        nsresult rv = FindTargetObject(cx, &targetObject);
         NS_ENSURE_SUCCESS(rv, rv);
-
-        nsAXPCNativeCallContext *cc = nullptr;
-        rv = xpc->GetCurrentNativeCallContext(&cc);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        nsCOMPtr<nsIXPConnectWrappedNative> wn;
-        rv = cc->GetCalleeWrapper(getter_AddRefs(wn));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        wn->GetJSObject(&targetObject);
-        if (!targetObject) {
-            NS_ERROR("null calling object");
-            return NS_ERROR_FAILURE;
-        }
-
-        targetObject = JS_GetGlobalForObject(cx, targetObject);
     }
 
     Maybe<JSAutoCompartment> ac;
