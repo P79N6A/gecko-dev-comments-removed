@@ -87,6 +87,9 @@ pref("dom.workers.enabled", true);
 pref("dom.workers.maxPerDomain", 20);
 
 
+pref("dom.enable_performance", true);
+
+
 
 pref("browser.sessionhistory.max_total_viewers", -1);
 
