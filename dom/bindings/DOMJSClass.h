@@ -38,6 +38,9 @@ typedef bool
                            JS::Handle<JSObject*> obj,
                            JS::AutoIdVector& props);
 
+bool
+CheckPermissions(JSContext* aCx, JSObject* aObj, const char* const aPermissions[]);
+
 struct ConstantSpec
 {
   const char* name;
@@ -52,7 +55,7 @@ struct Prefable {
     if (!enabled) {
       return false;
     }
-    if (!enabledFunc && !availableFunc) {
+    if (!enabledFunc && !availableFunc && !checkPermissions) {
       return true;
     }
     
@@ -63,6 +66,11 @@ struct Prefable {
     }
     if (availableFunc &&
         !availableFunc(cx, js::GetGlobalForObjectCrossCompartment(rootedObj))) {
+      return false;
+    }
+    if (checkPermissions &&
+        !CheckPermissions(cx, js::GetGlobalForObjectCrossCompartment(rootedObj),
+                          checkPermissions)) {
       return false;
     }
     return true;
@@ -79,6 +87,7 @@ struct Prefable {
   
   
   PropertyEnabled availableFunc;
+  const char* const* checkPermissions;
   
   
   

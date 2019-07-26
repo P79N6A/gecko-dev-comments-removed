@@ -2828,6 +2828,11 @@ AssertReturnTypeMatchesJitinfo(const JSJitInfo* aJitinfo,
                                JS::Handle<JS::Value> aValue);
 #endif
 
+
+
+bool
+CheckPermissions(JSContext* aCx, JSObject* aObj, const char* const aPermissions[]);
+
 } 
 } 
 
