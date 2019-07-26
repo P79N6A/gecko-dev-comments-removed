@@ -85,7 +85,7 @@ nsEventStatus GestureEventListener::HandleInputEvent(const MultiTouchInput& aEve
 
         mAsyncPanZoomController->PostDelayedTask(
           mLongTapTimeoutTask,
-          Preferences::GetInt("ui.click_hold_context_menus.delay", 500));
+          gfxPrefs::UiClickHoldContextMenusDelay());
       }
     } else if (length == 2) {
       
