@@ -81,6 +81,11 @@ class MessageChannel : HasResultCodes
     
     void CloseWithError();
 
+    void SetAbortOnError(bool abort)
+    {
+        mAbortOnError = true;
+    }
+
     
     bool Send(Message* aMsg);
 
@@ -623,6 +628,10 @@ class MessageChannel : HasResultCodes
 #ifdef OS_WIN
     HANDLE mEvent;
 #endif
+
+    
+    
+    bool mAbortOnError;
 };
 
 } 
