@@ -501,13 +501,26 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
     MDiv *mir = ins->mir();
+
+    Label done;
+
     if (mir->canBeNegativeOverflow()) {
         
         
-        masm.ma_cmp(lhs, Imm32(INT_MIN)); 
+        masm.ma_cmp(lhs, Imm32(INT32_MIN)); 
         masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
-        if (!bailoutIf(Assembler::Equal, ins->snapshot()))
-            return false;
+        if (mir->isTruncated()) {
+            
+            Label skip;
+            masm.ma_b(&skip, Assembler::NotEqual);
+            masm.ma_mov(Imm32(INT32_MIN), r0);
+            masm.ma_b(&done);
+            masm.bind(&skip);
+        } else {
+            JS_ASSERT(mir->fallible());
+            if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+                return false;
+        }
     }
 
     
@@ -526,8 +539,18 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
     if (mir->canBeDivideByZero() || mir->canBeNegativeZero()) {
         masm.ma_cmp(rhs, Imm32(0));
         masm.ma_cmp(lhs, Imm32(0), Assembler::LessThan);
-        if (!bailoutIf(Assembler::Equal, ins->snapshot()))
-            return false;
+        if (mir->isTruncated()) {
+            
+            Label skip;
+            masm.ma_b(&skip, Assembler::NotEqual);
+            masm.ma_mov(Imm32(0), r0);
+            masm.ma_b(&done);
+            masm.bind(&skip);
+        } else {
+            JS_ASSERT(mir->fallible());
+            if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+                return false;
+        }
     }
     masm.setupAlignedABICall(2);
     masm.passABIArg(lhs);
@@ -535,10 +558,14 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idivmod));
     
     if (!mir->isTruncated()) {
+        JS_ASSERT(mir->fallible());
         masm.ma_cmp(r1, Imm32(0));
         if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
             return false;
     }
+
+    masm.bind(&done);
+
     return true;
 }
 
