@@ -28,6 +28,9 @@ function test() {
       is(newBrowser.contentWindow.scrollY, 1200, "still scrolled vertically");
 
       gBrowser.removeTab(newTab);
+      
+      
+      e.stopPropagation();
 
       finish();
     }, true);

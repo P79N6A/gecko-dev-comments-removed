@@ -98,6 +98,9 @@ function testTabRestoreData(aFormData, aExpectedValues, aCallback) {
 
       
       gBrowser.removeTab(tab);
+      
+      
+      aEvent.stopPropagation();
       aCallback();
     });
 
