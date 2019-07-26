@@ -6,6 +6,8 @@
 
 #include "nsWrapperCacheInlines.h"
 
+#include "jsproxy.h"
+#include "mozilla/dom/DOMJSProxyHandler.h"
 #include "nsCycleCollectionTraversalCallback.h"
 #include "nsCycleCollector.h"
 
@@ -17,6 +19,22 @@ nsWrapperCache::HoldJSObjects(void* aScriptObjectHolder,
                               nsScriptObjectTracer* aTracer)
 {
   cyclecollector::AddJSHolder(aScriptObjectHolder, aTracer);
+}
+
+void
+nsWrapperCache::ReleaseWrapper(void* aScriptObjectHolder)
+{
+  if (PreservingWrapper()) {
+    
+    
+    
+    JSObject* obj = GetWrapperPreserveColor();
+    if (IsDOMBinding() && obj && js::IsProxy(obj)) {
+      DOMProxyHandler::GetAndClearExpandoObject(obj);
+    }
+    SetPreservingWrapper(false);
+    cyclecollector::RemoveJSHolder(aScriptObjectHolder);
+  }
 }
 
 #ifdef DEBUG

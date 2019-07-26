@@ -1278,9 +1278,6 @@ public:
                                mozilla::DeferredFinalizeFunction aFunc,
                                void* aThing);
 
-  static void ReleaseWrapper(void* aScriptObjectHolder,
-                             nsWrapperCache* aCache);
-
   
 
 

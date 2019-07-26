@@ -694,7 +694,7 @@ nsGenericDOMDataNode::DestroyContent()
 {
   
   
-  nsContentUtils::ReleaseWrapper(this, this);
+  ReleaseWrapper(this);
 }
 
 #ifdef DEBUG

@@ -7788,7 +7788,7 @@ nsDocument::Destroy()
 
   
   
-  nsContentUtils::ReleaseWrapper(static_cast<nsINode*>(this), this);
+  ReleaseWrapper(static_cast<nsINode*>(this));
 }
 
 void
