@@ -751,18 +751,7 @@ public:
     eventInit.mBubbles = false;
     eventInit.mCancelable = false;
     eventInit.mRevisionId = mRevisionId;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
     eventInit.mId = mId;
-
     eventInit.mOperation = mOperation;
     eventInit.mOwner = mOwner;
 
