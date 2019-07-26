@@ -90,6 +90,12 @@ function runSocialTestWithProvider(manifest, callback, finishcallback) {
       removeProvider(m.origin, callback);
     });
   }
+  function finishSocialTest(cleanup) {
+    
+    
+    Services.prefs.clearUserPref("social.enabled");
+    removeAddedProviders(cleanup);
+  }
 
   let providersAdded = 0;
   let firstProvider;
@@ -111,12 +117,6 @@ function runSocialTestWithProvider(manifest, callback, finishcallback) {
         
         Social.provider = firstProvider;
 
-        function finishSocialTest(cleanup) {
-          
-          
-          Services.prefs.clearUserPref("social.enabled");
-          removeAddedProviders(cleanup);
-        }
         registerCleanupFunction(function () {
           finishSocialTest(true);
         });
@@ -169,7 +169,7 @@ function runSocialTests(tests, cbPreTest, cbPostTest, cbFinish) {
 
 
 function checkSocialUI(win) {
-  let win = win || window;
+  win = win || window;
   let doc = win.document;
   let provider = Social.provider;
   let enabled = win.SocialUI.enabled;
