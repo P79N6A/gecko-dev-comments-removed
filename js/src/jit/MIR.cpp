@@ -693,9 +693,12 @@ MCallDOMNative::getAliasSet() const
         
         
         
-        if ((actualType == MIRType_Value || actualType == MIRType_Object) &&
-            (*argType &
-             (JSJitInfo::Boolean | JSJitInfo::String | JSJitInfo::Numeric)))
+        
+        
+        
+        
+        if ((actualType == MIRType_Value || actualType == MIRType_Object) ||
+            (*argType & JSJitInfo::Object))
          {
              return AliasSet::Store(AliasSet::Any);
          }
@@ -704,6 +707,59 @@ MCallDOMNative::getAliasSet() const
     
     
     return AliasSet::Load(AliasSet::DOMProperty);
+}
+
+void
+MCallDOMNative::computeMovable()
+{
+    
+    
+    
+    JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
+
+    const JSJitInfo *jitInfo = getSingleTarget()->jitInfo();
+    JS_ASSERT(jitInfo);
+
+    JS_ASSERT_IF(jitInfo->isMovable,
+                 jitInfo->aliasSet != JSJitInfo::AliasEverything);
+
+    if (jitInfo->isMovable && !isEffectful())
+        setMovable();
+}
+
+bool
+MCallDOMNative::congruentTo(MDefinition *ins) const
+{
+    if (!isMovable())
+        return false;
+
+    if (!ins->isCall())
+        return false;
+
+    MCall *call = ins->toCall();
+
+    if (!call->isCallDOMNative())
+        return false;
+
+    if (getSingleTarget() != call->getSingleTarget())
+        return false;
+
+    if (isConstructing() != call->isConstructing())
+        return false;
+
+    if (numActualArgs() != call->numActualArgs())
+        return false;
+
+    if (needsArgCheck() != call->needsArgCheck())
+        return false;
+
+    if (!congruentIfOperandsEqual(call))
+        return false;
+
+    
+    JS_ASSERT(call->isMovable());
+
+    return true;
 }
 
 MApplyArgs *

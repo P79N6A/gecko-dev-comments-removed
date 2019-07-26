@@ -1830,10 +1830,6 @@ class MCall
         return getOperand(NumNonArgumentOperands + index);
     }
 
-    void replaceArg(uint32_t index, MDefinition *def) {
-        replaceOperand(NumNonArgumentOperands + index, def);
-    }
-
     static size_t IndexOfThis() {
         return NumNonArgumentOperands;
     }
@@ -1877,6 +1873,13 @@ class MCall
     virtual bool isCallDOMNative() const {
         return false;
     }
+
+    
+    
+    
+    
+    virtual void computeMovable() {
+    }
 };
 
 class MCallDOMNative : public MCall
@@ -1897,9 +1900,13 @@ class MCallDOMNative : public MCall
   public:
     virtual AliasSet getAliasSet() const MOZ_OVERRIDE;
 
+    virtual bool congruentTo(MDefinition *ins) const MOZ_OVERRIDE;
+
     virtual bool isCallDOMNative() const MOZ_OVERRIDE {
         return true;
     }
+
+    virtual void computeMovable() MOZ_OVERRIDE;
 };
 
 
