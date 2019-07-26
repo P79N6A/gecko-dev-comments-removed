@@ -200,7 +200,7 @@ public:
 
         
         if (input) {
-          buffer[writeIndex] = input[i];
+          buffer[writeIndex] = input[i] * aInput.mVolume;
         }
 
         
