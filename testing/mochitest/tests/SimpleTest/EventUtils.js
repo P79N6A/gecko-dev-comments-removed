@@ -19,6 +19,14 @@
 
 
 
+window.__defineGetter__('_EU_Ci', function() {
+  return 'Components' in window ? Components.interfaces : SpecialPowers.Ci;
+});
+
+
+
+
+
 
 
 
@@ -116,7 +124,7 @@ function sendKey(aKey, aWindow) {
 
 function _parseModifiers(aEvent)
 {
-  const nsIDOMWindowUtils = Components.interfaces.nsIDOMWindowUtils;
+  const nsIDOMWindowUtils = _EU_Ci.nsIDOMWindowUtils;
   var mval = 0;
   if (aEvent.shiftKey) {
     mval |= nsIDOMWindowUtils.MODIFIER_SHIFT;
@@ -338,7 +346,7 @@ function _computeKeyCodeFromChar(aChar)
   if (aChar.length != 1) {
     return 0;
   }
-  const nsIDOMKeyEvent = Components.interfaces.nsIDOMKeyEvent;
+  const nsIDOMKeyEvent = _EU_Ci.nsIDOMKeyEvent;
   if (aChar >= 'a' && aChar <= 'z') {
     return nsIDOMKeyEvent.DOM_VK_A + aChar.charCodeAt(0) - 'a'.charCodeAt(0);
   }
@@ -635,8 +643,8 @@ function _getDOMWindowUtils(aWindow)
   }
 
   
-  return aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
-                               getInterface(Components.interfaces.nsIDOMWindowUtils);
+  return aWindow.QueryInterface(_EU_Ci.nsIInterfaceRequestor).
+                               getInterface(_EU_Ci.nsIDOMWindowUtils);
 }
 
 

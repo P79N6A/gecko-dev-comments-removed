@@ -68,6 +68,10 @@ function bindDOMWindowUtils(aWindow) {
   return target;
 }
 
+function getRawComponents(aWindow) {
+  return Cu.getComponentsForScope(aWindow);
+}
+
 function isWrappable(x) {
   if (typeof x === "object")
     return x !== null;
@@ -414,6 +418,27 @@ SpecialPowersAPI.prototype = {
   get Services() {
     return wrapPrivileged(Services);
   },
+
+  
+
+
+
+
+  get Cc() { return wrapPrivileged(this.Components).classes; },
+  get Ci() { return this.Components.interfaces; },
+  get Cu() { return wrapPrivileged(this.Components).utils; },
+  get Cr() { return wrapPrivileged(this.Components).results; },
+
+  
+
+
+
+
+
+
+
+
+  getRawComponents: getRawComponents,
 
   getDOMWindowUtils: function(aWindow) {
     if (aWindow == this.window.get() && this.DOMWindowUtils != null)
