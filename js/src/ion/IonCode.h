@@ -105,7 +105,7 @@ class IonCode : public gc::Cell
         return code;
     }
 
-    static size_t OffsetOfCode() {
+    static size_t offsetOfCode() {
         return offsetof(IonCode, code_);
     }
 
@@ -133,6 +133,7 @@ class IonCache;
 
 struct IonScript
 {
+  private:
     
     HeapPtr<IonCode> method_;
 
@@ -205,10 +206,11 @@ struct IonScript
     
     size_t refcount_;
 
+    types::RecompileInfo recompileInfo_;
+
+  public:
     
     uint32 slowCallCount;
-
-    types::RecompileInfo recompileInfo_;
 
     SnapshotOffset *bailoutTable() {
         return (SnapshotOffset *)(reinterpret_cast<uint8 *>(this) + bailoutTable_);
