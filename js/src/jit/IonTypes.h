@@ -7,8 +7,6 @@
 #ifndef jit_IonTypes_h
 #define jit_IonTypes_h
 
-#include "mozilla/TypedEnum.h"
-
 #include "jstypes.h"
 
 #include "js/Value.h"
@@ -325,19 +323,6 @@ enum ABIFunctionType
         (ArgType_Double << (ArgType_Shift * 1)) |
         (ArgType_General << (ArgType_Shift * 2))
 };
-
-MOZ_BEGIN_ENUM_CLASS(BarrierKind, uint32_t)
-    
-    NoBarrier,
-
-    
-    
-    TypeTagOnly,
-
-    
-    
-    TypeSet
-MOZ_END_ENUM_CLASS(BarrierKind)
 
 } 
 } 

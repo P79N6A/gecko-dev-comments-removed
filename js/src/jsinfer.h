@@ -585,12 +585,6 @@ class TypeSet
     bool isSubset(TypeSet *other);
 
     
-
-
-
-    bool objectsAreSubset(TypeSet *other);
-
-    
     bool addTypesToConstraint(JSContext *cx, TypeConstraint *constraint);
 
     
