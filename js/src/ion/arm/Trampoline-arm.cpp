@@ -19,11 +19,29 @@
 using namespace js;
 using namespace js::ion;
 
+static const FloatRegisterSet NonVolatileFloatRegs =
+    FloatRegisterSet((1 << FloatRegisters::d8) |
+                     (1 << FloatRegisters::d9) |
+                     (1 << FloatRegisters::d10) |
+                     (1 << FloatRegisters::d11) |
+                     (1 << FloatRegisters::d12) |
+                     (1 << FloatRegisters::d13) |
+                     (1 << FloatRegisters::d14) |
+                     (1 << FloatRegisters::d15));
+
 static void
 GenerateReturn(MacroAssembler &masm, int returnCode)
 {
     
+    masm.transferMultipleByRuns(NonVolatileFloatRegs, IsLoad, StackPointer, IA);
+
+    
+    masm.as_add(sp, sp, Imm8(4));
+
+    
     masm.ma_mov(Imm32(returnCode), r0);
+
+    
     masm.startDataTransferM(IsLoad, sp, IA, WriteBack);
     masm.transferReg(r4);
     masm.transferReg(r5);
@@ -41,6 +59,15 @@ GenerateReturn(MacroAssembler &masm, int returnCode)
 
 struct EnterJITStack
 {
+    double d8;
+    double d9;
+    double d10;
+    double d11;
+    double d12;
+    double d13;
+    double d14;
+    double d15;
+
     void *r0; 
 
     
@@ -108,6 +135,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.transferReg(lr);  
     
     masm.finishDataTransfer();
+    masm.transferMultipleByRuns(NonVolatileFloatRegs, IsStore, sp, DB);
 
     
     masm.movePtr(sp, r8);
@@ -290,9 +318,6 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     
     
     
-
-    
-    aasm->as_add(sp, sp, Imm8(4));
 
     
     GenerateReturn(masm, JS_TRUE);
