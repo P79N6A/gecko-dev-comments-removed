@@ -1061,6 +1061,7 @@ EnsureKernelLowMemKillerParamsSet()
 
   int32_t lowerBoundOfNextOomScoreAdj = OOM_SCORE_ADJ_MIN - 1;
   int32_t lowerBoundOfNextKillUnderMB = 0;
+  int32_t countOfLowmemorykillerParametersSets = 0;
 
   for (int i = NUM_PROCESS_PRIORITY - 1; i >= 0; i--) {
     
@@ -1081,13 +1082,16 @@ EnsureKernelLowMemKillerParamsSet()
           nsPrintfCString("hal.processPriorityManager.gonk.%s.KillUnderMB",
                           ProcessPriorityToString(priority)).get(),
           &killUnderMB))) {
-      MOZ_CRASH();
+      continue;
     }
 
     
     
     MOZ_ASSERT(oomScoreAdj > lowerBoundOfNextOomScoreAdj);
     MOZ_ASSERT(killUnderMB > lowerBoundOfNextKillUnderMB);
+
+    
+    MOZ_ASSERT(countOfLowmemorykillerParametersSets < 6);
 
     
     adjParams.AppendPrintf("%d,", OomAdjOfOomScoreAdj(oomScoreAdj));
@@ -1097,6 +1101,7 @@ EnsureKernelLowMemKillerParamsSet()
 
     lowerBoundOfNextOomScoreAdj = oomScoreAdj;
     lowerBoundOfNextKillUnderMB = killUnderMB;
+    countOfLowmemorykillerParametersSets++;
   }
 
   
