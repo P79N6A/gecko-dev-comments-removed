@@ -6,7 +6,6 @@
 package org.mozilla.gecko.gfx;
 
 import javax.microedition.khronos.egl.EGL10;
-import javax.microedition.khronos.egl.EGL11;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLContext;
 import javax.microedition.khronos.egl.EGLDisplay;
@@ -24,7 +23,6 @@ public class GLController {
     private EGL10 mEGL;
     private EGLDisplay mEGLDisplay;
     private EGLConfig mEGLConfig;
-    private EGLSurface mEGLSurface;
 
     private static final int LOCAL_EGL_OPENGL_ES2_BIT = 4;
 
@@ -37,42 +35,19 @@ public class GLController {
         EGL10.EGL_NONE
     };
 
-    public GLController(LayerView view) {
+    GLController(LayerView view) {
         mView = view;
         mGLVersion = 2;
         mSurfaceValid = false;
     }
 
-    public void setGLVersion(int version) {
+    
+    void setGLVersion(int version) {
         mGLVersion = version;
     }
 
-    public EGLDisplay getEGLDisplay()       { return mEGLDisplay;         }
-    public EGLConfig getEGLConfig()         { return mEGLConfig;          }
-    public EGLSurface getEGLSurface()       { return mEGLSurface;         }
-    public LayerView getView()              { return mView;               }
-
-    public boolean hasSurface() {
-        return mEGLSurface != null;
-    }
-
-    public boolean swapBuffers() {
-        return mEGL.eglSwapBuffers(mEGLDisplay, mEGLSurface);
-    }
-
-    public boolean checkForLostContext() {
-        if (mEGL.eglGetError() != EGL11.EGL_CONTEXT_LOST) {
-            return false;
-        }
-
-        mEGLDisplay = null;
-        mEGLConfig = null;
-        mEGLSurface = null;
-        return true;
-    }
-
     
-    public void resumeCompositorIfValid() {
+    void resumeCompositorIfValid() {
         synchronized (this) {
             if (!mSurfaceValid) {
                 return;
@@ -82,8 +57,9 @@ public class GLController {
     }
 
     
-    
-    public synchronized void waitForValidSurface() {
+
+
+    synchronized void waitForValidSurface() {
         while (!mSurfaceValid) {
             try {
                 wait();
@@ -91,14 +67,6 @@ public class GLController {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    public synchronized int getWidth() {
-        return mWidth;
-    }
-
-    public synchronized int getHeight() {
-        return mHeight;
     }
 
     synchronized void surfaceDestroyed() {
