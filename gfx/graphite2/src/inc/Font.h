@@ -37,56 +37,52 @@ namespace graphite2 {
 class Font
 {
 public:
-    Font(float ppm, const Face *face);
+    Font(float ppm, const Face & face, const void * appFontHandle=0, const gr_font_ops * ops=0);
     virtual ~Font();
 
-    float advance(unsigned short glyphid) const {
-        if (m_advances[glyphid] == INVALID_ADVANCE)
-            m_advances[glyphid] = computeAdvance(glyphid);
-        return m_advances[glyphid];
-    }
+    float advance(unsigned short glyphid) const;
+    float scale() const;
+    bool isHinted() const;
+    const Face & face() const;
 
-
-    float scale() const { return m_scale; }
-    virtual bool isHinted() const { return false; }
-
-    CLASS_NEW_DELETE
+    CLASS_NEW_DELETE;
 private:
-    virtual float computeAdvance(unsigned short ) const { assert(false); return .0f; };
-    
-protected:
-    float m_scale;      
-    float *m_advances;  
-    
-private:			
+    gr_font_ops         m_ops;
+    const void  * const m_appFontHandle;
+    float             * m_advances;  
+    const Face        & m_face;
+    float               m_scale;      
+    bool                m_hinted;
+
     Font(const Font&);
     Font& operator=(const Font&);
 };
 
-
-class SimpleFont : public Font      
+inline
+float Font::advance(unsigned short glyphid) const
 {
-public:
-    SimpleFont(float ppm, const Face *face);
-private:
-    virtual float computeAdvance(unsigned short glyphid) const;
-private:
-    const Face *m_face;   
-};
+    if (m_advances[glyphid] == INVALID_ADVANCE)
+        m_advances[glyphid] = (*m_ops.glyph_advance_x)(m_appFontHandle, glyphid);
+    return m_advances[glyphid];
+}
 
-
-class HintedFont : public Font
+inline
+float Font::scale() const
 {
-public:
-    HintedFont(float ppm, const void* appFontHandle, gr_advance_fn advance, const Face *face);
-    virtual bool isHinted() const { return true; }
-private:
-    virtual float computeAdvance(unsigned short glyphid) const;
+	return m_scale;
+}
 
-private:
-    const void* m_appFontHandle;
-    gr_advance_fn m_advance;
-};
+inline
+bool Font::isHinted() const
+{
+	return m_hinted;
+}
+
+inline
+const Face & Font::face() const
+{
+    return m_face;
+}
 
 } 
 

@@ -24,21 +24,31 @@
 
 
 
+#include <algorithm>
+#include "inc/Face.h"
 #include "inc/Font.h"
-
+#include "inc/GlyphCache.h"
 
 using namespace graphite2;
 
-Font::Font(float ppm, const Face *face) :
-    m_scale(ppm / face->upem())
+Font::Font(float ppm, const Face & f, const void * appFontHandle, const gr_font_ops * ops)
+: m_appFontHandle(appFontHandle ? appFontHandle : this),
+  m_face(f),
+  m_scale(ppm / f.glyphs().unitsPerEm()),
+  m_hinted(appFontHandle && ops && (ops->glyph_advance_x || ops->glyph_advance_y))
 {
-    size_t nGlyphs=face->numGlyphs();
+    memset(&m_ops, 0, sizeof m_ops);
+    if (m_hinted)
+        memcpy(&m_ops, ops, std::min(sizeof m_ops, ops->size));
+    else
+        m_ops.glyph_advance_x = &Face::default_glyph_advance;
+
+    size_t nGlyphs = f.glyphs().numGlyphs();
     m_advances = gralloc<float>(nGlyphs);
     if (m_advances)
     {
-        float *advp = m_advances;
-        for (size_t i = 0; i < nGlyphs; i++)
-        { *advp++ = INVALID_ADVANCE; }
+        for (float *advp = m_advances; nGlyphs; --nGlyphs, ++advp)
+        	*advp = INVALID_ADVANCE;
     }
 }
 
@@ -46,34 +56,6 @@ Font::Font(float ppm, const Face *face) :
  Font::~Font()
 {
 	free(m_advances);
-}
-
-
-SimpleFont::SimpleFont(float ppm, const Face *face) :
-  Font(ppm, face),
-  m_face(face)
-{
-}
-  
-  
- float SimpleFont::computeAdvance(unsigned short glyphid) const
-{
-    return m_face->getAdvance(glyphid, m_scale);
-}
-
-
-
-HintedFont::HintedFont(float ppm, const void* appFontHandle, gr_advance_fn advance2, const Face *face) :
-    Font(ppm, face), 
-    m_appFontHandle(appFontHandle),
-    m_advance(advance2)
-{
-}
-
-
- float HintedFont::computeAdvance(unsigned short glyphid) const
-{
-    return (*m_advance)(m_appFontHandle, glyphid);
 }
 
 

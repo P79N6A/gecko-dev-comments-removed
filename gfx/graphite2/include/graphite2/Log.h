@@ -27,7 +27,14 @@
 #pragma once
 
 #include <graphite2/Types.h>
+#include <graphite2/Font.h>
 #include <stdio.h>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 
 typedef enum {
     GRLOG_NONE = 0x0,
@@ -42,12 +49,35 @@ typedef enum {
 
 
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 
-GR2_API bool graphite_start_logging(FILE * logFile, GrLogMask mask);		
+
+
+
+
+
+
+GR2_API bool gr_start_logging(gr_face * face, const char *log_path);
+
+
+
+
+
+
+
+GR2_API void gr_stop_logging(gr_face * face);
+
+
+
+
+
+
+
+
+GR2_API bool graphite_start_logging(FILE * logFile, GrLogMask mask);    
+
+
+
+
 GR2_API void graphite_stop_logging();
 
 #ifdef __cplusplus

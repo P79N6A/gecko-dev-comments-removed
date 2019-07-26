@@ -24,22 +24,11 @@
 
 
 
-
+#include <cassert>
 #include "inc/Sparse.h"
+#include "inc/bits.h"
 
 using namespace graphite2;
-
-namespace
-{
-	template<typename T>
-	inline unsigned int bit_set_count(T v)
-	{
-		v = v - ((v >> 1) & T(~T(0)/3));                           
-		v = (v & T(~T(0)/15*3)) + ((v >> 2) & T(~T(0)/15*3));      
-		v = (v + (v >> 4)) & T(~T(0)/255*15);                      
-		return (T)(v * T(~T(0)/255)) >> (sizeof(T)-1)*8;           
-	}
-}
 
 
 sparse::~sparse() throw()
@@ -48,15 +37,13 @@ sparse::~sparse() throw()
 }
 
 
-sparse::value sparse::operator [] (int k) const throw()
+sparse::mapped_type sparse::operator [] (const key_type k) const throw()
 {
-	value g = value(k < m_nchunks*SIZEOF_CHUNK);	
-	k *= g;									
 	const chunk & 		c = m_array.map[k/SIZEOF_CHUNK];
 	const mask_t 		m = c.mask >> (SIZEOF_CHUNK - 1 - (k%SIZEOF_CHUNK));
-	g *= m & 1;			
+	const mapped_type   g = m & 1;
 
-	return g*m_array.values[c.offset + g*bit_set_count(m >> 1)];
+	return g*m_array.values[g*(c.offset + bit_set_count(m >> 1))];
 }
 
 

@@ -30,6 +30,7 @@
 #include "graphite2/Segment.h"
 #include "inc/Main.h"
 #include "inc/Font.h"
+#include "inc/Position.h"
 
 
 
@@ -37,8 +38,25 @@ namespace graphite2 {
 
 typedef gr_attrCode attrCode;
 
+class GlyphFace;
 class Segment;
 class SegCacheEntry;
+
+struct SlotJustify
+{
+    static const int NUMJUSTPARAMS = 5;
+
+    SlotJustify(const SlotJustify &);
+    SlotJustify & operator = (const SlotJustify &);
+
+public:
+    static size_t size_of(size_t levels) { return sizeof(SlotJustify) + ((levels > 1 ? levels : 1)*NUMJUSTPARAMS - 1)*sizeof(int16); }
+
+    void LoadSlot(const Slot *s, const Segment *seg);
+
+    SlotJustify *next;
+    int16 values[1];
+};
 
 class Slot
 {
@@ -64,7 +82,7 @@ public:
     void index(uint32 val) { m_index = val; }
 
     Slot();
-    void set(const Slot & slot, int charOffset, uint8 numUserAttr);
+    void set(const Slot & slot, int charOffset, size_t numUserAttr, size_t justLevels);
     Slot *next() const { return m_next; }
     void next(Slot *s) { m_next = s; }
     Slot *prev() const { return m_prev; }
@@ -80,7 +98,7 @@ public:
     void after(int ind) { m_after = ind; }
     bool isBase() const { return (!m_parent); }
     void update(int numSlots, int numCharInfo, Position &relpos);
-    Position finalise(const Segment* seg, const Font* font, Position & base, Rect & bbox, float & cMin, uint8 attrLevel, float & clusterMin);
+    Position finalise(const Segment* seg, const Font* font, Position & base, Rect & bbox, uint8 attrLevel, float & clusterMin);
     bool isDeleted() const { return (m_flags & DELETED) ? true : false; }
     void markDeleted(bool state) { if (state) m_flags |= DELETED; else m_flags &= ~DELETED; }
     bool isCopied() const { return (m_flags & COPIED) ? true : false; }
@@ -92,11 +110,14 @@ public:
     void setBidiLevel(uint8 level) { m_bidiLevel = level; }
     uint8 getBidiClass() const { return m_bidiCls; }
     void setBidiClass(uint8 cls) { m_bidiCls = cls; }
-    int16 *userAttrs() { return m_userAttr; }
+    int16 *userAttrs() const { return m_userAttr; }
     void userAttrs(int16 *p) { m_userAttr = p; }
     void markInsertBefore(bool state) { if (!state) m_flags |= INSERTED; else m_flags &= ~INSERTED; }
     void setAttr(Segment* seg, attrCode ind, uint8 subindex, int16 val, const SlotMap & map);
     int getAttr(const Segment *seg, attrCode ind, uint8 subindex) const;
+    int getJustify(const Segment *seg, uint8 level, uint8 subindex) const;
+    void setJustify(Segment *seg, uint8 level, uint8 subindex, int16 value);
+    bool isLocalJustify() const { return m_justs != NULL; };
     void attachTo(Slot *ap) { m_parent = ap; }
     Slot *attachedTo() const { return m_parent; }
     Position attachOffset() const { return m_attach - m_with; }
@@ -134,7 +155,8 @@ private:
     byte     m_attLevel;    
     byte     m_bidiCls;     
     byte     m_bidiLevel;   
-    int16   *m_userAttr;     
+    int16   *m_userAttr;    
+    SlotJustify *m_justs;   
 
     friend class SegCacheEntry;
     friend class Segment;

@@ -35,10 +35,12 @@
 #include <cstring>
 #include "graphite2/Segment.h"
 #include "inc/Code.h"
-#include "inc/Machine.h"
-#include "inc/Silf.h"
 #include "inc/Face.h"
+#include "inc/GlyphFace.h"
+#include "inc/GlyphCache.h"
+#include "inc/Machine.h"
 #include "inc/Rule.h"
+#include "inc/Silf.h"
 
 #include <cstdio>
 
@@ -139,7 +141,7 @@ inline Machine::Code::decoder::decoder(const limits & lims, Code &code) throw()
 
 Machine::Code::Code(bool is_constraint, const byte * bytecode_begin, const byte * const bytecode_end,
            uint8 pre_context, uint16 rule_length, const Silf & silf, const Face & face)
- :  _code(0), _data_size(0), _instr_count(0), _status(loaded),
+ :  _code(0), _data(0), _data_size(0), _instr_count(0), _max_ref(0), _status(loaded),
     _constraint(is_constraint), _modify(false), _delete(false), _own(true)
 {
     assert(bytecode_begin != 0);
@@ -168,7 +170,7 @@ Machine::Code::Code(bool is_constraint, const byte * bytecode_begin, const byte 
         pre_context,
         rule_length,
         silf.numClasses(),
-        face.getGlyphFaceCache()->numAttrs(),
+        face.glyphs().numAttrs(),
         face.numFeatures(), 
         {1,1,1,1,1,1,1,1, 
          1,1,1,1,1,1,1,255,
@@ -431,6 +433,7 @@ void Machine::Code::decoder::analyse_opcode(const opcode opc, const int8  * arg)
     }
     case PUSH_ATT_TO_GATTR_OBS : 
         if (_code._constraint) return;
+        
     case PUSH_GLYPH_ATTR_OBS :
     case PUSH_SLOT_ATTR :
     case PUSH_GLYPH_METRIC :
@@ -443,6 +446,7 @@ void Machine::Code::decoder::analyse_opcode(const opcode opc, const int8  * arg)
       break;
     case PUSH_ATT_TO_GLYPH_ATTR :
         if (_code._constraint) return;
+        
     case PUSH_GLYPH_ATTR :
       if (arg[2] <= 0 && -arg[2] <= _analysis.slotref - _analysis.contexts[_analysis.slotref].flags.inserted)
         _analysis.set_ref(_analysis.slotref + arg[2] - _analysis.contexts[_analysis.slotref].flags.inserted);

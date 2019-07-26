@@ -29,8 +29,8 @@
 #include "graphite2/Types.h"
 
 #define GR2_VERSION_MAJOR   1
-#define GR2_VERSION_MINOR   1
-#define GR2_VERSION_BUGFIX  3
+#define GR2_VERSION_MINOR   2
+#define GR2_VERSION_BUGFIX  0
 
 #ifdef __cplusplus
 extern "C"
@@ -67,6 +67,27 @@ enum gr_face_options {
 };
 
 
+struct gr_faceinfo {
+    gr_uint16 extra_ascent;     
+    gr_uint16 extra_descent;    
+    gr_uint16 upem;             
+    enum gr_space_contextuals {
+        gr_space_unknown = 0,       
+        gr_space_none = 1,          
+        gr_space_left_only = 2,     
+        gr_space_right_only = 3,    
+        gr_space_either_only = 4,   
+        gr_space_both = 5,          
+        gr_space_cross = 6          
+    } space_contextuals;
+    unsigned int has_bidi_pass : 1; 
+    unsigned int line_ends : 1;     
+    unsigned int justifies : 1;     
+};
+
+typedef struct gr_faceinfo gr_faceinfo;
+
+
 
 
 
@@ -81,11 +102,58 @@ typedef const void *(*gr_get_table_fn)(const void* appFaceHandle, unsigned int n
 
 
 
+typedef void (*gr_release_table_fn)(const void* appFaceHandle, const void *table_buffer);
+
+
+struct gr_face_ops
+{
+        
+    size_t              size;
+        
+	gr_get_table_fn 	get_table;
+        
+
+	gr_release_table_fn	release_table;  
+};
+typedef struct gr_face_ops	gr_face_ops;
+
+
+
+
+
+
+
+
+
+
+
+
+GR2_API gr_face* gr_make_face_with_ops(const void* appFaceHandle, const gr_face_ops *face_ops, unsigned int faceOptions);
+
+
+
+
+
+
+
 
 
 
 
 GR2_API gr_face* gr_make_face(const void* appFaceHandle, gr_get_table_fn getTable, unsigned int faceOptions);
+
+
+
+
+
+
+
+
+
+
+
+
+GR2_API gr_face* gr_make_face_with_seg_cache_and_ops(const void* appFaceHandle, const gr_face_ops *face_ops, unsigned int segCacheMaxSize, unsigned int faceOptions);
 
 
 
@@ -154,6 +222,18 @@ GR2_API void gr_face_destroy(gr_face *face);
 
 GR2_API unsigned short gr_face_n_glyphs(const gr_face* pFace);
 
+
+GR2_API const gr_faceinfo *gr_face_info(const gr_face *pFace, gr_uint32 script);
+
+
+
+
+
+
+
+
+GR2_API int gr_face_is_char_supported(const gr_face *pFace, gr_uint32 usv, gr_uint32 script);
+
 #ifndef GRAPHITE2_NFILEFACE
 
 
@@ -184,17 +264,57 @@ GR2_API gr_face* gr_make_file_face_with_seg_cache(const char *filename, unsigned
 GR2_API gr_font* gr_make_font(float ppm, const gr_face *face);
 
 
+
+
+
+
 typedef float (*gr_advance_fn)(const void* appFontHandle, gr_uint16 glyphid);
 
 
 
+struct gr_font_ops
+{
+        
+    size_t              size;
+        
+
+
+
+    gr_advance_fn       glyph_advance_x;
+        
+
+
+
+    gr_advance_fn       glyph_advance_y;
+};
+typedef struct gr_font_ops  gr_font_ops;
 
 
 
 
 
 
-GR2_API gr_font* gr_make_font_with_advance_fn(float ppm, const void* appFontHandle, gr_advance_fn advance, const gr_face *face);
+
+
+
+
+
+
+GR2_API gr_font* gr_make_font_with_ops(float ppm, const void* appFontHandle, const gr_font_ops * font_ops, const gr_face *face);
+
+
+
+
+
+
+
+
+
+
+
+
+
+GR2_API gr_font* gr_make_font_with_advance_fn(float ppm, const void* appFontHandle, gr_advance_fn getAdvance, const gr_face *face);
 
 
 GR2_API void gr_font_destroy(gr_font *font);

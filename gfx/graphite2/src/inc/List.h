@@ -28,6 +28,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cassert>
 #include <cstring>
 #include <cstdlib>

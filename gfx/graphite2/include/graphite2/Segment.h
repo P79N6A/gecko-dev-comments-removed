@@ -52,6 +52,8 @@ enum gr_break_weight {
 
 enum gr_justFlags {
     
+    gr_justCompleteLine = 0,
+    
     gr_justStartInline = 1,
     
     gr_justEndInline = 2
@@ -272,7 +274,10 @@ GR2_API const gr_slot* gr_seg_last_slot(gr_segment* pSeg);
 
 
 
-GR2_API void gr_seg_justify(gr_segment* pSeg, gr_slot* pStart, const gr_font *pFont, double width, enum gr_justFlags flags, gr_slot* pFirst, gr_slot* pLast);
+
+
+
+GR2_API float gr_seg_justify(gr_segment* pSeg, const gr_slot* pStart, const gr_font *pFont, double width, enum gr_justFlags flags, const gr_slot* pFirst, const gr_slot* pLast);
 
 
 
