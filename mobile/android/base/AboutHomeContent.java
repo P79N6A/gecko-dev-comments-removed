@@ -146,6 +146,7 @@ public class AboutHomeContent extends ScrollView
         
         
         mTabsContentObserver = new ContentObserver(GeckoAppShell.getHandler()) {
+            @Override
             public void onChange(boolean selfChange) {
                 update(EnumSet.of(AboutHomeContent.UpdateFlags.REMOTE_TABS));
             }

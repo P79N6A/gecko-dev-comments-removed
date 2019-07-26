@@ -52,6 +52,7 @@ public class GeckoMenuInflater extends MenuInflater {
         isSubMenu = false;
     }
 
+    @Override
     public void inflate(int menuRes, Menu menu) {
 
         

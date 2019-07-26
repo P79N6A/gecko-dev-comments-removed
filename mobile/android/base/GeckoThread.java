@@ -90,6 +90,7 @@ public class GeckoThread extends Thread implements GeckoEventListener {
         return (args != null ? args : "") + profile;
     }
 
+    @Override
     public void run() {
         
         

@@ -244,6 +244,7 @@ final class DisplayPortCalculator {
             
         }
 
+        @Override
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
             return new DisplayPortMetrics(metrics.viewportRectLeft,
                     metrics.viewportRectTop,
@@ -252,6 +253,7 @@ final class DisplayPortCalculator {
                     metrics.zoomFactor);
         }
 
+        @Override
         public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
             return true;
         }
@@ -286,6 +288,7 @@ final class DisplayPortCalculator {
             DANGER_ZONE_Y_MULTIPLIER = getFloatPref(prefs, PREF_DISPLAYPORT_FM_DANGER_Y, 200);
         }
 
+        @Override
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
             float displayPortWidth = metrics.getWidth() * SIZE_MULTIPLIER;
             float displayPortHeight = metrics.getHeight() * SIZE_MULTIPLIER;
@@ -313,6 +316,7 @@ final class DisplayPortCalculator {
             return getTileAlignedDisplayPortMetrics(margins, metrics.zoomFactor, metrics);
         }
 
+        @Override
         public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
             
             
@@ -395,6 +399,7 @@ final class DisplayPortCalculator {
             return margins;
         }
 
+        @Override
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
             float displayPortWidth = metrics.getWidth() * SIZE_MULTIPLIER;
             float displayPortHeight = metrics.getHeight() * SIZE_MULTIPLIER;
@@ -422,6 +427,7 @@ final class DisplayPortCalculator {
             return getTileAlignedDisplayPortMetrics(margins, metrics.zoomFactor, metrics);
         }
 
+        @Override
         public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
             
             float dangerZoneX = metrics.getWidth() * (DANGER_ZONE_BASE_X_MULTIPLIER + (velocity.x * DANGER_ZONE_INCR_X_MULTIPLIER));
@@ -518,6 +524,7 @@ final class DisplayPortCalculator {
             
         }
 
+        @Override
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
             float displayPortWidth = metrics.getWidth() * SIZE_MULTIPLIER;
             float displayPortHeight = metrics.getHeight() * SIZE_MULTIPLIER;
@@ -617,6 +624,7 @@ final class DisplayPortCalculator {
             }
         }
 
+        @Override
         public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
             
             
@@ -674,6 +682,7 @@ final class DisplayPortCalculator {
             resetPageState();
         }
 
+        @Override
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
             float width = metrics.getWidth();
             float height = metrics.getHeight();
@@ -710,6 +719,7 @@ final class DisplayPortCalculator {
             return getTileAlignedDisplayPortMetrics(margins, metrics.zoomFactor, metrics);
         }
 
+        @Override
         public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
             
             

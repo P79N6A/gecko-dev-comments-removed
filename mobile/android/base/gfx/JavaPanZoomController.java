@@ -684,6 +684,7 @@ class JavaPanZoomController
             mBounceEndMetrics = endMetrics;
         }
 
+        @Override
         protected void animateFrame() {
             
 
@@ -728,6 +729,7 @@ class JavaPanZoomController
 
     
     private class FlingRunnable extends AnimationRunnable {
+        @Override
         protected void animateFrame() {
             
 
