@@ -3881,7 +3881,7 @@ TryAttachGetElemStub(JSContext *cx, HandleScript script, jsbytecode *pc, ICGetEl
     }
 
     
-    if (obj->is<TypedArrayObject>() && rhs.isInt32() && res.isNumber() &&
+    if (obj->is<TypedArrayObject>() && rhs.isNumber() && res.isNumber() &&
         !TypedArrayGetElemStubExists(stub, obj))
     {
         
@@ -3891,8 +3891,11 @@ TryAttachGetElemStub(JSContext *cx, HandleScript script, jsbytecode *pc, ICGetEl
 #endif
 
         Rooted<TypedArrayObject*> tarr(cx, &obj->as<TypedArrayObject>());
-        if (!cx->runtime()->jitSupportsFloatingPoint && TypedArrayRequiresFloatingPoint(tarr))
+        if (!cx->runtime()->jitSupportsFloatingPoint &&
+            (TypedArrayRequiresFloatingPoint(tarr) || rhs.isDouble()))
+        {
             return true;
+        }
 
         IonSpew(IonSpew_BaselineIC, "  Generating GetElem(TypedArray[Int32]) stub");
         ICGetElem_TypedArray::Compiler compiler(cx, tarr->lastProperty(), tarr->type());
@@ -4502,7 +4505,6 @@ ICGetElem_TypedArray::Compiler::generateStubCode(MacroAssembler &masm)
 {
     Label failure;
     masm.branchTestObject(Assembler::NotEqual, R0, &failure);
-    masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
 
     GeneralRegisterSet regs(availableGeneralRegs(2));
     Register scratchReg = regs.takeAny();
@@ -4511,6 +4513,24 @@ ICGetElem_TypedArray::Compiler::generateStubCode(MacroAssembler &masm)
     Register obj = masm.extractObject(R0, ExtractTemp0);
     masm.loadPtr(Address(BaselineStubReg, ICGetElem_TypedArray::offsetOfShape()), scratchReg);
     masm.branchTestObjShape(Assembler::NotEqual, obj, scratchReg, &failure);
+
+    
+    if (cx->runtime()->jitSupportsFloatingPoint) {
+        Label isInt32;
+        masm.branchTestInt32(Assembler::Equal, R1, &isInt32);
+        {
+            
+            
+            
+            masm.branchTestDouble(Assembler::NotEqual, R1, &failure);
+            masm.unboxDouble(R1, FloatReg0);
+            masm.convertDoubleToInt32(FloatReg0, scratchReg, &failure, false);
+            masm.tagValue(JSVAL_TYPE_INT32, scratchReg, R1);
+        }
+        masm.bind(&isInt32);
+    } else {
+        masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
+    }
 
     
     Register key = masm.extractInt32(R1, ExtractTemp1);
@@ -4940,14 +4960,17 @@ DoSetElemFallback(JSContext *cx, BaselineFrame *frame, ICSetElem_Fallback *stub,
         return true;
     }
 
-    if (obj->is<TypedArrayObject>() && index.isInt32() && rhs.isNumber()) {
+    if (obj->is<TypedArrayObject>() && index.isNumber() && rhs.isNumber()) {
         Rooted<TypedArrayObject*> tarr(cx, &obj->as<TypedArrayObject>());
-        if (!cx->runtime()->jitSupportsFloatingPoint && TypedArrayRequiresFloatingPoint(tarr))
+        if (!cx->runtime()->jitSupportsFloatingPoint &&
+            (TypedArrayRequiresFloatingPoint(tarr) || index.isDouble()))
+        {
             return true;
+        }
 
         uint32_t len = tarr->length();
-        int32_t idx = index.toInt32();
-        bool expectOutOfBounds = (idx < 0) || (static_cast<uint32_t>(idx) >= len);
+        double idx = index.toNumber();
+        bool expectOutOfBounds = (idx < 0 || idx >= double(len));
 
         if (!TypedArraySetElemStubExists(stub, tarr, expectOutOfBounds)) {
             
@@ -5340,7 +5363,6 @@ ICSetElem_TypedArray::Compiler::generateStubCode(MacroAssembler &masm)
 {
     Label failure;
     masm.branchTestObject(Assembler::NotEqual, R0, &failure);
-    masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
 
     GeneralRegisterSet regs(availableGeneralRegs(2));
     Register scratchReg = regs.takeAny();
@@ -5349,6 +5371,24 @@ ICSetElem_TypedArray::Compiler::generateStubCode(MacroAssembler &masm)
     Register obj = masm.extractObject(R0, ExtractTemp0);
     masm.loadPtr(Address(BaselineStubReg, ICSetElem_TypedArray::offsetOfShape()), scratchReg);
     masm.branchTestObjShape(Assembler::NotEqual, obj, scratchReg, &failure);
+
+    
+    if (cx->runtime()->jitSupportsFloatingPoint) {
+        Label isInt32;
+        masm.branchTestInt32(Assembler::Equal, R1, &isInt32);
+        {
+            
+            
+            
+            masm.branchTestDouble(Assembler::NotEqual, R1, &failure);
+            masm.unboxDouble(R1, FloatReg0);
+            masm.convertDoubleToInt32(FloatReg0, scratchReg, &failure, false);
+            masm.tagValue(JSVAL_TYPE_INT32, scratchReg, R1);
+        }
+        masm.bind(&isInt32);
+    } else {
+        masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
+    }
 
     
     Register key = masm.extractInt32(R1, ExtractTemp1);
