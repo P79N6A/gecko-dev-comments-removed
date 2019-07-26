@@ -7,6 +7,7 @@
 
 #include "LayerTransactionChild.h"
 #include "mozilla/layers/CompositableClient.h"  
+#include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/PCompositableChild.h"  
 #include "mozilla/layers/PLayerChild.h"  
 #include "mozilla/mozalloc.h"           
@@ -17,6 +18,7 @@
 namespace mozilla {
 namespace layers {
 
+class PGrallocBufferChild;
 
 void
 LayerTransactionChild::Destroy()
@@ -27,6 +29,31 @@ LayerTransactionChild::Destroy()
   
 }
 
+PGrallocBufferChild*
+LayerTransactionChild::AllocPGrallocBufferChild(const IntSize&,
+                                                const uint32_t&,
+                                                const uint32_t&,
+                                                MaybeMagicGrallocBufferHandle*)
+{
+#ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
+  return GrallocBufferActor::Create();
+#else
+  NS_RUNTIMEABORT("No gralloc buffers for you");
+  return nullptr;
+#endif
+}
+
+bool
+LayerTransactionChild::DeallocPGrallocBufferChild(PGrallocBufferChild* actor)
+{
+#ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
+  delete actor;
+  return true;
+#else
+  NS_RUNTIMEABORT("Um, how did we get here?");
+  return false;
+#endif
+}
 
 PLayerChild*
 LayerTransactionChild::AllocPLayerChild()

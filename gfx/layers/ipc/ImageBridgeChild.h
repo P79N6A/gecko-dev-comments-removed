@@ -13,6 +13,7 @@
 #include "mozilla/ipc/SharedMemory.h"   
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/PImageBridgeChild.h"
 #include "nsDebug.h"                    
 #include "nsRegion.h"                   
@@ -186,6 +187,13 @@ public:
 
   ~ImageBridgeChild();
 
+  virtual PGrallocBufferChild*
+  AllocPGrallocBufferChild(const gfx::IntSize&, const uint32_t&, const uint32_t&,
+                           MaybeMagicGrallocBufferHandle*) MOZ_OVERRIDE;
+
+  virtual bool
+  DeallocPGrallocBufferChild(PGrallocBufferChild* actor) MOZ_OVERRIDE;
+
   virtual PTextureChild*
   AllocPTextureChild(const SurfaceDescriptor& aSharedData, const TextureFlags& aFlags) MOZ_OVERRIDE;
 
@@ -302,6 +310,10 @@ public:
 
   virtual bool IsSameProcess() const MOZ_OVERRIDE;
 
+  void AllocGrallocBufferNow(const gfx::IntSize& aSize,
+                             uint32_t aFormat, uint32_t aUsage,
+                             MaybeMagicGrallocBufferHandle* aHandle,
+                             PGrallocBufferChild** aChild);
 protected:
   ImageBridgeChild();
   bool DispatchAllocShmemInternal(size_t aSize,
@@ -310,6 +322,13 @@ protected:
                                   bool aUnsafe);
 
   CompositableTransaction* mTxn;
+
+  
+  virtual PGrallocBufferChild* AllocGrallocBuffer(const gfx::IntSize& aSize,
+                                                  uint32_t aFormat, uint32_t aUsage,
+                                                  MaybeMagicGrallocBufferHandle* aHandle) MOZ_OVERRIDE;
+
+  virtual void DeallocGrallocBuffer(PGrallocBufferChild* aChild) MOZ_OVERRIDE;
 };
 
 } 

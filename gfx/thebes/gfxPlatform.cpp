@@ -10,7 +10,6 @@
 #include "mozilla/layers/CompositorChild.h"
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/ImageBridgeChild.h"
-#include "mozilla/layers/SharedBufferManagerChild.h"
 #include "mozilla/layers/ISurfaceAllocator.h"     
 
 #include "prlog.h"
@@ -376,9 +375,6 @@ gfxPlatform::Init()
         if (gfxPrefs::AsyncVideoEnabled()) {
             ImageBridgeChild::StartUp();
         }
-#ifdef MOZ_WIDGET_GONK
-        SharedBufferManagerChild::StartUp();
-#endif
     }
 
     nsresult rv;
@@ -500,9 +496,7 @@ gfxPlatform::Shutdown()
     
     
     ImageBridgeChild::ShutDown();
-#ifdef MOZ_WIDGET_GONK
-    SharedBufferManagerChild::ShutDown();
-#endif
+
     CompositorParent::ShutDown();
 
     delete gGfxPlatformPrefsLock;
