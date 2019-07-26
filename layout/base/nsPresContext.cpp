@@ -2544,20 +2544,19 @@ nsRootPresContext::ComputePluginGeometryUpdates(nsIFrame* aFrame,
   mRegisteredPlugins.EnumerateEntries(SetPluginHidden, aFrame);
 
   nsIFrame* rootFrame = FrameManager()->GetRootFrame();
-  if (!rootFrame) {
-    return;
-  }
 
-  aBuilder->SetForPluginGeometry();
-  aBuilder->SetAccurateVisibleRegions();
-  
-  
-  
-  aBuilder->SetAllowMergingAndFlattening(false);
-  nsRegion region = rootFrame->GetVisualOverflowRectRelativeToSelf();
-  
-  
-  aList->ComputeVisibilityForRoot(aBuilder, &region);
+  if (rootFrame && aBuilder->ContainsPluginItem()) {
+    aBuilder->SetForPluginGeometry();
+    aBuilder->SetAccurateVisibleRegions();
+    
+    
+    
+    aBuilder->SetAllowMergingAndFlattening(false);
+    nsRegion region = rootFrame->GetVisualOverflowRectRelativeToSelf();
+    
+    
+    aList->ComputeVisibilityForRoot(aBuilder, &region);
+  }
 
   InitApplyPluginGeometryTimer();
 }
