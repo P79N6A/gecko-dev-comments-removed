@@ -31,6 +31,7 @@ function createDocument() {
       div2 = iframe2.contentDocument.createElement('div');
       div2.textContent = 'nested div';
       iframe2.contentDocument.body.appendChild(div2);
+
       
       openInspector(aInspector => {
         inspector = aInspector;
