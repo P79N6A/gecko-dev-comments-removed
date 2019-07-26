@@ -41,6 +41,7 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/MouseEvents.h"
 #include "GLConsts.h"
+#include "LayerScope.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -161,6 +162,8 @@ static void DeferredDestroyCompositor(CompositorParent* aCompositorParent,
 
 void nsBaseWidget::DestroyCompositor()
 {
+  LayerScope::DestroyServerSocket();
+
   if (mCompositorChild) {
     mCompositorChild->SendWillStop();
     mCompositorChild->Destroy();
@@ -949,6 +952,9 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
   if (!mShutdownObserver) {
     return;
   }
+
+  
+  LayerScope::CreateServerSocket();
 
   mCompositorParent = NewCompositorParent(aWidth, aHeight);
   MessageChannel *parentChannel = mCompositorParent->GetIPCChannel();

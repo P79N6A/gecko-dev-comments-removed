@@ -2734,6 +2734,14 @@ public:
         return nullptr;
     }
 
+private:
+    
+
+
+    GLuint TextureImageProgramFor(GLenum aTextureTarget, int aShader);
+    bool ReadBackPixelsIntoSurface(gfxImageSurface* aSurface, const gfxIntSize& aSize);
+
+public:
     
 
 
@@ -2745,12 +2753,19 @@ public:
 
 
 
-    already_AddRefed<gfxImageSurface> ReadTextureImage(GLuint aTexture,
+
+
+
+
+    already_AddRefed<gfxImageSurface> ReadTextureImage(GLuint aTextureId,
+                                                       GLenum aTextureTarget,
                                                        const gfxIntSize& aSize,
-                                                       GLenum aTextureFormat,
+                                int aShaderProgram,
                                                        bool aYInvert = false);
 
-    already_AddRefed<gfxImageSurface> GetTexImage(GLuint aTexture, bool aYInvert, SurfaceFormat aFormat);
+    already_AddRefed<gfxImageSurface> GetTexImage(GLuint aTexture,
+                                                  bool aYInvert,
+                                                  SurfaceFormat aFormat);
 
     
 
@@ -3110,6 +3125,8 @@ public:
 
 protected:
     nsDataHashtable<nsPtrHashKey<void>, void*> mUserData;
+
+    GLuint mReadTextureImagePrograms[4];
 
     bool InitWithPrefix(const char *prefix, bool trygl);
 
