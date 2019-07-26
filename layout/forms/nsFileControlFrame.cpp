@@ -343,42 +343,7 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                      const nsRect&           aDirtyRect,
                                      const nsDisplayListSet& aLists)
 {
-  
-  if (StyleBorder()->mBoxShadow) {
-    aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-      nsDisplayBoxShadowOuter(aBuilder, this));
-  }
-
-  
-  nsRect clipRect(aBuilder->ToReferenceFrame(this), GetSize());
-  clipRect.width = GetVisualOverflowRect().XMost();
-
-  nsDisplayListCollection tempList;
-  {
-    DisplayListClipState::AutoSaveRestore clipState(aBuilder);
-    clipState.ClipContainingBlockDescendants(clipRect, nullptr);
-
-    
-    
-    
-    
-    nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, tempList);
-  }
-
-  tempList.BorderBackground()->DeleteAll();
-
-  tempList.MoveTo(aLists);
-
-  
-  
-  
-  nsEventStates eventStates = mContent->AsElement()->State();
-  if (eventStates.HasState(NS_EVENT_STATE_DISABLED) && IsVisibleForPainting(aBuilder)) {
-    aLists.Content()->AppendNewToTop(
-      new (aBuilder) nsDisplayEventReceiver(aBuilder, this));
-  }
-
-  DisplaySelectionOverlay(aBuilder, aLists.Content());
+  BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
 }
 
 #ifdef ACCESSIBILITY
