@@ -8982,12 +8982,13 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     if (!bIsJavascript) {
         MaybeInitTiming();
     }
-    if (mTiming) {
+    bool timeBeforeUnload = mTiming && aFileName.IsVoid();
+    if (timeBeforeUnload) {
       mTiming->NotifyBeforeUnload();
     }
     
     
-    if (!bIsJavascript && mContentViewer) {
+    if (!bIsJavascript && aFileName.IsVoid() && mContentViewer) {
         bool okToUnload;
         rv = mContentViewer->PermitUnload(false, &okToUnload);
 
@@ -8998,7 +8999,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         }
     }
 
-    if (mTiming) {
+    if (timeBeforeUnload) {
       mTiming->NotifyUnloadAccepted(mCurrentURI);
     }
 
