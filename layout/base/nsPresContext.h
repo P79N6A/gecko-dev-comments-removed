@@ -537,16 +537,30 @@ public:
 
 
 
+
+
   int32_t MinFontSize(nsIAtom *aLanguage) const {
     const LangGroupFontPrefs *prefs = GetFontPrefsForLang(aLanguage);
-    return std::max(mMinFontSize, prefs->mMinimumFontSize);
+    return std::max(mBaseMinFontSize, prefs->mMinimumFontSize);
   }
+  
+  
 
-  void SetMinFontSize(int32_t aMinFontSize) {
-    if (aMinFontSize == mMinFontSize)
+
+
+  int32_t BaseMinFontSize() const {
+    return mBaseMinFontSize;
+  }
+  
+  
+
+
+
+  void SetBaseMinFontSize(int32_t aMinFontSize) {
+    if (aMinFontSize == mBaseMinFontSize)
       return;
 
-    mMinFontSize = aMinFontSize;
+    mBaseMinFontSize = aMinFontSize;
     if (HasCachedStyleData()) {
       
       
@@ -1179,7 +1193,8 @@ protected:
 
   PRCList               mDOMMediaQueryLists;
 
-  int32_t               mMinFontSize;   
+  
+  int32_t               mBaseMinFontSize;
   float                 mTextZoom;      
   float                 mFullZoom;      
 
