@@ -3147,7 +3147,9 @@ nsCxPusher::DoPush(JSContext* cx)
 {
   nsIThreadJSContextStack* stack = nsContentUtils::ThreadJSContextStack();
   if (!stack) {
-    return;
+    
+    
+    MOZ_CRASH();
   }
 
   if (cx && IsContextOnStack(stack, cx)) {
@@ -3178,7 +3180,8 @@ void
 nsCxPusher::Pop()
 {
   nsIThreadJSContextStack* stack = nsContentUtils::ThreadJSContextStack();
-  if (!mPushedSomething || !stack) {
+  MOZ_ASSERT(stack);
+  if (!mPushedSomething) {
     mScx = nullptr;
     mPushedSomething = false;
 
