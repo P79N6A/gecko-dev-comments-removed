@@ -70,7 +70,7 @@ PluginProcessChild::Init()
                 setInterpose.Append(interpose);
             }
             
-            char* setInterposePtr = strdup(PromiseFlatCString(setInterpose).get());
+            char* setInterposePtr = strdup(setInterpose.get());
             PR_SetEnv(setInterposePtr);
         }
     }

@@ -69,10 +69,13 @@ class nsTPromiseFlatString_CharT : public nsTString_CharT
       void Init( const substring_type& );
 
         
-      void operator=( const self_type& );
+      void operator=( const self_type& ) MOZ_DELETE;
 
         
-      nsTPromiseFlatString_CharT();
+      nsTPromiseFlatString_CharT() MOZ_DELETE;
+
+        
+      nsTPromiseFlatString_CharT( const string_type& str ) MOZ_DELETE;
 
     public:
 
@@ -93,18 +96,11 @@ class nsTPromiseFlatString_CharT : public nsTString_CharT
         }
   };
 
-  
-inline
-const nsTPromiseFlatString_CharT
-TPromiseFlatString_CharT( const nsTSubstring_CharT& frag )
-  {
-    return nsTPromiseFlatString_CharT(frag);
-  }
 
-  
-inline
+
+template<class T>
 const nsTPromiseFlatString_CharT
-TPromiseFlatString_CharT( const nsTSubstringTuple_CharT& tuple )
+TPromiseFlatString_CharT( const T& string )
   {
-    return nsTPromiseFlatString_CharT(tuple);
+    return nsTPromiseFlatString_CharT(string);
   }

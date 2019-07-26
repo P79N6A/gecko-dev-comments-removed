@@ -4169,15 +4169,13 @@ WebGLContext::CompileShader(WebGLShader *shader)
         
         
         StripComments stripComments(shader->Source());
-        const nsAString& cleanSource = nsString(stripComments.result().Elements(), stripComments.length());
+        const nsAString& cleanSource = Substring(stripComments.result().Elements(), stripComments.length());
         if (!ValidateGLSLString(cleanSource, "compileShader"))
             return;
 
-        const nsPromiseFlatString& flatSource = PromiseFlatString(cleanSource);
-
         
         
-        const nsCString& sourceCString = NS_LossyConvertUTF16toASCII(flatSource);
+        NS_LossyConvertUTF16toASCII sourceCString(cleanSource);
 
         if (gl->WorkAroundDriverBugs()) {
             const uint32_t maxSourceLength = 0x3ffff;
@@ -4298,8 +4296,7 @@ WebGLContext::CompileShader(WebGLShader *shader)
             translatedSrc.SetLength(len);
             ShGetObjectCode(compiler, translatedSrc.BeginWriting());
 
-            nsPromiseFlatCString translatedSrc2(translatedSrc);
-            const char *ts = translatedSrc2.get();
+            const char *ts = translatedSrc.get();
 
             gl->fShaderSource(shadername, 1, &ts, NULL);
         } else { 
@@ -4613,7 +4610,7 @@ WebGLContext::ShaderSource(WebGLShader *shader, const nsAString& source)
     
     
     StripComments stripComments(source);
-    const nsAString& cleanSource = nsString(stripComments.result().Elements(), stripComments.length());
+    const nsAString& cleanSource = Substring(stripComments.result().Elements(), stripComments.length());
     if (!ValidateGLSLString(cleanSource, "compileShader"))
         return;
 

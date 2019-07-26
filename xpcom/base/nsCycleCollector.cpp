@@ -1615,10 +1615,11 @@ private:
             
             
             
+            
             nsAutoCString path;
             rv = logFile->GetNativePath(path);
             if (NS_SUCCEEDED(rv)) {
-                chmod(PromiseFlatCString(path).get(), 0644);
+                chmod(path.get(), 0644);
             }
         }
 #endif
