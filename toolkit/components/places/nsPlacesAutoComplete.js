@@ -10,6 +10,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
                                   "resource://gre/modules/TelemetryStopwatch.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+                                  "resource://gre/modules/NetUtil.jsm");
 
 
 
@@ -304,10 +306,7 @@ function nsPlacesAutoComplete()
     
     
     
-    let db = Cc["@mozilla.org/browser/nav-history-service;1"].
-             getService(Ci.nsPIPlacesDatabase).
-             DBConnection.
-             clone(true);
+    let db = PlacesUtils.history.DBConnection.clone(true);
 
     
     
@@ -338,22 +337,6 @@ function nsPlacesAutoComplete()
 
     return db;
   });
-
-  XPCOMUtils.defineLazyServiceGetter(this, "_bh",
-                                     "@mozilla.org/browser/global-history;2",
-                                     "nsIBrowserHistory");
-
-  XPCOMUtils.defineLazyServiceGetter(this, "_bs",
-                                     "@mozilla.org/browser/nav-bookmarks-service;1",
-                                     "nsINavBookmarksService");
-
-  XPCOMUtils.defineLazyServiceGetter(this, "_ioService",
-                                     "@mozilla.org/network/io-service;1",
-                                     "nsIIOService");
-
-  XPCOMUtils.defineLazyServiceGetter(this, "_faviconService",
-                                     "@mozilla.org/browser/favicon-service;1",
-                                     "nsIFaviconService");
 
   XPCOMUtils.defineLazyGetter(this, "_defaultQuery", function() {
     let replacementText = "";
@@ -581,7 +564,7 @@ nsPlacesAutoComplete.prototype = {
   onValueRemoved: function PAC_onValueRemoved(aResult, aURISpec, aRemoveFromDB)
   {
     if (aRemoveFromDB) {
-      this._bh.removePage(this._ioService.newURI(aURISpec, null, null));
+      PlacesUtils.history.removePage(NetUtil.newURI(aURISpec));
     }
   },
 
@@ -961,7 +944,7 @@ nsPlacesAutoComplete.prototype = {
 
     
     let (params = query.params) {
-      params.parent = this._bs.tagsFolder;
+      params.parent = PlacesUtils.tagsFolderId;
       params.query_type = kQueryTypeFiltered;
       params.matchBehavior = aMatchBehavior;
       params.searchBehavior = this._behavior;
@@ -1043,7 +1026,7 @@ nsPlacesAutoComplete.prototype = {
 
     let query = this._adaptiveQuery;
     let (params = query.params) {
-      params.parent = this._bs.tagsFolder;
+      params.parent = PlacesUtils.tagsFolderId;
       params.search_string = this._currentSearchString;
       params.query_type = kQueryTypeFiltered;
       params.matchBehavior = aMatchBehavior;
@@ -1194,10 +1177,10 @@ nsPlacesAutoComplete.prototype = {
     
     let favicon;
     if (aFaviconSpec) {
-      let uri = this._ioService.newURI(aFaviconSpec, null, null);
-      favicon = this._faviconService.getFaviconLinkForIcon(uri).spec;
+      let uri = NetUtil.newURI(aFaviconSpec);
+      favicon = PlacesUtils.favicons.getFaviconLinkForIcon(uri).spec;
     }
-    favicon = favicon || this._faviconService.defaultFavicon.spec;
+    favicon = favicon || PlacesUtils.favicons.defaultFavicon.spec;
 
     this._result.appendMatch(aURISpec, aTitle, favicon, aStyle);
   },
@@ -1289,8 +1272,7 @@ urlInlineComplete.prototype = {
   get _db()
   {
     if (!this.__db && this._autofillEnabled) {
-      this.__db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase).
-                  DBConnection.clone(true);
+      this.__db = PlacesUtils.history.DBConnection.clone(true);
     }
     return this.__db;
   },

@@ -166,7 +166,6 @@ NS_IMPL_CLASSINFO(nsNavHistory, NULL, nsIClassInfo::SINGLETON,
                   NS_NAVHISTORYSERVICE_CID)
 NS_INTERFACE_MAP_BEGIN(nsNavHistory)
   NS_INTERFACE_MAP_ENTRY(nsINavHistoryService)
-  NS_INTERFACE_MAP_ENTRY(nsIGlobalHistory2)
   NS_INTERFACE_MAP_ENTRY(nsIBrowserHistory)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
@@ -178,10 +177,9 @@ NS_INTERFACE_MAP_BEGIN(nsNavHistory)
 NS_INTERFACE_MAP_END
 
 
-NS_IMPL_CI_INTERFACE_GETTER3(
+NS_IMPL_CI_INTERFACE_GETTER2(
   nsNavHistory
 , nsINavHistoryService
-, nsIGlobalHistory2
 , nsIBrowserHistory
 )
 
@@ -617,33 +615,6 @@ nsNavHistory::FindLastVisit(nsIURI* aURI,
     return true;
   }
   return false;
-}
-
-
-
-
-
-
-
-
-bool nsNavHistory::IsURIStringVisited(const nsACString& aURIString)
-{
-  nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
-    "SELECT 1 "
-    "FROM moz_places h "
-    "WHERE url = ?1 "
-      "AND last_visit_date NOTNULL "
-  );
-  NS_ENSURE_TRUE(stmt, false);
-  mozStorageStatementScoper scoper(stmt);
-
-  nsresult rv = URIBinder::Bind(stmt, 0, aURIString);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  bool hasMore = false;
-  rv = stmt->ExecuteStep(&hasMore);
-  NS_ENSURE_SUCCESS(rv, false);
-  return hasMore;
 }
 
 
@@ -1183,8 +1154,6 @@ nsNavHistory::invalidateFrecencies(const nsCString& aPlaceIdsQueryString)
 
   return NS_OK;
 }
-
-
 
 
 
@@ -3116,8 +3085,6 @@ nsNavHistory::RemoveAllPages()
 
 
 
-
-
 NS_IMETHODIMP
 nsNavHistory::MarkPageAsTyped(nsIURI *aURI)
 {
@@ -3143,8 +3110,6 @@ nsNavHistory::MarkPageAsTyped(nsIURI *aURI)
   mRecentTyped.Put(uriString, GetNow());
   return NS_OK;
 }
-
-
 
 
 
@@ -3239,232 +3204,6 @@ nsNavHistory::GetCharsetForURI(nsIURI* aURI,
   return NS_OK;
 }
 
-
-
-
-
-
-
-
-
-NS_IMETHODIMP
-nsNavHistory::AddURI(nsIURI *aURI, bool aRedirect,
-                     bool aToplevel, nsIURI *aReferrer)
-{
-  PLACES_WARN_DEPRECATED();
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURI);
-
-  
-  bool canAdd = false;
-  nsresult rv = CanAddURI(aURI, &canAdd);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!canAdd)
-    return NS_OK;
-
-  PRTime now = PR_Now();
-
-  rv = AddURIInternal(aURI, now, aRedirect, aToplevel, aReferrer);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-
-
-
-
-
-nsresult
-nsNavHistory::AddURIInternal(nsIURI* aURI, PRTime aTime, bool aRedirect,
-                             bool aToplevel, nsIURI* aReferrer)
-{
-  mozStorageTransaction transaction(mDB->MainConn(), false);
-
-  int64_t visitID = 0;
-  int64_t sessionID = 0;
-  nsresult rv = AddVisitChain(aURI, aTime, aToplevel, aRedirect, aReferrer,
-                              &visitID, &sessionID);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return transaction.Commit();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsNavHistory::AddVisitChain(nsIURI* aURI,
-                            PRTime aTime,
-                            bool aToplevel,
-                            bool aIsRedirect,
-                            nsIURI* aReferrerURI,
-                            int64_t* aVisitID,
-                            int64_t* aSessionID)
-{
-  
-  
-  nsCOMPtr<nsIURI> fromVisitURI = aReferrerURI;
-
-  nsAutoCString spec;
-  nsresult rv = aURI->GetSpec(spec);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  bool isEmbedVisit = !aToplevel &&
-                        !CheckIsRecentEvent(&mRecentLink, spec);
-
-  uint32_t transitionType = 0;
-
-  if (aReferrerURI) {
-  
-
-    
-    PRTime lastVisitTime;
-    int64_t referringVisitId;
-    bool referrerHasPreviousVisit =
-      FindLastVisit(aReferrerURI, &referringVisitId, &lastVisitTime, aSessionID);
-
-    
-    
-    
-    
-    bool referrerIsSame;
-    if (NS_SUCCEEDED(aURI->Equals(aReferrerURI, &referrerIsSame)) &&
-        referrerIsSame && referrerHasPreviousVisit) {
-      
-      if (aIsRedirect)
-        *aSessionID = GetNewSessionID();
-      return NS_OK;
-    }
-
-    if (!referrerHasPreviousVisit ||
-        aTime - lastVisitTime > RECENT_EVENT_THRESHOLD) {
-      
-      
-      *aSessionID = GetNewSessionID();
-    }
-
-    
-    
-    
-    
-    
-    if (isEmbedVisit)
-      transitionType = nsINavHistoryService::TRANSITION_EMBED;
-    else if (!aToplevel)
-      transitionType = nsINavHistoryService::TRANSITION_FRAMED_LINK;
-    else
-      transitionType = nsINavHistoryService::TRANSITION_LINK;
-  }
-  else {
-    
-    
-    
-    
-    
-    
-    
-    if (CheckIsRecentEvent(&mRecentTyped, spec))
-      transitionType = nsINavHistoryService::TRANSITION_TYPED;
-    else if (CheckIsRecentEvent(&mRecentBookmark, spec))
-      transitionType = nsINavHistoryService::TRANSITION_BOOKMARK;
-    else if (isEmbedVisit)
-      transitionType = nsINavHistoryService::TRANSITION_EMBED;
-    else if (!aToplevel)
-      transitionType = nsINavHistoryService::TRANSITION_FRAMED_LINK;
-    else
-      transitionType = nsINavHistoryService::TRANSITION_LINK;
-
-    
-    
-    *aSessionID = GetNewSessionID();
-  }
-
-  NS_WARN_IF_FALSE(transitionType > 0, "Visit must have a transition type");
-
-  
-  return AddVisit(aURI, aTime, fromVisitURI, transitionType,
-                  aIsRedirect, *aSessionID, aVisitID);
-}
-
-
-
-
-
-
-
-
-NS_IMETHODIMP
-nsNavHistory::IsVisited(nsIURI *aURI, bool *_retval)
-{
-  PLACES_WARN_DEPRECATED();
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURI);
-  NS_ENSURE_ARG_POINTER(_retval);
-
-  
-  if (IsHistoryDisabled()) {
-    *_retval = false;
-    return NS_OK;
-  }
-
-  nsAutoCString utf8URISpec;
-  nsresult rv = aURI->GetSpec(utf8URISpec);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *_retval = hasEmbedVisit(aURI) ? true : IsURIStringVisited(utf8URISpec);
-  return NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-NS_IMETHODIMP
-nsNavHistory::SetPageTitle(nsIURI* aURI,
-                           const nsAString& aTitle)
-{
-  PLACES_WARN_DEPRECATED();
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURI);
-
-  
-  
-  
-
-  nsresult rv;
-  if (aTitle.IsEmpty()) {
-    
-    nsString voidString;
-    voidString.SetIsVoid(true);
-    rv = SetPageTitleInternal(aURI, voidString);
-  }
-  else {
-    rv = SetPageTitleInternal(aURI, aTitle);
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
 
 NS_IMETHODIMP
 nsNavHistory::GetPageTitle(nsIURI* aURI, nsAString& aTitle)
@@ -4834,87 +4573,6 @@ nsNavHistory::GetMonthYear(int32_t aMonth, int32_t aYear, nsACString& aResult)
     }
   }
   aResult.AppendLiteral("finduri-MonthYear");
-}
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
-{
-  nsresult rv;
-
-  
-  nsAutoString title;
-  nsAutoCString guid;
-  {
-    nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
-      "SELECT id, url, title, rev_host, visit_count, guid "
-      "FROM moz_places "
-      "WHERE url = :page_url "
-    );
-    NS_ENSURE_STATE(stmt);
-    mozStorageStatementScoper scoper(stmt);
-
-    rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), aURI);
-    NS_ENSURE_SUCCESS(rv, rv);
-    bool hasURL = false;
-    rv = stmt->ExecuteStep(&hasURL);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (!hasURL) {
-      
-      
-      if (hasEmbedVisit(aURI)) {
-        return NS_OK;
-      }
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    rv = stmt->GetString(2, title);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->GetUTF8String(5, guid);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
-  
-  
-  
-  if ((aTitle.IsVoid() && title.IsVoid()) || aTitle == title)
-    return NS_OK;
-
-  nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
-    "UPDATE moz_places "
-    "SET title = :page_title "
-    "WHERE url = :page_url "
-  );
-  NS_ENSURE_STATE(stmt);
-  mozStorageStatementScoper scoper(stmt);
-
-  if (aTitle.IsVoid())
-    rv = stmt->BindNullByName(NS_LITERAL_CSTRING("page_title"));
-  else {
-    rv = stmt->BindStringByName(NS_LITERAL_CSTRING("page_title"),
-                                StringHead(aTitle, TITLE_LENGTH_MAX));
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), aURI);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = stmt->Execute();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  MOZ_ASSERT(!guid.IsEmpty());
-  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                   nsINavHistoryObserver, OnTitleChanged(aURI, aTitle, guid));
-
-  return NS_OK;
 }
 
 

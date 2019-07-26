@@ -5,35 +5,7 @@
 
 
 
-try {
-  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].getService(Ci.nsINavBookmarksService);
-} catch(ex) {
-  do_throw("Could not get nav-bookmarks-service\n");
-}
-
-
-try {
-  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService);
-} catch(ex) {
-  do_throw("Could not get history service\n");
-} 
-
-
-try {
-  var annosvc= Cc["@mozilla.org/browser/annotation-service;1"].getService(Ci.nsIAnnotationService);
-} catch(ex) {
-  do_throw("Could not get annotation service\n");
-} 
-
-
-try {
-  var bhist = Cc["@mozilla.org/browser/global-history;2"].getService(Ci.nsIBrowserHistory);
-} catch(ex) {
-  do_throw("Could not get history service\n");
-} 
-
-
-var root = bmsvc.bookmarksMenuFolder;
+var root = PlacesUtils.bookmarksMenuFolderId;
 
 
 const searchTerm = "about";
@@ -45,28 +17,31 @@ function run_test() {
   
   
   
-  testRoot = bmsvc.createFolder(root, searchTerm, bmsvc.DEFAULT_INDEX);
+  testRoot = PlacesUtils.bookmarks.createFolder(
+    root, searchTerm, PlacesUtils.bookmarks.DEFAULT_INDEX);
 
   run_next_test();
 }
 
 add_test(function test_savedsearches_bookmarks() {
   
-  var bookmarkId = bmsvc.insertBookmark(root, uri("http://foo.com"), bmsvc.DEFAULT_INDEX, searchTerm);
+  var bookmarkId = PlacesUtils.bookmarks.insertBookmark(
+    root, uri("http://foo.com"), PlacesUtils.bookmarks.DEFAULT_INDEX,
+    searchTerm);
 
   
-  var searchId = bmsvc.insertBookmark(testRoot,
-                                      uri("place:terms=" + searchTerm + "&excludeQueries=1&expandQueries=1&queryType=1"),
-                                      bmsvc.DEFAULT_INDEX, searchTerm);
+  var searchId = PlacesUtils.bookmarks.insertBookmark(
+    testRoot, uri("place:terms=" + searchTerm + "&excludeQueries=1&expandQueries=1&queryType=1"),
+    PlacesUtils.bookmarks.DEFAULT_INDEX, searchTerm);
 
   
   
   try {
-    var options = histsvc.getNewQueryOptions();
+    var options = PlacesUtils.history.getNewQueryOptions();
     options.expandQueries = 0;
-    var query = histsvc.getNewQuery();
+    var query = PlacesUtils.history.getNewQuery();
     query.setFolders([testRoot], 1);
-    var result = histsvc.executeQuery(query, options);
+    var result = PlacesUtils.history.executeQuery(query, options);
     var rootNode = result.root;
     rootNode.containerOpen = true;
     var cc = rootNode.childCount;
@@ -89,11 +64,11 @@ add_test(function test_savedsearches_bookmarks() {
   
   
   try {
-    var options = histsvc.getNewQueryOptions();
+    var options = PlacesUtils.history.getNewQueryOptions();
     options.expandQueries = 1;
-    var query = histsvc.getNewQuery();
+    var query = PlacesUtils.history.getNewQuery();
     query.setFolders([testRoot], 1);
-    var result = histsvc.executeQuery(query, options);
+    var result = PlacesUtils.history.executeQuery(query, options);
     var rootNode = result.root;
     rootNode.containerOpen = true;
     var cc = rootNode.childCount;
@@ -119,17 +94,21 @@ add_test(function test_savedsearches_bookmarks() {
       
       
       
+      
+      
 
       
       
       
 
       
-      bmsvc.createFolder(root, searchTerm + "zaa", bmsvc.DEFAULT_INDEX);
+      PlacesUtils.bookmarks.createFolder(
+        root, searchTerm + "zaa", PlacesUtils.bookmarks.DEFAULT_INDEX);
       do_check_eq(node.childCount, 1);
       
-      bmsvc.insertBookmark(root, uri("place:terms=foo&excludeQueries=1&expandQueries=1&queryType=1"),
-                           bmsvc.DEFAULT_INDEX, searchTerm + "blah");
+      PlacesUtils.bookmarks.insertBookmark(
+        root, uri("place:terms=foo&excludeQueries=1&expandQueries=1&queryType=1"),
+        PlacesUtils.bookmarks.DEFAULT_INDEX, searchTerm + "blah");
       do_check_eq(node.childCount, 1);
     }
     rootNode.containerOpen = false;
@@ -139,7 +118,7 @@ add_test(function test_savedsearches_bookmarks() {
   }
 
   
-  bmsvc.removeItem(searchId);
+  PlacesUtils.bookmarks.removeItem(searchId);
 
   run_next_test();
 });
@@ -150,18 +129,18 @@ add_task(function test_savedsearches_history() {
   yield promiseAddVisits({ uri: testURI, title: searchTerm });
 
   
-  var searchId = bmsvc.insertBookmark(testRoot,
-                                      uri("place:terms=" + searchTerm + "&excludeQueries=1&expandQueries=1&queryType=0"),
-                                      bmsvc.DEFAULT_INDEX, searchTerm);
+  var searchId = PlacesUtils.bookmarks.insertBookmark(testRoot,
+    uri("place:terms=" + searchTerm + "&excludeQueries=1&expandQueries=1&queryType=0"),
+    PlacesUtils.bookmarks.DEFAULT_INDEX, searchTerm);
 
   
   
   try {
-    var options = histsvc.getNewQueryOptions();
+    var options = PlacesUtils.history.getNewQueryOptions();
     options.expandQueries = 1;
-    var query = histsvc.getNewQuery();
+    var query = PlacesUtils.history.getNewQuery();
     query.setFolders([testRoot], 1);
-    var result = histsvc.executeQuery(query, options);
+    var result = PlacesUtils.history.executeQuery(query, options);
     var rootNode = result.root;
     rootNode.containerOpen = true;
     var cc = rootNode.childCount;
@@ -194,14 +173,16 @@ add_task(function test_savedsearches_history() {
       do_check_eq(node.childCount, 2);
 
       
-      bhist.removePage(uri("http://foo.com"));
+      PlacesUtils.history.removePage(uri("http://foo.com"));
       do_check_eq(node.childCount, 1);
       node.containerOpen = false;
     }
 
     
-    var tmpFolderId = bmsvc.createFolder(testRoot, "foo", bmsvc.DEFAULT_INDEX);
-    bmsvc.moveItem(searchId, tmpFolderId, bmsvc.DEFAULT_INDEX);
+    var tmpFolderId = PlacesUtils.bookmarks.createFolder(
+      testRoot, "foo", PlacesUtils.bookmarks.DEFAULT_INDEX);
+    PlacesUtils.bookmarks.moveItem(
+      searchId, tmpFolderId, PlacesUtils.bookmarks.DEFAULT_INDEX);
     var tmpFolderNode = rootNode.getChild(0);
     do_check_eq(tmpFolderNode.itemId, tmpFolderId);
     tmpFolderNode.QueryInterface(Ci.nsINavHistoryContainerResultNode);
@@ -209,11 +190,11 @@ add_task(function test_savedsearches_history() {
     do_check_eq(tmpFolderNode.childCount, 1);
 
     
-    bmsvc.setItemTitle(searchId, "foo");
+    PlacesUtils.bookmarks.setItemTitle(searchId, "foo");
     do_check_eq(tmpFolderNode.title, "foo");
 
     
-    bmsvc.removeItem(searchId);
+    PlacesUtils.bookmarks.removeItem(searchId);
     try {
       var tmpFolderNode = root.getChild(1);
       do_throw("query was not removed");

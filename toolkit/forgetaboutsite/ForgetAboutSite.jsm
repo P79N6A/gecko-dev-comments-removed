@@ -3,6 +3,9 @@
 
 
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
 
 this.EXPORTED_SYMBOLS = ["ForgetAboutSite"];
 
@@ -43,11 +46,7 @@ this.ForgetAboutSite = {
         Services.prefs.deleteBranch("geo.wifi.access_token.");
     } catch (e) {}
 
-    
-    let (bh = Cc["@mozilla.org/browser/global-history;2"].
-              getService(Ci.nsIBrowserHistory)) {
-      bh.removePagesFromHost(aDomain, true);
-    }
+    PlacesUtils.history.removePagesFromHost(aDomain, true);
 
     
     let (cs = Cc["@mozilla.org/network/cache-service;1"].

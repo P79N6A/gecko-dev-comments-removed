@@ -3,6 +3,10 @@
 
 
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
+
 function Sanitizer() {}
 Sanitizer.prototype = {
   
@@ -165,21 +169,20 @@ Sanitizer.prototype = {
     history: {
       clear: function ()
       {
-        var globalHistory = Cc["@mozilla.org/browser/global-history;2"].getService(Ci.nsIBrowserHistory);
-        globalHistory.removeAllPages();
-        
+        PlacesUtils.history.removeAllPages();
+
         try {
           Services.obs.notifyObservers(null, "browser:purge-session-history", "");
         }
         catch (e) { }
-        
+
         
         try {
           Services.prefs.clearUserPref("general.open_location.last_url");
         }
         catch (e) { }
       },
-      
+
       get canClear()
       {
         
@@ -187,7 +190,7 @@ Sanitizer.prototype = {
         return true;
       }
     },
-    
+
     formdata: {
       clear: function ()
       {
