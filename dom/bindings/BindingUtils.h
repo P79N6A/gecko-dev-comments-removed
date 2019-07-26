@@ -2350,6 +2350,36 @@ CreateGlobal(JSContext* aCx, T* aObject, nsWrapperCache* aCache,
   return global;
 }
 
+
+
+
+
+class InternedStringId
+{
+  jsid id;
+
+ public:
+  InternedStringId() : id(JSID_VOID) {}
+
+  bool init(JSContext *cx, const char *string) {
+    MOZ_ASSERT(id == JSID_VOID);
+    JSString* str = JS_InternString(cx, string);
+    if (!str)
+      return false;
+    id = INTERNED_STRING_TO_JSID(cx, str);
+    return true;
+  }
+
+  operator const jsid& () {
+    return id;
+  }
+
+  operator JS::Handle<jsid> () {
+    
+    return JS::Handle<jsid>::fromMarkedLocation(&id);
+  }
+};
+
 } 
 } 
 
