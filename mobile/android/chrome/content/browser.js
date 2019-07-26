@@ -4388,11 +4388,16 @@ var BrowserEventHandler = {
               element = ElementTouchHelper.anyElementFromPoint(x, y);
             }
 
+            
+            let isFocused = (element == BrowserApp.getFocusedInput(BrowserApp.selectedBrowser, true));
+
             this._sendMouseEvent("mousemove", element, x, y);
             this._sendMouseEvent("mousedown", element, x, y);
             this._sendMouseEvent("mouseup",   element, x, y);
 
-            SelectionHandler.attachCaret(element);
+            
+            if (isFocused)
+              SelectionHandler.attachCaret(element);
 
             
             BrowserApp.scrollToFocusedInput(BrowserApp.selectedBrowser);
