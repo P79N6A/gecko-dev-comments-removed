@@ -131,6 +131,7 @@ GamepadService::RemoveListener(nsGlobalWindow* aWindow)
 
 uint32_t
 GamepadService::AddGamepad(const char* aId,
+                           GamepadMappingType aMapping,
                            uint32_t aNumButtons,
                            uint32_t aNumAxes)
 {
@@ -139,6 +140,7 @@ GamepadService::AddGamepad(const char* aId,
     new Gamepad(nullptr,
                 NS_ConvertUTF8toUTF16(nsDependentCString(aId)),
                 0,
+                aMapping,
                 aNumButtons,
                 aNumAxes);
   int index = -1;
@@ -507,11 +509,13 @@ GamepadServiceTest::GamepadServiceTest()
 
 
 NS_IMETHODIMP GamepadServiceTest::AddGamepad(const char* aID,
+                                             uint32_t aMapping,
                                              uint32_t aNumButtons,
                                              uint32_t aNumAxes,
                                              uint32_t* aRetval)
 {
   *aRetval = gGamepadServiceSingleton->AddGamepad(aID,
+                                                  static_cast<GamepadMappingType>(aMapping),
                                                   aNumButtons,
                                                   aNumAxes);
   return NS_OK;

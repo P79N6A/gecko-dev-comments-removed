@@ -42,7 +42,8 @@ class GamepadService : public nsIObserver
   void RemoveListener(nsGlobalWindow* aWindow);
 
   
-  uint32_t AddGamepad(const char* aID, uint32_t aNumButtons, uint32_t aNumAxes);
+  uint32_t AddGamepad(const char* aID, GamepadMappingType aMapping,
+                      uint32_t aNumButtons, uint32_t aNumAxes);
   
   void RemoveGamepad(uint32_t aIndex);
 
