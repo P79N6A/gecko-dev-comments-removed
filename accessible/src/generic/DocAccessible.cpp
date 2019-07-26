@@ -1515,7 +1515,7 @@ DocAccessible::ProcessLoad()
   
   if (mLoadEventType) {
     nsRefPtr<AccEvent> loadEvent = new AccEvent(mLoadEventType, this);
-    nsEventShell::FireEvent(loadEvent);
+    FireDelayedEvent(loadEvent);
 
     mLoadEventType = 0;
   }
@@ -1523,7 +1523,7 @@ DocAccessible::ProcessLoad()
   
   nsRefPtr<AccEvent> stateEvent =
     new AccStateChangeEvent(this, states::BUSY, false);
-  nsEventShell::FireEvent(stateEvent);
+  FireDelayedEvent(stateEvent);
 }
 
 void
