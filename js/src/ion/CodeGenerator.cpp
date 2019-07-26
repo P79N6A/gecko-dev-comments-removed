@@ -3670,7 +3670,7 @@ IonCompartment::generateStringConcatStub(JSContext *cx)
                   &isShort);
 
     
-    masm.branch32(Assembler::Above, temp1, Imm32(JSString::MAX_LENGTH), &failure);
+    masm.branch32(Assembler::Above, temp2, Imm32(JSString::MAX_LENGTH), &failure);
 
     
     masm.newGCString(output, &failure);
