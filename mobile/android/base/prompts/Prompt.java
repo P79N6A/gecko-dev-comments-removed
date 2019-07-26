@@ -35,6 +35,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
@@ -116,89 +117,30 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         processMessage(message);
     }
 
-    public void show(String aTitle, String aText, PromptListItem[] aMenuList, boolean aMultipleSelection) {
+    public void show(String title, String text, PromptListItem[] listItems, boolean multipleSelection) {
         ThreadUtils.assertOnUiThread();
 
         GeckoAppShell.getLayerView().abortPanning();
 
         AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-        if (!TextUtils.isEmpty(aTitle)) {
-            builder.setTitle(aTitle);
+        if (!TextUtils.isEmpty(title)) {
+            builder.setTitle(title);
         }
 
-        if (!TextUtils.isEmpty(aText)) {
-            builder.setMessage(aText);
+        if (!TextUtils.isEmpty(text)) {
+            builder.setMessage(text);
         }
 
-        int length = mInputs == null ? 0 : mInputs.length;
-        if (aMenuList != null && aMenuList.length > 0) {
-            int resourceId = android.R.layout.simple_list_item_1;
-            if (mSelected != null && mSelected.length > 0) {
-                if (aMultipleSelection) {
-                    resourceId = R.layout.select_dialog_multichoice;
-                } else {
-                    resourceId = R.layout.select_dialog_singlechoice;
-                }
-            }
-            PromptListAdapter adapter = new PromptListAdapter(mContext, resourceId, aMenuList);
-            if (mSelected != null && mSelected.length > 0) {
-                if (aMultipleSelection) {
-                    adapter.listView = (ListView) mInflater.inflate(R.layout.select_dialog_list, null);
-                    adapter.listView.setOnItemClickListener(this);
-                    builder.setInverseBackgroundForced(true);
-                    adapter.listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-                    adapter.listView.setAdapter(adapter);
-                    builder.setView(adapter.listView);
-                } else {
-                    int selectedIndex = -1;
-                    for (int i = 0; i < mSelected.length; i++) {
-                        if (mSelected[i]) {
-                            selectedIndex = i;
-                            break;
-                        }
-                    }
-                    mSelected = null;
-                    builder.setSingleChoiceItems(adapter, selectedIndex, this);
-                }
-            } else {
-                builder.setAdapter(adapter, this);
-                mSelected = null;
-            }
-        } else if (length == 1) {
-            try {
-                ScrollView view = new ScrollView(mContext);
-                view.addView(mInputs[0].getView(mContext));
-                builder.setView(applyInputStyle(view));
-            } catch(UnsupportedOperationException ex) {
-                
-                
-                try {
-                    finishDialog(new JSONObject("{\"button\": -1}"));
-                } catch(JSONException e) { }
-                return;
-            }
-        } else if (length > 1) {
-            try {
-                LinearLayout linearLayout = new LinearLayout(mContext);
-                linearLayout.setOrientation(LinearLayout.VERTICAL);
-                for (int i = 0; i < length; i++) {
-                    View content = mInputs[i].getView(mContext);
-                    linearLayout.addView(content);
-                }
-                ScrollView view = new ScrollView(mContext);
-                view.addView(linearLayout);
-                builder.setView(applyInputStyle(view));
-            } catch(UnsupportedOperationException ex) {
-                
-                
-                try {
-                    finishDialog(new JSONObject("{\"button\": -1}"));
-                } catch(JSONException e) { }
-                return;
-            }
+        
+        
+        if (listItems != null && listItems.length > 0) {
+            addlistItems(builder, listItems, multipleSelection);
+        } else if (!addInputs(builder)) {
+            
+            return;
         }
 
-        length = mButtons == null ? 0 : mButtons.length;
+        int length = mButtons == null ? 0 : mButtons.length;
         if (length > 0) {
             builder.setPositiveButton(mButtons[0], this);
             if (length > 1) {
@@ -262,6 +204,128 @@ public class Prompt implements OnClickListener, OnCancelListener, OnItemClickLis
         }
 
         finishDialog(ret);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    private void addlistItems(AlertDialog.Builder builder, PromptListItem[] listItems, boolean multipleSelection) {
+        if (mSelected != null && mSelected.length > 0) {
+            if (multipleSelection) {
+                addMultiSelectList(builder, listItems);
+            } else {
+                addSingleSelectList(builder, listItems);
+            }
+        } else {
+            addMenuList(builder, listItems);
+        }
+    }
+
+    
+
+
+
+
+
+
+
+
+    private void addMultiSelectList(AlertDialog.Builder builder, PromptListItem[] listItems) {
+        PromptListAdapter adapter = new PromptListAdapter(mContext, R.layout.select_dialog_multichoice, listItems);
+        adapter.listView = (ListView) mInflater.inflate(R.layout.select_dialog_list, null);
+        adapter.listView.setOnItemClickListener(this);
+        builder.setInverseBackgroundForced(true);
+        adapter.listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+        adapter.listView.setAdapter(adapter);
+        builder.setView(adapter.listView);
+    }
+
+    
+
+
+
+
+
+
+    private void addSingleSelectList(AlertDialog.Builder builder, PromptListItem[] listItems) {
+        PromptListAdapter adapter = new PromptListAdapter(mContext, R.layout.select_dialog_singlechoice, listItems);
+        
+        int selectedIndex = -1;
+        for (int i = 0; i < mSelected.length; i++) {
+            if (mSelected[i]) {
+                selectedIndex = i;
+                break;
+            }
+        }
+        mSelected = null;
+
+        builder.setSingleChoiceItems(adapter, selectedIndex, this);
+    }
+
+    
+
+
+
+
+
+
+    private void addMenuList(AlertDialog.Builder builder, PromptListItem[] listItems) {
+        PromptListAdapter adapter = new PromptListAdapter(mContext, android.R.layout.simple_list_item_1, listItems);
+        builder.setAdapter(adapter, this);
+        mSelected = null;
+    }
+
+    
+
+
+
+
+
+
+
+    private boolean addInputs(AlertDialog.Builder builder) {
+        int length = mInputs == null ? 0 : mInputs.length;
+        if (length == 0) {
+            return true;
+        }
+
+        try {
+            if (length == 1) {
+                ScrollView view = new ScrollView(mContext);
+                view.addView(mInputs[0].getView(mContext));
+                builder.setView(applyInputStyle(view));
+            } else if (length > 1) {
+                LinearLayout linearLayout = new LinearLayout(mContext);
+                linearLayout.setOrientation(LinearLayout.VERTICAL);
+                for (int i = 0; i < length; i++) {
+                    View content = mInputs[i].getView(mContext);
+                    linearLayout.addView(content);
+                }
+                ScrollView view = new ScrollView(mContext);
+                view.addView(linearLayout);
+                builder.setView(applyInputStyle(view));
+            }
+        } catch(Exception ex) {
+            Log.e(LOGTAG, "Error showing prompt inputs", ex);
+            
+            
+            try {
+                finishDialog(new JSONObject("{\"button\": -1}"));
+            } catch(JSONException e) { }
+
+            return false;
+        }
+
+        return true;
     }
 
     @Override
