@@ -576,10 +576,12 @@ function BestFitMatcher(availableLocales, requestedLocales) {
 
 function ResolveLocale(availableLocales, requestedLocales, options, relevantExtensionKeys, localeData) {
     
+
+    
     var matcher = options.localeMatcher;
-    var r = (matcher === "lookup") ?
-            LookupMatcher(availableLocales, requestedLocales) :
-            BestFitMatcher(availableLocales, requestedLocales);
+    var r = (matcher === "lookup")
+            ? LookupMatcher(availableLocales, requestedLocales)
+            : BestFitMatcher(availableLocales, requestedLocales);
 
     
     var foundLocale = r.locale;
@@ -757,6 +759,8 @@ function BestFitSupportedLocales(availableLocales, requestedLocales) {
 
 function SupportedLocales(availableLocales, requestedLocales, options) {
     
+
+    
     var matcher;
     if (options !== undefined) {
         
@@ -772,9 +776,9 @@ function SupportedLocales(availableLocales, requestedLocales, options) {
     }
 
     
-    var subset = (matcher === undefined || matcher === "best fit") ?
-                 BestFitSupportedLocales(availableLocales, requestedLocales) :
-                 LookupSupportedLocales(availableLocales, requestedLocales);
+    var subset = (matcher === undefined || matcher === "best fit")
+                 ? BestFitSupportedLocales(availableLocales, requestedLocales)
+                 : LookupSupportedLocales(availableLocales, requestedLocales);
 
     
     for (var i = 0; i < subset.length; i++)
@@ -994,14 +998,14 @@ function InitializeCollator(collator, locales, options) {
     for (key in collatorKeyMappings) {
         if (callFunction(std_Object_hasOwnProperty, collatorKeyMappings, key)) {
             mapping = collatorKeyMappings[key];
-    
+
             
             value = GetOption(options, mapping.property, mapping.type, mapping.values, undefined);
-    
+
             
             if (mapping.type === "boolean" && value !== undefined)
                 value = callFunction(std_Boolean_toString, value);
-    
+
             
             opt[key] = value;
         }
@@ -1072,4 +1076,139 @@ function InitializeCollator(collator, locales, options) {
 
     
     internals.initializedCollator = true;
+}
+
+
+
+
+
+
+
+
+
+function Intl_Collator_supportedLocalesOf(locales ) {
+    var options = arguments.length > 1 ? arguments[1] : undefined;
+
+    var availableLocales = collatorInternalProperties.availableLocales;
+    var requestedLocales = CanonicalizeLocaleList(locales);
+    return SupportedLocales(availableLocales, requestedLocales, options);
+}
+
+
+
+
+
+
+
+var collatorInternalProperties = {
+    sortLocaleData: collatorSortLocaleData,
+    searchLocaleData: collatorSearchLocaleData,
+    availableLocales: runtimeAvailableLocales, 
+    relevantExtensionKeys: ["co", "kn"]
+};
+
+
+function collatorSortLocaleData(locale) {
+    
+    return {
+        co: [null],
+        kn: ["false", "true"]
+    };
+}
+
+
+function collatorSearchLocaleData(locale) {
+    
+    return {
+        co: [null],
+        kn: ["false", "true"],
+        sensitivity: "variant"
+    };
+}
+
+
+
+
+
+
+
+function collatorCompareToBind(x, y) {
+    
+    
+
+    
+    var X = ToString(x);
+    var Y = ToString(y);
+    return CompareStrings(this, X, Y);
+}
+
+
+
+
+
+
+
+
+
+
+
+function Intl_Collator_compare_get() {
+    
+    var internals = checkIntlAPIObject(this, "Collator", "compare");
+
+    
+    if (internals.boundCompare === undefined) {
+        
+        var F = collatorCompareToBind;
+
+        
+        var bc = callFunction(std_Function_bind, F, this);
+        internals.boundCompare = bc;
+    }
+
+    
+    return internals.boundCompare;
+}
+
+
+
+
+
+
+
+
+
+
+function CompareStrings(collator, x, y) {
+    assert(typeof x === "string", "CompareStrings");
+    assert(typeof y === "string", "CompareStrings");
+
+    
+    return x.localeCompare(y);
+}
+
+
+
+
+
+
+
+function Intl_Collator_resolvedOptions() {
+    
+    var internals = checkIntlAPIObject(this, "Collator", "resolvedOptions");
+
+    var result = {
+        locale: internals.locale,
+        usage: internals.usage,
+        sensitivity: internals.sensitivity,
+        ignorePunctuation: internals.ignorePunctuation
+    };
+
+    var relevantExtensionKeys = collatorInternalProperties.relevantExtensionKeys;
+    for (var i = 0; i < relevantExtensionKeys.length; i++) {
+        var key = relevantExtensionKeys[i];
+        var property = (key === "co") ? "collation" : collatorKeyMappings[key].property;
+        defineProperty(result, property, internals[property]);
+    }
+    return result;
 }
