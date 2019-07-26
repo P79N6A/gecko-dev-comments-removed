@@ -73,12 +73,12 @@ MacroAssembler::PopRegsInMaskIgnore(RegisterSet set, RegisterSet ignore)
 void
 MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
 {
-    JS_ASSERT(input != ScratchFloatReg);
+    JS_ASSERT(input != ScratchDoubleReg);
     Label positive, done;
 
     
-    zeroDouble(ScratchFloatReg);
-    branchDouble(DoubleGreaterThan, input, ScratchFloatReg, &positive);
+    zeroDouble(ScratchDoubleReg);
+    branchDouble(DoubleGreaterThan, input, ScratchDoubleReg, &positive);
     {
         move32(Imm32(0), output);
         jump(&done);
@@ -87,8 +87,8 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
     bind(&positive);
 
     
-    loadConstantDouble(0.5, ScratchFloatReg);
-    addDouble(ScratchFloatReg, input);
+    loadConstantDouble(0.5, ScratchDoubleReg);
+    addDouble(ScratchDoubleReg, input);
 
     Label outOfRange;
 
@@ -99,8 +99,8 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
     branch32(Assembler::Above, output, Imm32(255), &outOfRange);
     {
         
-        convertInt32ToDouble(output, ScratchFloatReg);
-        branchDouble(DoubleNotEqual, input, ScratchFloatReg, &done);
+        convertInt32ToDouble(output, ScratchDoubleReg);
+        branchDouble(DoubleNotEqual, input, ScratchDoubleReg, &done);
 
         
         
@@ -167,10 +167,10 @@ MacroAssemblerX86Shared::branchNegativeZero(FloatRegister reg,
     Label nonZero;
 
     
-    xorpd(ScratchFloatReg, ScratchFloatReg);
+    xorpd(ScratchDoubleReg, ScratchDoubleReg);
 
     
-    branchDouble(DoubleNotEqual, reg, ScratchFloatReg, &nonZero);
+    branchDouble(DoubleNotEqual, reg, ScratchDoubleReg, &nonZero);
 
     
     movmskpd(reg, scratch);
