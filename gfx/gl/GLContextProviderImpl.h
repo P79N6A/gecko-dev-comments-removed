@@ -64,6 +64,17 @@ public:
     
 
 
+
+
+
+
+
+    static already_AddRefed<GLContext>
+    CreateWrappingExisting(void* aContext, void* aSurface);
+
+    
+
+
     static GLContext*
     GetGlobalContext();
 
