@@ -1,10 +1,10 @@
 
 
-load(libdir + "asserts.js");
+load(libdir + "iteration.js");
 
 var s = Set();
-var it = s.iterator();
-assertThrowsValue(it.next.bind(it), StopIteration);  
+var it = s[std_iterator]();
+assertIteratorResult(it.next(), undefined, true);  
 s.clear();
 s.add("a");
-assertThrowsValue(it.next.bind(it), StopIteration);
+assertIteratorResult(it.next(), undefined, true);
