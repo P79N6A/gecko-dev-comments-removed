@@ -166,6 +166,11 @@ class LIRGeneratorShared : public MInstructionVisitor
 
   public:
     bool visitConstant(MConstant *ins);
+
+    
+    static bool allowTypedElementHoleCheck() {
+        return false;
+    }
 };
 
 } 
