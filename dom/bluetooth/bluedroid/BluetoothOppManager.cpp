@@ -158,11 +158,7 @@ public:
   void Run() MOZ_OVERRIDE
   {
     MOZ_ASSERT(NS_IsMainThread());
-
-    if (mSocket->GetConnectionStatus() ==
-        SocketConnectionStatus::SOCKET_CONNECTED) {
-      mSocket->Disconnect();
-    }
+    mSocket->CloseDroidSocket();
   }
 
 private:
@@ -189,7 +185,7 @@ BluetoothOppManager::BluetoothOppManager() : mConnected(false)
                                            , mWaitingToSendPutFinal(false)
                                            , mCurrentBlobIndex(-1)
 {
-  mConnectedDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
+  mDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
 }
 
 BluetoothOppManager::~BluetoothOppManager()
@@ -211,7 +207,14 @@ BluetoothOppManager::Init()
     return false;
   }
 
-  Listen();
+  
+
+
+
+
+
+
+
 
   return true;
 }
@@ -244,14 +247,9 @@ BluetoothOppManager::ConnectInternal(const nsAString& aDeviceAddress)
   MOZ_ASSERT(NS_IsMainThread());
 
   
-  if (mRfcommSocket) {
-    mRfcommSocket->Disconnect();
-    mRfcommSocket = nullptr;
-  }
-
-  if (mL2capSocket) {
-    mL2capSocket->Disconnect();
-    mL2capSocket = nullptr;
+  if (mServerSocket) {
+    mServerSocket->Disconnect();
+    mServerSocket = nullptr;
   }
 
   mIsServer = false;
@@ -262,18 +260,9 @@ BluetoothOppManager::ConnectInternal(const nsAString& aDeviceAddress)
     return;
   }
 
-  mNeedsUpdatingSdpRecords = true;
-
-  nsString uuid;
-  BluetoothUuidHelper::GetString(BluetoothServiceClass::OBJECT_PUSH, uuid);
-
-  if (NS_FAILED(bs->GetServiceChannel(aDeviceAddress, uuid, this))) {
-    OnSocketConnectError(mSocket);
-    return;
-  }
-
   mSocket =
     new BluetoothSocket(this, BluetoothSocketType::RFCOMM, true, true);
+  mSocket->Connect(aDeviceAddress, -1);
 }
 
 void
@@ -286,13 +275,9 @@ BluetoothOppManager::HandleShutdown()
     mSocket->Disconnect();
     mSocket = nullptr;
   }
-  if (mRfcommSocket) {
-    mRfcommSocket->Disconnect();
-    mRfcommSocket = nullptr;
-  }
-  if (mL2capSocket) {
-    mL2capSocket->Disconnect();
-    mL2capSocket = nullptr;
+  if (mServerSocket) {
+    mServerSocket->Disconnect();
+    mServerSocket = nullptr;
   }
   sBluetoothOppManager = nullptr;
 }
@@ -307,28 +292,23 @@ BluetoothOppManager::Listen()
     return false;
   }
 
-  if (!mRfcommSocket) {
-    mRfcommSocket =
-      new BluetoothSocket(this, BluetoothSocketType::RFCOMM, true, true);
+  
 
-    if (!mRfcommSocket->Listen(BluetoothReservedChannels::CHANNEL_OPUSH)) {
-      BT_WARNING("[OPP] Can't listen on RFCOMM socket!");
-      mRfcommSocket = nullptr;
-      return false;
-    }
+
+
+
+  if (mServerSocket) {
+    mServerSocket->Disconnect();
+    mServerSocket = nullptr;
   }
 
-  if (!mL2capSocket) {
-    mL2capSocket =
-      new BluetoothSocket(this, BluetoothSocketType::EL2CAP, true, true);
+  mServerSocket =
+    new BluetoothSocket(this, BluetoothSocketType::RFCOMM, true, true);
 
-    if (!mL2capSocket->Listen(BluetoothReservedChannels::CHANNEL_OPUSH_L2CAP)) {
-      BT_WARNING("[OPP] Can't listen on L2CAP socket!");
-      mRfcommSocket->Disconnect();
-      mRfcommSocket = nullptr;
-      mL2capSocket = nullptr;
-      return false;
-    }
+  if (!mServerSocket->Listen(BluetoothReservedChannels::CHANNEL_OPUSH)) {
+    BT_WARNING("[OPP] Can't listen on RFCOMM socket!");
+    mServerSocket = nullptr;
+    return false;
   }
 
   mIsServer = true;
@@ -1250,7 +1230,7 @@ BluetoothOppManager::SendObexData(uint8_t* aData, uint8_t aOpcode, int aSize)
 
   UnixSocketRawData* s = new UnixSocketRawData(aSize);
   memcpy(s->mData, aData, s->mSize);
-  mSocket->SendSocketData(s);
+  mSocket->SendDroidSocketData(s);
 }
 
 void
@@ -1266,7 +1246,7 @@ BluetoothOppManager::FileTransferComplete()
   type.AssignLiteral("bluetooth-opp-transfer-complete");
 
   name.AssignLiteral("address");
-  v = mConnectedDeviceAddress;
+  v = mDeviceAddress;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("success");
@@ -1306,7 +1286,7 @@ BluetoothOppManager::StartFileTransfer()
   type.AssignLiteral("bluetooth-opp-transfer-start");
 
   name.AssignLiteral("address");
-  v = mConnectedDeviceAddress;
+  v = mDeviceAddress;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("received");
@@ -1342,7 +1322,7 @@ BluetoothOppManager::UpdateProgress()
   type.AssignLiteral("bluetooth-opp-update-progress");
 
   name.AssignLiteral("address");
-  v = mConnectedDeviceAddress;
+  v = mDeviceAddress;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("received");
@@ -1372,7 +1352,7 @@ BluetoothOppManager::ReceivingFileConfirmation()
   type.AssignLiteral("bluetooth-opp-receiving-file-confirmation");
 
   name.AssignLiteral("address");
-  v = mConnectedDeviceAddress;
+  v = mDeviceAddress;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("fileName");
@@ -1417,23 +1397,14 @@ BluetoothOppManager::OnSocketConnectSuccess(BluetoothSocket* aSocket)
 
 
 
-  if (aSocket == mRfcommSocket) {
+  if (aSocket == mServerSocket) {
     MOZ_ASSERT(!mSocket);
-    mRfcommSocket.swap(mSocket);
-
-    mL2capSocket->Disconnect();
-    mL2capSocket = nullptr;
-  } else if (aSocket == mL2capSocket) {
-    MOZ_ASSERT(!mSocket);
-    mL2capSocket.swap(mSocket);
-
-    mRfcommSocket->Disconnect();
-    mRfcommSocket = nullptr;
+    mServerSocket.swap(mSocket);
   }
 
   
   
-  mSocket->GetAddress(mConnectedDeviceAddress);
+  mSocket->GetAddress(mDeviceAddress);
 
   
   if (!mIsServer) {
@@ -1446,8 +1417,7 @@ BluetoothOppManager::OnSocketConnectError(BluetoothSocket* aSocket)
 {
   BT_LOGR("%s: [%s]", __FUNCTION__, (mIsServer)? "server" : "client");
 
-  mRfcommSocket = nullptr;
-  mL2capSocket = nullptr;
+  mServerSocket = nullptr;
   mSocket = nullptr;
 
   if (!mIsServer) {
@@ -1464,13 +1434,12 @@ BluetoothOppManager::OnSocketConnectError(BluetoothSocket* aSocket)
 void
 BluetoothOppManager::OnSocketDisconnect(BluetoothSocket* aSocket)
 {
-  BT_LOGR("%s: [%s]", __FUNCTION__, (mIsServer)? "server" : "client");
   MOZ_ASSERT(aSocket);
-
   if (aSocket != mSocket) {
     
     return;
   }
+  BT_LOGR("%s: [%s]", __FUNCTION__, (mIsServer) ? "client" : "server");
 
   
 
@@ -1492,57 +1461,13 @@ BluetoothOppManager::OnSocketDisconnect(BluetoothSocket* aSocket)
   }
 
   AfterOppDisconnected();
-  mConnectedDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
+  mDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
   mSuccessFlag = false;
 
   mSocket = nullptr;
   
   if (!ProcessNextBatch()) {
     Listen();
-  }
-}
-
-void
-BluetoothOppManager::OnGetServiceChannel(const nsAString& aDeviceAddress,
-                                         const nsAString& aServiceUuid,
-                                         int aChannel)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!aDeviceAddress.IsEmpty());
-
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-
-  if (aChannel < 0) {
-    if (mNeedsUpdatingSdpRecords) {
-      mNeedsUpdatingSdpRecords = false;
-      bs->UpdateSdpRecords(aDeviceAddress, this);
-    } else {
-      OnSocketConnectError(mSocket);
-    }
-
-    return;
-  }
-
-  if (!mSocket->Connect(NS_ConvertUTF16toUTF8(aDeviceAddress), aChannel)) {
-    OnSocketConnectError(mSocket);
-  }
-}
-
-void
-BluetoothOppManager::OnUpdateSdpRecords(const nsAString& aDeviceAddress)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!aDeviceAddress.IsEmpty());
-
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-
-  nsString uuid;
-  BluetoothUuidHelper::GetString(BluetoothServiceClass::OBJECT_PUSH, uuid);
-
-  if (NS_FAILED(bs->GetServiceChannel(aDeviceAddress, uuid, this))) {
-    OnSocketConnectError(mSocket);
   }
 }
 
@@ -1559,6 +1484,20 @@ BluetoothOppManager::AcquireSdcardMountLock()
                                   getter_AddRefs(mMountLock));
   NS_ENSURE_SUCCESS(rv, false);
   return true;
+}
+
+void
+BluetoothOppManager::OnGetServiceChannel(const nsAString& aDeviceAddress,
+                                         const nsAString& aServiceUuid,
+                                         int aChannel)
+{
+  MOZ_ASSERT(false);
+}
+
+void
+BluetoothOppManager::OnUpdateSdpRecords(const nsAString& aDeviceAddress)
+{
+  MOZ_ASSERT(false);
 }
 
 void

@@ -20,8 +20,9 @@
 
 #include <hardware/hardware.h>
 
-#include "bluedroid/BluetoothA2dpManager.h"
-#include "bluedroid/BluetoothHfpManager.h"
+#include "BluetoothA2dpManager.h"
+#include "BluetoothHfpManager.h"
+#include "BluetoothOppManager.h"
 #include "BluetoothProfileController.h"
 #include "BluetoothReplyRunnable.h"
 #include "BluetoothUtils.h"
@@ -114,6 +115,12 @@ public:
 
     bs->AdapterAddedReceived();
     bs->TryFiringAdapterAdded();
+
+    
+    BluetoothOppManager* opp = BluetoothOppManager::Get();
+    if (!opp || !opp->Listen()) {
+      BT_LOGR("%s: Fail to start BluetoothOppManager listening", __FUNCTION__);
+    }
 
     return NS_OK;
   }
@@ -1290,14 +1297,45 @@ BluetoothServiceBluedroid::SendFile(const nsAString& aDeviceAddress,
                                     BlobChild* aBlobChild,
                                     BluetoothReplyRunnable* aRunnable)
 {
+  MOZ_ASSERT(NS_IsMainThread());
 
+  
+  if (!IsReady() || BT_STATUS_SUCCESS != sBtInterface->cancel_discovery()) {
+    NS_NAMED_LITERAL_STRING(errorStr, "Calling cancel_discovery() failed");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(true), errorStr);
+    return;
+  }
+
+  
+  
+  
+  
+  BluetoothOppManager* opp = BluetoothOppManager::Get();
+  nsAutoString errorStr;
+  if (!opp || !opp->SendFile(aDeviceAddress, aBlobParent)) {
+    errorStr.AssignLiteral("Calling SendFile() failed");
+  }
+
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), errorStr);
 }
 
 void
 BluetoothServiceBluedroid::StopSendingFile(const nsAString& aDeviceAddress,
                                            BluetoothReplyRunnable* aRunnable)
 {
+  MOZ_ASSERT(NS_IsMainThread());
 
+  
+  
+  
+  
+  BluetoothOppManager* opp = BluetoothOppManager::Get();
+  nsAutoString errorStr;
+  if (!opp || !opp->StopSendingFile()) {
+    errorStr.AssignLiteral("Calling StopSendingFile() failed");
+  }
+
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), errorStr);
 }
 
 void
@@ -1305,7 +1343,19 @@ BluetoothServiceBluedroid::ConfirmReceivingFile(
   const nsAString& aDeviceAddress, bool aConfirm,
   BluetoothReplyRunnable* aRunnable)
 {
+  MOZ_ASSERT(NS_IsMainThread(), "Must be called from main thread!");
 
+  
+  
+  
+  
+  BluetoothOppManager* opp = BluetoothOppManager::Get();
+  nsAutoString errorStr;
+  if (!opp || !opp->ConfirmReceivingFile(aConfirm)) {
+    errorStr.AssignLiteral("Calling ConfirmReceivingFile() failed");
+  }
+
+  DispatchBluetoothReply(aRunnable, BluetoothValue(true), errorStr);
 }
 
 void
