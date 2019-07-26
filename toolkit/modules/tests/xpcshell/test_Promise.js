@@ -2,6 +2,82 @@
 
 "use strict";
 
+Components.utils.import("resource://gre/modules/Promise.jsm");
+
+
+
+
+let run_promise_tests = function run_promise_tests(tests, cb) {
+  let timer = Components.classes["@mozilla.org/timer;1"]
+     .createInstance(Components.interfaces.nsITimer);
+  let loop = function loop(index) {
+    if (index >= tests.length) {
+      if (cb) {
+        cb.call();
+      }
+      return;
+    }
+    do_print("Launching test " + (index + 1) + "/" + tests.length);
+    let test = tests[index];
+    
+    let next = function next() {
+      do_print("Test " + (index + 1) + "/" + tests.length + " complete");
+      do_execute_soon(function() {
+        loop(index + 1);
+      });
+    };
+    let result = test();
+    result.then(next, next);
+  };
+  return loop(0);
+};
+
+let make_promise_test = function(test) {
+  return function runtest() {
+    do_print("Test starting: " + test);
+    try {
+      let result = test();
+      if (result && "promise" in result) {
+        result = result.promise;
+      }
+      if (!result || !("then" in result)) {
+        let exn;
+        try {
+          do_throw("Test " + test + " did not return a promise: " + result);
+        } catch (x) {
+          exn = x;
+        }
+        return Promise.reject(exn);
+      }
+      
+      result = result.then(
+        
+        function onResolve() {
+          do_print("Test complete: " + test);
+        },
+        
+        function onReject(err) {
+          let detail;
+          if (err && typeof err == "object" && "stack" in err) {
+            detail = err.stack;
+          } else {
+            detail = "(no stack)";
+          }
+          do_throw("Test " + test + " rejected with the following reason: "
+              + err + detail);
+      });
+      return result;
+    } catch (x) {
+      
+      do_throw("Error in body of test " + test + ": " + x + " at " + x.stack);
+      return Promise.reject();
+    }
+  };
+};
+
+
+
+
 let tests = [];
 
 
@@ -57,6 +133,69 @@ tests.push(make_promise_test(
     }
 
     return result;
+  }));
+
+
+tests.push(
+  make_promise_test(function then_returns_before_callbacks(test) {
+    let deferred = Promise.defer();
+    let promise = deferred.promise;
+
+    let order = 0;
+
+    promise.then(
+      function onResolve() {
+        do_check_eq(order, 0);
+        order++;
+      }
+    );
+
+    promise.then(
+      function onResolve() {
+        do_check_eq(order, 1);
+        order++;
+      }
+    );
+
+    let newPromise = promise.then(
+      function onResolve() {
+        do_check_eq(order, 2);
+      }
+    );
+
+    deferred.resolve();
+
+    
+    return newPromise;
+  }));
+
+
+tests.push(
+  make_promise_test(function then_returns_before_callbacks(test) {
+    let promise = Promise.resolve();
+
+    let order = 0;
+
+    promise.then(
+      function onResolve() {
+        do_check_eq(order, 0);
+        order++;
+      }
+    );
+
+    promise.then(
+      function onResolve() {
+        do_check_eq(order, 1);
+        order++;
+      }
+    );
+
+    
+    return promise.then(
+      function onResolve() {
+        do_check_eq(order, 2);
+      }
+    );
   }));
 
 
@@ -386,6 +525,63 @@ tests.push(
         do_check_eq(result, RESULT, "Promise.resolve propagated the correct result");
       }
     );
+    return promise;
+  }));
+
+
+tests.push(
+  make_promise_test(function then_returns_before_callbacks(test) {
+    let promise = Promise.resolve();
+
+    let thenExecuted = false;
+
+    promise = promise.then(
+      function onResolve() {
+        thenExecuted = true;
+      }
+    );
+
+    do_check_false(thenExecuted);
+
+    return promise;
+  }));
+
+
+tests.push(
+  make_promise_test(function chaining_short_stack(test) {
+    let source = Promise.defer();
+    let promise = source.promise;
+
+    const NUM_ITERATIONS = 100;
+
+    for (let i = 0; i < NUM_ITERATIONS; i++) {
+      promise = promise.then(
+        function onResolve(result) {
+          return result + ".";
+        }
+      );
+    }
+
+    promise = promise.then(
+      function onResolve(result) {
+        
+        let expectedString = new Array(1 + NUM_ITERATIONS).join(".");
+        do_check_true(result == expectedString);
+
+        
+        let stackFrameCount = 0;
+        let stackFrame = Components.stack;
+        while (stackFrame) {
+          stackFrameCount++;
+          stackFrame = stackFrame.caller;
+        }
+
+        do_check_true(stackFrameCount < NUM_ITERATIONS);
+      }
+    );
+
+    source.resolve("");
+
     return promise;
   }));
 
