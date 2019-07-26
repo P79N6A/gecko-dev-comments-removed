@@ -1674,6 +1674,219 @@ let RIL = {
   
 
 
+
+
+  updateNetworkName: function updateNetworkName() {
+    let iccInfoPriv = this.iccInfoPrivate;
+    let iccInfo = this.iccInfo;
+
+    
+    
+    if (!iccInfoPriv.PNN ||
+        !this.voiceRegistrationState.cell ||
+        this.voiceRegistrationState.cell.gsmLocationAreaCode == -1) {
+      return null;
+    }
+
+    let pnnEntry;
+    let lac = this.voiceRegistrationState.cell.gsmLocationAreaCode;
+    let mcc = this.operator.mcc;
+    let mnc = this.operator.mnc;
+
+    
+    
+    
+    
+    if (iccInfoPriv.OPL) {
+      for (let i in iccInfoPriv.OPL) {
+        let opl = iccInfoPriv.OPL[i];
+        
+        if (mcc != opl.mcc || mnc != opl.mnc) {
+          continue;
+        }
+        
+        
+        
+        if ((opl.lacTacStart == 0x0 && opl.lacTacEnd == 0xFFFE) ||
+            (opl.lacTacStart <= lac && opl.lacTacEnd >= lac)) {
+          if (opl.pnnRecordId == 0) {
+            
+            
+            
+            return null;
+          }
+          pnnEntry = iccInfoPriv.PNN[opl.pnnRecordId - 1]
+          break;
+        }
+      }
+    }
+
+    
+    
+    
+    
+    
+    if (!pnnEntry && mcc == iccInfo.mcc && mnc == iccInfo.mnc) {
+      pnnEntry = iccInfoPriv.PNN[0]
+    }
+
+    if (DEBUG) {
+      if (pnnEntry) {
+        debug("updateNetworkName: Network names will be overriden: longName = " +
+              pnnEntry.fullName + ", shortName = " + pnnEntry.shortName);
+      } else {
+        debug("updateNetworkName: Network names will not be overriden");
+      }
+    }
+
+    if (pnnEntry) {
+      return [pnnEntry.fullName, pnnEntry.shortName];
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+  getOPL: function getOPL() {
+    let opl = [];
+    function callback(options) {
+      let len = Buf.readUint32();
+      
+      
+      
+      
+      
+      
+      
+      let mccMnc = [GsmPDUHelper.readHexOctet(),
+                    GsmPDUHelper.readHexOctet(),
+                    GsmPDUHelper.readHexOctet()];
+      if (mccMnc[0] != 0xFF || mccMnc[1] != 0xFF || mccMnc[2] != 0xFF) {
+        let oplElement = {};
+        let semiOctets = [];
+        for (let i = 0; i < mccMnc.length; i++) {
+          semiOctets.push((mccMnc[i] & 0xf0) >> 4);
+          semiOctets.push(mccMnc[i] & 0x0f);
+        }
+        let reformat = [semiOctets[1], semiOctets[0], semiOctets[3],
+                        semiOctets[5], semiOctets[4], semiOctets[2]];
+        let buf = "";
+        for (let i = 0; i < reformat.length; i++) {
+          if (reformat[i] != 0xF) {
+            buf += GsmPDUHelper.semiOctetToBcdChar(reformat[i]);
+          }
+          if (i === 2) {
+            
+            oplElement.mcc = parseInt(buf);
+            buf = "";
+          } else if (i === 5) {
+            
+            oplElement.mnc = parseInt(buf);
+          }
+        }
+        
+        oplElement.lacTacStart =
+          (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
+        oplElement.lacTacEnd =
+          (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
+        
+        oplElement.pnnRecordId = GsmPDUHelper.readHexOctet();
+        if (DEBUG) {
+          debug("OPL: [" + (opl.length + 1) + "]: " + JSON.stringify(oplElement));
+        }
+        opl.push(oplElement);
+      }
+      Buf.readStringDelimiter(len);
+      if (options.p1 < options.totalRecords) {
+        options.p1++;
+        this.iccIO(options);
+      } else {
+        this.iccInfoPrivate.OPL = opl;
+      }
+    }
+
+    this.iccIO({
+      command:   ICC_COMMAND_GET_RESPONSE,
+      fileId:    ICC_EF_OPL,
+      pathId:    this._getPathIdForICCRecord(ICC_EF_OPL),
+      p1:        0, 
+      p2:        0, 
+      p3:        GET_RESPONSE_EF_SIZE_BYTES,
+      data:      null,
+      pin2:      null,
+      type:      EF_TYPE_LINEAR_FIXED,
+      callback:  callback,
+    });
+  },
+
+  
+
+
+
+
+
+  getPNN: function getPNN() {
+    let pnn = [];
+    function callback(options) {
+      let pnnElement = this.iccInfoPrivate.PNN = {};
+      let len = Buf.readUint32();
+      let readLen = 0;
+      while (len > readLen) {
+        let tlvTag = GsmPDUHelper.readHexOctet();
+        readLen = readLen + 2; 
+        if (tlvTag == 0xFF) {
+          
+          continue;
+        }
+        let tlvLen = GsmPDUHelper.readHexOctet();
+        let name;
+        switch (tlvTag) {
+        case PNN_IEI_FULL_NETWORK_NAME:
+          pnnElement.fullName = GsmPDUHelper.readNetworkName(tlvLen);
+          break;
+        case PNN_IEI_SHORT_NETWORK_NAME:
+          pnnElement.shortName = GsmPDUHelper.readNetworkName(tlvLen);
+          break;
+        default:
+          Buf.seekIncoming(PDU_HEX_OCTET_SIZE * tlvLen);
+        }
+        readLen += (tlvLen * 2 + 2);
+      }
+      if (DEBUG) {
+        debug("PNN: [" + (pnn.length + 1) + "]: " + JSON.stringify(pnnElement));
+      }
+      Buf.readStringDelimiter(len);
+      pnn.push(pnnElement);
+
+      if (options.p1 < options.totalRecords) {
+        options.p1++;
+        this.iccIO(options);
+      } else {
+        this.iccInfoPrivate.PNN = pnn;
+      }
+    }
+
+    this.iccIO({
+      command:   ICC_COMMAND_GET_RESPONSE,
+      fileId:    ICC_EF_PNN,
+      pathId:    this._getPathIdForICCRecord(ICC_EF_PNN),
+      p1:        0, 
+      p2:        0, 
+      p3:        GET_RESPONSE_EF_SIZE_BYTES,
+      data:      null,
+      pin2:      null,
+      type:      EF_TYPE_LINEAR_FIXED,
+      callback:  callback,
+    });
+  },
+
+  
+
+
   getSST: function getSST() {
     function callback() {
       let length = Buf.readUint32();
@@ -1703,6 +1916,20 @@ let RIL = {
         this.getSPDI();
       } else {
         if (DEBUG) debug("SPDI: SPDI service is not available");
+      }
+
+      if (this.isICCServiceAvailable("PNN")) {
+        if (DEBUG) debug("PNN: PNN is available");
+        this.getPNN();
+      } else {
+        if (DEBUG) debug("PNN: PNN is not available");
+      }
+
+      if (this.isICCServiceAvailable("OPL")) {
+        if (DEBUG) debug("OPL: OPL is available");
+        this.getOPL();
+      } else {
+        if (DEBUG) debug("OPL: OPL is not available");
       }
 
       if (this.isICCServiceAvailable("CBMI")) {
@@ -3643,6 +3870,8 @@ let RIL = {
           case ICC_EF_SPDI:
           case ICC_EF_CBMI:
           case ICC_EF_CBMIR:
+          case ICC_EF_OPL:
+          case ICC_EF_PNN:
             return EF_PATH_MF_SIM + EF_PATH_ADF_USIM;
 
           default:
@@ -3968,8 +4197,15 @@ let RIL = {
         this.operator.shortName !== shortName ||
         thisTuple !== networkTuple) {
 
-      this.operator.longName = longName;
-      this.operator.shortName = shortName;
+      let networkName = this.updateNetworkName();
+      if (networkName) {
+        this.operator.longName = networkName[0];
+        this.operator.shortName = networkName[1];
+      } else {
+        this.operator.longName = longName;
+        this.operator.shortName = shortName;
+      }
+
       this.operator.mcc = 0;
       this.operator.mnc = 0;
 
@@ -5970,7 +6206,7 @@ RIL[UNSOLICITED_NITZ_TIME_RECEIVED] = function UNSOLICITED_NITZ_TIME_RECEIVED() 
   debug("DateTimeZone string " + dateString);
 
   let now = Date.now();
-	
+
   let year = parseInt(dateString.substr(0, 2), 10);
   let month = parseInt(dateString.substr(3, 2), 10);
   let day = parseInt(dateString.substr(6, 2), 10);
@@ -7848,6 +8084,60 @@ let GsmPDUHelper = {
 
     return msg;
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+  readNetworkName: function readNetworkName(len) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    let codingInfo = GsmPDUHelper.readHexOctet();
+    if (!(codingInfo & 0x80)) {
+      return null;
+    }
+
+    let textEncoding = (codingInfo & 0x70) >> 4,
+        shouldIncludeCountryInitials = !!(codingInfo & 0x08),
+        spareBits = codingInfo & 0x07;
+    let resultString;
+
+    switch (textEncoding) {
+    case 0:
+      
+      resultString = GsmPDUHelper.readSeptetsToString(
+        ((len - 1) * 8 - spareBits) / 7, 0,
+        PDU_NL_IDENTIFIER_DEFAULT,
+        PDU_NL_IDENTIFIER_DEFAULT);
+      break;
+    case 1:
+      
+      resultString = this.readUCS2String(len - 1);
+      break;
+    default:
+      
+      return null;
+    }
+
+    
+    
+    return resultString;
+  }
 };
 
 let StkCommandParamsFactory = {
