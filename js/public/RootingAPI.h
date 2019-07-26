@@ -374,20 +374,6 @@ class InternalHandle<T*>
 
 
 
-# define ForwardDeclare(type)              \
-    class type;                            \
-    typedef type * Raw##type
-
-# define ForwardDeclareJS(type)            \
-    class JS##type;                        \
-    namespace js {                         \
-        typedef JS##type * Raw##type;      \
-    }                                      \
-    class JS##type
-
-
-
-
 
 
 template <typename T>
