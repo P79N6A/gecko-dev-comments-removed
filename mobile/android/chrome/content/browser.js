@@ -1523,6 +1523,10 @@ var BrowserApp = {
       case "Locale:Changed":
         
         
+        console.log("Locale:Changed: " + aData);
+
+        
+        
         Services.prefs.setBoolPref("intl.locale.matchOS", false);
         Services.prefs.setCharPref("general.useragent.locale", aData);
         break;
