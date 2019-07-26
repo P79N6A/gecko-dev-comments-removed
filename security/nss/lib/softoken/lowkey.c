@@ -9,7 +9,7 @@
 #include "secasn1.h"
 #include "secerr.h"
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 #include "softoken.h"
 #endif
 
@@ -91,7 +91,7 @@ const SEC_ASN1Template nsslowkey_DHPrivateKeyTemplate[] = {
     { 0, }
 };
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 
 
 
@@ -196,7 +196,7 @@ prepare_low_dh_priv_key_for_asn1(NSSLOWKEYPrivateKey *key)
     key->u.dh.privateValue.type = siUnsignedInteger;
 }
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 void
 prepare_low_ecparams_for_asn1(ECParams *params)
 {
@@ -341,7 +341,7 @@ nsslowkey_ConvertToPublicKey(NSSLOWKEYPrivateKey *privk)
 	    if (rv == SECSuccess) return pubk;
 	}
 	break;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
       case NSSLOWKEYECKey:
 	pubk = (NSSLOWKEYPublicKey *)PORT_ArenaZAlloc(arena,
 						    sizeof(NSSLOWKEYPublicKey));
@@ -459,7 +459,7 @@ nsslowkey_CopyPrivateKey(NSSLOWKEYPrivateKey *privKey)
 					&(privKey->u.dh.base));
 	    if(rv != SECSuccess) break;
 	    break;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 	case NSSLOWKEYECKey:
 	    rv = SECITEM_CopyItem(poolp, &(returnKey->u.ec.version),
 	    				&(privKey->u.ec.version));

@@ -399,7 +399,7 @@ lg_createPublicKeyObject(SDB *sdb, CK_KEY_TYPE key_type,
     NSSLOWKEYPrivateKey *priv;
     SECItem pubKeySpace = {siBuffer, NULL, 0};
     SECItem *pubKey;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     SECItem pubKey2Space = {siBuffer, NULL, 0};
     PLArenaPool *arena = NULL;
 #endif 
@@ -410,7 +410,7 @@ lg_createPublicKeyObject(SDB *sdb, CK_KEY_TYPE key_type,
     case CKK_RSA:
 	pubKeyAttr = CKA_MODULUS;
 	break;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     case CKK_EC:
 	pubKeyAttr = CKA_EC_POINT;
 	break;
@@ -427,7 +427,7 @@ lg_createPublicKeyObject(SDB *sdb, CK_KEY_TYPE key_type,
     crv = lg_Attribute2SSecItem(NULL,pubKeyAttr,templ,count,pubKey);
     if (crv != CKR_OK) return crv;
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     if (key_type == CKK_EC) {
 	SECStatus rv;
 	
@@ -471,7 +471,7 @@ lg_createPublicKeyObject(SDB *sdb, CK_KEY_TYPE key_type,
     
     
     priv = nsslowkey_FindKeyByPublicKey(keyHandle, pubKey, sdb );
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     if (priv == NULL && pubKey == &pubKey2Space) {
 	
 	pubKey = &pubKeySpace;
@@ -492,7 +492,7 @@ lg_createPublicKeyObject(SDB *sdb, CK_KEY_TYPE key_type,
 
 done:
     PORT_Free(pubKeySpace.data);
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     if (arena) 
 	PORT_FreeArena(arena, PR_FALSE);
 #endif
@@ -599,7 +599,7 @@ lg_mkPrivKey(SDB *sdb, const CK_ATTRIBUTE *templ, CK_ULONG count,
 	}
 	break;
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     case CKK_EC:
 	privKey->keyType = NSSLOWKEYECKey;
 	crv = lg_Attribute2SSecItem(arena, CKA_EC_PARAMS,templ,count,

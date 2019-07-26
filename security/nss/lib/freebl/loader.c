@@ -80,6 +80,8 @@ getLibName(void)
 }
 
 #elif defined(HPUX) && !defined(NSS_USE_64) && !defined(__ia64)
+#include <unistd.h>
+
 
 
 

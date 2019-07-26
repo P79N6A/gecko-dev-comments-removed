@@ -3101,7 +3101,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
 
 	return rv;
     }
-#if defined(NSS_ENABLE_ECC)
+#ifndef NSS_DISABLE_ECC
     
     ssl3_DisableECCSuites(ss, NULL); 
     if (ss->cipherSpecs != NULL) {
@@ -3109,7 +3109,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
 	ss->cipherSpecs     = NULL;
 	ss->sizeCipherSpecs = 0;
     }
-#endif
+#endif 
 
     if (!ss->cipherSpecs) {
         rv = ssl2_ConstructCipherSpecs(ss);

@@ -62,7 +62,7 @@ static void sftk_Null(void *data, PRBool freeit)
     return;
 } 
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 #ifdef EC_DEBUG
 #define SEC_PRINT(str1, str2, num, sitem) \
     printf("pkcs11c.c:%s:%s (keytype=%d) [len=%d]\n", \
@@ -2242,7 +2242,7 @@ nsc_DSA_Sign_Stub(void *ctx, void *sigBuf,
     return rv;
 }
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 static SECStatus
 nsc_ECDSAVerifyStub(void *ctx, void *sigBuf, unsigned int sigLen,
                     void *dataBuf, unsigned int dataLen)
@@ -2429,7 +2429,7 @@ finish_rsa:
 
 	break;
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     case CKM_ECDSA_SHA1:
 	context->multi = PR_TRUE;
 	crv = sftk_doSubSHA1(context);
@@ -3060,7 +3060,7 @@ finish_rsa:
 	context->verify     = (SFTKVerify) nsc_DSA_Verify_Stub;
 	context->destroy    = sftk_Null;
 	break;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     case CKM_ECDSA_SHA1:
 	context->multi = PR_TRUE;
 	crv = sftk_doSubSHA1(context);
@@ -4209,7 +4209,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
 	    pairwise_digest_length = subPrimeLen;
 	    mech.mechanism = CKM_DSA;
 	    break;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 	case CKK_EC:
 	    signature_length = MAX_ECKEY_LEN * 2;
 	    mech.mechanism = CKM_ECDSA;
@@ -4332,7 +4332,7 @@ CK_RV NSC_GenerateKeyPair (CK_SESSION_HANDLE hSession,
     int 		private_value_bits = 0;
     DHPrivateKey *	dhPriv;
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     
     SECItem  		ecEncodedParams;  
     ECPrivateKey *	ecPriv;
@@ -4667,7 +4667,7 @@ dhgn_done:
 	PORT_FreeArena(dhPriv->arena, PR_TRUE);
 	break;
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     case CKM_EC_KEY_PAIR_GEN:
 	sftk_DeleteAttributeType(privateKey,CKA_EC_PARAMS);
 	sftk_DeleteAttributeType(privateKey,CKA_VALUE);
@@ -4850,7 +4850,7 @@ static SECItem *sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
     void *dummy, *param = NULL;
     SECStatus rv = SECSuccess;
     SECItem *encodedKey = NULL;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     SECItem *fordebug;
     int savelen;
 #endif
@@ -4905,7 +4905,7 @@ static SECItem *sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
 				       nsslowkey_PQGParamsTemplate);
 	    algorithm = SEC_OID_ANSIX9_DSA_SIGNATURE;
 	    break;
-#ifdef NSS_ENABLE_ECC	    
+#ifndef NSS_DISABLE_ECC
         case NSSLOWKEYECKey:
             prepare_low_ec_priv_key_for_asn1(lk);
 	    
@@ -4965,7 +4965,7 @@ static SECItem *sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
 				    nsslowkey_PrivateKeyInfoTemplate);
     *crvp = encodedKey ? CKR_OK : CKR_DEVICE_ERROR;
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     fordebug = encodedKey;
     SEC_PRINT("sftk_PackagePrivateKey()", "PrivateKeyInfo", lk->keyType,
 	      fordebug);
@@ -5191,7 +5191,7 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
 	    prepare_low_pqg_params_for_asn1(&lpk->u.dsa.params);
 	    break;
 	
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
         case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
 	    keyTemplate = nsslowkey_ECPrivateKeyTemplate;
 	    paramTemplate = NULL;
@@ -5215,7 +5215,7 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
     
     rv = SEC_QuickDERDecodeItem(arena, lpk, keyTemplate, &pki->privateKey);
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     if (lpk->keyType == NSSLOWKEYECKey) {
         
 	lpk->u.ec.publicValue.len >>= 3;
@@ -5321,7 +5321,7 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
 	    break;
 #endif
 	
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
         case NSSLOWKEYECKey:
 	    keyType = CKK_EC;
 	    crv = (sftk_hasAttribute(key, CKA_NETSCAPE_DB)) ? CKR_OK :
@@ -5657,7 +5657,7 @@ sftk_MapKeySize(CK_KEY_TYPE keyType)
     return 0;
 }
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 
 
 
@@ -5768,7 +5768,7 @@ static CK_RV sftk_ANSI_X9_63_kdf(CK_BYTE **key, CK_ULONG key_len,
     else
 	return CKR_MECHANISM_INVALID;
 }
-#endif
+#endif 
 
 
 
@@ -6714,7 +6714,7 @@ key_and_mac_derive_fail:
 	break;
       }
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     case CKM_ECDH1_DERIVE:
     case CKM_ECDH1_COFACTOR_DERIVE:
       {

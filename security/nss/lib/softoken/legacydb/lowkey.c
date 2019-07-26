@@ -99,7 +99,7 @@ const SEC_ASN1Template lg_nsslowkey_DHPrivateKeyTemplate[] = {
     { 0, }
 };
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 
 
 
@@ -266,7 +266,7 @@ lg_prepare_low_dh_priv_key_for_asn1(NSSLOWKEYPrivateKey *key)
     key->u.dh.privateValue.type = siUnsignedInteger;
 }
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 void
 lg_prepare_low_ecparams_for_asn1(ECParams *params)
 {
@@ -378,7 +378,7 @@ lg_nsslowkey_ConvertToPublicKey(NSSLOWKEYPrivateKey *privk)
 	    if (rv == SECSuccess) return pubk;
 	}
 	break;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
       case NSSLOWKEYECKey:
 	pubk = (NSSLOWKEYPublicKey *)PORT_ArenaZAlloc(arena,
 						    sizeof(NSSLOWKEYPublicKey));

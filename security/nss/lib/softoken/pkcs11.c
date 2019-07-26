@@ -302,7 +302,7 @@ static const struct mechanismList mechanisms[] = {
 				 CKF_GENERATE_KEY_PAIR}, PR_TRUE}, 
      {CKM_DH_PKCS_DERIVE,	{DH_MIN_P_BITS, DH_MAX_P_BITS,
 				 CKF_DERIVE}, 	PR_TRUE}, 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
      
      {CKM_EC_KEY_PAIR_GEN,      {EC_MIN_KEY_BITS, EC_MAX_KEY_BITS,
 				 CKF_GENERATE_KEY_PAIR|CKF_EC_BPNU}, PR_TRUE}, 
@@ -927,7 +927,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
 	recover = CK_FALSE;
 	wrap = CK_FALSE;
 	break;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     case CKK_EC:
 	if ( !sftk_hasAttribute(object, CKA_EC_PARAMS)) {
 	    return CKR_TEMPLATE_INCOMPLETE;
@@ -1088,7 +1088,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session,SFTKObject *object,CK_KEY_TYPE 
 	recover = CK_FALSE;
 	wrap = CK_FALSE;
 	break;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     case CKK_EC:
 	if ( !sftk_hasAttribute(object, CKA_EC_PARAMS)) {
 	    return CKR_TEMPLATE_INCOMPLETE;
@@ -1708,7 +1708,7 @@ NSSLOWKEYPublicKey *sftk_GetPubKey(SFTKObject *object,CK_KEY_TYPE key_type,
     	crv = sftk_Attribute2SSecItem(arena,&pubKey->u.dh.publicValue,
 							object,CKA_VALUE);
 	break;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     case CKK_EC:
 	pubKey->keyType = NSSLOWKEYECKey;
 	crv = sftk_Attribute2SSecItem(arena,
@@ -1877,7 +1877,7 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
 
 	break;
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     case CKK_EC:
 	privKey->keyType = NSSLOWKEYECKey;
 	crv = sftk_Attribute2SSecItem(arena, 

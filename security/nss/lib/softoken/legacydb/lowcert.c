@@ -793,7 +793,7 @@ nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *cert)
 				 nsslowcert_DHPublicKeyTemplate, &os);
         if (rv == SECSuccess) return pubk;
         break;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
       case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
         pubk->keyType = NSSLOWKEYECKey;
 	

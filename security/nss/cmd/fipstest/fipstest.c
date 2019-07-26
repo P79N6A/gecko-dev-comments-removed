@@ -22,7 +22,7 @@
 #include "../../lib/freebl/mpi/mpi.h"
 #endif
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 extern SECStatus
 EC_DecodeParams(const SECItem *encodedParams, ECParams **ecparams);
 extern SECStatus
@@ -1849,7 +1849,7 @@ int get_next_line(FILE *req, char *key, char *val, FILE *rsp)
     return (c == EOF) ? -1 : ignore;
 }
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 typedef struct curveNameTagPairStr {
     char *curveName;
     SECOidTag curveOidTag;
@@ -5327,7 +5327,7 @@ int main(int argc, char **argv)
             
             dsa_sigver_test(argv[3]);
         }
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     
     
     

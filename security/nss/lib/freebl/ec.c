@@ -16,7 +16,7 @@
 #include "ec.h"
 #include "ecl.h"
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 
 
 
@@ -203,7 +203,7 @@ ec_NewKey(ECParams *ecParams, ECPrivateKey **privKey,
     const unsigned char *privKeyBytes, int privKeyLen)
 {
     SECStatus rv = SECFailure;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     PLArenaPool *arena;
     ECPrivateKey *key;
     mp_int k;
@@ -317,7 +317,7 @@ EC_NewKeyFromSeed(ECParams *ecParams, ECPrivateKey **privKey,
     const unsigned char *seed, int seedlen)
 {
     SECStatus rv = SECFailure;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     rv = ec_NewKey(ecParams, privKey, seed, seedlen);
 #else
     PORT_SetError(SEC_ERROR_UNSUPPORTED_KEYALG);
@@ -325,7 +325,7 @@ EC_NewKeyFromSeed(ECParams *ecParams, ECPrivateKey **privKey,
     return rv;
 }
 
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
 
 
 
@@ -391,7 +391,7 @@ SECStatus
 EC_NewKey(ECParams *ecParams, ECPrivateKey **privKey)
 {
     SECStatus rv = SECFailure;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     int len;
     unsigned char *privKeyBytes = NULL;
 
@@ -430,7 +430,7 @@ cleanup:
 SECStatus 
 EC_ValidatePublicKey(ECParams *ecParams, SECItem *publicValue)
 {
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     mp_int Px, Py;
     ECGroup *group = NULL;
     SECStatus rv = SECFailure;
@@ -527,7 +527,7 @@ ECDH_Derive(SECItem  *publicValue,
             SECItem  *derivedSecret)
 {
     SECStatus rv = SECFailure;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     unsigned int len = 0;
     SECItem pointQ = {siBuffer, NULL, 0};
     mp_int k; 
@@ -610,7 +610,7 @@ ECDSA_SignDigestWithSeed(ECPrivateKey *key, SECItem *signature,
     const SECItem *digest, const unsigned char *kb, const int kblen)
 {
     SECStatus rv = SECFailure;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     mp_int x1;
     mp_int d, k;     
     mp_int r, s;     
@@ -835,7 +835,7 @@ SECStatus
 ECDSA_SignDigest(ECPrivateKey *key, SECItem *signature, const SECItem *digest)
 {
     SECStatus rv = SECFailure;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     int len;
     unsigned char *kBytes= NULL;
 
@@ -876,7 +876,7 @@ ECDSA_VerifyDigest(ECPublicKey *key, const SECItem *signature,
                  const SECItem *digest)
 {
     SECStatus rv = SECFailure;
-#ifdef NSS_ENABLE_ECC
+#ifndef NSS_DISABLE_ECC
     mp_int r_, s_;           
     mp_int c, u1, u2, v;     
     mp_int x1;
