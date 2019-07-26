@@ -126,7 +126,7 @@ let inputTests = [
   
   {
     input: "document.body.dataset",
-    output: 'DOMStringMap {preview: "zuzu\\"<a>foo"}',
+    output: 'DOMStringMap {preview: "zuzu"<a>foo"}',
     printOutput: "[object DOMStringMap]",
     inspectable: true,
     variablesViewLabel: "DOMStringMap[1]",
