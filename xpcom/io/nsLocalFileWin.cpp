@@ -1021,7 +1021,7 @@ nsLocalFile::ResolveShortcut()
     if (mResolvedPath.Length() != MAX_PATH)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    wchar_t *resolvedPath = wwc(mResolvedPath.BeginWriting());
+    char16_t *resolvedPath = mResolvedPath.BeginWriting();
 
     
     nsresult rv = gResolver->Resolve(mWorkingPath.get(), resolvedPath);
@@ -1256,7 +1256,7 @@ nsLocalFile::Create(uint32_t type, uint32_t attributes)
     
     
 
-    wchar_t* path = wwc(mResolvedPath.BeginWriting());
+    char16_t* path = mResolvedPath.BeginWriting();
 
     if (path[0] == L'\\' && path[1] == L'\\')
     {
@@ -3446,7 +3446,7 @@ nsresult nsDriveEnumerator::Init()
     
     if (!mDrives.SetLength(length+1, fallible_t()))
         return NS_ERROR_OUT_OF_MEMORY;
-    if (!GetLogicalDriveStringsW(length, wwc(mDrives.BeginWriting())))
+    if (!GetLogicalDriveStringsW(length, mDrives.BeginWriting()))
         return NS_ERROR_FAILURE;
     mDrives.BeginReading(mStartOfCurrentDrive);
     mDrives.EndReading(mEndOfDrivesString);
