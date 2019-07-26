@@ -3393,6 +3393,9 @@ GetElementIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
     jsbytecode *pc;
     cache.getScriptedLocation(&script, &pc);
 
+    
+    AutoDetectInvalidation adi(cx, res.address(), ion);
+
     if (cache.isDisabled()) {
         if (!GetObjectElementOperation(cx, JSOp(*pc), obj, true, idval, res))
             return false;
@@ -3400,9 +3403,7 @@ GetElementIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
         return true;
     }
 
-    
-    AutoFlushCache afc ("GetElementCache", cx->runtime()->jitRuntime());
-    AutoDetectInvalidation adi(cx, res.address(), ion);
+    AutoFlushCache afc("GetElementCache", cx->runtime()->jitRuntime());
 
     RootedId id(cx);
     if (!ValueToId<CanGC>(cx, idval, &id))
