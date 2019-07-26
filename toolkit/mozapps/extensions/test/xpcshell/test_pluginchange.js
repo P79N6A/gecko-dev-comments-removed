@@ -5,7 +5,7 @@
 const LIST_UPDATED_TOPIC     = "plugins-list-updated";
 
 
-var { getIDHashForString } = Components.utils.import("resource://gre/modules/PluginProvider.jsm");
+var { getIDHashForString } = Components.utils.import("resource://gre/modules/addons/PluginProvider.jsm");
 
 function PluginTag(name, description) {
   this.name = name;
