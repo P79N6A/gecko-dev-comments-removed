@@ -745,6 +745,38 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  void SetEventRegions(const EventRegions& aRegions)
+  {
+    if (mEventRegions != aRegions) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) eventregions were %s, now %s", this,
+        mEventRegions.ToString().get(), aRegions.ToString().get()));
+      mEventRegions = aRegions;
+      Mutated();
+    }
+  }
+
+  
+
+
+
+
   void SetOpacity(float aOpacity)
   {
     if (mOpacity != aOpacity) {
@@ -1008,6 +1040,7 @@ public:
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
   uint32_t GetContentFlags() { return mContentFlags; }
   const nsIntRegion& GetVisibleRegion() { return mVisibleRegion; }
+  const EventRegions& GetEventRegions() const { return mEventRegions; }
   ContainerLayer* GetParent() { return mParent; }
   Layer* GetNextSibling() { return mNextSibling; }
   const Layer* GetNextSibling() const { return mNextSibling; }
@@ -1371,6 +1404,7 @@ protected:
   nsRefPtr<Layer> mMaskLayer;
   gfx::UserData mUserData;
   nsIntRegion mVisibleRegion;
+  EventRegions mEventRegions;
   gfx3DMatrix mTransform;
   
   

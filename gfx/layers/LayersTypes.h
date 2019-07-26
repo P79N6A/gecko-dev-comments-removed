@@ -8,6 +8,7 @@
 
 #include <stdint.h>                     
 #include "nsPoint.h"                    
+#include "nsRegion.h"
 
 #ifdef MOZ_WIDGET_GONK
 #include <ui/GraphicBuffer.h>
@@ -124,6 +125,29 @@ enum ScaleMode {
   SCALE_STRETCH,
   SCALE_SENTINEL
 
+};
+
+struct EventRegions {
+  nsIntRegion mHitRegion;
+  nsIntRegion mDispatchToContentHitRegion;
+
+  bool operator==(const EventRegions& aRegions) const
+  {
+    return mHitRegion == aRegions.mHitRegion &&
+           mDispatchToContentHitRegion == aRegions.mDispatchToContentHitRegion;
+  }
+  bool operator!=(const EventRegions& aRegions) const
+  {
+    return !(*this == aRegions);
+  }
+
+  nsCString ToString() const
+  {
+    nsCString result = mHitRegion.ToString();
+    result.AppendLiteral(";dispatchToContent=");
+    result.Append(mDispatchToContentHitRegion.ToString());
+    return result;
+  }
 };
 
 } 
