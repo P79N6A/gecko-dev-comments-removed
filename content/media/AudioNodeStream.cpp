@@ -241,7 +241,7 @@ AudioChunk*
 AudioNodeStream::ObtainInputBlock(AudioChunk* aTmpChunk)
 {
   uint32_t inputCount = mInputs.Length();
-  uint32_t outputChannelCount = mNumberOfInputChannels;
+  uint32_t outputChannelCount = 1;
   nsAutoTArray<AudioChunk*,250> inputChunks;
   for (uint32_t i = 0; i < inputCount; ++i) {
     MediaStream* s = mInputs[i]->GetSource();
@@ -257,10 +257,23 @@ AudioNodeStream::ObtainInputBlock(AudioChunk* aTmpChunk)
     }
 
     inputChunks.AppendElement(chunk);
-    if (!mNumberOfInputChannels) {
-      outputChannelCount =
-        GetAudioChannelsSuperset(outputChannelCount, chunk->mChannelData.Length());
-    }
+    outputChannelCount =
+      GetAudioChannelsSuperset(outputChannelCount, chunk->mChannelData.Length());
+  }
+
+  switch (mMixingMode.mChannelCountMode) {
+  case ChannelCountMode::Explicit:
+    
+    
+    outputChannelCount = mNumberOfInputChannels;
+    break;
+  case ChannelCountMode::Clamped_max:
+    
+    outputChannelCount = std::min(outputChannelCount, mNumberOfInputChannels);
+    break;
+  case ChannelCountMode::Max:
+    
+    break;
   }
 
   uint32_t inputChunkCount = inputChunks.Length();
