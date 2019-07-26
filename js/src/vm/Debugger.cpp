@@ -2888,7 +2888,7 @@ DebuggerScript_getOffsetLine(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-class BytecodeRangeWithLineNumbers : private BytecodeRange
+class BytecodeRangeWithPosition : private BytecodeRange
 {
   public:
     using BytecodeRange::empty;
@@ -2896,12 +2896,13 @@ class BytecodeRangeWithLineNumbers : private BytecodeRange
     using BytecodeRange::frontOpcode;
     using BytecodeRange::frontOffset;
 
-    BytecodeRangeWithLineNumbers(JSContext *cx, JSScript *script)
-      : BytecodeRange(cx, script), lineno(script->lineno), sn(script->notes()), snpc(script->code)
+    BytecodeRangeWithPosition(JSContext *cx, JSScript *script)
+      : BytecodeRange(cx, script), lineno(script->lineno), column(0),
+        sn(script->notes()), snpc(script->code)
     {
         if (!SN_IS_TERMINATOR(sn))
             snpc += SN_DELTA(sn);
-        updateLine();
+        updatePosition();
         while (frontPC() != script->main())
             popFront();
     }
@@ -2909,23 +2910,34 @@ class BytecodeRangeWithLineNumbers : private BytecodeRange
     void popFront() {
         BytecodeRange::popFront();
         if (!empty())
-            updateLine();
+            updatePosition();
     }
 
     size_t frontLineNumber() const { return lineno; }
+    size_t frontColumnNumber() const { return column; }
 
   private:
-    void updateLine() {
+    void updatePosition() {
         
 
 
 
         while (!SN_IS_TERMINATOR(sn) && snpc <= frontPC()) {
             SrcNoteType type = (SrcNoteType) SN_TYPE(sn);
-            if (type == SRC_SETLINE)
+            if (type == SRC_COLSPAN) {
+                ptrdiff_t colspan = js_GetSrcNoteOffset(sn, 0);
+
+                if (colspan >= SN_COLSPAN_DOMAIN / 2)
+                    colspan -= SN_COLSPAN_DOMAIN;
+                JS_ASSERT(ptrdiff_t(column) + colspan >= 0);
+                column += colspan;
+            } if (type == SRC_SETLINE) {
                 lineno = size_t(js_GetSrcNoteOffset(sn, 0));
-            else if (type == SRC_NEWLINE)
+                column = 0;
+            } else if (type == SRC_NEWLINE) {
                 lineno++;
+                column = 0;
+            }
 
             sn = SN_NEXT(sn);
             snpc += SN_DELTA(sn);
@@ -2933,12 +2945,11 @@ class BytecodeRangeWithLineNumbers : private BytecodeRange
     }
 
     size_t lineno;
+    size_t column;
     jssrcnote *sn;
     jsbytecode *snpc;
 };
 
-static const size_t NoEdges = -1;
-static const size_t MultipleEdges = -2;
 
 
 
@@ -2959,50 +2970,118 @@ static const size_t MultipleEdges = -2;
 
 
 
-class FlowGraphSummary : public Vector<size_t> {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class FlowGraphSummary {
   public:
-    typedef Vector<size_t> Base;
-    FlowGraphSummary(JSContext *cx) : Base(cx) {}
+    class Entry {
+      public:
+        static Entry createWithNoEdges() {
+            return Entry(-1, 0);
+        }
 
-    void addEdge(size_t sourceLine, size_t targetOffset) {
-        FlowGraphSummary &self = *this;
-        if (self[targetOffset] == NoEdges)
-            self[targetOffset] = sourceLine;
-        else if (self[targetOffset] != sourceLine)
-            self[targetOffset] = MultipleEdges;
-    }
+        static Entry createWithSingleEdge(size_t lineno, size_t column) {
+            return Entry(lineno, column);
+        }
 
-    void addEdgeFromAnywhere(size_t targetOffset) {
-        (*this)[targetOffset] = MultipleEdges;
+        static Entry createWithMultipleEdgesFromSingleLine(size_t lineno) {
+            return Entry(lineno, -1);
+        }
+
+        static Entry createWithMultipleEdgesFromMultipleLines() {
+            return Entry(-1, -1);
+        }
+
+        Entry() {}
+
+        bool hasNoEdges() const {
+            return lineno_ == -1 && column_ != -1;
+        }
+
+        bool hasSingleEdge() const {
+            return lineno_ != -1 && column_ != -1;
+        }
+
+        bool hasMultipleEdgesFromSingleLine() const {
+            return lineno_ != -1 && column_ == -1;
+        }
+
+        bool hasMultipleEdgesFromMultipleLines() const {
+            return lineno_ == -1 && column_ == -1;
+        }
+
+        bool operator==(const Entry &other) const {
+            return lineno_ == other.lineno_ && column_ == other.column_;
+        }
+
+        bool operator!=(const Entry &other) const {
+            return lineno_ != other.lineno_ || column_ != other.column_;
+        }
+
+        size_t lineno() const {
+            return lineno_;
+        }
+
+        size_t column() const {
+            return column_;
+        }
+
+      private:
+        Entry(size_t lineno, size_t column) : lineno_(lineno), column_(column) {}
+
+        size_t lineno_;
+        size_t column_;
+    };
+
+    FlowGraphSummary(JSContext *cx) : entries_(cx) {}
+
+    Entry &operator[](size_t index) {
+        return entries_[index];
     }
 
     bool populate(JSContext *cx, JSScript *script) {
-        if (!growBy(script->length))
+        if (!entries_.growBy(script->length))
             return false;
-        FlowGraphSummary &self = *this;
         unsigned mainOffset = script->main() - script->code;
-        self[mainOffset] = MultipleEdges;
+        entries_[mainOffset] = Entry::createWithMultipleEdgesFromMultipleLines();
         for (size_t i = mainOffset + 1; i < script->length; i++)
-            self[i] = NoEdges;
+            entries_[i] = Entry::createWithNoEdges();
 
-        size_t prevLine = script->lineno;
+        size_t prevLineno = script->lineno;
+        size_t prevColumn = 0;
         JSOp prevOp = JSOP_NOP;
-        for (BytecodeRangeWithLineNumbers r(cx, script); !r.empty(); r.popFront()) {
+        for (BytecodeRangeWithPosition r(cx, script); !r.empty(); r.popFront()) {
             size_t lineno = r.frontLineNumber();
+            size_t column = r.frontColumnNumber();
             JSOp op = r.frontOpcode();
 
             if (FlowsIntoNext(prevOp))
-                addEdge(prevLine, r.frontOffset());
+                addEdge(prevLineno, prevColumn, r.frontOffset());
 
             if (js_CodeSpec[op].type() == JOF_JUMP) {
-                addEdge(lineno, r.frontOffset() + GET_JUMP_OFFSET(r.frontPC()));
+                addEdge(lineno, column, r.frontOffset() + GET_JUMP_OFFSET(r.frontPC()));
             } else if (op == JSOP_TABLESWITCH) {
                 jsbytecode *pc = r.frontPC();
                 size_t offset = r.frontOffset();
                 ptrdiff_t step = JUMP_OFFSET_LEN;
                 size_t defaultOffset = offset + GET_JUMP_OFFSET(pc);
                 pc += step;
-                addEdge(lineno, defaultOffset);
+                addEdge(lineno, column, defaultOffset);
 
                 int32_t low = GET_JUMP_OFFSET(pc);
                 pc += JUMP_OFFSET_LEN;
@@ -3011,17 +3090,30 @@ class FlowGraphSummary : public Vector<size_t> {
 
                 for (int i = 0; i < ncases; i++) {
                     size_t target = offset + GET_JUMP_OFFSET(pc);
-                    addEdge(lineno, target);
+                    addEdge(lineno, column, target);
                     pc += step;
                 }
             }
 
+            prevLineno = lineno;
+            prevColumn = column;
             prevOp = op;
-            prevLine = lineno;
         }
 
         return true;
     }
+
+  private:
+    void addEdge(size_t sourceLineno, size_t sourceColumn, size_t targetOffset) {
+        if (entries_[targetOffset].hasNoEdges())
+            entries_[targetOffset] = Entry::createWithSingleEdge(sourceLineno, sourceColumn);
+        else if (entries_[targetOffset].lineno() != sourceLineno)
+            entries_[targetOffset] = Entry::createWithMultipleEdgesFromMultipleLines();
+        else if (entries_[targetOffset].column() != sourceColumn)
+            entries_[targetOffset] = Entry::createWithMultipleEdgesFromSingleLine(sourceLineno);
+    }
+
+    Vector<Entry> entries_;
 };
 
 static JSBool
@@ -3041,12 +3133,12 @@ DebuggerScript_getAllOffsets(JSContext *cx, unsigned argc, Value *vp)
     RootedObject result(cx, NewDenseEmptyArray(cx));
     if (!result)
         return false;
-    for (BytecodeRangeWithLineNumbers r(cx, script); !r.empty(); r.popFront()) {
+    for (BytecodeRangeWithPosition r(cx, script); !r.empty(); r.popFront()) {
         size_t offset = r.frontOffset();
         size_t lineno = r.frontLineNumber();
 
         
-        if (flowData[offset] != NoEdges && flowData[offset] != lineno) {
+        if (!flowData[offset].hasNoEdges() && flowData[offset].lineno() != lineno) {
             
             RootedObject offsets(cx);
             RootedValue offsetsv(cx);
@@ -3122,13 +3214,13 @@ DebuggerScript_getLineOffsets(JSContext *cx, unsigned argc, Value *vp)
     RootedObject result(cx, NewDenseEmptyArray(cx));
     if (!result)
         return false;
-    for (BytecodeRangeWithLineNumbers r(cx, script); !r.empty(); r.popFront()) {
+    for (BytecodeRangeWithPosition r(cx, script); !r.empty(); r.popFront()) {
         size_t offset = r.frontOffset();
 
         
         if (r.frontLineNumber() == lineno &&
-            flowData[offset] != NoEdges &&
-            flowData[offset] != lineno)
+            !flowData[offset].hasNoEdges() &&
+            flowData[offset].lineno() != lineno)
         {
             if (!js_NewbornArrayPush(cx, result, NumberValue(offset)))
                 return false;
