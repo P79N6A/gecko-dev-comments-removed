@@ -184,7 +184,14 @@ public:
 
 
 
-  virtual bool IsTextureSupported() { return false; }
+
+  virtual bool IsTextureSupported() {
+#ifdef WEBRTC_GONK
+    return true;
+#else
+    return false;
+#endif
+  }
 
   unsigned short SendingWidth() {
     return mSendingWidth;

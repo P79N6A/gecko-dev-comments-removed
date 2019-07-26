@@ -13,6 +13,8 @@
 #include "VideoTypes.h"
 #include "MediaConduitErrors.h"
 
+#include "ImageContainer.h"
+
 #include <vector>
 
 namespace mozilla {
@@ -44,6 +46,20 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TransportInterface)
 };
 
+
+
+
+
+class ImageHandle
+{
+public:
+  ImageHandle(layers::Image* image) : mImage(image) {}
+
+  const RefPtr<layers::Image>& GetImage() const { return mImage; }
+
+private:
+  RefPtr<layers::Image> mImage;
+};
 
 
 
@@ -81,10 +97,15 @@ class VideoRenderer
 
 
 
+
+
+
+
   virtual void RenderVideoFrame(const unsigned char* buffer,
                                 unsigned int buffer_size,
                                 uint32_t time_stamp,
-                                int64_t render_time) = 0;
+                                int64_t render_time,
+                                const ImageHandle& handle) = 0;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VideoRenderer)
 };
