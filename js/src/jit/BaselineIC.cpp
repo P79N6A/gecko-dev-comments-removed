@@ -4142,7 +4142,7 @@ ICGetElemNativeCompiler::generateStubCode(MacroAssembler &masm)
 
         
         DebugOnly<Register> strExtract2 = masm.extractString(R1, ExtractTemp1);
-        JS_ASSERT(strExtract2 == strExtract);
+        JS_ASSERT(Register(strExtract2) == strExtract);
 
         masm.bind(&skipAtomize);
     }
