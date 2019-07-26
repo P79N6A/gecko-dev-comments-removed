@@ -10,6 +10,7 @@
 #include "GLTypes.h"
 #include "nsRect.h"
 #include "nsTArray.h"
+#include "gfx3DMatrix.h"
 
 namespace mozilla {
 namespace gl {
@@ -18,7 +19,7 @@ namespace gl {
 
 class RectTriangles {
 public:
-    RectTriangles() { }
+    RectTriangles() : mIsSimpleQuad(false) { }
 
     
     
@@ -26,6 +27,16 @@ public:
     void addRect(GLfloat x0, GLfloat y0, GLfloat x1, GLfloat y1,
                   GLfloat tx0, GLfloat ty0, GLfloat tx1, GLfloat ty1,
                   bool flip_y = false);
+
+    
+    
+    
+    
+    
+    bool IsSimpleQuad(gfx3DMatrix& aOutTextureTransform) const {
+      aOutTextureTransform = mTextureTransform;
+      return mIsSimpleQuad;
+    }
 
     
 
@@ -50,6 +61,8 @@ private:
     
     nsAutoTArray<vert_coord, 6> vertexCoords;
     nsAutoTArray<tex_coord, 6>  texCoords;
+    gfx3DMatrix mTextureTransform;
+    bool mIsSimpleQuad;
 };
 
 
