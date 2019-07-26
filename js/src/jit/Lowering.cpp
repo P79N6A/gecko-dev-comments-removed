@@ -1776,9 +1776,87 @@ LIRGenerator::visitToString(MToString *ins)
     }
 }
 
+static bool
+MustCloneRegExpForCall(MPassArg *arg)
+{
+    
+    
+
+    JS_ASSERT(arg->getArgument()->isRegExp());
+
+    for (MUseIterator iter(arg->usesBegin()); iter != arg->usesEnd(); iter++) {
+        MNode *node = iter->consumer();
+        if (!node->isDefinition())
+            return true;
+
+        MDefinition *def = node->toDefinition();
+        if (!def->isCall())
+            return true;
+
+        MCall *call = def->toCall();
+        JSFunction *target = call->getSingleTarget();
+        if (!target || !target->isNative())
+            return true;
+
+        if (iter->index() == MCall::IndexOfThis() &&
+            (target->native() == regexp_exec || target->native() == regexp_test))
+        {
+            continue;
+        }
+
+        if (iter->index() == MCall::IndexOfArgument(0) &&
+            (target->native() == str_split ||
+             target->native() == str_replace ||
+             target->native() == str_match ||
+             target->native() == str_search))
+        {
+            continue;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+
+static bool
+MustCloneRegExp(MRegExp *regexp)
+{
+    if (regexp->mustClone())
+        return true;
+
+    
+    
+
+    for (MUseIterator iter(regexp->usesBegin()); iter != regexp->usesEnd(); iter++) {
+        MNode *node = iter->consumer();
+        if (!node->isDefinition())
+            return true;
+
+        MDefinition *def = node->toDefinition();
+        if (def->isRegExpTest() && iter->index() == 1) {
+            
+            JS_ASSERT(def->toRegExpTest()->regexp() == regexp);
+            continue;
+        }
+
+        if (def->isPassArg() && !MustCloneRegExpForCall(def->toPassArg()))
+            continue;
+
+        return true;
+    }
+    return false;
+}
+
 bool
 LIRGenerator::visitRegExp(MRegExp *ins)
 {
+    if (!MustCloneRegExp(ins)) {
+        RegExpObject *source = ins->source();
+        return define(new LPointer(source), ins);
+    }
+
     LRegExp *lir = new LRegExp();
     return defineReturn(lir, ins) && assignSafepoint(lir, ins);
 }

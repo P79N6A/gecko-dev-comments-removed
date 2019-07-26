@@ -23,6 +23,7 @@
 #include "jit/MIRGraph.h"
 
 #include "vm/ArgumentsObject.h"
+#include "vm/RegExpStatics.h"
 
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
@@ -8873,7 +8874,31 @@ IonBuilder::jsop_regexp(RegExpObject *reobj)
     if (!prototype)
         return false;
 
-    MRegExp *regexp = MRegExp::New(reobj, prototype);
+    JS_ASSERT(&reobj->JSObject::global() == &script()->global());
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+    bool mustClone = true;
+    types::TypeObjectKey *typeObj = types::TypeObjectKey::get(&script()->global());
+    if (!typeObj->hasFlags(constraints(), types::OBJECT_FLAG_REGEXP_FLAGS_SET)) {
+        RegExpStatics *res = script()->global().getRegExpStatics();
+
+        DebugOnly<uint32_t> origFlags = reobj->getFlags();
+        DebugOnly<uint32_t> staticsFlags = res->getFlags();
+        JS_ASSERT((origFlags & staticsFlags) == staticsFlags);
+
+        if (!reobj->global() && !reobj->sticky())
+            mustClone = false;
+    }
+
+    MRegExp *regexp = MRegExp::New(reobj, prototype, mustClone);
     current->add(regexp);
     current->push(regexp);
 
@@ -8883,6 +8908,7 @@ IonBuilder::jsop_regexp(RegExpObject *reobj)
     
     
     if (reobj->sticky() || reobj->global()) {
+        JS_ASSERT(mustClone);
         MConstant *zero = MConstant::New(Int32Value(0));
         current->add(zero);
 
