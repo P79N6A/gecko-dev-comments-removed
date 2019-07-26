@@ -497,13 +497,13 @@ var gPopupBlockerObserver = {
       if (pm.testPermission(uri, "popup") == pm.ALLOW_ACTION) {
         
         
-        let blockString = gNavigatorBundle.getFormattedString("popupBlock", [uri.host]);
+        let blockString = gNavigatorBundle.getFormattedString("popupBlock", [uri.host || uri.spec]);
         blockedPopupAllowSite.setAttribute("label", blockString);
         blockedPopupAllowSite.setAttribute("block", "true");
       }
       else {
         
-        let allowString = gNavigatorBundle.getFormattedString("popupAllow", [uri.host]);
+        let allowString = gNavigatorBundle.getFormattedString("popupAllow", [uri.host || uri.spec]);
         blockedPopupAllowSite.setAttribute("label", allowString);
         blockedPopupAllowSite.removeAttribute("block");
       }
