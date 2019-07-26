@@ -796,7 +796,11 @@ pref("network.sntp.timeout", 30);
 pref("dom.promise.enabled", false);
 
 
+#ifdef RELEASE_BUILD
 pref("dom.datastore.enabled", false);
+#else
+pref("dom.datastore.enabled", true);
+#endif
 
 
 #ifdef MOZ_WIDGET_GONK
