@@ -622,7 +622,6 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         barParams.rightMargin = 0;
         mAddressBarBgCurveTowards = mAddressBarBg.getCurveTowards();
         mAddressBarBg.setCurveTowards(BrowserToolbarBackground.CurveTowards.NONE);
-        mAddressBarBg.requestLayout();
 
         
         
@@ -679,10 +678,13 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             proxy.setTranslationX(translation);
             proxy = AnimatorProxy.create(mTabsCount);
             proxy.setTranslationX(translation);
-            proxy = AnimatorProxy.create(mMenu);
-            proxy.setTranslationX(translation);
             proxy = AnimatorProxy.create(mActionItemBar);
             proxy.setTranslationX(translation);
+
+            if (mHasSoftMenuButton) {
+                proxy = AnimatorProxy.create(mMenu);
+                proxy.setTranslationX(translation);
+            }
         }
 
         
@@ -712,12 +714,14 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         contentAnimator.attach(mTabsCount,
                                PropertyAnimator.Property.TRANSLATION_X,
                                0);
-        contentAnimator.attach(mMenu,
-                               PropertyAnimator.Property.TRANSLATION_X,
-                               0);
         contentAnimator.attach(mActionItemBar,
                                PropertyAnimator.Property.TRANSLATION_X,
                                0);
+
+        if (mHasSoftMenuButton)
+            contentAnimator.attach(mMenu,
+                                   PropertyAnimator.Property.TRANSLATION_X,
+                                   0);
 
         contentAnimator.setPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
             @Override
@@ -739,7 +743,6 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                 MarginLayoutParams barParams = (MarginLayoutParams) mAddressBarBg.getLayoutParams();
                 barParams.rightMargin = mAddressBarBgRightMargin;
                 mAddressBarBg.setCurveTowards(mAddressBarBgCurveTowards);
-                mAddressBarBg.requestLayout();
 
                 
                 
@@ -822,12 +825,14 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         contentAnimator.attach(mTabsCount,
                                PropertyAnimator.Property.TRANSLATION_X,
                                translation);
-        contentAnimator.attach(mMenu,
-                               PropertyAnimator.Property.TRANSLATION_X,
-                               translation);
         contentAnimator.attach(mActionItemBar,
                                PropertyAnimator.Property.TRANSLATION_X,
                                translation);
+
+        if (mHasSoftMenuButton)
+            contentAnimator.attach(mMenu,
+                                   PropertyAnimator.Property.TRANSLATION_X,
+                                   translation);
 
         contentAnimator.setPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
             @Override
