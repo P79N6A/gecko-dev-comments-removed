@@ -3681,7 +3681,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         int endOffset = end - lastEnd;
 
         View firstChild = getChildAt(0);
-        final int firstStart = (mIsVertical ? firstChild.getTop() : firstChild.getLeft());
+        int firstStart = (mIsVertical ? firstChild.getTop() : firstChild.getLeft());
 
         
         
@@ -3695,9 +3695,11 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             offsetChildren(endOffset);
 
             if (mFirstPosition > 0) {
+                firstStart = (mIsVertical ? firstChild.getTop() : firstChild.getLeft());
+
                 
                 
-                fillBefore(mFirstPosition - 1, firstChild.getTop() - mItemMargin);
+                fillBefore(mFirstPosition - 1, firstStart - mItemMargin);
 
                 
                 adjustViewsStartOrEnd();
@@ -3729,7 +3731,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         int startOffset = firstStart - start;
 
         View last = getChildAt(childCount - 1);
-        final int lastEnd = (mIsVertical ? last.getBottom() : last.getRight());
+        int lastEnd = (mIsVertical ? last.getBottom() : last.getRight());
 
         int lastPosition = mFirstPosition + childCount - 1;
 
@@ -3747,6 +3749,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 offsetChildren(-startOffset);
 
                 if (lastPosition < mItemCount - 1) {
+                    lastEnd = (mIsVertical ? last.getBottom() : last.getRight());
+
                     
                     
                     fillAfter(lastPosition + 1, lastEnd + mItemMargin);
