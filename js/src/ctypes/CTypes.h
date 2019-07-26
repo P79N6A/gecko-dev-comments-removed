@@ -183,10 +183,6 @@ enum ErrorNum {
   CTYPESERR_LIMIT
 };
 
-const JSErrorFormatString*
-GetErrorMessage(void* userRef, const char* locale, const unsigned errorNumber);
-JSBool TypeError(JSContext* cx, const char* expected, jsval actual);
-
 
 
 
@@ -310,17 +306,6 @@ struct ClosureInfo
 bool IsCTypesGlobal(JSObject* obj);
 
 JSCTypesCallbacks* GetCallbacks(JSObject* obj);
-
-JSBool InitTypeClasses(JSContext* cx, HandleObject parent);
-
-JSBool ConvertToJS(JSContext* cx, HandleObject typeObj, HandleObject dataObj,
-  void* data, bool wantPrimitive, bool ownResult, jsval* result);
-
-JSBool ImplicitConvert(JSContext* cx, HandleValue val, JSObject* targetType,
-  void* buffer, bool isArgument, bool* freePointer);
-
-JSBool ExplicitConvert(JSContext* cx, HandleValue val, HandleObject targetType,
-  void* buffer);
 
 
 
