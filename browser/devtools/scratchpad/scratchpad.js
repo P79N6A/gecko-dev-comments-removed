@@ -24,6 +24,7 @@ const BUTTON_POSITION_SAVE       = 0;
 const BUTTON_POSITION_CANCEL     = 1;
 const BUTTON_POSITION_DONT_SAVE  = 2;
 const BUTTON_POSITION_REVERT     = 0;
+const EVAL_FUNCTION_TIMEOUT      = 1000; 
 
 const SCRATCHPAD_L10N = "chrome://browser/locale/devtools/scratchpad.properties";
 const DEVTOOLS_CHROME_ENABLED = "devtools.chrome.enabled";
@@ -74,6 +75,9 @@ XPCOMUtils.defineLazyGetter(this, "REMOTE_TIMEOUT", () =>
 
 XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
   "resource://gre/modules/ShortcutUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "Reflect",
+  "resource://gre/modules/reflect.jsm");
 
 
 
@@ -565,6 +569,168 @@ var Scratchpad = {
     });
 
     return deferred.promise;
+  },
+
+  
+
+
+
+  _parseText: function SP__parseText(aText) {
+    try {
+      return Reflect.parse(aText);
+    } catch (e) {
+      this.writeAsErrorComment(DevToolsUtils.safeErrorString(e));
+      return false;
+    }
+  },
+
+  
+
+
+
+
+
+  _containsCursor: function (aLoc, aCursorPos) {
+    
+    const lineNumber = aCursorPos.line + 1;
+    const columnNumber = aCursorPos.ch;
+
+    if (aLoc.start.line <= lineNumber && aLoc.end.line >= lineNumber) {
+      if (aLoc.start.line === aLoc.end.line) {
+        return aLoc.start.column <= columnNumber
+          && aLoc.end.column >= columnNumber;
+      }
+
+      if (aLoc.start.line == lineNumber) {
+        return columnNumber >= aLoc.start.column;
+      }
+
+      if (aLoc.end.line == lineNumber) {
+        return columnNumber <= aLoc.end.column;
+      }
+
+      return true;
+    }
+
+    return false;
+  },
+
+  
+
+
+
+
+  _findTopLevelFunction: function SP__findTopLevelFunction(aAst, aCursorPos) {
+    for (let statement of aAst.body) {
+      switch (statement.type) {
+      case "FunctionDeclaration":
+        if (this._containsCursor(statement.loc, aCursorPos)) {
+          return statement;
+        }
+        break;
+
+      case "VariableDeclaration":
+        for (let decl of statement.declarations) {
+          if (!decl.init) {
+            continue;
+          }
+          if ((decl.init.type == "FunctionExpression"
+               || decl.init.type == "ArrowExpression")
+              && this._containsCursor(decl.loc, aCursorPos)) {
+            return decl;
+          }
+        }
+        break;
+      }
+    }
+
+    return null;
+  },
+
+  
+
+
+
+
+
+
+  _getFunctionText: function SP__getFunctionText(aFunction, aFullText) {
+    let functionText = "";
+    
+    
+    let lineNumber = 0;
+    const { start, end } = aFunction.loc;
+    const singleLine = start.line === end.line;
+
+    for (let line of aFullText.split(/\n/g)) {
+      lineNumber++;
+
+      if (singleLine && start.line === lineNumber) {
+        functionText = line.slice(start.column, end.column);
+        break;
+      }
+
+      if (start.line === lineNumber) {
+        functionText += line.slice(start.column) + "\n";
+        continue;
+      }
+
+      if (end.line === lineNumber) {
+        functionText += line.slice(0, end.column);
+        break;
+      }
+
+      if (start.line < lineNumber && end.line > lineNumber) {
+        functionText += line + "\n";
+      }
+    }
+
+    return functionText;
+  },
+
+  
+
+
+
+
+  evalTopLevelFunction: function SP_evalTopLevelFunction() {
+    const text = this.getText();
+    const ast = this._parseText(text);
+    if (!ast) {
+      return promise.resolve([text, undefined, undefined]);
+    }
+
+    const cursorPos = this.editor.getCursor();
+    const funcStatement = this._findTopLevelFunction(ast, cursorPos);
+    if (!funcStatement) {
+      return promise.resolve([text, undefined, undefined]);
+    }
+
+    let functionText = this._getFunctionText(funcStatement, text);
+
+    
+    
+    if (funcStatement.type == "FunctionDeclaration"
+        && !functionText.startsWith("function ")) {
+      functionText = "function " + functionText;
+      funcStatement.loc.start.column -= 9;
+    }
+
+    
+    
+    const from = {
+      line: funcStatement.loc.start.line - 1,
+      ch: funcStatement.loc.start.column
+    };
+    const to = {
+      line: funcStatement.loc.end.line - 1,
+      ch: funcStatement.loc.end.column
+    };
+
+    const marker = this.editor.markText(from, to, { className: "eval-text" });
+    setTimeout(() => marker.clear(), EVAL_FUNCTION_TIMEOUT);
+
+    return this.evaluate(functionText);
   },
 
   

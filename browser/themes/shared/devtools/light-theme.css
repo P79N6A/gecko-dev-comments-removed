@@ -188,6 +188,11 @@ div.cm-s-mozilla span.CodeMirror-matchingbracket {
   color: black;
 }
 
+
+div.CodeMirror span.eval-text {
+  background-color: #ccd;
+}
+
 .cm-s-mozilla .CodeMirror-linenumber { 
   color: #667380;
 }
