@@ -37,17 +37,6 @@ namespace mozilla {
 namespace layers {
 
 
-static bool
-HasOpaqueAncestorLayer(Layer* aLayer)
-{
-  for (Layer* l = aLayer->GetParent(); l; l = l->GetParent()) {
-    if (l->GetContentFlags() & Layer::CONTENT_OPAQUE)
-      return true;
-  }
-  return false;
-}
-
-
 
 
 
@@ -246,6 +235,7 @@ static void DrawVelGraph(const nsIntRect& aClipRect,
                         opacity, transform);
 }
 
+
 template<class ContainerT> void
 ContainerRender(ContainerT* aContainer,
                 LayerManagerComposite* aManager,
@@ -295,7 +285,7 @@ ContainerRender(ContainerT* aContainer,
       
       
       
-      if (HasOpaqueAncestorLayer(aContainer) &&
+      if (ContainerLayer::HasOpaqueAncestorLayer(aContainer) &&
           transform3D.Is2D(&transform) && !ThebesMatrix(transform).HasNonIntegerTranslation()) {
         surfaceCopyNeeded = gfxPrefs::ComponentAlphaEnabled();
         sourcePoint.x += transform._31;

@@ -1723,10 +1723,14 @@ public:
 
   bool SupportsComponentAlphaChildren() { return mSupportsComponentAlphaChildren; }
 
-protected:
-  friend class ReadbackProcessor;
+  
+
+
 
   static bool HasOpaqueAncestorLayer(Layer* aLayer);
+
+protected:
+  friend class ReadbackProcessor;
 
   void DidInsertChild(Layer* aLayer);
   void DidRemoveChild(Layer* aLayer);
