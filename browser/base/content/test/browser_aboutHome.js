@@ -104,23 +104,23 @@ let gTests = [
     let numSearchesBefore = 0;
     let deferred = Promise.defer();
     let doc = gBrowser.contentDocument;
+    let engineName = doc.documentElement.getAttribute("searchEngineName");
 
     
     
     doc.addEventListener("AboutHomeSearchEvent", function onSearch(e) {
-      let engineName = doc.documentElement.getAttribute("searchEngineName");
       is(e.detail, engineName, "Detail is search engine name");
 
       gBrowser.stop();
 
-      getNumberOfSearches().then(num => {
+      getNumberOfSearches(engineName).then(num => {
         is(num, numSearchesBefore + 1, "One more search recorded.");
         deferred.resolve();
       });
     }, true, true);
 
     
-    getNumberOfSearches().then(num => {
+    getNumberOfSearches(engineName).then(num => {
       numSearchesBefore = num;
 
       info("Perform a search.");
@@ -263,6 +263,7 @@ function test()
 {
   waitForExplicitFinish();
   requestLongerTimeout(2);
+  ignoreAllUncaughtExceptions();
 
   Task.spawn(function () {
     for (let test of gTests) {
@@ -396,7 +397,10 @@ function promiseBrowserAttributes(aTab)
 
 
 
-function getNumberOfSearches() {
+
+
+
+function getNumberOfSearches(aEngineName) {
   let reporter = Components.classes["@mozilla.org/datareporting/service;1"]
                                    .getService()
                                    .wrappedJSObject
@@ -419,17 +423,15 @@ function getNumberOfSearches() {
       
       
       
-      return getNumberOfSearchesByDate(data, now) +
-             getNumberOfSearchesByDate(data, yday);
+      return getNumberOfSearchesByDate(aEngineName, data, now) +
+             getNumberOfSearchesByDate(aEngineName, data, yday);
     });
   });
 }
 
-function getNumberOfSearchesByDate(aData, aDate) {
+function getNumberOfSearchesByDate(aEngineName, aData, aDate) {
   if (aData.days.hasDay(aDate)) {
-    let doc = gBrowser.contentDocument;
-    let engineName = doc.documentElement.getAttribute("searchEngineName");
-    let id = Services.search.getEngineByName(engineName).identifier;
+    let id = Services.search.getEngineByName(aEngineName).identifier;
 
     let day = aData.days.getDay(aDate);
     let field = id + ".abouthome";
