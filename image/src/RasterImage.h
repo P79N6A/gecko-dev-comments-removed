@@ -28,6 +28,7 @@
 #include "imgFrame.h"
 #include "nsThreadUtils.h"
 #include "DiscardTracker.h"
+#include "Orientation.h"
 #include "nsISupportsImpl.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TimeStamp.h"
@@ -190,9 +191,7 @@ public:
 
 
 
-
-  nsresult SetSize(int32_t aWidth, int32_t aHeight);
-
+  nsresult SetSize(int32_t aWidth, int32_t aHeight, Orientation aOrientation);
 
   
 
@@ -583,6 +582,7 @@ private:
 
 private: 
   nsIntSize                  mSize;
+  Orientation                mOrientation;
 
   
   
