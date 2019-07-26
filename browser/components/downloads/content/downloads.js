@@ -1253,7 +1253,7 @@ DownloadsViewItemController.prototype = {
 
     downloadsCmd_open: function DVIC_downloadsCmd_open()
     {
-      this.dataItem.openLocalFile();
+      this.dataItem.openLocalFile(window);
       
       
       
