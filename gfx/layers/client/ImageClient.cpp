@@ -116,6 +116,12 @@ ImageClientSingle::UpdateImage(ImageContainer* aContainer,
     
     RefPtr<TextureClient> texture = image->AsSharedImage()->GetTextureClient();
 
+    if (texture->IsSharedWithCompositor()) {
+      
+      
+      return false;
+    }
+
     if (mFrontBuffer) {
       RemoveTextureClient(mFrontBuffer);
     }
