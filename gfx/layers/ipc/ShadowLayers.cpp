@@ -33,7 +33,6 @@
 #include "nsSize.h"                     
 #include "nsTArray.h"                   
 #include "nsXULAppAPI.h"                
-#include "gfx2DGlue.h"
 
 struct nsIntPoint;
 
@@ -647,7 +646,7 @@ ShadowLayerForwarder::OpenDescriptor(OpenMode aMode,
     gfxImageFormat format
       = static_cast<gfxImageFormat>(image.format());
     surf = new gfxImageSurface((unsigned char *)image.data(),
-                               ThebesIntSize(image.size()),
+                               image.size(),
                                image.stride(),
                                format);
     return surf.forget();
