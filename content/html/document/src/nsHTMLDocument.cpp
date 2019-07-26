@@ -1578,6 +1578,8 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
 
   --mWriteLevel;
 
+  SetReadyStateInternal(nsIDocument::READYSTATE_LOADING);
+
   NS_ENSURE_SUCCESS(rv, rv);
   return CallQueryInterface(this, aReturn);
 }
@@ -2303,7 +2305,7 @@ nsresult
 nsHTMLDocument::ChangeContentEditableCount(nsIContent *aElement,
                                            PRInt32 aChange)
 {
-  NS_ASSERTION(mContentEditableCount + aChange >= 0,
+  NS_ASSERTION(PRInt32(mContentEditableCount) + aChange >= 0,
                "Trying to decrement too much.");
 
   mContentEditableCount += aChange;
@@ -2816,7 +2818,7 @@ static const struct MidasCommand gMidasCommandTable[] = {
   { "redo",          "cmd_redo",            "", true,  false },
   { "indent",        "cmd_indent",          "", true,  false },
   { "outdent",       "cmd_outdent",         "", true,  false },
-  { "backcolor",     "cmd_backgroundColor", "", false, false },
+  { "backcolor",     "cmd_highlight",       "", false, false },
   { "forecolor",     "cmd_fontColor",       "", false, false },
   { "hilitecolor",   "cmd_highlight",       "", false, false },
   { "fontname",      "cmd_fontFace",        "", false, false },
@@ -2875,8 +2877,8 @@ static const char* const gBlocks[] = {
 };
 
 static bool
-ConvertToMidasInternalCommandInner(const nsAString & inCommandID,
-                                   const nsAString & inParam,
+ConvertToMidasInternalCommandInner(const nsAString& inCommandID,
+                                   const nsAString& inParam,
                                    nsACString& outCommandID,
                                    nsACString& outParam,
                                    bool& outIsBoolean,
@@ -2890,8 +2892,7 @@ ConvertToMidasInternalCommandInner(const nsAString & inCommandID,
   if (convertedCommandID.LowerCaseEqualsLiteral("usecss")) {
     convertedCommandID.Assign("styleWithCSS");
     invertBool = true;
-  }
-  else if (convertedCommandID.LowerCaseEqualsLiteral("readonly")) {
+  } else if (convertedCommandID.LowerCaseEqualsLiteral("readonly")) {
     convertedCommandID.Assign("contentReadOnly");
     invertBool = true;
   }
@@ -2906,68 +2907,84 @@ ConvertToMidasInternalCommandInner(const nsAString & inCommandID,
     }
   }
 
-  if (found) {
-    
-    outCommandID.Assign(gMidasCommandTable[i].internalCommandString);
-
-    
-    outIsBoolean = gMidasCommandTable[i].convertToBoolean;
-
-    if (!aIgnoreParams) {
-      if (gMidasCommandTable[i].useNewParam) {
-        outParam.Assign(gMidasCommandTable[i].internalParamString);
-      }
-      else {
-        
-        if (outIsBoolean) {
-          
-          
-          
-          if (invertBool) {
-            outBooleanValue = inParam.LowerCaseEqualsLiteral("false");
-          }
-          else {
-            outBooleanValue = !inParam.LowerCaseEqualsLiteral("false");
-          }
-          outParam.Truncate();
-        }
-        else {
-          
-          if (outCommandID.EqualsLiteral("cmd_paragraphState")) {
-            const PRUnichar *start = inParam.BeginReading();
-            const PRUnichar *end = inParam.EndReading();
-            if (start != end && *start == '<' && *(end - 1) == '>') {
-              ++start;
-              --end;
-            }
-
-            NS_ConvertUTF16toUTF8 convertedParam(Substring(start, end));
-            PRUint32 j;
-            for (j = 0; j < ArrayLength(gBlocks); ++j) {
-              if (convertedParam.Equals(gBlocks[j],
-                                        nsCaseInsensitiveCStringComparator())) {
-                outParam.Assign(gBlocks[j]);
-                break;
-              }
-            }
-
-            return j != ArrayLength(gBlocks);
-          }
-          else {
-            CopyUTF16toUTF8(inParam, outParam);
-          }
-        }
-      }
-    }
-  } 
-  else {
+  if (!found) {
     
     outCommandID.SetLength(0);
     outParam.SetLength(0);
     outIsBoolean = false;
+    return false;
   }
 
-  return found;
+  
+  outCommandID.Assign(gMidasCommandTable[i].internalCommandString);
+
+  
+  outIsBoolean = gMidasCommandTable[i].convertToBoolean;
+
+  if (aIgnoreParams) {
+    
+    return true;
+  }
+
+  if (gMidasCommandTable[i].useNewParam) {
+    
+    outParam.Assign(gMidasCommandTable[i].internalParamString);
+    return true;
+  }
+
+  
+  if (outIsBoolean) {
+    
+    
+    
+    if (invertBool) {
+      outBooleanValue = inParam.LowerCaseEqualsLiteral("false");
+    } else {
+      outBooleanValue = !inParam.LowerCaseEqualsLiteral("false");
+    }
+    outParam.Truncate();
+
+    return true;
+  }
+
+  
+  
+  if (outCommandID.EqualsLiteral("cmd_paragraphState")) {
+    const PRUnichar* start = inParam.BeginReading();
+    const PRUnichar* end = inParam.EndReading();
+    if (start != end && *start == '<' && *(end - 1) == '>') {
+      ++start;
+      --end;
+    }
+
+    NS_ConvertUTF16toUTF8 convertedParam(Substring(start, end));
+    PRUint32 j;
+    for (j = 0; j < ArrayLength(gBlocks); ++j) {
+      if (convertedParam.Equals(gBlocks[j],
+                                nsCaseInsensitiveCStringComparator())) {
+        outParam.Assign(gBlocks[j]);
+        break;
+      }
+    }
+
+    if (j == ArrayLength(gBlocks)) {
+      outParam.Truncate();
+    }
+  } else if (outCommandID.EqualsLiteral("cmd_fontSize")) {
+    
+    
+    
+    
+    outParam.Truncate();
+    PRInt32 size = nsContentUtils::ParseLegacyFontSize(inParam);
+    if (size) {
+      outParam.AppendInt(size);
+    }
+  } else {
+    CopyUTF16toUTF8(inParam, outParam);
+  }
+
+  return true;
 }
 
 static bool
@@ -3099,6 +3116,12 @@ nsHTMLDocument::ExecCommand(const nsAString & commandID,
                                      cmdToDispatch, paramStr, isBool, boolVal))
     return NS_OK;
 
+  if ((cmdToDispatch.EqualsLiteral("cmd_paragraphState") ||
+       cmdToDispatch.EqualsLiteral("cmd_fontSize")) && paramStr.IsEmpty()) {
+    
+    return NS_OK;
+  }
+
   if (!isBool && paramStr.IsEmpty()) {
     rv = cmdMgr->DoCommand(cmdToDispatch.get(), nsnull, window);
   } else {
@@ -3177,10 +3200,8 @@ nsHTMLDocument::QueryCommandIndeterm(const nsAString & commandID,
   if (!window)
     return NS_ERROR_FAILURE;
 
-  nsCAutoString cmdToDispatch, paramToCheck;
-  bool dummy;
-  if (!ConvertToMidasInternalCommand(commandID, commandID,
-                                     cmdToDispatch, paramToCheck, dummy, dummy))
+  nsCAutoString cmdToDispatch;
+  if (!ConvertToMidasInternalCommand(commandID, cmdToDispatch))
     return NS_ERROR_NOT_IMPLEMENTED;
 
   nsresult rv;
@@ -3194,8 +3215,9 @@ nsHTMLDocument::QueryCommandIndeterm(const nsAString & commandID,
 
   
   
-  rv = cmdParams->GetBooleanValue("state_mixed", _retval);
-  return rv;
+  
+  cmdParams->GetBooleanValue("state_mixed", _retval);
+  return NS_OK;
 }
 
 
@@ -3256,14 +3278,14 @@ nsHTMLDocument::QueryCommandState(const nsAString & commandID, bool *_retval)
     }
     if (actualAlignmentType)
       nsMemory::Free(actualAlignmentType);
-  }
-  else {
-    rv = cmdParams->GetBooleanValue("state_all", _retval);
-    if (NS_FAILED(rv))
-      *_retval = false;
+    return rv;
   }
 
-  return rv;
+  
+  
+  
+  cmdParams->GetBooleanValue("state_all", _retval);
+  return NS_OK;
 }
 
 
@@ -3345,12 +3367,16 @@ nsHTMLDocument::QueryCommandValue(const nsAString & commandID,
   if (NS_FAILED(rv))
     return rv;
 
+  
+  
+  
+  
   nsXPIDLCString cStringResult;
-  rv = cmdParams->GetCStringValue("state_attribute",
-                                  getter_Copies(cStringResult));
+  cmdParams->GetCStringValue("state_attribute",
+                             getter_Copies(cStringResult));
   CopyUTF8toUTF16(cStringResult, _retval);
 
-  return rv;
+  return NS_OK;
 }
 
 nsresult

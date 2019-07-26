@@ -171,6 +171,16 @@ nsMathMLmactionFrame::GetSelectedFrame()
   nsAutoString value;
   PRInt32 selection; 
 
+  
+  if (NS_MATHML_ACTION_TYPE_TOGGLE != mActionType) {
+    
+    
+    
+    mSelection = 1;
+    mSelectedFrame = mFrames.FirstChild();
+    return mSelectedFrame;
+  }
+
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::selection_,
                value);
   if (!value.IsEmpty()) {
@@ -207,6 +217,7 @@ nsMathMLmactionFrame::GetSelectedFrame()
 
   mChildCount = count;
   mSelection = selection;
+  TransmitAutomaticData();
 
   return mSelectedFrame;
 }

@@ -42,6 +42,7 @@
 #include "nsCoord.h"
 #include "nsStringGlue.h"
 #include "gfxFontConstants.h"
+#include "gfxFontFeatures.h"
 
 
 
@@ -63,6 +64,8 @@ const PRUint8 kGenericFont_monospace    = 0x08;
 const PRUint8 kGenericFont_cursive      = 0x10;
 const PRUint8 kGenericFont_fantasy      = 0x20;
 
+class gfxFontStyle;
+
 
 struct NS_GFX nsFont {
   
@@ -79,15 +82,15 @@ struct NS_GFX nsFont {
   PRUint8 variant;
 
   
+  
+  PRUint8 decorations;
+
+  
   PRUint16 weight;
 
   
   
   PRInt16 stretch;
-
-  
-  
-  PRUint8 decorations;
 
   
   nscoord size;
@@ -99,7 +102,7 @@ struct NS_GFX nsFont {
   float sizeAdjust;
 
   
-  nsString featureSettings;
+  nsTArray<gfxFontFeature> fontFeatureSettings;
 
   
   
@@ -110,14 +113,12 @@ struct NS_GFX nsFont {
   nsFont(const char* aName, PRUint8 aStyle, PRUint8 aVariant,
          PRUint16 aWeight, PRInt16 aStretch, PRUint8 aDecoration,
          nscoord aSize, float aSizeAdjust=0.0f,
-         const nsString* aFeatureSettings = nsnull,
          const nsString* aLanguageOverride = nsnull);
 
   
   nsFont(const nsString& aName, PRUint8 aStyle, PRUint8 aVariant,
          PRUint16 aWeight, PRInt16 aStretch, PRUint8 aDecoration,
          nscoord aSize, float aSizeAdjust=0.0f,
-         const nsString* aFeatureSettings = nsnull,
          const nsString* aLanguageOverride = nsnull);
 
   
@@ -135,6 +136,9 @@ struct NS_GFX nsFont {
   bool BaseEquals(const nsFont& aOther) const;
 
   nsFont& operator=(const nsFont& aOther);
+
+  
+  void AddFontFeaturesToStyle(gfxFontStyle *aStyle) const;
 
   
   

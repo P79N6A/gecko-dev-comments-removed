@@ -453,15 +453,15 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     PRUint32 keyCode = keyEvent->keyCode;
 #ifdef XP_MACOSX
     
-    if (!IsOpen() && ((keyEvent->charCode == NS_VK_SPACE && !keyEvent->isMeta) ||
+    if (!IsOpen() && ((keyEvent->charCode == NS_VK_SPACE && !keyEvent->IsMeta()) ||
         (keyCode == NS_VK_UP || keyCode == NS_VK_DOWN))) {
       *aEventStatus = nsEventStatus_eConsumeNoDefault;
       OpenMenu(false);
     }
 #else
     
-    if ((keyCode == NS_VK_F4 && !keyEvent->isAlt) ||
-        ((keyCode == NS_VK_UP || keyCode == NS_VK_DOWN) && keyEvent->isAlt)) {
+    if ((keyCode == NS_VK_F4 && !keyEvent->IsAlt()) ||
+        ((keyCode == NS_VK_UP || keyCode == NS_VK_DOWN) && keyEvent->IsAlt())) {
       *aEventStatus = nsEventStatus_eConsumeNoDefault;
       ToggleMenuState();
     }
@@ -1266,10 +1266,10 @@ nsMenuFrame::CreateMenuCommandEvent(nsGUIEvent *aEvent, bool aFlipChecked)
   bool shift = false, control = false, alt = false, meta = false;
   if (aEvent && (aEvent->eventStructType == NS_MOUSE_EVENT ||
                  aEvent->eventStructType == NS_KEY_EVENT)) {
-    shift = static_cast<nsInputEvent *>(aEvent)->isShift;
-    control = static_cast<nsInputEvent *>(aEvent)->isControl;
-    alt = static_cast<nsInputEvent *>(aEvent)->isAlt;
-    meta = static_cast<nsInputEvent *>(aEvent)->isMeta;
+    shift = static_cast<nsInputEvent *>(aEvent)->IsShift();
+    control = static_cast<nsInputEvent *>(aEvent)->IsControl();
+    alt = static_cast<nsInputEvent *>(aEvent)->IsAlt();
+    meta = static_cast<nsInputEvent *>(aEvent)->IsMeta();
   }
 
   

@@ -118,6 +118,8 @@
 #include "mozilla/Util.h" 
 #include "mozilla/LookAndFeel.h"
 
+#include "sampler.h"
+
 #ifdef NS_DEBUG
 #undef NOISY_BLINK
 #undef NOISY_REFLOW
@@ -4417,6 +4419,7 @@ public:
 void
 nsDisplayText::Paint(nsDisplayListBuilder* aBuilder,
                      nsRenderingContext* aCtx) {
+  SAMPLE_LABEL("nsDisplayText", "Paint");
   
   
   

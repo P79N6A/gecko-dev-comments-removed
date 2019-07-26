@@ -51,12 +51,18 @@
 #include "nsAudioStream.h"
 #include "VideoFrameContainer.h"
 #include "mozilla/CORSMode.h"
+#include "nsDOMMediaStream.h"
+#include "mozilla/Mutex.h"
 
 
 
 
 typedef PRUint16 nsMediaNetworkState;
 typedef PRUint16 nsMediaReadyState;
+
+namespace mozilla {
+class MediaResource;
+}
 
 class nsHTMLMediaElement : public nsGenericHTMLElement,
                            public nsIObserver
@@ -65,6 +71,8 @@ public:
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::layers::ImageContainer ImageContainer;
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
+  typedef mozilla::MediaStream MediaStream;
+  typedef mozilla::MediaResource MediaResource;
 
   enum CanPlayStatus {
     CANPLAY_NO,
@@ -132,7 +140,7 @@ public:
   
   
   
-  void MetadataLoaded(PRUint32 aChannels, PRUint32 aRate);
+  void MetadataLoaded(PRUint32 aChannels, PRUint32 aRate, bool aHasAudio);
 
   
   
@@ -253,7 +261,12 @@ public:
   bool IsPlaybackEnded() const;
 
   
+  
+  
   already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
+
+  
+  void NotifyDecoderPrincipalChanged();
 
   
   
@@ -300,6 +313,13 @@ public:
   static bool IsWebMType(const nsACString& aType);
   static const char gWebMTypes[2][17];
   static char const *const gWebMCodecs[4];
+#endif
+
+#ifdef MOZ_GSTREAMER
+  static bool IsH264Enabled();
+  static bool IsH264Type(const nsACString& aType);
+  static const char gH264Types[3][17];
+  static char const *const gH264Codecs[6];
 #endif
 
   
@@ -363,8 +383,15 @@ public:
 
   void FireTimeUpdate(bool aPeriodic);
 
+  MediaStream* GetMediaStream()
+  {
+    NS_ASSERTION(mStream, "Don't call this when not playing a stream");
+    return mStream->GetStream();
+  }
+
 protected:
   class MediaLoadListener;
+  class StreamListener;
 
   
 
@@ -382,6 +409,24 @@ protected:
 
 
   void SetPlayedOrSeeked(bool aValue);
+
+  
+
+
+  void SetupMediaStreamPlayback();
+  
+
+
+  void EndMediaStreamPlayback();
+
+  
+
+
+
+
+
+
+  already_AddRefed<nsDOMMediaStream> CaptureStreamInternal(bool aFinishWhenEnded);
 
   
 
@@ -408,7 +453,10 @@ protected:
 
 
 
-  nsresult FinishDecoderSetup(nsMediaDecoder* aDecoder);
+  nsresult FinishDecoderSetup(nsMediaDecoder* aDecoder,
+                              MediaResource* aStream,
+                              nsIStreamListener **aListener,
+                              nsMediaDecoder* aCloneDonor);
 
   
 
@@ -424,6 +472,10 @@ protected:
 
   nsHTMLMediaElement* LookupMediaElementURITable(nsIURI* aURI);
 
+  
+
+
+  void ShutdownDecoder();
   
 
 
@@ -581,11 +633,32 @@ protected:
   void ProcessMediaFragmentURI();
 
   
+  
   nsRefPtr<nsMediaDecoder> mDecoder;
 
   
   
   nsRefPtr<VideoFrameContainer> mVideoFrameContainer;
+
+  
+  
+  nsRefPtr<nsDOMMediaStream> mSrcAttrStream;
+
+  
+  
+  
+  nsRefPtr<nsDOMMediaStream> mStream;
+
+  
+  
+  struct OutputMediaStream {
+    nsRefPtr<nsDOMMediaStream> mStream;
+    bool mFinishWhenEnded;
+  };
+  nsTArray<OutputMediaStream> mOutputStreams;
+
+  
+  StreamListener* mStreamListener;
 
   
   
@@ -724,6 +797,9 @@ protected:
   bool mMuted;
 
   
+  bool mAudioCaptured;
+
+  
   
   
   
@@ -787,6 +863,9 @@ protected:
 
   
   mozilla::CORSMode mCORSMode;
+
+  
+  bool mHasAudio;
 };
 
 #endif

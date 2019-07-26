@@ -444,6 +444,15 @@ public:
 
   static bool ParseIntMarginValue(const nsAString& aString, nsIntMargin& aResult);
 
+  
+
+
+
+
+
+
+  static PRInt32 ParseLegacyFontSize(const nsAString& aValue);
+
   static void Shutdown();
 
   
@@ -1362,6 +1371,23 @@ public:
 
 
   static bool IsSystemPrincipal(nsIPrincipal* aPrincipal);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool CombineResourcePrincipals(nsCOMPtr<nsIPrincipal>* aResourcePrincipal,
+                                        nsIPrincipal* aExtraPrincipal);
 
   
 

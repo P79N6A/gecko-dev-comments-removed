@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "ApplicationAccessibleWrap.h"
 
 #include "nsCOMPtr.h"
@@ -28,7 +62,7 @@ using namespace mozilla::a11y;
 typedef GType (* AtkGetTypeType) (void);
 GType g_atk_hyperlink_impl_type = G_TYPE_INVALID;
 static bool sATKChecked = false;
-static PRLibrary *sATKLib = nullptr;
+static PRLibrary *sATKLib = nsnull;
 static const char sATKLibName[] = "libatk-1.0.so.0";
 static const char sATKHyperlinkImplGetTypeSymbol[] =
   "atk_hyperlink_impl_get_type";
@@ -441,7 +475,7 @@ mai_util_get_root(void)
     if (gail_get_root)
       return gail_get_root();
 
-    return nullptr;
+    return nsnull;
   }
 
   return nsAccessNode::GetApplicationAccessible()->GetAtkObject();
@@ -520,8 +554,8 @@ ApplicationAccessibleWrap::ApplicationAccessibleWrap():
 
 ApplicationAccessibleWrap::~ApplicationAccessibleWrap()
 {
-  MAI_LOG_DEBUG(("======Destory AppRootAcc=%p\n", (void*)this));
-  AccessibleWrap::ShutdownAtkObject();
+    MAI_LOG_DEBUG(("======Destory AppRootAcc=%p\n", (void*)this));
+    nsAccessibleWrap::ShutdownAtkObject();
 }
 
 static gboolean
@@ -551,15 +585,15 @@ toplevel_event_watcher(GSignalInvocationHint* ihint,
     if (data == reinterpret_cast<gpointer>(nsIAccessibleEvent::EVENT_SHOW)) {
 
       
-      Accessible* windowAcc = GetAccService()->AddNativeRootAccessible(child);
+      nsAccessible* windowAcc = GetAccService()->AddNativeRootAccessible(child);
       g_object_set_qdata(G_OBJECT(child), sQuark_gecko_acc_obj,
                          reinterpret_cast<gpointer>(windowAcc));
 
     } else {
 
       
-      Accessible* windowAcc =
-        reinterpret_cast<Accessible*>
+      nsAccessible* windowAcc =
+        reinterpret_cast<nsAccessible*>
                         (g_object_get_qdata(G_OBJECT(child), sQuark_gecko_acc_obj));
       if (windowAcc) {
         GetAccService()->RemoveNativeRootAccessible(windowAcc);
@@ -572,7 +606,7 @@ toplevel_event_watcher(GSignalInvocationHint* ihint,
   return TRUE;
 }
 
-void
+bool
 ApplicationAccessibleWrap::Init()
 {
     if (ShouldA11yBeEnabled()) {
@@ -598,9 +632,9 @@ ApplicationAccessibleWrap::Init()
         if (NS_SUCCEEDED(rv)) {
             
             (*sAtkBridge.init)();
-        } else {
-            MAI_LOG_DEBUG(("Fail to load lib: %s\n", sAtkBridge.libName));
         }
+        else
+            MAI_LOG_DEBUG(("Fail to load lib: %s\n", sAtkBridge.libName));
 
         if (!sToplevel_event_hook_added) {
           sToplevel_event_hook_added = true;
@@ -615,7 +649,7 @@ ApplicationAccessibleWrap::Init()
         }
     }
 
-    ApplicationAccessible::Init();
+    return ApplicationAccessible::Init();
 }
 
 void
@@ -656,21 +690,20 @@ ApplicationAccessibleWrap::Unload()
     
 }
 
-ENameValueFlag
-ApplicationAccessibleWrap::Name(nsString& aName)
+NS_IMETHODIMP
+ApplicationAccessibleWrap::GetName(nsAString& aName)
 {
   
   
   
   
-  GetAppName(aName);
-  return eNameOK;
+  return GetAppName(aName);
 }
 
 NS_IMETHODIMP
 ApplicationAccessibleWrap::GetNativeInterface(void** aOutAccessible)
 {
-    *aOutAccessible = nullptr;
+    *aOutAccessible = nsnull;
 
     if (!mAtkObject) {
         mAtkObject =
@@ -690,7 +723,7 @@ ApplicationAccessibleWrap::GetNativeInterface(void** aOutAccessible)
 struct AtkRootAccessibleAddedEvent {
   AtkObject *app_accessible;
   AtkObject *root_accessible;
-  uint32_t index;
+  PRUint32 index;
 };
 
 gboolean fireRootAccessibleAddedCB(gpointer data)
@@ -706,15 +739,15 @@ gboolean fireRootAccessibleAddedCB(gpointer data)
 }
 
 bool
-ApplicationAccessibleWrap::AppendChild(Accessible* aChild)
+ApplicationAccessibleWrap::AppendChild(nsAccessible* aChild)
 {
-  if (!ApplicationAccessible::AppendChild(aChild))
-    return false;
+    if (!ApplicationAccessible::AppendChild(aChild))
+      return false;
 
-  AtkObject* atkAccessible = AccessibleWrap::GetAtkObject(aChild);
-  atk_object_set_parent(atkAccessible, mAtkObject);
+    AtkObject *atkAccessible = nsAccessibleWrap::GetAtkObject(aChild);
+    atk_object_set_parent(atkAccessible, mAtkObject);
 
-    uint32_t count = mChildren.Length();
+    PRUint32 count = mChildren.Length();
 
     
     
@@ -733,16 +766,16 @@ ApplicationAccessibleWrap::AppendChild(Accessible* aChild)
 }
 
 bool
-ApplicationAccessibleWrap::RemoveChild(Accessible* aChild)
+ApplicationAccessibleWrap::RemoveChild(nsAccessible* aChild)
 {
-  int32_t index = aChild->IndexInParent();
+    PRInt32 index = aChild->IndexInParent();
 
-  AtkObject* atkAccessible = AccessibleWrap::GetAtkObject(aChild);
-  atk_object_set_parent(atkAccessible, NULL);
-  g_signal_emit_by_name(mAtkObject, "children_changed::remove", index,
-                        atkAccessible, NULL);
+    AtkObject *atkAccessible = nsAccessibleWrap::GetAtkObject(aChild);
+    atk_object_set_parent(atkAccessible, NULL);
+    g_signal_emit_by_name(mAtkObject, "children_changed::remove", index,
+                          atkAccessible, NULL);
 
-  return ApplicationAccessible::RemoveChild(aChild);
+    return ApplicationAccessible::RemoveChild(aChild);
 }
 
 void
@@ -786,7 +819,7 @@ LoadGtkModule(GnomeAccessibilityModule& aModule)
 
         
         char *curLibPath = PR_GetLibraryPath();
-        nsAutoCString libPath(curLibPath);
+        nsCAutoString libPath(curLibPath);
 #if defined(LINUX) && defined(__x86_64__)
         libPath.Append(":/usr/lib64:/usr/lib");
 #else
@@ -795,15 +828,15 @@ LoadGtkModule(GnomeAccessibilityModule& aModule)
         MAI_LOG_DEBUG(("Current Lib path=%s\n", libPath.get()));
         PR_FreeLibraryName(curLibPath);
 
-        int16_t loc1 = 0, loc2 = 0;
-        int16_t subLen = 0;
+        PRInt16 loc1 = 0, loc2 = 0;
+        PRInt16 subLen = 0;
         while (loc2 >= 0) {
             loc2 = libPath.FindChar(':', loc1);
             if (loc2 < 0)
                 subLen = libPath.Length() - loc1;
             else
                 subLen = loc2 - loc1;
-            nsAutoCString sub(Substring(libPath, loc1, subLen));
+            nsCAutoString sub(Substring(libPath, loc1, subLen));
             sub.Append("/gtk-2.0/modules/");
             sub.Append(aModule.libName);
             aModule.lib = PR_LoadLibrary(sub.get());
@@ -841,7 +874,7 @@ namespace a11y {
 
   static const char sAccEnv [] = "GNOME_ACCESSIBILITY";
 #ifdef MOZ_ENABLE_DBUS
-static DBusPendingCall *sPendingCall = nullptr;
+static DBusPendingCall *sPendingCall = nsnull;
 #endif
 
 void
@@ -861,7 +894,7 @@ PreInit()
   if (PR_GetEnv(sAccEnv) || !PR_GetEnv("DBUS_SESSION_BUS_ADDRESS"))
     return;
 
-  DBusConnection* bus = dbus_bus_get(DBUS_BUS_SESSION, nullptr);
+  DBusConnection* bus = dbus_bus_get(DBUS_BUS_SESSION, nsnull);
   if (!bus)
     return;
 
@@ -895,10 +928,6 @@ ShouldA11yBeEnabled()
 
   sChecked = true;
 
-  EPlatformDisabledState disabledState = PlatformDisabledState();
-  if (disabledState == ePlatformIsDisabled)
-    return sShouldEnable = false;
-
   
   const char* envValue = PR_GetEnv(sAccEnv);
   if (envValue)
@@ -907,14 +936,14 @@ ShouldA11yBeEnabled()
 #ifdef MOZ_ENABLE_DBUS
   PreInit();
   bool dbusSuccess = false;
-  DBusMessage *reply = nullptr;
+  DBusMessage *reply = nsnull;
   if (!sPendingCall)
     goto dbus_done;
 
   dbus_pending_call_block(sPendingCall);
   reply = dbus_pending_call_steal_reply(sPendingCall);
   dbus_pending_call_unref(sPendingCall);
-  sPendingCall = nullptr;
+  sPendingCall = nsnull;
   if (!reply ||
       dbus_message_get_type(reply) != DBUS_MESSAGE_TYPE_METHOD_RETURN ||
       strcmp(dbus_message_get_signature (reply), DBUS_TYPE_VARIANT_AS_STRING))

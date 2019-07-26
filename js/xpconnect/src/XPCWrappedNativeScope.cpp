@@ -150,7 +150,7 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(XPCCallContext& ccx,
         mPrototypeNoHelper(nsnull),
         mScriptObjectPrincipal(nsnull),
         mNewDOMBindingsEnabled(ccx.GetRuntime()->NewDOMBindingsEnabled()),
-        mParisBindingsEnabled(ccx.GetRuntime()->ParisBindingsEnabled())
+        mExperimentalBindingsEnabled(ccx.GetRuntime()->ExperimentalBindingsEnabled())
 {
     
     {   
@@ -190,9 +190,13 @@ XPCWrappedNativeScope::IsDyingScope(XPCWrappedNativeScope *scope)
 void
 XPCWrappedNativeScope::SetComponents(nsXPCComponents* aComponents)
 {
-    NS_IF_ADDREF(aComponents);
-    NS_IF_RELEASE(mComponents);
     mComponents = aComponents;
+}
+
+nsXPCComponents*
+XPCWrappedNativeScope::GetComponents()
+{
+    return mComponents;
 }
 
 
@@ -310,7 +314,12 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope()
 
     
     
-    NS_IF_RELEASE(mComponents);
+    if (mComponents)
+        mComponents->mScope = nsnull;
+
+    
+    
+    mComponents = nsnull;
 
     JSRuntime *rt = mRuntime->GetJSRuntime();
     mGlobalJSObject.finalize(rt);
@@ -906,7 +915,7 @@ XPCWrappedNativeScope::DebugDump(PRInt16 depth)
     XPC_LOG_INDENT();
         XPC_LOG_ALWAYS(("mRuntime @ %x", mRuntime));
         XPC_LOG_ALWAYS(("mNext @ %x", mNext));
-        XPC_LOG_ALWAYS(("mComponents @ %x", mComponents));
+        XPC_LOG_ALWAYS(("mComponents @ %x", mComponents.get()));
         XPC_LOG_ALWAYS(("mGlobalJSObject @ %x", mGlobalJSObject.get()));
         XPC_LOG_ALWAYS(("mPrototypeJSObject @ %x", mPrototypeJSObject.get()));
         XPC_LOG_ALWAYS(("mPrototypeNoHelper @ %x", mPrototypeNoHelper));

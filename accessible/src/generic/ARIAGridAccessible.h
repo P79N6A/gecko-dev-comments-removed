@@ -71,6 +71,12 @@ public:
   
   virtual void Shutdown();
 
+  
+  virtual PRUint32 ColCount();
+  virtual PRUint32 RowCount();
+  virtual void UnselectCol(PRUint32 aColIdx);
+  virtual void UnselectRow(PRUint32 aRowIdx);
+
 protected:
   
 

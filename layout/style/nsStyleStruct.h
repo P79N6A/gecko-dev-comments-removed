@@ -826,6 +826,11 @@ struct nsStyleBorder {
     return mComputedBorder;
   }
 
+  bool HasBorder() const
+  {
+    return mComputedBorder != nsMargin(0,0,0,0) || mBorderImageSource;
+  }
+
   
   
   
@@ -934,14 +939,13 @@ protected:
 public:
   nsStyleCorners mBorderRadius;       
   nsStyleSides   mBorderImageSlice;   
-  PRUint8        mBorderImageFill;    
   nsStyleSides   mBorderImageWidth;   
   nsStyleSides   mBorderImageOutset;  
 
+  PRUint8        mBorderImageFill;    
   PRUint8        mBorderImageRepeatH; 
   PRUint8        mBorderImageRepeatV; 
   PRUint8        mFloatEdge;          
-  
 
 protected:
   
@@ -1320,10 +1324,10 @@ struct nsStyleText {
   PRUint8 mTextSizeAdjust;              
   PRInt32 mTabSize;                     
 
+  nscoord mWordSpacing;                 
   nsStyleCoord  mLetterSpacing;         
   nsStyleCoord  mLineHeight;            
   nsStyleCoord  mTextIndent;            
-  nscoord mWordSpacing;                 
 
   nsRefPtr<nsCSSShadowArray> mTextShadow; 
 
@@ -1596,12 +1600,12 @@ struct nsStyleDisplay {
   
   
   
+  PRUint8 mBackfaceVisibility;
+  PRUint8 mTransformStyle;
   const nsCSSValueList *mSpecifiedTransform; 
   nsStyleCoord mTransformOrigin[3]; 
   nsStyleCoord mChildPerspective; 
   nsStyleCoord mPerspectiveOrigin[2]; 
-  PRUint8 mBackfaceVisibility;
-  PRUint8 mTransformStyle;
 
   nsAutoTArray<nsTransition, 1> mTransitions; 
   

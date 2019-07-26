@@ -262,6 +262,7 @@ public:
   
   
   virtual void SetVolume(double aVolume) = 0;
+  virtual void SetAudioCaptured(bool aCapture) = 0;
 
   virtual void Shutdown() = 0;
 
@@ -397,6 +398,54 @@ public:
 
   virtual void Pause();
   virtual void SetVolume(double aVolume);
+  virtual void SetAudioCaptured(bool aCaptured);
+
+  virtual void AddOutputStream(SourceMediaStream* aStream, bool aFinishWhenEnded);
+  
+  struct OutputMediaStream {
+    void Init(PRInt64 aInitialTime, SourceMediaStream* aStream, bool aFinishWhenEnded)
+    {
+      mLastAudioPacketTime = -1;
+      mLastAudioPacketEndTime = -1;
+      mAudioFramesWrittenBaseTime = aInitialTime;
+      mAudioFramesWritten = 0;
+      mNextVideoTime = aInitialTime;
+      mStream = aStream;
+      mStreamInitialized = false;
+      mFinishWhenEnded = aFinishWhenEnded;
+      mHaveSentFinish = false;
+      mHaveSentFinishAudio = false;
+      mHaveSentFinishVideo = false;
+    }
+    PRInt64 mLastAudioPacketTime; 
+    PRInt64 mLastAudioPacketEndTime; 
+    
+    PRInt64 mAudioFramesWritten;
+    
+    PRInt64 mAudioFramesWrittenBaseTime; 
+    
+    
+    
+    PRInt64 mNextVideoTime; 
+    
+    
+    nsRefPtr<Image> mLastVideoImage;
+    nsRefPtr<SourceMediaStream> mStream;
+    gfxIntSize mLastVideoImageDisplaySize;
+    
+    
+    bool mStreamInitialized;
+    bool mFinishWhenEnded;
+    bool mHaveSentFinish;
+    bool mHaveSentFinishAudio;
+    bool mHaveSentFinishVideo;
+  };
+  nsTArray<OutputMediaStream>& OutputStreams()
+  {
+    GetReentrantMonitor().AssertCurrentThreadIn();
+    return mOutputStreams;
+  }
+
   virtual double GetDuration();
 
   virtual void SetInfinite(bool aInfinite);
@@ -408,6 +457,7 @@ public:
   virtual void NotifySuspendedStatusChanged();
   virtual void NotifyBytesDownloaded();
   virtual void NotifyDownloadEnded(nsresult aStatus);
+  virtual void NotifyPrincipalChanged();
   
   
   void NotifyBytesConsumed(PRInt64 aBytes);
@@ -555,7 +605,8 @@ public:
   
   
   void MetadataLoaded(PRUint32 aChannels,
-                      PRUint32 aRate);
+                      PRUint32 aRate,
+                      bool aHasAudio);
 
   
   
@@ -663,6 +714,9 @@ public:
   PRInt64 mDuration;
 
   
+  bool mInitialAudioCaptured;
+
+  
   
   bool mSeekable;
 
@@ -684,6 +738,9 @@ public:
   
   
   ReentrantMonitor mReentrantMonitor;
+
+  
+  nsTArray<OutputMediaStream> mOutputStreams;
 
   
   

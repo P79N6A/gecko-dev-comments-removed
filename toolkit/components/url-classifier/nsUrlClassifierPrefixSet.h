@@ -44,7 +44,6 @@
 #include "nsISupportsUtils.h"
 #include "nsID.h"
 #include "nsIFile.h"
-#include "nsIMutableArray.h"
 #include "nsIUrlClassifierPrefixSet.h"
 #include "nsIMemoryReporter.h"
 #include "nsToolkitCompsCID.h"
@@ -60,13 +59,12 @@ public:
   nsUrlClassifierPrefixSet();
   virtual ~nsUrlClassifierPrefixSet();
 
-  NS_IMETHOD Init(const nsACString& aName);
   NS_IMETHOD SetPrefixes(const PRUint32* aArray, PRUint32 aLength);
-  NS_IMETHOD GetPrefixes(PRUint32* aCount, PRUint32** aPrefixes);
-  NS_IMETHOD Probe(PRUint32 aPrefix, bool* aReady, bool* aFound);
-  NS_IMETHOD IsEmpty(bool* aEmpty);
+  NS_IMETHOD Probe(PRUint32 aPrefix, PRUint32 aKey, bool* aReady, bool* aFound);
+  NS_IMETHOD IsEmpty(bool * aEmpty);
   NS_IMETHOD LoadFromFile(nsIFile* aFile);
   NS_IMETHOD StoreToFile(nsIFile* aFile);
+  NS_IMETHOD GetKey(PRUint32* aKey);
 
   NS_DECL_ISUPPORTS
 
@@ -86,12 +84,15 @@ protected:
   nsresult Contains(PRUint32 aPrefix, bool* aFound);
   nsresult MakePrefixSet(const PRUint32* aArray, PRUint32 aLength);
   PRUint32 BinSearch(PRUint32 start, PRUint32 end, PRUint32 target);
-  nsresult LoadFromFd(mozilla::AutoFDClose& fileFd);
-  nsresult StoreToFd(mozilla::AutoFDClose& fileFd);
+  nsresult LoadFromFd(mozilla::AutoFDClose & fileFd);
+  nsresult StoreToFd(mozilla::AutoFDClose & fileFd);
+  nsresult InitKey();
 
   
   
   bool mHasPrefixes;
+  
+  PRUint32 mRandomKey;
   
   FallibleTArray<PRUint32> mIndexPrefixes;
   
@@ -99,6 +100,7 @@ protected:
   FallibleTArray<PRUint32> mIndexStarts;
   
   FallibleTArray<PRUint16> mDeltas;
+
 };
 
 #endif

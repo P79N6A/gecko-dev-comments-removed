@@ -43,13 +43,15 @@
 #include "ImageLayers.h"
 #include "nsSize.h"
 #include "mozilla/ReentrantMonitor.h"
+#include "MediaStreamGraph.h"
+#include "SharedBuffer.h"
 
 
 class nsVideoInfo {
 public:
   nsVideoInfo()
-    : mAudioRate(0),
-      mAudioChannels(0),
+    : mAudioRate(44100),
+      mAudioChannels(2),
       mDisplay(0,0),
       mStereoMode(mozilla::layers::STEREO_MODE_MONO),
       mHasAudio(false),
@@ -113,6 +115,8 @@ typedef float AudioDataValue;
 
 class AudioData {
 public:
+  typedef mozilla::SharedBuffer SharedBuffer;
+
   AudioData(PRInt64 aOffset,
             PRInt64 aTime,
             PRInt64 aDuration,
@@ -135,6 +139,11 @@ public:
   }
 
   
+  void EnsureAudioBuffer();
+
+  PRInt64 GetEnd() { return mTime + mDuration; }
+
+  
   
   const PRInt64 mOffset;
 
@@ -142,6 +151,10 @@ public:
   const PRInt64 mDuration; 
   const PRUint32 mFrames;
   const PRUint32 mChannels;
+  
+  
+  nsRefPtr<SharedBuffer> mAudioBuffer;
+  
   nsAutoArrayPtr<AudioDataValue> mAudioData;
 };
 
@@ -197,6 +210,8 @@ public:
   {
     MOZ_COUNT_DTOR(VideoData);
   }
+
+  PRInt64 GetEnd() { return mEndTime; }
 
   
   
@@ -370,6 +385,25 @@ template <class T> class MediaQueue : private nsDeque {
     ForEach(aFunctor);
   }
 
+  
+  
+  void GetElementsAfter(PRInt64 aTime, nsTArray<T*>* aResult) {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    if (!GetSize())
+      return;
+    PRInt32 i;
+    for (i = GetSize() - 1; i > 0; --i) {
+      T* v = static_cast<T*>(ObjectAt(i));
+      if (v->GetEnd() < aTime)
+        break;
+    }
+    
+    
+    for (; i < GetSize(); ++i) {
+      aResult->AppendElement(static_cast<T*>(ObjectAt(i)));
+    }
+  }
+
 private:
   mutable ReentrantMonitor mReentrantMonitor;
 
@@ -389,7 +423,7 @@ public:
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
 
   nsBuiltinDecoderReader(nsBuiltinDecoder* aDecoder);
-  ~nsBuiltinDecoderReader();
+  virtual ~nsBuiltinDecoderReader();
 
   
   
@@ -408,7 +442,7 @@ public:
   
   
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                  PRInt64 aTimeThreshold) = 0;
+                                PRInt64 aTimeThreshold) = 0;
 
   virtual bool HasAudio() = 0;
   virtual bool HasVideo() = 0;

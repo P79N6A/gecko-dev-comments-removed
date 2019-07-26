@@ -275,8 +275,8 @@ private:
 
 
 #define NS_INODE_IID \
-{ 0x772e7e52, 0xfadf, 0x4962, \
-  { 0x8d, 0x96, 0x58, 0xfe, 0x75, 0x68, 0xaf, 0xa8 } }
+{ 0xf73e3890, 0xe4ab, 0x453e, \
+  { 0x8c, 0x78, 0x2d, 0x1f, 0xa4, 0x0b, 0x48, 0x00 } }
 
 
 
@@ -405,6 +405,8 @@ public:
 
 
   mozilla::dom::Element* AsElement();
+
+  virtual nsIDOMNode* AsDOMNode() = 0;
 
   
 
@@ -753,9 +755,9 @@ public:
 
 
 
-  nsINode* GetElementParent() const
+  mozilla::dom::Element* GetElementParent() const
   {
-    return mParent && mParent->IsElement() ? mParent : nsnull;
+    return mParent && mParent->IsElement() ? mParent->AsElement() : nsnull;
   }
 
   

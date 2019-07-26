@@ -341,10 +341,11 @@ nsIOService::GetInstance() {
     return gIOService;
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS5(nsIOService,
+NS_IMPL_THREADSAFE_ISUPPORTS6(nsIOService,
                               nsIIOService,
                               nsIIOService2,
                               nsINetUtil,
+                              nsISpeculativeConnect,
                               nsIObserver,
                               nsISupportsWeakReference)
 
@@ -608,10 +609,45 @@ nsIOService::NewChannelFromURI(nsIURI *aURI, nsIChannel **result)
     return NewChannelFromURIWithProxyFlags(aURI, nsnull, 0, result);
 }
 
+void
+nsIOService::LookupProxyInfo(nsIURI *aURI,
+                             nsIURI *aProxyURI,
+                             PRUint32 aProxyFlags,
+                             nsCString *aScheme,
+                             nsIProxyInfo **outPI)
+{
+    nsresult rv;
+    nsCOMPtr<nsIProxyInfo> pi;
+
+    if (!mProxyService) {
+        mProxyService = do_GetService(NS_PROTOCOLPROXYSERVICE_CONTRACTID);
+        if (!mProxyService)
+            NS_WARNING("failed to get protocol proxy service");
+    }
+    if (mProxyService) {
+        PRUint32 flags = 0;
+        if (aScheme->EqualsLiteral("http") || aScheme->EqualsLiteral("https"))
+            flags = nsIProtocolProxyService::RESOLVE_NON_BLOCKING;
+        rv = mProxyService->Resolve(aProxyURI ? aProxyURI : aURI, aProxyFlags,
+                                    getter_AddRefs(pi));
+        if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
+            
+            rv = mProxyService->NewProxyInfo(NS_LITERAL_CSTRING("unknown"),
+                                             NS_LITERAL_CSTRING(""),
+                                             -1, 0, 0, nsnull,
+                                             getter_AddRefs(pi));
+        }
+        if (NS_FAILED(rv))
+            pi = nsnull;
+    }
+    pi.forget(outPI);
+}
+
+
 NS_IMETHODIMP
 nsIOService::NewChannelFromURIWithProxyFlags(nsIURI *aURI,
                                              nsIURI *aProxyURI,
-                                             PRUint32 proxyFlags,
+                                             PRUint32 aProxyFlags,
                                              nsIChannel **result)
 {
     nsresult rv;
@@ -636,27 +672,7 @@ nsIOService::NewChannelFromURIWithProxyFlags(nsIURI *aURI,
     
     if (protoFlags & nsIProtocolHandler::ALLOWS_PROXY) {
         nsCOMPtr<nsIProxyInfo> pi;
-        if (!mProxyService) {
-            mProxyService = do_GetService(NS_PROTOCOLPROXYSERVICE_CONTRACTID);
-            if (!mProxyService)
-                NS_WARNING("failed to get protocol proxy service");
-        }
-        if (mProxyService) {
-            PRUint32 flags = 0;
-            if (scheme.EqualsLiteral("http") || scheme.EqualsLiteral("https"))
-                flags = nsIProtocolProxyService::RESOLVE_NON_BLOCKING;
-            rv = mProxyService->Resolve(aProxyURI ? aProxyURI : aURI, proxyFlags,
-                                        getter_AddRefs(pi));
-            if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
-                
-                rv = mProxyService->NewProxyInfo(NS_LITERAL_CSTRING("unknown"),
-                                                 NS_LITERAL_CSTRING(""),
-                                                 -1, 0, 0, nsnull,
-                                                 getter_AddRefs(pi));
-            }
-            if (NS_FAILED(rv))
-                pi = nsnull;
-        }
+        LookupProxyInfo(aURI, aProxyURI, aProxyFlags, &scheme, getter_AddRefs(pi));
         if (pi) {
             nsCAutoString type;
             if (NS_SUCCEEDED(pi->GetType(type)) && type.EqualsLiteral("http")) {
@@ -1235,4 +1251,38 @@ nsIOService::ExtractCharsetFromContentType(const nsACString &aTypeHeader,
         *aHadCharset = false;
     }
     return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsIOService::SpeculativeConnect(nsIURI *aURI,
+                                nsIInterfaceRequestor *aCallbacks,
+                                nsIEventTarget *aTarget)
+{
+    nsCAutoString scheme;
+    nsresult rv = aURI->GetScheme(scheme);
+    if (NS_FAILED(rv))
+        return rv;
+
+    
+    
+    
+    nsCOMPtr<nsIProxyInfo> pi;
+    LookupProxyInfo(aURI, nsnull, 0, &scheme, getter_AddRefs(pi));
+    if (pi) 
+        return NS_OK;
+
+    nsCOMPtr<nsIProtocolHandler> handler;
+    rv = GetProtocolHandler(scheme.get(), getter_AddRefs(handler));
+    if (NS_FAILED(rv))
+        return rv;
+
+    nsCOMPtr<nsISpeculativeConnect> speculativeHandler =
+        do_QueryInterface(handler);
+    if (!speculativeHandler)
+        return NS_OK;
+
+    return speculativeHandler->SpeculativeConnect(aURI,
+                                                  aCallbacks,
+                                                  aTarget);
 }

@@ -80,7 +80,7 @@ FetchPageInfo(nsRefPtr<Database>& aDB,
 
   
   
-  nsCString query = nsPrintfCString(768,
+  nsCString query = nsPrintfCString(
     "SELECT h.id, h.favicon_id, h.guid, ( "
       "SELECT h.url FROM moz_bookmarks b WHERE b.fk = h.id "
       "UNION ALL " 

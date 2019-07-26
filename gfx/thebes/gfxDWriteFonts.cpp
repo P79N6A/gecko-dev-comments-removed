@@ -47,7 +47,7 @@
 
 #include "gfxDWriteTextAnalysis.h"
 
-#include "harfbuzz/hb-blob.h"
+#include "harfbuzz/hb.h"
 
 
 #define OBLIQUE_SKEW_FACTOR 0.3

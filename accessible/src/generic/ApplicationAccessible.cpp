@@ -5,6 +5,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 #include "ApplicationAccessible.h"
 
 #include "nsAccessibilityService.h"
@@ -19,20 +54,19 @@
 #include "nsIWindowMediator.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/Services.h"
-#include "nsIStringBundle.h"
 
 using namespace mozilla::a11y;
 
 ApplicationAccessible::ApplicationAccessible() :
-  AccessibleWrap(nullptr, nullptr)
+  nsAccessibleWrap(nsnull, nsnull)
 {
-  mFlags |= (eApplicationAccessible | eSharedNode);
+  mFlags |= eApplicationAccessible;
 }
 
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(ApplicationAccessible, Accessible,
+NS_IMPL_ISUPPORTS_INHERITED1(ApplicationAccessible, nsAccessible,
                              nsIAccessibleApplication)
 
 
@@ -42,7 +76,7 @@ NS_IMETHODIMP
 ApplicationAccessible::GetParent(nsIAccessible** aAccessible)
 {
   NS_ENSURE_ARG_POINTER(aAccessible);
-  *aAccessible = nullptr;
+  *aAccessible = nsnull;
   return NS_OK;
 }
 
@@ -50,7 +84,7 @@ NS_IMETHODIMP
 ApplicationAccessible::GetNextSibling(nsIAccessible** aNextSibling)
 {
   NS_ENSURE_ARG_POINTER(aNextSibling);
-  *aNextSibling = nullptr;
+  *aNextSibling = nsnull;
   return NS_OK;
 }
 
@@ -58,12 +92,12 @@ NS_IMETHODIMP
 ApplicationAccessible::GetPreviousSibling(nsIAccessible** aPreviousSibling)
 {
   NS_ENSURE_ARG_POINTER(aPreviousSibling);
-  *aPreviousSibling = nullptr;
+  *aPreviousSibling = nsnull;
   return NS_OK;
 }
 
-ENameValueFlag
-ApplicationAccessible::Name(nsString& aName)
+NS_IMETHODIMP
+ApplicationAccessible::GetName(nsAString& aName)
 {
   aName.Truncate();
 
@@ -71,14 +105,12 @@ ApplicationAccessible::Name(nsString& aName)
     mozilla::services::GetStringBundleService();
 
   NS_ASSERTION(bundleService, "String bundle service must be present!");
-  if (!bundleService)
-    return eNameOK;
+  NS_ENSURE_STATE(bundleService);
 
   nsCOMPtr<nsIStringBundle> bundle;
   nsresult rv = bundleService->CreateBundle("chrome://branding/locale/brand.properties",
                                             getter_AddRefs(bundle));
-  if (NS_FAILED(rv))
-    return eNameOK;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsXPIDLString appName;
   rv = bundle->GetStringFromName(NS_LITERAL_STRING("brandShortName").get(),
@@ -89,7 +121,7 @@ ApplicationAccessible::Name(nsString& aName)
   }
 
   aName.Assign(appName);
-  return eNameOK;
+  return NS_OK;
 }
 
 void
@@ -104,7 +136,7 @@ ApplicationAccessible::Value(nsString& aValue)
   aValue.Truncate();
 }
 
-uint64_t
+PRUint64
 ApplicationAccessible::State()
 {
   return IsDefunct() ? states::DEFUNCT : 0;
@@ -114,42 +146,50 @@ NS_IMETHODIMP
 ApplicationAccessible::GetAttributes(nsIPersistentProperties** aAttributes)
 {
   NS_ENSURE_ARG_POINTER(aAttributes);
-  *aAttributes = nullptr;
+  *aAttributes = nsnull;
   return NS_OK;
 }
 
-GroupPos
-ApplicationAccessible::GroupPosition()
+NS_IMETHODIMP
+ApplicationAccessible::GroupPosition(PRInt32* aGroupLevel,
+                                     PRInt32* aSimilarItemsInGroup,
+                                     PRInt32* aPositionInGroup)
 {
-  return GroupPos();
+  NS_ENSURE_ARG_POINTER(aGroupLevel);
+  *aGroupLevel = 0;
+  NS_ENSURE_ARG_POINTER(aSimilarItemsInGroup);
+  *aSimilarItemsInGroup = 0;
+  NS_ENSURE_ARG_POINTER(aPositionInGroup);
+  *aPositionInGroup = 0;
+  return NS_OK;
 }
 
-Accessible*
-ApplicationAccessible::ChildAtPoint(int32_t aX, int32_t aY,
+nsAccessible*
+ApplicationAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                     EWhichChildAtPoint aWhichChild)
 {
-  return nullptr;
+  return nsnull;
 }
 
-Accessible*
+nsAccessible*
 ApplicationAccessible::FocusedChild()
 {
-  Accessible* focus = FocusMgr()->FocusedAccessible();
+  nsAccessible* focus = FocusMgr()->FocusedAccessible();
   if (focus && focus->Parent() == this)
     return focus;
 
-  return nullptr;
+  return nsnull;
 }
 
 Relation
-ApplicationAccessible::RelationByType(uint32_t aRelationType)
+ApplicationAccessible::RelationByType(PRUint32 aRelationType)
 {
   return Relation();
 }
 
 NS_IMETHODIMP
-ApplicationAccessible::GetBounds(int32_t* aX, int32_t* aY,
-                                 int32_t* aWidth, int32_t* aHeight)
+ApplicationAccessible::GetBounds(PRInt32* aX, PRInt32* aY,
+                                 PRInt32* aWidth, PRInt32* aHeight)
 {
   NS_ENSURE_ARG_POINTER(aX);
   *aX = 0;
@@ -180,21 +220,21 @@ ApplicationAccessible::TakeFocus()
   return NS_OK;
 }
 
-uint8_t
+PRUint8
 ApplicationAccessible::ActionCount()
 {
   return 0;
 }
 
 NS_IMETHODIMP
-ApplicationAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
+ApplicationAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   aName.Truncate();
   return NS_ERROR_INVALID_ARG;
 }
 
 NS_IMETHODIMP
-ApplicationAccessible::GetActionDescription(uint8_t aIndex,
+ApplicationAccessible::GetActionDescription(PRUint8 aIndex,
                                             nsAString& aDescription)
 {
   aDescription.Truncate();
@@ -202,7 +242,7 @@ ApplicationAccessible::GetActionDescription(uint8_t aIndex,
 }
 
 NS_IMETHODIMP
-ApplicationAccessible::DoAction(uint8_t aIndex)
+ApplicationAccessible::DoAction(PRUint8 aIndex)
 {
   return NS_OK;
 }
@@ -218,7 +258,7 @@ ApplicationAccessible::GetAppName(nsAString& aName)
   if (!mAppInfo)
     return NS_ERROR_FAILURE;
 
-  nsAutoCString cname;
+  nsCAutoString cname;
   nsresult rv = mAppInfo->GetName(cname);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -234,7 +274,7 @@ ApplicationAccessible::GetAppVersion(nsAString& aVersion)
   if (!mAppInfo)
     return NS_ERROR_FAILURE;
 
-  nsAutoCString cversion;
+  nsCAutoString cversion;
   nsresult rv = mAppInfo->GetVersion(cversion);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -257,7 +297,7 @@ ApplicationAccessible::GetPlatformVersion(nsAString& aVersion)
   if (!mAppInfo)
     return NS_ERROR_FAILURE;
 
-  nsAutoCString cversion;
+  nsCAutoString cversion;
   nsresult rv = mAppInfo->GetPlatformVersion(cversion);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -268,24 +308,30 @@ ApplicationAccessible::GetPlatformVersion(nsAString& aVersion)
 
 
 
-void
+bool
 ApplicationAccessible::Init()
 {
   mAppInfo = do_GetService("@mozilla.org/xre/app-info;1");
+  return true;
 }
 
 void
 ApplicationAccessible::Shutdown()
 {
-  mAppInfo = nullptr;
+  mAppInfo = nsnull;
+}
+
+bool
+ApplicationAccessible::IsPrimaryForNode() const
+{
+  return false;
 }
 
 
 
 
-
 void
-ApplicationAccessible::ApplyARIAState(uint64_t* aState) const
+ApplicationAccessible::ApplyARIAState(PRUint64* aState)
 {
 }
 
@@ -295,7 +341,7 @@ ApplicationAccessible::NativeRole()
   return roles::APP_ROOT;
 }
 
-uint64_t
+PRUint64
 ApplicationAccessible::NativeState()
 {
   return 0;
@@ -334,7 +380,7 @@ ApplicationAccessible::CacheChildren()
     do_GetService(NS_WINDOWMEDIATOR_CONTRACTID);
 
   nsCOMPtr<nsISimpleEnumerator> windowEnumerator;
-  nsresult rv = windowMediator->GetEnumerator(nullptr,
+  nsresult rv = windowMediator->GetEnumerator(nsnull,
                                               getter_AddRefs(windowEnumerator));
   if (NS_FAILED(rv))
     return;
@@ -357,14 +403,14 @@ ApplicationAccessible::CacheChildren()
   }
 }
 
-Accessible*
-ApplicationAccessible::GetSiblingAtOffset(int32_t aOffset,
+nsAccessible*
+ApplicationAccessible::GetSiblingAtOffset(PRInt32 aOffset,
                                           nsresult* aError) const
 {
   if (aError)
     *aError = NS_OK; 
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -374,7 +420,7 @@ NS_IMETHODIMP
 ApplicationAccessible::GetDOMNode(nsIDOMNode** aDOMNode)
 {
   NS_ENSURE_ARG_POINTER(aDOMNode);
-  *aDOMNode = nullptr;
+  *aDOMNode = nsnull;
   return NS_OK;
 }
 
@@ -382,7 +428,7 @@ NS_IMETHODIMP
 ApplicationAccessible::GetDocument(nsIAccessibleDocument** aDocument)
 {
   NS_ENSURE_ARG_POINTER(aDocument);
-  *aDocument = nullptr;
+  *aDocument = nsnull;
   return NS_OK;
 }
 
@@ -390,19 +436,19 @@ NS_IMETHODIMP
 ApplicationAccessible::GetRootDocument(nsIAccessibleDocument** aRootDocument)
 {
   NS_ENSURE_ARG_POINTER(aRootDocument);
-  *aRootDocument = nullptr;
+  *aRootDocument = nsnull;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-ApplicationAccessible::ScrollTo(uint32_t aScrollType)
+ApplicationAccessible::ScrollTo(PRUint32 aScrollType)
 {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-ApplicationAccessible::ScrollToPoint(uint32_t aCoordinateType,
-                                     int32_t aX, int32_t aY)
+ApplicationAccessible::ScrollToPoint(PRUint32 aCoordinateType,
+                                     PRInt32 aX, PRInt32 aY)
 {
   return NS_OK;
 }

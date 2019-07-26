@@ -235,16 +235,6 @@ typedef JSBool
 typedef JSType
 (* TypeOfOp)(JSContext *cx, JSObject *obj);
 
-
-
-
-
-
-
-
-typedef JSBool
-(* FixOp)(JSContext *cx, JSObject *obj, bool *fixed, AutoIdVector *props);
-
 typedef JSObject *
 (* ObjectOp)(JSContext *cx, JSObject *obj);
 typedef void
@@ -332,7 +322,6 @@ struct ObjectOps
 
     JSNewEnumerateOp    enumerate;
     TypeOfOp            typeOf;
-    FixOp               fix;
     ObjectOp            thisObject;
     ClearOp             clear;
 };
@@ -340,7 +329,7 @@ struct ObjectOps
 #define JS_NULL_OBJECT_OPS                                                    \
     {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,   \
      NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,        \
-     NULL,NULL,NULL,NULL,NULL,NULL}
+     NULL,NULL,NULL,NULL,NULL}
 
 struct Class
 {

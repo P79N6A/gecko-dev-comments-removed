@@ -278,6 +278,49 @@ private:
   LayerRefArray mKeepAlive;
 };
 
+class BasicShadowableThebesLayer;
+class BasicShadowableLayer : public ShadowableLayer
+{
+public:
+  BasicShadowableLayer()
+  {
+    MOZ_COUNT_CTOR(BasicShadowableLayer);
+  }
+
+  ~BasicShadowableLayer();
+
+  void SetShadow(PLayerChild* aShadow)
+  {
+    NS_ABORT_IF_FALSE(!mShadow, "can't have two shadows (yet)");
+    mShadow = aShadow;
+  }
+
+  virtual void SetBackBuffer(const SurfaceDescriptor& aBuffer)
+  {
+    NS_RUNTIMEABORT("if this default impl is called, |aBuffer| leaks");
+  }
+  
+  virtual void SetBackBufferYUVImage(gfxSharedImageSurface* aYBuffer,
+                                     gfxSharedImageSurface* aUBuffer,
+                                     gfxSharedImageSurface* aVBuffer)
+  {
+    NS_RUNTIMEABORT("if this default impl is called, |aBuffer| leaks");
+  }
+
+  virtual void Disconnect()
+  {
+    
+    
+    
+    
+    
+    mShadow = nsnull;
+  }
+
+  virtual BasicShadowableThebesLayer* AsThebes() { return nsnull; }
+};
+
+
 }
 }
 

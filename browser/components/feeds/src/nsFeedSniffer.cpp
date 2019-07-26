@@ -69,7 +69,7 @@
 #define NS_RDF "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 #define NS_RSS "http://purl.org/rss/1.0/"
 
-#define MAX_BYTES 512
+#define MAX_BYTES 512u
 
 NS_IMPL_ISUPPORTS3(nsFeedSniffer,
                    nsIContentSniffer,
@@ -313,19 +313,22 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   nsresult rv = ConvertEncodedData(request, data, length);
   if (NS_FAILED(rv))
     return rv;
-  
-  const char* testData = 
-    mDecodedData.IsEmpty() ? (const char*)data : mDecodedData.get();
 
   
   
   
+  const char* testData;
+  if (mDecodedData.IsEmpty()) {
+    testData = (const char*)data;
+    length = NS_MIN(length, MAX_BYTES);
+  } else {
+    testData = mDecodedData.get();
+    length = NS_MIN(mDecodedData.Length(), MAX_BYTES);
+  }
 
   
   
   
-  if (length > MAX_BYTES)
-    length = MAX_BYTES;
 
   
   nsDependentCSubstring dataString((const char*)testData, length);

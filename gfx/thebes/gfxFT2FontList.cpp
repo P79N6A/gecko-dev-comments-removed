@@ -343,12 +343,11 @@ FT2FontEntry::CairoFontFace()
 nsresult
 FT2FontEntry::ReadCMAP()
 {
-    if (mCmapInitialized) {
+    if (mCharacterMap) {
         return NS_OK;
     }
 
-    
-    mCmapInitialized = true;
+    nsRefPtr<gfxCharacterMap> charmap = new gfxCharacterMap();
 
     AutoFallibleTArray<PRUint8,16384> buffer;
     nsresult rv = GetFontTable(TTAG_cmap, buffer);
@@ -357,11 +356,18 @@ FT2FontEntry::ReadCMAP()
         bool unicodeFont;
         bool symbolFont;
         rv = gfxFontUtils::ReadCMAP(buffer.Elements(), buffer.Length(),
-                                    mCharacterMap, mUVSOffset,
+                                    *charmap, mUVSOffset,
                                     unicodeFont, symbolFont);
     }
 
     mHasCmapTable = NS_SUCCEEDED(rv);
+    if (mHasCmapTable) {
+        gfxPlatformFontList *pfl = gfxPlatformFontList::PlatformFontList();
+        mCharacterMap = pfl->FindCharMap(charmap);
+    } else {
+        
+        mCharacterMap = new gfxCharacterMap();
+    }
     return rv;
 }
 
@@ -789,6 +795,17 @@ gfxFT2FontList::AppendFacesFromFontFile(nsCString& aFileName,
                 
                 if (name.EqualsLiteral("roboto")) {
                     fe->mIgnoreGSUB = true;
+                }
+
+                
+                
+                
+                else if (name.EqualsLiteral("droid sans arabic")) {
+                    const TT_Header *head = static_cast<const TT_Header*>
+                        (FT_Get_Sfnt_Table(face, ft_sfnt_head));
+                    if (head && head->CheckSum_Adjust == 0xe445242) {
+                        fe->mIgnoreGSUB = true;
+                    }
                 }
 
                 AppendToFaceList(faceList, name, fe);

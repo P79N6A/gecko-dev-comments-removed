@@ -45,11 +45,11 @@
 #include "nsXULAppAPI.h"
 #include "nsNetUtil.h"
 #include "prio.h"
+#include "nsContentUtils.h"
 #include "nsThreadUtils.h"
 #include "MediaResource.h"
 #include "nsMathUtils.h"
 #include "prlog.h"
-#include "nsIPrivateBrowsingService.h"
 #include "mozilla/Preferences.h"
 #include "FileBlockCache.h"
 
@@ -123,7 +123,7 @@ void nsMediaCacheFlusher::Init()
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
   if (observerService) {
-    observerService->AddObserver(gMediaCacheFlusher, NS_PRIVATE_BROWSING_SWITCH_TOPIC, true);
+    observerService->AddObserver(gMediaCacheFlusher, "last-pb-context-exited", true);
   }
 }
 
@@ -240,6 +240,7 @@ public:
 
 
 
+
   class ResourceStreamIterator {
   public:
     ResourceStreamIterator(PRInt64 aResourceID) :
@@ -351,13 +352,14 @@ protected:
   
   
   PRInt64                       mNextResourceID;
-  
-  nsTArray<nsMediaCacheStream*> mStreams;
 
   
   
   
   ReentrantMonitor         mReentrantMonitor;
+  
+  
+  nsTArray<nsMediaCacheStream*> mStreams;
   
   nsTArray<Block> mIndex;
   
@@ -374,8 +376,7 @@ protected:
 NS_IMETHODIMP
 nsMediaCacheFlusher::Observe(nsISupports *aSubject, char const *aTopic, PRUnichar const *aData)
 {
-  if (strcmp(aTopic, NS_PRIVATE_BROWSING_SWITCH_TOPIC) == 0 &&
-      NS_LITERAL_STRING(NS_PRIVATE_BROWSING_LEAVE).Equals(aData)) {
+  if (strcmp(aTopic, "last-pb-context-exited") == 0) {
     nsMediaCache::Flush();
   }
   return NS_OK;
@@ -1704,38 +1705,10 @@ nsMediaCacheStream::NotifyDataStarted(PRInt64 aOffset)
   }
 }
 
-void
+bool
 nsMediaCacheStream::UpdatePrincipal(nsIPrincipal* aPrincipal)
 {
-  if (!mPrincipal) {
-    NS_ASSERTION(!mUsingNullPrincipal, "Are we using a null principal or not?");
-    if (mUsingNullPrincipal) {
-      
-      return;
-    }
-    mPrincipal = aPrincipal;
-    return;
-  }
-
-  if (mPrincipal == aPrincipal) {
-    
-    NS_ASSERTION(!mUsingNullPrincipal, "We can't receive data from a null principal");
-    return;
-  }
-  if (mUsingNullPrincipal) {
-    
-    
-    return;
-  }
-
-  bool equal;
-  nsresult rv = mPrincipal->Equals(aPrincipal, &equal);
-  if (NS_SUCCEEDED(rv) && equal)
-    return;
-
-  
-  mPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1");
-  mUsingNullPrincipal = true;
+  return nsContentUtils::CombineResourcePrincipals(&mPrincipal, aPrincipal);
 }
 
 void
@@ -1743,6 +1716,20 @@ nsMediaCacheStream::NotifyDataReceived(PRInt64 aSize, const char* aData,
     nsIPrincipal* aPrincipal)
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+
+  
+  
+  
+  
+  
+  {
+    nsMediaCache::ResourceStreamIterator iter(mResourceID);
+    while (nsMediaCacheStream* stream = iter.Next()) {
+      if (stream->UpdatePrincipal(aPrincipal)) {
+        stream->mClient->CacheClientNotifyPrincipalChanged();
+      }
+    }
+  }
 
   ReentrantMonitorAutoEnter mon(gMediaCache->GetReentrantMonitor());
   PRInt64 size = aSize;
@@ -1798,7 +1785,6 @@ nsMediaCacheStream::NotifyDataReceived(PRInt64 aSize, const char* aData,
       
       stream->mStreamLength = NS_MAX(stream->mStreamLength, mChannelOffset);
     }
-    stream->UpdatePrincipal(aPrincipal);
     stream->mClient->CacheClientNotifyDataReceived();
   }
 

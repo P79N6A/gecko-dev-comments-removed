@@ -236,6 +236,14 @@ struct nsCSSBorderRenderer {
   static void ComputeInnerRadii(const gfxCornerSizes& aRadii,
                                 const gfxFloat *aBorderSizes,
                                 gfxCornerSizes *aInnerRadiiRet);
+
+  
+  
+  
+  
+  static void ComputeOuterRadii(const gfxCornerSizes& aRadii,
+                                const gfxFloat *aBorderSizes,
+                                gfxCornerSizes *aOuterRadiiRet);
 };
 
 #ifdef DEBUG_NEW_BORDERS

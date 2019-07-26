@@ -45,7 +45,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
 #include "mozilla/Util.h"
-#include "mozilla/Preferences.h"
 
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
@@ -120,9 +119,6 @@ nsXPConnect::nsXPConnect()
     mRuntime = XPCJSRuntime::newXPCJSRuntime(this);
 
     nsCycleCollector_registerRuntime(nsIProgrammingLanguage::JAVASCRIPT, this);
-#ifdef DEBUG_CC
-    mJSRoots.ops = nsnull;
-#endif
 
     char* reportableEnv = PR_GetEnv("MOZ_REPORT_ALL_JS_EXCEPTIONS");
     if (reportableEnv && *reportableEnv)
@@ -432,37 +428,6 @@ nsXPConnect::GarbageCollect(PRUint32 reason, PRUint32 kind)
     return NS_OK;
 }
 
-#ifdef DEBUG_CC
-struct NoteJSRootTracer : public JSTracer
-{
-    NoteJSRootTracer(PLDHashTable *aObjects,
-                     nsCycleCollectionTraversalCallback& cb)
-      : mObjects(aObjects),
-        mCb(cb)
-    {
-    }
-    PLDHashTable* mObjects;
-    nsCycleCollectionTraversalCallback& mCb;
-};
-
-static void
-NoteJSRoot(JSTracer *trc, void *thing, JSGCTraceKind kind)
-{
-    if (AddToCCKind(kind)) {
-        NoteJSRootTracer *tracer = static_cast<NoteJSRootTracer*>(trc);
-        PLDHashEntryHdr *entry = PL_DHashTableOperate(tracer->mObjects, thing,
-                                                      PL_DHASH_ADD);
-        if (entry && !reinterpret_cast<PLDHashEntryStub*>(entry)->key) {
-            reinterpret_cast<PLDHashEntryStub*>(entry)->key = thing;
-            tracer->mCb.NoteRoot(nsIProgrammingLanguage::JAVASCRIPT, thing,
-                                 nsXPConnect::GetXPConnect());
-        }
-    } else if (kind != JSTRACE_STRING) {
-        JS_TraceChildren(trc, thing, kind);
-    }
-}
-#endif
-
 struct NoteWeakMapChildrenTracer : public JSTracer
 {
     NoteWeakMapChildrenTracer(nsCycleCollectionTraversalCallback &cb)
@@ -539,8 +504,7 @@ TraceWeakMapping(js::WeakMapTracer *trc, JSObject *m,
 }
 
 nsresult
-nsXPConnect::BeginCycleCollection(nsCycleCollectionTraversalCallback &cb,
-                                  bool explainLiveExpectedGarbage)
+nsXPConnect::BeginCycleCollection(nsCycleCollectionTraversalCallback &cb)
 {
     
     
@@ -565,31 +529,6 @@ nsXPConnect::BeginCycleCollection(nsCycleCollectionTraversalCallback &cb,
             NS_RUNTIMEABORT("Cannot cycle collect if GC has not run first!");
         gcHasRun = true;
     }
-
-#ifdef DEBUG_CC
-    NS_ASSERTION(!mJSRoots.ops, "Didn't call FinishCycleCollection?");
-
-    if (explainLiveExpectedGarbage) {
-        
-
-        
-        
-        
-        
-        if (!PL_DHashTableInit(&mJSRoots, PL_DHashGetStubOps(), nsnull,
-                               sizeof(PLDHashEntryStub), PL_DHASH_MIN_SIZE)) {
-            mJSRoots.ops = nsnull;
-
-            return NS_ERROR_OUT_OF_MEMORY;
-        }
-
-        NoteJSRootTracer trc(&mJSRoots, cb);
-        JS_TracerInit(&trc, mCycleCollectionContext->GetJSContext(), NoteJSRoot);
-        JS_TraceRuntime(&trc);
-    }
-#else
-    NS_ASSERTION(!explainLiveExpectedGarbage, "Didn't call nsXPConnect::Collect()?");
-#endif
 
     GetRuntime()->AddXPConnectRoots(cb);
 
@@ -639,19 +578,6 @@ nsXPConnect::FinishTraverse()
     return NS_OK;
 }
 
-nsresult
-nsXPConnect::FinishCycleCollection()
-{
-#ifdef DEBUG_CC
-    if (mJSRoots.ops) {
-        PL_DHashTableFinish(&mJSRoots);
-        mJSRoots.ops = nsnull;
-    }
-#endif
-
-    return NS_OK;
-}
-
 nsCycleCollectionParticipant *
 nsXPConnect::ToParticipant(void *p)
 {
@@ -665,19 +591,6 @@ nsXPConnect::Root(void *p)
 {
     return NS_OK;
 }
-
-#ifdef DEBUG_CC
-void
-nsXPConnect::PrintAllReferencesTo(void *p)
-{
-#ifdef DEBUG
-    XPCCallContext ccx(NATIVE_CALLER);
-    if (ccx.IsValid())
-        JS_DumpHeap(ccx.GetJSContext(), stdout, nsnull, 0, p,
-                    0x7fffffff, nsnull);
-#endif
-}
-#endif
 
 NS_IMETHODIMP
 nsXPConnect::Unlink(void *p)
@@ -910,30 +823,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         }
     }
 
-    bool isMarked;
-
-#ifdef DEBUG_CC
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (mJSRoots.ops) {
-        
-        PLDHashEntryHdr* entry =
-            PL_DHashTableOperate(&mJSRoots, p, PL_DHASH_LOOKUP);
-        isMarked = markJSObject || PL_DHASH_ENTRY_IS_BUSY(entry);
-    } else
-#endif
-    {
-        
-        isMarked = markJSObject || !xpc_IsGrayGCThing(p);
-    }
+    bool isMarked = markJSObject || !xpc_IsGrayGCThing(p);
 
     if (cb.WantDebugInfo()) {
         char name[72];
@@ -1131,7 +1021,7 @@ nsXPConnect::InitClasses(JSContext * aJSContext, JSObject * aGlobalJSObj)
 
     scope->RemoveWrappedNativeProtos();
 
-    if (!nsXPCComponents::AttachNewComponentsObject(ccx, scope, aGlobalJSObj))
+    if (!nsXPCComponents::AttachComponentsObject(ccx, scope, aGlobalJSObj))
         return UnexpectedFailure(NS_ERROR_FAILURE);
 
     if (XPCPerThreadData::IsMainThread(ccx)) {
@@ -1195,6 +1085,46 @@ TraceXPCGlobal(JSTracer *trc, JSObject *obj)
         scope->TraceDOMPrototypes(trc);
 }
 
+#ifdef DEBUG
+#include "mozilla/Preferences.h"
+#include "nsIXULRuntime.h"
+static void
+CheckTypeInference(JSContext *cx, JSClass *clasp, nsIPrincipal *principal)
+{
+    
+    if (strcmp(clasp->name, "Sandbox") ||
+        strcmp(clasp->name, "nsXBLPrototypeScript compilation scope") ||
+        strcmp(clasp->name, "nsXULPrototypeScript compilation scope"))
+        return;
+
+    
+    if (!mozilla::Preferences::GetBool("javascript.options.typeinference"))
+        return;
+
+    
+    bool isSystem;
+    nsIScriptSecurityManager* ssm;
+    ssm = XPCWrapper::GetSecurityManager();
+    if (NS_FAILED(ssm->IsSystemPrincipal(principal, &isSystem)) || !isSystem)
+        return;
+
+    
+    bool safeMode;
+    nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
+    if (!xr) {
+        NS_WARNING("Couldn't get XUL runtime!");
+        return;
+    }
+    if (NS_FAILED(xr->GetInSafeMode(&safeMode)) || safeMode)
+        return;
+
+    
+    MOZ_ASSERT(JS_GetOptions(cx) & JSOPTION_TYPE_INFERENCE);
+}
+#else
+#define CheckTypeInference(cx, clasp, principal) {}
+#endif
+
 nsresult
 xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
                        nsIPrincipal *principal, nsISupports *ptr,
@@ -1203,16 +1133,7 @@ xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
 {
     
     
-    mozilla::DebugOnly<bool> isSystem;
-    mozilla::DebugOnly<nsIScriptSecurityManager*> ssm;
-    MOZ_ASSERT_IF(strcmp(clasp->name, "Sandbox") &&
-                  strcmp(clasp->name, "nsXBLPrototypeScript compilation scope") &&
-                  strcmp(clasp->name, "nsXULPrototypeScript compilation scope") &&
-                  mozilla::Preferences::GetBool("javascript.options.typeinference") &&
-                  (ssm = XPCWrapper::GetSecurityManager()) &&
-                  NS_SUCCEEDED(ssm->IsSystemPrincipal(principal, &isSystem.value)) &&
-                  !isSystem.value,
-                  JS_GetOptions(cx) & JSOPTION_TYPE_INFERENCE);
+    CheckTypeInference(cx, clasp, principal);
 
     NS_ABORT_IF_FALSE(NS_IsMainThread(), "using a principal off the main thread?");
     NS_ABORT_IF_FALSE(principal, "bad key");
@@ -1302,7 +1223,7 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
 
     if (!(aFlags & nsIXPConnect::OMIT_COMPONENTS_OBJECT)) {
         
-        if (!nsXPCComponents::AttachNewComponentsObject(ccx, wrappedGlobal->GetScope(), global))
+        if (!nsXPCComponents::AttachComponentsObject(ccx, wrappedGlobal->GetScope(), global))
             return UnexpectedFailure(NS_ERROR_FAILURE);
 
         if (XPCPerThreadData::IsMainThread(ccx)) {

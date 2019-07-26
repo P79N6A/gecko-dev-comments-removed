@@ -71,9 +71,24 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 
+#include "nsIObserverService.h"
+
+
 using namespace mozilla;
 using namespace mozilla::gl;
 using namespace mozilla::layers;
+
+NS_IMPL_ISUPPORTS1(WebGLMemoryPressureObserver, nsIObserver)
+
+NS_IMETHODIMP
+WebGLMemoryPressureObserver::Observe(nsISupports* aSubject,
+                                     const char* aTopic,
+                                     const PRUnichar* aSomeData)
+{
+  if (strcmp(aTopic, "memory-pressure") == 0)
+    mContext->ForceLoseContext();
+  return NS_OK;
+}
 
 
 nsresult NS_NewCanvasRenderingContextWebGL(nsIDOMWebGLRenderingContext** aResult);
@@ -167,25 +182,34 @@ WebGLContext::WebGLContext()
     WebGLMemoryMultiReporterWrapper::AddWebGLContext(this);
 
     mAllowRestore = true;
-    mRobustnessTimerRunning = false;
-    mDrawSinceRobustnessTimerSet = false;
+    mContextLossTimerRunning = false;
+    mDrawSinceContextLossTimerSet = false;
     mContextRestorer = do_CreateInstance("@mozilla.org/timer;1");
     mContextStatus = ContextStable;
     mContextLostErrorSet = false;
-    mContextLostDueToTest = false;
 }
 
 WebGLContext::~WebGLContext()
 {
     DestroyResourcesAndContext();
     WebGLMemoryMultiReporterWrapper::RemoveWebGLContext(this);
-    TerminateRobustnessTimer();
+    TerminateContextLossTimer();
     mContextRestorer = nsnull;
 }
 
 void
 WebGLContext::DestroyResourcesAndContext()
 {
+    if (mMemoryPressureObserver) {
+        nsCOMPtr<nsIObserverService> observerService
+            = mozilla::services::GetObserverService();
+        if (observerService) {
+            observerService->RemoveObserver(mMemoryPressureObserver,
+                                            "memory-pressure");
+        }
+        mMemoryPressureObserver = nsnull;
+    }
+
     if (!gl)
         return;
 
@@ -785,7 +809,7 @@ WebGLContext::GetContextAttributes(jsval *aResult)
                            NULL, NULL, JSPROP_ENUMERATE) ||
         !JS_DefineProperty(cx, obj, "stencil", cf.stencil > 0 ? JSVAL_TRUE : JSVAL_FALSE,
                            NULL, NULL, JSPROP_ENUMERATE) ||
-        !JS_DefineProperty(cx, obj, "antialias", cf.samples > 0 ? JSVAL_TRUE : JSVAL_FALSE,
+        !JS_DefineProperty(cx, obj, "antialias", cf.samples > 1 ? JSVAL_TRUE : JSVAL_FALSE,
                            NULL, NULL, JSPROP_ENUMERATE) ||
         !JS_DefineProperty(cx, obj, "premultipliedAlpha",
                            mOptions.premultipliedAlpha ? JSVAL_TRUE : JSVAL_FALSE,
@@ -1030,7 +1054,14 @@ WebGLContext::DummyFramebufferOperation(const char *info)
 NS_IMETHODIMP
 WebGLContext::Notify(nsITimer* timer)
 {
-    TerminateRobustnessTimer();
+    TerminateContextLossTimer();
+
+    if (!HTMLCanvasElement()) {
+        
+        
+        return NS_OK;
+    }
+
     
     
     if (mContextStatus == ContextLostAwaitingEvent) {
@@ -1053,14 +1084,14 @@ WebGLContext::Notify(nsITimer* timer)
             ForceRestoreContext();
             
             
-            SetupRobustnessTimer();
+            SetupContextLossTimer();
         } else {
             mContextStatus = ContextLost;
         }
     } else if (mContextStatus == ContextLostAwaitingRestore) {
         
         if (NS_FAILED(SetDimensions(mWidth, mHeight))) {
-            SetupRobustnessTimer();
+            SetupContextLossTimer();
             return NS_OK;
         }
         mContextStatus = ContextStable;
@@ -1072,7 +1103,6 @@ WebGLContext::Notify(nsITimer* timer)
         
         
         mContextLostErrorSet = false;
-        mContextLostDueToTest = false;
         mAllowRestore = true;
     }
 
@@ -1089,14 +1119,6 @@ WebGLContext::MaybeRestoreContext()
 
     bool isEGL = gl->GetContextType() == GLContext::ContextTypeEGL,
          isANGLE = gl->IsANGLE();
-
-    
-    
-    
-    
-    if (mContextLostDueToTest ||
-        (!mHasRobustness && !isEGL))
-        return;
 
     GLContext::ContextResetARB resetStatus = GLContext::CONTEXT_NO_ERROR;
     if (mHasRobustness) {
@@ -1123,8 +1145,8 @@ WebGLContext::MaybeRestoreContext()
             
             
             
-            if (mDrawSinceRobustnessTimerSet)
-                SetupRobustnessTimer();
+            if (mDrawSinceContextLossTimerSet)
+                SetupContextLossTimer();
             break;
         case GLContext::CONTEXT_GUILTY_CONTEXT_RESET_ARB:
             NS_WARNING("WebGL content on the page caused the graphics card to reset; not restoring the context");
@@ -1148,9 +1170,12 @@ WebGLContext::MaybeRestoreContext()
 void
 WebGLContext::ForceLoseContext()
 {
+    if (mContextStatus == ContextLostAwaitingEvent)
+        return;
+
     mContextStatus = ContextLostAwaitingEvent;
     
-    SetupRobustnessTimer();
+    SetupContextLossTimer();
     DestroyResourcesAndContext();
 }
 

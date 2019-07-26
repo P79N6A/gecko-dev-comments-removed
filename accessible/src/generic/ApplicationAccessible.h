@@ -5,17 +5,50 @@
 
 
 
-#ifndef mozilla_a11y_ApplicationAccessible_h__
-#define mozilla_a11y_ApplicationAccessible_h__
 
-#include "AccessibleWrap.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef MOZILLA_A11Y_APPLICATION_ACCESSIBLE_H__
+#define MOZILLA_A11Y_APPLICATION_ACCESSIBLE_H__
+
+#include "nsAccessibleWrap.h"
 #include "nsIAccessibleApplication.h"
 
 #include "nsIMutableArray.h"
 #include "nsIXULAppInfo.h"
 
-namespace mozilla {
-namespace a11y {
 
 
 
@@ -26,8 +59,7 @@ namespace a11y {
 
 
 
-
-class ApplicationAccessible : public AccessibleWrap,
+class ApplicationAccessible: public nsAccessibleWrap,
                              public nsIAccessibleApplication
 {
 public:
@@ -38,66 +70,65 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetDOMNode(nsIDOMNode** aDOMNode);
-  NS_IMETHOD GetDocument(nsIAccessibleDocument** aDocument);
-  NS_IMETHOD GetRootDocument(nsIAccessibleDocument** aRootDocument);
-  NS_IMETHOD ScrollTo(uint32_t aScrollType);
-  NS_IMETHOD ScrollToPoint(uint32_t aCoordinateType, int32_t aX, int32_t aY);
-  NS_IMETHOD GetLanguage(nsAString& aLanguage);
+  NS_SCRIPTABLE NS_IMETHOD GetDOMNode(nsIDOMNode** aDOMNode);
+  NS_SCRIPTABLE NS_IMETHOD GetDocument(nsIAccessibleDocument** aDocument);
+  NS_SCRIPTABLE NS_IMETHOD GetRootDocument(nsIAccessibleDocument** aRootDocument);
+  NS_SCRIPTABLE NS_IMETHOD ScrollTo(PRUint32 aScrollType);
+  NS_SCRIPTABLE NS_IMETHOD ScrollToPoint(PRUint32 aCoordinateType, PRInt32 aX, PRInt32 aY);
+  NS_SCRIPTABLE NS_IMETHOD GetLanguage(nsAString& aLanguage);
   NS_IMETHOD GetParent(nsIAccessible **aParent);
   NS_IMETHOD GetNextSibling(nsIAccessible **aNextSibling);
   NS_IMETHOD GetPreviousSibling(nsIAccessible **aPreviousSibling);
+  NS_IMETHOD GetName(nsAString &aName);
   NS_IMETHOD GetAttributes(nsIPersistentProperties **aAttributes);
-  NS_IMETHOD GetBounds(int32_t *aX, int32_t *aY,
-                       int32_t *aWidth, int32_t *aHeight);
+  NS_IMETHOD GroupPosition(PRInt32 *aGroupLevel, PRInt32 *aSimilarItemsInGroup,
+                           PRInt32 *aPositionInGroup);
+  NS_IMETHOD GetBounds(PRInt32 *aX, PRInt32 *aY,
+                       PRInt32 *aWidth, PRInt32 *aHeight);
   NS_IMETHOD SetSelected(bool aIsSelected);
   NS_IMETHOD TakeSelection();
   NS_IMETHOD TakeFocus();
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString &aName);
-  NS_IMETHOD GetActionDescription(uint8_t aIndex, nsAString &aDescription);
-  NS_IMETHOD DoAction(uint8_t aIndex);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString &aName);
+  NS_IMETHOD GetActionDescription(PRUint8 aIndex, nsAString &aDescription);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
   NS_DECL_NSIACCESSIBLEAPPLICATION
 
   
-  virtual void Init();
+  virtual bool Init();
   virtual void Shutdown();
+  virtual bool IsPrimaryForNode() const;
 
   
-  virtual GroupPos GroupPosition();
-  virtual ENameValueFlag Name(nsString& aName);
-  virtual void ApplyARIAState(uint64_t* aState) const;
+  virtual void ApplyARIAState(PRUint64* aState);
   virtual void Description(nsString& aDescription);
   virtual void Value(nsString& aValue);
   virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t State();
-  virtual uint64_t NativeState();
-  virtual Relation RelationByType(uint32_t aRelType);
+  virtual PRUint64 State();
+  virtual PRUint64 NativeState();
+  virtual Relation RelationByType(PRUint32 aRelType);
 
-  virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
-                                   EWhichChildAtPoint aWhichChild);
-  virtual Accessible* FocusedChild();
+  virtual nsAccessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
+                                     EWhichChildAtPoint aWhichChild);
+  virtual nsAccessible* FocusedChild();
 
   virtual void InvalidateChildren();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
   virtual KeyBinding AccessKey() const;
 
 protected:
 
   
   virtual void CacheChildren();
-  virtual Accessible* GetSiblingAtOffset(int32_t aOffset,
-                                         nsresult *aError = nullptr) const;
+  virtual nsAccessible* GetSiblingAtOffset(PRInt32 aOffset,
+                                           nsresult *aError = nsnull) const;
 
 private:
   nsCOMPtr<nsIXULAppInfo> mAppInfo;
 };
-
-} 
-} 
 
 #endif
 

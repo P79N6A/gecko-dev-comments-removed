@@ -1007,7 +1007,6 @@ Class js::ParallelArrayClass = {
         NULL,       
         NULL,       
         NULL,       
-        NULL,       
     }
 };
 

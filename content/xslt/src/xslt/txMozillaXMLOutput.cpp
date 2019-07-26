@@ -258,6 +258,8 @@ txMozillaXMLOutput::endDocument(nsresult aResult)
 
     if (mCreatingNewDocument) {
         
+        MOZ_ASSERT(mDocument->GetReadyStateEnum() ==
+                   nsIDocument::READYSTATE_LOADING, "Bad readyState");
         mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_INTERACTIVE);
         nsScriptLoader* loader = mDocument->ScriptLoader();
         if (loader) {
@@ -837,6 +839,8 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, PRInt32 aNsID
         NS_ENSURE_SUCCESS(rv, rv);
     }
     
+    MOZ_ASSERT(mDocument->GetReadyStateEnum() ==
+               nsIDocument::READYSTATE_UNINITIALIZED, "Bad readyState");
     mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_LOADING);
     nsCOMPtr<nsIDocument> source = do_QueryInterface(aSourceDocument);
     NS_ENSURE_STATE(source);

@@ -1,41 +1,41 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Daniel Glazman <glazman@netscape.com>
- *   Ms2ger <ms2ger@gmail.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "mozilla/Util.h"
 
@@ -61,7 +61,7 @@
 #include "nsRuleWalker.h"
 #include "jsapi.h"
 
-//----------------------------------------------------------------------
+
 
 using namespace mozilla;
 
@@ -74,16 +74,16 @@ public:
 
   NS_DECL_ISUPPORTS
 
-  // nsIStyleRule interface
+  
   virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
-  nsHTMLBodyElement*  mPart;  // not ref-counted, cleared by content 
+  nsHTMLBodyElement*  mPart;  
 };
 
-//----------------------------------------------------------------------
+
 
 class nsHTMLBodyElement : public nsGenericHTMLElement,
                           public nsIDOMHTMLBodyElement
@@ -95,24 +95,24 @@ public:
   nsHTMLBodyElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLBodyElement();
 
-  // nsISupports
+  
   NS_DECL_ISUPPORTS_INHERITED
 
-  // nsIDOMNode
+  
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
 
-  // nsIDOMElement
+  
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
 
-  // nsIDOMHTMLElement
+  
   NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
 
-  // nsIDOMHTMLBodyElement
+  
   NS_DECL_NSIDOMHTMLBODYELEMENT
 
-  // Event listener stuff; we need to declare only the ones we need to
-  // forward to window that don't come from nsIDOMHTMLBodyElement.
-#define EVENT(name_, id_, type_, struct_) /* nothing; handled by the shim */
+  
+  
+#define EVENT(name_, id_, type_, struct_) 
 #define FORWARDED_EVENT(name_, id_, type_, struct_)               \
     NS_IMETHOD GetOn##name_(JSContext *cx, jsval *vp);            \
     NS_IMETHOD SetOn##name_(JSContext *cx, const jsval &v);
@@ -132,6 +132,7 @@ public:
   virtual already_AddRefed<nsIEditor> GetAssociatedEditor();
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
+  virtual nsIDOMNode* AsDOMNode() { return this; }
 private:
   nsresult GetColorHelper(nsIAtom* aAtom, nsAString& aColor);
 
@@ -139,7 +140,7 @@ protected:
   BodyRule* mContentStyleRule;
 };
 
-//----------------------------------------------------------------------
+
 
 BodyRule::BodyRule(nsHTMLBodyElement* aPart)
 {
@@ -152,11 +153,11 @@ BodyRule::~BodyRule()
 
 NS_IMPL_ISUPPORTS1(BodyRule, nsIStyleRule)
 
-/* virtual */ void
+ void
 BodyRule::MapRuleInfoInto(nsRuleData* aData)
 {
   if (!(aData->mSIDs & NS_STYLE_INHERIT_BIT(Margin)) || !mPart)
-    return; // We only care about margins.
+    return; 
 
   PRInt32 bodyMarginWidth  = -1;
   PRInt32 bodyMarginHeight = -1;
@@ -165,14 +166,14 @@ BodyRule::MapRuleInfoInto(nsRuleData* aData)
   PRInt32 bodyLeftMargin = -1;
   PRInt32 bodyRightMargin = -1;
 
-  // check the mode (fortunately, the ruleData has a presContext for us to use!)
+  
   NS_ASSERTION(aData->mPresContext, "null presContext in ruleNode was unexpected");
   nsCompatibility mode = aData->mPresContext->CompatibilityMode();
 
 
   const nsAttrValue* value;
   if (mPart->GetAttrCount() > 0) {
-    // if marginwidth/marginheight are set, reflect them as 'margin'
+    
     value = mPart->GetParsedAttr(nsGkAtoms::marginwidth);
     if (value && value->Type() == nsAttrValue::eInteger) {
       bodyMarginWidth = value->GetIntegerValue();
@@ -198,7 +199,7 @@ BodyRule::MapRuleInfoInto(nsRuleData* aData)
     }
 
     if (eCompatibility_NavQuirks == mode){
-      // topmargin (IE-attribute)
+      
       value = mPart->GetParsedAttr(nsGkAtoms::topmargin);
       if (value && value->Type() == nsAttrValue::eInteger) {
         bodyTopMargin = value->GetIntegerValue();
@@ -208,7 +209,7 @@ BodyRule::MapRuleInfoInto(nsRuleData* aData)
           marginTop->SetFloatValue((float)bodyTopMargin, eCSSUnit_Pixel);
       }
 
-      // bottommargin (IE-attribute)
+      
       value = mPart->GetParsedAttr(nsGkAtoms::bottommargin);
       if (value && value->Type() == nsAttrValue::eInteger) {
         bodyBottomMargin = value->GetIntegerValue();
@@ -218,7 +219,7 @@ BodyRule::MapRuleInfoInto(nsRuleData* aData)
           marginBottom->SetFloatValue((float)bodyBottomMargin, eCSSUnit_Pixel);
       }
 
-      // leftmargin (IE-attribute)
+      
       value = mPart->GetParsedAttr(nsGkAtoms::leftmargin);
       if (value && value->Type() == nsAttrValue::eInteger) {
         bodyLeftMargin = value->GetIntegerValue();
@@ -228,7 +229,7 @@ BodyRule::MapRuleInfoInto(nsRuleData* aData)
           marginLeft->SetFloatValue((float)bodyLeftMargin, eCSSUnit_Pixel);
       }
 
-      // rightmargin (IE-attribute)
+      
       value = mPart->GetParsedAttr(nsGkAtoms::rightmargin);
       if (value && value->Type() == nsAttrValue::eInteger) {
         bodyRightMargin = value->GetIntegerValue();
@@ -241,26 +242,26 @@ BodyRule::MapRuleInfoInto(nsRuleData* aData)
 
   }
 
-  // if marginwidth or marginheight is set in the <frame> and not set in the <body>
-  // reflect them as margin in the <body>
+  
+  
   if (bodyMarginWidth == -1 || bodyMarginHeight == -1) {
     nsCOMPtr<nsISupports> container = aData->mPresContext->GetContainer();
     if (container) {
       nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(container));
       if (docShell) {
-        nscoord frameMarginWidth=-1;  // default value
-        nscoord frameMarginHeight=-1; // default value
-        docShell->GetMarginWidth(&frameMarginWidth); // -1 indicates not set   
+        nscoord frameMarginWidth=-1;  
+        nscoord frameMarginHeight=-1; 
+        docShell->GetMarginWidth(&frameMarginWidth); 
         docShell->GetMarginHeight(&frameMarginHeight); 
-        if ((frameMarginWidth >= 0) && (bodyMarginWidth == -1)) { // set in <frame> & not in <body> 
+        if ((frameMarginWidth >= 0) && (bodyMarginWidth == -1)) { 
           if (eCompatibility_NavQuirks == mode) {
-            if ((bodyMarginHeight == -1) && (0 > frameMarginHeight)) // nav quirk 
+            if ((bodyMarginHeight == -1) && (0 > frameMarginHeight)) 
               frameMarginHeight = 0;
           }
         }
-        if ((frameMarginHeight >= 0) && (bodyMarginHeight == -1)) { // set in <frame> & not in <body> 
+        if ((frameMarginHeight >= 0) && (bodyMarginHeight == -1)) { 
           if (eCompatibility_NavQuirks == mode) {
-            if ((bodyMarginWidth == -1) && (0 > frameMarginWidth)) // nav quirk
+            if ((bodyMarginWidth == -1) && (0 > frameMarginWidth)) 
               frameMarginWidth = 0;
           }
         }
@@ -288,13 +289,13 @@ BodyRule::MapRuleInfoInto(nsRuleData* aData)
 }
 
 #ifdef DEBUG
-/* virtual */ void
+ void
 BodyRule::List(FILE* out, PRInt32 aIndent) const
 {
 }
 #endif
 
-//----------------------------------------------------------------------
+
 
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Body)
@@ -320,7 +321,7 @@ NS_IMPL_RELEASE_INHERITED(nsHTMLBodyElement, nsGenericElement)
 
 DOMCI_NODE_DATA(HTMLBodyElement, nsHTMLBodyElement)
 
-// QueryInterface implementation for nsHTMLBodyElement
+
 NS_INTERFACE_TABLE_HEAD(nsHTMLBodyElement)
   NS_HTML_CONTENT_INTERFACE_TABLE1(nsHTMLBodyElement, nsIDOMHTMLBodyElement)
   NS_HTML_CONTENT_INTERFACE_TABLE_TO_MAP_SEGUE(nsHTMLBodyElement,
@@ -371,7 +372,7 @@ nsHTMLBodyElement::UnbindFromTree(bool aDeep, bool aNullParent)
   if (mContentStyleRule) {
     mContentStyleRule->mPart = nsnull;
 
-    // destroy old style rule
+    
     NS_RELEASE(mContentStyleRule);
   }
 
@@ -382,7 +383,7 @@ static
 void MapAttributesIntoRule(const nsMappedAttributes* aAttributes, nsRuleData* aData)
 {
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Display)) {
-    // When display if first asked for, go ahead and get our colors set up.
+    
     nsIPresShell *presShell = aData->mPresContext->GetPresShell();
     if (presShell) {
       nsIDocument *doc = presShell->GetDocument();
@@ -414,7 +415,7 @@ void MapAttributesIntoRule(const nsMappedAttributes* aAttributes, nsRuleData* aD
     nsCSSValue *colorValue = aData->ValueForColor();
     if (colorValue->GetUnit() == eCSSUnit_Null &&
         aData->mPresContext->UseDocumentColors()) {
-      // color: color
+      
       nscolor color;
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::text);
       if (value && value->GetColorValue(color))
@@ -438,8 +439,8 @@ nsHTMLBodyElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
   nsGenericHTMLElement::WalkContentStyleRules(aRuleWalker);
 
   if (!mContentStyleRule && IsInDoc()) {
-    // XXXbz should this use OwnerDoc() or GetCurrentDoc()?
-    // sXBL/XBL2 issue!
+    
+    
     mContentStyleRule = new BodyRule(this);
     NS_IF_ADDREF(mContentStyleRule);
   }
@@ -457,10 +458,10 @@ nsHTMLBodyElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     { &nsGkAtoms::vlink },
     { &nsGkAtoms::alink },
     { &nsGkAtoms::text },
-    // These aren't mapped through attribute mapping, but they are
-    // mapped through a style rule, so it is attribute dependent style.
-    // XXXldb But we don't actually replace the body rule when we have
-    // dynamic changes...
+    
+    
+    
+    
     { &nsGkAtoms::marginwidth },
     { &nsGkAtoms::marginheight },
     { nsnull },
@@ -483,12 +484,12 @@ nsHTMLBodyElement::GetAssociatedEditor()
     return editor;
   }
 
-  // Make sure this is the actual body of the document
+  
   if (!IsCurrentBodyElement()) {
     return nsnull;
   }
 
-  // For designmode, try to get document's editor
+  
   nsPresContext* presContext = GetPresContext();
   if (!presContext) {
     return nsnull;
@@ -504,13 +505,13 @@ nsHTMLBodyElement::GetAssociatedEditor()
   return editor;
 }
 
-// Event listener stuff
-// FIXME (https://bugzilla.mozilla.org/show_bug.cgi?id=431767)
-// nsDocument::GetInnerWindow can return an outer window in some
-// cases.  We don't want to stick an event listener on an outer
-// window, so bail if it does.  See also similar code in
-// nsGenericHTMLElement::GetEventListenerManagerForAttr.
-#define EVENT(name_, id_, type_, struct_) /* nothing; handled by the superclass */
+
+
+
+
+
+
+#define EVENT(name_, id_, type_, struct_)
 #define FORWARDED_EVENT(name_, id_, type_, struct_)                 \
   NS_IMETHODIMP nsHTMLBodyElement::GetOn##name_(JSContext *cx,      \
                                            jsval *vp) {             \

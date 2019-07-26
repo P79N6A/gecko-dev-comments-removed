@@ -603,9 +603,13 @@ public class GeckoAppShell
                 imm, text, start, end, newEnd);
     }
 
-    public static void notifyScreenShot(ByteBuffer data, int tabId, int width, int height) {
-        
-        
+    
+    
+    public static void notifyScreenShot(final ByteBuffer data, final int tabId, final int x, final int y,
+                                        final int width, final int height, final int token) {
+    }
+
+    public static void notifyPaintedRect(float top, float left, float bottom, float right) {
     }
 
     private static CountDownLatch sGeckoPendingAcks = null;
@@ -1820,9 +1824,6 @@ public class GeckoAppShell
             }
         }
         return false;
-    }
-
-    public static void emitGeckoAccessibilityEvent (int eventType, String[] textList, String description, boolean enabled, boolean checked, boolean password) {
     }
 
     public static double[] getCurrentNetworkInformation() {

@@ -91,7 +91,7 @@ js::UnwrapObjectChecked(JSContext *cx, JSObject *obj)
 {
     while (obj->isWrapper()) {
         JSObject *wrapper = obj;
-        Wrapper *handler = Wrapper::wrapperHandler(obj);
+        AbstractWrapper *handler = AbstractWrapper::wrapperHandler(obj);
         bool rvOnFailure;
         if (!handler->enter(cx, wrapper, JSID_VOID,
                             Wrapper::PUNCTURE, &rvOnFailure))
@@ -112,11 +112,13 @@ js::IsCrossCompartmentWrapper(const JSObject *wrapper)
            !!(Wrapper::wrapperHandler(wrapper)->flags() & Wrapper::CROSS_COMPARTMENT);
 }
 
-AbstractWrapper::AbstractWrapper() : ProxyHandler(&sWrapperFamily)
+AbstractWrapper::AbstractWrapper(unsigned flags) :
+    ProxyHandler(&sWrapperFamily),
+    mFlags(flags)
 {
 }
 
-Wrapper::Wrapper(unsigned flags) : mFlags(flags)
+Wrapper::Wrapper(unsigned flags) : AbstractWrapper(flags)
 {
 }
 
@@ -207,13 +209,6 @@ AbstractWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props
     
     static jsid id = JSID_VOID;
     GET(GetPropertyNames(cx, wrappedObject(wrapper), 0, &props));
-}
-
-bool
-AbstractWrapper::fix(JSContext *cx, JSObject *wrapper, Value *vp)
-{
-    vp->setUndefined();
-    return true;
 }
 
 static bool
@@ -355,7 +350,7 @@ Wrapper::fun_toString(JSContext *cx, JSObject *wrapper, unsigned indent)
 bool
 Wrapper::regexp_toShared(JSContext *cx, JSObject *wrapper, RegExpGuard *g)
 {
-    return wrappedObject(wrapper)->asRegExp().getShared(cx, g);
+    return RegExpToShared(cx, *wrappedObject(wrapper), g);
 }
 
 bool
@@ -394,10 +389,11 @@ AbstractWrapper::wrappedObject(const JSObject *wrapper)
     return GetProxyPrivate(wrapper).toObjectOrNull();
 }
 
-Wrapper *
+AbstractWrapper *
 AbstractWrapper::wrapperHandler(const JSObject *wrapper)
 {
-    return static_cast<Wrapper *>(GetProxyHandler(wrapper));
+    JS_ASSERT(wrapper->isWrapper());
+    return static_cast<AbstractWrapper *>(GetProxyHandler(wrapper));
 }
 
 bool
@@ -939,3 +935,237 @@ SecurityWrapper<Base>::regexp_toShared(JSContext *cx, JSObject *obj, RegExpGuard
 
 template class js::SecurityWrapper<Wrapper>;
 template class js::SecurityWrapper<CrossCompartmentWrapper>;
+
+class JS_FRIEND_API(DeadObjectProxy) : public ProxyHandler
+{
+  private:
+    static int sDeadObjectFamily;
+  public:
+
+    explicit DeadObjectProxy();
+
+    
+    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
+                                       PropertyDescriptor *desc) MOZ_OVERRIDE;
+    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
+                                          PropertyDescriptor *desc) MOZ_OVERRIDE;
+    virtual bool defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
+                                PropertyDescriptor *desc) MOZ_OVERRIDE;
+    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *wrapper, AutoIdVector &props) MOZ_OVERRIDE;
+    virtual bool delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp) MOZ_OVERRIDE;
+    virtual bool enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props) MOZ_OVERRIDE;
+
+    
+    virtual bool call(JSContext *cx, JSObject *proxy, unsigned argc, Value *vp);
+    virtual bool construct(JSContext *cx, JSObject *proxy, unsigned argc, Value *argv, Value *rval);
+    virtual bool nativeCall(JSContext *cx, JSObject *proxy, Class *clasp, Native native, CallArgs args);
+    virtual bool hasInstance(JSContext *cx, JSObject *proxy, const Value *vp, bool *bp);
+    virtual bool objectClassIs(JSObject *obj, ESClassValue classValue, JSContext *cx);
+    virtual JSString *obj_toString(JSContext *cx, JSObject *proxy);
+    virtual JSString *fun_toString(JSContext *cx, JSObject *proxy, unsigned indent);
+    virtual bool regexp_toShared(JSContext *cx, JSObject *proxy, RegExpGuard *g);
+    virtual bool defaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp);
+    virtual bool iteratorNext(JSContext *cx, JSObject *proxy, Value *vp);
+    virtual bool getElementIfPresent(JSContext *cx, JSObject *obj, JSObject *receiver,
+                                     uint32_t index, Value *vp, bool *present);
+
+
+    static DeadObjectProxy singleton;
+};
+
+DeadObjectProxy::DeadObjectProxy()
+  : ProxyHandler(&sDeadObjectFamily)
+{
+}
+
+bool
+DeadObjectProxy::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                       jsid id, bool set,
+                                       PropertyDescriptor *desc)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                          jsid id, bool set,
+                                          PropertyDescriptor *desc)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
+                                PropertyDescriptor *desc)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::getOwnPropertyNames(JSContext *cx, JSObject *wrapper,
+                                     AutoIdVector &props)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::enumerate(JSContext *cx, JSObject *wrapper,
+                           AutoIdVector &props)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::call(JSContext *cx, JSObject *wrapper, unsigned argc, Value *vp)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::construct(JSContext *cx, JSObject *wrapper, unsigned argc,
+                           Value *vp, Value *rval)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::nativeCall(JSContext *cx, JSObject *wrapper, Class *clasp,
+                            Native native, CallArgs args)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::hasInstance(JSContext *cx, JSObject *proxy, const Value *vp,
+                             bool *bp)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::objectClassIs(JSObject *obj, ESClassValue classValue, JSContext *cx)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+JSString *
+DeadObjectProxy::obj_toString(JSContext *cx, JSObject *wrapper)
+{
+    return JS_NewStringCopyZ(cx, "[object DeadObject]");
+}
+
+JSString *
+DeadObjectProxy::fun_toString(JSContext *cx, JSObject *proxy, unsigned indent)
+{
+    return NULL;
+}
+
+bool
+DeadObjectProxy::regexp_toShared(JSContext *cx, JSObject *proxy, RegExpGuard *g)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::defaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::iteratorNext(JSContext *cx, JSObject *proxy, Value *vp)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+bool
+DeadObjectProxy::getElementIfPresent(JSContext *cx, JSObject *obj, JSObject *receiver,
+                                     uint32_t index, Value *vp, bool *present)
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEAD_OBJECT);
+    return false;
+}
+
+DeadObjectProxy DeadObjectProxy::singleton;
+int DeadObjectProxy::sDeadObjectFamily;
+
+
+
+
+
+
+
+
+
+JS_FRIEND_API(JSBool)
+js::NukeChromeCrossCompartmentWrappersForGlobal(JSContext *cx, JSObject *obj,
+                                                js::NukedGlobalHandling nukeGlobal)
+{
+    CHECK_REQUEST(cx);
+
+    JSRuntime *rt = cx->runtime;
+    JSObject *global = &obj->global();
+
+    
+    
+
+    for (CompartmentsIter c(rt); !c.done(); c.next()) {
+        
+        if (!js::IsSystemCompartment(c))
+            continue;
+
+        
+        WrapperMap &pmap = c->crossCompartmentWrappers;
+        for (WrapperMap::Enum e(pmap); !e.empty(); e.popFront()) {
+            
+            
+            const Value &k = e.front().key;
+            if (k.isString())
+                continue;
+
+            JSObject *wobj = &e.front().value.get().toObject();
+            JSObject *wrapped = UnwrapObject(wobj, false);
+
+            if (nukeGlobal == DontNukeForGlobalObject && wrapped == global)
+                continue;
+
+            if (&wrapped->global() == global) {
+                
+                e.removeFront();
+
+                SetProxyPrivate(wobj, JSVAL_NULL);
+                SetProxyHandler(wobj, &DeadObjectProxy::singleton);
+
+                if (IsFunctionProxy(wobj)) {
+                    wobj->setReservedSlot(JSSLOT_PROXY_CALL, JSVAL_NULL);
+                    wobj->setReservedSlot(JSSLOT_PROXY_CONSTRUCT, JSVAL_NULL);
+                }
+
+                wobj->setReservedSlot(JSSLOT_PROXY_EXTRA + 0, JSVAL_NULL);
+                wobj->setReservedSlot(JSSLOT_PROXY_EXTRA + 1, JSVAL_NULL);
+            }
+        }
+    }
+
+    return JS_TRUE;
+}

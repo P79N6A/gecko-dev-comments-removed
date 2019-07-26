@@ -858,7 +858,7 @@ pref_LoadPrefsInDir(nsIFile* aDir, char const *const *aSpecialFiles, PRUint32 aS
   if (NS_FAILED(rv)) {
     
     
-    if (rv == NS_ERROR_FILE_NOT_FOUND)
+    if (rv == NS_ERROR_FILE_NOT_FOUND || rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST)
       rv = NS_OK;
     return rv;
   }
@@ -1015,6 +1015,10 @@ static nsresult pref_InitInitialObjects()
   
   
   
+  
+  
+  
+  
 
   nsZipFind *findPtr;
   nsAutoPtr<nsZipFind> find;
@@ -1088,7 +1092,12 @@ static nsresult pref_InitInitialObjects()
     NS_WARNING("Error parsing application default preferences.");
 
   
+  
   nsRefPtr<nsZipArchive> appJarReader = mozilla::Omnijar::GetReader(mozilla::Omnijar::APP);
+  
+  
+  if (!appJarReader)
+    appJarReader = mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE);
   if (appJarReader) {
     rv = appJarReader->FindInit("defaults/preferences/*.js$", &findPtr);
     NS_ENSURE_SUCCESS(rv, rv);

@@ -221,6 +221,12 @@ public:
                                          PRUint32 aLength,
                                          nsRenderingContext *aContext);
 
+    
+    
+    nsBoundingMetrics GetInkBoundsForVisualOverflow(const PRUnichar *aString,
+                                                    PRUint32 aLength,
+                                                    nsRenderingContext *aContext);
+
     void SetTextRunRTL(bool aIsRTL) { mTextRunRTL = aIsRTL; }
     bool GetTextRunRTL() { return mTextRunRTL; }
 

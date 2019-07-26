@@ -228,8 +228,8 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           
           
           if (dragSelect || event->clickCount > 1 ||
-              event->isShift || event->isControl || event->isAlt ||
-              event->isMeta) {
+              event->IsShift() || event->IsControl() || event->IsAlt() ||
+              event->IsMeta()) {
             break;
           }
 

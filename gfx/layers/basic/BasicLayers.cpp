@@ -48,6 +48,8 @@
 #include "ipc/ShadowLayerChild.h"
 
 #include "BasicLayers.h"
+#include "BasicImplData.h"
+#include "BasicTiledThebesLayer.h"
 #include "ImageLayers.h"
 #include "RenderTrace.h"
 
@@ -66,6 +68,7 @@
 #include "gfxXlibSurface.h"
 #endif
 
+#include "sampler.h"
 #include "GLContext.h"
 
 #define PIXMAN_DONT_DEFINE_STDINT
@@ -76,110 +79,6 @@ namespace layers {
 
 class BasicContainerLayer;
 class ShadowableLayer;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class BasicImplData {
-public:
-  BasicImplData() : mHidden(false),
-    mClipToVisibleRegion(false),
-    mDrawAtomically(false),
-    mOperator(gfxContext::OPERATOR_OVER)
-  {
-    MOZ_COUNT_CTOR(BasicImplData);
-  }
-  virtual ~BasicImplData()
-  {
-    MOZ_COUNT_DTOR(BasicImplData);
-  }
-
-  
-
-
-
-
-
-  virtual void Paint(gfxContext* aContext) {}
-
-  
-
-
-
-
-
-  virtual void PaintThebes(gfxContext* aContext,
-                           LayerManager::DrawThebesLayerCallback aCallback,
-                           void* aCallbackData,
-                           ReadbackProcessor* aReadback) {}
-
-  virtual ShadowableLayer* AsShadowableLayer() { return nsnull; }
-
-  
-
-
-
-
-
-  virtual bool MustRetainContent() { return false; }
-
-  
-
-
-
-
-  virtual void ClearCachedResources() {}
-
-  
-
-
-
-  void SetHidden(bool aCovered) { mHidden = aCovered; }
-  bool IsHidden() const { return false; }
-  
-
-
-
-
-  void SetOperator(gfxContext::GraphicsOperator aOperator)
-  {
-    NS_ASSERTION(aOperator == gfxContext::OPERATOR_OVER ||
-                 aOperator == gfxContext::OPERATOR_SOURCE,
-                 "Bad composition operator");
-    mOperator = aOperator;
-  }
-  gfxContext::GraphicsOperator GetOperator() const { return mOperator; }
-
-  bool GetClipToVisibleRegion() { return mClipToVisibleRegion; }
-  void SetClipToVisibleRegion(bool aClip) { mClipToVisibleRegion = aClip; }
-
-  void SetDrawAtomically(bool aDrawAtomically) { mDrawAtomically = aDrawAtomically; }
-
-protected:
-  bool mHidden;
-  bool mClipToVisibleRegion;
-  bool mDrawAtomically;
-  gfxContext::GraphicsOperator mOperator;
-};
 
 class AutoSetOperator {
 public:
@@ -668,6 +567,7 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
                               void* aCallbackData,
                               ReadbackProcessor* aReadback)
 {
+  SAMPLE_LABEL("BasicThebesLayer", "PaintThebes");
   NS_ASSERTION(BasicManager()->InDrawing(),
                "Can only draw in drawing phase");
   nsRefPtr<gfxASurface> targetSurface = aContext->CurrentSurface();
@@ -1632,6 +1532,7 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
                                           void* aCallbackData,
                                           EndTransactionFlags aFlags)
 {
+  SAMPLE_LABEL("BasicLayerManager", "EndTranscationInternal");
 #ifdef MOZ_LAYERS_HAVE_LOG
   MOZ_LAYERS_LOG(("  ----- (beginning paint)"));
   Log();
@@ -2008,6 +1909,19 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
         gfxPoint offset;
         bool dontBlit = needsClipToVisibleRegion || mTransactionIncomplete ||
                           aLayer->GetEffectiveOpacity() != 1.0f;
+#ifdef DEBUG
+        if (aLayer->GetDebugColorIndex() != 0) {
+          gfxRGBA  color((aLayer->GetDebugColorIndex() & 1) ? 1.0 : 0.0,
+                         (aLayer->GetDebugColorIndex() & 2) ? 1.0 : 0.0,
+                         (aLayer->GetDebugColorIndex() & 4) ? 1.0 : 0.0,
+                         1.0);
+
+          nsRefPtr<gfxContext> temp = new gfxContext(untransformedSurface);
+          temp->SetColor(color);
+          temp->Paint();
+        }
+#endif
+
         nsRefPtr<gfxASurface> result =
           Transform3D(untransformedSurface, aTarget, bounds,
                       effectiveTransform, offset, dontBlit);
@@ -2114,53 +2028,13 @@ BasicLayerManager::CreateReadbackLayer()
   return layer.forget();
 }
 
-class BasicShadowableThebesLayer;
-class BasicShadowableLayer : public ShadowableLayer
+BasicShadowableLayer::~BasicShadowableLayer()
 {
-public:
-  BasicShadowableLayer()
-  {
-    MOZ_COUNT_CTOR(BasicShadowableLayer);
+  if (HasShadow()) {
+    PLayerChild::Send__delete__(GetShadow());
   }
-
-  ~BasicShadowableLayer()
-  {
-    if (HasShadow()) {
-      PLayerChild::Send__delete__(GetShadow());
-    }
-    MOZ_COUNT_DTOR(BasicShadowableLayer);
-  }
-
-  void SetShadow(PLayerChild* aShadow)
-  {
-    NS_ABORT_IF_FALSE(!mShadow, "can't have two shadows (yet)");
-    mShadow = aShadow;
-  }
-
-  virtual void SetBackBuffer(const SurfaceDescriptor& aBuffer)
-  {
-    NS_RUNTIMEABORT("if this default impl is called, |aBuffer| leaks");
-  }
-  
-  virtual void SetBackBufferYUVImage(gfxSharedImageSurface* aYBuffer,
-                                     gfxSharedImageSurface* aUBuffer,
-                                     gfxSharedImageSurface* aVBuffer)
-  {
-    NS_RUNTIMEABORT("if this default impl is called, |aBuffer| leaks");
-  }
-
-  virtual void Disconnect()
-  {
-    
-    
-    
-    
-    
-    mShadow = nsnull;
-  }
-
-  virtual BasicShadowableThebesLayer* AsThebes() { return nsnull; }
-};
+  MOZ_COUNT_DTOR(BasicShadowableLayer);
+}
 
 static ShadowableLayer*
 ToShadowable(Layer* aLayer)
@@ -3266,10 +3140,23 @@ already_AddRefed<ThebesLayer>
 BasicShadowLayerManager::CreateThebesLayer()
 {
   NS_ASSERTION(InConstruction(), "Only allowed in construction phase");
-  nsRefPtr<BasicShadowableThebesLayer> layer =
-    new BasicShadowableThebesLayer(this);
-  MAYBE_CREATE_SHADOW(Thebes);
-  return layer.forget();
+#ifdef FORCE_BASICTILEDTHEBESLAYER
+  if (HasShadowManager() && GetParentBackendType() == LayerManager::LAYERS_OPENGL) {
+    
+    
+    
+    nsRefPtr<BasicTiledThebesLayer> layer =
+      new BasicTiledThebesLayer(this);
+    MAYBE_CREATE_SHADOW(Thebes);
+    return layer.forget();
+  } else
+#endif
+  {
+    nsRefPtr<BasicShadowableThebesLayer> layer =
+      new BasicShadowableThebesLayer(this);
+    MAYBE_CREATE_SHADOW(Thebes);
+    return layer.forget();
+  }
 }
 
 already_AddRefed<ContainerLayer>

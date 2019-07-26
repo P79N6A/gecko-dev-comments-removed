@@ -357,8 +357,8 @@ static nsresult GenerateFlatTextContent(nsRange* aRange,
 
 nsresult
 nsContentEventHandler::ExpandToClusterBoundary(nsIContent* aContent,
-                                                    bool aForward,
-                                                    PRUint32* aXPOffset)
+                                               bool aForward,
+                                               PRUint32* aXPOffset)
 {
   
   
@@ -366,7 +366,7 @@ nsContentEventHandler::ExpandToClusterBoundary(nsIContent* aContent,
       *aXPOffset == 0 || *aXPOffset == aContent->TextLength())
     return NS_OK;
 
-  NS_ASSERTION(*aXPOffset >= 0 && *aXPOffset <= aContent->TextLength(),
+  NS_ASSERTION(*aXPOffset <= aContent->TextLength(),
                "offset is out of range.");
 
   nsRefPtr<nsFrameSelection> fs = mPresShell->FrameSelection();

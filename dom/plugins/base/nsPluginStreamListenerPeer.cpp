@@ -379,11 +379,6 @@ nsresult nsPluginStreamListenerPeer::Initialize(nsIURI *aURL,
   return NS_OK;
 }
 
-
-
-
-
-
 nsresult nsPluginStreamListenerPeer::InitializeEmbedded(nsIURI *aURL,
                                                         nsNPAPIPluginInstance* aInstance,
                                                         nsObjectLoadingContent *aContent)
@@ -397,7 +392,12 @@ nsresult nsPluginStreamListenerPeer::InitializeEmbedded(nsIURI *aURL,
   
   PR_LogFlush();
 #endif
+
   
+  if (!aInstance && !aContent) {
+    return NS_ERROR_FAILURE;
+  }
+
   mURL = aURL;
   
   if (aInstance) {
@@ -1175,7 +1175,7 @@ nsresult nsPluginStreamListenerPeer::SetUpStreamListener(nsIRequest *request,
       }
 
       
-      nsPrintfCString status(100, "HTTP%s %lu %s", ver.get(), statusNum,
+      nsPrintfCString status("HTTP%s %lu %s", ver.get(), statusNum,
                              statusText.get());
       static_cast<nsIHTTPHeaderListener*>(mPStreamListener)->StatusLine(status.get());
     }

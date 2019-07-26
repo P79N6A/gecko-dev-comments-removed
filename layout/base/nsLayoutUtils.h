@@ -1500,6 +1500,12 @@ public:
 
 
 
+  static bool UseBackgroundNearestFiltering();
+
+  
+
+
+
   static void UnionChildOverflow(nsIFrame* aFrame,
                                  nsOverflowAreas& aOverflowAreas);
 
@@ -1554,6 +1560,14 @@ public:
                                       nscoord aMinFontSize);
 
   static bool FontSizeInflationEnabled(nsPresContext *aPresContext);
+
+  
+
+
+
+  static PRUint32 FontSizeInflationLineThreshold() {
+    return sFontSizeInflationLineThreshold;
+  }
 
   static void Initialize();
   static void Shutdown();
@@ -1633,6 +1647,9 @@ public:
   static void
   AssertTreeOnlyEmptyNextInFlows(nsIFrame *aSubtreeRoot);
 #endif
+
+private:
+  static PRUint32 sFontSizeInflationLineThreshold;
 };
 
 namespace mozilla {

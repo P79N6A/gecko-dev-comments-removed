@@ -1,15 +1,15 @@
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
-
-
-
-
-
+// Some tests here assume that all restored tabs are loaded without waiting for
+// the user to bring them to the foreground. We ensure this by resetting the
+// related preference (see the "firefox.js" defaults file for details).
 Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", false);
 registerCleanupFunction(function () {
   Services.prefs.clearUserPref("browser.sessionstore.restore_on_demand");
 });
 
-
+// ----------
 function createEmptyGroupItem(contentWindow, width, height, padding, animate) {
   let pageBounds = contentWindow.Items.getPageBounds();
   pageBounds.inset(padding, padding);
@@ -24,16 +24,16 @@ function createEmptyGroupItem(contentWindow, width, height, padding, animate) {
   return emptyGroupItem;
 }
 
-
+// ----------
 function createGroupItemWithTabs(win, width, height, padding, urls, animate) {
   let contentWindow = win.TabView.getContentWindow();
   let groupItemCount = contentWindow.GroupItems.groupItems.length;
-  
+  // create empty group item
   let groupItem = createEmptyGroupItem(contentWindow, width, height, padding, animate);
   ok(groupItem.isEmpty(), "This group is empty");
   is(contentWindow.GroupItems.groupItems.length, ++groupItemCount,
      "The number of groups is increased by 1");
-  
+  // add blank items
   contentWindow.UI.setActive(groupItem);
   let t = 0;
   urls.forEach( function(url) {
@@ -41,13 +41,13 @@ function createGroupItemWithTabs(win, width, height, padding, urls, animate) {
     ok(newItem.container, "Created element "+t+":"+newItem.container);
     ++t;
   });
-  
-  
+  // to set one of tabItem to be active since we load tabs into a group 
+  // in a non-standard flow.
   contentWindow.UI.setActive(groupItem);
   return groupItem;
 }
 
-
+// ----------
 function createGroupItemWithBlankTabs(win, width, height, padding, numNewTabs, animate) {
   let urls = [];
   while(numNewTabs--)
@@ -55,7 +55,7 @@ function createGroupItemWithBlankTabs(win, width, height, padding, numNewTabs, a
   return createGroupItemWithTabs(win, width, height, padding, urls, animate);
 }
 
-
+// ----------
 function closeGroupItem(groupItem, callback) {
   if (callback) {
     groupItem.addSubscriber("close", function onClose() {
@@ -74,20 +74,30 @@ function closeGroupItem(groupItem, callback) {
   groupItem.closeAll();
 }
 
-
+// ----------
 function afterAllTabItemsUpdated(callback, win) {
   win = win || window;
   let tabItems = win.document.getElementById("tab-view").contentWindow.TabItems;
+  let counter = 0;
 
   for (let a = 0; a < win.gBrowser.tabs.length; a++) {
     let tabItem = win.gBrowser.tabs[a]._tabViewTabItem;
-    if (tabItem)
-      tabItems._update(win.gBrowser.tabs[a]);
+    if (tabItem) {
+      let tab = win.gBrowser.tabs[a];
+      counter++;
+      tabItem.addSubscriber("updated", function onUpdated() {
+        tabItem.removeSubscriber("updated", onUpdated);
+        if (--counter == 0)
+          callback();
+      });
+      tabItems.update(tab);
+    }
   }
-  callback();
+  if (counter == 0)
+    callback();
 }
 
-
+// ---------
 function newWindowWithTabView(shownCallback, loadCallback, width, height) {
   let winWidth = width || 800;
   let winHeight = height || 800;
@@ -105,7 +115,7 @@ function newWindowWithTabView(shownCallback, loadCallback, width, height) {
   });
 }
 
-
+// ----------
 function afterAllTabsLoaded(callback, win) {
   const TAB_STATE_NEEDS_RESTORE = 1;
 
@@ -141,7 +151,7 @@ function afterAllTabsLoaded(callback, win) {
     executeSoon(callback);
 }
 
-
+// ----------
 function showTabView(callback, win) {
   win = win || window;
 
@@ -157,7 +167,7 @@ function showTabView(callback, win) {
   win.TabView.show();
 }
 
-
+// ----------
 function hideTabView(callback, win) {
   win = win || window;
 
@@ -173,7 +183,7 @@ function hideTabView(callback, win) {
   win.TabView.hide();
 }
 
-
+// ----------
 function whenTabViewIsHidden(callback, win) {
   win = win || window;
 
@@ -188,7 +198,7 @@ function whenTabViewIsHidden(callback, win) {
   }, false);
 }
 
-
+// ----------
 function whenTabViewIsShown(callback, win) {
   win = win || window;
 
@@ -203,7 +213,7 @@ function whenTabViewIsShown(callback, win) {
   }, false);
 }
 
-
+// ----------
 function hideSearch(callback, win) {
   win = win || window;
 
@@ -220,7 +230,7 @@ function hideSearch(callback, win) {
   contentWindow.Search.hide();
 }
 
-
+// ----------
 function whenSearchIsEnabled(callback, win) {
   win = win || window;
 
@@ -236,7 +246,7 @@ function whenSearchIsEnabled(callback, win) {
   }, false);
 }
 
-
+// ----------
 function whenSearchIsDisabled(callback, win) {
   win = win || window;
 
@@ -252,7 +262,7 @@ function whenSearchIsDisabled(callback, win) {
   }, false);
 }
 
-
+// ----------
 function hideGroupItem(groupItem, callback) {
   if (groupItem.hidden) {
     if (callback)
@@ -270,7 +280,7 @@ function hideGroupItem(groupItem, callback) {
   groupItem.closeAll();
 }
 
-
+// ----------
 function unhideGroupItem(groupItem, callback) {
   if (!groupItem.hidden) {
     if (callback)
@@ -288,7 +298,7 @@ function unhideGroupItem(groupItem, callback) {
   groupItem._unhide();
 }
 
-
+// ----------
 function whenWindowLoaded(win, callback) {
   win.addEventListener("load", function onLoad() {
     win.removeEventListener("load", onLoad, false);
@@ -296,7 +306,7 @@ function whenWindowLoaded(win, callback) {
   }, false);
 }
 
-
+// ----------
 function whenWindowStateReady(win, callback) {
   win.addEventListener("SSWindowStateReady", function onReady() {
     win.removeEventListener("SSWindowStateReady", onReady, false);
@@ -304,7 +314,7 @@ function whenWindowStateReady(win, callback) {
   }, false);
 }
 
-
+// ----------
 function whenDelayedStartupFinished(win, callback) {
   let topic = "browser-delayed-startup-finished";
   Services.obs.addObserver(function onStartup(aSubject) {
@@ -316,7 +326,7 @@ function whenDelayedStartupFinished(win, callback) {
   }, topic, false);
 }
 
-
+// ----------
 function newWindowWithState(state, callback) {
   const ss = Cc["@mozilla.org/browser/sessionstore;1"]
              .getService(Ci.nsISessionStore);
@@ -345,7 +355,7 @@ function newWindowWithState(state, callback) {
   });
 }
 
-
+// ----------
 function restoreTab(callback, index, win) {
   win = win || window;
 
@@ -367,15 +377,15 @@ function restoreTab(callback, index, win) {
   });
 }
 
-
+// ----------
 function togglePrivateBrowsing(callback) {
   let topic = "private-browsing-transition-complete";
 
   Services.obs.addObserver(function observe() {
     Services.obs.removeObserver(observe, topic);
 
-    
-    
+    // use executeSoon() to let Panorama load its group data from the session
+    // before we call afterAllTabsLoaded()
     executeSoon(function () afterAllTabsLoaded(callback));
   }, topic, false);
 
@@ -385,7 +395,7 @@ function togglePrivateBrowsing(callback) {
   pb.privateBrowsingEnabled = !pb.privateBrowsingEnabled;
 }
 
-
+// ----------
 function goToNextGroup(win) {
   win = win || window;
 
@@ -400,7 +410,7 @@ function goToNextGroup(win) {
   utils.sendKeyEvent("keypress", 0, 96, mval);
 }
 
-
+// ----------
 function whenAppTabIconAdded(callback, win) {
   win = win || window;
 

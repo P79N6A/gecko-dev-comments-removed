@@ -366,6 +366,21 @@ NS_IMPL_RELEASE_INHERITED(nsNativeAppSupportWin, nsNativeAppSupportBase)
 
 void
 nsNativeAppSupportWin::CheckConsole() {
+    
+    
+    
+    if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+        
+        
+        if (_fileno(stdout) == -1 || _get_osfhandle(fileno(stdout)) == -1)
+            freopen("CONOUT$", "w", stdout);
+        if (_fileno(stderr) == -1 || _get_osfhandle(fileno(stderr)) == -1)
+            freopen("CONERR$", "w", stderr);
+        if (_fileno(stdin) == -1 || _get_osfhandle(fileno(stdin)) == -1)
+            freopen("CONIN$", "r", stdin);
+        return;
+    }
+
     for ( int i = 1; i < gArgc; i++ ) {
         if ( strcmp( "-console", gArgv[i] ) == 0
              ||

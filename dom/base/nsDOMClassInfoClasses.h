@@ -436,6 +436,7 @@ DOMCI_CLASS(MozSmsFilter)
 DOMCI_CLASS(MozSmsCursor)
 
 DOMCI_CLASS(MozConnection)
+DOMCI_CLASS(MozMobileConnection)
 
 
 DOMCI_CLASS(CSSFontFaceRule)
@@ -448,6 +449,9 @@ DOMCI_CLASS(HTMLSourceElement)
 DOMCI_CLASS(MediaError)
 DOMCI_CLASS(HTMLAudioElement)
 DOMCI_CLASS(TimeRanges)
+
+
+DOMCI_CLASS(MediaStream)
 #endif
 
 DOMCI_CLASS(ProgressEvent)

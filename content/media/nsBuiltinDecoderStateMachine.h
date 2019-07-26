@@ -117,6 +117,8 @@
 #include "nsHTMLMediaElement.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "nsITimer.h"
+#include "AudioSegment.h"
+#include "VideoSegment.h"
 
 
 
@@ -137,6 +139,10 @@ public:
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
+  typedef nsBuiltinDecoder::OutputMediaStream OutputMediaStream;
+  typedef mozilla::SourceMediaStream SourceMediaStream;
+  typedef mozilla::AudioSegment AudioSegment;
+  typedef mozilla::VideoSegment VideoSegment;
 
   nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDecoder, nsBuiltinDecoderReader* aReader, bool aRealTime = false);
   ~nsBuiltinDecoderStateMachine();
@@ -149,6 +155,7 @@ public:
     return mState; 
   }
   virtual void SetVolume(double aVolume);
+  virtual void SetAudioCaptured(bool aCapture);
   virtual void Shutdown();
   virtual PRInt64 GetDuration();
   virtual void SetDuration(PRInt64 aDuration);
@@ -251,6 +258,10 @@ public:
 
   
   
+  void ScheduleStateMachineWithLockAndWakeDecoder();
+
+  
+  
   
   nsresult ScheduleStateMachine(PRInt64 aUsecs);
 
@@ -272,6 +283,13 @@ public:
    
    
    void NotifyAudioAvailableListener();
+
+  
+  
+  void SendOutputStreamData();
+  void FinishOutputStreams();
+  bool HaveEnoughDecodedAudio(PRInt64 aAmpleAudioUSecs);
+  bool HaveEnoughDecodedVideo();
 
 protected:
 
@@ -437,6 +455,11 @@ protected:
   void DecodeThreadRun();
 
   
+  
+  void SendOutputStreamAudio(AudioData* aAudio, OutputMediaStream* aStream,
+                             AudioSegment* aOutput);
+
+  
   nsresult CallRunStateMachine();
 
   
@@ -571,6 +594,10 @@ protected:
 
   
   
+  bool mAudioCaptured;
+
+  
+  
   bool mSeekable;
 
   
@@ -635,6 +662,12 @@ protected:
 
   
   bool mRealTime;
+
+  
+  
+  
+  bool mDidThrottleAudioDecoding;
+  bool mDidThrottleVideoDecoding;
 
   
   

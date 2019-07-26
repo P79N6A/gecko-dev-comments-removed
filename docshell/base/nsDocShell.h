@@ -847,7 +847,9 @@ protected:
 private:
     nsCOMPtr<nsIAtom> mForcedCharset;
     nsCOMPtr<nsIAtom> mParentCharset;
-    PRInt32          mParentCharsetSource;
+    nsTObserverArray<nsWeakPtr> mPrivacyObservers;
+    PRInt32           mParentCharsetSource;
+    nsCString         mOriginalUriString;
 
 #ifdef DEBUG
     

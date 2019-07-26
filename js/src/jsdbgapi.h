@@ -532,6 +532,16 @@ js_ResumeVtune();
 
 #endif 
 
+#ifdef __linux__
+
+extern JS_FRIEND_API(JSBool)
+js_StartPerf();
+
+extern JS_FRIEND_API(JSBool)
+js_StopPerf();
+
+#endif 
+
 extern JS_PUBLIC_API(void)
 JS_DumpBytecode(JSContext *cx, JSScript *script);
 

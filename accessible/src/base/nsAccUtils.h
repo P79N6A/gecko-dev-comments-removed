@@ -140,20 +140,10 @@ public:
   
 
 
-  static nsDocAccessible* GetDocAccessibleFor(const nsIPresShell* aPresShell)
-  {
-    return aPresShell ?
-      GetAccService()->GetDocAccessible(aPresShell->GetDocument()) : nsnull;
-  }
-
-  
-
-
   static nsDocAccessible *GetDocAccessibleFor(nsINode *aNode)
   {
     nsIPresShell *presShell = nsCoreUtils::GetPresShellFor(aNode);
-    return presShell ?
-      GetAccService()->GetDocAccessible(presShell->GetDocument()) : nsnull;
+    return GetAccService()->GetDocAccessible(presShell);
   }
 
   
@@ -164,8 +154,7 @@ public:
     nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(aContainer));
     nsCOMPtr<nsIPresShell> presShell;
     docShell->GetPresShell(getter_AddRefs(presShell));
-    return presShell ?
-      GetAccService()->GetDocAccessible(presShell->GetDocument()) : nsnull;
+    return GetAccService()->GetDocAccessible(presShell);
   }
 
   

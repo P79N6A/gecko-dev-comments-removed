@@ -119,6 +119,11 @@ nsDiskCacheBinding::nsDiskCacheBinding(nsCacheEntry* entry, nsDiskCacheRecord * 
 
 nsDiskCacheBinding::~nsDiskCacheBinding()
 {
+    
+    
+    
+    nsCacheServiceAutoLock lock;
+
     NS_ASSERTION(PR_CLIST_IS_EMPTY(this), "binding deleted while still on list");
     if (!PR_CLIST_IS_EMPTY(this))
         PR_REMOVE_LINK(this);       

@@ -156,6 +156,9 @@ public:
 
 protected:
 
+  bool mIsStyleBinding;
+  bool mMarkedForDeath;
+
   nsXBLPrototypeBinding* mPrototypeBinding; 
   nsCOMPtr<nsIContent> mContent; 
   nsRefPtr<nsXBLBinding> mNextBinding; 
@@ -164,9 +167,6 @@ protected:
   
   
   nsClassHashtable<nsISupportsHashKey, nsInsertionPointList>* mInsertionPointTable;
-
-  bool mIsStyleBinding;
-  bool mMarkedForDeath;
 };
 
 #endif 

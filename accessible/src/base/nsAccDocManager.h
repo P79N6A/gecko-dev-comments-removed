@@ -44,6 +44,7 @@
 #include "nsIWebProgress.h"
 #include "nsIWebProgressListener.h"
 #include "nsWeakReference.h"
+#include "nsIPresShell.h"
 
 class nsAccessible;
 class nsDocAccessible;
@@ -68,6 +69,14 @@ public:
 
 
   nsDocAccessible *GetDocAccessible(nsIDocument *aDocument);
+
+  
+
+
+  nsDocAccessible* GetDocAccessible(const nsIPresShell* aPresShell)
+  {
+    return aPresShell ? GetDocAccessible(aPresShell->GetDocument()) : nsnull;
+  }
 
   
 

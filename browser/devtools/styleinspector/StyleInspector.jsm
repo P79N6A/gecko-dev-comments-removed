@@ -38,321 +38,227 @@
 
 
 
+
 const Cu = Components.utils;
 const Ci = Components.interfaces;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-var EXPORTED_SYMBOLS = ["StyleInspector"];
-
-
+Cu.import("resource:///modules/devtools/CssRuleView.jsm");
+Cu.import("resource:///modules/inspector.jsm");
 
 
 
+var EXPORTED_SYMBOLS = [];
 
 
-function StyleInspector(aContext, aIUI)
+
+
+
+
+function l10n(aName)
 {
-  this._init(aContext, aIUI);
+  try {
+    return _strings.GetStringFromName(aName);
+  } catch (ex) {
+    Services.console.logStringMessage("Error reading '" + aName + "'");
+    throw new Error("l10n error with " + aName);
+  }
 }
 
-StyleInspector.prototype = {
+function RegisterStyleTools()
+{
+  
+  if (Services.prefs.getBoolPref("devtools.ruleview.enabled")) {
+    InspectorUI.registerSidebar({
+      id: "ruleview",
+      label: l10n("ruleView.label"),
+      tooltiptext: l10n("ruleView.tooltiptext"),
+      accesskey: l10n("ruleView.accesskey"),
+      contentURL: "chrome://browser/content/devtools/cssruleview.xul",
+      load: function(aInspector, aFrame) new RuleViewTool(aInspector, aFrame),
+      destroy: function(aContext) aContext.destroy()
+    });
+  }
 
   
+  if (Services.prefs.getBoolPref("devtools.styleinspector.enabled")) {
+    InspectorUI.registerSidebar({
+      id: "computedview",
+      label: this.l10n("style.highlighter.button.label2"),
+      tooltiptext: this.l10n("style.highlighter.button.tooltip2"),
+      accesskey: this.l10n("style.highlighter.accesskey2"),
+      contentURL: "chrome://browser/content/devtools/csshtmltree.xul",
+      load: function(aInspector, aFrame) new ComputedViewTool(aInspector, aFrame),
+      destroy: function(aContext) aContext.destroy()
+    });
+  }
+}
 
+function RuleViewTool(aInspector, aFrame)
+{
+  this.inspector = aInspector;
+  this.chromeWindow = this.inspector.chromeWindow;
+  this.doc = aFrame.contentDocument;
 
+  if (!this.inspector._ruleViewStore) {
+   this.inspector._ruleViewStore = {};
+  }
+  this.view = new CssRuleView(this.doc, this.inspector._ruleViewStore);
+  this.doc.documentElement.appendChild(this.view.element);
 
+  this._changeHandler = function() {
+    this.inspector.markDirty();
+    this.inspector.change("ruleview");
+  }.bind(this);
 
+  this.view.element.addEventListener("CssRuleViewChanged", this._changeHandler)
 
-  _init: function SI__init(aContext, aIUI)
-  {
-    this.window = aContext;
-    this.IUI = aIUI;
-    this.document = this.window.document;
-    this.cssLogic = new CssLogic();
-    this.panelReady = false;
-    this.iframeReady = false;
+  this._cssLinkHandler = function(aEvent) {
+    let rule = aEvent.detail.rule;
+    let styleSheet = rule.sheet;
+    let doc = this.chromeWindow.content.document;
+    let styleSheets = doc.styleSheets;
+    let contentSheet = false;
+    let line = rule.ruleLine || 0;
 
     
-    if (this.IUI) {
-      this.openDocked = true;
-      let isOpen = this.isOpen.bind(this);
-
-      this.registrationObject = {
-        id: "styleinspector",
-        label: this.l10n("style.highlighter.button.label2"),
-        tooltiptext: this.l10n("style.highlighter.button.tooltip2"),
-        accesskey: this.l10n("style.highlighter.accesskey2"),
-        context: this,
-        get isOpen() isOpen(),
-        onSelect: this.selectNode,
-        onChanged: this.updateNode,
-        show: this.open,
-        hide: this.close,
-        dim: this.dimTool,
-        panel: null,
-        unregister: this.destroy,
-        sidebar: true,
-      };
-
-      
-      this.IUI.registerTool(this.registrationObject);
-      this.createSidebarContent(true);
-    }
-  },
-
-  
-
-
-
-  createSidebarContent: function SI_createSidebarContent(aPreserveOnHide)
-  {
-    this.preserveOnHide = !!aPreserveOnHide;
-
-    let boundIframeOnLoad = function loadedInitializeIframe() {
-      if (this.iframe &&
-          this.iframe.getAttribute("src") ==
-          "chrome://browser/content/devtools/csshtmltree.xul") {
-        let selectedNode = this.selectedNode || null;
-        this.cssHtmlTree = new CssHtmlTree(this);
-        this.cssLogic.highlight(selectedNode);
-        this.cssHtmlTree.highlight(selectedNode);
-        this.iframe.removeEventListener("load", boundIframeOnLoad, true);
-        this.iframeReady = true;
-
-        
-        
-        this.selectNode(this.selectedNode);
-
-        Services.obs.notifyObservers(null, "StyleInspector-opened", null);
+    
+    for each (let sheet in styleSheets) {
+      if (sheet == styleSheet) {
+        contentSheet = true;
+        break;
       }
-    }.bind(this);
-
-    this.iframe = this.IUI.getToolIframe(this.registrationObject);
-
-    this.iframe.addEventListener("load", boundIframeOnLoad, true);
-  },
-
-  
-
-
-
-
-
-
-  createPanel: function SI_createPanel(aPreserveOnHide, aCallback)
-  {
-    let popupSet = this.document.getElementById("mainPopupSet");
-    let panel = this.document.createElement("panel");
-    this.preserveOnHide = !!aPreserveOnHide;
-
-    panel.setAttribute("class", "styleInspector");
-    panel.setAttribute("orient", "vertical");
-    panel.setAttribute("ignorekeys", "true");
-    panel.setAttribute("noautofocus", "true");
-    panel.setAttribute("noautohide", "true");
-    panel.setAttribute("titlebar", "normal");
-    panel.setAttribute("close", "true");
-    panel.setAttribute("label", this.l10n("panelTitle"));
-    panel.setAttribute("width", 350);
-    panel.setAttribute("height", this.window.screen.height / 2);
-
-    let iframe = this.document.createElement("iframe");
-    let boundIframeOnLoad = function loadedInitializeIframe()
-    {
-      this.iframe.removeEventListener("load", boundIframeOnLoad, true);
-      this.iframeReady = true;
-      if (aCallback)
-        aCallback(this);
-    }.bind(this);
-
-    iframe.flex = 1;
-    iframe.setAttribute("tooltip", "aHTMLTooltip");
-    iframe.addEventListener("load", boundIframeOnLoad, true);
-    iframe.setAttribute("src", "chrome://browser/content/devtools/csshtmltree.xul");
-
-    panel.appendChild(iframe);
-    popupSet.appendChild(panel);
-
-    this._boundPopupShown = this.popupShown.bind(this);
-    this._boundPopupHidden = this.popupHidden.bind(this);
-    panel.addEventListener("popupshown", this._boundPopupShown, false);
-    panel.addEventListener("popuphidden", this._boundPopupHidden, false);
-
-    this.panel = panel;
-    this.iframe = iframe;
-
-    return panel;
-  },
-
-  
-
-
-  popupShown: function SI_popupShown()
-  {
-    this.panelReady = true;
-    if (this.iframeReady) {
-      this.cssHtmlTree = new CssHtmlTree(this);
-      let selectedNode = this.selectedNode || null;
-      this.cssLogic.highlight(selectedNode);
-      this.cssHtmlTree.highlight(selectedNode);
-      Services.obs.notifyObservers(null, "StyleInspector-opened", null);
     }
-  },
 
-  
-
-
-
-  popupHidden: function SI_popupHidden()
-  {
-    if (this.preserveOnHide) {
-      Services.obs.notifyObservers(null, "StyleInspector-closed", null);
+    if (contentSheet)  {
+      this.chromeWindow.StyleEditor.openChrome(styleSheet, line);
     } else {
-      this.destroy();
-    }
-  },
-
-  
-
-
-
-  isOpen: function SI_isOpen()
-  {
-    return this.openDocked ? this.IUI.isSidebarOpen &&
-            (this.IUI.sidebarDeck.selectedPanel == this.iframe) :
-           this.panel && this.panel.state && this.panel.state == "open";
-  },
-
-  isLoaded: function SI_isLoaded()
-  {
-    return this.openDocked ? this.iframeReady : this.iframeReady && this.panelReady;
-  },
-
-  
-
-
-
-  selectFromPath: function SI_selectFromPath(aNode)
-  {
-    if (this.IUI && this.IUI.selection) {
-      if (aNode != this.IUI.selection) {
-        this.IUI.inspectNode(aNode);
+      let href = styleSheet ? styleSheet.href : "";
+      if (rule.elementStyle.element) {
+        href = rule.elementStyle.element.ownerDocument.location.href;
       }
-    } else {
-      this.selectNode(aNode);
+      let viewSourceUtils = this.chromeWindow.gViewSourceUtils;
+      viewSourceUtils.viewSource(href, null, doc, line);
+    }
+  }.bind(this);
+
+  this.view.element.addEventListener("CssRuleViewCSSLinkClicked",
+                                     this._cssLinkHandler);
+
+  this._onSelect = this.onSelect.bind(this);
+  this.inspector.on("select", this._onSelect);
+
+  this._onChange = this.onChange.bind(this);
+  this.inspector.on("change", this._onChange);
+
+  this.onSelect();
+}
+
+RuleViewTool.prototype = {
+  onSelect: function RVT_onSelect(aEvent, aFrom) {
+    let node = this.inspector.selection;
+    if (!node) {
+      this.view.highlight(null);
+      return;
+    }
+
+    if (this.inspector.locked) {
+      this.view.highlight(node);
     }
   },
 
-  
+  onChange: function RVT_onChange(aEvent, aFrom) {
+    
+    
+    if (aFrom != "pseudoclass") {
+      return;
+    }
 
-
-
-  selectNode: function SI_selectNode(aNode)
-  {
-    this.selectedNode = aNode;
-    if (this.isLoaded() && !this.dimmed) {
-      this.cssLogic.highlight(aNode);
-      this.cssHtmlTree.highlight(aNode);
+    if (this.inspector.locked) {
+      this.view.nodeChanged();
     }
   },
 
+  destroy: function RVT_destroy() {
+    this.inspector.removeListener("select", this._onSelect);
+    this.inspector.removeListener("change", this._onChange);
+    this.view.element.removeEventListener("CssRuleViewChanged",
+                                          this._changeHandler);
+    this.view.element.removeEventListener("CssRuleViewCSSLinkClicked",
+                                          this._cssLinkHandler);
+    this.doc.documentElement.removeChild(this.view.element);
+
+    this.view.destroy();
+
+    delete this._changeHandler;
+    delete this.view;
+    delete this.doc;
+    delete this.inspector;
+  }
+}
+
+function ComputedViewTool(aInspector, aFrame)
+{
+  this.inspector = aInspector;
+  this.iframe = aFrame;
+  this.window = aInspector.chromeWindow;
+  this.document = this.window.document;
+  this.cssLogic = new CssLogic();
+  this.view = new CssHtmlTree(this);
+
+  this._onSelect = this.onSelect.bind(this);
+  this.inspector.on("select", this._onSelect);
+
+  this._onChange = this.onChange.bind(this);
+  this.inspector.on("change", this._onChange);
+
   
+  
+  
+  this.inspector.on("sidebaractivated", this._onChange);
 
+  this.cssLogic.highlight(null);
+  this.view.highlight(null);
 
-  updateNode: function SI_updateNode()
+  this.onSelect();
+}
+
+ComputedViewTool.prototype = {
+  onSelect: function CVT_onSelect(aEvent)
   {
-    if (this.isLoaded() && !this.dimmed) {
-      this.cssLogic.highlight(this.selectedNode);
-      this.cssHtmlTree.refreshPanel();
+    if (this.inspector.locked) {
+      this.cssLogic.highlight(this.inspector.selection);
+      this.view.highlight(this.inspector.selection);
     }
   },
 
-  
-
-
-
-
-  dimTool: function SI_dimTool(aState)
+  onChange: function CVT_change(aEvent, aFrom)
   {
-    this.dimmed = aState;
+    if (aFrom == "computedview" ||
+        this.inspector.selection != this.cssLogic.viewedElement) {
+      return;
+    }
+
+    this.cssLogic.highlight(this.inspector.selection);
+    this.view.refreshPanel();
   },
 
-  
-
-
-
-  open: function SI_open(aSelection)
+  destroy: function CVT_destroy(aContext)
   {
-    this.selectNode(aSelection);
-    if (this.openDocked) {
-      if (!this.iframeReady) {
-        this.iframe.setAttribute("src", "chrome://browser/content/devtools/csshtmltree.xul");
-      }
-    } else {
-      this.panel.openPopup(this.window.gBrowser.selectedBrowser, "end_before", 0, 0,
-        false, false);
-    }
-  },
-
-  
-
-
-  close: function SI_close()
-  {
-    if (this.openDocked) {
-      Services.obs.notifyObservers(null, "StyleInspector-closed", null);
-    } else {
-      this.panel.hidePopup();
-    }
-  },
-
-  
-
-
-
-
-  l10n: function SI_l10n(aName)
-  {
-    try {
-      return _strings.GetStringFromName(aName);
-    } catch (ex) {
-      Services.console.logStringMessage("Error reading '" + aName + "'");
-      throw new Error("l10n error with " + aName);
-    }
-  },
-
-  
-
-
-  destroy: function SI_destroy()
-  {
-    if (this.isOpen())
-      this.close();
-    if (this.cssHtmlTree)
-      this.cssHtmlTree.destroy();
-    if (this.iframe) {
-      this.iframe.parentNode.removeChild(this.iframe);
-      delete this.iframe;
-    }
+    this.inspector.removeListener("select", this._onSelect);
+    this.inspector.removeListener("change", this._onChange);
+    this.inspector.removeListener("sidebaractivated", this._onChange);
+    this.view.destroy();
+    delete this.view;
 
     delete this.cssLogic;
     delete this.cssHtmlTree;
-    if (this.panel) {
-      this.panel.removeEventListener("popupshown", this._boundPopupShown, false);
-      this.panel.removeEventListener("popuphidden", this._boundPopupHidden, false);
-      delete this._boundPopupShown;
-      delete this._boundPopupHidden;
-      this.panel.parentNode.removeChild(this.panel);
-      delete this.panel;
-    }
-    delete this.doc;
-    delete this.win;
-    delete CssHtmlTree.win;
-    Services.obs.notifyObservers(null, "StyleInspector-closed", null);
-  },
-};
+    delete this.iframe;
+    delete this.window;
+    delete this.document;
+  }
+}
 
 XPCOMUtils.defineLazyGetter(this, "_strings", function() Services.strings
   .createBundle("chrome:
@@ -368,3 +274,5 @@ XPCOMUtils.defineLazyGetter(this, "CssHtmlTree", function() {
   Cu.import("resource:///modules/devtools/CssHtmlTree.jsm", tmp);
   return tmp.CssHtmlTree;
 });
+
+RegisterStyleTools();

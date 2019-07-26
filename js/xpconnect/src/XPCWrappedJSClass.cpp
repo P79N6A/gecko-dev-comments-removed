@@ -1037,15 +1037,7 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
                 
                 
                 if (!reportable) {
-                    bool onlyNativeStackFrames = true;
-                    JSStackFrame * fp = nsnull;
-                    while ((fp = JS_FrameIterator(cx, &fp))) {
-                        if (JS_IsScriptFrame(cx, fp)) {
-                            onlyNativeStackFrames = false;
-                            break;
-                        }
-                    }
-                    reportable = onlyNativeStackFrames;
+                    reportable = !JS_DescribeScriptedCaller(cx, nsnull, nsnull);
                 }
 
                 

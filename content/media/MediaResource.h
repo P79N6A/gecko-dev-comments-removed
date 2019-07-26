@@ -375,6 +375,8 @@ public:
   
   
   void CacheClientNotifyDataEnded(nsresult aStatus);
+  
+  void CacheClientNotifyPrincipalChanged();
 
   
   

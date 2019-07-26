@@ -226,7 +226,7 @@ ConvertFrames(JSContext *cx, IonActivation *activation, FrameRecovery &in)
         
         
         
-        JSObject *prevScopeChain = &cx->fp()->scopeChain();
+        HandleObject prevScopeChain = cx->fp()->scopeChain();
         Value thisv = cx->fp()->thisValue();
         fp = cx->stack.pushBailoutFrame(cx, in.script(), *prevScopeChain, thisv, br->frameGuard());
     }

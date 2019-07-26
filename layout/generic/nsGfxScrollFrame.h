@@ -77,6 +77,8 @@ public:
   nsGfxScrollFrameInner(nsContainerFrame* aOuter, bool aIsRoot);
   ~nsGfxScrollFrameInner();
 
+  void Init();
+
   typedef nsIScrollableFrame::ScrollbarStyles ScrollbarStyles;
   ScrollbarStyles GetScrollbarStylesFromFrame() const;
 
@@ -176,7 +178,12 @@ public:
     return pt;
   }
   nsRect GetScrollRange() const;
+  
+  nsRect GetScrollRange(nscoord aWidth, nscoord aHeight) const;
+protected:
+  nsRect GetScrollRangeForClamping() const;
 
+public:
   nsPoint RestrictToDevPixels(const nsPoint& aPt, nsIntPoint* aPtDevPx, bool aShouldClamp) const;
   nsPoint ClampScrollPosition(const nsPoint& aPt) const;
   static void AsyncScrollCallback(nsITimer *aTimer, void* anInstance);
@@ -370,6 +377,9 @@ public:
 
   
   
+  NS_IMETHOD Init(nsIContent*      aContent,
+                  nsIFrame*        aParent,
+                  nsIFrame*        aPrevInFlow);
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
 
@@ -598,6 +608,9 @@ public:
 
   
   
+  NS_IMETHOD Init(nsIContent*      aContent,
+                  nsIFrame*        aParent,
+                  nsIFrame*        aPrevInFlow);
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
 

@@ -1804,7 +1804,7 @@ TypeSet::getTypedArrayType(JSContext *cx)
         if (!proto)
             continue;
 
-        int objArrayType = proto->getClass() - TypedArray::slowClasses;
+        int objArrayType = proto->getClass() - TypedArray::protoClasses;
         JS_ASSERT(objArrayType >= 0 && objArrayType < TypedArray::TYPE_MAX);
 
         
@@ -3077,14 +3077,16 @@ TypeObject::clearNewScript(JSContext *cx)
 
 
 
-    for (FrameRegsIter iter(cx); !iter.done(); ++iter) {
-        StackFrame *fp = iter.fp();
-        if (fp->isScriptFrame() && fp->isConstructing() &&
-            fp->fun() == newScript->fun && fp->thisValue().isObject() &&
-            !fp->thisValue().toObject().hasLazyType() &&
-            fp->thisValue().toObject().type() == this) {
-            JSObject *obj = &fp->thisValue().toObject();
-            jsbytecode *pc = iter.pc();
+    Vector<uint32_t, 32> pcOffsets(cx);
+    for (ScriptFrameIter iter(cx); !iter.done(); ++iter) {
+        pcOffsets.append(uint32_t(iter.pc() - iter.script()->code));
+        if (iter.isConstructing() &&
+            iter.callee() == newScript->fun &&
+            iter.thisv().isObject() &&
+            !iter.thisv().toObject().hasLazyType() &&
+            iter.thisv().toObject().type() == this)
+        {
+            JSObject *obj = &iter.thisv().toObject();
 
             
             bool finished = false;
@@ -3097,9 +3099,10 @@ TypeObject::clearNewScript(JSContext *cx)
 
 
             size_t depth = 0;
+            size_t callDepth = pcOffsets.length() - 1;
+            uint32_t offset = pcOffsets[callDepth];
 
             for (TypeNewScript::Initializer *init = newScript->initializerList;; init++) {
-                uint32_t offset = uint32_t(pc - fp->script()->code);
                 if (init->kind == TypeNewScript::Initializer::SETPROP) {
                     if (!depth && init->offset > offset) {
                         
@@ -3113,11 +3116,9 @@ TypeObject::clearNewScript(JSContext *cx)
                         
                         break;
                     } else if (init->offset == offset) {
-                        StackSegment &seg = cx->stack.space().containingSegment(fp);
-                        if (seg.maybefp() == fp)
+                        if (!callDepth)
                             break;
-                        fp = seg.computeNextFrame(fp);
-                        pc = fp->pcQuadratic(cx->stack);
+                        offset = pcOffsets[--callDepth];
                     } else {
                         
                         depth = 1;
@@ -5223,7 +5224,7 @@ NestingPrologue(JSContext *cx, StackFrame *fp)
     TypeScriptNesting *nesting = script->nesting();
 
     if (nesting->parent)
-        CheckNestingParent(cx, &fp->scopeChain(), script);
+        CheckNestingParent(cx, fp->scopeChain(), script);
 
     if (script->isOuterFunction) {
         

@@ -4,39 +4,66 @@
 
 
 
-#ifndef mozilla_a11y_ApplicationAccessibleWrap_h__
-#define mozilla_a11y_ApplicationAccessibleWrap_h__
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef MOZILLA_A11Y_APPLICATION_ACCESSIBLE_WRAP_H__
+#define MOZILLA_A11Y_APPLICATION_ACCESSIBLE_WRAP_H__
 
 #include "ApplicationAccessible.h"
 
-namespace mozilla {
-namespace a11y {
- 
 class ApplicationAccessibleWrap: public ApplicationAccessible
 {
 public:
-  static void Unload();
-  static void PreCreate();
+    static void Unload();
+    static void PreCreate();
 
 public:
-  ApplicationAccessibleWrap();
-  virtual ~ApplicationAccessibleWrap();
+    ApplicationAccessibleWrap();
+    virtual ~ApplicationAccessibleWrap();
 
-  
-  virtual void Init();
+    
+    virtual bool Init();
 
-  
-  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
-  virtual bool AppendChild(Accessible* aChild);
-  virtual bool RemoveChild(Accessible* aChild);
+    
+    NS_IMETHOD GetName(nsAString &aName);
 
-  
+    virtual bool AppendChild(nsAccessible* aChild);
+    virtual bool RemoveChild(nsAccessible* aChild);
 
-
-  NS_IMETHOD GetNativeInterface(void** aOutAccessible);
+    
+    NS_IMETHOD GetNativeInterface(void **aOutAccessible);
 };
-
-} 
-} 
 
 #endif   

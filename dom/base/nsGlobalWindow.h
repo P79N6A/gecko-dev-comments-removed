@@ -98,6 +98,7 @@
 #include "mozilla/TimeStamp.h"
 #include "nsIDOMTouchEvent.h"
 #include "nsIInlineEventHandlers.h"
+#include "nsWrapperCacheInlines.h"
 
 
 #include "jsapi.h"

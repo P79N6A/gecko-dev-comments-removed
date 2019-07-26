@@ -268,7 +268,19 @@ OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 
     if (sMotionEventTimerID) {
         g_source_remove(sMotionEventTimerID);
+        sMotionEventTimerID = 0;
     }
+
+    
+    
+    if (gtk_grab_get_current() != widget)
+        return;
+
+    
+    
+    nsDragService *dragService = static_cast<nsDragService*>(user_data);
+    dragService->
+        SetDragEndPoint(nsIntPoint(event->motion.x_root, event->motion.y_root));
 
     MotionEventData *data = new MotionEventData(widget, event);
 
@@ -352,8 +364,10 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
             
             
             g_signal_connect(mGrabWidget, "event-after",
-                             G_CALLBACK(OnSourceGrabEventAfter), NULL);
+                             G_CALLBACK(OnSourceGrabEventAfter), this);
         }
+        
+        mEndDragPoint = nsIntPoint(-1, -1);
     }
     else {
         rv = NS_ERROR_FAILURE;
@@ -429,7 +443,7 @@ nsDragService::EndDragSession(bool aDoneDrag)
 
     if (mGrabWidget) {
         g_signal_handlers_disconnect_by_func(mGrabWidget,
-             FuncToGpointer(OnSourceGrabEventAfter), NULL);
+             FuncToGpointer(OnSourceGrabEventAfter), this);
         g_object_unref(mGrabWidget);
         mGrabWidget = NULL;
 
@@ -533,6 +547,15 @@ NS_IMETHODIMP
 nsDragService::GetNumDropItems(PRUint32 * aNumItems)
 {
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::GetNumDropItems"));
+
+    if (!mTargetWidget) {
+        PR_LOG(sDragLm, PR_LOG_DEBUG,
+               ("*** warning: GetNumDropItems \
+               called without a valid target widget!\n"));
+        *aNumItems = 0;
+        return NS_OK;
+    }
+
     bool isList = IsTargetContextList();
     if (isList)
         mSourceDataItems->Count(aNumItems);
@@ -560,12 +583,18 @@ nsDragService::GetData(nsITransferable * aTransferable,
     if (!aTransferable)
         return NS_ERROR_INVALID_ARG;
 
+    if (!mTargetWidget) {
+        PR_LOG(sDragLm, PR_LOG_DEBUG,
+               ("*** warning: GetData \
+               called without a valid target widget!\n"));
+        return NS_ERROR_FAILURE;
+    }
+
     
     
     
-    nsresult rv = NS_ERROR_FAILURE;
     nsCOMPtr<nsISupportsArray> flavorList;
-    rv = aTransferable->FlavorsTransferableCanImport(
+    nsresult rv = aTransferable->FlavorsTransferableCanImport(
                         getter_AddRefs(flavorList));
     if (NS_FAILED(rv))
         return rv;
@@ -864,10 +893,10 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor,
     *_retval = false;
 
     
-    if (!mTargetDragContext) {
+    if (!mTargetWidget) {
         PR_LOG(sDragLm, PR_LOG_DEBUG,
                ("*** warning: IsDataFlavorSupported \
-               called without a valid drag context!\n"));
+               called without a valid target widget!\n"));
         return NS_OK;
     }
 
@@ -988,8 +1017,6 @@ nsDragService::TargetSetLastContext(GtkWidget      *aWidget,
 NS_IMETHODIMP
 nsDragService::TargetStartDragMotion(void)
 {
-    PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::TargetStartDragMotion"));
-    mCanDrop = false;
     return NS_OK;
 }
 
@@ -1061,9 +1088,6 @@ bool
 nsDragService::IsTargetContextList(void)
 {
     bool retval = false;
-
-    if (!mTargetDragContext)
-        return retval;
 
     
     
@@ -1328,11 +1352,14 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
     if (!mDoingDrag)
         return; 
 
-    gint x, y;
-    GdkDisplay* display = gdk_display_get_default();
-    if (display) {
-      gdk_display_get_pointer(display, NULL, &x, &y, NULL);
-      SetDragEndPoint(nsIntPoint(x, y));
+    if (mEndDragPoint.x < 0) {
+        
+        gint x, y;
+        GdkDisplay* display = gdk_display_get_default();
+        if (display) {
+            gdk_display_get_pointer(display, NULL, &x, &y, NULL);
+            SetDragEndPoint(nsIntPoint(x, y));
+        }
     }
 
     

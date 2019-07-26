@@ -58,8 +58,11 @@ class DummyFrameGuard;
 
 class JS_FRIEND_API(AbstractWrapper) : public ProxyHandler
 {
+    unsigned mFlags;
   public:
-    explicit AbstractWrapper();
+    unsigned flags() const { return mFlags; }
+
+    explicit AbstractWrapper(unsigned flags);
 
     
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
@@ -71,7 +74,6 @@ class JS_FRIEND_API(AbstractWrapper) : public ProxyHandler
     virtual bool getOwnPropertyNames(JSContext *cx, JSObject *wrapper, AutoIdVector &props) MOZ_OVERRIDE;
     virtual bool delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp) MOZ_OVERRIDE;
     virtual bool enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props) MOZ_OVERRIDE;
-    virtual bool fix(JSContext *cx, JSObject *wrapper, Value *vp) MOZ_OVERRIDE;
 
     
 
@@ -106,16 +108,13 @@ class JS_FRIEND_API(AbstractWrapper) : public ProxyHandler
     virtual void leave(JSContext *cx, JSObject *wrapper);
 
     static JSObject *wrappedObject(const JSObject *wrapper);
-    static Wrapper *wrapperHandler(const JSObject *wrapper);
+    static AbstractWrapper *wrapperHandler(const JSObject *wrapper);
 };
 
 
 class JS_FRIEND_API(Wrapper) : public AbstractWrapper
 {
-    unsigned mFlags;
   public:
-    unsigned flags() const { return mFlags; }
-
     explicit Wrapper(unsigned flags);
 
     typedef enum { PermitObjectAccess, PermitPropertyAccess, DenyAccess } Permission;

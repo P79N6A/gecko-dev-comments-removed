@@ -1307,7 +1307,7 @@ GLContextProviderGLX::CreateOffscreen(const gfxIntSize& aSize,
         return nsnull;
     }
 
-    if (!glContext->ResizeOffscreenFBO(aSize, true)) {
+    if (!glContext->ResizeOffscreenFBOs(aSize, true)) {
         
         
         return nsnull;
