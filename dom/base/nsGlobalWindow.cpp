@@ -2049,8 +2049,7 @@ nsGlobalWindow::SetOuterObject(JSContext* aCx, JS::Handle<JSObject*> aOuterObjec
   JSAutoCompartment ac(aCx, aOuterObject);
 
   
-  MOZ_ASSERT(IsOuterWindow());
-  mContext->SetWindowProxy(aOuterObject);
+  js::SetDefaultObjectForContext(aCx, aOuterObject);
 
   
   JS::Rooted<JSObject*> inner(aCx, JS_GetParent(aOuterObject));
@@ -2362,7 +2361,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       CreateOuterObject(newInnerWindow);
       mContext->DidInitializeContext();
 
-      mJSObject = mContext->GetWindowProxy();
+      mJSObject = mContext->GetNativeGlobal();
       SetWrapper(mJSObject);
     } else {
       JS::Rooted<JSObject*> global(cx,
@@ -2446,7 +2445,11 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         newInnerWindow->FastGetGlobalJSObject());
 #endif
 
-    MOZ_ASSERT(mContext->GetWindowProxy() == mJSObject);
+    
+    
+    
+    
+    js::SetDefaultObjectForContext(cx, mJSObject);
 #ifdef DEBUG
     JS::Rooted<JSObject*> rootedJSObject(cx, mJSObject);
     JS::Rooted<JSObject*> proto1(cx), proto2(cx);

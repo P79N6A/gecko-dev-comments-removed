@@ -27,8 +27,8 @@ class nsIDOMWindow;
 class nsIURI;
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0xf3859ce7, 0x7551, 0x4760, \
-  { 0x84, 0x29, 0x64, 0x4f, 0x26, 0x1e, 0xdb, 0x91 } }
+{ 0x1d931a17, 0x453a, 0x47fb, \
+  { 0x94, 0x66, 0x2d, 0x3e, 0xd1, 0xef, 0x7a, 0xc5 } }
 
 
 
@@ -106,6 +106,12 @@ public:
   
 
 
+
+  virtual JSObject* GetNativeGlobal() = 0;
+
+  
+
+
   virtual nsresult InitContext() = 0;
 
   
@@ -159,12 +165,6 @@ public:
 
 
   virtual void DidInitializeContext() = 0;
-
-  
-
-
-  virtual void SetWindowProxy(JS::Handle<JSObject*> aWindowProxy) = 0;
-  virtual JSObject* GetWindowProxy() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContext, NS_ISCRIPTCONTEXT_IID)

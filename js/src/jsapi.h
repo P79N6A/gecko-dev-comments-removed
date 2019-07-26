@@ -1641,18 +1641,16 @@ JS_StringToVersion(const char *string);
 
 
 
-#define JSOPTION_NO_DEFAULT_COMPARTMENT_OBJECT JS_BIT(11)     /* This JSContext does not use a
-                                                                 default compartment object. Such
-                                                                 an object will not be set implicitly,
-                                                                 and attempts to get or set it will
-                                                                 assert. */
+
 
 #define JSOPTION_NO_SCRIPT_RVAL JS_BIT(12)      /* A promise to the compiler
                                                    that a null rval out-param
                                                    will be passed to each call
                                                    to JS_ExecuteScript. */
-
-
+#define JSOPTION_UNROOTED_GLOBAL JS_BIT(13)     /* The GC will not root the
+                                                   contexts' default compartment
+                                                   object, leaving that up to the
+                                                   embedding. */
 
 #define JSOPTION_BASELINE       JS_BIT(14)      /* Baseline compiler. */
 
@@ -2326,12 +2324,6 @@ JS_SetFinalizeCallback(JSRuntime *rt, JSFinalizeCallback cb);
 
 extern JS_PUBLIC_API(bool)
 JS_IsGCMarkingTracer(JSTracer *trc);
-
-
-#ifdef DEBUG
-extern JS_PUBLIC_API(bool)
-JS_IsMarkingGray(JSTracer *trc);
-#endif
 
 
 

@@ -124,14 +124,14 @@ AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull)
 
   
   
+  
+  
+  
   if (cx) {
     mAutoRequest.construct(cx);
-
-    
-    JSObject *compartmentObject = mScx ? mScx->GetWindowProxy()
-                                       : js::DefaultObjectForContextOrNull(cx);
-    if (compartmentObject)
-      mAutoCompartment.construct(cx, compartmentObject);
+    if (js::DefaultObjectForContextOrNull(cx))
+      mAutoCompartment.construct(cx, js::DefaultObjectForContextOrNull(cx));
+    xpc_UnmarkGrayContext(cx);
   }
 }
 
