@@ -36,19 +36,17 @@ nsImageToPixbuf::ConvertImageToPixbuf(imgIContainer* aImage)
 GdkPixbuf*
 nsImageToPixbuf::ImageToPixbuf(imgIContainer* aImage)
 {
-    nsRefPtr<gfxASurface> surface;
-    aImage->GetFrame(imgIContainer::FRAME_CURRENT,
-                     imgIContainer::FLAG_SYNC_DECODE,
-                     getter_AddRefs(surface));
+    nsRefPtr<gfxASurface> surface =
+      aImage->GetFrame(imgIContainer::FRAME_CURRENT,
+                       imgIContainer::FLAG_SYNC_DECODE);
 
     
     
     
     
     if (!surface)
-        aImage->GetFrame(imgIContainer::FRAME_CURRENT,
-                         imgIContainer::FLAG_NONE,
-                         getter_AddRefs(surface));
+        surface = aImage->GetFrame(imgIContainer::FRAME_CURRENT,
+                                   imgIContainer::FLAG_NONE);
 
     NS_ENSURE_TRUE(surface, nullptr);
 
