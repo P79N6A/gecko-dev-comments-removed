@@ -476,9 +476,6 @@ pref("view_source.editor.args", "");
 pref("plain_text.wrap_long_lines", false);
 
 
-pref("nglayout.events.dispatchLeftClickOnly", true);
-
-
 pref("nglayout.enable_drag_images", true);
 
 
