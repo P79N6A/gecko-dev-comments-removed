@@ -278,6 +278,8 @@ public:
 
   void UpdateSticky();
 
+  bool IsRectNearlyVisible(const nsRect& aRect) const;
+
   
   
   
@@ -399,6 +401,17 @@ protected:
                           nsIScrollableFrame::ScrollMode aMode,
                           nsIAtom *aOrigin, 
                           const nsRect* aRange);
+
+  static nsRect ExpandRect(const nsRect& aRect);
+  static void EnsureImageVisPrefsCached();
+  static bool sImageVisPrefsCached;
+  
+  static uint32_t sHorzExpandScrollPort;
+  static uint32_t sVertExpandScrollPort;
+  
+  
+  static int32_t sHorzScrollFraction;
+  static int32_t sVertScrollFraction;
 };
 
 
@@ -619,6 +632,9 @@ public:
   }
   virtual void ClearDidHistoryRestore() MOZ_OVERRIDE {
     mInner.mDidHistoryRestore = false;
+  }
+  virtual bool IsRectNearlyVisible(const nsRect& aRect) MOZ_OVERRIDE {
+    return mInner.IsRectNearlyVisible(aRect);
   }
 
   
@@ -903,6 +919,9 @@ public:
   }
   virtual void ClearDidHistoryRestore() MOZ_OVERRIDE {
     mInner.mDidHistoryRestore = false;
+  }
+  virtual bool IsRectNearlyVisible(const nsRect& aRect) MOZ_OVERRIDE {
+    return mInner.IsRectNearlyVisible(aRect);
   }
 
   

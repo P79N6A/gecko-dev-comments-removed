@@ -262,6 +262,11 @@ public:
 
 
   virtual void ClearDidHistoryRestore() = 0;
+  
+
+
+
+  virtual bool IsRectNearlyVisible(const nsRect& aRect) = 0;
 };
 
 #endif
