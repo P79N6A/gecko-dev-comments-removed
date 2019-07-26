@@ -7,11 +7,8 @@
 #define nsError_h__
 
 #include "mozilla/Likely.h"
+#include "mozilla/StandardInteger.h"
 #include "mozilla/TypedEnum.h"
-
-#ifndef nscore_h___
-#include "nscore.h"  
-#endif
 
 
 
@@ -120,16 +117,8 @@
 
 
 
-#if defined(__cplusplus)
 #if defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
   typedef enum class tag_nsresult : uint32_t
-#elif defined(MOZ_HAVE_CXX11_ENUM_TYPE)
-  
-  typedef enum tag_nsresult : uint32_t
-#else
-  
-  typedef enum tag_nsresult
-#endif
   {
     #undef ERROR
     #define ERROR(key, val) key = val
@@ -137,18 +126,44 @@
     #undef ERROR
   } nsresult;
 
-#if defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
   
 
+
+
   #include "ErrorListCxxDefines.h"
-#endif
-#else 
+#elif defined(MOZ_HAVE_CXX11_ENUM_TYPE)
+  typedef enum tag_nsresult : uint32_t
+  {
+    #undef ERROR
+    #define ERROR(key, val) key = val
+    #include "ErrorList.h"
+    #undef ERROR
+  } nsresult;
+#elif defined(__cplusplus)
   
+
+
+
+
+
+  typedef uint32_t nsresult;
+
+  const nsresult
+  #undef ERROR
+  #define ERROR(key, val) key = val
+  #include "ErrorList.h"
+  #undef ERROR
+    ;
+#else
+  
+
+
+
 
 
   typedef uint32_t nsresult;
   #include "ErrorListCDefines.h"
-#endif 
+#endif
 
 #undef SUCCESS_OR_FAILURE
 #undef SUCCESS

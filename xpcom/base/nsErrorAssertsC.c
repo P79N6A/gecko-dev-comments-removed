@@ -4,6 +4,8 @@
 
 
 
+
+
 MOZ_STATIC_ASSERT(((nsresult)0) < ((nsresult)-1),
                   "nsresult must be an unsigned type");
 MOZ_STATIC_ASSERT(sizeof(nsresult) == sizeof(uint32_t),
