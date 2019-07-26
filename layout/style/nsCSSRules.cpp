@@ -940,7 +940,17 @@ MediaRule::GetConditionText(nsAString& aConditionText)
 NS_IMETHODIMP
 MediaRule::SetConditionText(const nsAString& aConditionText)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (!mMedia) {
+    nsRefPtr<nsMediaList> media = new nsMediaList();
+    media->SetStyleSheet(GetStyleSheet());
+    nsresult rv = media->SetMediaText(aConditionText);
+    if (NS_SUCCEEDED(rv)) {
+      mMedia = media;
+    }
+    return rv;
+  }
+
+  return mMedia->SetMediaText(aConditionText);
 }
 
 

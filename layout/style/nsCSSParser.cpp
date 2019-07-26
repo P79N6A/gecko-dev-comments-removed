@@ -1145,6 +1145,7 @@ CSSParserImpl::ParseMediaList(const nsSubstring& aBuffer,
 {
   
   
+  
   aMediaList->Clear();
 
   
@@ -1166,7 +1167,9 @@ CSSParserImpl::ParseMediaList(const nsSubstring& aBuffer,
   
   
 
-  GatherMedia(aMediaList, false);
+  DebugOnly<bool> parsedOK = GatherMedia(aMediaList, false);
+  NS_ASSERTION(parsedOK, "GatherMedia returned false; we probably want to avoid "
+                         "trashing aMediaList");
 
   CLEAR_ERROR();
   ReleaseScanner();
