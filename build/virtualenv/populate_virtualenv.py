@@ -210,7 +210,11 @@ class VirtualenvManager(object):
                 path = os.path.join(self.topsrcdir, package[1])
 
                 with open(os.path.join(python_lib, package[0]), 'a') as f:
-                    f.write("%s\n" % path)
+                    
+                    
+                    
+                    
+                    f.write("%s\n" % os.path.relpath(path, python_lib))
 
                 return True
 
