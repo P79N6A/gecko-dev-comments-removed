@@ -762,10 +762,16 @@ DeviceStorageFile::GetRootDirectoryForType(const nsAString& aStorageType,
   
   else if (aStorageType.EqualsLiteral(DEVICESTORAGE_CRASHES)) {
     f = sDirs->crashes;
+  } else {
+    
+    return;
   }
 
   
-  if (f && sDirs->temp) {
+  
+  
+  
+  if (sDirs->temp) {
     f = sDirs->temp;
   }
 
