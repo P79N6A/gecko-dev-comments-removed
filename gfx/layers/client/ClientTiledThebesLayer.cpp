@@ -120,7 +120,7 @@ ClientTiledThebesLayer::BeginPaint()
 
   
   
-  mPaintData.mResolution = metrics.mZoom;
+  mPaintData.mResolution = metrics.GetZoom();
 
   
   
@@ -129,7 +129,7 @@ ClientTiledThebesLayer::BeginPaint()
   Layer* primaryScrollable = ClientManager()->GetPrimaryScrollableLayer();
   if (primaryScrollable) {
     const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
-    mPaintData.mScrollOffset = metrics.GetScrollOffset() * metrics.mZoom;
+    mPaintData.mScrollOffset = metrics.GetScrollOffset() * metrics.GetZoom();
     mPaintData.mCompositionBounds =
       ApplyParentLayerToLayoutTransform(mPaintData.mTransformParentLayerToLayout,
                                         ParentLayerRect(metrics.mCompositionBounds));

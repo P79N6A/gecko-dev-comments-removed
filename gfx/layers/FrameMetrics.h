@@ -75,7 +75,6 @@ public:
     , mScrollableRect(0, 0, 0, 0)
     , mResolution(1)
     , mCumulativeResolution(1)
-    , mZoom(1)
     , mTransformScale(1)
     , mDevPixelsPerCSSPixel(1)
     , mPresShellId(-1)
@@ -83,6 +82,7 @@ public:
     , mIsRoot(false)
     , mHasScrollgrab(false)
     , mScrollOffset(0, 0)
+    , mZoom(1)
     , mUpdateScrollOffset(false)
     , mScrollGeneration(0)
   {}
@@ -199,6 +199,11 @@ public:
     mScrollOffset += aPoint;
   }
 
+  void ZoomBy(float aFactor)
+  {
+    mZoom.scale *= aFactor;
+  }
+
   
   
   
@@ -297,12 +302,6 @@ public:
   
   
   
-  CSSToScreenScale mZoom;
-
-  
-  
-  
-  
   
   
   
@@ -336,6 +335,16 @@ public:
   const CSSPoint& GetScrollOffset() const
   {
     return mScrollOffset;
+  }
+
+  void SetZoom(const CSSToScreenScale& aZoom)
+  {
+    mZoom = aZoom;
+  }
+
+  CSSToScreenScale GetZoom() const
+  {
+    return mZoom;
   }
 
   void SetScrollOffsetUpdated(uint32_t aScrollGeneration)
@@ -384,6 +393,12 @@ private:
   
   
   CSSPoint mScrollOffset;
+
+  
+  
+  
+  
+  CSSToScreenScale mZoom;
 
   
   

@@ -350,7 +350,7 @@ TEST(AsyncPanZoomController, Pinch) {
   fm.mCompositionBounds = ParentLayerIntRect(200, 200, 100, 200);
   fm.mScrollableRect = CSSRect(0, 0, 980, 1000);
   fm.SetScrollOffset(CSSPoint(300, 300));
-  fm.mZoom = CSSToScreenScale(2.0);
+  fm.SetZoom(CSSToScreenScale(2.0));
   apzc->SetFrameMetrics(fm);
   apzc->UpdateZoomConstraints(ZoomConstraints(true, true, CSSToScreenScale(0.25), CSSToScreenScale(4.0)));
   
@@ -362,13 +362,13 @@ TEST(AsyncPanZoomController, Pinch) {
 
   
   fm = apzc->GetFrameMetrics();
-  EXPECT_EQ(fm.mZoom.scale, 2.5f);
+  EXPECT_EQ(fm.GetZoom().scale, 2.5f);
   EXPECT_EQ(fm.GetScrollOffset().x, 305);
   EXPECT_EQ(fm.GetScrollOffset().y, 310);
 
   
   
-  fm.mZoom = CSSToScreenScale(2.0);
+  fm.SetZoom(CSSToScreenScale(2.0));
   fm.SetScrollOffset(CSSPoint(930, 5));
   apzc->SetFrameMetrics(fm);
   
@@ -377,7 +377,7 @@ TEST(AsyncPanZoomController, Pinch) {
 
   
   fm = apzc->GetFrameMetrics();
-  EXPECT_EQ(fm.mZoom.scale, 1.0f);
+  EXPECT_EQ(fm.GetZoom().scale, 1.0f);
   EXPECT_EQ(fm.GetScrollOffset().x, 880);
   EXPECT_EQ(fm.GetScrollOffset().y, 0);
 
@@ -393,7 +393,7 @@ TEST(AsyncPanZoomController, PinchWithTouchActionNone) {
   fm.mCompositionBounds = ParentLayerIntRect(200, 200, 100, 200);
   fm.mScrollableRect = CSSRect(0, 0, 980, 1000);
   fm.SetScrollOffset(CSSPoint(300, 300));
-  fm.mZoom = CSSToScreenScale(2.0);
+  fm.SetZoom(CSSToScreenScale(2.0));
   apzc->SetFrameMetrics(fm);
   
 
@@ -413,7 +413,7 @@ TEST(AsyncPanZoomController, PinchWithTouchActionNone) {
   
   
   fm = apzc->GetFrameMetrics();
-  EXPECT_EQ(fm.mZoom.scale, 2.0f);
+  EXPECT_EQ(fm.GetZoom().scale, 2.0f);
   EXPECT_EQ(fm.GetScrollOffset().x, 300);
   EXPECT_EQ(fm.GetScrollOffset().y, 300);
 }
@@ -427,7 +427,7 @@ TEST(AsyncPanZoomController, Overzoom) {
   fm.mCompositionBounds = ParentLayerIntRect(0, 0, 100, 100);
   fm.mScrollableRect = CSSRect(0, 0, 125, 150);
   fm.SetScrollOffset(CSSPoint(10, 0));
-  fm.mZoom = CSSToScreenScale(1.0);
+  fm.SetZoom(CSSToScreenScale(1.0));
   apzc->SetFrameMetrics(fm);
   apzc->UpdateZoomConstraints(ZoomConstraints(true, true, CSSToScreenScale(0.25), CSSToScreenScale(4.0)));
   
@@ -438,7 +438,7 @@ TEST(AsyncPanZoomController, Overzoom) {
   ApzcPinch(apzc, 50, 50, 0.5);
 
   fm = apzc->GetFrameMetrics();
-  EXPECT_EQ(fm.mZoom.scale, 0.8f);
+  EXPECT_EQ(fm.GetZoom().scale, 0.8f);
   
   
   EXPECT_LT(abs(fm.GetScrollOffset().x), 1e-5);
@@ -509,7 +509,7 @@ TEST(AsyncPanZoomController, ComplexTransform) {
   metrics.mScrollableRect = CSSRect(0, 0, 50, 50);
   metrics.mCumulativeResolution = LayoutDeviceToLayerScale(2);
   metrics.mResolution = ParentLayerToLayerScale(2);
-  metrics.mZoom = CSSToScreenScale(6);
+  metrics.SetZoom(CSSToScreenScale(6));
   metrics.mDevPixelsPerCSSPixel = CSSToLayoutDeviceScale(3);
   metrics.mScrollId = FrameMetrics::START_SCROLL_ID;
 
@@ -552,13 +552,13 @@ TEST(AsyncPanZoomController, ComplexTransform) {
   EXPECT_EQ(ScreenPoint(90, 60), pointOut);
 
   
-  metrics.mZoom.scale *= 1.5f;
+  metrics.ZoomBy(1.5f);
   apzc->SetFrameMetrics(metrics);
   apzc->SampleContentTransformForFrame(testStartTime, &viewTransformOut, pointOut);
   EXPECT_EQ(ViewTransform(LayerPoint(-30, 0), ParentLayerToScreenScale(3)), viewTransformOut);
   EXPECT_EQ(ScreenPoint(135, 90), pointOut);
 
-  childMetrics.mZoom.scale *= 1.5f;
+  childMetrics.ZoomBy(1.5f);
   childApzc->SetFrameMetrics(childMetrics);
   childApzc->SampleContentTransformForFrame(testStartTime, &viewTransformOut, pointOut);
   EXPECT_EQ(ViewTransform(LayerPoint(-30, 0), ParentLayerToScreenScale(3)), viewTransformOut);

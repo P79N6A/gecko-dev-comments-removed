@@ -728,8 +728,8 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   
   
   const LayerToScreenScale layerToScreenScale(1.0f);
-  metrics.mZoom = metrics.mCumulativeResolution * metrics.mDevPixelsPerCSSPixel
-                * layerToScreenScale;
+  metrics.SetZoom(metrics.mCumulativeResolution * metrics.mDevPixelsPerCSSPixel
+                  * layerToScreenScale);
 
   if (presShell) {
     nsIDocument* document = nullptr;

@@ -321,12 +321,12 @@ TabChild::InitializeRootMetrics()
   mLastRootMetrics.mCompositionBounds = ParentLayerIntRect(
       ParentLayerIntPoint(),
       ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenToParentLayerForRoot));
-  mLastRootMetrics.mZoom = mLastRootMetrics.CalculateIntrinsicScale();
+  mLastRootMetrics.SetZoom(mLastRootMetrics.CalculateIntrinsicScale());
   mLastRootMetrics.mDevPixelsPerCSSPixel = mWidget->GetDefaultScale();
   
   
   mLastRootMetrics.mCumulativeResolution =
-    mLastRootMetrics.mZoom / mLastRootMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
+    mLastRootMetrics.GetZoom() / mLastRootMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
   
   
   mLastRootMetrics.mResolution = mLastRootMetrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);
@@ -609,7 +609,7 @@ TabChild::HandlePossibleViewportChange()
   
   
   float oldIntrinsicScale = oldScreenWidth / oldBrowserWidth;
-  metrics.mZoom.scale *= metrics.CalculateIntrinsicScale().scale / oldIntrinsicScale;
+  metrics.ZoomBy(metrics.CalculateIntrinsicScale().scale / oldIntrinsicScale);
 
   
   
@@ -626,12 +626,12 @@ TabChild::HandlePossibleViewportChange()
     CSSToScreenScale defaultZoom = viewportInfo.GetDefaultZoom();
     MOZ_ASSERT(viewportInfo.GetMinZoom() <= defaultZoom &&
                defaultZoom <= viewportInfo.GetMaxZoom());
-    metrics.mZoom = defaultZoom;
+    metrics.SetZoom(defaultZoom);
 
     metrics.mScrollId = viewId;
   }
 
-  metrics.mCumulativeResolution = metrics.mZoom / metrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
+  metrics.mCumulativeResolution = metrics.GetZoom() / metrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
   
   
   metrics.mResolution = metrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);

@@ -178,7 +178,7 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
 
   
   
-  if (!FuzzyEquals(compositorMetrics.mZoom.scale, contentMetrics.mZoom.scale)) {
+  if (!FuzzyEquals(compositorMetrics.GetZoom().scale, contentMetrics.GetZoom().scale)) {
     return true;
   }
 

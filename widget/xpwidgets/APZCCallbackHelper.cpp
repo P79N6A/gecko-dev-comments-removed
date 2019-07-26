@@ -77,7 +77,7 @@ MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
     
     displayPort =
       ExpandDisplayPortToTileBoundaries(displayPort + aActualScrollOffset,
-                                        aFrameMetrics.mZoom *
+                                        aFrameMetrics.GetZoom() *
                                         ScreenToLayerScale(1.0))
       - aActualScrollOffset;
   }
@@ -190,7 +190,7 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
     
     
     ParentLayerToLayerScale presShellResolution =
-        aMetrics.mZoom
+        aMetrics.GetZoom()
         / aMetrics.mDevPixelsPerCSSPixel
         / aMetrics.GetParentResolution()
         * ScreenToLayerScale(1.0f);
