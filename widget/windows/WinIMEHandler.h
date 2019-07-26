@@ -11,6 +11,9 @@
 #include "nsIWidget.h"
 #include <windows.h>
 
+#define NS_WM_IMEFIRST WM_IME_SETCONTEXT
+#define NS_WM_IMELAST  WM_IME_KEYUP
+
 class nsWindow;
 
 namespace mozilla {
@@ -32,6 +35,12 @@ public:
 
 
   static void* GetNativeData(uint32_t aDataType);
+
+  
+
+
+
+  static bool CanOptimizeKeyAndIMEMessages();
 
   
 

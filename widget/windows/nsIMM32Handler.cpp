@@ -137,7 +137,7 @@ nsIMM32Handler::GetKeyboardCodePage()
 }
 
  bool
-nsIMM32Handler::CanOptimizeKeyAndIMEMessages(MSG *aNextKeyOrIMEMessage)
+nsIMM32Handler::CanOptimizeKeyAndIMEMessages()
 {
   
   
