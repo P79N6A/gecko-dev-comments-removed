@@ -1003,7 +1003,11 @@ pref("network.http.fast-fallback-to-IPv4", true);
 
 
 
+#ifdef RELEASE_BUILD
+pref("network.http.bypass-cachelock-threshold", 200000);
+#else
 pref("network.http.bypass-cachelock-threshold", 250);
+#endif
 
 
 pref("network.http.spdy.enabled", true);
