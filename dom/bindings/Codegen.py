@@ -2136,16 +2136,7 @@ class CGConstructorEnabledViaFunc(CGAbstractMethod):
 def CreateBindingJSObject(descriptor, properties, parent):
     
     
-    
-    
-    
-    needRoot = (properties.unforgeableAttrs.hasNonChromeOnly() or
-                properties.unforgeableAttrs.hasChromeOnly() or
-                descriptor.interface.hasMembersInSlots())
-    if needRoot:
-        objDecl = "  JS::Rooted<JSObject*> obj(aCx);\n"
-    else:
-        objDecl = "  JSObject *obj;\n"
+    objDecl = "  JS::Rooted<JSObject*> obj(aCx);\n"
     if descriptor.proxy:
         create = """  JS::Rooted<JS::Value> proxyPrivateVal(aCx, JS::PrivateValue(aObject));
   obj = NewProxyObject(aCx, DOMProxyHandler::getInstance(),
