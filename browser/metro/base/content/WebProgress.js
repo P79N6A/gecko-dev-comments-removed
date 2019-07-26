@@ -11,8 +11,6 @@ const kProgressMarginEnd = 70;
 const WebProgress = {
   get _identityBox() { return document.getElementById("identity-box"); },
 
-  _progressActive: false,
-
   init: function init() {
     messageManager.addMessageListener("Content:StateChange", this);
     messageManager.addMessageListener("Content:LocationChange", this);
@@ -47,19 +45,19 @@ const WebProgress = {
             this._networkStop(json, tab);
         }
 
-        this._progressStep();
+        this._progressStep(tab);
         break;
       }
 
       case "Content:LocationChange": {
         this._locationChange(json, tab);
-        this._progressStep();
+        this._progressStep(tab);
         break;
       }
 
       case "Content:SecurityChange": {
         this._securityChange(json, tab);
-        this._progressStep();
+        this._progressStep(tab);
         break;
       }
     }
@@ -153,57 +151,60 @@ const WebProgress = {
   _progressStart: function _progressStart(aJson, aTab) {
     
     
-    if (this._progressActive)
+    if (aTab._progressActive)
       return;
 
-    this._progressActive = true;
+    aTab._progressActive = true;
 
+    
+    aTab._progressCount = kProgressMarginStart;
+    this._showProgressBar(aTab);
+  },
+
+  _showProgressBar: function (aTab) {
     
     Elements.progressContainer.removeAttribute("collapsed");
-
-    
-    this._progressCount = kProgressMarginStart;
-    Elements.progress.style.width = this._progressCount + "%";
+    Elements.progress.style.width = aTab._progressCount + "%";
     Elements.progress.removeAttribute("fade");
 
     
     
     setTimeout(function() {
-      WebProgress._progressStepTimer();
+      WebProgress._progressStepTimer(aTab);
     }, kHeartbeatDuration, this);
   },
 
-  _stepProgressCount: function _stepProgressCount() {
+  _stepProgressCount: function _stepProgressCount(aTab) {
     
-    let left = kProgressMarginEnd - this._progressCount;
+    let left = kProgressMarginEnd - aTab._progressCount;
     let step = left * .05;
-    this._progressCount += Math.ceil(step);
+    aTab._progressCount += Math.ceil(step);
 
     
-    if (this._progressCount > kProgressMarginEnd) {
-      this._progressCount = kProgressMarginEnd;
+    if (aTab._progressCount > kProgressMarginEnd) {
+      aTab._progressCount = kProgressMarginEnd;
     }
   },
 
-  _progressStep: function _progressStep() {
-    if (!this._progressActive)
+  _progressStep: function _progressStep(aTab) {
+    if (!aTab._progressActive)
       return;
-    this._stepProgressCount();
-    Elements.progress.style.width = this._progressCount + "%";
+    this._stepProgressCount(aTab);
+    Elements.progress.style.width = aTab._progressCount + "%";
   },
 
-  _progressStepTimer: function _progressStepTimer() {
-    if (!this._progressActive)
+  _progressStepTimer: function _progressStepTimer(aTab) {
+    if (!aTab._progressActive)
       return;
-    this._progressStep();
+    this._progressStep(aTab);
 
     setTimeout(function() {
-      WebProgress._progressStepTimer();
+      WebProgress._progressStepTimer(aTab);
     }, kHeartbeatDuration, this);
   },
 
   _progressStop: function _progressStop(aJson, aTab) {
-    this._progressActive = false;
+    aTab._progressActive = false;
     
     Elements.progress.style.width = "100%";
     Elements.progress.setAttribute("fade", true);
@@ -222,6 +223,12 @@ const WebProgress = {
   _onTabSelect: function(aEvent) {
     let tab = Browser.getTabFromChrome(aEvent.originalTarget);
     this._identityBox.className = tab._identityState || "";
+    if (tab._progressActive) {
+      this._showProgressBar(tab);
+    } else {
+      Elements.progress.setAttribute("fade", true);
+      Elements.progressContainer.setAttribute("collapsed", true);
+    }
   },
 
   _onUrlBarInput: function(aEvent) {
