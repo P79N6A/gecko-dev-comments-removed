@@ -2481,7 +2481,7 @@ this.PduHelper = {
 
 
 
-this.WSP_HEADER_FIELDS = (function () {
+this.WSP_HEADER_FIELDS = (function() {
   let names = {};
   function add(name, number, coder) {
     let entry = {
@@ -2577,7 +2577,7 @@ this.WSP_HEADER_FIELDS = (function () {
 
 
 
-this.WSP_WELL_KNOWN_CONTENT_TYPES = (function () {
+this.WSP_WELL_KNOWN_CONTENT_TYPES = (function() {
   let types = {};
 
   function add(type, number) {
@@ -2702,7 +2702,7 @@ this.WSP_WELL_KNOWN_CONTENT_TYPES = (function () {
 
 
 
-this.WSP_WELL_KNOWN_PARAMS = (function () {
+this.WSP_WELL_KNOWN_PARAMS = (function() {
   let params = {};
 
   function add(name, number, coder) {
@@ -2757,7 +2757,7 @@ this.WSP_WELL_KNOWN_PARAMS = (function () {
 
 
 
-this.WSP_WELL_KNOWN_CHARSETS = (function () {
+this.WSP_WELL_KNOWN_CHARSETS = (function() {
   let charsets = {};
 
   function add(name, number, converter) {
@@ -2804,7 +2804,7 @@ this.WSP_WELL_KNOWN_CHARSETS = (function () {
 
 
 
-this.OMNA_PUSH_APPLICATION_IDS = (function () {
+this.OMNA_PUSH_APPLICATION_IDS = (function() {
   let ids = {};
 
   function add(urn, number) {
@@ -2824,11 +2824,11 @@ this.OMNA_PUSH_APPLICATION_IDS = (function () {
 
 let debug;
 if (DEBUG) {
-  debug = function (s) {
+  debug = function(s) {
     dump("-@- WspPduHelper: " + s + "\n");
   };
 } else {
-  debug = function (s) {};
+  debug = function(s) {};
 }
 
 this.EXPORTED_SYMBOLS = ALL_CONST_SYMBOLS.concat([

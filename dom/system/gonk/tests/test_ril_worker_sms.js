@@ -118,7 +118,7 @@ function newWriteHexOctetAsUint8Worker() {
     }
   });
 
-  worker.GsmPDUHelper.writeHexOctet = function (value) {
+  worker.GsmPDUHelper.writeHexOctet = function(value) {
     worker.Buf.writeUint8(value);
   };
 
@@ -221,7 +221,7 @@ test_receiving_ucs2_alphabets(ucs2str);
 add_test(function test_sendSMS_UCS2_without_langIndex_langShiftIndex_defined() {
   let worker = newWriteHexOctetAsUint8Worker();
 
-  worker.Buf.sendParcel = function () {
+  worker.Buf.sendParcel = function() {
     
     
     

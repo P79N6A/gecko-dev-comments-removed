@@ -23,7 +23,7 @@ let icc = iccManager.getIccById(iccId);
 ok(icc instanceof MozIcc, "icc is instanceof " + icc.constructor);
 
 
-let cleanUp = function () {
+let cleanUp = function() {
   SpecialPowers.removePermission("mobileconnection", document);
   finish();
 };

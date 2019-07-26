@@ -437,7 +437,7 @@ NetworkService.prototype = {
     
     params.isAsync = true;
     
-    this.controlMessage(params, function (data) {
+    this.controlMessage(params, function(data) {
       callback.enableUsbRndisResult(data.result, data.enable);
     });
   },
@@ -450,7 +450,7 @@ NetworkService.prototype = {
       current: current
     };
 
-    this.controlMessage(params, function (data) {
+    this.controlMessage(params, function(data) {
       let code = data.resultCode;
       let reason = data.resultReason;
       if(DEBUG) debug("updateUpStream result: Code " + code + " reason " + reason);
