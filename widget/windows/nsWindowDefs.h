@@ -215,26 +215,6 @@ static const uint32_t sModifierKeyMap[][3] = {
 
 
 
-struct nsAlternativeCharCode; 
-struct nsFakeCharMessage {
-  UINT mCharCode;
-  UINT mScanCode;
-  bool mIsDeadKey;
-
-  MSG GetCharMessage(HWND aWnd) const
-  {
-    MSG msg;
-    msg.hwnd = aWnd;
-    msg.message = mIsDeadKey ? WM_DEADCHAR : WM_CHAR;
-    msg.wParam = static_cast<WPARAM>(mCharCode);
-    msg.lParam = static_cast<LPARAM>(mScanCode);
-    msg.time = 0;
-    msg.pt.x = msg.pt.y = 0;
-    return msg;
-  }
-};
-
-
 struct KeyPair {
   uint8_t mGeneral;
   uint8_t mSpecific;
