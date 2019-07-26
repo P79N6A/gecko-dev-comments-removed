@@ -28,7 +28,6 @@
 #include "nsStyleStructFwd.h"
 #include "nsHTMLReflowMetrics.h"
 #include "nsFrameList.h"
-#include "nsIContent.h"
 #include "nsAlgorithm.h"
 #include "mozilla/layout/FrameChildList.h"
 #include "FramePropertyTable.h"
@@ -83,6 +82,7 @@ class gfxSkipCharsIterator;
 class gfxContext;
 class nsLineList_iterator;
 class nsAbsoluteContainingBlock;
+class nsIContent;
 
 struct nsPeekOffsetStruct;
 struct nsPoint;
@@ -2420,10 +2420,7 @@ public:
   
 
 
-  bool IsSelected() const {
-    return (GetContent() && GetContent()->IsSelectionDescendant()) ?
-      IsFrameSelected() : false;
-  }
+  bool IsSelected() const;
 
   
 
