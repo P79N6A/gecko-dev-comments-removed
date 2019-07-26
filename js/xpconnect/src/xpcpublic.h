@@ -417,6 +417,13 @@ GetNativeForGlobal(JSObject *global);
 
 
 
+nsISupports *
+UnwrapReflectorToISupports(JSObject *reflector);
+
+
+
+
+
 
 
 

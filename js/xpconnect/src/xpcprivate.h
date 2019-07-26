@@ -2540,6 +2540,9 @@ public:
                                          const nsID* iid,
                                          nsISupports* aOuter,
                                          nsresult* pErr);
+
+    
+    
     static bool GetISupportsFromJSObject(JSObject* obj, nsISupports** iface);
 
     

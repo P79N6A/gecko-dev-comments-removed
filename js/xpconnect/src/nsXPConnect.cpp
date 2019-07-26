@@ -628,28 +628,34 @@ nsXPConnect::GetWrappedNativeOfJSObject(JSContext * aJSContext,
     return NS_OK;
 }
 
+nsISupports*
+xpc::UnwrapReflectorToISupports(JSObject *reflector)
+{
+    
+    reflector = js::CheckedUnwrap(reflector,  false);
+    if (!reflector)
+        return nullptr;
+
+    
+    if (IS_WN_REFLECTOR(reflector)) {
+        XPCWrappedNative *wn = XPCWrappedNative::Get(reflector);
+        if (!wn)
+            return nullptr;
+        return wn->Native();
+    }
+
+    
+    nsCOMPtr<nsISupports> canonical =
+        do_QueryInterface(mozilla::dom::UnwrapDOMObjectToISupports(reflector));
+    return canonical;
+}
+
 
 NS_IMETHODIMP_(nsISupports*)
 nsXPConnect::GetNativeOfWrapper(JSContext *aJSContext,
                                 JSObject *aJSObj)
 {
-    MOZ_ASSERT(aJSContext, "bad param");
-    MOZ_ASSERT(aJSObj, "bad param");
-
-    aJSObj = js::CheckedUnwrap(aJSObj,  false);
-    if (!aJSObj) {
-        JS_ReportError(aJSContext, "Permission denied to get native of security wrapper");
-        return nullptr;
-    }
-    if (IS_WN_REFLECTOR(aJSObj)) {
-        if (XPCWrappedNative *wn = XPCWrappedNative::Get(aJSObj))
-            return wn->Native();
-        return nullptr;
-    }
-
-    nsCOMPtr<nsISupports> canonical =
-        do_QueryInterface(mozilla::dom::UnwrapDOMObjectToISupports(aJSObj));
-    return canonical;
+    return UnwrapReflectorToISupports(aJSObj);
 }
 
 
