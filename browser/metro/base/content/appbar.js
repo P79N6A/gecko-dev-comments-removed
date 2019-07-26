@@ -45,10 +45,9 @@ var Appbar = {
 
       case 'MozContextActionsChange':
         let actions = aEvent.actions;
-        let noun = aEvent.noun;
-        let qty = aEvent.qty;
+        let setName = aEvent.target.contextSetName;
         
-        this.showContextualActions(actions, noun, qty);
+        this.showContextualActions(actions, setName);
         break;
 
       case "selectionchange":
@@ -161,14 +160,15 @@ var Appbar = {
     }
   },
 
-  showContextualActions: function(aVerbs, aNoun, aQty) {
+  showContextualActions: function(aVerbs, aSetName) {
     
     let immediate = !Elements.contextappbar.isShowing;
 
-    if (aVerbs.length)
+    if (aVerbs.length) {
       Elements.contextappbar.show();
-    else
+    } else {
       Elements.contextappbar.hide();
+    }
 
     
     let idsToVisibleVerbs = new Map();
@@ -187,7 +187,7 @@ var Appbar = {
       let verb = idsToVisibleVerbs.get(button.id);
       if (verb != undefined) {
         
-        this._updateContextualActionLabel(button, verb, aNoun, aQty);
+        this._updateContextualActionLabel(button, verb, aSetName);
         if (button.hidden) {
           toShow.push(button);
         }
@@ -223,18 +223,12 @@ var Appbar = {
     this.showContextualActions([]);
   },
 
-  _updateContextualActionLabel: function(aBtnNode, aVerb, aNoun, aQty) {
+  _updateContextualActionLabel: function(aButton, aVerb, aSetName) {
     
     
-    let modifiesNoun = aBtnNode.getAttribute("modifies-noun") == "true";
-    if (modifiesNoun && (!aNoun || isNaN(aQty))) {
-      throw new Error("Appbar._updateContextualActionLabel: " +
-                      "missing noun/quantity for " + aVerb);
-    }
-
-    let labelName = "contextAppbar." + aVerb + (modifiesNoun ? "." + aNoun : "");
-    let label = Strings.browser.GetStringFromName(labelName);
-    aBtnNode.label = modifiesNoun ? PluralForm.get(aQty, label) : label;
+    let usesSetName = aButton.hasAttribute("label-uses-set-name");
+    let name = "contextAppbar2." + aVerb + (usesSetName ? "." + aSetName : "");
+    aButton.label = Strings.browser.GetStringFromName(name);
   },
 
   _onTileSelectionChanged: function _onTileSelectionChanged(aEvent){
@@ -255,10 +249,8 @@ var Appbar = {
     
     let event = document.createEvent("Events");
     event.actions = verbs;
-    event.noun = activeTileset.contextNoun;
-    event.qty = activeTileset.selectedItems.length;
     event.initEvent("MozContextActionsChange", true, false);
-    Elements.contextappbar.dispatchEvent(event);
+    activeTileset.dispatchEvent(event);
 
     if (verbs.length) {
       Elements.contextappbar.show(); 

@@ -148,8 +148,6 @@ HistoryView.prototype = Util.extend(Object.create(View.prototype), {
           let event = document.createEvent("Events");
           
           event.actions = ["restore"];
-          event.noun = tileGroup.contextNoun;
-          event.qty = selectedTiles.length;
           event.initEvent("MozContextActionsChange", true, false);
           tileGroup.dispatchEvent(event);
         }, 0);
