@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 this.EXPORTED_SYMBOLS = ["XPathGenerator"];
 
 this.XPathGenerator = {

@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 this.EXPORTED_SYMBOLS = ["SessionMigration"];
 
 const Cu = Components.utils;

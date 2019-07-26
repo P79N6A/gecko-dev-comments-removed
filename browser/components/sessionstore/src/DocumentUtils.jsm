@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 this.EXPORTED_SYMBOLS = [ "DocumentUtils" ];
 
 const Cu = Components.utils;
