@@ -92,15 +92,23 @@ public:
                                   nsAString *aRetValue,
                                   bool* aIsUndefined) = 0;
 
+  
+
+
+
+
+
+
+
+
+
+
+
   virtual nsresult EvaluateStringWithValue(const nsAString& aScript,
-                                           JSObject* aScopeObject,
-                                           nsIPrincipal *aPrincipal,
-                                           const char *aURL,
-                                           uint32_t aLineNo,
-                                           uint32_t aVersion,
-                                           bool aIsXBL,
-                                           JS::Value* aRetValue,
-                                           bool* aIsUndefined) = 0;
+                                           JSObject& aScopeObject,
+                                           JS::CompileOptions& aOptions,
+                                           bool aCoerceToString,
+                                           JS::Value& aRetValue) = 0;
 
   
 

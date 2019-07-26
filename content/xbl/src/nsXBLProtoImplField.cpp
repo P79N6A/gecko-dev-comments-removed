@@ -74,7 +74,6 @@ nsXBLProtoImplField::AppendFieldText(const nsAString& aText)
 nsresult
 nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
                                   JSObject* aBoundNode,
-                                  nsIPrincipal* aPrincipal,
                                   nsIURI* aBindingDocURI,
                                   bool* aDidInstall) const
 {
@@ -103,25 +102,24 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
                "Shouldn't get here when an exception is pending!");
   
   
-  bool undefined;
   nsCOMPtr<nsIScriptContext> context = aContext;
 
   JSAutoRequest ar(cx);
   jsval result = JSVAL_NULL;
+
+  JS::CompileOptions options(cx);
+  options.setFileAndLine(uriSpec.get(), mLineNumber)
+         .setVersion(JSVERSION_LATEST)
+         .setUserBit(true); 
   rv = context->EvaluateStringWithValue(nsDependentString(mFieldText,
-                                                          mFieldTextLength), 
-                                        aBoundNode,
-                                        aPrincipal, uriSpec.get(),
-                                        mLineNumber, JSVERSION_LATEST,
-                                         true,
-                                        &result, &undefined);
+                                                          mFieldTextLength),
+                                        *aBoundNode, options,
+                                         false,
+                                        result);
   if (NS_FAILED(rv)) {
     return rv;
   }
 
-  if (undefined) {
-    result = JSVAL_VOID;
-  }
 
   
   nsDependentString name(mName);
