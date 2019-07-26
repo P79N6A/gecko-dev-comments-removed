@@ -13,8 +13,11 @@ let output = null;
 let menu = null;
 
 function test() {
-  addTab(TEST_URI);
+  registerCleanupFunction(() => {
+    HUD = output = menu = null;
+  });
 
+  addTab(TEST_URI);
   browser.addEventListener("load", function onLoad() {
     browser.removeEventListener("load", onLoad, true);
 
@@ -30,65 +33,40 @@ function test() {
 
 
 function isEnabled() {
-  let controller = top.document.commandDispatcher.
-    getControllerForCommand(COMMAND_NAME);
-
+  let controller = top.document.commandDispatcher
+                   .getControllerForCommand(COMMAND_NAME);
   return controller && controller.isCommandEnabled(COMMAND_NAME);
-}
-
-function select(query) {
-  let target = output.querySelector(query);
-
-  output.focus();
-  output.selectedItem = target;
-
-  return target;
 }
 
 function testWithoutNetActivity() {
   HUD.jsterm.clearOutput();
-  output = HUD.outputNode;
-  content.wrappedJSObject.console.log("bug 638949");
+  content.console.log("bug 638949");
 
   
   
-  waitForSuccess({
-    name: "no net activity in console",
-
-    validatorFn: function () {
-      return output.textContent.indexOf("bug 638949") > -1;
-    },
-
-    successFn: function () {
-      select(".webconsole-msg-log");
-      goUpdateCommand(COMMAND_NAME);
-      ok(!isEnabled(), COMMAND_NAME + "is disabled");
-      executeSoon(testMenuWithoutNetActivity);
-    }
-  });
+  waitForMessages({
+    webconsole: HUD,
+    messages: [{
+      text: "bug 638949",
+      category: CATEGORY_WEBDEV,
+      severity: SEVERITY_LOG,
+    }],
+  }).then(onConsoleMessage);
 }
 
-function testMenuWithoutNetActivity() {
+function onConsoleMessage(aResults) {
+  output.focus();
+  output.selectedItem = [...aResults[0].matched][0];
+
+  goUpdateCommand(COMMAND_NAME);
+  ok(!isEnabled(), COMMAND_NAME + "is disabled");
+
   
   
-  let target = select(".webconsole-msg-log");
-
-  function next() {
-    menu.hidePopup();
-    executeSoon(testWithNetActivity);
-  }
-
-  waitForOpenContextMenu(menu, {
-    target: target,
-
-    successFn: function () {
-      let isHidden = menu.querySelector(CONTEXT_MENU_ID).hidden;
-      ok(isHidden, CONTEXT_MENU_ID + " is hidden");
-      next();
-    },
-
-    failureFn: next
-  });
+  waitForContextMenu(menu, output.selectedItem, () => {
+    let isHidden = menu.querySelector(CONTEXT_MENU_ID).hidden;
+    ok(isHidden, CONTEXT_MENU_ID + " is hidden");
+  }, testWithNetActivity);
 }
 
 function testWithNetActivity() {
@@ -98,56 +76,32 @@ function testWithNetActivity() {
   
   
   
-  
-  
-  waitForSuccess({
-    name: "net activity in console",
+  waitForMessages({
+    webconsole: HUD,
+    messages: [{
+      text: "test-console.html",
+      category: CATEGORY_NETWORK,
+      severity: SEVERITY_LOG,
+    }],
+  }).then(onNetworkMessage);
+}
 
-    validatorFn: function () {
-      let item = select(".webconsole-msg-network");
-      return item && item.url;
-    },
+function onNetworkMessage(aResults) {
+  output.focus();
+  output.selectedItem = [...aResults[0].matched][0];
 
-    successFn: function () {
-      output.focus();
-      goUpdateCommand(COMMAND_NAME);
-      ok(isEnabled(), COMMAND_NAME + " is enabled");
+  goUpdateCommand(COMMAND_NAME);
+  ok(isEnabled(), COMMAND_NAME + " is enabled");
 
-      waitForClipboard(output.selectedItem.url, function clipboardSetup() {
-        goDoCommand(COMMAND_NAME);
-      }, testMenuWithNetActivity, testMenuWithNetActivity);
-    },
-
-    failureFn: testMenuWithNetActivity
-  });
+  waitForClipboard(output.selectedItem.url, () => goDoCommand(COMMAND_NAME),
+                   testMenuWithNetActivity, testMenuWithNetActivity);
 }
 
 function testMenuWithNetActivity() {
   
   
-  let target = select(".webconsole-msg-network");
-
-  function next() {
-    menu.hidePopup();
-    executeSoon(finalize);
-  }
-
-  waitForOpenContextMenu(menu, {
-    target: target,
-
-    successFn: function () {
-      let isVisible = !menu.querySelector(CONTEXT_MENU_ID).hidden;
-      ok(isVisible, CONTEXT_MENU_ID + " is visible");
-      next();
-    },
-
-    failureFn: next
-  });
-}
-
-function finalize() {
-  HUD = null;
-  output = null;
-  menu = null;
-  finishTest();
+  waitForContextMenu(menu, output.selectedItem, () => {
+    let isVisible = !menu.querySelector(CONTEXT_MENU_ID).hidden;
+    ok(isVisible, CONTEXT_MENU_ID + " is visible");
+  }, finishTest);
 }
