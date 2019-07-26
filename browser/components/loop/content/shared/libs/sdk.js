@@ -8,27 +8,43 @@
 
 
 (function(window) {
-if (!window.OT) window.OT = {};
+  if (!window.OT) window.OT = {};
 
-OT.properties = {
-  version: "v2.0.18.1",         
-  build: "7333ca3",    
+  OT.properties = {
+    version: 'v2.2.4.1',         
+    build: 'e42c038',    
 
-  debug: "false",      
-  websiteURL: "http://www.tokbox.com",      
+    
+    debug: 'false',
+    
+    websiteURL: 'http://www.tokbox.com',
 
-  cdnURL: "http://static.opentok.com",        
-  loggingURL: "http://hlg.tokbox.com/prod",   
-  apiURL: "http://anvil.opentok.com",          
+    
+    cdnURL: 'http://static.opentok.com',
+    
+    loggingURL: 'http://hlg.tokbox.com/prod',
+    
+    apiURL: 'http://anvil.opentok.com',
 
-  messagingProtocol: "wss",         
-  messagingPort: 443,               
+    
+    messagingProtocol: 'wss',
+    
+    messagingPort: 443,
 
-  supportSSL: "true",           
-  cdnURLSSL: "https://static.opentok.com",         
-  loggingURLSSL: "https://hlg.tokbox.com/prod",    
-  apiURLSSL: "https://anvil.opentok.com"             
-};
+    
+    supportSSL: 'true',
+    
+    cdnURLSSL: 'https://static.opentok.com',
+    
+    loggingURLSSL: 'https://hlg.tokbox.com/prod',
+    
+    apiURLSSL: 'https://anvil.opentok.com',
+
+    minimumVersion: {
+      firefox: parseFloat('26'),
+      chrome: parseFloat('32')
+    }
+  };
 
 })(window);
 
@@ -61,66 +77,189 @@ OT.properties = {
 !(function(window, undefined) {
 
 
-var OTHelpers = function(domId) {
+  var OTHelpers = function(domId) {
     return document.getElementById(domId);
-};
+  };
 
-var previousOTHelpers = window.OTHelpers;
+  var previousOTHelpers = window.OTHelpers;
 
-window.OTHelpers = OTHelpers;
+  window.OTHelpers = OTHelpers;
 
-OTHelpers.noConflict = function() {
+  OTHelpers.keys = Object.keys || function(object) {
+    var keys = [], hasOwnProperty = Object.prototype.hasOwnProperty;
+    for(var key in object) {
+      if(hasOwnProperty.call(object, key)) {
+        keys.push(key);
+      }
+    }
+    return keys;
+  };
+
+  var _each = Array.prototype.forEach || function(iter, ctx) {
+    for(var idx = 0, count = this.length || 0; idx < count; ++idx) {
+      if(idx in this) {
+        iter.call(ctx, this[idx], idx);
+      }
+    }
+  };
+
+  OTHelpers.forEach = function(array, iter) {
+    return _each.call(array, iter);
+  };
+
+  var _map = Array.prototype.map || function(iter, ctx) {
+    var collect = [];
+    _each.call(this, function(item, idx) {
+      collect.push(iter.call(ctx, item, idx));
+    });
+    return collect;
+  };
+
+  OTHelpers.map = function(array, iter) {
+    return _map.call(array, iter);
+  };
+
+  var _filter = Array.prototype.filter || function(iter, ctx) {
+    var collect = [];
+    _each.call(this, function(item, idx) {
+      if(iter.call(ctx, item, idx)) {
+        collect.push(item);
+      }
+    });
+    return collect;
+  };
+
+  OTHelpers.filter = function(array, iter, ctx) {
+    return _filter.call(array, iter, ctx);
+  };
+
+  var _some = Array.prototype.some || function(iter, ctx) {
+    var any = false;
+    for(var idx = 0, count = this.length || 0; idx < count; ++idx) {
+      if(idx in this) {
+        if(iter.call(ctx, this[idx], idx)) {
+          any = true;
+          break;
+        }
+      }
+    }
+    return any;
+  };
+
+  OTHelpers.some = function(array, iter, ctx) {
+    return _some.call(array, iter, ctx);
+  };
+
+  var _indexOf = Array.prototype.indexOf || function(searchElement, fromIndex) {
+    var i,
+        pivot = (fromIndex) ? fromIndex : 0,
+        length;
+
+    if (!this) {
+      throw new TypeError();
+    }
+
+    length = this.length;
+
+    if (length === 0 || pivot >= length) {
+      return -1;
+    }
+
+    if (pivot < 0) {
+      pivot = length - Math.abs(pivot);
+    }
+
+    for (i = pivot; i < length; i++) {
+      if (this[i] === searchElement) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
+  OTHelpers.arrayIndexOf = function(array, searchElement, fromIndex) {
+    return _indexOf.call(array, searchElement, fromIndex);
+  };
+
+  var _bind = Function.prototype.bind || function() {
+    var args = Array.prototype.slice.call(arguments),
+        ctx = args.shift(),
+        fn = this;
+    return function() {
+      return fn.apply(ctx, args.concat(Array.prototype.slice.call(arguments)));
+    };
+  };
+
+  OTHelpers.bind = function() {
+    var args = Array.prototype.slice.call(arguments),
+        fn = args.shift();
+    return _bind.apply(fn, args);
+  };
+
+  var _trim = String.prototype.trim || function() {
+    return this.replace(/^\s+|\s+$/g, '');
+  };
+
+  OTHelpers.trim = function(str) {
+    return _trim.call(str);
+  };
+
   OTHelpers.noConflict = function() {
+    OTHelpers.noConflict = function() {
+      return OTHelpers;
+    };
+    window.OTHelpers = previousOTHelpers;
     return OTHelpers;
   };
-  window.OTHelpers = previousOTHelpers;
-  return OTHelpers;
-};
 
+  OTHelpers.isNone = function(obj) {
+    return obj === undefined || obj === null;
+  };
 
-OTHelpers.isEmpty = function(obj) {
-  if (obj === null || obj === undefined) return true;
-  if (Array.isArray(obj) || typeof(obj) === 'string') return obj.length === 0;
+  OTHelpers.isObject = function(obj) {
+    return obj === Object(obj);
+  };
 
-  
-  for (var key in obj) {
-    if (obj.hasOwnProperty(key)) return false;
-  }
+  OTHelpers.isFunction = function(obj) {
+    return !!obj && (obj.toString().indexOf('()') !== -1 ||
+      Object.prototype.toString.call(obj) === '[object Function]');
+  };
 
-  return true;
-};
+  OTHelpers.isArray = OTHelpers.isFunction(Array.isArray) && Array.isArray ||
+    function (vArg) {
+      return Object.prototype.toString.call(vArg) === '[object Array]';
+    };
 
-OTHelpers.isNone = function(obj) {
-  return obj === undefined || obj === null;
-};
+  OTHelpers.isEmpty = function(obj) {
+    if (obj === null || obj === undefined) return true;
+    if (OTHelpers.isArray(obj) || typeof(obj) === 'string') return obj.length === 0;
 
-OTHelpers.isObject = function(obj) {
-  return obj === Object(obj);
-};
+    
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key)) return false;
+    }
 
-
-OTHelpers.isFunction = function(obj) {
-    return typeof obj === 'function';
-};
-
-
-
-
+    return true;
+  };
 
 
 
-OTHelpers.extend = function() {
+
+
+
+
+  OTHelpers.extend = function() {
     var sources = Array.prototype.slice.call(arguments),
         dest = sources.shift();
 
-    sources.forEach(function(source) {
-        for (var key in source) {
-            dest[key] = source[key];
-        }
+    OTHelpers.forEach(sources, function(source) {
+      for (var key in source) {
+        dest[key] = source[key];
+      }
     });
 
     return dest;
-};
+  };
 
 
 
@@ -129,41 +268,40 @@ OTHelpers.extend = function() {
 
 
 
-OTHelpers.defaults = function() {
+  OTHelpers.defaults = function() {
     var sources = Array.prototype.slice.call(arguments),
         dest = sources.shift();
 
-    sources.forEach(function(source) {
-        for (var key in source) {
-            if (dest[key] === void 0) dest[key] = source[key];
-        }
+    OTHelpers.forEach(sources, function(source) {
+      for (var key in source) {
+        if (dest[key] === void 0) dest[key] = source[key];
+      }
     });
 
     return dest;
-};
+  };
 
-
-OTHelpers.clone = function(obj) {
+  OTHelpers.clone = function(obj) {
     if (!OTHelpers.isObject(obj)) return obj;
-    return Array.isArray(obj) ? obj.slice() : OTHelpers.extend({}, obj);
-};
+    return OTHelpers.isArray(obj) ? obj.slice() : OTHelpers.extend({}, obj);
+  };
 
 
 
 
-OTHelpers.noop = function() {};
+  OTHelpers.noop = function() {};
 
 
-OTHelpers.supportsWebSockets = function() {
+  OTHelpers.supportsWebSockets = function() {
     return 'WebSocket' in window;
-};
+  };
 
 
 
 
 
 
-OTHelpers.now = (function() {
+  OTHelpers.now = (function() {
     var performance = window.performance || {},
         navigationStart,
         now =  performance.now       ||
@@ -173,121 +311,187 @@ OTHelpers.now = (function() {
                performance.webkitNow;
 
     if (now) {
-        now = now.bind(performance);
-        navigationStart = performance.timing.navigationStart;
+      now = OTHelpers.bind(now, performance);
+      navigationStart = performance.timing.navigationStart;
 
-        return  function() { return navigationStart + now(); };
+      return  function() { return navigationStart + now(); };
+    } else {
+      return function() { return new Date().getTime(); };
     }
-    else {
-        return function() { return new Date().getTime(); };
-    }
-})();
+  })();
 
-OTHelpers.browser = function() {
+  var _browser = function() {
     var userAgent = window.navigator.userAgent.toLowerCase(),
+        appName = window.navigator.appName,
         navigatorVendor,
-        browser = 'Unknown';
+        browser = 'unknown',
+        version = -1;
 
-    if (userAgent.indexOf('firefox') > -1)   {
-        browser = 'Firefox';
+    if (userAgent.indexOf('opera') > -1 || userAgent.indexOf('opr') > -1) {
+      browser = 'Opera';
+
+      if (/opr\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+
+    } else if (userAgent.indexOf('firefox') > -1)   {
+      browser = 'Firefox';
+
+      if (/firefox\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+
+    } else if (appName === 'Microsoft Internet Explorer') {
+      
+      browser = 'IE';
+
+      if (/msie ([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+
+    } else if (appName === 'Netscape' && userAgent.indexOf('trident') > -1) {
+      
+
+      browser = 'IE';
+
+      if (/trident\/.*rv:([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+
+    } else if (userAgent.indexOf('chrome') > -1) {
+      browser = 'Chrome';
+
+      if (/chrome\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
+
+    } else if ((navigatorVendor = window.navigator.vendor) &&
+      navigatorVendor.toLowerCase().indexOf('apple') > -1) {
+      browser = 'Safari';
+
+      if (/version\/([0-9]{1,}[\.0-9]{0,})/.exec(userAgent) !== null) {
+        version = parseFloat( RegExp.$1 );
+      }
     }
-    if (userAgent.indexOf('opera') > -1)   {
-        browser = 'Opera';
-    }
-    else if (userAgent.indexOf("msie") > -1) {
-        browser = "IE";
-    }
-    else if (userAgent.indexOf("chrome") > -1) {
-        browser = "Chrome";
-    }
 
-    if ((navigatorVendor = window.navigator.vendor) && navigatorVendor.toLowerCase().indexOf("apple") > -1) {
-        browser = "Safari";
-    }
+    return {browser: browser, version: version};
+  }();
 
-    userAgent = null;
-    OTHelpers.browser = function() { return browser; };
-    return browser;
-};
+  OTHelpers.browser = function() {
+    return _browser.browser;
+  };
+
+  OTHelpers.browserVersion = function() {
+    return _browser;
+  };
 
 
-OTHelpers.canDefineProperty = true;
+  OTHelpers.canDefineProperty = true;
 
-try {
-    Object.defineProperty({}, 'x', {});
-} catch (err) {
-    OTHelpers.canDefineProperty = false;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OTHelpers.defineGetters = function(self, getters, enumerable) {
-  var propsDefinition = {};
-
-  if (enumerable === void 0) enumerable = false;
-
-  for (var key in getters) {
-    propsDefinition[key] = {
-      get: getters[key],
-      enumerable: enumerable
-    };
-  }
-
-  Object.defineProperties(self, propsDefinition);
-};
-
-
-
-
-
-
-if (!Object.create) {
-    Object.create = function (o) {
-        if (arguments.length > 1) {
-            throw new Error('Object.create implementation only accepts the first parameter.');
-        }
-        function F() {}
-        F.prototype = o;
-        return new F();
-    };
-}
-
-OTHelpers.setCookie = function(key, value) {
   try {
-    localStorage.setItem(key, value);
+    Object.defineProperty({}, 'x', {});
   } catch (err) {
-    
-    var date = new Date();
-    date.setTime(date.getTime()+(365*24*60*60*1000));
-    var expires = "; expires="+date.toGMTString();
-    document.cookie = key+"="+value+expires+"; path=/";
+    OTHelpers.canDefineProperty = false;
   }
-};
 
-OTHelpers.getCookie = function(key) {
+
+
+
+
+
+
+
+
+
+
+
+
+  OTHelpers.defineGetters = function(self, getters, enumerable) {
+    var propsDefinition = {};
+
+    if (enumerable === void 0) enumerable = false;
+
+    for (var key in getters) {
+      propsDefinition[key] = {
+        get: getters[key],
+        enumerable: enumerable
+      };
+    }
+
+    Object.defineProperties(self, propsDefinition);
+  };
+
+  var generatePropertyFunction = function(object, getter, setter) {
+    if(getter && !setter) {
+      return function() {
+        return getter.call(object);
+      };
+    } else if(getter && setter) {
+      return function(value) {
+        if(value !== void 0) {
+          setter.call(object, value);
+        }
+        return getter.call(object);
+      };
+    } else {
+      return function(value) {
+        if(value !== void 0) {
+          setter.call(object, value);
+        }
+      };
+    }
+  };
+
+  OTHelpers.defineProperties = function(object, getterSetters) {
+    for (var key in getterSetters) {
+      object[key] = generatePropertyFunction(object, getterSetters[key].get,
+        getterSetters[key].set);
+    }
+  };
+
+
+
+
+
+
+  if (!Object.create) {
+    Object.create = function (o) {
+      if (arguments.length > 1) {
+        throw new Error('Object.create implementation only accepts the first parameter.');
+      }
+      function F() {}
+      F.prototype = o;
+      return new F();
+    };
+  }
+
+  OTHelpers.setCookie = function(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (err) {
+      
+      var date = new Date();
+      date.setTime(date.getTime()+(365*24*60*60*1000));
+      var expires = '; expires=' + date.toGMTString();
+      document.cookie = key + '=' + value + expires + '; path=/';
+    }
+  };
+
+  OTHelpers.getCookie = function(key) {
     var value;
 
     try {
-      value = localStorage.getItem("opentok_client_id");
+      value = localStorage.getItem('opentok_client_id');
       return value;
     } catch (err) {
       
-      var nameEQ = key + "=";
+      var nameEQ = key + '=';
       var ca = document.cookie.split(';');
       for(var i=0;i < ca.length;i++) {
         var c = ca[i];
-        while (c.charAt(0)==' ') c = c.substring(1,c.length);
+        while (c.charAt(0) === ' ') {
+          c = c.substring(1,c.length);
+        }
         if (c.indexOf(nameEQ) === 0) {
           value = c.substring(nameEQ.length,c.length);
         }
@@ -299,7 +503,7 @@ OTHelpers.getCookie = function(key) {
     }
 
     return null;
-};
+  };
 
 
 
@@ -316,24 +520,25 @@ OTHelpers.getCookie = function(key) {
   
   var entityMap = {
     escape: {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#x27;',
-      '/': '&#x2F;'
+      '&':  '&amp;',
+      '<':  '&lt;',
+      '>':  '&gt;',
+      '"':  '&quot;',
+      '\'': '&#x27;',
+      '/':  '&#x2F;'
     }
   };
+
   entityMap.unescape = OTHelpers.invert(entityMap.escape);
 
   
   var entityRegexes = {
-    escape:   new RegExp('[' + Object.keys(entityMap.escape).join('') + ']', 'g'),
-    unescape: new RegExp('(' + Object.keys(entityMap.unescape).join('|') + ')', 'g')
+    escape:   new RegExp('[' + OTHelpers.keys(entityMap.escape).join('') + ']', 'g'),
+    unescape: new RegExp('(' + OTHelpers.keys(entityMap.unescape).join('|') + ')', 'g')
   };
 
   
-  ['escape', 'unescape'].forEach(function(method) {
+  OTHelpers.forEach(['escape', 'unescape'], function(method) {
     OTHelpers[method] = function(string) {
       if (string === null || string === undefined) return '';
       return ('' + string).replace(entityRegexes[method], function(match) {
@@ -344,158 +549,162 @@ OTHelpers.getCookie = function(key) {
 
 
 
-OTHelpers.templateSettings = {
-  evaluate    : /<%([\s\S]+?)%>/g,
-  interpolate : /<%=([\s\S]+?)%>/g,
-  escape      : /<%-([\s\S]+?)%>/g
-};
-
-
-
-
-var noMatch = /(.)^/;
-
-
-
-var escapes = {
-  "'":      "'",
-  '\\':     '\\',
-  '\r':     'r',
-  '\n':     'n',
-  '\t':     't',
-  '\u2028': 'u2028',
-  '\u2029': 'u2029'
-};
-
-var escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
-
-
-
-
-OTHelpers.template = function(text, data, settings) {
-  var render;
-  settings = OTHelpers.defaults({}, settings, OTHelpers.templateSettings);
-
-  
-  var matcher = new RegExp([
-    (settings.escape || noMatch).source,
-    (settings.interpolate || noMatch).source,
-    (settings.evaluate || noMatch).source
-  ].join('|') + '|$', 'g');
-
-  
-  var index = 0;
-  var source = "__p+='";
-  text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
-    source += text.slice(index, offset)
-      .replace(escaper, function(match) { return '\\' + escapes[match]; });
-
-    if (escape) {
-      source += "'+\n((__t=(" + escape + "))==null?'':OTHelpers.escape(__t))+\n'";
-    }
-    if (interpolate) {
-      source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
-    }
-    if (evaluate) {
-      source += "';\n" + evaluate + "\n__p+='";
-    }
-    index = offset + match.length;
-    return match;
-  });
-  source += "';\n";
-
-  
-  if (!settings.variable) source = 'with(obj||{}){\n' + source + '}\n';
-
-  source = "var __t,__p='',__j=Array.prototype.join," +
-    "print=function(){__p+=__j.call(arguments,'');};\n" +
-    source + "return __p;\n";
-
-
-  try {
-    
-    
-    render = new Function(settings.variable || 'obj', source);
-  } catch (e) {
-    e.source = source;
-    throw e;
-  }
-
-  if (data) return render(data);
-  var template = function(data) {
-    return render.call(this, data);
+  OTHelpers.templateSettings = {
+    evaluate    : /<%([\s\S]+?)%>/g,
+    interpolate : /<%=([\s\S]+?)%>/g,
+    escape      : /<%-([\s\S]+?)%>/g
   };
 
-  
-  template.source = 'function(' + (settings.variable || 'obj') + '){\n' + source + '}';
 
-  return template;
-};
+
+
+  var noMatch = /(.)^/;
+
+
+
+  var escapes = {
+    '\'':     '\'',
+    '\\':     '\\',
+    '\r':     'r',
+    '\n':     'n',
+    '\t':     't',
+    '\u2028': 'u2028',
+    '\u2029': 'u2029'
+  };
+
+  var escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
+
+
+
+
+  OTHelpers.template = function(text, data, settings) {
+    var render;
+    settings = OTHelpers.defaults({}, settings, OTHelpers.templateSettings);
+
+    
+    var matcher = new RegExp([
+      (settings.escape || noMatch).source,
+      (settings.interpolate || noMatch).source,
+      (settings.evaluate || noMatch).source
+    ].join('|') + '|$', 'g');
+
+    
+    var index = 0;
+    var source = '__p+=\'';
+    text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
+      source += text.slice(index, offset)
+        .replace(escaper, function(match) { return '\\' + escapes[match]; });
+
+      if (escape) {
+        source += '\'+\n((__t=(' + escape + '))==null?\'\':OTHelpers.escape(__t))+\n\'';
+      }
+      if (interpolate) {
+        source += '\'+\n((__t=(' + interpolate + '))==null?\'\':__t)+\n\'';
+      }
+      if (evaluate) {
+        source += '\';\n' + evaluate + '\n__p+=\'';
+      }
+      index = offset + match.length;
+      return match;
+    });
+    source += '\';\n';
+
+    
+    if (!settings.variable) source = 'with(obj||{}){\n' + source + '}\n';
+
+    source = 'var __t,__p=\'\',__j=Array.prototype.join,' +
+      'print=function(){__p+=__j.call(arguments,\'\');};\n' +
+      source + 'return __p;\n';
+
+    try {
+      
+      
+      render = new Function(settings.variable || 'obj', source);
+    } catch (e) {
+      e.source = source;
+      throw e;
+    }
+
+    if (data) return render(data);
+    var template = function(data) {
+      return render.call(this, data);
+    };
+
+    
+    template.source = 'function(' + (settings.variable || 'obj') + '){\n' + source + '}';
+
+    return template;
+  };
 
 })(window);
 
 
 
 
+
 (function(window, OTHelpers, undefined) {
 
-OTHelpers.statable = function(self, possibleStates, initialState, stateChanged, stateChangedFailed) {
-  var previousState,
-      currentState = initialState;
+  OTHelpers.statable = function(self, possibleStates, initialState, stateChanged,
+    stateChangedFailed) {
+    var previousState,
+        currentState = initialState;
 
-  var setState = function(state) {
-    if (currentState !== state) {
-        if (possibleStates.indexOf(state) === -1) {
-          if (stateChangedFailed && OTHelpers.isFunction(stateChangedFailed)) stateChangedFailed('invalidState', state);
+    var setState = function(state) {
+      if (currentState !== state) {
+        if (OTHelpers.arrayIndexOf(possibleStates, state) === -1) {
+          if (stateChangedFailed && OTHelpers.isFunction(stateChangedFailed)) {
+            stateChangedFailed('invalidState', state);
+          }
           return;
         }
 
         previousState = currentState;
         currentState = state;
         if (stateChanged && OTHelpers.isFunction(stateChanged)) stateChanged(state, previousState);
-    }
+      }
+    };
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    self.is = function () {
+      return OTHelpers.arrayIndexOf(arguments, currentState) !== -1;
+    };
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    self.isNot = function () {
+      return OTHelpers.arrayIndexOf(arguments, currentState) === -1;
+    };
+
+    Object.defineProperties(self, {
+      state: {
+        get: function() { return currentState; }
+      },
+
+      previousState: {
+        get: function() { return previousState; }
+      }
+    });
+
+    return setState;
   };
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  self.is = function () {
-    return Array.prototype.indexOf.call(arguments, currentState) !== -1;
-  };
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  self.isNot = function () {
-    return Array.prototype.indexOf.call(arguments, currentState) === -1;
-  };
-
-  Object.defineProperties(self, {
-    state: {
-      get: function() { return currentState; }
-    },
-
-    previousState: {
-      get: function() { return previousState; }
-    }
-  });
-
-  return setState;
-};
 
 })(window, window.OTHelpers);
+
 
 
 
@@ -641,85 +850,6 @@ OTHelpers.statable = function(self, possibleStates, initialState, stateChanged, 
 
 
 
-
-
-
-(function(window, OTHelpers, undefined) {
-
-
-function shimXMLForIE8(xml) {
-    
-    Object.defineProperty(xml.prototype, "firstElementChild", {
-        "get" : function() {
-            var node = this;
-            node = node.firstChild;
-            while(node && node.nodeType != 1) node = node.nextSibling;
-            return node;
-        }
-    });
-
-    
-    Object.defineProperty(xml.prototype, "lastElementChild", {
-        "get" : function() {
-            var node = this;
-            node = node.lastChild;
-            while(node && node.nodeType != 1) node = node.previousSibling;
-            return node;
-        }
-    });
-
-    
-    Object.defineProperty(xml.prototype, "nextElementSibling", {
-        "get" : function() {
-            var node = this;
-            while(!OTHelpers.isNone(node = node.nextSibling)) {
-                if(node.nodeType == 1) break;
-            }
-
-            return node;
-        }
-    });
-
-    
-    Object.defineProperty(xml.prototype, "previousElementSibling", {
-        "get" : function() {
-            var node = this;
-            while(!OTHelpers.isNone(node = node.previousSibling)) {
-                if(node.nodeType == 1) break;
-            }
-            return node;
-        }
-    });
-}
-
-OTHelpers.parseXML = function(xmlString) {
-    var root, xml;
-
-    if (window.DOMParser) { 
-        xml = (new DOMParser()).parseFromString(xmlString, "text/xml");
-    } else { 
-        xml = new ActiveXObject("Microsoft.XMLDOM");
-        xml.async = "false";
-        xml.loadXML(xmlString);
-
-        shimXMLForIE8(xml);
-    }
-
-    root = xml.documentElement;
-
-    if (!root || !root.nodeName || root.nodeName === "parsererror") {
-        
-        return null;
-    }
-
-    return xml;
-};
-
-})(window, window.OTHelpers);
-
-
-
-
 (function(window, OTHelpers, undefined) {
 
 OTHelpers.useLogHelpers = function(on){
@@ -738,6 +868,17 @@ OTHelpers.useLogHelpers = function(on){
     
     
     
+    var makeLogArgumentsSafe = function(args) { return args; };
+
+    if (OTHelpers.browser() === 'IE') {
+        makeLogArgumentsSafe = function(args) {
+            return [toDebugString(Array.prototype.slice.apply(args))];
+        };
+    }
+
+    
+    
+    
     
     
     
@@ -746,8 +887,11 @@ OTHelpers.useLogHelpers = function(on){
     function generateLoggingMethod(method, level, fallback) {
         return function() {
             if (on.shouldLog(level)) {
-                var cons = window.console;
+                var cons = window.console,
+                    args = makeLogArgumentsSafe(arguments);
 
+                
+                
                 
                 if (cons && cons[method]) {
                     
@@ -758,25 +902,25 @@ OTHelpers.useLogHelpers = function(on){
                             cons[method] = Function.prototype.bind.call(cons[method], cons);
                         }
 
-                        cons[method].apply(cons, arguments);
+                        cons[method].apply(cons, args);
                     }
                     else {
                         
                         
-                        cons[method](
-                            Array.prototype.slice.apply(arguments).join(' ')
-                        );
+                        cons[method](args);
                     }
                 }
                 else if (fallback) {
-                    fallback.apply(on, arguments);
+                    fallback.apply(on, args);
+
+                    
+                    return;
                 }
 
-                appendToLogs(method, arguments);
+                appendToLogs(method, makeLogArgumentsSafe(arguments));
             }
         };
     }
-
 
     on.log = generateLoggingMethod('log', on.LOG);
 
@@ -789,7 +933,7 @@ OTHelpers.useLogHelpers = function(on){
 
     on.setLogLevel = function(level) {
         _logLevel = typeof(level) === 'number' ? level : 0;
-        on.debug("TB.setLogLevel(" + _logLevel + ")");
+        on.debug("OT.setLogLevel(" + _logLevel + ")");
         return _logLevel;
     };
 
@@ -809,32 +953,74 @@ OTHelpers.useLogHelpers = function(on){
         return now.toLocaleTimeString() + now.getMilliseconds();
     }
 
+    function toJson(object) {
+        try {
+            return JSON.stringify(object);
+        } catch(e) {
+            return object.toString();
+        }
+    }
+
+    function toDebugString(object) {
+        var components = [];
+
+        if (typeof(object) === 'undefined') {
+            
+        }
+        else if (object === null) {
+            components.push('NULL');
+        }
+        else if (OTHelpers.isArray(object)) {
+            for (var i=0; i<object.length; ++i) {
+                components.push(toJson(object[i]));
+            }
+        }
+        else if (OTHelpers.isObject(object)) {
+            for (var key in object) {
+                var stringValue;
+
+                if (!OTHelpers.isFunction(object[key])) {
+                    stringValue = toJson(object[key]);
+                }
+                else if (object.hasOwnProperty(key)) {
+                    stringValue = 'function ' + key + '()';
+                }
+
+                components.push(key + ': ' + stringValue);
+            }
+        }
+        else if (OTHelpers.isFunction(object)) {
+            try {
+                components.push(object.toString());
+            } catch(e) {
+                components.push('function()');
+            }
+        }
+        else  {
+            components.push(object.toString());
+        }
+
+        return components.join(", ");
+    }
 
     
     function appendToLogs(level, args) {
         if (!args) return;
 
-        var message;
-
-        try {
-            message = JSON.stringify(args);
-        } catch(e) {
-            message = args.toString();
-        }
-
+        var message = toDebugString(args);
         if (message.length <= 2) return;
 
         _logs.push(
             [level, formatDateStamp(), message]
         );
     }
-
 };
 
 OTHelpers.useLogHelpers(OTHelpers);
 OTHelpers.setLogLevel(OTHelpers.ERROR);
 
 })(window, window.OTHelpers);
+
 
 
 
@@ -858,56 +1044,60 @@ OTHelpers.roundFloat = function(value, places) {
 
 (function(window, OTHelpers, undefined) {
 
-var timeouts = [],
-    messageName = "OTHelpers." + OTHelpers.uuid.v4() + ".zero-timeout";
+  var timeouts = [],
+      messageName = 'OTHelpers.' + OTHelpers.uuid.v4() + '.zero-timeout';
 
-var handleMessage = function(event) {
-
-
-
-    if (event.data == messageName) {
+  var handleMessage = function(event) {
+    if (event.data === messageName) {
+      if(OTHelpers.isFunction(event.stopPropagation)) {
         event.stopPropagation();
-        if (timeouts.length > 0) {
-            var args = timeouts.shift(),
-                fn = args.shift();
+      }
+      event.cancelBubble = true;
+      if (timeouts.length > 0) {
+        var args = timeouts.shift(),
+            fn = args.shift();
 
-            fn.apply(null, args);
-        }
+        fn.apply(null, args);
+      }
     }
-};
+  };
 
-window.addEventListener("message", handleMessage, true);
+  if(window.addEventListener) {
+    window.addEventListener('message', handleMessage, true);
+  } else if(window.attachEvent) {
+    window.attachEvent('onmessage', handleMessage);
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-OTHelpers.callAsync = function () {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OTHelpers.callAsync = function () {
     timeouts.push(Array.prototype.slice.call(arguments));
-    window.postMessage(messageName, "*");
-};
+    window.postMessage(messageName, '*');
+  };
 
 
-
-
-
-OTHelpers.createAsyncHandler = function(handler) {
+  
+  
+  
+  OTHelpers.createAsyncHandler = function(handler) {
     return function() {
-        var args = Array.prototype.slice.call(arguments);
+      var args = Array.prototype.slice.call(arguments);
 
-        OTHelpers.callAsync(function() {
-          handler.apply(null, args);
-        });
+      OTHelpers.callAsync(function() {
+        handler.apply(null, args);
+      });
     };
-};
+  };
 
 })(window, window.OTHelpers);
 
@@ -925,367 +1115,577 @@ OTHelpers.createAsyncHandler = function(handler) {
 
 
 
-OTHelpers.eventing = function(self, syncronous) {
-  var _events = {};
+  OTHelpers.eventing = function(self, syncronous) {
+    var _events = {};
 
-
-  
-  function executeDefaultAction(defaultAction, args) {
-    if (!defaultAction) return;
-
-    defaultAction.apply(null, args.slice());
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  function executeListenersAsyncronously(name, args, defaultAction) {
-    var listeners = _events[name];
-    if (!listeners || listeners.length === 0) return;
-
-    var listenerAcks = listeners.length;
-
-    listeners.forEach(function(listener) { 
-      function filterHandlerAndContext(_listener) {
-        return _listener.context === listener.context && _listener.handler === listener.handler;
-      }
-
-      
-      OTHelpers.callAsync(function() {
-        try {
-          
-          if (_events[name] && _events[name].some(filterHandlerAndContext)) {
-            (listener.closure || listener.handler).apply(listener.context || null, args);
-          }
-        }
-        finally {
-          listenerAcks--;
-
-          if (listenerAcks === 0) {
-            executeDefaultAction(defaultAction, args);
-          }
-        }
-      });
-    });
-  }
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  function executeListenersSyncronously(name, args) { 
-    var listeners = _events[name];
-    if (!listeners || listeners.length === 0) return;
-
-    listeners.forEach(function(listener) { 
-      (listener.closure || listener.handler).apply(listener.context || null, args);
-    });
-  }
-
-  var executeListeners = syncronous === true ? executeListenersSyncronously : executeListenersAsyncronously;
-
-
-  var removeAllListenersNamed = function (eventName, context) {
-    if (_events[eventName]) {
-      if (context) {
-        
-        
-        _events[eventName] = _events[eventName].filter(function(listener){
-          return listener.context !== context;
-        });
-      }
-      else {
-        delete _events[eventName];
-      }
-    }
-  };
-
-  var addListeners = function (eventNames, handler, context, closure) {
-    var listener = {handler: handler};
-    if (context) listener.context = context;
-    if (closure) listener.closure = closure;
-
-    eventNames.forEach(function(name) {
-      if (!_events[name]) _events[name] = [];
-      _events[name].push(listener);
-    });
-  }.bind(self);
-
-
-  var removeListeners = function (eventNames, handler, context) {
-    function filterHandlerAndContext(listener) {
-      return !(listener.handler === handler && listener.context === context);
-    }
-
-    eventNames.forEach(function(name) {
-      if (_events[name]) {
-        _events[name] = _events[name].filter(filterHandlerAndContext);
-        if (_events[name].length === 0) delete _events[name];
-      }
-    });
-  }.bind(self);
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  self.dispatchEvent = function(event, defaultAction) {
-    if (!event.type) {
-      OTHelpers.error("OTHelpers.Eventing.dispatchEvent: Event has no type");
-      OTHelpers.error(event);
-
-      throw new Error("OTHelpers.Eventing.dispatchEvent: Event has no type");
-    }
-
-    if (!event.target) {
-      event.target = this;
-    }
-
-    if (!_events[event.type] || _events[event.type].length === 0) {
-      executeDefaultAction(defaultAction, [event]);
-      return;
-    }
-
-    executeListeners(event.type, [event], defaultAction);
-
-    return this;
-  };
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  self.trigger = function(eventName) {
-    if (!_events[eventName] || _events[eventName].length === 0) {
-      return;
-    }
-
-    var args = Array.prototype.slice.call(arguments);
 
     
-    args.shift();
+    function executeDefaultAction(defaultAction, args) {
+      if (!defaultAction) return;
 
-    executeListeners(eventName, args);
-
-    return this;
-  };
-
-  self.on = function(eventNames, handler_or_context, context) {
-    if (typeof(eventNames) === "string" && handler_or_context) {
-      addListeners(eventNames.split(' '), handler_or_context, context);
+      defaultAction.apply(null, args.slice());
     }
-    else {
-      for (var name in eventNames) {
-        if (eventNames.hasOwnProperty(name)) {
-          addListeners([name], eventNames[name], handler_or_context);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    function executeListenersAsyncronously(name, args, defaultAction) {
+      var listeners = _events[name];
+      if (!listeners || listeners.length === 0) return;
+
+      var listenerAcks = listeners.length;
+
+      OTHelpers.forEach(listeners, function(listener) { 
+        function filterHandlerAndContext(_listener) {
+          return _listener.context === listener.context && _listener.handler === listener.handler;
         }
-      }
-    }
 
-    return this;
-  };
-
- self.off = function(eventNames, handler_or_context, context) {
-    if (typeof(eventNames) === "string") {
-      if (handler_or_context && OTHelpers.isFunction(handler_or_context)) {
-        removeListeners(eventNames.split(' '), handler_or_context, context);
-      }
-      else {
-        eventNames.split(' ').forEach(function(name) {
-          removeAllListenersNamed(name, handler_or_context);
-        }, this);
-      }
-    }
-    else if (!eventNames) {
-      
-      _events = {};
-    }
-    else {
-      for (var name in eventNames) {
-        if (eventNames.hasOwnProperty(name)) {
-          removeListeners([name], eventNames[name], handler_or_context);
-        }
-      }
-    }
-
-    return this;
-  };
-
-
-  self.once = function(eventNames, handler, context) {
-    var names = eventNames.split(' '),
-        fun = function() {
-          var result = handler.apply(context || null, arguments);
-          removeListeners(names, handler, context);
-
-          return result;
-        }.bind(this);
-
-    addListeners(names, handler, context, fun);
-    return this;
-  };
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
-  self.addEventListener = function(eventName, handler, context) {
-    addListeners([eventName], handler, context);
-  };
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
-  self.removeEventListener = function(eventName, handler, context) {
-    removeListeners([eventName], handler, context);
-  };
-
-
-
-
-
-  return self;
-};
-
-OTHelpers.eventing.Event = function() {
-
-    return function (type, cancelable) {
-        this.type = type;
-        this.cancelable = cancelable !== undefined ? cancelable : true;
-
-        var _defaultPrevented = false,
-            _target = null;
-
-        this.preventDefault = function() {
-            if (this.cancelable) {
-                _defaultPrevented = true;
-            } else {
-                OTHelpers.warn("Event.preventDefault :: Trying to preventDefault on an Event that isn't cancelable");
+        
+        
+        OTHelpers.callAsync(function() {
+          try {
+            
+            if (_events[name] && OTHelpers.some(_events[name], filterHandlerAndContext)) {
+              (listener.closure || listener.handler).apply(listener.context || null, args);
             }
-        };
+          }
+          finally {
+            listenerAcks--;
 
-        this.isDefaultPrevented = function() {
-            return _defaultPrevented;
-        };
+            if (listenerAcks === 0) {
+              executeDefaultAction(defaultAction, args);
+            }
+          }
+        });
+      });
+    }
 
-        if (OTHelpers.canDefineProperty) {
-            Object.defineProperty(this, 'target', {
-                set: function(target) {
-                    _target = target;
-                },
 
-                get: function() {
-                    return _target;
-                }
-            });
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    function executeListenersSyncronously(name, args) { 
+      var listeners = _events[name];
+      if (!listeners || listeners.length === 0) return;
+
+      OTHelpers.forEach(listeners, function(listener) { 
+        (listener.closure || listener.handler).apply(listener.context || null, args);
+      });
+    }
+
+    var executeListeners = syncronous === true ?
+      executeListenersSyncronously : executeListenersAsyncronously;
+
+
+    var removeAllListenersNamed = function (eventName, context) {
+      if (_events[eventName]) {
+        if (context) {
+          
+          
+          _events[eventName] = OTHelpers.filter(_events[eventName], function(listener){
+            return listener.context !== context;
+          });
         }
+        else {
+          delete _events[eventName];
+        }
+      }
     };
 
-};
+    var addListeners = OTHelpers.bind(function (eventNames, handler, context, closure) {
+      var listener = {handler: handler};
+      if (context) listener.context = context;
+      if (closure) listener.closure = closure;
+
+      OTHelpers.forEach(eventNames, function(name) {
+        if (!_events[name]) _events[name] = [];
+        _events[name].push(listener);
+      });
+    }, self);
+
+
+    var removeListeners = function (eventNames, handler, context) {
+      function filterHandlerAndContext(listener) {
+        return !(listener.handler === handler && listener.context === context);
+      }
+
+      OTHelpers.forEach(eventNames, OTHelpers.bind(function(name) {
+        if (_events[name]) {
+          _events[name] = OTHelpers.filter(_events[name], filterHandlerAndContext);
+          if (_events[name].length === 0) delete _events[name];
+        }
+      }, self));
+
+    };
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    self.dispatchEvent = function(event, defaultAction) {
+      if (!event.type) {
+        OTHelpers.error('OTHelpers.Eventing.dispatchEvent: Event has no type');
+        OTHelpers.error(event);
+
+        throw new Error('OTHelpers.Eventing.dispatchEvent: Event has no type');
+      }
+
+      if (!event.target) {
+        event.target = this;
+      }
+
+      if (!_events[event.type] || _events[event.type].length === 0) {
+        executeDefaultAction(defaultAction, [event]);
+        return;
+      }
+
+      executeListeners(event.type, [event], defaultAction);
+
+      return this;
+    };
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    self.trigger = function(eventName) {
+      if (!_events[eventName] || _events[eventName].length === 0) {
+        return;
+      }
+
+      var args = Array.prototype.slice.call(arguments);
+
+      
+      args.shift();
+
+      executeListeners(eventName, args);
+
+      return this;
+    };
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    self.on = function(eventNames, handlerOrContext, context) {
+      if (typeof(eventNames) === 'string' && handlerOrContext) {
+        addListeners(eventNames.split(' '), handlerOrContext, context);
+      }
+      else {
+        for (var name in eventNames) {
+          if (eventNames.hasOwnProperty(name)) {
+            addListeners([name], eventNames[name], handlerOrContext);
+          }
+        }
+      }
+
+      return this;
+    };
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    self.off = function(eventNames, handlerOrContext, context) {
+      if (typeof eventNames === 'string') {
+        if (handlerOrContext && OTHelpers.isFunction(handlerOrContext)) {
+          removeListeners(eventNames.split(' '), handlerOrContext, context);
+        }
+        else {
+          OTHelpers.forEach(eventNames.split(' '), function(name) {
+            removeAllListenersNamed(name, handlerOrContext);
+          }, this);
+        }
+
+      } else if (!eventNames) {
+        
+        _events = {};
+
+      } else {
+        for (var name in eventNames) {
+          if (eventNames.hasOwnProperty(name)) {
+            removeListeners([name], eventNames[name], handlerOrContext);
+          }
+        }
+      }
+
+      return this;
+    };
+
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    self.once = function(eventNames, handler, context) {
+      var names = eventNames.split(' '),
+          fun = OTHelpers.bind(function() {
+            var result = handler.apply(context || null, arguments);
+            removeListeners(names, handler, context);
+
+            return result;
+          }, this);
+
+      addListeners(names, handler, context, fun);
+      return this;
+    };
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    self.addEventListener = function(eventName, handler, context) {
+      OTHelpers.warn('The addEventListener() method is deprecated. Use on() or once() instead.');
+      addListeners([eventName], handler, context);
+    };
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    self.removeEventListener = function(eventName, handler, context) {
+      OTHelpers.warn('The removeEventListener() method is deprecated. Use off() instead.');
+      removeListeners([eventName], handler, context);
+    };
+
+
+
+
+
+    return self;
+  };
+
+  OTHelpers.eventing.Event = function() {
+
+    return function (type, cancelable) {
+      this.type = type;
+      this.cancelable = cancelable !== undefined ? cancelable : true;
+
+      var _defaultPrevented = false;
+
+      this.preventDefault = function() {
+        if (this.cancelable) {
+          _defaultPrevented = true;
+        } else {
+          OTHelpers.warn('Event.preventDefault :: Trying to preventDefault ' +
+            'on an Event that isn\'t cancelable');
+        }
+      };
+
+      this.isDefaultPrevented = function() {
+        return _defaultPrevented;
+      };
+    };
+
+  };
+  
 })(window, window.OTHelpers);
+
 
 
 
@@ -1468,21 +1868,21 @@ OTHelpers.observeStyleChanges = function(element, stylesToObserve, onChange) {
         };
 
     
-    stylesToObserve.forEach(function(style) {
+    OTHelpers.forEach(stylesToObserve, function(style) {
         oldStyles[style] = getStyle(style);
     });
 
     var observer = new MutationObserver(function(mutations) {
         var changeSet = {};
 
-        mutations.forEach(function(mutation) {
+        OTHelpers.forEach(mutations, function(mutation) {
             if (mutation.attributeName !== 'style') return;
 
             var isHidden = OTHelpers.isDisplayNone(element);
 
-            stylesToObserve.forEach(function(style) {
+            OTHelpers.forEach(stylesToObserve, function(style) {
                 if(isHidden && (style == 'width' || style == 'height')) return;
-
+                
                 var newValue = getStyle(style);
 
                 if (newValue !== oldStyles[style]) {
@@ -1539,7 +1939,7 @@ OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
     var observer = new MutationObserver(function(mutations) {
         var removedNodes = [];
 
-        mutations.forEach(function(mutation) {
+        OTHelpers.forEach(mutations, function(mutation) {
             if (mutation.removedNodes.length) {
                 removedNodes = removedNodes.concat(Array.prototype.slice.call(mutation.removedNodes));
             }
@@ -1564,6 +1964,7 @@ OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
 };
 
 })(window, window.OTHelpers);
+
 
 
 
@@ -1642,7 +2043,7 @@ OTHelpers.addClass = function(element, value) {
         return;
     }
 
-    var classNames = value.trim().split(/\s+/),
+    var classNames = OTHelpers.trim(value).split(/\s+/),
         i, l;
 
     if (OTHelpers.supportsClassList()) {
@@ -1667,7 +2068,7 @@ OTHelpers.addClass = function(element, value) {
             }
         }
 
-        element.className = setClass.trim();
+        element.className = OTHelpers.trim(setClass);
     }
 
     return this;
@@ -1681,7 +2082,7 @@ OTHelpers.removeClass = function(element, value) {
         return;
     }
 
-    var newClasses = value.trim().split(/\s+/),
+    var newClasses = OTHelpers.trim(value).split(/\s+/),
         i, l;
 
     if (OTHelpers.supportsClassList()) {
@@ -1698,7 +2099,7 @@ OTHelpers.removeClass = function(element, value) {
         className = className.replace(' ' + newClasses[i] + ' ', ' ');
     }
 
-    element.className = className.trim();
+    element.className = OTHelpers.trim(className);
 
     return this;
 };
@@ -1780,6 +2181,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
 
+
 (function(window, OTHelpers, undefined) {
 
 var displayStateCache = {},
@@ -1791,7 +2193,7 @@ var defaultDisplayValueForElement = function(element) {
     }
 
     if (!defaultDisplays[element.ownerDocument]) defaultDisplays[element.ownerDocument] = {};
-
+    
     
     
     var testNode = element.ownerDocument.createElement(element.nodeName),
@@ -1812,7 +2214,7 @@ var isHidden = function(element) {
 };
 
 OTHelpers.show = function(element) {
-    var display = element.style.display;
+    var display = element.style.display; 
         
         
         
@@ -1925,292 +2327,208 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
 
 
-
 (function(window, OTHelpers, undefined) {
 
-function formatPostData(data) { 
+  function formatPostData(data) { 
     
     if (typeof(data) === 'string') return data;
 
     var queryString = [];
 
     for (var key in data) {
-        queryString.push(
-            encodeURIComponent(key) + '=' + encodeURIComponent(data[key])
-        );
+      queryString.push(
+        encodeURIComponent(key) + '=' + encodeURIComponent(data[key])
+      );
     }
 
-    return queryString.join('&').replace(/\+/g, "%20");
-}
+    return queryString.join('&').replace(/\+/g, '%20');
+  }
 
-OTHelpers.getXML = function(url, options) {
-    var callerSuccessCb = options && options.success,
+  OTHelpers.getJSON = function(url, options, callback) {
+    options = options || {};
 
-        isValidXMLDocument = function(xmlDocument) {
-            var root;
+    var done = function(error, event) {
+      if(error) {
+        callback(error);
+      } else {
+        var response;
 
-            if (!xmlDocument) {
-                
-                return false;
-            }
-
-            
-            root = xmlDocument.documentElement;
-
-            if (!root || !root.nodeName || root.nodeName === "parsererror") {
-                
-                return false;
-            }
-
-            return true;
-        },
-
-        onSuccess = function(event) {
-            var response = event.target.responseXML;
-
-            if (isValidXMLDocument(response)) {
-                if (callerSuccessCb) callerSuccessCb(response, event, event.target);
-            }
-            else if (options && options.error) {
-                options.error(event, event.target);
-            }
-        };
-
-    var extendedHeaders = OTHelpers.extend(options.headers || {}, {
-            'Content-Type': 'application/xml'
-        });
-
-    OTHelpers.get(url, OTHelpers.extend(options || {}, {
-        success: onSuccess,
-        headers: extendedHeaders
-    }));
-};
-
-OTHelpers.getJSON = function(url, options) {
-    var callerSuccessCb = options && options.success,
-        onSuccess = function(event) {
-            var response;
-
-            try {
-                response = JSON.parse(event.target.responseText);
-            } catch(e) {
-                
-                if (options && options.error) options.error(event, event.target);
-                return;
-            }
-
-            if (callerSuccessCb) callerSuccessCb(response, event, event.target);
-        };
-
-    OTHelpers.get(url, OTHelpers.extend(options || {}, {
-        success: onSuccess,
-        headers: {
-            'Content-Type': 'application/json'
+        try {
+          response = JSON.parse(event.target.responseText);
+        } catch(e) {
+          
+          callback(e);
+          return;
         }
-    }));
-};
 
-OTHelpers.get = function(url, options) {
-    var request = new XMLHttpRequest(),
-        _options = options || {};
-
-    bindToSuccessAndErrorCallbacks(request, _options.success, _options.error);
-    if (_options.process) request.addEventListener("progress", _options.progress, false);
-    if (_options.cancelled) request.addEventListener("abort", _options.cancelled, false);
-
-
-    request.open('GET', url, true);
-
-    if (!_options.headers) _options.headers = {};
-
-    for (var name in _options.headers) {
-        request.setRequestHeader(name, _options.headers[name]);
-    }
-
-    request.send();
-};
-
-OTHelpers.post = function(url, options) {
-    var request = new XMLHttpRequest(),
-        _options = options || {};
-
-    bindToSuccessAndErrorCallbacks(request, _options.success, _options.error);
-
-    if (_options.process) request.addEventListener("progress", _options.progress, false);
-    if (_options.cancelled) request.addEventListener("abort", _options.cancelled, false);
-
-    request.open('POST', url, true);
-
-    if (!_options.headers) _options.headers = {};
-
-    for (var name in _options.headers) {
-        request.setRequestHeader(name, _options.headers[name]);
-    }
-
-    request.send(formatPostData(_options.data));
-};
-
-OTHelpers.postFormData = function(url, data, options) {
-    if (!data) {
-        throw new Error("OTHelpers.postFormData must be passed a data options.");
-    }
-
-    var formData = new FormData();
-
-    for (var key in data) {
-        formData.append(key, data[key]);
-    }
-
-    OTHelpers.post(url, OTHelpers.extend(options || {}, {
-        data: formData
-    }));
-};
-
-
-
-
-
-
-
-
-
-
-
-OTHelpers.getJSONP = function(url, options) {
-    var _loadTimeout = 30000,
-        _script,
-        _head = document.head || document.getElementsByTagName('head')[0],
-        _waitUntilTimeout,
-        _urlWithCallback = url,
-        _options = OTHelpers.extend(options || {}, {
-            callbackParameter: 'callback'
-        }),
-
-        _clearTimeout = function() {
-            if (_waitUntilTimeout) {
-                clearTimeout(_waitUntilTimeout);
-                _waitUntilTimeout = null;
-            }
-        },
-
-        _cleanup = function() {
-            _clearTimeout();
-
-            if (_script) {
-                _script.onload = _script.onreadystatechange = null;
-
-                OTHelpers.removeElement( _script );
-
-                _script = undefined;
-            }
-        },
-
-        _onLoad = function() {
-            if (_script.readyState && !/loaded|complete/.test( _script.readyState )) {
-                
-                return;
-            }
-
-            _clearTimeout();
-        },
-
-        _onLoadTimeout = function() {
-            _cleanup();
-
-            OTHelpers.error("The JSONP request to " + _urlWithCallback + " timed out after " + _loadTimeout + "ms.");
-            if (_options.error) _options.error("The JSONP request to " + url + " timed out after " + _loadTimeout + "ms.", _urlWithCallback,  _options);
-        },
-
-        _generateCallbackName = function() {
-            return 'jsonp_callback_' + (+new Date());
-        };
-
-
-    _options.callbackName = _generateCallbackName();
-    this.jsonp_callbacks[_options.callbackName] = function(response) {
-        _cleanup();
-
-        if (_options.success) _options.success(response);
+        callback(null, response, event);
+      }
     };
 
+    if(options.xdomainrequest) {
+      OTHelpers.xdomainRequest(url, { method: 'GET' }, done);
+    } else {
+      var extendedHeaders = OTHelpers.extend({
+        'Accept': 'application/json'
+      }, options.headers || {});
+
+      OTHelpers.get(url, OTHelpers.extend(options || {}, {
+        headers: extendedHeaders
+      }), done);
+    }
+
+  };
+
+  OTHelpers.xdomainRequest = function(url, options, callback) {
+    
+    var xdr = new XDomainRequest(),
+        _options = options || {},
+        _method = _options.method;
+
+    if(!_method) {
+      callback(new Error('No HTTP method specified in options'));
+      return;
+    }
+
+    _method = _method.toUpperCase();
+
+    if(!(_method === 'GET' || _method === 'POST')) {
+      callback(new Error('HTTP method can only be '));
+      return;
+    }
+
+    function done(err, event) {
+      xdr.onload = xdr.onerror = xdr.ontimeout = function() {};
+      xdr = void 0;
+      callback(err, event);
+    }
+
+
+    xdr.onload = function() {
+      done(null, {
+        target: {
+          responseText: xdr.responseText,
+          headers: {
+            'content-type': xdr.contentType
+          }
+        }
+      });
+    };
+
+    xdr.onerror = function() {
+      done(new Error('XDomainRequest of ' + url + ' failed'));
+    };
+
+    xdr.ontimeout = function() {
+      done(new Error('XDomainRequest of ' + url + ' timed out'));
+    };
+
+    xdr.open(_method, url);
+    xdr.send(options.body && formatPostData(options.body));
+
+  };
+
+  OTHelpers.request = function(url, options, callback) {
+    var request = new XMLHttpRequest(),
+        _options = options || {},
+        _method = _options.method;
+
+    if(!_method) {
+      callback(new Error('No HTTP method specified in options'));
+      return;
+    }
+
     
     
-    _urlWithCallback += ((/\?/).test(_urlWithCallback) ? "&" : "?") + _options.callbackParameter + '=' + _options.callbackName;
-
-    _script = OTHelpers.createElement('script', {
-        async: 'async',
-        src: _urlWithCallback,
-        onload: _onLoad,
-        onreadystatechange: _onLoad
-    });
-    _head.appendChild(_script);
-
-    _waitUntilTimeout = setTimeout(function() { _onLoadTimeout(); }, _loadTimeout);
-};
-
-
-
-
-
-var bindToSuccessAndErrorCallbacks = function(request, success, error) {
-    request.addEventListener("load", function(event) {
+    
+    if(callback) {
+      request.addEventListener('load', function(event) {
         var status = event.target.status;
 
         
         
         if ( status >= 200 && status < 300 || status === 304 ) {
-            if (success) success.apply(null, arguments);
+          callback(null, event);
+        } else {
+          callback(event);
         }
-        else if (error) {
-            error(event);
-        }
-    }, false);
+      }, false);
 
-
-    if (error) {
-        request.addEventListener("error", error, false);
+      request.addEventListener('error', callback, false);
     }
-};
+
+    request.open(options.method, url, true);
+
+    if (!_options.headers) _options.headers = {};
+
+    for (var name in _options.headers) {
+      request.setRequestHeader(name, _options.headers[name]);
+    }
+
+    request.send(options.body && formatPostData(options.body));
+  };
+
+  OTHelpers.get = function(url, options, callback) {
+    var _options = OTHelpers.extend(options || {}, {
+      method: 'GET'
+    });
+    OTHelpers.request(url, _options, callback);
+  };
+
+  OTHelpers.post = function(url, options, callback) {
+    var _options = OTHelpers.extend(options || {}, {
+      method: 'POST'
+    });
+
+    if(_options.xdomainrequest) {
+      OTHelpers.xdomainRequest(url, _options, callback);
+    } else {
+      OTHelpers.request(url, _options, callback);
+    }
+  };
 
 })(window, window.OTHelpers);
 !(function(window) {
 
-if (!window.OT) window.OT = {};
+  
 
+  if (!window.OT) window.OT = {};
 
-OT.$ = OTHelpers.noConflict();
+  
+  OT.$ = OTHelpers.noConflict();
 
+  
+  OT.$.eventing(OT);
 
-OT.$.eventing(OT);
+  
+  OT.Modal = OT.$.Modal;
 
+  
+  OT.$.useLogHelpers(OT);
 
-OT.Modal = OT.$.Modal;
+  var _debugHeaderLogged = false,
+      _setLogLevel = OT.setLogLevel;
 
-
-OT.$.useLogHelpers(OT);
-var _debugHeaderLogged = false;
-var _setLogLevel = OT.setLogLevel;
-
-
-OT.setLogLevel = function(level) {
+  
+  OT.setLogLevel = function(level) {
     
     OT.$.setLogLevel(level);
     var retVal = _setLogLevel.call(OT, level);
     if (OT.shouldLog(OT.DEBUG) && !_debugHeaderLogged) {
-        OT.debug("OpenTok JavaScript library " + OT.properties.version);
-        OT.debug("Release notes: " + OT.properties.websiteURL  +"/opentok/webrtc/docs/js/release-notes.html");
-        OT.debug("Known issues: " + OT.properties.websiteURL + "/opentok/webrtc/docs/js/release-notes.html#knownIssues");
-        _debugHeaderLogged = true;
+      OT.debug('OpenTok JavaScript library ' + OT.properties.version);
+      OT.debug('Release notes: ' + OT.properties.websiteURL +
+        '/opentok/webrtc/docs/js/release-notes.html');
+      OT.debug('Known issues: ' + OT.properties.websiteURL +
+        '/opentok/webrtc/docs/js/release-notes.html#knownIssues');
+      _debugHeaderLogged = true;
     }
-    OT.debug("TB.setLogLevel(" + retVal + ")");
+    OT.debug('OT.setLogLevel(' + retVal + ')');
     return retVal;
-};
+  };
 
-OT.setLogLevel(OT.properties.debug ? OT.DEBUG : OT.ERROR);
+  OT.setLogLevel(OT.properties.debug ? OT.DEBUG : OT.ERROR);
 
-
-
-
+  
 
 
 
@@ -2262,6 +2580,13 @@ OT.setLogLevel(OT.properties.debug ? OT.DEBUG : OT.ERROR);
 
 
 
+
+
+
+
+
+
+  
 
 
 
@@ -2276,45 +2601,47 @@ OT.setLogLevel(OT.properties.debug ? OT.DEBUG : OT.ERROR);
 
 
 })(window);
-(function(window) {
+!(function(window) {
 
+  
+  if (!window.OT) window.OT = {};
 
-if (!window.OT) window.OT = {};
+  if (!OT.properties) {
+    throw new Error('OT.properties does not exist, please ensure that you include a valid ' +
+      'properties file.');
+  }
 
-if (!OT.properties) {
-	throw new Error("OT.properties does not exist, please ensure that you include a valid properties file.");
-}
-
-
-OT.properties = function(properties) {
+  
+  OT.properties = function(properties) {
     var props = OT.$.clone(properties);
 
     props.debug = properties.debug === 'true' || properties.debug === true;
     props.supportSSL = properties.supportSSL === 'true' || properties.supportSSL === true;
 
-    if (props.supportSSL && (window.location.protocol.indexOf("https") >= 0 || window.location.protocol.indexOf("chrome-extension") >= 0)) {
-        props.assetURL = props.cdnURLSSL + "/webrtc/" + props.version;
-        props.loggingURL = props.loggingURLSSL;
-        props.apiURL = props.apiURLSSL;
+    if (props.supportSSL && (window.location.protocol.indexOf('https') >= 0 ||
+      window.location.protocol.indexOf('chrome-extension') >= 0)) {
+      props.assetURL = props.cdnURLSSL + '/webrtc/' + props.version;
+      props.loggingURL = props.loggingURLSSL;
+      props.apiURL = props.apiURLSSL;
     } else {
-        props.assetURL = props.cdnURL + "/webrtc/" + props.version;
+      props.assetURL = props.cdnURL + '/webrtc/' + props.version;
     }
 
-    props.configURL = props.assetURL + "/js/dynamic_config.min.js";
-    props.cssURL = props.assetURL + "/css/ot.min.css";
+    props.configURL = props.assetURL + '/js/dynamic_config.min.js';
+    props.cssURL = props.assetURL + '/css/ot.min.css';
 
     return props;
-}(OT.properties);
+  }(OT.properties);
 
 })(window);
-(function(window) {
+!(function() {
 
 
 
 
 
 
-OT.Config = (function() {
+  OT.Config = (function() {
     var _loaded = false,
         _global = {},
         _partners = {},
@@ -2323,133 +2650,140 @@ OT.Config = (function() {
         _loadTimer,
 
         _clearTimeout = function() {
-            if (_loadTimer) {
-                clearTimeout(_loadTimer);
-                _loadTimer = null;
-            }
+          if (_loadTimer) {
+            clearTimeout(_loadTimer);
+            _loadTimer = null;
+          }
         },
 
         _cleanup = function() {
-            _clearTimeout();
+          _clearTimeout();
 
-            if (_script) {
-                _script.onload = _script.onreadystatechange = null;
+          if (_script) {
+            _script.onload = _script.onreadystatechange = null;
 
-                if ( _head && _script.parentNode ) {
-                    _head.removeChild( _script );
-                }
-
-                _script = undefined;
+            if ( _head && _script.parentNode ) {
+              _head.removeChild( _script );
             }
+
+            _script = undefined;
+          }
         },
 
         _onLoad = function() {
+          
+          if (_script.readyState && !/loaded|complete/.test( _script.readyState )) {
+              
+            return;
+          }
+
+          _clearTimeout();
+
+          if (!_loaded) {
             
-            if (_script.readyState && !/loaded|complete/.test( _script.readyState )) {
-                
-                return;
-            }
-
-            _clearTimeout();
-
-            if (!_loaded) {
-                
-                
-                
-                _this._onLoadTimeout();
-            }
+            
+            
+            _this._onLoadTimeout();
+          }
         },
 
         _getModule = function(moduleName, apiKey) {
-            if (apiKey && _partners[apiKey] && _partners[apiKey][moduleName]) {
-                return _partners[apiKey][moduleName];
-            }
+          if (apiKey && _partners[apiKey] && _partners[apiKey][moduleName]) {
+            return _partners[apiKey][moduleName];
+          }
 
-            return _global[moduleName];
+          return _global[moduleName];
         },
 
-        _this = {
-            
-            loadTimeout: 4000,
+        _this;
 
-            load: function(configUrl) {
-                if (!configUrl) throw new Error("You must pass a valid configUrl to Config.load");
+    _this = {
+      
+      loadTimeout: 4000,
 
-                _loaded = false;
+      load: function(configUrl) {
+        if (!configUrl) throw new Error('You must pass a valid configUrl to Config.load');
 
-                setTimeout(function() {
-                    _script = document.createElement( "script" );
-                    _script.async = "async";
-                    _script.src = configUrl;
-                    _script.onload = _script.onreadystatechange = _onLoad.bind(this);
-                    _head.appendChild(_script);
-                },1);
+        _loaded = false;
 
-                _loadTimer = setTimeout(function() {
-                    _this._onLoadTimeout();
-                }, this.loadTimeout);
-            },
+        setTimeout(function() {
+          _script = document.createElement( 'script' );
+          _script.async = 'async';
+          _script.src = configUrl;
+          _script.onload = _script.onreadystatechange = _onLoad.bind(this);
+          _head.appendChild(_script);
+        },1);
 
-            _onLoadTimeout: function() {
-                _cleanup();
+        _loadTimer = setTimeout(function() {
+          _this._onLoadTimeout();
+        }, this.loadTimeout);
+      },
 
-                OT.warn("TB DynamicConfig failed to load in " + _this.loadTimeout + " ms");
-                this.trigger('dynamicConfigLoadFailed');
-            },
+      _onLoadTimeout: function() {
+        _cleanup();
 
-            isLoaded: function() {
-                return _loaded;
-            },
+        OT.warn('TB DynamicConfig failed to load in ' + _this.loadTimeout + ' ms');
+        this.trigger('dynamicConfigLoadFailed');
+      },
 
-            reset: function() {
-                _cleanup();
-                _loaded = false;
-                _global = {};
-                _partners = {};
-            },
+      isLoaded: function() {
+        return _loaded;
+      },
 
-            
-            
-            replaceWith: function(config) {
-                _cleanup();
+      reset: function() {
+        _cleanup();
+        _loaded = false;
+        _global = {};
+        _partners = {};
+      },
 
-                if (!config) config = {};
+      
+      
+      replaceWith: function(config) {
+        _cleanup();
 
-                _global = config.global || {};
-                _partners = config.partners || {};
+        if (!config) config = {};
 
-                if (!_loaded) _loaded = true;
-                this.trigger('dynamicConfigChanged');
-            },
+        _global = config.global || {};
+        _partners = config.partners || {};
 
-            
-            
-            
-            
-            
-            
-            
-            get: function(moduleName, key, apiKey) {
-                var module = _getModule(moduleName, apiKey);
-                return module ? module[key] : null;
-            }
-        };
+        if (!_loaded) _loaded = true;
+        this.trigger('dynamicConfigChanged');
+      },
+
+      
+      
+      
+      
+      
+      
+      
+      get: function(moduleName, key, apiKey) {
+        var module = _getModule(moduleName, apiKey);
+        return module ? module[key] : null;
+      }
+    };
 
     OT.$.eventing(_this);
 
     return _this;
-})();
+  })();
 
 })(window);
-(function(window) {
-
-var defaultAspectRatio = 4.0/3.0;
+!(function() {
 
 
+  var defaultAspectRatio = 4.0/3.0,
+      miniWidth = 128,
+      miniHeight = 128,
+      microWidth = 64,
+      microHeight = 64;
 
-
-
-function fixAspectRatio(element, width, height, desiredAspectRatio, rotated) {
+  
+  
+  
+  
+  function fixAspectRatio(element, width, height, desiredAspectRatio, rotated) {
     if (!width) width = parseInt(OT.$.width(element.parentNode), 10);
     else width = parseInt(width, 10);
 
@@ -2461,96 +2795,114 @@ function fixAspectRatio(element, width, height, desiredAspectRatio, rotated) {
     if (!desiredAspectRatio) desiredAspectRatio = defaultAspectRatio;
 
     var actualRatio = (width + 0.0)/height,
-        props = {
-            width: '100%',
-            height: '100%',
-            left: 0,
-            top: 0
-        };
+        props;
+
+    props = {
+      width: '100%',
+      height: '100%',
+      left: 0,
+      top: 0
+    };
 
     if (actualRatio > desiredAspectRatio) {
         
-        var newHeight = (actualRatio / desiredAspectRatio) * 100;
+      var newHeight = (actualRatio / desiredAspectRatio) * 100;
 
-        props.height = newHeight + '%';
-        props.top = '-' + ((newHeight - 100) / 2) + '%';
+      props.height = newHeight + '%';
+      props.top = '-' + ((newHeight - 100) / 2) + '%';
     } else if (actualRatio < desiredAspectRatio) {
-        
-        var newWidth = (desiredAspectRatio / actualRatio) * 100;
+      
+      var newWidth = (desiredAspectRatio / actualRatio) * 100;
 
-        props.width = newWidth + '%';
-        props.left = '-' + ((newWidth - 100) / 2) + '%';
+      props.width = newWidth + '%';
+      props.left = '-' + ((newWidth - 100) / 2) + '%';
     }
 
     OT.$.css(element, props);
 
     var video = element.querySelector('video');
     if(video) {
-        if(rotated) {
-            var w = element.offsetWidth,
-                h = element.offsetHeight,
-                props = { width: h + 'px', height: w + 'px', marginTop: '', marginLeft: '' },
-                diff = w - h;
-                props.marginLeft = (diff / 2) + 'px';
-                props.marginTop = -(diff / 2) + 'px';
-                OT.$.css(video, props);
-        } else {
-            OT.$.css(video, { width: '', height: '', marginTop: '', marginLeft: ''});
-        }
+      if(rotated) {
+        var w = element.offsetWidth,
+            h = element.offsetHeight,
+            diff = w - h;
+        props = {
+          width: h + 'px',
+          height: w + 'px',
+          marginTop: -(diff / 2) + 'px',
+          marginLeft: (diff / 2) + 'px'
+        };
+        OT.$.css(video, props);
+      } else {
+        OT.$.css(video, { width: '', height: '', marginTop: '', marginLeft: ''});
+      }
     }
+  }
 
-}
+  function fixMini(container, width, height) {
+    var w = parseInt(width, 10),
+        h = parseInt(height, 10);
 
-var getOrCreateContainer = function getOrCreateContainer(elementOrDomId, insertMode) {
+    if(w < microWidth || h < microHeight) {
+      OT.$.addClass(container, 'OT_micro');
+    } else {
+      OT.$.removeClass(container, 'OT_micro');
+    }
+    if(w < miniWidth || h < miniHeight) {
+      OT.$.addClass(container, 'OT_mini');
+    } else {
+      OT.$.removeClass(container, 'OT_mini');
+    }
+  }
+
+  var getOrCreateContainer = function getOrCreateContainer(elementOrDomId, insertMode) {
     var container,
         domId;
 
     if (elementOrDomId && elementOrDomId.nodeName) {
-        
-        
-        container = elementOrDomId;
-        if (!container.getAttribute('id') || container.getAttribute('id').length === 0) {
-            container.setAttribute('id', 'OT_' + OT.$.uuid());
-        }
+      
+      
+      container = elementOrDomId;
+      if (!container.getAttribute('id') || container.getAttribute('id').length === 0) {
+        container.setAttribute('id', 'OT_' + OT.$.uuid());
+      }
 
-        domId = container.getAttribute('id');
-    }
-    else {
-        
-        container = OT.$(elementOrDomId);
-        domId = elementOrDomId || ('OT_' + OT.$.uuid());
+      domId = container.getAttribute('id');
+    } else {
+      
+      container = OT.$(elementOrDomId);
+      domId = elementOrDomId || ('OT_' + OT.$.uuid());
     }
 
     if (!container) {
-        container = OT.$.createElement('div', {id: domId});
-        container.style.backgroundColor = "#000000";
-        document.body.appendChild(container);
-    }
-    else {
+      container = OT.$.createElement('div', {id: domId});
+      container.style.backgroundColor = '#000000';
+      document.body.appendChild(container);
+    } else {
+      if(!(insertMode == null || insertMode === 'replace')) {
+        var placeholder = document.createElement('div');
+        placeholder.id = ('OT_' + OT.$.uuid());
+        if(insertMode === 'append') {
+          container.appendChild(placeholder);
+          container = placeholder;
+        } else if(insertMode === 'before') {
+          container.parentNode.insertBefore(placeholder, container);
+          container = placeholder;
+        } else if(insertMode === 'after') {
+          container.parentNode.insertBefore(placeholder, container.nextSibling);
+          container = placeholder;
+        }
+      } else {
         OT.$.emptyElement(container);
-    }
-
-    if(!(insertMode == null || insertMode == 'replace')) {
-      var placeholder = document.createElement('div');
-      placeholder.id = ('OT_' + OT.$.uuid());
-      if(insertMode == 'append') {
-        container.appendChild(placeholder);
-        container = placeholder;
-      } else if(insertMode == 'before') {
-        container.parentNode.insertBefore(placeholder, container);
-        container = placeholder;
-      } else if(insertMode == 'after') {
-        container.parentNode.insertBefore(placeholder, container.nextSibling);
-        container = placeholder;
       }
     }
 
     return container;
-};
+  };
 
-
-
-OT.WidgetView = function(targetElement, properties) {
+  
+  
+  OT.WidgetView = function(targetElement, properties) {
     var container = getOrCreateContainer(targetElement, properties && properties.insertMode),
         videoContainer = document.createElement('div'),
         oldContainerStyles = {},
@@ -2559,29 +2911,34 @@ OT.WidgetView = function(targetElement, properties) {
         videoObserver,
         posterContainer,
         loadingContainer,
+        width,
+        height,
         loading = true;
 
     if (properties) {
-        width = properties.width;
-        height = properties.height;
+      width = properties.width;
+      height = properties.height;
 
-        if (width) {
-            if (typeof(width) == "number") {
-                width = width + "px";
-            }
+      if (width) {
+        if (typeof(width) === 'number') {
+          width = width + 'px';
         }
+      }
 
-        if (height) {
-            if (typeof(height) == "number") {
-                height = height + "px";
-            }
+      if (height) {
+        if (typeof(height) === 'number') {
+          height = height + 'px';
         }
+      }
 
-        container.style.width = width ? width : "264px";
-        container.style.height = height ? height : "198px";
-        container.style.overflow = "hidden";
+      container.style.width = width ? width : '264px';
+      container.style.height = height ? height : '198px';
+      container.style.overflow = 'hidden';
+      fixMini(container, width || '264px', height || '198px');
 
-        if (properties.mirror === undefined || properties.mirror) OT.$.addClass(container, 'OT_mirrored');
+      if (properties.mirror === undefined || properties.mirror) {
+        OT.$.addClass(container, 'OT_mirrored');
+      }
     }
 
     if (properties.classNames) OT.$.addClass(container, properties.classNames);
@@ -2594,206 +2951,237 @@ OT.WidgetView = function(targetElement, properties) {
     container.appendChild(videoContainer);
     fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight);
 
-    loadingContainer = document.createElement("div");
-    OT.$.addClass(loadingContainer, "OT_video-loading");
+    loadingContainer = document.createElement('div');
+    OT.$.addClass(loadingContainer, 'OT_video-loading');
     videoContainer.appendChild(loadingContainer);
 
-    posterContainer = document.createElement("div");
-    OT.$.addClass(posterContainer, "OT_video-poster");
+    posterContainer = document.createElement('div');
+    OT.$.addClass(posterContainer, 'OT_video-poster');
     videoContainer.appendChild(posterContainer);
 
     oldContainerStyles.width = container.offsetWidth;
     oldContainerStyles.height = container.offsetHeight;
 
     
-    dimensionsObserver = OT.$.observeStyleChanges(container, ['width', 'height'], function(changeSet) {
-        var width = changeSet.width ? changeSet.width[1] : container.offsetWidth,
-            height = changeSet.height ? changeSet.height[1] : container.offsetHeight;
-
-        fixAspectRatio(videoContainer, width, height, videoElement ? videoElement.aspectRatio : null);
+    dimensionsObserver = OT.$.observeStyleChanges(container, ['width', 'height'],
+      function(changeSet) {
+      var width = changeSet.width ? changeSet.width[1] : container.offsetWidth,
+          height = changeSet.height ? changeSet.height[1] : container.offsetHeight;
+      fixMini(container, width, height);
+      fixAspectRatio(videoContainer, width, height, videoElement ?
+        videoElement.aspectRatio : null);
     });
 
 
     
+    
     videoObserver = OT.$.observeNodeOrChildNodeRemoval(container, function(removedNodes) {
-        if (!videoElement) return;
+      if (!videoElement) return;
 
-        
-        
-        var videoRemoved = removedNodes.some(function(node) { return node === videoContainer || node.nodeName === 'VIDEO'; });
+      
+      
+      var videoRemoved = removedNodes.some(function(node) {
+        return node === videoContainer || node.nodeName === 'VIDEO';
+      });
 
-        if (videoRemoved) {
-            videoElement.destroy();
-            videoElement = null;
-        }
+      if (videoRemoved) {
+        videoElement.destroy();
+        videoElement = null;
+      }
 
-        if (videoContainer) {
-            OT.$.removeElement(videoContainer);
-            videoContainer = null;
-        }
+      if (videoContainer) {
+        OT.$.removeElement(videoContainer);
+        videoContainer = null;
+      }
 
-        if (dimensionsObserver) {
-            dimensionsObserver.disconnect();
-            dimensionsObserver = null;
-        }
+      if (dimensionsObserver) {
+        dimensionsObserver.disconnect();
+        dimensionsObserver = null;
+      }
 
-        if (videoObserver) {
-            videoObserver.disconnect();
-            videoObserver = null;
-        }
+      if (videoObserver) {
+        videoObserver.disconnect();
+        videoObserver = null;
+      }
     });
 
     this.destroy = function() {
-        if (dimensionsObserver) {
-            dimensionsObserver.disconnect();
-            dimensionsObserver = null;
-        }
+      if (dimensionsObserver) {
+        dimensionsObserver.disconnect();
+        dimensionsObserver = null;
+      }
 
-        if (videoObserver) {
-            videoObserver.disconnect();
-            videoObserver = null;
-        }
+      if (videoObserver) {
+        videoObserver.disconnect();
+        videoObserver = null;
+      }
 
-        if (videoElement) {
-            videoElement.destroy();
-            videoElement = null;
-        }
+      if (videoElement) {
+        videoElement.destroy();
+        videoElement = null;
+      }
 
-        if (container) {
-            OT.$.removeElement(container);
-            container = null;
-        }
+      if (container) {
+        OT.$.removeElement(container);
+        container = null;
+      }
     };
 
     Object.defineProperties(this, {
 
-        showPoster: {
-            get: function() {
-                return !OT.$.isDisplayNone(posterContainer);
-            },
-            set: function(shown) {
-                if(shown) {
-                    OT.$.show(posterContainer);
-                }
-                else {
-                    OT.$.hide(posterContainer);
-                }
-            }
+      showPoster: {
+        get: function() {
+          return !OT.$.isDisplayNone(posterContainer);
         },
-
-        poster: {
-            get: function() {
-                return OT.$.css(posterContainer, "backgroundImage");
-            },
-            set: function(src) {
-                OT.$.css(posterContainer, "backgroundImage", "url(" + src + ")");
-            }
-        },
-
-        loading: {
-            get: function() { return loading; },
-            set: function(l) {
-                loading = l;
-
-                if (loading) {
-                    OT.$.addClass(container, 'OT_loading');
-                }
-                else {
-                    OT.$.removeClass(container, 'OT_loading');
-                }
-            }
-        },
-
-        video: {
-            get: function() { return videoElement; },
-            set: function(video) {
-                
-                
-                if (videoElement) videoElement.destroy();
-
-                video.appendTo(videoContainer);
-                videoElement = video;
-
-                videoElement.on({
-                    orientationChanged: function(){
-                        fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight, videoElement.aspectRatio, videoElement.isRotated);
-                    }
-                });
-
-                fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight, videoElement ? videoElement.aspectRatio : null, videoElement ? videoElement.isRotated : null);
-            }
-        },
-
-        domElement: {
-            get: function() { return container; }
-        },
-
-        domId: {
-          get: function() { return container.getAttribute('id'); }
+        set: function(shown) {
+          if(shown) {
+            OT.$.show(posterContainer);
+          } else {
+            OT.$.hide(posterContainer);
+          }
         }
+      },
+
+      poster: {
+        get: function() {
+          return OT.$.css(posterContainer, 'backgroundImage');
+        },
+        set: function(src) {
+          OT.$.css(posterContainer, 'backgroundImage', 'url(' + src + ')');
+        }
+      },
+
+      loading: {
+        get: function() { return loading; },
+        set: function(l) {
+          loading = l;
+
+          if (loading) {
+            OT.$.addClass(container, 'OT_loading');
+          } else {
+            OT.$.removeClass(container, 'OT_loading');
+          }
+        }
+      },
+
+      video: {
+        get: function() { return videoElement; },
+        set: function(video) {
+          
+          
+          if (videoElement) videoElement.destroy();
+
+          video.appendTo(videoContainer);
+          videoElement = video;
+
+          videoElement.on({
+            orientationChanged: function(){
+              fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight,
+                videoElement.aspectRatio, videoElement.isRotated);
+            }
+          });
+
+          if (videoElement) {
+            var fix = function() {
+              fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight,
+                videoElement ? videoElement.aspectRatio : null,
+                videoElement ? videoElement.isRotated : null);
+            };
+            if(isNaN(videoElement.aspectRatio)) {
+              videoElement.on('streamBound', fix);
+            } else {
+              fix();
+            }
+          }
+        }
+      },
+
+      domElement: {
+        get: function() { return container; }
+      },
+
+      domId: {
+        get: function() { return container.getAttribute('id'); }
+      }
     });
 
-    this.addError = function(errorMsg) {
-        container.innerHTML = "<p>" + errorMsg + "<p>";
-        OT.$.addClass(container, "OT_subscriber_error");
+    this.addError = function(errorMsg, helpMsg) {
+      container.innerHTML = '<p>' + errorMsg +
+        ' <span class="ot-help-message">' + helpMsg + '</span></p>';
+      OT.$.addClass(container, 'OT_subscriber_error');
+      if(container.querySelector('p').offsetHeight > container.offsetHeight) {
+        container.querySelector('span').style.display = 'none';
+      }
     };
-};
+  };
 
 })(window);
 
-(function(window) {
+!(function(window) {
 
+  
 
-var getUserMedia = (function() {
+  var nativeGetUserMedia,
+      mozToW3CErrors,
+      chromeToW3CErrors,
+      gumNamesToMessages,
+      mapVendorErrorName,
+      parseErrorEvent,
+      areInvalidConstraints;
+
+  
+  nativeGetUserMedia = (function() {
     if (navigator.getUserMedia) {
-        return navigator.getUserMedia.bind(navigator);
+      return navigator.getUserMedia.bind(navigator);
     } else if (navigator.mozGetUserMedia) {
-        return navigator.mozGetUserMedia.bind(navigator);
+      return navigator.mozGetUserMedia.bind(navigator);
     } else if (navigator.webkitGetUserMedia) {
-        return navigator.webkitGetUserMedia.bind(navigator);
+      return navigator.webkitGetUserMedia.bind(navigator);
     }
-})();
+  })();
 
 
-if (navigator.webkitGetUserMedia) {
+  if (navigator.webkitGetUserMedia) {
+    
     
     if (!webkitMediaStream.prototype.getVideoTracks) {
-        webkitMediaStream.prototype.getVideoTracks = function() {
-            return this.videoTracks;
-        };
+      webkitMediaStream.prototype.getVideoTracks = function() {
+        return this.videoTracks;
+      };
     }
 
     
     if (!webkitMediaStream.prototype.getAudioTracks) {
-        webkitMediaStream.prototype.getAudioTracks = function() {
-            return this.audioTracks;
-        };
+      webkitMediaStream.prototype.getAudioTracks = function() {
+        return this.audioTracks;
+      };
     }
 
     if (!webkitRTCPeerConnection.prototype.getLocalStreams) {
-        webkitRTCPeerConnection.prototype.getLocalStreams = function() {
-          return this.localStreams;
-        };
+      webkitRTCPeerConnection.prototype.getLocalStreams = function() {
+        return this.localStreams;
+      };
     }
 
     if (!webkitRTCPeerConnection.prototype.getRemoteStreams) {
-        webkitRTCPeerConnection.prototype.getRemoteStreams = function() {
-          return this.remoteStreams;
-        };
+      webkitRTCPeerConnection.prototype.getRemoteStreams = function() {
+        return this.remoteStreams;
+      };
     }
-}
-else if (navigator.mozGetUserMedia) {
+
+  } else if (navigator.mozGetUserMedia) {
+    
     
     if (!MediaStream.prototype.getVideoTracks) {
-        MediaStream.prototype.getVideoTracks = function() {
-            return [];
-        };
+      MediaStream.prototype.getVideoTracks = function() {
+        return [];
+      };
     }
 
     if (!MediaStream.prototype.getAudioTracks) {
-        MediaStream.prototype.getAudioTracks = function() {
-            return [];
-        };
+      MediaStream.prototype.getAudioTracks = function() {
+        return [];
+      };
     }
 
     
@@ -2811,253 +3199,288 @@ else if (navigator.mozGetUserMedia) {
     
     
     
-}
+  }
 
 
+  
+  
+  mozToW3CErrors = {
+    PERMISSION_DENIED: 'PermissionDeniedError',
+    NOT_SUPPORTED_ERROR: 'NotSupportedError',
+    MANDATORY_UNSATISFIED_ERROR: ' ConstraintNotSatisfiedError',
+    NO_DEVICES_FOUND: 'NoDevicesFoundError',
+    HARDWARE_UNAVAILABLE: 'HardwareUnavailableError'
+  };
+
+  
+  chromeToW3CErrors = {
+    1: 'PermissionDeniedError'
+  };
+
+  gumNamesToMessages = {
+    PermissionDeniedError: 'User denied permission for scripts from this origin to ' +
+      'access the media device.',
+    NotSupportedError: 'A constraint specified is not supported by the browser.',
+    ConstraintNotSatisfiedError: 'One of the mandatory constraints could not be satisfied.',
+    OverconstrainedError: 'Due to changes in the environment, one or more mandatory ' +
+      'constraints can no longer be satisfied.',
+    NoDevicesFoundError: 'No video or audio input devices are available on this machine.',
+    HardwareUnavailableError: 'The selected audio or video input devices are not available, ' +
+      'possibly because they are in use by another application.'
+  };
 
 
-var mozToW3CErrors = {
-    PERMISSION_DENIED: 'PERMISSION_DENIED',
-    NOT_SUPPORTED_ERROR: "A constraint specified is not supported by the browser.",
-    MANDATORY_UNSATISFIED_ERROR: 'CONSTRAINT_NOT_SATISFIED'
-};
-
-
-var chromeToW3CErrors = {
-    1: 'PERMISSION_DENIED'
-};
-
-
-var gumNamesToMessages = {
-    PERMISSION_DENIED: "User denied permission for scripts from this origin to access the media device.",
-    CONSTRAINT_NOT_SATISFIED: "One of the mandatory constraints could not be satisfied."
-};
-
-
-var mapVendorErrorName = function mapVendorErrorName (vendorErrorName, vendorErrors) {
+  mapVendorErrorName = function mapVendorErrorName (vendorErrorName, vendorErrors) {
     var errorName = vendorErrors[vendorErrorName],
         errorMessage = gumNamesToMessages[errorName];
 
     if (!errorMessage) {
-        
-        
-        errorMessage = eventName;
-        errorName = vendorErrorName;
+      
+      
+      errorMessage = null; 
+      errorName = vendorErrorName;
     }
 
     return {
-        name: errorName,
-        message: errorMessage
+      name: errorName,
+      message: errorMessage
     };
-};
+  };
 
-
-
-
-
-var parseErrorEvent = function parseErrorObject (event) {
+  
+  
+  parseErrorEvent = function parseErrorObject (event) {
     var error;
 
     if (OT.$.isObject(event) && event.name) {
-        error = {
-            name: event.name,
-            message: event.message,
-            constraintName: event.constraintName
-        };
-    }
-    else if (OT.$.isObject(event)) {
-        error = mapVendorErrorName(event.code, chromeToW3CErrors);
+      error = {
+        name: event.name,
+        message: event.message || gumNamesToMessages[event.name],
+        constraintName: event.constraintName
+      };
 
-        
-        
-        if (event.message) error.message = event.message;
-        if (event.constraintName) error.constraintName = event.constraintName;
-    }
-    else if (event && mozToW3CErrors.hasOwnProperty(event)) {
-        error = mapVendorErrorName(event, mozToW3CErrors);
-    }
-    else {
-        error = {
-            message: "Unknown Error while getting user media"
-        };
-    }
+    } else if (OT.$.isObject(event)) {
+      error = mapVendorErrorName(event.code, chromeToW3CErrors);
 
+      
+      
+      if (event.message) error.message = event.message;
+      if (event.constraintName) error.constraintName = event.constraintName;
+
+    } else if (event && mozToW3CErrors.hasOwnProperty(event)) {
+      error = mapVendorErrorName(event, mozToW3CErrors);
+
+    } else {
+      error = {
+        message: 'Unknown Error while getting user media'
+      };
+    }
 
     return error;
-};
+  };
 
-
-
-
-
-var areInvalidConstraints = function(constraints) {
+  
+  
+  areInvalidConstraints = function(constraints) {
     if (!constraints || !OT.$.isObject(constraints)) return true;
 
     for (var key in constraints) {
-        if (constraints[key]) return false;
+      if (constraints[key]) return false;
     }
 
     return true;
-};
+  };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.$.supportsWebRTC = function() {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.$.supportsWebRTC = function() {
     var _supportsWebRTC = false;
 
-    if (navigator.webkitGetUserMedia) {
-        _supportsWebRTC = typeof(webkitRTCPeerConnection) === 'function' && !!webkitRTCPeerConnection.prototype.addStream;
-    }
-    else if (navigator.mozGetUserMedia) {
-        var firefoxVersion = window.navigator.userAgent.toLowerCase().match(/Firefox\/([0-9\.]+)/i);
-        _supportsWebRTC = typeof(mozRTCPeerConnection) === 'function' && (firefoxVersion !== null && parseFloat(firefoxVersion[1], 10) > 20.0);
-        if (_supportsWebRTC) {
-            try {
-                new mozRTCPeerConnection();
-                _supportsWebRTC = true;
-            } catch (err) {
-                _supportsWebRTC = false;
-            }
+    var browser = OT.$.browserVersion(),
+        minimumVersions = OT.properties.minimumVersion || {},
+        minimumVersion = minimumVersions[browser.browser.toLowerCase()];
+
+    if(minimumVersion && minimumVersion > browser.version) {
+      OT.debug('Support for', browser.browser, 'is disabled because we require',
+        minimumVersion, 'but this is', browser.version);
+      _supportsWebRTC = false;
+
+    } else if (navigator.webkitGetUserMedia) {
+      _supportsWebRTC = typeof(webkitRTCPeerConnection) === 'function' &&
+        !!webkitRTCPeerConnection.prototype.addStream;
+
+    } else if (navigator.mozGetUserMedia) {
+      if (typeof(mozRTCPeerConnection) === 'function' && browser.version > 20.0) {
+        try {
+          new mozRTCPeerConnection();
+          _supportsWebRTC = true;
+        } catch (err) {
+          _supportsWebRTC = false;
         }
+      }
     }
 
     OT.$.supportsWebRTC = function() {
-        return _supportsWebRTC;
+      return _supportsWebRTC;
     };
 
     return _supportsWebRTC;
-};
+  };
 
-
-
-
-
-
-
-
-
-OT.$.supportedCryptoScheme = function() {
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.$.supportedCryptoScheme = function() {
     if (!OT.$.supportsWebRTC()) return 'NONE';
 
     var chromeVersion = window.navigator.userAgent.toLowerCase().match(/chrome\/([0-9\.]+)/i);
     return chromeVersion && parseFloat(chromeVersion[1], 10) < 25 ? 'SDES_SRTP' : 'DTLS_SRTP';
-};
+  };
 
-
-
-
-
-
-
-OT.$.supportsBundle = function() {
+  
+  
+  
+  
+  
+  
+  OT.$.supportsBundle = function() {
     return OT.$.supportsWebRTC() && OT.$.browser() === 'Chrome';
-};
+  };
 
-
-
-
-
-
-
-
-OT.$.supportsRtcpMux = function() {
+  
+  
+  
+  
+  
+  
+  
+  OT.$.supportsRtcpMux = function() {
     return OT.$.supportsWebRTC() && OT.$.browser() === 'Chrome';
-};
+  };
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
+  OT.$.getUserMedia = function(constraints, success, failure, accessDialogOpened,
+    accessDialogClosed, accessDenied, customGetUserMedia) {
 
+    var getUserMedia = nativeGetUserMedia;
 
+    if(OT.$.isFunction(customGetUserMedia)) {
+      getUserMedia = customGetUserMedia;
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.$.getUserMedia = function(constraints, success, failure, accessDialogOpened, accessDialogClosed, accessDenied) {
     
     
     if (areInvalidConstraints(constraints)) {
-        OT.error("Couldn't get UserMedia: All constraints were false");
-        
-        failure.call(null, {
-            name: 'NO_VALID_CONSTRAINTS',
-            message: "Video and Audio was disabled, you need to enabled at least one"
-        });
+      OT.error('Couldn\'t get UserMedia: All constraints were false');
+      
+      failure.call(null, {
+        name: 'NO_VALID_CONSTRAINTS',
+        message: 'Video and Audio was disabled, you need to enabled at least one'
+      });
 
-        return;
+      return;
     }
 
     var triggerOpenedTimer = null,
         displayedPermissionDialog = false,
 
         finaliseAccessDialog = function() {
-            if (triggerOpenedTimer) {
-                clearTimeout(triggerOpenedTimer);
-            }
+          if (triggerOpenedTimer) {
+            clearTimeout(triggerOpenedTimer);
+          }
 
-            if (displayedPermissionDialog && accessDialogClosed) accessDialogClosed();
+          if (displayedPermissionDialog && accessDialogClosed) accessDialogClosed();
         },
 
         triggerOpened = function() {
-            triggerOpenedTimer = null;
-            displayedPermissionDialog = true;
+          triggerOpenedTimer = null;
+          displayedPermissionDialog = true;
 
-            if (accessDialogOpened) accessDialogOpened();
+          if (accessDialogOpened) accessDialogOpened();
         },
 
         onStream = function(stream) {
-            finaliseAccessDialog();
-            success.call(null, stream);
+          finaliseAccessDialog();
+          success.call(null, stream);
         },
 
         onError = function(event) {
-            finaliseAccessDialog();
-            var error = parseErrorEvent(event);
+          finaliseAccessDialog();
+          var error = parseErrorEvent(event);
 
-            if (error.name === 'PERMISSION_DENIED' || error.name === 'PermissionDeniedError') {
-                accessDenied.call(null, error);
+          
+          if (error.name === 'PermissionDeniedError') {
+            var MST = window.MediaStreamTrack;
+            if(MST != null && OT.$.isFunction(MST.getSources)) {
+              window.MediaStreamTrack.getSources(function(sources) {
+                if(sources.length > 0) {
+                  accessDenied.call(null, error);
+                } else {
+                  failure.call(null, {
+                    name: 'NoDevicesFoundError',
+                    message: gumNamesToMessages.NoDevicesFoundError
+                  });
+                }
+              });
+            } else {
+              accessDenied.call(null, error);
             }
-            else {
-                failure.call(null, error);
-            }
+
+          } else {
+            failure.call(null, error);
+          }
         };
 
     try {
-        getUserMedia(constraints, onStream, onError);
+      getUserMedia(constraints, onStream, onError);
     } catch (e) {
-        OT.error("Couldn't get UserMedia: " + e.toString());
-        onError();
-        return;
+      OT.error('Couldn\'t get UserMedia: ' + e.toString());
+      onError();
+      return;
     }
 
     
@@ -3072,98 +3495,114 @@ OT.$.getUserMedia = function(constraints, success, failure, accessDialogOpened, 
     
     
     if (location.protocol.indexOf('https') === -1) {
-        
-        
-        triggerOpenedTimer = setTimeout(triggerOpened, 100);
-    }
-    else {
-        
-        triggerOpenedTimer = setTimeout(triggerOpened, 500);
-    }
-};
+      
+      
+      triggerOpenedTimer = setTimeout(triggerOpened, 100);
 
-OT.$.createPeerConnection = function (config, options) {
-  var NativeRTCPeerConnection = (window.webkitRTCPeerConnection || window.mozRTCPeerConnection);
-  return new NativeRTCPeerConnection(config, options);
-};
-
+    } else {
+      
+      triggerOpenedTimer = setTimeout(triggerOpened, 500);
+    }
+  };
+  
+  OT.$.createPeerConnection = function (config, options) {
+    var NativeRTCPeerConnection = (window.webkitRTCPeerConnection || window.mozRTCPeerConnection);
+    return new NativeRTCPeerConnection(config, options);
+  };
 
 })(window);
-(function(window) {
+!(function(window) {
 
-OT.VideoOrientation = {
-    ROTATED_NORMAL: "OTVideoOrientationRotatedNormal",
-    ROTATED_LEFT: "OTVideoOrientationRotatedLeft",
-    ROTATED_RIGHT: "OTVideoOrientationRotatedRight",
-    ROTATED_UPSIDE_DOWN: "OTVideoOrientationRotatedUpsideDown"
-};
+  var _videoErrorCodes = {},
+      VideoOrientationTransforms;
 
+  VideoOrientationTransforms = {
+    0: 'rotate(0deg)',
+    270: 'rotate(90deg)',
+    90: 'rotate(-90deg)',
+    180: 'rotate(180deg)'
+  };
 
+  OT.VideoOrientation = {
+    ROTATED_NORMAL: 0,
+    ROTATED_LEFT: 270,
+    ROTATED_RIGHT: 90,
+    ROTATED_UPSIDE_DOWN: 180
+  };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.VideoElement = function(options) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.VideoElement = function(options) {
     var _stream,
         _domElement,
         _parentElement,
         _streamBound = false,
         _videoElementMovedWarning = false,
-        _options = OT.$.defaults(options || {}, {
-            fallbackText: 'Sorry, Web RTC is not available in your browser'
-        });
+        _options,
+        _onVideoError,
+        _onStreamBound,
+        _onStreamBoundError,
+        _playVideoOnPause;
 
+    _options = OT.$.defaults(options || {}, {
+      fallbackText: 'Sorry, Web RTC is not available in your browser'
+    });
 
     OT.$.eventing(this);
 
     
-    var _onVideoError = function(event) {
-            var reason = "There was an unexpected problem with the Video Stream: " + videoElementErrorCodeToStr(event.target.error.code);
-            this.trigger('error', null, reason, this);
-        }.bind(this),
+    _onVideoError = function(event) {
+      var reason = 'There was an unexpected problem with the Video Stream: ' +
+        videoElementErrorCodeToStr(event.target.error.code);
+      this.trigger('error', null, reason, this, 'VideoElement');
+    }.bind(this);
 
-        _onStreamBound = function() {
-            _streamBound = true;
-            _domElement.addEventListener('error', _onVideoError, false);
-            this.trigger('streamBound', this);
-        }.bind(this),
+    _onStreamBound = function() {
+      _streamBound = true;
+      _domElement.addEventListener('error', _onVideoError, false);
+      this.trigger('streamBound', this);
+    }.bind(this);
 
-        _onStreamBoundError = function(reason) {
-            this.trigger('loadError', OT.ExceptionCodes.P2P_CONNECTION_FAILED, reason, this);
-        }.bind(this),
+    _onStreamBoundError = function(reason) {
+      this.trigger('loadError', OT.ExceptionCodes.P2P_CONNECTION_FAILED, reason, this,
+        'VideoElement');
+    }.bind(this);
 
-        
-        
-        
-        _playVideoOnPause = function() {
-            if(!_videoElementMovedWarning) {
-                OT.warn("Video element paused, auto-resuming. If you intended to do this, use publishVideo(false) or subscribeToVideo(false) instead.");
-                _videoElementMovedWarning = true;
-            }
-            _domElement.play();
-        };
+    
+    
+    
+    _playVideoOnPause = function() {
+      if(!_videoElementMovedWarning) {
+        OT.warn('Video element paused, auto-resuming. If you intended to do this, use ' +
+          'publishVideo(false) or subscribeToVideo(false) instead.');
+        _videoElementMovedWarning = true;
+      }
+      _domElement.play();
+    };
 
 
     _domElement = createVideoElement(_options.fallbackText, _options.attributes);
@@ -3172,14 +3611,26 @@ OT.VideoElement = function(options) {
 
     
     Object.defineProperties(this, {
-        stream: {get: function() {return _stream; }},
-        domElement: {get: function() {return _domElement; }},
-        parentElement: {get: function() {return _parentElement; }},
-        isBoundToStream: {get: function() { return _streamBound; }},
-        poster: {
-            get: function() { return _domElement.getAttribute('poster'); },
-            set: function(src) { _domElement.setAttribute('poster', src); }
+      stream: {
+        get: function() {return _stream; }
+      },
+      domElement: {
+        get: function() {return _domElement; }
+      },
+      parentElement: {
+        get: function() {return _parentElement; }
+      },
+      isBoundToStream: {
+        get: function() { return _streamBound; }
+      },
+      poster: {
+        get: function() {
+          return _domElement.getAttribute('poster');
+        },
+        set: function(src) {
+          _domElement.setAttribute('poster', src);
         }
+      }
     });
 
 
@@ -3187,587 +3638,589 @@ OT.VideoElement = function(options) {
 
     
     this.appendTo = function(parentDomElement) {
-        _parentElement = parentDomElement;
-        _parentElement.appendChild(_domElement);
+      _parentElement = parentDomElement;
+      _parentElement.appendChild(_domElement);
 
-        return this;
+      return this;
     };
 
     
     this.bindToStream = function(webRtcStream) {
-        _streamBound = false;
-        _stream = webRtcStream;
+      _streamBound = false;
+      _stream = webRtcStream;
 
-        bindStreamToVideoElement(_domElement, _stream, _onStreamBound, _onStreamBoundError);
+      bindStreamToVideoElement(_domElement, _stream, _onStreamBound, _onStreamBoundError);
 
-        return this;
+      return this;
     };
 
     
     this.unbindStream = function() {
-        if (!_stream) return this;
+      if (!_stream) return this;
 
-        if (_domElement) {
-            if (!navigator.mozGetUserMedia) {
-                
-                
-                window.URL.revokeObjectURL(_domElement.src);
-            }
-            else {
-                _domElement.mozSrcObject = null;
-            }
+      if (_domElement) {
+        if (!navigator.mozGetUserMedia) {
+          
+          
+          window.URL.revokeObjectURL(_domElement.src);
+        } else {
+          _domElement.mozSrcObject = null;
         }
+      }
 
-        _stream = null;
+      _stream = null;
 
-        return this;
+      return this;
     };
 
     this.setAudioVolume = function(value) {
-        if (_domElement) _domElement.volume = OT.$.roundFloat(value / 100, 2);
+      if (_domElement) _domElement.volume = OT.$.roundFloat(value / 100, 2);
     };
 
     this.getAudioVolume = function() {
-        
-        if (_domElement) return parseInt(_domElement.volume * 100, 10);
-        return 50;
+      
+      if (_domElement) return parseInt(_domElement.volume * 100, 10);
+      return 50;
     };
 
     this.whenTimeIncrements = function(callback, context) {
-        if(_domElement) {
-            var lastTime, handler = function() {
-                if(!lastTime || lastTime >= _domElement.currentTime) {
-                    lastTime = _domElement.currentTime;
-                } else {
-                    _domElement.removeEventListener('timeupdate', handler, false);
-                    callback.call(context, this);
-                }
-            }.bind(this);
-            _domElement.addEventListener('timeupdate', handler, false);
-        }
+      if(_domElement) {
+        var lastTime, handler;
+        handler = function() {
+          if(!lastTime || lastTime >= _domElement.currentTime) {
+            lastTime = _domElement.currentTime;
+          } else {
+            _domElement.removeEventListener('timeupdate', handler, false);
+            callback.call(context, this);
+          }
+        }.bind(this);
+        _domElement.addEventListener('timeupdate', handler, false);
+      }
     };
 
     this.destroy = function() {
+      
+      this.off();
+
+      this.unbindStream();
+
+      if (_domElement) {
         
-        this.off();
+        
+        _domElement.removeEventListener('pause', _playVideoOnPause);
 
-        this.unbindStream();
+        OT.$.removeElement(_domElement);
+        _domElement = null;
+      }
 
-        if (_domElement) {
-            
-            
-            _domElement.removeEventListener('pause', _playVideoOnPause);
+      _parentElement = null;
 
-            OT.$.removeElement(_domElement);
-            _domElement = null;
-        }
-
-        _parentElement = null;
-
-        return undefined;
+      return undefined;
     };
-};
+  };
 
-
-
-if (OT.$.canDefineProperty) {
+  
+  
+  if (OT.$.canDefineProperty) {
     
     Object.defineProperties(OT.VideoElement.prototype, {
-        imgData: {
-            get: function() {
-                var canvas = OT.$.createElement('canvas', {
-                        width: this.domElement.videoWidth,
-                        height: this.domElement.videoHeight,
-                        style: {
-                            display: 'none'
-                        }
-                    });
-
-                document.body.appendChild(canvas);
-                try {
-                    canvas.getContext('2d').drawImage(this.domElement, 0, 0, canvas.width, canvas.height);
-                } catch(err) {
-                    OT.warn("Cannot get image data yet");
-                    return null;
-                }
-                var imgData = canvas.toDataURL('image/png');
-
-                OT.$.removeElement(canvas);
-
-                return imgData.replace("data:image/png;base64,", "").trim();
-            }
-        },
-
-        videoWidth: {
-            get: function() {
-                if(this._orientation && this._orientation.width) {
-                    return this._orientation.width;
-                }
-                return this.domElement['video' + (this.isRotated ? 'Height' : 'Width')];
-            }
-        },
-
-        videoHeight: {
-            get: function() {
-                if(this._orientation && this._orientation.height) {
-                    return this._orientation.height;
-                }
-                return this.domElement['video' + (this.isRotated ? 'Width' : 'Height')];
-            }
-        },
-
-        aspectRatio: {
-            get: function() {
-                return (this.videoWidth + 0.0) / this.videoHeight;
-            }
-        },
-
-        isRotated: {
-            get: function() {
-                return this._orientation && (this._orientation.videoOrientation == 'OTVideoOrientationRotatedLeft' || this._orientation.videoOrientation == 'OTVideoOrientationRotatedRight');
-            }
-        }
-    });
-}
-
-
-var VideoOrientationTransforms = {
-    OTVideoOrientationRotatedNormal: "rotate(0deg)",
-    OTVideoOrientationRotatedLeft: "rotate(90deg)",
-    OTVideoOrientationRotatedRight: "rotate(-90deg)",
-    OTVideoOrientationRotatedUpsideDown: "rotate(180deg)"
-};
-
-
-if (OT.$.canDefineProperty) {
-    Object.defineProperty(OT.VideoElement.prototype,'orientation', {
+      imgData: {
         get: function() {
-            return this._orientation;
-        },
-        set: function(orientation) {
-            this._orientation = orientation;
+          var canvas,
+              imgData;
 
-            var transform = VideoOrientationTransforms[orientation.videoOrientation] || VideoOrientationTransforms.ROTATED_NORMAL;
-
-            switch(OT.$.browser()) {
-                case 'Chrome':
-                case 'Safari':
-                    this.domElement.style.webkitTransform = transform;
-                    break;
-
-                case 'IE':
-                    this.domElement.style.msTransform = transform;
-                    break;
-
-                default:
-                    
-                    this.domElement.style.transform = transform;
+          canvas = OT.$.createElement('canvas', {
+            width: this.domElement.videoWidth,
+            height: this.domElement.videoHeight,
+            style: {
+              display: 'none'
             }
+          });
 
-            this.trigger('orientationChanged');
+          document.body.appendChild(canvas);
+
+          try {
+            canvas.getContext('2d').drawImage(this.domElement, 0, 0, canvas.width, canvas.height);
+          } catch(err) {
+            OT.warn('Cannot get image data yet');
+            return null;
+          }
+
+          imgData = canvas.toDataURL('image/png');
+
+          OT.$.removeElement(canvas);
+
+          return imgData.replace('data:image/png;base64,', '').trim();
         }
+      },
+
+      videoWidth: {
+        get: function() {
+          return this.domElement['video' + (this.isRotated ? 'Height' : 'Width')];
+        }
+      },
+
+      videoHeight: {
+        get: function() {
+          return this.domElement['video' + (this.isRotated ? 'Width' : 'Height')];
+        }
+      },
+
+      aspectRatio: {
+        get: function() {
+          return (this.videoWidth + 0.0) / this.videoHeight;
+        }
+      },
+
+      isRotated: {
+        get: function() {
+          return this._orientation && (
+            this._orientation.videoOrientation === 270 ||
+            this._orientation.videoOrientation === 90
+          );
+        }
+      },
+
+      orientation: {
+        get: function() { return this._orientation; },
+        set: function(orientation) {
+          var transform = VideoOrientationTransforms[orientation.videoOrientation] ||
+              VideoOrientationTransforms.ROTATED_NORMAL;
+
+          this._orientation = orientation;
+
+          switch(OT.$.browser()) {
+            case 'Chrome':
+            case 'Safari':
+              this.domElement.style.webkitTransform = transform;
+              break;
+
+            case 'IE':
+              this.domElement.style.msTransform = transform;
+              break;
+
+            default:
+              
+              this.domElement.style.transform = transform;
+          }
+
+          this.trigger('orientationChanged');
+        }
+      }
     });
-}
+  }
 
 
 
-
-
-function createVideoElement(fallbackText, attributes) {
+  function createVideoElement(fallbackText, attributes) {
     var videoElement = document.createElement('video');
     videoElement.setAttribute('autoplay', '');
     videoElement.innerHTML = fallbackText;
 
     if (attributes) {
-        if (attributes.muted === true) {
-            delete attributes.muted;
-            videoElement.muted = 'true';
-        }
+      if (attributes.muted === true) {
+        delete attributes.muted;
+        videoElement.muted = 'true';
+      }
 
-        for (var key in attributes) {
-            videoElement.setAttribute(key, attributes[key]);
-        }
+      for (var key in attributes) {
+        videoElement.setAttribute(key, attributes[key]);
+      }
     }
 
     return videoElement;
-}
+  }
 
 
+  
+  
+  
+  if (window.MediaError) {
+    _videoErrorCodes[window.MediaError.MEDIA_ERR_ABORTED] = 'The fetching process for the media ' +
+      'resource was aborted by the user agent at the user\'s request.';
+    _videoErrorCodes[window.MediaError.MEDIA_ERR_NETWORK] = 'A network error of some description ' +
+      'caused the user agent to stop fetching the media resource, after the resource was ' +
+      'established to be usable.';
+    _videoErrorCodes[window.MediaError.MEDIA_ERR_DECODE] = 'An error of some description ' +
+      'occurred while decoding the media resource, after the resource was established to be ' +
+      ' usable.';
+    _videoErrorCodes[window.MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED] = 'The media resource ' +
+      'indicated by the src attribute was not suitable.';
+  }
 
-var _videoErrorCodes = {};
+  function videoElementErrorCodeToStr(errorCode) {
+    return _videoErrorCodes[parseInt(errorCode, 10)] || 'An unknown error occurred.';
+  }
 
-if (window.MediaError) {
-    _videoErrorCodes[window.MediaError.MEDIA_ERR_ABORTED] = "The fetching process for the media resource was aborted by the user agent at the user's request.";
-    _videoErrorCodes[window.MediaError.MEDIA_ERR_NETWORK] = "A network error of some description caused the user agent to stop fetching the media resource, after the resource was established to be usable.";
-    _videoErrorCodes[window.MediaError.MEDIA_ERR_DECODE] = "An error of some description occurred while decoding the media resource, after the resource was established to be usable.";
-    _videoErrorCodes[window.MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED] = "The media resource indicated by the src attribute was not suitable. ";
-}
+  function bindStreamToVideoElement(videoElement, webRTCStream, onStreamBound, onStreamBoundError) {
+    var cleanup,
+        onLoad,
+        onError,
+        onStoppedLoading,
+        timeout;
 
-function videoElementErrorCodeToStr(errorCode) {
-    return _videoErrorCodes[parseInt(errorCode, 10)] || "An unknown error occurred.";
-}
-
-
-function bindStreamToVideoElement(videoElement, webRTCStream, onStreamBound, onStreamBoundError) {
     
-    if (navigator.mozGetUserMedia || (webRTCStream.getVideoTracks().length > 0 && webRTCStream.getVideoTracks()[0].enabled)) {
+    if (navigator.mozGetUserMedia || (
+      webRTCStream.getVideoTracks().length > 0 && webRTCStream.getVideoTracks()[0].enabled)) {
 
-        var cleanup = function cleanup () {
-                clearTimeout(timeout);
-                videoElement.removeEventListener('loadedmetadata', onLoad, false);
-                videoElement.removeEventListener('error', onError, false);
-            },
+      cleanup = function cleanup () {
+        clearTimeout(timeout);
+        videoElement.removeEventListener('loadedmetadata', onLoad, false);
+        videoElement.removeEventListener('error', onError, false);
+        webRTCStream.onended = null;
+      };
 
-            onLoad = function onLoad (event) {
-                cleanup();
-                onStreamBound();
-            },
-
-            onError = function onError (event) {
-                cleanup();
-                onStreamBoundError("There was an unexpected problem with the Video Stream: " + videoElementErrorCodeToStr(event.target.error.code));
-            },
-
-            onStoppedLoading = function onStoppedLoading () {
-                
-                
-                cleanup();
-                onStreamBoundError("Stream ended while trying to bind it to a video element.");
-            },
-
-            
-            timeout = setTimeout(function() {
-                if (videoElement.currentTime === 0) {
-                    onStreamBoundError("The video stream failed to connect. Please notify the site owner if this continues to happen.");
-                } else {
-                    
-                    OT.warn("Never got the loadedmetadata event but currentTime > 0");
-                    onStreamBound();
-                }
-            }.bind(this), 30000);
-
-
-        videoElement.addEventListener('loadedmetadata', onLoad, false);
-        videoElement.addEventListener('error', onError, false);
-        webRTCStream.onended = onStoppedLoading;
-    } else {
+      onLoad = function onLoad () {
+        cleanup();
         onStreamBound();
+      };
+
+      onError = function onError (event) {
+        cleanup();
+        onStreamBoundError('There was an unexpected problem with the Video Stream: ' +
+          videoElementErrorCodeToStr(event.target.error.code));
+      };
+
+      onStoppedLoading = function onStoppedLoading () {
+        
+        
+        cleanup();
+        onStreamBoundError('Stream ended while trying to bind it to a video element.');
+      };
+
+      
+      timeout = setTimeout(function() {
+        if (videoElement.currentTime === 0) {
+          onStreamBoundError('The video stream failed to connect. Please notify the site ' +
+            'owner if this continues to happen.');
+        } else {
+          
+          OT.warn('Never got the loadedmetadata event but currentTime > 0');
+          onStreamBound();
+        }
+      }.bind(this), 30000);
+
+
+      videoElement.addEventListener('loadedmetadata', onLoad, false);
+      videoElement.addEventListener('error', onError, false);
+      webRTCStream.onended = onStoppedLoading;
+    } else {
+      onStreamBound();
     }
 
     
     if (videoElement.srcObject !== void 0) {
-        videoElement.srcObject = webRTCStream;
-    }
-    else if (videoElement.mozSrcObject !== void 0) {
-        videoElement.mozSrcObject = webRTCStream;
-    }
-    else {
-        videoElement.src = window.URL.createObjectURL(webRTCStream);
+      videoElement.srcObject = webRTCStream;
+    } else if (videoElement.mozSrcObject !== void 0) {
+      videoElement.mozSrcObject = webRTCStream;
+    } else {
+      videoElement.src = window.URL.createObjectURL(webRTCStream);
     }
 
     videoElement.play();
-}
-
+  }
 
 })(window);
-(function(window) {
+!(function(window) {
+
+  
+  var logQueue = [],
+      queueRunning = false;
 
 
-var logQueue = [],
-    queueRunning = false;
+  OT.Analytics = function() {
 
-
-OT.Analytics = function() {
-
-    var endPoint = OT.properties.loggingURL + "/logging/ClientEvent",
-        endPointQos = OT.properties.loggingURL + "/logging/ClientQos",
+    var endPoint = OT.properties.loggingURL + '/logging/ClientEvent',
+        endPointQos = OT.properties.loggingURL + '/logging/ClientQos',
 
         reportedErrors = {},
 
         
-        camelCasedKeys = {
-            payloadType: 'payload_type',
-            partnerId: 'partner_id',
-            streamId: 'stream_id',
-            sessionId: 'session_id',
-            connectionId: 'connection_id',
-            widgetType: 'widget_type',
-            widgetId: 'widget_id',
-            avgAudioBitrate: 'avg_audio_bitrate',
-            avgVideoBitrate: 'avg_video_bitrate',
-            localCandidateType: 'local_candidate_type',
-            remoteCandidateType: 'remote_candidate_type',
-            transportType: 'transport_type'
-        },
+        camelCasedKeys,
 
-        send = function(data, isQos, onSuccess, onError) {
-            OT.$.post(isQos ? endPointQos : endPoint, {
-                success: onSuccess,
-                error: onError,
-                data: data,
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            });
+        send = function(data, isQos, callback) {
+          OT.$.post(isQos ? endPointQos : endPoint, {
+            body: data,
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
+          }, callback);
         },
 
         throttledPost = function() {
+          
+          if (!queueRunning && logQueue.length > 0) {
+            queueRunning = true;
+            var curr = logQueue[0];
+
             
-            if (!queueRunning && logQueue.length > 0) {
-                queueRunning = true;
-                var curr = logQueue[0];
+            var processNextItem = function() {
+              logQueue.shift();
+              queueRunning = false;
+              throttledPost();
+            };
 
-                
-                var processNextItem = function() {
-                    logQueue.shift();
-                    queueRunning = false;
-                    throttledPost();
-                };
-
-                if (curr) {
-                    send(curr.data, curr.isQos, function() {
-                        curr.onComplete();
-                        setTimeout(processNextItem, 50);
-                    }, function() {
-                        OT.debug("Failed to send ClientEvent, moving on to the next item.");
-
-                        
-                        setTimeout(processNextItem, 50);
-                    });
+            if (curr) {
+              send(curr.data, curr.isQos, function(err) {
+                if(err) {
+                  OT.debug('Failed to send ClientEvent, moving on to the next item.');
+                } else {
+                  curr.onComplete();
                 }
+                setTimeout(processNextItem, 50);
+              });
             }
+          }
         },
 
         post = function(data, onComplete, isQos) {
-            logQueue.push({
-                data: data,
-                onComplete: onComplete,
-                isQos: isQos
-            });
+          logQueue.push({
+            data: data,
+            onComplete: onComplete,
+            isQos: isQos
+          });
 
-            throttledPost();
+          throttledPost();
         },
 
         shouldThrottleError = function(code, type, partnerId) {
-            if (!partnerId) return false;
+          if (!partnerId) return false;
 
-            var errKey = [partnerId, type, code].join('_'),
-                
-                msgLimit = 100;
-            if (msgLimit === null || msgLimit === undefined) return false;
-
-            return (reportedErrors[errKey] || 0) <= msgLimit;
+          var errKey = [partnerId, type, code].join('_'),
+          
+            msgLimit = 100;
+          if (msgLimit === null || msgLimit === undefined) return false;
+          return (reportedErrors[errKey] || 0) <= msgLimit;
         };
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        this.logError = function(code, type, message, details, options) {
-            if (!options) options = {};
-            var partnerId = options.partnerId;
+    camelCasedKeys = {
+      payloadType: 'payload_type',
+      partnerId: 'partner_id',
+      streamId: 'stream_id',
+      sessionId: 'session_id',
+      connectionId: 'connection_id',
+      widgetType: 'widget_type',
+      widgetId: 'widget_id',
+      avgAudioBitrate: 'avg_audio_bitrate',
+      avgVideoBitrate: 'avg_video_bitrate',
+      localCandidateType: 'local_candidate_type',
+      remoteCandidateType: 'remote_candidate_type',
+      transportType: 'transport_type'
+    };
 
-            if (OT.Config.get('exceptionLogging', 'enabled', partnerId) !== true) {
-                return;
-            }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    this.logError = function(code, type, message, details, options) {
+      if (!options) options = {};
+      var partnerId = options.partnerId;
 
-            if (shouldThrottleError(code, type, partnerId)) {
-                
-                return;
-            }
+      if (OT.Config.get('exceptionLogging', 'enabled', partnerId) !== true) {
+        return;
+      }
 
-            var errKey = [partnerId, type, code].join('_'),
+      if (shouldThrottleError(code, type, partnerId)) {
+        
+        
+        return;
+      }
 
-                payload = this.escapePayload(OT.$.extend(details || {}, {
-                    message: payload,
-                    userAgent: navigator.userAgent
-                }));
+      var errKey = [partnerId, type, code].join('_'),
+
+      payload = this.escapePayload(OT.$.extend(details || {}, {
+        message: payload,
+        userAgent: navigator.userAgent
+      }));
 
 
-            reportedErrors[errKey] = typeof(reportedErrors[errKey]) !== 'undefined' ?
-                                            reportedErrors[errKey] + 1 :
-                                            1;
+      reportedErrors[errKey] = typeof(reportedErrors[errKey]) !== 'undefined' ?
+        reportedErrors[errKey] + 1 : 1;
 
-            return this.logEvent(OT.$.extend(options, {
-                action: type + '.' + code,
-                payloadType: payload[0],
-                payload: payload[1]
-            }));
-        };
+      return this.logEvent(OT.$.extend(options, {
+        action: type + '.' + code,
+        payloadType: payload[0],
+        payload: payload[1]
+      }));
+    };
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        this.logEvent = function(options) {
-            var partnerId = options.partnerId;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    this.logEvent = function(options) {
+      var partnerId = options.partnerId;
 
-            if (!options) options = {};
+      if (!options) options = {};
 
-            
-            var data = OT.$.extend({
-                    "variation" : "",
-                    'guid' : this.getClientGuid(),
-                    'widget_id' : "",
-                    'session_id': '',
-                    'connection_id': '',
-                    'stream_id' : "",
-                    'partner_id' : partnerId,
-                    'source' : window.location.href,
-                    'section' : "",
-                    'build' : ""
-                }, options),
+      
+      var data = OT.$.extend({
+        'variation' : '',
+        'guid' : this.getClientGuid(),
+        'widget_id' : '',
+        'session_id': '',
+        'connection_id': '',
+        'stream_id' : '',
+        'partner_id' : partnerId,
+        'source' : window.location.href,
+        'section' : '',
+        'build' : ''
+      }, options),
 
-                onComplete = function(){
-                
-                };
-
-            
-            
-            for (var key in camelCasedKeys) {
-                if (camelCasedKeys.hasOwnProperty(key) && data[key]) {
-                    data[camelCasedKeys[key]] = data[key];
-                    delete data[key];
-                }
-            }
-
-            post(data, onComplete, false);
-        };
-
+      onComplete = function(){
         
         
-        this.logQOS = function(options) {
-            var partnerId = options.partnerId;
+      };
 
-            if (!options) options = {};
+      
+      
+      for (var key in camelCasedKeys) {
+        if (camelCasedKeys.hasOwnProperty(key) && data[key]) {
+          data[camelCasedKeys[key]] = data[key];
+          delete data[key];
+        }
+      }
 
-            
-            var data = OT.$.extend({
-                    'guid' : this.getClientGuid(),
-                    'widget_id' : "",
-                    'session_id': '',
-                    'connection_id': '',
-                    'stream_id' : "",
-                    'partner_id' : partnerId,
-                    'source' : window.location.href,
-                    'build' : "",
-                    'duration' : 0 
-                }, options),
+      post(data, onComplete, false);
+    };
 
-                onComplete = function(){
-                    
-                };
+    
+    
+    this.logQOS = function(options) {
+      var partnerId = options.partnerId;
 
-            
-            
-            for (var key in camelCasedKeys) {
-                if (camelCasedKeys.hasOwnProperty(key) && data[key]) {
-                    data[camelCasedKeys[key]] = data[key];
-                    delete data[key];
-                }
-            }
+      if (!options) options = {};
 
-            post(data, onComplete, true);
-        };
+      
+      var data = OT.$.extend({
+        'guid' : this.getClientGuid(),
+        'widget_id' : '',
+        'session_id': '',
+        'connection_id': '',
+        'stream_id' : '',
+        'partner_id' : partnerId,
+        'source' : window.location.href,
+        'build' : '',
+        'duration' : 0 
+      }, options),
 
+      onComplete = function(){
         
         
-        
-        
-        this.escapePayload = function(payload) {
-            var escapedPayload = [],
-                escapedPayloadDesc = [];
+      };
 
-            for (var key in payload) {
-                if (payload.hasOwnProperty(key) && payload[key] !== null && payload[key] !== undefined) {
-                    escapedPayload.push( payload[key] ? payload[key].toString().replace('|', '\\|') : '' );
-                    escapedPayloadDesc.push( key.toString().replace('|', '\\|') );
-                }
-            }
+      
+      
+      for (var key in camelCasedKeys) {
+        if (camelCasedKeys.hasOwnProperty(key) && data[key]) {
+          data[camelCasedKeys[key]] = data[key];
+          delete data[key];
+        }
+      }
 
-            return [
-                escapedPayloadDesc.join('|'),
-                escapedPayload.join('|')
-            ];
-        };
-        
-        this.getClientGuid = function() {
-            var  guid = OT.$.getCookie("opentok_client_id");
-            if (!guid) {
-                guid = OT.$.uuid();
-                OT.$.setCookie("opentok_client_id", guid);
-            }
-            return guid;
-        };
-}
+      post(data, onComplete, true);
+    };
+
+    
+    
+    
+    
+    this.escapePayload = function(payload) {
+      var escapedPayload = [],
+          escapedPayloadDesc = [];
+
+      for (var key in payload) {
+        if (payload.hasOwnProperty(key) && payload[key] !== null && payload[key] !== undefined) {
+          escapedPayload.push( payload[key] ? payload[key].toString().replace('|', '\\|') : '' );
+          escapedPayloadDesc.push( key.toString().replace('|', '\\|') );
+        }
+      }
+
+      return [
+        escapedPayloadDesc.join('|'),
+        escapedPayload.join('|')
+      ];
+    };
+
+    
+    this.getClientGuid = function() {
+      var  guid = OT.$.getCookie('opentok_client_id');
+      if (!guid) {
+        guid = OT.$.uuid();
+        OT.$.setCookie('opentok_client_id', guid);
+      }
+      return guid;
+    };
+  };
 
 })(window);
-(function(window) {
+!(function(window) {
 
+  
+  
+  
+  if (location.protocol === 'file:') {
+    
+    alert('You cannot test a page using WebRTC through the file system due to browser ' +
+      'permissions. You must run it over a web server.');
+  }
 
+  if (!window.OT) window.OT = {};
 
-
-if (location.protocol === 'file:') {
-  alert("You cannot test a page using WebRTC through the file system due to browser permissions. You must run it over a web server.");
-}
-
-if (!window.OT) window.OT = {};
-
-if (!window.URL && window.webkitURL) {
+  if (!window.URL && window.webkitURL) {
     window.URL = window.webkitURL;
-}
+  }
 
-var _publisherCount = 0,
-
-    
-    _intervalId,
-    _lastHash = document.location.hash,
-
-    
-    _deviceManager;
+  var 
+      _intervalId,
+      _lastHash = document.location.hash;
 
 
 
@@ -3799,16 +4252,25 @@ var _publisherCount = 0,
 
 
 
-OT.initSession = function(sessionId) {
+
+
+
+  OT.initSession = function(apiKey, sessionId) {
+
+    if(sessionId == null) {
+      sessionId = apiKey;
+      apiKey = null;
+    }
+
     var session = OT.sessions.get(sessionId);
 
     if (!session) {
-        session = new OT.Session(sessionId);
-        OT.sessions.add(session);
+      session = new OT.Session(apiKey, sessionId);
+      OT.sessions.add(session);
     }
 
     return session;
-};
+  };
 
 
 
@@ -3888,28 +4350,174 @@ OT.initSession = function(sessionId) {
 
 
 
-OT.initPublisher = function(apiKey, targetElement, properties, completionHandler) {
-    OT.debug("TB.initPublisher("+targetElement+")");
 
-    var publisher = new OT.Publisher();;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.initPublisher = function(targetElement, properties, completionHandler) {
+    OT.debug('OT.initPublisher('+targetElement+')');
+
+    if(targetElement != null && !(
+      (typeof targetElement === 'object' && targetElement.nodeType === Node.ELEMENT_NODE) ||
+      (typeof targetElement === 'string' && document.getElementById(targetElement))) &&
+      typeof targetElement !== 'function') {
+      targetElement = properties;
+      properties = completionHandler;
+      completionHandler = arguments[3];
+    }
+    
+    if(typeof targetElement === 'function') {
+      completionHandler = targetElement;
+      properties = undefined;
+      targetElement = undefined;
+    }
+
+    if(typeof properties === 'function') {
+      completionHandler = properties;
+      properties = undefined;
+    }
+
+    var publisher = new OT.Publisher();
     OT.publishers.add(publisher);
 
-    if (completionHandler && OT.$.isFunction(completionHandler)) {
-        var removeHandlersAndCallComplete = function removeHandlersAndCallComplete (error) {
-            publisher.off('initSuccess', removeHandlersAndCallComplete);
-            publisher.off('publishComplete', removeHandlersAndCallComplete);
+    var triggerCallback = function triggerCallback (err) {
+      if (err) {
+        OT.dispatchError(err.code, err.message, completionHandler, publisher.session);
+      } else if (completionHandler && OT.$.isFunction(completionHandler)) {
+        completionHandler.apply(null, arguments);
+      }
+    },
 
-            completionHandler.apply(null, arguments);
-        };
+    removeInitSuccessAndCallComplete = function removeInitSuccessAndCallComplete (err) {
+      publisher.off('publishComplete', removeHandlersAndCallComplete);
+      triggerCallback(err);
+    },
 
-        publisher.once('initSuccess', removeHandlersAndCallComplete);
-        publisher.once('publishComplete', removeHandlersAndCallComplete);
-    }
+    removeHandlersAndCallComplete = function removeHandlersAndCallComplete (err) {
+      publisher.off('initSuccess', removeInitSuccessAndCallComplete);
+
+      
+      
+      if (err) triggerCallback(err);
+    };
+
+
+    publisher.once('initSuccess', removeInitSuccessAndCallComplete);
+    publisher.once('publishComplete', removeHandlersAndCallComplete);
 
     publisher.publish(targetElement, properties);
 
     return publisher;
-};
+  };
 
 
 
@@ -3920,18 +4528,19 @@ OT.initPublisher = function(apiKey, targetElement, properties, completionHandler
 
 
 
-OT.checkSystemRequirements = function() {
-    OT.debug("TB.checkSystemRequirements()");
+  OT.checkSystemRequirements = function() {
+    OT.debug('OT.checkSystemRequirements()');
 
-    var systemRequirementsMet = OT.$.supportsWebSockets() && OT.$.supportsWebRTC() ? this.HAS_REQUIREMENTS : this.NOT_HAS_REQUIREMENTS;
+    var systemRequirementsMet = OT.$.supportsWebSockets() && OT.$.supportsWebRTC() ?
+      this.HAS_REQUIREMENTS : this.NOT_HAS_REQUIREMENTS;
 
     OT.checkSystemRequirements = function() {
-      OT.debug("TB.checkSystemRequirements()");
+      OT.debug('OT.checkSystemRequirements()');
       return systemRequirementsMet;
     };
 
     return systemRequirementsMet;
-};
+  };
 
 
 
@@ -3945,87 +4554,91 @@ OT.checkSystemRequirements = function() {
 
 
 
-OT.upgradeSystemRequirements = function(){
+
+  OT.upgradeSystemRequirements = function(){
     
     OT.onLoad( function() {
-        var id = '_upgradeFlash';
+      var id = '_upgradeFlash';
 
          
-         document.body.appendChild((function(){
-             var d = document.createElement('iframe');
-             d.id = id;
-             d.style.position = 'absolute';
-             d.style.position = 'fixed';
-             d.style.height = '100%';
-             d.style.width = '100%';
-             d.style.top = '0px';
-             d.style.left = '0px';
-             d.style.right = '0px';
-             d.style.bottom = '0px';
-             d.style.zIndex = 1000;
-             try {
-                 d.style.backgroundColor = "rgba(0,0,0,0.2)";
-             } catch (err) {
-                 
-                 
-                 d.style.backgroundColor = "transparent";
-                 d.setAttribute("allowTransparency", "true");
-             }
-             d.setAttribute("frameBorder", "0");
-             d.frameBorder = "0";
-             d.scrolling = "no";
-             d.setAttribute("scrolling", "no");
-             d.src = OT.properties.assetURL + "/html/upgradeFlash.html#"+encodeURIComponent(document.location.href);
-             return d;
-         })());
+      document.body.appendChild((function() {
+        var d = document.createElement('iframe');
+        d.id = id;
+        d.style.position = 'absolute';
+        d.style.position = 'fixed';
+        d.style.height = '100%';
+        d.style.width = '100%';
+        d.style.top = '0px';
+        d.style.left = '0px';
+        d.style.right = '0px';
+        d.style.bottom = '0px';
+        d.style.zIndex = 1000;
+        try {
+          d.style.backgroundColor = 'rgba(0,0,0,0.2)';
+        } catch (err) {
+          
+          
+          d.style.backgroundColor = 'transparent';
+          d.setAttribute('allowTransparency', 'true');
+        }
+        d.setAttribute('frameBorder', '0');
+        d.frameBorder = '0';
+        d.scrolling = 'no';
+        d.setAttribute('scrolling', 'no');
+        var browser = OT.$.browserVersion(),
+            isSupportedButOld = OT.properties.minimumVersion[browser.browser.toLowerCase()];
+        d.src = OT.properties.assetURL + '/html/upgrade.html#' +
+                          encodeURIComponent(isSupportedButOld ? 'true' : 'false') + ',' +
+                          encodeURIComponent(JSON.stringify(OT.properties.minimumVersion)) + '|' +
+                          encodeURIComponent(document.location.href);
+        return d;
+      })());
 
-         
-         
-         
-         if (_intervalId) clearInterval(_intervalId);
-         _intervalId = setInterval(function(){
-             var hash = document.location.hash,
-                 re = /^#?\d+&/;
-             if (hash !== _lastHash && re.test(hash)) {
-                 _lastHash = hash;
-                 if( hash.replace(re, '') === 'close_window'){
-                     document.body.removeChild(document.getElementById(id));
-                     document.location.hash = '';
-                 }
-             }
-         }, 100);
+      
+      
+      
+      if (_intervalId) clearInterval(_intervalId);
+      _intervalId = setInterval(function(){
+        var hash = document.location.hash,
+            re = /^#?\d+&/;
+        if (hash !== _lastHash && re.test(hash)) {
+          _lastHash = hash;
+          if (hash.replace(re, '') === 'close_window'){
+            document.body.removeChild(document.getElementById(id));
+            document.location.hash = '';
+          }
+        }
+      }, 100);
     });
-};
+  };
 
 
-OT.reportIssue = function(){
-    OT.warn("ToDo: haven't yet implemented TB.reportIssue");
-};
+  OT.reportIssue = function(){
+    OT.warn('ToDo: haven\'t yet implemented OT.reportIssue');
+  };
 
-OT.components = {};
-OT.sessions = {};
+  OT.components = {};
+  OT.sessions = {};
+
+  
+  OT.rtc = {};
 
 
-OT.rtc = {};
-
-
-OT.APIKEY = (function(){
+  OT.APIKEY = (function(){
     
-    var script_src = (function(){
-        var s = document.getElementsByTagName('script');
-        s = s[s.length - 1];
-        s = s.getAttribute('src') || s.src;
-        return s;
+    var scriptSrc = (function(){
+      var s = document.getElementsByTagName('script');
+      s = s[s.length - 1];
+      s = s.getAttribute('src') || s.src;
+      return s;
     })();
 
-    var m = script_src.match(/[\?\&]apikey=([^&]+)/i);
+    var m = scriptSrc.match(/[\?\&]apikey=([^&]+)/i);
     return m ? m[1] : '';
-})();
+  })();
 
-OT.HAS_REQUIREMENTS = 1;
-OT.NOT_HAS_REQUIREMENTS = 0;
-
-
+  OT.HAS_REQUIREMENTS = 1;
+  OT.NOT_HAS_REQUIREMENTS = 0;
 
 
 
@@ -4083,170 +4696,350 @@ OT.NOT_HAS_REQUIREMENTS = 0;
 
 
 
-if (!window.OT) window.OT = OT;
-if (!window.TB) window.TB = OT;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if (!window.OT) window.OT = OT;
+  if (!window.TB) window.TB = OT;
 
 })(window);
-(function(global) {
+!(function() {
 
-OT.Collection = function(idField) {
-  var _models = [],
-      _byId = {},
-      _idField = idField || 'id';
+  OT.Collection = function(idField) {
+    var _models = [],
+        _byId = {},
+        _idField = idField || 'id';
 
-  OT.$.eventing(this, true);
+    OT.$.eventing(this, true);
 
-  var onModelUpdate = function onModelUpdate (event) {
-        this.trigger('update', event);
-        this.trigger('update:'+event.target.id, event);
-      }.bind(this),
+    var onModelUpdate = function onModelUpdate (event) {
+          this.trigger('update', event);
+          this.trigger('update:'+event.target.id, event);
+        }.bind(this),
 
-      onModelIdUpdate = function onModelIdUpdate (oldId, newId) {
-        if (_byId[oldId] === void 0) return;
+        onModelIdUpdate = function onModelIdUpdate (oldId, newId) {
+          if (_byId[oldId] === void 0) return;
 
-        
-        
-        var index = _byId[oldId];
-        delete _byId[oldId];
-        _byId[newId] = index;
-      }.bind(this),
+          
+          
+          var index = _byId[oldId];
+          delete _byId[oldId];
+          _byId[newId] = index;
+        }.bind(this),
 
-      onModelDestroy = function onModelDestroyed (event) {
-        this.remove(event.target, event.reason);
-      }.bind(this);
+        onModelDestroy = function onModelDestroyed (event) {
+          this.remove(event.target, event.reason);
+        }.bind(this);
 
 
-  this.reset = function() {
+    this.reset = function() {
+      
+      _models.forEach(function(model) {
+        model.off('updated', onModelUpdate, this);
+        model.off('destroyed', onModelDestroy, this);
+        model.off('idUpdated', onModelIdUpdate, this);
+      }, this);
+
+      _models = [];
+      _byId = {};
+    };
+
+    this.destroy = function() {
+      _models.forEach(function(model) {
+        if(model && typeof model.destroy === 'function') {
+          model.destroy(void 0, true);
+        }
+      });
+
+      this.reset();
+      this.off();
+    };
+
+    this.get = function(id) { return id && _byId[id] !== void 0 ? _models[_byId[id]] : void 0; };
+    this.has = function(id) { return id && _byId[id] !== void 0; };
+
+    this.toString = function() { return _models.toString(); };
+
     
-    _models.forEach(function(model) {
-      model.off('updated', onModelUpdate, this);
-      model.off('destroyed', onModelDestroy, this)
-      model.off('idUpdated', onModelIdUpdate, this);
-    }, this);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    this.where = function(attrsOrFilterFn, context) {
+      if (OT.$.isFunction(attrsOrFilterFn)) return _models.filter(attrsOrFilterFn, context);
 
-    _models = [];
-    _byId = {};
-  };
-
-  this.destroy = function() {
-    _models.forEach(function(model) {
-      model.destroy(void 0, true);
-    });
-
-    this.reset();
-    this.off();
-  };
-
-  this.get = function(id) { return id && _byId[id] !== void 0 ? _models[_byId[id]] : void 0; };
-  this.has = function(id) { return id && _byId[id] !== void 0; };
-
-  this.toString = function() { return _models.toString(); };
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  this.where = function(attrsOrFilterFn, context) {
-    if (OT.$.isFunction(attrsOrFilterFn)) return _models.filter(attrsOrFilterFn, context);
-
-    return _models.filter(function(model) {
-      for (var key in attrsOrFilterFn) {
-        if (model[key] !== attrsOrFilterFn[key]) return false;
-      }
-
-      return true;
-    });
-  };
-
-  
-  
-  this.find = function(attrsOrFilterFn, context) {
-    var filterFn;
-
-    if (OT.$.isFunction(attrsOrFilterFn)) {
-      filterFn = attrsOrFilterFn;
-    }
-    else {
-      filterFn = function(model) {
+      return _models.filter(function(model) {
         for (var key in attrsOrFilterFn) {
           if (model[key] !== attrsOrFilterFn[key]) return false;
         }
 
         return true;
-      };
-    }
-
-    filterFn = filterFn.bind(context);
-
-    for (var i=0; i<_models.length; ++i) {
-      if (filterFn(_models[i]) === true) return _models[i];
-    }
-
-    return null;
-  };
-
-  this.add = function(model) {
-    var id = model[_idField];
-
-    if (this.has(id)) {
-      OT.warn("Model " + id + ' is already in the collection', _models);
-      return this;
-    }
-
-    _byId[id] = _models.push(model) - 1;
-
-    model.on('updated', onModelUpdate, this);
-    model.on('destroyed', onModelDestroy, this)
-    model.on('idUpdated', onModelIdUpdate, this);
-
-    this.trigger('add', model);
-    this.trigger('add:'+id, model);
-
-    return this;
-  };
-
-  this.remove = function(model, reason) {
-    var id = model[_idField];
-
-    _models.splice(_byId[id], 1);
+      });
+    };
 
     
-    for (var i=_byId[id]; i<_models.length; ++i) {
-      _byId[_models[i][_idField]] = i
-    }
+    
+    this.find = function(attrsOrFilterFn, context) {
+      var filterFn;
 
-    delete _byId[id];
+      if (OT.$.isFunction(attrsOrFilterFn)) {
+        filterFn = attrsOrFilterFn;
+      }
+      else {
+        filterFn = function(model) {
+          for (var key in attrsOrFilterFn) {
+            if (model[key] !== attrsOrFilterFn[key]) return false;
+          }
 
-    model.off('updated', onModelUpdate, this);
-    model.off('destroyed', onModelDestroy, this)
-    model.off('idUpdated', onModelIdUpdate, this);
+          return true;
+        };
+      }
 
-    this.trigger('remove', model, reason);
-    this.trigger('remove:'+id, model, reason);
+      filterFn = filterFn.bind(context);
 
-    return this;
+      for (var i=0; i<_models.length; ++i) {
+        if (filterFn(_models[i]) === true) return _models[i];
+      }
+
+      return null;
+    };
+
+    this.add = function(model) {
+      var id = model[_idField];
+
+      if (this.has(id)) {
+        OT.warn('Model ' + id + ' is already in the collection', _models);
+        return this;
+      }
+
+      _byId[id] = _models.push(model) - 1;
+
+      model.on('updated', onModelUpdate, this);
+      model.on('destroyed', onModelDestroy, this);
+      model.on('idUpdated', onModelIdUpdate, this);
+
+      this.trigger('add', model);
+      this.trigger('add:'+id, model);
+
+      return this;
+    };
+
+    this.remove = function(model, reason) {
+      var id = model[_idField];
+
+      _models.splice(_byId[id], 1);
+
+      
+      for (var i=_byId[id]; i<_models.length; ++i) {
+        _byId[_models[i][_idField]] = i;
+      }
+
+      delete _byId[id];
+
+      model.off('updated', onModelUpdate, this);
+      model.off('destroyed', onModelDestroy, this);
+      model.off('idUpdated', onModelIdUpdate, this);
+
+      this.trigger('remove', model, reason);
+      this.trigger('remove:'+id, model, reason);
+
+      return this;
+    };
+
+    
+    this._triggerAddEvents = function() {
+      var models = this.where.apply(this, arguments);
+      models.forEach(function(model) {
+        this.trigger('add', model);
+        this.trigger('add:' + model[_idField], model);
+      }, this);
+    };
+
+    OT.$.defineGetters(this, {
+      length: function() { return _models.length; }
+    });
   };
-
-  OT.$.defineGetters(this, {
-    length: function() { return _models.length; }
-  });
-};
 
 }(this));
-(function(window) {
+!(function() {
+
+  
 
 
 
@@ -4270,12 +5063,8 @@ OT.Collection = function(idField) {
 
 
 
-
-
-
-OT.Event = OT.$.eventing.Event();
-
-
+  OT.Event = OT.$.eventing.Event();
+  
 
 
 
@@ -4299,88 +5088,90 @@ OT.Event = OT.$.eventing.Event();
 
 
 
+  
 
 
 
 
 
 
-OT.Event.names = {
+
+
+  
+  OT.Event.names = {
     
-    ACTIVE: "active",
-    INACTIVE: "inactive",
-    UNKNOWN: "unknown",
-
-    
-    PER_SESSION: "perSession",
-    PER_STREAM: "perStream",
+    ACTIVE: 'active',
+    INACTIVE: 'inactive',
+    UNKNOWN: 'unknown',
 
     
-    EXCEPTION: "exception",
-    ISSUE_REPORTED: "issueReported",
+    PER_SESSION: 'perSession',
+    PER_STREAM: 'perStream',
 
     
-    SESSION_CONNECTED: "sessionConnected",
-    SESSION_DISCONNECTED: "sessionDisconnected",
-    STREAM_CREATED: "streamCreated",
-    STREAM_DESTROYED: "streamDestroyed",
-    CONNECTION_CREATED: "connectionCreated",
-    CONNECTION_DESTROYED: "connectionDestroyed",
-    SIGNAL: "signal",
-    STREAM_PROPERTY_CHANGED: "streamPropertyChanged",
-    MICROPHONE_LEVEL_CHANGED: "microphoneLevelChanged",
+    EXCEPTION: 'exception',
+    ISSUE_REPORTED: 'issueReported',
+
+    
+    SESSION_CONNECTED: 'sessionConnected',
+    SESSION_DISCONNECTED: 'sessionDisconnected',
+    STREAM_CREATED: 'streamCreated',
+    STREAM_DESTROYED: 'streamDestroyed',
+    CONNECTION_CREATED: 'connectionCreated',
+    CONNECTION_DESTROYED: 'connectionDestroyed',
+    SIGNAL: 'signal',
+    STREAM_PROPERTY_CHANGED: 'streamPropertyChanged',
+    MICROPHONE_LEVEL_CHANGED: 'microphoneLevelChanged',
 
 
     
-    RESIZE: "resize",
-    SETTINGS_BUTTON_CLICK: "settingsButtonClick",
-    DEVICE_INACTIVE: "deviceInactive",
-    INVALID_DEVICE_NAME: "invalidDeviceName",
-    ACCESS_ALLOWED: "accessAllowed",
-    ACCESS_DENIED: "accessDenied",
+    RESIZE: 'resize',
+    SETTINGS_BUTTON_CLICK: 'settingsButtonClick',
+    DEVICE_INACTIVE: 'deviceInactive',
+    INVALID_DEVICE_NAME: 'invalidDeviceName',
+    ACCESS_ALLOWED: 'accessAllowed',
+    ACCESS_DENIED: 'accessDenied',
     ACCESS_DIALOG_OPENED: 'accessDialogOpened',
     ACCESS_DIALOG_CLOSED: 'accessDialogClosed',
-    ECHO_CANCELLATION_MODE_CHANGED: "echoCancellationModeChanged",
+    ECHO_CANCELLATION_MODE_CHANGED: 'echoCancellationModeChanged',
     PUBLISHER_DESTROYED: 'destroyed',
 
     
     SUBSCRIBER_DESTROYED: 'destroyed',
 
     
-    DEVICES_DETECTED: "devicesDetected",
+    DEVICES_DETECTED: 'devicesDetected',
 
     
-    DEVICES_SELECTED: "devicesSelected",
-    CLOSE_BUTTON_CLICK: "closeButtonClick",
+    DEVICES_SELECTED: 'devicesSelected',
+    CLOSE_BUTTON_CLICK: 'closeButtonClick',
 
     MICLEVEL : 'microphoneActivityLevel',
     MICGAINCHANGED : 'microphoneGainChanged',
 
     
     ENV_LOADED: 'envLoaded'
-};
+  };
 
-OT.ValueEvent = function (type,value){
-    OT.Event.call(this, type);
-    this.value = value;
+  OT.ExceptionCodes = {
+    JS_EXCEPTION: 2000,
+    AUTHENTICATION_ERROR: 1004,
+    INVALID_SESSION_ID: 1005,
+    CONNECT_FAILED: 1006,
+    CONNECT_REJECTED: 1007,
+    CONNECTION_TIMEOUT: 1008,
+    NOT_CONNECTED: 1010,
+    P2P_CONNECTION_FAILED: 1013,
+    API_RESPONSE_FAILURE: 1014,
+    UNABLE_TO_PUBLISH: 1500,
+    UNABLE_TO_SUBSCRIBE: 1501,
+    UNABLE_TO_SIGNAL: 1510,
+    UNABLE_TO_FORCE_DISCONNECT: 1520,
+    UNABLE_TO_FORCE_UNPUBLISH: 1530
+  };
 
-};
+  
 
-OT.ExceptionCodes = {
-  JS_EXCEPTION: 2000,
-  AUTHENTICATION_ERROR: 1004,
-  INVALID_SESSION_ID: 1005,
-  CONNECT_FAILED: 1006,
-  CONNECT_REJECTED: 1007,
-  CONNECTION_TIMEOUT: 1008,
-  NOT_CONNECTED: 1010,
-  P2P_CONNECTION_FAILED: 1013,
-  API_RESPONSE_FAILURE: 1014,
-  UNABLE_TO_PUBLISH: 1500,
-  UNABLE_TO_SIGNAL: 1510,
-  UNABLE_TO_FORCE_DISCONNECT: 1520,
-  UNABLE_TO_FORCE_UNPUBLISH: 1530
-};
 
 
 
@@ -4573,10 +5364,7 @@ OT.ExceptionCodes = {
 
 
 
-
-
-
-OT.ExceptionEvent = function (type, message, title, code, component, target) {
+  OT.ExceptionEvent = function (type, message, title, code, component, target) {
     OT.Event.call(this, type);
 
     this.message = message;
@@ -4584,19 +5372,18 @@ OT.ExceptionEvent = function (type, message, title, code, component, target) {
     this.code = code;
     this.component = component;
     this.target = target;
-};
+  };
 
 
-OT.IssueReportedEvent = function (type, issueId) {
+  OT.IssueReportedEvent = function (type, issueId) {
     OT.Event.call(this, type);
-
     this.issueId = issueId;
-};
+  };
 
-
-OT.EnvLoadedEvent = function (type) {
+  
+  OT.EnvLoadedEvent = function (type) {
     OT.Event.call(this, type);
-};
+  };
 
 
 
@@ -4674,12 +5461,29 @@ OT.EnvLoadedEvent = function (type) {
 
 
 
-OT.ConnectionEvent = function (type, connections, reason) {
-    OT.Event.call(this, type);
 
-    this.connections = connections;
+  var connectionEventPluralDeprecationWarningShown = false;
+  OT.ConnectionEvent = function (type, connection, reason) {
+    OT.Event.call(this, type, false);
+
+    if (OT.$.canDefineProperty) {
+      Object.defineProperty(this, 'connections', {
+        get: function() {
+          if(!connectionEventPluralDeprecationWarningShown) {
+            OT.warn('OT.ConnectionEvent connections property is deprecated, ' +
+              'use connection instead.');
+            connectionEventPluralDeprecationWarningShown = true;
+          }
+          return [connection];
+        }
+      });
+    } else {
+      this.connections = [connection];
+    }
+    
+    this.connection = connection;
     this.reason = reason;
-};
+  };
 
 
 
@@ -4782,17 +5586,27 @@ OT.ConnectionEvent = function (type, connections, reason) {
 
 
 
-
-
-
-
-
-OT.StreamEvent = function (type, streams, reason, cancelable) {
+  var streamEventPluralDeprecationWarningShown = false;
+  OT.StreamEvent = function (type, stream, reason, cancelable) {
     OT.Event.call(this, type, cancelable);
 
-    this.streams = streams;
+    if (OT.$.canDefineProperty) {
+      Object.defineProperty(this, 'streams', {
+        get: function() {
+          if(!streamEventPluralDeprecationWarningShown) {
+            OT.warn('OT.StreamEvent streams property is deprecated, use stream instead.');
+            streamEventPluralDeprecationWarningShown = true;
+          }
+          return [stream];
+        }
+      });
+    } else {
+      this.streams = [stream];
+    }
+
+    this.stream = stream;
     this.reason = reason;
-};
+  };
 
 
 
@@ -4835,14 +5649,7 @@ OT.StreamEvent = function (type, streams, reason, cancelable) {
 
 
 
-OT.SessionConnectEvent = function (type, connections, streams, archives) {
-    OT.Event.call(this, type);
 
-    this.connections = connections;
-    this.streams = streams;
-    this.archives = archives;
-    this.groups = []; 
-};
 
 
 
@@ -4853,7 +5660,64 @@ OT.SessionConnectEvent = function (type, connections, streams, archives) {
 
 
 
+  var sessionConnectedConnectionsDeprecationWarningShown = false;
+  var sessionConnectedStreamsDeprecationWarningShown = false;
+  var sessionConnectedArchivesDeprecationWarningShown = false;
+  var sessionConnectedGroupsDeprecationWarningShown = false;
 
+  OT.SessionConnectEvent = function (type) {
+    OT.Event.call(this, type, false);
+    if (OT.$.canDefineProperty) {
+      Object.defineProperties(this, {
+        connections: {
+          get: function() {
+            if(!sessionConnectedConnectionsDeprecationWarningShown) {
+              OT.warn('OT.SessionConnectedEvent no longer includes connections. Listen ' +
+                'for connectionCreated events instead.');
+              sessionConnectedConnectionsDeprecationWarningShown = true;
+            }
+            return [];
+          }
+        },
+        streams: {
+          get: function() {
+            if(!sessionConnectedStreamsDeprecationWarningShown) {
+              OT.warn('OT.SessionConnectedEvent no longer includes streams. Listen for ' +
+                'streamCreated events instead.');
+              sessionConnectedConnectionsDeprecationWarningShown = true;
+            }
+            return [];
+          }
+        },
+        archives: {
+          get: function() {
+            if(!sessionConnectedArchivesDeprecationWarningShown) {
+              OT.warn('OT.SessionConnectedEvent no longer includes archives. Listen for ' +
+                'archiveStarted events instead.');
+              sessionConnectedArchivesDeprecationWarningShown = true;
+            }
+            return [];
+          }
+        },
+        groups: {
+          get: function() {
+            if(!sessionConnectedGroupsDeprecationWarningShown) {
+              OT.error('OT.SessionConnectedEvent no longer includes groups. There is no ' +
+                'equivelant in OpenTok v2.2');
+              sessionConnectedGroupsDeprecationWarningShown = true;
+            }
+            return [];
+          }
+        }
+      });
+    } else {
+      this.connections = [];
+      this.streams = [];
+      this.archives = [];
+      
+      this.groups = [];
+    }
+  };
 
 
 
@@ -4886,60 +5750,21 @@ OT.SessionConnectEvent = function (type, connections, streams, archives) {
 
 
 
-OT.SessionDisconnectEvent = function (type, reason, cancelable) {
+
+
+
+
+
+
+
+
+
+
+
+  OT.SessionDisconnectEvent = function (type, reason, cancelable) {
     OT.Event.call(this, type, cancelable);
-
     this.reason = reason;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.VolumeEvent = function (type, streamId, volume) {
-    OT.Event.call(this, type);
-
-    this.streamId = streamId;
-    this.volume = volume;
-};
-
-
-OT.DeviceEvent = function (type, camera, microphone) {
-    OT.Event.call(this, type);
-
-    this.camera = camera;
-    this.microphone = microphone;
-};
-
-OT.DeviceStatusEvent = function (type, cameras, microphones, selectedCamera, selectedMicrophone) {
-    OT.Event.call(this, type);
-
-    this.cameras = cameras;
-    this.microphones = microphones;
-    this.selectedCamera = selectedCamera;
-    this.selectedMicrophone = selectedMicrophone;
-};
-
-OT.ResizeEvent = function (type, widthFrom, widthTo, heightFrom, heightTo) {
-    OT.Event.call(this, type);
-
-    this.widthFrom = widthFrom;
-    this.widthTo = widthTo;
-    this.heightFrom = heightFrom;
-    this.heightTo = heightTo;
-};
+  };
 
 
 
@@ -4967,82 +5792,89 @@ OT.ResizeEvent = function (type, widthFrom, widthTo, heightFrom, heightTo) {
 
 
 
-OT.StreamPropertyChangedEvent = function (type, stream, changedProperty, oldValue, newValue) {
-    OT.Event.call(this, type);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.StreamPropertyChangedEvent = function (type, stream, changedProperty, oldValue, newValue) {
+    OT.Event.call(this, type, false);
     this.type = type;
     this.stream = stream;
     this.changedProperty = changedProperty;
     this.oldValue = oldValue;
     this.newValue = newValue;
-};
+  };
 
-OT.ArchiveEvent = function (type, archives) {
-    OT.Event.call(this, type);
-
-    this.archives = archives;
-};
-
-OT.ArchiveStreamEvent = function (type, archive, streams) {
-    OT.Event.call(this, type);
-
+  OT.ArchiveEvent = function (type, archive) {
+    OT.Event.call(this, type, false);
+    this.type = type;
+    this.id = archive.id;
+    this.name = archive.name;
+    this.status = archive.status;
     this.archive = archive;
-    this.streams = streams;
-};
+  };
 
-OT.StateChangedEvent = function (type, changedValues) {
-    OT.Event.call(this, type);
-
-    this.changedValues = changedValues;
-};
-
-OT.ChangeFailedEvent = function (type, reasonCode, reason, failedValues) {
-    OT.Event.call(this, type);
-
-    this.reasonCode = reasonCode;
-    this.reason = reason;
-    this.failedValues = failedValues;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.SignalEvent = function(type, data, from) {
-    OT.Event.call(this, type ? "signal:" + type : OT.Event.names.SIGNAL, false);
-
-    this.data = data;
-    this.from = from;
-};
-
-
-OT.StreamUpdatedEvent = function (stream, key, oldValue, newValue) {
-    OT.Event.call(this, 'updated');
-
+  OT.ArchiveUpdatedEvent = function (stream, key, oldValue, newValue) {
+    OT.Event.call(this, 'updated', false);
     this.target = stream;
     this.changedProperty = key;
     this.oldValue = oldValue;
     this.newValue = newValue;
-};
+  };
 
-OT.DestroyedEvent = function(type, target, reason) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.SignalEvent = function(type, data, from) {
+    OT.Event.call(this, type ? 'signal:' + type : OT.Event.names.SIGNAL, false);
+    this.data = data;
+    this.from = from;
+  };
+
+
+  OT.StreamUpdatedEvent = function (stream, key, oldValue, newValue) {
+    OT.Event.call(this, 'updated', false);
+    this.target = stream;
+    this.changedProperty = key;
+    this.oldValue = oldValue;
+    this.newValue = newValue;
+  };
+
+  OT.DestroyedEvent = function(type, target, reason) {
     OT.Event.call(this, type, false);
-
     this.target = target;
     this.reason = reason;
-};
-
+  };
 
 })(window);
+
 
 
 
@@ -7500,643 +8332,706 @@ OT.DestroyedEvent = function(type, target, reason) {
   global['TextEncoder'] = global['TextEncoder'] || TextEncoder;
   global['TextDecoder'] = global['TextDecoder'] || TextDecoder;
 }(this));
-(function(global) {
 
+!(function() {
 
+  
+  
+  
+  
+  
+  
+  
+  
 
+  OT.Rumor = {
+    MessageType: {
+      
+      
+      
+      SUBSCRIBE: 0,
 
+      
+      
+      UNSUBSCRIBE: 1,
 
+      
+      
+      MESSAGE: 2,
 
+      
+      
+      
+      CONNECT: 3,
 
+      
+      
+      DISCONNECT: 4,
 
-
-
-OT.Rumor = {
-  MessageType: {
-    
-    
-    
-    SUBSCRIBE: 0,
-
-    
-    
-    UNSUBSCRIBE: 1,
-
-    
-    
-    MESSAGE: 2,
-
-    
-    
-    
-    CONNECT: 3,
-
-    
-    DISCONNECT: 4,
-
-    
-    PING: 7,
-    PONG: 8,
-    STATUS: 9
-  }
-};
+      
+      PING: 7,
+      PONG: 8,
+      STATUS: 9
+    }
+  };
 
 }(this));
-(function(global) {
-
-var BUFFER_DRAIN_INTERVAL = 100,        
-    BUFFER_DRAIN_MAX_RETRIES = 10,      
-    WEB_SOCKET_KEEP_ALIVE_INTERVAL = 9000,
-
-    
-    
-    
-    WEB_SOCKET_CONNECTIVITY_TIMEOUT = 5*WEB_SOCKET_KEEP_ALIVE_INTERVAL - 100
-
-
-
-
-
-var wsCloseErrorCodes = {
-  1002:  "The endpoint is terminating the connection due to a protocol error. (CLOSE_PROTOCOL_ERROR)",
-  1003:  "The connection is being terminated because the endpoint received data of a type it cannot accept (for example, a text-only endpoint received binary data). (CLOSE_UNSUPPORTED)",
-  1004:  "The endpoint is terminating the connection because a data frame was received that is too large. (CLOSE_TOO_LARGE)",
-  1005:  "Indicates that no status code was provided even though one was expected. (CLOSE_NO_STATUS)",
-  1006:  "Used to indicate that a connection was closed abnormally (that is, with no close frame being sent) when a status code is expected. (CLOSE_ABNORMAL)",
-  1007: "Indicates that an endpoint is terminating the connection because it has received data within a message that was not consistent with the type of the message (e.g., non-UTF-8 [RFC3629] data within a text message)",
-  1008: "Indicates that an endpoint is terminating the connection because it has received a message that violates its policy.  This is a generic status code that can be returned when there is no other more suitable status code (e.g., 1003 or 1009) or if there is a need to hide specific details about the policy",
-  1009: "Indicates that an endpoint is terminating the connection because it has received a message that is too big for it to process",
-  1011: "Indicates that a server is terminating the connection because it encountered an unexpected condition that prevented it from fulfilling the request",
+!(function() {
 
   
-  4001:   "Connectivity loss was detected as it was too long since the socket received the last PONG message"
-};
+  var BUFFER_DRAIN_INTERVAL = 100,
+      
+      BUFFER_DRAIN_MAX_RETRIES = 10,
 
-OT.Rumor.SocketError = function(code, message) {
-  this.code = code;
-  this.message = message;
-};
+      WEB_SOCKET_KEEP_ALIVE_INTERVAL = 9000,
 
+      
+      
+      
+      WEB_SOCKET_CONNECTIVITY_TIMEOUT = 5*WEB_SOCKET_KEEP_ALIVE_INTERVAL - 100,
 
+      wsCloseErrorCodes;
 
-OT.Rumor.Socket = function(messagingServer, notifyDisconnectAddress, NativeSocket) {
-  var server = messagingServer,
-      webSocket,
-      id,
-      onOpen,
-      onError,
-      onClose,
-      onMessage,
-      connectCallback,
-      bufferDrainTimeout,           
-      connectTimeout,
-      lastMessageTimestamp,         
-      keepAliveTimer;               
 
 
   
-  var stateChanged = function(newState) {
-        switch (newState) {
-          case 'disconnected':
-          case 'error':
-            webSocket = null;
-            if (onClose) {
-              var error;
-              if(hasLostConnectivity()) {
-                error = new Error(wsCloseErrorCodes[4001]);
-                error.code = 4001;
+  
+  wsCloseErrorCodes = {
+    1002:  'The endpoint is terminating the connection due to a protocol error. ' +
+      '(CLOSE_PROTOCOL_ERROR)',
+    1003:  'The connection is being terminated because the endpoint received data of ' +
+      'a type it cannot accept (for example, a text-only endpoint received binary data). ' +
+      '(CLOSE_UNSUPPORTED)',
+    1004:  'The endpoint is terminating the connection because a data frame was received ' +
+      'that is too large. (CLOSE_TOO_LARGE)',
+    1005:  'Indicates that no status code was provided even though one was expected. ' +
+    '(CLOSE_NO_STATUS)',
+    1006:  'Used to indicate that a connection was closed abnormally (that is, with no ' +
+      'close frame being sent) when a status code is expected. (CLOSE_ABNORMAL)',
+    1007: 'Indicates that an endpoint is terminating the connection because it has received ' +
+      'data within a message that was not consistent with the type of the message (e.g., ' +
+      'non-UTF-8 [RFC3629] data within a text message)',
+    1008: 'Indicates that an endpoint is terminating the connection because it has received a ' +
+      'message that violates its policy.  This is a generic status code that can be returned ' +
+      'when there is no other more suitable status code (e.g., 1003 or 1009) or if there is a ' +
+      'need to hide specific details about the policy',
+    1009: 'Indicates that an endpoint is terminating the connection because it has received a ' +
+      'message that is too big for it to process',
+    1011: 'Indicates that a server is terminating the connection because it encountered an ' +
+      'unexpected condition that prevented it from fulfilling the request',
+
+    
+    4001:   'Connectivity loss was detected as it was too long since the socket received the ' +
+      'last PONG message'
+  };
+
+  OT.Rumor.SocketError = function(code, message) {
+    this.code = code;
+    this.message = message;
+  };
+
+  
+  
+  OT.Rumor.Socket = function(messagingServer, notifyDisconnectAddress, NativeSocket) {
+    var states = ['disconnected',  'error', 'connected', 'connecting', 'disconnecting'],
+        server = messagingServer,
+        webSocket,
+        id,
+        onOpen,
+        onError,
+        onClose,
+        onMessage,
+        connectCallback,
+        bufferDrainTimeout,           
+        connectTimeout,
+        lastMessageTimestamp,         
+        keepAliveTimer;               
+
+
+    
+    var stateChanged = function(newState) {
+          switch (newState) {
+            case 'disconnected':
+            case 'error':
+              webSocket = null;
+              if (onClose) {
+                var error;
+                if(hasLostConnectivity()) {
+                  error = new Error(wsCloseErrorCodes[4001]);
+                  error.code = 4001;
+                }
+                onClose(error);
               }
-              onClose(error);
-            }
-            break;
-        }
-      },
-
-      setState = OT.$.statable(this, ['disconnected',  'error', 'connected', 'connecting', 'disconnecting'], 'disconnected', stateChanged),
-
-      validateCallback = function validateCallback (name, callback) {
-        if (callback === null || !OT.$.isFunction(callback) ) {
-          throw new Error("The Rumor.Socket " + name + " callback must be a valid function or null");
-        }
-      },
-
-      error = function error (errorMessage) {
-        OT.error("Rumor.Socket: " + errorMessage);
-
-        var error = new OT.Rumor.SocketError(null, errorMessage || "Unknown Socket Error");
-
-        if (connectTimeout) clearTimeout(connectTimeout);
-
-        setState('error');
-
-        if (this.previousState === 'connecting' && connectCallback) {
-          connectCallback(error, null);
-          connectCallback = null;
-        }
-
-        if (onError) onError(error);
-      }.bind(this),
-
-      
-      close = function close() {
-        setState('disconnecting');
-
-        if (bufferDrainTimeout) {
-          clearTimeout(bufferDrainTimeout);
-          bufferDrainTimeout = null;
-        }
-        console.info("CALLED CLOSE ON WEBSOCKET");
-        webSocket.close();
-      },
-
-      
-      
-      
-      disconnectWhenSendBufferIsDrained = function disconnectWhenSendBufferIsDrained (bufferDrainRetries) {
-        if (!webSocket) return;
-
-        if (bufferDrainRetries === void 0) bufferDrainRetries = 0;
-        if (bufferDrainTimeout) clearTimeout(bufferDrainTimeout);
-
-        if (webSocket.bufferedAmount > 0 && (bufferDrainRetries + 1) <= BUFFER_DRAIN_MAX_RETRIES) {
-          bufferDrainTimeout = setTimeout(disconnectWhenSendBufferIsDrained, BUFFER_DRAIN_INTERVAL, bufferDrainRetries+1);
-        }
-        else {
-          close();
-        }
-      },
-
-      hasLostConnectivity = function hasLostConnectivity () {
-        if (!lastMessageTimestamp) return false;
-
-        return (OT.$.now() - lastMessageTimestamp) >= WEB_SOCKET_CONNECTIVITY_TIMEOUT;
-      },
-
-      sendKeepAlive = function sendKeepAlive () {
-        if (!this.is('connected')) return;
-
-        if ( hasLostConnectivity() ) {
-          webSocketDisconnected({code: 4001});
-        }
-        else  {
-          webSocket.send(OT.Rumor.Message.Ping().serialize());
-          keepAliveTimer = setTimeout(sendKeepAlive.bind(this), WEB_SOCKET_KEEP_ALIVE_INTERVAL);
-        }
-      }.bind(this);
-
-
-  
-  var webSocketConnected = function webSocketConnected () {
-        if (connectTimeout) clearTimeout(connectTimeout);
-
-        
-        
-        
-        
-        webSocket.send(OT.Rumor.Message.Connect(id, notifyDisconnectAddress).serialize());
-
-        setState('connected');
-        if (connectCallback) {
-          connectCallback(null, id);
-          connectCallback = null;
-        }
-
-        if (onOpen) onOpen(id);
-
-        setTimeout(function() {
-          lastMessageTimestamp = OT.$.now();
-          sendKeepAlive();
-        }, WEB_SOCKET_KEEP_ALIVE_INTERVAL);
-      },
-
-      webSocketConnectTimedOut = function webSocketConnectTimedOut () {
-        error("Timed out while waiting for the Rumor socket to connect.");
-      },
-
-      webSocketError = function webSocketError (errorEvent) {
-        var errorMessage = "Unknown Socket Error";      
-
-        
-        
-        
-        
-        
-        
-      },
-
-      webSocketDisconnected = function webSocketDisconnected (closeEvent) {
-        if (connectTimeout) clearTimeout(connectTimeout);
-        if (keepAliveTimer) clearTimeout(keepAliveTimer);
-
-        if (closeEvent.code !== 1000 && closeEvent.code !== 1001) {
-          var reason = closeEvent.reason || closeEvent.message;
-          if (!reason && wsCloseErrorCodes.hasOwnProperty(closeEvent.code)) reason = wsCloseErrorCodes[closeEvent.code];
-
-          error("Rumor Socket Disconnected: " + reason);
-        }
-
-        if (this.isNot('error')) setState('disconnected');
-      }.bind(this),
-
-      webSocketReceivedMessage = function webSocketReceivedMessage (message) {
-        lastMessageTimestamp = OT.$.now();
-
-        if (onMessage) {
-          var msg = OT.Rumor.Message.deserialize(message.data);
-
-          if (msg.type !== OT.Rumor.MessageType.PONG) {
-            onMessage(msg.toAddress, msg.data);
+              break;
           }
-        }
-      };
+        },
 
+        setState = OT.$.statable(this, states, 'disconnected', stateChanged),
 
-  
+        validateCallback = function validateCallback (name, callback) {
+          if (callback === null || !OT.$.isFunction(callback) ) {
+            throw new Error('The Rumor.Socket ' + name +
+              ' callback must be a valid function or null');
+          }
+        },
 
-  this.publish = function (topics, message) {
-    webSocket.send(OT.Rumor.Message.Publish(topics, message).serialize());
-  };
+        error = function error (errorMessage) {
+          OT.error('Rumor.Socket: ' + errorMessage);
 
-  this.subscribe = function(topics) {
-    webSocket.send(OT.Rumor.Message.Subscribe(topics).serialize());
-  };
+          var socketError = new OT.Rumor.SocketError(null, errorMessage || 'Unknown Socket Error');
 
-  this.unsubscribe = function(topics) {
-    webSocket.send(OT.Rumor.Message.Unsubscribe(topics).serialize());
-  };
+          if (connectTimeout) clearTimeout(connectTimeout);
 
-  this.connect = function (connectionId, complete) {
-    if (this.is('connecting', 'connected')) {
-      complete(new OT.Rumor.SocketError(null, "Rumor.Socket cannot connect when it is already connecting or connected."));
-      return;
-    }
+          setState('error');
 
-    id = connectionId;
-    connectCallback = complete;
+          if (this.previousState === 'connecting' && connectCallback) {
+            connectCallback(socketError, null);
+            connectCallback = null;
+          }
 
-    try {
-      setState('connecting');
+          if (onError) onError(socketError);
+        }.bind(this),
 
-      webSocket = new (NativeSocket || WebSocket)(server);
-      webSocket.binaryType = 'arraybuffer';
-
-      webSocket.onopen = webSocketConnected;
-      webSocket.onclose = webSocketDisconnected;
-      webSocket.onerror = webSocketError;
-      webSocket.onmessage = webSocketReceivedMessage;
-
-      connectTimeout = setTimeout(webSocketConnectTimedOut, OT.Rumor.Socket.CONNECT_TIMEOUT);
-    }
-    catch(e) {
-      OT.error(e);
-
-      
-      error("Could not connect to the Rumor socket, possibly because of a blocked port.")
-    }
-  };
-
-  this.disconnect = function() {
-    if (connectTimeout) clearTimeout(connectTimeout);
-    if (keepAliveTimer) clearTimeout(keepAliveTimer);
-
-    if (!webSocket) {
-      if (this.isNot('error')) setState('disconnected');
-      return;
-    }
-
-    if (webSocket.readyState === 3) {
-      if (this.isNot('error')) setState('disconnected');
-    }
-    else {
-      if (this.is('connected')) {
         
-        webSocket.send(OT.Rumor.Message.Disconnect().serialize());
+        close = function close() {
+          setState('disconnecting');
+
+          if (bufferDrainTimeout) {
+            clearTimeout(bufferDrainTimeout);
+            bufferDrainTimeout = null;
+          }
+
+          webSocket.close();
+        },
+
+        
+        
+        
+        disconnectWhenSendBufferIsDrained =
+          function disconnectWhenSendBufferIsDrained (bufferDrainRetries) {
+          if (!webSocket) return;
+
+          if (bufferDrainRetries === void 0) bufferDrainRetries = 0;
+          if (bufferDrainTimeout) clearTimeout(bufferDrainTimeout);
+
+          if (webSocket.bufferedAmount > 0 &&
+            (bufferDrainRetries + 1) <= BUFFER_DRAIN_MAX_RETRIES) {
+            bufferDrainTimeout = setTimeout(disconnectWhenSendBufferIsDrained,
+              BUFFER_DRAIN_INTERVAL, bufferDrainRetries+1);
+          }
+          else {
+            close();
+          }
+        },
+
+        hasLostConnectivity = function hasLostConnectivity () {
+          if (!lastMessageTimestamp) return false;
+
+          return (OT.$.now() - lastMessageTimestamp) >= WEB_SOCKET_CONNECTIVITY_TIMEOUT;
+        },
+
+        sendKeepAlive = function sendKeepAlive () {
+          if (!this.is('connected')) return;
+
+          if ( hasLostConnectivity() ) {
+            webSocketDisconnected({code: 4001});
+          }
+          else  {
+            webSocket.send(OT.Rumor.Message.Ping().serialize());
+            keepAliveTimer = setTimeout(sendKeepAlive.bind(this), WEB_SOCKET_KEEP_ALIVE_INTERVAL);
+          }
+        }.bind(this);
+
+
+    
+    var webSocketConnected = function webSocketConnected () {
+          if (connectTimeout) clearTimeout(connectTimeout);
+
+          
+          
+          
+          
+          webSocket.send(OT.Rumor.Message.Connect(id, notifyDisconnectAddress).serialize());
+
+          setState('connected');
+          if (connectCallback) {
+            connectCallback(null, id);
+            connectCallback = null;
+          }
+
+          if (onOpen) onOpen(id);
+
+          setTimeout(function() {
+            lastMessageTimestamp = OT.$.now();
+            sendKeepAlive();
+          }, WEB_SOCKET_KEEP_ALIVE_INTERVAL);
+        },
+
+        webSocketConnectTimedOut = function webSocketConnectTimedOut () {
+          error('Timed out while waiting for the Rumor socket to connect.');
+        },
+
+        webSocketError = function webSocketError () {},
+          
+          
+
+          
+          
+          
+          
+          
+          
+
+        webSocketDisconnected = function webSocketDisconnected (closeEvent) {
+          if (connectTimeout) clearTimeout(connectTimeout);
+          if (keepAliveTimer) clearTimeout(keepAliveTimer);
+
+          if (closeEvent.code !== 1000 && closeEvent.code !== 1001) {
+            var reason = closeEvent.reason || closeEvent.message;
+            if (!reason && wsCloseErrorCodes.hasOwnProperty(closeEvent.code)) {
+              reason = wsCloseErrorCodes[closeEvent.code];
+            }
+
+            error('Rumor Socket Disconnected: ' + reason);
+          }
+
+          if (this.isNot('error')) setState('disconnected');
+        }.bind(this),
+
+        webSocketReceivedMessage = function webSocketReceivedMessage (message) {
+          lastMessageTimestamp = OT.$.now();
+
+          if (onMessage) {
+
+            var msg = OT.Rumor.Message.deserialize(message.data);
+
+            if (msg.type !== OT.Rumor.MessageType.PONG) {
+              onMessage(msg);
+            }
+          }
+        };
+
+
+    
+
+    this.publish = function (topics, message, headers) {
+      webSocket.send(OT.Rumor.Message.Publish(topics, message, headers).serialize());
+    };
+
+    this.subscribe = function(topics) {
+      webSocket.send(OT.Rumor.Message.Subscribe(topics).serialize());
+    };
+
+    this.unsubscribe = function(topics) {
+      webSocket.send(OT.Rumor.Message.Unsubscribe(topics).serialize());
+    };
+
+    this.connect = function (connectionId, complete) {
+      if (this.is('connecting', 'connected')) {
+        complete(new OT.Rumor.SocketError(null,
+            'Rumor.Socket cannot connect when it is already connecting or connected.'));
+        return;
       }
 
+      id = connectionId;
+      connectCallback = complete;
+
+      try {
+        setState('connecting');
+
+        var TheWebSocket = NativeSocket || WebSocket;
+        webSocket = new TheWebSocket(server);
+        webSocket.binaryType = 'arraybuffer';
+
+        webSocket.onopen = webSocketConnected;
+        webSocket.onclose = webSocketDisconnected;
+        webSocket.onerror = webSocketError;
+        webSocket.onmessage = webSocketReceivedMessage;
+
+        connectTimeout = setTimeout(webSocketConnectTimedOut, OT.Rumor.Socket.CONNECT_TIMEOUT);
+      }
+      catch(e) {
+        OT.error(e);
+
+        
+        error('Could not connect to the Rumor socket, possibly because of a blocked port.');
+      }
+    };
+
+    this.disconnect = function() {
+      if (connectTimeout) clearTimeout(connectTimeout);
+      if (keepAliveTimer) clearTimeout(keepAliveTimer);
+
+      if (!webSocket) {
+        if (this.isNot('error')) setState('disconnected');
+        return;
+      }
+
+      if (webSocket.readyState === 3) {
+        if (this.isNot('error')) setState('disconnected');
+      }
+      else {
+        if (this.is('connected')) {
+          
+          webSocket.send(OT.Rumor.Message.Disconnect().serialize());
+        }
+
+        
+        disconnectWhenSendBufferIsDrained();
+      }
+    };
+
+
+
+    Object.defineProperties(this, {
+      id: {
+        get: function() { return id; }
+      },
+
+      onOpen: {
+        set: function(callback) {
+          validateCallback('onOpen', callback);
+          onOpen = callback;
+        },
+
+        get: function() { return onOpen; }
+      },
+
+      onError: {
+        set: function(callback) {
+          validateCallback('onError', callback);
+          onError = callback;
+        },
+
+        get: function() { return onError; }
+      },
+
+      onClose: {
+        set: function(callback) {
+          validateCallback('onClose', callback);
+          onClose = callback;
+        },
+
+        get: function() { return onClose; }
+      },
+
+      onMessage: {
+        set: function(callback) {
+          validateCallback('onMessage', callback);
+          onMessage = callback;
+        },
+
+        get: function() { return onMessage; }
+      }
+    });
+  };
+
+  
+  OT.Rumor.Socket.CONNECT_TIMEOUT = 15000;
+
+}(this));
+!(function() {
+
+  
+
+  
+  
+  
+  
+  
+  
+  OT.Rumor.Message = function (type, toAddress, headers, data) {
+    this.type = type;
+    this.toAddress = toAddress;
+    this.headers = headers;
+    this.data = data;
+
+    this.transactionId = this.headers['TRANSACTION-ID'];
+    this.status = this.headers.STATUS;
+    this.isError = !(this.status && this.status[0] === '2');
+  };
+
+  OT.Rumor.Message.prototype.serialize = function () {
+    var offset = 8,
+        cBuf = 7,
+        address = [],
+        headerKey = [],
+        headerVal = [],
+        strArray,
+        dataView,
+        i,
+        j;
+
+    
+    cBuf++;
+
+    
+    for (i = 0; i < this.toAddress.length; i++) {
       
-      disconnectWhenSendBufferIsDrained();
+      address.push(new TextEncoder('utf-8').encode(this.toAddress[i]));
+      cBuf += 2;
+      cBuf += address[i].length;
     }
+
+    
+    cBuf++;
+
+    
+    i = 0;
+
+    for (var key in this.headers) {
+      headerKey.push(new TextEncoder('utf-8').encode(key));
+      headerVal.push(new TextEncoder('utf-8').encode(this.headers[key]));
+      cBuf += 4;
+      cBuf += headerKey[i].length;
+      cBuf += headerVal[i].length;
+
+      i++;
+    }
+
+    dataView = new TextEncoder('utf-8').encode(this.data);
+    cBuf += dataView.length;
+
+    
+    var buffer = new ArrayBuffer(cBuf);
+    var uint8View = new Uint8Array(buffer, 0, cBuf);
+
+    
+    cBuf -= 4;
+
+    
+    uint8View[0] = (cBuf & 0xFF000000) >>> 24;
+    uint8View[1] = (cBuf & 0x00FF0000) >>> 16;
+    uint8View[2] = (cBuf & 0x0000FF00) >>>  8;
+    uint8View[3] = (cBuf & 0x000000FF) >>>  0;
+
+    
+    uint8View[4] = 0;
+    uint8View[5] = 0;
+
+    
+    uint8View[6] = this.type;
+    uint8View[7] = this.toAddress.length;
+
+    
+    for (i = 0; i < address.length; i++) {
+      strArray = address[i];
+      uint8View[offset++] = strArray.length >> 8 & 0xFF;
+      uint8View[offset++] = strArray.length >> 0 & 0xFF;
+      for (j = 0; j < strArray.length; j++) {
+        uint8View[offset++] = strArray[j];
+      }
+    }
+
+    uint8View[offset++] = headerKey.length;
+
+    
+    for (i = 0; i < headerKey.length; i++) {
+      strArray = headerKey[i];
+      uint8View[offset++] = strArray.length >> 8 & 0xFF;
+      uint8View[offset++] = strArray.length >> 0 & 0xFF;
+      for (j = 0; j < strArray.length; j++) {
+        uint8View[offset++] = strArray[j];
+      }
+
+      strArray = headerVal[i];
+      uint8View[offset++] = strArray.length >> 8 & 0xFF;
+      uint8View[offset++] = strArray.length >> 0 & 0xFF;
+      for (j = 0; j < strArray.length; j++) {
+        uint8View[offset++] = strArray[j];
+      }
+    }
+
+    
+    for (i = 0; i < dataView.length; i++) {
+      uint8View[offset++] = dataView[i];
+    }
+
+    return buffer;
+  };
+
+  function toArrayBuffer(buffer) {
+    var ab = new ArrayBuffer(buffer.length);
+    var view = new Uint8Array(ab);
+    for (var i = 0; i < buffer.length; ++i) {
+      view[i] = buffer[i];
+    }
+    return ab;
+  }
+
+  OT.Rumor.Message.deserialize = function (buffer) {
+
+    if(typeof Buffer !== 'undefined' &&
+      Buffer.isBuffer(buffer)) {
+      buffer = toArrayBuffer(buffer);
+    }
+    var cBuf = 0,
+        type,
+        offset = 8,
+        uint8View = new Uint8Array(buffer),
+        strView,
+        headerlen,
+        headers,
+        keyStr,
+        valStr,
+        length,
+        i;
+
+    
+    cBuf += uint8View[0] << 24;
+    cBuf += uint8View[1] << 16;
+    cBuf += uint8View[2] <<  8;
+    cBuf += uint8View[3] <<  0;
+
+    type = uint8View[6];
+    var address = [];
+
+    for (i = 0; i < uint8View[7]; i++) {
+      length = uint8View[offset++] << 8;
+      length += uint8View[offset++];
+      strView = new Uint8Array(buffer, offset, length);
+      
+      address[i] = new TextDecoder('utf-8').decode(strView);
+      offset += length;
+    }
+
+    headerlen = uint8View[offset++];
+    headers = {};
+
+    for (i = 0; i < headerlen; i++) {
+      length = uint8View[offset++] << 8;
+      length += uint8View[offset++];
+      strView = new Uint8Array(buffer, offset, length);
+      keyStr = new TextDecoder('utf-8').decode(strView);
+      offset += length;
+
+      length = uint8View[offset++] << 8;
+      length += uint8View[offset++];
+      strView = new Uint8Array(buffer, offset, length);
+      valStr = new TextDecoder('utf-8').decode(strView);
+      headers[keyStr] = valStr;
+      offset += length;
+    }
+
+    var dataView = new Uint8Array(buffer, offset);
+    var data = new TextDecoder('utf-8').decode(dataView);
+
+    return new OT.Rumor.Message(type, address, headers, data);
   };
 
 
+  OT.Rumor.Message.Connect = function (uniqueId, notifyDisconnectAddress) {
+    var headers = {
+      uniqueId: uniqueId,
+      notifyDisconnectAddress: notifyDisconnectAddress
+    };
 
-  Object.defineProperties(this, {
-    id: {
-      get: function() { return id; }
-    },
+    return new OT.Rumor.Message(OT.Rumor.MessageType.CONNECT, [], headers, '');
+  };
 
-    onOpen: {
-      set: function(callback) {
-        validateCallback('onOpen', callback);
-        onOpen = callback;
-      },
+  OT.Rumor.Message.Disconnect = function () {
+    return new OT.Rumor.Message(OT.Rumor.MessageType.DISCONNECT, [], [], '');
+  };
 
-      get: function() { return onOpen; }
-    },
+  OT.Rumor.Message.Subscribe = function(topics) {
+    return new OT.Rumor.Message(OT.Rumor.MessageType.SUBSCRIBE, topics, [], '');
+  };
 
-    onError: {
-      set: function(callback) {
-        validateCallback('onError', callback);
-        onError = callback;
-      },
+  OT.Rumor.Message.Unsubscribe = function(topics) {
+    return new OT.Rumor.Message(OT.Rumor.MessageType.UNSUBSCRIBE, topics, [], '');
+  };
 
-      get: function() { return onError; }
-    },
+  OT.Rumor.Message.Publish = function(topics, message, headers) {
+    return new OT.Rumor.Message(OT.Rumor.MessageType.MESSAGE, topics, headers||[], message);
+  };
 
-    onClose: {
-      set: function(callback) {
-        validateCallback('onClose', callback);
-        onClose = callback;
-      },
-
-      get: function() { return onClose; }
-    },
-
-    onMessage: {
-      set: function(callback) {
-        validateCallback('onMessage', callback);
-        onMessage = callback;
-      },
-
-      get: function() { return onMessage; }
-    }
-  });
-};
-
-
-OT.Rumor.Socket.CONNECT_TIMEOUT = 15000;
+  
+  
+  
+  
+  OT.Rumor.Message.Ping = function() {
+    return new OT.Rumor.Message(OT.Rumor.MessageType.PING, [], [], '');
+  };
 
 }(this));
-(function(global) {
-
-
-
-
-
-
-
-OT.Rumor.Message = function (type, toAddress, headers, data) {
-  this.type = type;
-  this.toAddress = toAddress;
-  this.headers = headers;
-  this.data = data;
-};
-
-
-OT.Rumor.Message.prototype.serialize = function () {
-  var bitStream = '',
-      str = "",
-      offset = 8,
-      cBuf = 7,
-      address = new Array(this.toAddress.length),
-      headerKey = new Array(this.headers.length),
-      headerVal = new Array(this.headers.length),
-      dataView;
+!(function() {
 
   
-  cBuf++;
-
   
-  for (var i = 0; i < this.toAddress.length; i++) {
-    address[i] = new TextEncoder('utf-8').encode(this.toAddress[i]);
-    cBuf += 2;
-    cBuf += address[i].length;
-  }
-
   
-  cBuf++;
-
   
-  for (var i = 0; i < this.headers.length; i++) {
-    headerKey[i] = new TextEncoder('utf-8').encode(this.headers[i].key);
-    headerVal[i] = new TextEncoder('utf-8').encode(this.headers[i].val);
-    cBuf += 4;
-    cBuf += headerKey[i].length;
-    cBuf += headerVal[i].length;
-  }
-
-  dataView = new TextEncoder('utf-8').encode(this.data);
-  cBuf += dataView.length;
-
   
-  var buffer = new ArrayBuffer(cBuf);
-  var uint8View = new Uint8Array(buffer, 0, cBuf);
-
   
-  cBuf -= 4;
-
   
-  uint8View[0] = (cBuf & 0xFF000000) >>> 24;
-  uint8View[1] = (cBuf & 0x00FF0000) >>> 16;
-  uint8View[2] = (cBuf & 0x0000FF00) >>>  8;
-  uint8View[3] = (cBuf & 0x000000FF) >>>  0;
-
   
-  uint8View[4] = 0;
-  uint8View[5] = 0;
-
   
-  uint8View[6] = this.type;
-  uint8View[7] = this.toAddress.length;
-
   
-  for (var i = 0; i < address.length; i++) {
-    strArray = address[i];
-    uint8View[offset++] = strArray.length >> 8 & 0xFF;
-    uint8View[offset++] = strArray.length >> 0 & 0xFF;
-    for (var j = 0; j < strArray.length; j++) {
-      uint8View[offset++] = strArray[j];
-    }
-  }
-
-  uint8View[offset++] = headerKey.length;
-
   
-  for (var i = 0; i < headerKey.length; i++) {
-    strArray = headerKey[i];
-    uint8View[offset++] = strArray.length >> 8 & 0xFF;
-    uint8View[offset++] = strArray.length >> 0 & 0xFF;
-    for (var j = 0; j < strArray.length; j++) {
-      uint8View[offset++] = strArray[j];
-    }
-
-    strArray = headerVal[i];
-    uint8View[offset++] = strArray.length >> 8 & 0xFF;
-    uint8View[offset++] = strArray.length >> 0 & 0xFF;
-    for (var j = 0; j < strArray.length; j++) {
-      uint8View[offset++] = strArray[j];
-    }
-  }
-
   
-  for (var i = 0; i < dataView.length; i++) {
-    uint8View[offset++] = dataView[i];
-  }
-
-  return buffer;
-};
-
-OT.Rumor.Message.deserialize = function (buffer) {
-  var cBuf = 0;
-  var type;
-  var offset = 8;
-  var uint8View = new Uint8Array(buffer);
-
   
-  cBuf += uint8View[0] << 24;
-  cBuf += uint8View[1] << 16;
-  cBuf += uint8View[2] <<  8;
-  cBuf += uint8View[3] <<  0;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-  type = uint8View[6];
-  var address = [];
+  OT.Raptor = {
+    Actions: {
+      
+      CONNECT: 100,
+      CREATE: 101,
+      UPDATE: 102,
+      DELETE: 103,
+      STATE: 104,
 
-  for (var i = 0; i < uint8View[7]; i++) {
-    length = uint8View[offset++] << 8;
-    length += uint8View[offset++];
-    var strView = new Uint8Array(buffer, offset, length);
-    address[i] = new TextDecoder('utf-8').decode(strView);
-    offset += length;
-  }
+      
+      FORCE_DISCONNECT: 105,
+      FORCE_UNPUBLISH: 106,
+      SIGNAL: 107,
 
-  var headerlen = uint8View[offset++];
-  var headers = [];
+      
+      CREATE_ARCHIVE: 108,
+      CLOSE_ARCHIVE: 109,
+      START_RECORDING_SESSION: 110,
+      STOP_RECORDING_SESSION: 111,
+      START_RECORDING_STREAM: 112,
+      STOP_RECORDING_STREAM: 113,
+      LOAD_ARCHIVE: 114,
+      START_PLAYBACK: 115,
+      STOP_PLAYBACK: 116,
 
-  for (var i = 0; i < headerlen; i++) {
-    length = uint8View[offset++] << 8;
-    length += uint8View[offset++];
-    var strView = new Uint8Array(buffer, offset, length);
-    var keyStr = new TextDecoder('utf-8').decode(strView);
-    offset += length;
+      
+      APPSTATE_PUT: 117,
+      APPSTATE_DELETE: 118,
 
-    length = uint8View[offset++] << 8;
-    length += uint8View[offset++];
-    strView = new Uint8Array(buffer, offset, length);
-    var valStr = new TextDecoder('utf-8').decode(strView);
-    headers[i] =  { key : keyStr, val : valStr };
-    offset += length;
-  }
+      
+      OFFER: 119,
+      ANSWER: 120,
+      PRANSWER: 121,
+      CANDIDATE: 122,
+      SUBSCRIBE: 123,
+      UNSUBSCRIBE: 124,
+      QUERY: 125,
+      SDP_ANSWER: 126,
 
-  var dataView = new Uint8Array(buffer, offset);
-  var data = new TextDecoder('utf-8').decode(dataView);
+      
+      PONG: 127,
+      REGISTER: 128, 
 
- return new OT.Rumor.Message(type, address, headers, data);
-};
+      QUALITY_CHANGED: 129
+    },
 
-
-OT.Rumor.Message.Connect = function (uniqueId, notifyDisconnectAddress) {
-  var headers = [
-    {key: 'uniqueId', val: uniqueId},
-    {key: 'notifyDisconnectAddress', val: notifyDisconnectAddress}
-  ];
-
-  return new OT.Rumor.Message(OT.Rumor.MessageType.CONNECT, [], headers, "");
-};
-
-OT.Rumor.Message.Disconnect = function () {
-  return new OT.Rumor.Message(OT.Rumor.MessageType.DISCONNECT, [], [], "");
-};
-
-OT.Rumor.Message.Subscribe = function(topics) {
-  return new OT.Rumor.Message(OT.Rumor.MessageType.SUBSCRIBE, topics, [], "");
-};
-
-OT.Rumor.Message.Unsubscribe = function(topics) {
-  return new OT.Rumor.Message(OT.Rumor.MessageType.UNSUBSCRIBE, topics, [], "");
-};
-
-OT.Rumor.Message.Publish = function(topics, message, headers) {
-  return new OT.Rumor.Message(OT.Rumor.MessageType.MESSAGE, topics, [], message);
-};
-
-
-
-
-
-OT.Rumor.Message.Ping = function() {
-  return new OT.Rumor.Message(OT.Rumor.MessageType.PING, [], [], "");
-};
-
-}(this));
-(function(global) {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.Raptor = {
-  Actions: {
-    
-    CONNECT: 100,
-    CREATE: 101,
-    UPDATE: 102,
-    DELETE: 103,
-    STATE: 104,
-
-    
-    FORCE_DISCONNECT: 105,
-    FORCE_UNPUBLISH: 106,
-    SIGNAL: 107,
-
-    
-    CREATE_ARCHIVE: 108,
-    CLOSE_ARCHIVE: 109,
-    START_RECORDING_SESSION: 110,
-    STOP_RECORDING_SESSION: 111,
-    START_RECORDING_STREAM: 112,
-    STOP_RECORDING_STREAM: 113,
-    LOAD_ARCHIVE: 114,
-    START_PLAYBACK: 115,
-    STOP_PLAYBACK: 116,
-
-    
-    APPSTATE_PUT: 117,
-    APPSTATE_DELETE: 118,
-
-    
-    OFFER: 119,
-    ANSWER: 120,
-    PRANSWER: 121,
-    CANDIDATE: 122,
-    SUBSCRIBE: 123,
-    UNSUBSCRIBE: 124,
-    QUERY: 125,
-    SDP_ANSWER: 126,
-
-    
-    PONG: 127,
-    REGISTER: 128, 
-
-    QUALITY_CHANGED: 129
-  },
-
-  Types: {
+    Types: {
       
       RPC_REQUEST: 100,
       RPC_RESPONSE: 101,
@@ -8153,1293 +9048,1710 @@ OT.Raptor = {
 
       
       JSEP: 109
-  }
-};
-
-
-}(this));
-(function(global) {
-
-
-
-var typeToName = {},
-    actionToName = {};
-
-
-var messageTypes = OT.Raptor.Types;
-for (var name in messageTypes) {
-  typeToName[messageTypes[name]] = name;
-}
-
-
-var messageActions = OT.Raptor.Actions;
-for (var name in messageActions) {
-  actionToName[messageActions[name]] = name;
-}
-
-
-OT.Raptor.serializeMessage = function (message) {
-    return JSON.stringify(message);
-};
-
-
-
-
-
-
-
-
-
-
-
-OT.Raptor.deserializeMessage = function (msg) {
-  var message = JSON.parse(msg);
-
-  if (message.type) {
-    message.type = parseInt(message.type, 10);
-    message.typeName = typeToName[message.type] || null;
-  }
-
-  if (message.action) {
-    message.action = parseInt(message.action, 10);
-    message.actionName = actionToName[message.action] || null;
-  }
-
-  message.signature = message.typeName + ':' + message.actionName;
-
-  return message;
-};
-
-
-OT.Raptor.Message = {};
-OT.Raptor.Message.connect = function (widgetId, connectionId, sessionId, apiKey, token, p2pEnabled) {
-  var payload = {
-        credentials: {
-          connectionId: connectionId,
-          soAccessState: 2,
-          supportsWebRTC: true,
-          p2pEnabled: p2pEnabled,
-          GUID: widgetId,
-          widgetId: widgetId,
-          partnerId: apiKey
-        },
-        sessionId: sessionId,
-        params: {
-            tokenPermissions: {
-                apiKey: apiKey
-            },
-            token: token
-        },
-        uniqueId: connectionId
-      };
-
-  return OT.Raptor.serializeMessage({
-    id: OT.$.uuid(),
-    type: OT.Raptor.Types.RPC_REQUEST,
-    action: OT.Raptor.Actions.CONNECT,
-    payload: payload,
-    replyTo: connectionId
-  });
-};
-
-
-OT.Raptor.Message.getSessionState = function (connectionId, sessionId, connectionsRequired) {
-  return OT.Raptor.serializeMessage({
-    id: OT.$.uuid(),
-    type: OT.Raptor.Types.RPC_REQUEST,
-    action: OT.Raptor.Actions.STATE,
-    payload: {
-      sessionId: sessionId,
-      connectionsRequired: connectionsRequired || true
-    },
-    replyTo: connectionId
-  });
-};
-
-
-OT.Raptor.Message.forceDisconnect = function (fromConnectionId, connectionIdToDisconnect, sessionId) {
-  return OT.Raptor.serializeMessage({
-    id: fromConnectionId,
-    type: OT.Raptor.Types.RPC_REQUEST,
-    action: OT.Raptor.Actions.FORCE_DISCONNECT,
-    payload: {
-      connectionId: connectionIdToDisconnect,
-      sessionId: sessionId
-    },
-    replyTo: fromConnectionId
-  });
-};
-
-
-
-OT.Raptor.Message.streamCreate = function (connectionId, sessionId, publisherId, name, videoOrientation, videoWidth, videoHeight, hasAudio, hasVideo, p2pEnabled) {
-  var payload = {
-    key: sessionId,
-    value: {
-      p2pEnabled: p2pEnabled || false,
-      publisherId: publisherId,
-      connection: {
-          connectionId: connectionId
-      },
-      type: "WebRTC",
-      name: name || '',
-      creationTime: Date.now(),   
-      orientation: {
-          width: videoWidth,
-          height: videoHeight,
-          videoOrientation: videoOrientation || "OTVideoOrientationRotatedNormal"
-      },
-      hasAudio: hasAudio !== void 0 ? hasAudio : true,
-      hasVideo: hasVideo !== void 0 ? hasVideo : true
     }
   };
 
-  return OT.Raptor.serializeMessage({
-    id: connectionId, 
-    type: OT.Raptor.Types.STREAM,
-    action: OT.Raptor.Actions.CREATE,
-    payload: payload,
-    replyTo: ''
-  });
-};
+}(this));
+!(function() {
 
 
-OT.Raptor.Message.streamDestroy = function (connectionId, sessionId, streamId) {
-  return OT.Raptor.serializeMessage({
-    id: connectionId,
-    type: OT.Raptor.Types.STREAM,
-    action: OT.Raptor.Actions.DELETE,
-    payload: {
-      key: sessionId + "/STREAMS/" + streamId
-    },
-    replyTo: connectionId
-  });
-};
-
-
-OT.Raptor.Message.streamModify = function (connectionId, sessionId, streamId, key, value) {
-  return OT.Raptor.serializeMessage({
-    id: connectionId,
-    type: OT.Raptor.Types.STREAM,
-    action: OT.Raptor.Actions.UPDATE,
-    payload: {
-      key: [sessionId, 'STREAMS', streamId, key].join('/'),
-      value: value
-    },
-    replyTo: connectionId
-  });
-};
-
-OT.Raptor.Message.forceUnpublish = function (fromConnectionId, sessionId, streamIdToUnpublish) {
-  return OT.Raptor.serializeMessage({
-    id: fromConnectionId,
-    type: OT.Raptor.Types.RPC_REQUEST,
-    action: OT.Raptor.Actions.FORCE_UNPUBLISH,
-    payload: {
-      sessionId: sessionId,
-      connectionId: fromConnectionId,
-      streamId: streamIdToUnpublish,
-      webRTCStream: true
-    },
-    replyTo: fromConnectionId
-  });
-};
-
-
-OT.Raptor.Message.jsepOffer = function (fromConnectionId, toConnectionId, streamId, sdp) {
-  return OT.Raptor.serializeMessage({
-    id: fromConnectionId,
-    type: OT.Raptor.Types.JSEP,
-    action: OT.Raptor.Actions.OFFER,
-    payload: {
-      fromAddress: fromConnectionId,
-      toAddresses: toConnectionId,
-      sdp: sdp,
-      streamId: streamId
-    },
-    replyTo: fromConnectionId
-  });
-};
-
-
-OT.Raptor.Message.jsepAnswer = function (fromConnectionId, toConnectionId, streamId, sdp) {
-  return OT.Raptor.serializeMessage({
-    id: fromConnectionId,
-    type: OT.Raptor.Types.JSEP,
-    action: OT.Raptor.Actions.ANSWER,
-    payload: {
-      fromAddress: fromConnectionId,
-      toAddresses: toConnectionId,
-      sdp: sdp,
-      streamId: streamId
-    },
-    replyTo: fromConnectionId
-  });
-};
-
-OT.Raptor.Message.jsepSubscribe = function (fromConnectionId, toConnectionId, streamId, subscribeToVideo, subscribeToAudio) {
-  return OT.Raptor.serializeMessage({
-    id: fromConnectionId,
-    type: OT.Raptor.Types.JSEP,
-    action: OT.Raptor.Actions.SUBSCRIBE,
-    payload: {
-      keyManagemenMethod: OT.$.supportedCryptoScheme(),
-      bundleSupport: OT.$.supportsBundle(),
-      rtcpMuxSupport: OT.$.supportsRtcpMux(),
-      fromAddress: fromConnectionId,
-      toAddresses: toConnectionId,
-      streamId: streamId,
-      hasVideo: subscribeToVideo,
-      hasAudio: subscribeToAudio
-    },
-    replyTo: fromConnectionId
-  });
-};
-
-
-
-OT.Raptor.Message.jsepUnsubscribe = function (fromConnectionId, toConnectionId, streamId) {
-  return OT.Raptor.serializeMessage({
-    id: fromConnectionId,
-    type: OT.Raptor.Types.JSEP,
-    action: OT.Raptor.Actions.UNSUBSCRIBE,
-    payload: {
-      fromAddress: fromConnectionId,
-      toAddresses: toConnectionId,
-      streamId: streamId
-    },
-    replyTo: fromConnectionId
-  });
-};
-
-OT.Raptor.Message.jsepCandidate = function (fromConnectionId, toConnectionId, streamId, candidate) {
-  return OT.Raptor.serializeMessage({
-    id: fromConnectionId,
-    type: OT.Raptor.Types.JSEP,
-    action: OT.Raptor.Actions.CANDIDATE,
-    payload: {
-      fromAddress: fromConnectionId,
-      toAddresses: toConnectionId,
-      candidate: candidate,
-      streamId: streamId
-    },
-    replyTo: fromConnectionId
-  });
-};
-
-OT.Raptor.Message.subscriberModify = function (connectionId, sessionId, streamId, subscriberId, key, value) {
-  return OT.Raptor.serializeMessage({
-    id: OT.$.uuid(),
-    type: OT.Raptor.Types.SUBSCRIBER,
-    action: OT.Raptor.Actions.UPDATE,
-    payload: {
-      key: [sessionId, 'SUBSCRIBER', streamId, connectionId, key].join('/'),
-      value: value
-    },
-    replyTo: connectionId
-  });
-};
-
-
-OT.Raptor.Message.signal = function(connectionId, sessionId, type, to, data) {
-  var payload = {
-    id: OT.$.uuid(),
-    fromAddress: connectionId
+  OT.Raptor.serializeMessage = function (message) {
+    return JSON.stringify(message);
   };
 
+
   
   
-  if (to && !Array.isArray(to)) {
-    payload.toAddresses = [to];
-  }
-  else if (!to || to.length === 0) {
+  
+  
+  
+  
+  
+  
+  
+  OT.Raptor.deserializeMessage = function (msg) {
+    if (msg.length === 0) return {};
+
+    var message = JSON.parse(msg),
+        bits = message.uri.substr(1).split('/');
+
     
-    payload.toAddresses = [sessionId];
-  }
-  else {
-    payload.toAddresses = to;
-  }
+    bits.shift();
+    if (bits[bits.length-1] === '') bits.pop();
 
-  if (type !== void 0) payload.type = type;
-  if (data !== void 0) payload.data = data;
+    message.params = {};
+    for (var i=0, numBits=bits.length ; i<numBits-1; i+=2) {
+      message.params[bits[i]] = bits[i+1];
+    }
 
-  return OT.Raptor.serializeMessage({
-    id: connectionId,
-    type: OT.Raptor.Types.SIGNAL,
-    action: OT.Raptor.Actions.SIGNAL,
-    payload: payload,
-    replyTo: connectionId
-  });
-};
-
-}(this));
-(function(global) {
-
-var MAX_SIGNAL_DATA_LENGTH = 8192;
-var MAX_SIGNAL_TYPE_LENGTH = 128;
-
-
-
-
-
-
-
-
-
-
-
-
-OT.Signal = function(sessionId, fromConnectionId, options) {
-  var isInvalidType = function(type) {
-      
-      return !/^[a-zA-Z0-9\-\._~]+$/.exec(type);
-    },
-
-    validateTo = function(toAddress) {
-      if (!toAddress) {
-        return {code: 400, reason: "The signal type was null or an empty String. Either set it to a non-empty String value or omit it"};
+    
+    
+    
+    if (bits.length % 2 === 0) {
+      if (bits[bits.length-2] === 'channel' && bits.length > 6) {
+        message.resource = bits[bits.length-4] + '_' + bits[bits.length-2];
+      } else {
+        message.resource = bits[bits.length-2];
       }
-      else if ( !Array.isArray(toAddress) ) {
-        return {code: 400, reason: "The To field was invalid"};
+    }
+    else {
+      if (bits[bits.length-1] === 'channel' && bits.length > 5) {
+        message.resource = bits[bits.length-3] + '_' + bits[bits.length-1];
+      } else {
+        message.resource = bits[bits.length-1];
       }
+    }
 
-      for (var i=0; i<toAddress.length; i++) {
-        if ( !(toAddress[i] instanceof OT.Connection || toAddress[i] instanceof OT.Session) ) {
-          return {code: 400, reason: "The To field was invalid"};
-        }
+    message.signature = message.resource + '#' + message.method;
+    return message;
+  };
+
+  OT.Raptor.unboxFromRumorMessage = function (rumorMessage) {
+    var message = OT.Raptor.deserializeMessage(rumorMessage.data);
+    message.transactionId = rumorMessage.transactionId;
+    message.fromAddress = rumorMessage.headers['X-TB-FROM-ADDRESS'];
+
+    return message;
+  };
+
+
+  OT.Raptor.Message = {};
+
+
+  OT.Raptor.Message.connections = {};
+
+  OT.Raptor.Message.connections.create = function (apiKey, sessionId, connectionId) {
+    return OT.Raptor.serializeMessage({
+      method: 'create',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/connection/' + connectionId,
+      content: {
+        userAgent: navigator.userAgent
       }
+    });
+  };
 
-      return null;
-    },
-
-    validateType = function(type) {
-      var error = null;
-
-      if (type === null || type === void 0) {
-        error = {code: 400, reason: "The signal type was null or undefined. Either set it to a String value or omit it"};
-      }
-      else if (type.length > MAX_SIGNAL_TYPE_LENGTH) {
-        error = {code: 413, reason: "The signal type was too long, the maximum length of it is " + MAX_SIGNAL_TYPE_LENGTH + " characters"};
-      }
-      else if ( isInvalidType(type) ) {
-        error = {code: 400, reason: "The signal type was invalid, it can only contain letters, numbers, '-', '_', and '~'."};
-      }
-
-      return error;
-    },
-
-    validateData = function(data) {
-      var error = null;
-      if (data === null || data === void 0) {
-        error = {code: 400, reason: "The signal data was null or undefined. Either set it to a String value or omit it"};
-      }
-      else {
-        try {
-          if (JSON.stringify(data).length > MAX_SIGNAL_DATA_LENGTH) {
-            error = {code: 413, reason: "The data field was too long, the maximum size of it is " + MAX_SIGNAL_DATA_LENGTH + " characters"};
-          }
-        }
-        catch(e) {
-          error = {code: 400, reason: "The data field was not valid JSON"};
-        }
-      }
-
-      return error;
-    };
+  OT.Raptor.Message.connections.destroy = function (apiKey, sessionId, connectionId) {
+    return OT.Raptor.serializeMessage({
+      method: 'delete',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/connection/' + connectionId,
+      content: {}
+    });
+  };
 
 
-  this.toRaptorMessage = function() {
-    var to;
+  OT.Raptor.Message.sessions = {};
 
-    if (this.to) {
-      to = this.to.map(function(thing) {
-        return typeof(thing) === 'string' ? thing : thing.id;
+  OT.Raptor.Message.sessions.get = function (apiKey, sessionId) {
+    return OT.Raptor.serializeMessage({
+      method: 'read',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId,
+      content: {}
+    });
+  };
+
+
+  OT.Raptor.Message.streams = {};
+
+  OT.Raptor.Message.streams.get = function (apiKey, sessionId, streamId) {
+    return OT.Raptor.serializeMessage({
+      method: 'read',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+      content: {}
+    });
+  };
+
+  OT.Raptor.Message.streams.create = function (apiKey, sessionId, streamId, name, videoOrientation,
+    videoWidth, videoHeight, hasAudio, hasVideo, frameRate, minBitrate, maxBitrate) {
+    var channels = [];
+
+    if (hasAudio !== void 0) {
+      channels.push({
+        id: 'audio1',
+        type: 'audio',
+        active: hasAudio
       });
     }
 
-    return OT.Raptor.Message.signal(fromConnectionId, sessionId, this.type, to, this.data);
+    if (hasVideo !== void 0) {
+      var channel = {
+        id: 'video1',
+        type: 'video',
+        active: hasVideo,
+        width: videoWidth,
+        height: videoHeight,
+        orientation: videoOrientation
+      };
+      if (frameRate) channel.frameRate = frameRate;
+      channels.push(channel);
+    }
+    
+    var messageContent = {
+      id: streamId,
+      name: name,
+      channel: channels
+    };
+    
+    if (minBitrate) messageContent.minBitrate = minBitrate;
+    if (maxBitrate) messageContent.maxBitrate = maxBitrate;
+
+    return OT.Raptor.serializeMessage({
+      method: 'create',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+      content: messageContent
+    });
   };
 
-  this.toHash = function() {
-    var h = OT.$.clone(options);
-    if (h.to === void 0) h.to = null;
-    if (h.data === void 0) h.data = null;
+  OT.Raptor.Message.streams.destroy = function (apiKey, sessionId, streamId) {
+    return OT.Raptor.serializeMessage({
+      method: 'delete',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+      content: {}
+    });
+  };
 
-    return h;
+  OT.Raptor.Message.streams.offer = function (apiKey, sessionId, streamId, offerSdp) {
+    return OT.Raptor.serializeMessage({
+      method: 'offer',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+      content: {
+        sdp: offerSdp
+      }
+    });
+  };
+
+  OT.Raptor.Message.streams.answer = function (apiKey, sessionId, streamId, answerSdp) {
+    return OT.Raptor.serializeMessage({
+      method: 'answer',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+      content: {
+        sdp: answerSdp
+      }
+    });
+  };
+
+  OT.Raptor.Message.streams.candidate = function (apiKey, sessionId, streamId, candidate) {
+    return OT.Raptor.serializeMessage({
+      method: 'candidate',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' + streamId,
+      content: candidate
+    });
+  };
+
+  OT.Raptor.Message.streamChannels = {};
+  OT.Raptor.Message.streamChannels.update =
+    function (apiKey, sessionId, streamId, channelId, attributes) {
+    return OT.Raptor.serializeMessage({
+      method: 'update',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/stream/' +
+        streamId + '/channel/' + channelId,
+      content: attributes
+    });
   };
 
 
-  this.error = null;
+  OT.Raptor.Message.subscribers = {};
 
-  if (options) {
-    if (options.hasOwnProperty('data')) {
-      this.data = OT.$.clone(options.data);
-      this.error = validateData(this.data);
-    }
+  OT.Raptor.Message.subscribers.create =
+    function (apiKey, sessionId, streamId, subscriberId, connectionId, channelsToSubscribeTo) {
+    var content = {
+      id: subscriberId,
+      connection: connectionId,
+      keyManagementMethod: OT.$.supportedCryptoScheme(),
+      bundleSupport: OT.$.supportsBundle(),
+      rtcpMuxSupport: OT.$.supportsRtcpMux()
+    };
+    if (channelsToSubscribeTo) content.channel = channelsToSubscribeTo;
 
-    if (options.hasOwnProperty('to')) {
-      if (!Array.isArray(options.to)) {
-        this.to = [options.to];
+    return OT.Raptor.serializeMessage({
+      method: 'create',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+        '/stream/' + streamId + '/subscriber/' + subscriberId,
+      content: content
+    });
+  };
+
+  OT.Raptor.Message.subscribers.destroy = function (apiKey, sessionId, streamId, subscriberId) {
+    return OT.Raptor.serializeMessage({
+      method: 'delete',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+        '/stream/' + streamId + '/subscriber/' + subscriberId,
+      content: {}
+    });
+  };
+
+  OT.Raptor.Message.subscribers.update =
+    function (apiKey, sessionId, streamId, subscriberId, attributes) {
+    return OT.Raptor.serializeMessage({
+      method: 'update',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+      '/stream/' + streamId + '/subscriber/' + subscriberId,
+      content: attributes
+    });
+  };
+
+
+  OT.Raptor.Message.subscribers.candidate =
+    function (apiKey, sessionId, streamId, subscriberId, candidate) {
+    return OT.Raptor.serializeMessage({
+      method: 'candidate',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+        '/stream/' + streamId + '/subscriber/' + subscriberId,
+      content: candidate
+    });
+  };
+
+  OT.Raptor.Message.subscribers.offer =
+    function (apiKey, sessionId, streamId, subscriberId, offerSdp) {
+    return OT.Raptor.serializeMessage({
+      method: 'offer',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+        '/stream/' + streamId + '/subscriber/' + subscriberId,
+      content: {
+        sdp: offerSdp
       }
-      else {
-        this.to = OT.$.clone(options.to);
+    });
+  };
+
+  OT.Raptor.Message.subscribers.answer =
+    function (apiKey, sessionId, streamId, subscriberId, answerSdp) {
+    return OT.Raptor.serializeMessage({
+      method: 'answer',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+      '/stream/' + streamId + '/subscriber/' + subscriberId,
+      content: {
+        sdp: answerSdp
       }
+    });
+  };
 
-      if (!this.error) this.error = validateTo(this.to)
-    }
 
-    if (options.hasOwnProperty('type')) {
-      if (!this.error) this.error = validateType(options.type)
-      this.type = options.type;
-    }
-  }
+  OT.Raptor.Message.subscriberChannels = {};
 
-  this.valid = this.error === null;
-};
+  OT.Raptor.Message.subscriberChannels.update =
+    function (apiKey, sessionId, streamId, subscriberId, channelId, attributes) {
+    return OT.Raptor.serializeMessage({
+      method: 'update',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+      '/stream/' + streamId + '/subscriber/' + subscriberId + '/channel/' + channelId,
+      content: attributes
+    });
+  };
+
+
+  OT.Raptor.Message.signals = {};
+
+  OT.Raptor.Message.signals.create = function (apiKey, sessionId, toAddress, type, data) {
+    var content = {};
+    if (type !== void 0) content.type = type;
+    if (data !== void 0) content.data = data;
+
+    return OT.Raptor.serializeMessage({
+      method: 'signal',
+      uri: '/v2/partner/' + apiKey + '/session/' + sessionId +
+        (toAddress !== void 0 ? '/connection/' + toAddress : '') + '/signal/' + OT.$.uuid(),
+      content: content
+    });
+  };
 
 }(this));
-(function(global) {
+!(function() {
 
-
-function SignalError(code, reason, signal) {
-    this.code = code;
-    this.reason = reason;
-    this.signal = signal;
-}
-
-
-
-OT.Raptor.Socket = function(widgetId, messagingServer, Dispatcher) {
-  var _socketUrl = OT.properties.messagingProtocol + "://" + messagingServer + ":" + OT.properties.messagingPort + "/rumorwebsocketsv2",
-      _symphony = "symphony." + messagingServer,
-      _sessionId,
-      _rumor,
-      _dispatcher,
-      _completion,
-      _capabilities = new OT.Capabilities([]),
-      _analytics = new OT.Analytics();
-
+  var MAX_SIGNAL_DATA_LENGTH = 8192,
+      MAX_SIGNAL_TYPE_LENGTH = 128;
 
   
-  var setState = OT.$.statable(this, ['disconnected', 'connecting', 'connected', 'error', 'disconnecting'], 'disconnected'),
-
-      logAnalyticsEvent = function logAnalyticsEvent (variation, payloadType, payload, options) {
-        var event = {
-          action: 'Connect',
-          variation: variation,
-          payload_type: payloadType,
-          payload: payload,
-          session_id: _sessionId,
-          partner_id: OT.APIKEY,
-          widget_id: widgetId,
-          widget_type: 'Controller'
-        };
-
-        if (options) event = OT.$.extend(options, event);
-        _analytics.logEvent(event);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.Signal = function(sessionId, fromConnectionId, options) {
+    var isInvalidType = function(type) {
+        
+        
+        return !/^[a-zA-Z0-9\-\._~]+$/.exec(type);
       },
 
-      onConnectComplete = function onConnectComplete (error, sessionState, prefix) {
-        if (error) {
-          logAnalyticsEvent('Failure', "reason|webSocketServerUrl", prefix + error.code + ':' + error.message + '|' + _socketUrl);
+      validateTo = function(toAddress) {
+        if (!toAddress) {
+          return {
+            code: 400,
+            reason: 'The signal type was null or an empty String. Either set it to a non-empty ' +
+              'String value or omit it'
+          };
+        }
 
-          setState('error');
+        if ( !(toAddress instanceof OT.Connection || toAddress instanceof OT.Session) ) {
+          return {
+            code: 400,
+            reason: 'The To field was invalid'
+          };
+        }
+
+        return null;
+      },
+
+      validateType = function(type) {
+        var error = null;
+
+        if (type === null || type === void 0) {
+          error = {
+            code: 400,
+            reason: 'The signal type was null or undefined. Either set it to a String value or ' +
+              'omit it'
+          };
+        }
+        else if (type.length > MAX_SIGNAL_TYPE_LENGTH) {
+          error = {
+            code: 413,
+            reason: 'The signal type was too long, the maximum length of it is ' +
+              MAX_SIGNAL_TYPE_LENGTH + ' characters'
+          };
+        }
+        else if ( isInvalidType(type) ) {
+          error = {
+            code: 400,
+            reason: 'The signal type was invalid, it can only contain letters, ' +
+              'numbers, \'-\', \'_\', and \'~\'.'
+          };
+        }
+
+        return error;
+      },
+
+      validateData = function(data) {
+        var error = null;
+        if (data === null || data === void 0) {
+          error = {
+            code: 400,
+            reason: 'The signal data was null or undefined. Either set it to a String value or ' +
+              'omit it'
+          };
         }
         else {
-          logAnalyticsEvent('Success', "webSocketServerUrl", _socketUrl, {connectionId: _rumor.id});
-
-          setState('connected');
-          _capabilities = new OT.Capabilities(sessionState.permissions);
+          try {
+            if (JSON.stringify(data).length > MAX_SIGNAL_DATA_LENGTH) {
+              error = {
+                code: 413,
+                reason: 'The data field was too long, the maximum size of it is ' +
+                  MAX_SIGNAL_DATA_LENGTH + ' characters'
+              };
+            }
+          }
+          catch(e) {
+            error = {code: 400, reason: 'The data field was not valid JSON'};
+          }
         }
 
-        _completion.apply(null, arguments);
-      },
-
-      onClose = function onClose (err) {
-        var session = OT.sessions.get(_sessionId),
-            connection = session.connection,
-            reason = this.is('disconnecting') ? "clientDisconnected" : "networkDisconnected";
-
-        if(err && err.code == 4001) {
-          reason = "networkTimedout";
-        }
-
-        setState('disconnected');
-
-        if (!connection) return;
-
-        if (connection.destroyedReason) {
-          console.debug("OT.Raptor.Socket: Socket was closed but the connection had already been destroyed. Reason: " + connection.destroyedReason);
-          return;
-        }
-
-        connection.destroy( reason );
-      }.bind(this),
-
-      onError = function onError () {
-        
+        return error;
       };
 
 
-  
+    this.toRaptorMessage = function() {
+      var to = this.to;
+
+      if (to && typeof(to) !== 'string') {
+        to = to.id;
+      }
+
+      return OT.Raptor.Message.signals.create(OT.APIKEY, sessionId, to, this.type, this.data);
+    };
+
+    this.toHash = function() {
+      return options;
+    };
 
 
-  
-  
-  this.permittedTo = function (action) {
-      return _capabilities[action] === 1;
-  };
+    this.error = null;
 
-  this.connect = function (token, sessionInfo, completion) {
-    if (!this.is('disconnected', 'error')) {
-      OT.warn("Cannot connect the Raptor Socket as it is currently connected. You should disconnect first.");
-      return;
+    if (options) {
+      if (options.hasOwnProperty('data')) {
+        this.data = OT.$.clone(options.data);
+        this.error = validateData(this.data);
+      }
+
+      if (options.hasOwnProperty('to')) {
+        this.to = options.to;
+
+        if (!this.error) {
+          this.error = validateTo(this.to);
+        }
+      }
+
+      if (options.hasOwnProperty('type')) {
+        if (!this.error) {
+          this.error = validateType(options.type);
+        }
+        this.type = options.type;
+      }
     }
 
-    setState('connecting');
-    _sessionId = sessionInfo.sessionId;
-    _completion = completion;
+    this.valid = this.error === null;
+  };
 
-    var connectionId = OT.$.uuid(),
-        session = OT.sessions.get(_sessionId);
+}(this));
+!(function() {
+
+  function SignalError(code, reason) {
+    this.code = code;
+    this.reason = reason;
+  }
+
+  
+  
+  OT.Raptor.Socket = function(widgetId, messagingSocketUrl, symphonyUrl, dispatcher) {
+    var _states = ['disconnected', 'connecting', 'connected', 'error', 'disconnecting'],
+        _sessionId,
+        _token,
+        _rumor,
+        _dispatcher,
+        _completion;
 
 
-    var analyticsPayload = [_socketUrl, navigator.userAgent, OT.properties.version, window.externalHost ? "yes" : "no"];
-    logAnalyticsEvent(
-      'Attempt',
-      "webSocketServerUrl|userAgent|sdkVersion|chromeFrame",
-      analyticsPayload.map(function(e) { return e.replace('|', '\\|'); }).join('|')
-    );
+    
+    var setState = OT.$.statable(this, _states, 'disconnected'),
 
-    _rumor = new OT.Rumor.Socket(_socketUrl, _symphony);
-    _rumor.onClose = onClose;
-    _rumor.onMessage = _dispatcher.dispatch.bind(_dispatcher);
+        onConnectComplete = function onConnectComplete (error) {
+          if (error) {
+            setState('error');
+          }
+          else {
+            setState('connected');
+          }
 
-    _rumor.connect(connectionId, function(error) {
-      if (error) {
-        onConnectComplete(error, null, "RumorConnection:");
+          _completion.apply(null, arguments);
+        },
+
+        onClose = function onClose (err) {
+          var reason = this.is('disconnecting') ? 'clientDisconnected' : 'networkDisconnected';
+
+          if(err && err.code === 4001) {
+            reason = 'networkTimedout';
+          }
+
+          setState('disconnected');
+
+          _dispatcher.onClose(reason);
+
+        }.bind(this),
+
+        onError = function onError () {};
+        
+
+
+    
+
+    this.connect = function (token, sessionInfo, completion) {
+      if (!this.is('disconnected', 'error')) {
+        OT.warn('Cannot connect the Raptor Socket as it is currently connected. You should ' +
+          'disconnect first.');
         return;
       }
 
-      
-      _rumor.onError = onError;
+      setState('connecting');
+      _sessionId = sessionInfo.sessionId;
+      _token = token;
+      _completion = completion;
 
-      OT.debug("Raptor Socket connected to " + _sessionId + " on " + messagingServer);
+      var connectionId = OT.$.uuid(),
+          rumorChannel = '/v2/partner/' + OT.APIKEY + '/session/' + _sessionId;
 
-      _rumor.subscribe([_sessionId]);
+      _rumor = new OT.Rumor.Socket(messagingSocketUrl, symphonyUrl);
+      _rumor.onClose = onClose;
+      _rumor.onMessage = _dispatcher.dispatch.bind(_dispatcher);
 
-      
-      var connectMessage = OT.Raptor.Message.connect(widgetId, _rumor.id, _sessionId, OT.APIKEY, token, sessionInfo.p2pEnabled);
-      this.publish(connectMessage);
-    }.bind(this));
-  };
+      _rumor.connect(connectionId, function(error) {
+        if (error) {
+          error.message = 'WebSocketConnection:' + error.code + ':' + error.message;
+          onConnectComplete(error);
+          return;
+        }
 
+        
+        _rumor.onError = onError;
 
-  this.disconnect = function () {
-    if (this.is('disconnected')) return;
+        OT.debug('Raptor Socket connected. Subscribing to ' +
+          rumorChannel + ' on ' + messagingSocketUrl);
 
-    setState('disconnecting');
-    _rumor.disconnect();
-  };
+        _rumor.subscribe([rumorChannel]);
 
-  
-  this.publish = function (message) {
-    if (_rumor.isNot('connected')) {
-      OT.error("OT.Raptor.Socket: cannot publish until the socket is connected." + message);
-      return;
-    }
+        
+        var connectMessage = OT.Raptor.Message.connections.create(OT.APIKEY, _sessionId, _rumor.id);
+        this.publish(connectMessage, {'X-TB-TOKEN-AUTH': _token}, function(error) {
+          if (error) {
+            error.message = 'ConnectToSession:' + error.code +
+                ':Received error response to connection create message.';
+            onConnectComplete(error);
+            return;
+          }
 
-    OT.debug("OT.Raptor.Socket Publish: " + message);
-    _rumor.publish([_symphony], message);
-  };
+          this.publish( OT.Raptor.Message.sessions.get(OT.APIKEY, _sessionId),
+            function (error) {
+            if (error) error.message = 'GetSessionState:' + error.code +
+                      ':Received error response to session read';
+            onConnectComplete.apply(null, arguments);
+          });
+        }.bind(this));
 
-  
-  this.createStream = function(publisherId, name, orientation, encodedWidth, encodedHeight, hasAudio, hasVideo) {
-    var session = OT.sessions.get(_sessionId),
-        message = OT.Raptor.Message.streamCreate( _rumor.id,
-                                                  _sessionId,
-                                                  publisherId,
-                                                  name,
-                                                  orientation,
-                                                  encodedWidth,
-                                                  encodedHeight,
-                                                  hasAudio,
-                                                  hasVideo,
-                                                  session.sessionInfo.p2pEnabled );
-
-    this.publish(message);
-  };
-
-  this.updateStream = function(streamId, key, value) {
-    this.publish( OT.Raptor.Message.streamModify(_rumor.id, _sessionId, streamId, key, value) );
-  };
-
-  this.destroyStream = function(streamId) {
-    this.publish( OT.Raptor.Message.streamDestroy(_rumor.id, _sessionId, streamId) );
-  };
-
-  this.modifySubscriber = function(subscriber, key, value) {
-    this.publish( OT.Raptor.Message.subscriberModify(_rumor.id, _sessionId, subscriber.streamId, subscriber.widgetId, key, value) );
-  };
-
-  this.forceDisconnect = function(connectionIdToDisconnect) {
-    this.publish( OT.Raptor.Message.forceDisconnect(_rumor.id, connectionIdToDisconnect, _sessionId) );
-  };
-
-  this.forceUnpublish = function(streamId) {
-    this.publish( OT.Raptor.Message.forceUnpublish(_rumor.id, _sessionId, streamId) );
-  };
-
-  this.jsepSubscribe = function(toConnectionId, streamId, subscribeToVideo, subscribeToAudio) {
-    this.publish( OT.Raptor.Message.jsepSubscribe(_rumor.id, toConnectionId, streamId, subscribeToVideo, subscribeToAudio) );
-  };
-
-  this.jsepUnsubscribe = function(toConnectionId, streamId) {
-    this.publish( OT.Raptor.Message.jsepUnsubscribe(_rumor.id, toConnectionId, streamId) );
-  };
-
-  this.jsepCandidate = function(toConnectionId, streamId, candidate) {
-    this.publish( OT.Raptor.Message.jsepCandidate(_rumor.id, toConnectionId, streamId, candidate) );
-  };
-
-  this.jsepOffer = function(toConnectionId, streamId, offerSDP) {
-    this.publish( OT.Raptor.Message.jsepOffer(_rumor.id, toConnectionId, streamId, offerSDP) );
-  };
-
-  this.jsepAnswer = function(toConnectionId, streamId, answerSDP) {
-    this.publish( OT.Raptor.Message.jsepAnswer(_rumor.id, toConnectionId, streamId, answerSDP) );
-  };
+      }.bind(this));
+    };
 
 
-  this.signal = function(options, completion) {
-    var signal = new OT.Signal(_sessionId, _rumor.id, options || {});
+    this.disconnect = function () {
+      if (this.is('disconnected')) return;
 
-    if (!signal.valid) {
-      if (completion && OT.$.isFunction(completion)) {
-        completion( new SignalError(signal.error.code, signal.error.reason, signal.toHash()) );
+      setState('disconnecting');
+      _rumor.disconnect();
+    };
+
+    
+    
+    
+    
+    
+    
+    this.publish = function (message, headers, completion) {
+      if (_rumor.isNot('connected')) {
+        OT.error('OT.Raptor.Socket: cannot publish until the socket is connected.' + message);
+        return;
       }
 
-      return;
+      var transactionId = OT.$.uuid(),
+          _headers = {},
+          _completion;
+
+      
+      
+      if (headers) {
+        if (OT.$.isFunction(headers)) {
+          _headers = {};
+          _completion = headers;
+        }
+        else {
+          _headers = headers;
+        }
+      }
+      if (!_completion && completion && OT.$.isFunction(completion)) _completion = completion;
+
+
+      if (_completion) _dispatcher.registerCallback(transactionId, _completion);
+
+      OT.debug('OT.Raptor.Socket Publish (ID:' + transactionId + ') ');
+      OT.debug(message);
+
+      _rumor.publish([symphonyUrl], message, OT.$.extend(_headers, {
+        'Content-Type': 'application/x-raptor+v2',
+        'TRANSACTION-ID': transactionId,
+        'X-TB-FROM-ADDRESS': _rumor.id
+      }));
+
+      return transactionId;
+    };
+
+    
+    this.streamCreate = function(name, orientation, encodedWidth, encodedHeight,
+      hasAudio, hasVideo, frameRate, minBitrate, maxBitrate, completion) {
+      var streamId = OT.$.uuid(),
+          message = OT.Raptor.Message.streams.create( OT.APIKEY,
+                                                      _sessionId,
+                                                      streamId,
+                                                      name,
+                                                      orientation,
+                                                      encodedWidth,
+                                                      encodedHeight,
+                                                      hasAudio,
+                                                      hasVideo,
+                                                      frameRate,
+                                                      minBitrate,
+                                                      maxBitrate);
+
+      this.publish(message, function(error) {
+        completion(error, streamId);
+      });
+    };
+
+    this.streamDestroy = function(streamId) {
+      this.publish( OT.Raptor.Message.streams.destroy(OT.APIKEY, _sessionId, streamId) );
+    };
+
+    this.streamChannelUpdate = function(streamId, channelId, attributes) {
+      this.publish( OT.Raptor.Message.streamChannels.update(OT.APIKEY, _sessionId,
+        streamId, channelId, attributes) );
+    };
+
+    this.subscriberCreate = function(streamId, subscriberId, channelsToSubscribeTo, completion) {
+      this.publish( OT.Raptor.Message.subscribers.create(OT.APIKEY, _sessionId,
+        streamId, subscriberId, _rumor.id, channelsToSubscribeTo), completion );
+    };
+
+    this.subscriberDestroy = function(streamId, subscriberId) {
+      this.publish( OT.Raptor.Message.subscribers.destroy(OT.APIKEY, _sessionId,
+        streamId, subscriberId) );
+    };
+
+    this.subscriberUpdate = function(streamId, subscriberId, attributes) {
+      this.publish( OT.Raptor.Message.subscribers.update(OT.APIKEY, _sessionId,
+        streamId, subscriberId, attributes) );
+    };
+
+    this.subscriberChannelUpdate = function(streamId, subscriberId, channelId, attributes) {
+      this.publish( OT.Raptor.Message.subscriberChannels.update(OT.APIKEY, _sessionId,
+        streamId, subscriberId, channelId, attributes) );
+    };
+
+    this.forceDisconnect = function(connectionIdToDisconnect, completion) {
+      this.publish( OT.Raptor.Message.connections.destroy(OT.APIKEY, _sessionId,
+        connectionIdToDisconnect), completion );
+    };
+
+    this.forceUnpublish = function(streamIdToUnpublish, completion) {
+      this.publish( OT.Raptor.Message.streams.destroy(OT.APIKEY, _sessionId,
+        streamIdToUnpublish), completion );
+    };
+
+    this.jsepCandidate = function(streamId, candidate) {
+      this.publish(
+        OT.Raptor.Message.streams.candidate(OT.APIKEY, _sessionId, streamId, candidate)
+      );
+    };
+
+    this.jsepCandidateP2p = function(streamId, subscriberId, candidate) {
+      this.publish(
+        OT.Raptor.Message.subscribers.candidate(OT.APIKEY, _sessionId, streamId,
+          subscriberId, candidate)
+      );
+    };
+
+    this.jsepOffer = function(streamId, offerSdp) {
+      this.publish( OT.Raptor.Message.streams.offer(OT.APIKEY, _sessionId, streamId, offerSdp) );
+    };
+
+    this.jsepOfferP2p = function(streamId, subscriberId, offerSdp) {
+      this.publish( OT.Raptor.Message.subscribers.offer(OT.APIKEY, _sessionId, streamId,
+        subscriberId, offerSdp) );
+    };
+
+    this.jsepAnswer = function(streamId, answerSdp) {
+      this.publish( OT.Raptor.Message.streams.answer(OT.APIKEY, _sessionId, streamId, answerSdp) );
+    };
+
+    this.jsepAnswerP2p = function(streamId, subscriberId, answerSdp) {
+      this.publish( OT.Raptor.Message.subscribers.answer(OT.APIKEY, _sessionId, streamId,
+        subscriberId, answerSdp) );
+    };
+
+    this.signal = function(options, completion) {
+      var signal = new OT.Signal(_sessionId, _rumor.id, options || {});
+
+      if (!signal.valid) {
+        if (completion && OT.$.isFunction(completion)) {
+          completion( new SignalError(signal.error.code, signal.error.reason), signal.toHash() );
+        }
+
+        return;
+      }
+
+      this.publish( signal.toRaptorMessage(), function(err) {
+        var error;
+        if (err) error = new SignalError(err.code, err.message);
+
+        if (completion && OT.$.isFunction(completion)) completion(error, signal.toHash());
+      });
+    };
+
+    OT.$.defineGetters(this, {
+      id: function() {
+        return _rumor && _rumor.id;
+      },
+      sessionId: function() {
+        return _sessionId;
+      },
+      dispatcher: function() {
+        return _dispatcher;
+      }
+    });
+
+    if(dispatcher == null) {
+      dispatcher = new OT.Raptor.Dispatcher();
     }
-
-    this.publish( signal.toRaptorMessage() );
-    if (completion && OT.$.isFunction(completion)) completion(null, signal.toHash());
+    _dispatcher = dispatcher;
   };
-
-  OT.$.defineGetters(this, {
-    id: function() { return _rumor.id; },
-    capabilities: function() { return _capabilities; },
-    sessionId: function() { return _sessionId; }
-  });
-
-  _dispatcher = new (Dispatcher || OT.Raptor.Dispatcher)(this, function (error, sessionState) {
-    onConnectComplete.call(this, error, sessionState, "ConnectToSession:");
-  });
-};
-
 
 }(this));
-(function(global) {
-
-
-var connectErrorReasons = {
-  409: "This P2P session already has 2 participants.",
-  410: "The session already has four participants.",
-  1004: "The token passed is invalid."
-};
-
-
-
-OT.publishers = new OT.Collection('guid');          
-OT.subscribers = new OT.Collection('widgetId');     
-OT.sessions = new OT.Collection();
-
-function parseStream(dict, session) {
-  var stream = new OT.Stream( dict.streamId,
-                              session.connections.get(dict.connection.connectionId),
-                              dict.name,
-                              dict.streamData,
-                              dict.type,
-                              dict.creationTime,
-                              dict.hasAudio,
-                              dict.hasVideo,
-                              dict.orientation ? dict.orientation.videoOrientation : null,
-                              dict.peerId,
-                              dict.quality,
-                              dict.orientation ? dict.orientation.width : null,
-                              dict.orientation ? dict.orientation.height : null );
+!(function() {
+  
 
   
-  
-  
-  if (dict.publisherId) {
-    stream.publisherId = dict.publisherId;
+  var connectErrorReasons;
+
+  connectErrorReasons = {
+    409: 'This P2P session already has 2 participants.',
+    410: 'The session already has four participants.',
+    1004: 'The token passed is invalid.'
+  };
+
+
+  OT.Raptor.Dispatcher = function () {
+
+    if(typeof EventEmitter !== 'undefined') {
+      EventEmitter.call(this);
+    } else {
+      OT.$.eventing(this, true);
+      this.emit = this.trigger;
+    }
+
+    this.callbacks = {};
+  };
+
+  if(typeof EventEmitter !== 'undefined') {
+    util.inherits(OT.Raptor.Dispatcher, EventEmitter);
   }
 
-  return stream;
-}
+  OT.Raptor.Dispatcher.prototype.registerCallback = function (transactionId, completion) {
+    this.callbacks[transactionId] = completion;
+  };
 
-function parseAndAddStreamToSession(dict, session) {
-  if (session.streams.has(dict.streamId)) return;
+  OT.Raptor.Dispatcher.prototype.triggerCallback = function (transactionId) {
+    
+    if (!transactionId) return;
 
-  var stream = parseStream(dict, session);
-  session.streams.add( stream );
+    var completion = this.callbacks[transactionId];
 
-  return stream;
-}
+    if (completion && OT.$.isFunction(completion)) {
+      var args = Array.prototype.slice.call(arguments);
+      args.shift();
 
+      completion.apply(null, args);
+    }
 
-OT.Raptor.Dispatcher = function (socket, connectionCompletion) {
-  this.socket = socket;
-  this.connectionCompletion = connectionCompletion;
-};
+    delete this.callbacks[transactionId];
+  };
 
-OT.Raptor.Dispatcher.prototype.dispatch = function(addresses, encodedMessage) {
-  var message = OT.Raptor.deserializeMessage(encodedMessage);
-
-  if (!message.typeName) {
-    OT.error("OT.Raptor.dispatch: Invalid message type (" + message.type + ")");
-    return;
-  }
-
-  if (!message.actionName) {
-    OT.error("OT.Raptor.dispatch: Invalid action (" + message.action + ") for " + message.typeName);
-    OT.error(message);
-    return;
-  }
-
-  OT.debug("OT.Raptor.dispatch " + message.signature + ": " + encodedMessage);
-
-  switch(message.type) {
-    case OT.Raptor.Types.RPC_RESPONSE:
-      this.dispatchRPCResponse(message);
-      break;
-
-    case OT.Raptor.Types.CONNECTION:
-      this.dispatchConnection(message);
-      break;
-
-    case OT.Raptor.Types.CONNECTIONCOUNT:
-      this.dispatchConnectionCount(message);
-      break;
-
-    case OT.Raptor.Types.STREAM:
-      this.dispatchStream(message);
-      break;
-
-    case OT.Raptor.Types.SUBSCRIBER:
-      this.dispatchSubscriber(message);
-      break;
-
-    case OT.Raptor.Types.MODERATION:
-      this.dispatchModeration(message);
-      break;
-
-    case OT.Raptor.Types.JSEP:
-      this.dispatchJsep(message);
-      break;
-
-    case OT.Raptor.Types.SIGNAL:
-      this.dispatchSignal(message);
-      break;
+  OT.Raptor.Dispatcher.prototype.onClose = function(reason) {
+    this.trigger('close', reason);
+  };
 
 
+  OT.Raptor.Dispatcher.prototype.dispatch = function(rumorMessage) {
+    
+    
 
-    default:
-      OT.warn("OT.Raptor.dispatch: Type " + message.typeName + " is not currently implemented");
-  }
-};
+    if (rumorMessage.type === OT.Rumor.MessageType.STATUS) {
+      OT.debug('OT.Raptor.dispatch: STATUS');
+      OT.debug(rumorMessage);
 
+      var error;
 
-OT.Raptor.Dispatcher.prototype.dispatchRPCResponse = function (message) {
-  switch (message.action) {
-    case OT.Raptor.Actions.CONNECT:
-      if (message.payload.connectSuccess == false) {
-        var error = new OT.Error(OT.ExceptionCodes.CONNECT_REJECTED, connectErrorReasons[message.payload.reason] || "Failed to connect");
-        this.connectionCompletion.call(null, error);
+      if (rumorMessage.isError) {
+        
+        
+        
+        
+        error = new OT.Error(rumorMessage.status);
       }
-      else {
-        this.socket.publish(OT.Raptor.Message.getSessionState(this.socket.id, message.payload.sessionId, true));
+
+      this.triggerCallback(rumorMessage.transactionId, error, rumorMessage);
+
+      return;
+    }
+
+    var message = OT.Raptor.unboxFromRumorMessage(rumorMessage);
+    OT.debug('OT.Raptor.dispatch ' + message.signature);
+    OT.debug(message);
+
+    switch(message.resource) {
+      case 'session':
+        this.dispatchSession(message);
+        break;
+
+      case 'connection':
+        this.dispatchConnection(message);
+        break;
+
+      case 'stream':
+        this.dispatchStream(message);
+        break;
+
+      case 'stream_channel':
+        this.dispatchStreamChannel(message);
+        break;
+
+      case 'subscriber':
+        this.dispatchSubscriber(message);
+        break;
+
+      case 'subscriber_channel':
+        this.dispatchSubscriberChannel(message);
+        break;
+
+      case 'signal':
+        this.dispatchSignal(message);
+        break;
+
+      case 'archive':
+        this.dispatchArchive(message);
+        break;
+
+      default:
+        OT.warn('OT.Raptor.dispatch: Type ' + message.resource + ' is not currently implemented');
+    }
+  };
+
+  OT.Raptor.Dispatcher.prototype.dispatchSession = function (message) {
+    switch (message.method) {
+      case 'read':
+
+        this.emit('session#read', message.content, message.transactionId);
+        break;
+
+
+      default:
+        OT.warn('OT.Raptor.dispatch: ' + message.signature + ' is not currently implemented');
+    }
+  };
+
+  OT.Raptor.Dispatcher.prototype.dispatchConnection = function (message) {
+
+    switch (message.method) {
+      case 'created':
+        this.emit('connection#created', message.content);
+        break;
+
+
+      case 'deleted':
+        this.emit('connection#deleted', message.params.connection, message.reason);
+        break;
+
+      default:
+        OT.warn('OT.Raptor.dispatch: ' + message.signature + ' is not currently implemented');
+    }
+  };
+
+  OT.Raptor.Dispatcher.prototype.dispatchStream = function (message) {
+
+    switch (message.method) {
+      case 'created':
+        this.emit('stream#created', message.content, message.transactionId);
+        break;
+
+      case 'deleted':
+        this.emit('stream#deleted', message.params.stream,
+          message.reason);
+        break;
+
+
+      case 'updated':
+        this.emit('stream#updated', message.params.stream,
+          message.content);
+        break;
+
+
+      
+      case 'generateoffer':
+      case 'answer':
+      case 'pranswer':
+      case 'offer':
+      case 'candidate':
+        this.dispatchJsep(message.method, message);
+        break;
+
+      default:
+        OT.warn('OT.Raptor.dispatch: ' + message.signature + ' is not currently implemented');
+    }
+  };
+
+  OT.Raptor.Dispatcher.prototype.dispatchStreamChannel = function (message) {
+    switch (message.method) {
+      case 'updated':
+        this.emit('streamChannel#updated', message.params.stream,
+          message.params.channel, message.content);
+        break;
+
+      default:
+        OT.warn('OT.Raptor.dispatch: ' + message.signature + ' is not currently implemented');
+    }
+  };
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.Raptor.Dispatcher.prototype.dispatchJsep = function (method, message) {
+    this.emit('jsep#' + method, message.params.stream, message.fromAddress, message);
+  };
+
+
+  OT.Raptor.Dispatcher.prototype.dispatchSubscriberChannel = function (message) {
+    switch (message.method) {
+      case 'updated':
+        this.emit('subscriberChannel#updated', message.params.stream,
+          message.params.channel, message.content);
+        break;
+
+
+      case 'update': 
+        this.emit('subscriberChannel#update', message.params.subscriber,
+          message.params.stream, message.content);
+        break;
+
+
+      default:
+        OT.warn('OT.Raptor.dispatch: ' + message.signature + ' is not currently implemented');
+    }
+  };
+
+  OT.Raptor.Dispatcher.prototype.dispatchSubscriber = function (message) {
+
+    switch (message.method) {
+      case 'created':
+        this.emit('subscriber#created', message.params.stream, message.fromAddress,
+          message.content.id);
+        break;
+
+
+      case 'deleted':
+        this.dispatchJsep('unsubscribe', message);
+        this.emit('subscriber#deleted', message.params.stream,
+          message.fromAddress);
+        break;
+
+
+      
+      case 'generateoffer':
+      case 'answer':
+      case 'pranswer':
+      case 'offer':
+      case 'candidate':
+        this.dispatchJsep(message.method, message);
+        break;
+
+
+      default:
+        OT.warn('OT.Raptor.dispatch: ' + message.signature + ' is not currently implemented');
+    }
+  };
+
+  OT.Raptor.Dispatcher.prototype.dispatchSignal = function (message) {
+    if (message.method !== 'signal') {
+      OT.warn('OT.Raptor.dispatch: ' + message.signature + ' is not currently implemented');
+      return;
+    }
+    this.emit('signal', message.fromAddress, message.content.type,
+      message.content.data);
+  };
+
+  OT.Raptor.Dispatcher.prototype.dispatchArchive = function (message) {
+    switch (message.method) {
+      case 'create':
+        this.emit('archive#create', message.content);
+        break;
+      
+      case 'updated':
+        this.emit('archive#updated', message.params.archive, message.content);
+        break;
+    }
+  };
+
+}(this));
+(function(window) {
+
+  
+  OT.publishers = new OT.Collection('guid');          
+  OT.subscribers = new OT.Collection('widgetId');     
+  OT.sessions = new OT.Collection();
+
+  function parseStream(dict, session) {
+    var channel = dict.channel.map(function(channel) {
+      return new OT.StreamChannel(channel);
+    });
+
+    return  new OT.Stream(  dict.id,
+                            dict.name,
+                            dict.creationTime,
+                            session.connections.get(dict.connection.id),
+                            session,
+                            channel );
+  }
+
+  function parseAndAddStreamToSession(dict, session) {
+    if (session.streams.has(dict.id)) return;
+
+    var stream = parseStream(dict, session);
+    session.streams.add( stream );
+
+    return stream;
+  }
+
+  function parseArchive(dict) {
+    return new OT.Archive( dict.id,
+                           dict.name,
+                           dict.status );
+  }
+
+  function parseAndAddArchiveToSession(dict, session) {
+    if (session.archives.has(dict.id)) return;
+
+    var archive = parseArchive(dict);
+    session.archives.add(archive);
+
+    return archive;
+  }
+
+  window.OT.SessionDispatcher = function(session) {
+
+    var dispatcher = new OT.Raptor.Dispatcher();
+
+    dispatcher.on('close', function(reason) {
+
+      var connection = session.connection;
+
+      if (!connection) {
+        return;
       }
-      break;
 
+      if (connection.destroyedReason) {
+        OT.debug('OT.Raptor.Socket: Socket was closed but the connection had already ' +
+          'been destroyed. Reason: ' + connection.destroyedReason);
+        return;
+      }
 
-    case OT.Raptor.Actions.STATE:
-      var state = message.payload.value,
-          session = OT.sessions.get(message.payload.key),
+      connection.destroy( reason );
+
+    });
+
+    dispatcher.on('session#read', function(content, transactionId) {
+
+      var state = {},
           connection;
 
       state.streams = [];
       state.connections = [];
       state.archives = [];
 
-      if (state.hasOwnProperty("CONNECTIONS")) {
-        for (var id in state.CONNECTIONS) {
-          var connection = OT.Connection.fromHash(state.CONNECTIONS[id]);
-          state.connections.push(connection);
-          session.connections.add(connection)
-        }
+      content.connection.forEach(function(connectionParams) {
+        connection = OT.Connection.fromHash(connectionParams);
+        state.connections.push(connection);
+        session.connections.add(connection);
+      });
 
-        delete state.CONNECTIONS;
-      }
-
-      if (state.hasOwnProperty("STREAMS")) {
-        for (var id in state.STREAMS) {
-          state.streams.push( parseAndAddStreamToSession(state.STREAMS[id], session) );
-        }
-
-        delete state.STREAMS;
-      }
-
-
-      this.connectionCompletion.call(null, null, state);
-      break;
-
-
-    default:
-      OT.warn("OT.Raptor.dispatch: " + message.signature + " is not currently implemented");
-  }
-};
-
-
-OT.Raptor.Dispatcher.prototype.dispatchConnection = function (message) {
-  var session = OT.sessions.get(message.payload.value.sessionId),
-      connection;
-
-  if (!session) {
-    OT.error("OT.Raptor.dispatch: Unable to determine session for " + message.payload.value.sessionId + ' on ' + message.signature + " message!");
-    
-    return;
-  }
-
-  switch (message.action) {
-    case OT.Raptor.Actions.CREATE:
-      connection = OT.Connection.fromHash(message.payload.value);
-      if (session.connection && connection.id !== session.connection.id) session.connections.add( connection );
-      break;
-
-
-    case OT.Raptor.Actions.DELETE:
-      connection = session.connections.get(message.payload.value.connectionId);
-      connection.destroy(message.payload.reason);
-      break;
-
-
-    default:
-      OT.warn("OT.Raptor.dispatch: " + message.signature + " is not currently implemented");
-  }
-};
-
-OT.Raptor.Dispatcher.prototype.dispatchConnectionCount = function (message) {
-  
-
-  
-  
-  
-  
-  
-
-
-  
-  
-  
-};
-
-
-OT.Raptor.Dispatcher.prototype.dispatchStream = function (message) {
-  var key = message.payload.key.split('/'),
-      sessionId = key[0],
-      session,
-      stream;
-
-
-  if (sessionId) session = OT.sessions.get(sessionId);
-
-  if (!session) {
-    OT.error("OT.Raptor.dispatch: Unable to determine sessionId, or the session does not exist, for " + message.signature + " message!");
-    
-    return;
-  }
-
-  switch (message.action) {
-    case OT.Raptor.Actions.REGISTER:
-      stream = parseStream(message.payload.value, session);
-
+      content.stream.forEach(function(streamParams) {
+        state.streams.push( parseAndAddStreamToSession(streamParams, session) );
+      });
       
-      if (stream.publisherId) {
-        var publisher = OT.publishers.get(stream.publisherId);
+      content.archives.forEach(function(archiveParams) {
+        state.archives.push( parseAndAddArchiveToSession(archiveParams, session) );
+      });
 
-        if (publisher) {
-          publisher._.streamRegisteredHandler(stream);
-        }
-        else {
-          OT.warn("OT.Raptor.dispatch: Could find a publisher " + stream.publisherId + " for " + message.signature);
-        }
+      session._.subscriberMap = {};
+
+      dispatcher.triggerCallback(transactionId, null, state);
+    });
+
+    dispatcher.on('connection#created', function(connection) {
+      connection = OT.Connection.fromHash(connection);
+      if (session.connection && connection.id !== session.connection.id) {
+        session.connections.add( connection );
       }
-      break;
+    });
 
+    dispatcher.on('connection#deleted', function(connection, reason) {
+      connection = session.connections.get(connection);
+      connection.destroy(reason);
+    });
 
-    case OT.Raptor.Actions.CREATE:
-      parseAndAddStreamToSession(message.payload.value, session)
-      break;
+    dispatcher.on('stream#created', function(stream, transactionId) {
+      stream = parseAndAddStreamToSession(stream, session);
 
+      if (stream.publisher) {
+        stream.publisher.stream = stream;
+      }
 
-    case OT.Raptor.Actions.UPDATE:
-      if (key[1]) stream = session.streams.get(key[1]);
+      dispatcher.triggerCallback(transactionId, null, stream);
+    });
+
+    dispatcher.on('stream#deleted', function(streamId, reason) {
+      var stream = session.streams.get(streamId);
 
       if (!stream) {
-        OT.error("OT.Raptor.dispatch: Unable to determine streamId, or the stream does not exist, for " + message.signature + " message!");
+        OT.error('OT.Raptor.dispatch: A stream does not exist with the id of ' +
+          streamId + ', for stream#deleted message!');
         
         return;
       }
 
-      stream.update(key[2], message.payload.value);
-      break;
+      stream.destroy(reason);
+    });
 
-
-    case OT.Raptor.Actions.DELETE:
-      if (key[2]) stream = session.streams.get(key[2]);
+    dispatcher.on('stream#updated', function(streamId, content) {
+      var stream = session.streams.get(streamId);
 
       if (!stream) {
-        OT.error("OT.Raptor.dispatch: Unable to determine streamId, or the stream does not exist, for " + message.signature + " message!");
+        OT.error('OT.Raptor.dispatch: A stream does not exist with the id of ' +
+          streamId + ', for stream#updated message!');
         
         return;
       }
 
-      stream.destroy(message.payload.reason);
-      break;
+      stream._.update(content);
 
+    });
 
-    default:
-      OT.warn("OT.Raptor.dispatch: " + message.signature + " is not currently implemented");
-  }
-};
-
-
-
-OT.Raptor.Dispatcher.prototype.dispatchModeration = function (message) {
-  
-  return;
-
-  
-
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-
-
-  
-  
-  
-  
-  
-
-  
-  
-  
-
-
-  
-  
-  
-};
-
-
-
-OT.Raptor.Dispatcher.prototype.dispatchJsep = function (message) {
-  var fromConnection,
-      streamId = message.payload.streamId,
-      actors;
-
-  switch (message.action) {
-    
-    case OT.Raptor.Actions.OFFER:
-      actors = [];
-      var subscriber = OT.subscribers.find({streamId: streamId});
-      if (subscriber) actors.push(subscriber);
-      break;
-
+    dispatcher.on('streamChannel#updated', function(streamId, channelId, content) {
+      var stream;
+      if (!(streamId && (stream = session.streams.get(streamId)))) {
+        OT.error('OT.Raptor.dispatch: Unable to determine streamId, or the stream does not ' +
+          'exist, for streamChannel message!');
+        
+        return;
+      }
+      stream._.updateChannel(channelId, content);
+    });
 
     
-    case OT.Raptor.Actions.ANSWER:
-    case OT.Raptor.Actions.PRANSWER:
-    case OT.Raptor.Actions.SUBSCRIBE:
-    case OT.Raptor.Actions.UNSUBSCRIBE:
-      actors = OT.publishers.where({streamId: streamId});
-      break;
-
-
     
-    case OT.Raptor.Actions.CANDIDATE:
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    var jsepHandler = function(method, streamId, fromAddress, message) {
+
+      var fromConnection,
+          actors;
+
+      switch (method) {
+        
+        case 'offer':
+          actors = [];
+          var subscriber = OT.subscribers.find({streamId: streamId});
+          if (subscriber) actors.push(subscriber);
+          break;
+
+
+        
+        case 'answer':
+        case 'pranswer':
+        case 'generateoffer':
+        case 'unsubscribe':
+          console.warn('generateoffer maybe?');
+          actors = OT.publishers.where({streamId: streamId});
+          break;
+
+
+        
+        case 'candidate':
+          
+          
+          actors = OT.publishers.where({streamId: streamId})
+            .concat(OT.subscribers.where({streamId: streamId}));
+          break;
+
+
+        default:
+          OT.warn('OT.Raptor.dispatch: jsep#' + method +
+            ' is not currently implemented');
+          return;
+      }
+
+      if (actors.length === 0) return;
+
       
-      actors = OT.publishers.where({streamId: streamId}).concat(OT.subscribers.where({streamId: streamId}));
-      break;
+      
+      
+      fromConnection = actors[0].session.connections.get(fromAddress);
+      if(!fromConnection && fromAddress.match(/^symphony\./)) {
+        fromConnection = OT.Connection.fromHash({
+          id: fromAddress,
+          creationTime: Date.now()
+        });
 
+        actors[0].session.connections.add(fromConnection);
+      } else if(!fromConnection) {
+        OT.warn('OT.Raptor.dispatch: Messsage comes from a connection (' +
+          fromAddress + ') that we do not know about. The message was ignored.');
+        return;
+      }
 
-    default:
-      OT.warn("OT.Raptor.dispatch: " + message.signature + " is not currently implemented");
-      return;
-  }
+      actors.forEach(function(actor) {
+        actor.processMessage(method, fromConnection, message);
+      });
+    };
 
-  if (actors.length) {
-    
-    
-    
-    fromConnection = actors[0].session.connections.get(message.payload.fromAddress);
-    if(!fromConnection && message.payload.fromAddress.match(/^symphony\./)) {
-      fromConnection = new OT.Connection(message.payload.fromAddress,
-          Date.now(), null, { supportsWebRTC: true });
-      actors[0].session.connections.add(fromConnection);
-    } else if(!fromConnection) {
-      OT.warn("Messsage comes from a connection (" + message.payload.fromAddress + ") that we do not know about.");
-    }
-  }
+    dispatcher.on('jsep#offer', jsepHandler.bind(null, 'offer'));
+    dispatcher.on('jsep#answer', jsepHandler.bind(null, 'answer'));
+    dispatcher.on('jsep#pranswer', jsepHandler.bind(null, 'pranswer'));
+    dispatcher.on('jsep#generateoffer', jsepHandler.bind(null, 'generateoffer'));
+    dispatcher.on('jsep#unsubscribe', jsepHandler.bind(null, 'unsubscribe'));
+    dispatcher.on('jsep#candidate', jsepHandler.bind(null, 'candidate'));
 
-  actors.forEach(function(actor) {
-    actor.processMessage(message.action, fromConnection, message.payload);
-  });
-};
+    dispatcher.on('subscriberChannel#updated', function(streamId, channelId, content) {
 
+      if (!streamId || !session.streams.has(streamId)) {
+        OT.error('OT.Raptor.dispatch: Unable to determine streamId, or the stream does not ' +
+          'exist, for subscriberChannel#updated message!');
+        
+        return;
+      }
 
+      session.streams.get(streamId)._
+        .updateChannel(channelId, content);
 
+    });
 
+    dispatcher.on('subscriberChannel#update', function(subscriberId, streamId, content) {
 
+      if (!streamId || !session.streams.has(streamId)) {
+        OT.error('OT.Raptor.dispatch: Unable to determine streamId, or the stream does not ' +
+          'exist, for subscriberChannel#update message!');
+        
+        return;
+      }
 
+      
+      if (!OT.subscribers.has(subscriberId)) {
+        OT.error('OT.Raptor.dispatch: Unable to determine subscriberId, or the subscriber ' +
+          'does not exist, for subscriberChannel#update message!');
+        
+        return;
+      }
 
+      
+      
+      OT.subscribers.get(subscriberId).disableVideo(content.active);
 
-OT.Raptor.Dispatcher.prototype.dispatchSubscriber = function (message) {
-  var key = message.payload.key.split('/'),
-      session = OT.sessions.get(key[0]),
-      subscriber,
-      stream;
+    });
 
-  if (!session) {
-    OT.error("OT.Raptor.dispatch: Unable to determine sessionId, or the session does not exist, for " + message.signature + " message!");
-    
-    return;
-  }
+    dispatcher.on('subscriber#created', function(streamId, fromAddress, subscriberId) {
 
-  stream = key[2] ? session.streams.get(key[2]) : null;
+      var stream = streamId ? session.streams.get(streamId) : null;
 
-  if (!stream) {
-    OT.error("OT.Raptor.dispatch: Unable to determine streamId, or the stream does not exist, for " + message.signature + " message!");
-    
-    return;
-  }
+      if (!stream) {
+        OT.error('OT.Raptor.dispatch: Unable to determine streamId, or the stream does ' +
+          'not exist, for subscriber#created message!');
+        
+        return;
+      }
+
+      session._.subscriberMap[fromAddress + '_' + stream.id] = subscriberId;
+    });
+
+    dispatcher.on('subscriber#deleted', function(streamId, fromAddress) {
+      var stream = streamId ? session.streams.get(streamId) : null;
+
+      if (!stream) {
+        OT.error('OT.Raptor.dispatch: Unable to determine streamId, or the stream does ' +
+          'not exist, for subscriber#created message!');
+        
+        return;
+      }
+
+      delete session._.subscriberMap[fromAddress + '_' + stream.id];
+    });
+
+    dispatcher.on('signal', function(fromAddress, signalType, data) {
+      session._.dispatchSignal(session.connections.get(fromAddress),
+                               signalType, data);
+    });
+
+    dispatcher.on('archive#create', function(archive) {
+      parseAndAddArchiveToSession(archive, session);
+    });
+
+    dispatcher.on('archive#updated', function(archiveId, update) {
+      var archive = session.archives.get(archiveId);
+
+      if (!archive) {
+        OT.error('OT.Raptor.dispatch: An archive does not exist with the id of ' +
+          archiveId + ', for archive#updated message!');
+        
+        return;
+      }
+
+      archive._.update(update);
+    });
+
+    return dispatcher;
+
+  };
+
+})(window);
+!(function(window) {
 
   
-  subscriber = OT.subscribers.find(function(subscriber) {
-                  return subscriber.streamId === stream.id
-                          && subscriber.session.id === session.id
-                });
-
-  if (!subscriber) {
-    OT.error("OT.Raptor.dispatch: Unable to determine subscriberId, or the subscriber does not exist, for " + message.signature + " message!");
-    
-    return;
-  }
-
-
-  switch (message.action) {
-    case OT.Raptor.Actions.QUALITY_CHANGED:
-      subscriber.updateQuality(parseInt(message.payload.value, 10));
-      break;
-
-
-    default:
-      OT.warn("OT.Raptor.dispatch: " + message.signature + " is not currently implemented");
-  }
-};
-
-
-OT.Raptor.Dispatcher.prototype.dispatchSignal = function (message) {
-  if (message.action !== OT.Raptor.Actions.SIGNAL) {
-    OT.warn("OT.Raptor.dispatch: " + message.signature + " is not currently implemented");
-    return;
-  }
-
-  var session = OT.sessions.get(this.socket.sessionId);
-
-  if (!session) {
-      OT.error("OT.Raptor.dispatch: " + message.signature + " ERROR - sessionId must be provided and be valid");
-      return;
-  }
-
-  session._.dispatchSignal( session.connections.get(message.payload.fromAddress),
-                            message.payload.type,
-                            message.payload.data);
-};
-
-}(this));
-(function(window) {
-
-
-
-
-
-
-
-
-function EnvironmentLoader() {
+  
+  
+  
+  
+  
+  
+  function EnvironmentLoader() {
     var _configReady = false,
         _domReady = false,
 
         isReady = function() {
-            return _domReady && _configReady;
+          return _domReady && _configReady;
         },
 
         onLoaded = function() {
-            if (isReady()) {
-                OT.dispatchEvent(new OT.EnvLoadedEvent(OT.Event.names.ENV_LOADED));
-            }
+          if (isReady()) {
+            OT.dispatchEvent(new OT.EnvLoadedEvent(OT.Event.names.ENV_LOADED));
+          }
         },
 
         onDomReady = function() {
-            _domReady = true;
+          _domReady = true;
 
-            
-            
-            OT.$.on(window, "unload", function() {
-                OT.publishers.destroy();
-                OT.subscribers.destroy();
-                OT.sessions.destroy();
-            });
+          
+          
+          OT.$.on(window, 'unload', function() {
+            OT.publishers.destroy();
+            OT.subscribers.destroy();
+            OT.sessions.destroy();
+          });
 
-            
-            OT.Config.load(OT.properties.configURL);
+          
+          OT.Config.load(OT.properties.configURL);
 
-            onLoaded();
+          onLoaded();
         },
 
         configLoaded = function() {
-            _configReady = true;
-            OT.Config.off('dynamicConfigChanged', configLoaded);
-            OT.Config.off('dynamicConfigLoadFailed', configLoadFailed);
+          _configReady = true;
+          OT.Config.off('dynamicConfigChanged', configLoaded);
+          OT.Config.off('dynamicConfigLoadFailed', configLoadFailed);
 
-            onLoaded();
+          onLoaded();
         },
 
         configLoadFailed = function() {
-            configLoaded();
+          configLoaded();
         };
 
     OT.Config.on('dynamicConfigChanged', configLoaded);
     OT.Config.on('dynamicConfigLoadFailed', configLoadFailed);
-    if (document.readyState == "complete" || (document.readyState == "interactive" && document.body)) {
-        onDomReady();
+    if (document.readyState === 'complete' ||
+      (document.readyState === 'interactive' && document.body)) {
+      onDomReady();
     } else {
-        if (document.addEventListener) {
-            document.addEventListener("DOMContentLoaded", onDomReady, false);
-        } else if (document.attachEvent) {
-            
-            document.attachEvent("onreadystatechange", function() {
-                if (document.readyState == "complete") onDomReady();
-            });
-        }
+      if (document.addEventListener) {
+        document.addEventListener('DOMContentLoaded', onDomReady, false);
+      } else if (document.attachEvent) {
+        
+        document.attachEvent('onreadystatechange', function() {
+          if (document.readyState === 'complete') onDomReady();
+        });
+      }
     }
 
     this.onLoad = function(cb) {
-        if (isReady()) {
-            cb();
-            return;
-        }
+      if (isReady()) {
+        cb();
+        return;
+      }
 
-        OT.on(OT.Event.names.ENV_LOADED, cb);
+      OT.on(OT.Event.names.ENV_LOADED, cb);
     };
-}
+  }
 
-var EnvLoader = new EnvironmentLoader();
+  var EnvLoader = new EnvironmentLoader();
 
-OT.onLoad = function(cb, context) {
+  OT.onLoad = function(cb, context) {
     if (!context) {
-        EnvLoader.onLoad(cb);
+      EnvLoader.onLoad(cb);
+    } else {
+      EnvLoader.onLoad(
+        cb.bind(context)
+      );
     }
-    else {
-        EnvLoader.onLoad(
-            cb.bind(context)
-        );
-    }
-};
+  };
 
 })(window);
-(function(window) {
+!(function() {
 
-OT.Error = function(code, message) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.Error = function(code, message) {
     this.code = code;
     this.message = message;
-};
+  };
 
-var errorsCodesToTitle = {
-    1000: "Failed To Load",
-    1004: "Authentication error",
-    1005: "Invalid Session ID",
-    1006: "Connect Failed",
-    1007: "Connect Rejected",
-    1008: "Connect Time-out",
-    1009: "Security Error",
-    1010: "Not Connected",
-    1011: "Invalid Parameter",
-    1012: "Peer-to-peer Stream Play Failed",
-    1013: "Connection Failed",
-    1014: "API Response Failure",
-    1500: "Unable to Publish",
-    1510: "Unable to Signal",
-    1520: "Unable to Force Disconnect",
-    1530: "Unable to Force Unpublish",
-    1540: "Unable to record archive",
-    1550: "Unable to play back archive",
-    1560: "Unable to create archive",
-    1570: "Unable to load archive",
-    2000: "Internal Error",
-    2001: "Embed Failed",
-    3000: "Archive load exception",
-    3001: "Archive create exception",
-    3002: "Playback stop exception",
-    3003: "Playback start exception",
-    3004: "Record start exception",
-    3005: "Record stop exception",
-    3006: "Archive load exception",
-    3007: "Session recording in progress",
-    3008: "Archive recording internal failure",
-    4000: "WebSocket Connection Failed",
-    4001: "WebSocket Network Disconnected"
-};
+  var errorsCodesToTitle = {
+    1000: 'Failed To Load',
+    1004: 'Authentication error',
+    1005: 'Invalid Session ID',
+    1006: 'Connect Failed',
+    1007: 'Connect Rejected',
+    1008: 'Connect Time-out',
+    1009: 'Security Error',
+    1010: 'Not Connected',
+    1011: 'Invalid Parameter',
+    1012: 'Peer-to-peer Stream Play Failed',
+    1013: 'Connection Failed',
+    1014: 'API Response Failure',
+    1500: 'Unable to Publish',
+    1510: 'Unable to Signal',
+    1520: 'Unable to Force Disconnect',
+    1530: 'Unable to Force Unpublish',
+    1540: 'Unable to record archive',
+    1550: 'Unable to play back archive',
+    1560: 'Unable to create archive',
+    1570: 'Unable to load archive',
+    2000: 'Internal Error',
+    2001: 'Embed Failed',
+    3000: 'Archive load exception',
+    3001: 'Archive create exception',
+    3002: 'Playback stop exception',
+    3003: 'Playback start exception',
+    3004: 'Record start exception',
+    3005: 'Record stop exception',
+    3006: 'Archive load exception',
+    3007: 'Session recording in progress',
+    3008: 'Archive recording internal failure',
+    4000: 'WebSocket Connection Failed',
+    4001: 'WebSocket Network Disconnected'
+  };
 
-var analytics;
+  var analytics;
 
-function _exceptionHandler(component, msg, errorCode, context) {
+  function _exceptionHandler(component, msg, errorCode, context) {
     var title = errorsCodesToTitle[errorCode],
         contextCopy = context ? OT.$.clone(context) : {};
 
-    OT.error("TB.exception :: title: " + title + " (" + errorCode + ") msg: " + msg);
+    OT.error('OT.exception :: title: ' + title + ' (' + errorCode + ') msg: ' + msg);
 
     if (!contextCopy.partnerId) contextCopy.partnerId = OT.APIKEY;
 
     try {
-        if (!analytics) analytics = new OT.Analytics();
-        analytics.logError(errorCode, 'tb.exception', title, {details:msg}, contextCopy);
+      if (!analytics) analytics = new OT.Analytics();
+      analytics.logError(errorCode, 'tb.exception', title, {details:msg}, contextCopy);
 
-        OT.dispatchEvent(
-            new OT.ExceptionEvent(OT.Event.names.EXCEPTION, msg, title, errorCode, component, component)
-        );
+      OT.dispatchEvent(
+        new OT.ExceptionEvent(OT.Event.names.EXCEPTION, msg, title, errorCode, component, component)
+      );
     } catch(err) {
-        OT.error("TB.exception :: Failed to dispatch exception - " + err.toString());
-        
-        
+      OT.error('OT.exception :: Failed to dispatch exception - ' + err.toString());
+      
+      
     }
-}
+  }
 
 
 
@@ -9450,30 +10762,30 @@ function _exceptionHandler(component, msg, errorCode, context) {
 
 
 
-OT.handleJsException = function(errorMsg, code, options) {
+  OT.handleJsException = function(errorMsg, code, options) {
     options = options || {};
 
     var context,
         session = options.session;
 
     if (session) {
-        context = {
-            sessionId: session.sessionId
-        };
+      context = {
+        sessionId: session.sessionId
+      };
 
-        if (session.connected) context.connectionId = session.connection.connectionId;
-        if (!options.target) options.target = session;
-    }
-    else if (options.sessionId) {
-        context = {
-            sessionId: options.sessionId
-        };
+      if (session.connected) context.connectionId = session.connection.connectionId;
+      if (!options.target) options.target = session;
 
-        if (!options.target) options.target = null;
+    } else if (options.sessionId) {
+      context = {
+        sessionId: options.sessionId
+      };
+
+      if (!options.target) options.target = null;
     }
 
     _exceptionHandler(options.target, errorMsg, code, context);
-};
+  };
 
 
 
@@ -9483,41 +10795,54 @@ OT.handleJsException = function(errorMsg, code, options) {
 
 
 
-OT.exceptionHandler = function(componentId, msg, errorTitle, errorCode, context) {
+
+  OT.exceptionHandler = function(componentId, msg, errorTitle, errorCode, context) {
     var target;
 
     if (componentId) {
-        target = OT.components[componentId];
+      target = OT.components[componentId];
 
-        if (!target) {
-            OT.warn("Could not find the component with component ID " + componentId);
-        }
+      if (!target) {
+        OT.warn('Could not find the component with component ID ' + componentId);
+      }
     }
 
     _exceptionHandler(target, msg, errorCode, context);
-};
+  };
+
+
+  
+  OT.dispatchError = function (code, message, completionHandler, session) {
+    OT.error(code, message);
+
+    if (completionHandler && OT.$.isFunction(completionHandler)) {
+      completionHandler.call(null, new OT.Error(code, message));
+    }
+
+    OT.handleJsException(message, code, {
+      session: session
+    });
+  };
 
 })(window);
-(function(window) {
+!(function() {
 
-OT.ConnectionCapabilities = function(capabilitiesHash) {
+  OT.ConnectionCapabilities = function(capabilitiesHash) {
     
     var castCapabilities = function(capabilitiesHash) {
-            capabilitiesHash.supportsWebRTC = OT.$.castToBoolean(capabilitiesHash.supportsWebRTC);
-
-            return capabilitiesHash;
-        };
-
+      capabilitiesHash.supportsWebRTC = OT.$.castToBoolean(capabilitiesHash.supportsWebRTC);
+      return capabilitiesHash;
+    };
 
     
     var _caps = castCapabilities(capabilitiesHash);
-
-
     this.supportsWebRTC = _caps.supportsWebRTC;
-};
+  };
 
 })(window);
-(function(window) {
+!(function() {
+
+  
 
 
 
@@ -9538,164 +10863,33 @@ OT.ConnectionCapabilities = function(capabilitiesHash) {
 
 
 
-OT.Connection = function(id, creationTime, data, capabilitiesHash) {
+
+
+
+
+
+
+
+
+
+
+
+  OT.Connection = function(id, creationTime, data, capabilitiesHash, permissionsHash) {
     var destroyedReason;
 
     this.id = this.connectionId = id;
     this.creationTime = creationTime ? Number(creationTime) : null;
     this.data = data;
     this.capabilities = new OT.ConnectionCapabilities(capabilitiesHash);
+    this.permissions = new OT.Capabilities(permissionsHash);
     this.quality = null;
 
     OT.$.eventing(this);
 
     this.destroy = function(reason, quiet) {
-        destroyedReason = reason || 'clientDisconnected';
+      destroyedReason = reason || 'clientDisconnected';
 
-        if (quiet !== true) {
-            this.dispatchEvent(
-              new OT.DestroyedEvent(
-                'destroyed',      
-                                  
-                this,
-                destroyedReason
-              )
-            );
-        }
-    }.bind(this);
-
-    Object.defineProperties(this, {
-        destroyed: {
-            get: function() { return destroyedReason !== void 0; },
-            enumerable: true
-        },
-
-        destroyedReason: {
-            get: function() { return destroyedReason; },
-            enumerable: true
-        }
-    });
-};
-
-OT.Connection.fromHash = function(hash) {
-  return new OT.Connection(hash.connectionId,
-                            hash.creationTime,
-                            hash.data,
-                            { supportsWebRTC: hash.supportsWebRTC } );
-
-};
-
-})(window);
-(function(window) {
-
-var validPropertyNames = ['hasAudio', 'hasVideo', 'quality', 'name', 'videoDimensions', 'orientation'];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.Stream = function(id, connection, name, data, type, creationTime, hasAudio, hasVideo, orientation, peerId, quality, width, height) {
-  var destroyedReason;
-
-  this.id = this.streamId = id;
-  this.connection = connection;
-  this.name = name;
-  this.data = data;
-  this.type = type || 'basic';
-  this.creationTime = creationTime ? Number(creationTime) : null;
-  this.hasAudio = OT.$.castToBoolean(hasAudio, true);
-  this.hasVideo = OT.$.castToBoolean(hasVideo, true);
-  this.peerId = peerId;
-  this.quality = quality;
-  this.videoDimensions = { width: (width || 640), height: (height || 480), orientation: (orientation || OT.VideoOrientation.ROTATED_NORMAL) };
-
-  OT.$.eventing(this);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  this.update = function(key, value) {
-    if (validPropertyNames.indexOf(key) === -1) {
-      OT.warn('Unknown stream property "' + key + '" was modified to "' + value + '".');
-      return;
-    }
-
-    var oldValue = this[key],
-        newValue = value;
-
-    switch(key) {
-      case 'hasAudio':
-      case 'hasVideo':
-        newValue = OT.$.castToBoolean(newValue, true);
-        this[key] = newValue;
-        break;
-
-      case 'quality':
-      case 'name':
-        this[key] = newValue;
-        break;
-
-      case 'orientation':
-        this.videoDimensions = { width: newValue.width, height: newValue.height, orientation: newValue.videoOrientation };
-    }
-
-    
-    
-    var event = new OT.StreamUpdatedEvent(this, key, oldValue, newValue);
-    this.dispatchEvent(event);
-  };
-
-  this.destroy = function(reason, quiet) {
-    destroyedReason = reason || 'clientDisconnected';
-
-    if (quiet !== true) {
+      if (quiet !== true) {
         this.dispatchEvent(
           new OT.DestroyedEvent(
             'destroyed',      
@@ -9704,43 +10898,107 @@ OT.Stream = function(id, connection, name, data, type, creationTime, hasAudio, h
             destroyedReason
           )
         );
-    }
-  };
+      }
+    }.bind(this);
 
-  Object.defineProperties(this, {
+    Object.defineProperties(this, {
       destroyed: {
-          get: function() { return destroyedReason !== void 0; },
-          enumerable: true
+        get: function() { return destroyedReason !== void 0; },
+        enumerable: true
       },
 
       destroyedReason: {
-          get: function() { return destroyedReason; },
-          enumerable: true
+        get: function() { return destroyedReason; },
+        enumerable: true
       }
-  });
-};
+    });
+  };
 
+  OT.Connection.fromHash = function(hash) {
+    return new OT.Connection(hash.id,
+                             hash.creationTime,
+                             hash.data,
+                             OT.$.extend(hash.capablities || {}, { supportsWebRTC: true }),
+                             hash.permissions || [] );
+  };
 
 })(window);
-(function(window) {
+!(function() {
 
+  
+  
+  
+  
+  
+  
+  
+  OT.StreamChannel = function(options) {
+    this.id = options.id;
+    this.type = options.type;
+    this.active = OT.$.castToBoolean(options.active);
+    this.orientation = options.orientation || OT.VideoOrientation.ROTATED_NORMAL;
+    if (options.frameRate) this.frameRate = parseFloat(options.frameRate, 10);
+    this.width = parseInt(options.width, 10);
+    this.height = parseInt(options.height, 10);
 
-var NativeRTCSessionDescription = (window.mozRTCSessionDescription || window.RTCSessionDescription); 
-var NativeRTCIceCandidate = (window.mozRTCIceCandidate || window.RTCIceCandidate);
+    OT.$.eventing(this, true);
 
+    
+    this.update = function(attributes) {
+      var videoDimensions = {},
+          oldVideoDimensions = {};
 
-var iceCandidateForwarder = function(messageDelegate) {
-    return function(event) {
-        OT.debug("IceCandidateForwarder: Ice Candidate");
+      for (var key in attributes) {
+        
+        var oldValue = this[key];
 
-        if (event.candidate) {
-            messageDelegate(OT.Raptor.Actions.CANDIDATE, event.candidate);
+        switch(key) {
+          case 'active':
+            this.active = OT.$.castToBoolean(attributes[key]);
+            break;
+
+          case 'frameRate':
+            this.frameRate = parseFloat(attributes[key], 10);
+            break;
+
+          case 'width':
+          case 'height':
+            this[key] = parseInt(attributes[key], 10);
+
+            videoDimensions[key] = this[key];
+            oldVideoDimensions[key] = oldValue;
+            break;
+
+          case 'orientation':
+            this[key] = attributes[key];
+
+            videoDimensions[key] = this[key];
+            oldVideoDimensions[key] = oldValue;
+            break;
+
+          default:
+            OT.warn('Tried to update unknown key ' + key + ' on ' + this.type +
+              ' channel ' + this.id);
+            return;
         }
-        else {
-            OT.debug("IceCandidateForwarder: No more ICE candidates.");
-        }
+
+        this.trigger('update', this, key, oldValue, this[key]);
+      }
+
+      if (Object.keys(videoDimensions).length) {
+        
+        
+        this.trigger('update', this, 'videoDimensions', oldVideoDimensions, videoDimensions);
+      }
+
+      return true;
     };
-};
+  };
+
+})(window);
+!(function() {
+
+  var validPropertyNames = ['name', 'archiving'];
 
 
 
@@ -9758,40 +11016,358 @@ var iceCandidateForwarder = function(messageDelegate) {
 
 
 
-var IceCandidateProcessor = function() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.Stream = function(id, name, creationTime, connection, session, channel) {
+    var destroyedReason;
+
+    this.id = this.streamId = id;
+    this.name = name;
+    this.creationTime = Number(creationTime);
+
+    this.connection = connection;
+    this.channel = channel;
+    this.publisher = OT.publishers.find({streamId: this.id});
+    this.publisherId = this.publisher ? this.publisher.id : null;
+
+    OT.$.eventing(this);
+
+    var onChannelUpdate = function(channel, key, oldValue, newValue) {
+      var _key = key;
+
+      switch(_key) {
+        case 'active':
+          _key = channel.type === 'audio' ? 'hasAudio' : 'hasVideo';
+          this[_key] = newValue;
+          break;
+
+        case 'orientation':
+        case 'width':
+        case 'height':
+          this.videoDimensions = {
+            width: channel.width,
+            height: channel.height,
+            orientation: channel.orientation
+          };
+
+          
+          return;
+      }
+
+      this.dispatchEvent( new OT.StreamUpdatedEvent(this, _key, oldValue, newValue) );
+    }.bind(this);
+
+    var associatedWidget = function() {
+      if(this.publisher) {
+        return this.publisher;
+      } else {
+        return OT.subscribers.find(function(subscriber) {
+          return subscriber.streamId === this.id &&
+            subscriber.session.id === session.id;
+        });
+      }
+    }.bind(this);
+
+    
+    this.getChannelsOfType = function (type) {
+      return this.channel.filter(function(channel) {
+        return channel.type === type;
+      });
+    };
+
+    this.getChannel = function (id) {
+      for (var i=0; i<this.channel.length; ++i) {
+        if (this.channel[i].id === id) return this.channel[i];
+      }
+
+      return null;
+    };
+
+
+    
+    
+    
+    
+
+    var audioChannel = this.getChannelsOfType('audio')[0],
+        videoChannel = this.getChannelsOfType('video')[0];
+
+    
+    
+    this.hasAudio = audioChannel != null && audioChannel.active;
+    this.hasVideo = videoChannel != null && videoChannel.active;
+
+    this.videoDimensions = {};
+    if (videoChannel) {
+      this.videoDimensions.width = videoChannel.width;
+      this.videoDimensions.height = videoChannel.height;
+      this.videoDimensions.orientation = videoChannel.orientation;
+
+      videoChannel.on('update', onChannelUpdate);
+    }
+
+    if (audioChannel) {
+      audioChannel.on('update', onChannelUpdate);
+    }
+
+    this.setChannelActiveState = function(channelType, activeState, activeReason) {
+      var attributes = {
+        active: activeState
+      };
+      if (activeReason) {
+        attributes.activeReason = activeReason;
+      }
+      updateChannelsOfType(channelType, attributes);
+    };
+
+    this.setRestrictFrameRate = function(restrict) {
+      updateChannelsOfType('video', {
+        restrictFrameRate: restrict
+      });
+    };
+
+    var updateChannelsOfType = function(channelType, attributes) {
+      var setChannelActiveState;
+      if (!this.publisher) {
+        var subscriber = OT.subscribers.find(function(subscriber) {
+          return subscriber.streamId === this.id &&
+            subscriber.session.id === session.id;
+        }, this);
+
+        setChannelActiveState = function(channel) {
+          session._.subscriberChannelUpdate(this, subscriber, channel, attributes);
+        };
+      } else {
+        setChannelActiveState = function(channel) {
+          session._.streamChannelUpdate(this, channel, attributes);
+        };
+      }
+
+      this.getChannelsOfType(channelType).forEach(setChannelActiveState.bind(this));
+    }.bind(this);
+
+    this.destroy = function(reason, quiet) {
+      destroyedReason = reason || 'clientDisconnected';
+
+      if (quiet !== true) {
+        this.dispatchEvent(
+          new OT.DestroyedEvent(
+            'destroyed',      
+                              
+            this,
+            destroyedReason
+          )
+        );
+      }
+    };
+
+    Object.defineProperties(this, {
+      destroyed: {
+        get: function() { return destroyedReason !== void 0; },
+        enumerable: true
+      },
+
+      destroyedReason: {
+        get: function() { return destroyedReason; },
+        enumerable: true
+      },
+
+      frameRate: {
+        get: function() { return this.getChannelsOfType('video')[0].frameRate; },
+        enumerable: true
+      }
+    });
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    this._ = {};
+    this._.updateProperty = function (key, value) {
+      if (validPropertyNames.indexOf(key) === -1) {
+        OT.warn('Unknown stream property "' + key + '" was modified to "' + value + '".');
+        return;
+      }
+
+      var oldValue = this[key],
+          newValue = value;
+
+      switch(key) {
+        case 'name':
+          this[key] = newValue;
+          break;
+
+        case 'archiving':
+          var widget = associatedWidget();
+          if(widget) {
+            widget._.archivingStatus(newValue);
+          }
+          this[key] = newValue;
+          break;
+      }
+
+      var event = new OT.StreamUpdatedEvent(this, key, oldValue, newValue);
+      this.dispatchEvent(event);
+    }.bind(this);
+
+    
+    this._.update = function (attributes) {
+      for (var key in attributes) {
+        this._.updateProperty(key, attributes[key]);
+      }
+    }.bind(this);
+
+    this._.updateChannel = function (channelId, attributes) {
+      this.getChannel(channelId).update(attributes);
+    }.bind(this);
+  };
+
+})(window);
+!(function() {
+  
+
+  OT.Archive = function(id, name, status) {
+    
+    this.id = id;
+    this.name = name;
+    this.status = status;
+    
+    this._ = {};
+
+    OT.$.eventing(this);
+    
+    
+    this._.update = function (attributes) {
+      for (var key in attributes) {
+        var oldValue = this[key];
+        this[key] = attributes[key];
+        
+        var event = new OT.ArchiveUpdatedEvent(this, key, oldValue, this[key]);
+        this.dispatchEvent(event);
+        
+      }
+    }.bind(this);
+
+    this.destroy = function() {};
+
+  };
+
+})(window);
+!(function(window) {
+
+  
+  var NativeRTCSessionDescription = (window.mozRTCSessionDescription ||
+    window.RTCSessionDescription);
+  var NativeRTCIceCandidate = (window.mozRTCIceCandidate || window.RTCIceCandidate);
+
+  
+  var iceCandidateForwarder = function(messageDelegate) {
+    return function(event) {
+      if (event.candidate) {
+        messageDelegate(OT.Raptor.Actions.CANDIDATE, event.candidate);
+      } else {
+        OT.debug('IceCandidateForwarder: No more ICE candidates.');
+      }
+    };
+  };
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  var IceCandidateProcessor = function() {
     var _pendingIceCandidates = [],
         _peerConnection = null;
 
 
     Object.defineProperty(this, 'peerConnection', {
-        set: function(peerConnection) {
-            _peerConnection = peerConnection;
-        }
+      set: function(peerConnection) {
+        _peerConnection = peerConnection;
+      }
     });
 
     this.process = function(message) {
-        var iceCandidate = new NativeRTCIceCandidate(message.candidate);
+      var iceCandidate = new NativeRTCIceCandidate(message.content);
 
-        if (_peerConnection) {
-            _peerConnection.addIceCandidate(iceCandidate);
-        }
-        else {
-            _pendingIceCandidates.push(iceCandidate);
-        }
+      if (_peerConnection) {
+        _peerConnection.addIceCandidate(iceCandidate);
+      } else {
+        _pendingIceCandidates.push(iceCandidate);
+      }
     };
 
     this.processPending = function() {
-        while(_pendingIceCandidates.length) {
-            _peerConnection.addIceCandidate(_pendingIceCandidates.shift());
-        }
+      while(_pendingIceCandidates.length) {
+        _peerConnection.addIceCandidate(_pendingIceCandidates.shift());
+      }
     };
-};
+  };
 
-
-
-
-
-var removeComfortNoise = function removeComfortNoise (sdp) {
+  
+  
+  
+  
+  var removeComfortNoise = function removeComfortNoise (sdp) {
     
     var matcher = /a=rtpmap:(\d+) CN\/\d+/i,
         payloadTypes = [],
@@ -9804,151 +11380,168 @@ var removeComfortNoise = function removeComfortNoise (sdp) {
     
     
     
-    sdpLines = sdp.split("\r\n").filter(function(line, index) {
-        if (line.indexOf('m=audio') !== -1) audioMediaLineIndex = index;
+    sdpLines = sdp.split('\r\n').filter(function(line, index) {
+      if (line.indexOf('m=audio') !== -1) audioMediaLineIndex = index;
 
-        match = line.match(matcher);
-        if (match !== null) {
-            payloadTypes.push(match[1]);
+      match = line.match(matcher);
+      if (match !== null) {
+        payloadTypes.push(match[1]);
 
-            
-            return false;
-        }
+        
+        return false;
+      }
 
-        return true;
+      return true;
     });
 
     if (payloadTypes.length && audioMediaLineIndex) {
-        
-        sdpLines[audioMediaLineIndex] = sdpLines[audioMediaLineIndex].replace( new RegExp(payloadTypes.join('|'), 'ig') , '').replace(/\s+/g, ' ');
+      
+      sdpLines[audioMediaLineIndex] = sdpLines[audioMediaLineIndex].replace(
+        new RegExp(payloadTypes.join('|'), 'ig') , '').replace(/\s+/g, ' ');
     }
 
-    return sdpLines.join("\r\n");
-};
+    return sdpLines.join('\r\n');
+  };
 
+  
+  
+  
+  
+  
+  
+  
+  
+  var offerProcessor = function(peerConnection, offer, success, failure) {
+    var generateErrorCallback,
+        setLocalDescription,
+        createAnswer;
 
+    generateErrorCallback = function(message, prefix) {
+      return function(errorReason) {
+        OT.error(message);
+        OT.error(errorReason);
 
+        if (failure) failure(message, errorReason, prefix);
+      };
+    };
 
+    setLocalDescription = function(answer) {
+      answer.sdp = removeComfortNoise(answer.sdp);
 
-
-
-
-
-var offerProcessor = function(peerConnection, offer, success, failure) {
-    var generateErrorCallback = function(message) {
-            return function(errorReason) {
-                if (failure) failure(message, errorReason);
-            };
-        },
-
-        setLocalDescription = function(answer) {
-            answer.sdp = removeComfortNoise(answer.sdp);
-
-            peerConnection.setLocalDescription(
-                answer,
-
-                
-                function() {
-                    success(answer);
-                },
-
-                
-                generateErrorCallback('SetLocalDescription:Error while setting LocalDescription')
-            );
-        },
-
-        createAnswer = function(onSuccess) {
-            peerConnection.createAnswer(
-                
-                setLocalDescription,
-
-                
-                generateErrorCallback('CreateAnswer:Error while setting createAnswer'),
-
-                null, 
-                false 
-            );
-        };
-
-    
-    
-    if (offer.sdp.indexOf('a=crypto') === -1) {
-        var crypto_line = "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:FakeFakeFakeFakeFakeFakeFakeFakeFakeFake\\r\\n";
+      peerConnection.setLocalDescription(
+        answer,
 
         
-        offer.sdp = offer.sdp.replace(/^c=IN(.*)$/gmi, "c=IN$1\r\n"+crypto_line);
-    }
-
-    if (offer.sdp.indexOf('a=rtcp-fb') === -1) {
-        var rtcp_fb_line = "a=rtcp-fb:* ccm fir\r\na=rtcp-fb:* nack ";
-
-        
-        offer.sdp = offer.sdp.replace(/^m=video(.*)$/gmi, "m=video$1\r\n"+rtcp_fb_line);
-    }
-
-    peerConnection.setRemoteDescription(
-        offer,
-
-        
-        createAnswer,
-
-        
-        generateErrorCallback('SetRemoteDescription:Error while setting RemoteDescription')
-    );
-
-};
-
-
-
-
-
-
-
-
-var suscribeProcessor = function(peerConnection, success, failure) {
-    var constraints = {
-            mandatory: {},
-            optional: []
+        function() {
+          success(answer);
         },
 
-        generateErrorCallback = function(message) {
-            return function(errorReason) {
-                if (failure) failure(message, errorReason);
-            };
-        },
+        
+        generateErrorCallback('Error while setting LocalDescription', 'SetLocalDescription')
+      );
+    };
 
-        setLocalDescription = function(offer) {
-            offer.sdp = removeComfortNoise(offer.sdp);
-
-            peerConnection.setLocalDescription(
-                offer,
-
-                
-                function() {
-                    success(offer);
-                },
-
-                
-                generateErrorCallback('SetLocalDescription:Error while setting LocalDescription')
-            );
-        };
-
-
-    
-    if (navigator.mozGetUserMedia) {
-        constraints.mandatory.MozDontOfferDataChannel = true;
-    }
-
-    peerConnection.createOffer(
+    createAnswer = function() {
+      peerConnection.createAnswer(
         
         setLocalDescription,
 
         
-        generateErrorCallback('CreateOffer:Error while creating Offer'),
+        generateErrorCallback('Error while setting createAnswer', 'CreateAnswer'),
 
-        constraints
+        null, 
+        false 
+      );
+    };
+
+    
+    
+    if (offer.sdp.indexOf('a=crypto') === -1) {
+      var cryptoLine = 'a=crypto:1 AES_CM_128_HMAC_SHA1_80 ' +
+        'inline:FakeFakeFakeFakeFakeFakeFakeFakeFakeFake\\r\\n';
+
+        
+      offer.sdp = offer.sdp.replace(/^c=IN(.*)$/gmi, 'c=IN$1\r\n'+cryptoLine);
+    }
+
+    if (offer.sdp.indexOf('a=rtcp-fb') === -1) {
+      var rtcpFbLine = 'a=rtcp-fb:* ccm fir\r\na=rtcp-fb:* nack ';
+
+      
+      offer.sdp = offer.sdp.replace(/^m=video(.*)$/gmi, 'm=video$1\r\n'+rtcpFbLine);
+    }
+
+    peerConnection.setRemoteDescription(
+      offer,
+
+      
+      createAnswer,
+
+      
+      generateErrorCallback('Error while setting RemoteDescription', 'SetRemoteDescription')
     );
-};
+
+  };
+
+  
+  
+  
+  
+  
+  
+  
+  var suscribeProcessor = function(peerConnection, success, failure) {
+    var constraints,
+        generateErrorCallback,
+        setLocalDescription;
+
+    constraints = {
+      mandatory: {},
+      optional: []
+    },
+
+    generateErrorCallback = function(message, prefix) {
+      return function(errorReason) {
+        OT.error(message);
+        OT.error(errorReason);
+
+        if (failure) failure(message, errorReason, prefix);
+      };
+    };
+
+    setLocalDescription = function(offer) {
+      offer.sdp = removeComfortNoise(offer.sdp);
+
+      peerConnection.setLocalDescription(
+        offer,
+
+        
+        function() {
+          success(offer);
+        },
+
+        
+        generateErrorCallback('Error while setting LocalDescription', 'SetLocalDescription')
+      );
+    };
+
+    
+    if (navigator.mozGetUserMedia) {
+      constraints.mandatory.MozDontOfferDataChannel = true;
+    }
+
+    peerConnection.createOffer(
+      
+      setLocalDescription,
+
+      
+      generateErrorCallback('Error while creating Offer', 'CreateOffer'),
+
+      constraints
+    );
+  };
+
+  
 
 
 
@@ -9957,15 +11550,12 @@ var suscribeProcessor = function(peerConnection, success, failure) {
 
 
 
-
-
-OT.PeerConnection = function(config) {
+  OT.PeerConnection = function(config) {
     var _peerConnection,
         _iceProcessor = new IceCandidateProcessor(),
         _offer,
         _answer,
         _state = 'new',
-        _iceCandidatesGathered = false,
         _messageDelegates = [],
         _gettingStats,
         _createTime = OT.$.now();
@@ -9979,147 +11569,133 @@ OT.PeerConnection = function(config) {
 
     
     var delegateMessage = function(type, messagePayload) {
-            if (_messageDelegates.length) {
-                
-                
-                
-                
-                
-                _messageDelegates[0](type, messagePayload);
-            }
+          if (_messageDelegates.length) {
+            
+            
+            
+            
+            
+            _messageDelegates[0](type, messagePayload);
+          }
         }.bind(this),
 
-
         setupPeerConnection = function() {
-            if (!_peerConnection) {
-                try {
-                    OT.debug("Creating peer connection config \"" + JSON.stringify(config) + "\".");
+          if (!_peerConnection) {
+            try {
+              OT.debug('Creating peer connection config "' + JSON.stringify(config) + '".');
 
-
-                    _peerConnection = OT.$.createPeerConnection(config, {
-                        optional: [
-                            {DtlsSrtpKeyAgreement: true}
-                        ]
-                    });
-                } catch(e) {
-                    triggerError("NewPeerConnection: " + e.message);
-                    return null;
-                }
-
-                _iceProcessor.peerConnection = _peerConnection;
-
-                _peerConnection.onicecandidate = iceCandidateForwarder(delegateMessage);
-                _peerConnection.onaddstream = onRemoteStreamAdded.bind(this);
-                _peerConnection.onremovestream = onRemoteStreamRemoved.bind(this);
-
-                if (_peerConnection.onsignalingstatechange !== undefined) {
-                    _peerConnection.onsignalingstatechange = routeStateChanged.bind(this);
-                } else if (_peerConnection.onstatechange !== undefined) {
-                    _peerConnection.onstatechange = routeStateChanged.bind(this);
-                }
+              _peerConnection = OT.$.createPeerConnection(config, {
+                optional: [
+                  { DtlsSrtpKeyAgreement: true }
+                ]
+              });
+            } catch(e) {
+              triggerError('Failed to create PeerConnection, exception: ' +
+                  e.message, 'NewPeerConnection');
+              return null;
             }
 
-            return _peerConnection;
+            _peerConnection.onicecandidate = iceCandidateForwarder(delegateMessage);
+            _peerConnection.onaddstream = onRemoteStreamAdded.bind(this);
+            _peerConnection.onremovestream = onRemoteStreamRemoved.bind(this);
+
+            if (_peerConnection.onsignalingstatechange !== undefined) {
+              _peerConnection.onsignalingstatechange = routeStateChanged.bind(this);
+            } else if (_peerConnection.onstatechange !== undefined) {
+              _peerConnection.onstatechange = routeStateChanged.bind(this);
+            }
+            
+            if (_peerConnection.oniceconnectionstatechange !== undefined) {
+              var failedStateTimer;
+              _peerConnection.oniceconnectionstatechange = function (event) {
+                if (event.target.iceConnectionState === 'failed') {
+                  if (failedStateTimer) {
+                    clearTimeout(failedStateTimer);
+                  }
+                  
+                  
+                  
+                  setTimeout(function () {
+                    if (event.target.iceConnectionState === 'failed') {
+                      triggerError('The stream was unable to connect due to a network error.' +
+                       ' Make sure your connection isn\'t blocked by a firewall.', 'ICEWorkflow');
+                    }
+                  }, 5000);
+                }
+              };
+            }
+          }
+
+          return _peerConnection;
         }.bind(this),
 
         
         
         
         tearDownPeerConnection = function() {
-            
-            if (_iceProcessor) _iceProcessor.peerConnection = null;
+          
+          if (_iceProcessor) _iceProcessor.peerConnection = null;
 
-            if (_peerConnection !== null) {
-                _peerConnection = null;
-                this.trigger('close');
-            }
+          if (_peerConnection !== null) {
+            _peerConnection = null;
+            this.trigger('close');
+          }
         },
 
         routeStateChanged = function(event) {
-            var newState;
+          var newState;
 
-            if (typeof(event) === 'string') {
-                
-                newState = event;
-            }
-            else if (event.target && event.target.signalingState) {
-                
-                newState = event.target.signalingState;
-            }
-            else {
-                
-                newState = event.target.readyState;
-            }
-
-
-            OT.debug('PeerConnection.stateChange: ' + newState);
-            if (newState && newState.toLowerCase() !== _state) {
-                _state = newState.toLowerCase();
-                OT.debug('PeerConnection.stateChange: ' + _state);
-
-                switch(_state) {
-                    case 'closed':
-                        tearDownPeerConnection.call(this);
-
-                        break;
-                    case 'failed':
-                      triggerError('ICEWorkflow: Ice state failed');
-                      break;
-                }
-            }
-        },
-
-        getLocalStreams = function() {
-            var streams;
-
-            if (_peerConnection.getLocalStreams) {
-                streams = _peerConnection.getLocalStreams();
-            }
-            else if (_peerConnection.localStreams) {
-                streams = _peerConnection.localStreams;
-            }
-            else {
-                throw new Error("Invalid Peer Connection object implements no method for retrieving local streams");
-            }
-
+          if (typeof(event) === 'string') {
             
+            newState = event;
+
+          } else if (event.target && event.target.signalingState) {
             
+            newState = event.target.signalingState;
+
+          } else {
             
-            return Array.prototype.slice.call(streams);
+            newState = event.target.readyState;
+          }
+
+          OT.debug('PeerConnection.stateChange: ' + newState);
+          if (newState && newState.toLowerCase() !== _state) {
+            _state = newState.toLowerCase();
+            OT.debug('PeerConnection.stateChange: ' + _state);
+
+            switch(_state) {
+              case 'closed':
+                tearDownPeerConnection.call(this);
+                break;
+            }
+          }
         },
 
         getRemoteStreams = function() {
-            var streams;
+          var streams;
 
-            if (_peerConnection.getRemoteStreams) {
-                streams = _peerConnection.getRemoteStreams();
-            }
-            else if (_peerConnection.remoteStreams) {
-                streams = _peerConnection.remoteStreams;
-            }
-            else {
-                throw new Error("Invalid Peer Connection object implements no method for retrieving remote streams");
-            }
+          if (_peerConnection.getRemoteStreams) {
+            streams = _peerConnection.getRemoteStreams();
+          } else if (_peerConnection.remoteStreams) {
+            streams = _peerConnection.remoteStreams;
+          } else {
+            throw new Error('Invalid Peer Connection object implements no ' +
+              'method for retrieving remote streams');
+          }
 
-            
-            
-            
-            return Array.prototype.slice.call(streams);
-        },
-
-        generateErrorCallback = function(forMethod, message) {
-            return function(errorReason) {
-                triggerError.call(this, "PeerConnection." + forMethod + ": " + message + ": " + errorReason);
-            }.bind(this);
+          
+          
+          
+          return Array.prototype.slice.call(streams);
         },
 
         
         onRemoteStreamAdded = function(event) {
-            this.trigger('streamAdded', event.stream);
+          this.trigger('streamAdded', event.stream);
         },
 
         onRemoteStreamRemoved = function(event) {
-            this.trigger('streamRemoved', event.stream);
+          this.trigger('streamRemoved', event.stream);
         },
 
         
@@ -10128,141 +11704,145 @@ OT.PeerConnection = function(config) {
         
         
         relaySDP = function(messageType, sdp) {
-            delegateMessage(messageType, sdp);
+          delegateMessage(messageType, sdp);
         },
 
         
         processOffer = function(message) {
-            var offer = new NativeRTCSessionDescription(message.sdp),
+          var offer = new NativeRTCSessionDescription({type: 'offer', sdp: message.content.sdp}),
 
-                
-                relayAnswer = function(answer) {
-                    relaySDP(OT.Raptor.Actions.ANSWER, answer);
-                },
+              
+              relayAnswer = function(answer) {
+                _iceProcessor.peerConnection = _peerConnection;
+                _iceProcessor.processPending();
+                relaySDP(OT.Raptor.Actions.ANSWER, answer);
+              },
 
-                reportError = function(message, errorReason) {
-                    triggerError(message + ":" + errorReason + ":PeerConnection.offerProcessor");
-                };
+              reportError = function(message, errorReason, prefix) {
+                triggerError('PeerConnection.offerProcessor ' + message + ': ' +
+                  errorReason, prefix);
+              };
 
-            setupPeerConnection();
+          setupPeerConnection();
 
-            _remoteDescriptionType = offer.type;
-            _remoteDescription = offer;
-
-            offerProcessor(
-                _peerConnection,
-                offer,
-                relayAnswer,
-                reportError
-            );
+          offerProcessor(
+            _peerConnection,
+            offer,
+            relayAnswer,
+            reportError
+          );
         },
 
         processAnswer = function(message) {
-            if (!message.sdp) {
-                OT.error("PeerConnection.processMessage: Weird message, no SDP.");
-                return;
+          if (!message.content.sdp) {
+            OT.error('PeerConnection.processMessage: Weird answer message, no SDP.');
+            return;
+          }
+
+          _answer = new NativeRTCSessionDescription({type: 'answer', sdp: message.content.sdp});
+
+          _peerConnection.setRemoteDescription(_answer,
+              function () {
+                OT.debug('setRemoteDescription Success');
+              }, function (errorReason) {
+                triggerError('Error while setting RemoteDescription ' + errorReason,
+                  'SetRemoteDescription');
+              });
+
+          _iceProcessor.peerConnection = _peerConnection;
+          _iceProcessor.processPending();
+        },
+
+        processSubscribe = function() {
+          OT.debug('PeerConnection.processSubscribe: Sending offer to subscriber.');
+
+          setupPeerConnection();
+
+          suscribeProcessor(
+            _peerConnection,
+
+            
+            function(offer) {
+              _offer = offer;
+              relaySDP(OT.Raptor.Actions.OFFER, _offer);
+            },
+
+            
+            function(message, errorReason, prefix) {
+              triggerError('PeerConnection.suscribeProcessor ' + message + ': ' +
+                errorReason, prefix);
             }
-
-            _answer = new NativeRTCSessionDescription(message.sdp);
-
-            _remoteDescriptionType = _answer.type;
-            _remoteDescription = _answer;
-
-            _peerConnection.setRemoteDescription(_answer, function () {
-              OT.debug("setRemoteDescription succeeded");
-            }, function (errReason) {
-              triggerError("SetRemoteDescription:Error while setting RemoteDescription: " + errReason);
-            });
-            _iceProcessor.processPending();
+          );
         },
 
-        processSubscribe = function(message) {
-            OT.debug("PeerConnection.processSubscribe: Sending offer to subscriber.");
-
-            setupPeerConnection();
-
-            suscribeProcessor(
-                _peerConnection,
-
-                
-                function(offer) {
-                    _offer = offer;
-                    relaySDP(OT.Raptor.Actions.OFFER, _offer);
-                },
-
-                
-                function(message, errorReason) {
-                    triggerError(message + ":" + errorReason + ": PeerConnection.suscribeProcessor");
-                }
-            );
-        },
-
-        triggerError = function(errorReason) {
-            OT.error(errorReason);
-            this.trigger('error', errorReason);
+        triggerError = function(errorReason, prefix) {
+          OT.error(errorReason);
+          this.trigger('error', errorReason, prefix);
         }.bind(this);
 
     this.addLocalStream = function(webRTCStream) {
-        setupPeerConnection();
-        _peerConnection.addStream(webRTCStream);
+      setupPeerConnection();
+      _peerConnection.addStream(webRTCStream);
     };
 
     this.disconnect = function() {
-        _iceProcessor = null;
+      _iceProcessor = null;
 
-        if (_peerConnection) {
-            var currentState = (_peerConnection.signalingState || _peerConnection.readyState);
-            if (currentState && currentState.toLowerCase() !== 'closed') _peerConnection.close();
+      if (_peerConnection) {
+        var currentState = (_peerConnection.signalingState || _peerConnection.readyState);
+        if (currentState && currentState.toLowerCase() !== 'closed') _peerConnection.close();
 
-            
-            
-            
-            tearDownPeerConnection.call(this);
-        }
+          
+          
+          
+        tearDownPeerConnection.call(this);
+      }
 
-        this.off();
+      this.off();
     };
 
     this.processMessage = function(type, message) {
-        OT.debug("PeerConnection.processMessage: Received " + type + " from " + message.fromAddress);
-        OT.debug(message);
+      OT.debug('PeerConnection.processMessage: Received ' +
+        type + ' from ' + message.fromAddress);
+      OT.debug(message);
 
-        switch(type) {
-            case OT.Raptor.Actions.SUBSCRIBE:
-                processSubscribe.call(this, message);
-                break;
+      switch(type) {
+        case 'generateoffer':
+          processSubscribe.call(this, message);
+          break;
 
-            case OT.Raptor.Actions.OFFER:
-                processOffer.call(this, message);
-                break;
+        case 'offer':
+          processOffer.call(this, message);
+          break;
 
-            case OT.Raptor.Actions.ANSWER:
-            
-                processAnswer.call(this, message);
-                break;
+        case 'answer':
+        case 'pranswer':
+          processAnswer.call(this, message);
+          break;
 
-            case OT.Raptor.Actions.CANDIDATE:
-                _iceProcessor.process(message);
-                break;
+        case 'candidate':
+          _iceProcessor.process(message);
+          break;
 
-            default:
-                OT.debug("PeerConnection.processMessage: Received an unexpected message of type " + type + " from " + message.fromAddress + ": " + JSON.stringify(message));
-        }
+        default:
+          OT.debug('PeerConnection.processMessage: Received an unexpected message of type ' +
+            type + ' from ' + message.fromAddress + ': ' + JSON.stringify(message));
+      }
 
-        return this;
+      return this;
     };
 
     this.registerMessageDelegate = function(delegateFn) {
-        return _messageDelegates.push(delegateFn);
+      return _messageDelegates.push(delegateFn);
     };
 
     this.unregisterMessageDelegate = function(delegateFn) {
-        var index = _messageDelegates.indexOf(delegateFn);
+      var index = _messageDelegates.indexOf(delegateFn);
 
-        if ( index !== -1 ) {
-            _messageDelegates.splice(index, 1);
-        }
-        return _messageDelegates.length;
+      if ( index !== -1 ) {
+        _messageDelegates.splice(index, 1);
+      }
+      return _messageDelegates.length;
     };
 
     
@@ -10278,183 +11858,221 @@ OT.PeerConnection = function(config) {
 
 
     this.getStats = function(prevStats, callback) {
-        
-        if (_gettingStats == true) {
-            OT.warn("PeerConnection.getStats: Already getting the stats!");
-            return;
-        }
+      var parsedStats = {},
+          now,
+          timeDifference,
+          parseAvgVideoBitrate,
+          parseAvgAudioBitrate,
+          parseFrameRate,
+          parseStatsReports,
+          parseStats,
+          needsNewGetStats;
 
-        
-        _gettingStats = true;
+      
+      if (_gettingStats === true) {
+        OT.warn('PeerConnection.getStats: Already getting the stats!');
+        return;
+      }
 
-        
-        var now = OT.$.now();
-        var time_difference = (now - prevStats["timeStamp"]) / 1000; 
+      
+      _gettingStats = true;
 
-        
-        prevStats["timeStamp"] = now;
+      
+      now = OT.$.now();
+      timeDifference = (now - prevStats.timeStamp) / 1000; 
 
-        
-        var parseAvgVideoBitrate = function(result) {
-            var last_bytesSent = prevStats["videoBytesTransferred"] || 0;
+      
+      prevStats.timeStamp = now;
 
-            if (result.stat("googFrameHeightSent")) {
-                prevStats["videoBytesTransferred"] = result.stat("bytesSent");
-                return Math.round((prevStats["videoBytesTransferred"] - last_bytesSent) * 8 / time_difference);
-            } else if (result.stat("googFrameHeightReceived")) {
-                prevStats["videoBytesTransferred"] = result.stat("bytesReceived");
-                return Math.round((prevStats["videoBytesTransferred"] - last_bytesSent) * 8 / time_difference);
-            } else {
-                return NaN;
-            }
-        };
+      
+      parseAvgVideoBitrate = function(result) {
+        var lastBytesSent = prevStats.videoBytesTransferred || 0;
 
-        
-        var parseAvgAudioBitrate = function(result) {
-            var last_bytesSent = prevStats["audioBytesTransferred"] || 0;
+        if (result.bytesSent || result.bytesReceived) {
+          prevStats.videoBytesTransferred = result.bytesSent || result.bytesReceived;
+          return Math.round((prevStats.videoBytesTransferred - lastBytesSent) * 8 / timeDifference);
 
-            if (result.stat("audioInputLevel")) {
-                prevStats["audioBytesTransferred"] = result.stat("bytesSent");
-                return Math.round((prevStats["audioBytesTransferred"] - last_bytesSent) * 8 / time_difference);
-            } else if (result.stat("audioOutputLevel")) {
-                prevStats["audioBytesTransferred"] = result.stat("bytesReceived");
-                return Math.round((prevStats["audioBytesTransferred"] - last_bytesSent) * 8 / time_difference);
-            } else {
-                return NaN;
-            }
-        };
+        } else if (result.stat('googFrameHeightSent')) {
+          prevStats.videoBytesTransferred = result.stat('bytesSent');
+          return Math.round((prevStats.videoBytesTransferred - lastBytesSent) * 8 / timeDifference);
 
-        var parsed_stats = {};
-        var parseStatsReports = function(stats) {
-            if (stats.result) {
-                var result_list = stats.result();
-                for (var result_index = 0; result_index < result_list.length; result_index++) {
-                    var report = {};
-                    var result = result_list[result_index];
-                    if (result.stat) {
+        } else if (result.stat('googFrameHeightReceived')) {
+          prevStats.videoBytesTransferred = result.stat('bytesReceived');
+          return Math.round((prevStats.videoBytesTransferred - lastBytesSent) * 8 / timeDifference);
 
-                        if(result.stat("googActiveConnection") === 'true') {
-                            parsed_stats.localCandidateType = result.stat('googLocalCandidateType');
-                            parsed_stats.remoteCandidateType = result.stat('googRemoteCandidateType');
-                            parsed_stats.transportType = result.stat('googTransportType');
-                        }
-
-                        var avgVideoBitrate = parseAvgVideoBitrate(result);
-                        if (!isNaN(avgVideoBitrate)) {
-                            parsed_stats["avgVideoBitrate"] = avgVideoBitrate;
-                        }
-
-                        var avgAudioBitrate = parseAvgAudioBitrate(result);
-                        if (!isNaN(avgAudioBitrate)) {
-                            parsed_stats["avgAudioBitrate"] = avgAudioBitrate;
-                        }
-                    }
-                }
-            }
-
-            _gettingStats = false;
-            callback(parsed_stats);
-        }
-        parsed_stats["duration"] = Math.round(now - _createTime);
-
-        var parseStats = function(stats) {
-            for (var key in stats) {
-                if (stats.hasOwnProperty(key) &&
-                    (stats[key].type === 'outboundrtp' || stats[key].type === 'inboundrtp')) {
-                    var res = stats[key];
-                    
-                    if (res.id.indexOf('video') !== -1) {
-                        var avgVideoBitrate = parseAvgVideoBitrate(res);
-                        if(!isNaN(avgVideoBitrate)) {
-                            parsed_stats.avgVideoBitrate = avgVideoBitrate;
-                        }
-
-                    } else if (res.id.indexOf('audio') !== -1) {
-                        var avgAudioBitrate = parseAvgAudioBitrate(res);
-                        if(!isNaN(avgAudioBitrate)) {
-                            parsed_stats.avgAudioBitrate = avgAudioBitrate;
-                        }
-                    }
-                }
-            }
-
-            _gettingStats = false;
-            callback(parsed_stats);
-        }
-
-
-        var needsNewGetStats = function() {
-            var firefoxVersion = window.navigator.userAgent.toLowerCase()
-            .match(/Firefox\/([0-9\.]+)/i);
-            var needs = (firefoxVersion !== null && parseFloat(firefoxVersion[1], 10) >= 27.0);
-            needsNewGetStats = function() { return needs; };
-            return needs;
-        };
-
-        if (_peerConnection && _peerConnection.getStats) {
-            if(needsNewGetStats()) {
-                _peerConnection.getStats(null, parseStats, function(err) {
-                    OT.warn('Error collecting stats', err);
-                    _gettingStats = false;
-                });
-            } else {
-                _peerConnection.getStats(parseStatsReports);
-            }
         } else {
-            
-            _gettingStats = false;
-            callback(parsed_stats);
+          return NaN;
         }
+
+      };
+
+        
+      parseAvgAudioBitrate = function(result) {
+        var lastBytesSent = prevStats.audioBytesTransferred || 0;
+
+        if (result.bytesSent || result.bytesReceived) {
+          prevStats.audioBytesTransferred = result.bytesSent || result.bytesReceived;
+          return Math.round((prevStats.audioBytesTransferred - lastBytesSent) * 8 / timeDifference);
+
+        } else if (result.stat('audioInputLevel')) {
+          prevStats.audioBytesTransferred = result.stat('bytesSent');
+          return Math.round((prevStats.audioBytesTransferred - lastBytesSent) * 8 / timeDifference);
+
+        } else if (result.stat('audioOutputLevel')) {
+          prevStats.audioBytesTransferred = result.stat('bytesReceived');
+          return Math.round((prevStats.audioBytesTransferred - lastBytesSent) * 8 / timeDifference);
+
+        } else {
+          return NaN;
+        }
+
+      };
+        
+      parseFrameRate = function(result) {
+        if (result.stat('googFrameRateSent')) {
+          return result.stat('googFrameRateSent');
+        } else if (result.stat('googFrameRateReceived')) {
+          return result.stat('googFrameRateReceived');
+        }
+        return null;
+      };
+
+      parseStatsReports = function(stats) {
+        if (stats.result) {
+          var resultList = stats.result();
+          for (var resultIndex = 0; resultIndex < resultList.length; resultIndex++) {
+            var result = resultList[resultIndex];
+            if (result.stat) {
+
+              if(result.stat('googActiveConnection') === 'true') {
+                parsedStats.localCandidateType = result.stat('googLocalCandidateType');
+                parsedStats.remoteCandidateType = result.stat('googRemoteCandidateType');
+                parsedStats.transportType = result.stat('googTransportType');
+              }
+
+              var avgVideoBitrate = parseAvgVideoBitrate(result);
+              if (!isNaN(avgVideoBitrate)) {
+                parsedStats.avgVideoBitrate = avgVideoBitrate;
+              }
+
+              var avgAudioBitrate = parseAvgAudioBitrate(result);
+              if (!isNaN(avgAudioBitrate)) {
+                parsedStats.avgAudioBitrate = avgAudioBitrate;
+              }
+              var frameRate = parseFrameRate(result);
+              if (frameRate != null) {
+                parsedStats.frameRate = frameRate;
+              }
+            }
+          }
+        }
+
+        _gettingStats = false;
+        callback(parsedStats);
+      };
+      parsedStats.duration = Math.round(now - _createTime);
+
+      parseStats = function(stats) {
+        for (var key in stats) {
+          if (stats.hasOwnProperty(key) &&
+            (stats[key].type === 'outboundrtp' || stats[key].type === 'inboundrtp')) {
+            var res = stats[key];
+            
+            if (res.id.indexOf('video') !== -1) {
+
+              var avgVideoBitrate = parseAvgVideoBitrate(res);
+              if(!isNaN(avgVideoBitrate)) {
+                parsedStats.avgVideoBitrate = avgVideoBitrate;
+              }
+
+            } else if (res.id.indexOf('audio') !== -1) {
+
+              var avgAudioBitrate = parseAvgAudioBitrate(res);
+              if(!isNaN(avgAudioBitrate)) {
+                parsedStats.avgAudioBitrate = avgAudioBitrate;
+              }
+
+            }
+          }
+        }
+
+        _gettingStats = false;
+        callback(parsedStats);
+      };
+
+      needsNewGetStats = function() {
+        var firefoxVersion = window.navigator.userAgent.toLowerCase()
+        .match(/Firefox\/([0-9\.]+)/i);
+        var needs = (firefoxVersion !== null && parseFloat(firefoxVersion[1], 10) >= 27.0);
+        needsNewGetStats = function() { return needs; };
+        return needs;
+      };
+
+      if (_peerConnection && _peerConnection.getStats) {
+        if(needsNewGetStats()) {
+          _peerConnection.getStats(null, parseStats, function(err) {
+            OT.warn('Error collecting stats', err);
+            _gettingStats = false;
+          });
+        } else {
+          _peerConnection.getStats(parseStatsReports);
+        }
+      } else {
+        
+        _gettingStats = false;
+        callback(parsedStats);
+      }
     };
 
     Object.defineProperty(this, 'remoteStreams', {
-        get: function() {
-            return _peerConnection ? getRemoteStreams() : [];
-        }
+      get: function() {
+        return _peerConnection ? getRemoteStreams() : [];
+      }
     });
-};
+  };
 
 })(window);
-(function(window) {
+!(function() {
 
-var _peerConnections = {};
+  var _peerConnections = {};
 
-OT.PeerConnections = {
-    add: function(remoteConnection, stream, config) {
-        var key = remoteConnection.id + "_" + stream.id,
-            ref = _peerConnections[key];
+  OT.PeerConnections = {
+    add: function(remoteConnection, streamId, config) {
+      var key = remoteConnection.id + '_' + streamId,
+          ref = _peerConnections[key];
 
-        if (!ref) {
-            ref = _peerConnections[key] = {
-                count: 0,
-                pc: new OT.PeerConnection(config)
-            };
-        }
+      if (!ref) {
+        ref = _peerConnections[key] = {
+          count: 0,
+          pc: new OT.PeerConnection(config)
+        };
+      }
 
-        
-        ref.count += 1;
+      
+      ref.count += 1;
 
-        return ref.pc;
+      return ref.pc;
     },
 
-    remove: function(remoteConnection, stream) {
-        var key = remoteConnection.id + "_" + stream.id,
-            ref = _peerConnections[key];
+    remove: function(remoteConnection, streamId) {
+      var key = remoteConnection.id + '_' + streamId,
+          ref = _peerConnections[key];
 
-        if (ref) {
-            ref.count -= 1;
+      if (ref) {
+        ref.count -= 1;
 
-            if (ref.count === 0) {
-                ref.pc.disconnect();
-                delete _peerConnections[key];
-            }
+        if (ref.count === 0) {
+          ref.pc.disconnect();
+          delete _peerConnections[key];
         }
+      }
     }
-};
-
+  };
 
 })(window);
-(function(window) {
+!(function() {
+
+  
 
 
 
@@ -10471,109 +12089,132 @@ OT.PeerConnections = {
 
 
 
-
-OT.PublisherPeerConnection = function(remoteConnection, session, stream, webRTCStream) {
+  OT.PublisherPeerConnection = function(remoteConnection, session, streamId, webRTCStream) {
     var _peerConnection,
-        _hasRelayCandidates = false;
+        _hasRelayCandidates = false,
+        _subscriberId = session._.subscriberMap[remoteConnection.id + '_' + streamId],
+        _onPeerClosed,
+        _onPeerError,
+        _relayMessageToPeer;
 
     
-    var _onPeerClosed = function() {
-            this.destroy();
-            this.trigger('disconnected', this);
-        },
+    _onPeerClosed = function() {
+      this.destroy();
+      this.trigger('disconnected', this);
+    };
 
-        
-        _onPeerError = function(errorReason) {
-            this.trigger('error', null, errorReason, this);
-            this.destroy();
-        },
+    
+    _onPeerError = function(errorReason, prefix) {
+      this.trigger('error', null, errorReason, this, prefix);
+      this.destroy();
+    };
 
-        _relayMessageToPeer = function(type, payload) {
-            if (!_hasRelayCandidates){
-                var extractCandidates = type === OT.Raptor.Actions.CANDIDATE ||
-                                        type === OT.Raptor.Actions.OFFER ||
-                                        type === OT.Raptor.Actions.ANSWER ||
-                                        type === OT.Raptor.Actions.PRANSWER ;
+    _relayMessageToPeer = function(type, payload) {
+      if (!_hasRelayCandidates){
+        var extractCandidates = type === OT.Raptor.Actions.CANDIDATE ||
+                                type === OT.Raptor.Actions.OFFER ||
+                                type === OT.Raptor.Actions.ANSWER ||
+                                type === OT.Raptor.Actions.PRANSWER ;
 
-                if (extractCandidates) {
-                    var message = (type === OT.Raptor.Actions.CANDIDATE) ? payload.candidate : payload.sdp;
-                    _hasRelayCandidates = message.indexOf('typ relay') !== -1;
-                }
-            }
+        if (extractCandidates) {
+          var message = (type === OT.Raptor.Actions.CANDIDATE) ? payload.candidate : payload.sdp;
+          _hasRelayCandidates = message.indexOf('typ relay') !== -1;
+        }
+      }
 
-            switch(type) {
-            case OT.Raptor.Actions.ANSWER:
-            case OT.Raptor.Actions.PRANSWER:
-                session._.jsepAnswer(remoteConnection.id, stream, payload);
-                break;
+      switch(type) {
+        case OT.Raptor.Actions.ANSWER:
+        case OT.Raptor.Actions.PRANSWER:
+          if (session.sessionInfo.p2pEnabled) {
+            session._.jsepAnswerP2p(streamId, _subscriberId, payload.sdp);
+          } else {
+            session._.jsepAnswer(streamId, payload.sdp);
+          }
 
-            case OT.Raptor.Actions.OFFER:
-                this.trigger('connected');
-                session._.jsepOffer(remoteConnection.id, stream, payload);
-                break;
+          break;
 
-            case OT.Raptor.Actions.CANDIDATE:
-                session._.jsepCandidate(remoteConnection.id, stream, payload);
-            }
-        }.bind(this);
+        case OT.Raptor.Actions.OFFER:
+          this.trigger('connected');
 
+          if (session.sessionInfo.p2pEnabled) {
+            session._.jsepOfferP2p(streamId, _subscriberId, payload.sdp);
+
+          } else {
+            session._.jsepOffer(streamId, payload.sdp);
+          }
+
+          break;
+
+        case OT.Raptor.Actions.CANDIDATE:
+          if (session.sessionInfo.p2pEnabled) {
+            session._.jsepCandidateP2p(streamId, _subscriberId, payload);
+
+          } else {
+            session._.jsepCandidate(streamId, payload);
+          }
+      }
+    }.bind(this);
 
     OT.$.eventing(this);
 
     
     this.destroy = function() {
-        
-        if (_peerConnection) {
-            OT.PeerConnections.remove(remoteConnection, stream);
-        }
+      
+      if (_peerConnection) {
+        OT.PeerConnections.remove(remoteConnection, streamId);
+      }
 
-        _peerConnection.off();
-        _peerConnection = null;
+      _peerConnection.off();
+      _peerConnection = null;
     };
 
     this.processMessage = function(type, message) {
-        _peerConnection.processMessage(type, message);
+      _peerConnection.processMessage(type, message);
     };
 
     this.getStats = function(prevStats, callback) {
-        _peerConnection.getStats(prevStats, callback);
-    }
+      _peerConnection.getStats(prevStats, callback);
+    };
 
     
     this.init = function() {
-        var iceServers = session.sessionInfo.iceServers.map(function(is) {
-            var iceServer = OT.$.clone(is);
+      var iceServers = session.sessionInfo.iceServers.map(function(is) {
+        var iceServer = OT.$.clone(is);
 
-            if (iceServer.url.trim().substr(0, 5) === 'turn:') {
-                
-                iceServer.username = session.id + '.' + session.connection.id + '.' + stream.id;
-            }
+        if (iceServer.url.trim().substr(0, 5) === 'turn:') {
+          
+          iceServer.username = session.id + '.' + session.connection.id + '.' + streamId;
+        }
 
-            return iceServer;
-        });
+        return iceServer;
+      });
 
-        _peerConnection = OT.PeerConnections.add(remoteConnection, stream, {
-            iceServers: iceServers
-        });
+      _peerConnection = OT.PeerConnections.add(remoteConnection, streamId, {
+        iceServers: iceServers
+      });
 
-        _peerConnection.on({
-            close: _onPeerClosed,
-            error: _onPeerError
-        }, this);
+      _peerConnection.on({
+        close: _onPeerClosed,
+        error: _onPeerError
+      }, this);
 
-        _peerConnection.registerMessageDelegate(_relayMessageToPeer);
-        _peerConnection.addLocalStream(webRTCStream);
+      _peerConnection.registerMessageDelegate(_relayMessageToPeer);
+      _peerConnection.addLocalStream(webRTCStream);
 
-        Object.defineProperty(this, 'remoteConnection', {value: remoteConnection});
+      Object.defineProperty(this, 'remoteConnection', {
+        value: remoteConnection
+      });
 
-        Object.defineProperty(this, 'hasRelayCandidates', {
-            get: function() { return _hasRelayCandidates; }
-        });
-    }
-};
+      Object.defineProperty(this, 'hasRelayCandidates', {
+        get: function() { return _hasRelayCandidates; }
+      });
+    };
+  };
 
 })(window);
-(function(window) {
+!(function() {
+
+  
 
 
 
@@ -10597,84 +12238,92 @@ OT.PublisherPeerConnection = function(remoteConnection, session, stream, webRTCS
 
 
 
-
-OT.SubscriberPeerConnection = function(remoteConnection, session, stream, properties) {
+  OT.SubscriberPeerConnection = function(remoteConnection, session, stream,
+    subscriber, properties) {
     var _peerConnection,
-        _hasRelayCandidates = false;
+        _hasRelayCandidates = false,
+        _onPeerClosed,
+        _onRemoteStreamAdded,
+        _onRemoteStreamRemoved,
+        _onPeerError,
+        _relayMessageToPeer,
+        _setEnabledOnStreamTracksCurry;
 
     
-    var _onPeerClosed = function() {
-            this.destroy();
-            this.trigger('disconnected', this);
-        },
+    _onPeerClosed = function() {
+      this.destroy();
+      this.trigger('disconnected', this);
+    };
 
-        _onRemoteStreamAdded = function(remoteRTCStream) {
-            this.trigger('remoteStreamAdded', remoteRTCStream, this);
-        },
+    _onRemoteStreamAdded = function(remoteRTCStream) {
+      this.trigger('remoteStreamAdded', remoteRTCStream, this);
+    };
 
-        _onRemoteStreamRemoved = function(remoteRTCStream) {
-            this.trigger('remoteStreamRemoved', remoteRTCStream, this);
-        },
+    _onRemoteStreamRemoved = function(remoteRTCStream) {
+      this.trigger('remoteStreamRemoved', remoteRTCStream, this);
+    };
 
-        
-        _onPeerError = function(errorReason) {
-            this.trigger('error', null, errorReason, this);
-        },
+    
+    _onPeerError = function(errorReason, prefix) {
+      this.trigger('error', null, errorReason, this, prefix);
+    };
 
-        _relayMessageToPeer = function(type, payload) {
-            if (!_hasRelayCandidates){
-                var extractCandidates = type === OT.Raptor.Actions.CANDIDATE ||
-                                        type === OT.Raptor.Actions.OFFER ||
-                                        type === OT.Raptor.Actions.ANSWER ||
-                                        type === OT.Raptor.Actions.PRANSWER ;
+    _relayMessageToPeer = function(type, payload) {
+      if (!_hasRelayCandidates){
+        var extractCandidates = type === OT.Raptor.Actions.CANDIDATE ||
+                                type === OT.Raptor.Actions.OFFER ||
+                                type === OT.Raptor.Actions.ANSWER ||
+                                type === OT.Raptor.Actions.PRANSWER ;
 
-                if (extractCandidates) {
-                    var message = (type === OT.Raptor.Actions.CANDIDATE) ? payload.candidate : payload.sdp;
-                    _hasRelayCandidates = message.indexOf('typ relay') !== -1;
-                }
-            }
+        if (extractCandidates) {
+          var message = (type === OT.Raptor.Actions.CANDIDATE) ? payload.candidate : payload.sdp;
+          _hasRelayCandidates = message.indexOf('typ relay') !== -1;
+        }
+      }
 
-            switch(type) {
-            case OT.Raptor.Actions.ANSWER:
-            case OT.Raptor.Actions.PRANSWER:
-                this.trigger('connected');
-                session._.jsepAnswer(remoteConnection.id, stream, payload);
-                break;
+      switch(type) {
+        case OT.Raptor.Actions.ANSWER:
+        case OT.Raptor.Actions.PRANSWER:
+          this.trigger('connected');
 
-            case OT.Raptor.Actions.OFFER:
-                session._.jsepOffer(remoteConnection.id, stream, payload);
-                break;
+          session._.jsepAnswerP2p(stream.id, subscriber.widgetId, payload.sdp);
+          break;
 
-            case OT.Raptor.Actions.CANDIDATE:
-                session._.jsepCandidate(remoteConnection.id, stream, payload);
-            }
-        }.bind(this),
+        case OT.Raptor.Actions.OFFER:
+          session._.jsepOfferP2p(stream.id, subscriber.widgetId, payload.sdp);
+          break;
 
-        
-        _setEnabledOnStreamTracksCurry = function(isVideo) {
-            var method = 'get' + (isVideo ? 'Video' : 'Audio') + 'Tracks';
+        case OT.Raptor.Actions.CANDIDATE:
+          session._.jsepCandidateP2p(stream.id, subscriber.widgetId, payload);
+          break;
+      }
+    }.bind(this);
 
-            return function(enabled) {
-                var remoteStreams = _peerConnection.remoteStreams,
-                    tracks,
-                    stream;
+    
+    _setEnabledOnStreamTracksCurry = function(isVideo) {
+      var method = 'get' + (isVideo ? 'Video' : 'Audio') + 'Tracks';
 
-                if (remoteStreams.length === 0 || !remoteStreams[0][method]) {
-                    
-                    
-                    return;
-                }
+      return function(enabled) {
+        var remoteStreams = _peerConnection.remoteStreams,
+            tracks,
+            stream;
 
-                for (var i=0, num=remoteStreams.length; i<num; ++i) {
-                    stream = remoteStreams[i];
-                    tracks = stream[method]();
+        if (remoteStreams.length === 0 || !remoteStreams[0][method]) {
+          
+          
+          return;
+        }
 
-                    for (var k=0, numTracks=tracks.length; k < numTracks; ++k){
-                        tracks[k].enabled=enabled;
-                    }
-                }
-            };
-        };
+        for (var i=0, num=remoteStreams.length; i<num; ++i) {
+          stream = remoteStreams[i];
+          tracks = stream[method]();
+
+          for (var k=0, numTracks=tracks.length; k < numTracks; ++k){
+            tracks[k].enabled=enabled;
+          }
+        }
+      };
+    };
 
 
     OT.$.eventing(this);
@@ -10683,15 +12332,15 @@ OT.SubscriberPeerConnection = function(remoteConnection, session, stream, proper
     this.destroy = function() {
       if (_peerConnection) {
         var numDelegates = _peerConnection.unregisterMessageDelegate(_relayMessageToPeer);
-
+        
         
         if (numDelegates === 0) {
           
           if (session && session.connected && stream && !stream.destroyed) {
               
-              session._.jsepUnsubscribe(stream);
+            session._.subscriberDestroy(stream, subscriber);
           }
-
+          
           
           this.subscribeToAudio(false);
         }
@@ -10702,108 +12351,135 @@ OT.SubscriberPeerConnection = function(remoteConnection, session, stream, proper
     };
 
     this.processMessage = function(type, message) {
-        _peerConnection.processMessage(type, message);
+      _peerConnection.processMessage(type, message);
     };
 
     this.getStats = function(prevStats, callback) {
-        _peerConnection.getStats(prevStats, callback);
+      _peerConnection.getStats(prevStats, callback);
     };
 
     this.subscribeToAudio = _setEnabledOnStreamTracksCurry(false);
     this.subscribeToVideo = _setEnabledOnStreamTracksCurry(true);
 
     Object.defineProperty(this, 'hasRelayCandidates', {
-        get: function() { return _hasRelayCandidates; }
+      get: function() { return _hasRelayCandidates; }
     });
-
 
     
     this.init = function() {
-        var iceServers = session.sessionInfo.iceServers.map(function(is) {
-            var iceServer = OT.$.clone(is);
+      var iceServers = session.sessionInfo.iceServers.map(function(is) {
+        var iceServer = OT.$.clone(is);
 
-            if (iceServer.url.trim().substr(0, 5) === 'turn:') {
-                
-                iceServer.username = session.id + '.' + session.connection.id + '.' + stream.id;
-            }
+        if (iceServer.url.trim().substr(0, 5) === 'turn:') {
+          
+          iceServer.username = session.id + '.' + session.connection.id + '.' + stream.id;
+        }
 
-            return iceServer;
-        });
+        return iceServer;
+      });
 
-        _peerConnection = OT.PeerConnections.add(remoteConnection, stream.streamId, {
-            iceServers: iceServers
-        });
+      _peerConnection = OT.PeerConnections.add(remoteConnection, stream.streamId, {
+        iceServers: iceServers
+      });
 
-        _peerConnection.on({
-            close: _onPeerClosed,
-            streamAdded: _onRemoteStreamAdded,
-            streamRemoved: _onRemoteStreamRemoved,
-            error: _onPeerError
-        }, this);
+      _peerConnection.on({
+        close: _onPeerClosed,
+        streamAdded: _onRemoteStreamAdded,
+        streamRemoved: _onRemoteStreamRemoved,
+        error: _onPeerError
+      }, this);
 
-        var numDelegates = _peerConnection.registerMessageDelegate(_relayMessageToPeer);
+      var numDelegates = _peerConnection.registerMessageDelegate(_relayMessageToPeer);
 
         
-        if (_peerConnection.remoteStreams.length > 0) {
-            _peerConnection.remoteStreams.forEach(_onRemoteStreamAdded, this);
+      if (_peerConnection.remoteStreams.length > 0) {
+        _peerConnection.remoteStreams.forEach(_onRemoteStreamAdded, this);
+      } else if (numDelegates === 1) {
+        
+        
+
+        var channelsToSubscribeTo;
+
+        if (properties.subscribeToVideo || properties.subscribeToAudio) {
+          var audio = stream.getChannelsOfType('audio'),
+              video = stream.getChannelsOfType('video');
+
+          channelsToSubscribeTo = audio.map(function(channel) {
+            return {
+              id: channel.id,
+              type: channel.type,
+              active: properties.subscribeToAudio
+            };
+          }).concat(video.map(function(channel) {
+            return {
+              id: channel.id,
+              type: channel.type,
+              active: properties.subscribeToVideo,
+              restrictFrameRate: properties.restrictFrameRate !== void 0 ?
+                properties.restrictFrameRate : false
+            };
+          }));
         }
-        else if (numDelegates === 1) {
-            
-            session._.jsepSubscribe(stream, properties.subscribeToVideo, properties.subscribeToAudio);
-        }
+
+        session._.subscriberCreate(stream, subscriber, channelsToSubscribeTo, function(err) {
+          if (err) {
+            this.trigger('error', null, err.message, this, 'Subscribe');
+          }
+        }.bind(this));
+      }
     };
-};
+  };
 
 })(window);
-(function(window) {
+!(function() {
 
 
-OT.Chrome = function(properties) {
+  OT.Chrome = function(properties) {
     var _visible = false,
         _widgets = {},
 
         
         _set = function(name, widget) {
-            widget.parent = this;
-            widget.appendTo(properties.parent);
+          widget.parent = this;
+          widget.appendTo(properties.parent);
 
-            _widgets[name] = widget;
+          _widgets[name] = widget;
 
-            Object.defineProperty(this, name, {
-                get: function() { return _widgets[name]; }
-            });
+          Object.defineProperty(this, name, {
+            get: function() { return _widgets[name]; }
+          });
         };
 
     if (!properties.parent) {
-        
-        return;
+      
+      return;
     }
 
     OT.$.eventing(this);
 
     this.destroy = function() {
-        this.off();
-        this.hide();
+      this.off();
+      this.hide();
 
-        for (var name in _widgets) {
-            _widgets[name].destroy();
-        }
+      for (var name in _widgets) {
+        _widgets[name].destroy();
+      }
     };
 
     this.show = function() {
-        _visible = true;
+      _visible = true;
 
-        for (var name in _widgets) {
-            _widgets[name].show();
-        }
+      for (var name in _widgets) {
+        _widgets[name].show();
+      }
     };
 
     this.hide = function() {
-        _visible = false;
+      _visible = false;
 
-        for (var name in _widgets) {
-            _widgets[name].hide();
-        }
+      for (var name in _widgets) {
+        _widgets[name].hide();
+      }
     };
 
 
@@ -10822,31 +12498,31 @@ OT.Chrome = function(properties) {
     
     
     this.set = function(widgetName, widget) {
-        if (typeof(widgetName) === "string" && widget) {
-            _set.call(this, widgetName, widget);
-        }
-        else {
-          for (var name in widgetName) {
-            if (widgetName.hasOwnProperty(name)) {
-              _set.call(this, name, widgetName[name]);
-            }
+      if (typeof(widgetName) === 'string' && widget) {
+        _set.call(this, widgetName, widget);
+
+      } else {
+        for (var name in widgetName) {
+          if (widgetName.hasOwnProperty(name)) {
+            _set.call(this, name, widgetName[name]);
           }
         }
-
-        return this;
+      }
+      return this;
     };
-};
+
+  };
 
 })(window);
-(function(window) {
+!(function() {
 
-if (!OT.Chrome.Behaviour) OT.Chrome.Behaviour = {};
+  if (!OT.Chrome.Behaviour) OT.Chrome.Behaviour = {};
 
-
-
-
-
-OT.Chrome.Behaviour.Widget = function(widget, options) {
+  
+  
+  
+  
+  OT.Chrome.Behaviour.Widget = function(widget, options) {
     var _options = options || {},
         _mode,
         _previousMode;
@@ -10856,346 +12532,424 @@ OT.Chrome.Behaviour.Widget = function(widget, options) {
     
     
     widget.setDisplayMode = function(mode) {
-        var newMode = mode || 'auto';
-        if (_mode === newMode) return;
+      var newMode = mode || 'auto';
+      if (_mode === newMode) return;
 
-        OT.$.removeClass(this.domElement, 'OT_mode-' + _mode);
-        OT.$.addClass(this.domElement, 'OT_mode-' + newMode);
+      OT.$.removeClass(this.domElement, 'OT_mode-' + _mode);
+      OT.$.addClass(this.domElement, 'OT_mode-' + newMode);
 
-        _previousMode = _mode;
-        _mode = newMode;
+      _previousMode = _mode;
+      _mode = newMode;
     };
 
     widget.show = function() {
-        this.setDisplayMode(_previousMode);
-        if (_options.onShow) _options.onShow();
+      this.setDisplayMode(_previousMode);
+      if (_options.onShow) _options.onShow();
 
-        return this;
+      return this;
     };
 
     widget.hide = function() {
-        this.setDisplayMode('off');
-        if (_options.onHide) _options.onHide();
+      this.setDisplayMode('off');
+      if (_options.onHide) _options.onHide();
 
-        return this;
+      return this;
     };
 
     widget.destroy = function() {
-        if (_options.onDestroy) _options.onDestroy(this.domElement);
-        if (this.domElement) OT.$.removeElement(this.domElement);
+      if (_options.onDestroy) _options.onDestroy(this.domElement);
+      if (this.domElement) OT.$.removeElement(this.domElement);
 
-        return widget;
+      return widget;
     };
 
     widget.appendTo = function(parent) {
+      
+      this.domElement = OT.$.createElement(_options.nodeName || 'div',
+                                          _options.htmlAttributes,
+                                          _options.htmlContent);
+
+      if (_options.onCreate) _options.onCreate(this.domElement);
+
+      
+      if (_options.mode !== 'auto') {
+        widget.setDisplayMode(_options.mode);
+      } else {
         
-        this.domElement = OT.$.createElement(_options.nodeName || 'div',
-                                            _options.htmlAttributes,
-                                            _options.htmlContent);
-
-        if (_options.onCreate) _options.onCreate(this.domElement);
-
         
-        if (_options.mode != "auto") {
-            widget.setDisplayMode(_options.mode);
-        } else {
-            
-            
-            widget.setDisplayMode('on');
-            setTimeout(function() {
-                widget.setDisplayMode(_options.mode);
-            }, 2000);
-        }
+        widget.setDisplayMode('on');
+        setTimeout(function() {
+          widget.setDisplayMode(_options.mode);
+        }, 2000);
+      }
 
-        
-        parent.appendChild(this.domElement);
+      
+      parent.appendChild(this.domElement);
 
-        return widget;
+      return widget;
     };
-};
+  };
 
 })(window);
-(function(window) {
+!(function() {
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.Chrome.BackingBar = function(options) {
+    var _nameMode = options.nameMode,
+        _muteMode = options.muteMode,
+        _domElement;
 
+    
+    
+    Object.defineProperty(this, 'domElement', {
+      get: function() { return _domElement; },
+      set: function(domElement) {
+        _domElement = domElement;
+      }
+    });
 
+    function getDisplayMode() {
+      if(_nameMode === 'on' || _muteMode === 'on') {
+        return 'on';
+      } else if(_nameMode === 'mini' || _muteMode === 'mini') {
+        return 'mini';
+      } else if(_nameMode === 'mini-auto' || _muteMode === 'mini-auto') {
+        return 'mini-auto';
+      } else if(_nameMode === 'auto' || _muteMode === 'auto') {
+        return 'auto';
+      } else {
+        return 'off';
+      }
+    }
 
+    
+    OT.Chrome.Behaviour.Widget(this, {
+      mode: getDisplayMode(),
+      nodeName: 'div',
+      htmlContent: '',
+      htmlAttributes: {
+        className: 'OT_bar OT_edge-bar-item'
+      }
+    });
 
+    this.setNameMode = function(nameMode) {
+      _nameMode = nameMode;
+      this.setDisplayMode(getDisplayMode());
+    };
 
+    this.setMuteMode = function(muteMode) {
+      _muteMode = muteMode;
+      this.setDisplayMode(getDisplayMode());
+    };
 
+  };
 
+})(window);
+!(function() {
 
-
-
-OT.Chrome.NamePanel = function(options) {
-    var _name = options.name;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.Chrome.NamePanel = function(options) {
+    var _name = options.name,
+        _bugMode = options.bugMode,
+        _domElement;
 
     if (!_name || _name.trim().length === '') {
-        _name = null;
+      _name = null;
 
-        
-        options.mode = 'off';
+      
+      options.mode = 'off';
     }
 
     
     
-    var _domElement;
     Object.defineProperty(this, 'domElement', {
-        get: function() { return _domElement; },
-        set: function(domElement) { _domElement = domElement; }
-    })
-
-    
-    OT.Chrome.Behaviour.Widget(this, {
-        mode: options.mode,
-        nodeName: 'h1',
-        htmlContent: _name,
-        htmlAttributes: {className: 'OT_name'}
+      get: function() { return _domElement; },
+      set: function(domElement) {
+        _domElement = domElement;
+      }
     });
 
     Object.defineProperty(this, 'name', {
-        set: function(name) {
-            if (!_name) this.setDisplayMode('auto');
-
-            _name = name;
-            _domElement.innerHTML = _name;
-        }.bind(this)
+      set: function(name) {
+        if (!_name) this.setDisplayMode('auto');
+        _name = name;
+        _domElement.innerHTML = _name;
+      }.bind(this)
     });
-};
+
+    this.setBugMode = function(bugMode) {
+      _bugMode = bugMode;
+      if(bugMode === 'off') {
+        OT.$.addClass(_domElement, 'OT_name-no-bug');
+      } else {
+        OT.$.removeClass(_domElement, 'OT_name-no-bug');
+      }
+    };
+
+    
+    OT.Chrome.Behaviour.Widget(this, {
+      mode: options.mode,
+      nodeName: 'h1',
+      htmlContent: _name,
+      htmlAttributes: {
+        className: 'OT_name OT_edge-bar-item'
+      },
+      onCreate: function() {
+        this.setBugMode(_bugMode);
+      }.bind(this)
+    });
+
+  };
 
 })(window);
-(function(window) {
+!(function() {
 
-OT.Chrome.MuteButton = function(options) {
+  OT.Chrome.MuteButton = function(options) {
     var _onClickCb,
-        _muted = options.muted || false;
+        _muted = options.muted || false,
+        _domElement,
+        updateClasses,
+        attachEvents,
+        detachEvents,
+        onClick;
+
+    
+    
+    Object.defineProperty(this, 'domElement', {
+      get: function() { return _domElement; },
+      set: function(domElement) {
+        _domElement = domElement;
+      }
+    });
+
+    updateClasses = function() {
+      if (_muted) {
+        OT.$.addClass(_domElement, 'OT_active');
+      } else {
+        OT.$.removeClass(_domElement, 'OT_active ');
+      }
+    };
+
+    
+    attachEvents = function(elem) {
+      _onClickCb = onClick.bind(this);
+      elem.addEventListener('click', _onClickCb, false);
+    };
+
+    detachEvents = function(elem) {
+      _onClickCb = null;
+      elem.removeEventListener('click', _onClickCb, false);
+    };
+
+    onClick = function() {
+      _muted = !_muted;
+
+      updateClasses();
+
+      if (_muted) {
+        this.parent.trigger('muted', this);
+      } else {
+        this.parent.trigger('unmuted', this);
+      }
+
+      return false;
+    };
+
+    Object.defineProperty(this, 'muted', {
+      get: function() { return _muted; },
+      set: function(muted) {
+        _muted = muted;
+        updateClasses();
+      }
+    });
+
+    
+    var classNames = _muted ? 'OT_edge-bar-item OT_mute OT_active' : 'OT_edge-bar-item OT_mute';
+    OT.Chrome.Behaviour.Widget(this, {
+      mode: options.mode,
+      nodeName: 'button',
+      htmlContent: 'Mute',
+      htmlAttributes: {
+        className: classNames
+      },
+      onCreate: attachEvents.bind(this),
+      onDestroy: detachEvents.bind(this)
+    });
+  };
+
+
+})(window);
+!(function() {
+
+  OT.Chrome.OpenTokButton = function(options) {
 
     
     
     var _domElement;
     Object.defineProperty(this, 'domElement', {
-        get: function() { return _domElement; },
-        set: function(domElement) { _domElement = domElement; }
-    })
-
-    
-    var attachEvents = function(elem) {
-            _onClickCb = onClick.bind(this);
-            elem.addEventListener('click', _onClickCb, false);
-        },
-
-        detachEvents = function(elem) {
-            _onClickCb = null;
-            elem.removeEventListener('click', _onClickCb, false);
-        },
-
-        onClick = function(event) {
-            _muted = !_muted;
-
-            if (_muted) {
-                OT.$.addClass(_domElement, 'OT_active');
-                this.parent.trigger('muted', this);
-            }
-            else {
-                OT.$.removeClass(_domElement, 'OT_active');
-                this.parent.trigger('unmuted', this);
-            }
-
-            return false;
-        };
-
-    
-    var classNames = _muted ? 'OT_mute OT_active' : 'OT_mute';
-    OT.Chrome.Behaviour.Widget(this, {
-        mode: options.mode,
-        nodeName: 'button',
-        htmlContent: 'Mute',
-        htmlAttributes: {className: classNames},
-        onCreate: attachEvents.bind(this),
-        onDestroy: detachEvents.bind(this)
+      get: function() { return _domElement; },
+      set: function(domElement) {
+        _domElement = domElement;
+      }
     });
-};
 
+    
+    OT.Chrome.Behaviour.Widget(this, {
+      mode: options ? options.mode : null,
+      nodeName: 'span',
+      htmlContent: 'OpenTok',
+      htmlAttributes: {
+        className: 'OT_opentok OT_edge-bar-item'
+      }
+    });
+
+  };
 
 })(window);
-(function(window) {
+!(function() {
 
-OT.Chrome.MicVolume = function(options) {
-    var _onClickCb,
-        _muted = options.muted || false;
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  OT.Chrome.Archiving = function(options) {
+    var _archiving = options.archiving,
+        _archivingStarted = options.archivingStarted || 'Archiving on',
+        _archivingEnded = options.archivingEnded || 'Archiving off',
+        _initialState = true,
+        _lightBox,
+        _light,
+        _text,
+        _domElement,
+        renderStageDelayedAction,
+        renderText,
+        renderStage;
 
     
     
-    var _domElement;
     Object.defineProperty(this, 'domElement', {
-        get: function() { return _domElement; },
-        set: function(domElement) { _domElement = domElement; }
-    })
+      get: function() { return _domElement; },
+      set: function(domElement) {
+        _domElement = domElement;
+      }
+    });
 
-    
-    var attachEvents = function(elem) {
-            _onClickCb = onClick.bind(this);
-            elem.addEventListener('click', _onClickCb, false);
-        },
+    renderText = function(text) {
+      _text.innerText = text;
+      _lightBox.setAttribute('title', text);
+    };
 
-        detachEvents = function(elem) {
-            _onClickCb = null;
-            elem.removeEventListener('click', _onClickCb, false);
-        },
+    renderStage = function() {
+      if(renderStageDelayedAction) {
+        clearTimeout(renderStageDelayedAction);
+        renderStageDelayedAction = null;
+      }
 
-        onClick = function(event) {
-            _muted = !_muted;
+      if(_archiving) {
+        OT.$.addClass(_light, 'OT_active');
+      } else {
+        OT.$.removeClass(_light, 'OT_active');
+      }
 
-            if (_muted) {
-                OT.$.addClass(_domElement, 'active');
-                this.parent.trigger('muted', this);
-            }
-            else {
-                OT.$.removeClass(_domElement, 'active');
-                this.parent.trigger('unmuted', this);
-            }
-
-            return false;
-        };
+      OT.$.removeClass(_domElement, 'OT_archiving-' + (!_archiving ? 'on' : 'off'));
+      OT.$.addClass(_domElement, 'OT_archiving-' + (_archiving ? 'on' : 'off'));
+      if(options.show && _archiving) {
+        renderText(_archivingStarted);
+        OT.$.addClass(_text, 'OT_mode-on');
+        OT.$.removeClass(_text, 'OT_mode-auto');
+        this.setDisplayMode('on');
+        renderStageDelayedAction = setTimeout(function() {
+          OT.$.addClass(_text, 'OT_mode-auto');
+          OT.$.removeClass(_text, 'OT_mode-on');
+        }.bind(this), 5000);
+      } else if(options.show && !_initialState) {
+        OT.$.addClass(_text, 'OT_mode-on');
+        OT.$.removeClass(_text, 'OT_mode-auto');
+        this.setDisplayMode('on');
+        renderText(_archivingEnded);
+        renderStageDelayedAction = setTimeout(function() {
+          this.setDisplayMode('off');
+        }.bind(this), 5000);
+      } else {
+        this.setDisplayMode('off');
+      }
+    }.bind(this);
 
     
     OT.Chrome.Behaviour.Widget(this, {
-        mode: options.mode,
-        nodeName: 'button',
-        htmlContent: 'Mute',
-        htmlAttributes: {className: 'OT_mic-volume'},
-        onCreate: attachEvents.bind(this),
-        onDestroy: detachEvents.bind(this)
+      mode: _archiving && options.show && 'on' || 'off',
+      nodeName: 'h1',
+      htmlAttributes: {className: 'OT_archiving OT_edge-bar-item OT_edge-bottom'},
+      onCreate: function() {
+        _lightBox = OT.$.createElement('div', {
+          className: 'OT_archiving-light-box'
+        }, '');
+        _light = OT.$.createElement('div', {
+          className: 'OT_archiving-light'
+        }, '');
+        _lightBox.appendChild(_light);
+        _text = OT.$.createElement('div', {
+          className: 'OT_archiving-status OT_mode-on OT_edge-bar-item OT_edge-bottom'
+        }, '');
+        _domElement.appendChild(_lightBox);
+        _domElement.appendChild(_text);
+        renderStage();
+      }
     });
-};
 
+    this.setShowArchiveStatus = function(show) {
+      options.show = show;
+      if(_domElement) {
+        renderStage.call(this);
+      }
+    };
+
+    this.setArchiving = function(status) {
+      _archiving = status;
+      _initialState = false;
+      if(_domElement) {
+        renderStage.call(this);
+      }
+    };
+
+  };
 
 })(window);
-(function(window) {
-
-OT.Chrome.SettingsPanelButton = function(options) {
-    var _onClickCb;
-
-    
-    var attachEvents = function(elem) {
-            _onClickCb = onClick.bind(this);
-            elem.addEventListener('click', _onClickCb, false);
-        },
-
-        detachEvents = function(elem) {
-            _onClickCb = null;
-            elem.removeEventListener('click', _onClickCb, false);
-        },
-
-        onClick = function(event) {
-            this.parent.trigger('SettingsPanel:open', this);
-            return false;
-        };
-
-
-    
-    
-    var _domElement;
-    Object.defineProperty(this, 'domElement', {
-        get: function() { return _domElement; },
-        set: function(domElement) { _domElement = domElement; }
-    })
-
-    
-    OT.Chrome.Behaviour.Widget(this, {
-        mode: options.mode,
-        nodeName: 'button',
-        htmlContent: 'Settings',
-        htmlAttributes: {className: 'OT_settings-panel'},
-        onCreate: attachEvents.bind(this),
-        onDestroy: detachEvents.bind(this)
-    });
-};
-
-})(window);
-(function(window) {
-
-OT.Chrome.SettingsPanel = function(options) {
-    if (!options.stream) {
-        
-        return;
-    }
-
-    var webRTCStream = options.stream;
-
-    
-    
-    var _domElement;
-    Object.defineProperty(this, 'domElement', {
-        get: function() { return _domElement; },
-        set: function(domElement) { _domElement = domElement; }
-    })
-
-    var renderDialog = function() {
-            var camLabel = webRTCStream.getVideoTracks().length ? webRTCStream.getVideoTracks()[0].label : "None",
-                micLabel = webRTCStream.getAudioTracks().length ? webRTCStream.getAudioTracks()[0].label : "None";
-
-            _domElement.innerHTML = "<dl>\
-                                        <dt>Cam</dt>\
-                                        <dd>" + camLabel + "</dd>\
-                                        <dt>Mic</dt>\
-                                        <dd>" + micLabel + "</dd>\
-                                    </dl>";
-
-
-            var closeButton  = OT.$.createButton('Close', {
-                className: 'OT_close'
-            }, {
-                click: onClose.bind(this)
-            });
-
-            _domElement.appendChild(closeButton);
-        },
-
-        onShow = function() {
-            renderDialog.call(this);
-        },
-
-        onClose = function() {
-            this.parent.trigger('SettingsPanel:close', this);
-            return false;
-        };
-
-
-    
-    OT.Chrome.Behaviour.Widget(this, {
-        mode: options.mode,
-        nodeName: 'section',
-        htmlContent: 'Settings',
-        htmlAttributes: {className: 'OT_settings-panel'},
-        onCreate: renderDialog.bind(this),
-        onShow: onShow.bind(this)
-    });
-};
-
-})(window);
-(function(window) {
-
-OT.Chrome.OpenTokButton = function(options) {
-    
-    
-    var _domElement;
-    this.__defineGetter__("domElement", function() { return _domElement; });
-    this.__defineSetter__("domElement", function(domElement) { _domElement = domElement; });
-
-    
-    OT.Chrome.Behaviour.Widget(this, {
-        mode: options ? options.mode : null,
-        nodeName: 'span',
-        htmlContent: 'OpenTok',
-        htmlAttributes: {
-            className: 'OT_opentok'
-        }
-    });
-};
-
-})(window);
-(function(window) {
+(function() {
 
 
 
@@ -11203,46 +12957,45 @@ OT.Chrome.OpenTokButton = function(options) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.StylableComponent = function(self, initalStyles) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.StylableComponent = function(self, initalStyles) {
     if (!self.trigger) {
-        throw new Error("OT.StylableComponent is dependent on the mixin OT.$.eventing. Ensure that this is included in the object before StylableComponent.");
+      throw new Error('OT.StylableComponent is dependent on the mixin OT.$.eventing. ' +
+        'Ensure that this is included in the object before StylableComponent.');
     }
 
     
     var onStyleChange = function(key, value, oldValue) {
-        if (oldValue) {
-            self.trigger('styleValueChanged', key, value, oldValue);
-        }
-        else {
-            self.trigger('styleValueChanged', key, value);
-        }
+      if (oldValue) {
+        self.trigger('styleValueChanged', key, value, oldValue);
+      } else {
+        self.trigger('styleValueChanged', key, value);
+      }
     };
 
     var _style = new Style(initalStyles, onStyleChange);
 
-    
+  
 
 
 
@@ -11265,10 +13018,10 @@ OT.StylableComponent = function(self, initalStyles) {
 
     
     self.getStyle = function(key) {
-        return _style.get(key);
+      return _style.get(key);
     };
 
-    
+  
 
 
 
@@ -11310,7 +13063,54 @@ OT.StylableComponent = function(self, initalStyles) {
 
 
 
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11351,150 +13151,134 @@ OT.StylableComponent = function(self, initalStyles) {
 
 
     self.setStyle = function(keyOrStyleHash, value, silent) {
-        if (typeof(keyOrStyleHash) !== 'string') {
-            _style.setAll(keyOrStyleHash, silent);
-        }
-        else {
-            _style.set(keyOrStyleHash, value);
-        }
-
-        return this;
+      if (typeof(keyOrStyleHash) !== 'string') {
+        _style.setAll(keyOrStyleHash, silent);
+      } else {
+        _style.set(keyOrStyleHash, value);
+      }
+      return this;
     };
-};
+  };
 
-var Style = function(initalStyles, onStyleChange) {
-    var _COMPONENT_STYLES = [
-            "showMicButton",
-            "showSpeakerButton",
-            "showSettingsButton",
-            "showCameraToggleButton",
-            "nameDisplayMode",
-            "buttonDisplayMode",
-            "showSaveButton",
-            "showRecordButton",
-            "showRecordStopButton",
-            "showReRecordButton",
-            "showPauseButton",
-            "showPlayButton",
-            "showPlayStopButton",
-            "showStopButton",
-            "backgroundImageURI",
-            "showControlPanel",
-            "showRecordCounter",
-            "showPlayCounter",
-            "showControlBar",
-            "showPreviewTime"
-        ],
+  var Style = function(initalStyles, onStyleChange) {
+    var _style = {},
+        _COMPONENT_STYLES,
+        _validStyleValues,
+        isValidStyle,
+        castValue;
 
-        _validStyleValues = {
-            buttonDisplayMode: ["auto", "off", "on"],
-            nameDisplayMode: ["auto", "off", "on"],
-            showSettingsButton: [true, false],
-            showMicButton: [true, false],
-            showCameraToggleButton: [true, false],
-            showSaveButton: [true, false],
-            backgroundImageURI: null,
-            showControlBar: [true, false],
-            showPlayCounter: [true, false],
-            showRecordCounter: [true, false],
-            showPreviewTime: [true, false]
-        },
+    _COMPONENT_STYLES = [
+      'showMicButton',
+      'showSpeakerButton',
+      'nameDisplayMode',
+      'buttonDisplayMode',
+      'backgroundImageURI',
+      'bugDisplayMode'
+    ];
 
-        _style = {},
-
-
-        
-        isValidStyle = function(key, value) {
-            return key === 'backgroundImageURI' ||
-                    (   _validStyleValues.hasOwnProperty(key) &&
-                        _validStyleValues[key].indexOf(value) !== -1 );
-        },
-
-        castValue = function(value) {
-            switch(value) {
-                case 'true':
-                    return true;
-                case 'false':
-                    return false;
-                default:
-                    return value;
-            }
-        };
+    _validStyleValues = {
+      buttonDisplayMode: ['auto', 'mini', 'mini-auto', 'off', 'on'],
+      nameDisplayMode: ['auto', 'off', 'on'],
+      bugDisplayMode: ['auto', 'off', 'on'],
+      showSettingsButton: [true, false],
+      showMicButton: [true, false],
+      backgroundImageURI: null,
+      showControlBar: [true, false],
+      showArchiveStatus: [true, false]
+    };
 
 
     
+    isValidStyle = function(key, value) {
+      return key === 'backgroundImageURI' ||
+        (   _validStyleValues.hasOwnProperty(key) &&
+        _validStyleValues[key].indexOf(value) !== -1 );
+    };
+
+    castValue = function(value) {
+      switch(value) {
+        case 'true':
+          return true;
+        case 'false':
+          return false;
+        default:
+          return value;
+      }
+    };
+
+    
     this.getAll = function() {
-        var style = OT.$.clone(_style);
+      var style = OT.$.clone(_style);
 
-        for (var i in style) {
-            if (_COMPONENT_STYLES.indexOf(i) < 0) {
-                
-                delete style[i];
-            }
+      for (var i in style) {
+        if (_COMPONENT_STYLES.indexOf(i) < 0) {
+          
+          delete style[i];
         }
+      }
 
-        return style;
+      return style;
     };
 
     this.get = function(key) {
-        if (key) {
-            return _style[key];
-        }
+      if (key) {
+        return _style[key];
+      }
 
-        
-        return this.getAll();
+      
+      return this.getAll();
     };
 
     
     this.setAll = function(newStyles, silent) {
-        var oldValue, newValue;
+      var oldValue, newValue;
 
-        for (var key in newStyles) {
-            newValue = castValue(newStyles[key]);
+      for (var key in newStyles) {
+        newValue = castValue(newStyles[key]);
 
-            if (isValidStyle(key, newValue)) {
-                oldValue = _style[key];
+        if (isValidStyle(key, newValue)) {
+          oldValue = _style[key];
 
-                if (newValue !== oldValue) {
-                    _style[key] = newValue;
-                    if (!silent) onStyleChange(key, newValue, oldValue);
-                }
-            }
-            else {
-                OT.warn("Style.setAll::Invalid style property passed " + key + " : " + newValue);
-            }
+          if (newValue !== oldValue) {
+            _style[key] = newValue;
+            if (!silent) onStyleChange(key, newValue, oldValue);
+          }
+
+        } else {
+          OT.warn('Style.setAll::Invalid style property passed ' + key + ' : ' + newValue);
         }
+      }
 
-        return this;
+      return this;
     };
 
     this.set = function(key, value) {
-        OT.debug("Publisher.setStyle: " + key.toString());
+      OT.debug('Publisher.setStyle: ' + key.toString());
 
-        var newValue = castValue(value),
-            oldValue;
+      var newValue = castValue(value),
+          oldValue;
 
-        if (!isValidStyle(key, newValue)) {
-            OT.warn("Style.set::Invalid style property passed " + key + " : " + newValue);
-            return this;
-        }
-
-        oldValue = _style[key];
-        if (newValue !== oldValue) {
-            _style[key] = newValue;
-
-            onStyleChange(key, value, oldValue);
-        }
-
+      if (!isValidStyle(key, newValue)) {
+        OT.warn('Style.set::Invalid style property passed ' + key + ' : ' + newValue);
         return this;
+      }
+
+      oldValue = _style[key];
+      if (newValue !== oldValue) {
+        _style[key] = newValue;
+
+        onStyleChange(key, value, oldValue);
+      }
+
+      return this;
     };
 
 
     if (initalStyles) this.setAll(initalStyles, true);
-};
+  };
 
 })(window);
-(function(window) {
+!(function() {
 
 
 
@@ -11502,128 +13286,128 @@ var Style = function(initalStyles, onStyleChange) {
 
 
 
-OT.Microphone = function(webRTCStream, muted) {
+  OT.Microphone = function(webRTCStream, muted) {
     var _muted,
         _gain = 50;
 
 
     Object.defineProperty(this, 'muted', {
-        get: function() { return _muted; },
-        set: function(muted) {
-            if (_muted === muted) return;
+      get: function() { return _muted; },
+      set: function(muted) {
+        if (_muted === muted) return;
 
-            _muted = muted;
+        _muted = muted;
 
-            var audioTracks = webRTCStream.getAudioTracks();
+        var audioTracks = webRTCStream.getAudioTracks();
 
-            for (var i=0, num=audioTracks.length; i<num; ++i) {
-                audioTracks[i].enabled = !_muted;
-            }
+        for (var i=0, num=audioTracks.length; i<num; ++i) {
+          audioTracks[i].enabled = !_muted;
         }
+      }
     });
 
     Object.defineProperty(this, 'gain', {
-        get: function() { return _gain; },
-
-        set: function(gain) {
-            OT.warn("OT.Microphone.gain IS NOT YET IMPLEMENTED");
-
-            _gain = gain;
-        }
+      get: function() { return _gain; },
+      set: function(gain) {
+        OT.warn('OT.Microphone.gain IS NOT YET IMPLEMENTED');
+        _gain = gain;
+      }
     });
 
     
     if (muted !== undefined) {
-        this.muted = muted === true;
+      this.muted = muted === true;
+
+    } else if (webRTCStream.getAudioTracks().length) {
+      this.muted = !webRTCStream.getAudioTracks()[0].enabled;
+
+    } else {
+      this.muted = false;
     }
-    else if (webRTCStream.getAudioTracks().length) {
-        this.muted = !webRTCStream.getAudioTracks()[0].enabled;
-    }
-    else {
-        this.muted = false;
-    }
-};
 
-})(window);
-(function(window) {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.generateSimpleStateMachine = function(initialState, states, transitions) {
-  var validStates = states.slice(),
-      validTransitions = OT.$.clone(transitions);
-
-  var isValidState = function (state) {
-    return validStates.indexOf(state) !== -1;
-  }
-
-  var isValidTransition = function(fromState, toState) {
-    return validTransitions[fromState] && validTransitions[fromState].indexOf(toState) !== -1;
   };
 
-  return function(stateChangeFailed) {
-    var currentState = initialState,
-        previousState = null;
+})(window);
+!(function() {
 
-    function signalChangeFailed(message, newState) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.generateSimpleStateMachine = function(initialState, states, transitions) {
+    var validStates = states.slice(),
+        validTransitions = OT.$.clone(transitions);
+
+    var isValidState = function (state) {
+      return validStates.indexOf(state) !== -1;
+    };
+
+    var isValidTransition = function(fromState, toState) {
+      return validTransitions[fromState] && validTransitions[fromState].indexOf(toState) !== -1;
+    };
+
+    return function(stateChangeFailed) {
+      var currentState = initialState,
+          previousState = null;
+
+      function signalChangeFailed(message, newState) {
         stateChangeFailed({
           message: message,
           newState: newState,
           currentState: currentState,
           previousState: previousState
         });
-    }
-
-    
-    function handleInvalidStateChanges(newState) {
-      if (!isValidState(newState)) {
-        signalChangeFailed("'" + newState + "' is not a valid state", newState)
-
-        return false;
       }
 
-      if (!isValidTransition(currentState, newState)) {
-        signalChangeFailed("'" + currentState + "' cannot transition to '" + newState + "'", newState)
+      
+      function handleInvalidStateChanges(newState) {
+        if (!isValidState(newState)) {
+          signalChangeFailed('\'' + newState + '\' is not a valid state', newState);
 
-        return false;
+          return false;
+        }
+
+        if (!isValidTransition(currentState, newState)) {
+          signalChangeFailed('\'' + currentState + '\' cannot transition to \'' +
+            newState + '\'', newState);
+
+          return false;
+        }
+
+        return true;
       }
 
-      return true;
-    }
 
+      this.set = function(newState) {
+        if (!handleInvalidStateChanges(newState)) return;
 
-    this.set = function(newState) {
-      if (!handleInvalidStateChanges(newState)) return;
+        previousState = currentState;
+        currentState = newState;
+      };
 
-      previousState = currentState;
-      currentState = newState;
+      Object.defineProperties(this, {
+        current: {
+          get: function() { return currentState; }
+        },
+
+        subscribing: {
+          get: function() { return currentState === 'Subscribing'; }
+        }
+      });
     };
-
-    Object.defineProperties(this, {
-      current: {
-        get: function() { return currentState; }
-      },
-
-      subscribing: {
-        get: function() { return currentState === 'Subscribing'; }
-      }
-    });
   };
-};
 
 })(window);
-(function(window) {
+!(function() {
 
 
 
@@ -11675,27 +13459,37 @@ OT.generateSimpleStateMachine = function(initialState, states, transitions) {
 
 
 
-var validStates = [ 'NotSubscribing', 'Init', 'ConnectingToPeer', 'BindingRemoteStream', 'Subscribing', 'Failed' ],
 
-    validTransitions = {
-      NotSubscribing: ['NotSubscribing', 'Init'],
-      Init: ['NotSubscribing', 'ConnectingToPeer', 'BindingRemoteStream'],
-      ConnectingToPeer: ['NotSubscribing', 'BindingRemoteStream', 'Failed'],
-      BindingRemoteStream: ['NotSubscribing', 'Subscribing', 'Failed'],
-      Subscribing: ['NotSubscribing', 'Failed'],
-      Failed: []
-    },
 
-    initialState = 'NotSubscribing';
 
-OT.SubscribingState = OT.generateSimpleStateMachine(initialState, validStates, validTransitions);
+  var validStates,
+      validTransitions,
+      initialState = 'NotSubscribing';
 
-Object.defineProperty(OT.SubscribingState.prototype, 'attemptingToSubscribe', {
-  get: function() { return [ 'Init', 'ConnectingToPeer', 'BindingRemoteStream' ].indexOf(this.current) !== -1; }
-});
+  validStates = [
+    'NotSubscribing', 'Init', 'ConnectingToPeer', 'BindingRemoteStream', 'Subscribing', 'Failed'
+  ];
+
+  validTransitions = {
+    NotSubscribing: ['NotSubscribing', 'Init'],
+    Init: ['NotSubscribing', 'ConnectingToPeer', 'BindingRemoteStream'],
+    ConnectingToPeer: ['NotSubscribing', 'BindingRemoteStream', 'Failed'],
+    BindingRemoteStream: ['NotSubscribing', 'Subscribing', 'Failed'],
+    Subscribing: ['NotSubscribing', 'Failed'],
+    Failed: []
+  };
+
+  OT.SubscribingState = OT.generateSimpleStateMachine(initialState, validStates, validTransitions);
+
+  Object.defineProperty(OT.SubscribingState.prototype, 'attemptingToSubscribe', {
+    get: function() {
+      return [ 'Init', 'ConnectingToPeer', 'BindingRemoteStream' ]
+        .indexOf(this.current) !== -1;
+    }
+  });
 
 })(window);
-(function(window) {
+!(function() {
 
 
 
@@ -11745,7 +13539,15 @@ Object.defineProperty(OT.SubscribingState.prototype, 'attemptingToSubscribe', {
 
 
 
-var validStates = [ 'NotPublishing', 'GetUserMedia', 'BindingMedia', 'MediaBound', 'PublishingToSession', 'Publishing', 'Failed' ],
+
+
+
+
+
+  var validStates = [
+      'NotPublishing', 'GetUserMedia', 'BindingMedia', 'MediaBound',
+      'PublishingToSession', 'Publishing', 'Failed'
+    ],
 
     validTransitions = {
       NotPublishing: ['NotPublishing', 'GetUserMedia'],
@@ -11759,27 +13561,30 @@ var validStates = [ 'NotPublishing', 'GetUserMedia', 'BindingMedia', 'MediaBound
 
     initialState = 'NotPublishing';
 
-OT.PublishingState = OT.generateSimpleStateMachine(initialState, validStates, validTransitions);
+  OT.PublishingState = OT.generateSimpleStateMachine(initialState, validStates, validTransitions);
 
-Object.defineProperties(OT.PublishingState.prototype, {
-  attemptingToPublish: {
-    get: function() { return [ 'GetUserMedia', 'BindingMedia', 'MediaBound', 'PublishingToSession' ].indexOf(this.current) !== -1; }
-  },
+  Object.defineProperties(OT.PublishingState.prototype, {
+    attemptingToPublish: {
+      get: function() {
+        return [ 'GetUserMedia', 'BindingMedia', 'MediaBound', 'PublishingToSession' ]
+          .indexOf(this.current) !== -1;
+      }
+    },
 
-  publishing: {
-    get: function() { return this.current === 'Publishing'; }
-  }
-});
+    publishing: {
+      get: function() { return this.current === 'Publishing'; }
+    }
+  });
 
 
 })(window);
-(function(window) {
+!(function() {
 
-
-var defaultConstraints = {
+  
+  var defaultConstraints = {
     audio: true,
     video: true
-};
+  };
 
 
 
@@ -11828,12 +13633,22 @@ var defaultConstraints = {
 
 
 
-OT.Publisher = function() {
+
+
+
+
+
+
+
+
+
+
+  OT.Publisher = function() {
     
     
     if (!OT.checkSystemRequirements()) {
-        OT.upgradeSystemRequirements();
-        return;
+      OT.upgradeSystemRequirements();
+      return;
     }
 
     var _guid = OT.Publisher.nextId(),
@@ -11841,340 +13656,339 @@ OT.Publisher = function() {
         _container,
         _targetElement,
         _stream,
+        _streamId,
         _webRTCStream,
         _session,
         _peerConnections = {},
         _loaded = false,
         _publishProperties,
         _publishStartTime,
-        _streamCreatedTimeout,
         _microphone,
         _chrome,
         _analytics = new OT.Analytics(),
-        _validResolutions = [
-            {width: 320, height: 240},
-            {width: 640, height: 480},
-            {width: 1280, height: 720}
-        ],
+        _validResolutions,
+        _validFrameRates = [ 1, 7, 15, 30 ],
         _qosIntervals = {},
-        _gettingStats = 0,
-        _prevStats = {
-            "timeStamp" : OT.$.now()
-        },
+        _prevStats,
         _state;
+
+    _validResolutions = {
+      '320x240': {width: 320, height: 240},
+      '640x480': {width: 640, height: 480},
+      '1280x720': {width: 1280, height: 720}
+    };
+
+    _prevStats = {
+      'timeStamp' : OT.$.now()
+    };
 
     OT.$.eventing(this);
 
     OT.StylableComponent(this, {
-        showMicButton: true,
-        showSettingsButton: true,
-        showCameraToggleButton: true,
-        nameDisplayMode: "auto",
-        buttonDisplayMode: "auto",
-        backgroundImageURI: null
+      showMicButton: true,
+      showArchiveStatus: true,
+      nameDisplayMode: 'auto',
+      buttonDisplayMode: 'auto',
+      bugDisplayMode: 'auto',
+      backgroundImageURI: null
     });
 
         
     var logAnalyticsEvent = function(action, variation, payloadType, payload) {
-            _analytics.logEvent({
-                action: action,
-                variation: variation,
-                payload_type: payloadType,
-                payload: payload,
-                session_id: _session ? _session.sessionId : null,
-                connection_id: _session && _session.connected ? _session.connection.connectionId : null,
-                partner_id: _session ? _session.apiKey : OT.APIKEY,
-                streamId: _stream ? _stream.id : null,
-                widget_id: _guid,
-                widget_type: 'Publisher'
-            });
+          _analytics.logEvent({
+            action: action,
+            variation: variation,
+            'payload_type': payloadType,
+            payload: payload,
+            'session_id': _session ? _session.sessionId : null,
+            'connection_id': _session &&
+              _session.connected ? _session.connection.connectionId : null,
+            'partner_id': _session ? _session.apiKey : OT.APIKEY,
+            streamId: _stream ? _stream.id : null,
+            'widget_id': _guid,
+            'widget_type': 'Publisher'
+          });
         },
 
-        isValidResolution = function(width, height) {
-            for (var i=0; i<_validResolutions.length; ++i) {
-                if (_validResolutions[i].width == width && _validResolutions[i].height == height) {
-                    return true;
-                }
+        recordQOS = function(connectionId) {
+          var QoSBlob = {
+            'widget_type': 'Publisher',
+            'stream_type': 'WebRTC',
+            sessionId: _session ? _session.sessionId : null,
+            connectionId: _session && _session.connected ? _session.connection.connectionId : null,
+            partnerId: _session ? _session.apiKey : OT.APIKEY,
+            streamId: _stream ? _stream.id : null,
+            widgetId: _guid,
+            version: OT.properties.version,
+            'media_server_name': _session ? _session.sessionInfo.messagingServer : null,
+            p2pFlag: _session ? _session.sessionInfo.p2pEnabled : false,
+            duration: _publishStartTime ? new Date().getTime() - _publishStartTime.getTime() : 0,
+            'remote_connection_id': connectionId
+          };
+
+          
+          _peerConnections[connectionId].getStats(_prevStats, function(stats) {
+            var statIndex;
+            if (stats) {
+              for (statIndex in stats) {
+                QoSBlob[statIndex] = stats[statIndex];
+              }
             }
-            return false;
-        },
-
-        recordQOS = function(connection_id) {
-            var QoS_blob = {
-                widget_type: 'Publisher',
-                stream_type : 'WebRTC',
-                sessionId: _session ? _session.sessionId : null,
-                connectionId: _session && _session.connected ? _session.connection.connectionId : null,
-                partnerId: _session ? _session.apiKey : OT.APIKEY,
-                streamId: _stream ? _stream.id : null,
-                widgetId: _guid,
-                version: OT.properties.version,
-                media_server_name: _session ? _session.sessionInfo.messagingServer : null,
-                p2pFlag: _session ? _session.sessionInfo.p2pEnabled : false,
-                duration: new Date().getTime() -_publishStartTime.getTime(),
-                remote_connection_id: connection_id
-            };
-
-            
-            _peerConnections[connection_id].getStats(_prevStats, function(stats) {
-                if (stats) {
-                    for (var stat_index in stats) {
-                        QoS_blob[stat_index] = stats[stat_index];
-                    }
-                }
-                _analytics.logQOS(QoS_blob);
-            });
+            _analytics.logQOS(QoSBlob);
+          });
         },
 
         
 
         stateChangeFailed = function(changeFailed) {
-            OT.error("Publisher State Change Failed: ", changeFailed.message);
-            OT.debug(changeFailed);
+          OT.error('Publisher State Change Failed: ', changeFailed.message);
+          OT.debug(changeFailed);
         },
 
         onLoaded = function() {
-            OT.debug("OT.Publisher.onLoaded");
+          OT.debug('OT.Publisher.onLoaded');
 
-            _state.set('MediaBound');
-            _container.loading = false;
-            _loaded = true;
+          _state.set('MediaBound');
+          _container.loading = false;
+          _loaded = true;
 
-            _createChrome.call(this);
+          _createChrome.call(this);
 
-            this.trigger('initSuccess', this);
-            this.trigger('loaded', this);
+          this.trigger('initSuccess');
+          this.trigger('loaded', this);
         },
 
         onLoadFailure = function(reason) {
-            logAnalyticsEvent('publish', 'Failure', 'reason', "Publisher PeerConnection Error: " + reason);
+          logAnalyticsEvent('publish', 'Failure', 'reason',
+            'Publisher PeerConnection Error: ' + reason);
 
-            _state.set('Failed');
-            this.trigger('publishError', "Publisher PeerConnection Error: " + reason);
+          _state.set('Failed');
+          this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.P2P_CONNECTION_FAILED,
+            'Publisher PeerConnection Error: ' + reason));
 
-            OT.handleJsException("Publisher PeerConnection Error: " + reason, OT.ExceptionCodes.P2P_CONNECTION_FAILED, {
-                session: _session,
-                target: this
-            });
+          OT.handleJsException('Publisher PeerConnection Error: ' + reason,
+            OT.ExceptionCodes.P2P_CONNECTION_FAILED, {
+            session: _session,
+            target: this
+          });
         },
 
         onStreamAvailable = function(webOTStream) {
-            OT.debug("OT.Publisher.onStreamAvailable");
+          OT.debug('OT.Publisher.onStreamAvailable');
 
-            _state.set('BindingMedia');
+          _state.set('BindingMedia');
 
-            cleanupLocalStream();
-            _webRTCStream = webOTStream;
+          cleanupLocalStream();
+          _webRTCStream = webOTStream;
 
-            _microphone = new OT.Microphone(_webRTCStream, !_publishProperties.publishAudio);
-            this.publishVideo(_publishProperties.publishVideo);
+          _microphone = new OT.Microphone(_webRTCStream, !_publishProperties.publishAudio);
+          this.publishVideo(_publishProperties.publishVideo &&
+            _webRTCStream.getVideoTracks().length > 0);
 
-            this.dispatchEvent(
-                new OT.Event(OT.Event.names.ACCESS_ALLOWED, false)
-            );
+          this.dispatchEvent(
+            new OT.Event(OT.Event.names.ACCESS_ALLOWED, false)
+          );
 
-            _targetElement = new OT.VideoElement({
-                attributes: {muted:true}
-            });
+          _targetElement = new OT.VideoElement({
+            attributes: {muted:true}
+          });
 
-            _targetElement.on({
-                    streamBound: onLoaded,
-                    loadError: onLoadFailure,
-                    error: onVideoError
-                }, this)
-                .bindToStream(_webRTCStream);
+          _targetElement.on({
+            streamBound: onLoaded,
+            loadError: onLoadFailure,
+            error: onVideoError
+          }, this)
+            .bindToStream(_webRTCStream);
 
-            _container.video = _targetElement;
+          _container.video = _targetElement;
         },
 
         onStreamAvailableError = function(error) {
-            OT.error('OT.Publisher.onStreamAvailableError ' + error.name + ': ' + error.message);
+          OT.error('OT.Publisher.onStreamAvailableError ' + error.name + ': ' + error.message);
 
-            _state.set('Failed');
-            this.trigger('publishError', error.message);
+          _state.set('Failed');
+          this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+              error.message));
 
-            if (_container) _container.destroy();
+          if (_container) _container.destroy();
 
-            logAnalyticsEvent('publish', 'Failure', 'reason', "Publisher failed to access camera/mic: " + error.message);
+          logAnalyticsEvent('publish', 'Failure', 'reason',
+            'GetUserMedia:Publisher failed to access camera/mic: ' + error.message);
 
-            OT.handleJsException("Publisher failed to access camera/mic: " + error.message, 2000, {
-                session: _session,
-                target: this
-            });
+          OT.handleJsException('Publisher failed to access camera/mic: ' + error.message,
+          OT.ExceptionCodes.UNABLE_TO_PUBLISH, {
+            session: _session,
+            target: this
+          });
         },
 
         
+        
         onAccessDenied = function(error) {
-            OT.error('OT.Publisher.onStreamAvailableError Permission Denied');
+          OT.error('OT.Publisher.onStreamAvailableError Permission Denied');
 
-            _state.set('Failed');
-            this.trigger('publishError', error.message);
+          _state.set('Failed');
+          this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+              'Publisher Access Denied: Permission Denied' +
+                  (error.message ? ': ' + error.message : '')));
 
-            logAnalyticsEvent('publish', 'Failure', 'reason', 'Publisher Access Denied: Permission Denied');
+          logAnalyticsEvent('publish', 'Failure', 'reason',
+            'GetUserMedia:Publisher Access Denied: Permission Denied');
 
-            var event = new OT.Event(OT.Event.names.ACCESS_DENIED),
-                defaultAction = function() {
-                    if (!event.isDefaultPrevented() && _container) _container.destroy();
-                };
+          var event = new OT.Event(OT.Event.names.ACCESS_DENIED),
+            defaultAction = function() {
+              if (!event.isDefaultPrevented() && _container) _container.destroy();
+            };
 
-            this.dispatchEvent(event, defaultAction);
+          this.dispatchEvent(event, defaultAction);
         },
 
         onAccessDialogOpened = function() {
-            logAnalyticsEvent('accessDialog', 'Opened', '', '');
+          logAnalyticsEvent('accessDialog', 'Opened', '', '');
 
-            this.dispatchEvent(
-                new OT.Event(OT.Event.names.ACCESS_DIALOG_OPENED, false)
-            );
+          this.dispatchEvent(
+            new OT.Event(OT.Event.names.ACCESS_DIALOG_OPENED, false)
+          );
         },
 
         onAccessDialogClosed = function() {
-            logAnalyticsEvent('accessDialog', 'Closed', '', '');
+          logAnalyticsEvent('accessDialog', 'Closed', '', '');
 
-            this.dispatchEvent(
-                new OT.Event(OT.Event.names.ACCESS_DIALOG_CLOSED, false)
-            );
+          this.dispatchEvent(
+            new OT.Event(OT.Event.names.ACCESS_DIALOG_CLOSED, false)
+          );
         },
 
         onVideoError = function(errorCode, errorReason) {
-            OT.error('OT.Publisher.onVideoError');
+          OT.error('OT.Publisher.onVideoError');
 
-            var message = errorReason + (errorCode ? ' (' + errorCode + ')' : '');
-            logAnalyticsEvent('stream', null, 'reason', "Publisher while playing stream: " + message);
+          var message = errorReason + (errorCode ? ' (' + errorCode + ')' : '');
+          logAnalyticsEvent('stream', null, 'reason',
+            'Publisher while playing stream: ' + message);
 
-            _state.set('Failed');
+          _state.set('Failed');
 
-            if (_state.attemptingToPublish) {
-                this.trigger('publishError', message);
-            }
-            else {
-                this.trigger('error', message);
-            }
+          if (_state.attemptingToPublish) {
+            this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+                message));
+          } else {
+            this.trigger('error', message);
+          }
 
-            OT.handleJsException("Publisher error playing stream: " + message, 2000, {
-                session: _session,
-                target: this
-            });
+          OT.handleJsException('Publisher error playing stream: ' + message,
+          OT.ExceptionCodes.UNABLE_TO_PUBLISH, {
+            session: _session,
+            target: this
+          });
         },
 
         onPeerDisconnected = function(peerConnection) {
-            OT.debug("OT.Subscriber has been disconnected from the Publisher's PeerConnection");
+          OT.debug('OT.Subscriber has been disconnected from the Publisher\'s PeerConnection');
 
-            this.cleanupSubscriber(peerConnection.remoteConnection.id);
+          this.cleanupSubscriber(peerConnection.remoteConnection.id);
         },
 
-        onPeerConnectionFailure = function(code, reason, peerConnection) {
-            logAnalyticsEvent('publish', 'Failure', 'reason|hasRelayCandidates', [
-                reason + ": Publisher PeerConnection with connection " + (peerConnection && peerConnection.remoteConnection && peerConnection.remoteConnection.id)  + " failed",
-                peerConnection.hasRelayCandidates
-                ].join('|'));
+        onPeerConnectionFailure = function(code, reason, peerConnection, prefix) {
+          logAnalyticsEvent('publish', 'Failure', 'reason|hasRelayCandidates',
+            (prefix ? prefix : '') + [':Publisher PeerConnection with connection ' +
+              (peerConnection && peerConnection.remoteConnection &&
+              peerConnection.remoteConnection.id)  + ' failed: ' +
+              reason, peerConnection.hasRelayCandidates
+          ].join('|'));
 
-            OT.handleJsException("Publisher PeerConnection Error: " + reason, 2000, {
-                session: _session,
-                target: this
-            });
+          OT.handleJsException('Publisher PeerConnection Error: ' + reason,
+          OT.ExceptionCodes.UNABLE_TO_PUBLISH, {
+            session: _session,
+            target: this
+          });
 
-            
-            
-            
-            
-            if (peerConnection.remoteConnection) {
-                clearInterval(_qosIntervals[peerConnection.remoteConnection.id]);
-                delete _qosIntervals[peerConnection.remoteConnection.id]
+          
+          
+          
+          
+          clearInterval(_qosIntervals[peerConnection.remoteConnection.id]);
+          delete _qosIntervals[peerConnection.remoteConnection.id];
 
-                delete _peerConnections[peerConnection.remoteConnection.id];
-            }
-            peerConnection.off();
-        },
-
-        getStats = function(callback) {
-            if (_gettingStats > 0) {
-                OT.debug("Still getting stats");
-                return;
-            }
-
-            var getStatsBlob = {};
-
-            
-            for (var conn_id in _peerConnections) {
-
-                
-                
-                _gettingStats++;
-
-                getStatsBlob[conn_id] = null;
-
-                
-                (function(connection_id) {
-                    _peerConnections[connection_id].getStats(function(parsed_stats) {
-
-                        
-                        _gettingStats--;
-
-                        if (parsed_stats) {
-                            getStatsBlob[connection_id] = parsed_stats;
-                        }
-
-                        
-                        
-                        if (_gettingStats == 0) {
-                            callback(getStatsBlob);
-                        }
-                    });
-                })(conn_id);
-            }
+          delete _peerConnections[peerConnection.remoteConnection.id];
         },
 
         
+
+        
+        
+        
+        assignStream = function(stream) {
+          _stream = stream;
+          _stream.on('destroyed', this.disconnect, this);
+
+          var oldGuid = _guid;
+          _guid = OT.Publisher.nextId();
+
+          
+          
+          if (oldGuid) {
+            this.trigger('idUpdated', oldGuid, _guid);
+          }
+
+          _state.set('Publishing');
+          _publishStartTime = new Date();
+
+          this.trigger('publishComplete', null, this);
+      
+          this.dispatchEvent(new OT.StreamEvent('streamCreated', stream, null, false));
+          
+          logAnalyticsEvent('publish', 'Success', 'streamType:streamId', 'WebRTC:' + _streamId);
+        }.bind(this),
 
         
         cleanupLocalStream = function() {
-            if (_webRTCStream) {
-                
-                
-                _webRTCStream.stop();
-                _webRTCStream = null;
-            }
+          if (_webRTCStream) {
+            
+            
+            _webRTCStream.stop();
+            _webRTCStream = null;
+          }
         },
 
         createPeerConnectionForRemote = function(remoteConnection) {
-            var peerConnection = _peerConnections[remoteConnection.id];
+          var peerConnection = _peerConnections[remoteConnection.id];
 
-            if (!peerConnection) {
-                var startConnectingTime = OT.$.now();
+          if (!peerConnection) {
+            var startConnectingTime = OT.$.now();
 
-                logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
+            logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
+
+            
+            remoteConnection.on('destroyed',
+              this.cleanupSubscriber.bind(this, remoteConnection.id));
+
+            peerConnection = _peerConnections[remoteConnection.id] = new OT.PublisherPeerConnection(
+              remoteConnection,
+              _session,
+              _streamId,
+              _webRTCStream
+            );
+
+            peerConnection.on({
+              connected: function() {
+                logAnalyticsEvent('createPeerConnection', 'Success', 'pcc|hasRelayCandidates', [
+                  parseInt(OT.$.now() - startConnectingTime, 10),
+                  peerConnection.hasRelayCandidates
+                ].join('|'));
 
                 
-                remoteConnection.on('destroyed', this.cleanupSubscriber.bind(this, remoteConnection.id));
+                _qosIntervals[remoteConnection.id] = setInterval(function() {
+                  recordQOS(remoteConnection.id);
+                }, 30000);
+              },
+              disconnected: onPeerDisconnected,
+              error: onPeerConnectionFailure
+            }, this);
 
-                peerConnection = _peerConnections[remoteConnection.id] = new OT.PublisherPeerConnection(
-                    remoteConnection,
-                    _session,
-                    _stream,
-                    _webRTCStream
-                );
+            peerConnection.init();
+          }
 
-                peerConnection.on({
-                    connected: function() {
-                        logAnalyticsEvent('createPeerConnection', 'Success', 'pcc|hasRelayCandidates', [
-                            parseInt(OT.$.now() - startConnectingTime, 10),
-                            peerConnection.hasRelayCandidates
-                        ].join('|'));
-
-                        
-                        _qosIntervals[remoteConnection.id] = setInterval(function() {
-                            recordQOS(remoteConnection.id)
-                        }, 30000);
-                    },
-                    disconnected: onPeerDisconnected,
-                    error: onPeerConnectionFailure
-                }, this);
-
-                peerConnection.init();
-            }
-
-            return peerConnection;
+          return peerConnection;
         },
 
         
@@ -12183,174 +13997,208 @@ OT.Publisher = function() {
         
         
         chromeButtonMode = function(mode) {
-            if (mode === false) return 'off';
+          if (mode === false) return 'off';
 
-            var defaultMode = this.getStyle('buttonDisplayMode');
+          var defaultMode = this.getStyle('buttonDisplayMode');
 
-            
-            if (defaultMode === false) return 'on';
+          
+          if (defaultMode === false) return 'on';
 
-            
-            return defaultMode;
+          
+          return defaultMode;
         },
 
-        updateChromeForStyleChange = function(key, value, oldValue) {
-            if (!_chrome) return;
+        updateChromeForStyleChange = function(key, value) {
+          if (!_chrome) return;
 
-            switch(key) {
-                case 'nameDisplayMode':
-                    _chrome.name.setDisplayMode(value);
-                    break;
+          switch(key) {
+            case 'nameDisplayMode':
+              _chrome.name.setDisplayMode(value);
+              _chrome.backingBar.nameMode = value;
+              break;
 
-                case 'buttonDisplayMode':
-                case 'showMicButton':
-                case 'showSettingsButton':
-                    
-                    
-                    
+            case 'showArchiveStatus':
+              logAnalyticsEvent('showArchiveStatus', 'styleChange', 'mode', value);
+              _chrome.archive.setShowArchiveStatus(value);
+              break;
 
-                    
-                    
-                    
-            }
+            case 'buttonDisplayMode':
+            case 'showMicButton':
+              
+              
+              
+            case 'bugDisplayMode':
+              
+          }
         },
 
         _createChrome = function() {
-            _chrome = new OT.Chrome({
-                parent: _container.domElement
-            }).set({
-                name: new OT.Chrome.NamePanel({
-                    name: _publishProperties.name,
-                    mode: this.getStyle('nameDisplayMode')
-                }),
+          if(this.getStyle('bugDisplayMode') === 'off') {
+            logAnalyticsEvent('bugDisplayMode', 'createChrome', 'mode', 'off');
+          }
+          if(this.getStyle('showArchiveStatus') === 'off') {
+            logAnalyticsEvent('showArchiveStatus', 'createChrome', 'mode', 'off');
+          }
+          _chrome = new OT.Chrome({
+            parent: _container.domElement
+          }).set({
 
-                
-                
-                
+            backingBar: new OT.Chrome.BackingBar({
+              nameMode: this.getStyle('nameDisplayMode'),
+              muteMode: chromeButtonMode.call(this, this.getStyle('showMicButton'))
+            }),
 
-                
-                muteButton: new OT.Chrome.MuteButton({
-                    muted: _publishProperties.publishAudio === false,
-                    mode: chromeButtonMode.call(this, this.getStyle('showMicButton'))
-                }),
+            name: new OT.Chrome.NamePanel({
+              name: _publishProperties.name,
+              mode: this.getStyle('nameDisplayMode'),
+              bugMode: this.getStyle('bugDisplayMode')
+            }),
 
-                opentokButton: new OT.Chrome.OpenTokButton()
-            }).on({
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
+            muteButton: new OT.Chrome.MuteButton({
+              muted: _publishProperties.publishAudio === false,
+              mode: chromeButtonMode.call(this, this.getStyle('showMicButton'))
+            }),
 
-                
-                
+            opentokButton: new OT.Chrome.OpenTokButton({
+              mode: this.getStyle('bugDisplayMode')
+            }),
 
-                
-                
+            archive: new OT.Chrome.Archiving({
+              show: this.getStyle('showArchiveStatus'),
+              archiving: false
+            })
 
-                
-                
-                
-                
-                
-
-
-                muted: this.publishAudio.bind(this, false),
-                unmuted: this.publishAudio.bind(this, true)
-            });
+          }).on({
+            muted: this.publishAudio.bind(this, false),
+            unmuted: this.publishAudio.bind(this, true)
+          });
         },
 
         reset = function() {
-            if (_chrome) {
-              _chrome.destroy();
-              _chrome = null;
-            }
+          if (_chrome) {
+            _chrome.destroy();
+            _chrome = null;
+          }
 
-            this.disconnect();
+          this.disconnect();
 
-            _microphone = null;
+          _microphone = null;
 
-            if (_targetElement) {
-                _targetElement.destroy();
-                _targetElement = null;
-            }
+          if (_targetElement) {
+            _targetElement.destroy();
+            _targetElement = null;
+          }
 
-            cleanupLocalStream();
+          cleanupLocalStream();
 
-            if (_container) {
-                _container.destroy();
-                _container = null;
-            }
+          if (_container) {
+            _container.destroy();
+            _container = null;
+          }
 
-            if (this.session) this._.unpublishFromSession(this.session);
+          if (this.session) {
+            this._.unpublishFromSession(this.session, 'reset');
+          }
 
-            
-            for (var conn_id in _qosIntervals) {
-                clearInterval(_qosIntervals[conn_id]);
-                delete _qosIntervals[conn_id];
-            }
+          
+          for (var connId in _qosIntervals) {
+            clearInterval(_qosIntervals[connId]);
+            delete _qosIntervals[connId];
+          }
 
-            _domId = null;
-            _stream = null;
-            _loaded = false;
+          _domId = null;
+          _stream = null;
+          _loaded = false;
 
-            _session = null;
-            _properties = null;
-
-            _state.set('NotPublishing');
+          _session = null;
+          
+          _state.set('NotPublishing');
         }.bind(this);
 
-
     this.publish = function(targetElement, properties) {
-        OT.debug("OT.Publisher: publish");
+      OT.debug('OT.Publisher: publish');
 
-        if ( _state.attemptingToPublish || _state.publishing ) reset();
-        _state.set('GetUserMedia');
+      if ( _state.attemptingToPublish || _state.publishing ) reset();
+      _state.set('GetUserMedia');
 
-        _publishProperties = OT.$.defaults(properties || {}, {
-            publishAudio : true,
-            publishVideo : true,
-            mirror: true
-        });
-
-        _publishProperties.constraints = OT.$.defaults(_publishProperties.constraints || {}, defaultConstraints);
-
-        if (_publishProperties.style) {
-            this.setStyle(_publishProperties.style, null, true);
-        }
-
-        if (_publishProperties.name) {
-            _publishProperties.name = _publishProperties.name.toString();
-        }
-
-        _publishProperties.classNames = 'OT_root OT_publisher';
-
+      _publishProperties = OT.$.defaults(properties || {}, {
+        publishAudio : true,
+        publishVideo : true,
+        mirror: true
+      });
         
-        
-        OT.onLoad(function() {
-            _container = new OT.WidgetView(targetElement, _publishProperties);
-            _domId = _container.domId;
+      if (!_publishProperties.constraints) {
+        _publishProperties.constraints = OT.$.clone(defaultConstraints);
+        if (_publishProperties.resolution) {
+          if (_publishProperties.resolution !== void 0 &&
+            !_validResolutions.hasOwnProperty(_publishProperties.resolution)) {
+            OT.warn('Invalid resolution passed to the Publisher. Got: ' +
+              _publishProperties.resolution + ' expecting one of "' +
+              Object.keys(_validResolutions).join('","') + '"');
+          } else {
+            _publishProperties.videoDimensions = _validResolutions[_publishProperties.resolution];
+            _publishProperties.constraints.video = {
+              mandatory: {},
+              optional: [
+                {minWidth: _publishProperties.videoDimensions.width},
+                {maxWidth: _publishProperties.videoDimensions.width},
+                {minHeight: _publishProperties.videoDimensions.height},
+                {maxHeight: _publishProperties.videoDimensions.height}
+              ]
+            };
+          }
+        }
+    
+        if (_publishProperties.frameRate !== void 0 &&
+          _validFrameRates.indexOf(_publishProperties.frameRate) === -1) {
+          OT.warn('Invalid frameRate passed to the publisher got: ' +
+            _publishProperties.frameRate + ' expecting one of ' + _validFrameRates.join(','));
+          delete _publishProperties.frameRate;
+        } else if (_publishProperties.frameRate) {
+          if (!_publishProperties.constraints.video.optional) {
+            if (typeof _publishProperties.constraints.video !== 'object') {
+              _publishProperties.constraints.video = {};
+            }
+            _publishProperties.constraints.video.optional = [];
+          }
+          _publishProperties.constraints.video.optional.push({
+            minFrameRate: _publishProperties.frameRate
+          });
+          _publishProperties.constraints.video.optional.push({
+            maxFrameRate: _publishProperties.frameRate
+          });
+        }
+      } else {
+        OT.warn('You have passed your own constraints not using ours');
+      }
 
-            OT.$.getUserMedia(
-                _publishProperties.constraints,
-                onStreamAvailable.bind(this),
-                onStreamAvailableError.bind(this),
-                onAccessDialogOpened.bind(this),
-                onAccessDialogClosed.bind(this),
-                onAccessDenied.bind(this)
-            );
-        }, this);
+      if (_publishProperties.style) {
+        this.setStyle(_publishProperties.style, null, true);
+      }
 
-        return this;
+      if (_publishProperties.name) {
+        _publishProperties.name = _publishProperties.name.toString();
+      }
+
+      _publishProperties.classNames = 'OT_root OT_publisher';
+
+      
+      
+      OT.onLoad(function() {
+        _container = new OT.WidgetView(targetElement, _publishProperties);
+        _domId = _container.domId;
+
+        OT.$.getUserMedia(
+          _publishProperties.constraints,
+          onStreamAvailable.bind(this),
+          onStreamAvailableError.bind(this),
+          onAccessDialogOpened.bind(this),
+          onAccessDialogClosed.bind(this),
+          onAccessDenied.bind(this)
+        );
+      }, this);
+
+      return this;
     };
 
  
@@ -12368,16 +14216,21 @@ OT.Publisher = function() {
 
 
     this.publishAudio = function(value) {
-        _publishProperties.publishAudio = value;
+      _publishProperties.publishAudio = value;
 
-        if (_microphone) {
-            _microphone.muted = !value;
-        }
+      if (_microphone) {
+        _microphone.muted = !value;
+      }
+      
+      if (_chrome) {
+        _chrome.muteButton.muted = !value;
+      }
 
-        if (_session && _stream) {
-            _session._.modifyStream(_stream.streamId, "hasAudio", value);
-        }
-        return this;
+      if (_session && _stream) {
+        _stream.setChannelActiveState('audio', value);
+      }
+
+      return this;
     };
 
 
@@ -12396,36 +14249,35 @@ OT.Publisher = function() {
 
 
     this.publishVideo = function(value) {
-        var oldValue = _publishProperties.publishVideo;
-        _publishProperties.publishVideo = value;
+      var oldValue = _publishProperties.publishVideo;
+      _publishProperties.publishVideo = value;
 
-        if (_session && _stream && _publishProperties.publishVideo !== oldValue) {
-            _session._.modifyStream(_stream.streamId, "hasVideo", value);
+      if (_session && _stream && _publishProperties.publishVideo !== oldValue) {
+        _stream.setChannelActiveState('video', value);
+      }
+
+      
+      
+      
+      if (_webRTCStream) {
+        var videoTracks = _webRTCStream.getVideoTracks();
+        for (var i=0, num=videoTracks.length; i<num; ++i) {
+          videoTracks[i].enabled = value;
         }
+      }
 
-        
-        
-        
-        if (_webRTCStream) {
-            var videoTracks = _webRTCStream.getVideoTracks();
-            for (var i=0, num=videoTracks.length; i<num; ++i) {
-                videoTracks[i].enabled = value;
-            }
-        }
+      if(_container) {
+        _container.showPoster = !value;
+      }
 
-        if(_container) {
-            _container.showPoster = !value;
-        }
-
-        return this;
+      return this;
     };
 
     this.recordQOS = function() {
-
-        
-        for (var conn_id in _peerConnections) {
-            recordQOS(conn_id);
-        }
+      
+      for (var connId in _peerConnections) {
+        recordQOS(connId);
+      }
     };
 
     
@@ -12434,21 +14286,25 @@ OT.Publisher = function() {
 
 
 
+
+
+
+
     this.destroy = function( reason, quiet) {
-        reset();
+      reset();
 
-        if (quiet !== true) {
-            this.dispatchEvent(
-              new OT.DestroyedEvent(
-                OT.Event.names.PUBLISHER_DESTROYED,
-                this,
-                reason
-              ),
-              this.off.bind(this)
-            );
-        }
+      if (quiet !== true) {
+        this.dispatchEvent(
+          new OT.DestroyedEvent(
+            OT.Event.names.PUBLISHER_DESTROYED,
+            this,
+            reason
+          ),
+          this.off.bind(this)
+        );
+      }
 
-        return this;
+      return this;
     };
 
     
@@ -12456,40 +14312,41 @@ OT.Publisher = function() {
 
 
     this.disconnect = function() {
-        
-        for (var fromConnectionId in _peerConnections) {
-            this.cleanupSubscriber(fromConnectionId);
-        }
+      
+      for (var fromConnectionId in _peerConnections) {
+        this.cleanupSubscriber(fromConnectionId);
+      }
     };
 
     this.cleanupSubscriber = function(fromConnectionId) {
-        var pc = _peerConnections[fromConnectionId];
+      var pc = _peerConnections[fromConnectionId];
 
-        clearInterval(_qosIntervals[fromConnectionId]);
-        delete _qosIntervals[fromConnectionId];
+      clearInterval(_qosIntervals[fromConnectionId]);
+      delete _qosIntervals[fromConnectionId];
 
-        if (pc) {
-            pc.destroy();
-            delete _peerConnections[fromConnectionId];
+      if (pc) {
+        pc.destroy();
+        delete _peerConnections[fromConnectionId];
 
-            logAnalyticsEvent('disconnect', 'PeerConnection', 'subscriberConnection', fromConnectionId);
-        }
+        logAnalyticsEvent('disconnect', 'PeerConnection',
+          'subscriberConnection', fromConnectionId);
+      }
     };
 
 
     this.processMessage = function(type, fromConnection, message) {
-        OT.debug("OT.Publisher.processMessage: Received " + type + " from " + fromConnection.id);
-        OT.debug(message);
+      OT.debug('OT.Publisher.processMessage: Received ' + type + ' from ' + fromConnection.id);
+      OT.debug(message);
 
-        switch (type) {
-            case OT.Raptor.Actions.UNSUBSCRIBE:
-                this.cleanupSubscriber(fromConnection.id);
-                break;
+      switch (type) {
+        case 'unsubscribe':
+          this.cleanupSubscriber(message.content.connection.id);
+          break;
 
-            default:
-                var peerConnection = createPeerConnectionForRemote.call(this, fromConnection);
-                peerConnection.processMessage(type, message);
-        }
+        default:
+          var peerConnection = createPeerConnectionForRemote.call(this, fromConnection);
+          peerConnection.processMessage(type, message);
+      }
     };
 
     
@@ -12514,185 +14371,227 @@ OT.Publisher = function() {
 
 
     this.getImgData = function() {
-        if (!_loaded) {
-            OT.error("OT.Publisher.getImgData: Cannot getImgData before the Publisher is publishing.");
+      if (!_loaded) {
+        OT.error('OT.Publisher.getImgData: Cannot getImgData before the Publisher is publishing.');
 
-            return null;
-        }
+        return null;
+      }
 
-        return _targetElement.imgData;
+      return _targetElement.imgData;
     };
 
 
     
     this._ = {
-        publishToSession: function(session) {
-            
-            this.session = session;
+      publishToSession: function(session) {
+        
+        this.session = session;
 
-            var createStream = function() {
-                
-                
-                if (!this.session) return;
+        var createStream = function() {
 
-                _state.set('PublishingToSession');
+          var streamWidth,
+              streamHeight;
 
-                if (_streamCreatedTimeout) {
-                  clearTimeout(_streamCreatedTimeout);
-                }
-                _streamCreatedTimeout = setTimeout(function () {
-                  logAnalyticsEvent('publish', 'Failure', 'reason', 'StreamCreated: Timed out waiting for streamRegistered');
-                  this.trigger('publishError', "StreamCreated: Timed out waiting for streamRegistered");
-                }.bind(this), 30000);
+          
+          
+          if (!this.session) return;
 
-                session._.createStream( this.guid,
-                                        _publishProperties && _publishProperties.name ? _publishProperties.name : "",
-                                        OT.VideoOrientation.ROTATED_NORMAL,
-                                        _targetElement.videoWidth,                      
-                                        _targetElement.videoHeight,                     
-                                        _publishProperties.publishAudio,
-                                        _publishProperties.publishVideo );
-            };
+          _state.set('PublishingToSession');
 
-            if (_loaded) createStream.call(this);
-            else this.on("initSuccess", createStream, this);
-
-            logAnalyticsEvent('publish', 'Attempt', 'streamType', 'WebRTC');
-
-            return this;
-        }.bind(this),
-
-        unpublishFromSession: function(session) {
-            if (!this.session || session.id !== this.session.id) {
-                OT.warn("The publisher " + this.guid + " is trying to unpublish from a session " + session.id + " it is not attached to");
-                return this;
+          var onStreamRegistered = function(err, streamId) {
+            if (err) {
+              
+              
+              logAnalyticsEvent('publish', 'Failure', 'reason',
+                'Publish:' + OT.ExceptionCodes.UNABLE_TO_PUBLISH + ':' + err.message);
+              if (_state.attemptingToPublish) {
+                this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+                  err.message));
+              }
+              return;
             }
 
-            if (session.connected && this.stream) {
-                session._.destroyStream(this.stream.id);
-            }
+            _streamId = streamId;
+          }.bind(this);
+              
+          
+          
+          if (_publishProperties.videoDimensions) {
+            streamWidth = Math.min(_publishProperties.videoDimensions.width,
+              _targetElement.videoWidth || 640);
+            streamHeight = Math.min(_publishProperties.videoDimensions.height,
+              _targetElement.videoHeight || 480);
+          } else {
+            streamWidth = _targetElement.videoWidth || 640;
+            streamHeight = _targetElement.videoHeight || 480;
+          }
 
-            
-            
-            this.disconnect();
-            this.session = null;
+          session._.streamCreate(
+            _publishProperties && _publishProperties.name ? _publishProperties.name : '',
+            OT.VideoOrientation.ROTATED_NORMAL,
+            streamWidth,
+            streamHeight,
+            _publishProperties.publishAudio,
+            _publishProperties.publishVideo,
+            _publishProperties.frameRate,
+            onStreamRegistered
+          );
+        };
 
-            
-            _state.set('MediaBound');
+        if (_loaded) createStream.call(this);
+        else this.on('initSuccess', createStream, this);
 
-            logAnalyticsEvent('unpublish', 'Success', 'sessionId', session.id);
+        logAnalyticsEvent('publish', 'Attempt', 'streamType', 'WebRTC');
 
-            return this;
-        }.bind(this),
+        return this;
+      }.bind(this),
+
+      unpublishFromSession: function(session, reason) {
+        if (!this.session || session.id !== this.session.id) {
+          OT.warn('The publisher ' + this.guid + ' is trying to unpublish from a session ' +
+            session.id + ' it is not attached to (' +
+            (this.session && this.session.id || 'no this.session') + ')');
+          return this;
+        }
+
+        if (session.connected && this.stream) {
+          session._.streamDestroy(this.stream.id);
+        }
 
         
-        streamRegisteredHandler: function(stream) {
-            clearTimeout(_streamCreatedTimeout);
-            _streamCreatedTimeout = null;
+        
+        this.disconnect();
+        this.session = null;
 
-            logAnalyticsEvent('publish', 'Success', 'streamType', 'WebRTC');
+        
+        _state.set('MediaBound');
 
-            this.stream = stream;
-            this.stream.on('destroyed', this.disconnect, this);
+        logAnalyticsEvent('unpublish', 'Success', 'sessionId', session.id);
 
-            var oldGuid = _guid;
-            _guid = OT.Publisher.nextId();
+        this._.streamDestroyed(reason);
 
-            
-            
-            if (oldGuid) {
-                this.trigger('idUpdated', oldGuid, _guid);
+        return this;
+      }.bind(this),
+      
+      streamDestroyed: function(reason) {
+        if(['reset'].indexOf(reason) < 0) {
+          var event = new OT.StreamEvent('streamDestroyed', _stream, reason, true);
+          var defaultAction = function() {
+            if(!event.isDefaultPrevented()) {
+              this.destroy();
             }
+          }.bind(this);
+          this.dispatchEvent(event, defaultAction);
+        }
+      }.bind(this),
 
-            _state.set('Publishing');
-            _publishStartTime = new Date();
-
-            this.trigger('publishSuccess');
-        }.bind(this)
+      archivingStatus: function(status) {
+        if(_chrome) {
+          _chrome.archive.setArchiving(status);
+        }
+        return status;
+      }.bind(this)
     };
 
     this.detectDevices = function() {
-        OT.warn("Fixme: Haven't implemented detectDevices");
+      OT.warn('Fixme: Haven\'t implemented detectDevices');
     };
 
     this.detectMicActivity = function() {
-        OT.warn("Fixme: Haven't implemented detectMicActivity");
+      OT.warn('Fixme: Haven\'t implemented detectMicActivity');
     };
 
     this.getEchoCancellationMode = function() {
-        OT.warn("Fixme: Haven't implemented getEchoCancellationMode");
-        return "fullDuplex";
+      OT.warn('Fixme: Haven\'t implemented getEchoCancellationMode');
+      return 'fullDuplex';
     };
 
-    this.setMicrophoneGain = function(value) {
-        OT.warn("Fixme: Haven't implemented setMicrophoneGain");
+    this.setMicrophoneGain = function() {
+      OT.warn('Fixme: Haven\'t implemented setMicrophoneGain');
     };
 
     this.getMicrophoneGain = function() {
-        OT.warn("Fixme: Haven't implemented getMicrophoneGain");
-        return 0.5;
+      OT.warn('Fixme: Haven\'t implemented getMicrophoneGain');
+      return 0.5;
     };
 
-    this.setCamera = function(value) {
-        OT.warn("Fixme: Haven't implemented setCamera");
+    this.setCamera = function() {
+      OT.warn('Fixme: Haven\'t implemented setCamera');
     };
 
-    this.setMicrophone = function(value) {
-        OT.warn("Fixme: Haven't implemented setMicrophone");
+    this.setMicrophone = function() {
+      OT.warn('Fixme: Haven\'t implemented setMicrophone');
     };
 
 
     Object.defineProperties(this, {
-        id: {
-            get: function() { return _domId; },
-            enumerable: true
+      id: {
+        get: function() { return _domId; },
+        enumerable: true
+      },
+        
+      element: {
+        get: function() { return _container.domElement; },
+        enumerable: true
+      },
+
+      guid: {
+        get: function() { return _guid; },
+        enumerable: true
+      },
+
+      stream: {
+        get: function() { return _stream; },
+        set: function(stream) {
+          assignStream(stream);
         },
+        enumerable: true
+      },
 
-        guid: {
-            get: function() { return _guid; },
-            enumerable: true
+      streamId: {
+        get: function() { return _streamId; },
+        enumerable: true
+      },
+
+      targetElement: {
+        get: function() { return _targetElement.domElement; }
+      },
+
+      domId: {
+        get: function() { return _domId; }
+      },
+
+      session: {
+        get: function() { return _session; },
+        set: function(session) {
+          _session = session;
         },
+        enumerable: true
+      },
 
-        stream: {
-            get: function() { return _stream; },
-            set: function(stream) { _stream = stream; },
-            enumerable: true
-        },
+      isWebRTC: {
+        get: function() { return true; }
+      },
 
-        streamId: {
-            get: function() {
-                if (!_stream) return null;
-
-                return _stream.id;
-            },
-            enumerable: true
-        },
-
-        targetElement: {
-            get: function() { return _targetElement.domElement; }
-        },
-
-        domId: {
-            get: function() { return _domId; }
-        },
-
-        session: {
-            get: function() { return _session; },
-            set: function(session) { _session = session; },
-            enumerable: true
-        },
-
-        isWebRTC: {
-            get: function() { return true; }
-        },
-
-        loading: {
-            get: function(){ return _container && _container.loading }
+      loading: {
+        get: function(){
+          return _container && _container.loading;
         }
+      },
+        
+      videoWidth: {
+        get: function() { return _targetElement.videoWidth; },
+        enumerable: true
+      },
+        
+      videoHeight: {
+        get: function() { return _targetElement.videoHeight; },
+        enumerable: true
+      }
     });
 
     Object.defineProperty(this._, 'webRtcStream', {
-        get: function() { return _webRTCStream; }
+      get: function() { return _webRTCStream; }
     });
 
     this.on('styleValueChanged', updateChromeForStyleChange, this);
@@ -12707,11 +14606,6 @@ OT.Publisher = function() {
 
 
 
-	
-
-
-
-
 
 
 
@@ -12723,6 +14617,7 @@ OT.Publisher = function() {
 
 
 
+
 	
 
 
@@ -12731,13 +14626,52 @@ OT.Publisher = function() {
 
 
 
-};
+
+	
 
 
-OT.Publisher.nextId = OT.$.uuid;
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+  };
+
+  
+  OT.Publisher.nextId = OT.$.uuid;
 
 })(window);
-(function(window) {
+!(function(window) {
 
 
 
@@ -12750,7 +14684,15 @@ OT.Publisher.nextId = OT.$.uuid;
 
 
 
-OT.Subscriber = function(targetElement, options) {
+
+
+
+
+
+
+
+
+  OT.Subscriber = function(targetElement, options) {
     var _widgetId = OT.$.uuid(),
         _domId = targetElement || _widgetId,
         _container,
@@ -12766,440 +14708,520 @@ OT.Subscriber = function(targetElement, options) {
         _properties = OT.$.clone(options),
         _analytics = new OT.Analytics(),
         _audioVolume = 50,
-        _gettingStats = 0,
         _state,
         _subscribeAudioFalseWorkaround, 
-        _prevStats = {
-            "timeStamp" : OT.$.now()
-        };
+        _prevStats,
+        _lastSubscribeToVideoReason;
 
+    _prevStats = {
+      timeStamp: OT.$.now()
+    };
 
     if (!_session) {
-        OT.handleJsException("Subscriber must be passed a session option", 2000, {
-            session: _session,
-            target: this
-        });
+      OT.handleJsException('Subscriber must be passed a session option', 2000, {
+        session: _session,
+        target: this
+      });
 
-        return;
+      return;
     }
 
     OT.$.eventing(this);
 
     OT.StylableComponent(this, {
-        nameDisplayMode: "auto",
-        buttonDisplayMode: "auto",
-        backgroundImageURI: null
+      nameDisplayMode: 'auto',
+      buttonDisplayMode: 'auto',
+      backgroundImageURI: null,
+      showArchiveStatus: true,
+      showMicButton: true
     });
 
     var logAnalyticsEvent = function(action, variation, payloadType, payload) {
-            _analytics.logEvent({
-                action: action,
-                variation: variation,
-                payload_type: payloadType,
-                payload: payload,
-                stream_id: _stream ? _stream.id : null,
-                session_id: _session ? _session.sessionId : null,
-                connection_id: _session && _session.connected ? _session.connection.connectionId : null,
-                partner_id: _session && _session.connected ? _session.sessionInfo.partnerId : null,
-                widget_id: _widgetId,
-                widget_type: 'Subscriber'
-            });
+          
+          _analytics.logEvent({
+            action: action,
+            variation: variation,
+            payload_type: payloadType,
+            payload: payload,
+            stream_id: _stream ? _stream.id : null,
+            session_id: _session ? _session.sessionId : null,
+            connection_id: _session && _session.connected ? _session.connection.connectionId : null,
+            partner_id: _session && _session.connected ? _session.sessionInfo.partnerId : null,
+            widget_id: _widgetId,
+            widget_type: 'Subscriber'
+          });
         },
 
         recordQOS = function() {
-            if(_state.subscribing && _session && _session.connected) {
-                var QoS_blob = {
-                    widget_type: 'Subscriber',
-                    stream_type : 'WebRTC',
-                    session_id: _session ? _session.sessionId : null,
-                    connectionId: _session ? _session.connection.connectionId : null,
-                    media_server_name: _session ? _session.sessionInfo.messagingServer : null,
-                    p2pFlag: _session ? _session.sessionInfo.p2pEnabled : false,
-                    partner_id: _session ? _session.apiKey : null,
-                    stream_id: _stream.id,
-                    widget_id: _widgetId,
-                    version: OT.properties.version,
-                    duration: parseInt(OT.$.now() - _subscribeStartTime, 10),
-                    remote_connection_id: _stream.connection.connectionId
-                };
+          if(_state.subscribing && _session && _session.connected) {
+            
+            var QoSBlob = {
+              widget_type: 'Subscriber',
+              stream_type : 'WebRTC',
+              session_id: _session ? _session.sessionId : null,
+              connectionId: _session ? _session.connection.connectionId : null,
+              media_server_name: _session ? _session.sessionInfo.messagingServer : null,
+              p2pFlag: _session ? _session.sessionInfo.p2pEnabled : false,
+              partner_id: _session ? _session.apiKey : null,
+              stream_id: _stream.id,
+              widget_id: _widgetId,
+              version: OT.properties.version,
+              duration: parseInt(OT.$.now() - _subscribeStartTime, 10),
+              remote_connection_id: _stream.connection.connectionId
+            };
 
-
-                
-                _peerConnection.getStats(_prevStats, function(stats) {
-                    if (stats) {
-                        for (stat_index in stats) {
-                            QoS_blob[stat_index] = stats[stat_index];
-                        }
-                    }
-                    _analytics.logQOS(QoS_blob);
-                });
-            }
+            
+            _peerConnection.getStats(_prevStats, function(stats) {
+              var statIndex;
+              if (stats) {
+                for (statIndex in stats) {
+                  QoSBlob[statIndex] = stats[statIndex];
+                }
+              }
+              _analytics.logQOS(QoSBlob);
+            });
+          }
         },
 
         stateChangeFailed = function(changeFailed) {
-            OT.error("Subscriber State Change Failed: ", changeFailed.message);
-            OT.debug(changeFailed);
+          OT.error('Subscriber State Change Failed: ', changeFailed.message);
+          OT.debug(changeFailed);
         },
 
         onLoaded = function() {
-            if (_state.subscribing || !_streamContainer) return;
+          if (_state.subscribing || !_streamContainer) return;
 
-            OT.debug("OT.Subscriber.onLoaded");
+          OT.debug('OT.Subscriber.onLoaded');
 
-            _state.set('Subscribing');
-            _subscribeStartTime = OT.$.now();
+          _state.set('Subscribing');
+          _subscribeStartTime = OT.$.now();
 
-            logAnalyticsEvent('createPeerConnection', 'Success', 'pcc|hasRelayCandidates', [
-                parseInt(_subscribeStartTime - _startConnectingTime, 10),
-                _peerConnection && _peerConnection.hasRelayCandidates
-            ].join('|'));
+          logAnalyticsEvent('createPeerConnection', 'Success', 'pcc|hasRelayCandidates', [
+            parseInt(_subscribeStartTime - _startConnectingTime, 10),
+            _peerConnection && _peerConnection.hasRelayCandidates
+          ].join('|'));
 
-            _qosInterval = setInterval(recordQOS, 30000);
+          _qosInterval = setInterval(recordQOS, 30000);
 
-            if(_subscribeAudioFalseWorkaround) {
-                _subscribeAudioFalseWorkaround = null;
-                this.subscribeToVideo(false);
-            }
+          if(_subscribeAudioFalseWorkaround) {
+            _subscribeAudioFalseWorkaround = null;
+            this.subscribeToVideo(false);
+          }
 
-            _container.loading = false;
+          _container.loading = false;
 
-            _createChrome.call(this);
+          _createChrome.call(this);
 
-            this.trigger('subscribeSuccess', this);
-            this.trigger('loaded', this);
+          this.trigger('subscribeComplete', null, this);
+          this.trigger('loaded', this);
 
-
-            logAnalyticsEvent('subscribe', 'Success', 'streamId', _stream.id);
+          logAnalyticsEvent('subscribe', 'Success', 'streamId', _stream.id);
         },
 
         onDisconnected = function() {
-            OT.debug("OT.Subscriber has been disconnected from the Publisher's PeerConnection");
+          OT.debug('OT.Subscriber has been disconnected from the Publisher\'s PeerConnection');
 
-            if (_state.attemptingToSubscribe) {
-                
-                _state.set('Failed');
-                this.trigger('subscribeError', "ClientDisconnected");
-            }
-            else if (_state.subscribing) {
-                _state.set('Failed');
+          if (_state.attemptingToSubscribe) {
+            
+            _state.set('Failed');
+            this.trigger('subscribeComplete', new OT.Error(null, 'ClientDisconnected'));
 
-                
-                
-            }
+          } else if (_state.subscribing) {
+            _state.set('Failed');
 
-            this.disconnect();
+            
+            
+          }
+
+          this.disconnect();
         },
 
+        onPeerConnectionFailure = function(code, reason, peerConnection, prefix) {
+          if (_state.attemptingToSubscribe) {
+            
+            
+            logAnalyticsEvent('createPeerConnection', 'Failure', 'reason|hasRelayCandidates', [
+              'Subscriber PeerConnection Error: ' + reason,
+              _peerConnection && _peerConnection.hasRelayCandidates
+            ].join('|'));
 
-        onPeerConnectionFailure = function(code, reason) {
-            if (_state.attemptingToSubscribe) {
-                
-                
-                logAnalyticsEvent('createPeerConnection', 'Failure', 'reason|hasRelayCandidates', [
-                    "Subscriber PeerConnection Error: " + reason,
-                    _peerConnection && _peerConnection.hasRelayCandidates
-                ].join('|'));
+            _state.set('Failed');
+            this.trigger('subscribeComplete', new OT.Error(null, reason));
 
-                _state.set('Failed');
-                this.trigger('subscribeError', reason);
+          } else if (_state.subscribing) {
+            
+            _state.set('Failed');
+            this.trigger('error', reason);
+          }
+
+          this.disconnect();
+
+          logAnalyticsEvent('subscribe', 'Failure', 'reason',
+            (prefix ? prefix : '') + ':Subscriber PeerConnection Error: ' + reason);
+
+          OT.handleJsException('Subscriber PeerConnection Error: ' + reason,
+            OT.ExceptionCodes.P2P_CONNECTION_FAILED, {
+              session: _session,
+              target: this
             }
-            else if (_state.subscribing) {
-                
-                _state.set('Failed');
-                this.trigger('error', reason);
-            }
-
-            this.disconnect();
-
-            logAnalyticsEvent('subscribe', 'Failure', 'reason', reason + ":Subscriber PeerConnection Error");
-
-            OT.handleJsException("Subscriber PeerConnection Error: " + reason, OT.ExceptionCodes.P2P_CONNECTION_FAILED, {
-                session: _session,
-                target: this
-            });
-            _showError.call(this, reason);
+          );
+          _showError.call(this, reason);
         },
 
         onRemoteStreamAdded = function(webOTStream) {
-            OT.debug("OT.Subscriber.onRemoteStreamAdded");
+          OT.debug('OT.Subscriber.onRemoteStreamAdded');
 
-            _state.set('BindingRemoteStream');
+          _state.set('BindingRemoteStream');
 
-            
-            this.subscribeToAudio(_properties.subscribeToAudio);
+          
+          this.subscribeToAudio(_properties.subscribeToAudio);
 
-            var preserver = _subscribeAudioFalseWorkaround;
-            this.subscribeToVideo(_properties.subscribeToVideo);
-            _subscribeAudioFalseWorkaround = preserver;
+          var preserver = _subscribeAudioFalseWorkaround;
+          this.subscribeToVideo(_properties.subscribeToVideo);
+          _subscribeAudioFalseWorkaround = preserver;
 
-            var streamElement = new OT.VideoElement();
+          var streamElement = new OT.VideoElement();
 
-            
-            streamElement.setAudioVolume(_audioVolume);
-            streamElement.on({
-                    streamBound: onLoaded,
-                    loadError: onPeerConnectionFailure,
-                    error: onPeerConnectionFailure
-                }, this);
+          
+          streamElement.setAudioVolume(_audioVolume);
+          streamElement.on({
+            streamBound: onLoaded,
+            loadError: onPeerConnectionFailure,
+            error: onPeerConnectionFailure
+          }, this);
 
-            streamElement.bindToStream(webOTStream);
-             _container.video = streamElement;
+          streamElement.bindToStream(webOTStream);
+          _container.video = streamElement;
 
-            _streamContainer = streamElement;
+          _streamContainer = streamElement;
 
-            _streamContainer.orientation = {
-                width: _stream.videoDimensions.width,
-                height: _stream.videoDimensions.height,
-                videoOrientation: _stream.videoDimensions.orientation
-            };
+          _streamContainer.orientation = {
+            width: _stream.videoDimensions.width,
+            height: _stream.videoDimensions.height,
+            videoOrientation: _stream.videoDimensions.orientation
+          };
 
-            logAnalyticsEvent('createPeerConnection', 'StreamAdded', '', '');
-            this.trigger('streamAdded', this);
+          logAnalyticsEvent('createPeerConnection', 'StreamAdded', '', '');
+          this.trigger('streamAdded', this);
         },
 
         onRemoteStreamRemoved = function(webOTStream) {
-            OT.debug("OT.Subscriber.onStreamRemoved");
+          OT.debug('OT.Subscriber.onStreamRemoved');
 
-            if (_streamContainer.stream == webOTStream) {
-                _streamContainer.destroy();
-                _streamContainer = null;
-            }
+          if (_streamContainer.stream === webOTStream) {
+            _streamContainer.destroy();
+            _streamContainer = null;
+          }
 
 
-            this.trigger('streamRemoved', this);
+          this.trigger('streamRemoved', this);
+        },
+
+        streamDestroyed = function () {
+          this.disconnect();
         },
 
         streamUpdated = function(event) {
-            switch(event.changedProperty) {
-                case 'orientation':
-                    _streamContainer.orientation = {
-                        width: _stream.videoDimensions.width,
-                        height: _stream.videoDimensions.height,
-                        videoOrientation: _stream.videoDimensions.orientation
-                    };
-                    break;
 
-                case 'hasVideo':
-                    if(_container) {
-                        _container.showPoster = !(_stream.hasVideo && _properties.subscribeToVideo);
-                    }
+          switch(event.changedProperty) {
+            case 'videoDimensions':
+              _streamContainer.orientation = {
+                width: event.newValue.width,
+                height: event.newValue.height,
+                videoOrientation: event.newValue.orientation
+              };
+              break;
 
-                    break;
+            case 'hasVideo':
+              if(_container) {
+                _container.showPoster = !(_stream.hasVideo && _properties.subscribeToVideo);
+              }
+              break;
 
-                case 'hasAudio':
-                    
-            }
+            case 'hasAudio':
+              
+          }
         },
 
         
 
-        updateChromeForStyleChange = function(key, value, oldValue) {
-            if (!_chrome) return;
+        
+        
+        
+        chromeButtonMode = function(mode) {
+          if (mode === false) return 'off';
 
-            switch(key) {
-                case 'nameDisplayMode':
-                    _chrome.name.setDisplayMode(value);
-                    break;
+          var defaultMode = this.getStyle('buttonDisplayMode');
 
-                case 'buttonDisplayMode':
-                    
-            }
+          
+          if (defaultMode === false) return 'on';
+
+          
+          return defaultMode;
+        },
+
+        updateChromeForStyleChange = function(key, value) {
+          if (!_chrome) return;
+
+          switch(key) {
+            case 'nameDisplayMode':
+              _chrome.name.setDisplayMode(value);
+              break;
+
+            case 'showArchiveStatus':
+              _chrome.archive.setShowArchiveStatus(value);
+              break;
+
+            case 'buttonDisplayMode':
+              
+
+            case 'bugDisplayMode':
+              
+          }
         },
 
         _createChrome = function() {
-            _chrome = new OT.Chrome({
-                parent: _container.domElement
-            }).set({
-                name: new OT.Chrome.NamePanel({
-                    name: _properties.name,
-                    mode: this.getStyle('nameDisplayMode')
-                }),
+          if(this.getStyle('bugDisplayMode') === 'off') {
+            logAnalyticsEvent('bugDisplayMode', 'createChrome', 'mode', 'off');
+          }
+          _chrome = new OT.Chrome({
+            parent: _container.domElement
+          }).set({
 
-                
-                
-                
-                
-                
+            backingBar: new OT.Chrome.BackingBar({
+              nameMode: this.getStyle('nameDisplayMode'),
+              muteMode: chromeButtonMode.call(this, this.getStyle('showMuteButton'))
+            }),
 
-                opentokButton: new OT.Chrome.OpenTokButton()
-            }).on({
-                muted: function() {
-                    
-                },
+            name: new OT.Chrome.NamePanel({
+              name: _properties.name,
+              mode: this.getStyle('nameDisplayMode'),
+              bugMode: this.getStyle('bugDisplayMode')
+            }),
 
-                unmuted: function() {
-                    
-                }
-            });
+            muteButton: new OT.Chrome.MuteButton({
+              muted: _properties.muted,
+              mode: chromeButtonMode.call(this, this.getStyle('showMuteButton'))
+            }),
+
+            opentokButton: new OT.Chrome.OpenTokButton({
+              mode: this.getStyle('bugDisplayMode')
+            }),
+
+            archive: new OT.Chrome.Archiving({
+              show: this.getStyle('showArchiveStatus'),
+              archiving: false
+            })
+
+          }).on({
+            muted: function() {
+              muteAudio.call(this, true);
+            },
+
+            unmuted: function() {
+              muteAudio.call(this, false);
+            }
+          }, this);
         },
 
-        _showError = function(errorMsg) {
-            
-            
-            if (_container) _container.addError(errorMsg);
+        _showError = function() {
+          
+          
+          if (_container) {
+            _container.addError(
+              'The stream was unable to connect due to a network error.',
+              'Make sure your connection isn\'t blocked by a firewall.'
+            );
+          }
         };
 
 
     this.recordQOS = function() {
-        recordQOS();
+      recordQOS();
     };
+
 
     this.subscribe = function(stream) {
-        OT.debug("OT.Subscriber: subscribe to " + stream.id);
+      OT.debug('OT.Subscriber: subscribe to ' + stream.id);
 
-        if (_state.subscribing) {
-            
-            OT.error("OT.Subscriber.Subscribe: Cannot subscribe, already subscribing.");
-            return false;
-        }
+      if (_state.subscribing) {
+        
+        OT.error('OT.Subscriber.Subscribe: Cannot subscribe, already subscribing.');
+        return false;
+      }
 
-        _state.set('Init');
+      _state.set('Init');
 
-        if (!stream) {
-            
-            OT.error("OT.Subscriber: No stream parameter.");
-            return false;
-        }
+      if (!stream) {
+        
+        OT.error('OT.Subscriber: No stream parameter.');
+        return false;
+      }
 
-        if (_stream) {
-            
-            OT.error("OT.Subscriber: Already subscribed");
-            return false;
-        }
+      if (_stream) {
+        
+        OT.error('OT.Subscriber: Already subscribed');
+        return false;
+      }
 
-        _stream = stream;
-        _stream.on({
-            updated: streamUpdated,
-            destroyed: this.disconnect
+      _stream = stream;
+      _stream.on({
+        updated: streamUpdated,
+        destroyed: streamDestroyed
+      }, this);
+
+      _fromConnectionId = stream.connection.id;
+      _properties.name = _properties.name || _stream.name;
+      _properties.classNames = 'OT_root OT_subscriber';
+
+      if (_properties.style) {
+        this.setStyle(_properties.style, null, true);
+      }
+      if (_properties.audioVolume) {
+        this.setAudioVolume(_properties.audioVolume);
+      }
+
+      _properties.subscribeToAudio = OT.$.castToBoolean(_properties.subscribeToAudio, true);
+      _properties.subscribeToVideo = OT.$.castToBoolean(_properties.subscribeToVideo, true);
+
+      _container = new OT.WidgetView(targetElement, _properties);
+      _domId = _container.domId;
+
+      if(!_properties.subscribeToVideo && OT.$.browser() === 'Chrome') {
+        _subscribeAudioFalseWorkaround = true;
+        _properties.subscribeToVideo = true;
+      }
+
+      _startConnectingTime = OT.$.now();
+
+      if (_stream.connection.id !== _session.connection.id) {
+        logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
+
+        _state.set('ConnectingToPeer');
+
+        _peerConnection = new OT.SubscriberPeerConnection(_stream.connection, _session,
+          _stream, this, _properties);
+
+        _peerConnection.on({
+          disconnected: onDisconnected,
+          error: onPeerConnectionFailure,
+          remoteStreamAdded: onRemoteStreamAdded,
+          remoteStreamRemoved: onRemoteStreamRemoved
         }, this);
 
-        _fromConnectionId = stream.connection.connectionId;
-        _properties.name = _stream.name;
-        _properties.classNames = 'OT_root OT_subscriber';
+        
+        _peerConnection.init();
+      } else {
+        logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
 
-        if (_properties.style) {
-            this.setStyle(_properties.style, null, true);
-        }
-        if (_properties.audioVolume) {
-            this.setAudioVolume(_properties.audioVolume);
-        }
-
-        _properties.subscribeToAudio = OT.$.castToBoolean(_properties.subscribeToAudio, true);
-        _properties.subscribeToVideo = OT.$.castToBoolean(_properties.subscribeToVideo, true);
-
-        _container = new OT.WidgetView(targetElement, _properties);
-        _domId = _container.domId;
-
-        if(!_properties.subscribeToVideo && OT.$.browser() == 'Chrome') {
-            _subscribeAudioFalseWorkaround = true;
-            _properties.subscribeToVideo = true;
+        var publisher = _session.getPublisherForStream(_stream);
+        if(!(publisher && publisher._.webRtcStream)) {
+          this.trigger('subscribeComplete', new OT.Error(null, 'InvalidStreamID'));
+          return this;
         }
 
-        _startConnectingTime = OT.$.now();
+        
+        onRemoteStreamAdded.call(this, _session.getPublisherForStream(_stream)._.webRtcStream);
+      }
 
-        if (_stream.connection.id !== _session.connection.id) {
-            logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
+      logAnalyticsEvent('subscribe', 'Attempt', 'streamId', _stream.id);
 
-            _state.set('ConnectingToPeer');
-
-            _peerConnection = new OT.SubscriberPeerConnection(_stream.connection, _session, _stream, _properties);
-
-            _peerConnection.on({
-                disconnected: onDisconnected,
-                error: onPeerConnectionFailure,
-                remoteStreamAdded: onRemoteStreamAdded,
-                remoteStreamRemoved: onRemoteStreamRemoved
-            }, this);
-
-            
-            _peerConnection.init();
-        }
-        else {
-            logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
-
-            
-            onRemoteStreamAdded.call(this, _session.getPublisherForStream(_stream)._.webRtcStream);
-        }
-
-        logAnalyticsEvent('subscribe', 'Attempt', 'streamId', _stream.id);
-
-        return this;
+      return this;
     };
 
-    this.destroy = function( reason, quiet) {
-        clearInterval(_qosInterval);
-        _qosInterval = null;
+    this.destroy = function(reason, quiet) {
 
-        this.disconnect();
-
-        if (_chrome) {
-            _chrome.destroy();
-            _chrome = null;
+      if(reason === 'streamDestroyed') {
+        if (_state.attemptingToSubscribe) {
+          
+          
+          this.trigger('subscribeComplete', new OT.Error(null, 'InvalidStreamID'));
         }
+      }
 
-        if (_container) {
-            _container.destroy();
-            _container = null;
-        }
+      clearInterval(_qosInterval);
+      _qosInterval = null;
 
-        if (_stream && !_stream.destroyed) logAnalyticsEvent('unsubscribe', null, 'streamId', _stream.id);
+      this.disconnect();
 
-        _domId = null;
-        _stream = null;
+      if (_chrome) {
+        _chrome.destroy();
+        _chrome = null;
+      }
 
-        _session = null;
-        _properties = null;
+      if (_container) {
+        _container.destroy();
+        _container = null;
+      }
 
-        if (quiet !== true) {
-            this.dispatchEvent(
-              new OT.DestroyedEvent(
-                OT.Event.names.SUBSCRIBER_DESTROYED,
-                this,
-                reason
-              ),
-              this.off.bind(this)
-            );
-        }
+      if (_stream && !_stream.destroyed) {
+        logAnalyticsEvent('unsubscribe', null, 'streamId', _stream.id);
+      }
 
-        return this;
+      _domId = null;
+      _stream = null;
+
+      _session = null;
+      _properties = null;
+
+      if (quiet !== true) {
+        this.dispatchEvent(
+          new OT.DestroyedEvent(
+            OT.Event.names.SUBSCRIBER_DESTROYED,
+            this,
+            reason
+          ),
+          this.off.bind(this)
+        );
+      }
+
+      return this;
     };
-
 
     this.disconnect = function() {
-        _state.set('NotSubscribing');
+      _state.set('NotSubscribing');
 
-        if (_streamContainer) {
-            _streamContainer.destroy();
-            _streamContainer = null;
-        }
+      if (_streamContainer) {
+        _streamContainer.destroy();
+        _streamContainer = null;
+      }
 
-        if (_peerConnection) {
-            _peerConnection.destroy();
-            _peerConnection = null;
+      if (_peerConnection) {
+        _peerConnection.destroy();
+        _peerConnection = null;
 
-            logAnalyticsEvent('disconnect', 'PeerConnection', 'streamId', _stream.id);
-        }
+        logAnalyticsEvent('disconnect', 'PeerConnection', 'streamId', _stream.id);
+      }
     };
 
     this.processMessage = function(type, fromConnection, message) {
-        OT.debug("OT.Subscriber.processMessage: Received " + type + " message from " + fromConnection.id);
-        OT.debug(message);
+      OT.debug('OT.Subscriber.processMessage: Received ' + type + ' message from ' +
+        fromConnection.id);
+      OT.debug(message);
 
-        if (_fromConnectionId != fromConnection.id) {
-            _fromConnectionId = fromConnection.id;
-        }
+      if (_fromConnectionId !== fromConnection.id) {
+        _fromConnectionId = fromConnection.id;
+      }
 
-        if (_peerConnection) {
-          _peerConnection.processMessage(type, message);
-        }
+      if (_peerConnection) {
+        _peerConnection.processMessage(type, message);
+      }
     };
 
-    this.updateQuality = function(quality) {
-        
-        
-        OT.warn("Due to high packet loss and low bandwidth, video has been disabled");
-        this.subscribeToVideo(false);
-        this.dispatchEvent(new OT.Event("videoDisabled"));
+    this.disableVideo = function(active) {
+      if (!active) {
+        OT.warn('Due to high packet loss and low bandwidth, video has been disabled');
+      } else {
+        if (_lastSubscribeToVideoReason === 'auto') {
+          OT.info('Video has been re-enabled');
+        } else {
+          OT.info('Video was not re-enabled because it was manually disabled');
+          return;
+        }
+      }
+      this.subscribeToVideo(active, 'auto');
+      this.dispatchEvent(new OT.Event(active ? 'videoEnabled' : 'videoDisabled'));
+      logAnalyticsEvent('updateQuality', 'video', active ? 'videoEnabled' : 'videoDisabled', true);
     };
 
     
@@ -13222,15 +15244,17 @@ OT.Subscriber = function(targetElement, options) {
 
 
     this.getImgData = function() {
-        if (!this.subscribing) {
-            OT.error("OT.Subscriber.getImgData: Cannot getImgData before the Subscriber is subscribing.");
-            return null;
-        }
+      if (!this.subscribing) {
+        OT.error('OT.Subscriber.getImgData: Cannot getImgData before the Subscriber ' +
+          'is subscribing.');
+        return null;
+      }
 
-        return _streamContainer.imgData;
+      return _streamContainer.imgData;
     };
 
     
+
 
 
 
@@ -13249,23 +15273,27 @@ OT.Subscriber = function(targetElement, options) {
 
 
     this.setAudioVolume = function(value) {
-        value = parseInt(value, 10);
-        if (isNaN(value)) {
-            OT.error("OT.Subscriber.setAudioVolume: value should be an integer between 0 and 100");
-            return this;
-        }
-        _audioVolume = Math.max(0, Math.min(100, value));
-        if (_audioVolume != value) {
-            OT.warn("OT.Subscriber.setAudioVolume: value should be an integer between 0 and 100");
-        }
-        if (_streamContainer) {
-            _streamContainer.setAudioVolume(_audioVolume);
-        }
-
+      value = parseInt(value, 10);
+      if (isNaN(value)) {
+        OT.error('OT.Subscriber.setAudioVolume: value should be an integer between 0 and 100');
         return this;
+      }
+      _audioVolume = Math.max(0, Math.min(100, value));
+      if (_audioVolume !== value) {
+        OT.warn('OT.Subscriber.setAudioVolume: value should be an integer between 0 and 100');
+      }
+      if(_properties.muted && _audioVolume > 0) {
+        _properties.premuteVolume = value;
+        muteAudio.call(this, false);
+      }
+      if (_streamContainer) {
+        _streamContainer.setAudioVolume(_audioVolume);
+      }
+      return this;
     };
 
     
+
 
 
 
@@ -13276,8 +15304,11 @@ OT.Subscriber = function(targetElement, options) {
 
 
     this.getAudioVolume = function() {
-        if (_streamContainer) return _streamContainer.getAudioVolume();
-        else return _audioVolume;
+      if(_properties.muted) {
+        return 0;
+      }
+      if (_streamContainer) return _streamContainer.getAudioVolume();
+      else return _audioVolume;
     };
 
     
@@ -13303,20 +15334,45 @@ OT.Subscriber = function(targetElement, options) {
 
 
 
-    this.subscribeToAudio = function(p_value) {
-        var value = OT.$.castToBoolean(p_value, true);
 
-        if (_peerConnection) {
-            _peerConnection.subscribeToAudio(value);
 
-            if (_session && _stream && value !== _properties.subscribeToAudio) {
-                _session._.modifySubscriber(this, "hasAudio", value);
-            }
+
+    this.subscribeToAudio = function(pValue) {
+      var value = OT.$.castToBoolean(pValue, true);
+
+      if (_peerConnection) {
+        _peerConnection.subscribeToAudio(value && !_properties.subscribeMute);
+
+        if (_session && _stream && value !== _properties.subscribeToAudio) {
+          _stream.setChannelActiveState('audio', value && !_properties.subscribeMute);
         }
+      }
 
-        _properties.subscribeToAudio = value;
+      _properties.subscribeToAudio = value;
 
-        return this;
+      return this;
+    };
+
+    var muteAudio = function(_mute) {
+      _chrome.muteButton.muted = _mute;
+
+      if(_mute === _properties.mute) {
+        return;
+      }
+      if (window.navigator.userAgent.toLowerCase().indexOf('chrome') >= 0) {
+        _properties.subscribeMute = _properties.muted = _mute;
+        this.subscribeToAudio(_properties.subscribeToAudio);
+      } else {
+        if(_mute) {
+          _properties.premuteVolume = this.getAudioVolume();
+          _properties.muted = true;
+          this.setAudioVolume(0);
+        } else if(_properties.premuteVolume || _properties.audioVolume) {
+          _properties.muted = false;
+          this.setAudioVolume(_properties.premuteVolume || _properties.audioVolume);
+        }
+      }
+      _properties.mute = _properties.mute;
     };
 
 
@@ -13343,85 +15399,161 @@ OT.Subscriber = function(targetElement, options) {
 
 
 
-    this.subscribeToVideo = function(p_value) {
-        if(_subscribeAudioFalseWorkaround && p_value == true) {
-            
-            _subscribeAudioFalseWorkaround = false;
-            return;
+
+
+
+    this.subscribeToVideo = function(pValue, reason) {
+      if(_subscribeAudioFalseWorkaround && pValue === true) {
+        
+        _subscribeAudioFalseWorkaround = false;
+        return;
+      }
+
+      var value = OT.$.castToBoolean(pValue, true);
+
+      if(_container) {
+        _container.showPoster = !(value && _stream.hasVideo);
+        if(value && _container.video) {
+          _container.loading = value;
+          _container.video.whenTimeIncrements(function(){
+            _container.loading = false;
+          }, this);
         }
+      }
 
-        var value = OT.$.castToBoolean(p_value, true);
+      if (_peerConnection) {
+        _peerConnection.subscribeToVideo(value);
 
-        if(_container) {
-            _container.showPoster = !(value && _stream.hasVideo);
-            if(value && _container.video) {
-                _container.loading = value;
-                _container.video.whenTimeIncrements(function(){
-                    _container.loading = false;
-                }, this);
-            }
+        if (_session && _stream && (value !== _properties.subscribeToVideo ||
+            reason !== _lastSubscribeToVideoReason)) {
+          _stream.setChannelActiveState('video', value, reason);
         }
+      }
 
-        if (_peerConnection) {
-            _peerConnection.subscribeToVideo(value);
+      _properties.subscribeToVideo = value;
+      _lastSubscribeToVideoReason = reason;
 
-            if (_session && _stream && value !== _properties.subscribeToVideo) {
-                _session._.modifySubscriber(this, "hasVideo", value);
-            }
-        }
-
-        _properties.subscribeToVideo = value;
-
-        return this;
+      return this;
     };
 
     Object.defineProperties(this, {
-        id: {
-            get: function() { return _domId; },
-            enumerable: true
+      id: {
+        get: function() { return _domId; },
+        enumerable: true
+      },
+        
+      element: {
+        get: function() { return _container.domElement; },
+        enumerable: true
+      },
+
+      widgetId: {
+        get: function() { return _widgetId; }
+      },
+
+      stream: {
+        get: function() { return _stream; },
+        enumerable: true
+      },
+
+      streamId: {
+        get: function() {
+          if (!_stream) return null;
+          return _stream.id;
         },
+        enumerable: true
+      },
 
-        widgetId: {
-            get: function() { return _widgetId; }
-        },
+      targetElement: {
+        get: function() { return _streamContainer ? _streamContainer.domElement : null; }
+      },
 
-        stream: {
-            get: function() { return _stream; },
-            enumerable: true
-        },
+      subscribing: {
+        get: function() { return _state.subscribing; },
+        enumerable: true
+      },
 
-        streamId: {
-            get: function() {
-                if (!_stream) return null;
+      isWebRTC: {
+        get: function() { return true; }
+      },
 
-                return _stream.id;
-            },
-            enumerable: true
-        },
+      loading: {
+        get: function(){ return _container && _container.loading; }
+      },
 
-        targetElement: {
-            get: function() { return _streamContainer ? _streamContainer.domElement : null; }
-        },
+      session: {
+        get: function() { return _session; }
+      },
 
-        subscribing: {
-            get: function() { return _state.subscribing; },
-            enumerable: true
-        },
+      videoWidth: {
+        get: function() { return _streamContainer.videoWidth; },
+        enumerable: true
+      },
 
-        isWebRTC: {
-            get: function() { return true; }
-        },
-
-        loading: {
-            get: function(){ return _container && _container.loading }
-        },
-
-        session: {
-            get: function() { return _session; }
-        }
+      videoHeight: {
+        get: function() { return _streamContainer.videoHeight; },
+        enumerable: true
+      }
     });
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    this.restrictFrameRate = function(val) {
+      OT.debug('OT.Subscriber.restrictFrameRate(' + val + ')');
+
+      logAnalyticsEvent('restrictFrameRate', val.toString(), 'streamId', _stream.id);
+
+      if (_session.sessionInfo.p2pEnabled) {
+        OT.warn('OT.Subscriber.restrictFrameRate: Cannot restrictFrameRate on a P2P session');
+      }
+
+      if (typeof val !== 'boolean') {
+        OT.error('OT.Subscriber.restrictFrameRate: expected a boolean value got a ' + typeof val);
+      } else {
+        _stream.setRestrictFrameRate(val);
+      }
+      return this;
+    };
+
     this.on('styleValueChanged', updateChromeForStyleChange, this);
+
+    this._ = {
+      archivingStatus: function(status) {
+        if(_chrome) {
+          _chrome.archive.setArchiving(status);
+        }
+      }
+    };
 
     _state = new OT.SubscribingState(stateChangeFailed);
 
@@ -13436,238 +15568,196 @@ OT.Subscriber = function(targetElement, options) {
 
 
 
-};
+
+	
+
+
+
+
+
+
+
+  };
 
 })(window);
-(function(window) {
-    OT.SessionInfo = function(xmlDocument) {
-        var sessionXML = null;
+!(function() {
 
-        this.sessionId = null;
-        this.partnerId = null;
-        this.sessionStatus = null;
-        this.p2pEnabled = false;
+  var parseErrorFromJSONDocument,
+      onGetResponseCallback,
+      onGetErrorCallback,
+      normaliseIceServers;
 
-        this.messagingServer = null;
-        this.iceServers = null;
+  OT.SessionInfo = function(jsonDocument) {
+    var sessionJSON = jsonDocument[0];
 
-        OT.log("SessionInfo Response:")
-        OT.log(xmlDocument);
+    OT.log('SessionInfo Response:');
+    OT.log(jsonDocument);
 
-        if (xmlDocument && xmlDocument.documentElement && xmlDocument.documentElement.firstElementChild !== null) {
-            sessionXML = xmlDocument.documentElement.firstElementChild;
-        }
+    
 
-        var element = sessionXML.firstElementChild;
-        do {
-            switch (element.localName) {
-            case "session_id":
-                this.sessionId = element.textContent;
-                break;
+    this.sessionId = sessionJSON.session_id;
+    this.partnerId = sessionJSON.partner_id;
+    this.sessionStatus = sessionJSON.session_status;
 
-            case "partner_id":
-                this.partnerId = element.textContent;
-                break;
+    this.messagingServer = sessionJSON.messaging_server_url;
 
-            case "session_status":
-                this.sessionStatus = element.textContent;
-                break;
+    this.messagingURL = sessionJSON.messaging_url;
+    this.symphonyAddress = sessionJSON.symphony_address;
 
-            case "messaging_server_url":
-                this.messagingServer = element.textContent;
-                break;
+    this.p2pEnabled = sessionJSON.properties &&
+      sessionJSON.properties.p2p &&
+      sessionJSON.properties.p2p.preference &&
+      sessionJSON.properties.p2p.preference.value === 'enabled';
 
-            case "ice_servers":
-                
-                
-                
-                
+    this.iceServers = sessionJSON.ice_servers ? normaliseIceServers(sessionJSON.ice_servers) : [];
 
-                this.iceServers = normaliseIceServers( parseIceServersXml(element.childNodes) );
-                break;
+    if(this.iceServers.length === 0) {
+      
+      OT.warn('SessionInfo contained not ICE Servers, using the default');
+      this.iceServers = [ {'url': 'stun:stun.l.google.com:19302'} ];
+    }
+  };
 
-            case "properties":
-                var property = element.firstElementChild;
-                if (property) {
-                    do {
-                        if (property.localName === "p2p" && property.firstElementChild !== null) {
-                            this.p2pEnabled = (property.firstElementChild.textContent === "enabled");
-                            break;
-                        }
-                    } while (property = property.nextElementSibling);
-                }
-
-                break;
-
-            default:
-                
-                break;
-            }
-
-        } while (element = element.nextElementSibling);
-
-        if (!this.iceServers || this.iceServers.length === 0) {
-            
-            OT.warn("SessionInfo contained not ICE Servers, using the default");
-            this.iceServers = [ {"url": "stun:stun.l.google.com:19302"} ];
-        }
-
-        
-
-        sessionXML = null;
-    };
-
-
-
-
-
-OT.SessionInfo.get = function(session, onSuccess, onFailure) {
-    var sessionInfoURL = OT.properties.apiURL + '/session/' + session.id + "?extended=true",
+  
+  
+  
+  OT.SessionInfo.get = function(session, onSuccess, onFailure) {
+    var sessionInfoURL = OT.properties.apiURL + '/session/' + session.id + '?extended=true',
 
         startTime = OT.$.now(),
 
         validateRawSessionInfo = function(sessionInfo) {
-            session.logEvent('Instrumentation', null, 'gsi', OT.$.now() - startTime);
-
-            var error = parseErrorFromXMLDocument(sessionInfo);
-
-            if (error === false) {
-                onGetResponseCallback(session, onSuccess, sessionInfo);
-            }
-            else {
-                onGetErrorCallback(session, onFailure, error);
-            }
+          session.logEvent('Instrumentation', null, 'gsi', OT.$.now() - startTime);
+          var error = parseErrorFromJSONDocument(sessionInfo);
+          if (error === false) {
+            onGetResponseCallback(session, onSuccess, sessionInfo);
+          } else {
+            onGetErrorCallback(session, onFailure, error);
+          }
         };
 
     session.logEvent('getSessionInfo', 'Attempt', 'api_url', OT.properties.apiURL);
 
-    OT.$.getXML(sessionInfoURL, {
-        headers: {"X-TB-TOKEN-AUTH": session.token, "X-TB-VERSION": 1},
-
-        success: validateRawSessionInfo,
-
-        error: function(event) {
-            onGetErrorCallback(session, onFailure, parseErrorFromXMLDocument(event.target.responseXML));
-        }
+    OT.$.getJSON(sessionInfoURL, {
+      headers: {
+        'X-TB-TOKEN-AUTH': session.token,
+        'X-TB-VERSION': 1
+      }
+    }, function(error, sessionInfo) {
+      if(error) {
+        console.log('getJSON said error:', error);
+        onGetErrorCallback(session, onFailure,
+          new OT.Error(error.target && error.target.status, error.message ||
+            'Could not connect to the OpenTok API Server.'));
+      } else {
+        validateRawSessionInfo(sessionInfo);
+      }
     });
-};
+  };
 
-var messageServerToClientErrorCodes = {};
-messageServerToClientErrorCodes['404'] = OT.ExceptionCodes.INVALID_SESSION_ID;
-messageServerToClientErrorCodes['403'] = OT.ExceptionCodes.AUTHENTICATION_ERROR;
+  var messageServerToClientErrorCodes = {};
+  messageServerToClientErrorCodes['404'] = OT.ExceptionCodes.INVALID_SESSION_ID;
+  messageServerToClientErrorCodes['409'] = OT.ExceptionCodes.INVALID_SESSION_ID;
+  messageServerToClientErrorCodes['400'] = OT.ExceptionCodes.INVALID_SESSION_ID;
+  messageServerToClientErrorCodes['403'] = OT.ExceptionCodes.AUTHENTICATION_ERROR;
 
+  
+  
+  parseErrorFromJSONDocument = function(jsonDocument) {
+    if(Array.isArray(jsonDocument)) {
+      var errors = jsonDocument.filter(function(node) {
+        return node.error != null;
+      });
 
+      var numErrorNodes = errors.length;
+      if(numErrorNodes === 0) {
+        return false;
+      }
 
-parseErrorFromXMLDocument = function(xmlDocument) {
-    if (xmlDocument && xmlDocument.documentElement && xmlDocument.documentElement.firstElementChild !== null) {
-        var errorNodes = xmlDocument.evaluate('//error', xmlDocument.documentElement, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null ),
-            numErrorNodes = errorNodes.snapshotLength;
+      var errorCode = errors[0].error.code;
+      if (messageServerToClientErrorCodes[errorCode.toString()]) {
+        errorCode = messageServerToClientErrorCodes[errorCode];
+      }
 
-        if (numErrorNodes === 0) return false;
-
-        for (var i=0; i<numErrorNodes; ++i) {
-            var errorNode = errorNodes.snapshotItem(i);
-
-            return {
-                code: errorNode.getAttribute('code'),
-                message: errorNode.firstElementChild.getAttribute('message')
-            };
-        }
-    }
-
-    
-    return {
+      return {
+        code: errorCode,
+        message: errors[0].error.errorMessage && errors[0].error.errorMessage.message
+      };
+    } else {
+      return {
         code: null,
-        message: "Unknown error: getSessionInfo XML response was badly formed " +
-          (xmlDocument && xmlDocument.documentElement && xmlDocument.documentElement.innerHTML)
-    };
-};
-
-onGetResponseCallback = function(session, onSuccess, rawSessionInfo) {
-  session.logEvent('getSessionInfo', 'Success', 'api_url', OT.properties.apiURL);
-
-  onSuccess( new OT.SessionInfo(rawSessionInfo) );
-};
-
-onGetErrorCallback = function(session, onFailure, error) {
-    TB.handleJsException("TB.SessionInfoError :: Unable to get session info " + error.message, messageServerToClientErrorCodes[error.code], {
-        session: session
-    });
-
-    session.logEvent('Connect', 'Failure', 'errorMessage', "GetSessionInfo:" + error.code + ": Unable to get session info " + error.message);
-    onFailure(error, session);
-};
-
-parseIceServersXml = function (nodes) {
-    var iceServers = [],
-        iceServer,
-        attributes;
-
-    for (var i=0, numNodes=nodes.length; i<numNodes; ++i) {
-        if (nodes[i].localName === 'ice_server') {
-            
-            attributes = nodes[i].attributes;
-            iceServer = {
-                url: attributes.getNamedItem('url').nodeValue
-            };
-
-            if (attributes.getNamedItem('credential') && attributes.getNamedItem('credential').nodeValue.length) {
-                iceServer.credential = attributes.getNamedItem('credential').nodeValue;
-            }
-
-            iceServers.push(iceServer);
-        }
+        message: 'Unknown error: getSessionInfo JSON response was badly formed ' +
+            jsonDocument.toString.substring(0, 1000)
+      };
     }
+  };
 
-    return iceServers;
-};
+  onGetResponseCallback = function(session, onSuccess, rawSessionInfo) {
+    session.logEvent('getSessionInfo', 'Success', 'api_url', OT.properties.apiURL);
 
+    onSuccess( new OT.SessionInfo(rawSessionInfo) );
+  };
 
+  onGetErrorCallback = function(session, onFailure, error) {
+    session.logEvent('Connect', 'Failure', 'errorMessage',
+      'GetSessionInfo:' + error.code + ':' + error.message);
 
+    onFailure(error, session);
+  };
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  normaliseIceServers = function (iceServers) {
+    if (!iceServers) return [];
 
-
-
-
-
-
-
-normaliseIceServers = function (iceServers) {
-    var userAgent = navigator.userAgent.match(/(Firefox)\/([0-9]+\.[0-9]+)/),
+    var userAgent = (typeof navigator !== 'undefined') &&
+          navigator.userAgent.match(/(Firefox)\/([0-9]+\.[0-9]+)/),
         firefoxVersion = userAgent ? parseFloat(userAgent[2], 10) : void 0,
         bits;
 
     return iceServers.map(function(iceServer) {
+      
+      if (iceServer.url.trim().substr(0, 5) !== 'turn:') {
+        return iceServer;
+      }
+
+      if (userAgent !== null) {
         
-        if (iceServer.url.trim().substr(0, 5) !== 'turn:') {
-            return iceServer;
+        if (firefoxVersion < 25) {
+          return {url: iceServer.url.replace('turn:', 'stun:')};
         }
 
-        if (userAgent !== null) {
-            
-            if (firefoxVersion < 25) {
-                return {url: iceServer.url.replace("turn:", "stun:")};
-            }
-
-            
-            if (firefoxVersion < 27 && iceServer.url.indexOf('?') !== -1) {
-                iceServer.url = iceServer.url.trim().split('?')[0];
-            }
+        
+        if (firefoxVersion < 27 && iceServer.url.indexOf('?') !== -1) {
+          iceServer.url = iceServer.url.trim().split('?')[0];
         }
+      }
 
-        bits = iceServer.url.trim().split(/[:@]/);
+      bits = iceServer.url.trim().split(/[:@]/);
 
-        return {
-            username: bits[1],
-            credential: iceServer.credential,
-            url: bits[0] + ':' + bits[2] + (bits.length === 4 ? ':' + bits[3] : '')
-        };
+      return {
+        username: bits[1],
+        credential: iceServer.credential,
+        url: bits[0] + ':' + bits[2]
+      };
     });
-};
+  };
 
 })(window);
-(function(window) {
+!(function() {
 	
+
+
+
+
 
 
 
@@ -13698,53 +15788,14 @@ normaliseIceServers = function (iceServers) {
 	    this.forceUnpublish = permissions.indexOf('forceunpublish') !== -1 ? 1 : 0;
 	    this.forceDisconnect = permissions.indexOf('forcedisconnect') !== -1 ? 1 : 0;
 	    this.supportsWebRTC = OT.$.supportsWebRTC() ? 1 : 0;
+
+      this.permittedTo = function(action) {
+        return this.hasOwnProperty(action) && this[action] === 1;
+      };
     };
 
 })(window);
-(function(window) {
-
-
-
-var RemoteWork = function RemoteWork (parent, success, error, options) {
-  var REQUEST_TIMEOUT = 30000,
-      timeoutInterval,
-      exceptionCodesIndicatingFailure = {};
-
-  var destroy = function() {
-        clearTimeout(timeoutInterval);
-        parent.off('exception', onException);
-      },
-
-      onException = function(event) {
-        if (!exceptionCodesIndicatingFailure.hasOwnProperty(event.code)) return;
-
-        
-        this.failed(exceptionCodesIndicatingFailure[event.code]);
-      },
-
-      onTimeout = function() {
-        var reason = options && options.timeoutMessage ? options.timeoutMessage : "Timed out while waiting for the server to respond.";
-        this.failed(reason);
-      };
-
-
-  this.failsOnExceptionCodes = function(codes) {
-    exceptionCodesIndicatingFailure = codes;
-  };
-
-  this.succeeded = function() {
-    destroy();
-    if (completionHandler) OT.$.callAsync(completionHandler, null);
-  };
-
-  this.failed = function(reason) {
-    destroy();
-    if (completionHandler) OT.$.callAsync(completionHandler, new OT.Error(null, reason));
-  };
-
-  parent.on('exception', onException, this);
-  timeoutInterval = setTimeout(onTimeout.bind(this), REQUEST_TIMEOUT);
-};
+!(function(window) {
 
 
 
@@ -13765,1056 +15816,838 @@ var RemoteWork = function RemoteWork (parent, success, error, options) {
 
 
 
-OT.Session = function(sessionId) {
-  
-  
-  if (!OT.checkSystemRequirements()) {
+
+
+
+
+
+
+  OT.Session = function(apiKey, sessionId) {
+    
+    
+    if (!OT.checkSystemRequirements()) {
       OT.upgradeSystemRequirements();
       return;
-  }
-
-  var _initialConnection = true,
-      _apiKey,
-      _token,
-      _sessionId = sessionId,
-      _socket,
-      _widgetId = OT.$.uuid(),
-      _analytics = new OT.Analytics(),
-      _connectionId,
-      _callbacks = {
-        forceDisconnect: {},
-        forceUnpublish: {}
-      };
-
-
-  OT.$.eventing(this);
-  var setState = OT.$.statable(this, ['disconnected', 'connecting', 'connected', 'disconnecting'], 'disconnected');
-
-  this.connections = new OT.Collection();
-  this.streams = new OT.Collection();
-
-
-	
-	
-	
-
-	var
-  
-  
-  sessionConnectFailed = function(reason, code) {
-    setState('disconnected');
-
-    OT.error(reason);
-
-    this.trigger('sessionConnectFailed', reason);
-
-    TB.handleJsException(reason, code || OT.ExceptionCodes.CONNECT_FAILED, {
-      session: this
-    });
-  },
-
-	sessionDisconnectedHandler = function(event) {
-    var reason = event.reason;
-    if(reason == "networkTimedout") {
-      reason = "networkDisconnected";
-      this.logEvent('Connect', 'TimeOutDisconnect', "reason", event.reason);
-    } else {
-      this.logEvent('Connect', 'Disconnected', "reason", event.reason);
     }
 
-		var publicEvent = new OT.SessionDisconnectEvent('sessionDisconnected', reason);
+    if(sessionId == null) {
+      sessionId = apiKey;
+      apiKey = null;
+    }
 
-    reset.call(this);
-    disconnectComponents.call(this);
+    var _initialConnection = true,
+        _apiKey = apiKey,
+        _token,
+        _sessionId = sessionId,
+        _socket,
+        _widgetId = OT.$.uuid(),
+        _connectionId,
+        _analytics = new OT.Analytics(),
+        sessionConnectFailed,
+        sessionDisconnectedHandler,
+        connectionCreatedHandler,
+        connectionDestroyedHandler,
+        streamCreatedHandler,
+        streamPropertyModifiedHandler,
+        streamDestroyedHandler,
+        archiveCreatedHandler,
+        archiveDestroyedHandler,
+        archiveUpdatedHandler,
+        reset,
+        disconnectComponents,
+        destroyPublishers,
+        destroySubscribers,
+        connectMessenger,
+        getSessionInfo,
+        onSessionInfoResponse,
+        permittedTo,
+        dispatchError;
 
-		var defaultAction = function() {
-      if (!publicEvent.isDefaultPrevented()) destroyComponents.call(this, publicEvent.reason);
-		}.bind(this);
 
-		this.dispatchEvent(publicEvent, defaultAction);
-	},
+    OT.$.eventing(this);
+    var setState = OT.$.statable(this, [
+      'disconnected', 'connecting', 'connected', 'disconnecting'
+    ], 'disconnected');
 
-  connectionCreatedHandler = function(connection) {
-    
-    if (connection.id.match(/^symphony\./)) return;
+    this.connections = new OT.Collection();
+    this.streams = new OT.Collection();
+    this.archives = new OT.Collection();
 
-    this.dispatchEvent(new OT.ConnectionEvent(
+
+  
+  
+  
+
+  
+  
+    sessionConnectFailed = function(reason, code) {
+      setState('disconnected');
+
+      OT.error(reason);
+
+      this.trigger('sessionConnectFailed',
+        new OT.Error(code || OT.ExceptionCodes.CONNECT_FAILED, reason));
+
+      OT.handleJsException(reason, code || OT.ExceptionCodes.CONNECT_FAILED, {
+        session: this
+      });
+    };
+
+    sessionDisconnectedHandler = function(event) {
+      var reason = event.reason;
+      if(reason === 'networkTimedout') {
+        reason = 'networkDisconnected';
+        this.logEvent('Connect', 'TimeOutDisconnect', 'reason', event.reason);
+      } else {
+        this.logEvent('Connect', 'Disconnected', 'reason', event.reason);
+      }
+
+      var publicEvent = new OT.SessionDisconnectEvent('sessionDisconnected', reason);
+
+      reset.call(this);
+      disconnectComponents.call(this, reason);
+
+      var defaultAction = function() {
+        
+        destroyPublishers.call(this, publicEvent.reason);
+        
+        if (!publicEvent.isDefaultPrevented()) destroySubscribers.call(this, publicEvent.reason);
+      }.bind(this);
+
+      this.dispatchEvent(publicEvent, defaultAction);
+    };
+
+    connectionCreatedHandler = function(connection) {
+      
+      if (connection.id.match(/^symphony\./)) return;
+
+      this.dispatchEvent(new OT.ConnectionEvent(
         OT.Event.names.CONNECTION_CREATED,
-        [connection]
-    ));
-  },
+        connection
+      ));
+    };
 
-	connectionDestroyedHandler = function(connection, reason) {
-    
-    if (connection.id.match(/^symphony\./)) return;
+    connectionDestroyedHandler = function(connection, reason) {
+      
+      if (connection.id.match(/^symphony\./)) return;
 
-    
-    
-    
-    if (connection.id === _socket.id) return;
+      
+      
+      
+      if (connection.id === _socket.id) return;
 
-    
-    if (_callbacks.forceDisconnect[connection.id]) {
-      var callback = _callbacks.forceDisconnect[connection.id];
-      delete _callbacks.forceDisconnect[connection.id];
+      this.dispatchEvent(
+        new OT.ConnectionEvent(
+          OT.Event.names.CONNECTION_DESTROYED,
+          connection,
+          reason
+        )
+      );
+    };
 
+    streamCreatedHandler = function(stream) {
+      if(stream.connection.id !== this.connection.id) {
+        this.dispatchEvent(new OT.StreamEvent(
+          OT.Event.names.STREAM_CREATED,
+          stream,
+          null,
+          false
+        ));
+      }
+    };
 
-      if (reason !== 'forceDisconnected') {
-        OT.warn("Expected a forceDisconnect for connection " + connection.id + ", but a " + reason + " was received instead.");
+    streamPropertyModifiedHandler = function(event) {
+      var stream = event.target,
+          propertyName = event.changedProperty,
+          newValue = event.newValue;
+
+      if (propertyName === 'orientation') {
+        propertyName = 'videoDimensions';
+        newValue = {width: newValue.width, height: newValue.height};
       }
 
-      callback.succeeded();
-    }
+      this.dispatchEvent(new OT.StreamPropertyChangedEvent(
+        OT.Event.names.STREAM_PROPERTY_CHANGED,
+        stream,
+        propertyName,
+        event.oldValue,
+        newValue
+      ));
+    };
 
-    this.dispatchEvent(
-      new OT.ConnectionEvent(
-        OT.Event.names.CONNECTION_DESTROYED,
-        [connection],
-        reason
-      )
-    );
-	},
+    streamDestroyedHandler = function(stream, reason) {
 
-  streamCreatedHandler = function(stream) {
-    this.dispatchEvent(new OT.StreamEvent(
-      OT.Event.names.STREAM_CREATED,
-      [stream]
-    ));
-  },
-
-  streamPropertyModifiedHandler = function(event) {
-    var stream = event.target,
-        propertyName = event.changedProperty,
-        newValue = event.newValue;
-
-    if (propertyName === 'orientation') {
-      propertyName = 'videoDimensions';
-      newValue = {width: newValue.width, height: newValue.height};
-    }
-
-    this.dispatchEvent(new OT.StreamPropertyChangedEvent(
-      OT.Event.names.STREAM_PROPERTY_CHANGED,
-      stream,
-      propertyName,
-      event.oldValue,
-      newValue
-    ));
-  },
-
-	streamDestroyedHandler = function(stream, reason) {
-    
-    if (_callbacks.forceUnpublish[stream.id]) {
-      var callback = _callbacks.forceUnpublish[stream.id];
-      delete _callbacks.forceUnpublish[stream.id];
-
-      if (reason !== 'forceUnpublished') {
-        OT.warn("Expected a forceUnpublish for stream " + stream.id + ", but a " + reason + " destroyed was received instead.");
-      }
-
-      callback.succeeded();
-    }
-
-    var event = new OT.StreamEvent('streamDestroyed', [stream], reason);
-
-    var defaultAction = function() {
-      if (!event.isDefaultPrevented()) {
-        
-        
-        var publisher = OT.publishers.where({streamId: stream.id})[0];
-        if (publisher) {
-          publisher._.unpublishFromSession(this);
-          publisher.destroy();
-        }
-
-        
-        OT.subscribers.where({streamId: stream.id}).forEach(function(subscriber) {
-          if (subscriber.session.id === this.id) {
-            this.unsubscribe(subscriber);
-          }
-        }, this);
-      }
-		}.bind(this);
-
-		this.dispatchEvent(event, defaultAction);
-	},
-
-
-	
-	reset = function() {
-    _apiKey = null;
-    _token = null;
-    setState('disconnected');
-
-    this.connections.destroy();
-    this.streams.destroy();
-	},
-
-  disconnectComponents = function() {
-    OT.publishers.where({session: this}).forEach(function(publisher) {
-      publisher.disconnect();
-    });
-
-    OT.subscribers.where({session: this}).forEach(function(subscriber) {
-      subscriber.disconnect();
-    });
-  },
-
-  destroyComponents = function(reason) {
-    OT.publishers.where({session: this}).forEach(function(publisher) {
-      publisher.destroy(reason);
-    });
-
-    OT.subscribers.where({session: this}).forEach(function(subscriber) {
-      subscriber.destroy(reason);
-    });
-  },
-
-	connectMessenger = function() {
-    TB.debug("OT.Session: connecting to Raptor");
-
-    _socket = new OT.Raptor.Socket(_widgetId, this.sessionInfo.messagingServer);
-    _socket.connect(_token, this.sessionInfo, function(error, sessionState) {
-      if (error) {
-        sessionConnectFailed.call(this, error.reason, error.code);
+      
+      
+      if(stream.connection.id === this.connection.id) {
+        OT.publishers.where({ streamId: stream.id }).forEach(function(publisher) {
+          publisher._.unpublishFromSession(this, reason);
+        }.bind(this));
         return;
       }
 
-      OT.debug("OT.Session: Received session state from Raptor", sessionState);
+      var event = new OT.StreamEvent('streamDestroyed', stream, reason, true);
 
-      _connectionId = this.connection.id;
-      setState('connected');
+      var defaultAction = function() {
+        if (!event.isDefaultPrevented()) {
+          
+          OT.subscribers.where({streamId: stream.id}).forEach(function(subscriber) {
+            if (subscriber.session.id === this.id) {
+              if(subscriber.stream) {
+                subscriber.destroy('streamDestroyed');
+              }
+            }
+          }, this);
+        } else {
+          
+        }
+      }.bind(this);
 
-      
-      this.connection.on('destroyed', sessionDisconnectedHandler, this);
+      this.dispatchEvent(event, defaultAction);
+    };
 
-      
-      this.connections.on({
-        add: connectionCreatedHandler,
-        remove: connectionDestroyedHandler
-      }, this);
+    archiveCreatedHandler = function(archive) {
+      this.dispatchEvent(new OT.ArchiveEvent('archiveStarted', archive));
+    };
 
-      
-      this.streams.on({
-        add: streamCreatedHandler,
-        remove: streamDestroyedHandler,
-        update: streamPropertyModifiedHandler
-      }, this);
+    archiveDestroyedHandler = function(archive) {
+      this.dispatchEvent(new OT.ArchiveEvent('archiveDestroyed', archive));
+    };
 
-      this.dispatchEvent(new OT.SessionConnectEvent(
-        OT.Event.names.SESSION_CONNECTED,
-        sessionState.connections,
-        sessionState.streams,
-        sessionState.archives
-      ));
-    }.bind(this));
-	},
+    archiveUpdatedHandler = function(event) {
+      var archive = event.target,
+        propertyName = event.changedProperty,
+        newValue = event.newValue;
 
-  getSessionInfo = function() {
-    if (this.is('connecting')) {
-      OT.SessionInfo.get(
-        this,
-        onSessionInfoResponse.bind(this),
-        function(error) {
-          sessionConnectFailed.call(this, error.message + (error.code ? ' (' + error.code + ')' : ''));
-        }.bind(this)
-      );
-    }
-  },
+      if(propertyName === 'status' && newValue === 'stopped') {
+        this.dispatchEvent(new OT.ArchiveEvent('archiveStopped', archive));
+      } else {
+        this.dispatchEvent(new OT.ArhiveEvent('archiveUpdated', archive));
+      }
+    };
 
-  onSessionInfoResponse = function(sessionInfo) {
-    if (this.is('connecting')) {
-      this.sessionInfo = sessionInfo;
-      if (this.sessionInfo.partnerId && this.sessionInfo.partnerId != _apiKey) {
+    
+    reset = function() {
+      _token = null;
+      setState('disconnected');
+
+      this.connections.destroy();
+      this.streams.destroy();
+      this.archives.destroy();
+    };
+
+    disconnectComponents = function(reason) {
+      OT.publishers.where({session: this}).forEach(function(publisher) {
+        publisher.disconnect(reason);
+      });
+
+      OT.subscribers.where({session: this}).forEach(function(subscriber) {
+        subscriber.disconnect();
+      });
+    };
+
+    destroyPublishers = function(reason) {
+      OT.publishers.where({session: this}).forEach(function(publisher) {
+        publisher._.streamDestroyed(reason);
+      });
+    };
+
+    destroySubscribers = function(reason) {
+      OT.subscribers.where({session: this}).forEach(function(subscriber) {
+        subscriber.destroy(reason);
+      });
+    };
+
+    connectMessenger = function() {
+      OT.debug('OT.Session: connecting to Raptor');
+
+      var socketUrl = OT.properties.messagingProtocol + '://' + this.sessionInfo.messagingServer +
+            ':' + OT.properties.messagingPort + '/rumorwebsocketsv2',
+          symphonyUrl = OT.properties.symphonyAddresss || 'symphony.' +
+            this.sessionInfo.messagingServer;
+
+      _socket = new OT.Raptor.Socket(_widgetId, socketUrl, symphonyUrl,
+        OT.SessionDispatcher(this));
+
+      var analyticsPayload = [
+        socketUrl, navigator.userAgent, OT.properties.version,
+        window.externalHost ? 'yes' : 'no'
+      ];
+
+      _socket.connect(_token, this.sessionInfo, function(error, sessionState) {
+        if (error) {
+          analyticsPayload.splice(0,0,error.message);
+          this.logEvent('Connect', 'Failure',
+            'reason|webSocketServerUrl|userAgent|sdkVersion|chromeFrame',
+            analyticsPayload.map(function(e) { return e.replace('|', '\\|'); }).join('|'));
+
+          sessionConnectFailed.call(this, error.message, error.code);
+          return;
+        }
+
+        OT.debug('OT.Session: Received session state from Raptor', sessionState);
+
+        setState('connected');
+
+        this.logEvent('Connect', 'Success',
+          'webSocketServerUrl|userAgent|sdkVersion|chromeFrame',
+          analyticsPayload.map(function(e) {
+            return e.replace('|', '\\|');
+          }).join('|'), {connectionId: this.connection.id});
+
+        
+        this.connection.on('destroyed', sessionDisconnectedHandler, this);
+
+        
+        this.connections.on({
+          add: connectionCreatedHandler,
+          remove: connectionDestroyedHandler
+        }, this);
+
+        
+        this.streams.on({
+          add: streamCreatedHandler,
+          remove: streamDestroyedHandler,
+          update: streamPropertyModifiedHandler
+        }, this);
+
+        this.archives.on({
+          add: archiveCreatedHandler,
+          remove: archiveDestroyedHandler,
+          update: archiveUpdatedHandler
+        }, this);
+
+        this.dispatchEvent(
+          new OT.SessionConnectEvent(OT.Event.names.SESSION_CONNECTED), function() {
+            this.connections._triggerAddEvents(); 
+            this.streams._triggerAddEvents(); 
+            this.archives._triggerAddEvents();
+          }.bind(this)
+        );
+
+      }.bind(this));
+    };
+
+    getSessionInfo = function() {
+      if (this.is('connecting')) {
+        OT.SessionInfo.get(
+          this,
+          onSessionInfoResponse.bind(this),
+          function(error) {
+            sessionConnectFailed.call(this, error.message +
+              (error.code ? ' (' + error.code + ')' : ''), error.code);
+          }.bind(this)
+        );
+      }
+    };
+
+    onSessionInfoResponse = function(sessionInfo) {
+      if (this.is('connecting')) {
+        this.sessionInfo = sessionInfo;
+        if (this.sessionInfo.partnerId && this.sessionInfo.partnerId !== _apiKey) {
           _apiKey = this.sessionInfo.partnerId;
 
-          var reason = 'Authentication Error: The apiKey passed into the session.connect ' +
-            'method does not match the apiKey in the token or session you are trying to ' +
-            'connect to.';
+          var reason = 'Authentication Error: The API key does not match the token or session.';
 
           this.logEvent('Connect', 'Failure', 'reason', 'GetSessionInfo:' +
             OT.ExceptionCodes.AUTHENTICATION_ERROR + ':' + reason);
 
           sessionConnectFailed.call(this, reason, OT.ExceptionCodes.AUTHENTICATION_ERROR);
-      } else {
+        } else {
           connectMessenger.call(this);
+        }
       }
-    }
-  },
-
-  
-  permittedTo = function(action) {
-      return _socket && _socket.permittedTo(action);
-  };
-
-  this.logEvent = function(action, variation, payload_type, payload) {
-    var event = {
-      action: action,
-      variation: variation,
-      payload_type: payload_type,
-      payload: payload,
-      session_id: _sessionId,
-      partner_id: _apiKey,
-      widget_id: _widgetId,
-      widget_type: 'Controller'
     };
-    if (this.connection && this.connection.id) event.connection_id = this.connection.id;
-    else if (_connectionId) event.connection_id = _connectionId;
-    _analytics.logEvent(event);
-  };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this.connect = function(apiKey, token, completionHandler) {
-    if (this.is('connecting', 'connected')) {
-      OT.warn("OT.Session: Cannot connect, the session is already " + this.state);
-      return;
-    }
-
-    reset.call(this);
-    setState('connecting');
-    _token = token;
 
     
-    if (_initialConnection) {
-      _initialConnection = false;
-    } else {
-      _widgetId = OT.$.uuid();
-    }
-
-    _apiKey = apiKey.toString();
-
-    
-    if (OT.APIKEY.length === 0) {
-        OT.APIKEY = _apiKey;
-    }
-
-    if (completionHandler && OT.$.isFunction(completionHandler)) {
-      this.once(OT.Event.names.SESSION_CONNECTED, completionHandler.bind(null, null));
-      this.once('sessionConnectFailed', completionHandler);
-    }
-
-    var analyticsPayload = [
-      navigator.userAgent, OT.properties.version,
-      window.externalHost ? 'yes' : 'no'
-    ];
-    this.logEvent( 'Connect', 'Attempt',
-      'userAgent|sdkVersion|chromeFrame',
-      analyticsPayload.map(function(e) { return e.replace('|', '\\|'); }).join('|')
-    );
-
-    getSessionInfo.call(this);
-  };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this.disconnect = function() {
-    if (_socket && _socket.isNot('disconnected')) {
-      setState('disconnecting');
-      _socket.disconnect();
-    }
-    else {
-      reset.call(this);
-    }
-  };
-
-  this.destroy = function(reason, quiet) {
-    this.streams.destroy();
-    this.connections.destroy();
-    this.disconnect();
-  };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this.publish = function(publisher, properties, completionHandler) {
-    var errorMsg;
-
-    if (this.isNot('connected')) {
-      _analytics.logError(1010, 'tb.exception', "We need to be connected before you can publish", null, {
-        action: 'publish',
-        variation: 'Failure',
-        payload_type: "reason",
-        payload: "We need to be connected before you can publish",
+    permittedTo = function(action) {
+      return this.capabilities.permittedTo(action);
+    }.bind(this);
+
+    dispatchError = function(code, message, completionHandler) {
+      OT.dispatchError(code, message, completionHandler, this);
+    }.bind(this);
+
+    this.logEvent = function(action, variation, payloadType, payload, options) {
+      
+      var event = {
+        action: action,
+        variation: variation,
+        payload_type: payloadType,
+        payload: payload,
         session_id: _sessionId,
         partner_id: _apiKey,
-        widgetId: _widgetId,
+        widget_id: _widgetId,
         widget_type: 'Controller'
-      });
+      };
+      if (this.connection && this.connection.id) _connectionId = event.connection_id =
+        this.connection.id;
+      else if (_connectionId) event.connection_id = _connectionId;
+
+      if (options) event = OT.$.extend(options, event);
+      _analytics.logEvent(event);
+    };
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    this.connect = function(token) {
+
+      if(apiKey == null && arguments.length > 1 &&
+        (typeof arguments[0] === 'string' || typeof arguments[0] === 'number') &&
+        typeof arguments[1] === 'string') {
+        _apiKey = token.toString();
+        token = arguments[1];
+      }
+
+      
+      var completionHandler = arguments[arguments.length - 1];
+
+      if (this.is('connecting', 'connected')) {
+        OT.warn('OT.Session: Cannot connect, the session is already ' + this.state);
+        return this;
+      }
+
+      reset.call(this);
+      setState('connecting');
+      _token = !OT.$.isFunction(token) && token;
+
+      
+      if (_initialConnection) {
+        _initialConnection = false;
+      } else {
+        _widgetId = OT.$.uuid();
+      }
 
       if (completionHandler && OT.$.isFunction(completionHandler)) {
-        errorMsg = "We need to be connected before you can publish";
-        OT.$.callAsync(completionHandler, new OT.Error(OT.ExceptionCodes.NOT_CONNECTED, errorMsg));
+        this.once('sessionConnected', completionHandler.bind(null, null));
+        this.once('sessionConnectFailed', completionHandler);
       }
 
-      return null;
-    }
-
-    if (!permittedTo("publish")) {
-      this.logEvent('publish', 'Failure', 'reason', 'This token does not allow publishing. The role must be at least `publisher` to enable this functionality');
-
-      TB.handleJsException("This token does not allow publishing. The role must be at least `publisher` to enable this functionality", OT.ExceptionCodes.UNABLE_TO_PUBLISH, {
-        session: this
-      });
-      return null;
-    }
-
-    
-    if (!publisher || typeof(publisher)==='string' || publisher.nodeType == Node.ELEMENT_NODE){
+      if(_apiKey == null || OT.$.isFunction(_apiKey)) {
+        setTimeout(sessionConnectFailed.bind(this,
+          'API Key is undefined. You must pass an API Key to initSession.',
+          OT.ExceptionCodes.AUTHENTICATION_ERROR));
+        return this;
+      }
       
-     publisher = OT.initPublisher(this.apiKey, publisher, properties);
-    }
-    else if (publisher instanceof OT.Publisher){
+      if (!_sessionId) {
+        setTimeout(sessionConnectFailed.bind(this,
+            'SessionID is undefined. You must pass a sessionID to initSession.',
+          OT.ExceptionCodes.INVALID_SESSION_ID));
+        return this;
+      }
+
+      _apiKey = _apiKey.toString();
 
       
-      if( "session" in publisher && publisher.session && "sessionId" in publisher.session ){
+      if (OT.APIKEY.length === 0) {
+        OT.APIKEY = _apiKey;
+      }
+
+      var analyticsPayload = [
+        navigator.userAgent, OT.properties.version,
+        window.externalHost ? 'yes' : 'no'
+      ];
+      this.logEvent( 'Connect', 'Attempt',
+        'userAgent|sdkVersion|chromeFrame',
+        analyticsPayload.map(function(e) { return e.replace('|', '\\|'); }).join('|')
+      );
+
+      getSessionInfo.call(this);
+      return this;
+    };
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    this.disconnect = function() {
+      if (_socket && _socket.isNot('disconnected')) {
+        setState('disconnecting');
+        _socket.disconnect();
+      }
+      else {
+        reset.call(this);
+      }
+    };
+
+    this.destroy = function() {
+      this.streams.destroy();
+      this.connections.destroy();
+      this.archives.destroy();
+      this.disconnect();
+    };
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    this.publish = function(publisher, properties, completionHandler) {
+      if(typeof publisher === 'function') {
+        completionHandler = publisher;
+        publisher = undefined;
+      }
+      if(typeof properties === 'function') {
+        completionHandler = properties;
+        properties = undefined;
+      }
+      if (this.isNot('connected')) {
         
-        if( publisher.session.sessionId === this.sessionId){
-          OT.warn("Cannot publish " + publisher.guid + " again to " + this.sessionId + ". Please call session.unpublish(publisher) first.");
+        _analytics.logError(1010, 'OT.exception',
+          'We need to be connected before you can publish', null, {
+          action: 'publish',
+          variation: 'Failure',
+          payload_type: 'reason',
+          payload: 'We need to be connected before you can publish',
+          session_id: _sessionId,
+          partner_id: _apiKey,
+          widgetId: _widgetId,
+          widget_type: 'Controller'
+        });
+
+        if (completionHandler && OT.$.isFunction(completionHandler)) {
+          dispatchError(OT.ExceptionCodes.NOT_CONNECTED,
+            'We need to be connected before you can publish', completionHandler);
         }
-        else {
-          OT.warn("Cannot publish " + publisher.guid + " publisher already attached to " + publisher.session.sessionId+ ". Please call session.unpublish(publisher) first.");
-        }
+
+        return null;
       }
-    }
-    else {
-      errorMsg = "Session.publish :: First parameter passed in is neither a string nor an instance of the Publisher";
-      OT.error(errorMsg);
-      throw new Error(errorMsg);
-    }
 
-    if (completionHandler && OT.$.isFunction(completionHandler)) publisher.once('publishComplete', completionHandler);
-
-    
-    publisher._.publishToSession(this);
-
-    
-    return publisher;
-  };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this.unpublish = function(publisher) {
-    if (!publisher) {
-      OT.error('OT.Session.unpublish: publisher parameter missing.');
-      return;
-    }
-
-    
-    publisher._.unpublishFromSession(this);
-  };
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this.subscribe = function(stream, targetElement, properties, completionHandler) {
-    var errorMsg;
-
-    if (!this.connection || !this.connection.connectionId) {
-      errorMsg = "Session.subscribe :: Connection required to subscribe";
-      OT.error(errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    if (!stream) {
-      errorMsg = "Session.subscribe :: stream cannot be null";
-      OT.error(errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    if (!stream.hasOwnProperty("streamId")) {
-      errorMsg = "Session.subscribe :: invalid stream object";
-      OT.error(errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    var subscriber = new OT.Subscriber(targetElement, OT.$.extend(properties || {}, {
-        session: this
-    }));
-
-    if (completionHandler && OT.$.isFunction(completionHandler)) subscriber.once('subscribeComplete', completionHandler);
-
-    OT.subscribers.add(subscriber);
-    subscriber.subscribe(stream);
-
-    return subscriber;
-  };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this.unsubscribe = function(subscriber) {
-    if (!subscriber) {
-      var errorMsg = "OT.Session.unsubscribe: subscriber cannot be null";
-      OT.error(errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    if (!subscriber.stream) {
-        OT.warn("OT.Session.unsubscribe:: tried to unsubscribe a subscriber that had no stream");
-        return false;
-    }
-
-    OT.debug("OT.Session.unsubscribe: subscriber " + subscriber.id);
-
-    subscriber.destroy();
-
-    return true;
-  };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-  this.getSubscribersForStream = function(stream) {
-    return OT.subscribers.where({streamId: stream.id});
-  };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this.getPublisherForStream = function(stream) {
-    var streamId;
-
-    if (typeof(stream) == "string") {
-      streamId = stream;
-    } else if (typeof(stream) == "object" && stream && stream.hasOwnProperty("id")) {
-      streamId = stream.id;
-    } else {
-      errorMsg = "Session.getPublisherForStream :: Invalid stream type";
-      OT.error(errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    return OT.publishers.where({streamId: streamId})[0];
-  };
-
-
-  
-  this._ = {
-    jsepSubscribe: function(stream, subscribeToVideo, subscribeToAudio) {
-      return _socket.jsepSubscribe(stream.connection.id, stream.id, subscribeToVideo, subscribeToAudio);
-    }.bind(this),
-
-    jsepUnsubscribe: function(stream) {
-      return _socket.jsepUnsubscribe(stream.connection.id, stream.id);
-    }.bind(this),
-
-    jsepCandidate: function(toConnectionId, stream, candidate) {
-      return _socket.jsepCandidate(toConnectionId, stream.id, candidate);
-    }.bind(this),
-
-    jsepOffer: function(toConnectionId, stream, offerSDP) {
-      return _socket.jsepOffer(toConnectionId, stream.id, offerSDP);
-    }.bind(this),
-
-    jsepAnswer: function(toConnectionId, stream, answerSDP) {
-      return _socket.jsepAnswer(toConnectionId, stream.id, answerSDP);
-    }.bind(this),
-
-    
-    
-    dispatchSignal: function(fromConnection, type, data) {
-      var event = new OT.SignalEvent(type, data, fromConnection);
-      event.target = this;
+      if (!permittedTo('publish')) {
+        this.logEvent('publish', 'Failure', 'reason',
+          'This token does not allow publishing. The role must be at least `publisher` ' +
+          'to enable this functionality');
+        dispatchError(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+          'This token does not allow publishing. The role must be at least `publisher` ' +
+          'to enable this functionality', completionHandler);
+        return null;
+      }
 
       
-      
-      this.trigger(OT.Event.names.SIGNAL, event);
+      if (!publisher || typeof(publisher)==='string' || publisher.nodeType === Node.ELEMENT_NODE) {
+        
+        publisher = OT.initPublisher(publisher, properties);
 
-      
-      if (type) this.dispatchEvent(event);
-    }.bind(this),
+      } else if (publisher instanceof OT.Publisher){
 
-    modifySubscriber: function(subscriber, key, value) {
-      return _socket.modifySubscriber(subscriber, key, value);
-    }.bind(this),
+        
+        if ('session' in publisher && publisher.session && 'sessionId' in publisher.session) {
+          
+          if( publisher.session.sessionId === this.sessionId){
+            OT.warn('Cannot publish ' + publisher.guid + ' again to ' +
+              this.sessionId + '. Please call session.unpublish(publisher) first.');
+          } else {
+            OT.warn('Cannot publish ' + publisher.guid + ' publisher already attached to ' +
+              publisher.session.sessionId+ '. Please call session.unpublish(publisher) first.');
+          }
+        }
 
-    createStream: function(publisherId, name, orientation, encodedWidth, encodedHeight, hasAudio, hasVideo) {
-      _socket.createStream(publisherId, name, orientation, encodedWidth, encodedHeight, hasAudio, hasVideo);
-    }.bind(this),
-
-    modifyStream: function(streamId, key, value) {
-      if (!streamId || !key || value === void 0) {
-        OT.error('OT.Session.modifyStream: must provide streamId, key and value to modify a stream property.');
+      } else {
+        dispatchError(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+          'Session.publish :: First parameter passed in is neither a ' +
+          'string nor an instance of the Publisher',
+          completionHandler);
         return;
       }
 
-      _socket.updateStream(streamId, key, value);
-    }.bind(this),
+      publisher.once('publishComplete', function(err) {
+        if (err) {
+          dispatchError(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
+            'Session.publish :: ' + err.message,
+            completionHandler);
+          return;
+        }
 
-    destroyStream: function(streamId) {
-      _socket.destroyStream(streamId);
-    }.bind(this)
-  };
+        if (completionHandler && OT.$.isFunction(completionHandler)) {
+          completionHandler.apply(null, arguments);
+        }
+      });
 
+      
+      publisher._.publishToSession(this);
+
+      
+      return publisher;
+    };
 
  
 
@@ -14897,124 +16730,16 @@ OT.Session = function(sessionId) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this.signal = function(options, completion) {
-    _socket.signal(options, completion);
-  };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  this.forceDisconnect = function(connectionOrConnectionId, completionHandler) {
-    var notPermittedErrorMsg = "This token does not allow forceDisconnect. The role must be at least `moderator` to enable this functionality";
-
-    if (permittedTo("forceDisconnect")) {
-      var connectionId = typeof(connectionOrConnectionId) === 'string' ? connectionOrConnectionId : connectionOrConnectionId.id;
-
-      if (completionHandler) {
-        var work = new RemoteWork(this, completionHandler, {
-          timeoutMessage: "Timed out while waiting for connection " + connectionId + " to be force Disconnected."
-        });
-
-        work.failsOnExceptionCodes({
-          1520: notPermittedErrorMsg
-        });
-
-        _callbacks.forceDisconnect[connectionId] = work;
+    this.unpublish = function(publisher) {
+      if (!publisher) {
+        OT.error('OT.Session.unpublish: publisher parameter missing.');
+        return;
       }
 
-      _socket.forceDisconnect(connectionId);
-    } else {
       
-      if (completionHandler) OT.$.callAsync(completionHandler, new OT.Error(null, notPermittedErrorMsg));
+      publisher._.unpublishFromSession(this, 'unpublished');
+    };
 
-      TB.handleJsException(notPermittedErrorMsg, OT.ExceptionCodes.UNABLE_TO_FORCE_DISCONNECT, {
-        session: this
-      });
-    }
-  };
 
  
 
@@ -15051,188 +16776,887 @@ OT.Session = function(sessionId) {
 
 
 
-  this.forceUnpublish = function(streamOrStreamId, completionHandler) {
-    var notPermittedErrorMsg = "This token does not allow forceUnpublish. The role must be at least `moderator` to enable this functionality";
 
-    if (permittedTo("forceUnpublish")) {
-      var stream = typeof(streamOrStreamId) === 'string' ? this.streams.get(streamOrStreamId) : streamOrStreamId;
 
-      if (completionHandler) {
-        var work = new RemoteWork(this, completionHandler, {
-          timeoutMessage: "Timed out while waiting for stream " + stream.id + " to be force unpublished."
-        });
 
-        work.failsOnExceptionCodes({
-          1530: notPermittedErrorMsg
-        });
 
-        _callbacks.forceUnpublish[stream.id] = work;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    this.subscribe = function(stream, targetElement, properties, completionHandler) {
+
+      if (!this.connection || !this.connection.connectionId) {
+        dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
+                      'Session.subscribe :: Connection required to subscribe',
+                      completionHandler);
+        return;
       }
 
-      _socket.forceUnpublish(stream.id);
-    } else {
-      
-      if (completionHandler) OT.$.callAsync(completionHandler, new OT.Error(null, notPermittedErrorMsg));
+      if (!stream) {
+        dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
+                      'Session.subscribe :: stream cannot be null',
+                      completionHandler);
+        return;
+      }
 
-      TB.handleJsException(notPermittedErrorMsg, OT.ExceptionCodes.UNABLE_TO_FORCE_UNPUBLISH, {
+      if (!stream.hasOwnProperty('streamId')) {
+        dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
+                      'Session.subscribe :: invalid stream object',
+                      completionHandler);
+        return;
+      }
+
+      if(typeof targetElement === 'function') {
+        completionHandler = targetElement;
+        targetElement = undefined;
+      }
+
+      if(typeof properties === 'function') {
+        completionHandler = properties;
+        properties = undefined;
+      }
+
+      var subscriber = new OT.Subscriber(targetElement, OT.$.extend(properties || {}, {
         session: this
+      }));
+
+      subscriber.once('subscribeComplete', function(err) {
+        if (err) {
+          dispatchError(OT.ExceptionCodes.UNABLE_TO_SUBSCRIBE,
+                'Session.subscribe :: ' + err.message,
+                completionHandler);
+
+          return;
+        }
+
+        if (completionHandler && OT.$.isFunction(completionHandler)) {
+          completionHandler.apply(null, arguments);
+        }
       });
-    }
+
+      OT.subscribers.add(subscriber);
+      subscriber.subscribe(stream);
+
+      return subscriber;
+    };
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    this.unsubscribe = function(subscriber) {
+      if (!subscriber) {
+        var errorMsg = 'OT.Session.unsubscribe: subscriber cannot be null';
+        OT.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      if (!subscriber.stream) {
+        OT.warn('OT.Session.unsubscribe:: tried to unsubscribe a subscriber that had no stream');
+        return false;
+      }
+
+      OT.debug('OT.Session.unsubscribe: subscriber ' + subscriber.id);
+
+      subscriber.destroy();
+
+      return true;
+    };
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+    this.getSubscribersForStream = function(stream) {
+      return OT.subscribers.where({streamId: stream.id});
+    };
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    this.getPublisherForStream = function(stream) {
+      var streamId,
+          errorMsg;
+
+      if (typeof stream === 'string') {
+        streamId = stream;
+      } else if (typeof stream === 'object' && stream && stream.hasOwnProperty('id')) {
+        streamId = stream.id;
+      } else {
+        errorMsg = 'Session.getPublisherForStream :: Invalid stream type';
+        OT.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      return OT.publishers.where({streamId: streamId})[0];
+    };
+
+
+    
+    this._ = {
+      jsepCandidateP2p: function(streamId, subscriberId, candidate) {
+        return _socket.jsepCandidateP2p(streamId, subscriberId, candidate);
+      }.bind(this),
+
+      jsepCandidate: function(streamId, candidate) {
+        return _socket.jsepCandidate(streamId, candidate);
+      }.bind(this),
+
+      jsepOffer: function(streamId, offerSdp) {
+        return _socket.jsepOffer(streamId, offerSdp);
+      }.bind(this),
+
+      jsepOfferP2p: function(streamId, subscriberId, offerSdp) {
+        return _socket.jsepOfferP2p(streamId, subscriberId, offerSdp);
+      }.bind(this),
+
+      jsepAnswer: function(streamId, answerSdp) {
+        return _socket.jsepAnswer(streamId, answerSdp);
+      }.bind(this),
+
+      jsepAnswerP2p: function(streamId, subscriberId, answerSdp) {
+        return _socket.jsepAnswerP2p(streamId, subscriberId, answerSdp);
+      }.bind(this),
+
+      
+      
+      dispatchSignal: function(fromConnection, type, data) {
+        var event = new OT.SignalEvent(type, data, fromConnection);
+        event.target = this;
+
+        
+        
+        this.trigger(OT.Event.names.SIGNAL, event);
+
+        
+        if (type) this.dispatchEvent(event);
+      }.bind(this),
+
+      subscriberCreate: function(stream, subscriber, channelsToSubscribeTo, completion) {
+        return _socket.subscriberCreate(stream.id, subscriber.widgetId,
+          channelsToSubscribeTo, completion);
+      }.bind(this),
+
+      subscriberDestroy: function(stream, subscriber) {
+        return _socket.subscriberDestroy(stream.id, subscriber.widgetId);
+      }.bind(this),
+
+      subscriberUpdate: function(stream, subscriber, attributes) {
+        return _socket.subscriberUpdate(stream.id, subscriber.widgetId, attributes);
+      }.bind(this),
+
+      subscriberChannelUpdate: function(stream, subscriber, channel, attributes) {
+        return _socket.subscriberChannelUpdate(stream.id, subscriber.widgetId, channel.id,
+          attributes);
+      }.bind(this),
+
+      streamCreate: function(name, orientation, encodedWidth, encodedHeight, hasAudio, hasVideo,
+        frameRate, completion) {
+        _socket.streamCreate(name, orientation, encodedWidth, encodedHeight, hasAudio, hasVideo,
+          frameRate, OT.Config.get('bitrates', 'min', OT.APIKEY),
+          OT.Config.get('bitrates', 'max', OT.APIKEY), completion);
+      }.bind(this),
+
+      streamDestroy: function(streamId) {
+        _socket.streamDestroy(streamId);
+      }.bind(this),
+
+      streamChannelUpdate: function(stream, channel, attributes) {
+        _socket.streamChannelUpdate(stream.id, channel.id, attributes);
+      }.bind(this)
+    };
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    this.signal = function(options, completion) {
+      var _options = options,
+          _completion = completion;
+
+      if (OT.$.isFunction(_options)) {
+        _completion = _options;
+        _options = null;
+      }
+
+      _socket.signal(_options, _completion);
+      if (options && options.data && (typeof(options.data) !== 'string')) {
+        OT.warn('Signaling of anything other than Strings is deprecated. ' +
+                'Please update the data property to be a string.');
+      }
+      this.logEvent('signal', 'send', 'type',
+        (options && options.data) ? typeof(options.data) : 'null');
+    };
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    this.forceDisconnect = function(connectionOrConnectionId, completionHandler) {
+      var notPermittedErrorMsg = 'This token does not allow forceDisconnect. ' +
+        'The role must be at least `moderator` to enable this functionality';
+
+      if (permittedTo('forceDisconnect')) {
+        var connectionId = typeof connectionOrConnectionId === 'string' ?
+          connectionOrConnectionId : connectionOrConnectionId.id;
+
+        _socket.forceDisconnect(connectionId, function(err) {
+          if (err) {
+            dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_DISCONNECT,
+              notPermittedErrorMsg, completionHandler);
+
+          } else if (completionHandler && OT.$.isFunction(completionHandler)) {
+            completionHandler.apply(null, arguments);
+          }
+        });
+      } else {
+        
+        dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_DISCONNECT,
+          notPermittedErrorMsg, completionHandler);
+      }
+    };
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    this.forceUnpublish = function(streamOrStreamId, completionHandler) {
+      var notPermittedErrorMsg = 'This token does not allow forceUnpublish. ' +
+        'The role must be at least `moderator` to enable this functionality';
+
+      if (permittedTo('forceUnpublish')) {
+        var stream = typeof streamOrStreamId === 'string' ?
+          this.streams.get(streamOrStreamId) : streamOrStreamId;
+
+        _socket.forceUnpublish(stream.id, function(err) {
+          if (err) {
+            dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_UNPUBLISH,
+              notPermittedErrorMsg, completionHandler);
+          } else if (completionHandler && OT.$.isFunction(completionHandler)) {
+            completionHandler.apply(null, arguments);
+          }
+        });
+      } else {
+        
+        dispatchError(OT.ExceptionCodes.UNABLE_TO_FORCE_UNPUBLISH,
+          notPermittedErrorMsg, completionHandler);
+      }
+    };
+
+    this.getStateManager = function() {
+      OT.warn('Fixme: Have not implemented session.getStateManager');
+    };
+
+    OT.$.defineGetters(this, {
+      apiKey: function() { return _apiKey; },
+      token: function() { return _token; },
+      connected: function() { return this.is('connected'); },
+      connection: function() {
+        return _socket && _socket.id ? this.connections.get(_socket.id) : null;
+      },
+      sessionId: function() { return _sessionId; },
+      id: function() { return _sessionId; },
+      capabilities: function() {
+        var connection =  this.connection;
+        return connection ? connection.permissions : new OT.Capabilities([]);
+      }.bind(this)
+    }, true);
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   };
-
-  this.getStateManager = function() {
-      OT.warn("Fixme: Have not implemented session.getStateManager");
-  };
-
-  OT.$.defineGetters(this, {
-    apiKey: function() { return _apiKey; },
-    token: function() { return _token; },
-    connected: function() { return this.is('connected'); },
-    connection: function() { return _socket && _socket.id ? this.connections.get(_socket.id) : null; },
-    capabilities: function() { return _socket ? _socket.capabilities : new OT.Capabilities([]); },
-    sessionId: function() { return _sessionId; },
-    id: function() { return _sessionId; }
-  }, true);
-
-
-	
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-};
 
 })(window);
-(function(window) {
+!(function() {
   var style = document.createElement('link');
   style.type = 'text/css';
   style.media = 'screen';
@@ -15241,7 +17665,7 @@ OT.Session = function(sessionId) {
   var head = document.head || document.getElementsByTagName('head')[0];
   head.appendChild(style);
 })(window);
-(function(window){
+!(function(){
 
 
 
@@ -15249,8 +17673,9 @@ OT.Session = function(sessionId) {
 
 
 
-if ( typeof define === "function" && define.amd ) {
-  define( "TB", [], function () { return TB; } );
-}
+
+  if (typeof define === 'function' && define.amd) {
+    define( 'TB', [], function () { return TB; } );
+  }
 
 })(window);
