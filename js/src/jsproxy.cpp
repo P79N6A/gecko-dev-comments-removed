@@ -683,7 +683,11 @@ ParsePropertyDescriptorObject(JSContext *cx, HandleObject obj, const Value &v,
         return false;
     if (complete)
         d.complete();
-    d.populatePropertyDescriptor(obj, desc);
+    desc.object().set(obj);
+    desc.value().set(d.hasValue() ? d.value() : UndefinedValue());
+    desc.setAttributes(d.attributes());
+    desc.setGetter(d.getter());
+    desc.setSetter(d.setter());
     return true;
 }
 
@@ -1199,15 +1203,14 @@ IsAccessorDescriptor(const PropertyDescriptor &desc)
 
 
 static bool
-ValidatePropertyDescriptor(JSContext *cx, bool extensible, Handle<PropDesc> desc,
-                           Handle<PropertyDescriptor> current, bool *bp)
+ValidatePropertyDescriptor(JSContext *cx, Handle<PropDesc> desc, Handle<PropertyDescriptor> current,
+                           bool *bp)
 {
     
-    if (!current.object()) {
-        
-        *bp = extensible;
-        return true;
-    }
+
+
+
+    JS_ASSERT(current.object());
 
     
     if (!desc.hasValue() && !desc.hasWritable() && !desc.hasGet() && !desc.hasSet() &&
@@ -1297,6 +1300,18 @@ ValidatePropertyDescriptor(JSContext *cx, bool extensible, Handle<PropDesc> desc
     return true;
 }
 
+static bool
+ValidatePropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id, Handle<PropDesc> desc, bool *bp)
+{
+    
+    Rooted<PropertyDescriptor> current(cx);
+    if (!GetOwnPropertyDescriptor(cx, obj, id, &current))
+        return false;
+
+    return ValidatePropertyDescriptor(cx, desc, current, bp);
+}
+
+
 
 static bool
 IsSealed(JSContext* cx, HandleObject obj, HandleId id, bool *bp)
@@ -1340,6 +1355,113 @@ GetDirectProxyHandlerObject(JSObject *proxy)
 {
     JS_ASSERT(proxy->as<ProxyObject>().handler() == &ScriptedDirectProxyHandler::singleton);
     return proxy->as<ProxyObject>().extra(0).toObjectOrNull();
+}
+
+
+static bool
+TrapGetOwnProperty(JSContext *cx, HandleObject proxy, HandleId id, MutableHandleValue rval)
+{
+    
+    RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
+
+    
+    RootedObject target(cx, proxy->as<ProxyObject>().target());
+
+    
+    RootedValue trap(cx);
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().getOwnPropertyDescriptor, &trap))
+        return false;
+
+    
+    if (trap.isUndefined()) {
+        Rooted<PropertyDescriptor> desc(cx);
+        if (!GetOwnPropertyDescriptor(cx, target, id, &desc))
+            return false;
+        return NewPropertyDescriptorObject(cx, desc, rval);
+    }
+
+    
+    RootedValue value(cx);
+    if (!IdToExposableValue(cx, id, &value))
+        return false;
+    Value argv[] = {
+        ObjectValue(*target),
+        value
+    };
+    RootedValue trapResult(cx);
+    if (!Invoke(cx, ObjectValue(*handler), trap, ArrayLength(argv), argv, &trapResult))
+        return false;
+
+    
+    if (!NormalizeAndCompletePropertyDescriptor(cx, &trapResult))
+        return false;
+
+    
+    if (trapResult.isUndefined()) {
+        bool sealed;
+        if (!IsSealed(cx, target, id, &sealed))
+            return false;
+        if (sealed) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_NC_AS_NE);
+            return false;
+        }
+
+        bool extensible;
+        if (!JSObject::isExtensible(cx, target, &extensible))
+            return false;
+        if (!extensible) {
+            bool found;
+            if (!HasOwn(cx, target, id, &found))
+                return false;
+            if (found) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_E_AS_NE);
+                return false;
+            }
+        }
+
+        rval.set(UndefinedValue());
+        return true;
+    }
+
+    
+    bool isFixed;
+    if (!HasOwn(cx, target, id, &isFixed))
+        return false;
+
+    
+    bool extensible;
+    if (!JSObject::isExtensible(cx, target, &extensible))
+        return false;
+    if (!extensible && !isFixed) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_NEW);
+        return false;
+    }
+
+    Rooted<PropDesc> desc(cx);
+    if (!desc.initialize(cx, trapResult))
+        return false;
+
+    
+    if (isFixed) {
+        bool valid;
+        if (!ValidatePropertyDescriptor(cx, target, id, desc, &valid))
+            return false;
+
+        if (!valid) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_INVALID);
+            return false;
+        }
+    }
+
+    
+    if (!desc.configurable() && !isFixed) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_NE_AS_NC);
+        return false;
+    }
+
+    
+    rval.set(trapResult);
+    return true;
 }
 
 static inline void
@@ -1528,121 +1650,23 @@ ScriptedDirectProxyHandler::getPropertyDescriptor(JSContext *cx, HandleObject pr
     return JS_GetPropertyDescriptorById(cx, proto, id, desc);
 }
 
-
 bool
 ScriptedDirectProxyHandler::getOwnPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
                                                      MutableHandle<PropertyDescriptor> desc)
 {
     
-    RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
-
-    
-
-    
-    RootedObject target(cx, proxy->as<ProxyObject>().target());
-
-    
-    RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().getOwnPropertyDescriptor, &trap))
+    RootedValue v(cx);
+    if (!TrapGetOwnProperty(cx, proxy, id, &v))
         return false;
 
     
-    if (trap.isUndefined())
-        return DirectProxyHandler::getOwnPropertyDescriptor(cx, proxy, id, desc);
-
-    
-    RootedValue propKey(cx);
-    if (!IdToExposableValue(cx, id, &propKey))
-        return false;
-
-    Value argv[] = {
-        ObjectValue(*target),
-        propKey
-    };
-    RootedValue trapResult(cx);
-    if (!Invoke(cx, ObjectValue(*handler), trap, ArrayLength(argv), argv, &trapResult))
-        return false;
-
-    
-    if (!trapResult.isUndefined() && !trapResult.isObject()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_GETOWN_OBJORUNDEF);
-        return false;
-    }
-
-    
-    Rooted<PropertyDescriptor> targetDesc(cx);
-    if (!GetOwnPropertyDescriptor(cx, target, id, &targetDesc))
-        return false;
-
-    
-    if (trapResult.isUndefined()) {
-        
-        if (!targetDesc.object()) {
-            desc.object().set(nullptr);
-            return true;
-        }
-
-        
-        if (targetDesc.isPermanent()) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_NC_AS_NE);
-            return false;
-        }
-
-        
-        bool extensibleTarget;
-        if (!JSObject::isExtensible(cx, target, &extensibleTarget))
-            return false;
-        if (!extensibleTarget) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_E_AS_NE);
-            return false;
-        }
-
-        
+    if (v.isUndefined()) {
         desc.object().set(nullptr);
         return true;
     }
 
     
-    bool extensibleTarget;
-    if (!JSObject::isExtensible(cx, target, &extensibleTarget))
-        return false;
-
-    
-    Rooted<PropDesc> resultDesc(cx);
-    if (!resultDesc.initialize(cx, trapResult))
-        return false;
-
-    
-    resultDesc.complete();
-
-    
-    bool valid;
-    if (!ValidatePropertyDescriptor(cx, extensibleTarget, resultDesc, targetDesc, &valid))
-        return false;
-
-    
-    if (!valid) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_INVALID);
-        return false;
-    }
-
-    
-    if (!resultDesc.configurable()) {
-        if (!targetDesc.object()) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_NE_AS_NC);
-            return false;
-        }
-
-        if (!targetDesc.isPermanent()) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_C_AS_NC);
-            return false;
-        }
-    }
-
-    
-    
-    resultDesc.populatePropertyDescriptor(proxy, desc);
-    return true;
+    return ParsePropertyDescriptorObject(cx, proxy, v, desc, true);
 }
 
 
@@ -1717,7 +1741,7 @@ ScriptedDirectProxyHandler::defineProperty(JSContext *cx, HandleObject proxy, Ha
             bool valid;
             Rooted<PropDesc> pd(cx);
             pd.initFromPropertyDescriptor(desc);
-            if (!ValidatePropertyDescriptor(cx, extensibleTarget, pd, targetDesc, &valid))
+            if (!ValidatePropertyDescriptor(cx, pd, targetDesc, &valid))
                 return false;
             if (!valid || (settingConfigFalse && !targetDesc.isPermanent())) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_DEFINE_INVALID);
