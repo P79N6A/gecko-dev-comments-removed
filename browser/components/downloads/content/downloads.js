@@ -540,11 +540,10 @@ const DownloadsView = {
       DownloadsPanel.panel.removeAttribute("hasdownloads");
     }
 
-    let s = DownloadsCommon.strings;
-    this.downloadsHistory.label = (hiddenCount > 0)
-                                  ? s.showMoreDownloads(hiddenCount)
-                                  : s.showAllDownloads;
-    this.downloadsHistory.accessKey = s.showDownloadsAccessKey;
+    
+    
+    this.downloadsHistory.collapsed = hiddenCount > 0;
+    DownloadsSummary.visible = this.downloadsHistory.collapsed;
   },
 
   
@@ -1409,3 +1408,155 @@ DownloadsViewItemController.prototype = {
     protocolSvc.loadUrl(makeFileURI(aFile));
   }
 };
+
+
+
+
+
+
+
+
+
+const DownloadsSummary = {
+
+  
+
+
+
+
+
+
+  set visible(aVisible)
+  {
+    if (aVisible == this._visible || !this._summaryNode) {
+      return;
+    }
+    if (aVisible) {
+      DownloadsCommon.getSummary(DownloadsView.kItemCountLimit)
+                     .addView(this);
+    } else {
+      DownloadsCommon.getSummary(DownloadsView.kItemCountLimit)
+                     .removeView(this);
+    }
+    this._summaryNode.collapsed = !aVisible;
+    return this._visible = aVisible;
+  },
+  _visible: false,
+
+  
+
+
+
+
+
+  set showingProgress(aShowingProgress)
+  {
+    if (aShowingProgress) {
+      this._summaryNode.setAttribute("inprogress", "true");
+    } else {
+      this._summaryNode.removeAttribute("inprogress");
+    }
+  },
+
+  
+
+
+
+
+
+
+  set percentComplete(aValue)
+  {
+    if (this._progressNode) {
+      this._progressNode.setAttribute("value", aValue);
+    }
+    return aValue;
+  },
+
+  
+
+
+
+
+
+
+  set description(aValue)
+  {
+    if (this._descriptionNode) {
+      this._descriptionNode.setAttribute("value", aValue);
+      this._descriptionNode.setAttribute("tooltiptext", aValue);
+    }
+    return aValue;
+  },
+
+  
+
+
+
+
+
+
+
+  set details(aValue)
+  {
+    if (this._detailsNode) {
+      this._detailsNode.setAttribute("value", aValue);
+      this._detailsNode.setAttribute("tooltiptext", aValue);
+    }
+    return aValue;
+  },
+
+  
+
+
+  get _summaryNode()
+  {
+    let node = document.getElementById("downloadsSummary");
+    if (!node) {
+      return null;
+    }
+    delete this._summaryNode;
+    return this._summaryNode = node;
+  },
+
+  
+
+
+  get _progressNode()
+  {
+    let node = document.getElementById("downloadsSummaryProgress");
+    if (!node) {
+      return null;
+    }
+    delete this._progressNode;
+    return this._progressNode = node;
+  },
+
+  
+
+
+
+  get _descriptionNode()
+  {
+    let node = document.getElementById("downloadsSummaryDescription");
+    if (!node) {
+      return null;
+    }
+    delete this._descriptionNode;
+    return this._descriptionNode = node;
+  },
+
+  
+
+
+
+  get _detailsNode()
+  {
+    let node = document.getElementById("downloadsSummaryDetails");
+    if (!node) {
+      return null;
+    }
+    delete this._detailsNode;
+    return this._detailsNode = node;
+  }
+}

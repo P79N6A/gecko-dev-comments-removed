@@ -54,6 +54,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
+                                  "resource://gre/modules/DownloadUtils.jsm");
 
 const nsIDM = Ci.nsIDownloadManager;
 
@@ -72,7 +74,7 @@ const kDownloadsStringsRequiringFormatting = {
 };
 
 const kDownloadsStringsRequiringPluralForm = {
-  showMoreDownloads: true
+  otherDownloads: true
 };
 
 XPCOMUtils.defineLazyGetter(this, "DownloadsLocalFileCtor", function () {
@@ -184,7 +186,145 @@ this.DownloadsCommon = {
 
 
 
-  get indicatorData() DownloadsIndicatorData
+  get indicatorData() DownloadsIndicatorData,
+
+  
+
+
+
+
+
+
+
+  _summary: null,
+  getSummary: function DC_getSummary(aNumToExclude)
+  {
+    if (this._summary) {
+      return this._summary;
+    }
+    return this._summary = new DownloadsSummaryData(aNumToExclude);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  summarizeDownloads: function DC_summarizeDownloads(aDownloads)
+  {
+    let summary = {
+      numActive: 0,
+      numPaused: 0,
+      numScanning: 0,
+      numDownloading: 0,
+      totalSize: 0,
+      totalTransferred: 0,
+      
+      
+      
+      
+      slowestSpeed: Infinity,
+      rawTimeLeft: -1,
+      percentComplete: -1
+    }
+
+    
+    
+    for (let download of aDownloads) {
+      summary.numActive++;
+      switch (download.state) {
+        case nsIDM.DOWNLOAD_PAUSED:
+          summary.numPaused++;
+          break;
+        case nsIDM.DOWNLOAD_SCANNING:
+          summary.numScanning++;
+          break;
+        case nsIDM.DOWNLOAD_DOWNLOADING:
+          summary.numDownloading++;
+          if (download.size > 0 && download.speed > 0) {
+            let sizeLeft = download.size - download.amountTransferred;
+            summary.rawTimeLeft = Math.max(summary.rawTimeLeft,
+                                           sizeLeft / download.speed);
+            summary.slowestSpeed = Math.min(summary.slowestSpeed,
+                                            download.speed);
+          }
+          break;
+      }
+      
+      if (download.size > 0 &&
+          download.state != nsIDM.DOWNLOAD_CANCELED &&
+          download.state != nsIDM.DOWNLOAD_FAILED) {
+        summary.totalSize += download.size;
+        summary.totalTransferred += download.amountTransferred;
+      }
+    }
+
+    if (summary.numActive != 0 && summary.totalSize != 0 &&
+        summary.numActive != summary.numScanning) {
+      summary.percentComplete = (summary.totalTransferred /
+                                 summary.totalSize) * 100;
+    }
+
+    if (summary.slowestSpeed == Infinity) {
+      summary.slowestSpeed = 0;
+    }
+
+    return summary;
+  },
+
+  
+
+
+
+
+
+
+
+
+  smoothSeconds: function DC_smoothSeconds(aSeconds, aLastSeconds)
+  {
+    
+    
+    
+    let shouldApplySmoothing = aLastSeconds >= 0 &&
+                               aSeconds > aLastSeconds / 2;
+    if (shouldApplySmoothing) {
+      
+      
+      let (diff = aSeconds - aLastSeconds) {
+        aSeconds = aLastSeconds + (diff < 0 ? .3 : .1) * diff;
+      }
+
+      
+      
+      let diff = aSeconds - aLastSeconds;
+      let diffPercent = diff / aLastSeconds * 100;
+      if (Math.abs(diff) < 5 || Math.abs(diffPercent) < 5) {
+        aSeconds = aLastSeconds - (diff < 0 ? .4 : .2);
+      }
+    }
+
+    
+    
+    
+    return aLastSeconds = Math.max(aSeconds, 1);
+  }
 };
 
 
@@ -613,6 +753,7 @@ const DownloadsData = {
     dataItem.startTime = Math.round(aDownload.startTime / 1000);
     dataItem.currBytes = aDownload.amountTransferred;
     dataItem.maxBytes = aDownload.size;
+    dataItem.download = aDownload;
 
     this._views.forEach(
       function (view) view.getViewItem(dataItem).onStateChange()
@@ -925,13 +1066,7 @@ DownloadsDataItem.prototype = {
 
 
 
-
-
-
-
-
-
-const DownloadsIndicatorData = {
+const DownloadsViewPrototype = {
   
   
 
@@ -949,7 +1084,7 @@ const DownloadsIndicatorData = {
 
 
 
-  addView: function DID_addView(aView)
+  addView: function DVP_addView(aView)
   {
     
     if (this._views.length == 0) {
@@ -966,8 +1101,9 @@ const DownloadsIndicatorData = {
 
 
 
-  refreshView: function DID_refreshView(aView)
+  refreshView: function DVP_refreshView(aView)
   {
+    
     
     this._refreshProperties();
     this._updateView(aView);
@@ -979,7 +1115,7 @@ const DownloadsIndicatorData = {
 
 
 
-  removeView: function DID_removeView(aView)
+  removeView: function DVP_removeView(aView)
   {
     let index = this._views.indexOf(aView);
     if (index != -1) {
@@ -989,7 +1125,6 @@ const DownloadsIndicatorData = {
     
     if (this._views.length == 0) {
       DownloadsCommon.data.removeView(this);
-      this._itemCount = 0;
     }
   },
 
@@ -1004,7 +1139,7 @@ const DownloadsIndicatorData = {
   
 
 
-  onDataLoadStarting: function DID_onDataLoadStarting()
+  onDataLoadStarting: function DVP_onDataLoadStarting()
   {
     this._loading = true;
   },
@@ -1012,9 +1147,134 @@ const DownloadsIndicatorData = {
   
 
 
-  onDataLoadCompleted: function DID_onDataLoadCompleted()
+  onDataLoadCompleted: function DVP_onDataLoadCompleted()
   {
     this._loading = false;
+  },
+
+  
+
+
+
+
+
+
+  onDataInvalidated: function DVP_onDataInvalidated()
+  {
+    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  onDataItemAdded: function DVP_onDataItemAdded(aDataItem, aNewest)
+  {
+    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+  },
+
+  
+
+
+
+
+
+
+
+
+  onDataItemRemoved: function DVP_onDataItemRemoved(aDataItem)
+  {
+    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  getViewItem: function DID_getViewItem(aDataItem)
+  {
+    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+  },
+
+  
+
+
+
+
+
+  _refreshProperties: function DID_refreshProperties()
+  {
+    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+  },
+
+  
+
+
+
+
+  _updateView: function DID_updateView()
+  {
+    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const DownloadsIndicatorData = {
+  __proto__: DownloadsViewPrototype,
+
+  
+
+
+
+
+
+  removeView: function DID_removeView(aView)
+  {
+    DownloadsViewPrototype.removeView.call(this, aView);
+
+    if (this._views.length == 0) {
+      this._itemCount = 0;
+    }
+  },
+
+  
+  
+
+  
+
+
+  onDataLoadCompleted: function DID_onDataLoadCompleted()
+  {
+    DownloadsViewPrototype.onDataLoadCompleted.call(this);
     this._updateViews();
   },
 
@@ -1184,35 +1444,16 @@ const DownloadsIndicatorData = {
 
 
 
-
-
-  _updateTimeLeft: function DID_updateTimeLeft(aSeconds)
+  _activeDownloads: function DID_activeDownloads()
   {
     
     
-    
-    let shouldApplySmoothing = this._lastTimeLeft >= 0 &&
-                               aSeconds > this._lastTimeLeft / 2;
-    if (shouldApplySmoothing) {
-      
-      
-      let (diff = aSeconds - this._lastTimeLeft) {
-        aSeconds = this._lastTimeLeft + (diff < 0 ? .3 : .1) * diff;
-      }
-
-      
-      
-      let diff = aSeconds - this._lastTimeLeft;
-      let diffPercent = diff / this._lastTimeLeft * 100;
-      if (Math.abs(diff) < 5 || Math.abs(diffPercent) < 5) {
-        aSeconds = this._lastTimeLeft - (diff < 0 ? .4 : .2);
+    if (this._itemCount > 0) {
+      let downloads = Services.downloads.activeDownloads;
+      while (downloads.hasMoreElements()) {
+        yield downloads.getNext().QueryInterface(Ci.nsIDownload);
       }
     }
-
-    
-    
-    
-    this._lastTimeLeft = Math.max(aSeconds, 1);
   },
 
   
@@ -1220,69 +1461,236 @@ const DownloadsIndicatorData = {
 
   _refreshProperties: function DID_refreshProperties()
   {
-    let numActive = 0;
-    let numPaused = 0;
-    let numScanning = 0;
-    let totalSize = 0;
-    let totalTransferred = 0;
-    let rawTimeLeft = -1;
-
-    
-    
-    if (this._itemCount > 0) {
-      let downloads = Services.downloads.activeDownloads;
-      while (downloads.hasMoreElements()) {
-        let download = downloads.getNext().QueryInterface(Ci.nsIDownload);
-        numActive++;
-        switch (download.state) {
-          case nsIDM.DOWNLOAD_PAUSED:
-            numPaused++;
-            break;
-          case nsIDM.DOWNLOAD_SCANNING:
-            numScanning++;
-            break;
-          case nsIDM.DOWNLOAD_DOWNLOADING:
-            if (download.size > 0 && download.speed > 0) {
-              let sizeLeft = download.size - download.amountTransferred;
-              rawTimeLeft = Math.max(rawTimeLeft, sizeLeft / download.speed);
-            }
-            break;
-        }
-        
-        if (download.size > 0) {
-          totalSize += download.size;
-          totalTransferred += download.amountTransferred;
-        }
-      }
-    }
+    let summary =
+      DownloadsCommon.summarizeDownloads(this._activeDownloads());
 
     
     this._hasDownloads = (this._itemCount > 0);
 
-    if (numActive == 0 || totalSize == 0 || numActive == numScanning) {
-      
-      this._percentComplete = -1;
-    } else {
-      
-      this._percentComplete = (totalTransferred / totalSize) * 100;
-    }
+    
+    this._paused = summary.numActive > 0 &&
+                   summary.numActive == summary.numPaused;
+
+    this._percentComplete = summary.percentComplete;
 
     
-    this._paused = numActive > 0 && numActive == numPaused;
-
-    
-    if (rawTimeLeft == -1) {
+    if (summary.rawTimeLeft == -1) {
       
       this._lastRawTimeLeft = -1;
       this._lastTimeLeft = -1;
       this._counter = "";
     } else {
       
-      if (this._lastRawTimeLeft != rawTimeLeft) {
-        this._lastRawTimeLeft = rawTimeLeft;
-        this._updateTimeLeft(rawTimeLeft);
+      if (this._lastRawTimeLeft != summary.rawTimeLeft) {
+        this._lastRawTimeLeft = summary.rawTimeLeft;
+        this._lastTimeLeft = DownloadsCommon.smoothSeconds(summary.rawTimeLeft,
+                                                           this._lastTimeLeft);
       }
       this._counter = DownloadsCommon.formatTimeLeft(this._lastTimeLeft);
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function DownloadsSummaryData(aNumToExclude) {
+  this._numToExclude = aNumToExclude;
+  
+  
+  
+  this._views = [];
+  this._loading = false;
+
+  this._dataItems = [];
+
+  
+  
+  
+  
+  this._lastRawTimeLeft = -1;
+
+  
+  
+  
+  
+  this._lastTimeLeft = -1;
+
+  
+  
+  this._showingProgress = false;
+  this._details = "";
+  this._description = "";
+  this._numActive = 0;
+  this._percentComplete = -1;
+}
+
+DownloadsSummaryData.prototype = {
+  __proto__: DownloadsViewPrototype,
+
+  
+
+
+
+
+
+  removeView: function DSD_removeView(aView)
+  {
+    DownloadsViewPrototype.removeView.call(this, aView);
+
+    if (this._views.length == 0) {
+      
+      
+      this._dataItems = [];
+    }
+  },
+
+  
+  
+  
+  
+
+  onDataLoadCompleted: function DSD_onDataLoadCompleted()
+  {
+    DownloadsViewPrototype.onDataLoadCompleted.call(this);
+    this._updateViews();
+  },
+
+  onDataInvalidated: function DSD_onDataInvalidated()
+  {
+    this._dataItems = [];
+  },
+
+  onDataItemAdded: function DSD_onDataItemAdded(aDataItem, aNewest)
+  {
+    if (aNewest) {
+      this._dataItems.unshift(aDataItem);
+    } else {
+      this._dataItems.push(aDataItem);
+    }
+
+    this._updateViews();
+  },
+
+  onDataItemRemoved: function DSD_onDataItemRemoved(aDataItem)
+  {
+    let itemIndex = this._dataItems.indexOf(aDataItem);
+    this._dataItems.splice(itemIndex, 1);
+    this._updateViews();
+  },
+
+  getViewItem: function DSD_getViewItem(aDataItem)
+  {
+    let self = this;
+    return Object.freeze({
+      onStateChange: function DIVI_onStateChange()
+      {
+        
+        self._lastRawTimeLeft = -1;
+        self._lastTimeLeft = -1;
+        self._updateViews();
+      },
+      onProgressChange: function DIVI_onProgressChange()
+      {
+        self._updateViews();
+      }
+    });
+  },
+
+  
+  
+
+  
+
+
+  _updateViews: function DSD_updateViews()
+  {
+    
+    if (this._loading) {
+      return;
+    }
+
+    this._refreshProperties();
+    this._views.forEach(this._updateView, this);
+  },
+
+  
+
+
+
+
+
+  _updateView: function DSD_updateView(aView)
+  {
+    aView.showingProgress = this._showingProgress;
+    aView.percentComplete = this._percentComplete;
+    aView.description = this._description;
+    aView.details = this._details;
+  },
+
+  
+  
+
+  
+
+
+
+
+
+
+  _downloadsForSummary: function DSD_downloadsForSummary()
+  {
+    if (this._dataItems.length > 0) {
+      for (let i = this._numToExclude; i < this._dataItems.length; ++i) {
+        yield this._dataItems[i].download;
+      }
+    }
+  },
+
+  
+
+
+  _refreshProperties: function DSD_refreshProperties()
+  {
+    
+    let summary =
+      DownloadsCommon.summarizeDownloads(this._downloadsForSummary());
+
+    this._description = DownloadsCommon.strings
+                                       .otherDownloads(summary.numActive);
+    this._percentComplete = summary.percentComplete;
+
+    
+    this._showingProgress = summary.numDownloading > 0 ||
+                            summary.numPaused > 0;
+
+    
+    if (summary.rawTimeLeft == -1) {
+      
+      this._lastRawTimeLeft = -1;
+      this._lastTimeLeft = -1;
+      this._details = "";
+    } else {
+      
+      if (this._lastRawTimeLeft != summary.rawTimeLeft) {
+        this._lastRawTimeLeft = summary.rawTimeLeft;
+        this._lastTimeLeft = DownloadsCommon.smoothSeconds(summary.rawTimeLeft,
+                                                           this._lastTimeLeft);
+      }
+      [this._details] = DownloadUtils.getDownloadStatusNoRate(
+        summary.totalTransferred, summary.totalSize, summary.slowestSpeed,
+        this._lastTimeLeft);
     }
   }
 }
