@@ -97,6 +97,11 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
   if (HasDataError())
     return;
 
+  if (IsSizeDecode() && HasSize()) {
+    
+    return;
+  }
+
   
   WriteInternal(aBuffer, aCount);
 
