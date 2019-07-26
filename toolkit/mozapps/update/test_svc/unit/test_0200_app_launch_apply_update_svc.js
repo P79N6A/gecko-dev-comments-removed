@@ -152,14 +152,6 @@ function end_test() {
   updaterIni.moveTo(processDir, FILE_UPDATER_INI);
 
   
-  
-  let appBinCopy = processDir.clone();
-  appBinCopy.append(FILE_WIN_TEST_EXE);
-  if (appBinCopy.exists()) {
-    appBinCopy.remove(false);
-  }
-
-  
   let updateTestDir = getUpdateTestDir();
   try {
     logTestInfo("removing update test directory " + updateTestDir.path);
