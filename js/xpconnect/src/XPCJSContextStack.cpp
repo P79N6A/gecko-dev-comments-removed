@@ -155,34 +155,30 @@ XPCJSContextStack::GetSafeJSContext()
     mSafeJSContext = JS_NewContext(rt, 8192);
     if (!mSafeJSContext)
         MOZ_CRASH();
+    JSAutoRequest req(mSafeJSContext);
 
     JS::RootedObject glob(mSafeJSContext);
-    {
-        
-        JSAutoRequest req(mSafeJSContext);
+    JS_SetErrorReporter(mSafeJSContext, mozJSLoaderErrorReporter);
 
-        JS_SetErrorReporter(mSafeJSContext, mozJSLoaderErrorReporter);
+    glob = xpc::CreateGlobalObject(mSafeJSContext, &global_class, principal, JS::SystemZone);
+    if (!glob)
+        MOZ_CRASH();
 
-        glob = xpc::CreateGlobalObject(mSafeJSContext, &global_class, principal, JS::SystemZone);
-        if (!glob)
-            MOZ_CRASH();
+    
+    
+    JS_SetGlobalObject(mSafeJSContext, glob);
 
-        
-        
-        JS_SetGlobalObject(mSafeJSContext, glob);
+    
+    
+    nsCOMPtr<nsIScriptObjectPrincipal> sop = new SandboxPrivate(principal, glob);
+    JS_SetPrivate(glob, sop.forget().get());
 
-        
-        
-        nsCOMPtr<nsIScriptObjectPrincipal> sop = new SandboxPrivate(principal, glob);
-        JS_SetPrivate(glob, sop.forget().get());
-
-        
-        
-        
-        
-        if (NS_FAILED(xpc->InitClasses(mSafeJSContext, glob)))
-            MOZ_CRASH();
-    }
+    
+    
+    
+    
+    if (NS_FAILED(xpc->InitClasses(mSafeJSContext, glob)))
+        MOZ_CRASH();
 
     
     mOwnSafeJSContext = mSafeJSContext;
