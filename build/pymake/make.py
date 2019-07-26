@@ -19,8 +19,10 @@ if __name__ == '__main__':
 
   
   
+  
+  
   try:
-      sys.setrecursionlimit(2 * sys.getrecursionlimit())
+      sys.setrecursionlimit(10000)
   except Exception:
       print >>sys.stderr, 'Unable to increase Python recursion limit.'
 
