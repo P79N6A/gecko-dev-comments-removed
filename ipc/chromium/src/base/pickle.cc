@@ -4,12 +4,19 @@
 
 #include "base/pickle.h"
 
+#include "mozilla/Endian.h"
+#include "mozilla/TypeTraits.h"
+#include "mozilla/Util.h"
+
 #include <stdlib.h>
 
 #include <limits>
 #include <string>
 
 
+
+MOZ_STATIC_ASSERT(MOZ_ALIGNOF(Pickle::memberAlignmentType) >= MOZ_ALIGNOF(uint32_t),
+		  "Insufficient alignment");
 
 
 const int Pickle::kPayloadUnit = 64;
@@ -18,6 +25,74 @@ const int Pickle::kPayloadUnit = 64;
 static const uint32_t kCapacityReadOnly = (uint32_t) -1;
 
 static const char kBytePaddingMarker = char(0xbf);
+
+namespace {
+
+
+
+
+
+
+
+
+
+
+
+template<typename T, size_t size, bool hasSufficientAlignment>
+struct Copier
+{
+  static void Copy(T* dest, void** iter) {
+    memcpy(dest, *iter, sizeof(T));
+  }
+};
+
+
+
+
+
+#ifndef HAVE_64BIT_OS
+template<typename T>
+struct Copier<T, sizeof(uint64_t), false>
+{
+  static void Copy(T* dest, void** iter) {
+#if MOZ_LITTLE_ENDIAN
+    static const int loIndex = 0, hiIndex = 1;
+#else
+    static const int loIndex = 1, hiIndex = 0;
+#endif
+    MOZ_STATIC_ASSERT(MOZ_ALIGNOF(uint32_t*) == MOZ_ALIGNOF(void*),
+		      "Pointers have different alignments");
+    uint32_t* src = *reinterpret_cast<uint32_t**>(iter);
+    uint32_t* uint32dest = reinterpret_cast<uint32_t*>(dest);
+    uint32dest[loIndex] = src[loIndex];
+    uint32dest[hiIndex] = src[hiIndex];
+  }
+};
+#endif
+
+template<typename T, size_t size>
+struct Copier<T, size, true>
+{
+  static void Copy(T* dest, void** iter) {
+    
+    
+    
+    
+    
+    
+    MOZ_STATIC_ASSERT(MOZ_ALIGNOF(T*) == MOZ_ALIGNOF(void*),
+		      "Pointers have different alignments");
+    *dest = *(*reinterpret_cast<T**>(iter));
+  }
+};
+
+template<typename T>
+void CopyFromIter(T* dest, void** iter) {
+  MOZ_STATIC_ASSERT(mozilla::IsPod<T>::value, "Copied type must be a POD type");
+  Copier<T, sizeof(T), (MOZ_ALIGNOF(T) <= sizeof(Pickle::memberAlignmentType))>::Copy(dest, iter);
+}
+
+} 
 
 
 
@@ -98,7 +173,7 @@ bool Pickle::ReadInt16(void** iter, int16_t* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(*result)))
     return false;
 
-  memcpy(result, *iter, sizeof(*result));
+  CopyFromIter(result, iter);
 
   UpdateIter(iter, sizeof(*result));
   return true;
@@ -112,7 +187,7 @@ bool Pickle::ReadUInt16(void** iter, uint16_t* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(*result)))
     return false;
 
-  memcpy(result, *iter, sizeof(*result));
+  CopyFromIter(result, iter);
 
   UpdateIter(iter, sizeof(*result));
   return true;
@@ -126,10 +201,7 @@ bool Pickle::ReadInt(void** iter, int* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(*result)))
     return false;
 
-  
-  
-  
-  *result = *reinterpret_cast<int*>(*iter);
+  CopyFromIter(result, iter);
 
   UpdateIter(iter, sizeof(*result));
   return true;
@@ -146,9 +218,7 @@ bool Pickle::ReadLong(void** iter, long* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(bigResult)))
     return false;
 
-  
-  
-  memcpy(&bigResult, *iter, sizeof(bigResult));
+  CopyFromIter(&bigResult, iter);
   DCHECK(bigResult <= LONG_MAX && bigResult >= LONG_MIN);
   *result = static_cast<long>(bigResult);
 
@@ -167,9 +237,7 @@ bool Pickle::ReadULong(void** iter, unsigned long* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(bigResult)))
     return false;
 
-  
-  
-  memcpy(&bigResult, *iter, sizeof(bigResult));
+  CopyFromIter(&bigResult, iter);
   DCHECK(bigResult <= ULONG_MAX);
   *result = static_cast<unsigned long>(bigResult);
 
@@ -194,9 +262,7 @@ bool Pickle::ReadSize(void** iter, size_t* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(bigResult)))
     return false;
 
-  
-  
-  memcpy(&bigResult, *iter, sizeof(bigResult));
+  CopyFromIter(&bigResult, iter);
   DCHECK(bigResult <= std::numeric_limits<size_t>::max());
   *result = static_cast<size_t>(bigResult);
 
@@ -212,7 +278,7 @@ bool Pickle::ReadInt32(void** iter, int32_t* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(*result)))
     return false;
 
-  memcpy(result, *iter, sizeof(*result));
+  CopyFromIter(result, iter);
 
   UpdateIter(iter, sizeof(*result));
   return true;
@@ -226,7 +292,7 @@ bool Pickle::ReadUInt32(void** iter, uint32_t* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(*result)))
     return false;
 
-  memcpy(result, *iter, sizeof(*result));
+  CopyFromIter(result, iter);
 
   UpdateIter(iter, sizeof(*result));
   return true;
@@ -240,7 +306,7 @@ bool Pickle::ReadInt64(void** iter, int64_t* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(*result)))
     return false;
 
-  memcpy(result, *iter, sizeof(*result));
+  CopyFromIter(result, iter);
 
   UpdateIter(iter, sizeof(*result));
   return true;
@@ -254,7 +320,7 @@ bool Pickle::ReadUInt64(void** iter, uint64_t* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(*result)))
     return false;
 
-  memcpy(result, *iter, sizeof(*result));
+  CopyFromIter(result, iter);
 
   UpdateIter(iter, sizeof(*result));
   return true;
@@ -268,7 +334,7 @@ bool Pickle::ReadDouble(void** iter, double* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(*result)))
     return false;
 
-  memcpy(result, *iter, sizeof(*result));
+  CopyFromIter(result, iter);
 
   UpdateIter(iter, sizeof(*result));
   return true;
@@ -285,7 +351,7 @@ bool Pickle::ReadIntPtr(void** iter, intptr_t* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(bigResult)))
     return false;
 
-  memcpy(&bigResult, *iter, sizeof(bigResult));
+  CopyFromIter(&bigResult, iter);
   DCHECK(bigResult <= std::numeric_limits<intptr_t>::max() && bigResult >= std::numeric_limits<intptr_t>::min());
   *result = static_cast<intptr_t>(bigResult);
 
@@ -301,7 +367,7 @@ bool Pickle::ReadUnsignedChar(void** iter, unsigned char* result) const {
   if (!IteratorHasRoomFor(*iter, sizeof(*result)))
     return false;
 
-  memcpy(result, *iter, sizeof(*result));
+  CopyFromIter(result, iter);
 
   UpdateIter(iter, sizeof(*result));
   return true;
