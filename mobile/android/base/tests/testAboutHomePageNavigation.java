@@ -13,7 +13,7 @@ public class testAboutHomePageNavigation extends UITest {
     
     
     public void testAboutHomePageNavigation() {
-        GeckoHelper.blockForDelayedStartup();
+        GeckoHelper.blockForReady();
 
         mAboutHome.assertVisible()
                   .assertCurrentPanel(PanelType.TOP_SITES);
