@@ -324,12 +324,9 @@ class MacroAssemblerX86Shared : public Assembler
     }
 
     
-    CodeOffsetLabel toggledJump(bool enabled, Label *label) {
+    CodeOffsetLabel toggledJump(Label *label) {
         CodeOffsetLabel offset(size());
-        if (enabled)
-            jump(label);
-        else
-            cmpEAX(label);
+        jump(label);
         return offset;
     }
 

@@ -2826,9 +2826,8 @@ MacroAssemblerARMCompat::floor(FloatRegister input, Register output, Label *bail
 }
 
 CodeOffsetLabel
-MacroAssemblerARMCompat::toggledJump(bool enabled, Label *label)
+MacroAssemblerARMCompat::toggledJump(Label *label)
 {
-    
     
     CodeOffsetLabel ret(nextOffset().getOffset());
     ma_b(label);

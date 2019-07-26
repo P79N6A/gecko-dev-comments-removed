@@ -374,7 +374,8 @@ class MacroAssembler : public MacroAssemblerSpecific
         Label done;
 
         
-        CodeOffsetLabel nopJump = toggledJump(!cx->compartment->needsBarrier(), &done);
+        
+        CodeOffsetLabel nopJump = toggledJump(&done);
 
         callPreBarrier(address, type);
         jump(&done);

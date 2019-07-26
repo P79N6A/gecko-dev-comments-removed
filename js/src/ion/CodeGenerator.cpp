@@ -2155,11 +2155,9 @@ CodeGenerator::generate()
     
     
     
-    
-#ifdef JS_CPU_ARM
-    bool needsBarrier = cx->compartment->needsBarrier();
-    script->ion->toggleBarriers(needsBarrier);
-#endif
+    if (cx->compartment->needsBarrier())
+        script->ion->toggleBarriers(true);
+
     return true;
 }
 
