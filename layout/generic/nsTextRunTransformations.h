@@ -34,15 +34,6 @@ public:
 
 
 
-class nsFontVariantTextRunFactory : public nsTransformingTextRunFactory {
-public:
-  virtual void RebuildTextRun(nsTransformedTextRun* aTextRun, gfxContext* aRefContext) MOZ_OVERRIDE;
-};
-
-
-
-
-
 class nsCaseTransformTextRunFactory : public nsTransformingTextRunFactory {
 public:
   
