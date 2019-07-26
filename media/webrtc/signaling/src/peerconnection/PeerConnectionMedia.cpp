@@ -444,6 +444,20 @@ PeerConnectionMedia::IceStreamReady(NrIceMediaStream *aStream)
 }
 
 
+
+
+mozilla::RefPtr<mozilla::MediaPipeline>
+SourceStreamInfo::GetPipeline(int aTrack) {
+  std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> >::iterator it =
+    mPipelines.find(aTrack);
+
+  if (it == mPipelines.end()) {
+    return NULL;
+  }
+
+  return it->second;
+}
+
 void
 LocalSourceStreamInfo::StorePipeline(int aTrack,
   mozilla::RefPtr<mozilla::MediaPipeline> aPipeline)
