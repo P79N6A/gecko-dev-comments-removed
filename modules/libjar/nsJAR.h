@@ -24,7 +24,7 @@
 #include "nsHashtable.h"
 #include "nsIZipReader.h"
 #include "nsZipArchive.h"
-#include "nsIPrincipal.h"
+#include "nsICertificatePrincipal.h"
 #include "nsISignatureVerifier.h"
 #include "nsIObserverService.h"
 #include "nsWeakReference.h"
@@ -100,7 +100,7 @@ class nsJAR : public nsIZipReader
     nsRefPtr<nsZipArchive>   mZip;            
     nsObjectHashtable        mManifestData;   
     bool                     mParsedManifest; 
-    nsCOMPtr<nsIPrincipal>   mPrincipal;      
+    nsCOMPtr<nsICertificatePrincipal> mPrincipal; 
     int16_t                  mGlobalStatus;   
     PRIntervalTime           mReleaseTime;    
     nsZipReaderCache*        mCache;          

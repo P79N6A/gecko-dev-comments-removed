@@ -34,61 +34,17 @@ public:
   NS_IMETHOD_(nsrefcnt) Release(void);
   NS_IMETHOD GetSecurityPolicy(void** aSecurityPolicy);
   NS_IMETHOD SetSecurityPolicy(void* aSecurityPolicy);
-  NS_IMETHOD GetHasCertificate(bool* aHasCertificate);
-  NS_IMETHOD GetFingerprint(nsACString& aFingerprint);
-  NS_IMETHOD GetPrettyName(nsACString& aPrettyName);
-  NS_IMETHOD GetSubjectName(nsACString& aSubjectName);
-  NS_IMETHOD GetCertificate(nsISupports** aCertificate);
   NS_IMETHOD GetCsp(nsIContentSecurityPolicy** aCsp);
   NS_IMETHOD SetCsp(nsIContentSecurityPolicy* aCsp);
 public:
-
-  
-  
-  
-  nsresult EnsureCertData(const nsACString& aSubjectName,
-                          const nsACString& aPrettyName,
-                          nsISupports* aCert);
 
   static const char sInvalid[];
 
 protected:
 
-  
-  
-  
-  struct Certificate
-  {
-    Certificate(const nsACString& aFingerprint, const nsACString& aSubjectName,
-                const nsACString& aPrettyName, nsISupports* aCert)
-      : fingerprint(aFingerprint),
-        subjectName(aSubjectName),
-        prettyName(aPrettyName),
-        cert(aCert)
-    {
-    }
-    nsCString fingerprint;
-    nsCString subjectName;
-    nsCString prettyName;
-    nsCOMPtr<nsISupports> cert;
-  };
-
-  nsresult SetCertificate(const nsACString& aFingerprint,
-                          const nsACString& aSubjectName,
-                          const nsACString& aPrettyName,
-                          nsISupports* aCert);
-
-  
-  bool CertificateEquals(nsIPrincipal *aOther);
-
 #ifdef DEBUG
   virtual void dumpImpl() = 0;
 #endif
-
-  
-  
-  
-  nsAutoPtr<Certificate> mCert;
 
   DomainPolicy* mSecurityPolicy;
 
@@ -122,11 +78,7 @@ public:
   nsPrincipal();
 
   
-  nsresult Init(const nsACString& aCertFingerprint,
-                const nsACString& aSubjectName,
-                const nsACString& aPrettyName,
-                nsISupports* aCert,
-                nsIURI* aCodebase,
+  nsresult Init(nsIURI* aCodebase,
                 uint32_t aAppId,
                 bool aInMozBrowser);
 

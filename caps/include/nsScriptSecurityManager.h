@@ -446,18 +446,6 @@ private:
     
     
     
-    nsresult
-    DoGetCertificatePrincipal(const nsACString& aCertFingerprint,
-                              const nsACString& aSubjectName,
-                              const nsACString& aPrettyName,
-                              nsISupports* aCertificate,
-                              nsIURI* aURI,
-                              bool aModifyTable,
-                              nsIPrincipal **result);
-
-    
-    
-    
     nsIPrincipal*
     GetSubjectPrincipal(JSContext* cx, nsresult* rv);
 
@@ -557,7 +545,6 @@ private:
     nsObjectHashtable* mCapabilities;
 
     nsCOMPtr<nsIPrincipal> mSystemPrincipal;
-    nsCOMPtr<nsIPrincipal> mSystemCertificate;
     bool mPrefInitialized;
     bool mIsJavaScriptEnabled;
     bool mIsWritingPrefs;
