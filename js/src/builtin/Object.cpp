@@ -831,37 +831,43 @@ obj_getOwnPropertyDescriptor(JSContext *cx, unsigned argc, Value *vp)
     return GetOwnPropertyDescriptor(cx, obj, id, args.rval());
 }
 
+
 static bool
 obj_keys(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
+
+    
     RootedObject obj(cx);
     if (!GetFirstArgumentAsObject(cx, args, "Object.keys", &obj))
         return false;
 
+    
+    
+    
     AutoIdVector props(cx);
     if (!GetPropertyNames(cx, obj, JSITER_OWNONLY, &props))
         return false;
 
-    AutoValueVector vals(cx);
-    if (!vals.reserve(props.length()))
+    AutoValueVector namelist(cx);
+    if (!namelist.reserve(props.length()))
         return false;
     for (size_t i = 0, len = props.length(); i < len; i++) {
         jsid id = props[i];
+        JSString *str;
         if (JSID_IS_STRING(id)) {
-            vals.infallibleAppend(StringValue(JSID_TO_STRING(id)));
-        } else if (JSID_IS_INT(id)) {
-            JSString *str = Int32ToString<CanGC>(cx, JSID_TO_INT(id));
+            str = JSID_TO_STRING(id);
+        } else {
+            str = Int32ToString<CanGC>(cx, JSID_TO_INT(id));
             if (!str)
                 return false;
-            vals.infallibleAppend(StringValue(str));
-        } else {
-            JS_ASSERT(JSID_IS_OBJECT(id));
         }
+        namelist.infallibleAppend(StringValue(str));
     }
 
+    
     JS_ASSERT(props.length() <= UINT32_MAX);
-    JSObject *aobj = NewDenseCopiedArray(cx, uint32_t(vals.length()), vals.begin());
+    JSObject *aobj = NewDenseCopiedArray(cx, uint32_t(namelist.length()), namelist.begin());
     if (!aobj)
         return false;
 
@@ -909,7 +915,7 @@ obj_getOwnPropertyNames(JSContext *cx, unsigned argc, Value *vp)
          } else if (JSID_IS_ATOM(id)) {
              vals[i].setString(JSID_TO_STRING(id));
          } else {
-             vals[i].setObject(*JSID_TO_OBJECT(id));
+             vals[i].setSymbol(JSID_TO_SYMBOL(id));
          }
     }
 

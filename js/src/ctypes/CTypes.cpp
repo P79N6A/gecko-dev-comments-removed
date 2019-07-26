@@ -1873,9 +1873,9 @@ jsvalToSize(JSContext* cx, jsval val, bool allowString, size_t* result)
 template<class IntegerType>
 static bool
 jsidToBigInteger(JSContext* cx,
-                  jsid val,
-                  bool allowString,
-                  IntegerType* result)
+                 jsid val,
+                 bool allowString,
+                 IntegerType* result)
 {
   JS_STATIC_ASSERT(NumericLimits<IntegerType>::is_exact);
 
@@ -1891,22 +1891,6 @@ jsidToBigInteger(JSContext* cx,
     
     
     return StringToInteger(cx, JSID_TO_STRING(val), result);
-  }
-  if (JSID_IS_OBJECT(val)) {
-    
-    JSObject* obj = JSID_TO_OBJECT(val);
-
-    if (UInt64::IsUInt64(obj)) {
-      
-      uint64_t i = Int64Base::GetInt(obj);
-      return ConvertExact(i, result);
-    }
-
-    if (Int64::IsInt64(obj)) {
-      
-      int64_t i = Int64Base::GetInt(obj);
-      return ConvertExact(i, result);
-    }
   }
   return false;
 }
