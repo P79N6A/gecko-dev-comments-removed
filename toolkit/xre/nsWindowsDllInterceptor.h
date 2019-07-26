@@ -492,7 +492,7 @@ protected:
               (origBytes[nBytes+1] & 0x07) == 0x5) {
             
             
-            directJmpAddr = (byteptr_t)*((uint64_t*)(origBytes + nBytes + 6 + (*((uint32_t*)(origBytes + nBytes + 2)))));
+            directJmpAddr = (byteptr_t)*((uint64_t*)(origBytes + nBytes + 6 + (*((int32_t*)(origBytes + nBytes + 2)))));
             nBytes += 6;
           } else {
             
@@ -517,7 +517,7 @@ protected:
       } else if (origBytes[nBytes] == 0xe9) {
         pJmp32 = nBytes;
         
-        directJmpAddr = origBytes + pJmp32 + 5 + (*((uint32_t*)(origBytes + pJmp32 + 1)));
+        directJmpAddr = origBytes + pJmp32 + 5 + (*((int32_t*)(origBytes + pJmp32 + 1)));
         
         nBytes += 5;
       } else if (origBytes[nBytes] == 0xff) {
