@@ -6,11 +6,17 @@
 
 #include "jsworkers.h"
 
-#include "ion/IonBuilder.h"
+#if JS_ION
+# include "ion/IonBuilder.h"
+#endif
+
+#if defined(JS_ION) && defined(JS_THREADSAFE)
+# define ENABLE_WORKERS
+#endif
 
 using namespace js;
 
-#ifdef JS_THREADSAFE
+#ifdef ENABLE_WORKERS
 
 bool
 js::StartOffThreadIonCompile(JSContext *cx, ion::IonBuilder *builder)

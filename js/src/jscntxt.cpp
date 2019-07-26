@@ -1016,11 +1016,13 @@ js_InvokeOperationCallback(JSContext *cx)
     if (rt->gcIsNeeded)
         GCSlice(rt, GC_NORMAL, rt->gcTriggerReason);
 
+#ifdef JS_ION
     
 
 
 
     ion::AttachFinishedCompilations(cx);
+#endif
 
     
 
