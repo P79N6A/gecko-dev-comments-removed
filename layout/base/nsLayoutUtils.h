@@ -1523,6 +1523,20 @@ public:
 
 
 
+
+
+
+
+
+  static nsIFrame* GetReferenceFrame(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
   static uint32_t GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
                                           const nsStyleFont* aStyleFont,
                                           const nsStyleText* aStyleText,
