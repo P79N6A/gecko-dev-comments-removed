@@ -125,7 +125,7 @@ struct GfxDriverInfo
 #define GFX_DRIVER_VERSION(a,b,c,d) \
   ((uint64_t(a)<<48) | (uint64_t(b)<<32) | (uint64_t(c)<<16) | uint64_t(d))
 
-static uint64_t
+inline uint64_t
 V(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
 {
   
@@ -144,7 +144,7 @@ V(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
 }
 
 
-static bool SplitDriverVersion(const char *aSource, char *aAStr, char *aBStr, char *aCStr, char *aDStr)
+inline bool SplitDriverVersion(const char *aSource, char *aAStr, char *aBStr, char *aCStr, char *aDStr)
 {
   
   int len = strlen(aSource);
@@ -187,7 +187,7 @@ static bool SplitDriverVersion(const char *aSource, char *aAStr, char *aBStr, ch
 
 
 
-static void PadDriverDecimal(char *aString)
+inline void PadDriverDecimal(char *aString)
 {
   for (int i = 0; i < 4; i++) {
     if (!aString[i]) {
