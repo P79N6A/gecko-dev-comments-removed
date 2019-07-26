@@ -45,6 +45,22 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
 }
 
 inline void
+EmitEnterTypeMonitorIC(MacroAssembler &masm)
+{
+    
+    
+    masm.movq(Operand(BaselineStubReg, (int32_t) ICMonitoredStub::offsetOfFirstMonitorStub()),
+              BaselineStubReg);
+
+    
+    masm.movq(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()),
+              BaselineTailCallReg);
+
+    
+    masm.jmp(Operand(BaselineTailCallReg));
+}
+
+inline void
 EmitReturnFromIC(MacroAssembler &masm)
 {
     masm.ret();

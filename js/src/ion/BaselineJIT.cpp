@@ -252,6 +252,23 @@ BaselineScript::trace(JSTracer *trc)
         for (ICStub *stub = ent.firstStub(); stub; stub = stub->next()) {
             IonCode *stubIonCode = stub->ionCode();
             MarkIonCodeUnbarriered(trc, &stubIonCode, "baseline-stub-ioncode");
+
+            
+            
+            
+            
+            if (stub->isMonitoredFallback()) {
+                ICTypeMonitor_Fallback *lastMonStub =
+                    stub->toMonitoredFallbackStub()->fallbackMonitorStub();
+                for (ICStub *monStub = lastMonStub->firstMonitorStub();
+                     monStub != NULL;
+                     monStub = monStub->next())
+                {
+                    JS_ASSERT_IF(monStub->next() == NULL, monStub == lastMonStub);
+                    IonCode *monStubIonCode = monStub->ionCode();
+                    MarkIonCodeUnbarriered(trc, &monStubIonCode, "baseline-monitor-stub-ioncode");
+                }
+            }
         }
     }
 }

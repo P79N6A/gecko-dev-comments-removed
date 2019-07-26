@@ -27,7 +27,6 @@ EmitRestoreTailCallReg(MacroAssembler &masm)
 inline void
 EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
 {
-
     
     CodeOffsetLabel offset = masm.movWithPatch(ImmWord(-1), BaselineStubReg);
     *patchOffset = offset;
@@ -42,6 +41,23 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
 
     
     masm.ma_blx(r0);
+}
+
+inline void
+EmitEnterTypeMonitorIC(MacroAssembler &masm)
+{
+    
+    
+    masm.loadPtr(Address(BaselineStubReg, ICMonitoredStub::offsetOfFirstMonitorStub()),
+                 BaselineStubReg);
+
+    
+    
+    JS_ASSERT(R2 == ValueOperand(r1, r0));
+    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), r0);
+
+    
+    masm.branch(r0);
 }
 
 inline void

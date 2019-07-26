@@ -81,6 +81,117 @@ namespace ion {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ICStub;
 
 
@@ -147,6 +258,10 @@ class ICEntry
 
 
 #define IC_STUB_KIND_LIST(_)    \
+                                \
+    _(TypeMonitor_Fallback)     \
+    _(TypeUpdate_Fallback)      \
+                                \
     _(Compare_Fallback)         \
     _(Compare_Int32)            \
                                 \
@@ -172,6 +287,8 @@ class ICEntry
 #undef FORWARD_DECLARE_STUBS
 
 class ICFallbackStub;
+class ICMonitoredStub;
+class ICMonitoredFallbackStub;
 
 
 
@@ -193,7 +310,11 @@ class ICStub
 
   protected:
     
-    uint16_t kind_;
+    
+    
+    bool     isFallback_  : 1;
+    bool     isMonitored_ : 1;
+    Kind     kind_        : 14;
 
     
     uint8_t *stubCode_;
@@ -202,16 +323,10 @@ class ICStub
     
     ICStub *next_;
 
-    inline static uint16_t packKindAndFallbackFlag(Kind kind, bool isFallback) {
-        uint16_t val = static_cast<uint16_t>(kind);
-        JS_ASSERT(!(val & 0x8000U));
-        if (isFallback)
-            val |= 0x8000U;
-        return val;
-    }
-
     inline ICStub(Kind kind, IonCode *stubCode)
-      : kind_(packKindAndFallbackFlag(kind, false)),
+      : isFallback_(false),
+        isMonitored_(false),
+        kind_(kind),
         stubCode_(stubCode->raw()),
         next_(NULL)
     {
@@ -219,7 +334,19 @@ class ICStub
     }
 
     inline ICStub(Kind kind, bool isFallback, IonCode *stubCode)
-      : kind_(packKindAndFallbackFlag(kind, isFallback)),
+      : isFallback_(isFallback),
+        isMonitored_(false),
+        kind_(kind),
+        stubCode_(stubCode->raw()),
+        next_(NULL)
+    {
+        JS_ASSERT(stubCode != NULL);
+    }
+
+    inline ICStub(Kind kind, bool isFallback, bool isMonitored, IonCode *stubCode)
+      : isFallback_(isFallback),
+        isMonitored_(isMonitored),
+        kind_(kind),
         stubCode_(stubCode->raw()),
         next_(NULL)
     {
@@ -229,19 +356,49 @@ class ICStub
   public:
 
     inline Kind kind() const {
-        return static_cast<Kind>(kind_ & 0x7fffU);
+        return static_cast<Kind>(kind_);
     }
 
     inline bool isFallback() const {
-        return !!(kind_ & 0x8000U);
+        return isFallback_;
+    }
+
+    inline bool isMonitored() const {
+        return isMonitored_ && !isFallback_;
+    }
+
+    inline bool isMonitoredFallback() const {
+        return isMonitored_ && isFallback_;
     }
 
     inline const ICFallbackStub *toFallbackStub() const {
+        JS_ASSERT(isFallback());
         return reinterpret_cast<const ICFallbackStub *>(this);
     }
 
-    inline ICFallbackStub *toFallbackStub()  {
+    inline ICFallbackStub *toFallbackStub() {
+        JS_ASSERT(isFallback());
         return reinterpret_cast<ICFallbackStub *>(this);
+    }
+
+    inline const ICMonitoredStub *toMonitoredStub() const {
+        JS_ASSERT(isMonitored());
+        return reinterpret_cast<const ICMonitoredStub *>(this);
+    }
+
+    inline ICMonitoredStub *toMonitoredStub() {
+        JS_ASSERT(isMonitored());
+        return reinterpret_cast<ICMonitoredStub *>(this);
+    }
+
+    inline const ICMonitoredFallbackStub *toMonitoredFallbackStub() const {
+        JS_ASSERT(isMonitoredFallback());
+        return reinterpret_cast<const ICMonitoredFallbackStub *>(this);
+    }
+
+    inline ICMonitoredFallbackStub *toMonitoredFallbackStub() {
+        JS_ASSERT(isMonitoredFallback());
+        return reinterpret_cast<ICMonitoredFallbackStub *>(this);
     }
 
 #define KIND_METHODS(kindName)   \
@@ -306,7 +463,13 @@ class ICFallbackStub : public ICStub
     ICStub **           lastStubPtrAddr_;
 
     ICFallbackStub(Kind kind, IonCode *stubCode)
-      : ICStub(kind, true, stubCode),
+      : ICStub(kind, true, false, stubCode),
+        icEntry_(NULL),
+        numOptimizedStubs_(0),
+        lastStubPtrAddr_(NULL) {}
+
+    ICFallbackStub(Kind kind, bool isMonitored, IonCode *stubCode)
+      : ICStub(kind, true, isMonitored, stubCode),
         icEntry_(NULL),
         numOptimizedStubs_(0),
         lastStubPtrAddr_(NULL) {}
@@ -350,6 +513,52 @@ class ICFallbackStub : public ICStub
         } while (stub);
 
         return false;
+    }
+};
+
+
+
+class ICMonitoredStub : public ICStub
+{
+  protected:
+    
+    ICStub *            firstMonitorStub_;
+
+    ICMonitoredStub(Kind kind, IonCode *stubCode, ICStub *firstMonitorStub);
+
+  public:
+    inline void updateFirstMonitorStub(ICStub *monitorStub) {
+        
+        
+        JS_ASSERT(firstMonitorStub_ && firstMonitorStub_->isTypeMonitor_Fallback());
+        firstMonitorStub_ = monitorStub;
+    }
+
+    inline ICStub *firstMonitorStub() const {
+        return firstMonitorStub_;
+    }
+
+    static inline size_t offsetOfFirstMonitorStub() {
+        return offsetof(ICMonitoredStub, firstMonitorStub_);
+    }
+};
+
+
+class ICMonitoredFallbackStub : public ICFallbackStub
+{
+  protected:
+    
+    ICTypeMonitor_Fallback *    fallbackMonitorStub_;
+
+    ICMonitoredFallbackStub(Kind kind, IonCode *stubCode)
+      : ICFallbackStub(kind, true, stubCode),
+        fallbackMonitorStub_(NULL) {}
+
+  public:
+    bool initMonitoringChain(JSContext *cx);
+
+    inline ICTypeMonitor_Fallback *fallbackMonitorStub() const {
+        return fallbackMonitorStub_;
     }
 };
 
@@ -423,6 +632,135 @@ class ICMultiStubCompiler : public ICStubCompiler
 
     ICMultiStubCompiler(JSContext *cx, ICStub::Kind kind, JSOp op)
       : ICStubCompiler(cx, kind), op(op) {}
+};
+
+
+
+
+
+
+
+class ICTypeMonitor_Fallback : public ICStub
+{
+    
+    ICMonitoredFallbackStub *   mainFallbackStub_;
+
+    
+    ICStub *                    firstMonitorStub_;
+
+    
+    
+    
+    ICStub **                   lastMonitorStubPtrAddr_;
+
+    
+    uint32_t                    numOptimizedMonitorStubs_;
+
+    ICTypeMonitor_Fallback(IonCode *stubCode, ICMonitoredFallbackStub *mainFallbackStub)
+      : ICStub(ICStub::TypeMonitor_Fallback, stubCode),
+        mainFallbackStub_(mainFallbackStub),
+        firstMonitorStub_(this),
+        lastMonitorStubPtrAddr_(NULL),
+        numOptimizedMonitorStubs_(0)
+    { }
+
+    void addOptimizedMonitorStub(ICStub *stub) {
+        stub->setNext(this);
+
+        if (numOptimizedMonitorStubs_ == 0) {
+            JS_ASSERT(lastMonitorStubPtrAddr_ == NULL);
+            JS_ASSERT(firstMonitorStub_ == this);
+            firstMonitorStub_ = stub;
+        } else {
+            JS_ASSERT(lastMonitorStubPtrAddr_ != NULL);
+            JS_ASSERT(firstMonitorStub_ != NULL);
+            *lastMonitorStubPtrAddr_ = stub;
+        }
+
+        lastMonitorStubPtrAddr_ = stub->addressOfNext();
+        numOptimizedMonitorStubs_++;
+    }
+
+  public:
+    static inline ICTypeMonitor_Fallback *New(IonCode *code, ICMonitoredFallbackStub *mainFbStub) {
+        return new ICTypeMonitor_Fallback(code, mainFbStub);
+    }
+
+    inline ICFallbackStub *mainFallbackStub() const {
+        return mainFallbackStub_;
+    }
+
+    inline ICStub *firstMonitorStub() const {
+        return firstMonitorStub_;
+    }
+
+    inline uint32_t numOptimizedMonitorStubs() const {
+        return numOptimizedMonitorStubs_;
+    }
+
+    
+    
+    bool addMonitorStubForValue(JSContext *cx, HandleValue val);
+
+    
+    class Compiler : public ICStubCompiler {
+        ICMonitoredFallbackStub *mainFallbackStub_;
+
+      protected:
+        bool generateStubCode(MacroAssembler &masm);
+
+      public:
+        Compiler(JSContext *cx, ICMonitoredFallbackStub *mainFallbackStub)
+          : ICStubCompiler(cx, ICStub::TypeMonitor_Fallback),
+            mainFallbackStub_(mainFallbackStub)
+        { }
+
+        ICTypeMonitor_Fallback *getStub() {
+            return ICTypeMonitor_Fallback::New(getStubCode(), mainFallbackStub_);
+        }
+    };
+};
+
+
+
+
+
+class ICTypeUpdate_Fallback : public ICStub
+{
+    uint8_t *entryPoint_;
+
+    ICTypeUpdate_Fallback(IonCode *stubCode, uint8_t *entryPoint)
+      : ICStub(ICStub::TypeUpdate_Fallback, stubCode),
+        entryPoint_(entryPoint)
+    { }
+
+  public:
+    static inline ICTypeUpdate_Fallback *New(IonCode *code, uint8_t *entryPoint) {
+        return new ICTypeUpdate_Fallback(code, entryPoint);
+    }
+
+    static inline size_t offsetOfEntryPoint() {
+        return offsetof(ICTypeUpdate_Fallback, entryPoint_);
+    }
+
+    
+    class Compiler : public ICStubCompiler {
+      CodeLocationLabel fallbackEntryPoint_;
+
+      protected:
+        bool generateStubCode(MacroAssembler &masm);
+
+      public:
+        Compiler(JSContext *cx, CodeLocationLabel fallbackEntryPoint)
+          : ICStubCompiler(cx, ICStub::TypeUpdate_Fallback),
+            fallbackEntryPoint_(fallbackEntryPoint)
+        { }
+
+        ICStub *getStub() {
+            
+            return ICTypeUpdate_Fallback::New(getStubCode(), fallbackEntryPoint_.raw());
+        }
+    };
 };
 
 
@@ -659,10 +997,10 @@ class ICBinaryArith_Int32 : public ICStub
 
 
 
-class ICGetElem_Fallback : public ICFallbackStub
+class ICGetElem_Fallback : public ICMonitoredFallbackStub
 {
     ICGetElem_Fallback(IonCode *stubCode)
-      : ICFallbackStub(ICStub::GetElem_Fallback, stubCode)
+      : ICMonitoredFallbackStub(ICStub::GetElem_Fallback, stubCode)
     { }
 
   public:
@@ -683,31 +1021,41 @@ class ICGetElem_Fallback : public ICFallbackStub
         { }
 
         ICStub *getStub() {
-            return ICGetElem_Fallback::New(getStubCode());
+            ICGetElem_Fallback *stub = ICGetElem_Fallback::New(getStubCode());
+            if (!stub)
+                return NULL;
+            if (!stub->initMonitoringChain(cx)) {
+                delete stub;
+                return NULL;
+            }
+            return stub;
         }
     };
 };
 
-class ICGetElem_Dense : public ICStub
+class ICGetElem_Dense : public ICMonitoredStub
 {
-    ICGetElem_Dense(IonCode *stubCode)
-      : ICStub(GetElem_Dense, stubCode) {}
+    ICGetElem_Dense(IonCode *stubCode, ICStub *firstMonitorStub)
+      : ICMonitoredStub(GetElem_Dense, stubCode, firstMonitorStub) {}
 
   public:
-    static inline ICGetElem_Dense *New(IonCode *code) {
-        return new ICGetElem_Dense(code);
+    static inline ICGetElem_Dense *New(IonCode *code, ICStub *firstMonitorStub) {
+        return new ICGetElem_Dense(code, firstMonitorStub);
     }
 
     class Compiler : public ICStubCompiler {
+      ICStub *firstMonitorStub_;
+
       protected:
         bool generateStubCode(MacroAssembler &masm);
 
       public:
-        Compiler(JSContext *cx)
-          : ICStubCompiler(cx, ICStub::GetElem_Dense) {}
+        Compiler(JSContext *cx, ICStub *firstMonitorStub)
+          : ICStubCompiler(cx, ICStub::GetElem_Dense),
+            firstMonitorStub_(firstMonitorStub) {}
 
         ICStub *getStub() {
-            return ICGetElem_Dense::New(getStubCode());
+            return ICGetElem_Dense::New(getStubCode(), firstMonitorStub_);
         }
     };
 };
@@ -810,6 +1158,7 @@ class ICCall_Fallback : public ICFallbackStub
         }
     };
 };
+
 
 } 
 } 

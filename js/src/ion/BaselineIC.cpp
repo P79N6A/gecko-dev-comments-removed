@@ -19,6 +19,28 @@
 namespace js {
 namespace ion {
 
+ICMonitoredStub::ICMonitoredStub(Kind kind, IonCode *stubCode, ICStub *firstMonitorStub)
+  : ICStub(kind, false, true, stubCode),
+    firstMonitorStub_(firstMonitorStub)
+{
+    
+    
+    JS_ASSERT_IF(firstMonitorStub_->isTypeMonitor_Fallback(),
+                 firstMonitorStub_->toTypeMonitor_Fallback()->firstMonitorStub() ==
+                    firstMonitorStub_);
+}
+
+bool
+ICMonitoredFallbackStub::initMonitoringChain(JSContext *cx)
+{
+    ICTypeMonitor_Fallback::Compiler compiler(cx, this);
+    ICTypeMonitor_Fallback *stub = compiler.getStub();
+    if (!stub)
+        return false;
+    fallbackMonitorStub_ = stub;
+    return true;
+}
+
 IonCode *
 ICStubCompiler::getStubCode()
 {
@@ -57,6 +79,105 @@ ICStubCompiler::callVM(const VMFunction &fun, MacroAssembler &masm)
 
     uint32_t argSize = fun.explicitStackSlots() * sizeof(void *);
     EmitTailCall(code, masm, argSize);
+    return true;
+}
+
+
+
+
+
+bool
+ICTypeMonitor_Fallback::addMonitorStubForValue(JSContext *cx, HandleValue val)
+{
+    bool wasEmptyMonitorChain = (numOptimizedMonitorStubs_ == 0);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool firstMonitorStubAdded = wasEmptyMonitorChain && (numOptimizedMonitorStubs_ > 0);
+
+    if (firstMonitorStubAdded) {
+        
+        
+        
+        ICEntry *ent = mainFallbackStub_->icEntry();
+        for (ICStub *mainStub = ent->firstStub();
+             mainStub != mainFallbackStub_;
+             mainStub = mainStub->next())
+        {
+            
+            JS_ASSERT(mainStub->next() != NULL);
+
+            
+            
+            
+            JS_ASSERT(mainStub->toMonitoredStub()->firstMonitorStub() == this);
+            mainStub->toMonitoredStub()->updateFirstMonitorStub(firstMonitorStub_);
+        }
+    }
+
+    return true;
+}
+
+static bool
+DoTypeMonitorFallback(JSContext *cx, ICTypeMonitor_Fallback *stub, HandleValue value,
+                      MutableHandleValue res)
+{
+    RootedScript script(cx, GetTopIonJSScript(cx));
+
+    
+    jsbytecode *pc = stub->mainFallbackStub()->icEntry()->pc(script);
+    types::TypeScript::Monitor(cx, script, pc, value);
+
+    
+    res.set(value);
+
+    return true;
+}
+
+typedef bool (*DoTypeMonitorFallbackFn)(JSContext *, ICTypeMonitor_Fallback *, HandleValue,
+                                        MutableHandleValue);
+static const VMFunction DoTypeMonitorFallbackInfo =
+    FunctionInfo<DoTypeMonitorFallbackFn>(DoTypeMonitorFallback);
+
+bool
+ICTypeMonitor_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    JS_ASSERT(R0 == JSReturnOperand);
+
+    
+    EmitRestoreTailCallReg(masm);
+
+    masm.pushValue(R0);
+    masm.push(BaselineStubReg);
+
+    return callVM(DoTypeMonitorFallbackInfo, masm);
+}
+
+
+
+
+
+bool
+ICTypeUpdate_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    JS_ASSERT(R0 == JSReturnOperand);
+
+    
+    
+    
+    
+    
+    masm.loadPtr(Address(BaselineStubReg, (int32_t) ICTypeUpdate_Fallback::offsetOfEntryPoint()),
+                 BaselineTailCallReg);
+    masm.jump(BaselineTailCallReg);
     return true;
 }
 
@@ -420,7 +541,7 @@ DoGetElemFallback(JSContext *cx, ICGetElem_Fallback *stub, HandleValue lhs, Hand
         if (stub->hasStub(ICStub::GetElem_Dense))
             return true;
 
-        ICGetElem_Dense::Compiler compiler(cx);
+        ICGetElem_Dense::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub());
         ICStub *denseStub = compiler.getStub();
         if (!denseStub)
             return false;
@@ -485,7 +606,9 @@ ICGetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     BaseIndex element(scratchReg, key, TimesEight);
     masm.branchTestMagic(Assembler::Equal, element, &failure);
     masm.loadValue(element, R0);
-    EmitReturnFromIC(masm);
+
+    
+    EmitEnterTypeMonitorIC(masm);
 
     
     masm.bind(&failure);
@@ -693,6 +816,7 @@ ICCall_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
     return callVM(DoCallFallbackInfo, masm);
 }
+
 
 } 
 } 
