@@ -903,6 +903,9 @@ this.WidgetMethods = {
     } else if (selectedIndex == j) {
       this._widget.selectedItem = aSecond._target;
     }
+
+    
+    ViewHelpers.dispatchEvent(aFirst.target, "swap", [aSecond, aFirst]);
   },
 
   

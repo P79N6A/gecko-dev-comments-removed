@@ -11,6 +11,8 @@ const SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE = 102400;
 const RESIZE_REFRESH_RATE = 50; 
 const REQUESTS_REFRESH_RATE = 50; 
 const REQUESTS_HEADERS_SAFE_BOUNDS = 30; 
+const REQUESTS_TOOLTIP_POSITION = "topcenter bottomleft";
+const REQUESTS_TOOLTIP_IMAGE_MAX_DIM = 400; 
 const REQUESTS_WATERFALL_SAFE_BOUNDS = 90; 
 const REQUESTS_WATERFALL_HEADER_TICKS_MULTIPLE = 5; 
 const REQUESTS_WATERFALL_HEADER_TICKS_SPACING_MIN = 60; 
@@ -318,7 +320,9 @@ function RequestsMenuView() {
   dumpn("RequestsMenuView was instantiated");
 
   this._flushRequests = this._flushRequests.bind(this);
+  this._onHover = this._onHover.bind(this);
   this._onSelect = this._onSelect.bind(this);
+  this._onSwap = this._onSwap.bind(this);
   this._onResize = this._onResize.bind(this);
   this._byFile = this._byFile.bind(this);
   this._byDomain = this._byDomain.bind(this);
@@ -345,6 +349,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     this.widget.autoscrollWithAppendedItems = true;
 
     this.widget.addEventListener("select", this._onSelect, false);
+    this.widget.addEventListener("swap", this._onSwap, false);
     this._splitter.addEventListener("mousemove", this._onResize, false);
     window.addEventListener("resize", this._onResize, false);
 
@@ -390,6 +395,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     Prefs.filters = this._activeFilters;
 
     this.widget.removeEventListener("select", this._onSelect, false);
+    this.widget.removeEventListener("swap", this._onSwap, false);
     this._splitter.removeEventListener("mousemove", this._onResize, false);
     window.removeEventListener("resize", this._onResize, false);
 
@@ -463,11 +469,21 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       }
     });
 
+    
+    let requestTooltip = requestItem.attachment.tooltip = new Tooltip(document, {
+      closeOnEvents: [{
+        emitter: $("#requests-menu-contents"),
+        event: "scroll",
+        useCapture: true
+      }]
+    });
+
     $("#details-pane-toggle").disabled = false;
     $("#requests-menu-empty-notice").hidden = true;
 
     this.refreshSummary();
     this.refreshZebra();
+    this.refreshTooltip(requestItem);
 
     if (aId == this._preferredItemId) {
       this.selectedItem = requestItem;
@@ -497,6 +513,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   copyImageAsDataUri: function() {
     let selected = this.selectedItem.attachment;
     let { mimeType, text, encoding } = selected.responseContent.content;
+
     gNetwork.getString(text).then(aString => {
       let data = "data:" + mimeType + ";" + encoding + "," + aString;
       clipboardHelper.copyString(data, document);
@@ -928,6 +945,19 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
+  refreshTooltip: function(aItem) {
+    let tooltip = aItem.attachment.tooltip;
+    tooltip.hide();
+    tooltip.startTogglingOnHover(aItem.target, this._onHover);
+    tooltip.defaultPosition = REQUESTS_TOOLTIP_POSITION;
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -1155,7 +1185,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
         if (mimeType.contains("image/")) {
           gNetwork.getString(text).then(aString => {
-            let node = $(".requests-menu-icon", target);
+            let node = $(".requests-menu-icon", aItem.target);
             node.src = "data:" + mimeType + ";" + encoding + "," + aString;
             node.setAttribute("type", "thumbnail");
             node.removeAttribute("hidden");
@@ -1438,6 +1468,49 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       NetMonitorView.Sidebar.toggle(true);
     } else {
       NetMonitorView.Sidebar.toggle(false);
+    }
+  },
+
+  
+
+
+
+  _onSwap: function({ detail: [firstItem, secondItem] }) {
+    
+    
+    this.refreshTooltip(firstItem);
+    this.refreshTooltip(secondItem);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _onHover: function(aTarget, aTooltip) {
+    let requestItem = this.getItemForElement(aTarget);
+    if (!requestItem || !requestItem.attachment.responseContent) {
+      return;
+    }
+
+    let hovered = requestItem.attachment;
+    let { url } = hovered;
+    let { mimeType, text, encoding } = hovered.responseContent.content;
+
+    if (mimeType && mimeType.contains("image/") && (
+      aTarget.classList.contains("requests-menu-icon") ||
+      aTarget.classList.contains("requests-menu-file")))
+    {
+      return gNetwork.getString(text).then(aString => {
+        let anchor = $(".requests-menu-icon", requestItem.target);
+        let src = "data:" + mimeType + ";" + encoding + "," + aString;
+        aTooltip.setImageContent(src, { maxDim: REQUESTS_TOOLTIP_IMAGE_MAX_DIM });
+        return anchor;
+      });
     }
   },
 
