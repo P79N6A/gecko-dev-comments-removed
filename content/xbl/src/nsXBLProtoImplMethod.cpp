@@ -115,7 +115,7 @@ nsXBLProtoImplMethod::InstallMember(nsIScriptContext* aContext,
   JSObject* globalObject = sgo->GetGlobalJSObject();
 
   
-  if (mJSMethodObject && aTargetClassObject) {
+  if (mJSMethodObject) {
     nsDependentString name(mName);
     JSAutoRequest ar(cx);
     JSAutoCompartment ac(cx, globalObject);

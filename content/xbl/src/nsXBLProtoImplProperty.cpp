@@ -158,7 +158,7 @@ nsXBLProtoImplProperty::InstallMember(nsIScriptContext* aContext,
   JSObject * globalObject = sgo->GetGlobalJSObject();
 
   
-  if ((mJSGetterObject || mJSSetterObject) && aTargetClassObject) {
+  if (mJSGetterObject || mJSSetterObject) {
     JSObject * getter = nullptr;
     JSAutoRequest ar(cx);
     JSAutoCompartment ac(cx, globalObject);
