@@ -84,7 +84,7 @@ class Pickle {
   bool ReadString16(void** iter, string16* result) const;
   bool ReadData(void** iter, const char** data, int* length) const;
   bool ReadBytes(void** iter, const char** data, int length,
-                 uint32_t alignment = sizeof(uint32_t)) const;
+                 uint32_t alignment = sizeof(memberAlignmentType)) const;
 
   
   
@@ -149,7 +149,7 @@ class Pickle {
   bool WriteString16(const string16& value);
   bool WriteData(const char* data, int length);
   bool WriteBytes(const void* data, int data_len,
-                  uint32_t alignment = sizeof(uint32_t));
+                  uint32_t alignment = sizeof(memberAlignmentType));
 
   
   
@@ -206,6 +206,8 @@ class Pickle {
     return (iter <= end_of_region) && (end_of_region <= end_of_payload());
   }
 
+  typedef uint32_t memberAlignmentType;
+
  protected:
   uint32_t payload_size() const { return header_->payload_size; }
 
@@ -257,7 +259,7 @@ class Pickle {
   };
 
   static uint32_t AlignInt(int bytes) {
-    return ConstantAligner<sizeof(uint32_t)>::align(bytes);
+    return ConstantAligner<sizeof(memberAlignmentType)>::align(bytes);
   }
 
   
