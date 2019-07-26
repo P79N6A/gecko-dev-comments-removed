@@ -43,6 +43,15 @@ public:
     
     SetIsDOMBinding();
   }
+  nsDOMEventTargetHelper(nsDOMEventTargetHelper* aOther)
+    : mParentObject(nullptr)
+    , mOwnerWindow(nullptr)
+    , mHasOrHasHadOwnerWindow(false)
+  {
+    BindToOwner(aOther);
+    
+    SetIsDOMBinding();
+  }
 
   virtual ~nsDOMEventTargetHelper();
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

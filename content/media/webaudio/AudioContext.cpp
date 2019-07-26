@@ -81,15 +81,14 @@ AudioContext::AudioContext(nsPIDOMWindow* aWindow,
                            uint32_t aNumberOfChannels,
                            uint32_t aLength,
                            float aSampleRate)
-  : mSampleRate(GetSampleRateForAudioContext(aIsOffline, aSampleRate))
+  : nsDOMEventTargetHelper(aWindow)
+  , mSampleRate(GetSampleRateForAudioContext(aIsOffline, aSampleRate))
   , mNumberOfChannels(aNumberOfChannels)
   , mIsOffline(aIsOffline)
   , mIsStarted(!aIsOffline)
   , mIsShutDown(false)
 {
-  nsDOMEventTargetHelper::BindToOwner(aWindow);
   aWindow->AddAudioContext(this);
-  SetIsDOMBinding();
 
   
   

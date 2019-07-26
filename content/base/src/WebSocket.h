@@ -140,13 +140,12 @@ public:
             ErrorResult& aRv);
 
 private: 
-  WebSocket();
+  WebSocket(nsPIDOMWindow* aOwnerWindow);
   virtual ~WebSocket();
 
 protected:
   nsresult Init(JSContext* aCx,
                 nsIPrincipal* aPrincipal,
-                nsPIDOMWindow* aOwnerWindow,
                 const nsAString& aURL,
                 nsTArray<nsString>& aProtocolArray);
 

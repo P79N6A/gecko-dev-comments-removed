@@ -39,7 +39,7 @@ class MediaRecorder : public nsDOMEventTargetHelper
   class Session;
 
 public:
-  MediaRecorder(DOMMediaStream&);
+  MediaRecorder(DOMMediaStream&, nsPIDOMWindow* aOwnerWindow);
   virtual ~MediaRecorder();
 
   
@@ -83,8 +83,6 @@ public:
   IMPL_EVENT_HANDLER(warning)
 
 protected:
-  void Init(nsPIDOMWindow* aOwnerWindow);
-
   MediaRecorder& operator = (const MediaRecorder& x) MOZ_DELETE;
   
   nsresult CreateAndDispatchBlobEvent(Session *session);
