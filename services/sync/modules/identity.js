@@ -96,6 +96,15 @@ IdentityManager.prototype = {
   
 
 
+
+  ensureLoggedIn: function() {
+    
+    return Promise.resolve();
+  },
+
+  
+
+
   get readyToAuthenticate() {
     
     return true;

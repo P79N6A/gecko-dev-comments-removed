@@ -23,6 +23,9 @@ Cu.import("resource://services-sync/stages/cluster.js");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 
 
+XPCOMUtils.defineLazyModuleGetter(this, "Weave",
+                                  "resource://services-sync/main.js");
+
 XPCOMUtils.defineLazyModuleGetter(this, "BulkKeyBundle",
                                   "resource://services-sync/keys.js");
 
@@ -91,6 +94,11 @@ this.BrowserIDManager.prototype = {
 
   
   
+  
+  _authFailureReason: null,
+
+  
+  
   _shouldHaveSyncKeyBundle: false,
 
   get readyToAuthenticate() {
@@ -114,18 +122,51 @@ this.BrowserIDManager.prototype = {
     return this.initializeWithCurrentIdentity();
   },
 
+  
+
+
+
+  ensureLoggedIn: function() {
+    if (!this._shouldHaveSyncKeyBundle) {
+      
+      return this.whenReadyToAuthenticate.promise;
+    }
+
+    
+    if (Weave.Status.login == LOGIN_SUCCEEDED) {
+      return Promise.resolve();
+    }
+
+    
+    
+    
+    if (Weave.Status.login == LOGIN_FAILED_LOGIN_REJECTED) {
+      return Promise.reject();
+    }
+
+    
+    
+    this.initializeWithCurrentIdentity();
+    return this.whenReadyToAuthenticate.promise;
+  },
+
   initializeWithCurrentIdentity: function(isInitialSync=false) {
+    
+    
+    
     this._log.trace("initializeWithCurrentIdentity");
-    Components.utils.import("resource://services-sync/main.js");
 
     
     this.whenReadyToAuthenticate = Promise.defer();
     this._shouldHaveSyncKeyBundle = false;
+    this._authFailureReason = null;
 
     return this._fxaService.getSignedInUser().then(accountData => {
       if (!accountData) {
         this._log.info("initializeWithCurrentIdentity has no user logged in");
         this._account = null;
+        this._shouldHaveSyncKeyBundle = true;
+        this.whenReadyToAuthenticate.reject("no user is logged in");
         return;
       }
 
@@ -160,6 +201,7 @@ this.BrowserIDManager.prototype = {
         this._shouldHaveSyncKeyBundle = true; 
         this.whenReadyToAuthenticate.resolve();
         this._log.info("Background fetch for key bundle done");
+        Weave.Status.login = LOGIN_SUCCEEDED;
         if (isInitialSync) {
           this._log.info("Doing initial sync actions");
           Svc.Prefs.set("firstSync", "resetClient");
@@ -186,7 +228,6 @@ this.BrowserIDManager.prototype = {
       break;
 
     case fxAccountsCommon.ONLOGOUT_NOTIFICATION:
-      Components.utils.import("resource://services-sync/main.js");
       
       
       this.username = "";
@@ -329,6 +370,11 @@ this.BrowserIDManager.prototype = {
 
 
   get currentAuthState() {
+    if (this._authFailureReason) {
+      this._log.info("currentAuthState returning " + this._authFailureReason +
+                     " due to previous failure");
+      return this._authFailureReason;
+    }
     
     
     
@@ -432,8 +478,11 @@ this.BrowserIDManager.prototype = {
       let deferred = Promise.defer();
       let cb = function (err, token) {
         if (err) {
-          log.info("TokenServerClient.getTokenFromBrowserIDAssertion() failed with: " + err.message);
-          return deferred.reject(new AuthenticationError(err));
+          log.info("TokenServerClient.getTokenFromBrowserIDAssertion() failed with: " + err);
+          if (err.response && err.response.status === 401) {
+            err = new AuthenticationError(err);
+          }
+          return deferred.reject(err);
         } else {
           log.debug("Successfully got a sync token");
           return deferred.resolve(token);
@@ -448,6 +497,7 @@ this.BrowserIDManager.prototype = {
       log.debug("Getting an assertion");
       let audience = Services.io.newURI(tokenServerURI, null, null).prePath;
       return fxa.getAssertion(audience).then(null, err => {
+        log.error("fxa.getAssertion() failed with: " + err.code + " - " + err.message);
         if (err.code === 401) {
           throw new AuthenticationError("Unable to get assertion for user");
         } else {
@@ -475,13 +525,18 @@ this.BrowserIDManager.prototype = {
         if (err instanceof AuthenticationError) {
           this._log.error("Authentication error in _fetchTokenForUser: " + err);
           
+          this._authFailureReason = LOGIN_FAILED_LOGIN_REJECTED;
+        } else {
+          this._log.error("Non-authentication error in _fetchTokenForUser: " + err.message);
           
-          
-          this._shouldHaveSyncKeyBundle = true;
-          this._syncKeyBundle = null;
-          Weave.Status.login = this.currentAuthState;
-          Services.obs.notifyObservers(null, "weave:service:login:error", null);
+          this._authFailureReason = LOGIN_FAILED_NETWORK_ERROR;
         }
+        
+        
+        
+        this._shouldHaveSyncKeyBundle = true;
+        this._syncKeyBundle = null;
+        Weave.Status.login = this._authFailureReason;
         throw err;
       });
   },

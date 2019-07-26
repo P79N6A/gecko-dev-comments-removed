@@ -949,6 +949,13 @@ Sync11Service.prototype = {
       }
 
       
+      let cb = Async.makeSpinningCallback();
+      this.identity.ensureLoggedIn().then(cb, cb);
+
+      
+      cb.wait();
+
+      
       
       if (initialStatus == CLIENT_NOT_CONFIGURED
           && (username || password || passphrase)) {
