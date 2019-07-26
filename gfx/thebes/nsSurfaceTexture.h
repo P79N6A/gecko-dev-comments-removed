@@ -11,10 +11,15 @@
 #include <jni.h>
 #include "nsIRunnable.h"
 #include "gfxPlatform.h"
-#include "gfx3DMatrix.h"
 #include "GLDefs.h"
 
 class gfxASurface;
+
+namespace mozilla {
+namespace gfx {
+class Matrix4x4;
+}
+}
 
 
 
@@ -41,7 +46,7 @@ public:
   
   void UpdateTexImage();
 
-  bool GetTransformMatrix(gfx3DMatrix& aMatrix);
+  bool GetTransformMatrix(mozilla::gfx::Matrix4x4& aMatrix);
   int ID() { return mID; }
 
   
