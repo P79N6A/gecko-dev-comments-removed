@@ -121,21 +121,27 @@ float Axis::GetOverscroll() const {
   return mOverscroll;
 }
 
-void Axis::StartSnapBack() {
-  float initialSnapBackVelocity = gfxPrefs::APZSnapBackInitialVelocity();
-  if (mOverscroll > 0) {
-    mVelocity = -initialSnapBackVelocity;
-  } else {
-    mVelocity = initialSnapBackVelocity;
-  }
-}
-
 bool Axis::SampleSnapBack(const TimeDuration& aDelta) {
   
   
   
   
-  mVelocity *= pow(1.0f + gfxPrefs::APZSnapBackAcceleration(), float(aDelta.ToMilliseconds()));
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  const float kSpringStiffness = gfxPrefs::APZOverscrollSnapBackSpringStiffness();
+  const float kSpringFriction = gfxPrefs::APZOverscrollSnapBackSpringFriction();
+  const float kMass = gfxPrefs::APZOverscrollSnapBackMass();
+  float force = -1 * kSpringStiffness * mOverscroll - kSpringFriction * mVelocity;
+  float acceleration = force / kMass;
+  mVelocity += acceleration * aDelta.ToMilliseconds();
   float screenDisplacement = mVelocity * aDelta.ToMilliseconds();
   float cssDisplacement = screenDisplacement / GetFrameMetrics().GetZoom().scale;
   if (mOverscroll > 0) {

@@ -101,11 +101,6 @@ public:
   
 
 
-  void StartSnapBack();
-
-  
-
-
 
   bool SampleSnapBack(const TimeDuration& aDelta);
 

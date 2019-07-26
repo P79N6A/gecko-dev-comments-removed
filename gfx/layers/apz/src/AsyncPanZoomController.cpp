@@ -296,6 +296,10 @@ typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
+
+
+
+
 static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
                                              AllowedTouchBehavior::HORIZONTAL_PAN |
                                              AllowedTouchBehavior::PINCH_ZOOM |
@@ -490,11 +494,7 @@ private:
 class OverscrollSnapBackAnimation: public AsyncPanZoomAnimation {
 public:
   OverscrollSnapBackAnimation(AsyncPanZoomController& aApzc)
-    : mApzc(aApzc)
-  {
-    mApzc.mX.StartSnapBack();
-    mApzc.mY.StartSnapBack();
-  }
+    : mApzc(aApzc) {}
 
   virtual bool Sample(FrameMetrics& aFrameMetrics,
                       const TimeDuration& aDelta) MOZ_OVERRIDE
