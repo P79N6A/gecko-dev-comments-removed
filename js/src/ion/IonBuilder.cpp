@@ -5459,14 +5459,25 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, Handle
         
         
         while (curObj != foundProto) {
-            if (curObj->getType(cx)->unknownProperties())
+            types::TypeObject *typeObj = curObj->getType(cx);
+
+            if (typeObj->unknownProperties())
                 return true;
 
             
             
             
             
-            if (curObj->watched())
+            
+
+            
+            
+            
+            jsid typeId = types::MakeTypeId(cx, id);
+            types::HeapTypeSet *propSet = typeObj->getProperty(cx, typeId, false);
+            if (!propSet)
+                return false;
+            if (propSet->isOwnProperty(cx, typeObj, false))
                 return true;
 
             curObj = curObj->getProto();
@@ -5518,6 +5529,8 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, Handle
             jsid typeId = types::MakeTypeId(cx, id);
             while (true) {
                 types::HeapTypeSet *propSet = curType->getProperty(cx, typeId, false);
+                
+                
                 JS_ASSERT(propSet);
                 
                 DebugOnly<bool> isOwn = propSet->isOwnProperty(cx, curType, false);
