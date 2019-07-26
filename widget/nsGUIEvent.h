@@ -1944,6 +1944,18 @@ public:
   uint32_t direction;         
   double delta;               
   uint32_t clickCount;        
+
+  
+  void AssignSimpleGestureEventData(const nsSimpleGestureEvent& aEvent,
+                                    bool aCopyTargets)
+  {
+    AssignMouseEventBaseData(aEvent, aCopyTargets);
+
+    
+    direction = aEvent.direction;
+    delta = aEvent.delta;
+    clickCount = aEvent.clickCount;
+  }
 };
 
 class nsTransitionEvent : public nsEvent
