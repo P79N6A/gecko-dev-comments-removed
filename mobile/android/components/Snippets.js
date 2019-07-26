@@ -31,6 +31,9 @@ const SNIPPETS_GEO_LAST_UPDATE_PREF = "browser.snippets.geoLastUpdate";
 const SNIPPETS_COUNTRY_CODE_PREF = "browser.snippets.countryCode";
 
 
+const SNIPPETS_REMOVED_IDS_PREF = "browser.snippets.removedIds";
+
+
 const SNIPPETS_GEO_UPDATE_INTERVAL_MS = 86400000*30;
 
 
@@ -169,6 +172,17 @@ function updateBanner(response) {
   gMessageIds = [];
 
   let messages = JSON.parse(response);
+
+  try {
+    let removedSnippetIds = JSON.parse(Services.prefs.getCharPref(SNIPPETS_REMOVED_IDS_PREF));
+    messages = messages.filter(function(message) {
+      
+      return removedSnippetIds.indexOf(message.id) === -1;
+    });
+  } catch (e) {
+    
+  }
+
   messages.forEach(function(message) {
     
     if ("target_geo" in message && message.target_geo != gCountryCode) {
@@ -181,6 +195,11 @@ function updateBanner(response) {
         let parentId = gChromeWin.BrowserApp.selectedTab.id;
         gChromeWin.BrowserApp.addTab(message.url, { parentId: parentId });
       },
+      ondismiss: function() {
+        
+        Home.banner.remove(id);
+        removeSnippet(message.id);
+      },
       onshown: function() {
         
         if (Math.random() < .1) {
@@ -191,6 +210,23 @@ function updateBanner(response) {
     
     gMessageIds.push(id);
   });
+}
+
+
+
+
+
+
+function removeSnippet(snippetId) {
+  let removedSnippetIds;
+  try {
+    removedSnippetIds = JSON.parse(Services.prefs.getCharPref(SNIPPETS_REMOVED_IDS_PREF));
+  } catch (e) {
+    removedSnippetIds = [];
+  }
+
+  removedSnippetIds.push(snippetId);
+  Services.prefs.setCharPref(SNIPPETS_REMOVED_IDS_PREF, JSON.stringify(removedSnippetIds));
 }
 
 
