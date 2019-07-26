@@ -20,6 +20,11 @@ struct nsIntPoint;
 
 namespace mozilla {
 
+
+
+
+
+
 struct DeltaValues
 {
   DeltaValues()
@@ -40,6 +45,11 @@ struct DeltaValues
   double deltaY;
 };
 
+
+
+
+
+
 class WheelHandlingUtils
 {
 public:
@@ -54,6 +64,13 @@ private:
   static bool CanScrollInRange(nscoord aMin, nscoord aValue, nscoord aMax,
                                double aDirection);
 };
+
+
+
+
+
+
+
 
 class ScrollbarsForWheel
 {
@@ -87,6 +104,14 @@ protected:
                 WidgetWheelEvent* aEvent);
   static void DeactivateAllTemporarilyActivatedScrollTargets();
 };
+
+
+
+
+
+
+
+
 
 class WheelTransaction
 {
