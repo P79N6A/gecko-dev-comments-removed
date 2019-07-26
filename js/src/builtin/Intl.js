@@ -435,23 +435,8 @@ function CanonicalizeLocaleList(locales) {
         var kPresent = HasProperty(O, k);
         if (kPresent) {
             var kValue = O[k];
-            if (!(typeof kValue === "string" ||
-                  (typeof kValue === "object" && kValue !== null) ||
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  (typeof kValue === "undefined" && kValue !== undefined)))
-            {
+            if (!(typeof kValue === "string" || IsObject(kValue)))
                 ThrowError(JSMSG_INVALID_LOCALES_ELEMENT);
-            }
             var tag = ToString(kValue);
             if (!IsStructurallyValidLanguageTag(tag))
                 ThrowError(JSMSG_INVALID_LANGUAGE_TAG, tag);

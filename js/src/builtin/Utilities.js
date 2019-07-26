@@ -111,6 +111,20 @@ function ToString(v) {
 
 
 
+
+function IsObject(v) {
+    
+    
+    
+    
+    return (typeof v === "object" && v !== null) ||
+           (typeof v === "undefined" && v !== undefined);
+}
+
+
+
+
+
 function assert(b, info) {
     if (!b)
         AssertionFailed(info);
