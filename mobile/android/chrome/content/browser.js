@@ -173,9 +173,11 @@ const kDoNotTrackPrefState = Object.freeze({
   ALLOW_TRACKING: "2",
 });
 
-function dump(a) {
-  Services.console.logStringMessage(a);
-}
+let Log = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog;
+
+
+
+let dump = Log.d.bind(null, "Browser");
 
 function doChangeMaxLineBoxWidth(aWidth) {
   gReflowPending = null;

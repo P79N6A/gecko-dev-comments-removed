@@ -29,16 +29,8 @@ XPCOMUtils.defineLazyGetter(this, "Strings", function() {
   return Services.strings.createBundle("chrome://browser/locale/webapp.properties");
 });
 
-function debug(aMessage) {
-  
-  
-  
-  
-  
-#ifdef DEBUG
-  dump(aMessage);
-#endif
-}
+let Log = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog;
+let debug = Log.d.bind(null, "WebappManager");
 
 this.WebappManager = {
   __proto__: DOMRequestIpcHelper.prototype,

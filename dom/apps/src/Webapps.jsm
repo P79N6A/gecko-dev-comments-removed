@@ -71,11 +71,20 @@ XPCOMUtils.defineLazyGetter(this, "libcutils", function() {
 });
 #endif
 
+#ifdef MOZ_WIDGET_ANDROID
+
+
+
+
+let debug = Cu.import("resource://gre/modules/AndroidLog.jsm", {})
+              .AndroidLog.d.bind(null, "Webapps");
+#else
 function debug(aMsg) {
 #ifdef DEBUG
   dump("-*- Webapps.jsm : " + aMsg + "\n");
 #endif
 }
+#endif
 
 function getNSPRErrorCode(err) {
   return -1 * ((err) & 0xffff);

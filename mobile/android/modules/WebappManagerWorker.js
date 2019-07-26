@@ -3,10 +3,12 @@
 
 
 importScripts("resource://gre/modules/osfile.jsm");
+importScripts("resource://gre/modules/workers/require.js");
+let Log = require("resource://gre/modules/AndroidLog.jsm");
 
-function log(message) {
-  dump("WebManagerWorker " + message + "\n");
-}
+
+
+let log = Log.d.bind(null, "WebappManagerWorker");
 
 onmessage = function(event) {
   let { url, path } = event.data;
