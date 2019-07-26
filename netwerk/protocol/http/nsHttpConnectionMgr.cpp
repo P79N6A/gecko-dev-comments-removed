@@ -328,14 +328,6 @@ nsHttpConnectionMgr::SpeculativeConnect(nsHttpConnectionInfo *ci,
 
     
     
-    if (ci && ci->HostIsLocalIPLiteral()) {
-        LOG(("nsHttpConnectionMgr::SpeculativeConnect skipping RFC1918 "
-             "address [%s]", ci->Host()));
-        return NS_OK;
-    }
-
-    
-    
     nsCOMPtr<nsIInterfaceRequestor> wrappedCallbacks;
     NS_NewInterfaceRequestorAggregation(callbacks, nullptr, getter_AddRefs(wrappedCallbacks));
 
@@ -2660,10 +2652,6 @@ nsHalfOpenSocket::SetupStreams(nsISocketTransport **transport,
     else if (mEnt->mPreferIPv4 ||
              (isBackup && gHttpHandler->FastFallbackToIPv4())) {
         tmpFlags |= nsISocketTransport::DISABLE_IPV6;
-    }
-
-    if (IsSpeculative()) {
-        tmpFlags |= nsISocketTransport::DISABLE_RFC1918;
     }
 
     socketTransport->SetConnectionFlags(tmpFlags);
