@@ -351,8 +351,7 @@ this.WebappManager = {
       notification = this._notify({
         title: Strings.GetStringFromName("checkingForUpdatesTitle"),
         message: Strings.GetStringFromName("checkingForUpdatesMessage"),
-        
-        icon: "drawable://alert_app",
+        icon: "drawable://alert_app_animation",
         progress: NaN,
       });
     }
@@ -392,10 +391,7 @@ this.WebappManager = {
       title: PluralForm.get(aApps.length, Strings.GetStringFromName("downloadingUpdateTitle")).
              replace("#1", aApps.length),
       message: Strings.formatStringFromName("downloadingUpdateMessage", [downloadingNames], 1),
-      
-      
-      
-      icon: "drawable://alert_download",
+      icon: "drawable://alert_download_animation",
       
       
       progress: NaN,
