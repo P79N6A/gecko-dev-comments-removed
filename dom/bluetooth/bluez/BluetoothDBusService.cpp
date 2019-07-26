@@ -339,13 +339,11 @@ static nsString sAdapterPath;
 
 
 
-
 static int sConnectedDeviceCount = 0;
-
+static StaticAutoPtr<Monitor> sStopBluetoothMonitor;
 
 
 static StaticAutoPtr<Monitor> sGetPropertyMonitor;
-static StaticAutoPtr<Monitor> sStopBluetoothMonitor;
 
 typedef void (*UnpackFunc)(DBusMessage*, DBusError*, BluetoothValue&, nsAString&);
 typedef bool (*FilterFunc)(const BluetoothValue&);
