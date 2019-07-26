@@ -37,10 +37,6 @@ public:
                        uint32_t     count,
                        uint32_t *   bytesWritten);
 
-    nsresult    Seek(int32_t whence, int32_t offset);
-    nsresult    Tell(uint32_t * position);    
-    nsresult    SetEOF();
-
     nsresult    ClearBinding();
     
     void        IncrementInputStreamCount() { PR_ATOMIC_INCREMENT(&mInStreamCount); }
@@ -55,16 +51,17 @@ public:
     
     
     nsDiskCacheStreamIO() { NS_NOTREACHED("oops"); }
-private:
 
+private:
 
     void        Close();
     nsresult    OpenCacheFile(int flags, PRFileDesc ** fd);
-    nsresult    ReadCacheBlocks();
+    nsresult    ReadCacheBlocks(uint32_t bufferSize);
     nsresult    FlushBufferToFile();
     void        UpdateFileSize();
     void        DeleteBuffer();
     nsresult    Flush();
+    nsresult    SeekAndTruncate(uint32_t offset);
 
     nsDiskCacheBinding *        mBinding;       
     nsDiskCacheDevice *         mDevice;
@@ -72,14 +69,9 @@ private:
     int32_t                     mInStreamCount;
     PRFileDesc *                mFD;
 
-    uint32_t                    mStreamPos;     
-    uint32_t                    mStreamEnd;
-    uint32_t                    mBufPos;        
-    uint32_t                    mBufEnd;        
+    uint32_t                    mStreamEnd;     
     uint32_t                    mBufSize;       
-    bool                        mBufDirty;
     char *                      mBuffer;
-    
 };
 
 #endif 
