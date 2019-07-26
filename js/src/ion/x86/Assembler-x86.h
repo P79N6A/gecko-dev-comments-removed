@@ -66,7 +66,11 @@ static const Register PreBarrierReg = edx;
 
 
 
+#if defined(__GNUC__)
 static const uint32_t StackAlignment = 16;
+#else
+static const uint32_t StackAlignment = 4;
+#endif
 static const bool StackKeptAligned = false;
 
 struct ImmTag : public Imm32
