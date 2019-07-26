@@ -148,8 +148,8 @@ class LinkedListElement
 
 
     void setNext(T* elem) {
-        MOZ_ASSERT(isInList());
-        setNextUnsafe(elem);
+      MOZ_ASSERT(isInList());
+      setNextUnsafe(elem);
     }
 
     
