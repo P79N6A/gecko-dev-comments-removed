@@ -24,6 +24,7 @@ let EXPORTED_SYMBOLS = ["OS"];
 Components.utils.import("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
 
 let LOG = OS.Shared.LOG.bind(OS.Shared, "Controller");
+let isTypedArray = OS.Shared.isTypedArray;
 
 
 
@@ -319,7 +320,7 @@ File.prototype = {
     
     
     
-    if ("byteLength" in buffer && (!options || !"bytes" in options)) {
+    if (isTypedArray(buffer) && (!options || !"bytes" in options)) {
       options = clone(options || noOptions);
       options.bytes = buffer.byteLength;
     }
@@ -329,11 +330,18 @@ File.prototype = {
     
     return Scheduler.post("File_prototype_readTo",
       [this._fdmsg,
-      Type.void_t.out_ptr.toMsg(buffer),
-      options],
-      buffer);
+       Type.void_t.out_ptr.toMsg(buffer),
+       options],
+       buffer);
   },
   
+
+
+
+
+
+
+
 
 
 
@@ -348,7 +356,7 @@ File.prototype = {
     
     
     
-    if ("byteLength" in buffer && (!options || !"bytes" in options)) {
+    if (isTypedArray(buffer) && (!options || !"bytes" in options)) {
       options = clone(options || noOptions);
       options.bytes = buffer.byteLength;
     }
@@ -358,14 +366,12 @@ File.prototype = {
     
     return Scheduler.post("File_prototype_write",
       [this._fdmsg,
-      Type.void_t.in_ptr.toMsg(buffer),
-      options],
-      buffer);
+       Type.void_t.in_ptr.toMsg(buffer),
+       options],
+       buffer);
   },
 
   
-
-
 
 
 
@@ -387,19 +393,22 @@ File.prototype = {
         return stat.size;
       });
     }
-    let buffer;
+    let array;
+    let size;
     promise = promise.then(
-      function withSize(size) {
-        buffer = new ArrayBuffer(size);
-        return self.readTo(buffer);
+      function withSize(aSize) {
+        size = aSize;
+        array = new Uint8Array(size);
+        return self.readTo(array);
       }
     );
     promise = promise.then(
       function afterReadTo(bytes) {
-        return {
-          bytes: bytes,
-          buffer: buffer
-        };
+        if (bytes == size) {
+          return array;
+        } else {
+          return array.subarray(0, bytes);
+        }
       }
     );
     return promise;
@@ -637,13 +646,17 @@ File.writeAtomic = function writeAtomic(path, buffer, options) {
   if ("tmpPath" in options) {
     options.tmpPath = Type.path.toMsg(options.tmpPath);
   };
-  if ("byteLength" in buffer && (!("bytes" in options))) {
+  if (isTypedArray(buffer) && (!("bytes" in options))) {
     options.bytes = buffer.byteLength;
   };
+  
+  
+  
+  
   return Scheduler.post("writeAtomic",
     [Type.path.toMsg(path),
-    Type.void_t.in_ptr.toMsg(buffer),
-    options], [options, buffer]);
+     Type.void_t.in_ptr.toMsg(buffer),
+     options], [options, buffer]);
 };
 
 

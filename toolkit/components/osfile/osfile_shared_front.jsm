@@ -24,6 +24,7 @@ const noOptions = {};
 
 
 
+
 let AbstractFile = function AbstractFile(fd) {
   this._fd = fd;
 };
@@ -48,18 +49,17 @@ AbstractFile.prototype = {
 
 
 
-
-
   read: function read(bytes) {
     if (bytes == null) {
       bytes = this.stat().size;
     }
-    let buffer = new ArrayBuffer(bytes);
+    let buffer = new Uint8Array(bytes);
     let size = this.readTo(buffer, bytes);
-    return {
-      buffer: buffer,
-      bytes: size
-    };
+    if (size == bytes) {
+      return buffer;
+    } else {
+      return buffer.subarray(0, size);
+    }
   },
 
   
@@ -80,14 +80,9 @@ AbstractFile.prototype = {
 
 
 
-
-
-
   readTo: function readTo(buffer, options) {
     options = options || noOptions;
-
-    let {ptr, bytes} = AbstractFile.normalizeToPointer(buffer, options.bytes,
-      options.offset);
+    let {ptr, bytes} = AbstractFile.normalizeToPointer(buffer, options.bytes);
     let pos = 0;
     while (pos < bytes) {
       let chunkSize = this._read(ptr, bytes - pos, options);
@@ -118,14 +113,10 @@ AbstractFile.prototype = {
 
 
 
-
-
-
   write: function write(buffer, options) {
     options = options || noOptions;
 
-    let {ptr, bytes} = AbstractFile.normalizeToPointer(buffer, options.bytes,
-      options.offset);
+    let {ptr, bytes} = AbstractFile.normalizeToPointer(buffer, options.bytes);
 
     let pos = 0;
     while (pos < bytes) {
@@ -151,14 +142,9 @@ AbstractFile.prototype = {
 
 
 
-
-
-AbstractFile.normalizeToPointer = function normalizeToPointer(candidate, bytes, offset) {
+AbstractFile.normalizeToPointer = function normalizeToPointer(candidate, bytes) {
   if (!candidate) {
-    throw new TypeError("Expecting a C pointer or an ArrayBuffer");
-  }
-  if (offset == null) {
-    offset = 0;
+    throw new TypeError("Expecting  a Typed Array or a C pointer");
   }
   let ptr;
   if ("isNull" in candidate) {
@@ -169,23 +155,20 @@ AbstractFile.normalizeToPointer = function normalizeToPointer(candidate, bytes, 
     if (bytes == null) {
       throw new TypeError("C pointer missing bytes indication.");
     }
-  } else if ("byteLength" in candidate) {
-    ptr = exports.OS.Shared.Type.uint8_t.out_ptr.implementation(candidate);
+  } else if (exports.OS.Shared.isTypedArray(candidate)) {
+    
+    ptr = exports.OS.Shared.Type.uint8_t.out_ptr.implementation(candidate.buffer);
     if (bytes == null) {
-      bytes = candidate.byteLength - offset;
-    }
-    if (candidate.byteLength < offset + bytes) {
+      bytes = candidate.byteLength;
+    } else if (candidate.byteLength < bytes) {
       throw new TypeError("Buffer is too short. I need at least " +
-                         (offset + bytes) +
+                         bytes +
                          " bytes but I have only " +
-                         buffer.byteLength +
+                         candidate.byteLength +
                           "bytes");
     }
   } else {
-    throw new TypeError("Expecting a C pointer or an ArrayBuffer");
-  }
-  if (offset != 0) {
-    ptr = exports.OS.Shared.offsetBy(ptr, offset);
+    throw new TypeError("Expecting  a Typed Array or a C pointer");
   }
   return {ptr: ptr, bytes: bytes};
 };
@@ -344,14 +327,11 @@ AbstractFile.read = function read(path, bytes) {
 
 
 
-
-
 AbstractFile.writeAtomic =
      function writeAtomic(path, buffer, options) {
   options = options || noOptions;
 
   let tmpPath = options.tmpPath;
-
   if (!tmpPath) {
     throw new TypeError("Expected option tmpPath");
   }

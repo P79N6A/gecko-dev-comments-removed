@@ -236,6 +236,14 @@
        }
      };
 
+     
+
+
+     let isTypedArray = function isTypedArray(obj) {
+       return typeof obj == "object"
+         && "byteOffset" in obj;
+     };
+     exports.OS.Shared.isTypedArray = isTypedArray;
 
      
 
@@ -276,8 +284,11 @@
          return { string: value };
        }
        let normalized;
-       if ("byteLength" in value) { 
-         normalized = Types.uint8_t.in_ptr.implementation(value);
+       if (isTypedArray(value)) { 
+         normalized = Types.uint8_t.in_ptr.implementation(value.buffer);
+         if (value.byteOffset != 0) {
+           normalized = exports.OS.Shared.offsetBy(normalized, value.byteOffset);
+         }
        } else if ("addressOfElement" in value) { 
          normalized = value.addressOfElement(0);
        } else if ("isNull" in value) { 
