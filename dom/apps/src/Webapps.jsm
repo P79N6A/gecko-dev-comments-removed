@@ -979,9 +979,17 @@ this.DOMApplicationRegistry = {
       channel.contentType = "application/json";
       NetUtil.asyncFetch(channel, function(aStream, aResult) {
         if (!Components.isSuccessCode(aResult)) {
+          deferred.resolve(null);
+
+          if (aResult == Cr.NS_ERROR_FILE_NOT_FOUND) {
+            
+            
+            return;
+          }
+
           Cu.reportError("DOMApplicationRegistry: Could not read from json file "
                          + aPath);
-          deferred.resolve(null);
+          return;
         }
 
         try {
