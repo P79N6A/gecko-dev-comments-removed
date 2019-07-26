@@ -5028,8 +5028,6 @@ HTMLInputElement::GetStep() const
     step = GetDefaultStep();
   }
 
-  
-  
   return step * GetStepScaleFactor();
 }
 
@@ -5218,15 +5216,6 @@ HTMLInputElement::HasStepMismatch() const
   Decimal step = GetStep();
   if (step == kStepAny) {
     return false;
-  }
-
-  if (mType == NS_FORM_INPUT_DATE) {
-    
-    
-    
-    
-    
-    step = step.round();
   }
 
   
