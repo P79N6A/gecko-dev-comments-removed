@@ -140,10 +140,7 @@ private:
 
   nsAutoPtr<ContainerParser> mParser;
 
-  
-  
-  nsTArray<nsRefPtr<SubBufferDecoder>> mDecoders;
-  nsRefPtr<SubBufferDecoder> mCurrentDecoder;
+  nsRefPtr<SubBufferDecoder> mDecoder;
 
   double mAppendWindowStart;
   double mAppendWindowEnd;
