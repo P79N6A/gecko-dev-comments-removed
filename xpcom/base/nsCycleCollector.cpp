@@ -1006,7 +1006,7 @@ class nsCycleCollector : public MemoryMultiReporter
 {
     NS_DECL_ISUPPORTS
 
-    bool mCollectionInProgress;
+    bool mActivelyCollecting;
     
     bool mScanInProgress;
     CycleCollectorResults mResults;
@@ -2552,7 +2552,7 @@ nsCycleCollector::CollectReports(nsIHandleReportCallback* aHandleReport,
 
 nsCycleCollector::nsCycleCollector() :
     MemoryMultiReporter("cycle-collector"),
-    mCollectionInProgress(false),
+    mActivelyCollecting(false),
     mScanInProgress(false),
     mJSRuntime(nullptr),
     mIncrementalPhase(IdlePhase),
@@ -2679,7 +2679,6 @@ nsCycleCollector::CleanupAfterCollection()
 {
     MOZ_ASSERT(mIncrementalPhase == CleanupPhase);
     mGraph.Clear();
-    mCollectionInProgress = false;
 
 #ifdef XP_OS2
     
@@ -2725,9 +2724,10 @@ nsCycleCollector::Collect(ccType aCCType,
     CheckThreadSafety();
 
     
-    if (mCollectionInProgress) {
+    if (mActivelyCollecting) {
         return false;
     }
+    mActivelyCollecting = true;
 
     MOZ_ASSERT(mIncrementalPhase == IdlePhase);
 
@@ -2736,6 +2736,7 @@ nsCycleCollector::Collect(ccType aCCType,
     ScanRoots();
     bool collectedAny = CollectWhite();
     CleanupAfterCollection();
+    mActivelyCollecting = false;
 
     MOZ_ASSERT(mIncrementalPhase == IdlePhase);
 
@@ -2785,8 +2786,6 @@ nsCycleCollector::BeginCollection(ccType aCCType,
     MOZ_ASSERT(mIncrementalPhase == IdlePhase);
 
     mCollectionStart = TimeStamp::Now();
-
-    mCollectionInProgress = true;
 
     if (mJSRuntime) {
         mJSRuntime->BeginCycleCollectionCallback();
