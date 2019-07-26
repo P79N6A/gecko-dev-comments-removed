@@ -1297,10 +1297,10 @@ private:
 
 
 
-  nsresult ConstructFramesFromItemList(nsFrameConstructorState& aState,
-                                       FrameConstructionItemList& aItems,
-                                       nsIFrame* aParentFrame,
-                                       nsFrameItems& aFrameItems);
+  void ConstructFramesFromItemList(nsFrameConstructorState& aState,
+                                   FrameConstructionItemList& aItems,
+                                   nsIFrame* aParentFrame,
+                                   nsFrameItems& aFrameItems);
   nsresult ConstructFramesFromItem(nsFrameConstructorState& aState,
                                    FCItemIterator& aItem,
                                    nsIFrame* aParentFrame,
