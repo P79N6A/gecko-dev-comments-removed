@@ -203,6 +203,7 @@ TelemetryPing.prototype = {
   
   _uuid: generateUUID(),
   
+  
   _startupHistogramRegex: /SQLITE|HTTP|SPDY|CACHE|DNS/,
   _slowSQLStartup: {},
   _prevSession: null,
