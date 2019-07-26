@@ -96,6 +96,9 @@ let RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD;
 
 let RILQUIRKS_DATA_REGISTRATION_ON_DEMAND;
 
+
+let RILQUIRKS_SUBSCRIPTION_CONTROL;
+
 function BufObject(aContext) {
   this.context = aContext;
 }
@@ -1295,7 +1298,7 @@ RilObject.prototype = {
     Buf.sendParcel();
   },
 
-
+  
 
 
   iccExchangeAPDU: function(options) {
@@ -1337,6 +1340,23 @@ RilObject.prototype = {
     Buf.newParcel(REQUEST_SIM_CLOSE_CHANNEL, options);
     Buf.writeInt32(1);
     Buf.writeInt32(options.channel);
+    Buf.sendParcel();
+  },
+
+  
+
+
+  setUiccSubscription: function(options) {
+    if (DEBUG) {
+      this.context.debug("setUiccSubscription: " + JSON.stringify(options));
+    }
+
+    let Buf = this.context.Buf;
+    Buf.newParcel(REQUEST_SET_UICC_SUBSCRIPTION, options);
+    Buf.writeInt32(this.context.clientId);
+    Buf.writeInt32(options.appIndex);
+    Buf.writeInt32(this.context.clientId);
+    Buf.writeInt32(options.enabled ? 1 : 0);
     Buf.sendParcel();
   },
 
@@ -3195,10 +3215,18 @@ RilObject.prototype = {
     let newCardState;
     let index = this._isCdma ? iccStatus.cdmaSubscriptionAppIndex :
                                iccStatus.gsmUmtsSubscriptionAppIndex;
-    let app = iccStatus.apps[index];
+
+    if (RILQUIRKS_SUBSCRIPTION_CONTROL && index === -1) {
+      
+      for (let i = 0; i < iccStatus.apps.length; i++) {
+        this.setUiccSubscription({appIndex: i, enabled: true});
+      }
+      return;
+    }
 
     
     
+    let app = iccStatus.apps[index];
     if (iccStatus.cardState !== CARD_STATE_PRESENT || !app) {
       if (this.cardState !== GECKO_CARDSTATE_UNDETECTED) {
         this.operator = null;
@@ -6384,6 +6412,8 @@ RilObject.prototype[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TEC
   let radioTech = this.context.Buf.readInt32List();
   this._processRadioTech(radioTech[0]);
 };
+RilObject.prototype[REQUEST_SET_UICC_SUBSCRIPTION] = null;
+RilObject.prototype[REQUEST_GET_UICC_SUBSCRIPTION] = null;
 RilObject.prototype[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOCK_RETRY_COUNT(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
@@ -14719,6 +14749,7 @@ let ContextPool = {
     RILQUIRKS_HAVE_QUERY_ICC_LOCK_RETRY_COUNT = quirks.haveQueryIccLockRetryCount;
     RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD = quirks.sendStkProfileDownload;
     RILQUIRKS_DATA_REGISTRATION_ON_DEMAND = quirks.dataRegistrationOnDemand;
+    RILQUIRKS_SUBSCRIPTION_CONTROL = quirks.subscriptionControl;
   },
 
   registerClient: function(aOptions) {
