@@ -10,6 +10,7 @@
 
 
 
+
 #include "jsprvtd.h"
 #include "jspubtd.h"
 
@@ -99,8 +100,8 @@ struct ParseContext : public GenericParseContext
     StmtInfoPC      *topStmt;       
     StmtInfoPC      *topScopeStmt;  
     Rooted<StaticBlockObject *> blockChain;
-                                    
     Node            maybeFunction;  
+                                    
 
     const unsigned  staticLevel;    
 

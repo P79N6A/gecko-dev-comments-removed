@@ -4,7 +4,10 @@
 
 
 
+#include "frontend/ParseMaps-inl.h"
+
 #include "jscntxt.h"
+
 #include "frontend/FullParseHandler.h"
 #include "frontend/SyntaxParseHandler.h"
 
