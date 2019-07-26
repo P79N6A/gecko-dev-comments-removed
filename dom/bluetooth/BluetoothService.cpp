@@ -43,17 +43,28 @@
 #endif
 
 #if defined(MOZ_B2G_BT)
-# if defined(MOZ_BLUETOOTH_GONK)
-#ifdef MOZ_B2G_BT_BLUEZ
+#if defined(MOZ_B2G_BT_BLUEZ)
+
+
+
+
 #include "BluetoothGonkService.h"
-#else
+#elif defined(MOZ_B2G_BT_BLUEDROID)
+
+
+
+
+
 #include "BluetoothServiceBluedroid.h"
 #endif
-# elif defined(MOZ_BLUETOOTH_DBUS)
-#  include "BluetoothDBusService.h"
-# else
-#  error No_suitable_backend_for_bluetooth!
-# endif
+#elif defined(MOZ_BLUETOOTH_DBUS)
+
+
+
+
+#include "BluetoothDBusService.h"
+#else
+#error No backend
 #endif
 
 #define MOZSETTINGS_CHANGED_ID      "mozsettings-changed"
@@ -305,19 +316,16 @@ BluetoothService::Create()
   if (!IsMainProcess()) {
     return BluetoothServiceChildProcess::Create();
   }
-#endif
 
-#if defined(MOZ_BLUETOOTH_GONK)
-#ifdef MOZ_B2G_BT_BLUEDROID
-  return new BluetoothServiceBluedroid();
-#else
+#if defined(MOZ_B2G_BT_BLUEZ)
   return new BluetoothGonkService();
+#elif defined(MOZ_B2G_BT_BLUEDROID)
+  return new BluetoothServiceBluedroid();
 #endif
 #elif defined(MOZ_BLUETOOTH_DBUS)
-#ifdef MOZ_B2G_BT_BLUEZ
   return new BluetoothDBusService();
 #endif
-#endif
+
   BT_WARNING("No platform support for bluetooth!");
   return nullptr;
 }
