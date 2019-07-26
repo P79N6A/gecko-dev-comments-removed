@@ -88,6 +88,20 @@ static MOZ_CONSTEXPR_VAR Register OsrFrameReg = edx;
 static MOZ_CONSTEXPR_VAR Register PreBarrierReg = edx;
 
 
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegCallee = ecx;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE0 = edi;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE1 = eax;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE2 = ebx;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE3 = edx;
+
+
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegReturnData = edx;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegReturnType = ecx;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD0 = edi;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD1 = eax;
+static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD2 = esi;
+
+
 
 #if defined(__GNUC__)
 static const uint32_t StackAlignment = 16;
