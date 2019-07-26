@@ -190,6 +190,10 @@ protected:
   
   
   HTMLFormElement* mForm;
+
+private:
+  static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
+                                    nsRuleData* aData);
 };
 
 } 

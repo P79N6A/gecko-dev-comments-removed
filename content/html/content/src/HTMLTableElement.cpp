@@ -701,9 +701,9 @@ HTMLTableElement::ParseAttribute(int32_t aNamespaceID,
 
 
 
-static void
-MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                      nsRuleData* aData)
+void
+HTMLTableElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
+                                        nsRuleData* aData)
 {
   
   

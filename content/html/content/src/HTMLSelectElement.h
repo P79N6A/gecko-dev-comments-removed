@@ -647,6 +647,10 @@ protected:
 
 
   nsRefPtr<nsContentList> mSelectedOptions;
+
+private:
+  static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
+                                    nsRuleData* aData);
 };
 
 } 

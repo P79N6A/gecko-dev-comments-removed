@@ -490,3 +490,5 @@ HTMLMenuItemElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
 
 } 
 } 
+
+#undef NS_ORIGINAL_CHECKED_VALUE

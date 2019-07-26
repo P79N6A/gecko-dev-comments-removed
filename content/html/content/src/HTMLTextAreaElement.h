@@ -356,6 +356,10 @@ protected:
 
 
   bool IsValueEmpty() const;
+
+private:
+  static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
+                                    nsRuleData* aData);
 };
 
 } 
