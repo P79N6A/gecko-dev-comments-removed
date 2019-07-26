@@ -2441,6 +2441,10 @@ NS_IMETHODIMP nsExternalHelperAppService::GetTypeFromExtension(const nsACString&
   
   
 
+  
+  if (aFileExt.IsEmpty())
+    return NS_ERROR_NOT_AVAILABLE;
+
   nsresult rv = NS_OK;
   
   for (size_t i = 0; i < ArrayLength(defaultMimeEntries); i++)
