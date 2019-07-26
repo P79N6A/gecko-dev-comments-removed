@@ -28,7 +28,7 @@ public:
   
   static already_AddRefed<TextEncoder>
   Constructor(nsISupports* aGlobal,
-              const Optional<nsAString>& aEncoding,
+              const nsAString& aEncoding,
               ErrorResult& aRv)
   {
     nsRefPtr<TextEncoder> txtEncoder = new TextEncoder(aGlobal);
@@ -98,7 +98,7 @@ private:
 
 
 
-  void Init(const Optional<nsAString>& aEncoding,
+  void Init(const nsAString& aEncoding,
             ErrorResult& aRv);
 };
 

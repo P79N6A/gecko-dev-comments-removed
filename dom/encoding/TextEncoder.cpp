@@ -12,18 +12,11 @@ namespace mozilla {
 namespace dom {
 
 void
-TextEncoder::Init(const Optional<nsAString>& aEncoding,
+TextEncoder::Init(const nsAString& aEncoding,
                   ErrorResult& aRv)
 {
-  
-  
-  nsAutoString label;
-  if (!aEncoding.WasPassed()) {
-    label.AssignLiteral("utf-8");
-  } else {
-    label.Assign(aEncoding.Value());
-    EncodingUtils::TrimSpaceCharacters(label);
-  }
+  nsAutoString label(aEncoding);
+  EncodingUtils::TrimSpaceCharacters(label);
 
   
   if (!EncodingUtils::FindEncodingForLabel(label, mEncoding)) {
