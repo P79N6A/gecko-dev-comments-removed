@@ -24,6 +24,7 @@
 #include "nsContentUtils.h"
 #include "nsTArrayHelpers.h"
 #include "nsCxPusher.h"
+#include "xpcpublic.h"
 #include "nsServiceManagerUtils.h"
 
 namespace mozilla {
@@ -477,7 +478,12 @@ SmsRequestParent::DoRequest(const SendMessageRequest& aRequest)
       nsCOMPtr<nsIMmsService> mmsService = do_GetService(MMS_SERVICE_CONTRACTID);
       NS_ENSURE_TRUE(mmsService, true);
 
+      
+      
+      
+      
       AutoJSContext cx;
+      JSAutoCompartment ac(cx, xpc::GetJunkScope());
       JS::Rooted<JS::Value> params(cx);
       const SendMmsMessageRequest &req = aRequest.get_SendMmsMessageRequest();
       if (!GetParamsFromSendMmsMessageRequest(cx,
