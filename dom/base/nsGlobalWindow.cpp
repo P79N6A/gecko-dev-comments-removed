@@ -11522,26 +11522,13 @@ nsGlobalChromeWindow::SetCursor(const nsAString& aCursor)
   nsresult rv = NS_OK;
   int32_t cursor;
 
-  
-  NS_ConvertUTF16toUTF8 cursorString(aCursor);
-
-  if (cursorString.Equals("auto"))
+  if (aCursor.EqualsLiteral("auto"))
     cursor = NS_STYLE_CURSOR_AUTO;
   else {
     nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(aCursor);
     if (eCSSKeyword_UNKNOWN == keyword ||
         !nsCSSProps::FindKeyword(keyword, nsCSSProps::kCursorKTable, cursor)) {
-      
-      
-      
-      if (cursorString.Equals("grab"))
-        cursor = NS_STYLE_CURSOR_GRAB;
-      else if (cursorString.Equals("grabbing"))
-        cursor = NS_STYLE_CURSOR_GRABBING;
-      else if (cursorString.Equals("spinning"))
-        cursor = NS_STYLE_CURSOR_SPINNING;
-      else
-        return NS_OK;
+      return NS_OK;
     }
   }
 
