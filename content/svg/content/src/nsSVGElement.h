@@ -52,7 +52,7 @@ class SVGUserUnitList;
 class SVGAnimatedPointList;
 class SVGAnimatedPathSegList;
 class SVGAnimatedPreserveAspectRatio;
-class SVGAnimatedTransformList;
+class nsSVGAnimatedTransformList;
 class SVGStringList;
 class DOMSVGStringList;
 }
@@ -77,7 +77,7 @@ public:
   typedef mozilla::SVGAnimatedPointList SVGAnimatedPointList;
   typedef mozilla::SVGAnimatedPathSegList SVGAnimatedPathSegList;
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
-  typedef mozilla::SVGAnimatedTransformList SVGAnimatedTransformList;
+  typedef mozilla::nsSVGAnimatedTransformList nsSVGAnimatedTransformList;
   typedef mozilla::SVGStringList SVGStringList;
 
   
@@ -273,7 +273,7 @@ public:
 
 
 
-  virtual SVGAnimatedTransformList* GetAnimatedTransformList(
+  virtual nsSVGAnimatedTransformList* GetAnimatedTransformList(
                                                         uint32_t aFlags = 0) {
     return nullptr;
   }

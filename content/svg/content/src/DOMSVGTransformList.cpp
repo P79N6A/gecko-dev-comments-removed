@@ -6,7 +6,7 @@
 #include "DOMSVGTransformList.h"
 #include "DOMSVGTransform.h"
 #include "mozilla/dom/SVGMatrix.h"
-#include "SVGAnimatedTransformList.h"
+#include "nsSVGAnimatedTransformList.h"
 #include "nsSVGElement.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/SVGTransformListBinding.h"
@@ -114,7 +114,7 @@ DOMSVGTransformList::InternalListLengthWillChange(uint32_t aNewLength)
 SVGTransformList&
 DOMSVGTransformList::InternalList() const
 {
-  SVGAnimatedTransformList *alist = Element()->GetAnimatedTransformList();
+  nsSVGAnimatedTransformList *alist = Element()->GetAnimatedTransformList();
   return IsAnimValList() && alist->mAnimVal ?
     *alist->mAnimVal :
     alist->mBaseVal;

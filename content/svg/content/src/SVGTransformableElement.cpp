@@ -3,10 +3,10 @@
 
 
 
+#include "mozilla/dom/SVGAnimatedTransformList.h"
 #include "mozilla/dom/SVGTransformableElement.h"
 #include "mozilla/dom/SVGMatrix.h"
 #include "mozilla/dom/SVGSVGElement.h"
-#include "DOMSVGAnimatedTransformList.h"
 #include "nsContentUtils.h"
 #include "nsIDOMMutationEvent.h"
 #include "nsIFrame.h"
@@ -23,12 +23,12 @@ namespace dom {
 
 NS_IMPL_ISUPPORTS_INHERITED0(SVGTransformableElement, nsSVGElement)
 
-already_AddRefed<DOMSVGAnimatedTransformList>
+already_AddRefed<SVGAnimatedTransformList>
 SVGTransformableElement::Transform()
 {
   
   
-  return DOMSVGAnimatedTransformList::GetDOMWrapper(
+  return SVGAnimatedTransformList::GetDOMWrapper(
            GetAnimatedTransformList(DO_ALLOCATE), this).get();
 
 }
@@ -139,11 +139,11 @@ SVGTransformableElement::SetAnimateMotionTransform(const gfxMatrix* aMatrix)
   DidAnimateTransformList();
 }
 
-SVGAnimatedTransformList*
+nsSVGAnimatedTransformList*
 SVGTransformableElement::GetAnimatedTransformList(uint32_t aFlags)
 {
   if (!mTransforms && (aFlags & DO_ALLOCATE)) {
-    mTransforms = new SVGAnimatedTransformList();
+    mTransforms = new nsSVGAnimatedTransformList();
   }
   return mTransforms;
 }
