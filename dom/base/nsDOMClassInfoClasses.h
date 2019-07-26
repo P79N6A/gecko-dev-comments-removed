@@ -16,7 +16,6 @@ DOMCI_CLASS(DOMPrototype)
 DOMCI_CLASS(DOMConstructor)
 
 
-DOMCI_CLASS(XMLDocument)
 DOMCI_CLASS(DOMException)
 DOMCI_CLASS(Element)
 DOMCI_CLASS(Attr)
@@ -46,9 +45,6 @@ DOMCI_CLASS(HTMLDocument)
 
 
 DOMCI_CLASS(HTMLFormElement)
-DOMCI_CLASS(HTMLIFrameElement)
-DOMCI_CLASS(HTMLInputElement)
-DOMCI_CLASS(ValidityState)
 
 
 DOMCI_CLASS(CSSStyleRule)
@@ -63,12 +59,10 @@ DOMCI_CLASS(StyleSheetList)
 DOMCI_CLASS(CSSStyleSheet)
 
 
-DOMCI_CLASS(Range)
 DOMCI_CLASS(Selection)
 
 
 #ifdef MOZ_XUL
-DOMCI_CLASS(XULDocument)
 DOMCI_CLASS(XULCommandDispatcher)
 #endif
 DOMCI_CLASS(XULControllers)
@@ -83,9 +77,6 @@ DOMCI_CLASS(TreeContentView)
 DOMCI_CLASS(CRMFObject)
 #endif
 DOMCI_CLASS(Crypto)
-
-
-DOMCI_CLASS(TreeWalker)
 
 
 DOMCI_CLASS(CSSRect)
@@ -112,9 +103,6 @@ DOMCI_CLASS(CSSMozDocumentRule)
 DOMCI_CLASS(CSSSupportsRule)
 
 DOMCI_CLASS(BeforeUnloadEvent)
-
-
-DOMCI_CLASS(SVGDocument)
 
 DOMCI_CLASS(TimeEvent)
 
@@ -197,9 +185,6 @@ DOMCI_CLASS(MozCellBroadcast)
 
 DOMCI_CLASS(CSSFontFaceRule)
 
-
-DOMCI_CLASS(NodeIterator)
-
 DOMCI_CLASS(DataTransfer)
 
 DOMCI_CLASS(NotifyPaintEvent)
@@ -265,8 +250,6 @@ DOMCI_CLASS(CameraControl)
 DOMCI_CLASS(CameraCapabilities)
 
 DOMCI_CLASS(DOMError)
-DOMCI_CLASS(DOMRequest)
-DOMCI_CLASS(DOMCursor)
 DOMCI_CLASS(OpenWindowEventDetail)
 DOMCI_CLASS(AsyncScrollEventDetail)
 
