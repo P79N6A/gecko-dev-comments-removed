@@ -1638,9 +1638,9 @@ SingleLineCrossAxisPositionTracker::
       
       
       mCrossStartToFurthestBaseline = std::max(mCrossStartToFurthestBaseline,
-                                             crossStartToBaseline);
+                                               crossStartToBaseline);
       crossEndToFurthestBaseline = std::max(crossEndToFurthestBaseline,
-                                          crossEndToBaseline);
+                                            crossEndToBaseline);
     } else {
       largestOuterCrossSize = std::max(largestOuterCrossSize, curOuterCrossSize);
     }
@@ -1652,8 +1652,8 @@ SingleLineCrossAxisPositionTracker::
   
   
   mLineCrossSize = std::max(mCrossStartToFurthestBaseline +
-                          crossEndToFurthestBaseline,
-                          largestOuterCrossSize);
+                            crossEndToFurthestBaseline,
+                            largestOuterCrossSize);
 }
 
 nscoord
