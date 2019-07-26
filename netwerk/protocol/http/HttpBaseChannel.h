@@ -19,6 +19,7 @@
 #include "nsIHttpChannel.h"
 #include "nsHttpHandler.h"
 #include "nsIHttpChannelInternal.h"
+#include "nsIRedirectHistory.h"
 #include "nsIUploadChannel.h"
 #include "nsIUploadChannel2.h"
 #include "nsIProgressEventSink.h"
@@ -53,6 +54,7 @@ class HttpBaseChannel : public nsHashPropertyBag
                       , public nsIEncodedChannel
                       , public nsIHttpChannel
                       , public nsIHttpChannelInternal
+                      , public nsIRedirectHistory
                       , public nsIUploadChannel
                       , public nsIUploadChannel2
                       , public nsISupportsPriority
@@ -67,6 +69,7 @@ public:
   NS_DECL_NSIUPLOADCHANNEL2
   NS_DECL_NSITRACEABLECHANNEL
   NS_DECL_NSITIMEDCHANNEL
+  NS_DECL_NSIREDIRECTHISTORY
 
   HttpBaseChannel();
   virtual ~HttpBaseChannel();
@@ -161,6 +164,7 @@ public:
   NS_IMETHOD TakeAllSecurityMessages(nsCOMArray<nsISecurityConsoleMessage> &aMessages);
   NS_IMETHOD GetResponseTimeoutEnabled(bool *aEnable);
   NS_IMETHOD SetResponseTimeoutEnabled(bool aEnable);
+  NS_IMETHOD AddRedirect(nsIPrincipal *aRedirect);
 
   inline void CleanRedirectCacheChainIfNecessary()
   {
@@ -215,7 +219,7 @@ public:
                                            nsHttpRequestHead::ParsedMethodType method);
 
 protected:
-    nsCOMArray<nsISecurityConsoleMessage> mSecurityConsoleMessages;
+  nsCOMArray<nsISecurityConsoleMessage> mSecurityConsoleMessages;
 
   
   void     DoNotifyListener();
@@ -249,6 +253,11 @@ protected:
   
   
   bool SameOriginWithOriginalUri(nsIURI *aURI);
+
+  
+  
+  
+  nsIPrincipal *GetPrincipal(bool requireAppId);
 
   friend class PrivateBrowsingChannel<HttpBaseChannel>;
 
@@ -321,6 +330,8 @@ protected:
 
   nsCOMPtr<nsIURI>                  mAPIRedirectToURI;
   nsAutoPtr<nsTArray<nsCString> >   mRedirectedCachekeys;
+  
+  nsCOMArray<nsIPrincipal>          mRedirects;
 
   uint32_t                          mProxyResolveFlags;
   nsCOMPtr<nsIURI>                  mProxyURI;
@@ -351,6 +362,8 @@ protected:
   
   
   TimingStruct                      mTransactionTimings;
+
+  nsCOMPtr<nsIPrincipal> mPrincipal;
 };
 
 
