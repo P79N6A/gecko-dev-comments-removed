@@ -176,7 +176,7 @@ nsPluginInstanceOwner::GetImageContainer()
 
   SharedTextureImage::Data data;
   data.mHandle = mInstance->CreateSharedHandle();
-  data.mShareType = mozilla::gl::SameProcess;
+  data.mShareType = mozilla::gl::SharedTextureShareType::SameProcess;
   data.mInverted = mInstance->Inverted();
 
   LayoutDeviceRect r = GetPluginRect();
@@ -1503,11 +1503,11 @@ already_AddRefed<ImageContainer> nsPluginInstanceOwner::GetImageContainerForVide
 
   SharedTextureImage::Data data;
 
-  data.mShareType = gl::SameProcess;
+  data.mShareType = gl::SharedTextureShareType::SameProcess;
   data.mHandle = gl::CreateSharedHandle(mInstance->GLContext(),
                                         data.mShareType,
                                         aVideoInfo->mSurfaceTexture,
-                                        gl::SurfaceTexture);
+                                        gl::SharedTextureBufferType::SurfaceTexture);
 
   
   

@@ -140,9 +140,9 @@ public:
 
     SharedTextureHandle handle =
       gl::CreateSharedHandle(sPluginContext,
-                             gl::SameProcess,
+                             gl::SharedTextureShareType::SameProcess,
                              (void*)mTextureInfo.mTexture,
-                             gl::TextureID);
+                             gl::SharedTextureBufferType::TextureID);
 
     
     
@@ -1021,9 +1021,9 @@ SharedTextureHandle nsNPAPIPluginInstance::CreateSharedHandle()
   } else if (mContentSurface) {
     EnsureGLContext();
     return gl::CreateSharedHandle(sPluginContext,
-                                  gl::SameProcess,
+                                  gl::SharedTextureShareType::SameProcess,
                                   mContentSurface,
-                                  gl::SurfaceTexture);
+                                  gl::SharedTextureBufferType::SurfaceTexture);
   } else return 0;
 }
 
