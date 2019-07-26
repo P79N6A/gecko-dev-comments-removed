@@ -144,7 +144,17 @@ static const uint32 BAILOUT_RETURN_RECOMPILE_CHECK = 5;
 
 class BailoutClosure
 {
-    BailoutFrameGuard bfg_;
+    
+    
+    
+    
+    struct Guards {
+        InvokeArgsGuard iag;
+        BailoutFrameGuard bfg;
+    };
+
+    Maybe<Guards> guards_;
+
     StackFrame *entryfp_;
     jsbytecode *bailoutPc_;
 
@@ -152,8 +162,15 @@ class BailoutClosure
     BailoutClosure()
       : bailoutPc_(NULL)
     { }
+
+    void constructFrame() {
+        guards_.construct();
+    };
+    InvokeArgsGuard *argsGuard() {
+        return &guards_.ref().iag;
+    }
     BailoutFrameGuard *frameGuard() {
-        return &bfg_;
+        return &guards_.ref().bfg;
     }
     StackFrame *entryfp() const {
         return entryfp_;

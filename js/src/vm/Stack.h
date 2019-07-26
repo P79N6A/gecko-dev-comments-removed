@@ -54,6 +54,10 @@ namespace mjit {
 }
 #endif
 
+namespace ion {
+    class IonBailoutIterator;
+}
+
 namespace detail {
     struct OOMCheck;
 }
@@ -1647,7 +1651,13 @@ class ContextStack
 
 
 
-    bool pushInvokeArgs(JSContext *cx, unsigned argc, InvokeArgsGuard *ag);
+    bool pushInvokeArgs(JSContext *cx, unsigned argc, InvokeArgsGuard *ag,
+                        MaybeReportError report = REPORT_ERROR);
+
+    
+    StackFrame *pushInvokeFrame(JSContext *cx, MaybeReportError report,
+                                const CallArgs &args, JSFunction *fun,
+                                InitialFrameFlags initial, FrameGuard *fg);
 
     
     bool pushInvokeFrame(JSContext *cx, const CallArgs &args,
@@ -1659,8 +1669,12 @@ class ContextStack
                           StackFrame *evalInFrame, ExecuteFrameGuard *efg);
 
     
-    StackFrame *pushBailoutFrame(JSContext *cx, JSFunction &fun, JSScript *script,
-                                 BailoutFrameGuard *bfg);
+    bool pushBailoutArgs(JSContext *cx, const ion::IonBailoutIterator &it,
+                         InvokeArgsGuard *iag);
+
+    
+    StackFrame *pushBailoutFrame(JSContext *cx, const ion::IonBailoutIterator &it,
+                                 const CallArgs &args, BailoutFrameGuard *bfg);
 
     
 

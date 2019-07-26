@@ -95,6 +95,8 @@ class IonFrameIterator
     FrameType type_;
     uint8 *returnAddressToFp_;
     size_t frameSize_;
+
+  private:
     mutable const SafepointIndex *cachedSafepointIndex_;
     const IonActivation *activation_;
 
@@ -148,13 +150,15 @@ class IonFrameIterator
 
     bool isConstructing() const;
 
+    bool isEntryJSFrame() const;
+
     void *calleeToken() const;
     JSFunction *callee() const;
     JSFunction *maybeCallee() const;
     unsigned numActualArgs() const;
     JSScript *script() const;
     Value *nativeVp() const;
-    Value *argv() const;
+    Value *actualArgs() const;
 
     
     
@@ -250,6 +254,10 @@ class SnapshotIterator : public SnapshotReader
         warnUnreadableSlot();
         return UndefinedValue();
     }
+
+    template <class Op>
+    inline bool readFrameArgs(Op op, const Value *argv, Value *scopeChain, Value *thisv,
+                              unsigned start, unsigned formalEnd, unsigned iterEnd);
 };
 
 
