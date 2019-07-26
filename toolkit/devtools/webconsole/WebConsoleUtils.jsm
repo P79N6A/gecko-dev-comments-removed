@@ -24,6 +24,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
 XPCOMUtils.defineLazyModuleGetter(this, "NetworkHelper",
                                   "resource://gre/modules/devtools/NetworkHelper.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
+
 XPCOMUtils.defineLazyServiceGetter(this, "gActivityDistributor",
                                    "@mozilla.org/network/http-activity-distributor;1",
                                    "nsIHttpActivityDistributor");
@@ -981,18 +984,27 @@ PageErrorListener.prototype =
 
 
 
-  getCachedMessages: function PEL_getCachedMessages()
+
+  getCachedMessages: function PEL_getCachedMessages(aIncludePrivate = false)
   {
     let innerWindowId = this.window ?
                         WebConsoleUtils.getInnerWindowId(this.window) : null;
     let errors = Services.console.getMessageArray() || [];
 
-    return errors.filter(function(aError) {
-      return aError instanceof Ci.nsIScriptError &&
-             (!innerWindowId ||
-              (aError.innerWindowID == innerWindowId &&
-               this.isCategoryAllowed(aError.category)));
-    }, this);
+    return errors.filter((aError) => {
+      if (!(aError instanceof Ci.nsIScriptError)) {
+        return false;
+      }
+      if (!aIncludePrivate && aError.isFromPrivateWindow) {
+        return false;
+      }
+      if (innerWindowId &&
+          (aError.innerWindowID != innerWindowId ||
+           !this.isCategoryAllowed(aError.category))) {
+        return false;
+      }
+      return true;
+    });
   },
 
   
@@ -1094,11 +1106,18 @@ ConsoleAPIListener.prototype =
 
 
 
-  getCachedMessages: function CAL_getCachedMessages()
+
+
+  getCachedMessages: function CAL_getCachedMessages(aIncludePrivate = false)
   {
     let innerWindowId = this.window ?
                         WebConsoleUtils.getInnerWindowId(this.window) : null;
-    return ConsoleAPIStorage.getEvents(innerWindowId);
+    return ConsoleAPIStorage.getEvents(innerWindowId).filter((aMessage) => {
+      if (!aIncludePrivate && aMessage.private) {
+        return false;
+      }
+      return true;
+    });
   },
 
   
@@ -1905,13 +1924,7 @@ NetworkMonitor.prototype = {
   _onRequestHeader:
   function NM__onRequestHeader(aChannel, aTimestamp, aExtraStringData)
   {
-    let win = null;
-    try {
-      win = NetworkHelper.getWindowForRequest(aChannel);
-    }
-    catch (ex) {
-      
-    }
+    let win = NetworkHelper.getWindowForRequest(aChannel);
 
     
     if (this.window && (!win || win.top !== this.window)) {
@@ -1922,6 +1935,7 @@ NetworkMonitor.prototype = {
 
     
     httpActivity.charset = win ? win.document.characterSet : null;
+    httpActivity.private = win ? PrivateBrowsingUtils.isWindowPrivate(win) : false;
 
     httpActivity.timings.REQUEST_HEADER = {
       first: aTimestamp,
@@ -1935,14 +1949,15 @@ NetworkMonitor.prototype = {
     event.headersSize = aExtraStringData.length;
     event.method = aChannel.requestMethod;
     event.url = aChannel.URI.spec;
+    event.private = httpActivity.private;
 
     
     try {
       let callbacks = aChannel.notificationCallbacks;
       let xhrRequest = callbacks ? callbacks.getInterface(Ci.nsIXMLHttpRequest) : null;
-      event.isXHR = !!xhrRequest;
+      httpActivity.isXHR = event.isXHR = !!xhrRequest;
     } catch (e) {
-      event.isXHR = false;
+      httpActivity.isXHR = event.isXHR = false;
     }
 
     

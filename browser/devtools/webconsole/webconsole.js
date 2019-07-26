@@ -1099,6 +1099,9 @@ WebConsoleFrame.prototype = {
     let node = this.createMessageNode(CATEGORY_WEBDEV, LEVELS[level], body,
                                       sourceURL, sourceLine, clipboardText,
                                       level, aMessage.timeStamp);
+    if (aMessage.private) {
+      node.setAttribute("private", true);
+    }
 
     if (objectActors.size > 0) {
       node._objectActors = objectActors;
@@ -1176,6 +1179,9 @@ WebConsoleFrame.prototype = {
                                       aScriptError.sourceName,
                                       aScriptError.lineNumber, null, null,
                                       aScriptError.timeStamp);
+    if (aScriptError.private) {
+      node.setAttribute("private", true);
+    }
     return node;
   },
 
@@ -1255,6 +1261,9 @@ WebConsoleFrame.prototype = {
 
     let messageNode = this.createMessageNode(CATEGORY_NETWORK, severity,
                                              msgNode, null, null, clipboardText);
+    if (networkInfo.private) {
+      messageNode.setAttribute("private", true);
+    }
 
     messageNode._connectionId = aActorId;
     messageNode.url = request.url;
@@ -1380,6 +1389,7 @@ WebConsoleFrame.prototype = {
       response: {},
       timings: {},
       updates: [], 
+      private: aActor.private,
     };
 
     this._networkRequests[aActor.actor] = networkInfo;
@@ -3674,6 +3684,18 @@ JSTerm.prototype = {
   
 
 
+  clearPrivateMessages: function JST_clearPrivateMessages()
+  {
+    let nodes = this.hud.outputNode.querySelectorAll("richlistitem[private]");
+    for (let node of nodes) {
+      this.hud.removeOutputMessage(node);
+    }
+    this.emit("private-messages-cleared");
+  },
+
+  
+
+
 
 
   resizeInput: function JST_resizeInput()
@@ -4516,6 +4538,7 @@ function WebConsoleConnectionProxy(aWebConsole, aTarget)
   this._onAttachConsole = this._onAttachConsole.bind(this);
   this._onCachedMessages = this._onCachedMessages.bind(this);
   this._connectionTimeout = this._connectionTimeout.bind(this);
+  this._onLastPrivateContextExited = this._onLastPrivateContextExited.bind(this);
 }
 
 WebConsoleConnectionProxy.prototype = {
@@ -4616,6 +4639,7 @@ WebConsoleConnectionProxy.prototype = {
     client.addListener("networkEvent", this._onNetworkEvent);
     client.addListener("networkEventUpdate", this._onNetworkEventUpdate);
     client.addListener("fileActivity", this._onFileActivity);
+    client.addListener("lastPrivateContextExited", this._onLastPrivateContextExited);
     this.target.on("will-navigate", this._onTabNavigated);
     this.target.on("navigate", this._onTabNavigated);
 
@@ -4810,6 +4834,24 @@ WebConsoleConnectionProxy.prototype = {
 
 
 
+  _onLastPrivateContextExited:
+  function WCCP__onLastPrivateContextExited(aType, aPacket)
+  {
+    if (this.owner && aPacket.from == this._consoleActor) {
+      this.owner.jsterm.clearPrivateMessages();
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
   _onTabNavigated: function WCCP__onTabNavigated(aEvent, aPacket)
   {
     if (!this.owner) {
@@ -4862,6 +4904,7 @@ WebConsoleConnectionProxy.prototype = {
     this.client.removeListener("networkEvent", this._onNetworkEvent);
     this.client.removeListener("networkEventUpdate", this._onNetworkEventUpdate);
     this.client.removeListener("fileActivity", this._onFileActivity);
+    this.client.removeListener("lastPrivateContextExited", this._onLastPrivateContextExited);
     this.target.off("will-navigate", this._onTabNavigated);
     this.target.off("navigate", this._onTabNavigated);
 

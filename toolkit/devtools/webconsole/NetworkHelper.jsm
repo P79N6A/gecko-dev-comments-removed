@@ -209,7 +209,10 @@ this.NetworkHelper =
   {
     try {
       return this.getRequestLoadContext(aRequest).associatedWindow;
-    } catch (ex) { }
+    } catch (ex) {
+      
+      
+    }
     return null;
   },
 
