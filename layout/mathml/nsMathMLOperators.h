@@ -58,26 +58,6 @@ enum {
 
 #define NS_MATHML_OPERATOR_SIZE_INFINITY NS_IEEEPositiveInfinity()
 
-
-enum eMATHVARIANT {
-  eMATHVARIANT_NONE = -1,
-  eMATHVARIANT_normal = 0,
-  eMATHVARIANT_bold,
-  eMATHVARIANT_italic,
-  eMATHVARIANT_bold_italic,
-  eMATHVARIANT_sans_serif,
-  eMATHVARIANT_bold_sans_serif,
-  eMATHVARIANT_sans_serif_italic,
-  eMATHVARIANT_sans_serif_bold_italic,
-  eMATHVARIANT_monospace,
-  eMATHVARIANT_script,
-  eMATHVARIANT_bold_script,
-  eMATHVARIANT_fraktur,
-  eMATHVARIANT_bold_fraktur,
-  eMATHVARIANT_double_struck,
-  eMATHVARIANT_COUNT
-};
-
 class nsMathMLOperators {
 public:
   static void AddRefTable(void);
@@ -123,19 +103,6 @@ public:
 
   
   static nsStretchDirection GetStretchyDirection(const nsString& aOperator);
-
-  
-  
-  
-  static eMATHVARIANT LookupInvariantChar(const nsAString& aChar);
-
-  
-  
-  
-  
-  
-  static const nsDependentSubstring
-  TransformVariantChar(const PRUnichar& aChar, eMATHVARIANT aVariant);
 };
 
 

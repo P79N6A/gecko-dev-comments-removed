@@ -1476,7 +1476,6 @@ GK_ATOM(XML, "XML")
 
 GK_ATOM(_moz_math_columnalign_, "_moz-math-columnalign")
 GK_ATOM(_moz_math_columnline_, "_moz-math-columnline")
-GK_ATOM(_moz_math_fontstyle_, "_moz-math-font-style")
 GK_ATOM(_moz_math_rowalign_, "_moz-math-rowalign")
 GK_ATOM(_moz_math_rowline_, "_moz-math-rowline")
 
