@@ -59,12 +59,7 @@ enum FrameType
     
     
     
-    IonFrame_Exit,
-
-    
-    
-    
-    IonFrame_Osr
+    IonFrame_Exit
 };
 
 enum ReadFrameArgsBehavior {
