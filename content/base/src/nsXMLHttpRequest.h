@@ -26,7 +26,6 @@
 #include "nsCOMArray.h"
 #include "nsJSUtils.h"
 #include "nsTArray.h"
-#include "nsIDOMLSProgressEvent.h"
 #include "nsITimer.h"
 #include "nsIDOMProgressEvent.h"
 #include "nsDOMEventTargetHelper.h"
@@ -450,29 +449,10 @@ public:
   
   
   static nsresult CreateReadystatechangeEvent(nsIDOMEvent** aDOMEvent);
-  
-  
-  
-  
-  void DispatchProgressEvent(nsDOMEventTargetHelper* aTarget,
-                             const nsAString& aType,
-                             
-                             
-                             bool aUseLSEventWrapper,
-                             bool aLengthComputable,
-                             
-                             uint64_t aLoaded, uint64_t aTotal,
-                             
-                             uint64_t aPosition, uint64_t aTotalSize);
   void DispatchProgressEvent(nsDOMEventTargetHelper* aTarget,
                              const nsAString& aType,
                              bool aLengthComputable,
-                             uint64_t aLoaded, uint64_t aTotal)
-  {
-    DispatchProgressEvent(aTarget, aType, false,
-                          aLengthComputable, aLoaded, aTotal,
-                          aLoaded, aLengthComputable ? aTotal : UINT64_MAX);
-  }
+                             uint64_t aLoaded, uint64_t aTotal);
 
   
   
@@ -641,8 +621,6 @@ protected:
   bool mUploadLengthComputable;
   bool mUploadComplete;
   bool mProgressSinceLastProgressEvent;
-  uint64_t mUploadProgress; 
-  uint64_t mUploadProgressMax; 
 
   
   PRTime mRequestSentTime;
@@ -735,33 +713,6 @@ class nsXMLHttpRequestXPCOMifier MOZ_FINAL : public nsIStreamListener,
 
 private:
   nsRefPtr<nsXMLHttpRequest> mXHR;
-};
-
-
-
-class nsXMLHttpProgressEvent : public nsIDOMProgressEvent,
-                               public nsIDOMLSProgressEvent
-{
-public:
-  nsXMLHttpProgressEvent(nsIDOMProgressEvent* aInner,
-                         uint64_t aCurrentProgress,
-                         uint64_t aMaxProgress,
-                         nsPIDOMWindow* aWindow);
-  virtual ~nsXMLHttpProgressEvent();
-
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXMLHttpProgressEvent, nsIDOMProgressEvent)
-  NS_FORWARD_NSIDOMEVENT(mInner->)
-  NS_FORWARD_NSIDOMPROGRESSEVENT(mInner->)
-  NS_DECL_NSIDOMLSPROGRESSEVENT
-
-protected:
-  void WarnAboutLSProgressEvent(nsIDocument::DeprecatedOperations);
-
-  nsCOMPtr<nsIDOMProgressEvent> mInner;
-  nsCOMPtr<nsPIDOMWindow> mWindow;
-  uint64_t mCurProgress;
-  uint64_t mMaxProgress;
 };
 
 class nsXHRParseEndListener : public nsIDOMEventListener
