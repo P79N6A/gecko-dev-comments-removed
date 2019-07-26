@@ -7916,13 +7916,8 @@ IonBuilder::getPropTryCache(bool *emitted, HandlePropertyName name, HandleId id,
             return true;
     }
 
-    MIRType rvalType = MIRTypeFromValueType(types->getKnownTypeTag());
-    if (barrier || IsNullOrUndefined(rvalType) || accessGetter)
-        rvalType = MIRType_Value;
-
     current->pop();
     MGetPropertyCache *load = MGetPropertyCache::New(obj, name);
-    load->setResultType(rvalType);
 
     
     
@@ -7966,6 +7961,11 @@ IonBuilder::getPropTryCache(bool *emitted, HandlePropertyName name, HandleId id,
     {
         barrier = true;
     }
+
+    MIRType rvalType = MIRTypeFromValueType(types->getKnownTypeTag());
+    if (barrier || IsNullOrUndefined(rvalType))
+        rvalType = MIRType_Value;
+    load->setResultType(rvalType);
 
     if (!pushTypeBarrier(load, types, barrier))
         return false;
