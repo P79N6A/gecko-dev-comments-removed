@@ -152,12 +152,12 @@ def main(argv):
                       
                       ['--no-ion', '--no-jm', '--no-ti'],
                       ['--no-ion', '--no-ti'],
-                      ['--no-ion', '--no-ti', '-a', '-d'],
+                      ['--no-ion', '--no-ti', '--always-mjit', '--debugjit'],
                       ['--no-ion', '--no-jm'],
                       ['--no-ion'],
-                      ['--no-ion', '-a'],
-                      ['--no-ion', '-a', '-d'],
-                      ['--no-ion', '-d']
+                      ['--no-ion', '--always-mjit'],
+                      ['--no-ion', '--always-mjit', '--debugjit'],
+                      ['--no-ion', '--debugjit']
                     ]
         for test in test_list:
             for variant in flags:

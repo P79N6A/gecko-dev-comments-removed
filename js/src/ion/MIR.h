@@ -302,7 +302,7 @@ class MDefinition : public MNode
     MDefinition()
       : id_(0),
         valueNumber_(NULL),
-        range_(),
+        range_(NULL),
         resultType_(MIRType_None),
         flags_(0),
         dependency_(NULL),
@@ -338,7 +338,10 @@ class MDefinition : public MNode
     virtual MDefinition *foldsTo(bool useValueNumbers);
     virtual void analyzeEdgeCasesForward();
     virtual void analyzeEdgeCasesBackward();
-    virtual void analyzeTruncateBackward();
+
+    virtual bool truncate();
+    virtual bool isOperandTruncated(size_t index) const;
+
     bool earlyAbortCheck();
 
     
@@ -498,14 +501,6 @@ class MDefinition : public MNode
         JS_ASSERT(getAliasSet().flags() & store->getAliasSet().flags());
         return true;
     }
-    
-    
-    
-    
-    
-    virtual bool isBigIntOutput() { return resultType_ == MIRType_Int32; }
-    virtual void recalculateBigInt() {}
-
 };
 
 
@@ -715,27 +710,8 @@ class MConstant : public MNullaryInstruction
         return AliasSet::None();
     }
 
-    void analyzeTruncateBackward();
-
-    
-    
-    bool isBigIntOutput() {
-        if (value_.isInt32())
-            return true;
-        if (value_.isDouble()) {
-            double value = value_.toDouble();
-            int64_t valint = value;
-            int64_t max = 1LL<<33;
-            if (double(valint) != value)
-                return false;
-            if (valint < 0)
-                valint = -valint;
-            return valint < max;
-        }
-        return false;
-    }
-
     void computeRange();
+    bool truncate();
 };
 
 class MParameter : public MNullaryInstruction
@@ -2099,6 +2075,10 @@ class MToDouble
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
+
+    void computeRange();
+    bool truncate();
+    bool isOperandTruncated(size_t index) const;
 };
 
 
@@ -2146,6 +2126,7 @@ class MToInt32 : public MUnaryInstruction
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
+    void computeRange();
 };
 
 
@@ -2178,6 +2159,9 @@ class MTruncateToInt32 : public MUnaryInstruction
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
+
+    void computeRange();
+    bool isOperandTruncated(size_t index) const;
 };
 
 
@@ -2338,6 +2322,8 @@ class MBinaryBitwiseInstruction
             return AliasSet::Store(AliasSet::Any);
         return AliasSet::None();
     }
+
+    bool isOperandTruncated(size_t index) const;
 };
 
 class MBitAnd : public MBinaryBitwiseInstruction
@@ -2511,9 +2497,20 @@ class MBinaryArithInstruction
   : public MBinaryInstruction,
     public ArithPolicy
 {
+    
+    
+    
+    
+
+    
+    
+    
+    bool implicitTruncate_;
+
   public:
     MBinaryArithInstruction(MDefinition *left, MDefinition *right)
-      : MBinaryInstruction(left, right)
+      : MBinaryInstruction(left, right),
+        implicitTruncate_(false)
     {
         setMovable();
     }
@@ -2543,6 +2540,13 @@ class MBinaryArithInstruction
         if (specialization_ >= MIRType_Object)
             return AliasSet::Store(AliasSet::Any);
         return AliasSet::None();
+    }
+
+    bool isTruncated() const {
+        return implicitTruncate_;
+    }
+    void setTruncated(bool truncate) {
+        implicitTruncate_ = truncate;
     }
 };
 
@@ -2799,13 +2803,9 @@ class MMathFunction
 
 class MAdd : public MBinaryArithInstruction
 {
-    int implicitTruncate_;
     
-    bool isBigInt_;
     MAdd(MDefinition *left, MDefinition *right)
-      : MBinaryArithInstruction(left, right),
-        implicitTruncate_(0),
-        isBigInt_(left->isBigIntOutput() && right->isBigIntOutput())
+      : MBinaryArithInstruction(left, right)
     {
         setResultType(MIRType_Value);
     }
@@ -2815,39 +2815,21 @@ class MAdd : public MBinaryArithInstruction
     static MAdd *New(MDefinition *left, MDefinition *right) {
         return new MAdd(left, right);
     }
-    void analyzeTruncateBackward();
 
-    int isTruncated() const {
-        return implicitTruncate_;
-    }
-    void setTruncated(int truncate) {
-        implicitTruncate_ = truncate;
-    }
-    bool updateForReplacement(MDefinition *ins);
     double getIdentity() {
         return 0;
     }
 
     bool fallible();
     void computeRange();
-    
-    
-    
-    bool isBigIntOutput() {
-        return (type() == MIRType_Int32) || isBigInt_;
-    }
-    
-    void recalculateBigInt() {
-        isBigInt_ = (lhs()->isBigIntOutput() && rhs()->isBigIntOutput());
-    }
+    bool truncate();
+    bool isOperandTruncated(size_t index) const;
 };
 
 class MSub : public MBinaryArithInstruction
 {
-    int implicitTruncate_;
     MSub(MDefinition *left, MDefinition *right)
-      : MBinaryArithInstruction(left, right),
-        implicitTruncate_(0)
+      : MBinaryArithInstruction(left, right)
     {
         setResultType(MIRType_Value);
     }
@@ -2858,21 +2840,14 @@ class MSub : public MBinaryArithInstruction
         return new MSub(left, right);
     }
 
-    void analyzeTruncateBackward();
-    int isTruncated() const {
-        return implicitTruncate_;
-    }
-    void setTruncated(int truncate) {
-        implicitTruncate_ = truncate;
-    }
-    bool updateForReplacement(MDefinition *ins);
-
     double getIdentity() {
         return 0;
     }
 
     bool fallible();
     void computeRange();
+    bool truncate();
+    bool isOperandTruncated(size_t index) const;
 };
 
 class MMul : public MBinaryArithInstruction
@@ -2888,29 +2863,18 @@ class MMul : public MBinaryArithInstruction
     
     bool canBeNegativeZero_;
 
-    
-    
-    bool possibleTruncate_;
-
-    
-    
-    
-    bool implicitTruncate_;
-
     Mode mode_;
 
     MMul(MDefinition *left, MDefinition *right, MIRType type, Mode mode)
       : MBinaryArithInstruction(left, right),
         canBeNegativeZero_(true),
-        possibleTruncate_(false),
-        implicitTruncate_(false),
         mode_(mode)
     {
         if (mode == Integer) {
             
             
             canBeNegativeZero_ = false;
-            possibleTruncate_ = implicitTruncate_ = true;
+            setTruncated(true);
         }
         JS_ASSERT_IF(mode != Integer, mode == Normal);
 
@@ -2931,7 +2895,6 @@ class MMul : public MBinaryArithInstruction
     MDefinition *foldsTo(bool useValueNumbers);
     void analyzeEdgeCasesForward();
     void analyzeEdgeCasesBackward();
-    void analyzeTruncateBackward();
 
     double getIdentity() {
         return 1;
@@ -2953,21 +2916,8 @@ class MMul : public MBinaryArithInstruction
     }
 
     void computeRange();
-
-    bool isPossibleTruncated() const {
-        return possibleTruncate_;
-    }
-
-    void setPossibleTruncated(bool truncate) {
-        possibleTruncate_ = truncate;
-
-        
-        
-        
-        
-        
-        canBeNegativeZero_ = !truncate;
-    }
+    bool truncate();
+    bool isOperandTruncated(size_t index) const;
 
     Mode mode() { return mode_; }
 };
@@ -2977,14 +2927,12 @@ class MDiv : public MBinaryArithInstruction
     bool canBeNegativeZero_;
     bool canBeNegativeOverflow_;
     bool canBeDivideByZero_;
-    int implicitTruncate_;
 
     MDiv(MDefinition *left, MDefinition *right, MIRType type)
       : MBinaryArithInstruction(left, right),
         canBeNegativeZero_(true),
         canBeNegativeOverflow_(true),
-        canBeDivideByZero_(true),
-        implicitTruncate_(0)
+        canBeDivideByZero_(true)
     {
         if (type != MIRType_Value)
             specialization_ = type;
@@ -3003,18 +2951,10 @@ class MDiv : public MBinaryArithInstruction
     MDefinition *foldsTo(bool useValueNumbers);
     void analyzeEdgeCasesForward();
     void analyzeEdgeCasesBackward();
-    void analyzeTruncateBackward();
 
     double getIdentity() {
         JS_NOT_REACHED("not used");
         return 1;
-    }
-
-    int isTruncated() const {
-        return implicitTruncate_;
-    }
-    void setTruncated(int truncate) {
-        implicitTruncate_ = truncate;
     }
 
     bool canBeNegativeZero() {
@@ -3032,17 +2972,14 @@ class MDiv : public MBinaryArithInstruction
         return canBeDivideByZero_;
     }
 
-    bool updateForReplacement(MDefinition *ins);
     bool fallible();
+    bool truncate();
 };
 
 class MMod : public MBinaryArithInstruction
 {
-    int implicitTruncate_;
-
     MMod(MDefinition *left, MDefinition *right)
-      : MBinaryArithInstruction(left, right),
-        implicitTruncate_(0)
+      : MBinaryArithInstruction(left, right)
     {
         setResultType(MIRType_Value);
     }
@@ -3054,23 +2991,16 @@ class MMod : public MBinaryArithInstruction
     }
 
     MDefinition *foldsTo(bool useValueNumbers);
-    void analyzeTruncateBackward();
 
     double getIdentity() {
         JS_NOT_REACHED("not used");
         return 1;
     }
 
-    int isTruncated() const {
-        return implicitTruncate_;
-    }
-    void setTruncated(int truncate) {
-        implicitTruncate_ = truncate;
-    }
-
-    bool updateForReplacement(MDefinition *ins);
-    void computeRange();
     bool fallible();
+
+    void computeRange();
+    bool truncate();
 };
 
 class MConcat

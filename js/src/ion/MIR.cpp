@@ -175,18 +175,11 @@ MDefinition::foldsTo(bool useValueNumbers)
 void
 MDefinition::analyzeEdgeCasesForward()
 {
-    return;
 }
 
 void
 MDefinition::analyzeEdgeCasesBackward()
 {
-    return;
-}
-void
-MDefinition::analyzeTruncateBackward()
-{
-    return;
 }
 
 static bool
@@ -332,18 +325,6 @@ MConstant::MConstant(const js::Value &vp)
 {
     setResultType(MIRTypeFromValue(vp));
     setMovable();
-}
-
-void
-MConstant::analyzeTruncateBackward()
-{
-    if (js::ion::EdgeCaseAnalysis::AllUsesTruncate(this) &&
-        value_.isDouble() && isBigIntOutput())
-    {
-        
-        value_.setInt32(ToInt32(value_.toDouble()));
-        setResultType(MIRType_Int32);
-    }
 }
 
 HashNumber
@@ -891,7 +872,7 @@ MBinaryArithInstruction::foldsTo(bool useValueNumbers)
 bool
 MAbs::fallible() const
 {
-    return !range() || !range()->isFinite();
+    return !range() || !range()->isInt32();
 }
 
 MDefinition *
@@ -945,27 +926,6 @@ MDiv::analyzeEdgeCasesBackward()
         setCanBeNegativeZero(false);
 }
 
-void
-MDiv::analyzeTruncateBackward()
-{
-    if (!isTruncated())
-        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
-}
-
-bool
-MDiv::updateForReplacement(MDefinition *ins_)
-{
-    JS_ASSERT(ins_->isDiv());
-    MDiv *ins = ins_->toDiv();
-    
-    
-    if (isTruncated() && ins->isTruncated())
-        setTruncated(Max(isTruncated(), ins->isTruncated()));
-    else
-        setTruncated(0);
-    return true;
-}
-
 bool
 MDiv::fallible()
 {
@@ -992,61 +952,10 @@ MMod::foldsTo(bool useValueNumbers)
     return this;
 }
 
-void
-MMod::analyzeTruncateBackward()
-{
-    if (!isTruncated())
-        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
-}
-
-bool
-MMod::updateForReplacement(MDefinition *ins_)
-{
-    JS_ASSERT(ins_->isMod());
-    MMod *ins = ins_->toMod();
-    if (isTruncated() && ins->isTruncated())
-        setTruncated(Max(isTruncated(), ins->isTruncated()));
-    else
-        setTruncated(0);
-    return true;
-}
-
 bool
 MMod::fallible()
 {
     return !isTruncated();
-}
-
-void
-MAdd::analyzeTruncateBackward()
-{
-    if (!isTruncated())
-        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
-    if (isTruncated() && isTruncated() < 20) {
-        
-        
-        
-        
-        
-        
-        
-        if (isBigInt_ && type() == MIRType_Double) {
-            specialization_ = MIRType_Int32;
-            setResultType(MIRType_Int32);
-        }
-    }
-}
-
-bool
-MAdd::updateForReplacement(MDefinition *ins_)
-{
-    JS_ASSERT(ins_->isAdd());
-    MAdd *ins = ins_->toAdd();
-    if (isTruncated() && ins->isTruncated())
-        setTruncated(Max(isTruncated(), ins->isTruncated()));
-    else
-        setTruncated(0);
-    return true;
 }
 
 bool
@@ -1054,30 +963,10 @@ MAdd::fallible()
 {
     
     
-    
-    
-    
-    
-    
-    return (!isTruncated() || isTruncated() > 20) && (!range() || !range()->isFinite());
-}
-
-void
-MSub::analyzeTruncateBackward()
-{
-    if (!isTruncated())
-        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
-}
-
-bool
-MSub::updateForReplacement(MDefinition *ins_)
-{
-    JS_ASSERT(ins_->isSub());
-    MSub *ins = ins_->toSub();
-    if (isTruncated() && ins->isTruncated())
-        setTruncated(Max(isTruncated(), ins->isTruncated()));
-    else
-        setTruncated(0);
+    if (isTruncated())
+        return false;
+    if (range() && range()->isInt32())
+        return false;
     return true;
 }
 
@@ -1085,7 +974,11 @@ bool
 MSub::fallible()
 {
     
-    return (!isTruncated() || isTruncated() > 20) && (!range() || !range()->isFinite());
+    if (isTruncated())
+        return false;
+    if (range() && range()->isInt32())
+        return false;
+    return true;
 }
 
 MDefinition *
@@ -1125,7 +1018,6 @@ MMul::analyzeEdgeCasesForward()
         if (val.isInt32() && val.toInt32() > 0)
             setCanBeNegativeZero(false);
     }
-
 }
 
 void
@@ -1135,23 +1027,11 @@ MMul::analyzeEdgeCasesBackward()
         setCanBeNegativeZero(false);
 }
 
-void
-MMul::analyzeTruncateBackward()
-{
-    if (!isPossibleTruncated() && js::ion::EdgeCaseAnalysis::AllUsesTruncate(this))
-        setPossibleTruncated(true);
-}
-
 bool
 MMul::updateForReplacement(MDefinition *ins_)
 {
-    JS_ASSERT(ins_->isMul());
     MMul *ins = ins_->toMul();
-    
-    
-    bool truncated = isPossibleTruncated() && ins->isPossibleTruncated();
     bool negativeZero = canBeNegativeZero() || ins->canBeNegativeZero();
-    setPossibleTruncated(truncated);
     setCanBeNegativeZero(negativeZero);
     return true;
 }
@@ -1159,9 +1039,9 @@ MMul::updateForReplacement(MDefinition *ins_)
 bool
 MMul::canOverflow()
 {
-    if (implicitTruncate_)
+    if (isTruncated())
         return false;
-    return !range() || !range()->isFinite();
+    return !range() || !range()->isInt32();
 }
 
 void

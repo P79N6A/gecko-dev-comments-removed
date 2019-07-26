@@ -374,7 +374,6 @@ class TypeAnalyzer
     bool respecialize(MPhi *phi, MIRType type);
     bool propagateSpecialization(MPhi *phi);
     bool specializePhis();
-    bool specializeTruncatedInstructions();
     void replaceRedundantPhi(MPhi *phi);
     void adjustPhiInputs(MPhi *phi);
     bool adjustInputs(MDefinition *def);
@@ -607,8 +606,6 @@ bool
 TypeAnalyzer::analyze()
 {
     if (!specializePhis())
-        return false;
-    if (!specializeTruncatedInstructions())
         return false;
     if (!insertConversions())
         return false;
@@ -1461,36 +1458,4 @@ LinearSum::print(Sprinter &sp) const
         sp.printf("+%d", constant_);
     else if (constant_ < 0)
         sp.printf("%d", constant_);
-}
-
-bool
-TypeAnalyzer::specializeTruncatedInstructions()
-{
-    
-    
-    
-    
-    
-    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
-        if (mir->shouldCancel("recoverBigInts (forwards loop)"))
-            return false;
-
-        for (MDefinitionIterator iter(*block); iter; iter++) {
-            iter->recalculateBigInt();
-        }
-    }
-
-    
-    
-    
-    
-    
-    
-    for (PostorderIterator block(graph.poBegin()); block != graph.poEnd(); block++) {
-        if (mir->shouldCancel("Propagate Truncates (backwards loop)"))
-            return false;
-        for (MInstructionReverseIterator riter(block->rbegin()); riter != block->rend(); riter++)
-            riter->analyzeTruncateBackward();
-    }
-    return true;
 }
