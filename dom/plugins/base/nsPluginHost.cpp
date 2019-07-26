@@ -1971,12 +1971,6 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
           
           
           
-          
-          
-          
-          if (state == nsIBlocklistService::STATE_BLOCKED) {
-             pluginTag->SetBlocklisted(true);
-          }
           if (state == nsIBlocklistService::STATE_SOFTBLOCKED && !seenBefore) {
              pluginTag->SetEnabledState(nsIPluginTag::STATE_DISABLED);
           }
