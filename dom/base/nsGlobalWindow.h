@@ -62,6 +62,9 @@
 #include "nsWrapperCacheInlines.h"
 #include "nsIIdleObserver.h"
 #include "nsIDOMWakeLock.h"
+#ifdef MOZ_GAMEPAD
+#include "nsDOMGamepad.h"
+#endif
 
 #include "mozilla/dom/EventTarget.h"
 
@@ -378,6 +381,8 @@ public:
   virtual NS_HIDDEN_(void) RefreshCompartmentPrincipal();
   virtual NS_HIDDEN_(nsresult) SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust);
 
+  virtual NS_HIDDEN_(void) SetHasGamepadEventListener(bool aHasGamepad = true);
+
   
   NS_DECL_NSIDOMSTORAGEINDEXEDDB
 
@@ -608,6 +613,23 @@ public:
   {
     mAllowScriptsToClose = true;
   }
+
+#ifdef MOZ_GAMEPAD
+  void AddGamepad(PRUint32 aIndex, nsDOMGamepad* aGamepad);
+  void RemoveGamepad(PRUint32 aIndex);
+  already_AddRefed<nsDOMGamepad> GetGamepad(PRUint32 aIndex);
+  void SetHasSeenGamepadInput(bool aHasSeen);
+  bool HasSeenGamepadInput();
+  void SyncGamepadState();
+  static PLDHashOperator EnumGamepadsForSync(const PRUint32& aKey,
+                                             nsDOMGamepad* aData,
+                                             void* userArg);
+#endif
+
+  
+  void EnableGamepadUpdates();
+  void DisableGamepadUpdates();
+
 
 #define EVENT(name_, id_, type_, struct_)                                     \
   mozilla::dom::EventHandlerNonNull* GetOn##name_()                           \
@@ -1043,6 +1065,13 @@ protected:
   
   
   bool                   mFocusByKeyOccurred : 1;
+
+  
+  bool                   mHasGamepad : 1;
+#ifdef MOZ_GAMEPAD
+  nsRefPtrHashtable<nsUint32HashKey, nsDOMGamepad> mGamepads;
+  bool mHasSeenGamepadInput;
+#endif
 
   
   bool                   mNotifiedIDDestroyed : 1;

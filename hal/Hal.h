@@ -559,6 +559,16 @@ void StartForceQuitWatchdog(hal::ShutdownMode aMode, int32_t aTimeoutSecs);
 
 void FactoryReset();
 
+
+
+
+void StartMonitoringGamepadStatus();
+
+
+
+
+void StopMonitoringGamepadStatus();
+
 } 
 } 
 

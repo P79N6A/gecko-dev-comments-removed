@@ -57,8 +57,8 @@ class AudioContext;
 }
 
 #define NS_PIDOMWINDOW_IID \
-{ 0xf5af1c3c, 0xebad, 0x4d00, \
-  { 0xa2, 0xa4, 0x12, 0x2e, 0x27, 0x16, 0x59, 0x01 } }
+{0xf30405c2, 0x5da8, 0x4339, \
+  {0x87, 0xe2, 0xfa, 0xb2, 0x51, 0x26, 0x8a, 0xe8}}
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -598,6 +598,11 @@ public:
 
   virtual void DisableNetworkEvent(uint32_t aType) = 0;
 #endif 
+
+  
+
+
+  virtual void SetHasGamepadEventListener(bool aHasGamepad = true) = 0;
 
   
 
