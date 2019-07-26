@@ -256,12 +256,6 @@ public:
 
 
 
-  virtual void SetScreenRenderOffset(const gfx::Point& aOffset) = 0;
-
-  
-
-
-
 
 
 
