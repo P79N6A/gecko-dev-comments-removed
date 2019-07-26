@@ -16,6 +16,9 @@
 
 
 
+
+
+
 function PROT_NewXMLHttpRequest() {
   var Cc = Components.classes;
   var Ci = Components.interfaces;
@@ -36,15 +39,10 @@ function PROT_NewXMLHttpRequest() {
 
 
 
-
-function PROT_XMLFetcher() {
+function PROT_XMLFetcher(opt_stripCookies) {
   this.debugZone = "xmlfetcher";
   this._request = PROT_NewXMLHttpRequest();
-  
-  this.appId = Ci.nsIScriptSecurityManager.SAFEBROWSING_APP_ID;
-  this.isInBrowserElement = false;
-  this.usePrivateBrowsing = false;
-  this.isContent = false;
+  this._stripCookies = !!opt_stripCookies;
 }
 
 PROT_XMLFetcher.prototype = {
@@ -67,6 +65,9 @@ PROT_XMLFetcher.prototype = {
     var asynchronous = true;
     this._request.open("GET", page, asynchronous);
     this._request.channel.notificationCallbacks = this;
+
+    if (this._stripCookies)
+      new PROT_CookieStripper(this._request.channel);
 
     
     var self = this;
@@ -116,7 +117,73 @@ PROT_XMLFetcher.prototype = {
     return this.QueryInterface(iid);
   },
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIInterfaceRequestor,
-                                         Ci.nsISupports,
-                                         Ci.nsILoadContext])
+  QueryInterface: function(iid) {
+    if (!iid.equals(Components.interfaces.nsIInterfaceRequestor) &&
+        !iid.equals(Components.interfaces.nsISupports))
+      throw Components.results.NS_ERROR_NO_INTERFACE;
+    return this;
+  }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+function PROT_CookieStripper(channel) {
+  this.debugZone = "cookiestripper";
+  this.topic_ = "http-on-modify-request";
+  this.channel_ = channel;
+
+  var Cc = Components.classes;
+  var Ci = Components.interfaces;
+  this.observerService_ = Cc["@mozilla.org/observer-service;1"]
+                          .getService(Ci.nsIObserverService);
+  this.observerService_.addObserver(this, this.topic_, false);
+
+  
+  var twentySeconds = 20 * 1000;
+  this.alarm_ = new G_Alarm(BindToObject(this.stopObserving, this), 
+                            twentySeconds);
+}
+
+
+
+
+PROT_CookieStripper.prototype.observe = function(subject, topic, data) {
+  if (topic != this.topic_ || subject != this.channel_)
+    return;
+
+  G_Debug(this, "Stripping cookies for channel.");
+
+  this.channel_.QueryInterface(Components.interfaces.nsIHttpChannel);
+  this.channel_.setRequestHeader("Cookie", "", false );
+  this.alarm_.cancel();
+  this.stopObserving();
+}
+
+
+
+
+PROT_CookieStripper.prototype.stopObserving = function() {
+  G_Debug(this, "Removing observer");
+  this.observerService_.removeObserver(this, this.topic_);
+  this.channel_ = this.alarm_ = this.observerService_ = null;
+}
+
+
+
+
+PROT_CookieStripper.prototype.QueryInterface = function(iid) {
+  var Ci = Components.interfaces;
+  if (iid.equals(Ci.nsISupports) || iid.equals(Ci.nsIObserve))
+    return this;
+  throw Components.results.NS_ERROR_NO_INTERFACE;
+}
+
