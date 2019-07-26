@@ -61,6 +61,13 @@ enum DrawRegionClip {
   CLIP_NONE,
 };
 
+enum SurfaceMode {
+  SURFACE_NONE = 0,
+  SURFACE_OPAQUE,
+  SURFACE_SINGLE_CHANNEL_ALPHA,
+  SURFACE_COMPONENT_ALPHA
+};
+
 
 
 

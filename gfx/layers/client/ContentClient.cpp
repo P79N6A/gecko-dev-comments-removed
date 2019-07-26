@@ -5,7 +5,6 @@
 
 #include "mozilla/layers/ContentClient.h"
 #include "BasicLayers.h"                
-#include "Layers.h"                     
 #include "gfxColor.h"                   
 #include "gfxContext.h"                 
 #include "gfxPlatform.h"                
@@ -1026,7 +1025,7 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
     canUseOpaqueSurface ? GFX_CONTENT_COLOR :
                           GFX_CONTENT_COLOR_ALPHA;
 
-  Layer::SurfaceMode mode;
+  SurfaceMode mode;
   nsIntRegion neededRegion;
   bool canReuseBuffer;
   nsIntRect destBufferRect;
@@ -1053,11 +1052,11 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
       destBufferRect = neededRegion.GetBounds();
     }
 
-    if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
+    if (mode == SURFACE_COMPONENT_ALPHA) {
       if (!gfxPlatform::ComponentAlphaEnabled() ||
           !aLayer->GetParent() ||
           !aLayer->GetParent()->SupportsComponentAlphaChildren()) {
-        mode = Layer::SURFACE_SINGLE_CHANNEL_ALPHA;
+        mode = SURFACE_SINGLE_CHANNEL_ALPHA;
       } else {
         contentType = GFX_CONTENT_COLOR;
       }
@@ -1067,9 +1066,9 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
         (!neededRegion.GetBounds().IsEqualInterior(destBufferRect) ||
          neededRegion.GetNumRects() > 1)) {
       
-      if (mode == Layer::SURFACE_OPAQUE) {
+      if (mode == SURFACE_OPAQUE) {
         contentType = GFX_CONTENT_COLOR_ALPHA;
-        mode = Layer::SURFACE_SINGLE_CHANNEL_ALPHA;
+        mode = SURFACE_SINGLE_CHANNEL_ALPHA;
       }
       
 
@@ -1080,7 +1079,7 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
 
     if (mHasBuffer &&
         (mContentType != contentType ||
-         (mode == Layer::SURFACE_COMPONENT_ALPHA) != mHasBufferOnWhite)) {
+         (mode == SURFACE_COMPONENT_ALPHA) != mHasBufferOnWhite)) {
       
       
       result.mRegionToInvalidate = aLayer->GetValidRegion();
@@ -1123,7 +1122,7 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
   bool createdBuffer = false;
 
   uint32_t bufferFlags = canHaveRotation ? TEXTURE_ALLOW_REPEAT : 0;
-  if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
+  if (mode == SURFACE_COMPONENT_ALPHA) {
     bufferFlags |= TEXTURE_COMPONENT_ALPHA;
   }
   if (canReuseBuffer) {
@@ -1176,12 +1175,12 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
 
   if (createdBuffer) {
     if (mHasBuffer &&
-        (mode != Layer::SURFACE_COMPONENT_ALPHA || mHasBufferOnWhite)) {
+        (mode != SURFACE_COMPONENT_ALPHA || mHasBufferOnWhite)) {
       mTextureInfo.mDeprecatedTextureHostFlags = TEXTURE_HOST_COPY_PREVIOUS;
     }
 
     mHasBuffer = true;
-    if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
+    if (mode == SURFACE_COMPONENT_ALPHA) {
       mHasBufferOnWhite = true;
     }
     mBufferRect = destBufferRect;
@@ -1224,7 +1223,7 @@ ContentClientIncremental::BorrowDrawTargetForPainting(ThebesLayer* aLayer,
 
   
   
-  if (aPaintState.mMode == Layer::SURFACE_COMPONENT_ALPHA) {
+  if (aPaintState.mMode == SURFACE_COMPONENT_ALPHA) {
     nsIntRegion drawRegionCopy = aPaintState.mRegionToDraw;
     nsRefPtr<gfxASurface> onBlack = GetUpdateSurface(BUFFER_BLACK, drawRegionCopy);
     nsRefPtr<gfxASurface> onWhite = GetUpdateSurface(BUFFER_WHITE, aPaintState.mRegionToDraw);

@@ -19,7 +19,6 @@
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTraceRefcnt.h"              
-#include "Layers.h"                     
 #include "LayersTypes.h"
 
 struct gfxMatrix;
@@ -34,6 +33,7 @@ namespace layers {
 
 class DeprecatedTextureClient;
 class TextureClient;
+class ThebesLayer;
 
 
 
@@ -214,13 +214,13 @@ public:
 
   struct PaintState {
     PaintState()
-      : mMode(Layer::SURFACE_NONE)
+      : mMode(SURFACE_NONE)
       , mDidSelfCopy(false)
     {}
 
     nsIntRegion mRegionToDraw;
     nsIntRegion mRegionToInvalidate;
-    Layer::SurfaceMode mMode;
+    SurfaceMode mMode;
     DrawRegionClip mClip;
     bool mDidSelfCopy;
   };
