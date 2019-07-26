@@ -710,10 +710,6 @@ pref("dom.min_timeout_value", 4);
 pref("dom.min_background_timeout_value", 1000);
 
 
-
-pref("dom.experimental_bindings", true);
-
-
 pref("dom.xbl_scopes", true);
 
 
