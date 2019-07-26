@@ -32,12 +32,12 @@ class CachedFileHolder
 public:
   CachedFileHolder(nsIFile* cacheFile);
   ~CachedFileHolder();
-  
+
   void AddRef();
   void Release();
-  
+
   nsIFile* file() const { return mFile; }
-  
+
 private:
   nsAutoRefCnt mRefCnt;
   nsCOMPtr<nsIFile> mFile;
@@ -53,7 +53,7 @@ public nsIChannelEventSink
 public:
   nsPluginStreamListenerPeer();
   virtual ~nsPluginStreamListenerPeer();
-  
+
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPROGRESSEVENTSINK
   NS_DECL_NSIREQUESTOBSERVER
@@ -106,7 +106,7 @@ public:
       mRequests.ReplaceObjectAt(newRequest, i);
     }
   }
-  
+
   void CancelRequests(nsresult status)
   {
     
@@ -138,7 +138,7 @@ private:
 
   
   bool                    mRequestFailed;
-  
+
   
 
 
@@ -150,20 +150,20 @@ private:
   
   uint32_t                mLength;
   int32_t                 mStreamType;
-  
+
   
   
   nsRefPtr<CachedFileHolder> mLocalCachedFileHolder;
   nsCOMPtr<nsIOutputStream> mFileCacheOutputStream;
   nsDataHashtable<nsUint32HashKey, uint32_t>* mDataForwardToRequest;
-  
+
   nsCString mContentType;
   bool mSeekable;
   uint32_t mModified;
   nsRefPtr<nsNPAPIPluginInstance> mPluginInstance;
   int32_t mStreamOffset;
   bool mStreamComplete;
-  
+
 public:
   bool                    mAbort;
   int32_t                 mPendingRequests;
