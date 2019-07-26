@@ -11,6 +11,10 @@
 
 #include "plerror.h"
 
+#ifdef XP_UNIX
+#include <sys/socket.h>  
+#endif
+
 static PRFileDesc *err = NULL;
 static PRBool failed = PR_FALSE;
 
@@ -54,6 +58,7 @@ int main(int argc, char **argv)
         "PR_SockOpt_NoDelay",         
         "PR_SockOpt_MaxSegment",      
         "PR_SockOpt_Broadcast",       
+        "PR_SockOpt_Reuseport",       
         "PR_SockOpt_Last"
     };
 
@@ -129,6 +134,11 @@ int main(int argc, char **argv)
                     fd = udp; 
                     data.value.broadcast = PR_TRUE;         
                     break;    
+#endif
+#ifdef SO_REUSEPORT
+                case PR_SockOpt_Reuseport:
+                    data.value.reuse_port = PR_TRUE;
+                    break;
 #endif
                 default: continue;
             }
