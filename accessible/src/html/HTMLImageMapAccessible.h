@@ -38,6 +38,11 @@ public:
 
   void UpdateChildAreas(bool aDoFireEvents = true);
 
+  
+
+
+  Accessible* GetChildAccessibleFor(const nsINode* aNode) const;
+
 protected:
 
   
