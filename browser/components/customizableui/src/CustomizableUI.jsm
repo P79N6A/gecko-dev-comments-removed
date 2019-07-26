@@ -1857,12 +1857,17 @@ let CustomizableUIInternal = {
 
     
     let seenAreas = new Set();
+    let widgetMightNeedAutoAdding = true;
     for (let [area, placements] of gPlacements) {
       seenAreas.add(area);
+      let areaIsRegistered = gAreas.has(area);
       let index = gPlacements.get(area).indexOf(widget.id);
       if (index != -1) {
-        widget.currentArea = area;
-        widget.currentPosition = index;
+        widgetMightNeedAutoAdding = false;
+        if (areaIsRegistered) {
+          widget.currentArea = area;
+          widget.currentPosition = index;
+        }
         break;
       }
     }
@@ -1870,16 +1875,20 @@ let CustomizableUIInternal = {
     
     
     
-    if (!widget.currentArea && gSavedState) {
+    if (widgetMightNeedAutoAdding && gSavedState) {
       for (let area of Object.keys(gSavedState.placements)) {
         if (seenAreas.has(area)) {
           continue;
         }
 
+        let areaIsRegistered = gAreas.has(area);
         let index = gSavedState.placements[area].indexOf(widget.id);
         if (index != -1) {
-          widget.currentArea = area;
-          widget.currentPosition = index;
+          widgetMightNeedAutoAdding = false;
+          if (areaIsRegistered) {
+            widget.currentArea = area;
+            widget.currentPosition = index;
+          }
           break;
         }
       }
@@ -1891,7 +1900,7 @@ let CustomizableUIInternal = {
     if (widget.currentArea) {
       this.notifyListeners("onWidgetAdded", widget.id, widget.currentArea,
                            widget.currentPosition);
-    } else {
+    } else if (widgetMightNeedAutoAdding) {
       let autoAdd = true;
       try {
         autoAdd = Services.prefs.getBoolPref(kPrefCustomizationAutoAdd);
