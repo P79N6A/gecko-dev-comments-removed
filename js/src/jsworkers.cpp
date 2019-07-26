@@ -658,9 +658,9 @@ WorkerThread::handleAsmJSWorkload(WorkerThreadState &state)
 
     
     if (!success) {
-        asmData = nullptr;
         state.noteAsmJSFailure(asmData->func);
         state.notifyAll(WorkerThreadState::CONSUMER);
+        asmData = nullptr;
         return;
     }
 
