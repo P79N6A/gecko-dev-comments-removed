@@ -31,7 +31,7 @@ let gSyncAddDevice = {
 
     
     
-    Weave.SyncScheduler.scheduleNextSync(0);
+    Weave.Service.scheduler.scheduleNextSync(0);
   },
 
   onPageShow: function onPageShow() {
@@ -92,7 +92,7 @@ let gSyncAddDevice = {
 
         
         
-        Weave.SyncScheduler.scheduleNextSync(Weave.SyncScheduler.activeInterval);
+        Weave.Service.scheduler.scheduleNextSync(Weave.Service.scheduler.activeInterval);
       },
       onAbort: function onAbort(error) {
         delete self._jpakeclient;

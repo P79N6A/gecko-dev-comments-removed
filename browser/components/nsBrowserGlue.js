@@ -38,17 +38,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs",
 XPCOMUtils.defineLazyModuleGetter(this, "NewTabUtils",
                                   "resource:///modules/NewTabUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "BrowserNewTabPreloader",
-                                  "resource:///modules/BrowserNewTabPreloader.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "PdfJs",
                                   "resource://pdf.js/PdfJs.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "webrtcUI",
-                                  "resource:///modules/webrtcUI.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 const PREF_PLUGINS_NOTIFYUSER = "plugins.update.notifyUser";
 const PREF_PLUGINS_UPDATEURL  = "plugins.update.url";
@@ -141,7 +132,7 @@ BrowserGlue.prototype = {
     delay = delay <= MAX_DELAY ? delay : MAX_DELAY;
 
     Cu.import("resource://services-sync/main.js");
-    Weave.SyncScheduler.delayedAutoConnect(delay);
+    Weave.Service.scheduler.delayedAutoConnect(delay);
   },
 #endif
 
@@ -326,7 +317,6 @@ BrowserGlue.prototype = {
     UserAgentOverrides.uninit();
     webappsUI.uninit();
     SignInToWebsiteUX.uninit();
-    webrtcUI.uninit();
   },
 
   _onAppDefaults: function BG__onAppDefaults() {
@@ -351,33 +341,14 @@ BrowserGlue.prototype = {
     
     this._migrateUI();
 
-    this._setUpUserAgentOverrides();
-
+    UserAgentOverrides.init();
     webappsUI.init();
     PageThumbs.init();
     NewTabUtils.init();
-    BrowserNewTabPreloader.init();
     SignInToWebsiteUX.init();
     PdfJs.init();
-    webrtcUI.init();
 
     Services.obs.notifyObservers(null, "browser-ui-startup-complete", "");
-  },
-
-  _setUpUserAgentOverrides: function BG__setUpUserAgentOverrides() {
-    UserAgentOverrides.init();
-
-    if (Services.prefs.getBoolPref("general.useragent.complexOverride.moodle")) {
-      UserAgentOverrides.addComplexOverride(function (aHttpChannel, aOriginalUA) {
-        let cookies;
-        try {
-          cookies = aHttpChannel.getRequestHeader("Cookie");
-        } catch (e) {  }
-        if (cookies && cookies.indexOf("MoodleSession") > -1)
-          return aOriginalUA.replace(/Gecko\/[^ ]*/, "Gecko/20100101");
-        return null;
-      });
-    }
   },
 
   
@@ -399,7 +370,6 @@ BrowserGlue.prototype = {
     this._shutdownPlaces();
     this._sanitizer.onShutdown();
     PageThumbs.uninit();
-    BrowserNewTabPreloader.uninit();
   },
 
   
@@ -468,9 +438,7 @@ BrowserGlue.prototype = {
           (ss.sessionType == Ci.nsISessionStartup.RECOVER_SESSION);
       }
       catch (ex) {  }
-      if (shouldCheck &&
-          !shell.isDefaultBrowser(true, false) &&
-          !willRecoverSession) {
+      if (shouldCheck && !shell.isDefaultBrowser(true) && !willRecoverSession) {
         Services.tm.mainThread.dispatch(function() {
           var win = this.getMostRecentBrowserWindow();
           var brandBundle = win.document.getElementById("bundle_brand");
@@ -487,22 +455,8 @@ BrowserGlue.prototype = {
           var rv = ps.confirmEx(win, promptTitle, promptMessage,
                                 ps.STD_YES_NO_BUTTONS,
                                 null, null, null, checkboxLabel, checkEveryTime);
-          if (rv == 0) {
-            var claimAllTypes = true;
-#ifdef XP_WIN
-            try {
-              
-              
-              
-              
-              let version = Cc["@mozilla.org/system-info;1"]
-                              .getService(Ci.nsIPropertyBag2)
-                              .getProperty("version");
-              claimAllTypes = (parseFloat(version) < 6.2);
-            } catch (ex) { }
-#endif
-            shell.setDefaultBrowser(claimAllTypes, false);
-          }
+          if (rv == 0)
+            shell.setDefaultBrowser(true, false);
           shell.shouldCheckDefaultBrowser = checkEveryTime.value;
         }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
       }
@@ -541,7 +495,7 @@ BrowserGlue.prototype = {
       windowcount++;
 
       var browser = browserEnum.getNext();
-      if (!PrivateBrowsingUtils.isWindowPrivate(browser))
+      if (("gPrivateBrowsingUI" in browser) && !browser.gPrivateBrowsingUI.privateWindow)
         allWindowsPrivate = false;
       var tabbrowser = browser.document.getElementById("content");
       if (tabbrowser)
@@ -1232,7 +1186,7 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 8;
+    const UI_VERSION = 7;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
     let currentUIVersion = 0;
     try {
@@ -1364,15 +1318,6 @@ BrowserGlue.prototype = {
                                           "$1downloads-button,window-controls$2")
         }
         this._setPersist(toolbarResource, currentsetResource, currentset);
-      }
-    }
-
-    if (currentUIVersion < 8) {
-      
-      let uri = Services.prefs.getComplexValue("browser.startup.homepage",
-                                               Ci.nsIPrefLocalizedString).data;
-      if (uri && /^https?:\/\/(www\.)?google(\.\w{2,3}){1,2}\/firefox\/?$/.test(uri)) {
-        Services.prefs.clearUserPref("browser.startup.homepage");
       }
     }
 
@@ -1693,15 +1638,11 @@ ContentPermissionPrompt.prototype = {
     }
 
     var browserBundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
-    let secHistogram = Components.classes["@mozilla.org/base/telemetry;1"].
-                                  getService(Ci.nsITelemetry).
-                                  getHistogramById("SECURITY_UI");
 
     var mainAction = {
       label: browserBundle.GetStringFromName("geolocation.shareLocation"),
       accessKey: browserBundle.GetStringFromName("geolocation.shareLocation.accesskey"),
       callback: function() {
-        secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST_SHARE_LOCATION);
         request.allow();
       },
     };
@@ -1720,13 +1661,12 @@ ContentPermissionPrompt.prototype = {
                                                    [requestingURI.host], 1);
 
       
-      if (!PrivateBrowsingUtils.isWindowPrivate(chromeWin)) {
+      if (("gPrivateBrowsingUI" in chromeWin) && !chromeWin.gPrivateBrowsingUI.privateWindow) {
         secondaryActions.push({
           label: browserBundle.GetStringFromName("geolocation.alwaysShareLocation"),
           accessKey: browserBundle.GetStringFromName("geolocation.alwaysShareLocation.accesskey"),
           callback: function () {
             Services.perms.addFromPrincipal(requestingPrincipal, "geo", Ci.nsIPermissionManager.ALLOW_ACTION);
-            secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST_ALWAYS_SHARE);
             request.allow();
           }
         });
@@ -1735,7 +1675,6 @@ ContentPermissionPrompt.prototype = {
           accessKey: browserBundle.GetStringFromName("geolocation.neverShareLocation.accesskey"),
           callback: function () {
             Services.perms.addFromPrincipal(requestingPrincipal, "geo", Ci.nsIPermissionManager.DENY_ACTION);
-            secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST_NEVER_SHARE);
             request.cancel();
           }
         });
@@ -1744,7 +1683,6 @@ ContentPermissionPrompt.prototype = {
 
     var browser = chromeWin.gBrowser.getBrowserForDocument(requestingWindow.document);
 
-    secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST);
     chromeWin.PopupNotifications.show(browser, "geolocation", message, "geo-notification-icon",
                                       mainAction, secondaryActions);
   }
