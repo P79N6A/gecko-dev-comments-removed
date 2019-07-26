@@ -1225,8 +1225,6 @@ InvalidateActivation(FreeOp *fop, uint8 *ionTop, bool invalidateAll)
         
         
         
-        
-        
 
         IonScript *ionScript = script->ion;
         ionScript->incref();
@@ -1293,8 +1291,6 @@ ion::Invalidate(FreeOp *fop, const Vector<types::CompilerOutput> &invalid, bool 
                     co.script->filename, co.script->lineno, co.out.ion);
 
             
-            
-            
             co.out.ion->incref();
             anyInvalidation = true;
         }
@@ -1312,11 +1308,9 @@ ion::Invalidate(FreeOp *fop, const Vector<types::CompilerOutput> &invalid, bool 
     
     
     for (size_t i = 0; i < invalid.length(); i++) {
-        const types::CompilerOutput &co = invalid[i];
-        JS_ASSERT(co.isValid());
-        if (co.isIon()) {
-            JSScript *script = co.script;
-            IonScript *ionScript = co.out.ion;
+        if (invalid[i].script->hasIonScript()) {
+            JSScript *script = invalid[i].script;
+            IonScript *ionScript = script->ion;
 
             JSCompartment *compartment = script->compartment();
             if (compartment->needsBarrier()) {
@@ -1327,7 +1321,7 @@ ion::Invalidate(FreeOp *fop, const Vector<types::CompilerOutput> &invalid, bool 
                 IonScript::Trace(compartment->barrierTracer(), ionScript);
             }
 
-            co.out.ion->decref(fop);
+            script->ion->decref(fop);
             script->ion = NULL;
         }
     }
