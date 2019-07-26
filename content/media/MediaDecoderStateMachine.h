@@ -116,6 +116,8 @@ public:
   
   enum State {
     DECODER_STATE_DECODING_METADATA,
+    DECODER_STATE_WAIT_FOR_RESOURCES,
+    DECODER_STATE_DORMANT,
     DECODER_STATE_DECODING,
     DECODER_STATE_SEEKING,
     DECODER_STATE_BUFFERING,
@@ -132,6 +134,11 @@ public:
   
   void SetVolume(double aVolume);
   void SetAudioCaptured(bool aCapture);
+
+  
+  bool IsDormantNeeded();
+  
+  void SetDormant(bool aDormant);
   void Shutdown();
 
   
@@ -492,6 +499,10 @@ private:
   
   
   void StartDecoding();
+
+  void StartWaitForResources();
+
+  void StartDecodeMetadata();
 
   
   

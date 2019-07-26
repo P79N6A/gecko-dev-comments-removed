@@ -3244,6 +3244,11 @@ void HTMLMediaElement::SuspendOrResumeElement(bool aPauseElement, bool aSuspendE
 void HTMLMediaElement::NotifyOwnerDocumentActivityChanged()
 {
   nsIDocument* ownerDoc = OwnerDoc();
+
+  if (mDecoder) {
+    mDecoder->SetDormantIfNecessary(ownerDoc->Hidden());
+  }
+
   
   
   if (UseAudioChannelService() && mPlayingThroughTheAudioChannel &&
@@ -3359,9 +3364,6 @@ nsIContent* HTMLMediaElement::GetNextSource()
   if (!mSourcePointer) {
     
     mSourcePointer = new nsRange(this);
-    
-    
-    mSourcePointer->SetEnableGravitationOnElementRemoval(false);
 
     rv = mSourcePointer->SelectNodeContents(thisDomNode);
     if (NS_FAILED(rv)) return nullptr;
