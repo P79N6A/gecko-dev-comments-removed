@@ -180,57 +180,15 @@ protected:
   virtual void Resolve() {}
   virtual void Cleanup() {}
 
-  void FailWithError(nsresult aRv)
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-
-    
-    
-    mResultPromise->MaybeReject(aRv);
-    
-    mResultPromise = nullptr;
-    Cleanup();
-  }
+  void FailWithError(nsresult aRv);
 
   
   
   virtual void ReleaseNSSResources() MOZ_OVERRIDE {}
 
-  virtual nsresult CalculateResult() MOZ_OVERRIDE MOZ_FINAL
-  {
-    MOZ_ASSERT(!NS_IsMainThread());
+  virtual nsresult CalculateResult() MOZ_OVERRIDE MOZ_FINAL;
 
-    if (NS_FAILED(mEarlyRv)) {
-      return mEarlyRv;
-    }
-
-    if (isAlreadyShutDown()) {
-      return NS_ERROR_DOM_UNKNOWN_ERR;
-    }
-
-    return DoCrypto();
-  }
-
-  virtual void CallCallback(nsresult rv) MOZ_OVERRIDE MOZ_FINAL
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-    if (NS_FAILED(rv)) {
-      FailWithError(rv);
-      return;
-    }
-
-    nsresult rv2 = AfterCrypto();
-    if (NS_FAILED(rv2)) {
-      FailWithError(rv2);
-      return;
-    }
-
-    Resolve();
-
-    
-    mResultPromise = nullptr;
-    Cleanup();
-  }
+  virtual void CallCallback(nsresult rv) MOZ_OVERRIDE MOZ_FINAL;
 };
 
 } 
