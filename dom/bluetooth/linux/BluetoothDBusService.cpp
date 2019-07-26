@@ -1708,7 +1708,9 @@ BluetoothDBusService::StopInternal()
   
   
   
-  DisconnectAllAcls(sAdapterPath);
+  if (!sAdapterPath.IsEmpty()) {
+    DisconnectAllAcls(sAdapterPath);
+  }
 
   if (!mConnection) {
     StopDBus();
@@ -1754,6 +1756,12 @@ BluetoothDBusService::StopInternal()
 
   StopDBus();
   return NS_OK;
+}
+
+bool
+BluetoothDBusService::IsEnabledInternal()
+{
+  return mEnabled;
 }
 
 class DefaultAdapterPropertiesRunnable : public nsRunnable

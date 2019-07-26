@@ -41,7 +41,6 @@ public:
 
 
 
-
   virtual nsresult StartInternal();
 
   
@@ -49,9 +48,14 @@ public:
 
 
 
-
-
   virtual nsresult StopInternal();
+
+  
+
+
+
+
+  virtual bool IsEnabledInternal();
 };
 
 END_BLUETOOTH_NAMESPACE

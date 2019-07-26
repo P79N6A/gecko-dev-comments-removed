@@ -164,6 +164,10 @@ private:
   StopInternal() MOZ_OVERRIDE;
 
   
+  virtual bool
+  IsEnabledInternal() MOZ_OVERRIDE;
+
+  
   virtual nsresult
   GetDevicePropertiesInternal(const BluetoothSignal& aSignal) MOZ_OVERRIDE;
 

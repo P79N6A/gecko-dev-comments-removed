@@ -184,7 +184,7 @@ public:
 
 
 
-    if (mEnabled == gBluetoothService->IsEnabled()) {
+    if (mEnabled == gBluetoothService->IsEnabledInternal()) {
       NS_WARNING("Bluetooth has already been enabled/disabled before.");
     } else {
       
@@ -529,18 +529,7 @@ nsresult
 BluetoothService::HandleStartupSettingsCheck(bool aEnable)
 {
   MOZ_ASSERT(NS_IsMainThread());
-
-  if (aEnable) {
-    return StartStopBluetooth(true);
-  }
-
-  
-
-
-
-  gToggleInProgress = false;
-
-  return NS_OK;
+  return StartStopBluetooth(aEnable);
 }
 
 nsresult
