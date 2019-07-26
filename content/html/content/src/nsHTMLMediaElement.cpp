@@ -1783,6 +1783,20 @@ nsHTMLMediaElement::~nsHTMLMediaElement()
   }
 }
 
+void
+nsHTMLMediaElement::GetItemValueText(nsAString& aValue)
+{
+  
+  GetURIAttr(nsGkAtoms::src, nullptr, aValue);
+}
+
+void
+nsHTMLMediaElement::SetItemValueText(const nsAString& aValue)
+{
+  
+  SetAttr(kNameSpaceID_None, nsGkAtoms::src, aValue, true);
+}
+
 void nsHTMLMediaElement::StopSuspendingAfterFirstFrame()
 {
   mAllowSuspendAfterFirstFrame = false;
