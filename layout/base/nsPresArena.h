@@ -5,6 +5,8 @@
 
 
 
+
+
 #ifndef nsPresArena_h___
 #define nsPresArena_h___
 
@@ -30,15 +32,19 @@ public:
     nsFrameList_id,
 
     
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
     NON_OBJECT_MARKER = 0x40000000
   };
 
   
+
+
   NS_HIDDEN_(void*) AllocateBySize(size_t aSize)
   {
     return Allocate(uint32_t(aSize) | uint32_t(NON_OBJECT_MARKER), aSize);
@@ -49,7 +55,9 @@ public:
   }
 
   
-  
+
+
+
   NS_HIDDEN_(void*) AllocateByFrameID(nsQueryFrame::FrameIID aID, size_t aSize)
   {
     return Allocate(aID, aSize);
@@ -60,7 +68,9 @@ public:
   }
 
   
-  
+
+
+
   NS_HIDDEN_(void*) AllocateByObjectID(ObjectID aID, size_t aSize)
   {
     return Allocate(aID, aSize);
