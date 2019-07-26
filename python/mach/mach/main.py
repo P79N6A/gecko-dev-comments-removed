@@ -22,11 +22,10 @@ from mach.registrar import populate_argument_parser
 
 
 
-from mach.build import Build
-from mach.settings import Settings
-from mach.testing import Testing
-from mach.warnings import Warnings
-
+from mach.commands.build import Build
+from mach.commands.settings import Settings
+from mach.commands.testing import Testing
+from mach.commands.warnings import Warnings
 
 
 
