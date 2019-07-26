@@ -645,7 +645,26 @@ this.FxAccounts.prototype = Object.freeze({
       throw new Error("Firefox Accounts server must use HTTPS");
     }
     return url;
-  }
+  },
+
+  
+  
+  promiseAccountsForceSigninURI: function() {
+    let url = Services.urlFormatter.formatURLPref("identity.fxaccounts.remote.force_auth.uri");
+    if (!/^https:/.test(url)) { 
+      throw new Error("Firefox Accounts server must use HTTPS");
+    }
+    
+    return this.getSignedInUser().then(accountData => {
+      if (!accountData) {
+        return null;
+      }
+      let newQueryPortion = url.indexOf("?") == -1 ? "?" : "&";
+      newQueryPortion += "email=" + encodeURIComponent(accountData.email);
+      return url + newQueryPortion;
+    });
+  },
+
 });
 
 
