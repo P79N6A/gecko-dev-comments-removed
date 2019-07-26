@@ -3853,10 +3853,8 @@ WorkerPrivate::GetLoadInfo(JSContext* aCx, nsPIDOMWindow* aWindow,
 
       
       
-      JS::Rooted<JSScript*> script(aCx);
-      if (JS_DescribeScriptedCaller(aCx, &script, nullptr)) {
-        const char* fileName = JS_GetScriptFilename(aCx, script);
-
+      JS::AutoFilename fileName;
+      if (JS::DescribeScriptedCaller(aCx, &fileName)) {
         
         
         
@@ -3871,7 +3869,7 @@ WorkerPrivate::GetLoadInfo(JSContext* aCx, nsPIDOMWindow* aWindow,
           return rv;
         }
 
-        rv = scriptFile->InitWithPath(NS_ConvertUTF8toUTF16(fileName));
+        rv = scriptFile->InitWithPath(NS_ConvertUTF8toUTF16(fileName.get()));
         if (NS_SUCCEEDED(rv)) {
           rv = NS_NewFileURI(getter_AddRefs(loadInfo.mBaseURI),
                              scriptFile);
@@ -3880,7 +3878,7 @@ WorkerPrivate::GetLoadInfo(JSContext* aCx, nsPIDOMWindow* aWindow,
           
           
           rv = NS_NewURI(getter_AddRefs(loadInfo.mBaseURI),
-                         fileName);
+                         fileName.get());
         }
         if (NS_FAILED(rv)) {
           return rv;

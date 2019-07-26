@@ -845,10 +845,8 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
 
                 
                 
-                if (!reportable) {
-                    RootedScript ignored(cx);
-                    reportable = !JS_DescribeScriptedCaller(cx, &ignored, nullptr);
-                }
+                if (!reportable)
+                    reportable = !JS::DescribeScriptedCaller(cx);
 
                 
                 

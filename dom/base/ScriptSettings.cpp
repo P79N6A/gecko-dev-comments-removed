@@ -143,10 +143,7 @@ GetIncumbentGlobal()
   
   
   
-  JS::RootedScript script(cx);
-  if (JS_DescribeScriptedCaller(cx, &script, nullptr)) {
-    JS::RootedObject global(cx, JS_GetGlobalFromScript(script));
-    MOZ_ASSERT(global);
+  if (JSObject *global = JS::GetScriptedCallerGlobal(cx)) {
     return xpc::GetNativeForGlobal(global);
   }
 
