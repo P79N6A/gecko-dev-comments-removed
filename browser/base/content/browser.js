@@ -4771,6 +4771,11 @@ var TabsProgressListener = {
       if (!Object.getOwnPropertyDescriptor(window, "PopupNotifications").get)
         PopupNotifications.locationChange(aBrowser);
 
+      
+      
+      if (aBrowser != gBrowser.selectedBrowser)
+        gBrowser.getNotificationBox(aBrowser).removeTransientNotifications();
+
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     }
   },
