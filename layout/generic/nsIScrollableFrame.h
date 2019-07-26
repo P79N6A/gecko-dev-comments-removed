@@ -13,6 +13,7 @@
 #include "nsISupports.h"
 #include "nsCoord.h"
 #include "nsPresContext.h"
+#include "mozilla/gfx/Point.h"
 
 #define NS_DEFAULT_VERTICAL_SCROLL_DISTANCE   3
 #define NS_DEFAULT_HORIZONTAL_SCROLL_DISTANCE 5
@@ -28,6 +29,7 @@ class nsIFrame;
 
 class nsIScrollableFrame : public nsQueryFrame {
 public:
+  typedef mozilla::gfx::Point Point;
 
   NS_DECL_QUERYFRAME_TARGET(nsIScrollableFrame)
 
@@ -144,7 +146,18 @@ public:
 
 
 
+
+
   virtual void ScrollToCSSPixels(nsIntPoint aScrollPosition) = 0;
+  
+
+
+
+
+
+
+
+  virtual void ScrollToCSSPixelsApproximate(const Point& aScrollPosition) = 0;
   
 
 
