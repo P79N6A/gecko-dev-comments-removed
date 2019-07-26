@@ -100,11 +100,12 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
     
     
     
-    PRUint32 relevantTrustBit = endEntityOrCA == MustBeCA ? CERTDB_TRUSTED_CA
-                                                          : CERTDB_TRUSTED;
+    PRUint32 relevantTrustBit =
+      endEntityOrCA == EndEntityOrCA::MustBeCA ? CERTDB_TRUSTED_CA
+                                               : CERTDB_TRUSTED;
     if (((flags & (relevantTrustBit|CERTDB_TERMINAL_RECORD)))
             == CERTDB_TERMINAL_RECORD) {
-      *trustLevel = ActivelyDistrusted;
+      *trustLevel = TrustLevel::ActivelyDistrusted;
       return SECSuccess;
     }
 
@@ -113,19 +114,19 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
     
     if (flags & CERTDB_TRUSTED_CA) {
       if (policy == SEC_OID_X509_ANY_POLICY) {
-        *trustLevel = TrustAnchor;
+        *trustLevel = TrustLevel::TrustAnchor;
         return SECSuccess;
       }
 #ifndef MOZ_NO_EV_CERTS
       if (CertIsAuthoritativeForEVPolicy(candidateCert, policy)) {
-        *trustLevel = TrustAnchor;
+        *trustLevel = TrustLevel::TrustAnchor;
         return SECSuccess;
       }
 #endif
     }
   }
 
-  *trustLevel = InheritsTrust;
+  *trustLevel = TrustLevel::InheritsTrust;
   return SECSuccess;
 }
 
@@ -165,7 +166,7 @@ NSSCertDBTrustDomain::CheckRevocation(
   
   
   if (stapledOCSPResponse) {
-    PR_ASSERT(endEntityOrCA == MustBeEndEntity);
+    PR_ASSERT(endEntityOrCA == EndEntityOrCA::MustBeEndEntity);
     SECStatus rv = VerifyAndMaybeCacheEncodedOCSPResponse(cert, issuerCert,
                                                           time,
                                                           stapledOCSPResponse,
@@ -250,8 +251,9 @@ NSSCertDBTrustDomain::CheckRevocation(
   
 
   if ((mOCSPFetching == NeverFetchOCSP) ||
-      (endEntityOrCA == MustBeCA && (mOCSPFetching == FetchOCSPForDVHardFail ||
-                                     mOCSPFetching == FetchOCSPForDVSoftFail))) {
+      (endEntityOrCA == EndEntityOrCA::MustBeCA &&
+       (mOCSPFetching == FetchOCSPForDVHardFail ||
+        mOCSPFetching == FetchOCSPForDVSoftFail))) {
     
     
     if (cachedResponseErrorCode == SEC_ERROR_OCSP_UNKNOWN_CERT) {

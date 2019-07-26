@@ -130,12 +130,12 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
     
     
     
-    PRUint32 relevantTrustBit = endEntityOrCA == MustBeCA
+    PRUint32 relevantTrustBit = endEntityOrCA == EndEntityOrCA::MustBeCA
                               ? CERTDB_TRUSTED_CA
                               : CERTDB_TRUSTED;
     if (((flags & (relevantTrustBit | CERTDB_TERMINAL_RECORD)))
             == CERTDB_TERMINAL_RECORD) {
-      *trustLevel = ActivelyDistrusted;
+      *trustLevel = TrustLevel::ActivelyDistrusted;
       return SECSuccess;
     }
 
@@ -148,7 +148,7 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
     
     
     if (flags & CERTDB_TRUSTED_CA) {
-      *trustLevel = TrustAnchor;
+      *trustLevel = TrustLevel::TrustAnchor;
       return SECSuccess;
     }
 #endif
@@ -156,11 +156,11 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
 
   
   if (CERT_CompareCerts(mTrustedRoot.get(), candidateCert)) {
-    *trustLevel = TrustAnchor;
+    *trustLevel = TrustLevel::TrustAnchor;
     return SECSuccess;
   }
 
-  *trustLevel = InheritsTrust;
+  *trustLevel = TrustLevel::InheritsTrust;
   return SECSuccess;
 }
 

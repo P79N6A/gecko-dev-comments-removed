@@ -77,7 +77,7 @@ CheckKeyUsage(EndEntityOrCA endEntityOrCA,
     return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
   }
 
-  if (endEntityOrCA == MustBeCA) {
+  if (endEntityOrCA == EndEntityOrCA::MustBeCA) {
    
    
    
@@ -129,7 +129,7 @@ CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
   
   
   
-  if (isTrustAnchor && endEntityOrCA == MustBeCA) {
+  if (isTrustAnchor && endEntityOrCA == EndEntityOrCA::MustBeCA) {
     return Success;
   }
 
@@ -150,7 +150,7 @@ CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
       return Success;
     }
     
-    if (endEntityOrCA == MustBeCA &&
+    if (endEntityOrCA == EndEntityOrCA::MustBeCA &&
         (*policyInfos)->oid == SEC_OID_X509_ANY_POLICY) {
       return Success;
     }
@@ -248,7 +248,7 @@ CheckBasicConstraints(const BackCert& cert,
     
     
     
-    if (endEntityOrCA == MustBeCA && isTrustAnchor) {
+    if (endEntityOrCA == EndEntityOrCA::MustBeCA && isTrustAnchor) {
       const CERTCertificate* nssCert = cert.GetNSSCert();
       
       
@@ -260,7 +260,7 @@ CheckBasicConstraints(const BackCert& cert,
     }
   }
 
-  if (endEntityOrCA == MustBeEndEntity) {
+  if (endEntityOrCA == EndEntityOrCA::MustBeEndEntity) {
     
 
     if (basicConstraints.isCA) {
@@ -280,7 +280,7 @@ CheckBasicConstraints(const BackCert& cert,
     return Success;
   }
 
-  PORT_Assert(endEntityOrCA == MustBeCA);
+  PORT_Assert(endEntityOrCA == EndEntityOrCA::MustBeCA);
 
   
   if (!basicConstraints.isCA) {
@@ -307,7 +307,7 @@ BackCert::GetConstrainedNames( const CERTGeneralName** result)
 
     constrainedNames =
       CERT_GetConstrainedCertificateNames(nssCert, arena.get(),
-                                          cnOptions == IncludeCN);
+                                          includeCN == IncludeCN::Yes);
     if (!constrainedNames) {
       return MapSECStatus(SECFailure);
     }
@@ -397,7 +397,7 @@ CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
         
         
         
-        if (endEntityOrCA == MustBeCA &&
+        if (endEntityOrCA == EndEntityOrCA::MustBeCA &&
             requiredEKU == SEC_OID_EXT_KEY_USAGE_SERVER_AUTH &&
             oidTag == SEC_OID_NS_KEY_USAGE_GOVT_APPROVED) {
           found = true;
@@ -417,7 +417,7 @@ CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
 
   
 
-  if (endEntityOrCA == MustBeEndEntity) {
+  if (endEntityOrCA == EndEntityOrCA::MustBeEndEntity) {
     
     
     
@@ -461,11 +461,11 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
                                  SECOidTag requiredEKUIfPresent,
                                  SECOidTag requiredPolicy,
                                  unsigned int subCACount,
-                 TrustDomain::TrustLevel* trustLevelOut)
+                 TrustLevel* trustLevelOut)
 {
   Result rv;
 
-  TrustDomain::TrustLevel trustLevel;
+  TrustLevel trustLevel;
   rv = MapSECStatus(trustDomain.GetCertTrust(endEntityOrCA,
                                              requiredPolicy,
                                              cert.GetNSSCert(),
@@ -473,11 +473,11 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
   if (rv != Success) {
     return rv;
   }
-  if (trustLevel == TrustDomain::ActivelyDistrusted) {
+  if (trustLevel == TrustLevel::ActivelyDistrusted) {
     return Fail(RecoverableError, SEC_ERROR_UNTRUSTED_CERT);
   }
-  if (trustLevel != TrustDomain::TrustAnchor &&
-      trustLevel != TrustDomain::InheritsTrust) {
+  if (trustLevel != TrustLevel::TrustAnchor &&
+      trustLevel != TrustLevel::InheritsTrust) {
     
     PORT_SetError(PR_INVALID_STATE_ERROR);
     return FatalError;
@@ -486,8 +486,8 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
     *trustLevelOut = trustLevel;
   }
 
-  bool isTrustAnchor = endEntityOrCA == MustBeCA &&
-                       trustLevel == TrustDomain::TrustAnchor;
+  bool isTrustAnchor = endEntityOrCA == EndEntityOrCA::MustBeCA &&
+                       trustLevel == TrustLevel::TrustAnchor;
 
   PLArenaPool* arena = cert.GetArena();
   if (!arena) {

@@ -18,6 +18,7 @@
 #ifndef mozilla_pkix__pkixutil_h
 #define mozilla_pkix__pkixutil_h
 
+#include "pkix/enumclass.h"
 #include "pkix/pkixtypes.h"
 #include "prerror.h"
 #include "seccomon.h"
@@ -84,11 +85,10 @@ public:
   
   
   
-  enum ConstrainedNameOptions { ExcludeCN = 0, IncludeCN = 1 };
+  MOZILLA_PKIX_ENUM_CLASS IncludeCN { No = 0, Yes = 1 };
 
   
-  BackCert(CERTCertificate* nssCert, BackCert* childCert,
-           ConstrainedNameOptions cnOptions)
+  BackCert(CERTCertificate* nssCert, BackCert* childCert, IncludeCN includeCN)
     : encodedBasicConstraints(nullptr)
     , encodedCertificatePolicies(nullptr)
     , encodedExtendedKeyUsage(nullptr)
@@ -98,7 +98,7 @@ public:
     , childCert(childCert)
     , nssCert(nssCert)
     , constrainedNames(nullptr)
-    , cnOptions(cnOptions)
+    , includeCN(includeCN)
   {
   }
 
@@ -137,7 +137,7 @@ private:
 
   ScopedPLArenaPool arena;
   CERTGeneralName* constrainedNames;
-  ConstrainedNameOptions cnOptions;
+  IncludeCN includeCN;
 
   BackCert(const BackCert&) ;
   void operator=(const BackCert&); ;
