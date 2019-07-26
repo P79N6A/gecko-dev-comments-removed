@@ -804,6 +804,10 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
   nsIFrame* frame = thisContent->GetPrimaryFrame();
   if (frame && mInstanceOwner) {
     mInstanceOwner->SetFrame(static_cast<nsObjectFrame*>(frame));
+
+    
+    
+    mInstanceOwner->CallSetWindow();
   }
 
   
