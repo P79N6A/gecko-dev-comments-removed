@@ -5327,17 +5327,16 @@ Selection::ScrollIntoView(SelectionRegion aRegion,
   if (!mFrameSelection)
     return NS_OK;
 
+  nsCOMPtr<nsIPresShell> presShell = mFrameSelection->GetShell();
+  if (!presShell)
+    return NS_OK;
+
   if (mFrameSelection->GetBatching())
     return NS_OK;
 
   if (!(aFlags & Selection::SCROLL_SYNCHRONOUS))
     return PostScrollSelectionIntoViewEvent(aRegion, aFlags,
       aVertical, aHorizontal);
-
-  nsCOMPtr<nsIPresShell> presShell;
-  nsresult result = GetPresShell(getter_AddRefs(presShell));
-  if (NS_FAILED(result) || !presShell)
-    return result;
 
   
   
@@ -5348,9 +5347,9 @@ Selection::ScrollIntoView(SelectionRegion aRegion,
     presShell->FlushPendingNotifications(Flush_Layout);
 
     
-    result = GetPresShell(getter_AddRefs(presShell));
-    if (NS_FAILED(result) || !presShell)
-      return result;
+    presShell = mFrameSelection ? mFrameSelection->GetShell() : nullptr;
+    if (!presShell)
+      return NS_OK;
   }
 
   
