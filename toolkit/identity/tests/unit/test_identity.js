@@ -46,8 +46,8 @@ function test_select_identity() {
     let mockedDoc = mock_doc(null, TEST_URL, call_sequentially(
       function(action, params) {
         
-	do_check_eq(action, 'ready');
-	do_check_null(params);
+        do_check_eq(action, 'ready');
+        do_check_null(params);
       },
       
       function(action, params) {
