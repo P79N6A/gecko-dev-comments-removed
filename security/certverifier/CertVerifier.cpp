@@ -746,6 +746,8 @@ CertVerifier::VerifySSLServerCert(CERTCertificate* peerCert,
     return SECFailure;
   }
 
+  
+  
   ScopedCERTCertList validationChain;
   SECStatus rv = VerifyCert(peerCert, stapledOCSPResponse,
                             certificateUsageSSLServer, time,
