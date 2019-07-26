@@ -33,8 +33,6 @@ public:
     SetIsDOMBinding();
   }
 
-  ~SVGAngle();
-
   
   nsSVGElement* GetParentObject() { return mSVGElement; }
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
@@ -49,6 +47,8 @@ public:
   void ConvertToSpecifiedUnits(uint16_t unitType, ErrorResult& rv);
 
 protected:
+  ~SVGAngle();
+
   nsSVGAngle* mVal; 
   nsRefPtr<nsSVGElement> mSVGElement;
   AngleType mType;

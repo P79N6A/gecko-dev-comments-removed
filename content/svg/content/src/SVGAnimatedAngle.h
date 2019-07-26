@@ -28,7 +28,6 @@ public:
   {
     SetIsDOMBinding();
   }
-  ~SVGAnimatedAngle();
 
   
   nsSVGElement* GetParentObject() { return mSVGElement; }
@@ -37,6 +36,8 @@ public:
   already_AddRefed<SVGAngle> AnimVal();
 
 protected:
+  ~SVGAnimatedAngle();
+
   nsSVGAngle* mVal; 
   nsRefPtr<nsSVGElement> mSVGElement;
 };

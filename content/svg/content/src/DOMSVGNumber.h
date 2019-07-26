@@ -38,6 +38,15 @@ class DOMSVGNumber MOZ_FINAL : public nsISupports
 {
   friend class AutoChangeNumberNotifier;
 
+  ~DOMSVGNumber() {
+    
+    
+    
+    if (mList) {
+      mList->mItems[mListIndex] = nullptr;
+    }
+  }
+
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGNumber)
@@ -55,15 +64,6 @@ public:
 
 
   explicit DOMSVGNumber(nsISupports* aParent);
-
-  ~DOMSVGNumber() {
-    
-    
-    
-    if (mList) {
-      mList->mItems[mListIndex] = nullptr;
-    }
-  }
 
   
 

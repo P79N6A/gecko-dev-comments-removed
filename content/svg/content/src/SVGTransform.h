@@ -60,8 +60,6 @@ public:
 
   explicit SVGTransform(const nsSVGTransform &aMatrix);
 
-  ~SVGTransform();
-
   
 
 
@@ -132,6 +130,8 @@ public:
   void SetSkewY(float angle, ErrorResult& rv);
 
 protected:
+  ~SVGTransform();
+
   
   friend class dom::SVGMatrix;
   const bool IsAnimVal() const {

@@ -27,8 +27,6 @@ public:
     : mVal(aVal), mSVGElement(aSVGElement)
   { SetIsDOMBinding(); }
 
-  ~SVGAnimatedLength();
-
   
   nsSVGElement* GetParentObject() { return mSVGElement; }
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
@@ -36,6 +34,8 @@ public:
   already_AddRefed<DOMSVGLength> AnimVal();
 
 protected:
+  ~SVGAnimatedLength();
+
   nsSVGLength2* mVal; 
   nsRefPtr<nsSVGElement> mSVGElement;
 };

@@ -44,6 +44,15 @@ class DOMSVGNumberList MOZ_FINAL : public nsISupports,
   friend class AutoChangeNumberListNotifier;
   friend class DOMSVGNumber;
 
+  ~DOMSVGNumberList() {
+    
+    
+    
+    if (mAList) {
+      ( IsAnimValList() ? mAList->mAnimVal : mAList->mBaseVal ) = nullptr;
+    }
+  }
+
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGNumberList)
@@ -60,15 +69,6 @@ public:
     
 
     InternalListLengthWillChange(aInternalList.Length()); 
-  }
-
-  ~DOMSVGNumberList() {
-    
-    
-    
-    if (mAList) {
-      ( IsAnimValList() ? mAList->mAnimVal : mAList->mBaseVal ) = nullptr;
-    }
   }
 
   virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;

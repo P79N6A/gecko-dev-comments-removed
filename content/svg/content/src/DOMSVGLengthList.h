@@ -44,6 +44,15 @@ class DOMSVGLengthList MOZ_FINAL : public nsISupports,
   friend class AutoChangeLengthListNotifier;
   friend class DOMSVGLength;
 
+  ~DOMSVGLengthList() {
+    
+    
+    
+    if (mAList) {
+      ( IsAnimValList() ? mAList->mAnimVal : mAList->mBaseVal ) = nullptr;
+    }
+  }
+
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGLengthList)
@@ -60,15 +69,6 @@ public:
     
     
     InternalListLengthWillChange(aInternalList.Length()); 
-  }
-
-  ~DOMSVGLengthList() {
-    
-    
-    
-    if (mAList) {
-      ( IsAnimValList() ? mAList->mAnimVal : mAList->mBaseVal ) = nullptr;
-    }
   }
 
   virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;

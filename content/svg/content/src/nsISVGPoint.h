@@ -63,6 +63,7 @@ public:
     mPt.mY = aPt->GetY();
   }
 
+protected:
   virtual ~nsISVGPoint()
   {
     
@@ -73,6 +74,7 @@ public:
     }
   }
 
+public:
   
 
 

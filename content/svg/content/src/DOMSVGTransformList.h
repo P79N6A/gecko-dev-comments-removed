@@ -39,6 +39,15 @@ class DOMSVGTransformList MOZ_FINAL : public nsISupports,
   friend class AutoChangeTransformListNotifier;
   friend class dom::SVGTransform;
 
+  ~DOMSVGTransformList() {
+    
+    
+    
+    if (mAList) {
+      ( IsAnimValList() ? mAList->mAnimVal : mAList->mBaseVal ) = nullptr;
+    }
+  }
+
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGTransformList)
@@ -55,15 +64,6 @@ public:
     
 
     InternalListLengthWillChange(aInternalList.Length()); 
-  }
-
-  ~DOMSVGTransformList() {
-    
-    
-    
-    if (mAList) {
-      ( IsAnimValList() ? mAList->mAnimVal : mAList->mBaseVal ) = nullptr;
-    }
   }
 
   virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;

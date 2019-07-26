@@ -24,7 +24,6 @@ class SVGAnimatedBoolean MOZ_FINAL : public nsWrapperCache
   {
     SetIsDOMBinding();
   }
-  ~SVGAnimatedBoolean();
 
   
   nsSVGElement* GetParentObject() const { return mSVGElement; }
@@ -34,6 +33,8 @@ class SVGAnimatedBoolean MOZ_FINAL : public nsWrapperCache
   bool AnimVal() const { mSVGElement->FlushAnimations(); return mVal->GetAnimValue(); }
 
 protected:
+  ~SVGAnimatedBoolean();
+
   nsSVGBoolean* mVal; 
   nsRefPtr<nsSVGElement> mSVGElement;
 };
