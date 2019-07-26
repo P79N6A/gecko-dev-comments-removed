@@ -2343,6 +2343,7 @@ private:
 
 
 
+
  
 class nsDisplayTransform: public nsDisplayItem
 {
@@ -2350,8 +2351,19 @@ public:
   
 
 
+
+
+
+
+  typedef gfx3DMatrix (* ComputeTransformFunction)(nsIFrame* aFrame, float aAppUnitsPerPixel);
+
+  
+
+
   nsDisplayTransform(nsDisplayListBuilder* aBuilder, nsIFrame *aFrame,
                      nsDisplayList *aList, uint32_t aIndex = 0);
+  nsDisplayTransform(nsDisplayListBuilder* aBuilder, nsIFrame *aFrame,
+                     nsDisplayList *aList, ComputeTransformFunction aTransformGetter, uint32_t aIndex = 0);
   nsDisplayTransform(nsDisplayListBuilder* aBuilder, nsIFrame *aFrame,
                      nsDisplayItem *aItem, uint32_t aIndex = 0);
 
@@ -2510,6 +2522,7 @@ private:
 
   nsDisplayWrapList mStoredList;
   gfx3DMatrix mTransform;
+  ComputeTransformFunction mTransformGetter;
   float mCachedAppUnitsPerPixel;
   uint32_t mIndex;
 };
