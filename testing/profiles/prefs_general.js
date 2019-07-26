@@ -159,7 +159,7 @@ user_pref("browser.webapps.testing", true);
 
 
 user_pref("browser.snippets.enabled", false);
-
+user_pref("browser.snippets.syncPromo.enabled", false);
 
 
 user_pref("browser.cache.use_new_backend_temp", false);
