@@ -9,16 +9,13 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <algorithm>
 #include "mozilla/ThreadLocal.h"
+#include "nscore.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Util.h"
 #include "nsAlgorithm.h"
-#include "nscore.h"
-#include "jsfriendapi.h"
-#include "GeckoProfilerFunc.h"
-#include "PseudoStack.h"
+#include <algorithm>
 
 
 
@@ -27,6 +24,10 @@
 #ifdef MOZ_WIDGET_QT
 #undef slots
 #endif
+#include "jsfriendapi.h"
+
+using mozilla::TimeStamp;
+using mozilla::TimeDuration;
 
 struct PseudoStack;
 class TableTicker;
@@ -44,6 +45,67 @@ extern bool stack_key_initialized;
 #  define SAMPLE_FUNCTION_NAME __func__  // defined in C99, supported in various C++ compilers. Just raw function name.
 # endif
 #endif
+
+
+
+inline void* mozilla_sampler_call_enter(const char *aInfo, void *aFrameAddress = NULL,
+                                        bool aCopy = false, uint32_t line = 0);
+inline void  mozilla_sampler_call_exit(void* handle);
+inline void  mozilla_sampler_add_marker(const char *aInfo);
+
+void mozilla_sampler_start1(int aEntries, int aInterval, const char** aFeatures,
+                            uint32_t aFeatureCount);
+void mozilla_sampler_start2(int aEntries, int aInterval, const char** aFeatures,
+                            uint32_t aFeatureCount);
+
+void mozilla_sampler_stop1();
+void mozilla_sampler_stop2();
+
+bool mozilla_sampler_is_active1();
+bool mozilla_sampler_is_active2();
+
+void mozilla_sampler_responsiveness1(const TimeStamp& time);
+void mozilla_sampler_responsiveness2(const TimeStamp& time);
+
+void mozilla_sampler_frame_number1(int frameNumber);
+void mozilla_sampler_frame_number2(int frameNumber);
+
+const double* mozilla_sampler_get_responsiveness1();
+const double* mozilla_sampler_get_responsiveness2();
+
+void mozilla_sampler_save1();
+void mozilla_sampler_save2();
+
+char* mozilla_sampler_get_profile1();
+char* mozilla_sampler_get_profile2();
+
+JSObject *mozilla_sampler_get_profile_data1(JSContext *aCx);
+JSObject *mozilla_sampler_get_profile_data2(JSContext *aCx);
+
+const char** mozilla_sampler_get_features1();
+const char** mozilla_sampler_get_features2();
+
+void mozilla_sampler_init1();
+void mozilla_sampler_init2();
+
+void mozilla_sampler_shutdown1();
+void mozilla_sampler_shutdown2();
+
+void mozilla_sampler_print_location1();
+void mozilla_sampler_print_location2();
+
+
+
+
+void mozilla_sampler_lock1();
+void mozilla_sampler_lock2();
+
+
+void mozilla_sampler_unlock1();
+void mozilla_sampler_unlock2();
+
+
+extern bool sps_version2();
 
 static inline
 void profiler_init()
@@ -202,6 +264,18 @@ void profiler_unlock()
 
 
 
+#if defined(_M_X64) || defined(__x86_64__)
+#define V8_HOST_ARCH_X64 1
+#elif defined(_M_IX86) || defined(__i386__) || defined(__i386)
+#define V8_HOST_ARCH_IA32 1
+#elif defined(__ARMEL__)
+#define V8_HOST_ARCH_ARM 1
+#else
+#warning Please add support for your architecture in chromium_types.h
+#endif
+
+
+
 
 #ifdef MOZ_WIDGET_GONK
 # define PLATFORM_LIKELY_MEMORY_CONSTRAINED
@@ -236,6 +310,50 @@ void profiler_unlock()
 #endif
 #define PROFILE_DEFAULT_FEATURES NULL
 #define PROFILE_DEFAULT_FEATURE_COUNT 0
+
+
+
+
+
+#ifdef V8_HOST_ARCH_ARM
+
+
+
+typedef void (*LinuxKernelMemoryBarrierFunc)(void);
+LinuxKernelMemoryBarrierFunc pLinuxKernelMemoryBarrier __attribute__((weak)) =
+    (LinuxKernelMemoryBarrierFunc) 0xffff0fa0;
+
+# define STORE_SEQUENCER() pLinuxKernelMemoryBarrier()
+#elif defined(V8_HOST_ARCH_IA32) || defined(V8_HOST_ARCH_X64)
+# if defined(_MSC_VER)
+#if _MSC_VER > 1400
+#  include <intrin.h>
+#else 
+    
+#ifdef _WINNT_
+#  define _interlockedbittestandreset _interlockedbittestandreset_NAME_CHANGED_TO_AVOID_MSVS2005_ERROR
+#  define _interlockedbittestandset _interlockedbittestandset_NAME_CHANGED_TO_AVOID_MSVS2005_ERROR
+#  include <intrin.h>
+#else
+#  include <intrin.h>
+#  define _interlockedbittestandreset _interlockedbittestandreset_NAME_CHANGED_TO_AVOID_MSVS2005_ERROR
+#  define _interlockedbittestandset _interlockedbittestandset_NAME_CHANGED_TO_AVOID_MSVS2005_ERROR
+#endif
+   
+   
+#  pragma intrinsic(_ReadWriteBarrier)
+#endif 
+#  define STORE_SEQUENCER() _ReadWriteBarrier();
+# elif defined(__INTEL_COMPILER)
+#  define STORE_SEQUENCER() __memory_barrier();
+# elif __GNUC__
+#  define STORE_SEQUENCER() asm volatile("" ::: "memory");
+# else
+#  error "Memory clobber not supported for your compiler."
+# endif
+#else
+# error "Memory clobber not supported for your platform."
+#endif
 
 namespace mozilla {
 
@@ -286,6 +404,186 @@ private:
 };
 
 } 
+
+
+
+
+
+
+
+
+
+class StackEntry : public js::ProfileEntry
+{
+public:
+
+  bool isCopyLabel() volatile {
+    return !((uintptr_t)stackAddress() & 0x1);
+  }
+
+  void setStackAddressCopy(void *sparg, bool copy) volatile {
+    
+    
+    
+    
+    
+    if (copy) {
+      setStackAddress(reinterpret_cast<void*>(
+                        reinterpret_cast<uintptr_t>(sparg) & ~0x1));
+    } else {
+      setStackAddress(reinterpret_cast<void*>(
+                        reinterpret_cast<uintptr_t>(sparg) | 0x1));
+    }
+  }
+};
+
+
+
+struct PseudoStack
+{
+public:
+  PseudoStack()
+    : mStackPointer(0)
+    , mSignalLock(false)
+    , mMarkerPointer(0)
+    , mQueueClearMarker(false)
+    , mRuntime(NULL)
+    , mStartJSSampling(false)
+  { }
+
+  void addMarker(const char *aMarker)
+  {
+    char* markerCopy = strdup(aMarker);
+    mSignalLock = true;
+    STORE_SEQUENCER();
+
+    if (mQueueClearMarker) {
+      clearMarkers();
+    }
+    if (!aMarker) {
+      return; 
+    }
+    if (size_t(mMarkerPointer) == mozilla::ArrayLength(mMarkers)) {
+      return; 
+    }
+    mMarkers[mMarkerPointer] = markerCopy;
+    mMarkerPointer++;
+
+    mSignalLock = false;
+    STORE_SEQUENCER();
+  }
+
+  
+  const char* getMarker(int aMarkerId)
+  {
+    
+    
+    
+    
+    
+    
+    
+    if (mSignalLock || mQueueClearMarker || aMarkerId < 0 ||
+      static_cast<mozilla::sig_safe_t>(aMarkerId) >= mMarkerPointer) {
+      return NULL;
+    }
+    return mMarkers[aMarkerId];
+  }
+
+  
+  void clearMarkers()
+  {
+    for (mozilla::sig_safe_t i = 0; i < mMarkerPointer; i++) {
+      free(mMarkers[i]);
+    }
+    mMarkerPointer = 0;
+    mQueueClearMarker = false;
+  }
+
+  void push(const char *aName, uint32_t line)
+  {
+    push(aName, NULL, false, line);
+  }
+
+  void push(const char *aName, void *aStackAddress, bool aCopy, uint32_t line)
+  {
+    if (size_t(mStackPointer) >= mozilla::ArrayLength(mStack)) {
+      mStackPointer++;
+      return;
+    }
+
+    
+    
+    mStack[mStackPointer].setLabel(aName);
+    mStack[mStackPointer].setStackAddressCopy(aStackAddress, aCopy);
+    mStack[mStackPointer].setLine(line);
+
+    
+    STORE_SEQUENCER();
+    mStackPointer++;
+  }
+  void pop()
+  {
+    mStackPointer--;
+  }
+  bool isEmpty()
+  {
+    return mStackPointer == 0;
+  }
+  uint32_t stackSize() const
+  {
+    return std::min<uint32_t>(mStackPointer, mozilla::ArrayLength(mStack));
+  }
+
+  void sampleRuntime(JSRuntime *runtime) {
+    mRuntime = runtime;
+    if (!runtime) {
+      
+      return;
+    }
+
+    JS_STATIC_ASSERT(sizeof(mStack[0]) == sizeof(js::ProfileEntry));
+    js::SetRuntimeProfilingStack(runtime,
+                                 (js::ProfileEntry*) mStack,
+                                 (uint32_t*) &mStackPointer,
+                                 mozilla::ArrayLength(mStack));
+    if (mStartJSSampling)
+      enableJSSampling();
+  }
+  void enableJSSampling() {
+    if (mRuntime) {
+      js::EnableRuntimeProfilingStack(mRuntime, true);
+      mStartJSSampling = false;
+    } else {
+      mStartJSSampling = true;
+    }
+  }
+  void disableJSSampling() {
+    mStartJSSampling = false;
+    if (mRuntime)
+      js::EnableRuntimeProfilingStack(mRuntime, false);
+  }
+
+  
+  StackEntry volatile mStack[1024];
+  
+  char* mMarkers[1024];
+ private:
+  
+  
+  mozilla::sig_safe_t mStackPointer;
+  
+  volatile bool mSignalLock;
+ public:
+  volatile mozilla::sig_safe_t mMarkerPointer;
+  
+  
+  volatile mozilla::sig_safe_t mQueueClearMarker;
+  
+  JSRuntime *mRuntime;
+  
+  bool mStartJSSampling;
+};
 
 inline PseudoStack* mozilla_get_pseudo_stack(void)
 {
