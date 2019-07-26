@@ -791,17 +791,12 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
                                                   const nsAString* aBody,
                                                   Element* aElement)
 {
-  NS_PRECONDITION(aListener->GetJSListener(),
-                  "Why do we not have a JS listener?");
-  NS_PRECONDITION(aListener->mHandlerIsString,
-                  "Why are we compiling a non-string JS listener?");
+  MOZ_ASSERT(aListener->GetJSListener());
+  MOZ_ASSERT(aListener->mHandlerIsString, "Why are we compiling a non-string JS listener?");
+  nsIJSEventListener* jsListener = aListener->GetJSListener();
+  MOZ_ASSERT(!jsListener->GetHandler().HasEventHandler(), "What is there to compile?");
 
   nsresult result = NS_OK;
-
-  nsIJSEventListener* jsListener = aListener->GetJSListener();
-  NS_ASSERTION(!jsListener->GetHandler().HasEventHandler(),
-               "What is there to compile?");
-
   nsCOMPtr<nsIDocument> doc;
   nsCOMPtr<nsIScriptGlobalObject> global =
     GetScriptGlobalAndDocument(getter_AddRefs(doc));
@@ -819,124 +814,118 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
   nsCOMPtr<nsIAtom> typeAtom = aListener->mTypeAtom;
   nsIAtom* attrName = typeAtom;
 
-  if (aListener->mHandlerIsString) {
-    
-    
-    
-    aListener->mHandlerIsString = false;
+  
+  
+  
+  aListener->mHandlerIsString = false;
 
-    
-    
-    
-    
-    
-    
-    
-    nsCOMPtr<Element> element = do_QueryInterface(mTarget);
-    MOZ_ASSERT(element || aBody, "Where will we get our body?");
-    nsAutoString handlerBody;
-    const nsAString* body = aBody;
-    if (!aBody) {
-      if (aListener->mTypeAtom == nsGkAtoms::onSVGLoad) {
-        attrName = nsGkAtoms::onload;
-      } else if (aListener->mTypeAtom == nsGkAtoms::onSVGUnload) {
-        attrName = nsGkAtoms::onunload;
-      } else if (aListener->mTypeAtom == nsGkAtoms::onSVGResize) {
-        attrName = nsGkAtoms::onresize;
-      } else if (aListener->mTypeAtom == nsGkAtoms::onSVGScroll) {
-        attrName = nsGkAtoms::onscroll;
-      } else if (aListener->mTypeAtom == nsGkAtoms::onSVGZoom) {
-        attrName = nsGkAtoms::onzoom;
-      } else if (aListener->mTypeAtom == nsGkAtoms::onbeginEvent) {
-        attrName = nsGkAtoms::onbegin;
-      } else if (aListener->mTypeAtom == nsGkAtoms::onrepeatEvent) {
-        attrName = nsGkAtoms::onrepeat;
-      } else if (aListener->mTypeAtom == nsGkAtoms::onendEvent) {
-        attrName = nsGkAtoms::onend;
-      }
-
-      element->GetAttr(kNameSpaceID_None, attrName, handlerBody);
-      body = &handlerBody;
-      aElement = element;
-    }
-    aListener = nullptr;
-
-    uint32_t lineNo = 0;
-    nsAutoCString url (NS_LITERAL_CSTRING("-moz-evil:lying-event-listener"));
-    MOZ_ASSERT(body);
-    MOZ_ASSERT(aElement);
-    nsIURI *uri = aElement->OwnerDoc()->GetDocumentURI();
-    if (uri) {
-      uri->GetSpec(url);
-      lineNo = 1;
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<Element> element = do_QueryInterface(mTarget);
+  MOZ_ASSERT(element || aBody, "Where will we get our body?");
+  nsAutoString handlerBody;
+  const nsAString* body = aBody;
+  if (!aBody) {
+    if (aListener->mTypeAtom == nsGkAtoms::onSVGLoad) {
+      attrName = nsGkAtoms::onload;
+    } else if (aListener->mTypeAtom == nsGkAtoms::onSVGUnload) {
+      attrName = nsGkAtoms::onunload;
+    } else if (aListener->mTypeAtom == nsGkAtoms::onSVGResize) {
+      attrName = nsGkAtoms::onresize;
+    } else if (aListener->mTypeAtom == nsGkAtoms::onSVGScroll) {
+      attrName = nsGkAtoms::onscroll;
+    } else if (aListener->mTypeAtom == nsGkAtoms::onSVGZoom) {
+      attrName = nsGkAtoms::onzoom;
+    } else if (aListener->mTypeAtom == nsGkAtoms::onbeginEvent) {
+      attrName = nsGkAtoms::onbegin;
+    } else if (aListener->mTypeAtom == nsGkAtoms::onrepeatEvent) {
+      attrName = nsGkAtoms::onrepeat;
+    } else if (aListener->mTypeAtom == nsGkAtoms::onendEvent) {
+      attrName = nsGkAtoms::onend;
     }
 
-    uint32_t argCount;
-    const char **argNames;
-    nsContentUtils::GetEventArgNames(aElement->GetNameSpaceID(),
-                                     typeAtom,
-                                     &argCount, &argNames);
+    element->GetAttr(kNameSpaceID_None, attrName, handlerBody);
+    body = &handlerBody;
+    aElement = element;
+  }
+  aListener = nullptr;
 
-    JSAutoCompartment ac(cx, context->GetWindowProxy());
-    JS::CompileOptions options(cx);
-    options.setIntroductionType("eventHandler")
-           .setFileAndLine(url.get(), lineNo)
-           .setVersion(SCRIPTVERSION_DEFAULT);
-
-    JS::Rooted<JS::Value> targetVal(cx);
-    
-    JS::Rooted<JSObject*> wrapScope(cx, JS::CurrentGlobalOrNull(cx));
-    if (WrapNewBindingObject(cx, wrapScope, aElement, &targetVal)) {
-      MOZ_ASSERT(targetVal.isObject());
-
-      nsDependentAtomString str(attrName);
-      
-      
-      
-      JS::Rooted<JSString*> jsStr(cx, JS_NewUCStringCopyN(cx,
-                                                          str.BeginReading(),
-                                                          str.Length()));
-      NS_ENSURE_TRUE(jsStr, NS_ERROR_OUT_OF_MEMORY);
-
-      options.setElement(&targetVal.toObject())
-             .setElementAttributeName(jsStr);
-    }
-
-    JS::Rooted<JSObject*> handlerFun(cx);
-    result = nsJSUtils::CompileFunction(cx, JS::NullPtr(), options,
-                                        nsAtomCString(typeAtom),
-                                        argCount, argNames, *body, handlerFun.address());
-    NS_ENSURE_SUCCESS(result, result);
-    handler = handlerFun;
-    NS_ENSURE_TRUE(handler, NS_ERROR_FAILURE);
-  } else {
-    aListener = nullptr;
+  uint32_t lineNo = 0;
+  nsAutoCString url (NS_LITERAL_CSTRING("-moz-evil:lying-event-listener"));
+  MOZ_ASSERT(body);
+  MOZ_ASSERT(aElement);
+  nsIURI *uri = aElement->OwnerDoc()->GetDocumentURI();
+  if (uri) {
+    uri->GetSpec(url);
+    lineNo = 1;
   }
 
-  if (handler) {
-    nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(mTarget);
+  uint32_t argCount;
+  const char **argNames;
+  nsContentUtils::GetEventArgNames(aElement->GetNameSpaceID(),
+                                   typeAtom,
+                                   &argCount, &argNames);
+
+  JSAutoCompartment ac(cx, context->GetWindowProxy());
+  JS::CompileOptions options(cx);
+  options.setIntroductionType("eventHandler")
+         .setFileAndLine(url.get(), lineNo)
+         .setVersion(SCRIPTVERSION_DEFAULT);
+
+  JS::Rooted<JS::Value> targetVal(cx);
+  
+  JS::Rooted<JSObject*> wrapScope(cx, JS::CurrentGlobalOrNull(cx));
+  if (WrapNewBindingObject(cx, wrapScope, aElement, &targetVal)) {
+    MOZ_ASSERT(targetVal.isObject());
+
+    nsDependentAtomString str(attrName);
     
-    JS::Rooted<JSObject*> boundHandler(cx);
-    context->BindCompiledEventHandler(mTarget, scope, handler, &boundHandler);
     
     
-    
-    
-    if (!boundHandler) {
-      jsListener->ForgetHandler();
-    } else if (jsListener->EventName() == nsGkAtoms::onerror && win) {
-      nsRefPtr<OnErrorEventHandlerNonNull> handlerCallback =
-        new OnErrorEventHandlerNonNull(boundHandler,  nullptr);
-      jsListener->SetHandler(handlerCallback);
-    } else if (jsListener->EventName() == nsGkAtoms::onbeforeunload && win) {
-      nsRefPtr<OnBeforeUnloadEventHandlerNonNull> handlerCallback =
-        new OnBeforeUnloadEventHandlerNonNull(boundHandler,  nullptr);
-      jsListener->SetHandler(handlerCallback);
-    } else {
-      nsRefPtr<EventHandlerNonNull> handlerCallback =
-        new EventHandlerNonNull(boundHandler,  nullptr);
-      jsListener->SetHandler(handlerCallback);
-    }
+    JS::Rooted<JSString*> jsStr(cx, JS_NewUCStringCopyN(cx,
+                                                        str.BeginReading(),
+                                                        str.Length()));
+    NS_ENSURE_TRUE(jsStr, NS_ERROR_OUT_OF_MEMORY);
+
+    options.setElement(&targetVal.toObject())
+           .setElementAttributeName(jsStr);
+  }
+
+  JS::Rooted<JSObject*> handlerFun(cx);
+  result = nsJSUtils::CompileFunction(cx, JS::NullPtr(), options,
+                                      nsAtomCString(typeAtom),
+                                      argCount, argNames, *body, handlerFun.address());
+  NS_ENSURE_SUCCESS(result, result);
+  handler = handlerFun;
+  NS_ENSURE_TRUE(handler, NS_ERROR_FAILURE);
+
+  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(mTarget);
+  
+  JS::Rooted<JSObject*> boundHandler(cx);
+  context->BindCompiledEventHandler(mTarget, scope, handler, &boundHandler);
+  
+  
+  
+  
+  if (!boundHandler) {
+    jsListener->ForgetHandler();
+  } else if (jsListener->EventName() == nsGkAtoms::onerror && win) {
+    nsRefPtr<OnErrorEventHandlerNonNull> handlerCallback =
+      new OnErrorEventHandlerNonNull(boundHandler,  nullptr);
+    jsListener->SetHandler(handlerCallback);
+  } else if (jsListener->EventName() == nsGkAtoms::onbeforeunload && win) {
+    nsRefPtr<OnBeforeUnloadEventHandlerNonNull> handlerCallback =
+      new OnBeforeUnloadEventHandlerNonNull(boundHandler,  nullptr);
+    jsListener->SetHandler(handlerCallback);
+  } else {
+    nsRefPtr<EventHandlerNonNull> handlerCallback =
+      new EventHandlerNonNull(boundHandler,  nullptr);
+    jsListener->SetHandler(handlerCallback);
   }
 
   return result;
