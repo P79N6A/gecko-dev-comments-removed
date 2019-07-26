@@ -260,7 +260,7 @@ private:
 
 
     bool InitWheelEvent(nsWindowBase* aWidget,
-                        WheelEvent& aWheelEvent,
+                        WidgetWheelEvent& aWheelEvent,
                         const ModifierKeyState& aModKeyState);
 
   private:

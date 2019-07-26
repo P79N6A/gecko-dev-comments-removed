@@ -89,7 +89,7 @@ public:
 
 
   void DispatchLegacyMouseScrollEvents(nsIFrame* aTargetFrame,
-                                       mozilla::WheelEvent* aEvent,
+                                       mozilla::WidgetWheelEvent* aEvent,
                                        nsEventStatus* aStatus);
 
   void NotifyDestroyPresContext(nsPresContext* aPresContext);
@@ -368,7 +368,7 @@ protected:
 
 
 
-    void ApplyUserPrefsToDelta(mozilla::WheelEvent* aEvent);
+    void ApplyUserPrefsToDelta(mozilla::WidgetWheelEvent* aEvent);
 
     
 
@@ -376,7 +376,7 @@ protected:
 
 
     void CancelApplyingUserPrefsFromOverflowDelta(
-                                    mozilla::WheelEvent* aEvent);
+                                    mozilla::WidgetWheelEvent* aEvent);
 
     
 
@@ -389,20 +389,20 @@ protected:
       ACTION_ZOOM,
       ACTION_LAST = ACTION_ZOOM
     };
-    Action ComputeActionFor(mozilla::WheelEvent* aEvent);
+    Action ComputeActionFor(mozilla::WidgetWheelEvent* aEvent);
 
     
 
 
 
-    bool NeedToComputeLineOrPageDelta(mozilla::WheelEvent* aEvent);
+    bool NeedToComputeLineOrPageDelta(mozilla::WidgetWheelEvent* aEvent);
 
     
 
 
 
-    bool IsOverOnePageScrollAllowedX(mozilla::WheelEvent* aEvent);
-    bool IsOverOnePageScrollAllowedY(mozilla::WheelEvent* aEvent);
+    bool IsOverOnePageScrollAllowedX(mozilla::WidgetWheelEvent* aEvent);
+    bool IsOverOnePageScrollAllowedY(mozilla::WidgetWheelEvent* aEvent);
 
   private:
     WheelPrefs();
@@ -429,7 +429,7 @@ protected:
 
 
 
-    Index GetIndexFor(mozilla::WheelEvent* aEvent);
+    Index GetIndexFor(mozilla::WidgetWheelEvent* aEvent);
 
     
 
@@ -493,7 +493,7 @@ protected:
 
 
   void SendLineScrollEvent(nsIFrame* aTargetFrame,
-                           mozilla::WheelEvent* aEvent,
+                           mozilla::WidgetWheelEvent* aEvent,
                            nsEventStatus* aStatus,
                            int32_t aDelta,
                            DeltaDirection aDeltaDirection);
@@ -511,7 +511,7 @@ protected:
 
 
   void SendPixelScrollEvent(nsIFrame* aTargetFrame,
-                            mozilla::WheelEvent* aEvent,
+                            mozilla::WidgetWheelEvent* aEvent,
                             nsEventStatus* aStatus,
                             int32_t aPixelDelta,
                             DeltaDirection aDeltaDirection);
@@ -555,13 +555,13 @@ protected:
       (PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_Y_AXIS | START_FROM_PARENT)
   };
   nsIScrollableFrame* ComputeScrollTarget(nsIFrame* aTargetFrame,
-                                          mozilla::WheelEvent* aEvent,
+                                          mozilla::WidgetWheelEvent* aEvent,
                                           ComputeScrollTargetOptions aOptions);
 
   nsIScrollableFrame* ComputeScrollTarget(nsIFrame* aTargetFrame,
                                           double aDirectionX,
                                           double aDirectionY,
-                                          mozilla::WheelEvent* aEvent,
+                                          mozilla::WidgetWheelEvent* aEvent,
                                           ComputeScrollTargetOptions aOptions);
 
   
@@ -577,14 +577,14 @@ protected:
 
 
   nsSize GetScrollAmount(nsPresContext* aPresContext,
-                         mozilla::WheelEvent* aEvent,
+                         mozilla::WidgetWheelEvent* aEvent,
                          nsIScrollableFrame* aScrollableFrame);
 
   
 
 
   void DoScrollText(nsIScrollableFrame* aScrollableFrame,
-                    mozilla::WheelEvent* aEvent);
+                    mozilla::WidgetWheelEvent* aEvent);
 
   void DoScrollHistory(int32_t direction);
   void DoScrollZoom(nsIFrame *aTargetFrame, int32_t adjustment);
@@ -624,7 +624,7 @@ protected:
 
     void InitLineOrPageDelta(nsIFrame* aTargetFrame,
                              nsEventStateManager* aESM,
-                             mozilla::WheelEvent* aEvent);
+                             mozilla::WidgetWheelEvent* aEvent);
 
     
 
@@ -636,7 +636,7 @@ protected:
 
 
     nsIntPoint ComputeScrollAmountForDefaultAction(
-                 mozilla::WheelEvent* aEvent,
+                 mozilla::WidgetWheelEvent* aEvent,
                  const nsIntSize& aScrollAmountInDevPixels);
 
   private:

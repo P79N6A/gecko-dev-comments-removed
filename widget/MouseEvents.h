@@ -426,9 +426,6 @@ public:
   }
 };
 
-
-typedef WidgetWheelEvent                WheelEvent;
-
 } 
 
 #endif

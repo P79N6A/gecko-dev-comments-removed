@@ -1915,7 +1915,7 @@ nsEventStatus
 nsWindow::OnScrollEvent(QGraphicsSceneWheelEvent *aEvent)
 {
     
-    WheelEvent wheelEvent(true, NS_WHEEL_WHEEL, this);
+    WidgetWheelEvent wheelEvent(true, NS_WHEEL_WHEEL, this);
     wheelEvent.deltaMode = nsIDOMWheelEvent::DOM_DELTA_LINE;
 
     
