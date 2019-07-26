@@ -39,14 +39,14 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     bool inCall_;
-    uint32_t args_;
-    uint32_t passedIntArgs_;
-    uint32_t passedFloatArgs_;
-    uint32_t stackForCall_;
+    uint32 args_;
+    uint32 passedIntArgs_;
+    uint32 passedFloatArgs_;
+    uint32 stackForCall_;
     bool dynamicAlignment_;
     bool enoughMemory_;
 
-    void setupABICall(uint32_t arg);
+    void setupABICall(uint32 arg);
 
   protected:
     MoveResolver moveResolver_;
@@ -187,6 +187,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         push(ScratchReg);
     }
 
+    void movePtr(Operand op, const Register &dest) {
+        movq(op, dest);
+    }
     void moveValue(const Value &val, const Register &dest) {
         jsval_layout jv = JSVAL_TO_IMPL(val);
         movq(ImmWord(jv.asPtr), dest);
@@ -195,17 +198,21 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void moveValue(const Value &src, const ValueOperand &dest) {
         moveValue(src, dest.valueReg());
     }
+    void moveValue(const ValueOperand &src, const ValueOperand &dest) {
+        if (src.valueReg() != dest.valueReg())
+            movq(src.valueReg(), dest.valueReg());
+    }
     void boxValue(JSValueType type, Register src, Register dest) {
         JSValueShiftedTag tag = (JSValueShiftedTag)JSVAL_TYPE_TO_SHIFTED_TAG(type);
         movq(ImmShiftedTag(tag), dest);
-#ifdef DEBUG
-        if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
-            Label upper32BitsZeroed;
-            branchPtr(Assembler::BelowOrEqual, src, Imm32(UINT32_MAX), &upper32BitsZeroed);
-            breakpoint();
-            bind(&upper32BitsZeroed);
-        }
-#endif
+
+        
+        
+        
+        
+        
+        if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN)
+            movl(src, src);
         orq(src, dest);
     }
 
@@ -355,9 +362,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void cmpPtr(const Operand &lhs, const Register &rhs) {
         cmpq(lhs, rhs);
     }
-    void cmpPtr(const Operand &lhs, const Imm32 rhs) {
-        cmpq(lhs, rhs);
-    }
     void cmpPtr(const Address &lhs, const Register &rhs) {
         cmpPtr(Operand(lhs), rhs);
     }
@@ -373,12 +377,12 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     
-    void reserveStack(uint32_t amount) {
+    void reserveStack(uint32 amount) {
         if (amount)
             subq(Imm32(amount), StackPointer);
         framePushed_ += amount;
     }
-    void freeStack(uint32_t amount) {
+    void freeStack(uint32 amount) {
         JS_ASSERT(amount <= framePushed_);
         if (amount)
             addq(Imm32(amount), StackPointer);
@@ -402,17 +406,11 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         movq(imm, ScratchReg);
         addq(ScratchReg, dest);
     }
-    void addPtr(const Address &src, const Register &dest) {
-        addq(Operand(src), dest);
-    }
     void subPtr(Imm32 imm, const Register &dest) {
         subq(imm, dest);
     }
     void subPtr(const Register &src, const Register &dest) {
         subq(src, dest);
-    }
-    void subPtr(const Address &addr, const Register &dest) {
-        subq(Operand(addr), dest);
     }
 
     
@@ -451,10 +449,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         testq(lhs, rhs);
         j(cond, label);
     }
-    void branchTestPtr(Condition cond, Register lhs, Imm32 imm, Label *label) {
-        testq(lhs, imm);
-        j(cond, label);
-    }
     void decBranchPtr(Condition cond, const Register &lhs, Imm32 imm, Label *label) {
         subPtr(imm, lhs);
         j(cond, label);
@@ -463,14 +457,14 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void movePtr(const Register &src, const Register &dest) {
         movq(src, dest);
     }
-    void movePtr(const Register &src, const Operand &dest) {
-        movq(src, dest);
-    }
     void movePtr(ImmWord imm, Register dest) {
         movq(imm, dest);
     }
     void movePtr(ImmGCPtr imm, Register dest) {
         movq(imm, dest);
+    }
+    void movePtr(const Address &address, const Register &dest) {
+        movq(Operand(address), dest);
     }
     void loadPtr(const AbsoluteAddress &address, Register dest) {
         movq(ImmWord(address.addr), ScratchReg);
@@ -478,9 +472,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
     void loadPtr(const Address &address, Register dest) {
         movq(Operand(address), dest);
-    }
-    void loadPtr(const Operand &src, Register dest) {
-        movq(src, dest);
     }
     void loadPtr(const BaseIndex &src, Register dest) {
         movq(Operand(src), dest);
@@ -500,9 +491,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void storePtr(Register src, const Address &address) {
         movq(src, Operand(address));
     }
-    void storePtr(Register src, const Operand &dest) {
-        movq(src, dest);
-    }
     void storePtr(const Register &src, const AbsoluteAddress &address) {
         movq(ImmWord(address.addr), ScratchReg);
         movq(src, Operand(ScratchReg, 0x0));
@@ -513,17 +501,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void lshiftPtr(Imm32 imm, Register dest) {
         shlq(imm, dest);
     }
-    void xorPtr(Imm32 imm, Register dest) {
-        xorq(imm, dest);
-    }
     void orPtr(Imm32 imm, Register dest) {
         orq(imm, dest);
-    }
-    void orPtr(Register src, Register dest) {
-        orq(src, dest);
-    }
-    void andPtr(Imm32 imm, Register dest) {
-        andq(imm, dest);
     }
 
     void splitTag(Register src, Register dest) {
@@ -668,19 +647,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         cmpq(value.valueReg(), ScratchReg);
         j(cond, label);
     }
-    void branchTestValue(Condition cond, const Address &valaddr, const ValueOperand &value,
-                         Label *label)
-    {
-        JS_ASSERT(cond == Equal || cond == NotEqual);
-        branchPtr(cond, valaddr, value.valueReg(), label);
-    }
 
     void boxDouble(const FloatRegister &src, const ValueOperand &dest) {
         movqsd(src, dest.valueReg());
-    }
-    void boxNonDouble(JSValueType type, const Register &src, const ValueOperand &dest) {
-        JS_ASSERT(src != dest.valueReg());
-        boxValue(type, src, dest.valueReg());
     }
 
     
@@ -721,9 +690,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void unboxDouble(const Operand &src, const FloatRegister &dest) {
         lea(src, ScratchReg);
         movqsd(ScratchReg, dest);
-    }
-    void unboxDouble(const Address &src, const FloatRegister &dest) {
-        unboxDouble(Operand(src), dest);
     }
     void unboxPrivate(const ValueOperand &src, const Register dest) {
         movq(src.valueReg(), dest);
@@ -866,23 +832,18 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         cvtsq2sd(src, dest);
     }
 
-    void inc64(AbsoluteAddress dest) {
-        mov(ImmWord(dest.addr), ScratchReg);
-        addPtr(Imm32(1), Address(ScratchReg, 0));
-    }
+    
+    
+    
+    
+    
+    
+    
+    void setupAlignedABICall(uint32 args);
 
     
     
-    
-    
-    
-    
-    
-    void setupAlignedABICall(uint32_t args);
-
-    
-    
-    void setupUnalignedABICall(uint32_t args, const Register &scratch);
+    void setupUnalignedABICall(uint32 args, const Register &scratch);
 
     
     
@@ -894,14 +855,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void passABIArg(const Register &reg);
     void passABIArg(const FloatRegister &reg);
 
-  private:
-    void callWithABIPre(uint32_t *stackAdjust);
-    void callWithABIPost(uint32_t stackAdjust, Result result);
-
-  public:
     
     void callWithABI(void *fun, Result result = GENERAL);
-    void callWithABI(Address fun, Result result = GENERAL);
 
     void handleException();
 
@@ -913,13 +868,13 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     void linkExitFrame() {
-        mov(ImmWord(GetIonContext()->runtime), ScratchReg);
-        mov(StackPointer, Operand(ScratchReg, offsetof(JSRuntime, mainThread.ionTop)));
+        mov(ImmWord(GetIonContext()->cx->runtime), ScratchReg);
+        mov(StackPointer, Operand(ScratchReg, offsetof(JSRuntime, ionTop)));
     }
 
     void callWithExitFrame(IonCode *target, Register dynStack) {
         addPtr(Imm32(framePushed()), dynStack);
-        makeFrameDescriptor(dynStack, IonFrame_OptimizedJS);
+        makeFrameDescriptor(dynStack, IonFrame_JS);
         Push(dynStack);
         call(target);
     }
@@ -930,16 +885,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         push(Imm32(MakeFrameDescriptor(0, IonFrame_Osr)));
         call(code);
         addq(Imm32(sizeof(uintptr_t) * 2), rsp);
-    }
-
-    
-    void patchAsmJSGlobalAccess(unsigned offset, uint8_t *code, unsigned codeBytes,
-                                unsigned globalDataOffset)
-    {
-        uint8_t *nextInsn = code + offset;
-        JS_ASSERT(nextInsn <= code + codeBytes);
-        uint8_t *target = code + codeBytes + globalDataOffset;
-        ((int32_t *)nextInsn)[-1] = target - nextInsn;
     }
 };
 
