@@ -143,14 +143,6 @@ public:
 
 
 
-  bool RemoveFrameIfPresent(nsIFrame* aFrame);
-
-  
-
-
-
-
-
   nsFrameList RemoveFramesAfter(nsIFrame* aAfterFrame);
 
   
@@ -194,13 +186,6 @@ public:
 
 
   void DestroyFrame(nsIFrame* aFrame);
-
-  
-
-
-
-
-  bool DestroyFrameIfPresent(nsIFrame* aFrame);
 
   
 
