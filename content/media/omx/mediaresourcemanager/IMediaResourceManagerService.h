@@ -23,9 +23,35 @@ public:
     DECLARE_META_INTERFACE(MediaResourceManagerService);
 
     
-    virtual void requestMediaResource(const sp<IMediaResourceManagerClient>& client, int resourceType) = 0;
+    enum ResourceType {
+      HW_VIDEO_DECODER = 0,
+      HW_AUDIO_DECODER,  
+      HW_VIDEO_ENCODER,
+      HW_CAMERA,          
+      NUM_OF_RESOURCE_TYPES,
+      INVALID_RESOURCE_TYPE = -1
+    };
+
+    enum ErrorCode {
+        RESOURCE_NOT_AVAILABLE = -EAGAIN
+    };
+
     
-    virtual status_t cancelClient(const sp<IMediaResourceManagerClient>& client) = 0;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    virtual status_t requestMediaResource(const sp<IMediaResourceManagerClient>& client, int resourceType, bool willWait) = 0;
+    
+    
+    virtual status_t cancelClient(const sp<IMediaResourceManagerClient>& client, int resourceType) = 0;
 };
 
 

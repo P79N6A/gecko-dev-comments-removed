@@ -10,8 +10,10 @@
 #include <media/stagefright/foundation/ABase.h>
 #include <media/stagefright/foundation/AHandlerReflector.h>
 #include <media/stagefright/foundation/ALooper.h>
+#include <utils/KeyedVector.h>
 #include <utils/List.h>
 #include <utils/RefBase.h>
+#include <utils/Vector.h>
 
 #include "IMediaResourceManagerClient.h"
 #include "IMediaResourceManagerService.h"
@@ -28,11 +30,18 @@ class MediaResourceManagerService: public BnMediaResourceManagerService,
 {
 public:
   
-  enum { VIDEO_DECODER_COUNT = 1 };
-
-  enum {
-    kNotifyRequest = 'noti'
+  enum
+  {
+    VIDEO_DECODER_COUNT = 1,
+    VIDEO_ENCODER_COUNT = 1
   };
+
+  enum
+  {
+    kNotifyRequest = 'noti',
+  };
+
+  static const char* kMsgKeyResourceType;
 
   
   
@@ -42,8 +51,10 @@ public:
   virtual void binderDied(const wp<IBinder>& who);
 
   
-  virtual void requestMediaResource(const sp<IMediaResourceManagerClient>& client, int resourceType);
-  virtual status_t cancelClient(const sp<IMediaResourceManagerClient>& client);
+  virtual status_t requestMediaResource(const sp<IMediaResourceManagerClient>& client,
+                                        int resourceType, bool willWait);
+  virtual status_t cancelClient(const sp<IMediaResourceManagerClient>& client,
+                                int resourceType);
 
   
   
@@ -53,30 +64,54 @@ protected:
   MediaResourceManagerService();
   virtual ~MediaResourceManagerService();
 
-protected:
+private:
   
   
-  struct ResourceSlot {
-    ResourceSlot ()
-      {
-      }
-      sp<IBinder> mClient;
-    };
+  struct ResourceSlot
+  {
+    sp<IBinder> mClient;
+  };
+  typedef Vector<ResourceSlot> Slots;
 
-  void cancelClientLocked(const sp<IBinder>& binder);
-
-  
-  ResourceSlot mVideoDecoderSlots[VIDEO_DECODER_COUNT];
-  
-  int mVideoDecoderCount;
-
-  
-  
-  Mutex mLock;
   typedef List<sp<IBinder> > Fifo;
+  struct Resources
+  {
+    
+    
+    Fifo mRequestQueue;
+    
+    
+    Slots mSlots;
+  };
+
+  typedef KeyedVector<ResourceType, Resources> ResourcesMap;
   
-  
-  Fifo mVideoCodecRequestQueue;
+  class ResourceTable
+  {
+    ResourceTable();
+    ~ResourceTable();
+    
+    bool supportsType(ResourceType type);
+    ssize_t findAvailableResource(ResourceType type, size_t number_needed = 1);
+    bool isOwnedByClient(const sp<IBinder>& client, ResourceType type, size_t index);
+    status_t aquireResource(const sp<IBinder>& client, ResourceType type, size_t index);
+    ResourceSlot* resourceOfTypeAt(ResourceType type, size_t index);
+    
+    bool hasRequest(ResourceType type);
+    uint32_t countRequests(ResourceType type);
+    const sp<IBinder>& nextRequest(ResourceType type);
+    status_t enqueueRequest(const sp<IBinder>& client, ResourceType type);
+    status_t dequeueRequest(ResourceType type);
+    status_t forgetClient(const sp<IBinder>& client, ResourceType type);
+    status_t forgetClient(const sp<IBinder>& client);
+
+    friend class MediaResourceManagerService;
+
+    
+    ResourcesMap mMap;
+  };
+
+  void cancelClientLocked(const sp<IBinder>& binder, ResourceType resourceType);
 
   
   
@@ -88,6 +123,11 @@ protected:
   
   sp<AHandlerReflector<MediaResourceManagerService> > mReflector;
 
+  
+  Mutex mLock;
+
+  
+  ResourceTable mResources;
 };
 
 }; 

@@ -22,12 +22,6 @@ public:
     CLIENT_STATE_RESOURCE_ASSIGNED,
     CLIENT_STATE_SHUTDOWN
   };
-  
-  enum ResourceType {
-    HW_VIDEO_DECODER,
-    HW_AUDIO_DECODER,
-    HW_CAMERA
-  };
 
   struct EventListener : public virtual RefBase {
     
