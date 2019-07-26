@@ -718,6 +718,8 @@ pref("memory.free_dirty_pages", true);
 
 pref("layout.imagevisibility.enabled", false);
 
+pref("layers.force-tiles", true);
+
 
 pref("browser.chrome.dynamictoolbar", true);
 

@@ -7,11 +7,6 @@
 
 #define TILEDLAYERBUFFER_TILE_SIZE 256
 
-#ifdef MOZ_ANDROID_OMTC
-  
-  
-  #define FORCE_BASICTILEDTHEBESLAYER
-#endif
 
 
 

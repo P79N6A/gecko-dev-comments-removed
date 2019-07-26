@@ -17,6 +17,7 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/LayersTypes.h"
+#include "mozilla/Preferences.h"
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsISupportsImpl.h"            
@@ -185,14 +186,12 @@ already_AddRefed<ThebesLayer>
 ClientLayerManager::CreateThebesLayer()
 {
   NS_ASSERTION(InConstruction(), "Only allowed in construction phase");
-#ifdef FORCE_BASICTILEDTHEBESLAYER
-  if (GetCompositorBackendType() == LAYERS_OPENGL) {
+  if (Preferences::GetBool("layers.force-tiles") && GetCompositorBackendType() == LAYERS_OPENGL) {
     nsRefPtr<ClientTiledThebesLayer> layer =
       new ClientTiledThebesLayer(this);
     CREATE_SHADOW(Thebes);
     return layer.forget();
   } else
-#endif
   {
     nsRefPtr<ClientThebesLayer> layer =
       new ClientThebesLayer(this);
