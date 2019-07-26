@@ -51,7 +51,7 @@ class Common(object):
             
             return str(ptr)
 
-@template_pretty_printer("JS::Rooted")
+@template_pretty_printer("js::Rooted")
 class Rooted(Common):
     pass
 
@@ -78,9 +78,9 @@ def deref(root):
         raise TypeError, "Can't dereference type with no structure tag: %s" % (root.type,)
     elif tag.startswith('js::HeapPtr<'):
         return root['value']
-    elif tag.startswith('JS::Rooted<'):
+    elif tag.startswith('js::Rooted<'):
         return root['ptr']
-    elif tag.startswith('JS::Handle<'):
+    elif tag.startswith('js::Handle<'):
         return root['ptr']
     else:
         raise NotImplementedError
