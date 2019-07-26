@@ -249,11 +249,6 @@ inline JSObject* GetWNExpandoChain(JSObject *obj)
 }
 
 
-#ifdef _MSC_VER
-#pragma warning(disable : 4355) // OK to pass "this" in member initializer
-#endif
-
-
 
 
 
