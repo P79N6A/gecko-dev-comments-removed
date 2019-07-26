@@ -23,9 +23,6 @@ using namespace js::ion;
 BaselineCompiler::BaselineCompiler(JSContext *cx, HandleScript script)
   : BaselineCompilerSpecific(cx, script),
     return_(new HeapLabel())
-#ifdef JSGC_GENERATIONAL
-    , postBarrierSlot_(new HeapLabel())
-#endif
 {
 }
 
@@ -92,11 +89,6 @@ BaselineCompiler::compile()
 
     if (!emitEpilogue())
         return Method_Error;
-
-#ifdef JSGC_GENERATIONAL
-    if (!emitOutOfLinePostBarrierSlot())
-        return Method_Error;
-#endif
 
     if (masm.oom())
         return Method_Error;
@@ -271,40 +263,6 @@ BaselineCompiler::emitEpilogue()
     masm.ret();
     return true;
 }
-
-#ifdef JSGC_GENERATIONAL
-
-
-
-
-
-
-bool
-BaselineCompiler::emitOutOfLinePostBarrierSlot()
-{
-    masm.bind(postBarrierSlot_);
-
-    Register objReg = R2.scratchReg();
-    GeneralRegisterSet regs(GeneralRegisterSet::All());
-    regs.take(objReg);
-    regs.take(BaselineFrameReg);
-    Register scratch = regs.takeAny();
-#if defined(JS_CPU_ARM)
-    
-    
-    masm.push(lr);
-#endif
-
-    masm.setupUnalignedABICall(2, scratch);
-    masm.movePtr(ImmWord(cx->runtime), scratch);
-    masm.passABIArg(scratch);
-    masm.passABIArg(objReg);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, PostWriteBarrier));
-
-    masm.ret();
-    return true;
-}
-#endif 
 
 bool
 BaselineCompiler::emitIC(ICStub *stub, bool isForOp)
@@ -1718,36 +1676,23 @@ BaselineCompiler::emit_JSOP_DELPROP()
     return true;
 }
 
-void
-BaselineCompiler::getScopeCoordinateObject(Register reg)
+Address
+BaselineCompiler::getScopeCoordinateAddress(Register reg)
 {
     ScopeCoordinate sc(pc);
 
     masm.loadPtr(frame.addressOfScopeChain(), reg);
     for (unsigned i = sc.hops; i; i--)
         masm.extractObject(Address(reg, ScopeObject::offsetOfEnclosingScope()), reg);
-}
 
-Address
-BaselineCompiler::getScopeCoordinateAddressFromObject(Register objReg, Register reg)
-{
-    ScopeCoordinate sc(pc);
     Shape *shape = ScopeCoordinateToStaticScopeShape(cx, script, pc);
-
     Address addr;
     if (shape->numFixedSlots() <= sc.slot) {
-        masm.loadPtr(Address(objReg, JSObject::offsetOfSlots()), reg);
+        masm.loadPtr(Address(reg, JSObject::offsetOfSlots()), reg);
         return Address(reg, (sc.slot - shape->numFixedSlots()) * sizeof(Value));
     }
 
-    return Address(objReg, JSObject::getFixedSlotOffset(sc.slot));
-}
-
-Address
-BaselineCompiler::getScopeCoordinateAddress(Register reg)
-{
-    getScopeCoordinateObject(reg);
-    return getScopeCoordinateAddressFromObject(reg, reg);
+    return Address(reg, JSObject::getFixedSlotOffset(sc.slot));
 }
 
 bool
@@ -1776,33 +1721,12 @@ bool
 BaselineCompiler::emit_JSOP_SETALIASEDVAR()
 {
     
-    frame.popRegsAndSync(1);
-    Register objReg = R2.scratchReg();
+    
+    frame.syncStack(1);
 
-    getScopeCoordinateObject(objReg);
-    Address address = getScopeCoordinateAddressFromObject(objReg, R1.scratchReg());
+    Address address = getScopeCoordinateAddress(R2.scratchReg());
     masm.patchableCallPreBarrier(address, MIRType_Value);
-    masm.storeValue(R0, address);
-    frame.push(R0);
-
-#ifdef JSGC_GENERATIONAL
-    
-    
-    frame.syncStack(0);
-
-    Nursery &nursery = cx->runtime->gcNursery;
-    Label skipBarrier;
-    Label isTenured;
-    masm.branchTestObject(Assembler::NotEqual, R0, &skipBarrier);
-    masm.branchPtr(Assembler::Below, objReg, ImmWord(nursery.start()), &isTenured);
-    masm.branchPtr(Assembler::Below, objReg, ImmWord(nursery.end()), &skipBarrier);
-
-    masm.bind(&isTenured);
-    masm.call(postBarrierSlot_);
-
-    masm.bind(&skipBarrier);
-#endif
-
+    storeValue(frame.peek(-1), address, R0);
     return true;
 }
 
