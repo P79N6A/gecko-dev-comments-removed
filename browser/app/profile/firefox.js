@@ -1315,10 +1315,6 @@ pref("security.csp.speccompliant", true);
 pref("security.mixed_content.block_active_content", true);
 
 
-
-pref("firefox.accounts.remoteUrl", "https://accounts.dev.lcip.org/flow");
-
-
 pref("plain_text.wrap_long_lines", true);
 
 
@@ -1334,6 +1330,10 @@ pref("network.disable.ipc.security", true);
 
 
 pref("browser.uiCustomization.debug", false);
+
+
+
+pref("firefox.accounts.remoteUrl", "https://accounts.dev.lcip.org/flow?moar_native=true");
 
 
 pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");

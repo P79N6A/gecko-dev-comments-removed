@@ -54,23 +54,15 @@ let wrapper = {
     log("Received: 'login'. Data:" + JSON.stringify(accountData));
 
     fxAccounts.setSignedInUser(accountData).then(
-      () => this.injectData("message", { status: "login" }),
-      (err) => this.injectData("message", { status: "error", error: err })
-    );
-  },
-
-  
-
-
-
-
-
-
-  onVerified: function (accountData) {
-    log("Received: 'verified'. Data:" + JSON.stringify(accountData));
-
-    fxAccounts.setSignedInUser(accountData).then(
-      () => this.injectData("message", { status: "verified" }),
+      () => {
+        this.injectData("message", { status: "login" });
+        
+        
+        
+        setTimeout(function() {
+          window.location = "about:sync-progress";
+        }, 0);
+      },
       (err) => this.injectData("message", { status: "error", error: err })
     );
   },
@@ -107,9 +99,6 @@ let wrapper = {
     switch (evt.detail.command) {
       case "login":
         this.onLogin(data);
-        break;
-      case "verified":
-        this.onVerified(data);
         break;
       case "session_status":
         this.onSessionStatus(data);
