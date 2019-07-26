@@ -241,7 +241,7 @@ DevTools.prototype = {
       throw new Error("Invalid definition.id");
     }
 
-    toolDefinition.killswitch = toolDefinition.killswitch ||
+    toolDefinition.visibilityswitch = toolDefinition.visibilityswitch ||
         "devtools." + toolId + ".enabled";
     this._tools.set(toolId, toolDefinition);
 
@@ -307,21 +307,17 @@ DevTools.prototype = {
 
   getToolDefinitionMap: function DT_getToolDefinitionMap() {
     let tools = new Map();
-    let disabledTools = [];
-    try {
-      disabledTools = JSON.parse(Services.prefs.getCharPref("devtools.toolbox.disabledTools"));
-    } catch(ex) {}
 
     for (let [key, value] of this._tools) {
       let enabled;
 
       try {
-        enabled = Services.prefs.getBoolPref(value.killswitch);
+        enabled = Services.prefs.getBoolPref(value.visibilityswitch);
       } catch(e) {
         enabled = true;
       }
 
-      if (enabled && disabledTools.indexOf(key) == -1) {
+      if (enabled || value.id == "options") {
         tools.set(key, value);
       }
     }
@@ -454,7 +450,7 @@ DevTools.prototype = {
   destroy: function() {
     Services.obs.removeObserver(this.destroy, "quit-application");
 
-    for (let [key, tool] of this._tools) {
+    for (let [key, tool] of this.getToolDefinitionMap()) {
       this.unregisterTool(key, true);
     }
 
@@ -583,10 +579,18 @@ let gDevToolsBrowser = {
 
 
 
-
   _addToolToWindows: function DT_addToolToWindows(toolDefinition) {
     
-    Services.prefs.setBoolPref(toolDefinition.killswitch, true);
+    if (toolDefinition.id == "options") {
+      return;
+    }
+
+    
+    try {
+      if (!Services.prefs.getBoolPref(toolDefinition.visibilityswitch)) {
+        return;
+      }
+    } catch(e) {}
 
     
     
@@ -642,6 +646,17 @@ let gDevToolsBrowser = {
     let fragMenuItems = doc.createDocumentFragment();
 
     for (let toolDefinition of gDevTools.getToolDefinitionArray()) {
+      if (toolDefinition.id == "options") {
+        continue;
+      }
+
+      
+      try {
+        if (!Services.prefs.getBoolPref(toolDefinition.visibilityswitch)) {
+          continue;
+        }
+      } catch(e) {}
+
       let elements = gDevToolsBrowser._createToolMenuElements(toolDefinition, doc);
 
       if (!elements) {
@@ -772,11 +787,7 @@ let gDevToolsBrowser = {
 
 
 
-
-
-
-  _removeToolFromWindows: function DT_removeToolFromWindows(toolId, killswitch) {
-    Services.prefs.setBoolPref(killswitch, false);
+  _removeToolFromWindows: function DT_removeToolFromWindows(toolId) {
     for (let win of gDevToolsBrowser._trackedBrowserWindows) {
       gDevToolsBrowser._removeToolFromMenu(toolId, win.document);
     }
@@ -854,15 +865,10 @@ gDevTools.on("tool-registered", function(ev, toolId) {
 });
 
 gDevTools.on("tool-unregistered", function(ev, toolId) {
-  let killswitch;
-  if (typeof toolId == "string") {
-    killswitch = "devtools." + toolId + ".enabled";
-  }
-  else {
-    killswitch = toolId.killswitch;
+  if (typeof toolId != "string") {
     toolId = toolId.id;
   }
-  gDevToolsBrowser._removeToolFromWindows(toolId, killswitch);
+  gDevToolsBrowser._removeToolFromWindows(toolId);
 });
 
 gDevTools.on("toolbox-ready", gDevToolsBrowser._updateMenuCheckbox);

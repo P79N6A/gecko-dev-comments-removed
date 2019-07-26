@@ -220,14 +220,6 @@ Toolbox.prototype = {
   },
 
   _buildOptions: function TBOX__buildOptions() {
-    this.optionsButton = this.doc.getElementById("toolbox-tab-options");
-    this.optionsButton.addEventListener("command", function() {
-      this.selectTool("options");
-    }.bind(this), false);
-
-    let iframe = this.doc.getElementById("toolbox-panel-iframe-options");
-    this._toolPanels.set("options", iframe);
-
     let key = this.doc.getElementById("toolbox-options-key");
     key.addEventListener("command", function(toolId) {
       this.selectTool(toolId);
@@ -358,7 +350,6 @@ Toolbox.prototype = {
     let radio = this.doc.createElement("radio");
     radio.className = "toolbox-tab devtools-tab";
     radio.id = "toolbox-tab-" + id;
-    radio.setAttribute("flex", "1");
     radio.setAttribute("toolid", id);
     if (toolDefinition.ordinal == undefined || toolDefinition.ordinal < 0) {
       toolDefinition.ordinal = MAX_ORDINAL;
@@ -376,16 +367,19 @@ Toolbox.prototype = {
       radio.appendChild(image);
     }
 
-    let label = this.doc.createElement("label");
-    label.setAttribute("value", toolDefinition.label)
-    label.setAttribute("crop", "end");
-    label.setAttribute("flex", "1");
+    if (toolDefinition.label) {
+      let label = this.doc.createElement("label");
+      label.setAttribute("value", toolDefinition.label)
+      label.setAttribute("crop", "end");
+      label.setAttribute("flex", "1");
+      radio.appendChild(label);
+      radio.setAttribute("flex", "1");
+    }
 
     let vbox = this.doc.createElement("vbox");
     vbox.className = "toolbox-panel";
     vbox.id = "toolbox-panel-" + id;
 
-    radio.appendChild(label);
 
     
     if (tabs.childNodes.length == 0 ||
@@ -398,8 +392,7 @@ Toolbox.prototype = {
       Array.some(tabs.childNodes, (node, i) => {
         if (+node.getAttribute("ordinal") > toolDefinition.ordinal) {
           tabs.insertBefore(radio, node);
-          deck.insertBefore(vbox, deck.childNodes[i + 1]);
-          
+          deck.insertBefore(vbox, deck.childNodes[i]);
           return true;
         }
       });
@@ -441,7 +434,8 @@ Toolbox.prototype = {
     let tabstrip = this.doc.getElementById("toolbox-tabs");
 
     
-    let index = -1;
+    
+    let index = 0;
     let tabs = tabstrip.childNodes;
     for (let i = 0; i < tabs.length; i++) {
       if (tabs[i] === tab) {
@@ -453,15 +447,7 @@ Toolbox.prototype = {
 
     
     let deck = this.doc.getElementById("toolbox-deck");
-    
-    if (id == "options") {
-      deck.selectedIndex = 0;
-      this.optionsButton.setAttribute("checked", true);
-    }
-    else {
-      deck.selectedIndex = index != -1 ? index + 1: -1;
-      this.optionsButton.removeAttribute("checked");
-    }
+    deck.selectedIndex = index;
 
     let definition = gDevTools.getToolDefinitionMap().get(id);
 
@@ -668,7 +654,7 @@ Toolbox.prototype = {
 
     if (this.hostType == Toolbox.HostType.WINDOW) {
       let doc = this.doc.defaultView.parent.document;
-      let key = doc.getElementById("key_" + id);
+      let key = doc.getElementById("key_" + toolId);
       if (key) {
         key.parentNode.removeChild(key);
       }
@@ -709,7 +695,6 @@ Toolbox.prototype = {
 
     let outstanding = [];
 
-    this._toolPanels.delete("options");
     for (let [id, panel] of this._toolPanels) {
       outstanding.push(panel.destroy());
     }
