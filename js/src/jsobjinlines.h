@@ -414,6 +414,12 @@ JSObject::getProto(JSContext *cx, js::HandleObject obj, js::MutableHandleObject 
 JSObject::setProto(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto, bool *succeeded)
 {
     
+    if (obj->getTaggedProto().isLazy()) {
+        JS_ASSERT(obj->is<js::ProxyObject>());
+        return js::Proxy::setPrototypeOf(cx, obj, proto, succeeded);
+    }
+
+    
     bool extensible;
     if (!JSObject::isExtensible(cx, obj, &extensible))
         return false;

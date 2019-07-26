@@ -68,7 +68,7 @@ ThrowTypeError(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-TestProtoGetterThis(HandleValue v)
+TestProtoThis(HandleValue v)
 {
     return !v.isNullOrUndefined();
 }
@@ -76,7 +76,7 @@ TestProtoGetterThis(HandleValue v)
 static bool
 ProtoGetterImpl(JSContext *cx, CallArgs args)
 {
-    JS_ASSERT(TestProtoGetterThis(args.thisv()));
+    JS_ASSERT(TestProtoThis(args.thisv()));
 
     HandleValue thisv = args.thisv();
     if (thisv.isPrimitive() && !BoxNonStrictThis(cx, args))
@@ -97,7 +97,7 @@ static bool
 ProtoGetter(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CallNonGenericMethod(cx, TestProtoGetterThis, ProtoGetterImpl, args);
+    return CallNonGenericMethod(cx, TestProtoThis, ProtoGetterImpl, args);
 }
 
 namespace js {
@@ -105,23 +105,9 @@ size_t sSetProtoCalled = 0;
 } 
 
 static bool
-TestProtoSetterThis(HandleValue v)
-{
-    if (v.isNullOrUndefined())
-        return false;
-
-    
-    if (!v.isObject())
-        return true;
-
-    
-    return !v.toObject().is<ProxyObject>();
-}
-
-static bool
 ProtoSetterImpl(JSContext *cx, CallArgs args)
 {
-    JS_ASSERT(TestProtoSetterThis(args.thisv()));
+    JS_ASSERT(TestProtoThis(args.thisv()));
 
     HandleValue thisv = args.thisv();
     if (thisv.isPrimitive()) {
@@ -142,11 +128,9 @@ ProtoSetterImpl(JSContext *cx, CallArgs args)
 
 
 
-
-    if (obj->is<ProxyObject>() || obj->is<ArrayBufferObject>()) {
+    if (obj->is<ArrayBufferObject>()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                             "Object", "__proto__ setter",
-                             obj->is<ProxyObject>() ? "Proxy" : "ArrayBuffer");
+                             "Object", "__proto__ setter", "ArrayBuffer");
         return false;
     }
 
@@ -181,7 +165,7 @@ static bool
 ProtoSetter(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CallNonGenericMethod(cx, TestProtoSetterThis, ProtoSetterImpl, args);
+    return CallNonGenericMethod(cx, TestProtoThis, ProtoSetterImpl, args);
 }
 
 JSObject *

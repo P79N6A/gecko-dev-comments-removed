@@ -69,6 +69,22 @@ class JS_FRIEND_API(Wrapper);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class JS_FRIEND_API(BaseProxyHandler)
 {
     const void *mFamily;
@@ -167,6 +183,7 @@ class JS_FRIEND_API(BaseProxyHandler)
     virtual bool defaultValue(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp);
     virtual void finalize(JSFreeOp *fop, JSObject *proxy);
     virtual bool getPrototypeOf(JSContext *cx, HandleObject proxy, MutableHandleObject protop);
+    virtual bool setPrototypeOf(JSContext *cx, HandleObject proxy, HandleObject proto, bool *bp);
 
     
     
@@ -294,6 +311,7 @@ class Proxy
     static bool regexp_toShared(JSContext *cx, HandleObject proxy, RegExpGuard *g);
     static bool defaultValue(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp);
     static bool getPrototypeOf(JSContext *cx, HandleObject proxy, MutableHandleObject protop);
+    static bool setPrototypeOf(JSContext *cx, HandleObject proxy, HandleObject proto, bool *bp);
 
     static bool watch(JSContext *cx, HandleObject proxy, HandleId id, HandleObject callable);
     static bool unwatch(JSContext *cx, HandleObject proxy, HandleId id);

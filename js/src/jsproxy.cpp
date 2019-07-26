@@ -345,9 +345,17 @@ BaseProxyHandler::weakmapKeyDelegate(JSObject *proxy)
 bool
 BaseProxyHandler::getPrototypeOf(JSContext *cx, HandleObject proxy, MutableHandleObject protop)
 {
+    MOZ_ASSUME_UNREACHABLE("Must override getPrototypeOf with lazy prototype.");
+}
+
+bool
+BaseProxyHandler::setPrototypeOf(JSContext *cx, HandleObject, HandleObject, bool *)
+{
     
-    protop.set(proxy->getTaggedProto().toObjectOrNull());
-    return true;
+    
+    
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_SETPROTOTYPEOF_FAIL);
+    return false;
 }
 
 bool
@@ -2305,7 +2313,7 @@ ScriptedDirectProxyHandler ScriptedDirectProxyHandler::singleton;
 #define INVOKE_ON_PROTOTYPE(cx, handler, proxy, protoCall)                   \
     JS_BEGIN_MACRO                                                           \
         RootedObject proto(cx);                                              \
-        if (!handler->getPrototypeOf(cx, proxy, &proto))                     \
+        if (!JSObject::getProto(cx, proxy, &proto))                          \
             return false;                                                    \
         if (!proto)                                                          \
             return true;                                                     \
@@ -2543,7 +2551,9 @@ Proxy::set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id
             return false;
         if (!hasOwn) {
             RootedObject proto(cx);
-            if (!handler->getPrototypeOf(cx, proxy, &proto))
+            
+            
+            if (!JSObject::getProto(cx, proxy, &proto))
                 return false;
             if (proto) {
                 Rooted<PropertyDescriptor> desc(cx);
@@ -2725,14 +2735,23 @@ Proxy::defaultValue(JSContext *cx, HandleObject proxy, JSType hint, MutableHandl
     return proxy->as<ProxyObject>().handler()->defaultValue(cx, proxy, hint, vp);
 }
 
+JSObject * const Proxy::LazyProto = reinterpret_cast<JSObject *>(0x1);
+
 bool
 Proxy::getPrototypeOf(JSContext *cx, HandleObject proxy, MutableHandleObject proto)
 {
+    JS_ASSERT(proxy->getTaggedProto().isLazy());
     JS_CHECK_RECURSION(cx, return false);
     return proxy->as<ProxyObject>().handler()->getPrototypeOf(cx, proxy, proto);
 }
 
-JSObject * const Proxy::LazyProto = reinterpret_cast<JSObject *>(0x1);
+bool
+Proxy::setPrototypeOf(JSContext *cx, HandleObject proxy, HandleObject proto, bool *bp)
+{
+    JS_ASSERT(proxy->getTaggedProto().isLazy());
+    JS_CHECK_RECURSION(cx, return false);
+    return proxy->as<ProxyObject>().handler()->setPrototypeOf(cx, proxy, proto, bp);
+}
 
  bool
 Proxy::watch(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::HandleObject callable)
