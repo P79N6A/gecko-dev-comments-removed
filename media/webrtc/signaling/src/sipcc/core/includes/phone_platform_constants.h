@@ -190,21 +190,9 @@
 #define PHONE_MODEL             "CP-9971"
 #define CCSIP_SIP_USER_AGENT    "CP9971"
 
-#define MAX_PHONE_LINES       8
-#define MAX_REG_LINES        51
 #define MAX_CALLS            51
-#define MAX_CALLS_PER_LINE   51
-
-
-
-
-
-
-#define MAX_INSTANCES        (MAX_CALLS - 1) /* max number of instance ID */
-
-
-
-
-#define MAX_CONFIG_LINES 51
+#define MAX_REG_LINES        MAX_CALLS
+#define MAX_CALLS_PER_LINE   MAX_CALLS
+#define MAX_CONFIG_LINES     MAX_CALLS
 
 #endif
