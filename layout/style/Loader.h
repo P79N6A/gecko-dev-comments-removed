@@ -100,6 +100,8 @@ public:
     return nsURIHashKey::HashKey(aKey->mKey);
   }
 
+  nsIURI* GetURI() const { return nsURIHashKey::GetKey(); }
+
   enum { ALLOW_MEMMOVE = true };
 
 protected:
@@ -371,8 +373,17 @@ public:
   
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
+  
+  
+  nsresult ObsoleteSheet(nsIURI* aURI);
+
 private:
   friend class SheetLoadData;
+
+  static PLDHashOperator
+  RemoveEntriesWithURI(URIPrincipalAndCORSModeHashKey* aKey,
+                       nsRefPtr<nsCSSStyleSheet> &aSheet,
+                       void* aUserData);
 
   
   
