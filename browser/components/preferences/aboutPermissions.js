@@ -38,7 +38,7 @@ let gVisitStmt = gPlacesDatabase.createAsyncStatement(
 
 
 
-let TEST_EXACT_PERM_TYPES = ["geo"];
+let TEST_EXACT_PERM_TYPES = ["geo", "camera", "microphone"];
 
 
 
@@ -330,8 +330,11 @@ let PermissionDefaults = {
   set fullscreen(aValue) {
     let value = (aValue != this.DENY);
     Services.prefs.setBoolPref("full-screen-api.enabled", value);
-  }
-}
+  },
+
+  get camera() this.UNKNOWN,
+  get microphone() this.UNKNOWN
+};
 
 
 
@@ -339,7 +342,7 @@ let PermissionDefaults = {
 let AboutPermissions = {
   
 
-  
+
   PLACES_SITES_LIMIT: 50,
 
   
@@ -369,17 +372,18 @@ let AboutPermissions = {
 
 
 
-  _supportedPermissions: ["password", "cookie", "geo", "indexedDB", "popup", "fullscreen"],
+  _supportedPermissions: ["password", "cookie", "geo", "indexedDB", "popup",
+                          "fullscreen", "camera", "microphone"],
 
   
 
 
-  _noGlobalAllow: ["geo", "indexedDB", "fullscreen"],
+  _noGlobalAllow: ["geo", "indexedDB", "fullscreen", "camera", "microphone"],
 
   
 
 
-  _noGlobalDeny: [],
+  _noGlobalDeny: ["camera", "microphone"],
 
   _stringBundle: Services.strings.
                  createBundle("chrome://browser/locale/preferences/aboutPermissions.properties"),
@@ -407,7 +411,7 @@ let AboutPermissions = {
     Services.obs.addObserver(this, "passwordmgr-storage-changed", false);
     Services.obs.addObserver(this, "cookie-changed", false);
     Services.obs.addObserver(this, "browser:purge-domain-data", false);
-    
+
     this._observersInitialized = true;
     Services.obs.notifyObservers(null, "browser-permissions-preinit", null);
   },
@@ -778,7 +782,7 @@ let AboutPermissions = {
       let visitLabel = PluralForm.get(aCount, visitForm)
                                   .replace("#1", aCount);
       document.getElementById("site-visit-count").value = visitLabel;
-    });  
+    });
   },
 
   updatePasswordsCount: function() {
