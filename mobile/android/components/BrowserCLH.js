@@ -88,6 +88,9 @@ BrowserCLH.prototype = {
       if (!uri)
         return;
 
+      
+      Services.io.QueryInterface(Ci.nsISpeculativeConnect).speculativeConnect(uri, null);
+
       let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
       if (browserWin) {
         if (!pinned) {
