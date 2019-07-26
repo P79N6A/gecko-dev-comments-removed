@@ -33,11 +33,6 @@ class MarionetteTouchMixin(object):
         self.check_element(element)
         self.execute_script("%s.dbltap(arguments[0]);" % self.library_name, [element])
 
-    def long_press(self, element, holdtime=2000):
-        self.check_element(element)
-        
-        self.execute_script("%s.hold.apply(this, arguments);" % self.library_name, [element, holdtime, 0, 0, 0, 0, 0])
-        
     def flick(self, element, x1, y1, x2, y2, duration=200):
         self.check_element(element)
         
