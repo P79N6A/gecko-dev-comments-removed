@@ -285,6 +285,17 @@ typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
                                              AllowedTouchBehavior::HORIZONTAL_PAN |
                                              AllowedTouchBehavior::PINCH_ZOOM |
@@ -1855,68 +1866,74 @@ void AsyncPanZoomController::ApplyOverscrollEffect(ViewTransform* aTransform) co
   
   
   
-  
-  
-  
-  
 
   
   
-  const float CLAMPING = 0.5;
+  const float kClamping = gfxPrefs::APZOverscrollClamping();
 
   
   
   
   
   
-  float spacePropX = CLAMPING * fabsf(mX.GetOverscroll()) / mX.GetCompositionLength();
-  float spacePropY = CLAMPING * fabsf(mY.GetOverscroll()) / mY.GetCompositionLength();
+  float spacePropX = kClamping * fabsf(mX.GetOverscroll()) / mX.GetCompositionLength();
+  float spacePropY = kClamping * fabsf(mY.GetOverscroll()) / mY.GetCompositionLength();
+
+  
+  
+  
+  
+  const float kZEffect = gfxPrefs::APZOverscrollZEffect();
 
   
   CSSPoint translationX;
-  if (mX.GetOverscroll() < 0) {
+  if (mX.IsOverscrolled()) {
     
-    
-    translationX.x = spacePropX * mX.GetCompositionLength();
-    translationX.y = (spacePropX * mY.GetCompositionLength()) / 2;
-  } else if (mX.GetOverscroll() > 0) {
-    
-    
-    translationX.y = (spacePropX * mY.GetCompositionLength()) / 2;
+    translationX.y = (spacePropX * kZEffect * mY.GetCompositionLength()) / 2;
+
+    if (mX.GetOverscroll() < 0) {
+      
+      translationX.x = spacePropX * mX.GetCompositionLength();
+    } else {
+      
+      
+      
+      
+      translationX.x = - (spacePropX * (1 - kZEffect) * mX.GetCompositionLength());
+    }
   }
 
   
   CSSPoint translationY;
-  if (mY.GetOverscroll() < 0) {
+  if (mY.IsOverscrolled()) {
     
-    
-    translationY.x = (spacePropY * mX.GetCompositionLength()) / 2;
-    translationY.y = spacePropY * mY.GetCompositionLength();
-  } else if (mY.GetOverscroll() > 0) {
-    
-    
-    translationY.x = (spacePropY * mX.GetCompositionLength()) / 2;
+    translationY.x = (spacePropY * kZEffect * mX.GetCompositionLength()) / 2;
+
+    if (mY.GetOverscroll() < 0) {
+      
+      translationY.y = spacePropY * mY.GetCompositionLength();
+    } else {
+      
+      
+      
+      
+      translationY.y = - (spacePropY * (1 - kZEffect) * mY.GetCompositionLength());
+    }
   }
 
   
-  
-  
-  
-  float spaceProp = std::max(spacePropX, spacePropY);
-  CSSPoint translation(std::max(translationX.x, translationY.x),
-                       std::max(translationX.y, translationY.y));
+  float spaceProp = sqrtf(spacePropX * spacePropX + spacePropY * spacePropY);
+  CSSPoint translation = translationX + translationY;
+
+  float scale = 1 - (kZEffect * spaceProp);
 
   
   
-  float contentProp = 1 - spaceProp;
+  translation.x /= scale;
+  translation.y /= scale;
 
   
-  
-  translation.x /= contentProp;
-  translation.y /= contentProp;
-
-  
-  aTransform->mScale.scale *= contentProp;
+  aTransform->mScale.scale *= scale;
   aTransform->mTranslation += translation * mFrameMetrics.LayersPixelsPerCSSPixel();
 }
 
