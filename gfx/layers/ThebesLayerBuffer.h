@@ -112,6 +112,8 @@ protected:
   };
   nsIntRect GetQuadrantRectangle(XSide aXSide, YSide aYSide) const;
 
+  gfx::Rect GetSourceRectangle(XSide aXSide, YSide aYSide) const;
+
   
 
 
