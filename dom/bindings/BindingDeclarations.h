@@ -37,6 +37,13 @@ struct DictionaryBase
 {
 };
 
+
+
+
+struct AllTypedArraysBase {
+};
+
+
 struct MainThreadDictionaryBase : public DictionaryBase
 {
 protected:
