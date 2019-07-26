@@ -255,10 +255,6 @@ public:
 
 
 
-  void SetLayerTransform(const gfx3DMatrix& aMatrix) {
-    SetMatrixUniform(mProfile.LookupUniformLocation("uLayerTransform"), aMatrix);
-  }
-
   void SetLayerTransform(const gfx::Matrix4x4& aMatrix) {
     SetMatrixUniform(mProfile.LookupUniformLocation("uLayerTransform"), aMatrix);
   }
@@ -300,10 +296,6 @@ public:
   }
 
   
-  void SetTextureTransform(const gfx3DMatrix& aMatrix) {
-    SetMatrixUniform(mProfile.LookupUniformLocation("uTextureTransform"), aMatrix);
-  }
-
   void SetTextureTransform(const gfx::Matrix4x4& aMatrix) {
     SetMatrixUniform(mProfile.LookupUniformLocation("uTextureTransform"), aMatrix);
   }
