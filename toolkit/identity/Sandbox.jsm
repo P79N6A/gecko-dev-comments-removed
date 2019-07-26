@@ -82,8 +82,8 @@ Sandbox.prototype = {
 
     
     let frame = doc.createElementNS(XHTML_NS, "iframe");
-    frame.setAttribute("mozbrowser", true);
     frame.setAttribute("mozframetype", "content");
+    frame.sandbox = "allow-forms allow-scripts allow-same-origin";
     frame.style.visibility = "collapse";
     doc.documentElement.appendChild(frame);
 
@@ -91,9 +91,6 @@ Sandbox.prototype = {
                                       .getInterface(Ci.nsIWebNavigation)
                                       .QueryInterface(Ci.nsIInterfaceRequestor)
                                       .getInterface(Ci.nsIDocShell);
-
-    
-    docShell.setIsBrowserElement();
 
     
     docShell.stop(Ci.nsIWebNavigation.STOP_NETWORK);
