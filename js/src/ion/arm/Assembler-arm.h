@@ -1317,7 +1317,7 @@ class Assembler
     
     
     
-    void writeInst(uint32 x, uint32 *dest = NULL);
+    BufferOffset writeInst(uint32 x, uint32 *dest = NULL);
     
     
     static void writeInstStatic(uint32 x, uint32 *dest);
@@ -1325,122 +1325,122 @@ class Assembler
   public:
     
     
-    void as_jumpPool(uint32 size);
+    BufferOffset as_jumpPool(uint32 size);
 
-    void align(int alignment);
-    void as_nop();
-    void as_alu(Register dest, Register src1, Operand2 op2,
+    BufferOffset align(int alignment);
+    BufferOffset as_nop();
+    BufferOffset as_alu(Register dest, Register src1, Operand2 op2,
                 ALUOp op, SetCond_ sc = NoSetCond, Condition c = Always);
 
-    void as_mov(Register dest,
+    BufferOffset as_mov(Register dest,
                 Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_mvn(Register dest, Operand2 op2,
+    BufferOffset as_mvn(Register dest, Operand2 op2,
                 SetCond_ sc = NoSetCond, Condition c = Always);
     
-    void as_and(Register dest, Register src1,
+    BufferOffset as_and(Register dest, Register src1,
                 Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_bic(Register dest, Register src1,
+    BufferOffset as_bic(Register dest, Register src1,
                 Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_eor(Register dest, Register src1,
+    BufferOffset as_eor(Register dest, Register src1,
                 Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_orr(Register dest, Register src1,
-                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
-    
-    void as_adc(Register dest, Register src1,
-                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_add(Register dest, Register src1,
-                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_sbc(Register dest, Register src1,
-                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_sub(Register dest, Register src1,
-                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_rsb(Register dest, Register src1,
-                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_rsc(Register dest, Register src1,
+    BufferOffset as_orr(Register dest, Register src1,
                 Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
     
-    void as_cmn(Register src1, Operand2 op2,
+    BufferOffset as_adc(Register dest, Register src1,
+                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
+    BufferOffset as_add(Register dest, Register src1,
+                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
+    BufferOffset as_sbc(Register dest, Register src1,
+                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
+    BufferOffset as_sub(Register dest, Register src1,
+                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
+    BufferOffset as_rsb(Register dest, Register src1,
+                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
+    BufferOffset as_rsc(Register dest, Register src1,
+                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
+    
+    BufferOffset as_cmn(Register src1, Operand2 op2,
                 Condition c = Always);
-    void as_cmp(Register src1, Operand2 op2,
+    BufferOffset as_cmp(Register src1, Operand2 op2,
                 Condition c = Always);
-    void as_teq(Register src1, Operand2 op2,
+    BufferOffset as_teq(Register src1, Operand2 op2,
                 Condition c = Always);
-    void as_tst(Register src1, Operand2 op2,
+    BufferOffset as_tst(Register src1, Operand2 op2,
                 Condition c = Always);
 
     
     
     
-    void as_movw(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = NULL);
-    void as_movt(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = NULL);
+    BufferOffset as_movw(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = NULL);
+    BufferOffset as_movt(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = NULL);
 
-    void as_genmul(Register d1, Register d2, Register rm, Register rn,
+    BufferOffset as_genmul(Register d1, Register d2, Register rm, Register rn,
                    MULOp op, SetCond_ sc, Condition c = Always);
-    void as_mul(Register dest, Register src1, Register src2,
+    BufferOffset as_mul(Register dest, Register src1, Register src2,
                 SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_mla(Register dest, Register acc, Register src1, Register src2,
+    BufferOffset as_mla(Register dest, Register acc, Register src1, Register src2,
                 SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_umaal(Register dest1, Register dest2, Register src1, Register src2,
+    BufferOffset as_umaal(Register dest1, Register dest2, Register src1, Register src2,
                   Condition c = Always);
-    void as_mls(Register dest, Register acc, Register src1, Register src2,
+    BufferOffset as_mls(Register dest, Register acc, Register src1, Register src2,
                 Condition c = Always);
-    void as_umull(Register dest1, Register dest2, Register src1, Register src2,
+    BufferOffset as_umull(Register dest1, Register dest2, Register src1, Register src2,
                 SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_umlal(Register dest1, Register dest2, Register src1, Register src2,
+    BufferOffset as_umlal(Register dest1, Register dest2, Register src1, Register src2,
                 SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_smull(Register dest1, Register dest2, Register src1, Register src2,
+    BufferOffset as_smull(Register dest1, Register dest2, Register src1, Register src2,
                 SetCond_ sc = NoSetCond, Condition c = Always);
-    void as_smlal(Register dest1, Register dest2, Register src1, Register src2,
+    BufferOffset as_smlal(Register dest1, Register dest2, Register src1, Register src2,
                 SetCond_ sc = NoSetCond, Condition c = Always);
     
     
     
-    void as_dtr(LoadStore ls, int size, Index mode,
+    BufferOffset as_dtr(LoadStore ls, int size, Index mode,
                 Register rt, DTRAddr addr, Condition c = Always, uint32 *dest = NULL);
     
     
     
-    void as_extdtr(LoadStore ls, int size, bool IsSigned, Index mode,
+    BufferOffset as_extdtr(LoadStore ls, int size, bool IsSigned, Index mode,
                    Register rt, EDtrAddr addr, Condition c = Always, uint32 *dest = NULL);
 
-    void as_dtm(LoadStore ls, Register rn, uint32 mask,
+    BufferOffset as_dtm(LoadStore ls, Register rn, uint32 mask,
                 DTMMode mode, DTMWriteBack wb, Condition c = Always);
     
-    ARMBuffer::PoolEntry as_Imm32Pool(Register dest, uint32 value, Condition c = Always);
+    BufferOffset as_Imm32Pool(Register dest, uint32 value, ARMBuffer::PoolEntry *pe = NULL, Condition c = Always);
     
-    ARMBuffer::PoolEntry as_BranchPool(uint32 value, RepatchLabel *label, Condition c);
+    BufferOffset as_BranchPool(uint32 value, RepatchLabel *label, ARMBuffer::PoolEntry *pe = NULL, Condition c = Always);
 
     
-    ARMBuffer::PoolEntry as_FImm64Pool(VFPRegister dest, double value, Condition c = Always);
+    BufferOffset as_FImm64Pool(VFPRegister dest, double value, ARMBuffer::PoolEntry *pe = NULL, Condition c = Always);
     
-
-    
-    
-    void as_bx(Register r, Condition c = Always);
 
     
     
-    
-    void as_b(BOffImm off, Condition c);
-
-    void as_b(Label *l, Condition c = Always);
-    void as_b(BOffImm off, Condition c, BufferOffset inst);
+    BufferOffset as_bx(Register r, Condition c = Always);
 
     
     
     
-    
-    void as_blx(Label *l);
+    BufferOffset as_b(BOffImm off, Condition c);
 
-    void as_blx(Register r, Condition c = Always);
-    void as_bl(BOffImm off, Condition c);
+    BufferOffset as_b(Label *l, Condition c = Always);
+    BufferOffset as_b(BOffImm off, Condition c, BufferOffset inst);
+
     
     
-    void as_bl();
     
     
-    void as_bl(Label *l, Condition c);
-    void as_bl(BOffImm off, Condition c, BufferOffset inst);
+    BufferOffset as_blx(Label *l);
+
+    BufferOffset as_blx(Register r, Condition c = Always);
+    BufferOffset as_bl(BOffImm off, Condition c);
+    
+    
+    BufferOffset as_bl();
+    
+    
+    BufferOffset as_bl(Label *l, Condition c);
+    BufferOffset as_bl(BOffImm off, Condition c, BufferOffset inst);
 
     
   private:
@@ -1450,46 +1450,46 @@ class Assembler
         isSingle = 0 << 8
     };
 
-    void writeVFPInst(vfp_size sz, uint32 blob, uint32 *dest=NULL);
+    BufferOffset writeVFPInst(vfp_size sz, uint32 blob, uint32 *dest=NULL);
     
     
-    void as_vfp_float(VFPRegister vd, VFPRegister vn, VFPRegister vm,
+    BufferOffset as_vfp_float(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                       VFPOp op, Condition c = Always);
 
   public:
-    void as_vadd(VFPRegister vd, VFPRegister vn, VFPRegister vm,
+    BufferOffset as_vadd(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                  Condition c = Always);
 
-    void as_vdiv(VFPRegister vd, VFPRegister vn, VFPRegister vm,
+    BufferOffset as_vdiv(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                  Condition c = Always);
 
-    void as_vmul(VFPRegister vd, VFPRegister vn, VFPRegister vm,
+    BufferOffset as_vmul(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                  Condition c = Always);
 
-    void as_vnmul(VFPRegister vd, VFPRegister vn, VFPRegister vm,
+    BufferOffset as_vnmul(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                   Condition c = Always);
 
-    void as_vnmla(VFPRegister vd, VFPRegister vn, VFPRegister vm,
+    BufferOffset as_vnmla(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                   Condition c = Always);
 
-    void as_vnmls(VFPRegister vd, VFPRegister vn, VFPRegister vm,
+    BufferOffset as_vnmls(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                   Condition c = Always);
 
-    void as_vneg(VFPRegister vd, VFPRegister vm, Condition c = Always);
+    BufferOffset as_vneg(VFPRegister vd, VFPRegister vm, Condition c = Always);
 
-    void as_vsqrt(VFPRegister vd, VFPRegister vm, Condition c = Always);
+    BufferOffset as_vsqrt(VFPRegister vd, VFPRegister vm, Condition c = Always);
 
-    void as_vabs(VFPRegister vd, VFPRegister vm, Condition c = Always);
+    BufferOffset as_vabs(VFPRegister vd, VFPRegister vm, Condition c = Always);
 
-    void as_vsub(VFPRegister vd, VFPRegister vn, VFPRegister vm,
+    BufferOffset as_vsub(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                  Condition c = Always);
 
-    void as_vcmp(VFPRegister vd, VFPRegister vm,
+    BufferOffset as_vcmp(VFPRegister vd, VFPRegister vm,
                  Condition c = Always);
-    void as_vcmpz(VFPRegister vd,  Condition c = Always);
+    BufferOffset as_vcmpz(VFPRegister vd,  Condition c = Always);
 
     
-    void as_vmov(VFPRegister vd, VFPRegister vsrc, Condition c = Always);
+    BufferOffset as_vmov(VFPRegister vd, VFPRegister vsrc, Condition c = Always);
     
     enum FloatToCore_ {
         FloatToCore = 1 << 20,
@@ -1509,30 +1509,30 @@ class Assembler
     
     
 
-    void as_vxfer(Register vt1, Register vt2, VFPRegister vm, FloatToCore_ f2c,
+    BufferOffset as_vxfer(Register vt1, Register vt2, VFPRegister vm, FloatToCore_ f2c,
                   Condition c = Always, int idx = 0);
 
     
     
-    void as_vcvt(VFPRegister vd, VFPRegister vm, bool useFPSCR = false,
+    BufferOffset as_vcvt(VFPRegister vd, VFPRegister vm, bool useFPSCR = false,
                  Condition c = Always);
     
-    void as_vcvtFixed(VFPRegister vd, bool isSigned, uint32 fixedPoint, bool toFixed, Condition c = Always);
+    BufferOffset as_vcvtFixed(VFPRegister vd, bool isSigned, uint32 fixedPoint, bool toFixed, Condition c = Always);
 
     
-    void as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
+    BufferOffset as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
                  Condition c = Always ,
                  uint32 *dest = NULL);
 
     
     
 
-    void as_vdtm(LoadStore st, Register rn, VFPRegister vd, int length,
+    BufferOffset as_vdtm(LoadStore st, Register rn, VFPRegister vd, int length,
                  Condition c = Always);
 
-    void as_vimm(VFPRegister vd, VFPImm imm, Condition c = Always);
+    BufferOffset as_vimm(VFPRegister vd, VFPImm imm, Condition c = Always);
 
-    void as_vmrs(Register r, Condition c = Always);
+    BufferOffset as_vmrs(Register r, Condition c = Always);
     
     bool nextLink(BufferOffset b, BufferOffset *next);
     void bind(Label *label, BufferOffset boff = BufferOffset());

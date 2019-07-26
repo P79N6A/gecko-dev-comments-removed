@@ -43,7 +43,7 @@
 #define jsion_ion_assembler_buffer_with_constant_pools_h__
 #include "ion/shared/IonAssemblerBuffer.h"
 #include "assembler/wtf/SegmentedVector.h"
-
+#include "ion/IonSpewer.h"
 namespace js {
 namespace ion {
 typedef SegmentedVector<BufferOffset, 512> LoadOffsets;
@@ -434,9 +434,9 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         }
     }
 
-    PoolEntry insertEntry(uint32 instSize, uint8 *inst, Pool *p, uint8 *data) {
+    BufferOffset insertEntry(uint32 instSize, uint8 *inst, Pool *p, uint8 *data, PoolEntry *pe = NULL) {
         if (this->oom())
-            return PoolEntry();
+            return BufferOffset();
         int token;
         
         if (inBackref)
@@ -444,19 +444,21 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         else
             token = insertEntryForwards(instSize, inst, p, data);
         
-        PoolEntry ret;
+        PoolEntry retPE;
         if (p != NULL) {
-            Asm::insertTokenIntoTag(instSize, inst, token);
             int poolId = p - pools;
+            IonSpew(IonSpew_Pools, "Inserting entry (token %d) into pool %d", token, poolId);
+            Asm::insertTokenIntoTag(instSize, inst, token);
             JS_ASSERT(poolId < (1 << poolKindBits));
             JS_ASSERT(poolId >= 0);
             
-            ret = PoolEntry(entryCount[poolId], poolId);
+            retPE = PoolEntry(entryCount[poolId], poolId);
             entryCount[poolId]++;
         }
         
-        this->putBlob(instSize, inst);
-        return ret;
+        if (pe != NULL)
+            *pe = retPE;
+        return this->putBlob(instSize, inst);
     }
 
     uint32 insertEntryBackwards(uint32 instSize, uint8 *inst, Pool *p, uint8 *data) {
@@ -549,8 +551,8 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         }
         return p->insertEntry(data, this->nextOffset());
     }
-    void putInt(uint32 value) {
-        insertEntry(sizeof(uint32) / sizeof(uint8), (uint8*)&value, NULL, NULL);
+    BufferOffset putInt(uint32 value) {
+        return insertEntry(sizeof(uint32) / sizeof(uint8), (uint8*)&value, NULL, NULL);
     }
     
     
@@ -574,6 +576,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         perforatedNode = *getTail();
         perforation = this->nextOffset();
         Parent::perforate();
+        IonSpew(IonSpew_Pools, "Adding a perforation at offset %d", perforation.getOffset());
     }
 
     
@@ -625,6 +628,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         
         
         
+        IonSpew(IonSpew_Pools, "Finishing pool %d", numDumps);
         JS_ASSERT(inBackref);
         PoolInfo newPoolInfo = getPoolData();
         if (newPoolInfo.size == 0) {
@@ -633,6 +637,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             new (&perforation) BufferOffset();
             perforatedNode = NULL;
             inBackref = false;
+            IonSpew(IonSpew_Pools, "Aborting because the pool is empty");
             
             return;
         }
@@ -681,6 +686,8 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             for (LoadOffsets::Iterator iter = p->loadOffsets.begin();
                  iter != p->loadOffsets.end(); ++iter, ++idx)
             {
+
+                IonSpew(IonSpew_Pools, "Linking entry %d in pool %d", idx, poolIdx);
                 JS_ASSERT(iter->getOffset() >= perforation.getOffset());
                 
                 Inst * inst = this->getInst(*iter);
@@ -691,6 +698,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
                 
                 
                 
+                IonSpew(IonSpew_Pools, "Fixing offset to %d", codeOffset - magicAlign);
                 Asm::patchConstantPoolLoad(inst, (uint8*)inst + codeOffset - magicAlign);
             }
             poolOffset += p->numEntries * p->immSize;
@@ -718,13 +726,18 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
 
     void dumpPool() {
         JS_ASSERT(!inBackref);
+        IonSpew(IonSpew_Pools, "Attempting to dump the pool");
         PoolInfo newPoolInfo = getPoolData();
         if (newPoolInfo.size == 0) {
             
             inBackref = true;
+            IonSpew(IonSpew_Pools, "Abort, no pool data");
             return;
         }
+
+        IonSpew(IonSpew_Pools, "Dumping %d bytes", newPoolInfo.size);
         if (!perforation.assigned()) {
+            IonSpew(IonSpew_Pools, "No Perforation point selected, generating a new one");
             
             BufferOffset branch = this->nextOffset();
             this->markNextAsBranch();
@@ -755,6 +768,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
                  iter != p->loadOffsets.end(); ++iter, ++idx)
             {
                 if (iter->getOffset() >= perforation.getOffset()) {
+                    IonSpew(IonSpew_Pools, "Pushing entry %d in pool %d into the backwards section.", idx, poolIdx);
                     
                     int offset = idx * p->immSize;
                     p->other->insertEntry(&p->poolData[offset], BufferOffset(*iter));
@@ -764,6 +778,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
                     beforePool = false;
                 } else {
                     JS_ASSERT(beforePool);
+                    IonSpew(IonSpew_Pools, "Entry %d in pool %d is before the pool.", idx, poolIdx);
                     
                     Inst * inst = this->getInst(*iter);
                     
@@ -772,6 +787,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
                     
                     
                     
+                    IonSpew(IonSpew_Pools, "Fixing offset to %d", codeOffset - magicAlign);
                     Asm::patchConstantPoolLoad(inst, (uint8*)inst + codeOffset - magicAlign);
                 }
             }

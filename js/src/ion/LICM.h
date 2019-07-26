@@ -42,6 +42,9 @@
 #ifndef jsion_licm_h__
 #define jsion_licm_h__
 
+#include "ion/IonAllocPolicy.h"
+#include "ion/MIR.h"
+#include "ion/MIRGraph.h"
 
 
 namespace js {

@@ -194,15 +194,17 @@ struct LabelBase
 
     
     void operator =(const LabelBase &label);
-
+    static int id_count;
   public:
+    DebugOnly <int> id;
     static const int32 INVALID_OFFSET = -1;
 
-    LabelBase() : offset_(INVALID_OFFSET), bound_(false)
+    LabelBase() : offset_(INVALID_OFFSET), bound_(false), id(id_count++)
     { }
     LabelBase(const LabelBase &label)
       : offset_(label.offset_),
-        bound_(label.bound_)
+        bound_(label.bound_),
+        id(id_count++)
     { }
 
     
