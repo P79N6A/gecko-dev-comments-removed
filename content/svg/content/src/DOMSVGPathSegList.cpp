@@ -287,7 +287,18 @@ DOMSVGPathSegList::Initialize(DOMSVGPathSeg& aNewItem, ErrorResult& aError)
   return InsertItemBefore(*domItem, 0, aError);
 }
 
-DOMSVGPathSeg*
+already_AddRefed<DOMSVGPathSeg>
+DOMSVGPathSegList::GetItem(uint32_t index, ErrorResult& error)
+{
+  bool found;
+  nsRefPtr<DOMSVGPathSeg> item = IndexedGetter(index, found, error);
+  if (!found) {
+    error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+  }
+  return item.forget();
+}
+
+already_AddRefed<DOMSVGPathSeg>
 DOMSVGPathSegList::IndexedGetter(uint32_t aIndex, bool& aFound,
                                  ErrorResult& aError)
 {
@@ -296,8 +307,7 @@ DOMSVGPathSegList::IndexedGetter(uint32_t aIndex, bool& aFound,
   }
   aFound = aIndex < LengthNoFlush();
   if (aFound) {
-    EnsureItemAt(aIndex);
-    return ItemAt(aIndex);
+    return GetItemAt(aIndex);
   }
   return nullptr;
 }
@@ -444,13 +454,12 @@ DOMSVGPathSegList::RemoveItem(uint32_t aIndex,
     return nullptr;
   }
   
-  EnsureItemAt(aIndex);
+  nsRefPtr<DOMSVGPathSeg> result = GetItemAt(aIndex);
 
   nsAttrValue emptyOrOldValue = Element()->WillChangePathSegList();
   
   
   ItemAt(aIndex)->RemovingFromList();
-  nsRefPtr<DOMSVGPathSeg> result = ItemAt(aIndex);
 
   uint32_t internalIndex = mItems[aIndex].mInternalDataIndex;
   uint32_t segType = SVGPathSegUtils::DecodeType(InternalList().mData[internalIndex]);
@@ -476,12 +485,16 @@ DOMSVGPathSegList::RemoveItem(uint32_t aIndex,
   return result.forget();
 }
 
-void
-DOMSVGPathSegList::EnsureItemAt(uint32_t aIndex)
+already_AddRefed<DOMSVGPathSeg>
+DOMSVGPathSegList::GetItemAt(uint32_t aIndex)
 {
+  MOZ_ASSERT(aIndex < mItems.Length());
+
   if (!ItemAt(aIndex)) {
     ItemAt(aIndex) = DOMSVGPathSeg::CreateFor(this, aIndex, IsAnimValList());
   }
+  nsRefPtr<DOMSVGPathSeg> result = ItemAt(aIndex);
+  return result.forget();
 }
 
 void

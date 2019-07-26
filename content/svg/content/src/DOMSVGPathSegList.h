@@ -138,17 +138,10 @@ public:
   void Clear(ErrorResult& aError);
   already_AddRefed<DOMSVGPathSeg> Initialize(DOMSVGPathSeg& aNewItem,
                                              ErrorResult& aError);
-  DOMSVGPathSeg* GetItem(uint32_t aIndex, ErrorResult& aError)
-  {
-    bool found;
-    DOMSVGPathSeg* item = IndexedGetter(aIndex, found, aError);
-    if (!found) {
-      aError.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
-    }
-    return item;
-  }
-  DOMSVGPathSeg* IndexedGetter(uint32_t aIndex, bool& found,
-                               ErrorResult& aError);
+  already_AddRefed<DOMSVGPathSeg> GetItem(uint32_t index,
+                                          ErrorResult& error);
+  already_AddRefed<DOMSVGPathSeg> IndexedGetter(uint32_t index, bool& found,
+                                                ErrorResult& error);
   already_AddRefed<DOMSVGPathSeg> InsertItemBefore(DOMSVGPathSeg& aNewItem,
                                                    uint32_t aIndex,
                                                    ErrorResult& aError);
@@ -207,7 +200,7 @@ private:
 
   
   
-  void EnsureItemAt(uint32_t aIndex);
+  already_AddRefed<DOMSVGPathSeg> GetItemAt(uint32_t aIndex);
 
   void MaybeInsertNullInAnimValListAt(uint32_t aIndex,
                                       uint32_t aInternalIndex,
