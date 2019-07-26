@@ -5087,7 +5087,7 @@ function MultiplexHandler(event)
         SelectDetector(event, false);
     } else if (name == 'charsetGroup') {
         var charset = node.getAttribute('id');
-        charset = charset.substring('charset.'.length, charset.length)
+        charset = charset.substring(charset.indexOf('charset.') + 'charset.'.length);
         BrowserSetForcedCharacterSet(charset);
     } else if (name == 'charsetCustomize') {
         
@@ -5100,7 +5100,7 @@ function MultiplexHandler(event)
 function SelectDetector(event, doReload)
 {
     var uri =  event.target.getAttribute("id");
-    var prefvalue = uri.substring('chardet.'.length, uri.length);
+    var prefvalue = uri.substring(uri.indexOf('chardet.') + 'chardet.'.length);
     if ("off" == prefvalue) { 
         prefvalue = "";
     }
