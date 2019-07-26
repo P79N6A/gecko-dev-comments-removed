@@ -213,6 +213,17 @@ public:
 
   virtual void NotifyInputConnected() {}
 
+  
+  
+  
+  void MarkActive() { Context()->RegisterActiveNode(this); }
+  
+  
+  
+  
+  
+  void MarkInactive() { Context()->UnregisterActiveNode(this); }
+
 private:
   friend class AudioBufferSourceNode;
   

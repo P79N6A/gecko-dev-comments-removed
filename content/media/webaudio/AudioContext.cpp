@@ -441,6 +441,18 @@ AudioContext::RemoveFromDecodeQueue(WebAudioDecodeJob* aDecodeJob)
 }
 
 void
+AudioContext::RegisterActiveNode(AudioNode* aNode)
+{
+  mActiveNodes.PutEntry(aNode);
+}
+
+void
+AudioContext::UnregisterActiveNode(AudioNode* aNode)
+{
+  mActiveNodes.RemoveEntry(aNode);
+}
+
+void
 AudioContext::UnregisterAudioBufferSourceNode(AudioBufferSourceNode* aNode)
 {
   mAudioBufferSourceNodes.RemoveEntry(aNode);
@@ -525,6 +537,11 @@ void
 AudioContext::Shutdown()
 {
   Suspend();
+
+  
+  
+  
+  mActiveNodes.Clear();
 
   
   

@@ -41,6 +41,7 @@ class AudioBuffer;
 class AudioBufferSourceNode;
 class AudioDestinationNode;
 class AudioListener;
+class AudioNode;
 class BiquadFilterNode;
 class ChannelMergerNode;
 class ChannelSplitterNode;
@@ -212,6 +213,20 @@ public:
 
   MediaStreamGraph* Graph() const;
   MediaStream* DestinationStream() const;
+
+  
+  
+  
+  
+  void RegisterActiveNode(AudioNode* aNode);
+  
+  
+  
+  
+  
+  
+  void UnregisterActiveNode(AudioNode* aNode);
+
   void UnregisterAudioBufferSourceNode(AudioBufferSourceNode* aNode);
   void UnregisterPannerNode(PannerNode* aNode);
   void UnregisterOscillatorNode(OscillatorNode* aNode);
@@ -239,6 +254,9 @@ private:
   nsRefPtr<AudioListener> mListener;
   MediaBufferDecoder mDecoder;
   nsTArray<nsRefPtr<WebAudioDecodeJob> > mDecodeJobs;
+  
+  
+  nsTHashtable<nsRefPtrHashKey<AudioNode> > mActiveNodes;
   
   
   
