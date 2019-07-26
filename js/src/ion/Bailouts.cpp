@@ -241,7 +241,7 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
     
     
     
-    BailoutClosure *br = OffTheBooks::new_<BailoutClosure>();
+    BailoutClosure *br = js_new<BailoutClosure>();
     if (!br)
         return BAILOUT_RETURN_FATAL_ERROR;
     activation->setBailout(br);
@@ -580,7 +580,7 @@ ion::ThunkToInterpreter(Value *vp)
         
         
         vp->setMagic(JS_ION_BAILOUT);
-        cx->delete_(br);
+        js_delete(br);
         return Interpret_Ok;
     }
 
@@ -606,7 +606,7 @@ ion::ThunkToInterpreter(Value *vp)
 
         fp->setRunningInIon();
         vp->setPrivate(fp);
-        cx->delete_(br);
+        js_delete(br);
         return Interpret_OSR;
     }
 
@@ -615,7 +615,7 @@ ion::ThunkToInterpreter(Value *vp)
 
     
     
-    cx->delete_(br);
+    js_delete(br);
 
     return status;
 }

@@ -304,7 +304,7 @@ ion::HandleException(ResumeFromException *rfe)
 
     
     
-    cx->delete_(cx->runtime->ionActivation->maybeTakeBailout());
+    js_delete(cx->runtime->ionActivation->maybeTakeBailout());
 
     IonFrameIterator iter(cx->runtime->ionTop);
     while (!iter.isEntry()) {
