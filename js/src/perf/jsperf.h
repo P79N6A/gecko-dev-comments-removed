@@ -88,7 +88,7 @@ class JS_FRIEND_API(PerfMeasurement)
 
 
 
-    PerfMeasurement(EventMask toMeasure);
+    explicit PerfMeasurement(EventMask toMeasure);
 
     
     ~PerfMeasurement();

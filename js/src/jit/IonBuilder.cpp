@@ -45,7 +45,7 @@ class jit::BaselineFrameInspector
     Vector<types::Type, 4, IonAllocPolicy> argTypes;
     Vector<types::Type, 4, IonAllocPolicy> varTypes;
 
-    BaselineFrameInspector(TempAllocator *temp)
+    explicit BaselineFrameInspector(TempAllocator *temp)
       : thisType(types::Type::UndefinedType()),
         singletonScopeChain(nullptr),
         argTypes(*temp),
@@ -8376,7 +8376,7 @@ IonBuilder::freezePropertiesForCommonPrototype(types::TemporaryTypeSet *types, P
             
             
             
-            if (type->proto() == foundProto)
+            if (type->proto() == TaggedProto(foundProto))
                 break;
             type = types::TypeObjectKey::get(type->proto().toObjectOrNull());
         }

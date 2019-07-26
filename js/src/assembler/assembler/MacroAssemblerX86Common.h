@@ -725,8 +725,8 @@ public:
         
         convertInt32ToDouble(dest, fpTemp);
         m_assembler.ucomisd_rr(fpTemp, src);
-        failureCases.append(m_assembler.jp());
-        failureCases.append(m_assembler.jne());
+        failureCases.append(Jump(m_assembler.jp()));
+        failureCases.append(Jump(m_assembler.jne()));
     }
 
     void zeroDouble(FPRegisterID srcDest)

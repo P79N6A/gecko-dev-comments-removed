@@ -350,7 +350,7 @@ BaselineCompiler::emitPrologue()
 
     
     
-    prologueOffset_ = masm.currentOffset();
+    prologueOffset_ = CodeOffsetLabel(masm.currentOffset());
 
     
     
@@ -380,7 +380,7 @@ BaselineCompiler::emitEpilogue()
 {
     
     
-    epilogueOffset_ = masm.currentOffset();
+    epilogueOffset_ = CodeOffsetLabel(masm.currentOffset());
 
     masm.bind(&return_);
 
@@ -454,7 +454,7 @@ BaselineCompiler::emitIC(ICStub *stub, ICEntry::Kind kind)
 
     CodeOffsetLabel patchOffset;
     EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
+    entry->setReturnOffset(CodeOffsetLabel(masm.currentOffset()));
     if (!addICLoadLabel(patchOffset))
         return false;
 
@@ -550,7 +550,7 @@ BaselineCompiler::emitDebugPrologue()
         masm.bind(&done);
     }
 
-    postDebugPrologueOffset_ = masm.currentOffset();
+    postDebugPrologueOffset_ = CodeOffsetLabel(masm.currentOffset());
 
     return true;
 }
@@ -726,7 +726,7 @@ BaselineCompiler::emitDebugTrap()
 
     
     ICEntry icEntry(script->pcToOffset(pc), ICEntry::Kind_DebugTrap);
-    icEntry.setReturnOffset(masm.currentOffset());
+    icEntry.setReturnOffset(CodeOffsetLabel(masm.currentOffset()));
     if (!icEntries_.append(icEntry))
         return false;
 

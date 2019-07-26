@@ -783,7 +783,7 @@ BaselineScript::toggleDebugTraps(JSScript *script, jsbytecode *pc)
                     script->hasBreakpointsAt(curPC);
 
                 
-                CodeLocationLabel label(method(), nativeOffset);
+                CodeLocationLabel label(method(), CodeOffsetLabel(nativeOffset));
                 Assembler::ToggleCall(label, enabled);
             }
 

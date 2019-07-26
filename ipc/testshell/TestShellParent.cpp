@@ -1,10 +1,10 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "TestShellParent.h"
 
-/* This must occur *after* TestShellParent.h to avoid typedefs conflicts. */
+
 #include "mozilla/ArrayUtils.h"
 
 #include "mozilla/dom/ContentParent.h"
@@ -21,7 +21,7 @@ using mozilla::dom::ContentParent;
 void
 TestShellParent::ActorDestroy(ActorDestroyReason aWhy)
 {
-  // Implement me! Bug 1005177
+  
 }
 
 PTestShellCommandParent*
@@ -41,8 +41,8 @@ bool
 TestShellParent::CommandDone(TestShellCommandParent* command,
                              const nsString& aResponse)
 {
-  // XXX what should happen if the callback fails?
-  /*bool ok = */command->RunCallback(aResponse);
+  
+  command->RunCallback(aResponse);
   command->ReleaseCallback();
 
   return true;
@@ -67,7 +67,7 @@ TestShellCommandParent::RunCallback(const nsString& aResponse)
 {
   NS_ENSURE_TRUE(!mCallback.get().isNull() && mCx, false);
 
-  // We're pulling a cx off the heap, so make sure it's stack-top.
+  
   AutoCxPusher pusher(mCx);
   NS_ENSURE_TRUE(mCallback.ToJSObject(), false);
   JSAutoCompartment ac(mCx, mCallback.ToJSObject());
@@ -80,7 +80,7 @@ TestShellCommandParent::RunCallback(const nsString& aResponse)
 
   JS::Rooted<JS::Value> rval(mCx);
   JS::Rooted<JS::Value> callback(mCx, mCallback);
-  bool ok = JS_CallFunctionValue(mCx, global, callback, strVal, &rval);
+  bool ok = JS_CallFunctionValue(mCx, global, callback, JS::HandleValueArray(strVal), &rval);
   NS_ENSURE_TRUE(ok, false);
 
   return true;

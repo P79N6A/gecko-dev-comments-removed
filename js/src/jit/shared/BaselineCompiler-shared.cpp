@@ -97,7 +97,7 @@ BaselineCompilerShared::callVM(const VMFunction &fun, CallVMPhase phase)
     
     
     ICEntry entry(script->pcToOffset(pc), ICEntry::Kind_CallVM);
-    entry.setReturnOffset(callOffset);
+    entry.setReturnOffset(CodeOffsetLabel(callOffset));
 
     return icEntries_.append(entry);
 }

@@ -30,7 +30,7 @@ struct StmtInfoPC : public StmtInfoBase {
     uint32_t        blockid;        
     uint32_t        innerBlockScopeDepth; 
 
-    StmtInfoPC(ExclusiveContext *cx) : StmtInfoBase(cx), innerBlockScopeDepth(0) {}
+    explicit StmtInfoPC(ExclusiveContext *cx) : StmtInfoBase(cx), innerBlockScopeDepth(0) {}
 };
 
 typedef HashSet<JSAtom *> FuncStmtSet;

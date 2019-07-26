@@ -366,7 +366,7 @@ class Range : public TempObject {
     
     
     
-    Range(const MDefinition *def);
+    explicit Range(const MDefinition *def);
 
     static Range *NewInt32Range(TempAllocator &alloc, int32_t l, int32_t h) {
         return new(alloc) Range(l, h, false, MaxInt32Exponent);

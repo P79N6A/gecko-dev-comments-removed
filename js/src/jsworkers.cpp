@@ -669,7 +669,7 @@ GlobalWorkerThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
         JSObject *newProto = GetBuiltinPrototypePure(global, key);
         JS_ASSERT(newProto);
 
-        object->setProtoUnchecked(newProto);
+        object->setProtoUnchecked(TaggedProto(newProto));
     }
 
     

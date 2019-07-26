@@ -301,7 +301,7 @@ struct ClosureInfo
 
   
   
-  ClosureInfo(JSRuntime* runtime)
+  explicit ClosureInfo(JSRuntime* runtime)
     : rt(runtime)
     , errResult(nullptr)
     , closure(nullptr)

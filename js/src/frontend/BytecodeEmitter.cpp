@@ -60,7 +60,7 @@ struct frontend::StmtInfoBCE : public StmtInfoBase
     ptrdiff_t       continues;      
     uint32_t        blockScopeIndex; 
 
-    StmtInfoBCE(ExclusiveContext *cx) : StmtInfoBase(cx) {}
+    explicit StmtInfoBCE(ExclusiveContext *cx) : StmtInfoBase(cx) {}
 
     
 
@@ -93,7 +93,7 @@ struct LoopStmtInfo : public StmtInfoBCE
     
     bool            canIonOsr;
 
-    LoopStmtInfo(ExclusiveContext *cx) : StmtInfoBCE(cx) {}
+    explicit LoopStmtInfo(ExclusiveContext *cx) : StmtInfoBCE(cx) {}
 
     static LoopStmtInfo* fromStmtInfo(StmtInfoBCE *stmt) {
         JS_ASSERT(stmt->isLoop());
@@ -3931,7 +3931,7 @@ class EmitLevelManager
 {
     BytecodeEmitter *bce;
   public:
-    EmitLevelManager(BytecodeEmitter *bce) : bce(bce) { bce->emitLevel++; }
+    explicit EmitLevelManager(BytecodeEmitter *bce) : bce(bce) { bce->emitLevel++; }
     ~EmitLevelManager() { bce->emitLevel--; }
 };
 

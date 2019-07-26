@@ -28,7 +28,7 @@ struct DebugModeOSREntry
     uint32_t pcOffset;
     ICEntry::Kind frameKind;
 
-    DebugModeOSREntry(JSScript *script)
+    explicit DebugModeOSREntry(JSScript *script)
       : script(script),
         oldBaselineScript(script->baselineScript()),
         oldStub(nullptr),
@@ -742,7 +742,7 @@ JitRuntime::generateBaselineDebugModeOSRHandler(JSContext *cx, uint32_t *noFrame
 
     
     
-    CodeOffsetLabel noFrameRegPopOffset = masm.currentOffset();
+    CodeOffsetLabel noFrameRegPopOffset(masm.currentOffset());
 
     
     masm.movePtr(StackPointer, syncedStackStart);

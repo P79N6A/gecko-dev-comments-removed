@@ -1694,7 +1694,7 @@ struct UnmarkGrayTracer : public JSTracer
 
 
 
-    UnmarkGrayTracer(JSRuntime *rt)
+    explicit UnmarkGrayTracer(JSRuntime *rt)
       : JSTracer(rt, UnmarkGrayChildren, DoNotTraceWeakMaps),
         tracingShape(false),
         previousShape(nullptr),

@@ -597,7 +597,7 @@ class MOZ_STACK_CLASS TokenStream
         
         
         
-        Position(AutoKeepAtoms&) { }
+        explicit Position(AutoKeepAtoms&) { }
       private:
         Position(const Position&) MOZ_DELETE;
         friend class TokenStream;
