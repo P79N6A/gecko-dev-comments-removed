@@ -6,7 +6,6 @@
 #ifndef mozilla_dom_HTMLButtonElement_h
 #define mozilla_dom_HTMLButtonElement_h
 
-#include "mozilla/Attributes.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLButtonElement.h"
 #include "nsIConstraintValidation.h"
@@ -47,52 +46,52 @@ public:
 
   
   NS_IMETHOD_(uint32_t) GetType() const { return mType; }
-  NS_IMETHOD Reset() MOZ_OVERRIDE;
-  NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission) MOZ_OVERRIDE;
-  NS_IMETHOD SaveState() MOZ_OVERRIDE;
-  bool RestoreState(nsPresState* aState) MOZ_OVERRIDE;
-  virtual bool IsDisabledForEvents(uint32_t aMessage) MOZ_OVERRIDE;
+  NS_IMETHOD Reset();
+  NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission);
+  NS_IMETHOD SaveState();
+  bool RestoreState(nsPresState* aState);
+  virtual bool IsDisabledForEvents(uint32_t aMessage);
 
   
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
-  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
+  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor);
 
   
-  virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
-  virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE { return this; }
+  virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const;
+  virtual nsIDOMNode* AsDOMNode() { return this; }
   virtual JSObject* WrapNode(JSContext* aCx,
                              JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
 
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              bool aCompileEventHandlers) MOZ_OVERRIDE;
+                              bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep = true,
-                              bool aNullParent = true) MOZ_OVERRIDE;
-  virtual void DoneCreatingElement() MOZ_OVERRIDE;
+                              bool aNullParent = true);
+  virtual void DoneCreatingElement();
 
   
-  nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+  nsEventStates IntrinsicState() const;
   
 
 
   virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                                  const nsAttrValueOrString* aValue,
-                                 bool aNotify) MOZ_OVERRIDE;
+                                 bool aNotify);
   
 
 
   nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                        const nsAttrValue* aValue, bool aNotify) MOZ_OVERRIDE;
+                        const nsAttrValue* aValue, bool aNotify);
   virtual bool ParseAttribute(int32_t aNamespaceID,
                               nsIAtom* aAttribute,
                               const nsAString& aValue,
-                              nsAttrValue& aResult) MOZ_OVERRIDE;
+                              nsAttrValue& aResult);
 
   
   virtual bool IsHTMLFocusable(bool aWithMouse,
                                bool* aIsFocusable,
-                               int32_t* aTabIndex) MOZ_OVERRIDE;
+                               int32_t* aTabIndex);
 
   
   bool Autofocus() const

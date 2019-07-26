@@ -2,7 +2,6 @@
 
 
 
-#include "mozilla/Attributes.h"
 #include "nsIScriptLoaderObserver.h"
 #include "nsIScriptElement.h"
 #include "nsStubMutationObserver.h"
@@ -31,7 +30,7 @@ public:
   {
   }
 
-  virtual nsresult FireErrorEvent() MOZ_OVERRIDE;
+  virtual nsresult FireErrorEvent();
 
 protected:
   
@@ -41,5 +40,5 @@ protected:
 
   virtual bool HasScriptContent() = 0;
 
-  virtual bool MaybeProcessScript() MOZ_OVERRIDE;
+  virtual bool MaybeProcessScript();
 };

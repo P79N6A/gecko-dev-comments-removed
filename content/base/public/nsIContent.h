@@ -5,7 +5,6 @@
 #ifndef nsIContent_h___
 #define nsIContent_h___
 
-#include "mozilla/Attributes.h"
 #include "nsCaseTreatment.h" 
 #include "nsIDocument.h"
 
@@ -847,9 +846,9 @@ public:
   }
 
   
-  virtual already_AddRefed<nsIURI> GetBaseURI() const MOZ_OVERRIDE;
+  virtual already_AddRefed<nsIURI> GetBaseURI() const;
 
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
   virtual bool IsPurple() = 0;
   virtual void RemovePurple() = 0;

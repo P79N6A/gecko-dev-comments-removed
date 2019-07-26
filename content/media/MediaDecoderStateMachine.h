@@ -76,7 +76,6 @@
 #if !defined(MediaDecoderStateMachine_h__)
 #define MediaDecoderStateMachine_h__
 
-#include "mozilla/Attributes.h"
 #include "nsThreadUtils.h"
 #include "MediaDecoder.h"
 #include "AudioAvailableEventManager.h"
@@ -205,7 +204,7 @@ public:
   void StartBuffering();
 
   
-  NS_IMETHOD Run() MOZ_OVERRIDE;
+  NS_IMETHOD Run();
 
   
   
@@ -330,7 +329,7 @@ private:
   public:
     WakeDecoderRunnable(MediaDecoderStateMachine* aSM)
       : mMutex("WakeDecoderRunnable"), mStateMachine(aSM) {}
-    NS_IMETHOD Run() MOZ_OVERRIDE
+    NS_IMETHOD Run()
     {
       nsRefPtr<MediaDecoderStateMachine> stateMachine;
       {

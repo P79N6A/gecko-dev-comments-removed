@@ -90,9 +90,9 @@ public:
     nsRefPtr<nsSVGElement> mSVGElement;
     PairIndex mIndex; 
 
-    NS_IMETHOD GetBaseVal(int32_t* aResult) MOZ_OVERRIDE
+    NS_IMETHOD GetBaseVal(int32_t* aResult)
       { *aResult = mVal->GetBaseValue(mIndex); return NS_OK; }
-    NS_IMETHOD SetBaseVal(int32_t aValue) MOZ_OVERRIDE
+    NS_IMETHOD SetBaseVal(int32_t aValue)
       {
         mVal->SetBaseValue(aValue, mIndex, mSVGElement);
         return NS_OK;
@@ -100,7 +100,7 @@ public:
 
     
     
-    NS_IMETHOD GetAnimVal(int32_t* aResult) MOZ_OVERRIDE
+    NS_IMETHOD GetAnimVal(int32_t* aResult)
     {
       mSVGElement->FlushAnimations();
       *aResult = mVal->GetAnimValue(mIndex);
@@ -124,10 +124,10 @@ public:
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const mozilla::dom::SVGAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
-                                     bool& aPreventCachingOfSandwich) const MOZ_OVERRIDE;
-    virtual nsSMILValue GetBaseValue() const MOZ_OVERRIDE;
-    virtual void ClearAnimValue() MOZ_OVERRIDE;
-    virtual nsresult SetAnimValue(const nsSMILValue& aValue) MOZ_OVERRIDE;
+                                     bool& aPreventCachingOfSandwich) const;
+    virtual nsSMILValue GetBaseValue() const;
+    virtual void ClearAnimValue();
+    virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
 };
 

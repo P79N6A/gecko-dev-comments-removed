@@ -28,7 +28,6 @@
 #ifndef nsRuleNetwork_h__
 #define nsRuleNetwork_h__
 
-#include "mozilla/Attributes.h"
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
 #include "nsIAtom.h"
@@ -798,7 +797,7 @@ public:
 
 
     virtual nsresult Propagate(InstantiationSet& aInstantiations,
-                               bool aIsUpdate, bool& aTakenInstantiations) MOZ_OVERRIDE;
+                               bool aIsUpdate, bool& aTakenInstantiations);
 
     
 

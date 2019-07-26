@@ -6,7 +6,6 @@
 #ifndef mozilla_dom_SVGAnimationElement_h
 #define mozilla_dom_SVGAnimationElement_h
 
-#include "mozilla/Attributes.h"
 #include "mozilla/dom/SVGTests.h"
 #include "nsReferencedElement.h"
 #include "nsSMILTimedElement.h"
@@ -42,21 +41,21 @@ public:
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              bool aCompileEventHandlers) MOZ_OVERRIDE;
-  virtual void UnbindFromTree(bool aDeep, bool aNullParent) MOZ_OVERRIDE;
+                              bool aCompileEventHandlers);
+  virtual void UnbindFromTree(bool aDeep, bool aNullParent);
 
   virtual nsresult UnsetAttr(int32_t aNamespaceID, nsIAtom* aAttribute,
-                             bool aNotify) MOZ_OVERRIDE;
+                             bool aNotify);
 
-  virtual bool IsNodeOfType(uint32_t aFlags) const MOZ_OVERRIDE;
+  virtual bool IsNodeOfType(uint32_t aFlags) const;
 
   
   virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
-                                nsAttrValue& aResult) MOZ_OVERRIDE;
+                                nsAttrValue& aResult);
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify) MOZ_OVERRIDE;
+                                const nsAttrValue* aValue, bool aNotify);
 
   bool PassesConditionalProcessingTests();
   const nsAttrValue* GetAnimAttr(nsIAtom* aName) const;
@@ -100,14 +99,14 @@ public:
     
     
     
-    virtual void ElementChanged(Element* aFrom, Element* aTo) MOZ_OVERRIDE {
+    virtual void ElementChanged(Element* aFrom, Element* aTo) {
       nsReferencedElement::ElementChanged(aFrom, aTo);
       mAnimationElement->AnimationTargetChanged();
     }
 
     
     
-    virtual bool IsPersistent() MOZ_OVERRIDE { return true; }
+    virtual bool IsPersistent() { return true; }
   private:
     SVGAnimationElement* const mAnimationElement;
   };
