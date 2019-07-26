@@ -64,7 +64,8 @@ public:
   NS_DECL_NSIHASHABLE
 
   
-  nsresult Init(nsIURI* aRemoteOpenUri);
+  
+  nsresult Init(nsIURI* aRemoteOpenUri, nsIURI* aAppUri);
 
   
   
@@ -100,6 +101,7 @@ protected:
   
   nsCOMPtr<nsIFile> mFile;
   nsCOMPtr<nsIURI> mURI;
+  nsCOMPtr<nsIURI> mAppURI;
   nsCOMPtr<nsIRemoteOpenFileListener> mListener;
   nsRefPtr<TabChild> mTabChild;
   PRFileDesc* mNSPRFileDesc;
