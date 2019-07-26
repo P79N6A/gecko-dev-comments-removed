@@ -32,6 +32,18 @@ PrintBytecode(JSContext *cx, JSScript *script, jsbytecode *pc)
 }
 #endif
 
+inline bool
+IsJumpOpcode(JSOp op)
+{
+    uint32_t type = JOF_TYPE(js_CodeSpec[op].format);
+
+    
+
+
+
+    return type == JOF_JUMP && op != JSOP_LABEL;
+}
+
 
 
 
@@ -603,10 +615,10 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             break;
         }
 
-        uint32_t type = JOF_TYPE(js_CodeSpec[op].format);
+        bool jump = IsJumpOpcode(op);
 
         
-        if (type == JOF_JUMP) {
+        if (jump) {
             
             unsigned newStackDepth = stackDepth;
 
@@ -640,11 +652,11 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             }
             JS_ASSERT(nextcode->stackDepth == stackDepth);
 
-            if (type == JOF_JUMP)
+            if (jump)
                 nextcode->jumpFallthrough = true;
 
             
-            if (type == JOF_JUMP)
+            if (jump)
                 nextcode->jumpTarget = true;
             else
                 nextcode->fallthrough = true;
@@ -839,8 +851,7 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
           default:;
         }
 
-        uint32_t type = JOF_TYPE(js_CodeSpec[op].format);
-        if (type == JOF_JUMP) {
+        if (IsJumpOpcode(op)) {
             
 
 
@@ -1571,8 +1582,7 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
           default:;
         }
 
-        uint32_t type = JOF_TYPE(js_CodeSpec[op].format);
-        if (type == JOF_JUMP) {
+        if (IsJumpOpcode(op)) {
             unsigned targetOffset = FollowBranch(cx, script, offset);
             checkBranchTarget(cx, targetOffset, branchTargets, values, stackDepth);
 
