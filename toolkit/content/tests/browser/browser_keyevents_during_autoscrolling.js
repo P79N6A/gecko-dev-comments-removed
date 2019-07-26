@@ -91,6 +91,12 @@ function test()
                                gBrowser.contentWindow);
 
     
+    
+    executeSoon(continueTest);
+  }
+
+  function continueTest() {
+    
     expectedKeyEvents = kNoKeyEvents;
     sendChar("A");
     sendKey("DOWN");

@@ -75,7 +75,10 @@ function test()
       ok((scrollHori && elem.scrollLeft > 0) ||
          (!scrollHori && elem.scrollLeft == 0),
          test.elem+' should'+(scrollHori ? '' : ' not')+' have scrolled horizontally');
-      nextTest();
+
+      
+      
+      executeSoon(nextTest);
     };
     EventUtils.synthesizeMouse(elem, 50, 50, { button: 1 },
                                gBrowser.contentWindow);
