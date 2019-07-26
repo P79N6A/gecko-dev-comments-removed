@@ -37,17 +37,13 @@ function run_test() {
   checkThrows("DataView.prototype.getInt8.call(dv, 0);", sb);
 
   
+
   
-
-
-
-
-
-
-
-
-
-
+  do_check_eq(Cu.evalInSandbox("Date.prototype.getYear.call(d)", sb), sb.d.getYear());
+  do_check_eq(Cu.evalInSandbox("Date.prototype.valueOf.call(d)", sb), sb.d.valueOf());
+  do_check_eq(Cu.evalInSandbox("d.valueOf()", sb), sb.d.valueOf());
+  do_check_eq(Cu.evalInSandbox("Date.prototype.toString.call(d)", sb), sb.d.toString());
+  do_check_eq(Cu.evalInSandbox("d.toString()", sb), sb.d.toString());
 
   
   function testForTypedArray(t) {
