@@ -420,7 +420,8 @@ FloorLog2Size(size_t n)
 inline size_t
 RoundUpPow2(size_t x)
 {
-  MOZ_ASSERT(~x > x, "can't round up -- will overflow!");
+  MOZ_ASSERT(x <= (size_t(1) << (sizeof(size_t) * CHAR_BIT - 1)),
+             "can't round up -- will overflow!");
   return size_t(1) << CeilingLog2(x);
 }
 
