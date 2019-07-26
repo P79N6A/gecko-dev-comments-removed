@@ -58,8 +58,16 @@ class Debugger;
 
 
 
+
+
+
+
+
 class GlobalObject : public JSObject
 {
+    
+    static const unsigned APPLICATION_SLOTS = 3;
+
     
 
 
@@ -67,7 +75,7 @@ class GlobalObject : public JSObject
     static const unsigned STANDARD_CLASS_SLOTS  = JSProto_LIMIT * 3;
 
     
-    static const unsigned EVAL                    = STANDARD_CLASS_SLOTS;
+    static const unsigned EVAL                    = APPLICATION_SLOTS + STANDARD_CLASS_SLOTS;
     static const unsigned CREATE_DATAVIEW_FOR_THIS = EVAL + 1;
     static const unsigned THROWTYPEERROR          = CREATE_DATAVIEW_FOR_THIS + 1;
     static const unsigned PROTO_GETTER            = THROWTYPEERROR + 1;
@@ -122,23 +130,6 @@ class GlobalObject : public JSObject
     JSObject *
     initFunctionAndObjectClasses(JSContext *cx);
 
-    void setDetailsForKey(JSProtoKey key, JSObject *ctor, JSObject *proto) {
-        JS_ASSERT(getSlotRef(key).isUndefined());
-        JS_ASSERT(getSlotRef(JSProto_LIMIT + key).isUndefined());
-        JS_ASSERT(getSlotRef(2 * JSProto_LIMIT + key).isUndefined());
-        setSlot(key, ObjectValue(*ctor));
-        setSlot(JSProto_LIMIT + key, ObjectValue(*proto));
-        setSlot(2 * JSProto_LIMIT + key, ObjectValue(*ctor));
-    }
-
-    void setObjectClassDetails(JSFunction *ctor, JSObject *proto) {
-        setDetailsForKey(JSProto_Object, ctor, proto);
-    }
-
-    void setFunctionClassDetails(JSFunction *ctor, JSObject *proto) {
-        setDetailsForKey(JSProto_Function, ctor, proto);
-    }
-
     void setThrowTypeError(JSFunction *fun) {
         JS_ASSERT(getSlotRef(THROWTYPEERROR).isUndefined());
         setSlot(THROWTYPEERROR, ObjectValue(*fun));
@@ -159,14 +150,38 @@ class GlobalObject : public JSObject
         setSlot(INTRINSICS, ObjectValue(*obj));
     }
 
+  public:
     Value getConstructor(JSProtoKey key) const {
         JS_ASSERT(key <= JSProto_LIMIT);
-        return getSlot(key);
+        return getSlot(APPLICATION_SLOTS + key);
+    }
+
+    void setConstructor(JSProtoKey key, const Value &v) {
+        JS_ASSERT(key <= JSProto_LIMIT);
+        setSlot(APPLICATION_SLOTS + key, v);
     }
 
     Value getPrototype(JSProtoKey key) const {
         JS_ASSERT(key <= JSProto_LIMIT);
-        return getSlot(JSProto_LIMIT + key);
+        return getSlot(APPLICATION_SLOTS + JSProto_LIMIT + key);
+    }
+
+    void setPrototype(JSProtoKey key, const Value &value) {
+        JS_ASSERT(key <= JSProto_LIMIT);
+        setSlot(APPLICATION_SLOTS + JSProto_LIMIT + key, value);
+    }
+
+    static uint32_t constructorPropertySlot(JSProtoKey key) {
+        JS_ASSERT(key <= JSProto_LIMIT);
+        return APPLICATION_SLOTS + JSProto_LIMIT * 2 + key;
+    }
+
+    Value getConstructorPropertySlot(JSProtoKey key) {
+        return getSlot(constructorPropertySlot(key));
+    }
+
+    void setConstructorPropertySlot(JSProtoKey key, const Value &ctor) {
+        setSlot(constructorPropertySlot(key), ctor);
     }
 
     bool classIsInitialized(JSProtoKey key) const {
@@ -179,6 +194,50 @@ class GlobalObject : public JSObject
         bool inited = classIsInitialized(JSProto_Function);
         JS_ASSERT(inited == classIsInitialized(JSProto_Object));
         return inited;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    bool isStandardClassResolved(const js::Class *clasp) const {
+        JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
+
+        
+        return !getConstructor(key).isUndefined();
+    }
+
+    void markStandardClassInitializedNoProto(const js::Class *clasp) {
+        JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
+
+        
+        
+        if (getConstructor(key).isUndefined())
+            setConstructor(key, BooleanValue(true));
+    }
+
+  private:
+    void setDetailsForKey(JSProtoKey key, JSObject *ctor, JSObject *proto) {
+        JS_ASSERT(getConstructor(key).isUndefined());
+        JS_ASSERT(getPrototype(key).isUndefined());
+        JS_ASSERT(getConstructorPropertySlot(key).isUndefined());
+        setConstructor(key, ObjectValue(*ctor));
+        setPrototype(key, ObjectValue(*proto));
+        setConstructorPropertySlot(key, ObjectValue(*ctor));
+    }
+
+    void setObjectClassDetails(JSFunction *ctor, JSObject *proto) {
+        setDetailsForKey(JSProto_Object, ctor, proto);
+    }
+
+    void setFunctionClassDetails(JSFunction *ctor, JSObject *proto) {
+        setDetailsForKey(JSProto_Function, ctor, proto);
     }
 
     bool arrayClassInitialized() const {
@@ -349,7 +408,24 @@ class GlobalObject : public JSObject
     }
 
     JSObject *getOrCreateIntlObject(JSContext *cx) {
-        return getOrCreateObject(cx, JSProto_Intl, initIntlObject);
+        return getOrCreateObject(cx, APPLICATION_SLOTS + JSProto_Intl, initIntlObject);
+    }
+
+    JSObject *getIteratorPrototype() {
+        return &getPrototype(JSProto_Iterator).toObject();
+    }
+
+    JSObject *getOrCreateDataObject(JSContext *cx) {
+        return getOrCreateObject(cx, APPLICATION_SLOTS + JSProto_Data, initDataObject);
+    }
+
+    JSObject *getOrCreateTypeObject(JSContext *cx) {
+        return getOrCreateObject(cx, APPLICATION_SLOTS + JSProto_Type, initTypeObject);
+    }
+
+    JSObject *getOrCreateArrayTypeObject(JSContext *cx) {
+        return getOrCreateObject(cx, APPLICATION_SLOTS + JSProto_ArrayTypeObject,
+                                 initArrayTypeObject);
     }
 
     JSObject *getOrCreateCollatorPrototype(JSContext *cx) {
@@ -362,22 +438,6 @@ class GlobalObject : public JSObject
 
     JSObject *getOrCreateDateTimeFormatPrototype(JSContext *cx) {
         return getOrCreateObject(cx, DATE_TIME_FORMAT_PROTO, initDateTimeFormatProto);
-    }
-
-    JSObject *getIteratorPrototype() {
-        return &getPrototype(JSProto_Iterator).toObject();
-    }
-
-    JSObject *getOrCreateDataObject(JSContext *cx) {
-        return getOrCreateObject(cx, JSProto_Data, initDataObject);
-    }
-
-    JSObject *getOrCreateTypeObject(JSContext *cx) {
-        return getOrCreateObject(cx, JSProto_Type, initTypeObject);
-    }
-
-    JSObject *getOrCreateArrayTypeObject(JSContext *cx) {
-        return getOrCreateObject(cx, JSProto_ArrayTypeObject, initArrayTypeObject);
     }
 
   private:
@@ -395,7 +455,8 @@ class GlobalObject : public JSObject
 
   public:
     JSObject *getOrCreateIteratorPrototype(JSContext *cx) {
-        return getOrCreateObject(cx, JSProto_LIMIT + JSProto_Iterator, initIteratorClasses);
+        return getOrCreateObject(cx, APPLICATION_SLOTS + JSProto_LIMIT + JSProto_Iterator,
+                                 initIteratorClasses);
     }
 
     JSObject *getOrCreateElementIteratorPrototype(JSContext *cx) {
@@ -411,12 +472,13 @@ class GlobalObject : public JSObject
     }
 
     JSObject *getOrCreateStarGeneratorFunctionPrototype(JSContext *cx) {
-        return getOrCreateObject(cx, JSProto_LIMIT + JSProto_GeneratorFunction,
+        return getOrCreateObject(cx, APPLICATION_SLOTS + JSProto_LIMIT + JSProto_GeneratorFunction,
                                  initIteratorClasses);
     }
 
     JSObject *getOrCreateStarGeneratorFunction(JSContext *cx) {
-        return getOrCreateObject(cx, JSProto_GeneratorFunction, initIteratorClasses);
+        return getOrCreateObject(cx, APPLICATION_SLOTS + JSProto_GeneratorFunction,
+                                 initIteratorClasses);
     }
 
     JSObject *getOrCreateMapIteratorPrototype(JSContext *cx) {
