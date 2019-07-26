@@ -115,8 +115,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionCookies",
   "resource:///modules/sessionstore/SessionCookies.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TextAndScrollData",
   "resource:///modules/sessionstore/TextAndScrollData.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "_SessionFile",
-  "resource:///modules/sessionstore/_SessionFile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionFile",
+  "resource:///modules/sessionstore/SessionFile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabAttributes",
   "resource:///modules/sessionstore/TabAttributes.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabState",
@@ -490,12 +490,12 @@ let SessionStoreInternal = {
     return Task.spawn(function task() {
       try {
         
-        yield _SessionFile.createBackupCopy("-" + buildID);
+        yield SessionFile.createBackupCopy("-" + buildID);
 
         this._prefBranch.setCharPref(PREF_UPGRADE, buildID);
 
         
-        yield _SessionFile.removeBackupCopy("-" + latestBackup);
+        yield SessionFile.removeBackupCopy("-" + latestBackup);
       } catch (ex) {
         debug("Could not perform upgrade backup " + ex);
         debug(ex.stack);
@@ -737,7 +737,7 @@ let SessionStoreInternal = {
           
           
           
-          _SessionFile.writeLoadStateOnceAfterStartup(STATE_RUNNING_STR);
+          SessionFile.writeLoadStateOnceAfterStartup(STATE_RUNNING_STR);
         }
       }
       else {
@@ -1073,7 +1073,7 @@ let SessionStoreInternal = {
 
 
   onPurgeSessionHistory: function ssi_onPurgeSessionHistory() {
-    _SessionFile.wipe();
+    SessionFile.wipe();
     
     
     

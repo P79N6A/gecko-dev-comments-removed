@@ -7,9 +7,9 @@
 
 let tmp = {};
 Cu.import("resource://gre/modules/osfile.jsm", tmp);
-Cu.import("resource:///modules/sessionstore/_SessionFile.jsm", tmp);
+Cu.import("resource:///modules/sessionstore/SessionFile.jsm", tmp);
 
-const {OS, _SessionFile} = tmp;
+const {OS, SessionFile} = tmp;
 
 const PREF_SS_INTERVAL = "browser.sessionstore.interval";
 
@@ -101,13 +101,13 @@ function testReadBackup() {
   gSSData = gDecoder.decode(array);
 
   
-  let ssDataRead = yield _SessionFile.read();
-  is(ssDataRead, gSSData, "_SessionFile.read read sessionstore.js correctly.");
+  let ssDataRead = yield SessionFile.read();
+  is(ssDataRead, gSSData, "SessionFile.read read sessionstore.js correctly.");
 
   
-  ssDataRead = _SessionFile.syncRead();
+  ssDataRead = SessionFile.syncRead();
   is(ssDataRead, gSSData,
-    "_SessionFile.syncRead read sessionstore.js correctly.");
+    "SessionFile.syncRead read sessionstore.js correctly.");
 
   
   yield OS.File.remove(path);
@@ -115,14 +115,14 @@ function testReadBackup() {
   ok(!ssExists, "sessionstore.js should be removed now.");
 
   
-  ssDataRead = yield _SessionFile.read();
+  ssDataRead = yield SessionFile.read();
   is(ssDataRead, gSSBakData,
-    "_SessionFile.read read sessionstore.bak correctly.");
+    "SessionFile.read read sessionstore.bak correctly.");
 
   
-  ssDataRead = _SessionFile.syncRead();
+  ssDataRead = SessionFile.syncRead();
   is(ssDataRead, gSSBakData,
-    "_SessionFile.syncRead read sessionstore.bak correctly.");
+    "SessionFile.syncRead read sessionstore.bak correctly.");
 
   nextTest(testBackupUnchanged);
 }
