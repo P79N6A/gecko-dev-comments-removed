@@ -1206,9 +1206,20 @@ struct TypeObjectEntry : DefaultHasher<ReadBarriered<TypeObject> >
 {
     struct Lookup {
         const Class *clasp;
-        TaggedProto proto;
+        TaggedProto hashProto;
+        TaggedProto matchProto;
 
-        Lookup(const Class *clasp, TaggedProto proto) : clasp(clasp), proto(proto) {}
+        Lookup(const Class *clasp, TaggedProto proto)
+          : clasp(clasp), hashProto(proto), matchProto(proto) {}
+
+#ifdef JSGC_GENERATIONAL
+        
+
+
+
+        Lookup(const Class *clasp, TaggedProto hashProto, TaggedProto matchProto)
+          : clasp(clasp), hashProto(hashProto), matchProto(matchProto) {}
+#endif
     };
 
     static inline HashNumber hash(const Lookup &lookup);
