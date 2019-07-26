@@ -64,6 +64,14 @@ class MIRGenerator
         return compartment->rt->spsProfiler.enabled();
     }
 
+    
+    bool shouldCancel(const char *why) {
+        return cancelBuild_;
+    }
+    void cancel() {
+        cancelBuild_ = 1;
+    }
+
   public:
     JSCompartment *compartment;
 
@@ -74,6 +82,7 @@ class MIRGenerator
     uint32 nslots_;
     MIRGraph *graph_;
     bool error_;
+    size_t cancelBuild_;
 };
 
 } 
