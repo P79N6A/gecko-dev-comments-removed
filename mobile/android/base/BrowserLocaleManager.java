@@ -5,15 +5,6 @@
 
 package org.mozilla.gecko;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
-import android.content.res.Configuration;
-import android.content.res.Resources;
-import android.util.Log;
-
 import java.io.File;
 import java.util.Collection;
 import java.util.HashSet;
@@ -26,6 +17,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.util.GeckoJarReader;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.content.res.Resources;
+import android.util.Log;
 
 
 
@@ -132,6 +132,8 @@ public class BrowserLocaleManager implements LocaleManager {
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                final Locale current = systemLocale;
+
                 
                 
                 
@@ -139,6 +141,8 @@ public class BrowserLocaleManager implements LocaleManager {
                 
                 systemLocale = context.getResources().getConfiguration().locale;
                 systemLocaleDidChange = true;
+
+                Log.d(LOG_TAG, "System locale changed from " + current + " to " + systemLocale);
             }
         };
         context.registerReceiver(receiver, new IntentFilter(Intent.ACTION_LOCALE_CHANGED));
@@ -157,6 +161,7 @@ public class BrowserLocaleManager implements LocaleManager {
     public void correctLocale(Context context, Resources res, Configuration config) {
         final Locale current = getCurrentLocale(context);
         if (current == null) {
+            Log.d(LOG_TAG, "No selected locale. No correction needed.");
             return;
         }
 
@@ -178,6 +183,48 @@ public class BrowserLocaleManager implements LocaleManager {
         
         
         res.updateConfiguration(config, null);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @Override
+    public Locale onSystemConfigurationChanged(final Context context, final Resources resources, final Configuration configuration, final Locale currentActivityLocale) {
+        if (!isMirroringSystemLocale(context)) {
+            correctLocale(context, resources, configuration);
+        }
+
+        final Locale changed = configuration.locale;
+        if (changed.equals(currentActivityLocale)) {
+            return null;
+        }
+
+        return changed;
     }
 
     @Override
@@ -321,6 +368,10 @@ public class BrowserLocaleManager implements LocaleManager {
         updateConfiguration(context, locale);
 
         return locale.toString();
+    }
+
+    private boolean isMirroringSystemLocale(final Context context) {
+        return getPersistedLocale(context) == null;
     }
 
     

@@ -16,7 +16,6 @@ import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -209,6 +208,7 @@ public abstract class GeckoApp
     private String mPrivateBrowsingSession;
 
     private volatile HealthRecorder mHealthRecorder = null;
+    private volatile Locale mLastLocale = null;
 
     private int mSignalStrenth;
     private PhoneStateListener mPhoneStateListener = null;
@@ -1279,7 +1279,8 @@ public abstract class GeckoApp
 
                 
                 
-                BrowserLocaleManager.getInstance().initialize(getApplicationContext());
+                final LocaleManager localeManager = BrowserLocaleManager.getInstance();
+                localeManager.initialize(getApplicationContext());
 
                 SessionInformation previousSession = SessionInformation.fromSharedPrefs(prefs);
                 if (previousSession.wasKilled()) {
@@ -1303,7 +1304,7 @@ public abstract class GeckoApp
                 Log.i(LOGTAG, "Creating HealthRecorder.");
 
                 final String osLocale = Locale.getDefault().toString();
-                String appLocale = BrowserLocaleManager.getInstance().getAndApplyPersistedLocale(GeckoApp.this);
+                String appLocale = localeManager.getAndApplyPersistedLocale(GeckoApp.this);
                 Log.d(LOGTAG, "OS locale is " + osLocale + ", app locale is " + appLocale);
 
                 if (appLocale == null) {
@@ -1351,6 +1352,11 @@ public abstract class GeckoApp
             throw new RuntimeException("onLocaleReady must always be called from the UI thread.");
         }
 
+        final Locale loc = BrowserLocaleManager.parseLocaleCode(locale);
+        if (loc.equals(mLastLocale)) {
+            Log.d(LOGTAG, "New locale same as old; onLocaleReady has nothing to do.");
+        }
+
         
         TextView urlBar = (TextView) findViewById(R.id.url_bar_title);
         if (urlBar != null) {
@@ -1360,8 +1366,13 @@ public abstract class GeckoApp
             Log.d(LOGTAG, "No URL bar in GeckoApp. Not loading localized hint string.");
         }
 
+        mLastLocale = loc;
+
         
-        onConfigurationChanged(getResources().getConfiguration());
+        
+        
+        
+        super.onConfigurationChanged(getResources().getConfiguration());
     }
 
     protected void initializeChrome() {
@@ -2155,7 +2166,12 @@ public abstract class GeckoApp
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         Log.d(LOGTAG, "onConfigurationChanged: " + newConfig.locale);
-        BrowserLocaleManager.getInstance().correctLocale(this, getResources(), newConfig);
+
+        final LocaleManager localeManager = BrowserLocaleManager.getInstance();
+        final Locale changed = localeManager.onSystemConfigurationChanged(this, getResources(), newConfig, mLastLocale);
+        if (changed != null) {
+            onLocaleChanged(BrowserLocaleManager.getLanguageTag(changed));
+        }
 
         
         
