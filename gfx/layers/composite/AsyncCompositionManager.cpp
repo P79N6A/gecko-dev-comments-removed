@@ -432,9 +432,7 @@ SampleAnimations(Layer* aLayer, TimeStamp aPoint)
 
     AnimationTiming timing;
     timing.mIterationDuration = animation.duration();
-    timing.mIterationCount = animation.numIterations() != -1 ?
-                             animation.numIterations() :
-                             NS_IEEEPositiveInfinity();
+    timing.mIterationCount = animation.iterationCount();
     timing.mDirection = animation.direction();
     
     
