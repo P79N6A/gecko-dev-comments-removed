@@ -454,7 +454,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
 
             Layer rootLayer = mView.getLayerClient().getRoot();
 
-            if (!mPageContext.fuzzyEquals(mLastPageContext)) {
+            if (!mPageContext.fuzzyEquals(mLastPageContext) && !mView.isFullScreen()) {
                 
                 
                 mVertScrollLayer.unfade();

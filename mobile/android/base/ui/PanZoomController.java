@@ -315,7 +315,8 @@ public class PanZoomController
             return false;
 
         case TOUCHING:
-            if (panDistance(event) < PAN_THRESHOLD) {
+            
+            if (mTarget.isFullScreen() || panDistance(event) < PAN_THRESHOLD) {
                 return false;
             }
             cancelTouch();
