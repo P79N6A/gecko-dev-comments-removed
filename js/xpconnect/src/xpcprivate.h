@@ -654,10 +654,10 @@ public:
     bool OnJSContextNew(JSContext* cx);
 
     virtual bool
-    DescribeCustomObjects(JSObject* aObject, const js::Class* aClasp,
+    DescribeCustomObjects(JSObject* aObject, js::Class* aClasp,
                           char (&aName)[72]) const MOZ_OVERRIDE;
     virtual bool
-    NoteCustomGCThingXPCOMChildren(const js::Class* aClasp, JSObject* aObj,
+    NoteCustomGCThingXPCOMChildren(js::Class* aClasp, JSObject* aObj,
                                    nsCycleCollectionTraversalCallback& aCb) const MOZ_OVERRIDE;
 
     
@@ -1114,13 +1114,13 @@ private:
 
 
 struct XPCWrappedNativeJSClass;
-extern const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass;
-extern const js::Class XPC_WN_NoMods_WithCall_Proto_JSClass;
-extern const js::Class XPC_WN_NoMods_NoCall_Proto_JSClass;
-extern const js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass;
-extern const js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass;
-extern const js::Class XPC_WN_Tearoff_JSClass;
-extern const js::Class XPC_WN_NoHelper_Proto_JSClass;
+extern XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass;
+extern js::Class XPC_WN_NoMods_WithCall_Proto_JSClass;
+extern js::Class XPC_WN_NoMods_NoCall_Proto_JSClass;
+extern js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass;
+extern js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass;
+extern js::Class XPC_WN_Tearoff_JSClass;
+extern js::Class XPC_WN_NoHelper_Proto_JSClass;
 
 extern bool
 XPC_WN_CallMethod(JSContext *cx, unsigned argc, jsval *vp);
@@ -1195,7 +1195,7 @@ XPC_WN_JSOp_ThisObject(JSContext *cx, JS::HandleObject obj);
 
 
 
-static inline bool IS_PROTO_CLASS(const js::Class *clazz)
+static inline bool IS_PROTO_CLASS(js::Class *clazz)
 {
     return clazz == &XPC_WN_NoMods_WithCall_Proto_JSClass ||
            clazz == &XPC_WN_NoMods_NoCall_Proto_JSClass ||
@@ -1826,7 +1826,7 @@ public:
     const XPCNativeScriptableFlags& GetFlags() const {return mFlags;}
     uint32_t                        GetInterfacesBitmap() const
         {return mJSClass.interfacesBitmap;}
-    const JSClass*                  GetJSClass()
+    JSClass*                        GetJSClass()
         {return Jsvalify(&mJSClass.base);}
 
     XPCNativeScriptableShared(uint32_t aFlags, char* aName,
@@ -1875,7 +1875,7 @@ public:
     uint32_t
     GetInterfacesBitmap() const {return mShared->GetInterfacesBitmap();}
 
-    const JSClass*
+    JSClass*
     GetJSClass()          {return mShared->GetJSClass();}
 
     XPCNativeScriptableShared*
@@ -3604,6 +3604,7 @@ struct SandboxOptions {
         , wantExportHelpers(false)
         , proto(xpc_GetSafeJSContext())
         , sameZoneAs(xpc_GetSafeJSContext())
+        , metadata(xpc_GetSafeJSContext())
     { }
 
     bool wantXrays;
@@ -3613,10 +3614,11 @@ struct SandboxOptions {
     nsCString sandboxName;
     JS::RootedObject sameZoneAs;
     DOMConstructors DOMConstructors;
+    JS::RootedValue metadata;
 };
 
 JSObject *
-CreateGlobalObject(JSContext *cx, const JSClass *clasp, nsIPrincipal *principal,
+CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal,
                    JS::CompartmentOptions& aOptions);
 
 
@@ -3647,7 +3649,18 @@ EvalInSandbox(JSContext *cx, JS::HandleObject sandbox, const nsAString& source,
               JSVersion jsVersion, bool returnStringOnly,
               JS::MutableHandleValue rval);
 
+
+
+nsresult
+GetSandboxMetadata(JSContext *cx, JS::HandleObject sandboxArg,
+                   JS::MutableHandleValue rval);
+
+nsresult
+SetSandboxMetadata(JSContext *cx, JS::HandleObject sandboxArg,
+                   JS::HandleValue metadata);
+
 } 
+
 
 
 
@@ -3762,7 +3775,7 @@ GetObjectScope(JSObject *obj)
 extern bool gDebugMode;
 extern bool gDesiredDebugMode;
 
-extern const JSClass SafeJSContextGlobalClass;
+extern JSClass SafeJSContextGlobalClass;
 
 JSObject* NewOutObject(JSContext* cx, JSObject* scope);
 bool IsOutObject(JSContext* cx, JSObject* obj);
