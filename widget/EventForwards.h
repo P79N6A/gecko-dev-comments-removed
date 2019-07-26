@@ -28,25 +28,6 @@ enum nsEventStatus
 
 namespace mozilla {
 
-
-
-
-
-enum Modifier
-{
-  MODIFIER_ALT        = 0x0001,
-  MODIFIER_ALTGRAPH   = 0x0002,
-  MODIFIER_CAPSLOCK   = 0x0004,
-  MODIFIER_CONTROL    = 0x0008,
-  MODIFIER_FN         = 0x0010,
-  MODIFIER_META       = 0x0020,
-  MODIFIER_NUMLOCK    = 0x0040,
-  MODIFIER_SCROLLLOCK = 0x0080,
-  MODIFIER_SHIFT      = 0x0100,
-  MODIFIER_SYMBOLLOCK = 0x0200,
-  MODIFIER_OS         = 0x0400
-};
-
 typedef uint16_t Modifiers;
 
 #define NS_DEFINE_KEYNAME(aCPPName, aDOMKeyName) \
@@ -71,12 +52,12 @@ enum KeyNameIndex
 
 namespace mozilla {
 struct EventFlags;
-} 
 
-class nsEvent;
-class nsGUIEvent;
-class nsInputEvent;
-class nsUIEvent;
+class WidgetEvent;
+class WidgetGUIEvent;
+class WidgetInputEvent;
+class InternalUIEvent;
+} 
 
 
 struct nsAlternativeCharCode;
@@ -121,5 +102,11 @@ class nsPluginEvent;
 
 
 class nsMutationEvent;
+
+
+typedef mozilla::WidgetEvent      nsEvent;
+typedef mozilla::WidgetGUIEvent   nsGUIEvent;
+typedef mozilla::WidgetInputEvent nsInputEvent;
+typedef mozilla::InternalUIEvent  nsUIEvent;
 
 #endif 
