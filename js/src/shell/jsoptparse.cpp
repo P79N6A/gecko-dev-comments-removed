@@ -4,7 +4,7 @@
 
 
 
-#include "jsoptparse.h"
+#include "shell/jsoptparse.h"
 
 #include <ctype.h>
 #include <stdarg.h>

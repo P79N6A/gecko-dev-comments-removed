@@ -4,7 +4,7 @@
 
 
 
-#include "Unicode.h"
+#include "vm/Unicode.h"
 
 using namespace js;
 using namespace js::unicode;

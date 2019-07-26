@@ -8,7 +8,7 @@
 
 
 
-#include "Interpreter.h"
+#include "vm/Interpreter.h"
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"

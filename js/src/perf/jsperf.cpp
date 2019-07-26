@@ -3,7 +3,7 @@
 
 
 
-#include "jsperf.h"
+#include "perf/jsperf.h"
 
 #include "jscntxt.h" 
 #include "jsobj.h" 

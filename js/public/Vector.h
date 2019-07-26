@@ -11,8 +11,8 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TypeTraits.h"
 
-#include "TemplateLib.h"
-#include "Utility.h"
+#include "js/TemplateLib.h"
+#include "js/Utility.h"
 
 
 #ifdef _MSC_VER

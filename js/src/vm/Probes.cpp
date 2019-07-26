@@ -4,7 +4,7 @@
 
 
 
-#include "Probes-inl.h"
+#include "vm/Probes-inl.h"
 
 #include "jscntxt.h"
 

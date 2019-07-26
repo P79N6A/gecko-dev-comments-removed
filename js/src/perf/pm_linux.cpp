@@ -3,7 +3,7 @@
 
 
 
-#include "jsperf.h"
+#include "perf/jsperf.h"
 #include "jsutil.h"
 
 using namespace js;

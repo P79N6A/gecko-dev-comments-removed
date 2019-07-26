@@ -4,7 +4,7 @@
 
 
 
-#include "LifoAlloc.h"
+#include "ds/LifoAlloc.h"
 
 using namespace js;
 
