@@ -3703,6 +3703,22 @@ Tab.prototype = {
       }
 
       
+      if (aStateFlags & Ci.nsIWebProgressListener.STATE_START && aRequest && aWebProgress.isTopLevel) {
+          this.browser.engines = null;
+
+          
+          let newEngineMessage = {
+            type: "Link:OpenSearch",
+            tabID: this.id,
+            visible: false
+          };
+
+          sendMessageToJava(newEngineMessage);
+
+          this.browser.feeds = null;
+      }
+
+      
       
       let restoring = aStateFlags & Ci.nsIWebProgressListener.STATE_RESTORING;
       let showProgress = restoring ? false : this.showProgress;
