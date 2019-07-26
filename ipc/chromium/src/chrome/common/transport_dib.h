@@ -111,12 +111,14 @@ class TransportDIB {
 #if defined(OS_WIN) || defined(OS_MACOSX) || defined(OS_BSD)
   explicit TransportDIB(base::SharedMemoryHandle dib);
   base::SharedMemory shared_memory_;
-  uint32_t sequence_num_;
 #elif defined(OS_LINUX)
   int key_;  
   void* address_;  
   XID x_shm_;  
   Display* display_;  
+#endif
+#ifdef OS_WIN
+  uint32_t sequence_num_;
 #endif
   size_t size_;  
 };
