@@ -54,12 +54,6 @@ public:
     mInObserverList = true;
   }
 
-  void ResumeListening()
-  {
-    
-    GetReferencedElement();
-  }
-
   virtual ~SVGRootRenderingObserver()
   {
     StopListening();
@@ -88,7 +82,10 @@ protected:
 
     
     
-    
+    if (!mInObserverList) {
+      nsSVGEffects::AddRenderingObserver(elem, this);
+      mInObserverList = true;
+    } 
   }
 
   
@@ -732,10 +729,6 @@ VectorImage::Draw(gfxContext* aContext,
                              subimage, sourceRect, imageRect, aFill,
                              gfxASurface::ImageFormatARGB32, aFilter,
                              aFlags);
-
-  
-  MOZ_ASSERT(mRenderingObserver, "Should have a rendering observer by now");
-  mRenderingObserver->ResumeListening();
 
   return NS_OK;
 }
