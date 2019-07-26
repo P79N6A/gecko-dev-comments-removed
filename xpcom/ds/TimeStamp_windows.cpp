@@ -134,6 +134,9 @@ static const ULONGLONG kOverflowLimit = 100;
 static const DWORD kDefaultTimeIncrement = 156001;
 
 
+static const DWORD kForbidRecalibrationTime = 2000;
+
+
 
 
 
@@ -167,6 +170,12 @@ static LONGLONG sFrequencyPerSec = 0;
 
 static LONGLONG sUnderrunThreshold;
 static LONGLONG sOverrunThreshold;
+
+
+
+
+
+static LONGLONG sWakeupAdjust = 0;
 
 
 
@@ -206,6 +215,11 @@ static ULONGLONG sLastResult = 0;
 
 
 static ULONGLONG sLastCalibrated;
+
+
+
+
+static ULONGLONG sFallbackTime = 0;
 
 
 
@@ -327,11 +341,19 @@ StandbyObserver::Observe(nsISupports *subject,
 {
   AutoCriticalSection lock(&sTimeStampLock);
 
-  
-  
   CalibrationFlags value;
+  value.dwordValue = sCalibrationFlags.dwordValue;
+
+  if (value.flags.fallBackToGTC &&
+      ((sGetTickCount64() - sFallbackTime) > kForbidRecalibrationTime)) {
+    LOG(("Disallowing recalibration since the time from fallback is too long"));
+    return NS_OK;
+  }
+
+  
+  
+  value.flags.forceRecalibrate = value.flags.fallBackToGTC;
   value.flags.fallBackToGTC = false;
-  value.flags.forceRecalibrate = true;
   sCalibrationFlags.dwordValue = value.dwordValue; 
 
   LOG(("TimeStamp: system has woken up, reset GTC fallback"));
@@ -465,11 +487,12 @@ PerformanceCounter()
 
 
 static inline void
-RecordFlaw()
+RecordFlaw(ULONGLONG gtc)
 {
   sCalibrationFlags.flags.fallBackToGTC = true;
+  sFallbackTime = gtc;
 
-  LOG(("TimeStamp: falling back to GTC :("));
+  LOG(("TimeStamp: falling back to GTC at %llu :(", gtc));
 
 #if 0
   
@@ -526,7 +549,7 @@ CheckCalibration(LONGLONG overflow, ULONGLONG qpc, ULONGLONG gtc)
       
       
       AutoCriticalSection lock(&sTimeStampLock);
-      RecordFlaw();
+      RecordFlaw(gtc);
       return false;
     }
   }
@@ -534,10 +557,19 @@ CheckCalibration(LONGLONG overflow, ULONGLONG qpc, ULONGLONG gtc)
   if (sinceLastCalibration > kCalibrationInterval || value.flags.forceRecalibrate) {
     
     AutoCriticalSection lock(&sTimeStampLock);
+
+    
+    
+    
+    
+    
+    if (value.flags.forceRecalibrate)
+      sWakeupAdjust += sSkew - (qpc - ms2mt(gtc));
+
     sSkew = qpc - ms2mt(gtc);
     sLastCalibrated = gtc;
-    LOG(("TimeStamp: new skew is %1.2fms (force:%d)",
-      mt2ms_d(sSkew), value.flags.forceRecalibrate));
+    LOG(("TimeStamp: new skew is %1.2fms, wakeup adjust is %1.2fms (force:%d)",
+      mt2ms_d(sSkew), mt2ms_d(sWakeupAdjust), value.flags.forceRecalibrate));
 
     sCalibrationFlags.flags.forceRecalibrate = false;
   }
@@ -588,7 +620,7 @@ CalibratedPerformanceCounter()
   
   
 
-  ULONGLONG qpc = PerformanceCounter();
+  ULONGLONG qpc = PerformanceCounter() + sWakeupAdjust;
 
   
   ULONGLONG gtc = sGetTickCount64();
@@ -707,7 +739,7 @@ TimeStamp::Startup()
 
   sHasStableTSC = HasStableTSC();
 
-  LOG(("TimeStamp: initial skew is %1.2fms", mt2ms_d(sSkew)));
+  LOG(("TimeStamp: initial skew is %1.2fms, sHasStableTSC=%d", mt2ms_d(sSkew), sHasStableTSC));
 
   return NS_OK;
 }
