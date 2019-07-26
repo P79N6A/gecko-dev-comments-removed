@@ -378,7 +378,7 @@ nsDOMWindowUtils::SetDisplayPortForElement(float aXPx, float aYPx,
 
   nsIFrame* rootFrame = presShell->FrameManager()->GetRootFrame();
   if (rootFrame) {
-    rootFrame->InvalidateFrame();
+    rootFrame->SchedulePaint();
 
     
     
