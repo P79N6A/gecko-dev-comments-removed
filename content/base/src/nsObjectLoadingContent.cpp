@@ -1833,6 +1833,9 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     }
 
     
+    finalListener = nullptr;
+
+    
     
     LoadFallback(fallbackType, false);
   }
@@ -1844,8 +1847,6 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   
 
-  
-  
   if (!mIsLoading) {
     LOG(("OBJLC [%p]: Re-entered before dispatching to final listener", this));
   } else if (finalListener) {
@@ -1870,6 +1871,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
       mIsLoading = true;
       UnloadObject(false);
       NS_ENSURE_TRUE(mIsLoading, NS_OK);
+      CloseChannel();
       LoadFallback(fallbackType, true);
     }
   }
