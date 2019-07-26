@@ -370,6 +370,12 @@ struct NamedConstructor
 
 
 
+
+
+
+
+
+
 void
 CreateInterfaceObjects(JSContext* cx, JS::Handle<JSObject*> global,
                        JS::Handle<JSObject*> protoProto,
@@ -380,7 +386,7 @@ CreateInterfaceObjects(JSContext* cx, JS::Handle<JSObject*> global,
                        JS::Heap<JSObject*>* constructorCache, const DOMClass* domClass,
                        const NativeProperties* regularProperties,
                        const NativeProperties* chromeOnlyProperties,
-                       const char* name);
+                       const char* name, bool defineOnGlobal);
 
 
 
