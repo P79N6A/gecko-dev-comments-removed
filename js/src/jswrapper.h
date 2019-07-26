@@ -26,7 +26,7 @@ class DummyFrameGuard;
 
 
 
-class JS_FRIEND_API(Wrapper)
+class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
 {
     unsigned mFlags;
 
@@ -56,25 +56,9 @@ class JS_FRIEND_API(Wrapper)
 
     static JSObject *wrappedObject(RawObject wrapper);
 
-    explicit Wrapper(unsigned flags);
-
     unsigned flags() const {
         return mFlags;
     }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    virtual BaseProxyHandler *toBaseProxyHandler() = 0;
 
     
 
@@ -103,19 +87,10 @@ class JS_FRIEND_API(Wrapper)
 
     virtual bool enter(JSContext *cx, JSObject *wrapper, jsid id, Action act,
                        bool *bp);
-};
 
+    explicit Wrapper(unsigned flags, bool hasPrototype = false);
 
-
-
-
-
-class JS_FRIEND_API(DirectWrapper) : public Wrapper, public DirectProxyHandler
-{
-  public:
-    explicit DirectWrapper(unsigned flags, bool hasPrototype = false);
-
-    virtual ~DirectWrapper();
+    virtual ~Wrapper();
 
     virtual BaseProxyHandler* toBaseProxyHandler() {
         return this;
@@ -161,14 +136,14 @@ class JS_FRIEND_API(DirectWrapper) : public Wrapper, public DirectProxyHandler
     virtual bool defaultValue(JSContext *cx, JSObject *wrapper_, JSType hint,
                               Value *vp) MOZ_OVERRIDE;
 
-    static DirectWrapper singleton;
-    static DirectWrapper singletonWithPrototype;
+    static Wrapper singleton;
+    static Wrapper singletonWithPrototype;
 
     static void *getWrapperFamily();
 };
 
 
-class JS_FRIEND_API(CrossCompartmentWrapper) : public DirectWrapper
+class JS_FRIEND_API(CrossCompartmentWrapper) : public Wrapper
 {
   public:
     CrossCompartmentWrapper(unsigned flags, bool hasPrototype = false);
@@ -233,7 +208,7 @@ class JS_FRIEND_API(SecurityWrapper) : public Base
     virtual bool regexp_toShared(JSContext *cx, JSObject *proxy, RegExpGuard *g) MOZ_OVERRIDE;
 };
 
-typedef SecurityWrapper<DirectWrapper> SameCompartmentSecurityWrapper;
+typedef SecurityWrapper<Wrapper> SameCompartmentSecurityWrapper;
 typedef SecurityWrapper<CrossCompartmentWrapper> CrossCompartmentSecurityWrapper;
 
 class JS_FRIEND_API(DeadObjectProxy) : public BaseProxyHandler

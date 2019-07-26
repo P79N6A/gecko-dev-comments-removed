@@ -3057,9 +3057,9 @@ xpc::SandboxProxyHandler xpc::sandboxProxyHandler;
 
 
 
-class SandboxCallableProxyHandler : public js::DirectWrapper {
+class SandboxCallableProxyHandler : public js::Wrapper {
 public:
-    SandboxCallableProxyHandler() : js::DirectWrapper(0)
+    SandboxCallableProxyHandler() : js::Wrapper(0)
     {
     }
 

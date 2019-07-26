@@ -29,7 +29,7 @@ namespace xpc {
 
 
 
-DirectWrapper XrayWaiver(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
+Wrapper XrayWaiver(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
 
 
 
@@ -560,9 +560,9 @@ WrapperFactory::WrapForSameCompartmentXray(JSContext *cx, JSObject *obj)
     
     Wrapper *wrapper = NULL;
     if (type == XrayForWrappedNative)
-        wrapper = &XrayWrapper<DirectWrapper>::singleton;
+        wrapper = &XrayWrapper<Wrapper>::singleton;
     else if (type == XrayForDOMObject)
-        wrapper = &XrayWrapper<DirectWrapper, DOMXrayTraits>::singleton;
+        wrapper = &XrayWrapper<Wrapper, DOMXrayTraits>::singleton;
     else
         MOZ_NOT_REACHED("Bad Xray type");
 
