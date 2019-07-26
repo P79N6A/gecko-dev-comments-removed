@@ -204,7 +204,7 @@ TextureImageEGL::EndUpdate()
 }
 
 bool
-TextureImageEGL::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
+TextureImageEGL::DeprecatedDirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
 {
     nsIntRect bounds = aRegion.GetBounds();
 
