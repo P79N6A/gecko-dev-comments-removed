@@ -56,6 +56,7 @@ let Keyboard = {
       }
     } else {
       mm.addMessageListener('Forms:Input', this);
+      mm.addMessageListener('Forms:SelectionChange', this);
 
       
       
