@@ -3597,88 +3597,7 @@ let RIL = {
 
 
 
-  _processReceivedSms: function _processReceivedSms(length) {
-    if (!length) {
-      if (DEBUG) debug("Received empty SMS!");
-      return null;
-    }
-
-    
-    
-    let messageStringLength = Buf.readUint32();
-    if (DEBUG) debug("Got new SMS, length " + messageStringLength);
-    let message = GsmPDUHelper.readMessage();
-    if (DEBUG) debug("Got new SMS: " + JSON.stringify(message));
-
-    
-    Buf.readStringDelimiter(length);
-
-    return message;
-  },
-
-  
-
-
-
-
-
-
-
-  _processSmsDeliver: function _processSmsDeliver(length) {
-    let message = this._processReceivedSms(length);
-    if (!message) {
-      return PDU_FCS_UNSPECIFIED;
-    }
-
-    if (message.epid == PDU_PID_SHORT_MESSAGE_TYPE_0) {
-      
-      
-      
-      return PDU_FCS_OK;
-    }
-
-    if (message.messageClass == GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_2]) {
-      switch (message.epid) {
-        case PDU_PID_ANSI_136_R_DATA:
-        case PDU_PID_USIM_DATA_DOWNLOAD:
-          if (ICCUtilsHelper.isICCServiceAvailable("DATA_DOWNLOAD_SMS_PP")) {
-            
-            
-            
-            
-            this.dataDownloadViaSMSPP(message);
-
-            
-            
-            return PDU_FCS_RESERVED;
-          }
-          
-
-          
-          
-          
-        default:
-          this.writeSmsToSIM(message);
-          break;
-      }
-    }
-
-    
-    if ((message.messageClass != GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_0]) && !true) {
-      
-      
-      
-      
-
-      if (message.messageClass == GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_2]) {
-        
-        
-        return PDU_FCS_MEMORY_CAPACITY_EXCEEDED;
-      }
-
-      return PDU_FCS_UNSPECIFIED;
-    }
-
+  _processSmsMultipart: function _processSmsMultipart(message) {
     if (message.header && (message.header.segmentMaxSeq > 1)) {
       message = this._processReceivedSmsSegment(message);
     } else {
@@ -3718,7 +3637,7 @@ let RIL = {
 
 
   _processSmsStatusReport: function _processSmsStatusReport(length) {
-    let message = this._processReceivedSms(length);
+    let [message, result] = GsmPDUHelper.processReceivedSms(length);
     if (!message) {
       if (DEBUG) debug("invalid SMS-STATUS-REPORT");
       return PDU_FCS_UNSPECIFIED;
@@ -3851,6 +3770,60 @@ let RIL = {
     options.segmentSeq = next + 1;
 
     this.sendSMS(options);
+  },
+
+  
+
+
+
+
+
+
+
+  _processSmsSendResult: function _processSmsSendResult(length, options) {
+    if (options.rilRequestError) {
+      if (DEBUG) debug("_processSmsSendResult: rilRequestError = " + options.rilRequestError);
+      switch (options.rilRequestError) {
+        case ERROR_SMS_SEND_FAIL_RETRY:
+          if (options.retryCount < SMS_RETRY_MAX) {
+            options.retryCount++;
+            
+            this.sendSMS(options);
+            break;
+          }
+
+          
+        default:
+          this.sendDOMMessage({
+            rilMessageType: "sms-send-failed",
+            envelopeId: options.envelopeId,
+            error: options.rilRequestError,
+          });
+          break;
+      }
+      return;
+    }
+
+    options.messageRef = Buf.readUint32();
+    options.ackPDU = Buf.readString();
+    options.errorCode = Buf.readUint32();
+
+    if ((options.segmentMaxSeq > 1)
+        && (options.segmentSeq < options.segmentMaxSeq)) {
+      
+      this._processSentSmsSegment(options);
+    } else {
+      
+      if (options.requestStatusReport) {
+        if (DEBUG) debug("waiting SMS-STATUS-REPORT for messageRef " + options.messageRef);
+        this._pendingSentSmsMap[options.messageRef] = options;
+      }
+
+      this.sendDOMMessage({
+        rilMessageType: "sms-sent",
+        envelopeId: options.envelopeId,
+      });
+    }
   },
 
   _processReceivedSmsCbPage: function _processReceivedSmsCbPage(original) {
@@ -4540,49 +4513,7 @@ RIL[REQUEST_OPERATOR] = function REQUEST_OPERATOR(length, options) {
 RIL[REQUEST_RADIO_POWER] = null;
 RIL[REQUEST_DTMF] = null;
 RIL[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS(length, options) {
-  if (options.rilRequestError) {
-    if (DEBUG) debug("REQUEST_SEND_SMS: rilRequestError = " + options.rilRequestError);
-    switch (options.rilRequestError) {
-      case ERROR_SMS_SEND_FAIL_RETRY:
-        if (options.retryCount < SMS_RETRY_MAX) {
-          options.retryCount++;
-          
-          this.sendSMS(options);
-          break;
-        }
-
-        
-      default:
-        this.sendDOMMessage({
-          rilMessageType: "sms-send-failed",
-          envelopeId: options.envelopeId,
-          error: options.rilRequestError,
-        });
-        break;
-    }
-    return;
-  }
-
-  options.messageRef = Buf.readUint32();
-  options.ackPDU = Buf.readString();
-  options.errorCode = Buf.readUint32();
-
-  if ((options.segmentMaxSeq > 1)
-      && (options.segmentSeq < options.segmentMaxSeq)) {
-    
-    this._processSentSmsSegment(options);
-  } else {
-    
-    if (options.requestStatusReport) {
-      if (DEBUG) debug("waiting SMS-STATUS-REPORT for messageRef " + options.messageRef);
-      this._pendingSentSmsMap[options.messageRef] = options;
-    }
-
-    this.sendDOMMessage({
-      rilMessageType: "sms-sent",
-      envelopeId: options.envelopeId,
-    });
-  }
+  this._processSmsSendResult(length, options);
 };
 RIL[REQUEST_SEND_SMS_EXPECT_MORE] = null;
 
@@ -5188,10 +5119,16 @@ RIL[UNSOLICITED_RESPONSE_VOICE_NETWORK_STATE_CHANGED] = function UNSOLICITED_RES
   this.requestNetworkInfo();
 };
 RIL[UNSOLICITED_RESPONSE_NEW_SMS] = function UNSOLICITED_RESPONSE_NEW_SMS(length) {
-  let result = this._processSmsDeliver(length);
+  let [message, result] = GsmPDUHelper.processReceivedSms(length);
+
+  if (message) {
+    result = this._processSmsMultipart(message);
+  }
+
   if (result == PDU_FCS_RESERVED || result == MOZ_FCS_WAIT_FOR_EXPLICIT_ACK) {
     return;
   }
+
   
   this.acknowledgeSMS(result == PDU_FCS_OK, result);
 };
@@ -6738,6 +6675,87 @@ let GsmPDUHelper = {
       default:
         return null;
     }
+  },
+
+  
+
+
+
+
+
+
+
+  processReceivedSms: function processReceivedSms(length) {
+    if (!length) {
+      if (DEBUG) debug("Received empty SMS!");
+      return [null, PDU_FCS_UNSPECIFIED];
+    }
+
+    
+    
+    let messageStringLength = Buf.readUint32();
+    if (DEBUG) debug("Got new SMS, length " + messageStringLength);
+    let message = this.readMessage();
+    if (DEBUG) debug("Got new SMS: " + JSON.stringify(message));
+
+    
+    Buf.readStringDelimiter(length);
+
+    
+    if (!message) {
+      return [null, PDU_FCS_UNSPECIFIED];
+    }
+
+    if (message.epid == PDU_PID_SHORT_MESSAGE_TYPE_0) {
+      
+      
+      
+      return [null, PDU_FCS_OK];
+    }
+
+    if (message.messageClass == GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_2]) {
+      switch (message.epid) {
+        case PDU_PID_ANSI_136_R_DATA:
+        case PDU_PID_USIM_DATA_DOWNLOAD:
+          if (ICCUtilsHelper.isICCServiceAvailable("DATA_DOWNLOAD_SMS_PP")) {
+            
+            
+            
+            
+            RIL.dataDownloadViaSMSPP(message);
+
+            
+            
+            return [null, PDU_FCS_RESERVED];
+          }
+          
+
+          
+          
+          
+        default:
+          RIL.writeSmsToSIM(message);
+          break;
+      }
+    }
+
+    
+    if ((message.messageClass != GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_0]) && !true) {
+      
+      
+      
+      
+
+      if (message.messageClass == GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_2]) {
+        
+        
+        return [null, PDU_FCS_MEMORY_CAPACITY_EXCEEDED];
+      }
+
+      return [null, PDU_FCS_UNSPECIFIED];
+    }
+
+    return [message, PDU_FCS_OK];
   },
 
   
