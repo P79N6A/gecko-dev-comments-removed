@@ -211,11 +211,10 @@ public class ImmutableViewportMetrics {
     }
 
     public boolean fuzzyEquals(ImmutableViewportMetrics other) {
-        return FloatUtils.fuzzyEquals(pageRectLeft, other.pageRectLeft)
-            && FloatUtils.fuzzyEquals(pageRectTop, other.pageRectTop)
-            && FloatUtils.fuzzyEquals(pageRectRight, other.pageRectRight)
-            && FloatUtils.fuzzyEquals(pageRectBottom, other.pageRectBottom)
-            && FloatUtils.fuzzyEquals(cssPageRectLeft, other.cssPageRectLeft)
+        
+        
+        
+        return FloatUtils.fuzzyEquals(cssPageRectLeft, other.cssPageRectLeft)
             && FloatUtils.fuzzyEquals(cssPageRectTop, other.cssPageRectTop)
             && FloatUtils.fuzzyEquals(cssPageRectRight, other.cssPageRectRight)
             && FloatUtils.fuzzyEquals(cssPageRectBottom, other.cssPageRectBottom)
