@@ -10,6 +10,7 @@
 
 #include <hardware/bluetooth.h>
 #include <hardware/bt_av.h>
+#include <hardware/bt_rc.h>
 
 #include "BluetoothCommon.h"
 #include "BluetoothService.h"
@@ -31,8 +32,8 @@ namespace {
   StaticRefPtr<BluetoothA2dpManager> sBluetoothA2dpManager;
   bool sInShutdown = false;
   static const btav_interface_t* sBtA2dpInterface;
+  static const btrc_interface_t* sBtAvrcpInterface;
 } 
-
 
 class SinkPropertyChangedHandler : public nsRunnable
 {
@@ -50,11 +51,128 @@ public:
     BluetoothA2dpManager* a2dp = BluetoothA2dpManager::Get();
     NS_ENSURE_TRUE(a2dp, NS_ERROR_FAILURE);
     a2dp->HandleSinkPropertyChanged(mSignal);
+
     return NS_OK;
   }
 
 private:
   BluetoothSignal mSignal;
+};
+
+class RequestPlayStatusTask : public nsRunnable
+{
+public:
+  RequestPlayStatusTask()
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+  }
+
+  nsresult Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    BluetoothSignal signal(NS_LITERAL_STRING(REQUEST_MEDIA_PLAYSTATUS_ID),
+                           NS_LITERAL_STRING(KEY_ADAPTER),
+                           InfallibleTArray<BluetoothNamedValue>());
+
+    BluetoothService* bs = BluetoothService::Get();
+    NS_ENSURE_TRUE(bs, NS_ERROR_FAILURE);
+    bs->DistributeSignal(signal);
+
+    return NS_OK;
+  }
+};
+
+class UpdateRegisterNotificationTask : public nsRunnable
+{
+public:
+  UpdateRegisterNotificationTask(btrc_event_id_t aEventId, uint32_t aParam)
+    : mEventId(aEventId)
+    , mParam(aParam)
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+  }
+
+  nsresult Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    BluetoothA2dpManager* a2dp = BluetoothA2dpManager::Get();
+    NS_ENSURE_TRUE(a2dp, NS_OK);
+    a2dp->UpdateRegisterNotification(mEventId, mParam);
+    return NS_OK;
+  }
+private:
+  btrc_event_id_t mEventId;
+  uint32_t mParam;
+};
+
+
+
+
+
+static void
+ConvertAttributeString(int aAttrId, nsAString& aAttrStr)
+{
+  BluetoothA2dpManager* a2dp = BluetoothA2dpManager::Get();
+  NS_ENSURE_TRUE_VOID(a2dp);
+
+  switch (aAttrId) {
+    case BTRC_MEDIA_ATTR_TITLE:
+      a2dp->GetTitle(aAttrStr);
+      break;
+    case BTRC_MEDIA_ATTR_ARTIST:
+      a2dp->GetArtist(aAttrStr);
+      break;
+    case BTRC_MEDIA_ATTR_ALBUM:
+      a2dp->GetAlbum(aAttrStr);
+      break;
+    case BTRC_MEDIA_ATTR_TRACK_NUM:
+      aAttrStr.AppendInt(a2dp->GetMediaNumber());
+      break;
+    case BTRC_MEDIA_ATTR_NUM_TRACKS:
+      aAttrStr.AppendInt(a2dp->GetTotalMediaNumber());
+      break;
+    case BTRC_MEDIA_ATTR_GENRE:
+      
+      aAttrStr.Truncate();
+      break;
+    case BTRC_MEDIA_ATTR_PLAYING_TIME:
+      aAttrStr.AppendInt(a2dp->GetDuration());
+      break;
+  }
+}
+
+class UpdateElementAttrsTask : public nsRunnable
+{
+public:
+  UpdateElementAttrsTask(uint8_t aNumAttr, btrc_media_attr_t* aPlayerAttrs)
+    : mNumAttr(aNumAttr)
+    , mPlayerAttrs(aPlayerAttrs)
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+  }
+
+  nsresult Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    btrc_element_attr_val_t* attrs = new btrc_element_attr_val_t[mNumAttr];
+    for (int i = 0; i < mNumAttr; i++) {
+      nsAutoString attrText;
+      attrs[i].attr_id = mPlayerAttrs[i];
+      ConvertAttributeString(mPlayerAttrs[i], attrText);
+      strcpy((char *)attrs[i].text, NS_ConvertUTF16toUTF8(attrText).get());
+    }
+
+    NS_ENSURE_TRUE(sBtAvrcpInterface, NS_OK);
+    sBtAvrcpInterface->get_element_attr_rsp(mNumAttr, attrs);
+
+    return NS_OK;
+  }
+private:
+  uint8_t mNumAttr;
+  btrc_media_attr_t* mPlayerAttrs;
 };
 
 NS_IMETHODIMP
@@ -147,10 +265,129 @@ A2dpAudioStateCallback(btav_audio_state_t aState,
   NS_DispatchToMainThread(new SinkPropertyChangedHandler(signal));
 }
 
+
+
+
+
+
+
+
+
+
+static void
+AvrcpGetPlayStatusCallback()
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  NS_DispatchToMainThread(new RequestPlayStatusTask());
+}
+
+
+
+
+
+
+
+
+
+
+
+static void
+AvrcpGetElementAttrCallback(uint8_t aNumAttr, btrc_media_attr_t* aPlayerAttrs)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  NS_DispatchToMainThread(new UpdateElementAttrsTask(aNumAttr, aPlayerAttrs));
+}
+
+
+
+
+
+
+
+
+static void
+AvrcpRegisterNotificationCallback(btrc_event_id_t aEventId, uint32_t aParam)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  NS_DispatchToMainThread(new UpdateRegisterNotificationTask(aEventId, aParam));
+}
+
+
+
+
+
+
+static void
+AvrcpListPlayerAppAttributeCallback()
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+
+}
+
+static void
+AvrcpListPlayerAppValuesCallback(btrc_player_attr_t aAttrId)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+
+}
+
+static void
+AvrcpGetPlayerAppValueCallback(uint8_t aNumAttr,
+                               btrc_player_attr_t* aPlayerAttrs)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+
+}
+
+static void
+AvrcpGetPlayerAppAttrsTextCallback(uint8_t aNumAttr,
+                                   btrc_player_attr_t* PlayerAttrs)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+
+}
+
+static void
+AvrcpGetPlayerAppValuesTextCallback(uint8_t aAttrId, uint8_t aNumVal,
+                                    uint8_t* PlayerVals)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+
+}
+
+static void
+AvrcpSetPlayerAppValueCallback(btrc_player_settings_t* aPlayerVals)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+
+}
+
 static btav_callbacks_t sBtA2dpCallbacks = {
   sizeof(sBtA2dpCallbacks),
   A2dpConnectionStateCallback,
   A2dpAudioStateCallback
+};
+
+static btrc_callbacks_t sBtAvrcpCallbacks = {
+  sizeof(sBtAvrcpCallbacks),
+  AvrcpGetPlayStatusCallback,
+  AvrcpListPlayerAppAttributeCallback,
+  AvrcpListPlayerAppValuesCallback,
+  AvrcpGetPlayerAppValueCallback,
+  AvrcpGetPlayerAppAttrsTextCallback,
+  AvrcpGetPlayerAppValuesTextCallback,
+  AvrcpSetPlayerAppValueCallback,
+  AvrcpGetElementAttrCallback,
+  AvrcpRegisterNotificationCallback
 };
 
 
@@ -164,15 +401,27 @@ BluetoothA2dpManager::Init()
 {
   const bt_interface_t* btInf = GetBluetoothInterface();
   NS_ENSURE_TRUE(btInf, false);
+
   sBtA2dpInterface = (btav_interface_t *)btInf->
     get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_ID);
   NS_ENSURE_TRUE(sBtA2dpInterface, false);
 
   int ret = sBtA2dpInterface->init(&sBtA2dpCallbacks);
   if (ret != BT_STATUS_SUCCESS) {
-    BT_LOGR("failed to init a2dp module");
+    BT_LOGR("Warning: failed to init a2dp module");
     return false;
   }
+
+  sBtAvrcpInterface = (btrc_interface_t *)btInf->
+    get_profile_interface(BT_PROFILE_AV_RC_ID);
+  NS_ENSURE_TRUE(sBtAvrcpInterface, false);
+
+  ret = sBtAvrcpInterface->init(&sBtAvrcpCallbacks);
+  if (ret != BT_STATUS_SUCCESS) {
+    BT_LOGR("Warning: failed to init avrcp module");
+    return false;
+  }
+
   return true;
 }
 
@@ -487,6 +736,10 @@ BluetoothA2dpManager::IsConnected()
   return mA2dpConnected;
 }
 
+
+
+
+
 void
 BluetoothA2dpManager::SetAvrcpConnected(bool aConnected)
 {
@@ -502,6 +755,10 @@ BluetoothA2dpManager::IsAvrcpConnected()
   return mAvrcpConnected;
 }
 
+
+
+
+
 void
 BluetoothA2dpManager::UpdateMetaData(const nsAString& aTitle,
                                      const nsAString& aArtist,
@@ -510,6 +767,36 @@ BluetoothA2dpManager::UpdateMetaData(const nsAString& aTitle,
                                      uint32_t aTotalMediaCount,
                                      uint32_t aDuration)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  NS_ENSURE_TRUE_VOID(sBtAvrcpInterface);
+
+  
+  
+  if (mMediaNumber != aMediaNumber &&
+      mTrackChangedNotifyType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+    btrc_register_notification_t param;
+    
+    
+    
+    for (int i = 0; i < BTRC_UID_SIZE; ++i) {
+      param.track[i] = (aMediaNumber >> (56 - 8 * i));
+    }
+    mTrackChangedNotifyType = BTRC_NOTIFICATION_TYPE_CHANGED;
+    sBtAvrcpInterface->register_notification_rsp(BTRC_EVT_TRACK_CHANGE,
+                                                 BTRC_NOTIFICATION_TYPE_CHANGED,
+                                                 &param);
+    if (mPlayPosChangedNotifyType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+      param.song_pos = mPosition;
+      
+      mPlayPosChangedNotifyType = BTRC_NOTIFICATION_TYPE_CHANGED;
+      sBtAvrcpInterface->register_notification_rsp(
+        BTRC_EVT_PLAY_POS_CHANGED,
+        BTRC_NOTIFICATION_TYPE_CHANGED,
+        &param);
+    }
+  }
+
   mTitle.Assign(aTitle);
   mArtist.Assign(aArtist);
   mAlbum.Assign(aAlbum);
@@ -518,20 +805,93 @@ BluetoothA2dpManager::UpdateMetaData(const nsAString& aTitle,
   mDuration = aDuration;
 }
 
+
+
+
+
 void
 BluetoothA2dpManager::UpdatePlayStatus(uint32_t aDuration,
                                        uint32_t aPosition,
                                        ControlPlayStatus aPlayStatus)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  NS_ENSURE_TRUE_VOID(sBtAvrcpInterface);
+  
+  if (mPlayStatus != aPlayStatus &&
+      mPlayStatusChangedNotifyType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+    btrc_register_notification_t param;
+    param.play_status = (btrc_play_status_t)aPlayStatus;
+    mPlayStatusChangedNotifyType = BTRC_NOTIFICATION_TYPE_CHANGED;
+    sBtAvrcpInterface->register_notification_rsp(BTRC_EVT_PLAY_STATUS_CHANGED,
+                                                 BTRC_NOTIFICATION_TYPE_CHANGED,
+                                                 &param);
+  }
+
+  if (mPosition != aPosition &&
+      mPlayPosChangedNotifyType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+    btrc_register_notification_t param;
+    param.song_pos = aPosition;
+    mPlayPosChangedNotifyType = BTRC_NOTIFICATION_TYPE_CHANGED;
+    sBtAvrcpInterface->register_notification_rsp(BTRC_EVT_PLAY_POS_CHANGED,
+                                                 BTRC_NOTIFICATION_TYPE_CHANGED,
+                                                 &param);
+  }
+
+  sBtAvrcpInterface->get_play_status_rsp((btrc_play_status_t)aPlayStatus,
+                                         aDuration, aPosition);
   mDuration = aDuration;
   mPosition = aPosition;
   mPlayStatus = aPlayStatus;
 }
 
+
+
+
+
+
+
+
+void
+BluetoothA2dpManager::UpdateRegisterNotification(int aEventId, int aParam)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  NS_ENSURE_TRUE_VOID(sBtAvrcpInterface);
+
+  btrc_register_notification_t param;
+
+  switch (aEventId) {
+    case BTRC_EVT_PLAY_STATUS_CHANGED:
+      mPlayPosChangedNotifyType = BTRC_NOTIFICATION_TYPE_INTERIM;
+      param.play_status = (btrc_play_status_t)mPlayStatus;
+      break;
+    case BTRC_EVT_TRACK_CHANGE:
+      mTrackChangedNotifyType = BTRC_NOTIFICATION_TYPE_INTERIM;
+      
+      
+      for (int i = 0; i < BTRC_UID_SIZE; ++i) {
+        param.track[i] = (mMediaNumber >> (56 - 8 * i));
+      }
+      break;
+    case BTRC_EVT_PLAY_POS_CHANGED:
+      mPlayPosChangedNotifyType = BTRC_NOTIFICATION_TYPE_INTERIM;
+      param.song_pos = mPosition;
+      mPlaybackInterval = aParam;
+      break;
+    default:
+      break;
+  }
+
+  sBtAvrcpInterface->register_notification_rsp((btrc_event_id_t)aEventId,
+                                               BTRC_NOTIFICATION_TYPE_INTERIM,
+                                               &param);
+}
+
 void
 BluetoothA2dpManager::GetAlbum(nsAString& aAlbum)
 {
-    aAlbum.Assign(mAlbum);
+  aAlbum.Assign(mAlbum);
 }
 
 uint32_t
@@ -558,10 +918,22 @@ BluetoothA2dpManager::GetMediaNumber()
   return mMediaNumber;
 }
 
+uint32_t
+BluetoothA2dpManager::GetTotalMediaNumber()
+{
+  return mTotalMediaCount;
+}
+
 void
 BluetoothA2dpManager::GetTitle(nsAString& aTitle)
 {
   aTitle.Assign(mTitle);
+}
+
+void
+BluetoothA2dpManager::GetArtist(nsAString& aArtist)
+{
+  aArtist.Assign(mArtist);
 }
 
 NS_IMPL_ISUPPORTS1(BluetoothA2dpManager, nsIObserver)
