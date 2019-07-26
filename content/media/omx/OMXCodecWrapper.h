@@ -255,8 +255,12 @@ public:
 
 
 
+
+
   nsresult Configure(int aWidth, int aHeight, int aFrameRate,
                      BlobFormat aBlobFormat = BlobFormat::AVC_MP4);
+  nsresult ConfigureDirect(sp<AMessage>& aFormat,
+                           BlobFormat aBlobFormat = BlobFormat::AVC_MP4);
 
   
 
