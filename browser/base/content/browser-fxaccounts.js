@@ -22,6 +22,7 @@ let gFxAccounts = {
   },
 
   get topics() {
+    
     delete this.topics;
     return this.topics = [
       FxAccountsCommon.ONLOGIN_NOTIFICATION,
@@ -31,13 +32,30 @@ let gFxAccounts = {
     ];
   },
 
+  
+  get activeWindowTopics() {
+    
+    delete this.activeWindowTopics;
+    return this.activeWindowTopics = new Set([
+      "weave:service:sync:start",
+      FxAccountsCommon.ONVERIFIED_NOTIFICATION
+    ]);
+  },
+
   get button() {
     delete this.button;
     return this.button = document.getElementById("PanelUI-fxa-status");
   },
 
+  get isActiveWindow() {
+    let mostRecentNonPopupWindow =
+      RecentWindow.getMostRecentBrowserWindow({allowPopups: false});
+    return window == mostRecentNonPopupWindow;
+  },
+
   init: function () {
-    if (this._initialized) {
+    
+    if (this._initialized || !window.toolbar.visible) {
       return;
     }
 
@@ -69,6 +87,11 @@ let gFxAccounts = {
   },
 
   observe: function (subject, topic) {
+    
+    if (this.activeWindowTopics.has(topic) && !this.isActiveWindow) {
+      return;
+    }
+
     switch (topic) {
       case FxAccountsCommon.ONVERIFIED_NOTIFICATION:
         Services.prefs.setBoolPref(PREF_SYNC_START_DOORHANGER, true);
