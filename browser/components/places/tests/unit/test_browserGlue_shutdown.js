@@ -29,6 +29,8 @@ let tests = [];
 tests.push({
   description: "Export to bookmarks.html if autoExportHTML is true.",
   exec: function() {
+    remove_all_JSON_backups();
+
     
     do_check_true(bs.getIdForItemAt(bs.toolbarFolder, 0) > 0);
 
@@ -43,7 +45,7 @@ tests.push({
     
     check_bookmarks_html();
     
-    check_JSON_backup();
+    check_JSON_backup(true);
 
     
     do_check_true(ps.getBoolPref(PREF_AUTO_EXPORT_HTML));
@@ -128,16 +130,10 @@ tests.push({
 
 
 
-function finish_test() {
-  do_test_finished();
-}
-
 var testIndex = 0;
 function next_test() {
   
   remove_bookmarks_html();
-  
-  remove_all_JSON_backups();
 
   
   let test = tests.shift();
