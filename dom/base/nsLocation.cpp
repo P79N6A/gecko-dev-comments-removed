@@ -108,31 +108,6 @@ nsLocation::GetDocShell()
   return docshell;
 }
 
-
-static already_AddRefed<nsIDocument>
-GetScriptDocument(JSContext *cx, JSScript *script)
-{
-  if (!cx || !script)
-    return nullptr;
-
-  JSObject* scope = JS_GetGlobalFromScript(script);
-  if (!scope)
-    return nullptr;
-
-  JSAutoCompartment ac(cx, scope);
-
-  nsCOMPtr<nsIDOMWindow> window =
-    do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(cx, scope));
-  if (!window)
-    return nullptr;
-
-  
-  nsCOMPtr<nsIDOMDocument> domDoc;
-  window->GetDocument(getter_AddRefs(domDoc));
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
-  return doc.forget();
-}
-
 nsresult
 nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
 {
@@ -166,13 +141,12 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
     
     
 
-    JSScript* script = nullptr;
     nsCOMPtr<nsIDocument> doc;
     nsCOMPtr<nsIURI> docOriginalURI, docCurrentURI, principalURI;
-    
-    
-    if (JS_DescribeScriptedCaller(cx, &script, nullptr)) {
-      doc = GetScriptDocument(cx, script);
+    nsCOMPtr<nsPIDOMWindow> entryPoint =
+      do_QueryInterface(nsJSUtils::GetDynamicScriptGlobal(cx));
+    if (entryPoint) {
+      doc = entryPoint->GetDoc();
     }
     if (doc) {
       docOriginalURI = doc->GetOriginalURI();
