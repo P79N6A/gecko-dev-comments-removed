@@ -2239,12 +2239,15 @@ abstract public class GeckoApp
             
             Tab tab = Tabs.getInstance().getSelectedTab();
             if (tab != null) {
-
-                aUrl = tab.getURL();
+                
+                
+                aUrl = tab.getUserSearch();
+                if (TextUtils.isEmpty(aUrl)) {
+                    aUrl = tab.getURL();
+                }
                 if (aUrl != null) {
                     intent.putExtra(AwesomeBar.CURRENT_URL_KEY, aUrl);
                 }
-
             }
         }
 
