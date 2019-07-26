@@ -212,30 +212,10 @@ nsAccessibilityService::CreateHTMLObjectFrameAccessible(nsObjectFrame* aFrame,
 {
   
   
-  
-  
-  
-  
-  
-
   if (aFrame->GetRect().IsEmpty())
     return nullptr;
 
-  
-  nsCOMPtr<nsIDOMHTMLObjectElement> obj(do_QueryInterface(aContent));
-  if (obj) {
-    nsCOMPtr<nsIDOMDocument> domDoc;
-    obj->GetContentDocument(getter_AddRefs(domDoc));
-    if (domDoc) {
-      Accessible* newAcc =
-        new OuterDocAccessible(aContent, aContext->Document());
-      NS_ADDREF(newAcc);
-      return newAcc;
-    }
-  }
-
 #if defined(XP_WIN) || defined(MOZ_ACCESSIBILITY_ATK)
-  
   nsRefPtr<nsNPAPIPluginInstance> pluginInstance;
   if (NS_SUCCEEDED(aFrame->GetPluginInstance(getter_AddRefs(pluginInstance))) &&
       pluginInstance) {
@@ -254,6 +234,8 @@ nsAccessibilityService::CreateHTMLObjectFrameAccessible(nsObjectFrame* aFrame,
     if (!AtkSocketAccessible::gCanEmbed)
       return nullptr;
 
+    
+    
     nsCString plugId;
     nsresult rv = pluginInstance->GetValueFromPlugin(
       NPPVpluginNativeAccessibleAtkPlugId, &plugId);
@@ -268,11 +250,7 @@ nsAccessibilityService::CreateHTMLObjectFrameAccessible(nsObjectFrame* aFrame,
   }
 #endif
 
-  
-  
-  nsIFrame* childFrame = aFrame->GetFirstPrincipalChild();
-  return childFrame ?
-    CreateAccessibleByFrameType(childFrame, aContent, aContext) : nullptr;
+  return nullptr;
 }
 
 void
