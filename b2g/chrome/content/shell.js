@@ -24,6 +24,7 @@ Cu.import('resource://gre/modules/NetworkStatsService.jsm');
 
 Cu.import('resource://gre/modules/SignInToWebsite.jsm');
 SignInToWebsiteController.init();
+Cu.import('resource://gre/modules/FxAccountsMgmtService.jsm');
 
 Cu.import('resource://gre/modules/DownloadsAPI.jsm');
 
@@ -613,6 +614,8 @@ var shell = {
     DOMApplicationRegistry.allAppsLaunchable = true;
 
     this.sendEvent(window, 'ContentStart');
+
+    Services.obs.notifyObservers(null, 'content-start', null);
 
 #ifdef MOZ_WIDGET_GONK
     Cu.import('resource://gre/modules/OperatorApps.jsm');
