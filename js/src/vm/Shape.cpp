@@ -1028,12 +1028,12 @@ Shape::setObjectParent(JSContext *cx, JSObject *parent, TaggedProto proto, Shape
     return replaceLastProperty(cx, base, proto, lastRoot);
 }
 
-bool
-JSObject::preventExtensions(JSContext *cx)
+ bool
+js::ObjectImpl::preventExtensions(JSContext *cx, Handle<ObjectImpl*> obj)
 {
-    JS_ASSERT(isExtensible());
+    JS_ASSERT(obj->isExtensible());
 
-    RootedObject self(cx, this);
+    RootedObject self(cx, obj->asObjectPtr());
 
     
 
