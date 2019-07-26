@@ -330,11 +330,11 @@ waitFor(
 
     def add_prefs_to_profile(self, prefs=None):
         if not prefs:
-            prefs = ['user_pref("marionette.loadearly", true);']
+            prefs = ["user_pref('marionette.loadearly', true);"]
         local_user_js = tempfile.mktemp(prefix='localuserjs')
         self.dm.getFile(self.remote_user_js, local_user_js)
         with open(local_user_js, 'a') as f:
-            f.write('%s\n' % '\n'.join(prefs))
+            f.write('/n'.join(prefs))
         self.dm.pushFile(local_user_js, self.remote_user_js)
 
     def start(self):
@@ -379,6 +379,10 @@ waitFor(
         self._run_adb(['shell', 'setprop', 'net.dns1', '10.0.2.3'])
 
     def setup(self, marionette, gecko_path=None, load_early=False):
+        
+        
+        self.wait_for_system_message(marionette)
+
         if gecko_path:
             if load_early:
                 
@@ -389,7 +393,9 @@ waitFor(
             self.add_prefs_to_profile()
             self.restart_b2g()
 
-        if load_early:
+        
+        
+        if True:
             
             
             
