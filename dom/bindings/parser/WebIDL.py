@@ -503,6 +503,9 @@ class IDLInterface(IDLObjectWithScope):
         
         
         self.interfacesBasedOnSelf = set([self])
+        
+        
+        self.interfacesImplementingSelf = set()
 
         IDLObjectWithScope.__init__(self, location, parentScope, name)
 
@@ -638,6 +641,7 @@ class IDLInterface(IDLObjectWithScope):
                             (member.identifier.name, self),
                             [additionalMember.location, member.location])
             self.members.extend(additionalMembers)
+            iface.interfacesImplementingSelf.add(self)
 
         for ancestor in self.getInheritedInterfaces():
             ancestor.interfacesBasedOnSelf.add(self)

@@ -500,10 +500,17 @@ class CGHeaders(CGWrapper):
         implementationIncludes = set(d.headerFile for d in descriptors if d.needsHeaderInclude())
 
         
+        interfacesImplementingSelf = set()
+        for d in descriptors:
+            interfacesImplementingSelf |= d.interface.interfacesImplementingSelf
+        implementationIncludes |= set(self.getDeclarationFilename(i) for i in
+                                      interfacesImplementingSelf)
+
+         
         hasInstanceIncludes = set("nsIDOM" + d.interface.identifier.name + ".h" for d
                                   in descriptors if
                                   NeedsGeneratedHasInstance(d) and
-                                  d.interface.hasInterfaceObject())
+                                  d.interface.hasInterfacePrototypeObject())
 
         
         
@@ -1066,23 +1073,20 @@ class CGClassHasInstanceHook(CGAbstractStaticMethod):
 
     def generate_code(self):
         assert self.descriptor.nativeOwnership == 'nsisupports'
-        if self.descriptor.interface.hasInterfacePrototypeObject():
-            hasInstanceCode = """
-  bool ok = InterfaceHasInstance(cx, obj, instance, bp);
-  if (!ok || *bp) {
-    return ok;
-  }
-        """
-        else:
-            hasInstanceCode = ""
-
-        return """  if (!vp.isObject()) {
+        header = """
+  if (!vp.isObject()) {
     *bp = false;
     return true;
   }
 
   JSObject* instance = &vp.toObject();
-  %s
+  """
+        if self.descriptor.interface.hasInterfacePrototypeObject():
+            return header + """
+  bool ok = InterfaceHasInstance(cx, obj, instance, bp);
+  if (!ok || *bp) {
+    return ok;
+  }
 
   // FIXME Limit this to chrome by checking xpc::AccessCheck::isChrome(obj).
   nsISupports* native =
@@ -1090,7 +1094,21 @@ class CGClassHasInstanceHook(CGAbstractStaticMethod):
                                                     js::UnwrapObject(instance));
   nsCOMPtr<nsIDOM%s> qiResult = do_QueryInterface(native);
   *bp = !!qiResult;
-  return true;""" % (hasInstanceCode, self.descriptor.interface.identifier.name)
+  return true;
+         """ % self.descriptor.interface.identifier.name
+
+        hasInstanceCode = """
+  const DOMClass* domClass = GetDOMClass(js::UnwrapObject(instance));
+  *bp = false;
+  """
+        for iface in self.descriptor.interface.interfacesImplementingSelf:
+            hasInstanceCode += """
+  if (domClass->mInterfaceChain[PrototypeTraits<prototypes::id::%s>::Depth] == prototypes::id::%s) {
+    *bp = true;
+    return true;
+  }""" % (iface.identifier.name, iface.identifier.name)
+        hasInstanceCode += "return true;"
+        return header + hasInstanceCode;
 
 def isChromeOnly(m):
     return m.getExtendedAttribute("ChromeOnly")
