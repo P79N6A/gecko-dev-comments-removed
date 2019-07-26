@@ -1,0 +1,895 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef mozilla_Atomics_h_
+#define mozilla_Atomics_h_
+
+#include "mozilla/Assertions.h"
+#include "mozilla/TypeTraits.h"
+
+#include <stdint.h>
+
+
+
+
+
+
+#if defined(__clang__)
+#  if (__cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__)) && \
+      __has_include(<atomic>)
+#    define MOZ_HAVE_CXX11_ATOMICS
+#  endif
+
+
+
+
+#elif defined(__GNUC__) && !defined(__ANDROID__)
+#  include "mozilla/Compiler.h"
+#  if (defined(__GXX_EXPERIMENTAL_CXX0X__) || __cplusplus >= 201103L) && \
+      MOZ_GCC_VERSION_AT_LEAST(4, 5, 0)
+#    define MOZ_HAVE_CXX11_ATOMICS
+#  endif
+#elif defined(_MSC_VER) && _MSC_VER >= 1700
+#  define MOZ_HAVE_CXX11_ATOMICS
+#endif
+
+namespace mozilla {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum MemoryOrdering {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  Relaxed,
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ReleaseAcquire,
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  SequentiallyConsistent,
+};
+
+} 
+
+
+#ifdef MOZ_HAVE_CXX11_ATOMICS
+
+#  include <atomic>
+
+namespace mozilla {
+namespace detail {
+
+template<MemoryOrdering Order> struct AtomicOrderConstraints;
+
+template<>
+struct AtomicOrderConstraints<Relaxed>
+{
+    static const std::memory_order AtomicRMWOrder = std::memory_order_relaxed;
+    static const std::memory_order LoadOrder = std::memory_order_relaxed;
+    static const std::memory_order StoreOrder = std::memory_order_relaxed;
+};
+
+template<>
+struct AtomicOrderConstraints<ReleaseAcquire>
+{
+    static const std::memory_order AtomicRMWOrder = std::memory_order_acq_rel;
+    static const std::memory_order LoadOrder = std::memory_order_acquire;
+    static const std::memory_order StoreOrder = std::memory_order_release;
+};
+
+template<>
+struct AtomicOrderConstraints<SequentiallyConsistent>
+{
+    static const std::memory_order AtomicRMWOrder = std::memory_order_seq_cst;
+    static const std::memory_order LoadOrder = std::memory_order_seq_cst;
+    static const std::memory_order StoreOrder = std::memory_order_seq_cst;
+};
+
+template<typename T, MemoryOrdering Order>
+struct IntrinsicBase
+{
+    typedef std::atomic<T> ValueType;
+    typedef AtomicOrderConstraints<Order> OrderedOp;
+};
+
+template<typename T, MemoryOrdering Order>
+struct IntrinsicMemoryOps : public IntrinsicBase<T, Order>
+{
+    typedef IntrinsicBase<T, Order> Base;
+    static T load(const typename Base::ValueType& ptr) {
+      return ptr.load(Base::OrderedOp::LoadOrder);
+    }
+    static void store(typename Base::ValueType& ptr, T val) {
+      ptr.store(val, Base::OrderedOp::StoreOrder);
+    }
+    static T exchange(typename Base::ValueType& ptr, T val) {
+      return ptr.exchange(val, Base::OrderedOp::AtomicRMWOrder);
+    }
+};
+
+template<typename T, MemoryOrdering Order>
+struct IntrinsicAddSub : public IntrinsicBase<T, Order>
+{
+    typedef IntrinsicBase<T, Order> Base;
+    static T add(typename Base::ValueType& ptr, T val) {
+      return ptr.fetch_add(val, Base::OrderedOp::AtomicRMWOrder);
+    }
+    static T sub(typename Base::ValueType& ptr, T val) {
+      return ptr.fetch_sub(val, Base::OrderedOp::AtomicRMWOrder);
+    }
+};
+
+template<typename T, MemoryOrdering Order>
+struct IntrinsicAddSub<T*, Order> : public IntrinsicBase<T*, Order>
+{
+    typedef IntrinsicBase<T*, Order> Base;
+    static T* add(typename Base::ValueType& ptr, ptrdiff_t val) {
+      return ptr.fetch_add(fixupAddend(val), Base::OrderedOp::AtomicRMWOrder);
+    }
+    static T* sub(typename Base::ValueType& ptr, ptrdiff_t val) {
+      return ptr.fetch_sub(fixupAddend(val), Base::OrderedOp::AtomicRMWOrder);
+    }
+  private:
+    
+
+
+
+
+    static ptrdiff_t fixupAddend(ptrdiff_t val) {
+#if defined(__clang__) || defined(_MSC_VER)
+      return val;
+#elif defined(__GNUC__) && MOZ_GCC_VERSION_AT_LEAST(4, 6, 0) && \
+      !MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
+      return val * sizeof(T);
+#else
+      return val;
+#endif
+    }
+};
+
+template<typename T, MemoryOrdering Order>
+struct IntrinsicIncDec : public IntrinsicAddSub<T, Order>
+{
+    typedef IntrinsicBase<T, Order> Base;
+    static T inc(typename Base::ValueType& ptr) {
+      return IntrinsicAddSub<T, Order>::add(ptr, 1);
+    }
+    static T dec(typename Base::ValueType& ptr) {
+      return IntrinsicAddSub<T, Order>::sub(ptr, 1);
+    }
+};
+
+template<typename T, MemoryOrdering Order>
+struct AtomicIntrinsics : public IntrinsicMemoryOps<T, Order>,
+                          public IntrinsicIncDec<T, Order>
+{
+    typedef IntrinsicBase<T, Order> Base;
+    static T or_(typename Base::ValueType& ptr, T val) {
+      return ptr.fetch_or(val, Base::OrderedOp::AtomicRMWOrder);
+    }
+    static T xor_(typename Base::ValueType& ptr, T val) {
+      return ptr.fetch_xor(val, Base::OrderedOp::AtomicRMWOrder);
+    }
+    static T and_(typename Base::ValueType& ptr, T val) {
+      return ptr.fetch_and(val, Base::OrderedOp::AtomicRMWOrder);
+    }
+};
+
+template<typename T, MemoryOrdering Order>
+struct AtomicIntrinsics<T*, Order>
+  : public IntrinsicMemoryOps<T*, Order>, public IntrinsicIncDec<T*, Order>
+{
+};
+
+} 
+} 
+
+#elif defined(__GNUC__)
+
+namespace mozilla {
+namespace detail {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<MemoryOrdering Order> struct Barrier;
+
+
+
+
+
+
+
+
+template<>
+struct Barrier<Relaxed>
+{
+    static void beforeLoad() {}
+    static void afterLoad() {}
+    static void beforeStore() {}
+    static void afterStore() {}
+};
+
+template<>
+struct Barrier<ReleaseAcquire>
+{
+    static void beforeLoad() {}
+    static void afterLoad() { __sync_synchronize(); }
+    static void beforeStore() { __sync_synchronize(); }
+    static void afterStore() {}
+};
+
+template<>
+struct Barrier<SequentiallyConsistent>
+{
+    static void beforeLoad() { __sync_synchronize(); }
+    static void afterLoad() { __sync_synchronize(); }
+    static void beforeStore() { __sync_synchronize(); }
+    static void afterStore() { __sync_synchronize(); }
+};
+
+template<typename T, MemoryOrdering Order>
+struct IntrinsicMemoryOps
+{
+    static T load(const T& ptr) {
+      Barrier<Order>::beforeLoad();
+      T val = ptr;
+      Barrier<Order>::afterLoad();
+      return val;
+    }
+    static void store(T& ptr, T val) {
+      Barrier<Order>::beforeStore();
+      ptr = val;
+      Barrier<Order>::afterStore();
+    }
+    static T exchange(T& ptr, T val) {
+      return __sync_lock_test_and_set(&ptr, val);
+    }
+};
+
+template<typename T>
+struct IntrinsicAddSub
+{
+    typedef T ValueType;
+    static T add(T& ptr, T val) {
+      return __sync_fetch_and_add(&ptr, val);
+    }
+    static T sub(T& ptr, T val) {
+      return __sync_fetch_and_sub(&ptr, val);
+    }
+};
+
+template<typename T>
+struct IntrinsicAddSub<T*>
+{
+    typedef T* ValueType;
+    
+
+
+
+
+
+
+    static ValueType add(ValueType& ptr, ptrdiff_t val) {
+      ValueType amount = reinterpret_cast<ValueType>(val * sizeof(T));
+      return __sync_fetch_and_add(&ptr, amount);
+    }
+    static ValueType sub(ValueType& ptr, ptrdiff_t val) {
+      ValueType amount = reinterpret_cast<ValueType>(val * sizeof(T));
+      return __sync_fetch_and_sub(&ptr, amount);
+    }
+};
+
+template<typename T>
+struct IntrinsicIncDec : public IntrinsicAddSub<T>
+{
+    static T inc(T& ptr) { return IntrinsicAddSub<T>::add(ptr, 1); }
+    static T dec(T& ptr) { return IntrinsicAddSub<T>::sub(ptr, 1); }
+};
+
+template<typename T, MemoryOrdering Order>
+struct AtomicIntrinsics : public IntrinsicMemoryOps<T, Order>,
+                          public IntrinsicIncDec<T>
+{
+    static T or_(T& ptr, T val) {
+      return __sync_fetch_and_or(&ptr, val);
+    }
+    static T xor_(T& ptr, T val) {
+      return __sync_fetch_and_xor(&ptr, val);
+    }
+    static T and_(T& ptr, T val) {
+      return __sync_fetch_and_and(&ptr, val);
+    }
+};
+
+template<typename T, MemoryOrdering Order>
+struct AtomicIntrinsics<T*, Order> : public IntrinsicMemoryOps<T*, Order>,
+                                     public IntrinsicIncDec<T*>
+{
+};
+
+} 
+} 
+
+#elif defined(_MSC_VER)
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern "C" {
+long __cdecl _InterlockedExchangeAdd(long volatile* dst, long value);
+long __cdecl _InterlockedOr(long volatile* dst, long value);
+long __cdecl _InterlockedXor(long volatile* dst, long value);
+long __cdecl _InterlockedAnd(long volatile* dst, long value);
+long __cdecl _InterlockedExchange(long volatile *dst, long value);
+}
+
+#  pragma intrinsic(_InterlockedExchangeAdd)
+#  pragma intrinsic(_InterlockedOr)
+#  pragma intrinsic(_InterlockedXor)
+#  pragma intrinsic(_InterlockedAnd)
+#  pragma intrinsic(_InterlockedExchange)
+
+namespace mozilla {
+namespace detail {
+
+#  if !defined(_M_IX86) && !defined(_M_X64)
+     
+
+
+
+
+#    error "Unknown CPU type"
+#  endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<size_t DataSize> struct PrimitiveIntrinsics;
+
+template<>
+struct PrimitiveIntrinsics<4>
+{
+    typedef long Type;
+
+    static Type add(Type* ptr, Type val) {
+      return _InterlockedExchangeAdd(ptr, val);
+    }
+    static Type sub(Type* ptr, Type val) {
+      
+
+
+
+      return _InterlockedExchangeAdd(ptr, -val);
+    }
+    static Type or_(Type* ptr, Type val) {
+      return _InterlockedOr(ptr, val);
+    }
+    static Type xor_(Type* ptr, Type val) {
+      return _InterlockedXor(ptr, val);
+    }
+    static Type and_(Type* ptr, Type val) {
+      return _InterlockedAnd(ptr, val);
+    }
+    static void store(Type* ptr, Type val) {
+      _InterlockedExchange(ptr, val);
+    }
+    static Type exchange(Type* ptr, Type val) {
+      return _InterlockedExchange(ptr, val);
+    }
+};
+
+#  if defined(_M_X64)
+
+extern "C" {
+long long __cdecl _InterlockedExchangeAdd64(long long volatile* dst,
+                                            long long value);
+long long __cdecl _InterlockedOr64(long long volatile* dst,
+                                   long long value);
+long long __cdecl _InterlockedXor64(long long volatile* dst,
+                                    long long value);
+long long __cdecl _InterlockedAnd64(long long volatile* dst,
+                                    long long value);
+long long __cdecl _InterlockedExchange64(long long volatile* dst,
+                                         long long value);
+}
+
+#    pragma intrinsic(_InterlockedExchangeAdd64)
+#    pragma intrinsic(_InterlockedOr64)
+#    pragma intrinsic(_InterlockedXor64)
+#    pragma intrinsic(_InterlockedAnd64)
+#    pragma intrinsic(_InterlockedExchange64)
+
+template <>
+struct PrimitiveIntrinsics<8>
+{
+    typedef __int64 Type;
+
+    static Type add(Type* ptr, Type val) {
+      return _InterlockedExchangeAdd64(ptr, val);
+    }
+    static Type sub(Type* ptr, Type val) {
+      
+
+
+      return _InterlockedExchangeAdd64(ptr, -val);
+    }
+    static Type or_(Type* ptr, Type val) {
+      return _InterlockedOr64(ptr, val);
+    }
+    static Type xor_(Type* ptr, Type val) {
+      return _InterlockedXor64(ptr, val);
+    }
+    static Type and_(Type* ptr, Type val) {
+      return _InterlockedAnd64(ptr, val);
+    }
+    static void store(Type* ptr, Type val) {
+      _InterlockedExchange64(ptr, val);
+    }
+    static Type exchange(Type* ptr, Type val) {
+      return _InterlockedExchange64(ptr, val);
+    }
+};
+
+#  endif
+
+extern "C" { void _ReadWriteBarrier(); }
+
+#  pragma intrinsic(_ReadWriteBarrier)
+
+template<MemoryOrdering Order> struct Barrier;
+
+
+
+
+
+
+
+template<>
+struct Barrier<Relaxed>
+{
+    static void beforeLoad() {}
+    static void afterLoad() {}
+    static void beforeStore() {}
+};
+
+template<>
+struct Barrier<ReleaseAcquire>
+{
+    static void beforeLoad() {}
+    static void afterLoad() { _ReadWriteBarrier(); }
+    static void beforeStore() { _ReadWriteBarrier(); }
+};
+
+template<>
+struct Barrier<SequentiallyConsistent>
+{
+    static void beforeLoad() { _ReadWriteBarrier(); }
+    static void afterLoad() { _ReadWriteBarrier(); }
+    static void beforeStore() { _ReadWriteBarrier(); }
+};
+
+template<typename PrimType, typename T>
+struct CastHelper
+{
+  static PrimType toPrimType(T val) { return static_cast<PrimType>(val); }
+  static T fromPrimType(PrimType val) { return static_cast<T>(val); }
+};
+
+template<typename PrimType, typename T>
+struct CastHelper<PrimType, T*>
+{
+  static PrimType toPrimType(T* val) { return reinterpret_cast<PrimType>(val); }
+  static T* fromPrimType(PrimType val) { return reinterpret_cast<T*>(val); }
+};
+
+template<typename T>
+struct IntrinsicBase
+{
+    typedef T ValueType;
+    typedef PrimitiveIntrinsics<sizeof(T)> Primitives;
+    typedef typename Primitives::Type PrimType;
+    MOZ_STATIC_ASSERT(sizeof(PrimType) == sizeof(T),
+                      "Selection of PrimitiveIntrinsics was wrong");
+    typedef CastHelper<PrimType, T> Cast;
+};
+
+template<typename T, MemoryOrdering Order>
+struct IntrinsicMemoryOps : public IntrinsicBase<T>
+{
+    static ValueType load(const ValueType& ptr) {
+      Barrier<Order>::beforeLoad();
+      ValueType val = ptr;
+      Barrier<Order>::afterLoad();
+      return val;
+    }
+    static void store(ValueType& ptr, ValueType val) {
+      
+      
+      
+      if (Order == SequentiallyConsistent) {
+        Primitives::store(reinterpret_cast<PrimType*>(&ptr),
+                          Cast::toPrimType(val));
+      } else {
+        Barrier<Order>::beforeStore();
+        ptr = val;
+      }
+    }
+    static ValueType exchange(ValueType& ptr, ValueType val) {
+      PrimType oldval =
+        Primitives::exchange(reinterpret_cast<PrimType*>(&ptr),
+                             Cast::toPrimType(val));
+      return Cast::fromPrimType(oldval);
+    }
+};
+
+template<typename T>
+struct IntrinsicApplyHelper : public IntrinsicBase<T>
+{
+    typedef PrimType (*BinaryOp)(PrimType*, PrimType);
+    typedef PrimType (*UnaryOp)(PrimType*);
+
+    static ValueType applyBinaryFunction(BinaryOp op, ValueType& ptr,
+                                         ValueType val) {
+      PrimType* primTypePtr = reinterpret_cast<PrimType*>(&ptr);
+      PrimType primTypeVal = Cast::toPrimType(val);
+      return Cast::fromPrimType(op(primTypePtr, primTypeVal));
+    }
+
+    static ValueType applyUnaryFunction(UnaryOp op, ValueType& ptr) {
+      PrimType* primTypePtr = reinterpret_cast<PrimType*>(&ptr);
+      return Cast::fromPrimType(op(primTypePtr));
+    }
+};
+
+template<typename T>
+struct IntrinsicAddSub : public IntrinsicApplyHelper<T>
+{
+    static ValueType add(ValueType& ptr, ValueType val) {
+      return applyBinaryFunction(&Primitives::add, ptr, val);
+    }
+    static ValueType sub(ValueType& ptr, ValueType val) {
+      return applyBinaryFunction(&Primitives::sub, ptr, val);
+    }
+};
+
+template<typename T>
+struct IntrinsicAddSub<T*> : public IntrinsicApplyHelper<T*>
+{
+    static ValueType add(ValueType& ptr, ptrdiff_t amount) {
+      return applyBinaryFunction(&Primitives::add, ptr,
+                                 (ValueType)(amount * sizeof(ValueType)));
+    }
+    static ValueType sub(ValueType& ptr, ptrdiff_t amount) {
+      return applyBinaryFunction(&Primitives::sub, ptr,
+                                 (ValueType)(amount * sizeof(ValueType)));
+    }
+};
+
+template<typename T>
+struct IntrinsicIncDec : public IntrinsicAddSub<T>
+{
+    static ValueType inc(ValueType& ptr) { return add(ptr, 1); }
+    static ValueType dec(ValueType& ptr) { return sub(ptr, 1); }
+};
+
+template<typename T, MemoryOrdering Order>
+struct AtomicIntrinsics : public IntrinsicMemoryOps<T, Order>,
+                          public IntrinsicIncDec<T>
+{
+    static ValueType or_(ValueType& ptr, T val) {
+      return applyBinaryFunction(&Primitives::or_, ptr, val);
+    }
+    static ValueType xor_(ValueType& ptr, T val) {
+      return applyBinaryFunction(&Primitives::xor_, ptr, val);
+    }
+    static ValueType and_(ValueType& ptr, T val) {
+      return applyBinaryFunction(&Primitives::and_, ptr, val);
+    }
+};
+
+template<typename T, MemoryOrdering Order>
+struct AtomicIntrinsics<T*, Order> : public IntrinsicMemoryOps<T*, Order>,
+                                     public IntrinsicIncDec<T*>
+{
+};
+
+} 
+} 
+
+#else
+# error "Atomic compiler intrinsics are not supported on your platform"
+#endif
+
+namespace mozilla {
+
+namespace detail {
+
+template<typename T, MemoryOrdering Order>
+class AtomicBase
+{
+  protected:
+    typedef typename detail::AtomicIntrinsics<T, Order> Intrinsics;
+    typename Intrinsics::ValueType mValue;
+
+  public:
+    AtomicBase() : mValue() {}
+    AtomicBase(T aInit) { Intrinsics::store(mValue, aInit); }
+
+    T operator++(int) { return Intrinsics::inc(mValue); }
+    T operator--(int) { return Intrinsics::dec(mValue); }
+    T operator++() { return Intrinsics::inc(mValue) + 1; }
+    T operator--() { return Intrinsics::dec(mValue) - 1; }
+
+    operator T() const { return Intrinsics::load(mValue); }
+
+    
+
+
+
+    T exchange(T aValue) {
+      return Intrinsics::exchange(mValue, aValue);
+    }
+
+  private:
+    template<MemoryOrdering AnyOrder>
+    AtomicBase(const AtomicBase<T, AnyOrder>& aCopy) MOZ_DELETE;
+};
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T, MemoryOrdering Order = SequentiallyConsistent>
+class Atomic : public detail::AtomicBase<T, Order>
+{
+    
+    
+    MOZ_STATIC_ASSERT(sizeof(T) == 4 || (sizeof(uintptr_t) == 8 && sizeof(T) == 8),
+                      "mozilla/Atomics.h only supports 32-bit and pointer-sized types");
+    
+    MOZ_STATIC_ASSERT(IsIntegral<T>::value, "can only have integral atomic variables");
+
+    typedef typename detail::AtomicBase<T, Order> Base;
+
+  public:
+    Atomic() : detail::AtomicBase<T, Order>() {}
+    Atomic(T aInit) : detail::AtomicBase<T, Order>(aInit) {}
+
+    T operator+=(T delta) { return Base::Intrinsics::add(Base::mValue, delta) + delta; }
+    T operator-=(T delta) { return Base::Intrinsics::sub(Base::mValue, delta) - delta; }
+    T operator|=(T val) { return Base::Intrinsics::or_(Base::mValue, val) | val; }
+    T operator^=(T val) { return Base::Intrinsics::xor_(Base::mValue, val) ^ val; }
+    T operator&=(T val) { return Base::Intrinsics::and_(Base::mValue, val) & val; }
+
+    T operator=(T aValue) {
+      Base::Intrinsics::store(Base::mValue, aValue);
+      return aValue;
+    }
+
+  private:
+    Atomic(Atomic<T, Order>& aOther) MOZ_DELETE;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T, MemoryOrdering Order>
+class Atomic<T*, Order> : public detail::AtomicBase<T*, Order>
+{
+    typedef typename detail::AtomicBase<T*, Order> Base;
+
+  public:
+    Atomic() : detail::AtomicBase<T*, Order>() {}
+    Atomic(T* aInit) : detail::AtomicBase<T*, Order>(aInit) {}
+
+    T* operator +=(ptrdiff_t delta) {
+      return Base::Intrinsics::add(Base::mValue, delta) + delta;
+    }
+    T* operator -=(ptrdiff_t delta) {
+      return Base::Intrinsics::sub(Base::mValue, delta) - delta;
+    }
+
+    T* operator=(T* aValue) {
+      Base::Intrinsics::store(Base::mValue, aValue);
+      return aValue;
+    }
+
+  private:
+    Atomic(Atomic<T*, Order>& aOther) MOZ_DELETE;
+};
+
+} 
+
+#endif 
