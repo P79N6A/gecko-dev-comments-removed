@@ -3065,9 +3065,20 @@ DoMergingCC(bool aForced)
 }
 
 static void
+FinishAnyIncrementalGC()
+{
+  if (sCCLockedOut) {
+    
+    js::PrepareForIncrementalGC(nsJSRuntime::sRuntime);
+    js::FinishIncrementalGC(nsJSRuntime::sRuntime, js::gcreason::CC_FORCED);
+  }
+}
+
+static void
 FireForgetSkippable(uint32_t aSuspected, bool aRemoveChildless)
 {
   PRTime startTime = PR_Now();
+  FinishAnyIncrementalGC();
   nsCycleCollector_forgetSkippable(aRemoveChildless);
   sPreviousSuspectedCount = nsCycleCollector_suspectedCount();
   ++sCleanupsSinceLastGC;
@@ -3093,11 +3104,7 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
     return;
   }
 
-  if (sCCLockedOut) {
-    
-    js::PrepareForIncrementalGC(nsJSRuntime::sRuntime);
-    js::FinishIncrementalGC(nsJSRuntime::sRuntime, js::gcreason::CC_FORCED);
-  }
+  FinishAnyIncrementalGC();
 
   SAMPLE_LABEL("GC", "CycleCollectNow");
 
@@ -3289,10 +3296,6 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
     if (now - sCCLockedOutTime < NS_MAX_CC_LOCKEDOUT_TIME) {
       return;
     }
-
-    
-    js::PrepareForIncrementalGC(nsJSRuntime::sRuntime);
-    js::FinishIncrementalGC(nsJSRuntime::sRuntime, js::gcreason::CC_FORCED);
   }
 
   ++sCCTimerFireCount;
@@ -3309,17 +3312,23 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
       if (ShouldTriggerCC(nsCycleCollector_suspectedCount())) {
         
         
+        MOZ_ASSERT(!sCCLockedOut);
         return;
       }
     } else {
       
       
+      
       nsJSContext::CycleCollectNow(nullptr, 0, false);
     }
   } else if ((sPreviousSuspectedCount + 100) <= suspected) {
-    
-    FireForgetSkippable(suspected, false);
+      
+      FireForgetSkippable(suspected, false);
   }
+
+  
+  
+  MOZ_ASSERT(!sCCLockedOut);
 
   if (isLateTimerFire) {
     ccDelay = NS_CC_DELAY;
