@@ -11,7 +11,6 @@
 #include "nsTArray.h"
 #include "nsRegion.h"
 #include "nsIFrame.h"
-#include "ImageLayers.h"
 
 class nsDisplayListBuilder;
 class nsDisplayList;
@@ -92,7 +91,6 @@ public:
   typedef layers::ContainerLayer ContainerLayer;
   typedef layers::Layer Layer;
   typedef layers::ThebesLayer ThebesLayer;
-  typedef layers::ImageLayer ImageLayer;
   typedef layers::LayerManager LayerManager;
 
   FrameLayerBuilder() :
@@ -386,14 +384,6 @@ public:
 
 
 
-
-
-  void StoreOptimizedLayerForFrame(nsIFrame* aFrame, PRUint32 aDisplayItemKey, Layer* aImage);
-
-  
-
-
-
   struct Clip {
     struct RoundedRect {
       nsRect mRect;
@@ -484,7 +474,6 @@ protected:
     ~DisplayItemData();
 
     nsRefPtr<Layer> mLayer;
-    nsRefPtr<Layer> mOptLayer;
     uint32_t        mDisplayItemKey;
     uint32_t        mContainerLayerGeneration;
     LayerState      mLayerState;

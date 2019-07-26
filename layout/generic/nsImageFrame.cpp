@@ -686,7 +686,7 @@ nsImageFrame::FrameChanged(imgIRequest *aRequest,
     SourceRectToDest(*aDirtyRect);
 
   
-  InvalidateLayer(r, nsDisplayItem::TYPE_IMAGE);
+  Invalidate(r);
   return NS_OK;
 }
 
