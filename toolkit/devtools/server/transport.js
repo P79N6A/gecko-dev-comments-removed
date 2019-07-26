@@ -39,6 +39,8 @@ Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
 
 
+
+
 this.DebuggerTransport = function DebuggerTransport(aInput, aOutput)
 {
   this._input = aInput;
@@ -276,5 +278,52 @@ LocalDebuggerTransport.prototype = {
         this._deepFreeze(o[prop]);
       }
     }
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function ChildDebuggerTransport(aSender, aPrefix) {
+  this._sender = aSender.QueryInterface(Components.interfaces.nsIMessageSender);
+  this._messageName = "debug:" + aPrefix + ":packet";
+}
+
+
+
+
+
+
+ChildDebuggerTransport.prototype = {
+  constructor: ChildDebuggerTransport,
+
+  hooks: null,
+
+  ready: function () {
+    this._sender.addMessageListener(this._messageName, this);
+  },
+
+  close: function () {
+    this._sender.removeMessageListener(this._messageName, this);
+    this.hooks.onClosed();
+  },
+
+  receiveMessage: function ({data}) {
+    this.hooks.onPacket(data);
+  },
+
+  send: function (packet) {
+    this._sender.sendAsyncMessage(this._messageName, packet);
   }
 };
