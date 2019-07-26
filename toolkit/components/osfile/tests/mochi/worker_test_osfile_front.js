@@ -339,6 +339,28 @@ function test_readall_writeall_file()
   ok(!!exn && exn instanceof TypeError, "writeAtomic fails if tmpPath is not provided");
 
   
+  exn = null;
+  try {
+    let path = undefined;
+    let options = {tmpPath: tmp_file_name};
+    OS.File.writeAtomic(path, readResult.buffer, options);
+  } catch (x) {
+    exn = x;
+  }
+  ok(!!exn && exn instanceof TypeError, "writeAtomic fails if path is undefined");
+
+  
+  exn = null;
+  try {
+    let path = "";
+    let options = {tmpPath: tmp_file_name};
+    OS.File.writeAtomic(path, readResult.buffer, options);
+  } catch (x) {
+    exn = x;
+  }
+  ok(!!exn && exn instanceof TypeError, "writeAtomic fails if path is an empty string");
+
+  
   OS.File.remove(tmp_file_name);
 }
 
