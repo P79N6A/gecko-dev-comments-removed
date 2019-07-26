@@ -1257,7 +1257,7 @@ class Mochitest(MochitestUtilsMixin):
 
       
       if mozinfo.info.get('appname') == 'b2g' and mozinfo.info.get('toolkit') != 'gonk':
-          runner_cls = mozrunner.FirefoxRunner
+          runner_cls = mozrunner.Runner
       else:
           runner_cls = mozrunner.runners.get(mozinfo.info.get('appname', 'firefox'),
                                              mozrunner.Runner)
@@ -1266,12 +1266,7 @@ class Mochitest(MochitestUtilsMixin):
                           cmdargs=args,
                           env=env,
                           process_class=mozprocess.ProcessHandlerMixin,
-                          kp_kwargs=kp_kwargs,
-                          )
-
-      
-      
-      runner.kp_kwargs = kp_kwargs
+                          process_args=kp_kwargs)
 
       
       runner.start(debug_args=debug_args,

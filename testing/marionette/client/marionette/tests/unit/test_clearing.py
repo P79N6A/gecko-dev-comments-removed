@@ -3,7 +3,7 @@
 
 
 from marionette_test import MarionetteTestCase
-from marionette import InvalidElementStateException
+from errors import InvalidElementStateException
 
 class TestClear(MarionetteTestCase):
     def testWriteableTextInputShouldClear(self):
