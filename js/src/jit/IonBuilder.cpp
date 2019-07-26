@@ -8305,19 +8305,15 @@ IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted,
     
     
     
-    bool allowDouble =
-        resultTypes->hasType(types::Type::DoubleType());
-    MIRType knownType =
-        MIRTypeForTypedArrayRead(fieldTypeRepr->type(), allowDouble);
+    bool allowDouble = resultTypes->hasType(types::Type::DoubleType());
+    MIRType knownType = MIRTypeForTypedArrayRead(fieldTypeRepr->type(), allowDouble);
 
     
     
     
-    MConstant *alignment =
-        MConstant::New(Int32Value(fieldTypeRepr->alignment()));
+    MConstant *alignment = MConstant::New(Int32Value(fieldTypeRepr->alignment()));
     current->add(alignment);
-    MDiv *scaledOffset =
-        MDiv::NewAsmJS(ownerOffset, alignment, MIRType_Int32);
+    MDiv *scaledOffset = MDiv::NewAsmJS(ownerOffset, alignment, MIRType_Int32);
     current->add(scaledOffset);
 
     MLoadTypedArrayElement *load =
