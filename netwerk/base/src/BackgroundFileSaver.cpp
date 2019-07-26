@@ -4,18 +4,11 @@
 
 
 
-#include "mozilla/RefPtr.h"
-#include "pk11pub.h"
-#include "ScopedNSSTypes.h"
-#include "secoidt.h"
-
+#include "BackgroundFileSaver.h"
 #include "nsIFile.h"
 #include "nsIPipe.h"
 #include "nsNetUtil.h"
 #include "nsThreadUtils.h"
-#include "nsXPCOMStrings.h"
-
-#include "BackgroundFileSaver.h"
 
 namespace mozilla {
 namespace net {
@@ -81,36 +74,13 @@ BackgroundFileSaver::BackgroundFileSaver()
 , mAssignedTarget(nullptr)
 , mAssignedTargetKeepPartial(false)
 , mAsyncCopyContext(nullptr)
-, mSha256Enabled(false)
 , mActualTarget(nullptr)
 , mActualTargetKeepPartial(false)
-, mDigestContext(nullptr)
 {
 }
 
 BackgroundFileSaver::~BackgroundFileSaver()
 {
-  destructorSafeDestroyNSSReference();
-  shutdown(calledFromObject);
-}
-
-void
-BackgroundFileSaver::destructorSafeDestroyNSSReference()
-{
-  nsNSSShutDownPreventionLock lock;
-  if (isAlreadyShutDown()) {
-    return;
-  }
-  if (mDigestContext) {
-    mozilla::psm::PK11_DestroyContext_true(mDigestContext.forget());
-    mDigestContext = nullptr;
-  }
-}
-
-void
-BackgroundFileSaver::virtualDestroyNSSReference()
-{
-  destructorSafeDestroyNSSReference();
 }
 
 
@@ -156,6 +126,7 @@ NS_IMETHODIMP
 BackgroundFileSaver::SetTarget(nsIFile *aTarget, bool aKeepPartial)
 {
   NS_ENSURE_ARG(aTarget);
+
   {
     MutexAutoLock lock(mLock);
     aTarget->Clone(getter_AddRefs(mAssignedTarget));
@@ -194,33 +165,6 @@ BackgroundFileSaver::Finish(nsresult aStatus)
   
   
   return GetWorkerThreadAttention(NS_FAILED(aStatus));
-}
-
-NS_IMETHODIMP
-BackgroundFileSaver::EnableSha256()
-{
-  MOZ_ASSERT(NS_IsMainThread(),
-             "Can't enable sha256 or initialize NSS off the main thread");
-  mSha256Enabled = true;
-  
-  
-  nsresult rv;
-  nsCOMPtr<nsISupports> nssDummy = do_GetService("@mozilla.org/psm;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-BackgroundFileSaver::GetSha256Hash(nsACString& aHash)
-{
-  MOZ_ASSERT(NS_IsMainThread(), "Can't inspect sha256 off the main thread");
-  
-  MutexAutoLock lock(mLock);
-  if (mSha256.IsEmpty()) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-  aHash = mSha256;
-  return NS_OK;
 }
 
 
@@ -271,6 +215,7 @@ void
 BackgroundFileSaver::AsyncCopyCallback(void *aClosure, nsresult aStatus)
 {
   BackgroundFileSaver *self = (BackgroundFileSaver *)aClosure;
+
   {
     MutexAutoLock lock(self->mLock);
 
@@ -320,6 +265,7 @@ BackgroundFileSaver::ProcessAttention()
     NS_CancelAsyncCopy(mAsyncCopyContext, NS_ERROR_ABORT);
     return NS_OK;
   }
+
   
   rv = ProcessStateChange();
   if (NS_FAILED(rv)) {
@@ -331,6 +277,7 @@ BackgroundFileSaver::ProcessAttention()
         mStatus = rv;
       }
     }
+
     
     CheckCompletion();
   }
@@ -352,7 +299,6 @@ BackgroundFileSaver::ProcessStateChange()
   
   nsCOMPtr<nsIFile> target;
   bool targetKeepPartial;
-  bool sha256Enabled = false;
   {
     MutexAutoLock lock(mLock);
 
@@ -361,8 +307,6 @@ BackgroundFileSaver::ProcessStateChange()
 
     
     mWorkerThreadAttentionRequested = false;
-
-    sha256Enabled = mSha256Enabled;
   }
 
   
@@ -462,30 +406,6 @@ BackgroundFileSaver::ProcessStateChange()
 
   
   
-  bool isShutDown = false;
-  if (sha256Enabled && !mDigestContext) {
-    nsNSSShutDownPreventionLock lock;
-    if (!(isShutDown = isAlreadyShutDown())) {
-      mDigestContext =
-        PK11_CreateDigestContext(static_cast<SECOidTag>(SEC_OID_SHA256));
-      NS_ENSURE_TRUE(mDigestContext, NS_ERROR_OUT_OF_MEMORY);
-    }
-  }
-  MOZ_ASSERT(!sha256Enabled || mDigestContext || isShutDown,
-             "Hashing enabled but creating digest context didn't work");
-  if (mDigestContext) {
-    
-    
-    
-    
-    
-    
-    
-    outputStream = new DigestOutputStream(outputStream, mDigestContext);
-  }
-
-  
-  
   {
     MutexAutoLock lock(mLock);
 
@@ -555,23 +475,8 @@ BackgroundFileSaver::CheckCompletion()
   }
 
   
-  
   if (failed && mActualTarget && !mActualTargetKeepPartial) {
     (void)mActualTarget->Remove(false);
-  }
-
-  
-  if (!failed && mDigestContext) {
-    nsNSSShutDownPreventionLock lock;
-    if (!isAlreadyShutDown()) {
-      Digest d;
-      rv = d.End(SEC_OID_SHA256, mDigestContext);
-      if (NS_SUCCEEDED(rv)) {
-        MutexAutoLock lock(mLock);
-        mSha256 = nsDependentCSubstring(char_ptr_cast(d.get().data),
-                                        d.get().len);
-      }
-    }
   }
 
   
@@ -889,77 +794,6 @@ BackgroundFileSaverStreamListener::NotifySuspendOrResume()
 
   return NS_OK;
 }
-
-
-
-NS_IMPL_THREADSAFE_ISUPPORTS1(DigestOutputStream,
-                              nsIOutputStream)
-
-DigestOutputStream::DigestOutputStream(nsIOutputStream* aStream,
-                                       PK11Context* aContext) :
-  mOutputStream(aStream)
-  , mDigestContext(aContext)
-{
-  MOZ_ASSERT(mDigestContext, "Can't have null digest context");
-  MOZ_ASSERT(mOutputStream, "Can't have null output stream");
-}
-
-DigestOutputStream::~DigestOutputStream()
-{
-  shutdown(calledFromObject);
-}
-
-NS_IMETHODIMP
-DigestOutputStream::Close()
-{
-  return mOutputStream->Close();
-}
-
-NS_IMETHODIMP
-DigestOutputStream::Flush()
-{
-  return mOutputStream->Flush();
-}
-
-NS_IMETHODIMP
-DigestOutputStream::Write(const char* aBuf, uint32_t aCount, uint32_t* retval)
-{
-  nsNSSShutDownPreventionLock lock;
-  if (isAlreadyShutDown()) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  nsresult rv = MapSECStatus(PK11_DigestOp(mDigestContext,
-                                           uint8_t_ptr_cast(aBuf), aCount));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return mOutputStream->Write(aBuf, aCount, retval);
-}
-
-NS_IMETHODIMP
-DigestOutputStream::WriteFrom(nsIInputStream* aFromStream,
-                              uint32_t aCount, uint32_t* retval)
-{
-  
-  
-  
-  MOZ_NOT_REACHED("DigestOutputStream::WriteFrom not implemented");
-}
-
-NS_IMETHODIMP
-DigestOutputStream::WriteSegments(nsReadSegmentFun aReader,
-                                  void *aClosure, uint32_t aCount,
-                                  uint32_t *retval)
-{
-  MOZ_NOT_REACHED("DigestOutputStream::WriteSegments not implemented");
-}
-
-NS_IMETHODIMP
-DigestOutputStream::IsNonBlocking(bool *retval)
-{
-  return mOutputStream->IsNonBlocking(retval);
-}
-
 
 } 
 } 

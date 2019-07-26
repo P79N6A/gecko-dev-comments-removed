@@ -14,12 +14,10 @@
 
 #include "mozilla/Mutex.h"
 #include "nsCOMPtr.h"
-#include "nsNSSShutDown.h"
 #include "nsIAsyncOutputStream.h"
 #include "nsIBackgroundFileSaver.h"
 #include "nsIStreamListener.h"
 #include "nsStreamUtils.h"
-#include "ScopedNSSTypes.h"
 
 class nsIAsyncInputStream;
 class nsIThread;
@@ -27,13 +25,10 @@ class nsIThread;
 namespace mozilla {
 namespace net {
 
-class DigestOutputStream;
 
 
 
-
-class BackgroundFileSaver : public nsIBackgroundFileSaver,
-                            public nsNSSShutDownObject
+class BackgroundFileSaver : public nsIBackgroundFileSaver
 {
 public:
   NS_DECL_NSIBACKGROUNDFILESAVER
@@ -48,18 +43,8 @@ public:
 
   nsresult Init();
 
-  
-
-
-  void virtualDestroyNSSReference();
-
 protected:
   virtual ~BackgroundFileSaver();
-
-  
-
-
-  void destructorSafeDestroyNSSReference();
 
   
 
@@ -72,7 +57,6 @@ protected:
   nsCOMPtr<nsIThread> mWorkerThread;
 
   
-
 
 
 
@@ -159,18 +143,6 @@ private:
   nsCOMPtr<nsISupports> mAsyncCopyContext;
 
   
-
-
-
-  nsAutoCString mSha256;
-
-  
-
-
-
-  bool mSha256Enabled;
-
-  
   
 
   
@@ -183,12 +155,6 @@ private:
 
 
   bool mActualTargetKeepPartial;
-
-  
-
-
-
-  ScopedPK11Context mDigestContext;
 
   
   
@@ -273,7 +239,6 @@ private:
 
 
 
-
 class BackgroundFileSaverStreamListener : public BackgroundFileSaver
                                         , public nsIStreamListener
 {
@@ -323,31 +288,6 @@ private:
   nsresult NotifySuspendOrResume();
 };
 
-
-
-
-class DigestOutputStream : public nsNSSShutDownObject,
-                           public nsIOutputStream
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOUTPUTSTREAM
-  
-  DigestOutputStream(nsIOutputStream* outputStream, PK11Context* aContext);
-  ~DigestOutputStream();
-
-  
-  void virtualDestroyNSSReference() { }
-
-private:
-  
-  nsCOMPtr<nsIOutputStream> mOutputStream;
-  
-  PK11Context* mDigestContext;
-
-  
-  DigestOutputStream(const DigestOutputStream& d);
-};
 } 
 } 
 
