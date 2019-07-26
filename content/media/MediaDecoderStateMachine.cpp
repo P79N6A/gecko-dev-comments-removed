@@ -619,6 +619,10 @@ void MediaDecoderStateMachine::SendStreamData()
   if (mState == DECODER_STATE_DECODING_METADATA)
     return;
 
+  if (!mDecoder->IsSameOriginMedia()) {
+    return;
+  }
+
   
   
   
