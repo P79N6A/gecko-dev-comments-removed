@@ -17,14 +17,12 @@
 
 
 #include <mach/mach_time.h>
-#include <sys/param.h>
 #include <sys/time.h>
 #include <sys/sysctl.h>
 #include <time.h>
 
 #include "mozilla/TimeStamp.h"
-#include "nsCRT.h"
-#include "prprf.h"
+#include "nsDebug.h"
 
 
 static uint64_t sResolution;

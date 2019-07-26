@@ -4,8 +4,9 @@
 
 
 #include "nsIStringEnumerator.h"
-#include "nsString.h"
-#include "nsTArray.h"
+#include "nsStringFwd.h"
+
+template<class T> class nsTArray;
 
 
 

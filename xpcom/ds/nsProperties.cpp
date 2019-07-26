@@ -4,8 +4,6 @@
 
 
 #include "nsProperties.h"
-#include "nsString.h"
-#include "nsCRT.h"
 
 
 

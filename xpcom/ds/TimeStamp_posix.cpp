@@ -50,6 +50,7 @@
 #include "nsCRT.h"
 #include "prprf.h"
 #include "prthread.h"
+#include "nsDebug.h"
 
 
 static uint64_t sResolution;

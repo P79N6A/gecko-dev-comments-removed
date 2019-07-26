@@ -7,12 +7,15 @@
 
 
 #include "nsVariant.h"
-#include "nsString.h"
 #include "prprf.h"
 #include "prdtoa.h"
 #include <math.h>
-#include "nsCRT.h"
 #include "nsCycleCollectionParticipant.h"
+#include "xpt_struct.h"
+#include "nsReadableUtils.h"
+#include "nsMemory.h"
+#include "nsStringGlue.h"
+#include "nsCRTGlue.h"
 
 
 
