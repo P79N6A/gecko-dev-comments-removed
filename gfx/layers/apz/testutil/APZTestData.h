@@ -42,13 +42,10 @@ class APZTestData {
   friend class APZTestDataToJSConverter;
 public:
   void StartNewPaint(SequenceNumber aSequenceNumber) {
-    auto insertResult = mPaints.insert(DataStore::value_type(aSequenceNumber, Bucket()));
-    if (!insertResult.second) {
-      
-      
-      
-      NS_WARNING("Already have a paint with this sequence number");
-    }
+    mPaints.insert(DataStore::value_type(aSequenceNumber, Bucket()));
+    
+    
+    
   }
   void LogTestDataForPaint(SequenceNumber aSequenceNumber,
                            ViewID aScrollId,
@@ -96,13 +93,10 @@ private:
     }
     Bucket& bucket = bucketIterator->second;
     ScrollFrameData& scrollFrameData = bucket[aScrollId];  
-    auto insertResult = scrollFrameData.insert(ScrollFrameData::value_type(aKey, aValue));
-    if (!insertResult.second) {
-      
-      
-      
-      NS_WARNING("Key already present in test data, not overwriting");
-    }
+    scrollFrameData.insert(ScrollFrameData::value_type(aKey, aValue));
+    
+    
+    
   }
 };
 
