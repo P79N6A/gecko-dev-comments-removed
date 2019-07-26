@@ -39,8 +39,6 @@ static const float kIntegralFactor = 2.0;
 
 
 static const nsGlyphCode kNullGlyph = {{{0, 0}}, 0};
-typedef enum {eExtension_base, eExtension_variants, eExtension_parts}
-  nsMathfontPrefExtension;
 
 
 
@@ -681,69 +679,6 @@ nsGlyphTableList::GetGlyphTableFor(const nsAString& aFamily)
 
 
 
-
-
-
-
-
-
-static bool
-GetFontExtensionPref(char16_t aChar,
-                     nsMathfontPrefExtension aExtension, nsString& aValue)
-{
-  
-  aValue.Truncate();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  static const char* kMathFontPrefix = "font.mathfont-family.";
-
-  nsAutoCString extension;
-  switch (aExtension)
-  {
-    case eExtension_base:
-      extension.AssignLiteral(".base");
-      break;
-    case eExtension_variants:
-      extension.AssignLiteral(".variants");
-      break;
-    case eExtension_parts:
-      extension.AssignLiteral(".parts");
-      break;
-    default:
-      return false;
-  }
-
-  
-  nsAutoCString key;
-  key.AssignASCII(kMathFontPrefix);
-  char ustr[10];
-  PR_snprintf(ustr, sizeof(ustr), "\\u%04X", aChar);
-  key.Append(ustr);
-  key.Append(extension);
-  
-  nsAutoCString alternateKey;
-  alternateKey.AssignASCII(kMathFontPrefix);
-  NS_ConvertUTF16toUTF8 tmp(&aChar, 1);
-  alternateKey.Append(tmp);
-  alternateKey.Append(extension);
-
-  aValue = Preferences::GetString(key.get());
-  if (aValue.IsEmpty()) {
-    aValue = Preferences::GetString(alternateKey.get());
-  }
-  return !aValue.IsEmpty();
-}
-
-
 static bool
 MathFontEnumCallback(const nsString& aFamily, bool aGeneric, void *aData)
 {
@@ -796,9 +731,6 @@ InitGlobals(nsPresContext* aPresContext)
   NS_NAMED_LITERAL_CSTRING(defaultKey, "font.mathfont-glyph-tables");
   rv = mathfontProp->GetStringProperty(defaultKey, font.name);
   if (NS_FAILED(rv)) return rv;
-
-  
-  nsAutoString missingFamilyList;
 
   font.EnumerateFamilies(MathFontEnumCallback, nullptr);
   return rv;
@@ -1589,15 +1521,6 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   
   nsFont font = mStyleContext->GetParent()->StyleFont()->mFont;
 
-  
-  nsAutoString families;
-  if (GetFontExtensionPref(mData[0], eExtension_base, families)) {
-    font.name = families;
-  }
-
-  
-  bool maxWidth = (NS_STRETCH_MAXWIDTH & aStretchHint) != 0;
-
   nsRefPtr<nsFontMetrics> fm;
   aPresContext->DeviceContext()->
     GetMetricsFor(font,
@@ -1613,6 +1536,7 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   aDesiredStretchSize = MeasureTextRun(aThebesContext, textRun);
   mGlyphs[0] = textRun;
 
+  bool maxWidth = (NS_STRETCH_MAXWIDTH & aStretchHint) != 0;
   if (!maxWidth) {
     mUnscaledAscent = aDesiredStretchSize.ascent;
   }
@@ -1704,41 +1628,10 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   
 
   bool glyphFound = false;
-  nsAutoString cssFamilies;
-
-  if (!done) {
-    font = mStyleContext->StyleFont()->mFont;
-    cssFamilies = font.name;
-  }
-
-  
-  if (!done && GetFontExtensionPref(mData[0], eExtension_variants, families)) {
-    font.name = families;
-
-    StretchEnumContext enumData(this, aPresContext, aThebesContext,
-                                aStretchDirection, targetSize, aStretchHint,
-                                aDesiredStretchSize, font.name, glyphFound);
-    enumData.mTryParts = false;
-
-    done = !font.EnumerateFamilies(StretchEnumContext::EnumCallback, &enumData);
-  }
-
-  
-  if (!done && !largeopOnly
-      && GetFontExtensionPref(mData[0], eExtension_parts, families)) {
-    font.name = families;
-
-    StretchEnumContext enumData(this, aPresContext, aThebesContext,
-                                aStretchDirection, targetSize, aStretchHint,
-                                aDesiredStretchSize, font.name, glyphFound);
-    enumData.mTryVariants = false;
-
-    done = !font.EnumerateFamilies(StretchEnumContext::EnumCallback, &enumData);
-  }
 
   if (!done) { 
     
-    font.name = cssFamilies;
+    font = mStyleContext->StyleFont()->mFont;
     NS_NAMED_LITERAL_CSTRING(defaultKey, "font.mathfont-family");
     nsAdoptingString fallbackFonts = Preferences::GetString(defaultKey.get());
     if (!fallbackFonts.IsEmpty()) {
