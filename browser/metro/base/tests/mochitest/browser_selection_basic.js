@@ -253,49 +253,6 @@ gTests.push({
 });
 
 gTests.push({
-  desc: "scroll disables",
-  setUp: setUpAndTearDown,
-  run: function test() {
-    sendContextMenuClick(100, 20);
-
-    yield waitForCondition(function () {
-        return SelectionHelperUI.isSelectionUIVisible;
-      }, kCommonWaitMs, kCommonPollMs);
-
-    is(SelectionHelperUI.isActive, true, "selection active");
-
-    
-    sendTouchDrag(gWindow,
-                  400,
-                  400,
-                  400,
-                  350);
-
-    yield waitForCondition(function () {
-        return !SelectionHelperUI.isSelectionUIVisible;
-      }, kCommonWaitMs, kCommonPollMs);
-
-    
-    TouchModule.cancelPending();
-
-    
-    is(SelectionHelperUI.isActive, false, "selection inactive");
-  },
-  tearDown: function tearDown() {
-    EventUtils.synthesizeKey("VK_HOME", {}, gWindow);
-    emptyClipboard();
-    if (gWindow)
-      clearSelection(gWindow);
-    if (gFrame)
-      clearSelection(gFrame);
-    yield waitForCondition(function () {
-        return !SelectionHelperUI.isSelectionUIVisible;
-      }, kCommonWaitMs, kCommonPollMs);
-    yield hideContextUI();
-  },
-});
-
-gTests.push({
   desc: "tap on selection clears selection in content",
   setUp: setUpAndTearDown,
   run: function test() {
