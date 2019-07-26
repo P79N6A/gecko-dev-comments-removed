@@ -80,9 +80,11 @@ let observer = {
     }
 
     
-    for (let stack of EXPECTED_REFLOWS) {
-      if (path.startsWith(stack)) {
-        ok(true, "expected uninterruptible reflow '" + stack + "'");
+    for (let expectedStack of EXPECTED_REFLOWS) {
+      if (path.startsWith(expectedStack) ||
+          
+          path.startsWith(expectedStack.replace("|gBrowserInit._delayedStartup@", "|@").replace("|TabsInTitlebar._update@", "|@"))) {
+        ok(true, "expected uninterruptible reflow '" + expectedStack + "'");
         return;
       }
     }
