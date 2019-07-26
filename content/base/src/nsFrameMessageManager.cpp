@@ -832,7 +832,7 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
 
         JS::Rooted<JS::Value> targetv(ctx);
         JS::Rooted<JSObject*> global(ctx, JS_GetGlobalForObject(ctx, object));
-        nsContentUtils::WrapNative(ctx, global, aTarget, targetv.address(),
+        nsContentUtils::WrapNative(ctx, global, aTarget, &targetv,
                                    nullptr, true);
 
         JS::RootedObject cpows(ctx);
@@ -888,7 +888,7 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
           }
           JS::Rooted<JSObject*> global(ctx, JS_GetGlobalForObject(ctx, object));
           nsContentUtils::WrapNative(ctx, global, defaultThisValue,
-                                     thisValue.address(), nullptr, true);
+                                     &thisValue, nullptr, true);
         } else {
           
           if (!JS_GetProperty(ctx, object, "receiveMessage", &funval) ||
