@@ -398,9 +398,6 @@ class GeckoInputConnection
         }
         mBatchSelectionChanged = false;
         mBatchTextChanged = false;
-        mUpdateRequest = null;
-
-        mCurrentInputMethod = "";
 
         
     }
@@ -921,6 +918,10 @@ class GeckoInputConnection
         mIMETypeHint = (typeHint == null) ? "" : typeHint;
         mIMEModeHint = (modeHint == null) ? "" : modeHint;
         mIMEActionHint = (actionHint == null) ? "" : actionHint;
+
+        
+        mUpdateRequest = null;
+        mCurrentInputMethod = "";
 
         View v = getView();
         if (v == null || !v.hasFocus()) {
