@@ -162,8 +162,6 @@ public:
                       mChannel(-1),
                       mCurSendCodecConfig(nullptr),
                       mCaptureDelay(150),
-                      mEchoOn(true),
-                      mEchoCancel(webrtc::kEcAec),
 #ifdef MOZILLA_INTERNAL_API
                       mLastTimestamp(0),
 #endif 
@@ -263,9 +261,6 @@ private:
 
   
   int32_t mCaptureDelay;
-
-  bool mEchoOn;
-  webrtc::EcModes  mEchoCancel;
 
 #ifdef MOZILLA_INTERNAL_API
   uint32_t mLastTimestamp;
