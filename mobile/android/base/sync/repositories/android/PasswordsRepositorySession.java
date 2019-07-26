@@ -328,6 +328,13 @@ public class PasswordsRepositorySession extends
         
 
         
+        if (!remoteRecord.isValid()) {
+            Logger.warn(LOG_TAG, "Incoming record is invalid. Reporting store failed.");
+            delegate.onRecordStoreFailed(new RuntimeException("Can't store invalid password record."), record.guid);
+            return;
+        }
+
+        
         if (existingRecord == null) {
           trace("Looking up match for record " + remoteRecord.guid);
           try {

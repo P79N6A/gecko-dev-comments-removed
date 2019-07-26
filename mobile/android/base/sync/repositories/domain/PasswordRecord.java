@@ -181,4 +181,25 @@ public class PasswordRecord extends Record {
         + "timePasswordChanged: " + this.timePasswordChanged + ", "
         + "timesUsed: " + this.timesUsed;
   }
+
+  
+
+
+
+
+
+
+
+
+    public boolean isValid() {
+        if (this.deleted) {
+            return true;
+        }
+
+        return this.hostname != null &&
+               this.encryptedUsername != null &&
+               this.encryptedPassword != null &&
+               this.usernameField != null &&
+               this.passwordField != null;
+  }
 }
