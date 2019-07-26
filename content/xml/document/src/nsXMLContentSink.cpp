@@ -60,6 +60,7 @@
 #include "mozilla/dom/CDATASection.h"
 #include "mozilla/dom/Comment.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/HTMLTemplateElement.h"
 #include "mozilla/dom/ProcessingInstruction.h"
 
 using namespace mozilla::dom;
@@ -848,7 +849,17 @@ nsXMLContentSink::PushContent(nsIContent *aContent)
   StackNode *sn = mContentStack.AppendElement();
   NS_ENSURE_TRUE(sn, NS_ERROR_OUT_OF_MEMORY);
 
-  sn->mContent = aContent;
+  nsIContent* contentToPush = aContent;
+
+  
+  
+  if (contentToPush->IsHTML(nsGkAtoms::_template)) {
+    HTMLTemplateElement* templateElement =
+      static_cast<HTMLTemplateElement*>(contentToPush);
+    contentToPush = templateElement->Content();
+  }
+
+  sn->mContent = contentToPush;
   sn->mNumFlushed = 0;
   return NS_OK;
 }
@@ -1076,8 +1087,13 @@ nsXMLContentSink::HandleEndElement(const char16_t *aName,
   nsContentUtils::SplitExpatName(aName, getter_AddRefs(debugNameSpacePrefix),
                                  getter_AddRefs(debugTagAtom),
                                  &debugNameSpaceID);
-  NS_ASSERTION(content->NodeInfo()->Equals(debugTagAtom, debugNameSpaceID),
-               "Wrong element being closed");
+  
+  
+  
+  bool isTemplateElement = debugTagAtom == nsGkAtoms::_template &&
+                           debugNameSpaceID == kNameSpaceID_XHTML;
+  NS_ASSERTION(content->NodeInfo()->Equals(debugTagAtom, debugNameSpaceID) ||
+               isTemplateElement, "Wrong element being closed");
 #endif  
 
   result = CloseElement(content);
