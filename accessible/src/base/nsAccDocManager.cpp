@@ -359,12 +359,6 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
   if (!presShell || !presShell->GetRootFrame() || presShell->IsDestroying())
     return nullptr;
 
-  
-  
-  nsIContent *rootElm = nsCoreUtils::GetRoleContent(aDocument);
-  if (!rootElm)
-    return nullptr;
-
   bool isRootDoc = nsCoreUtils::IsRootDocument(aDocument);
 
   DocAccessible* parentDocAcc = nullptr;
@@ -380,6 +374,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 
   
   
+  nsIContent *rootElm = nsCoreUtils::GetRoleContent(aDocument);
   nsRefPtr<DocAccessible> docAcc = isRootDoc ?
     new RootAccessibleWrap(aDocument, rootElm, presShell) :
     new DocAccessibleWrap(aDocument, rootElm, presShell);

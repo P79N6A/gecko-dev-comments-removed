@@ -1378,6 +1378,8 @@ GroupPos
 Accessible::GroupPosition()
 {
   GroupPos groupPos;
+  if (!HasOwnContent())
+    return groupPos;
 
   
   nsCoreUtils::GetUIntAttr(mContent, nsGkAtoms::aria_level, &groupPos.level);
@@ -1901,6 +1903,9 @@ Accessible::GetRelationByType(uint32_t aType,
 Relation
 Accessible::RelationByType(uint32_t aType)
 {
+  if (!HasOwnContent())
+    return Relation();
+
   
   
   switch (aType) {
@@ -2878,7 +2883,8 @@ Accessible::IsActiveWidget() const
 bool
 Accessible::AreItemsOperable() const
 {
-  return mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_activedescendant);
+  return HasOwnContent() &&
+    mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_activedescendant);
 }
 
 Accessible*
@@ -2889,7 +2895,8 @@ Accessible::CurrentItem()
   
   
   nsAutoString id;
-  if (mContent->GetAttr(kNameSpaceID_None,
+  if (HasOwnContent() &&
+      mContent->GetAttr(kNameSpaceID_None,
                         nsGkAtoms::aria_activedescendant, id)) {
     nsIDocument* DOMDoc = mContent->OwnerDoc();
     dom::Element* activeDescendantElm = DOMDoc->GetElementById(id);

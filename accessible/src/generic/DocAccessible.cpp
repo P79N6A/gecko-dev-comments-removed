@@ -261,12 +261,7 @@ uint64_t
 DocAccessible::NativeState()
 {
   
-  
-  uint64_t state = (mContent->GetCurrentDoc() == mDocument) ?
-    0 : states::STALE;
-
-  
-  state |= states::FOCUSABLE; 
+  uint64_t state = states::FOCUSABLE; 
   if (FocusMgr()->IsFocused(this))
     state |= states::FOCUSED;
 
@@ -310,8 +305,8 @@ void
 DocAccessible::ApplyARIAState(uint64_t* aState) const
 {
   
-  
-  Accessible::ApplyARIAState(aState);
+  if (mContent)
+    Accessible::ApplyARIAState(aState);
 
   
   if (mParent)
@@ -540,7 +535,7 @@ DocAccessible::GetEditor() const
   
   
   if (!mDocument->HasFlag(NODE_IS_EDITABLE) &&
-      !mContent->HasFlag(NODE_IS_EDITABLE))
+      (!mContent || !mContent->HasFlag(NODE_IS_EDITABLE)))
     return nullptr;
 
   nsCOMPtr<nsISupports> container = mDocument->GetContainer();
@@ -1560,7 +1555,7 @@ DocAccessible::DoInitialUpdate()
   
   
   nsIContent* contentElm = nsCoreUtils::GetRoleContent(mDocument);
-  if (contentElm && mContent != contentElm)
+  if (mContent != contentElm)
     mContent = contentElm;
 
   
@@ -1825,7 +1820,7 @@ DocAccessible::ProcessContentInserted(Accessible* aContainer,
   if (aContainer == this) {
     
     nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocument);
-    if (rootContent && rootContent != mContent)
+    if (rootContent != mContent)
       mContent = rootContent;
 
     
