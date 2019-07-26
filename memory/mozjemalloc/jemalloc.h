@@ -116,6 +116,20 @@ static inline void jemalloc_purge_freed_pages() { }
 void    jemalloc_purge_freed_pages();
 #endif
 
+
+
+
+
+
+
+
+#if !defined(MOZ_NATIVE_JEMALLOC)
+#if defined(MOZ_MEMORY_LINUX) || defined(MOZ_MEMORY_BSD)
+__attribute__((weak))
+#endif 
+void    jemalloc_free_dirty_pages();
+#endif 
+
 #ifdef __cplusplus
 } 
 #endif
