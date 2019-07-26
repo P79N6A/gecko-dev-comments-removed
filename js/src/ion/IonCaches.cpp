@@ -489,6 +489,63 @@ EmitLoadSlot(MacroAssembler &masm, JSObject *holder, Shape *shape, Register hold
 }
 
 static void
+GenerateListBaseChecks(JSContext *cx, MacroAssembler &masm, JSObject *obj,
+                       PropertyName *name, Register object, Label &stubFailure)
+{
+    MOZ_ASSERT(IsCacheableListBase(obj));
+
+    
+    
+    
+    
+    Address handlerAddr(object, JSObject::getFixedSlotOffset(JSSLOT_PROXY_HANDLER));
+    Address expandoAddr(object, JSObject::getFixedSlotOffset(GetListBaseExpandoSlot()));
+
+    
+    masm.branchPrivatePtr(Assembler::NotEqual, handlerAddr, ImmWord(GetProxyHandler(obj)), &stubFailure);
+
+    
+    
+    RegisterSet listBaseRegSet(RegisterSet::All());
+    listBaseRegSet.take(AnyRegister(object));
+    ValueOperand tempVal = listBaseRegSet.takeValueOperand();
+    masm.pushValue(tempVal);
+
+    Label failListBaseCheck;
+    Label listBaseOk;
+
+    Value expandoVal = obj->getFixedSlot(GetListBaseExpandoSlot());
+    JSObject *expando = expandoVal.isObject() ? &(expandoVal.toObject()) : NULL;
+    JS_ASSERT_IF(expando, expando->isNative() && expando->getProto() == NULL);
+
+    masm.loadValue(expandoAddr, tempVal);
+
+    
+    
+    masm.branchTestUndefined(Assembler::Equal, tempVal, &listBaseOk);
+
+    if (expando && !expando->nativeContains(cx, name)) {
+        
+        
+        masm.branchTestObject(Assembler::NotEqual, tempVal, &failListBaseCheck);
+        masm.extractObject(tempVal, tempVal.scratchReg());
+        masm.branchPtr(Assembler::Equal,
+                       Address(tempVal.scratchReg(), JSObject::offsetOfShape()),
+                       ImmGCPtr(expando->lastProperty()),
+                       &listBaseOk);
+    }
+
+    
+    masm.bind(&failListBaseCheck);
+    masm.popValue(tempVal);
+    masm.jump(&stubFailure);
+
+    
+    masm.bind(&listBaseOk);
+    masm.popValue(tempVal);
+}
+
+static void
 GenerateReadSlot(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &attacher,
                  JSObject *obj, JSObject *holder, Shape *shape, Register object,
                  TypedOrValueRegister output, Label *failures = NULL)
@@ -618,57 +675,8 @@ GenerateCallGetter(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &
     masm.branchPtr(Assembler::NotEqual, Address(object, JSObject::offsetOfShape()),
                    ImmGCPtr(obj->lastProperty()), &stubFailure);
 
-    
-    
-    
-    
-    if (IsCacheableListBase(obj)) {
-        Address handlerAddr(object, JSObject::getFixedSlotOffset(JSSLOT_PROXY_HANDLER));
-        Address expandoAddr(object, JSObject::getFixedSlotOffset(GetListBaseExpandoSlot()));
-
-        
-        masm.branchPrivatePtr(Assembler::NotEqual, handlerAddr, ImmWord(GetProxyHandler(obj)), &stubFailure);
-
-        
-        
-        RegisterSet listBaseRegSet(RegisterSet::All());
-        listBaseRegSet.take(AnyRegister(object));
-        ValueOperand tempVal = listBaseRegSet.takeValueOperand();
-        masm.pushValue(tempVal);
-
-        Label failListBaseCheck;
-        Label listBaseOk;
-
-        Value expandoVal = obj->getFixedSlot(GetListBaseExpandoSlot());
-        JSObject *expando = expandoVal.isObject() ? &(expandoVal.toObject()) : NULL;
-        JS_ASSERT_IF(expando, expando->isNative() && expando->getProto() == NULL);
-
-        masm.loadValue(expandoAddr, tempVal);
-
-        
-        
-        masm.branchTestUndefined(Assembler::Equal, tempVal, &listBaseOk);
-
-        if (expando && !expando->nativeContains(cx, name)) {
-            
-            
-            masm.branchTestObject(Assembler::NotEqual, tempVal, &failListBaseCheck);
-            masm.extractObject(tempVal, tempVal.scratchReg());
-            masm.branchPtr(Assembler::Equal,
-                           Address(tempVal.scratchReg(), JSObject::offsetOfShape()),
-                           ImmGCPtr(expando->lastProperty()),
-                           &listBaseOk);
-        }
-
-        
-        masm.bind(&failListBaseCheck);
-        masm.popValue(tempVal);
-        masm.jump(&stubFailure);
-
-        
-        masm.bind(&listBaseOk);
-        masm.popValue(tempVal);
-    }
+    if (IsCacheableListBase(obj))
+        GenerateListBaseChecks(cx, masm, obj, name, object, stubFailure);
 
     JS_ASSERT(output.hasValue());
     Register scratchReg = output.valueReg().scratchReg();
