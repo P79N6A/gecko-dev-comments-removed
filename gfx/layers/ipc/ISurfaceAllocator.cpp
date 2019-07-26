@@ -47,10 +47,14 @@ IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface)
 
 ISurfaceAllocator::~ISurfaceAllocator()
 {
-  ShrinkShmemSectionHeap();
-
   
   MOZ_ASSERT(mUsedShmems.empty());
+}
+
+void
+ISurfaceAllocator::Finalize()
+{
+  ShrinkShmemSectionHeap();
 }
 
 bool

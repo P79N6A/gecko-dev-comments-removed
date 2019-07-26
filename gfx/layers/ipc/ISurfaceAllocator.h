@@ -17,6 +17,7 @@
 #include "mozilla/layers/LayersMessages.h" 
 #include "LayersTypes.h"
 #include <vector>
+#include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 
 
 
@@ -76,11 +77,13 @@ bool ReleaseOwnedSurfaceDescriptor(const SurfaceDescriptor& aDescriptor);
 
 
 
-class ISurfaceAllocator : public AtomicRefCounted<ISurfaceAllocator>
+class ISurfaceAllocator : public AtomicRefCountedWithFinalize<ISurfaceAllocator>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(ISurfaceAllocator)
   ISurfaceAllocator() {}
+
+  void Finalize();
 
   
 
@@ -181,7 +184,7 @@ protected:
   
   std::vector<mozilla::ipc::Shmem> mUsedShmems;
 
-  friend class detail::RefCounted<ISurfaceAllocator, detail::AtomicRefCount>;
+  friend class AtomicRefCountedWithFinalize<ISurfaceAllocator>;
 };
 
 class GfxMemoryImageReporter MOZ_FINAL : public nsIMemoryReporter
