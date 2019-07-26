@@ -1683,12 +1683,11 @@ VariablesView.prototype.commitHierarchy = function VV_commitHierarchy() {
     
     
     this.window.setTimeout(function(aTarget) {
-      aTarget.setAttribute("changed", "");
-
       aTarget.addEventListener("transitionend", function onEvent() {
         aTarget.removeEventListener("transitionend", onEvent, false);
         aTarget.removeAttribute("changed");
       }, false);
+      aTarget.setAttribute("changed", "");
     }.bind(this, currVariable.target), LAZY_EMPTY_DELAY + 1);
   }
 };

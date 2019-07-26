@@ -396,45 +396,59 @@ let DebuggerView = {
 
 
 
+
   togglePanes: function DV__togglePanes(aFlags = {}) {
     
     if (aFlags.visible == !this.panesHidden) {
-      aFlags.callback && aFlags.callback();
+      if (aFlags.callback) aFlags.callback();
       return;
     }
 
-    if (aFlags.visible) {
-      this._stackframesAndBreakpoints.style.marginLeft = "0";
-      this._variablesAndExpressions.style.marginRight = "0";
-      this._togglePanesButton.removeAttribute("panesHidden");
-      this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("collapsePanes"));
-    } else {
-      let marginL = ~~(this._stackframesAndBreakpoints.getAttribute("width")) + 1;
-      let marginR = ~~(this._variablesAndExpressions.getAttribute("width")) + 1;
-      this._stackframesAndBreakpoints.style.marginLeft = -marginL + "px";
-      this._variablesAndExpressions.style.marginRight = -marginR + "px";
-      this._togglePanesButton.setAttribute("panesHidden", "true");
-      this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("expandPanes"));
+    
+    function set() {
+      if (aFlags.visible) {
+        this._stackframesAndBreakpoints.style.marginLeft = "0";
+        this._variablesAndExpressions.style.marginRight = "0";
+        this._togglePanesButton.removeAttribute("panesHidden");
+        this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("collapsePanes"));
+      } else {
+        let marginL = ~~(this._stackframesAndBreakpoints.getAttribute("width")) + 1;
+        let marginR = ~~(this._variablesAndExpressions.getAttribute("width")) + 1;
+        this._stackframesAndBreakpoints.style.marginLeft = -marginL + "px";
+        this._variablesAndExpressions.style.marginRight = -marginR + "px";
+        this._togglePanesButton.setAttribute("panesHidden", "true");
+        this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("expandPanes"));
+      }
+
+      if (aFlags.animated) {
+        
+        
+        
+        window.addEventListener("transitionend", function onEvent() {
+          window.removeEventListener("transitionend", onEvent, false);
+          DebuggerView.updateEditor();
+
+          
+          if (aFlags.callback) aFlags.callback();
+        }, false);
+      } else {
+        
+        if (aFlags.callback) aFlags.callback();
+      }
     }
 
     if (aFlags.animated) {
       this._stackframesAndBreakpoints.setAttribute("animated", "");
       this._variablesAndExpressions.setAttribute("animated", "");
-
-      
-      
-      
-      let self = this;
-
-      window.addEventListener("transitionend", function onEvent() {
-        window.removeEventListener("transitionend", onEvent, false);
-        aFlags.callback && aFlags.callback();
-        self.updateEditor();
-      }, false);
     } else {
       this._stackframesAndBreakpoints.removeAttribute("animated");
       this._variablesAndExpressions.removeAttribute("animated");
-      aFlags.callback && aFlags.callback();
+    }
+
+    if (aFlags.delayed) {
+      window.setTimeout(set.bind(this), PANES_APPEARANCE_DELAY);
+    } else {
+      set.call(this);
     }
   },
 
@@ -450,6 +464,7 @@ let DebuggerView = {
       DebuggerView.togglePanes({
         visible: true,
         animated: true,
+        delayed: true,
         callback: aCallback
       });
     }, PANES_APPEARANCE_DELAY);
