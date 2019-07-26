@@ -58,15 +58,15 @@ public:
 
   ColorSpace
   GetInputColorSpace(int32_t aInputIndex, ColorSpace aUnchangedInputColorSpace) {
-    return OperatesOnSRGB(aInputIndex, aUnchangedInputColorSpace == mozilla::gfx::SRGB) ?
-             mozilla::gfx::SRGB : mozilla::gfx::LINEAR_RGB;
+    return OperatesOnSRGB(aInputIndex, aUnchangedInputColorSpace == ColorSpace::SRGB) ?
+             ColorSpace::SRGB : ColorSpace::LinearRGB;
   }
 
   
   
   ColorSpace
   GetOutputColorSpace() {
-    return ProducesSRGB() ? mozilla::gfx::SRGB : mozilla::gfx::LINEAR_RGB;
+    return ProducesSRGB() ? ColorSpace::SRGB : ColorSpace::LinearRGB;
   }
 
   
