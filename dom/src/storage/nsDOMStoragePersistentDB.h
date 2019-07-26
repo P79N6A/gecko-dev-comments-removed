@@ -10,20 +10,21 @@
 #include "nsDOMStorageBaseDB.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
+#include "mozilla/storage/StatementCache.h"
+#include "mozIStorageBindingParamsArray.h"
 #include "nsTHashtable.h"
 #include "nsDataHashtable.h"
-#include "mozilla/TimeStamp.h"
-#include "mozilla/storage/StatementCache.h"
+#include "nsIThread.h"
+
+#include "nsLocalStorageCache.h"
 
 class DOMStorageImpl;
 class nsSessionStorageEntry;
 
-using mozilla::TimeStamp;
-using mozilla::TimeDuration;
-
 class nsDOMStoragePersistentDB : public nsDOMStorageBaseDB
 {
   typedef mozilla::storage::StatementCache<mozIStorageStatement> StatementCache;
+  typedef nsLocalStorageCache::FlushData FlushData;
 
 public:
   nsDOMStoragePersistentDB();
@@ -37,6 +38,13 @@ public:
 
   void
   Close();
+
+  
+
+
+
+  bool
+  IsFlushTimerNeeded() const;
 
   
 
@@ -84,7 +92,8 @@ public:
   
 
 
-  nsresult ClearStorage(DOMStorageImpl* aStorage);
+  nsresult
+  ClearStorage(DOMStorageImpl* aStorage);
 
   
 
@@ -122,60 +131,127 @@ public:
   
 
 
-  nsresult ClearAllPrivateBrowsingData();
+  nsresult
+  ClearAllPrivateBrowsingData();
 
   
 
 
 
-  nsresult EnsureInsertTransaction();
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult
+  FlushAndEvictFromCache(bool aMainThread);
 
   
 
 
-  nsresult MaybeCommitInsertTransaction();
+  nsresult
+  Flush();
 
   
 
 
-  nsresult FlushTemporaryTables(bool force);
 
-protected:
-  
+  void
+  HandleFlushComplete(bool aSucceeded);
 
+private:
 
-
-  nsresult EnsureLoadTemporaryTableForStorage(DOMStorageImpl* aStorage);
-
-  struct FlushTemporaryTableData {
-    nsDOMStoragePersistentDB* mDB;
-    bool mForce;
-    nsresult mRV;
-  };
-  static PLDHashOperator FlushTemporaryTable(nsCStringHashKey::KeyType aKey,
-                                             TimeStamp& aData,
-                                             void* aUserArg);       
-
-  nsCOMPtr<mozIStorageConnection> mConnection;
-  StatementCache mStatements;
-
-  nsCString mCachedOwner;
-  int32_t mCachedUsage;
-
-  
-  
-  
-  nsDataHashtable<nsCStringHashKey, TimeStamp> mTempTableLoads; 
-
-  friend class nsDOMStorageDBWrapper;
   friend class nsDOMStorageMemoryDB;
+
+  
+
+
+  nsresult
+  SetJournalMode(bool aIsWal);
+
+  
+
+
+  nsresult
+  EnsureScopeLoaded(DOMStorageImpl* aStorage);
+
+  
+
+
+  nsresult
+  FetchScope(DOMStorageImpl* aStorage, nsScopeCache* aScopeCache);
+
+  
+
+
+
+
+
+
+
+  nsresult
+  EnsureQuotaUsageLoaded(const nsACString& aQuotaKey);
+
+  
+
+
+  nsresult
+  FetchQuotaUsage(const nsACString& aQuotaDBKey);
+
   nsresult
   GetUsageInternal(const nsACString& aQuotaDBKey, int32_t *aUsage);
 
   
-  
-  bool DomainMaybeCached(const nsACString& aDomain);
 
+
+  nsresult
+  FetchMatchingScopeNames(const nsACString& aPattern);
+
+  nsresult
+  PrepareFlushStatements(const FlushData& aFlushData);
+
+  
+
+
+
+  nsresult
+  PrepareForFlush();
+
+  
+
+
+  void
+  EvictUnusedScopes();
+
+  
+
+
+  nsTArray<nsCOMPtr<mozIStorageStatement> > mFlushStatements;
+  nsTArray<nsCOMPtr<mozIStorageBindingParamsArray> > mFlushStatementParams;
+  StatementCache mStatements;
+  nsCOMPtr<mozIStorageConnection> mConnection;
+
+  
+
+
+  nsLocalStorageCache mCache;
+  nsDataHashtable<nsCStringHashKey, int32_t> mQuotaUseByUncached;
+  
+  bool mWasRemoveAllCalled;
+  
+  bool mIsRemoveAllPending;
+  
+  bool mIsFlushPending;
+
+  
+  nsCOMPtr<nsIThread> mFlushThread;
 };
 
 #endif 

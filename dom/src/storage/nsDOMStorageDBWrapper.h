@@ -214,27 +214,25 @@ public:
 
 
 
-  void EnsureTempTableFlushTimer();
+  void EnsureCacheFlushTimer();
 
   
 
 
 
-
-
-  nsresult FlushAndDeleteTemporaryTables(bool force);
+  nsresult FlushAndEvictFromCache(bool aIsShuttingDown);
 
   
 
 
-  void StopTempTableFlushTimer();
+  void StopCacheFlushTimer();
 
 protected:
   nsDOMStoragePersistentDB mPersistentDB;
   nsDOMStorageMemoryDB mSessionOnlyDB;
   nsDOMStorageMemoryDB mPrivateBrowsingDB;
 
-  nsCOMPtr<nsITimer> mTempTableFlushTimer;
+  nsCOMPtr<nsITimer> mCacheFlushTimer;
 };
 
 #endif 
