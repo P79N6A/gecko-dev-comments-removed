@@ -83,6 +83,8 @@ public:
 
   virtual ~nsDOMDesktopNotification();
 
+  void Init();
+
   
 
 
