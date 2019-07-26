@@ -96,20 +96,8 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
               retval == BAILOUT_RETURN_OVERRECURSED);
     JS_ASSERT_IF(retval == BAILOUT_RETURN_OK, *bailoutInfo != nullptr);
 
-    if (retval != BAILOUT_RETURN_OK) {
-        
-        
-        
-        
-        
-        
-        
-        JSScript *script = iter.script();
-        probes::ExitScript(cx, script, script->functionNonDelazifying(),
-                           iter.ionScript()->hasSPSInstrumentation());
-
+    if (retval != BAILOUT_RETURN_OK)
         EnsureExitFrame(iter.jsFrame());
-    }
 
     return retval;
 }
@@ -148,20 +136,8 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
     JS_ASSERT_IF(retval == BAILOUT_RETURN_OK, *bailoutInfo != nullptr);
 
     if (retval != BAILOUT_RETURN_OK) {
-        
-        
-        
-        
-        
-        
-        
-        JSScript *script = iter.script();
-        probes::ExitScript(cx, script, script->functionNonDelazifying(),
-                           iter.ionScript()->hasSPSInstrumentation());
-
         IonJSFrameLayout *frame = iter.jsFrame();
-        IonSpew(IonSpew_Invalidate, "Bailout failed (%s): converting to exit frame",
-                (retval == BAILOUT_RETURN_FATAL_ERROR) ? "Fatal Error" : "Over Recursion");
+        IonSpew(IonSpew_Invalidate, "converting to exit frame");
         IonSpew(IonSpew_Invalidate, "   orig calleeToken %p", (void *) frame->calleeToken());
         IonSpew(IonSpew_Invalidate, "   orig frameSize %u", unsigned(frame->prevFrameLocalSize()));
         IonSpew(IonSpew_Invalidate, "   orig ra %p", (void *) frame->returnAddress());
