@@ -923,7 +923,9 @@ FormHistory.prototype = {
             stmt.finalize();
         }
         this.dbStmts = {};
-        if (this.dbConnection === undefined)
+
+        
+        if (Object.getOwnPropertyDescriptor(FormHistory.prototype, "dbConnection").value === undefined)
             return;
 
         let completed = false;
@@ -961,4 +963,4 @@ FormHistory.prototype = {
 };
 
 let component = [FormHistory];
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory(component);
+var NSGetFactory = XPCOMUtils.generateNSGetFactory(component);
