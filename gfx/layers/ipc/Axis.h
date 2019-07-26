@@ -80,7 +80,6 @@ public:
 
 
 
-
   float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut,
                            bool aScrollingDisabled);
 
@@ -127,12 +126,6 @@ public:
 
 
   float GetExcess();
-
-  
-
-
-
-  float GetAccelerationFactor();
 
   
 
@@ -188,12 +181,6 @@ protected:
   int32_t mPos;
   int32_t mStartPos;
   float mVelocity;
-  
-  
-  
-  
-  
-  int32_t mAcceleration;
   bool mAxisLocked;     
   AsyncPanZoomController* mAsyncPanZoomController;
   nsTArray<float> mVelocityQueue;

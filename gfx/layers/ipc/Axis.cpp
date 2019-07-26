@@ -37,22 +37,6 @@ static float gFlingFriction = 0.002f;
 
 
 
-static float gVelocityThreshold = 0.14f;
-
-
-
-
-
-
-
-
-
-static float gAccelerationMultiplier = 1.125f;
-
-
-
-
-
 
 static float gFlingStoppedThreshold = 0.01f;
 
@@ -67,8 +51,6 @@ static void ReadAxisPrefs()
 {
   Preferences::AddFloatVarCache(&gMaxEventAcceleration, "apz.max_event_acceleration", gMaxEventAcceleration);
   Preferences::AddFloatVarCache(&gFlingFriction, "apz.fling_friction", gFlingFriction);
-  Preferences::AddFloatVarCache(&gVelocityThreshold, "apz.velocity_threshold", gVelocityThreshold);
-  Preferences::AddFloatVarCache(&gAccelerationMultiplier, "apz.acceleration_multiplier", gAccelerationMultiplier);
   Preferences::AddFloatVarCache(&gFlingStoppedThreshold, "apz.fling_stopped_threshold", gFlingStoppedThreshold);
   Preferences::AddUintVarCache(&gMaxVelocityQueueSize, "apz.max_velocity_queue_size", gMaxVelocityQueueSize);
 }
@@ -100,7 +82,6 @@ static void InitAxisPrefs()
 Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
   : mPos(0),
     mVelocity(0.0f),
-    mAcceleration(0),
     mAxisLocked(false),
     mAsyncPanZoomController(aAsyncPanZoomController)
 {
@@ -109,15 +90,6 @@ Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
 
 void Axis::UpdateWithTouchAtDevicePoint(int32_t aPos, const TimeDuration& aTimeDelta) {
   float newVelocity = mAxisLocked ? 0 : (mPos - aPos) / aTimeDelta.ToMilliseconds();
-
-  bool curVelocityBelowThreshold = fabsf(newVelocity) < gVelocityThreshold;
-  bool directionChange = (mVelocity > 0) != (newVelocity > 0);
-
-  
-  
-  if (directionChange || curVelocityBelowThreshold) {
-    mAcceleration = 0;
-  }
 
   mVelocity = newVelocity;
   mPos = aPos;
@@ -145,23 +117,17 @@ float Axis::AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut,
   if (aScrollingDisabled) {
     
     aOverscrollAmountOut = aDisplacement;
-    mAcceleration = 0;
     return 0;
   }
 
-  if (fabsf(mVelocity) < gVelocityThreshold) {
-    mAcceleration = 0;
-  }
+  float displacement = aDisplacement;
 
-  float accelerationFactor = GetAccelerationFactor();
-  float displacement = aDisplacement * accelerationFactor;
   
   
   if (DisplacementWillOverscroll(displacement) != OVERSCROLL_NONE) {
     
     
     mVelocity = 0.0f;
-    mAcceleration = 0;
     aOverscrollAmountOut = DisplacementWillOverscrollAmount(displacement);
     displacement -= aOverscrollAmountOut;
   }
@@ -177,8 +143,6 @@ float Axis::PanDistance(float aPos) {
 }
 
 void Axis::EndTouch() {
-  mAcceleration++;
-
   
   int count = mVelocityQueue.Length();
   if (count) {
@@ -193,7 +157,6 @@ void Axis::EndTouch() {
 
 void Axis::CancelTouch() {
   mVelocity = 0.0f;
-  mAcceleration = 0;
   while (!mVelocityQueue.IsEmpty()) {
     mVelocityQueue.RemoveElementAt(0);
   }
@@ -300,10 +263,6 @@ float Axis::ScaleWillOverscrollAmount(float aScale, float aFocus) {
 
 float Axis::GetVelocity() {
   return mAxisLocked ? 0 : mVelocity;
-}
-
-float Axis::GetAccelerationFactor() {
-  return powf(gAccelerationMultiplier, std::max(0, (mAcceleration - 4) * 3));
 }
 
 float Axis::GetCompositionEnd() {

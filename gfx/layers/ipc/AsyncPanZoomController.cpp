@@ -291,11 +291,6 @@ static bool gUseProgressiveTilePainting = false;
 
 
 
-static bool gAllowCheckerboarding = true;
-
-
-
-
 
 
 static bool IsCloseToHorizontal(float aAngle, float aThreshold)
@@ -417,7 +412,6 @@ AsyncPanZoomController::InitializeGlobalState()
   Preferences::AddIntVarCache(&gAsyncScrollTimeout, "apz.asyncscroll.timeout", gAsyncScrollTimeout);
   Preferences::AddBoolVarCache(&gCrossSlideEnabled, "apz.cross_slide.enabled", gCrossSlideEnabled);
   Preferences::AddIntVarCache(&gAxisLockMode, "apz.axis_lock_mode", gAxisLockMode);
-  Preferences::AddBoolVarCache(&gAllowCheckerboarding, "apz.allow-checkerboarding", gAllowCheckerboarding);
   gUseProgressiveTilePainting = gfxPlatform::UseProgressiveTilePainting();
 
   gComputedTimingFunction = new ComputedTimingFunction();
@@ -1000,10 +994,6 @@ const ScreenPoint AsyncPanZoomController::GetVelocityVector() {
   return ScreenPoint(mX.GetVelocity(), mY.GetVelocity());
 }
 
-const gfx::Point AsyncPanZoomController::GetAccelerationVector() {
-  return gfx::Point(mX.GetAccelerationFactor(), mY.GetAccelerationFactor());
-}
-
 void AsyncPanZoomController::HandlePanningWithTouchAction(double aAngle, TouchBehaviorFlags aBehavior) {
   
   
@@ -1315,7 +1305,6 @@ EnlargeDisplayPortAlongAxis(float* aOutOffset, float* aOutLength,
 const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
   const FrameMetrics& aFrameMetrics,
   const ScreenPoint& aVelocity,
-  const gfx::Point& aAcceleration,
   double aEstimatedPaintDuration)
 {
   
@@ -1349,10 +1338,9 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
   displayPort = displayPort.ForceInside(scrollableRect) - scrollOffset;
 
   APZC_LOG_FM(aFrameMetrics,
-    "Calculated displayport as (%f %f %f %f) from velocity (%f %f) acceleration (%f %f) paint time %f metrics",
+    "Calculated displayport as (%f %f %f %f) from velocity (%f %f) paint time %f metrics",
     displayPort.x, displayPort.y, displayPort.width, displayPort.height,
-    aVelocity.x, aVelocity.y, aAcceleration.x, aAcceleration.y,
-    (float)estimatedPaintDurationMillis);
+    aVelocity.x, aVelocity.y, (float)estimatedPaintDurationMillis);
 
   return displayPort;
 }
@@ -1371,7 +1359,6 @@ void AsyncPanZoomController::RequestContentRepaint(FrameMetrics& aFrameMetrics) 
   aFrameMetrics.mDisplayPort =
     CalculatePendingDisplayPort(aFrameMetrics,
                                 GetVelocityVector(),
-                                GetAccelerationVector(),
                                 mPaintThrottler.AverageDuration().ToSeconds());
 
   
@@ -1543,28 +1530,7 @@ ViewTransform AsyncPanZoomController::GetCurrentAsyncTransform() {
   if (mLastContentPaintMetrics.IsScrollable()) {
     lastPaintScrollOffset = mLastContentPaintMetrics.mScrollOffset;
   }
-
-  CSSPoint currentScrollOffset = mFrameMetrics.mScrollOffset;
-
-  
-  
-  if (!gAllowCheckerboarding &&
-      !mLastContentPaintMetrics.mDisplayPort.IsEmpty()) {
-    CSSRect compositedRect = mLastContentPaintMetrics.CalculateCompositedRectInCssPixels();
-    CSSPoint maxScrollOffset = lastPaintScrollOffset +
-      CSSPoint(mLastContentPaintMetrics.mDisplayPort.XMost() - compositedRect.width,
-               mLastContentPaintMetrics.mDisplayPort.YMost() - compositedRect.height);
-    CSSPoint minScrollOffset = lastPaintScrollOffset + mLastContentPaintMetrics.mDisplayPort.TopLeft();
-
-    if (minScrollOffset.x < maxScrollOffset.x) {
-      currentScrollOffset.x = clamped(currentScrollOffset.x, minScrollOffset.x, maxScrollOffset.x);
-    }
-    if (minScrollOffset.y < maxScrollOffset.y) {
-      currentScrollOffset.y = clamped(currentScrollOffset.y, minScrollOffset.y, maxScrollOffset.y);
-    }
-  }
-
-  LayerPoint translation = (currentScrollOffset - lastPaintScrollOffset)
+  LayerPoint translation = (mFrameMetrics.mScrollOffset - lastPaintScrollOffset)
                          * mLastContentPaintMetrics.LayersPixelsPerCSSPixel();
 
   return ViewTransform(-translation,
@@ -1747,7 +1713,6 @@ void AsyncPanZoomController::ZoomToRect(CSSRect aRect) {
     endZoomToMetrics.mDisplayPort =
       CalculatePendingDisplayPort(endZoomToMetrics,
                                   ScreenPoint(0,0),
-                                  gfx::Point(0,0),
                                   0);
 
     StartAnimation(new ZoomAnimation(

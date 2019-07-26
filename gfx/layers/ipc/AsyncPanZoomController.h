@@ -240,7 +240,6 @@ public:
   static const CSSRect CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
     const ScreenPoint& aVelocity,
-    const gfx::Point& aAcceleration,
     double aEstimatedPaintDuration);
 
   
@@ -437,11 +436,6 @@ protected:
 
 
   const ScreenPoint GetVelocityVector();
-
-  
-
-
-  const gfx::Point GetAccelerationVector();
 
   
 
