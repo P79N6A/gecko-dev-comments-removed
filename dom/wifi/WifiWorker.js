@@ -843,6 +843,7 @@ var WifiManager = (function() {
     if (ok === 0) {
       
       retryTimer = null;
+      connectTries = 0;
       didConnectSupplicant(function(){});
       return;
     }
@@ -858,6 +859,7 @@ var WifiManager = (function() {
     }
 
     retryTimer = null;
+    connectTries = 0;
     notify("supplicantlost", { success: false });
   }
 
