@@ -3,7 +3,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["RemoteWebProgress"];
+this.EXPORTED_SYMBOLS = ["RemoteWebProgressManager"];
 
 const Ci = Components.interfaces;
 const Cc = Components.classes;
@@ -28,14 +28,13 @@ RemoteWebProgressRequest.prototype = {
   get URI() { return this.uri.clone(); }
 };
 
-function RemoteWebProgress(browser)
-{
-  this._browser = browser;
+function RemoteWebProgress(aManager, aIsTopLevel) {
+  this._manager = aManager;
+
   this._isLoadingDocument = false;
   this._DOMWindow = null;
-  this._isTopLevel = null;
+  this._isTopLevel = aIsTopLevel;
   this._loadType = 0;
-  this._progressListeners = [];
 }
 
 RemoteWebProgress.prototype = {
@@ -51,101 +50,132 @@ RemoteWebProgress.prototype = {
   NOTIFY_REFRESH:        0x00000100,
   NOTIFY_ALL:            0x000001ff,
 
-  _init: function WP_Init() {
-    this._browser.messageManager.addMessageListener("Content:StateChange", this);
-    this._browser.messageManager.addMessageListener("Content:LocationChange", this);
-    this._browser.messageManager.addMessageListener("Content:SecurityChange", this);
-    this._browser.messageManager.addMessageListener("Content:StatusChange", this);
-  },
-
-  _destroy: function WP_Destroy() {
-    this._browser = null;
-  },
-
   get isLoadingDocument() { return this._isLoadingDocument },
   get DOMWindow() { return this._DOMWindow; },
   get DOMWindowID() { return 0; },
-  get isTopLevel() {
-    
-    
-    
-    
-    
-    
-    return this._isTopLevel === null ? true : this._isTopLevel;
-  },
+  get isTopLevel() { return this._isTopLevel },
   get loadType() { return this._loadType; },
 
-  addProgressListener: function WP_AddProgressListener (aListener) {
+  addProgressListener: function (aListener) {
+    this._manager.addProgressListener(aListener);
+  },
+
+  removeProgressListener: function (aListener) {
+    this._manager.removeProgressListener(aListener);
+  }
+};
+
+function RemoteWebProgressManager (aBrowser) {
+  this._browser = aBrowser;
+  this._topLevelWebProgress = new RemoteWebProgress(this, true);
+  this._progressListeners = [];
+
+  this._browser.messageManager.addMessageListener("Content:StateChange", this);
+  this._browser.messageManager.addMessageListener("Content:LocationChange", this);
+  this._browser.messageManager.addMessageListener("Content:SecurityChange", this);
+  this._browser.messageManager.addMessageListener("Content:StatusChange", this);
+}
+
+RemoteWebProgressManager.prototype = {
+  get topLevelWebProgress() {
+    return this._topLevelWebProgress;
+  },
+
+  addProgressListener: function (aListener) {
     let listener = aListener.QueryInterface(Ci.nsIWebProgressListener);
     this._progressListeners.push(listener);
   },
 
-  removeProgressListener: function WP_RemoveProgressListener (aListener) {
+  removeProgressListener: function (aListener) {
     this._progressListeners =
-      this._progressListeners.filter(function (l) l != aListener);
+      this._progressListeners.filter(l => l != aListener);
   },
 
-  _uriSpec: function (spec) {
-    if (!spec)
-      return null;
-    return new RemoteWebProgressRequest(spec);
+  _fixSSLStatusAndState: function (aStatus, aState) {
+    let deserialized = null;
+    if (aStatus) {
+      let helper = Cc["@mozilla.org/network/serialization-helper;1"]
+                    .getService(Components.interfaces.nsISerializationHelper);
+
+      deserialized = helper.deserializeObject(aStatus)
+      deserialized.QueryInterface(Ci.nsISSLStatus);
+    }
+
+    
+    
+    if (deserialized && deserialized.isExtendedValidation)
+      aState |= Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL;
+
+    return [deserialized, aState];
   },
 
-  receiveMessage: function WP_ReceiveMessage(aMessage) {
-    this._isLoadingDocument = aMessage.json.isLoadingDocument;
-    this._DOMWindow = aMessage.objects.DOMWindow;
-    this._isTopLevel = aMessage.json.isTopLevel;
-    this._loadType = aMessage.json.loadType;
+  receiveMessage: function (aMessage) {
+    let json = aMessage.json;
+    let objects = aMessage.objects;
 
-    this._browser._contentWindow = aMessage.objects.contentWindow;
+    
+    
+    
+    let webProgress = json.isTopLevel ? this._topLevelWebProgress
+                                      : new RemoteWebProgress(this, false);
 
-    let req = this._uriSpec(aMessage.json.requestURI);
+    
+    let request = json.requestURI ? new RemoteWebProgressRequest(json.requestURI)
+                                  : null;
+
+    
+    webProgress._isLoadingDocument = json.isLoadingDocument;
+    webProgress._DOMWindow = objects.DOMWindow;
+    webProgress._loadType = json.loadType;
+
+    if (json.isTopLevel)
+      this._browser._contentWindow = objects.contentWindow;
+
     switch (aMessage.name) {
     case "Content:StateChange":
-      for each (let p in this._progressListeners) {
-        p.onStateChange(this, req, aMessage.json.stateFlags, aMessage.json.status);
+      for (let p of this._progressListeners) {
+        p.onStateChange(webProgress, request, json.stateFlags, json.status);
       }
       break;
 
     case "Content:LocationChange":
-      let location = newURI(aMessage.json.location);
+      let location = newURI(json.location);
 
-      if (aMessage.json.isTopLevel) {
+      if (json.isTopLevel) {
         this._browser.webNavigation._currentURI = location;
-        this._browser.webNavigation.canGoBack = aMessage.json.canGoBack;
-        this._browser.webNavigation.canGoForward = aMessage.json.canGoForward;
-        this._browser._characterSet = aMessage.json.charset;
-        this._browser._documentURI = newURI(aMessage.json.documentURI);
+        this._browser.webNavigation.canGoBack = json.canGoBack;
+        this._browser.webNavigation.canGoForward = json.canGoForward;
+        this._browser._characterSet = json.charset;
+        this._browser._documentURI = newURI(json.documentURI);
         this._browser._imageDocument = null;
       }
 
-      for each (let p in this._progressListeners) {
-        p.onLocationChange(this, req, location);
+      for (let p of this._progressListeners) {
+        p.onLocationChange(webProgress, request, location);
       }
       break;
 
     case "Content:SecurityChange":
-      
-      
-      
-      void this._browser.securityUI;
-      this._browser._securityUI._update(aMessage.json.state, aMessage.json.status);
+      let [status, state] = this._fixSSLStatusAndState(json.status, json.state);
 
-      
-      
-      for each (let p in this._progressListeners) {
-        p.onSecurityChange(this, req, this._browser.securityUI.state);
+      if (json.isTopLevel) {
+        
+        
+        
+        void this._browser.securityUI;
+        this._browser._securityUI._update(status, state);
+      }
+
+      for (let p of this._progressListeners) {
+        p.onSecurityChange(webProgress, request, state);
       }
       break;
 
     case "Content:StatusChange":
-      for each (let p in this._progressListeners) {
-        p.onStatusChange(this, req, aMessage.json.status, aMessage.json.message);
+      for (let p of this._progressListeners) {
+        p.onStatusChange(webProgress, request, json.status, json.message);
       }
       break;
     }
-
-    this._isTopLevel = null;
   }
 };
