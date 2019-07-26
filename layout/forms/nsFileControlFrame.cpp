@@ -114,48 +114,8 @@ nsFileControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 nsresult
 nsFileControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
-  
   nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
-
   nsCOMPtr<nsINodeInfo> nodeInfo;
-  nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::label, nullptr,
-                                                 kNameSpaceID_XUL,
-                                                 nsIDOMNode::ELEMENT_NODE);
-
-  
-  NS_TrustedNewXULElement(getter_AddRefs(mTextContent), nodeInfo.forget());
-  if (!mTextContent)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  
-  mTextContent->SetNativeAnonymous();
-
-  mTextContent->SetAttr(kNameSpaceID_None, nsGkAtoms::crop,
-                        NS_LITERAL_STRING("center"), false);
-
-  nsHTMLInputElement* inputElement =
-    nsHTMLInputElement::FromContent(mContent);
-  NS_ASSERTION(inputElement, "Why is our content not a <input>?");
-
-  
-  
-  nsAutoString value;
-  inputElement->GetDisplayFileName(value);
-  UpdateDisplayedValue(value, false);
-
-  if (!aElements.AppendElement(mTextContent))
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  
-  mContent->AddSystemEventListener(NS_LITERAL_STRING("drop"),
-                                   mMouseListener, false);
-  mContent->AddSystemEventListener(NS_LITERAL_STRING("dragover"),
-                                   mMouseListener, false);
-
-  
-  
-  mTextContent->AddSystemEventListener(NS_LITERAL_STRING("click"),
-                                       mMouseListener, false);
 
   
   nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::input, nullptr,
@@ -163,34 +123,57 @@ nsFileControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
                                                  nsIDOMNode::ELEMENT_NODE);
   NS_NewHTMLElement(getter_AddRefs(mBrowse), nodeInfo.forget(),
                     dom::NOT_FROM_PARSER);
-  if (!mBrowse)
-    return NS_ERROR_OUT_OF_MEMORY;
-
   
   mBrowse->SetNativeAnonymous();
-
   mBrowse->SetAttr(kNameSpaceID_None, nsGkAtoms::type,
                    NS_LITERAL_STRING("button"), false);
 
+  
+  
   nsCOMPtr<nsIDOMHTMLInputElement> fileContent = do_QueryInterface(mContent);
   nsCOMPtr<nsIDOMHTMLInputElement> browseControl = do_QueryInterface(mBrowse);
-  if (fileContent && browseControl) {
-    int32_t tabIndex;
-    nsAutoString accessKey;
 
-    fileContent->GetAccessKey(accessKey);
-    browseControl->SetAccessKey(accessKey);
-    fileContent->GetTabIndex(&tabIndex);
-    browseControl->SetTabIndex(tabIndex);
+  nsAutoString accessKey;
+  fileContent->GetAccessKey(accessKey);
+  browseControl->SetAccessKey(accessKey);
+
+  int32_t tabIndex;
+  fileContent->GetTabIndex(&tabIndex);
+  browseControl->SetTabIndex(tabIndex);
+
+  if (!aElements.AppendElement(mBrowse)) {
+    return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  if (!aElements.AppendElement(mBrowse))
+  
+  nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::label, nullptr,
+                                                 kNameSpaceID_XUL,
+                                                 nsIDOMNode::ELEMENT_NODE);
+  NS_TrustedNewXULElement(getter_AddRefs(mTextContent), nodeInfo.forget());
+  
+  mTextContent->SetNativeAnonymous();
+  mTextContent->SetAttr(kNameSpaceID_None, nsGkAtoms::crop,
+                        NS_LITERAL_STRING("center"), false);
+
+  
+  nsAutoString value;
+  nsHTMLInputElement::FromContent(mContent)->GetDisplayFileName(value);
+  UpdateDisplayedValue(value, false);
+
+  if (!aElements.AppendElement(mTextContent)) {
     return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   
   
+  mContent->AddSystemEventListener(NS_LITERAL_STRING("drop"),
+                                   mMouseListener, false);
+  mContent->AddSystemEventListener(NS_LITERAL_STRING("dragover"),
+                                   mMouseListener, false);
   mBrowse->AddSystemEventListener(NS_LITERAL_STRING("click"),
                                   mMouseListener, false);
+  mTextContent->AddSystemEventListener(NS_LITERAL_STRING("click"),
+                                       mMouseListener, false);
 
   SyncDisabledState();
 
