@@ -402,7 +402,7 @@ protected:
                           nsIAtom *aOrigin, 
                           const nsRect* aRange);
 
-  static nsRect ExpandRect(const nsRect& aRect);
+  nsRect ExpandRect(const nsRect& aRect) const;
   static void EnsureImageVisPrefsCached();
   static bool sImageVisPrefsCached;
   

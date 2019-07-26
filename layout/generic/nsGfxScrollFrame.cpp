@@ -2163,11 +2163,33 @@ nsGfxScrollFrameInner::EnsureImageVisPrefsCached()
   }
 }
 
- nsRect
-nsGfxScrollFrameInner::ExpandRect(const nsRect& aRect)
+nsRect
+nsGfxScrollFrameInner::ExpandRect(const nsRect& aRect) const
 {
+  
+  
+  nsRect scrollRange = GetScrollRangeForClamping();
+  nsPoint scrollPos = GetScrollPosition();
+  nsMargin expand(0, 0, 0, 0);
+
+  nscoord vertShift = sVertExpandScrollPort * aRect.height;
+  if (scrollRange.y < scrollPos.y) {
+    expand.top = vertShift;
+  }
+  if (scrollPos.y < scrollRange.YMost()) {
+    expand.bottom = vertShift;
+  }
+
+  nscoord horzShift = sHorzExpandScrollPort * aRect.width;
+  if (scrollRange.x < scrollPos.x) {
+    expand.left = horzShift;
+  }
+  if (scrollPos.x < scrollRange.XMost()) {
+    expand.right = horzShift;
+  }
+
   nsRect rect = aRect;
-  rect.Inflate(sHorzExpandScrollPort * aRect.width, sVertExpandScrollPort * aRect.height);
+  rect.Inflate(expand);
   return rect;
 }
 
@@ -2247,6 +2269,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 
   if (aBuilder->IsForImageVisibility()) {
+    
     
     
     
