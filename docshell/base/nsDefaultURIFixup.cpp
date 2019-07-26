@@ -383,6 +383,20 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
                     return NS_ERROR_NOT_AVAILABLE;
                 }
 
+                
+                
+                
+                
+                
+                
+                
+                nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
+                if (obsSvc) {
+                  nsAutoString name;
+                  defaultEngine->GetName(name);
+                  obsSvc->NotifyObservers(nullptr, "keyword-search", name.get());
+                }
+
                 return submission->GetUri(aURI);
             }
         }
