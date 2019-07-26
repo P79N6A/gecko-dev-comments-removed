@@ -1973,6 +1973,38 @@ SetPropertyIC::attachNativeExisting(JSContext *cx, IonScript *ion,
     return linkAndAttachStub(cx, masm, attacher, ion, "setting");
 }
 
+static bool
+IsCacheableSetPropCallNative(HandleObject obj, HandleObject holder, HandleShape shape)
+{
+    if (!shape || !IsCacheableProtoChain(obj, holder))
+        return false;
+
+    return shape->hasSetterValue() && shape->setterObject()->is<JSFunction>() &&
+           shape->setterObject()->as<JSFunction>().isNative();
+}
+
+static bool
+IsCacheableSetPropCallPropertyOp(HandleObject obj, HandleObject holder,
+                                 HandleShape shape)
+{
+    if (!shape)
+        return false;
+
+    if (!IsCacheableProtoChain(obj, holder))
+        return false;
+
+    if (shape->hasSlot())
+        return false;
+
+    if (shape->hasDefaultSetter())
+        return false;
+
+    if (shape->hasSetterValue())
+        return false;
+
+    return true;
+}
+
 bool
 SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
                                 HandleObject obj, HandleObject holder, HandleShape shape,
@@ -2038,56 +2070,104 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
     
     
     
+    
+    
+    
     Register scratchReg     = regSet.takeGeneral();
     Register argJSContextReg = regSet.takeGeneral();
-    Register argObjReg       = regSet.takeGeneral();
-    Register argIdReg        = regSet.takeGeneral();
-    Register argStrictReg    = regSet.takeGeneral();
     Register argVpReg        = regSet.takeGeneral();
+
+    bool callNative = IsCacheableSetPropCallNative(obj, holder, shape);
+    JS_ASSERT_IF(!callNative, IsCacheableSetPropCallPropertyOp(obj, holder, shape));
 
     
     DebugOnly<uint32_t> initialStack = masm.framePushed();
 
-    attacher.pushStubCodePointer(masm);
+    if (callNative) {
+        JS_ASSERT(shape->hasSetterValue() && shape->setterObject() &&
+                  shape->setterObject()->is<JSFunction>());
+        JSFunction *target = &shape->setterObject()->as<JSFunction>();
 
-    StrictPropertyOp target = shape->setterOp();
-    JS_ASSERT(target);
-    
-    
+        JS_ASSERT(target->isNative());
 
-    
-    if (value().constant())
-        masm.Push(value().value());
-    else
-        masm.Push(value().reg());
-    masm.movePtr(StackPointer, argVpReg);
+        Register argUintNReg = regSet.takeGeneral();
 
-    masm.move32(Imm32(strict() ? 1 : 0), argStrictReg);
+        
+        
+        
+        
+        
 
-    
-    RootedId propId(cx);
-    if (!shape->getUserId(cx, &propId))
-        return false;
-    masm.Push(propId, argIdReg);
-    masm.movePtr(StackPointer, argIdReg);
+        
+        masm.Push(value());
+        masm.Push(TypedOrValueRegister(MIRType_Object, AnyRegister(object())));
+        masm.Push(ObjectValue(*target));
+        masm.movePtr(StackPointer, argVpReg);
 
-    masm.Push(object());
-    masm.movePtr(StackPointer, argObjReg);
+        
+        masm.loadJSContext(argJSContextReg);
+        masm.move32(Imm32(1), argUintNReg);
 
-    masm.loadJSContext(argJSContextReg);
+        
+        masm.Push(argUintNReg);
+        attacher.pushStubCodePointer(masm);
 
-    if (!masm.buildOOLFakeExitFrame(returnAddr))
-        return false;
-    masm.enterFakeExitFrame(ION_FRAME_OOL_PROPERTY_OP);
+        if (!masm.buildOOLFakeExitFrame(returnAddr))
+            return false;
+        masm.enterFakeExitFrame(ION_FRAME_OOL_NATIVE);
 
-    
-    masm.setupUnalignedABICall(5, scratchReg);
-    masm.passABIArg(argJSContextReg);
-    masm.passABIArg(argObjReg);
-    masm.passABIArg(argIdReg);
-    masm.passABIArg(argStrictReg);
-    masm.passABIArg(argVpReg);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target));
+        
+        masm.setupUnalignedABICall(3, scratchReg);
+        masm.passABIArg(argJSContextReg);
+        masm.passABIArg(argUintNReg);
+        masm.passABIArg(argVpReg);
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->native()));
+    } else {
+        Register argObjReg       = regSet.takeGeneral();
+        Register argIdReg        = regSet.takeGeneral();
+        Register argStrictReg    = regSet.takeGeneral();
+
+        attacher.pushStubCodePointer(masm);
+
+        StrictPropertyOp target = shape->setterOp();
+        JS_ASSERT(target);
+        
+        
+
+        
+        if (value().constant())
+            masm.Push(value().value());
+        else
+            masm.Push(value().reg());
+        masm.movePtr(StackPointer, argVpReg);
+
+        masm.move32(Imm32(strict() ? 1 : 0), argStrictReg);
+
+        
+        RootedId propId(cx);
+        if (!shape->getUserId(cx, &propId))
+            return false;
+        masm.Push(propId, argIdReg);
+        masm.movePtr(StackPointer, argIdReg);
+
+        masm.Push(object());
+        masm.movePtr(StackPointer, argObjReg);
+
+        masm.loadJSContext(argJSContextReg);
+
+        if (!masm.buildOOLFakeExitFrame(returnAddr))
+            return false;
+        masm.enterFakeExitFrame(ION_FRAME_OOL_PROPERTY_OP);
+
+        
+        masm.setupUnalignedABICall(5, scratchReg);
+        masm.passABIArg(argJSContextReg);
+        masm.passABIArg(argObjReg);
+        masm.passABIArg(argIdReg);
+        masm.passABIArg(argStrictReg);
+        masm.passABIArg(argVpReg);
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target));
+    }
 
     
     masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
@@ -2096,7 +2176,10 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
     
 
     
-    masm.adjustStack(IonOOLPropertyOpExitFrameLayout::Size());
+    if (callNative)
+        masm.adjustStack(IonOOLNativeExitFrameLayout::Size(1));
+    else
+        masm.adjustStack(IonOOLPropertyOpExitFrameLayout::Size());
     JS_ASSERT(masm.framePushed() == initialStack);
 
     
@@ -2109,7 +2192,7 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
     masm.bind(&failure);
     attacher.jumpNextStub(masm);
 
-    return linkAndAttachStub(cx, masm, attacher, ion, "calling");
+    return linkAndAttachStub(cx, masm, attacher, ion, "setter call");
 }
 
 bool
@@ -2216,33 +2299,6 @@ IsPropertySetInlineable(JSContext *cx, HandleObject obj, HandleId id, MutableHan
 }
 
 static bool
-IsPropertySetterCallInlineable(JSContext *cx, HandleObject obj, HandleObject holder,
-                               HandleShape shape)
-{
-    if (!shape)
-        return false;
-
-    if (!holder->isNative())
-        return false;
-
-    if (shape->hasSlot())
-        return false;
-
-    if (shape->hasDefaultSetter())
-        return false;
-
-    if (!shape->writable())
-        return false;
-
-    
-    
-    if (shape->hasSetterValue())
-        return false;
-
-    return true;
-}
-
-static bool
 IsPropertyAddInlineable(JSContext *cx, HandleObject obj, HandleId id, uint32_t oldSlots,
                         MutableHandleShape pShape)
 {
@@ -2325,7 +2381,9 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
             if (!JSObject::lookupProperty(cx, obj, name, &holder, &shape))
                 return false;
 
-            if (IsPropertySetterCallInlineable(cx, obj, holder, shape)) {
+            if (IsCacheableSetPropCallPropertyOp(obj, holder, shape) ||
+                IsCacheableSetPropCallNative(obj, holder, shape))
+            {
                 if (!cache.attachSetterCall(cx, ion, obj, holder, shape, returnAddr))
                     return false;
                 addedSetterStub = true;
