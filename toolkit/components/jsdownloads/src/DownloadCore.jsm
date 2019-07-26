@@ -95,6 +95,36 @@ function isString(aValue) {
 
 
 
+function serializeUnknownProperties(aObject, aSerializable)
+{
+  if (aObject._unknownProperties) {
+    for (let property in aObject._unknownProperties) {
+      aSerializable[property] = aObject._unknownProperties[property];
+    }
+  }
+}
+
+
+
+
+
+
+function deserializeUnknownProperties(aObject, aSerializable, aFilterFn)
+{
+  for (let property in aSerializable) {
+    if (aFilterFn(property)) {
+      if (!aObject._unknownProperties) {
+        aObject._unknownProperties = { };
+      }
+
+      aObject._unknownProperties[property] = aSerializable[property];
+    }
+  }
+}
+
+
+
+
 
 
 const kProgressUpdateIntervalMs = 400;
@@ -838,10 +868,12 @@ Download.prototype = {
 
     
     for (let property of kSerializableDownloadProperties) {
-      if (property != "error" && this[property]) {
+      if (property != "error" && property != "startTime" && this[property]) {
         serializable[property] = this[property];
       }
     }
+
+    serializeUnknownProperties(this, serializable);
 
     return serializable;
   },
@@ -933,6 +965,13 @@ Download.fromSerializable = function (aSerializable) {
     }
   }
 
+  deserializeUnknownProperties(download, aSerializable, property =>
+    kSerializableDownloadProperties.indexOf(property) == -1 &&
+    property != "startTime" &&
+    property != "source" &&
+    property != "target" &&
+    property != "saver");
+
   return download;
 };
 
@@ -971,7 +1010,7 @@ DownloadSource.prototype = {
   toSerializable: function ()
   {
     
-    if (!this.isPrivate && !this.referrer) {
+    if (!this.isPrivate && !this.referrer && !this._unknownProperties) {
       return this.url;
     }
 
@@ -982,6 +1021,8 @@ DownloadSource.prototype = {
     if (this.referrer) {
       serializable.referrer = this.referrer;
     }
+
+    serializeUnknownProperties(this, serializable);
     return serializable;
   },
 };
@@ -1020,7 +1061,11 @@ DownloadSource.fromSerializable = function (aSerializable) {
     if ("referrer" in aSerializable) {
       source.referrer = aSerializable.referrer;
     }
+
+    deserializeUnknownProperties(source, aSerializable, property =>
+      property != "url" && property != "isPrivate" && property != "referrer");
   }
+
   return source;
 };
 
@@ -1054,14 +1099,17 @@ DownloadTarget.prototype = {
   toSerializable: function ()
   {
     
-    if (!this.partFilePath) {
+    if (!this.partFilePath && !this._unknownProperties) {
       return this.path;
     }
 
-    return { path: this.path,
-             partFilePath: this.partFilePath };
+    let serializable = { path: this.path,
+                         partFilePath: this.partFilePath };
+    serializeUnknownProperties(this, serializable);
+    return serializable;
   },
 };
+
 
 
 
@@ -1091,6 +1139,9 @@ DownloadTarget.fromSerializable = function (aSerializable) {
     if ("partFilePath" in aSerializable) {
       target.partFilePath = aSerializable.partFilePath;
     }
+
+    deserializeUnknownProperties(target, aSerializable, property =>
+      property != "path" && property != "partFilePath");
   }
   return target;
 };
@@ -1598,12 +1649,14 @@ DownloadCopySaver.prototype = {
   toSerializable: function ()
   {
     
-    if (!this.entityID) {
+    if (!this.entityID && !this._unknownProperties) {
       return "copy";
     }
 
-    return { type: "copy",
-             entityID: this.entityID };
+    let serializable = { type: "copy",
+                         entityID: this.entityID };
+    serializeUnknownProperties(this, serializable);
+    return serializable;
   },
 };
 
@@ -1621,6 +1674,10 @@ DownloadCopySaver.fromSerializable = function (aSerializable) {
   if ("entityID" in aSerializable) {
     saver.entityID = aSerializable.entityID;
   }
+
+  deserializeUnknownProperties(saver, aSerializable, property =>
+    property != "entityID" && property != "type");
+
   return saver;
 };
 
