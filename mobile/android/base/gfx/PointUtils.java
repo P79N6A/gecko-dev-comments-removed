@@ -31,15 +31,6 @@ public final class PointUtils {
     }
 
    
-
-
-   public static PointF interpolate(PointF startPoint, PointF endPoint, float weight) {
-       float x = FloatUtils.interpolate(startPoint.x, endPoint.x, weight);
-       float y = FloatUtils.interpolate(startPoint.y, endPoint.y, weight);
-       return new PointF(x, y);
-   }
-
-   
    public static float distance(PointF point) {
         return (float)Math.sqrt(point.x * point.x + point.y * point.y);
    }
