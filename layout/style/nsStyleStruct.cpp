@@ -2420,6 +2420,19 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
       || mResize != aOther.mResize)
     NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
 
+  if ((mAppearance == NS_THEME_TEXTFIELD &&
+       aOther.mAppearance != NS_THEME_TEXTFIELD) ||
+      (mAppearance != NS_THEME_TEXTFIELD &&
+       aOther.mAppearance == NS_THEME_TEXTFIELD)) {
+    
+    
+    
+    
+    
+    
+    return nsChangeHint_ReconstructFrame;
+  }
+
   if (mFloats != aOther.mFloats) {
     
     NS_UpdateHint(hint,
