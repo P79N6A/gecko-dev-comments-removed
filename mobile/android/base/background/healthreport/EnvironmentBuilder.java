@@ -27,9 +27,22 @@ public class EnvironmentBuilder {
     return cr.acquireContentProviderClient(HealthReportConstants.HEALTH_AUTHORITY);
   }
 
+  
+
+
+
+
+
+
+
+
   public static HealthReportDatabaseStorage getStorage(ContentProviderClient cpc,
                                                        String profilePath) {
     ContentProvider pr = cpc.getLocalContentProvider();
+    if (pr == null) {
+      Logger.error(LOG_TAG, "Unable to retrieve local content provider. Running in a different process?");
+      return null;
+    }
     try {
       return ((HealthReportProvider) pr).getProfileStorage(profilePath);
     } catch (ClassCastException ex) {
