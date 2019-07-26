@@ -32,6 +32,7 @@
 
 
 
+
 if (typeof Components != "undefined") {
   
   this.EXPORTED_SYMBOLS = ["AndroidLog"];
@@ -45,6 +46,12 @@ const ANDROID_LOG_INFO = 4;
 const ANDROID_LOG_WARN = 5;
 const ANDROID_LOG_ERROR = 6;
 
+
+
+
+
+const MAX_TAG_LENGTH = 18;
+
 let liblog = ctypes.open("liblog.so"); 
 let __android_log_write = liblog.declare("__android_log_write",
                                          ctypes.default_abi,
@@ -54,11 +61,12 @@ let __android_log_write = liblog.declare("__android_log_write",
                                          ctypes.char.ptr); 
 
 let AndroidLog = {
-  v: (tag, msg) => __android_log_write(ANDROID_LOG_VERBOSE, "Gecko" + tag, msg),
-  d: (tag, msg) => __android_log_write(ANDROID_LOG_DEBUG, "Gecko" + tag, msg),
-  i: (tag, msg) => __android_log_write(ANDROID_LOG_INFO, "Gecko" + tag, msg),
-  w: (tag, msg) => __android_log_write(ANDROID_LOG_WARN, "Gecko" + tag, msg),
-  e: (tag, msg) => __android_log_write(ANDROID_LOG_ERROR, "Gecko" + tag, msg),
+  MAX_TAG_LENGTH: MAX_TAG_LENGTH,
+  v: (tag, msg) => __android_log_write(ANDROID_LOG_VERBOSE, "Gecko" + tag.substring(0, MAX_TAG_LENGTH), msg),
+  d: (tag, msg) => __android_log_write(ANDROID_LOG_DEBUG, "Gecko" + tag.substring(0, MAX_TAG_LENGTH), msg),
+  i: (tag, msg) => __android_log_write(ANDROID_LOG_INFO, "Gecko" + tag.substring(0, MAX_TAG_LENGTH), msg),
+  w: (tag, msg) => __android_log_write(ANDROID_LOG_WARN, "Gecko" + tag.substring(0, MAX_TAG_LENGTH), msg),
+  e: (tag, msg) => __android_log_write(ANDROID_LOG_ERROR, "Gecko" + tag.substring(0, MAX_TAG_LENGTH), msg),
 };
 
 if (typeof Components == "undefined") {

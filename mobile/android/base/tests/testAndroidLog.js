@@ -33,6 +33,15 @@ add_task(function test_AndroidLog() {
 
   
   
+  let tag = "X".repeat(AndroidLog.MAX_TAG_LENGTH + 1);
+  do_check_eq(AndroidLog.MAX_TAG_LENGTH + 54, AndroidLog.v(tag, "This is a verbose message with a too-long tag."));
+  do_check_eq(AndroidLog.MAX_TAG_LENGTH + 52, AndroidLog.d(tag, "This is a debug message with a too-long tag."));
+  do_check_eq(AndroidLog.MAX_TAG_LENGTH + 52, AndroidLog.i(tag, "This is an info message with a too-long tag."));
+  do_check_eq(AndroidLog.MAX_TAG_LENGTH + 54, AndroidLog.w(tag, "This is a warning message with a too-long tag."));
+  do_check_eq(AndroidLog.MAX_TAG_LENGTH + 53, AndroidLog.e(tag, "This is an error message with a too-long tag."));
+
+  
+  
 });
 
 run_next_test();
