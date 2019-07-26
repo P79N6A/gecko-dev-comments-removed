@@ -1,14 +1,14 @@
+/* vim:set ts=2 sw=2 sts=2 et: */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/
+ *
+ * Contributor(s):
+ *  Patrick Walton <pcwalton@mozilla.com>
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
+// Tests that copying multiple messages inserts newlines in between.
 
 const TEST_URI = "data:text/html;charset=utf-8,Web Console test for bug 586142";
 
@@ -52,7 +52,7 @@ function testClipboard() {
   for (let i = 0; i < outputNode.itemCount; i++) {
     let item = outputNode.getItemAtIndex(i);
     clipboardTexts.push("[" +
-                        WCU_l10n.timestampString(item.timestamp) +
+                        WebConsoleUtils.l10n.timestampString(item.timestamp) +
                         "] " + item.clipboardText);
   }
 

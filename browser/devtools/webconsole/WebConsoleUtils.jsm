@@ -15,8 +15,9 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 
-var EXPORTED_SYMBOLS = ["WebConsoleUtils", "JSPropertyProvider",
-                        "PageErrorListener"];
+var EXPORTED_SYMBOLS = ["WebConsoleUtils", "JSPropertyProvider"];
+
+const STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
 
 const TYPES = { OBJECT: 0,
                 FUNCTION: 1,
@@ -644,22 +645,7 @@ var WebConsoleUtils = {
 
 
 
-WebConsoleUtils.l10n = function WCU_l10n(aBundleURI)
-{
-  this._bundleUri = aBundleURI;
-};
-
-WebConsoleUtils.l10n.prototype = {
-  _stringBundle: null,
-
-  get stringBundle()
-  {
-    if (!this._stringBundle) {
-      this._stringBundle = Services.strings.createBundle(this._bundleUri);
-    }
-    return this._stringBundle;
-  },
-
+WebConsoleUtils.l10n = {
   
 
 
@@ -723,6 +709,10 @@ WebConsoleUtils.l10n.prototype = {
     return result;
   },
 };
+
+XPCOMUtils.defineLazyGetter(WebConsoleUtils.l10n, "stringBundle", function() {
+  return Services.strings.createBundle(STRINGS_URI);
+});
 
 
 
@@ -1022,144 +1012,3 @@ function getMatchedProps(aObj, aOptions = {matchProp: ""})
 
 return JSPropertyProvider;
 })(WebConsoleUtils);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function PageErrorListener(aWindow, aListener)
-{
-  this.window = aWindow;
-  this.listener = aListener;
-}
-
-PageErrorListener.prototype =
-{
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIConsoleListener]),
-
-  
-
-
-
-  window: null,
-
-  
-
-
-
-
-  listener: null,
-
-  
-
-
-  init: function PEL_init()
-  {
-    Services.console.registerListener(this);
-  },
-
-  
-
-
-
-
-
-
-
-  observe: function PEL_observe(aScriptError)
-  {
-    if (!this.window || !this.listener ||
-        !(aScriptError instanceof Ci.nsIScriptError) ||
-        !aScriptError.outerWindowID) {
-      return;
-    }
-
-    if (!this.isCategoryAllowed(aScriptError.category)) {
-      return;
-    }
-
-    let errorWindow =
-      WebConsoleUtils.getWindowByOuterId(aScriptError.outerWindowID, this.window);
-    if (!errorWindow || errorWindow.top != this.window) {
-      return;
-    }
-
-    this.listener.onPageError(aScriptError);
-  },
-
-  
-
-
-
-
-
-
-
-
-  isCategoryAllowed: function PEL_isCategoryAllowed(aCategory)
-  {
-    switch (aCategory) {
-      case "XPConnect JavaScript":
-      case "component javascript":
-      case "chrome javascript":
-      case "chrome registration":
-      case "XBL":
-      case "XBL Prototype Handler":
-      case "XBL Content Sink":
-      case "xbl javascript":
-        return false;
-    }
-
-    return true;
-  },
-
-  
-
-
-
-
-
-
-
-  getCachedMessages: function PEL_getCachedMessages()
-  {
-    let innerWindowId = WebConsoleUtils.getInnerWindowId(this.window);
-    let result = [];
-    let errors = {};
-    Services.console.getMessageArray(errors, {});
-
-    (errors.value || []).forEach(function(aError) {
-      if (!(aError instanceof Ci.nsIScriptError) ||
-          aError.innerWindowID != innerWindowId ||
-          !this.isCategoryAllowed(aError.category)) {
-        return;
-      }
-
-      let remoteMessage = WebConsoleUtils.cloneObject(aError);
-      result.push(remoteMessage);
-    }, this);
-
-    return result;
-  },
-
-  
-
-
-  destroy: function PEL_destroy()
-  {
-    Services.console.unregisterListener(this);
-    this.listener = this.window = null;
-  },
-};
