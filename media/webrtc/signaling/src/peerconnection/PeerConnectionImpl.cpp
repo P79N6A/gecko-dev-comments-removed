@@ -683,6 +683,8 @@ PeerConnectionImpl::InitializeDataChannel(int track_id,
         return NS_OK;
       }
     }
+    
+    mDataConnection->Destroy();
   }
   mDataConnection = nullptr;
 #endif
