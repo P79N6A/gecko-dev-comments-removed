@@ -230,17 +230,7 @@ class OrderedHashTable
 
 
 
-
-
-
-
-
-
-    enum CallDestructors {
-        DoNotCallDtors = false,
-        DoCallDtors = true
-    };
-    bool clear(CallDestructors callDestructors = DoCallDtors) {
+    bool clear() {
         if (dataLength != 0) {
             Data **oldHashTable = hashTable;
             Data *oldData = data;
@@ -254,9 +244,7 @@ class OrderedHashTable
             }
 
             alloc.free_(oldHashTable);
-            if (callDestructors)
-                destroyData(oldData, oldDataLength);
-            alloc.free_(oldData);
+            freeData(oldData, oldDataLength);
             for (Range *r = ranges; r; r = r->next)
                 r->onClear();
         }
@@ -500,6 +488,49 @@ class OrderedHashTable
 
     Range all() { return Range(*this); }
 
+    
+
+
+
+
+
+
+    void rekeyOneEntry(const Key &current, const Key &newKey, const T &element) {
+        if (current == newKey)
+            return;
+
+        Data *entry = lookup(current, prepareHash(current));
+        if (!entry)
+            return;
+
+        HashNumber oldHash = prepareHash(current) >> hashShift;
+        HashNumber newHash = prepareHash(newKey) >> hashShift;
+
+        entry->element = element;
+
+        
+        
+        
+        
+        
+        Data **ep = &hashTable[oldHash];
+        while (*ep != entry)
+            ep = &(*ep)->chain;
+        *ep = entry->chain;
+
+        
+        
+        
+        
+        
+        
+        ep = &hashTable[newHash];
+        while (*ep && *ep > entry)
+            ep = &(*ep)->chain;
+        entry->chain = *ep;
+        *ep = entry;
+    }
+
   private:
     
     static uint32_t initialBucketsLog2() { return 1; }
@@ -702,8 +733,14 @@ class OrderedHashMap
     Entry *get(const Key &key)                      { return impl.get(key); }
     bool put(const Key &key, const Value &value)    { return impl.put(Entry(key, value)); }
     bool remove(const Key &key, bool *foundp)       { return impl.remove(key, foundp); }
-    bool clear()                                    { return impl.clear(Impl::DoCallDtors); }
-    bool clearWithoutCallingDestructors()           { return impl.clear(Impl::DoNotCallDtors); }
+    bool clear()                                    { return impl.clear(); }
+
+    void rekeyOneEntry(const Key &current, const Key &newKey) {
+        const Entry *e = get(current);
+        if (!e)
+            return;
+        return impl.rekeyOneEntry(current, newKey, Entry(newKey, e->value));
+    }
 };
 
 template <class T, class OrderedHashPolicy, class AllocPolicy>
@@ -730,8 +767,11 @@ class OrderedHashSet
     Range all()                                     { return impl.all(); }
     bool put(const T &value)                        { return impl.put(value); }
     bool remove(const T &value, bool *foundp)       { return impl.remove(value, foundp); }
-    bool clear()                                    { return impl.clear(Impl::DoCallDtors); }
-    bool clearWithoutCallingDestructors()           { return impl.clear(Impl::DoNotCallDtors); }
+    bool clear()                                    { return impl.clear(); }
+
+    void rekeyOneEntry(const T &current, const T &newKey) {
+        return impl.rekeyOneEntry(current, newKey, newKey);
+    }
 };
 
 }  
@@ -779,7 +819,7 @@ HashableValue::hash() const
 }
 
 bool
-HashableValue::equals(const HashableValue &other) const
+HashableValue::operator==(const HashableValue &other) const
 {
     
     bool b = (value.asRawBits() == other.value.asRawBits());
@@ -1070,13 +1110,48 @@ MapObject::mark(JSTracer *trc, RawObject obj)
     }
 }
 
+#ifdef JSGC_GENERATIONAL
+template <typename TableType>
+class OrderedHashTableRef : public gc::BufferableRef
+{
+    TableType *table;
+    HashableValue key;
+
+  public:
+    OrderedHashTableRef(TableType *t, const HashableValue &k) : table(t), key(k) {}
+
+    bool match(void *location) {
+        if (!table->has(key))
+            return false;
+        for (typename TableType::Range r = table->all(); !r.empty(); r.popFront()) {
+            if ((void*)&r.front() == location)
+                return true;
+        }
+        return false;
+    }
+
+    void mark(JSTracer *trc) {
+        HashableValue prior = key;
+        key = key.mark(trc);
+        table->rekeyOneEntry(prior, key);
+    }
+};
+#endif
+
+template <typename TableType>
+static void
+WriteBarrierPost(JSRuntime *rt, TableType *table, const HashableValue &key)
+{
+#ifdef JSGC_GENERATIONAL
+    rt->gcStoreBuffer.putGeneric(OrderedHashTableRef<TableType>(table, key));
+#endif
+}
+
 void
 MapObject::finalize(FreeOp *fop, RawObject obj)
 {
-    if (ValueMap *map = obj->asMap().getData()) {
-        map->clearWithoutCallingDestructors();
+    if (ValueMap *map = obj->asMap().getData())
         fop->delete_(map);
-    }
 }
 
 JSBool
@@ -1121,6 +1196,7 @@ MapObject::construct(JSContext *cx, unsigned argc, Value *vp)
                 js_ReportOutOfMemory(cx);
                 return false;
             }
+            WriteBarrierPost(cx->runtime, map, hkey);
         }
         if (!iter.close())
             return false;
@@ -1215,11 +1291,12 @@ MapObject::set_impl(JSContext *cx, CallArgs args)
 
     ValueMap &map = extract(args);
     ARG0_KEY(cx, args, key);
-    RelocatableValue rval(args.length() > 1 ? args[1] : UndefinedValue());
+    RelocatableValue rval(args.get(1));
     if (!map.put(key, rval)) {
         js_ReportOutOfMemory(cx);
         return false;
     }
+    WriteBarrierPost(cx->runtime, &map, key);
     args.rval().setUndefined();
     return true;
 }
@@ -1528,10 +1605,8 @@ void
 SetObject::finalize(FreeOp *fop, RawObject obj)
 {
     SetObject *setobj = static_cast<SetObject *>(obj);
-    if (ValueSet *set = setobj->getData()) {
-        set->clearWithoutCallingDestructors();
+    if (ValueSet *set = setobj->getData())
         fop->delete_(set);
-    }
 }
 
 JSBool
@@ -1562,6 +1637,7 @@ SetObject::construct(JSContext *cx, unsigned argc, Value *vp)
                 js_ReportOutOfMemory(cx);
                 return false;
             }
+            WriteBarrierPost(cx->runtime, set, key);
         }
         if (!iter.close())
             return false;
@@ -1632,6 +1708,7 @@ SetObject::add_impl(JSContext *cx, CallArgs args)
         js_ReportOutOfMemory(cx);
         return false;
     }
+    WriteBarrierPost(cx->runtime, &set, key);
     args.rval().setUndefined();
     return true;
 }
