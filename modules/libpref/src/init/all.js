@@ -4502,11 +4502,7 @@ pref("dom.cellbroadcast.enabled", false);
 #endif
 
 
-#ifdef MOZ_B2G_RIL
-pref("dom.icc.enabled", true);
-#else
 pref("dom.icc.enabled", false);
-#endif
 
 
 pref("dom.mobileconnection.enabled", false);
