@@ -36,6 +36,7 @@ class nsListEventListener;
 namespace mozilla {
 namespace dom {
 class HTMLOptionElement;
+class HTMLOptionsCollection;
 } 
 } 
 
@@ -172,19 +173,11 @@ public:
   
 
 
-  static already_AddRefed<nsIDOMHTMLOptionsCollection>
-    GetOptions(nsIContent * aContent);
+  mozilla::dom::HTMLOptionsCollection* GetOptions() const;
   
 
 
   mozilla::dom::HTMLOptionElement* GetOption(uint32_t aIndex) const;
-
-  
-
-
-
-  static already_AddRefed<nsIDOMHTMLOptionElement>
-    GetOption(nsIDOMHTMLOptionsCollection* aOptions, int32_t aIndex);
 
   static void ComboboxFocusSet();
 
