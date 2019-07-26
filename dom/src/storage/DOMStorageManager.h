@@ -13,6 +13,8 @@
 #include "DOMStorageCache.h"
 
 #include "nsTHashtable.h"
+#include "nsDataHashtable.h"
+#include "nsHashKeys.h"
 
 namespace mozilla {
 namespace dom {
@@ -35,6 +37,8 @@ public:
   static uint32_t GetQuota();
   
   DOMStorageCache* GetCache(const nsACString& aScope) const;
+  
+  already_AddRefed<DOMStorageUsage> GetScopeUsage(const nsACString& aScope);
 
 protected:
   DOMStorageManager(nsPIDOMStorage::StorageType aType);
@@ -97,6 +101,9 @@ private:
                                               void* aClosure);
 
 protected:
+  
+  nsDataHashtable<nsCStringHashKey, nsRefPtr<DOMStorageUsage> > mUsages;
+
   friend class DOMStorageCache;
   
   virtual void DropCache(DOMStorageCache* aCache);

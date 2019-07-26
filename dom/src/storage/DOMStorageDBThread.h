@@ -81,13 +81,6 @@ public:
 
   
   virtual void GetScopesHavingData(InfallibleTArray<nsCString>* aScopes) = 0;
-
-  
-  DOMStorageUsage* GetScopeUsage(const nsACString& aScope);
-
-protected:
-  
-  nsClassHashtable<nsCStringHashKey, DOMStorageUsage> mUsages;
 };
 
 
@@ -157,7 +150,7 @@ public:
     friend class PendingOperations;
     OperationType mType;
     nsRefPtr<DOMStorageCacheBridge> mCache;
-    DOMStorageUsageBridge* mUsage;
+    nsRefPtr<DOMStorageUsageBridge> mUsage;
     nsString mKey;
     nsString mValue;
     nsCString mScope;
