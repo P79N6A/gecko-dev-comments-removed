@@ -70,6 +70,7 @@ namespace mozilla {
         class TextureGarbageBin;
         class GLBlitHelper;
         class GLBlitTextureImageHelper;
+        class GLReadTexImageHelper;
     }
 
     namespace layers {
@@ -2581,35 +2582,6 @@ public:
 
     virtual bool RenewSurface() { return false; }
 
-private:
-    
-
-
-    GLuint TextureImageProgramFor(GLenum aTextureTarget, int aShader);
-    bool ReadBackPixelsIntoSurface(gfxImageSurface* aSurface, const gfxIntSize& aSize);
-
-public:
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    already_AddRefed<gfxImageSurface> ReadTextureImage(GLuint aTextureId,
-                                                       GLenum aTextureTarget,
-                                                       const gfxIntSize& aSize,
-                                int aShaderProgram,
-                                                       bool aYInvert = false);
-
     already_AddRefed<gfxImageSurface> GetTexImage(GLuint aTexture,
                                                   bool aYInvert,
                                                   SurfaceFormat aFormat);
@@ -2689,11 +2661,13 @@ protected:
 
     ScopedDeletePtr<GLBlitHelper> mBlitHelper;
     ScopedDeletePtr<GLBlitTextureImageHelper> mBlitTextureImageHelper;
+    ScopedDeletePtr<GLReadTexImageHelper> mReadTexImageHelper;
 
 public:
 
     GLBlitHelper* BlitHelper();
     GLBlitTextureImageHelper* BlitTextureImageHelper();
+    GLReadTexImageHelper* ReadTexImageHelper();
 
     
     bool SharesWith(const GLContext* other) const {
@@ -2861,8 +2835,6 @@ public:
     bool IsOffscreenSizeAllowed(const gfx::IntSize& aSize) const;
 
 protected:
-    GLuint mReadTextureImagePrograms[4];
-
     bool InitWithPrefix(const char *prefix, bool trygl);
 
     void InitExtensions();
