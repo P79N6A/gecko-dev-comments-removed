@@ -1581,7 +1581,7 @@ Debugger::detachAllDebuggersFromGlobal(FreeOp *fop, GlobalObject *global,
 }
 
  void
-Debugger::findCompartmentEdges(JSCompartment *comp, js::gc::ComponentFinder<JSCompartment> &finder)
+Debugger::findCompartmentEdges(Zone *zone, js::gc::ComponentFinder<Zone> &finder)
 {
     
 
@@ -1589,13 +1589,13 @@ Debugger::findCompartmentEdges(JSCompartment *comp, js::gc::ComponentFinder<JSCo
 
 
 
-    for (Debugger *dbg = comp->rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
-        JSCompartment *w = dbg->object->compartment();
-        if (w == comp || !w->isGCMarking())
+    for (Debugger *dbg = zone->rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
+        Zone *w = dbg->object->zone();
+        if (w == zone || !w->isGCMarking())
             continue;
-        if (dbg->scripts.hasKeyInCompartment(comp) ||
-            dbg->objects.hasKeyInCompartment(comp) ||
-            dbg->environments.hasKeyInCompartment(comp))
+        if (dbg->scripts.hasKeyInZone(zone) ||
+            dbg->objects.hasKeyInZone(zone) ||
+            dbg->environments.hasKeyInZone(zone))
         {
             finder.addEdgeTo(w);
         }
