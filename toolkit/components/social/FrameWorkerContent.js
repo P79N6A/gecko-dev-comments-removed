@@ -137,8 +137,10 @@ FrameWorker.prototype = {
     
     
     
-    sandbox._evalInSandbox = function(s) {
-      Cu.evalInSandbox(s, sandbox);
+    sandbox._evalInSandbox = function(s, url) {
+      let baseURI = Services.io.newURI(workerWindow.location.href, null, null);
+      Cu.evalInSandbox(s, sandbox, "1.8",
+                       Services.io.newURI(url, null, baseURI).spec, 1);
     };
 
     
