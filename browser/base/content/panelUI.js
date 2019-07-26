@@ -53,9 +53,7 @@ const PanelUI = {
       this.container.style.height = this.subViews.scrollHeight + "px";
     } else {
       this.viewStack.setAttribute("view", "main");
-      let springHeight = this.mainViewSpring.getBoundingClientRect().height;
-      this.container.style.height = (this.mainView.scrollHeight - springHeight) + "px";
-      this.mainViewSpring.style.height = "";
+      this._syncContainerWithMainView();
     }
 
     return aVal;
@@ -99,6 +97,7 @@ const PanelUI = {
 
   replaceMainView: function(aMainView) {
     this.viewStack.insertBefore(aMainView, this.viewStack.firstChild);
+    this._syncContainerWithMainView();
   },
 
   
@@ -210,6 +209,17 @@ const PanelUI = {
 
 
 
+
+  _syncContainerWithMainView: function() {
+    let springHeight = this.mainViewSpring.getBoundingClientRect().height;
+    this.container.style.height = (this.mainView.scrollHeight - springHeight) + "px";
+    this.mainViewSpring.style.height = "";
+  },
+
+  
+
+
+
   _updatePanelButton: function() {
     this.menuButton.open = this.panel.state == "open" ||
                            this.panel.state == "showing";
@@ -236,6 +246,10 @@ const PanelUI = {
       this.mainView.style.transform = "";
     }
   },
+
+  
+
+
 
   _onCapturerClick: function(aEvent) {
     PanelUI.showMainView();
