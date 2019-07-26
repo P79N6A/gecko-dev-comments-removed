@@ -79,10 +79,86 @@
 
 
 
+
+
+
+
+
+
+
+
+struct nsTArrayFallibleResult
+{
+  
+  nsTArrayFallibleResult(bool result)
+    : mResult(result)
+  {}
+
+  operator bool() {
+    return mResult;
+  }
+
+private:
+  bool mResult;
+};
+
+struct nsTArrayInfallibleResult
+{
+};
+
+
+
+
+
+
+struct nsTArrayFallibleAllocatorBase
+{
+  typedef bool ResultType;
+  typedef nsTArrayFallibleResult ResultTypeProxy;
+
+  static ResultType Result(ResultTypeProxy result) {
+    return result;
+  }
+
+  static bool Successful(ResultTypeProxy result) {
+    return result;
+  }
+
+  static ResultTypeProxy SuccessResult() {
+    return true;
+  }
+
+  static ResultTypeProxy FailureResult() {
+    return false;
+  }
+};
+
+struct nsTArrayInfallibleAllocatorBase
+{
+  typedef void ResultType;
+  typedef nsTArrayInfallibleResult ResultTypeProxy;
+
+  static ResultType Result(ResultTypeProxy result) {
+  }
+
+  static bool Successful(ResultTypeProxy) {
+    return true;
+  }
+
+  static ResultTypeProxy SuccessResult() {
+    return ResultTypeProxy();
+  }
+
+  static ResultTypeProxy FailureResult() {
+    NS_RUNTIMEABORT("Infallible nsTArray should never fail");
+    return ResultTypeProxy();
+  }
+};
+
 #if defined(MOZALLOC_HAVE_XMALLOC)
 #include "mozilla/mozalloc_abort.h"
 
-struct nsTArrayFallibleAllocator
+struct nsTArrayFallibleAllocator : nsTArrayFallibleAllocatorBase
 {
   static void* Malloc(size_t size) {
     return moz_malloc(size);
@@ -100,7 +176,7 @@ struct nsTArrayFallibleAllocator
   }
 };
 
-struct nsTArrayInfallibleAllocator
+struct nsTArrayInfallibleAllocator : nsTArrayInfallibleAllocatorBase
 {
   static void* Malloc(size_t size) {
     return moz_xmalloc(size);
@@ -122,7 +198,7 @@ struct nsTArrayInfallibleAllocator
 #else
 #include <stdlib.h>
 
-struct nsTArrayFallibleAllocator
+struct nsTArrayFallibleAllocator : nsTArrayFallibleAllocatorBase
 {
   static void* Malloc(size_t size) {
     return malloc(size);
@@ -140,7 +216,7 @@ struct nsTArrayFallibleAllocator
   }
 };
 
-struct nsTArrayInfallibleAllocator
+struct nsTArrayInfallibleAllocator : nsTArrayInfallibleAllocatorBase
 {
   static void* Malloc(size_t size) {
     void* ptr = malloc(size);
@@ -304,7 +380,7 @@ protected:
   
   
   
-  bool EnsureCapacity(size_type capacity, size_type elemSize);
+  typename Alloc::ResultTypeProxy EnsureCapacity(size_type capacity, size_type elemSize);
 
   
   
@@ -828,7 +904,7 @@ public:
   elem_type *ReplaceElementsAt(index_type start, size_type count,
                                const Item* array, size_type arrayLen) {
     
-    if (!this->EnsureCapacity(Length() + arrayLen - count, sizeof(elem_type)))
+    if (!Alloc::Successful(this->EnsureCapacity(Length() + arrayLen - count, sizeof(elem_type))))
       return nullptr;
     DestructRange(start, count);
     this->ShiftData(start, count, arrayLen, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
@@ -879,7 +955,7 @@ public:
   
   
   elem_type* InsertElementAt(index_type index) {
-    if (!this->EnsureCapacity(Length() + 1, sizeof(elem_type)))
+    if (!Alloc::Successful(this->EnsureCapacity(Length() + 1, sizeof(elem_type))))
       return nullptr;
     this->ShiftData(index, 0, 1, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
     elem_type *elem = Elements() + index;
@@ -954,7 +1030,7 @@ public:
   
   template<class Item>
   elem_type *AppendElements(const Item* array, size_type arrayLen) {
-    if (!this->EnsureCapacity(Length() + arrayLen, sizeof(elem_type)))
+    if (!Alloc::Successful(this->EnsureCapacity(Length() + arrayLen, sizeof(elem_type))))
       return nullptr;
     index_type len = Length();
     AssignRange(len, arrayLen, array);
@@ -978,7 +1054,7 @@ public:
   
   
   elem_type *AppendElements(size_type count) {
-    if (!this->EnsureCapacity(Length() + count, sizeof(elem_type)))
+    if (!Alloc::Successful(this->EnsureCapacity(Length() + count, sizeof(elem_type))))
       return nullptr;
     elem_type *elems = Elements() + Length();
     size_type i;
@@ -1004,7 +1080,7 @@ public:
     MOZ_ASSERT(&array != this, "argument must be different array");
     index_type len = Length();
     index_type otherLen = array.Length();
-    if (!this->EnsureCapacity(len + otherLen, sizeof(elem_type)))
+    if (!Alloc::Successful(this->EnsureCapacity(len + otherLen, sizeof(elem_type))))
       return nullptr;
     memcpy(Elements() + len, array.Elements(), otherLen * sizeof(elem_type));
     this->IncrementLength(otherLen);      
@@ -1095,8 +1171,8 @@ public:
   
   
   
-  bool SetCapacity(size_type capacity) {
-    return this->EnsureCapacity(capacity, sizeof(elem_type));
+  typename Alloc::ResultType SetCapacity(size_type capacity) {
+    return Alloc::Result(this->EnsureCapacity(capacity, sizeof(elem_type)));
   }
 
   

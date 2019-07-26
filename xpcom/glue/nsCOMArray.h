@@ -154,7 +154,9 @@ public:
     
     
     bool SetCapacity(uint32_t aCapacity) {
-        return mArray.SetCapacity(aCapacity);
+        mArray.SetCapacity(aCapacity);
+        
+        return true;
     }
     uint32_t Capacity() {
         return mArray.Capacity();

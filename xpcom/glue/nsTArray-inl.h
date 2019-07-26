@@ -97,11 +97,11 @@ bool nsTArray_base<Alloc>::UsesAutoArrayBuffer() const {
 
 
 template<class Alloc>
-bool
+typename Alloc::ResultTypeProxy
 nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
   
   if (capacity <= mHdr->mCapacity)
-    return true;
+    return Alloc::SuccessResult();
 
   
   
@@ -110,7 +110,7 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
   
   if ((uint64_t)capacity * elemSize > size_type(-1)/2) {
     Alloc::SizeTooBig();
-    return false;
+    return Alloc::FailureResult();
   }
 
   if (mHdr == EmptyHdr()) {
@@ -118,13 +118,13 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
     Header *header = static_cast<Header*>
                      (Alloc::Malloc(sizeof(Header) + capacity * elemSize));
     if (!header)
-      return false;
+      return Alloc::FailureResult();
     header->mLength = 0;
     header->mCapacity = capacity;
     header->mIsAutoArray = 0;
     mHdr = header;
 
-    return true;
+    return Alloc::SuccessResult();
   }
 
   
@@ -159,14 +159,14 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
     
     header = static_cast<Header*>(Alloc::Malloc(bytesToAlloc));
     if (!header)
-      return false;
+      return Alloc::FailureResult();
 
     memcpy(header, mHdr, sizeof(Header) + Length() * elemSize);
   } else {
     
     header = static_cast<Header*>(Alloc::Realloc(mHdr, bytesToAlloc));
     if (!header)
-      return false;
+      return Alloc::FailureResult();
   }
 
   
@@ -176,7 +176,7 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
 
   mHdr = header;
 
-  return true;
+  return Alloc::SuccessResult();
 }
 
 template<class Alloc>
@@ -342,8 +342,8 @@ nsTArray_base<Alloc>::SwapArrayElements(nsTArray_base<Allocator>& other,
   
   
 
-  if (!EnsureCapacity(other.Length(), elemSize) ||
-      !other.EnsureCapacity(Length(), elemSize)) {
+  if (!Alloc::Successful(EnsureCapacity(other.Length(), elemSize)) ||
+      !Allocator::Successful(other.EnsureCapacity(Length(), elemSize))) {
     return false;
   }
 
@@ -371,7 +371,7 @@ nsTArray_base<Alloc>::SwapArrayElements(nsTArray_base<Allocator>& other,
   
   
   nsAutoArrayBase<nsTArray_Impl<uint8_t, Alloc>, 64> temp;
-  if (!temp.SetCapacity(smallerLength * elemSize)) {
+  if (!Alloc::Successful(temp.EnsureCapacity(smallerLength, elemSize))) {
     return false;
   }
 
