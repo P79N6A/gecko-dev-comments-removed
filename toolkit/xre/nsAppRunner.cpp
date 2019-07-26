@@ -1388,11 +1388,6 @@ static int MSCRTReportHook( int aReportType, char *aMessage, int *oReturnValue)
 
 #endif
 
-#if defined(FREEBSD)
-
-#include <ieeefp.h>
-#endif
-
 static inline void
 DumpVersion()
 {
@@ -4135,12 +4130,5 @@ SetupErrorHandling(const char* progname)
 
   
   setbuf(stdout, 0);
-
-#if defined(FREEBSD)
-  
-  
-  
-  fpsetmask(0);
-#endif
 }
 
