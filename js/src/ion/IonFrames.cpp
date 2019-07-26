@@ -412,6 +412,13 @@ HandleException(JSContext *cx, const IonFrameIterator &frame, ResumeFromExceptio
             continue;
 
         
+        
+        JS_ASSERT(frame.baselineFrame()->numValueSlots() >= script->nfixed);
+        size_t stackDepth = frame.baselineFrame()->numValueSlots() - script->nfixed;
+        if (tn->stackDepth > stackDepth)
+            continue;
+
+        
         if (cx->isExceptionPending())
             UnwindScope(cx, frame.baselineFrame(), tn->stackDepth);
 
