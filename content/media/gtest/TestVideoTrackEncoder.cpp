@@ -246,6 +246,9 @@ TEST(VP8VideoTrackEncoder, FetchMetaData)
 }
 
 
+
+
+#if !defined(_MSC_VER) || _MSC_VER < 1800
 TEST(VP8VideoTrackEncoder, FrameEncode)
 {
   
@@ -275,6 +278,7 @@ TEST(VP8VideoTrackEncoder, FrameEncode)
   EncodedFrameContainer container;
   EXPECT_TRUE(NS_SUCCEEDED(encoder.GetEncodedTrack(container)));
 }
+#endif 
 
 
 TEST(VP8VideoTrackEncoder, EncodeComplete)
