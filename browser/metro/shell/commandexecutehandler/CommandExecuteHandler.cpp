@@ -37,8 +37,32 @@ static const WCHAR* kFirefoxExe = L"firefox.exe";
 static const WCHAR* kMetroFirefoxExe = L"firefox.exe";
 static const WCHAR* kDefaultMetroBrowserIDPathKey = L"FirefoxURL";
 
-static bool GetDesktopBrowserPath(CStringW& aPathBuffer);
 static bool GetDefaultBrowserPath(CStringW& aPathBuffer);
+
+
+
+
+
+
+static bool GetModulePath(CStringW& aPathBuffer)
+{
+  WCHAR buffer[MAX_PATH];
+  memset(buffer, 0, sizeof(buffer));
+
+  if (!GetModuleFileName(NULL, buffer, MAX_PATH)) {
+    Log(L"GetModuleFileName failed.");
+    return false;
+  }
+
+  WCHAR* slash = wcsrchr(buffer, '\\');
+  if (!slash)
+    return false;
+  *slash = '\0';
+
+  aPathBuffer = buffer;
+  return true;
+}
+
 
 template <class T>void SafeRelease(T **ppT)
 {
@@ -68,6 +92,8 @@ public:
     mShellItemArray(NULL),
     mUnkSite(NULL),
     mTargetIsFileSystemLink(false),
+    mTargetIsDefaultBrowser(false),
+    mTargetIsBrowser(false),
     mIsDesktopRequest(true),
     mRequestMet(false)
   {
@@ -279,6 +305,37 @@ public:
     return S_OK;
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+  bool GetDesktopBrowserPath(CStringW& aPathBuffer)
+  {
+    
+    
+
+    if (mTargetIsDefaultBrowser || mTargetIsBrowser) {
+      aPathBuffer = mTarget;
+      return true;
+    }
+
+    if (!GetModulePath(aPathBuffer))
+      return false;
+
+    
+    
+    aPathBuffer.Append(L"\\");
+    aPathBuffer.Append(kFirefoxExe);
+    return true;
+  }
+
   bool IsDefaultBrowser()
   {
     IApplicationAssociationRegistration* pAAR;
@@ -318,12 +375,10 @@ public:
     
     CStringW selfPath;
     GetDesktopBrowserPath(selfPath);
-    selfPath.MakeLower();
     CStringW browserPath;
     GetDefaultBrowserPath(browserPath);
-    browserPath.MakeLower();
 
-    return selfPath == browserPath;
+    return !selfPath.CompareNoCase(browserPath);
   }
 private:
   ~CExecuteCommandVerb()
@@ -334,7 +389,6 @@ private:
 
   void LaunchDesktopBrowser();
   bool SetTargetPath(IShellItem* aItem);
-  bool IsTargetBrowser();
 
   long mRef;
   IShellItemArray *mShellItemArray;
@@ -343,51 +397,12 @@ private:
   CStringW mTarget;
   CStringW mParameters;
   bool mTargetIsFileSystemLink;
+  bool mTargetIsDefaultBrowser;
+  bool mTargetIsBrowser;
   DWORD mKeyState;
   bool mIsDesktopRequest;
   bool mRequestMet;
 };
-
-
-
-
-
-
-static bool GetModulePath(CStringW& aPathBuffer)
-{
-  WCHAR buffer[MAX_PATH];
-  memset(buffer, 0, sizeof(buffer));
-
-  if (!GetModuleFileName(NULL, buffer, MAX_PATH)) {
-    Log(L"GetModuleFileName failed.");
-    return false;
-  }
-
-  WCHAR* slash = wcsrchr(buffer, '\\');
-  if (!slash)
-    return false;
-  *slash = '\0';
-
-  aPathBuffer = buffer;
-  return true;
-}
-
-
-
-
-
-
-static bool GetDesktopBrowserPath(CStringW& aPathBuffer)
-{
-  if (!GetModulePath(aPathBuffer))
-    return false;
-
-  
-  
-  aPathBuffer.Append(L"\\");
-  aPathBuffer.Append(kFirefoxExe);
-  return true;
-}
 
 
 
@@ -443,36 +458,6 @@ static bool GetDefaultBrowserAppModelID(WCHAR* aIDBuffer,
   }
   RegCloseKey(key);
   return true;
-}
-
-
-
-
-
-bool CExecuteCommandVerb::IsTargetBrowser()
-{
-  if (!mTarget.GetLength() || !mTargetIsFileSystemLink)
-    return false;
-
-  CStringW modulePath;
-  if (!GetModulePath(modulePath))
-    return false;
-
-  modulePath.MakeLower();
-
-  CStringW tmpTarget = mTarget;
-  tmpTarget.Replace(L"\"", L"");
-  tmpTarget.MakeLower();
-  
-  CStringW checkPath;
-  
-  checkPath = modulePath;
-  checkPath.Append(L"\\");
-  checkPath.Append(kFirefoxExe);
-  if (tmpTarget == checkPath) {
-    return true;
-  }
-  return false;
 }
 
 namespace {
@@ -545,6 +530,7 @@ bool CExecuteCommandVerb::SetTargetPath(IShellItem* aItem)
 
     mTargetIsFileSystemLink = (components.nScheme == INTERNET_SCHEME_FILE);
     mTarget = cstrText;
+
     return true;
   }
 
@@ -562,6 +548,15 @@ bool CExecuteCommandVerb::SetTargetPath(IShellItem* aItem)
   }
   mTarget = str;
   CoTaskMemFree(str);
+
+  CStringW defaultPath;
+  GetDefaultBrowserPath(defaultPath);
+  mTargetIsDefaultBrowser = !mTarget.CompareNoCase(defaultPath);
+
+  size_t browserEXELen = wcslen(kFirefoxExe);
+  mTargetIsBrowser = mTarget.GetLength() >= browserEXELen &&
+                     !mTarget.Right(browserEXELen).CompareNoCase(kFirefoxExe);
+
   return true;
 }
 
@@ -578,8 +573,10 @@ void CExecuteCommandVerb::LaunchDesktopBrowser()
 
   
   
+  
+  
   CStringW params;
-  if (!IsTargetBrowser() && !mTarget.IsEmpty()) {
+  if (!mTargetIsDefaultBrowser && !mTargetIsBrowser && !mTarget.IsEmpty()) {
     
     GetDefaultBrowserPath(browserPath);
     params += "-url ";
@@ -670,7 +667,7 @@ IFACEMETHODIMP CExecuteCommandVerb::Execute()
   Log(L"Metro Launch: verb:%s appid:%s params:%s", mVerb, appModelID, mTarget); 
 
   
-  if (IsTargetBrowser()) {
+  if (mTargetIsDefaultBrowser) {
     hr = activateMgr->ActivateApplication(appModelID, L"", AO_NONE, &processID);
     Log(L"ActivateApplication result %X", hr);
   
