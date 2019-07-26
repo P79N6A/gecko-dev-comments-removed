@@ -1333,11 +1333,13 @@ class XPCShellTests(object):
                     break
                 test.start()
                 test.join()
+                self.addTestResults(test)
                 
                 if test.exception:
-                    raise test.exception
+                    exceptions.append(test.exception)
+                    tracebacks.append(test.traceback)
+                    break
                 keep_going = test.keep_going
-                self.addTestResults(test)
 
         
         signal.signal(signal.SIGINT, signal.SIG_DFL)
