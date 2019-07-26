@@ -784,6 +784,7 @@ js::FillSelfHostingCompileOptions(CompileOptions &options)
 
 
 
+    options.setIntroductionType("self-hosted");
     options.setFileAndLine("self-hosted", 1);
     options.setSelfHostingMode(true);
     options.setCanLazilyParse(false);
