@@ -121,6 +121,21 @@ this.CrashManager = function (options) {
 };
 
 this.CrashManager.prototype = Object.freeze({
+  
+  PROCESS_TYPE_MAIN: "main",
+
+  
+  PROCESS_TYPE_CONTENT: "content",
+
+  
+  PROCESS_TYPE_PLUGIN: "plugin",
+
+  
+  CRASH_TYPE_CRASH: "crash",
+
+  
+  CRASH_TYPE_HANG: "hang",
+
   DUMP_REGEX: /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.dmp$/i,
   SUBMITTED_REGEX: /^bp-(?:hr-)?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.txt$/i,
   ALL_REGEX: /^(.*)$/,
@@ -328,6 +343,28 @@ this.CrashManager.prototype = Object.freeze({
 
 
 
+
+
+
+
+
+
+
+
+  addCrash: function (processType, crashType, id, date) {
+    return Task.spawn(function* () {
+      let store = yield this._getStore();
+      if (store.addCrash(processType, crashType, id, date)) {
+        yield store.save();
+      }
+    }.bind(this));
+  },
+
+  
+
+
+
+
   _getUnprocessedEventsFiles: function () {
     return Task.spawn(function* () {
       let entries = [];
@@ -389,10 +426,9 @@ this.CrashManager.prototype = Object.freeze({
       
       
 
+      
       let eventMap = {
-        "crash.main.1": "addMainProcessCrash",
-        "crash.plugin.1": "addPluginCrash",
-        "hang.plugin.1": "addPluginHang",
+        "crash.main.1": ["main", "crash"],
       };
 
       if (type in eventMap) {
@@ -403,7 +439,7 @@ this.CrashManager.prototype = Object.freeze({
           return this.EVENT_FILE_ERROR_MALFORMED;
         }
 
-        store[eventMap[type]](payload, date);
+        store.addCrash(...eventMap[type], payload, date);
         return this.EVENT_FILE_SUCCESS;
       }
 
@@ -573,15 +609,6 @@ function CrashStore(storeDir, telemetrySizeKey) {
 }
 
 CrashStore.prototype = Object.freeze({
-  
-  TYPE_MAIN_CRASH: "main-crash",
-
-  
-  TYPE_PLUGIN_CRASH: "plugin-crash",
-
-  
-  TYPE_PLUGIN_HANG: "plugin-hang",
-
   
   
   HIGH_WATER_DAILY_THRESHOLD: 100,
@@ -850,14 +877,24 @@ CrashStore.prototype = Object.freeze({
 
 
 
-  _ensureCrashRecord: function (id, type, date) {
+
+
+  _ensureCrashRecord: function (processType, crashType, id, date) {
+    if (!id) {
+      
+      
+      return null;
+    }
+
     let day = dateToDays(date);
     this._ensureCountsForDay(day);
 
+    let type = processType + "-" + crashType;
     let count = (this._countsByDay.get(day).get(type) || 0) + 1;
     this._countsByDay.get(day).set(type, count);
 
-    if (count > this.HIGH_WATER_DAILY_THRESHOLD && type != this.TYPE_MAIN_CRASH) {
+    if (count > this.HIGH_WATER_DAILY_THRESHOLD &&
+        processType != CrashManager.prototype.PROCESS_TYPE_MAIN) {
       return null;
     }
 
@@ -882,56 +919,18 @@ CrashStore.prototype = Object.freeze({
 
 
 
-  addMainProcessCrash: function (id, date) {
-    this._ensureCrashRecord(id, this.TYPE_MAIN_CRASH, date);
+
+
+
+
+  addCrash: function (processType, crashType, id, date) {
+    return !!this._ensureCrashRecord(processType, crashType, id, date);
   },
 
-  
-
-
-
-
-
-  addPluginCrash: function (id, date) {
-    this._ensureCrashRecord(id, this.TYPE_PLUGIN_CRASH, date);
-  },
-
-  
-
-
-
-
-
-  addPluginHang: function (id, date) {
-    this._ensureCrashRecord(id, this.TYPE_PLUGIN_HANG, date);
-  },
-
-  get mainProcessCrashes() {
+  getCrashesOfType: function (processType, crashType) {
     let crashes = [];
     for (let crash of this.crashes) {
-      if (crash.isMainProcessCrash) {
-        crashes.push(crash);
-      }
-    }
-
-    return crashes;
-  },
-
-  get pluginCrashes() {
-    let crashes = [];
-    for (let crash of this.crashes) {
-      if (crash.isPluginCrash) {
-        crashes.push(crash);
-      }
-    }
-
-    return crashes;
-  },
-
-  get pluginHangs() {
-    let crashes = [];
-    for (let crash of this.crashes) {
-      if (crash.isPluginHang) {
+      if (crash.isOfType(processType, crashType)) {
         crashes.push(crash);
       }
     }
@@ -984,16 +983,8 @@ CrashRecord.prototype = Object.freeze({
     return this._o.type;
   },
 
-  get isMainProcessCrash() {
-    return this._o.type == CrashStore.prototype.TYPE_MAIN_CRASH;
-  },
-
-  get isPluginCrash() {
-    return this._o.type == CrashStore.prototype.TYPE_PLUGIN_CRASH;
-  },
-
-  get isPluginHang() {
-    return this._o.type == CrashStore.prototype.TYPE_PLUGIN_HANG;
+  isOfType: function (processType, crashType) {
+    return processType + "-" + crashType == this.type;
   },
 });
 
