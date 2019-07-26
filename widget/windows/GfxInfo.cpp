@@ -948,14 +948,14 @@ GfxInfo::GetGfxDriverInfo()
     
 
 
-    APPEND_TO_DRIVER_BLOCKLIST2( DRIVER_OS_ALL,
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE( DRIVER_OS_ALL,
         (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorATI), GfxDriverInfo::allDevices,
       nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
-      DRIVER_GREATER_THAN_OR_EQUAL, V(14,1,0,0) );
-    APPEND_TO_DRIVER_BLOCKLIST2( DRIVER_OS_ALL,
+      DRIVER_BETWEEN_INCLUSIVE_START, V(14,1,0,0), V(14,2,0,0), "ATI Catalyst 14.6+");
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE( DRIVER_OS_ALL,
         (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAMD), GfxDriverInfo::allDevices,
       nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
-      DRIVER_GREATER_THAN_OR_EQUAL, V(14,1,0,0) );
+      DRIVER_BETWEEN_INCLUSIVE_START, V(14,1,0,0), V(14,2,0,0), "ATI Catalyst 14.6+");
 
     
 
