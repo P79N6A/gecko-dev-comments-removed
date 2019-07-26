@@ -12,6 +12,7 @@
 
 
 
+#include "jit/BytecodeAnalysis.h"
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
 
@@ -640,9 +641,17 @@ class IonBuilder : public MIRGenerator
     AbortReason abortReason() { return abortReason_; }
 
   private:
+    bool init();
+
     JSContext *cx;
     BaselineFrame *baselineFrame_;
     AbortReason abortReason_;
+
+    
+    BytecodeAnalysis analysis_;
+    BytecodeAnalysis &analysis() {
+        return analysis_;
+    }
 
     jsbytecode *pc;
     MBasicBlock *current;

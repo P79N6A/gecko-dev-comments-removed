@@ -26,6 +26,12 @@ SetElemICInspector::sawOOBDenseWrite() const
         if (stub->isSetElem_DenseAdd())
             return true;
     }
+
+    
+    ICStub *stub = icEntry_->fallbackStub();
+    if (stub->isSetElem_Fallback())
+        return stub->toSetElem_Fallback()->hasArrayWriteHole();
+
     return false;
 }
 

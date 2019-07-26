@@ -3375,6 +3375,13 @@ class ICSetElem_Fallback : public ICFallbackStub
         return space->allocate<ICSetElem_Fallback>(code);
     }
 
+    void noteArrayWriteHole() {
+        extra_ = 1;
+    }
+    bool hasArrayWriteHole() const {
+        return extra_;
+    }
+
     
     class Compiler : public ICStubCompiler {
       protected:

@@ -79,13 +79,6 @@ class Bytecode
     bool exceptionEntry : 1;
 
     
-
-
-
-    bool arrayWriteHole: 1;     
-    bool accessGetter: 1;       
-
-    
     uint32_t stackDepth;
 
   private:
