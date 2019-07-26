@@ -13,6 +13,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 const XRE_OS_UPDATE_APPLY_TO_DIR = "OSUpdApplyToD"
 const UPDATE_ARCHIVE_DIR = "UpdArchD"
 const LOCAL_DIR = "/data/local";
+const UPDATES_DIR = "updates/0";
+const FOTA_DIR = "updates/fota";
 
 XPCOMUtils.defineLazyServiceGetter(Services, "env",
                                    "@mozilla.org/process/environment;1",
@@ -64,10 +66,17 @@ DirectoryProvider.prototype = {
       persistent.value = true;
       return file;
     }
-    if (prop == XRE_OS_UPDATE_APPLY_TO_DIR ||
-        prop == UPDATE_ARCHIVE_DIR) {
-      let file = this.getUpdateDir(persistent);
-      return file;
+    if (prop == UPDATE_ARCHIVE_DIR) {
+      
+      
+      
+      return this.getUpdateDir(persistent, UPDATES_DIR);
+    }
+    if (prop == XRE_OS_UPDATE_APPLY_TO_DIR) {
+      
+      
+      
+      return this.getUpdateDir(persistent, FOTA_DIR);
     }
 #endif
     return null;
@@ -92,14 +101,14 @@ DirectoryProvider.prototype = {
     return requiredSpace <= stat.freeBytes;
   },
 
-  findUpdateDirWithFreeSpace: function dp_findUpdateDirWithFreeSpace(requiredSpace) {
+  findUpdateDirWithFreeSpace: function dp_findUpdateDirWithFreeSpace(requiredSpace, subdir) {
     if (!Services.volumeService) {
-      return this.createUpdatesDir(LOCAL_DIR);
+      return this.createUpdatesDir(LOCAL_DIR, subdir);
     }
     let activeUpdate = Services.um.activeUpdate;
     if (gUseSDCard) {
       if (this.volumeHasFreeSpace(gExtStorage, requiredSpace)) {
-        let extUpdateDir = this.createUpdatesDir(gExtStorage);
+        let extUpdateDir = this.createUpdatesDir(gExtStorage, subdir);
         if (extUpdateDir !== null) {
           return extUpdateDir;
         }
@@ -109,7 +118,7 @@ DirectoryProvider.prototype = {
     }
 
     if (this.volumeHasFreeSpace(LOCAL_DIR, requiredSpace)) {
-      let localUpdateDir = this.createUpdatesDir(LOCAL_DIR);
+      let localUpdateDir = this.createUpdatesDir(LOCAL_DIR, subdir);
       if (localUpdateDir !== null) {
         return localUpdateDir;
       }
@@ -120,7 +129,7 @@ DirectoryProvider.prototype = {
     return null;
   },
 
-  getUpdateDir: function dp_getUpdateDir(persistent) {
+  getUpdateDir: function dp_getUpdateDir(persistent, subdir) {
     let defaultUpdateDir = this.getDefaultUpdateDir();
     persistent.value = false;
 
@@ -139,7 +148,7 @@ DirectoryProvider.prototype = {
     }
 
     let requiredSpace = selectedPatch.size * 2;
-    let updateDir = this.findUpdateDirWithFreeSpace(requiredSpace, persistent);
+    let updateDir = this.findUpdateDirWithFreeSpace(requiredSpace, subdir);
     if (updateDir) {
       return updateDir;
     }
@@ -152,14 +161,15 @@ DirectoryProvider.prototype = {
     throw Cr.NS_ERROR_FILE_TOO_BIG;
   },
 
-  createUpdatesDir: function dp_createUpdatesDir(root) {
+  createUpdatesDir: function dp_createUpdatesDir(root, subdir) {
       let dir = Cc["@mozilla.org/file/local;1"]
                    .createInstance(Ci.nsILocalFile);
       dir.initWithPath(root);
       if (!dir.isWritable()) {
+        log("Error: " + dir.path + " isn't writable");
         return null;
       }
-      dir.appendRelativePath("updates/0");
+      dir.appendRelativePath(subdir);
       if (dir.exists()) {
         if (dir.isDirectory() && dir.isWritable()) {
           return dir;
