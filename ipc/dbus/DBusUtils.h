@@ -58,12 +58,10 @@ private:
 
 
 
-class DBusReplyHandler : public mozilla::RefCounted<DBusReplyHandler>
+class DBusReplyHandler
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(DBusReplyHandler)
-  virtual ~DBusReplyHandler() {
-  }
+  NS_INLINE_DECL_REFCOUNTING(DBusReplyHandler)
 
   
 
@@ -88,6 +86,10 @@ protected:
   DBusReplyHandler& operator = (const DBusReplyHandler& aRhs)
   {
     return *this;
+  }
+
+  virtual ~DBusReplyHandler()
+  {
   }
 };
 
