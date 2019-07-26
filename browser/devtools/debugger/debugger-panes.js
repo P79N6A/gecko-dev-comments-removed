@@ -685,6 +685,11 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     }
     
     DebuggerView.setEditorLocation(sourceItem.value);
+
+    
+    let script = sourceItem.value.split(" -> ").pop();
+    document.title = L10N.getFormatStr("DebuggerWindowScriptTitle", script);
+
     this.maybeShowBlackBoxMessage();
   },
 
