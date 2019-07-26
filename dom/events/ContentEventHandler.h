@@ -106,11 +106,11 @@ protected:
   
   
   nsresult SetRangeFromFlatTextOffset(nsRange* aRange,
-                                      uint32_t aNativeOffset,
-                                      uint32_t aNativeLength,
+                                      uint32_t aOffset,
+                                      uint32_t aLength,
                                       LineBreakType aLineBreakType,
                                       bool aExpandToClusterBoundaries,
-                                      uint32_t* aNewNativeOffset = nullptr);
+                                      uint32_t* aNewOffset = nullptr);
   
   
   nsresult GetStartFrameAndOffset(nsRange* aRange,
