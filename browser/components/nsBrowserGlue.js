@@ -1613,9 +1613,178 @@ ContentPermissionPrompt.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIContentPermissionPrompt]),
 
-  prompt: function CPP_prompt(request) {
+  _getChromeWindow: function CPP_getChromeWindow(aWindow) {
+    var chromeWin = aWindow
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIWebNavigation)
+      .QueryInterface(Ci.nsIDocShellTreeItem)
+      .rootTreeItem
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIDOMWindow)
+      .QueryInterface(Ci.nsIDOMChromeWindow);
+    return chromeWin;
+  },
 
-    if (request.type != "geolocation") {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _showPrompt: function CPP_showPrompt(aRequest, aMessage, aPermission, aActions,
+                                       aNotificationId, aAnchorId) {
+    var browserBundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
+
+    var requestingWindow = aRequest.window.top;
+    var chromeWin = this._getChromeWindow(requestingWindow).wrappedJSObject;
+    var browser = chromeWin.gBrowser.getBrowserForDocument(requestingWindow.document);
+    var requestPrincipal = aRequest.principal;
+
+    
+    var popupNotificationActions = [];
+    for (var i = 0; i < aActions.length; i++) {
+      let promptAction = aActions[i];
+
+      
+      if (PrivateBrowsingUtils.isWindowPrivate(chromeWin) &&
+          promptAction.expireType != Ci.nsIPermissionManager.EXPIRE_SESSION &&
+          promptAction.action) {
+        continue;
+      }
+
+      var action = {
+        label: browserBundle.GetStringFromName(promptAction.stringId),
+        accessKey: browserBundle.GetStringFromName(promptAction.stringId + ".accesskey"),
+        callback: function() {
+          if (promptAction.callback) {
+            promptAction.callback();
+          }
+
+          
+          if (promptAction.action) {
+            Services.perms.addFromPrincipal(requestPrincipal, aPermission,
+                                            promptAction.action, promptAction.expireType);
+          }
+
+          
+          if (!promptAction.action || promptAction.action == Ci.nsIPermissionManager.ALLOW_ACTION) {
+            aRequest.allow();
+          } else {
+            aRequest.cancel();
+          }
+        },
+      };
+
+      popupNotificationActions.push(action);
+    }
+
+    var mainAction = popupNotificationActions[0];
+    var secondaryActions = popupNotificationActions.splice(1);
+    chromeWin.PopupNotifications.show(browser, aNotificationId, aMessage, aAnchorId,
+                                      mainAction, secondaryActions);
+  },
+
+  _promptGeo : function(aRequest) {
+    var secHistogram = Services.telemetry.getHistogramById("SECURITY_UI");
+    var browserBundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
+    var requestingURI = aRequest.principal.URI;
+
+    var message;
+
+    
+    var actions = [{
+      stringId: "geolocation.shareLocation",
+      action: null,
+      expireType: null,
+      callback: function() {
+        secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST_SHARE_LOCATION);
+      },
+    }];
+
+    if (requestingURI.schemeIs("file")) {
+      message = browserBundle.formatStringFromName("geolocation.shareWithFile",
+                                                   [requestingURI.path], 1);
+    } else {
+      message = browserBundle.formatStringFromName("geolocation.shareWithSite",
+                                                   [requestingURI.host], 1);
+      
+      actions.push({
+        stringId: "geolocation.alwaysShareLocation",
+        action: Ci.nsIPermissionManager.ALLOW_ACTION,
+        expireType: null,
+        callback: function() {
+          secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST_ALWAYS_SHARE);
+        },
+      });
+
+      
+      actions.push({
+        stringId: "geolocation.neverShareLocation",
+        action: Ci.nsIPermissionManager.DENY_ACTION,
+        expireType: null,
+        callback: function() {
+          secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST_NEVER_SHARE);
+        },
+      });
+    }
+
+    var requestingWindow = aRequest.window.top;
+    var chromeWin = this._getChromeWindow(requestingWindow).wrappedJSObject;
+    var link = chromeWin.document.getElementById("geolocation-learnmore-link");
+    link.value = browserBundle.GetStringFromName("geolocation.learnMore");
+    link.href = Services.urlFormatter.formatURLPref("browser.geolocation.warning.infoURL");
+
+    secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST);
+
+    this._showPrompt(aRequest, message, "geo", actions, "geolocation", "geo-notification-icon");
+  },
+
+  _promptWebNotifications : function(aRequest) {
+    var browserBundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
+    var requestingURI = aRequest.principal.URI;
+
+    var message = browserBundle.formatStringFromName("webNotifications.showFromSite",
+                                                     [requestingURI.host], 1);
+
+    var actions = [
+      {
+        stringId: "webNotifications.showForSession",
+        action: Ci.nsIPermissionManager.ALLOW_ACTION,
+        expireType: Ci.nsIPermissionManager.EXPIRE_SESSION,
+        callback: function() {},
+      },
+      {
+        stringId: "webNotifications.alwaysShow",
+        action: Ci.nsIPermissionManager.ALLOW_ACTION,
+        expireType: null,
+        callback: function() {},
+      },
+      {
+        stringId: "webNotifications.neverShow",
+        action: Ci.nsIPermissionManager.DENY_ACTION,
+        expireType: null,
+        callback: function() {},
+      },
+    ];
+
+    this._showPrompt(aRequest, message, "desktop-notification", actions,
+                     "web-notifications",
+                     "web-notifications-notification-icon");
+  },
+
+  prompt: function CPP_prompt(request) {
+    const kFeatureKeys = { "geolocation" : "geo",
+                           "desktop-notification" : "desktop-notification" };
+
+    
+    if (!(request.type in kFeatureKeys)) {
         return;
     }
 
@@ -1626,7 +1795,8 @@ ContentPermissionPrompt.prototype = {
     if (!(requestingURI instanceof Ci.nsIStandardURL))
       return;
 
-    var result = Services.perms.testExactPermissionFromPrincipal(requestingPrincipal, "geo");
+    var permissionKey = kFeatureKeys[request.type];
+    var result = Services.perms.testExactPermissionFromPrincipal(requestingPrincipal, permissionKey);
 
     if (result == Ci.nsIPermissionManager.ALLOW_ACTION) {
       request.allow();
@@ -1638,77 +1808,15 @@ ContentPermissionPrompt.prototype = {
       return;
     }
 
-    function getChromeWindow(aWindow) {
-      var chromeWin = aWindow 
-        .QueryInterface(Ci.nsIInterfaceRequestor)
-        .getInterface(Ci.nsIWebNavigation)
-        .QueryInterface(Ci.nsIDocShellTreeItem)
-        .rootTreeItem
-        .QueryInterface(Ci.nsIInterfaceRequestor)
-        .getInterface(Ci.nsIDOMWindow)
-        .QueryInterface(Ci.nsIDOMChromeWindow);
-      return chromeWin;
-    }
-
-    var browserBundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
-    let secHistogram = Components.classes["@mozilla.org/base/telemetry;1"].
-                                  getService(Ci.nsITelemetry).
-                                  getHistogramById("SECURITY_UI");
-
-    var mainAction = {
-      label: browserBundle.GetStringFromName("geolocation.shareLocation"),
-      accessKey: browserBundle.GetStringFromName("geolocation.shareLocation.accesskey"),
-      callback: function() {
-        secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST_SHARE_LOCATION);
-        request.allow();
-      },
-    };
-
-    var message;
-    var secondaryActions = [];
-    var requestingWindow = request.window.top;
-    var chromeWin = getChromeWindow(requestingWindow).wrappedJSObject;
-
     
-    if (requestingURI.schemeIs("file")) {
-      message = browserBundle.formatStringFromName("geolocation.shareWithFile",
-                                                   [requestingURI.path], 1);
-    } else {
-      message = browserBundle.formatStringFromName("geolocation.shareWithSite",
-                                                   [requestingURI.host], 1);
-
-      
-      if (!PrivateBrowsingUtils.isWindowPrivate(chromeWin)) {
-        secondaryActions.push({
-          label: browserBundle.GetStringFromName("geolocation.alwaysShareLocation"),
-          accessKey: browserBundle.GetStringFromName("geolocation.alwaysShareLocation.accesskey"),
-          callback: function () {
-            Services.perms.addFromPrincipal(requestingPrincipal, "geo", Ci.nsIPermissionManager.ALLOW_ACTION);
-            secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST_ALWAYS_SHARE);
-            request.allow();
-          }
-        });
-        secondaryActions.push({
-          label: browserBundle.GetStringFromName("geolocation.neverShareLocation"),
-          accessKey: browserBundle.GetStringFromName("geolocation.neverShareLocation.accesskey"),
-          callback: function () {
-            Services.perms.addFromPrincipal(requestingPrincipal, "geo", Ci.nsIPermissionManager.DENY_ACTION);
-            secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST_NEVER_SHARE);
-            request.cancel();
-          }
-        });
-      }
+    switch (request.type) {
+    case "geolocation":
+      this._promptGeo(request);
+      break;
+    case "desktop-notification":
+      this._promptWebNotifications(request);
+      break;
     }
-
-    var link = chromeWin.document.getElementById("geolocation-learnmore-link");
-    link.value = browserBundle.GetStringFromName("geolocation.learnMore");
-    link.href = Services.urlFormatter.formatURLPref("browser.geolocation.warning.infoURL");
-
-    var browser = chromeWin.gBrowser.getBrowserForDocument(requestingWindow.document);
-
-    secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_GEOLOCATION_REQUEST);
-    chromeWin.PopupNotifications.show(browser, "geolocation", message, "geo-notification-icon",
-                                      mainAction, secondaryActions);
   }
 };
 
