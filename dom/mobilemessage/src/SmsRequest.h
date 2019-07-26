@@ -119,7 +119,7 @@ private:
   
 
 
-  void SetSuccess(const jsval& aVal);
+  void SetSuccess(const JS::Value& aVal);
 
   
 
@@ -139,7 +139,7 @@ private:
   nsresult NotifySuccess(T aParam);
   nsresult NotifyError(int32_t aError);
 
-  jsval     mResult;
+  JS::Value mResult;
   bool      mResultRooted;
   bool      mDone;
   bool      mParentAlive;

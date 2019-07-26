@@ -35,7 +35,7 @@ private:
 
 
   nsresult Send(JSContext* aCx, JSObject* aGlobal, JSString* aNumber,
-                const nsAString& aMessage, jsval* aRequest);
+                const nsAString& aMessage, JS::Value* aRequest);
 
   
 
