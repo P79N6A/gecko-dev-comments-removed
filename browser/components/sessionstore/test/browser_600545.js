@@ -2,7 +2,7 @@
 
 
 
-let stateBackup = ss.getBrowserState();
+let stateBackup = JSON.parse(ss.getBrowserState());
 
 function test() {
   
@@ -72,8 +72,7 @@ function done() {
       currentWindow.close();
   }
 
-  ss.setBrowserState(stateBackup);
-  executeSoon(finish);
+  waitForBrowserState(stateBackup, finish);
 }
 
 
