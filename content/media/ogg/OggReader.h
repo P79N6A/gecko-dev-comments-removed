@@ -16,6 +16,7 @@
 #include "MediaDecoderReader.h"
 #include "OggCodecState.h"
 #include "VideoUtils.h"
+#include "mozilla/Monitor.h"
 
 namespace mozilla {
 namespace dom {
@@ -24,6 +25,25 @@ class TimeRanges;
 }
 
 namespace mozilla {
+
+
+
+class OggCodecStore
+{
+  public:
+    OggCodecStore();
+    void Add(uint32_t serial, OggCodecState* codecState);
+    bool Contains(uint32_t serial);
+    OggCodecState* Get(uint32_t serial);
+    bool IsKnownStream(uint32_t aSerial);
+
+  private:
+    
+    nsClassHashtable<nsUint32HashKey, OggCodecState> mCodecStates;
+
+    
+    Monitor mMonitor;
+};
 
 class OggReader : public MediaDecoderReader
 {
@@ -233,14 +253,7 @@ private:
   
   void BuildSerialList(nsTArray<uint32_t>& aTracks);
 
-  
-  nsClassHashtable<nsUint32HashKey, OggCodecState> mCodecStates;
-
-  
-  
-  
-  
-  nsAutoTArray<uint32_t,4> mKnownStreams;
+  OggCodecStore mCodecStore;
 
   
   TheoraState* mTheoraState;
