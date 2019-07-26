@@ -1043,6 +1043,7 @@ class MLimitedTruncate : public MUnaryInstruction
     {
         setResultType(input->type());
         setResultTypeSet(input->resultTypeSet());
+        setMovable();
     }
 
   public:
