@@ -1169,17 +1169,7 @@ nsXMLHttpRequest::GetStatusText(nsCString& aStatusText)
     return;
   }
 
-
-  
-  
-  
-  
-  uint16_t readyState;
-  GetReadyState(&readyState);
-  if (readyState != OPENED && readyState != UNSENT) {
-    httpChannel->GetResponseStatusText(aStatusText);
-  }
-
+  httpChannel->GetResponseStatusText(aStatusText);
 
 }
 
