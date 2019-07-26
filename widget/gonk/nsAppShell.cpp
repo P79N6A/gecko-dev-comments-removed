@@ -57,6 +57,10 @@
 #include "libui/InputDispatcher.h"
 #include "cutils/properties.h"
 
+#ifdef MOZ_NUWA_PROCESS
+#include "ipc/Nuwa.h"
+#endif
+
 #include "GeckoProfiler.h"
 
 
@@ -732,6 +736,11 @@ nsAppShell::Init()
     if (obsServ) {
         obsServ->AddObserver(this, "browser-ui-startup-complete", false);
     }
+
+#ifdef MOZ_NUWA_PROCESS
+    
+    NuwaAddConstructor((void (*)(void *))&NotifyEvent, nullptr);
+#endif
 
     
     
