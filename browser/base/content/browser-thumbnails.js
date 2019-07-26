@@ -4,8 +4,6 @@
 
 #endif
 
-Cu.import("resource://gre/modules/NewTabUtils.jsm");
-
 
 
 
@@ -122,10 +120,6 @@ let gBrowserThumbnails = {
   },
 
   _shouldCapture: function Thumbnails_shouldCapture(aBrowser) {
-    
-    if (NewTabUtils.links.getLinks().indexOf(aBrowser.currentURI.spec) < 0)
-      return false;
-
     
     if (aBrowser != gBrowser.selectedBrowser)
       return false;
