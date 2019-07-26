@@ -966,8 +966,10 @@ js::DefineProperty(JSContext *cx, HandleObject obj, HandleId id, const PropDesc 
 
 
 
-        if (obj->isProxy())
-            return Proxy::defineProperty(cx, obj, id, desc.pd());
+        if (obj->isProxy()) {
+            RootedValue pd(cx, desc.pd());
+            return Proxy::defineProperty(cx, obj, id, pd);
+        }
         return Reject(cx, obj, JSMSG_OBJECT_NOT_EXTENSIBLE, throwError, rval);
     }
 
