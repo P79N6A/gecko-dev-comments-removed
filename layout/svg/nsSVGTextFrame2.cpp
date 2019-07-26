@@ -993,10 +993,13 @@ TextRenderedRun::GetCharNumAtPosition(nsPresContext* aContext,
     return -1;
   }
 
+  float cssPxPerDevPx = aContext->
+    AppUnitsToFloatCSSPixels(aContext->AppUnitsPerDevPixel());
+
   
   
   gfxMatrix m = GetTransformFromRunUserSpaceToUserSpace(aContext).Invert();
-  gfxPoint p = m.Transform(aPoint) * mFontSizeScaleFactor;
+  gfxPoint p = m.Transform(aPoint) / cssPxPerDevPx * mFontSizeScaleFactor;
 
   
   
@@ -3632,18 +3635,27 @@ nsSVGTextFrame2::ConvertTextElementCharIndexToAddressableIndex(
                                                            int32_t aIndex,
                                                            nsIContent* aContent)
 {
-  CharIterator it(this, CharIterator::eAddressable, aContent);
+  CharIterator it(this, CharIterator::eOriginal, aContent);
   if (!it.AdvanceToSubtree()) {
     return -1;
   }
-  uint32_t result = 0;
+  int32_t result = 0;
+  int32_t textElementCharIndex;
   while (!it.AtEnd() &&
-         it.IsWithinSubtree() &&
-         it.TextElementCharIndex() < static_cast<uint32_t>(aIndex)) {
-    result++;
+         it.IsWithinSubtree()) {
+    bool addressable = !it.IsOriginalCharUnaddressable();
+    textElementCharIndex = it.TextElementCharIndex();
     it.Next();
+    uint32_t delta = it.TextElementCharIndex() - textElementCharIndex;
+    aIndex -= delta;
+    if (addressable) {
+      if (aIndex < 0) {
+        return result;
+      }
+      result += delta;
+    }
   }
-  return result;
+  return -1;
 }
 
 
@@ -3816,7 +3828,7 @@ nsSVGTextFrame2::GetCharNumAtPosition(nsIContent* aContent,
     
     int32_t index = run.GetCharNumAtPosition(context, p);
     if (index != -1) {
-      result = index + run.mTextElementCharIndex - run.mTextFrameContentOffset;
+      result = index + run.mTextElementCharIndex;
     }
   }
 
