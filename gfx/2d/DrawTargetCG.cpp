@@ -1166,6 +1166,33 @@ DrawTargetCG::MarkChanged()
   }
 }
 
+CGContextRef
+BorrowedCGContext::BorrowCGContextFromDrawTarget(DrawTarget *aDT)
+{
+  if (aDT->GetType() == BACKEND_COREGRAPHICS || aDT->GetType() == BACKEND_COREGRAPHICS_ACCELERATED) {
+    DrawTargetCG* cgDT = static_cast<DrawTargetCG*>(aDT);
+    cgDT->MarkChanged();
+
+    
+    CGContextRef cg = cgDT->mCg;
+    cgDT->mCg = nullptr;
+
+    
+    CGContextSaveGState(cg);
+
+    return cg;
+  }
+  return nullptr;
+}
+
+void
+BorrowedCGContext::ReturnCGContextToDrawTarget(DrawTarget *aDT, CGContextRef cg)
+{
+  DrawTargetCG* cgDT = static_cast<DrawTargetCG*>(aDT);
+
+  CGContextRestoreGState(cg);
+  cgDT->mCg = cg;
+}
 
 
 }

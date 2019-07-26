@@ -40,6 +40,9 @@ struct IDWriteRenderingParams;
 class GrContext;
 struct GrGLInterface;
 
+struct CGContext;
+typedef struct CGContext *CGContextRef;
+
 namespace mozilla {
 
 namespace gfx {
@@ -992,6 +995,46 @@ private:
 
   static DrawEventRecorder *mRecorder;
 };
+
+#ifdef XP_MACOSX
+
+
+
+
+
+
+class BorrowedCGContext
+{
+public:
+  BorrowedCGContext(DrawTarget *aDT) : mDT(aDT)
+  {
+    cg = BorrowCGContextFromDrawTarget(aDT);
+  }
+
+  
+  
+  
+  
+  
+  void Finish()
+  {
+    if (cg) {
+      ReturnCGContextToDrawTarget(mDT, cg);
+      cg = nullptr;
+    }
+  }
+
+  ~BorrowedCGContext() {
+    MOZ_ASSERT(!cg);
+  }
+
+  CGContextRef cg;
+private:
+  static CGContextRef BorrowCGContextFromDrawTarget(DrawTarget *aDT);
+  static void ReturnCGContextToDrawTarget(DrawTarget *aDT, CGContextRef cg);
+  DrawTarget *mDT;
+};
+#endif
 
 }
 }
