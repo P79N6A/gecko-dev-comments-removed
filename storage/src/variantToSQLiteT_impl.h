@@ -66,7 +66,7 @@ variantToSQLiteT(T aObj,
     case nsIDataType::VTYPE_UTF8STRING:
     case nsIDataType::VTYPE_CSTRING:
     {
-      nsCAutoString value;
+      nsAutoCString value;
       
       
       

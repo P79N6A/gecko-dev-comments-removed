@@ -271,7 +271,7 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
     guchar        *data = NULL;
     gint           length = 0;
     bool           foundData = false;
-    nsCAutoString  foundFlavor;
+    nsAutoCString  foundFlavor;
 
     
     nsCOMPtr<nsISupportsArray> flavors;
@@ -701,7 +701,7 @@ clipboard_clear_cb(GtkClipboard *aGtkClipboard,
 void ConvertHTMLtoUCS2(guchar * data, int32_t dataLength,
                        PRUnichar** unicodeData, int32_t& outUnicodeLen)
 {
-    nsCAutoString charset;
+    nsAutoCString charset;
     GetHTMLCharset(data, dataLength, charset);
     if (charset.EqualsLiteral("UTF-16")) {
         outUnicodeLen = (dataLength / 2) - 1;

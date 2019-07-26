@@ -249,7 +249,7 @@ static void
 AddLangGroup(FcPattern *aPattern, nsIAtom *aLangGroup)
 {
     
-    nsCAutoString lang;
+    nsAutoCString lang;
     gfxFontconfigUtils::GetSampleLangForGroup(aLangGroup, &lang);
 
     if (!lang.IsEmpty()) {
@@ -528,7 +528,7 @@ gfxFontconfigUtils::GetFontListInternal(nsTArray<nsCString>& aListOfFonts,
         }
 
         
-        nsCAutoString strFamily(family);
+        nsAutoCString strFamily(family);
         if (aListOfFonts.Contains(strFamily))
             continue;
 
@@ -635,7 +635,7 @@ gfxFontconfigUtils::UpdateFontListInternal(bool aForce)
             const char *start = p;
             while (++p != p_end && *p != kComma)
                  ;
-            nsCAutoString name(Substring(start, p));
+            nsAutoCString name(Substring(start, p));
             name.CompressWhitespace(false, true);
             mAliasForMultiFonts.AppendElement(name);
             p++;
@@ -835,7 +835,7 @@ gfxFontconfigUtils::FontsByFullnameEntry::KeyEquals(KeyTypePointer aKey) const
 {
     const FcChar8 *key = mKey;
     
-    nsCAutoString fullname;
+    nsAutoCString fullname;
     if (!key) {
         NS_ASSERTION(mFonts.Length(), "No font in FontsByFullnameEntry!");
         GetFullnameFromFamilyAndStyle(mFonts[0], &fullname);
@@ -881,7 +881,7 @@ gfxFontconfigUtils::AddFullnameEntries()
 
         
         if (v == 0) {
-            nsCAutoString name;
+            nsAutoCString name;
             if (!GetFullnameFromFamilyAndStyle(font, &name))
                 continue;
 

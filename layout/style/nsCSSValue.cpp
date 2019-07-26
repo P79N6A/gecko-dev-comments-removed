@@ -837,7 +837,7 @@ nsCSSValue::AppendToString(nsCSSProperty aProperty, nsAString& aResult) const
   else if (eCSSUnit_EnumColor == unit) {
     
     
-    nsCAutoString str;
+    nsAutoCString str;
     if (nsCSSProps::GetColorName(GetIntValue(), str)){
       AppendASCIItoUTF16(str, aResult);
     } else {

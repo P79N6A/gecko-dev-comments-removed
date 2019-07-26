@@ -482,13 +482,6 @@ public:
     return sIOService;
   }
 
-  static imgILoader* GetImgLoader()
-  {
-    if (!sImgLoaderInitialized)
-      InitImgLoader();
-    return sImgLoader;
-  }
-
 #ifdef MOZ_XTF
   static nsIXTFService* GetXTFService();
 #endif
@@ -666,7 +659,14 @@ public:
   
 
 
-  static bool IsImageInCache(nsIURI* aURI);
+
+  static imgILoader* GetImgLoaderForDocument(nsIDocument* aDoc);
+  static imgILoader* GetImgLoaderForChannel(nsIChannel* aChannel);
+
+  
+
+
+  static bool IsImageInCache(nsIURI* aURI, nsIDocument* aDocument);
 
   
 
@@ -1998,18 +1998,6 @@ public:
 
 
 
-  static bool URIIsChromeOrInPref(nsIURI *aURI, const char *aPref);
-
-  
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2088,24 +2076,6 @@ public:
 
 
 
-
-
-
-
-  static nsresult IsOnPrefWhitelist(nsPIDOMWindow* aWindow,
-                                    const char* aPrefURL, bool *aAllowed);
-
-  
-
-
-
-
-
-
-
-
-
-
   static void GetSelectionInTextControl(mozilla::Selection* aSelection,
                                         Element* aRoot,
                                         int32_t& aOutStartOffset,
@@ -2162,7 +2132,9 @@ private:
 
   
   static imgILoader* sImgLoader;
+  static imgILoader* sPrivateImgLoader;
   static imgICache* sImgCache;
+  static imgICache* sPrivateImgCache;
 
   static nsIConsoleService* sConsoleService;
 

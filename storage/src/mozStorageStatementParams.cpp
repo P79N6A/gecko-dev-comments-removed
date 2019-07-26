@@ -116,7 +116,7 @@ StatementParams::NewEnumerate(nsIXPConnectWrappedNative *aWrapper,
       }
 
       
-      nsCAutoString name;
+      nsAutoCString name;
       nsresult rv = mStatement->GetParameterName(index, name);
       NS_ENSURE_SUCCESS(rv, rv);
 

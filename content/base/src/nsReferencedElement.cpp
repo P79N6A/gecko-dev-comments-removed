@@ -25,13 +25,13 @@ nsReferencedElement::Reset(nsIContent* aFromContent, nsIURI* aURI,
   if (!aURI)
     return;
 
-  nsCAutoString refPart;
+  nsAutoCString refPart;
   aURI->GetRef(refPart);
   
   
   NS_UnescapeURL(refPart);
 
-  nsCAutoString charset;
+  nsAutoCString charset;
   aURI->GetOriginCharset(charset);
   nsAutoString ref;
   nsresult rv = nsContentUtils::ConvertStringFromCharset(charset, refPart, ref);

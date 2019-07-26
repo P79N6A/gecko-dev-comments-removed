@@ -1030,10 +1030,10 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,
 
                         
                         
-                        nsCAutoString   outpt( NS_LITERAL_CSTRING("\"") );
+                        nsAutoCString   outpt( NS_LITERAL_CSTRING("\"") );
                         
                         
-                        nsCAutoString tmpNativeStr;
+                        nsAutoCString tmpNativeStr;
                         NS_CopyUnicodeToNative( url, tmpNativeStr );
                         outpt.Append( tmpNativeStr );
                         
@@ -1262,7 +1262,7 @@ nsNativeAppSupportWin::HandleCommandLine(const char* aCmdLineString,
     int between, quoted, bSlashCount;
     int argc;
     const char *p;
-    nsCAutoString arg;
+    nsAutoCString arg;
 
     nsCOMPtr<nsICommandLineRunner> cmdLine
         (do_CreateInstance("@mozilla.org/toolkit/command-line;1"));

@@ -99,15 +99,6 @@ public:
   
 
 
-
-
-
-
-  virtual bool IsPrimaryForNode() const;
-
-  
-
-
   void Language(nsAString& aLocale);
 
 protected:

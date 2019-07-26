@@ -9,6 +9,7 @@
 #include "nsCOMPtr.h"               
 #include "nsGkAtoms.h"              
 #include "nsIDOMEventTarget.h"      
+#include "nsIDOMNodeSelector.h"     
 #include "nsINodeInfo.h"            
 #include "nsIVariant.h"             
 #include "nsNodeInfoManager.h"      
@@ -1054,6 +1055,14 @@ public:
   
 
 
+  nsIContent* QuerySelector(const nsAString& aSelector,
+                            nsresult *aResult);
+  nsresult QuerySelectorAll(const nsAString& aSelector,
+                            nsIDOMNodeList **aReturn);
+
+  
+
+
 
 
 
@@ -1571,6 +1580,28 @@ inline nsINode* NODE_FROM(C& aContent, D& aDocument)
   return static_cast<nsINode*>(aDocument);
 }
 
+
+
+
+class nsNodeSelectorTearoff MOZ_FINAL : public nsIDOMNodeSelector
+{
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+
+  NS_DECL_NSIDOMNODESELECTOR
+
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeSelectorTearoff)
+
+  nsNodeSelectorTearoff(nsINode *aNode) : mNode(aNode)
+  {
+  }
+
+private:
+  ~nsNodeSelectorTearoff() {}
+
+private:
+  nsCOMPtr<nsINode> mNode;
+};
 
 extern const nsIID kThisPtrOffsetsSID;
 

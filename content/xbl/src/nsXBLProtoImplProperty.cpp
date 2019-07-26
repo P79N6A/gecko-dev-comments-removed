@@ -193,7 +193,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
   
   nsresult rv = NS_OK;
 
-  nsCAutoString functionUri;
+  nsAutoCString functionUri;
   if (mGetterText || mSetterText) {
     functionUri = aClassStr;
     int32_t hash = functionUri.RFindChar('#');

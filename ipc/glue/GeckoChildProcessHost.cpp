@@ -384,7 +384,7 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts, b
   
   
   
-  nsCAutoString setChildLogName("NSPR_LOG_FILE=");
+  nsAutoCString setChildLogName("NSPR_LOG_FILE=");
   setChildLogName.Append(origLogName);
 
   
@@ -562,7 +562,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   if (Omnijar::IsInitialized()) {
     
     
-    nsCAutoString path;
+    nsAutoCString path;
     nsCOMPtr<nsIFile> file = Omnijar::GetPath(Omnijar::GRE);
     if (file && NS_SUCCEEDED(file->GetNativePath(path))) {
       childArgv.push_back("-greomni");

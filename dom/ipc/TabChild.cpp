@@ -520,7 +520,7 @@ TabChild::BrowserFrameProvideWindow(nsIDOMWindow* aOpener,
       
       nsRefPtr<TabChild>(newChild).forget().get(),
       chromeFlags, mIsBrowserElement, this);
-  nsCAutoString spec;
+  nsAutoCString spec;
   if (aURI) {
     aURI->GetSpec(spec);
   }

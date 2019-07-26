@@ -128,7 +128,7 @@ nsStrictTransportSecurityService::GetPrincipalForURI(nsIURI* aURI,
 
   
   
-  nsCAutoString host;
+  nsAutoCString host;
   rv = GetHost(aURI, host);
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIURI> uri;
@@ -174,7 +174,7 @@ nsStrictTransportSecurityService::SetStsState(nsIURI* aSourceURI,
                        expiretime);
     NS_ENSURE_SUCCESS(rv, rv);
   } else { 
-    nsCAutoString hostname;
+    nsAutoCString hostname;
     rv = GetHost(aSourceURI, hostname);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -192,7 +192,7 @@ nsStrictTransportSecurityService::RemoveStsState(nsIURI* aURI)
   
   NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
 
-  nsCAutoString hostname;
+  nsAutoCString hostname;
   nsresult rv = GetHost(aURI, hostname);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -367,7 +367,7 @@ nsStrictTransportSecurityService::IsStsURI(nsIURI* aURI, bool* aResult)
   
   *aResult = false;
 
-  nsCAutoString host;
+  nsAutoCString host;
   nsresult rv = GetHost(aURI, host);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -579,7 +579,7 @@ nsStrictTransportSecurityService::AddPermission(nsIURI     *aURI,
                                         aExpireType, aExpireTime);
     }
 
-    nsCAutoString host;
+    nsAutoCString host;
     nsresult rv = GetHost(aURI, host);
     NS_ENSURE_SUCCESS(rv, rv);
     STSLOG(("AddPermission for entry for %s", host.get()));

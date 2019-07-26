@@ -446,9 +446,7 @@ IsMoreSpecificThanAnimation(nsRuleNode *aRuleNode)
 {
   return !aRuleNode->IsRoot() &&
          (aRuleNode->GetLevel() == nsStyleSet::eTransitionSheet ||
-          (aRuleNode->IsImportantRule() &&
-           (aRuleNode->GetLevel() == nsStyleSet::eAgentSheet ||
-            aRuleNode->GetLevel() == nsStyleSet::eUserSheet)));
+          aRuleNode->IsImportantRule());
 }
 
 static nsIStyleRule*
@@ -778,6 +776,10 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   nsRuleNode* lastOvrRN = aRuleWalker->CurrentNode();
   bool haveImportantOverrideRules = !aRuleWalker->GetCheckForImportantRules();
 
+  
+  aRuleWalker->SetLevel(eAnimationSheet, false, false);
+  (*aCollectorFunc)(mRuleProcessors[eAnimationSheet], aData);
+
   if (haveImportantDocRules) {
     aRuleWalker->SetLevel(eDocSheet, true, false);
     AddImportantRules(lastDocRN, lastPresHintRN, aRuleWalker);  
@@ -797,10 +799,6 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
     AssertNoImportantRules(lastOvrRN, lastDocRN);
   }
 #endif
-
-  
-  aRuleWalker->SetLevel(eAnimationSheet, false, false);
-  (*aCollectorFunc)(mRuleProcessors[eAnimationSheet], aData);
 
 #ifdef DEBUG
   AssertNoCSSRules(lastPresHintRN, lastUserRN);

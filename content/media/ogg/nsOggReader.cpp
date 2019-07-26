@@ -22,6 +22,12 @@ using namespace mozilla;
 
 
 
+#ifdef MOZ_WIDGET_GONK
+#define OGG_ESTIMATE_BUFFERED 1
+#endif
+
+
+
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gBuiltinDecoderLog;
@@ -532,7 +538,7 @@ nsresult nsOggReader::DecodeOpus(ogg_packet* aPacket) {
         { {0.4226f,0}, {0,0.4226f}, {0.366f,0.2114f}, {0.2114f,0.366f}},
         { {0.651f,0}, {0.46f,0.46f}, {0,0.651f}, {0.5636f,0.3254f}, {0.3254f,0.5636f}},
         { {0.529f,0}, {0.3741f,0.3741f}, {0,0.529f}, {0.4582f,0.2645f}, {0.2645f,0.4582f}, {0.3741f,0.3741f}},
-        { {0.4553f,0}, {0.322f,0.322f}, {0,4553}, {0.3943f,0.2277f}, {0.2277f,0.3943f}, {0.2788f,0.2788f}, {0.322f,0.322f}},
+        { {0.4553f,0}, {0.322f,0.322f}, {0,0.4553f}, {0.3943f,0.2277f}, {0.2277f,0.3943f}, {0.2788f,0.2788f}, {0.322f,0.322f}},
         { {0.3886f,0}, {0.2748f,0.2748f}, {0,0.3886f}, {0.3366f,0.1943f}, {0.1943f,0.3366f}, {0.3366f,0.1943f}, {0.1943f,0.3366f}, {0.2748f,0.2748f}},
     };
     for (int32_t i = 0; i < frames; i++) {
@@ -1620,6 +1626,17 @@ nsresult nsOggReader::SeekBisection(int64_t aTarget,
 
 nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
 {
+#ifdef OGG_ESTIMATE_BUFFERED
+  MediaResource* stream = mDecoder->GetResource();
+  int64_t durationUs = 0;
+  {
+    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+    durationUs = mDecoder->GetStateMachine()->GetDuration();
+  }
+  GetEstimatedBufferedTimeRanges(stream, durationUs, aBuffered);
+  
+  return NS_OK;
+#else
   
   
   
@@ -1720,6 +1737,7 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
   }
 
   return NS_OK;
+#endif
 }
 
 bool nsOggReader::IsKnownStream(uint32_t aSerial)

@@ -355,8 +355,7 @@ public:
 
 
 
-
-  bool LoadImage(nsIDocument* aDocument);
+  void LoadImage(nsIDocument* aDocument);
 
   size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 

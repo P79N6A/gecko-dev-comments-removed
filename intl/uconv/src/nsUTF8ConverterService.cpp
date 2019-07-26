@@ -103,7 +103,7 @@ nsUTF8ConverterService::ConvertURISpecToUTF8(const nsACString &aSpec,
 
   aUTF8Spec.Truncate();
 
-  nsCAutoString unescapedSpec; 
+  nsAutoCString unescapedSpec; 
   
   
   bool written = NS_UnescapeURL(PromiseFlatCString(aSpec).get(), aSpec.Length(), 

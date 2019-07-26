@@ -472,11 +472,37 @@ protected:
 
 
 
-
-
+  
+  
+  enum
+  {
+    PREFER_MOUSE_WHEEL_TRANSACTION               = 1,
+    PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_X_AXIS = 2,
+    PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_Y_AXIS = 4,
+    START_FROM_PARENT                            = 8
+  };
+  enum ComputeScrollTargetOptions
+  {
+    
+    
+    COMPUTE_LEGACY_MOUSE_SCROLL_EVENT_TARGET     = 0,
+    
+    
+    
+    COMPUTE_DEFAULT_ACTION_TARGET                =
+      (PREFER_MOUSE_WHEEL_TRANSACTION |
+       PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_X_AXIS |
+       PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_Y_AXIS),
+    
+    
+    COMPUTE_SCROLLABLE_ANCESTOR_ALONG_X_AXIS     =
+      (PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_X_AXIS | START_FROM_PARENT),
+    COMPUTE_SCROLLABLE_ANCESTOR_ALONG_Y_AXIS     =
+      (PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_Y_AXIS | START_FROM_PARENT)
+  };
   nsIScrollableFrame* ComputeScrollTarget(nsIFrame* aTargetFrame,
                                           mozilla::widget::WheelEvent* aEvent,
-                                          bool aForDefaultAction);
+                                          ComputeScrollTargetOptions aOptions);
 
   
 

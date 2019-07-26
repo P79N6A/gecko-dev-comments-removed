@@ -153,7 +153,7 @@ nsRDFResource::GetDelegate(const char* aKey, REFNSIID aIID, void** aResult)
     }
 
     
-    nsCAutoString contractID(NS_RDF_DELEGATEFACTORY_CONTRACTID_PREFIX);
+    nsAutoCString contractID(NS_RDF_DELEGATEFACTORY_CONTRACTID_PREFIX);
     contractID.Append(aKey);
     contractID.Append("&scheme=");
 

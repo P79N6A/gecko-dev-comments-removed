@@ -24,6 +24,10 @@ pref("keyword.enabled", false);
 pref("general.useragent.locale", "chrome://global/locale/intl.properties");
 pref("general.useragent.compatMode.firefox", false);
 
+
+
+pref("general.useragent.site_specific_overrides", true);
+
 pref("general.config.obscure_value", 13); 
 
 pref("general.warnOnAboutConfig", true);
@@ -231,19 +235,22 @@ pref("gfx.font_rendering.directwrite.enabled", false);
 pref("gfx.font_rendering.directwrite.use_gdi_table_loading", true);
 #endif
 
-pref("gfx.canvas.azure.enabled", true);
 #ifdef XP_WIN
+pref("gfx.canvas.azure.enabled", true);
 
 
 pref("gfx.canvas.azure.backends", "direct2d,cairo");
 pref("gfx.content.azure.enabled", true);
 #else
 #ifdef XP_MACOSX
+pref("gfx.canvas.azure.enabled", true);
 pref("gfx.canvas.azure.backends", "cg");
 #else
 #ifdef ANDROID
+pref("gfx.canvas.azure.enabled", true);
 pref("gfx.canvas.azure.backends", "cairo");
 #else
+pref("gfx.canvas.azure.enabled", false);
 pref("gfx.canvas.azure.backends", "cairo");
 #endif
 #endif
@@ -1781,6 +1788,29 @@ pref("font.size.inflation.lineThreshold", 400);
 
 
 pref("font.size.inflation.mappingIntercept", 1);
+
+
+
+
+
+
+
+
+
+
+pref("ui.touch.radius.enabled", false);
+pref("ui.touch.radius.leftmm", 8);
+pref("ui.touch.radius.topmm", 12);
+pref("ui.touch.radius.rightmm", 8);
+pref("ui.touch.radius.bottommm", 4);
+pref("ui.touch.radius.visitedWeight", 120);
+
+pref("ui.mouse.radius.enabled", false);
+pref("ui.mouse.radius.leftmm", 8);
+pref("ui.mouse.radius.topmm", 12);
+pref("ui.mouse.radius.rightmm", 8);
+pref("ui.mouse.radius.bottommm", 4);
+pref("ui.mouse.radius.visitedWeight", 120);
 
 #ifdef XP_WIN
 
@@ -3690,3 +3720,9 @@ pref("social.enabled", false);
 
 
 pref("dom.idle-observers-api.fuzz_time.disabled", true);
+
+pref("toolkit.identity.debug", false);
+
+
+
+pref("dom.mozApps.dev_mode", false);

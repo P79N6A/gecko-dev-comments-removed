@@ -14,6 +14,9 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/StandardInteger.h"
+#ifdef __cplusplus
+# include "mozilla/ThreadLocal.h"
+#endif
 
 #include <stddef.h>
 #include <stdio.h>
@@ -3020,6 +3023,8 @@ JS_END_EXTERN_C
 
 namespace JS {
 
+extern mozilla::ThreadLocal<JSRuntime *> TlsRuntime;
+
 inline bool
 IsPoisonedId(jsid iden)
 {
@@ -4833,6 +4838,37 @@ JS_ClearNonGlobalObject(JSContext *cx, JSObject *objArg);
 JS_PUBLIC_API(void)
 JS_SetAllNonReservedSlotsToUndefined(JSContext *cx, JSObject *objArg);
 
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSObject *)
+JS_NewArrayBufferWithContents(JSContext *cx, void *contents);
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_StealArrayBufferContents(JSContext *cx, JSObject *obj, void **contents);
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_AllocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void **contents, uint8_t **data);
+
+
 extern JS_PUBLIC_API(JSIdArray *)
 JS_Enumerate(JSContext *cx, JSObject *obj);
 
@@ -5730,7 +5766,7 @@ class JSAutoByteString {
     }
 
     ~JSAutoByteString() {
-        js::UnwantedForeground::free_(mBytes);
+        js_free(mBytes);
     }
 
     
@@ -5747,7 +5783,7 @@ class JSAutoByteString {
     }
 
     void clear() {
-        js::UnwantedForeground::free_(mBytes);
+        js_free(mBytes);
         mBytes = NULL;
     }
 
@@ -6006,17 +6042,17 @@ JS_ReportAllocationOverflow(JSContext *cx);
 struct JSErrorReport {
     const char      *filename;      
     JSPrincipals    *originPrincipals; 
-    unsigned           lineno;         
+    unsigned        lineno;         
     const char      *linebuf;       
     const char      *tokenptr;      
     const jschar    *uclinebuf;     
     const jschar    *uctokenptr;    
-    unsigned           flags;          
-    unsigned           errorNumber;    
+    unsigned        flags;          
+    unsigned        errorNumber;    
     const jschar    *ucmessage;     
     const jschar    **messageArgs;  
     int16_t         exnType;        
-    unsigned           column;         
+    unsigned        column;         
 };
 
 

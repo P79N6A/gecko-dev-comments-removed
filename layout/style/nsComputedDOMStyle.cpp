@@ -1230,17 +1230,8 @@ nsComputedDOMStyle::DoGetFontWeight()
   const nsStyleFont* font = GetStyleFont();
 
   uint16_t weight = font->mFont.weight;
-  if (weight % 100 == 0) {
-    val->SetNumber(font->mFont.weight);
-  } else if (weight % 100 > 50) {
-    
-    
-    val->SetIdent(eCSSKeyword_lighter);
-  } else {
-    
-    
-    val->SetIdent(eCSSKeyword_bolder);
-  }
+  NS_ASSERTION(weight % 100 == 0, "unexpected value of font-weight");
+  val->SetNumber(font->mFont.weight);
 
   return val;
 }

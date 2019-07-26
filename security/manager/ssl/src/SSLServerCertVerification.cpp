@@ -795,7 +795,7 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo *infoObject,
   }
 
   
-  nsCAutoString negotiatedNPN;
+  nsAutoCString negotiatedNPN;
   nsresult rv = infoObject->GetNegotiatedNPN(negotiatedNPN);
   NS_ASSERTION(NS_SUCCEEDED(rv),
                "GetNegotiatedNPN() failed during renegotiation");

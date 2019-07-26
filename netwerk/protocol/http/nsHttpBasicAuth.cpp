@@ -71,7 +71,7 @@ nsHttpBasicAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
     NS_ENSURE_TRUE(isBasicAuth, NS_ERROR_UNEXPECTED);
 
     
-    nsCAutoString userpass;
+    nsAutoCString userpass;
     LossyCopyUTF16toASCII(user, userpass);
     userpass.Append(':'); 
     if (password)

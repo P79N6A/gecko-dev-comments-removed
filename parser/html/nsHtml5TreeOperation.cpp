@@ -719,7 +719,7 @@ nsHtml5TreeOperation::Perform(nsHtml5TreeOpExecutor* aBuilder,
         return NS_OK;
       }
 
-      nsCAutoString viewSourceUrl;
+      nsAutoCString viewSourceUrl;
 
       
       
@@ -733,7 +733,7 @@ nsHtml5TreeOperation::Perform(nsHtml5TreeOpExecutor* aBuilder,
         viewSourceUrl.AssignLiteral("view-source:");
       }
 
-      nsCAutoString spec;
+      nsAutoCString spec;
       uri->GetSpec(spec);
 
       viewSourceUrl.Append(spec);

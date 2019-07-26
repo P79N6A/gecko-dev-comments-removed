@@ -156,7 +156,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
     rv = mParser->OnStartRequest(request, aContext);
     if (NS_FAILED(rv)) return rv;
 
-    nsCAutoString baseUri, titleUri;
+    nsAutoCString baseUri, titleUri;
     rv = uri->GetAsciiSpec(baseUri);
     if (NS_FAILED(rv)) return rv;
     titleUri = baseUri;
@@ -179,7 +179,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
         
         
         
-        nsCAutoString pw;
+        nsAutoCString pw;
         rv = uri->GetPassword(pw);
         if (NS_FAILED(rv)) return rv;
         if (!pw.IsEmpty()) {
@@ -192,7 +192,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
              if (NS_FAILED(rv)) return rv;
         }
 
-        nsCAutoString path;
+        nsAutoCString path;
         rv = uri->GetPath(path);
         if (NS_FAILED(rv)) return rv;
 
@@ -207,7 +207,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
         if (NS_FAILED(rv)) return rv;
         file->SetFollowLinks(true);
         
-        nsCAutoString url;
+        nsAutoCString url;
         rv = net_GetURLSpecFromFile(file, url);
         if (NS_FAILED(rv)) return rv;
         baseUri.Assign(url);
@@ -226,7 +226,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
         NS_ENSURE_SUCCESS(rv, rv);
 
     } else if (NS_SUCCEEDED(uri->SchemeIs("jar", &isScheme)) && isScheme) {
-        nsCAutoString path;
+        nsAutoCString path;
         rv = uri->GetPath(path);
         if (NS_FAILED(rv)) return rv;
 
@@ -244,7 +244,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
     else {
         
         
-        nsCAutoString path;
+        nsAutoCString path;
         rv = uri->GetPath(path);
         if (NS_FAILED(rv)) return rv;
         if (baseUri.Last() != '/') {
@@ -512,7 +512,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
     if (NS_FAILED(rv) && isSchemeFile) {
         nsCOMPtr<nsIPlatformCharset> platformCharset(do_GetService(NS_PLATFORMCHARSET_CONTRACTID, &rv));
         NS_ENSURE_SUCCESS(rv, rv);
-        nsCAutoString charset;
+        nsAutoCString charset;
         rv = platformCharset->GetCharset(kPlatformCharsetSel_FileName, charset);
         NS_ENSURE_SUCCESS(rv, rv);
 
@@ -860,7 +860,7 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
     if (NS_FAILED(rv)) return rv;
 
     
-    nsCAutoString escapeBuf;
+    nsAutoCString escapeBuf;
 
     NS_ConvertUTF16toUTF8 utf8UnEscapeSpec(unEscapeSpec);
 
@@ -951,7 +951,7 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
         pushBuffer.AppendLiteral("></td>\n <td>");
     } else {
         pushBuffer.AppendLiteral(" sortable-data=\"");
-        pushBuffer.AppendInt(t);
+        pushBuffer.AppendInt(static_cast<int64_t>(t));
         pushBuffer.AppendLiteral("\">");
         nsAutoString formatted;
         mDateTime->FormatPRTime(nullptr,

@@ -716,7 +716,7 @@ ContentScriptErrorReporter(JSContext* aCx,
 #ifdef DEBUG
   
   
-  nsCAutoString error;
+  nsAutoCString error;
   error.Assign("JavaScript ");
   if (JSREPORT_IS_STRICT(flags)) {
     error.Append("strict ");
@@ -907,7 +907,7 @@ nsFrameScriptExecutor::TryCacheLoadAndCompileScript(const nsAString& aURL,
                                        dataString.get(), dataString.Length());
 
         if (script) {
-          nsCAutoString scheme;
+          nsAutoCString scheme;
           uri->GetScheme(scheme);
           
           if (!scheme.EqualsLiteral("data")) {

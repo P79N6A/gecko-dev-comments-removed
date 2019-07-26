@@ -349,7 +349,7 @@ nsXULTooltipListener::CheckTreeBodyMove(nsIDOMMouseEvent* aMouseEvent)
 
     int32_t row;
     nsCOMPtr<nsITreeColumn> col;
-    nsCAutoString obj;
+    nsAutoCString obj;
 
     
     int32_t boxX, boxY;

@@ -794,7 +794,7 @@ ContinueHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
   
   
 
-  nsCAutoString query;
+  nsAutoCString query;
   if (mCursor->mContinueToKey.IsUnset()) {
     query.Assign(mCursor->mContinueQuery);
   }

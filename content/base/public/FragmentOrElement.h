@@ -16,7 +16,6 @@
 #include "nsCOMPtr.h"                     
 #include "nsCycleCollectionParticipant.h" 
 #include "nsIContent.h"                   
-#include "nsIDOMNodeSelector.h"           
 #include "nsIDOMTouchEvent.h"             
 #include "nsIDOMXPathNSResolver.h"        
 #include "nsIInlineEventHandlers.h"       
@@ -155,29 +154,6 @@ private:
 };
 
 
-
-
-class nsNodeSelectorTearoff MOZ_FINAL : public nsIDOMNodeSelector
-{
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_DECL_NSIDOMNODESELECTOR
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeSelectorTearoff)
-
-  nsNodeSelectorTearoff(nsINode *aNode) : mNode(aNode)
-  {
-  }
-
-private:
-  ~nsNodeSelectorTearoff() {}
-
-private:
-  nsCOMPtr<nsINode> mNode;
-};
-
-
 class nsTouchEventReceiverTearoff;
 class nsInlineEventHandlersTearoff;
 
@@ -306,15 +282,6 @@ public:
   static void FireNodeInserted(nsIDocument* aDoc,
                                nsINode* aParent,
                                nsTArray<nsCOMPtr<nsIContent> >& aNodes);
-
-  
-
-
-  static nsIContent* doQuerySelector(nsINode* aRoot, const nsAString& aSelector,
-                                     nsresult *aResult);
-  static nsresult doQuerySelectorAll(nsINode* aRoot,
-                                     const nsAString& aSelector,
-                                     nsIDOMNodeList **aReturn);
 
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(FragmentOrElement)
 

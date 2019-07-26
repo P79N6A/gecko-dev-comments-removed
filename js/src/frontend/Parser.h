@@ -191,6 +191,7 @@ struct ParseContext
 
 
 
+
     
     
     
@@ -302,7 +303,7 @@ struct Parser : private AutoGCRooter
 
     ObjectBox *newObjectBox(JSObject *obj);
 
-    FunctionBox *newFunctionBox(JSObject *obj, ParseContext *pc, StrictMode::StrictModeState sms);
+    FunctionBox *newFunctionBox(JSObject *obj, ParseContext *pc, StrictMode sms);
 
     
 
@@ -341,7 +342,7 @@ struct Parser : private AutoGCRooter
     void prepareNodeForMutation(ParseNode *pn) { return allocator.prepareNodeForMutation(pn); }
 
     
-    JS_DECLARE_NEW_METHODS(allocParseNode, inline)
+    JS_DECLARE_NEW_METHODS(new_, allocParseNode, inline)
 
     ParseNode *cloneNode(const ParseNode &other) {
         ParseNode *node = allocParseNode(sizeof(ParseNode));

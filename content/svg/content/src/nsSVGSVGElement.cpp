@@ -604,7 +604,7 @@ nsSVGSVGElement::GetElementById(const nsAString & elementId, nsIDOMElement **_re
   nsresult rv = NS_OK;
   nsAutoString selector(NS_LITERAL_STRING("#"));
   nsStyleUtil::AppendEscapedCSSIdent(PromiseFlatString(elementId), selector);
-  nsIContent* element = nsGenericElement::doQuerySelector(this, selector, &rv);
+  nsIContent* element = QuerySelector(selector, &rv);
   if (NS_SUCCEEDED(rv) && element) {
     return CallQueryInterface(element, _retval);
   }
@@ -934,7 +934,7 @@ nsSVGSVGElement::GetViewBoxTransform() const
 }
 
 void
-nsSVGSVGElement::ChildrenOnlyTransformChanged()
+nsSVGSVGElement::ChildrenOnlyTransformChanged(PRUint32 aFlags)
 {
   
   NS_ABORT_IF_FALSE(!(GetPrimaryFrame()->GetStateBits() &
@@ -957,7 +957,15 @@ nsSVGSVGElement::ChildrenOnlyTransformChanged()
                    nsChangeHint_ChildrenOnlyTransform);
   }
 
-  nsLayoutUtils::PostRestyleEvent(this, nsRestyleHint(0), changeHint);
+  
+  
+  
+  
+  
+  if ((changeHint & nsChangeHint_ReconstructFrame) ||
+      !(aFlags & eDuringReflow)) {
+    nsLayoutUtils::PostRestyleEvent(this, nsRestyleHint(0), changeHint);
+  }
 
   mHasChildrenOnlyTransform = hasChildrenOnlyTransform;
 }

@@ -234,7 +234,7 @@ nsHttpHandler::Init()
     if (prefBranch) {
         prefBranch->AddObserver(HTTP_PREF_PREFIX, this, true);
         prefBranch->AddObserver(UA_PREF_PREFIX, this, true);
-        prefBranch->AddObserver(INTL_ACCEPT_LANGUAGES, this, true); 
+        prefBranch->AddObserver(INTL_ACCEPT_LANGUAGES, this, true);
         prefBranch->AddObserver(NETWORK_ENABLEIDN, this, true);
         prefBranch->AddObserver(BROWSER_PREF("disk_cache_ssl"), this, true);
         prefBranch->AddObserver(DONOTTRACK_HEADER_ENABLED, this, true);
@@ -292,8 +292,8 @@ nsHttpHandler::Init()
     
     NS_CreateServicesFromCategory(NS_HTTP_STARTUP_CATEGORY,
                                   static_cast<nsISupports*>(static_cast<void*>(this)),
-                                  NS_HTTP_STARTUP_TOPIC);    
-    
+                                  NS_HTTP_STARTUP_TOPIC);
+
     mObserverService = mozilla::services::GetObserverService();
     if (mObserverService) {
         mObserverService->AddObserver(this, "profile-change-net-teardown", true);
@@ -303,7 +303,7 @@ nsHttpHandler::Init()
         mObserverService->AddObserver(this, "net:prune-dead-connections", true);
         mObserverService->AddObserver(this, "net:failed-to-process-uri-content", true);
     }
- 
+
     return NS_OK;
 }
 
@@ -366,7 +366,7 @@ nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request,
     
     
     
-    
+
     NS_NAMED_LITERAL_CSTRING(close, "close");
     NS_NAMED_LITERAL_CSTRING(keepAlive, "keep-alive");
 
@@ -435,7 +435,7 @@ nsHttpHandler::GetCookieService()
     return mCookieService;
 }
 
-nsresult 
+nsresult
 nsHttpHandler::GetIOService(nsIIOService** result)
 {
     NS_ADDREF(*result = mIOService);
@@ -452,7 +452,7 @@ nsHttpHandler::Get32BitsOfPseudoRandom()
     
 
     PR_STATIC_ASSERT(RAND_MAX >= 0xfff);
-    
+
 #if RAND_MAX < 0xffffU
     return ((uint16_t) rand() << 20) |
             (((uint16_t) rand() & 0xfff) << 8) |
@@ -521,10 +521,10 @@ nsHttpHandler::BuildUserAgent()
 
     
     
-    mUserAgent.SetCapacity(mLegacyAppName.Length() + 
-                           mLegacyAppVersion.Length() + 
+    mUserAgent.SetCapacity(mLegacyAppName.Length() +
+                           mLegacyAppVersion.Length() +
 #ifndef UA_SPARE_PLATFORM
-                           mPlatform.Length() + 
+                           mPlatform.Length() +
 #endif
                            mOscpu.Length() +
                            mMisc.Length() +
@@ -674,10 +674,10 @@ nsHttpHandler::InitUserAgentComponents()
     }
 #elif defined (XP_UNIX)
     struct utsname name;
-    
+
     int ret = uname(&name);
     if (ret >= 0) {
-        nsCAutoString buf;
+        nsAutoCString buf;
         buf =  (char*)name.sysname;
 
         if (strcmp(name.machine, "x86_64") == 0 &&
@@ -981,7 +981,7 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
         if (NS_SUCCEEDED(rv))
             SetAccept(accept);
     }
-    
+
     if (PREF_CHANGED(HTTP_PREF("accept-encoding"))) {
         nsXPIDLCString acceptEncodings;
         rv = prefs->GetCharPref(HTTP_PREF("accept-encoding"),
@@ -1141,7 +1141,7 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
             pls->ToString(getter_Copies(uval));
             if (uval)
                 SetAcceptLanguages(NS_ConvertUTF16toUTF8(uval).get());
-        } 
+        }
     }
 
     
@@ -1221,7 +1221,7 @@ PrepareAcceptLanguages(const char *i_AcceptLanguages, nsACString &o_AcceptLangua
     if (!i_AcceptLanguages)
         return NS_OK;
 
-    uint32_t n, size, wrote;
+    uint32_t n, count_n, size, wrote;
     double q, dec;
     char *p, *p2, *token, *q_Accept, *o_Accept;
     const char *comma;
@@ -1244,7 +1244,7 @@ PrepareAcceptLanguages(const char *i_AcceptLanguages, nsACString &o_AcceptLangua
     *q_Accept = '\0';
     q = 1.0;
     dec = q / (double) n;
-    n = 0;
+    count_n = 0;
     p2 = q_Accept;
     for (token = nsCRT::strtok(o_Accept, ",", &p);
          token != (char *) 0;
@@ -1257,12 +1257,28 @@ PrepareAcceptLanguages(const char *i_AcceptLanguages, nsACString &o_AcceptLangua
             *trim = '\0';
 
         if (*token != '\0') {
-            comma = n++ != 0 ? "," : ""; 
+            comma = count_n++ != 0 ? "," : ""; 
             uint32_t u = QVAL_TO_UINT(q);
-            if (u < 10)
-                wrote = PR_snprintf(p2, available, "%s%s;q=0.%u", comma, token, u);
-            else
+
+            
+            if (u < 100) {
+                const char *qval_str;
+
+                
+                
+                if ((n < 10) || ((u % 10) == 0)) {
+                    u = (u + 5) / 10;
+                    qval_str = "%s%s;q=0.%u";
+                } else {
+                    
+                    qval_str = "%s%s;q=0.%02u";
+                }
+
+                wrote = PR_snprintf(p2, available, qval_str, comma, token, u);
+            } else {
                 wrote = PR_snprintf(p2, available, "%s%s", comma, token);
+            }
+
             q -= dec;
             p2 += wrote;
             available -= wrote;
@@ -1278,9 +1294,9 @@ PrepareAcceptLanguages(const char *i_AcceptLanguages, nsACString &o_AcceptLangua
 }
 
 nsresult
-nsHttpHandler::SetAcceptLanguages(const char *aAcceptLanguages) 
+nsHttpHandler::SetAcceptLanguages(const char *aAcceptLanguages)
 {
-    nsCAutoString buf;
+    nsAutoCString buf;
     nsresult rv = PrepareAcceptLanguages(aAcceptLanguages, buf);
     if (NS_SUCCEEDED(rv))
         mAcceptLanguages.Assign(buf);
@@ -1288,14 +1304,14 @@ nsHttpHandler::SetAcceptLanguages(const char *aAcceptLanguages)
 }
 
 nsresult
-nsHttpHandler::SetAccept(const char *aAccept) 
+nsHttpHandler::SetAccept(const char *aAccept)
 {
     mAccept = aAccept;
     return NS_OK;
 }
 
 nsresult
-nsHttpHandler::SetAcceptEncodings(const char *aAcceptEncodings) 
+nsHttpHandler::SetAcceptEncodings(const char *aAcceptEncodings)
 {
     mAcceptEncodings = aAcceptEncodings;
     return NS_OK;
@@ -1373,7 +1389,7 @@ nsHttpHandler::NewChannel(nsIURI *uri, nsIChannel **result)
     return NewProxiedChannel(uri, nullptr, result);
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsHttpHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
 {
     
@@ -1394,7 +1410,7 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
 
     LOG(("nsHttpHandler::NewProxiedChannel [proxyInfo=%p]\n",
         givenProxyInfo));
-    
+
     nsCOMPtr<nsProxyInfo> proxyInfo;
     if (givenProxyInfo) {
         proxyInfo = do_QueryInterface(givenProxyInfo);
@@ -1532,7 +1548,7 @@ nsHttpHandler::Observe(nsISupports *subject,
         if (uri && mConnMgr)
             mConnMgr->ReportFailedToProcess(uri);
     }
-  
+
     return NS_OK;
 }
 
@@ -1547,7 +1563,7 @@ nsHttpHandler::SpeculativeConnect(nsIURI *aURI,
     bool isStsHost = false;
     if (!stss)
         return NS_OK;
-    
+
     nsCOMPtr<nsIURI> clone;
     if (NS_SUCCEEDED(stss->IsStsURI(aURI, &isStsHost)) && isStsHost) {
         if (NS_SUCCEEDED(aURI->Clone(getter_AddRefs(clone)))) {
@@ -1556,7 +1572,7 @@ nsHttpHandler::SpeculativeConnect(nsIURI *aURI,
         }
     }
 
-    nsCAutoString scheme;
+    nsAutoCString scheme;
     nsresult rv = aURI->GetScheme(scheme);
     if (NS_FAILED(rv))
         return rv;
@@ -1579,7 +1595,7 @@ nsHttpHandler::SpeculativeConnect(nsIURI *aURI,
     if (NS_FAILED(rv))
         return rv;
 
-    nsCAutoString host;
+    nsAutoCString host;
     rv = aURI->GetAsciiHost(host);
     if (NS_FAILED(rv))
         return rv;

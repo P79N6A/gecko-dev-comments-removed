@@ -1435,14 +1435,6 @@ var gBrowserInit = {
     }
 
     
-    let enabled = gPrefService.getBoolPref("devtools.inspector.enabled");
-    if (enabled) {
-      let cmd = document.getElementById("Tools:Inspect");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-    }
-
-    
     let enabled = gPrefService.getBoolPref("devtools.debugger.enabled");
     if (enabled) {
       let cmd = document.getElementById("Tools:Debugger");

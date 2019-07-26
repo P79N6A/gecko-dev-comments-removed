@@ -198,6 +198,9 @@ NS_DECLARE_FRAME_PROPERTY(FontSizeInflationProperty, nullptr)
 
 
 
+
+
+
 #define TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA NS_FRAME_STATE_BIT(60)
 
 
@@ -7612,14 +7615,22 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
       length = newLineOffset + 1 - offset;
     }
   }
-  if (atStartOfLine && !textStyle->WhiteSpaceIsSignificant()) {
+  if ((atStartOfLine && !textStyle->WhiteSpaceIsSignificant()) ||
+      (GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE)) {
     
     
     int32_t skipLength = newLineOffset >= 0 ? length - 1 : length;
     int32_t whitespaceCount =
       GetTrimmableWhitespaceCount(frag, offset, skipLength, 1);
-    offset += whitespaceCount;
-    length -= whitespaceCount;
+    if (whitespaceCount) {
+      offset += whitespaceCount;
+      length -= whitespaceCount;
+      
+      if (NS_UNLIKELY(offset > GetContentEnd())) {
+        SetLength(offset - GetContentOffset(), &aLineLayout,
+                  ALLOW_FRAME_CREATION_AND_DESTRUCTION);
+      }
+    }
   }
 
   bool completedFirstLetter = false;
@@ -7770,7 +7781,8 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   bool usedHyphenation;
   gfxFloat trimmedWidth = 0;
   gfxFloat availWidth = aAvailableWidth;
-  bool canTrimTrailingWhitespace = !textStyle->WhiteSpaceIsSignificant();
+  bool canTrimTrailingWhitespace = !textStyle->WhiteSpaceIsSignificant() ||
+                                   (GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE);
   int32_t unusedOffset;  
   gfxBreakPriority breakPriority;
   aLineLayout.GetLastOptionalBreakPosition(&unusedOffset, &breakPriority);
@@ -7839,11 +7851,12 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     
     
     
-    if (brokeText) {
+    if (brokeText ||
+        (GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE)) {
       
       
       AddStateBits(TEXT_TRIMMED_TRAILING_WHITESPACE);
-    } else {
+    } else if (!(GetStateBits() & TEXT_FORCE_TRIM_WHITESPACE)) {
       
       
       
@@ -8337,7 +8350,7 @@ nsTextFrame::GetFrameName(nsAString& aResult) const
 {
   MakeFrameName(NS_LITERAL_STRING("Text"), aResult);
   int32_t totalContentLength;
-  nsCAutoString tmp;
+  nsAutoCString tmp;
   ToCString(tmp, &totalContentLength);
   tmp.SetLength(NS_MIN(tmp.Length(), 50u));
   aResult += NS_LITERAL_STRING("\"") + NS_ConvertASCIItoUTF16(tmp) + NS_LITERAL_STRING("\"");

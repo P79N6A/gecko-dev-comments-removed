@@ -132,9 +132,9 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
 
   for (uint32_t i = 0; i < searchCount; ++i) {
     
-    nsCAutoString searchName;
+    nsAutoCString searchName;
     aInput->GetSearchAt(i, searchName);
-    nsCAutoString cid(searchCID);
+    nsAutoCString cid(searchCID);
     cid.Append(searchName);
 
     
@@ -1578,7 +1578,7 @@ nsAutoCompleteController::CompleteValue(nsString &aValue)
     nsresult rv;
     nsCOMPtr<nsIIOService> ios = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
-    nsCAutoString scheme;
+    nsAutoCString scheme;
     if (NS_SUCCEEDED(ios->ExtractScheme(NS_ConvertUTF16toUTF8(aValue), scheme))) {
       
       

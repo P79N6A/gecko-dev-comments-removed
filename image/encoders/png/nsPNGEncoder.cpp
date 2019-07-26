@@ -346,7 +346,7 @@ nsPNGEncoder::ParseOptions(const nsAString& aOptions,
 {
 #ifdef PNG_APNG_SUPPORTED
   
-  nsCAutoString optionsCopy;
+  nsAutoCString optionsCopy;
   optionsCopy.Assign(NS_ConvertUTF16toUTF8(aOptions));
   char* options = optionsCopy.BeginWriting();
 

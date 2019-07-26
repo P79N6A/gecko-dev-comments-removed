@@ -250,7 +250,15 @@ GetResolution(nsPresContext* aPresContext, const nsMediaFeature*,
 {
     
     
-    float dpi = float(nsPresContext::AppUnitsPerCSSInch()) /
+    
+    
+    
+    nsIPresShell *shell = aPresContext->PresShell();
+    float appUnitsPerInch = shell->GetIsViewportOverridden() ?
+            GetDeviceContextFor(aPresContext)->AppUnitsPerPhysicalInch() :
+            nsPresContext::AppUnitsPerCSSInch();
+
+    float dpi = appUnitsPerInch /
                 float(aPresContext->AppUnitsPerDevPixel());
     aResult.SetFloatValue(dpi, eCSSUnit_Inch);
     return NS_OK;

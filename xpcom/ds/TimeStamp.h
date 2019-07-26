@@ -129,12 +129,12 @@ private:
   static TimeDuration FromTicks(double aTicks) {
     
     
-    if (aTicks >= double(LL_MAXINT))
-      return TimeDuration::FromTicks(LL_MAXINT);
+    if (aTicks >= double(INT64_MAX))
+      return TimeDuration::FromTicks(INT64_MAX);
 
     
-    if (aTicks <= double(LL_MININT))
-      return TimeDuration::FromTicks(LL_MININT);
+    if (aTicks <= double(INT64_MIN))
+      return TimeDuration::FromTicks(INT64_MIN);
 
     return TimeDuration::FromTicks(int64_t(aTicks));
   }

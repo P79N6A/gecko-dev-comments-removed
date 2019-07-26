@@ -97,7 +97,8 @@
 #include "nsXBLPrototypeBinding.h"
 #include "prprf.h"
 #include "xpcpublic.h"
-
+#include "nsCSSRuleProcessor.h"
+#include "nsCSSParser.h"
 #include "nsWrapperCacheInlines.h"
 
 using namespace mozilla;
@@ -583,7 +584,7 @@ nsINode::GetDOMBaseURI(nsAString &aURI) const
 {
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
 
-  nsCAutoString spec;
+  nsAutoCString spec;
   if (baseURI) {
     baseURI->GetSpec(spec);
   }
@@ -1964,16 +1965,16 @@ nsINode::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 
 #define EVENT(name_, id_, type_, struct_)                                    \
   NS_IMETHODIMP nsINode::GetOn##name_(JSContext *cx, jsval *vp) {            \
-    nsEventListenerManager *elm = GetListenerManager(false);              \
+    nsEventListenerManager *elm = GetListenerManager(false);                 \
     if (elm) {                                                               \
-      elm->GetJSEventListener(nsGkAtoms::on##name_, vp);                     \
+      elm->GetEventHandler(nsGkAtoms::on##name_, vp);                        \
     } else {                                                                 \
       *vp = JSVAL_NULL;                                                      \
     }                                                                        \
     return NS_OK;                                                            \
   }                                                                          \
   NS_IMETHODIMP nsINode::SetOn##name_(JSContext *cx, const jsval &v) {       \
-    nsEventListenerManager *elm = GetListenerManager(true);               \
+    nsEventListenerManager *elm = GetListenerManager(true);                  \
     if (!elm) {                                                              \
       return NS_ERROR_OUT_OF_MEMORY;                                         \
     }                                                                        \
@@ -1983,7 +1984,8 @@ nsINode::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
       /* Just silently do nothing */                                         \
       return NS_OK;                                                          \
     }                                                                        \
-    return elm->SetJSEventListenerToJsval(nsGkAtoms::on##name_, cx, obj, v); \
+    return elm->SetEventHandlerToJsval(nsGkAtoms::on##name_, cx, obj, v,     \
+                                       true);                                \
 }
 #define TOUCH_EVENT EVENT
 #define DOCUMENT_ONLY_EVENT EVENT
@@ -2053,3 +2055,184 @@ nsINode::Length() const
     return GetChildCount();
   }
 }
+
+NS_IMPL_CYCLE_COLLECTION_1(nsNodeSelectorTearoff, mNode)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsNodeSelectorTearoff)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMNodeSelector)
+NS_INTERFACE_MAP_END_AGGREGATED(mNode)
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsNodeSelectorTearoff)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsNodeSelectorTearoff)
+
+NS_IMETHODIMP
+nsNodeSelectorTearoff::QuerySelector(const nsAString& aSelector,
+                                     nsIDOMElement **aReturn)
+{
+  nsresult rv;
+  nsIContent* result = mNode->QuerySelector(aSelector, &rv);
+  return result ? CallQueryInterface(result, aReturn) : rv;
+}
+
+NS_IMETHODIMP
+nsNodeSelectorTearoff::QuerySelectorAll(const nsAString& aSelector,
+                                        nsIDOMNodeList **aReturn)
+{
+  return mNode->QuerySelectorAll(aSelector, aReturn);
+}
+
+
+
+
+static nsresult
+ParseSelectorList(nsINode* aNode,
+                  const nsAString& aSelectorString,
+                  nsCSSSelectorList** aSelectorList)
+{
+  NS_ENSURE_ARG(aNode);
+
+  nsIDocument* doc = aNode->OwnerDoc();
+  nsCSSParser parser(doc->CSSLoader());
+
+  nsCSSSelectorList* selectorList;
+  nsresult rv = parser.ParseSelectorString(aSelectorString,
+                                           doc->GetDocumentURI(),
+                                           0, 
+                                           &selectorList);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCSSSelectorList** slot = &selectorList;
+  do {
+    nsCSSSelectorList* cur = *slot;
+    if (cur->mSelectors->IsPseudoElement()) {
+      *slot = cur->mNext;
+      cur->mNext = nullptr;
+      delete cur;
+    } else {
+      slot = &cur->mNext;
+    }
+  } while (*slot);
+  *aSelectorList = selectorList;
+
+  return NS_OK;
+}
+
+
+
+
+template<bool onlyFirstMatch, class T>
+inline static nsresult FindMatchingElements(nsINode* aRoot,
+                                            const nsAString& aSelector,
+                                            T &aList)
+{
+  nsAutoPtr<nsCSSSelectorList> selectorList;
+  nsresult rv = ParseSelectorList(aRoot, aSelector,
+                                  getter_Transfers(selectorList));
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(selectorList, NS_OK);
+
+  NS_ASSERTION(selectorList->mSelectors,
+               "How can we not have any selectors?");
+
+  nsIDocument* doc = aRoot->OwnerDoc();
+  TreeMatchContext matchingContext(false, nsRuleWalker::eRelevantLinkUnvisited,
+                                   doc, TreeMatchContext::eNeverMatchVisited);
+  doc->FlushPendingLinkUpdates();
+
+  
+  
+  
+  
+  
+  NS_ASSERTION(aRoot->IsElement() || aRoot->IsNodeOfType(nsINode::eDOCUMENT) ||
+               !aRoot->IsInDoc(),
+               "The optimization below to check ContentIsDescendantOf only for "
+               "elements depends on aRoot being either an element or a "
+               "document if it's in the document.");
+  if (aRoot->IsInDoc() &&
+      doc->GetCompatibilityMode() != eCompatibility_NavQuirks &&
+      !selectorList->mNext &&
+      selectorList->mSelectors->mIDList) {
+    nsIAtom* id = selectorList->mSelectors->mIDList->mAtom;
+    const nsSmallVoidArray* elements =
+      doc->GetAllElementsForId(nsDependentAtomString(id));
+
+    
+    
+    if (elements) {
+      for (int32_t i = 0; i < elements->Count(); ++i) {
+        Element *element = static_cast<Element*>(elements->ElementAt(i));
+        if (!aRoot->IsElement() ||
+            (element != aRoot &&
+             nsContentUtils::ContentIsDescendantOf(element, aRoot))) {
+          
+          
+          if (nsCSSRuleProcessor::SelectorListMatches(element, matchingContext,
+                                                      selectorList)) {
+            aList.AppendElement(element);
+            if (onlyFirstMatch) {
+              return NS_OK;
+            }
+          }
+        }
+      }
+    }
+
+    
+    
+    return NS_OK;
+  }
+
+  for (nsIContent* cur = aRoot->GetFirstChild();
+       cur;
+       cur = cur->GetNextNode(aRoot)) {
+    if (cur->IsElement() &&
+        nsCSSRuleProcessor::SelectorListMatches(cur->AsElement(),
+                                                matchingContext,
+                                                selectorList)) {
+      aList.AppendElement(cur->AsElement());
+      if (onlyFirstMatch) {
+        return NS_OK;
+      }
+    }
+  }
+
+  return NS_OK;
+}
+
+struct ElementHolder {
+  ElementHolder() : mElement(nullptr) {}
+  void AppendElement(Element* aElement) {
+    NS_ABORT_IF_FALSE(!mElement, "Should only get one element");
+    mElement = aElement;
+  }
+  Element* mElement;
+};
+
+nsIContent*
+nsINode::QuerySelector(const nsAString& aSelector,
+                       nsresult *aResult)
+{
+  NS_PRECONDITION(aResult, "Null out param?");
+
+  ElementHolder holder;
+  *aResult = FindMatchingElements<true>(this, aSelector, holder);
+
+  return holder.mElement;
+}
+
+
+nsresult
+nsINode::QuerySelectorAll(const nsAString& aSelector,
+                          nsIDOMNodeList **aReturn)
+{
+  NS_PRECONDITION(aReturn, "Null out param?");
+
+  nsSimpleContentList* contentList = new nsSimpleContentList(this);
+  NS_ENSURE_TRUE(contentList, NS_ERROR_OUT_OF_MEMORY);
+  NS_ADDREF(*aReturn = contentList);
+
+  return FindMatchingElements<false>(this, aSelector, *contentList);
+}
+

@@ -353,7 +353,7 @@ LM_Hash(const nsString &password, unsigned char *hash)
 {
   
   
-  nsCAutoString passbuf;
+  nsAutoCString passbuf;
   NS_CopyUnicodeToNative(password, passbuf);
   ToUpperCase(passbuf);
   uint32_t n = passbuf.Length();
@@ -577,7 +577,7 @@ GenerateType3Msg(const nsString &domain,
 #endif
   nsAutoString ucsHostBuf; 
   
-  nsCAutoString oemDomainBuf, oemUserBuf, oemHostBuf;
+  nsAutoCString oemDomainBuf, oemUserBuf, oemHostBuf;
   
   
   const void *domainPtr, *userPtr, *hostPtr;

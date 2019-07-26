@@ -54,12 +54,12 @@ nsResURL::EnsureFile()
 
     NS_ENSURE_TRUE(gResHandler, NS_ERROR_NOT_AVAILABLE);
 
-    nsCAutoString spec;
+    nsAutoCString spec;
     rv = gResHandler->ResolveURI(this, spec);
     if (NS_FAILED(rv))
         return rv;
 
-    nsCAutoString scheme;
+    nsAutoCString scheme;
     rv = net_ExtractURLScheme(spec, nullptr, nullptr, &scheme);
     if (NS_FAILED(rv))
         return rv;
@@ -128,7 +128,7 @@ nsResProtocolHandler::Init()
     mIOService = do_GetIOService(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCAutoString appURI, greURI;
+    nsAutoCString appURI, greURI;
     rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::APP, appURI);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::GRE, greURI);
@@ -248,7 +248,7 @@ nsResProtocolHandler::NewURI(const nsACString &aSpec,
     
     
     
-    nsCAutoString spec;
+    nsAutoCString spec;
     const char *src = aSpec.BeginReading();
     const char *end = aSpec.EndReading();
     const char *last = src;
@@ -286,7 +286,7 @@ nsResProtocolHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
 {
     NS_ENSURE_ARG_POINTER(uri);
     nsresult rv;
-    nsCAutoString spec;
+    nsAutoCString spec;
 
     rv = ResolveURI(uri, spec);
     if (NS_FAILED(rv)) return rv;
@@ -321,7 +321,7 @@ nsResProtocolHandler::SetSubstitution(const nsACString& root, nsIURI *baseURI)
     }
 
     
-    nsCAutoString scheme;
+    nsAutoCString scheme;
     nsresult rv = baseURI->GetScheme(scheme);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!scheme.Equals(NS_LITERAL_CSTRING("resource"))) {
@@ -330,7 +330,7 @@ nsResProtocolHandler::SetSubstitution(const nsACString& root, nsIURI *baseURI)
     }
 
     
-    nsCAutoString newBase;
+    nsAutoCString newBase;
     rv = ResolveURI(baseURI, newBase);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -353,7 +353,7 @@ nsResProtocolHandler::GetSubstitution(const nsACString& root, nsIURI **result)
 
     
 
-    nsCAutoString key;
+    nsAutoCString key;
     key.AssignLiteral("resource:");
     key.Append(root);
 
@@ -383,8 +383,8 @@ nsResProtocolHandler::ResolveURI(nsIURI *uri, nsACString &result)
 {
     nsresult rv;
 
-    nsCAutoString host;
-    nsCAutoString path;
+    nsAutoCString host;
+    nsAutoCString path;
 
     rv = uri->GetAsciiHost(host);
     if (NS_FAILED(rv)) return rv;
@@ -393,7 +393,7 @@ nsResProtocolHandler::ResolveURI(nsIURI *uri, nsACString &result)
     if (NS_FAILED(rv)) return rv;
 
     
-    nsCAutoString unescapedPath(path);
+    nsAutoCString unescapedPath(path);
     NS_UnescapeURL(unescapedPath);
 
     
@@ -417,7 +417,7 @@ nsResProtocolHandler::ResolveURI(nsIURI *uri, nsACString &result)
 
 #if defined(PR_LOGGING)
     if (PR_LOG_TEST(gResLog, PR_LOG_DEBUG)) {
-        nsCAutoString spec;
+        nsAutoCString spec;
         uri->GetAsciiSpec(spec);
         PR_LOG(gResLog, PR_LOG_DEBUG,
                ("%s\n -> %s\n", spec.get(), PromiseFlatCString(result).get()));

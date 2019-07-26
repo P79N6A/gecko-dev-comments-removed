@@ -188,7 +188,7 @@ static bool CanLoadPlugin(const PRUnichar* aBinaryPath)
 
 bool nsPluginsDir::IsPluginFile(nsIFile* file)
 {
-  nsCAutoString path;
+  nsAutoCString path;
   if (NS_FAILED(file->GetNativePath(path)))
     return false;
 

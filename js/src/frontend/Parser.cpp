@@ -79,7 +79,7 @@ using namespace js::frontend;
     JS_END_MACRO
 #define MUST_MATCH_TOKEN(tt, errno) MUST_MATCH_TOKEN_WITH_FLAGS(tt, errno, 0)
 
-StrictMode::StrictModeState
+StrictMode
 StrictModeGetter::get() const
 {
     return parser->pc->sc->strictModeState;
@@ -388,7 +388,7 @@ Parser::newObjectBox(JSObject *obj)
 }
 
 FunctionBox::FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseContext *outerpc,
-                         StrictMode::StrictModeState sms)
+                         StrictMode sms)
   : ObjectBox(traceListHead, obj),
     siblings(outerpc->functionList),
     kids(NULL),
@@ -397,23 +397,54 @@ FunctionBox::FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseContext *
     bufEnd(0),
     ndefaults(0),
     strictModeState(sms),
-    inWith(outerpc->parsingWith),
+    inWith(false),                  
     inGenexpLambda(false),
-    cxFlags(outerpc->sc->context)     
+    cxFlags(outerpc->sc->context)   
 {
     isFunctionBox = true;
-    if (!outerpc->sc->inFunction()) {
+
+    if (outerpc->parsingWith) {
+        
+        
+        
+        
+        
+        
+        inWith = true;
+
+    } else if (!outerpc->sc->inFunction()) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         JSObject *scope = outerpc->sc->scopeChain();
         while (scope) {
             if (scope->isWith())
                 inWith = true;
             scope = scope->enclosingScope();
         }
+    } else {
+        
+        
+        
+        
+        
+        
+        
+        FunctionBox *parent = outerpc->sc->funbox();
+        if (parent && parent->inWith)
+            inWith = true;
     }
 }
 
 FunctionBox *
-Parser::newFunctionBox(JSObject *obj, ParseContext *outerpc, StrictMode::StrictModeState sms)
+Parser::newFunctionBox(JSObject *obj, ParseContext *outerpc, StrictMode sms)
 {
     JS_ASSERT(obj && !IsPoisonedPtr(obj));
     JS_ASSERT(obj->isFunction());
@@ -1581,7 +1612,7 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
         return NULL;
 
     
-    StrictMode::StrictModeState sms = (outerpc->sc->strictModeState == StrictMode::STRICT) ?
+    StrictMode sms = (outerpc->sc->strictModeState == StrictMode::STRICT) ?
         StrictMode::STRICT : StrictMode::UNKNOWN;
 
     
@@ -1748,7 +1779,7 @@ Parser::functionExpr()
 }
 
 void
-FunctionBox::recursivelySetStrictMode(StrictMode::StrictModeState strictness)
+FunctionBox::recursivelySetStrictMode(StrictMode strictness)
 {
     if (strictModeState == StrictMode::UNKNOWN) {
         strictModeState = strictness;

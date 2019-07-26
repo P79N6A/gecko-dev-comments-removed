@@ -446,13 +446,13 @@ nsPresContext::GetFontPrefsForLang(nsIAtom *aLanguage) const
 
 
 
-  nsCAutoString langGroup;
+  nsAutoCString langGroup;
   langGroupAtom->ToUTF8String(langGroup);
 
   prefs->mDefaultVariableFont.size = CSSPixelsToAppUnits(16);
   prefs->mDefaultFixedFont.size = CSSPixelsToAppUnits(13);
 
-  nsCAutoString pref;
+  nsAutoCString pref;
 
   
   enum {eUnit_unknown = -1, eUnit_px, eUnit_pt};
@@ -505,7 +505,7 @@ nsPresContext::GetFontPrefsForLang(nsIAtom *aLanguage) const
   
   
   
-  nsCAutoString generic_dot_langGroup;
+  nsAutoCString generic_dot_langGroup;
   for (uint32_t eType = 0; eType < ArrayLength(fontTypes); ++eType) {
     generic_dot_langGroup.Assign(kGenericFont[eType]);
     generic_dot_langGroup.Append(langGroup);

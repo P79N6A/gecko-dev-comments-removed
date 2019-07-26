@@ -249,7 +249,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       
       *aResult = false;
 
-      nsCAutoString hostPort;
+      nsAutoCString hostPort;
       aURI->GetHostPort(hostPort);
 
       if (!aCookie) {
@@ -292,7 +292,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       uint32_t countFromHost;
       nsCOMPtr<nsICookieManager2> cookieManager = do_GetService(NS_COOKIEMANAGER_CONTRACTID, &rv);
       if (NS_SUCCEEDED(rv)) {
-        nsCAutoString rawHost;
+        nsAutoCString rawHost;
         aCookie->GetRawHost(rawHost);
         rv = cookieManager->CountCookiesFromHost(rawHost, &countFromHost);
 
@@ -355,104 +355,6 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
     }
   }
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP 
-nsCookiePermission::GetOriginatingURI(nsIChannel  *aChannel,
-                                      nsIURI     **aURI)
-{
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  *aURI = nullptr;
-
-  
-  if (!aChannel)
-    return NS_ERROR_NULL_POINTER;
-
-  
-  nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal = do_QueryInterface(aChannel);
-  if (httpChannelInternal)
-  {
-    bool doForce = false;
-    if (NS_SUCCEEDED(httpChannelInternal->GetForceAllowThirdPartyCookie(&doForce)) && doForce)
-    {
-      
-      aChannel->GetURI(aURI);
-      if (!*aURI)
-        return NS_ERROR_NULL_POINTER;
-
-      return NS_OK;
-    }
-  }
-
-  
-  nsCOMPtr<nsILoadContext> ctx;
-  NS_QueryNotificationCallbacks(aChannel, ctx);
-  nsCOMPtr<nsIDOMWindow> topWin, ourWin;
-  if (ctx) {
-    ctx->GetTopWindow(getter_AddRefs(topWin));
-    ctx->GetAssociatedWindow(getter_AddRefs(ourWin));
-  }
-
-  
-  if (!topWin)
-    return NS_ERROR_INVALID_ARG;
-
-  
-  if (ourWin == topWin) {
-    
-    
-    
-    nsLoadFlags flags;
-    aChannel->GetLoadFlags(&flags);
-
-    if (flags & nsIChannel::LOAD_DOCUMENT_URI) {
-      
-      aChannel->GetURI(aURI);
-      if (!*aURI)
-        return NS_ERROR_NULL_POINTER;
-
-      return NS_OK;
-    }
-  }
-
-  
-  nsCOMPtr<nsIScriptObjectPrincipal> scriptObjPrin = do_QueryInterface(topWin);
-  NS_ENSURE_TRUE(scriptObjPrin, NS_ERROR_UNEXPECTED);
-
-  nsIPrincipal* prin = scriptObjPrin->GetPrincipal();
-  NS_ENSURE_TRUE(prin, NS_ERROR_UNEXPECTED);
-  
-  prin->GetURI(aURI);
-
-  if (!*aURI)
-    return NS_ERROR_NULL_POINTER;
-
-  
   return NS_OK;
 }
 

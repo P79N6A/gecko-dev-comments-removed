@@ -939,7 +939,7 @@ RDFServiceImpl::GetResource(const nsACString& aURI, nsIRDFResource** aResource)
             
             nsACString::const_iterator begin;
             aURI.BeginReading(begin);
-            nsCAutoString contractID;
+            nsAutoCString contractID;
             contractID = NS_LITERAL_CSTRING(NS_RDF_RESOURCE_FACTORY_CONTRACTID_PREFIX) +
                          Substring(begin, p);
 
@@ -1017,7 +1017,7 @@ static int32_t kShift = 6;
     }
 
     nsresult rv;
-    nsCAutoString s;
+    nsAutoCString s;
 
     do {
         
@@ -1371,7 +1371,7 @@ RDFServiceImpl::GetDataSource(const char* aURI, bool aBlock, nsIRDFDataSource** 
     
     
     
-    nsCAutoString spec(aURI);
+    nsAutoCString spec(aURI);
 
     if (!StringBeginsWith(spec, NS_LITERAL_CSTRING("rdf:"))) {
         nsCOMPtr<nsIURI> uri;
@@ -1397,7 +1397,7 @@ RDFServiceImpl::GetDataSource(const char* aURI, bool aBlock, nsIRDFDataSource** 
     nsCOMPtr<nsIRDFDataSource> ds;
     if (StringBeginsWith(spec, NS_LITERAL_CSTRING("rdf:"))) {
         
-        nsCAutoString contractID(
+        nsAutoCString contractID(
                 NS_LITERAL_CSTRING(NS_RDF_DATASOURCE_CONTRACTID_PREFIX) +
                 Substring(spec, 4, spec.Length() - 4));
 

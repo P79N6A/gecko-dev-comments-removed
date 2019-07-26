@@ -21,6 +21,10 @@ class PropertyProvider;
 
 #define TEXT_HAS_NONCOLLAPSED_CHARACTERS NS_FRAME_STATE_BIT(31)
 
+
+
+#define TEXT_FORCE_TRIM_WHITESPACE       NS_FRAME_STATE_BIT(32)
+
 #define TEXT_HAS_FONT_INFLATION          NS_FRAME_STATE_BIT(61)
 
 typedef nsFrame nsTextFrameBase;
