@@ -123,7 +123,11 @@ int print_status() {
 
 
 
-__thread int foo[1024];
+
+
+
+__thread int foo;
+__thread long long int bar[512];
 
 void end_test() {
     static int count = 0;

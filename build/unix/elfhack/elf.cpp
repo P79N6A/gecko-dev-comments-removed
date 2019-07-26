@@ -259,7 +259,15 @@ Elf::Elf(std::ifstream &file)
         
         
         assert(segment->getFileSize() == phdr.p_filesz);
-        assert(segment->getMemSize() == phdr.p_memsz);
+        
+        
+        
+        unsigned int memsize = segment->getMemSize();
+        if (phdr.p_type == PT_TLS && memsize != phdr.p_memsz) {
+            unsigned int align = segment->getAlign();
+            memsize = (memsize + align - 1) & ~(align - 1);
+        }
+        assert(memsize == phdr.p_memsz);
         segments.push_back(segment);
     }
 
