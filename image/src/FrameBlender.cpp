@@ -393,29 +393,6 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
     return false;
   }
 
-  
-  
-  
-  
-  if (isFullNextFrame &&
-      nextFrameDisposalMethod != FrameBlender::kDisposeRestorePrevious &&
-      !nextFrame->GetIsPaletted()) {
-    
-    
-    
-    
-    
-    if (CopyFrameImage(mAnim->compositingFrame.GetFrameData(),
-                       mAnim->compositingFrame.GetFrame()->GetRect(),
-                       nextFrame.GetFrameData(),
-                       nextFrame.GetFrame()->GetRect())) {
-      prevFrame->SetFrameDisposalMethod(FrameBlender::kDisposeClearAll);
-      mAnim->compositingFrame.SetFrame(nullptr);
-      mAnim->lastCompositedFrameIndex = -1;
-      return true;
-    }
-  }
-
   mAnim->lastCompositedFrameIndex = int32_t(aNextFrameIndex);
 
   return true;
