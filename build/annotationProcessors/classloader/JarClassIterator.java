@@ -31,7 +31,19 @@ public class JarClassIterator implements Iterator<ClassWithOptions> {
         String className = mTargetClassListIterator.next();
         try {
             Class<?> ret = mTarget.loadClass(className);
-            if (ret.getCanonicalName() == null || "null".equals(ret.getCanonicalName())) {
+            final String canonicalName;
+
+            
+            
+            
+            
+            try {
+                canonicalName = ret.getCanonicalName();
+            } catch (IncompatibleClassChangeError e) {
+                return next();
+            }
+
+            if (canonicalName == null || "null".equals(canonicalName)) {
                 
                 return next();
             } else {
