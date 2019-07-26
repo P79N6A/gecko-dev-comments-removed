@@ -876,14 +876,13 @@ WebGLContext::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
 }
 
 void
-WebGLContext::GetContextAttributes(dom::WebGLContextAttributes &result)
+WebGLContext::GetContextAttributes(Nullable<dom::WebGLContextAttributesInitializer> &retval)
 {
+    retval.SetNull();
     if (!IsContextStable())
-    {
-        
-        
         return;
-    }
+
+    dom::WebGLContextAttributes& result = retval.SetValue();
 
     gl::ContextFormat cf = gl->ActualFormat();
     result.alpha = cf.alpha > 0;
