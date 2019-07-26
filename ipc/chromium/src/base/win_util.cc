@@ -322,17 +322,6 @@ bool IsAltPressed() {
   return (::GetKeyState(VK_MENU) & 0x80) == 0x80;
 }
 
-bool UserAccountControlIsEnabled() {
-  RegKey key(HKEY_LOCAL_MACHINE,
-      L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System");
-  DWORD uac_enabled;
-  if (!key.ReadValueDW(L"EnableLUA", &uac_enabled))
-    return true;
-  
-  
-  return (uac_enabled != 0);
-}
-
 std::wstring FormatMessage(unsigned messageid) {
   wchar_t* string_buffer = NULL;
   unsigned string_length = ::FormatMessage(

@@ -89,14 +89,6 @@ bool IsAltPressed();
 
 
 
-
-
-
-
-bool UserAccountControlIsEnabled();
-
-
-
 std::wstring FormatMessage(unsigned messageid);
 
 
