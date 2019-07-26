@@ -78,40 +78,7 @@ XPCOMUtils.defineLazyGetter(this, "MMS", function () {
 
 
 
-this.MobileMessageDB = function(aDbName, aDbVersion) {
-  this.dbName = aDbName;
-  this.dbVersion = aDbVersion || DB_VERSION;
-
-  let that = this;
-  this.newTxn(READ_ONLY, function(error, txn, messageStore){
-    if (error) {
-      return;
-    }
-    
-    
-    let request = messageStore.openCursor(null, PREV);
-    request.onsuccess = function onsuccess(event) {
-      let cursor = event.target.result;
-      if (!cursor) {
-        if (DEBUG) {
-          debug("Could not get the last key from mobile message database. " +
-                "Probably empty database");
-        }
-        return;
-      }
-      that.lastMessageId = cursor.key || 0;
-      if (DEBUG) debug("Last assigned message ID was " + that.lastMessageId);
-    };
-    request.onerror = function onerror(event) {
-      if (DEBUG) {
-        debug("Could not get the last key from mobile message database " +
-              event.target.errorCode);
-      }
-    };
-  });
-  this.updatePendingTransactionToError();
-};
-
+this.MobileMessageDB = function() {};
 MobileMessageDB.prototype = {
   dbName: null,
   dbVersion: null,
@@ -325,12 +292,80 @@ MobileMessageDB.prototype = {
 
 
 
-  updatePendingTransactionToError: function updatePendingTransactionToError() {
-    this.newTxn(READ_WRITE, function (error, txn, messageStore) {
-      if (DEBUG) {
-        txn.onerror = function onerror(event) {
-          debug("updatePendingTransactionToError fail, event = " + event);
+
+
+
+
+
+
+
+
+  init: function init(aDbName, aDbVersion, aCallback) {
+    this.dbName = aDbName;
+    this.dbVersion = aDbVersion || DB_VERSION;
+
+    let self = this;
+    this.newTxn(READ_ONLY, function(error, txn, messageStore){
+      if (error) {
+        if (aCallback) {
+          aCallback(error);
+        }
+        return;
+      }
+
+      if (aCallback) {
+        txn.oncomplete = function() {
+          aCallback(null);
         };
+      }
+
+      
+      
+      let request = messageStore.openCursor(null, PREV);
+      request.onsuccess = function onsuccess(event) {
+        let cursor = event.target.result;
+        if (!cursor) {
+          if (DEBUG) {
+            debug("Could not get the last key from mobile message database. " +
+                  "Probably empty database");
+          }
+          return;
+        }
+        self.lastMessageId = cursor.key || 0;
+        if (DEBUG) debug("Last assigned message ID was " + self.lastMessageId);
+      };
+      request.onerror = function onerror(event) {
+        if (DEBUG) {
+          debug("Could not get the last key from mobile message database " +
+                event.target.errorCode);
+        }
+      };
+    });
+  },
+
+  close: function close() {
+    if (!this.db) {
+      return;
+    }
+
+    this.db.close();
+    this.db = null;
+    this.lastMessageId = 0;
+  },
+
+  
+
+
+
+  updatePendingTransactionToError:
+    function updatePendingTransactionToError(aError) {
+    if (aError) {
+      return;
+    }
+
+    this.newTxn(READ_WRITE, function (error, txn, messageStore) {
+      if (error) {
+        return;
       }
 
       let deliveryIndex = messageStore.index("delivery");

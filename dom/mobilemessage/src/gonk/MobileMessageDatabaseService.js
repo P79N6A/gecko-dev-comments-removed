@@ -27,7 +27,9 @@ function MobileMessageDatabaseService() {
   
   Services.dirsvc.get("ProfD", Ci.nsIFile);
 
-  this.mmdb = new MMDB.MobileMessageDB(DB_NAME);
+  let mmdb = new MMDB.MobileMessageDB();
+  mmdb.init(DB_NAME, 0, mmdb.updatePendingTransactionToError.bind(mmdb));
+  this.mmdb = mmdb;
 }
 MobileMessageDatabaseService.prototype = {
 
