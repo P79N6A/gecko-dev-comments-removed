@@ -15,7 +15,6 @@
 
 
 
-
 class nsWindowBase : public nsBaseWidget
 {
 public:
@@ -25,6 +24,16 @@ public:
   virtual HWND GetWindowHandle() MOZ_FINAL {
     return static_cast<HWND>(GetNativeData(NS_NATIVE_WINDOW));
   }
+
+  
+
+
+  virtual nsWindowBase* GetParentWindowBase(bool aIncludeOwner) = 0;
+
+  
+
+
+  virtual bool IsTopLevelWidget() = 0;
 
   
 

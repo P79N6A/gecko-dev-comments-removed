@@ -26,6 +26,7 @@
 #include "mozilla/Attributes.h"
 
 class nsWindow;
+class nsWindowBase;
 struct KeyPair;
 
 namespace mozilla {
@@ -139,7 +140,10 @@ public:
 
 
 
-  static bool SetNSWindowPtr(HWND aWnd, nsWindow* aWindow);
+
+
+  static bool SetNSWindowBasePtr(HWND aWnd, nsWindowBase* aWidget);
+  static nsWindowBase* GetNSWindowBasePtr(HWND aWnd);
   static nsWindow* GetNSWindowPtr(HWND aWnd);
 
   

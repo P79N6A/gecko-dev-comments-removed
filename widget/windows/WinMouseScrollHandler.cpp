@@ -412,14 +412,14 @@ MouseScrollHandler::ProcessNativeMouseWheelMessage(nsWindow* aWindow,
   
   
   if (WinUtils::IsOurProcessWindow(underCursorWnd)) {
-    nsWindow* destWindow = WinUtils::GetNSWindowPtr(underCursorWnd);
+    nsWindowBase* destWindow = WinUtils::GetNSWindowBasePtr(underCursorWnd);
     if (!destWindow) {
       PR_LOG(gMouseScrollLog, PR_LOG_ALWAYS,
         ("MouseScroll::ProcessNativeMouseWheelMessage: "
          "Found window under the cursor isn't managed by nsWindow..."));
       HWND wnd = ::GetParent(underCursorWnd);
       for (; wnd; wnd = ::GetParent(wnd)) {
-        destWindow = WinUtils::GetNSWindowPtr(wnd);
+        destWindow = WinUtils::GetNSWindowBasePtr(wnd);
         if (destWindow) {
           break;
         }
@@ -1498,7 +1498,7 @@ MouseScrollHandler::SynthesizingEvent::NativeMessageReceived(nsWindow* aWindow,
     
     
     if (aWindow && aWindow->GetWindowType() == eWindowType_plugin &&
-        !WinUtils::GetNSWindowPtr(mWnd)) {
+        !WinUtils::GetNSWindowBasePtr(mWnd)) {
       return;
     }
     
