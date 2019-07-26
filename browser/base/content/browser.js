@@ -4518,7 +4518,6 @@ var TabsProgressListener = {
       
       if (aRequest) {
         
-        aBrowser._clickToPlayDoorhangerShown = false;
         aBrowser._clickToPlayPluginsActivated = false;
         aBrowser._pluginScriptedState = gPluginHandler.PLUGIN_SCRIPTED_STATE_NONE;
       }
