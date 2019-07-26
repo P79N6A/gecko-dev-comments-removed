@@ -437,7 +437,7 @@ let Content = {
     
     
     
-    if (!this.formAssistant.open(element, aEvent.clientX, aEvent.clientY)) {
+    if (!this.formAssistant.open(element, aEvent)) {
       if (gFocusManager.focusedElement &&
           gFocusManager.focusedElement != element) {
         gFocusManager.focusedElement.blur();
@@ -447,11 +447,6 @@ let Content = {
       sendAsyncMessage("FindAssist:Hide", { });
     }
 
-    
-    if (element instanceof HTMLSelectElement) {
-      aEvent.preventDefault()
-      aEvent.stopPropagation()
-    }
     this._cancelTapHighlight();
     this.formAssistant.focusSync = false;
   },

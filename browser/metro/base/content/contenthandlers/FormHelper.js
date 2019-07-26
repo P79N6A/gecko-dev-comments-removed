@@ -104,13 +104,24 @@ FormAssistant.prototype = {
   },
 
   _open: false,
-  open: function formHelperOpen(aElement, aX, aY) {
+  open: function formHelperOpen(aElement, aEvent) {
     
     
     if (aElement instanceof HTMLOptionElement &&
         aElement.parentNode instanceof HTMLSelectElement &&
         !aElement.disabled) {
       aElement = aElement.parentNode;
+    }
+
+    if (aElement instanceof HTMLSelectElement && aEvent) {
+      
+      if ((aElement.multiple || aElement.size > 1) &&
+          aEvent.mozInputSource != Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH) {
+        return false;
+      }
+      
+      aEvent.preventDefault()
+      aEvent.stopPropagation()
     }
 
     
@@ -125,8 +136,8 @@ FormAssistant.prototype = {
 
       
       if (aElement instanceof Ci.nsIDOMHTMLEmbedElement) {
-        aX = aX || 0;
-        aY = aY || 0;
+        let x = (aEvent && aEvent.clientX) || 0;
+        let y = (aEvent && aEvent.clientY) || 0;
         this._executeDelayed(function(self) {
           let utils = Util.getWindowUtils(aElement.ownerDocument.defaultView);
           if (utils.IMEStatus == utils.IME_STATUS_PLUGIN) {
@@ -143,7 +154,7 @@ FormAssistant.prototype = {
                 validationMessage: null,
                 list: null,
                 rect: getBoundingContentRect(aElement),
-                caretRect: new Rect(aX, aY, 1, 10),
+                caretRect: new Rect(x, y, 1, 10),
                 editable: true
               },
               hasPrevious: false,
