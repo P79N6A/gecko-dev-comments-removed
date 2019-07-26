@@ -83,6 +83,10 @@ XPCOMUtils.defineLazyGetter(this, "gInternetZoneIdentifier", function() {
   return new TextEncoder().encode("[ZoneTransfer]\r\nZoneId=3\r\n");
 });
 
+XPCOMUtils.defineLazyServiceGetter(this, "volumeService",
+                                   "@mozilla.org/telephony/volume-service;1",
+                                   "nsIVolumeService");
+
 const Timer = Components.Constructor("@mozilla.org/timer;1", "nsITimer",
                                      "initWithCallback");
 
@@ -231,6 +235,48 @@ this.DownloadIntegration = {
     }.bind(this));
   },
 
+#ifdef MOZ_WIDGET_GONK
+  
+
+
+
+
+
+
+  _getDefaultDownloadDirectory: function() {
+    return Task.spawn(function() {
+      let directoryPath;
+      let win = Services.wm.getMostRecentWindow("navigator:browser");
+      let storages = win.navigator.getDeviceStorages("sdcard");
+      let preferredStorageName;
+      
+      storages.forEach((aStorage) => {
+        if (aStorage.default || !preferredStorageName) {
+          preferredStorageName = aStorage.storageName;
+        }
+      });
+
+      
+      if (preferredStorageName) {
+        let volume = volumeService.getVolumeByName(preferredStorageName);
+        if (volume &&
+            volume.isMediaPresent &&
+            !volume.isMountLocked &&
+            !volume.isSharing) {
+          directoryPath = OS.Path.join(volume.mountPoint, "downloads");
+          yield OS.File.makeDir(directoryPath, { ignoreExisting: true });
+        }
+      }
+      if (directoryPath) {
+        throw new Task.Result(directoryPath);
+      } else {
+        throw new Components.Exception("No suitable storage for downloads.",
+                                       Cr.NS_ERROR_FILE_UNRECOGNIZED_PATH);
+      }
+    });
+  },
+#endif
+
   
 
 
@@ -286,7 +332,7 @@ this.DownloadIntegration = {
         directoryPath = this._getDirectory("DfltDwnld");
       }
 #elifdef XP_UNIX
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
       
       
       directoryPath = gEnvironment.get("DOWNLOADS_DIRECTORY");
@@ -294,6 +340,8 @@ this.DownloadIntegration = {
         throw new Components.Exception("DOWNLOADS_DIRECTORY is not set.",
                                        Cr.NS_ERROR_FILE_UNRECOGNIZED_PATH);
       }
+#elifdef MOZ_WIDGET_GONK
+      directoryPath = this._getDefaultDownloadDirectory();
 #else
       
       
@@ -321,6 +369,9 @@ this.DownloadIntegration = {
   getPreferredDownloadsDirectory: function DI_getPreferredDownloadsDirectory() {
     return Task.spawn(function() {
       let directoryPath = null;
+#ifdef MOZ_WIDGET_GONK
+      directoryPath = this._getDefaultDownloadDirectory();
+#else
       let prefValue = 1;
 
       try {
@@ -348,6 +399,7 @@ this.DownloadIntegration = {
         default:
           directoryPath = yield this.getSystemDownloadsDirectory();
       }
+#endif
       throw new Task.Result(directoryPath);
     }.bind(this));
   },
@@ -363,7 +415,9 @@ this.DownloadIntegration = {
       let directoryPath = null;
 #ifdef XP_MACOSX
       directoryPath = yield this.getPreferredDownloadsDirectory();
-#elifdef ANDROID
+#elifdef MOZ_WIDGET_ANDROID
+      directoryPath = yield this.getSystemDownloadsDirectory();
+#elifdef MOZ_WIDGET_GONK
       directoryPath = yield this.getSystemDownloadsDirectory();
 #else
       
