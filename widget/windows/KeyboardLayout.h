@@ -335,6 +335,12 @@ public:
 
 
 
+  bool DispatchKeyDownEvent(bool* aEventDispatched = nullptr) const;
+
+  
+
+
+
   bool HandleKeyUpMessage(bool* aEventDispatched = nullptr) const;
 
 private:
