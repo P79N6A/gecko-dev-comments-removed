@@ -76,6 +76,10 @@ const char* const TraceLogging::typeName[] = {
     "0,G",  
     "1,g",  
     "0,g",  
+    "1,gS", 
+    "0,gS", 
+    "1,gA", 
+    "0,gA", 
     "1,ps", 
     "0,ps", 
     "1,pl", 
@@ -86,13 +90,12 @@ const char* const TraceLogging::typeName[] = {
     "e,b",  
     "e,o"   
 };
-TraceLogging* TraceLogging::loggers[] = {NULL, NULL};
+TraceLogging* TraceLogging::loggers[] = {NULL, NULL, NULL};
 bool TraceLogging::atexitSet = false;
 uint64_t TraceLogging::startupTime = 0;
 
 TraceLogging::TraceLogging(Logger id)
-  : loggingTime(0),
-    nextTextId(1),
+  : nextTextId(1),
     entries(NULL),
     curEntry(0),
     numEntries(1000000),
@@ -105,15 +108,15 @@ TraceLogging::TraceLogging(Logger id)
 
 TraceLogging::~TraceLogging()
 {
-    if (out) {
-        fclose(out);
-        out = NULL;
-    }
-
     if (entries) {
         flush();
         free(entries);
         entries = NULL;
+    }
+
+    if (out) {
+        fclose(out);
+        out = NULL;
     }
 }
 
@@ -163,16 +166,11 @@ TraceLogging::log(Type type, const char* text , unsigned int number )
         }
     }
 
-    entries[curEntry++] = Entry(now - loggingTime, text_, textId, number, type);
+    entries[curEntry++] = Entry(now, text_, textId, number, type);
 
     
     if (curEntry >= numEntries)
         grow();
-
-    
-    
-    
-    loggingTime += rdtsc() - startupTime - now;
 }
 
 void
@@ -204,6 +202,9 @@ TraceLogging::flush()
             break;
           case ION_BACKGROUND_COMPILER:
             out = fopen(TRACE_LOG_DIR "tracelogging-compile.log", "w");
+            break;
+          case GC_BACKGROUND:
+            out = fopen(TRACE_LOG_DIR "tracelogging-gc.log", "w");
             break;
           default:
             MOZ_ASSUME_UNREACHABLE("Bad trigger");
