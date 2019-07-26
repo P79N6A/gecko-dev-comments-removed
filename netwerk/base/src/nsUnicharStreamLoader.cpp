@@ -7,10 +7,11 @@
 #include "nsIInputStream.h"
 #include "nsICharsetConverterManager.h"
 #include "nsIServiceManager.h"
+#include "mozilla/Util.h" 
 
 #define SNIFFING_BUFFER_SIZE 512 // specified in draft-abarth-mime-sniff-06
 
-using mozilla::fallible_t;
+using namespace mozilla;
 
 NS_IMETHODIMP
 nsUnicharStreamLoader::Init(nsIUnicharStreamLoaderObserver *aObserver)
@@ -198,7 +199,6 @@ nsUnicharStreamLoader::WriteSegmentFun(nsIInputStream *,
   nsUnicharStreamLoader* self = static_cast<nsUnicharStreamLoader*>(aClosure);
 
   uint32_t haveRead = self->mBuffer.Length();
-  nsresult rv;
   int32_t srcLen = aCount;
   int32_t dstLen;
   self->mDecoder->GetMaxLength(aSegment, srcLen, &dstLen);
@@ -208,10 +208,11 @@ nsUnicharStreamLoader::WriteSegmentFun(nsIInputStream *,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  rv = self->mDecoder->Convert(aSegment,
-                               &srcLen,
-                               self->mBuffer.BeginWriting() + haveRead,
-                               &dstLen);
+  DebugOnly<nsresult> rv =
+    self->mDecoder->Convert(aSegment,
+                            &srcLen,
+                            self->mBuffer.BeginWriting() + haveRead,
+                            &dstLen);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
   MOZ_ASSERT(srcLen == static_cast<int32_t>(aCount));
   haveRead += dstLen;
