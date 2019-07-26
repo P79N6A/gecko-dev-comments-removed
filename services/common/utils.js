@@ -166,9 +166,7 @@ this.CommonUtils = {
     }
 
     
-    let timer = {
-      __proto__: Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer),
-    };
+    let timer = Object.create(Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer));
 
     
     timer.clear = function() {
