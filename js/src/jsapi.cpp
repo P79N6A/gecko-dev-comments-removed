@@ -5946,7 +5946,10 @@ JS_ReportPendingException(JSContext *cx)
     AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
-    return js_ReportUncaughtException(cx);
+    
+    bool ok = js_ReportUncaughtException(cx);
+    JS_ASSERT(!cx->isExceptionPending());
+    return ok;
 }
 
 struct JSExceptionState {
