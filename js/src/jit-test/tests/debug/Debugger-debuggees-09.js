@@ -1,7 +1,6 @@
 
 
 
-
 var dbg = new Debugger;
 
 function check(obj) {
@@ -13,15 +12,11 @@ function check(obj) {
 }
 
 
-check(this);
-check({});
 var g1 = newGlobal('same-compartment');
 check(g1);
-check(g1.eval("({})"));
 
 
 var g2 = newGlobal('new-compartment');
 g2.parent = this;
 g2.eval("var dbg = new Debugger(parent);");
 check(g2);
-check(g2.dbg);
