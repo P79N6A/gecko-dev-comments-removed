@@ -7,16 +7,13 @@
 #ifndef mozilla_dom_Element_h__
 #define mozilla_dom_Element_h__
 
-#include "mozilla/dom/FragmentOrElement.h" 
-#include "nsChangeHint.h"                  
-#include "nsEventStates.h"                 
-#include "mozilla/dom/DirectionalityUtils.h"
+#include "nsIContent.h"
+#include "nsEventStates.h"
 
 class nsEventStateManager;
-class nsFocusManager;
 class nsGlobalWindow;
+class nsFocusManager;
 class nsICSSDeclaration;
-class nsISMILAttr;
 
 
 enum {
@@ -60,15 +57,15 @@ class Link;
 
 
 #define NS_ELEMENT_IID \
-{ 0xc6c049a1, 0x96e8, 0x4580, \
-  { 0xa6, 0x93, 0xb9, 0x5f, 0x53, 0xbe, 0xe8, 0x1c } }
+{ 0x8493dd61, 0x4d59, 0x410a, \
+  { 0x97, 0x40, 0xd0, 0xa0, 0xc2, 0x03, 0xff, 0x52 } }
 
-class Element : public FragmentOrElement
+class Element : public nsIContent
 {
 public:
 #ifdef MOZILLA_INTERNAL_API
   Element(already_AddRefed<nsINodeInfo> aNodeInfo) :
-    FragmentOrElement(aNodeInfo),
+    nsIContent(aNodeInfo),
     mState(NS_EVENT_STATE_MOZ_READONLY)
   {}
 #endif 
@@ -120,7 +117,7 @@ public:
       return mState;
     }
     return StyleStateFromLocks();
-  }
+  };
 
   
 
@@ -175,7 +172,7 @@ public:
 
 
 
-  virtual nsISMILAttr* GetAnimatedAttr(int32_t aNamespaceID, nsIAtom* aName) = 0;
+  virtual nsISMILAttr* GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName) = 0;
 
   
 
@@ -191,79 +188,6 @@ public:
 
 
   virtual bool IsLabelable() const = 0;
-
-  
-
-
-
-
-
-
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const = 0;
-
-  
-
-
-
-
-
-  virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              int32_t aModType) const = 0;
-
-  
-
-
-
-
-  virtual nsIAtom *GetClassAttributeName() const = 0;
-
-  inline mozilla::directionality::Directionality GetDirectionality() const {
-    if (HasFlag(NODE_HAS_DIRECTION_RTL)) {
-      return mozilla::directionality::eDir_RTL;
-    }
-
-    if (HasFlag(NODE_HAS_DIRECTION_LTR)) {
-      return mozilla::directionality::eDir_LTR;
-    }
-
-    return mozilla::directionality::eDir_NotSet;
-  }
-
-  inline void SetDirectionality(mozilla::directionality::Directionality aDir,
-                                bool aNotify) {
-    UnsetFlags(NODE_ALL_DIRECTION_FLAGS);
-    if (!aNotify) {
-      RemoveStatesSilently(DIRECTION_STATES);
-    }
-
-    switch (aDir) {
-      case (mozilla::directionality::eDir_RTL):
-        SetFlags(NODE_HAS_DIRECTION_RTL);
-        if (!aNotify) {
-          AddStatesSilently(NS_EVENT_STATE_RTL);
-        }
-        break;
-
-      case(mozilla::directionality::eDir_LTR):
-        SetFlags(NODE_HAS_DIRECTION_LTR);
-        if (!aNotify) {
-          AddStatesSilently(NS_EVENT_STATE_LTR);
-        }
-        break;
-
-      default:
-        break;
-    }
-
-    
-
-
-
-
-    if (aNotify) {
-      UpdateState(true);
-    }
-  }
 
 protected:
   
