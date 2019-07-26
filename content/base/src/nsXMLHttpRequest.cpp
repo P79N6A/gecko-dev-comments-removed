@@ -2758,9 +2758,6 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
     
     
     internalHttpChannel->SetLoadUnblocked(true);
-
-    
-    internalHttpChannel->SetResponseTimeoutEnabled(false);
   }
 
   nsCOMPtr<nsIStreamListener> listener = this;
