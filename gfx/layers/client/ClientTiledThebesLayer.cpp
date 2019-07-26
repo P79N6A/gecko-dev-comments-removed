@@ -235,6 +235,65 @@ ClientTiledThebesLayer::RenderHighPrecision(nsIntRegion& aInvalidRegion,
   return true;
 }
 
+bool
+ClientTiledThebesLayer::RenderLowPrecision(nsIntRegion& aInvalidRegion,
+                                           LayerManager::DrawThebesLayerCallback aCallback,
+                                           void* aCallbackData)
+{
+  
+  
+  if (!aInvalidRegion.IsEmpty() &&
+      !nsIntRegion(LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort)).Contains(mVisibleRegion)) {
+    nsIntRegion oldValidRegion = mContentClient->mLowPrecisionTiledBuffer.GetValidRegion();
+    oldValidRegion.And(oldValidRegion, mVisibleRegion);
+
+    bool updatedBuffer = false;
+
+    
+    if (mContentClient->mLowPrecisionTiledBuffer.GetFrameResolution() != mPaintData.mResolution ||
+        mContentClient->mLowPrecisionTiledBuffer.HasFormatChanged()) {
+      if (!mLowPrecisionValidRegion.IsEmpty()) {
+        updatedBuffer = true;
+      }
+      oldValidRegion.SetEmpty();
+      mLowPrecisionValidRegion.SetEmpty();
+      mContentClient->mLowPrecisionTiledBuffer.SetFrameResolution(mPaintData.mResolution);
+      aInvalidRegion = mVisibleRegion;
+    }
+
+    
+    if (mPaintData.mLowPrecisionPaintCount == 1) {
+      mLowPrecisionValidRegion.And(mLowPrecisionValidRegion, mVisibleRegion);
+    }
+    mPaintData.mLowPrecisionPaintCount++;
+
+    
+    
+    aInvalidRegion.Sub(aInvalidRegion, mValidRegion);
+
+    TILING_PRLOG_OBJ(("TILING 0x%p: Progressive paint: low-precision invalid region is %s\n", this, tmpstr.get()), aInvalidRegion);
+    TILING_PRLOG_OBJ(("TILING 0x%p: Progressive paint: low-precision new valid region is %s\n", this, tmpstr.get()), mLowPrecisionValidRegion);
+
+    if (!aInvalidRegion.IsEmpty()) {
+      updatedBuffer = mContentClient->mLowPrecisionTiledBuffer.ProgressiveUpdate(
+                            mLowPrecisionValidRegion, aInvalidRegion, oldValidRegion,
+                            &mPaintData, aCallback, aCallbackData);
+    }
+    return updatedBuffer;
+  }
+  if (!mLowPrecisionValidRegion.IsEmpty()) {
+    TILING_PRLOG(("TILING 0x%p: Clearing low-precision buffer\n", this));
+    
+    mLowPrecisionValidRegion.SetEmpty();
+    mContentClient->mLowPrecisionTiledBuffer.ResetPaintedAndValidState();
+    
+    
+    
+    return true;
+  }
+  return false;
+}
+
 void
 ClientTiledThebesLayer::EndPaint(bool aFinish)
 {
@@ -360,54 +419,7 @@ ClientTiledThebesLayer::RenderLayer()
   TILING_PRLOG_OBJ(("TILING 0x%p: Low-precision valid region is %s\n", this, tmpstr.get()), mLowPrecisionValidRegion);
   TILING_PRLOG_OBJ(("TILING 0x%p: Low-precision invalid region is %s\n", this, tmpstr.get()), lowPrecisionInvalidRegion);
 
-  
-  
-  bool updatedLowPrecision = false;
-  if (!lowPrecisionInvalidRegion.IsEmpty() &&
-      !nsIntRegion(LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort)).Contains(mVisibleRegion)) {
-    nsIntRegion oldValidRegion =
-      mContentClient->mLowPrecisionTiledBuffer.GetValidRegion();
-    oldValidRegion.And(oldValidRegion, mVisibleRegion);
-
-    
-    if (mContentClient->mLowPrecisionTiledBuffer.GetFrameResolution() != mPaintData.mResolution ||
-        mContentClient->mLowPrecisionTiledBuffer.HasFormatChanged()) {
-      if (!mLowPrecisionValidRegion.IsEmpty()) {
-        updatedLowPrecision = true;
-      }
-      oldValidRegion.SetEmpty();
-      mLowPrecisionValidRegion.SetEmpty();
-      mContentClient->mLowPrecisionTiledBuffer.SetFrameResolution(mPaintData.mResolution);
-      lowPrecisionInvalidRegion = mVisibleRegion;
-    }
-
-    
-    if (mPaintData.mLowPrecisionPaintCount == 1) {
-      mLowPrecisionValidRegion.And(mLowPrecisionValidRegion, mVisibleRegion);
-    }
-    mPaintData.mLowPrecisionPaintCount++;
-
-    
-    
-    lowPrecisionInvalidRegion.Sub(lowPrecisionInvalidRegion, mValidRegion);
-
-    if (!lowPrecisionInvalidRegion.IsEmpty()) {
-      updatedLowPrecision = mContentClient->mLowPrecisionTiledBuffer
-                              .ProgressiveUpdate(mLowPrecisionValidRegion,
-                                                 lowPrecisionInvalidRegion,
-                                                 oldValidRegion, &mPaintData,
-                                                 callback, data);
-    }
-  } else if (!mLowPrecisionValidRegion.IsEmpty()) {
-    
-    updatedLowPrecision = true;
-    mLowPrecisionValidRegion.SetEmpty();
-    mContentClient->mLowPrecisionTiledBuffer.ResetPaintedAndValidState();
-  }
-
-  
-  
-  
+  bool updatedLowPrecision = RenderLowPrecision(lowPrecisionInvalidRegion, callback, data);
   if (updatedLowPrecision) {
     ClientManager()->Hold(this);
     mContentClient->UseTiledLayerBuffer(TiledContentClient::LOW_PRECISION_TILED_BUFFER);
