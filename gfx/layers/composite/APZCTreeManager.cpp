@@ -134,7 +134,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         controller->NotifyLayersUpdated(container->GetFrameMetrics(),
                                         aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
 
-        LayerRect visible = ScreenRect(container->GetFrameMetrics().mCompositionBounds) * ScreenToLayerScale(1.0);
+        LayerRect visible = container->GetFrameMetrics().mViewport * container->GetFrameMetrics().LayersPixelsPerCSSPixel();
         controller->SetLayerHitTestData(visible, aTransform, aLayer->GetTransform());
         APZC_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
                                                                               visible.width, visible.height,
@@ -213,6 +213,7 @@ ApplyTransform(nsIntPoint* aPoint, const gfx3DMatrix& aMatrix)
 nsEventStatus
 APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
 {
+  nsEventStatus result = nsEventStatus_eIgnore;
   gfx3DMatrix transformToApzc;
   gfx3DMatrix transformToScreen;
   switch (aEvent.mInputType) {
@@ -238,7 +239,7 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
         for (size_t i = 0; i < inputForApzc.mTouches.Length(); i++) {
           ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
         }
-        mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
+        result = mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
         
         
         if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_CANCEL ||
@@ -254,7 +255,7 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
         GetInputTransforms(apzc, transformToApzc, transformToScreen);
         PinchGestureInput inputForApzc(pinchInput);
         ApplyTransform(&(inputForApzc.mFocusPoint), transformToApzc);
-        apzc->ReceiveInputEvent(inputForApzc);
+        result = apzc->ReceiveInputEvent(inputForApzc);
       }
       break;
     } case TAPGESTURE_INPUT: {
@@ -264,12 +265,12 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
         GetInputTransforms(apzc, transformToApzc, transformToScreen);
         TapGestureInput inputForApzc(tapInput);
         ApplyTransform(&(inputForApzc.mPoint), transformToApzc);
-        apzc->ReceiveInputEvent(inputForApzc);
+        result = apzc->ReceiveInputEvent(inputForApzc);
       }
       break;
     }
   }
-  return nsEventStatus_eIgnore;
+  return result;
 }
 
 nsEventStatus

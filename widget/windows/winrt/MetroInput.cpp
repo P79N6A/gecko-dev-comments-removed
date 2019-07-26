@@ -180,6 +180,20 @@ namespace {
     aData->mChanged = false;
     return PL_DHASH_NEXT;
   }
+
+  
+  class AutoDeleteEvent
+  {
+  public:
+    AutoDeleteEvent(nsGUIEvent* aPtr) :
+      mPtr(aPtr) {}
+    ~AutoDeleteEvent() {
+      if (mPtr) {
+        delete mPtr;
+      }
+    }
+    nsGUIEvent* mPtr;
+  };
 }
 
 namespace mozilla {
@@ -432,6 +446,8 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
     mTouchStartDefaultPrevented = false;
     mTouchMoveDefaultPrevented = false;
     mIsFirstTouchMove = true;
+    mCancelable = true;
+    mTouchCancelSent = false;
     InitTouchEventTouchList(touchEvent);
     DispatchAsyncTouchEventWithCallback(touchEvent, &MetroInput::OnPointerPressedCallback);
   } else {
@@ -450,10 +466,12 @@ MetroInput::OnPointerPressedCallback()
 {
   nsEventStatus status = DeliverNextQueuedTouchEvent();
   mTouchStartDefaultPrevented = (nsEventStatus_eConsumeNoDefault == status);
-  
-  
   if (mTouchStartDefaultPrevented) {
+    
+    
     mGestureRecognizer->CompleteGesture();
+    
+    mWidget->ApzContentConsumingTouch();
   }
 }
 
@@ -551,7 +569,14 @@ void
 MetroInput::OnFirstPointerMoveCallback()
 {
   nsEventStatus status = DeliverNextQueuedTouchEvent();
+  mCancelable = false;
   mTouchMoveDefaultPrevented = (nsEventStatus_eConsumeNoDefault == status);
+  
+  if (mTouchMoveDefaultPrevented) {
+    mWidget->ApzContentConsumingTouch();
+  } else if (!mTouchMoveDefaultPrevented && !mTouchStartDefaultPrevented) {
+    mWidget->ApzContentIgnoringTouch();
+  }
 }
 
 
@@ -1087,17 +1112,67 @@ MetroInput::DispatchAsyncTouchEventIgnoreStatus(nsTouchEvent* aEvent)
 nsEventStatus
 MetroInput::DeliverNextQueuedTouchEvent()
 {
+  nsEventStatus status;
   nsTouchEvent* event = static_cast<nsTouchEvent*>(mInputEventQueue.PopFront());
   MOZ_ASSERT(event);
-  nsEventStatus status;
-  mWidget->DispatchEvent(event, status);
+
+  AutoDeleteEvent wrap(event);
+
   
-  if (!mTouchStartDefaultPrevented && !mTouchMoveDefaultPrevented && MetroWidget::sAPZC) {
-    MultiTouchInput inputData(*event);
-    MetroWidget::sAPZC->ReceiveInputEvent(inputData);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  if (mTouchStartDefaultPrevented || mTouchMoveDefaultPrevented) {
+    
+    mWidget->DispatchEvent(event, status);
+    return status;
   }
-  delete event;
+
+  
+  
+  status = mWidget->ApzReceiveInputEvent(event);
+  if (!mCancelable && status == nsEventStatus_eConsumeNoDefault) {
+    if (!mTouchCancelSent) {
+      mTouchCancelSent = true;
+      DispatchTouchCancel();
+    }
+    return status;
+  }
+
+  
+  mWidget->DispatchEvent(event, status);
   return status;
+}
+
+void
+MetroInput::DispatchTouchCancel()
+{
+  LogFunction();
+  
+  
+  
+  
+  
+  nsTouchEvent touchEvent(true, NS_TOUCH_CANCEL, mWidget.Get());
+  InitTouchEventTouchList(&touchEvent);
+  mWidget->DispatchEvent(&touchEvent, sThrowawayStatus);
 }
 
 void
