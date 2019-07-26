@@ -16,7 +16,7 @@ const MAX_RP_CALLS = 100;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/IdentityUtils.jsm");
+Cu.import("resource://gre/modules/identity/IdentityUtils.jsm");
 
 
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
