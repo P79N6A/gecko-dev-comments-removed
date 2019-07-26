@@ -1,4 +1,0 @@
-
-
-
-#include "android/log.h"

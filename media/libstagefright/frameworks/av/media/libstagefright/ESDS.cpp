@@ -15,7 +15,6 @@
 
 
 
-#undef LOG_TAG
 #define LOG_TAG "ESDS"
 #include <utils/Log.h>
 
@@ -226,4 +225,3 @@ status_t ESDS::parseDecoderConfigDescriptor(size_t offset, size_t size) {
 
 }  
 
-#undef LOG_TAG
