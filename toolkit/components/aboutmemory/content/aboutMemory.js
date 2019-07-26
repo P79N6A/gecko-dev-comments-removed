@@ -48,11 +48,16 @@ XPCOMUtils.defineLazyGetter(this, "nsGzipConverter",
 let gMgr = Cc["@mozilla.org/memory-reporter-manager;1"]
              .getService(Ci.nsIMemoryReporterManager);
 
+
+
+let gOs = Cc["@mozilla.org/observer-service;1"]
+            .getService(Ci.nsIObserverService);
+gOs.addObserver(updateAboutMemoryFromReporters,
+                "child-memory-reporter-update", false);
+
 let gUnnamedProcessStr = "Main Process";
 
 let gIsDiff = false;
-
-let gChildMemoryListener = undefined;
 
 
 
@@ -115,28 +120,10 @@ function debug(x)
 
 
 
-function addChildObserversAndUpdate(aUpdateFn)
-{
-  let os = Cc["@mozilla.org/observer-service;1"]
-             .getService(Ci.nsIObserverService);
-  os.notifyObservers(null, "child-memory-reporter-request", null);
-
-  gChildMemoryListener = aUpdateFn;
-  os.addObserver(gChildMemoryListener, "child-memory-reporter-update", false);
-
-  gChildMemoryListener();
-}
-
 function onUnload()
 {
-  
-  
-  
-  if (gChildMemoryListener) {
-    let os = Cc["@mozilla.org/observer-service;1"]
-               .getService(Ci.nsIObserverService);
-    os.removeObserver(gChildMemoryListener, "child-memory-reporter-update");
-  }
+  gOs.removeObserver(updateAboutMemoryFromReporters,
+                     "child-memory-reporter-update");
 }
 
 
@@ -467,7 +454,12 @@ function doMMU()
 
 function doMeasure()
 {
-  addChildObserversAndUpdate(updateAboutMemoryFromReporters);
+  
+  
+  
+  
+  gOs.notifyObservers(null, "child-memory-reporter-request", null);
+  updateAboutMemoryFromReporters();
 }
 
 
