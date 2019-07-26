@@ -1548,15 +1548,15 @@ RadioInterfaceLayer.prototype = {
       }
 
       gSystemMessenger.broadcastMessage("sms-received", {
-        id: message.id,
-        delivery: DOM_MOBILE_MESSAGE_DELIVERY_RECEIVED,
+        id:             message.id,
+        delivery:       DOM_MOBILE_MESSAGE_DELIVERY_RECEIVED,
         deliveryStatus: RIL.GECKO_SMS_DELIVERY_STATUS_SUCCESS,
-        sender: message.sender,
-        receiver: message.receiver,
-        body: message.fullBody,
-        messageClass: message.messageClass,
-        timestamp: message.timestamp,
-        read: false
+        sender:         message.sender,
+        receiver:       message.receiver,
+        body:           message.fullBody,
+        messageClass:   message.messageClass,
+        timestamp:      message.timestamp,
+        read:           false
       });
 
       Services.obs.notifyObservers(domMessage, kSmsReceivedObserverTopic, null);
@@ -1618,16 +1618,17 @@ RadioInterfaceLayer.prototype = {
                                                      options.sms.deliveryStatus,
                                                      function notifyResult(rv, domMessage) {
       
-      gSystemMessenger.broadcastMessage("sms-sent",
-                                        {id: options.sms.id,
-                                         delivery: DOM_MOBILE_MESSAGE_DELIVERY_SENT,
-                                         deliveryStatus: options.sms.deliveryStatus,
-                                         sender: message.sender || null,
-                                         receiver: options.sms.receiver,
-                                         body: options.sms.body,
-                                         messageClass: options.sms.messageClass,
-                                         timestamp: options.sms.timestamp,
-                                         read: true});
+      gSystemMessenger.broadcastMessage("sms-sent", {
+        id:             options.sms.id,
+        delivery:       DOM_MOBILE_MESSAGE_DELIVERY_SENT,
+        deliveryStatus: options.sms.deliveryStatus,
+        sender:         message.sender || null,
+        receiver:       options.sms.receiver,
+        body:           options.sms.body,
+        messageClass:   options.sms.messageClass,
+        timestamp:      options.sms.timestamp,
+        read:           true
+      });
 
       if (!options.requestStatusReport) {
         

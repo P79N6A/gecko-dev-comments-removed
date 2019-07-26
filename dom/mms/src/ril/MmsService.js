@@ -349,7 +349,6 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function () {
 
     sendRequest: function sendRequest(method, url, istream, callback) {
       
-      
 
       gMmsConnection.acquire((function (method, url, istream, callback,
                                         connected) {
@@ -934,7 +933,7 @@ MmsService.prototype = {
     if (intermediate.headers.from) {
       intermediate.sender = intermediate.headers.from.address;
     } else {
-      record.sender = "anonymous";
+      intermediate.sender = "anonymous";
     }
     intermediate.receivers = [];
     return intermediate;
@@ -997,8 +996,6 @@ MmsService.prototype = {
   retrieveMessage: function retrieveMessage(contentLocation, callback) {
     
     
-    
-    
 
     let transaction = new RetrieveTransaction(contentLocation);
     transaction.run(callback);
@@ -1011,8 +1008,6 @@ MmsService.prototype = {
 
 
   handleNotificationIndication: function handleNotificationIndication(notification) {
-    
-
     let url = notification.headers["x-mms-content-location"].uri;
     
     
@@ -1062,6 +1057,7 @@ MmsService.prototype = {
           return;
         }
 
+        
         this.retrieveMessage(url, (function responseNotify(mmsStatus,
                                                            retrievedMessage) {
           
@@ -1248,6 +1244,7 @@ MmsService.prototype = {
                             aIsSentSuccess ? null : DELIVERY_STATUS_ERROR,
                             function notifySetDeliveryResult(aRv, aDomMessage) {
         debug("Marking the delivery state/staus is done. Notify sent or failed.");
+        
         if (!aIsSentSuccess) {
           aRequest.notifySendMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
           Services.obs.notifyObservers(aDomMessage, kMmsFailedObserverTopic, null);
@@ -1263,6 +1260,7 @@ MmsService.prototype = {
       .saveSendingMessage(savableMessage,
                           function notifySendingResult(aRv, aDomMessage) {
       debug("Saving sending message is done. Start to send.");
+      
       Services.obs.notifyObservers(aDomMessage, kMmsSendingObserverTopic, null);
       let sendTransaction;
       try {
