@@ -1450,7 +1450,11 @@ nsGlobalWindow::EnsureScriptEnvironment()
   nsresult rv = NS_GetJSRuntime(getter_AddRefs(scriptRuntime));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIScriptContext> context = scriptRuntime->CreateContext(this);
+  
+  
+  
+  nsCOMPtr<nsIScriptContext> context =
+    scriptRuntime->CreateContext(!IsFrame(), this);
 
   NS_ASSERTION(!mContext, "Will overwrite mContext!");
 
@@ -1459,14 +1463,6 @@ nsGlobalWindow::EnsureScriptEnvironment()
 
   rv = context->InitContext();
   NS_ENSURE_SUCCESS(rv, rv);
-
-  if (IsFrame()) {
-    
-    
-    
-
-    context->SetGCOnDestruction(false);
-  }
 
   mContext = context;
   return NS_OK;

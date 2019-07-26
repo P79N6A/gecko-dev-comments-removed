@@ -45,8 +45,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x9ab23956, 0x39be, 0x430c, \
-  { 0x8e, 0xe5, 0x44, 0xa3, 0xbf, 0x39, 0xe9, 0x96 } }
+{ 0x95870c91, 0xe21d, 0x4499, \
+  { 0x9b, 0x61, 0x45, 0x79, 0x5f, 0x12, 0x0c, 0x98 } }
 
 
 
@@ -332,12 +332,6 @@ public:
 
 
   virtual bool GetExecutingScript() = 0;
-
-  
-
-
-
-  virtual void SetGCOnDestruction(bool aGCOnDestruction) = 0;
 
   
 
