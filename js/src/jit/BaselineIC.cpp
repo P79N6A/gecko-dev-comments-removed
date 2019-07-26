@@ -7962,7 +7962,8 @@ GetTemplateObjectForNative(JSContext *cx, HandleScript script, jsbytecode *pc,
 
 static bool
 TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsbytecode *pc,
-                  JSOp op, uint32_t argc, Value *vp, bool constructing, bool useNewType)
+                  JSOp op, uint32_t argc, Value *vp, bool constructing, bool isSpread,
+                  bool useNewType)
 {
     if (useNewType || op == JSOP_EVAL)
         return true;
@@ -8010,11 +8011,11 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
 
         if (stub->scriptedStubCount() >= ICCall_Fallback::MAX_SCRIPTED_STUBS) {
             
-            IonSpew(IonSpew_BaselineIC, "  Generating Call_AnyScripted stub (cons=%s)",
-                    constructing ? "yes" : "no");
+            IonSpew(IonSpew_BaselineIC, "  Generating Call_AnyScripted stub (cons=%s, spread=%s)",
+                    constructing ? "yes" : "no", isSpread ? "yes" : "no");
 
             ICCallScriptedCompiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
-                                            constructing, script->pcToOffset(pc));
+                                            constructing, isSpread, script->pcToOffset(pc));
             ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
             if (!newStub)
                 return false;
@@ -8042,12 +8043,12 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
         }
 
         IonSpew(IonSpew_BaselineIC,
-                "  Generating Call_Scripted stub (fun=%p, %s:%d, cons=%s)",
+                "  Generating Call_Scripted stub (fun=%p, %s:%d, cons=%s, spread=%s)",
                 fun.get(), fun->nonLazyScript()->filename(), fun->nonLazyScript()->lineno(),
-                constructing ? "yes" : "no");
+                constructing ? "yes" : "no", isSpread ? "yes" : "no");
         ICCallScriptedCompiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
                                         calleeScript, templateObject,
-                                        constructing, script->pcToOffset(pc));
+                                        constructing, isSpread, script->pcToOffset(pc));
         ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
         if (!newStub)
             return false;
@@ -8084,15 +8085,18 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
             return true;
         }
 
-        CallArgs args = CallArgsFromVp(argc, vp);
         RootedObject templateObject(cx);
-        if (!GetTemplateObjectForNative(cx, script, pc, fun->native(), args, &templateObject))
-            return false;
+        if (MOZ_LIKELY(!isSpread)) {
+            CallArgs args = CallArgsFromVp(argc, vp);
+            if (!GetTemplateObjectForNative(cx, script, pc, fun->native(), args, &templateObject))
+                return false;
+        }
 
-        IonSpew(IonSpew_BaselineIC, "  Generating Call_Native stub (fun=%p, cons=%s)",
-                fun.get(), constructing ? "yes" : "no");
+        IonSpew(IonSpew_BaselineIC, "  Generating Call_Native stub (fun=%p, cons=%s, spread=%s)",
+                fun.get(), constructing ? "yes" : "no", isSpread ? "yes" : "no");
         ICCall_Native::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
-                                         fun, templateObject, constructing, script->pcToOffset(pc));
+                                         fun, templateObject, constructing, isSpread,
+                                         script->pcToOffset(pc));
         ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
         if (!newStub)
             return false;
@@ -8156,7 +8160,7 @@ DoCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub_, uint
     bool newType = types::UseNewType(cx, script, pc);
 
     
-    if (!TryAttachCallStub(cx, stub, script, pc, op, argc, vp, constructing, newType))
+    if (!TryAttachCallStub(cx, stub, script, pc, op, argc, vp, constructing, false, newType))
         return false;
 
     
@@ -8208,11 +8212,21 @@ DoSpreadCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub_
 
     RootedScript script(cx, frame->script());
     jsbytecode *pc = stub->icEntry()->pc(script);
-    FallbackICSpew(cx, stub, "SpreadCall(%s)", js_CodeName[JSOp(*pc)]);
+    JSOp op = JSOp(*pc);
+    FallbackICSpew(cx, stub, "SpreadCall(%s)", js_CodeName[op]);
 
     RootedValue callee(cx, vp[0]);
     RootedValue thisv(cx, vp[1]);
     RootedValue arr(cx, vp[2]);
+
+    bool constructing = (op == JSOP_SPREADNEW);
+
+    
+    if (op != JSOP_SPREADEVAL &&
+        !TryAttachCallStub(cx, stub, script, pc, op, 1, vp, constructing, true, false))
+    {
+        return false;
+    }
 
     
     if (cx->runtime()->spsProfiler.enabled() && frame->hasPushedSPSFrame())
@@ -8269,6 +8283,49 @@ ICCallStubCompiler::pushCallArguments(MacroAssembler &masm, GeneralRegisterSet r
         masm.jump(&loop);
     }
     masm.bind(&done);
+}
+
+void
+ICCallStubCompiler::guardSpreadCall(MacroAssembler &masm, Register argcReg, Label *failure)
+{
+    masm.unboxObject(Address(BaselineStackReg, ICStackValueOffset), argcReg);
+    masm.loadPtr(Address(argcReg, JSObject::offsetOfElements()), argcReg);
+    masm.load32(Address(argcReg, ObjectElements::offsetOfLength()), argcReg);
+
+    
+    masm.branch32(Assembler::Above, argcReg, Imm32(ARGS_LENGTH_MAX), failure);
+}
+
+void
+ICCallStubCompiler::pushSpreadCallArguments(MacroAssembler &masm, GeneralRegisterSet regs,
+                                            Register argcReg)
+{
+    
+    Register startReg = regs.takeAny();
+    Register endReg = regs.takeAny();
+    masm.unboxObject(Address(BaselineStackReg, STUB_FRAME_SIZE), startReg);
+    masm.loadPtr(Address(startReg, JSObject::offsetOfElements()), startReg);
+    masm.mov(argcReg, endReg);
+    static_assert(sizeof(Value) == 8, "Value must be 8 bytes");
+    masm.lshiftPtr(Imm32(3), endReg);
+    masm.addPtr(startReg, endReg);
+
+    
+    Label copyDone;
+    Label copyStart;
+    masm.bind(&copyStart);
+    masm.branchPtr(Assembler::Equal, endReg, startReg, &copyDone);
+    masm.subPtr(Imm32(sizeof(Value)), endReg);
+    masm.pushValue(Address(endReg, 0));
+    masm.jump(&copyStart);
+    masm.bind(&copyDone);
+
+    regs.add(startReg);
+    regs.add(endReg);
+
+    
+    masm.pushValue(Address(BaselineFrameReg, STUB_FRAME_SIZE + 1 * sizeof(Value)));
+    masm.pushValue(Address(BaselineFrameReg, STUB_FRAME_SIZE + 2 * sizeof(Value)));
 }
 
 Register
@@ -8574,10 +8631,18 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
     regs.take(ArgumentsRectifierReg);
     regs.takeUnchecked(BaselineTailCallReg);
 
+    if (isSpread_)
+        guardSpreadCall(masm, argcReg, &failure);
+
     
     
-    BaseIndex calleeSlot(BaselineStackReg, argcReg, TimesEight, ICStackValueOffset + sizeof(Value));
-    masm.loadValue(calleeSlot, R1);
+    if (isSpread_) {
+        masm.loadValue(Address(BaselineStackReg, 2 * sizeof(Value) + ICStackValueOffset), R1);
+    } else {
+        BaseIndex calleeSlot(BaselineStackReg, argcReg, TimesEight,
+                             ICStackValueOffset + sizeof(Value));
+        masm.loadValue(calleeSlot, R1);
+    }
     regs.take(R1);
 
     
@@ -8631,9 +8696,14 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
 
         
         
-        BaseIndex calleeSlot2(BaselineStackReg, argcReg, TimesEight,
-                               sizeof(Value) + STUB_FRAME_SIZE + sizeof(size_t));
-        masm.loadValue(calleeSlot2, R1);
+        if (isSpread_) {
+            masm.loadValue(Address(BaselineStackReg,
+                                   2 * sizeof(Value) + STUB_FRAME_SIZE + sizeof(size_t)), R1);
+        } else {
+            BaseIndex calleeSlot2(BaselineStackReg, argcReg, TimesEight,
+                                  sizeof(Value) + STUB_FRAME_SIZE + sizeof(size_t));
+            masm.loadValue(calleeSlot2, R1);
+        }
         masm.push(masm.extractObject(R1, ExtractTemp0));
         if (!callVM(CreateThisInfoBaseline, masm))
             return false;
@@ -8660,8 +8730,12 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
         
         
         
-        BaseIndex thisSlot(BaselineStackReg, argcReg, TimesEight, STUB_FRAME_SIZE);
-        masm.storeValue(R0, thisSlot);
+        if (isSpread_) {
+            masm.storeValue(R0, Address(BaselineStackReg, sizeof(Value) + STUB_FRAME_SIZE));
+        } else {
+            BaseIndex thisSlot(BaselineStackReg, argcReg, TimesEight, STUB_FRAME_SIZE);
+            masm.storeValue(R0, thisSlot);
+        }
 
         
         masm.loadPtr(Address(BaselineStackReg, STUB_FRAME_SAVED_STUB_OFFSET), BaselineStubReg);
@@ -8672,9 +8746,13 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
         
 
         
-        BaseIndex calleeSlot3(BaselineStackReg, argcReg, TimesEight,
-                               sizeof(Value) + STUB_FRAME_SIZE);
-        masm.loadValue(calleeSlot3, R0);
+        if (isSpread_) {
+            masm.loadValue(Address(BaselineStackReg, 2 * sizeof(Value) + STUB_FRAME_SIZE), R0);
+        } else {
+            BaseIndex calleeSlot3(BaselineStackReg, argcReg, TimesEight,
+                                  sizeof(Value) + STUB_FRAME_SIZE);
+            masm.loadValue(calleeSlot3, R0);
+        }
         callee = masm.extractObject(R0, ExtractTemp0);
         regs.add(R0);
         regs.takeUnchecked(callee);
@@ -8697,7 +8775,10 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
     
     
     
-    pushCallArguments(masm, regs, argcReg);
+    if (isSpread_)
+        pushSpreadCallArguments(masm, regs, argcReg);
+    else
+        pushCallArguments(masm, regs, argcReg);
 
     
     ValueOperand val = regs.takeAnyValue();
@@ -8763,7 +8844,11 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
         
         
         
-        masm.lshiftPtr(Imm32(1), scratchReg);
+        
+        if (isSpread_)
+            masm.add32(Imm32(1), scratchReg);
+        else
+            masm.lshiftPtr(Imm32(1), scratchReg);
         BaseIndex reloadThisSlot(BaselineStackReg, scratchReg, TimesEight,
                                  STUB_FRAME_SIZE + sizeof(Value) + 3*sizeof(size_t));
         masm.loadValue(reloadThisSlot, JSReturnOperand);
@@ -8800,9 +8885,16 @@ ICCall_Native::Compiler::generateStubCode(MacroAssembler &masm)
     regs.take(argcReg);
     regs.takeUnchecked(BaselineTailCallReg);
 
+    if (isSpread_)
+        guardSpreadCall(masm, argcReg, &failure);
+
     
-    BaseIndex calleeSlot(BaselineStackReg, argcReg, TimesEight, ICStackValueOffset + sizeof(Value));
-    masm.loadValue(calleeSlot, R1);
+    if (isSpread_) {
+        masm.loadValue(Address(BaselineStackReg, ICStackValueOffset + 2 * sizeof(Value)), R1);
+    } else {
+        BaseIndex calleeSlot(BaselineStackReg, argcReg, TimesEight, ICStackValueOffset + sizeof(Value));
+        masm.loadValue(calleeSlot, R1);
+    }
     regs.take(R1);
 
     masm.branchTestObject(Assembler::NotEqual, R1, &failure);
@@ -8822,7 +8914,10 @@ ICCall_Native::Compiler::generateStubCode(MacroAssembler &masm)
     
     
     
-    pushCallArguments(masm, regs, argcReg);
+    if (isSpread_)
+        pushSpreadCallArguments(masm, regs, argcReg);
+    else
+        pushCallArguments(masm, regs, argcReg);
 
     if (isConstructing_) {
         

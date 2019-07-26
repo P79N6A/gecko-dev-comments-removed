@@ -3952,6 +3952,15 @@ js::SpreadCallOperation(JSContext *cx, HandleScript script, jsbytecode *pc, Hand
         return false;
     }
 
+#ifdef DEBUG
+    
+    
+    JS_ASSERT(aobj->getDenseInitializedLength() == length);
+    JS_ASSERT(!aobj->isIndexed());
+    for (uint32_t i = 0; i < length; i++)
+        JS_ASSERT(!aobj->getDenseElement(i).isMagic());
+#endif
+
     InvokeArgs args(cx);
 
     if (!args.init(length))
