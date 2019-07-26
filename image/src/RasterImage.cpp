@@ -24,6 +24,7 @@
 #include "nsIThreadPool.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsIObserverService.h"
+#include "FrameAnimator.h"
 
 #include "nsPNGDecoder.h"
 #include "nsGIFDecoder2.h"
@@ -390,7 +391,6 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   mFrameDecodeFlags(DECODE_FLAGS_DEFAULT),
   mMultipartDecodedFrame(nullptr),
   mAnim(nullptr),
-  mLoopCount(-1),
   mLockCount(0),
   mDecodeCount(0),
 #ifdef DEBUG
@@ -528,135 +528,6 @@ RasterImage::Init(const char* aMimeType,
   return NS_OK;
 }
 
-uint32_t
-RasterImage::GetSingleLoopTime() const
-{
-  if (!mAnim) {
-    return 0;
-  }
-
-  
-  if (!mHasBeenDecoded) {
-    return 0;
-  }
-
-  
-  if (mLoopCount == 0) {
-    return 0;
-  }
-
-  uint32_t looptime = 0;
-  for (uint32_t i = 0; i < GetNumFrames(); ++i) {
-    int32_t timeout = mFrameBlender.RawGetFrame(i)->GetTimeout();
-    if (timeout > 0) {
-      looptime += static_cast<uint32_t>(timeout);
-    } else {
-      
-      
-      NS_WARNING("Negative frame timeout - how did this happen?");
-      return 0;
-    }
-  }
-
-  return looptime;
-}
-
-bool
-RasterImage::AdvanceFrame(TimeStamp aTime, nsIntRect* aDirtyRect)
-{
-  NS_ASSERTION(aTime <= TimeStamp::Now(),
-               "Given time appears to be in the future");
-
-  uint32_t currentFrameIndex = mAnim->currentAnimationFrameIndex;
-  uint32_t nextFrameIndex = mAnim->currentAnimationFrameIndex + 1;
-  uint32_t timeout = 0;
-
-  
-  
-  
-  NS_ABORT_IF_FALSE(mDecoder || nextFrameIndex <= GetNumFrames(),
-                    "How did we get 2 indices too far by incrementing?");
-
-  
-  
-  
-  bool haveFullNextFrame = (mMultipart && mBytesDecoded == 0) || !mDecoder ||
-                            nextFrameIndex < mDecoder->GetCompleteFrameCount();
-
-  
-  
-  if (haveFullNextFrame) {
-    if (GetNumFrames() == nextFrameIndex) {
-      
-
-      
-      if (mAnimationMode == kLoopOnceAnimMode || mLoopCount == 0) {
-        mAnimationFinished = true;
-        EvaluateAnimation();
-      }
-
-      nextFrameIndex = 0;
-
-      if (mLoopCount > 0) {
-        mLoopCount--;
-      }
-
-      if (!mAnimating) {
-        
-        return false;
-      }
-    }
-
-    timeout = mFrameBlender.GetFrame(nextFrameIndex)->GetTimeout();
-
-  } else {
-    
-    
-    return false;
-  }
-
-  if (!(timeout > 0)) {
-    mAnimationFinished = true;
-    EvaluateAnimation();
-  }
-
-  if (nextFrameIndex == 0) {
-    *aDirtyRect = mAnim->firstFrameRefreshArea;
-  } else {
-    
-    if (!mFrameBlender.DoBlend(aDirtyRect, currentFrameIndex, nextFrameIndex)) {
-      
-      NS_WARNING("RasterImage::AdvanceFrame(): Compositing of frame failed");
-      mFrameBlender.RawGetFrame(nextFrameIndex)->SetCompositingFailed(true);
-      mAnim->currentAnimationFrameTime = GetCurrentImgFrameEndTime();
-      mAnim->currentAnimationFrameIndex = nextFrameIndex;
-      return false;
-    }
-
-    mFrameBlender.RawGetFrame(nextFrameIndex)->SetCompositingFailed(false);
-  }
-
-  mAnim->currentAnimationFrameTime = GetCurrentImgFrameEndTime();
-
-  
-  
-  uint32_t loopTime = GetSingleLoopTime();
-  if (loopTime > 0) {
-    TimeDuration delay = aTime - mAnim->currentAnimationFrameTime;
-    if (delay.ToMilliseconds() > loopTime) {
-      
-      
-      uint32_t loops = static_cast<uint32_t>(delay.ToMilliseconds()) / loopTime;
-      mAnim->currentAnimationFrameTime += TimeDuration::FromMilliseconds(loops * loopTime);
-    }
-  }
-
-  
-  mAnim->currentAnimationFrameIndex = nextFrameIndex;
-
-  return true;
-}
-
 
 
 NS_IMETHODIMP_(void)
@@ -668,34 +539,12 @@ RasterImage::RequestRefresh(const mozilla::TimeStamp& aTime)
 
   EvaluateAnimation();
 
-  
-  
-  TimeStamp currentFrameEndTime = GetCurrentImgFrameEndTime();
-  bool frameAdvanced = false;
-
-  
-  
-  nsIntRect dirtyRect;
-
-  while (currentFrameEndTime <= aTime) {
-    TimeStamp oldFrameEndTime = currentFrameEndTime;
-    nsIntRect frameDirtyRect;
-    bool didAdvance = AdvanceFrame(aTime, &frameDirtyRect);
-    frameAdvanced = frameAdvanced || didAdvance;
-    currentFrameEndTime = GetCurrentImgFrameEndTime();
-
-    
-    dirtyRect = dirtyRect.Union(frameDirtyRect);
-
-    
-    
-    
-    if (!didAdvance && (currentFrameEndTime == oldFrameEndTime)) {
-      break;
-    }
+  FrameAnimator::RefreshResult res;
+  if (mAnim) {
+    res = mAnim->RequestRefresh(aTime);
   }
 
-  if (frameAdvanced) {
+  if (res.frameAdvanced) {
     
     
     
@@ -708,7 +557,12 @@ RasterImage::RequestRefresh(const mozilla::TimeStamp& aTime)
     
     
     if (mStatusTracker)
-      mStatusTracker->FrameChanged(&dirtyRect);
+      mStatusTracker->FrameChanged(&res.dirtyRect);
+  }
+
+  if (res.animationFinished) {
+    mAnimationFinished = true;
+    EvaluateAnimation();
   }
 }
 
@@ -833,32 +687,9 @@ uint32_t
 RasterImage::GetCurrentImgFrameIndex() const
 {
   if (mAnim)
-    return mAnim->currentAnimationFrameIndex;
+    return mAnim->GetCurrentAnimationFrameIndex();
 
   return 0;
-}
-
-TimeStamp
-RasterImage::GetCurrentImgFrameEndTime() const
-{
-  imgFrame* currentFrame = mFrameBlender.RawGetFrame(mAnim->currentAnimationFrameIndex);
-  TimeStamp currentFrameTime = mAnim->currentAnimationFrameTime;
-  int64_t timeout = currentFrame->GetTimeout();
-
-  if (timeout < 0) {
-    
-    
-    
-    
-    return TimeStamp() +
-           TimeDuration::FromMilliseconds(static_cast<double>(UINT64_MAX));
-  }
-
-  TimeDuration durationOfTimeout =
-    TimeDuration::FromMilliseconds(static_cast<double>(timeout));
-  TimeStamp currentFrameEndTime = currentFrameTime + durationOfTimeout;
-
-  return currentFrameEndTime;
 }
 
 imgFrame*
@@ -1230,6 +1061,30 @@ RasterImage::OutOfProcessSizeOfDecoded() const
                                                  NULL);
 }
 
+void
+RasterImage::EnsureAnimExists()
+{
+  if (!mAnim) {
+
+    
+    mAnim = new FrameAnimator(mFrameBlender);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    LockImage();
+
+    
+    CurrentStatusTracker().RecordImageIsAnimated();
+  }
+}
+
 nsresult
 RasterImage::InternalAddFrameHelper(uint32_t framenum, imgFrame *aFrame,
                                     uint8_t **imageData, uint32_t *imageLength,
@@ -1310,15 +1165,13 @@ RasterImage::InternalAddFrame(uint32_t framenum,
     int32_t frameDisposalMethod = mFrameBlender.RawGetFrame(0)->GetFrameDisposalMethod();
     if (frameDisposalMethod == FrameBlender::kDisposeClear ||
         frameDisposalMethod == FrameBlender::kDisposeRestorePrevious)
-      mAnim->firstFrameRefreshArea = mFrameBlender.RawGetFrame(0)->GetRect();
+      mAnim->SetFirstFrameRefreshArea(mFrameBlender.RawGetFrame(0)->GetRect());
   }
 
   
   
   
-  nsIntRect frameRect = frame->GetRect();
-  mAnim->firstFrameRefreshArea.UnionRect(mAnim->firstFrameRefreshArea,
-                                         frameRect);
+  mAnim->UnionFirstFrameRefreshArea(frame->GetRect());
 
   rv = InternalAddFrameHelper(framenum, frame.forget(), imageData, imageLength,
                               paletteData, paletteLength, aRetFrame);
@@ -1541,7 +1394,20 @@ RasterImage::DecodingComplete()
     }
   }
 
+  if (mAnim) {
+    mAnim->SetDoneDecoding(true);
+  }
+
   return NS_OK;
+}
+
+NS_IMETHODIMP
+RasterImage::SetAnimationMode(uint16_t aAnimationMode)
+{
+  if (mAnim) {
+    mAnim->SetAnimationMode(aAnimationMode);
+  }
+  return SetAnimationModeInternal(aAnimationMode);
 }
 
 
@@ -1565,9 +1431,7 @@ RasterImage::StartAnimation()
 
     
     
-    if (mAnim->currentAnimationFrameTime.IsNull()) {
-      mAnim->currentAnimationFrameTime = TimeStamp::Now();
-    }
+    mAnim->InitAnimationFrameTimeIfNecessary();
   }
 
   return NS_OK;
@@ -1595,7 +1459,7 @@ RasterImage::ResetAnimation()
     return NS_ERROR_FAILURE;
 
   if (mAnimationMode == kDontAnimMode ||
-      !mAnim || mAnim->currentAnimationFrameIndex == 0)
+      !mAnim || mAnim->GetCurrentAnimationFrameIndex() == 0)
     return NS_OK;
 
   mAnimationFinished = false;
@@ -1604,8 +1468,10 @@ RasterImage::ResetAnimation()
     StopAnimation();
 
   mFrameBlender.ResetAnimation();
+  if (mAnim) {
+    mAnim->ResetAnimation();
+  }
 
-  mAnim->currentAnimationFrameIndex = 0;
   UpdateImageContainer();
 
   
@@ -1613,7 +1479,8 @@ RasterImage::ResetAnimation()
 
   
   if (mAnimating && mStatusTracker) {
-    mStatusTracker->FrameChanged(&(mAnim->firstFrameRefreshArea));
+    nsIntRect rect = mAnim->GetFirstFrameRefreshArea();
+    mStatusTracker->FrameChanged(&rect);
   }
 
   if (ShouldAnimate()) {
@@ -1635,7 +1502,7 @@ RasterImage::SetAnimationStartTime(const mozilla::TimeStamp& aTime)
   if (mError || mAnimating || !mAnim)
     return;
 
-  mAnim->currentAnimationFrameTime = aTime;
+  mAnim->SetAnimationFrameTime(aTime);
 }
 
 NS_IMETHODIMP_(float)
@@ -1644,7 +1511,7 @@ RasterImage::GetFrameIndex(uint32_t aWhichFrame)
   MOZ_ASSERT(aWhichFrame <= FRAME_MAX_VALUE, "Invalid argument");
   return (aWhichFrame == FRAME_FIRST || !mAnim)
          ? 0.0f
-         : mAnim->currentAnimationFrameIndex;
+         : mAnim->GetCurrentAnimationFrameIndex();
 }
 
 void
@@ -1653,11 +1520,9 @@ RasterImage::SetLoopCount(int32_t aLoopCount)
   if (mError)
     return;
 
-  
-  
-  
-  
-  mLoopCount = aLoopCount;
+  if (mAnim) {
+    mAnim->SetLoopCount(aLoopCount);
+  }
 }
 
 nsresult
@@ -1928,6 +1793,10 @@ RasterImage::OnNewSourceData()
   mHasSize = false;
   mWantFullDecode = true;
   mDecodeRequest = nullptr;
+
+  if (mAnim) {
+    mAnim->SetDoneDecoding(false);
+  }
 
   
   rv = InitDecoder( true);

@@ -122,10 +122,6 @@ class nsIThreadPool;
 
 
 
-
-
-
-
 class ScaleRequest;
 
 namespace mozilla {
@@ -137,6 +133,7 @@ class Image;
 namespace image {
 
 class Decoder;
+class FrameAnimator;
 
 class RasterImage : public ImageResource
                   , public nsIProperties
@@ -323,20 +320,6 @@ private:
   }
 
   nsresult OnImageDataCompleteCore(nsIRequest* aRequest, nsISupports*, nsresult aStatus);
-
-  struct Anim
-  {
-    
-    nsIntRect                  firstFrameRefreshArea;
-    uint32_t                   currentAnimationFrameIndex; 
-
-    
-    TimeStamp                  currentAnimationFrameTime;
-
-    Anim() :
-      currentAnimationFrameIndex(0)
-    {}
-  };
 
   
 
@@ -553,33 +536,6 @@ private:
 
 
 
-
-
-
-
-
-
-
-
-
-  bool AdvanceFrame(mozilla::TimeStamp aTime, nsIntRect* aDirtyRect);
-
-  
-
-
-
-
-
-  uint32_t GetSingleLoopTime() const;
-
-  
-
-
-
-
-
-
-
   void DeleteImgFrame(uint32_t framenum);
 
   imgFrame* GetImgFrameNoDecode(uint32_t framenum);
@@ -587,33 +543,11 @@ private:
   imgFrame* GetDrawableImgFrame(uint32_t framenum);
   imgFrame* GetCurrentImgFrame();
   uint32_t GetCurrentImgFrameIndex() const;
-  mozilla::TimeStamp GetCurrentImgFrameEndTime() const;
 
   size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxASurface::MemoryLocation aLocation,
                                                  mozilla::MallocSizeOf aMallocSizeOf) const;
 
-  inline void EnsureAnimExists()
-  {
-    if (!mAnim) {
-
-      
-      mAnim = new Anim();
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      LockImage();
-
-      
-      CurrentStatusTracker().RecordImageIsAnimated();
-    }
-  }
+  void EnsureAnimExists();
 
   nsresult InternalAddFrameHelper(uint32_t framenum, imgFrame *frame,
                                   uint8_t **imageData, uint32_t *imageLength,
@@ -671,10 +605,7 @@ private:
   
   
   
-  RasterImage::Anim*        mAnim;
-
-  
-  int32_t                    mLoopCount;
+  FrameAnimator* mAnim;
 
   
   uint32_t                   mLockCount;
@@ -789,10 +720,6 @@ protected:
 
 inline NS_IMETHODIMP RasterImage::GetAnimationMode(uint16_t *aAnimationMode) {
   return GetAnimationModeInternal(aAnimationMode);
-}
-
-inline NS_IMETHODIMP RasterImage::SetAnimationMode(uint16_t aAnimationMode) {
-  return SetAnimationModeInternal(aAnimationMode);
 }
 
 
