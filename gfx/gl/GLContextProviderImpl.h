@@ -71,19 +71,6 @@ public:
     
 
 
-
-
-
-    static SharedTextureHandle CreateSharedHandle(SharedTextureShareType shareType,
-                                                  void* buffer,
-                                                  SharedTextureBufferType bufferType);
-
-    static already_AddRefed<gfxASurface> GetSharedHandleAsSurface(SharedTextureShareType shareType,
-                                                                  SharedTextureHandle sharedHandle);
-
-    
-
-
     static void
     Shutdown();
 };

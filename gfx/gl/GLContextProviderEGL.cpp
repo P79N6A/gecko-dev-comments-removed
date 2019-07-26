@@ -1329,21 +1329,6 @@ GLContextProviderEGL::CreateOffscreen(const gfxIntSize& size,
     return glContext.forget();
 }
 
-SharedTextureHandle
-GLContextProviderEGL::CreateSharedHandle(SharedTextureShareType shareType,
-                                         void* buffer,
-                                         SharedTextureBufferType bufferType)
-{
-  return 0;
-}
-
-already_AddRefed<gfxASurface>
-GLContextProviderEGL::GetSharedHandleAsSurface(SharedTextureShareType shareType,
-                                               SharedTextureHandle sharedHandle)
-{
-  return nullptr;
-}
-
 
 
 
