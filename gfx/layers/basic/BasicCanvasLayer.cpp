@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "mozilla/layers/PLayersParent.h"
 #include "gfxImageSurface.h"
@@ -12,6 +12,7 @@
 #include "SurfaceStream.h"
 #include "SharedSurfaceGL.h"
 #include "SharedSurfaceEGL.h"
+#include "sampler.h"
 
 #include "BasicLayersImpl.h"
 #include "nsXULAppAPI.h"
@@ -107,8 +108,8 @@ BasicCanvasLayer::Initialize(const Data& aData)
     mNeedsYFlip = true;
     MOZ_ASSERT(mGLContext->IsOffscreen(), "canvas gl context isn't offscreen");
 
-    // [Basic Layers, non-OMTC] WebGL layer init.
-    // `GLScreenBuffer::Morph`ing is only needed in BasicShadowableCanvasLayer.
+    
+    
   } else if (aData.mDrawTarget) {
     mDrawTarget = aData.mDrawTarget;
     mSurface = gfxPlatform::GetPlatform()->CreateThebesSurfaceAliasForDrawTarget_hack(mDrawTarget);
@@ -130,11 +131,11 @@ BasicCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
   if (mDrawTarget) {
     mDrawTarget->Flush();
     if (mDrawTarget->GetType() == BACKEND_COREGRAPHICS_ACCELERATED) {
-      // We have an accelerated CG context which has changed, unlike a bitmap surface
-      // where we can alias the bits on initializing the mDrawTarget, we need to readback
-      // and copy the accelerated surface each frame. We want to support this for quick
-      // thumbnail but if we're going to be doing this every frame it likely is better
-      // to use a non accelerated (bitmap) canvas.
+      
+      
+      
+      
+      
       mSurface = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mDrawTarget);
     }
   }
@@ -192,7 +193,7 @@ BasicCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
         readSurf = GetTempSurface(readSize, format);
       }
 
-      // Readback handles Flush/MarkDirty.
+      
       mGLContext->Screen()->Readback(surfGL, readSurf);
     }
     MOZ_ASSERT(readSurf);
@@ -220,7 +221,7 @@ BasicCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
       gfxUtils::PremultiplyImageSurface(readSurf, resultSurf);
       resultSurf->MarkDirty();
     } else if (resultSurf != readSurf) {
-      // Didn't need premult, but we do need to blit to resultSurf
+      
       readSurf->Flush();
       nsRefPtr<gfxContext> ctx = new gfxContext(resultSurf);
       ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
@@ -228,7 +229,7 @@ BasicCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
       ctx->Paint();
     }
 
-    // stick our surface into mSurface, so that the Paint() path is the same
+    
     if (!aDestSurface) {
       mSurface = resultSurf;
     }
@@ -273,9 +274,9 @@ BasicCanvasLayer::PaintWithOpacity(gfxContext* aContext,
     aContext->Scale(1.0, -1.0);
   }
 
-  // If content opaque, then save off current operator and set to source.
-  // This ensures that alpha is not applied even if the source surface
-  // has an alpha channel
+  
+  
+  
   gfxContext::GraphicsOperator savedOp;
   if (GetContentFlags() & CONTENT_OPAQUE) {
     savedOp = aContext->CurrentOperator();
@@ -284,13 +285,13 @@ BasicCanvasLayer::PaintWithOpacity(gfxContext* aContext,
 
   AutoSetOperator setOperator(aContext, GetOperator());
   aContext->NewPath();
-  // No need to snap here; our transform is already set up to snap our rect
+  
   aContext->Rectangle(gfxRect(0, 0, mBounds.width, mBounds.height));
   aContext->SetPattern(pat);
 
   FillWithMask(aContext, aOpacity, aMaskLayer);
 
-  // Restore surface operator
+  
   if (GetContentFlags() & CONTENT_OPAQUE) {
     aContext->SetOperator(savedOp);
   }  
@@ -381,15 +382,15 @@ BasicShadowableCanvasLayer::Initialize(const Data& aData)
           bool isCrossProcess = !(XRE_GetProcessType() == GeckoProcessType_Default);
 
           if (!isCrossProcess) {
-            // [Basic/OGL Layers, OMTC] WebGL layer init.
+            
             factory = SurfaceFactory_EGLImage::Create(mGLContext, screen->Caps());
           } else {
-            // [Basic/OGL Layers, OOPC] WebGL layer init. (Out Of Process Compositing)
-            // Fall back to readback.
+            
+            
           }
         } else {
-          // [Basic Layers, OMTC] WebGL layer init.
-          // Well, this *should* work...
+          
+          
           factory = new SurfaceFactory_GLTexture(mGLContext, mGLContext, screen->Caps());
         }
       }
@@ -411,6 +412,7 @@ BasicShadowableCanvasLayer::Initialize(const Data& aData)
 void
 BasicShadowableCanvasLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
 {
+  SAMPLE_LABEL("BasicShadowableCanvasLayer", "Paint");
   if (!HasShadow()) {
     BasicCanvasLayer::Paint(aContext, aMaskLayer);
     return;
@@ -424,8 +426,8 @@ BasicShadowableCanvasLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
       BasicManager()->GetParentBackendType() == mozilla::layers::LAYERS_OPENGL)
   {
     bool isCrossProcess = XRE_GetProcessType() != GeckoProcessType_Default;
-    // Todo: If isCrossProcess (OMPC), spin off mini-thread to RequestFrame
-    // and forward Gralloc handle. Signal WaitSync complete with XPC mutex?
+    
+    
     if (!isCrossProcess) {
       FirePreTransactionCallback();
       GLScreenBuffer* screen = mGLContext->Screen();
@@ -433,13 +435,13 @@ BasicShadowableCanvasLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
 
       mBackBuffer = SurfaceStreamDescriptor(handle, false);
 
-      // Call Painted() to reset our dirty 'bit'.
+      
       Painted();
       FireDidTransactionCallback();
-      BasicManager()->PaintedCanvas(BasicManager()->Hold(this),
-                                    mNeedsYFlip,
-                                    mBackBuffer);
-      // Move SharedTextureHandle ownership to ShadowLayer
+      BasicManager()->PaintedCanvasNoSwap(BasicManager()->Hold(this),
+                                          mNeedsYFlip,
+                                          mBackBuffer);
+      
       mBackBuffer = SurfaceDescriptor();
       return;
     }
@@ -528,7 +530,7 @@ BasicShadowCanvasLayer::Swap(const CanvasSurface& aNewFront, bool needYFlip,
                              CanvasSurface* aNewBack)
 {
   AutoOpenSurface autoSurface(OPEN_READ_ONLY, aNewFront);
-  // Destroy mFrontBuffer if size different
+  
   gfxIntSize sz = autoSurface.Size();
   bool surfaceConfigChanged = sz != gfxIntSize(mBounds.width, mBounds.height);
   if (IsSurfaceDescriptorValid(mFrontSurface)) {
@@ -542,7 +544,7 @@ BasicShadowCanvasLayer::Swap(const CanvasSurface& aNewFront, bool needYFlip,
   }
 
   mNeedsYFlip = needYFlip;
-  // If mFrontBuffer
+  
   if (IsSurfaceDescriptorValid(mFrontSurface)) {
     *aNewBack = mFrontSurface;
   } else {
@@ -578,7 +580,7 @@ BasicShadowCanvasLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
 
   AutoSetOperator setOperator(aContext, GetOperator());
   aContext->NewPath();
-  // No need to snap here; our transform has already taken care of it
+  
   aContext->Rectangle(r);
   aContext->SetPattern(pat);
   FillWithMask(aContext, GetEffectiveOpacity(), aMaskLayer);

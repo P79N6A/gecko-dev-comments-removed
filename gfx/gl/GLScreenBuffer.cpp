@@ -1,7 +1,7 @@
-/* -*- Mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40; -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "GLScreenBuffer.h"
 
@@ -78,7 +78,7 @@ GLScreenBuffer::BindAsFramebuffer(GLContext* const gl, GLenum target) const
         break;
 
     default:
-        // In case we got a bad target.
+        
         MOZ_NOT_REACHED("Bad `target` for BindFramebuffer.");
         gl->raw_fBindFramebuffer(target, 0);
         break;
@@ -180,10 +180,10 @@ GLScreenBuffer::GetDrawFB() const
     MOZ_ASSERT(mGL->IsCurrent());
     MOZ_ASSERT(!mInInternalMode_DrawFB);
 
-    // Don't need a branch here, because:
-    // LOCAL_GL_DRAW_FRAMEBUFFER_BINDING_EXT == LOCAL_GL_FRAMEBUFFER_BINDING == 0x8CA6
-    // We use raw_ here because this is debug code and we need to see what
-    // the driver thinks.
+    
+    
+    
+    
     GLuint actual = 0;
     mGL->raw_fGetIntegerv(LOCAL_GL_DRAW_FRAMEBUFFER_BINDING_EXT, (GLint*)&actual);
 
@@ -205,8 +205,8 @@ GLScreenBuffer::GetReadFB() const
     MOZ_ASSERT(mGL->IsCurrent());
     MOZ_ASSERT(!mInInternalMode_ReadFB);
 
-    // We use raw_ here because this is debug code and we need to see what
-    // the driver thinks.
+    
+    
     GLuint actual = 0;
     if (mGL->SupportsSplitFramebuffer())
         mGL->raw_fGetIntegerv(LOCAL_GL_READ_FRAMEBUFFER_BINDING_EXT, (GLint*)&actual);
@@ -299,7 +299,7 @@ GLScreenBuffer::AssureBlitted()
                                   0, 0, destSize.width, destSize.height,
                                   LOCAL_GL_COLOR_BUFFER_BIT,
                                   LOCAL_GL_NEAREST);
-        // Done!
+        
     }
 
     mNeedsBlit = false;
@@ -325,11 +325,47 @@ GLScreenBuffer::Morph(SurfaceFactory_GL* newFactory, SurfaceStreamType streamTyp
     mStream = newStream;
 }
 
-bool
-GLScreenBuffer::Swap(const gfxIntSize& size)
+void
+GLScreenBuffer::Attach(SharedSurface* surface, const gfxIntSize& size)
 {
     ScopedBindFramebuffer autoFB(mGL);
 
+    SharedSurface_GL* surf = SharedSurface_GL::Cast(surface);
+    if (mRead && SharedSurf())
+        SharedSurf()->UnlockProd();
+
+    surf->LockProd();
+
+    if (mRead &&
+        surf->AttachType() == SharedSurf()->AttachType() &&
+        size == Size())
+    {
+        
+        mRead->Attach(surf);
+    } else {
+        
+        DrawBuffer* draw = CreateDraw(size);  
+        ReadBuffer* read = CreateRead(surf);
+        MOZ_ASSERT(read); 
+
+        delete mDraw;
+        delete mRead;
+
+        mDraw = draw;
+        mRead = read;
+    }
+
+    
+    MOZ_ASSERT(SharedSurf() == surf);
+
+    if (!PreserveBuffer()) {
+        
+    }
+}
+
+bool
+GLScreenBuffer::Swap(const gfxIntSize& size)
+{
     SharedSurface* nextSurf = mStream->SwapProducer(mFactory, size);
     if (!nextSurf) {
         SurfaceFactory_GL* basicFactory =
@@ -340,42 +376,12 @@ GLScreenBuffer::Swap(const gfxIntSize& size)
             return false;
         }
 
-        // Swap out the apparently defective old factory.
+        
         delete mFactory;
         mFactory = basicFactory;
     }
 
-    SharedSurface_GL* surf = SharedSurface_GL::Cast(nextSurf);
-    if (mRead && SharedSurf())
-        SharedSurf()->UnlockProd();
-
-    surf->LockProd();
-
-    if (mRead &&
-        surf->AttachType() == SharedSurf()->AttachType() &&
-        size == Size())
-    {
-        // Same size, same type, ready for reuse!
-        mRead->Attach(surf);
-    } else {
-        // Else something changed, so resize:
-        DrawBuffer* draw = CreateDraw(size);  // Can be null.
-        ReadBuffer* read = CreateRead(surf);
-        MOZ_ASSERT(read); // Should never fail if SwapProd succeeded.
-
-        delete mDraw;
-        delete mRead;
-
-        mDraw = draw;
-        mRead = read;
-    }
-
-    // Check that we're all set up.
-    MOZ_ASSERT(SharedSurf() == surf);
-
-    if (!PreserveBuffer()) {
-        // DiscardFramebuffer here could help perf on some mobile platforms.
-    }
+    Attach(nextSurf, size);
 
     return true;
 }
@@ -389,6 +395,16 @@ GLScreenBuffer::PublishFrame(const gfxIntSize& size)
     return good;
 }
 
+bool
+GLScreenBuffer::Resize(const gfxIntSize& size)
+{
+    SharedSurface* surface = mStream->Resize(mFactory, size);
+    if (!surface)
+        return false;
+
+    Attach(surface, size);
+    return true;
+}
 
 DrawBuffer*
 GLScreenBuffer::CreateDraw(const gfxIntSize& size)
@@ -452,7 +468,7 @@ DrawBuffer::Create(GLContext* const gl,
     if (!caps.color) {
         MOZ_ASSERT(!caps.alpha && !caps.depth && !caps.stencil);
 
-        // Nothing is needed.
+        
         return nullptr;
     }
 
@@ -521,7 +537,7 @@ ReadBuffer::Create(GLContext* gl,
     MOZ_ASSERT(surf);
 
     if (surf->AttachType() == AttachmentType::Screen) {
-        // Don't need anything. Our read buffer will be the 'screen'.
+        
 
         return new ReadBuffer(gl,
                               0, 0, 0,
@@ -585,7 +601,7 @@ ReadBuffer::Attach(SharedSurface_GL* surf)
     MOZ_ASSERT(surf->AttachType() == mSurf->AttachType());
     MOZ_ASSERT(surf->Size() == mSurf->Size());
 
-    // Nothing else is needed for AttachType Screen.
+    
     if (surf->AttachType() != AttachmentType::Screen) {
         GLuint colorTex = 0;
         GLuint colorRB = 0;
@@ -615,5 +631,5 @@ ReadBuffer::Size() const
     return mSurf->Size();
 }
 
-} /* namespace gl */
-} /* namespace mozilla */
+} 
+} 
