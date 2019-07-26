@@ -14,7 +14,7 @@
 #include "pngpriv.h"
 
 
-typedef png_libpng_version_1_6_6 Your_png_h_is_not_version_1_6_6;
+typedef png_libpng_version_1_6_7 Your_png_h_is_not_version_1_6_7;
 
 
 
@@ -768,13 +768,13 @@ png_get_copyright(png_const_structrp png_ptr)
 #else
 #  ifdef __STDC__
    return PNG_STRING_NEWLINE \
-     "libpng version 1.6.6 - September 16, 2013" PNG_STRING_NEWLINE \
+     "libpng version 1.6.7 - November 14, 2013" PNG_STRING_NEWLINE \
      "Copyright (c) 1998-2013 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
      "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
      "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
      PNG_STRING_NEWLINE;
 #  else
-      return "libpng version 1.6.6 - September 16, 2013\
+      return "libpng version 1.6.7 - November 14, 2013\
       Copyright (c) 1998-2013 Glenn Randers-Pehrson\
       Copyright (c) 1996-1997 Andreas Dilger\
       Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.";
@@ -855,7 +855,8 @@ png_handle_as_unknown(png_const_structrp png_ptr, png_const_bytep chunk_name)
    return PNG_HANDLE_CHUNK_AS_DEFAULT;
 }
 
-#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+#if defined(PNG_READ_UNKNOWN_CHUNKS_SUPPORTED) ||\
+   defined(PNG_HANDLE_AS_UNKNOWN_SUPPORTED)
 int 
 png_chunk_unknown_handling(png_const_structrp png_ptr, png_uint_32 chunk_name)
 {

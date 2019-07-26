@@ -128,7 +128,49 @@
 
 
 #  define PNG_FILTER_OPTIMIZATIONS png_init_filter_functions_neon
-#endif
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+#  ifndef PNG_ARM_NEON_IMPLEMENTATION
+#     ifdef __ARM_NEON__
+#        if defined(__clang__)
+            
+
+
+
+
+#        elif defined(__GNUC__)
+            
+
+
+#           if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 6)
+#              define PNG_ARM_NEON_IMPLEMENTATION 2
+#           endif 
+#        endif 
+#     else 
+         
+
+#        define PNG_ARM_NEON_IMPLEMENTATION 2
+#     endif 
+#  endif 
+
+#  ifndef PNG_ARM_NEON_IMPLEMENTATION
+      
+#     define PNG_ARM_NEON_IMPLEMENTATION 1
+#  endif
+#endif 
 
 
 
@@ -1438,7 +1480,6 @@ PNG_INTERNAL_FUNCTION(void,png_handle_zTXt,(png_structrp png_ptr,
 PNG_INTERNAL_FUNCTION(void,png_check_chunk_name,(png_structrp png_ptr,
     png_uint_32 chunk_name),PNG_EMPTY);
 
-#ifdef PNG_READ_SUPPORTED
 PNG_INTERNAL_FUNCTION(void,png_handle_unknown,(png_structrp png_ptr,
     png_inforp info_ptr, png_uint_32 length, int keep),PNG_EMPTY);
    
@@ -1447,7 +1488,9 @@ PNG_INTERNAL_FUNCTION(void,png_handle_unknown,(png_structrp png_ptr,
 
 
 
-#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+#ifdef PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
+#if defined(PNG_READ_UNKNOWN_CHUNKS_SUPPORTED) ||\
+   defined(PNG_HANDLE_AS_UNKNOWN_SUPPORTED)
 PNG_INTERNAL_FUNCTION(int,png_chunk_unknown_handling,
     (png_const_structrp png_ptr, png_uint_32 chunk_name),PNG_EMPTY);
    

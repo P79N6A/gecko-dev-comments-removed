@@ -154,6 +154,16 @@ png_have_neon(png_structp png_ptr)
 void
 png_init_filter_functions_neon(png_structp pp, unsigned int bpp)
 {
+   
+
+
+
+
+
+
+
+
+
 #ifdef PNG_ARM_NEON_API_SUPPORTED
    switch ((pp->options >> PNG_ARM_NEON) & 3)
    {
@@ -178,13 +188,14 @@ png_init_filter_functions_neon(png_structp pp, unsigned int bpp)
          break;
 #endif
 #endif 
+
 #ifdef PNG_ARM_NEON_API_SUPPORTED
+      default: 
+         return;
+
       case PNG_OPTION_ON:
          
          break;
-
-      default: 
-         return;
    }
 #endif
 

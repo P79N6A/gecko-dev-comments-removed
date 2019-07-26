@@ -2942,6 +2942,7 @@ png_handle_unknown(png_structrp png_ptr, png_inforp info_ptr,
 
    png_debug(1, "in png_handle_unknown");
 
+#ifdef PNG_READ_UNKNOWN_CHUNKS_SUPPORTED
    
 
 
@@ -2953,15 +2954,16 @@ png_handle_unknown(png_structrp png_ptr, png_inforp info_ptr,
 
 
 
-#  ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
-   keep = png_chunk_unknown_handling(png_ptr, png_ptr->chunk_name);
+#  ifndef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+#     ifdef PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
+         keep = png_chunk_unknown_handling(png_ptr, png_ptr->chunk_name);
+#     endif
 #  endif
 
    
 
 
 
-#ifdef PNG_READ_UNKNOWN_CHUNKS_SUPPORTED
 #  ifdef PNG_READ_USER_CHUNKS_SUPPORTED
       
 
@@ -3069,7 +3071,7 @@ png_handle_unknown(png_structrp png_ptr, png_inforp info_ptr,
 
          png_crc_finish(png_ptr, length);
       }
-#  endif 
+#  endif
 
 #  ifdef PNG_STORE_UNKNOWN_CHUNKS_SUPPORTED
       
@@ -3110,7 +3112,6 @@ png_handle_unknown(png_structrp png_ptr, png_inforp info_ptr,
       }
 #  else 
       PNG_UNUSED(info_ptr)
-#     error untested code (reading unknown chunks with no store support)
 #  endif
 
    

@@ -379,6 +379,9 @@
 
 
 
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -392,9 +395,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.6.6"
+#define PNG_LIBPNG_VER_STRING "1.6.7"
 #define PNG_HEADER_VERSION_STRING \
-     " libpng version 1.6.6 - September 16, 2013\n"
+     " libpng version 1.6.7 - November 14, 2013\n"
 
 #define PNG_LIBPNG_VER_SONUM   16
 #define PNG_LIBPNG_VER_DLLNUM  16
@@ -402,7 +405,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   6
-#define PNG_LIBPNG_VER_RELEASE 6
+#define PNG_LIBPNG_VER_RELEASE 7
 
 
 
@@ -433,7 +436,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10606 /* 1.6.6 */
+#define PNG_LIBPNG_VER 10607 /* 1.6.7 */
 
 
 
@@ -544,7 +547,7 @@ extern "C" {
 
 
 
-typedef char* png_libpng_version_1_6_6;
+typedef char* png_libpng_version_1_6_7;
 
 
 
@@ -726,7 +729,8 @@ typedef png_time * png_timep;
 typedef const png_time * png_const_timep;
 typedef png_time * * png_timepp;
 
-#ifdef PNG_STORE_UNKNOWN_CHUNKS_SUPPORTED
+#if defined(PNG_STORE_UNKNOWN_CHUNKS_SUPPORTED) ||\
+   defined(PNG_USER_CHUNKS_SUPPORTED)
 
 
 
