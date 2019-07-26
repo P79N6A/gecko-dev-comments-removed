@@ -423,8 +423,6 @@ var BrowserApp = {
     event.initEvent("UIReady", true, false);
     window.dispatchEvent(event);
 
-    Services.obs.addObserver(this, "browser-delayed-startup-finished", false);
-
     if (this._startupStatus)
       this.onAppUpdated();
 
@@ -696,6 +694,10 @@ var BrowserApp = {
   },
 
   onAppUpdated: function() {
+    
+    Services.obs.notifyObservers(null, "FormHistory:Init", "");
+    Services.obs.notifyObservers(null, "Passwords:Init", "");
+
     
     
     if (Services.prefs.prefHasUserValue("plugins.click_to_play")) {
@@ -1612,22 +1614,10 @@ var BrowserApp = {
         Services.prefs.setCharPref("general.useragent.locale", aData);
         break;
 
-      case "browser-delayed-startup-finished":
-        this._delayedStartup();
-        break;
-
       default:
         dump('BrowserApp.observe: unexpected topic "' + aTopic + '"\n');
         break;
 
-    }
-  },
-
-  _delayedStartup: function() {
-    
-    if (this._startupStatus) {
-      Services.obs.notifyObservers(null, "FormHistory:Init", "");
-      Services.obs.notifyObservers(null, "Passwords:Init", "");
     }
   },
 
