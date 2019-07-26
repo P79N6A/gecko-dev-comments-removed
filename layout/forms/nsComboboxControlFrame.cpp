@@ -1324,7 +1324,9 @@ nsComboboxDisplayFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                          const nsDisplayListSet& aLists)
 {
   nsDisplayListCollection set;
-  nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, set);
+  nsresult rv = nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, set);
+  if (NS_FAILED(rv))
+    return rv;
 
   
   if (mComboBox->IsThemed()) {
@@ -1548,11 +1550,13 @@ nsComboboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (aBuilder->IsForEventDelivery()) {
     
     
-    DisplayBorderBackgroundOutline(aBuilder, aLists);
+    nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
+    NS_ENSURE_SUCCESS(rv, rv);
   } else {
     
     
-    nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+    nsresult rv = nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -1565,14 +1569,14 @@ nsComboboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       if ((!IsThemed(disp) ||
            !presContext->GetTheme()->ThemeDrawsFocusForWidget(presContext, this, disp->mAppearance)) &&
           mDisplayFrame && IsVisibleForPainting(aBuilder)) {
-        aLists.Content()->AppendNewToTop(
-          new (aBuilder) nsDisplayComboboxFocus(aBuilder, this));
+        nsresult rv = aLists.Content()->AppendNewToTop(
+            new (aBuilder) nsDisplayComboboxFocus(aBuilder, this));
+        NS_ENSURE_SUCCESS(rv, rv);
       }
     }
   }
 
-  DisplaySelectionOverlay(aBuilder, aLists.Content());
-  return NS_OK;
+  return DisplaySelectionOverlay(aBuilder, aLists.Content());
 }
 
 void nsComboboxControlFrame::PaintFocus(nsRenderingContext& aRenderingContext,

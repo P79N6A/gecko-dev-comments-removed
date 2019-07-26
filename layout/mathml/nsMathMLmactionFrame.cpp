@@ -280,25 +280,26 @@ nsMathMLmactionFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   if (NS_MATHML_HAS_ERROR(mPresentationData.flags)) {
-    nsMathMLContainerFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
-    return NS_OK;
+    return nsMathMLContainerFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
   }
 
-  DisplayBorderBackgroundOutline(aBuilder, aLists);
+  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsIFrame* childFrame = GetSelectedFrame();
   if (childFrame) {
     
     nsDisplayListSet set(aLists, aLists.Content());
     
-    BuildDisplayListForChild(aBuilder, childFrame, aDirtyRect, set);
+    rv = BuildDisplayListForChild(aBuilder, childFrame, aDirtyRect, set);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
 #if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
   
-  DisplayBoundingMetrics(aBuilder, this, mReference, mBoundingMetrics, aLists);
+  rv = DisplayBoundingMetrics(aBuilder, this, mReference, mBoundingMetrics, aLists);
 #endif
-  return NS_OK;
+  return rv;
 }
 
 

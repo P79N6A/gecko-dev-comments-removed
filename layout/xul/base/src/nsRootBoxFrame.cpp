@@ -207,10 +207,10 @@ nsRootBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  DisplayBorderBackgroundOutline(aBuilder, aLists, true);
+  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists, true);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  BuildDisplayListForChildren(aBuilder, aDirtyRect, aLists);
-  return NS_OK;
+  return BuildDisplayListForChildren(aBuilder, aDirtyRect, aLists);
 }
 
 NS_IMETHODIMP

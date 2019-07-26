@@ -447,8 +447,9 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       const nsStyleBorder* borderStyle = GetStyleBorder();
       bool hasBoxShadow = !!borderStyle->mBoxShadow;
       if (hasBoxShadow) {
-        aLists.BorderBackground()->AppendNewToTop(
-          new (aBuilder) nsDisplayBoxShadowOuter(aBuilder, this));
+        nsresult rv = aLists.BorderBackground()->AppendNewToTop(
+            new (aBuilder) nsDisplayBoxShadowOuter(aBuilder, this));
+        NS_ENSURE_SUCCESS(rv, rv);
       }
     
       
@@ -460,34 +461,39 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         
         nsDisplayTableItem* item =
           new (aBuilder) nsDisplayTableCellBackground(aBuilder, this);
-        aLists.BorderBackground()->AppendNewToTop(item);
+        nsresult rv = aLists.BorderBackground()->AppendNewToTop(item);
+        NS_ENSURE_SUCCESS(rv, rv);
         item->UpdateForFrameBackground(this);
       }
     
       
       if (hasBoxShadow) {
-        aLists.BorderBackground()->AppendNewToTop(
-          new (aBuilder) nsDisplayBoxShadowInner(aBuilder, this));
+        nsresult rv = aLists.BorderBackground()->AppendNewToTop(
+            new (aBuilder) nsDisplayBoxShadowInner(aBuilder, this));
+        NS_ENSURE_SUCCESS(rv, rv);
       }
     
       
       if (!tableFrame->IsBorderCollapse() && borderStyle->HasBorder() &&
           emptyCellStyle == NS_STYLE_TABLE_EMPTY_CELLS_SHOW) {
-        aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-          nsDisplayBorder(aBuilder, this));
+        nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+            nsDisplayBorder(aBuilder, this));
+        NS_ENSURE_SUCCESS(rv, rv);
       }
     
       
       if (IsSelected()) {
-        aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-          nsDisplayGeneric(aBuilder, this, ::PaintTableCellSelection,
-                           "TableCellSelection",
-                           nsDisplayItem::TYPE_TABLE_CELL_SELECTION));
+        nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+            nsDisplayGeneric(aBuilder, this, ::PaintTableCellSelection,
+                             "TableCellSelection",
+                             nsDisplayItem::TYPE_TABLE_CELL_SELECTION));
+        NS_ENSURE_SUCCESS(rv, rv);
       }
     }
     
     
-    DisplayOutline(aBuilder, aLists);
+    nsresult rv = DisplayOutline(aBuilder, aLists);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -503,8 +509,7 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
-  return NS_OK;
+  return BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
 }
 
 int
