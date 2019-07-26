@@ -186,11 +186,6 @@ public:
   
 
 
-  void CancelSocketTask();
-
-  
-
-
 
   virtual void OnConnectSuccess() = 0;
 
