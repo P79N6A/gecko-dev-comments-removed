@@ -587,63 +587,108 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
       
       if (mOGLLayer->OGLManager()->FBOTextureTarget() == LOCAL_GL_TEXTURE_2D) {
         nsIntRect overlap;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        
+        
+
+        nsIntRect srcBufferSpaceBottomRight(mBufferRotation.x, mBufferRotation.y, mBufferRect.width - mBufferRotation.x, mBufferRect.height - mBufferRotation.y);
+        nsIntRect srcBufferSpaceTopRight(mBufferRotation.x, 0, mBufferRect.width - mBufferRotation.x, mBufferRotation.y);
+        nsIntRect srcBufferSpaceTopLeft(0, 0, mBufferRotation.x, mBufferRotation.y);
+        nsIntRect srcBufferSpaceBottomLeft(0, mBufferRotation.y, mBufferRotation.x, mBufferRect.height - mBufferRotation.y);
+
         overlap.IntersectRect(mBufferRect, destBufferRect);
 
         nsIntRect srcRect(overlap), dstRect(overlap);
         srcRect.MoveBy(- mBufferRect.TopLeft() + mBufferRotation);
-        dstRect.MoveBy(- destBufferRect.TopLeft());
+
+        nsIntRect srcRectDrawTopRight(srcRect);
+        nsIntRect srcRectDrawTopLeft(srcRect);
+        nsIntRect srcRectDrawBottomLeft(srcRect);
         
-        if (mBufferRotation != nsIntPoint(0, 0)) {
-          
-          
-          
-          
-          
-          
-          
-          nsIntPoint rotationPoint(mBufferRect.x + mBufferRect.width - mBufferRotation.x, 
-                                   mBufferRect.y + mBufferRect.height - mBufferRotation.y);
+        srcRectDrawTopRight  .MoveBy(-nsIntPoint(0, mBufferRect.height));
+        srcRectDrawTopLeft   .MoveBy(-nsIntPoint(mBufferRect.width, mBufferRect.height));
+        srcRectDrawBottomLeft.MoveBy(-nsIntPoint(mBufferRect.width, 0));
 
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          nsIntRect bottom(mBufferRect.x, rotationPoint.y, mBufferRect.width, mBufferRotation.y);
-          
-          nsIntRect topright(rotationPoint.x, mBufferRect.y, mBufferRotation.x, rotationPoint.y - mBufferRect.y);
+        
+        srcRect               = srcRect              .Intersect(srcBufferSpaceBottomRight);
+        srcRectDrawTopRight   = srcRectDrawTopRight  .Intersect(srcBufferSpaceTopRight);
+        srcRectDrawTopLeft    = srcRectDrawTopLeft   .Intersect(srcBufferSpaceTopLeft);
+        srcRectDrawBottomLeft = srcRectDrawBottomLeft.Intersect(srcBufferSpaceBottomLeft);
 
-          if (!bottom.IsEmpty()) {
-            nsIntRegion temp;
-            temp.And(destBufferRect, bottom);
-            result.mRegionToDraw.Or(result.mRegionToDraw, temp);
-          }
-          if (!topright.IsEmpty()) {
-            nsIntRegion temp;
-            temp.And(destBufferRect, topright);
-            result.mRegionToDraw.Or(result.mRegionToDraw, temp);
-          }
-        }
+        dstRect = srcRect;
+        nsIntRect dstRectDrawTopRight(srcRectDrawTopRight);
+        nsIntRect dstRectDrawTopLeft(srcRectDrawTopLeft);
+        nsIntRect dstRectDrawBottomLeft(srcRectDrawBottomLeft);
+
+        
+        dstRect              .MoveBy(-mBufferRotation);
+        dstRectDrawTopRight  .MoveBy(-mBufferRotation + nsIntPoint(0, mBufferRect.height));
+        dstRectDrawTopLeft   .MoveBy(-mBufferRotation + nsIntPoint(mBufferRect.width, mBufferRect.height));
+        dstRectDrawBottomLeft.MoveBy(-mBufferRotation + nsIntPoint(mBufferRect.width, 0));
+
+        
+        dstRect              .MoveBy(mBufferRect.TopLeft());
+        dstRectDrawTopRight  .MoveBy(mBufferRect.TopLeft());
+        dstRectDrawTopLeft   .MoveBy(mBufferRect.TopLeft());
+        dstRectDrawBottomLeft.MoveBy(mBufferRect.TopLeft());
+
+        
+        dstRect              .MoveBy(-destBufferRect.TopLeft());
+        dstRectDrawTopRight  .MoveBy(-destBufferRect.TopLeft());
+        dstRectDrawTopLeft   .MoveBy(-destBufferRect.TopLeft());
+        dstRectDrawBottomLeft.MoveBy(-destBufferRect.TopLeft());
 
         destBuffer->Resize(destBufferRect.Size());
 
         gl()->BlitTextureImage(mTexImage, srcRect,
                                destBuffer, dstRect);
+        if (mBufferRotation != nsIntPoint(0, 0)) {
+          
+          
+          
+          if (!srcRectDrawTopRight.IsEmpty())
+            gl()->BlitTextureImage(mTexImage, srcRectDrawTopRight,
+                                   destBuffer, dstRectDrawTopRight);
+          if (!srcRectDrawTopLeft.IsEmpty())
+            gl()->BlitTextureImage(mTexImage, srcRectDrawTopLeft,
+                                   destBuffer, dstRectDrawTopLeft);
+          if (!srcRectDrawBottomLeft.IsEmpty())
+            gl()->BlitTextureImage(mTexImage, srcRectDrawBottomLeft,
+                                   destBuffer, dstRectDrawBottomLeft);
+        }
         destBuffer->MarkValid();
         if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
           destBufferOnWhite->Resize(destBufferRect.Size());
           gl()->BlitTextureImage(mTexImageOnWhite, srcRect,
                                  destBufferOnWhite, dstRect);
+          if (mBufferRotation != nsIntPoint(0, 0)) {
+            
+            if (!srcRectDrawTopRight.IsEmpty())
+              gl()->BlitTextureImage(mTexImage, srcRectDrawTopRight,
+                                     destBuffer, dstRectDrawTopRight);
+            if (!srcRectDrawTopLeft.IsEmpty())
+              gl()->BlitTextureImage(mTexImage, srcRectDrawTopLeft,
+                                     destBuffer, dstRectDrawTopLeft);
+            if (!srcRectDrawBottomLeft.IsEmpty())
+              gl()->BlitTextureImage(mTexImage, srcRectDrawBottomLeft,
+                                     destBuffer, dstRectDrawBottomLeft);
+          }
+
           destBufferOnWhite->MarkValid();
         }
       } else {
