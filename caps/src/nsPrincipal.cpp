@@ -69,7 +69,7 @@ nsBasePrincipal::Release()
   return count;
 }
 
-nsBasePrincipal::nsBasePrincipal() : mSecurityPolicy(nullptr)
+nsBasePrincipal::nsBasePrincipal()
 {
   if (!gIsObservingCodeBasePrincipalSupport) {
     nsresult rv =
@@ -84,31 +84,6 @@ nsBasePrincipal::nsBasePrincipal() : mSecurityPolicy(nullptr)
 
 nsBasePrincipal::~nsBasePrincipal(void)
 {
-  SetSecurityPolicy(nullptr); 
-}
-
-NS_IMETHODIMP
-nsBasePrincipal::GetSecurityPolicy(void** aSecurityPolicy)
-{
-  if (mSecurityPolicy && mSecurityPolicy->IsInvalid()) 
-    SetSecurityPolicy(nullptr);
-  
-  *aSecurityPolicy = (void *) mSecurityPolicy;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsBasePrincipal::SetSecurityPolicy(void* aSecurityPolicy)
-{
-  DomainPolicy *newPolicy = reinterpret_cast<DomainPolicy *>(aSecurityPolicy);
-  if (newPolicy)
-    newPolicy->Hold();
- 
-  if (mSecurityPolicy)
-    mSecurityPolicy->Drop();
-  
-  mSecurityPolicy = newPolicy;
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -407,9 +382,6 @@ nsPrincipal::SetDomain(nsIURI* aDomain)
   mDomainImmutable = URIIsImmutable(mDomain);
 
   
-  SetSecurityPolicy(nullptr);
-
-  
   
   AutoSafeJSContext cx;
   JSPrincipals *principals = nsJSPrincipals::get(static_cast<nsIPrincipal*>(this));
@@ -531,10 +503,6 @@ NS_IMETHODIMP
 nsPrincipal::Write(nsIObjectOutputStream* aStream)
 {
   NS_ENSURE_STATE(mCodebase);
-
-  
-  
-  
 
   nsresult rv = NS_WriteOptionalCompoundObject(aStream, mCodebase, NS_GET_IID(nsIURI),
                                                true);

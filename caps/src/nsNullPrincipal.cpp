@@ -146,29 +146,6 @@ nsNullPrincipal::GetHashValue(uint32_t *aResult)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsNullPrincipal::GetSecurityPolicy(void** aSecurityPolicy)
-{
-  
-  
-  
-  
-  
-  *aSecurityPolicy = nullptr;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNullPrincipal::SetSecurityPolicy(void* aSecurityPolicy)
-{
-  
-  
-  
-  
-  
-  return NS_OK;
-}
-
 NS_IMETHODIMP 
 nsNullPrincipal::GetURI(nsIURI** aURI)
 {

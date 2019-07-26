@@ -196,9 +196,6 @@ inline void SetPendingException(JSContext *cx, const PRUnichar *aMsg)
 }
 
 
-uint32_t DomainPolicy::sGeneration = 0;
-
-
 
 class ClassInfoData
 {
@@ -346,71 +343,6 @@ nsScriptSecurityManager::GetCxSubjectPrincipal(JSContext *cx)
         return nullptr;
 
     return principal;
-}
-
-
-
-
-
-
-static bool
-DeleteCapability(nsHashKey *aKey, void *aData, void* closure)
-{
-    NS_Free(aData);
-    return true;
-}
-
-
-struct DomainEntry
-{
-    DomainEntry(const char* aOrigin,
-                DomainPolicy* aDomainPolicy) : mOrigin(aOrigin),
-                                               mDomainPolicy(aDomainPolicy),
-                                               mNext(nullptr)
-    {
-        mDomainPolicy->Hold();
-    }
-
-    ~DomainEntry()
-    {
-        mDomainPolicy->Drop();
-    }
-
-    bool Matches(const char *anOrigin)
-    {
-        int len = strlen(anOrigin);
-        int thisLen = mOrigin.Length();
-        if (len < thisLen)
-            return false;
-        if (mOrigin.RFindChar(':', thisLen-1, 1) != -1)
-        
-            return mOrigin.EqualsIgnoreCase(anOrigin, thisLen);
-
-        
-        if (!mOrigin.Equals(anOrigin + (len - thisLen)))
-            return false;
-        if (len == thisLen)
-            return true;
-        char charBefore = anOrigin[len-thisLen-1];
-        return (charBefore == '.' || charBefore == ':' || charBefore == '/');
-    }
-
-    nsCString         mOrigin;
-    DomainPolicy*     mDomainPolicy;
-    DomainEntry*      mNext;
-};
-
-static bool
-DeleteDomainEntry(nsHashKey *aKey, void *aData, void* closure)
-{
-    DomainEntry *entry = (DomainEntry*) aData;
-    do
-    {
-        DomainEntry *next = entry->mNext;
-        delete entry;
-        entry = next;
-    } while (entry);
-    return true;
 }
 
 
@@ -956,186 +888,6 @@ nsScriptSecurityManager::CheckSameOriginDOMProp(nsIPrincipal* aSubject,
 
     return NS_ERROR_DOM_PROP_ACCESS_DENIED;
 }
-
-nsresult
-nsScriptSecurityManager::LookupPolicy(nsIPrincipal* aPrincipal,
-                                      ClassInfoData& aClassData,
-                                      JS::Handle<jsid> aProperty,
-                                      uint32_t aAction,
-                                      SecurityLevel* result)
-{
-    AutoJSContext cx;
-    nsresult rv;
-    JS::RootedId property(cx, aProperty);
-    result->level = SCRIPT_SECURITY_UNDEFINED_ACCESS;
-
-    DomainPolicy* dpolicy = nullptr;
-    
-    if (mPolicyPrefsChanged)
-    {
-        if (!mPrefInitialized) {
-            rv = InitPrefs();
-            NS_ENSURE_SUCCESS(rv, rv);
-        }
-        rv = InitPolicies();
-        if (NS_FAILED(rv))
-            return rv;
-    }
-    else
-    {
-        aPrincipal->GetSecurityPolicy((void**)&dpolicy);
-    }
-
-    if (!dpolicy && mOriginToPolicyMap)
-    {
-        
-        if (nsCOMPtr<nsIExpandedPrincipal> exp = do_QueryInterface(aPrincipal)) 
-        {
-            
-            
-            dpolicy = mDefaultPolicy;
-        }
-        else
-        {
-            nsAutoCString origin;
-            rv = GetPrincipalDomainOrigin(aPrincipal, origin);
-            NS_ENSURE_SUCCESS(rv, rv);
- 
-            char *start = origin.BeginWriting();
-            const char *nextToLastDot = nullptr;
-            const char *lastDot = nullptr;
-            const char *colon = nullptr;
-            char *p = start;
-
-            
-            for (uint32_t slashes=0; *p; p++)
-            {
-                if (*p == '/' && ++slashes == 3) 
-                {
-                    *p = '\0'; 
-                    break;
-                }
-                if (*p == '.')
-                {
-                    nextToLastDot = lastDot;
-                    lastDot = p;
-                } 
-                else if (!colon && *p == ':')
-                    colon = p;
-            }
-
-            nsCStringKey key(nextToLastDot ? nextToLastDot+1 : start);
-            DomainEntry *de = (DomainEntry*) mOriginToPolicyMap->Get(&key);
-            if (!de)
-            {
-                nsAutoCString scheme(start, colon-start+1);
-                nsCStringKey schemeKey(scheme);
-                de = (DomainEntry*) mOriginToPolicyMap->Get(&schemeKey);
-            }
-
-            while (de)
-            {
-                if (de->Matches(start))
-                {
-                    dpolicy = de->mDomainPolicy;
-                    break;
-                }
-                de = de->mNext;
-            }
-
-            if (!dpolicy)
-                dpolicy = mDefaultPolicy;
-        }
-
-        aPrincipal->SetSecurityPolicy((void*)dpolicy);
-    }
-
-    ClassPolicy* cpolicy = static_cast<ClassPolicy*>
-                             (PL_DHashTableOperate(dpolicy,
-                                                      aClassData.GetName(),
-                                                      PL_DHASH_LOOKUP));
-
-    if (PL_DHASH_ENTRY_IS_FREE(cpolicy))
-        cpolicy = NO_POLICY_FOR_CLASS;
-
-    NS_ASSERTION(JSID_IS_INT(property) || JSID_IS_OBJECT(property) ||
-                 JSID_IS_STRING(property), "Property must be a valid id");
-
-    
-    if (!JSID_IS_STRING(property))
-        return NS_OK;
-
-    JS::RootedString propertyKey(cx, JSID_TO_STRING(property));
-
-    
-    
-    
-    
-    
-    PropertyPolicy* ppolicy = nullptr;
-    if (cpolicy != NO_POLICY_FOR_CLASS)
-    {
-        ppolicy = static_cast<PropertyPolicy*>
-                             (PL_DHashTableOperate(cpolicy->mPolicy,
-                                                      propertyKey,
-                                                      PL_DHASH_LOOKUP));
-    }
-
-    
-    
-    if (dpolicy->mWildcardPolicy &&
-        (!ppolicy || PL_DHASH_ENTRY_IS_FREE(ppolicy)))
-    {
-        ppolicy =
-            static_cast<PropertyPolicy*>
-                       (PL_DHashTableOperate(dpolicy->mWildcardPolicy->mPolicy,
-                                                propertyKey,
-                                                PL_DHASH_LOOKUP));
-    }
-
-    
-    
-    
-    if (dpolicy != mDefaultPolicy &&
-        (!ppolicy || PL_DHASH_ENTRY_IS_FREE(ppolicy)))
-    {
-        cpolicy = static_cast<ClassPolicy*>
-                             (PL_DHashTableOperate(mDefaultPolicy,
-                                                      aClassData.GetName(),
-                                                      PL_DHASH_LOOKUP));
-
-        if (PL_DHASH_ENTRY_IS_BUSY(cpolicy))
-        {
-            ppolicy =
-                static_cast<PropertyPolicy*>
-                           (PL_DHashTableOperate(cpolicy->mPolicy,
-                                                    propertyKey,
-                                                    PL_DHASH_LOOKUP));
-        }
-
-        if ((!ppolicy || PL_DHASH_ENTRY_IS_FREE(ppolicy)) &&
-            mDefaultPolicy->mWildcardPolicy)
-        {
-            ppolicy =
-              static_cast<PropertyPolicy*>
-                         (PL_DHashTableOperate(mDefaultPolicy->mWildcardPolicy->mPolicy,
-                                                  propertyKey,
-                                                  PL_DHASH_LOOKUP));
-        }
-    }
-
-    if (!ppolicy || PL_DHASH_ENTRY_IS_FREE(ppolicy))
-        return NS_OK;
-
-    
-    if (aAction == nsIXPCSecurityManager::ACCESS_SET_PROPERTY)
-        *result = ppolicy->mSet;
-    else
-        *result = ppolicy->mGet;
-
-    return NS_OK;
-}
-
 
 NS_IMETHODIMP
 nsScriptSecurityManager::CheckLoadURIFromScript(JSContext *cx, nsIURI *aURI)
@@ -1985,12 +1737,10 @@ nsScriptSecurityManager::AsyncOnChannelRedirect(nsIChannel* oldChannel,
 const char sJSEnabledPrefName[] = "javascript.enabled";
 const char sFileOriginPolicyPrefName[] =
     "security.fileuri.strict_origin_policy";
-static const char sPolicyPrefix[] = "capability.policy.";
 
 static const char* kObservedPrefs[] = {
   sJSEnabledPrefName,
   sFileOriginPolicyPrefName,
-  sPolicyPrefix,
   nullptr
 };
 
@@ -2010,11 +1760,6 @@ nsScriptSecurityManager::Observe(nsISupports* aObject, const char* aTopic,
     {
         ScriptSecurityPrefChanged();
     }
-    else if (PL_strncmp(message, sPolicyPrefix, sizeof(sPolicyPrefix)-1) == 0)
-    {
-        
-        mPolicyPrefsChanged = true;
-    }
     return rv;
 }
 
@@ -2022,12 +1767,8 @@ nsScriptSecurityManager::Observe(nsISupports* aObject, const char* aTopic,
 
 
 nsScriptSecurityManager::nsScriptSecurityManager(void)
-    : mOriginToPolicyMap(nullptr),
-      mDefaultPolicy(nullptr),
-      mCapabilities(nullptr),
-      mPrefInitialized(false),
-      mIsJavaScriptEnabled(false),
-      mPolicyPrefsChanged(true)
+    : mPrefInitialized(false)
+    , mIsJavaScriptEnabled(false)
 {
     static_assert(sizeof(intptr_t) == sizeof(void*),
                   "intptr_t and void* have different lengths on this platform. "
@@ -2079,10 +1820,6 @@ static StaticRefPtr<nsScriptSecurityManager> gScriptSecMan;
 nsScriptSecurityManager::~nsScriptSecurityManager(void)
 {
     Preferences::RemoveObservers(this, kObservedPrefs);
-    delete mOriginToPolicyMap;
-    if(mDefaultPolicy)
-        mDefaultPolicy->Drop();
-    delete mCapabilities;
     if (mDomainPolicy)
         mDomainPolicy->Deactivate();
     MOZ_ASSERT(!mDomainPolicy);
@@ -2138,294 +1875,6 @@ nsScriptSecurityManager::SystemPrincipalSingletonConstructor()
     if (gScriptSecMan)
         NS_ADDREF(sysprin = gScriptSecMan->mSystemPrincipal);
     return static_cast<nsSystemPrincipal*>(sysprin);
-}
-
-nsresult
-nsScriptSecurityManager::InitPolicies()
-{
-    
-    
-    delete mOriginToPolicyMap;
-    
-    
-    
-    
-    DomainPolicy::InvalidateAll();
-    
-    
-    if(mDefaultPolicy) {
-        mDefaultPolicy->Drop();
-        mDefaultPolicy = nullptr;
-    }
-    
-    
-    mOriginToPolicyMap =
-      new nsObjectHashtable(nullptr, nullptr, DeleteDomainEntry, nullptr);
-    if (!mOriginToPolicyMap)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    
-    mDefaultPolicy = new DomainPolicy();
-    if (!mDefaultPolicy)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    mDefaultPolicy->Hold();
-    if (!mDefaultPolicy->Init())
-        return NS_ERROR_UNEXPECTED;
-
-    
-    if (!mCapabilities)
-    {
-        mCapabilities = 
-          new nsObjectHashtable(nullptr, nullptr, DeleteCapability, nullptr);
-        if (!mCapabilities)
-            return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    
-    AutoSafeJSContext cx;
-    nsresult rv = InitDomainPolicy(cx, "default", mDefaultPolicy);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsAdoptingCString policyNames =
-        Preferences::GetCString("capability.policy.policynames");
-
-    nsAdoptingCString defaultPolicyNames =
-        Preferences::GetCString("capability.policy.default_policynames");
-    policyNames += NS_LITERAL_CSTRING(" ") + defaultPolicyNames;
-
-    
-    char* policyCurrent = policyNames.BeginWriting();
-    bool morePolicies = true;
-    while (morePolicies)
-    {
-        while(*policyCurrent == ' ' || *policyCurrent == ',')
-            policyCurrent++;
-        if (*policyCurrent == '\0')
-            break;
-        char* nameBegin = policyCurrent;
-
-        while(*policyCurrent != '\0' && *policyCurrent != ' ' && *policyCurrent != ',')
-            policyCurrent++;
-
-        morePolicies = (*policyCurrent != '\0');
-        *policyCurrent = '\0';
-        policyCurrent++;
-
-        nsAutoCString sitesPrefName(
-            NS_LITERAL_CSTRING(sPolicyPrefix) +
-            nsDependentCString(nameBegin) +
-            NS_LITERAL_CSTRING(".sites"));
-        nsAdoptingCString domainList =
-            Preferences::GetCString(sitesPrefName.get());
-        if (!domainList) {
-            continue;
-        }
-
-        DomainPolicy* domainPolicy = new DomainPolicy();
-        if (!domainPolicy)
-            return NS_ERROR_OUT_OF_MEMORY;
-
-        if (!domainPolicy->Init())
-        {
-            delete domainPolicy;
-            return NS_ERROR_UNEXPECTED;
-        }
-        domainPolicy->Hold();
-        
-        char* domainStart = domainList.BeginWriting();
-        char* domainCurrent = domainStart;
-        char* lastDot = nullptr;
-        char* nextToLastDot = nullptr;
-        bool moreDomains = true;
-        while (moreDomains)
-        {
-            if (*domainCurrent == ' ' || *domainCurrent == '\0')
-            {
-                moreDomains = (*domainCurrent != '\0');
-                *domainCurrent = '\0';
-                nsCStringKey key(nextToLastDot ? nextToLastDot+1 : domainStart);
-                DomainEntry *newEntry = new DomainEntry(domainStart, domainPolicy);
-                if (!newEntry)
-                {
-                    domainPolicy->Drop();
-                    return NS_ERROR_OUT_OF_MEMORY;
-                }
-                DomainEntry *existingEntry = (DomainEntry *)
-                    mOriginToPolicyMap->Get(&key);
-                if (!existingEntry)
-                    mOriginToPolicyMap->Put(&key, newEntry);
-                else
-                {
-                    if (existingEntry->Matches(domainStart))
-                    {
-                        newEntry->mNext = existingEntry;
-                        mOriginToPolicyMap->Put(&key, newEntry);
-                    }
-                    else
-                    {
-                        while (existingEntry->mNext)
-                        {
-                            if (existingEntry->mNext->Matches(domainStart))
-                            {
-                                newEntry->mNext = existingEntry->mNext;
-                                existingEntry->mNext = newEntry;
-                                break;
-                            }
-                            existingEntry = existingEntry->mNext;
-                        }
-                        if (!existingEntry->mNext)
-                            existingEntry->mNext = newEntry;
-                    }
-                }
-                domainStart = domainCurrent + 1;
-                lastDot = nextToLastDot = nullptr;
-            }
-            else if (*domainCurrent == '.')
-            {
-                nextToLastDot = lastDot;
-                lastDot = domainCurrent;
-            }
-            domainCurrent++;
-        }
-
-        rv = InitDomainPolicy(cx, nameBegin, domainPolicy);
-        domainPolicy->Drop();
-        if (NS_FAILED(rv))
-            return rv;
-    }
-
-    
-    mPolicyPrefsChanged = false;
-
-    return NS_OK;
-}
-
-
-nsresult
-nsScriptSecurityManager::InitDomainPolicy(JSContext* cx,
-                                          const char* aPolicyName,
-                                          DomainPolicy* aDomainPolicy)
-{
-    nsresult rv;
-    nsAutoCString policyPrefix(NS_LITERAL_CSTRING(sPolicyPrefix) +
-                               nsDependentCString(aPolicyName) +
-                               NS_LITERAL_CSTRING("."));
-    uint32_t prefixLength = policyPrefix.Length() - 1; 
-
-    uint32_t prefCount;
-    char** prefNames;
-    nsIPrefBranch* branch = Preferences::GetRootBranch();
-    NS_ASSERTION(branch, "failed to get the root pref branch");
-    rv = branch->GetChildList(policyPrefix.get(), &prefCount, &prefNames);
-    if (NS_FAILED(rv)) return rv;
-    if (prefCount == 0)
-        return NS_OK;
-
-    
-    uint32_t currentPref = 0;
-    for (; currentPref < prefCount; currentPref++)
-    {
-        
-        const char* start = prefNames[currentPref] + prefixLength + 1;
-        char* end = PL_strchr(start, '.');
-        if (!end) 
-            continue;
-        static const char sitesStr[] = "sites";
-
-        
-        
-        if (PL_strncmp(start, sitesStr, sizeof(sitesStr)-1) == 0)
-            continue;
-
-        
-        nsAdoptingCString prefValue =
-            Preferences::GetCString(prefNames[currentPref]);
-        if (!prefValue) {
-            continue;
-        }
-
-        SecurityLevel secLevel;
-        if (PL_strcasecmp(prefValue, "noAccess") == 0)
-            secLevel.level = SCRIPT_SECURITY_NO_ACCESS;
-        else if (PL_strcasecmp(prefValue, "allAccess") == 0)
-            secLevel.level = SCRIPT_SECURITY_ALL_ACCESS;
-        else if (PL_strcasecmp(prefValue, "sameOrigin") == 0)
-            secLevel.level = SCRIPT_SECURITY_SAME_ORIGIN_ACCESS;
-        else 
-        {  
-            nsCStringKey secLevelKey(prefValue);
-            secLevel.capability =
-                reinterpret_cast<char*>(mCapabilities->Get(&secLevelKey));
-            if (!secLevel.capability)
-            {
-                secLevel.capability = NS_strdup(prefValue);
-                if (!secLevel.capability)
-                    break;
-                mCapabilities->Put(&secLevelKey, 
-                                   secLevel.capability);
-            }
-        }
-
-        *end = '\0';
-        
-        ClassPolicy* cpolicy = 
-          static_cast<ClassPolicy*>
-                     (PL_DHashTableOperate(aDomainPolicy, start,
-                                              PL_DHASH_ADD));
-        if (!cpolicy)
-            break;
-
-        
-        
-        if ((*start == '*') && (end == start + 1)) {
-            aDomainPolicy->mWildcardPolicy = cpolicy;
-
-            
-            
-            
-            cpolicy->mDomainWeAreWildcardFor = aDomainPolicy;
-        }
-
-        
-        start = end + 1;
-        end = PL_strchr(start, '.');
-        if (end)
-            *end = '\0';
-
-        JSString* propertyKey = ::JS_InternString(cx, start);
-        if (!propertyKey)
-            return NS_ERROR_OUT_OF_MEMORY;
-
-        
-        PropertyPolicy* ppolicy = 
-          static_cast<PropertyPolicy*>
-                     (PL_DHashTableOperate(cpolicy->mPolicy, propertyKey,
-                                              PL_DHASH_ADD));
-        if (!ppolicy)
-            break;
-
-        if (end) 
-        {
-            start = end + 1;
-            if (PL_strcasecmp(start, "set") == 0)
-                ppolicy->mSet = secLevel;
-            else
-                ppolicy->mGet = secLevel;
-        }
-        else
-        {
-            if (ppolicy->mGet.level == SCRIPT_SECURITY_UNDEFINED_ACCESS)
-                ppolicy->mGet = secLevel;
-            if (ppolicy->mSet.level == SCRIPT_SECURITY_UNDEFINED_ACCESS)
-                ppolicy->mSet = secLevel;
-        }
-    }
-
-    NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(prefCount, prefNames);
-    if (currentPref < prefCount) 
-        return NS_ERROR_OUT_OF_MEMORY;
-    return NS_OK;
 }
 
 inline void
