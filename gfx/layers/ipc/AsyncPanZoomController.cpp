@@ -1112,7 +1112,8 @@ AsyncPanZoomController::FireAsyncScrollOnTimeout()
 
 bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSampleTime,
                                                             ContainerLayer* aLayer,
-                                                            ViewTransform* aNewTransform) {
+                                                            ViewTransform* aNewTransform,
+                                                            gfxPoint* aScrollOffset) {
   
   
   
@@ -1221,6 +1222,7 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
   gfxPoint scrollCompensation(
     (scrollOffset / rootScale - metricsScrollOffset) * localScale);
   *aNewTransform = ViewTransform(-scrollCompensation, localScale);
+  *aScrollOffset = scrollOffset * localScale;
 
   mLastSampleTime = aSampleTime;
 
