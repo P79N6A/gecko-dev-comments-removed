@@ -107,7 +107,6 @@ static char *RCSSTRING __UNUSED__="$Id: addrs.c,v 1.2 2008/04/28 18:21:30 ekr Ex
 
 
 
-
 #include <err.h>
 
 static void stun_rt_xaddrs(caddr_t, caddr_t, struct rt_addrinfo *);
