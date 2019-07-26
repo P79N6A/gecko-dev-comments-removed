@@ -6101,16 +6101,33 @@ function undoCloseTab(aIndex) {
   if (gBrowser.tabs.length == 1 && isTabEmpty(gBrowser.selectedTab))
     blankTabToRemove = gBrowser.selectedTab;
 
-  var tab = null;
-  if (SessionStore.getClosedTabCount(window) > (aIndex || 0)) {
-    TabView.prepareUndoCloseTab(blankTabToRemove);
-    tab = SessionStore.undoCloseTab(window, aIndex || 0);
-    TabView.afterUndoCloseTab();
+  let numberOfTabsToUndoClose = 0;
+  let index = Number(aIndex);
 
-    if (blankTabToRemove)
-      gBrowser.removeTab(blankTabToRemove);
+
+  if (isNaN(index)) {
+    index = 0;
+    numberOfTabsToUndoClose = SessionStore.getNumberOfTabsClosedLast(window);
+  } else {
+    if (0 > index || index >= SessionStore.getClosedTabCount(window))
+      return null;
+    numberOfTabsToUndoClose = 1;
   }
 
+  let tab = null;
+  while (numberOfTabsToUndoClose > 0 &&
+         numberOfTabsToUndoClose--) {
+    TabView.prepareUndoCloseTab(blankTabToRemove);
+    tab = SessionStore.undoCloseTab(window, index);
+    TabView.afterUndoCloseTab();
+    if (blankTabToRemove) {
+      gBrowser.removeTab(blankTabToRemove);
+      blankTabToRemove = null;
+    }
+  }
+
+  
+  SessionStore.setNumberOfTabsClosedLast(window, 1);
   return tab;
 }
 
@@ -6933,8 +6950,13 @@ var TabContextMenu = {
       menuItem.disabled = disabled;
 
     
-    document.getElementById("context_undoCloseTab").disabled =
-      SessionStore.getClosedTabCount(window) == 0;
+    let undoCloseTabElement = document.getElementById("context_undoCloseTab");
+    let closedTabCount = SessionStore.getNumberOfTabsClosedLast(window);
+    undoCloseTabElement.disabled = closedTabCount == 0;
+    
+    
+    let visibleLabel = closedTabCount <= 1 ? "singletablabel" : "multipletablabel";
+    undoCloseTabElement.setAttribute("label", undoCloseTabElement.getAttribute(visibleLabel));
 
     
     document.getElementById("context_pinTab").hidden = this.contextTab.pinned;

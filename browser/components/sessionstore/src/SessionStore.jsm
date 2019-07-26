@@ -193,6 +193,14 @@ this.SessionStore = {
     return SessionStoreInternal.duplicateTab(aWindow, aTab, aDelta);
   },
 
+  getNumberOfTabsClosedLast: function ss_getNumberOfTabsClosedLast(aWindow) {
+    return SessionStoreInternal.getNumberOfTabsClosedLast(aWindow);
+  },
+
+  setNumberOfTabsClosedLast: function ss_setNumberOfTabsClosedLast(aWindow, aNumber) {
+    return SessionStoreInternal.setNumberOfTabsClosedLast(aWindow, aNumber);
+  },
+
   getClosedTabCount: function ss_getClosedTabCount(aWindow) {
     return SessionStoreInternal.getClosedTabCount(aWindow);
   },
@@ -1606,6 +1614,35 @@ let SessionStoreInternal = {
                      true );
 
     return newTab;
+  },
+
+  setNumberOfTabsClosedLast: function ssi_setNumberOfTabsClosedLast(aWindow, aNumber) {
+    if (this._disabledForMultiProcess) {
+      return;
+    }
+
+    if (!("__SSi" in aWindow)) {
+      throw Components.Exception("Window is not tracked", Cr.NS_ERROR_INVALID_ARG);
+    }
+
+    return NumberOfTabsClosedLastPerWindow.set(aWindow, aNumber);
+  },
+
+  
+  getNumberOfTabsClosedLast: function ssi_getNumberOfTabsClosedLast(aWindow) {
+    if (this._disabledForMultiProcess) {
+      return 0;
+    }
+
+    if (!("__SSi" in aWindow)) {
+      throw Components.Exception("Window is not tracked", Cr.NS_ERROR_INVALID_ARG);
+    }
+    
+    
+    
+    
+    return Math.min(NumberOfTabsClosedLastPerWindow.get(aWindow) || 1,
+                    this.getClosedTabCount(aWindow));
   },
 
   getClosedTabCount: function ssi_getClosedTabCount(aWindow) {
@@ -3991,6 +4028,11 @@ let DirtyWindows = {
     this._data.clear();
   }
 };
+
+
+
+
+let NumberOfTabsClosedLastPerWindow = new WeakMap();
 
 
 
