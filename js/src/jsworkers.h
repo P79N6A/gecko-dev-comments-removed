@@ -379,10 +379,12 @@ struct ParseTask
     ~ParseTask();
 };
 
+#ifdef JS_THREADSAFE
 
 
 extern bool
 OffThreadParsingMustWaitForGC(JSRuntime *rt);
+#endif
 
 
 
