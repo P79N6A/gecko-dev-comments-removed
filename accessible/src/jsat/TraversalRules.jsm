@@ -108,6 +108,8 @@ var gSimpleTraversalRoles =
    ROLE_KEY,
    ROLE_HEADER,
    ROLE_HEADING,
+   ROLE_SLIDER,
+   ROLE_SPINBUTTON,
    
    ROLE_INTERNAL_FRAME];
 
