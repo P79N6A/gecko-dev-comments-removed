@@ -495,21 +495,21 @@ nsXPCWrappedJSClass::IsWrappedJS(nsISupports* aPtr)
 }
 
 
+
 static JSContext *
-GetContextFromObject(JSObject *objArg)
+GetContextFromObjectOrDefault(nsXPCWrappedJS* wrapper)
 {
     
     XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
-
     if (stack && stack->Peek())
-        return nullptr;
+        return stack->Peek();
 
     
     XPCCallContext ccx(NATIVE_CALLER);
     if (!ccx.IsValid())
         return nullptr;
 
-    RootedObject obj(ccx, objArg);
+    RootedObject obj(ccx, wrapper->GetJSObject());
     JSAutoCompartment ac(ccx, obj);
     XPCWrappedNativeScope* scope = GetObjectScope(obj);
     XPCContext *xpcc = scope->GetContext();
@@ -520,7 +520,7 @@ GetContextFromObject(JSObject *objArg)
         return cx;
     }
 
-    return nullptr;
+    return XPCCallContext::GetDefaultJSContext();
 }
 
 class SameOriginCheckedComponent MOZ_FINAL : public nsISecurityCheckedComponent
@@ -620,9 +620,7 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
         return NS_NOINTERFACE;
     }
 
-    JSContext *context = GetContextFromObject(self->GetJSObject());
-    if (!context)
-        context = XPCCallContext::GetDefaultJSContext();
+    JSContext *context = GetContextFromObjectOrDefault(self);
     XPCCallContext ccx(NATIVE_CALLER, context);
     if (!ccx.IsValid()) {
         *aInstancePtr = nullptr;
@@ -1136,9 +1134,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     
     
     
-    JSContext *context = GetContextFromObject(wrapper->GetJSObject());
-    if (!context)
-        context = XPCCallContext::GetDefaultJSContext();
+    JSContext *context = GetContextFromObjectOrDefault(wrapper);
     XPCCallContext ccx(NATIVE_CALLER, context);
     if (!ccx.IsValid())
         return retval;
