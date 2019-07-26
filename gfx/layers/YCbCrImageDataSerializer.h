@@ -30,7 +30,7 @@ class Image;
 class YCbCrImageDataDeserializerBase
 {
 public:
-  bool IsValid();
+  bool IsValid() const { return mIsValid; }
 
   
 
@@ -73,11 +73,32 @@ public:
 
 
   uint8_t* GetData();
+
+  
+
+
+
+
+  static size_t ComputeMinBufferSize(const gfx::IntSize& aYSize,
+                                     uint32_t aYStride,
+                                     const gfx::IntSize& aCbCrSize,
+                                     uint32_t aCbCrStride);
+  static size_t ComputeMinBufferSize(const gfx::IntSize& aYSize,
+                                     const gfx::IntSize& aCbCrSize);
+  static size_t ComputeMinBufferSize(uint32_t aSize);
+
 protected:
-  YCbCrImageDataDeserializerBase(uint8_t* aData)
-  : mData (aData) {}
+  YCbCrImageDataDeserializerBase(uint8_t* aData, size_t aDataSize)
+    : mData (aData)
+    , mDataSize(aDataSize)
+    , mIsValid(false)
+  {}
+
+  void Validate();
 
   uint8_t* mData;
+  size_t mDataSize;
+  bool mIsValid;
 };
 
 
@@ -95,16 +116,12 @@ protected:
 class MOZ_STACK_CLASS YCbCrImageDataSerializer : public YCbCrImageDataDeserializerBase
 {
 public:
-  YCbCrImageDataSerializer(uint8_t* aData) : YCbCrImageDataDeserializerBase(aData) {}
-
-  
-
-
-
-
-  static size_t ComputeMinBufferSize(const gfx::IntSize& aYSize,
-                                     const gfx::IntSize& aCbCrSize);
-  static size_t ComputeMinBufferSize(uint32_t aSize);
+  YCbCrImageDataSerializer(uint8_t* aData, size_t aDataSize)
+    : YCbCrImageDataDeserializerBase(aData, aDataSize)
+  {
+    
+    mIsValid = !!mData;
+  }
 
   
 
@@ -149,7 +166,11 @@ public:
 class MOZ_STACK_CLASS YCbCrImageDataDeserializer : public YCbCrImageDataDeserializerBase
 {
 public:
-  YCbCrImageDataDeserializer(uint8_t* aData) : YCbCrImageDataDeserializerBase(aData) {}
+  YCbCrImageDataDeserializer(uint8_t* aData, size_t aDataSize)
+    : YCbCrImageDataDeserializerBase(aData, aDataSize)
+  {
+    Validate();
+  }
 
   
 

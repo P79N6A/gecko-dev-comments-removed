@@ -181,7 +181,7 @@ void TestTextureClientYCbCr(TextureClient* client, PlanarYCbCrData& ycbcrData) {
   
   ASSERT_EQ(host->GetFormat(), mozilla::gfx::SurfaceFormat::YUV);
 
-  YCbCrImageDataDeserializer yuvDeserializer(host->GetBuffer());
+  YCbCrImageDataDeserializer yuvDeserializer(host->GetBuffer(), host->GetBufferSize());
   ASSERT_TRUE(yuvDeserializer.IsValid());
   PlanarYCbCrData data;
   data.mYChannel = yuvDeserializer.GetYData();
