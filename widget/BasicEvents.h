@@ -890,6 +890,7 @@ public:
 
 enum Modifier
 {
+  MODIFIER_NONE       = 0x0000,
   MODIFIER_ALT        = 0x0001,
   MODIFIER_ALTGRAPH   = 0x0002,
   MODIFIER_CAPSLOCK   = 0x0004,
@@ -961,6 +962,19 @@ public:
     result->AssignInputEventData(*this, true);
     result->mFlags = mFlags;
     return result;
+  }
+
+
+  
+
+
+
+  static Modifier AccelModifier();
+
+  
+  bool IsAccel() const
+  {
+    return ((modifiers & AccelModifier()) != 0);
   }
 
   
