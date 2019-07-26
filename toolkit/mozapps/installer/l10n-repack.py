@@ -35,6 +35,7 @@ from createprecomplete import generate_precomplete
 
 
 NON_CHROME = set([
+    'crashreporter*.ini',
     'searchplugins',
     'dictionaries',
     'hyphenation',
