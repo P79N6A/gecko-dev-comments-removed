@@ -1049,6 +1049,9 @@ nsPrintOptions::InitPrintSettingsFromPrefs(nsIPrintSettings* aPS,
 
   
   
+#ifndef MOZ_X11
+  
+  
   rv = GetAdjustedPrinterName(aPS, aUsePNP, prtName);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1061,6 +1064,7 @@ nsPrintOptions::InitPrintSettingsFromPrefs(nsIPrintSettings* aPS,
   rv = ReadPrefs(aPS, prtName, aFlags);
   if (NS_SUCCEEDED(rv))
     aPS->SetIsInitializedFromPrefs(true);
+#endif
 
   return NS_OK;
 }
@@ -1078,8 +1082,12 @@ nsPrintOptions::SavePrintSettingsToPrefs(nsIPrintSettings *aPS,
   nsAutoString prtName;
 
   
+  
+#ifndef MOZ_X11
+  
   nsresult rv = GetAdjustedPrinterName(aPS, aUsePrinterNamePrefix, prtName);
   NS_ENSURE_SUCCESS(rv, rv);
+#endif
 
   
   return WritePrefs(aPS, prtName, aFlags);
