@@ -101,6 +101,25 @@ function createModule(id) {
 
 
 
+let chromeWhitelist = [
+  "devtools/server/main",
+  "devtools/toolkit/transport/transport",
+  "devtools/toolkit/transport/stream-utils",
+  "devtools/toolkit/transport/packets",
+  "devtools/toolkit/DevToolsUtils",
+  "devtools/toolkit/event-emitter",
+  "devtools/server/protocol",
+  "devtools/server/actors/script",
+  "devtools/styleinspector/css-logic",
+];
+
+
+
+
+
+
+
+
 
 
 
@@ -174,6 +193,17 @@ function WorkerDebuggerLoader(options) {
       
       if (id === undefined) {
         throw new Error("can't require module without id!");
+      }
+
+      
+      
+      
+      
+      
+      if (id === "chrome" && chromeWhitelist.indexOf(requirer.id) < 0) {
+        return { CC: undefined, Cc: undefined, ChromeWorker: undefined,
+                 Cm: undefined, Ci: undefined, Cu: undefined, Cr: undefined,
+                 components: undefined };
       }
 
       
