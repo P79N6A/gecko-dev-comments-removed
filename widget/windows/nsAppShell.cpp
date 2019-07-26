@@ -15,9 +15,58 @@
 #include "WinIMEHandler.h"
 #include "mozilla/widget/AudioSession.h"
 #include "mozilla/HangMonitor.h"
+#include "nsIDOMWakeLockListener.h"
+#include "nsIPowerManagerService.h"
+#include "mozilla/StaticPtr.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
+
+
+
+
+class WinWakeLockListener : public nsIDOMMozWakeLockListener {
+public:
+  NS_DECL_ISUPPORTS;
+
+private:
+  NS_IMETHOD Callback(const nsAString& aTopic, const nsAString& aState) {
+    if (aState.Equals(NS_LITERAL_STRING("locked-foreground"))) {
+      
+      SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_CONTINUOUS);
+    } else {
+      
+      SetThreadExecutionState(ES_CONTINUOUS);
+   }
+    return NS_OK;
+  }
+};
+
+NS_IMPL_ISUPPORTS1(WinWakeLockListener, nsIDOMMozWakeLockListener)
+StaticRefPtr<WinWakeLockListener> sWakeLockListener;
+
+static void
+AddScreenWakeLockListener()
+{
+  nsCOMPtr<nsIPowerManagerService> sPowerManagerService = do_GetService(POWERMANAGERSERVICE_CONTRACTID);
+  if (sPowerManagerService) {
+    sWakeLockListener = new WinWakeLockListener();
+    sPowerManagerService->AddWakeLockListener(sWakeLockListener);
+  } else {
+    NS_WARNING("Failed to retrieve PowerManagerService, wakelocks will be broken!");
+  }
+}
+
+static void
+RemoveScreenWakeLockListener()
+{
+  nsCOMPtr<nsIPowerManagerService> sPowerManagerService = do_GetService(POWERMANAGERSERVICE_CONTRACTID);
+  if (sPowerManagerService) {
+    sPowerManagerService->RemoveWakeLockListener(sWakeLockListener);
+    sPowerManagerService = nullptr;
+    sWakeLockListener = nullptr;
+  }
+}
 
 namespace mozilla {
 namespace widget {
@@ -102,7 +151,6 @@ nsAppShell::Init()
   return nsBaseAppShell::Init();
 }
 
-
 NS_IMETHODIMP
 nsAppShell::Run(void)
 {
@@ -110,7 +158,13 @@ nsAppShell::Run(void)
   
   mozilla::widget::StartAudioSession();
 
+  
+  
+  AddScreenWakeLockListener();
+
   nsresult rv = nsBaseAppShell::Run();
+
+  RemoveScreenWakeLockListener();
 
   mozilla::widget::StopAudioSession();
 
@@ -142,7 +196,7 @@ nsAppShell::DoProcessMoreGeckoEvents()
   
   
   
-  
+
   
   
   
@@ -251,6 +305,6 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
   if (timeSinceLastNativeEventScheduled > nativeEventStarvationLimit) {
     ScheduleNativeEventCallback();
   }
-  
+
   return gotMessage;
 }
