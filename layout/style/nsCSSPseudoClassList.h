@@ -55,6 +55,7 @@
 
 
 
+
 CSS_PSEUDO_CLASS(empty, ":empty")
 CSS_PSEUDO_CLASS(mozOnlyWhitespace, ":-moz-only-whitespace")
 CSS_PSEUDO_CLASS(mozEmptyExceptChildrenWithLocalname, ":-moz-empty-except-children-with-localname")
@@ -101,6 +102,10 @@ CSS_PSEUDO_CLASS(mozWindowInactive, ":-moz-window-inactive")
 
 
 CSS_PSEUDO_CLASS(mozTableBorderNonzero, ":-moz-table-border-nonzero")
+
+
+
+CSS_PSEUDO_CLASS(scope, ":-moz-scope")
 
 
 
