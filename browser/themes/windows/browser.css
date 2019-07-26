@@ -29,7 +29,8 @@
 
 
 
-#toolbar-menubar:not([inactive]) ~ #TabsToolbar {
+#toolbar-menubar:not([autohide="true"]) ~ #TabsToolbar,
+#toolbar-menubar[autohide="true"]:not([inactive]) ~ #TabsToolbar {
   margin-top: 3px;
 }
 
