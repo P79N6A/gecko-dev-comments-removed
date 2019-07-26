@@ -102,6 +102,10 @@ DiscardTracker::Shutdown()
     sTimer->Cancel();
     sTimer = NULL;
   }
+
+  
+  
+  DiscardAll();
 }
 
 
