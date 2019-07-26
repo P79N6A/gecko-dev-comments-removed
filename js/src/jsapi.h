@@ -5028,8 +5028,6 @@ using JS::MutableHandleString;
 using JS::MutableHandleId;
 using JS::MutableHandleValue;
 
-using JS::NullPtr;  
-
 using JS::Zone;
 
 }  

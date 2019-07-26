@@ -27,6 +27,8 @@ using mozilla::DebugOnly;
 
 void * const js::NullPtr::constNullValue = NULL;
 
+JS_PUBLIC_DATA(void * const) JS::NullPtr::constNullValue = NULL;
+
 
 
 

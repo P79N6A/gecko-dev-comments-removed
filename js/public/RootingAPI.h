@@ -118,6 +118,24 @@ class HandleBase {};
 template <typename T>
 class MutableHandleBase {};
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct NullPtr
+{
+    static void * const constNullValue;
+};
+
 } 
 
 namespace JS {
@@ -142,7 +160,9 @@ CheckStackRoots(JSContext *cx);
 
 
 
-struct NullPtr
+
+
+struct JS_PUBLIC_API(NullPtr)
 {
     static void * const constNullValue;
 };
@@ -170,9 +190,15 @@ class Handle : public js::HandleBase<T>
     }
 
     
-    Handle(NullPtr) {
+    Handle(js::NullPtr) {
         typedef typename js::tl::StaticAssert<mozilla::IsPointer<T>::value>::result _;
-        ptr = reinterpret_cast<const T *>(&NullPtr::constNullValue);
+        ptr = reinterpret_cast<const T *>(&js::NullPtr::constNullValue);
+    }
+
+    
+    Handle(JS::NullPtr) {
+        typedef typename js::tl::StaticAssert<mozilla::IsPointer<T>::value>::result _;
+        ptr = reinterpret_cast<const T *>(&JS::NullPtr::constNullValue);
     }
 
     Handle(MutableHandle<T> handle) {
@@ -353,7 +379,7 @@ class InternalHandle<T*>
 
 
     InternalHandle(T *field)
-      : holder(reinterpret_cast<void * const *>(&JS::NullPtr::constNullValue)),
+      : holder(reinterpret_cast<void * const *>(&js::NullPtr::constNullValue)),
         offset(uintptr_t(field))
     {}
 };
