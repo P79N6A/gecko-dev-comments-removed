@@ -720,6 +720,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     char *defaultLocale;
 
     
+    JSVersion defaultVersion_;
+
+    
 #ifdef JS_THREADSAFE
   public:
     void *ownerThread() const { return ownerThread_; }
@@ -827,6 +830,9 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     const char *getDefaultLocale();
+
+    JSVersion defaultVersion() { return defaultVersion_; }
+    void setDefaultVersion(JSVersion v) { defaultVersion_ = v; }
 
     
     uintptr_t           nativeStackBase;
@@ -1534,9 +1540,6 @@ struct JSContext : js::ContextFriendFields,
 
   private:
     
-    JSVersion           defaultVersion;      
-
-    
     bool                throwing;            
     js::Value           exception;           
 
@@ -1644,12 +1647,6 @@ struct JSContext : js::ContextFriendFields,
     inline js::RegExpStatics *regExpStatics();
 
   public:
-    
-    void setDefaultVersion(JSVersion version) {
-        defaultVersion = version;
-    }
-
-    JSVersion getDefaultVersion() const { return defaultVersion; }
 
     
 
