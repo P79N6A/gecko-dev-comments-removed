@@ -3581,6 +3581,11 @@ LookupPropertyWithFlagsInline(JSContext *cx,
                               typename MaybeRooted<Shape*, allowGC>::MutableHandleType propp)
 {
     
+
+
+
+
+    
     typename MaybeRooted<JSObject*, allowGC>::RootType current(cx, obj);
 
     while (true) {
@@ -3657,6 +3662,10 @@ baseops::LookupProperty(JSContext *cx,
                         typename MaybeRooted<JSObject*, allowGC>::MutableHandleType objp,
                         typename MaybeRooted<Shape*, allowGC>::MutableHandleType propp)
 {
+    
+
+
+
     return LookupPropertyWithFlagsInline<allowGC>(cx, obj, id, cx->resolveFlags, objp, propp);
 }
 
