@@ -2135,7 +2135,7 @@ static int vcmEnsureExternalCodec(
     
     return 0;
 #ifdef MOZ_WEBRTC_OMX
-  } else if (config->mName == "I420") {
+  } else if (config->mName == "H264_P0" || config->mName == "H264_P1") {
     
     
     
@@ -2145,14 +2145,14 @@ static int vcmEnsureExternalCodec(
     if (send) {
       VideoEncoder* encoder = OMXVideoCodec::CreateEncoder(OMXVideoCodec::CodecType::CODEC_H264);
       if (encoder) {
-        return conduit->SetExternalSendCodec(config->mType, encoder);
+        return conduit->SetExternalSendCodec(config, encoder);
       } else {
         return kMediaConduitInvalidSendCodec;
       }
     } else {
       VideoDecoder* decoder = OMXVideoCodec::CreateDecoder(OMXVideoCodec::CodecType::CODEC_H264);
       if (decoder) {
-        return conduit->SetExternalRecvCodec(config->mType, decoder);
+        return conduit->SetExternalRecvCodec(config, decoder);
       } else {
         return kMediaConduitInvalidReceiveCodec;
       }
@@ -2740,7 +2740,8 @@ int vcmGetVideoCodecList(int request_type)
 
 int vcmGetVideoMaxSupportedPacketizationMode()
 {
-    return 0;
+  
+  return 1;
 }
 
 
@@ -3015,7 +3016,9 @@ void vcmPopulateAttribs(void *sdp_p, int level, cc_uint32_t media_type,
 
         (void) ccsdpAttrSetFmtpPayloadType(sdp_p, level, 0, a_inst, payload_number);
 
-        
+        if (media_type == RTP_H264_P1) {
+          (void) ccsdpAttrSetFmtpPackMode(sdp_p, level, 0, a_inst, 1 );
+        }
         
 
         

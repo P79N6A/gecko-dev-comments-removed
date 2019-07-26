@@ -5,6 +5,7 @@
 #ifndef VIDEO_SESSION_H_
 #define VIDEO_SESSION_H_
 
+#include "nsAutoPtr.h"
 #include "mozilla/Attributes.h"
 
 #include "MediaConduitInterface.h"
@@ -146,14 +147,14 @@ public:
 
 
 
-  virtual MediaConduitErrorCode SetExternalSendCodec(int pltype,
+  virtual MediaConduitErrorCode SetExternalSendCodec(VideoCodecConfig* config,
                                                      VideoEncoder* encoder);
 
   
 
 
 
-  virtual MediaConduitErrorCode SetExternalRecvCodec(int pltype,
+  virtual MediaConduitErrorCode SetExternalRecvCodec(VideoCodecConfig* config,
                                                      VideoDecoder* decoder);
 
 
@@ -338,6 +339,9 @@ private:
   static const unsigned int sRoundingPadding = 1024;
 
   mozilla::RefPtr<WebrtcAudioConduit> mSyncedTo;
+
+  nsAutoPtr<VideoCodecConfig> mExternalSendCodec;
+  nsAutoPtr<VideoCodecConfig> mExternalRecvCodec;
 };
 
 } 

@@ -4,6 +4,7 @@
 
 #include "CSFLog.h"
 #include "nspr.h"
+#include "plstr.h"
 
 
 #include "ccsdp.h"
@@ -479,7 +480,7 @@ WebrtcVideoConduit::AttachTransport(mozilla::RefPtr<TransportInterface> aTranspo
 MediaConduitErrorCode
 WebrtcVideoConduit::ConfigureSendMediaCodec(const VideoCodecConfig* codecConfig)
 {
-  CSFLogDebug(logTag,  "%s ", __FUNCTION__);
+  CSFLogDebug(logTag,  "%s for %s", __FUNCTION__, codecConfig->mName.c_str());
   bool codecFound = false;
   MediaConduitErrorCode condError = kMediaConduitNoError;
   int error = 0; 
@@ -509,26 +510,41 @@ WebrtcVideoConduit::ConfigureSendMediaCodec(const VideoCodecConfig* codecConfig)
                   mPtrViEBase->LastError());
       return kMediaConduitUnknownError;
     }
-  }
 
-  mEngineTransmitting = false;
+    mEngineTransmitting = false;
+  }
 
   if (codecConfig->mLoadManager) {
     mPtrViEBase->RegisterCpuOveruseObserver(mChannel, codecConfig->mLoadManager);
     mPtrViEBase->SetLoadManager(codecConfig->mLoadManager);
   }
 
-  
-  for(int idx=0; idx < mPtrViECodec->NumberOfCodecs(); idx++)
-  {
-    if(0 == mPtrViECodec->GetCodec(idx, video_codec))
+  if (mExternalSendCodec &&
+      codecConfig->mType == mExternalSendCodec->mType) {
+    CSFLogError(logTag, "%s Configuring External H264 Send Codec", __FUNCTION__);
+
+    
+    video_codec.width = 320;
+    video_codec.height = 240;
+    video_codec.qpMax = 56;
+    video_codec.numberOfSimulcastStreams = 1;
+    video_codec.mode = webrtc::kRealtimeVideo;
+
+    codecFound = true;
+  } else {
+    
+    for(int idx=0; idx < mPtrViECodec->NumberOfCodecs(); idx++)
     {
-      payloadName = video_codec.plName;
-      if(codecConfig->mName.compare(payloadName) == 0)
+      if(0 == mPtrViECodec->GetCodec(idx, video_codec))
       {
-        CodecConfigToWebRTCCodec(codecConfig, video_codec);
-        codecFound = true;
-        break;
+        payloadName = video_codec.plName;
+        if(codecConfig->mName.compare(payloadName) == 0)
+        {
+          
+          
+          codecFound = true;
+          break;
+        }
       }
     }
   }
@@ -538,6 +554,8 @@ WebrtcVideoConduit::ConfigureSendMediaCodec(const VideoCodecConfig* codecConfig)
     CSFLogError(logTag, "%s Codec Mismatch ", __FUNCTION__);
     return kMediaConduitInvalidSendCodec;
   }
+  
+  CodecConfigToWebRTCCodec(codecConfig, video_codec);
 
   if(mPtrViECodec->SetSendCodec(mChannel, video_codec) == -1)
   {
@@ -656,35 +674,61 @@ WebrtcVideoConduit::ConfigureRecvMediaCodecs(
 
     mEngineReceiving = false;
     memset(&video_codec, 0, sizeof(webrtc::VideoCodec));
-    
-    for(int idx=0; idx < mPtrViECodec->NumberOfCodecs(); idx++)
-    {
-      if(mPtrViECodec->GetCodec(idx, video_codec) == 0)
+
+    if (mExternalRecvCodec &&
+        codecConfigList[i]->mType == mExternalRecvCodec->mType) {
+      CSFLogError(logTag, "%s Configuring External H264 Receive Codec", __FUNCTION__);
+
+      
+      
+      CodecConfigToWebRTCCodec(codecConfigList[i], video_codec);
+
+      
+      if(mPtrViECodec->SetReceiveCodec(mChannel,video_codec) == -1)
       {
-        payloadName = video_codec.plName;
-        if(codecConfigList[i]->mName.compare(payloadName) == 0)
+        CSFLogError(logTag, "%s Invalid Receive Codec %d ", __FUNCTION__,
+                    mPtrViEBase->LastError());
+      } else {
+        CSFLogError(logTag, "%s Successfully Set the codec %s", __FUNCTION__,
+                    codecConfigList[i]->mName.c_str());
+        if(CopyCodecToDB(codecConfigList[i]))
         {
-          CodecConfigToWebRTCCodec(codecConfigList[i], video_codec);
-          if(mPtrViECodec->SetReceiveCodec(mChannel,video_codec) == -1)
+          success = true;
+        } else {
+          CSFLogError(logTag,"%s Unable to update Codec Database", __FUNCTION__);
+          return kMediaConduitUnknownError;
+        }
+      }
+    } else {
+      
+      for(int idx=0; idx < mPtrViECodec->NumberOfCodecs(); idx++)
+      {
+        if(mPtrViECodec->GetCodec(idx, video_codec) == 0)
+        {
+          payloadName = video_codec.plName;
+          if(codecConfigList[i]->mName.compare(payloadName) == 0)
           {
-            CSFLogError(logTag, "%s Invalid Receive Codec %d ", __FUNCTION__,
-                        mPtrViEBase->LastError());
-          } else {
-            CSFLogError(logTag, "%s Successfully Set the codec %s", __FUNCTION__,
-                        codecConfigList[i]->mName.c_str());
-            if(CopyCodecToDB(codecConfigList[i]))
+            CodecConfigToWebRTCCodec(codecConfigList[i], video_codec);
+            if(mPtrViECodec->SetReceiveCodec(mChannel,video_codec) == -1)
             {
-              success = true;
+              CSFLogError(logTag, "%s Invalid Receive Codec %d ", __FUNCTION__,
+                          mPtrViEBase->LastError());
             } else {
-              CSFLogError(logTag,"%s Unable to updated Codec Database", __FUNCTION__);
-              return kMediaConduitUnknownError;
+              CSFLogError(logTag, "%s Successfully Set the codec %s", __FUNCTION__,
+                          codecConfigList[i]->mName.c_str());
+              if(CopyCodecToDB(codecConfigList[i]))
+              {
+                success = true;
+              } else {
+                CSFLogError(logTag,"%s Unable to update Codec Database", __FUNCTION__);
+                return kMediaConduitUnknownError;
+              }
             }
+            break; 
           }
-          break; 
         }
       }
     }
-
   }
 
   if(!success)
@@ -882,22 +926,28 @@ WebrtcVideoConduit::SelectSendResolution(unsigned short width,
 }
 
 MediaConduitErrorCode
-WebrtcVideoConduit::SetExternalSendCodec(int pltype,
+WebrtcVideoConduit::SetExternalSendCodec(VideoCodecConfig* config,
                                          VideoEncoder* encoder) {
-  int ret = mPtrExtCodec->RegisterExternalSendCodec(mChannel,
-                                                    pltype,
-                                                    static_cast<WebrtcVideoEncoder*>(encoder),
-                                                    false);
-  return ret ? kMediaConduitInvalidSendCodec : kMediaConduitNoError;
+  if (!mPtrExtCodec->RegisterExternalSendCodec(mChannel,
+                                              config->mType,
+                                              static_cast<WebrtcVideoEncoder*>(encoder),
+                                              false)) {
+    mExternalSendCodec = new VideoCodecConfig(*config);
+    return kMediaConduitNoError;
+  }
+  return kMediaConduitInvalidSendCodec;
 }
 
 MediaConduitErrorCode
-WebrtcVideoConduit::SetExternalRecvCodec(int pltype,
+WebrtcVideoConduit::SetExternalRecvCodec(VideoCodecConfig* config,
                                          VideoDecoder* decoder) {
-  int ret = mPtrExtCodec->RegisterExternalReceiveCodec(mChannel,
-                                                       pltype,
-                                                       static_cast<WebrtcVideoDecoder*>(decoder));
-  return ret ? kMediaConduitInvalidReceiveCodec : kMediaConduitNoError;
+  if (!mPtrExtCodec->RegisterExternalReceiveCodec(mChannel,
+                                                  config->mType,
+                                                  static_cast<WebrtcVideoDecoder*>(decoder))) {
+    mExternalRecvCodec = new VideoCodecConfig(*config);
+    return kMediaConduitNoError;
+  }
+  return kMediaConduitInvalidReceiveCodec;
 }
 
 MediaConduitErrorCode
@@ -1141,7 +1191,22 @@ void
 WebrtcVideoConduit::CodecConfigToWebRTCCodec(const VideoCodecConfig* codecInfo,
                                               webrtc::VideoCodec& cinst)
 {
+  
+  
+  
   cinst.plType  = codecInfo->mType;
+  if (codecInfo->mName == "H264_P0" || codecInfo->mName == "H264_P1") {
+    cinst.codecType = webrtc::kVideoCodecH264;
+    PL_strncpyz(cinst.plName, "H264", sizeof(cinst.plName));
+  } else if (codecInfo->mName == "VP8") {
+    cinst.codecType = webrtc::kVideoCodecVP8;
+    PL_strncpyz(cinst.plName, "VP8", sizeof(cinst.plName));
+  } else if (codecInfo->mName == "I420") {
+    cinst.codecType = webrtc::kVideoCodecI420;
+    PL_strncpyz(cinst.plName, "I420", sizeof(cinst.plName));
+  }
+
+  
   
   if (codecInfo->mMaxFrameRate > 0)
   {
@@ -1150,6 +1215,19 @@ WebrtcVideoConduit::CodecConfigToWebRTCCodec(const VideoCodecConfig* codecInfo,
   cinst.minBitrate = mMinBitrate;
   cinst.startBitrate = mStartBitrate;
   cinst.maxBitrate = mMaxBitrate;
+
+  if (cinst.codecType == webrtc::kVideoCodecH264)
+  {
+    cinst.codecSpecific.H264.profile = codecInfo->mProfile;
+    cinst.codecSpecific.H264.constraints = codecInfo->mConstraints;
+    cinst.codecSpecific.H264.level = codecInfo->mLevel;
+    cinst.codecSpecific.H264.packetizationMode = codecInfo->mPacketizationMode;
+    
+    cinst.codecSpecific.H264.spsData = nullptr;
+    cinst.codecSpecific.H264.spsLen = 0;
+    cinst.codecSpecific.H264.ppsData = nullptr;
+    cinst.codecSpecific.H264.ppsLen = 0;
+  }
 }
 
 

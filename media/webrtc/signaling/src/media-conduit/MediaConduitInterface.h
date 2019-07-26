@@ -279,7 +279,7 @@ public:
 
 
 
-  virtual MediaConduitErrorCode SetExternalSendCodec(int pltype,
+  virtual MediaConduitErrorCode SetExternalSendCodec(VideoCodecConfig* config,
                                                      VideoEncoder* encoder) = 0;
 
   
@@ -287,7 +287,7 @@ public:
 
 
 
-  virtual MediaConduitErrorCode SetExternalRecvCodec(int pltype,
+  virtual MediaConduitErrorCode SetExternalRecvCodec(VideoCodecConfig* config,
                                                      VideoDecoder* decoder) = 0;
 
   
