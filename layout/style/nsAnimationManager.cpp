@@ -539,6 +539,11 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
                                        mozilla::dom::Element* aElement)
 {
   if (!mPresContext->IsProcessingAnimationStyleChange()) {
+    if (!mPresContext->IsDynamic()) {
+      
+      return nullptr;
+    }
+
     
     
     
@@ -948,6 +953,11 @@ nsAnimationManager::GetAnimationRule(mozilla::dom::Element* aElement,
     aPseudoType == nsCSSPseudoElements::ePseudo_before ||
     aPseudoType == nsCSSPseudoElements::ePseudo_after,
     "forbidden pseudo type");
+
+  if (!mPresContext->IsDynamic()) {
+    
+    return nullptr;
+  }
 
   ElementAnimations *ea =
     GetElementAnimations(aElement, aPseudoType, false);

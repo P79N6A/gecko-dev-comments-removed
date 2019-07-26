@@ -451,6 +451,11 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
                       aNewStyleContext->HasPseudoElementData(),
                   "pseudo type mismatch");
 
+  if (!mPresContext->IsDynamic()) {
+    
+    return nullptr;
+  }
+
   
   
   
@@ -890,6 +895,11 @@ nsTransitionManager::WalkTransitionRule(ElementDependentRuleProcessorData* aData
   ElementTransitions *et =
     GetElementTransitions(aData->mElement, aPseudoType, false);
   if (!et) {
+    return;
+  }
+
+  if (!mPresContext->IsDynamic()) {
+    
     return;
   }
 
