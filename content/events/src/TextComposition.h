@@ -48,6 +48,9 @@ public:
   nsINode* GetEventTargetNode() const { return mNode; }
   
   const nsString& GetLastData() const { return mLastData; }
+  
+  
+  bool IsSynthesizedForTests() const { return mIsSynthesizedForTests; }
 
   bool MatchesNativeContext(nsIWidget* aWidget) const;
   bool MatchesEventTarget(nsPresContext* aPresContext,
@@ -82,6 +85,9 @@ private:
   
   
   nsString mLastData;
+
+  
+  bool mIsSynthesizedForTests;
 
   
   TextComposition() {}
