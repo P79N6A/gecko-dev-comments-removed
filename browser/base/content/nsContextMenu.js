@@ -80,8 +80,7 @@ nsContextMenu.prototype = {
     
     if (this.isTextSelected && !this.onLink) {
       
-      let selection =  document.commandDispatcher.focusedWindow
-                               .getSelection();
+      let selection =  this.focusedWindow.getSelection();
       let linkText = selection.toString().trim();
       let uri;
       if (/^(?:https?|ftp):/i.test(linkText)) {
@@ -548,6 +547,10 @@ nsContextMenu.prototype = {
 
     
     this.target = aNode;
+
+    let [elt, win] = BrowserUtils.getFocusSync(document);
+    this.focusedWindow = win;
+    this.focusedElement = elt;
 
     
     
@@ -1252,7 +1255,7 @@ nsContextMenu.prototype = {
     var linkText;
     
     if (this.onPlainTextLink)
-      linkText = document.commandDispatcher.focusedWindow.getSelection().toString().trim();
+      linkText = this.focusedWindow.getSelection().toString().trim();
     else
       linkText = this.linkText();
     urlSecurityCheck(this.linkURL, this._unremotePrincipal(doc.nodePrincipal));
@@ -1449,7 +1452,7 @@ nsContextMenu.prototype = {
 
   
   isContentSelection: function() {
-    return !document.commandDispatcher.focusedWindow.getSelection().isCollapsed;
+    return !this.focusedWindow.getSelection().isCollapsed;
   },
 
   toString: function () {
@@ -1551,7 +1554,7 @@ nsContextMenu.prototype = {
     var linkText;
     
     if (this.onPlainTextLink)
-      linkText = document.commandDispatcher.focusedWindow.getSelection().toString().trim();
+      linkText = this.focusedWindow.getSelection().toString().trim();
     else
       linkText = this.linkText();
     window.top.PlacesCommandHook.bookmarkLink(PlacesUtils.bookmarksMenuFolderId, this.linkURL,
