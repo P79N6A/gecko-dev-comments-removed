@@ -117,7 +117,6 @@ class JS_PUBLIC_API(AutoGCRooter) {
         DESCRIPTORS =  -7, 
         ID =           -9, 
         VALVECTOR =   -10, 
-        DESCRIPTOR =  -11, 
         STRING =      -12, 
         IDVECTOR =    -13, 
         OBJVECTOR =   -14, 
