@@ -6101,10 +6101,16 @@ nsContentUtils::SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
       (inherit || (aSetUpForAboutBlank && NS_IsAboutBlank(aURI)))))) {
 #ifdef DEBUG
     
+    
+    
     if (aForceOwner) {
-      nsCOMPtr<nsIURI> ownerURI;
-      nsresult rv = aLoadingPrincipal->GetURI(getter_AddRefs(ownerURI));
-      MOZ_ASSERT(NS_SUCCEEDED(rv) && SchemeIs(ownerURI, NS_NULLPRINCIPAL_SCHEME));
+      nsAutoCString uriStr;
+      aURI->GetSpec(uriStr);
+      if(!uriStr.EqualsLiteral("about:srcdoc")) {
+        nsCOMPtr<nsIURI> ownerURI;
+        nsresult rv = aLoadingPrincipal->GetURI(getter_AddRefs(ownerURI));
+        MOZ_ASSERT(NS_SUCCEEDED(rv) && SchemeIs(ownerURI, NS_NULLPRINCIPAL_SCHEME));
+      }
     }
 #endif
     aChannel->SetOwner(aLoadingPrincipal);

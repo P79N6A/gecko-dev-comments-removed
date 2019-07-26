@@ -289,6 +289,8 @@ protected:
     
     
     
+    
+    
     virtual nsresult DoURILoad(nsIURI * aURI,
                                nsIURI * aReferrer,
                                bool aSendReferrer,
@@ -302,7 +304,8 @@ protected:
                                nsIRequest ** aRequest,
                                bool aIsNewWindowTarget,
                                bool aBypassClassifier,
-                               bool aForceAllowCookies);
+                               bool aForceAllowCookies,
+                               const nsAString &aSrcdoc);
     NS_IMETHOD AddHeadersToChannel(nsIInputStream * aHeadersData, 
                                   nsIChannel * aChannel);
     virtual nsresult DoChannelLoad(nsIChannel * aChannel,

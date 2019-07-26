@@ -40,6 +40,8 @@ protected:
   nsString                         mTarget;
   nsCOMPtr<nsIInputStream>         mPostDataStream;
   nsCOMPtr<nsIInputStream>         mHeadersStream;
+  bool                             mIsSrcdocLoad;
+  nsString                         mSrcdocData;
 };
 
 #endif 
