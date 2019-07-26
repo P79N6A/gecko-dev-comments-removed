@@ -894,6 +894,8 @@ function getMessageElementText(aElement)
 
 
 
+
+
 function waitForMessages(aOptions)
 {
   gPendingOutputTest++;
@@ -981,7 +983,7 @@ function waitForMessages(aOptions)
   {
     let elemText = getMessageElementText(aElement);
     let time = aRule.consoleTimeEnd;
-    let regex = new RegExp(time + ": \\d+ms");
+    let regex = new RegExp(time + ": -?\\d+ms");
 
     if (!checkText(regex, elemText)) {
       return false;
@@ -1013,6 +1015,16 @@ function waitForMessages(aOptions)
     return true;
   }
 
+  function checkSource(aRule, aElement)
+  {
+    let location = aElement.querySelector(".webconsole-location");
+    if (!location) {
+      return false;
+    }
+
+    return checkText(aRule.source.url, location.getAttribute("title"));
+  }
+
   function checkMessage(aRule, aElement)
   {
     let elemText = getMessageElementText(aElement);
@@ -1038,6 +1050,10 @@ function waitForMessages(aOptions)
     }
 
     if (aRule.consoleDir && !checkConsoleDir(aRule, aElement)) {
+      return false;
+    }
+
+    if (aRule.source && !checkSource(aRule, aElement)) {
       return false;
     }
 
