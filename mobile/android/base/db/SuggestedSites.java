@@ -14,7 +14,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.IOException;
-import java.lang.ref.SoftReference;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,7 +29,6 @@ import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.util.RawResource;
-
 
 
 
@@ -89,11 +87,10 @@ public class SuggestedSites {
     }
 
     private final Context context;
-    private SoftReference<Map<String, Site>> cachedSites;
+    private Map<String, Site> cachedSites;
 
     public SuggestedSites(Context appContext) {
         context = appContext;
-        cachedSites = new SoftReference<Map<String, Site>>(null);
     }
 
     private String loadFromFile() {
@@ -114,7 +111,7 @@ public class SuggestedSites {
 
 
 
-    private Map<String, Site> refresh() {
+    private void refresh() {
         Log.d(LOGTAG, "Refreshing tiles from file");
 
         String jsonString = loadFromFile();
@@ -145,14 +142,11 @@ public class SuggestedSites {
             Log.d(LOGTAG, "Successfully parsed suggested sites.");
         } catch (Exception e) {
             Log.e(LOGTAG, "Failed to refresh suggested sites", e);
-            return null;
+            return;
         }
 
         
-        cachedSites = new SoftReference<Map<String, Site>>(Collections.unmodifiableMap(sites));
-
-        
-        return sites;
+        cachedSites = Collections.unmodifiableMap(sites);
     }
 
     private boolean isEnabled() {
@@ -161,12 +155,11 @@ public class SuggestedSites {
     }
 
     private Site getSiteForUrl(String url) {
-        Map<String, Site> sites = cachedSites.get();
-        if (sites == null) {
+        if (cachedSites == null) {
             return null;
         }
 
-        return sites.get(url);
+        return cachedSites.get(url);
     }
 
     
@@ -193,23 +186,22 @@ public class SuggestedSites {
             return cursor;
         }
 
-        Map<String, Site> sites = cachedSites.get();
-        if (sites == null) {
+        if (cachedSites == null) {
             Log.d(LOGTAG, "No cached sites, refreshing.");
-            sites = refresh();
+            refresh();
         }
 
         
         
-        if (sites == null || sites.isEmpty()) {
+        if (cachedSites == null || cachedSites.isEmpty()) {
             return cursor;
         }
 
-        final int sitesCount = sites.size();
+        final int sitesCount = cachedSites.size();
         Log.d(LOGTAG, "Number of suggested sites: " + sitesCount);
 
         final int maxCount = Math.min(limit, sitesCount);
-        for (Site site : sites.values()) {
+        for (Site site : cachedSites.values()) {
             if (cursor.getCount() == maxCount) {
                 break;
             }
