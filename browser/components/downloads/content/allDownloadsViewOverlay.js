@@ -48,22 +48,6 @@ const NOT_AVAILABLE = Number.MAX_VALUE;
 
 
 
-function DownloadURL(aURL, aFileName) {
-  
-  
-  let browserWin = RecentWindow.getMostRecentBrowserWindow();
-  let initiatingDoc = browserWin ? browserWin.document : document;
-  saveURL(aURL, aFileName, null, true, true, undefined, initiatingDoc);
-}
-
-
-
-
-
-
-
-
-
 
 
 
@@ -645,7 +629,10 @@ DownloadElementShell.prototype = {
     
     
     
-    DownloadURL(this.downloadURI, this.getDownloadMetaData().fileName);
+    let browserWin = RecentWindow.getMostRecentBrowserWindow();
+    let initiatingDoc = browserWin ? browserWin.document : document;
+    DownloadURL(this.downloadURI, this.getDownloadMetaData().fileName,
+                initiatingDoc);
   },
 
   
@@ -1433,7 +1420,9 @@ DownloadsPlacesView.prototype = {
 
   _downloadURLFromClipboard: function DPV__downloadURLFromClipboard() {
     let [url, name] = this._getURLFromClipboardData();
-    DownloadURL(url, name);
+    let browserWin = RecentWindow.getMostRecentBrowserWindow();
+    let initiatingDoc = browserWin ? browserWin.document : document;
+    DownloadURL(url, name, initiatingDoc);
   },
 
   doCommand: function DPV_doCommand(aCommand) {
@@ -1487,6 +1476,11 @@ DownloadsPlacesView.prototype = {
     else
       contextMenu.removeAttribute("state");
 
+    if (state == nsIDM.DOWNLOAD_DOWNLOADING) {
+      
+      
+      goUpdateCommand("downloadsCmd_pauseResume");
+    }
     return true;
   },
 
@@ -1579,8 +1573,11 @@ DownloadsPlacesView.prototype = {
 
     let name = { };
     let url = Services.droppedLinkHandler.dropLink(aEvent, name);
-    if (url)
-      DownloadURL(url, name.value);
+    if (url) {
+      let browserWin = RecentWindow.getMostRecentBrowserWindow();
+      let initiatingDoc = browserWin ? browserWin.document : document;
+      DownloadURL(url, name.value, initiatingDoc);
+    }
   }
 };
 

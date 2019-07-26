@@ -679,6 +679,54 @@ function uniqueFile(aLocalFile)
   return aLocalFile;
 }
 
+#ifdef MOZ_JSDOWNLOADS
+
+
+
+
+
+
+
+
+
+
+function DownloadURL(aURL, aFileName, aInitiatingDocument) {
+  
+  
+  let isPrivate = aInitiatingDocument.defaultView
+                                     .QueryInterface(Ci.nsIInterfaceRequestor)
+                                     .getInterface(Ci.nsIWebNavigation)
+                                     .QueryInterface(Ci.nsILoadContext)
+                                     .usePrivateBrowsing;
+
+  let fileInfo = new FileInfo(aFileName);
+  initFileInfo(fileInfo, aURL, null, null, null, null);
+
+  let filepickerParams = {
+    fileInfo: fileInfo,
+    saveMode: SAVEMODE_FILEONLY
+  };
+
+  Task.spawn(function* () {
+    let accepted = yield promiseTargetFile(filepickerParams, true, fileInfo.uri);
+    if (!accepted)
+      return;
+
+    let file = filepickerParams.file;
+    let download = yield Downloads.createDownload({
+      source: { url: aURL, isPrivate: isPrivate },
+      target: { path: file.path, partFilePath: file.path + ".part" }
+    });
+    download.tryToKeepPartialData = true;
+    download.start();
+
+    
+    let list = yield Downloads.getList(Downloads.ALL);
+    list.add(download);
+  }).then(null, Components.utils.reportError);
+}
+#endif
+
 
 const SAVEMODE_FILEONLY      = 0x00;
 
