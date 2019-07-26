@@ -740,5 +740,5 @@ pref("ping.manifestURL", "https://marketplace.firefox.com/packaged.webapp");
 pref("disk_space_watcher.enabled", true);
 
 
-pref("dom.future.enabled", false);
+pref("dom.promise.enabled", false);
 

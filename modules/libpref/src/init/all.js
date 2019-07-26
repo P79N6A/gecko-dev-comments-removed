@@ -1856,9 +1856,9 @@ pref("dom.archivereader.enabled", false);
 
 
 #ifdef RELEASE_BUILD
-pref("dom.future.enabled", false);
+pref("dom.promise.enabled", false);
 #else
-pref("dom.future.enabled", true);
+pref("dom.promise.enabled", true);
 #endif
 
 
