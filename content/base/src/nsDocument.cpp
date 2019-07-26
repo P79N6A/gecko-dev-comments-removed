@@ -1853,6 +1853,13 @@ nsDocument::Init()
   mCustomPrototypes.Init();
 
   
+  
+  
+  
+  mScopeObject = do_GetWeakReference(xpc::GetNativeForGlobal(xpc::GetJunkScope()));
+  MOZ_ASSERT(mScopeObject);
+
+  
   nsINode::nsSlots* slots = Slots();
 
   
