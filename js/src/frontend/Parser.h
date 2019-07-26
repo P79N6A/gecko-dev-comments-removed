@@ -106,16 +106,18 @@ struct ParseContext : public GenericParseContext
 
     
     
-    enum GeneratorParseMode { NotGenerator, LegacyGenerator };
-    GeneratorParseMode generatorParseMode;
-
-    
-    
     static const uint32_t NoYieldOffset = UINT32_MAX;
     uint32_t         lastYieldOffset;
 
-    bool isGenerator() const { return generatorParseMode != NotGenerator; }
-    bool isLegacyGenerator() const { return generatorParseMode == LegacyGenerator; }
+    
+    
+    
+    GeneratorKind generatorKind() const {
+        return sc->isFunctionBox() ? sc->asFunctionBox()->generatorKind() : NotGenerator;
+    }
+    bool isGenerator() const { return generatorKind() != NotGenerator; }
+    bool isLegacyGenerator() const { return generatorKind() == LegacyGenerator; }
+    bool isStarGenerator() const { return generatorKind() == StarGenerator; }
 
     Node            blockNode;      
 
@@ -249,7 +251,6 @@ struct ParseContext : public GenericParseContext
         blockChain(prs->context),
         maybeFunction(maybeFunction),
         staticLevel(staticLevel),
-        generatorParseMode(NotGenerator),
         lastYieldOffset(NoYieldOffset),
         blockNode(ParseHandler::null()),
         decls_(prs->context, prs->alloc),
@@ -400,7 +401,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     ObjectBox *newObjectBox(JSObject *obj);
     ModuleBox *newModuleBox(Module *module, ParseContext<ParseHandler> *pc);
     FunctionBox *newFunctionBox(Node fn, JSFunction *fun, ParseContext<ParseHandler> *pc,
-                                Directives directives);
+                                Directives directives, GeneratorKind generatorKind);
 
     
 
@@ -434,12 +435,15 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     bool maybeParseDirective(Node list, Node pn, bool *cont);
 
     
+    
     Node standaloneFunctionBody(HandleFunction fun, const AutoNameVector &formals,
+                                GeneratorKind generatorKind,
                                 Directives inheritedDirectives, Directives *newDirectives);
 
     
     
-    Node standaloneLazyFunction(HandleFunction fun, unsigned staticLevel, bool strict);
+    Node standaloneLazyFunction(HandleFunction fun, unsigned staticLevel, bool strict,
+                                GeneratorKind generatorKind);
 
     
 
@@ -487,7 +491,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     Node switchStatement();
     Node continueStatement();
     Node breakStatement();
-    Node returnStatementOrYieldExpression();
+    Node returnStatement();
     Node withStatement();
     Node labeledStatement();
     Node throwStatement();
@@ -504,6 +508,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     Node expr();
     Node assignExpr();
     Node assignExprWithoutYield(unsigned err);
+    Node yieldExpression();
     Node condExpr1();
     Node orExpr1();
     Node unaryExpr();
@@ -517,9 +522,10 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     bool functionArguments(FunctionSyntaxKind kind, Node *list, Node funcpn, bool &hasRest);
 
     Node functionDef(HandlePropertyName name, const TokenStream::Position &start,
-                     FunctionType type, FunctionSyntaxKind kind);
+                     FunctionType type, FunctionSyntaxKind kind, GeneratorKind generatorKind);
     bool functionArgsAndBody(Node pn, HandleFunction fun,
                              FunctionType type, FunctionSyntaxKind kind,
+                             GeneratorKind generatorKind,
                              Directives inheritedDirectives, Directives *newDirectives);
 
     Node unaryOpExpr(ParseNodeKind kind, JSOp op, uint32_t begin);
@@ -535,6 +541,9 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     Node destructuringExpr(BindData<ParseHandler> *data, TokenKind tt);
 
     Node identifierName();
+
+    bool matchLabel(MutableHandle<PropertyName*> label);
+    bool checkYieldNameValidity(unsigned errorNumber = JSMSG_SYNTAX_ERROR);
 
     bool allowsForEachIn() {
 #if !JS_HAS_FOR_EACH_IN
@@ -556,6 +565,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
 
     bool checkFunctionArguments();
     bool makeDefIntoUse(Definition *dn, Node pn, JSAtom *atom);
+    bool checkFunctionName(HandlePropertyName funName);
     bool checkFunctionDefinition(HandlePropertyName funName, Node *pn, FunctionSyntaxKind kind,
                                  bool *pbodyProcessed);
     bool finishFunctionDefinition(Node pn, FunctionBox *funbox, Node prelude, Node body);
