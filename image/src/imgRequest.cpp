@@ -31,7 +31,6 @@
 #include "nsIHttpChannel.h"
 #include "nsIApplicationCache.h"
 #include "nsIApplicationCacheChannel.h"
-#include "nsMimeTypes.h"
 
 #include "nsIComponentManager.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -727,7 +726,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
     
     
     
-    if (mContentType != newType || newType.EqualsLiteral(IMAGE_SVG_XML)) {
+    if (mContentType != newType || newType.Equals(SVG_MIMETYPE)) {
       mContentType = newType;
 
       
