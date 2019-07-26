@@ -447,6 +447,15 @@ public:
 
 
 
+  void ResetPaintCount() {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    mPaintCount = 0;
+  }
+
+  
+
+
+
 
   void NotifyPaintedImage(Image* aPainted) {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
