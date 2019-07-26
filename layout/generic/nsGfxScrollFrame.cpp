@@ -3426,7 +3426,7 @@ nsGfxScrollFrameInner::ReflowFinished()
       const double kScrollMultiplier =
         Preferences::GetInt("toolkit.scrollbox.verticalScrollDistance",
                             NS_DEFAULT_VERTICAL_SCROLL_DISTANCE);
-      nscoord fontHeight = lineScrollAmount.height * kScrollMultiplier;
+      nscoord increment = lineScrollAmount.height * kScrollMultiplier;
       
       
       
@@ -3434,11 +3434,11 @@ nsGfxScrollFrameInner::ReflowFinished()
       
       
       
-      nscoord pageincrement = nscoord(mScrollPort.height - fontHeight);
+      nscoord pageincrement = nscoord(mScrollPort.height - increment);
       nscoord pageincrementMin = nscoord(float(mScrollPort.height) * 0.8);
       FinishReflowForScrollbar(vScroll, minY, maxY, scrollPos.y,
                                NS_MAX(pageincrement, pageincrementMin),
-                               fontHeight);
+                               increment);
     }
     if (hScroll) {
       const double kScrollMultiplier =
