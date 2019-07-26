@@ -68,11 +68,6 @@ let isTap = false;
 
 let mouseEventsOnly = false;
 
-Cu.import("resource://gre/modules/services-common/log4moz.js");
-let logger = Log4Moz.repository.getLogger("Marionette");
-logger.info("loaded marionette-listener.js");
-
-
 
 
 

@@ -5,7 +5,7 @@
 
 
 
-this.Marionette = function Marionette(scope, window, context, logObj, timeout, testName) {
+function Marionette(scope, window, context, logObj, timeout, testName) {
   this.scope = scope;
   this.window = window;
   this.tests = [];
