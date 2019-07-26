@@ -16,6 +16,14 @@ class nsIWidget;
 class nsWindow;
 struct nsIntRect;
 
+namespace mozilla {
+namespace widget {
+
+struct MSGResult;
+
+} 
+} 
+
 class nsIMEContext
 {
 public:
@@ -101,18 +109,15 @@ protected:
 
 class nsIMM32Handler
 {
+  typedef mozilla::widget::MSGResult MSGResult;
 public:
   static void Initialize();
   static void Terminate();
-  
-  
-  
-  
-  
+
   
   static bool ProcessMessage(nsWindow* aWindow, UINT msg,
-                               WPARAM &wParam, LPARAM &lParam,
-                               LRESULT *aRetValue, bool &aEatMessage);
+                             WPARAM& wParam, LPARAM& lParam,
+                             MSGResult& aResult);
   static bool IsComposing()
   {
     return IsComposingOnOurEditor() || IsComposingOnPlugin();
@@ -157,21 +162,20 @@ protected:
   static bool ProcessInputLangChangeMessage(nsWindow* aWindow,
                                               WPARAM wParam,
                                               LPARAM lParam,
-                                              LRESULT *aRetValue,
-                                              bool &aEatMessage);
+                                              MSGResult& aResult);
   static bool ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
                                         WPARAM &wParam, LPARAM &lParam,
-                                        LRESULT *aRetValue,
-                                        bool &aEatMessage);
+                                        MSGResult& aResult);
 
   nsIMM32Handler();
   ~nsIMM32Handler();
 
   
   
-  bool OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction);
+  bool OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction,
+                    MSGResult& aResult);
   static bool OnKeyDownEvent(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
-                               bool &aEatMessage);
+                             MSGResult& aResult);
 
   
   bool OnIMEStartComposition(nsWindow* aWindow);
