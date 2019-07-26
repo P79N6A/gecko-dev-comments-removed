@@ -56,6 +56,12 @@ const static OCSPResponseName kOCSPResponseNameList[] = {
   { "unauthorized",    ORTUnauthorized},   
                                            
   { "bad-signature",   ORTBadSignature},   
+  { "longvalidityalmostold", ORTLongValidityAlmostExpired}, 
+                                           
+                                           
+  { "ancientstillvalid", ORTAncientAlmostExpired}, 
+                                           
+                                           
 };
 
 

@@ -37,6 +37,8 @@ enum OCSPResponseType
   ORTDelegatedIncludedLast, 
   ORTDelegatedMissing, 
   ORTDelegatedMissingMultiple, 
+  ORTLongValidityAlmostExpired, 
+  ORTAncientAlmostExpired, 
 };
 
 struct OCSPHost

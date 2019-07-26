@@ -210,6 +210,65 @@ function add_tests_in_mode(useMozillaPKIX)
     });
   });
 
+  
+  add_test(function () {
+    clearOCSPCache();
+    let ocspResponder = startOCSPResponder(SERVER_PORT, "www.example.com", [],
+                          "test_ev_certs",
+                          isDebugBuild ? ["int-ev-valid", "ev-valid"]
+                                       : ["ev-valid"],
+                          [], [],
+                          isDebugBuild ? ["longvalidityalmostold", "good"]
+                                       : ["good"]);
+    check_ee_for_ev("ev-valid", isDebugBuild);
+    ocspResponder.stop(run_next_test);
+  });
+
+  
+  
+  
+  add_test(function () {
+    clearOCSPCache();
+    
+    
+    
+    let debugCertNickArray = ["int-ev-valid", "ev-valid", "ev-valid"];
+    let debugResponseArray = ["good", "longvalidityalmostold",
+                              "longvalidityalmostold"];
+    if (!useMozillaPKIX) {
+      debugCertNickArray = ["int-ev-valid", "ev-valid"];
+      debugResponseArray = ["good", "longvalidityalmostold"];
+    }
+    let ocspResponder = startOCSPResponder(SERVER_PORT, "www.example.com", [],
+                          "test_ev_certs",
+                          isDebugBuild ? debugCertNickArray : ["ev-valid"],
+                          [], [],
+                          isDebugBuild ? debugResponseArray
+                                       : ["longvalidityalmostold"]);
+    check_ee_for_ev("ev-valid", !useMozillaPKIX && isDebugBuild);
+    ocspResponder.stop(run_next_test);
+  });
+
+  
+  
+  add_test(function () {
+    clearOCSPCache();
+    let debugCertNickArray = ["int-ev-valid", "ev-valid", "ev-valid"];
+    let debugResponseArray = ["good", "ancientstillvalid",
+                              "ancientstillvalid"];
+    if (!useMozillaPKIX) {
+      debugCertNickArray = ["int-ev-valid", "ev-valid"];
+      debugResponseArray = ["good", "ancientstillvalid"];
+    }
+    let ocspResponder = startOCSPResponder(SERVER_PORT, "www.example.com", [],
+                          "test_ev_certs",
+                          isDebugBuild ? debugCertNickArray : ["ev-valid"],
+                          [], [],
+                          isDebugBuild ? debugResponseArray
+                                       : ["ancientstillvalid"]);
+    check_ee_for_ev("ev-valid", !useMozillaPKIX && isDebugBuild);
+    ocspResponder.stop(run_next_test);
+  });
 }
 
 
