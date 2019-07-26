@@ -770,9 +770,6 @@ pref("dom.forms.number", true);
 pref("dom.forms.color", true);
 
 
-pref("dom.forms.autocomplete.experimental", false);
-
-
 pref("dom.sysmsg.enabled", false);
 
 
@@ -801,11 +798,6 @@ pref("privacy.donottrackheader.value",      1);
 
 pref("dom.event.contextmenu.enabled",       true);
 pref("dom.event.clipboardevents.enabled",   true);
-#if defined(XP_WIN) && !defined(RELEASE_BUILD)
-pref("dom.event.highrestimestamp.enabled",  true);
-#else
-pref("dom.event.highrestimestamp.enabled",  false);
-#endif
 
 pref("dom.webcomponents.enabled",           false);
 
@@ -2105,7 +2097,11 @@ pref("svg.svg-iframe.enabled", false);
 
 
 
+#ifdef RELEASE_BUILD
 pref("svg.new-getBBox.enabled", false);
+#else
+pref("svg.new-getBBox.enabled", true);
+#endif
 
 
 pref("font.default.ar", "sans-serif");
@@ -3946,8 +3942,12 @@ pref("profiler.enabled", false);
 pref("profiler.interval", 10);
 pref("profiler.entries", 100000);
 
+#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
 
 pref("dom.netinfo.enabled", true);
+#else
+pref("dom.netinfo.enabled", false);
+#endif
 
 #ifdef XP_WIN
 
