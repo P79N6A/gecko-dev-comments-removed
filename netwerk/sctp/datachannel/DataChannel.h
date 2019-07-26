@@ -24,6 +24,7 @@
 #include "nsITimer.h"
 #include "mozilla/Mutex.h"
 #include "DataChannelProtocol.h"
+#include "DataChannelListener.h"
 #ifdef SCTP_DTLS_SUPPORTED
 #include "mtransport/sigslot.h"
 #include "mtransport/transportflow.h"
@@ -90,29 +91,6 @@ public:
   size_t   mLength;
   char     *mData;
 };
-
-
-
-
-class DataChannelListener {
-public:
-  virtual ~DataChannelListener() {}
-
-  
-  virtual nsresult OnMessageAvailable(nsISupports *aContext,
-                                      const nsACString& message) = 0;
-
-  
-  virtual nsresult OnBinaryMessageAvailable(nsISupports *aContext,
-                                            const nsACString& message) = 0;
-
-  
-  virtual nsresult OnChannelConnected(nsISupports *aContext) = 0;
-
-  
-  virtual nsresult OnChannelClosed(nsISupports *aContext) = 0;
-};
-
 
 
 class DataChannelConnection: public nsITimerCallback
