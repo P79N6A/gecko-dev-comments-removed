@@ -294,37 +294,22 @@ const ERRORS_TO_REPORT = ["EvalError", "RangeError", "ReferenceError", "TypeErro
 
 
 
-this.Promise = Object.freeze({
-  
 
 
 
 
-
-
-  defer: function ()
-  {
-    return new Deferred();
-  },
+this.Promise = function Promise(aExecutor)
+{
+  if (typeof(aExecutor) != "function") {
+    throw new TypeError("Promise constructor must be called with an executor.");
+  }
 
   
 
 
 
-
-
-
-
-
-
-
-
-  resolve: function (aValue)
-  {
-    let promise = new PromiseImpl();
-    PromiseWalker.completePromise(promise, STATUS_RESOLVED, aValue);
-    return promise;
-  },
+  Object.defineProperty(this, N_STATUS, { value: STATUS_PENDING,
+                                          writable: true });
 
   
 
@@ -333,19 +318,13 @@ this.Promise = Object.freeze({
 
 
 
+  Object.defineProperty(this, N_VALUE, { writable: true });
+
+  
 
 
 
-
-
-
-
-  reject: function (aReason)
-  {
-    let promise = new PromiseImpl();
-    PromiseWalker.completePromise(promise, STATUS_REJECTED, aReason);
-    return promise;
-  },
+  Object.defineProperty(this, N_HANDLERS, { value: [] });
 
   
 
@@ -354,6 +333,21 @@ this.Promise = Object.freeze({
 
 
 
+  Object.defineProperty(this, N_WITNESS, { writable: true });
+
+  Object.seal(this);
+
+  let resolve = PromiseWalker.completePromise
+                             .bind(PromiseWalker, this, STATUS_RESOLVED);
+  let reject = PromiseWalker.completePromise
+                            .bind(PromiseWalker, this, STATUS_REJECTED);
+
+  try {
+    Function.prototype.call.call(aExecutor, this, resolve, reject);
+  } catch (ex) {
+    reject(ex);
+  }
+}
 
 
 
@@ -363,44 +357,172 @@ this.Promise = Object.freeze({
 
 
 
-  all: function (aValues)
-  {
-    if (!Array.isArray(aValues)) {
-      throw new Error("Promise.all() expects an array of promises or values.");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Promise.prototype.then = function (aOnResolve, aOnReject)
+{
+  let handler = new Handler(this, aOnResolve, aOnReject);
+  this[N_HANDLERS].push(handler);
+
+  
+  
+  if (this[N_STATUS] != STATUS_PENDING) {
+
+    
+    if (this[N_WITNESS] != null) {
+      let [id, witness] = this[N_WITNESS];
+      this[N_WITNESS] = null;
+      witness.forget();
+      PendingErrors.unregister(id);
     }
 
-    if (!aValues.length) {
-      return Promise.resolve([]);
+    PromiseWalker.schedulePromise(this);
+  }
+
+  return handler.nextPromise;
+};
+
+
+
+
+
+
+
+
+
+Promise.defer = function ()
+{
+  return new Deferred();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+Promise.resolve = function (aValue)
+{
+  return new Promise((aResolve) => aResolve(aValue));
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Promise.reject = function (aReason)
+{
+  return new Promise((_, aReject) => aReject(aReason));
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Promise.all = function (aValues)
+{
+  if (aValues == null || typeof(aValues["@@iterator"]) != "function") {
+    throw new Error("Promise.all() expects an iterable.");
+  }
+
+  if (!Array.isArray(aValues)) {
+    aValues = [...aValues];
+  }
+
+  if (!aValues.length) {
+    return Promise.resolve([]);
+  }
+
+  let countdown = aValues.length;
+  let deferred = Promise.defer();
+  let resolutionValues = new Array(countdown);
+
+  function checkForCompletion(aValue, aIndex) {
+    resolutionValues[aIndex] = aValue;
+
+    if (--countdown === 0) {
+      deferred.resolve(resolutionValues);
     }
+  }
 
-    let countdown = aValues.length;
-    let deferred = Promise.defer();
-    let resolutionValues = new Array(countdown);
+  for (let i = 0; i < aValues.length; i++) {
+    let index = i;
+    let value = aValues[i];
+    let resolve = val => checkForCompletion(val, index);
 
-    function checkForCompletion(aValue, aIndex) {
-      resolutionValues[aIndex] = aValue;
-
-      if (--countdown === 0) {
-        deferred.resolve(resolutionValues);
-      }
+    if (value && typeof(value.then) == "function") {
+      value.then(resolve, deferred.reject);
+    } else {
+      
+      resolve(value);
     }
+  }
 
-    for (let i = 0; i < aValues.length; i++) {
-      let index = i;
-      let value = aValues[i];
-      let resolve = val => checkForCompletion(val, index);
+  return deferred.promise;
+};
 
-      if (value && typeof(value.then) == "function") {
-        value.then(resolve, deferred.reject);
-      } else {
-        
-        resolve(value);
-      }
-    }
-
-    return deferred.promise;
-  },
-});
+Object.freeze(Promise);
 
 
 
@@ -545,10 +667,10 @@ PromiseWalker.walkerLoop = PromiseWalker.walkerLoop.bind(PromiseWalker);
 
 function Deferred()
 {
-  this.promise = new PromiseImpl();
-  this.resolve = this.resolve.bind(this);
-  this.reject = this.reject.bind(this);
-
+  this.promise = new Promise((aResolve, aReject) => {
+    this.resolve = aResolve;
+    this.reject = aReject;
+  });
   Object.freeze(this);
 }
 
@@ -576,9 +698,7 @@ Deferred.prototype = {
 
 
 
-  resolve: function (aValue) {
-    PromiseWalker.completePromise(this.promise, STATUS_RESOLVED, aValue);
-  },
+  resolve: null,
 
   
 
@@ -597,120 +717,7 @@ Deferred.prototype = {
 
 
 
-  reject: function (aReason) {
-    PromiseWalker.completePromise(this.promise, STATUS_REJECTED, aReason);
-  },
-};
-
-
-
-
-
-
-
-
-function PromiseImpl()
-{
-  
-
-
-
-  Object.defineProperty(this, N_STATUS, { value: STATUS_PENDING,
-                                          writable: true });
-
-  
-
-
-
-
-
-
-  Object.defineProperty(this, N_VALUE, { writable: true });
-
-  
-
-
-
-  Object.defineProperty(this, N_HANDLERS, { value: [] });
-
-  
-
-
-
-
-
-
-  Object.defineProperty(this, N_WITNESS, { writable: true });
-
-  Object.seal(this);
-}
-
-PromiseImpl.prototype = {
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  then: function (aOnResolve, aOnReject)
-  {
-    let handler = new Handler(this, aOnResolve, aOnReject);
-    this[N_HANDLERS].push(handler);
-
-    
-    
-    if (this[N_STATUS] != STATUS_PENDING) {
-
-      
-      if (this[N_WITNESS] != null) {
-        let [id, witness] = this[N_WITNESS];
-        this[N_WITNESS] = null;
-        witness.forget();
-        PendingErrors.unregister(id);
-      }
-
-      PromiseWalker.schedulePromise(this);
-    }
-
-    return handler.nextPromise;
-  },
+  reject: null,
 };
 
 
@@ -724,7 +731,7 @@ function Handler(aThisPromise, aOnResolve, aOnReject)
   this.thisPromise = aThisPromise;
   this.onResolve = aOnResolve;
   this.onReject = aOnReject;
-  this.nextPromise = new PromiseImpl();
+  this.nextPromise = new Promise(() => {});
 }
 
 Handler.prototype = {

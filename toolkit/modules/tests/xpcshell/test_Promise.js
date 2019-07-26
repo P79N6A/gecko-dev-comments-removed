@@ -663,6 +663,77 @@ tests.push(
   }));
 
 
+tests.push(
+  make_promise_test(function test_constructor(test) {
+    try {
+      new Promise(null);
+      do_check_true(false, "Constructor should fail when not passed a function");
+    } catch (e) {
+      do_check_true(true, "Constructor fails when not passed a function");
+    }
+
+    let executorRan = false;
+    let receiver;
+    let promise = new Promise(
+      function executor(resolve, reject) {
+        executorRan = true;
+        receiver = this;
+        do_check_eq(typeof resolve, "function",
+                    "resolve function should be passed to the executor");
+        do_check_eq(typeof reject, "function",
+                    "reject function should be passed to the executor");
+      }
+    );
+    do_check_instanceof(promise, Promise);
+    do_check_true(executorRan, "Executor should execute synchronously");
+    do_check_eq(receiver, promise, "The promise is the |this| in the executor");
+
+    
+    let resolvePromise = new Promise(
+      function executor(resolve) {
+        resolve(1);
+      }
+    ).then(
+      function onResolve(value) {
+        do_check_eq(value, 1, "Executor resolved with correct value");
+      },
+      function onReject() {
+        do_throw("Executor unexpectedly rejected");
+      }
+    );
+
+    
+    let rejectPromise = new Promise(
+      function executor(_, reject) {
+        reject(1);
+      }
+    ).then(
+      function onResolve() {
+        do_throw("Executor unexpectedly resolved");
+      },
+      function onReject(reason) {
+        do_check_eq(reason, 1, "Executor rejected with correct value");
+      }
+    );
+
+    
+    let throwPromise = new Promise(
+      function executor() {
+        throw 1;
+      }
+    ).then(
+      function onResolve() {
+        do_throw("Throwing inside an executor should not resolve the promise");
+      },
+      function onReject(reason) {
+        do_check_eq(reason, 1, "Executor rejected with correct value");
+      }
+    );
+
+    return Promise.all([resolvePromise, rejectPromise, throwPromise]);
+  }));
+
+
 
 
 
