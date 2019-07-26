@@ -128,6 +128,8 @@ var LoginManagerContent = {
             return;
 
         var acForm = acInputField.form;
+        if (!acForm)
+            return;
 
         
         
