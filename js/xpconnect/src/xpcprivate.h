@@ -3718,13 +3718,9 @@ public:
     NS_DECL_NSISECURITYCHECKEDCOMPONENT
 
 public:
-    
-    
-    
     static JSBool
     AttachComponentsObject(XPCCallContext& ccx,
-                           XPCWrappedNativeScope* aScope,
-                           JSObject* aTarget = NULL);
+                           XPCWrappedNativeScope* aScope);
 
     void SystemIsBeingShutDown() {ClearMembers();}
 
