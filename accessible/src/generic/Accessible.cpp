@@ -3038,7 +3038,7 @@ Accessible::ContainerWidget() const
       }
 
       
-      if (parent->IsDocumentNode())
+      if (parent->IsDoc())
         break;
     }
   }

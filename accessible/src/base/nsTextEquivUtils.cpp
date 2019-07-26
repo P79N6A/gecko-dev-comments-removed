@@ -265,7 +265,7 @@ nsTextEquivUtils::AppendFromValue(Accessible* aAccessible,
   }
 
   
-  if (aAccessible->IsDocumentNode())
+  if (aAccessible->IsDoc())
     return NS_ERROR_UNEXPECTED;
 
   nsIContent *content = aAccessible->GetContent();
