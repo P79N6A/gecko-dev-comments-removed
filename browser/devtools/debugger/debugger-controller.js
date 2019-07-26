@@ -251,23 +251,6 @@ let DebuggerController = {
   
 
 
-
-  get _isRemoteDebugger() {
-    return window._remoteFlag;
-  },
-
-  
-
-
-
-  get _isChromeDebugger() {
-    
-    return !("content" in window.parent) && !this._isRemoteDebugger;
-  },
-
-  
-
-
   _quitApp: function DC__quitApp() {
     let canceled = Cc["@mozilla.org/supports-PRBool;1"]
       .createInstance(Ci.nsISupportsPRBool);
@@ -296,6 +279,26 @@ let DebuggerController = {
     document.documentElement.dispatchEvent(evt);
   }
 };
+
+
+
+
+
+XPCOMUtils.defineLazyGetter(DebuggerController, "_isRemoteDebugger", function() {
+  
+  return !(window.frameElement instanceof XULElement) &&
+         !!window._remoteFlag;
+});
+
+
+
+
+
+XPCOMUtils.defineLazyGetter(DebuggerController, "_isChromeDebugger", function() {
+  
+  return !(window.frameElement instanceof XULElement) &&
+         !window._remoteFlag;
+});
 
 
 
