@@ -10,6 +10,8 @@ const Cr = Components.results;
 const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const { worker } = Cu.import("resource://gre/modules/devtools/worker-loader.js", {})
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
+const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
+const { promiseInvoke } = devtools.require("devtools/async-utils");
 
 const Services = devtools.require("Services");
 
@@ -22,12 +24,16 @@ const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
 const { DebuggerServer } = devtools.require("devtools/server/main");
 const { DebuggerServer: WorkerDebuggerServer } = worker.require("devtools/server/main");
 
+function dumpn(msg) {
+  dump("DBG-TEST: " + msg + "\n");
+}
+
 function tryImport(url) {
   try {
     Cu.import(url);
   } catch (e) {
-    dump("Error importing " + url + "\n");
-    dump(DevToolsUtils.safeErrorString(e) + "\n");
+    dumpn("Error importing " + url);
+    dumpn(DevToolsUtils.safeErrorString(e));
     throw e;
   }
 }
@@ -78,9 +84,9 @@ let listener = {
       
       
       var scriptError = aMessage.QueryInterface(Ci.nsIScriptError);
-      dump(aMessage.sourceName + ":" + aMessage.lineNumber + ": " +
-           scriptErrorFlagsToKind(aMessage.flags) + ": " +
-           aMessage.errorMessage + "\n");
+      dumpn(aMessage.sourceName + ":" + aMessage.lineNumber + ": " +
+            scriptErrorFlagsToKind(aMessage.flags) + ": " +
+            aMessage.errorMessage);
       var string = aMessage.errorMessage;
     } catch (x) {
       
@@ -106,7 +112,7 @@ let listener = {
     
     
     
-    dump("head_dbg.js observed a console message: " + string + "\n");
+    dumpn("head_dbg.js observed a console message: " + string);
   }
 };
 
@@ -121,7 +127,7 @@ function check_except(func)
     do_check_true(true);
     return;
   }
-  dump("Should have thrown an exception: " + func.toString());
+  dumpn("Should have thrown an exception: " + func.toString());
   do_check_true(false);
 }
 
@@ -336,9 +342,9 @@ TracingTransport.prototype = {
   dumpLog: function() {
     for (let entry of this.packets) {
       if (entry.type === "sent") {
-        dump("trace.expectSend(" + entry.packet + ");\n");
+        dumpn("trace.expectSend(" + entry.packet + ");");
       } else {
-        dump("trace.expectReceive(" + entry.packet + ");\n");
+        dumpn("trace.expectReceive(" + entry.packet + ");");
       }
     }
   }
@@ -407,3 +413,171 @@ const Test = task => () => {
 };
 
 const assert = do_check_true;
+
+
+
+
+
+
+
+
+function waitForEvent(client, event) {
+  dumpn("Waiting for event: " + event);
+  return new Promise((resolve, reject) => {
+    client.addOneTimeListener(event, (_, packet) => resolve(packet));
+  });
+}
+
+
+
+
+
+
+
+function waitForPause(client) {
+  return waitForEvent(client, "paused");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function executeOnNextTickAndWaitForPause(action, client) {
+  const paused = waitForPause(client);
+  executeSoon(action);
+  return paused;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function rdpRequest(client, method, ...args) {
+  return promiseInvoke(client, method, ...args)
+    .then(response => {
+      const { error, message } = response;
+      if (error) {
+        throw new Error(error + ": " + message);
+      }
+      return response;
+    });
+}
+
+
+
+
+
+
+
+
+function setBreakpoint(threadClient, breakpointOptions) {
+  dumpn("Setting a breakpoint: " + JSON.stringify(breakpointOptions, null, 2));
+  return rdpRequest(threadClient, threadClient.setBreakpoint, breakpointOptions);
+}
+
+
+
+
+
+
+
+function resume(threadClient) {
+  dumpn("Resuming.");
+  return rdpRequest(threadClient, threadClient.resume);
+}
+
+
+
+
+
+
+
+
+
+function resumeAndWaitForPause(client, threadClient) {
+  const paused = waitForPause(client);
+  return resume(threadClient).then(() => paused);
+}
+
+
+
+
+
+
+
+function getSources(threadClient) {
+  dumpn("Getting sources.");
+  return rdpRequest(threadClient, threadClient.getSources);
+}
+
+
+
+
+
+
+
+
+
+function stepIn(client, threadClient) {
+  dumpn("Stepping in.");
+  const paused = waitForPause(client);
+  return rdpRequest(threadClient, threadClient.stepIn)
+    .then(() => paused);
+}
+
+
+
+
+
+
+
+
+
+
+function getFrames(threadClient, first, count) {
+  dumpn("Getting frames.");
+  return rdpRequest(threadClient, threadClient.getFrames, first, count);
+}
+
+
+
+
+
+
+
+function blackBox(sourceClient) {
+  dumpn("Black boxing source: " + sourceClient.actor);
+  return rdpRequest(sourceClient, sourceClient.blackBox);
+}
+
+
+
+
+
+
+
+function unBlackBox(sourceClient) {
+  dumpn("Un-black boxing source: " + sourceClient.actor);
+  return rdpRequest(sourceClient, sourceClient.unblackBox);
+}

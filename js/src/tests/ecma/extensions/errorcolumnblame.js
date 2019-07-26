@@ -25,7 +25,9 @@ test(foo, 1);
 
 
 test(function(f) { return f.bar; }, 19);
-test(function(f) { return f(); }, 19);
+
+
+test(function(f) { return f(); }, 26);
 
 test(function(){
         
@@ -43,7 +45,7 @@ test(function() { var tmp = null;  tmp.foo; }, 35)
 test(function() {
 
     foo({}); throw new Error('a');
-}, 13);
+}, 19);
 
 
 test(function() {
