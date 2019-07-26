@@ -325,7 +325,7 @@ nsAccessiblePivot::MoveNextByText(TextBoundaryType aBoundary, bool* aResult)
 
     
     
-    if (tempEnd == text->CharacterCount()) {
+    if (tempEnd == static_cast<int32_t>(text->CharacterCount())) {
       if (tempPosition == root)
         return NS_OK;
 
@@ -389,7 +389,7 @@ nsAccessiblePivot::MoveNextByText(TextBoundaryType aBoundary, bool* aResult)
     
     
     if (childAtOffset && nsAccUtils::IsEmbeddedObject(childAtOffset) &&
-        tempStart == childAtOffset->StartOffset()) {
+        tempStart == static_cast<int32_t>(childAtOffset->StartOffset())) {
       tempPosition = childAtOffset;
       tempStart = tempEnd = -1;
       continue;
@@ -517,7 +517,7 @@ nsAccessiblePivot::MovePreviousByText(TextBoundaryType aBoundary, bool* aResult)
     
     
     if (childAtOffset && nsAccUtils::IsEmbeddedObject(childAtOffset) &&
-        tempEnd == childAtOffset->EndOffset()) {
+        tempEnd == static_cast<int32_t>(childAtOffset->EndOffset())) {
       tempPosition = childAtOffset;
       tempStart = tempEnd = childAtOffset->AsHyperText()->CharacterCount();
       continue;
