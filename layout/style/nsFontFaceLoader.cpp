@@ -413,6 +413,13 @@ static PLDHashOperator DetachFontEntries(const nsAString& aKey,
   return PL_DHASH_NEXT;
 }
 
+static PLDHashOperator RemoveIfEmpty(const nsAString& aKey,
+                                     nsRefPtr<gfxMixedFontFamily>& aFamily,
+                                     void* aUserArg)
+{
+  return aFamily->GetFontList().Length() ? PL_DHASH_NEXT : PL_DHASH_REMOVE;
+}
+
 bool
 nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
 {
@@ -420,11 +427,9 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
 
   
   
-  if (mLoaders.Count() > 0) {
-    modified = true; 
-                        
-  }
-  mLoaders.EnumerateEntries(DestroyIterator, nullptr);
+  
+  
+  
 
   nsTArray<FontFaceRuleRecord> oldRules;
   mRules.SwapElements(oldRules);
@@ -432,8 +437,9 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   
   
   
+  
+  
   mFontFamilies.Enumerate(DetachFontEntries, nullptr);
-  mFontFamilies.Clear();
 
   for (uint32_t i = 0, i_end = aRules.Length(); i < i_end; ++i) {
     
@@ -443,8 +449,17 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   }
 
   
+  
+  mFontFamilies.Enumerate(RemoveIfEmpty, nullptr);
+
+  
+  
   if (oldRules.Length() > 0) {
     modified = true;
+    
+    
+    
+    
     
     size_t count = oldRules.Length();
     for (size_t i = 0; i < count; ++i) {
