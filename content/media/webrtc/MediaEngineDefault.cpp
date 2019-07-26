@@ -17,7 +17,6 @@
 #include "nsISupportsUtils.h"
 #endif
 
-#define CHANNELS 1
 #define VIDEO_RATE USECS_PER_S
 #define AUDIO_RATE 16000
 
@@ -336,7 +335,6 @@ MediaEngineDefaultAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
 
   
   AudioSegment* segment = new AudioSegment();
-  segment->Init(CHANNELS);
   mSource->AddTrack(aID, AUDIO_RATE, 0, segment);
 
   
@@ -382,7 +380,6 @@ NS_IMETHODIMP
 MediaEngineDefaultAudioSource::Notify(nsITimer* aTimer)
 {
   AudioSegment segment;
-  segment.Init(CHANNELS);
   segment.InsertNullDataAtStart(AUDIO_RATE/100); 
 
   mSource->AppendToTrack(mTrackID, &segment);
