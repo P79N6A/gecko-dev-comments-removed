@@ -238,20 +238,6 @@ public:
     bool UseClearTypeForDownloadableFonts();
     bool UseClearTypeAlways();
 
-    
-    
-    enum {
-        kWindowsUnknown = 0,
-        kWindowsXP = 0x50001,
-        kWindowsServer2003 = 0x50002,
-        kWindowsVista = 0x60000,
-        kWindows7 = 0x60001,
-        kWindows8 = 0x60002,
-        kWindows8_1 = 0x60003
-    };
-
-    static int32_t WindowsOSVersion(int32_t *aBuildNum = nullptr);
-
     static void GetDLLVersion(const PRUnichar *aDLLPath, nsAString& aVersion);
 
     

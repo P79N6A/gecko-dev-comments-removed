@@ -6,6 +6,7 @@
 #include "gfxGDIFont.h"
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/WindowsVersion.h"
 
 #include "gfxGDIShaper.h"
 #include "gfxUniscribeShaper.h"
@@ -95,8 +96,7 @@ UseUniscribe(gfxShapedText *aShapedText,
     uint32_t flags = aShapedText->Flags();
     bool useGDI;
 
-    bool isXP = (gfxWindowsPlatform::WindowsOSVersion() 
-                       < gfxWindowsPlatform::kWindowsVista);
+    bool isXP = !IsVistaOrLater();
 
     
     
@@ -146,8 +146,7 @@ gfxGDIFont::ShapeText(gfxContext      *aContext,
 
     if (!ok && mHarfBuzzShaper) {
         if (gfxPlatform::GetPlatform()->UseHarfBuzzForScript(aScript) ||
-            (gfxWindowsPlatform::WindowsOSVersion() <
-                 gfxWindowsPlatform::kWindowsVista &&
+            (!IsVistaOrLater() &&
              ScriptShapingType(aScript) == SHAPING_INDIC &&
              !Preferences::GetBool("gfx.font_rendering.winxp-indic-uniscribe",
                                    false))) {
