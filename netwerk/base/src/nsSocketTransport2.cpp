@@ -2822,6 +2822,10 @@ nsSocketTransport::PRFileDescAutoLock::SetKeepaliveVals(bool aEnabled,
 
 #elif defined(XP_UNIX)
     
+    
+    
+#if defined(ANDROID) || defined(TCP_KEEPIDLE)
+    
     int err = setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE,
                          &aIdleTime, sizeof(aIdleTime));
     if (NS_WARN_IF(err)) {
@@ -2830,6 +2834,8 @@ nsSocketTransport::PRFileDescAutoLock::SetKeepaliveVals(bool aEnabled,
         return NS_ERROR_UNEXPECTED;
     }
 
+#endif
+#if defined(ANDROID) || defined(TCP_KEEPINTVL)
     
     err = setsockopt(sock, IPPROTO_TCP, TCP_KEEPINTVL,
                         &aRetryInterval, sizeof(aRetryInterval));
@@ -2839,6 +2845,9 @@ nsSocketTransport::PRFileDescAutoLock::SetKeepaliveVals(bool aEnabled,
         return NS_ERROR_UNEXPECTED;
     }
 
+#endif
+#if defined(ANDROID) || defined(TCP_KEEPCNT)
+    
     err = setsockopt(sock, IPPROTO_TCP, TCP_KEEPCNT,
                      &aProbeCount, sizeof(aProbeCount));
     if (NS_WARN_IF(err)) {
@@ -2847,6 +2856,7 @@ nsSocketTransport::PRFileDescAutoLock::SetKeepaliveVals(bool aEnabled,
         return NS_ERROR_UNEXPECTED;
     }
 
+#endif
     return NS_OK;
 #else
     MOZ_ASSERT(false, "nsSocketTransport::PRFileDescAutoLock::SetKeepaliveVals "
