@@ -113,7 +113,7 @@ loop.webapp = (function($, OT, webl10n) {
   var WebappRouter = loop.shared.router.BaseConversationRouter.extend({
     routes: {
       "":                    "home",
-      "call/ongoing/:token": "conversation",
+      "call/ongoing/:token": "loadConversation",
       "call/:token":         "initiate"
     },
 
@@ -126,14 +126,14 @@ loop.webapp = (function($, OT, webl10n) {
 
 
     startCall: function() {
-      var route;
-      if (this._conversation.get("loopToken")) {
-        route = "call/ongoing/" + this._conversation.get("loopToken");
-      } else {
-        route = "home";
+      if (!this._conversation.get("loopToken")) {
         this._notifier.error(__("missing_conversation_info"));
+        this.navigate("home", {trigger: true});
+      } else {
+        this.navigate("call/ongoing/" + this._conversation.get("loopToken"), {
+          trigger: true
+        });
       }
-      this.navigate(route, {trigger: true});
     },
 
     
@@ -160,7 +160,12 @@ loop.webapp = (function($, OT, webl10n) {
 
 
 
+
     initiate: function(loopToken) {
+      
+      if (this._conversation.get("ongoing")) {
+        this._conversation.endSession();
+      }
       this._conversation.set("loopToken", loopToken);
       this.loadView(new ConversationFormView({
         model: this._conversation,
@@ -172,7 +177,7 @@ loop.webapp = (function($, OT, webl10n) {
 
 
 
-    conversation: function(loopToken) {
+    loadConversation: function(loopToken) {
       if (!this._conversation.isSessionReady()) {
         
         return this.navigate("call/" + loopToken, {trigger: true});
@@ -189,7 +194,7 @@ loop.webapp = (function($, OT, webl10n) {
 
   function init() {
     router = new WebappRouter({
-      conversation: new sharedModels.ConversationModel(),
+      conversation: new sharedModels.ConversationModel({}, {sdk: OT}),
       notifier: new sharedViews.NotificationListView({el: "#messages"})
     });
     Backbone.history.start();

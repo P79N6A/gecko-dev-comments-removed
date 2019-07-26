@@ -15,20 +15,28 @@ loop.shared.views = (function(_, OT, l10n) {
 
 
   var L10nView = (function() {
-    var L10nViewImpl = Backbone.View.extend(),
-        extend       = L10nViewImpl.extend;
+    var L10nViewImpl   = Backbone.View.extend(), 
+        originalExtend = L10nViewImpl.extend;    
 
     
-    
+
+
+
+
+
     L10nViewImpl.extend = function() {
-      var ExtendedView = extend.apply(this, arguments),
-          render       = ExtendedView.prototype.render;
+      var ExtendedView   = originalExtend.apply(this, arguments),
+          originalRender = ExtendedView.prototype.render;
 
       
-      
+
+
+
+
+
       ExtendedView.prototype.render = function() {
-        if (render) {
-          render.apply(this, arguments);
+        if (originalRender) {
+          originalRender.apply(this, arguments);
           l10n.translate(this.el);
         }
         return this;
@@ -118,26 +126,13 @@ loop.shared.views = (function(_, OT, l10n) {
       }
       this.sdk = options.sdk;
 
-      
-      
-      
-      this.session = this.sdk.initSession(this.model.get("sessionId"));
-      this.session.connect(this.model.get("apiKey"),
-                           this.model.get("sessionToken"));
+      this.model.startSession();
 
-      this.listenTo(this.session, "sessionConnected", this._sessionConnected);
-      this.listenTo(this.session, "streamCreated", this._streamCreated);
-      this.listenTo(this.session, "connectionDestroyed",
-                                  this._connectionDestroyed);
-      this.listenTo(this.session, "sessionDisconnected",
-                                  this._sessionDisconnected);
-      this.listenTo(this.session, "networkDisconnected",
-                                  this._networkDisconnected);
-    },
-
-    hangup: function(event) {
-      event.preventDefault();
-      this.session.disconnect();
+      this.listenTo(this.model, "session:connected", this.publish);
+      this.listenTo(this.model, "session:stream-created", this._streamCreated);
+      this.listenTo(this.model, ["session:peer-hungup",
+                                 "session:network-disconnected",
+                                 "session:ended"].join(" "), this.unpublish);
     },
 
     
@@ -145,75 +140,50 @@ loop.shared.views = (function(_, OT, l10n) {
 
 
 
-
-    _sessionConnected: function(event) {
-      this.publisher = this.sdk.initPublisher(this.$(".outgoing").get(0),
-                                              this.videoStyles);
-      this.session.publish(this.publisher);
-    },
-
-    
 
 
 
 
 
     _streamCreated: function(event) {
-      this._subscribeToStreams(event.streams);
-    },
-
-    
-
-
-
-
-
-    _sessionDisconnected: function(event) {
-      this.model.trigger("session:ended");
-    },
-
-    
-
-
-
-
-
-    _connectionDestroyed: function(event) {
-      this.model.trigger("session:peer-hungup", {
-        connectionId: event.connection.connectionId
-      });
-      this.session.unpublish(this.publisher);
-      this.session.disconnect();
-    },
-
-    
-
-
-
-
-
-    _networkDisconnected: function(event) {
-      this.model.trigger("session:network-disconnected");
-      this.session.unpublish(this.publisher);
-      this.session.disconnect();
-    },
-
-    
-
-
-
-
-
-
-
-    _subscribeToStreams: function(streams) {
-      var incomingContainer = this.$(".incoming").get(0);
-      streams.forEach(function(stream) {
+      var incoming = this.$(".incoming").get(0);
+      event.streams.forEach(function(stream) {
         if (stream.connection.connectionId !==
-            this.session.connection.connectionId) {
-          this.session.subscribe(stream, incomingContainer, this.videoStyles);
+            this.model.session.connection.connectionId) {
+          this.model.session.subscribe(stream, incoming, this.videoStyles);
         }
       }.bind(this));
+    },
+
+    
+
+
+
+
+    hangup: function(event) {
+      event.preventDefault();
+      this.unpublish();
+      this.model.endSession();
+    },
+
+    
+
+
+
+
+
+
+    publish: function(event) {
+      var outgoing = this.$(".outgoing").get(0);
+      this.publisher = this.sdk.initPublisher(outgoing, this.videoStyles);
+      this.model.session.publish(this.publisher);
+    },
+
+    
+
+
+    unpublish: function() {
+      this.model.session.unpublish(this.publisher);
     },
 
     

@@ -14,6 +14,7 @@ loop.shared.models = (function() {
 
   var ConversationModel = Backbone.Model.extend({
     defaults: {
+      ongoing:      false,     
       callerId:     undefined, 
       loopToken:    undefined, 
       loopVersion:  undefined, 
@@ -23,6 +24,35 @@ loop.shared.models = (function() {
       sessionId:    undefined, 
       sessionToken: undefined, 
       apiKey:       undefined  
+    },
+
+    
+
+
+
+    sdk: undefined,
+
+    
+
+
+
+    session: undefined,
+
+    
+
+
+
+
+
+
+
+
+    initialize: function(attributes, options) {
+      options = options || {};
+      if (!options.sdk) {
+        throw new Error("missing required sdk");
+      }
+      this.sdk = options.sdk;
     },
 
     
@@ -104,7 +134,90 @@ loop.shared.models = (function() {
         apiKey:       sessionData.apiKey
       }).trigger("session:ready", this);
       return this;
-    }
+    },
+
+    
+
+
+    startSession: function() {
+      if (!this.isSessionReady()) {
+        throw new Error("Can't start session as it's not ready");
+      }
+      this.session = this.sdk.initSession(this.get("sessionId"));
+      this.session.connect(this.get("apiKey"), this.get("sessionToken"));
+      this.listenTo(this.session, "sessionConnected", this._sessionConnected);
+      this.listenTo(this.session, "streamCreated", this._streamCreated);
+      this.listenTo(this.session, "connectionDestroyed",
+                                  this._connectionDestroyed);
+      this.listenTo(this.session, "sessionDisconnected",
+                                  this._sessionDisconnected);
+      this.listenTo(this.session, "networkDisconnected",
+                                  this._networkDisconnected);
+    },
+
+    
+
+
+    endSession: function() {
+      this.session.disconnect();
+      this.set("ongoing", false);
+    },
+
+    
+
+
+
+
+
+    _sessionConnected: function(event) {
+      this.trigger("session:connected", event);
+      this.set("ongoing", true);
+    },
+
+    
+
+
+
+
+
+    _streamCreated: function(event) {
+      this.trigger("session:stream-created", event);
+    },
+
+    
+
+
+
+
+
+    _sessionDisconnected: function(event) {
+      this.trigger("session:ended");
+      this.endSession();
+    },
+
+    
+
+
+
+
+
+    _connectionDestroyed: function(event) {
+      this.trigger("session:peer-hungup", {
+        connectionId: event.connection.connectionId
+      });
+      this.endSession();
+    },
+
+    
+
+
+
+
+
+    _networkDisconnected: function(event) {
+      this.trigger("session:network-disconnected");
+      this.endSession();
+    },
   });
 
   
