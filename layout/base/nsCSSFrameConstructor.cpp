@@ -9435,7 +9435,8 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     
     nsStyleContext *frameStyleContext = aFrame->StyleContext();
     
-    if (!aFrame->IsGeneratedContentFrame()) {
+    if (!aFrame->IsGeneratedContentFrame() &&
+        mPresShell->GetPresContext()->IsChrome()) {
       nsIContent *badKid = AnyKidsNeedBlockParent(aFrameItems.FirstChild());
       nsDependentAtomString parentTag(aContent->Tag()), kidTag(badKid->Tag());
       const char16_t* params[] = { parentTag.get(), kidTag.get() };
