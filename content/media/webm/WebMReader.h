@@ -336,6 +336,10 @@ private:
 
   
   
+  uint32_t mNextCluster;
+
+  
+  
   
   
   bool mPushVideoPacketToNextReader;

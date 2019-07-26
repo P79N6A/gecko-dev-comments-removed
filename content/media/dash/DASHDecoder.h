@@ -189,6 +189,15 @@ public:
     }
   }
 
+  
+  
+  
+  
+  
+  
+  
+  int32_t GetRepIdxForVideoSubsegmentLoadAfterSeek(int32_t aSubsegmentIndex);
+
   int32_t GetSwitchCountAtVideoSubsegment(int32_t aSubsegmentIdx)
   {
     ReentrantMonitorConditionallyEnter mon(!OnDecodeThread(),

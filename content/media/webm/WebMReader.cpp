@@ -165,6 +165,7 @@ WebMReader::WebMReader(AbstractMediaDecoder* aDecoder)
   mNextReader(nullptr),
   mSeekToCluster(-1),
   mCurrentOffset(-1),
+  mNextCluster(1),
   mPushVideoPacketToNextReader(false),
   mReachedSwitchAccessPoint(false)
 #endif
@@ -624,6 +625,53 @@ nsReturnRef<NesteggPacketHolder> WebMReader::NextPacket(TrackType aTrackType)
   
   
   
+  
+  if (mMainReader && !mNextReader && aTrackType == VIDEO) {
+    WebMReader* nextReader = nullptr;
+    LOG(PR_LOG_DEBUG,
+      ("WebMReader[%p] for decoder [%p] NextPacket mNextReader not set: "
+       "mCurrentOffset[%lld] nextCluster [%d] comparing with offset[%lld]",
+       this, mDecoder, mCurrentOffset, mNextCluster,
+       mClusterByteRanges[mNextCluster].mStart));
+
+    if (mNextCluster < mClusterByteRanges.Length() &&
+        mCurrentOffset == mClusterByteRanges[mNextCluster].mStart) {
+      DASHRepReader* nextDASHRepReader =
+        mMainReader->GetReaderForSubsegment(mNextCluster);
+      nextReader = static_cast<WebMReader*>(nextDASHRepReader);
+      LOG(PR_LOG_DEBUG,
+          ("WebMReader[%p] for decoder [%p] reached SAP at cluster [%d]: next "
+         "reader is [%p]", this, mDecoder, mNextCluster, nextReader));
+      if (nextReader && nextReader != this) {
+        {
+          ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+          
+          RequestSwitchAtSubsegment(mNextCluster, nextReader);
+          NS_ASSERTION(mNextReader == nextReader, "mNextReader should be set");
+          
+          
+          nextReader->RequestSeekToSubsegment(mNextCluster);
+          nextReader->PrepareToDecode();
+        }
+      }
+      
+      if (mNextCluster+1 < mClusterByteRanges.Length()) {
+        
+        mNextCluster++;
+      } else {
+        
+        mNextCluster = 1;
+      }
+      LOG(PR_LOG_DEBUG,
+          ("WebMReader [%p] for decoder [%p] updating mNextCluster to [%d] "
+           "at offset [%lld]", this, mDecoder, mNextCluster, mCurrentOffset));
+    }
+  }
+
+  
+  
+  
+  
   if (aTrackType == VIDEO &&
       (uint32_t)mSwitchingCluster < mClusterByteRanges.Length() &&
       mCurrentOffset == mClusterByteRanges[mSwitchingCluster].mStart) {
@@ -918,6 +966,19 @@ nsresult WebMReader::Seek(int64_t aTarget, int64_t aStartTime, int64_t aEndTime,
   if (r != 0) {
     return NS_ERROR_FAILURE;
   }
+  
+  MediaResource* resource = mDecoder->GetResource();
+  int64_t newOffset = resource->Tell();
+  for (uint32_t i = 1; i < mClusterByteRanges.Length(); i++) {
+    if (newOffset < mClusterByteRanges[i].mStart) {
+      mNextCluster = i;
+      LOG(PR_LOG_DEBUG,
+          ("WebMReader [%p] for decoder [%p] updating mNextCluster to [%d] "
+           "after seek to offset [%lld]",
+           this, mDecoder, mNextCluster, resource->Tell()));
+      break;
+    }
+  }
   return DecodeToTarget(aTarget);
 }
 
@@ -1132,13 +1193,17 @@ void
 WebMReader::SeekToCluster(uint32_t aIdx)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-  NS_ASSERTION(0 <= mSeekToCluster, "mSeekToCluster should be set.");
   NS_ENSURE_TRUE_VOID(aIdx < mClusterByteRanges.Length());
   LOG(PR_LOG_DEBUG, ("Reader [%p] for Decoder [%p]: seeking to "
                      "subsegment [%lld] at offset [%lld]",
                      this, mDecoder, aIdx, mClusterByteRanges[aIdx].mStart));
   int r = nestegg_offset_seek(mContext, mClusterByteRanges[aIdx].mStart);
   NS_ENSURE_TRUE_VOID(r == 0);
+  if (aIdx + 1 < mClusterByteRanges.Length()) {
+    mNextCluster = aIdx + 1;
+  } else {
+    mNextCluster = 1;
+  }
   mSeekToCluster = -1;
 }
 

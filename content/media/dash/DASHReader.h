@@ -125,6 +125,10 @@ public:
                                 uint32_t aToReaderIdx,
                                 uint32_t aSubsegmentIdx);
 
+  
+  
+  DASHRepReader* GetReaderForSubsegment(uint32_t aSubsegmentIdx);
+
 private:
   
   

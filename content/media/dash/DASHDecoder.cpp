@@ -678,10 +678,9 @@ DASHDecoder::NotifyDownloadEnded(DASHRepDecoder* aRepDecoder,
       return;
     }
 
+    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
     nsRefPtr<DASHRepDecoder> decoder = aRepDecoder;
     {
-      ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-
       if (!IsDecoderAllowedToDownloadSubsegment(aRepDecoder,
                                                 aSubsegmentIdx)) {
         NS_WARNING("Decoder downloaded subsegment but it is not allowed!");
@@ -742,6 +741,9 @@ DASHDecoder::NotifyDownloadEnded(DASHRepDecoder* aRepDecoder,
             mVideoSubsegmentIdx, mVideoSubsegmentIdx);
         mVideoSubsegmentLoads[mVideoSubsegmentIdx] = mVideoRepDecoderIdx;
       }
+      LOG("Notifying switch decided for video subsegment [%d]",
+          mVideoSubsegmentIdx);
+      mon.NotifyAll();
     }
 
     
@@ -1357,6 +1359,30 @@ DASHDecoder::StartProgressUpdates()
   for (uint32_t i = 0; i < mAudioRepDecoders.Length(); i++) {
     mAudioRepDecoders[i]->StartProgressUpdates();
   }
+}
+
+int32_t
+DASHDecoder::GetRepIdxForVideoSubsegmentLoadAfterSeek(int32_t aSubsegmentIndex)
+{
+  NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
+  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+  
+  
+  if (aSubsegmentIndex < 1 ||
+      aSubsegmentIndex >= VideoRepDecoder()->GetNumDataByteRanges()) {
+    return -1;
+  }
+  
+  
+  
+  
+  while (mVideoSubsegmentIdx == aSubsegmentIndex-1) {
+    LOG("Waiting for switching decision for video subsegment [%d].",
+        aSubsegmentIndex);
+    mon.Wait();
+  }
+
+  return mVideoSubsegmentLoads[aSubsegmentIndex];
 }
 
 } 
