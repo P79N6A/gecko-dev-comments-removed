@@ -69,7 +69,7 @@ private:
                       nsACString& aResponseStr)
   {
     mResponseCode = aResponseCode;
-#ifdef ANDROID_VERSION >= 17
+#if ANDROID_VERSION >= 17
     
     
     mResponseStr = Substring(aResponseStr, 2);
@@ -127,7 +127,7 @@ public:
   void SetCmd(const nsACString& aCommand)
   {
     mCmd.Truncate();
-#ifdef ANDROID_VERSION >= 17
+#if ANDROID_VERSION >= 17
     
     
     mCmd = "0 ";
