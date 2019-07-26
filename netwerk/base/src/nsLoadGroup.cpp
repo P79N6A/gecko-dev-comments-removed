@@ -7,7 +7,9 @@
 #include "mozilla/DebugOnly.h"
 
 #include "nsLoadGroup.h"
-#include "nsISupportsArray.h"
+
+#include "nsArrayEnumerator.h"
+#include "nsCOMArray.h"
 #include "nsEnumeratorUtils.h"
 #include "nsIServiceManager.h"
 #include "nsCOMPtr.h"
@@ -693,40 +695,25 @@ nsLoadGroup::RemoveRequest(nsIRequest *request, nsISupports* ctxt,
 
 
 static PLDHashOperator
-AppendRequestsToISupportsArray(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                               uint32_t number, void *arg)
+AppendRequestsToCOMArray(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                         uint32_t number, void *arg)
 {
     RequestMapEntry *e = static_cast<RequestMapEntry *>(hdr);
-    nsISupportsArray *array = static_cast<nsISupportsArray *>(arg);
-
-    
-    bool ok = array->AppendElement(e->mKey) == NS_OK ? false : true;
-
-    if (!ok) {
-        return PL_DHASH_STOP;
-    }
-
+    static_cast<nsCOMArray<nsIRequest>*>(arg)->AppendObject(e->mKey);
     return PL_DHASH_NEXT;
 }
 
 NS_IMETHODIMP
 nsLoadGroup::GetRequests(nsISimpleEnumerator * *aRequests)
 {
-    nsCOMPtr<nsISupportsArray> array;
-    nsresult rv = NS_NewISupportsArray(getter_AddRefs(array));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PL_DHashTableEnumerate(&mRequests, AppendRequestsToISupportsArray,
-                           array.get());
-
-    uint32_t count;
-    array->Count(&count);
-
-    if (count != mRequests.entryCount) {
+    nsCOMArray<nsIRequest> requests;
+    if (!requests.SetCapacity(mRequests.entryCount)) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    return NS_NewArrayEnumerator(aRequests, array);
+    PL_DHashTableEnumerate(&mRequests, AppendRequestsToCOMArray, &requests);
+
+    return NS_NewArrayEnumerator(aRequests, requests);
 }
 
 NS_IMETHODIMP
