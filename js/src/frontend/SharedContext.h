@@ -204,6 +204,8 @@ class FunctionBox : public ObjectBox, public SharedContext
     uint16_t        ndefaults;
     bool            inWith:1;               
     bool            inGenexpLambda:1;       
+    bool            useAsm:1;               
+    bool            insideUseAsm:1;         
 
     FunctionContextFlags funCxFlags;
 
@@ -226,7 +228,20 @@ class FunctionBox : public ObjectBox, public SharedContext
     void setArgumentsHasLocalBinding()     { funCxFlags.argumentsHasLocalBinding = true; }
     void setDefinitelyNeedsArgsObj()       { JS_ASSERT(funCxFlags.argumentsHasLocalBinding);
                                              funCxFlags.definitelyNeedsArgsObj   = true; }
+
+    
+    
+    bool useAsmOrInsideUseAsm() const {
+        return useAsm || insideUseAsm;
+    }
 };
+
+inline FunctionBox *
+SharedContext::asFunctionBox()
+{
+    JS_ASSERT(isFunctionBox());
+    return static_cast<FunctionBox*>(this);
+}
 
 
 

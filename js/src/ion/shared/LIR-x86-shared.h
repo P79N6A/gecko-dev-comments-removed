@@ -49,6 +49,24 @@ class LModI : public LBinaryMath<1>
     }
 };
 
+
+
+class LAsmJSDivOrMod : public LBinaryMath<1>
+{
+  public:
+    LIR_HEADER(AsmJSDivOrMod);
+
+    LAsmJSDivOrMod(const LAllocation &lhs, const LAllocation &rhs, const LDefinition &temp) {
+        setOperand(0, lhs);
+        setOperand(1, rhs);
+        setTemp(0, temp);
+    }
+
+    const LDefinition *remainder() {
+        return getTemp(0);
+    }
+};
+
 class LModPowTwoI : public LInstructionHelper<1,1,0>
 {
     const int32_t shift_;

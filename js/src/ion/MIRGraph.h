@@ -51,10 +51,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     bool earlyAbort_;
 
-
-    
-    void setSlot(uint32_t slot, MDefinition *ins);
-
     
     void pushVariable(uint32_t slot);
 
@@ -126,6 +122,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void setLocal(uint32_t local);
     void setArg(uint32_t arg);
     void setSlot(uint32_t slot);
+    void setSlot(uint32_t slot, MDefinition *ins);
 
     
     

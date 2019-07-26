@@ -39,6 +39,12 @@
 
 #include "vm/GlobalObject-inl.h"
 
+# ifdef XP_WIN
+#  include "jswin.h"
+# else
+#  include <sys/mman.h>
+# endif
+
 using namespace js;
 using namespace js::gc;
 using namespace js::types;
@@ -274,7 +280,7 @@ GetViewList(ArrayBufferObject *obj)
 }
 
 void
-ArrayBufferObject::changeContents(ObjectElements *newHeader)
+ArrayBufferObject::changeContents(JSContext *maybecx, ObjectElements *newHeader)
 {
    
    uint32_t byteLengthCopy = byteLength();
@@ -286,6 +292,10 @@ ArrayBufferObject::changeContents(ObjectElements *newHeader)
    for (JSObject *view = viewListHead; view; view = NextView(view)) {
        uintptr_t newDataPtr = uintptr_t(view->getPrivate()) - oldDataPointer + newDataPointer;
        view->setPrivate(reinterpret_cast<uint8_t*>(newDataPtr));
+
+       
+       if (maybecx)
+           MarkObjectStateChange(maybecx, view);
    }
 
    
@@ -306,9 +316,133 @@ ArrayBufferObject::uninlineData(JSContext *maybecx)
    if (!newHeader)
        return false;
 
-   changeContents(newHeader);
+   changeContents(maybecx, newHeader);
    return true;
 }
+
+#if defined(JS_ION) && defined(JS_CPU_X64)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JS_STATIC_ASSERT(sizeof(ObjectElements) < PageSize);
+JS_STATIC_ASSERT(AsmJSAllocationGranularity == PageSize);
+static const size_t AsmJSMappedSize = PageSize + AsmJSBufferProtectedSize;
+
+bool
+ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer)
+{
+    if (buffer->isAsmJSArrayBuffer())
+        return true;
+
+    
+    void *p;
+# ifdef XP_WIN
+    p = VirtualAlloc(NULL, AsmJSMappedSize, MEM_RESERVE, PAGE_NOACCESS);
+    if (!p)
+        return false;
+# else
+    p = mmap(NULL, AsmJSMappedSize, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    if (p == MAP_FAILED)
+        return false;
+# endif
+
+    
+    JS_ASSERT(buffer->byteLength() % AsmJSAllocationGranularity == 0);
+# ifdef XP_WIN
+    if (!VirtualAlloc(p, PageSize + buffer->byteLength(), MEM_COMMIT, PAGE_READWRITE))
+        return false;
+# else
+    if (mprotect(p, PageSize + buffer->byteLength(), PROT_READ | PROT_WRITE))
+        return false;
+# endif
+
+    
+    uint8_t *data = reinterpret_cast<uint8_t*>(p) + PageSize;
+    memcpy(data, buffer->dataPointer(), buffer->byteLength());
+
+    
+    ObjectElements *newHeader = reinterpret_cast<ObjectElements*>(data - sizeof(ObjectElements));
+    ObjectElements *oldHeader = buffer->hasDynamicElements() ? buffer->getElementsHeader() : NULL;
+    buffer->changeContents(cx, newHeader);
+    js_free(oldHeader);
+
+    
+    
+    newHeader->setIsAsmJSArrayBuffer();
+    JS_ASSERT(data == buffer->dataPointer());
+    return true;
+}
+
+void
+ArrayBufferObject::releaseAsmJSArrayBuffer(FreeOp *fop, RawObject obj)
+{
+    ArrayBufferObject &buffer = obj->asArrayBuffer();
+    JS_ASSERT(buffer.isAsmJSArrayBuffer());
+
+    uint8_t *p = buffer.dataPointer() - PageSize ;
+    JS_ASSERT(uintptr_t(p) % PageSize == 0);
+# ifdef XP_WIN
+    VirtualAlloc(p, AsmJSMappedSize, MEM_RESERVE, PAGE_NOACCESS);
+# else
+    munmap(p, AsmJSMappedSize);
+# endif
+}
+
+void
+ArrayBufferObject::neuterAsmJSArrayBuffer(ArrayBufferObject &buffer)
+{
+    
+    
+    JS_ASSERT(buffer.isAsmJSArrayBuffer());
+    JS_ASSERT(buffer.byteLength() % AsmJSAllocationGranularity == 0);
+#ifdef XP_WIN
+    if (!VirtualAlloc(buffer.dataPointer(), buffer.byteLength(), MEM_RESERVE, PAGE_NOACCESS))
+        MOZ_CRASH();
+#else
+    if (mprotect(buffer.dataPointer(), buffer.byteLength(), PROT_NONE))
+        MOZ_CRASH();
+#endif
+}
+#else  
+bool
+ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer)
+{
+    if (!buffer->uninlineData(cx))
+        return false;
+
+    buffer->getElementsHeader()->setIsAsmJSArrayBuffer();
+    return true;
+}
+
+void
+ArrayBufferObject::releaseAsmJSArrayBuffer(FreeOp *fop, RawObject obj)
+{
+    fop->free_(obj->asArrayBuffer().getElementsHeader());
+}
+
+void
+ArrayBufferObject::neuterAsmJSArrayBuffer(ArrayBufferObject &buffer)
+{
+    
+}
+#endif
 
 #ifdef JSGC_GENERATIONAL
 class WeakObjectSlotRef : public js::gc::BufferableRef
@@ -472,7 +606,7 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
     ArrayBufferObject &buffer = obj->asArrayBuffer();
     JSObject *views = *GetViewList(&buffer);
     js::ObjectElements *header = js::ObjectElements::fromElements((js::HeapSlot*)buffer.dataPointer());
-    if (buffer.hasDynamicElements()) {
+    if (buffer.hasDynamicElements() && !buffer.isAsmJSArrayBuffer()) {
         *GetViewList(&buffer) = NULL;
         *contents = header;
         *data = buffer.dataPointer();
@@ -491,6 +625,9 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
         ArrayBufferObject::setElementsHeader(newheader, length);
         *contents = newheader;
         *data = reinterpret_cast<uint8_t *>(newheader + 1);
+
+        if (buffer.isAsmJSArrayBuffer())
+            ArrayBufferObject::neuterAsmJSArrayBuffer(buffer);
     }
 
     
@@ -3671,6 +3808,39 @@ js_InitTypedArrayClasses(JSContext *cx, HandleObject obj)
     }
 
     return InitArrayBufferClass(cx);
+}
+
+bool
+js::IsTypedArrayConstructor(const Value &v, uint32_t type)
+{
+    switch (type) {
+      case TypedArray::TYPE_INT8:
+        return IsNativeFunction(v, Int8Array::class_constructor);
+      case TypedArray::TYPE_UINT8:
+        return IsNativeFunction(v, Uint8Array::class_constructor);
+      case TypedArray::TYPE_INT16:
+        return IsNativeFunction(v, Int16Array::class_constructor);
+      case TypedArray::TYPE_UINT16:
+        return IsNativeFunction(v, Uint16Array::class_constructor);
+      case TypedArray::TYPE_INT32:
+        return IsNativeFunction(v, Int32Array::class_constructor);
+      case TypedArray::TYPE_UINT32:
+        return IsNativeFunction(v, Uint32Array::class_constructor);
+      case TypedArray::TYPE_FLOAT32:
+        return IsNativeFunction(v, Float32Array::class_constructor);
+      case TypedArray::TYPE_FLOAT64:
+        return IsNativeFunction(v, Float64Array::class_constructor);
+      case TypedArray::TYPE_UINT8_CLAMPED:
+        return IsNativeFunction(v, Uint8ClampedArray::class_constructor);
+    }
+    JS_NOT_REACHED("unexpected typed array type");
+    return false;
+}
+
+bool
+js::IsTypedArrayBuffer(const Value &v)
+{
+    return v.isObject() && v.toObject().isArrayBuffer();
 }
 
 

@@ -41,6 +41,7 @@
 
 #include "builtin/Eval.h"
 #include "gc/Marking.h"
+#include "ion/AsmJS.h"
 #include "vm/Debugger.h"
 #include "vm/Shape.h"
 
@@ -1311,9 +1312,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
 ADD_EMPTY_CASE(JSOP_NOP)
 ADD_EMPTY_CASE(JSOP_UNUSED71)
-ADD_EMPTY_CASE(JSOP_UNUSED107)
 ADD_EMPTY_CASE(JSOP_UNUSED132)
-ADD_EMPTY_CASE(JSOP_UNUSED147)
 ADD_EMPTY_CASE(JSOP_UNUSED148)
 ADD_EMPTY_CASE(JSOP_UNUSED161)
 ADD_EMPTY_CASE(JSOP_UNUSED162)
@@ -1438,6 +1437,43 @@ BEGIN_CASE(JSOP_LOOPENTRY)
 #endif
 
 END_CASE(JSOP_LOOPENTRY)
+
+BEGIN_CASE(JSOP_LINKASMJS)
+#ifdef JS_ASMJS
+{
+    RootedValue &rval = rootValue0;
+
+    
+
+
+
+
+
+    rval = NullValue();
+    if (!LinkAsmJS(cx, regs.fp(), &rval))
+        goto error;
+
+    
+
+
+
+
+    if (rval.isObject()) {
+        regs.fp()->setReturnValue(rval);
+        regs.setToEndOfScript();
+        interpReturnOK = true;
+        if (entryFrame != regs.fp())
+            goto inline_return;
+        goto exit;
+    }
+
+    
+
+
+
+}
+#endif
+END_CASE(JSOP_LINKASMJS)
 
 BEGIN_CASE(JSOP_NOTEARG)
 END_CASE(JSOP_NOTEARG)

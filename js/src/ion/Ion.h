@@ -84,6 +84,11 @@ struct IonOptions
     
     
     
+    bool eaa;
+
+    
+    
+    
     bool parallelCompilation;
 
     
@@ -189,6 +194,7 @@ struct IonOptions
         edgeCaseAnalysis(true),
         rangeAnalysis(true),
         uce(true),
+        eaa(true),
         parallelCompilation(false),
         usesBeforeCompile(10240),
         usesBeforeCompileNoJaeger(40),
@@ -310,7 +316,7 @@ class IonBuilder;
 class MIRGenerator;
 class CodeGenerator;
 
-CodeGenerator *CompileBackEnd(MIRGenerator *mir);
+CodeGenerator *CompileBackEnd(MIRGenerator *mir, MacroAssembler *maybeMasm = NULL);
 void AttachFinishedCompilations(JSContext *cx);
 void FinishOffThreadBuilder(IonBuilder *builder);
 

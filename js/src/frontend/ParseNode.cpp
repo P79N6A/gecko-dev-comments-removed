@@ -304,10 +304,18 @@ ParseNode::append(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right
 
 ParseNode *
 ParseNode::newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
-                             FullParseHandler *handler, bool foldConstants)
+                             FullParseHandler *handler, ParseContext<FullParseHandler> *pc,
+                             bool foldConstants)
 {
     if (!left || !right)
         return NULL;
+
+    
+
+
+
+    if (pc->useAsmOrInsideUseAsm())
+        return handler->new_<BinaryNode>(kind, op, left, right);
 
     
 

@@ -16,6 +16,7 @@
 
 #include "jsatominlines.h"
 
+#include "frontend/Parser-inl.h"
 #include "vm/String-inl.h"
 
 using namespace js;
@@ -254,8 +255,17 @@ FoldConstants<FullParseHandler>(JSContext *cx, ParseNode **pnp,
 
     JS_CHECK_RECURSION(cx, return false);
 
+    
+    
+    
+    
+    if (parser->pc->useAsmOrInsideUseAsm())
+        return true;
+
     switch (pn->getArity()) {
       case PN_CODE:
+        if (pn->pn_funbox->useAsmOrInsideUseAsm())
+            return true;
         if (pn->getKind() == PNK_MODULE) {
             if (!FoldConstants(cx, &pn->pn_body, parser))
                 return false;

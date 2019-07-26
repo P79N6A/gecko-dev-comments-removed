@@ -5672,6 +5672,11 @@ IonBuilder::getTypedArrayElements(MDefinition *obj)
     if (obj->isConstant() && obj->toConstant()->value().isObject()) {
         JSObject *array = &obj->toConstant()->value().toObject();
         void *data = TypedArray::viewData(array);
+
+        
+        
+        types::HeapTypeSet::WatchObjectStateChange(cx, array->getType(cx));
+
         obj->setFoldedUnchecked();
         return MConstantElements::New(data);
     }

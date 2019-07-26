@@ -73,6 +73,7 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
     inline LUse useRegisterAtStart(MDefinition *mir);
     inline LUse useFixed(MDefinition *mir, Register reg);
     inline LUse useFixed(MDefinition *mir, FloatRegister reg);
+    inline LUse useFixed(MDefinition *mir, AnyRegister reg);
     inline LAllocation useOrConstant(MDefinition *mir);
     
     
@@ -112,8 +113,7 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
     inline bool defineBox(LInstructionHelper<BOX_PIECES, Ops, Temps> *lir, MDefinition *mir,
                           LDefinition::Policy policy = LDefinition::DEFAULT);
 
-    template <size_t Defs, size_t Ops, size_t Temps>
-    inline bool defineReturn(LInstructionHelper<Defs, Ops, Temps> *lir, MDefinition *mir);
+    inline bool defineReturn(LInstruction *lir, MDefinition *mir);
 
     template <size_t Ops, size_t Temps>
     inline bool define(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir,

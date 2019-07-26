@@ -12,6 +12,7 @@
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/FoldConstants.h"
 #include "frontend/NameFunctions.h"
+#include "ion/AsmJS.h"
 #include "vm/GlobalObject.h"
 
 #include "jsinferinlines.h"
@@ -405,6 +406,13 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
         fn->pn_body->pn_pos = pn->pn_pos;
         pn = fn->pn_body;
     }
+
+    
+
+
+
+    if (fn->pn_funbox->useAsm && !CompileAsmJS(cx, parser.tokenStream, fn, script))
+        return false;
 
     if (!SetSourceMap(cx, parser.tokenStream, ss, script))
         return false;

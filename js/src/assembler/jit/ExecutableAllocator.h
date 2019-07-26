@@ -82,7 +82,7 @@ namespace JSC {
 
   class ExecutableAllocator;
 
-  enum CodeKind { JAEGER_CODE, ION_CODE, REGEXP_CODE };
+  enum CodeKind { JAEGER_CODE, ION_CODE, REGEXP_CODE, ASMJS_CODE };
 
   
   class ExecutablePool {
@@ -108,6 +108,7 @@ private:
     
     size_t m_jaegerCodeBytes;
     size_t m_ionCodeBytes;
+    size_t m_asmJSCodeBytes;
     size_t m_regexpCodeBytes;
 
 public:
@@ -129,7 +130,7 @@ public:
 
     ExecutablePool(ExecutableAllocator* allocator, Allocation a)
       : m_allocator(allocator), m_freePtr(a.pages), m_end(m_freePtr + a.size), m_allocation(a),
-        m_refCount(1), m_jaegerCodeBytes(0), m_ionCodeBytes(0), m_regexpCodeBytes(0),
+        m_refCount(1), m_jaegerCodeBytes(0), m_ionCodeBytes(0), m_asmJSCodeBytes(0), m_regexpCodeBytes(0),
         m_destroy(false), m_gcNumber(0)
     { }
 
@@ -154,6 +155,7 @@ private:
         switch (kind) {
           case JAEGER_CODE: m_jaegerCodeBytes += n;          break;
           case ION_CODE:    m_ionCodeBytes    += n;          break;
+          case ASMJS_CODE:  m_asmJSCodeBytes  += n;          break;
           case REGEXP_CODE: m_regexpCodeBytes += n;          break;
           default:          JS_NOT_REACHED("bad code kind"); break;
         }
@@ -253,7 +255,7 @@ public:
         m_pools.remove(m_pools.lookup(pool));   
     }
 
-    void sizeOfCode(size_t *jaeger, size_t *ion, size_t *regexp, size_t *unused) const;
+    void sizeOfCode(size_t *jaeger, size_t *ion, size_t *asmJS, size_t *regexp, size_t *unused) const;
 
     void setDestroyCallback(DestroyCallback destroyCallback) {
         this->destroyCallback = destroyCallback;

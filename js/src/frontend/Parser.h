@@ -217,6 +217,10 @@ struct ParseContext
     
     
     bool atBodyLevel();
+
+    inline bool useAsmOrInsideUseAsm() const {
+        return sc->isFunctionBox() && sc->asFunctionBox()->useAsmOrInsideUseAsm();
+    }
 };
 
 template <typename ParseHandler>

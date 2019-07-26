@@ -25,10 +25,20 @@ using mozilla::DebugOnly;
 namespace js {
 namespace ion {
 
-CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph)
+MacroAssembler &
+CodeGeneratorShared::ensureMasm(MacroAssembler *masmArg)
+{
+    if (masmArg)
+        return *masmArg;
+    maybeMasm_.construct();
+    return maybeMasm_.ref();
+}
+
+CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masmArg)
   : oolIns(NULL),
     oolParallelAbort_(NULL),
-    masm(&sps_),
+    maybeMasm_(),
+    masm(ensureMasm(masmArg)),
     gen(gen),
     graph(*graph),
     current(NULL),
@@ -42,7 +52,31 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph)
     frameDepth_(graph->localSlotCount() * sizeof(STACK_SLOT_SIZE) +
                 graph->argumentSlotCount() * sizeof(Value))
 {
-    frameClass_ = FrameSizeClass::FromDepth(frameDepth_);
+    if (!gen->compilingAsmJS())
+        masm.setInstrumentation(&sps_);
+
+    
+    
+    
+    if (gen->compilingAsmJS()) {
+        JS_ASSERT(graph->argumentSlotCount() == 0);
+        frameDepth_ += gen->maxAsmJSStackArgBytes();
+
+        
+        
+        
+        if (gen->performsAsmJSCall()) {
+            unsigned alignmentAtCall = AlignmentAtPrologue + frameDepth_;
+            if (unsigned rem = alignmentAtCall % StackAlignment)
+                frameDepth_ += StackAlignment - rem;
+        }
+
+        
+        
+        frameClass_ = FrameSizeClass::None();
+    } else {
+        frameClass_ = FrameSizeClass::FromDepth(frameDepth_);
+    }
 }
 
 bool

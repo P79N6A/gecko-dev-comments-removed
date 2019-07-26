@@ -387,6 +387,14 @@ class JSScript : public js::gc::Cell
     
     js::HeapPtrObject   enclosingScopeOrOriginalFunction_;
 
+  public:
+    
+    js::HeapPtr<JSObject> asmJS;
+
+#if JS_BYTES_PER_WORD == 4
+    uint32_t        PADDING32;
+#endif
+
     
 
   public:

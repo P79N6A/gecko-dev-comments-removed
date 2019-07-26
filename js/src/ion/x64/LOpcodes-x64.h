@@ -15,7 +15,10 @@
     _(DivI)                         \
     _(ModI)                         \
     _(ModPowTwoI)                   \
-    _(PowHalfD)
+    _(PowHalfD)                     \
+    _(UInt32ToDouble)               \
+    _(AsmJSLoadFuncPtr)             \
+    _(AsmJSDivOrMod)
 
 #endif 
 

@@ -67,7 +67,7 @@ enum MIRType
     MIRType_None,         
     MIRType_Slots,        
     MIRType_Elements,     
-    MIRType_StackFrame,   
+    MIRType_Pointer,      
     MIRType_Shape,        
     MIRType_ForkJoinSlice 
 };

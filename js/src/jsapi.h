@@ -142,7 +142,8 @@ class JS_PUBLIC_API(AutoGCRooter) {
         WRAPPER =     -31, 
         OBJOBJHASHMAP=-32, 
         OBJU32HASHMAP=-33, 
-        OBJHASHSET =  -34  
+        OBJHASHSET =  -34, 
+        JSONPARSER =  -35  
     };
 
   private:
@@ -2011,8 +2012,9 @@ JS_StringToVersion(const char *string);
                                                    "use strict" annotations. */
 
 #define JSOPTION_ION            JS_BIT(20)      /* IonMonkey */
+#define JSOPTION_ASMJS          JS_BIT(21)      /* optimizingasm.js compiler */
 
-#define JSOPTION_MASK           JS_BITMASK(21)
+#define JSOPTION_MASK           JS_BITMASK(22)
 
 extern JS_PUBLIC_API(uint32_t)
 JS_GetOptions(JSContext *cx);

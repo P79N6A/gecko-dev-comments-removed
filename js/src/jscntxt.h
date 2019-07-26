@@ -33,6 +33,7 @@
 #include "gc/StoreBuffer.h"
 #include "js/HashTable.h"
 #include "js/Vector.h"
+#include "ion/AsmJS.h"
 #include "vm/DateTime.h"
 #include "vm/SPSProfiler.h"
 #include "vm/Stack.h"
@@ -488,9 +489,58 @@ class PerThreadData : public js::PerThreadDataFriendFields
 
 
 
+  private:
+    friend class js::AsmJSActivation;
+
+    
+    js::AsmJSActivation *asmJSActivationStack_;
+
+# ifdef JS_THREADSAFE
+    
+    PRLock *asmJSActivationStackLock_;
+# endif
+
+  public:
+    static unsigned offsetOfAsmJSActivationStackReadOnly() {
+        return offsetof(PerThreadData, asmJSActivationStack_);
+    }
+
+    class AsmJSActivationStackLock {
+        PerThreadData &data_;
+      public:
+# ifdef JS_THREADSAFE
+        AsmJSActivationStackLock(PerThreadData &data) : data_(data) {
+            PR_Lock(data_.asmJSActivationStackLock_);
+        }
+        ~AsmJSActivationStackLock() {
+            PR_Unlock(data_.asmJSActivationStackLock_);
+        }
+# else
+        AsmJSActivationStackLock(PerThreadData &data) : data_(data) {}
+        ~AsmJSActivationStackLock() {}
+# endif
+    };
+
+    js::AsmJSActivation *asmJSActivationStackFromAnyThread() const {
+        return asmJSActivationStack_;
+    }
+    js::AsmJSActivation *asmJSActivationStackFromOwnerThread() const {
+        return asmJSActivationStack_;
+    }
+
+    
+
+
+
+
+
+
+
     int32_t             suppressGC;
 
     PerThreadData(JSRuntime *runtime);
+    ~PerThreadData();
+    bool init();
 
     bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
 };

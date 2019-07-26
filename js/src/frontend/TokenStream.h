@@ -489,6 +489,9 @@ class TokenStream
     bool reportStrictWarningErrorNumberVA(const TokenPos &pos, unsigned errorNumber,
                                           va_list args);
 
+    
+    void reportAsmJSError(ParseNode *pn, unsigned errorNumber, ...);
+
   private:
     
     
