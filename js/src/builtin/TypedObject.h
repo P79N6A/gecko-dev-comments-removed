@@ -435,6 +435,17 @@ extern const JSJitInfo MemcpyJitInfo;
 
 
 
+bool StandardTypeObjectDescriptors(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+
+
+
+
+
+
 
 
 

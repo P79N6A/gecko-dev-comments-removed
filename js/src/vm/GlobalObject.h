@@ -418,6 +418,13 @@ class GlobalObject : public JSObject
         return getOrCreateObject(cx, APPLICATION_SLOTS + JSProto_Intl, initIntlObject);
     }
 
+    JSObject &getTypedObject() {
+        Value v = getConstructor(JSProto_TypedObject);
+        
+        JS_ASSERT(v.isObject());
+        return v.toObject();
+    }
+
     JSObject *getIteratorPrototype() {
         return &getPrototype(JSProto_Iterator).toObject();
     }

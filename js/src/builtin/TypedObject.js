@@ -608,6 +608,31 @@ function HandleTest(obj) {
 
 
 
+
+
+
+
+function TypeOfTypedDatum(obj) {
+  if (IsObject(obj) && ObjectIsTypedDatum(obj))
+    return DATUM_TYPE_OBJ(obj);
+
+  
+  
+  
+  
+  
+  
+  var T = StandardTypeObjectDescriptors();
+  switch (typeof obj) {
+    case "object": return T.Object;
+    case "function": return T.Object;
+    case "string": return T.String;
+    case "number": return T.float64;
+    case "undefined": return T.Any;
+    default: return T.Any;
+  }
+}
+
 function ObjectIsTypedDatum(obj) {
   assert(IsObject(obj), "ObjectIsTypedDatum invoked with non-object")
   return ObjectIsTypedObject(obj) || ObjectIsTypedHandle(obj);
