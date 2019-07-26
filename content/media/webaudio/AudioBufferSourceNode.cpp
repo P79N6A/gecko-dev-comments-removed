@@ -678,6 +678,10 @@ AudioBufferSourceNode::SendLoopParametersToStream()
       SendInt32ParameterToStream(LOOPSTART, loopStartTicks);
       SendInt32ParameterToStream(LOOPEND, loopEndTicks);
       SendInt32ParameterToStream(LOOP, 1);
+    } else {
+      
+      
+      SendInt32ParameterToStream(LOOP, 0);
     }
   } else if (!mLoop) {
     SendInt32ParameterToStream(LOOP, 0);
