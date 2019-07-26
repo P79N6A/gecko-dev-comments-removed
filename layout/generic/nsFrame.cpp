@@ -4883,7 +4883,7 @@ nsIFrame::SchedulePaint(uint32_t aFlags)
 
   
   
-  if (!pres || (pres->Document() && pres->Document()->GetDisplayDocument())) {
+  if (!pres || (pres->Document() && pres->Document()->IsResourceDoc())) {
     return;
   }
   
