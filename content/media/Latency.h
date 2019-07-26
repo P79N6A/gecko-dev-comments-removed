@@ -13,6 +13,7 @@
 #include "nsIThread.h"
 #include "mozilla/Monitor.h"
 #include "nsISupportsImpl.h"
+#include "nsObserverService.h"
 
 class AsyncLatencyLogger;
 class LogEvent;
@@ -20,10 +21,13 @@ class LogEvent;
 PRLogModuleInfo* GetLatencyLog();
 
 
-class AsyncLatencyLogger
+class AsyncLatencyLogger : public nsIObserver
 {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncLatencyLogger);
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
 public:
+
   enum LatencyLogIndex {
     AudioMediaStreamTrack,
     VideoMediaStreamTrack,
@@ -37,12 +41,16 @@ public:
 
   static AsyncLatencyLogger* Get(bool aStartTimer = false);
   static void InitializeStatics();
-  static void Shutdown();
+  
+  static void ShutdownLogger();
 private:
   AsyncLatencyLogger();
-  ~AsyncLatencyLogger();
+  virtual ~AsyncLatencyLogger();
   int64_t GetTimeStamp();
   void Init();
+  
+  
+  void Shutdown();
   
   nsCOMPtr<nsIThread> mThread;
   
