@@ -38,15 +38,15 @@ import android.widget.TextView;
 
 
 
-public class MostRecentPanel extends HomeFragment {
+public class HistoryPanel extends HomeFragment {
     
-    private static final String LOGTAG = "GeckoMostRecentPanel";
+    private static final String LOGTAG = "GeckoHistoryPanel";
 
     
     private static final int LOADER_ID_HISTORY = 0;
 
     
-    private MostRecentAdapter mAdapter;
+    private HistoryAdapter mAdapter;
 
     
     private HomeListView mList;
@@ -62,14 +62,6 @@ public class MostRecentPanel extends HomeFragment {
 
     
     private OnUrlOpenListener mUrlOpenListener;
-
-    public static MostRecentPanel newInstance() {
-        return new MostRecentPanel();
-    }
-
-    public MostRecentPanel() {
-        mUrlOpenListener = null;
-    }
 
     @Override
     public void onAttach(Activity activity) {
@@ -91,7 +83,7 @@ public class MostRecentPanel extends HomeFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.home_most_recent_panel, container, false);
+        return inflater.inflate(R.layout.home_history_panel, container, false);
     }
 
     @Override
@@ -184,7 +176,7 @@ public class MostRecentPanel extends HomeFragment {
         super.onActivityCreated(savedInstanceState);
 
         
-        mAdapter = new MostRecentAdapter(getActivity());
+        mAdapter = new HistoryAdapter(getActivity());
         mList.setAdapter(mAdapter);
 
         
@@ -197,11 +189,11 @@ public class MostRecentPanel extends HomeFragment {
         getLoaderManager().initLoader(LOADER_ID_HISTORY, null, mCursorLoaderCallbacks);
     }
 
-    private static class MostRecentCursorLoader extends SimpleCursorLoader {
+    private static class HistoryCursorLoader extends SimpleCursorLoader {
         
         private static final int HISTORY_LIMIT = 100;
 
-        public MostRecentCursorLoader(Context context) {
+        public HistoryCursorLoader(Context context) {
             super(context);
         }
 
@@ -237,7 +229,7 @@ public class MostRecentPanel extends HomeFragment {
         }
     }
 
-    private static class MostRecentAdapter extends MultiTypeCursorAdapter {
+    private static class HistoryAdapter extends MultiTypeCursorAdapter {
         private static final int ROW_HEADER = 0;
         private static final int ROW_STANDARD = 1;
 
@@ -261,7 +253,7 @@ public class MostRecentPanel extends HomeFragment {
         
         private final SparseArray<MostRecentSection> mMostRecentSections;
 
-        public MostRecentAdapter(Context context) {
+        public HistoryAdapter(Context context) {
             super(context, null, VIEW_TYPES, LAYOUT_TYPES);
 
             mContext = context;
@@ -395,7 +387,7 @@ public class MostRecentPanel extends HomeFragment {
             do {
                 final int position = c.getPosition();
                 final long time = c.getLong(c.getColumnIndexOrThrow(URLColumns.DATE_LAST_VISITED));
-                final MostRecentSection itemSection = MostRecentAdapter.getMostRecentSectionForTime(today, time);
+                final MostRecentSection itemSection = HistoryAdapter.getMostRecentSectionForTime(today, time);
 
                 if (section != itemSection) {
                     section = itemSection;
@@ -413,7 +405,7 @@ public class MostRecentPanel extends HomeFragment {
     private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-            return new MostRecentCursorLoader(getActivity());
+            return new HistoryCursorLoader(getActivity());
         }
 
         @Override
