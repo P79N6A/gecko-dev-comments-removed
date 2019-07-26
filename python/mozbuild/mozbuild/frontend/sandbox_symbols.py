@@ -191,6 +191,14 @@ VARIABLES = {
         Typically this is a set of -I flags that denote extra include
         directories to search for included .idl files.
         """),
+
+
+    'XPCSHELL_TESTS_MANIFESTS': (list, [],
+        """XPCSHELL Test Manifest list
+
+        This is a list of xpcshell.ini manifest files.
+        Formerly XPCSHELL_TESTS=
+        """),
 }
 
 
