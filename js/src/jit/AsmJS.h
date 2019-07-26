@@ -15,8 +15,6 @@
 namespace js {
 
 class ExclusiveContext;
-class AsmJSModule;
-class SPSProfiler;
 namespace frontend {
     template <typename ParseHandler> struct Parser;
     template <typename ParseHandler> struct ParseContext;
@@ -35,44 +33,6 @@ typedef frontend::ParseContext<frontend::FullParseHandler> AsmJSParseContext;
 extern bool
 CompileAsmJS(ExclusiveContext *cx, AsmJSParser &parser, frontend::ParseNode *stmtList,
              bool *validated);
-
-
-
-
-
-
-
-
-
-
-
-class AsmJSActivation
-{
-    JSContext *cx_;
-    AsmJSModule &module_;
-    AsmJSActivation *prev_;
-    void *errorRejoinSP_;
-    SPSProfiler *profiler_;
-    void *resumePC_;
-
-  public:
-    AsmJSActivation(JSContext *cx, AsmJSModule &module);
-    ~AsmJSActivation();
-
-    JSContext *cx() { return cx_; }
-    AsmJSModule &module() const { return module_; }
-    AsmJSActivation *prev() const { return prev_; }
-
-    
-    static unsigned offsetOfContext() { return offsetof(AsmJSActivation, cx_); }
-    static unsigned offsetOfResumePC() { return offsetof(AsmJSActivation, resumePC_); }
-
-    
-    static unsigned offsetOfErrorRejoinSP() { return offsetof(AsmJSActivation, errorRejoinSP_); }
-
-    
-    void setResumePC(void *pc) { resumePC_ = pc; }
-};
 
 
 const size_t AsmJSPageSize = 4096;

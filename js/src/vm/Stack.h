@@ -24,9 +24,11 @@ struct JSGenerator;
 namespace js {
 
 class ArgumentsObject;
+class AsmJSModule;
 class InterpreterRegs;
 class ScopeObject;
 class ScriptFrameIter;
+class SPSProfiler;
 class StackFrame;
 class StaticBlockObject;
 
@@ -1106,6 +1108,7 @@ struct DefaultHasher<AbstractFramePtr> {
 
 class InterpreterActivation;
 class ForkJoinActivation;
+class AsmJSActivation;
 
 namespace jit {
     class JitActivation;
@@ -1131,7 +1134,7 @@ class Activation
     
     size_t hideScriptedCallerCount_;
 
-    enum Kind { Interpreter, Jit, ForkJoin };
+    enum Kind { Interpreter, Jit, ForkJoin, AsmJS };
     Kind kind_;
 
     inline Activation(JSContext *cx, Kind kind_);
@@ -1157,6 +1160,9 @@ class Activation
     bool isForkJoin() const {
         return kind_ == ForkJoin;
     }
+    bool isAsmJS() const {
+        return kind_ == AsmJS;
+    }
 
     InterpreterActivation *asInterpreter() const {
         JS_ASSERT(isInterpreter());
@@ -1169,6 +1175,10 @@ class Activation
     ForkJoinActivation *asForkJoin() const {
         JS_ASSERT(isForkJoin());
         return (ForkJoinActivation *)this;
+    }
+    AsmJSActivation *asAsmJS() const {
+        JS_ASSERT(isAsmJS());
+        return (AsmJSActivation *)this;
     }
 
     void saveFrameChain() {
@@ -1403,6 +1413,42 @@ class InterpreterFrameIterator
     bool done() const {
         return fp_ == nullptr;
     }
+};
+
+
+
+
+
+
+
+
+
+
+class AsmJSActivation : public Activation
+{
+    AsmJSModule &module_;
+    AsmJSActivation *prevAsmJS_;
+    void *errorRejoinSP_;
+    SPSProfiler *profiler_;
+    void *resumePC_;
+
+  public:
+    AsmJSActivation(JSContext *cx, AsmJSModule &module);
+    ~AsmJSActivation();
+
+    JSContext *cx() { return cx_; }
+    AsmJSModule &module() const { return module_; }
+    AsmJSActivation *prevAsmJS() const { return prevAsmJS_; }
+
+    
+    static unsigned offsetOfContext() { return offsetof(AsmJSActivation, cx_); }
+    static unsigned offsetOfResumePC() { return offsetof(AsmJSActivation, resumePC_); }
+
+    
+    static unsigned offsetOfErrorRejoinSP() { return offsetof(AsmJSActivation, errorRejoinSP_); }
+
+    
+    void setResumePC(void *pc) { resumePC_ = pc; }
 };
 
 class ScriptFrameIter

@@ -593,6 +593,12 @@ ScriptFrameIter::settleOnActivation()
             ++data_.activations_;
             continue;
         }
+
+        
+        if (activation->isAsmJS()) {
+            ++data_.activations_;
+            continue;
+        }
 #endif
 
         JS_ASSERT(activation->isInterpreter());
@@ -1377,6 +1383,41 @@ jit::JitActivation::setActive(JSContext *cx, bool active)
         cx->mainThread().ionTop = prevIonTop_;
         cx->mainThread().jitJSContext = prevJitJSContext_;
     }
+}
+
+AsmJSActivation::AsmJSActivation(JSContext *cx, AsmJSModule &module)
+  : Activation(cx, AsmJS),
+    module_(module),
+    errorRejoinSP_(nullptr),
+    profiler_(nullptr),
+    resumePC_(nullptr)
+{
+    if (cx->runtime()->spsProfiler.enabled()) {
+        
+        
+        
+        
+        profiler_ = &cx->runtime()->spsProfiler;
+        profiler_->enterNative("asm.js code :0", this);
+    }
+
+    prevAsmJS_ = cx_->runtime()->mainThread.asmJSActivationStack_;
+
+    JSRuntime::AutoLockForOperationCallback lock(cx_->runtime());
+    cx_->runtime()->mainThread.asmJSActivationStack_ = this;
+
+    (void) errorRejoinSP_;  
+}
+
+AsmJSActivation::~AsmJSActivation()
+{
+    if (profiler_)
+        profiler_->exitNative();
+
+    JS_ASSERT(cx_->runtime()->mainThread.asmJSActivationStack_ == this);
+
+    JSRuntime::AutoLockForOperationCallback lock(cx_->runtime());
+    cx_->runtime()->mainThread.asmJSActivationStack_ = prevAsmJS_;
 }
 
 InterpreterFrameIterator &
