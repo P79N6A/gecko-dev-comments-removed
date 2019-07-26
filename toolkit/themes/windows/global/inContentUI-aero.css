@@ -1,0 +1,7 @@
+
+
+
+
+%define WINDOWS_AERO
+%include inContentUI.css
+%undef WINDOWS_AERO
