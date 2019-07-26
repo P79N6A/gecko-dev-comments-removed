@@ -4,6 +4,9 @@
 
 
 
+#ifndef mozilla_ipc_UnixSocketWatcher_h
+#define mozilla_ipc_UnixSocketWatcher_h
+
 #include "UnixFdWatcher.h"
 
 namespace mozilla {
@@ -64,3 +67,5 @@ private:
 
 }
 }
+
+#endif

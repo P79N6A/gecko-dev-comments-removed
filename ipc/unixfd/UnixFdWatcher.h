@@ -4,6 +4,9 @@
 
 
 
+#ifndef mozilla_ipc_UnixFdWatcher_h
+#define mozilla_ipc_UnixFdWatcher_h
+
 #include "base/message_loop.h"
 #include "mozilla/FileUtils.h"
 
@@ -62,3 +65,5 @@ private:
 
 }
 }
+
+#endif

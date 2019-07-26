@@ -4,6 +4,9 @@
 
 
 
+#ifndef mozilla_ipc_UnixFileWatcher_h
+#define mozilla_ipc_UnixFileWatcher_h
+
 #include "UnixFdWatcher.h"
 
 namespace mozilla {
@@ -26,3 +29,5 @@ protected:
 
 }
 }
+
+#endif
