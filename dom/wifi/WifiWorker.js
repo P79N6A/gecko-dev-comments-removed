@@ -149,6 +149,7 @@ var WifiManager = (function() {
   }
 
   manager.ifname = ifname;
+  manager.connectToSupplicant = false;
   
   
   if (!ifname) {
@@ -557,6 +558,7 @@ var WifiManager = (function() {
       
       retryTimer = null;
       connectTries = 0;
+      manager.connectToSupplicant = true;
       didConnectSupplicant(function(){});
       return;
     }
@@ -748,6 +750,7 @@ var WifiManager = (function() {
         notify("supplicantlost", { success: true });
       }
       wifiCommand.closeSupplicantConnection(function() {
+        manager.connectToSupplicant = false;
       });
       return false;
     }
@@ -922,8 +925,8 @@ var WifiManager = (function() {
           gNetworkService.setWifiOperationMode(manager.ifname,
                                                WIFI_FIRMWARE_STATION,
                                                function (status) {
-            function doStartSupplicant() {
-              cancelWaitForDriverReadyTimer();
+
+            function startSupplicantInternal() {
               wifiCommand.startSupplicant(function (status) {
                 if (status < 0) {
                   unloadDriver(WIFI_FIRMWARE_STATION, function() {
@@ -937,6 +940,19 @@ var WifiManager = (function() {
                 netUtil.enableInterface(manager.ifname, function (ok) {
                   callback(ok ? 0 : -1);
                 });
+              });
+            }
+
+            function doStartSupplicant() {
+              cancelWaitForDriverReadyTimer();
+
+              if (!manager.connectToSupplicant) {
+                startSupplicantInternal();
+                return;
+              }
+              wifiCommand.closeSupplicantConnection(function () {
+                manager.connectToSupplicant = false;
+                startSupplicantInternal();
               });
             }
             
