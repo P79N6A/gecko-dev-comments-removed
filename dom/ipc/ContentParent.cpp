@@ -202,83 +202,10 @@ MemoryReportRequestParent::~MemoryReportRequestParent()
     MOZ_COUNT_DTOR(MemoryReportRequestParent);
 }
 
-
-
-
-class ContentParentMemoryReporter MOZ_FINAL : public nsIMemoryMultiReporter
-{
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIMEMORYMULTIREPORTER
-    NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(MallocSizeOf)
-};
-
-NS_IMPL_ISUPPORTS1(ContentParentMemoryReporter, nsIMemoryMultiReporter)
-
-NS_IMETHODIMP
-ContentParentMemoryReporter::GetName(nsACString& aName)
-{
-    aName.AssignLiteral("ContentParents");
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-ContentParentMemoryReporter::CollectReports(nsIMemoryMultiReporterCallback* cb,
-                                            nsISupports* aClosure)
-{
-    nsAutoTArray<ContentParent*, 16> cps;
-    ContentParent::GetAllEvenIfDead(cps);
-
-    for (uint32_t i = 0; i < cps.Length(); i++) {
-        ContentParent* cp = cps[i];
-        AsyncChannel* channel = cp->GetIPCChannel();
-
-        nsString friendlyName;
-        cp->FriendlyName(friendlyName);
-
-        cp->AddRef();
-        nsrefcnt refcnt = cp->Release();
-
-        const char* channelStr = "no channel";
-        uint32_t numQueuedMessages = 0;
-        if (channel) {
-            if (channel->Unsound_IsClosed()) {
-                channelStr = "closed channel";
-            } else {
-                channelStr = "open channel";
-            }
-            numQueuedMessages = channel->Unsound_NumQueuedMessages();
-        }
-
-        nsPrintfCString path("queued-ipc-messages/content-parent"
-                             "(%s, pid=%d, %s, 0x%p, refcnt=%d)",
-                             NS_ConvertUTF16toUTF8(friendlyName).get(),
-                             cp->Pid(), channelStr, cp, refcnt);
-
-        NS_NAMED_LITERAL_CSTRING(desc,
-            "The number of unset IPC messages held in this ContentParent's "
-            "channel.  A large value here might indicate that we're leaking "
-            "messages.  Similarly, a ContentParent object for a process that's no "
-            "longer running could indicate that we're leaking ContentParents.");
-
-        nsresult rv = cb->Callback( EmptyCString(),
-                                   path,
-                                   nsIMemoryReporter::KIND_OTHER,
-                                   nsIMemoryReporter::UNITS_COUNT,
-                                   numQueuedMessages,
-                                   desc,
-                                   aClosure);
-
-        NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-    return NS_OK;
-}
-
 nsDataHashtable<nsStringHashKey, ContentParent*>* ContentParent::sAppContentParents;
 nsTArray<ContentParent*>* ContentParent::sNonAppContentParents;
 nsTArray<ContentParent*>* ContentParent::sPrivateContent;
-StaticAutoPtr<LinkedList<ContentParent> > ContentParent::sContentParents;
+LinkedList<ContentParent> ContentParent::sContentParents;
 
 
 
@@ -338,9 +265,6 @@ ContentParent::StartUp()
     if (XRE_GetProcessType() != GeckoProcessType_Default) {
         return;
     }
-
-    nsRefPtr<ContentParentMemoryReporter> mr = new ContentParentMemoryReporter();
-    NS_RegisterMemoryMultiReporter(mr);
 
     sCanLaunchSubprocesses = true;
 
@@ -591,28 +515,7 @@ ContentParent::GetAll(nsTArray<ContentParent*>& aArray)
 {
     aArray.Clear();
 
-    if (!sContentParents) {
-        return;
-    }
-
-    for (ContentParent* cp = sContentParents->getFirst(); cp;
-         cp = cp->getNext()) {
-        if (cp->mIsAlive) {
-            aArray.AppendElement(cp);
-        }
-    }
-}
-
-void
-ContentParent::GetAllEvenIfDead(nsTArray<ContentParent*>& aArray)
-{
-    aArray.Clear();
-
-    if (!sContentParents) {
-        return;
-    }
-
-    for (ContentParent* cp = sContentParents->getFirst(); cp;
+    for (ContentParent* cp = sContentParents.getFirst(); cp;
          cp = cp->getNext()) {
         aArray.AppendElement(cp);
     }
@@ -827,7 +730,7 @@ ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
 }
 
 void
-ContentParent::ShutDownProcess(bool aCloseWithError)
+ContentParent::ShutDownProcess(bool aFromActorDestroyed)
 {
   if (!mIsDestroyed) {
     mIsDestroyed = true;
@@ -838,7 +741,9 @@ ContentParent::ShutDownProcess(bool aCloseWithError)
       static_cast<IndexedDBParent*>(idbParents[i])->Disconnect();
     }
 
-    if (aCloseWithError) {
+    if (aFromActorDestroyed) {
+      
+      
       AsyncChannel* channel = GetIPCChannel();
       if (channel) {
         channel->CloseWithError();
@@ -881,6 +786,11 @@ ContentParent::MarkAsDead()
     }
 
     mIsAlive = false;
+
+    
+    if (isInList()) {
+         remove();
+    }
 }
 
 void
@@ -1166,10 +1076,7 @@ ContentParent::ContentParent(mozIApplication* aApp,
     MOZ_ASSERT(!!aApp + aIsForBrowser + aIsForPreallocated <= 1);
 
     
-    if (!sContentParents) {
-        sContentParents = new LinkedList<ContentParent>();
-    }
-    sContentParents->insertBack(this);
+    sContentParents.insertBack(this);
 
     if (aApp) {
         aApp->GetManifestURL(mAppManifestURL);
@@ -1226,9 +1133,11 @@ ContentParent::ContentParent(mozIApplication* aApp,
     if (gAppData) {
         nsCString version(gAppData->version);
         nsCString buildID(gAppData->buildID);
+        nsCString name(gAppData->name);
+        nsCString UAName(gAppData->UAName);
 
         
-        unused << SendAppInfo(version, buildID);
+        unused << SendAppInfo(version, buildID, name, UAName);
     }
 }
 
@@ -1268,15 +1177,6 @@ bool
 ContentParent::IsForApp()
 {
     return !mAppManifestURL.IsEmpty();
-}
-
-int32_t
-ContentParent::Pid()
-{
-    if (!mSubprocess || !mSubprocess->GetChildProcessHandle()) {
-        return -1;
-    }
-    return base::GetProcId(mSubprocess->GetChildProcessHandle());
 }
 
 bool
@@ -1899,12 +1799,6 @@ ContentParent::KillHard()
         FROM_HERE,
         NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
                             OtherProcess(), true));
-    
-    MessageLoop::current()->PostDelayedTask(
-        FROM_HERE,
-        NewRunnableMethod(this, &ContentParent::ShutDownProcess,
-                           true),
-        3000);
 }
 
 bool
