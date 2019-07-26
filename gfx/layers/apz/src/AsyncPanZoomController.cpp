@@ -231,6 +231,20 @@ typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
                                              AllowedTouchBehavior::HORIZONTAL_PAN |
                                              AllowedTouchBehavior::PINCH_ZOOM |
@@ -330,10 +344,40 @@ GetFrameTime() {
 
 class FlingAnimation: public AsyncPanZoomAnimation {
 public:
-  FlingAnimation(AsyncPanZoomController& aApzc)
+  FlingAnimation(AsyncPanZoomController& aApzc, bool aApplyAcceleration)
     : AsyncPanZoomAnimation(TimeDuration::FromMilliseconds(gfxPrefs::APZFlingRepaintInterval()))
     , mApzc(aApzc)
-  {}
+  {
+    TimeStamp now = GetFrameTime();
+    ScreenPoint velocity(mApzc.mX.GetVelocity(), mApzc.mY.GetVelocity());
+
+    
+    
+    
+    
+    
+    
+    
+    if (aApplyAcceleration && !mApzc.mLastFlingTime.IsNull()
+        && (now - mApzc.mLastFlingTime).ToMilliseconds() < gfxPrefs::APZFlingAccelInterval()) {
+      if (SameDirection(velocity.x, mApzc.mLastFlingVelocity.x)) {
+        velocity.x = Accelerate(velocity.x, mApzc.mLastFlingVelocity.x);
+        APZC_LOG("%p Applying fling x-acceleration from %f to %f (delta %f)\n",
+                 &mApzc, mApzc.mX.GetVelocity(), velocity.x, mApzc.mLastFlingVelocity.x);
+        mApzc.mX.SetVelocity(velocity.x);
+      }
+      if (SameDirection(velocity.y, mApzc.mLastFlingVelocity.y)) {
+        velocity.y = Accelerate(velocity.y, mApzc.mLastFlingVelocity.y);
+        APZC_LOG("%p Applying fling y-acceleration from %f to %f (delta %f)\n",
+                 &mApzc, mApzc.mY.GetVelocity(), velocity.y, mApzc.mLastFlingVelocity.y);
+        mApzc.mY.SetVelocity(velocity.y);
+      }
+    }
+
+    mApzc.mLastFlingTime = now;
+    mApzc.mLastFlingVelocity = velocity;
+  }
+
   
 
 
@@ -344,6 +388,19 @@ public:
                       const TimeDuration& aDelta);
 
 private:
+  static bool SameDirection(float aVelocity1, float aVelocity2)
+  {
+    return (aVelocity1 == 0.0f)
+        || (aVelocity2 == 0.0f)
+        || (IsNegative(aVelocity1) == IsNegative(aVelocity2));
+  }
+
+  static float Accelerate(float aBase, float aSupplemental)
+  {
+    return (aBase * gfxPrefs::APZFlingAccelBaseMultiplier())
+         + (aSupplemental * gfxPrefs::APZFlingAccelSupplementalMultiplier());
+  }
+
   AsyncPanZoomController& mApzc;
 };
 
@@ -755,7 +812,7 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
     mX.EndTouch();
     mY.EndTouch();
     SetState(FLING);
-    StartAnimation(new FlingAnimation(*this));
+    StartAnimation(new FlingAnimation(*this, true));
     return nsEventStatus_eConsumeNoDefault;
 
   case PINCHING:
@@ -1183,7 +1240,7 @@ void AsyncPanZoomController::TakeOverFling(ScreenPoint aVelocity) {
   mX.SetVelocity(mX.GetVelocity() + aVelocity.x);
   mY.SetVelocity(mY.GetVelocity() + aVelocity.y);
   SetState(FLING);
-  StartAnimation(new FlingAnimation(*this));
+  StartAnimation(new FlingAnimation(*this, false));
 }
 
 void AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,

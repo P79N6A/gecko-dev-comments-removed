@@ -778,6 +778,10 @@ public:
 
 private:
   friend class FlingAnimation;
+  
+  ScreenPoint mLastFlingVelocity;
+  
+  TimeStamp mLastFlingTime;
 
 
   
