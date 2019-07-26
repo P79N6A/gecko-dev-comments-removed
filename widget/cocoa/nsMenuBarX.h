@@ -16,6 +16,7 @@
 #include "nsString.h"
 
 class nsMenuX;
+class nsMenuBarX;
 class nsMenuItemX;
 class nsIWidget;
 class nsIContent;
@@ -32,11 +33,26 @@ public:
   NS_IMETHOD CreateNativeMenuBar(nsIWidget* aParent, nsIContent* aMenuBarNode);
 };
 
+@interface NSMenu (Undocumented)
+
+
+
+- (void)_performActionWithHighlightingForItemAtIndex:(NSInteger)index;
+@end
+
 
 
 @interface GeckoNSMenu : NSMenu
 {
+@private
+  nsMenuBarX *mMenuBarOwner; 
+  bool mDelayResignMainMenu;
 }
+- (id)initWithTitle:(NSString *)aTitle andMenuBarOwner:(nsMenuBarX *)aMenuBarOwner;
+- (void)resetMenuBarOwner;
+- (bool)delayResignMainMenu;
+- (void)setDelayResignMainMenu:(bool)aShouldDelay;
+- (void)delayedPaintMenuBar:(id)unused;
 @end
 
 
@@ -80,6 +96,7 @@ public:
 
   static NativeMenuItemTarget* sNativeEventTarget;
   static nsMenuBarX*           sLastGeckoMenuBarPainted;
+  static nsMenuBarX*           sCurrentPaintDelayedMenuBar;
 
   
   
@@ -103,7 +120,9 @@ public:
   nsMenuX*          GetMenuAt(uint32_t aIndex);
   nsMenuX*          GetXULHelpMenu();
   void              SetSystemHelpMenu();
-  nsresult          Paint();
+  nsresult          Paint(bool aDelayed = false);
+  void              PaintMenuBarAfterDelay();
+  void              ResetAwaitingDelayedPaint() { mAwaitingDelayedPaint = false; }
   void              ForceUpdateNativeMenuAt(const nsAString& indexString);
   void              ForceNativeMenuReload(); 
   static char       GetLocalizedAccelKey(const char *shortcutID);
@@ -121,6 +140,8 @@ protected:
   nsTArray< nsAutoPtr<nsMenuX> > mMenuArray;
   nsIWidget*         mParentWindow;        
   GeckoNSMenu*       mNativeMenu;            
+
+  bool               mAwaitingDelayedPaint;
 };
 
 #endif 
