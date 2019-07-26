@@ -51,7 +51,10 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
 
     private View mSplashscreen;
 
+    private boolean mIsApk = true;
     private ApkResources mApkResources;
+    private String mManifestUrl;
+    private String mAppName;
 
     protected int getIndex() { return 0; }
 
@@ -79,18 +82,36 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
         String packageName = extras.getString("packageName");
 
         if (packageName == null) {
-            
-            Log.w(LOGTAG, "Can't find package name for webapp");
-            setResult(RESULT_CANCELED);
-            finish();
-        }
+            Log.w(LOGTAG, "no package name; treating as legacy shortcut");
 
-        try {
-            mApkResources = new ApkResources(this, packageName);
-        } catch (NameNotFoundException e) {
-            Log.e(LOGTAG, "Can't find package for webapp " + packageName, e);
-            setResult(RESULT_CANCELED);
-            finish();
+            mIsApk = false;
+
+            
+            isInstalled = true;
+
+            Uri data = getIntent().getData();
+            if (data == null) {
+                Log.wtf(LOGTAG, "can't get manifest URL from shortcut data");
+                setResult(RESULT_CANCELED);
+                finish();
+                return;
+            }
+            mManifestUrl = data.toString();
+
+            String shortcutName = extras.getString(Intent.EXTRA_SHORTCUT_NAME);
+            mAppName = shortcutName != null ? shortcutName : "Web App";
+        } else {
+            try {
+                mApkResources = new ApkResources(this, packageName);
+            } catch (NameNotFoundException e) {
+                Log.e(LOGTAG, "Can't find package for webapp " + packageName, e);
+                setResult(RESULT_CANCELED);
+                finish();
+                return;
+            }
+
+            mManifestUrl = mApkResources.getManifestUrl();
+            mAppName = mApkResources.getAppName();
         }
 
         
@@ -113,7 +134,7 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
         if (!GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning) || !isInstalled || isInstallCompleting) {
             
             overridePendingTransition(R.anim.grow_fade_in_center, android.R.anim.fade_out);
-            showSplash(true);
+            showSplash();
         } else {
             mSplashscreen.setVisibility(View.GONE);
         }
@@ -134,10 +155,10 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
             }
             return;
         } else {
-            launchWebapp(origin, mApkResources.getManifestUrl(), mApkResources.getAppName());
+            launchWebapp(origin);
         }
 
-        setTitle(mApkResources.getAppName());
+        setTitle(mAppName);
     }
 
     @Override
@@ -150,7 +171,15 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
         
 
         
-        return mApkResources.getManifestUrl();
+        if (mIsApk) {
+            return mApkResources.getManifestUrl();
+        }
+
+        
+        
+        
+        Log.wtf(LOGTAG, "Couldn't get URI from intent nor APK resources");
+        return null;
     }
 
     @Override
@@ -158,7 +187,7 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
         
     }
 
-    private void showSplash(boolean isApk) {
+    private void showSplash() {
 
         
         int dominantColor = Allocator.getInstance().getColor(getIndex());
@@ -168,7 +197,7 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
         ImageView image = (ImageView)findViewById(R.id.splashscreen_icon);
         Drawable d = null;
 
-        if (isApk) {
+        if (mIsApk) {
             Uri uri = mApkResources.getAppIconUri();
             image.setImageURI(uri);
             d = image.getDrawable();
@@ -299,7 +328,7 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
 
         if (event.equals("Webapps:Postinstall")) {
             String origin = message.optString("origin");
-            launchWebapp(origin, mApkResources.getManifestUrl(), mApkResources.getAppName());
+            launchWebapp(origin);
         }
     }
 
@@ -308,7 +337,7 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
         Log.e(LOGTAG, "Install errored", exception);
     }
 
-    public void launchWebapp(String origin, String manifestUrl, String name) {
+    private void setOrigin(String origin) {
         try {
             mOrigin = new URL(origin);
         } catch (java.net.MalformedURLException ex) {
@@ -318,20 +347,27 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
             }
 
             
-            Log.i(LOGTAG, "Webapp is not registered with allocator");
-            Uri data = getIntent().getData();
-            if (data != null) {
-                try {
-                    mOrigin = new URL(data.toString());
-                } catch (java.net.MalformedURLException ex2) {
-                    Log.e(LOGTAG, "Unable to parse intent url: ", ex);
+            if (!mIsApk) {
+                Log.i(LOGTAG, "Origin is app: URL; falling back to intent URL");
+                Uri data = getIntent().getData();
+                if (data != null) {
+                    try {
+                        mOrigin = new URL(data.toString());
+                    } catch (java.net.MalformedURLException ex2) {
+                        Log.e(LOGTAG, "Unable to parse intent URL: ", ex);
+                    }
                 }
             }
         }
+    }
+
+    public void launchWebapp(String origin) {
+        setOrigin(origin);
+
         try {
             JSONObject launchObject = new JSONObject();
-            launchObject.putOpt("url", manifestUrl);
-            launchObject.putOpt("name", mApkResources.getAppName());
+            launchObject.putOpt("url", mManifestUrl);
+            launchObject.putOpt("name", mAppName);
             Log.i(LOGTAG, "Trying to launch: " + launchObject);
             GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Webapps:Load", launchObject.toString()));
         } catch (JSONException e) {
@@ -341,6 +377,12 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
 
     @Override
     protected boolean getIsDebuggable() {
-        return mApkResources.isDebuggable();
+        if (mIsApk) {
+            return mApkResources.isDebuggable();
+        }
+
+        
+        
+        return false;
     }
 }
