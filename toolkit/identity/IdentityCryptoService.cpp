@@ -11,6 +11,7 @@
 #include "nsIThread.h"
 #include "nsThreadUtils.h"
 #include "nsCOMPtr.h"
+#include "nsProxyRelease.h"
 #include "nsStringGlue.h"
 #include "mozilla/Base64.h"
 #include "mozilla/Util.h" 
@@ -137,7 +138,7 @@ private:
   }
 
   const KeyType mKeyType; 
-  nsCOMPtr<nsIIdentityKeyGenCallback> mCallback; 
+  nsMainThreadPtrHandle<nsIIdentityKeyGenCallback> mCallback; 
   nsresult mRv; 
   nsCOMPtr<KeyPair> mKeyPair; 
 
@@ -334,7 +335,7 @@ KeyPair::Sign(const nsACString & textToSign,
 KeyGenRunnable::KeyGenRunnable(KeyType keyType,
                                nsIIdentityKeyGenCallback * callback)
   : mKeyType(keyType)
-  , mCallback(callback)
+  , mCallback(new nsMainThreadPtrHolder<nsIIdentityKeyGenCallback>(callback))
   , mRv(NS_ERROR_NOT_INITIALIZED)
 {
 }
