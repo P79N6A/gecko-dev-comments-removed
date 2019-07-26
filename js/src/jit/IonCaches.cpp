@@ -3499,7 +3499,7 @@ GenerateSetDenseElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttac
         masm.branch32(Assembler::Below, initLength, index, &outOfBounds);
 
         
-        Label markElem, storeElem;
+        Label markElem, postBarrier;
         masm.branch32(Assembler::NotEqual, initLength, index, &markElem);
         {
             
@@ -3516,7 +3516,7 @@ GenerateSetDenseElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttac
 
             
             masm.bumpKey(&newLength, -1);
-            masm.jump(&storeElem);
+            masm.jump(&postBarrier);
         }
         
         {
@@ -3527,12 +3527,12 @@ GenerateSetDenseElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttac
         }
 
         
+        masm.bind(&postBarrier);
         Register postBarrierScratch = elements;
         if (masm.maybeCallPostBarrier(object, value, postBarrierScratch))
             masm.loadPtr(Address(object, JSObject::offsetOfElements()), elements);
 
         
-        masm.bind(&storeElem);
         masm.storeConstantOrRegister(value, target);
     }
     attacher.jumpRejoin(masm);
