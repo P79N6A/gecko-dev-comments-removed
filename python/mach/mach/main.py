@@ -19,13 +19,17 @@ from mozbuild.logger import LoggingManager
 
 
 
+from mach.build import Build
 from mach.settings import Settings
 from mach.testing import Testing
+from mach.warnings import Warnings
 
 
 HANDLERS = [
+    Build,
     Settings,
     Testing,
+    Warnings,
 ]
 
 
