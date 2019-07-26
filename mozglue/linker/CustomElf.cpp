@@ -430,6 +430,14 @@ CustomElf::LoadSegment(const Phdr *pt_load) const
 
   
 
+  const char *ondemand = getenv("MOZ_LINKER_ONDEMAND");
+  if (ondemand && !strncmp(ondemand, "0", 2 )) {
+    for (Addr off = 0; off < pt_load->p_filesz; off += PAGE_SIZE) {
+      mappable->ensure(reinterpret_cast<char *>(mapped) + off);
+    }
+  }
+  
+
 
 
 
