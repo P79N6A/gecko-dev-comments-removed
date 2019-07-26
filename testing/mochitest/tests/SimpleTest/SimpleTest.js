@@ -1058,9 +1058,8 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
     
     
     
-    var href = SpecialPowers.getPrivilegedProps(window, 'location.href');
     var isExpected = !!SimpleTest._expectingUncaughtException;
-    var message = "an " + (isExpected ? "" : "un") + "expected uncaught JS exception reported through window.onerror";
+    var message = (isExpected ? "expected " : "") + "uncaught exception";
     var error = errorMsg + " at " + url + ":" + lineNumber;
     if (!SimpleTest._ignoringAllUncaughtExceptions) {
         SimpleTest.ok(isExpected, message, error);
