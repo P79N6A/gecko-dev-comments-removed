@@ -9,7 +9,7 @@ const LAZY_EMPTY_DELAY = 150;
 
 Components.utils.import('resource://gre/modules/Services.jsm');
 
-let EXPORTED_SYMBOLS = ["VariablesView", "create"];
+this.EXPORTED_SYMBOLS = ["VariablesView", "create"];
 
 
 
@@ -22,7 +22,7 @@ let EXPORTED_SYMBOLS = ["VariablesView", "create"];
 
 
 
-function VariablesView(aParentNode) {
+this.VariablesView = function VariablesView(aParentNode) {
   this._store = new Map();
   this._prevHierarchy = new Map();
   this._currHierarchy = new Map();
