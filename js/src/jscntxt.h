@@ -550,6 +550,9 @@ class PerThreadData : public js::PerThreadDataFriendFields
     }
 
     
+    DtoaState           *dtoaState;
+
+    
 
 
 
@@ -560,6 +563,9 @@ class PerThreadData : public js::PerThreadDataFriendFields
     int32_t             suppressGC;
 
     PerThreadData(JSRuntime *runtime);
+    ~PerThreadData();
+
+    bool init();
 
     bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
 };
@@ -1291,9 +1297,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::EvalCache       evalCache;
     js::LazyScriptCache lazyScriptCache;
 
-    
-    DtoaState           *dtoaState;
-
     js::DateTimeInfo    dateTimeInfo;
 
     js::ConservativeGCData conservativeGC;
@@ -1592,6 +1595,9 @@ struct ThreadSafeContext : js::ContextFriendFields,
         return runtime_->gcNursery;
     }
 #endif
+
+    
+    StaticStrings &staticStrings() { return runtime_->staticStrings; }
 
     
 
