@@ -22,6 +22,12 @@ using namespace js::ion;
 
 
 
+static const RegisterSet AllRegs =
+  RegisterSet(GeneralRegisterSet(Registers::AllMask),
+              FloatRegisterSet(FloatRegisters::AllMask));
+
+
+
 
 
 
@@ -282,15 +288,7 @@ IonRuntime::generateInvalidator(JSContext *cx)
     masm.addq(Imm32(sizeof(uintptr_t)), rsp);
 
     
-    for (uint32_t i = Registers::Total; i > 0; ) {
-        i--;
-        masm.Push(Register::FromCode(i));
-    }
-
-    
-    masm.reserveStack(FloatRegisters::Total * sizeof(double));
-    for (uint32_t i = 0; i < FloatRegisters::Total; i++)
-        masm.movsd(FloatRegister::FromCode(i), Operand(rsp, i * sizeof(double)));
+    masm.PushRegsInMask(AllRegs);
 
     masm.movq(rsp, rax); 
 
@@ -416,15 +414,7 @@ static void
 GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
 {
     
-    for (uint32_t i = Registers::Total; i > 0; ) {
-        i--;
-        masm.Push(Register::FromCode(i));
-    }
-
-    
-    masm.reserveStack(FloatRegisters::Total * sizeof(double));
-    for (uint32_t i = 0; i < FloatRegisters::Total; i++)
-        masm.movsd(FloatRegister::FromCode(i), Operand(rsp, i * sizeof(double)));
+    masm.PushRegsInMask(AllRegs);
 
     
     masm.movq(rsp, r8);
