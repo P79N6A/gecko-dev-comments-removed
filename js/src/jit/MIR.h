@@ -8527,6 +8527,13 @@ class MPostWriteBarrier
     MDefinition *value() const {
         return getOperand(1);
     }
+#ifdef DEBUG
+    bool isConsistentFloat32Use() const {
+        
+        
+        return true;
+    }
+#endif
 };
 
 class MNewSlots : public MNullaryInstruction
