@@ -24,7 +24,7 @@
 
 
 
-#include "Assertions.h"
+#include "assembler/wtf/Assertions.h"
 
 #include <stdio.h>
 #include <stdarg.h>

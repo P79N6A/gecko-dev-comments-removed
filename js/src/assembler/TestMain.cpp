@@ -17,12 +17,12 @@
 #define USE_SYSTEM_MALLOC 1
 
 
-#include <jit/ExecutableAllocator.h>
-#include <assembler/LinkBuffer.h>
-#include <assembler/CodeLocation.h>
-#include <assembler/RepatchBuffer.h>
+#include "assembler/jit/ExecutableAllocator.h"
+#include "assembler/assembler/LinkBuffer.h"
+#include "assembler/assembler/CodeLocation.h"
+#include "assembler/assembler/RepatchBuffer.h"
 
-#include <assembler/MacroAssembler.h>
+#include "assembler/assembler/MacroAssembler.h"
 
 #include <stdio.h>
 

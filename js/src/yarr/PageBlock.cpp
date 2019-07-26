@@ -27,8 +27,8 @@
 
 
 
-#include "PageBlock.h"
-#include "wtf/Assertions.h"
+#include "yarr/PageBlock.h"
+#include "assembler/wtf/Assertions.h"
 
 #if WTF_OS_UNIX && !WTF_OS_SYMBIAN
 #include <unistd.h>

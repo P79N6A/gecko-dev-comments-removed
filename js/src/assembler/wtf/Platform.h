@@ -1220,7 +1220,7 @@
 #endif
 
 #if ENABLE_GLIB_SUPPORT
-#include "GTypedefs.h"
+
 #endif
 
 

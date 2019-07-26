@@ -26,11 +26,11 @@
 
 
 
-#include "YarrInterpreter.h"
+#include "yarr/YarrInterpreter.h"
 
-#include "Yarr.h"
-#include "YarrCanonicalizeUCS2.h"
-#include "BumpPointerAllocator.h"
+#include "yarr/Yarr.h"
+#include "yarr/YarrCanonicalizeUCS2.h"
+#include "yarr/BumpPointerAllocator.h"
 
 using namespace WTF;
 

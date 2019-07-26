@@ -25,11 +25,11 @@
 
 
 
-#include "YarrJIT.h"
+#include "yarr/YarrJIT.h"
 
 #include "assembler/assembler/LinkBuffer.h"
-#include "Yarr.h"
-#include "YarrCanonicalizeUCS2.h"
+#include "yarr/Yarr.h"
+#include "yarr/YarrCanonicalizeUCS2.h"
 
 #if ENABLE_YARR_JIT
 

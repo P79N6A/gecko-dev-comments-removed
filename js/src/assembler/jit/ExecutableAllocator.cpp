@@ -25,7 +25,7 @@
 
 
 
-#include "ExecutableAllocator.h"
+#include "assembler/jit/ExecutableAllocator.h"
 
 #include "js/MemoryMetrics.h"
 

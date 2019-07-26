@@ -27,7 +27,7 @@
 
 
 
-#include "YarrCanonicalizeUCS2.h"
+#include "yarr/YarrCanonicalizeUCS2.h"
 
 #include <stddef.h>
 
