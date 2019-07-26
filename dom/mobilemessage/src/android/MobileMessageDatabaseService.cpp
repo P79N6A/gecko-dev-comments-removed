@@ -4,12 +4,14 @@
 
 
 #include "SmsFilter.h"
-#include "SmsDatabaseService.h"
+#include "MobileMessageDatabaseService.h"
 #include "AndroidBridge.h"
+
+using namespace mozilla::dom::sms;
 
 namespace mozilla {
 namespace dom {
-namespace sms {
+namespace mobilemessage {
 
 NS_IMPL_ISUPPORTS1(MobileMessageDatabaseService, nsIMobileMessageDatabaseService)
 

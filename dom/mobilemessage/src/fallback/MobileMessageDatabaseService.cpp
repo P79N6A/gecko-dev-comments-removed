@@ -3,11 +3,11 @@
 
 
 
-#include "SmsDatabaseService.h"
+#include "MobileMessageDatabaseService.h"
 
 namespace mozilla {
 namespace dom {
-namespace sms {
+namespace mobilemessage {
 
 NS_IMPL_ISUPPORTS1(MobileMessageDatabaseService, nsIMobileMessageDatabaseService)
 

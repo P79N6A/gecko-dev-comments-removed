@@ -3,15 +3,15 @@
 
 
 
-#ifndef mozilla_dom_sms_MobileMessageDatabaseService_h
-#define mozilla_dom_sms_MobileMessageDatabaseService_h
+#ifndef mozilla_dom_mobilemessage_MobileMessageDatabaseService_h
+#define mozilla_dom_mobilemessage_MobileMessageDatabaseService_h
 
-#include "nsISmsDatabaseService.h"
+#include "nsIMobileMessageDatabaseService.h"
 #include "mozilla/Attributes.h"
 
 namespace mozilla {
 namespace dom {
-namespace sms {
+namespace mobilemessage {
 
 class MobileMessageDatabaseService MOZ_FINAL : public nsIMobileMessageDatabaseService
 {
