@@ -6964,7 +6964,7 @@ class CGBindingRoot(CGThing):
         
         
         traitsClasses.extend([CGPrototypeIDMapClass(d) for d in descriptorsWithPrototype
-                              if d.uniqueImplementation])
+                              if d.unsharedImplementation])
 
         
         if len(traitsClasses) > 0:
