@@ -10,6 +10,7 @@
 #include "nsSize.h"
 #include "nsAutoPtr.h"
 #include "gfxPoint.h"
+#include "mozilla/RefPtr.h"
 
 class gfxContext;
 class gfxImageSurface;
@@ -21,6 +22,8 @@ class gfxMatrix;
 namespace mozilla {
   namespace gfx {
     class AlphaBoxBlur;
+    class SourceSurface;
+    class DrawTarget;
   }
 }
 
@@ -138,7 +141,7 @@ protected:
     
 
 
-    nsRefPtr<gfxImageSurface> mImageSurface;
+    nsAutoArrayPtr<unsigned char> mData;
 
      
 

@@ -4780,7 +4780,7 @@ nsContextBoxBlur::Init(const nsRect& aRect, nscoord aSpreadRadius,
   if (mContext) {
     
     
-    mContext->SetMatrix(transform);
+    mContext->Multiply(transform);
   }
   return mContext;
 }
