@@ -49,6 +49,8 @@ SocialUI = {
     Services.obs.addObserver(this, "social:provider-set", false);
     Services.obs.addObserver(this, "social:providers-changed", false);
     Services.obs.addObserver(this, "social:provider-reload", false);
+    Services.obs.addObserver(this, "social:provider-installed", false);
+    Services.obs.addObserver(this, "social:provider-uninstalled", false);
     Services.obs.addObserver(this, "social:provider-enabled", false);
     Services.obs.addObserver(this, "social:provider-disabled", false);
 
@@ -56,6 +58,10 @@ SocialUI = {
     Services.prefs.addObserver("social.toast-notifications.enabled", this, false);
 
     gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler.bind(this), true, true);
+    window.addEventListener("aftercustomization", function() {
+      if (SocialUI.enabled)
+        SocialMarks.populateContextMenu(SocialMarks);
+    }, false);
 
     if (!Social.initialized) {
       Social.init();
@@ -75,6 +81,8 @@ SocialUI = {
     Services.obs.removeObserver(this, "social:provider-set");
     Services.obs.removeObserver(this, "social:providers-changed");
     Services.obs.removeObserver(this, "social:provider-reload");
+    Services.obs.removeObserver(this, "social:provider-installed");
+    Services.obs.removeObserver(this, "social:provider-uninstalled");
     Services.obs.removeObserver(this, "social:provider-enabled");
     Services.obs.removeObserver(this, "social:provider-disabled");
 
@@ -91,6 +99,14 @@ SocialUI = {
     
     try {
       switch (topic) {
+        case "social:provider-installed":
+          SocialMarks.setPosition(data);
+          SocialStatus.setPosition(data);
+          break;
+        case "social:provider-uninstalled":
+          SocialMarks.removePosition(data);
+          SocialStatus.removePosition(data);
+          break;
         case "social:provider-enabled":
           SocialMarks.populateToolbarPalette();
           SocialStatus.populateToolbarPalette();
@@ -1285,44 +1301,121 @@ SocialSidebar = {
 
 
 
+
+
+
+
+
+
+
+
+
+
 function ToolbarHelper(type, createButtonFn) {
   this._createButton = createButtonFn;
   this._type = type;
 }
 
 ToolbarHelper.prototype = {
-  idFromOrigin: function(origin) {
-    
-    
-    return this._type + "-" + Services.io.newURI(origin, null, null).hostPort.replace(/[\.:]/g,'-');
+  idFromOrgin: function(origin) {
+    return this._type + "-" + origin;
   },
 
   
-  removeProviderButton: function(origin) {
-    CustomizableUI.destroyWidget(this.idFromOrigin(origin));
+  _getExistingButton: function(id) {
+    let button = document.getElementById(id);
+    if (button)
+      return button;
+    let palette = document.getElementById("navigator-toolbox").palette;
+    let paletteItem = palette.firstChild;
+    while (paletteItem) {
+      if (paletteItem.id == id)
+        return paletteItem;
+      paletteItem = paletteItem.nextSibling;
+    }
+    return null;
   },
 
+  setPersistentPosition: function(id) {
+    
+    let toolbar = document.getElementById("nav-bar");
+    
+    
+    let currentset = toolbar.currentSet;
+    if (currentset == "__empty")
+      currentset = []
+    else
+      currentset = currentset.split(",");
+    if (currentset.indexOf(id) >= 0)
+      return;
+    
+    
+    currentset.push(id);
+    toolbar.setAttribute("currentset", currentset.join(","));
+    document.persist(toolbar.id, "currentset");
+  },
+
+  removeProviderButton: function(origin) {
+    
+    let button = this._getExistingButton(this.idFromOrgin(origin));
+    if (button)
+      button.parentNode.removeChild(button);
+  },
+
+  removePersistence: function(id) {
+    let persisted = document.querySelectorAll("*[currentset]");
+    for (let pent of persisted) {
+      
+      
+      
+      let currentset = pent.getAttribute("currentset").split(",");
+
+      let pos = currentset.indexOf(id);
+      if (pos >= 0) {
+        currentset.splice(pos, 1);
+        pent.setAttribute("currentset", currentset.join(","));
+        document.persist(pent.id, "currentset");
+        return;
+      }
+    }
+  },
+
+  
+  
   clearPalette: function() {
     [this.removeProviderButton(p.origin) for (p of Social.providers)];
   },
 
+  
+  
   
   populatePalette: function() {
     if (!Social.enabled) {
       this.clearPalette();
       return;
     }
+    let persisted = document.querySelectorAll("*[currentset]");
+    let persistedById = {};
+    for (let pent of persisted) {
+      let pset = pent.getAttribute("currentset").split(',');
+      for (let id of pset)
+        persistedById[id] = pent;
+    }
 
     
     
     for (let provider of Social.providers) {
-      let id = this.idFromOrigin(provider.origin);
-      let widget = CustomizableUI.getWidget(id);
-      
-      
-      
-      if (!widget || widget.provider != CustomizableUI.PROVIDER_API)
-        this._createButton(provider);
+      let id = this.idFromOrgin(provider.origin);
+      if (this._getExistingButton(id))
+        continue;
+      let button = this._createButton(provider);
+      if (button && persistedById.hasOwnProperty(id)) {
+        let parent = persistedById[id];
+        let pset = persistedById[id].getAttribute("currentset").split(',');
+        let pi = pset.indexOf(id) + 1;
+        let next = document.getElementById(pset[pi]);
+        parent.insertItem(id, next, null, false);
+      }
     }
   }
 }
@@ -1332,6 +1425,25 @@ SocialStatus = {
     if (!Social.allowMultipleWorkers)
       return;
     this._toolbarHelper.populatePalette();
+  },
+
+  setPosition: function(origin) {
+    if (!Social.allowMultipleWorkers)
+      return;
+    
+    
+    let manifest = Social.getManifestByOrigin(origin);
+    if (!manifest.statusURL)
+      return;
+    let tbh = this._toolbarHelper;
+    tbh.setPersistentPosition(tbh.idFromOrgin(origin));
+  },
+
+  removePosition: function(origin) {
+    if (!Social.allowMultipleWorkers)
+      return;
+    let tbh = this._toolbarHelper;
+    tbh.removePersistence(tbh.idFromOrgin(origin));
   },
 
   removeProvider: function(origin) {
@@ -1364,30 +1476,20 @@ SocialStatus = {
 
   _createButton: function(provider) {
     if (!provider.statusURL)
-      return;
-    let aId = this._toolbarHelper.idFromOrigin(provider.origin);
-    CustomizableUI.createWidget({
-      id: aId,
-      type: 'custom',
-      removable: true,
-      defaultArea: CustomizableUI.AREA_NAVBAR,
-      onBuild: function(document) {
-        let window = document.defaultView;
-
-        let node = document.createElement('toolbarbutton');
-
-        node.id = this.id;
-        node.setAttribute('class', 'toolbarbutton-1 chromeclass-toolbar-additional social-status-button');
-        node.setAttribute('type', "badged");
-        node.style.listStyleImage = "url(" + provider.iconURL + ")";
-        node.setAttribute("origin", provider.origin);
-
-        node.setAttribute("label", provider.name);
-        node.setAttribute("tooltiptext", provider.name);
-        node.setAttribute("oncommand", "SocialStatus.showPopup(this);");
-        return node;
-      }
-    });
+      return null;
+    let palette = document.getElementById("navigator-toolbox").palette;
+    let button = document.createElement("toolbarbutton");
+    button.setAttribute("class", "toolbarbutton-1 chromeclass-toolbar-additional social-status-button");
+    button.setAttribute("type", "badged");
+    button.setAttribute("removable", "true");
+    button.setAttribute("image", provider.iconURL);
+    button.setAttribute("label", provider.name);
+    button.setAttribute("tooltiptext", provider.name);
+    button.setAttribute("origin", provider.origin);
+    button.setAttribute("oncommand", "SocialStatus.showPopup(this);");
+    button.setAttribute("id", this._toolbarHelper.idFromOrgin(provider.origin));
+    palette.appendChild(button);
+    return button;
   },
 
   
@@ -1436,7 +1538,7 @@ SocialStatus = {
     if (!Social.allowMultipleWorkers)
       return;
     let provider = Social._getProviderFromOrigin(origin);
-    let button = document.getElementById(this._toolbarHelper.idFromOrigin(provider.origin));
+    let button = document.getElementById(this._toolbarHelper.idFromOrgin(provider.origin));
     if (button) {
       
       let icons = provider.ambientNotificationIcons;
@@ -1571,7 +1673,7 @@ SocialMarks = {
     
     let tbh = this._toolbarHelper;
     return [p for (p of Social.providers) if (p.markURL &&
-                                              document.getElementById(tbh.idFromOrigin(p.origin)))];
+                                              document.getElementById(tbh.idFromOrgin(p.origin)))];
   },
 
   populateContextMenu: function() {
@@ -1630,6 +1732,21 @@ SocialMarks = {
     this.populateContextMenu();
   },
 
+  setPosition: function(origin) {
+    
+    
+    let manifest = Social.getManifestByOrigin(origin);
+    if (!manifest.markURL)
+      return;
+    let tbh = this._toolbarHelper;
+    tbh.setPersistentPosition(tbh.idFromOrgin(origin));
+  },
+
+  removePosition: function(origin) {
+    let tbh = this._toolbarHelper;
+    tbh.removePersistence(tbh.idFromOrgin(origin));
+  },
+
   removeProvider: function(origin) {
     this._toolbarHelper.removeProviderButton(origin);
   },
@@ -1642,32 +1759,21 @@ SocialMarks = {
 
   _createButton: function(provider) {
     if (!provider.markURL)
-      return;
-    let aId = this._toolbarHelper.idFromOrigin(provider.origin);
-    CustomizableUI.createWidget({
-      id: aId,
-      type: 'custom',
-      removable: true,
-      defaultArea: CustomizableUI.AREA_NAVBAR,
-      onBuild: function(document) {
-        let window = document.defaultView;
-
-        let node = document.createElement('toolbarbutton');
-
-        node.id = this.id;
-        node.setAttribute('class', 'toolbarbutton-1 chromeclass-toolbar-additional social-mark-button');
-        node.setAttribute('type', "socialmark");
-        node.style.listStyleImage = "url(" + provider.iconURL + ")";
-        node.setAttribute("origin", provider.origin);
-
-        return node;
-      }
-    });
+      return null;
+    let palette = document.getElementById("navigator-toolbox").palette;
+    let button = document.createElement("toolbarbutton");
+    button.setAttribute("type", "socialmark");
+    button.setAttribute("class", "toolbarbutton-1 chromeclass-toolbar-additional social-mark-button");
+    button.style.listStyleImage = "url(" + provider.iconURL + ")";
+    button.setAttribute("origin", provider.origin);
+    button.setAttribute("id", this._toolbarHelper.idFromOrgin(provider.origin));
+    palette.appendChild(button);
+    return button
   },
 
   markLink: function(aOrigin, aUrl) {
     
-    let id = this._toolbarHelper.idFromOrigin(aOrigin);
+    let id = this._toolbarHelper.idFromOrgin(aOrigin);
     document.getElementById(id).markLink(aUrl);
   }
 };

@@ -19,9 +19,17 @@ function test() {
 
   
   Services.prefs.setBoolPref("social.allowMultipleWorkers", true);
+
+  
+  
+  
+  let tbh = SocialStatus._toolbarHelper;
+  tbh.setPersistentPosition(tbh.idFromOrgin(manifests[1].origin));
+
   runSocialTestWithProvider(manifests, function (finishcb) {
     runSocialTests(tests, undefined, undefined, function() {
       Services.prefs.clearUserPref("social.allowMultipleWorkers");
+      SocialStatus.removePosition(manifests[1].origin);
       finishcb();
     });
   });
