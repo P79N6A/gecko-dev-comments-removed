@@ -12,13 +12,12 @@ if (!module || !exports) {
 }
 
 let SharedAll = require("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
-let libxul = ctypes.open(SharedAll.Constants.Path.libxul);
-let declareLazyFII = SharedAll.declareLazyFFI;
+let libxul = new SharedAll.Library("libxul", SharedAll.Constants.Path.libxul);
 let Type = SharedAll.Type;
 
 let Primitives = {};
 
-declareLazyFII(Primitives, "compress", libxul,
+libxul.declareLazyFFI(Primitives, "compress",
   "workerlz4_compress",
   null,
    Type.size_t,
@@ -27,7 +26,7 @@ declareLazyFII(Primitives, "compress", libxul,
    Type.void_t.out_ptr
 );
 
-declareLazyFII(Primitives, "decompress", libxul,
+libxul.declareLazyFFI(Primitives, "decompress",
   "workerlz4_decompress",
   null,
    Type.int,
@@ -38,7 +37,7 @@ declareLazyFII(Primitives, "decompress", libxul,
    Type.size_t.out_ptr
 );
 
-declareLazyFII(Primitives, "maxCompressedSize", libxul,
+libxul.declareLazyFFI(Primitives, "maxCompressedSize",
   "workerlz4_maxCompressedSize",
   null,
    Type.size_t,

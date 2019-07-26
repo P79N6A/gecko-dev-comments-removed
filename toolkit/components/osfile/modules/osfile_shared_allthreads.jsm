@@ -40,6 +40,7 @@ let EXPORTED_SYMBOLS = [
   "Type",
   "HollowStructure",
   "OSError",
+  "Library",
   "declareFFI",
   "declareLazy",
   "declareLazyFFI",
@@ -884,6 +885,92 @@ HollowStructure.prototype = {
   }
 };
 exports.HollowStructure = HollowStructure;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Library(name, ...candidates) {
+  this.name = name;
+  this._candidates = candidates;
+};
+Library.prototype = Object.freeze({
+  
+
+
+
+
+  get library() {
+    let library;
+    delete this.library;
+    for (let candidate of this._candidates) {
+      try {
+        library = ctypes.open(candidate);
+      } catch (ex) {
+        LOG("Could not open library", candidate, ex);
+      }
+    }
+    this._candidates = null;
+    if (library) {
+      Object.defineProperty(this, "library", {
+        value: library
+      });
+      Object.freeze(this);
+      return library;
+    }
+    let error = new Error("Could not open library " + this.name);
+    Object.defineProperty(this, "library", {
+      get: function() {
+        throw error;
+      }
+    });
+    Object.freeze(this);
+    throw error;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  declareLazyFFI: function(object, field, ...args) {
+    let lib = this;
+    Object.defineProperty(object, field, {
+      get: function() {
+        delete this[field];
+        let ffi = declareFFI(lib.library, ...args);
+        if (ffi) {
+          return this[field] = ffi;
+        }
+        return undefined;
+      },
+      configurable: true,
+      enumerable: true
+    });
+  },
+
+  toString: function() {
+    return "[Library " + this.name + "]";
+  }
+});
+exports.Library = Library;
 
 
 
