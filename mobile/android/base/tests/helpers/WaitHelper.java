@@ -101,16 +101,20 @@ public final class WaitHelper {
         }
 
         
+        final long verifierStartMillis = SystemClock.uptimeMillis();
+
+        
         for (final ChangeVerifier verifier : pageLoadVerifiers) {
             
             
             
+            final int verifierWaitMillis = CHANGE_WAIT_MS - (int)(SystemClock.uptimeMillis() - verifierStartMillis);
             final boolean hasTimedOut = !sSolo.waitForCondition(new Condition() {
                 @Override
                 public boolean isSatisfied() {
                     return verifier.hasStateChanged();
                 }
-            }, CHANGE_WAIT_MS);
+            }, verifierWaitMillis);
 
             sContext.dumpLog(verifier.getLogTag(),
                     (hasTimedOut ? "timed out." : "was satisfied."));
