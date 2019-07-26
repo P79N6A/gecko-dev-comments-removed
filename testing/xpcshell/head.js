@@ -477,9 +477,12 @@ function do_execute_soon(callback, aName) {
 function do_throw(error, stack) {
   let filename = "";
   if (!stack) {
-    if (error instanceof Error) {
-      
+    
+    
+    if ("filename" in error)
       filename = error.fileName;
+    if ("stack" in error) {
+      
       stack = error.stack;
     } else {
       stack = Components.stack.caller;
