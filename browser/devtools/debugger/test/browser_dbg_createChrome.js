@@ -11,6 +11,9 @@ var gTab = null;
 var gDebuggee = null;
 
 function test() {
+  
+  requestLongerTimeout(2);
+
   debug_chrome(STACK_URL, aOnClosing, function(aTab, aDebuggee, aProcess) {
     gTab = aTab;
     gDebuggee = aDebuggee;
