@@ -4585,7 +4585,7 @@ var TabsInTitlebar = {
     
     titlebarContent.style.marginBottom = "";
     titlebar.style.marginBottom = "";
-    menubar.style.marginBottom = "";
+    menubar.style.paddingBottom = "";
 
     if (allowed) {
       
@@ -4608,7 +4608,7 @@ var TabsInTitlebar = {
       
       if (menuHeight && titlebarContentHeight > menuHeight) {
         let menuTitlebarDelta = titlebarContentHeight - menuHeight;
-        menubar.style.marginBottom = menuTitlebarDelta + "px";
+        menubar.style.paddingBottom = menuTitlebarDelta + "px";
         menuHeight += menuTitlebarDelta;
       }
 
