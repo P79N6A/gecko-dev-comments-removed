@@ -215,8 +215,7 @@ function RadioInterfaceLayer() {
   this.rilContext = {
     radioState:     RIL.GECKO_RADIOSTATE_UNAVAILABLE,
     cardState:      RIL.GECKO_CARDSTATE_UNAVAILABLE,
-    imsi:           null,
-    iccInfo:        null,
+    icc:            null,
 
     
     
@@ -608,9 +607,6 @@ RadioInterfaceLayer.prototype = {
       case "iccinfochange":
         this.handleICCInfoChange(message);
         break;
-      case "iccimsi":
-        this.rilContext.imsi = message.imsi;
-        break;
       case "iccGetCardLock":
       case "iccSetCardLock":
       case "iccUnlockCardLock":
@@ -827,19 +823,19 @@ RadioInterfaceLayer.prototype = {
 
 
   checkRoamingBetweenOperators: function checkRoamingBetweenOperators(registration) {
-    let iccInfo = this.rilContext.iccInfo;
-    if (!iccInfo || !registration.connected) {
+    let icc = this.rilContext.icc;
+    if (!icc || !registration.connected) {
       return;
     }
 
-    let spn = iccInfo.spn && iccInfo.spn.toLowerCase();
+    let spn = icc.spn && icc.spn.toLowerCase();
     let operator = registration.network;
     let longName = operator.longName && operator.longName.toLowerCase();
     let shortName = operator.shortName && operator.shortName.toLowerCase();
 
     let equalsLongName = longName && (spn == longName);
     let equalsShortName = shortName && (spn == shortName);
-    let equalsMcc = iccInfo.mcc == operator.mcc;
+    let equalsMcc = icc.mcc == operator.mcc;
 
     registration.roaming = registration.roaming &&
                            !(equalsMcc && (equalsLongName || equalsShortName));
@@ -1387,7 +1383,7 @@ RadioInterfaceLayer.prototype = {
       bearer: WAP.WDP_BEARER_GSM_SMS_GSM_MSISDN,
       sourceAddress: message.sender,
       sourcePort: message.header.originatorPort,
-      destinationAddress: this.rilContext.iccInfo.msisdn,
+      destinationAddress: this.rilContext.icc.msisdn,
       destinationPort: message.header.destinationPort,
     };
     WAP.WapPushManager.receiveWdpPDU(message.fullData, message.fullData.length,
