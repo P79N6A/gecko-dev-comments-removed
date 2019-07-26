@@ -557,6 +557,12 @@ gfxFT2Font::~gfxFT2Font()
 {
 }
 
+cairo_font_face_t *
+gfxFT2Font::CairoFontFace()
+{
+    return GetFontEntry()->CairoFontFace();
+}
+
 
 
 
