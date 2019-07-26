@@ -160,7 +160,7 @@ nsViewManager::SetRootView(nsView *aView)
       InvalidateHierarchy();
     }
 
-    mRootView->SetZIndex(false, 0, false);
+    mRootView->SetZIndex(false, 0);
   }
   
 }
@@ -862,7 +862,7 @@ nsViewManager::InsertChild(nsView *aParent, nsView *aChild, int32_t aZIndex)
 {
   
   
-  SetViewZIndex(aChild, false, aZIndex, false);
+  SetViewZIndex(aChild, false, aZIndex);
   InsertChild(aParent, aChild, nullptr, true);
 }
 
@@ -941,7 +941,7 @@ bool nsViewManager::IsViewInserted(nsView *aView)
 }
 
 void
-nsViewManager::SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZIndex, bool aTopMost)
+nsViewManager::SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZIndex)
 {
   NS_ASSERTION((aView != nullptr), "no view");
 
@@ -955,7 +955,7 @@ nsViewManager::SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZIndex, b
     aZIndex = 0;
   }
 
-  aView->SetZIndex(aAutoZIndex, aZIndex, aTopMost);
+  aView->SetZIndex(aAutoZIndex, aZIndex);
 }
 
 nsViewManager*

@@ -38,11 +38,6 @@ enum nsViewVisibility {
 
 
 
-#define NS_VIEW_FLAG_TOPMOST              0x0010
-
-
-
-
 
 
 
@@ -344,7 +339,7 @@ public:
 
 
 
-  void SetZIndex(bool aAuto, int32_t aZIndex, bool aTopMost);
+  void SetZIndex(bool aAuto, int32_t aZIndex);
   bool GetZIndexIsAuto() const { return (mVFlags & NS_VIEW_FLAG_AUTO_ZINDEX) != 0; }
   int32_t GetZIndex() const { return mZIndex; }
 
@@ -434,9 +429,6 @@ private:
 
   void InsertChild(nsView *aChild, nsView *aSibling);
   void RemoveChild(nsView *aChild);
-
-  void SetTopMost(bool aTopMost) { aTopMost ? mVFlags |= NS_VIEW_FLAG_TOPMOST : mVFlags &= ~NS_VIEW_FLAG_TOPMOST; }
-  bool IsTopMost() { return((mVFlags & NS_VIEW_FLAG_TOPMOST) != 0); }
 
   void ResetWidgetBounds(bool aRecurse, bool aForceSync);
   void AssertNoWindow();

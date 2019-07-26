@@ -204,11 +204,7 @@ public:
 
 
 
-
-
-
-
-  void SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZindex, bool aTopMost = false);
+  void SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZindex);
 
   
 
