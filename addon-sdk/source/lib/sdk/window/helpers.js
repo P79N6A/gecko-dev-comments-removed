@@ -4,7 +4,8 @@
 'use strict';
 
 const { defer } = require('../core/promise');
-const { open: openWindow, onFocus } = require('./utils');
+const events = require('../system/events');
+const { open: openWindow, onFocus, getToplevelWindow } = require('./utils');
 
 function open(uri, options) {
   return promise(openWindow.apply(null, arguments), 'load');
@@ -14,9 +15,17 @@ exports.open = open;
 function close(window) {
   
   
-  let p = promise(window, 'unload');
+  
+  let deferred = defer();
+  let toplevelWindow = getToplevelWindow(window);
+  events.on("domwindowclosed", function onclose({subject}) {
+    if (subject == toplevelWindow) {
+      events.off("domwindowclosed", onclose);
+      deferred.resolve(window);
+    }
+  }, true);
   window.close();
-  return p;
+  return deferred.promise;
 }
 exports.close = close;
 

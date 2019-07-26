@@ -435,7 +435,7 @@ const WidgetViewTrait = LightTrait.compose(EventEmitterTrait, LightTrait({
       
       
       
-      this.panel.show(getNodeView.implement({}, function() domNode));
+      this.panel.show(null, getNodeView.implement({}, function() domNode));
   },
 
   _isInWindow: function WidgetView__isInWindow(window) {

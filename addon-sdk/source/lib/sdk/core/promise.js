@@ -105,7 +105,7 @@ function defer(prototype) {
   
   var result = null;
 
-  prototype = (prototype || prototype === null) ? prototype : Object.prototype
+  prototype = (prototype || prototype === null) ? prototype : Object.prototype;
 
   
   var promise = Object.create(prototype, {
@@ -137,7 +137,7 @@ function defer(prototype) {
         }
         catch(error) {
           if (exports._reportErrors && typeof(console) === 'object')
-            console.error(error)
+            console.error(error);
           deferred.resolve(rejected(error));
         }
       }
@@ -244,8 +244,8 @@ var promised = (function() {
   
   
 
-  var call = Function.call
-  var concat = Array.prototype.concat
+  var call = Function.call;
+  var concat = Array.prototype.concat;
 
   
   
@@ -256,9 +256,9 @@ var promised = (function() {
   function promisedConcat(promises, unknown) {
     return promises.then(function(values) {
       return resolve(unknown).then(function(value) {
-        return values.concat([ value ])
-      })
-    })
+        return values.concat([ value ]);
+      });
+    });
   }
 
   return function promised(f, prototype) {
@@ -280,10 +280,10 @@ var promised = (function() {
         
         reduce(promisedConcat, resolve([], prototype)).
         
-        then(execute)
-    }
+        then(execute);
+    };
   }
-})()
+})();
 exports.promised = promised;
 
 var all = promised(Array);

@@ -12,18 +12,67 @@ const { Cc, Ci } = require("chrome");
 const { setTimeout } = require("../timers");
 const { platform } = require("../system");
 const { getMostRecentBrowserWindow, getOwnerBrowserWindow,
-        getHiddenWindow } = require("../window/utils");
+        getHiddenWindow, getScreenPixelsPerCSSPixel } = require("../window/utils");
+
 const { create: createFrame, swapFrameLoaders } = require("../frame/utils");
 const { window: addonWindow } = require("../addon/window");
+const { isNil } = require("../lang/type");
 const events = require("../system/events");
 
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
-function open(panel, width, height, anchor) {
+function calculateRegion({ position, width, height, defaultWidth, defaultHeight }, rect) {
+  let x, y;
+
+  let hasTop = !isNil(position.top);
+  let hasRight = !isNil(position.right);
+  let hasBottom = !isNil(position.bottom);
+  let hasLeft = !isNil(position.left);
+  let hasWidth = !isNil(width);
+  let hasHeight = !isNil(height);
+
   
-  if (!panel.openPopup) setTimeout(open, 50, panel, width, height, anchor);
-  else display(panel, width, height, anchor);
+  
+  if (!hasWidth)
+    width = defaultWidth;
+
+  
+  
+  if (!hasHeight)
+    height = defaultHeight;
+
+  
+  x = (rect.right - width) / 2;
+  y = (rect.top + rect.bottom - height) / 2;
+
+  if (hasTop) {
+    y = rect.top + position.top;
+
+    if (hasBottom && !hasHeight)
+      height = rect.bottom - position.bottom - y;
+  }
+  else if (hasBottom) {
+    y = rect.bottom - position.bottom - height;
+  }
+
+  if (hasLeft) {
+    x = position.left;
+
+    if (hasRight && !hasWidth)
+      width = rect.right - position.right - x;
+  }
+  else if (hasRight) {
+    x = rect.right - width - position.right;
+  }
+
+  return {x: x, y: y, width: width, height: height};
+}
+
+function open(panel, options, anchor) {
+  
+  if (!panel.openPopup) setTimeout(open, 50, panel, options, anchor);
+  else display(panel, options, anchor);
 }
 exports.open = open;
 
@@ -52,11 +101,13 @@ function resize(panel, width, height) {
 }
 exports.resize = resize
 
-function display(panel, width, height, anchor) {
+function display(panel, options, anchor) {
   let document = panel.ownerDocument;
-  let x = null;
-  let y = null;
-  let position = null;
+
+  let x, y;
+  let { width, height, defaultWidth, defaultHeight } = options;
+
+  let popupPosition = null;
 
   
   
@@ -64,17 +115,23 @@ function display(panel, width, height, anchor) {
 
   if (!anchor) {
     
-    x = document.documentElement.clientWidth / 2 - width / 2;
-    y = document.documentElement.clientHeight / 2 - height / 2;
-    position = null;
+    
+    panel.style.margin = "0";
+
+    let viewportRect = document.defaultView.gBrowser.getBoundingClientRect();
+
+    ({x, y, width, height}) = calculateRegion(options, viewportRect);
   }
   else {
+    width = width || defaultWidth;
+    height = height || defaultHeight;
+
     
     let rect = anchor.getBoundingClientRect();
 
     let window = anchor.ownerDocument.defaultView;
 
-    let zoom = window.mozScreenPixelsPerCSSPixel;
+    let zoom = getScreenPixelsPerCSSPixel(window);
     let screenX = rect.left + window.mozInnerScreenX * zoom;
     let screenY = rect.top + window.mozInnerScreenY * zoom;
 
@@ -92,7 +149,7 @@ function display(panel, width, height, anchor) {
       horizontal = "right";
 
     let verticalInverse = vertical == "top" ? "bottom" : "top";
-    position = vertical + "center " + verticalInverse + horizontal;
+    popupPosition = vertical + "center " + verticalInverse + horizontal;
 
     
     
@@ -105,7 +162,7 @@ function display(panel, width, height, anchor) {
   panel.firstChild.style.width = width + "px";
   panel.firstChild.style.height = height + "px";
 
-  panel.openPopup(anchor, position, x, y);
+  panel.openPopup(anchor, popupPosition, x, y);
 }
 exports.display = display;
 
@@ -124,16 +181,16 @@ function shimDefaultStyle(panel) {
   });
 }
 
-function show(panel, width, height, focus, anchor) {
+function show(panel, options, anchor) {
   
   
-  panel.setAttribute("noautofocus", !focus);
-
+  panel.setAttribute("noautofocus", !options.focus);
 
   let window = anchor && getOwnerBrowserWindow(anchor);
   let { document } = window ? window : getMostRecentBrowserWindow();
   attach(panel, document);
-  open(panel, width, height, anchor);
+
+  open(panel, options, anchor);
 }
 exports.show = show
 

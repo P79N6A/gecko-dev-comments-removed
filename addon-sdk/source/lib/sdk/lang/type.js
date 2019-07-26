@@ -36,6 +36,21 @@ exports.isNull = isNull;
 
 
 
+
+function isNil(value) {
+  return value === null || value === undefined;
+}
+exports.isNil = isNil;
+
+function isBoolean(value) {
+  return typeof value === "boolean";
+}
+exports.isBoolean = isBoolean;
+
+
+
+
+
 function isString(value) {
   return typeof value === "string";
 }

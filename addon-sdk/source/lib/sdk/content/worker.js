@@ -130,7 +130,7 @@ const WorkerSandbox = EventEmitter.compose({
 
     
     
-    let apiSandbox = sandbox(window, { wantXrays: true });
+    let apiSandbox = sandbox(window, { wantXrays: true, sameZoneAs: window });
     apiSandbox.console = console;
 
     
@@ -148,7 +148,8 @@ const WorkerSandbox = EventEmitter.compose({
     
     let content = this._sandbox = sandbox(window, {
       sandboxPrototype: proto,
-      wantXrays: true
+      wantXrays: true,
+      sameZoneAs: window
     });
     
     
