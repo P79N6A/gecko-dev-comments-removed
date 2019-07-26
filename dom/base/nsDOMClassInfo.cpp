@@ -8551,7 +8551,7 @@ ResolveImpl(JSContext *cx, nsIXPConnectWrappedNative *wrapper, jsid id,
 static JSClass sHTMLDocumentAllClass = {
   "HTML document.all class",
   JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS | JSCLASS_NEW_RESOLVE |
-  JSCLASS_HAS_RESERVED_SLOTS(1),
+  JSCLASS_EMULATES_UNDEFINED | JSCLASS_HAS_RESERVED_SLOTS(1),
   JS_PropertyStub,                                         
   JS_PropertyStub,                                         
   nsHTMLDocumentSH::DocumentAllGetProperty,                
@@ -8566,7 +8566,8 @@ static JSClass sHTMLDocumentAllClass = {
 
 
 static JSClass sHTMLDocumentAllHelperClass = {
-  "HTML document.all helper class", JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE,
+  "HTML document.all helper class",
+  JSCLASS_NEW_RESOLVE,
   JS_PropertyStub,                                         
   JS_PropertyStub,                                         
   nsHTMLDocumentSH::DocumentAllHelperGetProperty,          
@@ -8888,21 +8889,6 @@ GetDocumentAllHelper(JSContext *cx, JSObject *obj, JSObject **result)
   return true;
 }
 
-static inline void *
-FlagsToPrivate(uint32_t flags)
-{
-  MOZ_ASSERT((flags & (1 << 31)) == 0);
-  return reinterpret_cast<void*>(static_cast<uintptr_t>(flags << 1));
-}
-
-static inline uint32_t
-PrivateToFlags(void *priv)
-{
-  uintptr_t intPriv = reinterpret_cast<uintptr_t>(priv);
-  MOZ_ASSERT(intPriv <= UINT32_MAX && (intPriv & 1) == 0);
-  return static_cast<uint32_t>(intPriv >> 1);
-}
-
 JSBool
 nsHTMLDocumentSH::DocumentAllHelperGetProperty(JSContext *cx, JSHandleObject obj,
                                                JSHandleId id, JSMutableHandleValue vp)
@@ -8911,55 +8897,27 @@ nsHTMLDocumentSH::DocumentAllHelperGetProperty(JSContext *cx, JSHandleObject obj
     return JS_TRUE;
   }
 
-  JSObject *helper;
-  if (!GetDocumentAllHelper(cx, obj, &helper)) {
-    return JS_FALSE;
-  }
-
-  if (!helper) {
-    NS_ERROR("Uh, how'd we get here?");
-
-    
-
-    return JS_TRUE;
-  }
-
-  uint32_t flags = PrivateToFlags(::JS_GetPrivate(helper));
-
-  if (flags & JSRESOLVE_DETECTING || !(flags & JSRESOLVE_QUALIFIED)) {
+  if (!vp.isObjectOrNull()) {
     
     
-    
-
-    vp.setUndefined();
-  } else {
-    
-    
-
-    if (!vp.isObjectOrNull()) { 
-      
-      
-      nsresult rv;
-      nsCOMPtr<nsIHTMLDocument> doc = do_QueryWrapper(cx, obj, &rv);
-      if (NS_FAILED(rv)) {
-        xpc::Throw(cx, rv);
-
-        return JS_FALSE;
-      }
-
-      JSObject *all = ::JS_NewObject(cx, &sHTMLDocumentAllClass, nullptr,
-                                     ::JS_GetGlobalForObject(cx, obj));
-      if (!all) {
-        return JS_FALSE;
-      }
-
-      
-      ::JS_SetPrivate(all, doc);
-
-      doc.forget();
-
-      vp.setObject(*all);
+    nsresult rv;
+    nsCOMPtr<nsIHTMLDocument> doc = do_QueryWrapper(cx, obj, &rv);
+    if (NS_FAILED(rv)) {
+      xpc::Throw(cx, rv);
+      return JS_FALSE;
     }
+
+    js::Rooted<JSObject*> all(cx);
+    all = ::JS_NewObject(cx, &sHTMLDocumentAllClass, nullptr,
+                         ::JS_GetGlobalForObject(cx, obj));
+    if (!all) {
+      return JS_FALSE;
+    }
+
+    
+    ::JS_SetPrivate(all, doc.forget().get());
+
+    vp.setObject(*all);
   }
 
   return JS_TRUE;
@@ -9123,9 +9081,7 @@ nsHTMLDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
         
         
         
-        
-        if (!helper && flags & JSRESOLVE_QUALIFIED &&
-            !(flags & JSRESOLVE_DETECTING) && !hasAll) {
+        if (!helper && (flags & JSRESOLVE_QUALIFIED) && !hasAll) {
           
           PrintWarningOnConsole(cx, "DocumentAllUsed");
 
@@ -9144,15 +9100,8 @@ nsHTMLDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
           
           if (!::JS_SetPrototype(cx, obj, helper)) {
             xpc::Throw(cx, NS_ERROR_UNEXPECTED);
-
             return NS_ERROR_UNEXPECTED;
           }
-        }
-
-        
-        
-        if (helper) {
-          ::JS_SetPrivate(helper, FlagsToPrivate(flags));
         }
       }
 

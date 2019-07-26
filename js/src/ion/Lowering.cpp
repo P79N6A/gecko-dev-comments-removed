@@ -367,21 +367,38 @@ LIRGenerator::visitTest(MTest *test)
     MBasicBlock *ifTrue = test->ifTrue();
     MBasicBlock *ifFalse = test->ifFalse();
 
+    
+    
+    JS_ASSERT(opd->type() != MIRType_String);
+
     if (opd->type() == MIRType_Value) {
-        LTestVAndBranch *lir = new LTestVAndBranch(ifTrue, ifFalse, tempFloat());
+        LDefinition temp0, temp1;
+        if (test->operandMightEmulateUndefined()) {
+            temp0 = temp();
+            temp1 = temp();
+        } else {
+            temp0 = LDefinition::BogusTemp();
+            temp1 = LDefinition::BogusTemp();
+        }
+        LTestVAndBranch *lir = new LTestVAndBranch(ifTrue, ifFalse, tempFloat(), temp0, temp1);
         if (!useBox(lir, LTestVAndBranch::Input, opd))
             return false;
-        return add(lir);
+        return add(lir, test);
+    }
+
+    if (opd->type() == MIRType_Object) {
+        
+        if (test->operandMightEmulateUndefined())
+            return add(new LTestOAndBranch(useRegister(opd), ifTrue, ifFalse, temp()), test);
+
+        
+        return add(new LGoto(ifTrue));
     }
 
     
     
     if (opd->type() == MIRType_Undefined || opd->type() == MIRType_Null)
         return add(new LGoto(ifFalse));
-
-    
-    if (opd->type() == MIRType_Object)
-        return add(new LGoto(ifTrue));
 
     
     if (opd->type() == MIRType_Double && opd->isConstant()) {
@@ -429,8 +446,27 @@ LIRGenerator::visitTest(MTest *test)
         
         
         if (IsNullOrUndefined(comp->specialization())) {
-            LIsNullOrUndefinedAndBranch *lir = new LIsNullOrUndefinedAndBranch(ifTrue, ifFalse);
-            if (!useBox(lir, LIsNullOrUndefinedAndBranch::Value, left))
+            if (left->type() == MIRType_Object) {
+                MOZ_ASSERT(comp->operandMightEmulateUndefined(),
+                           "MCompare::tryFold should handle the never-emulates-undefined case");
+
+                LEmulatesUndefinedAndBranch *lir =
+                    new LEmulatesUndefinedAndBranch(useRegister(left), ifTrue, ifFalse, temp());
+                return add(lir, comp);
+            }
+
+            LDefinition temp0, temp1;
+            if (comp->operandMightEmulateUndefined()) {
+                temp0 = temp();
+                temp1 = temp();
+            } else {
+                temp0 = LDefinition::BogusTemp();
+                temp1 = LDefinition::BogusTemp();
+            }
+
+            LIsNullOrLikeUndefinedAndBranch *lir =
+                new LIsNullOrLikeUndefinedAndBranch(ifTrue, ifFalse, temp0, temp1);
+            if (!useBox(lir, LIsNullOrLikeUndefinedAndBranch::Value, left))
                 return false;
             return add(lir, comp);
         }
@@ -536,8 +572,24 @@ LIRGenerator::visitCompare(MCompare *comp)
 
         JS_ASSERT(IsNullOrUndefined(comp->specialization()));
 
-        LIsNullOrUndefined *lir = new LIsNullOrUndefined();
-        if (!useBox(lir, LIsNullOrUndefined::Value, comp->getOperand(0)))
+        if (left->type() == MIRType_Object) {
+            MOZ_ASSERT(comp->operandMightEmulateUndefined(),
+                       "MCompare::tryFold should have folded this away");
+
+            return define(new LEmulatesUndefined(useRegister(left)), comp);
+        }
+
+        LDefinition temp0, temp1;
+        if (comp->operandMightEmulateUndefined()) {
+            temp0 = temp();
+            temp1 = temp();
+        } else {
+            temp0 = LDefinition::BogusTemp();
+            temp1 = LDefinition::BogusTemp();
+        }
+
+        LIsNullOrLikeUndefined *lir = new LIsNullOrLikeUndefined(temp0, temp1);
+        if (!useBox(lir, LIsNullOrLikeUndefined::Value, left))
             return false;
         return define(lir, comp);
     }
@@ -1392,6 +1444,7 @@ LIRGenerator::visitNot(MNot *ins)
     MDefinition *op = ins->operand();
 
     
+    
     JS_ASSERT(op->type() != MIRType_String);
 
     
@@ -1413,10 +1466,24 @@ LIRGenerator::visitNot(MNot *ins)
       case MIRType_Undefined:
       case MIRType_Null:
         return define(new LInteger(1), ins);
-      case MIRType_Object:
-        return define(new LInteger(0), ins);
+      case MIRType_Object: {
+        
+        if (!ins->operandMightEmulateUndefined())
+            return define(new LInteger(0), ins);
+        
+        return define(new LNotO(useRegister(op)), ins);
+      }
       case MIRType_Value: {
-          LNotV *lir = new LNotV(tempFloat());
+        LDefinition temp0, temp1;
+        if (ins->operandMightEmulateUndefined()) {
+            temp0 = temp();
+            temp1 = temp();
+        } else {
+            temp0 = LDefinition::BogusTemp();
+            temp1 = LDefinition::BogusTemp();
+        }
+
+        LNotV *lir = new LNotV(tempFloat(), temp0, temp1);
         if (!useBox(lir, LNotV::Input, op))
             return false;
         return define(lir, ins);
