@@ -278,11 +278,8 @@ BasicShadowableThebesLayer::PaintBuffer(gfxContext* aContext,
                                         void* aCallbackData)
 {
   ContentClientRemote* contentClientRemote = static_cast<ContentClientRemote*>(mContentClient.get());
-  if (HasShadow() && !mContentClient->GetIPDLActor()) {
-    mContentClient->Connect();
-    BasicManager()->Attach(mContentClient, this);
-  }
   MOZ_ASSERT(contentClientRemote->GetIPDLActor() || !HasShadow());
+
   
   
   mValidRegion.SimplifyInward(8);
