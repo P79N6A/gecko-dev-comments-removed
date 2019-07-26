@@ -16,6 +16,7 @@
 #include "jsutil.h"
 
 #include "ds/BitArray.h"
+#include "js/HeapAPI.h"
 
 struct JSCompartment;
 
@@ -102,33 +103,6 @@ struct Cell
     inline bool isAligned() const;
 #endif
 };
-
-
-
-
-
-
-
-
-
-#if (defined(SOLARIS) || defined(__FreeBSD__)) && \
-    (defined(__sparc) || defined(__sparcv9) || defined(__ia64))
-const size_t PageShift = 13;
-const size_t ArenaShift = PageShift;
-#elif defined(__powerpc__)
-const size_t PageShift = 16;
-const size_t ArenaShift = 12;
-#else
-const size_t PageShift = 12;
-const size_t ArenaShift = PageShift;
-#endif
-const size_t PageSize = size_t(1) << PageShift;
-const size_t ArenaSize = size_t(1) << ArenaShift;
-const size_t ArenaMask = ArenaSize - 1;
-
-const size_t ChunkShift = 20;
-const size_t ChunkSize = size_t(1) << ChunkShift;
-const size_t ChunkMask = ChunkSize - 1;
 
 
 
@@ -403,11 +377,9 @@ struct FreeSpan
 };
 
 
-struct ArenaHeader
+struct ArenaHeader : public JS::shadow::ArenaHeader
 {
     friend struct FreeLists;
-
-    JSCompartment   *compartment;
 
     
 
