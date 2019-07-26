@@ -97,6 +97,17 @@ FindElfSectionByName(const char* name,
 
 
 
+
+bool FindElfSegment(const void *elf_mapped_base,
+                    uint32_t segment_type,
+                    const void **segment_start,
+                    int *segment_size,
+                    int *elfclass);
+
+
+
+
+
 template<typename ElfClass, typename T>
 const T*
 GetOffset(const typename ElfClass::Ehdr* elf_header,

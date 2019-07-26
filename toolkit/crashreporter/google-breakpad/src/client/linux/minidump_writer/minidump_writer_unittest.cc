@@ -199,7 +199,7 @@ TEST(MinidumpWriterTest, MappingInfo) {
   
   
   
-  Minidump minidump(templ.c_str());
+  Minidump minidump(templ);
   ASSERT_TRUE(minidump.Read());
 
   MinidumpModuleList* module_list = minidump.GetModuleList();
@@ -318,7 +318,7 @@ TEST(MinidumpWriterTest, MappingInfoContained) {
   
   
   
-  Minidump minidump(dumpfile.c_str());
+  Minidump minidump(dumpfile);
   ASSERT_TRUE(minidump.Read());
 
   MinidumpModuleList* module_list = minidump.GetModuleList();
@@ -400,7 +400,7 @@ TEST(MinidumpWriterTest, DeletedBinary) {
   ASSERT_EQ(0, stat(templ.c_str(), &st));
   ASSERT_GT(st.st_size, 0);
 
-  Minidump minidump(templ.c_str());
+  Minidump minidump(templ);
   ASSERT_TRUE(minidump.Read());
 
   
@@ -481,7 +481,7 @@ TEST(MinidumpWriterTest, AdditionalMemory) {
                             mappings, memory_list));
 
   
-  Minidump minidump(templ.c_str());
+  Minidump minidump(templ);
   ASSERT_TRUE(minidump.Read());
 
   MinidumpMemoryList* dump_memory_list = minidump.GetMemoryList();
@@ -551,7 +551,7 @@ TEST(MinidumpWriterTest, InvalidStackPointer) {
   ASSERT_TRUE(WriteMinidump(templ.c_str(), child, &context, sizeof(context)));
 
   
-  Minidump minidump(templ.c_str());
+  Minidump minidump(templ);
   ASSERT_TRUE(minidump.Read());
 
   
@@ -652,7 +652,7 @@ TEST(MinidumpWriterTest, MinidumpSizeLimit) {
     ASSERT_GT(st.st_size, 0);
     normal_file_size = st.st_size;
 
-    Minidump minidump(normal_dump.c_str());
+    Minidump minidump(normal_dump);
     ASSERT_TRUE(minidump.Read());
     MinidumpThreadList* dump_thread_list = minidump.GetThreadList();
     ASSERT_TRUE(dump_thread_list);
@@ -719,7 +719,7 @@ TEST(MinidumpWriterTest, MinidumpSizeLimit) {
     
     EXPECT_LT(st.st_size, normal_file_size);
 
-    Minidump minidump(limit_dump.c_str());
+    Minidump minidump(limit_dump);
     ASSERT_TRUE(minidump.Read());
     MinidumpThreadList* dump_thread_list = minidump.GetThreadList();
     ASSERT_TRUE(dump_thread_list);

@@ -39,6 +39,7 @@
 #include "common/test_assembler.h"
 
 #include <list>
+#include <vector>
 #include <map>
 #include <string>
 #include <utility>
@@ -49,6 +50,7 @@ namespace google_breakpad {
 namespace synth_elf {
 
 using std::list;
+using std::vector;
 using std::map;
 using std::pair;
 using test_assembler::Endianness;
@@ -103,6 +105,10 @@ class ELF : public Section {
                  uint32_t link = 0, uint64_t entsize = 0, uint64_t offset = 0);
                   
   
+  
+  void AddSegment(int start, int end, uint32_t type, uint32_t flags = 0);
+
+  
   void Finish();
 
  private:
@@ -114,6 +120,8 @@ class ELF : public Section {
   
   int program_count_;
   Label program_count_label_;
+  
+  Section program_header_table_;
 
   
   Label section_header_label_;
@@ -128,6 +136,25 @@ class ELF : public Section {
   Label section_header_string_index_;
   
   StringTable section_header_strings_;
+
+  
+  struct ElfSection : public Section {
+    ElfSection(const Section& section, uint32_t type, uint32_t addr,
+               uint32_t offset, Label offset_label, uint32_t size)
+    : Section(section), type_(type), addr_(addr), offset_(offset)
+    , offset_label_(offset_label), size_(size) {
+    }
+
+    uint32_t type_;
+    uint32_t addr_;
+    uint32_t offset_;
+    Label offset_label_;
+    uint32_t size_;
+  };
+
+  vector<ElfSection> sections_;
+
+  void AppendSection(ElfSection &section);
 };
 
 
@@ -151,12 +178,15 @@ class SymbolTable : public Section {
 };
 
 
-class BuildIDNote : public Section {
+class Notes : public Section {
 public:
-  BuildIDNote(const uint8_t* id_bytes, size_t id_size, Endianness endianness);
+  Notes(Endianness endianness)
+  : Section(endianness) {
+  }
 
   
-  static void AppendSection(ELF& elf, const uint8_t* id_bytes, size_t id_size);
+  void AddNote(int type, const string &name, const uint8_t* desc_bytes,
+               size_t desc_size);
 };
 
 }  

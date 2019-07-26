@@ -56,6 +56,27 @@ namespace {
 
 
 
+void FlushInstructionCache(const char* memory, uint32_t memory_size) {
+#if defined(__arm__)
+  long begin = reinterpret_cast<long>(memory);
+  long end = begin + static_cast<long>(memory_size);
+# if defined(__ANDROID__)
+  
+  cacheflush(begin, end, 0);
+# elif defined(__linux__)
+  
+#  ifndef __ARM_NR_cacheflush
+#  define __ARM_NR_cacheflush 0xf0002
+#  endif
+  syscall(__ARM_NR_cacheflush, begin, end, 0);
+# else
+#   error "Your operating system is not supported yet"
+# endif
+#endif
+}
+
+
+
 const int kGUIDStringSize = 37;
 
 void sigchld_handler(int signo) { }
@@ -449,6 +470,7 @@ TEST(ExceptionHandlerTest, InstructionPointerMemory) {
     
     
     memcpy(memory + kOffset, instructions, sizeof(instructions));
+    FlushInstructionCache(memory, kMemorySize);
 
     
     typedef void (*void_function)(void);
@@ -541,6 +563,7 @@ TEST(ExceptionHandlerTest, InstructionPointerMemoryMinBound) {
     
     
     memcpy(memory + kOffset, instructions, sizeof(instructions));
+    FlushInstructionCache(memory, kMemorySize);
 
     
     typedef void (*void_function)(void);
@@ -632,6 +655,7 @@ TEST(ExceptionHandlerTest, InstructionPointerMemoryMaxBound) {
     
     
     memcpy(memory + kOffset, instructions, sizeof(instructions));
+    FlushInstructionCache(memory, kMemorySize);
 
     
     typedef void (*void_function)(void);
