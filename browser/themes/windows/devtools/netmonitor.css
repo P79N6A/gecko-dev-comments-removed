@@ -297,3 +297,19 @@
 #timings-tabpanel .requests-menu-timings-total {
   transition: transform 0.2s ease-out;
 }
+
+
+@media (max-width: 700px) {
+  #details-pane {
+    max-width: none;
+    margin: 0 !important;
+    
+  }
+
+  .requests-menu-size {
+    border-width: 0px !important;
+    box-shadow: none !important;
+    
+
+  }
+}
