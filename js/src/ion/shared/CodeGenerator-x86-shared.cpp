@@ -679,6 +679,44 @@ CodeGeneratorX86Shared::visitMulNegativeZeroCheck(MulNegativeZeroCheck *ool)
 }
 
 bool
+CodeGeneratorX86Shared::visitDivPowTwoI(LDivPowTwoI *ins)
+{
+    Register lhs = ToRegister(ins->numerator());
+    Register lhsCopy = ToRegister(ins->numeratorCopy());
+    Register output = ToRegister(ins->output());
+    int32_t shift = ins->shift();
+
+    
+    
+    JS_ASSERT(lhs == output);
+
+    if (shift != 0) {
+        if (!ins->mir()->isTruncated()) {
+            
+            masm.testl(lhs, Imm32(UINT32_MAX >> (32 - shift)));
+            if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
+                return false;
+        }
+
+        
+        
+        
+        
+        
+        
+        if (shift > 1)
+            masm.sarl(Imm32(31), lhs);
+        masm.shrl(Imm32(32 - shift), lhs);
+        masm.addl(lhsCopy, lhs);
+
+        
+        masm.sarl(Imm32(shift), lhs);
+    }
+
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitDivI(LDivI *ins)
 {
     Register remainder = ToRegister(ins->remainder());
