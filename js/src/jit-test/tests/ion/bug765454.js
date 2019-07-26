@@ -1,5 +1,3 @@
-var bailout = Proxy.createFunction({}, Math.sin);
-
 var seen = -1;
 
 
