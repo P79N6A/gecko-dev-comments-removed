@@ -237,6 +237,10 @@ ICStubCompiler::getStubCode()
         return NULL;
 
     
+    if (cx->zone()->needsBarrier())
+        newStubCode->togglePreBarriers(true);
+
+    
     if (!ion->putStubCode(stubKey, newStubCode))
         return NULL;
 
@@ -1848,6 +1852,7 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     masm.loadValue(Address(BaselineStackReg, ICStackValueOffset), R0);
+    masm.patchableCallPreBarrier(element, MIRType_Value);
     masm.storeValue(R0, element);
     EmitReturnFromIC(masm);
 
@@ -2382,6 +2387,7 @@ ICSetProp_Native::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     masm.load32(Address(BaselineStubReg, ICSetProp_Native::offsetOfOffset()), scratch);
+    masm.patchableCallPreBarrier(BaseIndex(objReg, scratch, TimesOne), MIRType_Value);
     masm.storeValue(R1, BaseIndex(objReg, scratch, TimesOne));
 
     
