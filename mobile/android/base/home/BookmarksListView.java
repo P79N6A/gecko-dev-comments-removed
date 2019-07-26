@@ -147,6 +147,18 @@ public class BookmarksListView extends HomeListView
         }
     }
 
+    @Override
+    public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+        
+        
+        final BookmarksListAdapter adapter = getBookmarksListAdapter();
+        if (adapter.isShowingChildFolder()) {
+            position--;
+        }
+
+        return super.onItemLongClick(parent, view, position, id);
+    }
+
     private BookmarksListAdapter getBookmarksListAdapter() {
         BookmarksListAdapter adapter;
         ListAdapter listAdapter = getAdapter();
