@@ -1165,16 +1165,31 @@ private:
 
 class MOZ_STACK_CLASS CrossAxisPositionTracker : public PositionTracker {
 public:
-  CrossAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
-                           const FlexboxAxisTracker& aAxisTracker,
-                           const nsHTMLReflowState& aReflowState)
-    : PositionTracker(aAxisTracker.GetCrossAxis()) {}
+  CrossAxisPositionTracker(nsTArray<FlexLine>& aLines,
+                           uint8_t aAlignContent,
+                           nscoord aContentBoxCrossSize,
+                           bool aIsCrossSizeDefinite,
+                           const FlexboxAxisTracker& aAxisTracker);
 
   
+  void TraversePackingSpace();
+
+  
+  void TraverseLine(FlexLine& aLine) { mPosition += aLine.GetLineCrossSize(); }
+
+private:
   
   
   
   
+  void EnterMargin(const nsMargin& aMargin) MOZ_DELETE;
+  void ExitMargin(const nsMargin& aMargin) MOZ_DELETE;
+  void EnterChildFrame(nscoord aChildFrameSize) MOZ_DELETE;
+  void ExitChildFrame(nscoord aChildFrameSize) MOZ_DELETE;
+
+  nscoord  mPackingSpaceRemaining;
+  uint32_t mNumPackingSpacesRemaining;
+  uint8_t  mAlignContent;
 };
 
 
@@ -1695,6 +1710,147 @@ MainAxisPositionTracker::TraversePackingSpace()
   if (mNumPackingSpacesRemaining) {
     MOZ_ASSERT(mJustifyContent == NS_STYLE_JUSTIFY_CONTENT_SPACE_BETWEEN ||
                mJustifyContent == NS_STYLE_JUSTIFY_CONTENT_SPACE_AROUND,
+               "mNumPackingSpacesRemaining only applies for "
+               "space-between/space-around");
+
+    MOZ_ASSERT(mPackingSpaceRemaining >= 0,
+               "ran out of packing space earlier than we expected");
+
+    
+    
+    nscoord curPackingSpace =
+      mPackingSpaceRemaining / mNumPackingSpacesRemaining;
+
+    mPosition += curPackingSpace;
+    mNumPackingSpacesRemaining--;
+    mPackingSpaceRemaining -= curPackingSpace;
+  }
+}
+
+CrossAxisPositionTracker::
+  CrossAxisPositionTracker(nsTArray<FlexLine>& aLines,
+                           uint8_t aAlignContent,
+                           nscoord aContentBoxCrossSize,
+                           bool aIsCrossSizeDefinite,
+                           const FlexboxAxisTracker& aAxisTracker)
+  : PositionTracker(aAxisTracker.GetCrossAxis()),
+    mPackingSpaceRemaining(0),
+    mNumPackingSpacesRemaining(0),
+    mAlignContent(aAlignContent)
+{
+  MOZ_ASSERT(!aLines.IsEmpty(), "We should have at least 1 line");
+
+  if (aIsCrossSizeDefinite && aLines.Length() == 1) {
+    
+    
+    
+    
+    
+    
+    
+    
+    aLines[0].SetLineCrossSize(aContentBoxCrossSize);
+    return;
+  }
+
+  
+  
+  
+  
+
+  
+  
+  mPackingSpaceRemaining = aContentBoxCrossSize;
+  for (uint32_t i = 0; i < aLines.Length(); i++) {
+    const FlexLine& line = aLines[i];
+    mPackingSpaceRemaining -= line.GetLineCrossSize();
+  }
+
+  
+  
+  
+  
+  if (mPackingSpaceRemaining < 0) {
+    if (mAlignContent == NS_STYLE_ALIGN_CONTENT_SPACE_BETWEEN ||
+        mAlignContent == NS_STYLE_ALIGN_CONTENT_STRETCH) {
+      mAlignContent = NS_STYLE_ALIGN_CONTENT_FLEX_START;
+    } else if (mAlignContent == NS_STYLE_ALIGN_CONTENT_SPACE_AROUND) {
+      mAlignContent = NS_STYLE_ALIGN_CONTENT_CENTER;
+    }
+  }
+
+  
+  
+  if (mPackingSpaceRemaining != 0) {
+    switch (mAlignContent) {
+      case NS_STYLE_ALIGN_CONTENT_FLEX_START:
+        
+        break;
+      case NS_STYLE_ALIGN_CONTENT_FLEX_END:
+        
+        mPosition += mPackingSpaceRemaining;
+        break;
+      case NS_STYLE_ALIGN_CONTENT_CENTER:
+        
+        mPosition += mPackingSpaceRemaining / 2;
+        break;
+      case NS_STYLE_ALIGN_CONTENT_SPACE_BETWEEN:
+        MOZ_ASSERT(mPackingSpaceRemaining >= 0,
+                   "negative packing space should make us use 'flex-start' "
+                   "instead of 'space-between'");
+        
+        mNumPackingSpacesRemaining = aLines.Length() - 1;
+        break;
+      case NS_STYLE_ALIGN_CONTENT_SPACE_AROUND: {
+        MOZ_ASSERT(mPackingSpaceRemaining >= 0,
+                   "negative packing space should make us use 'center' "
+                   "instead of 'space-around'");
+        
+        
+        
+        mNumPackingSpacesRemaining = aLines.Length();
+        
+        nscoord totalEdgePackingSpace =
+          mPackingSpaceRemaining / mNumPackingSpacesRemaining;
+
+        
+        mPosition += totalEdgePackingSpace / 2;
+        
+        
+        mPackingSpaceRemaining -= totalEdgePackingSpace;
+        mNumPackingSpacesRemaining--;
+        break;
+      }
+      case NS_STYLE_ALIGN_CONTENT_STRETCH:
+        
+        MOZ_ASSERT(mPackingSpaceRemaining > 0,
+                   "negative packing space should make us use 'flex-start' "
+                   "instead of 'stretch' (and we shouldn't bother with this "
+                   "code if we have 0 packing space)");
+
+        for (uint32_t i = 0; i < aLines.Length(); i++) {
+          FlexLine& line = aLines[i];
+          
+          
+          nscoord shareOfExtraSpace =
+            mPackingSpaceRemaining / (aLines.Length() - i);
+          nscoord newSize = line.GetLineCrossSize() + shareOfExtraSpace;
+          line.SetLineCrossSize(newSize);
+          mPackingSpaceRemaining -= shareOfExtraSpace;
+        }
+        break;
+      default:
+        MOZ_CRASH("Unexpected align-content value");
+    }
+  }
+}
+
+void
+CrossAxisPositionTracker::TraversePackingSpace()
+{
+  if (mNumPackingSpacesRemaining) {
+    MOZ_ASSERT(mAlignContent == NS_STYLE_ALIGN_CONTENT_SPACE_BETWEEN ||
+               mAlignContent == NS_STYLE_ALIGN_CONTENT_SPACE_AROUND,
                "mNumPackingSpacesRemaining only applies for "
                "space-between/space-around");
 
@@ -2520,16 +2676,6 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     lines[lineIdx].ComputeCrossSizeAndBaseline(axisTracker);
   }
 
-  
-  
-  CrossAxisPositionTracker
-    crossAxisPosnTracker(this, axisTracker, aReflowState);
-
-  
-  
-  
-  
-  
   bool isCrossSizeDefinite;
   const nscoord contentBoxCrossSize =
     ComputeFlexContainerCrossSize(aReflowState, axisTracker,
@@ -2537,18 +2683,11 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
                                   availableHeightForContent,
                                   &isCrossSizeDefinite, aStatus);
 
-  if (isCrossSizeDefinite) {
-    if (lines.Length() == 1) {
-      
-      
-      
-      lines[0].SetLineCrossSize(contentBoxCrossSize);
-    } else {
-      
-      
-      
-    }
-  }
+  
+  
+  CrossAxisPositionTracker
+    crossAxisPosnTracker(lines, aReflowState.mStylePosition->mAlignContent,
+                         contentBoxCrossSize, isCrossSizeDefinite, axisTracker);
 
   
   
@@ -2573,6 +2712,8 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     
     line.PositionItemsInCrossAxis(crossAxisPosnTracker.GetPosition(),
                                   axisTracker);
+    crossAxisPosnTracker.TraverseLine(line);
+    crossAxisPosnTracker.TraversePackingSpace();
   }
 
   
