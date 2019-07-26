@@ -11,7 +11,7 @@
 #include "nsIXULAppInfo.h"
 #include "nsPluginArray.h"
 #include "nsMimeTypeArray.h"
-#include "nsDesktopNotification.h"
+#include "mozilla/dom/DesktopNotification.h"
 #include "nsGeolocation.h"
 #include "nsIHttpProtocolHandler.h"
 #include "nsICachingChannel.h"
@@ -1174,7 +1174,7 @@ NS_IMETHODIMP Navigator::GetMozNotification(nsIDOMDesktopNotificationCenter** aR
   nsCOMPtr<nsPIDOMWindow> win(do_QueryReferent(mWindow));
   NS_ENSURE_TRUE(win && win->GetDocShell(), NS_ERROR_FAILURE);
 
-  mNotification = new nsDesktopNotificationCenter(win);
+  mNotification = new DesktopNotificationCenter(win);
 
   NS_ADDREF(*aRetVal = mNotification);
   return NS_OK;
