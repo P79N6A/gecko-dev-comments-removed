@@ -1984,27 +1984,6 @@ nsXPConnect::GetRuntime(JSRuntime **runtime)
 }
 
 
-NS_IMETHODIMP
-nsXPConnect::GetBackstagePass(nsIXPCScriptable **bsp)
-{
-    if (!mBackstagePass) {
-        nsCOMPtr<nsIPrincipal> sysprin;
-        nsCOMPtr<nsIScriptSecurityManager> secman =
-            do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
-        if (!secman)
-            return NS_ERROR_NOT_AVAILABLE;
-        if (NS_FAILED(secman->GetSystemPrincipal(getter_AddRefs(sysprin))))
-            return NS_ERROR_NOT_AVAILABLE;
-
-        mBackstagePass = new BackstagePass(sysprin);
-        if (!mBackstagePass)
-            return NS_ERROR_OUT_OF_MEMORY;
-    }
-    NS_ADDREF(*bsp = mBackstagePass);
-    return NS_OK;
-}
-
-
 NS_IMETHODIMP_(void)
 nsXPConnect::RegisterGCCallback(JSGCCallback func)
 {

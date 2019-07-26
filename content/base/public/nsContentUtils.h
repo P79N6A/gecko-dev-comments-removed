@@ -1358,6 +1358,11 @@ public:
   
 
 
+  static nsIPrincipal* GetSystemPrincipal();
+
+  
+
+
 
 
 
