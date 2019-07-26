@@ -59,11 +59,6 @@ namespace mozilla { namespace net {
 namespace {
 
 
-const char kDiskDeviceID[] = "disk";
-const char kMemoryDeviceID[] = "memory";
-const char kOfflineDeviceID[] = "offline";
-
-
 #define BYPASS_LOCAL_CACHE(loadFlags) \
         (loadFlags & (nsIRequest::LOAD_BYPASS_CACHE | \
                       nsICachingChannel::LOAD_BYPASS_LOCAL_CACHE))
