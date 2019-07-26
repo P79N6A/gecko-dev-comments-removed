@@ -38,7 +38,7 @@ nsDataObjCollection::~nsDataObjCollection()
 
 STDMETHODIMP nsDataObjCollection::QueryInterface(REFIID riid, void** ppv)
 {
-  *ppv=NULL;
+  *ppv=nullptr;
 
   if ( (IID_IUnknown == riid) || (IID_IDataObject  == riid) ) {
     *ppv = static_cast<IDataObject*>(this); 
@@ -252,7 +252,7 @@ HRESULT nsDataObjCollection::GetFile(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
     }
     
     PRUnichar* buffer = (PRUnichar*)GlobalLock(workingmedium.hGlobal);
-    if (buffer == NULL)
+    if (buffer == nullptr)
       return E_FAIL;
     buffer += sizeof(DROPFILES)/sizeof(PRUnichar);
     filename = buffer;
@@ -261,7 +261,7 @@ HRESULT nsDataObjCollection::GetFile(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
     
     alloclen = (filename.Length() + 1) * sizeof(PRUnichar);
     hGlobalMemory = ::GlobalReAlloc(hGlobalMemory, buffersize + alloclen, GHND);
-    if (hGlobalMemory == NULL)
+    if (hGlobalMemory == nullptr)
       return E_FAIL;
     realbuffer = (PRUnichar*)((char*)GlobalLock(hGlobalMemory) + buffersize);
     if (!realbuffer)
@@ -285,7 +285,7 @@ HRESULT nsDataObjCollection::GetFile(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
   GlobalUnlock(hGlobalMemory);
   
   pSTM->tymed = TYMED_HGLOBAL;
-  pSTM->pUnkForRelease = NULL; 
+  pSTM->pUnkForRelease = nullptr; 
   pSTM->hGlobal = hGlobalMemory;
   return S_OK;
 }
@@ -316,7 +316,7 @@ HRESULT nsDataObjCollection::GetText(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
       }
       
       char* buffer = (char*)GlobalLock(workingmedium.hGlobal);
-      if (buffer == NULL)
+      if (buffer == nullptr)
         return E_FAIL;
       text = buffer;
       GlobalUnlock(workingmedium.hGlobal);
@@ -325,7 +325,7 @@ HRESULT nsDataObjCollection::GetText(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
       alloclen = text.Length();
       hGlobalMemory = ::GlobalReAlloc(hGlobalMemory, buffersize + alloclen,
                                       GHND);
-      if (hGlobalMemory == NULL)
+      if (hGlobalMemory == nullptr)
         return E_FAIL;
       buffer = ((char*)GlobalLock(hGlobalMemory) + buffersize);
       if (!buffer)
@@ -336,7 +336,7 @@ HRESULT nsDataObjCollection::GetText(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
       buffersize += alloclen;
     }
     pSTM->tymed = TYMED_HGLOBAL;
-    pSTM->pUnkForRelease = NULL; 
+    pSTM->pUnkForRelease = nullptr; 
     pSTM->hGlobal = hGlobalMemory;
     return S_OK;
   }
@@ -356,7 +356,7 @@ HRESULT nsDataObjCollection::GetText(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
       }
       
       PRUnichar* buffer = (PRUnichar*)GlobalLock(workingmedium.hGlobal);
-      if (buffer == NULL)
+      if (buffer == nullptr)
         return E_FAIL;
       text = buffer;
       GlobalUnlock(workingmedium.hGlobal);
@@ -365,7 +365,7 @@ HRESULT nsDataObjCollection::GetText(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
       alloclen = text.Length() * sizeof(PRUnichar);
       hGlobalMemory = ::GlobalReAlloc(hGlobalMemory, buffersize + alloclen,
                                       GHND);
-      if (hGlobalMemory == NULL)
+      if (hGlobalMemory == nullptr)
         return E_FAIL;
       buffer = (PRUnichar*)((char*)GlobalLock(hGlobalMemory) + buffersize);
       if (!buffer)
@@ -376,7 +376,7 @@ HRESULT nsDataObjCollection::GetText(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
       buffersize += alloclen;
     }
     pSTM->tymed = TYMED_HGLOBAL;
-    pSTM->pUnkForRelease = NULL; 
+    pSTM->pUnkForRelease = nullptr; 
     pSTM->hGlobal = hGlobalMemory;
     return S_OK;
   }
@@ -410,10 +410,10 @@ HRESULT nsDataObjCollection::GetFileDescriptors(LPFORMATETC pFE,
     
     FILEDESCRIPTOR* buffer =
      (FILEDESCRIPTOR*)((char*)GlobalLock(workingmedium.hGlobal) + sizeof(UINT));
-    if (buffer == NULL)
+    if (buffer == nullptr)
       return E_FAIL;
     hGlobalMemory = ::GlobalReAlloc(hGlobalMemory, buffersize + alloclen, GHND);
-    if (hGlobalMemory == NULL)
+    if (hGlobalMemory == nullptr)
       return E_FAIL;
     FILEGROUPDESCRIPTOR* realbuffer =
                                 (FILEGROUPDESCRIPTOR*)GlobalLock(hGlobalMemory);
@@ -428,7 +428,7 @@ HRESULT nsDataObjCollection::GetFileDescriptors(LPFORMATETC pFE,
     buffersize += alloclen;
   }
   pSTM->tymed = TYMED_HGLOBAL;
-  pSTM->pUnkForRelease = NULL; 
+  pSTM->pUnkForRelease = nullptr; 
   pSTM->hGlobal = hGlobalMemory;
   return S_OK;
 }

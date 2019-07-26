@@ -257,12 +257,12 @@ NS_IMETHODIMP nsClipboard::SetNativeClipboardData ( int32_t aWhichClipboard )
   }
 
   IDataObject * dataObj;
-  if ( NS_SUCCEEDED(CreateNativeDataObject(mTransferable, &dataObj, NULL)) ) { 
+  if ( NS_SUCCEEDED(CreateNativeDataObject(mTransferable, &dataObj, nullptr)) ) { 
     ::OleSetClipboard(dataObj);
     dataObj->Release();
   } else {
     
-    ::OleSetClipboard(NULL);
+    ::OleSetClipboard(nullptr);
   }
 
   mIgnoreEmptyNotification = false;
@@ -279,7 +279,7 @@ nsresult nsClipboard::GetGlobalData(HGLOBAL aHGBL, void ** aData, uint32_t * aLe
   
   
   nsresult  result = NS_ERROR_FAILURE;
-  if (aHGBL != NULL) {
+  if (aHGBL != nullptr) {
     LPSTR lpStr = (LPSTR) GlobalLock(aHGBL);
     DWORD allocSize = GlobalSize(aHGBL);
     char* data = static_cast<char*>(nsMemory::Alloc(allocSize + sizeof(PRUnichar)));
@@ -305,16 +305,17 @@ nsresult nsClipboard::GetGlobalData(HGLOBAL aHGBL, void ** aData, uint32_t * aLe
 
     FormatMessageW( 
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-        NULL,
+        nullptr,
         GetLastError(),
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
         (LPWSTR) &lpMsgBuf,
         0,
-        NULL 
+        nullptr 
     );
 
     
-    MessageBoxW( NULL, (LPCWSTR) lpMsgBuf, L"GetLastError", MB_OK|MB_ICONINFORMATION );
+    MessageBoxW( nullptr, (LPCWSTR) lpMsgBuf, L"GetLastError",
+                 MB_OK | MB_ICONINFORMATION );
 
     
     LocalFree( lpMsgBuf );    
@@ -488,7 +489,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT 
                 
                 HDROP dropFiles = (HDROP) GlobalLock(stm.hGlobal);
 
-                UINT numFiles = ::DragQueryFileW(dropFiles, 0xFFFFFFFF, NULL, 0);
+                UINT numFiles = ::DragQueryFileW(dropFiles, 0xFFFFFFFF, nullptr, 0);
                 NS_ASSERTION ( numFiles > 0, "File drop flavor, but no files...hmmmm" );
                 NS_ASSERTION ( aIndex < numFiles, "Asked for a file index out of range of list" );
                 if (numFiles > 0) {
@@ -954,7 +955,7 @@ nsClipboard::EmptyClipboard(int32_t aWhichClipboard)
   
   
   if (aWhichClipboard == kGlobalClipboard && !mEmptyingForSetData) {
-    OleSetClipboard(NULL);
+    OleSetClipboard(nullptr);
   }
   return nsBaseClipboard::EmptyClipboard(aWhichClipboard);
 }

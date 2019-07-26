@@ -56,7 +56,7 @@ LSPAnnotationGatherer::Run()
   DWORD size = 0;
   int err;
   
-  if (SOCKET_ERROR != WSCEnumProtocols(NULL, NULL, &size, &err) ||
+  if (SOCKET_ERROR != WSCEnumProtocols(nullptr, nullptr, &size, &err) ||
       err != WSAENOBUFS) {
     
     NS_NOTREACHED("WSCEnumProtocols suceeded when it should have failed ...");
@@ -67,7 +67,7 @@ LSPAnnotationGatherer::Run()
   WSAPROTOCOL_INFOW* providers =
     reinterpret_cast<WSAPROTOCOL_INFOW*>(byteArray.get());
 
-  int n = WSCEnumProtocols(NULL, providers, &size, &err);
+  int n = WSCEnumProtocols(nullptr, providers, &size, &err);
   if (n == SOCKET_ERROR) {
     
     NS_WARNING("Could not get LSP list");
