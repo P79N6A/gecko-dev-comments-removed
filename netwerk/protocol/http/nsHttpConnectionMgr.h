@@ -222,6 +222,10 @@ public:
     void ReportSpdyConnection(nsHttpConnection *, bool usingSpdy);
 
     
+    
+    void ReportSpdyCWNDSetting(nsHttpConnectionInfo *host, uint32_t cwndValue);
+    uint32_t GetSpdyCWNDSetting(nsHttpConnectionInfo *host);
+    
     bool     SupportsPipelining(nsHttpConnectionInfo *);
 
     bool GetConnectionData(nsTArray<mozilla::net::HttpRetParams> *);
@@ -333,6 +337,11 @@ private:
         
         
         nsCString mCoalescingKey;
+
+        
+        
+        uint32_t            mSpdyCWND;
+        mozilla::TimeStamp  mSpdyCWNDTimeStamp;
 
         
         

@@ -97,6 +97,12 @@ public:
     NUM_STATUS_CODES = 3   
   };
 
+  enum settingsFlags
+  {
+    PERSIST_VALUE = 1,
+    PERSISTED_VALUE = 2
+  };
+
   enum
   {
     SETTINGS_TYPE_UPLOAD_BW = 1, 
