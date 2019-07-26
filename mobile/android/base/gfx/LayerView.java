@@ -106,6 +106,10 @@ public class LayerView extends FrameLayout {
             mTextureView.setBackgroundColor(Color.WHITE);
             addView(mTextureView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         } else {
+            
+            
+            setWillNotCacheDrawing(false);
+
             mSurfaceView = new SurfaceView(getContext());
             mSurfaceView.setBackgroundColor(Color.WHITE);
             addView(mSurfaceView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);

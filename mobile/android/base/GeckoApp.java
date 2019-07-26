@@ -2603,6 +2603,14 @@ abstract public class GeckoApp
                 return true;
             return super.onTouchEvent(event);
         }
+
+        @Override
+        public void setDrawingCacheEnabled(boolean enabled) {
+            
+            
+            
+            super.setChildrenDrawnWithCacheEnabled(enabled);
+        }
     }
 
     public boolean linkerExtract() {

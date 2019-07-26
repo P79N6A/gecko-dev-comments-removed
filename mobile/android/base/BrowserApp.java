@@ -552,6 +552,8 @@ abstract public class BrowserApp extends GeckoApp
         
         if (Build.VERSION.SDK_INT >= 11)
             mTabsPanel.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        else
+            mTabsPanel.setDrawingCacheEnabled(true);
     }
 
     @Override
@@ -559,6 +561,8 @@ abstract public class BrowserApp extends GeckoApp
         
         if (Build.VERSION.SDK_INT >= 11)
             mTabsPanel.setLayerType(View.LAYER_TYPE_NONE, null);
+        else
+            mTabsPanel.setDrawingCacheEnabled(false);
 
         if (hasTabsSideBar() && mTabsPanel.isShown()) {
             boolean usingTextureView = mLayerView.shouldUseTextureView();
