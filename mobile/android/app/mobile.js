@@ -654,6 +654,9 @@ pref("reader.margin_size", 5);
 pref("reader.color_scheme", "light");
 
 
+pref("reader.font_type", "sans-serif");
+
+
 pref("reader.has_used_toolbar", false);
 
 
