@@ -1997,6 +1997,47 @@ ConvertToJS(JSContext* cx,
 
 
 
+bool CanConvertTypedArrayItemTo(JSObject *baseType, JSObject *valObj, JSContext *cx) {
+  TypeCode baseTypeCode = CType::GetTypeCode(baseType);
+  if (baseTypeCode == TYPE_void_t) {
+    return true;
+  }
+  TypeCode elementTypeCode;
+  switch (JS_GetTypedArrayType(valObj, cx)) {
+  case TypedArray::TYPE_INT8:
+    elementTypeCode = TYPE_int8_t;
+    break;
+  case TypedArray::TYPE_UINT8:
+  case TypedArray::TYPE_UINT8_CLAMPED:
+    elementTypeCode = TYPE_uint8_t;
+    break;
+  case TypedArray::TYPE_INT16:
+    elementTypeCode = TYPE_int16_t;
+    break;
+  case TypedArray::TYPE_UINT16:
+    elementTypeCode = TYPE_uint16_t;
+    break;
+  case TypedArray::TYPE_INT32:
+    elementTypeCode = TYPE_int32_t;
+    break;
+  case TypedArray::TYPE_UINT32:
+    elementTypeCode = TYPE_uint32_t;
+    break;
+  case TypedArray::TYPE_FLOAT32:
+    elementTypeCode = TYPE_float32_t;
+    break;
+  case TypedArray::TYPE_FLOAT64:
+    elementTypeCode = TYPE_float64_t;
+    break;
+  default:
+    return false;
+  }
+  return elementTypeCode == baseTypeCode;
+}
+
+
+
+
 
 
 
@@ -2193,6 +2234,16 @@ ImplicitConvert(JSContext* cx,
       
       *static_cast<void**>(buffer) = JS_GetArrayBufferData(valObj, cx);
       break;
+    } if (!JSVAL_IS_PRIMITIVE(val) && JS_IsTypedArrayObject(valObj, cx)) {
+      if(!CanConvertTypedArrayItemTo(baseType, valObj, cx)) {
+        return TypeError(cx, "typed array with the appropriate type", val);
+      }
+
+      
+      
+      
+      *static_cast<void**>(buffer) = JS_GetArrayBufferViewData(valObj, cx);
+      break;
     }
     return TypeError(cx, "pointer", val);
   }
@@ -2283,17 +2334,31 @@ ImplicitConvert(JSContext* cx,
                JS_IsArrayBufferObject(valObj, cx)) {
       
       
-      
-      
-      
       uint32_t sourceLength = JS_GetArrayBufferByteLength(valObj, cx);
       size_t elementSize = CType::GetSize(baseType);
       size_t arraySize = elementSize * targetLength;
       if (arraySize != size_t(sourceLength)) {
-        JS_ReportError(cx, "ArrayType length does not match source array length");
+        JS_ReportError(cx, "ArrayType length does not match source ArrayBuffer length");
         return false;
       }
       memcpy(buffer, JS_GetArrayBufferData(valObj, cx), sourceLength);
+      break;
+    }  else if (!JSVAL_IS_PRIMITIVE(val) &&
+               JS_IsTypedArrayObject(valObj, cx)) {
+      
+      
+      if(!CanConvertTypedArrayItemTo(baseType, valObj, cx)) {
+        return TypeError(cx, "typed array with the appropriate type", val);
+      }
+
+      uint32_t sourceLength = JS_GetTypedArrayByteLength(valObj, cx);
+      size_t elementSize = CType::GetSize(baseType);
+      size_t arraySize = elementSize * targetLength;
+      if (arraySize != size_t(sourceLength)) {
+        JS_ReportError(cx, "typed array length does not match source TypedArray length");
+        return false;
+      }
+      memcpy(buffer, JS_GetArrayBufferViewData(valObj, cx), sourceLength);
       break;
     } else {
       
