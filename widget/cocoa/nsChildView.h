@@ -276,7 +276,7 @@ typedef NSInteger NSEventGestureAxis;
 
 #ifdef __LP64__
   
-  void (^mCancelSwipeAnimation)();
+  BOOL* mCancelSwipeAnimation;
 #endif
 
   
