@@ -413,8 +413,11 @@ public class DynamicPanel extends HomeFragment
             
             final Cursor c = cr.query(HomeItems.CONTENT_URI, null, selection, selectionArgs, null);
 
-            final Uri notificationUri = getDatasetNotificationUri(mRequest.getDatasetId());
-            c.setNotificationUri(cr, notificationUri);
+            
+            if (c != null) {
+                final Uri notificationUri = getDatasetNotificationUri(mRequest.getDatasetId());
+                c.setNotificationUri(cr, notificationUri);
+            }
 
             return c;
         }
