@@ -4,4 +4,5 @@ function testEnumerate() {
     assertEq(i >= 0 && i < p.length, true);
 }
 
-testEnumerate();
+
+
