@@ -51,12 +51,6 @@ public:
     return TextDecoderBinding::Wrap(aCx, this, aTookOwnership);
   }
 
-  nsISupports*
-  GetParentObject()
-  {
-    return nullptr;
-  }
-
   
 
 
