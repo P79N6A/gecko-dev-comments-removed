@@ -6,7 +6,7 @@ var gNameRulesFileURL = "markuprules.xml";
 var gRuleDoc = null;
 
 
-var gDumpToConsole = false;
+var gDumpToConsole = true;
 
 
 
