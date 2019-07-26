@@ -103,13 +103,6 @@ public class TopSitesGridItemView extends RelativeLayout {
     
 
 
-    public boolean isPinned() {
-        return mIsPinned;
-    }
-
-    
-
-
     public boolean isEmpty() {
         return mIsEmpty;
     }
@@ -136,14 +129,6 @@ public class TopSitesGridItemView extends RelativeLayout {
 
         mUrl = url;
         updateTitleView();
-    }
-
-    
-
-
-    public void setPinned(boolean pinned) {
-        mIsPinned = pinned;
-        mTitleView.setCompoundDrawablesWithIntrinsicBounds(pinned ? R.drawable.pin : 0, 0, 0, 0);
     }
 
     public void blankOut() {
