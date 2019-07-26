@@ -146,6 +146,14 @@ public:
 
   static void Init();
 
+#ifdef DEBUG
+  
+
+
+
+  static void UnlinkGhostWindows();
+#endif
+
 private:
   
 
