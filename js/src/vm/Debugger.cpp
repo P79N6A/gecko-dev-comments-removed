@@ -1635,7 +1635,7 @@ Debugger::sweepAll(FreeOp *fop)
         }
     }
 
-    for (gc::GCCompartmentsIter comp(rt); !comp.done(); comp.next()) {
+    for (gc::GCCompartmentGroupIter comp(rt); !comp.done(); comp.next()) {
         
         GlobalObjectSet &debuggees = comp->getDebuggees();
         for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
