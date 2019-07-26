@@ -418,7 +418,6 @@ CompositorParent::PauseComposition()
     mPaused = true;
 
     mCompositor->Pause();
-    DidComposite();
   }
 
   
@@ -628,7 +627,6 @@ CompositorParent::CompositeToTarget(DrawTarget* aTarget, const nsIntRect* aRect)
   mLastCompose = TimeStamp::Now();
 
   if (!CanComposite()) {
-    DidComposite();
     return;
   }
 
@@ -785,9 +783,6 @@ CompositorParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
   }
   if (aScheduleComposite) {
     ScheduleComposition();
-    if (mPaused) {
-      DidComposite();
-    }
     
     
     
@@ -800,8 +795,6 @@ CompositorParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
         mCompositionManager->TransformShadowTree(mTestTime);
       if (!requestNextFrame) {
         CancelCurrentCompositeTask();
-        
-        DidComposite();
       }
     }
   }
@@ -831,8 +824,6 @@ CompositorParent::SetTestSampleTime(LayerTransactionParent* aLayerTree,
     bool requestNextFrame = mCompositionManager->TransformShadowTree(aTime);
     if (!requestNextFrame) {
       CancelCurrentCompositeTask();
-      
-      DidComposite();
     }
   }
 
