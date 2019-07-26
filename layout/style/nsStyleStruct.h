@@ -86,6 +86,8 @@ public:
   void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW;
   void Destroy(nsPresContext* aContext);
 
+  void EnableZoom(nsPresContext* aContext, bool aEnable);
+
   nsFont  mFont;        
   nscoord mSize;        
                         
@@ -101,6 +103,10 @@ public:
 
   
   bool mExplicitLanguage;        
+
+  
+  
+  bool mAllowZoom;               
 
   
   nscoord mScriptUnconstrainedSize;

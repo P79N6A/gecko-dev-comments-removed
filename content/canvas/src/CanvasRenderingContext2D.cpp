@@ -2079,6 +2079,9 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
     return;
   }
 
+  
+  rules.AppendElement(new nsDisableTextZoomStyleRule);
+
   nsRefPtr<nsStyleContext> sc =
       styleSet->ResolveStyleForRules(parentContext, rules);
   if (!sc) {
@@ -2097,21 +2100,20 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
 
   
   const uint32_t aupcp = nsPresContext::AppUnitsPerCSSPixel();
-  
-  
-  
-  
-  
-  
-  const nscoord fontSize = nsStyleFont::UnZoomText(parentContext->PresContext(), fontStyle->mSize);
 
   bool printerFont = (presShell->GetPresContext()->Type() == nsPresContext::eContext_PrintPreview ||
                       presShell->GetPresContext()->Type() == nsPresContext::eContext_Print);
 
+  
+  
+  
+  
+  MOZ_ASSERT(!fontStyle->mAllowZoom,
+             "expected text zoom to be disabled on this nsStyleFont");
   gfxFontStyle style(fontStyle->mFont.style,
                      fontStyle->mFont.weight,
                      fontStyle->mFont.stretch,
-                     NSAppUnitsToFloatPixels(fontSize, float(aupcp)),
+                     NSAppUnitsToFloatPixels(fontStyle->mSize, float(aupcp)),
                      language,
                      fontStyle->mFont.sizeAdjust,
                      fontStyle->mFont.systemFont,

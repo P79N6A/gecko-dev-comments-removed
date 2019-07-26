@@ -4980,8 +4980,7 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
     }
   }
 
-  float textZoom = presContext->TextZoom();
-  double minSize = presContext->AppUnitsToFloatCSSPixels(min) / textZoom;
+  double minSize = presContext->AppUnitsToFloatCSSPixels(min);
 
   if (geometricPrecision) {
     
@@ -4989,7 +4988,7 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
     return;
   }
 
-  double maxSize = presContext->AppUnitsToFloatCSSPixels(max) / textZoom;
+  double maxSize = presContext->AppUnitsToFloatCSSPixels(max);
 
   
   

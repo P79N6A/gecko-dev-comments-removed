@@ -53,6 +53,15 @@ class nsInitialStyleRule MOZ_FINAL : public nsIStyleRule
 #endif
 };
 
+class nsDisableTextZoomStyleRule MOZ_FINAL : public nsIStyleRule
+{
+  NS_DECL_ISUPPORTS
+  virtual void MapRuleInfoInto(nsRuleData* aRuleData) MOZ_OVERRIDE;
+#ifdef DEBUG
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+#endif
+};
+
 
 
 
@@ -336,6 +345,9 @@ class nsStyleSet
   void WalkRestrictionRule(nsCSSPseudoElements::Type aPseudoType,
                            nsRuleWalker* aRuleWalker);
 
+  void WalkDisableTextZoomRule(mozilla::dom::Element* aElement,
+                               nsRuleWalker* aRuleWalker);
+
 #ifdef DEBUG
   
   
@@ -434,6 +446,10 @@ class nsStyleSet
   
   
   nsRefPtr<nsInitialStyleRule> mInitialStyleRule;
+
+  
+  
+  nsRefPtr<nsDisableTextZoomStyleRule> mDisableTextZoomStyleRule;
 
   
   

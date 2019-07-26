@@ -1626,9 +1626,7 @@ nsSVGGlyphFrame::EnsureTextRun(float *aDrawScale, float *aMetricsScale,
   
   
   nsPresContext *presContext = PresContext();
-  float textZoom = presContext->TextZoom();
-  double size =
-    presContext->AppUnitsToFloatCSSPixels(fontData->mSize) / textZoom;
+  double size = presContext->AppUnitsToFloatCSSPixels(fontData->mSize);
 
   double textRunSize;
   if (mTextRun) {
