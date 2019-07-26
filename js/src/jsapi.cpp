@@ -1549,7 +1549,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
 
 
 
-    if (cx->runtime->gcIncrementalState != NO_INCREMENTAL) {
+    if (IsIncrementalGCInProgress(cx->runtime)) {
         PrepareForIncrementalGC(cx->runtime);
         FinishIncrementalGC(cx->runtime, gcreason::TRANSPLANT);
     }

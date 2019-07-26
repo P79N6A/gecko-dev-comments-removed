@@ -1339,7 +1339,7 @@ js::SaveScriptFilename(JSContext *cx, const char *filename)
 
 
 
-    if (rt->gcIncrementalState != NO_INCREMENTAL && rt->gcIsFull)
+    if (IsIncrementalGCInProgress(rt) && rt->gcIsFull)
         sfe->marked = true;
 #endif
 
