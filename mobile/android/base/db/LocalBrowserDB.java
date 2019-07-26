@@ -1162,25 +1162,17 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         values.put(Bookmarks.IS_DELETED, 0);
 
         
-        cr.delete(mBookmarksUriWithProfile,
-                  Bookmarks.PARENT + " == ? AND " + Bookmarks.URL + " == ?",
-                  new String[] {
-                      String.valueOf(Bookmarks.FIXED_PINNED_LIST_ID),
-                      url
-                  });
-
         
-        int updated = cr.update(mBookmarksUriWithProfile,
-                                values,
-                                Bookmarks.POSITION + " = ? AND " +
-                                Bookmarks.PARENT + " = ?",
-                                new String[] { Integer.toString(position),
-                                               String.valueOf(Bookmarks.FIXED_PINNED_LIST_ID) });
-
         
-        if (updated == 0) {
-            cr.insert(mBookmarksUriWithProfile, values);
-        }
+        
+        Uri uri = mBookmarksUriWithProfile.buildUpon()
+                .appendQueryParameter(BrowserContract.PARAM_INSERT_IF_NEEDED, "true").build();
+        cr.update(uri,
+                  values,
+                  Bookmarks.POSITION + " = ? AND " +
+                  Bookmarks.PARENT + " = ?",
+                  new String[] { Integer.toString(position),
+                                 String.valueOf(Bookmarks.FIXED_PINNED_LIST_ID) });
     }
 
     @Override
