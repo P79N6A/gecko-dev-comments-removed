@@ -150,6 +150,16 @@ ChromeObjectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
 
 
 
+bool
+ChromeObjectWrapper::objectClassIs(JSObject *obj, js::ESClassValue classValue,
+                                   JSContext *cx)
+{
+  return CrossCompartmentWrapper::objectClassIs(obj, classValue, cx);
+}
+
+
+
+
 
 bool
 ChromeObjectWrapper::enter(JSContext *cx, JSObject *wrapper, jsid id,
