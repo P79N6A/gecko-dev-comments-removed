@@ -379,14 +379,6 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins)
     if (!wrapper)
         return false;
 
-    uint32 argumentPadding = 0;
-    if (StackKeptAligned) {
-        
-        
-        
-        argumentPadding = (fun.explicitStackSlots() * sizeof(void *)) % StackAlignment;
-        masm.reserveStack(argumentPadding);
-    }
     
     
     
@@ -400,7 +392,7 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins)
     int framePop = sizeof(IonExitFrameLayout) - sizeof(void*);
 
     
-    masm.implicitPop(fun.explicitStackSlots() * sizeof(void *) + argumentPadding + framePop);
+    masm.implicitPop(fun.explicitStackSlots() * sizeof(void *) + framePop);
 
     
     
