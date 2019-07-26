@@ -1763,6 +1763,14 @@ protected:
   
 
 
+
+
+
+  void DefaultComputeSupportsComponentAlphaChildren(bool* aNeedsSurfaceCopy = nullptr);
+
+  
+
+
   void ComputeEffectiveTransformsForChildren(const gfx::Matrix4x4& aTransformToSurface);
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
