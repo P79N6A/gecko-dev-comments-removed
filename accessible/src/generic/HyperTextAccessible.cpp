@@ -534,17 +534,27 @@ HyperTextAccessible::DOMPointToHypertextOffset(nsINode* aNode,
     
     
     
-    
 
     findNode = aNode->GetChildAt(aNodeOffset);
-    if (!findNode && !aNodeOffset) {
-      if (aNode == GetNode()) {
+    if (!findNode) {
+      if (aNodeOffset == 0) {
+        if (aNode == GetNode()) {
+          
+          
+          *aHyperTextOffset = 0;
+          return nullptr;
+        }
+
         
+        findNode = aNode;
+      } else if (aNodeOffset == aNode->GetChildCount()) {
         
-        *aHyperTextOffset = 0;
-        return nullptr;
+        for (nsINode* tmpNode = aNode;
+             !findNode && tmpNode && tmpNode != mContent;
+             tmpNode = tmpNode->GetParent()) {
+          findNode = tmpNode->GetNextSibling();
+        }
       }
-      findNode = aNode; 
     }
   }
 
