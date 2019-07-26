@@ -13,7 +13,6 @@
 #include "AudioProcessingEvent.h"
 #include "WebAudioUtils.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/unused.h"
 #include "mozilla/PodOperations.h"
 #include <deque>
 
@@ -304,10 +303,7 @@ private:
           
           nsRefPtr<ThreadSharedFloatArrayBufferList> output;
           if (event->HasOutputBuffer()) {
-            uint32_t rate, length;
-            output = event->OutputBuffer()->GetThreadSharedChannelsForRate(cx, &rate, &length);
-            unused << rate;
-            unused << length;
+            output = event->OutputBuffer()->GetThreadSharedChannelsForRate(cx);
           }
 
           
