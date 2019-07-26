@@ -1323,7 +1323,14 @@ public:
 
 
 
-  virtual void ScheduleViewManagerFlush() = 0;
+
+
+
+  enum PaintType {
+    PAINT_DEFAULT,
+    PAINT_DELAYED_COMPRESS
+  };
+  virtual void ScheduleViewManagerFlush(PaintType aType = PAINT_DEFAULT) = 0;
   virtual void ClearMouseCaptureOnView(nsView* aView) = 0;
   virtual bool IsVisible() = 0;
   virtual void DispatchSynthMouseMove(mozilla::WidgetGUIEvent* aEvent,

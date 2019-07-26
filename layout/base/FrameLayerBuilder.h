@@ -152,6 +152,7 @@ public:
     mRetainingManager(nullptr),
     mDetectedDOMModification(false),
     mInvalidateAllLayers(false),
+    mInLayerTreeCompressionMode(false),
     mContainerLayerGeneration(0),
     mMaxContainerLayerGeneration(0)
   {
@@ -591,6 +592,13 @@ public:
     return mContainingThebesLayer;
   }
 
+  
+
+
+
+  void SetLayerTreeCompressionMode() { mInLayerTreeCompressionMode = true; }
+  bool CheckInLayerTreeCompressionMode();
+
 protected:
   void RemoveThebesItemsAndOwnerDataForLayerSubtree(Layer* aLayer,
                                                     bool aRemoveThebesItems,
@@ -651,6 +659,8 @@ protected:
 
 
   bool                                mInvalidateAllLayers;
+
+  bool                                mInLayerTreeCompressionMode;
 
   uint32_t                            mContainerLayerGeneration;
   uint32_t                            mMaxContainerLayerGeneration;
