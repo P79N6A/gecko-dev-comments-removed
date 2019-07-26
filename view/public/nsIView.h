@@ -226,9 +226,7 @@ public:
 
 
 
-
-
-  virtual nsIWidget* GetNearestWidget(nsPoint* aOffset) const;
+  nsIWidget* GetNearestWidget(nsPoint* aOffset) const;
 
   
 
@@ -357,15 +355,15 @@ public:
 
 
 
-  virtual void SetPosition(nscoord aX, nscoord aY);
+  void SetPosition(nscoord aX, nscoord aY);
   
 
 
 
 
 
-  virtual void SetDimensions(const nsRect &aRect, bool aPaint = true,
-                             bool aResizeWidget = true);
+  void SetDimensions(const nsRect &aRect, bool aPaint = true,
+                     bool aResizeWidget = true);
 
   
 
