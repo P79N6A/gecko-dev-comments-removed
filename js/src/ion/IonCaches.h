@@ -112,6 +112,8 @@ class IonCacheVisitor
 class IonCache
 {
   public:
+    class StubAttacher;
+
     enum Kind {
 #   define DEFINE_CACHEKINDS(ickind) Cache_##ickind,
         IONCACHE_KIND_LIST(DEFINE_CACHEKINDS)
@@ -158,14 +160,6 @@ class IonCache
     JSScript *script;
     jsbytecode *pc;
 
-  private:
-    static const size_t MAX_STUBS;
-    void incrementStubCount() {
-        
-        stubCount_++;
-        JS_ASSERT(stubCount_);
-    }
-
     CodeLocationLabel fallbackLabel() const {
         return fallbackLabel_;
     }
@@ -177,6 +171,14 @@ class IonCache
             ptr = Assembler::nextInstruction(ptr, &i);
 #endif
         return CodeLocationLabel(ptr);
+    }
+
+  private:
+    static const size_t MAX_STUBS;
+    void incrementStubCount() {
+        
+        stubCount_++;
+        JS_ASSERT(stubCount_);
     }
 
   public:
@@ -238,17 +240,14 @@ class IonCache
     
     
     LinkStatus linkCode(JSContext *cx, MacroAssembler &masm, IonScript *ion, IonCode **code);
+    
+    
+    void attachStub(MacroAssembler &masm, StubAttacher &patcher, IonCode *code);
 
     
     
-    void attachStub(MacroAssembler &masm, IonCode *code, CodeOffsetJump &rejoinOffset,
-                    CodeOffsetJump *exitOffset, CodeOffsetLabel *stubOffset = NULL);
-
-    
-    
-    bool linkAndAttachStub(JSContext *cx, MacroAssembler &masm, IonScript *ion,
-                           const char *attachKind, CodeOffsetJump &rejoinOffset,
-                           CodeOffsetJump *exitOffset, CodeOffsetLabel *stubOffset = NULL);
+    bool linkAndAttachStub(JSContext *cx, MacroAssembler &masm, StubAttacher &patcher,
+                           IonScript *ion, const char *attachKind);
 
     bool pure() {
         return pure_;
@@ -612,4 +611,4 @@ IONCACHE_KIND_LIST(CACHE_CASTS)
 } 
 } 
 
-#endif
+#endif 
