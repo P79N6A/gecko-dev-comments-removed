@@ -15,6 +15,7 @@
 #include <winternl.h>
 
 #include "mozilla/Assertions.h"
+#include "mozilla/FileUtilsWin.h"
 #include "mozilla/IOInterposer.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
@@ -76,31 +77,76 @@ class WinIOAutoObservation : public IOInterposeObserver::Observation
 {
 public:
   WinIOAutoObservation(IOInterposeObserver::Operation aOp,
-                       const char* aReference, HANDLE aFileHandle)
-    : mFileHandle(aFileHandle),
-      mShouldObserve(IOInterposer::IsObservedOperation(aOp) &&
-                     !IsDebugFile(reinterpret_cast<intptr_t>(aFileHandle)))
+                       HANDLE aFileHandle, const LARGE_INTEGER* aOffset)
+    : IOInterposeObserver::Observation(aOp, sReference,
+                                       !IsDebugFile(reinterpret_cast<intptr_t>(
+                                           aFileHandle)))
+    , mFileHandle(aFileHandle)
+    , mHasQueriedFilename(false)
+    , mFilename(nullptr)
   {
-    if (mShouldObserve) {
-      mOperation = aOp;
-      mReference = aReference;
-      mStart = TimeStamp::Now();
+    if (mShouldReport) {
+      mOffset.QuadPart = aOffset ? aOffset->QuadPart : 0;
     }
   }
 
+  WinIOAutoObservation(IOInterposeObserver::Operation aOp, nsAString& aFilename)
+    : IOInterposeObserver::Observation(aOp, sReference)
+    , mFileHandle(nullptr)
+    , mHasQueriedFilename(false)
+    , mFilename(nullptr)
+  {
+    if (mShouldReport) {
+      nsAutoString dosPath;
+      if (NtPathToDosPath(aFilename, dosPath)) {
+        mFilename = ToNewUnicode(dosPath);
+        mHasQueriedFilename = true;
+      }
+      mOffset.QuadPart = 0;
+    }
+  }
+
+  
+  const char16_t* Filename() MOZ_OVERRIDE;
+
   ~WinIOAutoObservation()
   {
-    if (mShouldObserve) {
-      mEnd = TimeStamp::Now();
-      
-      IOInterposer::Report(*this);
+    Report();
+    if (mFilename) {
+      MOZ_ASSERT(mHasQueriedFilename);
+      NS_Free(mFilename);
+      mFilename = nullptr;
     }
   }
 
 private:
   HANDLE              mFileHandle;
-  bool                mShouldObserve;
+  LARGE_INTEGER       mOffset;
+  bool                mHasQueriedFilename;
+  char16_t*           mFilename;
+  static const char*  sReference;
 };
+
+const char* WinIOAutoObservation::sReference = "PoisonIOInterposer";
+
+
+const char16_t* WinIOAutoObservation::Filename()
+{
+  
+  if (mHasQueriedFilename) {
+    return mFilename;
+  }
+
+  nsAutoString utf16Filename;
+  if (HandleToFilename(mFileHandle, mOffset, utf16Filename)) {
+    
+    mFilename = ToNewUnicode(utf16Filename);
+  }
+  mHasQueriedFilename = true;
+  
+  
+  return mFilename;
+}
 
 
 
@@ -121,8 +167,8 @@ static NTSTATUS WINAPI InterposedNtWriteFile(
   PULONG                        aKey)
 {
   
-  const char* ref = "NtWriteFile";
-  WinIOAutoObservation timer(IOInterposeObserver::OpWrite, ref, aFileHandle);
+  WinIOAutoObservation timer(IOInterposeObserver::OpWrite, aFileHandle,
+                             aOffset);
 
   
   MOZ_ASSERT(gOriginalNtWriteFile);
@@ -154,8 +200,8 @@ static NTSTATUS WINAPI InterposedNtWriteFileGather(
   PULONG                        aKey)
 {
   
-  const char* ref = "NtWriteFileGather";
-  WinIOAutoObservation timer(IOInterposeObserver::OpWrite, ref, aFileHandle);
+  WinIOAutoObservation timer(IOInterposeObserver::OpWrite, aFileHandle,
+                             aOffset);
 
   
   MOZ_ASSERT(gOriginalNtWriteFileGather);

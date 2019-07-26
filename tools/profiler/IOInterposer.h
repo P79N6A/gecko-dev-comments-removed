@@ -35,16 +35,25 @@ public:
   class Observation
   {
   protected:
-    Observation()
-    {
-    }
+    
+
+
+
+
+
+
+
+
+    Observation(Operation aOperation, const char* aReference,
+                bool aShouldReport = true);
+
   public:
+    
+
+
+
     Observation(Operation aOperation, const TimeStamp& aStart,
-                const TimeStamp& aEnd, const char* aReference)
-     : mOperation(aOperation), mStart(aStart), mEnd(aEnd),
-       mReference(aReference)
-    {
-    }
+                const TimeStamp& aEnd, const char* aReference);
 
     
 
@@ -92,7 +101,7 @@ public:
     }
 
     
-    virtual const char* Filename()
+    virtual const char16_t* Filename()
     {
       return nullptr;
     }
@@ -100,11 +109,16 @@ public:
     virtual ~Observation()
     {
     }
+
   protected:
+    void
+    Report();
+
     Operation   mOperation;
     TimeStamp   mStart;
     TimeStamp   mEnd;
-    const char* mReference;
+    const char* mReference;     
+    bool        mShouldReport;  
   };
 
   
