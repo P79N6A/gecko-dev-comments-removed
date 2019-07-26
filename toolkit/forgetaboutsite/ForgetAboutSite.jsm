@@ -216,11 +216,5 @@ this.ForgetAboutSite = {
       handleCompletion: function() onContentPrefsRemovalFinished(),
       handleError: function() {}
     });
-
-    
-    
-    let ns = Cc["@mozilla.org/network/seer;1"].
-             getService(Ci.nsINetworkSeer);
-    ns.reset();
   }
 };

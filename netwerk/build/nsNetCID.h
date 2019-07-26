@@ -437,17 +437,6 @@
 }
 
 
-#define NS_NETWORKSEER_CONTRACTID \
-    "@mozilla.org/network/seer;1"
-#define NS_NETWORKSEER_CID \
-{ /* {1C218009-A531-46AD-8351-1E7F45D5A3C4} */ \
-    0x1C218009, \
-    0xA531, \
-    0x46AD, \
-    { 0x83, 0x51, 0x1E, 0x7F, 0x45, 0xD5, 0xA3, 0xC4 } \
-}
-
-
 
 
 
