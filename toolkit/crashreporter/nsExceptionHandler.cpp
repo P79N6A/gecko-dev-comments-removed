@@ -240,6 +240,10 @@ static nsCString* notesField = nullptr;
 static bool isGarbageCollecting;
 
 
+static Mutex* dumpSafetyLock;
+static bool isSafeToDump = false;
+
+
 static CrashGenerationServer* crashServer; 
 
 #  if defined(XP_WIN) || defined(XP_MACOSX)
@@ -1001,6 +1005,15 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
 #endif
 
   
+  
+  NS_ASSERTION(!dumpSafetyLock, "Shouldn't have a lock yet");
+  
+  
+  dumpSafetyLock = new Mutex("dumpSafetyLock");
+  MutexAutoLock lock(*dumpSafetyLock);
+  isSafeToDump = true;
+
+  
 #ifdef XP_LINUX
   MinidumpDescriptor descriptor(tempPath.get());
 #endif
@@ -1345,6 +1358,11 @@ static void OOPDeinit();
 
 nsresult UnsetExceptionHandler()
 {
+  if (isSafeToDump) {
+    MutexAutoLock lock(*dumpSafetyLock);
+    isSafeToDump = false;
+  }
+
 #ifdef XP_WIN
   
   gBlockUnhandledExceptionFilter = false;
@@ -1392,6 +1410,9 @@ nsresult UnsetExceptionHandler()
   gExceptionHandler = nullptr;
 
   OOPDeinit();
+
+  delete dumpSafetyLock;
+  dumpSafetyLock = nullptr;
 
   return NS_OK;
 }
@@ -2203,6 +2224,13 @@ OnChildProcessDumpRequested(void* aContext,
 {
   nsCOMPtr<nsIFile> minidump;
   nsCOMPtr<nsIFile> extraFile;
+
+  
+  
+  
+  MutexAutoLock lock(*dumpSafetyLock);
+  if (!isSafeToDump)
+    return;
 
   CreateFileFromPath(
 #ifdef XP_MACOSX
