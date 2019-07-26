@@ -164,10 +164,15 @@ WindowNamedPropertiesHandler::Install(JSContext* aCx,
     return;
   }
 
+  
+  
+  
   JS::Rooted<JSObject*> gsp(aCx);
   gsp = js::NewProxyObject(aCx, WindowNamedPropertiesHandler::getInstance(),
                            JS::NullHandleValue, protoProto,
-                           js::GetGlobalForObjectCrossCompartment(aProto));
+                           js::GetGlobalForObjectCrossCompartment(aProto),
+                           js::ProxyNotCallable,
+                            true);
   if (!gsp) {
     return;
   }
