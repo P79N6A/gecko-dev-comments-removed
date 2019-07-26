@@ -582,6 +582,20 @@ private:
     GLenum mGLError;
 #endif 
 
+    static void GLAPIENTRY StaticDebugCallback(GLenum source,
+                                               GLenum type,
+                                               GLuint id,
+                                               GLenum severity,
+                                               GLsizei length,
+                                               const GLchar* message,
+                                               const GLvoid* userParam);
+    void DebugCallback(GLenum source,
+                       GLenum type,
+                       GLuint id,
+                       GLenum severity,
+                       GLsizei length,
+                       const GLchar* message);
+
 
 
 
