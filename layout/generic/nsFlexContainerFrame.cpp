@@ -516,6 +516,21 @@ protected:
 };
 
 
+
+static nscoord
+SumFlexItemMarginBoxMainSizes(const FlexboxAxisTracker& aAxisTracker,
+                              const nsTArray<FlexItem>& aItems)
+{
+  nscoord sum = 0;
+  for (uint32_t i = 0; i < aItems.Length(); ++i) {
+    const FlexItem& item = aItems[i];
+    sum += item.GetMainSize() +
+      item.GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
+  }
+  return sum;
+}
+
+
 static nsIFrame*
 GetFirstNonAnonBoxDescendant(nsIFrame* aFrame)
 {
@@ -1987,7 +2002,9 @@ nscoord
 nsFlexContainerFrame::ComputeFlexContainerMainSize(
   const nsHTMLReflowState& aReflowState,
   const FlexboxAxisTracker& aAxisTracker,
-  const nsTArray<FlexItem>& aItems)
+  const nsTArray<FlexItem>& aItems,
+  nscoord aAvailableHeightForContent,
+  nsReflowStatus& aStatus)
 {
   if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
     
@@ -1995,22 +2012,41 @@ nsFlexContainerFrame::ComputeFlexContainerMainSize(
     return aReflowState.ComputedWidth();
   }
 
-  
-  if (aReflowState.ComputedHeight() != NS_AUTOHEIGHT) {
-    return aReflowState.ComputedHeight();
+  nscoord effectiveComputedHeight = GetEffectiveComputedHeight(aReflowState);
+  if (effectiveComputedHeight != NS_INTRINSICSIZE) {
+    
+    if (aAvailableHeightForContent == NS_UNCONSTRAINEDSIZE ||
+        effectiveComputedHeight < aAvailableHeightForContent) {
+      
+      
+      
+      
+      return effectiveComputedHeight;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    NS_FRAME_SET_INCOMPLETE(aStatus);
+    nscoord sumOfChildHeights =
+      SumFlexItemMarginBoxMainSizes(aAxisTracker, aItems);
+    if (sumOfChildHeights <= aAvailableHeightForContent) {
+      return aAvailableHeightForContent;
+    }
+    return std::min(effectiveComputedHeight, sumOfChildHeights);
   }
 
   
   
   
   
-  nscoord sumOfChildHeights = 0;
-  for (uint32_t i = 0; i < aItems.Length(); ++i) {
-    sumOfChildHeights +=
-      aItems[i].GetMainSize() +
-      aItems[i].GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
-  }
-
+  
+  nscoord sumOfChildHeights =
+    SumFlexItemMarginBoxMainSizes(aAxisTracker, aItems);
   return NS_CSS_MINMAX(sumOfChildHeights,
                        aReflowState.mComputedMinHeight,
                        aReflowState.mComputedMaxHeight);
@@ -2229,8 +2265,21 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
                                   axisTracker, items);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  
+  nscoord availableHeightForContent = aReflowState.availableHeight;
+  if (availableHeightForContent != NS_UNCONSTRAINEDSIZE &&
+      !(GetSkipSides() & (1 << NS_SIDE_TOP))) {
+    availableHeightForContent -= aReflowState.mComputedBorderPadding.top;
+    
+    availableHeightForContent = std::max(availableHeightForContent, 0);
+  }
+
   const nscoord contentBoxMainSize =
-    ComputeFlexContainerMainSize(aReflowState, axisTracker, items);
+    ComputeFlexContainerMainSize(aReflowState, axisTracker, items,
+                                 availableHeightForContent, aStatus);
 
   ResolveFlexibleLengths(axisTracker, contentBoxMainSize, items);
 
