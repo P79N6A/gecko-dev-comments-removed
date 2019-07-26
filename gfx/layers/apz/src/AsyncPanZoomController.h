@@ -746,7 +746,7 @@ private:
   
   TouchBlockState mTouchBlockState;
 
-  RefPtr<AsyncPanZoomAnimation> mAnimation;
+  nsRefPtr<AsyncPanZoomAnimation> mAnimation;
 
   friend class Axis;
 
