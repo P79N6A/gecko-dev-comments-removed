@@ -5,12 +5,12 @@
 
 
 
+#ifdef MOZ_ENABLE_DBUS
+
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib-lowlevel.h>
 
 #include "WakeLockListener.h"
-
-#ifdef MOZ_ENABLE_DBUS
 
 #define FREEDESKTOP_SCREENSAVER_TARGET    "org.freedesktop.ScreenSaver"
 #define FREEDESKTOP_SCREENSAVER_OBJECT    "/ScreenSaver"
