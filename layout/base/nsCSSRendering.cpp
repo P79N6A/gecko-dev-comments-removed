@@ -575,8 +575,10 @@ GetOutlineInnerRect(nsIFrame* aFrame)
     (aFrame->Properties().Get(nsIFrame::OutlineInnerRectProperty()));
   if (savedOutlineInnerRect)
     return *savedOutlineInnerRect;
-  NS_NOTREACHED("we should have saved a frame property");
-  return nsRect(nsPoint(0, 0), aFrame->GetSize());
+  
+  
+  
+  return aFrame->GetVisualOverflowRect();
 }
 
 void
@@ -606,22 +608,37 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   nscolor bgColor =
     bgContext->GetVisitedDependentColor(eCSSProperty_background_color);
 
-  nsRect innerRect;
-  if (
-#ifdef MOZ_XUL
-      aStyleContext->GetPseudoType() == nsCSSPseudoElements::ePseudo_XULTree
-#else
-      false
-#endif
-     ) {
+  
+  
+  
+  
+  
+  
+  nsIFrame *frameForArea = aForFrame;
+  do {
+    nsIAtom *pseudoType = frameForArea->StyleContext()->GetPseudo();
+    if (pseudoType != nsCSSAnonBoxes::mozAnonymousBlock &&
+        pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock)
+      break;
     
-    
-    
-    
-    innerRect = aForFrame->GetVisualOverflowRect();
-  } else {
+    frameForArea = frameForArea->GetFirstPrincipalChild();
+    NS_ASSERTION(frameForArea, "anonymous block with no children?");
+  } while (frameForArea);
+  nsRect innerRect; 
+  if (frameForArea == aForFrame) {
     innerRect = GetOutlineInnerRect(aForFrame);
+  } else {
+    for (; frameForArea; frameForArea = frameForArea->GetNextSibling()) {
+      
+      
+      
+      
+      nsRect r(GetOutlineInnerRect(frameForArea) +
+               frameForArea->GetOffsetTo(aForFrame));
+      innerRect.UnionRect(innerRect, r);
+    }
   }
+
   innerRect += aBorderArea.TopLeft();
   nscoord offset = ourOutline->mOutlineOffset;
   innerRect.Inflate(offset, offset);
