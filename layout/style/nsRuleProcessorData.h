@@ -557,6 +557,29 @@ struct MOZ_STACK_CLASS StateRuleProcessorData :
                                   
 };
 
+struct MOZ_STACK_CLASS PseudoElementStateRuleProcessorData :
+                          public StateRuleProcessorData {
+  PseudoElementStateRuleProcessorData(nsPresContext* aPresContext,
+                                      mozilla::dom::Element* aElement,
+                                      nsEventStates aStateMask,
+                                      nsCSSPseudoElements::Type aPseudoType,
+                                      TreeMatchContext& aTreeMatchContext,
+                                      mozilla::dom::Element* aPseudoElement)
+    : StateRuleProcessorData(aPresContext, aElement, aStateMask,
+                             aTreeMatchContext),
+      mPseudoType(aPseudoType),
+      mPseudoElement(aPseudoElement)
+  {
+    NS_PRECONDITION(!aTreeMatchContext.mForStyling, "Not styling here!");
+  }
+
+  
+  
+  
+  nsCSSPseudoElements::Type mPseudoType;
+  mozilla::dom::Element* const mPseudoElement; 
+};
+
 struct MOZ_STACK_CLASS AttributeRuleProcessorData :
                           public ElementDependentRuleProcessorData {
   AttributeRuleProcessorData(nsPresContext* aPresContext,

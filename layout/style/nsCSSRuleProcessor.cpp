@@ -1690,6 +1690,24 @@ StateSelectorMatches(Element* aElement,
   return true;
 }
 
+static bool
+StateSelectorMatches(Element* aElement,
+                     nsCSSSelector* aSelector,
+                     NodeMatchContext& aNodeMatchContext,
+                     TreeMatchContext& aTreeMatchContext)
+{
+  for (nsPseudoClassList* pseudoClass = aSelector->mPseudoClassList;
+       pseudoClass; pseudoClass = pseudoClass->mNext) {
+    nsEventStates statesToCheck = sPseudoClassStates[pseudoClass->mType];
+    if (!statesToCheck.IsEmpty() &&
+        !StateSelectorMatches(aElement, aSelector, aNodeMatchContext,
+                              aTreeMatchContext, nullptr, statesToCheck)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 
 
 
@@ -2546,11 +2564,17 @@ static inline nsRestyleHint RestyleHintForOp(PRUnichar oper)
 }
 
 nsRestyleHint
-nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
+nsCSSRuleProcessor::HasStateDependentStyle(ElementDependentRuleProcessorData* aData,
+                                           Element* aStatefulElement,
+                                           nsCSSPseudoElements::Type aPseudoType,
+                                           nsEventStates aStateMask)
 {
   MOZ_ASSERT(!aData->mTreeMatchContext.mForScopedStyle,
              "mCurrentStyleScope will need to be saved and restored after the "
              "SelectorMatchesTree call");
+
+  bool isPseudoElement =
+    aPseudoType != nsCSSPseudoElements::ePseudo_NotPseudoElement;
 
   RuleCascadeData* cascade = GetRuleCascade(aData->mPresContext);
 
@@ -2566,10 +2590,23 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
   if (cascade) {
     StateSelector *iter = cascade->mStateSelectors.Elements(),
                   *end = iter + cascade->mStateSelectors.Length();
-    NodeMatchContext nodeContext(aData->mStateMask, false);
+    NodeMatchContext nodeContext(aStateMask, false);
     for(; iter != end; ++iter) {
       nsCSSSelector* selector = iter->mSelector;
       nsEventStates states = iter->mStates;
+
+      if (selector->IsPseudoElement() != isPseudoElement) {
+        continue;
+      }
+
+      nsCSSSelector* selectorForPseudo;
+      if (isPseudoElement) {
+        if (selector->PseudoType() != aPseudoType) {
+          continue;
+        }
+        selectorForPseudo = selector;
+        selector = selector->mNext;
+      }
 
       nsRestyleHint possibleChange = RestyleHintForOp(selector->mOperator);
 
@@ -2579,7 +2616,7 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
       
       
       if ((possibleChange & ~hint) &&
-          states.HasAtLeastOneOfStates(aData->mStateMask) &&
+          states.HasAtLeastOneOfStates(aStateMask) &&
           
           
           
@@ -2589,7 +2626,7 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
           
           
           (states != NS_EVENT_STATE_HOVER ||
-           aData->mElement->HasRelevantHoverRules() ||
+           aStatefulElement->HasRelevantHoverRules() ||
            selector->mIDList || selector->mClassList ||
            
            
@@ -2598,6 +2635,10 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
              selector->mPseudoClassList->mType !=
                nsCSSPseudoClasses::ePseudoClass_hover)) ||
            selector->mAttrList || selector->mNegations) &&
+          (!isPseudoElement ||
+           StateSelectorMatches(aStatefulElement, selectorForPseudo,
+                                nodeContext, aData->mTreeMatchContext,
+                                nullptr, aStateMask)) &&
           SelectorMatches(aData->mElement, selector, nodeContext,
                           aData->mTreeMatchContext) &&
           SelectorMatchesTree(aData->mElement, selector->mNext,
@@ -2609,6 +2650,24 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
     }
   }
   return hint;
+}
+
+nsRestyleHint
+nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
+{
+  return HasStateDependentStyle(aData,
+                                aData->mElement,
+                                nsCSSPseudoElements::ePseudo_NotPseudoElement,
+                                aData->mStateMask);
+}
+
+nsRestyleHint
+nsCSSRuleProcessor::HasStateDependentStyle(PseudoElementStateRuleProcessorData* aData)
+{
+  return HasStateDependentStyle(aData,
+                                aData->mPseudoElement,
+                                aData->mPseudoType,
+                                aData->mStateMask);
 }
 
 bool
