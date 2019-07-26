@@ -160,6 +160,10 @@ IdpProxy.prototype = {
     this.pending = [];
   },
 
+  isSame: function(domain, protocol) {
+    return this.domain === domain && ((protocol || "default") === this.protocol);
+  },
+
   
 
 
@@ -260,7 +264,7 @@ IdpProxy.prototype = {
   },
 
   toString: function() {
-    return this.domain + '/' + this.protocol;
+    return this.domain + '/.../' + this.protocol;
   }
 };
 
