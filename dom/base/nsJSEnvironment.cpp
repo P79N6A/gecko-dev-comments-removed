@@ -2748,6 +2748,8 @@ NS_DOMStructuredCloneError(JSContext* cx,
   xpc::Throw(cx, NS_ERROR_DOM_DATA_CLONE_ERR);
 }
 
+static NS_DEFINE_CID(kDOMScriptObjectFactoryCID, NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
+
 
 nsresult
 nsJSRuntime::Init()
@@ -2856,6 +2858,15 @@ nsJSRuntime::Init()
   nsIObserver* observer = new nsJSEnvironmentObserver();
   obs->AddObserver(observer, "memory-pressure", false);
   obs->AddObserver(observer, "quit-application", false);
+
+  
+  
+  
+  
+  nsCOMPtr<nsIDOMScriptObjectFactory> factory = do_GetService(kDOMScriptObjectFactoryCID);
+  if (!factory) {
+    MOZ_CRASH();
+  }
 
   sIsInitialized = true;
 
