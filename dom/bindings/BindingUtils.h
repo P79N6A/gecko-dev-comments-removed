@@ -835,6 +835,11 @@ XPCOMObjectToJsval(JSContext* cx, JSObject* scope, xpcObjectHelper &helper,
                    const nsIID* iid, bool allowNativeWrapper, JS::Value* rval);
 
 
+bool
+VariantToJsval(JSContext* aCx, JSObject* aScope, nsIVariant* aVariant,
+               JS::Value* aRetval);
+
+
 
 
 
@@ -847,6 +852,18 @@ WrapObject(JSContext* cx, JSObject* scope, T* p, nsWrapperCache* cache,
     return true;
   qsObjectHelper helper(p, cache);
   return XPCOMObjectToJsval(cx, scope, helper, iid, true, vp);
+}
+
+
+
+template<>
+inline bool
+WrapObject<nsIVariant>(JSContext* cx, JSObject* scope, nsIVariant* p,
+                       nsWrapperCache* cache, const nsIID* iid, JS::Value* vp)
+{
+  MOZ_ASSERT(iid);
+  MOZ_ASSERT(iid->Equals(NS_GET_IID(nsIVariant)));
+  return VariantToJsval(cx, scope, p, vp);
 }
 
 
