@@ -13,8 +13,6 @@ const TEST_PAGE = "http://mochi.test:8888/browser/browser/devtools/inspector/tes
 function test() {
   let inspector, toolbox;
 
-  waitForExplicitFinish();
-
   
   gBrowser.selectedTab = gBrowser.addTab();
   gBrowser.selectedBrowser.addEventListener("load", function onload() {

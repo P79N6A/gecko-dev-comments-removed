@@ -5,9 +5,6 @@
 function test() {
 
   let clipboard = require("sdk/clipboard");
-
-  waitForExplicitFinish();
-
   let doc;
   let inspector;
 

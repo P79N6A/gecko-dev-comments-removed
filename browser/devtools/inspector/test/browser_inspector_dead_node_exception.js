@@ -4,8 +4,6 @@
 function test() {
   let contentTab, contentDoc, inspector;
 
-  waitForExplicitFinish();
-
   
   contentTab = gBrowser.selectedTab = gBrowser.addTab();
 

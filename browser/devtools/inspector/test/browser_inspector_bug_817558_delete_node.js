@@ -3,7 +3,6 @@
 
 function test()
 {
-  waitForExplicitFinish();
   
 
   let node, iframe, inspector;
