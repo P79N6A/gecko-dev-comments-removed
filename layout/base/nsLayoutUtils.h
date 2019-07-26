@@ -484,6 +484,12 @@ public:
 
 
 
+  static void SetScrollbarThumbLayerization(nsIFrame* aThumbFrame, bool aLayerize);
+
+  
+
+
+
 
 
 
