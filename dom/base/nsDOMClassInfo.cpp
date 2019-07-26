@@ -409,8 +409,7 @@ static const char kDOMStringBundleURL[] =
 
 
 #define WINDOW_SCRIPTABLE_FLAGS                                               \
- (nsIXPCScriptable::WANT_GETPROPERTY |                                        \
-  nsIXPCScriptable::WANT_PRECREATE |                                          \
+ (nsIXPCScriptable::WANT_PRECREATE |                                          \
   nsIXPCScriptable::WANT_FINALIZE |                                           \
   nsIXPCScriptable::WANT_ENUMERATE |                                          \
   nsIXPCScriptable::DONT_ENUM_QUERY_INTERFACE |                               \
@@ -3857,77 +3856,6 @@ nsWindowSH::InstallGlobalScopePolluter(JSContext *cx, JSObject *obj,
   
   
   NS_ADDREF(doc);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *obj, jsid id, jsval *vp, bool *_retval)
-{
-  DebugOnly<nsGlobalWindow*> win = nsGlobalWindow::FromWrapper(wrapper);
-
-  JSAutoRequest ar(cx);
-
-#ifdef DEBUG_SH_FORWARDING
-  {
-    JSString *jsstr = ::JS_ValueToString(cx, id);
-    if (jsstr) {
-      nsDependentJSString str(jsstr);
-
-      if (win->IsInnerWindow()) {
-#ifdef DEBUG_PRINT_INNER
-        printf("Property '%s' get on inner window %p\n",
-              NS_ConvertUTF16toUTF8(str).get(), (void *)win);
-#endif
-      } else {
-        printf("Property '%s' get on outer window %p\n",
-              NS_ConvertUTF16toUTF8(str).get(), (void *)win);
-      }
-    }
-  }
-#endif
-
-  
-  
-  
-
-  if (JSID_IS_STRING(id) && !JSVAL_IS_PRIMITIVE(*vp) &&
-      ::JS_TypeOfValue(cx, *vp) != JSTYPE_FUNCTION) {
-    
-    
-    
-    
-    
-    
-    
-    
-
-    const char *name = JS_GetClass(JSVAL_TO_OBJECT(*vp))->name;
-
-    
-    
-    
-    
-    
-    if ((*name == 'W' && strcmp(name, "Window") == 0) ||
-        (*name == 'C' && strcmp(name, "ChromeWindow") == 0) ||
-        (*name == 'M' && strcmp(name, "ModalContentWindow") == 0) ||
-        (*name == 'I' &&
-         (strcmp(name, "InnerWindow") == 0 ||
-          strcmp(name, "InnerChromeWindow") == 0 ||
-          strcmp(name, "InnerModalContentWindow") == 0)) ||
-        (*name == 'X' && strcmp(name, "XPCCrossOriginWrapper") == 0)) {
-      nsCOMPtr<nsIDOMWindow> window = do_QueryWrapper(cx, JSVAL_TO_OBJECT(*vp));
-
-      if (window) {
-        
-        
-
-        return NS_SUCCESS_I_DID_SOMETHING;
-      }
-    }
-  }
 
   return NS_OK;
 }
