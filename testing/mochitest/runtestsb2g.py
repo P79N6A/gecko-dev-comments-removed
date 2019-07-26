@@ -345,8 +345,9 @@ def run_desktop_mochitests(parser, options):
     mochitest = B2GDesktopMochitest(marionette, options.profile_data_dir)
 
     
-    if options.app[-4:] == '-bin':
-        options.app = options.app[:-4]
+    if options.app[-4:] != '-bin':
+        if os.path.isfile("%s-bin" % options.app):
+            options.app = "%s-bin" % options.app
 
     options = MochitestOptions.verifyOptions(parser, options, mochitest)
     if options == None:
