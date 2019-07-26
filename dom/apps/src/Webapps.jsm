@@ -1631,136 +1631,6 @@ this.DOMApplicationRegistry = {
     let id = this._appIdForManifestURL(aData.manifestURL);
     let app = this.webapps[id];
 
-    function updatePackagedApp(aManifest) {
-      debug("updatePackagedApp");
-
-      
-      
-      if (app.manifestURL.startsWith("app://")) {
-        aMm.sendAsyncMessage("Webapps:CheckForUpdate:Return:KO", aData);
-        return;
-      }
-
-      
-      let dir = this._getAppDir(id).path;
-      let manFile = OS.Path.join(dir, "staged-update.webapp");
-      this._writeFile(manFile, JSON.stringify(aManifest));
-
-      let manifest = new ManifestHelper(aManifest, app.manifestURL);
-      
-      
-      app.downloadAvailable = true;
-      app.downloadSize = manifest.size;
-      app.updateManifest = aManifest;
-      this._saveApps().then(() => {
-        this.broadcastMessage("Webapps:UpdateState", {
-          app: app,
-          manifestURL: app.manifestURL
-        });
-        this.broadcastMessage("Webapps:FireEvent", {
-          eventType: "downloadavailable",
-          manifestURL: app.manifestURL,
-          requestID: aData.requestID
-        });
-      });
-    }
-
-    
-    
-    
-    
-    
-    
-    function updateHostedApp(aOldManifest, aNewManifest) {
-      debug("updateHostedApp " + aData.manifestURL);
-
-      
-      if (id in this._manifestCache) {
-        delete this._manifestCache[id];
-      }
-
-      app.manifest = aNewManifest || aOldManifest;
-
-      let manifest;
-      if (aNewManifest) {
-        this.updateAppHandlers(aOldManifest, aNewManifest, app);
-
-        
-        let dir = this._getAppDir(id).path;
-        let manFile = OS.Path.join(dir, "manifest.webapp");
-        this._writeFile(manFile, JSON.stringify(aNewManifest));
-        manifest = new ManifestHelper(aNewManifest, app.origin);
-
-        if (supportUseCurrentProfile()) {
-          
-          PermissionsInstaller.installPermissions({
-            manifest: app.manifest,
-            origin: app.origin,
-            manifestURL: aData.manifestURL
-          }, true);
-        }
-
-        this.updateDataStore(this.webapps[id].localId, app.origin,
-                             app.manifestURL, app.manifest, app.appStatus);
-
-        app.name = manifest.name;
-        app.csp = manifest.csp || "";
-        app.role = manifest.role || "";
-        app.updateTime = Date.now();
-      } else {
-        manifest = new ManifestHelper(aOldManifest, app.origin);
-      }
-
-      
-      this.webapps[id] = app;
-      this._saveApps().then(() => {
-        let reg = DOMApplicationRegistry;
-        if (!manifest.appcache_path) {
-          reg.broadcastMessage("Webapps:UpdateState", {
-            app: app,
-            manifest: app.manifest,
-            manifestURL: app.manifestURL
-          });
-          reg.broadcastMessage("Webapps:FireEvent", {
-            eventType: "downloadapplied",
-            manifestURL: app.manifestURL,
-            requestID: aData.requestID
-          });
-        } else {
-          
-          
-          let updateObserver = {
-            observe: function(aSubject, aTopic, aObsData) {
-              debug("updateHostedApp: updateSvc.checkForUpdate return for " +
-                    app.manifestURL + " - event is " + aTopic);
-              let eventType =
-                aTopic == "offline-cache-update-available" ? "downloadavailable"
-                                                           : "downloadapplied";
-              app.downloadAvailable = (eventType == "downloadavailable");
-              reg._saveApps().then(() => {
-                reg.broadcastMessage("Webapps:UpdateState", {
-                  app: app,
-                  manifest: app.manifest,
-                  manifestURL: app.manifestURL
-                });
-                reg.broadcastMessage("Webapps:FireEvent", {
-                  eventType: eventType,
-                  manifestURL: app.manifestURL,
-                  requestID: aData.requestID
-                });
-              });
-            }
-          };
-          debug("updateHostedApp: updateSvc.checkForUpdate for " +
-                manifest.fullAppcachePath());
-          updateSvc.checkForUpdate(Services.io.newURI(manifest.fullAppcachePath(), null, null),
-                                   app.localId, false, updateObserver);
-        }
-        delete app.manifest;
-      });
-    }
-
-
     
     if (!app) {
       sendError("NO_SUCH_APP");
@@ -1776,6 +1646,15 @@ this.DOMApplicationRegistry = {
     
     if (app.downloading) {
       sendError("APP_IS_DOWNLOADING");
+      return;
+    }
+
+    
+    
+    if (app.origin.startsWith("app://") &&
+        app.manifestURL.startsWith("app://")) {
+      aData.error = "NOT_UPDATABLE";
+      aMm.sendAsyncMessage("Webapps:CheckForUpdate:Return:KO", aData);
       return;
     }
 
@@ -1879,7 +1758,7 @@ this.DOMApplicationRegistry = {
           app.lastCheckedUpdate = Date.now();
           if (isPackage) {
             if (oldHash != hash) {
-              updatePackagedApp.call(this, manifest);
+              this.updatePackagedApp(aData, id, app, manifest);
             } else {
               this._saveApps().then(() => {
                 
@@ -1900,7 +1779,7 @@ this.DOMApplicationRegistry = {
           } else {
             
             
-            updateHostedApp.call(this, oldManifest,
+            this.updateHostedApp(aData, id, app, oldManifest,
                                  oldHash == hash ? null : manifest);
           }
         }
@@ -1926,7 +1805,7 @@ this.DOMApplicationRegistry = {
         } else {
           
           
-          updateHostedApp.call(this, oldManifest, null);
+          this.updateHostedApp(aData, id, app, oldManifest, null);
         }
       } else {
         sendError("MANIFEST_URL_ERROR");
@@ -2004,6 +1883,128 @@ this.DOMApplicationRegistry = {
          throw Cr.NS_ERROR_NO_INTERFACE;
        }
      }
+  },
+
+  updatePackagedApp: function(aData, aId, aApp, aNewManifest) {
+    debug("updatePackagedApp");
+
+    
+    let dir = this._getAppDir(aId).path;
+    let manFile = OS.Path.join(dir, "staged-update.webapp");
+    this._writeFile(manFile, JSON.stringify(aNewManifest));
+
+    let manifest = new ManifestHelper(aNewManifest, aApp.manifestURL);
+    
+    
+    aApp.downloadAvailable = true;
+    aApp.downloadSize = manifest.size;
+    aApp.updateManifest = aNewManifest;
+    this._saveApps().then(() => {
+      this.broadcastMessage("Webapps:UpdateState", {
+        app: aApp,
+        manifestURL: aApp.manifestURL
+      });
+      this.broadcastMessage("Webapps:FireEvent", {
+        eventType: "downloadavailable",
+        manifestURL: aApp.manifestURL,
+        requestID: aData.requestID
+      });
+    });
+  },
+
+  
+  
+  
+  
+  
+  
+  updateHostedApp: function(aData, aId, aApp, aOldManifest, aNewManifest) {
+    debug("updateHostedApp " + aData.manifestURL);
+
+    
+    if (aId in this._manifestCache) {
+      delete this._manifestCache[aId];
+    }
+
+    aApp.manifest = aNewManifest || aOldManifest;
+
+    let manifest;
+    if (aNewManifest) {
+      this.updateAppHandlers(aOldManifest, aNewManifest, aApp);
+
+      
+      let dir = this._getAppDir(aId).path;
+      let manFile = OS.Path.join(dir, "manifest.webapp");
+      this._writeFile(manFile, JSON.stringify(aNewManifest));
+      manifest = new ManifestHelper(aNewManifest, aApp.origin);
+
+      if (supportUseCurrentProfile()) {
+        
+        PermissionsInstaller.installPermissions({
+          manifest: aApp.manifest,
+          origin: aApp.origin,
+          manifestURL: aData.manifestURL
+        }, true);
+      }
+
+      this.updateDataStore(this.webapps[aId].localId, aApp.origin,
+                           aApp.manifestURL, aApp.manifest, aApp.appStatus);
+
+      aApp.name = manifest.name;
+      aApp.csp = manifest.csp || "";
+      aApp.role = manifest.role || "";
+      aApp.updateTime = Date.now();
+    } else {
+      manifest = new ManifestHelper(aOldManifest, aApp.origin);
+    }
+
+    
+    this.webapps[aId] = aApp;
+    this._saveApps().then(() => {
+      let reg = DOMApplicationRegistry;
+      if (!manifest.appcache_path) {
+        reg.broadcastMessage("Webapps:UpdateState", {
+          app: aApp,
+          manifest: aApp.manifest,
+          manifestURL: aApp.manifestURL
+        });
+        reg.broadcastMessage("Webapps:FireEvent", {
+          eventType: "downloadapplied",
+          manifestURL: aApp.manifestURL,
+          requestID: aData.requestID
+        });
+      } else {
+        
+        
+        let updateObserver = {
+          observe: function(aSubject, aTopic, aObsData) {
+            debug("updateHostedApp: updateSvc.checkForUpdate return for " +
+                  aApp.manifestURL + " - event is " + aTopic);
+            let eventType =
+              aTopic == "offline-cache-update-available" ? "downloadavailable"
+                                                         : "downloadapplied";
+            aApp.downloadAvailable = (eventType == "downloadavailable");
+            reg._saveApps().then(() => {
+              reg.broadcastMessage("Webapps:UpdateState", {
+                app: aApp,
+                manifest: aApp.manifest,
+                manifestURL: aApp.manifestURL
+              });
+              reg.broadcastMessage("Webapps:FireEvent", {
+                eventType: eventType,
+                manifestURL: aApp.manifestURL,
+                requestID: aData.requestID
+              });
+            });
+          }
+        };
+        debug("updateHostedApp: updateSvc.checkForUpdate for " +
+              manifest.fullAppcachePath());
+        updateSvc.checkForUpdate(Services.io.newURI(manifest.fullAppcachePath(), null, null),
+                                 aApp.localId, false, updateObserver);
+      }
+      delete aApp.manifest;
+    });
   },
 
   
@@ -2587,6 +2588,10 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
 
   _readManifests: function(aData) {
     return Task.spawn(function*() {
+      if (!aData.length) {
+        return aData;
+      }
+
       for (let elem of aData) {
         let id = elem.id;
 
@@ -2595,15 +2600,17 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
           let baseDir = this.webapps[id].basePath == this.getCoreAppsBasePath()
                           ? "coreAppsDir" : DIRECTORY_NAME;
 
-          let dir = FileUtils.getDir(baseDir, ["webapps", id], false, true);
+          let file = FileUtils.getFile(baseDir, ["webapps", id, "manifest.webapp"], true);
 
-          let fileNames = ["manifest.webapp", "update.webapp", "manifest.json"];
-          for (let fileName of fileNames) {
-            this._manifestCache[id] = yield this._loadJSONAsync(OS.Path.join(dir.path, fileName));
-            if (this._manifestCache[id]) {
-              break;
-            }
+          if (!file.exists()) {
+            file = FileUtils.getFile(baseDir, ["webapps", id, "update.webapp"], true);
           }
+
+          if (!file.exists()) {
+            file = FileUtils.getFile(baseDir, ["webapps", id, "manifest.json"], true);
+          }
+
+          this._manifestCache[id] = yield this._loadJSONAsync(file.path);
         }
 
         elem.manifest = this._manifestCache[id];
