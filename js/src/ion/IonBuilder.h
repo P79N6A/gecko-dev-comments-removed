@@ -93,6 +93,9 @@ class IonBuilder : public MIRGenerator
                 MBasicBlock *entry;
 
                 
+                bool osr;
+
+                
                 jsbytecode *bodyStart;
                 jsbytecode *bodyEnd;
 
@@ -237,7 +240,7 @@ class IonBuilder : public MIRGenerator
     ControlStatus processContinue(JSOp op);
     ControlStatus processBreak(JSOp op, jssrcnote *sn);
     ControlStatus maybeLoop(JSOp op, jssrcnote *sn);
-    bool pushLoop(CFGState::State state, jsbytecode *stopAt, MBasicBlock *entry,
+    bool pushLoop(CFGState::State state, jsbytecode *stopAt, MBasicBlock *entry, bool osr,
                   jsbytecode *loopHead, jsbytecode *initialPc,
                   jsbytecode *bodyStart, jsbytecode *bodyEnd, jsbytecode *exitpc,
                   jsbytecode *continuepc = NULL);
@@ -250,7 +253,7 @@ class IonBuilder : public MIRGenerator
     MBasicBlock *newBlockPopN(MBasicBlock *predecessor, jsbytecode *pc, uint32_t popped);
     MBasicBlock *newBlockAfter(MBasicBlock *at, MBasicBlock *predecessor, jsbytecode *pc);
     MBasicBlock *newOsrPreheader(MBasicBlock *header, jsbytecode *loopEntry);
-    MBasicBlock *newPendingLoopHeader(MBasicBlock *predecessor, jsbytecode *pc);
+    MBasicBlock *newPendingLoopHeader(MBasicBlock *predecessor, jsbytecode *pc, bool osr);
     MBasicBlock *newBlock(jsbytecode *pc) {
         return newBlock(NULL, pc);
     }
@@ -269,6 +272,12 @@ class IonBuilder : public MIRGenerator
     
     
     ControlStatus finishLoop(CFGState &state, MBasicBlock *successor);
+
+    
+    
+    bool addOsrValueTypeBarrier(uint32_t slot, MInstruction **def,
+                                MIRType type, types::StackTypeSet *typeSet);
+    bool maybeAddOsrTypeBarriers();
 
     
     
