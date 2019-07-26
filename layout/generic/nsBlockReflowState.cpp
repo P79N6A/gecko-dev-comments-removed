@@ -818,8 +818,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
                  floatMargin.top + floatY);
 
   
-  nsHTMLReflowState::ApplyRelativePositioning(floatDisplay, floatOffsets,
-                                              &origin);
+  nsHTMLReflowState::ApplyRelativePositioning(aFloat, floatOffsets, &origin);
 
   
   

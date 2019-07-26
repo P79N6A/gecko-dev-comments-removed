@@ -2415,8 +2415,9 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
       
       
-      flexContainerAscent = physicalPosn.y + childDesiredSize.ascent -
-        childReflowState.mComputedOffsets.top;
+      
+      flexContainerAscent = curItem.Frame()->GetNormalPosition().y +
+        childDesiredSize.ascent;
     }
   }
 

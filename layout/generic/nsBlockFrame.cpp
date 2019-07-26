@@ -5985,7 +5985,7 @@ nsBlockFrame::RecoverFloatsFor(nsIFrame*       aFrame,
     
     
     
-    nsPoint pos = block->GetPosition() - block->GetRelativeOffset();
+    nsPoint pos = block->GetNormalPosition();
     aFloatManager.Translate(pos.x, pos.y);
     block->RecoverFloats(aFloatManager);
     aFloatManager.Translate(-pos.x, -pos.y);

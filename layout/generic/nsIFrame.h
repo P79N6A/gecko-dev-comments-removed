@@ -855,7 +855,7 @@ public:
   
 
 
-  nsPoint GetRelativeOffset(const nsStyleDisplay* aDisplay = nullptr) const;
+  nsPoint GetNormalPosition() const;
 
   virtual nsPoint GetPositionOfChildIgnoringScrolling(nsIFrame* aChild)
   { return aChild->GetPosition(); }
@@ -918,7 +918,7 @@ public:
   NS_DECLARE_FRAME_PROPERTY(IBSplitSpecialSibling, nullptr)
   NS_DECLARE_FRAME_PROPERTY(IBSplitSpecialPrevSibling, nullptr)
 
-  NS_DECLARE_FRAME_PROPERTY(ComputedOffsetProperty, DestroyPoint)
+  NS_DECLARE_FRAME_PROPERTY(NormalPositionProperty, DestroyPoint)
 
   NS_DECLARE_FRAME_PROPERTY(OutlineInnerRectProperty, DestroyRect)
   NS_DECLARE_FRAME_PROPERTY(PreEffectsBBoxProperty, DestroyRect)

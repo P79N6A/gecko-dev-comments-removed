@@ -547,12 +547,12 @@ public:
                                      nsMargin& aComputedOffsets);
 
   
-  static void ApplyRelativePositioning(const nsStyleDisplay* aDisplay,
+  static void ApplyRelativePositioning(nsIFrame* aFrame,
                                        const nsMargin& aComputedOffsets,
                                        nsPoint* aPosition);
 
   void ApplyRelativePositioning(nsPoint* aPosition) const {
-    ApplyRelativePositioning(mStyleDisplay, mComputedOffsets, aPosition);
+    ApplyRelativePositioning(frame, mComputedOffsets, aPosition);
   }
 
 #ifdef DEBUG

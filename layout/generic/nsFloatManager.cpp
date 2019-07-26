@@ -264,22 +264,18 @@ nsRect
 nsFloatManager::CalculateRegionFor(nsIFrame*       aFloat,
                                    const nsMargin& aMargin)
 {
-  nsRect region = aFloat->GetRect();
+  
+  nsRect region(aFloat->GetNormalPosition(), aFloat->GetSize());
 
   
   region.Inflate(aMargin);
 
   
   
-  
-  const nsStyleDisplay* display = aFloat->StyleDisplay();
-  region -= aFloat->GetRelativeOffset(display);
-
-  
-  
   if (region.width < 0) {
     
     
+    const nsStyleDisplay* display = aFloat->StyleDisplay();
     if (NS_STYLE_FLOAT_LEFT == display->mFloats) {
       region.x = region.XMost();
     }
