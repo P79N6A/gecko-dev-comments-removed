@@ -1278,7 +1278,13 @@ XrayToString(JSContext *cx, unsigned argc, jsval *vp)
 static void
 DEBUG_CheckXBLCallable(JSContext *cx, JSObject *obj)
 {
-    MOZ_ASSERT(!js::IsCrossCompartmentWrapper(obj));
+    
+    
+    
+    
+    
+    MOZ_ASSERT_IF(js::IsCrossCompartmentWrapper(obj),
+                  xpc::IsXBLScope(js::GetObjectCompartment(js::UncheckedUnwrap(obj))));
     MOZ_ASSERT(JS_ObjectIsCallable(cx, obj));
 }
 
@@ -1433,6 +1439,8 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
         desc->value.setObject(*JS_GetFunctionObject(toString));
     }
 
+    
+    
     
     
     
