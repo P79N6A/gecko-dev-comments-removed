@@ -12,6 +12,7 @@
 #include "FrameMetrics.h"               
 #include "Units.h"                      
 #include "gfx3DMatrix.h"                
+#include "gfxContext.h"                 
 #include "gfxASurface.h"                
 #include "gfxColor.h"                   
 #include "gfxMatrix.h"                  
@@ -732,6 +733,15 @@ public:
     }
   }
 
+  void SetMixBlendMode(gfxContext::GraphicsOperator aMixBlendMode)
+  {
+    if (mMixBlendMode != aMixBlendMode) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) MixBlendMode", this));
+      mMixBlendMode = aMixBlendMode;
+      Mutated();
+    }
+  }
+
   
 
 
@@ -937,6 +947,7 @@ public:
 
   
   float GetOpacity() { return mOpacity; }
+  gfxContext::GraphicsOperator GetMixBlendMode() const { return mMixBlendMode; }
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
   uint32_t GetContentFlags() { return mContentFlags; }
   const nsIntRegion& GetVisibleRegion() { return mVisibleRegion; }
@@ -1102,11 +1113,18 @@ public:
   
   const nsIntRect* GetEffectiveClipRect();
   const nsIntRegion& GetEffectiveVisibleRegion();
+
   
 
 
 
   float GetEffectiveOpacity();
+  
+  
+
+
+  gfxContext::GraphicsOperator GetEffectiveMixBlendMode();
+  
   
 
 
@@ -1304,6 +1322,7 @@ protected:
   AnimationArray mAnimations;
   InfallibleTArray<AnimData> mAnimationData;
   float mOpacity;
+  gfxContext::GraphicsOperator mMixBlendMode;
   nsIntRect mClipRect;
   nsIntRect mTileSourceRect;
   nsIntRegion mInvalidRegion;
