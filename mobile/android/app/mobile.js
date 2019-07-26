@@ -240,6 +240,8 @@ pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.prop
 
 pref("browser.search.defaultenginename", "chrome://browser/locale/region.properties");
 
+pref("browser.search.param.maxSuggestions", "4");
+
 pref("browser.ssl_override_behavior", 2);
 pref("browser.xul.error_pages.expert_bad_cert", false);
 
@@ -517,12 +519,6 @@ pref("ui.threedshadow", "#aea194");
 pref("ui.window", "#efebe7");
 pref("ui.windowtext", "#101010");
 pref("ui.windowframe", "#efebe7");
-
-#ifdef MOZ_OFFICIAL_BRANDING
-pref("browser.search.param.yahoo-fr", "moz35");
-pref("browser.search.param.yahoo-fr-cjkt", "moz35");
-pref("browser.search.param.yahoo-fr-ja", "mozff");
-#endif
 
 
 pref("app.update.timerFirstInterval", 30000); 
