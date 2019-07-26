@@ -419,8 +419,6 @@ NS_FALLIBLE_MEMORY_REPORTER_IMPLEMENT(PageFaultsHard,
 
 #if HAVE_JEMALLOC_STATS
 
-#define HAVE_HEAP_ALLOCATED_REPORTERS 1
-
 static int64_t GetHeapUnused()
 {
     jemalloc_stats_t stats;
@@ -505,62 +503,6 @@ NS_MEMORY_REPORTER_IMPLEMENT(HeapDirty,
     "doesn't have to ask the OS the next time it needs to fulfill a request. "
     "This value is typically not larger than a few megabytes.")
 
-#elif defined(XP_MACOSX) && !defined(MOZ_MEMORY)
-#include <malloc/malloc.h>
-
-#define HAVE_HEAP_ALLOCATED_REPORTERS 1
-
-static int64_t GetHeapUnused()
-{
-    struct mstats stats = mstats();
-    return stats.bytes_total - stats.bytes_used;
-}
-
-static int64_t GetHeapAllocated()
-{
-    struct mstats stats = mstats();
-    return stats.bytes_used;
-}
-
-
-
-
-#ifndef MOZ_DMDV
-#define HAVE_HEAP_ZONE0_REPORTERS 1
-static int64_t GetHeapZone0Committed()
-{
-    malloc_statistics_t stats;
-    malloc_zone_statistics(malloc_default_zone(), &stats);
-    return stats.size_in_use;
-}
-
-static int64_t GetHeapZone0Used()
-{
-    malloc_statistics_t stats;
-    malloc_zone_statistics(malloc_default_zone(), &stats);
-    return stats.size_allocated;
-}
-
-NS_MEMORY_REPORTER_IMPLEMENT(HeapZone0Committed,
-    "heap-zone0-committed",
-    KIND_OTHER,
-    UNITS_BYTES,
-    GetHeapZone0Committed,
-    "Memory mapped by the heap allocator that is committed in the default "
-    "zone.")
-
-NS_MEMORY_REPORTER_IMPLEMENT(HeapZone0Used,
-    "heap-zone0-used",
-    KIND_OTHER,
-    UNITS_BYTES,
-    GetHeapZone0Used,
-    "Memory mapped by the heap allocator in the default zone that is "
-    "allocated to the application.")
-#endif  
-
-#endif
-
-#ifdef HAVE_HEAP_ALLOCATED_REPORTERS
 NS_MEMORY_REPORTER_IMPLEMENT(HeapUnused,
     "heap-unused",
     KIND_OTHER,
@@ -582,7 +524,6 @@ NS_MEMORY_REPORTER_IMPLEMENT(HeapAllocated,
 
 
 
-#define HAVE_EXPLICIT_REPORTER 1
 static nsresult GetExplicit(int64_t *n)
 {
     nsCOMPtr<nsIMemoryReporterManager> mgr = do_GetService("@mozilla.org/memory-reporter-manager;1");
@@ -636,12 +577,13 @@ nsMemoryReporterManager::Init()
 
 #define REGISTER(_x)  RegisterReporter(new NS_MEMORY_REPORTER_NAME(_x))
 
-#ifdef HAVE_HEAP_ALLOCATED_REPORTERS
+#ifdef HAVE_JEMALLOC_STATS
     REGISTER(HeapAllocated);
     REGISTER(HeapUnused);
-#endif
-
-#ifdef HAVE_EXPLICIT_REPORTER
+    REGISTER(HeapCommitted);
+    REGISTER(HeapCommittedUnused);
+    REGISTER(HeapCommittedUnusedRatio);
+    REGISTER(HeapDirty);
     REGISTER(Explicit);
 #endif
 
@@ -659,15 +601,6 @@ nsMemoryReporterManager::Init()
     REGISTER(Private);
 #endif
 
-#if defined(HAVE_JEMALLOC_STATS)
-    REGISTER(HeapCommitted);
-    REGISTER(HeapCommittedUnused);
-    REGISTER(HeapCommittedUnusedRatio);
-    REGISTER(HeapDirty);
-#elif defined(HAVE_HEAP_ZONE0_REPORTERS)
-    REGISTER(HeapZone0Committed);
-    REGISTER(HeapZone0Used);
-#endif
 
     REGISTER(AtomTable);
 
@@ -820,7 +753,7 @@ nsMemoryReporterManager::GetExplicit(int64_t *aExplicit)
 {
     NS_ENSURE_ARG_POINTER(aExplicit);
     *aExplicit = 0;
-#ifndef HAVE_EXPLICIT_REPORTER
+#ifndef HAVE_JEMALLOC_STATS
     return NS_ERROR_NOT_AVAILABLE;
 #else
     nsresult rv;
