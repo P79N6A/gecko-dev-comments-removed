@@ -404,7 +404,7 @@ HTMLTextFieldAccessible::NativeState()
 
   
   if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::list))
-    return state | states::SUPPORTS_AUTOCOMPLETION;
+    return state | states::SUPPORTS_AUTOCOMPLETION | states::HASPOPUP;
 
   
   
