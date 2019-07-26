@@ -1059,10 +1059,14 @@ public:
 
 
 
+  static nsEventListenerManager* ListenerManagerForNode(nsINode* aNode);
+  
 
 
-  static nsEventListenerManager* GetListenerManager(nsINode* aNode,
-                                                    bool aCreateIfNotFound);
+
+
+
+  static nsEventListenerManager* GetExistingListenerManagerForNode(const nsINode* aNode);
 
   static void UnmarkGrayJSListenersInCCGenerationDocuments(uint32_t aGeneration);
 

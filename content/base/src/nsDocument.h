@@ -774,8 +774,8 @@ public:
 
   
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
-  virtual nsEventListenerManager*
-    GetListenerManager(bool aCreateIfNotFound) MOZ_OVERRIDE;
+  virtual nsEventListenerManager* ListenerManager() MOZ_OVERRIDE;
+  virtual nsEventListenerManager* GetExistingListenerManager() const MOZ_OVERRIDE;
 
   
   virtual nsIPrincipal* GetPrincipal() MOZ_OVERRIDE;

@@ -561,7 +561,7 @@ nsXBLService::AttachGlobalKeyHandler(EventTarget* aTarget)
       piTarget = doc; 
   }
 
-  nsEventListenerManager* manager = piTarget->GetListenerManager(true);
+  nsEventListenerManager* manager = piTarget->ListenerManager();
 
   if (!piTarget || !manager)
     return NS_ERROR_FAILURE;
@@ -611,7 +611,7 @@ nsXBLService::DetachGlobalKeyHandler(EventTarget* aTarget)
   if (doc)
     piTarget = do_QueryInterface(doc);
 
-  nsEventListenerManager* manager = piTarget->GetListenerManager(true);
+  nsEventListenerManager* manager = piTarget->ListenerManager();
 
   if (!piTarget || !manager)
     return NS_ERROR_FAILURE;
