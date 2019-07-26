@@ -11,7 +11,6 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "nsScriptLoader.h"
-#include "nsICharsetConverterManager.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsIContent.h"
 #include "mozilla/dom/Element.h"
@@ -1182,37 +1181,30 @@ nsScriptLoader::ConvertToUTF16(nsIChannel* aChannel, const uint8_t* aData,
 
   nsAutoCString charset;
 
-  nsCOMPtr<nsICharsetConverterManager> charsetConv =
-    do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID);
-
   nsCOMPtr<nsIUnicodeDecoder> unicodeDecoder;
 
   if (DetectByteOrderMark(aData, aLength, charset)) {
     
     
     
-    charsetConv->GetUnicodeDecoderRaw(charset.get(),
-                                      getter_AddRefs(unicodeDecoder));
+    unicodeDecoder = EncodingUtils::DecoderForEncoding(charset);
   }
 
   if (!unicodeDecoder &&
       aChannel &&
       NS_SUCCEEDED(aChannel->GetContentCharset(charset)) &&
       EncodingUtils::FindEncodingForLabel(charset, charset)) {
-    charsetConv->GetUnicodeDecoderRaw(charset.get(),
-                                      getter_AddRefs(unicodeDecoder));
+    unicodeDecoder = EncodingUtils::DecoderForEncoding(charset);
   }
 
   if (!unicodeDecoder &&
       EncodingUtils::FindEncodingForLabel(aHintCharset, charset)) {
-    charsetConv->GetUnicodeDecoderRaw(charset.get(),
-                                      getter_AddRefs(unicodeDecoder));
+    unicodeDecoder = EncodingUtils::DecoderForEncoding(charset);
   }
 
   if (!unicodeDecoder && aDocument) {
     charset = aDocument->GetDocumentCharacterSet();
-    charsetConv->GetUnicodeDecoderRaw(charset.get(),
-                                      getter_AddRefs(unicodeDecoder));
+    unicodeDecoder = EncodingUtils::DecoderForEncoding(charset);
   }
 
   if (!unicodeDecoder) {
@@ -1220,8 +1212,7 @@ nsScriptLoader::ConvertToUTF16(nsIChannel* aChannel, const uint8_t* aData,
     
     
     
-    charsetConv->GetUnicodeDecoderRaw("windows-1252",
-                                      getter_AddRefs(unicodeDecoder));
+    unicodeDecoder = EncodingUtils::DecoderForEncoding("windows-1252");
   }
 
   int32_t unicodeLength = 0;

@@ -14,7 +14,6 @@
 #include "nsIChannel.h"
 #include "nsICachingChannel.h"
 #include "nsICacheEntryDescriptor.h"
-#include "nsICharsetConverterManager.h"
 #include "nsIInputStream.h"
 #include "CNavDTD.h"
 #include "prenv.h"
@@ -127,36 +126,6 @@ public:
 };
 
 
-
-nsICharsetConverterManager* nsParser::sCharsetConverterManager = nullptr;
-
-
-
-
-
-nsresult
-nsParser::Init()
-{
-  nsresult rv;
-
-  nsCOMPtr<nsICharsetConverterManager> charsetConverter =
-    do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  charsetConverter.swap(sCharsetConverterManager);
-
-  return NS_OK;
-}
-
-
-
-
-
-
-void nsParser::Shutdown()
-{
-  NS_IF_RELEASE(sCharsetConverterManager);
-}
 
 
 

@@ -8,6 +8,9 @@
 #include "nsDataHashtable.h"
 #include "nsString.h"
 
+class nsIUnicodeDecoder;
+class nsIUnicodeEncoder;
+
 namespace mozilla {
 namespace dom {
 
@@ -61,6 +64,50 @@ public:
 
 
   static bool IsAsciiCompatible(const nsACString& aPreferredName);
+
+  
+
+
+
+
+
+  static already_AddRefed<nsIUnicodeDecoder>
+  DecoderForEncoding(const char* aEncoding)
+  {
+    nsDependentCString encoding(aEncoding);
+    return DecoderForEncoding(encoding);
+  }
+
+  
+
+
+
+
+
+  static already_AddRefed<nsIUnicodeDecoder>
+  DecoderForEncoding(const nsACString& aEncoding);
+
+  
+
+
+
+
+
+  static already_AddRefed<nsIUnicodeEncoder>
+  EncoderForEncoding(const char* aEncoding)
+  {
+    nsDependentCString encoding(aEncoding);
+    return EncoderForEncoding(encoding);
+  }
+
+  
+
+
+
+
+
+  static already_AddRefed<nsIUnicodeEncoder>
+  EncoderForEncoding(const nsACString& aEncoding);
 
 private:
   EncodingUtils() MOZ_DELETE;
