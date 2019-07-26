@@ -1379,7 +1379,6 @@ CodeGenerator::emitParCallToUncompiledScript(Register calleeReg)
 bool
 CodeGenerator::visitCallKnown(LCallKnown *call)
 {
-    JSContext *cx = GetIonContext()->cx;
     Register calleereg = ToRegister(call->getFunction());
     Register objreg    = ToRegister(call->getTempObject());
     uint32_t unusedStack = StackOffsetOfPassedArg(call->argslot());
@@ -1395,11 +1394,8 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
     masm.checkStackAlignment();
 
     
-    if (target->isInterpretedLazy() && !target->getOrCreateScript(cx))
-        return false;
-
     
-    
+    JS_ASSERT(call->mir()->hasRootedScript());
     RawScript targetScript = target->nonLazyScript();
     if (GetIonScript(targetScript, executionMode) == ION_DISABLED_SCRIPT) {
         if (executionMode == ParallelExecution)

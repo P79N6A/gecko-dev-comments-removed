@@ -4463,6 +4463,13 @@ IonBuilder::makeCallHelper(HandleFunction target, CallInfo &callInfo,
         return NULL;
 
     
+    if (target && target->isInterpreted()) {
+        if (!target->getOrCreateScript(cx))
+            return NULL;
+        call->rootTargetScript(target);
+    }
+
+    
     
     for (int i = targetArgs; i > (int)callInfo.argc(); i--) {
         JS_ASSERT_IF(target, !target->isNative());

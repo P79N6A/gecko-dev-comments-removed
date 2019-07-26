@@ -1307,6 +1307,8 @@ class MCall
     
     CompilerRootFunction target_;
     
+    CompilerRootScript targetScript_;
+    
     uint32_t numActualArgs_;
     
     types::StackTypeSet *calleeTypes_;
@@ -1315,6 +1317,7 @@ class MCall
           types::StackTypeSet *calleeTypes)
       : construct_(construct),
         target_(target),
+        targetScript_(NULL),
         numActualArgs_(numActualArgs),
         calleeTypes_(calleeTypes)
     {
@@ -1349,6 +1352,13 @@ class MCall
 
     MDefinition *getArg(uint32_t index) const {
         return getOperand(NumNonArgumentOperands + index);
+    }
+
+    void rootTargetScript(JSFunction *target) {
+        targetScript_.setRoot(target->nonLazyScript());
+    }
+    bool hasRootedScript() {
+        return targetScript_ != NULL;
     }
 
     
