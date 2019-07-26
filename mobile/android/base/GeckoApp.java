@@ -1306,6 +1306,11 @@ public abstract class GeckoApp
         mMainLayout = (RelativeLayout) findViewById(R.id.main_layout);
 
         
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+            mMainLayout.setClipChildren(true);
+        }
+
+        
         mShouldRestore = getSessionRestoreState(savedInstanceState);
         if (mShouldRestore && savedInstanceState != null) {
             boolean wasInBackground =
