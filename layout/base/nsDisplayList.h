@@ -2112,6 +2112,12 @@ public:
 
   nsRect GetPositioningArea();
 
+  
+
+
+
+  bool IsWindowActive();
+
   virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE
   {
     return new nsDisplayThemedBackgroundGeometry(this, aBuilder);
