@@ -2824,12 +2824,18 @@ NS_IMETHODIMP
 GlyphMetricsUpdater::Run()
 {
   if (mFrame) {
-    mFrame->mPositioningDirty = true;
-    nsSVGUtils::InvalidateBounds(mFrame, false);
-    nsSVGUtils::ScheduleReflowSVG(mFrame);
-    mFrame->mGlyphMetricsUpdater = nullptr;
+    Run(mFrame);
   }
   return NS_OK;
+}
+
+void
+GlyphMetricsUpdater::Run(nsSVGTextFrame2* aFrame)
+{
+  aFrame->mPositioningDirty = true;
+  nsSVGUtils::InvalidateBounds(aFrame, false);
+  nsSVGUtils::ScheduleReflowSVG(aFrame);
+  aFrame->mGlyphMetricsUpdater = nullptr;
 }
 
 }
@@ -4645,25 +4651,34 @@ nsSVGTextFrame2::ShouldRenderAsPath(nsRenderingContext* aContext,
 }
 
 void
-nsSVGTextFrame2::NotifyGlyphMetricsChange()
+nsSVGTextFrame2::NotifyGlyphMetricsChange(uint32_t aFlags)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (mGlyphMetricsUpdater) {
+  NS_ASSERTION(!aFlags || aFlags == ePositioningDirtyDueToMutation,
+               "unexpected aFlags value");
+
+  if (aFlags == ePositioningDirtyDueToMutation) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (mGlyphMetricsUpdater) {
+      return;
+    }
+    mGlyphMetricsUpdater = new GlyphMetricsUpdater(this);
+    nsContentUtils::AddScriptRunner(mGlyphMetricsUpdater.get());
     return;
   }
-  mGlyphMetricsUpdater = new GlyphMetricsUpdater(this);
-  nsContentUtils::AddScriptRunner(mGlyphMetricsUpdater.get());
+
+  
+  GlyphMetricsUpdater::Run(this);
 }
 
 void

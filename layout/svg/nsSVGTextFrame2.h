@@ -127,6 +127,7 @@ class GlyphMetricsUpdater : public nsRunnable {
 public:
   NS_DECL_NSIRUNNABLE
   GlyphMetricsUpdater(nsSVGTextFrame2* aFrame) : mFrame(aFrame) { }
+  static void Run(nsSVGTextFrame2* aFrame);
   void Revoke() { mFrame = nullptr; }
 private:
   nsSVGTextFrame2* mFrame;
@@ -276,7 +277,14 @@ public:
 
 
 
-  void NotifyGlyphMetricsChange();
+
+
+  void NotifyGlyphMetricsChange(uint32_t aFlags = 0);
+
+  
+
+
+  enum { ePositioningDirtyDueToMutation = 1 };
 
   
 
