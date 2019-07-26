@@ -3102,12 +3102,6 @@ IonBuilder::makePolyInlineDispatch(JSContext *cx, AutoObjectVector &targets, int
 
     
     
-    
-    for (int i = argc; i >= 0; i--)
-        fallbackBlock->push(current->peek(-((int) i + 1)));
-
-    
-    
     MBasicBlock *fallbackEndBlock = newBlock(fallbackBlock, pc, preCallResumePoint);
     if (!fallbackEndBlock)
         return NULL;
