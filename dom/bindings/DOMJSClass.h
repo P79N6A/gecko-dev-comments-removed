@@ -157,7 +157,13 @@ enum DOMObjectType {
 };
 
 typedef JSObject* (*ParentGetter)(JSContext* aCx, JS::Handle<JSObject*> aObj);
-typedef JSObject* (*ProtoGetter)(JSContext* aCx, JSObject* aGlobal);
+
+
+
+
+
+
+typedef JS::Handle<JSObject*> (*ProtoGetter)(JSContext* aCx, JSObject* aGlobal);
 
 struct DOMClass
 {

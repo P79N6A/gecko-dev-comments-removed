@@ -331,7 +331,8 @@ struct NamedConstructor
 
 
 void
-CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* protoProto,
+CreateInterfaceObjects(JSContext* cx, JSObject* global,
+                       JS::Handle<JSObject*> protoProto,
                        JSClass* protoClass, JSObject** protoCache,
                        JSClass* constructorClass, const JSNativeHolder* constructor,
                        unsigned ctorNargs, const NamedConstructor* namedConstructors,
