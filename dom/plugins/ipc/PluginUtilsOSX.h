@@ -50,12 +50,14 @@ public:
   
   
   size_t GetFrontSurfaceHeight();
+  double GetFrontSurfaceContentsScaleFactor();
   
   
   size_t GetBackSurfaceWidth();
   
   
   size_t GetBackSurfaceHeight();
+  double GetBackSurfaceContentsScaleFactor();
   IOSurfaceID GetFrontSurfaceID();
 
   bool HasBackSurface();

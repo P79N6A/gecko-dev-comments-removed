@@ -1013,6 +1013,24 @@ PluginInstanceChild::RecvWindowPosChanged(const NPRemoteEvent& event)
 #endif
 }
 
+bool
+PluginInstanceChild::RecvContentsScaleFactorChanged(const double& aContentsScaleFactor)
+{
+#ifdef XP_MACOSX
+    mContentsScaleFactor = aContentsScaleFactor;
+    if (mShContext) {
+        
+        
+        ::CGContextRelease(mShContext);
+        mShContext = nullptr;
+    }
+    return true;
+#else
+    NS_RUNTIMEABORT("ContentsScaleFactorChanged is an OSX-only message");
+    return false;
+#endif
+}
+
 #if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
 
 bool PluginInstanceChild::CreateWindow(const NPRemoteWindow& aWindow)
@@ -3957,7 +3975,9 @@ PluginInstanceChild::SwapSurfaces()
         (mDoubleBufferCARenderer.GetFrontSurfaceWidth() != 
             mDoubleBufferCARenderer.GetBackSurfaceWidth() ||
         mDoubleBufferCARenderer.GetFrontSurfaceHeight() != 
-            mDoubleBufferCARenderer.GetBackSurfaceHeight())) {
+            mDoubleBufferCARenderer.GetBackSurfaceHeight() ||
+        mDoubleBufferCARenderer.GetFrontSurfaceContentsScaleFactor() != 
+            mDoubleBufferCARenderer.GetBackSurfaceContentsScaleFactor())) {
 
         mDoubleBufferCARenderer.ClearFrontSurface();
     }
