@@ -333,12 +333,6 @@ public:
   virtual nsresult Play();
 
   
-  
-  
-  
-  virtual void SetDormantIfNecessary(bool aDormant);
-
-  
   virtual void Pause();
   
   virtual void SetVolume(double aVolume);
@@ -1005,13 +999,6 @@ public:
   
   
   nsAutoPtr<DecodedStreamData> mDecodedStream;
-
-  
-  bool mIsMetadataLoaded;
-
-  
-  
-  bool mIsDormant;
 
   
   

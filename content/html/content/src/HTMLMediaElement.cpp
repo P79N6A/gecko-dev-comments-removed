@@ -3244,11 +3244,6 @@ void HTMLMediaElement::SuspendOrResumeElement(bool aPauseElement, bool aSuspendE
 void HTMLMediaElement::NotifyOwnerDocumentActivityChanged()
 {
   nsIDocument* ownerDoc = OwnerDoc();
-
-  if (mDecoder) {
-    mDecoder->SetDormantIfNecessary(ownerDoc->Hidden());
-  }
-
   
   
   if (UseAudioChannelService() && mPlayingThroughTheAudioChannel &&

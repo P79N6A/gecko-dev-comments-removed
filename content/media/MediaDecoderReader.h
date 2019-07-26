@@ -408,13 +408,6 @@ public:
   virtual nsresult Init(MediaDecoderReader* aCloneDonor) = 0;
 
   
-  virtual bool IsWaitingMediaResources() { return false; }
-  
-  virtual bool IsDormantNeeded() { return false; }
-  
-  virtual void ReleaseMediaResources() {};
-
-  
   virtual nsresult ResetDecode();
 
   
