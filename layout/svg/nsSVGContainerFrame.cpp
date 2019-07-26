@@ -146,6 +146,7 @@ nsSVGDisplayContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                              const nsRect&           aDirtyRect,
                                              const nsDisplayListSet& aLists)
 {
+  
   if (mContent->IsSVG() &&
       !static_cast<const nsSVGElement*>(mContent)->HasValidDimensions()) {
     return;
@@ -233,6 +234,7 @@ nsSVGDisplayContainerFrame::IsSVGTransformed(gfx::Matrix *aOwnTransform,
                        HasChildrenOnlyTransform(aFromParentTransform);
   }
 
+  
   if (mContent->IsSVG()) {
     nsSVGElement *content = static_cast<nsSVGElement*>(mContent);
     nsSVGAnimatedTransformList* transformList =
@@ -399,10 +401,13 @@ nsSVGDisplayContainerFrame::GetBBoxContribution(
 
   nsIFrame* kid = mFrames.FirstChild();
   while (kid) {
+    nsIContent *content = kid->GetContent();
     nsISVGChildFrame* svgKid = do_QueryFrame(kid);
-    if (svgKid) {
+    
+    if (svgKid && (!content->IsSVG() ||
+                   static_cast<const nsSVGElement*>(content)->HasValidDimensions())) {
+
       gfxMatrix transform = gfx::ThebesMatrix(aToBBoxUserspace);
-      nsIContent *content = kid->GetContent();
       if (content->IsSVG()) {
         transform = static_cast<nsSVGElement*>(content)->
                       PrependLocalTransformsTo(transform);

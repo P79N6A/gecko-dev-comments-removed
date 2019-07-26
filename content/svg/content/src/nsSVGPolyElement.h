@@ -39,6 +39,9 @@ public:
   }
 
   
+  virtual bool HasValidDimensions() const MOZ_OVERRIDE;
+
+  
   virtual bool AttributeDefinesGeometry(const nsIAtom *aName) MOZ_OVERRIDE;
   virtual bool IsMarkable() MOZ_OVERRIDE { return true; }
   virtual void GetMarkPoints(nsTArray<nsSVGMark> *aMarks) MOZ_OVERRIDE;

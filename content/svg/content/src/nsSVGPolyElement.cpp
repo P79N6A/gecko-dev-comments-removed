@@ -63,6 +63,15 @@ nsSVGPolyElement::IsAttributeMapped(const nsIAtom* name) const
 
 
 
+ bool
+nsSVGPolyElement::HasValidDimensions() const
+{
+  return !mPoints.GetAnimValue().IsEmpty();
+}
+
+
+
+
 bool
 nsSVGPolyElement::AttributeDefinesGeometry(const nsIAtom *aName)
 {
