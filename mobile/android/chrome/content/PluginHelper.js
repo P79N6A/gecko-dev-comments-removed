@@ -154,7 +154,7 @@ var PluginHelper = {
   handlePluginBindingAttached: function (aTab, aEvent) {
     let plugin = aEvent.target;
     let doc = plugin.ownerDocument;
-    let overlay = doc.getAnonymousElementByAttribute(plugin, "class", "mainBox");
+    let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
     if (!overlay || overlay._bindingHandled) {
       return;
     }
@@ -185,7 +185,7 @@ var PluginHelper = {
           
           
           aTab.shouldShowPluginDoorhanger = false;
-          overlay.style.visibility = "visible";
+          overlay.classList.add("visible");
         }
 
         
@@ -203,14 +203,14 @@ var PluginHelper = {
 
         
         plugin.addEventListener("overflow", function(event) {
-          overlay.style.visibility = "hidden";
+          overlay.classList.remove("visible");
           PluginHelper.delayAndShowDoorHanger(aTab);
         });
         plugin.addEventListener("underflow", function(event) {
           
           
           if (!PluginHelper.isTooSmall(plugin, overlay)) {
-            overlay.style.visibility = "visible";
+            overlay.classList.add("visible");
           }
         });
 
@@ -272,7 +272,7 @@ var PluginHelper = {
         let learnMoreUrl = Services.urlFormatter.formatURLPref("app.support.baseURL");
         learnMoreUrl += "why-cant-firefox-mobile-play-flash-on-my-device";
         learnMoreLink.href = learnMoreUrl;
-        overlay.style.visibility = "visible";
+        overlay.classList.add("visible");
         break;
       }
     }

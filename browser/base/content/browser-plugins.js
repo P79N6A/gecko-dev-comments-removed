@@ -84,14 +84,60 @@ var gPluginHandler = {
     return newName;
   },
 
-  isTooSmall : function (plugin, overlay) {
+  
+
+
+  setVisibility : function (plugin, overlay, shouldShow) {
+    overlay.classList.toggle("visible", shouldShow);
+  },
+
+  
+
+
+
+
+
+
+
+  shouldShowOverlay : function (plugin, overlay) {
+    
+    
+    if (overlay.scrollWidth == 0) {
+      return true;
+    }
+
     
     let pluginRect = plugin.getBoundingClientRect();
     
     
     let overflows = (overlay.scrollWidth > pluginRect.width) ||
                     (overlay.scrollHeight - 5 > pluginRect.height);
-    return overflows;
+    if (overflows) {
+      return false;
+    }
+
+    
+    
+    let left = pluginRect.left + 2;
+    let right = pluginRect.right - 2;
+    let top = pluginRect.top + 2;
+    let bottom = pluginRect.bottom - 2;
+    let centerX = left + (right - left) / 2;
+    let centerY = top + (bottom - top) / 2;
+    let points = [[left, top],
+                   [left, bottom],
+                   [right, top],
+                   [right, bottom],
+                   [centerX, centerY]];
+
+    for (let [x, y] of points) {
+      let el = plugin.ownerDocument.elementFromPoint(x, y);
+      if (el !== plugin) {
+        return false;
+      }
+    }
+
+    return true;
   },
 
   addLinkClickCallback: function (linkNode, callbackName ) {
@@ -319,26 +365,18 @@ var gPluginHandler = {
     if (eventType != "PluginCrashed") {
       let overlay = this.getPluginUI(plugin, "main");
       if (overlay != null) {
-        if (!this.isTooSmall(plugin, overlay))
-          overlay.style.visibility = "visible";
-
-        plugin.addEventListener("overflow", function(event) {
-          overlay.style.visibility = "hidden";
-          gPluginHandler._setPluginNotificationIcon(browser);
-        });
-        plugin.addEventListener("underflow", function(event) {
-          
-          
-          if (!gPluginHandler.isTooSmall(plugin, overlay)) {
-            overlay.style.visibility = "visible";
-          }
-          gPluginHandler._setPluginNotificationIcon(browser);
-        });
+        this.setVisibility(plugin, overlay,
+                           this.shouldShowOverlay(plugin, overlay));
+        let resizeListener = (event) => {
+          this.setVisibility(plugin, overlay,
+            this.shouldShowOverlay(plugin, overlay));
+          this._setPluginNotificationIcon(browser);
+        };
+        plugin.addEventListener("overflow", resizeListener);
+        plugin.addEventListener("underflow", resizeListener);
       }
     }
 
-    
-    
     if (shouldShowNotification) {
       this._showClickToPlayNotification(browser, plugin, false);
     }
@@ -378,8 +416,9 @@ var gPluginHandler = {
 
   hideClickToPlayOverlay: function(aPlugin) {
     let overlay = this.getPluginUI(aPlugin, "main");
-    if (overlay)
-      overlay.style.visibility = "hidden";
+    if (overlay) {
+      overlay.classList.remove("visible");
+    }
   },
 
   stopPlayPreview: function PH_stopPlayPreview(aPlugin, aPlayPlugin) {
@@ -530,8 +569,9 @@ var gPluginHandler = {
     let overlay = this.getPluginUI(aPlugin, "main");
 
     if (pluginPermission == Ci.nsIPermissionManager.DENY_ACTION) {
-      if (overlay)
-        overlay.style.visibility = "hidden";
+      if (overlay) {
+        overlay.classList.remove("visible");
+      }
       return;
     }
 
@@ -929,7 +969,9 @@ var gPluginHandler = {
       if (!overlay) {
         continue;
       }
-      if (!this.isTooSmall(plugin, overlay)) {
+      let shouldShow = this.shouldShowOverlay(plugin, overlay);
+      this.setVisibility(plugin, overlay, shouldShow);
+      if (shouldShow) {
         actions.delete(info.permissionString);
         if (actions.size == 0) {
           break;
@@ -1186,22 +1228,18 @@ var gPluginHandler = {
 
     let notificationBox = gBrowser.getNotificationBox(browser);
 
-    let isShowing = true;
+    let isShowing = this.shouldShowOverlay(plugin, overlay);
 
     
-    if (this.isTooSmall(plugin, overlay)) {
+    if (!isShowing) {
       
       statusDiv.removeAttribute("status");
 
-      if (this.isTooSmall(plugin, overlay)) {
-        
-        
-        isShowing = false;
-      }
+      isShowing = this.shouldShowOverlay(plugin, overlay);
     }
+    this.setVisibility(plugin, overlay, isShowing);
 
     if (isShowing) {
-      overlay.style.visibility = "visible";
       
       
       
