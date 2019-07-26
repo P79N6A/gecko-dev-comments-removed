@@ -227,7 +227,8 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     masm.moveValue(UndefinedValue(), ebx, edi);
 
-    masm.movl(esp, ebp); 
+    masm.push(FramePointer);
+    masm.movl(esp, FramePointer); 
 
     
     {
@@ -243,7 +244,9 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     }
 
     
-    BaseIndex b = BaseIndex(ebp, esi, TimesEight, sizeof(IonRectifierFrameLayout));
+    
+    BaseIndex b = BaseIndex(FramePointer, esi, TimesEight,
+                            sizeof(IonRectifierFrameLayout) + sizeof(void*));
     masm.lea(Operand(b), ecx);
 
     
@@ -265,13 +268,14 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     }
 
     
-    masm.subl(esp, ebp);
-    masm.makeFrameDescriptor(ebp, IonFrame_Rectifier);
+    masm.lea(Operand(FramePointer, sizeof(void*)), ebx);
+    masm.subl(esp, ebx);
+    masm.makeFrameDescriptor(ebx, IonFrame_Rectifier);
 
     
     masm.push(edx); 
     masm.push(eax); 
-    masm.push(ebp); 
+    masm.push(ebx); 
 
     
     
@@ -282,12 +286,16 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     masm.call(eax);
 
     
-    masm.pop(ebp);            
-    masm.shrl(Imm32(FRAMESIZE_SHIFT), ebp); 
+    masm.pop(ebx);            
+    masm.shrl(Imm32(FRAMESIZE_SHIFT), ebx); 
     masm.pop(edi);            
     masm.pop(edi);            
-    masm.addl(ebp, esp);      
 
+    
+    BaseIndex unwind = BaseIndex(esp, ebx, TimesOne, -sizeof(void*));
+    masm.lea(Operand(unwind), esp);
+
+    masm.pop(FramePointer);
     masm.ret();
 
     Linker linker(masm);

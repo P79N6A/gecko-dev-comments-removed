@@ -209,6 +209,8 @@ IonCompartment::generateInvalidator(JSContext *cx)
 IonCode *
 IonCompartment::generateArgumentsRectifier(JSContext *cx)
 {
+    
+
     MacroAssembler masm(cx);
 
     
@@ -225,7 +227,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     masm.moveValue(UndefinedValue(), r10);
 
-    masm.movq(rsp, rbp); 
+    masm.movq(rsp, r9); 
 
     
     {
@@ -240,7 +242,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     }
 
     
-    BaseIndex b = BaseIndex(rbp, r8, TimesEight, sizeof(IonRectifierFrameLayout));
+    BaseIndex b = BaseIndex(r9, r8, TimesEight, sizeof(IonRectifierFrameLayout));
     masm.lea(Operand(b), rcx);
 
     
@@ -261,13 +263,13 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     }
 
     
-    masm.subq(rsp, rbp);
-    masm.makeFrameDescriptor(rbp, IonFrame_Rectifier);
+    masm.subq(rsp, r9);
+    masm.makeFrameDescriptor(r9, IonFrame_Rectifier);
 
     
     masm.push(rdx); 
     masm.push(rax); 
-    masm.push(rbp); 
+    masm.push(r9); 
 
     
     
@@ -278,11 +280,11 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     masm.call(rax);
 
     
-    masm.pop(rbp);            
-    masm.shrq(Imm32(FRAMESIZE_SHIFT), rbp);
+    masm.pop(r9);             
+    masm.shrq(Imm32(FRAMESIZE_SHIFT), r9);
     masm.pop(r11);            
     masm.pop(r11);            
-    masm.addq(rbp, rsp);      
+    masm.addq(r9, rsp);       
 
     masm.ret();
 

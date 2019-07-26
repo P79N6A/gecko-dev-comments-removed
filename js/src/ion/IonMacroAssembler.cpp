@@ -435,6 +435,8 @@ void
 MacroAssembler::performOsr()
 {
     GeneralRegisterSet regs = GeneralRegisterSet::All();
+    if (FramePointer != InvalidReg && sps && sps->enabled())
+        regs.take(FramePointer);
 
     
     regs.take(OsrFrameReg);
