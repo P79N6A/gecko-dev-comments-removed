@@ -586,7 +586,8 @@ WebRtc_Word32 DeviceInfoDS::CreateCapabilityMap(
 
             if (hrVC == S_OK)
             {
-                LONGLONG *maxFps; 
+                LONGLONG *frameDurationList;
+                LONGLONG maxFPS;
                 long listSize;
                 SIZE size;
                 size.cx = capability->width;
@@ -600,11 +601,13 @@ WebRtc_Word32 DeviceInfoDS::CreateCapabilityMap(
                 hrVC = videoControlConfig->GetFrameRateList(outputCapturePin,
                                                             tmp, size,
                                                             &listSize,
-                                                            &maxFps);
+                                                            &frameDurationList);
 
-                if (hrVC == S_OK && listSize > 0)
+                
+                
+                if (hrVC == S_OK && listSize > 0 &&
+                    0 != (maxFPS = GetMaxOfFrameArray(frameDurationList, listSize)))
                 {
-                    LONGLONG maxFPS = GetMaxOfFrameArray(maxFps, listSize);
                     capability->maxFPS = static_cast<int> (10000000
                                                            / maxFPS);
                     capability->supportFrameRateControl = true;
