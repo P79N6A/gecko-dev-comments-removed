@@ -668,7 +668,8 @@ NativeRegExpMacroAssembler::CheckNotBackReference(int start_reg, Label* on_no_ma
     Label loop;
     masm.bind(&loop);
     if (mode_ == ASCII) {
-        MOZ_ASSUME_UNREACHABLE("Ascii loading not implemented");
+        masm.load8ZeroExtend(Address(current_character, 0), temp0);
+        masm.load8ZeroExtend(Address(temp1, 0), temp2);
     } else {
         JS_ASSERT(mode_ == JSCHAR);
         masm.load16ZeroExtend(Address(current_character, 0), temp0);
@@ -1147,8 +1148,21 @@ NativeRegExpMacroAssembler::CheckSpecialCharacterClass(jschar type, Label* on_no
     switch (type) {
       case 's':
         
-        if (mode_ == ASCII)
-            MOZ_ASSUME_UNREACHABLE("Ascii version not implemented");
+        if (mode_ == ASCII) {
+            
+            Label success;
+            masm.branch32(Assembler::Equal, current_character, Imm32(' '), &success);
+
+            
+            masm.computeEffectiveAddress(Address(current_character, -'\t'), temp0);
+            masm.branch32(Assembler::BelowOrEqual, temp0, Imm32('\r' - '\t'), &success);
+
+            
+            masm.branch32(Assembler::NotEqual, temp0, Imm32(0x00a0 - '\t'), branch);
+
+            masm.bind(&success);
+            return true;
+        }
         return false;
       case 'S':
         
