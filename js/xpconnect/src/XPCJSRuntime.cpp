@@ -1593,47 +1593,19 @@ private:
     }
 };
 
-
-
-
-
-
-
-
-class RedundantJSMainRuntimeCompartmentsSystemReporter MOZ_FINAL : public MemoryUniReporter
+static int64_t
+JSMainRuntimeCompartmentsSystemDistinguishedAmount()
 {
-public:
-    
-    
-    RedundantJSMainRuntimeCompartmentsSystemReporter()
-      : MemoryUniReporter("redundant/js-main-runtime-compartments/system",
-                          KIND_OTHER, UNITS_COUNT, "")
-    {}
-private:
-    int64_t Amount() MOZ_OVERRIDE
-    {
-        JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
-        return JS::SystemCompartmentCount(rt);
-    }
-};
+    JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
+    return JS::SystemCompartmentCount(rt);
+}
 
-class RedundantJSMainRuntimeCompartmentsUserReporter MOZ_FINAL : public MemoryUniReporter
+static int64_t
+JSMainRuntimeCompartmentsUserDistinguishedAmount()
 {
-public:
-    
-    
-    RedundantJSMainRuntimeCompartmentsUserReporter()
-      : MemoryUniReporter("redundant/js-main-runtime-compartments/user",
-                          KIND_OTHER, UNITS_COUNT,
-"The number of JavaScript compartments for user code in the main JSRuntime.")
-    {}
-private:
-    int64_t Amount() MOZ_OVERRIDE
-    {
-        JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
-        return JS::UserCompartmentCount(rt);
-    }
-};
+    JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
+    return JS::UserCompartmentCount(rt);
+}
 
 
 class JSMainRuntimeTemporaryPeakReporter MOZ_FINAL : public MemoryUniReporter
@@ -3056,11 +3028,12 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     if (!xpc_LocalizeRuntime(runtime))
         NS_RUNTIMEABORT("xpc_LocalizeRuntime failed.");
 
+    
     NS_RegisterMemoryReporter(new JSMainRuntimeGCHeapReporter());
-    NS_RegisterMemoryReporter(new RedundantJSMainRuntimeCompartmentsSystemReporter());
-    NS_RegisterMemoryReporter(new RedundantJSMainRuntimeCompartmentsUserReporter());
     NS_RegisterMemoryReporter(new JSMainRuntimeTemporaryPeakReporter());
     NS_RegisterMemoryReporter(new JSMainRuntimeCompartmentsReporter);
+    RegisterJSMainRuntimeCompartmentsSystemDistinguishedAmount(JSMainRuntimeCompartmentsSystemDistinguishedAmount);
+    RegisterJSMainRuntimeCompartmentsUserDistinguishedAmount(JSMainRuntimeCompartmentsUserDistinguishedAmount);
 
     
 #ifdef DEBUG
