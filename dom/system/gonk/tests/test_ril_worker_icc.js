@@ -1517,6 +1517,64 @@ add_test(function test_stk_terminal_response() {
 
 
 
+add_test(function test_stk_event_download_language_selection() {
+  let worker = newUint8SupportOutgoingIndexWorker();
+  let buf = worker.Buf;
+  let pduHelper = worker.GsmPDUHelper;
+
+  buf.sendParcel = function () {
+    
+    do_check_eq(this.readUint32(), REQUEST_STK_SEND_ENVELOPE_COMMAND)
+
+    
+    this.readUint32();
+
+    
+    
+    
+    do_check_eq(this.readUint32(), 26);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), BER_EVENT_DOWNLOAD_TAG);
+
+    
+    
+    
+    do_check_eq(pduHelper.readHexOctet(), 11);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 2);
+    do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
+    do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_LANGUAGE_SELECTION);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_LANGUAGE);
+    do_check_eq(pduHelper.readHexOctet(), 2);
+    do_check_eq(pduHelper.read8BitUnpackedToString(2), "zh");
+
+    run_next_test();
+  };
+
+  let event = {
+    eventType: STK_EVENT_TYPE_LANGUAGE_SELECTION,
+    language: "zh"
+  };
+  worker.RIL.sendStkEventDownload({
+    event: event
+  });
+});
+
+
+
+
 add_test(function test_stk_event_download_idle_screen_available() {
   let worker = newUint8SupportOutgoingIndexWorker();
   let buf = worker.Buf;
