@@ -7,6 +7,7 @@ package org.mozilla.gecko;
 
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import org.json.JSONObject;
 
@@ -75,17 +76,25 @@ public class LightweightTheme implements GeckoEventListener {
         try {
             if (event.equals("LightweightTheme:Update")) {
                 JSONObject lightweightTheme = message.getJSONObject("data");
-                String headerURL = lightweightTheme.getString("headerURL"); 
-                int mark = headerURL.indexOf('?');
-                if (mark != -1)
-                    headerURL = headerURL.substring(0, mark);
+                final String headerURL = lightweightTheme.getString("headerURL"); 
 
                 
-                final Bitmap bitmap = BitmapUtils.decodeUrl(headerURL);
-                mHandler.post(new Runnable() {
+                ThreadUtils.postToBackgroundThread(new Runnable() {
                     @Override
                     public void run() {
-                        setLightweightTheme(bitmap);
+                        String croppedURL = headerURL;
+                        int mark = croppedURL.indexOf('?');
+                        if (mark != -1)
+                            croppedURL = croppedURL.substring(0, mark);
+
+                        
+                        final Bitmap bitmap = BitmapUtils.decodeUrl(croppedURL);
+                        mHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                setLightweightTheme(bitmap);
+                            }
+                        });
                     }
                 });
             } else if (event.equals("LightweightTheme:Disable")) {
