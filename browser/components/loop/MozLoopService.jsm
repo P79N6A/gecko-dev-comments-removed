@@ -513,5 +513,28 @@ this.MozLoopService = {
     } catch (ex) {
       return "en-US";
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  getLoopCharPref: function(prefName) {
+    try {
+      return Services.prefs.getCharPref("loop." + prefName);
+    } catch (ex) {
+      console.log("getLoopCharPref had trouble getting " + prefName +
+        "; exception: " + ex);
+      return null;
+    }
   }
 };
