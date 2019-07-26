@@ -660,8 +660,8 @@ public class Tabs implements GeckoEventListener {
 
 
 
-    public void loadUrl(String url) {
-        loadUrl(url, LOADURL_NONE);
+    public Tab loadUrl(String url) {
+        return loadUrl(url, LOADURL_NONE);
     }
 
     
@@ -731,11 +731,32 @@ public class Tabs implements GeckoEventListener {
 
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Load", args.toString()));
 
-        if ((added != null) && !delayLoad && !background) {
+        if (added == null) {
+            return null;
+        }
+
+        if (!delayLoad && !background) {
             selectTab(added.getId());
         }
 
+        
+        if (AboutPages.isDefaultIconPage(url)) {
+            Log.d(LOGTAG, "Setting about: tab favicon inline.");
+            added.updateFavicon(getAboutPageFavicon(url));
+        }
+
         return added;
+    }
+
+    
+
+
+
+
+
+    private Bitmap getAboutPageFavicon(final String url) {
+        int faviconSize = Math.round(mAppContext.getResources().getDimension(R.dimen.browser_toolbar_favicon_size));
+        return Favicons.getCachedFaviconForSize(url, faviconSize);
     }
 
     

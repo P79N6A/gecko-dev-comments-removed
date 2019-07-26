@@ -6,23 +6,28 @@
 package org.mozilla.gecko.favicons;
 
 import org.mozilla.gecko.AboutPages;
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.favicons.cache.FaviconCache;
 import org.mozilla.gecko.gfx.BitmapUtils;
-import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.util.GeckoJarReader;
 import org.mozilla.gecko.util.NonEvictingLruCache;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.text.TextUtils;
 import android.util.Log;
 
+import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,6 +36,9 @@ import java.util.Set;
 
 public class Favicons {
     private static final String LOGTAG = "GeckoFavicons";
+
+    
+    private static final String BUILT_IN_FAVICON_URL = "about:favicon";
 
     
     public static final int FAVICON_CACHE_SIZE_BYTES = 512 * 1024;
@@ -103,6 +111,20 @@ public class Favicons {
 
 
 
+    public static Bitmap getCachedFaviconForSize(final String pageURL, int targetSize) {
+        final String faviconURL = sPageURLMappings.get(pageURL);
+        if (faviconURL == null) {
+            return null;
+        }
+        return getSizedFaviconFromCache(faviconURL, targetSize);
+    }
+
+    
+
+
+
+
+
 
 
 
@@ -115,6 +137,11 @@ public class Favicons {
     public static int getFaviconForSize(String pageURL, String faviconURL, int targetSize, int flags, OnFaviconLoadedListener listener) {
         
         String cacheURL = faviconURL;
+        if (cacheURL == null) {
+            cacheURL = sPageURLMappings.get(pageURL);
+        }
+
+        
         if (cacheURL == null)  {
             cacheURL = guessDefaultFaviconURL(pageURL);
         }
@@ -328,16 +355,49 @@ public class Favicons {
 
 
     public static void attachToContext(Context context) throws Exception {
+        final Resources res = context.getResources();
         sContext = context;
 
         
-        sDefaultFavicon = BitmapFactory.decodeResource(context.getResources(), R.drawable.favicon);
+        sDefaultFavicon = BitmapFactory.decodeResource(res, R.drawable.favicon);
         if (sDefaultFavicon == null) {
             throw new Exception("Null default favicon was returned from the resources system!");
         }
 
-        sDefaultFaviconSize = context.getResources().getDimensionPixelSize(R.dimen.favicon_bg);
-        sFaviconsCache = new FaviconCache(FAVICON_CACHE_SIZE_BYTES, context.getResources().getDimensionPixelSize(R.dimen.favicon_largest_interesting_size));
+        sDefaultFaviconSize = res.getDimensionPixelSize(R.dimen.favicon_bg);
+        sFaviconsCache = new FaviconCache(FAVICON_CACHE_SIZE_BYTES, res.getDimensionPixelSize(R.dimen.favicon_largest_interesting_size));
+
+        
+        for (String url : AboutPages.getDefaultIconPages()) {
+            sPageURLMappings.putWithoutEviction(url, BUILT_IN_FAVICON_URL);
+        }
+
+        
+        
+        ArrayList<Bitmap> toInsert = new ArrayList<Bitmap>(2);
+        toInsert.add(loadBrandingBitmap(context, "favicon64.png"));
+        toInsert.add(loadBrandingBitmap(context, "favicon32.png"));
+        putFaviconsInMemCache(BUILT_IN_FAVICON_URL, toInsert.iterator());
+    }
+
+    
+
+
+
+    private static String getBrandingBitmapPath(Context context, String name) {
+        final String apkPath = context.getPackageResourcePath();
+        return "jar:jar:" + new File(apkPath).toURI() + "!/" +
+               AppConstants.OMNIJAR_NAME + "!/" +
+               "chrome/chrome/content/branding/" + name;
+    }
+
+    private static Bitmap loadBrandingBitmap(Context context, String name) {
+        Bitmap b = GeckoJarReader.getBitmap(context.getResources(),
+                                            getBrandingBitmapPath(context, name));
+        if (b == null) {
+            throw new IllegalStateException("Bitmap " + name + " missing from JAR!");
+        }
+        return b;
     }
 
     

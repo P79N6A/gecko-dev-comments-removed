@@ -39,5 +39,38 @@ public class AboutPages {
         }
         return url.startsWith(READER);
     }
+
+    private static final String[] DEFAULT_ICON_PAGES = new String[] {
+        HOME,
+
+        ADDONS,
+        CONFIG,
+        DOWNLOADS,
+        FIREFOX,
+        HEALTHREPORT,
+        UPDATER
+    };
+
+    
+
+
+    public static String[] getDefaultIconPages() {
+        return DEFAULT_ICON_PAGES;
+    }
+
+    public static boolean isDefaultIconPage(final String url) {
+        if (url == null ||
+            !url.startsWith("about:")) {
+            return false;
+        }
+
+        
+        for (int i = 0; i < DEFAULT_ICON_PAGES.length; ++i) {
+            if (DEFAULT_ICON_PAGES[i].equals(url)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 

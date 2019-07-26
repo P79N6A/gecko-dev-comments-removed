@@ -115,8 +115,12 @@ public class BrowserToolbar extends GeckoRelativeLayout
     private ShapedButton mTabs;
     private ImageButton mBack;
     private ImageButton mForward;
-    private ImageButton mFavicon;
     private ImageButton mStop;
+
+    
+    private Bitmap mLastFavicon;
+    private ImageButton mFavicon;
+
     private ImageButton mSiteSecurity;
     private PageActionLayout mPageActionLayout;
     private Animation mProgressSpinner;
@@ -428,7 +432,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
         mFavicon.setOnClickListener(faviconListener);
         mSiteSecurity.setOnClickListener(faviconListener);
-        
+
         mStop.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -741,11 +745,14 @@ public class BrowserToolbar extends GeckoRelativeLayout
     }
 
     public void setProgressVisibility(boolean visible) {
+        Log.d(LOGTAG, "setProgressVisibility: " + visible);
         
         
         
         if (visible) {
             mFavicon.setImageResource(R.drawable.progress_spinner);
+            mLastFavicon = null;
+
             
             if (!mSpinnerVisible) {
                 setPageActionVisibility(true);
@@ -870,13 +877,13 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
     
     private void updateTitle() {
-        Tab tab = Tabs.getInstance().getSelectedTab();
+        final Tab tab = Tabs.getInstance().getSelectedTab();
         
         if (tab == null || tab.isEnteringReaderMode()) {
             return;
         }
 
-        String url = tab.getURL();
+        final String url = tab.getURL();
 
         if (!isEditing()) {
             mUrlEditLayout.setText(url);
@@ -923,8 +930,17 @@ public class BrowserToolbar extends GeckoRelativeLayout
     }
 
     private void setFavicon(Bitmap image) {
-        if (Tabs.getInstance().getSelectedTab().getState() == Tab.STATE_LOADING)
+        Log.d(LOGTAG, "setFavicon(" + image + ")");
+        if (Tabs.getInstance().getSelectedTab().getState() == Tab.STATE_LOADING) {
             return;
+        }
+
+        if (image == mLastFavicon) {
+            Log.d(LOGTAG, "Ignoring favicon set: new favicon is identical to previous favicon.");
+            return;
+        }
+
+        mLastFavicon = image;     
 
         if (image != null) {
             image = Bitmap.createScaledBitmap(image, mFaviconSize, mFaviconSize, false);
@@ -933,7 +949,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
             mFavicon.setImageDrawable(null);
         }
     }
-    
+
     private void setSecurityMode(String mode) {
         int imageLevel = SiteIdentityPopup.getSecurityImageLevel(mode);
         mSiteSecurity.setImageLevel(imageLevel);
