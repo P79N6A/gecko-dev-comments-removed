@@ -1763,8 +1763,12 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     else {
       
       
-      logicalHeight = pfd->mBounds.height + pfd->mMargin.top +
-        pfd->mMargin.bottom;
+      logicalHeight = pfd->mBounds.height + pfd->mMargin.TopBottom();
+      if (logicalHeight < 0 &&
+          mPresContext->CompatibilityMode() == eCompatibility_NavQuirks) {
+        pfd->mAscent -= logicalHeight;
+        logicalHeight = 0;
+      }
     }
 
     
