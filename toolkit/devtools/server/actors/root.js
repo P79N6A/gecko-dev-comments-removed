@@ -8,6 +8,8 @@
 
 
 
+Cu.import("resource://gre/modules/Services.jsm");
+
 
 
 
@@ -330,7 +332,7 @@ RootActor.prototype = {
 
   preNest: function() {
     
-    let e = windowMediator.getEnumerator(null);
+    let e = Services.wm.getEnumerator(null);
     while (e.hasMoreElements()) {
       let win = e.getNext();
       let windowUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -345,7 +347,7 @@ RootActor.prototype = {
 
   postNest: function(aNestData) {
     
-    let e = windowMediator.getEnumerator(null);
+    let e = Services.wm.getEnumerator(null);
     while (e.hasMoreElements()) {
       let win = e.getNext();
       let windowUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
