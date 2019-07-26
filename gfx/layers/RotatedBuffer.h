@@ -158,10 +158,10 @@ public:
   };
 
   RotatedContentBuffer(BufferSizePolicy aBufferSizePolicy)
-    : mBufferProvider(nullptr)
+    : mDeprecatedBufferProvider(nullptr)
+    , mDeprecatedBufferProviderOnWhite(nullptr)
+    , mBufferProvider(nullptr)
     , mBufferProviderOnWhite(nullptr)
-    , mNewBufferProvider(nullptr)
-    , mNewBufferProviderOnWhite(nullptr)
     , mBufferSizePolicy(aBufferSizePolicy)
   {
     MOZ_COUNT_CTOR(RotatedContentBuffer);
@@ -179,10 +179,10 @@ public:
   {
     mDTBuffer = nullptr;
     mDTBufferOnWhite = nullptr;
+    mDeprecatedBufferProvider = nullptr;
+    mDeprecatedBufferProviderOnWhite = nullptr;
     mBufferProvider = nullptr;
     mBufferProviderOnWhite = nullptr;
-    mNewBufferProvider = nullptr;
-    mNewBufferProviderOnWhite = nullptr;
     mBufferRect.SetEmpty();
   }
 
@@ -295,51 +295,51 @@ protected:
 
 
 
-  void SetBufferProvider(DeprecatedTextureClient* aClient)
-  {
-    
-    
-    MOZ_ASSERT((!aClient || !mDTBuffer) && !mNewBufferProvider);
-
-    mBufferProvider = aClient;
-    if (!mBufferProvider) {
-      mDTBuffer = nullptr;
-    } 
-  }
-  
-  void SetBufferProviderOnWhite(DeprecatedTextureClient* aClient)
-  {
-    
-    
-    MOZ_ASSERT((!aClient || !mDTBufferOnWhite) && !mNewBufferProviderOnWhite);
-
-    mBufferProviderOnWhite = aClient;
-    if (!mBufferProviderOnWhite) {
-      mDTBufferOnWhite = nullptr;
-    }
-  }
-
-  
-  void SetNewBufferProvider(TextureClient* aClient)
+  void SetDeprecatedBufferProvider(DeprecatedTextureClient* aClient)
   {
     
     
     MOZ_ASSERT((!aClient || !mDTBuffer) && !mBufferProvider);
 
-    mNewBufferProvider = aClient;
-    if (!mNewBufferProvider) {
+    mDeprecatedBufferProvider = aClient;
+    if (!mDeprecatedBufferProvider) {
       mDTBuffer = nullptr;
-    }
+    } 
   }
-
-  void SetNewBufferProviderOnWhite(TextureClient* aClient)
+  
+  void SetDeprecatedBufferProviderOnWhite(DeprecatedTextureClient* aClient)
   {
     
     
     MOZ_ASSERT((!aClient || !mDTBufferOnWhite) && !mBufferProviderOnWhite);
 
-    mNewBufferProviderOnWhite = aClient;
-    if (!mNewBufferProviderOnWhite) {
+    mDeprecatedBufferProviderOnWhite = aClient;
+    if (!mDeprecatedBufferProviderOnWhite) {
+      mDTBufferOnWhite = nullptr;
+    }
+  }
+
+  
+  void SetBufferProvider(TextureClient* aClient)
+  {
+    
+    
+    MOZ_ASSERT((!aClient || !mDTBuffer) && !mDeprecatedBufferProvider);
+
+    mBufferProvider = aClient;
+    if (!mBufferProvider) {
+      mDTBuffer = nullptr;
+    }
+  }
+
+  void SetBufferProviderOnWhite(TextureClient* aClient)
+  {
+    
+    
+    MOZ_ASSERT((!aClient || !mDTBufferOnWhite) && !mDeprecatedBufferProviderOnWhite);
+
+    mBufferProviderOnWhite = aClient;
+    if (!mBufferProviderOnWhite) {
       mDTBufferOnWhite = nullptr;
     } 
   }
@@ -379,10 +379,10 @@ protected:
 
 
 
-  DeprecatedTextureClient* mBufferProvider;
-  DeprecatedTextureClient* mBufferProviderOnWhite;
-  TextureClient* mNewBufferProvider;
-  TextureClient* mNewBufferProviderOnWhite;
+  DeprecatedTextureClient* mDeprecatedBufferProvider;
+  DeprecatedTextureClient* mDeprecatedBufferProviderOnWhite;
+  TextureClient* mBufferProvider;
+  TextureClient* mBufferProviderOnWhite;
 
   BufferSizePolicy      mBufferSizePolicy;
 };
