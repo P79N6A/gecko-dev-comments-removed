@@ -366,7 +366,7 @@ js::ObjectImpl::writeBarrierPre(ObjectImpl *obj)
 
 
 
-    if (uintptr_t(obj) < 32)
+    if (IsNullTaggedPointer(obj))
         return;
 
     Zone *zone = obj->zone();
@@ -383,7 +383,7 @@ js::ObjectImpl::writeBarrierPre(ObjectImpl *obj)
 js::ObjectImpl::writeBarrierPost(ObjectImpl *obj, void *addr)
 {
 #ifdef JSGC_GENERATIONAL
-    if (uintptr_t(obj) < 32)
+    if (IsNullTaggedPointer(obj))
         return;
     obj->runtime()->gcStoreBuffer.putCell((Cell **)addr);
 #endif
