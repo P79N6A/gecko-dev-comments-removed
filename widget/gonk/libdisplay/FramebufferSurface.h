@@ -51,8 +51,9 @@ public:
     
     status_t setReleaseFenceFd(int fenceFd);
 
+    virtual int GetPrevFBAcquireFd();
+
     buffer_handle_t lastHandle;
-    int lastFenceFD;
 private:
     virtual ~FramebufferSurface() { }; 
 
@@ -75,6 +76,8 @@ private:
     
     
     sp<GraphicBuffer> mCurrentBuffer;
+
+    android::sp<android::Fence> mPrevFBAcquireFence;
 };
 
 

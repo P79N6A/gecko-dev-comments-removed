@@ -121,6 +121,7 @@ struct Effect;
 struct EffectChain;
 class Image;
 class ISurfaceAllocator;
+class Layer;
 class NewTextureSource;
 class DataTextureSource;
 class CompositingRenderTarget;
@@ -358,6 +359,8 @@ public:
 
 
   virtual void EndFrame() = 0;
+
+  virtual void SetFBAcquireFence(Layer* aLayer) {}
 
   
 
