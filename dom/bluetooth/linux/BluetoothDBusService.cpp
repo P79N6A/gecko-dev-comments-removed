@@ -2423,6 +2423,20 @@ BluetoothDBusService::SendFile(const nsAString& aDeviceAddress,
   return true;
 }
 
+bool
+BluetoothDBusService::StopSendingFile(const nsAString& aDeviceAddress,
+                                      BluetoothReplyRunnable* aRunnable)
+{
+  
+  
+  
+  
+  BluetoothOppManager* opp = BluetoothOppManager::Get();
+  opp->StopSendingFile(aRunnable);
+
+  return true;
+}
+
 class ListenBluetoothSocketRunnable : public nsRunnable
 {
 public:
