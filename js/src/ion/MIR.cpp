@@ -912,6 +912,12 @@ MBinaryArithInstruction::infer(JSContext *cx, const TypeOracle::BinaryTypes &b)
     MIRType rval = MIRTypeFromValueType(b.outTypes->getKnownTypeTag(cx));
 
     
+    if (rval != MIRType_Int32 && rval != MIRType_Double) {
+        specialization_ = MIRType_None;
+        return;
+    }
+
+    
     if (!lhsCoerces || !rhsCoerces) {
         specialization_ = MIRType_None;
         return;
@@ -941,7 +947,6 @@ MBinaryArithInstruction::infer(JSContext *cx, const TypeOracle::BinaryTypes &b)
         return;
     }
 
-    JS_ASSERT(rval == MIRType_Int32 || rval == MIRType_Double);
     specialization_ = rval;
 
     setCommutative();
