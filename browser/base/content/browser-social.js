@@ -882,12 +882,6 @@ var SocialToolbar = {
 var SocialSidebar = {
   
   init: function SocialSidebar_init() {
-    let sbrowser = document.getElementById("social-sidebar-browser");
-    
-    sbrowser.docShell.isAppTab = true;
-    sbrowser.webProgress.addProgressListener(new SocialErrorListener("sidebar"),
-                                             Ci.nsIWebProgress.NOTIFY_STATE_REQUEST |
-                                             Ci.nsIWebProgress.NOTIFY_LOCATION);
     this.updateSidebar();
   },
 
@@ -917,6 +911,7 @@ var SocialSidebar = {
   },
 
   updateSidebar: function SocialSidebar_updateSidebar() {
+    clearTimeout(this._unloadTimeoutId);
     
     let command = document.getElementById("Social:ToggleSidebar");
     command.setAttribute("hidden", this.canShow ? "false" : "true");
@@ -933,14 +928,25 @@ var SocialSidebar = {
     if (hideSidebar) {
       this.dispatchEvent("socialFrameHide");
       
+      
+      
       if (!this.canShow) {
-        sbrowser.removeAttribute("origin");
-        sbrowser.setAttribute("src", "about:blank");
+        this.unloadSidebar();
+      } else {
+        this._unloadTimeoutId = setTimeout(
+          this.unloadSidebar,
+          Services.prefs.getIntPref("social.sidebar.unload_timeout_ms")
+        );
       }
     } else {
       
       if (sbrowser.getAttribute("origin") != Social.provider.origin) {
         sbrowser.setAttribute("origin", Social.provider.origin);
+        
+        sbrowser.docShell.isAppTab = true;
+        sbrowser.webProgress.addProgressListener(new SocialErrorListener("sidebar"),
+                                                 Ci.nsIWebProgress.NOTIFY_STATE_REQUEST |
+                                                 Ci.nsIWebProgress.NOTIFY_LOCATION);
         sbrowser.setAttribute("src", Social.provider.sidebarURL);
         sbrowser.addEventListener("load", function sidebarOnShow() {
           sbrowser.removeEventListener("load", sidebarOnShow);
@@ -954,6 +960,25 @@ var SocialSidebar = {
       }
     }
   },
+
+  unloadSidebar: function SocialSidebar_unloadSidebar() {
+    let sbrowser = document.getElementById("social-sidebar-browser");
+    if (!sbrowser.hasAttribute("origin"))
+      return;
+
+    
+    
+    
+    let container = sbrowser.parentNode;
+    container.removeChild(sbrowser);
+    sbrowser.removeAttribute("origin");
+    sbrowser.removeAttribute("src");
+    container.appendChild(sbrowser);
+
+    SocialFlyout.unload();
+  },
+
+  _unloadTimeoutId: 0,
 
   setSidebarErrorMessage: function() {
     let sbrowser = document.getElementById("social-sidebar-browser");
