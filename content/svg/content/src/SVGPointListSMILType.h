@@ -46,9 +46,7 @@ protected:
 
 private:
   
-  
-  SVGPointListSMILType() {}
-  ~SVGPointListSMILType() {}
+  MOZ_CONSTEXPR SVGPointListSMILType() {}
 };
 
 } 

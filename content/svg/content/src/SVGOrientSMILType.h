@@ -59,9 +59,7 @@ protected:
 
 private:
   
-  
-  SVGOrientSMILType()  {}
-  ~SVGOrientSMILType() {}
+  MOZ_CONSTEXPR SVGOrientSMILType() {}
 };
 
 } 

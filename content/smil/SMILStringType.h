@@ -42,9 +42,7 @@ protected:
 
 private:
   
-  
-  SMILStringType()  {}
-  ~SMILStringType() {}
+  MOZ_CONSTEXPR SMILStringType() {}
 };
 
 } 

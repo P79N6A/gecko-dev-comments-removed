@@ -39,9 +39,7 @@ protected:
 
 private:
   
-  
-  SVGNumberPairSMILType()  {}
-  ~SVGNumberPairSMILType() {}
+  MOZ_CONSTEXPR SVGNumberPairSMILType() {}
 };
 
 } 

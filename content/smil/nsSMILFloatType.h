@@ -40,9 +40,7 @@ protected:
 
 private:
   
-  
-  nsSMILFloatType()  {}
-  ~nsSMILFloatType() {}
+  MOZ_CONSTEXPR nsSMILFloatType() {}
 };
 
 #endif 

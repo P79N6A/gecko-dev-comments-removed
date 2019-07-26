@@ -72,9 +72,7 @@ public:
 
 private:
   
-  
-  SVGMotionSMILType()  {}
-  ~SVGMotionSMILType() {}
+  MOZ_CONSTEXPR SVGMotionSMILType() {}
 };
 
 } 

@@ -122,9 +122,7 @@ public:
 
 private:
   
-  
-  SVGTransformListSMILType() {}
-  ~SVGTransformListSMILType() {}
+  MOZ_CONSTEXPR SVGTransformListSMILType() {}
 };
 
 } 

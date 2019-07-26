@@ -43,9 +43,7 @@ protected:
 
 private:
   
-  
-  nsSMILNullType()  {}
-  ~nsSMILNullType() {}
+  MOZ_CONSTEXPR nsSMILNullType() {}
 };
 
 #endif 

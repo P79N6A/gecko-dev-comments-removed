@@ -42,9 +42,7 @@ protected:
 
 private:
   
-  
-  SMILEnumType()  {}
-  ~SMILEnumType() {}
+  MOZ_CONSTEXPR SMILEnumType() {}
 };
 
 } 

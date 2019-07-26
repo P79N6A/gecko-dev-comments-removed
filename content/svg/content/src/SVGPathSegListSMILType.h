@@ -50,9 +50,7 @@ protected:
 
 private:
   
-  
-  SVGPathSegListSMILType() {}
-  ~SVGPathSegListSMILType() {}
+  MOZ_CONSTEXPR SVGPathSegListSMILType() {}
 };
 
 } 

@@ -6,6 +6,7 @@
 #ifndef NS_ISMILTYPE_H_
 #define NS_ISMILTYPE_H_
 
+#include "mozilla/Attributes.h"
 #include "nscore.h"
 
 class nsSMILValue;
@@ -207,13 +208,6 @@ protected:
                                const nsSMILValue& aEndVal,
                                double aUnitDistance,
                                nsSMILValue& aResult) const = 0;
-
-  
-
-
-
-
-  ~nsISMILType() {}
 };
 
 #endif 

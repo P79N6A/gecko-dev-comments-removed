@@ -44,9 +44,7 @@ protected:
 
 private:
   
-  
-  SVGIntegerPairSMILType()  {}
-  ~SVGIntegerPairSMILType() {}
+  MOZ_CONSTEXPR SVGIntegerPairSMILType() {}
 };
 
 } 

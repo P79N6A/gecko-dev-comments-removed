@@ -99,9 +99,7 @@ public:
 
 private:
   
-  
-  nsSMILCSSValueType()  {}
-  ~nsSMILCSSValueType() {}
+  MOZ_CONSTEXPR nsSMILCSSValueType() {}
 };
 
 #endif 

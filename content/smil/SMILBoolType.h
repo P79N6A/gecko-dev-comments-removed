@@ -41,9 +41,7 @@ protected:
 
 private:
   
-  
-  SMILBoolType()  {}
-  ~SMILBoolType() {}
+  MOZ_CONSTEXPR SMILBoolType() {}
 };
 
 } 
