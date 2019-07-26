@@ -128,6 +128,9 @@ struct gfxFontStyle {
     bool printerFont : 1;
 
     
+    bool useGrayscaleAntialiasing : 1;
+
+    
     uint8_t style : 2;
 
     
@@ -153,6 +156,7 @@ struct gfxFontStyle {
             (style == other.style) &&
             (systemFont == other.systemFont) &&
             (printerFont == other.printerFont) &&
+            (useGrayscaleAntialiasing == other.useGrayscaleAntialiasing) &&
             (weight == other.weight) &&
             (stretch == other.stretch) &&
             (language == other.language) &&
