@@ -151,10 +151,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                 ThreadUtils.postToUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Tab tab = Tabs.getInstance().getSelectedTab();
-                        if (tab != null) {
-                            setTitle(tab.getDisplayTitle());
-                        }
+                        updateTitle();
                     }
                 });
             }
@@ -446,7 +443,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
         switch(msg) {
             case TITLE:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
-                    setTitle(tab.getDisplayTitle());
+                    updateTitle();
                 }
                 break;
             case START:
@@ -466,7 +463,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                     updateForwardButton(tab.canDoForward());
                     setProgressVisibility(false);
                     
-                    setTitle(tab.getDisplayTitle());
+                    updateTitle();
                 }
                 break;
             case RESTORED:
@@ -898,43 +895,46 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
     }
 
     private void setTitle(CharSequence title) {
+        mTitle.setText(title);
+        mLayout.setContentDescription(title != null ? title : mTitle.getHint());
+    }
+
+    
+    private void updateTitle() {
         Tab tab = Tabs.getInstance().getSelectedTab();
+        
+        if (tab == null || tab.isEnteringReaderMode()) {
+            return;
+        }
 
-        if (tab != null) {
-            
-            if (tab.isEnteringReaderMode()) {
-                return;
-            }
+        String url = tab.getURL();
+        
+        if ("about:home".equals(url) || "about:privatebrowsing".equals(url)) {
+            setTitle(null);
+            return;
+        }
 
-            
-            
-            
-            if ("about:home".equals(title) || "about:privatebrowsing".equals(title)) {
-                title = null;
-            }
+        
+        if (!mShowUrl || url == null) {
+            setTitle(tab.getDisplayTitle());
+            return;
+        }
 
-            String url = tab.getURL();
-            if (mShowUrl && title != null && url != null) {
-                url = StringUtils.stripScheme(url);
-                title = StringUtils.stripCommonSubdomains(url);
+        url = StringUtils.stripScheme(url);
+        CharSequence title = StringUtils.stripCommonSubdomains(url);
 
-                
-                String baseDomain = tab.getBaseDomain();
-                if (!TextUtils.isEmpty(baseDomain)) {
-                    SpannableStringBuilder builder = new SpannableStringBuilder(title);
-                    int index = title.toString().indexOf(baseDomain);
-                    if (index > -1) {
-                        builder.setSpan(mUrlColor, 0, title.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
-                        builder.setSpan(tab.isPrivate() ? mPrivateDomainColor : mDomainColor, index, index+baseDomain.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
-
-                        title = builder;
-                    }
-                }
+        String baseDomain = tab.getBaseDomain();
+        if (!TextUtils.isEmpty(baseDomain)) {
+            SpannableStringBuilder builder = new SpannableStringBuilder(title);
+            int index = title.toString().indexOf(baseDomain);
+            if (index > -1) {
+                builder.setSpan(mUrlColor, 0, title.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+                builder.setSpan(tab.isPrivate() ? mPrivateDomainColor : mDomainColor, index, index+baseDomain.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+                title = builder;
             }
         }
 
-        mTitle.setText(title);
-        mLayout.setContentDescription(title != null ? title : mTitle.getHint());
+        setTitle(title);
     }
 
     private void setFavicon(Bitmap image) {
@@ -1143,8 +1143,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
     public void refresh() {
         Tab tab = Tabs.getInstance().getSelectedTab();
         if (tab != null) {
-            String url = tab.getURL();
-            setTitle(tab.getDisplayTitle());
+            updateTitle();
             setFavicon(tab.getFavicon());
             setProgressVisibility(tab.getState() == Tab.STATE_LOADING);
             setSecurityMode(tab.getSecurityMode());
