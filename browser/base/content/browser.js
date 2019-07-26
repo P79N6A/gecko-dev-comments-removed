@@ -768,7 +768,10 @@ let gGestureSupport = {
 
 
   handleEvent: function GS_handleEvent(aEvent) {
-    aEvent.stopPropagation();
+    if (!Services.prefs.getBoolPref(
+           "dom.debug.propagate_gesture_events_through_content")) {
+      aEvent.stopPropagation();
+    }
 
     
     let def = function(aThreshold, aLatched)
