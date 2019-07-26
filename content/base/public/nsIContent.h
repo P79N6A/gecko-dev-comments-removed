@@ -645,6 +645,21 @@ public:
 
 
 
+  virtual nsIContent *GetXBLInsertionParent() const = 0;
+
+  
+
+
+
+
+  virtual void SetXBLInsertionParent(nsIContent* aContent) = 0;
+
+  
+
+
+
+
+
 
   nsIContent *GetFlattenedTreeParent() const;
 

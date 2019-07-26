@@ -48,9 +48,6 @@ public:
   void AddBoundContent(nsIContent* aContent);
   void RemoveBoundContent(nsIContent* aContent);
 
-  nsIContent* GetInsertionParent(nsIContent* aContent);
-  nsresult SetInsertionParent(nsIContent* aContent, nsIContent* aResult);
-
   
 
 
@@ -164,11 +161,6 @@ protected:
 protected: 
   
   nsTHashtable<nsRefPtrHashKey<nsIContent> > mBoundContentSet;
-
-  
-  
-  
-  PLDHashTable mInsertionParentTable;
 
   
   

@@ -6396,8 +6396,7 @@ nsCSSFrameConstructor::GetRangeInsertionPoint(nsIContent* aContainer,
     
     nsIDocument* document = aStartChild->GetDocument();
     
-    if (document &&
-        document->BindingManager()->GetInsertionParent(aStartChild)) {
+    if (document && aStartChild->GetXBLInsertionParent()) {
       hasInsertion = true;
     }
   }

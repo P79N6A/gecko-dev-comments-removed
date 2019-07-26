@@ -218,6 +218,8 @@ public:
   virtual nsXBLBinding *GetXBLBinding() const MOZ_OVERRIDE;
   virtual void SetXBLBinding(nsXBLBinding* aBinding,
                              nsBindingManager* aOldBindingManager = nullptr) MOZ_OVERRIDE;
+  virtual nsIContent *GetXBLInsertionParent() const;
+  virtual void SetXBLInsertionParent(nsIContent* aContent);
   virtual bool IsLink(nsIURI** aURI) const MOZ_OVERRIDE;
 
   virtual void DestroyContent() MOZ_OVERRIDE;
@@ -367,6 +369,11 @@ public:
 
 
     nsRefPtr<nsXBLBinding> mXBLBinding;
+
+    
+
+
+    nsCOMPtr<nsIContent> mXBLInsertionParent;
   };
 
 protected:
