@@ -11,9 +11,9 @@
 
 
 function test() {
-  let prefix = 'http://mochi.test:8888/browser/browser/components/privatebrowsing/test/browser/global/';
+  let prefix = 'http://mochi.test:8888/browser/browser/components/privatebrowsing/test/browser/';
   waitForExplicitFinish();
-
+  
   
   
   Components.utils.schedulePreciseGC(function() {

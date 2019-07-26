@@ -12,7 +12,7 @@
 
 
 function test() {
-  let prefix = 'http://mochi.test:8888/browser/browser/components/privatebrowsing/test/browser/perwindow/browser_privatebrowsing_concurrent_page.html';
+  let prefix = 'http://mochi.test:8888/browser/browser/components/privatebrowsing/test/browser/browser_privatebrowsing_concurrent_page.html';
   waitForExplicitFinish();
   gBrowser.selectedTab = gBrowser.addTab();
   let non_private_tab = gBrowser.selectedBrowser;
