@@ -126,7 +126,7 @@ public:
 
 
      
-  NS_IMETHOD OpenContainer(const nsIParserNode& aNode) = 0;
+  NS_IMETHOD OpenContainer(nsHTMLTag aNodeType) = 0;
 
   
 
