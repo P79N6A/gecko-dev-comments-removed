@@ -550,11 +550,11 @@ class MIRGraph
   public:
     MIRGraph(TempAllocator *alloc)
       : alloc_(alloc),
-        exitAccumulator_(NULL),
+        exitAccumulator_(nullptr),
         blockIdGen_(0),
         idGen_(0),
-        osrBlock_(NULL),
-        osrStart_(NULL),
+        osrBlock_(nullptr),
+        osrStart_(nullptr),
         numBlocks_(0),
         hasTryBlock_(false)
     { }

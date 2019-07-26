@@ -31,7 +31,7 @@ class StupidAllocator : public RegisterAllocator
         
         bool dirty;
 
-        void set(uint32_t vreg, LInstruction *ins = NULL, bool dirty = false) {
+        void set(uint32_t vreg, LInstruction *ins = nullptr, bool dirty = false) {
             this->vreg = vreg;
             this->age = ins ? ins->id() : 0;
             this->dirty = dirty;

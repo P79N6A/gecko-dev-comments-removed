@@ -49,7 +49,7 @@ MoveResolver::findBlockingMove(const PendingMove *last)
     }
 
     
-    return NULL;
+    return nullptr;
 }
 
 bool

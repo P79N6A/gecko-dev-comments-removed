@@ -305,7 +305,7 @@ ValueNumberer::findDominatingDef(InstructionMap &defs, MDefinition *ins, size_t 
         value.validUntil = index + ins->block()->numDominated();
 
         if(!defs.put(ins->valueNumber(), value))
-            return NULL;
+            return nullptr;
 
         dom = ins;
     } else {
@@ -444,7 +444,7 @@ uint32_t
 MDefinition::valueNumber() const
 {
     JS_ASSERT(block_);
-    if (valueNumber_ == NULL)
+    if (valueNumber_ == nullptr)
         return 0;
     return valueNumber_->valueNumber();
 }
@@ -464,7 +464,7 @@ MDefinition *
 ValueNumberer::findSplit(MDefinition *def)
 {
     for (MDefinition *vncheck = def->valueNumberData()->classNext;
-         vncheck != NULL;
+         vncheck != nullptr;
          vncheck = vncheck->valueNumberData()->classNext) {
         if (!def->congruentTo(vncheck)) {
             IonSpew(IonSpew_GVN, "Proceeding with split because %d is not congruent to %d",
@@ -472,7 +472,7 @@ ValueNumberer::findSplit(MDefinition *def)
             return vncheck;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void
@@ -481,9 +481,9 @@ ValueNumberer::breakClass(MDefinition *def)
     if (def->valueNumber() == def->id()) {
         IonSpew(IonSpew_GVN, "Breaking congruence with itself: %d", def->id());
         ValueNumberData *defdata = def->valueNumberData();
-        JS_ASSERT(defdata->classPrev == NULL);
+        JS_ASSERT(defdata->classPrev == nullptr);
         
-        if (defdata->classNext == NULL)
+        if (defdata->classNext == nullptr)
             return;
         
         
@@ -510,10 +510,10 @@ ValueNumberer::breakClass(MDefinition *def)
 
         
         
-        lastOld->valueNumberData()->classNext = NULL;
+        lastOld->valueNumberData()->classNext = nullptr;
 
 #ifdef DEBUG
-        for (MDefinition *tmp = def; tmp != NULL; tmp = tmp->valueNumberData()->classNext) {
+        for (MDefinition *tmp = def; tmp != nullptr; tmp = tmp->valueNumberData()->classNext) {
             JS_ASSERT(tmp->valueNumber() == def->valueNumber());
             JS_ASSERT(tmp->congruentTo(def));
             JS_ASSERT(tmp != newRep);
@@ -522,11 +522,11 @@ ValueNumberer::breakClass(MDefinition *def)
         
         
         
-        newdata->classPrev = NULL;
+        newdata->classPrev = nullptr;
         IonSpew(IonSpew_GVN, "Choosing a new representative: %d", newRep->id());
 
         
-        for (MDefinition *tmp = newRep; tmp != NULL; tmp = tmp->valueNumberData()->classNext) {
+        for (MDefinition *tmp = newRep; tmp != nullptr; tmp = tmp->valueNumberData()->classNext) {
             
             if (tmp->isInWorklist())
                 continue;
@@ -551,7 +551,7 @@ ValueNumberer::breakClass(MDefinition *def)
             defdata->classNext->valueNumberData()->classPrev = defdata->classPrev;
 
         
-        defdata->classPrev = NULL;
-        defdata->classNext = NULL;
+        defdata->classPrev = nullptr;
+        defdata->classNext = nullptr;
     }
 }

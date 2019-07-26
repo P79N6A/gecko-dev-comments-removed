@@ -50,6 +50,7 @@ struct PopValues
 
 
 
+
 struct VMFunction
 {
     
@@ -188,7 +189,7 @@ struct VMFunction
     }
 
     VMFunction()
-      : wrapped(NULL),
+      : wrapped(nullptr),
         explicitArgs(0),
         argumentProperties(0),
         argumentPassedInFloatRegs(0),
@@ -555,7 +556,7 @@ class AutoDetectInvalidation
     bool disabled_;
 
   public:
-    AutoDetectInvalidation(JSContext *cx, Value *rval, IonScript *ionScript = NULL)
+    AutoDetectInvalidation(JSContext *cx, Value *rval, IonScript *ionScript = nullptr)
       : cx_(cx),
         ionScript_(ionScript ? ionScript : GetTopIonJSScript(cx)->ionScript()),
         rval_(rval),
