@@ -472,6 +472,10 @@ pref("dom.disable_window_move_resize",            false);
 pref("dom.disable_window_flip",                   true);
 
 
+
+pref("dom.w3c_touch_events.enabled",        0);
+
+
 pref("privacy.popups.policy",               1);
 pref("privacy.popups.usecustom",            true);
 pref("privacy.popups.showBrowserMessage",   true);
