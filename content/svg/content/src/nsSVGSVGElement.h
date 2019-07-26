@@ -21,10 +21,13 @@
 #include "mozilla/Attributes.h"
 
 class nsSMILTimeContainer;
-class nsSVGViewElement;
 namespace mozilla {
   class DOMSVGMatrix;
   class SVGFragmentIdentifier;
+
+  namespace dom {
+    class SVGViewElement;
+  }
 }
 
 typedef mozilla::dom::SVGGraphicsElement nsSVGSVGElementBase;
@@ -261,7 +264,7 @@ private:
 
   
 
-  nsSVGViewElement* GetCurrentViewElement() const;
+  mozilla::dom::SVGViewElement* GetCurrentViewElement() const;
 
   
   

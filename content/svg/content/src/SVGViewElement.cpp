@@ -3,24 +3,28 @@
 
 
 
-#include "nsSVGViewElement.h"
+#include "mozilla/dom/SVGViewElement.h"
 #include "DOMSVGStringList.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
+DOMCI_NODE_DATA(SVGViewElement, mozilla::dom::SVGViewElement)
 
-nsSVGElement::StringListInfo nsSVGViewElement::sStringListInfo[1] =
+NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(View)
+
+namespace mozilla {
+namespace dom {
+
+nsSVGElement::StringListInfo SVGViewElement::sStringListInfo[1] =
 {
   { &nsGkAtoms::viewTarget }
 };
 
-nsSVGEnumMapping nsSVGViewElement::sZoomAndPanMap[] = {
+nsSVGEnumMapping SVGViewElement::sZoomAndPanMap[] = {
   {&nsGkAtoms::disable, nsIDOMSVGZoomAndPan::SVG_ZOOMANDPAN_DISABLE},
   {&nsGkAtoms::magnify, nsIDOMSVGZoomAndPan::SVG_ZOOMANDPAN_MAGNIFY},
   {nullptr, 0}
 };
 
-nsSVGElement::EnumInfo nsSVGViewElement::sEnumInfo[1] =
+nsSVGElement::EnumInfo SVGViewElement::sEnumInfo[1] =
 {
   { &nsGkAtoms::zoomAndPan,
     sZoomAndPanMap,
@@ -28,50 +32,46 @@ nsSVGElement::EnumInfo nsSVGViewElement::sEnumInfo[1] =
   }
 };
 
-NS_IMPL_NS_NEW_SVG_ELEMENT(View)
 
 
 
+NS_IMPL_ADDREF_INHERITED(SVGViewElement,SVGViewElementBase)
+NS_IMPL_RELEASE_INHERITED(SVGViewElement,SVGViewElementBase)
 
-NS_IMPL_ADDREF_INHERITED(nsSVGViewElement,nsSVGViewElementBase)
-NS_IMPL_RELEASE_INHERITED(nsSVGViewElement,nsSVGViewElementBase)
-
-DOMCI_NODE_DATA(SVGViewElement, nsSVGViewElement)
-
-NS_INTERFACE_TABLE_HEAD(nsSVGViewElement)
-  NS_NODE_INTERFACE_TABLE6(nsSVGViewElement, nsIDOMNode, nsIDOMElement,
+NS_INTERFACE_TABLE_HEAD(SVGViewElement)
+  NS_NODE_INTERFACE_TABLE6(SVGViewElement, nsIDOMNode, nsIDOMElement,
                            nsIDOMSVGElement, nsIDOMSVGViewElement,
                            nsIDOMSVGFitToViewBox,
                            nsIDOMSVGZoomAndPan)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGViewElement)
-NS_INTERFACE_MAP_END_INHERITING(nsSVGViewElementBase)
+NS_INTERFACE_MAP_END_INHERITING(SVGViewElementBase)
 
 
 
 
-nsSVGViewElement::nsSVGViewElement(already_AddRefed<nsINodeInfo> aNodeInfo)
-  : nsSVGViewElementBase(aNodeInfo)
+SVGViewElement::SVGViewElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  : SVGViewElementBase(aNodeInfo)
 {
 }
 
 
 
 
-NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGViewElement)
+NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGViewElement)
 
 
 
 
 
 NS_IMETHODIMP
-nsSVGViewElement::GetZoomAndPan(uint16_t *aZoomAndPan)
+SVGViewElement::GetZoomAndPan(uint16_t *aZoomAndPan)
 {
   *aZoomAndPan = mEnumAttributes[ZOOMANDPAN].GetAnimValue();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSVGViewElement::SetZoomAndPan(uint16_t aZoomAndPan)
+SVGViewElement::SetZoomAndPan(uint16_t aZoomAndPan)
 {
   if (aZoomAndPan == nsIDOMSVGZoomAndPan::SVG_ZOOMANDPAN_DISABLE ||
       aZoomAndPan == nsIDOMSVGZoomAndPan::SVG_ZOOMANDPAN_MAGNIFY) {
@@ -87,15 +87,15 @@ nsSVGViewElement::SetZoomAndPan(uint16_t aZoomAndPan)
 
 
 NS_IMETHODIMP
-nsSVGViewElement::GetViewBox(nsIDOMSVGAnimatedRect * *aViewBox)
+SVGViewElement::GetViewBox(nsIDOMSVGAnimatedRect * *aViewBox)
 {
   return mViewBox.ToDOMAnimatedRect(aViewBox, this);
 }
 
 
 NS_IMETHODIMP
-nsSVGViewElement::GetPreserveAspectRatio(nsISupports
-                                         **aPreserveAspectRatio)
+SVGViewElement::GetPreserveAspectRatio(nsISupports
+                                       **aPreserveAspectRatio)
 {
   nsRefPtr<DOMSVGAnimatedPreserveAspectRatio> ratio;
   mPreserveAspectRatio.ToDOMAnimatedPreserveAspectRatio(getter_AddRefs(ratio), this);
@@ -107,7 +107,7 @@ nsSVGViewElement::GetPreserveAspectRatio(nsISupports
 
 
 
-NS_IMETHODIMP nsSVGViewElement::GetViewTarget(nsIDOMSVGStringList * *aViewTarget)
+NS_IMETHODIMP SVGViewElement::GetViewTarget(nsIDOMSVGStringList * *aViewTarget)
 {
   *aViewTarget = DOMSVGStringList::GetDOMWrapper(
                    &mStringListAttributes[VIEW_TARGET], this, false, VIEW_TARGET).get();
@@ -118,27 +118,30 @@ NS_IMETHODIMP nsSVGViewElement::GetViewTarget(nsIDOMSVGStringList * *aViewTarget
 
 
 nsSVGElement::EnumAttributesInfo
-nsSVGViewElement::GetEnumInfo()
+SVGViewElement::GetEnumInfo()
 {
   return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
                             ArrayLength(sEnumInfo));
 }
 
 nsSVGViewBox *
-nsSVGViewElement::GetViewBox()
+SVGViewElement::GetViewBox()
 {
   return &mViewBox;
 }
 
 SVGAnimatedPreserveAspectRatio *
-nsSVGViewElement::GetPreserveAspectRatio()
+SVGViewElement::GetPreserveAspectRatio()
 {
   return &mPreserveAspectRatio;
 }
 
 nsSVGElement::StringListAttributesInfo
-nsSVGViewElement::GetStringListInfo()
+SVGViewElement::GetStringListInfo()
 {
   return StringListAttributesInfo(mStringListAttributes, sStringListInfo,
                                   ArrayLength(sStringListInfo));
 }
+
+} 
+} 
