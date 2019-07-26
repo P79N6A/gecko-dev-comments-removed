@@ -105,9 +105,10 @@ function PieTableChart(node, pie, table) {
 
 
 
-function createPieTableChart(document, { sorted, title, diameter, data, totals }) {
+
+function createPieTableChart(document, { title, diameter, data, strings, totals, sorted }) {
   if (sorted) {
-    data = data.slice().sort((a, b) => +(parseFloat(a.size) < parseFloat(b.size)));
+    data = data.slice().sort((a, b) => +(a.size < b.size));
   }
 
   let pie = Chart.Pie(document, {
@@ -118,6 +119,7 @@ function createPieTableChart(document, { sorted, title, diameter, data, totals }
   let table = Chart.Table(document, {
     title: title,
     data: data,
+    strings: strings,
     totals: totals
   });
 
@@ -202,7 +204,7 @@ function createPieChart(document, { data, width, height, centerX, centerY, radiu
   let isPlaceholder = false;
 
   
-  data = data ? data.filter(e => parseFloat(e.size) > EPSILON) : null;
+  data = data ? data.filter(e => e.size > EPSILON) : null;
 
   
   if (!data || !data.length) {
@@ -222,10 +224,10 @@ function createPieChart(document, { data, width, height, centerX, centerY, radiu
 
   let proxy = new PieChart(container);
 
-  let total = data.reduce((acc, e) => acc + parseFloat(e.size), 0);
-  let angles = data.map(e => parseFloat(e.size) / total * (TAU - EPSILON));
-  let largest = data.reduce((a, b) => parseFloat(a.size) > parseFloat(b.size) ? a : b);
-  let smallest = data.reduce((a, b) => parseFloat(a.size) < parseFloat(b.size) ? a : b);
+  let total = data.reduce((acc, e) => acc + e.size, 0);
+  let angles = data.map(e => e.size / total * (TAU - EPSILON));
+  let largest = data.reduce((a, b) => a.size > b.size ? a : b);
+  let smallest = data.reduce((a, b) => a.size < b.size ? a : b);
 
   let textDistance = radius / NAMED_SLICE_TEXT_DISTANCE_RATIO;
   let translateDistance = radius / HOVERED_SLICE_TRANSLATE_DISTANCE_RATIO;
@@ -327,7 +329,15 @@ function createPieChart(document, { data, width, height, centerX, centerY, radiu
 
 
 
-function createTableChart(document, { data, totals, title }) {
+
+
+
+
+
+
+function createTableChart(document, { title, data, strings, totals }) {
+  strings = strings || {};
+  totals = totals || {};
   let isPlaceholder = false;
 
   
@@ -365,10 +375,12 @@ function createTableChart(document, { data, totals, title }) {
     rowNode.appendChild(boxNode);
 
     for (let [key, value] in Iterator(rowInfo)) {
+      let index = data.indexOf(rowInfo);
+      let stringified = strings[key] ? strings[key](value, index) : value;
       let labelNode = document.createElement("label");
       labelNode.className = "plain table-chart-row-label";
       labelNode.setAttribute("name", key);
-      labelNode.setAttribute("value", value);
+      labelNode.setAttribute("value", stringified);
       rowNode.appendChild(labelNode);
     }
 
@@ -380,13 +392,13 @@ function createTableChart(document, { data, totals, title }) {
   let totalsNode = document.createElement("vbox");
   totalsNode.className = "table-chart-totals";
 
-  for (let [key, value] in Iterator(totals || {})) {
-    let total = data.reduce((acc, e) => acc + parseFloat(e[key]), 0);
-    let formatted = !isNaN(total) ? L10N.numberWithDecimals(total, 2) : 0;
+  for (let [key, value] in Iterator(totals)) {
+    let total = data.reduce((acc, e) => acc + e[key], 0);
+    let stringified = totals[key] ? totals[key](total || 0) : total;
     let labelNode = document.createElement("label");
     labelNode.className = "plain table-chart-summary-label";
     labelNode.setAttribute("name", key);
-    labelNode.setAttribute("value", value.replace("%S", formatted));
+    labelNode.setAttribute("value", stringified);
     totalsNode.appendChild(labelNode);
   }
 
