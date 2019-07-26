@@ -92,7 +92,8 @@ MacroAssemblerARM::branchTruncateDouble(const FloatRegister &src, const Register
 
 
 void
-MacroAssemblerARM::convertDoubleToInt32(const FloatRegister &src, const Register &dest, Label *fail, bool negativeZeroCheck)
+MacroAssemblerARM::convertDoubleToInt32(const FloatRegister &src, const Register &dest,
+                                        Label *fail, bool negativeZeroCheck)
 {
     
     
@@ -120,7 +121,8 @@ MacroAssemblerARM::convertDoubleToInt32(const FloatRegister &src, const Register
 
 
 void
-MacroAssemblerARM::convertFloat32ToInt32(const FloatRegister &src, const Register &dest, Label *fail, bool negativeZeroCheck)
+MacroAssemblerARM::convertFloat32ToInt32(const FloatRegister &src, const Register &dest,
+                                         Label *fail, bool negativeZeroCheck)
 {
     
     
@@ -138,7 +140,7 @@ MacroAssemblerARM::convertFloat32ToInt32(const FloatRegister &src, const Registe
         
         
         
-        as_vxfer(dest, InvalidReg, src, FloatToCore, Assembler::Equal, 0);
+        as_vxfer(dest, InvalidReg, VFPRegister(src).singleOverlay(), FloatToCore, Assembler::Equal, 0);
         ma_cmp(dest, Imm32(0x80000000), Assembler::Equal);
         ma_b(fail, Assembler::Equal);
     }
