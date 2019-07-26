@@ -341,7 +341,6 @@ public:
   virtual JSObject *GetGlobalJSObject();
 
   
-  virtual nsIScriptContext *GetContext();
   JSObject *FastGetGlobalJSObject() const
   {
     return mJSObject;
@@ -528,11 +527,6 @@ public:
   bool ShouldPromptToBlockDialogs();
   
   bool DialogsAreBeingAbused();
-
-  
-  
-  
-  bool ConfirmDialogIfNeeded();
 
   
   
@@ -1281,9 +1275,6 @@ protected:
                              nsCOMPtr<nsIDOMStorageEvent>& aEvent);
 
   
-  nsresult GetTopImpl(nsIDOMWindow **aWindow, bool aScriptable);
-
-  
   nsDOMWindowList* GetWindowList();
 
   
@@ -1320,6 +1311,11 @@ protected:
 
   already_AddRefed<nsIDOMWindow>
     GetContentInternal(mozilla::ErrorResult& aError);
+
+  
+  
+  
+  bool ConfirmDialogIfNeeded();
 
   
   
