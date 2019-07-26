@@ -3218,8 +3218,9 @@ var XPIProvider = {
       
       
       if (updateDatabase || hasPendingChanges) {
-        XPIDatabase.syncLoadDB(false);
         try {
+          XPIDatabase.openConnection(false, true);
+
           extensionListChanged = this.processFileChanges(state, manifests,
                                                          aAppChanged,
                                                          aOldAppVersion,
