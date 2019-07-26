@@ -1428,7 +1428,7 @@ nsDOMClassInfo::ResolveConstructor(JSContext *cx, JSObject *aObj,
     return NS_ERROR_UNEXPECTED;
   }
 
-  if (!JSVAL_IS_PRIMITIVE(val)) {
+  if (!val.isPrimitive()) {
     
     
     
@@ -2273,7 +2273,7 @@ nsDOMConstructor::HasInstance(nsIXPConnectWrappedNative *wrapper,
 {
   
   *bp = false;
-  if (JSVAL_IS_PRIMITIVE(v)) {
+  if (v.isPrimitive()) {
     return NS_OK;
   }
 
@@ -2305,7 +2305,7 @@ nsDOMConstructor::HasInstance(nsIXPConnectWrappedNative *wrapper,
       return NS_ERROR_UNEXPECTED;
     }
 
-    if (JSVAL_IS_PRIMITIVE(val)) {
+    if (val.isPrimitive()) {
       return NS_OK;
     }
 
@@ -3034,7 +3034,7 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    if (JSVAL_IS_PRIMITIVE(prop_val) && !prop_val.isNull()) {
+    if (prop_val.isPrimitive() && !prop_val.isNull()) {
       if (aWin->IsOuterWindow()) {
         nsGlobalWindow *inner = aWin->GetCurrentInnerWindowInternal();
         NS_ENSURE_TRUE(inner, NS_ERROR_UNEXPECTED);

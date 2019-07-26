@@ -262,7 +262,7 @@ RegisterPerfMeasurement(JSContext *cx, HandleObject globalArg)
 PerfMeasurement*
 ExtractPerfMeasurement(jsval wrapper)
 {
-    if (JSVAL_IS_PRIMITIVE(wrapper))
+    if (wrapper.isPrimitive())
         return 0;
 
     

@@ -755,7 +755,7 @@ js_ReportUncaughtException(JSContext *cx)
 
 
     RootedObject exnObject(cx);
-    if (JSVAL_IS_PRIMITIVE(exn)) {
+    if (exn.isPrimitive()) {
         exnObject = nullptr;
     } else {
         exnObject = exn.toObjectOrNull();
