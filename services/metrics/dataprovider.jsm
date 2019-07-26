@@ -212,6 +212,15 @@ Object.freeze(MetricsMeasurement.prototype);
 
 
 
+
+
+
+
+
+
+
+
+
 this.MetricsProvider = function MetricsProvider(name) {
   if (!name) {
     throw new Error("MetricsProvider must have a name.");
@@ -277,6 +286,9 @@ Object.freeze(MetricsProvider.prototype);
 
 
 
+
+
+
 this.MetricsCollectionResult = function MetricsCollectionResult(name) {
   if (!name || typeof(name) != "string") {
     throw new Error("Must provide name argument to MetricsCollectionResult.");
@@ -289,6 +301,11 @@ this.MetricsCollectionResult = function MetricsCollectionResult(name) {
   this.measurements = new Map();
   this.expectedMeasurements = new Set();
   this.errors = [];
+
+  this.populate = function populate() {
+    throw new Error("populate() must be defined on MetricsCollectionResult " +
+                    "instance.");
+  };
 
   this._deferred = Promise.defer();
 }
