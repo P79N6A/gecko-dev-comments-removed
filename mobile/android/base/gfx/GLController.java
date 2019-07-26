@@ -46,7 +46,6 @@ public class GLController {
     private EGL10 mEGL;
     private EGLDisplay mEGLDisplay;
     private EGLConfig mEGLConfig;
-    private EGLSurface mClientSurface;
 
     private static final int LOCAL_EGL_OPENGL_ES2_BIT = 4;
 
@@ -84,7 +83,6 @@ public class GLController {
         Log.w(LOGTAG, "GLController::serverSurfaceDestroyed() with mCompositorCreated=" + mCompositorCreated);
 
         mServerSurfaceValid = false;
-        mClientSurface = null;
 
         
         
@@ -132,30 +130,14 @@ public class GLController {
             public void run() {
                 Log.w(LOGTAG, "GLController::serverSurfaceChanged, creating compositor; mCompositorCreated=" + mCompositorCreated + ", mServerSurfaceValid=" + mServerSurfaceValid);
                 try {
-                    
-                    
-                    
-                    
-                    
-                    
                     if (mServerSurfaceValid) {
                         if (mEGL == null) {
                             initEGL();
                         }
-
-                        mClientSurface = mEGL.eglCreateWindowSurface(mEGLDisplay, mEGLConfig, mView.getNativeWindow(), null);
                     }
                 } catch (Exception e) {
                     Log.e(LOGTAG, "Unable to create window surface", e);
                 }
-                if (mClientSurface == null || mClientSurface == EGL10.EGL_NO_SURFACE) {
-                    mServerSurfaceValid = false;
-                    mClientSurface = null; 
-                    Log.e(LOGTAG, "EGL window surface could not be created: " + getEGLError());
-                    return;
-                }
-                
-                
                 createCompositor();
             }
         });
@@ -178,7 +160,7 @@ public class GLController {
         
         
         
-        if (mClientSurface != null && GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
+        if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
             GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorCreateEvent(mWidth, mHeight));
         }
         Log.w(LOGTAG, "done GLController::createCompositor");
@@ -251,7 +233,7 @@ public class GLController {
 
     @GeneratableAndroidBridgeTarget(allowMultithread = true, stubName = "ProvideEGLSurfaceWrapper")
     private EGLSurface provideEGLSurface() {
-        return mClientSurface;
+        return mEGL.eglCreateWindowSurface(mEGLDisplay, mEGLConfig, mView.getNativeWindow(), null);
     }
 
     private String getEGLError() {
