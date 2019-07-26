@@ -76,6 +76,13 @@ class IncrementalFinalizeRunnable;
 
 struct CycleCollectorResults
 {
+  CycleCollectorResults()
+  {
+    
+    
+    Init();
+  }
+
   void Init()
   {
     mForcedGC = false;
@@ -84,6 +91,9 @@ struct CycleCollectorResults
     mVisitedGCed = 0;
     mFreedRefCounted = 0;
     mFreedGCed = 0;
+    mNumSlices = 1;
+    
+    
   }
 
   bool mForcedGC;
@@ -92,6 +102,7 @@ struct CycleCollectorResults
   uint32_t mVisitedGCed;
   uint32_t mFreedRefCounted;
   uint32_t mFreedGCed;
+  uint32_t mNumSlices;
 };
 
 class CycleCollectedJSRuntime
