@@ -50,11 +50,6 @@
 
 #include "GeckoProfiler.h"
 
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-#include "libdisplay/GonkDisplay.h"     
-#include <ui/Fence.h>
-#endif
-
 #define BUFFER_OFFSET(i) ((char *)nullptr + (i))
 
 namespace mozilla {
@@ -139,72 +134,6 @@ DrawQuads(GLContext *aGLContext,
   aGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
 }
 
-#ifdef MOZ_WIDGET_GONK
-CompositorOGLGonkBackendSpecificData::CompositorOGLGonkBackendSpecificData(CompositorOGL* aCompositor)
-  : mCompositor(aCompositor)
-{
-}
-
-CompositorOGLGonkBackendSpecificData::~CompositorOGLGonkBackendSpecificData()
-{
-  
-  gl()->MakeCurrent();
-  EndFrame();
-  EndFrame();
-}
-
-GLContext*
-CompositorOGLGonkBackendSpecificData::gl() const
-{
-  return mCompositor->gl();
-}
-
-GLuint
-CompositorOGLGonkBackendSpecificData::GetTexture()
-{
-  GLuint texture = 0;
-
-  if (!mUnusedTextures.IsEmpty()) {
-    
-    texture = mUnusedTextures[0];
-    mUnusedTextures.RemoveElementAt(0);
-  } else if (gl()->MakeCurrent()) {
-    
-    gl()->fGenTextures(1, &texture);
-  }
-
-  if (texture) {
-    mCreatedTextures.AppendElement(texture);
-  }
-
-  return texture;
-}
-
-void
-CompositorOGLGonkBackendSpecificData::EndFrame()
-{
-  gl()->MakeCurrent();
-
-  
-  
-  if (gfxPrefs::OverzealousGrallocUnlocking()) {
-    mUnusedTextures.AppendElements(mCreatedTextures);
-    mCreatedTextures.Clear();
-  }
-
-  
-  for (size_t i = 0; i < mUnusedTextures.Length(); i++) {
-    GLuint texture = mUnusedTextures[i];
-    gl()->fDeleteTextures(1, &texture);
-  }
-  mUnusedTextures.Clear();
-
-  
-  mUnusedTextures.AppendElements(mCreatedTextures);
-  mCreatedTextures.Clear();
-}
-#endif
-
 CompositorOGL::CompositorOGL(nsIWidget *aWidget, int aSurfaceWidth,
                              int aSurfaceHeight, bool aUseExternalSurfaceSize)
   : mWidget(aWidget)
@@ -248,38 +177,18 @@ CompositorOGL::CreateContext()
   return context.forget();
 }
 
-GLuint
-CompositorOGL::GetTemporaryTexture(GLenum aTextureUnit)
-{
-  size_t index = aTextureUnit - LOCAL_GL_TEXTURE0;
-  
-  if (mTextures.Length() <= index) {
-    size_t prevLength = mTextures.Length();
-    mTextures.SetLength(index + 1);
-    for(unsigned int i = prevLength; i <= index; ++i) {
-      mTextures[i] = 0;
-    }
-  }
-  
-  if (!mTextures[index]) {
-    if (!gl()->MakeCurrent()) {
-      return 0;
-    }
-    gl()->fGenTextures(1, &mTextures[index]);
-  }
-  return mTextures[index];
-}
-
 void
 CompositorOGL::Destroy()
 {
   if (gl() && gl()->MakeCurrent()) {
-    if (mTextures.Length() > 0) {
-      gl()->fDeleteTextures(mTextures.Length(), &mTextures[0]);
-    }
     mVBOs.Flush(gl());
   }
-  mTextures.SetLength(0);
+
+  if (mTexturePool) {
+    mTexturePool->Clear();
+    mTexturePool = nullptr;
+  }
+
   if (!mDestroyed) {
     mDestroyed = true;
     CleanupResources();
@@ -1267,11 +1176,9 @@ CompositorOGL::EndFrame()
 
   mCurrentRenderTarget = nullptr;
 
-#ifdef MOZ_WIDGET_GONK
-  if (mCompositorBackendSpecificData) {
-    static_cast<CompositorOGLGonkBackendSpecificData*>(mCompositorBackendSpecificData.get())->EndFrame();
+  if (mTexturePool) {
+    mTexturePool->EndFrame();
   }
-#endif
 
   mGLContext->SwapBuffers();
   mGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
@@ -1287,46 +1194,6 @@ CompositorOGL::EndFrame()
   mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, 0);
   mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
 }
-
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-void
-CompositorOGL::SetFBAcquireFence(Layer* aLayer)
-{
-  if (!aLayer) {
-    return;
-  }
-
-  const nsIntRegion& visibleRegion = aLayer->GetEffectiveVisibleRegion();
-  if (visibleRegion.IsEmpty()) {
-      return;
-  }
-
-  
-  ContainerLayer* container = aLayer->AsContainerLayer();
-  if (container) {
-    for (Layer* child = container->GetFirstChild(); child; child = child->GetNextSibling()) {
-      SetFBAcquireFence(child);
-    }
-    return;
-  }
-
-  
-  LayerRenderState state = aLayer->GetRenderState();
-  if (!state.mTexture) {
-    return;
-  }
-  TextureHostOGL* texture = state.mTexture->AsHostOGL();
-  if (!texture) {
-    return;
-  }
-  texture->SetReleaseFence(new android::Fence(GetGonkDisplay()->GetPrevFBAcquireFd()));
-}
-#else
-void
-CompositorOGL::SetFBAcquireFence(Layer* aLayer)
-{
-}
-#endif
 
 void
 CompositorOGL::EndFrameForExternalComposition(const gfx::Matrix& aTransform)
@@ -1432,17 +1299,6 @@ CompositorOGL::Resume()
   return true;
 }
 
-#ifdef MOZ_WIDGET_GONK
-CompositorBackendSpecificData*
-CompositorOGL::GetCompositorBackendSpecificData()
-{
-  if (!mCompositorBackendSpecificData) {
-    mCompositorBackendSpecificData = new CompositorOGLGonkBackendSpecificData(this);
-  }
-  return mCompositorBackendSpecificData;
-}
-#endif
-
 TemporaryRef<DataTextureSource>
 CompositorOGL::CreateDataTextureSource(TextureFlags aFlags)
 {
@@ -1538,6 +1394,121 @@ CompositorOGL::BindAndDrawQuad(ShaderProgramOGL *aProg,
   BindAndDrawQuad(aProg->AttribLocation(ShaderProgramOGL::VertexCoordAttrib),
                   aProg->AttribLocation(ShaderProgramOGL::TexCoordAttrib),
                   aFlipped, aDrawMode);
+}
+
+GLuint
+CompositorOGL::GetTemporaryTexture(GLenum aUnit)
+{
+  if (!mTexturePool) {
+#ifdef MOZ_WIDGET_GONK
+    mTexturePool = new PerFrameTexturePoolOGL(gl());
+#else
+    mTexturePool = new PerUnitTexturePoolOGL(gl());
+#endif
+  }
+  return mTexturePool->GetTexture(aUnit);
+}
+
+GLuint
+PerUnitTexturePoolOGL::GetTexture(GLenum aTextureUnit)
+{
+  size_t index = aTextureUnit - LOCAL_GL_TEXTURE0;
+  
+  if (mTextures.Length() <= index) {
+    size_t prevLength = mTextures.Length();
+    mTextures.SetLength(index + 1);
+    for(unsigned int i = prevLength; i <= index; ++i) {
+      mTextures[i] = 0;
+    }
+  }
+  
+  if (!mTextures[index]) {
+    if (!mGL->MakeCurrent()) {
+      return 0;
+    }
+    mGL->fGenTextures(1, &mTextures[index]);
+  }
+  return mTextures[index];
+}
+
+void
+PerUnitTexturePoolOGL::DestroyTextures()
+{
+  if (mGL && mGL->MakeCurrent()) {
+    if (mTextures.Length() > 0) {
+      mGL->fDeleteTextures(mTextures.Length(), &mTextures[0]);
+    }
+  }
+  mTextures.SetLength(0);
+}
+
+void
+PerFrameTexturePoolOGL::DestroyTextures()
+{
+  if (!mGL->MakeCurrent()) {
+    return;
+  }
+
+  if (mUnusedTextures.Length() > 0) {
+    mGL->fDeleteTextures(mUnusedTextures.Length(), &mUnusedTextures[0]);
+    mUnusedTextures.Clear();
+  }
+
+  if (mCreatedTextures.Length() > 0) {
+    mGL->fDeleteTextures(mCreatedTextures.Length(), &mCreatedTextures[0]);
+    mCreatedTextures.Clear();
+  }
+}
+
+GLuint
+PerFrameTexturePoolOGL::GetTexture(GLenum)
+{
+  GLuint texture = 0;
+
+  if (!mUnusedTextures.IsEmpty()) {
+    
+    texture = mUnusedTextures[0];
+    mUnusedTextures.RemoveElementAt(0);
+  } else if (mGL->MakeCurrent()) {
+    
+    mGL->fGenTextures(1, &texture);
+  }
+
+  if (texture) {
+    mCreatedTextures.AppendElement(texture);
+  }
+
+  return texture;
+}
+
+void
+PerFrameTexturePoolOGL::EndFrame()
+{
+  if (!mGL->MakeCurrent()) {
+    
+    
+    mCreatedTextures.Clear();
+    mUnusedTextures.Clear();
+    return;
+  }
+
+  
+  
+  if (gfxPrefs::OverzealousGrallocUnlocking()) {
+    mUnusedTextures.AppendElements(mCreatedTextures);
+    mCreatedTextures.Clear();
+  }
+
+  
+  for (size_t i = 0; i < mUnusedTextures.Length(); i++) {
+    GLuint texture = mUnusedTextures[i];
+    mGL->fDeleteTextures(1, &texture);
+  }
+  mUnusedTextures.Clear();
+
+  
+  mUnusedTextures.AppendElements(mCreatedTextures);
+  mCreatedTextures.Clear();
 }
 
 } 
