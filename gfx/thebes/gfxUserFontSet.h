@@ -62,6 +62,7 @@ public:
     uint32_t          mSrcIndex;  
     uint32_t          mFormat;    
     uint32_t          mMetaOrigLen; 
+    bool              mPrivate;   
 };
 
 
@@ -254,9 +255,13 @@ public:
 
         
         
+        
+        
+        
         static gfxFontEntry* GetFont(nsIURI            *aSrcURI,
                                      nsIPrincipal      *aPrincipal,
-                                     gfxProxyFontEntry *aProxy);
+                                     gfxProxyFontEntry *aProxy,
+                                     bool               aPrivate);
 
         
         static void Shutdown();
@@ -283,12 +288,14 @@ public:
             nsCOMPtr<nsIURI>        mURI;
             nsCOMPtr<nsIPrincipal>  mPrincipal;
             gfxFontEntry           *mFontEntry;
+            bool                    mPrivate;
 
             Key(nsIURI* aURI, nsIPrincipal* aPrincipal,
-                gfxFontEntry* aFontEntry)
+                gfxFontEntry* aFontEntry, bool aPrivate)
                 : mURI(aURI),
                   mPrincipal(aPrincipal),
-                  mFontEntry(aFontEntry)
+                  mFontEntry(aFontEntry),
+                  mPrivate(aPrivate)
             { }
         };
 
@@ -300,13 +307,15 @@ public:
             Entry(KeyTypePointer aKey)
                 : mURI(aKey->mURI),
                   mPrincipal(aKey->mPrincipal),
-                  mFontEntry(aKey->mFontEntry)
+                  mFontEntry(aKey->mFontEntry),
+                  mPrivate(aKey->mPrivate)
             { }
 
             Entry(const Entry& aOther)
                 : mURI(aOther.mURI),
                   mPrincipal(aOther.mPrincipal),
-                  mFontEntry(aOther.mFontEntry)
+                  mFontEntry(aOther.mFontEntry),
+                  mPrivate(aOther.mPrivate)
             { }
 
             ~Entry() { }
@@ -318,7 +327,7 @@ public:
             static PLDHashNumber HashKey(const KeyTypePointer aKey) {
                 uint32_t principalHash;
                 aKey->mPrincipal->GetHashValue(&principalHash);
-                return mozilla::HashGeneric(principalHash,
+                return mozilla::HashGeneric(principalHash + int(aKey->mPrivate),
                                             nsURIHashKey::HashKey(aKey->mURI),
                                             HashFeatures(aKey->mFontEntry->mFeatureSettings),
                                             mozilla::HashString(aKey->mFontEntry->mFamilyName),
@@ -331,6 +340,8 @@ public:
             enum { ALLOW_MEMMOVE = false };
 
             gfxFontEntry* GetFontEntry() const { return mFontEntry; }
+
+            static PLDHashOperator RemoveIfPrivate(Entry* aEntry, void* aUserData);
 
         private:
             static uint32_t
@@ -346,12 +357,18 @@ public:
             
             
             gfxFontEntry          *mFontEntry;
+
+            
+            bool                   mPrivate;
         };
 
         static nsTHashtable<Entry> *sUserFonts;
     };
 
 protected:
+    
+    virtual bool GetPrivateBrowsing() = 0;
+
     
     
     LoadStatus LoadNext(gfxMixedFontFamily *aFamily,
