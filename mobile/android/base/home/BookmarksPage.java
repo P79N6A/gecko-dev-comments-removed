@@ -150,6 +150,10 @@ public class BookmarksPage extends HomeFragment {
         mList.setAdapter(mListAdapter);
 
         
+        
+        BrowserDB.invalidateCachedState();
+
+        
         mLoaderCallbacks = new CursorLoaderCallbacks(activity, getLoaderManager());
         mThumbnailsLoaderCallbacks = new ThumbnailsLoaderCallbacks();
         loadIfVisible();
