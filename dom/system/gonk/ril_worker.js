@@ -1470,7 +1470,11 @@ let RIL = {
       debug("Setting manual network selection: " + options.mcc + options.mnc);
     }
 
-    let numeric = String(options.mcc) + options.mnc;
+    
+    let mnc = options.mnc.toString();
+    if (mnc.length == 1)
+      mnc = "0" + mnc;
+    let numeric = options.mcc.toString() + mnc;
     Buf.newParcel(REQUEST_SET_NETWORK_SELECTION_MANUAL, options);
     Buf.writeString(numeric);
     Buf.sendParcel();
