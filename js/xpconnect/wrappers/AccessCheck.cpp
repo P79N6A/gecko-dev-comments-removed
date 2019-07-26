@@ -275,13 +275,15 @@ AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
 bool
 OnlyIfSubjectIsSystem::isSafeToUnwrap()
 {
-    if (XPCJSRuntime::Get()->XBLScopesEnabled())
-        return false;
     
     
     JSContext *cx = nsContentUtils::GetCurrentJSContext();
     if (!cx)
         return true;
+    
+    
+    if (xpc::AllowXBLScope(js::GetContextCompartment(cx)))
+        return false;
     return AccessCheck::isSystemOnlyAccessPermitted(cx);
 }
 
