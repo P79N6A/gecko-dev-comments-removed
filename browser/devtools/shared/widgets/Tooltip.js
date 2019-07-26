@@ -392,19 +392,34 @@ Tooltip.prototype = {
       this.hide();
       this._lastHovered = event.target;
       setNamedTimeout(this.uid, this._showDelay, () => {
-        this._showOnHover(event.target);
+        this.isValidHoverTarget(event.target).then(target => {
+          this.show(target);
+        });
       });
     }
   },
 
-  _showOnHover: function(target) {
-    let res = this._targetNodeCb(target, this);
-    let show = arg => this.show(arg instanceof Ci.nsIDOMNode ? arg : target);
+  
 
+
+
+
+
+  isValidHoverTarget: function(target) {
+    
+    
+    let res = this._targetNodeCb(target, this);
+
+    
+    
     if (res && res.then) {
-      res.then(show);
-    } else if (res) {
-      show(res);
+      return res.then(arg => {
+        return arg instanceof Ci.nsIDOMNode ? arg : target;
+      }, () => {
+        return false;
+      });
+    } else {
+      return res ? promise.resolve(res) : promise.reject(false);
     }
   },
 
@@ -620,42 +635,44 @@ Tooltip.prototype = {
 
 
   setImageContent: function(imageUrl, options={}) {
-    if (imageUrl) {
-      
-      let vbox = this.doc.createElement("vbox");
-      vbox.setAttribute("align", "center");
-
-      
-      let image = this.doc.createElement("image");
-      image.setAttribute("src", imageUrl);
-      if (options.maxDim) {
-        image.style.maxWidth = options.maxDim + "px";
-        image.style.maxHeight = options.maxDim + "px";
-      }
-      vbox.appendChild(image);
-
-      
-      let label = this.doc.createElement("label");
-      label.classList.add("devtools-tooltip-caption");
-      label.classList.add("theme-comment");
-      if (options.naturalWidth && options.naturalHeight) {
-        label.textContent = this._getImageDimensionLabel(options.naturalWidth,
-          options.naturalHeight);
-      } else {
-        
-        label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
-        let imgObj = new this.doc.defaultView.Image();
-        imgObj.src = imageUrl;
-        imgObj.onload = () => {
-          imgObj.onload = null;
-          label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
-            imgObj.naturalHeight);
-        }
-      }
-      vbox.appendChild(label);
-
-      this.content = vbox;
+    if (!imageUrl) {
+      return;
     }
+
+    
+    let vbox = this.doc.createElement("vbox");
+    vbox.setAttribute("align", "center");
+
+    
+    let image = this.doc.createElement("image");
+    image.setAttribute("src", imageUrl);
+    if (options.maxDim) {
+      image.style.maxWidth = options.maxDim + "px";
+      image.style.maxHeight = options.maxDim + "px";
+    }
+    vbox.appendChild(image);
+
+    
+    let label = this.doc.createElement("label");
+    label.classList.add("devtools-tooltip-caption");
+    label.classList.add("theme-comment");
+    if (options.naturalWidth && options.naturalHeight) {
+      label.textContent = this._getImageDimensionLabel(options.naturalWidth,
+        options.naturalHeight);
+    } else {
+      
+      label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
+      let imgObj = new this.doc.defaultView.Image();
+      imgObj.src = imageUrl;
+      imgObj.onload = () => {
+        imgObj.onload = null;
+        label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
+          imgObj.naturalHeight);
+      }
+    }
+    vbox.appendChild(label);
+
+    this.content = vbox;
   },
 
   _getImageDimensionLabel: (w, h) => w + " x " + h,
