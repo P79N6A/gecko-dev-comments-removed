@@ -671,6 +671,9 @@ class IDLInterface(IDLObjectWithScope):
 
         
         
+        
+        
+        
         specialMembersSeen = {}
         for member in self.members:
             if not member.isMethod():
@@ -686,10 +689,12 @@ class IDLInterface(IDLObjectWithScope):
                 memberType = "deleters"
             elif member.isStringifier():
                 memberType = "stringifiers"
+            elif member.isLegacycaller():
+                memberType = "legacycallers"
             else:
                 continue
 
-            if memberType != "stringifiers":
+            if memberType != "stringifiers" and memberType != "legacycallers":
                 if member.isNamed():
                     memberType = "named " + memberType
                 else:

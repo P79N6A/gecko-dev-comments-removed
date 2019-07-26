@@ -518,6 +518,7 @@ public:
   void SetThrowingGetterAttr(bool arg);
   bool ThrowingSetterAttr() const;
   void SetThrowingSetterAttr(bool arg, ErrorResult& aRv);
+  int16_t LegacyCall(JS::Value, uint32_t, TestInterface&);
 
   
   bool ImplementedProperty();
@@ -886,10 +887,18 @@ public:
   void GetSupportedNames(nsTArray<nsString>&);
 };
 
-class TestChildInterface : public TestInterface
+class TestParentInterface : public nsISupports,
+                            public nsWrapperCache
 {
 public:
   NS_DECL_ISUPPORTS
+
+  
+  virtual nsISupports* GetParentObject();
+};
+
+class TestChildInterface : public TestParentInterface
+{
 };
 
 } 
