@@ -78,27 +78,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "FinalizationWitnessService",
                                    "nsIFinalizationWitnessService");
 
 let PendingErrors = {
-  
   _counter: 0,
-  
-  
-  _observers: new Set(),
   _map: new Map(),
-
-  
-
-
-  init: function() {
-    Services.obs.addObserver(function observe(aSubject, aTopic, aValue) {
-      PendingErrors.report(aValue);
-    }, "promise-finalization-witness", false);
-  },
-
-  
-
-
-
-
   register: function(error) {
     let id = "pending-error-" + (this._counter++);
     
@@ -185,102 +166,46 @@ let PendingErrors = {
     this._map.set(id, value);
     return id;
   },
-
-  
-
-
-
-
-
-  report: function(id) {
+  extract: function(id) {
     let value = this._map.get(id);
-    if (!value) {
-      return; 
-    }
     this._map.delete(id);
-    for (let obs of this._observers.values()) {
-      obs(value);
-    }
+    return value;
   },
-
-  
-
-
-  flush: function() {
-    
-    
-    let keys = Array.slice(this._map.keys());
-    for (let key of keys) {
-      this.report(key);
-    }
-  },
-
-  
-
-
-
   unregister: function(id) {
     this._map.delete(id);
-  },
-
-  
-
-
-
-
-
-
-
-  addObserver: function(observer) {
-    this._observers.add(observer);
-  },
-
-  
-
-
-  removeObserver: function(observer) {
-    this._observers.delete(observer);
-  },
-
-  
-
-
-  removeAllObservers: function() {
-    this._observers.clear();
   }
 };
-PendingErrors.init();
 
 
-PendingErrors.addObserver(function(details) {
+Services.obs.addObserver(function observe(aSubject, aTopic, aValue) {
+  let error = PendingErrors.extract(aValue);
+  let {message, date, fileName, stack, lineNumber} = error;
   let error = Cc['@mozilla.org/scripterror;1'].createInstance(Ci.nsIScriptError);
   if (!error || !Services.console) {
     
     dump("*************************\n");
     dump("A promise chain failed to handle a rejection\n\n");
-    dump("On: " + details.date + "\n");
-    dump("Full message: " + details.message + "\n");
+    dump("On: " + date + "\n");
+    dump("Full message: " + message + "\n");
     dump("See https://developer.mozilla.org/Mozilla/JavaScript_code_modules/Promise.jsm/Promise\n");
-    dump("Full stack: " + (details.stack||"not available") + "\n");
+    dump("Full stack: " + (stack||"not available") + "\n");
     dump("*************************\n");
     return;
   }
-  let message = details.message;
-  if (details.stack) {
-    message += "\nFull Stack: " + details.stack;
+  if (stack) {
+    message += "\nFull Stack: " + stack;
   }
   error.init(
              "A promise chain failed to handle a rejection.\n\n" +
-             "Date: " + details.date + "\nFull Message: " + details.message,
-              details.fileName,
-              details.lineNumber?("" + details.lineNumber):0,
-              details.lineNumber || 0,
+             "Date: " + date + "\nFull Message: " + message,
+              fileName,
+              lineNumber?("" + lineNumber):0,
+              lineNumber || 0,
               0,
               Ci.nsIScriptError.errorFlag,
               "chrome javascript");
   Services.console.logMessage(error);
-});
-
+}, "promise-finalization-witness", false);
 
 
 
@@ -571,45 +496,6 @@ Promise.race = function (aValues)
   });
 };
 
-Promise.Debugging = {
-  
-
-
-
-
-
-
-
-  addUncaughtErrorObserver: function(observer) {
-    PendingErrors.addObserver(observer);
-  },
-
-  
-
-
-
-
-
-  removeUncaughtErrorObserver: function(observer) {
-    PendingErrors.removeObserver(observer);
-  },
-
-  
-
-
-  clearUncaughtErrorObservers: function() {
-    PendingErrors.removeAllObservers();
-  },
-
-  
-
-
-
-  flushUncaughtErrors: function() {
-    PendingErrors.flush();
-  },
-};
-Object.freeze(Promise.Debugging);
 Object.freeze(Promise);
 
 
