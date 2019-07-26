@@ -32,7 +32,7 @@ public:
     {
         LOG(("Creating nsHttpConnectionInfo @%x\n", this));
 
-        mUsingHttpProxy = (proxyInfo && !nsCRT::strcmp(proxyInfo->Type(), "http"));
+        mUsingHttpProxy = (proxyInfo && proxyInfo->IsHTTP());
 
         if (mUsingHttpProxy) {
             mUsingConnect = mUsingSSL;  
@@ -109,6 +109,9 @@ public:
     bool          GetPrivate() const     { return mHashKey.CharAt(3) == 'P'; }
 
     const nsCString &GetHost() { return mHost; }
+
+    
+    bool UsingProxy();
 
 private:
     nsrefcnt               mRef;
