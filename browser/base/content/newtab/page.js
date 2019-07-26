@@ -25,6 +25,8 @@ let gPage = {
 
     
     this._sponsoredPanel = document.getElementById("sponsored-panel");
+    let link = this._sponsoredPanel.querySelector(".text-link");
+    link.addEventListener("click", () => this._sponsoredPanel.hidePopup());
 
     
     let enabled = gAllPages.enabled;
