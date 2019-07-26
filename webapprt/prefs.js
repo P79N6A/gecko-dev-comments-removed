@@ -49,6 +49,11 @@ pref("general.smoothScroll", true);
 
 pref("dom.mozPay.enabled", true);
 
+
+pref("dom.max_script_run_time", 0);
+pref("dom.max_chrome_script_run_time", 0);
+
+
 #ifndef RELEASE_BUILD
 
 pref("dom.payment.provider.0.name", "Firefox Marketplace");
