@@ -506,6 +506,7 @@ ValueNumberer::breakClass(MDefinition *def)
         MDefinition *newRep = findSplit(def);
         if (!newRep)
             return;
+        markConsumers(def);
         ValueNumberData *newdata = newRep->valueNumberData();
 
         
@@ -544,8 +545,10 @@ ValueNumberer::breakClass(MDefinition *def)
         
         for (MDefinition *tmp = newRep; tmp != nullptr; tmp = tmp->valueNumberData()->classNext) {
             
-            if (tmp->isInWorklist())
+            if (tmp->isInWorklist()) {
+                IonSpew(IonSpew_GVN, "Defer  to a new congruence class: %d", tmp->id());
                 continue;
+            }
             IonSpew(IonSpew_GVN, "Moving to a new congruence class: %d", tmp->id());
             tmp->setValueNumber(newRep->id());
             markConsumers(tmp);
