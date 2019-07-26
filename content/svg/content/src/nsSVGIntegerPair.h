@@ -57,7 +57,10 @@ public:
   nsresult ToDOMAnimatedInteger(nsIDOMSVGAnimatedInteger **aResult,
                                 PairIndex aIndex,
                                 nsSVGElement* aSVGElement);
-  
+  already_AddRefed<nsIDOMSVGAnimatedInteger>
+    ToDOMAnimatedInteger(PairIndex aIndex,
+                         nsSVGElement* aSVGElement);
+   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
 private:

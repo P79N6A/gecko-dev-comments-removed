@@ -181,7 +181,7 @@ nsSVGGradientFrame::GetGradientTransform(nsIFrame *aSource,
   gfxMatrix bboxMatrix;
 
   uint16_t gradientUnits = GetGradientUnits();
-  if (gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_USERSPACEONUSE) {
+  if (gradientUnits == SVG_UNIT_TYPE_USERSPACEONUSE) {
     
     
     
@@ -191,7 +191,7 @@ nsSVGGradientFrame::GetGradientTransform(nsIFrame *aSource,
       mSource = aSource;
   } else {
     NS_ASSERTION(
-      gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
+      gradientUnits == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
       "Unknown gradientUnits type");
     
 
@@ -474,12 +474,12 @@ nsSVGLinearGradientFrame::GetLengthValue(uint32_t aIndex)
   
 
   uint16_t gradientUnits = GetGradientUnits();
-  if (gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_USERSPACEONUSE) {
+  if (gradientUnits == SVG_UNIT_TYPE_USERSPACEONUSE) {
     return nsSVGUtils::UserSpace(mSource, &length);
   }
 
   NS_ASSERTION(
-    gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
+    gradientUnits == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
     "Unknown gradientUnits type");
 
   return length.GetAnimValue(static_cast<SVGSVGElement*>(nullptr));
@@ -605,12 +605,12 @@ nsSVGRadialGradientFrame::GetLengthValueFromElement(uint32_t aIndex,
   
 
   uint16_t gradientUnits = GetGradientUnits();
-  if (gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_USERSPACEONUSE) {
+  if (gradientUnits == SVG_UNIT_TYPE_USERSPACEONUSE) {
     return nsSVGUtils::UserSpace(mSource, &length);
   }
 
   NS_ASSERTION(
-    gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
+    gradientUnits == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
     "Unknown gradientUnits type");
 
   return length.GetAnimValue(static_cast<SVGSVGElement*>(nullptr));
