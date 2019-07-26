@@ -8,11 +8,11 @@
 #include "jsapi.h" 
 #include "jsfriendapi.h" 
 #include "nsJSUtils.h"
-#include "Constants.h"
 #include "nsContentUtils.h"
 #include "nsIDOMFile.h"
 #include "nsTArrayHelpers.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/mobilemessage/Constants.h" 
 #include "mozilla/dom/mobilemessage/SmsTypes.h"
 #include "nsDOMFile.h"
 

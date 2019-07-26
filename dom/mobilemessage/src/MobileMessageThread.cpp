@@ -9,7 +9,7 @@
 #include "jsfriendapi.h"     
 #include "nsJSUtils.h"       
 #include "nsTArrayHelpers.h" 
-#include "Constants.h"       
+#include "mozilla/dom/mobilemessage/Constants.h" 
 
 
 using namespace mozilla::dom::mobilemessage;

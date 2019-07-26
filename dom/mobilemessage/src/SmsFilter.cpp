@@ -4,15 +4,14 @@
 
 
 #include "SmsFilter.h"
-#include "nsIDOMClassInfo.h"
-#include "Constants.h"
-#include "nsError.h"
-#include "Constants.h"
 #include "jsapi.h"
 #include "jsfriendapi.h" 
 #include "js/Utility.h"
-#include "nsJSUtils.h"
+#include "mozilla/dom/mobilemessage/Constants.h" 
 #include "nsDOMString.h"
+#include "nsError.h"
+#include "nsIDOMClassInfo.h"
+#include "nsJSUtils.h"
 
 using namespace mozilla::dom::mobilemessage;
 
