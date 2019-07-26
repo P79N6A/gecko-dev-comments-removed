@@ -187,7 +187,7 @@ IsDOMObject(JSObject* obj)
 
 
 template <prototypes::ID PrototypeID, class T, typename U>
-inline nsresult
+MOZ_ALWAYS_INLINE nsresult
 UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 {
   
