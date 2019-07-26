@@ -1313,6 +1313,13 @@ var BrowserApp = {
       case "keyword-search":
         
         this.selectedTab.userSearch = aData;
+
+        let engine = aSubject.QueryInterface(Ci.nsISearchEngine);
+        sendMessageToJava({
+          type: "Search:Keyword",
+          identifier: engine.identifier,
+          name: engine.name,
+        });
         break;
 
       case "Browser:Quit":
@@ -5895,6 +5902,7 @@ var SearchEngines = {
     let searchEngines = engineData.map(function (engine) {
       return {
         name: engine.name,
+        identifier: engine.identifier,
         iconURI: (engine.iconURI ? engine.iconURI.spec : null)
       };
     });
