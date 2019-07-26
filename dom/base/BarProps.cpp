@@ -17,9 +17,10 @@ namespace dom {
 
 
 
-BarProp::BarProp(nsGlobalWindow *aWindow)
+BarProp::BarProp(nsGlobalWindow* aWindow)
   : mDOMWindow(aWindow)
 {
+  MOZ_ASSERT(aWindow->IsInnerWindow());
   SetIsDOMBinding();
 }
 
