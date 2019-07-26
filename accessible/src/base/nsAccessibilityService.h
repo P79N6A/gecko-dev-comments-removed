@@ -107,6 +107,12 @@ public:
   
 
 
+  void UpdateLabelValue(nsIPresShell* aPresShell, nsIContent* aLabelElm,
+                        const nsString& aNewValue);
+
+  
+
+
 
   void NotifyOfAnchorJumpTo(nsIContent *aTarget);
 
