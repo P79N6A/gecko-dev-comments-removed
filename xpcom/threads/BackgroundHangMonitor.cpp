@@ -106,6 +106,10 @@ public:
   
   PRIntervalTime mInterval;
   
+  PRIntervalTime mHangStart;
+  
+  bool mHanging;
+  
   bool mWaiting;
 
   BackgroundHangThread(const char* aName,
@@ -168,7 +172,7 @@ BackgroundHangManager::RunMonitorThread()
   PRIntervalTime systemTime = PR_IntervalNow();
   
   PRIntervalTime waitTime = PR_INTERVAL_NO_WAIT;
-  PRIntervalTime permaHangTimeout = PR_INTERVAL_NO_WAIT;
+  PRIntervalTime recheckTimeout = PR_INTERVAL_NO_WAIT;
 
   while (!mShutdown) {
 
@@ -190,10 +194,10 @@ BackgroundHangManager::RunMonitorThread()
     
 
 
-    if (MOZ_LIKELY(systemInterval < permaHangTimeout &&
+    if (MOZ_LIKELY(systemInterval < recheckTimeout &&
                    systemInterval >= waitTime &&
                    rv == NS_OK)) {
-      permaHangTimeout -= systemInterval;
+      recheckTimeout -= systemInterval;
       continue;
     }
 
@@ -204,7 +208,7 @@ BackgroundHangManager::RunMonitorThread()
 
 
     waitTime = PR_INTERVAL_NO_TIMEOUT;
-    permaHangTimeout = PR_INTERVAL_NO_TIMEOUT;
+    recheckTimeout = PR_INTERVAL_NO_TIMEOUT;
 
     
     PRIntervalTime intervalNow = mIntervalNow;
@@ -217,18 +221,44 @@ BackgroundHangManager::RunMonitorThread()
         
         continue;
       }
-      PRIntervalTime hangTime = intervalNow - currentThread->mInterval;
+      PRIntervalTime interval = currentThread->mInterval;
+      PRIntervalTime hangTime = intervalNow - interval;
       if (MOZ_UNLIKELY(hangTime >= currentThread->mMaxTimeout)) {
+        
         
         currentThread->mWaiting = true;
         currentThread->ReportPermaHang();
         continue;
       }
+
+      if (MOZ_LIKELY(!currentThread->mHanging)) {
+        if (MOZ_UNLIKELY(hangTime >= currentThread->mTimeout)) {
+          
+          currentThread->mHangStart = interval;
+          currentThread->mHanging = true;
+        }
+      } else {
+        if (MOZ_LIKELY(interval != currentThread->mHangStart)) {
+          
+          currentThread->ReportHang(intervalNow - currentThread->mHangStart);
+          currentThread->mHanging = false;
+        }
+      }
+
+      
+
+
+      PRIntervalTime nextRecheck;
+      if (currentThread->mHanging) {
+        nextRecheck = currentThread->mMaxTimeout;
+      } else {
+        nextRecheck = currentThread->mTimeout;
+      }
+      recheckTimeout = std::min(recheckTimeout, nextRecheck - hangTime);
+
       
 
       waitTime = std::min(waitTime, currentThread->mTimeout / 4);
-      permaHangTimeout = std::min(
-        permaHangTimeout, currentThread->mMaxTimeout - hangTime);
     }
   }
 
@@ -249,6 +279,8 @@ BackgroundHangThread::BackgroundHangThread(const char* aName,
   , mTimeout(PR_MillisecondsToInterval(aTimeoutMs))
   , mMaxTimeout(PR_MillisecondsToInterval(aMaxTimeoutMs))
   , mInterval(mManager->mIntervalNow)
+  , mHangStart(mInterval)
+  , mHanging(false)
   , mWaiting(true)
 {
   if (sTlsKey.initialized()) {
@@ -308,7 +340,8 @@ BackgroundHangThread::NotifyActivity()
   } else {
     PRIntervalTime duration = intervalNow - mInterval;
     if (MOZ_UNLIKELY(duration >= mTimeout)) {
-      ReportHang(duration);
+      
+      mManager->Wakeup();
     }
     mInterval = intervalNow;
   }
