@@ -77,7 +77,11 @@ let SessionHistoryInternal = {
 
       
       data.index = Math.min(history.index + 1, data.entries.length);
-    } else {
+    }
+
+    
+    
+    if (data.entries.length == 0) {
       let uri = webNavigation.currentURI.spec;
       
       
