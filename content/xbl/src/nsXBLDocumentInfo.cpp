@@ -311,7 +311,7 @@ nsXBLDocGlobalObject::GetGlobalJSObject()
 {
   
   
-
+  EnsureScriptEnvironment();
   if (!mScriptContext)
     return nullptr;
 
