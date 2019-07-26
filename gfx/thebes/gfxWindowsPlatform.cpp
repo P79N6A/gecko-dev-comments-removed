@@ -53,6 +53,8 @@ using namespace mozilla::gfx;
 #include "nsMemory.h"
 #endif
 
+#include <d3d11.h>
+
 #include "nsIMemoryReporter.h"
 #include <winternl.h>
 #include "d3dkmtQueryStatistics.h"
@@ -158,12 +160,25 @@ typedef HRESULT (WINAPI*D3D10CreateDevice1Func)(
   UINT SDKVersion,
   ID3D10Device1 **ppDevice
 );
+#endif
 
 typedef HRESULT(WINAPI*CreateDXGIFactory1Func)(
   REFIID riid,
   void **ppFactory
 );
-#endif
+
+typedef HRESULT (WINAPI*D3D11CreateDeviceFunc)(
+  IDXGIAdapter *pAdapter,
+  D3D_DRIVER_TYPE DriverType,
+  HMODULE Software,
+  UINT Flags,
+  D3D_FEATURE_LEVEL *pFeatureLevels,
+  UINT FeatureLevels,
+  UINT SDKVersion,
+  ID3D11Device **ppDevice,
+  D3D_FEATURE_LEVEL *pFeatureLevel,
+  ID3D11DeviceContext *ppImmediateContext
+);
 
 class GPUAdapterMultiReporter : public nsIMemoryMultiReporter {
 
@@ -317,6 +332,7 @@ BuildKeyNameFromFontName(nsAString &aName)
 }
 
 gfxWindowsPlatform::gfxWindowsPlatform()
+  : mD3D11DeviceInitialized(false)
 {
     mPrefFonts.Init(50);
 
@@ -528,14 +544,17 @@ gfxWindowsPlatform::VerifyD2DDevice(bool aAttemptForce)
 
     nsRefPtr<ID3D10Device1> device;
 
-    nsModuleHandle dxgiModule(LoadLibrarySystem32(L"dxgi.dll"));
-    CreateDXGIFactory1Func createDXGIFactory1 = (CreateDXGIFactory1Func)
-        GetProcAddress(dxgiModule, "CreateDXGIFactory1");
-
     int supportedFeatureLevelsCount = ArrayLength(kSupportedFeatureLevels);
     
     if (!IsRunningInWindowsMetro()) {
       supportedFeatureLevelsCount--;
+    }
+
+    nsRefPtr<IDXGIAdapter1> adapter1 = GetDXGIAdapter();
+
+    if (!adapter1) {
+      
+      return;
     }
 
     
@@ -544,28 +563,6 @@ gfxWindowsPlatform::VerifyD2DDevice(bool aAttemptForce)
     int featureLevelIndex = Preferences::GetInt(kFeatureLevelPref, 0);
     if (featureLevelIndex >= supportedFeatureLevelsCount || featureLevelIndex < 0)
       featureLevelIndex = 0;
-
-    
-    
-    nsRefPtr<IDXGIAdapter1> adapter1;
-    if (createDXGIFactory1) {
-        nsRefPtr<IDXGIFactory1> factory1;
-        HRESULT hr = createDXGIFactory1(__uuidof(IDXGIFactory1),
-                                        getter_AddRefs(factory1));
-
-        if (FAILED(hr) || !factory1) {
-          
-          
-          return;
-        }
-
-        hr = factory1->EnumAdapters1(0, getter_AddRefs(adapter1));
-        if (FAILED(hr) || !adapter1) {
-          
-          
-          return;
-        }
-    }
 
     
     
@@ -1432,8 +1429,89 @@ gfxWindowsPlatform::SetupClearTypeParams()
 #endif
 }
 
+ID3D11Device*
+gfxWindowsPlatform::GetD3D11Device()
+{
+  if (mD3D11DeviceInitialized) {
+    return mD3D11Device;
+  }
+
+  mD3D11DeviceInitialized = true;
+
+  nsModuleHandle d3d11Module(LoadLibrarySystem32(L"d3d11.dll"));
+  D3D11CreateDeviceFunc d3d11CreateDevice = (D3D11CreateDeviceFunc)
+    GetProcAddress(d3d11Module, "D3D11CreateDevice");
+
+  if (!d3d11CreateDevice) {
+    return nullptr;
+  }
+
+  D3D_FEATURE_LEVEL featureLevels[] = {
+    D3D_FEATURE_LEVEL_11_1,
+    D3D_FEATURE_LEVEL_11_0,
+    D3D_FEATURE_LEVEL_10_1,
+    D3D_FEATURE_LEVEL_10_0,
+    D3D_FEATURE_LEVEL_9_3
+  };
+
+  RefPtr<IDXGIAdapter1> adapter = GetDXGIAdapter();
+
+  if (!adapter) {
+    return nullptr;
+  }
+
+  HRESULT hr = d3d11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN, NULL,
+                                 D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+                                 featureLevels, sizeof(featureLevels) / sizeof(D3D_FEATURE_LEVEL),
+                                 D3D11_SDK_VERSION, byRef(mD3D11Device), nullptr, nullptr);
+
+  
+  
+  d3d11Module.disown();
+
+  return mD3D11Device;
+}
+
 bool
 gfxWindowsPlatform::IsOptimus()
 {
   return GetModuleHandleA("nvumdshim.dll");
+}
+
+IDXGIAdapter1*
+gfxWindowsPlatform::GetDXGIAdapter()
+{
+  if (mAdapter) {
+    return mAdapter;
+  }
+
+  nsModuleHandle dxgiModule(LoadLibrarySystem32(L"dxgi.dll"));
+  CreateDXGIFactory1Func createDXGIFactory1 = (CreateDXGIFactory1Func)
+    GetProcAddress(dxgiModule, "CreateDXGIFactory1");
+
+  
+  
+  if (createDXGIFactory1) {
+    nsRefPtr<IDXGIFactory1> factory1;
+    HRESULT hr = createDXGIFactory1(__uuidof(IDXGIFactory1),
+                                    getter_AddRefs(factory1));
+
+    if (FAILED(hr) || !factory1) {
+      
+      
+      return nullptr;
+    }
+
+    hr = factory1->EnumAdapters1(0, byRef(mAdapter));
+    if (FAILED(hr)) {
+      
+      
+      return nullptr;
+    }
+  }
+
+  
+  dxgiModule.disown();
+
+  return mAdapter;
 }
