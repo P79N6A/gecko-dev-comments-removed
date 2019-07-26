@@ -1312,9 +1312,7 @@ this.PlacesUtils = {
 
 
 
-
-
-  asyncGetBookmarkIds: function PU_asyncGetBookmarkIds(aURI, aCallback, aScope)
+  asyncGetBookmarkIds: function PU_asyncGetBookmarkIds(aURI, aCallback)
   {
     if (!this._asyncGetBookmarksStmt) {
       let db = this.history.DBConnection;
@@ -1336,6 +1334,7 @@ this.PlacesUtils = {
     
     let stmt = new AsyncStatementCancelWrapper(this._asyncGetBookmarksStmt);
     return stmt.executeAsync({
+      _callback: aCallback,
       _itemIds: [],
       handleResult: function(aResultSet) {
         for (let row; (row = aResultSet.getNextRow());) {
@@ -1345,7 +1344,7 @@ this.PlacesUtils = {
       handleCompletion: function(aReason)
       {
         if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
-          aCallback.apply(aScope, [this._itemIds, aURI]);
+          this._callback(this._itemIds, aURI);
         }
       }
     });
