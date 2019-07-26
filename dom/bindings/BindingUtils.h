@@ -239,31 +239,6 @@ IsConvertibleToCallbackInterface(JSContext* cx, JSObject* obj)
   return IsNotDateOrRegExp(cx, obj);
 }
 
-inline bool
-IsPlatformObject(JSContext* cx, JSObject* obj)
-{
-  MOZ_ASSERT(obj);
-  
-  JSClass* clasp = js::GetObjectJSClass(obj);
-  if (js::Valueify(clasp) == &js::ObjectClass) {
-    return false;
-  }
-  if (IsDOMClass(clasp)) {
-    return true;
-  }
-  
-  if (js::IsWrapper(obj)) {
-    obj = xpc::Unwrap(cx, obj, false);
-    if (!obj) {
-      
-      return false;
-    }
-    clasp = js::GetObjectJSClass(obj);
-  }
-  return IS_WRAPPER_CLASS(js::Valueify(clasp)) || IsDOMClass(clasp) ||
-    JS_IsArrayBufferObject(obj);
-}
-
 
 template <class T, typename U>
 inline nsresult
