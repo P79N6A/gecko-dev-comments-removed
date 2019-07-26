@@ -250,10 +250,6 @@ struct IonScript
     uint32_t constantEntries_;
 
     
-    uint32_t scriptList_;
-    uint32_t scriptEntries_;
-
-    
     
     
     uint32_t callTargetList_;
@@ -310,9 +306,6 @@ struct IonScript
     uint8_t *runtimeData() {
         return  &bottomBuffer()[runtimeData_];
     }
-    JSScript **scriptList() const {
-        return (JSScript **) &bottomBuffer()[scriptList_];
-    }
     JSScript **callTargetList() {
         return (JSScript **) &bottomBuffer()[callTargetList_];
     }
@@ -343,8 +336,7 @@ struct IonScript
     static IonScript *New(JSContext *cx, uint32_t frameLocals, uint32_t frameSize,
                           size_t snapshotsSize, size_t snapshotEntries,
                           size_t constants, size_t safepointIndexEntries, size_t osiIndexEntries,
-                          size_t cacheEntries, size_t runtimeSize,
-                          size_t safepointsSize, size_t scriptEntries,
+                          size_t cacheEntries, size_t runtimeSize, size_t safepointsSize,
                           size_t callTargetEntries, size_t backedgeEntries);
     static void Trace(JSTracer *trc, IonScript *script);
     static void Destroy(FreeOp *fop, IonScript *script);
@@ -459,13 +451,6 @@ struct IonScript
     size_t safepointsSize() const {
         return safepointsSize_;
     }
-    JSScript *getScript(size_t i) const {
-        JS_ASSERT(i < scriptEntries_);
-        return scriptList()[i];
-    }
-    size_t scriptEntries() const {
-        return scriptEntries_;
-    }
     size_t callTargetEntries() const {
         return callTargetEntries_;
     }
@@ -520,7 +505,6 @@ struct IonScript
     void copyRuntimeData(const uint8_t *data);
     void copyCacheEntries(const uint32_t *caches, MacroAssembler &masm);
     void copySafepoints(const SafepointWriter *writer);
-    void copyScriptEntries(JSScript **scripts);
     void copyCallTargetEntries(JSScript **callTargets);
     void copyPatchableBackedges(JSContext *cx, IonCode *code,
                                 PatchableBackedgeInfo *backedges);

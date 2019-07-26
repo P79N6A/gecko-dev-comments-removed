@@ -541,9 +541,6 @@ class MIRGraph
     MBasicBlock *osrBlock_;
     MStart *osrStart_;
 
-    
-    Vector<JSScript *, 4, IonAllocPolicy> scripts_;
-
     size_t numBlocks_;
     bool hasTryBlock_;
 
@@ -663,20 +660,6 @@ class MIRGraph
     }
     MStart *osrStart() {
         return osrStart_;
-    }
-    bool addScript(JSScript *script) {
-        
-        for (size_t i = 0; i < scripts_.length(); i++) {
-            if (scripts_[i] == script)
-                return true;
-        }
-        return scripts_.append(script);
-    }
-    size_t numScripts() const {
-        return scripts_.length();
-    }
-    JSScript **scripts() {
-        return scripts_.begin();
     }
 
     bool hasTryBlock() const {
