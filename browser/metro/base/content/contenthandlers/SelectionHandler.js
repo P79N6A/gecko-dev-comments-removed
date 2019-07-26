@@ -45,7 +45,6 @@ var SelectionHandler = {
   _contentOffset: { x:0, y:0 },
   _domWinUtils: null,
   _selectionMoveActive: false,
-  _lastMarker: "",
   _debugOptions: { dumpRanges: false, displayRanges: false },
   _snap: true,
 
@@ -595,62 +594,15 @@ var SelectionHandler = {
 
     
     
-    
-    
     let halfLineHeight = this._queryHalfLineHeight(aMarker, selection);
     clientPoint.yPos -= halfLineHeight;
 
+    
     if (this._targetIsEditable) {
-      
-      
-      
-      let result = this.updateTextEditSelection(clientPoint);
-
-      
-      
-      
-      
-      
-      clientPoint =
-       this._constrainPointWithinControl(clientPoint, halfLineHeight);
-
-      
-      
-      
-      if (result.trigger) {
-        
-        
-        
-        
-        if (!this._scrollTimer)
-          this._scrollTimer = new Util.Timeout();
-        this._setTextEditUpdateInterval(result.speed);
-
-        
-        this._setContinuousSelection();
-
-        
-        this._updateSelectionUI(result.start, result.end);
-
-        return;
-      }
-    }
-
-    this._lastMarker = aMarker;
-
-    
-    this._clearTimers();
-
-    
-    this._adjustSelection(aMarker, clientPoint, aEndOfSelection);
-
-    
-    
-    
-    if (aMarker == "start") {
-      this._updateSelectionUI(false, true);
+      this._adjustEditableSelection(aMarker, clientPoint,
+                                    halfLineHeight, aEndOfSelection);
     } else {
-      this._updateSelectionUI(true, false);
+      this._adjustSelection(aMarker, clientPoint, aEndOfSelection);
     }
   },
 
@@ -659,6 +611,59 @@ var SelectionHandler = {
 
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+  _adjustEditableSelection: function _adjustEditableSelection(aMarker,
+                                                              aAdjustedClientPoint,
+                                                              aHalfLineHeight,
+                                                              aEndOfSelection) {
+    
+    
+    
+    let result = this.updateTextEditSelection(aAdjustedClientPoint);
+
+    
+    
+    if (result.trigger) {
+      
+      
+      
+      
+      this._setTextEditUpdateInterval(result.speed);
+
+      
+      this._setContinuousSelection();
+
+      
+      this._updateSelectionUI(result.start, result.end);
+    } else {
+      
+      this._clearTimers();
+
+      
+      
+      
+      let constrainedPoint =
+        this._constrainPointWithinControl(aAdjustedClientPoint, aHalfLineHeight);
+
+      
+      this._adjustSelection(aMarker, constrainedPoint, aEndOfSelection);
+    }
+  },
+
+  
+
+
 
 
 
@@ -707,6 +712,15 @@ var SelectionHandler = {
 
     
     this._setContinuousSelection();
+
+    
+    
+    
+    if (aMarker == "start") {
+      this._updateSelectionUI(false, true);
+    } else {
+      this._updateSelectionUI(true, false);
+    }
   },
 
   
@@ -823,6 +837,8 @@ var SelectionHandler = {
 
   _setTextEditUpdateInterval: function _setTextEditUpdateInterval(aSpeedValue) {
     let timeout = (75 - (aSpeedValue * 75));
+    if (!this._scrollTimer)
+      this._scrollTimer = new Util.Timeout();
     this._scrollTimer.interval(timeout, this.scrollTimerCallback);
   },
 
