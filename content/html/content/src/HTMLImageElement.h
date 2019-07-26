@@ -12,16 +12,20 @@
 #include "nsIDOMHTMLImageElement.h"
 #include "imgRequestProxy.h"
 #include "Units.h"
-#include "mozilla/dom/ResponsiveImageSelector.h"
+
+
+#include "mozilla/dom/HTMLPictureElement.h"
 
 namespace mozilla {
 class EventChainPreVisitor;
 namespace dom {
 
+class ResponsiveImageSelector;
 class HTMLImageElement MOZ_FINAL : public nsGenericHTMLElement,
                                    public nsImageLoadingContent,
                                    public nsIDOMHTMLImageElement
 {
+  friend class HTMLSourceElement;
 public:
   explicit HTMLImageElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
   virtual ~HTMLImageElement();
@@ -190,7 +194,27 @@ protected:
   nsresult LoadSelectedImage(bool aForce, bool aNotify);
 
   
-  void UpdateSourceSet(const nsAString & aSrcset);
+  void PictureSourceSrcsetChanged(nsIContent *aSourceNode,
+                                  const nsAString& aNewValue, bool aNotify);
+  void PictureSourceSizesChanged(nsIContent *aSourceNode,
+                                 const nsAString& aNewValue, bool aNotify);
+
+  void PictureSourceAdded(nsIContent *aSourceNode);
+  
+  void PictureSourceRemoved(nsIContent *aSourceNode);
+
+  bool MaybeUpdateResponsiveSelector(nsIContent *aCurrentSource = nullptr,
+                                     bool aSourceRemoved = false);
+
+  
+  
+
+  
+  
+  
+  bool TryCreateResponsiveSelector(nsIContent *aSourceNode,
+                                   const nsAString *aSrcset = nullptr,
+                                   const nsAString *aSizes = nullptr);
 
   CSSIntPoint GetXY();
   virtual void GetItemValueText(nsAString& text) MOZ_OVERRIDE;

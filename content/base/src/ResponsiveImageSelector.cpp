@@ -151,6 +151,21 @@ ResponsiveImageSelector::SetDefaultSource(const nsAString & aSpec)
   return NS_OK;
 }
 
+uint32_t
+ResponsiveImageSelector::NumCandidates(bool aIncludeDefault)
+{
+  uint32_t candidates = mCandidates.Length();
+
+  
+  if (!aIncludeDefault && candidates &&
+      (mCandidates[candidates - 1].Type() ==
+       ResponsiveImageCandidate::eCandidateType_Default)) {
+    candidates--;
+  }
+
+  return candidates;
+}
+
 void
 ResponsiveImageSelector::SetDefaultSource(nsIURI *aURL)
 {
