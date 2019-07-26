@@ -776,7 +776,7 @@ class AsmJSModule
 };
 
 
-extern void
+extern bool
 StoreAsmJSModuleInCache(AsmJSParser &parser,
                         const AsmJSModule &module,
                         const AsmJSStaticLinkData &linkData,
