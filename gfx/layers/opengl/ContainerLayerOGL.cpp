@@ -193,8 +193,19 @@ ContainerRender(Container* aContainer,
   const gfx3DMatrix& transform = aContainer->GetEffectiveTransform();
   bool needsFramebuffer = aContainer->UseIntermediateSurface();
   if (needsFramebuffer) {
-    LayerManagerOGL::InitMode mode = LayerManagerOGL::InitModeClear;
     nsIntRect framebufferRect = visibleRect;
+    
+    
+    
+    
+    
+    
+    GLint maxTexSize;
+    aContainer->gl()->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_SIZE, &maxTexSize);
+    framebufferRect.width = std::min(framebufferRect.width, maxTexSize);
+    framebufferRect.height = std::min(framebufferRect.height, maxTexSize);
+
+    LayerManagerOGL::InitMode mode = LayerManagerOGL::InitModeClear;
     if (aContainer->GetEffectiveVisibleRegion().GetNumRects() == 1 && 
         (aContainer->GetContentFlags() & Layer::CONTENT_OPAQUE))
     {
