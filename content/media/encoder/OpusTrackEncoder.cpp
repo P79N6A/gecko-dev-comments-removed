@@ -32,6 +32,11 @@ static const int kOpusSamplingRate = 48000;
 
 static const int kFrameDurationMs  = 20;
 
+
+
+static const int kOpusSupportedInputSamplingRates[5] =
+                   {8000, 12000, 16000, 24000, 48000};
+
 namespace {
 
 
@@ -146,12 +151,14 @@ OpusTrackEncoder::Init(int aChannels, int aSamplingRate)
   if (aChannels <= 0) {
     return NS_ERROR_FAILURE;
   }
+
   
   
   
-  
-  if (!((aSamplingRate >= 8000) && (kOpusSamplingRate / aSamplingRate) *
-         aSamplingRate == kOpusSamplingRate)) {
+  nsTArray<int> supportedSamplingRates;
+  supportedSamplingRates.AppendElements(kOpusSupportedInputSamplingRates,
+                         MOZ_ARRAY_LENGTH(kOpusSupportedInputSamplingRates));
+  if (!supportedSamplingRates.Contains(aSamplingRate)) {
     int error;
     mResampler = speex_resampler_init(mChannels,
                                       aSamplingRate,
