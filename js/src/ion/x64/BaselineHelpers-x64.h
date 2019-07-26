@@ -149,6 +149,90 @@ EmitLeaveStubFrame(MacroAssembler &masm)
 }
 
 inline void
+EmitStowICValues(MacroAssembler &masm, int values)
+{
+    JS_ASSERT(values >= 0 && values <= 2);
+    switch(values) {
+      case 1:
+        
+        masm.pop(BaselineTailCallReg);
+        masm.pushValue(R0);
+        masm.push(BaselineTailCallReg);
+        break;
+      case 2:
+        
+        masm.pop(BaselineTailCallReg);
+        masm.pushValue(R0);
+        masm.pushValue(R1);
+        masm.push(BaselineTailCallReg);
+        break;
+    }
+}
+
+inline void
+EmitUnstowICValues(MacroAssembler &masm, int values)
+{
+    JS_ASSERT(values >= 0 && values <= 2);
+    switch(values) {
+      case 1:
+        
+        masm.pop(BaselineTailCallReg);
+        masm.popValue(R0);
+        masm.push(BaselineTailCallReg);
+        break;
+      case 2:
+        
+        masm.pop(BaselineTailCallReg);
+        masm.popValue(R1);
+        masm.popValue(R0);
+        masm.push(BaselineTailCallReg);
+        break;
+    }
+}
+
+inline void
+EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code)
+{
+    
+
+    
+    masm.push(BaselineStubReg);
+
+    
+    
+    masm.movq(Operand(BaselineStubReg, (int32_t) ICUpdatedStub::offsetOfFirstUpdateStub()),
+              BaselineStubReg);
+
+    
+    masm.movq(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()),
+              BaselineTailCallReg);
+
+    
+    masm.call(BaselineTailCallReg);
+
+    
+    masm.pop(BaselineStubReg);
+
+    
+    
+    Label success;
+    masm.cmpPtr(R1.scratchReg(), ImmWord(1));
+    masm.j(Assembler::Equal, &success);
+
+    
+    EmitEnterStubFrame(masm, R1.scratchReg());
+
+    masm.pushValue(R0);
+    masm.push(BaselineStubReg);
+
+    EmitCallVM(code, masm);
+    EmitLeaveStubFrame(masm);
+
+    
+    masm.bind(&success);
+}
+
+inline void
 EmitStubGuardFailure(MacroAssembler &masm)
 {
     

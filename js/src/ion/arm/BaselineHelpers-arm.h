@@ -155,6 +155,87 @@ EmitLeaveStubFrame(MacroAssembler &masm)
 }
 
 inline void
+EmitStowICValues(MacroAssembler &masm, int values)
+{
+    JS_ASSERT(values >= 0 && values <= 2);
+    switch(values) {
+      case 1:
+        
+        masm.pushValue(R0);
+        break;
+      case 2:
+        
+        masm.pushValue(R0);
+        masm.pushValue(R1);
+        break;
+    }
+}
+
+inline void
+EmitUnstowICValues(MacroAssembler &masm, int values)
+{
+    JS_ASSERT(values >= 0 && values <= 2);
+    switch(values) {
+      case 1:
+        
+        masm.popValue(R0);
+        break;
+      case 2:
+        
+        masm.popValue(R1);
+        masm.popValue(R0);
+        break;
+    }
+}
+
+inline void
+EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code)
+{
+    JS_ASSERT(R2 == ValueOperand(r1, r0));
+    
+
+    
+    
+    masm.push(BaselineStubReg);
+    masm.push(BaselineTailCallReg);
+
+    
+    
+    masm.loadPtr(Address(BaselineStubReg, ICUpdatedStub::offsetOfFirstUpdateStub()),
+                 BaselineStubReg);
+
+    
+
+    
+    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), r0);
+
+    
+    masm.ma_blx(r0);
+
+    
+    masm.pop(BaselineTailCallReg);
+    masm.pop(BaselineStubReg);
+
+    
+    
+    Label success;
+    masm.cmp32(R1.scratchReg(), Imm32(1));
+    masm.j(Assembler::Equal, &success);
+
+    
+    EmitEnterStubFrame(masm, R1.scratchReg());
+
+    masm.pushValue(R0);
+    masm.push(BaselineStubReg);
+
+    EmitCallVM(code, masm);
+    EmitLeaveStubFrame(masm);
+
+    
+    masm.bind(&success);
+}
+
+inline void
 EmitStubGuardFailure(MacroAssembler &masm)
 {
     JS_ASSERT(R2 == ValueOperand(r1, r0));
