@@ -22,6 +22,7 @@
 #include "SVGGraphicsElement.h"
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 
 
 
@@ -248,7 +249,7 @@ nsSVGPathGeometryFrame::GetFrameForPoint(const nsPoint &aPoint)
   nsRefPtr<gfxContext> tmpCtx =
     new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
 
-  GeneratePath(tmpCtx, canvasTM);
+  GeneratePath(tmpCtx, ToMatrix(canvasTM));
   gfxPoint userSpacePoint =
     tmpCtx->DeviceToUser(gfxPoint(PresContext()->AppUnitsToGfxUnits(aPoint.x),
                                   PresContext()->AppUnitsToGfxUnits(aPoint.y)));
@@ -411,7 +412,7 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const Matrix &aToBBoxUserspace,
   nsRefPtr<gfxContext> tmpCtx =
     new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
 
-  GeneratePath(tmpCtx, ThebesMatrix(aToBBoxUserspace));
+  GeneratePath(tmpCtx, aToBBoxUserspace);
   tmpCtx->IdentityMatrix();
 
   
@@ -607,7 +608,7 @@ nsSVGPathGeometryFrame::Render(nsRenderingContext *aContext,
       autoSaveRestore.SetContext(gfx);
     }
 
-    GeneratePath(gfx, GetCanvasTM(FOR_PAINTING, aTransformRoot));
+    GeneratePath(gfx, ToMatrix(GetCanvasTM(FOR_PAINTING, aTransformRoot)));
 
     
     
@@ -636,7 +637,7 @@ nsSVGPathGeometryFrame::Render(nsRenderingContext *aContext,
 
   gfxContextAutoSaveRestore autoSaveRestore(gfx);
 
-  GeneratePath(gfx, GetCanvasTM(FOR_PAINTING, aTransformRoot));
+  GeneratePath(gfx, ToMatrix(GetCanvasTM(FOR_PAINTING, aTransformRoot)));
 
   gfxTextContextPaint *contextPaint =
     (gfxTextContextPaint*)aContext->GetUserData(&gfxTextContextPaint::sUserDataKey);
@@ -656,7 +657,7 @@ nsSVGPathGeometryFrame::Render(nsRenderingContext *aContext,
 
 void
 nsSVGPathGeometryFrame::GeneratePath(gfxContext* aContext,
-                                     const gfxMatrix &aTransform)
+                                     const Matrix &aTransform)
 {
   if (aTransform.IsSingular()) {
     aContext->IdentityMatrix();
@@ -664,7 +665,7 @@ nsSVGPathGeometryFrame::GeneratePath(gfxContext* aContext,
     return;
   }
 
-  aContext->MultiplyAndNudgeToIntegers(aTransform);
+  aContext->MultiplyAndNudgeToIntegers(ThebesMatrix(aTransform));
 
   
   const nsStyleSVG* style = StyleSVG();
