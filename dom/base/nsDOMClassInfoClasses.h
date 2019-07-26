@@ -16,13 +16,9 @@ DOMCI_CLASS(DOMConstructor)
 
 
 DOMCI_CLASS(DOMException)
-DOMCI_CLASS(Element)
 
 DOMCI_CLASS(DeviceAcceleration)
 DOMCI_CLASS(DeviceRotationRate)
-
-
-DOMCI_CLASS(HTMLFormElement)
 
 
 DOMCI_CLASS(CSSStyleRule)

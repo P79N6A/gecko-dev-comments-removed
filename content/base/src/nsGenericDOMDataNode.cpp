@@ -106,8 +106,6 @@ NS_INTERFACE_MAP_BEGIN(nsGenericDOMDataNode)
                                  new nsNode3Tearoff(this))
   
   
-  
-  
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIContent)
 NS_INTERFACE_MAP_END
 

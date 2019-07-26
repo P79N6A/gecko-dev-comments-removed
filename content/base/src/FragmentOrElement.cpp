@@ -1701,8 +1701,6 @@ NS_INTERFACE_MAP_BEGIN(FragmentOrElement)
                                  new nsInlineEventHandlersTearoff(this))
   
   
-  
-  
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIContent)
 NS_INTERFACE_MAP_END
 

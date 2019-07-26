@@ -8,7 +8,6 @@
 
 
 #include "nsCOMPtr.h"
-#include "mozilla/dom/Element.h" 
 #include "mozilla/dom/Comment.h"
 #include "mozilla/dom/CommentBinding.h"
 

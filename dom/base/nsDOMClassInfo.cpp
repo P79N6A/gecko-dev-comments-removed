@@ -104,12 +104,6 @@
 #include "nsIDOMDOMStringList.h"
 
 
-#include "nsIForm.h"
-#include "nsIFormControl.h"
-#include "nsIDOMHTMLFormElement.h"
-#include "nsHTMLDocument.h"
-
-
 #include "nsEventListenerManager.h"
 #include "nsIDOMEventTarget.h"
 
@@ -319,19 +313,10 @@ static const char kDOMStringBundleURL[] =
   nsIXPCScriptable::IS_GLOBAL_OBJECT |                                        \
   nsIXPCScriptable::WANT_OUTER_OBJECT)
 
-#define NODE_SCRIPTABLE_FLAGS                                                 \
- ((DOM_DEFAULT_SCRIPTABLE_FLAGS |                                             \
-   nsIXPCScriptable::WANT_ADDPROPERTY) &                                      \
-  ~nsIXPCScriptable::USE_JSSTUB_FOR_ADDPROPERTY)
 
 
 
 
-
-
-#define ELEMENT_SCRIPTABLE_FLAGS                                              \
-  ((NODE_SCRIPTABLE_FLAGS & ~nsIXPCScriptable::CLASSINFO_INTERFACES_ONLY) |   \
-   nsIXPCScriptable::WANT_POSTCREATE)
 
 #define ARRAY_SCRIPTABLE_FLAGS                                                \
   (DOM_DEFAULT_SCRIPTABLE_FLAGS       |                                       \
@@ -504,8 +489,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
   
   NS_DEFINE_CLASSINFO_DATA(DOMException, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
-  NS_DEFINE_CLASSINFO_DATA(Element, nsElementSH,
-                           ELEMENT_SCRIPTABLE_FLAGS)
 
   
 
@@ -513,12 +496,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(DeviceRotationRate, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
-
-  
-  NS_DEFINE_CLASSINFO_DATA(HTMLFormElement, HTMLFormElementSH,
-                           ELEMENT_SCRIPTABLE_FLAGS |
-                           nsIXPCScriptable::WANT_GETPROPERTY |
-                           nsIXPCScriptable::WANT_NEWENUMERATE)
 
   
   NS_DEFINE_CLASSINFO_DATA(CSSStyleRule, nsDOMGenericSH,
@@ -1263,24 +1240,6 @@ nsDOMClassInfo::RegisterExternalClasses()
     d.mInterfaces = interface_list;                                           \
   }
 
-#define DOM_CLASSINFO_DOCUMENT_MAP_ENTRIES                                    \
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMDocumentXBL)                                \
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)                                \
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMXPathEvaluator)                             \
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNodeSelector)                               \
-    DOM_CLASSINFO_MAP_ENTRY(nsIInlineEventHandlers)                           \
-    DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsIDOMDocumentTouch,                  \
-                                        nsDOMTouchEvent::PrefEnabled())
-
-
-#define DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES                                \
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMElementCSSInlineStyle)                      \
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)                                \
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNodeSelector)                               \
-    DOM_CLASSINFO_MAP_ENTRY(nsIInlineEventHandlers)                           \
-    DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsITouchEventReceiver,                \
-                                        nsDOMTouchEvent::PrefEnabled())
-
 #ifdef MOZ_B2G
 #define DOM_CLASSINFO_WINDOW_MAP_ENTRIES(_support_indexed_db)                  \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindow)                                        \
@@ -1428,26 +1387,12 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIException)
   DOM_CLASSINFO_MAP_END
 
-  DOM_CLASSINFO_MAP_BEGIN(Element, nsIDOMElement)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMElement)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNodeSelector)
-    DOM_CLASSINFO_MAP_ENTRY(nsIInlineEventHandlers)
-    DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsITouchEventReceiver,
-                                        nsDOMTouchEvent::PrefEnabled())
-  DOM_CLASSINFO_MAP_END
-
   DOM_CLASSINFO_MAP_BEGIN(DeviceAcceleration, nsIDOMDeviceAcceleration)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMDeviceAcceleration)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(DeviceRotationRate, nsIDOMDeviceRotationRate)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMDeviceRotationRate)
-  DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(HTMLFormElement, nsIDOMHTMLFormElement)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLFormElement)
-    DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(CSSStyleRule, nsIDOMCSSStyleRule)
@@ -4945,153 +4890,6 @@ nsNavigatorSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
 
 
 NS_IMETHODIMP
-nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *aGlobalObj,
-                    JSObject **parentObj)
-{
-  JS::Rooted<JSObject*> globalObj(cx, aGlobalObj);
-  nsINode *node = static_cast<nsINode*>(nativeObj);
-
-#ifdef DEBUG
-  {
-    nsCOMPtr<nsINode> node_qi(do_QueryInterface(nativeObj));
-
-    
-    
-    
-    NS_ABORT_IF_FALSE(node_qi == node, "Uh, fix QI!");
-  }
-#endif
-
-  
-  
-  
-  
-  
-  
-  nsIDocument* doc = node->OwnerDoc();
-
-  nsINode *native_parent;
-
-  bool nodeIsElement = node->IsElement();
-  if (nodeIsElement && node->AsElement()->IsXUL()) {
-    
-    native_parent = node->GetParent();
-
-    if (!native_parent) {
-      native_parent = doc;
-    }
-  } else if (!node->IsNodeOfType(nsINode::eDOCUMENT)) {
-    NS_ASSERTION(node->IsNodeOfType(nsINode::eCONTENT) ||
-                 node->IsNodeOfType(nsINode::eATTRIBUTE),
-                 "Unexpected node type");
-
-    
-    native_parent = doc;
-
-    
-    if (nodeIsElement) {
-      if (node->IsNodeOfType(nsINode::eHTML_FORM_CONTROL)) {
-        nsCOMPtr<nsIFormControl> form_control(do_QueryInterface(node));
-
-        if (form_control) {
-          Element *form = form_control->GetFormElement();
-
-          if (form) {
-            
-            native_parent = form;
-          }
-        }
-      }
-      else {
-        
-        
-        HTMLLegendElement *legend =
-          HTMLLegendElement::FromContent(node->AsElement());
-        if (legend) {
-          Element *form = legend->GetFormElement();
-
-          if (form) {
-            native_parent = form;
-          }
-        }
-      }
-    }
-  } else {
-    
-    
-
-    
-    
-    nsIGlobalObject* scope = doc->GetScopeObject();
-    NS_ENSURE_TRUE(scope, NS_ERROR_UNEXPECTED);
-
-    *parentObj = scope->GetGlobalJSObject();
-    
-    
-    NS_ENSURE_TRUE(*parentObj, NS_ERROR_UNEXPECTED);
-
-    
-    return node->ChromeOnlyAccess() ?
-      NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
-  }
-
-  
-  
-  
-  
-
-  nsresult rv = WrapNativeParent(cx, globalObj, native_parent, parentObj);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return node->ChromeOnlyAccess() ? NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
-}
-
-NS_IMETHODIMP
-nsNodeSH::AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                      JSObject *obj, jsid id, jsval *vp, bool *_retval)
-{
-  nsNodeSH::PreserveWrapper(GetNative(wrapper, obj));
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNodeSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                     JSObject *aObj, jsid aId, uint32_t flags,
-                     JSObject **objp, bool *_retval)
-{
-  JS::Rooted<JSObject*> obj(cx, aObj);
-  JS::Rooted<jsid> id(cx, aId);
-  if (id == sOnload_id || id == sOnerror_id) {
-    
-    
-    
-    
-    
-    
-    nsNodeSH::PreserveWrapper(GetNative(wrapper, obj));
-  }
-
-  return nsDOMGenericSH::NewResolve(wrapper, cx, obj, id, flags, objp,
-                                    _retval);
-}
-
-NS_IMETHODIMP
-nsNodeSH::GetFlags(uint32_t *aFlags)
-{
-  *aFlags = DOMCLASSINFO_STANDARD_FLAGS | nsIClassInfo::CONTENT_NODE;
-
-  return NS_OK;
-}
-
-void
-nsNodeSH::PreserveWrapper(nsISupports *aNative)
-{
-  static_cast<nsINode*>(aNative)->PreserveWrapper(aNative);
-}
-
-
-
-NS_IMETHODIMP
 nsEventTargetSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
                            JSObject *aGlobalObj, JSObject **parentObj)
 {
@@ -5136,150 +4934,6 @@ IDBEventTargetSH::PreCreate(nsISupports *aNativeObj, JSContext *aCx,
   *aParentObj = parent ? parent : globalObj;
   return NS_OK;
 }
-
-
-
-NS_IMETHODIMP
-nsElementSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
-                       JSObject *globalObj, JSObject **parentObj)
-{
-  nsresult rv = nsNodeSH::PreCreate(nativeObj, cx, globalObj, parentObj);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  Element *element = static_cast<Element*>(nativeObj);
-
-#ifdef DEBUG
-  {
-    nsCOMPtr<nsIContent> content_qi(do_QueryInterface(nativeObj));
-
-    
-    
-    
-    NS_ABORT_IF_FALSE(content_qi == element, "Uh, fix QI!");
-  }
-#endif
-
-  nsIDocument *doc = element->HasFlag(NODE_FORCE_XBL_BINDINGS) ?
-                     element->OwnerDoc() :
-                     element->GetCurrentDoc();
-
-  if (!doc) {
-    return rv;
-  }
-
-  if (element->HasFlag(NODE_MAY_BE_IN_BINDING_MNGR) &&
-      doc->BindingManager()->GetBinding(element)) {
-    return rv;
-  }
-
-  mozilla::css::URLValue *bindingURL;
-  bool ok = element->GetBindingURL(doc, &bindingURL);
-  NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
-
-  
-  if (!bindingURL) {
-    return rv;
-  }
-
-  element->SetFlags(NODE_ATTACH_BINDING_ON_POSTCREATE);
-
-  return rv;
-}
-
-NS_IMETHODIMP
-nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *obj)
-{
-  Element *element = static_cast<Element*>(wrapper->Native());
-
-#ifdef DEBUG
-  {
-    nsCOMPtr<nsIContent> content_qi(do_QueryWrappedNative(wrapper));
-
-    
-    
-    
-    NS_ABORT_IF_FALSE(content_qi == element, "Uh, fix QI!");
-  }
-#endif
-
-  nsIDocument* doc;
-  if (element->HasFlag(NODE_FORCE_XBL_BINDINGS)) {
-    doc = element->OwnerDoc();
-  }
-  else {
-    doc = element->GetCurrentDoc();
-  }
-
-  if (!doc) {
-    
-    
-
-    return NS_OK;
-  }
-
-  
-  
-
-  if (!element->HasFlag(NODE_ATTACH_BINDING_ON_POSTCREATE)) {
-    
-    
-
-    
-    
-    
-    
-
-    return NS_OK;
-  }
-
-  element->UnsetFlags(NODE_ATTACH_BINDING_ON_POSTCREATE);
-
-  
-  
-  mozilla::css::URLValue *bindingURL;
-  bool ok = element->GetBindingURL(doc, &bindingURL);
-  NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
-
-  if (!bindingURL) {
-    
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIURI> uri = bindingURL->GetURI();
-  nsCOMPtr<nsIPrincipal> principal = bindingURL->mOriginPrincipal;
-
-  
-  bool dummy;
-
-  nsXBLService* xblService = nsXBLService::GetInstance();
-  NS_ENSURE_TRUE(xblService, NS_ERROR_NOT_AVAILABLE);
-
-  nsRefPtr<nsXBLBinding> binding;
-  xblService->LoadBindings(element, uri, principal, getter_AddRefs(binding), &dummy);
-
-  if (binding) {
-    if (nsContentUtils::IsSafeToRunScript()) {
-      binding->ExecuteAttachedHandler();
-    }
-    else {
-      nsContentUtils::AddScriptRunner(
-        NS_NewRunnableMethod(binding, &nsXBLBinding::ExecuteAttachedHandler));
-    }
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsElementSH::PostTransplant(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                            JSObject *obj)
-{
-  
-  
-  return NS_OK;
-}
-
 
 
 
@@ -5803,158 +5457,6 @@ nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp)
 
   return ::JS_GetUCProperty(cx, self, chars, length, vp);
 }
-
-
-
-
-NS_IMETHODIMP
-HTMLFormElementSH::NewResolve(nsIXPConnectWrappedNative *wrapper,
-                              JSContext *cx, JSObject *aObj, jsid aId,
-                              uint32_t flags, JSObject **objp,
-                              bool *_retval)
-{
-  JS::Rooted<JSObject*> obj(cx, aObj);
-  JS::Rooted<jsid> id(cx, aId);
-  
-  if ((!(JSRESOLVE_ASSIGNING & flags)) && JSID_IS_STRING(id) &&
-      (!ObjectIsNativeWrapper(cx, obj) ||
-       xpc::WrapperFactory::XrayWrapperNotShadowing(obj, id))) {
-    nsCOMPtr<nsIForm> form(do_QueryWrappedNative(wrapper, obj));
-
-    nsDependentJSString name(id);
-    nsWrapperCache* cache;
-    nsCOMPtr<nsISupports> result =
-      static_cast<HTMLFormElement*>(form.get())->FindNamedItem(name, &cache);
-
-    if (result) {
-      *_retval = ::JS_DefinePropertyById(cx, obj, id, JSVAL_VOID, nullptr,
-                                         nullptr, JSPROP_ENUMERATE);
-
-      *objp = obj;
-
-      return *_retval ? NS_OK : NS_ERROR_FAILURE;
-    }
-  }
-
-  return nsElementSH::NewResolve(wrapper, cx, obj, id, flags, objp, _retval);
-}
-
-
-NS_IMETHODIMP
-HTMLFormElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
-                               JSContext *cx, JSObject *aObj, jsid aId,
-                               jsval *vp, bool *_retval)
-{
-  JS::Rooted<JSObject*> obj(cx, aObj);
-  JS::Rooted<jsid> id(cx, aId);
-  nsCOMPtr<nsIForm> form(do_QueryWrappedNative(wrapper, obj));
-
-  if (JSID_IS_STRING(id)) {
-    
-    nsDependentJSString name(id);
-    nsWrapperCache* cache;
-    nsCOMPtr<nsISupports> result =
-      static_cast<HTMLFormElement*>(form.get())->FindNamedItem(name, &cache);
-
-    if (result) {
-      
-      
-      nsresult rv = WrapNative(cx, obj, result, cache, true, vp);
-      return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
-    }
-  } else {
-    int32_t n = GetArrayIndexFromId(cx, id);
-
-    if (n >= 0) {
-      nsIFormControl* control = form->GetElementAt(n);
-
-      if (control) {
-        Element *element =
-          static_cast<nsGenericHTMLFormElement*>(form->GetElementAt(n));
-        nsresult rv = WrapNative(cx, JS_GetGlobalForScopeChain(cx), element,
-                                 element, true, vp);
-        return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
-      }
-    }
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HTMLFormElementSH::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
-                                JSContext *cx, JSObject *obj,
-                                uint32_t enum_op, jsval *statep,
-                                jsid *idp, bool *_retval)
-{
-  switch (enum_op) {
-  case JSENUMERATE_INIT:
-  case JSENUMERATE_INIT_ALL:
-    {
-      nsCOMPtr<nsIForm> form(do_QueryWrappedNative(wrapper, obj));
-
-      if (!form) {
-        *statep = JSVAL_NULL;
-        return NS_ERROR_UNEXPECTED;
-      }
-
-      *statep = INT_TO_JSVAL(0);
-
-      if (idp) {
-        uint32_t count = form->GetElementCount();
-
-        *idp = INT_TO_JSID(count);
-      }
-
-      break;
-    }
-  case JSENUMERATE_NEXT:
-    {
-      nsCOMPtr<nsIForm> form(do_QueryWrappedNative(wrapper, obj));
-      NS_ENSURE_TRUE(form, NS_ERROR_FAILURE);
-
-      int32_t index = (int32_t)JSVAL_TO_INT(*statep);
-
-      uint32_t count = form->GetElementCount();
-
-      if ((uint32_t)index < count) {
-        nsIFormControl* controlNode = form->GetElementAt(index);
-        NS_ENSURE_TRUE(controlNode, NS_ERROR_FAILURE);
-
-        nsCOMPtr<nsIDOMElement> domElement = do_QueryInterface(controlNode);
-        NS_ENSURE_TRUE(domElement, NS_ERROR_FAILURE);
-
-        nsAutoString attr;
-        domElement->GetAttribute(NS_LITERAL_STRING("name"), attr);
-        if (attr.IsEmpty()) {
-          
-          attr.AppendInt(index);
-        }
-
-        JSString *jsname =
-          JS_NewUCStringCopyN(cx, reinterpret_cast<const jschar *>
-                                                  (attr.get()),
-                              attr.Length());
-        NS_ENSURE_TRUE(jsname, NS_ERROR_OUT_OF_MEMORY);
-
-        JS_ValueToId(cx, STRING_TO_JSVAL(jsname), idp);
-
-        *statep = INT_TO_JSVAL(++index);
-      } else {
-        *statep = JSVAL_NULL;
-      }
-
-      break;
-    }
-  case JSENUMERATE_DESTROY:
-    *statep = JSVAL_NULL;
-
-    break;
-  }
-
-  return NS_OK;
-}
-
 
 
 

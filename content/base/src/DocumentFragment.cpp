@@ -135,8 +135,6 @@ NS_INTERFACE_MAP_BEGIN(DocumentFragment)
                                  new nsNodeSelectorTearoff(this))
   
   
-  
-  
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIContent)
 NS_INTERFACE_MAP_END
 

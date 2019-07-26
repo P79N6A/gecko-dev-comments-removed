@@ -21,13 +21,6 @@
 #include "nsDataHashtable.h"
 #include "nsAsyncDOMEvent.h"
 
-
-#ifdef XP_WIN
-#ifdef GetClassInfo
-#undef GetClassInfo
-#endif
-#endif
-
 class nsIMutableArray;
 class nsIURI;
 
@@ -288,8 +281,6 @@ public:
 
 
   bool CheckValidFormSubmission();
-
-  virtual nsXPCClassInfo* GetClassInfo() MOZ_OVERRIDE;
 
   virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE { return this; }
 
