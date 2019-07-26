@@ -14,11 +14,9 @@ NS_NewSelectsAreaFrame(nsIPresShell* aShell, nsStyleContext* aContext, uint32_t 
 {
   nsSelectsAreaFrame* it = new (aShell) nsSelectsAreaFrame(aContext);
 
-  if (it) {
-    
-    
-    it->SetFlags(aFlags | NS_BLOCK_FLOAT_MGR);
-  }
+  
+  
+  it->SetFlags(aFlags | NS_BLOCK_FLOAT_MGR);
 
   return it;
 }

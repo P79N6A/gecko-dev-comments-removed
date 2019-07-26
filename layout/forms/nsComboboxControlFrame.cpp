@@ -1332,17 +1332,10 @@ nsComboboxControlFrame::CreateFrameFor(nsIContent*      aContent)
 
   
   mDisplayFrame = new (shell) nsComboboxDisplayFrame(styleContext, this);
-  if (MOZ_UNLIKELY(!mDisplayFrame)) {
-    return nullptr;
-  }
-
   mDisplayFrame->Init(mContent, this, nullptr);
 
   
   nsIFrame* textFrame = NS_NewTextFrame(shell, textStyleContext);
-  if (MOZ_UNLIKELY(!textFrame)) {
-    return nullptr;
-  }
 
   
   textFrame->Init(aContent, mDisplayFrame, nullptr);
