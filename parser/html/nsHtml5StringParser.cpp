@@ -102,6 +102,7 @@ nsHtml5StringParser::Tokenize(const nsAString& aSourceBuffer,
   NS_PRECONDITION(!mExecutor->HasStarted(),
                   "Tried to start parse without initializing the parser.");
   mTreeBuilder->setScriptingEnabled(aScriptingEnabledForNoscriptParsing);
+  mTreeBuilder->setIsSrcdocDocument(aDocument->IsSrcdocDocument()); 
   mTokenizer->start();
   mExecutor->Start(); 
   if (!aSourceBuffer.IsEmpty()) {
