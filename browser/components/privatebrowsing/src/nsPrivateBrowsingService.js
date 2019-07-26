@@ -439,6 +439,11 @@ PrivateBrowsingService.prototype = {
         this._unload();
         break;
       case "private-browsing":
+        
+        let sdr = Cc["@mozilla.org/security/sdr;1"].
+                  getService(Ci.nsISecretDecoderRing);
+        sdr.logoutAndTeardown();
+    
         if (!this._inPrivateBrowsing) {
           
           let consoleService = Cc["@mozilla.org/consoleservice;1"].
