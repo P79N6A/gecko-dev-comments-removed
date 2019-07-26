@@ -800,39 +800,41 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
     if (!bailoutIf(Assembler::Zero, ins->snapshot()))
         return false;
 
-    Label negative, join;
-
-    
-    
-    masm.xorl(edx, edx);
+    Label negative, done;
 
     
     masm.branchTest32(Assembler::Signed, lhs, lhs, &negative);
     
     {
+        
+        masm.xorl(edx, edx);
         masm.idiv(rhs);
-        masm.jump(&join);
+        masm.jump(&done);
     }
 
     
     {
         masm.bind(&negative);
-        masm.negl(lhs);
-        if (!bailoutIf(Assembler::Overflow, ins->snapshot()))
-            return false;
 
+        
+        Label notmin;
+        masm.cmpl(lhs, Imm32(INT32_MIN));
+        masm.j(Assembler::NotEqual, &notmin);
+        masm.cmpl(rhs, Imm32(-1));
+        if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+            return false;
+        masm.bind(&notmin);
+
+        masm.cdq();
         masm.idiv(rhs);
 
         
         masm.testl(remainder, remainder);
         if (!bailoutIf(Assembler::Zero, ins->snapshot()))
-            return false; 
-
-        
-        masm.negl(remainder);
+            return false;
     }
 
-    masm.bind(&join);
+    masm.bind(&done);
     return true;
 }
 
