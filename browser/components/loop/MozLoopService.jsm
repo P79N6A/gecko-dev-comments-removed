@@ -27,132 +27,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "CryptoUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "HAWKAuthenticatedRESTRequest",
                                   "resource://services-common/hawkrequest.js");
 
-
-
-
-
-
-
-
-let PushHandlerHack = {
-  
-  pushServerUri: Services.prefs.getCharPref("services.push.serverURL"),
-  
-  channelID: "8b1081ce-9b35-42b5-b8f5-3ff8cb813a50",
-  
-  pushUrl: undefined,
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  initialize: function(registerCallback, notificationCallback) {
-    if (Services.io.offline) {
-      registerCallback("offline");
-      return;
-    }
-
-    this._registerCallback = registerCallback;
-    this._notificationCallback = notificationCallback;
-
-    this.websocket = Cc["@mozilla.org/network/protocol;1?name=wss"]
-                       .createInstance(Ci.nsIWebSocketChannel);
-
-    this.websocket.protocol = "push-notification";
-
-    var pushURI = Services.io.newURI(this.pushServerUri, null, null);
-    this.websocket.asyncOpen(pushURI, this.pushServerUri, this, null);
-  },
-
-  
-
-
-
-
-
-  onStart: function() {
-    var helloMsg = { messageType: "hello", uaid: "", channelIDs: [] };
-    this.websocket.sendMsg(JSON.stringify(helloMsg));
-  },
-
-  
-
-
-
-
-
-  onStop: function(aContext, aStatusCode) {
-    
-    
-    
-    Cu.reportError("Loop Push server web socket closed! Code: " + aStatusCode);
-    this.pushUrl = undefined;
-  },
-
-  
-
-
-
-
-
-
-
-
-  onServerClose: function(aContext, aCode) {
-    
-    
-    
-    Cu.reportError("Loop Push server web socket closed (server)! Code: " + aCode);
-    this.pushUrl = undefined;
-  },
-
-  
-
-
-
-
-
-  onMessageAvailable: function(aContext, aMsg) {
-    var msg = JSON.parse(aMsg);
-
-    switch(msg.messageType) {
-      case "hello":
-        this._registerChannel();
-        break;
-      case "register":
-        this.pushUrl = msg.pushEndpoint;
-        this._registerCallback(null, this.pushUrl);
-        break;
-      case "notification":
-        msg.updates.forEach(function(update) {
-          if (update.channelID === this.channelID) {
-            this._notificationCallback(update.version);
-          }
-        }.bind(this));
-        break;
-    }
-  },
-
-  
-
-
-  _registerChannel: function() {
-    this.websocket.sendMsg(JSON.stringify({
-      messageType: "register",
-      channelID: this.channelID
-    }));
-  }
-};
+XPCOMUtils.defineLazyModuleGetter(this, "MozLoopPushHandler",
+                                  "resource:///modules/loop/MozLoopPushHandler.jsm");
 
 
 
@@ -241,7 +117,9 @@ let MozLoopServiceInternal = {
 
 
 
-  promiseRegisteredWithServers: function() {
+
+
+  promiseRegisteredWithServers: function(mockPushHandler) {
     if (this._registeredDeferred) {
       return this._registeredDeferred.promise;
     }
@@ -251,8 +129,10 @@ let MozLoopServiceInternal = {
     
     let result = this._registeredDeferred.promise;
 
-    PushHandlerHack.initialize(this.onPushRegistered.bind(this),
-                               this.onHandleNotification.bind(this));
+    this._pushHandler = mockPushHandler || MozLoopPushHandler;
+
+    this._pushHandler.initialize(this.onPushRegistered.bind(this),
+      this.onHandleNotification.bind(this));
 
     return result;
   },
@@ -498,8 +378,10 @@ this.MozLoopService = {
 
 
 
-  register: function() {
-    return MozLoopServiceInternal.promiseRegisteredWithServers();
+
+
+  register: function(mockPushHandler) {
+    return MozLoopServiceInternal.promiseRegisteredWithServers(mockPushHandler);
   },
 
   

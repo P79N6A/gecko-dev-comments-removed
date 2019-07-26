@@ -50,26 +50,11 @@ add_task(function test_initialize_starts_timer() {
 
 function run_test()
 {
-  setupFakeLoopServer();
-
-  loopServer.registerPathHandler("/registration", (request, response) => {
-    response.setStatusLine(null, 200, "OK");
-    response.processAsync();
-    response.finish();
-  });
-
-  
-  gMockWebSocketChannelFactory.register();
-
   
   
   MozLoopService._startInitializeTimer = function() {
     startTimerCalled = true;
   };
-
-  do_register_cleanup(function() {
-    gMockWebSocketChannelFactory.unregister();
-  });
 
   run_next_test();
 }
