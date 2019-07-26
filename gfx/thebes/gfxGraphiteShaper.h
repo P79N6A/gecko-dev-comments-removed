@@ -59,10 +59,6 @@ protected:
     nsDataHashtable<nsUint32HashKey,TableRec> mTables;
 
     
-    
-    bool mUseFontGlyphWidths;
-
-    
     static uint32_t GetGraphiteTagForLang(const nsCString& aLang);
     static nsTHashtable<nsUint32HashKey> sLanguageTags;
 };
