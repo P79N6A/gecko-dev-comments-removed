@@ -14,9 +14,6 @@
 
 
 
-#undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY NS_VISIBILITY_DEFAULT
-
 class nsPrintSession : public nsIPrintSession,
                        public nsSupportsWeakReference
 {
@@ -29,8 +26,5 @@ public:
   
   virtual nsresult Init();
 };
-
-#undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY NS_VISIBILITY_HIDDEN
 
 #endif 
