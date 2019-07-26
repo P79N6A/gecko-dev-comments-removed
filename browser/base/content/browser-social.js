@@ -324,7 +324,10 @@ SocialUI = {
   get _chromeless() {
     
     let docElem = document.documentElement;
-    let chromeless = docElem.getAttribute("chromehidden").indexOf("extrachrome") >= 0;
+    
+    
+    let chromeless = docElem.getAttribute("chromehidden").contains("extrachrome") ||
+                     docElem.getAttribute('chromehidden').contains("toolbar");
     
     
     delete this._chromeless;
