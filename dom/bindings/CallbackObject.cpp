@@ -70,60 +70,63 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   JSContext* cx = nullptr;
   nsIGlobalObject* globalObject = nullptr;
 
-  if (mIsMainThread) {
-    
-    nsGlobalWindow* win = xpc::WindowGlobalOrNull(realCallback);
-    if (win) {
+  {
+    JS::AutoAssertNoGC nogc;
+    if (mIsMainThread) {
       
-      
-      
-      
-      
-      MOZ_ASSERT(win->IsInnerWindow());
-      nsPIDOMWindow* outer = win->GetOuterWindow();
-      if (!outer || win != outer->GetCurrentInnerWindow()) {
+      nsGlobalWindow* win = xpc::WindowGlobalOrNull(realCallback);
+      if (win) {
         
-        return;
+        
+        
+        
+        
+        MOZ_ASSERT(win->IsInnerWindow());
+        nsPIDOMWindow* outer = win->GetOuterWindow();
+        if (!outer || win != outer->GetCurrentInnerWindow()) {
+          
+          return;
+        }
+        cx = win->GetContext() ? win->GetContext()->GetNativeContext()
+                               
+                               
+                               : nsContentUtils::GetSafeJSContext();
+        globalObject = win;
+      } else {
+        
+        JSObject* glob = js::GetGlobalForObjectCrossCompartment(realCallback);
+        globalObject = xpc::GetNativeForGlobal(glob);
+        MOZ_ASSERT(globalObject);
+        cx = nsContentUtils::GetSafeJSContext();
       }
-      cx = win->GetContext() ? win->GetContext()->GetNativeContext()
-                             
-                             
-                             : nsContentUtils::GetSafeJSContext();
-      globalObject = win;
     } else {
-      
-      JSObject* glob = js::GetGlobalForObjectCrossCompartment(realCallback);
-      globalObject = xpc::GetNativeForGlobal(glob);
-      MOZ_ASSERT(globalObject);
-      cx = nsContentUtils::GetSafeJSContext();
+      cx = workers::GetCurrentThreadJSContext();
+      globalObject = workers::GetCurrentThreadWorkerPrivate()->GlobalScope();
     }
-  } else {
-    cx = workers::GetCurrentThreadJSContext();
-    globalObject = workers::GetCurrentThreadWorkerPrivate()->GlobalScope();
-  }
 
-  
-  
-  
-  if (!globalObject->GetGlobalJSObject()) {
-    return;
-  }
+    
+    
+    
+    if (!globalObject->GetGlobalJSObject()) {
+      return;
+    }
 
-  mAutoEntryScript.construct(globalObject, mIsMainThread, cx);
-  if (aCallback->IncumbentGlobalOrNull()) {
-    mAutoIncumbentScript.construct(aCallback->IncumbentGlobalOrNull());
-  }
+    mAutoEntryScript.construct(globalObject, mIsMainThread, cx);
+    if (aCallback->IncumbentGlobalOrNull()) {
+      mAutoIncumbentScript.construct(aCallback->IncumbentGlobalOrNull());
+    }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  mRootedCallable.construct(cx, aCallback->Callback());
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    mRootedCallable.construct(cx, aCallback->Callback());
+  }
 
   if (mIsMainThread) {
     
