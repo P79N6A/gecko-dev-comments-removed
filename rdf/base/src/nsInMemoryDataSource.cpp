@@ -60,7 +60,6 @@
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsXPIDLString.h"
-#include "nsFixedSizeAllocator.h"
 #include "rdfutil.h"
 #include "pldhash.h"
 #include "plstr.h"
@@ -82,37 +81,9 @@ static PRLogModuleInfo* gLog = nullptr;
 
 
 
-class Assertion 
+class Assertion
 {
 public:
-    static Assertion*
-    Create(nsFixedSizeAllocator& aAllocator,
-           nsIRDFResource* aSource,
-           nsIRDFResource* aProperty,
-           nsIRDFNode* aTarget,
-           bool aTruthValue) {
-        void* place = aAllocator.Alloc(sizeof(Assertion));
-        return place
-            ? ::new (place) Assertion(aSource, aProperty, aTarget, aTruthValue)
-            : nullptr; }
-    static Assertion*
-    Create(nsFixedSizeAllocator& aAllocator, nsIRDFResource* aSource) {
-        void* place = aAllocator.Alloc(sizeof(Assertion));
-        return place
-            ? ::new (place) Assertion(aSource)
-            : nullptr; }
-
-    static void
-    Destroy(nsFixedSizeAllocator& aAllocator, Assertion* aAssertion) {
-        if (aAssertion->mHashEntry && aAssertion->u.hash.mPropertyHash) {
-            PL_DHashTableEnumerate(aAssertion->u.hash.mPropertyHash,
-                DeletePropertyHashEntry, &aAllocator);
-            PL_DHashTableDestroy(aAssertion->u.hash.mPropertyHash);
-            aAssertion->u.hash.mPropertyHash = nullptr;
-        }
-        aAssertion->~Assertion();
-        aAllocator.Free(aAssertion, sizeof(*aAssertion)); }
-
     static PLDHashOperator
     DeletePropertyHashEntry(PLDHashTable* aTable, PLDHashEntryHdr* aHdr,
                            uint32_t aNumber, void* aArg);
@@ -133,13 +104,13 @@ public:
         ++mRefCnt;
     }
 
-    void Release(nsFixedSizeAllocator& aAllocator) {
+    void Release() {
         if (mRefCnt == UINT16_MAX) {
             NS_WARNING("refcount overflow, leaking Assertion");
             return;
         }
         if (--mRefCnt == 0)
-            Destroy(aAllocator, this);
+            delete this;
     }
 
     
@@ -175,12 +146,6 @@ public:
     
     uint16_t                    mRefCnt;
     bool                        mHashEntry;
-
-private:
-    
-    
-    static void* operator new(size_t) CPP_THROW_NEW { return 0; }
-    static void operator delete(void*, size_t) {}
 };
 
 
@@ -230,6 +195,13 @@ Assertion::Assertion(nsIRDFResource* aSource,
 
 Assertion::~Assertion()
 {
+    if (mHashEntry && u.hash.mPropertyHash) {
+        PL_DHashTableEnumerate(u.hash.mPropertyHash, DeletePropertyHashEntry,
+                               NULL);
+        PL_DHashTableDestroy(u.hash.mPropertyHash);
+        u.hash.mPropertyHash = nullptr;
+    }
+
     MOZ_COUNT_DTOR(RDF_Assertion);
 #ifdef DEBUG_REFS
     --gInstanceCount;
@@ -249,7 +221,6 @@ Assertion::DeletePropertyHashEntry(PLDHashTable* aTable, PLDHashEntryHdr* aHdr,
                                            uint32_t aNumber, void* aArg)
 {
     Entry* entry = reinterpret_cast<Entry*>(aHdr);
-    nsFixedSizeAllocator* allocator = static_cast<nsFixedSizeAllocator*>(aArg);
 
     Assertion* as = entry->mAssertions;
     while (as) {
@@ -258,7 +229,7 @@ Assertion::DeletePropertyHashEntry(PLDHashTable* aTable, PLDHashEntryHdr* aHdr,
 
         
         doomed->mNext = doomed->u.as.mInvNext = nullptr;
-        doomed->Release(*allocator);
+        doomed->Release();
     }
     return PL_DHASH_NEXT;
 }
@@ -278,8 +249,6 @@ class InMemoryDataSource : public nsIRDFDataSource,
                            public rdfIDataSource
 {
 protected:
-    nsFixedSizeAllocator mAllocator;
-
     
     
     
@@ -418,11 +387,7 @@ private:
     Assertion*      mNextAssertion;
     nsCOMPtr<nsISupportsArray> mHashArcs;
 
-    
-    
-    static void* operator new(size_t) CPP_THROW_NEW { return 0; }
-    static void operator delete(void*, size_t) {}
-
+public:
     InMemoryAssertionEnumeratorImpl(InMemoryDataSource* aDataSource,
                                     nsIRDFResource* aSource,
                                     nsIRDFResource* aProperty,
@@ -431,35 +396,9 @@ private:
 
     virtual ~InMemoryAssertionEnumeratorImpl();
 
-public:
-    static InMemoryAssertionEnumeratorImpl*
-    Create(InMemoryDataSource* aDataSource,
-           nsIRDFResource* aSource,
-           nsIRDFResource* aProperty,
-           nsIRDFNode* aTarget,
-           bool aTruthValue) {
-        void* place = aDataSource->mAllocator.Alloc(sizeof(InMemoryAssertionEnumeratorImpl));
-        return place
-            ? ::new (place) InMemoryAssertionEnumeratorImpl(aDataSource,
-                                                            aSource, aProperty, aTarget,
-                                                            aTruthValue)
-            : nullptr; }
-
-    static void
-    Destroy(InMemoryAssertionEnumeratorImpl* aEnumerator) {
-        
-        
-        nsCOMPtr<nsIRDFDataSource> kungFuDeathGrip = aEnumerator->mDataSource;
-
-        
-        
-        nsFixedSizeAllocator& pool = aEnumerator->mDataSource->mAllocator;
-        aEnumerator->~InMemoryAssertionEnumeratorImpl();
-        pool.Free(aEnumerator, sizeof(*aEnumerator)); }
-
     
     NS_DECL_ISUPPORTS
-   
+
     
     NS_DECL_NSISIMPLEENUMERATOR
 };
@@ -515,7 +454,7 @@ InMemoryAssertionEnumeratorImpl::~InMemoryAssertionEnumeratorImpl()
 #endif
 
     if (mNextAssertion)
-        mNextAssertion->Release(mDataSource->mAllocator);
+        mNextAssertion->Release();
 
     NS_IF_RELEASE(mDataSource);
     NS_IF_RELEASE(mSource);
@@ -525,7 +464,7 @@ InMemoryAssertionEnumeratorImpl::~InMemoryAssertionEnumeratorImpl()
 }
 
 NS_IMPL_ADDREF(InMemoryAssertionEnumeratorImpl)
-NS_IMPL_RELEASE_WITH_DESTROY(InMemoryAssertionEnumeratorImpl, Destroy(this))
+NS_IMPL_RELEASE(InMemoryAssertionEnumeratorImpl)
 NS_IMPL_QUERY_INTERFACE1(InMemoryAssertionEnumeratorImpl, nsISimpleEnumerator)
 
 NS_IMETHODIMP
@@ -562,7 +501,7 @@ InMemoryAssertionEnumeratorImpl::HasMoreElements(bool* aResult)
             mNextAssertion->AddRef();
 
         
-        as->Release(mDataSource->mAllocator);
+        as->Release();
 
         if (foundIt) {
             *aResult = true;
@@ -608,11 +547,6 @@ InMemoryAssertionEnumeratorImpl::GetNext(nsISupports** aResult)
 class InMemoryArcsEnumeratorImpl : public nsISimpleEnumerator
 {
 private:
-    
-    
-    static void* operator new(size_t) CPP_THROW_NEW { return 0; }
-    static void operator delete(void*, size_t) {}
-
     InMemoryDataSource* mDataSource;
     nsIRDFResource*     mSource;
     nsIRDFNode*         mTarget;
@@ -621,43 +555,22 @@ private:
     Assertion*          mAssertion;
     nsCOMPtr<nsISupportsArray> mHashArcs;
 
+    static PLDHashOperator
+    ArcEnumerator(PLDHashTable* aTable, PLDHashEntryHdr* aHdr,
+                       uint32_t aNumber, void* aArg);
+
+public:
     InMemoryArcsEnumeratorImpl(InMemoryDataSource* aDataSource,
                                nsIRDFResource* aSource,
                                nsIRDFNode* aTarget);
 
     virtual ~InMemoryArcsEnumeratorImpl();
 
-    static PLDHashOperator
-    ArcEnumerator(PLDHashTable* aTable, PLDHashEntryHdr* aHdr,
-                       uint32_t aNumber, void* aArg);
-
-public:
     
     NS_DECL_ISUPPORTS
 
     
     NS_DECL_NSISIMPLEENUMERATOR
-
-    static InMemoryArcsEnumeratorImpl*
-    Create(InMemoryDataSource* aDataSource,
-           nsIRDFResource* aSource,
-           nsIRDFNode* aTarget) {
-        void* place = aDataSource->mAllocator.Alloc(sizeof(InMemoryArcsEnumeratorImpl));
-        return place
-            ? ::new (place) InMemoryArcsEnumeratorImpl(aDataSource, aSource, aTarget)
-            : nullptr; }
-
-    static void
-    Destroy(InMemoryArcsEnumeratorImpl* aEnumerator) {
-        
-        
-        nsCOMPtr<nsIRDFDataSource> kungFuDeathGrip = aEnumerator->mDataSource;
-
-        
-        
-        nsFixedSizeAllocator& pool = aEnumerator->mDataSource->mAllocator;
-        aEnumerator->~InMemoryArcsEnumeratorImpl();
-        pool.Free(aEnumerator, sizeof(*aEnumerator)); }
 };
 
 
@@ -719,7 +632,7 @@ InMemoryArcsEnumeratorImpl::~InMemoryArcsEnumeratorImpl()
 }
 
 NS_IMPL_ADDREF(InMemoryArcsEnumeratorImpl)
-NS_IMPL_RELEASE_WITH_DESTROY(InMemoryArcsEnumeratorImpl, Destroy(this))
+NS_IMPL_RELEASE(InMemoryArcsEnumeratorImpl)
 NS_IMPL_QUERY_INTERFACE1(InMemoryArcsEnumeratorImpl, nsISimpleEnumerator)
 
 NS_IMETHODIMP
@@ -853,19 +766,6 @@ InMemoryDataSource::InMemoryDataSource(nsISupports* aOuter)
 {
     NS_INIT_AGGREGATED(aOuter);
 
-    static const size_t kBucketSizes[] = {
-        sizeof(Assertion),
-        sizeof(Entry),
-        sizeof(InMemoryArcsEnumeratorImpl),
-        sizeof(InMemoryAssertionEnumeratorImpl) };
-
-    static const int32_t kNumBuckets = sizeof(kBucketSizes) / sizeof(size_t);
-
-    
-    static const int32_t kInitialSize = 1024;
-
-    mAllocator.Init("nsInMemoryDataSource", kBucketSizes, kNumBuckets, kInitialSize);
-
     mForwardArcs.ops = nullptr;
     mReverseArcs.ops = nullptr;
     mPropagateChanges = true;
@@ -913,7 +813,7 @@ InMemoryDataSource::~InMemoryDataSource()
         
         
         
-        PL_DHashTableEnumerate(&mForwardArcs, DeleteForwardArcsEntry, &mAllocator);
+        PL_DHashTableEnumerate(&mForwardArcs, DeleteForwardArcsEntry, NULL);
         PL_DHashTableFinish(&mForwardArcs);
     }
     if (mReverseArcs.ops)
@@ -929,7 +829,6 @@ InMemoryDataSource::DeleteForwardArcsEntry(PLDHashTable* aTable, PLDHashEntryHdr
                                            uint32_t aNumber, void* aArg)
 {
     Entry* entry = reinterpret_cast<Entry*>(aHdr);
-    nsFixedSizeAllocator* allocator = static_cast<nsFixedSizeAllocator*>(aArg);
 
     Assertion* as = entry->mAssertions;
     while (as) {
@@ -938,7 +837,7 @@ InMemoryDataSource::DeleteForwardArcsEntry(PLDHashTable* aTable, PLDHashEntryHdr
 
         
         doomed->mNext = doomed->u.as.mInvNext = nullptr;
-        doomed->Release(*allocator);
+        doomed->Release();
     }
     return PL_DHASH_NEXT;
 }
@@ -1177,8 +1076,8 @@ InMemoryDataSource::GetSources(nsIRDFResource* aProperty,
         return NS_ERROR_NULL_POINTER;
 
     InMemoryAssertionEnumeratorImpl* result =
-        InMemoryAssertionEnumeratorImpl::Create(this, nullptr, aProperty,
-                                                  aTarget, aTruthValue);
+        new InMemoryAssertionEnumeratorImpl(this, nullptr, aProperty,
+                                            aTarget, aTruthValue);
 
     if (! result)
         return NS_ERROR_OUT_OF_MEMORY;
@@ -1198,7 +1097,7 @@ InMemoryDataSource::GetTargets(nsIRDFResource* aSource,
     NS_PRECONDITION(aSource != nullptr, "null ptr");
     if (! aSource)
         return NS_ERROR_NULL_POINTER;
-    
+
     NS_PRECONDITION(aProperty != nullptr, "null ptr");
     if (! aProperty)
         return NS_ERROR_NULL_POINTER;
@@ -1208,8 +1107,8 @@ InMemoryDataSource::GetTargets(nsIRDFResource* aSource,
         return NS_ERROR_NULL_POINTER;
 
     InMemoryAssertionEnumeratorImpl* result =
-        InMemoryAssertionEnumeratorImpl::Create(this, aSource, aProperty,
-                                                nullptr, aTruthValue);
+        new InMemoryAssertionEnumeratorImpl(this, aSource, aProperty,
+                                            nullptr, aTruthValue);
 
     if (! result)
         return NS_ERROR_OUT_OF_MEMORY;
@@ -1269,7 +1168,7 @@ InMemoryDataSource::LockedAssert(nsIRDFResource* aSource,
         }
     }
 
-    as = Assertion::Create(mAllocator, aSource, aProperty, aTarget, aTruthValue);
+    as = new Assertion(aSource, aProperty, aTarget, aTruthValue);
     if (! as)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -1415,7 +1314,7 @@ InMemoryDataSource::LockedUnassert(nsIRDFResource* aSource,
             else {
                 
                 if (!root->u.hash.mPropertyHash->entryCount) {
-                    Assertion::Destroy(mAllocator, root);
+                    delete root;
                     SetForwardArcs(aSource, nullptr);
                 }
             }
@@ -1475,7 +1374,7 @@ InMemoryDataSource::LockedUnassert(nsIRDFResource* aSource,
 
     
     as->mNext = as->u.as.mInvNext = nullptr;
-    as->Release(mAllocator);
+    as->Release();
 
     return NS_OK;
 }
@@ -1714,7 +1613,7 @@ InMemoryDataSource::ArcLabelsIn(nsIRDFNode* aTarget, nsISimpleEnumerator** aResu
         return NS_ERROR_NULL_POINTER;
 
     InMemoryArcsEnumeratorImpl* result =
-        InMemoryArcsEnumeratorImpl::Create(this, nullptr, aTarget);
+        new InMemoryArcsEnumeratorImpl(this, nullptr, aTarget);
 
     if (! result)
         return NS_ERROR_OUT_OF_MEMORY;
@@ -1733,7 +1632,7 @@ InMemoryDataSource::ArcLabelsOut(nsIRDFResource* aSource, nsISimpleEnumerator** 
         return NS_ERROR_NULL_POINTER;
 
     InMemoryArcsEnumeratorImpl* result =
-        InMemoryArcsEnumeratorImpl::Create(this, aSource, nullptr);
+        new InMemoryArcsEnumeratorImpl(this, aSource, nullptr);
 
     if (! result)
         return NS_ERROR_OUT_OF_MEMORY;
@@ -1824,13 +1723,13 @@ InMemoryDataSource::EnsureFastContainment(nsIRDFResource* aSource)
 {
     Assertion *as = GetForwardArcs(aSource);
     bool    haveHash = (as) ? as->mHashEntry : false;
-    
+
     
     if (haveHash)   return(NS_OK);
 
     
-    Assertion *hashAssertion = Assertion::Create(mAllocator, aSource);
-    NS_ASSERTION(hashAssertion, "unable to Assertion::Create");
+    Assertion *hashAssertion = new Assertion(aSource);
+    NS_ASSERTION(hashAssertion, "unable to create Assertion");
     if (!hashAssertion) return(NS_ERROR_OUT_OF_MEMORY);
 
     
@@ -1965,13 +1864,12 @@ InMemoryDataSource::Mark(nsIRDFResource* aSource,
 struct SweepInfo {
     Assertion* mUnassertList;
     PLDHashTable* mReverseArcs;
-    nsFixedSizeAllocator* mAllocator;
 };
 
 NS_IMETHODIMP
 InMemoryDataSource::Sweep()
 {
-    SweepInfo info = { nullptr, &mReverseArcs, &mAllocator};
+    SweepInfo info = { nullptr, &mReverseArcs };
 
     
     PL_DHashTableEnumerate(&mForwardArcs, SweepForwardArcsEntries, &info);
@@ -1997,7 +1895,7 @@ InMemoryDataSource::Sweep()
 
         
         doomed->mNext = doomed->u.as.mInvNext = nullptr;
-        doomed->Release(mAllocator);
+        doomed->Release();
     }
 
     return NS_OK;
@@ -2017,12 +1915,12 @@ InMemoryDataSource::SweepForwardArcsEntries(PLDHashTable* aTable,
     if (as && (as->mHashEntry))
     {
         
-        PL_DHashTableEnumerate(as->u.hash.mPropertyHash, 
+        PL_DHashTableEnumerate(as->u.hash.mPropertyHash,
                                SweepForwardArcsEntries, info);
 
         
         if (!as->u.hash.mPropertyHash->entryCount) {
-            Assertion::Destroy(*info->mAllocator, as);
+            delete as;
             result = PL_DHASH_REMOVE;
         }
 
