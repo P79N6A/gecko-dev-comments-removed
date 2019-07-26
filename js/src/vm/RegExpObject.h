@@ -124,7 +124,7 @@ class RegExpShared
 
 
 
-    HeapPtrAtom        source;
+    JSAtom *           source;
     RegExpFlag         flags;
     unsigned           parenCount;
 
