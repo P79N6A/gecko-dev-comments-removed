@@ -9,7 +9,7 @@
 
 #include "nscore.h"
 
-class nsIRunnable;
+class Task;
 
 namespace mozilla {
 namespace ipc {
@@ -40,7 +40,12 @@ bool StopDBus();
 
 
 nsresult
-DispatchToDBusThread(nsIRunnable* event);
+DispatchToDBusThread(Task* task);
+
+
+
+
+
 
 RawDBusConnection*
 GetDBusConnection(void);
