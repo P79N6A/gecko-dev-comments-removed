@@ -62,6 +62,15 @@ public:
     return NS_OK;
   }
 
+  
+  
+  
+  
+  virtual VideoData* FindStartTime(int64_t& aOutStartTime)
+    MOZ_FINAL MOZ_OVERRIDE {
+    return nullptr;
+  }
+
 private:
   
   
