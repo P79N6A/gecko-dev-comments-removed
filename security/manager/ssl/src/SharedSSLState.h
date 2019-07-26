@@ -36,14 +36,12 @@ public:
   
   void ResetStoredData();
   void NotePrivateBrowsingStatus();
-  void SetOCSPStaplingEnabled(bool enabled) { mOCSPStaplingEnabled = enabled; }
 
   
   bool SocketCreated();
   void NoteSocketCreated();
   static void NoteCertOverrideServiceInstantiated();
   static void NoteCertDBServiceInstantiated();
-  bool IsOCSPStaplingEnabled() const { return mOCSPStaplingEnabled; }
 
 private:
   void Cleanup();
@@ -57,7 +55,6 @@ private:
   
   Mutex mMutex;
   bool mSocketCreated;
-  bool mOCSPStaplingEnabled;
 };
 
 SharedSSLState* PublicSSLState();
