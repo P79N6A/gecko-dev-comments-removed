@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99 ft=cpp:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -108,17 +108,17 @@ js::intrinsic_ThrowError(JSContext *cx, unsigned argc, Value *vp)
     return false;
 }
 
-/**
- * Handles an assertion failure in self-hosted code just like an assertion
- * failure in C++ code. Information about the failure can be provided in args[0].
- */
+
+
+
+
 static JSBool
 intrinsic_AssertionFailed(JSContext *cx, unsigned argc, Value *vp)
 {
 #ifdef DEBUG
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() > 0) {
-        // try to dump the informative string
+        
         JSString *str = ToString<CanGC>(cx, args[0]);
         if (str) {
             const jschar *chars = str->getChars(cx);
@@ -145,14 +145,14 @@ intrinsic_MakeConstructible(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-/*
- * Used to decompile values in the nearest non-builtin stack frame, falling
- * back to decompiling in the current frame. Helpful for printing higher-order
- * function arguments.
- *
- * The user must supply the argument number of the value in question; it
- * _cannot_ be automatically determined.
- */
+
+
+
+
+
+
+
+
 static JSBool
 intrinsic_DecompileArg(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -186,17 +186,17 @@ js::intrinsic_Dump(JSContext *cx, unsigned argc, Value *vp)
 JSBool
 js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
 {
-    // Usage: %NewDenseArray(length)
+    
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    // Check that index is an int32
+    
     if (!args[0].isInt32()) {
         JS_ReportError(cx, "Expected int32 as second argument");
         return false;
     }
     uint32_t length = args[0].toInt32();
 
-    // Make a new buffer and initialize it up to length.
+    
     RootedObject buffer(cx, NewDenseAllocatedArray(cx, length));
     if (!buffer)
         return false;
@@ -212,7 +212,7 @@ js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
         args.rval().setObject(*buffer);
         return true;
 
-      case JSObject::ED_SPARSE: // shouldn't happen!
+      case JSObject::ED_SPARSE: 
         JS_ASSERT(!"%EnsureDenseArrayElements() would yield sparse array");
         JS_ReportError(cx, "%EnsureDenseArrayElements() would yield sparse array");
         break;
@@ -226,20 +226,20 @@ js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
 JSBool
 js::intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp)
 {
-    // Usage: %UnsafeSetElement(arr0, idx0, elem0,
-    //                          ...,
-    //                          arrN, idxN, elemN)
-    //
-    // For each set of |(arr, idx, elem)| arguments that are passed,
-    // performs the assignment |arr[idx] = elem|. |arr| must be either
-    // a dense array or a typed array.
-    //
-    // If |arr| is a dense array, the index must be an int32 less than the
-    // initialized length of |arr|. Use |%EnsureDenseResultArrayElements| to
-    // ensure that the initialized length is long enough.
-    //
-    // If |arr| is a typed array, the index must be an int32 less than the
-    // length of |arr|.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     CallArgs args = CallArgsFromVp(argc, vp);
 
     if ((args.length() % 3) != 0) {
@@ -266,7 +266,7 @@ js::intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp)
         } else {
             JS_ASSERT(idx < TypedArray::length(arrobj));
             RootedValue tmp(cx, args[elemi]);
-            // XXX: Always non-strict.
+            
             JSObject::setElement(cx, arrobj, arrobj, idx, &tmp, false);
         }
     }
@@ -275,10 +275,10 @@ js::intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-/**
- * Returns the default locale as a well-formed, but not necessarily canonicalized,
- * BCP-47 language tag.
- */
+
+
+
+
 static JSBool
 intrinsic_RuntimeDefaultLocale(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -328,11 +328,11 @@ JSRuntime::initSelfHosting(JSContext *cx)
     JS_SetGlobalObject(cx, selfHostingGlobal_);
     JSAutoCompartment ac(cx, cx->global());
     Rooted<GlobalObject*> shg(cx, &selfHostingGlobal_->asGlobal());
-    /*
-     * During initialization of standard classes for the self-hosting global,
-     * all self-hosted functions are ignored. Thus, we don't create cyclic
-     * dependencies in the order of initialization.
-     */
+    
+
+
+
+
     if (!GlobalObject::initStandardClasses(cx, shg))
         return false;
 
@@ -343,11 +343,11 @@ JSRuntime::initSelfHosting(JSContext *cx)
     options.setFileAndLine("self-hosted", 1);
     options.setSelfHostingMode(true);
 
-    /*
-     * Set a temporary error reporter printing to stderr because it is too
-     * early in the startup process for any other reporter to be registered
-     * and we don't want errors in self-hosted code to be silently swallowed.
-     */
+    
+
+
+
+
     JSErrorReporter oldReporter = JS_SetErrorReporter(cx, selfHosting_ErrorReporter);
     Value rv;
     bool ok = false;
@@ -398,7 +398,7 @@ CloneProperties(JSContext *cx, HandleObject obj, HandleObject clone, CloneMemory
         id = ids[i];
         if (!GetUnclonedValue(cx, obj, id, &val) ||
             !CloneValue(cx, &val, clonedObjects) ||
-            !JSObject::setGeneric(cx, clone, clone, id, &val, false))
+            !JS_DefinePropertyById(cx, clone, id, val.get(), NULL, NULL, 0))
         {
             return false;
         }
@@ -458,7 +458,7 @@ CloneValue(JSContext *cx, MutableHandleValue vp, CloneMemory &clonedObjects)
             return false;
         vp.setObject(*clone);
     } else if (vp.isBoolean() || vp.isNumber() || vp.isNullOrUndefined()) {
-        // Nothing to do here: these are represented inline in the value
+        
     } else if (vp.isString()) {
         Rooted<JSStableString*> str(cx, vp.toString()->ensureStable(cx));
         if (!str)
@@ -507,11 +507,11 @@ JSRuntime::cloneSelfHostedValue(JSContext *cx, Handle<PropertyName*> name, Mutab
     if (!GetUnclonedValue(cx, shg, id, &val))
          return false;
 
-    /*
-     * We don't clone if we're operating in the self-hosting global, as that
-     * means we're currently executing the self-hosting script while
-     * initializing the runtime (see JSRuntime::initSelfHosting).
-     */
+    
+
+
+
+
     if (cx->global() != selfHostingGlobal_) {
         CloneMemory clonedObjects(cx);
         if (!clonedObjects.init() || !CloneValue(cx, &val, clonedObjects))
