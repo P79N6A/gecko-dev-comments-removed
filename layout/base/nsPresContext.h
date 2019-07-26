@@ -828,6 +828,7 @@ public:
 
   
   bool IsChrome() const { return mIsChrome; }
+  bool IsChromeOriginImage() const { return mIsChromeOriginImage; }
   void UpdateIsChrome();
 
   
@@ -835,7 +836,7 @@ public:
 
   
   bool UseDocumentColors() const {
-    return GetCachedBoolPref(kPresContext_UseDocumentColors) || IsChrome();
+    return GetCachedBoolPref(kPresContext_UseDocumentColors) || IsChrome() || IsChromeOriginImage();
   }
 
   
@@ -1318,6 +1319,7 @@ protected:
   unsigned              mFireAfterPaintEvents : 1;
 
   unsigned              mIsChrome : 1;
+  unsigned              mIsChromeOriginImage : 1;
 
   
   
