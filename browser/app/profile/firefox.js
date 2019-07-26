@@ -1285,6 +1285,9 @@ pref("pdfjs.previousHandler.preferredAction", 0);
 pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
 
 
+pref("shumway.disabled", true);
+
+
 
 
 pref("image.mem.max_decoded_image_kb", 256000);
