@@ -667,3 +667,7 @@ pref("dom.event.touch.coalescing.enabled", false);
 
 
 pref("app.orientation.default", "");
+
+
+
+pref("memory.free_dirty_pages", true);
