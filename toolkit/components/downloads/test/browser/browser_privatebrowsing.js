@@ -68,6 +68,7 @@ function test() {
     onDownloadFinished: function() {
       
       
+      
       is(Services.downloads.activeDownloadCount, 0,
         "Check that activeDownloadCount is zero");
 
@@ -84,7 +85,13 @@ function test() {
           }
         });
         
-        isDownloadComplete (downloadB);
+        waitForDownloadState(downloadB,
+          Services.downloads.DOWNLOAD_FINISHED, function() {
+          testOnWindow(false, function() {
+            checkDownloads(downloadB);
+            cleanUp();
+          });
+        });
       });
     }
   };
@@ -144,19 +151,6 @@ function test() {
       ok(true,
         "Check that Download-B is not available");
     }
-  }
-
-  function isDownloadComplete(aDownload) {
-    executeSoon(function() {
-      if (!aDownload.cancelable) {
-        testOnWindow(false, function () {
-          checkDownloads(downloadB);
-          cleanUp();
-        });
-      } else {
-        isDownloadComplete(aDownload);
-      }
-    });
   }
 
   

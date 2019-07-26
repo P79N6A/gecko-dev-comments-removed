@@ -119,7 +119,8 @@ function addDownload(aParams)
 
   
   
-  var test = dm.getDownload(dl.id);
+  if (!aParams.isPrivate)
+    var test = dm.getDownload(dl.id);
 
   aParams.runBeforeStart.call(undefined, dl);
 
