@@ -415,11 +415,11 @@ bool CreateNewTempDirectory(const FilePath::StringType& prefix,
     return false;
   tmpdir = tmpdir.Append(kTempFileName);
   std::string tmpdir_string = tmpdir.value();
-  
-  char* buffer = const_cast<char*>(tmpdir_string.c_str());
 #ifdef ANDROID
   char* dtemp = NULL;
 #else
+  
+  char* buffer = const_cast<char*>(tmpdir_string.c_str());
   char* dtemp = mkdtemp(buffer);
 #endif
   if (!dtemp)
