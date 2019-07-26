@@ -241,6 +241,13 @@ public:
 
 
 
+  static bool AnyTablePartHasUndecodedBackgroundImage(nsIFrame* aStart,
+                                                      nsIFrame* aEnd);
+
+  
+
+
+
   nsMargin GetOuterBCBorder() const;
 
   
