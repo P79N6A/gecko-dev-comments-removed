@@ -111,7 +111,7 @@ public:
 
 
 
-  void UpdateCompositionBounds(const gfx::IntRect& aCompositionBounds);
+  void UpdateCompositionBounds(const nsIntRect& aCompositionBounds);
 
   
 
@@ -232,7 +232,7 @@ public:
 
 
 
-  static gfx::ZoomScale CalculateIntrinsicScale(const FrameMetrics& aMetrics);
+  static gfxSize CalculateIntrinsicScale(const FrameMetrics& aMetrics);
 
   
 
@@ -240,7 +240,7 @@ public:
 
 
 
-  static gfx::ZoomScale CalculateResolution(const FrameMetrics& aMetrics);
+  static gfxSize CalculateResolution(const FrameMetrics& aMetrics);
 
   static gfx::Rect CalculateCompositedRectInCssPixels(const FrameMetrics& aMetrics);
 
@@ -347,7 +347,7 @@ protected:
 
 
 
-  void ScaleWithFocus(float aScale, const gfx::IntPoint& aFocus);
+  void ScaleWithFocus(float aScale, const nsIntPoint& aFocus);
 
   
 
@@ -551,7 +551,7 @@ private:
 
   
   
-  gfx::IntPoint mLastZoomFocus;
+  nsIntPoint mLastZoomFocus;
 
   
   
