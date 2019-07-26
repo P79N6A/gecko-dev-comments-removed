@@ -108,10 +108,17 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   static void
   EverySecondTelemetryCallback_m(nsITimer* timer, void *);
 
+#ifdef MOZILLA_INTERNAL_API
   
   int mConnectionCounter;
 
   nsCOMPtr<nsITimer> mTelemetryTimer;
+public:
+  
+  
+  nsTArray<nsAutoPtr<mozilla::dom::RTCStatsReportInternal>> mLastReports;
+private:
+#endif
 
   
   mozilla::dom::PCImplSipccState mSipccState;  
