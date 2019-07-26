@@ -14,9 +14,11 @@ var mistakes = [
     "{p} => p",
     "(...x => expr)",
     "1 || a => a",
-    "package => package.name",  
-    "arguments => 0",  
-    "eval => 0",
+    "'use strict' => {}",
+    "package => {'use strict';}",    
+    "'use strict'; arguments => 0",  
+    "'use strict'; eval => 0",
+    "a => {'use strict'; with (a) return x; }",
     "a => yield a",
     "a => { yield a; }",
     "a => { { let x; yield a; } }",
@@ -29,3 +31,8 @@ var mistakes = [
 
 for (var s of mistakes)
     assertThrowsInstanceOf(function () { Function(s); }, SyntaxError);
+
+
+var f = package => 0;
+assertEq(f(1), 0);
+

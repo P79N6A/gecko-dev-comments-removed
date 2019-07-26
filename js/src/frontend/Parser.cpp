@@ -1052,11 +1052,9 @@ Parser<ParseHandler>::functionBody(FunctionSyntaxKind kind, FunctionBodyType typ
     if (context->hasExtraWarningsOption() && pc->funHasReturnExpr && !checkFinalReturn(pn))
         return null();
 
-    if (kind != Arrow) {
-        
-        if (!checkFunctionArguments())
-            return null();
-    }
+    
+    if (!checkFunctionArguments())
+        return null();
 
     return pn;
 }
@@ -1920,10 +1918,10 @@ Parser<ParseHandler>::functionDef(HandlePropertyName funName, const TokenStream:
     
     
     handler.setFunctionBody(pn, null());
-    bool initiallyStrict = kind == Arrow || pc->sc->strict;
+    bool initiallyStrict = pc->sc->strict;
     bool becameStrict;
-    if (!functionArgsAndBody(pn, fun, funName, startOffset,
-                             type, kind, initiallyStrict, &becameStrict))
+    if (!functionArgsAndBody(pn, fun, funName, startOffset, type, kind, initiallyStrict,
+                             &becameStrict))
     {
         if (initiallyStrict || !becameStrict || tokenStream.hadError())
             return null();

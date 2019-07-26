@@ -3,5 +3,9 @@
 load(libdir + "asserts.js");
 
 assertThrowsInstanceOf(
-    function () { Function("(a = function (obj) { with (obj) f(); }) => a()"); },
+    () => Function("(a = function (obj) { with (obj) f(); }) => { 'use strict'; }"),
+    SyntaxError);
+
+assertThrowsInstanceOf(
+    () => Function("(a = obj => { with (obj) f(); }) => { 'use strict'; }"),
     SyntaxError);

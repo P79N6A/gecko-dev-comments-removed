@@ -2,12 +2,12 @@
 
 load(libdir + "asserts.js");
 
-assertThrowsInstanceOf(
-    function () { Function("a => { with (a) f(); }"); },
-    SyntaxError);
+var f = a => { with (a) return f(); };
+assertEq(f({f: () => 7}), 7);
 
-assertThrowsInstanceOf(
-    function () { Function("a => function () { with (a) f(); }"); },
-    SyntaxError);
+f = a => function () { with (a) return f(); };
+assertEq(f({f: () => 7})(), 7);
 
+f = (a = {x: 1, x: 2}) => b => { "use strict"; return a.x; };
+assertEq(f()(0), 2);
 
