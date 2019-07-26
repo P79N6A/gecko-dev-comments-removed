@@ -209,7 +209,7 @@ protected:
     }
     void          ToggleDrawnStatus() { mDrawn = !mDrawn; }
 
-    already_AddRefed<nsFrameSelection> GetFrameSelection();
+    nsFrameSelection* GetFrameSelection();
 
     
     

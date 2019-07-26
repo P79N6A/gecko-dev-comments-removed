@@ -53,6 +53,7 @@ public:
   
   nsPresContext* GetPresContext() const;
   nsIPresShell* GetPresShell() const;
+  nsFrameSelection* GetFrameSelection() const { return mFrameSelection; }
   
   
   
