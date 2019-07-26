@@ -129,50 +129,6 @@ protected:
 
 
 
-
-
-
-class DeprecatedImageClientSingle : public ImageClient
-{
-public:
-  DeprecatedImageClientSingle(CompositableForwarder* aFwd,
-                              TextureFlags aFlags,
-                              CompositableType aType);
-
-  virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags);
-
-  
-
-
-
-
-  bool EnsureDeprecatedTextureClient(DeprecatedTextureClientType aType);
-
-  virtual void Updated();
-
-  virtual void SetDescriptorFromReply(TextureIdentifier aTextureId,
-                                      const SurfaceDescriptor& aDescriptor) MOZ_OVERRIDE
-  {
-    mDeprecatedTextureClient->SetDescriptorFromReply(aDescriptor);
-  }
-
-  virtual TextureInfo GetTextureInfo() const MOZ_OVERRIDE
-  {
-    return mTextureInfo;
-  }
-
-  virtual already_AddRefed<Image> CreateImage(ImageFormat aFormat) MOZ_OVERRIDE;
-
-private:
-  RefPtr<DeprecatedTextureClient> mDeprecatedTextureClient;
-  TextureInfo mTextureInfo;
-};
-
-
-
-
-
-
 class ImageClientBridge : public ImageClient
 {
 public:

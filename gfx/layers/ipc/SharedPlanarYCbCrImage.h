@@ -14,8 +14,8 @@
 
 class gfxASurface;
 
-#ifndef MOZILLA_LAYERS_DeprecatedSharedPlanarYCbCrImage_H
-#define MOZILLA_LAYERS_DeprecatedSharedPlanarYCbCrImage_H
+#ifndef MOZILLA_LAYERS_SHAREDPLANARYCBCRIMAGE_H
+#define MOZILLA_LAYERS_SHAREDPLANARYCBCRIMAGE_H
 
 namespace mozilla {
 namespace layers {
@@ -25,69 +25,6 @@ class ImageClient;
 class ISurfaceAllocator;
 class SurfaceDescriptor;
 class TextureClient;
-
-
-class DeprecatedSharedPlanarYCbCrImage : public PlanarYCbCrImage
-{
-public:
-  DeprecatedSharedPlanarYCbCrImage(ISurfaceAllocator* aAllocator);
-
-  ~DeprecatedSharedPlanarYCbCrImage();
-
-  virtual DeprecatedSharedPlanarYCbCrImage* AsDeprecatedSharedPlanarYCbCrImage() MOZ_OVERRIDE
-  {
-    return this;
-  }
-
-  virtual already_AddRefed<gfxASurface> DeprecatedGetAsSurface() MOZ_OVERRIDE
-  {
-    if (!mAllocated) {
-      NS_WARNING("Can't get as surface");
-      return nullptr;
-    }
-    return PlanarYCbCrImage::DeprecatedGetAsSurface();
-  }
-
-  virtual void SetData(const PlanarYCbCrData& aData) MOZ_OVERRIDE;
-  virtual void SetDataNoCopy(const Data &aData) MOZ_OVERRIDE;
-
-  virtual bool Allocate(PlanarYCbCrData& aData);
-  virtual uint8_t* AllocateBuffer(uint32_t aSize) MOZ_OVERRIDE;
-  
-  
-  uint8_t* AllocateAndGetNewBuffer(uint32_t aSize) MOZ_OVERRIDE;
-
-  virtual bool IsValid() MOZ_OVERRIDE {
-    return mAllocated;
-  }
-
-  
-
-
-
-
-  bool ToSurfaceDescriptor(SurfaceDescriptor& aResult);
-
-  
-
-
-
-
-
-  bool DropToSurfaceDescriptor(SurfaceDescriptor& aResult);
-
-  
-
-
-
-  static DeprecatedSharedPlanarYCbCrImage* FromSurfaceDescriptor(const SurfaceDescriptor& aDesc);
-
-private:
-  ipc::Shmem mShmem;
-  RefPtr<ISurfaceAllocator> mSurfaceAllocator;
-  bool mAllocated;
-};
-
 
 class SharedPlanarYCbCrImage : public PlanarYCbCrImage
                              , public ISharedImage

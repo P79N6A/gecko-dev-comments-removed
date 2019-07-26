@@ -38,69 +38,6 @@ already_AddRefed<Image> CreateSharedRGBImage(ImageContainer* aImageContainer,
 
 
 
-class DeprecatedSharedRGBImage : public Image,
-                                 public ISharedImage
-{
-friend already_AddRefed<Image> CreateSharedRGBImage(ImageContainer* aImageContainer,
-                                                    nsIntSize aSize,
-                                                    gfxImageFormat aImageFormat);
-public:
-  struct Header {
-    gfxImageFormat mImageFormat;
-  };
-
-  DeprecatedSharedRGBImage(ISurfaceAllocator *aAllocator);
-  ~DeprecatedSharedRGBImage();
-
-  virtual ISharedImage* AsSharedImage() MOZ_OVERRIDE { return this; }
-
-  virtual uint8_t *GetBuffer() MOZ_OVERRIDE;
-
-  gfx::IntSize GetSize();
-  size_t GetBufferSize();
-
-  static uint8_t BytesPerPixel(gfxImageFormat aImageFormat);
-  already_AddRefed<gfxASurface> DeprecatedGetAsSurface();
-  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
-
-  
-
-
-
-
-  bool ToSurfaceDescriptor(SurfaceDescriptor& aResult);
-
-  
-
-
-
-
-
-  bool DropToSurfaceDescriptor(SurfaceDescriptor& aResult);
-
-  
-
-
-
-  static DeprecatedSharedRGBImage* FromSurfaceDescriptor(const SurfaceDescriptor& aDescriptor);
-
-  bool AllocateBuffer(nsIntSize aSize, gfxImageFormat aImageFormat);
-
-  TextureClient* GetTextureClient(CompositableClient* aClient) MOZ_OVERRIDE { return nullptr; }
-
-protected:
-  gfx::IntSize mSize;
-  gfxImageFormat mImageFormat;
-  RefPtr<ISurfaceAllocator> mSurfaceAllocator;
-
-  bool mAllocated;
-  ipc::Shmem *mShmem;
-};
-
-
-
-
-
 class SharedRGBImage : public Image
                      , public ISharedImage
 {
