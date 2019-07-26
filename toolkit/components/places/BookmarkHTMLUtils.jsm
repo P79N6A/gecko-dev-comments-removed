@@ -118,6 +118,13 @@ function notifyObservers(aTopic, aInitialImport) {
                                                             : "html");
 }
 
+function promiseSoon() {
+  let deferred = Promise.defer();
+  Services.tm.mainThread.dispatch(deferred.resolve,
+                                  Ci.nsIThread.DISPATCH_NORMAL);
+  return deferred.promise;
+}
+
 this.BookmarkHTMLUtils = Object.freeze({
   
 
@@ -1089,6 +1096,10 @@ BookmarkExporter.prototype = {
   },
 
   _writeItem: function (aItem, aIndent) {
+    
+    
+    
+    yield promiseSoon();
     let uri = null;
     try {
       uri = NetUtil.newURI(aItem.uri);
