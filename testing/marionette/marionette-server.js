@@ -2165,6 +2165,52 @@ MarionetteServerConnection.prototype = {
 
 
 
+
+
+
+  getScreenOrientation: function MDA_getScreenOrientation(aRequest) {
+    this.command_id = this.getCommandId();
+    let curWindow = this.getCurrentWindow();
+    let or = curWindow.screen.mozOrientation;
+    this.sendResponse(or, this.command_id);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  setScreenOrientation: function MDA_setScreenOrientation(aRequest) {
+    const ors = ["portrait", "landscape",
+                 "portrait-primary", "landscape-primary",
+                 "portrait-secondary", "landscape-secondary"];
+
+    this.command_id = this.getCommandId();
+    let or = String(aRequest.parameters.orientation);
+
+    let mozOr = or.toLowerCase();
+    if (ors.indexOf(mozOr) < 0) {
+      this.sendError("Unknown screen orientation: " + or, 500, null, this.command_id);
+      return;
+    }
+
+    let curWindow = this.getCurrentWindow();
+    if (!curWindow.screen.mozLockOrientation(mozOr)) {
+      this.sendError("Unable to set screen orientation: " + or, 500, null, this.command_id);
+    }
+    this.sendOk(this.command_id);
+  },
+
+  
+
+
+
   generateFrameId: function MDA_generateFrameId(id) {
     let uid = id + (appName == "B2G" ? "-b2g" : "");
     return uid;
@@ -2338,7 +2384,9 @@ MarionetteServerConnection.prototype.requestTypes = {
   "getAllCookies": MarionetteServerConnection.prototype.getAllCookies,
   "deleteAllCookies": MarionetteServerConnection.prototype.deleteAllCookies,
   "deleteCookie": MarionetteServerConnection.prototype.deleteCookie,
-  "getActiveElement": MarionetteServerConnection.prototype.getActiveElement
+  "getActiveElement": MarionetteServerConnection.prototype.getActiveElement,
+  "getScreenOrientation": MarionetteServerConnection.prototype.getScreenOrientation,
+  "setScreenOrientation": MarionetteServerConnection.prototype.setScreenOrientation
 };
 
 
