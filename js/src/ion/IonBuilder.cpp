@@ -4418,8 +4418,7 @@ TestSingletonProperty(JSContext *cx, HandleObject obj, HandleId id, bool *isKnow
 static inline bool
 TestSingletonPropertyTypes(JSContext *cx, types::StackTypeSet *types,
                            HandleObject globalObj, HandleId id,
-                           bool *isKnownConstant, bool *testObject,
-                           bool *testString)
+                           bool *isKnownConstant, bool *testObject)
 {
     
     
@@ -4427,7 +4426,6 @@ TestSingletonPropertyTypes(JSContext *cx, types::StackTypeSet *types,
 
     *isKnownConstant = false;
     *testObject = false;
-    *testString = false;
 
     if (!types || types->unknownObject())
         return true;
@@ -4457,15 +4455,6 @@ TestSingletonPropertyTypes(JSContext *cx, types::StackTypeSet *types,
 
       case JSVAL_TYPE_OBJECT:
       case JSVAL_TYPE_UNKNOWN: {
-        if (types->hasType(types::Type::StringType())) {
-            
-            if (types->maybeObject())
-                return true;
-            key = JSProto_String;
-            *testString = true;
-            break;
-        }
-
         
         
         
@@ -5065,9 +5054,6 @@ IonBuilder::jsop_getelem_string()
     MStringLength *length = MStringLength::New(str);
     current->add(length);
 
-    
-    
-    JS_ASSERT(oracle->propertyRead(script_, pc)->getKnownTypeTag() == JSVAL_TYPE_STRING);
     id = addBoundsCheck(id, length);
 
     MCharCodeAt *charCode = MCharCodeAt::New(str, id);
@@ -5895,9 +5881,8 @@ IonBuilder::getPropTryConstant(bool *emitted, HandleId id, types::StackTypeSet *
 
     RootedObject global(cx, &script_->global());
 
-    bool isConstant, testObject, testString;
-    if (!TestSingletonPropertyTypes(cx, unaryTypes.inTypes, global, id,
-                                    &isConstant, &testObject, &testString))
+    bool isConstant, testObject;
+    if (!TestSingletonPropertyTypes(cx, unaryTypes.inTypes, global, id, &isConstant, &testObject))
         return false;
 
     if (!isConstant)
@@ -5906,11 +5891,8 @@ IonBuilder::getPropTryConstant(bool *emitted, HandleId id, types::StackTypeSet *
     MDefinition *obj = current->pop();
 
     
-	JS_ASSERT(!testString || !testObject);
     if (testObject)
         current->add(MGuardObject::New(obj));
-	else if (testString)
-        current->add(MGuardString::New(obj));
 
     MConstant *known = MConstant::New(ObjectValue(*singleton));
     if (singleton->isFunction()) {
