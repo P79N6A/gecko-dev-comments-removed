@@ -413,28 +413,20 @@ public class AwesomeBar extends GeckoActivity {
              imm.showSoftInput(mText, InputMethodManager.SHOW_IMPLICIT);
              return true;
         } else {
-            int selStart = -1;
-            int selEnd = -1;
-            if (mText.hasSelection()) {
-                selStart = mText.getSelectionStart();
-                selEnd = mText.getSelectionEnd();
-            }
-
-            if (selStart >= 0) {
-                
-                mText.setSelection(selStart, selEnd);
-            }
+            int prevSelStart = mText.getSelectionStart();
+            int prevSelEnd = mText.getSelectionEnd();
 
             
             
             mText.dispatchKeyEvent(event);
-            int newCursorPos = mText.getSelectionEnd();
 
-            
-            
-            mText.requestFocusFromTouch();
-            mText.setSelection(newCursorPos);
-
+            int curSelStart = mText.getSelectionStart();
+            int curSelEnd = mText.getSelectionEnd();
+            if (prevSelStart != curSelStart || prevSelEnd != curSelEnd) {
+                mText.requestFocusFromTouch();
+                
+                mText.setSelection(curSelStart, curSelEnd);
+            }
             return true;
         }
     }
