@@ -223,11 +223,6 @@ nsJAR::Extract(const nsACString &aEntryName, nsIFile* outFile)
   
   
 
-  
-  
-  
-  
-  
   nsresult rv = outFile->Remove(false);
   if (rv == NS_ERROR_FILE_DIR_NOT_EMPTY ||
       rv == NS_ERROR_FAILURE)
