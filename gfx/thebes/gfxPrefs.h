@@ -51,7 +51,7 @@
 
 
 
-#define DECL_GFX_PREFS(Update, Pref, Name, Type, Default)                     \
+#define DECL_GFX_PREF(Update, Pref, Name, Type, Default)                     \
 public:                                                                       \
 static Type Name() { MOZ_ASSERT(Exists()); return One().mPref##Name.mValue; } \
 private:                                                                      \
@@ -103,10 +103,14 @@ public:
   
   
 
+  DECL_GFX_PREF(Once, "gfx.work-around-driver-bugs",           WorkAroundDriverBugs, bool, true);
+
+  DECL_GFX_PREF(Live, "gl.msaa-level",                         MSAALevel, uint32_t, 2);
+
 public:
   
   static gfxPrefs& One()
-  { 
+  {
     if (!sInstance) {
       sInstance = new gfxPrefs;
     }
@@ -133,6 +137,6 @@ private:
   gfxPrefs& operator=(const gfxPrefs&) MOZ_DELETE;
 };
 
-#undef DECL_GFX_PREFS /* Don't need it outside of this file */
+#undef DECL_GFX_PREF /* Don't need it outside of this file */
 
 #endif 
