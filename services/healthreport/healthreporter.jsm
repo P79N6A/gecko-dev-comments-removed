@@ -644,8 +644,14 @@ AbstractHealthReporter.prototype = Object.freeze({
           measurements: {},
         };
 
+        
+        let lastVersions = {};
+        
+        let dayVersions = {};
+
         for (let [measurementKey, measurement] of provider.measurements) {
           let name = providerName + "." + measurement.name;
+          let version = measurement.version;
 
           let serializer;
           try {
@@ -669,7 +675,15 @@ AbstractHealthReporter.prototype = Object.freeze({
 
           if (data.singular.size) {
             try {
-              o.data.last[name] = serializer.singular(data.singular);
+              let serialized = serializer.singular(data.singular);
+              if (serialized) {
+                
+                
+                if (!(name in o.data.last) || version > lastVersions[name]) {
+                  o.data.last[name] = serialized;
+                  lastVersions[name] = version;
+                }
+              }
             } catch (ex) {
               this._recordError("Error serializing singular data: " + name,
                                 ex);
@@ -693,9 +707,14 @@ AbstractHealthReporter.prototype = Object.freeze({
 
               if (!(dateFormatted in outputDataDays)) {
                 outputDataDays[dateFormatted] = {};
+                dayVersions[dateFormatted] = {};
               }
 
-              outputDataDays[dateFormatted][name] = serialized;
+              if (!(name in outputDataDays[dateFormatted]) ||
+                  version > dayVersions[dateFormatted][name]) {
+                outputDataDays[dateFormatted][name] = serialized;
+                dayVersions[dateFormatted][name] = version;
+              }
             } catch (ex) {
               this._recordError("Error populating data for day: " + name, ex);
               continue;
