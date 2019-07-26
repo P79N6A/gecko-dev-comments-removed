@@ -32,6 +32,18 @@ RenderFrameChild::Destroy()
   
 }
 
+void
+RenderFrameChild::CancelDefaultPanZoom()
+{
+  SendCancelDefaultPanZoom();
+}
+
+void
+RenderFrameChild::DetectScrollableSubframe()
+{
+  SendDetectScrollableSubframe();
+}
+
 PLayerTransactionChild*
 RenderFrameChild::AllocPLayerTransactionChild()
 {

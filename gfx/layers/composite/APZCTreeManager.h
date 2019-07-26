@@ -173,6 +173,22 @@ public:
 
 
 
+
+
+
+  void CancelDefaultPanZoom(const ScrollableLayerGuid& aGuid);
+
+  
+
+
+
+  void DetectScrollableSubframe(const ScrollableLayerGuid& aGuid);
+
+  
+
+
+
+
   void ZoomToRect(const ScrollableLayerGuid& aGuid,
                   const CSSRect& aRect);
 
