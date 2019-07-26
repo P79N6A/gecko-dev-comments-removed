@@ -2951,48 +2951,55 @@ IonBuilder::inlineScriptedCall(HandleFunction target, CallInfo &callInfo)
 }
 
 MDefinition *
+IonBuilder::patchInlinedReturn(CallInfo &callInfo, MBasicBlock *exit, MBasicBlock *bottom)
+{
+    
+    MDefinition *rdef = exit->lastIns()->toReturn()->input();
+    exit->discardLastIns();
+
+    
+    if (callInfo.constructing()) {
+        if (rdef->type() == MIRType_Value) {
+            
+            MReturnFromCtor *filter = MReturnFromCtor::New(rdef, callInfo.thisArg());
+            exit->add(filter);
+            rdef = filter;
+        } else if (rdef->type() != MIRType_Object) {
+            
+            rdef = callInfo.thisArg();
+        }
+    }
+
+    MGoto *replacement = MGoto::New(bottom);
+    exit->end(replacement);
+    if (!bottom->addPredecessorWithoutPhis(exit))
+        return NULL;
+
+    return rdef;
+}
+
+MDefinition *
 IonBuilder::patchInlinedReturns(CallInfo &callInfo, MIRGraphExits &exits, MBasicBlock *bottom)
 {
     
     
     JS_ASSERT(exits.length() > 0);
 
+    if (exits.length() == 1)
+        return patchInlinedReturn(callInfo, exits[0], bottom);
+
     
-    MPhi *phi = NULL;
-    if (exits.length() > 1) {
-        phi = MPhi::New(bottom->stackDepth());
-        phi->initLength(exits.length());
-        bottom->addPhi(phi);
-    }
+    MPhi *phi = MPhi::New(bottom->stackDepth());
+    phi->initLength(exits.length());
 
     for (size_t i = 0; i < exits.length(); i++) {
-        MBasicBlock *exitBlock = exits[i];
-
-        MDefinition *rval = exitBlock->lastIns()->toReturn()->getOperand(0);
-        exitBlock->discardLastIns();
-
-        
-        if (callInfo.constructing()) {
-            if (rval->type() == MIRType_Value) {
-                MReturnFromCtor *filter = MReturnFromCtor::New(rval, callInfo.thisArg());
-                exitBlock->add(filter);
-                rval = filter;
-            } else if (rval->type() != MIRType_Object) {
-                rval = callInfo.thisArg();
-            }
-        }
-
-        MGoto *replacement = MGoto::New(bottom);
-        exitBlock->end(replacement);
-        if (!bottom->addPredecessorWithoutPhis(exitBlock))
+        MDefinition *rdef = patchInlinedReturn(callInfo, exits[i], bottom);
+        if (!rdef)
             return NULL;
-
-        if (exits.length() == 1)
-            return rval;
-
-        phi->setOperand(i, rval);
+        phi->setOperand(i, rdef);
     }
 
+    bottom->addPhi(phi);
     return phi;
 }
 
@@ -3060,33 +3067,13 @@ IonBuilder::jsop_call_inline(HandleFunction callee, CallInfo &callInfo, MBasicBl
         return false;
     }
 
+    
     MIRGraphExits &exits = *inlineBuilder.graph().exitAccumulator();
-
-    
-    
     for (MBasicBlock **it = exits.begin(), **end = exits.end(); it != end; ++it) {
-        MBasicBlock *exitBlock = *it;
-
-        MDefinition *rval = exitBlock->lastIns()->toReturn()->getOperand(0);
-        exitBlock->discardLastIns();
-
-        
-        if (callInfo.constructing()) {
-            if (rval->type() == MIRType_Value) {
-                MReturnFromCtor *filter = MReturnFromCtor::New(rval, callInfo.thisArg());
-                exitBlock->add(filter);
-                rval = filter;
-            } else if (rval->type() != MIRType_Object) {
-                rval = callInfo.thisArg();
-            }
-        }
-
-        if (!retvalDefns.append(rval))
+        MDefinition *rdef = patchInlinedReturn(callInfo, *it, bottom);
+        if (!rdef)
             return false;
-
-        MGoto *replacement = MGoto::New(bottom);
-        exitBlock->end(replacement);
-        if (!bottom->addPredecessorWithoutPhis(exitBlock))
+        if (!retvalDefns.append(rdef))
             return false;
     }
     JS_ASSERT(!retvalDefns.empty());
@@ -3094,7 +3081,7 @@ IonBuilder::jsop_call_inline(HandleFunction callee, CallInfo &callInfo, MBasicBl
 }
 
 bool
-IonBuilder::makeInliningDecision(AutoObjectVector &targets, uint32_t argc)
+IonBuilder::makeInliningDecision(AutoObjectVector &targets)
 {
     AssertCanGC();
 
@@ -3169,85 +3156,70 @@ IonBuilder::makeInliningDecision(AutoObjectVector &targets, uint32_t argc)
 }
 
 static bool
-ValidateInlineableGetPropertyCache(MGetPropertyCache *getPropCache, MDefinition *thisDefn,
-                                   size_t maxUseCount)
+CanInlineGetPropertyCache(MGetPropertyCache *cache, MDefinition *thisDef)
 {
-    JS_ASSERT(getPropCache->object()->type() == MIRType_Object);
-
-    if (getPropCache->useCount() > maxUseCount)
+    JS_ASSERT(cache->object()->type() == MIRType_Object);
+    if (cache->object() != thisDef)
         return false;
 
-    
-    if (getPropCache->object() != thisDefn)
+    InlinePropertyTable *table = cache->inlinePropertyTable();
+    if (!table)
         return false;
-
-    InlinePropertyTable *propTable = getPropCache->inlinePropertyTable();
-    if (!propTable || propTable->numEntries() == 0)
+    if (table->numEntries() == 0)
         return false;
-
     return true;
 }
 
 MGetPropertyCache *
-IonBuilder::checkInlineableGetPropertyCache(uint32_t argc)
+IonBuilder::getInlineableGetPropertyCache(CallInfo &callInfo)
 {
-    
-    
-    
+    if (callInfo.constructing())
+        return NULL;
 
-    JS_ASSERT(current->stackDepth() >= argc + 2);
+    MDefinition *thisDef = callInfo.thisArg();
+    if (thisDef->type() != MIRType_Object)
+        return NULL;
 
-    
-    int thisDefnDepth = -((int) argc + 1);
-    MDefinition *thisDefn = current->peek(thisDefnDepth);
-    if (thisDefn->type() != MIRType_Object)
+    MDefinition *funcDef = callInfo.fun();
+    if (funcDef->type() != MIRType_Object)
         return NULL;
 
     
-    
-    int funcDefnDepth = -((int) argc + 2);
-    MDefinition *funcDefn = current->peek(funcDefnDepth);
-    if (funcDefn->type() != MIRType_Object)
-        return NULL;
-
-    
-    
-    if (funcDefn->isConstant())
-        return NULL;
-
-    
-    
-    
-
-    
-    
-    if (funcDefn->isGetPropertyCache()) {
-        MGetPropertyCache *getPropCache = funcDefn->toGetPropertyCache();
-        if (!ValidateInlineableGetPropertyCache(getPropCache, thisDefn, 0))
+    if (funcDef->isGetPropertyCache()) {
+        MGetPropertyCache *cache = funcDef->toGetPropertyCache();
+        if (cache->useCount() > 0)
             return NULL;
-
-        return getPropCache;
+        if (!CanInlineGetPropertyCache(cache, thisDef))
+            return NULL;
+        return cache;
     }
 
     
-    if (!funcDefn->isUnbox() || funcDefn->toUnbox()->useCount() > 0)
-        return NULL;
+    
+    if (funcDef->isUnbox()) {
+        MUnbox *unbox = funcDef->toUnbox();
+        if (unbox->mode() != MUnbox::Infallible)
+            return NULL;
+        if (unbox->useCount() > 0)
+            return NULL;
+        if (!unbox->input()->isTypeBarrier())
+            return NULL;
 
-    MUnbox *unbox = current->peek(funcDefnDepth)->toUnbox();
-    if (unbox->mode() != MUnbox::Infallible || !unbox->input()->isTypeBarrier())
-        return NULL;
+        MTypeBarrier *barrier = unbox->input()->toTypeBarrier();
+        if (barrier->useCount() != 1)
+            return NULL;
+        if (!barrier->input()->isGetPropertyCache())
+            return NULL;
 
-    MTypeBarrier *typeBarrier = unbox->input()->toTypeBarrier();
-    if (typeBarrier->useCount() != 1 || !typeBarrier->input()->isGetPropertyCache())
-        return NULL;
+        MGetPropertyCache *cache = barrier->input()->toGetPropertyCache();
+        if (cache->useCount() > 1)
+            return NULL;
+        if (!CanInlineGetPropertyCache(cache, thisDef))
+            return NULL;
+        return cache;
+    }
 
-    MGetPropertyCache *getPropCache = typeBarrier->input()->toGetPropertyCache();
-    JS_ASSERT(getPropCache->object()->type() == MIRType_Object);
-
-    if (!ValidateInlineableGetPropertyCache(getPropCache, thisDefn, 1))
-        return NULL;
-
-    return getPropCache;
+    return NULL;
 }
 
 MPolyInlineDispatch *
@@ -3378,9 +3350,7 @@ IonBuilder::inlineScriptedCalls(AutoObjectVector &targets, AutoObjectVector &ori
     callInfo.unwrapArgs();
     callInfo.pushFormals(current);
 
-#ifdef DEBUG
-    uint32_t origStackDepth = current->stackDepth();
-#endif
+    DebugOnly<uint32_t> origStackDepth = current->stackDepth();
 
     IonSpew(IonSpew_Inlining, "Inlining %d targets", (int) targets.length());
     JS_ASSERT(targets.length() > 0);
@@ -3390,27 +3360,12 @@ IonBuilder::inlineScriptedCalls(AutoObjectVector &targets, AutoObjectVector &ori
 
     
     
-    MGetPropertyCache *getPropCache = NULL;
-    if (!callInfo.constructing()) {
-        getPropCache = checkInlineableGetPropertyCache(callInfo.argc());
-        if (getPropCache) {
-            InlinePropertyTable *inlinePropTable = getPropCache->inlinePropertyTable();
-            
-            JS_ASSERT(inlinePropTable != NULL);
-
-            int numCases = inlinePropTable->numEntries();
-            IonSpew(IonSpew_Inlining, "Got inlineable property cache with %d cases", numCases);
-
-            inlinePropTable->trimToAndMaybePatchTargets(targets, originals);
-
-            
-            IonSpew(IonSpew_Inlining, "%d inlineable cases left after trimming to %d targets",
-                                        (int) inlinePropTable->numEntries(),
-                                        (int) targets.length());
-
-            if (inlinePropTable->numEntries() == 0)
-                getPropCache = NULL;
-        }
+    MGetPropertyCache *getPropCache = getInlineableGetPropertyCache(callInfo);
+    if (getPropCache) {
+        InlinePropertyTable *table = getPropCache->inlinePropertyTable();
+        table->trimToAndMaybePatchTargets(targets, originals);
+        if (table->numEntries() == 0)
+            getPropCache = NULL;
     }
 
     
@@ -4020,7 +3975,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
         AutoObjectVector targets(cx);
         targets.append(target);
 
-        if (makeInliningDecision(targets, argc))
+        if (makeInliningDecision(targets))
             return inlineScriptedCall(target, callInfo);
     }
 
@@ -4075,7 +4030,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
     }
 
     
-    if (inliningEnabled() && targets.length() > 0 && makeInliningDecision(targets, argc))
+    if (inliningEnabled() && targets.length() > 0 && makeInliningDecision(targets))
         return inlineScriptedCalls(targets, originals, callInfo);
 
     

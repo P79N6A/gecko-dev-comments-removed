@@ -370,30 +370,34 @@ CodeGenerator::visitPolyInlineDispatch(LPolyInlineDispatch *lir)
 
     InlinePropertyTable *inlinePropTable = mir->inlinePropertyTable();
     if (inlinePropTable) {
+        
         Register tempReg = ToRegister(lir->temp());
-
         masm.loadPtr(Address(inputReg, JSObject::offsetOfType()), tempReg);
+
+        
         for (size_t i = 0; i < inlinePropTable->numEntries(); i++) {
             types::TypeObject *typeObj = inlinePropTable->getTypeObject(i);
             JSFunction *func = inlinePropTable->getFunction(i);
             LBlock *target = mir->getFunctionBlock(func)->lir();
             masm.branchPtr(Assembler::Equal, tempReg, ImmGCPtr(typeObj), target->label());
         }
+
         
         LBlock *fallback = mir->fallbackPrepBlock()->lir();
         masm.jump(fallback->label());
-    } else {
-        for (size_t i = 0; i < mir->numCallees(); i++) {
-            JSFunction *func = mir->getFunction(i);
-            LBlock *target = mir->getFunctionBlock(i)->lir();
-            if (i < mir->numCallees() - 1) {
-                masm.branchPtr(Assembler::Equal, inputReg, ImmGCPtr(func), target->label());
-            } else {
-                
-                masm.jump(target->label());
-            }
-        }
+        return true;
     }
+
+    
+    for (size_t i = 0; i < mir->numCallees() - 1; i++) {
+        JSFunction *func = mir->getFunction(i);
+        LBlock *target = mir->getFunctionBlock(i)->lir();
+        masm.branchPtr(Assembler::Equal, inputReg, ImmGCPtr(func), target->label());
+    }
+
+    
+    LBlock *target = mir->getFunctionBlock(mir->numCallees() - 1)->lir();
+    masm.jump(target->label());
     return true;
 }
 
