@@ -215,6 +215,13 @@ BluetoothOppManager::StopSendingFile(BluetoothReplyRunnable* aRunnable)
   return true;
 }
 
+void
+BluetoothOppManager::ConfirmReceivingFile(bool aConfirm,
+                                          BluetoothReplyRunnable* aRunnable)
+{
+  
+}
+
 
 void
 BluetoothOppManager::ReceiveSocketData(UnixSocketRawData* aMessage)
