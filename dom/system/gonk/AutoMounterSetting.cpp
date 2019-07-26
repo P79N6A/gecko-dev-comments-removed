@@ -191,7 +191,10 @@ public:
     NS_ENSURE_TRUE(settingsService, NS_ERROR_FAILURE);
     nsCOMPtr<nsISettingsServiceLock> lock;
     settingsService->CreateLock(getter_AddRefs(lock));
-    lock->Set(UMS_STATUS, INT_TO_JSVAL(mStatus), nullptr, nullptr);
+    
+    if (lock) {
+      lock->Set(UMS_STATUS, INT_TO_JSVAL(mStatus), nullptr, nullptr);
+    }
     return NS_OK;
   }
 
