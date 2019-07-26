@@ -12,6 +12,7 @@
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/ScaleFactor.h"    
+#include "mozilla/gfx/Logging.h"        
 
 namespace IPC {
 template <typename T> struct ParamTraits;
@@ -424,6 +425,11 @@ struct ScrollableLayerGuid {
     return !(*this == other);
   }
 };
+
+template <int LogLevel>
+gfx::Log<LogLevel>& operator<<(gfx::Log<LogLevel>& log, const ScrollableLayerGuid& aGuid) {
+  return log << '(' << aGuid.mLayersId << ',' << aGuid.mPresShellId << ',' << aGuid.mScrollId << ')';
+}
 
 struct ZoomConstraints {
   bool mAllowZoom;
