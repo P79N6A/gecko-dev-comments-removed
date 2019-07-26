@@ -848,11 +848,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
           events.AppendElement(
             TransitionEventInfo(et->mElement, prop,
                                 anim->mTiming.mIterationDuration,
-                                ep == nsGkAtoms::transitionsProperty ?
-                                  EmptyString() :
-                                  ep == nsGkAtoms::transitionsOfBeforeProperty ?
-                                    before :
-                                    after));
+                                et->PseudoElement()));
 
           
           
