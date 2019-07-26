@@ -33,9 +33,9 @@ js::AutoCompartment::AutoCompartment(JSContext *cx, JSObject *target)
     cx_->enterCompartment(target->compartment());
 }
 
-js::AutoCompartment::AutoCompartment(JSContext *cx, JSCompartment *target)
-  : cx_(cx),
-    origin_(cx->compartment())
+js::AutoCompartment::AutoCompartment(ExclusiveContext *cx, JSCompartment *target)
+  : cx_(cx->asJSContext()),
+    origin_(cx_->compartment())
 {
     cx_->enterCompartment(target);
 }
@@ -44,35 +44,5 @@ js::AutoCompartment::~AutoCompartment()
 {
     cx_->leaveCompartment(origin_);
 }
-
-namespace js {
-
-
-
-
-
-
-
-
-
-class AutoEnterAtomsCompartment
-{
-    ExclusiveContext *cx;
-    JSCompartment *oldCompartment;
-  public:
-    AutoEnterAtomsCompartment(ExclusiveContext *cx)
-      : cx(cx),
-        oldCompartment(cx->compartment_)
-    {
-        cx->privateSetCompartment(cx->runtime_->atomsCompartment);
-    }
-
-    ~AutoEnterAtomsCompartment()
-    {
-        cx->privateSetCompartment(oldCompartment);
-    }
-};
-
-} 
 
 #endif 

@@ -193,7 +193,7 @@ IonRuntime::~IonRuntime()
 bool
 IonRuntime::initialize(JSContext *cx)
 {
-    AutoEnterAtomsCompartment ac(cx);
+    AutoCompartment ac(cx, cx->runtime()->atomsCompartment);
 
     IonContext ictx(cx, NULL);
     AutoFlushCache afc("IonRuntime::initialize");
@@ -277,7 +277,7 @@ IonRuntime::debugTrapHandler(JSContext *cx)
     if (!debugTrapHandler_) {
         
         
-        AutoEnterAtomsCompartment ac(cx);
+        AutoCompartment ac(cx, cx->runtime()->atomsCompartment);
         debugTrapHandler_ = generateDebugTrapHandler(cx);
     }
     return debugTrapHandler_;
