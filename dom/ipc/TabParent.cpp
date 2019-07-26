@@ -434,11 +434,11 @@ bool TabParent::SendRealTouchEvent(nsTouchEvent& event)
   
   
   
-  if (sEventCapturer != this &&
-      (event.message == NS_TOUCH_END || event.message == NS_TOUCH_CANCEL)) {
+  if (event.message == NS_TOUCH_END || event.message == NS_TOUCH_CANCEL) {
     for (int i = e.touches.Length() - 1; i >= 0; i--) {
-      if (!e.touches[i]->mChanged)
+      if (!e.touches[i]->mChanged) {
         e.touches.RemoveElementAt(i);
+      }
     }
   }
 
