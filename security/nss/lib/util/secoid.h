@@ -54,12 +54,12 @@ extern SECStatus SECOID_SetAlgorithmID(PLArenaPool *arena, SECAlgorithmID *aid,
 
 
 extern SECStatus SECOID_CopyAlgorithmID(PLArenaPool *arena, SECAlgorithmID *dest,
-				    SECAlgorithmID *src);
+				        const SECAlgorithmID *src);
 
 
 
 
-extern SECOidTag SECOID_GetAlgorithmTag(SECAlgorithmID *aid);
+extern SECOidTag SECOID_GetAlgorithmTag(const SECAlgorithmID *aid);
 
 
 

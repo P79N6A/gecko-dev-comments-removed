@@ -268,7 +268,7 @@ extern SECKEYPublicKey *CERT_ExtractPublicKey(CERTCertificate *cert);
 
 
 
-extern KeyType CERT_GetCertKeyType (CERTSubjectPublicKeyInfo *spki);
+extern KeyType CERT_GetCertKeyType (const CERTSubjectPublicKeyInfo *spki);
 
 
 

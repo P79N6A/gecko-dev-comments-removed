@@ -95,12 +95,12 @@ SECKEY_CreateSubjectPublicKeyInfo(SECKEYPublicKey *k);
 
 
 
-extern SECKEYPublicKey *SECKEY_DecodeDERPublicKey(SECItem *pubkder);
+extern SECKEYPublicKey *SECKEY_DecodeDERPublicKey(const SECItem *pubkder);
 
 
 
 
-extern SECKEYPublicKey *SECKEY_ConvertAndDecodePublicKey(char *pubkstr);
+extern SECKEYPublicKey *SECKEY_ConvertAndDecodePublicKey(const char *pubkstr);
 
 
 
@@ -122,21 +122,21 @@ SECKEY_EncodeDERSubjectPublicKeyInfo(SECKEYPublicKey *pubk);
 
 
 extern CERTSubjectPublicKeyInfo *
-SECKEY_DecodeDERSubjectPublicKeyInfo(SECItem *spkider);
+SECKEY_DecodeDERSubjectPublicKeyInfo(const SECItem *spkider);
 
 
 
 
 
 extern CERTSubjectPublicKeyInfo *
-SECKEY_ConvertAndDecodeSubjectPublicKeyInfo(char *spkistr);
+SECKEY_ConvertAndDecodeSubjectPublicKeyInfo(const char *spkistr);
 
 
 
 
 
 extern SECKEYPublicKey *
-SECKEY_ExtractPublicKey(CERTSubjectPublicKeyInfo *);
+SECKEY_ExtractPublicKey(const CERTSubjectPublicKeyInfo *);
 
 
 
@@ -183,7 +183,7 @@ SECKEY_DestroyEncryptedPrivateKeyInfo(SECKEYEncryptedPrivateKeyInfo *epki,
 extern SECStatus
 SECKEY_CopyPrivateKeyInfo(PLArenaPool *poolp,
 			  SECKEYPrivateKeyInfo *to,
-			  SECKEYPrivateKeyInfo *from);
+			  const SECKEYPrivateKeyInfo *from);
 
 extern SECStatus
 SECKEY_CacheStaticFlags(SECKEYPrivateKey* key);
@@ -199,19 +199,19 @@ SECKEY_CacheStaticFlags(SECKEYPrivateKey* key);
 extern SECStatus
 SECKEY_CopyEncryptedPrivateKeyInfo(PLArenaPool *poolp,
 				   SECKEYEncryptedPrivateKeyInfo *to,
-				   SECKEYEncryptedPrivateKeyInfo *from);
+				   const SECKEYEncryptedPrivateKeyInfo *from);
 
 
 
-KeyType SECKEY_GetPrivateKeyType(SECKEYPrivateKey *privKey);
-KeyType SECKEY_GetPublicKeyType(SECKEYPublicKey *pubKey);
+KeyType SECKEY_GetPrivateKeyType(const SECKEYPrivateKey *privKey);
+KeyType SECKEY_GetPublicKeyType(const SECKEYPublicKey *pubKey);
 
 
 
 
 
 SECKEYPublicKey*
-SECKEY_ImportDERPublicKey(SECItem *derKey, CK_KEY_TYPE type);
+SECKEY_ImportDERPublicKey(const SECItem *derKey, CK_KEY_TYPE type);
 
 SECKEYPrivateKeyList*
 SECKEY_NewPrivateKeyList(void);
