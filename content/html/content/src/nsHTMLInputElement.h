@@ -335,6 +335,23 @@ protected:
   static bool IsValidEmailAddressList(const nsAString& aValue);
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool DigitSubStringToNumber(const nsAString& aValue, uint32_t aStart,
+                                     uint32_t aLen, uint32_t* aResult);
+
+  
   nsresult SetValueInternal(const nsAString& aValue,
                             bool aUserInput,
                             bool aSetValueChanged);
@@ -608,6 +625,15 @@ protected:
 
 
   uint32_t NumberOfDaysInMonth(uint32_t aMonth, uint32_t aYear) const;
+
+  
+
+
+
+
+
+
+  bool IsValidTime(const nsAString& aValue) const;
 
   
 

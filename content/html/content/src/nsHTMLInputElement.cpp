@@ -2995,6 +2995,13 @@ nsHTMLInputElement::SanitizeValue(nsAString& aValue)
         }
       }
       break;
+    case NS_FORM_INPUT_TIME:
+      {
+        if (!aValue.IsEmpty() && !IsValidTime(aValue)) {
+          aValue.Truncate();
+        }
+      }
+      break;
   }
 }
 
@@ -3132,6 +3139,88 @@ nsHTMLInputElement::NumberOfDaysInMonth(uint32_t aMonth, uint32_t aYear) const
 
   return (aYear % 400 == 0 || (aYear % 100 != 0 && aYear % 4 == 0))
           ? 29 : 28;
+}
+
+ bool
+nsHTMLInputElement::DigitSubStringToNumber(const nsAString& aStr,
+                                           uint32_t aStart, uint32_t aLen,
+                                           uint32_t* aRetVal)
+{
+  MOZ_ASSERT(aStr.Length() > (aStart + aLen - 1));
+
+  for (uint32_t offset = 0; offset < aLen; ++offset) {
+    if (!NS_IsAsciiDigit(aStr[aStart + offset])) {
+      return false;
+    }
+  }
+
+  nsresult ec;
+  *aRetVal = static_cast<uint32_t>(PromiseFlatString(Substring(aStr, aStart, aLen)).ToInteger(&ec));
+
+  return NS_SUCCEEDED(ec);
+}
+
+bool
+nsHTMLInputElement::IsValidTime(const nsAString& aValue) const
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+  
+  if (aValue.Length() < 5) {
+    return false;
+  }
+
+  uint32_t hours;
+  if (!DigitSubStringToNumber(aValue, 0, 2, &hours) || hours > 23) {
+    return false;
+  }
+
+  
+  if (aValue[2] != ':') {
+    return false;
+  }
+
+  uint32_t minutes;
+  if (!DigitSubStringToNumber(aValue, 3, 2, &minutes) || minutes > 59) {
+    return false;
+  }
+
+  if (aValue.Length() == 5) {
+    return true;
+  }
+
+  
+  if (aValue.Length() < 8 || aValue[5] != ':') {
+    return false;
+  }
+
+  uint32_t seconds;
+  if (!DigitSubStringToNumber(aValue, 6, 2, &seconds) || seconds > 59) {
+    return false;
+  }
+
+  if (aValue.Length() == 8) {
+    return true;
+  }
+
+  
+  
+  if (aValue.Length() == 9 || aValue.Length() > 12 || aValue[8] != '.') {
+    return false;
+  }
+
+  uint32_t fractionsSeconds;
+  return DigitSubStringToNumber(aValue, 9, aValue.Length() - 9, &fractionsSeconds);
 }
  
 bool
