@@ -1006,7 +1006,7 @@ stubs::RegExp(VMFrame &f, JSObject *regex)
 
 
 
-    JSObject *proto = f.fp()->global().getOrCreateRegExpPrototype(f.cx);
+    RootedObject proto(f.cx, f.fp()->global().getOrCreateRegExpPrototype(f.cx));
     if (!proto)
         THROW();
     JS_ASSERT(proto);
