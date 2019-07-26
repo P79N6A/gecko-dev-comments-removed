@@ -147,7 +147,7 @@ public:
   {
     
     MOZ_ASSERT(false, "Not implemented");
-    return gfx::FORMAT_UNKNOWN;
+    return gfx::SurfaceFormat::UNKNOWN;
   }
 
   const gfxMatrix& GetTransform() {

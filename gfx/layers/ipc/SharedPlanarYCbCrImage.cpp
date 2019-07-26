@@ -31,7 +31,7 @@ SharedPlanarYCbCrImage::SharedPlanarYCbCrImage(ImageClient* aCompositable)
 : PlanarYCbCrImage(nullptr)
 , mCompositable(aCompositable)
 {
-  mTextureClient = aCompositable->CreateBufferTextureClient(gfx::FORMAT_YUV);
+  mTextureClient = aCompositable->CreateBufferTextureClient(gfx::SurfaceFormat::YUV);
   MOZ_COUNT_CTOR(SharedPlanarYCbCrImage);
 }
 

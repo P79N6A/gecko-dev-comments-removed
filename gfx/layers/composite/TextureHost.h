@@ -93,7 +93,7 @@ public:
   
 
 
-  virtual gfx::SurfaceFormat GetFormat() const { return gfx::FORMAT_UNKNOWN; }
+  virtual gfx::SurfaceFormat GetFormat() const { return gfx::SurfaceFormat::UNKNOWN; }
 
   
 

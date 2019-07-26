@@ -40,7 +40,7 @@ SurfaceToPackedBGRA(SourceSurface *aSurface)
   }
 
   SurfaceFormat format = data->GetFormat();
-  if (format != FORMAT_B8G8R8A8 && format != FORMAT_B8G8R8X8) {
+  if (format != SurfaceFormat::B8G8R8A8 && format != SurfaceFormat::B8G8R8X8) {
     return nullptr;
   }
 
@@ -68,7 +68,7 @@ SurfaceToPackedBGRA(SourceSurface *aSurface)
     }
   }
 
-  if (format == FORMAT_B8G8R8X8) {
+  if (format == SurfaceFormat::B8G8R8X8) {
     
     ConvertBGRXToBGRA(reinterpret_cast<uint8_t *>(imageBuffer), size, size.width * sizeof(uint32_t));
   }

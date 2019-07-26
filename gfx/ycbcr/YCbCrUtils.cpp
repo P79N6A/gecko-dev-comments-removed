@@ -28,7 +28,7 @@ GetYCbCrToRGBDestFormatAndSize(const layers::PlanarYCbCrData& aData,
   bool prescale = aSuggestedSize.width > 0 && aSuggestedSize.height > 0 &&
                   aSuggestedSize != aData.mPicSize;
 
-  if (aSuggestedFormat == FORMAT_R5G6B5) {
+  if (aSuggestedFormat == SurfaceFormat::R5G6B5) {
 #if defined(HAVE_YCBCR_TO_RGB565)
     if (prescale &&
         !IsScaleYCbCrToRGB565Fast(aData.mPicX,
@@ -48,14 +48,14 @@ GetYCbCrToRGBDestFormatAndSize(const layers::PlanarYCbCrData& aData,
     }
 #else
     
-    aSuggestedFormat = FORMAT_B8G8R8X8;
+    aSuggestedFormat = SurfaceFormat::B8G8R8X8;
 #endif
   }
-  else if (aSuggestedFormat != FORMAT_B8G8R8X8) {
+  else if (aSuggestedFormat != SurfaceFormat::B8G8R8X8) {
     
-    aSuggestedFormat = FORMAT_B8G8R8X8;
+    aSuggestedFormat = SurfaceFormat::B8G8R8X8;
   }
-  if (aSuggestedFormat == FORMAT_B8G8R8X8) {
+  if (aSuggestedFormat == SurfaceFormat::B8G8R8X8) {
     
 
     if (aData.mPicX != 0 || aData.mPicY != 0 || yuvtype == YV24)
@@ -88,7 +88,7 @@ ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
   
   if (aDestSize != aData.mPicSize) {
 #if defined(HAVE_YCBCR_TO_RGB565)
-    if (aDestFormat == FORMAT_R5G6B5) {
+    if (aDestFormat == SurfaceFormat::R5G6B5) {
       ScaleYCbCrToRGB565(aData.mYChannel,
                          aData.mCbChannel,
                          aData.mCrChannel,
@@ -122,7 +122,7 @@ ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
                         FILTER_BILINEAR);
   } else { 
 #if defined(HAVE_YCBCR_TO_RGB565)
-    if (aDestFormat == FORMAT_R5G6B5) {
+    if (aDestFormat == SurfaceFormat::R5G6B5) {
       ConvertYCbCrToRGB565(aData.mYChannel,
                            aData.mCbChannel,
                            aData.mCrChannel,
