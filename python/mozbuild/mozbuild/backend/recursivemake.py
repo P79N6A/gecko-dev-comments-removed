@@ -578,11 +578,10 @@ class RecursiveMakeBackend(CommonBackend):
         makefile.add_statement('%s := %s\n' % (unified_files_makefile_variable,
                                                all_sources))
 
-        regen_cmds = ['for f in $(filter %.cpp,$^); do echo "#include \\"$$f\\""; done > $@']
         for unified_file, source_filenames in unified_files():
-            rule = makefile.create_rule([unified_file])
-            rule.add_dependencies(extra_dependencies + source_filenames)
-            rule.add_commands(regen_cmds)
+            if extra_dependencies:
+                rule = makefile.create_rule([unified_file])
+                rule.add_dependencies(extra_dependencies)
 
             
             
