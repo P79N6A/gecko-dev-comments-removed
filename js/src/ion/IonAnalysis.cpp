@@ -667,7 +667,7 @@ IntersectDominators(MBasicBlock *block1, MBasicBlock *block2)
             MBasicBlock *idom = finger2->immediateDominator();
             if (idom == finger2)
                 return NULL; 
-            finger2 = finger2->immediateDominator();
+            finger2 = idom;
         }
     }
     return finger1;
@@ -704,8 +704,10 @@ ComputeImmediateDominators(MIRGraph &graph)
             
             for (size_t i = 1; i < block->numPredecessors(); i++) {
                 MBasicBlock *pred = block->getPredecessor(i);
-                if (pred->immediateDominator() != NULL)
-                    newIdom = IntersectDominators(pred, newIdom);
+                if (pred->immediateDominator() == NULL)
+                    continue;
+
+                newIdom = IntersectDominators(pred, newIdom);
 
                 
                 if (newIdom == NULL) {
