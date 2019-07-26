@@ -166,8 +166,7 @@ BluetoothAdapter::BluetoothAdapter(nsPIDOMWindow* aWindow,
   , BluetoothPropertyContainer(BluetoothObjectType::TYPE_ADAPTER)
   , mJsUuids(nullptr)
   , mJsDeviceAddresses(nullptr)
-  
-  , mState(BluetoothAdapterState::Enabled)
+  , mState(BluetoothAdapterState::Disabled)
   , mDiscoverable(false)
   , mDiscovering(false)
   , mPairable(false)

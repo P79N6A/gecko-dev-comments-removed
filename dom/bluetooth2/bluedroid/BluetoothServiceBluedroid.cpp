@@ -148,26 +148,27 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
 
     
+    BluetoothService* bs = BluetoothService::Get();
+    NS_ENSURE_TRUE(bs, NS_ERROR_FAILURE);
 
-
-
-
+    
     sAdapterBdAddress.Truncate();
     sAdapterBdName.Truncate();
-    sAdapterDiscoverable = false;
 
     InfallibleTArray<BluetoothNamedValue> props;
     BT_APPEND_NAMED_VALUE(props, "Name", sAdapterBdName);
     BT_APPEND_NAMED_VALUE(props, "Address", sAdapterBdAddress);
-    BT_APPEND_NAMED_VALUE(props, "Discoverable",
-                          BluetoothValue(sAdapterDiscoverable));
-    BluetoothValue value(props);
+    if (sAdapterDiscoverable) {
+      sAdapterDiscoverable = false;
+      BT_APPEND_NAMED_VALUE(props, "Discoverable", false);
+    }
+    if (sAdapterDiscovering) {
+      sAdapterDiscovering = false;
+      BT_APPEND_NAMED_VALUE(props, "Discovering", false);
+    }
+
     BluetoothSignal signal(NS_LITERAL_STRING("PropertyChanged"),
-                           NS_LITERAL_STRING(KEY_ADAPTER), value);
-
-    BluetoothService* bs = BluetoothService::Get();
-    NS_ENSURE_TRUE(bs, NS_ERROR_FAILURE);
-
+                           NS_LITERAL_STRING(KEY_ADAPTER), props);
     bs->DistributeSignal(signal);
 
     
@@ -577,6 +578,19 @@ public:
   {
     MOZ_ASSERT(NS_IsMainThread());
 
+    
+    BluetoothService* bs = BluetoothService::Get();
+    NS_ENSURE_TRUE(bs, NS_ERROR_FAILURE);
+
+    
+    InfallibleTArray<BluetoothNamedValue> props;
+    BT_APPEND_NAMED_VALUE(props, "Discovering", sAdapterDiscovering);
+
+    BluetoothSignal signal(NS_LITERAL_STRING("PropertyChanged"),
+                           NS_LITERAL_STRING(KEY_ADAPTER), props);
+    bs->DistributeSignal(signal);
+
+    
     if (!sChangeDiscoveryRunnableArray.IsEmpty()) {
       BluetoothValue values(true);
       DispatchBluetoothReply(sChangeDiscoveryRunnableArray[0],
@@ -949,17 +963,15 @@ BluetoothServiceBluedroid::GetAdaptersInternal(
     BluetoothValue properties = InfallibleTArray<BluetoothNamedValue>();
 
     BT_APPEND_NAMED_VALUE(properties.get_ArrayOfBluetoothNamedValue(),
-                          "State", BluetoothValue(sAdapterEnabled));
+                          "State", sAdapterEnabled);
     BT_APPEND_NAMED_VALUE(properties.get_ArrayOfBluetoothNamedValue(),
                           "Address", sAdapterBdAddress);
     BT_APPEND_NAMED_VALUE(properties.get_ArrayOfBluetoothNamedValue(),
                           "Name", sAdapterBdName);
     BT_APPEND_NAMED_VALUE(properties.get_ArrayOfBluetoothNamedValue(),
-                          "Discoverable",
-                          BluetoothValue(sAdapterDiscoverable));
+                          "Discoverable", sAdapterDiscoverable);
     BT_APPEND_NAMED_VALUE(properties.get_ArrayOfBluetoothNamedValue(),
-                          "Discovering",
-                          BluetoothValue(sAdapterDiscovering));
+                          "Discovering", sAdapterDiscovering);
 
     BT_APPEND_NAMED_VALUE(adaptersProperties.get_ArrayOfBluetoothNamedValue(),
                           "Adapter", properties);
