@@ -21,6 +21,8 @@
 #include "mozilla/TypeTraits.h"
 #include "mozilla/Util.h"
 
+#include <new> 
+
 
 #ifdef _MSC_VER
 #pragma warning(push)
