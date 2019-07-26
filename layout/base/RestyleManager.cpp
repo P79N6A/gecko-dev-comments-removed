@@ -390,55 +390,56 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
   
   
   
+  nsRefPtr<nsRenderingContext> rc = aFrame->PresContext()->GetPresShell()->
+    GetReferenceRenderingContext();
+
+  
+  
+  nsIFrame* parentFrame = aFrame->GetParent();
+  nsSize parentSize = parentFrame->GetSize();
+
+  nsFrameState savedState = parentFrame->GetStateBits();
+  nsHTMLReflowState parentReflowState(aFrame->PresContext(), parentFrame,
+                                      rc, parentSize);
+  parentFrame->RemoveStateBits(~nsFrameState(0));
+  parentFrame->AddStateBits(savedState);
+
+  NS_WARN_IF_FALSE(parentSize.width != NS_INTRINSICSIZE &&
+                   parentSize.height != NS_INTRINSICSIZE,
+                   "parentSize should be valid");
+  parentReflowState.SetComputedWidth(std::max(parentSize.width, 0));
+  parentReflowState.SetComputedHeight(std::max(parentSize.height, 0));
+  parentReflowState.mComputedMargin.SizeTo(0, 0, 0, 0);
+
+  parentReflowState.mComputedPadding = parentFrame->GetUsedPadding();
+  parentReflowState.mComputedBorderPadding =
+    parentFrame->GetUsedBorderAndPadding();
+  nsSize availSize(parentSize.width, NS_INTRINSICSIZE);
+
+  ViewportFrame* viewport = do_QueryFrame(parentFrame);
+  nsSize cbSize = viewport ?
+    viewport->AdjustReflowStateAsContainingBlock(&parentReflowState).Size()
+    : aFrame->GetContainingBlock()->GetSize();
+  const nsMargin& parentBorder =
+    parentReflowState.mStyleBorder->GetComputedBorder();
+  cbSize -= nsSize(parentBorder.LeftRight(), parentBorder.TopBottom());
+  nsHTMLReflowState reflowState(aFrame->PresContext(), parentReflowState,
+                                aFrame, availSize, cbSize.width,
+                                cbSize.height);
+  nsSize computedSize(reflowState.ComputedWidth(), reflowState.ComputedHeight());
+  computedSize.width += reflowState.mComputedBorderPadding.LeftRight();
+  if (computedSize.height != NS_INTRINSICSIZE) {
+    computedSize.height += reflowState.mComputedBorderPadding.TopBottom();
+  }
+  nsSize size = aFrame->GetSize();
   
   
   
   
-  const nsStylePosition* position = aFrame->StylePosition();
-  if (position->mWidth.GetUnit() != eStyleUnit_Auto &&
-      position->mHeight.GetUnit() != eStyleUnit_Auto) {
-    
-    
-    nsRefPtr<nsRenderingContext> rc = aFrame->PresContext()->GetPresShell()->
-      GetReferenceRenderingContext();
-
-    
-    
-    nsIFrame* parentFrame = aFrame->GetParent();
-    nsSize parentSize = parentFrame->GetSize();
-
-    nsFrameState savedState = parentFrame->GetStateBits();
-    nsHTMLReflowState parentReflowState(aFrame->PresContext(), parentFrame,
-                                        rc, parentSize);
-    parentFrame->RemoveStateBits(~nsFrameState(0));
-    parentFrame->AddStateBits(savedState);
-
-    NS_WARN_IF_FALSE(parentSize.width != NS_INTRINSICSIZE &&
-                     parentSize.height != NS_INTRINSICSIZE,
-                     "parentSize should be valid");
-    parentReflowState.SetComputedWidth(std::max(parentSize.width, 0));
-    parentReflowState.SetComputedHeight(std::max(parentSize.height, 0));
-    parentReflowState.mComputedMargin.SizeTo(0, 0, 0, 0);
-    parentSize.height = NS_AUTOHEIGHT;
-
-    parentReflowState.mComputedPadding = parentFrame->GetUsedPadding();
-    parentReflowState.mComputedBorderPadding =
-      parentFrame->GetUsedBorderAndPadding();
-
-    nsSize availSize(parentSize.width, NS_INTRINSICSIZE);
-
-    nsSize size = aFrame->GetSize();
-    ViewportFrame* viewport = do_QueryFrame(parentFrame);
-    nsSize cbSize = viewport ?
-      viewport->AdjustReflowStateAsContainingBlock(&parentReflowState).Size()
-      : aFrame->GetContainingBlock()->GetSize();
-    const nsMargin& parentBorder =
-      parentReflowState.mStyleBorder->GetComputedBorder();
-    cbSize -= nsSize(parentBorder.LeftRight(), parentBorder.TopBottom());
-    nsHTMLReflowState reflowState(aFrame->PresContext(), parentReflowState,
-                                  aFrame, availSize, cbSize.width,
-                                  cbSize.height);
-
+  
+  
+  if (computedSize.width == size.width &&
+      (computedSize.height == NS_INTRINSICSIZE || computedSize.height == size.height)) {
     
     
     if (NS_AUTOOFFSET == reflowState.mComputedOffsets.left) {
