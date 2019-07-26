@@ -553,6 +553,7 @@ ElfLoader::DebuggerHelper::DebuggerHelper(): dbg(NULL)
 
 
 
+
   struct AuxVector {
     Elf::Addr type;
     Elf::Addr value;
@@ -587,6 +588,11 @@ ElfLoader::DebuggerHelper::DebuggerHelper(): dbg(NULL)
   
 
   while (*scan++);
+
+  
+  while (!*scan)
+    scan++;
+
   AuxVector *auxv = reinterpret_cast<AuxVector *>(scan);
 
   
