@@ -621,8 +621,13 @@ js_Stringify(JSContext *cx, MutableHandleValue vp, JSObject *replacer_, Value sp
             if (replacer->isArray() && !replacer->isIndexed())
                 len = Min(len, replacer->getDenseInitializedLength());
 
+            
+            
+            
+            
+            const uint32_t MaxInitialSize = 1024;
             HashSet<jsid, JsidHasher> idSet(cx);
-            if (!idSet.init(len))
+            if (!idSet.init(Min(len, MaxInitialSize)))
                 return false;
 
             
@@ -631,6 +636,9 @@ js_Stringify(JSContext *cx, MutableHandleValue vp, JSObject *replacer_, Value sp
             
             RootedValue v(cx);
             for (; i < len; i++) {
+                if (!JS_CHECK_OPERATION_LIMIT(cx))
+                    return false;
+
                 
                 if (!JSObject::getElement(cx, replacer, replacer, i, &v))
                     return false;
