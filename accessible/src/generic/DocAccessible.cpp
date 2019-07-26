@@ -1804,7 +1804,8 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
 
         
         
-        if (!child->HasOwnContent()) {
+        
+        if (!child->HasOwnContent() || child->IsDoc()) {
           idx++;
           continue;
         }
