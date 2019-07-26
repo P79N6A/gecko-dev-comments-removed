@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/BasicEvents.h"
 #include "mozilla/Util.h"
 
 #include "nsDOMDataTransfer.h"
@@ -13,7 +14,6 @@
 #include "nsDOMClassInfoID.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsDOMLists.h"
-#include "nsGUIEvent.h"
 #include "nsError.h"
 #include "nsIDragService.h"
 #include "nsIClipboard.h"

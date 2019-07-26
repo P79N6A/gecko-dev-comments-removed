@@ -4,7 +4,6 @@
 
 
 #include "nsHTMLParts.h"
-#include "nsGUIEvent.h"
 #include "nsStyleConsts.h"
 #include "nsGkAtoms.h"
 #include "nsIPresShell.h"
@@ -14,6 +13,7 @@
 #include "nsIContent.h"
 #include "nsXULTooltipListener.h"
 #include "nsFrameManager.h"
+#include "mozilla/BasicEvents.h"
 
 
 

@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/BasicEvents.h"
 #ifdef MOZ_B2G
 #include "mozilla/Hal.h"
 #endif
@@ -12,7 +13,6 @@
 #undef CreateEvent
 
 #include "nsISupports.h"
-#include "nsGUIEvent.h"
 #include "nsDOMEvent.h"
 #include "nsEventListenerManager.h"
 #include "nsIDOMEventListener.h"

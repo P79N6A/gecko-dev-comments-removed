@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/BasicEvents.h"
 #include "mozilla/DebugOnly.h"
 
 #include "windows.h"
@@ -17,7 +18,6 @@
 
 #include "nsDebug.h"
 
-#include "nsGUIEvent.h"
 #include "nsWindowsDllInterceptor.h"
 #include "nsPluginNativeWindow.h"
 #include "nsThreadUtils.h"

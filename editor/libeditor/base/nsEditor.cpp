@@ -47,7 +47,6 @@
 #include "nsError.h"                    
 #include "nsFocusManager.h"             
 #include "nsFrameSelection.h"           
-#include "nsGUIEvent.h"                 
 #include "nsGkAtoms.h"                  
 #include "nsIAbsorbingTransaction.h"    
 #include "nsIAtom.h"                    

@@ -13,7 +13,6 @@
 #include "nsEditorEventListener.h"
 #include "nsEventListenerManager.h"     
 #include "nsFocusManager.h"             
-#include "nsGUIEvent.h"                 
 #include "nsGkAtoms.h"                  
 #include "nsIClipboard.h"               
 #include "nsIContent.h"                 

@@ -4,9 +4,9 @@
 
 
 #include "nsDOMTimeEvent.h"
-#include "nsGUIEvent.h"
 #include "nsPresContext.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "mozilla/BasicEvents.h"
 
 nsDOMTimeEvent::nsDOMTimeEvent(mozilla::dom::EventTarget* aOwner,
                                nsPresContext* aPresContext, nsEvent* aEvent)

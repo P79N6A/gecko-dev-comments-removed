@@ -16,7 +16,6 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/mozalloc.h"           
 #include "mozilla/TouchEvents.h"
-#include "nsGUIEvent.h"                 
 #include "nsPoint.h"                    
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
