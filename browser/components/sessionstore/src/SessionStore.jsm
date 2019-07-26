@@ -2781,6 +2781,8 @@ let SessionStoreInternal = {
       return;
     }
 
+    TelemetryStopwatch.start("FX_SESSION_RESTORE_RESTORE_WINDOW_MS");
+
     
     
     this._setWindowStateBusy(aWindow);
@@ -2932,6 +2934,8 @@ let SessionStoreInternal = {
 
     
     tabstrip.smoothScroll = smoothScroll;
+
+    TelemetryStopwatch.finish("FX_SESSION_RESTORE_RESTORE_WINDOW_MS");
 
     this._sendRestoreCompletedNotifications();
   },
