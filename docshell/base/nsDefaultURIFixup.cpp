@@ -113,7 +113,8 @@ nsDefaultURIFixup::CreateExposableURI(nsIURI *aURI, nsIURI **aReturn)
 
 
 NS_IMETHODIMP
-nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupFlags, nsIURI **aURI)
+nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupFlags,
+                                  nsIInputStream **aPostData, nsIURI **aURI)
 {
     NS_ENSURE_ARG(!aStringURI.IsEmpty());
     NS_ENSURE_ARG_POINTER(aURI);
@@ -147,7 +148,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupF
                                        sizeof("view-source:") - 1,
                                        uriString.Length() -
                                          (sizeof("view-source:") - 1)),
-                             newFixupFlags, getter_AddRefs(uri));
+                             newFixupFlags, aPostData, getter_AddRefs(uri));
         if (NS_FAILED(rv))
             return NS_ERROR_FAILURE;
         nsAutoCString spec;
@@ -243,7 +244,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupF
         NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
         if (fixupKeywords)
         {
-            KeywordURIFixup(uriString, aURI);
+            KeywordURIFixup(uriString, aPostData, aURI);
             if(*aURI)
                 return NS_OK;
         }
@@ -309,7 +310,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupF
     
     if (!*aURI && fixupKeywords)
     {
-        KeywordToURI(aStringURI, aURI);
+        KeywordToURI(aStringURI, aPostData, aURI);
         if(*aURI)
             return NS_OK;
     }
@@ -318,9 +319,13 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupF
 }
 
 NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
+                                              nsIInputStream **aPostData,
                                               nsIURI **aURI)
 {
     *aURI = nullptr;
+    if (aPostData) {
+        *aPostData = nullptr;
+    }
     NS_ENSURE_STATE(Preferences::GetRootBranch());
 
     
@@ -354,13 +359,16 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
                                            NS_LITERAL_STRING("keyword"),
                                            getter_AddRefs(submission));
             if (submission) {
-                
-                
-                
                 nsCOMPtr<nsIInputStream> postData;
                 submission->GetPostData(getter_AddRefs(postData));
-                if (postData) {
-                    return NS_ERROR_NOT_AVAILABLE;
+                if (aPostData) {
+                  postData.forget(aPostData);
+                } else if (postData) {
+                  
+                  
+                  
+                  
+                  return NS_ERROR_FAILURE;
                 }
 
                 
@@ -762,8 +770,9 @@ const char * nsDefaultURIFixup::GetCharsetForUrlBar()
   return charset;
 }
 
-nsresult nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString, 
-                                            nsIURI** aURI)
+void nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
+                                        nsIInputStream **aPostData,
+                                        nsIURI** aURI)
 {
     
     
@@ -802,13 +811,8 @@ nsresult nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
          (spaceLoc < qMarkLoc || quoteLoc < qMarkLoc)) ||
         qMarkLoc == 0)
     {
-        KeywordToURI(aURIString, aURI);
+        KeywordToURI(aURIString, aPostData, aURI);
     }
-
-    if(*aURI)
-        return NS_OK;
-
-    return NS_ERROR_FAILURE;
 }
 
 
