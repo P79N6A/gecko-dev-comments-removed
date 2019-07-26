@@ -521,11 +521,6 @@ WebRtc_Word32 VideoCaptureAndroid::StartCapture(
     }
   }
 
-  
-  
-  
-  
-  rotation = (360 - rotation) % 360;
   switch (rotation) {
     case 90:
       SetCaptureRotation(kCameraRotate90);
