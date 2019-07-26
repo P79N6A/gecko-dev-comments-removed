@@ -341,14 +341,13 @@ function waitForEvent(aSubject, aEventName, aTimeoutMs, aTarget) {
     eventDeferred.resolve(aEvent);
   }
 
-  function cleanup() {
+  function cleanup(aEventOrError) {
     
     aSubject.removeEventListener(aEventName, listener);
+    return aEventOrError;
   }
-  eventDeferred.promise.then(cleanup, cleanup);
-
   aSubject.addEventListener(aEventName, listener, false);
-  return eventDeferred.promise;
+  return eventDeferred.promise.then(cleanup, cleanup);
 }
 
 
