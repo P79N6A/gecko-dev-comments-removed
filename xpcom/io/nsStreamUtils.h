@@ -54,6 +54,12 @@ enum nsAsyncCopyMode {
 
 
 
+typedef void (* nsAsyncCopyProgressFun)(void *closure, uint32_t count);
+
+
+
+
+
 typedef void (* nsAsyncCopyCallbackFun)(void *closure, nsresult status);
 
 
@@ -82,7 +88,8 @@ NS_AsyncCopy(nsIInputStream         *aSource,
              void                   *aCallbackClosure = nullptr,
              bool                    aCloseSource = true,
              bool                    aCloseSink = true,
-             nsISupports           **aCopierCtx = nullptr);
+             nsISupports           **aCopierCtx = nullptr,
+             nsAsyncCopyProgressFun  aProgressCallbackFun = nullptr);
 
 
 

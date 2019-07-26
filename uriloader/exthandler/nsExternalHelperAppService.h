@@ -28,6 +28,7 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIChannel.h"
 #include "nsITimer.h"
+#include "nsIBackgroundFileSaver.h"
 
 #include "nsIHandlerService.h"
 #include "nsCOMPtr.h"
@@ -203,7 +204,8 @@ protected:
 
 class nsExternalAppHandler MOZ_FINAL : public nsIStreamListener,
                                        public nsIHelperAppLauncher,
-                                       public nsITimerCallback
+                                       public nsITimerCallback,
+                                       public nsIBackgroundFileSaverObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -212,6 +214,7 @@ public:
   NS_DECL_NSIHELPERAPPLAUNCHER
   NS_DECL_NSICANCELABLE
   NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSIBACKGROUNDFILESAVEROBSERVER
 
   
 
@@ -240,7 +243,6 @@ protected:
 
 
   nsCOMPtr<nsIMIMEInfo> mMimeInfo;
-  nsCOMPtr<nsIOutputStream> mOutStream; 
   nsCOMPtr<nsIInterfaceRequestor> mWindowContext;
 
   
@@ -311,7 +313,13 @@ protected:
   nsCOMPtr<nsIFile> mFinalFileDestination;
 
   uint32_t mBufferSize;
-  char    *mDataBuffer;
+
+  
+
+
+
+
+  nsCOMPtr<nsIBackgroundFileSaver> mSaver;
 
   
 

@@ -41,9 +41,13 @@ let DownloadListener = {
       
       if (this.set.doPause) {
         let dl = aSubject.QueryInterface(Ci.nsIDownload);
-        downloadUtils.downloadManager.pauseDownload(dl.id);
-        do_timeout(1000, function() {
-          downloadUtils.downloadManager.resumeDownload(dl.id);
+        
+        
+        do_execute_soon(function() {
+          downloadUtils.downloadManager.pauseDownload(dl.id);
+          do_timeout(1000, function() {
+            downloadUtils.downloadManager.resumeDownload(dl.id);
+          });
         });
       }
     } else if (aTopic == "dl-done") {
