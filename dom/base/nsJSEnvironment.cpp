@@ -1836,8 +1836,10 @@ nsJSContext::InitClasses(JS::Handle<JSObject*> aGlobalObj)
   ::JS_DefineProfilingFunctions(cx, aGlobalObj);
 
 #ifdef NS_TRACE_MALLOC
-  
-  ::JS_DefineFunctions(cx, aGlobalObj, TraceMallocFunctions);
+  if (nsContentUtils::IsCallerChrome()) {
+    
+    ::JS_DefineFunctions(cx, aGlobalObj, TraceMallocFunctions);
+  }
 #endif
 
 #ifdef MOZ_DMD
