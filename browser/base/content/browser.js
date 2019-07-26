@@ -3363,15 +3363,14 @@ function updateEditUIVisibility()
   
   
   
+  
+  
   gEditUIVisible = editMenuPopupState == "showing" ||
                    editMenuPopupState == "open" ||
                    contextMenuPopupState == "showing" ||
                    contextMenuPopupState == "open" ||
                    placesContextMenuPopupState == "showing" ||
-                   placesContextMenuPopupState == "open" ||
-                   document.getElementById("cut-button") ||
-                   document.getElementById("copy-button") ||
-                   document.getElementById("paste-button") ? true : false;
+                   placesContextMenuPopupState == "open";
 
   
   
