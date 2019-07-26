@@ -896,7 +896,7 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
 
-    JSCList             debuggerList;
+    mozilla::LinkedList<js::Debugger> debuggerList;
 
     
 

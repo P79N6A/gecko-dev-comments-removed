@@ -886,7 +886,6 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     requestedHelperThreadCount(-1)
 {
     
-    JS_INIT_CLIST(&debuggerList);
     JS_INIT_CLIST(&onNewGlobalObjectWatchers);
 
     PodZero(&debugHooks);

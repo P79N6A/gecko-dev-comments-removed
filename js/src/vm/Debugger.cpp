@@ -360,7 +360,6 @@ Breakpoint::nextInSite()
     return (link == &site->breakpoints) ? NULL : fromSiteLinks(link);
 }
 
-
 
 
 Debugger::Debugger(JSContext *cx, JSObject *dbg)
@@ -369,8 +368,7 @@ Debugger::Debugger(JSContext *cx, JSObject *dbg)
 {
     assertSameCompartment(cx, dbg);
 
-    JSRuntime *rt = cx->runtime;
-    JS_APPEND_LINK(&link, &rt->debuggerList);
+    cx->runtime->debuggerList.insertBack(this);
     JS_INIT_CLIST(&breakpoints);
     JS_INIT_CLIST(&onNewGlobalObjectWatchersLink);
 }
@@ -381,7 +379,6 @@ Debugger::~Debugger()
 
     
     JS_ASSERT(object->compartment()->rt->isHeapBusy());
-    JS_REMOVE_LINK(&link);
 
     
 
@@ -1399,8 +1396,7 @@ Debugger::markCrossCompartmentDebuggerObjectReferents(JSTracer *tracer)
 
 
 
-    for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
-        Debugger *dbg = Debugger::fromLinks(p);
+    for (Debugger *dbg = rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
         if (!dbg->object->compartment()->isCollecting())
             dbg->markKeysInCompartment(tracer);
     }
@@ -1528,9 +1524,7 @@ Debugger::sweepAll(FreeOp *fop)
 {
     JSRuntime *rt = fop->runtime();
 
-    for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
-        Debugger *dbg = Debugger::fromLinks(p);
-
+    for (Debugger *dbg = rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
         if (IsObjectAboutToBeFinalized(&dbg->object)) {
             
 
@@ -1574,9 +1568,7 @@ Debugger::findCompartmentEdges(JSCompartment *comp, js::gc::ComponentFinder &fin
 
 
 
-    JSRuntime *rt = comp->rt;
-    for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
-        Debugger *dbg = Debugger::fromLinks(p);
+    for (Debugger *dbg = comp->rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
         JSCompartment *w = dbg->object->compartment();
         if (w == comp || !w->isGCMarking())
             continue;
