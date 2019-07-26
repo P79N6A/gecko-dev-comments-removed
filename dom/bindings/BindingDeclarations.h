@@ -265,12 +265,19 @@ public:
     mImpl.construct(t1, t2);
   }
 
-  const InternalType& Value() const
+  const T& Value() const
   {
     return mImpl.ref();
   }
 
+  
   InternalType& Value()
+  {
+    return mImpl.ref();
+  }
+
+  
+  const InternalType& InternalValue() const
   {
     return mImpl.ref();
   }
@@ -284,6 +291,7 @@ private:
   Optional_base(const Optional_base& other) MOZ_DELETE;
   const Optional_base &operator=(const Optional_base &other) MOZ_DELETE;
 
+protected:
   Maybe<InternalType> mImpl;
 };
 
@@ -318,6 +326,20 @@ public:
   Optional(JSContext* cx, const T& aValue) :
     Optional_base<JS::Handle<T>, JS::Rooted<T> >(cx, aValue)
   {}
+
+  
+  
+  JS::Handle<T> Value() const
+  {
+    return this->mImpl.ref();
+  }
+
+  
+  
+  JS::Rooted<T>& Value()
+  {
+    return this->mImpl.ref();
+  }
 };
 
 
@@ -376,6 +398,51 @@ public:
   void Construct(const T1& t1)
   {
     Optional_base<JS::Value, JS::Value>::Construct(t1);
+  }
+};
+
+
+template<typename U> class NonNull;
+template<typename T>
+class Optional<NonNull<T> > : public Optional_base<T, NonNull<T> >
+{
+public:
+  
+  
+  
+  T& Value() const
+  {
+    return *this->mImpl.ref().get();
+  }
+
+  
+  
+  NonNull<T>& Value()
+  {
+    return this->mImpl.ref();
+  }
+};
+
+
+
+template<typename U> class OwningNonNull;
+template<typename T>
+class Optional<OwningNonNull<T> > : public Optional_base<T, OwningNonNull<T> >
+{
+public:
+  
+  
+  
+  T& Value() const
+  {
+    return *this->mImpl.ref().get();
+  }
+
+  
+  
+  OwningNonNull<T>& Value()
+  {
+    return this->mImpl.ref();
   }
 };
 
