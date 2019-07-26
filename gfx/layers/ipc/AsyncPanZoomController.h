@@ -152,6 +152,12 @@ public:
   void UpdateZoomConstraints(bool aAllowZoom, float aMinScale, float aMaxScale);
 
   
+
+
+
+  void PostDelayedTask(Task* aTask, int aDelayMs);
+
+  
   
   
 
