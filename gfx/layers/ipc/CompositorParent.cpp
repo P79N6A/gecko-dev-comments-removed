@@ -653,16 +653,22 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
 
     
     
+    
+    
+    
+    
+    
+    const gfx::Margin& fixedMargins = aLayer->GetFixedPositionMargins();
     if (anchor.x > 0) {
-      translation.x -= aFixedLayerMargins.right;
+      translation.x -= aFixedLayerMargins.right - fixedMargins.right;
     } else {
-      translation.x += aFixedLayerMargins.left;
+      translation.x += aFixedLayerMargins.left - fixedMargins.left;
     }
 
     if (anchor.y > 0) {
-      translation.y -= aFixedLayerMargins.bottom;
+      translation.y -= aFixedLayerMargins.bottom - fixedMargins.bottom;
     } else {
-      translation.y += aFixedLayerMargins.top;
+      translation.y += aFixedLayerMargins.top - fixedMargins.top;
     }
 
     
