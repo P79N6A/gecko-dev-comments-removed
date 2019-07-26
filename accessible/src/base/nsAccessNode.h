@@ -64,7 +64,6 @@ public:
 
   virtual nsINode* GetNode() const;
   nsIContent* GetContent() const { return mContent; }
-  virtual nsIDocument* GetDocumentNode() const;
 
   
 
