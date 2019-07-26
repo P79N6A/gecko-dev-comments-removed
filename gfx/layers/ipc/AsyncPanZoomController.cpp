@@ -1085,12 +1085,6 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
   
   bool requestAnimationFrame = false;
 
-  const gfx3DMatrix& currentTransform = aLayer->GetTransform();
-
-  
-  LayerToCSSScale rootScale(currentTransform.GetXScale(),
-                            currentTransform.GetYScale());
-
   LayerPoint metricsScrollOffset;
   CSSPoint scrollOffset;
   CSSToScreenScale localScale;
@@ -1183,6 +1177,11 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
                                             mAsyncScrollTimeoutTask,
                                             mAsyncScrollTimeout);
   }
+
+  
+  const gfx3DMatrix& currentTransform = aLayer->GetTransform();
+  LayerToCSSScale rootScale(currentTransform.GetXScale() / frame.mDevPixelsPerCSSPixel,
+                            currentTransform.GetYScale() / frame.mDevPixelsPerCSSPixel);
 
   LayerPoint translation = (scrollOffset / rootScale) - metricsScrollOffset;
   *aNewTransform = ViewTransform(-translation, localScale);
