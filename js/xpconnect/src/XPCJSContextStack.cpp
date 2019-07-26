@@ -145,20 +145,16 @@ XPCJSContextStack::GetSafeJSContext()
     nsRefPtr<nsNullPrincipal> principal = new nsNullPrincipal();
     nsresult rv = principal->Init();
     if (NS_FAILED(rv))
-        return NULL;
+        MOZ_CRASH();
 
     nsXPConnect* xpc = nsXPConnect::XPConnect();
-    XPCJSRuntime* xpcrt = xpc->GetRuntime();
-    if (!xpcrt)
-        return NULL;
-
-    JSRuntime *rt = xpcrt->Runtime();
+    JSRuntime *rt = xpc->GetRuntime()->Runtime();
     if (!rt)
-        return NULL;
+        MOZ_CRASH();
 
     mSafeJSContext = JS_NewContext(rt, 8192);
     if (!mSafeJSContext)
-        return NULL;
+        MOZ_CRASH();
 
     JS::RootedObject glob(mSafeJSContext);
     {
@@ -168,31 +164,24 @@ XPCJSContextStack::GetSafeJSContext()
         JS_SetErrorReporter(mSafeJSContext, mozJSLoaderErrorReporter);
 
         glob = xpc::CreateGlobalObject(mSafeJSContext, &global_class, principal, JS::SystemZone);
-
-        if (glob) {
-            
-            
-            JS_SetGlobalObject(mSafeJSContext, glob);
-
-            
-            
-            nsCOMPtr<nsIScriptObjectPrincipal> sop = new SandboxPrivate(principal, glob);
-            JS_SetPrivate(glob, sop.forget().get());
-        }
+        if (!glob)
+            MOZ_CRASH();
 
         
         
+        JS_SetGlobalObject(mSafeJSContext, glob);
+
         
         
-        if (glob && NS_FAILED(xpc->InitClasses(mSafeJSContext, glob))) {
-            glob = nullptr;
-        }
-    }
-    if (mSafeJSContext && !glob) {
+        nsCOMPtr<nsIScriptObjectPrincipal> sop = new SandboxPrivate(principal, glob);
+        JS_SetPrivate(glob, sop.forget().get());
+
         
         
-        JS_DestroyContext(mSafeJSContext);
-        mSafeJSContext = nullptr;
+        
+        
+        if (NS_FAILED(xpc->InitClasses(mSafeJSContext, glob)))
+            MOZ_CRASH();
     }
 
     
