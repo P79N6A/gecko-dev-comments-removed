@@ -20,7 +20,7 @@
 
 
 struct msgbuffer {
-    int32_t mtype;    
+    long    mtype;    
     void   *msgPtr;   
     void   *usrPtr;   
 };
