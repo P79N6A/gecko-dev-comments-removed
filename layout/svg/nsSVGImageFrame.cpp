@@ -6,6 +6,7 @@
 
 #include "gfxContext.h"
 #include "gfxPlatform.h"
+#include "mozilla/gfx/2D.h"
 #include "imgIContainer.h"
 #include "nsIImageLoadingContent.h"
 #include "nsLayoutUtils.h"
@@ -23,6 +24,7 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::gfx;
 
 class nsSVGImageFrame;
 
@@ -469,32 +471,11 @@ nsSVGImageFrame::ReflowSVG()
     return;
   }
 
-  gfxContext tmpCtx(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+  float x, y, width, height;
+  SVGImageElement *element = static_cast<SVGImageElement*>(mContent);
+  element->GetAnimatedLengthValues(&x, &y, &width, &height, nullptr);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  gfxSize scaleFactors = GetCanvasTM(FOR_OUTERSVG_TM).ScaleFactors(true);
-  bool applyScaling = fabs(scaleFactors.width) >= 1e-6 &&
-                      fabs(scaleFactors.height) >= 1e-6;
-  Matrix scaling;
-  if (applyScaling) {
-    scaling.Scale(scaleFactors.width, scaleFactors.height);
-  }
-  tmpCtx.Save();
-  GeneratePath(&tmpCtx, scaling);
-  tmpCtx.Restore();
-  gfxRect extent = tmpCtx.GetUserPathExtent();
-  if (applyScaling) {
-    extent.Scale(1 / scaleFactors.width, 1 / scaleFactors.height);
-  }
+  Rect extent(x, y, width, height);
 
   if (!extent.IsEmpty()) {
     mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent, 

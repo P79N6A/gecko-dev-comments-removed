@@ -117,6 +117,7 @@ class nsLayoutUtils
   typedef mozilla::ContainerLayerParameters ContainerLayerParameters;
   typedef mozilla::gfx::SourceSurface SourceSurface;
   typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::Rect Rect;
 
 public:
   typedef mozilla::layers::FrameMetrics FrameMetrics;
@@ -789,6 +790,16 @@ public:
 
   static nsPoint MatrixTransformPoint(const nsPoint &aPoint,
                                       const gfx3DMatrix &aMatrix, float aFactor);
+
+  
+
+
+
+
+
+
+
+  static nsRect RoundGfxRectToAppRect(const Rect &aRect, float aFactor);
 
   
 
