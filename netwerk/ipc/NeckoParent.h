@@ -15,12 +15,40 @@ namespace mozilla {
 namespace net {
 
 
+enum PBOverrideStatus {
+  kPBOverride_Unset = 0,
+  kPBOverride_Private,
+  kPBOverride_NotPrivate
+};
+
+
 class NeckoParent :
   public PNeckoParent
 {
 public:
   NeckoParent();
   virtual ~NeckoParent();
+
+  MOZ_WARN_UNUSED_RESULT
+  static const char *
+  GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
+                      PBrowserParent* aBrowser,
+                      uint32_t* aAppId,
+                      bool* aInBrowserElement);
+
+  
+
+
+
+
+
+
+
+  MOZ_WARN_UNUSED_RESULT
+  static const char*
+  CreateChannelLoadContext(PBrowserParent* aBrowser,
+                           const SerializedLoadContext& aSerialized,
+                           nsCOMPtr<nsILoadContext> &aResult);
 
 protected:
   virtual PHttpChannelParent* AllocPHttpChannel(PBrowserParent*,
@@ -30,9 +58,11 @@ protected:
   virtual bool DeallocPCookieService(PCookieServiceParent*);
   virtual PWyciwygChannelParent* AllocPWyciwygChannel();
   virtual bool DeallocPWyciwygChannel(PWyciwygChannelParent*);
-  virtual PFTPChannelParent* AllocPFTPChannel();
+  virtual PFTPChannelParent* AllocPFTPChannel(PBrowserParent* aBrowser,
+                                              const SerializedLoadContext& aSerialized);
   virtual bool DeallocPFTPChannel(PFTPChannelParent*);
-  virtual PWebSocketParent* AllocPWebSocket(PBrowserParent* browser);
+  virtual PWebSocketParent* AllocPWebSocket(PBrowserParent* browser,
+                                            const SerializedLoadContext& aSerialized);
   virtual bool DeallocPWebSocket(PWebSocketParent*);
   virtual PTCPSocketParent* AllocPTCPSocket(const nsString& aHost,
                                             const uint16_t& aPort,
@@ -56,7 +86,6 @@ protected:
   virtual bool RecvCancelHTMLDNSPrefetch(const nsString& hostname,
                                          const uint16_t& flags,
                                          const nsresult& reason);
-
 private:
   nsCString mCoreAppsBasePath;
   nsCString mWebAppsBasePath;
