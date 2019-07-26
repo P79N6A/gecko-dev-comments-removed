@@ -233,7 +233,7 @@ public:
   {
     
   }
-  mozilla::Selection* GetSelection(mozilla::ErrorResult& aRv);
+  already_AddRefed<mozilla::Selection> GetSelection(mozilla::ErrorResult& rv);
   
   
   
