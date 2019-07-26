@@ -5010,6 +5010,21 @@ let GsmPDUHelper = {
 
 
 
+  writeDiallingNumber: function writeDiallingNumber(number) {
+    let toa = PDU_TOA_ISDN; 
+    if (number[0] == '+') {
+      toa = PDU_TOA_INTERNATIONAL | PDU_TOA_ISDN; 
+      number = number.substring(1);
+    }
+    this.writeHexOctet(toa);
+    this.writeSwappedNibbleBCD(number);
+  },
+
+  
+
+
+
+
 
 
 
