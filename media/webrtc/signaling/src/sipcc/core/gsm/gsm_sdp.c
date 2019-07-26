@@ -147,16 +147,7 @@ static const cc_media_cap_table_t *gsmsdp_get_media_capability (fsmdef_dcb_t *dc
 
         dcb_p->media_cap_tbl->cap[CC_AUDIO_1].enabled = FALSE;
         dcb_p->media_cap_tbl->cap[CC_VIDEO_1].enabled = FALSE;
-        
-
-
-
-
-
-
-
-
-        dcb_p->media_cap_tbl->cap[CC_DATACHANNEL_1].enabled = TRUE;
+        dcb_p->media_cap_tbl->cap[CC_DATACHANNEL_1].enabled = FALSE;
 
         dcb_p->media_cap_tbl->cap[CC_AUDIO_1].support_security = TRUE;
         dcb_p->media_cap_tbl->cap[CC_VIDEO_1].support_security = TRUE;

@@ -339,6 +339,8 @@ private:
   int mNumAudioStreams;
   int mNumVideoStreams;
 
+  bool mHaveDataStream;
+
   
   std::vector<std::string> mSDPParseErrorMessages;
 

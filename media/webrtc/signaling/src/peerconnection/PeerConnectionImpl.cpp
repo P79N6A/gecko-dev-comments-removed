@@ -270,7 +270,8 @@ PeerConnectionImpl::PeerConnectionImpl()
   , mSTSThread(NULL)
   , mMedia(new PeerConnectionMedia(this))
   , mNumAudioStreams(0)
-  , mNumVideoStreams(0) {
+  , mNumVideoStreams(0)
+  , mHaveDataStream(false) {
 #ifdef MOZILLA_INTERNAL_API
   MOZ_ASSERT(NS_IsMainThread());
 #endif
@@ -721,8 +722,11 @@ PeerConnectionImpl::CreateDataChannel(const nsACString& aLabel,
 
   CSFLogDebug(logTag, "%s: making DOMDataChannel", __FUNCTION__);
 
-  
-  
+  if (!mHaveDataStream) {
+    
+    mCall->addStream(0, 2, DATA);
+    mHaveDataStream = true;
+  }
 
   return NS_NewDOMDataChannel(dataChannel.forget(), mWindow, aRetval);
 #else
