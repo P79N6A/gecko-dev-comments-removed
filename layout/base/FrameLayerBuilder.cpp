@@ -14,7 +14,6 @@
 #include "nsCSSRendering.h"
 #include "nsCSSFrameConstructor.h"
 #include "gfxUtils.h"
-#include "nsImageFrame.h"
 #include "nsRenderingContext.h"
 #include "MaskLayerImageCache.h"
 #include "nsIScrollableFrame.h"
@@ -335,7 +334,7 @@ protected:
 
 
 
-    nsDisplayImage* mImage;
+    nsDisplayImageContainer* mImage;
     
 
 
@@ -1782,8 +1781,10 @@ ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
   
 
 
-  if (mVisibleRegion.IsEmpty() && aItem->GetType() == nsDisplayItem::TYPE_IMAGE) {
-    mImage = static_cast<nsDisplayImage*>(aItem);
+  if (mVisibleRegion.IsEmpty() &&
+      (aItem->GetType() == nsDisplayItem::TYPE_IMAGE ||
+       aItem->GetType() == nsDisplayItem::TYPE_XUL_IMAGE)) {
+    mImage = static_cast<nsDisplayImageContainer*>(aItem);
   } else {
     mImage = nullptr;
   }
