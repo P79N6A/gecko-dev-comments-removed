@@ -388,16 +388,10 @@ int main(int argc, char* argv[])
     result = do_main(argc, argv, xreDirectory);
   }
 
-  XPCOMGlueShutdown();
-
-
 #ifdef XP_MACOSX
   
   
   
-  
-  
-
   
   
   XRE_DisableWritePoisoning();

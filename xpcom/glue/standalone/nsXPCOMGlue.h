@@ -46,11 +46,5 @@ struct nsDynamicFunctionLoad
 extern "C" NS_HIDDEN_(nsresult)
 XPCOMGlueLoadXULFunctions(const nsDynamicFunctionLoad *symbols);
 
-
-
-
-extern "C" NS_HIDDEN_(nsresult)
-XPCOMGlueShutdown();
-
 #endif 
 #endif 
