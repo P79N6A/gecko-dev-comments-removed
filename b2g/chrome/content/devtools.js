@@ -48,6 +48,7 @@ let developerHUD = {
 
 
 
+
   registerWatcher: function dwp_registerWatcher(watcher) {
     this._watchers.unshift(watcher);
   },
@@ -87,7 +88,7 @@ let developerHUD = {
       });
     });
 
-    SettingsListener.observe('hud.logging', enabled => {
+    SettingsListener.observe('hud.logging', this._logging, enabled => {
       this._logging = enabled;
     });
   },
@@ -280,13 +281,23 @@ Target.prototype = {
 
 let consoleWatcher = {
 
+  _client: null,
   _targets: new Map(),
   _watching: {
     reflows: false,
     warnings: false,
-    errors: false
+    errors: false,
+    security: false
   },
-  _client: null,
+  _security: [
+    'Mixed Content Blocker',
+    'Mixed Content Message',
+    'CSP',
+    'Invalid HSTS Headers',
+    'Insecure Password Field',
+    'SSL',
+    'CORS'
+  ],
 
   init: function cw_init(client) {
     this._client = client;
@@ -296,7 +307,7 @@ let consoleWatcher = {
 
     for (let key in watching) {
       let metric = key;
-      SettingsListener.observe('hud.' + metric, false, watch => {
+      SettingsListener.observe('hud.' + metric, watching[metric], watch => {
         
         if (watching[metric] = watch) {
           return;
@@ -319,6 +330,7 @@ let consoleWatcher = {
     target.register('reflows');
     target.register('warnings');
     target.register('errors');
+    target.register('security');
 
     this._client.request({
       to: target.actor.consoleActor,
@@ -357,13 +369,17 @@ let consoleWatcher = {
           output += 'error (';
         }
 
+        if (this._security.indexOf(pageError.category) > -1) {
+          metric = 'security';
+        }
+
         let {errorMessage, sourceName, category, lineNumber, columnNumber} = pageError;
         output += category + '): "' + (errorMessage.initial || errorMessage) +
           '" in ' + sourceName + ':' + lineNumber + ':' + columnNumber;
         break;
 
       case 'consoleAPICall':
-        switch (packet.output.level) {
+        switch (packet.message.level) {
 
           case 'error':
             metric = 'errors';
