@@ -50,6 +50,10 @@ typedef struct PRSegment PRSegment;
 #include <sys/sem.h>
 #endif
 
+#ifdef HAVE_SYSCALL
+#include <sys/syscall.h>
+#endif
+
 
 
 
@@ -185,6 +189,17 @@ typedef struct PTDebug
 #endif 
 
 NSPR_API(void) PT_FPrintStats(PRFileDesc *fd, const char *msg);
+
+
+
+
+
+
+
+#if defined(LINUX) && defined(HAVE_SETPRIORITY) && \
+    ((defined(HAVE_SYSCALL) && defined(SYS_gettid)) || defined(HAVE_GETTID))
+#define _PR_NICE_PRIORITY_SCHEDULING
+#endif
 
 #else 
 
@@ -1540,6 +1555,9 @@ struct PRThread {
 
 #if defined(_PR_PTHREADS)
     pthread_t id;                   
+#ifdef _PR_NICE_PRIORITY_SCHEDULING
+    pid_t tid;                      
+#endif
     PRBool okToDelete;              
     PRCondVar *waiting;             
     void *sp;                       
