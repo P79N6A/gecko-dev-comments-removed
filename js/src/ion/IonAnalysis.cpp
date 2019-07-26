@@ -177,6 +177,8 @@ IsPhiObservable(MPhi *phi)
     if (slot == 1)
         return true;
 
+    
+    
     CompileInfo &info = phi->block()->info();
     if (info.fun() && info.hasArguments()) {
         
