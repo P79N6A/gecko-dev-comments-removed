@@ -34,12 +34,15 @@
 this.EXPORTED_SYMBOLS = [ "CrashMonitor" ];
 
 const Cu = Components.utils;
+const Cr = Components.results;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/AsyncShutdown.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 
 const NOTIFICATIONS = [
   "final-ui-startup",
@@ -93,25 +96,42 @@ let CrashMonitorInternal = {
 
 
   loadPreviousCheckpoints: function () {
-    let promise = Task.spawn(function () {
-      let notifications;
-      try {
-        let decoder = new TextDecoder();
-        let data = yield OS.File.read(CrashMonitorInternal.path);
-        let contents = decoder.decode(data);
-        notifications = JSON.parse(contents);
-      } catch (ex if ex instanceof OS.File.Error && ex.becauseNoSuchFile) {
-        
-        throw new Task.Result(null);
-      } catch (ex) {
-        Cu.reportError("Error while loading crash monitor data: " + ex);
-        throw new Task.Result(null);
+    let deferred = Promise.defer();
+    CrashMonitorInternal.previousCheckpoints = deferred.promise;
+
+    let file = FileUtils.File(CrashMonitorInternal.path);
+    NetUtil.asyncFetch(file, function(inputStream, status) {
+      if (!Components.isSuccessCode(status)) {
+        if (status != Cr.NS_ERROR_FILE_NOT_FOUND) {
+          Cu.reportError("Error while loading crash monitor data: " + status);
+        }
+
+        deferred.resolve(null);
+        return;
       }
-      throw new Task.Result(Object.freeze(notifications));
+
+      let data = NetUtil.readInputStreamToString(inputStream,
+        inputStream.available(), { charset: "UTF-8" });
+
+      let notifications = null;
+      try {
+        notifications = JSON.parse(data);
+      } catch (ex) {
+        Cu.reportError("Error while parsing crash monitor data: " + ex);
+        deferred.resolve(null);
+      }
+
+      try {
+        deferred.resolve(Object.freeze(notifications));
+      } catch (ex) {
+        
+        
+        
+        deferred.reject(ex);
+      }
     });
 
-    CrashMonitorInternal.previousCheckpoints = promise;
-    return promise;
+    return deferred.promise;
   }
 };
 
