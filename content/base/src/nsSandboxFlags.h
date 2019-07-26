@@ -16,6 +16,9 @@
 
 
 
+
+
+
 const unsigned long SANDBOXED_NAVIGATION  = 0x1;
 
 
@@ -65,4 +68,11 @@ const unsigned long SANDBOXED_POINTER_LOCK = 0x80;
 
 
 const unsigned long SANDBOXED_DOMAIN = 0x100;
+
+
+
+
+
+
+const unsigned long SANDBOXED_AUXILIARY_NAVIGATION = 0x200;
 #endif

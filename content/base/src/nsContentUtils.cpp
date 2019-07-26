@@ -924,6 +924,7 @@ nsContentUtils::ParseSandboxAttributeToFlags(const nsAString& aSandboxAttrValue)
   
   
   uint32_t out = SANDBOXED_NAVIGATION |
+                 SANDBOXED_AUXILIARY_NAVIGATION |
                  SANDBOXED_TOPLEVEL_NAVIGATION |
                  SANDBOXED_PLUGINS |
                  SANDBOXED_ORIGIN |
@@ -954,6 +955,8 @@ nsContentUtils::ParseSandboxAttributeToFlags(const nsAString& aSandboxAttrValue)
         out &= ~SANDBOXED_TOPLEVEL_NAVIGATION;
       } else if (token.LowerCaseEqualsLiteral("allow-pointer-lock")) {
         out &= ~SANDBOXED_POINTER_LOCK;
+      } else if (token.LowerCaseEqualsLiteral("allow-popups")) {
+        out &= ~SANDBOXED_AUXILIARY_NAVIGATION;
       }
     }
   }

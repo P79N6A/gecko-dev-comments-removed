@@ -771,6 +771,7 @@ protected:
     int32_t                    mLoadedTransIndex;
 
     uint32_t                   mSandboxFlags;
+    nsWeakPtr                  mOnePermittedSandboxedNavigator;
 
     
     
@@ -879,6 +880,10 @@ private:
                                 nsISupports* aRequestor,
                                 nsIDocShellTreeItem* aOriginalRequestor,
                                 nsIDocShellTreeItem** _retval);
+
+    
+    static bool IsSandboxedFrom(nsIDocShellTreeItem* aTargetItem,
+                                nsIDocShellTreeItem* aAccessingItem);
 
 #ifdef DEBUG
     
