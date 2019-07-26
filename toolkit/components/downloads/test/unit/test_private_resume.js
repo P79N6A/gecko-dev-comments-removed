@@ -16,6 +16,11 @@ this.__defineGetter__("pb", function () {
 
 
 function run_test() {
+  
+  if (!pb) {
+    return;
+  }
+
   do_test_pending();
   let httpserv = new HttpServer();
 
