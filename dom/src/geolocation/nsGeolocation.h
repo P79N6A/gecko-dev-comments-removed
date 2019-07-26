@@ -72,13 +72,10 @@ class nsGeolocationRequest
   void Shutdown();
 
   
-  bool Update(nsIDOMGeoPosition* aPosition);
+  void Update(nsIDOMGeoPosition* aPosition);
 
   void SendLocation(nsIDOMGeoPosition* location);
-  void MarkCleared();
   bool WantsHighAccuracy() {return mOptions && mOptions->enableHighAccuracy;}
-  bool IsActive() {return !mCleared;}
-  bool Allowed() {return mAllowed;}
   void SetTimeoutTimer();
   nsIPrincipal* GetPrincipal();
 
@@ -87,12 +84,11 @@ class nsGeolocationRequest
   virtual bool Recv__delete__(const bool& allow) MOZ_OVERRIDE;
   virtual void IPDLRelease() MOZ_OVERRIDE { Release(); }
 
+  bool IsWatch() { return mIsWatchPositionRequest; }
   int32_t WatchId() { return mWatchId; }
  private:
 
   void NotifyError(int16_t errorCode);
-  bool mAllowed;
-  bool mCleared;
   bool mIsWatchPositionRequest;
 
   nsCOMPtr<nsITimer> mTimeoutTimer;
@@ -103,6 +99,7 @@ class nsGeolocationRequest
   nsRefPtr<mozilla::dom::Geolocation> mLocator;
 
   int32_t mWatchId;
+  bool mShutdown;
 };
 
 
@@ -209,6 +206,9 @@ public:
   bool HasActiveCallbacks();
 
   
+  void NotifyAllowedRequest(nsGeolocationRequest* aRequest);
+
+  
   void RemoveRequest(nsGeolocationRequest* request);
 
   
@@ -242,6 +242,7 @@ private:
   nsresult GetCurrentPositionReady(nsGeolocationRequest* aRequest);
   nsresult WatchPositionReady(nsGeolocationRequest* aRequest);
 
+  
   
   
   

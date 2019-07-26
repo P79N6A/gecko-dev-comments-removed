@@ -184,23 +184,15 @@ private:
 class RequestSendLocationEvent : public nsRunnable
 {
 public:
-  
-  
-  
   RequestSendLocationEvent(nsIDOMGeoPosition* aPosition,
-                           nsGeolocationRequest* aRequest,
-                           Geolocation* aLocator)
+                           nsGeolocationRequest* aRequest)
     : mPosition(aPosition),
-      mRequest(aRequest),
-      mLocator(aLocator)
+      mRequest(aRequest)
   {
   }
 
   NS_IMETHOD Run() {
     mRequest->SendLocation(mPosition);
-    if (mLocator) {
-      mLocator->RemoveRequest(mRequest);
-    }
     return NS_OK;
   }
 
@@ -303,14 +295,13 @@ nsGeolocationRequest::nsGeolocationRequest(Geolocation* aLocator,
                                            mozilla::idl::GeoPositionOptions* aOptions,
                                            bool aWatchPositionRequest,
                                            int32_t aWatchId)
-  : mAllowed(false),
-    mCleared(false),
-    mIsWatchPositionRequest(aWatchPositionRequest),
+  : mIsWatchPositionRequest(aWatchPositionRequest),
     mCallback(aCallback),
     mErrorCallback(aErrorCallback),
     mOptions(aOptions),
     mLocator(aLocator),
-    mWatchId(aWatchId)
+    mWatchId(aWatchId),
+    mShutdown(false)
 {
 }
 
@@ -347,19 +338,13 @@ nsGeolocationRequest::NotifyError(int16_t errorCode)
 NS_IMETHODIMP
 nsGeolocationRequest::Notify(nsITimer* aTimer)
 {
-  if (mCleared) {
-    return NS_OK;
-  }
-
-  
-  
-  if (!mIsWatchPositionRequest) {
-    mLocator->RemoveRequest(this);
-  }
+  MOZ_ASSERT(!mShutdown, "timeout after shutdown");
 
   NotifyError(nsIDOMGeoPositionError::TIMEOUT);
-
-  if (mIsWatchPositionRequest) {
+  if (!mIsWatchPositionRequest) {
+    Shutdown();
+    mLocator->RemoveRequest(this);
+  } else if (!mShutdown) {
     SetTimeoutTimer();
   }
 
@@ -413,9 +398,6 @@ nsGeolocationRequest::GetElement(nsIDOMElement * *aRequestingElement)
 NS_IMETHODIMP
 nsGeolocationRequest::Cancel()
 {
-  
-  mLocator->RemoveRequest(this);
-
   NotifyError(nsIDOMGeoPositionError::PERMISSION_DENIED);
   return NS_OK;
 }
@@ -460,22 +442,25 @@ nsGeolocationRequest::Allow()
   }
   gs->SetHigherAccuracy(mOptions && mOptions->enableHighAccuracy);
 
-  if (lastPosition && maximumAge > 0 &&
-      ( PRTime(PR_Now() / PR_USEC_PER_MSEC) - maximumAge <=
-        PRTime(cachedPositionTime) )) {
+  bool canUseCache = lastPosition && maximumAge > 0 &&
+    (PRTime(PR_Now() / PR_USEC_PER_MSEC) - maximumAge <=
+    PRTime(cachedPositionTime));
+
+  if (canUseCache) {
     
-    mAllowed = true;
+    
+    
+    Update(lastPosition);
+  }
 
-    nsCOMPtr<nsIRunnable> ev =
-      new RequestSendLocationEvent(
-        lastPosition, this, mIsWatchPositionRequest ? nullptr : mLocator);
-
-    NS_DispatchToMainThread(ev);
+  if (mIsWatchPositionRequest || !canUseCache) {
+    
+    
+    mLocator->NotifyAllowedRequest(this);
   }
 
   SetTimeoutTimer();
 
-  mAllowed = true;
   return NS_OK;
 }
 
@@ -502,25 +487,11 @@ nsGeolocationRequest::SetTimeoutTimer()
 }
 
 void
-nsGeolocationRequest::MarkCleared()
-{
-  if (mTimeoutTimer) {
-    mTimeoutTimer->Cancel();
-    mTimeoutTimer = nullptr;
-  }
-  mCleared = true;
-}
-
-void
 nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition)
 {
-  if (mCleared || !mAllowed) {
+  if (mShutdown) {
+    
     return;
-  }
-
-  if (mTimeoutTimer) {
-    mTimeoutTimer->Cancel();
-    mTimeoutTimer = nullptr;
   }
 
   nsRefPtr<Position> wrapped, cachedWrapper = mLocator->GetCachedPosition();
@@ -558,7 +529,9 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition)
     callback->HandleEvent(aPosition);
   }
 
-  if (mIsWatchPositionRequest) {
+  if (!mIsWatchPositionRequest) {
+    Shutdown();
+  } else if (!mShutdown) { 
     SetTimeoutTimer();
   }
 }
@@ -572,28 +545,23 @@ nsGeolocationRequest::GetPrincipal()
   return mLocator->GetPrincipal();
 }
 
-bool
+void
 nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition)
 {
-  if (!mAllowed) {
-    return false;
-  }
-
-  nsCOMPtr<nsIRunnable> ev = new RequestSendLocationEvent(aPosition,
-                                                          this,
-                                                          mIsWatchPositionRequest ? nullptr :  mLocator);
+  nsCOMPtr<nsIRunnable> ev = new RequestSendLocationEvent(aPosition, this);
   NS_DispatchToMainThread(ev);
-  return true;
 }
 
 void
 nsGeolocationRequest::Shutdown()
 {
+  MOZ_ASSERT(!mShutdown, "request shutdown twice");
+  mShutdown = true;
+
   if (mTimeoutTimer) {
     mTimeoutTimer->Cancel();
     mTimeoutTimer = nullptr;
   }
-  mCleared = true;
 
   
   
@@ -1055,12 +1023,7 @@ void
 Geolocation::Shutdown()
 {
   
-  for (uint32_t i = 0; i< mPendingCallbacks.Length(); i++)
-    mPendingCallbacks[i]->Shutdown();
   mPendingCallbacks.Clear();
-
-  for (uint32_t i = 0; i< mWatchingCallbacks.Length(); i++)
-    mWatchingCallbacks[i]->Shutdown();
   mWatchingCallbacks.Clear();
 
   if (mService) {
@@ -1080,28 +1043,20 @@ Geolocation::GetParentObject() const {
 bool
 Geolocation::HasActiveCallbacks()
 {
-  for (uint32_t i = 0; i < mWatchingCallbacks.Length(); i++) {
-    if (mWatchingCallbacks[i]->IsActive()) {
-      return true;
-    }
-  }
-
-  return mPendingCallbacks.Length() != 0;
+  return mPendingCallbacks.Length() || mWatchingCallbacks.Length();
 }
 
 bool
 Geolocation::HighAccuracyRequested()
 {
   for (uint32_t i = 0; i < mWatchingCallbacks.Length(); i++) {
-    if (mWatchingCallbacks[i]->IsActive() &&
-        mWatchingCallbacks[i]->WantsHighAccuracy()) {
+    if (mWatchingCallbacks[i]->WantsHighAccuracy()) {
       return true;
     }
   }
 
   for (uint32_t i = 0; i < mPendingCallbacks.Length(); i++) {
-    if (mPendingCallbacks[i]->IsActive() &&
-        mPendingCallbacks[i]->WantsHighAccuracy()) {
+    if (mPendingCallbacks[i]->WantsHighAccuracy()) {
       return true;
     }
   }
@@ -1112,15 +1067,13 @@ Geolocation::HighAccuracyRequested()
 void
 Geolocation::RemoveRequest(nsGeolocationRequest* aRequest)
 {
-  mPendingCallbacks.RemoveElement(aRequest);
+  bool requestWasKnown =
+    (mPendingCallbacks.RemoveElement(aRequest) !=
+     mWatchingCallbacks.RemoveElement(aRequest));
 
   
-  
-  
-  
-  
-
-  aRequest->MarkCleared();
+  MOZ_ASSERT(requestWasKnown);
+  unused << requestWasKnown;
 }
 
 void
@@ -1130,10 +1083,9 @@ Geolocation::Update(nsIDOMGeoPosition *aSomewhere)
     return Shutdown();
   }
 
-  for (uint32_t i = mPendingCallbacks.Length(); i> 0; i--) {
-    if (mPendingCallbacks[i-1]->Update(aSomewhere)) {
-      mPendingCallbacks.RemoveElementAt(i-1);
-    }
+  for (uint32_t i = mPendingCallbacks.Length(); i > 0; i--) {
+    mPendingCallbacks[i-1]->Update(aSomewhere);
+    RemoveRequest(mPendingCallbacks[i-1]);
   }
 
   
@@ -1211,8 +1163,6 @@ Geolocation::GetCurrentPosition(GeoPositionCallback& callback,
   if (!mOwner && !nsContentUtils::IsCallerChrome()) {
     return NS_ERROR_FAILURE;
   }
-
-  mPendingCallbacks.AppendElement(request);
 
   if (sGeoInitPending) {
     PendingRequest req = { request, PendingRequest::GetCurrentPosition };
@@ -1301,10 +1251,6 @@ Geolocation::WatchPosition(GeoPositionCallback& aCallback,
 
   if (!sGeoEnabled) {
     nsCOMPtr<nsIRunnable> ev = new RequestAllowEvent(false, request);
-
-    
-    mWatchingCallbacks.AppendElement(request);
-
     NS_DispatchToMainThread(ev);
     return NS_OK;
   }
@@ -1312,8 +1258,6 @@ Geolocation::WatchPosition(GeoPositionCallback& aCallback,
   if (!mOwner && !nsContentUtils::IsCallerChrome()) {
     return NS_ERROR_FAILURE;
   }
-
-  mWatchingCallbacks.AppendElement(request);
 
   if (sGeoInitPending) {
     PendingRequest req = { request, PendingRequest::WatchPosition };
@@ -1352,7 +1296,8 @@ Geolocation::ClearWatch(int32_t aWatchId)
 
   for (uint32_t i = 0, length = mWatchingCallbacks.Length(); i < length; ++i) {
     if (mWatchingCallbacks[i]->WatchId() == aWatchId) {
-      mWatchingCallbacks[i]->MarkCleared();
+      mWatchingCallbacks[i]->Shutdown();
+      RemoveRequest(mWatchingCallbacks[i]);
       break;
     }
   }
@@ -1404,6 +1349,16 @@ Geolocation::WindowOwnerStillExists()
   }
 
   return true;
+}
+
+void
+Geolocation::NotifyAllowedRequest(nsGeolocationRequest* aRequest)
+{
+  if (aRequest->IsWatch()) {
+    mWatchingCallbacks.AppendElement(aRequest);
+  } else {
+    mPendingCallbacks.AppendElement(aRequest);
+  }
 }
 
 bool
