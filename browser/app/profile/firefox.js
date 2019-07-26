@@ -1387,9 +1387,6 @@ pref("identity.fxaccounts.remote.signin.uri", "https://accounts.firefox.com/sign
 pref("identity.fxaccounts.settings.uri", "https://accounts.firefox.com/settings");
 
 
-pref("identity.fxaccounts.auth.uri", "https://api.accounts.firefox.com/v1");
-
-
 #ifdef MOZ_WIDGET_GTK
 pref("ui.key.menuAccessKeyFocuses", true);
 #endif
