@@ -1120,11 +1120,7 @@ js::AutoCTypesActivityCallback::AutoCTypesActivityCallback(JSContext *cx,
 JS_FRIEND_API(void)
 js::SetObjectMetadataCallback(JSContext *cx, ObjectMetadataCallback callback)
 {
-    
-    
-    ReleaseAllJITCode(cx->runtime()->defaultFreeOp());
-
-    cx->compartment()->objectMetadataCallback = callback;
+    cx->compartment()->setObjectMetadataCallback(callback);
 }
 
 JS_FRIEND_API(bool)

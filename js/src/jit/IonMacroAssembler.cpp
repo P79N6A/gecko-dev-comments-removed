@@ -639,7 +639,7 @@ MacroAssembler::newGCThing(const Register &result, gc::AllocKind allocKind, Labe
 
     
     
-    if (GetIonContext()->compartment->objectMetadataCallback)
+    if (GetIonContext()->compartment->hasObjectMetadataCallback())
         jump(fail);
 
 #ifdef JSGC_GENERATIONAL

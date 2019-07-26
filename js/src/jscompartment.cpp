@@ -10,6 +10,7 @@
 #include "mozilla/MemoryReporting.h"
 
 #include "jscntxt.h"
+#include "jsfriendapi.h"
 #include "jsgc.h"
 #include "jsiter.h"
 #include "jsproxy.h"
@@ -620,6 +621,24 @@ JSCompartment::clearTables()
         newTypeObjects.clear();
     if (lazyTypeObjects.initialized())
         lazyTypeObjects.clear();
+}
+
+void
+JSCompartment::setObjectMetadataCallback(js::ObjectMetadataCallback callback)
+{
+    
+    
+    ReleaseAllJITCode(runtime_->defaultFreeOp());
+
+    
+    
+    
+    if (callback)
+        JS::DisableGenerationalGC(runtime_);
+    else
+        JS::EnableGenerationalGC(runtime_);
+
+    objectMetadataCallback = callback;
 }
 
 bool
