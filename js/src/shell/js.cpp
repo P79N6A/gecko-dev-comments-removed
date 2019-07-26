@@ -6020,12 +6020,6 @@ SetRuntimeOptions(JSRuntime *rt, const OptionParser &op)
         jsCacheAsmJSPath = JS_smprintf("%s/asmjs.cache", jsCacheDir);
     }
 
-#ifdef JS_THREADSAFE
-    int32_t threadCount = op.getIntOption("thread-count");
-    if (threadCount >= 0)
-        SetFakeCPUCount(threadCount);
-#endif 
-
 #ifdef DEBUG
     dumpEntrainedVariables = op.getBoolOption("dump-entrained-variables");
 #endif
@@ -6275,6 +6269,14 @@ main(int argc, char **argv, char **envp)
     }
 #endif
 
+#endif 
+
+#ifdef JS_THREADSAFE
+    
+    
+    int32_t threadCount = op.getIntOption("thread-count");
+    if (threadCount >= 0)
+        SetFakeCPUCount(threadCount);
 #endif 
 
     
