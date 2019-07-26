@@ -345,7 +345,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   
   
   
-  WCHAR installDirUpdater[MAX_PATH + 1] = {L'\0'};
+  WCHAR installDirUpdater[MAX_PATH + 1] = { L'\0' };
   wcsncpy(installDirUpdater, installDir, MAX_PATH);
   if (!PathAppendSafe(installDirUpdater, L"updater.exe")) {
     LOG_WARN(("Install directory updater could not be determined."));

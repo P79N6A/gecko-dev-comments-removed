@@ -114,7 +114,8 @@ CalculateRegistryPathFromFilePath(const LPCWSTR filePath,
   
   
   WCHAR *lowercasePath = new WCHAR[filePathLen + 2];
-  wcscpy(lowercasePath, filePath);
+  memset(lowercasePath, 0, (filePathLen + 2) * sizeof(WCHAR));
+  wcsncpy(lowercasePath, filePath, filePathLen + 1);
   _wcslwr(lowercasePath);
 
   BYTE *hash;
