@@ -124,4 +124,11 @@ this.Downloads = {
       return aDownload.start();
     });
   },
+
+  
+
+
+
+
+  Error: DownloadError,
 };

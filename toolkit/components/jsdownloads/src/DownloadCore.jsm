@@ -26,12 +26,16 @@
 
 
 
+
+
+
 "use strict";
 
 this.EXPORTED_SYMBOLS = [
   "Download",
   "DownloadSource",
   "DownloadTarget",
+  "DownloadError",
   "DownloadSaver",
   "DownloadCopySaver",
 ];
@@ -93,6 +97,13 @@ Download.prototype = {
 
 
   done: false,
+
+  
+
+
+
+
+  error: null,
 
   
 
@@ -166,6 +177,9 @@ Download.prototype = {
       try {
         yield this.saver.execute();
         this.progress = 100;
+      } catch (ex) {
+        this.error = ex;
+        throw ex;
       } finally {
         this.done = true;
         this._notifyChange();
@@ -244,6 +258,64 @@ DownloadTarget.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+function DownloadError(aResult, aMessage, aInferCause)
+{
+  const NS_ERROR_MODULE_BASE_OFFSET = 0x45;
+  const NS_ERROR_MODULE_NETWORK = 6;
+  const NS_ERROR_MODULE_FILES = 13;
+
+  
+  this.name = "DownloadError";
+  this.result = aResult || Cr.NS_ERROR_FAILURE;
+  if (aMessage) {
+    this.message = aMessage;
+  } else {
+    let exception = new Components.Exception(this.result);
+    this.message = exception.toString();
+  }
+  if (aInferCause) {
+    let module = ((aResult & 0x7FFF0000) >> 16) - NS_ERROR_MODULE_BASE_OFFSET;
+    this.becauseSourceFailed = (module == NS_ERROR_MODULE_NETWORK);
+    this.becauseTargetFailed = (module == NS_ERROR_MODULE_FILES);
+  }
+}
+
+DownloadError.prototype = {
+  __proto__: Error.prototype,
+
+  
+
+
+  result: false,
+
+  
+
+
+  becauseSourceFailed: false,
+
+  
+
+
+  becauseTargetFailed: false,
+};
+
+
+
+
+
+
+
 function DownloadSaver() { }
 
 DownloadSaver.prototype = {
@@ -274,7 +346,7 @@ DownloadSaver.prototype = {
 function DownloadCopySaver() { }
 
 DownloadCopySaver.prototype = {
-  __proto__: DownloadSaver,
+  __proto__: DownloadSaver.prototype,
 
   
 
@@ -296,8 +368,9 @@ DownloadCopySaver.prototype = {
           if (Components.isSuccessCode(aStatus)) {
             deferred.resolve();
           } else {
-            deferred.reject(new Components.Exception("Download failed.",
-                                                     aStatus));
+            
+            
+            deferred.reject(new DownloadError(aStatus, null, true));
           }
 
           
