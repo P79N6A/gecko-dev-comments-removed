@@ -282,6 +282,7 @@ select:empty {
   
   height: 100% ! important;
   box-sizing: border-box ! important;
+  line-height: -moz-block-height;
 }
 
 option {
