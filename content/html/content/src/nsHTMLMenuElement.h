@@ -3,25 +3,19 @@
 
 
 
-#ifndef mozilla_dom_HTMLMenuElement_h
-#define mozilla_dom_HTMLMenuElement_h
-
 #include "nsIDOMHTMLMenuElement.h"
 #include "nsIHTMLMenu.h"
 #include "nsGenericHTMLElement.h"
 
-namespace mozilla {
-namespace dom {
-
-class HTMLMenuElement : public nsGenericHTMLElement,
-                        public nsIDOMHTMLMenuElement,
-                        public nsIHTMLMenu
+class nsHTMLMenuElement : public nsGenericHTMLElement,
+                          public nsIDOMHTMLMenuElement,
+                          public nsIHTMLMenu
 {
 public:
-  HTMLMenuElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-  virtual ~HTMLMenuElement();
+  nsHTMLMenuElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  virtual ~nsHTMLMenuElement();
 
-  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLMenuElement, menu)
+  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(nsHTMLMenuElement, menu)
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -54,35 +48,6 @@ public:
 
   uint8_t GetType() const { return mType; }
 
-  
-
-  
-  void SetType(const nsAString& aType, ErrorResult& aError)
-  {
-    SetHTMLAttr(nsGkAtoms::type, aType, aError);
-  }
-
-  
-  void SetLabel(const nsAString& aLabel, ErrorResult& aError)
-  {
-    SetHTMLAttr(nsGkAtoms::label, aLabel, aError);
-  }
-
-  bool Compact() const
-  {
-    return GetBoolAttr(nsGkAtoms::compact);
-  }
-  void SetCompact(bool aCompact, ErrorResult& aError)
-  {
-    SetHTMLBoolAttr(nsGkAtoms::compact, aCompact, aError);
-  }
-
-
-protected:
-  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope,
-                             bool *aTriedToWrap) MOZ_OVERRIDE;
-
-
 protected:
   static bool CanLoadIcon(nsIContent* aContent, const nsAString& aIcon);
 
@@ -98,8 +63,3 @@ protected:
 
   uint8_t mType;
 };
-
-} 
-} 
-
-#endif 
