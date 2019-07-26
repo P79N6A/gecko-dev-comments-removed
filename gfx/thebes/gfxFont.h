@@ -77,7 +77,7 @@ struct gfxFontStyle {
     gfxFontStyle(uint8_t aStyle, uint16_t aWeight, int16_t aStretch,
                  gfxFloat aSize, nsIAtom *aLanguage,
                  float aSizeAdjust, bool aSystemFont,
-                 bool aPrinterFont, bool aSmallCaps,
+                 bool aPrinterFont,
                  bool aWeightSynthesis, bool aStyleSynthesis,
                  const nsString& aLanguageOverride);
     gfxFontStyle(const gfxFontStyle& aStyle);
@@ -151,11 +151,6 @@ struct gfxFontStyle {
     bool allowSyntheticStyle : 1;
 
     
-    
-    bool smallCaps : 1;
-
-    
-    
     uint8_t variantCaps;
 
     
@@ -179,7 +174,6 @@ struct gfxFontStyle {
             (*reinterpret_cast<const uint64_t*>(&size) ==
              *reinterpret_cast<const uint64_t*>(&other.size)) &&
             (style == other.style) &&
-            (smallCaps == other.smallCaps) &&
             (variantCaps == other.variantCaps) &&
             (allowSyntheticWeight == other.allowSyntheticWeight) &&
             (allowSyntheticStyle == other.allowSyntheticStyle) &&
