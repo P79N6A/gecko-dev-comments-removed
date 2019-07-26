@@ -11,6 +11,8 @@
 #include "nsCOMPtr.h"
 #include "nsILoadGroup.h"
 #include "nsILoadContext.h"
+#include "nsIInterfaceRequestorUtils.h"
+#include "nsIInterfaceRequestor.h"
 
 namespace mozilla {
 namespace net {
@@ -56,19 +58,35 @@ public:
       return NS_OK;
   }
 
-  bool CanSetCallbacks() const
+  bool CanSetCallbacks(nsIInterfaceRequestor* aCallbacks) const
   {
       
       
       
+      if (!aCallbacks) {
+          return true;
+      }
+      nsCOMPtr<nsILoadContext> loadContext = do_GetInterface(aCallbacks);
+      if (!loadContext) {
+          return true;
+      }
       MOZ_ASSERT(!mPrivateBrowsingOverriden);
       return !mPrivateBrowsingOverriden;
   }
 
-  bool CanSetLoadGroup() const
+  bool CanSetLoadGroup(nsILoadGroup* aLoadGroup) const
   {
       
-      return CanSetCallbacks();
+      
+      
+      if (!aLoadGroup) {
+          return true;
+      }
+      nsCOMPtr<nsIInterfaceRequestor> callbacks;
+      aLoadGroup->GetNotificationCallbacks(getter_AddRefs(callbacks));
+      
+      
+      return CanSetCallbacks(callbacks);
   }
 
 protected:
