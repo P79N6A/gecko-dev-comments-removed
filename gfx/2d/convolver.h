@@ -34,6 +34,7 @@
 
 #include "base/basictypes.h"
 #include "base/cpu.h"
+#include "mozilla/Assertions.h"
 #include "skia/SkTypes.h"
 
 
@@ -73,7 +74,8 @@ class ConvolutionFilter1D {
     
     
     
-    COMPILE_ASSERT(sizeof(Fixed) == 2, fixed_type_should_fit_in_float_mantissa);
+    MOZ_STATIC_ASSERT(sizeof(Fixed) == 2,
+                      "fixed type should fit in float mantissa");
     float raw = static_cast<float>(x);
     return ldexpf(raw, -kShiftBits);
   }
