@@ -28,7 +28,6 @@ struct nsRuleData
   uint16_t mLevel; 
   nsPresContext* const mPresContext;
   nsStyleContext* const mStyleContext;
-  const nsPostResolveFunc mPostResolveCallback;
 
   
   

@@ -2008,7 +2008,7 @@ nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
     detail = eRulePartialMixed; 
                                 
 
-  if (detail == eRuleNone && startStruct && !ruleData.mPostResolveCallback) {
+  if (detail == eRuleNone && startStruct) {
     
     
     
@@ -2017,7 +2017,6 @@ nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
     PropagateDependentBit(aSID, ruleNode, startStruct);
     return startStruct;
   }
-  
   if ((!startStruct && !isReset &&
        (detail == eRuleNone || detail == eRulePartialInherited)) ||
       detail == eRuleFullInherited) {
@@ -2071,10 +2070,6 @@ nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
 #undef STYLE_STRUCT_TEST
-
-  
-  if (ruleData.mPostResolveCallback && (MOZ_LIKELY(res != nullptr)))
-    (*ruleData.mPostResolveCallback)(const_cast<void*>(res), &ruleData);
 
   
   return res;
@@ -3449,11 +3444,6 @@ nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
     nsRuleNode::SetFont(aPresContext, context,
                         aGenericFontID, &ruleData, &parentFont, aFont,
                         false, dummy);
-
-    
-    
-    if (ruleData.mPostResolveCallback)
-      (ruleData.mPostResolveCallback)(aFont, &ruleData);
 
     parentFont = *aFont;
   }
