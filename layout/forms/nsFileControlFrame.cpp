@@ -357,9 +357,8 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsDisplayListCollection tempList;
   {
-    DisplayListClipState::AutoSaveRestore saveClipState(aBuilder->ClipState());
-    DisplayItemClip clipOnStack;
-    aBuilder->ClipState().ClipContainingBlockDescendants(clipRect, nullptr, clipOnStack);
+    DisplayListClipState::AutoSaveRestore clipState(aBuilder);
+    clipState.ClipContainingBlockDescendants(clipRect, nullptr);
 
     
     

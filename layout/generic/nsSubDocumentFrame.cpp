@@ -383,11 +383,9 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     aBuilder->EnterPresShell(subdocRootFrame, dirty);
   }
 
-  DisplayListClipState::AutoSaveRestore saveClip(aBuilder->ClipState());
-  DisplayItemClip clipOnStack;
+  DisplayListClipState::AutoSaveRestore clipState(aBuilder);
   if (ShouldClipSubdocument()) {
-    aBuilder->ClipState().ClipContainingBlockDescendantsToContentBox(aBuilder, this,
-      clipOnStack);
+    clipState.ClipContainingBlockDescendantsToContentBox(aBuilder, this);
   }
 
   nsIScrollableFrame *sf = presShell->GetRootScrollFrameAsScrollable();
@@ -398,13 +396,13 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsDisplayList childItems;
 
   {
-    DisplayListClipState::AutoSaveRestore willClearClip(aBuilder->ClipState());
+    DisplayListClipState::AutoSaveRestore nestedClipState(aBuilder);
     if (needsOwnLayer) {
       
       
       
       
-      aBuilder->ClipState().Clear();
+      nestedClipState.Clear();
     }
 
     if (subdocRootFrame) {

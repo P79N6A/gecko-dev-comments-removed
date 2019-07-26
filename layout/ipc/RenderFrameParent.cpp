@@ -948,12 +948,11 @@ RenderFrameParent::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 {
   
   
-  DisplayListClipState::AutoSaveRestore saveClip(aBuilder->ClipState());
+  DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
   nsPoint offset = aBuilder->ToReferenceFrame(aFrame);
   nsRect bounds = aFrame->EnsureInnerView()->GetBounds() + offset;
-  DisplayItemClip clipOnStack;
-  aBuilder->ClipState().ClipContentDescendants(bounds, clipOnStack);
+  clipState.ClipContentDescendants(bounds);
 
   ContainerLayer* container = GetRootLayer();
   if (aBuilder->IsForEventDelivery() && container) {

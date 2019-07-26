@@ -1581,13 +1581,14 @@ static bool
 ApplyClipPropClipping(nsDisplayListBuilder* aBuilder,
                       const nsIFrame* aFrame,
                       const nsStyleDisplay* aDisp,
-                      nsRect* aRect, DisplayItemClip& aClipOnStack)
+                      nsRect* aRect,
+                      DisplayListClipState::AutoSaveRestore& aClipState)
 {
   if (!aFrame->GetClipPropClipRect(aDisp, aRect, aFrame->GetSize()))
     return false;
 
   nsRect clipRect = *aRect + aBuilder->ToReferenceFrame(aFrame);
-  aBuilder->ClipState().ClipContentDescendants(clipRect, aClipOnStack);
+  aClipState.ClipContentDescendants(clipRect);
   return true;
 }
 
@@ -1601,7 +1602,7 @@ static void
 ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
                       const nsIFrame* aFrame,
                       const nsStyleDisplay* aDisp,
-                      DisplayItemClip& aClipOnStack)
+                      DisplayListClipState::AutoClipMultiple& aClipState)
 {
   
   
@@ -1615,8 +1616,7 @@ ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
       aBuilder->ToReferenceFrame(aFrame);
   nscoord radii[8];
   bool haveRadii = aFrame->GetPaddingBoxBorderRadii(radii);
-  aBuilder->ClipState().ClipContainingBlockDescendants(rect,
-    haveRadii ? radii : nullptr, aClipOnStack);
+  aClipState.ClipContainingBlockDescendantsExtra(rect, haveRadii ? radii : nullptr);
 }
 
 #ifdef DEBUG
@@ -1802,7 +1802,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   bool useOpacity = HasOpacity() && !nsSVGUtils::CanOptimizeOpacity(this);
   bool usingSVGEffects = nsSVGIntegrationUtils::UsingEffectsForFrame(this);
 
-  DisplayListClipState::AutoSaveRestore saveClipState(aBuilder->ClipState());
+  DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
   if (isTransformed || useOpacity || usingSVGEffects) {
     
@@ -1810,13 +1810,13 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     
     
     
-    aBuilder->ClipState().Clear();
+    clipState.Clear();
   }
 
   nsDisplayListCollection set;
   {    
     nsDisplayListBuilder::AutoBuildingDisplayList rootSetter(aBuilder, true);
-    DisplayListClipState::AutoSaveRestore clipState(aBuilder->ClipState());
+    DisplayListClipState::AutoSaveRestore nestedClipState(aBuilder);
     nsDisplayListBuilder::AutoInTransformSetter
       inTransformSetter(aBuilder, inTransform);
 
@@ -1826,9 +1826,8 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     }
 
     nsRect clipPropClip;
-    DisplayItemClip clipPropClipOnStack;
     if (ApplyClipPropClipping(aBuilder, this, disp, &clipPropClip,
-                              clipPropClipOnStack)) {
+                              nestedClipState)) {
       dirtyRect.IntersectRect(dirtyRect, clipPropClip);
     }
 
@@ -1899,7 +1898,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   if (!isTransformed) {
     
     
-    saveClipState.Restore();
+    clipState.Restore();
   }
 
   
@@ -1933,7 +1932,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
 
   if (isTransformed && !resultList.IsEmpty()) {
     
-    saveClipState.Restore();
+    clipState.Restore();
 
     if (Preserves3DChildren()) {
       WrapPreserve3DList(this, aBuilder, &resultList);
@@ -2114,7 +2113,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
 
   nsDisplayListBuilder::AutoBuildingDisplayList
     buildingForChild(aBuilder, child, pseudoStackingContext, buildFixedPositionItem);
-  DisplayListClipState::AutoSaveRestore clipState(aBuilder->ClipState());
+  DisplayListClipState::AutoClipMultiple clipState(aBuilder);
 
   if (savedOutOfFlowData) {
     clipState.SetClipForContainingBlockDescendants(
@@ -2129,11 +2128,10 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   
   
-  DisplayItemClip overflowClipOnStack;
   nsIFrame* parent = child->GetParent();
   const nsStyleDisplay* parentDisp =
     parent == this ? ourDisp : parent->StyleDisplay();
-  ApplyOverflowClipping(aBuilder, parent, parentDisp, overflowClipOnStack);
+  ApplyOverflowClipping(aBuilder, parent, parentDisp, clipState);
 
   nsDisplayList list;
   nsDisplayList extraPositionedDescendants;
@@ -2145,9 +2143,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     aBuilder->DisplayCaret(child, dirty, &list);
   } else {
     nsRect clipRect;
-    DisplayItemClip clipPropClipOnStack;
-    if (ApplyClipPropClipping(aBuilder, child, disp, &clipRect,
-                              clipPropClipOnStack)) {
+    if (ApplyClipPropClipping(aBuilder, child, disp, &clipRect, clipState)) {
       
       
       dirty.IntersectRect(dirty, clipRect);
@@ -2188,7 +2184,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     
   
   
-  aBuilder->ClipState().Clear();
+  clipState.Clear();
 
   if (isPositioned || isVisuallyAtomic ||
       (aFlags & DISPLAY_CHILD_FORCE_STACKING_CONTEXT)) {
