@@ -227,6 +227,25 @@ function assertParallelExecSucceeds(opFunction, cmpFunction) {
 
 
 
+function assertArraySeqParResultsEq(arr, op, func, cmpFunc) {
+  if (!cmpFunc)
+    cmpFunc = assertStructuralEq;
+  var expected = arr[op].apply(arr, [func]);
+  assertParallelExecSucceeds(
+    function (m) { return arr[op + "Par"].apply(arr, [func, m]); },
+    function (r) { cmpFunc(expected, r); });
+}
+
+
+
+
+
+
+
+
+
+
+
 function compareAgainstArray(jsarray, opname, func, cmpFunction) {
   if (!cmpFunction)
     cmpFunction = assertStructuralEq;
@@ -243,11 +262,10 @@ function compareAgainstArray(jsarray, opname, func, cmpFunction) {
 
 
 
-function testScan(jsarray, func, cmpFunction) {
+function testArrayScanPar(jsarray, func, cmpFunction) {
   if (!cmpFunction)
     cmpFunction = assertStructuralEq;
   var expected = seq_scan(jsarray, func);
-  var parray = new ParallelArray(jsarray);
 
   
   
@@ -255,7 +273,7 @@ function testScan(jsarray, func, cmpFunction) {
   assertParallelExecSucceeds(
     function(m) {
       print(m.mode + " " + m.expect);
-      var p = parray.scan(func, m);
+      var p = jsarray.scanPar(func, m);
       return p;
     },
     function(r) {
@@ -283,7 +301,7 @@ function testScatter(opFunction, cmpFunction) {
 
 
 
-function assertParallelArrayModesCommute(modes, opFunction) {
+function assertParallelModesCommute(modes, opFunction) {
   var expected = undefined;
   var acc = opFunction(modes[0]);
   assertParallelExecSucceeds(
