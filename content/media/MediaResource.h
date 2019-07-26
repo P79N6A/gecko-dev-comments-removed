@@ -196,6 +196,8 @@ public:
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaResource)
 
+  virtual ~MediaResource() {}
+
   
   
   virtual nsIURI* URI() const { return nullptr; }
@@ -222,7 +224,7 @@ public:
   
   
   
-  virtual already_AddRefed<MediaResource> CloneData(MediaDecoder* aDecoder) = 0;
+  virtual MediaResource* CloneData(MediaDecoder* aDecoder) = 0;
   
   virtual void RecordStatisticsTo(MediaChannelStatistics *aStatistics) { }
 
@@ -311,7 +313,9 @@ public:
   
   
   
-  virtual bool IsSuspendedByCache() = 0;
+  
+  
+  virtual bool IsSuspendedByCache(MediaResource** aActiveResource) = 0;
   
   virtual bool IsSuspended() = 0;
   
@@ -331,7 +335,7 @@ public:
 
 
 
-  static already_AddRefed<MediaResource> Create(MediaDecoder* aDecoder, nsIChannel* aChannel);
+  static MediaResource* Create(MediaDecoder* aDecoder, nsIChannel* aChannel);
 
   
 
@@ -370,8 +374,6 @@ public:
   
   
   virtual const nsCString& GetContentType() const = 0;
-protected:
-  virtual ~MediaResource() {};
 };
 
 class BaseMediaResource : public MediaResource {
@@ -494,7 +496,7 @@ public:
   
   bool IsClosed() const { return mCacheStream.IsClosed(); }
   virtual bool     CanClone();
-  virtual already_AddRefed<MediaResource> CloneData(MediaDecoder* aDecoder);
+  virtual MediaResource* CloneData(MediaDecoder* aDecoder);
   
   
   void RecordStatisticsTo(MediaChannelStatistics *aStatistics) MOZ_OVERRIDE {
@@ -524,7 +526,7 @@ public:
   virtual int64_t GetNextCachedData(int64_t aOffset);
   virtual int64_t GetCachedDataEnd(int64_t aOffset);
   virtual bool    IsDataCachedToEndOfResource(int64_t aOffset);
-  virtual bool    IsSuspendedByCache();
+  virtual bool    IsSuspendedByCache(MediaResource** aActiveResource);
   virtual bool    IsSuspended();
   virtual bool    IsTransportSeekable() MOZ_OVERRIDE;
 
@@ -545,7 +547,7 @@ public:
     void Revoke() { mResource = nullptr; }
 
   private:
-    nsRefPtr<ChannelMediaResource> mResource;
+    ChannelMediaResource* mResource;
   };
   friend class Listener;
 

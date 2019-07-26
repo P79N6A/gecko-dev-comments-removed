@@ -331,7 +331,9 @@ public:
 
   
   
-  bool AreAllStreamsForResourceSuspended();
+  
+  
+  bool AreAllStreamsForResourceSuspended(MediaResource** aActiveResource);
 
   
   
