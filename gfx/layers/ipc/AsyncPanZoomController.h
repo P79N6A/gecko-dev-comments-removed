@@ -536,6 +536,14 @@ private:
   
 
 
+
+
+
+  bool ConvertToGecko(const ScreenPoint& aPoint, CSSIntPoint* aOut);
+
+  
+
+
   bool IsTransformingState(PanZoomState aState);
   bool IsPanningState(PanZoomState mState);
 
