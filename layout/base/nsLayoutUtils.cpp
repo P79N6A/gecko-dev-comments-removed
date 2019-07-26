@@ -35,6 +35,7 @@
 #include "nsRenderingContext.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsCSSRendering.h"
+#include "nsCxPusher.h"
 #include "nsThemeConstants.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShell.h"
@@ -72,7 +73,6 @@
 #include "nsComputedDOMStyle.h"
 #include "ActiveLayerTracker.h"
 
-#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Preferences.h"
 
 #ifdef MOZ_XUL
@@ -4777,7 +4777,9 @@ nsLayoutUtils::SurfaceFromElement(nsIImageLoadingContent* aElement,
 
   
   
-  AutoSystemCaller asc;
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
 
   nsCOMPtr<imgIRequest> imgRequest;
   rv = aElement->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,

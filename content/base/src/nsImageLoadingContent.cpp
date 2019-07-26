@@ -39,6 +39,7 @@
 #include "nsIDOMNode.h"
 
 #include "nsContentUtils.h"
+#include "nsCxPusher.h"
 #include "nsLayoutUtils.h"
 #include "nsIContentPolicy.h"
 #include "nsEventDispatcher.h"
@@ -46,7 +47,6 @@
 
 #include "mozAutoDocUpdate.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/dom/ScriptSettings.h"
 
 #if defined(XP_WIN)
 
@@ -54,7 +54,6 @@
 #endif
 
 using namespace mozilla;
-using mozilla::dom::AutoSystemCaller;
 
 #ifdef DEBUG_chb
 static void PrintReqURL(imgIRequest* req) {
@@ -1196,7 +1195,10 @@ nsImageLoadingContent::ClearPendingRequest(nsresult aReason,
     return;
 
   
-  AutoSystemCaller asc;
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
 
   
   
@@ -1259,7 +1261,8 @@ nsImageLoadingContent::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   
   
-  AutoSystemCaller asc;
+  nsCxPusher pusher;
+  pusher.PushNull();
 
   TrackImage(mCurrentRequest);
   TrackImage(mPendingRequest);
@@ -1278,7 +1281,8 @@ nsImageLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
 
   
   
-  AutoSystemCaller asc;
+  nsCxPusher pusher;
+  pusher.PushNull();
 
   UntrackImage(mCurrentRequest);
   UntrackImage(mPendingRequest);

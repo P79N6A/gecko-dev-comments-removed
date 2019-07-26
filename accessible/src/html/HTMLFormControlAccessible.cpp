@@ -14,6 +14,7 @@
 #include "States.h"
 
 #include "nsContentList.h"
+#include "nsCxPusher.h"
 #include "mozilla/dom/HTMLInputElement.h"
 #include "nsIAccessibleRelation.h"
 #include "nsIDOMNSEditableElement.h"
@@ -25,7 +26,6 @@
 #include "nsISelectionController.h"
 #include "nsIServiceManager.h"
 #include "nsITextControlFrame.h"
-#include "mozilla/dom/ScriptSettings.h"
 
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Preferences.h"
@@ -470,7 +470,8 @@ HTMLTextFieldAccessible::GetEditor() const
   
   
   
-  mozilla::dom::AutoSystemCaller asc;
+  nsCxPusher pusher;
+  pusher.PushNull();
 
   nsCOMPtr<nsIEditor> editor;
   editableElt->GetEditor(getter_AddRefs(editor));

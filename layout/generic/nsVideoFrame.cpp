@@ -23,10 +23,10 @@
 #include "nsImageFrame.h"
 #include "nsIImageLoadingContent.h"
 #include "nsContentUtils.h"
+#include "nsCxPusher.h"
 #include "ImageContainer.h"
 #include "ImageLayers.h"
 #include "nsContentList.h"
-#include "mozilla/dom/ScriptSettings.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -76,7 +76,10 @@ nsVideoFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
     NS_ENSURE_TRUE(mPosterImage, NS_ERROR_OUT_OF_MEMORY);
 
     
-    AutoSystemCaller asc;
+    
+    
+    nsCxPusher pusher;
+    pusher.PushNull();
 
     
     
