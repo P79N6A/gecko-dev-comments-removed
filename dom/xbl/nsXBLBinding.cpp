@@ -933,6 +933,8 @@ nsXBLBinding::DoInitJSClass(JSContext *cx,
                             JS::MutableHandle<JSObject*> aClassObject,
                             bool* aNew)
 {
+  MOZ_ASSERT(obj);
+
   
   nsAutoCString className(aClassName);
   nsAutoCString xblKey(aClassName);
@@ -948,43 +950,42 @@ nsXBLBinding::DoInitJSClass(JSContext *cx,
 
   JS::Rooted<JSObject*> parent_proto(cx, nullptr);
   nsXBLJSClass* c = nullptr;
-  if (obj) {
+
+  
+  if (!JS_GetPrototype(cx, obj, &parent_proto)) {
+    return NS_ERROR_FAILURE;
+  }
+  if (parent_proto) {
     
-    if (!JS_GetPrototype(cx, obj, &parent_proto)) {
-      return NS_ERROR_FAILURE;
+    
+    
+    
+    JS::Rooted<jsid> parent_proto_id(cx);
+    if (!::JS_GetObjectId(cx, parent_proto, &parent_proto_id)) {
+      
+      return NS_ERROR_OUT_OF_MEMORY;
     }
-    if (parent_proto) {
-      
-      
-      
-      
-      JS::Rooted<jsid> parent_proto_id(cx);
-      if (!::JS_GetObjectId(cx, parent_proto, &parent_proto_id)) {
-        
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
 
-      
-      
-      
-      
+    
+    
+    
+    
+    char buf[20];
+    if (sizeof(jsid) == 4) {
+      PR_snprintf(buf, sizeof(buf), " %lx", parent_proto_id.get());
+    } else {
+      MOZ_ASSERT(sizeof(jsid) == 8);
+      PR_snprintf(buf, sizeof(buf), " %llx", parent_proto_id.get());
+    }
+    xblKey.Append(buf);
+
+    c = nsXBLService::getClass(xblKey);
+    if (c) {
+      className.Assign(c->name);
+    } else {
       char buf[20];
-      if (sizeof(jsid) == 4) {
-        PR_snprintf(buf, sizeof(buf), " %lx", parent_proto_id.get());
-      } else {
-        MOZ_ASSERT(sizeof(jsid) == 8);
-        PR_snprintf(buf, sizeof(buf), " %llx", parent_proto_id.get());
-      }
-      xblKey.Append(buf);
-
-      c = nsXBLService::getClass(xblKey);
-      if (c) {
-        className.Assign(c->name);
-      } else {
-        char buf[20];
-        PR_snprintf(buf, sizeof(buf), " %llx", nsXBLJSClass::NewId());
-        className.Append(buf);
-      }
+      PR_snprintf(buf, sizeof(buf), " %llx", nsXBLJSClass::NewId());
+      className.Append(buf);
     }
   }
 
