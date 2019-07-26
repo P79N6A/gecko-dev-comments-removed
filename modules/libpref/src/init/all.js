@@ -3780,6 +3780,17 @@ pref("browser.zoom.reflowOnZoom", false);
 
 
 
+
+
+
+
+
+
+
+pref("browser.zoom.reflowZoom.reflowTextOnPageLoad", true);
+
+
+
 pref("image.cache.size", 5242880);
 
 

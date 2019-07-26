@@ -2916,6 +2916,17 @@ Tab.prototype = {
     }
   },
 
+  performReflowOnZoom: function(aViewport) {
+      let webNav = this.window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation);
+      let docShell = webNav.QueryInterface(Ci.nsIDocShell);
+      let docViewer = docShell.contentViewer.QueryInterface(Ci.nsIMarkupDocumentViewer);
+      let viewportWidth = gScreenWidth / aViewport.zoom;
+
+      
+      
+      docViewer.changeMaxLineBoxWidth(viewportWidth - 15);
+  },
+
   
 
 
@@ -3951,6 +3962,20 @@ Tab.prototype = {
             this.setResolution(fitZoom, false);
             this.sendViewportUpdate();
           }
+        }
+
+        
+        
+        
+        
+        let rzEnabled = BrowserEventHandler.mReflozPref;
+        let rzPl = Services.prefs.getBoolPref("browser.zoom.reflowZoom.reflowTextOnPageLoad");
+
+        if (rzEnabled && rzPl) {
+          
+          
+          let vp = BrowserApp.selectedTab.getViewport();
+          BrowserApp.selectedTab.performReflowOnZoom(vp);
         }
         break;
       case "nsPref:changed":
