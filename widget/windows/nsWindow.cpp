@@ -7421,6 +7421,13 @@ nsWindow::OnIMESelectionChange(void)
 {
   return nsTextStore::OnSelectionChange();
 }
+
+nsIMEUpdatePreference
+nsWindow::GetIMEUpdatePreference()
+{
+  return nsTextStore::GetIMEUpdatePreference();
+}
+
 #endif 
 
 bool nsWindow::AssociateDefaultIMC(bool aAssociate)
