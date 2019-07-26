@@ -97,7 +97,7 @@ public:
   virtual void EndTransaction(DrawThebesLayerCallback aCallback,
                               void* aCallbackData,
                               EndTransactionFlags aFlags = END_DEFAULT);
-  virtual bool AreComponentAlphaLayersEnabled() { return HasShadowManager() || !IsWidgetLayerManager(); }
+  virtual bool AreComponentAlphaLayersEnabled() { return !IsWidgetLayerManager(); }
 
   void AbortTransaction();
 
@@ -145,7 +145,6 @@ public:
   virtual bool IsCompositingCheap() { return false; }
   virtual int32_t GetMaxTextureSize() const { return INT32_MAX; }
   bool CompositorMightResample() { return mCompositorMightResample; }
-  bool HasShadowTarget() { return !!mShadowTarget; }
 
 protected:
   enum TransactionPhase {
@@ -187,15 +186,6 @@ protected:
   nsRefPtr<gfxContext> mDefaultTarget;
   
   nsRefPtr<gfxContext> mTarget;
-  
-  
-  
-  
-  
-  
-  
-  
-  nsRefPtr<gfxContext> mShadowTarget;
   nsRefPtr<gfxContext> mDummyTarget;
   
   nsRefPtr<ImageFactory> mFactory;

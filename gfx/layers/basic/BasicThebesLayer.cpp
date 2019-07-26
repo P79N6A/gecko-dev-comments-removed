@@ -100,10 +100,6 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
   if (aReadback && UsedForReadback()) {
     aReadback->GetThebesLayerUpdates(this, &readbackUpdates);
   }
-  
-  
-  
-  mContentClient->SyncFrontBufferToBackBuffer();
 
   bool canUseOpaqueSurface = CanUseOpaqueSurface();
   ContentType contentType =
