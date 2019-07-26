@@ -1378,6 +1378,37 @@ BluetoothHfpManager::GetNumberOfCalls(uint16_t aState)
   return num;
 }
 
+uint32_t
+BluetoothHfpManager::GetNumberOfConCalls()
+{
+  uint32_t num = 0;
+  uint32_t callLength = mCurrentCallArray.Length();
+
+  for (uint32_t i = 1; i < callLength; ++i) {
+    if (mCurrentCallArray[i].mIsConference) {
+      ++num;
+    }
+  }
+
+  return num;
+}
+
+uint32_t
+BluetoothHfpManager::GetNumberOfConCalls(uint16_t aState)
+{
+  uint32_t num = 0;
+  uint32_t callLength = mCurrentCallArray.Length();
+
+  for (uint32_t i = 1; i < callLength; ++i) {
+    if (mCurrentCallArray[i].mIsConference
+        && mCurrentCallArray[i].mState == aState) {
+      ++num;
+    }
+  }
+
+  return num;
+}
+
 void
 BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
                                             uint16_t aCallState,
@@ -1422,15 +1453,59 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
 
   switch (aCallState) {
     case nsITelephonyProvider::CALL_STATE_HELD:
-      if (prevCallState == nsITelephonyProvider::CALL_STATE_CONNECTED) {
-        if (mCurrentCallArray.Length() == 1) {
+      switch (prevCallState) {
+        case nsITelephonyProvider::CALL_STATE_CONNECTED: {
+          uint32_t numActive = GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_CONNECTED);
+          uint32_t numHeld = GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_HELD);
+          uint32_t numConCalls = GetNumberOfConCalls();
+
           
-          sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_NOACTIVE;
-        } else {
-          
-          sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_ACTIVE;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          if (!aIsConference) {
+            if (numActive + numHeld == 1) {
+              
+              sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_NOACTIVE;
+            } else {
+              
+              sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_ACTIVE;
+            }
+            SendCommand(RESPONSE_CIEV, CINDType::CALLHELD);
+          } else if (GetNumberOfConCalls(nsITelephonyProvider::CALL_STATE_HELD)
+                     == numConCalls) {
+            if (numActive + numHeld == numConCalls) {
+              
+              sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_NOACTIVE;
+            } else {
+              
+              sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_ACTIVE;
+            }
+            SendCommand(RESPONSE_CIEV, CINDType::CALLHELD);
+          }
+          break;
         }
-        SendCommand(RESPONSE_CIEV, CINDType::CALLHELD);
+        case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
+          
+          
+          if (FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED)) {
+            
+            sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_ACTIVE;
+            SendCommand(RESPONSE_CIEV, CINDType::CALLHELD);
+          }
+          break;
       }
       break;
     case nsITelephonyProvider::CALL_STATE_INCOMING:
@@ -1476,6 +1551,12 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       ConnectSco();
       break;
     case nsITelephonyProvider::CALL_STATE_CONNECTED:
+      
+
+
+
+
+
       switch (prevCallState) {
         case nsITelephonyProvider::CALL_STATE_INCOMING:
         case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
@@ -1488,10 +1569,15 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           
           UpdateCIND(CINDType::CALL, CallState::IN_PROGRESS, aSend);
           UpdateCIND(CINDType::CALLSETUP, CallSetupState::NO_CALLSETUP, aSend);
+
+          if (FindFirstCall(nsITelephonyProvider::CALL_STATE_HELD)) {
+            
+            UpdateCIND(CINDType::CALLHELD, CallHeldState::ONHOLD_ACTIVE, aSend);
+          }
           break;
-        
-        
         case nsITelephonyProvider::CALL_STATE_CONNECTED:
+          
+          
           if (aIsConference) {
             UpdateCIND(CINDType::CALLHELD, CallHeldState::NO_CALLHELD, aSend);
           }
