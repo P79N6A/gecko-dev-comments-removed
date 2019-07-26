@@ -22,6 +22,7 @@
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/PCompositableParent.h"
 #include "mozilla/layers/PImageBridgeParent.h"
+#include "mozilla/layers/Compositor.h"
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
@@ -66,6 +67,12 @@ ImageBridgeParent::ActorDestroy(ActorDestroyReason aWhy)
 bool
 ImageBridgeParent::RecvUpdate(const EditArray& aEdits, EditReplyArray* aReply)
 {
+  
+  
+  if (Compositor::GetBackend() == LAYERS_NONE) {
+    return true;
+  }
+
   EditReplyVector replyv;
   for (EditArray::index_type i = 0; i < aEdits.Length(); ++i) {
     ReceiveCompositableUpdate(aEdits[i], replyv);
