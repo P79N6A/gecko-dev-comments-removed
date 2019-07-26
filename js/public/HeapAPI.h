@@ -13,6 +13,12 @@
 
 
 namespace js {
+
+
+
+extern bool CurrentThreadCanAccessRuntime(JSRuntime *rt);
+extern bool CurrentThreadCanAccessZone(JS::Zone *zone);
+
 namespace gc {
 
 const size_t ArenaShift = 12;
@@ -57,9 +63,43 @@ struct ArenaHeader
 
 struct Zone
 {
+  protected:
+    JSRuntime *const runtime_;
+    JSTracer *const barrierTracer_;     
+
+  public:
     bool needsBarrier_;
 
-    Zone() : needsBarrier_(false) {}
+    Zone(JSRuntime *runtime, JSTracer *barrierTracerArg)
+      : runtime_(runtime),
+        barrierTracer_(barrierTracerArg),
+        needsBarrier_(false)
+    {}
+
+    bool needsBarrier() const {
+        return needsBarrier_;
+    }
+
+    JSTracer *barrierTracer() {
+        JS_ASSERT(needsBarrier_);
+        JS_ASSERT(js::CurrentThreadCanAccessRuntime(runtime_));
+        return barrierTracer_;
+    }
+
+    JSRuntime *runtimeFromMainThread() const {
+        JS_ASSERT(js::CurrentThreadCanAccessRuntime(runtime_));
+        return runtime_;
+    }
+
+    
+    
+    JSRuntime *runtimeFromAnyThread() const {
+        return runtime_;
+    }
+
+    static JS::shadow::Zone *asShadowZone(JS::Zone *zone) {
+        return reinterpret_cast<JS::shadow::Zone*>(zone);
+    }
 };
 
 } 
@@ -154,4 +194,4 @@ IsIncrementalBarrierNeededOnGCThing(shadow::Runtime *rt, void *thing, JSGCTraceK
 
 } 
 
-#endif
+#endif 

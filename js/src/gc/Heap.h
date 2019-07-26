@@ -22,16 +22,15 @@
 
 struct JSCompartment;
 
-extern "C" {
 struct JSRuntime;
+
+namespace JS {
+namespace shadow {
+class Runtime;
+}
 }
 
 namespace js {
-
-
-
-extern bool CurrentThreadCanAccessRuntime(JSRuntime *rt);
-extern bool CurrentThreadCanAccessZone(JS::Zone *zone);
 
 class FreeOp;
 
@@ -106,6 +105,7 @@ struct Cell
     
     
     inline JSRuntime *runtimeFromAnyThread() const;
+    inline JS::shadow::Runtime *shadowRuntimeFromAnyThread() const;
 
 #ifdef DEBUG
     inline bool isAligned() const;
@@ -967,6 +967,12 @@ inline JSRuntime *
 Cell::runtimeFromAnyThread() const
 {
     return chunk()->info.runtime;
+}
+
+inline JS::shadow::Runtime *
+Cell::shadowRuntimeFromAnyThread() const
+{
+    return reinterpret_cast<JS::shadow::Runtime*>(runtimeFromAnyThread());
 }
 
 AllocKind
