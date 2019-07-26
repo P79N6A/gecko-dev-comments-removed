@@ -1582,10 +1582,15 @@ js::array_sort(JSContext *cx, unsigned argc, Value *vp)
             allInts = allInts && v.isInt32();
         }
 
+
+        
+
+
+
         n = vec.length();
-        if (n == 0) {
+        if (n == 0 && undefs == 0) {
             args.rval().setObject(*obj);
-            return true; 
+            return true;
         }
 
         
