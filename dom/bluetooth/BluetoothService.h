@@ -166,11 +166,9 @@ public:
 
 
 
-
   virtual nsresult
-  GetProperties(BluetoothObjectType aType,
-                const nsAString& aPath,
-                BluetoothReplyRunnable* aRunnable) = 0;
+  GetDevicePropertiesInternal(const nsAString& aDevicePath,
+                              const nsAString& aSignalPath) = 0;
 
   
 
@@ -201,6 +199,15 @@ public:
   GetDevicePath(const nsAString& aAdapterPath,
                 const nsAString& aDeviceAddress,
                 nsAString& aDevicePath) = 0;
+
+  virtual bool
+  AddReservedServicesInternal(const nsAString& aAdapterPath,
+                              const nsTArray<uint32_t>& aServices,
+                              nsTArray<uint32_t>& aServiceHandlesContainer) = 0;
+
+  virtual bool
+  RemoveReservedServicesInternal(const nsAString& aAdapterPath,
+                                 const nsTArray<uint32_t>& aServiceHandles) = 0;
 
   virtual nsresult
   CreatePairedDeviceInternal(const nsAString& aAdapterPath,
