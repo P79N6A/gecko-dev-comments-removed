@@ -190,6 +190,12 @@ DataChannelConnection::Init(unsigned short aPort, uint16_t aNumStreams, bool aUs
       gDataChannelShutdown->Init();
     }
   }
+  
+  
+
+  nsresult res;
+  mSTS = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &res);
+  MOZ_ASSERT(NS_SUCCEEDED(res));
 
   
   if ((mMasterSocket = usrsctp_socket(
@@ -394,7 +400,6 @@ DataChannelConnection::PacketReceived(TransportFlow *flow,
   usrsctp_conninput(static_cast<void *>(this), data, len, 0);
 }
 
-
 int
 DataChannelConnection::SendPacket(const unsigned char *data, size_t len)
 {
@@ -408,8 +413,21 @@ DataChannelConnection::SctpDtlsOutput(void *addr, void *buffer, size_t length,
                                       uint8_t tos, uint8_t set_df)
 {
   DataChannelConnection *peer = static_cast<DataChannelConnection *>(addr);
+  int res;
 
-  return peer->SendPacket(static_cast<unsigned char *>(buffer), length);
+  if (peer->IsSTSThread()) {
+    res = peer->SendPacket(static_cast<unsigned char *>(buffer), length);
+  } else {
+    res = -1;
+    
+    
+    
+    
+    peer->mSTS->Dispatch(WrapRunnableRet(
+      peer, &DataChannelConnection::SendPacket, static_cast<unsigned char *>(buffer), length, &res
+    ), NS_DISPATCH_SYNC);
+  }
+  return res;
 }
 #endif
 
