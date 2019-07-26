@@ -123,7 +123,6 @@ public:
 
   bool AddImageRequest(imgIRequest* aRequest);
   void RemoveImageRequest(imgIRequest* aRequest);
-  void ClearAllImageRequests();
 
   
 
