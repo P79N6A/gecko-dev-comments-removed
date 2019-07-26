@@ -326,6 +326,8 @@ class AutoVectorRooter : protected AutoGCRooter
         return vector.append(other.vector);
     }
 
+    bool insert(T *p, const T &val) { return vector.insert(p, val); }
+
     
     void infallibleAppend(const T &v) { vector.infallibleAppend(v); }
 

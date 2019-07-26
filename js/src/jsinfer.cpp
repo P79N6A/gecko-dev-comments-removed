@@ -2741,6 +2741,17 @@ TypeCompartment::processPendingRecompiles(FreeOp *fop)
             break;
           case CompilerOutput::Ion:
           case CompilerOutput::ParallelIon:
+# ifdef JS_THREADSAFE
+            
+
+
+
+
+            if (transitiveCompilationWorklist) {
+                transitiveCompilationWorklist->insert(transitiveCompilationWorklist->begin(),
+                                                      co.script);
+            }
+# endif
             break;
         }
     }

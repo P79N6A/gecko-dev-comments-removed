@@ -1357,6 +1357,12 @@ struct TypeCompartment
 
 
 
+    AutoScriptVector *transitiveCompilationWorklist;
+
+    
+
+
+
 
     unsigned recompilations;
     unsigned frameExpansions;
