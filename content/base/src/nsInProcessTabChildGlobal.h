@@ -124,7 +124,8 @@ protected:
 
   
   
-  bool mIsBrowserFrame;
+  
+  bool mIsBrowserOrAppFrame;
 public:
   nsIContent* mOwner;
   nsFrameMessageManager* mChromeMessageManager;
