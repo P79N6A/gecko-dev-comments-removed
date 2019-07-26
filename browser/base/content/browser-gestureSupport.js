@@ -183,24 +183,29 @@ let gGestureSupport = {
 
 
 
+
   _setupSwipeGesture: function GS__setupSwipeGesture(aEvent) {
     if (!this._swipeNavigatesHistory(aEvent)) {
       return false;
     }
 
     let isVerticalSwipe = false;
-    if (gHistorySwipeAnimation.active) {
-      if (aEvent.direction == aEvent.DIRECTION_UP) {
-        if (content.pageYOffset > 0) {
-          return false;
-        }
-        isVerticalSwipe = true;
-      } else if (aEvent.direction == aEvent.DIRECTION_DOWN) {
-        if (content.pageYOffset < content.scrollMaxY) {
-          return false;
-        }
-        isVerticalSwipe = true;
+    if (aEvent.direction == aEvent.DIRECTION_UP) {
+      if (content.pageYOffset > 0) {
+        return false;
       }
+      isVerticalSwipe = true;
+    } else if (aEvent.direction == aEvent.DIRECTION_DOWN) {
+      if (content.pageYOffset < content.scrollMaxY) {
+        return false;
+      }
+      isVerticalSwipe = true;
+    }
+    if (isVerticalSwipe && !gHistorySwipeAnimation.active) {
+      
+      
+      
+      return false;
     }
 
     let canGoBack = gHistorySwipeAnimation.canGoBack();
