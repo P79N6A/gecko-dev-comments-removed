@@ -45,7 +45,7 @@ class FaviconsLoader {
 
             
             
-            if (favicons.getFaviconFromMemCache(url) != null) {
+            if (url == null || favicons.getFaviconFromMemCache(url) != null) {
                 continue;
             }
 
