@@ -44,14 +44,6 @@ VMFunction::addToFunctions()
     functions = this;
 }
 
-static inline bool
-ShouldMonitorReturnType(JSFunction *fun)
-{
-    return fun->isInterpreted() &&
-           (!fun->nonLazyScript()->hasAnalysis() ||
-            !fun->nonLazyScript()->analysis()->ranInference());
-}
-
 bool
 InvokeFunction(JSContext *cx, HandleFunction fun0, uint32_t argc, Value *argv, Value *rval)
 {
@@ -72,29 +64,15 @@ InvokeFunction(JSContext *cx, HandleFunction fun0, uint32_t argc, Value *argv, V
     }
 
     
-    
-    
-    
-    
-    bool needsMonitor = ShouldMonitorReturnType(fun);
-
-    
     Value thisv = argv[0];
     Value *argvWithoutThis = argv + 1;
 
     
     
     
-    bool ok;
     if (thisv.isMagic(JS_IS_CONSTRUCTING))
-        ok = InvokeConstructor(cx, ObjectValue(*fun), argc, argvWithoutThis, rval);
-    else
-        ok = Invoke(cx, thisv, ObjectValue(*fun), argc, argvWithoutThis, rval);
-
-    if (ok && needsMonitor)
-        types::TypeScript::Monitor(cx, *rval);
-
-    return ok;
+        return InvokeConstructor(cx, ObjectValue(*fun), argc, argvWithoutThis, rval);
+    return Invoke(cx, thisv, ObjectValue(*fun), argc, argvWithoutThis, rval);
 }
 
 JSObject *
