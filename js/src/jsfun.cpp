@@ -1501,15 +1501,15 @@ js_CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
         clone->initializeExtended();
     }
 
-    if (cx->compartment == fun->compartment() && !types::UseNewTypeForClone(fun)) {
+    if (cx->compartment == fun->compartment() &&
+        !fun->hasSingletonType() &&
+        !types::UseNewTypeForClone(fun))
+    {
         
 
 
 
-
-
-
-        if (fun->getProto() == proto && !fun->hasSingletonType())
+        if (fun->getProto() == proto)
             clone->setType(fun->type());
     } else {
         if (!JSObject::setSingletonType(cx, clone))

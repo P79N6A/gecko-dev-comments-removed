@@ -244,12 +244,21 @@ CloneFunctionObjectIfNotSingleton(JSContext *cx, HandleFunction fun, HandleObjec
 
 
 
+
+
+
+
+
     if (fun->hasSingletonType()) {
-        Rooted<JSObject*> obj(cx, SkipScopeParent(parent));
-        if (!JSObject::setParent(cx, fun, obj))
-            return NULL;
-        fun->setEnvironment(parent);
-        return fun;
+        RootedScript script(cx, JSFunction::getOrCreateScript(cx, fun));
+        if (!script->hasBeenCloned) {
+            script->hasBeenCloned = true;
+            Rooted<JSObject*> obj(cx, SkipScopeParent(parent));
+            if (!JSObject::setParent(cx, fun, obj))
+                return NULL;
+            fun->setEnvironment(parent);
+            return fun;
+        }
     }
 
     return CloneFunctionObject(cx, fun, parent);

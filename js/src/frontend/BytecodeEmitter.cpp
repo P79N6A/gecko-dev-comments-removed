@@ -119,6 +119,7 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, Shared
     typesetCount(0),
     hasSingletons(false),
     emittingForInit(false),
+    emittingRunOnceLambda(false),
     hasGlobalScope(hasGlobalScope),
     selfHostingMode(selfHostingMode)
 {
@@ -1655,14 +1656,20 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
 }
 
 bool
-BytecodeEmitter::checkSingletonContext()
+BytecodeEmitter::isInLoop()
 {
-    if (!script->compileAndGo || sc->isFunctionBox())
-        return false;
     for (StmtInfoBCE *stmt = topStmt; stmt; stmt = stmt->down) {
         if (stmt->isLoop())
-            return false;
+            return true;
     }
+    return false;
+}
+
+bool
+BytecodeEmitter::checkSingletonContext()
+{
+    if (!script->compileAndGo || sc->isFunctionBox() || isInLoop())
+        return false;
     hasSingletons = true;
     return true;
 }
@@ -2593,12 +2600,27 @@ frontend::EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *bod
     if (!JSScript::fullyInitFromEmitter(cx, bce->script, bce))
         return false;
 
+    
+
+
+
+    if (bce->parent && bce->parent->emittingRunOnceLambda)
+        bce->script->treatAsRunOnce = true;
 
     
+
+
+
+
+
     bool singleton =
         cx->typeInferenceEnabled() &&
+        bce->script->compileAndGo &&
         bce->parent &&
-        bce->parent->checkSingletonContext();
+        (bce->parent->checkSingletonContext() ||
+         (!bce->parent->isInLoop() &&
+          bce->parent->parent &&
+          bce->parent->parent->emittingRunOnceLambda));
 
     
     RootedFunction fun(cx, bce->script->function());
@@ -5360,6 +5382,24 @@ EmitCallOrNew(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
         callop = true;          
         break;
 #endif
+      case PNK_FUNCTION:
+        
+
+
+
+
+
+
+
+
+
+        JS_ASSERT(!bce->emittingRunOnceLambda);
+        bce->emittingRunOnceLambda = true;
+        if (!EmitTree(cx, bce, pn2))
+            return false;
+        bce->emittingRunOnceLambda = false;
+        callop = false;
+        break;
       default:
         if (!EmitTree(cx, bce, pn2))
             return false;

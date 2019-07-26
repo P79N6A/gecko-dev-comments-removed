@@ -474,6 +474,8 @@ class JSScript : public js::gc::Cell
 
 
     bool            hasSingletons:1;  
+    bool            treatAsRunOnce:1; 
+    bool            hasBeenCloned:1;  
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
     bool            uninlineable:1;   

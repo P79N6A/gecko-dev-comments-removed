@@ -114,6 +114,9 @@ struct BytecodeEmitter
 
     bool            emittingForInit:1;  
 
+    bool            emittingRunOnceLambda:1; 
+
+
     const bool      hasGlobalScope:1;   
 
 
@@ -153,6 +156,7 @@ struct BytecodeEmitter
         return true;
     }
 
+    bool isInLoop();
     bool checkSingletonContext();
 
     bool needsImplicitThis();
