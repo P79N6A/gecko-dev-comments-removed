@@ -201,12 +201,9 @@ this.defaultTools = [
   webConsoleDefinition,
   debuggerDefinition,
   inspectorDefinition,
+  profilerDefinition,
   netMonitorDefinition
 ];
-
-if (Services.prefs.getBoolPref("devtools.profiler.enabled")) {
-  defaultTools.push(profilerDefinition);
-}
 
 
 

@@ -89,11 +89,20 @@ DevTools.prototype = {
 
 
 
-  unregisterTool: function DT_unregisterTool(toolId, isQuitApplication) {
+
+  unregisterTool: function DT_unregisterTool(tool, isQuitApplication) {
+    let toolId = null;
+    if (typeof tool == "string") {
+      toolId = tool;
+      tool = this._tools.get(tool);
+    }
+    else {
+      toolId = tool.id;
+    }
     this._tools.delete(toolId);
 
     if (!isQuitApplication) {
-      this.emit("tool-unregistered", toolId);
+      this.emit("tool-unregistered", tool);
     }
   },
 
@@ -387,7 +396,11 @@ let gDevToolsBrowser = {
 
 
 
+
   _addToolToWindows: function DT_addToolToWindows(toolDefinition) {
+    
+    Services.prefs.setBoolPref(toolDefinition.killswitch, true);
+
     
     
     let allDefs = gDevTools.getToolDefinitionArray();
@@ -572,7 +585,11 @@ let gDevToolsBrowser = {
 
 
 
-  _removeToolFromWindows: function DT_removeToolFromWindows(toolId) {
+
+
+
+  _removeToolFromWindows: function DT_removeToolFromWindows(toolId, killswitch) {
+    Services.prefs.setBoolPref(killswitch, false);
     for (let win of gDevToolsBrowser._trackedBrowserWindows) {
       gDevToolsBrowser._removeToolFromMenu(toolId, win.document);
     }
@@ -650,7 +667,15 @@ gDevTools.on("tool-registered", function(ev, toolId) {
 });
 
 gDevTools.on("tool-unregistered", function(ev, toolId) {
-  gDevToolsBrowser._removeToolFromWindows(toolId);
+  let killswitch;
+  if (typeof toolId == "string") {
+    killswitch = "devtools." + toolId + ".enabled";
+  }
+  else {
+    killswitch = toolId.killswitch;
+    toolId = toolId.id;
+  }
+  gDevToolsBrowser._removeToolFromWindows(toolId, killswitch);
 });
 
 gDevTools.on("toolbox-ready", gDevToolsBrowser._updateMenuCheckbox);

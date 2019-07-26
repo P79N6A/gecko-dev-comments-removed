@@ -673,7 +673,12 @@ Toolbox.prototype = {
 
 
 
+
   _toolUnregistered: function TBOX_toolUnregistered(event, toolId) {
+    if (typeof toolId != "string") {
+      toolId = toolId.id;
+    }
+
     if (this._toolPanels.has(toolId)) {
       let instance = this._toolPanels.get(toolId);
       instance.destroy();

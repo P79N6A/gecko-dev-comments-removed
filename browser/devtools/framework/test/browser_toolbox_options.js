@@ -109,16 +109,17 @@ function toggleTools() {
 }
 
 function checkUnregistered(event, data) {
-  if (data == prefNodes[index].getAttribute("id")) {
+  if (data.id == prefNodes[index].getAttribute("id")) {
     ok(true, "Correct tool removed");
     
-    ok(!doc.getElementById("toolbox-tab-" + data), "Tab removed for " + data);
+    ok(!doc.getElementById("toolbox-tab-" + data.id), "Tab removed for " +
+       data.id);
     index++;
     
     executeSoon(toggleTools);
     return;
   }
-  ok(false, "Something went wrong, " + data + " was not unregistered");
+  ok(false, "Something went wrong, " + data.id + " was not unregistered");
   cleanup();
 }
 
