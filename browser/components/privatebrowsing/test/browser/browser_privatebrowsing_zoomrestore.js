@@ -26,12 +26,11 @@ function test() {
         doTest(aIsZoomedWindow, aWindow, aCallback);
     }, true);
 
-    let topic = "browser-fullZoom:locationChange";
-    Services.obs.addObserver(function onLocationChange() {
+    Services.obs.addObserver(function onLocationChange(subj, topic, data) {
       Services.obs.removeObserver(onLocationChange, topic);
       if (++n == 2)
         doTest(aIsZoomedWindow, aWindow, aCallback);
-    }, topic, false);
+    }, "FullZoom:TESTS:location-change", false);
 
     browser.loadURI("about:blank");
   }

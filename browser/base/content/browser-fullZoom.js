@@ -553,7 +553,7 @@ var FullZoom = {
 
   _notifyOnLocationChange: function FullZoom__notifyOnLocationChange() {
     this._executeSoon(function () {
-      Services.obs.notifyObservers(null, "browser-fullZoom:locationChange", "");
+      Services.obs.notifyObservers(null, "FullZoom:TESTS:location-change", "");
     });
   },
 
