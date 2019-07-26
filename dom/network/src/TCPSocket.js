@@ -39,6 +39,19 @@ const BUFFER_SIZE = 65536;
 
 
 
+
+function createTCPError(aErrorName, aErrorType) {
+  let error = Cc["@mozilla.org/dom-error;1"]
+                .createInstance(Ci.nsIDOMDOMError);
+  error.wrappedJSObject.init(aErrorName);
+  return error;
+}
+
+
+
+
+
+
 let debug = true;
 function LOG(msg) {
   if (debug)
@@ -224,12 +237,10 @@ TCPSocket.prototype = {
         self._asyncCopierActive = false;
         self._multiplexStream.removeStream(0);
 
-        if (status) {
-          self._readyState = kCLOSED;
-          let err = new Error("Connection closed while writing: " + status);
-          err.status = status;
-          self.callListener("error", err);
-          self.callListener("close");
+        if (!Components.isSuccessCode(status)) {
+          
+          
+          self._maybeReportErrorAndCloseIfOpen(status);
           return;
         }
 
@@ -258,9 +269,10 @@ TCPSocket.prototype = {
   },
 
   
-  callListenerError: function ts_callListenerError(type, message, filename,
-                                                   lineNumber, columnNumber) {
-    this.callListener(type, new Error(message, filename, lineNumber, columnNumber));
+  callListenerError: function ts_callListenerError(type, name) {
+    
+    
+    this.callListener(type, createTCPError(name));
   },
 
   callListenerData: function ts_callListenerString(type, data) {
@@ -381,7 +393,6 @@ TCPSocket.prototype = {
 
     let transport = that._transport = this._createTransport(host, port, that._ssl);
     transport.setEventSink(that, Services.tm.currentThread);
-    transport.securityCallbacks = new SecurityCallbacks(that);
 
     that._socketInputStream = transport.openInputStream(0, 0, 0);
     that._socketOutputStream = transport.openOutputStream(
@@ -501,6 +512,135 @@ TCPSocket.prototype = {
     }
   },
 
+  _maybeReportErrorAndCloseIfOpen: function(status) {
+    
+    
+    if (this._readyState === kCLOSED)
+      return;
+    this._readyState = kCLOSED;
+
+    if (!Components.isSuccessCode(status)) {
+      
+      
+      
+      
+      
+      
+      let errName, errType;
+      
+      if ((status & 0xff0000) === 0x5a0000) {
+        const nsINSSErrorsService = Ci.nsINSSErrorsService;
+        let nssErrorsService = Cc['@mozilla.org/nss_errors_service;1']
+                                 .getService(nsINSSErrorsService);
+        let errorClass;
+        
+        
+        try {
+          errorClass = nssErrorsService.getErrorClass(status);
+        }
+        catch (ex) {
+          errorClass = 'SecurityProtocol';
+        }
+        switch (errorClass) {
+          case nsINSSErrorsService.ERROR_CLASS_SSL_PROTOCOL:
+            errType = 'SecurityProtocol';
+            break;
+          case nsINSSErrorsService.ERROR_CLASS_BAD_CERT:
+            errType = 'SecurityCertificate';
+            break;
+          
+          
+        }
+
+        
+        if ((status & 0xffff) <
+            Math.abs(nsINSSErrorsService.NSS_SEC_ERROR_BASE)) {
+          
+          
+          let nssErr = Math.abs(nsINSSErrorsService.NSS_SEC_ERROR_BASE) -
+                         (status & 0xffff);
+          switch (nssErr) {
+            case 11: 
+              errName = 'SecurityExpiredCertificateError';
+              break;
+            case 12: 
+              errName = 'SecurityRevokedCertificateError';
+              break;
+            
+            
+            case 13: 
+            case 20: 
+            case 21: 
+            case 36: 
+              errName = 'SecurityUntrustedCertificateIssuerError';
+              break;
+            case 90: 
+              errName = 'SecurityInadequateKeyUsageError';
+              break;
+            case 176: 
+              errName = 'SecurityCertificateSignatureAlgorithmDisabledError';
+              break;
+            default:
+              errName = 'SecurityError';
+              break;
+          }
+        }
+        
+        else {
+          let sslErr = Math.abs(nsINSSErrorsService.NSS_SSL_ERROR_BASE) -
+                         (status & 0xffff);
+          switch (sslErr) {
+            case 3: 
+              errName = 'SecurityNoCertificateError';
+              break;
+            case 4: 
+              errName = 'SecurityBadCertificateError';
+              break;
+            case 8: 
+              errName = 'SecurityUnsupportedCertificateTypeError';
+              break;
+            case 9: 
+              errName = 'SecurityUnsupportedTLSVersionError';
+              break;
+            case 12: 
+              errName = 'SecurityCertificateDomainMismatchError';
+              break;
+            default:
+              errName = 'SecurityError';
+              break;
+          }
+        }
+      }
+      
+      else {
+        errType = 'Network';
+        switch (status) {
+          
+          case 0x804B000C: 
+            errName = 'ConnectionRefusedError';
+            break;
+          
+          case 0x804B000E: 
+            errName = 'NetworkTimeoutError';
+            break;
+          
+          case 0x804B001E: 
+            errName = 'DomainNotFoundError';
+            break;
+          case 0x804B0047: 
+            errName = 'NetworkInterruptError';
+            break;
+          default:
+            errName = 'NetworkError';
+            break;
+        }
+      }
+      let err = createTCPError(errName, errType);
+      this.callListener("error", err);
+    }
+    this.callListener("close");
+  },
+
   
   onTransportStatus: function ts_onTransportStatus(
     transport, status, progress, max) {
@@ -526,7 +666,8 @@ TCPSocket.prototype = {
     try {
       input.available();
     } catch (e) {
-      this.callListener("error", new Error("Connection refused"));
+      
+      this._maybeReportErrorAndCloseIfOpen(0x804B000C);
     }
   },
 
@@ -540,7 +681,9 @@ TCPSocket.prototype = {
 
     this._inputStreamPump = null;
 
-    if (buffered_output && !status) {
+    let statusIsError = !Components.isSuccessCode(status);
+
+    if (buffered_output && !statusIsError) {
       
       
       
@@ -549,15 +692,8 @@ TCPSocket.prototype = {
       return;
     }
 
-    this._readyState = kCLOSED;
-
-    if (status) {
-      let err = new Error("Connection closed: " + status);
-      err.status = status;
-      this.callListener("error", err);
-    }
-
-    this.callListener("close");
+    
+    this._maybeReportErrorAndCloseIfOpen(status);
   },
 
   
@@ -591,30 +727,5 @@ TCPSocket.prototype = {
     Ci.nsISupportsWeakReference
   ])
 }
-
-
-function SecurityCallbacks(socket) {
-  this._socket = socket;
-}
-
-SecurityCallbacks.prototype = {
-  notifyCertProblem: function sc_notifyCertProblem(socketInfo, status,
-                                                   targetSite) {
-    this._socket.callListener("error", status);
-    this._socket.close();
-    return true;
-  },
-
-  getInterface: function sc_getInterface(iid) {
-    return this.QueryInterface(iid);
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIBadCertListener2,
-    Ci.nsIInterfaceRequestor,
-    Ci.nsISupports
-  ])
-};
-
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([TCPSocket]);
