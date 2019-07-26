@@ -57,6 +57,10 @@ namespace layers {
 
 
 
+
+
+
+
 struct FrameMetrics {
   friend struct IPC::ParamTraits<mozilla::layers::FrameMetrics>;
 public:
@@ -84,6 +88,7 @@ public:
     , mZoom(1)
     , mUpdateScrollOffset(false)
     , mScrollGeneration(0)
+    , mContentDescription()
     , mRootCompositionSize(0, 0)
     , mDisplayPortMargins(0, 0, 0, 0)
     , mUseDisplayPortMargins(false)
@@ -380,14 +385,16 @@ public:
     return mScrollGeneration;
   }
 
-  const std::string& GetContentDescription() const
+  std::string GetContentDescription() const
   {
-    return mContentDescription;
+    return std::string(mContentDescription);
   }
 
   void SetContentDescription(const std::string& aContentDescription)
   {
-    mContentDescription = aContentDescription;
+    strncpy(mContentDescription, aContentDescription.c_str(), sizeof(mContentDescription));
+    
+    mContentDescription[sizeof(mContentDescription) - 1] = '\0';
   }
 
   ViewID GetScrollId() const
@@ -478,7 +485,7 @@ private:
 
   
   
-  std::string mContentDescription;
+  char mContentDescription[20];
 
   
   CSSSize mRootCompositionSize;
