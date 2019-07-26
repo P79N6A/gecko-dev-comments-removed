@@ -297,7 +297,8 @@ bool nsWinGesture::IsPanEvent(LPARAM lParam)
 
 
 bool
-nsWinGesture::ProcessGestureMessage(HWND hWnd, WPARAM wParam, LPARAM lParam, nsSimpleGestureEvent& evt)
+nsWinGesture::ProcessGestureMessage(HWND hWnd, WPARAM wParam, LPARAM lParam,
+                                    WidgetSimpleGestureEvent& evt)
 {
   GESTUREINFO gi;
 

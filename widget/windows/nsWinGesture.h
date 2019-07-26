@@ -207,7 +207,7 @@ public:
   bool IsAvailable();
   
   
-  bool ProcessGestureMessage(HWND hWnd, WPARAM wParam, LPARAM lParam, nsSimpleGestureEvent& evt);
+  bool ProcessGestureMessage(HWND hWnd, WPARAM wParam, LPARAM lParam, mozilla::WidgetSimpleGestureEvent& evt);
 
   
   bool IsPanEvent(LPARAM lParam);
