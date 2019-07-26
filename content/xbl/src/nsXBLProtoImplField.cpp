@@ -17,7 +17,6 @@
 #include "nsXBLPrototypeBinding.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "xpcpublic.h"
-#include "WrapperFactory.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -252,36 +251,8 @@ FieldGetterImpl(JSContext *cx, JS::CallArgs args)
 static JSBool
 FieldGetter(JSContext *cx, unsigned argc, JS::Value *vp)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  return xpc::WrapperFactory::WaiveXrayAndWrap(cx, args.mutableThisv().address()) &&
-         JS::CallNonGenericMethod<ValueHasISupportsPrivate, FieldGetterImpl>
+  return JS::CallNonGenericMethod<ValueHasISupportsPrivate, FieldGetterImpl>
                                  (cx, args);
 }
 
@@ -320,12 +291,7 @@ static JSBool
 FieldSetter(JSContext *cx, unsigned argc, JS::Value *vp)
 {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  
-  
-  
-  
-  return xpc::WrapperFactory::WaiveXrayAndWrap(cx, args.mutableThisv().address()) &&
-         JS::CallNonGenericMethod<ValueHasISupportsPrivate, FieldSetterImpl>
+  return JS::CallNonGenericMethod<ValueHasISupportsPrivate, FieldSetterImpl>
                                  (cx, args);
 }
 

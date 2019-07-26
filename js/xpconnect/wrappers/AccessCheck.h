@@ -55,30 +55,6 @@ struct Opaque : public Policy {
 
 
 
-struct GentlyOpaque : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
-        return false;
-    }
-    static bool deny(js::Wrapper::Action act) {
-        return true;
-    }
-    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
-    {
-        
-        
-        
-        
-        
-        return true;
-    }
-
-    static bool isSafeToUnwrap() {
-        return false;
-    }
-};
-
-
-
 struct OnlyIfSubjectIsSystem : public Policy {
     static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
         return AccessCheck::isSystemOnlyAccessPermitted(cx);
