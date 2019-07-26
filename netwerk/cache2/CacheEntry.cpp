@@ -396,7 +396,8 @@ NS_IMETHODIMP CacheEntry::OnFileDoomed(nsresult aResult)
   return NS_OK;
 }
 
-already_AddRefed<CacheEntryHandle> CacheEntry::ReopenTruncated(nsICacheEntryOpenCallback* aCallback)
+already_AddRefed<CacheEntryHandle> CacheEntry::ReopenTruncated(bool aMemoryOnly,
+                                                               nsICacheEntryOpenCallback* aCallback)
 {
   LOG(("CacheEntry::ReopenTruncated [this=%p]", this));
 
@@ -413,7 +414,7 @@ already_AddRefed<CacheEntryHandle> CacheEntry::ReopenTruncated(nsICacheEntryOpen
     
     nsresult rv = CacheStorageService::Self()->AddStorageEntry(
       GetStorageID(), GetURI(), GetEnhanceID(),
-      mUseDisk,
+      mUseDisk && !aMemoryOnly,
       true, 
       true, 
       getter_AddRefs(handle));
@@ -848,34 +849,12 @@ uint32_t CacheEntry::GetMetadataMemoryConsumption()
 
 
 
-NS_IMETHODIMP CacheEntry::GetPersistToDisk(bool *aPersistToDisk)
+NS_IMETHODIMP CacheEntry::GetPersistent(bool *aPersistToDisk)
 {
   
   
   
   *aPersistToDisk = mUseDisk;
-  return NS_OK;
-}
-NS_IMETHODIMP CacheEntry::SetPersistToDisk(bool aPersistToDisk)
-{
-  LOG(("CacheEntry::SetPersistToDisk [this=%p, persist=%d]", this, aPersistToDisk));
-
-  if (mState >= READY) {
-    LOG(("  failed, called after filling the entry"));
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  if (mUseDisk == aPersistToDisk)
-    return NS_OK;
-
-  mozilla::MutexAutoLock lock(CacheStorageService::Self()->Lock());
-
-  mUseDisk = aPersistToDisk;
-  CacheStorageService::Self()->RecordMemoryOnlyEntry(
-    this, !aPersistToDisk, false );
-
-  
-
   return NS_OK;
 }
 
@@ -1210,13 +1189,14 @@ NS_IMETHODIMP CacheEntry::SetValid()
   return NS_OK;
 }
 
-NS_IMETHODIMP CacheEntry::Recreate(nsICacheEntry **_retval)
+NS_IMETHODIMP CacheEntry::Recreate(bool aMemoryOnly,
+                                   nsICacheEntry **_retval)
 {
   LOG(("CacheEntry::Recreate [this=%p, state=%s]", this, StateString(mState)));
 
   mozilla::MutexAutoLock lock(mLock);
 
-  nsRefPtr<CacheEntryHandle> handle = ReopenTruncated(nullptr);
+  nsRefPtr<CacheEntryHandle> handle = ReopenTruncated(aMemoryOnly, nullptr);
   if (handle) {
     handle.forget(_retval);
     return NS_OK;
