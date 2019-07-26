@@ -372,11 +372,15 @@ DefineWebIDLBindingPropertiesOnXPCProto(JSContext* cx, JSObject* proto, const Na
 
 
 inline bool
-MaybeWrapValue(JSContext* cx, JSObject* obj, JS::Value* vp)
+MaybeWrapValue(JSContext* cx, JS::Value* vp)
 {
-  if (vp->isObject() &&
-      js::GetObjectCompartment(&vp->toObject()) != js::GetContextCompartment(cx)) {
-    return JS_WrapValue(cx, vp);
+  if (vp->isGCThing()) {
+    void* gcthing = vp->toGCThing();
+    
+    if (gcthing &&
+        js::GetGCThingCompartment(gcthing) != js::GetContextCompartment(cx)) {
+      return JS_WrapValue(cx, vp);
+    }
   }
 
   return true;
