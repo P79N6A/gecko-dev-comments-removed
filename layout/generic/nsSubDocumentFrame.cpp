@@ -382,14 +382,15 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     dirty = dirty.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
 
     nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame();
-    
-    nsRect displayportBase = presContext->IsRootContentDocument() ?
-        nsRect(nsPoint(0,0), nsLayoutUtils::CalculateCompositionSizeForFrame(rootScrollFrame)) :
-        dirty;
-    nsRect displayPort;
-    if (nsLayoutUtils::GetOrMaybeCreateDisplayPort(
-          *aBuilder, rootScrollFrame, displayportBase, &displayPort)) {
+    if (nsLayoutUtils::ViewportHasDisplayPort(presContext)) {
       haveDisplayPort = true;
+      
+      nsLayoutUtils::SetDisplayPortBase(rootScrollFrame->GetContent(),
+        presContext->IsRootContentDocument() ?
+          nsRect(nsPoint(0,0), nsLayoutUtils::CalculateCompositionSizeForFrame(rootScrollFrame)) :
+          dirty);
+      nsRect displayPort;
+      nsLayoutUtils::ViewportHasDisplayPort(presContext, &displayPort);
       dirty = displayPort;
     }
 

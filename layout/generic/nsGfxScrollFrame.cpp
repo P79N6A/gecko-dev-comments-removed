@@ -1029,37 +1029,6 @@ ScrollFrameHelper::HandleScrollbarStyleSwitching()
   }
 }
 
-static bool IsFocused(nsIContent* aContent)
-{
-  
-  
-  
-  
-  while (aContent && aContent->IsInAnonymousSubtree()) {
-    aContent = aContent->GetParent();
-  }
-
-  return aContent ? nsContentUtils::IsFocusedContent(aContent) : false;
-}
-
-bool
-ScrollFrameHelper::WantAsyncScroll() const
-{
-  nsRect scrollRange = GetScrollRange();
-  ScrollbarStyles styles = GetScrollbarStylesFromFrame();
-  bool isFocused = IsFocused(mOuter->GetContent());
-  bool isVScrollable = (scrollRange.height > 0)
-                    && (styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN);
-  bool isHScrollable = (scrollRange.width > 0)
-                    && (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN);
-  
-  
-  
-  bool isVAsyncScrollable = isVScrollable && (mVScrollbarBox || isFocused);
-  bool isHAsyncScrollable = isHScrollable && (mHScrollbarBox || isFocused);
-  return isVAsyncScrollable || isHAsyncScrollable;
-}
-
 nsresult
 nsXULScrollFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
@@ -2337,6 +2306,19 @@ ScrollFrameHelper::ExpandRect(const nsRect& aRect) const
   return rect;
 }
 
+static bool IsFocused(nsIContent* aContent)
+{
+  
+  
+  
+  
+  while (aContent && aContent->IsInAnonymousSubtree()) {
+    aContent = aContent->GetParent();
+  }
+
+  return aContent ? nsContentUtils::IsFocusedContent(aContent) : false;
+}
+
 static bool
 ShouldBeClippedByFrame(nsIFrame* aClipFrame, nsIFrame* aClippedFrame)
 {
@@ -2488,31 +2470,27 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   nsRect dirtyRect = aDirtyRect.Intersect(mScrollPort);
 
+  
+  bool usingDisplayport =
+    nsLayoutUtils::GetDisplayPort(mOuter->GetContent()) &&
+    !aBuilder->IsForEventDelivery();
+
+  
+  
+  
+  
+  if (usingDisplayport && !mIsRoot) {
+    nsLayoutUtils::SetDisplayPortBase(mOuter->GetContent(), dirtyRect);
+  }
+
+  
   nsRect displayPort;
-  bool usingDisplayport = false;
-  if (!aBuilder->IsForEventDelivery()) {
-    if (!mIsRoot) {
-      
-      
-      
-      
-      nsRect displayportBase = dirtyRect;
-      usingDisplayport = nsLayoutUtils::GetOrMaybeCreateDisplayPort(
-          *aBuilder, mOuter, displayportBase, &displayPort);
-    } else {
-      
-      
-      usingDisplayport = nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayPort);
-    }
-
-    if (usingDisplayport && DisplayportExceedsMaxTextureSize(mOuter->PresContext(), displayPort)) {
-      usingDisplayport = false;
-    }
-
-    
-    if (usingDisplayport) {
-      dirtyRect = displayPort;
-    }
+  nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayPort);
+  if (usingDisplayport && DisplayportExceedsMaxTextureSize(mOuter->PresContext(), displayPort)) {
+    usingDisplayport = false;
+  }
+  if (usingDisplayport) {
+    dirtyRect = displayPort;
   }
 
   if (aBuilder->IsForImageVisibility()) {
@@ -2599,9 +2577,28 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (mShouldBuildScrollableLayer) {
     shouldBuildLayer = true;
   } else {
+    nsRect scrollRange = GetScrollRange();
+    ScrollbarStyles styles = GetScrollbarStylesFromFrame();
+    bool isFocused = IsFocused(mOuter->GetContent());
+    bool isVScrollable = (scrollRange.height > 0)
+                      && (styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN);
+    bool isHScrollable = (scrollRange.width > 0)
+                      && (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN);
+    
+    
+    
+    bool wantLayerV = isVScrollable && (mVScrollbarBox || isFocused);
+    bool wantLayerH = isHScrollable && (mHScrollbarBox || isFocused);
+    
+    bool wantSubAPZC = gfxPrefs::APZSubframeEnabled();
+#ifdef MOZ_WIDGET_GONK
+    if (XRE_GetProcessType() != GeckoProcessType_Content) {
+      wantSubAPZC = false;
+    }
+#endif
     shouldBuildLayer =
-      nsLayoutUtils::WantSubAPZC() &&
-      WantAsyncScroll() &&
+      wantSubAPZC &&
+      (wantLayerV || wantLayerH) &&
       
       
       

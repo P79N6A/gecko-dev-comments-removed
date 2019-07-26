@@ -317,9 +317,6 @@ public:
     mAncestorHasTouchEventHandler = aValue;
   }
 
-  bool HaveScrollableDisplayPort() const { return mHaveScrollableDisplayPort; }
-  void SetHaveScrollableDisplayPort() { mHaveScrollableDisplayPort = true; }
-
   bool SetIsCompositingCheap(bool aCompositingCheap) { 
     bool temp = mIsCompositingCheap; 
     mIsCompositingCheap = aCompositingCheap;
@@ -726,10 +723,6 @@ private:
   bool                           mContainsPluginItem;
   bool                           mContainsBlendMode;
   bool                           mAncestorHasTouchEventHandler;
-  
-  
-  
-  bool                           mHaveScrollableDisplayPort;
 };
 
 class nsDisplayItem;

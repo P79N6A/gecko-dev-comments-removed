@@ -126,8 +126,6 @@ public:
   typedef mozilla::layers::FrameMetrics FrameMetrics;
   typedef FrameMetrics::ViewID ViewID;
   typedef mozilla::CSSPoint CSSPoint;
-  typedef mozilla::CSSSize CSSSize;
-  typedef mozilla::LayerMargin LayerMargin;
 
   
 
@@ -156,38 +154,11 @@ public:
 
   static bool GetDisplayPort(nsIContent* aContent, nsRect *aResult = nullptr);
 
-  MOZ_BEGIN_ENUM_CLASS(RepaintMode, uint8_t)
-    Repaint,
-    DoNotRepaint
-  MOZ_END_ENUM_CLASS(RepaintMode)
-
-  
+ 
 
 
 
-
-
-
-
-
-
-
-
-
-
-  static void SetDisplayPortMargins(nsIContent* aContent,
-                                    nsIPresShell* aPresShell,
-                                    const LayerMargin& aMargins,
-                                    uint32_t aAlignmentX,
-                                    uint32_t aAlignmentY,
-                                    uint32_t aPriority = 0,
-                                    RepaintMode aRepaintMode = RepaintMode::Repaint);
-
-  
-
-
-
-  static void SetDisplayPortBase(nsIContent* aContent, const nsRect& aBase);
+ static void SetDisplayPortBase(nsIContent* aContent, const nsRect& aBase);
 
   
 
@@ -2135,22 +2106,6 @@ public:
 
 
 
-
-
-
-
-
-  static CSSSize
-  CalculateRootCompositionSize(nsIFrame* aFrame,
-                               bool aIsRootContentDocRootScrollFrame,
-                               const FrameMetrics& aMetrics);
-
- 
-
-
-
-
-
   static nsRect
   CalculateScrollableRectForFrame(nsIScrollableFrame* aScrollableFrame, nsIFrame* aRootFrame);
 
@@ -2160,32 +2115,6 @@ public:
 
   static nsRect
   CalculateExpandedScrollableRect(nsIFrame* aFrame);
-
-  
-
-
-
-  static bool WantSubAPZC();
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static bool GetOrMaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
-                                          nsIFrame* aScrollFrame,
-                                          nsRect aDisplayPortBase,
-                                          nsRect* aOutDisplayport);
 
 private:
   static uint32_t sFontSizeInflationEmPerLine;

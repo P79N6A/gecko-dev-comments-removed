@@ -522,8 +522,7 @@ nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
       mIsCompositingCheap(false),
       mContainsPluginItem(false),
       mContainsBlendMode(false),
-      mAncestorHasTouchEventHandler(false),
-      mHaveScrollableDisplayPort(false)
+      mAncestorHasTouchEventHandler(false)
 {
   MOZ_COUNT_CTOR(nsDisplayListBuilder);
   PL_InitArenaPool(&mPool, "displayListArena", 1024,
@@ -621,6 +620,83 @@ static bool GetApzcTreePrintPref() {
     initialized = true;
   }
   return gPrintApzcTree;
+}
+
+static CSSSize
+CalculateRootCompositionSize(FrameMetrics& aMetrics,
+                             bool aIsRootContentDocRootScrollFrame,
+                             nsPresContext* aPresContext,
+                             nsIFrame* aForFrame, nsIFrame* aScrollFrame)
+{
+
+  if (aIsRootContentDocRootScrollFrame) {
+    return ViewAs<LayerPixel>(ParentLayerSize(aMetrics.mCompositionBounds.Size()),
+                              PixelCastJustification::ParentLayerToLayerForRootComposition)
+           / aMetrics.LayersPixelsPerCSSPixel();
+  }
+  LayerSize rootCompositionSize;
+  nsPresContext* rootPresContext =
+    aPresContext->GetToplevelContentDocumentPresContext();
+  if (!rootPresContext) {
+    rootPresContext = aPresContext->GetRootPresContext();
+  }
+  nsIPresShell* rootPresShell = nullptr;
+  if (rootPresContext) {
+    
+    
+    
+    nsIPresShell* rootPresShell = rootPresContext->PresShell();
+    if (nsIFrame* rootFrame = rootPresShell->GetRootFrame()) {
+      if (nsView* view = rootFrame->GetView()) {
+        LayoutDeviceToParentLayerScale parentResolution(
+          rootPresShell->GetCumulativeResolution().width
+          / rootPresShell->GetResolution().width);
+        int32_t rootAUPerDevPixel = rootPresContext->AppUnitsPerDevPixel();
+        nsRect viewBounds = view->GetBounds();
+        LayerSize viewSize = ViewAs<LayerPixel>(
+          (LayoutDeviceRect::FromAppUnits(viewBounds, rootAUPerDevPixel)
+           * parentResolution).Size(), PixelCastJustification::ParentLayerToLayerForRootComposition);
+        nsIWidget* widget =
+#ifdef MOZ_WIDGET_ANDROID
+            rootFrame->GetNearestWidget();
+#else
+            view->GetWidget();
+#endif
+        if (widget) {
+          nsIntRect widgetBounds;
+          widget->GetBounds(widgetBounds);
+          rootCompositionSize = LayerSize(ViewAs<LayerPixel>(widgetBounds.Size()));
+#ifdef MOZ_WIDGET_ANDROID
+          if (viewSize.height < rootCompositionSize.height) {
+            rootCompositionSize.height = viewSize.height;
+          }
+#endif
+        } else {
+          rootCompositionSize = viewSize;
+        }
+      }
+    }
+  } else {
+    nsIWidget* widget = (aScrollFrame ? aScrollFrame : aForFrame)->GetNearestWidget();
+    nsIntRect bounds;
+    widget->GetBounds(bounds);
+    rootCompositionSize = LayerSize(ViewAs<LayerPixel>(bounds.Size()));
+  }
+
+  
+  nsIFrame* rootRootScrollFrame = rootPresShell ? rootPresShell->GetRootScrollFrame() : nullptr;
+  nsIScrollableFrame* rootScrollableFrame = nullptr;
+  if (rootRootScrollFrame) {
+    rootScrollableFrame = aScrollFrame->GetScrollTargetFrame();
+  }
+  if (rootScrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
+    CSSMargin margins = CSSMargin::FromAppUnits(rootScrollableFrame->GetActualScrollbarSizes());
+    
+    rootCompositionSize.width -= margins.LeftRight();
+    rootCompositionSize.height -= margins.TopBottom();
+  }
+
+  return rootCompositionSize / aMetrics.LayersPixelsPerCSSPixel();
 }
 
 static void RecordFrameMetrics(nsIFrame* aForFrame,
@@ -782,8 +858,8 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   }
 
   metrics.SetRootCompositionSize(
-    nsLayoutUtils::CalculateRootCompositionSize(aScrollFrame ? aScrollFrame : aForFrame,
-                                                isRootContentDocRootScrollFrame, metrics));
+    CalculateRootCompositionSize(metrics, isRootContentDocRootScrollFrame,
+                                 presContext, aForFrame, aScrollFrame));
 
   if (GetApzcTreePrintPref()) {
     if (nsIContent* content = frameForCompositionBoundsCalculation->GetContent()) {
