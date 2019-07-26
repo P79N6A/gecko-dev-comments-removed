@@ -3,18 +3,23 @@
 
 
 
+from __future__ import unicode_literals
+
 import subprocess
 import sys
 from os import path
 from buildconfig import substs
 
+import logging
+log = logging.getLogger(__name__)
+
 def determine_platform():
     platform_mapping = {'WINNT': {'x86_64': 'win64',
-                                  'i386': 'win32'},
+                                  'i686': 'win32'},
                         'Darwin': {'x86_64': 'macosx-universal',
                                    'i386':'macosx-universal'},
                         'Linux': {'x86_64': 'linux64',
-                                  'i386': 'linux32'}}
+                                  'i686': 'linux32'}}
 
     os_type = substs['OS_TARGET']
     cpu_type = substs['TARGET_CPU']
@@ -37,17 +42,22 @@ def main():
         release_mozconfig_path = path.join(browser_dir, 'config/mozconfigs', platform, 'release')
         nightly_mozconfig_path = path.join(browser_dir, 'config/mozconfigs', platform, 'nightly')
 
-        
+        log.info("Comparing beta against nightly mozconfigs")
         ret_code = subprocess.call([python_exe, script_path, '--whitelist',
                                     whitelist_path, '--no-download',
                                     platform + ',' + beta_mozconfig_path +
                                     ',' + nightly_mozconfig_path])
 
         if ret_code > 0:
-            sys.exit(ret_code)
+            return ret_code
 
-        
+        log.info("Comparing release against nightly mozconfigs")
         ret_code = subprocess.call([python_exe, script_path, '--whitelist',
                                     whitelist_path, '--no-download',
                                     platform + ',' + release_mozconfig_path +
                                     ',' + nightly_mozconfig_path])
+
+        return ret_code
+
+if __name__ == '__main__':
+    sys.exit(main())
