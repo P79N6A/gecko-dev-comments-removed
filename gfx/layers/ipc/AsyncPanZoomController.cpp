@@ -1087,7 +1087,7 @@ AsyncPanZoomController::FireAsyncScrollOnTimeout()
 bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSampleTime,
                                                             ContainerLayer* aLayer,
                                                             ViewTransform* aNewTransform,
-                                                            gfx::Point& aScrollOffset) {
+                                                            ScreenPoint& aScrollOffset) {
   
   
   

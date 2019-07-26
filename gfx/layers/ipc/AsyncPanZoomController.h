@@ -178,7 +178,7 @@ public:
   bool SampleContentTransformForFrame(const TimeStamp& aSampleTime,
                                       ContainerLayer* aLayer,
                                       ViewTransform* aNewTransform,
-                                      gfx::Point& aScrollOffset);
+                                      ScreenPoint& aScrollOffset);
 
   
 
