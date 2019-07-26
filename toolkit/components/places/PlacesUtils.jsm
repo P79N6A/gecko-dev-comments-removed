@@ -1755,6 +1755,56 @@ this.PlacesUtils = {
     }, Ci.nsIThread.DISPATCH_NORMAL);
 
     return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+  promiseUpdatePlace: function PU_promiseUpdatePlaces(aPlace) {
+    let deferred = Promise.defer();
+    PlacesUtils.asyncHistory.updatePlaces(aPlace, {
+      _placeInfo: null,
+      handleResult: function handleResult(aPlaceInfo) {
+        this._placeInfo = aPlaceInfo;
+      },
+      handleError: function handleError(aResultCode, aPlaceInfo) {
+        deferred.reject(new Components.Exception("Error", aResultCode));
+      },
+      handleCompletion: function() {
+        deferred.resolve(this._placeInfo);
+      }
+    });
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+  promisePlaceInfo: function PU_promisePlaceInfo(aPlaceIdentifier) {
+    let deferred = Promise.defer();
+    PlacesUtils.asyncHistory.getPlacesInfo(aPlaceIdentifier, {
+      _placeInfo: null,
+      handleResult: function handleResult(aPlaceInfo) {
+        this._placeInfo = aPlaceInfo;
+      },
+      handleError: function handleError(aResultCode, aPlaceInfo) {
+        deferred.reject(new Components.Exception("Error", aResultCode));
+      },
+      handleCompletion: function() {
+        deferred.resolve(this._placeInfo);
+      }
+    });
+
+    return deferred.promise;
   }
 };
 

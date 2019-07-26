@@ -19,6 +19,21 @@ PlaceInfo::PlaceInfo(int64_t aId,
                      const nsCString& aGUID,
                      already_AddRefed<nsIURI> aURI,
                      const nsString& aTitle,
+                     int64_t aFrecency)
+: mId(aId)
+, mGUID(aGUID)
+, mURI(aURI)
+, mTitle(aTitle)
+, mFrecency(aFrecency)
+, mVisitsAvailable(false)
+{
+  NS_PRECONDITION(mURI, "Must provide a non-null uri!");
+}
+
+PlaceInfo::PlaceInfo(int64_t aId,
+                     const nsCString& aGUID,
+                     already_AddRefed<nsIURI> aURI,
+                     const nsString& aTitle,
                      int64_t aFrecency,
                      const VisitsArray& aVisits)
 : mId(aId)
@@ -27,6 +42,7 @@ PlaceInfo::PlaceInfo(int64_t aId,
 , mTitle(aTitle)
 , mFrecency(aFrecency)
 , mVisits(aVisits)
+, mVisitsAvailable(true)
 {
   NS_PRECONDITION(mURI, "Must provide a non-null uri!");
 }
@@ -73,6 +89,14 @@ NS_IMETHODIMP
 PlaceInfo::GetVisits(JSContext* aContext,
                      JS::Value* _visits)
 {
+  
+  
+  
+  if (!mVisitsAvailable) {
+    *_visits = JSVAL_NULL;
+    return NS_OK;
+  }
+
   
   
   JS::Rooted<JSObject*> visits(aContext, JS_NewArrayObject(aContext, 0, NULL));
