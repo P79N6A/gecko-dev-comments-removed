@@ -378,6 +378,30 @@ public:
 
   static bool IsSpecialGeckoKey(UInt32 aNativeKeyCode);
 
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  static void EnableSecureEventInput();
+  static void DisableSecureEventInput();
+  static bool IsSecureEventInputEnabled();
+
+  
+
+
+
+  static void EnsureSecureEventInputDisabled();
+
 protected:
   nsAutoRefCnt mRefCnt;
 
@@ -605,6 +629,8 @@ private:
   };
 
   KeyboardLayoutOverride mKeyboardOverride;
+
+  static int32_t sSecureEventInputCount;
 };
 
 
