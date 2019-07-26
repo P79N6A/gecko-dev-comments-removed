@@ -254,13 +254,21 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
                           "has no segments");
 
         
-        const AnimationPropertySegment *segment = prop.mSegments.Elements();
+        const AnimationPropertySegment *segment = prop.mSegments.Elements(),
+                               *segmentEnd = segment + prop.mSegments.Length();
         while (segment->mToKey < positionInIteration) {
           NS_ABORT_IF_FALSE(segment->mFromKey < segment->mToKey,
                             "incorrect keys");
           ++segment;
+          if (segment == segmentEnd) {
+            NS_ABORT_IF_FALSE(false, "incorrect positionInIteration");
+            break; 
+          }
           NS_ABORT_IF_FALSE(segment->mFromKey == (segment-1)->mToKey,
                             "incorrect keys");
+        }
+        if (segment == segmentEnd) {
+          continue;
         }
         NS_ABORT_IF_FALSE(segment->mFromKey < segment->mToKey,
                           "incorrect keys");
