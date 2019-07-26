@@ -122,7 +122,7 @@ public:
   virtual void MetadataLoaded(uint32_t aChannels,
                               uint32_t aRate,
                               bool aHasAudio,
-                              const mozilla::MetadataTags* aTags) MOZ_FINAL MOZ_OVERRIDE;
+                              const MetadataTags* aTags) MOZ_FINAL MOZ_OVERRIDE;
 
   
   
@@ -693,7 +693,7 @@ protected:
   static PLDHashOperator BuildObjectFromTags(nsCStringHashKey::KeyType aKey,
                                              nsCString aValue,
                                              void* aUserArg);
-  nsAutoPtr<const mozilla::MetadataTags> mTags;
+  nsAutoPtr<const MetadataTags> mTags;
 
   
   
