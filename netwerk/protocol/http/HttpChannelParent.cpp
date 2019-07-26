@@ -34,7 +34,8 @@ namespace mozilla {
 namespace net {
 
 HttpChannelParent::HttpChannelParent(PBrowserParent* iframeEmbedding,
-                                     const IPC::SerializedLoadContext& loadContext)
+                                     nsILoadContext* aLoadContext,
+                                     PBOverrideStatus aOverrideStatus)
   : mIPCClosed(false)
   , mStoredStatus(NS_OK)
   , mStoredProgress(0)
@@ -42,7 +43,8 @@ HttpChannelParent::HttpChannelParent(PBrowserParent* iframeEmbedding,
   , mSentRedirect1Begin(false)
   , mSentRedirect1BeginFailed(false)
   , mReceivedRedirect2Verify(false)
-  , mPBOverride(kPBOverride_Unset)
+  , mPBOverride(aOverrideStatus)
+  , mLoadContext(aLoadContext)
 {
   
   nsIHttpProtocolHandler* handler;
@@ -50,18 +52,6 @@ HttpChannelParent::HttpChannelParent(PBrowserParent* iframeEmbedding,
   NS_ASSERTION(handler, "no http handler");
 
   mTabParent = static_cast<mozilla::dom::TabParent*>(iframeEmbedding);
-
-  if (loadContext.IsNotNull()) {
-    if (mTabParent) {
-      mLoadContext = new LoadContext(loadContext, mTabParent->GetOwnerElement());
-    } else {
-      mLoadContext = new LoadContext(loadContext);
-    }
-  } else if (loadContext.IsPrivateBitValid()) {
-    
-    mPBOverride = loadContext.mUsePrivateBrowsing ? kPBOverride_Private
-                                                  : kPBOverride_NotPrivate;
-  }
 }
 
 HttpChannelParent::~HttpChannelParent()
