@@ -342,29 +342,6 @@ Preferences.prototype = {
         this._set("WebKitDisplayImagesKey", "permissions.default.image",
                   function(webkitVal) webkitVal ? 1 : 2);
 
-        
-        this._set("WebKitDefaultTextEncodingName", "intl.charset.default",
-          function(webkitCharset) {
-            
-            
-            if (webkitCharset == "x-mac-korean")
-              return "EUC-KR";
-
-            
-            try {
-              return Cc["@mozilla.org/charset-converter-manager;1"].
-                     getService(Ci.nsICharsetConverterManager).
-                     getCharsetAlias(webkitCharset);
-            }
-            catch(ex) {
-              Cu.reportError("Could not convert webkit charset '" + webkitCharset +
-                             "' to a supported charset");
-            }
-            
-            
-            return undefined;
-          });
-
 #ifdef XP_WIN
         
         

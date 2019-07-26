@@ -302,7 +302,7 @@ nsHtml5StreamParser::SetupDecodingAndWriteSniffingBufferAndCurrentSegment(const 
   rv = convManager->GetUnicodeDecoder(mCharset.get(), getter_AddRefs(mUnicodeDecoder));
   if (rv == NS_ERROR_UCONV_NOCONV) {
     mCharset.AssignLiteral("windows-1252"); 
-    mCharsetSource = kCharsetFromWeakDocTypeDefault;
+    mCharsetSource = kCharsetFromFallback;
     rv = convManager->GetUnicodeDecoderRaw(mCharset.get(), getter_AddRefs(mUnicodeDecoder));
     mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
   }
@@ -612,10 +612,10 @@ nsHtml5StreamParser::FinalizeSniffing(const uint8_t* aFromSegment,
   if (mCharsetSource == kCharsetUninitialized) {
     
     mCharset.AssignLiteral("windows-1252");
-    mCharsetSource = kCharsetFromWeakDocTypeDefault;
+    mCharsetSource = kCharsetFromFallback;
     mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
   } else if (mMode == LOAD_AS_DATA &&
-             mCharsetSource == kCharsetFromWeakDocTypeDefault) {
+             mCharsetSource == kCharsetFromFallback) {
     NS_ASSERTION(mReparseForbidden, "Reparse should be forbidden for XHR");
     NS_ASSERTION(!mFeedChardet, "Should not feed chardet for XHR");
     NS_ASSERTION(mCharset.EqualsLiteral("UTF-8"),
@@ -731,7 +731,7 @@ nsHtml5StreamParser::SniffStreamBytes(const uint8_t* aFromSegment,
       
       
       
-      mCharsetSource = kCharsetFromWeakDocTypeDefault;
+      mCharsetSource = kCharsetFromFallback;
     }
   }
 
@@ -981,7 +981,7 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   
   
   if (NS_FAILED(rv)) {
-    mCharsetSource = kCharsetFromWeakDocTypeDefault;
+    mCharsetSource = kCharsetFromFallback;
   }
   return NS_OK;
 }
