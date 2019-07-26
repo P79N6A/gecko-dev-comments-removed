@@ -135,11 +135,6 @@
 
 .theme-dark #tracer-message {
   color: #f5f7fa; 
-  background: url(background-noise-toolbar.png) #181d20; 
-}
-
-.theme-dark #tracer-traces > scrollbox {
-  background-color: #181d20 !important; 
 }
 
 .theme-dark .trace-item {
@@ -179,11 +174,6 @@
 
 .theme-light #tracer-message {
   color: #292e33; 
-  background: url(background-noise-toolbar.png) #f7f7f7; 
-}
-
-.theme-light #tracer-traces > scrollbox {
-  background-color: #f7f7f7 !important; 
 }
 
 .theme-light .trace-item {
