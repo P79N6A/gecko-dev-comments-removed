@@ -7,6 +7,10 @@
 #include "GLContext.h"
 #include "nsPrintfCString.h"
 
+#ifdef XP_MACOSX
+#include "nsCocoaFeatures.h"
+#endif
+
 namespace mozilla {
 namespace gl {
 
@@ -366,6 +370,24 @@ GLContext::GetFeatureName(GLFeature::Enum feature)
     return GetFeatureInfo(feature).mName;
 }
 
+static bool
+CanReadSRGBFromFBOTexture(GLContext* gl)
+{
+    if (!gl->WorkAroundDriverBugs())
+        return true;
+
+#ifdef XP_MACOSX
+    
+    
+    
+    
+    if (!nsCocoaFeatures::OnLionOrLater()) {
+        return false;
+    }
+#endif 
+    return true;
+}
+
 void
 GLContext::InitFeatures()
 {
@@ -407,7 +429,7 @@ GLContext::InitFeatures()
 
     mAvailableFeatures[GLFeature::sRGB] =
         aresRGBExtensionsAvailable &&
-        CanReadSRGBFromFBOTexture();
+        CanReadSRGBFromFBOTexture(this);
 }
 
 void

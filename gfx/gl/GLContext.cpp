@@ -1145,28 +1145,6 @@ GLContext::InitExtensions()
 #endif
 }
 
-bool
-GLContext::CanReadSRGBFromFBOTexture()
-{
-    if (!mWorkAroundDriverBugs)
-        return true;
-
-#ifdef XP_MACOSX
-    
-    
-    
-    
-    SInt32 major, minor;
-    ::Gestalt(gestaltSystemVersionMajor, &major);
-    ::Gestalt(gestaltSystemVersionMinor, &minor);
-    if (major == 10 && minor <= 6) {
-        return false;
-    }
-#endif 
-    return true;
-}
-
-
 void
 GLContext::PlatformStartup()
 {
