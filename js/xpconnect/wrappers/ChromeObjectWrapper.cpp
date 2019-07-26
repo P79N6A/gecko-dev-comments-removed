@@ -175,7 +175,9 @@ ChromeObjectWrapper::enter(JSContext *cx, JSObject *wrapper, jsid id,
 
     
     
-    js::AutoWaivePolicy policy(cx, wrapper, id);
+    JS::RootedObject rootedWrapper(cx, wrapper);
+    JS::RootedId rootedId(cx, id);
+    js::AutoWaivePolicy policy(cx, rootedWrapper, rootedId);
     return PropIsFromStandardPrototype(cx, wrapper, id);
 }
 
