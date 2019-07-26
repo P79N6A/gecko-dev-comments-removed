@@ -2081,8 +2081,6 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
       return NS_OK;
     }
 
-    pluginTag->SetHost(this);
-
     
     
     

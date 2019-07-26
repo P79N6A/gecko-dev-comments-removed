@@ -48,7 +48,6 @@ public:
               bool aArgsAreUTF8 = false);
   virtual ~nsPluginTag();
 
-  void SetHost(nsPluginHost * aHost);
   void TryUnloadPlugin(bool inShutdown);
 
   
@@ -69,7 +68,6 @@ public:
   nsCString GetNiceFileName();
 
   nsRefPtr<nsPluginTag> mNext;
-  nsPluginHost *mPluginHost;
   nsCString     mName; 
   nsCString     mDescription; 
   nsTArray<nsCString> mMimeTypes; 
