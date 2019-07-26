@@ -36,6 +36,9 @@ namespace dom {
 
 struct DictionaryBase
 {
+protected:
+  bool ParseJSON(JSContext* aCx, const nsAString& aJSON,
+                 JS::MutableHandle<JS::Value> aVal);
 };
 
 
@@ -44,13 +47,6 @@ struct DictionaryBase
 struct AllTypedArraysBase {
 };
 
-
-struct MainThreadDictionaryBase : public DictionaryBase
-{
-protected:
-  bool ParseJSON(JSContext *aCx, const nsAString& aJSON,
-                 JS::MutableHandle<JS::Value> aVal);
-};
 
 struct EnumEntry {
   const char* value;
