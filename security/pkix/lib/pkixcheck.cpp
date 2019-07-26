@@ -122,8 +122,7 @@ CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
   
   
   if (cert.encodedInhibitAnyPolicy) {
-    PR_SetError(SEC_ERROR_POLICY_VALIDATION_FAILED, 0);
-    return RecoverableError;
+    return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
   }
 
   
@@ -135,8 +134,7 @@ CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
   }
 
   if (!cert.encodedCertificatePolicies) {
-    PR_SetError(SEC_ERROR_POLICY_VALIDATION_FAILED, 0);
-    return RecoverableError;
+    return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
   }
 
   ScopedPtr<CERTCertificatePolicies, CERT_DestroyCertificatePoliciesExtension>
@@ -158,8 +156,7 @@ CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
     }
   }
 
-  PR_SetError(SEC_ERROR_POLICY_VALIDATION_FAILED, 0);
-  return RecoverableError;
+  return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
 }
 
 
@@ -354,8 +351,7 @@ CheckNameConstraints(BackCert& cert)
         
         
         
-        PR_SetError(SEC_ERROR_CERT_NOT_IN_NAME_SPACE, 0);
-        return RecoverableError;
+        return Fail(RecoverableError, SEC_ERROR_CERT_NOT_IN_NAME_SPACE);
       }
       currentName = CERT_GetNextGeneralName(currentName);
     } while (currentName != names);
@@ -415,8 +411,7 @@ CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
     
     
     if (!found) {
-      PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
-      return RecoverableError;
+      return Fail(RecoverableError, SEC_ERROR_INADEQUATE_CERT_TYPE);
     }
   }
 
@@ -479,8 +474,7 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
     return rv;
   }
   if (trustLevel == TrustDomain::ActivelyDistrusted) {
-    PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
-    return RecoverableError;
+    return Fail(RecoverableError, SEC_ERROR_UNTRUSTED_CERT);
   }
   if (trustLevel != TrustDomain::TrustAnchor &&
       trustLevel != TrustDomain::InheritsTrust) {
