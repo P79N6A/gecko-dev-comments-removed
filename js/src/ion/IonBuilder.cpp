@@ -7038,33 +7038,55 @@ IonBuilder::jsop_arguments_length()
 bool
 IonBuilder::jsop_arguments_getelem()
 {
-    if (inliningDepth_ != 0)
-        return abort("NYI inlined get argument element");
+    JS_ASSERT(!info().argsObjAliasesFormals());
 
+    
     MDefinition *idx = current->pop();
 
     
     MDefinition *args = current->pop();
     args->setFoldedUnchecked();
 
-    
-    MArgumentsLength *length = MArgumentsLength::New();
-    current->add(length);
 
     
-    MInstruction *index = MToInt32::New(idx);
-    current->add(index);
+    if (inliningDepth_ == 0) {
+        
+        MArgumentsLength *length = MArgumentsLength::New();
+        current->add(length);
+
+        
+        MInstruction *index = MToInt32::New(idx);
+        current->add(index);
+
+        
+        index = addBoundsCheck(index, length);
+
+        
+        MGetArgument *load = MGetArgument::New(index);
+        current->add(load);
+        current->push(load);
+
+        types::StackTypeSet *types = types::TypeScript::BytecodeTypes(script(), pc);
+        return pushTypeBarrier(load, types, true);
+    }
 
     
-    index = addBoundsCheck(index, length);
+    if (idx->isConstant() && idx->toConstant()->value().isInt32()) {
+        JS_ASSERT(inliningDepth_ > 0);
+
+        int32_t id = idx->toConstant()->value().toInt32();
+        idx->setFoldedUnchecked();
+
+        if (id < (int32_t)inlineCallInfo_->argc() && id >= 0)
+            current->push(inlineCallInfo_->getArg(id));
+        else
+            pushConstant(UndefinedValue());
+
+        return true;
+    }
 
     
-    MGetArgument *load = MGetArgument::New(index);
-    current->add(load);
-    current->push(load);
-
-    types::StackTypeSet *types = types::TypeScript::BytecodeTypes(script(), pc);
-    return pushTypeBarrier(load, types, true);
+    return abort("NYI inlined not constant get argument element");
 }
 
 bool
