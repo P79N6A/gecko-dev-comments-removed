@@ -93,7 +93,7 @@ public class BrowserSearch extends HomeFragment
     private LinearLayout mView;
 
     
-    private ListView mList;
+    private HomeListView mList;
 
     
     private volatile SuggestClient mSuggestClient;
@@ -205,7 +205,7 @@ public class BrowserSearch extends HomeFragment
         
         
         mView = (LinearLayout) inflater.inflate(R.layout.browser_search, container, false);
-        mList = (ListView) mView.findViewById(R.id.home_list_view);
+        mList = (HomeListView) mView.findViewById(R.id.home_list_view);
 
         return mView;
     }
@@ -236,6 +236,16 @@ public class BrowserSearch extends HomeFragment
 
                 
                 mUrlOpenListener.onUrlOpen(url, EnumSet.of(OnUrlOpenListener.Flags.ALLOW_SWITCH_TO_TAB));
+            }
+        });
+
+        mList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                
+                position -= getSuggestEngineCount();
+
+                return mList.onItemLongClick(parent, view, position, id);
             }
         });
 
