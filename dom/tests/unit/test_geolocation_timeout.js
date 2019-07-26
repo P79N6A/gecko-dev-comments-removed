@@ -47,6 +47,11 @@ function run_test()
 
   if (Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime)
         .processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+    
+    
+    
+    do_get_profile();
+
     httpserver = new HttpServer();
     httpserver.registerPathHandler("/geo", geoHandler);
     httpserver.start(-1);

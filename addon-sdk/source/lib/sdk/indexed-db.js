@@ -28,13 +28,16 @@ let sanitizeId = function(id){
 const PSEUDOURI = "indexeddb://" + sanitizeId(id) 
 
 
-Cc["@mozilla.org/dom/indexeddb/manager;1"].
-	getService(Ci.nsIIndexedDatabaseManager).
-	initWindowless(this);
 
+if (typeof(indexedDB) === "undefined") {
+  Cc["@mozilla.org/dom/indexeddb/manager;1"].
+    getService(Ci.nsIIndexedDatabaseManager).
+    initWindowless(this);
 
-if (typeof(indexedDB) === "undefined")
-  this.indexedDB = mozIndexedDB;
+  
+  if (typeof(indexedDB) === "undefined")
+    this.indexedDB = mozIndexedDB;
+}
 
 
 let principaluri = Cc["@mozilla.org/network/io-service;1"].

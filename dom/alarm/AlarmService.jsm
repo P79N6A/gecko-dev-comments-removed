@@ -36,8 +36,6 @@ XPCOMUtils.defineLazyGetter(this, "powerManagerService", function() {
   return Cc["@mozilla.org/power/powermanagerservice;1"].getService(Ci.nsIPowerManagerService);
 });
 
-let myGlobal = this;
-
 
 
 
@@ -73,11 +71,8 @@ this.AlarmService = {
     }.bind(this));
 
     
-    let idbManager = Cc["@mozilla.org/dom/indexeddb/manager;1"]
-                     .getService(Ci.nsIIndexedDatabaseManager);
-    idbManager.initWindowless(myGlobal);
-    this._db = new AlarmDB(myGlobal);
-    this._db.init(myGlobal);
+    this._db = new AlarmDB();
+    this._db.init();
 
     
     this._alarmQueue = [];
