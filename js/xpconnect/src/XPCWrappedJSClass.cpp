@@ -249,7 +249,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
                         
                         rv = (nsresult)(uint32_t)(jsexception.toDouble());
                     else
-                        rv = (nsresult)(JSVAL_TO_INT(jsexception));
+                        rv = (nsresult)(jsexception.toInt32());
 
                     if (rv == NS_NOINTERFACE)
                         JS_ClearPendingException(cx);
