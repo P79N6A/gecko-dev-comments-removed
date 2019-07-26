@@ -5,20 +5,20 @@ ok(gInvalidFormPopup,
 function checkPopupShow()
 {
   ok(gInvalidFormPopup.state == 'showing' || gInvalidFormPopup.state == 'open',
-     "The invalid form popup should be shown");
+     "[Test " + testId + "] The invalid form popup should be shown");
 }
 
 function checkPopupHide()
 {
   ok(gInvalidFormPopup.state != 'showing' && gInvalidFormPopup.state != 'open',
-     "The invalid form popup should not be shown");
+     "[Test " + testId + "] The invalid form popup should not be shown");
 }
 
 function checkPopupMessage(doc)
 {
   is(gInvalidFormPopup.firstChild.textContent,
      doc.getElementById('i').validationMessage,
-     "The panel should show the message from validationMessage");
+     "[Test " + testId + "] The panel should show the message from validationMessage");
 }
 
 let gObserver = {
@@ -29,17 +29,31 @@ let gObserver = {
   }
 };
 
+var testId = -1;
+
+function nextTest()
+{
+  testId++;
+  if (testId >= tests.length) {
+    finish();
+    return;
+  }
+  executeSoon(tests[testId]);
+}
+
 function test()
 {
   waitForExplicitFinish();
-
-  test1();
+  waitForFocus(nextTest);
 }
 
+var tests = [
 
 
 
-function test1() {
+
+function()
+{
   let uri = "data:text/html,<html><body><iframe name='t'></iframe><form target='t' action='data:text/html,'><input><input id='s' type='submit'></form></body></html>";
   let tab = gBrowser.addTab();
 
@@ -54,21 +68,19 @@ function test1() {
 
       
       gBrowser.removeTab(gBrowser.selectedTab);
-
-      
-      executeSoon(test2);
+      nextTest();
     });
   }, true);
 
   gBrowser.selectedTab = tab;
   gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
+},
 
 
 
 
 
-function test2()
+function()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input required id='i'><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
@@ -85,7 +97,7 @@ function test2()
 
     
     gBrowser.removeTab(gBrowser.selectedTab);
-    executeSoon(test3);
+    nextTest();
   }, false);
 
   tab.linkedBrowser.addEventListener("load", function(aEvent) {
@@ -96,13 +108,13 @@ function test2()
 
   gBrowser.selectedTab = tab;
   gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
+},
 
 
 
 
 
-function test3()
+function()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input><input id='i' required><input required><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
@@ -119,7 +131,7 @@ function test3()
 
     
     gBrowser.removeTab(gBrowser.selectedTab);
-    executeSoon(test4a);
+    nextTest();
   }, false);
 
   tab.linkedBrowser.addEventListener("load", function(aEvent) {
@@ -130,13 +142,13 @@ function test3()
 
   gBrowser.selectedTab = tab;
   gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
+},
 
 
 
 
 
-function test4a()
+function()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input id='i' required><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
@@ -158,7 +170,7 @@ function test4a()
 
       
       gBrowser.removeTab(gBrowser.selectedTab);
-      executeSoon(test4b);
+      nextTest();
     });
   }, false);
 
@@ -170,13 +182,13 @@ function test4a()
 
   gBrowser.selectedTab = tab;
   gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
+},
 
 
 
 
 
-function test4b()
+function()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input type='email' id='i' required><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
@@ -198,7 +210,7 @@ function test4b()
 
       
       gBrowser.removeTab(gBrowser.selectedTab);
-      executeSoon(test5);
+      nextTest();
     });
   }, false);
 
@@ -210,13 +222,13 @@ function test4b()
 
   gBrowser.selectedTab = tab;
   gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
+},
 
 
 
 
 
-function test5()
+function()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input id='i' required><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
@@ -238,7 +250,7 @@ function test5()
 
       
       gBrowser.removeTab(gBrowser.selectedTab);
-      executeSoon(test6);
+      nextTest();
     });
   }, false);
 
@@ -250,12 +262,12 @@ function test5()
 
   gBrowser.selectedTab = tab;
   gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
+},
 
 
 
 
-function test6()
+function()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input id='i' required><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
@@ -277,7 +289,7 @@ function test6()
 
       
       gBrowser.removeTab(gBrowser.selectedTab);
-      executeSoon(test7);
+      nextTest();
     });
   }, false);
 
@@ -289,12 +301,12 @@ function test6()
 
   gBrowser.selectedTab = tab;
   gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
+},
 
 
 
 
-function test7()
+function()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input id='i' required><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
@@ -318,7 +330,7 @@ function test7()
       
       gBrowser.removeTab(gBrowser.selectedTab);
       gBrowser.removeTab(gBrowser.selectedTab);
-      executeSoon(test8);
+      nextTest();
     });
   }, false);
 
@@ -330,17 +342,17 @@ function test7()
 
   gBrowser.selectedTab = tab;
   gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
+},
 
 
 
 
 
 
-function test8()
+function()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input id='i' required><input id='s' type='submit'></form>";
-  let tab = gBrowser.addTab();
+  let tab = gBrowser.addTab(uri);
 
   gObserver.notifyInvalidSubmit = function() {
     executeSoon(function() {
@@ -355,29 +367,34 @@ function test8()
       gObserver.notifyInvalidSubmit = function () {};
       gBrowser.removeTab(tab);
 
-      
-      executeSoon(test9);
+      nextTest();
     });
   };
 
   Services.obs.addObserver(gObserver, "invalidformsubmit", false);
 
-  tab.linkedBrowser.addEventListener("load", function(aEvent) {
-    tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
-
+  function doClick() {
     isnot(gBrowser.selectedTab, tab,
           "This tab should have been loaded in background");
 
     tab.linkedBrowser.contentDocument.getElementById('s').click();
-  }, true);
+  }
 
-  tab.linkedBrowser.loadURI(uri);
-}
+  if (tab.linkedBrowser.contentDocument.readyState == 'complete') {
+    doClick();
+  } else {
+    tab.linkedBrowser.addEventListener("load", function(aEvent) {
+      tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
+
+      doClick();
+    }, true);
+  }
+},
 
 
 
 
-function test9()
+function()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input x-moz-errormessage='foo' required id='i'><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
@@ -396,7 +413,7 @@ function test9()
 
     
     gBrowser.removeTab(gBrowser.selectedTab);
-    executeSoon(test10);
+    nextTest();
   }, false);
 
   tab.linkedBrowser.addEventListener("load", function(aEvent) {
@@ -407,12 +424,12 @@ function test9()
 
   gBrowser.selectedTab = tab;
   gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
+},
 
 
 
 
-function test10()
+function()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input type='email' required id='i'><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
@@ -434,13 +451,13 @@ function test10()
 
       executeSoon(function() {
         
-	
+        
         is(gInvalidFormPopup.firstChild.textContent, input.validationMessage,
            "The panel should show the current validation message");
 
         
         gBrowser.removeTab(gBrowser.selectedTab);
-        executeSoon(finish);
+        nextTest();
       });
     }, false);
 
@@ -455,4 +472,6 @@ function test10()
 
   gBrowser.selectedTab = tab;
   gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
+},
+
+];
