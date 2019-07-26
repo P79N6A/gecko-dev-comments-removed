@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_baseline_inspector_h__) && defined(JS_ION)
+#ifndef jsion_baseline_inspector_h__
 #define jsion_baseline_inspector_h__
+
+#ifdef JS_ION
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -111,5 +113,7 @@ class BaselineInspector
 } 
 } 
 
-#endif
+#endif 
+
+#endif 
 

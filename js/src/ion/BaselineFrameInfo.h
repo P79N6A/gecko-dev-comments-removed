@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_baseline_frameinfo_h__) && defined(JS_ION)
+#ifndef jsion_baseline_frameinfo_h__
 #define jsion_baseline_frameinfo_h__
+
+#ifdef JS_ION
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -329,5 +331,7 @@ class FrameInfo
 } 
 } 
 
-#endif
+#endif 
+
+#endif 
 

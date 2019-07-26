@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_baseline_jit_h__) && defined(JS_ION)
+#ifndef jsion_baseline_jit_h__
 #define jsion_baseline_jit_h__
+
+#ifdef JS_ION
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -330,5 +332,7 @@ MarkActiveBaselineScripts(Zone *zone);
 } 
 } 
 
-#endif
+#endif 
+
+#endif 
 

@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_bytecode_analyzer_h__) && defined(JS_ION)
+#ifndef jsion_bytecode_analyzer_h__
 #define jsion_bytecode_analyzer_h__
+
+#ifdef JS_ION
 
 
 
@@ -797,5 +799,7 @@ bool NeedsPostBarrier(CompileInfo &info, MDefinition *value);
 
 } 
 } 
+
+#endif 
 
 #endif 

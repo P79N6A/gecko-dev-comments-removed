@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_ion_compartment_h__) && defined(JS_ION)
+#ifndef jsion_ion_compartment_h__
 #define jsion_ion_compartment_h__
+
+#ifdef JS_ION
 
 #include "IonCode.h"
 #include "jsweakcache.h"
@@ -315,6 +317,8 @@ void FinishInvalidation(FreeOp *fop, JSScript *script);
 
 } 
 } 
+
+#endif 
 
 #endif 
 

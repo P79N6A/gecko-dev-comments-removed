@@ -4,9 +4,10 @@
 
 
 
-#ifdef JSGC_GENERATIONAL
 #ifndef jsgc_storebuffer_h___
 #define jsgc_storebuffer_h___
+
+#ifdef JSGC_GENERATIONAL
 
 #ifndef JSGC_USE_EXACT_ROOTING
 # error "Generational GC requires exact rooting."
@@ -510,4 +511,5 @@ class StoreBuffer
 } 
 
 #endif 
+
 #endif 

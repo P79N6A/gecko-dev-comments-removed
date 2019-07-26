@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_executionmodeinlines_h__) && defined(JS_ION)
+#ifndef jsion_executionmodeinlines_h__
 #define jsion_executionmodeinlines_h__
+
+#ifdef JS_ION
 
 namespace js {
 namespace ion {
@@ -102,7 +104,9 @@ CompilerOutputKind(ExecutionMode cmode)
     return types::CompilerOutput::Ion;
 }
 
-}
-}
+} 
+} 
+
+#endif  
 
 #endif  

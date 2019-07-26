@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_ion_gc_h__) && defined(JS_ION)
+#ifndef jsion_ion_gc_h__
 #define jsion_ion_gc_h__
+
+#ifdef JS_ION
 
 #include "jscntxt.h"
 
@@ -60,6 +62,8 @@ typedef CompilerRoot<Value> CompilerRootValue;
 
 } 
 } 
+
+#endif 
 
 #endif 
 

@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_baseline_frame_inl_h__) && defined(JS_ION)
+#ifndef jsion_baseline_frame_inl_h__
 #define jsion_baseline_frame_inl_h__
+
+#ifdef JS_ION
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -78,5 +80,7 @@ BaselineFrame::callObj() const
 } 
 } 
 
-#endif
+#endif 
+
+#endif 
 

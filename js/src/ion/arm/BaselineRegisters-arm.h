@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_baseline_registers_arm_h__) && defined(JS_ION)
+#ifndef jsion_baseline_registers_arm_h__
 #define jsion_baseline_registers_arm_h__
+
+#ifdef JS_ION
 
 #include "ion/IonMacroAssembler.h"
 
@@ -53,5 +55,7 @@ static const FloatRegister FloatReg1      = d2;
 } 
 } 
 
-#endif
+#endif 
+
+#endif 
 

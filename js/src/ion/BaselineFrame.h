@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_baseline_frame_h__) && defined(JS_ION)
+#ifndef jsion_baseline_frame_h__
 #define jsion_baseline_frame_h__
+
+#ifdef JS_ION
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -396,5 +398,7 @@ JS_STATIC_ASSERT(((sizeof(BaselineFrame) + BaselineFrame::FramePointerOffset) % 
 } 
 } 
 
-#endif
+#endif 
+
+#endif 
 

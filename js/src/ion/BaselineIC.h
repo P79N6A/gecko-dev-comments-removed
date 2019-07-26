@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_baseline_ic_h__) && defined(JS_ION)
+#ifndef jsion_baseline_ic_h__
 #define jsion_baseline_ic_h__
+
+#ifdef JS_ION
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -5522,4 +5524,6 @@ class ICRest_Fallback : public ICFallbackStub
 } 
 } 
 
-#endif
+#endif 
+
+#endif 

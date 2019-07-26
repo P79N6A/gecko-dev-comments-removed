@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_baseline_helpers_x86_h__) && defined(JS_ION)
+#ifndef jsion_baseline_helpers_x86_h__
 #define jsion_baseline_helpers_x86_h__
+
+#ifdef JS_ION
 
 #include "ion/IonMacroAssembler.h"
 #include "ion/BaselineFrame.h"
@@ -280,5 +282,7 @@ EmitStubGuardFailure(MacroAssembler &masm)
 } 
 } 
 
-#endif
+#endif 
+
+#endif 
 

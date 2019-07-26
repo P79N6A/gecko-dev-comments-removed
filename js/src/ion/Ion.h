@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_ion_h__) && defined(JS_ION)
+#ifndef jsion_ion_h__
 #define jsion_ion_h__
+
+#ifdef JS_ION
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -349,6 +351,8 @@ void TraceIonScripts(JSTracer* trc, JSScript *script);
 
 } 
 } 
+
+#endif 
 
 #endif 
 

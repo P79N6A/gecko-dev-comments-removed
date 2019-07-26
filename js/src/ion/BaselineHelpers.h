@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_baseline_helpers_h__) && defined(JS_ION)
+#ifndef jsion_baseline_helpers_h__
 #define jsion_baseline_helpers_h__
+
+#ifdef JS_ION
 
 #if defined(JS_CPU_X86)
 # include "x86/BaselineHelpers-x86.h"
@@ -23,5 +25,6 @@ namespace ion {
 } 
 } 
 
-#endif
+#endif 
 
+#endif 

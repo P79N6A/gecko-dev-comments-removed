@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_frame_iterator_inl_h__) && defined(JS_ION)
+#ifndef jsion_frame_iterator_inl_h__
 #define jsion_frame_iterator_inl_h__
+
+#ifdef JS_ION
 
 #include "ion/BaselineFrame.h"
 #include "ion/IonFrameIterator.h"
@@ -235,5 +237,7 @@ IonFrameIterator::baselineFrame() const
 
 } 
 } 
+
+#endif 
 
 #endif 

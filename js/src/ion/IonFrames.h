@@ -4,8 +4,10 @@
 
 
 
-#if !defined(jsion_frames_h__) && defined(JS_ION)
+#ifndef jsion_frames_h__
 #define jsion_frames_h__
+
+#ifdef JS_ION
 
 #include "mozilla/DebugOnly.h"
 
@@ -329,6 +331,8 @@ MarkCalleeToken(JSTracer *trc, CalleeToken token);
 
 } 
 } 
+
+#endif 
 
 #endif 
 
