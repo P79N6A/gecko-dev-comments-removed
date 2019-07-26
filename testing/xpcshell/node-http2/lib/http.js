@@ -155,7 +155,7 @@ var deprecatedHeaders = [
 
 
 
-var implementedVersion = 'HTTP-draft-08/2.0';
+var implementedVersion = 'HTTP-draft-09/2.0';
 
 
 var supportedProtocols = [implementedVersion, 'http/1.1', 'http/1.0'];
@@ -403,6 +403,7 @@ Server.prototype._start = function _start(socket) {
   });
 
   endpoint.on('error', this.emit.bind(this, 'clientError'));
+  socket.on('error', this.emit.bind(this, 'clientError'));
 
   this.emit('connection', socket, endpoint);
 };
