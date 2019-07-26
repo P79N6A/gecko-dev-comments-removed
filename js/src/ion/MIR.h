@@ -5464,7 +5464,7 @@ class InlinePropertyTable : public TempObject
     void trimTo(AutoObjectVector &targets, Vector<bool> &choiceSet);
 
     
-    void trimToAndMaybePatchTargets(AutoObjectVector &targets, AutoObjectVector &originals);
+    void trimToTargets(AutoObjectVector &targets);
 };
 
 class MGetPropertyCache
