@@ -924,10 +924,13 @@ StackFrames.prototype = {
     if (list.length) {
       this.syncedWatchExpressions =
         this.currentWatchExpressions = "[" + list.map(function(str)
-          "(function() {" +
+          
+          
+          "(function(arguments) {" +
+            
             "try { return eval(\"" + str.replace(/"/g, "\\$&") + "\"); }" +
             "catch(e) { return e.name + ': ' + e.message; }" +
-          "})()"
+          "})(arguments)"
         ).join(",") + "]";
     } else {
       this.syncedWatchExpressions =
