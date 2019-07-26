@@ -222,8 +222,8 @@ this.ForgetAboutSite = {
 
     
     
-    let ns = Cc["@mozilla.org/network/seer;1"].
-             getService(Ci.nsINetworkSeer);
-    ns.reset();
+    let np = Cc["@mozilla.org/network/predictor;1"].
+             getService(Ci.nsINetworkPredictor);
+    np.reset();
   }
 };

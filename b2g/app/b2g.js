@@ -88,9 +88,9 @@ pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  16384);
 
 
-pref("network.seer.enable", false); 
-pref("network.seer.max-db-size", 2097152); 
-pref("network.seer.preserve", 50); 
+pref("network.predictor.enable", false); 
+pref("network.predictor.max-db-size", 2097152); 
+pref("network.predictor.preserve", 50); 
 
 
 pref("browser.sessionhistory.max_total_viewers", 1);
