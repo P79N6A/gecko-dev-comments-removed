@@ -390,18 +390,22 @@ class VFPRegister
         
         return 2 - (code_ & 1);
     }
+    
+    
+    
+    
+    
     void alignedAliased(uint32_t aliasIdx, VFPRegister *ret) {
         if (aliasIdx == 0) {
             *ret = *this;
             return;
         }
+        JS_ASSERT(aliasIdx == 1);
         if (isDouble()) {
             JS_ASSERT(code_ < NumAliasedDoubles);
-            JS_ASSERT(aliasIdx <= 1);
             *ret = singleOverlay(aliasIdx - 1);
             return;
         }
-        JS_ASSERT(aliasIdx == 1);
         JS_ASSERT((code_ & 1) == 0);
         *ret = doubleOverlay(aliasIdx - 1);
         return;

@@ -204,10 +204,10 @@ struct FloatRegister {
     bool operator ==(FloatRegister other) const {
         return other.code_ == code_;
     }
-    bool aliases(FloatRegister const &other) const {
+    bool aliases(FloatRegister other) const {
         return other.code_ == code_;
     }
-    uint32_t numAliased() {
+    uint32_t numAliased() const {
         return 1;
     }
     void aliased(uint32_t aliasIdx, FloatRegister *ret) {
@@ -218,10 +218,11 @@ struct FloatRegister {
     
     
     
+    
     bool equiv(FloatRegister other) const {
         return true;
     }
-    uint32_t size() {
+    uint32_t size() const {
         return sizeof(double);
     }
     uint32_t numAlignedAliased() {
