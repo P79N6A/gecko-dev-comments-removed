@@ -1995,10 +1995,8 @@ XrayWrapper<Base, Traits>::defineProperty(JSContext *cx, HandleObject wrapper,
 {
     assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::SET);
 
-    
-    
     Rooted<JSPropertyDescriptor> existing_desc(cx);
-    if (!getOwnPropertyDescriptor(cx, wrapper, id, &existing_desc, JSRESOLVE_ASSIGNING))
+    if (!getOwnPropertyDescriptor(cx, wrapper, id, &existing_desc, 0))
         return false;
 
     if (existing_desc.object() && existing_desc.isPermanent())

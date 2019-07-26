@@ -2334,11 +2334,6 @@ JS_IdToValue(JSContext *cx, jsid id, JS::MutableHandle<JS::Value> vp);
 
 
 
-#define JSRESOLVE_ASSIGNING     0x01    /* resolve on the left of assignment */
-
-
-
-
 
 
 

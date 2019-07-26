@@ -135,8 +135,6 @@ typedef bool
 
 
 
-
-
 typedef bool
 (* JSNewResolveOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, unsigned flags,
                    JS::MutableHandleObject objp);
