@@ -13,13 +13,14 @@
 #include "BindingUtils.h"
 
 #include "AccessCheck.h"
+#include "jsfriendapi.h"
 #include "nsContentUtils.h"
+#include "nsIDOMGlobalPropertyInitializer.h"
 #include "nsIXPConnect.h"
 #include "WrapperFactory.h"
 #include "xpcprivate.h"
 #include "XPCQuickStubs.h"
 #include "XrayWrapper.h"
-#include "jsfriendapi.h"
 
 #include "mozilla/dom/HTMLObjectElement.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
@@ -1827,6 +1828,63 @@ GetWindowForJSImplementedObject(JSContext* cx, JS::Handle<JSObject*> obj,
   nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(global.Get()));
   win.forget(window);
   return true;
+}
+
+already_AddRefed<nsPIDOMWindow>
+ConstructJSImplementation(JSContext* aCx, const char* aContractId,
+                          const GlobalObject& aGlobal,
+                          JS::MutableHandle<JSObject*> aObject,
+                          ErrorResult& aRv)
+{
+  
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.Get());
+  if (!window) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  
+  
+  
+  {  
+    nsCxPusher pusher;
+    pusher.PushNull();
+    
+    nsCOMPtr<nsISupports> implISupports = do_CreateInstance(aContractId);
+    if (!implISupports) {
+      NS_WARNING("Failed to get JS implementation for contract");
+      aRv.Throw(NS_ERROR_FAILURE);
+      return nullptr;
+    }
+    
+    nsCOMPtr<nsIDOMGlobalPropertyInitializer> gpi =
+      do_QueryInterface(implISupports);
+    if (gpi) {
+      JS::Rooted<JS::Value> initReturn(aCx);
+      nsresult rv = gpi->Init(window, initReturn.address());
+      if (NS_FAILED(rv)) {
+        aRv.Throw(rv);
+        return nullptr;
+      }
+      MOZ_ASSERT(initReturn.isUndefined(),
+                 "nsIDOMGlobalPropertyInitializer should return undefined");
+    }
+    
+    nsCOMPtr<nsIXPConnectWrappedJS> implWrapped =
+      do_QueryInterface(implISupports);
+    MOZ_ASSERT(implWrapped, "Failed to get wrapped JS from XPCOM component.");
+    if (!implWrapped) {
+      aRv.Throw(NS_ERROR_FAILURE);
+      return nullptr;
+    }
+    aObject.set(implWrapped->GetJSObject());
+    if (!aObject) {
+      aRv.Throw(NS_ERROR_FAILURE);
+      return nullptr;
+    }
+  }
+
+  return window.forget();
 }
 
 } 
