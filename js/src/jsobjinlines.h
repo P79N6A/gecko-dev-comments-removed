@@ -1197,7 +1197,8 @@ NewObjectMetadata(ExclusiveContext *cxArg, JSObject **pmetadata)
     JS_ASSERT(!*pmetadata);
     if (JSContext *cx = cxArg->maybeJSContext()) {
         if (JS_UNLIKELY((size_t)cx->compartment()->objectMetadataCallback) &&
-            !cx->compartment()->activeAnalysis)
+            !cx->compartment()->activeAnalysis &&
+            !cx->runtime()->mainThread.activeCompilations)
         {
             gc::AutoSuppressGC suppress(cx);
             return cx->compartment()->objectMetadataCallback(cx, pmetadata);
