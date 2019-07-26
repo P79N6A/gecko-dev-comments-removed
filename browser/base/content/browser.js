@@ -3641,8 +3641,10 @@ function OpenBrowserWindow(options)
   var extraFeatures = "";
   if (options && options.private) {
     extraFeatures = ",private";
-    
-    defaultArgs = "about:privatebrowsing";
+    if (!PrivateBrowsingUtils.permanentPrivateBrowsing) {
+      
+      defaultArgs = "about:privatebrowsing";
+    }
   } else {
     extraFeatures = ",non-private";
   }
