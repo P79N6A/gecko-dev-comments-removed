@@ -5913,6 +5913,16 @@ EmitObject(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
     for (ParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
         
+        if (pn2->isKind(PNK_MUTATEPROTO)) {
+            if (!EmitTree(cx, bce, pn2->pn_kid))
+                return false;
+            obj = nullptr;
+            if (!Emit1(cx, bce, JSOP_MUTATEPROTO))
+                return false;
+            continue;
+        }
+
+        
         ParseNode *pn3 = pn2->pn_left;
         bool isIndex = false;
         if (pn3->isKind(PNK_NUMBER)) {
@@ -5960,12 +5970,9 @@ EmitObject(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             if (!bce->makeAtomIndex(pn3->pn_atom, &index))
                 return false;
 
-            
-
-
-
-            if (pn3->pn_atom == cx->names().proto)
-                obj = nullptr;
+            MOZ_ASSERT((op == JSOP_INITPROP_GETTER || op == JSOP_INITPROP_SETTER) ||
+                        pn3->pn_atom != cx->names().proto,
+                       "__proto__ shouldn't have been generated as an initprop");
 
             if (obj) {
                 JS_ASSERT(!obj->inDictionaryMode());
