@@ -476,7 +476,9 @@ pref("nglayout.events.dispatchLeftClickOnly", true);
 pref("nglayout.enable_drag_images", true);
 
 
+
 pref("nglayout.debug.paint_flashing", false);
+pref("nglayout.debug.paint_flashing_chrome", false);
 
 
 
