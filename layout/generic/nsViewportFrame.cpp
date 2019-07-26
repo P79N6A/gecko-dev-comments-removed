@@ -28,6 +28,9 @@ NS_NewViewportFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(ViewportFrame)
+NS_QUERYFRAME_HEAD(ViewportFrame)
+  NS_QUERYFRAME_ENTRY(ViewportFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 void
 ViewportFrame::Init(nsIContent*      aContent,
@@ -133,12 +136,8 @@ nsPoint
 ViewportFrame::AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) const
 {
   
-  
-  
-
-  
   nsIFrame* kidFrame = mFrames.FirstChild();
-  nsIScrollableFrame *scrollingFrame = do_QueryFrame(kidFrame);
+  nsIScrollableFrame* scrollingFrame = do_QueryFrame(kidFrame);
 
   if (scrollingFrame) {
     nsMargin scrollbars = scrollingFrame->GetActualScrollbarSizes();
@@ -150,6 +149,32 @@ ViewportFrame::AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) c
     return nsPoint(scrollbars.left, scrollbars.top);
   }
   return nsPoint(0, 0);
+}
+
+nsRect
+ViewportFrame::AdjustReflowStateAsContainingBlock(nsHTMLReflowState* aReflowState) const
+{
+#ifdef DEBUG
+  nsPoint offset =
+#endif
+    AdjustReflowStateForScrollbars(aReflowState);
+
+  NS_ASSERTION(GetAbsoluteContainingBlock()->GetChildList().IsEmpty() ||
+               (offset.x == 0 && offset.y == 0),
+               "We don't handle correct positioning of fixed frames with "
+               "scrollbars in odd positions");
+
+  
+  
+  nsRect rect(0, 0, aReflowState->ComputedWidth(), aReflowState->ComputedHeight());
+  nsIPresShell* ps = PresContext()->PresShell();
+  if (ps->IsScrollPositionClampingScrollPortSizeSet()) {
+    rect.SizeTo(ps->GetScrollPositionClampingScrollPortSize());
+  }
+
+  
+  rect.Deflate(ps->GetContentDocumentFixedPositionMargins());
+  return rect;
 }
 
 NS_IMETHODIMP
@@ -238,28 +263,7 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
       reflowState.SetComputedHeight(aDesiredSize.height);
     }
 
-#ifdef DEBUG
-    nsPoint offset =
-#endif
-      AdjustReflowStateForScrollbars(&reflowState);
-
-    NS_ASSERTION(GetAbsoluteContainingBlock()->GetChildList().IsEmpty() ||
-                 (offset.x == 0 && offset.y == 0),
-                 "We don't handle correct positioning of fixed frames with "
-                 "scrollbars in odd positions");
-
-    
-    
-    nsRect rect(0, 0, reflowState.ComputedWidth(), reflowState.ComputedHeight());
-    if (aPresContext->PresShell()->IsScrollPositionClampingScrollPortSizeSet()) {
-      nsSize size = aPresContext->PresShell()->
-        GetScrollPositionClampingScrollPortSize();
-      rect.width = size.width;
-      rect.height = size.height;
-    }
-
-    
-    rect.Deflate(aPresContext->PresShell()->GetContentDocumentFixedPositionMargins());
+    nsRect rect = AdjustReflowStateAsContainingBlock(&reflowState);
 
     
     rv = GetAbsoluteContainingBlock()->Reflow(this, aPresContext, reflowState, aStatus,

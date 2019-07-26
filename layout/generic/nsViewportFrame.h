@@ -24,6 +24,8 @@ class nsPresContext;
 
 class ViewportFrame : public nsContainerFrame {
 public:
+  NS_DECL_QUERYFRAME_TARGET(ViewportFrame)
+  NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
   typedef nsContainerFrame Super;
@@ -68,6 +70,14 @@ public:
 
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
 
+  
+
+
+
+
+
+  nsRect AdjustReflowStateAsContainingBlock(nsHTMLReflowState* aReflowState) const;
+
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
 #endif
@@ -76,6 +86,13 @@ private:
   virtual mozilla::layout::FrameChildListID GetAbsoluteListID() const { return kFixedList; }
 
 protected:
+  
+
+
+
+
+
+
   nsPoint AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) const;
 };
 
