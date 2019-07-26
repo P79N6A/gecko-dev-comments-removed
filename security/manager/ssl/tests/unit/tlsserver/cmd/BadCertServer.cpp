@@ -24,7 +24,6 @@ struct BadCertHost
   const char *mCertName;
 };
 
-
 const BadCertHost sBadCertHosts[] =
 {
   { "expired.example.com", "expired" },
@@ -43,15 +42,6 @@ const BadCertHost sBadCertHosts[] =
   { "inadequatekeyusage.example.com", "inadequatekeyusage" },
   { "selfsigned-inadequateEKU.example.com", "selfsigned-inadequateEKU" },
   { "self-signed-end-entity-with-cA-true.example.com", "self-signed-EE-with-cA-true" },
-  
-  
-  
-  
-  { "include-subdomains.pinning.example.com", "localhostAndExampleCom" },
-  { "good.include-subdomains.pinning.example.com", "localhostAndExampleCom" },
-  { "bad.include-subdomains.pinning.example.com", "otherIssuerEE" },
-  { "exclude-subdomains.pinning.example.com", "localhostAndExampleCom" },
-  { "sub.exclude-subdomains.pinning.example.com", "otherIssuerEE" },
   { nullptr, nullptr }
 };
 
