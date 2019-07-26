@@ -413,10 +413,22 @@ protected:
       } else if (origBytes[nBytes] == 0x6A) {
         
         nBytes += 2;
+      } else if (origBytes[nBytes] == 0xa1) {
+        
+        nBytes += 5;
       } else if (origBytes[nBytes] == 0xe9) {
         pJmp32 = nBytes;
         
         nBytes += 5;
+      } else if (origBytes[nBytes] == 0xf6 &&
+                 origBytes[nBytes+1] == 0x05) {
+        
+        nBytes += 7;
+      } else if (origBytes[nBytes] == 0xff &&
+                 origBytes[nBytes+1] == 0x25) {
+        
+        
+        nBytes += 6;
       } else {
         
         return;
