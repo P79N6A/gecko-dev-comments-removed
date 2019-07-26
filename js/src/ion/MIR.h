@@ -927,6 +927,64 @@ class MTest
 };
 
 
+
+
+class MInlineFunctionGuard : public MAryControlInstruction<1, 2>
+{
+    HeapPtr<JSFunction> fun_;
+
+    MInlineFunctionGuard(MDefinition *input, JSFunction *fun,
+                         MBasicBlock *funcBlock, MBasicBlock *fallback) {
+        if (input)
+            initOperand(0, input);
+
+        if (fun)
+            fun_ = fun;
+
+        setSuccessor(0, funcBlock);
+
+        if (fallback)
+            setSuccessor(1, fallback);
+    }
+
+  public:
+    INSTRUCTION_HEADER(InlineFunctionGuard);
+    static MInlineFunctionGuard *New(MDefinition *input, JSFunction *fun,
+                                     MBasicBlock *functionBlock,
+                                     MBasicBlock *fallbackBlock);
+
+    MDefinition *input() {
+        return getOperand(0);
+    }
+    void setInput(MDefinition *input) {
+        setOperand(0, input);
+    }
+
+    JSFunction *function() {
+        return fun_;
+    }
+    void setFunction(JSFunction *fun) {
+        fun_ = fun;
+    }
+
+    MBasicBlock *functionBlock() const {
+        return getSuccessor(0);
+    }
+
+    MBasicBlock *fallbackBlock() const {
+        return getSuccessor(1);
+    }
+    void setFallbackBlock(MBasicBlock *fallback) {
+        return setSuccessor(1, fallback);
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+
+
 class MReturn
   : public MAryControlInstruction<1, 0>,
     public BoxInputsPolicy
