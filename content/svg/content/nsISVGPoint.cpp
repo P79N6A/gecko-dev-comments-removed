@@ -17,6 +17,38 @@
 
 using namespace mozilla;
 
+
+
+
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGPoint)
+  
+  if (tmp->mList) {
+    tmp->mList->mItems[tmp->mListIndex] = nullptr;
+  }
+NS_IMPL_CYCLE_COLLECTION_UNLINK(mList)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(DOMSVGPoint)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mList)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(DOMSVGPoint)
+NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(DOMSVGPoint)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(DOMSVGPoint)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMSVGPoint)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
+  NS_INTERFACE_MAP_ENTRY(DOMSVGPoint) 
+  NS_INTERFACE_MAP_ENTRY(nsISVGPoint)
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
+NS_INTERFACE_MAP_END
+
 float
 DOMSVGPoint::X()
 {
@@ -91,3 +123,42 @@ DOMSVGPoint::MatrixTransform(dom::SVGMatrix& matrix)
   nsCOMPtr<nsISVGPoint> newPoint = new DOMSVGPoint(pt);
   return newPoint.forget();
 }
+
+void
+DOMSVGPoint::InsertingIntoList(DOMSVGPointList *aList,
+                               uint32_t aListIndex,
+                               bool aIsAnimValItem)
+{
+  NS_ABORT_IF_FALSE(!HasOwner(), "Inserting item that already has an owner");
+
+  mList = aList;
+  mListIndex = aListIndex;
+  mIsReadonly = false;
+  mIsAnimValItem = aIsAnimValItem;
+
+  NS_ABORT_IF_FALSE(IndexIsValid(), "Bad index for DOMSVGPoint!");
+}
+
+void
+DOMSVGPoint::RemovingFromList()
+{
+  mPt = InternalItem();
+  mList = nullptr;
+  NS_ABORT_IF_FALSE(!mIsReadonly, "mIsReadonly set for list");
+  mIsAnimValItem = false;
+}
+
+SVGPoint&
+DOMSVGPoint::InternalItem()
+{
+  return mList->InternalList().mItems[mListIndex];
+}
+
+#ifdef DEBUG
+bool
+DOMSVGPoint::IndexIsValid()
+{
+  return mListIndex < mList->InternalList().Length();
+}
+#endif
+

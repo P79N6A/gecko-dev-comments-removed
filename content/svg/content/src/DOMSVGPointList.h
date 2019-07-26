@@ -16,8 +16,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 
-class nsIDOMSVGPoint;
-
 namespace mozilla {
 
 class DOMSVGPoint;
@@ -52,7 +50,8 @@ class SVGAnimatedPointList;
 class DOMSVGPointList MOZ_FINAL : public nsISupports,
                                   public nsWrapperCache
 {
-  friend class DOMSVGPoint;
+  friend class nsISVGPoint;
+  friend class mozilla::DOMSVGPoint;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -216,7 +215,7 @@ private:
 
   
   
-  nsTArray<DOMSVGPoint*> mItems;
+  nsTArray<nsISVGPoint*> mItems;
 
   
   
