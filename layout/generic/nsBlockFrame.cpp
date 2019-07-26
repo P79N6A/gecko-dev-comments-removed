@@ -1501,6 +1501,13 @@ nsBlockFrame::UpdateOverflow()
       ConsiderChildOverflow(lineAreas, lineFrame);
     }
 
+    
+    if (line->HasFloats()) {
+      for (nsFloatCache* fc = line->GetFirstFloat(); fc; fc = fc->Next()) {
+        ConsiderChildOverflow(lineAreas, fc->mFloat);
+      }
+    }
+
     line->SetOverflowAreas(lineAreas);
   }
 
