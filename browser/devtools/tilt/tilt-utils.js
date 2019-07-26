@@ -405,8 +405,9 @@ TiltUtils.DOM = {
 
   getNodePosition: function TUD_getNodePosition(aContentWindow, aNode,
                                                 aParentPosition) {
+    let lh = new LayoutHelpers(aContentWindow);
     
-    let coord = LayoutHelpers.getRect(aNode, aContentWindow);
+    let coord = lh.getRect(aNode, aContentWindow);
     if (!coord) {
       return null;
     }
