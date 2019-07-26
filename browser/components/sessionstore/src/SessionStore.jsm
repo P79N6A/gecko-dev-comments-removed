@@ -2585,7 +2585,6 @@ let SessionStoreInternal = {
   restoreHistory:
     function ssi_restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap,
                                 aRestoreImmediately) {
-    var _this = this;
     
     while (aTabs.length > 0 && !(this._canRestoreTabHistory(aTabs[0]))) {
       aTabs.shift();
@@ -2654,9 +2653,11 @@ let SessionStoreInternal = {
     tab.dispatchEvent(event);
 
     
-    aWindow.setTimeout(function(){
-      _this.restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap,
-                           aRestoreImmediately);
+    aWindow.setTimeout(() => {
+      if (!aWindow.closed) {
+        this.restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap,
+                            aRestoreImmediately);
+      }
     }, 0);
 
     
