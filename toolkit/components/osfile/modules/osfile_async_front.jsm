@@ -60,37 +60,40 @@ Cu.import("resource://gre/modules/AsyncShutdown.jsm", this);
 
 
 
-if (!("profileDir" in SharedAll.Constants.Path)) {
-  Object.defineProperty(SharedAll.Constants.Path, "profileDir", {
-    get: function() {
-      let path = undefined;
-      try {
-        path = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
-        delete SharedAll.Constants.Path.profileDir;
-        SharedAll.Constants.Path.profileDir = path;
-      } catch (ex) {
-        
-      }
-      return path;
+
+
+function lazyPathGetter(constProp, dirKey) {
+  return function () {
+    let path;
+    try {
+      path = Services.dirsvc.get(dirKey, Ci.nsIFile).path;
+      delete SharedAll.Constants.Path[constProp];
+      SharedAll.Constants.Path[constProp] = path;
+    } catch (ex) {
+      
+      
     }
-  });
+
+    return path;
+  }
 }
 
-LOG("Checking localProfileDir");
+for (let [constProp, dirKey] of [
+  ["localProfileDir", "ProfLD"],
+  ["profileDir", "ProfD"],
+  ["userApplicationDataDir", "UAppData"],
+  ["winAppDataDir", "AppData"],
+  ["winStartMenuProgsDir", "Progs"],
+  ]) {
 
-if (!("localProfileDir" in SharedAll.Constants.Path)) {
-  Object.defineProperty(SharedAll.Constants.Path, "localProfileDir", {
-    get: function() {
-      let path = undefined;
-      try {
-        path = Services.dirsvc.get("ProfLD", Ci.nsIFile).path;
-        delete SharedAll.Constants.Path.localProfileDir;
-        SharedAll.Constants.Path.localProfileDir = path;
-      } catch (ex) {
-        
-      }
-      return path;
-    }
+  if (constProp in SharedAll.Constants.Path) {
+    continue;
+  }
+
+  LOG("Installing lazy getter for OS.Constants.Path." + constProp +
+      " because it isn't defined and profile may not be loaded.");
+  Object.defineProperty(SharedAll.Constants.Path, constProp, {
+    get: lazyPathGetter(constProp, dirKey),
   });
 }
 
