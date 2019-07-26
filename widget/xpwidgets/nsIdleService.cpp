@@ -648,6 +648,9 @@ nsIdleService::IdleTimerCallback(void)
   mCurrentlySetToTimeoutAt = TimeStamp();
 
   
+  uint32_t lastIdleTimeInMS = static_cast<uint32_t>((TimeStamp::Now() -
+                              mLastUserInteraction).ToMilliseconds());
+  
   uint32_t currentIdleTimeInMS;
 
   if (NS_FAILED(GetIdleTime(&currentIdleTimeInMS))) {
@@ -672,9 +675,7 @@ nsIdleService::IdleTimerCallback(void)
   
   
   
-  
-  TimeDuration aIdleTime = TimeStamp::Now() - mLastUserInteraction;
-  if (aIdleTime.ToMilliseconds() > currentIdleTimeInMS)
+  if (lastIdleTimeInMS > currentIdleTimeInMS)
   {
     
     
@@ -798,7 +799,7 @@ nsIdleService::SetTimerExpiryIfBefore(TimeStamp aNextTimeout)
 
     TimeDuration deltaTime = mCurrentlySetToTimeoutAt - currentTime;
     PR_LOG(sLog, PR_LOG_DEBUG,
-           ("idleService: IdleService", "reset timer expiry to %0.f msec from now",
+           ("idleService: IdleService reset timer expiry to %0.f msec from now",
             deltaTime.ToMilliseconds()));
 #ifdef ANDROID
     __android_log_print(ANDROID_LOG_INFO, "IdleService",
