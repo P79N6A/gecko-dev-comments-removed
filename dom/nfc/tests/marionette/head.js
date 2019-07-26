@@ -1,6 +1,8 @@
 
 
 
+let pendingEmulatorCmdCount = 0;
+
 function toggleNFC(enabled, callback) {
   isnot(callback, null);
   var settings = window.navigator.mozSettings;
@@ -34,7 +36,10 @@ function toggleNFC(enabled, callback) {
 
 function cleanUp() {
   log('Cleaning up');
-  finish();
+  waitFor(finish(),
+          function() {
+            return pendingEmulatorCmdCount === 0;
+          });
 }
 
 function runNextTest() {
