@@ -32,10 +32,13 @@ const gEncoder = new TextEncoder();
 
 
 
+
 var Resource = Class({
   extends: EventTarget,
 
-  refresh: function() { return promise.resolve(this) },
+  refresh: function() { return promise.resolve(this); },
+  destroy: function() { },
+  delete: function() { },
 
   setURI: function(uri) {
     if (typeof(uri) === "string") {
@@ -242,6 +245,21 @@ var FileResource = Class({
     return OS.File.read(this.path).then(bytes => {
       return gDecoder.decode(bytes);
     });
+  },
+
+  
+
+
+
+
+
+  delete: function() {
+    emit(this, "deleted", this);
+    if (this.isDir) {
+      return OS.File.removeDir(this.path);
+    } else {
+      return OS.File.remove(this.path);
+    }
   },
 
   

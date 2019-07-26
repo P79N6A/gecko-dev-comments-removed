@@ -62,6 +62,14 @@ var Shell = Class({
   
 
 
+  destroy: function() {
+    this.editor.destroy();
+    this.resource.destroy();
+  },
+
+  
+
+
 
   _editorTypeForResource: function() {
     let resource = this.resource;
@@ -148,6 +156,26 @@ var ShellDeck = Class({
     shell.load();
     this.deck.appendChild(shell.elt);
     return shell;
+  },
+
+  
+
+
+
+
+  removeResource: function(resource) {
+    let shell = this.shellFor(resource);
+    if (shell) {
+      this.shells.delete(resource);
+      shell.destroy();
+    }
+  },
+
+  destroy: function() {
+    for (let [resource, shell] of this.shells.entries()) {
+      this.shells.delete(resource);
+      shell.destroy();
+    }
   },
 
   
