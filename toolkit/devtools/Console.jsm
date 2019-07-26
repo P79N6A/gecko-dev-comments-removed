@@ -526,7 +526,6 @@ function sendConsoleAPIMessage(aConsole, aLevel, aFrame, aArgs, aOptions = {})
   let consoleEvent = {
     ID: "jsm",
     innerID: aConsole.innerID || aFrame.filename,
-    consoleID: aConsole.consoleID,
     level: aLevel,
     filename: aFrame.filename,
     lineNumber: aFrame.lineNumber,
@@ -586,8 +585,6 @@ function sendConsoleAPIMessage(aConsole, aLevel, aFrame, aArgs, aOptions = {})
 
 
 
-
-
 function ConsoleAPI(aConsoleOptions = {}) {
   
   
@@ -595,7 +592,6 @@ function ConsoleAPI(aConsoleOptions = {}) {
   this.prefix = aConsoleOptions.prefix || "";
   this.maxLogLevel = aConsoleOptions.maxLogLevel || "all";
   this.innerID = aConsoleOptions.innerID || null;
-  this.consoleID = aConsoleOptions.consoleID || "";
 
   
   for (let prop in this) {

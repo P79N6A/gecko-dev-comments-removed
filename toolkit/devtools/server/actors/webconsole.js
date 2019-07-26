@@ -1319,7 +1319,6 @@ WebConsoleActor.prototype =
     delete result.wrappedJSObject;
     delete result.ID;
     delete result.innerID;
-    delete result.consoleID;
 
     result.arguments = Array.map(aMessage.arguments || [], (aObj) => {
       let dbgObj = this.makeDebuggeeValue(aObj, true);
@@ -1403,89 +1402,6 @@ WebConsoleActor.prototype.requestTypes =
   setPreferences: WebConsoleActor.prototype.onSetPreferences,
   sendHTTPRequest: WebConsoleActor.prototype.onSendHTTPRequest
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function AddonConsoleActor(aAddon, aConnection, aParentActor)
-{
-  this.addon = aAddon;
-  WebConsoleActor.call(this, aConnection, aParentActor);
-}
-
-AddonConsoleActor.prototype = Object.create(WebConsoleActor.prototype);
-
-update(AddonConsoleActor.prototype, {
-  constructor: AddonConsoleActor,
-
-  actorPrefix: "addonConsole",
-
-  
-
-
-  addon: null,
-
-  
-
-
-  get window() {
-    return this.parentActor.global;
-  },
-
-  
-
-
-  disconnect: function ACA_disconnect()
-  {
-    WebConsoleActor.prototype.disconnect.call(this);
-    this.addon = null;
-  }
-
-  
-
-
-
-
-
-
-
-  onStartListeners: function ACA_onStartListeners(aRequest)
-  {
-    let startedListeners = [];
-
-    while (aRequest.listeners.length > 0) {
-      let listener = aRequest.listeners.shift();
-      switch (listener) {
-        case "ConsoleAPI":
-          if (!this.consoleAPIListener) {
-            this.consoleAPIListener =
-              new ConsoleAPIListener(null, this, "addon/" + this.addon.id);
-            this.consoleAPIListener.init();
-          }
-          startedListeners.push(listener);
-          break;
-      }
-    }
-    return {
-      startedListeners: startedListeners,
-      nativeConsoleAPI: true,
-      traits: this.traits,
-    };
-  },
-});
-
-AddonConsoleActor.prototype.requestTypes = Object.create(WebConsoleActor.prototype.requestTypes);
-AddonConsoleActor.prototype.requestTypes.startListeners = AddonConsoleActor.prototype.onStartListeners;
 
 
 

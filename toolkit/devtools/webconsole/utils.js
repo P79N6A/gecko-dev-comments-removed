@@ -1292,13 +1292,10 @@ ConsoleServiceListener.prototype =
 
 
 
-
-
-function ConsoleAPIListener(aWindow, aOwner, aConsoleID)
+function ConsoleAPIListener(aWindow, aOwner)
 {
   this.window = aWindow;
   this.owner = aOwner;
-  this.consoleID = aConsoleID;
   if (this.window) {
     this.layoutHelpers = new LayoutHelpers(this.window);
   }
@@ -1324,12 +1321,6 @@ ConsoleAPIListener.prototype =
 
 
   owner: null,
-
-  
-
-
-
-  consoleID: null,
 
   
 
@@ -1364,9 +1355,6 @@ ConsoleAPIListener.prototype =
         return;
       }
     }
-    if (this.consoleID && apiMessage.consoleID != this.consoleID) {
-      return;
-    }
 
     this.owner.onConsoleAPICall(apiMessage);
   },
@@ -1395,10 +1383,6 @@ ConsoleAPIListener.prototype =
       ids.forEach((id) => {
         messages = messages.concat(ConsoleAPIStorage.getEvents(id));
       });
-    }
-
-    if (this.consoleID) {
-      messages = messages.filter((m) => m.consoleID == this.consoleID);
     }
 
     if (aIncludePrivate) {
