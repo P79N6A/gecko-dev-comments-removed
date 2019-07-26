@@ -1972,24 +1972,6 @@ abstract public class GeckoApp
     }
 
     @Override
-    public void onStop()
-    {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createStoppingEvent(isApplicationInBackground()));
-        super.onStop();
-    }
-
-    @Override
     public void onPause()
     {
         
@@ -2029,13 +2011,6 @@ abstract public class GeckoApp
         });
 
         super.onRestart();
-    }
-
-    @Override
-    public void onStart()
-    {
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createStartEvent(isApplicationInBackground()));
-        super.onStart();
     }
 
     @Override

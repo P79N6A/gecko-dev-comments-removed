@@ -355,48 +355,19 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
         break;
     }
 
-    case AndroidGeckoEvent::ACTIVITY_STOPPING: {
-        if (curEvent->Flags() > 0)
-            break;
-
+    case AndroidGeckoEvent::APP_BACKGROUNDING: {
         nsCOMPtr<nsIObserverService> obsServ =
             mozilla::services::GetObserverService();
-        NS_NAMED_LITERAL_STRING(minimize, "heap-minimize");
-        obsServ->NotifyObservers(nullptr, "memory-pressure", minimize.get());
         obsServ->NotifyObservers(nullptr, "application-background", nullptr);
 
-        break;
-    }
+        NS_NAMED_LITERAL_STRING(minimize, "heap-minimize");
+        obsServ->NotifyObservers(nullptr, "memory-pressure", minimize.get());
 
-    case AndroidGeckoEvent::ACTIVITY_SHUTDOWN: {
-        nsCOMPtr<nsIObserverService> obsServ =
-            mozilla::services::GetObserverService();
-        NS_NAMED_LITERAL_STRING(context, "shutdown-persist");
-        obsServ->NotifyObservers(nullptr, "quit-application-granted", nullptr);
-        obsServ->NotifyObservers(nullptr, "quit-application-forced", nullptr);
-        obsServ->NotifyObservers(nullptr, "profile-change-net-teardown", context.get());
-        obsServ->NotifyObservers(nullptr, "profile-change-teardown", context.get());
-        obsServ->NotifyObservers(nullptr, "profile-before-change", context.get());
-        obsServ->NotifyObservers(nullptr, "profile-before-change2", context.get());
-        nsCOMPtr<nsIAppStartup> appSvc = do_GetService("@mozilla.org/toolkit/app-startup;1");
-        if (appSvc)
-            appSvc->Quit(nsIAppStartup::eForceQuit);
-        break;
-    }
-
-    case AndroidGeckoEvent::ACTIVITY_PAUSING: {
-        if (curEvent->Flags() == 0) {
-            
-            
-            nsCOMPtr<nsIObserverService> obsServ =
-                mozilla::services::GetObserverService();
-            obsServ->NotifyObservers(nullptr, "application-background", nullptr);
-
-            
-            
-            
-            if (nsCacheService::GlobalInstance())
-                nsCacheService::GlobalInstance()->Shutdown();
+        
+        
+        
+        if (nsCacheService::GlobalInstance()) {
+            nsCacheService::GlobalInstance()->Shutdown();
         }
 
         
@@ -412,18 +383,22 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
 
             prefs->SavePrefFile(nullptr);
         }
-
         break;
     }
 
-    case AndroidGeckoEvent::ACTIVITY_START: {
-        if (curEvent->Flags() > 0)
-            break;
+    case AndroidGeckoEvent::APP_FOREGROUNDING: {
+        
+        
+        
+        if (nsCacheService::GlobalInstance()) {
+            nsCacheService::GlobalInstance()->Init();
+        }
 
+        
+        
         nsCOMPtr<nsIObserverService> obsServ =
             mozilla::services::GetObserverService();
         obsServ->NotifyObservers(nullptr, "application-foreground", nullptr);
-
         break;
     }
 
@@ -514,23 +489,6 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     case AndroidGeckoEvent::NETWORK_CHANGED: {
         hal::NotifyNetworkChange(hal::NetworkInformation(curEvent->Bandwidth(),
                                                          curEvent->CanBeMetered()));
-        break;
-    }
-
-    case AndroidGeckoEvent::ACTIVITY_RESUMING: {
-        if (curEvent->Flags() == 0) {
-            
-            
-            
-            if (nsCacheService::GlobalInstance())
-                nsCacheService::GlobalInstance()->Init();
-
-            
-            
-            nsCOMPtr<nsIObserverService> obsServ =
-                mozilla::services::GetObserverService();
-            obsServ->NotifyObservers(nullptr, "application-foreground", nullptr);
-        }
         break;
     }
 
