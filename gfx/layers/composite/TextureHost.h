@@ -379,7 +379,9 @@ public:
 
 
 
-  static PTextureParent* CreateIPDLActor(ISurfaceAllocator* aAllocator);
+  static PTextureParent* CreateIPDLActor(ISurfaceAllocator* aAllocator,
+                                         const SurfaceDescriptor& aSharedData,
+                                         TextureFlags aFlags);
   static bool DestroyIPDLActor(PTextureParent* actor);
 
   

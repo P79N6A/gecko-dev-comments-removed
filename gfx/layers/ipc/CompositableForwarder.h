@@ -98,10 +98,7 @@ public:
   
 
 
-
-
-
-  virtual PTextureChild* CreateEmptyTextureChild() = 0;
+  virtual PTextureChild* CreateTexture(const SurfaceDescriptor& aSharedData, TextureFlags aFlags) = 0;
 
   
 
