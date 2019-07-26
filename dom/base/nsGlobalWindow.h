@@ -391,6 +391,9 @@ public:
   NS_DECL_NSIINTERFACEREQUESTOR
 
   
+  uint32_t GetLength();
+
+  
   nsGlobalWindow(nsGlobalWindow *aOuterWindow);
 
   static nsGlobalWindow *FromSupports(nsISupports *supports)
@@ -920,6 +923,9 @@ protected:
 
   
   void CreatePerformanceObjectIfNeeded();
+
+  
+  nsDOMWindowList* GetWindowList();
 
   
   
