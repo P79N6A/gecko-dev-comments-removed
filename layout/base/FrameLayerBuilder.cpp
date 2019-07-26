@@ -2990,7 +2990,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
   gfxSize scale;
   
   if (canDraw2D) {
-    
+
     
     if (aContainerFrame->GetContent() &&
         nsLayoutUtils::HasAnimationsForCompositor(
@@ -3868,8 +3868,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const DisplayItemClip& aClip,
     
     container = aLayer->Manager()->CreateImageContainer();
     NS_ASSERTION(container, "Could not create image container for mask layer.");
-    static const ImageFormat format = ImageFormat::CAIRO_SURFACE;
-    nsRefPtr<Image> image = container->CreateImage(&format, 1);
+    nsRefPtr<Image> image = container->CreateImage(ImageFormat::CAIRO_SURFACE);
     NS_ASSERTION(image, "Could not create image container for mask layer.");
     CairoImage::Data data;
     data.mDeprecatedSurface = surface;
