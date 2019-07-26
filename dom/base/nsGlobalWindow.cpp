@@ -1367,7 +1367,11 @@ nsGlobalWindow::CleanUp(bool aIgnoreModalDialog)
     NS_RELEASE(mObserver);
   }
 
-  mNavigator = nullptr;
+  if (mNavigator) {
+    mNavigator->Invalidate();
+    mNavigator = nullptr;
+  }
+
   mScreen = nullptr;
   mMenubar = nullptr;
   mToolbar = nullptr;
@@ -4850,7 +4854,7 @@ nsGlobalWindow::GetScrollXY(int32_t* aScrollX, int32_t* aScrollY,
     return GetScrollXY(aScrollX, aScrollY, true);
   }
 
-  CSSIntPoint scrollPosCSSPixels = sf->GetScrollPositionCSSPixels();
+  nsIntPoint scrollPosCSSPixels = sf->GetScrollPositionCSSPixels();
   if (aScrollX) {
     *aScrollX = scrollPosCSSPixels.x;
   }
@@ -6103,7 +6107,8 @@ nsGlobalWindow::ScrollBy(int32_t aXScrollDif, int32_t aYScrollDif)
 
   if (sf) {
     CSSIntPoint scrollPos =
-      sf->GetScrollPositionCSSPixels() + CSSIntPoint(aXScrollDif, aYScrollDif);
+      CSSIntPoint::FromAppUnitsRounded(sf->GetScrollPosition()) +
+      CSSIntPoint(aXScrollDif, aYScrollDif);
     
     
     

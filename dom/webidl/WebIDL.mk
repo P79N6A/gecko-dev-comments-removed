@@ -343,7 +343,6 @@ webidl_files = \
   TimeRanges.webidl \
   Touch.webidl \
   TouchEvent.webidl \
-  TouchList.webidl \
   TransitionEvent.webidl \
   TreeColumns.webidl \
   TreeWalker.webidl \
@@ -369,6 +368,10 @@ webidl_files = \
   XULCommandEvent.webidl \
   XULDocument.webidl \
   XULElement.webidl \
+  Plugin.webidl \
+  PluginArray.webidl \
+  MimeType.webidl \
+  MimeTypeArray.webidl \
   $(NULL)
 
 ifdef MOZ_AUDIO_CHANNEL_MANAGER
