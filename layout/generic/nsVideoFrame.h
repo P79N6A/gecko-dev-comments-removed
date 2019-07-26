@@ -89,6 +89,8 @@ public:
   
   bool ShouldDisplayPoster();
 
+  nsIContent *GetCaptionOverlay() { return mCaptionDiv; }
+
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
@@ -123,6 +125,10 @@ protected:
 
   
   nsCOMPtr<nsIContent> mPosterImage;
+
+  
+  nsCOMPtr<nsIContent> mCaptionDiv;
+
 };
 
 #endif 
