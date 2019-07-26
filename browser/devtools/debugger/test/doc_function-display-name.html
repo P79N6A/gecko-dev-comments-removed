@@ -1,0 +1,31 @@
+
+
+<!doctype html>
+
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Debugger test page</title>
+  </head>
+
+  <body>
+    <script type="text/javascript">
+      var a = function() {
+        return function() {
+          debugger;
+        }
+      }
+
+      var anon = a();
+      anon.displayName = "anonFunc";
+
+      var inferred = a();
+
+      function evalCall() {
+        eval("anon();");
+        eval("inferred();");
+      }
+    </script>
+  </body>
+
+</html>

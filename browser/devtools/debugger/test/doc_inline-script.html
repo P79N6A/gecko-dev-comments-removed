@@ -1,0 +1,25 @@
+
+
+<!doctype html>
+
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Debugger test page</title>
+  </head>
+
+  <body>
+    <button onclick="myFunction()">Click me!</button>
+
+    <script type="text/javascript">
+      function runDebuggerStatement() {
+        debugger;
+      }
+      function myFunction() {
+        var a = 1;
+        debugger;
+      }
+    </script>
+  </body>
+
+</html>
