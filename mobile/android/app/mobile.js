@@ -31,7 +31,7 @@ pref("browser.tabs.remote", false);
 
 
 
-pref("browser.tabs.expireTime", 3600);
+pref("browser.tabs.expireTime", 900);
 
 
 pref("zoom.minPercent", 20);
