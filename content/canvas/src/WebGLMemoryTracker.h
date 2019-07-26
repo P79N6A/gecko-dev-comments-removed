@@ -3,8 +3,8 @@
 
 
 
-#ifndef WEBGLMEMORYREPORTERWRAPPER_H_
-#define WEBGLMEMORYREPORTERWRAPPER_H_
+#ifndef WEBGLMEMORYTRACKER_H_
+#define WEBGLMEMORYTRACKER_H_
 
 #include "WebGLContext.h"
 #include "WebGLBuffer.h"
@@ -18,13 +18,13 @@
 
 namespace mozilla {
 
-class WebGLMemoryReporterWrapper : public nsISupports
+class WebGLMemoryTracker : public nsISupports
 {
     NS_DECL_ISUPPORTS
 
-    WebGLMemoryReporterWrapper();
-    virtual ~WebGLMemoryReporterWrapper();
-    static StaticRefPtr<WebGLMemoryReporterWrapper> sUniqueInstance;
+    WebGLMemoryTracker();
+    virtual ~WebGLMemoryTracker();
+    static StaticRefPtr<WebGLMemoryTracker> sUniqueInstance;
 
     
     
@@ -34,7 +34,7 @@ class WebGLMemoryReporterWrapper : public nsISupports
 
     nsCOMPtr<nsIMemoryReporter> mReporter;
 
-    static WebGLMemoryReporterWrapper* UniqueInstance();
+    static WebGLMemoryTracker* UniqueInstance();
 
     static ContextsArrayType & Contexts() { return UniqueInstance()->mContexts; }
 
