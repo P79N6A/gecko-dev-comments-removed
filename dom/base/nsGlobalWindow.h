@@ -59,7 +59,6 @@
 #include "nsIContent.h"
 #include "nsIIDBFactory.h"
 #include "nsFrameMessageManager.h"
-#include "mozilla/LinkedList.h"
 #include "mozilla/TimeStamp.h"
 #include "nsIDOMTouchEvent.h"
 #include "nsIInlineEventHandlers.h"
@@ -70,10 +69,6 @@
 
 
 #include "jsapi.h"
-
-#ifdef MOZ_B2G
-#include "nsIDOMWindowB2G.h"
-#endif 
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
@@ -139,7 +134,7 @@ NS_CreateJSTimeoutHandler(nsGlobalWindow *aWindow,
 
 
 
-struct nsTimeout : mozilla::LinkedListElement<nsTimeout>
+struct nsTimeout : PRCList
 {
   nsTimeout();
   ~nsTimeout();
@@ -148,6 +143,16 @@ struct nsTimeout : mozilla::LinkedListElement<nsTimeout>
 
   nsrefcnt Release();
   nsrefcnt AddRef();
+
+  nsTimeout* Next() {
+    
+    return static_cast<nsTimeout*>(PR_NEXT_LINK(this));
+  }
+
+  nsTimeout* Prev() {
+    
+    return static_cast<nsTimeout*>(PR_PREV_LINK(this));
+  }
 
   nsresult InitTimer(nsTimerCallbackFunc aFunc, uint64_t delay) {
     return mTimer->InitWithFuncCallback(aFunc, this, delay,
@@ -268,9 +273,6 @@ class nsGlobalWindow : public nsPIDOMWindow,
                        public nsITouchEventReceiver,
                        public nsIInlineEventHandlers,
                        public nsIWindowCrypto
-#ifdef MOZ_B2G
-                     , public nsIDOMWindowB2G
-#endif 
 {
 public:
   friend class nsDOMMozURLProperty;
@@ -319,11 +321,6 @@ public:
 
   
   NS_DECL_NSIDOMWINDOW
-
-#ifdef MOZ_B2G
-  
-  NS_DECL_NSIDOMWINDOWB2G
-#endif 
 
   
   NS_DECL_NSIDOMWINDOWPERFORMANCE
@@ -549,10 +546,8 @@ public:
   virtual void EnableTimeChangeNotifications();
   virtual void DisableTimeChangeNotifications();
 
-#ifdef MOZ_B2G
   virtual void EnableNetworkEvent(uint32_t aType);
   virtual void DisableNetworkEvent(uint32_t aType);
-#endif 
 
   virtual nsresult SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin);
 
@@ -877,6 +872,20 @@ protected:
 
   bool IsInModalState();
 
+  nsTimeout* FirstTimeout() {
+    
+    return static_cast<nsTimeout*>(PR_LIST_HEAD(&mTimeouts));
+  }
+
+  nsTimeout* LastTimeout() {
+    
+    return static_cast<nsTimeout*>(PR_LIST_TAIL(&mTimeouts));
+  }
+
+  bool IsTimeout(PRCList* aList) {
+    return aList != &mTimeouts;
+  }
+
   
   
   
@@ -1044,7 +1053,7 @@ protected:
   
   
   
-  mozilla::LinkedList<nsTimeout> mTimeouts;
+  PRCList                       mTimeouts;
   
   
   
