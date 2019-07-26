@@ -87,19 +87,19 @@ public:
 
 
 
-  bool Connect(int aFd, const char* aAddress);
+  virtual void CreateAddr(bool aIsServer,
+                          socklen_t& aAddrSize,
+                          struct sockaddr *aAddr,
+                          const char* aAddress) = 0;
+
   
-protected:
-  
 
 
 
 
 
 
-
-
-  virtual bool ConnectInternal(int aFd, const char* aAddress) = 0;
+  virtual bool Setup(int aFd) = 0;  
 };
 
 class UnixSocketConsumer : public RefCounted<UnixSocketConsumer>
@@ -110,7 +110,7 @@ public:
   {}
 
   virtual ~UnixSocketConsumer();
-  
+
   
 
 
@@ -149,17 +149,28 @@ public:
 
 
 
-
-
-  bool ConnectSocket(UnixSocketConnector& aConnector, const char* aAddress);
+  bool ConnectSocket(UnixSocketConnector* aConnector, const char* aAddress);
 
   
 
 
 
 
+
+
+
+  bool ListenSocket(UnixSocketConnector* aConnector);
+
+  
+
+
+
   void CloseSocket();
 
+  
+
+
+  void CancelSocketTask();
 private:
   nsAutoPtr<UnixSocketImpl> mImpl;
 };
