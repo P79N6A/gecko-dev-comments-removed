@@ -7072,8 +7072,9 @@ nsGlobalWindow::FinalClose()
   
   
   
-  bool indirect = nsContentUtils::GetCurrentJSContext() ==
-                  GetContextInternal()->GetNativeContext();
+  bool indirect = GetContextInternal() && 
+                  (nsContentUtils::GetCurrentJSContext() ==
+                   GetContextInternal()->GetNativeContext());
   if ((!indirect && nsContentUtils::IsCallerChrome()) ||
       NS_FAILED(nsCloseEvent::PostCloseEvent(this, indirect))) {
     ReallyCloseWindow();
