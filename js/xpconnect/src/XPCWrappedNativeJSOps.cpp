@@ -1383,6 +1383,33 @@ XPCNativeScriptableShared::PopulateJSClass()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MOZ_ALWAYS_INLINE JSObject*
+FixUpThisIfBroken(JSObject *obj, JSObject *funobj)
+{
+    if (MOZ_UNLIKELY(funobj &&
+        (js::GetObjectClass(js::GetObjectParent(funobj)) == &XPC_WN_NoHelper_JSClass.base) &&
+        (js::GetObjectClass(obj) != &XPC_WN_NoHelper_JSClass.base)))
+    {
+        return js::GetObjectParent(funobj);
+    }
+    return obj;
+}
+
 JSBool
 XPC_WN_CallMethod(JSContext *cx, unsigned argc, jsval *vp)
 {
@@ -1405,6 +1432,7 @@ XPC_WN_CallMethod(JSContext *cx, unsigned argc, jsval *vp)
     if (IS_SLIM_WRAPPER(obj) && !MorphSlimWrapper(cx, obj))
         return Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
 
+    obj = FixUpThisIfBroken(obj, funobj);
     XPCCallContext ccx(JS_CALLER, cx, obj, funobj, JSID_VOID, argc, JS_ARGV(cx, vp), vp);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
     THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -1442,6 +1470,8 @@ XPC_WN_GetterSetter(JSContext *cx, unsigned argc, jsval *vp)
     if (IS_SLIM_WRAPPER(obj) && !MorphSlimWrapper(cx, obj))
         return Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
 
+
+    obj = FixUpThisIfBroken(obj, funobj);
     XPCCallContext ccx(JS_CALLER, cx, obj, funobj, JSID_VOID, argc, JS_ARGV(cx, vp), vp);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
     THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
