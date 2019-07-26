@@ -5,7 +5,6 @@
 package org.mozilla.gecko.favicons.decoders;
 
 import android.graphics.Bitmap;
-import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.gfx.BitmapUtils;
 
 import java.util.Iterator;
@@ -87,7 +86,7 @@ public class FaviconDecoder {
             result = new LoadFaviconResult();
             result.mOffset = offset;
             result.mLength = length;
-            result.mHasMultipleBitmaps = false;
+            result.mIsICO = false;
 
             
             
