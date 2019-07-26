@@ -1,3 +1,7 @@
+
+
+setJitCompilerOption("baseline.usecount.trigger", 2);
+
 function f(N) {
     var body = "return [";
     for (var i = 0; i < N-1; i++)
