@@ -24,16 +24,10 @@ const ContentPanning = {
   hybridEvents: false,
 
   init: function cp_init() {
-    let els = Cc["@mozilla.org/eventlistenerservice;1"]
-                .getService(Ci.nsIEventListenerService);
-
     var events;
     try {
       content.document.createEvent('TouchEvent');
       events = ['touchstart', 'touchend', 'touchmove'];
-      els.addSystemEventListener(global, 'mousedown',
-                                 this.handleEvent.bind(this),
-                                  true);
       this.watchedEventsType = 'touch';
 #ifdef MOZ_WIDGET_GONK
       
@@ -55,6 +49,9 @@ const ContentPanning = {
     
     
     if (!this._asyncPanZoomForViewportFrame) {
+      let els = Cc["@mozilla.org/eventlistenerservice;1"]
+                  .getService(Ci.nsIEventListenerService);
+
       events.forEach(function(type) {
         
         
@@ -83,24 +80,6 @@ const ContentPanning = {
 
     switch (evt.type) {
       case 'mousedown':
-        
-        
-        
-        
-        
-        if (this.watchedEventsType == 'touch' && !this.hybridEvents) {
-          this._setActive(evt.target);
-
-          var start = Date.now();
-          var thread = Services.tm.currentThread;
-          while ((Date.now() - start) < 100) {
-            thread.processNextEvent(true);
-          }
-
-          
-          
-          return;
-        }
       case 'touchstart':
         this.onTouchStart(evt);
         break;
