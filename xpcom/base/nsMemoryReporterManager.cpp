@@ -796,10 +796,10 @@ private:
 namespace mozilla {
 namespace dmd {
 
-class DMDReporter MOZ_FINAL : public MemoryMultiReporter
+class DMDReporter MOZ_FINAL : public nsIMemoryReporter
 {
 public:
-  DMDReporter() {}
+  NS_DECL_ISUPPORTS
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
                             nsISupports* aData)
@@ -841,6 +841,8 @@ public:
     return NS_OK;
   }
 };
+
+NS_IMPL_ISUPPORTS1(DMDReporter, nsIMemoryReporter)
 
 } 
 } 
@@ -1737,7 +1739,6 @@ nsMemoryReporterManager::SizeOfTab(nsIDOMWindow* aTopWindow,
 
 
 NS_IMPL_ISUPPORTS1(MemoryUniReporter, nsIMemoryReporter)
-NS_IMPL_ISUPPORTS1(MemoryMultiReporter, nsIMemoryReporter)
 
 namespace mozilla {
 
