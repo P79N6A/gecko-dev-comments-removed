@@ -579,13 +579,19 @@ void CExecuteCommandVerb::LaunchDesktopBrowser()
   
   
   CStringW params;
-  if (!IsTargetBrowser()) {
+  if (!IsTargetBrowser() && !mTarget.IsEmpty()) {
     
     GetDefaultBrowserPath(browserPath);
     params += "-url ";
     params += "\"";
     params += mTarget;
     params += "\"";
+  }
+
+  
+  if (!mParameters.IsEmpty()) {
+    params += " ";
+    params += mParameters;
   }
 
   Log(L"Desktop Launch: verb:%s exe:%s params:%s", mVerb, browserPath, params); 
