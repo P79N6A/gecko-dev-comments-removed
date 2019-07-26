@@ -2831,9 +2831,16 @@ Tab.prototype = {
       uri = Services.io.newURI(aURL, null, null).spec;
     } catch (e) {}
 
+    
+    
+    
+    
+    let stub = false;
+
     if (!aParams.zombifying) {
       if ("tabID" in aParams) {
         this.id = aParams.tabID;
+        stub = true;
       } else {
         let jni = new JNI();
         let cls = jni.findClass("org/mozilla/gecko/Tabs");
@@ -2854,7 +2861,8 @@ Tab.prototype = {
         title: title,
         delayLoad: aParams.delayLoad || false,
         desktopMode: this.desktopMode,
-        isPrivate: isPrivate
+        isPrivate: isPrivate,
+        stub: stub
       };
       sendMessageToJava(message);
 
