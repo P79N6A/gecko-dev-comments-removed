@@ -153,8 +153,36 @@ function test() {
     is(content.innerWidth, widthBeforeClose, "width restored.");
     is(content.innerHeight, heightBeforeClose, "height restored.");
 
-    mgr.once("off", function() {executeSoon(finishUp)});
+    mgr.once("off", function() {executeSoon(testScreenshot)});
     EventUtils.synthesizeKey("VK_ESCAPE", {});
+  }
+
+  function testScreenshot() {
+    let isWinXP = navigator.userAgent.indexOf("Windows NT 5.1") != -1;
+    if (isWinXP) {
+      
+      
+      return finishUp();
+    }
+
+    info("screenshot");
+    instance.screenshot("responsiveui");
+    let FileUtils = (Cu.import("resource://gre/modules/FileUtils.jsm", {})).FileUtils;
+
+    
+    
+    info("checking if file exists in 200ms");
+    function checkIfFileExist() {
+      let file = FileUtils.getFile("DfltDwnld", [ "responsiveui.png" ]);
+      if (file.exists()) {
+        ok(true, "Screenshot file exists");
+        file.remove(false);
+        finishUp();
+      } else {
+        setTimeout(checkIfFileExist, 200);
+      }
+    }
+    checkIfFileExist();
   }
 
   function finishUp() {

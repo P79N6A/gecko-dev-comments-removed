@@ -85,7 +85,7 @@ function test() {
     
     
     executeSoon(function() {
-      EventUtils.synthesizeKey("VK_ESCAPE", {});
+      instance.close();
     });
   }
 
@@ -135,7 +135,7 @@ function test() {
 
     
     
-    executeSoon(() => EventUtils.synthesizeKey("VK_ESCAPE", {}));
+    executeSoon(() => instance.close());
   }
 
   function restartAgain() {

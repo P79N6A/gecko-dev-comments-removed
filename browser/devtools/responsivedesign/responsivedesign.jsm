@@ -157,6 +157,7 @@ function ResponsiveUI(aWindow, aTab)
   this.bound_addPreset = this.addPreset.bind(this);
   this.bound_removePreset = this.removePreset.bind(this);
   this.bound_rotate = this.rotate.bind(this);
+  this.bound_screenshot = () => this.screenshot();
   this.bound_close = this.close.bind(this);
   this.bound_startResizing = this.startResizing.bind(this);
   this.bound_stopResizing = this.stopResizing.bind(this);
@@ -228,6 +229,7 @@ ResponsiveUI.prototype = {
     this.tab.removeEventListener("TabClose", this);
     this.tabContainer.removeEventListener("TabSelect", this);
     this.rotatebutton.removeEventListener("command", this.bound_rotate, true);
+    this.screenshotbutton.removeEventListener("command", this.bound_screenshot, true);
     this.closebutton.removeEventListener("command", this.bound_close, true);
     this.addbutton.removeEventListener("command", this.bound_addPreset, true);
     this.removebutton.removeEventListener("command", this.bound_removePreset, true);
@@ -311,6 +313,7 @@ ResponsiveUI.prototype = {
 
 
 
+
   buildUI: function RUI_buildUI() {
     
     this.toolbar = this.chromeDoc.createElement("toolbar");
@@ -341,19 +344,26 @@ ResponsiveUI.prototype = {
 
     this.rotatebutton = this.chromeDoc.createElement("toolbarbutton");
     this.rotatebutton.setAttribute("tabindex", "0");
-    this.rotatebutton.setAttribute("label", this.strings.GetStringFromName("responsiveUI.rotate"));
-    this.rotatebutton.className = "devtools-toolbarbutton";
+    this.rotatebutton.setAttribute("tooltiptext", this.strings.GetStringFromName("responsiveUI.rotate2"));
+    this.rotatebutton.className = "devtools-toolbarbutton devtools-responsiveui-rotate";
     this.rotatebutton.addEventListener("command", this.bound_rotate, true);
+
+    this.screenshotbutton = this.chromeDoc.createElement("toolbarbutton");
+    this.screenshotbutton.setAttribute("tabindex", "0");
+    this.screenshotbutton.setAttribute("tooltiptext", this.strings.GetStringFromName("responsiveUI.screenshot"));
+    this.screenshotbutton.className = "devtools-toolbarbutton devtools-responsiveui-screenshot";
+    this.screenshotbutton.addEventListener("command", this.bound_screenshot, true);
 
     this.closebutton = this.chromeDoc.createElement("toolbarbutton");
     this.closebutton.setAttribute("tabindex", "0");
-    this.closebutton.className = "devtools-toolbarbutton devtools-closebutton";
+    this.closebutton.className = "devtools-toolbarbutton devtools-responsiveui-close";
     this.closebutton.setAttribute("tooltiptext", this.strings.GetStringFromName("responsiveUI.close"));
     this.closebutton.addEventListener("command", this.bound_close, true);
 
     this.toolbar.appendChild(this.closebutton);
     this.toolbar.appendChild(this.menulist);
     this.toolbar.appendChild(this.rotatebutton);
+    this.toolbar.appendChild(this.screenshotbutton);
 
     
     this.resizer = this.chromeDoc.createElement("box");
@@ -566,6 +576,43 @@ ResponsiveUI.prototype = {
       this.rotateValue = !this.rotateValue;
       this.saveCurrentPreset();
     }
+  },
+
+  
+
+
+
+
+  screenshot: function RUI_screenshot(aFileName) {
+    let window = this.browser.contentWindow;
+    let document = window.document;
+    let canvas = this.chromeDoc.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    let ctx = canvas.getContext("2d");
+    ctx.drawWindow(window, window.scrollX, window.scrollY, width, height, "#fff");
+
+    let filename = aFileName;
+
+    if (!filename) {
+      let date = new Date();
+      let month = ("0" + (date.getMonth() + 1)).substr(-2, 2);
+      let day = ("0" + (date.getDay() + 1)).substr(-2, 2);
+      let dateString = [date.getFullYear(), month, day].join("-");
+      let timeString = date.toTimeString().replace(/:/g, ".").split(" ")[0];
+      filename = this.strings.formatStringFromName("responsiveUI.screenshotGeneratedFilename", [dateString, timeString], 2);
+    }
+
+    canvas.toBlob(blob => {
+      let chromeWindow = this.chromeDoc.defaultView;
+      let url = chromeWindow.URL.createObjectURL(blob);
+      chromeWindow.saveURL(url, filename + ".png", null, true, true, document.documentURIObject, document);
+    });
   },
 
   
