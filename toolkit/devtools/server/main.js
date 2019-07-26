@@ -298,6 +298,26 @@ var DebuggerServer = {
   
 
 
+  addChildActors: function () {
+    
+    
+    
+    if (!("BrowserTabActor" in this)) {
+      this.addActors("resource://gre/modules/devtools/server/actors/webbrowser.js");
+      this.addActors("resource://gre/modules/devtools/server/actors/script.js");
+      this.addActors("resource://gre/modules/devtools/server/actors/webconsole.js");
+      this.addActors("resource://gre/modules/devtools/server/actors/gcli.js");
+      this.addActors("resource://gre/modules/devtools/server/actors/styleeditor.js");
+      this.registerModule("devtools/server/actors/inspector");
+    }
+    if (!("ContentTabActor" in DebuggerServer)) {
+      this.addActors("resource://gre/modules/devtools/server/actors/childtab.js");
+    }
+  },
+
+  
+
+
 
 
 
@@ -393,6 +413,22 @@ var DebuggerServer = {
     return clientTransport;
   },
 
+  
+
+
+
+
+
+
+
+
+
+  connectToParent: function(aPrefix, aMessageManager) {
+    this._checkInit();
+
+    let transport = new ChildDebuggerTransport(aMessageManager, aPrefix);
+    return this._onConnection(transport, aPrefix, true);
+  },
 
   
 
@@ -436,7 +472,7 @@ var DebuggerServer = {
 
 
 
-  _onConnection: function DS_onConnection(aTransport, aForwardingPrefix) {
+  _onConnection: function DS_onConnection(aTransport, aForwardingPrefix, aNoRootActor = false) {
     let connID;
     if (aForwardingPrefix) {
       connID = aForwardingPrefix + ":";
@@ -447,13 +483,15 @@ var DebuggerServer = {
     this._connections[connID] = conn;
 
     
-    conn.rootActor = this.createRootActor(conn);
-    if (aForwardingPrefix)
-      conn.rootActor.actorID = aForwardingPrefix + ":root";
-    else
-      conn.rootActor.actorID = "root";
-    conn.addActor(conn.rootActor);
-    aTransport.send(conn.rootActor.sayHello());
+    if (!aNoRootActor) {
+      conn.rootActor = this.createRootActor(conn);
+      if (aForwardingPrefix)
+        conn.rootActor.actorID = aForwardingPrefix + ":root";
+      else
+        conn.rootActor.actorID = "root";
+      conn.addActor(conn.rootActor);
+      aTransport.send(conn.rootActor.sayHello());
+    }
     aTransport.ready();
 
     return conn;

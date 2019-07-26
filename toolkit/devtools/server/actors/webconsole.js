@@ -54,8 +54,7 @@ function WebConsoleActor(aConnection, aParentActor)
 {
   this.conn = aConnection;
 
-  if (aParentActor instanceof BrowserTabActor &&
-      aParentActor.browser instanceof Ci.nsIDOMWindow) {
+  if (aParentActor.browser instanceof Ci.nsIDOMWindow) {
     
     
     
@@ -64,8 +63,7 @@ function WebConsoleActor(aConnection, aParentActor)
     
     
     
-    
-    this._window = Services.wm.getMostRecentWindow("navigator:browser");
+    this._window = aParentActor.browser;
     this._isGlobalActor = true;
   }
   else if (aParentActor instanceof BrowserTabActor &&
@@ -580,7 +578,6 @@ WebConsoleActor.prototype =
     let evalOptions = {
       bindObjectActor: aRequest.bindObjectActor,
       frameActor: aRequest.frameActor,
-      url: aRequest.url,
     };
     let evalInfo = this.evalWithDebugger(input, evalOptions);
     let evalResult = evalInfo.result;
@@ -798,8 +795,6 @@ WebConsoleActor.prototype =
 
 
 
-
-
   evalWithDebugger: function WCA_evalWithDebugger(aString, aOptions = {})
   {
     
@@ -897,17 +892,12 @@ WebConsoleActor.prototype =
     
     helpers.evalInput = aString;
 
-    let evalOptions;
-    if (typeof aOptions.url == "string") {
-      evalOptions = { url: aOptions.url };
-    }
-
     let result;
     if (frame) {
-      result = frame.evalWithBindings(aString, bindings, evalOptions);
+      result = frame.evalWithBindings(aString, bindings);
     }
     else {
-      result = dbgWindow.evalInGlobalWithBindings(aString, bindings, evalOptions);
+      result = dbgWindow.evalInGlobalWithBindings(aString, bindings);
     }
 
     let helperResult = helpers.helperResult;
