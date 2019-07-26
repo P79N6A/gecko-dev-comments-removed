@@ -523,19 +523,11 @@ obj_getPrototypeOf(JSContext *cx, unsigned argc, Value *vp)
     }
 
     
-
-    
-
-
-
-    InvokeArgs args2(cx);
-    if (!args2.init(0))
+    RootedObject thisObj(cx, &args[0].toObject());
+    RootedObject proto(cx);
+    if (!JSObject::getProto(cx, thisObj, &proto))
         return false;
-    args2.setCallee(cx->global()->protoGetter());
-    args2.setThis(args[0]);
-    if (!Invoke(cx, args2))
-        return false;
-    args.rval().set(args2.rval());
+    args.rval().setObjectOrNull(proto);
     return true;
 }
 

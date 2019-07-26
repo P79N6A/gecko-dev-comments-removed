@@ -366,8 +366,6 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
         return nullptr;
     }
 #endif 
-    self->setProtoGetter(getter);
-
 
     if (!DefinePropertiesAndBrand(cx, objectCtor, nullptr, object_static_methods) ||
         !LinkConstructorAndPrototype(cx, functionCtor, functionProto) ||
