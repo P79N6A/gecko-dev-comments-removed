@@ -5,13 +5,15 @@
 
 const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
+const APK_MIME_TYPE = "application/vnd.android.package-archive";
 const PREF_BD_USEDOWNLOADDIR = "browser.download.useDownloadDir";
 const URI_GENERIC_ICON_DOWNLOAD = "drawable://alert_download";
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Prompt.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/HelperApps.jsm");
+Cu.import("resource://gre/modules/Prompt.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
@@ -23,7 +25,110 @@ HelperAppLauncherDialog.prototype = {
   classID: Components.ID("{e9d277a0-268a-4ec2-bb8c-10fdf3e44611}"),
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIHelperAppLauncherDialog]),
 
+  getNativeWindow: function () {
+    try {
+      let win = Services.wm.getMostRecentWindow("navigator:browser");
+      if (win && win.NativeWindow) {
+        return win.NativeWindow;
+      }
+    } catch (e) {
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+  _canDownload: function (url, alreadyResolved=false) {
+    Services.console.logStringMessage("_canDownload: " + url);
+    
+    if (url.schemeIs("http") ||
+        url.schemeIs("https") ||
+        url.schemeIs("ftp")) {
+      Services.console.logStringMessage("_canDownload: true\n");
+      return true;
+    }
+
+    
+    if (url.schemeIs("chrome") ||
+        url.schemeIs("jar") ||
+        url.schemeIs("resource") ||
+        url.schemeIs("wyciwyg")) {
+      Services.console.logStringMessage("_canDownload: false\n");
+      return false;
+    }
+
+    
+    if (!alreadyResolved) {
+      let ioSvc = Cc["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService);
+      let innerURI = ioSvc.newChannelFromURI(url).URI;
+      if (!url.equals(innerURI)) {
+        Services.console.logStringMessage("_canDownload: recursing.\n");
+        return this._canDownload(innerURI, true);
+      }
+    }
+
+    if (url.schemeIs("file")) {
+      
+      
+      
+      let file = url.QueryInterface(Ci.nsIFileURL).file;
+
+      
+
+      let appRoot = FileUtils.getFile("XREExeF", []);
+      if (appRoot.contains(file, true)) {
+        Services.console.logStringMessage("_canDownload: appRoot.\n");
+        return false;
+      }
+
+      let profileRoot = FileUtils.getFile("ProfD", []);
+      if (profileRoot.contains(file, true)) {
+        Services.console.logStringMessage("_canDownload: prof dir.\n");
+        return false;
+      }
+
+      Services.console.logStringMessage("_canDownload: safe.\n");
+      return true;
+    }
+
+    
+    return true;
+  },
+
+  
+
+
+
+  _shouldPrompt: function (launcher) {
+    let mimeType = this._getMimeTypeFromLauncher(launcher);
+
+    
+    return APK_MIME_TYPE == mimeType;
+  },
+
   show: function hald_show(aLauncher, aContext, aReason) {
+    if (!this._canDownload(aLauncher.source)) {
+      aLauncher.cancel(Cr.NS_BINDING_ABORTED);
+
+      let win = this.getNativeWindow();
+      if (!win) {
+        
+        Services.console.logStringMessage("Refusing download, but can't show a toast.");
+        return;
+      }
+
+      Services.console.logStringMessage("Refusing download of non-downloadable file.");
+      let bundle = Services.strings.createBundle("chrome://browser/locale/handling.properties");
+      let failedText = bundle.GetStringFromName("protocol.failed");
+      win.toast.show(failedText, "long");
+
+      return;
+    }
+
     let bundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
 
     let defaultHandler = new Object();
@@ -65,32 +170,38 @@ HelperAppLauncherDialog.prototype = {
       }
     }
 
-    if (apps.length > 1) {
-      HelperApps.prompt(apps, {
-        title: bundle.GetStringFromName("helperapps.pick"),
-        buttons: [
-          bundle.GetStringFromName("helperapps.alwaysUse"),
-          bundle.GetStringFromName("helperapps.useJustOnce")
-        ]
-      }, (data) => {
-        if (data.button < 0)
-          return;
-
-        callback(apps[data.icongrid0]);
-
-        if (data.button == 0)
-          this._setPreferredApp(aLauncher, apps[data.icongrid0]);
-      });
-    } else {
+    
+    
+    if (!this._shouldPrompt(aLauncher) && (apps.length === 1)) {
       callback(apps[0]);
+      return;
     }
+
+    
+    HelperApps.prompt(apps, {
+      title: bundle.GetStringFromName("helperapps.pick"),
+      buttons: [
+        bundle.GetStringFromName("helperapps.alwaysUse"),
+        bundle.GetStringFromName("helperapps.useJustOnce")
+      ]
+    }, (data) => {
+      if (data.button < 0) {
+        return;
+      }
+
+      callback(apps[data.icongrid0]);
+
+      if (data.button === 0) {
+        this._setPreferredApp(aLauncher, apps[data.icongrid0]);
+      }
+    });
   },
 
   _getPrefName: function getPrefName(mimetype) {
     return "browser.download.preferred." + mimetype.replace("\\", ".");
   },
 
-  _getMimeTypeFromLauncher: function getMimeTypeFromLauncher(launcher) {
+  _getMimeTypeFromLauncher: function (launcher) {
     let mime = launcher.MIMEInfo.MIMEType;
     if (!mime)
       mime = ContentAreaUtils.getMIMETypeForURI(launcher.source) || "";
@@ -105,7 +216,7 @@ HelperAppLauncherDialog.prototype = {
     try {
       return Services.prefs.getCharPref(this._getPrefName(mime));
     } catch(ex) {
-      Services.console.logStringMessage("Error getting pref for " + mime + " " + ex);
+      Services.console.logStringMessage("Error getting pref for " + mime + ".");
     }
     return null;
   },
