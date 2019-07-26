@@ -73,13 +73,8 @@ struct NativeFont {
 
 
 
-
-
-
-
-
-
 struct DrawOptions {
+  
   DrawOptions(Float aAlpha = 1.0f,
               CompositionOp aCompositionOp = CompositionOp::OP_OVER,
               AntialiasMode aAntialiasMode = AntialiasMode::DEFAULT)
@@ -88,28 +83,20 @@ struct DrawOptions {
     , mAntialiasMode(aAntialiasMode)
   {}
 
-  Float mAlpha;
-  CompositionOp mCompositionOp;
-  AntialiasMode mAntialiasMode;
+  Float mAlpha;                 
+
+  CompositionOp mCompositionOp; 
+
+  AntialiasMode mAntialiasMode; 
+
 };
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 struct StrokeOptions {
+  
   StrokeOptions(Float aLineWidth = 1.0f,
                 JoinStyle aLineJoin = JoinStyle::MITER_OR_BEVEL,
                 CapStyle aLineCap = CapStyle::BUTT,
@@ -128,33 +115,37 @@ struct StrokeOptions {
     MOZ_ASSERT(aDashLength == 0 || aDashPattern);
   }
 
-  Float mLineWidth;
-  Float mMiterLimit;
-  const Float* mDashPattern;
-  size_t mDashLength;
-  Float mDashOffset;
-  JoinStyle mLineJoin;
-  CapStyle mLineCap;
+  Float mLineWidth;          
+  Float mMiterLimit;         
+  const Float* mDashPattern; 
+
+
+
+  size_t mDashLength;        
+  Float mDashOffset;         
+
+  JoinStyle mLineJoin;       
+  CapStyle mLineCap;         
 };
 
 
 
 
-
-
-
-
-
-
 struct DrawSurfaceOptions {
+  
   DrawSurfaceOptions(Filter aFilter = Filter::LINEAR,
                      SamplingBounds aSamplingBounds = SamplingBounds::UNBOUNDED)
     : mFilter(aFilter)
     , mSamplingBounds(aSamplingBounds)
   { }
 
-  Filter mFilter;
-  SamplingBounds mSamplingBounds;
+  Filter mFilter;                 
+
+  SamplingBounds mSamplingBounds; 
+
+
+
+
 };
 
 
@@ -212,13 +203,6 @@ class LinearGradientPattern : public Pattern
 {
 public:
   
-
-
-
-
-
-
-
   LinearGradientPattern(const Point &aBegin,
                         const Point &aEnd,
                         GradientStops *aStops,
@@ -232,10 +216,15 @@ public:
 
   virtual PatternType GetType() const { return PatternType::LINEAR_GRADIENT; }
 
-  Point mBegin;
-  Point mEnd;
-  RefPtr<GradientStops> mStops;
-  Matrix mMatrix;
+  Point mBegin;                 
+  Point mEnd;                   
+
+
+  RefPtr<GradientStops> mStops; 
+
+
+  Matrix mMatrix;               
+
 };
 
 
@@ -247,14 +236,6 @@ class RadialGradientPattern : public Pattern
 {
 public:
   
-
-
-
-
-
-
-
-
   RadialGradientPattern(const Point &aCenter1,
                         const Point &aCenter2,
                         Float aRadius1,
@@ -272,12 +253,14 @@ public:
 
   virtual PatternType GetType() const { return PatternType::RADIAL_GRADIENT; }
 
-  Point mCenter1;
-  Point mCenter2;
-  Float mRadius1;
-  Float mRadius2;
-  RefPtr<GradientStops> mStops;
-  Matrix mMatrix;
+  Point mCenter1; 
+  Point mCenter2; 
+  Float mRadius1; 
+  Float mRadius2; 
+  RefPtr<GradientStops> mStops; 
+
+
+  Matrix mMatrix; 
 };
 
 
@@ -288,12 +271,6 @@ class SurfacePattern : public Pattern
 {
 public:
   
-
-
-
-
-
-
   SurfacePattern(SourceSurface *aSourceSurface, ExtendMode aExtendMode,
                  const Matrix &aMatrix = Matrix(), Filter aFilter = Filter::GOOD)
     : mSurface(aSourceSurface)
@@ -304,10 +281,11 @@ public:
 
   virtual PatternType GetType() const { return PatternType::SURFACE; }
 
-  RefPtr<SourceSurface> mSurface;
-  ExtendMode mExtendMode;
-  Filter mFilter;
-  Matrix mMatrix;
+  RefPtr<SourceSurface> mSurface; 
+  ExtendMode mExtendMode;         
+
+  Filter mFilter;                 
+  Matrix mMatrix;                 
 };
 
 
@@ -551,10 +529,8 @@ struct Glyph
 
 struct GlyphBuffer
 {
-  
-  const Glyph *mGlyphs;
-  
-  uint32_t mNumGlyphs;
+  const Glyph *mGlyphs; 
+  uint32_t mNumGlyphs;  
 };
 
 
