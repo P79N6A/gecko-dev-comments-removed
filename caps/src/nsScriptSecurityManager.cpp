@@ -1560,6 +1560,11 @@ nsScriptSecurityManager::CheckLoadURIStrWithPrincipal(nsIPrincipal* aPrincipal,
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = CheckLoadURIWithPrincipal(aPrincipal, target, aFlags);
+    if (rv == NS_ERROR_DOM_BAD_URI) {
+        
+        
+        return rv;
+    }
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -1584,6 +1589,11 @@ nsScriptSecurityManager::CheckLoadURIStrWithPrincipal(nsIPrincipal* aPrincipal,
         NS_ENSURE_SUCCESS(rv, rv);
 
         rv = CheckLoadURIWithPrincipal(aPrincipal, target, aFlags);
+        if (rv == NS_ERROR_DOM_BAD_URI) {
+            
+            
+            return rv;
+        }
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
