@@ -74,7 +74,17 @@ CanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
     }
 
     gfx::SurfaceFormat surfaceFormat = gfx::ImageFormatToSurfaceFormat(format);
-    mBuffer = CreateTextureClientForCanvas(surfaceFormat, flags, aLayer);
+    if (aLayer->IsGLLayer()) {
+      
+      
+      
+      mBuffer = CreateBufferTextureClient(surfaceFormat, flags, BackendType::CAIRO);
+    } else {
+      
+      
+      mBuffer = CreateBufferTextureClient(surfaceFormat, flags,
+        gfxPlatform::GetPlatform()->GetPreferredCanvasBackend());
+    }
     MOZ_ASSERT(mBuffer->CanExposeDrawTarget());
     mBuffer->AllocateForSurface(aSize);
 
@@ -107,28 +117,6 @@ CanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
     GetForwarder()->UpdatedTexture(this, mBuffer, nullptr);
     GetForwarder()->UseTexture(this, mBuffer);
   }
-}
-
-TemporaryRef<TextureClient>
-CanvasClient2D::CreateTextureClientForCanvas(gfx::SurfaceFormat aFormat,
-                                             TextureFlags aFlags,
-                                             ClientCanvasLayer* aLayer)
-{
-  if (aLayer->IsGLLayer()) {
-    
-    
-    
-    return CreateBufferTextureClient(aFormat, aFlags, BackendType::CAIRO);
-  }
-
-  gfx::BackendType backend = gfxPlatform::GetPlatform()->GetPreferredCanvasBackend();
-#ifdef XP_WIN
-  return CreateTextureClientForDrawing(aFormat, aFlags, backend, aSize);
-#else
-  
-  
-  return CreateBufferTextureClient(aFormat, aFlags, backend);
-#endif
 }
 
 CanvasClientSurfaceStream::CanvasClientSurfaceStream(CompositableForwarder* aLayerForwarder,
