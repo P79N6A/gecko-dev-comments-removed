@@ -26,7 +26,7 @@
 #endif
 
 
-#define HEARTBEAT_MSEC 1000
+#define HEARTBEAT_MSEC 250
 
 #define REQUEST_WAIT_TIMEOUT 30
 
