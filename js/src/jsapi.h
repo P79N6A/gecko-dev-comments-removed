@@ -9,7 +9,6 @@
 #ifndef jsapi_h
 #define jsapi_h
 
-#include "mozilla/Atomics.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RangedPtr.h"
@@ -26,6 +25,7 @@
 #include "js/Class.h"
 #include "js/HashTable.h"
 #include "js/Id.h"
+#include "js/Principals.h"
 #include "js/RootingAPI.h"
 #include "js/Utility.h"
 #include "js/Value.h"
@@ -778,20 +778,6 @@ typedef bool
 
 typedef bool
 (* JSLocaleToUnicode)(JSContext *cx, const char *src, JS::MutableHandleValue rval);
-
-
-
-
-
-typedef void
-(* JSDestroyPrincipalsOp)(JSPrincipals *principals);
-
-
-
-
-
-typedef bool
-(* JSCSPEvalChecker)(JSContext *cx);
 
 
 
@@ -3199,77 +3185,6 @@ JS_GetReservedSlot(JSObject *obj, uint32_t index);
 
 extern JS_PUBLIC_API(void)
 JS_SetReservedSlot(JSObject *obj, uint32_t index, jsval v);
-
-
-
-
-
-
-struct JSPrincipals {
-    
-#ifdef JS_THREADSAFE
-    mozilla::Atomic<int32_t> refcount;
-#else
-    int32_t refcount;
-#endif
-
-#ifdef JS_DEBUG
-    
-    uint32_t    debugToken;
-#endif
-
-    void setDebugToken(uint32_t token) {
-# ifdef JS_DEBUG
-        debugToken = token;
-# endif
-    }
-
-    
-
-
-
-    JS_PUBLIC_API(void) dump();
-};
-
-extern JS_PUBLIC_API(void)
-JS_HoldPrincipals(JSPrincipals *principals);
-
-extern JS_PUBLIC_API(void)
-JS_DropPrincipals(JSRuntime *rt, JSPrincipals *principals);
-
-struct JSSecurityCallbacks {
-    JSCSPEvalChecker           contentSecurityPolicyAllows;
-    JSSubsumesOp               subsumes;
-};
-
-extern JS_PUBLIC_API(void)
-JS_SetSecurityCallbacks(JSRuntime *rt, const JSSecurityCallbacks *callbacks);
-
-extern JS_PUBLIC_API(const JSSecurityCallbacks *)
-JS_GetSecurityCallbacks(JSRuntime *rt);
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_SetTrustedPrincipals(JSRuntime *rt, const JSPrincipals *prin);
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_InitDestroyPrincipalsCallback(JSRuntime *rt, JSDestroyPrincipalsOp destroyPrincipals);
 
 
 

@@ -269,12 +269,6 @@ struct JSStringFinalizer {
 
 
 typedef bool
-(* JSSubsumesOp)(JSPrincipals *first, JSPrincipals *second);
-
-
-
-
-typedef bool
 (* JSHasInstanceOp)(JSContext *cx, JS::HandleObject obj, JS::MutableHandleValue vp,
                     bool *bp);
 
