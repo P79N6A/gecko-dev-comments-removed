@@ -4584,6 +4584,10 @@ var TabsInTitlebar = {
       document.documentElement.removeAttribute("tabsintitlebar");
       updateTitlebarDisplay();
 
+#ifdef XP_MACOSX
+      let secondaryButtonsWidth = rect($("titlebar-secondary-buttonbox")).width;
+      this._sizePlaceholder("fullscreen-button", secondaryButtonsWidth);
+#endif
       
       titlebarContent.style.marginTop = "";
       titlebarContent.style.marginBottom = "";
