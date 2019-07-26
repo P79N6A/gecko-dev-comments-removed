@@ -168,7 +168,7 @@ InitKeyEvent(nsKeyEvent &aEvent, QKeyEvent *aQEvent)
     aEvent.time = 0;
 
     if (sAltGrModifier) {
-        aEvent.modifiers |= (widget::MODIFIER_CONTROL | widget::MODIFIER_ALT);
+        aEvent.modifiers |= (MODIFIER_CONTROL | MODIFIER_ALT);
     }
 
     
@@ -1684,9 +1684,9 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
              
              
              
-        event.modifiers &= ~(widget::MODIFIER_CONTROL |
-                             widget::MODIFIER_ALT |
-                             widget::MODIFIER_META);
+        event.modifiers &= ~(MODIFIER_CONTROL |
+                             MODIFIER_ALT |
+                             MODIFIER_META);
     }
 
     KeySym keysym = NoSymbol;

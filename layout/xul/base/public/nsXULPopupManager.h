@@ -736,7 +736,7 @@ protected:
   nsIntPoint mCachedMousePoint;
 
   
-  mozilla::widget::Modifiers mCachedModifiers;
+  mozilla::Modifiers mCachedModifiers;
 
   
   nsMenuBarFrame* mActiveMenuBar;

@@ -491,7 +491,6 @@ enum nsWindowZ {
 };
 
 namespace mozilla {
-namespace widget {
 
 
 
@@ -591,7 +590,7 @@ private:
   inline void SetRawFlags(RawFlags aRawFlags)
   {
     static_assert(sizeof(BaseEventFlags) <= sizeof(RawFlags),
-      "mozilla::widget::EventFlags must not be bigger than the RawFlags");
+      "mozilla::EventFlags must not be bigger than the RawFlags");
     memcpy(this, &aRawFlags, sizeof(BaseEventFlags));
   }
   inline RawFlags GetRawFlags() const
@@ -610,7 +609,6 @@ struct EventFlags : public BaseEventFlags
   }
 };
 
-} 
 } 
 
 
@@ -680,7 +678,7 @@ public:
   
   uint64_t    time;
   
-  mozilla::widget::BaseEventFlags mFlags;
+  mozilla::BaseEventFlags mFlags;
 
   
   nsCOMPtr<nsIAtom>     userType;
@@ -852,62 +850,62 @@ public:
   
   bool IsShift() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_SHIFT) != 0);
+    return ((modifiers & mozilla::MODIFIER_SHIFT) != 0);
   }
   
   bool IsControl() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_CONTROL) != 0);
+    return ((modifiers & mozilla::MODIFIER_CONTROL) != 0);
   }
   
   bool IsAlt() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_ALT) != 0);
+    return ((modifiers & mozilla::MODIFIER_ALT) != 0);
   }
   
   bool IsMeta() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_META) != 0);
+    return ((modifiers & mozilla::MODIFIER_META) != 0);
   }
   
   
   bool IsOS() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_OS) != 0);
+    return ((modifiers & mozilla::MODIFIER_OS) != 0);
   }
   
   
   
   bool IsAltGraph() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_ALTGRAPH) != 0);
+    return ((modifiers & mozilla::MODIFIER_ALTGRAPH) != 0);
   }
   
   bool IsCapsLocked() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_CAPSLOCK) != 0);
+    return ((modifiers & mozilla::MODIFIER_CAPSLOCK) != 0);
   }
   
   bool IsNumLocked() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_NUMLOCK) != 0);
+    return ((modifiers & mozilla::MODIFIER_NUMLOCK) != 0);
   }
   
   bool IsScrollLocked() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_SCROLLLOCK) != 0);
+    return ((modifiers & mozilla::MODIFIER_SCROLLLOCK) != 0);
   }
 
   
   
   bool IsFn() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_FN) != 0);
+    return ((modifiers & mozilla::MODIFIER_FN) != 0);
   }
   
   bool IsSymbolLocked() const
   {
-    return ((modifiers & mozilla::widget::MODIFIER_SYMBOLLOCK) != 0);
+    return ((modifiers & mozilla::MODIFIER_SYMBOLLOCK) != 0);
   }
 
   void InitBasicModifiers(bool aCtrlKey,
@@ -917,20 +915,20 @@ public:
   {
     modifiers = 0;
     if (aCtrlKey) {
-      modifiers |= mozilla::widget::MODIFIER_CONTROL;
+      modifiers |= mozilla::MODIFIER_CONTROL;
     }
     if (aAltKey) {
-      modifiers |= mozilla::widget::MODIFIER_ALT;
+      modifiers |= mozilla::MODIFIER_ALT;
     }
     if (aShiftKey) {
-      modifiers |= mozilla::widget::MODIFIER_SHIFT;
+      modifiers |= mozilla::MODIFIER_SHIFT;
     }
     if (aMetaKey) {
-      modifiers |= mozilla::widget::MODIFIER_META;
+      modifiers |= mozilla::MODIFIER_META;
     }
   }
 
-  mozilla::widget::Modifiers modifiers;
+  mozilla::Modifiers modifiers;
 
   void AssignInputEventData(const nsInputEvent& aEvent, bool aCopyTargets)
   {
@@ -1151,7 +1149,7 @@ public:
     : nsInputEvent(isTrusted, msg, w, NS_KEY_EVENT),
       keyCode(0), charCode(0),
       location(nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD), isChar(0),
-      mKeyNameIndex(mozilla::widget::KEY_NAME_INDEX_Unidentified),
+      mKeyNameIndex(mozilla::KEY_NAME_INDEX_Unidentified),
       mNativeKeyEvent(nullptr),
       mUniqueId(0)
   {
@@ -1169,7 +1167,7 @@ public:
   
   bool            isChar;
   
-  mozilla::widget::KeyNameIndex mKeyNameIndex;
+  mozilla::KeyNameIndex mKeyNameIndex;
   
   void*           mNativeKeyEvent;
   
@@ -1183,11 +1181,11 @@ public:
     GetDOMKeyName(mKeyNameIndex, aKeyName);
   }
 
-  static void GetDOMKeyName(mozilla::widget::KeyNameIndex aKeyNameIndex,
+  static void GetDOMKeyName(mozilla::KeyNameIndex aKeyNameIndex,
                             nsAString& aKeyName)
   {
 #define NS_DEFINE_KEYNAME(aCPPName, aDOMKeyName) \
-      case mozilla::widget::KEY_NAME_INDEX_##aCPPName: \
+      case mozilla::KEY_NAME_INDEX_##aCPPName: \
         aKeyName.Assign(NS_LITERAL_STRING(aDOMKeyName)); return;
     switch (aKeyNameIndex) {
 #include "nsDOMKeyNameList.h"
@@ -1450,7 +1448,6 @@ public:
 
 
 namespace mozilla {
-namespace widget {
 
 class WheelEvent : public nsMouseEvent_base
 {
@@ -1568,7 +1565,6 @@ public:
   }
 };
 
-} 
 } 
 
 
@@ -2230,8 +2226,8 @@ inline bool NS_IsAllowedToDispatchDOMEvent(nsEvent* aEvent)
     case NS_WHEEL_EVENT: {
       
       
-      mozilla::widget::WheelEvent* wheelEvent =
-        static_cast<mozilla::widget::WheelEvent*>(aEvent);
+      mozilla::WheelEvent* wheelEvent =
+        static_cast<mozilla::WheelEvent*>(aEvent);
       return wheelEvent->deltaX != 0.0 || wheelEvent->deltaY != 0.0 ||
              wheelEvent->deltaZ != 0.0;
     }

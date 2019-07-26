@@ -76,7 +76,6 @@ class nsAnimationEvent;
 class nsPluginEvent;
 
 namespace mozilla {
-namespace widget {
 
 struct EventFlags;
 
@@ -100,21 +99,6 @@ enum Modifier {
 
 typedef uint16_t Modifiers;
 
-
-enum NotificationToIME {
-  
-  
-  NOTIFY_IME_OF_CURSOR_POS_CHANGED,
-  
-  NOTIFY_IME_OF_FOCUS,
-  
-  NOTIFY_IME_OF_BLUR,
-  
-  NOTIFY_IME_OF_SELECTION_CHANGE,
-  REQUEST_TO_COMMIT_COMPOSITION,
-  REQUEST_TO_CANCEL_COMPOSITION
-};
-
 #define NS_DEFINE_KEYNAME(aCPPName, aDOMKeyName) \
   KEY_NAME_INDEX_##aCPPName,
 
@@ -127,7 +111,6 @@ enum KeyNameIndex {
 
 #undef NS_DEFINE_KEYNAME
 
-} 
 } 
 
 #define NS_DOM_KEYNAME_ALT        "Alt"

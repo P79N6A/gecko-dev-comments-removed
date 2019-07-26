@@ -89,7 +89,7 @@ public:
 
 
   void DispatchLegacyMouseScrollEvents(nsIFrame* aTargetFrame,
-                                       mozilla::widget::WheelEvent* aEvent,
+                                       mozilla::WheelEvent* aEvent,
                                        nsEventStatus* aStatus);
 
   void NotifyDestroyPresContext(nsPresContext* aPresContext);
@@ -357,7 +357,7 @@ protected:
 
 
 
-    void ApplyUserPrefsToDelta(mozilla::widget::WheelEvent* aEvent);
+    void ApplyUserPrefsToDelta(mozilla::WheelEvent* aEvent);
 
     
 
@@ -365,7 +365,7 @@ protected:
 
 
     void CancelApplyingUserPrefsFromOverflowDelta(
-                                    mozilla::widget::WheelEvent* aEvent);
+                                    mozilla::WheelEvent* aEvent);
 
     
 
@@ -378,20 +378,20 @@ protected:
       ACTION_ZOOM,
       ACTION_LAST = ACTION_ZOOM
     };
-    Action ComputeActionFor(mozilla::widget::WheelEvent* aEvent);
+    Action ComputeActionFor(mozilla::WheelEvent* aEvent);
 
     
 
 
 
-    bool NeedToComputeLineOrPageDelta(mozilla::widget::WheelEvent* aEvent);
+    bool NeedToComputeLineOrPageDelta(mozilla::WheelEvent* aEvent);
 
     
 
 
 
-    bool IsOverOnePageScrollAllowedX(mozilla::widget::WheelEvent* aEvent);
-    bool IsOverOnePageScrollAllowedY(mozilla::widget::WheelEvent* aEvent);
+    bool IsOverOnePageScrollAllowedX(mozilla::WheelEvent* aEvent);
+    bool IsOverOnePageScrollAllowedY(mozilla::WheelEvent* aEvent);
 
   private:
     WheelPrefs();
@@ -418,7 +418,7 @@ protected:
 
 
 
-    Index GetIndexFor(mozilla::widget::WheelEvent* aEvent);
+    Index GetIndexFor(mozilla::WheelEvent* aEvent);
 
     
 
@@ -482,7 +482,7 @@ protected:
 
 
   void SendLineScrollEvent(nsIFrame* aTargetFrame,
-                           mozilla::widget::WheelEvent* aEvent,
+                           mozilla::WheelEvent* aEvent,
                            nsEventStatus* aStatus,
                            int32_t aDelta,
                            DeltaDirection aDeltaDirection);
@@ -500,7 +500,7 @@ protected:
 
 
   void SendPixelScrollEvent(nsIFrame* aTargetFrame,
-                            mozilla::widget::WheelEvent* aEvent,
+                            mozilla::WheelEvent* aEvent,
                             nsEventStatus* aStatus,
                             int32_t aPixelDelta,
                             DeltaDirection aDeltaDirection);
@@ -544,7 +544,7 @@ protected:
       (PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_Y_AXIS | START_FROM_PARENT)
   };
   nsIScrollableFrame* ComputeScrollTarget(nsIFrame* aTargetFrame,
-                                          mozilla::widget::WheelEvent* aEvent,
+                                          mozilla::WheelEvent* aEvent,
                                           ComputeScrollTargetOptions aOptions);
 
   
@@ -560,14 +560,14 @@ protected:
 
 
   nsSize GetScrollAmount(nsPresContext* aPresContext,
-                         mozilla::widget::WheelEvent* aEvent,
+                         mozilla::WheelEvent* aEvent,
                          nsIScrollableFrame* aScrollableFrame);
 
   
 
 
   void DoScrollText(nsIScrollableFrame* aScrollableFrame,
-                    mozilla::widget::WheelEvent* aEvent);
+                    mozilla::WheelEvent* aEvent);
 
   void DoScrollHistory(int32_t direction);
   void DoScrollZoom(nsIFrame *aTargetFrame, int32_t adjustment);
@@ -607,7 +607,7 @@ protected:
 
     void InitLineOrPageDelta(nsIFrame* aTargetFrame,
                              nsEventStateManager* aESM,
-                             mozilla::widget::WheelEvent* aEvent);
+                             mozilla::WheelEvent* aEvent);
 
     
 
@@ -619,7 +619,7 @@ protected:
 
 
     nsIntPoint ComputeScrollAmountForDefaultAction(
-                 mozilla::widget::WheelEvent* aEvent,
+                 mozilla::WheelEvent* aEvent,
                  const nsIntSize& aScrollAmountInDevPixels);
 
   private:
@@ -763,7 +763,7 @@ private:
   
   nsCOMPtr<nsIContent> mGestureDownFrameOwner;
   
-  mozilla::widget::Modifiers mGestureModifiers;
+  mozilla::Modifiers mGestureModifiers;
   uint16_t mGestureDownButtons;
 
   nsCOMPtr<nsIContent> mLastLeftMouseDownContent;

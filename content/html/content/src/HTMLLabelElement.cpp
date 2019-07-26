@@ -194,7 +194,7 @@ HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           nsEventStatus status = aVisitor.mEventStatus;
           
           
-          widget::EventFlags eventFlags;
+          EventFlags eventFlags;
           eventFlags.mMultipleActionsPrevented = true;
           DispatchClickEvent(aVisitor.mPresContext,
                              static_cast<nsInputEvent*>(aVisitor.mEvent),

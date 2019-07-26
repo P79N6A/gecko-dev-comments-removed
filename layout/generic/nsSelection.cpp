@@ -1516,7 +1516,7 @@ printf(" * TakeFocus - moving into new cell\n");
 
         
         
-        event.modifiers &= ~widget::MODIFIER_SHIFT; 
+        event.modifiers &= ~MODIFIER_SHIFT; 
         if (parent)
         {
           mCellParent = cellparent;
