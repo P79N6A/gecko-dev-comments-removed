@@ -1914,7 +1914,7 @@ JSOpToCondition(MCompare::CompareType compareType, JSOp op)
 
 
 
-class MUnbox : public MUnaryInstruction
+class MUnbox : public MUnaryInstruction, public BoxInputsPolicy
 {
   public:
     enum Mode {
@@ -1953,6 +1953,10 @@ class MUnbox : public MUnaryInstruction
     static MUnbox *New(MDefinition *ins, MIRType type, Mode mode)
     {
         return new MUnbox(ins, type, mode);
+    }
+
+    TypePolicy *typePolicy() {
+        return this;
     }
 
     Mode mode() const {
