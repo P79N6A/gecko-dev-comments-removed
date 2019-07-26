@@ -9,6 +9,7 @@
 #include "nsDebug.h"
 #include "nsPoint.h"
 #include "nsTArray.h"
+#include "Units.h"
 
 class nsTouchEvent;
 class nsMouseEvent;
@@ -85,8 +86,8 @@ class SingleTouchData
 {
 public:
   SingleTouchData(int32_t aIdentifier,
-                  nsIntPoint aScreenPoint,
-                  nsIntPoint aRadius,
+                  ScreenIntPoint aScreenPoint,
+                  ScreenSize aRadius,
                   float aRotationAngle,
                   float aForce)
     : mIdentifier(aIdentifier),
@@ -109,14 +110,14 @@ public:
 
   
   
-  nsIntPoint mScreenPoint;
+  ScreenIntPoint mScreenPoint;
 
   
   
   
   
   
-  nsIntPoint mRadius;
+  ScreenSize mRadius;
 
   float mRotationAngle;
 
@@ -189,7 +190,7 @@ public:
 
   PinchGestureInput(PinchGestureType aType,
                     uint32_t aTime,
-                    const nsIntPoint& aFocusPoint,
+                    const ScreenPoint& aFocusPoint,
                     float aCurrentSpan,
                     float aPreviousSpan)
     : InputData(PINCHGESTURE_INPUT, aTime),
@@ -209,7 +210,7 @@ public:
   
   
   
-  nsIntPoint mFocusPoint;
+  ScreenPoint mFocusPoint;
 
   
   
@@ -239,7 +240,7 @@ public:
     TAPGESTURE_CANCEL
   };
 
-  TapGestureInput(TapGestureType aType, uint32_t aTime, const nsIntPoint& aPoint)
+  TapGestureInput(TapGestureType aType, uint32_t aTime, const ScreenIntPoint& aPoint)
     : InputData(TAPGESTURE_INPUT, aTime),
       mType(aType),
       mPoint(aPoint)
@@ -249,7 +250,7 @@ public:
   }
 
   TapGestureType mType;
-  nsIntPoint mPoint;
+  ScreenIntPoint mPoint;
 };
 
 }

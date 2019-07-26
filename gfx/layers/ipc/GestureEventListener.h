@@ -222,7 +222,7 @@ protected:
 
 
 
-  nsIntPoint mTouchStartPosition;
+  ScreenIntPoint mTouchStartPosition;
 };
 
 }
