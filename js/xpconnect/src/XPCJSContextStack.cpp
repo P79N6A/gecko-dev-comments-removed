@@ -70,10 +70,14 @@ XPCJSContextStack::Push(JSContext *cx)
         
         nsIScriptSecurityManager* ssm = XPCWrapper::GetSecurityManager();
         if ((e.cx == cx) && ssm) {
-            RootedObject defaultGlobal(cx, js::DefaultObjectForContextOrNull(cx));
+            
+            
+            
+            RootedObject defaultScope(cx, GetDefaultScopeFromJSContext(cx));
+
             nsIPrincipal *currentPrincipal =
               GetCompartmentPrincipal(js::GetContextCompartment(cx));
-            nsIPrincipal *defaultPrincipal = GetObjectPrincipal(defaultGlobal);
+            nsIPrincipal *defaultPrincipal = GetObjectPrincipal(defaultScope);
             bool equal = false;
             currentPrincipal->Equals(defaultPrincipal, &equal);
             if (equal) {
