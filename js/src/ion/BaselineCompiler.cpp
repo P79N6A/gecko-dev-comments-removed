@@ -42,6 +42,45 @@ BaselineCompiler::init()
     return true;
 }
 
+static bool
+CanResumeAfter(JSOp op)
+{
+    switch(op) {
+      case JSOP_NOP:
+      case JSOP_LABEL:
+      case JSOP_NOTEARG:
+      case JSOP_DUP:
+      case JSOP_DUP2:
+      case JSOP_SWAP:
+      case JSOP_PICK:
+      case JSOP_GOTO:
+      case JSOP_VOID:
+      case JSOP_UNDEFINED:
+      case JSOP_HOLE:
+      case JSOP_NULL:
+      case JSOP_TRUE:
+      case JSOP_FALSE:
+      case JSOP_ZERO:
+      case JSOP_ONE:
+      case JSOP_INT8:
+      case JSOP_INT32:
+      case JSOP_UINT16:
+      case JSOP_UINT24:
+      case JSOP_DOUBLE:
+      case JSOP_STRING:
+      case JSOP_OBJECT:
+      case JSOP_GETLOCAL:
+      case JSOP_SETLOCAL:
+      case JSOP_GETARG:
+      case JSOP_SETARG:
+      case JSOP_RETURN:
+      case JSOP_STOP:
+        return false;
+      default:
+        return true;
+    }
+}
+
 MethodStatus
 BaselineCompiler::compile()
 {
@@ -97,7 +136,7 @@ BaselineCompiler::compile()
         baselineScript->copyICEntries(&icEntries_[0], masm);
 
     if (pcMappingEntries_.length())
-        baselineScript->copyPCMappingEntries(&pcMappingEntries_[0]);
+        baselineScript->copyPCMappingEntries(&pcMappingEntries_[0], masm);
 
     
     baselineScript->adoptFallbackStubs(&stubSpace_);
@@ -165,6 +204,12 @@ BaselineCompiler::emitPrologue()
     masm.moveValue(UndefinedValue(), R0);
     for (size_t i = 0; i < frame.nlocals(); i++)
         masm.pushValue(R0);
+
+    
+    
+    
+    if (!addPCMappingEntry())
+        return Method_Error;
 
     
     
@@ -336,13 +381,9 @@ bool
 BaselineCompiler::emitDebugTrap()
 {
     JS_ASSERT(debugMode_);
+    JS_ASSERT(frame.numUnsyncedSlots() == 0);
 
     bool enabled = script->stepModeEnabled() || script->hasBreakpointsAt(pc);
-
-    
-    frame.syncStack(0);
-    if (!addPCMappingEntry())
-        return false;
 
     
     IonCode *handler = cx->compartment->ionCompartment()->debugTrapHandler(cx);
@@ -368,21 +409,46 @@ BaselineCompiler::emitBody()
 {
     JS_ASSERT(pc == script->code);
 
+    
+    
+    bool canResumeAfterPrevious = false;
+
     while (true) {
         SPEW_OPCODE();
         JSOp op = JSOp(*pc);
-        IonSpew(IonSpew_BaselineOp, "Compiling op: %s", js_CodeName[op]);
+        IonSpew(IonSpew_BaselineOp, "Compiling op @ %d: %s",
+                (int) (pc - script->code), js_CodeName[op]);
 
         
         analyze::Bytecode *code = script->analysis()->maybeCode(pc);
-        if (code && code->jumpTarget) {
+        bool isJumpTarget = code && code->jumpTarget;
+        if (isJumpTarget) {
             frame.syncStack(0);
             frame.setStackDepth(code->stackDepth);
         }
 
+        
+        if (debugMode_)
+            frame.syncStack(0);
+
+        
+        if (frame.stackDepth() > 2)
+            frame.syncStack(2);
+
         frame.assertValidState(pc);
 
         masm.bind(labelOf(pc));
+
+        
+        
+        
+        
+        
+        
+        if (isJumpTarget || canResumeAfterPrevious || op == JSOP_ENTERBLOCK || debugMode_) {
+            if (!addPCMappingEntry())
+                return Method_Error;
+        }
 
         
         if (debugMode_ && !emitDebugTrap())
@@ -404,6 +470,7 @@ BaselineCompiler::emitBody()
 OPCODE_LIST(EMIT_OP)
 #undef EMIT_OP
         }
+        canResumeAfterPrevious = CanResumeAfter(op);
 
         if (op == JSOP_STOP)
             break;
@@ -1400,11 +1467,6 @@ static const VMFunction EnterBlockInfo = FunctionInfo<EnterBlockFn>(ion::EnterBl
 bool
 BaselineCompiler::emit_JSOP_ENTERBLOCK()
 {
-    
-    
-    if (!addPCMappingEntry())
-        return false;
-
     StaticBlockObject &blockObj = script->getObject(pc)->asStaticBlock();
     for (size_t i = 0; i < blockObj.slotCount(); i++)
         frame.push(UndefinedValue());
