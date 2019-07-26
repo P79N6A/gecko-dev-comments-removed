@@ -7120,6 +7120,76 @@ nsHTMLDocumentSH::DocumentAllTagsNewResolve(JSContext *cx, JSHandleObject obj,
 }
 
 
+static nsresult
+ResolveAll(JSContext* cx, nsIDocument* doc, JSObject* obj)
+{
+  JSObject *proto;
+  if (!::JS_GetPrototype(cx, obj, &proto)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  JSObject *helper;
+  if (!GetDocumentAllHelper(cx, proto, &helper)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!::JS_GetPrototype(cx, helper ? helper : obj, &proto)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  
+  
+
+  JSBool hasAll = JS_FALSE;
+  if (proto && !JS_HasProperty(cx, proto, "all", &hasAll)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  if (hasAll && helper) {
+    
+    
+    
+    JSObject *tmp = obj, *tmpProto = tmp;
+
+    do {
+      tmp = tmpProto;
+      if (!::JS_GetPrototype(cx, tmp, &tmpProto)) {
+        return NS_ERROR_UNEXPECTED;
+      }
+    } while (tmpProto != helper);
+
+    ::JS_SetPrototype(cx, tmp, proto);
+  }
+
+  
+  
+  if (!helper && !hasAll) {
+    
+    PrintWarningOnConsole(cx, "DocumentAllUsed");
+
+    if (!::JS_GetPrototype(cx, obj, &proto)) {
+      return NS_ERROR_UNEXPECTED;
+    }
+    helper = ::JS_NewObject(cx, &sHTMLDocumentAllHelperClass,
+                            proto,
+                            ::JS_GetGlobalForObject(cx, obj));
+
+    if (!helper) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    
+    
+    if (!::JS_SetPrototype(cx, obj, helper)) {
+      xpc::Throw(cx, NS_ERROR_UNEXPECTED);
+      return NS_ERROR_UNEXPECTED;
+    }
+  }
+
+  return NS_OK;
+}
+
 NS_IMETHODIMP
 nsHTMLDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                              JSObject *obj, jsid id, uint32_t flags,
@@ -7158,69 +7228,7 @@ nsHTMLDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       nsIDocument *doc = static_cast<nsIDocument*>(wrapper->Native());
 
       if (doc->GetCompatibilityMode() == eCompatibility_NavQuirks) {
-        JSObject *proto;
-        if (!::JS_GetPrototype(cx, obj, &proto)) {
-          return NS_ERROR_FAILURE;
-        }
-
-        JSObject *helper;
-        if (!GetDocumentAllHelper(cx, proto, &helper)) {
-          return NS_ERROR_FAILURE;
-        }
-
-        if (!::JS_GetPrototype(cx, helper ? helper : obj, &proto)) {
-          return NS_ERROR_FAILURE;
-        }
-
-        
-        
-        
-
-        JSBool hasAll = JS_FALSE;
-        if (proto && !JS_HasProperty(cx, proto, "all", &hasAll)) {
-          return NS_ERROR_UNEXPECTED;
-        }
-
-        if (hasAll && helper) {
-          
-          
-          
-          JSObject *tmp = obj, *tmpProto = tmp;
-
-          do {
-            tmp = tmpProto;
-            if (!::JS_GetPrototype(cx, tmp, &tmpProto)) {
-              return NS_ERROR_UNEXPECTED;
-            }
-          } while (tmpProto != helper);
-
-          ::JS_SetPrototype(cx, tmp, proto);
-        }
-
-        
-        
-        if (!helper && !hasAll) {
-          
-          PrintWarningOnConsole(cx, "DocumentAllUsed");
-
-          if (!::JS_GetPrototype(cx, obj, &proto)) {
-            return NS_ERROR_UNEXPECTED;
-          }
-          helper = ::JS_NewObject(cx, &sHTMLDocumentAllHelperClass,
-                                  proto,
-                                  ::JS_GetGlobalForObject(cx, obj));
-
-          if (!helper) {
-            return NS_ERROR_OUT_OF_MEMORY;
-          }
-
-          
-          
-          if (!::JS_SetPrototype(cx, obj, helper)) {
-            xpc::Throw(cx, NS_ERROR_UNEXPECTED);
-            return NS_ERROR_UNEXPECTED;
-          }
-        }
+        return ResolveAll(cx, doc, obj);
       }
 
       return NS_OK;
