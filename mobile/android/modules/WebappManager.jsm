@@ -29,6 +29,31 @@ XPCOMUtils.defineLazyGetter(this, "Strings", function() {
   return Services.strings.createBundle("chrome://browser/locale/webapp.properties");
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getFormattedPluralForm(stringName, formatterArgs, pluralNum) {
+  
+  let escapedArgs = [arg.replace(/;/g, String.fromCharCode(0x1B)) for (arg of formatterArgs)];
+  let formattedString = Strings.formatStringFromName(stringName, escapedArgs, escapedArgs.length);
+  let pluralForm = PluralForm.get(pluralNum, formattedString);
+  let unescapedString = pluralForm.replace(String.fromCharCode(0x1B), ";", "g");
+  return unescapedString;
+}
+
 let Log = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog;
 let debug = Log.d.bind(null, "WebappManager");
 
@@ -319,9 +344,9 @@ this.WebappManager = {
       } else {
         let names = [manifestUrlToApp[url].name for (url of outdatedApps)].join(", ");
         let accepted = yield this._notify({
-          title: PluralForm.get(outdatedApps.length, Strings.GetStringFromName("downloadUpdateTitle")).
+          title: PluralForm.get(outdatedApps.length, Strings.GetStringFromName("retrieveUpdateTitle")).
                  replace("#1", outdatedApps.length),
-          message: Strings.formatStringFromName("downloadUpdateMessage", [names], 1),
+          message: getFormattedPluralForm("retrieveUpdateMessage", [names], outdatedApps.length),
           icon: "drawable://alert_app",
         }).dismissed;
 
@@ -403,9 +428,9 @@ this.WebappManager = {
     
     let downloadingNames = [app.name for (app of aApps)].join(", ");
     let notification = this._notify({
-      title: PluralForm.get(aApps.length, Strings.GetStringFromName("downloadingUpdateTitle")).
+      title: PluralForm.get(aApps.length, Strings.GetStringFromName("retrievingUpdateTitle")).
              replace("#1", aApps.length),
-      message: Strings.formatStringFromName("downloadingUpdateMessage", [downloadingNames], 1),
+      message: getFormattedPluralForm("retrievingUpdateMessage", [downloadingNames], aApps.length),
       icon: "drawable://alert_download_animation",
       
       
@@ -435,9 +460,9 @@ this.WebappManager = {
     if (downloadFailedApps.length > 0) {
       let downloadFailedNames = [app.name for (app of downloadFailedApps)].join(", ");
       this._notify({
-        title: PluralForm.get(downloadFailedApps.length, Strings.GetStringFromName("downloadFailedTitle")).
+        title: PluralForm.get(downloadFailedApps.length, Strings.GetStringFromName("retrievalFailedTitle")).
                replace("#1", downloadFailedApps.length),
-        message: Strings.formatStringFromName("downloadFailedMessage", [downloadFailedNames], 1),
+        message: getFormattedPluralForm("retrievalFailedMessage", [downloadFailedNames], downloadFailedApps.length),
         icon: "drawable://alert_app",
       });
     }
@@ -453,7 +478,7 @@ this.WebappManager = {
     let accepted = yield this._notify({
       title: PluralForm.get(downloadedApks.length, Strings.GetStringFromName("installUpdateTitle")).
              replace("#1", downloadedApks.length),
-      message: Strings.formatStringFromName("installUpdateMessage", [downloadedNames], 1),
+      message: getFormattedPluralForm("installUpdateMessage2", [downloadedNames], downloadedApks.length),
       icon: "drawable://alert_app",
     }).dismissed;
 
