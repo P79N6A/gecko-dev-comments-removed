@@ -28,6 +28,9 @@
 
 using namespace mozilla;
 
+
+#define MAX_WAL_SIZE_BYTES 512 * 1024
+
 namespace {
 
 
@@ -107,7 +110,7 @@ nsDOMStoragePersistentDB::Flush()
   Telemetry::AutoTimer<Telemetry::LOCALDOMSTORAGE_TIMER_FLUSH_MS> timer;
 
   
-  mozStorageTransaction transaction(mConnection, false);
+  mozStorageTransaction transaction(mWriteConnection, false);
 
   nsresult rv;
   for (uint32_t i = 0; i < mFlushStatements.Length(); ++i) {
@@ -178,8 +181,8 @@ nsReverseStringSQLFunction::OnFunctionCall(
 }
 
 nsDOMStoragePersistentDB::nsDOMStoragePersistentDB()
-: mStatements(mConnection), mWasRemoveAllCalled(false),
-  mIsRemoveAllPending(false), mIsFlushPending(false)
+: mReadStatements(mReadConnection), mWriteStatements(mWriteConnection),
+  mWasRemoveAllCalled(false), mIsRemoveAllPending(false), mIsFlushPending(false)
 {
   mQuotaUseByUncached.Init(16);
 }
@@ -198,12 +201,12 @@ nsDOMStoragePersistentDB::Init(const nsString& aDatabaseName)
 
   service = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = service->OpenUnsharedDatabase(storageFile, getter_AddRefs(mConnection));
+  rv = service->OpenUnsharedDatabase(storageFile, getter_AddRefs(mWriteConnection));
   if (rv == NS_ERROR_FILE_CORRUPTED) {
     
     rv = storageFile->Remove(false);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = service->OpenUnsharedDatabase(storageFile, getter_AddRefs(mConnection));
+    rv = service->OpenUnsharedDatabase(storageFile, getter_AddRefs(mWriteConnection));
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -217,6 +220,8 @@ nsDOMStoragePersistentDB::Init(const nsString& aDatabaseName)
     
     rv = ::NS_NewNamedThread("DOM Storage", getter_AddRefs(mFlushThread));
     NS_ENSURE_SUCCESS(rv, rv);
+    rv = ConfigureWalBehavior();
+    NS_ENSURE_SUCCESS(rv, rv);
   } else {
     
     
@@ -224,10 +229,14 @@ nsDOMStoragePersistentDB::Init(const nsString& aDatabaseName)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  mozStorageTransaction transaction(mConnection, false);
+  
+  (void)mWriteConnection->Clone(true, getter_AddRefs(mReadConnection));
+  NS_ENSURE_TRUE(mReadConnection, NS_ERROR_FAILURE);
+
+  mozStorageTransaction transaction(mWriteConnection, false);
 
   
-  rv = mConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+  rv = mWriteConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
          "CREATE TABLE IF NOT EXISTS webappsstore2 ("
          "scope TEXT, "
          "key TEXT, "
@@ -236,7 +245,7 @@ nsDOMStoragePersistentDB::Init(const nsString& aDatabaseName)
          "owner TEXT)"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+  rv = mWriteConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
         "CREATE UNIQUE INDEX IF NOT EXISTS scope_key_index"
         " ON webappsstore2(scope, key)"));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -244,7 +253,7 @@ nsDOMStoragePersistentDB::Init(const nsString& aDatabaseName)
   nsCOMPtr<mozIStorageFunction> function1(new nsReverseStringSQLFunction());
   NS_ENSURE_TRUE(function1, NS_ERROR_OUT_OF_MEMORY);
 
-  rv = mConnection->CreateFunction(NS_LITERAL_CSTRING("REVERSESTRING"), 1, function1);
+  rv = mWriteConnection->CreateFunction(NS_LITERAL_CSTRING("REVERSESTRING"), 1, function1);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -252,19 +261,19 @@ nsDOMStoragePersistentDB::Init(const nsString& aDatabaseName)
   
   
   bool exists;
-  rv = mConnection->TableExists(NS_LITERAL_CSTRING("webappsstore"),
-                                &exists);
+  rv = mWriteConnection->TableExists(NS_LITERAL_CSTRING("webappsstore"),
+                                     &exists);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (exists) {
-      rv = mConnection->ExecuteSimpleSQL(
+      rv = mWriteConnection->ExecuteSimpleSQL(
              NS_LITERAL_CSTRING("INSERT OR IGNORE INTO "
                                 "webappsstore2(scope, key, value, secure, owner) "
                                 "SELECT REVERSESTRING(domain) || '.:', key, value, secure, owner "
                                 "FROM webappsstore"));
       NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = mConnection->ExecuteSimpleSQL(
+      rv = mWriteConnection->ExecuteSimpleSQL(
              NS_LITERAL_CSTRING("DROP TABLE webappsstore"));
       NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -272,19 +281,19 @@ nsDOMStoragePersistentDB::Init(const nsString& aDatabaseName)
   
   
   
-  rv = mConnection->TableExists(NS_LITERAL_CSTRING("moz_webappsstore"),
-                                &exists);
+  rv = mWriteConnection->TableExists(NS_LITERAL_CSTRING("moz_webappsstore"),
+                                     &exists);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (exists) {
-      rv = mConnection->ExecuteSimpleSQL(
+      rv = mWriteConnection->ExecuteSimpleSQL(
              NS_LITERAL_CSTRING("INSERT OR IGNORE INTO "
                                 "webappsstore2(scope, key, value, secure, owner) "
                                 "SELECT REVERSESTRING(domain) || '.:', key, value, secure, domain "
                                 "FROM moz_webappsstore"));
       NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = mConnection->ExecuteSimpleSQL(
+      rv = mWriteConnection->ExecuteSimpleSQL(
              NS_LITERAL_CSTRING("DROP TABLE moz_webappsstore"));
       NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -307,7 +316,7 @@ nsDOMStoragePersistentDB::SetJournalMode(bool aIsWal)
   }
 
   nsCOMPtr<mozIStorageStatement> stmt;
-  nsresult rv = mConnection->CreateStatement(stmtString, getter_AddRefs(stmt));
+  nsresult rv = mWriteConnection->CreateStatement(stmtString, getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool hasResult = false;
@@ -328,6 +337,43 @@ nsDOMStoragePersistentDB::SetJournalMode(bool aIsWal)
   return NS_OK;
 }
 
+nsresult
+nsDOMStoragePersistentDB::ConfigureWalBehavior()
+{
+  
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mWriteConnection->CreateStatement(NS_LITERAL_CSTRING(
+    MOZ_STORAGE_UNIQUIFY_QUERY_STR "PRAGMA page_size"
+  ), getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool hasResult = false;
+  rv = stmt->ExecuteStep(&hasResult);
+  NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
+
+  int32_t pageSize = 0;
+  rv = stmt->GetInt32(0, &pageSize);
+  NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && pageSize > 0, NS_ERROR_UNEXPECTED);
+
+  
+  
+  int32_t thresholdInPages = static_cast<int32_t>(MAX_WAL_SIZE_BYTES / pageSize);
+  nsAutoCString thresholdPragma("PRAGMA wal_autocheckpoint = ");
+  thresholdPragma.AppendInt(thresholdInPages);
+  rv = mWriteConnection->ExecuteSimpleSQL(thresholdPragma);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  nsAutoCString journalSizePragma("PRAGMA journal_size_limit = ");
+  
+  journalSizePragma.AppendInt(MAX_WAL_SIZE_BYTES * 3);
+  rv = mWriteConnection->ExecuteSimpleSQL(journalSizePragma);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
 void
 nsDOMStoragePersistentDB::Close()
 {
@@ -338,8 +384,10 @@ nsDOMStoragePersistentDB::Close()
 
   mFlushStatements.Clear();
   mFlushStatementParams.Clear();
-  mStatements.FinalizeStatements();
-  mConnection->Close();
+  mReadStatements.FinalizeStatements();
+  mWriteStatements.FinalizeStatements();
+  mReadConnection->Close();
+  mWriteConnection->Close();
 
   
   DOMStorageImpl::gStorageDB->StopCacheFlushTimer();
@@ -366,7 +414,7 @@ nsDOMStoragePersistentDB::FetchScope(DOMStorageImpl* aStorage,
   Telemetry::AutoTimer<Telemetry::LOCALDOMSTORAGE_FETCH_DOMAIN_MS> timer;
 
   
-  nsCOMPtr<mozIStorageStatement> keysStmt = mStatements.GetCachedStatement(
+  nsCOMPtr<mozIStorageStatement> keysStmt = mReadStatements.GetCachedStatement(
     "SELECT key, value, secure FROM webappsstore2"
     " WHERE scope = :scopeKey"
   );
@@ -442,7 +490,7 @@ nsDOMStoragePersistentDB::EnsureQuotaUsageLoaded(const nsACString& aQuotaKey)
 
   
   nsCOMPtr<mozIStorageStatement> stmt;
-  stmt = mStatements.GetCachedStatement(
+  stmt = mReadStatements.GetCachedStatement(
     "SELECT scope, SUM(LENGTH(key) + LENGTH(value)) "
     "FROM ( "
       "SELECT scope, key, value FROM webappsstore2 "
@@ -613,21 +661,21 @@ nsDOMStoragePersistentDB::PrepareFlushStatements(const FlushData& aDirtyData)
   mFlushStatements.Clear();
   mFlushStatementParams.Clear();
 
-  nsCOMPtr<mozIStorageStatement> removeAllStmt = mStatements.GetCachedStatement(
+  nsCOMPtr<mozIStorageStatement> removeAllStmt = mWriteStatements.GetCachedStatement(
     NS_LITERAL_CSTRING("DELETE FROM webappsstore2"));
   NS_ENSURE_STATE(removeAllStmt);
 
-  nsCOMPtr<mozIStorageStatement> deleteScopeStmt = mStatements.GetCachedStatement(
+  nsCOMPtr<mozIStorageStatement> deleteScopeStmt = mWriteStatements.GetCachedStatement(
     NS_LITERAL_CSTRING("DELETE FROM webappsstore2"
                        " WHERE scope = :scope"));
   NS_ENSURE_STATE(deleteScopeStmt);
 
-  nsCOMPtr<mozIStorageStatement> deleteKeyStmt = mStatements.GetCachedStatement(
+  nsCOMPtr<mozIStorageStatement> deleteKeyStmt = mWriteStatements.GetCachedStatement(
     NS_LITERAL_CSTRING("DELETE FROM webappsstore2"
                        " WHERE scope = :scope AND key = :key"));
   NS_ENSURE_STATE(deleteKeyStmt);
 
-  nsCOMPtr<mozIStorageStatement> insertKeyStmt = mStatements.GetCachedStatement(
+  nsCOMPtr<mozIStorageStatement> insertKeyStmt = mWriteStatements.GetCachedStatement(
     NS_LITERAL_CSTRING("INSERT OR REPLACE INTO webappsstore2 (scope, key, value, secure)"
                        " VALUES (:scope, :key, :value, :secure)"));
   NS_ENSURE_STATE(insertKeyStmt);
@@ -957,7 +1005,7 @@ InvalidateMatchingQuotaEnum(const nsACString& aQuotaKey,
 nsresult
 nsDOMStoragePersistentDB::FetchMatchingScopeNames(const nsACString& aPattern)
 {
-  nsCOMPtr<mozIStorageStatement> stmt = mStatements.GetCachedStatement(
+  nsCOMPtr<mozIStorageStatement> stmt = mReadStatements.GetCachedStatement(
     "SELECT DISTINCT(scope) FROM webappsstore2"
     " WHERE scope LIKE :scope"
   );

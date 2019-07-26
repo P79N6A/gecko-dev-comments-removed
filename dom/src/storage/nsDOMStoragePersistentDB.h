@@ -180,6 +180,12 @@ private:
 
 
   nsresult
+  ConfigureWalBehavior();
+
+  
+
+
+  nsresult
   EnsureScopeLoaded(DOMStorageImpl* aStorage);
 
   
@@ -235,8 +241,10 @@ private:
 
   nsTArray<nsCOMPtr<mozIStorageStatement> > mFlushStatements;
   nsTArray<nsCOMPtr<mozIStorageBindingParamsArray> > mFlushStatementParams;
-  StatementCache mStatements;
-  nsCOMPtr<mozIStorageConnection> mConnection;
+  StatementCache mReadStatements;
+  StatementCache mWriteStatements;
+  nsCOMPtr<mozIStorageConnection> mReadConnection;
+  nsCOMPtr<mozIStorageConnection> mWriteConnection;
 
   
 
