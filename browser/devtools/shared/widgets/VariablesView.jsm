@@ -252,6 +252,16 @@ VariablesView.prototype = {
 
 
 
+
+  preventDescriptorModifiers: false,
+
+  
+
+
+
+
+
+
   editableValueTooltip: STR.GetStringFromName("variablesEditableValueTooltip"),
 
   
@@ -281,15 +291,6 @@ VariablesView.prototype = {
 
 
   deleteButtonTooltip: STR.GetStringFromName("variablesCloseButtonTooltip"),
-
-  
-
-
-
-
-
-
-  descriptorTooltip: true,
 
   
 
@@ -1086,7 +1087,6 @@ function Scope(aView, aName, aFlags = {}) {
   this._openEnum = this._openEnum.bind(this);
   this._openNonEnum = this._openNonEnum.bind(this);
   this._batchAppend = this._batchAppend.bind(this);
-  this._batchItems = [];
 
   
   
@@ -1097,13 +1097,18 @@ function Scope(aView, aName, aFlags = {}) {
   this.editableNameTooltip = aView.editableNameTooltip;
   this.editButtonTooltip = aView.editButtonTooltip;
   this.deleteButtonTooltip = aView.deleteButtonTooltip;
-  this.descriptorTooltip = aView.descriptorTooltip;
+  this.preventDescriptorModifiers = aView.preventDescriptorModifiers;
   this.contextMenuId = aView.contextMenuId;
   this.separatorStr = aView.separatorStr;
 
-  this._store = new Map();
-  this._enumItems = [];
-  this._nonEnumItems = [];
+  
+  
+  
+  XPCOMUtils.defineLazyGetter(this, "_store", () => new Map());
+  XPCOMUtils.defineLazyGetter(this, "_enumItems", () => []);
+  XPCOMUtils.defineLazyGetter(this, "_nonEnumItems", () => []);
+  XPCOMUtils.defineLazyGetter(this, "_batchItems", () => []);
+
   this._init(aName.trim(), aFlags);
 }
 
@@ -1991,7 +1996,7 @@ Scope.prototype = {
   editableNameTooltip: "",
   editButtonTooltip: "",
   deleteButtonTooltip: "",
-  descriptorTooltip: true,
+  preventDescriptorModifiers: false,
   contextMenuId: "",
   separatorStr: "",
 
@@ -2034,7 +2039,7 @@ Scope.prototype = {
 
 
 function Variable(aScope, aName, aDescriptor) {
-  this._displayTooltip = this._displayTooltip.bind(this);
+  this._setTooltips = this._setTooltips.bind(this);
   this._activateNameInput = this._activateNameInput.bind(this);
   this._activateValueInput = this._activateValueInput.bind(this);
 
@@ -2265,7 +2270,7 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     if (this._nameString) {
       this._displayVariable();
       this._customizeVariable();
-      this._prepareTooltip();
+      this._prepareTooltips();
       this._setAttributes();
       this._addEventListeners();
     }
@@ -2353,7 +2358,10 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
 
   _customizeVariable: function() {
-    if (this.ownerView.eval) {
+    let ownerView = this.ownerView;
+    let descriptor = this._initialDescriptor;
+
+    if (ownerView.eval) {
       if (!this._isUndefined && (this.getter || this.setter)) {
         let editNode = this._editNode = this.document.createElement("toolbarbutton");
         editNode.className = "plain variables-view-edit";
@@ -2361,61 +2369,95 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
         this._title.appendChild(editNode);
       }
     }
-    if (this.ownerView.delete) {
-      if (!this._isUndefined || !(this.ownerView.getter && this.ownerView.setter)) {
+    if (ownerView.delete) {
+      if (!this._isUndefined || !(ownerView.getter && ownerView.setter)) {
         let deleteNode = this._deleteNode = this.document.createElement("toolbarbutton");
         deleteNode.className = "plain variables-view-delete";
         deleteNode.addEventListener("click", this._onDelete.bind(this), false);
         this._title.appendChild(deleteNode);
       }
     }
-    if (this.ownerView.contextMenuId) {
-      this._title.setAttribute("context", this.ownerView.contextMenuId);
+    if (ownerView.contextMenuId) {
+      this._title.setAttribute("context", ownerView.contextMenuId);
     }
-  },
 
-  
+    if (ownerView.preventDescriptorModifiers) {
+      return;
+    }
 
-
-  _prepareTooltip: function() {
-    this._target.addEventListener("mouseover", this._displayTooltip, false);
-  },
-
-  
-
-
-  _displayTooltip: function() {
-    this._target.removeEventListener("mouseover", this._displayTooltip, false);
-
-    if (this.ownerView.descriptorTooltip) {
-      let document = this.document;
-
-      let tooltip = document.createElement("tooltip");
-      tooltip.id = "tooltip-" + this._idString;
-      tooltip.setAttribute("orient", "horizontal");
-
-      let labels = ["configurable", "enumerable", "writable", "native-getter",
-                    "frozen", "sealed", "non-extensible"];
-      for (let label of labels) {
-        let labelElement = document.createElement("label");
-        labelElement.setAttribute("value", label);
-        tooltip.appendChild(labelElement);
+    if (!descriptor.writable && !ownerView.getter && !ownerView.setter) {
+      let nonWritableIcon = this.document.createElement("hbox");
+      nonWritableIcon.className = "variable-or-property-non-writable-icon";
+      this._title.appendChild(nonWritableIcon);
+    }
+    if (descriptor.value && typeof descriptor.value == "object") {
+      if (descriptor.value.frozen) {
+        let frozenLabel = this.document.createElement("label");
+        frozenLabel.className = "plain variable-or-property-frozen-label";
+        frozenLabel.setAttribute("value", "F");
+        this._title.appendChild(frozenLabel);
       }
+      if (descriptor.value.sealed) {
+        let sealedLabel = this.document.createElement("label");
+        sealedLabel.className = "plain variable-or-property-sealed-label";
+        sealedLabel.setAttribute("value", "S");
+        this._title.appendChild(sealedLabel);
+      }
+      if (!descriptor.value.extensible) {
+        let nonExtensibleLabel = this.document.createElement("label");
+        nonExtensibleLabel.className = "plain variable-or-property-non-extensible-label";
+        nonExtensibleLabel.setAttribute("value", "N");
+        this._title.appendChild(nonExtensibleLabel);
+      }
+    }
+  },
 
-      this._target.appendChild(tooltip);
-      this._target.setAttribute("tooltip", tooltip.id);
+  
+
+
+  _prepareTooltips: function() {
+    this._target.addEventListener("mouseover", this._setTooltips, false);
+  },
+
+  
+
+
+  _setTooltips: function() {
+    this._target.removeEventListener("mouseover", this._setTooltips, false);
+
+    let ownerView = this.ownerView;
+    if (ownerView.preventDescriptorModifiers) {
+      return;
     }
-    if (this.ownerView.eval && !this._isUndefined && (this.getter || this.setter)) {
-      this._editNode.setAttribute("tooltiptext", this.ownerView.editButtonTooltip);
+
+    let tooltip = this.document.createElement("tooltip");
+    tooltip.id = "tooltip-" + this._idString;
+    tooltip.setAttribute("orient", "horizontal");
+
+    let labels = [
+      "configurable", "enumerable", "writable",
+      "frozen", "sealed", "extensible", "native-getter"];
+
+    for (let label of labels) {
+      let labelElement = this.document.createElement("label");
+      labelElement.setAttribute("value", label);
+      tooltip.appendChild(labelElement);
     }
-    if (this.ownerView.eval) {
-      this._valueLabel.setAttribute("tooltiptext", this.ownerView.editableValueTooltip);
+
+    this._target.appendChild(tooltip);
+    this._target.setAttribute("tooltip", tooltip.id);
+
+    if (this._editNode && ownerView.eval) {
+      this._editNode.setAttribute("tooltiptext", ownerView.editButtonTooltip);
     }
-    if (this.ownerView.switch) {
-      this._name.setAttribute("tooltiptext", this.ownerView.editableNameTooltip);
+    if (this._valueLabel && ownerView.eval) {
+      this._valueLabel.setAttribute("tooltiptext", ownerView.editableValueTooltip);
     }
-    if (this.ownerView.delete) {
-      this._deleteNode.setAttribute("tooltiptext", this.ownerView.deleteButtonTooltip);
+    if (this._name && ownerView.switch) {
+      this._name.setAttribute("tooltiptext", ownerView.editableNameTooltip);
+    }
+    if (this._deleteNode && ownerView.delete) {
+      this._deleteNode.setAttribute("tooltiptext", ownerView.deleteButtonTooltip);
     }
   },
 
@@ -2424,48 +2466,56 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
 
   _setAttributes: function() {
+    let ownerView = this.ownerView;
+    if (ownerView.preventDescriptorModifiers) {
+      return;
+    }
+
     let descriptor = this._initialDescriptor;
+    let target = this._target;
     let name = this._nameString;
 
-    if (this.ownerView.eval) {
-      this._target.setAttribute("editable", "");
+    if (ownerView.eval) {
+      target.setAttribute("editable", "");
     }
-    if (!descriptor.null) {
-      if (!descriptor.configurable) {
-        this._target.setAttribute("non-configurable", "");
+
+    if (!descriptor.configurable) {
+      target.setAttribute("non-configurable", "");
+    }
+    if (!descriptor.enumerable) {
+      target.setAttribute("non-enumerable", "");
+    }
+    if (!descriptor.writable && !ownerView.getter && !ownerView.setter) {
+      target.setAttribute("non-writable", "");
+    }
+
+    if (descriptor.value && typeof descriptor.value == "object") {
+      if (descriptor.value.frozen) {
+        target.setAttribute("frozen", "");
       }
-      if (!descriptor.enumerable) {
-        this._target.setAttribute("non-enumerable", "");
+      if (descriptor.value.sealed) {
+        target.setAttribute("sealed", "");
       }
-      if (!descriptor.writable && !this.ownerView.getter && !this.ownerView.setter) {
-        this._target.setAttribute("non-writable", "");
-      }
-      if (descriptor.value && typeof descriptor.value == "object") {
-        if (descriptor.value.frozen) {
-          this._target.setAttribute("frozen", "");
-        }
-        if (descriptor.value.sealed) {
-          this._target.setAttribute("sealed", "");
-        }
-        if (!descriptor.value.extensible) {
-          this._target.setAttribute("non-extensible", "");
-        }
+      if (!descriptor.value.extensible) {
+        target.setAttribute("non-extensible", "");
       }
     }
+
     if (descriptor && "getterValue" in descriptor) {
-      this._target.setAttribute("safe-getter", "");
+      target.setAttribute("safe-getter", "");
     }
     if (name == "this") {
-      this._target.setAttribute("self", "");
+      target.setAttribute("self", "");
     }
+
     else if (name == "<exception>") {
-      this._target.setAttribute("exception", "");
+      target.setAttribute("exception", "");
     }
     else if (name == "<return>") {
-      this._target.setAttribute("return", "");
+      target.setAttribute("return", "");
     }
     else if (name == "__proto__") {
-      this._target.setAttribute("proto", "");
+      target.setAttribute("proto", "");
     }
   },
 
@@ -2793,7 +2843,7 @@ Property.prototype = Heritage.extend(Variable.prototype, {
     if (this._nameString) {
       this._displayVariable();
       this._customizeVariable();
-      this._prepareTooltip();
+      this._prepareTooltips();
       this._setAttributes();
       this._addEventListeners();
     }
@@ -2937,7 +2987,7 @@ VariablesView.isPrimitive = function(aDescriptor) {
   
   
   let grip = aDescriptor.value;
-  if (!grip || typeof grip != "object") {
+  if (typeof grip != "object") {
     return true;
   }
 
@@ -2968,9 +3018,8 @@ VariablesView.isUndefined = function(aDescriptor) {
 
   
   
-  
   let grip = aDescriptor.value;
-  if (grip && grip.type == "undefined") {
+  if (typeof grip == "object" && grip.type == "undefined") {
     return true;
   }
 
