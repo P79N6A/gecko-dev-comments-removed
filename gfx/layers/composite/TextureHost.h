@@ -308,7 +308,7 @@ public:
 
 
 
-  virtual void Updated(const nsIntRegion* aRegion) {}
+  virtual void Updated(const nsIntRegion* aRegion = nullptr) {}
 
   
 
@@ -422,7 +422,7 @@ public:
 
   virtual uint8_t* GetBuffer() = 0;
 
-  virtual void Updated(const nsIntRegion* aRegion) MOZ_OVERRIDE;
+  virtual void Updated(const nsIntRegion* aRegion = nullptr) MOZ_OVERRIDE;
 
   virtual bool Lock() MOZ_OVERRIDE;
 
