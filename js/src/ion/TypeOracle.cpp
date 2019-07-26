@@ -640,8 +640,13 @@ TypeInferenceOracle::elementWriteNeedsBarrier(RawScript script, jsbytecode *pc)
 {
     
     
-    StackTypeSet *types = script->analysis()->poppedTypes(pc, 2);
-    return types->propertyNeedsBarrier(cx, JSID_VOID);
+    return elementWriteNeedsBarrier(script->analysis()->poppedTypes(pc, 2));
+}
+
+bool
+TypeInferenceOracle::elementWriteNeedsBarrier(StackTypeSet *obj)
+{
+    return obj->propertyNeedsBarrier(cx, JSID_VOID);
 }
 
 StackTypeSet *

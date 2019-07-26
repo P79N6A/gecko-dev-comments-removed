@@ -6058,7 +6058,6 @@ IonBuilder::jsop_setelem_dense()
             return false;
     }
 
-    
     if (oracle->elementWriteNeedsBarrier(script(), pc))
         store->setNeedsBarrier();
 
