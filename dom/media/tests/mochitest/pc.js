@@ -968,11 +968,22 @@ function PeerConnectionWrapper(label, configuration) {
 
   info("Creating " + this);
   this._pc = new mozRTCPeerConnection(this.configuration);
+  is(this._pc.iceConnectionState, "new", "iceConnectionState starts at 'new'");
 
   
 
 
-
+  var self = this;
+  
+  this.next_ice_state = ""; 
+  this._pc.oniceconnectionstatechange = function() {
+      ok(self._pc.iceConnectionState != undefined, "iceConnectionState should not be undefined");
+      if (self.next_ice_state != "") {
+        is(self._pc.iceConnectionState, self.next_ice_state, "iceConnectionState changed to '" +
+           self.next_ice_state + "'");
+        self.next_ice_state = "";
+      }
+  };
   this.ondatachannel = unexpectedEventAndFinish(this, 'ondatachannel');
   this.onsignalingstatechange = unexpectedEventAndFinish(this, 'onsignalingstatechange');
 
@@ -982,7 +993,6 @@ function PeerConnectionWrapper(label, configuration) {
 
 
 
-  var self = this;
   this._pc.onaddstream = function (event) {
     info(self + ": 'onaddstream' event fired for " + event.stream);
 
