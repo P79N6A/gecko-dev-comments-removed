@@ -727,6 +727,45 @@ public:
 
     bool DeferredRelease(nsISupports* obj);
 
+
+    
+
+
+
+
+
+    
+    
+    typedef void* (*DeferredFinalizeStartFunction)();
+
+    
+    
+    
+    
+    typedef bool (*DeferredFinalizeFunction)(int32_t slice, void* data);
+
+private:
+    struct DeferredFinalizeFunctions
+    {
+        DeferredFinalizeStartFunction start;
+        DeferredFinalizeFunction run;
+    };
+    nsAutoTArray<DeferredFinalizeFunctions, 16> mDeferredFinalizeFunctions;
+
+public:
+    
+    
+    bool RegisterDeferredFinalize(DeferredFinalizeStartFunction start,
+                                  DeferredFinalizeFunction run)
+    {
+        DeferredFinalizeFunctions* item =
+            mDeferredFinalizeFunctions.AppendElement();
+        item->start = start;
+        item->run = run;
+        return true;
+    }
+
+
     JSBool GetDoingFinalization() const {return mDoingFinalization;}
 
     
