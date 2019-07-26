@@ -66,34 +66,6 @@ clearDB();
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function add_task(aTaskFn) {
-  function wrapperFn() {
-    Task.spawn(aTaskFn)
-        .then(run_next_test, do_report_unexpected_exception);
-  }
-  eval("add_test(function " + aTaskFn.name + "() wrapperFn());");
-}
-
-
-
-
-
-
-
 function uri(aSpec) NetUtil.newURI(aSpec);
 
 

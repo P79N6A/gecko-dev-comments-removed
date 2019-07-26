@@ -57,19 +57,6 @@ do_check_eq(TEST_DATA_LONG.length, DESIRED_LENGTH);
 
 
 
-
-function add_task(aTaskFn) {
-  function wrapperFn() {
-    Task.spawn(aTaskFn)
-        .then(run_next_test, do_report_unexpected_exception);
-  }
-  eval("add_test(function " + aTaskFn.name + "() wrapperFn());");
-}
-
-
-
-
-
 function getTempFile(aLeafName) {
   let file = FileUtils.getFile("TmpD", [aLeafName]);
   do_register_cleanup(function GTF_cleanup() {
