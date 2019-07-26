@@ -258,16 +258,38 @@ let Activities = {
     };
 
     let matchFunc = function matchFunc(aResult) {
-      
-      for (let prop in aResult.description.filters) {
-        if (Array.isArray(aResult.description.filters[prop])) {
-          if (aResult.description.filters[prop].indexOf(aMsg.options.data[prop]) == -1) {
-            return false;
+
+      function matchFuncValue(aValue, aFilter) {
+        
+
+        let values = Array.isArray(aValue) ? aValue : [aValue];
+        let filters = Array.isArray(aFilter) ? aFilter : [aFilter];
+
+        
+        let ret = false;
+        values.forEach(function(value) {
+          if (filters.indexOf(value) != -1) {
+            ret = true;
           }
-        } else if (aResult.description.filters[prop] !== aMsg.options.data[prop] ) {
+        });
+
+        return ret;
+      }
+
+      
+      for (let prop in aMsg.options.data) {
+
+        
+        if (!(prop in aResult.description.filters)) {
+          return false;
+        }
+
+        
+        if (!matchFuncValue(aMsg.options.data[prop], aResult.description.filters[prop])) {
           return false;
         }
       }
+
       return true;
     };
 
