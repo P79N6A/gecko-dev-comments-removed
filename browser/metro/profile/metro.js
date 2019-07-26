@@ -493,48 +493,18 @@ pref("app.update.backgroundMaxErrors", 10);
 
 
 
-pref("app.update.cert.requireBuiltIn", true);
 
 
 
 
 
-pref("app.update.cert.checkAttributes", true);
-
-
-
-
-pref("app.update.cert.maxErrors", 5);
+pref("app.update.cert.requireBuiltIn", false);
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifndef RELEASE_BUILD
-pref("app.update.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
-pref("app.update.certs.1.commonName", "aus4.mozilla.org");
-pref("app.update.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
-pref("app.update.certs.2.commonName", "aus4.mozilla.org");
-#else
-pref("app.update.certs.1.issuerName", "OU=Equifax Secure Certificate Authority,O=Equifax,C=US");
-pref("app.update.certs.1.commonName", "aus3.mozilla.org");
-pref("app.update.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
-pref("app.update.certs.2.commonName", "aus3.mozilla.org");
-#endif
+pref("app.update.cert.checkAttributes", false);
 
 
 
