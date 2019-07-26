@@ -141,7 +141,7 @@ struct AutoLoadSystemDependencies
 {
   AutoLoadSystemDependencies()
   {
-    static LPCWSTR delayDLLs[] = { L"dwmapi.dll", L"cryptbase.dll" };
+    static LPCWSTR delayDLLs[] = { L"dwmapi.dll", L"cryptbase.dll", L"SHCore.dll", L"uxtheme.dll" };
     WCHAR systemDirectory[MAX_PATH + 1] = { L'\0' };
     
     
