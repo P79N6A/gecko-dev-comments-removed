@@ -57,9 +57,6 @@ user_pref("experiments.supported", true);
 user_pref("experiments.logging.level", "Trace");
 
 
-user_pref("experiments.manifest.uri", "http://%(server)s/experiments-dummy/manifest");
-
-
 
 user_pref("extensions.enabledScopes", 5);
 
@@ -180,3 +177,12 @@ user_pref("browser.snippets.syncPromo.enabled", false);
 
 
 user_pref("browser.cache.use_new_backend_temp", false);
+
+
+
+user_pref('browser.contentHandlers.types.0.uri', 'http://test1.example.org/rss?url=%%s')
+user_pref('browser.contentHandlers.types.1.uri', 'http://test1.example.org/rss?url=%%s')
+user_pref('browser.contentHandlers.types.2.uri', 'http://test1.example.org/rss?url=%%s')
+user_pref('browser.contentHandlers.types.3.uri', 'http://test1.example.org/rss?url=%%s')
+user_pref('browser.contentHandlers.types.4.uri', 'http://test1.example.org/rss?url=%%s')
+user_pref('browser.contentHandlers.types.5.uri', 'http://test1.example.org/rss?url=%%s')
