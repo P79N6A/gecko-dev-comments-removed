@@ -84,11 +84,16 @@ protected:
       }
 
       mVectorImage->InvalidateObserver();
-    }
 
-    
-    
-    
+      
+      
+      
+    } else {
+      
+      
+      
+      ResumeListening();
+    }
   }
 
   
