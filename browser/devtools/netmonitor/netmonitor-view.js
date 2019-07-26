@@ -364,7 +364,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  filterOn: function(aType) {
+  filterOn: function(aType = "all") {
     let target = $("#requests-menu-filter-" + aType + "-button");
     let buttons = document.querySelectorAll(".requests-menu-footer-button");
 
@@ -372,16 +372,15 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       if (button != target) {
         button.removeAttribute("checked");
       } else {
-        button.setAttribute("checked", "");
+        button.setAttribute("checked", "true");
       }
     }
 
     
-    if (!target) {
-      this.filterContents(() => true);
-    }
-    
-    else switch (aType) {
+    switch (aType) {
+      case "all":
+        this.filterContents(() => true);
+        break;
       case "html":
         this.filterContents(this._onHtml);
         break;
@@ -412,6 +411,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   },
 
   
+
 
 
 
