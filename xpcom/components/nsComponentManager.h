@@ -63,12 +63,6 @@ extern const char staticComponentType[];
 
 extern const mozilla::Module kXPCOMModule;
 
-
-struct nsLoaderdata {
-    nsCOMPtr<mozilla::ModuleLoader> loader;
-    nsCString                 type;
-};
-
 class nsComponentManagerImpl MOZ_FINAL
     : public nsIComponentManager
     , public nsIServiceManager
@@ -243,8 +237,6 @@ public:
         SHUTDOWN_IN_PROGRESS,
         SHUTDOWN_COMPLETE
     } mStatus;
-
-    nsTArray<nsLoaderdata> mLoaderData;
 
     PLArenaPool   mArena;
 
