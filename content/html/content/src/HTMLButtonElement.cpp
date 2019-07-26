@@ -325,23 +325,6 @@ HTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
         }
         break;
 
-      case NS_MOUSE_ENTER_SYNTH:
-        {
-          aVisitor.mPresContext->EventStateManager()->
-            SetContentState(this, NS_EVENT_STATE_HOVER);
-          aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
-        }
-        break;
-
-        
-      case NS_MOUSE_EXIT_SYNTH:
-        {
-          aVisitor.mPresContext->EventStateManager()->
-            SetContentState(nullptr, NS_EVENT_STATE_HOVER);
-          aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
-        }
-        break;
-
       default:
         break;
     }
