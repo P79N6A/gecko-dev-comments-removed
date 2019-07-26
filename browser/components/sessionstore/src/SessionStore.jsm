@@ -291,12 +291,6 @@ let SessionStoreInternal = {
   _tabsRestoringCount: 0,
 
   
-  _restoreOnDemand: false,
-
-  
-  _restorePinnedTabsOnDemand: null,
-
-  
   
   
   
@@ -370,14 +364,6 @@ let SessionStoreInternal = {
     
     this._sessionhistory_max_entries =
       this._prefBranch.getIntPref("sessionhistory.max_entries");
-
-    this._restoreOnDemand =
-      this._prefBranch.getBoolPref("sessionstore.restore_on_demand");
-    this._prefBranch.addObserver("sessionstore.restore_on_demand", this, true);
-
-    this._restorePinnedTabsOnDemand =
-      this._prefBranch.getBoolPref("sessionstore.restore_pinned_tabs_on_demand");
-    this._prefBranch.addObserver("sessionstore.restore_pinned_tabs_on_demand", this, true);
 
     gSessionStartup.onceInitialized.then(
       this.initSession.bind(this)
@@ -1187,14 +1173,6 @@ let SessionStoreInternal = {
         if (!this._resume_from_crash)
           _SessionFile.wipe();
         this.saveState(true);
-        break;
-      case "sessionstore.restore_on_demand":
-        this._restoreOnDemand =
-          this._prefBranch.getBoolPref("sessionstore.restore_on_demand");
-        break;
-      case "sessionstore.restore_pinned_tabs_on_demand":
-        this._restorePinnedTabsOnDemand =
-          this._prefBranch.getBoolPref("sessionstore.restore_pinned_tabs_on_demand");
         break;
     }
   },
@@ -3267,9 +3245,7 @@ let SessionStoreInternal = {
       return;
 
     
-    if ((this._restoreOnDemand &&
-        (this._restorePinnedTabsOnDemand || !TabRestoreQueue.hasPriorityTabs)) ||
-        this._tabsRestoringCount >= MAX_CONCURRENT_TAB_RESTORES)
+    if (this._tabsRestoringCount >= MAX_CONCURRENT_TAB_RESTORES)
       return;
 
     let tab = TabRestoreQueue.shift();
@@ -4497,19 +4473,49 @@ let TabRestoreQueue = {
   tabs: {priority: [], visible: [], hidden: []},
 
   
-  get hasPriorityTabs() !!this.tabs.priority.length,
-
   
-  get restoreHiddenTabs() {
-    let updateValue = () => {
-      let value = Services.prefs.getBoolPref(PREF);
-      let definition = {value: value, configurable: true};
-      Object.defineProperty(this, "restoreHiddenTabs", definition);
-    }
+  prefs: {
+    
+    get restoreOnDemand() {
+      let updateValue = () => {
+        let value = Services.prefs.getBoolPref(PREF);
+        let definition = {value: value, configurable: true};
+        Object.defineProperty(this, "restoreOnDemand", definition);
+        return value;
+      }
 
-    const PREF = "browser.sessionstore.restore_hidden_tabs";
-    Services.prefs.addObserver(PREF, updateValue, false);
-    updateValue();
+      const PREF = "browser.sessionstore.restore_on_demand";
+      Services.prefs.addObserver(PREF, updateValue, false);
+      return updateValue();
+    },
+
+    
+    get restorePinnedTabsOnDemand() {
+      let updateValue = () => {
+        let value = Services.prefs.getBoolPref(PREF);
+        let definition = {value: value, configurable: true};
+        Object.defineProperty(this, "restorePinnedTabsOnDemand", definition);
+        return value;
+      }
+
+      const PREF = "browser.sessionstore.restore_pinned_tabs_on_demand";
+      Services.prefs.addObserver(PREF, updateValue, false);
+      return updateValue();
+    },
+
+    
+    get restoreHiddenTabs() {
+      let updateValue = () => {
+        let value = Services.prefs.getBoolPref(PREF);
+        let definition = {value: value, configurable: true};
+        Object.defineProperty(this, "restoreHiddenTabs", definition);
+        return value;
+      }
+
+      const PREF = "browser.sessionstore.restore_hidden_tabs";
+      Services.prefs.addObserver(PREF, updateValue, false);
+      return updateValue();
+    }
   },
 
   
@@ -4554,12 +4560,16 @@ let TabRestoreQueue = {
     let set;
     let {priority, hidden, visible} = this.tabs;
 
-    if (priority.length) {
+    let {restoreOnDemand, restorePinnedTabsOnDemand} = this.prefs;
+    let restorePinned = !(restoreOnDemand && restorePinnedTabsOnDemand);
+    if (restorePinned && priority.length) {
       set = priority;
-    } else if (visible.length) {
-      set = visible;
-    } else if (this.restoreHiddenTabs && hidden.length) {
-      set = hidden;
+    } else if (!restoreOnDemand) {
+      if (visible.length) {
+        set = visible;
+      } else if (this.prefs.restoreHiddenTabs && hidden.length) {
+        set = hidden;
+      }
     }
 
     return set && set.shift();
