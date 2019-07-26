@@ -129,12 +129,18 @@ function setLinks(aLinks) {
     });
   }
 
-  clearHistory(function () {
-    fillHistory(links, function () {
-      NewTabUtils.links.populateCache(function () {
-        NewTabUtils.allPages.update();
-        TestRunner.next();
-      }, true);
+  
+  
+  
+  
+  NewTabUtils.links.populateCache(function () {
+    clearHistory(function () {
+      fillHistory(links, function () {
+        NewTabUtils.links.populateCache(function () {
+          NewTabUtils.allPages.update();
+          TestRunner.next();
+        }, true);
+      });
     });
   });
 }
