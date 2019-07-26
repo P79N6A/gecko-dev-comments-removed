@@ -331,7 +331,8 @@ EventListenerManager::DispatchEvent(JSContext* aCx, const EventTarget& aTarget,
     return false;
   }
 
-  js::AutoValueVector listeners(aCx);
+  ContextAllocPolicy ap(aCx);
+  js::Vector<JSObject*, 10, ContextAllocPolicy> listeners(ap);
 
   for (PRCList* elem = PR_NEXT_LINK(&collection->mListenerHead);
        elem != &collection->mListenerHead;
@@ -341,7 +342,7 @@ EventListenerManager::DispatchEvent(JSContext* aCx, const EventTarget& aTarget,
     
     
     if ((eventIsTrusted || listenerData->mWantsUntrusted) &&
-        !listeners.append(OBJECT_TO_JSVAL(listenerData->mListener))) {
+        !listeners.append(listenerData->mListener)) {
       aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
       return false;
     }
@@ -364,7 +365,7 @@ EventListenerManager::DispatchEvent(JSContext* aCx, const EventTarget& aTarget,
     
     
 
-    jsval listenerVal = listeners[index];
+    jsval listenerVal = OBJECT_TO_JSVAL(listeners[index]);
 
     JSObject* listenerObj;
     if (!JS_ValueToObject(aCx, listenerVal, &listenerObj)) {
