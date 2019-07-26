@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "mozilla/Assertions.h"
 
@@ -22,12 +22,12 @@
 
 #include "xpcpublic.h"
 
-/**
- * JS locale callbacks implemented by XPCOM modules.  These are theoretically
- * safe for use on multiple threads.  Unfortunately, the intl code underlying
- * these XPCOM modules doesn't yet support this, so in practice
- * XPCLocaleCallbacks are limited to the main thread.
- */
+
+
+
+
+
+
 struct XPCLocaleCallbacks : public JSLocaleCallbacks
 {
   XPCLocaleCallbacks()
@@ -50,15 +50,15 @@ struct XPCLocaleCallbacks : public JSLocaleCallbacks
     MOZ_COUNT_DTOR(XPCLocaleCallbacks);
   }
 
-  /**
-   * Return the XPCLocaleCallbacks that's hidden away in |rt|. (This impl uses
-   * the locale callbacks struct to store away its per-runtime data.)
-   */
+  
+
+
+
   static XPCLocaleCallbacks*
   This(JSRuntime *rt)
   {
-    // Locale information for |rt| was associated using xpc_LocalizeRuntime;
-    // assert and double-check this.
+    
+    
     JSLocaleCallbacks* lc = JS_GetLocaleCallbacks(rt);
     MOZ_ASSERT(lc);
     MOZ_ASSERT(lc->localeToUpperCase == LocaleToUpperCase);
@@ -72,32 +72,32 @@ struct XPCLocaleCallbacks : public JSLocaleCallbacks
   }
 
   static JSBool
-  LocaleToUpperCase(JSContext *cx, JSString *src, jsval *rval)
+  LocaleToUpperCase(JSContext *cx, JSHandleString src, JSMutableHandleValue rval)
   {
     return ChangeCase(cx, src, rval, ToUpperCase);
   }
 
   static JSBool
-  LocaleToLowerCase(JSContext *cx, JSString *src, jsval *rval)
+  LocaleToLowerCase(JSContext *cx, JSHandleString src, JSMutableHandleValue rval)
   {
     return ChangeCase(cx, src, rval, ToLowerCase);
   }
 
   static JSBool
-  LocaleToUnicode(JSContext* cx, const char* src, jsval* rval)
+  LocaleToUnicode(JSContext* cx, const char* src, JSMutableHandleValue rval)
   {
     return This(JS_GetRuntime(cx))->ToUnicode(cx, src, rval);
   }
 
   static JSBool
-  LocaleCompare(JSContext *cx, JSString *src1, JSString *src2, jsval *rval)
+  LocaleCompare(JSContext *cx, JSHandleString src1, JSHandleString src2, JSMutableHandleValue rval)
   {
     return This(JS_GetRuntime(cx))->Compare(cx, src1, src2, rval);
   }
 
 private:
   static JSBool
-  ChangeCase(JSContext* cx, JSString* src, jsval* rval,
+  ChangeCase(JSContext* cx, JSHandleString src, JSMutableHandleValue rval,
              void(*changeCaseFnc)(const nsAString&, nsAString&))
   {
     nsDependentJSString depStr;
@@ -114,12 +114,12 @@ private:
       return false;
     }
 
-    *rval = STRING_TO_JSVAL(ucstr);
+    rval.set(STRING_TO_JSVAL(ucstr));
     return true;
   }
 
   JSBool
-  Compare(JSContext *cx, JSString *src1, JSString *src2, jsval *rval)
+  Compare(JSContext *cx, JSHandleString src1, JSHandleString src2, JSMutableHandleValue rval)
   {
     nsresult rv;
 
@@ -161,17 +161,17 @@ private:
       return false;
     }
 
-    *rval = INT_TO_JSVAL(result);
+    rval.set(INT_TO_JSVAL(result));
     return true;
   }
 
   JSBool
-  ToUnicode(JSContext* cx, const char* src, jsval* rval)
+  ToUnicode(JSContext* cx, const char* src, JSMutableHandleValue rval)
   {
     nsresult rv;
 
     if (!mDecoder) {
-      // use app default locale
+      
       nsCOMPtr<nsILocaleService> localeService =
         do_GetService(NS_LOCALESERVICE_CONTRACTID, &rv);
       if (NS_SUCCEEDED(rv)) {
@@ -190,7 +190,7 @@ private:
             nsAutoCString charset;
             rv = platformCharset->GetDefaultCharsetForLocale(localeStr, charset);
             if (NS_SUCCEEDED(rv)) {
-              // get/create unicode decoder for charset
+              
               nsCOMPtr<nsICharsetConverterManager> ccm =
                 do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
               if (NS_SUCCEEDED(rv))
@@ -201,7 +201,6 @@ private:
       }
     }
 
-    JSString *str = nullptr;
     int32_t srcLength = PL_strlen(src);
 
     if (mDecoder) {
@@ -211,10 +210,10 @@ private:
       if (unichars) {
         rv = mDecoder->Convert(src, &srcLength, unichars, &unicharLength);
         if (NS_SUCCEEDED(rv)) {
-          // terminate the returned string
+          
           unichars[unicharLength] = 0;
 
-          // nsIUnicodeDecoder::Convert may use fewer than srcLength PRUnichars
+          
           if (unicharLength + 1 < srcLength + 1) {
             PRUnichar *shrunkUnichars =
               (PRUnichar *)JS_realloc(cx, unichars,
@@ -222,22 +221,18 @@ private:
             if (shrunkUnichars)
               unichars = shrunkUnichars;
           }
-          str = JS_NewUCString(cx,
-                               reinterpret_cast<jschar*>(unichars),
-                               unicharLength);
+          JSString *str = JS_NewUCString(cx, reinterpret_cast<jschar*>(unichars), unicharLength);
+          if (str) {
+            rval.setString(str);
+            return true;
+          }
         }
-        if (!str)
-          JS_free(cx, unichars);
+        JS_free(cx, unichars);
       }
     }
 
-    if (!str) {
-      xpc::Throw(cx, NS_ERROR_OUT_OF_MEMORY);
-      return false;
-    }
-
-    *rval = STRING_TO_JSVAL(str);
-    return true;
+    xpc::Throw(cx, NS_ERROR_OUT_OF_MEMORY);
+    return false;
   }
 
   void AssertThreadSafety()
@@ -258,7 +253,7 @@ xpc_LocalizeRuntime(JSRuntime *rt)
 {
   JS_SetLocaleCallbacks(rt, new XPCLocaleCallbacks());
 
-  // Set the default locale.
+  
   nsCOMPtr<nsILocaleService> localeService =
     do_GetService(NS_LOCALESERVICE_CONTRACTID);
   if (!localeService)
