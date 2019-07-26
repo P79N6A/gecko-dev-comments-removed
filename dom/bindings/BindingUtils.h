@@ -1456,6 +1456,8 @@ AppendNamedPropertyIds(JSContext* cx, JS::Handle<JSObject*> proxy,
                        nsTArray<nsString>& names,
                        bool shadowPrototypeProperties, JS::AutoIdVector& props);
 
+namespace binding_detail {
+
 
 
 struct FakeDependentString {
@@ -1533,6 +1535,8 @@ private:
   };
 };
 
+} 
+
 enum StringificationBehavior {
   eStringify,
   eEmpty,
@@ -1545,7 +1549,7 @@ ConvertJSValueToString(JSContext* cx, JS::Handle<JS::Value> v,
                        JS::MutableHandle<JS::Value> pval,
                        StringificationBehavior nullBehavior,
                        StringificationBehavior undefinedBehavior,
-                       FakeDependentString& result)
+                       binding_detail::FakeDependentString& result)
 {
   JSString *s;
   if (v.isString()) {
@@ -2044,6 +2048,39 @@ T& NonNullHelper(OwningNonNull<T>& aArg)
 
 template<typename T>
 const T& NonNullHelper(const OwningNonNull<T>& aArg)
+{
+  return aArg;
+}
+
+inline
+void NonNullHelper(NonNull<binding_detail::FakeDependentString>& aArg)
+{
+  
+  
+  
+  
+}
+
+inline
+void NonNullHelper(const NonNull<binding_detail::FakeDependentString>& aArg)
+{
+  
+  
+  
+  
+}
+
+inline
+void NonNullHelper(binding_detail::FakeDependentString& aArg)
+{
+  
+  
+  
+  
+}
+
+MOZ_ALWAYS_INLINE
+const nsAString& NonNullHelper(const binding_detail::FakeDependentString& aArg)
 {
   return aArg;
 }
