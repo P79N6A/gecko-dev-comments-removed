@@ -258,10 +258,6 @@ WebappsStore.prototype = {
           proxifiedApp.iconURL = res.url;
         }
       });
-
-      
-      
-      this._getRunningApps();
     });
   },
 
