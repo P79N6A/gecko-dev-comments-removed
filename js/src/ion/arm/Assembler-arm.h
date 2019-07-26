@@ -1670,6 +1670,8 @@ class Assembler
     
     void dumpPool();
     void flushBuffer();
+    void enterNoPool();
+    void leaveNoPool();
     
     
     static ptrdiff_t getBranchOffset(const Instruction *i);
@@ -1977,6 +1979,17 @@ class DoubleEncoder {
             }
         }
         return false;
+    }
+};
+
+class DePooler {
+    Assembler *masm_;
+  public:
+    DePooler(Assembler *masm) : masm_(masm) {
+        masm_->enterNoPool();
+    }
+    ~DePooler() {
+        masm_->leaveNoPool();
     }
 };
 

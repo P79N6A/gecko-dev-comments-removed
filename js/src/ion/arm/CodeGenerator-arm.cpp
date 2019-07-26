@@ -817,8 +817,7 @@ CodeGeneratorARM::visitTableSwitch(LTableSwitch *ins)
     } else {
         masm.ma_rsb(tempReg, Imm32(cases - 1), tempReg, SetCond);
     }
-    
-    
+    DePooler dp(&masm);
     masm.ma_ldr(DTRAddr(pc, DtrRegImmShift(tempReg, LSL, 2)), pc, Offset, Assembler::Unsigned);
     masm.ma_b(defaultcase);
     DeferredJumpTable *d = new DeferredJumpTable(ins, masm.nextOffset(), &masm);
@@ -826,46 +825,8 @@ CodeGeneratorARM::visitTableSwitch(LTableSwitch *ins)
 
     if (!masm.addDeferredData(d, 0))
         return false;
-    return true;
-#if 0
-    
-    
-    if (!masm.addCodeLabel(label))
-        return false;
-
-    
-    LDefinition *base = ins->getTemp(1);
-
-
-    
-    
-    masm.ma_mov(label->dest(), ToRegister(base));
-    masm.ma_add(ToRegister(base), Operand(lsl(ToRegister(index), 3)),ToRegister(base));
-
-    Operand pointer = Operand(ToRegister(base), ToRegister(index), TimesEight);
-    masm.lea(pointer, ToRegister(base));
-
-    
-    masm.jmp(ToOperand(base));
-
-    
-    
-    
-    masm.align(1 << TimesFour);
-    masm.bind(label->src());
-
-    for (size_t j=0; j<ins->mir()->numCases(); j++) {
-        LBlock *caseblock = ins->mir()->getCase(j)->lir();
-
-        masm.jmp(caseblock->label());
-        masm.align(1 << TimesFour);
-    }
 
     return true;
-
-    JS_NOT_REACHED("what the deuce are tables");
-    return false;
-#endif
 }
 
 bool
