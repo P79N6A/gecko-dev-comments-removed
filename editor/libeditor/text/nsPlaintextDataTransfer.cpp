@@ -182,9 +182,8 @@ nsresult nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
     NS_ENSURE_TRUE(sourceNode, NS_ERROR_FAILURE);
   }
 
-  WidgetDragEvent* dragEventInternal =
-    static_cast<WidgetDragEvent*>(aDropEvent->GetInternalNSEvent());
-  if (nsContentUtils::CheckForSubFrameDrop(dragSession, dragEventInternal)) {
+  if (nsContentUtils::CheckForSubFrameDrop(dragSession,
+        aDropEvent->GetInternalNSEvent()->AsDragEvent())) {
     
     
     if (srcdomdoc && !IsSafeToInsertData(srcdomdoc))

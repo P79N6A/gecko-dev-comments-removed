@@ -13,7 +13,7 @@ using namespace mozilla;
 
 nsDOMDragEvent::nsDOMDragEvent(mozilla::dom::EventTarget* aOwner,
                                nsPresContext* aPresContext,
-                               WidgetInputEvent* aEvent)
+                               WidgetDragEvent* aEvent)
   : nsDOMMouseEvent(aOwner, aPresContext, aEvent ? aEvent :
                     new WidgetDragEvent(false, 0, nullptr))
 {
@@ -54,8 +54,7 @@ nsDOMDragEvent::InitDragEvent(const nsAString & aType,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mEventIsInternal && mEvent) {
-    WidgetDragEvent* dragEvent = static_cast<WidgetDragEvent*>(mEvent);
-    dragEvent->dataTransfer = aDataTransfer;
+    mEvent->AsDragEvent()->dataTransfer = aDataTransfer;
   }
 
   return NS_OK;
@@ -80,7 +79,7 @@ nsDOMDragEvent::GetDataTransfer()
     return nullptr;
   }
 
-  WidgetDragEvent* dragEvent = static_cast<WidgetDragEvent*>(mEvent);
+  WidgetDragEvent* dragEvent = mEvent->AsDragEvent();
   
   if (!mEventIsInternal) {
     nsresult rv = nsContentUtils::SetDataTransferInEvent(dragEvent);
