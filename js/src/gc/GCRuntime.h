@@ -537,6 +537,7 @@ class GCRuntime
     
     js::ScriptAndCountsVector *scriptAndCountsVector;
 
+#ifdef DEBUG
     
 
 
@@ -544,6 +545,7 @@ class GCRuntime
 
 
     int inUnsafeRegion;
+#endif
 
   private:
     
