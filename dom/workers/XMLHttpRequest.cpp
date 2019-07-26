@@ -508,8 +508,8 @@ private:
     {
       MOZ_ASSERT(NS_FAILED(mErrorCode));
 
-        Throw(aCx, mErrorCode);
-      }
+      Throw(aCx, mErrorCode);
+    }
   };
 
 public:
@@ -1804,14 +1804,6 @@ XMLHttpRequest::SendInternal(const nsAString& aStringBody,
   if (!isSyncXHR)  {
     autoUnpin.Clear();
     MOZ_ASSERT(autoSyncLoop.empty());
-    return;
-  }
-
-  
-  
-  
-  
-  if (mCanceled) {
     return;
   }
 
