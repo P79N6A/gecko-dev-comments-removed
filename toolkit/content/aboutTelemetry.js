@@ -758,12 +758,57 @@ let LateWritesSingleton = {
   }
 };
 
+
+
+
+
+
+
+
+function sortStartupMilestones(aSimpleMeasurements) {
+  
+  const startupMilestones =
+    ["start", "main", "startupCrashDetectionBegin", "createTopLevelWindow",
+     "firstPaint", "delayedStartupStarted", "firstLoadURI",
+     "sessionRestoreInitialized", "sessionRestoreRestoring", "sessionRestored",
+     "delayedStartupFinished", "startupCrashDetectionEnd"];
+
+  let sortedKeys = Object.keys(aSimpleMeasurements);
+
+  
+  sortedKeys.sort(function keyCompare(keyA, keyB) {
+    let isKeyAMilestone = (startupMilestones.indexOf(keyA) > -1);
+    let isKeyBMilestone = (startupMilestones.indexOf(keyB) > -1);
+
+    
+    if (isKeyAMilestone && !isKeyBMilestone)
+      return -1;
+    if (!isKeyAMilestone && isKeyBMilestone)
+      return 1;
+    
+    if (!isKeyAMilestone && !isKeyBMilestone)
+      return 0;
+
+    
+    return aSimpleMeasurements[keyA] - aSimpleMeasurements[keyB];
+  });
+
+  
+  let result = {};
+  for (let key of sortedKeys) {
+    result[key] = aSimpleMeasurements[key];
+  }
+
+  return result;
+}
+
 function displayPingData() {
   let ping = TelemetryPing.getPayload();
 
   
-  if (Object.keys(ping.simpleMeasurements).length) {
-    KeyValueTable.render("simple-measurements-table", ping.simpleMeasurements);
+  let simpleMeasurements = sortStartupMilestones(ping.simpleMeasurements);
+  if (Object.keys(simpleMeasurements).length) {
+    KeyValueTable.render("simple-measurements-table", simpleMeasurements);
   } else {
     showEmptySectionMessage("simple-measurements-section");
   }
