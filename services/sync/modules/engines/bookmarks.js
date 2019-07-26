@@ -17,6 +17,7 @@ Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/util.js");
+Cu.import("resource://gre/modules/Task.jsm");
 
 const ALLBOOKMARKS_ANNO    = "AllBookmarks";
 const DESCRIPTION_ANNO     = "bookmarkProperties/description";
@@ -343,30 +344,35 @@ BookmarksEngine.prototype = {
   _syncStartup: function _syncStart() {
     SyncEngine.prototype._syncStartup.call(this);
 
-    
-    if (this.lastSync == 0) {
-      PlacesUtils.archiveBookmarksFile(null, true);
-    }
-
-    this.__defineGetter__("_guidMap", function() {
+    let cb = Async.makeSpinningCallback();
+    Task.spawn(function() {
       
-      
-      
-      let guidMap;
-      try {
-        guidMap = this._buildGUIDMap();
-      } catch (ex) {
-        this._log.warn("Got exception \"" + Utils.exceptionStr(ex) +
-                       "\" building GUID map." +
-                       " Skipping all other incoming items.");
-        throw {code: Engine.prototype.eEngineAbortApplyIncoming,
-               cause: ex};
+      if (this.lastSync == 0) {
+        yield PlacesUtils.archiveBookmarksFile(null, true);
       }
-      delete this._guidMap;
-      return this._guidMap = guidMap;
-    });
 
-    this._store._childrenToOrder = {};
+      this.__defineGetter__("_guidMap", function() {
+        
+        
+        
+        let guidMap;
+        try {
+          guidMap = this._buildGUIDMap();
+        } catch (ex) {
+          this._log.warn("Got exception \"" + Utils.exceptionStr(ex) +
+                         "\" building GUID map." +
+                         " Skipping all other incoming items.");
+          throw {code: Engine.prototype.eEngineAbortApplyIncoming,
+                 cause: ex};
+        }
+        delete this._guidMap;
+        return this._guidMap = guidMap;
+      });
+
+      this._store._childrenToOrder = {};
+      cb();
+    }.bind(this));
+    cb.wait();
   },
 
   _processIncoming: function (newitems) {
@@ -1271,15 +1277,19 @@ BookmarksStore.prototype = {
   },
 
   wipe: function BStore_wipe() {
-    
-    PlacesUtils.archiveBookmarksFile(null, true);
-
-    for each (let guid in kSpecialIds.guids)
-      if (guid != "places") {
-        let id = kSpecialIds.specialIdForGUID(guid);
-        if (id)
-          PlacesUtils.bookmarks.removeFolderChildren(id);
-      }
+    let cb = Async.makeSpinningCallback();
+    Task.spawn(function() {
+      
+      yield PlacesUtils.archiveBookmarksFile(null, true);
+      for each (let guid in kSpecialIds.guids)
+        if (guid != "places") {
+          let id = kSpecialIds.specialIdForGUID(guid);
+          if (id)
+            PlacesUtils.bookmarks.removeFolderChildren(id);
+        }
+      cb();
+    });
+    cb.wait();
   }
 };
 
