@@ -154,11 +154,6 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
 
     
     
-    if (IS_SLIM_WRAPPER(obj) && !MorphSlimWrapper(cx, obj))
-        return nullptr;
-
-    
-    
     
     
     

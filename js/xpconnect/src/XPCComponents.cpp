@@ -2685,10 +2685,6 @@ nsXPCComponents_Utils::LookupMethod(const JS::Value& object,
         JSAutoCompartment ac(cx, obj);
 
         
-        if (IS_SLIM_WRAPPER(obj) && !MorphSlimWrapper(cx, obj))
-            return NS_ERROR_FAILURE;
-
-        
         
         JSObject *xray = WrapperFactory::WrapForSameCompartmentXray(cx, obj);
         if (!xray)
