@@ -390,6 +390,13 @@ private:
 
     virtual bool UsesSystemFallback() { return true; }
 
+    void GetFontsFromCollection(IDWriteFontCollection* aCollection);
+
+#ifdef MOZ_BUNDLED_FONTS
+    already_AddRefed<IDWriteFontCollection>
+    CreateBundledFontsCollection(IDWriteFactory* aFactory);
+#endif
+
     
 
 
@@ -417,6 +424,11 @@ private:
 
     nsRefPtr<FontFallbackRenderer> mFallbackRenderer;
     nsRefPtr<IDWriteTextFormat>    mFallbackFormat;
+
+    nsRefPtr<IDWriteFontCollection> mSystemFonts;
+#ifdef MOZ_BUNDLED_FONTS
+    nsRefPtr<IDWriteFontCollection> mBundledFonts;
+#endif
 };
 
 
