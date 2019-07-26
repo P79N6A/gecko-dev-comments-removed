@@ -563,6 +563,8 @@ DownloadElementShell.prototype = {
     this._updateDownloadStatusUI();
     if (this._element.selected)
       goUpdateDownloadCommands();
+    else
+      goUpdateCommand("downloadsCmd_clearDownloads");
   },
 
   
@@ -754,7 +756,7 @@ DownloadElementShell.prototype = {
 function DownloadsPlacesView(aRichListBox, aActive = true) {
   this._richlistbox = aRichListBox;
   this._richlistbox._placesView = this;
-  this._richlistbox.controllers.appendController(this);
+  window.controllers.insertControllerAt(0, this);
 
   
   this._downloadElementsShellsForURI = new Map();
@@ -778,7 +780,7 @@ function DownloadsPlacesView(aRichListBox, aActive = true) {
 
   
   window.addEventListener("unload", function() {
-    this._richlistbox.controllers.removeController(this);
+    window.controllers.removeController(this);
     downloadsData.removeView(this);
     this.result = null;
   }.bind(this), true);
@@ -959,8 +961,10 @@ DownloadsPlacesView.prototype = {
 
     
     
-    if (!aDocumentFragment)
+    if (!aDocumentFragment) {
       this._ensureVisibleElementsAreActive();
+      goUpdateCommand("downloadsCmd_clearDownloads");
+    }
   },
 
   _removeElement: function DPV__removeElement(aElement) {
@@ -974,6 +978,7 @@ DownloadsPlacesView.prototype = {
     }
     this._richlistbox.removeChild(aElement);
     this._ensureVisibleElementsAreActive();
+    goUpdateCommand("downloadsCmd_clearDownloads");
   },
 
   _removeHistoryDownloadFromView:
@@ -1172,6 +1177,7 @@ DownloadsPlacesView.prototype = {
 
     this._appendDownloadsFragment(elementsToAppendFragment);
     this._ensureVisibleElementsAreActive();
+    goUpdateDownloadCommands();
   },
 
   _appendDownloadsFragment: function DPV__appendDownloadsFragment(aDOMFragment) {
@@ -1179,11 +1185,9 @@ DownloadsPlacesView.prototype = {
     
     let parentNode = this._richlistbox.parentNode;
     let nextSibling = this._richlistbox.nextSibling;
-    this._richlistbox.controllers.removeController(this);
     parentNode.removeChild(this._richlistbox);
     this._richlistbox.appendChild(aDOMFragment);
     parentNode.insertBefore(this._richlistbox, nextSibling);
-    this._richlistbox.controllers.appendController(this);
   },
 
   nodeInserted: function DPV_nodeInserted(aParent, aPlacesNode) {
@@ -1286,25 +1290,52 @@ DownloadsPlacesView.prototype = {
   getViewItem: function(aDataItem)
     this._viewItemsForDataItems.get(aDataItem, null),
 
-  supportsCommand: function(aCommand)
-    DOWNLOAD_VIEW_SUPPORTED_COMMANDS.indexOf(aCommand) != -1,
+  supportsCommand: function DPV_supportsCommand(aCommand) {
+    if (DOWNLOAD_VIEW_SUPPORTED_COMMANDS.indexOf(aCommand) != -1) {
+      
+      
+      
+      
+      
+      
+      
+      
+      if (document.activeElement == this._richlistbox ||
+          aCommand == "downloadsCmd_clearDownloads") {
+        return true;
+      }
+    }
+    return false;
+  },
+
 
   isCommandEnabled: function DPV_isCommandEnabled(aCommand) {
-    let selectedElements = this._richlistbox.selectedItems;
     switch (aCommand) {
       case "cmd_copy":
-        return selectedElements && selectedElements.length > 0;
+        return this._richlistbox.selectedItems.length > 0;
       case "cmd_selectAll":
         return true;
       case "cmd_paste":
         return this._canDownloadClipboardURL();
       case "downloadsCmd_clearDownloads":
-        return !!this._richlistbox.firstChild;
+        return this._canClearDownloads();
       default:
-        return Array.every(selectedElements, function(element) {
+        return Array.every(this._richlistbox.selectedItems, function(element) {
           return element._shell.isCommandEnabled(aCommand);
         });
     }
+  },
+
+  _canClearDownloads: function DPV__canClearDownloads() {
+    
+    
+    
+    
+    for (let elt = this._richlistbox.lastChild; elt; elt = elt.previousSibling) {
+      if (elt._shell.placesNode || !elt._shell.dataItem.inProgress)
+        return true;
+    }
+    return false;
   },
 
   _copySelectedDownloadsToClipboard:
@@ -1372,6 +1403,9 @@ DownloadsPlacesView.prototype = {
             .getService(Ci.nsIDownloadHistory)
             .removeAllDownloads();
         }
+        
+        
+        goUpdateCommand("downloadsCmd_clearDownloads");
         break;
       default: {
         let selectedElements = this._richlistbox.selectedItems;
