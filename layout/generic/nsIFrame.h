@@ -811,6 +811,13 @@ public:
 
 
   nsPoint GetNormalPosition() const;
+  mozilla::LogicalPoint
+  GetLogicalNormalPosition(mozilla::WritingMode aWritingMode,
+                           nscoord aContainerWidth) const
+  {
+    return mozilla::LogicalPoint(aWritingMode,
+                                 GetNormalPosition(), aContainerWidth);
+  }
 
   virtual nsPoint GetPositionOfChildIgnoringScrolling(nsIFrame* aChild)
   { return aChild->GetPosition(); }
@@ -908,6 +915,10 @@ public:
 
 
   virtual nsMargin GetUsedMargin() const;
+  virtual mozilla::LogicalMargin
+  GetLogicalUsedMargin(mozilla::WritingMode aWritingMode) const {
+    return mozilla::LogicalMargin(aWritingMode, GetUsedMargin());
+  }
 
   
 
@@ -920,6 +931,10 @@ public:
 
 
   virtual nsMargin GetUsedBorder() const;
+  virtual mozilla::LogicalMargin
+  GetLogicalUsedBorder(mozilla::WritingMode aWritingMode) const {
+    return mozilla::LogicalMargin(aWritingMode, GetUsedBorder());
+  }
 
   
 
@@ -927,9 +942,17 @@ public:
 
 
   virtual nsMargin GetUsedPadding() const;
+  virtual mozilla::LogicalMargin
+  GetLogicalUsedPadding(mozilla::WritingMode aWritingMode) const {
+    return mozilla::LogicalMargin(aWritingMode, GetUsedPadding());
+  }
 
   nsMargin GetUsedBorderAndPadding() const {
     return GetUsedBorder() + GetUsedPadding();
+  }
+  mozilla::LogicalMargin
+  GetLogicalUsedBorderAndPadding(mozilla::WritingMode aWritingMode) const {
+    return mozilla::LogicalMargin(aWritingMode, GetUsedBorderAndPadding());
   }
 
   
