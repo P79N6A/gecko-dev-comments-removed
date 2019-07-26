@@ -319,17 +319,69 @@ CloseLiveIterators(JSContext *cx, const InlineFrameIterator &frame)
     }
 }
 
+static void
+HandleException(JSContext *cx, const IonFrameIterator &frame, ResumeFromException *rfe)
+{
+    JS_ASSERT(frame.isBaselineJS());
+    AssertCanGC();
+
+    RootedScript script(cx);
+    jsbytecode *pc;
+    frame.baselineScriptAndPc(&script, &pc);
+
+    if (!script->hasTrynotes())
+        return;
+
+    JSTryNote *tn = script->trynotes()->vector;
+    JSTryNote *tnEnd = tn + script->trynotes()->length;
+
+    uint32_t pcOffset = uint32_t(pc - script->main());
+    for (; tn != tnEnd; ++tn) {
+        if (pcOffset < tn->start)
+            continue;
+        if (pcOffset >= tn->start + tn->length)
+            continue;
+
+        
+        rfe->framePointer = frame.fp() - BaselineFrame::FramePointerOffset;
+        rfe->stackPointer = rfe->framePointer - BaselineFrame::Size() -
+            (script->nfixed + tn->stackDepth) * sizeof(Value);
+
+        switch (tn->kind) {
+          case JSTRY_CATCH: {
+            
+            rfe->kind = ResumeFromException::RESUME_CATCH;
+            jsbytecode *catchPC = script->main() + tn->start + tn->length;
+            rfe->target = script->baseline->nativeCodeForPC(script, catchPC);
+            return;
+          }
+          default:
+            JS_NOT_REACHED("Invalid try note");
+        }
+    }
+
+}
+
 void
 ion::HandleException(ResumeFromException *rfe)
 {
     AssertCanGC();
     JSContext *cx = GetIonContext()->cx;
 
+    rfe->kind = ResumeFromException::RESUME_ENTRY_FRAME;
+
     IonSpew(IonSpew_Invalidate, "handling exception");
 
     
     
     js_delete(cx->runtime->ionActivation->maybeTakeBailout());
+
+    
+    
+    
+    
+    if (cx->runtime->hasIonReturnOverride())
+        cx->runtime->takeIonReturnOverride();
 
     IonFrameIterator iter(cx->runtime->ionTop);
     while (!iter.isEntry()) {
@@ -356,15 +408,14 @@ ion::HandleException(ResumeFromException *rfe)
                 ionScript->decref(cx->runtime->defaultFreeOp());
         }
 
+        if (iter.isBaselineJS()) {
+            HandleException(cx, iter, rfe);
+            if (rfe->kind == ResumeFromException::RESUME_CATCH)
+                return;
+        }
+
         ++iter;
     }
-
-    
-    
-    
-    
-    if (cx->runtime->hasIonReturnOverride())
-        cx->runtime->takeIonReturnOverride();
 
     rfe->stackPointer = iter.fp();
 }

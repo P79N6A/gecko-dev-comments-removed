@@ -30,6 +30,8 @@ class BaselineCompilerShared
     ICStubSpace stubSpace_;
     js::Vector<ICEntry, 16, SystemAllocPolicy> icEntries_;
 
+    js::Vector<PCMappingEntry, 16, SystemAllocPolicy> pcMappingEntries_;
+
     
     
     
@@ -72,6 +74,18 @@ class BaselineCompilerShared
 
     JSFunction *function() const {
         return script->function();
+    }
+
+    bool addPCMappingEntry() {
+        frame.assertSyncedStack();
+
+        masm.flushBuffer();
+
+        PCMappingEntry entry;
+        entry.pcOffset = pc - script->code;
+        entry.nativeOffset = masm.currentOffset();
+
+        return pcMappingEntries_.append(entry);
     }
 
     template <typename T>

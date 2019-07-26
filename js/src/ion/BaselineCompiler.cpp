@@ -79,7 +79,7 @@ BaselineCompiler::compile()
 
     JS_ASSERT(!script->hasBaselineScript());
 
-    BaselineScript *baselineScript = BaselineScript::New(cx, icEntries_.length());
+    BaselineScript *baselineScript = BaselineScript::New(cx, icEntries_.length(), pcMappingEntries_.length());
     if (!baselineScript)
         return Method_Error;
     script->baseline = baselineScript;
@@ -93,6 +93,9 @@ BaselineCompiler::compile()
     
     if (icEntries_.length())
         baselineScript->copyICEntries(&icEntries_[0], masm);
+
+    if (pcMappingEntries_.length())
+        baselineScript->copyPCMappingEntries(&pcMappingEntries_[0]);
 
     
     baselineScript->adoptFallbackStubs(&stubSpace_);
@@ -1292,6 +1295,58 @@ BaselineCompiler::emit_JSOP_THROW()
     pushArg(R0);
 
     return callVM(ThrowInfo);
+}
+
+bool
+BaselineCompiler::emit_JSOP_TRY()
+{
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_ENTERBLOCK()
+{
+    
+    
+    if (!addPCMappingEntry())
+        return false;
+
+    
+    StaticBlockObject &blockObj = script->getObject(pc)->asStaticBlock();
+
+    for (size_t i = 0; i < blockObj.slotCount(); i++)
+        frame.push(UndefinedValue());
+
+    
+    
+    frame.syncStack(0);
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_LEAVEBLOCK()
+{
+    
+
+    size_t n = StackUses(script, pc);
+    frame.popn(n);
+    return true;
+}
+
+typedef bool (*GetAndClearExceptionFn)(JSContext *, MutableHandleValue);
+static const VMFunction GetAndClearExceptionInfo =
+    FunctionInfo<GetAndClearExceptionFn>(GetAndClearException);
+
+bool
+BaselineCompiler::emit_JSOP_EXCEPTION()
+{
+    prepareVMCall();
+
+    if (!callVM(GetAndClearExceptionInfo))
+        return false;
+
+    frame.push(R0);
+    return true;
 }
 
 bool

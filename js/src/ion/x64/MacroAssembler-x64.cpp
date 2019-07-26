@@ -191,10 +191,30 @@ MacroAssemblerX64::handleException()
     passABIArg(rax);
     callWithABI(JS_FUNC_TO_DATA_PTR(void *, ion::HandleException));
 
+    Label catch_;
+    Label entryFrame;
+
+    branch32(Assembler::Equal, Address(rsp, offsetof(ResumeFromException, kind)),
+             Imm32(ResumeFromException::RESUME_ENTRY_FRAME), &entryFrame);
+    branch32(Assembler::Equal, Address(rsp, offsetof(ResumeFromException, kind)),
+             Imm32(ResumeFromException::RESUME_CATCH), &catch_);
+
+    breakpoint(); 
+
     
+    
+    bind(&entryFrame);
     moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
     movq(Operand(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
     ret();
+
+    
+    
+    bind(&catch_);
+    movq(Operand(rsp, offsetof(ResumeFromException, target)), rax);
+    movq(Operand(rsp, offsetof(ResumeFromException, basePointer)), rbp);
+    movq(Operand(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
+    jmp(Operand(rax));
 }
 
 Assembler::Condition
