@@ -85,36 +85,11 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
     
     this._names = ArraySet.fromArray(names, true);
     this._sources = ArraySet.fromArray(sources, true);
+
     this.sourceRoot = sourceRoot;
     this.sourcesContent = sourcesContent;
+    this._mappings = mappings;
     this.file = file;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    this._generatedMappings = [];
-    this._originalMappings = [];
-    this._parseMappings(mappings, sourceRoot);
   }
 
   
@@ -135,9 +110,9 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
                                                               smc.sourceRoot);
       smc.file = aSourceMap._file;
 
-      smc._generatedMappings = aSourceMap._mappings.slice()
+      smc.__generatedMappings = aSourceMap._mappings.slice()
         .sort(util.compareByGeneratedPositions);
-      smc._originalMappings = aSourceMap._mappings.slice()
+      smc.__originalMappings = aSourceMap._mappings.slice()
         .sort(util.compareByOriginalPositions);
 
       return smc;
@@ -160,6 +135,63 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
   });
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  SourceMapConsumer.prototype.__generatedMappings = null;
+  Object.defineProperty(SourceMapConsumer.prototype, '_generatedMappings', {
+    get: function () {
+      if (!this.__generatedMappings) {
+        this.__generatedMappings = [];
+        this.__originalMappings = [];
+        this._parseMappings(this._mappings, this.sourceRoot);
+      }
+
+      return this.__generatedMappings;
+    }
+  });
+
+  SourceMapConsumer.prototype.__originalMappings = null;
+  Object.defineProperty(SourceMapConsumer.prototype, '_originalMappings', {
+    get: function () {
+      if (!this.__originalMappings) {
+        this.__generatedMappings = [];
+        this.__originalMappings = [];
+        this._parseMappings(this._mappings, this.sourceRoot);
+      }
+
+      return this.__originalMappings;
+    }
+  });
+
+  
+
 
 
 
@@ -231,14 +263,14 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
             }
           }
 
-          this._generatedMappings.push(mapping);
+          this.__generatedMappings.push(mapping);
           if (typeof mapping.originalLine === 'number') {
-            this._originalMappings.push(mapping);
+            this.__originalMappings.push(mapping);
           }
         }
       }
 
-      this._originalMappings.sort(util.compareByOriginalPositions);
+      this.__originalMappings.sort(util.compareByOriginalPositions);
     };
 
   
