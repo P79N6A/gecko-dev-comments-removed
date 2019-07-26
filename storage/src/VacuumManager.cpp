@@ -145,10 +145,10 @@ Vacuumer::execute()
   
   int32_t expectedPageSize = 0;
   rv = mParticipant->GetExpectedDatabasePageSize(&expectedPageSize);
-  if (NS_FAILED(rv) || expectedPageSize < 512 || expectedPageSize > 65536) {
+  if (NS_FAILED(rv) || !Service::pageSizeIsValid(expectedPageSize)) {
     NS_WARNING("Invalid page size requested for database, will use default ");
     NS_WARNING(mDBFilename.get());
-    expectedPageSize = mozIStorageConnection::DEFAULT_PAGE_SIZE;
+    expectedPageSize = Service::getDefaultPageSize();
   }
 
   

@@ -669,3 +669,8 @@ pref("b2g.version", @MOZ_B2G_VERSION@);
 
 
 pref("consoleservice.buffered", false);
+
+#ifdef MOZ_WIDGET_GONK
+
+pref("toolkit.storage.pageSize", 2048);
+#endif

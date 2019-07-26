@@ -40,6 +40,12 @@
 #define PREF_TS_SYNCHRONOUS "toolkit.storage.synchronous"
 #define PREF_TS_SYNCHRONOUS_DEFAULT 1
 
+#define PREF_TS_PAGESIZE "toolkit.storage.pageSize"
+
+
+
+#define PREF_TS_PAGESIZE_DEFAULT 32768
+
 namespace mozilla {
 namespace storage {
 
@@ -230,17 +236,21 @@ public:
   ServiceMainThreadInitializer(Service *aService,
                                nsIObserver *aObserver,
                                nsIXPConnect **aXPConnectPtr,
-                               int32_t *aSynchronousPrefValPtr)
+                               int32_t *aSynchronousPrefValPtr,
+                               int32_t *aPageSizePtr)
   : mService(aService)
   , mObserver(aObserver)
   , mXPConnectPtr(aXPConnectPtr)
   , mSynchronousPrefValPtr(aSynchronousPrefValPtr)
+  , mPageSizePtr(aPageSizePtr)
   {
   }
 
   NS_IMETHOD Run()
   {
     NS_PRECONDITION(NS_IsMainThread(), "Must be running on the main thread!");
+    NS_PRECONDITION(*mPageSizePtr == PREF_TS_PAGESIZE_DEFAULT,
+                    "Must be set to the default value here!");
 
     
     
@@ -271,6 +281,16 @@ public:
 
     
     
+    
+    int32_t pageSize =
+      Preferences::GetInt(PREF_TS_PAGESIZE, PREF_TS_PAGESIZE_DEFAULT);
+    if (Service::pageSizeIsValid(pageSize) &&
+        PREF_TS_PAGESIZE_DEFAULT != pageSize) {
+      ::PR_ATOMIC_SET(mPageSizePtr, pageSize);
+    }
+
+    
+    
     mService->mStorageSQLiteReporter = new NS_MEMORY_REPORTER_NAME(StorageSQLite);
     mService->mStorageSQLiteMultiReporter = new StorageSQLiteMultiReporter(mService);
     (void)::NS_RegisterMemoryReporter(mService->mStorageSQLiteReporter);
@@ -284,6 +304,7 @@ private:
   nsIObserver *mObserver;
   nsIXPConnect **mXPConnectPtr;
   int32_t *mSynchronousPrefValPtr;
+  int32_t *mPageSizePtr;
 };
 
 
@@ -359,6 +380,8 @@ Service::getSynchronousPref()
 {
   return sSynchronousPref;
 }
+
+int32_t Service::sDefaultPageSize = PREF_TS_PAGESIZE_DEFAULT;
 
 Service::Service()
 : mMutex("Service::mMutex")
@@ -582,7 +605,8 @@ Service::initialize()
 
   
   nsCOMPtr<nsIRunnable> event =
-    new ServiceMainThreadInitializer(this, this, &sXPConnect, &sSynchronousPref);
+    new ServiceMainThreadInitializer(this, this, &sXPConnect,
+                                     &sSynchronousPref, &sDefaultPageSize);
   if (event && ::NS_IsMainThread()) {
     (void)event->Run();
   }

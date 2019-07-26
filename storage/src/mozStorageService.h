@@ -73,6 +73,27 @@ public:
 
 
 
+  static int32_t getDefaultPageSize()
+  {
+    return sDefaultPageSize;
+  }
+
+  
+
+
+
+  static bool pageSizeIsValid(int32_t aPageSize)
+  {
+    return aPageSize == 512 || aPageSize == 1024 || aPageSize == 2048 ||
+           aPageSize == 4096 || aPageSize == 8192 || aPageSize == 16384 ||
+           aPageSize == 32768 || aPageSize == 65536;
+  }
+
+  
+
+
+
+
 
 
 
@@ -160,6 +181,7 @@ private:
   static nsIXPConnect *sXPConnect;
 
   static int32_t sSynchronousPref;
+  static int32_t sDefaultPageSize;
 
   friend class ServiceMainThreadInitializer;
 };
