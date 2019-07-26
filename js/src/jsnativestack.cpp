@@ -23,11 +23,6 @@
 #  include <pthread_np.h>
 # endif
 
-# if defined(ANDROID)
-#  include <unistd.h>
-#  include <sys/types.h>
-# endif
-
 #else
 # error "Unsupported platform"
 
@@ -130,43 +125,17 @@ js::GetNativeStackBaseImpl()
 
     void *stackBase = 0;
     size_t stackSize = 0;
-    int rc;
+#  ifdef DEBUG
+    int rc =
+#  endif
 # if defined(__OpenBSD__)
-    rc = pthread_stackseg_np(pthread_self(), &ss);
+        pthread_stackseg_np(pthread_self(), &ss);
     stackBase = (void*)((size_t) ss.ss_sp - ss.ss_size);
     stackSize = ss.ss_size;
-# elif defined(ANDROID)
-    if (gettid() == getpid()) {
-        
-        
-        
-        rc = -1;
-        FILE *fs = fopen("/proc/self/maps", "r");
-        if (fs) {
-            char line[100];
-            unsigned long stackAddr = (unsigned long)&sattr;
-            while (fgets(line, sizeof(line), fs) != NULL) {
-                unsigned long stackStart;
-                unsigned long stackEnd;
-                if (sscanf(line, "%lx-%lx ", &stackStart, &stackEnd) == 2 &&
-                    stackAddr >= stackStart && stackAddr < stackEnd) {
-                    stackBase = (void *)stackStart;
-                    stackSize = stackEnd - stackStart;
-                    rc = 0;
-                    break;
-                }
-            }
-            fclose(fs);
-        }
-    } else
-        
-        
-        rc = pthread_attr_getstack(&sattr, &stackBase, &stackSize);
 # else
-    rc = pthread_attr_getstack(&sattr, &stackBase, &stackSize);
+        pthread_attr_getstack(&sattr, &stackBase, &stackSize);
 # endif
-    if (!rc)
-        MOZ_CRASH();
+    JS_ASSERT(!rc);
     JS_ASSERT(stackBase);
     pthread_attr_destroy(&sattr);
 
