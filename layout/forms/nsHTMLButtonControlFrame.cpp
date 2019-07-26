@@ -209,22 +209,6 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
 
   aDesiredSize.width = aReflowState.ComputedWidth();
 
-  
-  if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE) {
-    aDesiredSize.height = aReflowState.ComputedHeight();
-  } else {
-    aDesiredSize.height += focusPadding.TopBottom();
-
-    
-    
-    
-    
-    
-    aDesiredSize.height = NS_CSS_MINMAX(aDesiredSize.height,
-                                        aReflowState.mComputedMinHeight,
-                                        aReflowState.mComputedMaxHeight);
-  }
-
   aDesiredSize.width += aReflowState.mComputedBorderPadding.LeftRight();
   aDesiredSize.height += aReflowState.mComputedBorderPadding.TopBottom();
 
@@ -288,6 +272,22 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   nscoord minInternalHeight = aReflowState.mComputedMinHeight -
     aReflowState.mComputedBorderPadding.TopBottom();
   minInternalHeight = std::max(minInternalHeight, 0);
+
+  
+  if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE) {
+    aDesiredSize.height = aReflowState.ComputedHeight();
+  } else {
+    aDesiredSize.height += aFocusPadding.TopBottom();
+
+    
+    
+    
+    
+    
+    aDesiredSize.height = NS_CSS_MINMAX(aDesiredSize.height,
+                                        aReflowState.mComputedMinHeight,
+                                        aReflowState.mComputedMaxHeight);
+  }
 
   
   nscoord yoff = 0;
