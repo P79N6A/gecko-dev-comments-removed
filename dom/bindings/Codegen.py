@@ -45,7 +45,11 @@ def isTypeCopyConstructible(type):
             (type.isUnion() and
              CGUnionStruct.isUnionCopyConstructible(type)) or
             (type.isDictionary() and
-             CGDictionary.isDictionaryCopyConstructible(type.inner)))
+             CGDictionary.isDictionaryCopyConstructible(type.inner)) or
+            
+            
+            
+            (type.isInterface() and type.isGeckoInterface()))
 
 
 def wantsAddProperty(desc):
