@@ -74,6 +74,64 @@ public:
 
   void GetText(nsAString& aText);
 
+  
+
+  
+  void SetType(const nsAString& aType, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::type, aType, aError);
+  }
+
+  
+  void SetLabel(const nsAString& aLabel, ErrorResult& aError)
+  {
+    SetAttrHelper(nsGkAtoms::label, aLabel);
+  }
+
+  
+  void SetIcon(const nsAString& aIcon, ErrorResult& aError)
+  {
+    SetAttrHelper(nsGkAtoms::icon, aIcon);
+  }
+
+  bool Disabled() const
+  {
+    return GetBoolAttr(nsGkAtoms::disabled);
+  }
+  void SetDisabled(bool aDisabled, ErrorResult& aError)
+  {
+    SetHTMLBoolAttr(nsGkAtoms::disabled, aDisabled, aError);
+  }
+
+  bool Checked() const
+  {
+    return mChecked;
+  }
+  void SetChecked(bool aChecked, ErrorResult& aError)
+  {
+    aError = SetChecked(aChecked);
+  }
+
+  
+  void SetRadiogroup(const nsAString& aRadiogroup, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::radiogroup, aRadiogroup, aError);
+  }
+
+  bool DefaultChecked() const
+  {
+    return GetBoolAttr(nsGkAtoms::checked);
+  }
+  void SetDefaultChecked(bool aDefault, ErrorResult& aError)
+  {
+    SetHTMLBoolAttr(nsGkAtoms::checked, aDefault, aError);
+  }
+
+protected:
+  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope,
+                             bool *aTriedToWrap) MOZ_OVERRIDE;
+
+
 protected:
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
                                 const nsAttrValue* aValue, bool aNotify);
