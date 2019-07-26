@@ -835,7 +835,7 @@ RasterImage::CopyFrame(uint32_t aWhichFrame,
 
   nsresult rv;
 
-  if (!ApplyDecodeFlags(aFlags))
+  if (!ApplyDecodeFlags(aFlags, aWhichFrame))
     return NS_ERROR_NOT_AVAILABLE;
 
   
@@ -896,7 +896,7 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
   if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
     return nullptr;
 
-  if (!ApplyDecodeFlags(aFlags))
+  if (!ApplyDecodeFlags(aFlags, aWhichFrame))
     return nullptr;
 
   
@@ -1183,12 +1183,23 @@ RasterImage::InternalAddFrame(uint32_t framenum,
 }
 
 bool
-RasterImage::ApplyDecodeFlags(uint32_t aNewFlags)
+RasterImage::ApplyDecodeFlags(uint32_t aNewFlags, uint32_t aWhichFrame)
 {
   if (mFrameDecodeFlags == (aNewFlags & DECODE_FLAGS_MASK))
     return true; 
 
   if (mDecoded) {
+    
+    
+    
+    uint32_t currentNonAlphaFlags =
+      (mFrameDecodeFlags & DECODE_FLAGS_MASK) & ~FLAG_DECODE_NO_PREMULTIPLY_ALPHA;
+    uint32_t newNonAlphaFlags =
+      (aNewFlags & DECODE_FLAGS_MASK) & ~FLAG_DECODE_NO_PREMULTIPLY_ALPHA;
+    if (currentNonAlphaFlags == newNonAlphaFlags && FrameIsOpaque(aWhichFrame)) {
+      return true;
+    }
+
     
     
     
