@@ -145,6 +145,7 @@ DataChannelConnection::~DataChannelConnection()
   
   
   
+  LOG(("Destroying DataChannelConnection"));
   CloseAll();
   if (mSocket && mSocket != mMasterSocket)
     usrsctp_close(mSocket);
@@ -209,6 +210,16 @@ DataChannelConnection::Init(unsigned short aPort, uint16_t aNumStreams, bool aUs
          aUsingDtls ? AF_CONN : AF_INET,
          SOCK_STREAM, IPPROTO_SCTP, receive_cb, nullptr, 0, this)) == nullptr) {
     return false;
+  }
+
+  
+  
+  struct linger l;
+  l.l_onoff = 1;
+  l.l_linger = 0;
+  if (usrsctp_setsockopt(mMasterSocket, SOL_SOCKET, SO_LINGER,
+                         (const void *)&l, (socklen_t)sizeof(struct linger)) < 0) {
+    LOG(("Couldn't set SO_LINGER on SCTP socket"));
   }
 
   if (!aUsingDtls) {
@@ -474,6 +485,14 @@ DataChannelConnection::Listen(unsigned short port)
     return false;
   }
   mState = OPEN;
+
+  struct linger l;
+  l.l_onoff = 1;
+  l.l_linger = 0;
+  if (usrsctp_setsockopt(mSocket, SOL_SOCKET, SO_LINGER,
+                         (const void *)&l, (socklen_t)sizeof(struct linger)) < 0) {
+    LOG(("Couldn't set SO_LINGER on SCTP socket"));
+  }
 
   
   
