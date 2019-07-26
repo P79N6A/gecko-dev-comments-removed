@@ -1526,7 +1526,11 @@ JS_StringToVersion(const char *string);
 
 
 
-
+#define JSOPTION_NO_DEFAULT_COMPARTMENT_OBJECT JS_BIT(11)     /* This JSContext does not use a
+                                                                 default compartment object. Such
+                                                                 an object will not be set implicitly,
+                                                                 and attempts to get or set it will
+                                                                 assert. */
 
 #define JSOPTION_NO_SCRIPT_RVAL JS_BIT(12)      /* A promise to the compiler
                                                    that a null rval out-param
