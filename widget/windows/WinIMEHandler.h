@@ -103,6 +103,11 @@ public:
   
 
 
+  static void AssociateIMEContext(nsWindow* aWindow, bool aEnable);
+
+  
+
+
   static void InitInputContext(nsWindow* aWindow, InputContext& aInputContext);
 
 #ifdef DEBUG

@@ -269,8 +269,7 @@ IMEHandler::OnDestroyWindow(nsWindow* aWindow)
     SetInputScopeForIMM32(aWindow, EmptyString());
   }
 #endif 
-  nsIMEContext IMEContext(aWindow->GetWindowHandle());
-  IMEContext.AssociateDefaultContext();
+  AssociateIMEContext(aWindow, true);
 }
 
 
@@ -281,6 +280,8 @@ IMEHandler::SetInputContext(nsWindow* aWindow,
 {
   
   NotifyIME(aWindow, REQUEST_TO_COMMIT_COMPOSITION);
+
+  const InputContext& oldInputContext = aWindow->GetInputContext();
 
   
   sPluginHasFocus = (aInputContext.mIMEState.mEnabled == IMEState::PLUGIN);
@@ -299,6 +300,14 @@ IMEHandler::SetInputContext(nsWindow* aWindow,
     nsTextStore::SetInputContext(aWindow, aInputContext, aAction);
     if (IsTSFAvailable()) {
       aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
+      if (sIsIMMEnabled) {
+        
+        AssociateIMEContext(aWindow, enable);
+      } else if (oldInputContext.mIMEState.mEnabled == IMEState::PLUGIN) {
+        
+        
+        AssociateIMEContext(aWindow, false);
+      }
       if (adjustOpenState) {
         nsTextStore::SetIMEOpenState(open);
       }
@@ -310,25 +319,37 @@ IMEHandler::SetInputContext(nsWindow* aWindow,
   }
 #endif 
 
-  nsIMEContext IMEContext(aWindow->GetWindowHandle());
-  if (enable) {
-    IMEContext.AssociateDefaultContext();
-    if (!aInputContext.mNativeIMEContext) {
-      aInputContext.mNativeIMEContext = static_cast<void*>(IMEContext.get());
-    }
-  } else if (!aWindow->Destroyed()) {
-    
-    IMEContext.Disassociate();
-    if (!aInputContext.mNativeIMEContext) {
-      
-      aInputContext.mNativeIMEContext =
-        aWindow->GetInputContext().mNativeIMEContext;
-    }
-  }
+  AssociateIMEContext(aWindow, enable);
 
+  nsIMEContext IMEContext(aWindow->GetWindowHandle());
   if (adjustOpenState) {
     IMEContext.SetOpenState(open);
   }
+
+  if (aInputContext.mNativeIMEContext) {
+    return;
+  }
+
+  
+  
+  aInputContext.mNativeIMEContext = enable ?
+    static_cast<void*>(IMEContext.get()) : oldInputContext.mNativeIMEContext;
+}
+
+
+void
+IMEHandler::AssociateIMEContext(nsWindow* aWindow, bool aEnable)
+{
+  nsIMEContext IMEContext(aWindow->GetWindowHandle());
+  if (aEnable) {
+    IMEContext.AssociateDefaultContext();
+    return;
+  }
+  
+  if (aWindow->Destroyed()) {
+    return;
+  }
+  IMEContext.Disassociate();
 }
 
 
@@ -345,6 +366,10 @@ IMEHandler::InitInputContext(nsWindow* aWindow, InputContext& aInputContext)
                          InputContextAction::GOT_FOCUS));
     aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
     MOZ_ASSERT(aInputContext.mNativeIMEContext);
+    
+    if (!sIsIMMEnabled) {
+      AssociateIMEContext(aWindow, false);
+    }
     return;
   }
 #endif 
