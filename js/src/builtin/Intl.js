@@ -803,8 +803,7 @@ function SupportedLocales(availableLocales, requestedLocales, options) {
     
     for (var i = 0; i < subset.length; i++)
         std_Object_defineProperty(subset, i, {value: subset[i], writable: false, enumerable: true, configurable: false});
-
-
+    std_Object_defineProperty(subset, "length", {value: subset.length, writable: false, enumerable: false, configurable: false});
 
     
     return subset;
