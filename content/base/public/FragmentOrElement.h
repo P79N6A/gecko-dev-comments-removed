@@ -30,7 +30,7 @@ class nsDOMTokenList;
 class nsIControllers;
 class nsICSSDeclaration;
 class nsIDocument;
-class nsIDOMDOMStringMap;
+class nsDOMStringMap;
 class nsIDOMNamedNodeMap;
 class nsINodeInfo;
 class nsIURI;
@@ -348,7 +348,7 @@ public:
 
 
 
-    nsIDOMDOMStringMap* mDataset; 
+    nsDOMStringMap* mDataset; 
 
     
 

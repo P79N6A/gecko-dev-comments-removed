@@ -344,8 +344,8 @@ nsGenericHTMLElement::SetAttribute(const nsAString& aName,
                  aValue, true);
 }
 
-nsresult
-nsGenericHTMLElement::GetDataset(nsIDOMDOMStringMap** aDataset)
+already_AddRefed<nsDOMStringMap>
+nsGenericHTMLElement::Dataset()
 {
   nsDOMSlots *slots = DOMSlots();
 
@@ -355,7 +355,14 @@ nsGenericHTMLElement::GetDataset(nsIDOMDOMStringMap** aDataset)
     slots->mDataset = new nsDOMStringMap(this);
   }
 
-  NS_ADDREF(*aDataset = slots->mDataset);
+  NS_ADDREF(slots->mDataset);
+  return slots->mDataset;
+}
+
+nsresult
+nsGenericHTMLElement::GetDataset(nsIDOMDOMStringMap** aDataset)
+{
+  *aDataset = Dataset().get();
   return NS_OK;
 }
 
