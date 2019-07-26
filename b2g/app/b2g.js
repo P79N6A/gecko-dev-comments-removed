@@ -381,7 +381,6 @@ pref("dom.ipc.browser_frames.oop_by_default", false);
 
 pref("dom.sms.enabled", true);
 pref("dom.sms.strict7BitEncoding", false); 
-pref("dom.sms.requestStatusReport", false); 
 
 
 pref("dom.mozContacts.enabled", true);
