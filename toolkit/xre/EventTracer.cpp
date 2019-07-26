@@ -71,6 +71,10 @@ namespace {
 PRThread* sTracerThread = NULL;
 bool sExit = false;
 
+struct TracerStartClosure {
+  bool mLogTracing;
+};
+
 
 
 
@@ -84,6 +88,8 @@ bool sExit = false;
 void TracerThread(void *arg)
 {
   PR_SetCurrentThreadName("Event Tracer");
+
+  TracerStartClosure* threadArgs = static_cast<TracerStartClosure*>(arg);
 
   
   
@@ -117,7 +123,9 @@ void TracerThread(void *arg)
     }
   }
 
-  fprintf(log, "MOZ_EVENT_TRACE start %llu\n", PR_Now() / PR_USEC_PER_MSEC);
+  if (threadArgs->mLogTracing) {
+    fprintf(log, "MOZ_EVENT_TRACE start %llu\n", PR_Now() / PR_USEC_PER_MSEC);
+  }
 
   while (!sExit) {
     TimeStamp start(TimeStamp::Now());
@@ -130,7 +138,7 @@ void TracerThread(void *arg)
     if (FireAndWaitForTracerEvent()) {
       TimeDuration duration = TimeStamp::Now() - start;
       
-      if (duration.ToMilliseconds() > threshold) {
+      if (threadArgs->mLogTracing && duration.ToMilliseconds() > threshold) {
         fprintf(log, "MOZ_EVENT_TRACE sample %llu %d\n",
                 PR_Now() / PR_USEC_PER_MSEC,
                 int(duration.ToSecondsSigDigits() * 1000));
@@ -151,17 +159,21 @@ void TracerThread(void *arg)
     }
   }
 
-  fprintf(log, "MOZ_EVENT_TRACE stop %llu\n", PR_Now() / PR_USEC_PER_MSEC);
+  if (threadArgs->mLogTracing) {
+    fprintf(log, "MOZ_EVENT_TRACE stop %llu\n", PR_Now() / PR_USEC_PER_MSEC);
+  }
 
   if (log != stdout)
     fclose(log);
+
+  delete threadArgs;
 }
 
 } 
 
 namespace mozilla {
 
-bool InitEventTracing()
+bool InitEventTracing(bool aLog)
 {
   if (sTracerThread)
     return true;
@@ -171,11 +183,15 @@ bool InitEventTracing()
     return false;
 
   
+  TracerStartClosure* args = new TracerStartClosure();
+  args->mLogTracing = aLog;
+
+  
   
   NS_ABORT_IF_FALSE(!sTracerThread, "Event tracing already initialized!");
   sTracerThread = PR_CreateThread(PR_USER_THREAD,
                                   TracerThread,
-                                  NULL,
+                                  args,
                                   PR_PRIORITY_NORMAL,
                                   PR_GLOBAL_THREAD,
                                   PR_JOINABLE_THREAD,

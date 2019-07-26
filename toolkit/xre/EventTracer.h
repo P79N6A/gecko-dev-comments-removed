@@ -10,7 +10,9 @@ namespace mozilla {
 
 
 
-bool InitEventTracing();
+
+
+bool InitEventTracing(bool aLog);
 
 
 
