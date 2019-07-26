@@ -60,7 +60,6 @@
 #include "nsIProgressEventSink.h"
 #include "nsISecurityEventSink.h"
 #include "nsIChannelEventSink.h"
-#include "nsIDocumentRegister.h"
 #include "imgIRequest.h"
 #include "mozilla/dom/DOMImplementation.h"
 #include "nsIDOMTouchEvent.h"
@@ -505,7 +504,6 @@ class nsDocument : public nsIDocument,
                    public nsStubMutationObserver,
                    public nsIDOMDocumentTouch,
                    public nsIInlineEventHandlers,
-                   public nsIDocumentRegister,
                    public nsIObserver
 {
 public:
@@ -795,9 +793,6 @@ public:
 
   
   NS_DECL_NSIINLINEEVENTHANDLERS
-
-  
-  NS_DECL_NSIDOCUMENTREGISTER
 
   
   NS_DECL_NSIOBSERVER
