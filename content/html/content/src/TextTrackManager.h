@@ -89,10 +89,7 @@ public:
   void PopulatePendingList();
 
   
-  
-  
-  
-  HTMLMediaElement* mMediaElement;
+  nsRefPtr<HTMLMediaElement> mMediaElement;
 private:
   
   nsRefPtr<TextTrackList> mTextTracks;
