@@ -21,7 +21,7 @@ CountArgSlots(JSFunction *fun)
 
 enum ExecutionMode {
     
-    SequentialExecution,
+    SequentialExecution = 0,
 
     
     

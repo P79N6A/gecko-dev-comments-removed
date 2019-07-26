@@ -13,6 +13,7 @@
 #include "js/Value.h"
 #include "vm/Stack.h"
 #include "IonFrames.h"
+#include "CompileInfo.h"
 
 namespace js {
 namespace ion {
@@ -48,6 +49,9 @@ class IonRuntime
     IonCode *argumentsRectifier_;
 
     
+    IonCode *parallelArgumentsRectifier_;
+
+    
     IonCode *invalidator_;
 
     
@@ -63,7 +67,7 @@ class IonRuntime
 
   private:
     IonCode *generateEnterJIT(JSContext *cx);
-    IonCode *generateArgumentsRectifier(JSContext *cx);
+    IonCode *generateArgumentsRectifier(JSContext *cx, ExecutionMode mode);
     IonCode *generateBailoutTable(JSContext *cx, uint32_t frameClass);
     IonCode *generateBailoutHandler(JSContext *cx);
     IonCode *generateInvalidator(JSContext *cx);
@@ -124,8 +128,12 @@ class IonCompartment
 
     IonCode *getBailoutTable(const FrameSizeClass &frameClass);
 
-    IonCode *getArgumentsRectifier() {
-        return rt->argumentsRectifier_;
+    IonCode *getArgumentsRectifier(ExecutionMode mode) {
+        switch (mode) {
+          case SequentialExecution: return rt->argumentsRectifier_;
+          case ParallelExecution:   return rt->parallelArgumentsRectifier_;
+          default:                  JS_NOT_REACHED("No such execution mode");
+        }
     }
 
     IonCode *getInvalidationThunk() {

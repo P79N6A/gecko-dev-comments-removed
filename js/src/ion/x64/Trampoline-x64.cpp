@@ -13,6 +13,7 @@
 #include "ion/Bailouts.h"
 #include "ion/VMFunctions.h"
 #include "ion/IonSpewer.h"
+#include "ion/ExecutionModeInlines.h"
 
 #include "jsscriptinlines.h"
 
@@ -222,7 +223,7 @@ IonRuntime::generateInvalidator(JSContext *cx)
 }
 
 IonCode *
-IonRuntime::generateArgumentsRectifier(JSContext *cx)
+IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode)
 {
     
 
@@ -289,7 +290,7 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx)
     
     
     masm.movq(Operand(rax, offsetof(JSFunction, u.i.script_)), rax);
-    masm.movq(Operand(rax, offsetof(JSScript, ion)), rax);
+    masm.movq(Operand(rax, OffsetOfIonInJSScript(mode)), rax);
     masm.movq(Operand(rax, IonScript::offsetOfMethod()), rax);
     masm.movq(Operand(rax, IonCode::offsetOfCode()), rax);
     masm.call(rax);
