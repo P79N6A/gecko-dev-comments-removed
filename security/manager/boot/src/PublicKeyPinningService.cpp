@@ -3,6 +3,7 @@
 
 
 #include "PublicKeyPinningService.h"
+#include "pkix/nullptr.h"
 #include "StaticHPKPins.h" 
 
 #include "cert.h"
@@ -29,11 +30,12 @@ PRLogModuleInfo* gPublicKeyPinningLog =
 
 
 static SECStatus
-GetBase64SHA256SPKI(const CERTCertificate* cert,
-                    nsACString& aSha256SPKIDigest){
-  aSha256SPKIDigest.Truncate();
+GetBase64HashSPKI(const CERTCertificate* cert, SECOidTag hashType,
+                  nsACString& hashSPKIDigest)
+{
+  hashSPKIDigest.Truncate();
   Digest digest;
-  nsresult rv = digest.DigestBuf(SEC_OID_SHA256, cert->derPublicKey.data,
+  nsresult rv = digest.DigestBuf(hashType, cert->derPublicKey.data,
                                  cert->derPublicKey.len);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return SECFailure;
@@ -41,7 +43,7 @@ GetBase64SHA256SPKI(const CERTCertificate* cert,
   rv = Base64Encode(nsDependentCSubstring(
                       reinterpret_cast<const char*>(digest.get().data),
                       digest.get().len),
-                      aSha256SPKIDigest);
+                      hashSPKIDigest);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return SECFailure;
   }
@@ -51,47 +53,88 @@ GetBase64SHA256SPKI(const CERTCertificate* cert,
 
 
 
+
 static bool
-EvalPinWithPinset(const CERTCertList* certList, const StaticPinset* pinSet) {
-  SECStatus srv;
-  CERTCertificate* currentCert;
+EvalCertWithHashType(const CERTCertificate* cert, SECOidTag hashType,
+                     const StaticFingerprints* fingerprints)
+{
+  if (!fingerprints) {
+    PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
+           ("pkpin: No hashes found for hash type: %d\n", hashType));
+    return false;
+  }
+
   nsAutoCString base64Out;
+  SECStatus srv = GetBase64HashSPKI(cert, hashType, base64Out);
+  if (srv != SECSuccess) {
+    PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
+           ("pkpin: GetBase64HashSPKI failed!\n"));
+    return false;
+  }
+
+  PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
+         ("pkpin: base_64(hash(key)='%s'\n", base64Out.get()));
+
+  for (size_t i = 0; i < fingerprints->size; i++) {
+    if (base64Out.Equals(fingerprints->data[i])) {
+      PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
+             ("pkpin: found pin base_64(hash(key)='%s'\n", base64Out.get()));
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
+
+
+static bool
+EvalChainWithHashType(const CERTCertList* certList, SECOidTag hashType,
+                      const StaticPinset* pinset)
+{
+  CERTCertificate* currentCert;
+
+  const StaticFingerprints* fingerprints = nullptr;
+  if (hashType == SEC_OID_SHA256) {
+    fingerprints = pinset->sha256;
+  } else if (hashType == SEC_OID_SHA1) {
+    fingerprints = pinset->sha1;
+  }
+  if (!fingerprints) {
+    return false;
+  }
 
   CERTCertListNode* node;
-  for (node = CERT_LIST_HEAD(certList);
-       !CERT_LIST_END(node, certList);
+  for (node = CERT_LIST_HEAD(certList); !CERT_LIST_END(node, certList);
        node = CERT_LIST_NEXT(node)) {
-
     currentCert = node->cert;
-
     PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
            ("pkpin: certArray subject:     '%s'\n",
             currentCert->subjectName));
     PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
            ("pkpin: certArray common_name: '%s'\n",
             CERT_GetCommonName(&(currentCert->issuer))));
-
-    
-    srv = GetBase64SHA256SPKI(currentCert, base64Out);
-    if (srv != SECSuccess) {
-      PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
-             ("pkpin: GetBase64SHA256SPKI failed!\n"));
-      return false;
-    }
-    PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
-           ("pkpin: base_64(hash(key)='%s'\n", base64Out.get()));
-    
-    for (size_t j = 0; j < pinSet->size; j++){
-      if (base64Out.Equals(pinSet->data[j])) {
-        PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
-               ("pkpin: found pin base_64(hash(key)='%s'\n", base64Out.get()));
-        return true;
-      }
+    if (EvalCertWithHashType(currentCert, hashType, fingerprints)) {
+      return true;
     }
   }
-  
-  PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG, ("pkpin: end of evaluation!\n"));
+  PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG, ("pkpin: no matches found\n"));
   return false;
+}
+
+
+
+
+
+static bool
+EvalChainWithPinset(const CERTCertList* certList,
+                    const StaticPinset* pinset) {
+  
+  if (EvalChainWithHashType(certList, SEC_OID_SHA256, pinset)) {
+    return true;
+  }
+  return EvalChainWithHashType(certList, SEC_OID_SHA1, pinset);
 }
 
 
@@ -126,8 +169,7 @@ CheckPinsForHostname(const CERTCertList *certList, const char *hostname,
   
   while (!foundEntry && (evalPart = strchr(evalHost, '.'))) {
     PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
-           ("pkpin: Iteration Querying for pinning for host: '%s'\n",
-                                         evalHost));
+           ("pkpin: Querying pinsets for host: '%s'\n", evalHost));
     foundEntry = (TransportSecurityPreload *)bsearch(evalHost,
                                       kPublicKeyPinningPreloadList,
                                       kPublicKeyPinningPreloadListLength,
@@ -135,21 +177,30 @@ CheckPinsForHostname(const CERTCertList *certList, const char *hostname,
                                       TransportSecurityPreloadCompare);
     if (foundEntry) {
       PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
-             ("pkpin: iteration found pinning for host: '%s'\n", evalHost));
+             ("pkpin: Found pinset for host: '%s'\n", evalHost));
       if (evalHost != hostname) {
-        if (false == foundEntry->mIncludeSubdomains) {
+        if (!foundEntry->mIncludeSubdomains) {
           
           foundEntry = nullptr;
         }
       }
+    } else {
+      PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
+             ("pkpin: Didn't find pinset for host: '%s'\n", evalHost));
     }
-    evalHost = evalPart;
     
-    evalHost++;
-  } 
+    evalHost = evalPart + 1;
+  }
 
   if (foundEntry && foundEntry->pinset) {
-    bool result = EvalPinWithPinset(certList, foundEntry->pinset);
+    bool result = EvalChainWithPinset(certList, foundEntry->pinset);
+    if (foundEntry->mTestMode) {
+      
+      PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
+             ("pkpin: Skipping test mode evaluation for host: '%s'\n",
+              evalHost));
+      return true;
+    }
     Telemetry::Accumulate(Telemetry::CERT_PINNING_EVALUATION_RESULTS,
                           result ? 1 : 0);
     return result;
