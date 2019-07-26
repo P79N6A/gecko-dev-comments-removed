@@ -685,7 +685,12 @@ nsresult nsGeolocationService::Init()
 #endif
 
 #ifdef MOZ_WIDGET_GONK
-  mProvider = do_CreateInstance(GONK_GPS_GEOLOCATION_PROVIDER_CONTRACTID);
+  
+  
+  
+  
+  
+  mProvider = do_GetService(GONK_GPS_GEOLOCATION_PROVIDER_CONTRACTID);
 #endif
 
 #ifdef MOZ_WIDGET_COCOA
