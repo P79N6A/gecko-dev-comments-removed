@@ -1063,15 +1063,33 @@ MMod::computeRange()
     Range rhs(getOperand(1));
 
     
-    if (lhs.isInfinite())
+    
+    if (lhs.isInfinite() || rhs.isInfinite())
         return;
 
+    
+    
+    
     int64_t a = Abs<int64_t>(rhs.lower());
     int64_t b = Abs<int64_t>(rhs.upper());
     if (a == 0 && b == 0)
         return;
-    int64_t bound = Max(1-a, b-1);
-    setRange(new Range(-bound, bound, lhs.isDecimal() || rhs.isDecimal()));
+    int64_t rhsAbsBound = Max(a-1, b-1);
+
+    
+    
+    int64_t lhsAbsBound = Max(Abs<int64_t>(lhs.lower()), Abs<int64_t>(lhs.upper()));
+
+    
+    int64_t absBound = Min(lhsAbsBound, rhsAbsBound);
+
+    
+    
+    
+    int64_t lower = lhs.lower() >= 0 ? 0 : -absBound;
+    int64_t upper = lhs.upper() <= 0 ? 0 : absBound;
+
+    setRange(new Range(lower, upper, lhs.isDecimal() || rhs.isDecimal()));
 }
 
 void
