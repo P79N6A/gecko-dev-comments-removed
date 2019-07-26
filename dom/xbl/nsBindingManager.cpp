@@ -817,13 +817,7 @@ EnumAppendAllSheets(nsRefPtrHashKey<nsIContent> *aKey, void* aClosure)
     static_cast<nsTArray<nsCSSStyleSheet*>*>(aClosure);
   for (nsXBLBinding *binding = boundContent->GetXBLBinding(); binding;
        binding = binding->GetBaseBinding()) {
-    nsXBLPrototypeResources::sheet_array_type* sheets =
-      binding->PrototypeBinding()->GetStyleSheets();
-    if (sheets) {
-      
-      
-      array->AppendElements(*sheets);
-    }
+    binding->PrototypeBinding()->AppendStyleSheetsTo(*array);
   }
   return PL_DHASH_NEXT;
 }

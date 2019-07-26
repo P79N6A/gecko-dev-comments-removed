@@ -36,7 +36,13 @@ public:
 
   void ClearLoader();
 
-  typedef nsTArray<nsRefPtr<nsCSSStyleSheet> > sheet_array_type;
+  void AppendStyleSheet(nsCSSStyleSheet* aSheet);
+  void RemoveStyleSheet(nsCSSStyleSheet* aSheet);
+  void InsertStyleSheetAt(size_t aIndex, nsCSSStyleSheet* aSheet);
+  nsCSSStyleSheet* StyleSheetAt(size_t aIndex) const;
+  size_t SheetCount() const;
+  bool HasStyleSheets() const;
+  void AppendStyleSheetsTo(nsTArray<nsCSSStyleSheet*>& aResult) const;
 
   
 
@@ -51,11 +57,9 @@ private:
   
   nsRefPtr<nsXBLResourceLoader> mLoader;
 
-public:
   
-  sheet_array_type mStyleSheetList;
+  nsTArray<nsRefPtr<nsCSSStyleSheet>> mStyleSheetList;
 
-private:
   
   nsRefPtr<nsCSSRuleProcessor> mRuleProcessor;
 };
