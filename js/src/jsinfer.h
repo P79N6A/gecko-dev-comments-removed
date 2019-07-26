@@ -382,18 +382,19 @@ enum {
 
 
 
-    TYPE_FLAG_CONFIGURED_PROPERTY = 0x00200000,
+    TYPE_FLAG_CONFIGURED_PROPERTY = 0x00080000,
 
     
 
 
 
 
-    TYPE_FLAG_DEFINITE_PROPERTY   = 0x00400000,
+
+    TYPE_FLAG_DEFINITE_PROPERTY   = 0x00100000,
 
     
-    TYPE_FLAG_DEFINITE_MASK       = 0x0f000000,
-    TYPE_FLAG_DEFINITE_SHIFT      = 24
+    TYPE_FLAG_DEFINITE_MASK       = 0xffe00000,
+    TYPE_FLAG_DEFINITE_SHIFT      = 21
 };
 typedef uint32_t TypeFlags;
 
@@ -565,8 +566,11 @@ class TypeSet
     void setConfiguredProperty() {
         flags |= TYPE_FLAG_CONFIGURED_PROPERTY;
     }
+    bool canSetDefinite(unsigned slot) {
+        return slot <= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT);
+    }
     void setDefinite(unsigned slot) {
-        JS_ASSERT(slot <= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT));
+        JS_ASSERT(canSetDefinite(slot));
         flags |= TYPE_FLAG_DEFINITE_PROPERTY | (slot << TYPE_FLAG_DEFINITE_SHIFT);
     }
 
@@ -1315,7 +1319,7 @@ class HeapTypeSetKey
     void freeze(CompilerConstraintList *constraints);
     JSValueType knownTypeTag(CompilerConstraintList *constraints);
     bool configured(CompilerConstraintList *constraints, TypeObjectKey *type);
-    bool notEmpty(CompilerConstraintList *constraints);
+    bool isOwnProperty(CompilerConstraintList *constraints);
     bool knownSubset(CompilerConstraintList *constraints, const HeapTypeSetKey &other);
     JSObject *singleton(CompilerConstraintList *constraints);
     bool needsBarrier(CompilerConstraintList *constraints);

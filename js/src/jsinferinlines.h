@@ -441,6 +441,15 @@ EnsureTrackPropertyTypes(JSContext *cx, JSObject *obj, jsid id)
 }
 
 inline bool
+CanHaveEmptyPropertyTypesForOwnProperty(JSObject *obj)
+{
+    
+    
+    
+    return obj->is<GlobalObject>();
+}
+
+inline bool
 HasTypePropertyId(JSObject *obj, jsid id, Type type)
 {
     if (obj->hasLazyType())

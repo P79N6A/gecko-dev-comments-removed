@@ -1957,10 +1957,10 @@ AnalyzePoppedThis(JSContext *cx, types::TypeObject *type,
                 return true;
         }
 
-        if (baseobj->slotSpan() >= (types::TYPE_FLAG_DEFINITE_MASK >> types::TYPE_FLAG_DEFINITE_SHIFT)) {
-            
+        
+        
+        if (GetGCKindSlots(gc::GetGCObjectKind(baseobj->slotSpan() + 1)) <= baseobj->slotSpan())
             return true;
-        }
 
         
         if (!definitelyExecuted)

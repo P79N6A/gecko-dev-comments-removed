@@ -1147,11 +1147,6 @@ CanAttachNativeGetProp(typename GetPropCache::Context cx, const GetPropCache &ca
     if (IsCacheableGetPropReadSlot(obj, holder, shape) ||
         IsCacheableNoProperty(obj, holder, shape, pc, cache.output()))
     {
-        
-        
-        
-        if (!cache.canMonitorSingletonUndefinedSlot(holder, shape))
-            return GetPropertyIC::CanAttachNone;
         return GetPropertyIC::CanAttachReadSlot;
     }
 
@@ -1204,17 +1199,6 @@ GetPropertyIC::allowArrayLength(Context cx, HandleObject obj) const
     }
 
     return true;
-}
-
-bool
-GetPropertyIC::canMonitorSingletonUndefinedSlot(HandleObject holder, HandleShape shape) const
-{
-    
-    
-    return !(idempotent() &&
-             holder &&
-             holder->hasSingletonType() &&
-             holder->getSlot(shape->slot()).isUndefined());
 }
 
 bool
