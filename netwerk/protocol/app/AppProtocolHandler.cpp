@@ -281,6 +281,10 @@ AppProtocolHandler::Create(nsISupports* aOuter,
                            const nsIID& aIID,
                            void* *aResult)
 {
+  
+  
+  nsCOMPtr<nsIProtocolHandler> jarInitializer(
+    do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "jar"));
   AppProtocolHandler* ph = new AppProtocolHandler();
   if (ph == nullptr) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -341,10 +345,7 @@ NS_IMETHODIMP
 AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
 {
   NS_ENSURE_ARG_POINTER(aUri);
-  nsJARChannel* channel = new nsJARChannel();
-  if (!channel) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  nsRefPtr<nsJARChannel> channel = new nsJARChannel();
 
   nsAutoCString host;
   nsresult rv = aUri->GetHost(host);
@@ -363,26 +364,24 @@ AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
       return NS_ERROR_FAILURE;
     }
 
-    JS::Value jsInfo;
-    rv = appsService->GetAppInfo(NS_ConvertUTF8toUTF16(host), &jsInfo);
-    if (NS_FAILED(rv)) {
-      
-      delete channel;
-      NS_IF_ADDREF(*aResult = new DummyChannel());
-      return NS_OK;
-    }
-
     mozilla::AutoSafeJSContext cx;
-    appInfo = new mozilla::dom::AppInfo();
-    if (!appInfo->Init(cx, JS::Handle<JS::Value>::fromMarkedLocation(&jsInfo)) ||
-        appInfo->mPath.IsEmpty()) {
-      printf_stderr("!! No appInfo for %s\n", host.get());
+    JS::RootedValue jsInfo(cx);
+    rv = appsService->GetAppInfo(NS_ConvertUTF8toUTF16(host), jsInfo.address());
+    if (NS_FAILED(rv) || !jsInfo.isObject()) {
       
-      delete channel;
+      printf_stderr("!! Creating a dummy channel for %s (no appInfo)\n", host.get());
       NS_IF_ADDREF(*aResult = new DummyChannel());
       return NS_OK;
     }
 
+    appInfo = new mozilla::dom::AppInfo();
+    JSAutoCompartment ac(cx, &jsInfo.toObject());
+    if (!appInfo->Init(cx, jsInfo) || appInfo->mPath.IsEmpty()) {
+      
+      printf_stderr("!! Creating a dummy channel for %s (invalid appInfo)\n", host.get());
+      NS_IF_ADDREF(*aResult = new DummyChannel());
+      return NS_OK;
+    }
     mAppInfoCache.Put(host, appInfo);
   }
 
@@ -410,7 +409,7 @@ AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
   rv = channel->SetOriginalURI(aUri);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  NS_ADDREF(*aResult = channel);
+  channel.forget(aResult);
   return NS_OK;
 }
 
