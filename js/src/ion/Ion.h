@@ -111,6 +111,15 @@ struct IonOptions
     
     
     
+    uint32 smallFunctionUsesBeforeCompile;
+
+    
+    
+    
+    
+    
+    
+    
     uint32 smallFunctionUsesBeforeInlining;
 
     
@@ -158,6 +167,7 @@ struct IonOptions
         maxStackArgs(4096),
         maxInlineDepth(3),
         smallFunctionMaxBytecodeLength(100),
+        smallFunctionUsesBeforeCompile(usesBeforeCompile / 4),
         smallFunctionUsesBeforeInlining(usesBeforeInlining / 4),
         polyInlineMax(4),
         inlineMaxTotalBytecodeLength(800),

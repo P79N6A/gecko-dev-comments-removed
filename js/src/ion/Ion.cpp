@@ -987,8 +987,13 @@ Compile(JSContext *cx, JSScript *script, JSFunction *fun, jsbytecode *osrPc, boo
     if (cx->methodJitEnabled) {
         
         
-        if (script->getUseCount() < js_IonOptions.usesBeforeCompile)
-            return Method_Skipped;
+        if (script->length < js_IonOptions.smallFunctionMaxBytecodeLength) {
+            if (script->getUseCount() < js_IonOptions.smallFunctionUsesBeforeCompile)
+                return Method_Skipped;
+        } else {
+            if (script->getUseCount() < js_IonOptions.usesBeforeCompile)
+                return Method_Skipped;
+        }
     } else {
         if (script->incUseCount() < js_IonOptions.usesBeforeCompileNoJaeger)
             return Method_Skipped;
