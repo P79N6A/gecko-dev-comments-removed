@@ -48,7 +48,8 @@ class nsTableColFrame;
 
 
 
-nsIFrame*
+class nsBlockFrame;
+nsBlockFrame*
 NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aFlags = nsFrameState(0));
 
 
@@ -66,8 +67,8 @@ nsIFrame*
 NS_NewSelectsAreaFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aFlags);
 
 
-inline nsIFrame* NS_NewBlockFormattingContext(nsIPresShell* aPresShell,
-                                              nsStyleContext* aStyleContext)
+inline nsBlockFrame* NS_NewBlockFormattingContext(nsIPresShell* aPresShell,
+                                                  nsStyleContext* aStyleContext)
 {
   return NS_NewBlockFrame(aPresShell, aStyleContext,
                           NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
@@ -120,7 +121,8 @@ nsIFrame*
 NS_NewPageBreakFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewFirstLetterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
+class nsFirstLineFrame;
+nsFirstLineFrame*
 NS_NewFirstLineFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 

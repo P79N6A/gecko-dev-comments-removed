@@ -29,6 +29,7 @@ struct nsStyleDisplay;
 class nsIDOMHTMLSelectElement;
 struct nsGenConInitializer;
 
+class nsFirstLineFrame;
 class nsICSSAnonBoxPseudo;
 class nsPageContentFrame;
 struct PendingBinding;
@@ -1675,7 +1676,7 @@ private:
   void WrapFramesInFirstLineFrame(nsFrameConstructorState& aState,
                                   nsIContent*              aBlockContent,
                                   nsIFrame*                aBlockFrame,
-                                  nsIFrame*                aLineFrame,
+                                  nsFirstLineFrame*        aLineFrame,
                                   nsFrameItems&            aFrameItems);
 
   

@@ -70,6 +70,7 @@
 #include "RestyleManager.h"
 #include "StickyScrollContainer.h"
 #include "nsFieldSetFrame.h"
+#include "nsInlineFrame.h"
 
 #ifdef MOZ_XUL
 #include "nsIRootBox.h"
@@ -413,7 +414,7 @@ AnyKidsNeedBlockParent(nsIFrame *aFrameList)
 
 static void
 ReparentFrame(RestyleManager* aRestyleManager,
-              nsIFrame* aNewParentFrame,
+              nsContainerFrame* aNewParentFrame,
               nsIFrame* aFrame)
 {
   aFrame->SetParent(aNewParentFrame);
@@ -422,7 +423,7 @@ ReparentFrame(RestyleManager* aRestyleManager,
 
 static void
 ReparentFrames(nsCSSFrameConstructor* aFrameConstructor,
-               nsIFrame* aNewParentFrame,
+               nsContainerFrame* aNewParentFrame,
                const nsFrameList& aFrameList)
 {
   RestyleManager* restyleManager = aFrameConstructor->RestyleManager();
@@ -1420,7 +1421,7 @@ MoveChildrenTo(nsPresContext* aPresContext,
   }
 
   for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
-    e.get()->SetParent(aNewParent);
+    e.get()->SetParent(static_cast<nsContainerFrame*>(aNewParent)); 
   }
 
   if (aNewParent->PrincipalChildList().IsEmpty() &&
@@ -4673,7 +4674,7 @@ nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
   
   
   
-  nsIFrame* blockFrame =
+  nsContainerFrame* blockFrame =
       NS_NewMathMLmathBlockFrame(mPresShell, blockContext,
                                  NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
 
@@ -9481,7 +9482,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     nsRefPtr<nsStyleContext> blockSC = mPresShell->StyleSet()->
       ResolveAnonymousBoxStyle(nsCSSAnonBoxes::mozXULAnonymousBlock,
                                frameStyleContext);
-    nsIFrame *blockFrame = NS_NewBlockFrame(mPresShell, blockSC);
+    nsBlockFrame* blockFrame = NS_NewBlockFrame(mPresShell, blockSC);
     
     
     
@@ -9519,7 +9520,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLineFrame(
   nsFrameConstructorState& aState,
   nsIContent*              aBlockContent,
   nsIFrame*                aBlockFrame,
-  nsIFrame*                aLineFrame,
+  nsFirstLineFrame*        aLineFrame,
   nsFrameItems&            aFrameItems)
 {
   
@@ -9598,8 +9599,9 @@ nsCSSFrameConstructor::AppendFirstLineFrames(
     return;
   }
 
+  nsFirstLineFrame* lineFrame = static_cast<nsFirstLineFrame*>(lastBlockKid);
   WrapFramesInFirstLineFrame(aState, aBlockContent, aBlockFrame,
-                             lastBlockKid, aFrameItems);
+                             lineFrame, aFrameItems);
 }
 
 

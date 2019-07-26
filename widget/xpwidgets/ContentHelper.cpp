@@ -4,7 +4,8 @@
 
 
 #include "ContentHelper.h"
-#include "nsQueryFrame.h"
+
+#include "nsContainerFrame.h"
 #include "nsIContent.h"
 #include "nsIScrollableFrame.h"
 #include "nsLayoutUtils.h"

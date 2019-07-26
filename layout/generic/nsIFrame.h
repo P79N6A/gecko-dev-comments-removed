@@ -82,6 +82,7 @@ class gfxContext;
 class nsLineList_iterator;
 class nsAbsoluteContainingBlock;
 class nsIContent;
+class nsContainerFrame;
 
 struct nsPeekOffsetStruct;
 struct nsPoint;
@@ -672,14 +673,14 @@ public:
   
 
 
-  nsIFrame* GetParent() const { return mParent; }
+  nsContainerFrame* GetParent() const { return static_cast<nsContainerFrame*>(static_cast<void*>(mParent)); }  
   
 
 
 
 
 
-  virtual void SetParent(nsIFrame* aParent) = 0;
+  virtual void SetParent(nsContainerFrame* aParent) = 0;
 
   
 
@@ -1296,14 +1297,7 @@ public:
   
 
 
-  uint32_t GetDepthInFrameTree() {
-    uint32_t result = 0;
-    for (nsIFrame* ancestor = GetParent(); ancestor;
-         ancestor = ancestor->GetParent()) {
-      result++;
-    }
-    return result;
-  }
+  uint32_t GetDepthInFrameTree() const;
 
   
 

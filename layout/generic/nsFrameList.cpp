@@ -4,7 +4,7 @@
 
 
 #include "nsFrameList.h"
-#include "nsIFrame.h"
+#include "nsContainerFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
@@ -314,7 +314,7 @@ nsFrameList::ApplySetParent(nsIFrame* aParent) const
   NS_ASSERTION(aParent, "null ptr");
 
   for (nsIFrame* f = FirstChild(); f; f = f->GetNextSibling()) {
-    f->SetParent(aParent);
+    f->SetParent(static_cast<nsContainerFrame*>(aParent)); 
   }
 }
 
