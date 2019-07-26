@@ -996,13 +996,6 @@ HashStore::ProcessSubs()
 
   
   
-  ChunkSet dummyChunks;
-  dummyChunks.Set(0);
-  ExpireEntries(&mSubPrefixes, dummyChunks);
-  mSubChunks.Remove(dummyChunks);
-
-  
-  
   KnockoutSubs(&mSubPrefixes,  &mAddPrefixes);
   KnockoutSubs(&mSubCompletes, &mAddCompletes);
 

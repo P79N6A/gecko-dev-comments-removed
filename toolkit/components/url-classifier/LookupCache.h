@@ -46,9 +46,6 @@ public:
   bool mNoise;
 
   
-  Prefix mCodedPrefix;
-
-  
   bool mFresh;
 
   bool mProtocolConfirmed;
@@ -89,18 +86,7 @@ public:
   static nsresult GetKey(const nsACString& aSpec, Completion* aHash,
                          nsCOMPtr<nsICryptoHash>& aCryptoHash);
 
-  
-
-
-
-
-
-  static nsresult KeyedHash(uint32_t aPref, uint32_t aHostKey,
-                            uint32_t aUserKey, uint32_t* aOut,
-                            bool aPassthrough);
-
-  LookupCache(const nsACString& aTableName, nsIFile* aStoreFile,
-              bool aPerClientRandomize);
+  LookupCache(const nsACString& aTableName, nsIFile* aStoreFile);
   ~LookupCache();
 
   const nsCString &TableName() const { return mTableName; }
@@ -121,10 +107,7 @@ public:
 #endif
   nsresult WriteFile();
   nsresult Has(const Completion& aCompletion,
-               const Completion& aHostkey,
-               uint32_t aHashKey,
-               bool* aHas, bool* aComplete,
-               Prefix* aOrigPrefix);
+               bool* aHas, bool* aComplete);
   bool IsPrimed();
 
 private:
@@ -147,7 +130,6 @@ private:
   Header mHeader;
 
   bool mPrimed;
-  bool mPerClientRandomize;
   nsCString mTableName;
   nsCOMPtr<nsIFile> mStoreDirectory;
   CompletionArray mCompletions;

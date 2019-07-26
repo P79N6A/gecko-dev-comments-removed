@@ -60,7 +60,6 @@ public:
   nsresult CacheCompletions(const CacheResultArray& aResults);
   uint32_t GetHashKey(void) { return mHashKey; }
   void SetFreshTime(uint32_t aTime) { mFreshTime = aTime; }
-  void SetPerClientRandomize(bool aRandomize) { mPerClientRandomize = aRandomize; }
   
 
 
@@ -84,7 +83,6 @@ private:
                              const nsACString& aTable);
 
   LookupCache *GetLookupCache(const nsACString& aTable);
-  nsresult InitKey();
 
   
   nsCOMPtr<nsIFile> mCacheDirectory;
@@ -101,7 +99,6 @@ private:
   
   nsDataHashtable<nsCStringHashKey, int64_t> mTableFreshness;
   uint32_t mFreshTime;
-  bool mPerClientRandomize;
 };
 
 }
