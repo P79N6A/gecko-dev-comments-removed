@@ -139,33 +139,6 @@ StreamTextureClientOGL::IsAllocated() const
   return mStream != 0;
 }
 
-DeprecatedTextureClientSharedOGL::DeprecatedTextureClientSharedOGL(CompositableForwarder* aForwarder,
-                                               const TextureInfo& aTextureInfo)
-  : DeprecatedTextureClient(aForwarder, aTextureInfo)
-  , mGL(nullptr)
-{
-}
-
-void
-DeprecatedTextureClientSharedOGL::ReleaseResources()
-{
-  if (!IsSurfaceDescriptorValid(mDescriptor)) {
-    return;
-  }
-  MOZ_ASSERT(mDescriptor.type() == SurfaceDescriptor::TSharedTextureDescriptor);
-  mDescriptor = SurfaceDescriptor();
-  
-  
-}
-
-bool
-DeprecatedTextureClientSharedOGL::EnsureAllocated(gfx::IntSize aSize,
-                                        gfxContentType aContentType)
-{
-  mSize = aSize;
-  return true;
-}
-
 
 } 
 } 

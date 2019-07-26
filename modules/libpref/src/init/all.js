@@ -4092,30 +4092,27 @@ pref("layers.offmainthreadcomposition.enabled", false);
 
 pref("layers.offmainthreadcomposition.frame-rate", -1);
 
-pref("layers.use-deprecated-textures", true);
 #ifndef XP_WIN
 
 
 
 pref("layers.async-video.enabled",false);
+pref("layers.use-deprecated-textures", true);
 #endif
 
 #ifdef MOZ_X11
 
-pref("layers.use-deprecated-textures", false);
 pref("layers.async-video.enabled", true);
 #endif
 
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
-pref("layers.use-deprecated-textures", false);
 pref("layers.async-video.enabled",true);
 #endif
 
 
 #ifdef ANDROID
 pref("layers.offmainthreadcomposition.enabled", true);
-pref("layers.use-deprecated-textures", false);
 pref("layers.async-video.enabled",true);
 #endif
 
