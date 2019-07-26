@@ -60,9 +60,6 @@ struct ElementAnimations MOZ_FINAL
   ElementAnimations(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
                     nsAnimationManager *aAnimationManager, TimeStamp aNow);
 
-  
-  
-  void EnsureStyleRuleFor(TimeStamp aRefreshTime, bool aIsThrottled);
   void GetEventsAt(TimeStamp aRefreshTime, EventArray &aEventsToDispatch);
 
   bool IsForElement() const { 
@@ -99,11 +96,6 @@ struct ElementAnimations MOZ_FINAL
   virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const MOZ_OVERRIDE;
 
   virtual bool HasAnimationOfProperty(nsCSSProperty aProperty) const MOZ_OVERRIDE;
-
-  
-  
-  
-  bool mNeedsRefreshes;
 };
 
 class nsAnimationManager MOZ_FINAL

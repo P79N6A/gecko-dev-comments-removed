@@ -398,6 +398,7 @@ struct CommonElementAnimationData : public PRCList
     , mManager(aManager)
     , mAnimationGeneration(0)
     , mFlushGeneration(aNow)
+    , mNeedsRefreshes(true)
 #ifdef DEBUG
     , mCalledPropertyDtor(false)
 #endif
@@ -419,6 +420,12 @@ struct CommonElementAnimationData : public PRCList
     
     mElement->DeleteProperty(mElementProperty);
   }
+
+  
+  
+  
+  
+  void EnsureStyleRuleFor(TimeStamp aRefreshTime, bool aIsThrottled);
 
   bool CanThrottleTransformChanges(mozilla::TimeStamp aTime);
 
@@ -488,6 +495,11 @@ struct CommonElementAnimationData : public PRCList
   
   
   TimeStamp mFlushGeneration;
+
+  
+  
+  
+  bool mNeedsRefreshes;
 
 #ifdef DEBUG
   bool mCalledPropertyDtor;

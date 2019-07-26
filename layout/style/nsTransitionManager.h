@@ -58,8 +58,6 @@ struct ElementTransitions MOZ_FINAL
                      nsTransitionManager *aTransitionManager,
                      mozilla::TimeStamp aNow);
 
-  void EnsureStyleRuleFor(mozilla::TimeStamp aRefreshTime);
-
   virtual bool HasAnimationOfProperty(nsCSSProperty aProperty) const MOZ_OVERRIDE;
 
   
