@@ -32,6 +32,7 @@
 using namespace mozilla::hal;
 
 #define LOGE(args...)  __android_log_print(ANDROID_LOG_ERROR, "GonkSensor" , ## args)
+#define LOGW(args...)  __android_log_print(ANDROID_LOG_WARN, "GonkSensor" , ## args)
 
 namespace mozilla {
 
@@ -112,11 +113,6 @@ public:
   SensorRunnable(const sensors_event_t& data, const sensor_t* sensors, ssize_t size)
   {
     mSensorData.sensor() = HardwareSensorToHalSensor(data.type);
-    if (mSensorData.sensor() == SENSOR_UNKNOWN) {
-      
-      if (data.sensor < size)
-        mSensorData.sensor() = HardwareSensorToHalSensor(sensors[data.sensor].type);
-    }
     mSensorData.accuracy() = HardwareStatusToHalAccuracy(SensorseventStatus(data));
     mSensorData.timestamp() = data.timestamp;
     if (mSensorData.sensor() == SENSOR_GYROSCOPE) {
@@ -184,6 +180,20 @@ PollSensors()
       
       if (buffer[i].type == SENSOR_TYPE_MAGNETIC_FIELD)
         continue;
+
+      if (buffer[i].sensor >= size) {
+        LOGW("buffer type is hal sensor type SENSOR_UNKNOWN, and buffer sensor is not in a valid range");
+        continue;
+      }
+
+      if (HardwareSensorToHalSensor(buffer[i].type) == SENSOR_UNKNOWN) {
+        
+        if (HardwareSensorToHalSensor(sensors[buffer[i].sensor].type) != SENSOR_UNKNOWN) {
+          buffer[i].type = sensors[buffer[i].sensor].type;
+        } else {
+          continue;
+        }
+      }
 
       NS_DispatchToMainThread(new SensorRunnable(buffer[i], sensors, size));
     }
