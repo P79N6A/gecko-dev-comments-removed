@@ -1326,6 +1326,7 @@ EmptyShape::getInitialShape(JSContext *cx, Class *clasp, TaggedProto proto,
     if (p)
         return p->shape;
 
+    SkipRoot skip(cx, &p); 
     Rooted<TaggedProto> protoRoot(cx, proto);
     RootedObject parentRoot(cx, parent);
     RootedObject metadataRoot(cx, metadata);
