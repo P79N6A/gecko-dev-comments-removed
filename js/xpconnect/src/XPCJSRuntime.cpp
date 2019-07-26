@@ -238,6 +238,16 @@ EnsureCompartmentPrivate(JSCompartment *c)
 }
 
 bool
+IsXBLScope(JSCompartment *compartment)
+{
+    
+    CompartmentPrivate *priv = GetCompartmentPrivate(compartment);
+    if (!priv || !priv->scope)
+        return false;
+    return priv->scope->IsXBLScope();
+}
+
+bool
 IsUniversalXPConnectEnabled(JSCompartment *compartment)
 {
     CompartmentPrivate *priv = GetCompartmentPrivate(compartment);

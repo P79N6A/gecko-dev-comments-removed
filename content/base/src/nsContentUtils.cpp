@@ -1752,7 +1752,13 @@ nsContentUtils::IsCallerXBL()
 {
     JSScript *script;
     JSContext *cx = GetCurrentJSContext();
-    if (!cx || !JS_DescribeScriptedCaller(cx, &script, nullptr) || !script)
+    if (!cx)
+        return false;
+    
+    if (xpc::IsXBLScope(js::GetContextCompartment(cx)))
+        return true;
+    
+    if (!JS_DescribeScriptedCaller(cx, &script, nullptr) || !script)
         return false;
     return JS_GetScriptUserBit(script);
 }
