@@ -23,6 +23,9 @@ public interface TelemetryContract {
         public static final String ACTION = "action.1";
 
         
+        public static final String CANCEL = "cancel.1";
+
+        
         
         public static final String LAUNCH = "launch.1";
 
@@ -72,6 +75,12 @@ public interface TelemetryContract {
         public static final String LIST = "list";
 
         
+        public static final String ACTIONBAR = "actionbar";
+
+        
+        public static final String BACK = "back";
+
+        
         public static final String BUTTON = "button";
 
         
@@ -106,6 +115,9 @@ public interface TelemetryContract {
 
     public interface Session {
         
+        public static final String AWESOMESCREEN = "awesomescreen.1";
+
+        
         public static final String HOME = "home.1";
 
         
@@ -115,9 +127,6 @@ public interface TelemetryContract {
         
         
         public static final String READER = "reader.1";
-
-        
-        public static final String URLBAR_FOCUSED = "urlbar.1";
 
         
         public static final String FRECENCY = "frecency.1";
@@ -130,5 +139,8 @@ public interface TelemetryContract {
 
 
 
-    public interface Reason {}
+    public interface Reason {
+        
+        public static final String COMMIT = "commit";
+    }
 }
