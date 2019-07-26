@@ -1274,7 +1274,7 @@ private:
   void DoUnblockOnload();
 
   nsresult CheckFrameOptions();
-  nsresult InitCSP(nsIChannel* aChannel);
+  nsresult InitCSP(nsIChannel* aChannel, nsIContentSecurityPolicy **aCSP);
 
   
   
