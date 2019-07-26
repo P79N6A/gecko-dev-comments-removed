@@ -121,7 +121,7 @@ public:
     mLastFailure = TimeStamp::Now();
     
     
-    mNextDelay = PR_MIN(kWSReconnectMaxDelay, mNextDelay * 1.5);
+    mNextDelay = NS_MIN<double>(kWSReconnectMaxDelay, mNextDelay * 1.5);
     LOG(("WebSocket: FailedAgain: host=%s, port=%d: incremented delay to %lu",
          mAddress.get(), mPort, mNextDelay));
   }
