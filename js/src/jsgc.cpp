@@ -3823,6 +3823,9 @@ BeginSweepPhase(JSRuntime *rt)
     rt->debugScopes->sweep();
 
     
+    ArrayBufferObject::sweepAll(rt);
+
+    
     WatchpointMap::sweepAll(rt);
 
     

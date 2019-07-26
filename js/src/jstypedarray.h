@@ -130,13 +130,13 @@ class ArrayBufferObject : public JSObject
     static JSBool obj_enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
                                 MutableHandleValue statep, MutableHandleId idp);
 
+    static void sweepAll(JSRuntime *rt);
+
     static bool stealContents(JSContext *cx, JSObject *obj, void **contents);
 
     static inline void setElementsHeader(js::ObjectElements *header, uint32_t bytes);
 
     void addView(JSContext *cx, RawObject view);
-
-    void removeFinalizedView(FreeOp *fop, RawObject view);
 
     bool allocateSlots(JSContext *cx, uint32_t size, uint8_t *contents = NULL);
 
@@ -166,11 +166,26 @@ class ArrayBufferObject : public JSObject
 
 
 struct BufferView {
+    
     static const size_t BYTEOFFSET_SLOT  = 0;
+
+    
     static const size_t BYTELENGTH_SLOT  = 1;
+
+    
     static const size_t BUFFER_SLOT      = 2;
+
+    
     static const size_t NEXT_VIEW_SLOT   = 3;
-    static const size_t NUM_SLOTS        = 4;
+
+    
+
+
+
+
+    static const size_t NEXT_BUFFER_SLOT = 4;
+
+    static const size_t NUM_SLOTS        = 5;
 };
 
 
@@ -370,8 +385,6 @@ private:
 
     static bool setFloat64Impl(JSContext *cx, CallArgs args);
     static JSBool fun_setFloat64(JSContext *cx, unsigned argc, Value *vp);
-
-    static void obj_finalize(FreeOp *fop, JSObject *obj);
 
     inline uint32_t byteLength();
     inline uint32_t byteOffset();
