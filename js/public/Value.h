@@ -10,6 +10,7 @@
 #ifndef js_Value_h___
 #define js_Value_h___
 
+#include "js/Anchor.h"
 #include "js/Utility.h"
 
 
@@ -835,5 +836,29 @@ JS_CANONICALIZE_NAN(double d)
 static jsval_layout JSVAL_TO_IMPL(JS::Value);
 static JS::Value IMPL_TO_JSVAL(jsval_layout);
 #endif
+
+namespace JS {
+
+#ifndef __GNUC__
+
+
+
+
+
+
+
+
+
+
+
+template<>
+inline Anchor<Value>::~Anchor()
+{
+    volatile uint64_t bits;
+    bits = JSVAL_TO_IMPL(hold).asBits;
+}
+#endif
+
+} 
 
 #endif

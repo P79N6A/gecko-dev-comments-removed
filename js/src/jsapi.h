@@ -27,6 +27,7 @@
 #include "jsutil.h"
 
 #include "gc/Root.h"
+#include "js/Anchor.h"
 #include "js/CharacterEncoding.h"
 #include "js/HashTable.h"
 #include "js/Utility.h"
@@ -55,146 +56,6 @@ class StableCharPtr : public CharPtr {
       : CharPtr(pos, start, len)
     {}
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<typename T> class AnchorPermitted;
-template<> class AnchorPermitted<JSObject *> { };
-template<> class AnchorPermitted<const JSObject *> { };
-template<> class AnchorPermitted<JSFunction *> { };
-template<> class AnchorPermitted<const JSFunction *> { };
-template<> class AnchorPermitted<JSString *> { };
-template<> class AnchorPermitted<const JSString *> { };
-template<> class AnchorPermitted<Value> { };
-template<> class AnchorPermitted<const JSScript *> { };
-template<> class AnchorPermitted<JSScript *> { };
-
-template<typename T>
-class Anchor: AnchorPermitted<T>
-{
-  public:
-    Anchor() { }
-    explicit Anchor(T t) { hold = t; }
-    inline ~Anchor();
-    T &get() { return hold; }
-    const T &get() const { return hold; }
-    void set(const T &t) { hold = t; }
-    void operator=(const T &t) { hold = t; }
-    void clear() { hold = 0; }
-  private:
-    T hold;
-    Anchor(const Anchor &) MOZ_DELETE;
-    const Anchor &operator=(const Anchor &) MOZ_DELETE;
-};
-
-#ifdef __GNUC__
-template<typename T>
-inline Anchor<T>::~Anchor()
-{
-    
-
-
-
-
-
-
-
-
-
-
-    asm volatile("":: "g" (hold) : "memory");
-}
-#else
-template<typename T>
-inline Anchor<T>::~Anchor()
-{
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    volatile T sink;
-    sink = hold;
-}
-#endif  
 
 
 
@@ -976,28 +837,6 @@ class RootedBase<JS::Value> : public MutableValueOperations<Rooted<JS::Value> >
 
 
 namespace JS {
-
-#ifndef __GNUC__
-
-
-
-
-
-
-
-
-
-
-
-
-template<>
-inline Anchor<Value>::~Anchor()
-{
-    volatile uint64_t bits;
-    bits = JSVAL_TO_IMPL(hold).asBits;
-}
-
-#endif
 
 #if defined JS_THREADSAFE && defined DEBUG
 
