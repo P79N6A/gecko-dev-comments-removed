@@ -1081,10 +1081,11 @@ gfxFT2FontList::FindFonts()
     }
 
     
+    NS_NAMED_LITERAL_STRING(kFontsDirName, "fonts");
     nsCOMPtr<nsIFile> localDir;
     nsresult rv = NS_GetSpecialDirectory(NS_APP_RES_DIR,
                                          getter_AddRefs(localDir));
-    if (NS_SUCCEEDED(rv) && NS_SUCCEEDED(localDir->Append(NS_LITERAL_STRING("fonts")))) {
+    if (NS_SUCCEEDED(rv) && NS_SUCCEEDED(localDir->Append(kFontsDirName))) {
         ExtractFontsFromJar(localDir);
         nsCString localPath;
         rv = localDir->GetNativePath(localPath);
@@ -1096,7 +1097,7 @@ gfxFT2FontList::FindFonts()
     
     rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_LOCAL_50_DIR,
                                 getter_AddRefs(localDir));
-    if (NS_SUCCEEDED(rv)) {
+    if (NS_SUCCEEDED(rv) && NS_SUCCEEDED(localDir->Append(kFontsDirName))) {
         nsCString localPath;
         rv = localDir->GetNativePath(localPath);
         if (NS_SUCCEEDED(rv)) {
