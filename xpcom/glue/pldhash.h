@@ -8,6 +8,7 @@
 
 
 
+#include "mozilla/Atomics.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Types.h"
 #include "nscore.h"
@@ -182,13 +183,7 @@ struct PLDHashTable {
     const PLDHashTableOps *ops;         
     void                *data;          
     int16_t             hashShift;      
-    
-
-
-
-
-
-    uint16_t            recursionLevel; 
+    mozilla::Atomic<uint32_t> recursionLevel; 
     uint32_t            entrySize;      
     uint32_t            entryCount;     
     uint32_t            removedCount;   
@@ -549,7 +544,6 @@ PL_DHashTableSizeOfIncludingThis(const PLDHashTable *table,
                                  mozilla::MallocSizeOf mallocSizeOf,
                                  void *arg = nullptr);
 
-#ifdef DEBUG
 
 
 
@@ -566,7 +560,6 @@ PL_DHashTableSizeOfIncludingThis(const PLDHashTable *table,
 
 NS_COM_GLUE void
 PL_DHashMarkTableImmutable(PLDHashTable *table);
-#endif
 
 #ifdef PL_DHASHMETER
 #include <stdio.h>

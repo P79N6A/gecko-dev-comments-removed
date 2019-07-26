@@ -275,7 +275,6 @@ public:
     return PL_DHashTableSizeOfExcludingThis(&mTable, nullptr, mallocSizeOf);
   }
 
-#ifdef DEBUG
   
 
 
@@ -288,7 +287,6 @@ public:
 
     PL_DHashMarkTableImmutable(&mTable);
   }
-#endif
 
 protected:
   PLDHashTable mTable;
