@@ -46,6 +46,29 @@ typedef JSBool
 (* JSNative)(JSContext *cx, unsigned argc, JS::Value *vp);
 
 
+typedef js::ParallelResult
+(* JSParallelNative)(js::ForkJoinSlice *slice, unsigned argc, JS::Value *vp);
+
+
+
+
+
+typedef JSBool
+(* JSThreadSafeNative)(js::ThreadSafeContext *tcx, unsigned argc, JS::Value *vp);
+
+
+
+
+
+template <JSThreadSafeNative threadSafeNative>
+inline JSBool
+JSNativeThreadSafeWrapper(JSContext *cx, unsigned argc, JS::Value *vp);
+
+template <JSThreadSafeNative threadSafeNative>
+inline js::ParallelResult
+JSParallelNativeThreadSafeWrapper(js::ForkJoinSlice *slice, unsigned argc, JS::Value *vp);
+
+
 
 
 

@@ -695,8 +695,8 @@ ParallelSafetyVisitor::visitCall(MCall *ins)
     JSFunction *target = ins->getSingleTarget();
     if (target) {
         
-        if (target->isNative()) {
-            SpewMIR(ins, "call to native function");
+        if (target->isNative() && !target->hasParallelNative()) {
+            SpewMIR(ins, "call to non-parallel native function");
             return markUnsafe();
         }
         return true;
@@ -799,9 +799,14 @@ ion::AddPossibleCallees(MIRGraph &graph, CallTargetVector &targets)
 
             RootedFunction target(cx, callIns->getSingleTarget());
             if (target) {
-                RootedScript script(cx, target->nonLazyScript());
-                if (!AddCallTarget(script, targets))
-                    return false;
+                JS_ASSERT_IF(!target->isInterpreted(), target->hasParallelNative());
+
+                if (target->isInterpreted()) {
+                    RootedScript script(cx, target->nonLazyScript());
+                    if (!AddCallTarget(script, targets))
+                        return false;
+                }
+
                 continue;
             }
 

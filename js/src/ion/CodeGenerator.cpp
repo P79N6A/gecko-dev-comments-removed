@@ -1429,7 +1429,7 @@ CodeGenerator::visitCallNative(LCallNative *call)
     int unusedStack = StackOffsetOfPassedArg(callargslot);
 
     
-    const Register argJSContextReg = ToRegister(call->getArgJSContextReg());
+    const Register argContextReg   = ToRegister(call->getArgContextReg());
     const Register argUintNReg     = ToRegister(call->getArgUintNReg());
     const Register argVpReg        = ToRegister(call->getArgVpReg());
 
@@ -1444,6 +1444,8 @@ CodeGenerator::visitCallNative(LCallNative *call)
     
     
     
+    
+    
 
     
     masm.adjustStack(unusedStack);
@@ -1453,7 +1455,12 @@ CodeGenerator::visitCallNative(LCallNative *call)
     masm.Push(ObjectValue(*target));
 
     
-    masm.loadJSContext(argJSContextReg);
+    
+    
+    
+    
+    ExecutionMode executionMode = gen->info().executionMode();
+    masm.loadContext(argContextReg, tempReg, executionMode);
     masm.move32(Imm32(call->numStackArgs()), argUintNReg);
     masm.movePtr(StackPointer, argVpReg);
 
@@ -1463,21 +1470,37 @@ CodeGenerator::visitCallNative(LCallNative *call)
     uint32_t safepointOffset;
     if (!masm.buildFakeExitFrame(tempReg, &safepointOffset))
         return false;
-    masm.enterFakeExitFrame();
+    masm.enterFakeExitFrame(argContextReg, tempReg, executionMode);
 
     if (!markSafepointAt(safepointOffset, call))
         return false;
 
     
     masm.setupUnalignedABICall(3, tempReg);
-    masm.passABIArg(argJSContextReg);
+    masm.passABIArg(argContextReg);
     masm.passABIArg(argUintNReg);
     masm.passABIArg(argVpReg);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->native()));
 
-    
-    Label success, exception;
-    masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
+    Label success, failure;
+    switch (executionMode) {
+      case SequentialExecution:
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->native()));
+
+        
+        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &failure);
+        break;
+
+      case ParallelExecution:
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->parallelNative()));
+
+        
+        
+        masm.branch32(Assembler::NotEqual, ReturnReg, Imm32(TP_SUCCESS), &failure);
+        break;
+
+      default:
+        MOZ_ASSUME_UNREACHABLE("No such execution mode");
+    }
 
     
     masm.loadValue(Address(StackPointer, IonNativeExitFrameLayout::offsetOfResult()), JSReturnOperand);
@@ -1485,8 +1508,8 @@ CodeGenerator::visitCallNative(LCallNative *call)
 
     
     {
-        masm.bind(&exception);
-        masm.handleException();
+        masm.bind(&failure);
+        masm.handleFailure(executionMode);
     }
     masm.bind(&success);
 
