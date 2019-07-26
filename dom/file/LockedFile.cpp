@@ -1040,25 +1040,26 @@ ReadTextHelper::GetSuccessResult(JSContext* aCx,
 {
   nsresult rv;
 
-  nsCString charsetGuess;
-  if (!mEncoding.IsEmpty()) {
-    CopyUTF16toUTF8(mEncoding, charsetGuess);
-  }
-  else {
-    const nsCString& data = mStream->Data();
-    uint32_t dataLen = data.Length();
-    rv = nsContentUtils::GuessCharset(data.get(), dataLen, charsetGuess);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  nsCString charset;
-  if (!EncodingUtils::FindEncodingForLabel(charsetGuess, charset)) {
-    return NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR;
+  nsAutoCString encoding;
+  const nsCString& data = mStream->Data();
+  
+  
+  if (!nsContentUtils::CheckForBOM(
+        reinterpret_cast<const unsigned char *>(data.get()),
+        data.Length(),
+        encoding)) {
+    
+    if (!EncodingUtils::FindEncodingForLabel(mEncoding, encoding)) {
+      
+      
+      
+      encoding.AssignLiteral("UTF-8");
+    }
   }
 
   nsString tmpString;
-  rv = nsContentUtils::ConvertStringFromCharset(charset, mStream->Data(),
-                                                tmpString);
+  rv = nsContentUtils::ConvertStringFromEncoding(encoding, data,
+                                                 tmpString);
   NS_ENSURE_SUCCESS(rv, rv);
 
   JS::Rooted<JS::Value> rval(aCx);

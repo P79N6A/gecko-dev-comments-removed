@@ -66,9 +66,17 @@ public:
 
 
 
+  void Init(const nsAString& aLabel, const bool aFatal, ErrorResult& aRv);
+
+  
 
 
-  void Init(const nsAString& aEncoding, const bool aFatal, ErrorResult& aRv);
+
+
+
+
+
+  void InitWithEncoding(const nsACString& aEncoding, const bool aFatal);
 
   
 

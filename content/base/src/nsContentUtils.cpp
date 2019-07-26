@@ -85,8 +85,6 @@
 #include "nsICategoryManager.h"
 #include "nsIChannelEventSink.h"
 #include "nsIChannelPolicy.h"
-#include "nsICharsetDetectionObserver.h"
-#include "nsICharsetDetector.h"
 #include "nsIChromeRegistry.h"
 #include "nsIConsoleService.h"
 #include "nsIContent.h"
@@ -134,7 +132,6 @@
 #include "nsIParser.h"
 #include "nsIParserService.h"
 #include "nsIPermissionManager.h"
-#include "nsIPlatformCharset.h"
 #include "nsIPluginHost.h"
 #include "nsIRunnable.h"
 #include "nsIScriptContext.h"
@@ -3461,23 +3458,20 @@ nsContentUtils::MatchElementId(nsIContent *aContent, const nsAString& aId)
 
 
 nsresult
-nsContentUtils::ConvertStringFromCharset(const nsACString& aCharset,
-                                         const nsACString& aInput,
-                                         nsAString& aOutput)
+nsContentUtils::ConvertStringFromEncoding(const nsACString& aEncoding,
+                                          const nsACString& aInput,
+                                          nsAString& aOutput)
 {
-  if (aCharset.IsEmpty()) {
-    
-    CopyUTF8toUTF16(aInput, aOutput);
-    return NS_OK;
+  nsAutoCString encoding;
+  if (aEncoding.IsEmpty()) {
+    encoding.AssignLiteral("UTF-8");
+  } else {
+    encoding.Assign(aEncoding);
   }
 
   ErrorResult rv;
   nsAutoPtr<TextDecoder> decoder(new TextDecoder());
-  decoder->Init(NS_ConvertUTF8toUTF16(aCharset), false, rv);
-  if (rv.Failed()) {
-    rv.ClearMessage();
-    return rv.ErrorCode();
-  }
+  decoder->InitWithEncoding(encoding, false);
 
   decoder->Decode(aInput.BeginReading(), aInput.Length(), false,
                   aOutput, rv);
@@ -3509,80 +3503,6 @@ nsContentUtils::CheckForBOM(const unsigned char* aBuffer, uint32_t aLength,
   }
 
   return found;
-}
-
-NS_IMPL_ISUPPORTS1(CharsetDetectionObserver,
-                   nsICharsetDetectionObserver)
-
-
-nsresult
-nsContentUtils::GuessCharset(const char *aData, uint32_t aDataLen,
-                             nsACString &aCharset)
-{
-  
-  nsCOMPtr<nsICharsetDetector> detector =
-    do_CreateInstance(NS_CHARSET_DETECTOR_CONTRACTID_BASE
-                      "universal_charset_detector");
-  if (!detector) {
-    
-    const nsAdoptingCString& detectorName =
-      Preferences::GetLocalizedCString("intl.charset.detector");
-    if (!detectorName.IsEmpty()) {
-      nsAutoCString detectorContractID;
-      detectorContractID.AssignLiteral(NS_CHARSET_DETECTOR_CONTRACTID_BASE);
-      detectorContractID += detectorName;
-      detector = do_CreateInstance(detectorContractID.get());
-    }
-  }
-
-  nsresult rv;
-
-  
-  
-  if (detector && aDataLen) {
-    nsRefPtr<CharsetDetectionObserver> observer =
-      new CharsetDetectionObserver();
-
-    rv = detector->Init(observer);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    bool dummy;
-    rv = detector->DoIt(aData, aDataLen, &dummy);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = detector->Done();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    aCharset = observer->GetResult();
-  } else {
-    
-    unsigned char sniffBuf[3];
-    uint32_t numRead =
-      (aDataLen >= sizeof(sniffBuf) ? sizeof(sniffBuf) : aDataLen);
-    memcpy(sniffBuf, aData, numRead);
-
-    CheckForBOM(sniffBuf, numRead, aCharset);
-  }
-
-  if (aCharset.IsEmpty()) {
-    
-    nsCOMPtr<nsIPlatformCharset> platformCharset =
-      do_GetService(NS_PLATFORMCHARSET_CONTRACTID, &rv);
-    if (NS_SUCCEEDED(rv)) {
-      rv = platformCharset->GetCharset(kPlatformCharsetSel_PlainTextInFile,
-                                       aCharset);
-      if (NS_FAILED(rv)) {
-        NS_WARNING("Failed to get the system charset!");
-      }
-    }
-  }
-
-  if (aCharset.IsEmpty()) {
-    
-    aCharset.AssignLiteral("UTF-8");
-  }
-
-  return NS_OK;
 }
 
 

@@ -510,9 +510,10 @@ public:
 
 
 
-  static nsresult ConvertStringFromCharset(const nsACString& aCharset,
-                                           const nsACString& aInput,
-                                           nsAString& aOutput);
+
+  static nsresult ConvertStringFromEncoding(const nsACString& aEncoding,
+                                            const nsACString& aInput,
+                                            nsAString& aOutput);
 
   
 
@@ -525,9 +526,6 @@ public:
 
   static bool CheckForBOM(const unsigned char* aBuffer, uint32_t aLength,
                           nsACString& aCharset);
-
-  static nsresult GuessCharset(const char *aData, uint32_t aDataLen,
-                               nsACString &aCharset);
 
   static nsresult CheckQName(const nsAString& aQualifiedName,
                              bool aNamespaceAware = true,
