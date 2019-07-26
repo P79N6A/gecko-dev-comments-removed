@@ -181,7 +181,7 @@ class AutoSetHandlingSignal
 
 
 #if !defined(XP_MACOSX)
-# ifdef JS_THREADSAFE
+# if defined(JS_THREADSAFE)
 #  include "jslock.h"
 
 namespace {
@@ -242,7 +242,7 @@ bool InstallSignalHandlersMutex::Lock::sHandlersInstalled = false;
 # endif  
 #endif   
 
-# if defined(JS_CPU_X64)
+#if defined(JS_CPU_X64)
 template <class T>
 static void
 SetXMMRegToNaN(bool isFloat32, T *xmm_reg)
@@ -292,41 +292,41 @@ LookupHeapAccess(const AsmJSModule &module, uint8_t *pc)
 
     return NULL;
 }
-# endif
-
-# if defined(XP_WIN)
-#  include "jswin.h"
-# else
-#  include <signal.h>
-#  include <sys/mman.h>
-# endif
-
-# if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-#  include <sys/ucontext.h> 
-# endif
-
-# if defined(JS_CPU_X64)
-#  if defined(__DragonFly__)
-#   include <machine/npx.h> 
-#  elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__FreeBSD_kernel__)
-#   include <machine/fpu.h> 
-#  endif
-# endif
-
-
-
-
-
-
-
-
-# if (defined(ANDROID)) && !defined(__BIONIC_HAVE_UCONTEXT_T)
-#  if defined(__arm__)
-
-
-#if !defined(__BIONIC_HAVE_STRUCT_SIGCONTEXT)
-#include <asm/sigcontext.h>
 #endif
+
+#if defined(XP_WIN)
+# include "jswin.h"
+#else
+# include <signal.h>
+# include <sys/mman.h>
+#endif
+
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+# include <sys/ucontext.h> 
+#endif
+
+#if defined(JS_CPU_X64)
+# if defined(__DragonFly__)
+#  include <machine/npx.h> 
+# elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__FreeBSD_kernel__)
+#  include <machine/fpu.h> 
+# endif
+#endif
+
+
+
+
+
+
+
+
+#if defined(ANDROID) && !defined(__BIONIC_HAVE_UCONTEXT_T)
+# if defined(__arm__)
+
+
+#  if !defined(__BIONIC_HAVE_STRUCT_SIGCONTEXT)
+#   include <asm/sigcontext.h>
+#  endif
 
 typedef struct sigcontext mcontext_t;
 
@@ -338,7 +338,7 @@ typedef struct ucontext {
     
 } ucontext_t;
 
-#  elif defined(__i386__)
+# elif defined(__i386__)
 
 typedef struct {
     uint32_t gregs[19];
@@ -356,31 +356,30 @@ typedef struct ucontext {
     
 } ucontext_t;
 enum { REG_EIP = 14 };
-#  endif
-# endif  
-
-
-# if !defined(XP_WIN)
-#  define CONTEXT ucontext_t
 # endif
+#endif  
 
-# if !defined(XP_MACOSX)
+#if !defined(XP_WIN)
+# define CONTEXT ucontext_t
+#endif
+
+#if !defined(XP_MACOSX)
 static uint8_t **
 ContextToPC(CONTEXT *context)
 {
-#  if defined(JS_CPU_X64)
+# if defined(JS_CPU_X64)
     JS_STATIC_ASSERT(sizeof(RIP_sig(context)) == sizeof(void*));
     return reinterpret_cast<uint8_t**>(&RIP_sig(context));
-#  elif defined(JS_CPU_X86)
+# elif defined(JS_CPU_X86)
     JS_STATIC_ASSERT(sizeof(EIP_sig(context)) == sizeof(void*));
     return reinterpret_cast<uint8_t**>(&EIP_sig(context));
-#  elif defined(JS_CPU_ARM)
+# elif defined(JS_CPU_ARM)
     JS_STATIC_ASSERT(sizeof(PC_sig(context)) == sizeof(void*));
     return reinterpret_cast<uint8_t**>(&PC_sig(context));
-#  endif
+# endif
 }
 
-#  if defined(JS_CPU_X64)
+# if defined(JS_CPU_X64)
 static void
 SetRegisterToCoercedUndefined(CONTEXT *context, bool isFloat32, AnyRegister reg)
 {
@@ -426,10 +425,10 @@ SetRegisterToCoercedUndefined(CONTEXT *context, bool isFloat32, AnyRegister reg)
         }
     }
 }
-#  endif  
-# endif   
+# endif  
+#endif   
 
-# if defined(XP_WIN)
+#if defined(XP_WIN)
 
 static bool
 HandleException(PEXCEPTION_POINTERS exception)
@@ -524,22 +523,22 @@ AsmJSExceptionHandler(LPEXCEPTION_POINTERS exception)
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-# elif defined(XP_MACOSX)
-#  include <mach/exc.h>
+#elif defined(XP_MACOSX)
+# include <mach/exc.h>
 
 static uint8_t **
 ContextToPC(x86_thread_state_t &state)
 {
-#  if defined(JS_CPU_X64)
+# if defined(JS_CPU_X64)
     JS_STATIC_ASSERT(sizeof(state.uts.ts64.__rip) == sizeof(void*));
     return reinterpret_cast<uint8_t**>(&state.uts.ts64.__rip);
-#  else
+# else
     JS_STATIC_ASSERT(sizeof(state.uts.ts32.__eip) == sizeof(void*));
     return reinterpret_cast<uint8_t**>(&state.uts.ts32.__eip);
-#  endif
+# endif
 }
 
-#  if defined(JS_CPU_X64)
+# if defined(JS_CPU_X64)
 static bool
 SetRegisterToCoercedUndefined(mach_port_t rtThread, x86_thread_state64_t &state,
                               const AsmJSHeapAccess &heapAccess)
@@ -600,7 +599,7 @@ SetRegisterToCoercedUndefined(mach_port_t rtThread, x86_thread_state64_t &state,
     }
     return true;
 }
-#  endif
+# endif
 
 
 
@@ -679,7 +678,7 @@ HandleMachException(JSRuntime *rt, const ExceptionRequest &request)
         return kret == KERN_SUCCESS;
     }
 
-#  if defined(JS_CPU_X64)
+# if defined(JS_CPU_X64)
     
     
     if (!module.maybeHeap() ||
@@ -711,9 +710,9 @@ HandleMachException(JSRuntime *rt, const ExceptionRequest &request)
         return false;
 
     return true;
-#  else
+# else
     return false;
-#  endif
+# endif
 }
 
 
@@ -867,7 +866,7 @@ AsmJSMachExceptionHandler::install(JSRuntime *rt)
     return false;
 }
 
-# else  
+#else  
 
 
 
@@ -910,7 +909,7 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
         return true;
     }
 
-#  if defined(JS_CPU_X64)
+# if defined(JS_CPU_X64)
     
     
     if (!module.maybeHeap() ||
@@ -934,9 +933,9 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
         SetRegisterToCoercedUndefined(context, heapAccess->isFloat32Load(), heapAccess->loadedReg());
     *ppc += heapAccess->opLength();
     return true;
-#  else
+# else
     return false;
-#  endif
+# endif
 }
 
 static struct sigaction sPrevHandler;
@@ -966,7 +965,7 @@ AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
     else
         sPrevHandler.sa_handler(signum);
 }
-# endif
+#endif
 
 bool
 js::EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
