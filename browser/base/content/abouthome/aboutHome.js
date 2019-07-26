@@ -112,28 +112,38 @@ const DEFAULT_SNIPPETS_URLS = [
 
 const SNIPPETS_UPDATE_INTERVAL_MS = 86400000; 
 
-let gSearchEngine;
-
-document.addEventListener("DOMContentLoaded", function init() {
-  setupSearchEngine();
-  loadSnippets();
+let gObserver = new MutationObserver(function (mutations) {
+  for (let mutation of mutations) {
+    if (mutation.attributeName == "searchEngineURL") {
+      gObserver.disconnect();
+      setupSearchEngine();
+      loadSnippets();
+      return;
+    }
+  }
 });
-window.addEventListener("load", fitToWidth);
+
+window.addEventListener("load", function () {
+  
+  
+  window.gObserver.observe(document.documentElement, { attributes: true });
+  fitToWidth();
+});
 window.addEventListener("resize", fitToWidth);
 
 
 function onSearchSubmit(aEvent)
 {
   let searchTerms = document.getElementById("searchText").value;
-  if (gSearchEngine && searchTerms.length > 0) {
+  let searchURL = document.documentElement.getAttribute("searchEngineURL");
+  if (searchURL && searchTerms.length > 0) {
     const SEARCH_TOKENS = {
       "_searchTerms_": encodeURIComponent(searchTerms)
     }
-    let url = gSearchEngine.searchUrl;
     for (let key in SEARCH_TOKENS) {
-      url = url.replace(key, SEARCH_TOKENS[key]);
+      searchURL = searchURL.replace(key, SEARCH_TOKENS[key]);
     }
-    window.location.href = url;
+    window.location.href = searchURL;
   }
 
   aEvent.preventDefault();
@@ -142,27 +152,24 @@ function onSearchSubmit(aEvent)
 
 function setupSearchEngine()
 {
-  gSearchEngine = JSON.parse(localStorage["search-engine"]);
-
-  if (!gSearchEngine)
+  let searchEngineName = document.documentElement.getAttribute("searchEngineName");
+  let searchEngineInfo = SEARCH_ENGINES[searchEngineName];
+  if (!searchEngineInfo) {
     return;
-
-  
-  let searchEngineInfo = SEARCH_ENGINES[gSearchEngine.name];
-  if (searchEngineInfo) {
-    for (let prop in searchEngineInfo)
-      gSearchEngine[prop] = searchEngineInfo[prop];
   }
 
   
-  if (gSearchEngine.params)
-    gSearchEngine.searchUrl += "&" + gSearchEngine.params;
+  if (searchEngineInfo.params) {
+    let searchEngineURL = document.documentElement.getAttribute("searchEngineURL");
+    searchEngineURL += "&" + searchEngineInfo.params;
+    document.documentElement.setAttribute("searchEngineURL", searchEngineURL);
+  }
 
   
-  if (gSearchEngine.image) {
+  if (searchEngineInfo.image) {
     let logoElt = document.getElementById("searchEngineLogo");
-    logoElt.src = gSearchEngine.image;
-    logoElt.alt = gSearchEngine.name;
+    logoElt.src = searchEngineInfo.image;
+    logoElt.alt = searchEngineInfo.name;
   }
 
   
@@ -180,7 +187,7 @@ function loadSnippets()
 {
   
   let lastUpdate = localStorage["snippets-last-update"];
-  let updateURL = localStorage["snippets-update-url"];
+  let updateURL = document.documentElement.getAttribute("snippetsURL");
   if (updateURL && (!lastUpdate ||
                     Date.now() - lastUpdate > SNIPPETS_UPDATE_INTERVAL_MS)) {
     
