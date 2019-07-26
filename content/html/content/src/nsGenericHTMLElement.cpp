@@ -2574,9 +2574,8 @@ bool
 nsGenericHTMLFormElement::IsLabelable() const
 {
   
-  
   uint32_t type = GetType();
-  return type & NS_FORM_INPUT_ELEMENT ||
+  return (type & NS_FORM_INPUT_ELEMENT && type != NS_FORM_INPUT_HIDDEN) ||
          type & NS_FORM_BUTTON_ELEMENT ||
          
          type == NS_FORM_OUTPUT ||
