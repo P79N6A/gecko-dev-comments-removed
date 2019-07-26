@@ -3951,17 +3951,6 @@ nsDocument::InsertChildAt(nsIContent* aKid, uint32_t aIndex,
   return doInsertChildAt(aKid, aIndex, aNotify, mChildren);
 }
 
-nsresult
-nsDocument::AppendChildTo(nsIContent* aKid, bool aNotify)
-{
-  
-  
-  
-  
-  
-  return nsDocument::InsertChildAt(aKid, GetChildCount(), aNotify);
-}
-
 void
 nsDocument::RemoveChildAt(uint32_t aIndex, bool aNotify)
 {

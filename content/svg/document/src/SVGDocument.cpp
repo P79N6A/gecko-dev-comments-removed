@@ -66,6 +66,21 @@ SVGDocument::GetRootElement(ErrorResult& aRv)
 }
 
 nsresult
+SVGDocument::InsertChildAt(nsIContent* aKid, uint32_t aIndex, bool aNotify)
+{
+  nsresult rv = XMLDocument::InsertChildAt(aKid, aIndex, aNotify);
+
+  if (NS_SUCCEEDED(rv) && aKid->IsElement() && !aKid->IsSVG()) {
+    
+    
+    
+    EnsureNonSVGUserAgentStyleSheetsLoaded();
+  }
+
+  return rv;
+}
+
+nsresult
 SVGDocument::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 {
   NS_ASSERTION(aNodeInfo->NodeInfoManager() == mNodeInfoManager,
