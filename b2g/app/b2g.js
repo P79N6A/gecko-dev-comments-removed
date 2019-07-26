@@ -912,6 +912,9 @@ pref("gfx.canvas.max-size-for-skia-gl", -1);
 pref("gfx.gralloc.fence-with-readpixels", true);
 
 
+pref("ril.cellbroadcast.disabled", false);
+
+
 pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");
 
 
@@ -960,10 +963,10 @@ pref("apz.overscroll.enabled", true);
 pref("apz.overscroll.fling_friction", "0.02");
 pref("apz.overscroll.fling_stopped_threshold", "0.4");
 pref("apz.overscroll.clamping", "0.5");
-pref("apz.overscroll.z_effect", "0.2");
+pref("apz.overscroll.z_effect", "0.5");
 pref("apz.overscroll.snap_back.spring_stiffness", "0.6");
 pref("apz.overscroll.snap_back.spring_friction", "0.1");
-pref("apz.overscroll.snap_back.mass", "1000");
+pref("apz.overscroll.snap_back.mass", "1200");
 
 
 
