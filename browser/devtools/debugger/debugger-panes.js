@@ -7,8 +7,9 @@
 "use strict";
 
 
-const SAMPLE_SIZE = 30; 
-const INDENT_COUNT_THRESHOLD = 20; 
+const SAMPLE_SIZE = 50; 
+const INDENT_COUNT_THRESHOLD = 5; 
+const CHARACTER_LIMIT = 250; 
 
 
 
@@ -1500,6 +1501,7 @@ let SourceUtils = {
     let lineStartIndex = 0;
     let lines = 0;
     let indentCount = 0;
+    let overCharLimit = false;
 
     
     aText = aText.replace(/\/\*[\S\s]*?\*\/|\/\/(.+|\n)/g, "");
@@ -1512,9 +1514,15 @@ let SourceUtils = {
       if (/^\s+/.test(aText.slice(lineStartIndex, lineEndIndex))) {
         indentCount++;
       }
+      
+      if ((lineEndIndex - lineStartIndex) > CHARACTER_LIMIT) {
+        overCharLimit = true;
+        break;
+      }
       lineStartIndex = lineEndIndex + 1;
     }
-    isMinified = ((indentCount / lines ) * 100) < INDENT_COUNT_THRESHOLD;
+    isMinified = ((indentCount / lines ) * 100) < INDENT_COUNT_THRESHOLD ||
+                 overCharLimit;
 
     this._minifiedCache.set(sourceClient, isMinified);
     return isMinified;
