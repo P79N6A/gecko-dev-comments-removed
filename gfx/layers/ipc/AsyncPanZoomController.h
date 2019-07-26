@@ -109,15 +109,6 @@ public:
 
 
 
-
-
-  void UpdateCompositionBounds(const ScreenIntRect& aCompositionBounds);
-
-  
-
-
-
-
   void ZoomToRect(CSSRect aRect);
 
   
