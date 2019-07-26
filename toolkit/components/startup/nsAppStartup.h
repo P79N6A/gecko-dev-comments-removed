@@ -61,8 +61,6 @@ private:
   bool mInterrupted;    
   bool mIsSafeModeNecessary;       
   bool mStartupCrashTrackingEnded; 
-  bool mCachedShutdownTime;
-  uint32_t mLastShutdownTime;
 
 #if defined(XP_WIN)
   
