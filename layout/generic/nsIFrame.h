@@ -2039,8 +2039,7 @@ public:
 
 
 
-  NS_IMETHOD  GetOffsetFromView(nsPoint&  aOffset,
-                                nsView** aView) const = 0;
+  virtual void GetOffsetFromView(nsPoint& aOffset, nsView** aView) const = 0;
 
   
 

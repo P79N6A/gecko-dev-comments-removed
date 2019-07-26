@@ -4514,8 +4514,8 @@ nsRect nsIFrame::GetScreenRectInAppUnits() const
 
 
 
-NS_IMETHODIMP nsFrame::GetOffsetFromView(nsPoint&  aOffset,
-                                         nsView** aView) const
+void
+nsFrame::GetOffsetFromView(nsPoint& aOffset, nsView** aView) const
 {
   NS_PRECONDITION(nullptr != aView, "null OUT parameter pointer");
   nsIFrame* frame = const_cast<nsFrame*>(this);
@@ -4526,9 +4526,10 @@ NS_IMETHODIMP nsFrame::GetOffsetFromView(nsPoint&  aOffset,
     aOffset += frame->GetPosition();
     frame = frame->GetParent();
   } while (frame && !frame->HasView());
-  if (frame)
+
+  if (frame) {
     *aView = frame->GetView();
-  return NS_OK;
+  }
 }
 
 nsIWidget*
@@ -5760,9 +5761,10 @@ nsFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
         nsRect tempRect = resultFrame->GetRect();
         nsPoint offset;
         nsView * view; 
-        result = resultFrame->GetOffsetFromView(offset, &view);
-        if (NS_FAILED(result))
-          return result;
+        resultFrame->GetOffsetFromView(offset, &view);
+        if (!view) {
+          return NS_ERROR_FAILURE;
+        }
         point.y = tempRect.height + offset.y;
 
         
