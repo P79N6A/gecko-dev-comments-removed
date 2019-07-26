@@ -67,6 +67,13 @@ namespace layers {
 
 
 
+
+
+
+
+
+
+
 template<typename Derived, typename Tile>
 class TiledLayerBuffer
 {
@@ -74,6 +81,7 @@ public:
   TiledLayerBuffer()
     : mRetainedWidth(0)
     , mRetainedHeight(0)
+    , mResolution(1)
   {}
 
   ~TiledLayerBuffer() {}
@@ -83,8 +91,10 @@ public:
   
   
   
+  
   Tile GetTile(const nsIntPoint& aTileOrigin) const;
 
+  
   
   
   
@@ -101,6 +111,7 @@ public:
   bool RemoveTile(int x, int y, Tile& aRemovedTile);
 
   uint16_t GetTileLength() const { return TILEDLAYERBUFFER_TILE_SIZE; }
+  uint32_t GetScaledTileLength() const { return roundf(TILEDLAYERBUFFER_TILE_SIZE / mResolution); }
 
   unsigned int GetTileCount() const { return mRetainedTiles.Length(); }
 
@@ -110,12 +121,28 @@ public:
 
   
   int GetTileStart(int i) const {
-    return (i >= 0) ? (i % GetTileLength())
-                    : ((GetTileLength() - (-i % GetTileLength())) % GetTileLength());
+    return (i >= 0) ? (i % GetScaledTileLength())
+                    : ((GetScaledTileLength() - (-i % GetScaledTileLength())) %
+                       GetScaledTileLength());
   }
 
   
   int RoundDownToTileEdge(int aX) const { return aX - GetTileStart(aX); }
+
+  
+  
+  
+  
+  
+  float GetResolution() const { return mResolution; }
+  void SetResolution(float aResolution) {
+    if (mResolution == aResolution) {
+      return;
+    }
+
+    Update(nsIntRegion(), nsIntRegion());
+    mResolution = aResolution;
+  }
 
 protected:
   
@@ -134,9 +161,11 @@ protected:
 
 
 
+
   nsTArray<Tile>  mRetainedTiles;
   int             mRetainedWidth;  
   int             mRetainedHeight; 
+  float           mResolution;
 
 private:
   const Derived& AsDerived() const { return *static_cast<const Derived*>(this); }
@@ -187,10 +216,10 @@ TiledLayerBuffer<Derived, Tile>::GetTile(const nsIntPoint& aTileOrigin) const
   
   
   
-  int firstTileX = floor_div(mValidRegion.GetBounds().x, GetTileLength());
-  int firstTileY = floor_div(mValidRegion.GetBounds().y, GetTileLength());
-  return GetTile(floor_div(aTileOrigin.x, GetTileLength()) - firstTileX,
-                 floor_div(aTileOrigin.y, GetTileLength()) - firstTileY);
+  int firstTileX = floor_div(mValidRegion.GetBounds().x, GetScaledTileLength());
+  int firstTileY = floor_div(mValidRegion.GetBounds().y, GetScaledTileLength());
+  return GetTile(floor_div(aTileOrigin.x, GetScaledTileLength()) - firstTileX,
+                 floor_div(aTileOrigin.y, GetScaledTileLength()) - firstTileY);
 }
 
 template<typename Derived, typename Tile> Tile
@@ -204,10 +233,10 @@ template<typename Derived, typename Tile> bool
 TiledLayerBuffer<Derived, Tile>::RemoveTile(const nsIntPoint& aTileOrigin,
                                             Tile& aRemovedTile)
 {
-  int firstTileX = floor_div(mValidRegion.GetBounds().x, GetTileLength());
-  int firstTileY = floor_div(mValidRegion.GetBounds().y, GetTileLength());
-  return RemoveTile(floor_div(aTileOrigin.x, GetTileLength()) - firstTileX,
-                    floor_div(aTileOrigin.y, GetTileLength()) - firstTileY,
+  int firstTileX = floor_div(mValidRegion.GetBounds().x, GetScaledTileLength());
+  int firstTileY = floor_div(mValidRegion.GetBounds().y, GetScaledTileLength());
+  return RemoveTile(floor_div(aTileOrigin.x, GetScaledTileLength()) - firstTileX,
+                    floor_div(aTileOrigin.y, GetScaledTileLength()) - firstTileY,
                     aRemovedTile);
 }
 
@@ -251,14 +280,14 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
   for (int32_t x = newBound.x; x < newBound.XMost(); tileX++) {
     
     
-    int width = GetTileLength() - GetTileStart(x);
+    int width = GetScaledTileLength() - GetTileStart(x);
     if (x + width > newBound.XMost()) {
       width = newBound.x + newBound.width - x;
     }
 
     tileY = 0;
     for (int32_t y = newBound.y; y < newBound.YMost(); tileY++) {
-      int height = GetTileLength() - GetTileStart(y);
+      int height = GetScaledTileLength() - GetTileStart(y);
       if (y + height > newBound.y + newBound.height) {
         height = newBound.y + newBound.height - y;
       }
@@ -268,8 +297,8 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
         
         
         
-        int tileX = floor_div(x - oldBufferOrigin.x, GetTileLength());
-        int tileY = floor_div(y - oldBufferOrigin.y, GetTileLength());
+        int tileX = floor_div(x - oldBufferOrigin.x, GetScaledTileLength());
+        int tileY = floor_div(y - oldBufferOrigin.y, GetScaledTileLength());
         int index = tileX * oldRetainedHeight + tileY;
 
         
@@ -328,14 +357,14 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
     
     
     int tileStartX = RoundDownToTileEdge(x);
-    int width = GetTileLength() - GetTileStart(x);
+    int width = GetScaledTileLength() - GetTileStart(x);
     if (x + width > newBound.XMost())
       width = newBound.XMost() - x;
 
     tileY = 0;
     for (int y = newBound.y; y < newBound.y + newBound.height; tileY++) {
       int tileStartY = RoundDownToTileEdge(y);
-      int height = GetTileLength() - GetTileStart(y);
+      int height = GetScaledTileLength() - GetTileStart(y);
       if (y + height > newBound.YMost()) {
         height = newBound.YMost() - y;
       }
@@ -350,8 +379,8 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
         
         
 #ifdef DEBUG
-        int currTileX = floor_div(x - newBufferOrigin.x, GetTileLength());
-        int currTileY = floor_div(y - newBufferOrigin.y, GetTileLength());
+        int currTileX = floor_div(x - newBufferOrigin.x, GetScaledTileLength());
+        int currTileY = floor_div(y - newBufferOrigin.y, GetScaledTileLength());
         int index = currTileX * mRetainedHeight + currTileY;
         NS_ABORT_IF_FALSE(!newValidRegion.Intersects(tileRect) ||
                           !IsPlaceholder(newRetainedTiles.
@@ -362,8 +391,8 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
         continue;
       }
 
-      int tileX = floor_div(x - newBufferOrigin.x, GetTileLength());
-      int tileY = floor_div(y - newBufferOrigin.y, GetTileLength());
+      int tileX = floor_div(x - newBufferOrigin.x, GetScaledTileLength());
+      int tileY = floor_div(y - newBufferOrigin.y, GetScaledTileLength());
       int index = tileX * mRetainedHeight + tileY;
       NS_ABORT_IF_FALSE(index >= 0 &&
                         static_cast<unsigned>(index) < newRetainedTiles.Length(),
