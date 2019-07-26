@@ -556,7 +556,7 @@ Range::setDouble(double l, double h)
 {
     
     if (l >= INT32_MIN && l <= INT32_MAX) {
-        lower_ = int32_t(floor(l));
+        lower_ = int32_t(::floor(l));
         hasInt32LowerBound_ = true;
     } else {
         lower_ = INT32_MIN;
@@ -954,6 +954,31 @@ Range::max(TempAllocator &alloc, const Range *lhs, const Range *rhs)
                             Max(lhs->max_exponent_, rhs->max_exponent_));
 }
 
+Range *
+Range::floor(TempAllocator &alloc, const Range *op)
+{
+    Range *copy = new(alloc) Range(*op);
+    
+    
+    
+    if (op->canHaveFractionalPart() && op->hasInt32LowerBound())
+        copy->setLowerInit(int64_t(copy->lower_) - 1);
+
+    
+    
+    
+    
+    
+    if(copy->hasInt32Bounds())
+        copy->max_exponent_ = copy->exponentImpliedByInt32Bounds();
+    else if(copy->max_exponent_ < MaxFiniteExponent)
+        copy->max_exponent_++;
+
+    copy->canHaveFractionalPart_ = false;
+    copy->assertInvariants();
+    return copy;
+}
+
 bool
 Range::negativeZeroMul(const Range *lhs, const Range *rhs)
 {
@@ -1179,9 +1204,7 @@ void
 MFloor::computeRange(TempAllocator &alloc)
 {
     Range other(getOperand(0));
-    Range *copy = new(alloc) Range(other);
-    copy->resetFractionalPart();
-    setRange(copy);
+    setRange(Range::floor(alloc, &other));
 }
 
 void
