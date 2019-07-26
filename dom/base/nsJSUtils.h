@@ -141,62 +141,71 @@ public:
 class nsDependentJSString : public nsDependentString
 {
 public:
-  
-
-
-
-  explicit nsDependentJSString(JS::Handle<jsid> id)
-    : nsDependentString(JS_GetInternedStringChars(JSID_TO_STRING(id)),
-                        JS_GetStringLength(JSID_TO_STRING(id)))
-  {
-  }
-
-  
-
-
-  explicit nsDependentJSString(JSFlatString* fstr)
-    : nsDependentString(JS_GetFlatStringChars(fstr),
-                        JS_GetStringLength(JS_FORGET_STRING_FLATNESS(fstr)))
-  {
-  }
 
   
 
 
 
 
-
-  nsDependentJSString()
-  {
-  }
+  nsDependentJSString() {}
 
   bool init(JSContext* aContext, JSString* str)
   {
-      size_t length;
-      const jschar* chars = JS_GetStringCharsZAndLength(aContext, str, &length);
-      if (!chars)
-          return false;
+    size_t length;
+    const jschar* chars = JS_GetStringCharsZAndLength(aContext, str, &length);
+    if (!chars) {
+      return false;
+    }
 
-      NS_ASSERTION(IsEmpty(), "init() on initialized string");
-      nsDependentString* base = this;
-      new(base) nsDependentString(chars, length);
-      return true;
+    infallibleInit(chars, length);
+    return true;
   }
 
   bool init(JSContext* aContext, const JS::Value &v)
   {
+    if (v.isString()) {
       return init(aContext, v.toString());
+    }
+
+    
+    JS::Rooted<JSString*> str(aContext);
+    if (v.isObject()) {
+      str = JS_NewStringCopyZ(aContext, "[Object]");
+    } else {
+      JS::Rooted<JS::Value> rootedVal(aContext, v);
+      str = JS::ToString(aContext, rootedVal);
+    }
+
+    return str && init(aContext, str);
   }
 
-  void init(JSFlatString* fstr)
+  bool init(JSContext* aContext, jsid id)
   {
-      MOZ_ASSERT(IsEmpty(), "init() on initialized string");
-      new(this) nsDependentJSString(fstr);
+    JS::Rooted<JS::Value> v(aContext);
+    return JS_IdToValue(aContext, id, &v) && init(aContext, v);
   }
 
-  ~nsDependentJSString()
+  void infallibleInit(const char16_t* aChars, size_t aLength)
   {
+    MOZ_ASSERT(IsEmpty(), "init() on initialized string");
+    nsDependentString* base = this;
+    new (base) nsDependentString(aChars, aLength);
   }
+
+  
+  void infallibleInit(jsid id)
+  {
+    MOZ_ASSERT(JSID_IS_STRING(id));
+    infallibleInit(JS_GetInternedStringChars(JSID_TO_STRING(id)),
+                   JS_GetStringLength(JSID_TO_STRING(id)));
+  }
+
+  void infallibleInit(JSFlatString* fstr)
+  {
+    infallibleInit(JS_GetFlatStringChars(fstr), JS_GetStringLength(JS_FORGET_STRING_FLATNESS(fstr)));
+  }
+
+  ~nsDependentJSString() {}
 };
 
 #endif 

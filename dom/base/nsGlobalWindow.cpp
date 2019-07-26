@@ -4270,6 +4270,7 @@ nsGlobalWindow::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObj,
 {
   MOZ_ASSERT(IsInnerWindow());
 
+  
   if (!JSID_IS_STRING(aId)) {
     return true;
   }

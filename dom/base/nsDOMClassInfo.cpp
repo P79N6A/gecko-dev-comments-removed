@@ -2661,7 +2661,10 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
   nsScriptNameSpaceManager *nameSpaceManager = GetNameSpaceManager();
   NS_ENSURE_TRUE(nameSpaceManager, NS_ERROR_NOT_INITIALIZED);
 
-  nsDependentJSString name(id);
+  
+  
+  nsDependentJSString name;
+  name.infallibleInit(id);
 
   const char16_t *class_name = nullptr;
   const nsGlobalNameStruct *name_struct =
