@@ -872,6 +872,33 @@ void mozilla_sampler_tracing(const char* aCategory, const char* aInfo,
   mozilla_sampler_add_marker(aInfo, new ProfilerMarkerTracing(aCategory, aMetaData));
 }
 
+void mozilla_sampler_add_marker(const char *aMarker, ProfilerMarkerPayload *aPayload)
+{
+  
+  
+  nsAutoPtr<ProfilerMarkerPayload> payload(aPayload);
+
+  if (!stack_key_initialized)
+    return;
+
+  
+  
+  if (!profiler_is_active()) {
+    return;
+  }
+
+  
+  if (profiler_in_privacy_mode()) {
+    return;
+  }
+
+  PseudoStack *stack = tlsPseudoStack.get();
+  if (!stack) {
+    return;
+  }
+  stack->addMarker(aMarker, payload.forget());
+}
+
 
 
 

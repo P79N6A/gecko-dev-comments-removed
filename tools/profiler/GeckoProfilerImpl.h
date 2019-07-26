@@ -366,27 +366,6 @@ inline void mozilla_sampler_call_exit(void *aHandle)
   stack->pop();
 }
 
-inline void mozilla_sampler_add_marker(const char *aMarker, ProfilerMarkerPayload *aPayload)
-{
-  if (!stack_key_initialized)
-    return;
-
-  
-  
-  if (!profiler_is_active()) {
-    return;
-  }
-
-  
-  if (profiler_in_privacy_mode()) {
-    return;
-  }
-
-  PseudoStack *stack = tlsPseudoStack.get();
-  if (!stack) {
-    return;
-  }
-  stack->addMarker(aMarker, aPayload);
-}
+void mozilla_sampler_add_marker(const char *aMarker, ProfilerMarkerPayload *aPayload);
 
 #endif 
