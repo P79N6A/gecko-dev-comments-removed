@@ -19,13 +19,13 @@
 
 #include "libdisplay/GonkDisplay.h"
 #include "Framebuffer.h"
+#include "HwcUtils.h"
 #include "HwcComposer2D.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/PLayerTransaction.h"
 #include "mozilla/layers/ShadowLayerUtilsGralloc.h"
 #include "mozilla/StaticPtr.h"
 #include "cutils/properties.h"
-#include "gfxUtils.h"
 
 #define LOG_TAG "HWComposer"
 
@@ -41,23 +41,6 @@
 
 using namespace android;
 using namespace mozilla::layers;
-
-enum {
-    HWC_USE_GPU = HWC_FRAMEBUFFER,
-    HWC_USE_OVERLAY = HWC_OVERLAY,
-    HWC_USE_COPYBIT
-};
-
-
-enum {
-    
-    
-    
-    HWC_COLOR_FILL = 0x8,
-    
-    
-    HWC_FORMAT_RB_SWAP = 0x40
-};
 
 namespace mozilla {
 
@@ -133,159 +116,6 @@ HwcComposer2D::ReallocLayerList()
     return true;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static bool
-PrepareLayerRects(nsIntRect aVisible, const gfxMatrix& aTransform,
-                  nsIntRect aClip, nsIntRect aBufferRect,
-                  hwc_rect_t* aSourceCrop, hwc_rect_t* aVisibleRegionScreen) {
-
-    gfxRect visibleRect(aVisible);
-    gfxRect clip(aClip);
-    gfxRect visibleRectScreen = aTransform.TransformBounds(visibleRect);
-    
-    visibleRectScreen.IntersectRect(visibleRectScreen, clip);
-
-    if (visibleRectScreen.IsEmpty()) {
-        LOGD("Skip layer");
-        return false;
-    }
-
-    gfxMatrix inverse(aTransform);
-    inverse.Invert();
-    gfxRect crop = inverse.TransformBounds(visibleRectScreen);
-
-    
-    crop.IntersectRect(crop, aBufferRect);
-    crop.Round();
-
-    if (crop.IsEmpty()) {
-        LOGD("Skip layer");
-        return false;
-    }
-
-    
-    visibleRectScreen = aTransform.TransformBounds(crop);
-    visibleRectScreen.Round();
-
-    
-    crop -= aBufferRect.TopLeft();
-
-    aSourceCrop->left = crop.x;
-    aSourceCrop->top  = crop.y;
-    aSourceCrop->right  = crop.x + crop.width;
-    aSourceCrop->bottom = crop.y + crop.height;
-
-    aVisibleRegionScreen->left = visibleRectScreen.x;
-    aVisibleRegionScreen->top  = visibleRectScreen.y;
-    aVisibleRegionScreen->right  = visibleRectScreen.x + visibleRectScreen.width;
-    aVisibleRegionScreen->bottom = visibleRectScreen.y + visibleRectScreen.height;
-
-    return true;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static bool
-PrepareVisibleRegion(const nsIntRegion& aVisible,
-                     const gfxMatrix& aTransform,
-                     nsIntRect aClip, nsIntRect aBufferRect,
-                     RectVector* aVisibleRegionScreen) {
-
-    nsIntRegionRectIterator rect(aVisible);
-    bool isVisible = false;
-    while (const nsIntRect* visibleRect = rect.Next()) {
-        hwc_rect_t visibleRectScreen;
-        gfxRect screenRect;
-
-        screenRect.IntersectRect(gfxRect(*visibleRect), aBufferRect);
-        screenRect = aTransform.TransformBounds(screenRect);
-        screenRect.IntersectRect(screenRect, aClip);
-        screenRect.Round();
-        if (screenRect.IsEmpty()) {
-            continue;
-        }
-        visibleRectScreen.left = screenRect.x;
-        visibleRectScreen.top  = screenRect.y;
-        visibleRectScreen.right  = screenRect.XMost();
-        visibleRectScreen.bottom = screenRect.YMost();
-        aVisibleRegionScreen->push_back(visibleRectScreen);
-        isVisible = true;
-    }
-
-    return isVisible;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static bool
-CalculateClipRect(const gfxMatrix& aTransform, const nsIntRect* aLayerClip,
-                  nsIntRect aParentClip, nsIntRect* aRenderClip) {
-
-    *aRenderClip = aParentClip;
-
-    if (!aLayerClip) {
-        return true;
-    }
-
-    if (aLayerClip->IsEmpty()) {
-        return false;
-    }
-
-    nsIntRect clip = *aLayerClip;
-
-    gfxRect r(clip);
-    gfxRect trClip = aTransform.TransformBounds(r);
-    trClip.Round();
-    gfxUtils::GfxRectToIntRect(trClip, &clip);
-
-    aRenderClip->IntersectRect(*aRenderClip, clip);
-    return true;
-}
-
 bool
 HwcComposer2D::PrepareLayerList(Layer* aLayer,
                                 const nsIntRect& aClip,
@@ -310,10 +140,10 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
     }
 
     nsIntRect clip;
-    if (!CalculateClipRect(aParentTransform * aGLWorldTransform,
-                           aLayer->GetEffectiveClipRect(),
-                           aClip,
-                           &clip))
+    if (!HwcUtils::CalculateClipRect(aParentTransform * aGLWorldTransform,
+                                     aLayer->GetEffectiveClipRect(),
+                                     aClip,
+                                     &clip))
     {
         LOGD("%s Clip rect is empty. Skip layer", aLayer->Name());
         return true;
@@ -401,7 +231,7 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
 
     hwc_layer_t& hwcLayer = mList->hwLayers[current];
 
-    if(!PrepareLayerRects(visibleRect,
+    if(!HwcUtils::PrepareLayerRects(visibleRect,
                           transform * aGLWorldTransform,
                           clip,
                           bufferRect,
@@ -417,11 +247,11 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
     hwcLayer.flags = 0;
     hwcLayer.hints = 0;
     hwcLayer.blending = HWC_BLENDING_PREMULT;
-    hwcLayer.compositionType = HWC_USE_COPYBIT;
+    hwcLayer.compositionType = HwcUtils::HWC_USE_COPYBIT;
 
     if (!fillColor) {
         if (state.FormatRBSwapped()) {
-            hwcLayer.flags |= HWC_FORMAT_RB_SWAP;
+            hwcLayer.flags |= HwcUtils::HWC_FORMAT_RB_SWAP;
         }
 
         
@@ -542,9 +372,9 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
         }
         hwc_region_t region;
         if (visibleRegion.GetNumRects() > 1) {
-            mVisibleRegions.push_back(RectVector());
-            RectVector* visibleRects = &(mVisibleRegions.back());
-            if(!PrepareVisibleRegion(visibleRegion,
+            mVisibleRegions.push_back(HwcUtils::RectVector());
+            HwcUtils::RectVector* visibleRects = &(mVisibleRegions.back());
+            if(!HwcUtils::PrepareVisibleRegion(visibleRegion,
                                      transform * aGLWorldTransform,
                                      clip,
                                      bufferRect,
@@ -559,7 +389,7 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
         }
         hwcLayer.visibleRegionScreen = region;
     } else {
-        hwcLayer.flags |= HWC_COLOR_FILL;
+        hwcLayer.flags |= HwcUtils::HWC_COLOR_FILL;
         ColorLayer* colorLayer = aLayer->AsColorLayer();
         if (colorLayer->GetColor().a < 1.0) {
             LOGD("Color layer has semitransparency which is unsupported");
