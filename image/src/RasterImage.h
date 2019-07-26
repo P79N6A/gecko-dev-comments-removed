@@ -34,6 +34,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/WeakPtr.h"
+#include "gfx2DGlue.h"
 #ifdef DEBUG
   #include "imgIContainerDebug.h"
 #endif
@@ -475,50 +476,122 @@ private:
 
   struct ScaleRequest : public LinkedListElement<ScaleRequest>
   {
-    ScaleRequest(RasterImage* aImage)
-      : image(aImage)
-      , srcFrame(nullptr)
-      , dstFrame(nullptr)
-      , scale(0, 0)
+    ScaleRequest(RasterImage* aImage, const gfxSize& aScale, imgFrame* aSrcFrame)
+      : scale(aScale)
+      , dstLocked(false)
       , done(false)
-      , stopped(false)
-      , srcDataLocked(false)
-    {};
-
-    bool LockSourceData()
     {
-      if (!srcDataLocked) {
-        bool success = true;
-        success = success && NS_SUCCEEDED(image->LockImage());
-        success = success && NS_SUCCEEDED(srcFrame->LockImageData());
-        srcDataLocked = success;
-      }
-      return srcDataLocked;
+      MOZ_ASSERT(!aSrcFrame->GetIsPaletted());
+      MOZ_ASSERT(aScale.width > 0 && aScale.height > 0);
+
+      weakImage = aImage->asWeakPtr();
+      srcRect = aSrcFrame->GetRect();
+      dstSize.width = NSToIntRoundUp(srcRect.width * scale.width);
+      dstSize.height = NSToIntRoundUp(srcRect.height * scale.height);
     }
 
-    bool UnlockSourceData()
+    
+    bool GetSurfaces(imgFrame* srcFrame)
     {
-      bool success = true;
-      if (srcDataLocked) {
-        success = success && NS_SUCCEEDED(image->UnlockImage());
-        success = success && NS_SUCCEEDED(srcFrame->UnlockImageData());
+      MOZ_ASSERT(NS_IsMainThread());
+
+      nsRefPtr<RasterImage> image = weakImage.get();
+      if (!image) {
+        return false;
+      }
+
+      bool success = false;
+      if (!dstLocked) {
+        bool srcLocked = NS_SUCCEEDED(srcFrame->LockImageData());
+        dstLocked = NS_SUCCEEDED(dstFrame->LockImageData());
+
+        nsRefPtr<gfxASurface> dstASurf;
+        nsRefPtr<gfxASurface> srcASurf;
+        success = srcLocked && NS_SUCCEEDED(srcFrame->GetSurface(getter_AddRefs(srcASurf)));
+        success = success && dstLocked && NS_SUCCEEDED(dstFrame->GetSurface(getter_AddRefs(dstASurf)));
+
+        success = success && srcLocked && dstLocked && srcASurf && dstASurf;
+
+        if (success) {
+          srcSurface = srcASurf->GetAsImageSurface();
+          dstSurface = dstASurf->GetAsImageSurface();
+          srcData = srcSurface->Data();
+          dstData = dstSurface->Data();
+          srcStride = srcSurface->Stride();
+          dstStride = dstSurface->Stride();
+          srcFormat = mozilla::gfx::ImageFormatToSurfaceFormat(srcFrame->GetFormat());
+        }
 
         
         
-        srcDataLocked = false;
+        
+        if (srcLocked) {
+          success = NS_SUCCEEDED(srcFrame->UnlockImageData()) && success;
+        }
+
+        success = success && srcSurface && dstSurface;
+      }
+
+      return success;
+    }
+
+    
+    bool ReleaseSurfaces()
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+
+      nsRefPtr<RasterImage> image = weakImage.get();
+      if (!image) {
+        return false;
+      }
+
+      bool success = false;
+      if (dstLocked) {
+        success = NS_SUCCEEDED(dstFrame->UnlockImageData());
+
+        dstLocked = false;
+        srcData = nullptr;
+        dstData = nullptr;
+        srcSurface = nullptr;
+        dstSurface = nullptr;
       }
       return success;
     }
 
-    static void Stop(RasterImage* aImg);
-
-    RasterImage* const image;
-    imgFrame *srcFrame;
+    
+    WeakPtr<RasterImage> weakImage;
     nsAutoPtr<imgFrame> dstFrame;
+    nsRefPtr<gfxImageSurface> srcSurface;
+    nsRefPtr<gfxImageSurface> dstSurface;
+
+    
     gfxSize scale;
+    uint8_t* srcData;
+    uint8_t* dstData;
+    nsIntRect srcRect;
+    gfxIntSize dstSize;
+    uint32_t srcStride;
+    uint32_t dstStride;
+    mozilla::gfx::SurfaceFormat srcFormat;
+    bool dstLocked;
     bool done;
-    bool stopped;
-    bool srcDataLocked;
+  };
+
+  enum ScaleStatus
+  {
+    SCALE_INVALID,
+    SCALE_PENDING,
+    SCALE_DONE
+  };
+  struct ScaleResult
+  {
+    ScaleResult()
+     : status(SCALE_INVALID)
+    {}
+
+    gfxSize scale;
+    nsAutoPtr<imgFrame> frame;
+    ScaleStatus status;
   };
 
   class ScaleWorker : public nsRunnable
@@ -538,7 +611,7 @@ private:
     {};
 
     
-    void RequestScale(RasterImage* aImg);
+    bool RequestScale(ScaleRequest* request, RasterImage* image, imgFrame* aSrcFrame);
 
   private: 
 
@@ -561,7 +634,7 @@ private:
   private: 
     DrawWorker() {};
 
-    void RequestDraw(RasterImage* aImg);
+    void RequestDraw(ScaleRequest* request);
 
   private: 
 
@@ -575,6 +648,14 @@ private:
                                     const gfxMatrix &aUserSpaceToImageSpace,
                                     const gfxRect &aFill,
                                     const nsIntRect &aSubimage);
+
+  
+  
+  void SetScaleResult(ScaleRequest* request);
+
+  
+  
+  void SetResultPending(ScaleRequest* request);
 
   
 
@@ -787,7 +868,7 @@ private:
   TimeStamp mDrawStartTime;
 
   inline bool CanScale(gfxPattern::GraphicsFilter aFilter, gfxSize aScale);
-  ScaleRequest mScaleRequest;
+  ScaleResult mScaleResult;
 
   
   enum eShutdownIntent {

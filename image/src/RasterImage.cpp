@@ -27,7 +27,6 @@
 #include "nsIconDecoder.h"
 
 #include "gfxContext.h"
-#include "gfx2DGlue.h"
 
 #include "mozilla/Preferences.h"
 #include "mozilla/StandardInteger.h"
@@ -35,59 +34,6 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/gfx/Scale.h"
-
-
-#ifdef MOZ_ENABLE_SKIA
-
-static bool
-ScaleFrameImage(imgFrame *aSrcFrame, imgFrame *aDstFrame,
-                const gfxSize &aScaleFactors)
-{
-  if (aScaleFactors.width <= 0 || aScaleFactors.height <= 0)
-    return false;
-
-  imgFrame *srcFrame = aSrcFrame;
-  nsIntRect srcRect = srcFrame->GetRect();
-  uint32_t dstWidth = NSToIntRoundUp(srcRect.width * aScaleFactors.width);
-  uint32_t dstHeight = NSToIntRoundUp(srcRect.height * aScaleFactors.height);
-
-  
-  
-  nsresult rv = aDstFrame->Init(0, 0, dstWidth, dstHeight,
-                                gfxASurface::ImageFormatARGB32);
-  if (!NS_FAILED(rv)) {
-    uint8_t* srcData;
-    uint32_t srcDataLength;
-    
-    srcFrame->GetImageData(&srcData, &srcDataLength);
-    NS_ASSERTION(srcData != nullptr, "Source data is unavailable! Is it locked?");
-
-    uint8_t* dstData;
-    uint32_t dstDataLength;
-    aDstFrame->LockImageData();
-    aDstFrame->GetImageData(&dstData, &dstDataLength);
-
-    
-    
-    mozilla::gfx::Scale(srcData, srcRect.width, srcRect.height, aSrcFrame->GetImageBytesPerRow(),
-                        dstData, dstWidth, dstHeight, aDstFrame->GetImageBytesPerRow(),
-                        mozilla::gfx::ImageFormatToSurfaceFormat(aSrcFrame->GetFormat()));
-
-    aDstFrame->UnlockImageData();
-    return true;
-  }
-
-  return false;
-}
-#else 
-static bool
-ScaleFrameImage(imgFrame *aSrcFrame, imgFrame *aDstFrame,
-                const gfxSize &aScaleFactors)
-{
-  return false;
-}
-#endif 
-
 
 #include "sampler.h"
 
@@ -235,8 +181,7 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   mInDecoder(false),
   mAnimationFinished(false),
   mFinishing(false),
-  mInUpdateImageContainer(false),
-  mScaleRequest(this)
+  mInUpdateImageContainer(false)
 {
   
   mDiscardTrackerNode.img = this;
@@ -244,14 +189,11 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
 
   
   num_containers++;
-
 }
 
 
 RasterImage::~RasterImage()
 {
-  ScaleRequest::Stop(mScaleRequest.image);
-
   
   if (mDiscardable) {
     num_discardable_containers--;
@@ -2699,44 +2641,39 @@ RasterImage::ScaleWorker::Run()
   }
 
   ScaleRequest* request;
-  gfxSize scale;
-  imgFrame* frame;
   {
     MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
     request = mScaleRequests.popFirst();
-    if (!request)
-      return NS_OK;
-
-    scale = request->scale;
-    frame = request->srcFrame;
   }
 
-  nsAutoPtr<imgFrame> scaledFrame(new imgFrame());
-  bool scaled = ScaleFrameImage(frame, scaledFrame, scale);
+  request->done = mozilla::gfx::Scale(request->srcData, request->srcRect.width, request->srcRect.height, request->srcStride,
+                                      request->dstData, request->dstSize.width, request->dstSize.height, request->dstStride,
+                                      request->srcFormat);
 
   
   
-  {
-    MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
-    if (scaled && scale == request->scale && !request->isInList()) {
-      request->dstFrame = scaledFrame;
-      request->done = true;
-    }
+  DrawWorker::Singleton()->RequestDraw(request);
 
-    DrawWorker::Singleton()->RequestDraw(request->image);
-  }
   return NS_OK;
 }
 
 
-void
-RasterImage::ScaleWorker::RequestScale(RasterImage* aImg)
+bool
+RasterImage::ScaleWorker::RequestScale(ScaleRequest* request,
+                                       RasterImage* image,
+                                       imgFrame* aSrcFrame)
 {
   mRequestsMutex.AssertCurrentThreadOwns();
 
-  ScaleRequest* request = &aImg->mScaleRequest;
-  if (request->isInList())
-    return;
+  
+  
+  request->dstFrame = new imgFrame();
+  nsresult rv = request->dstFrame->Init(0, 0, request->dstSize.width, request->dstSize.height,
+                                        gfxASurface::ImageFormatARGB32);
+
+  if (NS_FAILED(rv) || !request->GetSurfaces(aSrcFrame)) {
+    return false;
+  }
 
   mScaleRequests.insertBack(request);
 
@@ -2747,6 +2684,10 @@ RasterImage::ScaleWorker::RequestScale(RasterImage* aImg)
   else {
     sScaleWorkerThread->Dispatch(this, NS_DISPATCH_NORMAL);
   }
+
+  image->SetResultPending(request);
+
+  return true;
 }
 
  RasterImage::DrawWorker*
@@ -2768,53 +2709,45 @@ RasterImage::DrawWorker::Run()
     MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
     request = mDrawRequests.popFirst();
   }
-  if (request) {
-    
-    request->UnlockSourceData();
-    
-    if (request->stopped) {
-      ScaleRequest::Stop(request->image);
-    }
-    nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(request->image->mObserver));
-    if (request->done && observer) {
-      imgFrame *scaledFrame = request->dstFrame.get();
-      scaledFrame->ImageUpdated(scaledFrame->GetRect());
-      nsIntRect frameRect = request->srcFrame->GetRect();
-      observer->FrameChanged(&frameRect);
+
+  
+  request->ReleaseSurfaces();
+
+  
+  if (request->done) {
+    RasterImage* image = request->weakImage;
+    if (image) {
+      nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(image->mObserver));
+      if (observer) {
+        imgFrame *scaledFrame = request->dstFrame.get();
+        scaledFrame->ImageUpdated(scaledFrame->GetRect());
+        observer->FrameChanged(&request->srcRect);
+      }
+
+      image->SetScaleResult(request);
     }
   }
+
+  
+  else {
+    RasterImage* image = request->weakImage;
+    if (image) {
+      image->SetScaleResult(nullptr);
+    }
+  }
+
+  
+  delete request;
 
   return NS_OK;
 }
 
 void
-RasterImage::DrawWorker::RequestDraw(RasterImage* aImg)
+RasterImage::DrawWorker::RequestDraw(ScaleRequest* request)
 {
-  ScaleRequest* request = &aImg->mScaleRequest;
+  MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
   mDrawRequests.insertBack(request);
   NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL);
-}
-
-void
-RasterImage::ScaleRequest::Stop(RasterImage* aImg)
-{
-  ScaleRequest* request = &aImg->mScaleRequest;
-  
-  
-  
-  if (request->isInList()) {
-    request->remove();
-    request->UnlockSourceData();
-  }
-  
-  
-  if (request->done) {
-    request->done = false;
-    request->dstFrame = nullptr;
-    request->scale.width = 0;
-    request->scale.height = 0;
-  }
-  request->stopped = true;
 }
 
 static inline bool
@@ -2847,6 +2780,28 @@ RasterImage::CanScale(gfxPattern::GraphicsFilter aFilter,
 }
 
 void
+RasterImage::SetScaleResult(ScaleRequest* request)
+{
+  if (request) {
+    MOZ_ASSERT(request->done);
+    mScaleResult.status = SCALE_DONE;
+    mScaleResult.frame = request->dstFrame;
+    mScaleResult.scale = request->scale;
+  } else {
+    mScaleResult.status = SCALE_INVALID;
+    mScaleResult.frame = nullptr;
+  }
+}
+
+void
+RasterImage::SetResultPending(ScaleRequest* request)
+{
+  MOZ_ASSERT(request);
+  mScaleResult.scale = request->scale;
+  mScaleResult.status = SCALE_PENDING;
+}
+
+void
 RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
                                           gfxContext *aContext,
                                           gfxPattern::GraphicsFilter aFilter,
@@ -2867,33 +2822,28 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
     
     
     
-    if (mScaleRequest.scale == scale) {
-      if (mScaleRequest.done) {
-        frame = mScaleRequest.dstFrame.get();
-        userSpaceToImageSpace.Multiply(gfxMatrix().Scale(scale.width, scale.height));
+    
+    
+    
+    
+    
+    if (mScaleResult.status == SCALE_DONE && mScaleResult.scale == scale) {
+      frame = mScaleResult.frame;
+      userSpaceToImageSpace.Multiply(gfxMatrix().Scale(scale.width, scale.height));
 
-        
-        
-        
-        subimage.ScaleRoundOut(scale.width, scale.height);
-      }
-    } else {
       
       
       
-      
-      
-      int scaling = mScaleRequest.srcDataLocked ? 1 : 0;
-      if (mLockCount - scaling == 1) {
-        ScaleRequest::Stop(this);
-        mScaleRequest.srcFrame = frame;
-        mScaleRequest.scale = scale;
-        mScaleRequest.stopped = false;
+      subimage.ScaleRoundOut(scale.width, scale.height);
+    }
 
+    
+    else if (!(mScaleResult.status == SCALE_PENDING && mScaleResult.scale == scale)) {
+      ScaleRequest* request = new ScaleRequest(this, scale, frame);
+
+      if (!ScaleWorker::Singleton()->RequestScale(request, this, frame)) {
         
-        if (mScaleRequest.LockSourceData()) {
-          ScaleWorker::Singleton()->RequestScale(this);
-        }
+        delete request;
       }
     }
   }
@@ -3032,11 +2982,6 @@ RasterImage::UnlockImage()
 
   
   mLockCount--;
-
-  if (ScaleWorker::sSingleton && mLockCount == 0) {
-    MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
-    ScaleRequest::Stop(this);
-  }
 
   
   
