@@ -2439,7 +2439,6 @@ int NS_main(int argc, NS_tchar **argv)
 #endif
 
 #ifdef XP_WIN
-  int possibleWriteError; 
   if (pid > 0) {
     HANDLE parent = OpenProcess(SYNCHRONIZE, false, (DWORD) pid);
     
@@ -2450,12 +2449,7 @@ int NS_main(int argc, NS_tchar **argv)
       CloseHandle(parent);
       if (result != WAIT_OBJECT_0)
         return 1;
-      possibleWriteError = WRITE_ERROR_SHARING_VIOLATION_SIGNALED;
-    } else {
-      possibleWriteError = WRITE_ERROR_SHARING_VIOLATION_NOPROCESSFORPID;
     }
-  } else {
-    possibleWriteError = WRITE_ERROR_SHARING_VIOLATION_NOPID;
   }
 #else
   if (pid > 0)
@@ -2949,6 +2943,7 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
+      
       const int max_retries = 10;
       int retries = 1;
       DWORD lastWriteError = 0;
@@ -2978,20 +2973,24 @@ int NS_main(int argc, NS_tchar **argv)
         LOG(("NS_main: file in use - failed to exclusively open executable " \
              "file: " LOG_S, argv[callbackIndex]));
         LogFinish();
-        if (ERROR_ACCESS_DENIED == lastWriteError) {
-          WriteStatusFile(WRITE_ERROR_ACCESS_DENIED);
-        } else if (ERROR_SHARING_VIOLATION == lastWriteError) {
-          WriteStatusFile(possibleWriteError);
+
+        if (lastWriteError == ERROR_SHARING_VIOLATION) {
+          LOG(("NS_main: callback in use, continuing without exclusive access"));
         } else {
-          WriteStatusFile(WRITE_ERROR_CALLBACK_APP);
+          if (lastWriteError == ERROR_ACCESS_DENIED) {
+            WriteStatusFile(WRITE_ERROR_ACCESS_DENIED);
+          } else {
+            WriteStatusFile(WRITE_ERROR_CALLBACK_APP);
+          }
+
+          NS_tremove(gCallbackBackupPath);
+          EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 1);
+          LaunchCallbackApp(argv[4],
+                            argc - callbackIndex,
+                            argv + callbackIndex,
+                            sUsingService);
+          return 1;
         }
-        NS_tremove(gCallbackBackupPath);
-        EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 1);
-        LaunchCallbackApp(argv[4],
-                          argc - callbackIndex,
-                          argv + callbackIndex,
-                          sUsingService);
-        return 1;
       }
     }
   }
@@ -3020,7 +3019,9 @@ int NS_main(int argc, NS_tchar **argv)
 
 #ifdef XP_WIN
   if (argc > callbackIndex && !sReplaceRequest) {
-    CloseHandle(callbackFile);
+    if (callbackFile != INVALID_HANDLE_VALUE) {
+      CloseHandle(callbackFile);
+    }
     
     NS_tremove(gCallbackBackupPath);
   }
