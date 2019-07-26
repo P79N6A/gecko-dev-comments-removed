@@ -1209,7 +1209,11 @@ qcms_transform* qcms_transform_create(
 		precache = true;
 	}
 
-	if (qcms_supports_iccv4 && (in->A2B0 || out->B2A0 || in->mAB || out->mAB)) {
+	
+	if (qcms_supports_iccv4 &&
+			(in_type == QCMS_DATA_RGB_8 || in_type == QCMS_DATA_RGBA_8) &&
+			(in->A2B0 || out->B2A0 || in->mAB || out->mAB))
+		{
 		
 		
 		
