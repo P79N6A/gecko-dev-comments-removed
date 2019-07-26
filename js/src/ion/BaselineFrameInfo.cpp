@@ -5,9 +5,11 @@
 
 
 
-#include "jsanalyze.h"
 #include "BaselineFrameInfo.h"
 #include "IonSpewer.h"
+
+#include "jsanalyze.h"
+#include "jsinferinlines.h"
 
 using namespace js;
 using namespace js::ion;
