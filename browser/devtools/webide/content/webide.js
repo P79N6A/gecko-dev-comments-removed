@@ -7,6 +7,8 @@ const Cu = Components.utils;
 const Ci = Components.interfaces;
 
 Cu.import("resource:///modules/devtools/gDevTools.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
 const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const {require} = devtools;
@@ -14,6 +16,7 @@ const {Services} = Cu.import("resource://gre/modules/Services.jsm");
 const {AppProjects} = require("devtools/app-manager/app-projects");
 const {Connection} = require("devtools/client/connection-manager");
 const {AppManager} = require("devtools/app-manager");
+const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const ProjectEditor = require("projecteditor/projecteditor");
 
 const Strings = Services.strings.createBundle("chrome://webide/content/webide.properties");
@@ -166,6 +169,7 @@ let UI = {
     
     
     
+    this.hidePanels();
     let timeout = setTimeout(() => {
       this.unbusy();
       this.console.error("Operation timeout: " + operationDescription);
@@ -174,10 +178,12 @@ let UI = {
     promise.then(() => {
       clearTimeout(timeout);
       this.unbusy();
-    }, () => {
+    }, (e) => {
       clearTimeout(timeout);
+      this.console.error("Error while processing: " + operationDescription + ": " + e);
       this.unbusy();
     });
+    return promise;
   },
 
   
@@ -190,7 +196,7 @@ let UI = {
     }
 
     this.console.log("Found " + AppManager.runtimeList.usb.length + " USB devices.");
-    this.console.log("Found " + AppManager.runtimeList.simulators.length + " simulators.");
+    this.console.log("Found " + AppManager.runtimeList.simulator.length + " simulators.");
     for (let runtime of AppManager.runtimeList.usb) {
       let panelItemNode = document.createElement("toolbarbutton");
       panelItemNode.className = "panel-item runtime-panel-item-usbruntime";
@@ -206,7 +212,7 @@ let UI = {
     while (simulatorListNode.hasChildNodes()) {
       simulatorListNode.firstChild.remove();
     }
-    for (let runtime of AppManager.runtimeList.simulators) {
+    for (let runtime of AppManager.runtimeList.simulator) {
       let panelItemNode = document.createElement("toolbarbutton");
       panelItemNode.className = "panel-item runtime-panel-item-simulator";
       panelItemNode.setAttribute("label", runtime.getName());
@@ -227,6 +233,7 @@ let UI = {
     promise.then(
       () => {this.console.success("Connected to " + name)},
       () => {this.console.error("Can't connect to " + name)});
+    return promise;
   },
 
   updateRuntimeButton: function() {
@@ -515,56 +522,95 @@ let Cmds = {
     window.close();
   },
 
-  newApp: function() {
-    UI.hidePanels();
-    let ret = {location:null};
-    window.openDialog("chrome://webide/content/newapp.xul", "newapp", "chrome,modal", ret);
-    if (!ret.location)
-      return;
-    let project = AppProjects.get(ret.location);
-    UI.busyUntil(AppManager.validateProject(project).then(() => {
-      UI.console.success("New project created at " + ret.location);
+  
+
+
+
+
+
+
+  newApp: function(testOptions) {
+    return UI.busyUntil(Task.spawn(function* () {
+
+      
+      let ret = {location: null, testOptions: testOptions};
+      window.openDialog("chrome://webide/content/newapp.xul", "newapp", "chrome,modal", ret);
+      if (!ret.location)
+        return;
+
+      
+      let project = AppProjects.get(ret.location);
+
+      
+      yield AppManager.validateProject(project);
+
+      
       AppManager.selectedProject = project;
-    }, (e) => UI.console.error("Error while create new app: " + e)), "creating new app");;
+
+    }), "creating new app");
   },
 
-  importPackagedApp: function() {
-    UI.hidePanels();
-    let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-    fp.init(window, Strings.GetStringFromName("importPackagedApp_title"), Ci.nsIFilePicker.modeGetFolder);
-    let res = fp.show();
-    if (res == Ci.nsIFilePicker.returnCancel)
-      return;
-    UI.busyUntil(AppProjects.addPackaged(fp.file)
-                            .then(project => AppManager.validateProject(project))
-                            .then(project => AppManager.selectedProject = project)
-                            .then(( ) => { UI.console.log("New project successfuly added") },
-                                  (e) => { UI.console.error("Error while importing project: " + e) }),
-                            "importing packaged app");
+  importPackagedApp: function(location) {
+    return UI.busyUntil(Task.spawn(function* () {
+
+      let directory;
+
+      if (!location) {
+        let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+        fp.init(window, Strings.GetStringFromName("importPackagedApp_title"), Ci.nsIFilePicker.modeGetFolder);
+        let res = fp.show();
+        if (res == Ci.nsIFilePicker.returnCancel) {
+          return promise.resolve();
+        }
+        directory = fp.file;
+      } else {
+        directory = new FileUtils.File(location);
+      }
+
+      
+      let project = yield AppProjects.addPackaged(directory);
+
+      
+      yield AppManager.validateProject(project);
+
+      
+      AppManager.selectedProject = project;
+    }), "importing packaged app");
   },
 
 
-  importHostedApp: function() {
-    UI.hidePanels();
-    let promptService = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
-    let ret = {value:null};
-    promptService.prompt(window,
-                         Strings.GetStringFromName("importHostedApp_title"),
-                         Strings.GetStringFromName("importHostedApp_header"),
-                         ret, null, {});
-    let url = ret.value;
-    if (!url)
-      return;
-    UI.busyUntil(AppProjects.addHosted(url)
-                            .then(project => AppManager.validateProject(project))
-                            .then(project => AppManager.selectedProject = project)
-                            .then(( ) => { UI.console.log("New project successfuly added") },
-                                  (e) => { UI.console.error("Error while importing project: " + e) }),
-                            "importing hosted app");
+  importHostedApp: function(location) {
+    return UI.busyUntil(Task.spawn(function* () {
+      let ret = {value: null};
+
+      let url;
+      if (!location) {
+        Services.prompt.prompt(window,
+                               Strings.GetStringFromName("importHostedApp_title"),
+                               Strings.GetStringFromName("importHostedApp_header"),
+                               ret, null, {});
+        location = ret.value;
+      }
+
+      if (!location) {
+        return;
+      }
+
+      
+      let project = yield AppProjects.addHosted(location)
+
+      
+      yield AppManager.validateProject(project);
+
+      
+      AppManager.selectedProject = project;
+    }), "importing hosted app");
   },
 
 
   showProjectPanel: function() {
+    let deferred = promise.defer();
+
     let panelNode = document.querySelector("#project-panel");
     let panelVboxNode = document.querySelector("#project-panel > vbox");
     let anchorNode = document.querySelector("#project-panel-button > .panel-button-anchor");
@@ -603,10 +649,15 @@ let Cmds = {
         
         
         
+        function onPopupShown() {
+          panelNode.removeEventListener("popupshown", onPopupShown);
+          deferred.resolve();
+        }
+        panelNode.addEventListener("popupshown", onPopupShown);
         panelNode.openPopup(anchorNode);
         panelVboxNode.scrollTop = 0;
       }, 0);
-    }, UI.console.error);
+    }, deferred.reject);
 
 
     let runtimeappsHeaderNode = document.querySelector("#panel-header-runtimeapps");
@@ -640,31 +691,40 @@ let Cmds = {
         };
       }, true);
     }
+
+    return deferred.promise;
   },
 
   showRuntimePanel: function() {
     let panel = document.querySelector("#runtime-panel");
     let anchor = document.querySelector("#runtime-panel-button > .panel-button-anchor");
+
+    let deferred = promise.defer();
+    function onPopupShown() {
+      panel.removeEventListener("popupshown", onPopupShown);
+      deferred.resolve();
+    }
+    panel.addEventListener("popupshown", onPopupShown);
+
     panel.openPopup(anchor);
+    return deferred.promise;
   },
 
   disconnectRuntime: function() {
-    UI.busyUntil(AppManager.disconnectRuntime());
+    return UI.busyUntil(AppManager.disconnectRuntime(), "disconnecting from runtime");
   },
 
   takeScreenshot: function() {
-    UI.hidePanels();
-    UI.busyUntil(AppManager.deviceFront.screenshotToDataURL().then(longstr => {
+    return UI.busyUntil(AppManager.deviceFront.screenshotToDataURL().then(longstr => {
        return longstr.string().then(dataURL => {
          longstr.release().then(null, UI.console.error);
          UI.openInBrowser(dataURL);
        });
-    }));
+    }), "taking screenshot");
   },
 
   showPermissionsTable: function() {
-    UI.hidePanels();
-    UI.busyUntil(AppManager.deviceFront.getRawPermissionsTable().then(json => {
+    return UI.busyUntil(AppManager.deviceFront.getRawPermissionsTable().then(json => {
       let styleContent = "";
       styleContent += "body {background:white; font-family: monospace}";
       styleContent += "table {border-collapse: collapse}";
@@ -713,8 +773,7 @@ let Cmds = {
   },
 
   showRuntimeDetails: function() {
-    UI.hidePanels();
-    UI.busyUntil(AppManager.deviceFront.getDescription().then(json => {
+    return UI.busyUntil(AppManager.deviceFront.getDescription().then(json => {
       let styleContent = "";
       styleContent += "body {background:white; font-family: monospace}";
       styleContent += "table {border-collapse: collapse}";
@@ -746,31 +805,34 @@ let Cmds = {
     switch(AppManager.selectedProject.type) {
       case "packaged":
       case "hosted":
-        UI.busyUntil(AppManager.installAndRunProject(), "installing and running app");
+        return UI.busyUntil(AppManager.installAndRunProject(), "installing and running app");
         break;
       case "runtimeApp":
-        UI.busyUntil(AppManager.runRuntimeApp(), "running app");
+        return UI.busyUntil(AppManager.runRuntimeApp(), "running app");
         break;
     }
+    return promise.reject();
   },
 
   stop: function() {
-    UI.busyUntil(AppManager.stopRunningApp(), "stopping app");
+    return UI.busyUntil(AppManager.stopRunningApp(), "stopping app");
   },
 
   toggleToolbox: function() {
     if (UI.toolboxIframe) {
       UI.closeToolbox();
+      return promise.resolve();
     } else {
       UI.toolboxPromise = AppManager.getTarget().then((target) => {
         return UI.showToolbox(target);
       }, UI.console.error);
       UI.busyUntil(UI.toolboxPromise, "opening toolbox");
+      return UI.toolboxPromise;
     }
   },
 
   removeProject: function() {
-    AppManager.removeSelectedProject();
+    return AppManager.removeSelectedProject();
   },
 
   toggleEditors: function() {
