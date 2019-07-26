@@ -44,6 +44,10 @@ class URIParams;
 class TestShellParent;
 } 
 
+namespace jsipc {
+class JavaScriptParent;
+}
+
 namespace layers {
 class PCompositorParent;
 } 
@@ -126,6 +130,7 @@ public:
     TestShellParent* CreateTestShell();
     bool DestroyTestShell(TestShellParent* aTestShell);
     TestShellParent* GetTestShellSingleton();
+    jsipc::JavaScriptParent *GetCPOWManager();
 
     void ReportChildAlreadyBlocked();
     bool RequestRunToCompletion();
@@ -194,6 +199,7 @@ private:
     
     using PContentParent::SendPBrowserConstructor;
     using PContentParent::SendPTestShellConstructor;
+    using PContentParent::SendPJavaScriptConstructor;
 
     
     
@@ -250,6 +256,9 @@ private:
                                           bool* aIsForApp,
                                           bool* aIsForBrowser) MOZ_OVERRIDE;
     virtual bool RecvGetXPCOMProcessAttributes(bool* aIsOffline) MOZ_OVERRIDE;
+
+    virtual mozilla::jsipc::PJavaScriptParent* AllocPJavaScript();
+    virtual bool DeallocPJavaScript(mozilla::jsipc::PJavaScriptParent*);
 
     virtual PBrowserParent* AllocPBrowser(const IPCTabContext& aContext,
                                           const uint32_t& aChromeFlags);
