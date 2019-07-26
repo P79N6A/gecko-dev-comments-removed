@@ -7,9 +7,7 @@
 #include "GainNode.h"
 #include "mozilla/dom/GainNodeBinding.h"
 #include "AudioNodeEngine.h"
-#include "AudioNodeStream.h"
-#include "AudioDestinationNode.h"
-#include "WebAudioUtils.h"
+#include "GainProcessor.h"
 
 namespace mozilla {
 namespace dom {
@@ -23,21 +21,14 @@ NS_INTERFACE_MAP_END_INHERITING(AudioNode)
 NS_IMPL_ADDREF_INHERITED(GainNode, AudioNode)
 NS_IMPL_RELEASE_INHERITED(GainNode, AudioNode)
 
-class GainNodeEngine : public AudioNodeEngine
+class GainNodeEngine : public AudioNodeEngine,
+                       public GainProcessor
 {
 public:
   GainNodeEngine(AudioNode* aNode, AudioDestinationNode* aDestination)
     : AudioNodeEngine(aNode)
-    , mSource(nullptr)
-    , mDestination(static_cast<AudioNodeStream*> (aDestination->Stream()))
-    
-    , mGain(1.f)
+    , GainProcessor(aDestination)
   {
-  }
-
-  void SetSourceStream(AudioNodeStream* aSource)
-  {
-    mSource = aSource;
   }
 
   enum Parameters {
@@ -47,9 +38,7 @@ public:
   {
     switch (aIndex) {
     case GAIN:
-      MOZ_ASSERT(mSource && mDestination);
-      mGain = aValue;
-      WebAudioUtils::ConvertAudioParamToTicks(mGain, mSource, mDestination);
+      SetGainParameter(aValue);
       break;
     default:
       NS_ERROR("Bad GainNodeEngine TimelineParameter");
@@ -66,37 +55,18 @@ public:
     if (aInput.IsNull()) {
       
       aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
-    } else if (mGain.HasSimpleValue()) {
-      
-      *aOutput = aInput;
-      aOutput->mVolume *= mGain.GetValue();
     } else {
-      
-      
-      
-      AllocateAudioBlock(aInput.mChannelData.Length(), aOutput);
-
-      
-      
-      float computedGain[WEBAUDIO_BLOCK_SIZE];
-      for (size_t counter = 0; counter < WEBAUDIO_BLOCK_SIZE; ++counter) {
-        TrackTicks tick = aStream->GetCurrentPosition();
-        computedGain[counter] = mGain.GetValueAtTime(tick, counter) * aInput.mVolume;
+      if (mGain.HasSimpleValue()) {
+        
+        
+        *aOutput = aInput;
+      } else {
+        
+        AllocateAudioBlock(aInput.mChannelData.Length(), aOutput);
       }
-
-      
-      for (size_t channel = 0; channel < aOutput->mChannelData.Length(); ++channel) {
-        const float* inputBuffer = static_cast<const float*> (aInput.mChannelData[channel]);
-        float* buffer = static_cast<float*> (const_cast<void*>
-                          (aOutput->mChannelData[channel]));
-        AudioBlockCopyChannelWithScale(inputBuffer, computedGain, buffer);
-      }
+      ProcessGain(aStream, aInput.mVolume, aInput.mChannelData, aOutput);
     }
   }
-
-  AudioNodeStream* mSource;
-  AudioNodeStream* mDestination;
-  AudioParamTimeline mGain;
 };
 
 GainNode::GainNode(AudioContext* aContext)
