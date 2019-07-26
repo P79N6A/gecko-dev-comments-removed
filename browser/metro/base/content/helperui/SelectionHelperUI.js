@@ -2,12 +2,23 @@
 
 
 
- 
 
 
 
- 
- const kDisableOnScrollDistance = 25;
+
+
+
+
+
+
+
+
+
+const kDisableOnScrollDistance = 25;
+
+
+
+
 
 function MarkerDragger(aMarker) {
   this._marker = aMarker;
@@ -173,7 +184,7 @@ Marker.prototype = {
   moveBy: function moveBy(aDx, aDy, aClientX, aClientY) {
     this._xPos -= aDx;
     this._yPos -= aDy;
-    let direction = (aDx < 0 || aDy < 0 ? "end" : "start");
+    let direction = (aDx >= 0 && aDy >= 0 ? "start" : "end");
     
     
     if (this._selectionHelperUI.markerDragMove(this, direction)) {
@@ -513,13 +524,21 @@ var SelectionHelperUI = {
       targetMark = this.startMark;
     else
       targetMark = this.endMark;
+
+    
+    this.startMark.position(targetMark.xPos, targetMark.yPos);
+    this.endMark.position(targetMark.xPos, targetMark.yPos);
+
     
     
     
     
-    targetMark._setPosition();
-    this.markerDragStart(targetMark);
-    this.markerDragMove(targetMark, aDirection);
+    this._sendAsyncMessage("Browser:SelectionSwitchMode", {
+      newMode: "selection",
+      change: targetMark.tag,
+      xPos: targetMark.xPos,
+      yPos: targetMark.yPos,
+    });
   },
 
   
@@ -839,8 +858,6 @@ var SelectionHelperUI = {
   },
 
   markerDragMove: function markerDragMove(aMarker, aDirection) {
-    let json = this._getMarkerBaseMessage();
-    json.change = aMarker.tag;
     if (aMarker.tag == "caret") {
       
       
@@ -848,6 +865,8 @@ var SelectionHelperUI = {
       this._transitionFromCaretToSelection(aDirection);
       return false;
     }
+    let json = this._getMarkerBaseMessage();
+    json.change = aMarker.tag;
     this._sendAsyncMessage("Browser:SelectionMove", json);
     return true;
   },
