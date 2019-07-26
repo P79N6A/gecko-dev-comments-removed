@@ -91,7 +91,7 @@ DOMEventTargetHelper::~DOMEventTargetHelper()
 void
 DOMEventTargetHelper::BindToOwner(nsPIDOMWindow* aOwner)
 {
-  MOZ_ASSERT(!aOwner || aOwner->IsInnerWindow());
+  MOZ_ASSERT_IF(aOwner, aOwner->IsInnerWindow());
   nsCOMPtr<nsIGlobalObject> glob = do_QueryInterface(aOwner);
   BindToOwner(glob);
 }
@@ -112,6 +112,7 @@ DOMEventTargetHelper::BindToOwner(nsIGlobalObject* aOwner)
     
     mOwnerWindow = nsCOMPtr<nsPIDOMWindow>(do_QueryInterface(aOwner)).get();
     if (mOwnerWindow) {
+      MOZ_ASSERT(mOwnerWindow->IsInnerWindow());
       mHasOrHasHadOwnerWindow = true;
       static_cast<nsGlobalWindow*>(mOwnerWindow)->AddEventTargetObject(this);
     }
@@ -134,6 +135,7 @@ DOMEventTargetHelper::BindToOwner(DOMEventTargetHelper* aOther)
       
       mOwnerWindow = nsCOMPtr<nsPIDOMWindow>(do_QueryInterface(mParentObject)).get();
       if (mOwnerWindow) {
+        MOZ_ASSERT(mOwnerWindow->IsInnerWindow());
         mHasOrHasHadOwnerWindow = true;
         static_cast<nsGlobalWindow*>(mOwnerWindow)->AddEventTargetObject(this);
       }

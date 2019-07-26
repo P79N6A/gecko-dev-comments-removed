@@ -120,12 +120,8 @@ public:
   nsresult CheckInnerWindowCorrectness()
   {
     NS_ENSURE_STATE(!mHasOrHasHadOwnerWindow || mOwnerWindow);
-    if (mOwnerWindow) {
-      NS_ASSERTION(mOwnerWindow->IsInnerWindow(), "Should have inner window here!\n");
-      nsPIDOMWindow* outer = mOwnerWindow->GetOuterWindow();
-      if (!outer || outer->GetCurrentInnerWindow() != mOwnerWindow) {
-        return NS_ERROR_FAILURE;
-      }
+    if (mOwnerWindow && !mOwnerWindow->IsCurrentInnerWindow()) {
+      return NS_ERROR_FAILURE;
     }
     return NS_OK;
   }

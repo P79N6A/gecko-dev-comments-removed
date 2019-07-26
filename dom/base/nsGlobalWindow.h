@@ -696,6 +696,7 @@ public:
 
   void UnmarkGrayTimers();
 
+  
   void AddEventTargetObject(mozilla::DOMEventTargetHelper* aObject);
   void RemoveEventTargetObject(mozilla::DOMEventTargetHelper* aObject);
 
