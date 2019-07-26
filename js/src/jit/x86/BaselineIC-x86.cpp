@@ -87,11 +87,17 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.movl(scratchReg, R0.payloadReg());
         break;
       case JSOP_DIV:
+      {
         
         masm.branchTest32(Assembler::Zero, R1.payloadReg(), R1.payloadReg(), &failure);
 
         
-        masm.branchTest32(Assembler::Zero, R0.payloadReg(), Imm32(0x7fffffff), &failure);
+        masm.branch32(Assembler::Equal, R0.payloadReg(), Imm32(INT32_MIN), &failure);
+
+        Label notZero;
+        masm.branch32(Assembler::NotEqual, R0.payloadReg(), Imm32(0), &notZero);
+        masm.branchTest32(Assembler::Signed, R1.payloadReg(), R1.payloadReg(), &failure);
+        masm.bind(&notZero);
 
         
         JS_ASSERT(R1.typeReg() == eax);
@@ -107,6 +113,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
         masm.movl(eax, R0.payloadReg());
         break;
+      }
       case JSOP_MOD:
       {
         
