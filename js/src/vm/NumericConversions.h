@@ -10,6 +10,8 @@
 
 #include "mozilla/FloatingPoint.h"
 
+#include "jscpucfg.h"
+
 #include <math.h>
 
 
