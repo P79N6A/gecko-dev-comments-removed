@@ -148,7 +148,7 @@ LayerManagerD3D9::EndTransaction(DrawThebesLayerCallback aCallback,
 
     
     
-    mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
+    mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
 
     SetCompositingDisabled(aFlags & END_NO_COMPOSITE);
     Render();

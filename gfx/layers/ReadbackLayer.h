@@ -8,7 +8,6 @@
 
 #include <stdint.h>                     
 #include "Layers.h"                     
-#include "gfx3DMatrix.h"                
 #include "gfxColor.h"                   
 #include "gfxRect.h"                    
 #include "mozilla/mozalloc.h"           
@@ -84,19 +83,18 @@ class ReadbackLayer : public Layer {
 public:
   MOZ_LAYER_DECL_NAME("ReadbackLayer", TYPE_READBACK)
 
-  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
   {
     
     
     
     
-    gfx::Matrix4x4 localTransform, transformToSurface;
-    gfx::ToMatrix4x4(aTransformToSurface, transformToSurface);
+    gfx::Matrix4x4 localTransform;
     gfx::ToMatrix4x4(GetLocalTransform(), localTransform);
     mEffectiveTransform =
         SnapTransform(localTransform, gfxRect(0, 0, mSize.width, mSize.height),
                       nullptr)*
-        SnapTransformTranslation(transformToSurface, nullptr);
+        SnapTransformTranslation(aTransformToSurface, nullptr);
   }
 
   

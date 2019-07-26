@@ -27,7 +27,7 @@ void ImageLayer::SetContainer(ImageContainer* aContainer)
   mContainer = aContainer;
 }
 
-void ImageLayer::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+void ImageLayer::ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
 {
   gfx::Matrix4x4 local;
   gfx::ToMatrix4x4(GetLocalTransform(), local);
@@ -48,11 +48,9 @@ void ImageLayer::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurfa
   
   
   
-  gfx::Matrix4x4 transformToSurface;
-  gfx::ToMatrix4x4(aTransformToSurface, transformToSurface);
   mEffectiveTransform =
       SnapTransform(local, sourceRect, nullptr) *
-      SnapTransformTranslation(transformToSurface, nullptr);
+      SnapTransformTranslation(aTransformToSurface, nullptr);
   ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
 }
 

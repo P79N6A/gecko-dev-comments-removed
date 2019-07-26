@@ -6,7 +6,6 @@
 #include "ClientLayerManager.h"
 #include "CompositorChild.h"            
 #include "GeckoProfiler.h"              
-#include "gfx3DMatrix.h"                
 #include "gfxASurface.h"                
 #include "ipc/AutoOpenSurface.h"        
 #include "mozilla/Assertions.h"         
@@ -183,7 +182,7 @@ ClientLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
   mThebesLayerCallback = aCallback;
   mThebesLayerCallbackData = aCallbackData;
 
-  GetRoot()->ComputeEffectiveTransforms(gfx3DMatrix());
+  GetRoot()->ComputeEffectiveTransforms(Matrix4x4());
 
   root->RenderLayer();
   

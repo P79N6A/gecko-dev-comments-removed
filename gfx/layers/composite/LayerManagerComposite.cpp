@@ -236,7 +236,7 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
 
     
     
-    mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
+    mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
 
     Render();
   }

@@ -14,8 +14,6 @@
 #include "nsAutoPtr.h"                  
 #include "nscore.h"                     
 
-class gfx3DMatrix;
-
 namespace mozilla {
 namespace layers {
 
@@ -67,7 +65,7 @@ public:
 
   MOZ_LAYER_DECL_NAME("ImageLayer", TYPE_IMAGE)
 
-  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface);
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface);
 
   
 

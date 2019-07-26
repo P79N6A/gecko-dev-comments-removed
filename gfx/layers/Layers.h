@@ -1232,12 +1232,12 @@ public:
 
 
 
-  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface) = 0;
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) = 0;
 
   
 
 
-  void ComputeEffectiveTransformForMaskLayer(const gfx3DMatrix& aTransformToSurface);
+  void ComputeEffectiveTransformForMaskLayer(const gfx::Matrix4x4& aTransformToSurface);
 
   
 
@@ -1478,10 +1478,11 @@ public:
 
   MOZ_LAYER_DECL_NAME("ThebesLayer", TYPE_THEBES)
 
-  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
   {
     gfx::Matrix4x4 idealTransform;
-    gfx::ToMatrix4x4(GetLocalTransform() * aTransformToSurface, idealTransform);
+    gfx::ToMatrix4x4(GetLocalTransform(), idealTransform);
+    idealTransform = idealTransform * aTransformToSurface;
     gfx::Matrix residual;
     mEffectiveTransform = SnapTransformTranslation(idealTransform,
         mAllowResidualTranslation ? &residual : nullptr);
@@ -1642,7 +1643,7 @@ public:
 
 
 
-  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface) = 0;
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) = 0;
 
   
 
@@ -1687,12 +1688,12 @@ protected:
 
 
 
-  void DefaultComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface);
+  void DefaultComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface);
 
   
 
 
-  void ComputeEffectiveTransformsForChildren(const gfx3DMatrix& aTransformToSurface);
+  void ComputeEffectiveTransformsForChildren(const gfx::Matrix4x4& aTransformToSurface);
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
@@ -1751,10 +1752,11 @@ public:
 
   MOZ_LAYER_DECL_NAME("ColorLayer", TYPE_COLOR)
 
-  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
   {
     gfx::Matrix4x4 idealTransform;
-    gfx::ToMatrix4x4(GetLocalTransform() * aTransformToSurface, idealTransform);
+    gfx::ToMatrix4x4(GetLocalTransform(), idealTransform);
+    idealTransform = idealTransform * aTransformToSurface;
     mEffectiveTransform = SnapTransformTranslation(idealTransform, nullptr);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
@@ -1892,20 +1894,18 @@ public:
 
   MOZ_LAYER_DECL_NAME("CanvasLayer", TYPE_CANVAS)
 
-  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
   {
     
     
     
     
     gfx::Matrix4x4 localTransform;
-    gfx::Matrix4x4 transformToSurface;
     gfx::ToMatrix4x4(GetLocalTransform(), localTransform);
-    gfx::ToMatrix4x4(aTransformToSurface, transformToSurface);
     mEffectiveTransform =
         SnapTransform(localTransform, gfxRect(0, 0, mBounds.width, mBounds.height),
                       nullptr)*
-        SnapTransformTranslation(transformToSurface, nullptr);
+        SnapTransformTranslation(aTransformToSurface, nullptr);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 

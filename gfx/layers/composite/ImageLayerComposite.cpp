@@ -7,7 +7,6 @@
 #include "CompositableHost.h"           
 #include "Layers.h"                     
 #include "gfx2DGlue.h"                  
-#include "gfx3DMatrix.h"                
 #include "gfxRect.h"                    
 #include "gfxUtils.h"                   
 #include "mozilla/Assertions.h"         
@@ -103,11 +102,11 @@ ImageLayerComposite::RenderLayer(const nsIntRect& aClipRect)
                         clipRect);
 }
 
-void 
-ImageLayerComposite::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+void
+ImageLayerComposite::ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
 {
   gfx::Matrix4x4 local;
-  gfx::ToMatrix4x4(GetLocalTransform(), local);
+  ToMatrix4x4(GetLocalTransform(), local);
 
   
   gfxRect sourceRect(0, 0, 0, 0);
@@ -130,11 +129,9 @@ ImageLayerComposite::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToS
   
   
   
-  gfx::Matrix4x4 transformToSurface;
-  gfx::ToMatrix4x4(aTransformToSurface, transformToSurface);
   mEffectiveTransform =
       SnapTransform(local, sourceRect, nullptr) *
-      SnapTransformTranslation(transformToSurface, nullptr);
+      SnapTransformTranslation(aTransformToSurface, nullptr);
   ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
 }
 

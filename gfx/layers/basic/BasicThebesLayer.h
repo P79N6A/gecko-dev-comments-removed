@@ -75,12 +75,13 @@ public:
     mValidRegion.SetEmpty();
   }
   
-  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
   {
     if (!BasicManager()->IsRetained()) {
       
       
-      gfx::ToMatrix4x4(GetLocalTransform() * aTransformToSurface, mEffectiveTransform);
+      gfx::ToMatrix4x4(GetLocalTransform(), mEffectiveTransform);
+      mEffectiveTransform = mEffectiveTransform * aTransformToSurface;
       if (gfxPoint(0,0) != mResidualTranslation) {
         mResidualTranslation = gfxPoint(0,0);
         mValidRegion.SetEmpty();

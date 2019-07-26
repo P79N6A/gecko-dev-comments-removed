@@ -383,7 +383,7 @@ LayerManagerD3D10::EndTransaction(DrawThebesLayerCallback aCallback,
 
     
     
-    mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
+    mRoot->ComputeEffectiveTransforms(Matrix4x4());
 
 #ifdef MOZ_LAYERS_HAVE_LOG
     MOZ_LAYERS_LOG(("  ----- (beginning paint)"));
