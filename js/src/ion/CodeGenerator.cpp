@@ -750,7 +750,7 @@ CodeGenerator::visitCallConstructor(LCallConstructor *call)
     
     masm.reserveStack(unusedStack);
 
-    dropArguments(call->numStackArgs());
+    dropArguments(call->numStackArgs() + 1);
     return true;
 }
 
@@ -1133,6 +1133,8 @@ CodeGenerator::generateBody()
         if (masm.oom())
             return false;
     }
+
+    JS_ASSERT(pushedArgumentSlots_.empty());
     return true;
 }
 
