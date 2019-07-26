@@ -696,6 +696,7 @@ MakeJITScript(JSContext *cx, JSScript *script)
         Vector<CrossChunkEdge> currentEdges(cx);
         uint32_t chunkStart = 0;
 
+        bool preserveNextChunk = false;
         unsigned offset, nextOffset = 0;
         while (nextOffset < script->length) {
             offset = nextOffset;
@@ -713,7 +714,8 @@ MakeJITScript(JSContext *cx, JSScript *script)
             bool finishChunk = false;
 
             
-            bool preserveChunk = false;
+            bool preserveChunk = preserveNextChunk;
+            preserveNextChunk = false;
 
             
 
@@ -837,7 +839,10 @@ MakeJITScript(JSContext *cx, JSScript *script)
                         JSOp(script->code[afterOffset]) == JSOP_LOOPHEAD &&
                         analysis->getLoop(afterOffset))
                     {
-                        finishChunk = true;
+                        if (preserveChunk)
+                            preserveNextChunk = true;
+                        else
+                            finishChunk = true;
                     }
                 }
             }
