@@ -628,39 +628,6 @@ public:
 
 
 
-
-
-  nsPresState* GetPrimaryPresState();
-  
-
-
-
-
-
-
-
-
-
-  static already_AddRefed<nsILayoutHistoryState>
-  GetLayoutHistoryAndKey(nsGenericHTMLElement* aContent,
-                         bool aRead,
-                         nsACString& aKey);
-  
-
-
-
-
-
-
-
-
-  static bool RestoreFormControlState(nsGenericHTMLElement* aContent,
-                                        nsIFormControl* aControl);
-
-  
-
-
-
   NS_HIDDEN_(nsPresContext*) GetPresContext();
 
   
@@ -1233,6 +1200,52 @@ protected:
 
   
   mozilla::dom::HTMLFieldSetElement* mFieldSet;
+};
+
+class nsGenericHTMLFormElementWithState : public nsGenericHTMLFormElement
+{
+public:
+  nsGenericHTMLFormElementWithState(already_AddRefed<nsINodeInfo> aNodeInfo);
+
+  
+
+
+
+  nsPresState* GetPrimaryPresState();
+
+  
+
+
+
+
+
+
+  already_AddRefed<nsILayoutHistoryState>
+    GetLayoutHistory(bool aRead);
+
+  
+
+
+
+
+
+
+  bool RestoreFormControlState();
+
+  
+
+
+
+  virtual void NodeInfoChanged(nsINodeInfo* aOldNodeInfo) MOZ_OVERRIDE;
+
+protected:
+  
+
+  nsresult GenerateStateKey();
+
+  
+
+  nsCString mStateKey;
 };
 
 

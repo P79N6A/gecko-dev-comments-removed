@@ -1175,90 +1175,6 @@ nsGenericHTMLElement::GetFormControlFrame(bool aFlushFrames)
   return nullptr;
 }
 
-nsPresState*
-nsGenericHTMLElement::GetPrimaryPresState()
-{
-  nsAutoCString key;
-  nsCOMPtr<nsILayoutHistoryState> history = GetLayoutHistoryAndKey(this, false, key);
-  if (!history) {
-    return nullptr;
-  }
-
-  
-  nsPresState* presState = history->GetState(key);
-  if (!presState) {
-    presState = new nsPresState();
-    history->AddState(key, presState);
-  }
-  return presState;
-}
-
-
-already_AddRefed<nsILayoutHistoryState>
-nsGenericHTMLElement::GetLayoutHistoryAndKey(nsGenericHTMLElement* aContent,
-                                             bool aRead,
-                                             nsACString& aKey)
-{
-  
-  
-  
-  nsCOMPtr<nsIDocument> doc = aContent->GetDocument();
-  if (!doc) {
-    return nullptr;
-  }
-
-  
-  
-  
-  nsCOMPtr<nsILayoutHistoryState> history = doc->GetLayoutHistoryState();
-  if (!history) {
-    return nullptr;
-  }
-
-  if (aRead && !history->HasStates()) {
-    return nullptr;
-  }
-
-  
-  
-  
-  nsresult rv = nsContentUtils::GenerateStateKey(aContent, doc, aKey);
-  if (NS_FAILED(rv)) {
-    return nullptr;
-  }
-
-  
-  
-  if (aKey.IsEmpty()) {
-    return nullptr;
-  }
-
-  
-  aKey += "-C";
-
-  return history.forget();
-}
-
-bool
-nsGenericHTMLElement::RestoreFormControlState(nsGenericHTMLElement* aContent,
-                                              nsIFormControl* aControl)
-{
-  nsAutoCString key;
-  nsCOMPtr<nsILayoutHistoryState> history = GetLayoutHistoryAndKey(aContent, true, key);
-  if (!history) {
-    return false;
-  }
-
-  nsPresState* state = history->GetState(key);
-  if (state) {
-    bool result = aControl->RestoreState(state);
-    history->RemoveState(key);
-    return result;
-  }
-
-  return false;
-}
-
 
 nsPresContext*
 nsGenericHTMLElement::GetPresContext()
@@ -3112,6 +3028,124 @@ nsGenericHTMLElement::ChangeEditableState(int32_t aChange)
   
   nsAutoScriptBlocker scriptBlocker;
   MakeContentDescendantsEditable(this, document);
+}
+
+
+
+
+nsGenericHTMLFormElementWithState::nsGenericHTMLFormElementWithState(
+    already_AddRefed<nsINodeInfo> aNodeInfo
+  )
+  : nsGenericHTMLFormElement(aNodeInfo)
+{
+  mStateKey.SetIsVoid(true);
+}
+
+nsresult
+nsGenericHTMLFormElementWithState::GenerateStateKey()
+{
+  
+  if (!mStateKey.IsVoid()) {
+    return NS_OK;
+  }
+
+  nsIDocument* doc = GetDocument();
+  if (!doc) {
+    return NS_OK;
+  }
+
+  
+  nsresult rv = nsContentUtils::GenerateStateKey(this, doc, mStateKey);
+
+  if (NS_FAILED(rv)) {
+    mStateKey.SetIsVoid(true);
+    return rv;
+  }
+
+  
+  
+  if (!mStateKey.IsEmpty()) {
+    
+    mStateKey += "-C";
+  }
+  return NS_OK;
+}
+
+nsPresState*
+nsGenericHTMLFormElementWithState::GetPrimaryPresState()
+{
+  if (mStateKey.IsEmpty()) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsILayoutHistoryState> history = GetLayoutHistory(false);
+
+  if (!history) {
+    return nullptr;
+  }
+
+  
+  nsPresState* result = history->GetState(mStateKey);
+  if (!result) {
+    result = new nsPresState();
+    history->AddState(mStateKey, result);
+  }
+
+  return result;
+}
+
+already_AddRefed<nsILayoutHistoryState>
+nsGenericHTMLFormElementWithState::GetLayoutHistory(bool aRead)
+{
+  nsCOMPtr<nsIDocument> doc = GetDocument();
+  if (!doc) {
+    return nullptr;
+  }
+
+  
+  
+  
+  nsCOMPtr<nsILayoutHistoryState> history = doc->GetLayoutHistoryState();
+  if (!history) {
+    return nullptr;
+  }
+
+  if (aRead && !history->HasStates()) {
+    return nullptr;
+  }
+
+  return history.forget();
+}
+
+bool
+nsGenericHTMLFormElementWithState::RestoreFormControlState()
+{
+  if (mStateKey.IsEmpty()) {
+    return false;
+  }
+
+  nsCOMPtr<nsILayoutHistoryState> history =
+    GetLayoutHistory(true);
+  if (!history) {
+    return false;
+  }
+
+  nsPresState *state;
+  
+  state = history->GetState(mStateKey);
+  if (state) {
+    bool result = RestoreState(state);
+    history->RemoveState(mStateKey);
+    return result;
+  }
+
+  return false;
+}
+
+void
+nsGenericHTMLFormElementWithState::NodeInfoChanged(nsINodeInfo* aOldNodeInfo)
+{
+  mStateKey.SetIsVoid(true);
 }
 
 JS::Value
