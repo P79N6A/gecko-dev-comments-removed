@@ -319,8 +319,15 @@ IonCode::trace(JSTracer *trc)
 {
     
     
-    if (invalidated())
+    if (invalidated()) {
+        
+        
+        
+        
+        IonCompartment *ion = compartment()->ionCompartment();
+        MarkIonCodeRoot(trc, ion->getInvalidationThunkAddr(), "invalidator");
         return;
+    }
 
     if (jumpRelocTableBytes_) {
         uint8 *start = code_ + jumpRelocTableOffset();
