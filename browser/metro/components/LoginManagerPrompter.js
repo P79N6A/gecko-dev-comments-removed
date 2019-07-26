@@ -179,23 +179,18 @@ LoginManagerPrompter.prototype = {
 
 
     _showSaveLoginNotification : function (aNotifyBox, aLogin) {
-
         
         
         
         
         var neverButtonText =
-              this._getLocalizedString("notifyBarNeverForSiteButtonText");
+              this._getLocalizedString("notifyBarNotForThisSiteButtonText");
         var neverButtonAccessKey =
-              this._getLocalizedString("notifyBarNeverForSiteButtonAccessKey");
+              this._getLocalizedString("notifyBarNotForThisSiteButtonAccessKey");
         var rememberButtonText =
-              this._getLocalizedString("notifyBarRememberButtonText");
+              this._getLocalizedString("notifyBarRememberPasswordButtonText");
         var rememberButtonAccessKey =
-              this._getLocalizedString("notifyBarRememberButtonAccessKey");
-        var notNowButtonText =
-              this._getLocalizedString("notifyBarNotNowButtonText");
-        var notNowButtonAccessKey =
-              this._getLocalizedString("notifyBarNotNowButtonAccessKey");
+              this._getLocalizedString("notifyBarRememberPasswordButtonAccessKey");
 
         var brandShortName =
               this._brandBundle.GetStringFromName("brandShortName");
@@ -237,14 +232,6 @@ LoginManagerPrompter.prototype = {
                 callback: function(aNotificationBar, aButton) {
                     pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
                 }
-            },
-
-            
-            {
-                label:     notNowButtonText,
-                accessKey: notNowButtonAccessKey,
-                popup:     null,
-                callback:  function() {  } 
             }
         ];
 
