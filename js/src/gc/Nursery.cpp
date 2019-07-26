@@ -304,6 +304,7 @@ class MinorCollectionTracer : public JSTracer
     bool savedRuntimeNeedBarrier;
     AutoDisableProxyCheck disableStrictProxyChecking;
     AutoEnterOOMUnsafeRegion oomUnsafeRegion;
+    ArrayBufferVector liveArrayBuffers;
 
     
     MOZ_ALWAYS_INLINE void insertIntoFixupList(RelocationOverlay *entry) {
@@ -335,10 +336,25 @@ class MinorCollectionTracer : public JSTracer
 
 
         rt->setNeedsBarrier(false);
+
+        
+
+
+
+
+        if (rt->gcIncrementalState != NO_INCREMENTAL) {
+            for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+                if (!ArrayBufferObject::saveArrayBufferList(c, liveArrayBuffers))
+                    CrashAtUnhandlableOOM("OOM while saving live array buffers");
+                ArrayBufferObject::resetArrayBufferList(c);
+            }
+        }
     }
 
     ~MinorCollectionTracer() {
         runtime->setNeedsBarrier(savedRuntimeNeedBarrier);
+        if (runtime->gcIncrementalState != NO_INCREMENTAL)
+            ArrayBufferObject::restoreArrayBufferLists(liveArrayBuffers);
     }
 };
 
