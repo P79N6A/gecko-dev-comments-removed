@@ -208,6 +208,34 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
   return NS_OK;
 }
 
+
+
+
+
+
+static nsHTMLReflowState
+CloneReflowStateWithReducedContentBox(
+  const nsHTMLReflowState& aButtonReflowState,
+  const nsMargin& aFocusPadding)
+{
+  nscoord adjustedWidth =
+    aButtonReflowState.ComputedWidth() - aFocusPadding.LeftRight();
+  adjustedWidth = std::max(0, adjustedWidth);
+
+  
+  nscoord adjustedHeight = aButtonReflowState.ComputedHeight();
+  if (adjustedHeight != NS_INTRINSICSIZE) {
+    adjustedHeight -= aFocusPadding.TopBottom();
+    adjustedHeight = std::max(0, adjustedHeight);
+  }
+
+  nsHTMLReflowState clone(aButtonReflowState);
+  clone.SetComputedWidth(adjustedWidth);
+  clone.SetComputedHeight(adjustedHeight);
+
+  return clone;
+}
+
 void
 nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
                                                nsHTMLReflowMetrics& aButtonDesiredSize,
@@ -245,7 +273,13 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   }
   availSize.width = std::max(availSize.width,0);
   
-  nsHTMLReflowState contentsReflowState(aPresContext, aButtonReflowState,
+  
+  
+  nsHTMLReflowState adjustedButtonReflowState =
+    CloneReflowStateWithReducedContentBox(aButtonReflowState, focusPadding);
+
+  nsHTMLReflowState contentsReflowState(aPresContext,
+                                        adjustedButtonReflowState,
                                         aFirstKid, availSize);
 
   nsReflowStatus contentsReflowStatus;
