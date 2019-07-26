@@ -175,13 +175,14 @@ class ArenaCellIterImpl
     
     void moveForwardIfFree() {
         JS_ASSERT(!done());
+        JS_ASSERT(thing);
+        
+        
+        
+        
         if (thing == span.first) {
-            if (span.hasNext()) {
-                thing = span.last + thingSize;
-                span = *span.nextSpan();
-            } else {
-                thing = limit;
-            }
+            thing = span.last + thingSize;
+            span = *span.nextSpan();
         }
     }
 

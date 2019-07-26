@@ -146,31 +146,46 @@ const size_t ArenaBitmapWords = ArenaBitmapBits / JS_BITS_PER_WORD;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct FreeSpan
+class FreeSpan
 {
+    friend class FreeList;
+    friend class ArenaCellIterImpl;
+
     uintptr_t   first;
     uintptr_t   last;
 
   public:
     FreeSpan() {}
 
-    FreeSpan(uintptr_t first, uintptr_t last)
-      : first(first), last(last) {
+    
+    
+    void initBoundsUnchecked(uintptr_t first, uintptr_t last) {
+        this->first = first;
+        this->last = last;
+    }
+
+    void initBounds(uintptr_t first, uintptr_t last) {
+        initBoundsUnchecked(first, last);
         checkSpan();
+    }
+
+    void initAsEmpty() {
+        first = 0;
+        last = 0;
+        JS_ASSERT(isEmpty());
+    }
+
+    
+    
+    
+    void initFinal(uintptr_t firstArg, uintptr_t lastArg, size_t thingSize) {
+        first = firstArg;
+        last = lastArg;
+        FreeSpan *lastSpan = reinterpret_cast<FreeSpan*>(last);
+        lastSpan->first = 0;
+        lastSpan->last = 0;
+        JS_ASSERT(!isEmpty());
+        checkSpan(thingSize);
     }
 
     
@@ -179,140 +194,107 @@ struct FreeSpan
 
     static size_t encodeOffsets(size_t firstOffset, size_t lastOffset) {
         static_assert(ArenaShift < 16, "Check that we can pack offsets into uint16_t.");
-        JS_ASSERT(firstOffset <= ArenaSize);
+        JS_ASSERT(firstOffset <= lastOffset);
         JS_ASSERT(lastOffset < ArenaSize);
-        JS_ASSERT(firstOffset <= ((lastOffset + 1) & ~size_t(1)));
         return firstOffset | (lastOffset << 16);
     }
 
     
 
 
-
-    static const size_t FullArenaOffsets = ArenaSize | ((ArenaSize - 1) << 16);
+    static const size_t FullArenaOffsets = 0;
 
     static FreeSpan decodeOffsets(uintptr_t arenaAddr, size_t offsets) {
         JS_ASSERT(!(arenaAddr & ArenaMask));
-
-        size_t firstOffset = offsets & 0xFFFF;
-        size_t lastOffset = offsets >> 16;
-        JS_ASSERT(firstOffset <= ArenaSize);
-        JS_ASSERT(lastOffset < ArenaSize);
-
-        
-
-
-
-        return FreeSpan(arenaAddr + firstOffset, arenaAddr | lastOffset);
+        FreeSpan decodedSpan;
+        if (offsets == FullArenaOffsets) {
+            decodedSpan.initAsEmpty();
+        } else {
+            size_t firstOffset = offsets & 0xFFFF;
+            size_t lastOffset = offsets >> 16;
+            JS_ASSERT(firstOffset <= lastOffset);
+            JS_ASSERT(lastOffset < ArenaSize);
+            decodedSpan.initBounds(arenaAddr + firstOffset, arenaAddr + lastOffset);
+        }
+        return decodedSpan;
     }
 
     bool isEmpty() const {
         checkSpan();
-        return first > last;
+        return !first;
     }
 
-    bool hasNext() const {
-        checkSpan();
-        return !(last & uintptr_t(1));
+    
+    FreeSpan *nextSpanUnchecked() const {
+        return reinterpret_cast<FreeSpan *>(last);
     }
 
     const FreeSpan *nextSpan() const {
-        JS_ASSERT(hasNext());
-        return reinterpret_cast<FreeSpan *>(last);
-    }
-
-    FreeSpan *nextSpanUnchecked(size_t thingSize) const {
-#ifdef DEBUG
-        uintptr_t lastOffset = last & ArenaMask;
-        JS_ASSERT(!(lastOffset & 1));
-        JS_ASSERT((ArenaSize - lastOffset) % thingSize == 0);
-#endif
-        return reinterpret_cast<FreeSpan *>(last);
-    }
-
-    uintptr_t arenaAddressUnchecked() const {
-        return last & ~ArenaMask;
+        JS_ASSERT(!isEmpty());
+        return nextSpanUnchecked();
     }
 
     uintptr_t arenaAddress() const {
-        checkSpan();
-        return arenaAddressUnchecked();
+        JS_ASSERT(!isEmpty());
+        return first & ~ArenaMask;
     }
 
+#ifdef DEBUG
     bool isWithinArena(uintptr_t arenaAddr) const {
         JS_ASSERT(!(arenaAddr & ArenaMask));
-
-        
+        JS_ASSERT(!isEmpty());
         return arenaAddress() == arenaAddr;
     }
+#endif
 
     size_t encodeAsOffsets() const {
-        
-
-
-
-        uintptr_t arenaAddr = arenaAddress();
-        return encodeOffsets(first - arenaAddr, last & ArenaMask);
+        return encodeOffsets(first & ArenaMask, last & ArenaMask);
     }
 
-    void checkSpan() const {
+    size_t length(size_t thingSize) const {
+        checkSpan();
+        JS_ASSERT((last - first) % thingSize == 0);
+        return (last - first) / thingSize + 1;
+    }
+
+    bool inFreeList(uintptr_t thing) {
+        for (const FreeSpan *span = this; !span->isEmpty(); span = span->nextSpan()) {
+            
+            if (thing < span->first)
+                return false;
+
+            
+            if (thing <= span->last)
+                return true;
+        }
+        return false;
+    }
+
+    
+    
+    void checkSpan(size_t thingSize = 0) const {
 #ifdef DEBUG
-        
-        JS_ASSERT(last != uintptr_t(-1));
-        JS_ASSERT(first);
-        JS_ASSERT(last);
-        JS_ASSERT(first - 1 <= last);
-        uintptr_t arenaAddr = arenaAddressUnchecked();
-        if (last & 1) {
+        if (!first || !last) {
+            JS_ASSERT(!first && !last);
             
-            JS_ASSERT((last & ArenaMask) == ArenaMask);
-
-            if (first - 1 == last) {
-                
-
-
-                return;
-            }
-            size_t spanLength = last - first + 1;
-            JS_ASSERT(spanLength % CellSize == 0);
-
-            
-            JS_ASSERT((first & ~ArenaMask) == arenaAddr);
             return;
         }
 
         
+        
         JS_ASSERT(first <= last);
-        size_t spanLengthWithoutOneThing = last - first;
-        JS_ASSERT(spanLengthWithoutOneThing % CellSize == 0);
-
-        JS_ASSERT((first & ~ArenaMask) == arenaAddr);
+        JS_ASSERT((first & ~ArenaMask) == (last & ~ArenaMask));
+        JS_ASSERT((last - first) % (thingSize ? thingSize : CellSize) == 0);
 
         
-
-
-
-
-        size_t beforeTail = ArenaSize - (last & ArenaMask);
-        JS_ASSERT(beforeTail >= sizeof(FreeSpan) + CellSize);
-
-        FreeSpan *next = reinterpret_cast<FreeSpan *>(last);
-
         
-
-
-
-
-        JS_ASSERT(last < next->first);
-        JS_ASSERT(arenaAddr == next->arenaAddressUnchecked());
-
-        if (next->first > next->last) {
-            
-
-
-
-            JS_ASSERT(next->first - 1 == next->last);
-            JS_ASSERT(arenaAddr + ArenaSize == next->first);
+        FreeSpan *next = reinterpret_cast<FreeSpan*>(last);
+        if (next->first) {
+            JS_ASSERT(next->last);
+            JS_ASSERT((first & ~ArenaMask) == (next->first & ~ArenaMask));
+            JS_ASSERT(thingSize
+                      ? last + 2 * thingSize <= next->first
+                      : last < next->first);
         }
 #endif
     }
@@ -346,9 +328,7 @@ class FreeList
     }
 
     void initAsEmpty() {
-        head.first = ArenaSize;
-        head.last = ArenaSize - 1;
-        JS_ASSERT(isEmpty());
+        head.initAsEmpty();
     }
 
     FreeSpan *getHead() { return &head; }
@@ -378,24 +358,24 @@ class FreeList
     }
 #endif
 
-    
     MOZ_ALWAYS_INLINE void *allocate(size_t thingSize) {
         JS_ASSERT(thingSize % CellSize == 0);
-        head.checkSpan();
+        head.checkSpan(thingSize);
         uintptr_t thing = head.first;
         if (thing < head.last) {
             
-            head.first = thing + thingSize;
-        } else if (MOZ_LIKELY(thing == head.last)) {
             
-
-
-
+            head.first = thing + thingSize;
+        } else if (MOZ_LIKELY(thing)) {
+            
+            
+            
             setHead(reinterpret_cast<FreeSpan *>(thing));
         } else {
+            
             return nullptr;
         }
-        head.checkSpan();
+        head.checkSpan(thingSize);
         JS_EXTRA_POISON(reinterpret_cast<void *>(thing), JS_ALLOCATED_TENURED_PATTERN, thingSize);
         return reinterpret_cast<void *>(thing);
     }
@@ -404,15 +384,15 @@ class FreeList
     MOZ_ALWAYS_INLINE void *infallibleAllocate(size_t thingSize) {
         JS_ASSERT(!isEmpty());
         JS_ASSERT(thingSize % CellSize == 0);
-        head.checkSpan();
+        head.checkSpan(thingSize);
         uintptr_t thing = head.first;
         if (thing < head.last) {
             head.first = thing + thingSize;
         } else {
-            JS_ASSERT(thing == head.last);
+            JS_ASSERT(thing);
             setHead(reinterpret_cast<FreeSpan *>(thing));
         }
-        head.checkSpan();
+        head.checkSpan(thingSize);
         JS_EXTRA_POISON(reinterpret_cast<void *>(thing), JS_ALLOCATED_TENURED_PATTERN, thingSize);
         return reinterpret_cast<void *>(thing);
     }
@@ -427,10 +407,8 @@ class FreeList
                                                  size_t thingSize) {
         JS_ASSERT(isEmpty());
         JS_ASSERT(!(arenaAddr & ArenaMask));
-        uintptr_t thing = arenaAddr | firstThingOffset;
-        head.first = thing + thingSize;
-        head.last = arenaAddr | ArenaMask;
-        head.checkSpan();
+        uintptr_t thing = arenaAddr + firstThingOffset;
+        head.initFinal(thing + thingSize, arenaAddr + ArenaSize - thingSize, thingSize);
         JS_EXTRA_POISON(reinterpret_cast<void *>(thing), JS_ALLOCATED_TENURED_PATTERN, thingSize);
         return reinterpret_cast<void *>(thing);
     }
@@ -624,7 +602,7 @@ struct Arena
     }
 
     uintptr_t thingsStart(AllocKind thingKind) {
-        return address() | firstThingOffset(thingKind);
+        return address() + firstThingOffset(thingKind);
     }
 
     uintptr_t thingsEnd() {
@@ -954,7 +932,8 @@ ArenaHeader::isEmpty() const
     
     JS_ASSERT(allocated());
     size_t firstThingOffset = Arena::firstThingOffset(getAllocKind());
-    return firstFreeSpanOffsets == FreeSpan::encodeOffsets(firstThingOffset, ArenaMask);
+    size_t lastThingOffset = ArenaSize - getThingSize();
+    return firstFreeSpanOffsets == FreeSpan::encodeOffsets(firstThingOffset, lastThingOffset);
 }
 
 FreeSpan
@@ -969,7 +948,7 @@ ArenaHeader::getFirstFreeSpan() const
 void
 ArenaHeader::setFirstFreeSpan(const FreeSpan *span)
 {
-    JS_ASSERT(span->isWithinArena(arenaAddress()));
+    JS_ASSERT_IF(!span->isEmpty(), span->isWithinArena(arenaAddress()));
     firstFreeSpanOffsets = span->encodeAsOffsets();
 }
 
@@ -1164,25 +1143,9 @@ InFreeList(ArenaHeader *aheader, void *thing)
     FreeSpan firstSpan(aheader->getFirstFreeSpan());
     uintptr_t addr = reinterpret_cast<uintptr_t>(thing);
 
-    for (const FreeSpan *span = &firstSpan;;) {
-        
-        if (addr < span->first)
-            return false;
+    JS_ASSERT(Arena::isAligned(addr, aheader->getThingSize()));
 
-        
-
-
-
-
-        if (addr <= span->last)
-            return true;
-
-        
-
-
-
-        span = span->nextSpan();
-    }
+    return firstSpan.inFreeList(addr);
 }
 
 } 
