@@ -377,10 +377,14 @@ public class BrowserToolbar extends ThemedRelativeLayout
             editCancel.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Telemetry.sendUIEvent(TelemetryContract.Event.CANCEL,
-                                          TelemetryContract.Method.ACTIONBAR,
-                                          getResources().getResourceEntryName(editCancel.getId()));
-                    cancelEdit();
+                    
+                    
+                    if (!isAnimatingEntry) {
+                        Telemetry.sendUIEvent(TelemetryContract.Event.CANCEL,
+                                              TelemetryContract.Method.ACTIONBAR,
+                                              getResources().getResourceEntryName(editCancel.getId()));
+                        cancelEdit();
+                    }
                 }
             });
         }
@@ -407,7 +411,9 @@ public class BrowserToolbar extends ThemedRelativeLayout
     }
 
     public boolean onBackPressed() {
-        if (isEditing()) {
+        
+        
+        if (isEditing() && !isAnimatingEntry) {
             Telemetry.sendUIEvent(TelemetryContract.Event.CANCEL,
                                   TelemetryContract.Method.BACK);
             cancelEdit();
