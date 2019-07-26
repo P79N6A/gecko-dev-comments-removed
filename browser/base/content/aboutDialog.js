@@ -137,11 +137,17 @@ function appUpdater()
   
   
   
+  if (!this.updateEnabled) {
+    this.selectPanel("checkForUpdates");
+    return;
+  }
+
   
-  this.selectPanel("checkingForUpdates");
-  this.isChecking = true;
-  this.checker.checkForUpdates(this.updateCheckListener, true);
   
+  
+  
+  
+  this.checkForUpdates();
 }
 
 appUpdater.prototype =
@@ -232,6 +238,16 @@ appUpdater.prototype =
     } else {
       this.updateDeck.selectedPanel = panel;
     }
+  },
+
+  
+
+
+  checkForUpdates: function() {
+    this.selectPanel("checkingForUpdates");
+    this.isChecking = true;
+    this.checker.checkForUpdates(this.updateCheckListener, true);
+    
   },
 
   
