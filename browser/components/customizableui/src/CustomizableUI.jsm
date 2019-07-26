@@ -1206,6 +1206,11 @@ let CustomizableUIInternal = {
     let panel = this._getPanelForNode(aEvent.currentTarget);
     
     
+    if (!panel) {
+      return true;
+    }
+    
+    
     let inInput = false;
     
     let inMenu = false;
