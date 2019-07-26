@@ -13,22 +13,6 @@
 namespace js {
 namespace frontend {
 
-inline bool
-UpvarCookie::set(JSContext *cx, unsigned newLevel, uint16_t newSlot)
-{
-    
-    
-    
-    
-    if (newLevel >= FREE_LEVEL) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TOO_DEEP, js_function_str);
-        return false;
-    }
-    level_ = newLevel;
-    slot_ = newSlot;
-    return true;
-}
-
 inline PropertyName *
 ParseNode::name() const
 {

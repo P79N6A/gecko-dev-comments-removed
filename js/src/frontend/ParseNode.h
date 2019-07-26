@@ -51,7 +51,19 @@ class UpvarCookie
     uint16_t slot()  const { JS_ASSERT(!isFree()); return slot_; }
 
     
-    bool set(JSContext *cx, unsigned newLevel, uint16_t newSlot);
+    bool set(JSContext *cx, unsigned newLevel, uint16_t newSlot) {
+        
+        
+        
+        
+        if (newLevel >= FREE_LEVEL) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TOO_DEEP, js_function_str);
+            return false;
+        }
+        level_ = newLevel;
+        slot_ = newSlot;
+        return true;
+    }
 
     void makeFree() {
         level_ = FREE_LEVEL;
