@@ -57,6 +57,8 @@ let asyncTestTimeoutId;
 
 
 function registerSelf() {
+  Services.io.manageOfflineStatus = false;
+  Services.io.offline = false;
   let register = sendSyncMessage("Marionette:register", {value: winUtil.outerWindowID, href: content.location.href});
   
   if (register[0]) {
