@@ -875,32 +875,86 @@ function run_test_in_child(testFile, optionalCallback)
 
 
 
-let gTests = [];
+let _gTests = [];
 function add_test(func) {
-  gTests.push(func);
+  _gTests.push([false, func]);
   return func;
+}
+
+
+let _Task;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function add_task(func) {
+  if (!_Task) {
+    let ns = {};
+    _Task = Components.utils.import("resource://gre/modules/Task.jsm", ns).Task;
+  }
+
+  _gTests.push([true, func]);
 }
 
 
 
 
-let gRunningTest = null;
-let gTestIndex = 0; 
+let _gRunningTest = null;
+let _gTestIndex = 0; 
 function run_next_test()
 {
   function _run_next_test()
   {
-    if (gTestIndex < gTests.length) {
+    if (_gTestIndex < _gTests.length) {
       do_test_pending();
-      gRunningTest = gTests[gTestIndex++];
-      print("TEST-INFO | " + _TEST_FILE + " | Starting " +
-            gRunningTest.name);
-      
-      try {
-        gRunningTest();
-      }
-      catch (e) {
-        do_throw(e);
+      let _isTask;
+      [_isTask, _gRunningTest] = _gTests[_gTestIndex++];
+      print("TEST-INFO | " + _TEST_FILE + " | Starting " + _gRunningTest.name);
+
+      if (_isTask) {
+        _Task.spawn(_gRunningTest)
+             .then(run_next_test, do_report_unexpected_exception);
+      } else {
+        
+        try {
+          _gRunningTest();
+        } catch (e) {
+          do_throw(e);
+        }
       }
     }
   }
@@ -911,7 +965,7 @@ function run_next_test()
   
   do_execute_soon(_run_next_test);
 
-  if (gRunningTest !== null) {
+  if (_gRunningTest !== null) {
     
     do_test_finished();
   }
