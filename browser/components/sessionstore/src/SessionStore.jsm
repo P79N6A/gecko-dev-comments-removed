@@ -308,6 +308,9 @@ let SessionStoreInternal = {
   _windows: {},
 
   
+  _nextWindowID: 0,
+
+  
   _closedWindows: [],
 
   
@@ -687,6 +690,15 @@ let SessionStoreInternal = {
 
 
 
+  _generateWindowID: function ssi_generateWindowID() {
+    return "window" + (this._nextWindowID++);
+  },
+
+  
+
+
+
+
 
 
 
@@ -704,7 +716,8 @@ let SessionStoreInternal = {
       return;
 
     
-    aWindow.__SSi = "window" + Date.now();
+    
+    aWindow.__SSi = this._generateWindowID();
 
     
     this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [], busy: false };
@@ -880,8 +893,10 @@ let SessionStoreInternal = {
     
     let isFullyLoaded = this._isWindowLoaded(aWindow);
     if (!isFullyLoaded) {
-      if (!aWindow.__SSi)
-        aWindow.__SSi = "window" + Date.now();
+      if (!aWindow.__SSi) {
+        aWindow.__SSi = this._generateWindowID();
+      }
+
       this._windows[aWindow.__SSi] = this._statesToRestore[aWindow.__SS_restoreID];
       delete this._statesToRestore[aWindow.__SS_restoreID];
       delete aWindow.__SS_restoreID;
