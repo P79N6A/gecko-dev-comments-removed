@@ -227,9 +227,19 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
 
             
             
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             if (!AccessCheck::isChrome(js::GetObjectCompartment(scope)) &&
-                 AccessCheck::subsumes(js::GetObjectCompartment(scope),
-                                       js::GetObjectCompartment(obj)))
+                 AccessCheck::subsumesIgnoringDomain(js::GetObjectCompartment(scope),
+                                                     js::GetObjectCompartment(obj)))
             {
                 return DoubleWrap(cx, obj, flags);
             }

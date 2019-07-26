@@ -54,6 +54,23 @@ AccessCheck::subsumes(JSCompartment *a, JSCompartment *b)
 
 
 bool
+AccessCheck::subsumesIgnoringDomain(JSCompartment *a, JSCompartment *b)
+{
+    nsIPrincipal *aprin = GetCompartmentPrincipal(a);
+    nsIPrincipal *bprin = GetCompartmentPrincipal(b);
+
+    if (!aprin || !bprin)
+        return false;
+
+    bool subsumes;
+    nsresult rv = aprin->SubsumesIgnoringDomain(bprin, &subsumes);
+    NS_ENSURE_SUCCESS(rv, false);
+
+    return subsumes;
+}
+
+
+bool
 AccessCheck::wrapperSubsumes(JSObject *wrapper)
 {
     MOZ_ASSERT(js::IsWrapper(wrapper));
