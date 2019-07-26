@@ -211,7 +211,9 @@ RecordedEvent::ReadStrokeOptions(std::istream &aStream, StrokeOptions &aStrokeOp
   ReadElement(aStream, aStrokeOptions.mMiterLimit);
   ReadElement(aStream, joinStyle);
   ReadElement(aStream, capStyle);
-  aStrokeOptions.mDashLength = dashLength;
+  
+  
+  aStrokeOptions.mDashLength = size_t(dashLength);
   aStrokeOptions.mLineJoin = joinStyle;
   aStrokeOptions.mLineCap = capStyle;
 
