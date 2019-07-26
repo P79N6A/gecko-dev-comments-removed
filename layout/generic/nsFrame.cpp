@@ -2107,7 +2107,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
 
   if (savedOutOfFlowData) {
     clipState.SetClipForContainingBlockDescendants(
-      savedOutOfFlowData->mContainingBlockClip);
+      &savedOutOfFlowData->mContainingBlockClip);
   }
 
   
