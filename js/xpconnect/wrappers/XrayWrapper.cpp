@@ -807,12 +807,30 @@ XrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
 
     
     
+    bool found = false;
     if (expando) {
         JSAutoCompartment ac(cx, expando);
         if (!JS_GetPropertyDescriptorById(cx, expando, id, 0, desc))
             return false;
+        found = !!desc.object();
     }
-    if (desc.object()) {
+
+    
+    if (!found && JS_IsGlobalObject(target)) {
+        JSProtoKey key = JS_IdToProtoKey(cx, id);
+        JSAutoCompartment ac(cx, target);
+        if (key != JSProto_Null) {
+            MOZ_ASSERT(key < JSProto_LIMIT);
+            RootedObject constructor(cx);
+            if (!JS_GetClassObject(cx, target, key, constructor.address()))
+                return false;
+            MOZ_ASSERT(constructor);
+            desc.value().set(ObjectValue(*constructor));
+            found = true;
+        }
+    }
+
+    if (found) {
         if (!JS_WrapPropertyDescriptor(cx, desc))
             return false;
         
