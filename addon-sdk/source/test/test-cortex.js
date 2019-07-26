@@ -2,8 +2,6 @@
 
 
 
-
-
 "use strict";
 
 var Cortex = require("sdk/deprecated/cortex").Cortex;

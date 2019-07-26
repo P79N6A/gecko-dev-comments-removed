@@ -99,7 +99,7 @@ function Method(hint) {
                  
                  
                  
-                 host[value["!" + name]] ||
+                 host[value["!" + name] || void(0)] ||
                  
                  
                  

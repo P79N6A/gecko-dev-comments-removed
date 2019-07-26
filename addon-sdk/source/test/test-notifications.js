@@ -2,8 +2,6 @@
 
 
 
-
-
 const { Loader } = require('sdk/test/loader');
 
 exports.testOnClick = function (test) {

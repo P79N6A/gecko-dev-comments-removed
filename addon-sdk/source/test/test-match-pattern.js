@@ -1,8 +1,6 @@
 
 
 
-
-
 "use strict";
 
 const { MatchPattern } = require("sdk/util/match-pattern");

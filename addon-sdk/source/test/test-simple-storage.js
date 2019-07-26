@@ -2,8 +2,6 @@
 
 
 
-
-
 const file = require("sdk/io/file");
 const prefs = require("sdk/preferences/service");
 

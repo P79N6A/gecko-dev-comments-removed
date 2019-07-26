@@ -2,8 +2,6 @@
 
 
 
-
-
 const byteStreams = require("sdk/io/byte-streams");
 const file = require("sdk/io/file");
 const { pathFor } = require("sdk/system");

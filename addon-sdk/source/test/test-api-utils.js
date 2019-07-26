@@ -2,8 +2,6 @@
 
 
 
-
-
 const apiUtils = require("sdk/deprecated/api-utils");
 
 exports.testPublicConstructor = function (assert) {

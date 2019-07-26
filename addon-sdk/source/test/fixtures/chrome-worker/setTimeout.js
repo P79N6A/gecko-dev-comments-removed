@@ -1,8 +1,6 @@
 
 
 
-
-
 'use strict';
 
 setTimeout(function () {

@@ -2,8 +2,6 @@
 
 
 
-
-
 const file = require("sdk/io/file");
 const { pathFor } = require("sdk/system");
 const { Loader } = require("sdk/test/loader");

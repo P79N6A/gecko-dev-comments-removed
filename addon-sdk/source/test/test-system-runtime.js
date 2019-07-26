@@ -1,8 +1,6 @@
 
 
 
-
-
 "use strict";
 
 var runtime = require("sdk/system/runtime");

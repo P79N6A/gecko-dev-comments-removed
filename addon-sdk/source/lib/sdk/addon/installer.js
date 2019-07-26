@@ -3,11 +3,7 @@
 
 
 module.metadata = {
-  "stability": "experimental",
-  "engines": {
-    
-    "Firefox": "*"
-  }
+  "stability": "experimental"
 };
 
 const { Cc, Ci, Cu } = require("chrome");

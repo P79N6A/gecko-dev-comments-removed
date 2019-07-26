@@ -2,7 +2,6 @@
 
 
 
-
 "use strict";
 
 const { Trait } = require("../light-traits");

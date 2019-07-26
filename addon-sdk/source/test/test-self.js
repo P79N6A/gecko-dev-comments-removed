@@ -1,65 +1,65 @@
 
 
 
-
 "use strict";
 
-const {Cc, Ci, Cu, Cm, components} = require('chrome');
-Cu.import("resource://gre/modules/AddonManager.jsm", this);
+const { Cc, Ci, Cu, Cm, components } = require("chrome");
 const xulApp = require("sdk/system/xul-app");
+const self = require("sdk/self");
 
-exports.testSelf = function(test) {
-  var self = require("sdk/self");
+const { AddonManager } = Cu.import("resource://gre/modules/AddonManager.jsm", {});
 
+exports.testSelf = function(assert) {
   var source = self.data.load("test-content-symbiont.js");
-  test.assert(source.match(/test-content-symbiont/), "self.data.load() works");
+  assert.ok(source.match(/test-content-symbiont/), "self.data.load() works");
 
   
   
   
   var url = self.data.url("test-content-symbiont.js");
-  test.assertEqual(typeof(url), "string", "self.data.url('x') returns string");
-  test.assertEqual(/\/test-content-symbiont\.js$/.test(url), true);
+  assert.equal(typeof(url), "string", "self.data.url('x') returns string");
+  assert.equal(/\/test-content-symbiont\.js$/.test(url), true);
 
   
   url = self.data.url();
-  test.assertEqual(typeof(url), "string", "self.data.url() returns string");
-  test.assertEqual(/\/undefined$/.test(url), false);
+  assert.equal(typeof(url), "string", "self.data.url() returns string");
+  assert.equal(/\/undefined$/.test(url), false);
 
   
   
-  test.assert(self.name == "addon-sdk", "self.name is addon-sdk");
+  assert.equal(self.name, "addon-sdk", "self.name is addon-sdk");
 
   
   
   let testLoadReason = xulApp.versionInRange(xulApp.platformVersion,
                                              "23.0a1", "*") ? "install"
                                                             : "startup";
-  test.assertEqual(self.loadReason, testLoadReason,
-                   "self.loadReason is either startup or install on test runs");
+  assert.equal(self.loadReason, testLoadReason,
+               "self.loadReason is either startup or install on test runs");
 
-  test.assertEqual(self.isPrivateBrowsingSupported, false,
-                   'usePrivateBrowsing property is false by default');
+  assert.equal(self.isPrivateBrowsingSupported, false,
+               'usePrivateBrowsing property is false by default');
 };
 
-exports.testSelfID = function(test) {
-  test.waitUntilDone();
-
+exports.testSelfID = function(assert, done) {
   var self = require("sdk/self");
   
   
   
   
-  test.assertEqual(typeof(self.id), "string", "self.id is a string");
-  test.assert(self.id.length > 0);
+  assert.equal(typeof(self.id), "string", "self.id is a string");
+  assert.ok(self.id.length > 0);
 
   AddonManager.getAddonByID(self.id, function(addon) {
     if (!addon) {
-      test.fail("did not find addon with self.id");
+      assert.fail("did not find addon with self.id");
     }
     else {
-      test.pass("found addon with self.id");
+      assert.pass("found addon with self.id");
     }
-    test.done();
+
+    done();
   });
 }
+
+require("sdk/test").run(exports);

@@ -1,22 +1,23 @@
 
 
 
+'use strict';
 
-Object.defineProperty(this, "global", { value: this });
+Object.defineProperty(this, 'global', { value: this });
 
-exports.testGlobals = function(test) {
+exports.testGlobals = function(assert) {
   
-  
-  test.assertObject(module, "have 'module', good");
-  test.assertObject(exports, "have 'exports', good");
-  test.assertFunction(require, "have 'require', good");
-  test.assertFunction(dump, "have 'dump', good");
-  test.assertObject(console, "have 'console', good");
+  assert.equal(typeof module, 'object', 'have "module" global');
+  assert.equal(typeof exports, 'object', 'have "exports" global');
+  assert.equal(typeof require, 'function', 'have "require" global');
+  assert.equal(typeof dump, 'function', 'have "dump" global');
+  assert.equal(typeof console, 'object', 'have "console" global');
 
   
-  test.assert(!('packaging' in global), "no 'packaging', good");
-  test.assert(!('memory' in global), "no 'memory', good");
+  assert.ok(!('packaging' in global), 'no "packaging" global was found');
+  assert.ok(!('memory' in global), 'no "memory" global was found');
 
-  test.assertMatches(module.uri, /test-globals\.js$/,
-                     'should contain filename');
+  assert.ok(/test-globals\.js$/.test(module.uri), 'should contain filename');
 };
+
+require("test").run(exports);

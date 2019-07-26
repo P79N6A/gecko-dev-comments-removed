@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 const { Loader } = require("sdk/test/loader");
@@ -44,7 +43,6 @@ exports["test frame removed properly"] = function(assert, done) {
   }));
 };
 
-
 exports["test unload detaches panels"] = function(assert, done) {
   let loader = Loader(module);
   let { add, remove, HiddenFrame } = loader.require("sdk/frame/hidden-frame");
@@ -69,7 +67,5 @@ exports["test unload detaches panels"] = function(assert, done) {
     done();
   }
 };
-
-
 
 require("test").run(exports);

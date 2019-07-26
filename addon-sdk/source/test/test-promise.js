@@ -2,7 +2,6 @@
 
 
 
-
 'use strict';
 
 var core = require('sdk/core/promise'),
