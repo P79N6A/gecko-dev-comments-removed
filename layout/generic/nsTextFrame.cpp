@@ -124,19 +124,45 @@ void
 TabWidthStore::ApplySpacing(gfxTextRun::PropertyProvider::Spacing *aSpacing,
                             uint32_t aOffset, uint32_t aLength)
 {
+  uint32_t i = 0, len = mWidths.Length();
+
   
   
   
   
-  for (uint32_t i = 0; i < mWidths.Length(); ++i) {
-    TabWidth& tw = mWidths[i];
-    if (tw.mOffset < aOffset) {
-      continue;
+  if (aOffset > 0) {
+    uint32_t lo = 0, hi = len;
+    while (lo < hi) {
+      i = (lo + hi) / 2;
+      const TabWidth& tw = mWidths[i];
+      if (tw.mOffset < aOffset) {
+        
+        
+        lo = ++i;
+        continue;
+      }
+      if (tw.mOffset > aOffset) {
+        
+        
+        
+        
+        
+        hi = i;
+        continue;
+      }
+      
+      break;
     }
-    if (tw.mOffset - aOffset >= aLength) {
+  }
+
+  uint32_t limit = aOffset + aLength;
+  while (i < len) {
+    const TabWidth& tw = mWidths[i];
+    if (tw.mOffset >= limit) {
       break;
     }
     aSpacing[tw.mOffset - aOffset].mAfter += tw.mWidth;
+    i++;
   }
 }
 
