@@ -81,9 +81,17 @@ NSSDialogs.prototype = {
   },
 
   getPKCS12FilePassword: function(aCtx, aPassword) {
-    
-    
-    throw "Unimplemented";
+    let response = this.showPrompt(this.getString("pkcs12.getpassword.title"),
+                                   this.getString("pkcs12.getpassword.message"),
+                                   [ this.getString("nssdialogs.ok.label"),
+                                     this.getString("nssdialogs.cancel.label")
+                                   ],
+                                   [ { type: "password", id: "pw" } ]);
+    if (response.button != 0) {
+      return false;
+    }
+    aPassword.value = response.pw;
+    return true;
   },
 
   certInfoSection: function(aHeading, aDataPairs, aTrailingNewline = true) {
