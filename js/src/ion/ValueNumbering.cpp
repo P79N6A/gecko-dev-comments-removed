@@ -367,8 +367,9 @@ ValueNumberer::eliminateRedundancies()
 
         
         if (!worklist.append(block->immediatelyDominatedBlocksBegin(),
-                             block->immediatelyDominatedBlocksEnd()))
+                             block->immediatelyDominatedBlocksEnd())) {
             return false;
+        }
 
         
         for (MDefinitionIterator iter(block); iter; ) {

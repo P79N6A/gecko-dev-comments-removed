@@ -787,8 +787,9 @@ ion::BuildDominatorTree(MIRGraph &graph)
         block->setDomIndex(index);
 
         if (!worklist.append(block->immediatelyDominatedBlocksBegin(),
-                             block->immediatelyDominatedBlocksEnd()))
+                             block->immediatelyDominatedBlocksEnd())) {
             return false;
+        }
         index++;
     }
 
@@ -1358,8 +1359,9 @@ ion::EliminateRedundantChecks(MIRGraph &graph)
 
         
         if (!worklist.append(block->immediatelyDominatedBlocksBegin(),
-                             block->immediatelyDominatedBlocksEnd()))
+                             block->immediatelyDominatedBlocksEnd())) {
             return false;
+        }
 
         for (MDefinitionIterator iter(block); iter; ) {
             bool eliminated = false;
