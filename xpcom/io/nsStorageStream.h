@@ -11,6 +11,7 @@
 
 
 
+
 #ifndef _nsStorageStream_h_
 #define _nsStorageStream_h_
 
@@ -35,31 +36,31 @@ class nsStorageStream MOZ_FINAL : public nsIStorageStream,
                                   public nsIOutputStream
 {
 public:
-    nsStorageStream();
-    
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSISTORAGESTREAM
-    NS_DECL_NSIOUTPUTSTREAM
+  nsStorageStream();
 
-    friend class nsStorageInputStream;
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSISTORAGESTREAM
+  NS_DECL_NSIOUTPUTSTREAM
+
+  friend class nsStorageInputStream;
 
 private:
-    ~nsStorageStream();
+  ~nsStorageStream();
 
-    nsSegmentedBuffer* mSegmentedBuffer;
-    uint32_t           mSegmentSize;       
-                                           
-    uint32_t           mSegmentSizeLog2;   
-    bool               mWriteInProgress;   
-    int32_t            mLastSegmentNum;    
-    char*              mWriteCursor;       
-    char*              mSegmentEnd;        
-                                           
-    uint32_t           mLogicalLength;     
+  nsSegmentedBuffer* mSegmentedBuffer;
+  uint32_t           mSegmentSize;       
+                                         
+  uint32_t           mSegmentSizeLog2;   
+  bool               mWriteInProgress;   
+  int32_t            mLastSegmentNum;    
+  char*              mWriteCursor;       
+  char*              mSegmentEnd;        
+                                         
+  uint32_t           mLogicalLength;     
 
-    NS_METHOD Seek(int32_t aPosition);
-    uint32_t SegNum(uint32_t aPosition)    {return aPosition >> mSegmentSizeLog2;}
-    uint32_t SegOffset(uint32_t aPosition) {return aPosition & (mSegmentSize - 1);}
+  NS_METHOD Seek(int32_t aPosition);
+  uint32_t SegNum(uint32_t aPosition)    {return aPosition >> mSegmentSizeLog2;}
+  uint32_t SegOffset(uint32_t aPosition) {return aPosition & (mSegmentSize - 1);}
 };
 
 #endif 

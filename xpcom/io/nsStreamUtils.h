@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef nsStreamUtils_h__
 #define nsStreamUtils_h__
 
@@ -46,8 +48,8 @@ NS_NewOutputStreamReadyEvent(nsIOutputStreamCallback  *aNotify,
 
 
 enum nsAsyncCopyMode {
-    NS_ASYNCCOPY_VIA_READSEGMENTS,
-    NS_ASYNCCOPY_VIA_WRITESEGMENTS
+  NS_ASYNCCOPY_VIA_READSEGMENTS,
+  NS_ASYNCCOPY_VIA_WRITESEGMENTS
 };
 
 

@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef ___nsscriptableinputstream___h_
 #define ___nsscriptableinputstream___h_
 
@@ -18,24 +19,24 @@
 
 class nsScriptableInputStream MOZ_FINAL : public nsIScriptableInputStream {
 public:
-    
-    NS_DECL_ISUPPORTS
+  
+  NS_DECL_ISUPPORTS
 
-    
-    NS_DECL_NSISCRIPTABLEINPUTSTREAM
+  
+  NS_DECL_NSISCRIPTABLEINPUTSTREAM
 
-    
-    nsScriptableInputStream() {}
+  
+  nsScriptableInputStream() {}
 
-    static nsresult
-    Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
+  static nsresult
+  Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
 
 private:
-    ~nsScriptableInputStream() {}
+  ~nsScriptableInputStream() {}
 
-    nsresult ReadHelper(char* aBuffer, uint32_t aCount);
+  nsresult ReadHelper(char* aBuffer, uint32_t aCount);
 
-    nsCOMPtr<nsIInputStream> mInputStream;
+  nsCOMPtr<nsIInputStream> mInputStream;
 };
 
 #endif 

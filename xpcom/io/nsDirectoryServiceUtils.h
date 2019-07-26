@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsDirectoryServiceUtils_h___
 #define nsDirectoryServiceUtils_h___
 
@@ -16,13 +17,13 @@
 inline nsresult
 NS_GetSpecialDirectory(const char* specialDirName, nsIFile* *result)
 {
-    nsresult rv;
-    nsCOMPtr<nsIProperties> serv(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv));
-    if (NS_FAILED(rv))
-        return rv;
+  nsresult rv;
+  nsCOMPtr<nsIProperties> serv(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv));
+  if (NS_FAILED(rv))
+    return rv;
 
-    return serv->Get(specialDirName, NS_GET_IID(nsIFile),
-                     reinterpret_cast<void**>(result));
+  return serv->Get(specialDirName, NS_GET_IID(nsIFile),
+                   reinterpret_cast<void**>(result));
 }
 
 #endif

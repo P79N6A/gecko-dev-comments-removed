@@ -25,7 +25,7 @@
 
 
 
- 
+
 nsresult
 NS_OpenAnonymousTemporaryFile(PRFileDesc** aOutFileDesc);
 

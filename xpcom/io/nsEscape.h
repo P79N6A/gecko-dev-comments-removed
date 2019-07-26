@@ -5,6 +5,7 @@
 
 
 
+
 #ifndef _ESCAPE_H_
 #define _ESCAPE_H_
 
@@ -18,10 +19,10 @@
 
 
 typedef enum {
- 	url_All       = 0       
-,	url_XAlphas   = 1u << 0 
-,	url_XPAlphas  = 1u << 1 
-,	url_Path      = 1u << 2 
+  url_All       = 0       
+, url_XAlphas   = 1u << 0 
+, url_XPAlphas  = 1u << 1 
+, url_Path      = 1u << 2 
 } nsEscapeMask;
 
 #ifdef __cplusplus
@@ -38,12 +39,12 @@ extern "C" {
 char * nsEscape(const char * str, nsEscapeMask mask);
 
 char * nsUnescape(char * str);
-	
+
 
 
 
 int32_t nsUnescapeCount (char * str);
-	
+
 
 
 
@@ -54,7 +55,7 @@ nsEscapeHTML(const char * string);
 char16_t *
 nsEscapeHTML2(const char16_t *aSourceBuffer,
               int32_t aSourceBufferLen = -1);
- 
+
 
 
 
@@ -84,7 +85,7 @@ enum EscapeMask {
   esc_Query          = 1u << 8,
   esc_Ref            = 1u << 9,
   
-  esc_Minimal        = esc_Scheme | esc_Username | esc_Password | esc_Host | esc_FilePath | esc_Param | esc_Query | esc_Ref, 
+  esc_Minimal        = esc_Scheme | esc_Username | esc_Password | esc_Host | esc_FilePath | esc_Param | esc_Query | esc_Ref,
   esc_Forced         = 1u << 10, 
   esc_OnlyASCII      = 1u << 11, 
   esc_OnlyNonASCII   = 1u << 12, 
@@ -110,9 +111,9 @@ enum EscapeMask {
 
 
 bool NS_EscapeURL(const char *str,
-                           int32_t len,
-                           uint32_t flags,
-                           nsACString &result);
+                  int32_t len,
+                  uint32_t flags,
+                  nsACString &result);
 
 
 
@@ -126,13 +127,13 @@ bool NS_EscapeURL(const char *str,
 
 
 bool NS_UnescapeURL(const char *str,
-                             int32_t len,
-                             uint32_t flags,
-                             nsACString &result);
+                    int32_t len,
+                    uint32_t flags,
+                    nsACString &result);
 
 
 inline int32_t NS_UnescapeURL(char *str) {
-    return nsUnescapeCount(str);
+  return nsUnescapeCount(str);
 }
 
 
@@ -140,15 +141,15 @@ inline int32_t NS_UnescapeURL(char *str) {
 
 inline const nsCSubstring &
 NS_EscapeURL(const nsCSubstring &str, uint32_t flags, nsCSubstring &result) {
-    if (NS_EscapeURL(str.Data(), str.Length(), flags, result))
-        return result;
-    return str;
+  if (NS_EscapeURL(str.Data(), str.Length(), flags, result))
+    return result;
+  return str;
 }
 inline const nsCSubstring &
 NS_UnescapeURL(const nsCSubstring &str, uint32_t flags, nsCSubstring &result) {
-    if (NS_UnescapeURL(str.Data(), str.Length(), flags, result))
-        return result;
-    return str;
+  if (NS_UnescapeURL(str.Data(), str.Length(), flags, result))
+    return result;
+  return str;
 }
 
 
@@ -172,8 +173,8 @@ NS_Escape(const nsCString& aOriginal, nsCString& aEscaped,
 inline nsCString &
 NS_UnescapeURL(nsCString &str)
 {
-    str.SetLength(nsUnescapeCount(str.BeginWriting()));
-    return str;
+  str.SetLength(nsUnescapeCount(str.BeginWriting()));
+  return str;
 }
 
 #endif

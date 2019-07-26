@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsBinaryStream_h___
 #define nsBinaryStream_h___
 
@@ -27,36 +28,36 @@
 class nsBinaryOutputStream : public nsIObjectOutputStream
 {
 public:
-    nsBinaryOutputStream() {}
-    
-    virtual ~nsBinaryOutputStream() {}
+  nsBinaryOutputStream() {}
+  
+  virtual ~nsBinaryOutputStream() {}
 
 protected:
-    
-    NS_DECL_ISUPPORTS
+  
+  NS_DECL_ISUPPORTS
 
-    
-    NS_DECL_NSIOUTPUTSTREAM
+  
+  NS_DECL_NSIOUTPUTSTREAM
 
-    
-    NS_DECL_NSIBINARYOUTPUTSTREAM
+  
+  NS_DECL_NSIBINARYOUTPUTSTREAM
 
-    
-    NS_DECL_NSIOBJECTOUTPUTSTREAM
+  
+  NS_DECL_NSIOBJECTOUTPUTSTREAM
 
-    
-    nsresult WriteFully(const char *aBuf, uint32_t aCount);
+  
+  nsresult WriteFully(const char *aBuf, uint32_t aCount);
 
-    nsCOMPtr<nsIOutputStream>       mOutputStream;
-    nsCOMPtr<nsIStreamBufferAccess> mBufferAccess;
+  nsCOMPtr<nsIOutputStream>       mOutputStream;
+  nsCOMPtr<nsIStreamBufferAccess> mBufferAccess;
 };
 
 #define NS_BINARYINPUTSTREAM_CID        \
-{ /* c521a612-2aad-46db-b6ab-3b821fb150b1 */         \
-     0xc521a612,                                     \
-     0x2aad,                                         \
-     0x46db,                                         \
-    {0xb6, 0xab, 0x3b, 0x82, 0x1f, 0xb1, 0x50, 0xb1} \
+{ /* c521a612-2aad-46db-b6ab-3b821fb150b1 */       \
+   0xc521a612,                                     \
+   0x2aad,                                         \
+   0x46db,                                         \
+  {0xb6, 0xab, 0x3b, 0x82, 0x1f, 0xb1, 0x50, 0xb1} \
 }
 
 #define NS_BINARYINPUTSTREAM_CONTRACTID "@mozilla.org/binaryinputstream;1"
@@ -66,25 +67,25 @@ protected:
 class nsBinaryInputStream : public nsIObjectInputStream
 {
 public:
-    nsBinaryInputStream() {}
-    
-    virtual ~nsBinaryInputStream() {}
+  nsBinaryInputStream() {}
+  
+  virtual ~nsBinaryInputStream() {}
 
 protected:
-    
-    NS_DECL_ISUPPORTS
+  
+  NS_DECL_ISUPPORTS
 
-    
-    NS_DECL_NSIINPUTSTREAM
+  
+  NS_DECL_NSIINPUTSTREAM
 
-    
-    NS_DECL_NSIBINARYINPUTSTREAM
+  
+  NS_DECL_NSIBINARYINPUTSTREAM
 
-    
-    NS_DECL_NSIOBJECTINPUTSTREAM
+  
+  NS_DECL_NSIOBJECTINPUTSTREAM
 
-    nsCOMPtr<nsIInputStream>        mInputStream;
-    nsCOMPtr<nsIStreamBufferAccess> mBufferAccess;
+  nsCOMPtr<nsIInputStream>        mInputStream;
+  nsCOMPtr<nsIStreamBufferAccess> mBufferAccess;
 };
 
 #endif 

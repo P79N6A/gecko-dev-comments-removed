@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsDirectoryService_h___
 #define nsDirectoryService_h___
 
@@ -21,21 +22,21 @@ class nsDirectoryService MOZ_FINAL : public nsIDirectoryService,
                                      public nsIProperties,
                                      public nsIDirectoryServiceProvider2
 {
-  public:
+public:
 
   
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  NS_DECL_NSIPROPERTIES  
+  NS_DECL_NSIPROPERTIES
 
   NS_DECL_NSIDIRECTORYSERVICE
 
   NS_DECL_NSIDIRECTORYSERVICEPROVIDER
-  
+
   NS_DECL_NSIDIRECTORYSERVICEPROVIDER2
 
   nsDirectoryService();
-   ~nsDirectoryService();
+  ~nsDirectoryService();
 
   static void RealInit();
   void RegisterCategoryProviders();
@@ -46,10 +47,10 @@ class nsDirectoryService MOZ_FINAL : public nsIDirectoryService,
   static nsDirectoryService* gService;
 
 private:
-    nsresult GetCurrentProcessDirectory(nsIFile** aFile);
-    
-    nsInterfaceHashtable<nsCStringHashKey, nsIFile> mHashtable;
-    nsTArray<nsCOMPtr<nsIDirectoryServiceProvider> > mProviders;
+  nsresult GetCurrentProcessDirectory(nsIFile** aFile);
+
+  nsInterfaceHashtable<nsCStringHashKey, nsIFile> mHashtable;
+  nsTArray<nsCOMPtr<nsIDirectoryServiceProvider> > mProviders;
 
 public:
 

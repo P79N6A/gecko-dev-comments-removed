@@ -18,23 +18,23 @@ public:
   
   typedef enum {
     eLinebreakAny,          
-    
+
     eLinebreakPlatform,     
     eLinebreakContent,      
     eLinebreakNet,          
-  
+
     eLinebreakMac,          
     eLinebreakUnix,         
     eLinebreakWindows,      
 
     eLinebreakSpace         
-  
+
   } ELinebreakType;
 
   enum {
     kIgnoreLen = -1
   };
-  
+
   
 
 
@@ -48,9 +48,9 @@ public:
 
 
   static char* ConvertLineBreaks(const char* aSrc,
-                ELinebreakType aSrcBreaks, ELinebreakType aDestBreaks,
-                int32_t aSrcLen = kIgnoreLen, int32_t* aOutLen = nullptr);
-  
+                                 ELinebreakType aSrcBreaks, ELinebreakType aDestBreaks,
+                                 int32_t aSrcLen = kIgnoreLen, int32_t* aOutLen = nullptr);
+
 
   
 
@@ -65,9 +65,9 @@ public:
 
 
   static char16_t* ConvertUnicharLineBreaks(const char16_t* aSrc,
-                ELinebreakType aSrcBreaks, ELinebreakType aDestBreaks,
-                int32_t aSrcLen = kIgnoreLen, int32_t* aOutLen = nullptr);
-  
+                                            ELinebreakType aSrcBreaks, ELinebreakType aDestBreaks,
+                                            int32_t aSrcLen = kIgnoreLen, int32_t* aOutLen = nullptr);
+
 
   
 
@@ -97,7 +97,7 @@ public:
 
 
   static nsresult ConvertLineBreaksInSitu(char **ioBuffer, ELinebreakType aSrcBreaks, ELinebreakType aDestBreaks,
-                        int32_t aSrcLen = kIgnoreLen, int32_t* aOutLen = nullptr);
+                                          int32_t aSrcLen = kIgnoreLen, int32_t* aOutLen = nullptr);
 
 
   
@@ -115,8 +115,8 @@ public:
 
 
   static nsresult ConvertUnicharLineBreaksInSitu(char16_t **ioBuffer, ELinebreakType aSrcBreaks, ELinebreakType aDestBreaks,
-                        int32_t aSrcLen = kIgnoreLen, int32_t* aOutLen = nullptr);
-    
+                                                 int32_t aSrcLen = kIgnoreLen, int32_t* aOutLen = nullptr);
+
 };
 
 #endif 

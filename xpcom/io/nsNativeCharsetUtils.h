@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef nsNativeCharsetUtils_h__
 #define nsNativeCharsetUtils_h__
 
@@ -43,9 +45,9 @@ bool NS_IsNativeUTF8();
 inline bool NS_IsNativeUTF8()
 {
 #if defined(XP_MACOSX) || defined(ANDROID)
-    return true;
+  return true;
 #else
-    return false;
+  return false;
 #endif
 }
 #endif
