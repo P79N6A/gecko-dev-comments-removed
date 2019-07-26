@@ -4,7 +4,6 @@
 
 
 
-#include "mozilla/dom/TextTrack.h"
 #include "mozilla/dom/TextTrackRegion.h"
 #include "mozilla/dom/VTTRegionBinding.h"
 

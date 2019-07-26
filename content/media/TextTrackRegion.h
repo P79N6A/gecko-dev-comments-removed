@@ -12,6 +12,7 @@
 #include "nsString.h"
 #include "nsWrapperCache.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/dom/TextTrack.h"
 
 namespace mozilla {
 namespace dom {
@@ -143,6 +144,11 @@ public:
   }
 
   
+
+  void SetTextTrack(TextTrack* aTrack)
+  {
+    mTrack = aTrack;
+  }
 
   
   
