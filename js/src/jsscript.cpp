@@ -83,23 +83,34 @@ Bindings::initWithTemporaryStorage(ExclusiveContext *cx, InternalBindingsHandle 
     self->numVars_ = numVars;
 
     
+    
+    
+    
+    
+    
+    
+    
 
+    
+    
+    
+    
+    
+    uint32_t nslots = CallObject::RESERVED_SLOTS;
+    for (BindingIter bi(self); bi; bi++) {
+        if (bi->aliased())
+            nslots++;
+    }
 
+    
+    uint32_t nfixed = gc::GetGCKindSlots(gc::GetGCObjectKind(nslots));
 
-
-
-
-
-
-    JS_STATIC_ASSERT(CallObject::RESERVED_SLOTS == 2);
-    gc::AllocKind allocKind = gc::FINALIZE_OBJECT2_BACKGROUND;
-    JS_ASSERT(gc::GetGCKindSlots(allocKind) == CallObject::RESERVED_SLOTS);
-    RootedShape initial(cx,
+    
+    RootedShape shape(cx,
         EmptyShape::getInitialShape(cx, &CallObject::class_, nullptr, nullptr, nullptr,
-                                    allocKind, BaseShape::VAROBJ | BaseShape::DELEGATE));
-    if (!initial)
+                                    nfixed, BaseShape::VAROBJ | BaseShape::DELEGATE));
+    if (!shape)
         return false;
-    self->callObjShape_.init(initial);
 
 #ifdef DEBUG
     HashSet<PropertyName *> added(cx);
@@ -107,9 +118,8 @@ Bindings::initWithTemporaryStorage(ExclusiveContext *cx, InternalBindingsHandle 
         return false;
 #endif
 
-    BindingIter bi(self);
     uint32_t slot = CallObject::RESERVED_SLOTS;
-    for (uint32_t i = 0, n = self->count(); i < n; i++, bi++) {
+    for (BindingIter bi(self); bi; bi++) {
         if (!bi->aliased())
             continue;
 
@@ -120,31 +130,29 @@ Bindings::initWithTemporaryStorage(ExclusiveContext *cx, InternalBindingsHandle 
             return false;
 #endif
 
-        StackBaseShape base(cx, &CallObject::class_, cx->global(), nullptr,
-                            BaseShape::VAROBJ | BaseShape::DELEGATE);
+        StackBaseShape stackBase(cx, &CallObject::class_, nullptr, nullptr,
+                                 BaseShape::VAROBJ | BaseShape::DELEGATE);
 
-        UnownedBaseShape *nbase = BaseShape::getUnowned(cx, base);
-        if (!nbase)
+        UnownedBaseShape *base = BaseShape::getUnowned(cx, stackBase);
+        if (!base)
             return false;
 
-        RootedId id(cx, NameToId(bi->name()));
-        uint32_t nfixed = gc::GetGCKindSlots(gc::GetGCObjectKind(slot + 1));
-        unsigned attrs = JSPROP_PERMANENT | JSPROP_ENUMERATE |
+        unsigned attrs = JSPROP_PERMANENT |
+                         JSPROP_ENUMERATE |
                          (bi->kind() == CONSTANT ? JSPROP_READONLY : 0);
+        StackShape child(base, NameToId(bi->name()), slot, attrs, 0, 0);
 
-        StackShape child(nbase, id, slot, nfixed, attrs, 0, 0);
-
-        Shape *shape = cx->compartment()->propertyTree.getChild(cx, self->callObjShape_, child);
+        shape = cx->compartment()->propertyTree.getChild(cx, shape, child);
         if (!shape)
             return false;
 
-        self->callObjShape_ = shape;
+        JS_ASSERT(slot < nslots);
         slot++;
     }
+    JS_ASSERT(slot == nslots);
 
-    JS_ASSERT(!self->callObjShape_->inDictionary());
-    JS_ASSERT(!bi);
-
+    JS_ASSERT(!shape->inDictionary());
+    self->callObjShape_.init(shape);
     return true;
 }
 

@@ -126,70 +126,68 @@ Shape::removeChild(Shape *child)
 }
 
 Shape *
-PropertyTree::getChild(ExclusiveContext *cx, Shape *parent_, const StackShape &child)
+PropertyTree::getChild(ExclusiveContext *cx, Shape *parentArg, const StackShape &child)
 {
-    {
-        Shape *shape = nullptr;
+    RootedShape parent(cx, parentArg);
+    JS_ASSERT(parent);
 
-        JS_ASSERT(parent_);
+    Shape *existingShape = nullptr;
 
+    
+
+
+
+
+
+
+
+    KidsPointer *kidp = &parent->kids;
+    if (kidp->isShape()) {
+        Shape *kid = kidp->toShape();
+        if (kid->matches(child))
+            existingShape = kid;
+    } else if (kidp->isHash()) {
+        if (KidsHash::Ptr p = kidp->toHash()->lookup(child))
+            existingShape = *p;
+    } else {
         
-
-
-
-
-
-
-
-        KidsPointer *kidp = &parent_->kids;
-        if (kidp->isShape()) {
-            Shape *kid = kidp->toShape();
-            if (kid->matches(child))
-                shape = kid;
-        } else if (kidp->isHash()) {
-            if (KidsHash::Ptr p = kidp->toHash()->lookup(child))
-                shape = *p;
-        } else {
-            
-        }
-
-#ifdef JSGC_INCREMENTAL
-        if (shape) {
-            JS::Zone *zone = shape->zone();
-            if (zone->needsBarrier()) {
-                
-
-
-
-                Shape *tmp = shape;
-                MarkShapeUnbarriered(zone->barrierTracer(), &tmp, "read barrier");
-                JS_ASSERT(tmp == shape);
-            } else if (zone->isGCSweeping() && !shape->isMarked() &&
-                       !shape->arenaHeader()->allocatedDuringIncremental)
-            {
-                
-
-
-
-                JS_ASSERT(parent_->isMarked());
-                parent_->removeChild(shape);
-                shape = nullptr;
-            }
-        }
-#endif
-
-        if (shape)
-            return shape;
     }
 
+#ifdef JSGC_INCREMENTAL
+    if (existingShape) {
+        JS::Zone *zone = existingShape->zone();
+        if (zone->needsBarrier()) {
+            
+
+
+
+            Shape *tmp = existingShape;
+            MarkShapeUnbarriered(zone->barrierTracer(), &tmp, "read barrier");
+            JS_ASSERT(tmp == existingShape);
+        } else if (zone->isGCSweeping() && !existingShape->isMarked() &&
+                   !existingShape->arenaHeader()->allocatedDuringIncremental)
+        {
+            
+
+
+
+            JS_ASSERT(parent->isMarked());
+            parent->removeChild(existingShape);
+            existingShape = nullptr;
+        }
+    }
+#endif
+
+    if (existingShape)
+        return existingShape;
+
     StackShape::AutoRooter childRoot(cx, &child);
-    RootedShape parent(cx, parent_);
 
     Shape *shape = newShape(cx);
     if (!shape)
         return nullptr;
 
-    new (shape) Shape(child, child.numFixedSlots());
+    new (shape) Shape(child, parent->numFixedSlots());
 
     if (!insertChild(cx, parent, shape))
         return nullptr;
