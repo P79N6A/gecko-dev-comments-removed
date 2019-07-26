@@ -30,7 +30,12 @@ function runTests()
 
   
   
-  gUI.once("editor-selected", (event, editor) => {
+  gUI.on("editor-selected", function editorSelected(event, editor) {
+    if (editor.styleSheet != gUI.editors[1].styleSheet) {
+      return;
+    }
+    gUI.off("editor-selected", editorSelected);
+
     editor.getSourceEditor().then(() => {
       is(gUI.selectedEditor, gUI.editors[1], "second editor is selected");
       let {line, ch} = gUI.selectedEditor.sourceEditor.getCursor();
