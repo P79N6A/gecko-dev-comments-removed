@@ -453,3 +453,27 @@ ion::ParCallToUncompiledScript(JSFunction *func)
     }
 #endif
 }
+
+ParallelResult
+ion::InitRestParameter(ForkJoinSlice *slice, uint32_t length, Value *rest,
+                       HandleObject templateObj, HandleObject res,
+                       MutableHandleObject out)
+{
+    
+    
+    
+    JS_ASSERT(res);
+    JS_ASSERT(res->isArray());
+    JS_ASSERT(!res->getDenseInitializedLength());
+    JS_ASSERT(res->type() == templateObj->type());
+
+    if (length) {
+        JSObject::EnsureDenseResult edr =
+            res->parExtendDenseElements(slice->allocator, rest, length);
+        if (edr != JSObject::ED_OK)
+            return TP_FATAL;
+    }
+
+    out.set(res);
+    return TP_SUCCESS;
+}
