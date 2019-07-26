@@ -443,11 +443,6 @@ nsBindingManager::ClearBinding(nsIContent* aContent)
   NS_ENSURE_FALSE(binding->GetBaseBinding(), NS_ERROR_FAILURE);
 
   
-  if (binding->IsStyleBinding()) {
-    return NS_OK;
-  }
-
-  
   
   
   

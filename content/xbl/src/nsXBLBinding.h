@@ -73,9 +73,6 @@ public:
     mJSClass = aClass;
   }
 
-  bool IsStyleBinding() const { return mIsStyleBinding; }
-  void SetIsStyleBinding(bool aIsStyle) { mIsStyleBinding = aIsStyle; }
-
   
 
 
@@ -122,7 +119,6 @@ public:
 
   nsIAtom* GetBaseTag(int32_t* aNameSpaceID);
   nsXBLBinding* RootBinding();
-  nsXBLBinding* GetFirstStyleBinding();
 
   
   
@@ -166,7 +162,6 @@ public:
 
 protected:
 
-  bool mIsStyleBinding;
   bool mMarkedForDeath;
 
   nsXBLPrototypeBinding* mPrototypeBinding; 

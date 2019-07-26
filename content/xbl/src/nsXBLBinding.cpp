@@ -142,8 +142,7 @@ nsXBLJSClass::Destroy()
 
 
 nsXBLBinding::nsXBLBinding(nsXBLPrototypeBinding* aBinding)
-  : mIsStyleBinding(true),
-    mMarkedForDeath(false),
+  : mMarkedForDeath(false),
     mPrototypeBinding(aBinding)
 {
   NS_ASSERTION(mPrototypeBinding, "Must have a prototype binding!");
@@ -715,93 +714,90 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
     return;
 
   
-  if (mIsStyleBinding) {
-    
-    if (mPrototypeBinding->HasImplementation()) {
-      nsCOMPtr<nsIScriptGlobalObject> global =  do_QueryInterface(
-        aOldDocument->GetScopeObject());
-      if (global) {
-        nsCOMPtr<nsIScriptContext> context = global->GetContext();
-        if (context) {
-          JSContext *cx = context->GetNativeContext();
+  if (mPrototypeBinding->HasImplementation()) {
+    nsCOMPtr<nsIScriptGlobalObject> global =  do_QueryInterface(
+                                                                aOldDocument->GetScopeObject());
+    if (global) {
+      nsCOMPtr<nsIScriptContext> context = global->GetContext();
+      if (context) {
+        JSContext *cx = context->GetNativeContext();
 
-          nsCxPusher pusher;
-          pusher.Push(cx);
+        nsCxPusher pusher;
+        pusher.Push(cx);
 
+        
+        
+        
+        
+        
+        JS::Rooted<JSObject*> scope(cx, global->GetGlobalJSObject());
+        JS::Rooted<JSObject*> scriptObject(cx, mBoundElement->GetWrapper());
+        if (scope && scriptObject) {
           
           
           
           
           
-          JS::Rooted<JSObject*> scope(cx, global->GetGlobalJSObject());
-          JS::Rooted<JSObject*> scriptObject(cx, mBoundElement->GetWrapper());
-          if (scope && scriptObject) {
-            
-            
-            
-            
-            
 
-            
-            JSAutoCompartment ac(cx, scriptObject);
+          
+          JSAutoCompartment ac(cx, scriptObject);
 
-            JS::Rooted<JSObject*> base(cx, scriptObject);
-            JS::Rooted<JSObject*> proto(cx);
-            for ( ; true; base = proto) { 
-              if (!JS_GetPrototype(cx, base, proto.address())) {
-                return;
-              }
-              if (!proto) {
-                break;
-              }
-
-              JSClass* clazz = ::JS_GetClass(proto);
-              if (!clazz ||
-                  (~clazz->flags &
-                   (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) ||
-                  JSCLASS_RESERVED_SLOTS(clazz) != 1 ||
-                  clazz->finalize != XBLFinalize) {
-                
-                continue;
-              }
-
-              nsRefPtr<nsXBLDocumentInfo> docInfo =
-                static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(proto));
-              if (!docInfo) {
-                
-                continue;
-              }
-
-              JS::Value protoBinding = ::JS_GetReservedSlot(proto, 0);
-
-              if (JSVAL_TO_PRIVATE(protoBinding) != mPrototypeBinding) {
-                
-                continue;
-              }
-
-              
-              
-              JS::Rooted<JSObject*> grandProto(cx);
-              if (!JS_GetPrototype(cx, proto, grandProto.address())) {
-                return;
-              }
-              ::JS_SetPrototype(cx, base, grandProto);
+          JS::Rooted<JSObject*> base(cx, scriptObject);
+          JS::Rooted<JSObject*> proto(cx);
+          for ( ; true; base = proto) { 
+            if (!JS_GetPrototype(cx, base, proto.address())) {
+              return;
+            }
+            if (!proto) {
               break;
             }
 
-            mPrototypeBinding->UndefineFields(cx, scriptObject);
+            JSClass* clazz = ::JS_GetClass(proto);
+            if (!clazz ||
+                (~clazz->flags &
+                 (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) ||
+                JSCLASS_RESERVED_SLOTS(clazz) != 1 ||
+                clazz->finalize != XBLFinalize) {
+              
+              continue;
+            }
+
+            nsRefPtr<nsXBLDocumentInfo> docInfo =
+              static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(proto));
+            if (!docInfo) {
+              
+              continue;
+            }
+
+            JS::Value protoBinding = ::JS_GetReservedSlot(proto, 0);
+
+            if (JSVAL_TO_PRIVATE(protoBinding) != mPrototypeBinding) {
+              
+              continue;
+            }
 
             
             
-            
+            JS::Rooted<JSObject*> grandProto(cx);
+            if (!JS_GetPrototype(cx, proto, grandProto.address())) {
+              return;
+            }
+            ::JS_SetPrototype(cx, base, grandProto);
+            break;
           }
+
+          mPrototypeBinding->UndefineFields(cx, scriptObject);
+
+          
+          
+          
         }
       }
     }
-
-    
-    UnhookEventHandlers();
   }
+
+  
+  UnhookEventHandlers();
 
   {
     nsAutoScriptBlocker scriptBlocker;
@@ -1074,15 +1070,6 @@ nsXBLBinding::RootBinding()
     return mNextBinding->RootBinding();
 
   return this;
-}
-
-nsXBLBinding*
-nsXBLBinding::GetFirstStyleBinding()
-{
-  if (mIsStyleBinding)
-    return this;
-
-  return mNextBinding ? mNextBinding->GetFirstStyleBinding() : nullptr;
 }
 
 bool

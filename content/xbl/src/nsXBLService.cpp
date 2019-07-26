@@ -455,19 +455,16 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
   
   nsXBLBinding *binding = bindingManager->GetBinding(aContent);
   if (binding) {
-    nsXBLBinding *styleBinding = binding->GetFirstStyleBinding();
-    if (styleBinding) {
-      if (binding->MarkedForDeath()) {
-        FlushStyleBindings(aContent);
-        binding = nullptr;
-      }
-      else {
-        
-        if (styleBinding->PrototypeBinding()->CompareBindingURI(aURL))
-          return NS_OK;
-        FlushStyleBindings(aContent);
-        binding = nullptr;
-      }
+    if (binding->MarkedForDeath()) {
+      FlushStyleBindings(aContent);
+      binding = nullptr;
+    }
+    else {
+      
+      if (binding->PrototypeBinding()->CompareBindingURI(aURL))
+        return NS_OK;
+      FlushStyleBindings(aContent);
+      binding = nullptr;
     }
   }
 
@@ -537,15 +534,10 @@ nsXBLService::FlushStyleBindings(nsIContent* aContent)
   nsXBLBinding *binding = bindingManager->GetBinding(aContent);
   
   if (binding) {
-    nsXBLBinding *styleBinding = binding->GetFirstStyleBinding();
+    
+    binding->ChangeDocument(document, nullptr);
 
-    if (styleBinding) {
-      
-      styleBinding->ChangeDocument(document, nullptr);
-    }
-
-    if (styleBinding == binding) 
-      bindingManager->SetBinding(aContent, nullptr); 
+    bindingManager->SetBinding(aContent, nullptr); 
   }
    
   return NS_OK;
