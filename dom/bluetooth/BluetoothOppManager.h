@@ -110,6 +110,17 @@ private:
 
 
 
+
+
+
+
+
+  bool ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage);
+
+  
+
+
+
   bool mConnected;
   nsString mConnectedDeviceAddress;
 
@@ -128,9 +139,9 @@ private:
 
   int mLastCommand;
 
-  int mPacketLeftLength;
+  int mPacketLength;
+  int mPacketReceivedLength;
   int mBodySegmentLength;
-  int mReceivedDataBufferOffset;
   int mUpdateProgressCounter;
 
   

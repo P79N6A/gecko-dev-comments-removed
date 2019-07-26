@@ -174,9 +174,9 @@ BluetoothOppManager::BluetoothOppManager() : mConnected(false)
                                            , mRemoteConnectionFlags(0)
                                            , mRemoteMaxPacketLength(0)
                                            , mLastCommand(0)
-                                           , mPacketLeftLength(0)
+                                           , mPacketLength(0)
+                                           , mPacketReceivedLength(0)
                                            , mBodySegmentLength(0)
-                                           , mReceivedDataBufferOffset(0)
                                            , mAbortFlag(false)
                                            , mNewFileFlag(false)
                                            , mPutFinalFlag(false)
@@ -477,7 +477,7 @@ BluetoothOppManager::ConfirmReceivingFile(bool aConfirm)
   NS_ENSURE_TRUE(mConnected, false);
   NS_ENSURE_TRUE(mWaitingForConfirmationFlag, false);
 
-  MOZ_ASSERT(mPacketLeftLength == 0);
+  MOZ_ASSERT(mPacketReceivedLength == 0);
 
   mWaitingForConfirmationFlag = false;
 
@@ -505,7 +505,7 @@ BluetoothOppManager::AfterFirstPut()
 {
   mUpdateProgressCounter = 1;
   mPutFinalFlag = false;
-  mReceivedDataBufferOffset = 0;
+  mPacketReceivedLength = 0;
   mSentFileLength = 0;
   mWaitingToSendPutFinal = false;
   mSuccessFlag = false;
@@ -541,7 +541,7 @@ BluetoothOppManager::AfterOppDisconnected()
 
   mConnected = false;
   mLastCommand = 0;
-  mPacketLeftLength = 0;
+  mPacketReceivedLength = 0;
   mDsFile = nullptr;
 
   
@@ -586,7 +586,7 @@ BluetoothOppManager::DeleteReceivedFile()
 bool
 BluetoothOppManager::CreateFile()
 {
-  MOZ_ASSERT(mPacketLeftLength == 0);
+  MOZ_ASSERT(mPacketReceivedLength == mPacketLength);
 
   nsString path;
   path.AssignLiteral(TARGET_SUBDIR);
@@ -759,21 +759,66 @@ BluetoothOppManager::ValidateFileName()
   }
 }
 
+bool
+BluetoothOppManager::ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aMessage);
+
+  int frameHeaderLength = 0;
+
+  
+  if (mPacketReceivedLength == 0) {
+    
+    
+    frameHeaderLength = 3;
+
+    mPacketLength = ((((int)aMessage->mData[1]) << 8) | aMessage->mData[2]) -
+                      frameHeaderLength;
+    
+
+
+
+
+
+    mReceivedDataBuffer = new uint8_t[mPacketLength];
+    mPutFinalFlag = (aOpCode == ObexRequestCode::PutFinal);
+  }
+
+  int dataLength = aMessage->mSize - frameHeaderLength;
+
+  
+  if (dataLength < 0 ||
+      mPacketReceivedLength + dataLength > mPacketLength) {
+    BT_LOGR("%s: Received packet size is unreasonable", __FUNCTION__);
+
+    ReplyToPut(mPutFinalFlag, false);
+    DeleteReceivedFile();
+    FileTransferComplete();
+
+    return false;
+  }
+
+  memcpy(mReceivedDataBuffer.get() + mPacketReceivedLength,
+         &aMessage->mData[frameHeaderLength], dataLength);
+
+  mPacketReceivedLength += dataLength;
+
+  return (mPacketReceivedLength == mPacketLength);
+}
+
 void
 BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   uint8_t opCode;
-  int packetLength;
   int receivedLength = aMessage->mSize;
 
-  if (mPacketLeftLength > 0) {
+  if (mPacketReceivedLength > 0) {
     opCode = mPutFinalFlag ? ObexRequestCode::PutFinal : ObexRequestCode::Put;
-    packetLength = mPacketLeftLength;
   } else {
     opCode = aMessage->mData[0];
-    packetLength = (((int)aMessage->mData[1]) << 8) | aMessage->mData[2];
 
     
     
@@ -814,45 +859,16 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     FileTransferComplete();
   } else if (opCode == ObexRequestCode::Put ||
              opCode == ObexRequestCode::PutFinal) {
-    int headerStartIndex = 0;
-
-    
-    if (mReceivedDataBufferOffset == 0) {
-      
-      
-      headerStartIndex = 3;
-      
-      
-      mReceivedDataBuffer = new uint8_t[packetLength];
-      mPacketLeftLength = packetLength;
-
-      
-
-
-
-
-
-      mPutFinalFlag = (opCode == ObexRequestCode::PutFinal);
-    }
-
-    memcpy(mReceivedDataBuffer.get() + mReceivedDataBufferOffset,
-           &aMessage->mData[headerStartIndex],
-           receivedLength - headerStartIndex);
-
-    mPacketLeftLength -= receivedLength;
-    mReceivedDataBufferOffset += receivedLength - headerStartIndex;
-    if (mPacketLeftLength) {
+    if (!ComposePacket(opCode, aMessage)) {
       return;
     }
 
     
-    ParseHeaders(mReceivedDataBuffer.get(),
-                 mReceivedDataBufferOffset,
-                 &pktHeaders);
+    ParseHeaders(mReceivedDataBuffer.get(), mPacketReceivedLength, &pktHeaders);
     ExtractPacketHeaders(pktHeaders);
     ValidateFileName();
 
-    mReceivedDataBufferOffset = 0;
+    mPacketReceivedLength = 0;
 
     
     if (mAbortFlag) {
@@ -917,16 +933,7 @@ BluetoothOppManager::ClientDataHandler(UnixSocketRawData* aMessage)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  uint8_t opCode;
-  int packetLength;
-
-  if (mPacketLeftLength > 0) {
-    opCode = mPutFinalFlag ? ObexRequestCode::PutFinal : ObexRequestCode::Put;
-    packetLength = mPacketLeftLength;
-  } else {
-    opCode = aMessage->mData[0];
-    packetLength = (((int)aMessage->mData[1]) << 8) | aMessage->mData[2];
-  }
+  uint8_t opCode = aMessage->mData[0];
 
   
   
