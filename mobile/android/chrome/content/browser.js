@@ -8312,6 +8312,8 @@ var Distribution = {
         defaults.setComplexValue(key, Ci.nsIPrefLocalizedString, localizedString);
       } catch (e) {  }
     }
+
+    sendMessageToJava({ type: "Distribution:Set:OK" });
   },
 
   

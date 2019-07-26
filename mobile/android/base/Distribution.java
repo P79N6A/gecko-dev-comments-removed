@@ -42,7 +42,9 @@ public final class Distribution {
     
 
 
-    public static void init(final Context context) {
+
+
+    public static void init(final Context context, final String packagePath) {
         
         GeckoBackgroundThread.getHandler().post(new Runnable() {
             public void run() {
@@ -50,8 +52,9 @@ public final class Distribution {
                 SharedPreferences settings = context.getSharedPreferences(GeckoApp.PREFS_NAME, Activity.MODE_PRIVATE);
                 String keyName = context.getPackageName() + ".distribution_state";
                 int state = settings.getInt(keyName, STATE_UNKNOWN);
-                if (state == STATE_NONE)
+                if (state == STATE_NONE && packagePath == null) {
                     return;
+                }
 
                 
                 if (state == STATE_SET) {
@@ -61,7 +64,7 @@ public final class Distribution {
 
                 boolean distributionSet = false;
                 try {
-                    distributionSet = copyFiles(context);
+                    distributionSet = copyFiles(context, packagePath);
                 } catch (IOException e) {
                     Log.e(LOGTAG, "Error copying distribution files", e);
                 }
@@ -80,8 +83,8 @@ public final class Distribution {
 
 
 
-    private static boolean copyFiles(Context context) throws IOException {
-        File applicationPackage = new File(context.getPackageResourcePath());
+    private static boolean copyFiles(Context context, String packagePath) throws IOException {
+        File applicationPackage = new File(packagePath);
         ZipFile zip = new ZipFile(applicationPackage);
 
         boolean distributionSet = false;
