@@ -614,7 +614,7 @@ let ContentScroll =  {
           break;
 
         
-        if (json.scrollX >= 0 && json.scrollY >= 0) {
+        if (json.scrollX >= 0 || json.scrollY >= 0) {
           this.setScrollOffsetForElement(element, json.scrollX, json.scrollY)
           if (json.id == 1)
             this._scrollOffset = this.getScrollOffset(content);

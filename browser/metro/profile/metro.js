@@ -25,6 +25,7 @@ pref("metro.debug.selection.dumpEvents", false);
 
 
 pref("layers.offmainthreadcomposition.enabled", true);
+pref("layers.async-pan-zoom.enabled", false);
 
 
 pref("intl.enable_tsf_support", true);
