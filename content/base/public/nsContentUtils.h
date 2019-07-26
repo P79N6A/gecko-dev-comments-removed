@@ -1329,6 +1329,14 @@ public:
   
 
 
+  static bool IsSystemOrExpandedPrincipal(nsIPrincipal* aPrincipal)
+  {
+    return IsSystemPrincipal(aPrincipal) || IsExpandedPrincipal(aPrincipal);
+  }
+
+  
+
+
   static nsIPrincipal* GetSystemPrincipal();
 
   
