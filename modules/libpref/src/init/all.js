@@ -1899,6 +1899,9 @@ pref("layout.css.variables.enabled", true);
 pref("layout.css.overflow-clip-box.enabled", false);
 
 
+pref("layout.css.grid.enabled", false);
+
+
 
 
 
