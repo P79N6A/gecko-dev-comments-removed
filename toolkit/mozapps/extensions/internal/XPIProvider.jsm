@@ -397,11 +397,32 @@ SafeInstallOperation.prototype = {
 
 
 
-  move: function SIO_move(aFile, aTargetDirectory) {
+  moveUnder: function SIO_move(aFile, aTargetDirectory) {
     try {
       this._installDirEntry(aFile, aTargetDirectory, false);
     }
     catch (e) {
+      this.rollback();
+      throw e;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  moveTo: function(aOldLocation, aNewLocation) {
+    try {
+      let oldFile = aOldLocation.clone(), newFile = aNewLocation.clone();
+      oldFile.moveTo(newFile.parent, newFile.leafName);
+      this._installedFiles.push({ oldFile: oldFile, newFile: newFile, isMoveTo: true});
+    }
+    catch(e) {
       this.rollback();
       throw e;
     }
@@ -435,7 +456,10 @@ SafeInstallOperation.prototype = {
   rollback: function SIO_rollback() {
     while (this._installedFiles.length > 0) {
       let move = this._installedFiles.pop();
-      if (move.newFile.isDirectory()) {
+      if (move.isMoveTo) {
+        move.newFile.moveTo(oldDir.parent, oldDir.leafName);
+      }
+      else if (move.newFile.isDirectory()) {
         let oldDir = move.oldFile.parent.clone();
         oldDir.append(move.oldFile.leafName);
         oldDir.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
@@ -6154,6 +6178,22 @@ AddonInternal.prototype = {
 
 
 
+  getDataDirectory: function(callback) {
+    let parentPath = OS.Path.join(OS.Constants.Path.profileDir, "extension-data");
+    let dirPath = OS.Path.join(parentPath, this.id);
+
+    Task.spawn(function*() {
+      yield OS.File.makeDir(parentPath, {ignoreExisting: true});
+      yield OS.File.makeDir(dirPath, {ignoreExisting: true});
+    }).then(() => callback(dirPath, null),
+            e => callback(dirPath, e));
+  },
+
+  
+
+
+
+
 
 
 
@@ -6251,7 +6291,8 @@ function AddonWrapper(aAddon) {
   ["id", "syncGUID", "version", "type", "isCompatible", "isPlatformCompatible",
    "providesUpdatesSecurely", "blocklistState", "blocklistURL", "appDisabled",
    "softDisabled", "skinnable", "size", "foreignInstall", "hasBinaryComponents",
-   "strictCompatibility", "compatibilityOverrides", "updateURL"].forEach(function(aProp) {
+   "strictCompatibility", "compatibilityOverrides", "updateURL",
+   "getDataDirectory"].forEach(function(aProp) {
      this.__defineGetter__(aProp, function AddonWrapper_propertyGetter() aAddon[aProp]);
   }, this);
 
@@ -7052,13 +7093,13 @@ DirectoryInstallLocation.prototype = {
       file.append(aId);
 
       if (file.exists())
-        transaction.move(file, trashDir);
+        transaction.moveUnder(file, trashDir);
 
       file = self._directory.clone();
       file.append(aId + ".xpi");
       if (file.exists()) {
         flushJarCache(file);
-        transaction.move(file, trashDir);
+        transaction.moveUnder(file, trashDir);
       }
     }
 
@@ -7066,8 +7107,33 @@ DirectoryInstallLocation.prototype = {
     
     try {
       moveOldAddon(aId);
-      if (aExistingAddonID && aExistingAddonID != aId)
+      if (aExistingAddonID && aExistingAddonID != aId) {
         moveOldAddon(aExistingAddonID);
+
+        {
+          
+          
+
+
+
+          let oldDataDir = FileUtils.getDir(
+            KEY_PROFILEDIR, ["extension-data", aExistingAddonID], false, true
+          );
+
+          if (oldDataDir.exists()) {
+            let newDataDir = FileUtils.getDir(
+              KEY_PROFILEDIR, ["extension-data", aId], false, true
+            );
+            if (newDataDir.exists()) {
+              let trashData = trashDir.clone();
+              trashData.append("data-directory");
+              transaction.moveUnder(newDataDir, trashData);
+            }
+
+            transaction.moveTo(oldDataDir, newDataDir);
+          }
+        }
+      }
 
       if (aCopy) {
         transaction.copy(aSource, this._directory);
@@ -7076,7 +7142,7 @@ DirectoryInstallLocation.prototype = {
         if (aSource.isFile())
           flushJarCache(aSource);
 
-        transaction.move(aSource, this._directory);
+        transaction.moveUnder(aSource, this._directory);
       }
     }
     finally {
@@ -7149,7 +7215,7 @@ DirectoryInstallLocation.prototype = {
     let transaction = new SafeInstallOperation();
 
     try {
-      transaction.move(file, trashDir);
+      transaction.moveUnder(file, trashDir);
     }
     finally {
       
