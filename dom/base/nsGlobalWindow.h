@@ -59,7 +59,6 @@
 #include "nsIContent.h"
 #include "nsIIDBFactory.h"
 #include "nsFrameMessageManager.h"
-#include "mozilla/LinkedList.h"
 #include "mozilla/TimeStamp.h"
 #include "nsIDOMTouchEvent.h"
 #include "nsIInlineEventHandlers.h"
@@ -134,7 +133,7 @@ NS_CreateJSTimeoutHandler(nsGlobalWindow *aWindow,
 
 
 
-struct nsTimeout : mozilla::LinkedListElement<nsTimeout>
+struct nsTimeout : PRCList
 {
   nsTimeout();
   ~nsTimeout();
@@ -143,6 +142,16 @@ struct nsTimeout : mozilla::LinkedListElement<nsTimeout>
 
   nsrefcnt Release();
   nsrefcnt AddRef();
+
+  nsTimeout* Next() {
+    
+    return static_cast<nsTimeout*>(PR_NEXT_LINK(this));
+  }
+
+  nsTimeout* Prev() {
+    
+    return static_cast<nsTimeout*>(PR_PREV_LINK(this));
+  }
 
   nsresult InitTimer(nsTimerCallbackFunc aFunc, uint64_t delay) {
     return mTimer->InitWithFuncCallback(aFunc, this, delay,
@@ -860,6 +869,20 @@ protected:
 
   bool IsInModalState();
 
+  nsTimeout* FirstTimeout() {
+    
+    return static_cast<nsTimeout*>(PR_LIST_HEAD(&mTimeouts));
+  }
+
+  nsTimeout* LastTimeout() {
+    
+    return static_cast<nsTimeout*>(PR_LIST_TAIL(&mTimeouts));
+  }
+
+  bool IsTimeout(PRCList* aList) {
+    return aList != &mTimeouts;
+  }
+
   
   
   
@@ -1027,7 +1050,7 @@ protected:
   
   
   
-  mozilla::LinkedList<nsTimeout> mTimeouts;
+  PRCList                       mTimeouts;
   
   
   

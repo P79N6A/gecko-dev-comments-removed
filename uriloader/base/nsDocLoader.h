@@ -27,10 +27,10 @@
 #include "nsISupportsPriority.h"
 #include "nsCOMPtr.h"
 #include "pldhash.h"
+#include "prclist.h"
 #include "nsAutoPtr.h"
 
-#include "mozilla/LinkedList.h"
-
+struct nsRequestInfo;
 struct nsListenerInfo;
 
 
@@ -194,55 +194,6 @@ protected:
     }        
 
 protected:
-    struct nsStatusInfo : public mozilla::LinkedListElement<nsStatusInfo>
-    {
-        nsString mStatusMessage;
-        nsresult mStatusCode;
-        
-        nsIRequest * const mRequest;
-
-        nsStatusInfo(nsIRequest* aRequest) :
-            mRequest(aRequest)
-        {
-            MOZ_COUNT_CTOR(nsStatusInfo);
-        }
-        ~nsStatusInfo()
-        {
-            MOZ_COUNT_DTOR(nsStatusInfo);
-            this->remove();
-        }
-    };
-
-    struct nsRequestInfo : public PLDHashEntryHdr
-    {
-        nsRequestInfo(const void* key)
-            : mKey(key), mCurrentProgress(0), mMaxProgress(0), mUploading(false)
-            , mLastStatus(nullptr)
-        {
-            MOZ_COUNT_CTOR(nsRequestInfo);
-        }
-
-        ~nsRequestInfo()
-        {
-            MOZ_COUNT_DTOR(nsRequestInfo);
-        }
-
-        nsIRequest* Request() {
-            return static_cast<nsIRequest*>(const_cast<void*>(mKey));
-        }
-
-        const void* mKey; 
-        int64_t mCurrentProgress;
-        int64_t mMaxProgress;
-        bool mUploading;
-
-        nsAutoPtr<nsStatusInfo> mLastStatus;
-    };
-
-    static bool RequestInfoHashInitEntry(PLDHashTable* table, PLDHashEntryHdr* entry,
-                                         const void* key);
-    static void RequestInfoHashClearEntry(PLDHashTable* table, PLDHashEntryHdr* entry);
-
     
     
     
@@ -272,7 +223,7 @@ protected:
     PLDHashTable mRequestInfoHash;
     int64_t mCompletedTotalProgress;
 
-    mozilla::LinkedList<nsStatusInfo> mStatusInfoList;
+    PRCList mStatusInfoList;
 
     
 
@@ -317,9 +268,6 @@ private:
     nsRequestInfo *GetRequestInfo(nsIRequest* aRequest);
     void ClearRequestInfoHash();
     int64_t CalculateMaxProgress();
-    static PLDHashOperator CalcMaxProgressCallback(PLDHashTable* table,
-                                                   PLDHashEntryHdr* hdr,
-                                                   uint32_t number, void* arg);
 
 
     

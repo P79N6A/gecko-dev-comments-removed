@@ -501,7 +501,8 @@ nsresult nsExtensibleStringBundle::GetSimpleEnumeration(nsISimpleEnumerator ** a
 
 #define MAX_CACHED_BUNDLES 16
 
-struct bundleCacheEntry_t : public LinkedListElement<bundleCacheEntry_t> {
+struct bundleCacheEntry_t {
+  PRCList list;
   nsCStringKey *mHashKey;
   
   nsIStringBundle* mBundle;
@@ -515,6 +516,7 @@ nsStringBundleService::nsStringBundleService() :
   printf("\n++ nsStringBundleService::nsStringBundleService ++\n");
 #endif
 
+  PR_INIT_CLIST(&mBundleCache);
   PL_InitArenaPool(&mCacheEntryPool, "srEntries",
                    sizeof(bundleCacheEntry_t)*MAX_CACHED_BUNDLES,
                    sizeof(bundleCacheEntry_t));
@@ -580,10 +582,16 @@ nsStringBundleService::flushBundleCache()
   
   mBundleMap.Reset();
   
-  while (!mBundleCache.isEmpty()) {
-    bundleCacheEntry_t *cacheEntry = mBundleCache.popFirst();
+  PRCList *current = PR_LIST_HEAD(&mBundleCache);
+  while (current != &mBundleCache) {
+    bundleCacheEntry_t *cacheEntry = (bundleCacheEntry_t*)current;
 
     recycleEntry(cacheEntry);
+    PRCList *oldItem = current;
+    current = PR_NEXT_LINK(current);
+    
+    
+    PR_REMOVE_LINK(oldItem);
   }
   PL_FreeArenaPool(&mCacheEntryPool);
 }
@@ -608,7 +616,7 @@ nsStringBundleService::getStringBundle(const char *aURLSpec,
     
     
     
-    cacheEntry->remove();
+    PR_REMOVE_LINK((PRCList*)cacheEntry);
     
   } else {
 
@@ -625,7 +633,8 @@ nsStringBundleService::getStringBundle(const char *aURLSpec,
   
   
   
-  mBundleCache.insertFront(cacheEntry);
+  
+  PR_INSERT_LINK((PRCList *)cacheEntry, &mBundleCache);
 
   
   *aResult = cacheEntry->mBundle;
@@ -650,7 +659,7 @@ nsStringBundleService::insertIntoCache(nsIStringBundle* aBundle,
   } else {
     
     
-    cacheEntry = mBundleCache.getLast();
+    cacheEntry = (bundleCacheEntry_t*)PR_LIST_TAIL(&mBundleCache);
       
     
     NS_ASSERTION(mBundleMap.Exists(cacheEntry->mHashKey),
@@ -661,7 +670,7 @@ nsStringBundleService::insertIntoCache(nsIStringBundle* aBundle,
                                aHashKey->GetString()).get());
 #endif
     mBundleMap.Remove(cacheEntry->mHashKey);
-    cacheEntry->remove();
+    PR_REMOVE_LINK((PRCList*)cacheEntry);
 
     
     recycleEntry(cacheEntry);

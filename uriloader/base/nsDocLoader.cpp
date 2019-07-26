@@ -62,21 +62,64 @@ void GetURIStringFromRequest(nsIRequest* request, nsACString &name)
 }
 #endif 
 
+struct nsStatusInfo : public PRCList
+{
+  nsString mStatusMessage;
+  nsresult mStatusCode;
+  
+  nsIRequest * const mRequest;
+
+  nsStatusInfo(nsIRequest *aRequest) :
+    mRequest(aRequest)
+  {
+    MOZ_COUNT_CTOR(nsStatusInfo);
+    PR_INIT_CLIST(this);
+  }
+  ~nsStatusInfo()
+  {
+    MOZ_COUNT_DTOR(nsStatusInfo);
+    PR_REMOVE_LINK(this);
+  }
+};
+
+struct nsRequestInfo : public PLDHashEntryHdr
+{
+  nsRequestInfo(const void *key)
+    : mKey(key), mCurrentProgress(0), mMaxProgress(0), mUploading(false)
+    , mLastStatus(nullptr)
+  {
+    MOZ_COUNT_CTOR(nsRequestInfo);
+  }
+
+  ~nsRequestInfo()
+  {
+    MOZ_COUNT_DTOR(nsRequestInfo);
+  }
+
+  nsIRequest* Request() {
+    return static_cast<nsIRequest*>(const_cast<void*>(mKey));
+  }
+
+  const void* mKey; 
+  int64_t mCurrentProgress;
+  int64_t mMaxProgress;
+  bool mUploading;
+
+  nsAutoPtr<nsStatusInfo> mLastStatus;
+};
 
 
-bool
-nsDocLoader::RequestInfoHashInitEntry(PLDHashTable* table,
-                                      PLDHashEntryHdr* entry,
-                                      const void* key)
+static bool
+RequestInfoHashInitEntry(PLDHashTable *table, PLDHashEntryHdr *entry,
+                         const void *key)
 {
   
   new (entry) nsRequestInfo(key);
   return true;
 }
 
-void
-nsDocLoader::RequestInfoHashClearEntry(PLDHashTable* table,
-                                       PLDHashEntryHdr* entry)
+static void
+RequestInfoHashClearEntry(PLDHashTable *table, PLDHashEntryHdr *entry)
 {
   nsRequestInfo* info = static_cast<nsRequestInfo *>(entry);
   info->~nsRequestInfo();
@@ -134,6 +177,8 @@ nsDocLoader::nsDocLoader()
   }
 
   ClearInternalProgress();
+
+  PR_INIT_CLIST(&mStatusInfoList);
 
   PR_LOG(gDocLoaderLog, PR_LOG_DEBUG, 
          ("DocLoader:%p: created.\n", this));
@@ -847,8 +892,9 @@ void nsDocLoader::doStopURLLoad(nsIRequest *request, nsresult aStatus)
 
   
   
-  if (!mStatusInfoList.isEmpty()) {
-    nsStatusInfo* statusInfo = mStatusInfoList.getFirst();
+  if (!PR_CLIST_IS_EMPTY(&mStatusInfoList)) {
+    nsStatusInfo* statusInfo =
+      static_cast<nsStatusInfo*>(PR_LIST_HEAD(&mStatusInfoList));
     FireOnStatusChange(this, statusInfo->mRequest,
                        statusInfo->mStatusCode,
                        statusInfo->mStatusMessage.get());
@@ -1133,12 +1179,12 @@ NS_IMETHODIMP nsDocLoader::OnStatus(nsIRequest* aRequest, nsISupports* ctxt,
       } else {
         
         
-        info->mLastStatus->remove();
+        PR_REMOVE_LINK(info->mLastStatus);
       }
       info->mLastStatus->mStatusMessage = msg;
       info->mLastStatus->mStatusCode = aStatus;
       
-      mStatusInfoList.insertFront(info->mLastStatus);
+      PR_INSERT_LINK(info->mLastStatus, &mStatusInfoList);
     }
     FireOnStatusChange(this, aRequest, aStatus, msg);
   }
@@ -1489,10 +1535,10 @@ void nsDocLoader::RemoveRequestInfo(nsIRequest *aRequest)
   PL_DHashTableOperate(&mRequestInfoHash, aRequest, PL_DHASH_REMOVE);
 }
 
-nsDocLoader::nsRequestInfo* nsDocLoader::GetRequestInfo(nsIRequest* aRequest)
+nsRequestInfo * nsDocLoader::GetRequestInfo(nsIRequest *aRequest)
 {
-  nsRequestInfo* info =
-    static_cast<nsRequestInfo*>
+  nsRequestInfo *info =
+    static_cast<nsRequestInfo *>
                (PL_DHashTableOperate(&mRequestInfoHash, aRequest,
                                         PL_DHASH_LOOKUP));
 
@@ -1528,12 +1574,12 @@ void nsDocLoader::ClearRequestInfoHash(void)
 }
 
 
-PLDHashOperator
-nsDocLoader::CalcMaxProgressCallback(PLDHashTable* table, PLDHashEntryHdr* hdr,
-                                     uint32_t number, void* arg)
+static PLDHashOperator
+CalcMaxProgressCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                        uint32_t number, void *arg)
 {
-  const nsRequestInfo* info = static_cast<const nsRequestInfo*>(hdr);
-  int64_t* max = static_cast<int64_t* >(arg);
+  const nsRequestInfo *info = static_cast<const nsRequestInfo *>(hdr);
+  int64_t *max = static_cast<int64_t *>(arg);
 
   if (info->mMaxProgress < info->mCurrentProgress) {
     *max = int64_t(-1);
