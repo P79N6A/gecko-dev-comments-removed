@@ -6542,6 +6542,10 @@ let Reader = {
     switch(aTopic) {
       case "Reader:Add": {
         let args = JSON.parse(aData);
+        if ('fromAboutReader' in args) {
+          
+          break;
+        }
 
         let tabID = null;
         let url, urlWithoutRef;
