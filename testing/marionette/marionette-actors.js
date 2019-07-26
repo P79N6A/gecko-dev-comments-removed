@@ -153,6 +153,7 @@ function MarionetteDriverActor(aConnection)
   this.curFrame = null; 
   this.importedScripts = FileUtils.getFile('TmpD', ['marionettescriptchrome']);
   this.currentRemoteFrame = null; 
+  this.testName = null;
 
   
   this.addMessageManagerListeners(this.messageManager);
@@ -691,7 +692,7 @@ MarionetteDriverActor.prototype = {
     let curWindow = this.getCurrentWindow();
     let marionette = new Marionette(this, curWindow, "chrome",
                                     this.marionetteLog, this.marionettePerf,
-                                    this.scriptTimeout);
+                                    this.scriptTimeout, this.testName);
     let _chromeSandbox = this.createExecuteSandbox(curWindow, marionette, aRequest.args, aRequest.specialPowers);
     if (!_chromeSandbox)
       return;
@@ -802,7 +803,7 @@ MarionetteDriverActor.prototype = {
     let that = this;
     let marionette = new Marionette(this, curWindow, "chrome",
                                     this.marionetteLog, this.marionettePerf,
-                                    this.scriptTimeout);
+                                    this.scriptTimeout, this.testName);
     marionette.command_id = this.command_id;
 
     function chromeAsyncReturnFunc(value, status) {
@@ -1386,6 +1387,16 @@ MarionetteDriverActor.prototype = {
 
 
 
+  setTestName: function MDA_setTestName(aRequest) {
+    this.testName = aRequest.value;
+    this.sendAsync("setTestName", {value: aRequest.value});
+  },
+
+  
+
+
+
+
 
 
   clearElement: function MDA_clearElement(aRequest) {
@@ -1731,7 +1742,8 @@ MarionetteDriverActor.prototype.requestTypes = {
   "emulatorCmdResult": MarionetteDriverActor.prototype.emulatorCmdResult,
   "importScript": MarionetteDriverActor.prototype.importScript,
   "getAppCacheStatus": MarionetteDriverActor.prototype.getAppCacheStatus,
-  "closeWindow": MarionetteDriverActor.prototype.closeWindow
+  "closeWindow": MarionetteDriverActor.prototype.closeWindow,
+  "setTestName": MarionetteDriverActor.prototype.setTestName
 };
 
 
