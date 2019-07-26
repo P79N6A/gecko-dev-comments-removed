@@ -384,43 +384,40 @@ PivotContext.prototype = {
 
 
 
-  _traverse: function _traverse(aAccessible, preorder) {
-    let list = [];
+
+
+  _traverse: function _traverse(aAccessible, aPreorder, aStop) {
+    if (aStop && aStop(aAccessible)) {
+      return;
+    }
     let child = aAccessible.firstChild;
     while (child) {
       let state = {};
       child.getState(state, {});
       if (!(state.value & Ci.nsIAccessibleStates.STATE_INVISIBLE)) {
-        let traversed = _traverse(child, preorder);
-        
-        traversed[preorder ? "unshift" : "push"](child);
-        list.push.apply(list, traversed);
+        if (aPreorder) {
+          yield child;
+          [yield node for (node of this._traverse(child, aPreorder, aStop))];
+        } else {
+          [yield node for (node of this._traverse(child, aPreorder, aStop))];
+          yield child;
+        }
       }
       child = child.nextSibling;
     }
-    return list;
   },
 
   
 
 
 
-  get subtreePreorder() {
-    if (!this._subtreePreOrder)
-      this._subtreePreOrder = this._traverse(this._accessible, true);
-
-    return this._subtreePreOrder;
-  },
-
-  
 
 
 
-  get subtreePostorder() {
-    if (!this._subtreePostOrder)
-      this._subtreePostOrder = this._traverse(this._accessible, false);
 
-    return this._subtreePostOrder;
+
+  subtreeGenerator: function subtreeGenerator(aPreorder, aStop) {
+    return this._traverse(this._accessible, aPreorder, aStop);
   },
 
   get bounds() {
