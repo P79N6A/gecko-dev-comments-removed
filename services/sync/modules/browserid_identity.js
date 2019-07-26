@@ -83,12 +83,12 @@ this.BrowserIDManager.prototype = {
   },
 
   initialize: function() {
-    Services.obs.addObserver(this, fxAccountsCommon.ONVERIFIED_NOTIFICATION, false);
+    Services.obs.addObserver(this, fxAccountsCommon.ONLOGIN_NOTIFICATION, false);
     Services.obs.addObserver(this, fxAccountsCommon.ONLOGOUT_NOTIFICATION, false);
     return this.initializeWithCurrentIdentity();
   },
 
-  initializeWithCurrentIdentity: function() {
+  initializeWithCurrentIdentity: function(isInitialSync=false) {
     this._log.trace("initializeWithCurrentIdentity");
     Components.utils.import("resource://services-sync/main.js");
 
@@ -103,31 +103,43 @@ this.BrowserIDManager.prototype = {
         return;
       }
 
-      if (this.needsCustomization) {
-        
-        
-        const url = "chrome://browser/content/sync/customize.xul";
-        const features = "centerscreen,chrome,modal,dialog,resizable=no";
-        let win = Services.wm.getMostRecentWindow("navigator:browser");
-
-        let data = {accepted: false};
-        win.openDialog(url, "_blank", features, data);
-
-        if (data.accepted) {
-          Services.prefs.clearUserPref(PREF_SYNC_SHOW_CUSTOMIZATION);
-        } else {
-          
-          return fxAccounts.signOut();
-        }
-      }
-
       this._account = accountData.email;
       
-      this._log.info("Starting background fetch for key bundle.");
-      this._fetchSyncKeyBundle().then(() => {
+      
+      
+      this._log.info("Waiting for user to be verified.");
+      fxAccounts.whenVerified(accountData).then(accountData => {
+        
+        this._log.info("Starting fetch for key bundle.");
+        if (this.needsCustomization) {
+          
+          
+          const url = "chrome://browser/content/sync/customize.xul";
+          const features = "centerscreen,chrome,modal,dialog,resizable=no";
+          let win = Services.wm.getMostRecentWindow("navigator:browser");
+
+          let data = {accepted: false};
+          win.openDialog(url, "_blank", features, data);
+
+          if (data.accepted) {
+            Services.prefs.clearUserPref(PREF_SYNC_SHOW_CUSTOMIZATION);
+          } else {
+            
+            return fxAccounts.signOut();
+          }
+        }
+      }).then(() => {
+        return this._fetchSyncKeyBundle();
+      }).then(() => {
         this._shouldHaveSyncKeyBundle = true; 
         this.whenReadyToAuthenticate.resolve();
         this._log.info("Background fetch for key bundle done");
+        if (isInitialSync) {
+          this._log.info("Doing initial sync actions");
+          Weave.Service.resetClient();
+          Services.obs.notifyObservers(null, "weave:service:setup-complete", null);
+          Weave.Utils.nextTick(Weave.Service.sync, Weave.Service);
+        }
       }).then(null, err => {
         this._shouldHaveSyncKeyBundle = true; 
         this.whenReadyToAuthenticate.reject(err);
@@ -143,14 +155,8 @@ this.BrowserIDManager.prototype = {
 
   observe: function (subject, topic, data) {
     switch (topic) {
-    case fxAccountsCommon.ONVERIFIED_NOTIFICATION:
     case fxAccountsCommon.ONLOGIN_NOTIFICATION:
-      
-      
-      
-      
-      
-      this.initializeWithCurrentIdentity();
+      this.initializeWithCurrentIdentity(true);
       break;
 
     case fxAccountsCommon.ONLOGOUT_NOTIFICATION:
@@ -352,55 +358,22 @@ this.BrowserIDManager.prototype = {
 
   _fetchSyncKeyBundle: function() {
     
-    return this._refreshTokenForLoggedInUser(
-    ).then(token => {
-      this._token = token;
-      return this._fxaService.getKeys();
-    }).then(userData => {
+    return this._fxaService.getKeys().then(userData => {
       
       
       if (!userData || userData.email !== this.account) {
         throw new Error("The currently logged-in user has changed.");
       }
-      
-      this.username = this._token.uid.toString();
-      
-      let kB = Utils.hexToBytes(userData.kB);
-      this._syncKeyBundle = deriveKeyBundle(kB);
+      return this._fetchTokenForUser(userData).then(token => {
+        this._token = token;
+        
+        this.username = this._token.uid.toString();
+        
+        let kB = Utils.hexToBytes(userData.kB);
+        this._syncKeyBundle = deriveKeyBundle(kB);
+        return;
+      });
     });
-  },
-
-  
-  
-  _refreshTokenForLoggedInUser: function() {
-    return this._fxaService.getSignedInUser().then(function (userData) {
-      if (!userData || userData.email !== this.account) {
-        
-        
-        
-        this._log.error("Currently logged in FxA user differs from what was locally noted. TODO: do proper error handling.");
-        return null;
-      }
-      return this._fetchTokenForUser(userData);
-    }.bind(this));
-  },
-
-  _refreshTokenForLoggedInUserSync: function() {
-    let cb = Async.makeSpinningCallback();
-
-    this._refreshTokenForLoggedInUser().then(function (token) {
-      cb(null, token);
-    },
-    function (err) {
-      cb(err);
-    });
-
-    try {
-      return cb.wait();
-    } catch (err) {
-      this._log.info("refreshTokenForLoggedInUserSync: " + err.message);
-      return null;
-    }
   },
 
   
@@ -438,7 +411,29 @@ this.BrowserIDManager.prototype = {
       .then(token => {
         token.expiration = this._now() + (token.duration * 1000);
         return token;
+      })
+      .then(null, err => {
+        Cu.reportError("Failed to fetch token: " + err);
+        
       });
+  },
+
+  _fetchTokenForLoggedInUserSync: function() {
+    let cb = Async.makeSpinningCallback();
+
+    this._fxaService.getSignedInUser().then(userData => {
+      this._fetchTokenForUser(userData).then(token => {
+        cb(null, token);
+      }, err => {
+        cb(err);
+      });
+    });
+    try {
+      return cb.wait();
+    } catch (err) {
+      this._log.info("_fetchTokenForLoggedInUserSync: " + err.message);
+      return null;
+    }
   },
 
   getResourceAuthenticator: function () {
@@ -459,7 +454,7 @@ this.BrowserIDManager.prototype = {
   _getAuthenticationHeader: function(httpObject, method) {
     if (!this.hasValidToken()) {
       
-      this._token = this._refreshTokenForLoggedInUserSync();
+      this._token = this._fetchTokenForLoggedInUserSync();
       if (!this._token) {
         return null;
       }
