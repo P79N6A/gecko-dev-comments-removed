@@ -120,6 +120,48 @@ let MessageListener = {
   }
 };
 
+
+
+
+
+
+
+
+
+let SyncHandler = {
+  init: function () {
+    
+    
+    
+    
+    sendSyncMessage("SessionStore:setupSyncHandler", {}, {handler: this});
+  },
+
+  collectSessionHistory: function (includePrivateData) {
+    let history = SessionHistory.read(docShell);
+    if ("index" in history) {
+      let tabIndex = history.index - 1;
+      TextAndScrollData.updateFrame(history.entries[tabIndex],
+                                    content,
+                                    docShell.isAppTab,
+                                    {includePrivateData: includePrivateData});
+    }
+    return history;
+  },
+
+  collectSessionStorage: function () {
+    return SessionStorage.serialize(docShell);
+  },
+
+  collectDocShellCapabilities: function () {
+    return DocShellCapabilities.collect(docShell);
+  },
+
+  collectPageStyle: function () {
+    return PageStyle.collect(docShell);
+  },
+};
+
 let ProgressListener = {
   init: function() {
     let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -140,4 +182,5 @@ let ProgressListener = {
 
 EventListener.init();
 MessageListener.init();
+SyncHandler.init();
 ProgressListener.init();

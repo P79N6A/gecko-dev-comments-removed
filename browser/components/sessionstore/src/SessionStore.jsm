@@ -65,7 +65,11 @@ const MESSAGES = [
 
   
   
-  "SessionStore:loadStart"
+  "SessionStore:loadStart",
+
+  
+  
+  "SessionStore:setupSyncHandler"
 ];
 
 
@@ -602,6 +606,9 @@ let SessionStoreInternal = {
       case "SessionStore:loadStart":
         TabStateCache.delete(browser);
         break;
+      case "SessionStore:setupSyncHandler":
+        TabState.setSyncHandler(browser, aMessage.objects.handler);
+        break;
       default:
         debug("received unknown message '" + aMessage.name + "'");
         break;
@@ -620,16 +627,22 @@ let SessionStoreInternal = {
       return;
 
     var win = aEvent.currentTarget.ownerDocument.defaultView;
+    let browser;
     switch (aEvent.type) {
       case "load":
         
         
         
-        let browser = aEvent.currentTarget;
+        browser = aEvent.currentTarget;
         TabStateCache.delete(browser);
         if (browser.__SS_restore_data)
           this.restoreDocument(win, browser, aEvent);
         this.onTabLoad(win, browser);
+        break;
+      case "SwapDocShells":
+        browser = aEvent.currentTarget;
+        let otherBrowser = aEvent.detail;
+        TabState.onSwapDocShells(browser, otherBrowser);
         break;
       case "TabOpen":
         this.onTabAdd(win, aEvent.originalTarget);
@@ -1203,9 +1216,13 @@ let SessionStoreInternal = {
   onTabAdd: function ssi_onTabAdd(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
     browser.addEventListener("load", this, true);
+    browser.addEventListener("SwapDocShells", this, true);
 
     let mm = browser.messageManager;
     MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
+
+    
+    mm.loadFrameScript("chrome://browser/content/content-sessionStore.js", false);
 
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
@@ -1226,6 +1243,7 @@ let SessionStoreInternal = {
   onTabRemove: function ssi_onTabRemove(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
     browser.removeEventListener("load", this, true);
+    browser.removeEventListener("SwapDocShells", this, true);
 
     let mm = browser.messageManager;
     MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
@@ -4209,6 +4227,47 @@ let TabState = {
   _pendingCollections: new WeakMap(),
 
   
+  
+  
+  _syncHandlers: new WeakMap(),
+
+  
+
+
+  setSyncHandler: function (browser, handler) {
+    this._syncHandlers.set(browser, handler);
+  },
+
+  
+
+
+
+
+
+  onSwapDocShells: function (browser, otherBrowser) {
+    
+    
+    if (!this._syncHandlers.has(browser)) {
+      [browser, otherBrowser] = [otherBrowser, browser];
+      if (!this._syncHandlers.has(browser)) {
+        return;
+      }
+    }
+
+    
+    
+    let handler = this._syncHandlers.get(browser);
+    if (this._syncHandlers.has(otherBrowser)) {
+      let otherHandler = this._syncHandlers.get(otherBrowser);
+      this._syncHandlers.set(browser, otherHandler);
+      this._syncHandlers.set(otherHandler, handler);
+    } else {
+      this._syncHandlers.set(otherBrowser, handler);
+      this._syncHandlers.delete(browser);
+    }
+  },
+
+  
 
 
 
@@ -4228,9 +4287,8 @@ let TabState = {
 
     
     
-    let browser = tab.linkedBrowser;
-    if (!browser.currentURI || (browser.__SS_data && browser.__SS_tabStillLoading)) {
-      let tabData = new TabData(this._collectBaseTabData(tab));
+    if (!this._tabNeedsExtraCollection(tab)) {
+      let tabData = this._collectBaseTabData(tab);
       return Promise.resolve(tabData);
     }
 
@@ -4248,10 +4306,7 @@ let TabState = {
       let pageStyle = yield Messenger.send(tab, "SessionStore:collectPageStyle");
 
       
-      let options = {omitSessionHistory: true,
-                     omitSessionStorage: true,
-                     omitDocShellCapabilities: true};
-      let tabData = this._collectBaseTabData(tab, options);
+      let tabData = this._collectBaseTabData(tab);
 
       
       tabData.entries = history.entries;
@@ -4308,8 +4363,9 @@ let TabState = {
       return TabStateCache.get(tab);
     }
 
-    let tabData = this._collectBaseTabData(tab);
-    if (this._updateTextAndScrollDataForTab(tab, tabData)) {
+    let tabData = this._collectSyncUncached(tab);
+
+    if (this._tabCachingAllowed(tab)) {
       TabStateCache.set(tab, tabData);
     }
 
@@ -4335,10 +4391,83 @@ let TabState = {
 
 
   clone: function (tab) {
-    let options = { includePrivateData: true };
-    let tabData = this._collectBaseTabData(tab, options);
-    this._updateTextAndScrollDataForTab(tab, tabData, options);
+    return this._collectSyncUncached(tab, {includePrivateData: true});
+  },
+
+  
+
+
+
+
+  _collectSyncUncached: function (tab, options = {}) {
+    
+    let tabData = this._collectBaseTabData(tab);
+
+    
+    if (!this._tabNeedsExtraCollection(tab)) {
+      return tabData;
+    }
+
+    
+    
+    
+    
+    if (!this._syncHandlers.has(tab.linkedBrowser)) {
+      return tabData;
+    }
+
+    let syncHandler = this._syncHandlers.get(tab.linkedBrowser);
+
+    let includePrivateData = options && options.includePrivateData;
+
+    let history, storage, disallow, pageStyle;
+    try {
+      history = syncHandler.collectSessionHistory(includePrivateData);
+      storage = syncHandler.collectSessionStorage();
+      disallow = syncHandler.collectDocShellCapabilities();
+      pageStyle = syncHandler.collectPageStyle();
+    } catch (e) {
+      
+      Cu.reportError(e);
+      return tabData;
+    }
+
+    tabData.entries = history.entries;
+    if ("index" in history) {
+      tabData.index = history.index;
+    }
+
+    if (Object.keys(storage).length) {
+      tabData.storage = storage;
+    }
+
+    if (disallow.length > 0) {
+      tabData.disallow = disallow.join(",");
+    }
+
+    if (pageStyle) {
+      tabData.pageStyle = pageStyle;
+    }
+
     return tabData;
+  },
+
+  
+
+
+
+  _tabIsNew: function (tab) {
+    let browser = tab.linkedBrowser;
+    return (!browser || !browser.currentURI);
+  },
+
+  
+
+
+
+  _tabIsRestoring: function (tab) {
+    let browser = tab.linkedBrowser;
+    return (browser.__SS_data && browser.__SS_tabStillLoading);
   },
 
   
@@ -4351,6 +4480,42 @@ let TabState = {
 
 
 
+  _tabNeedsExtraCollection: function (tab) {
+    if (this._tabIsNew(tab)) {
+      
+      return false;
+    }
+
+    if (this._tabIsRestoring(tab)) {
+      
+      return false;
+    }
+
+    
+    return true;
+  },
+
+  
+
+
+
+  _tabCachingAllowed: function (tab) {
+    if (this._tabIsNew(tab)) {
+      
+      return false;
+    }
+
+    if (this._tabIsRestoring(tab)) {
+      
+      
+      
+      return false;
+    }
+
+    return true;
+  },
+
+  
 
 
 
@@ -4358,11 +4523,10 @@ let TabState = {
 
 
 
-
-
-  _collectBaseTabData: function (tab, options = {}) {
+  _collectBaseTabData: function (tab) {
     let tabData = {entries: [], lastAccessed: tab.lastAccessed };
     let browser = tab.linkedBrowser;
+
     if (!browser || !browser.currentURI) {
       
       return tabData;
@@ -4387,11 +4551,6 @@ let TabState = {
     }
 
     
-    if (!options || !options.omitSessionHistory) {
-      this._collectTabHistory(tab, tabData, options);
-    }
-
-    
     
     
     
@@ -4409,14 +4568,6 @@ let TabState = {
       delete tabData.pinned;
     tabData.hidden = tab.hidden;
 
-    if (!options || !options.omitDocShellCapabilities) {
-      let disallow = DocShellCapabilities.collect(browser.docShell);
-      if (disallow.length > 0)
-        tabData.disallow = disallow.join(",");
-      else if (tabData.disallow)
-        delete tabData.disallow;
-    }
-
     
     tabData.attributes = TabAttributes.get(tab);
 
@@ -4429,104 +4580,7 @@ let TabState = {
     else if (tabData.extData)
       delete tabData.extData;
 
-    
-    if (!options || !options.omitSessionStorage) {
-      this._collectTabSessionStorage(tab, tabData, options);
-    }
-
     return tabData;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _collectTabHistory: function (tab, tabData, options = {}) {
-    let includePrivateData = options && options.includePrivateData;
-    let docShell = tab.linkedBrowser.docShell;
-
-    if (docShell instanceof Ci.nsIDocShell) {
-      let history = SessionHistory.read(docShell, includePrivateData);
-      tabData.entries = history.entries;
-
-      
-      
-      if ("index" in history) {
-        tabData.index = history.index;
-      }
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _collectTabSessionStorage: function (tab, tabData, options = {}) {
-    let includePrivateData = options && options.includePrivateData;
-    let docShell = tab.linkedBrowser.docShell;
-
-    if (docShell instanceof Ci.nsIDocShell) {
-      let storageData = SessionStorage.serialize(docShell, includePrivateData)
-      if (Object.keys(storageData).length) {
-        tabData.storage = storageData;
-      }
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _updateTextAndScrollDataForTab: function (tab, tabData, options = null) {
-    let includePrivateData = options && options.includePrivateData;
-    let window = tab.ownerDocument.defaultView;
-    let browser = tab.linkedBrowser;
-    
-    if (!browser.currentURI
-        || (browser.__SS_data && browser.__SS_tabStillLoading)) {
-      return false;
-    }
-
-    let tabIndex = (tabData.index || tabData.entries.length) - 1;
-    
-    if (!tabData.entries[tabIndex]) {
-      return false;
-    }
-
-    let selectedPageStyle = PageStyle.collect(browser.docShell);
-    if (selectedPageStyle) {
-      tabData.pageStyle = selectedPageStyle;
-    }
-
-    TextAndScrollData.updateFrame(tabData.entries[tabIndex],
-                                  browser.contentWindow,
-                                  !!tabData.pinned,
-                                  {includePrivateData: includePrivateData});
-
-    return true;
   },
 };
 

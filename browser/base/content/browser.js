@@ -764,7 +764,6 @@ var gBrowserInit = {
     window.addEventListener("AppCommand", HandleAppCommandEvent, true);
 
     messageManager.loadFrameScript("chrome://browser/content/content.js", true);
-    messageManager.loadFrameScript("chrome://browser/content/content-sessionStore.js", true);
 
     
     
@@ -3018,8 +3017,8 @@ const BrowserSearch = {
 
 
 
-  _loadSearch: function (searchText, useNewTab, purpose) {
-    let engine;
+  loadSearch: function BrowserSearch_search(searchText, useNewTab, purpose) {
+    var engine;
 
     
     
@@ -3028,7 +3027,7 @@ const BrowserSearch = {
     else
       engine = Services.search.defaultEngine;
 
-    let submission = engine.getSubmission(searchText, null, purpose); 
+    var submission = engine.getSubmission(searchText, null, purpose); 
 
     
     
@@ -3045,20 +3044,6 @@ const BrowserSearch = {
                  inBackground: inBackground,
                  relatedToCurrent: true });
 
-    return engine;
-  },
-
-  
-
-
-
-
-
-  loadSearch: function BrowserSearch_search(searchText, useNewTab, purpose) {
-    let engine = BrowserSearch._loadSearch(searchText, useNewTab, purpose);
-    if (!engine) {
-      return null;
-    }
     return engine.name;
   },
 
@@ -3069,7 +3054,7 @@ const BrowserSearch = {
 
 
   loadSearchFromContext: function (terms) {
-    let engine = BrowserSearch._loadSearch(terms, true, "contextmenu");
+    let engine = BrowserSearch.loadSearch(terms, true, "contextmenu");
     if (engine) {
       BrowserSearch.recordSearchInHealthReport(engine, "contextmenu");
     }
@@ -3090,6 +3075,7 @@ const BrowserSearch = {
   },
 
   
+
 
 
 
