@@ -91,6 +91,13 @@
     macro(JSOP_NOP,       0,  "nop",        NULL,         1,  0,  0, JOF_BYTE) \
     \
      \
+    
+
+
+
+
+
+ \
     macro(JSOP_UNDEFINED, 1,  js_undefined_str, "",       1,  0,  1, JOF_BYTE) \
     macro(JSOP_UNUSED2,   2,  "unused2",    NULL,         1,  1,  0, JOF_BYTE) \
     macro(JSOP_ENTERWITH, 3,  "enterwith",  NULL,         5,  1,  0, JOF_OBJECT) \
@@ -159,6 +166,14 @@
 
  \
     macro(JSOP_DUP2,      13, "dup2",       NULL,         1,  2,  4, JOF_BYTE) \
+    
+
+
+
+
+
+
+ \
     macro(JSOP_SETCONST,  14, "setconst",   NULL,         5,  1,  1, JOF_ATOM|JOF_NAME|JOF_SET) \
     
 
@@ -259,6 +274,17 @@
 
  \
     macro(JSOP_POS,       35, "pos",        "+ ",         1,  1,  1, JOF_BYTE|JOF_ARITH) \
+    
+
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_DELNAME,   36, "delname",    NULL,         5,  0,  1, JOF_ATOM|JOF_NAME) \
     macro(JSOP_DELPROP,   37, "delprop",    NULL,         5,  1,  1, JOF_ATOM|JOF_PROP) \
     macro(JSOP_DELELEM,   38, "delelem",    NULL,         1,  2,  1, JOF_BYTE |JOF_ELEM) \
@@ -351,11 +377,53 @@
 
  \
     macro(JSOP_CALL,      58, "call",       NULL,         3, -1,  1, JOF_UINT16|JOF_INVOKE|JOF_TYPESET) \
+    
+
+
+
+
+
+ \
     macro(JSOP_NAME,      59, "name",       NULL,         5,  0,  1, JOF_ATOM|JOF_NAME|JOF_TYPESET) \
+    
+
+
+
+
+
+ \
     macro(JSOP_DOUBLE,    60, "double",     NULL,         5,  0,  1, JOF_DOUBLE) \
+    
+
+
+
+
+
+ \
     macro(JSOP_STRING,    61, "string",     NULL,         5,  0,  1, JOF_ATOM) \
+    
+
+
+
+
+
+ \
     macro(JSOP_ZERO,      62, "zero",       "0",          1,  0,  1, JOF_BYTE) \
+    
+
+
+
+
+
+ \
     macro(JSOP_ONE,       63, "one",        "1",          1,  0,  1, JOF_BYTE) \
+    
+
+
+
+
+
+ \
     macro(JSOP_NULL,      64, js_null_str,  js_null_str,  1,  0,  1, JOF_BYTE) \
     
 
@@ -365,6 +433,13 @@
 
  \
     macro(JSOP_THIS,      65, js_this_str,  js_this_str,  1,  0,  1, JOF_BYTE) \
+    
+
+
+
+
+
+ \
     macro(JSOP_FALSE,     66, js_false_str, js_false_str, 1,  0,  1, JOF_BYTE) \
     macro(JSOP_TRUE,      67, js_true_str,  js_true_str,  1,  0,  1, JOF_BYTE) \
     macro(JSOP_OR,        68, "or",         NULL,         5,  1,  1, JOF_JUMP|JOF_DETECTING|JOF_LEFTASSOC) \
@@ -481,10 +556,30 @@
 
  \
     macro(JSOP_SETARG,    85, "setarg",     NULL,         3,  1,  1,  JOF_QARG |JOF_NAME|JOF_SET) \
+    
+
+
+
+
+
+ \
     macro(JSOP_GETLOCAL,  86,"getlocal",    NULL,         4,  0,  1,  JOF_LOCAL|JOF_NAME) \
+    
+
+
+
+
+
+ \
     macro(JSOP_SETLOCAL,  87,"setlocal",    NULL,         4,  1,  1,  JOF_LOCAL|JOF_NAME|JOF_SET|JOF_DETECTING) \
     \
-     \
+    
+
+
+
+
+
+ \
     macro(JSOP_UINT16,    88, "uint16",     NULL,         3,  0,  1,  JOF_UINT16) \
     \
     
@@ -552,7 +647,24 @@
     macro(JSOP_LOOPHEAD,  109,"loophead",   NULL,         1,  0,  0,  JOF_BYTE) \
     \
      \
+    
+
+
+
+
+
+
+
+ \
     macro(JSOP_BINDNAME,  110,"bindname",   NULL,         5,  0,  1,  JOF_ATOM|JOF_NAME|JOF_SET) \
+    
+
+
+
+
+
+
+ \
     macro(JSOP_SETNAME,   111,"setname",    NULL,         5,  2,  1,  JOF_ATOM|JOF_NAME|JOF_SET|JOF_DETECTING) \
     \
      \
@@ -631,9 +743,41 @@
     macro(JSOP_UNUSED125,  125, "unused125", NULL,      1,  0,  0,  JOF_BYTE) \
     macro(JSOP_UNUSED126,  126, "unused126", NULL,      1,  0,  0,  JOF_BYTE) \
     \
-     \
+    
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_DEFFUN,    127,"deffun",     NULL,         5,  0,  0,  JOF_OBJECT) \
+    
+
+
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_DEFCONST,  128,"defconst",   NULL,         5,  0,  0,  JOF_ATOM) \
+    
+
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_DEFVAR,    129,"defvar",     NULL,         5,  0,  0,  JOF_ATOM) \
     \
     
@@ -695,8 +839,21 @@
 
 
 
+
+
+
+
+
+
  \
     macro(JSOP_GETALIASEDVAR, 136,"getaliasedvar",NULL,      5,  0,  1,  JOF_SCOPECOORD|JOF_NAME|JOF_TYPESET) \
+    
+
+
+
+
+
+ \
     macro(JSOP_SETALIASEDVAR, 137,"setaliasedvar",NULL,      5,  1,  1,  JOF_SCOPECOORD|JOF_NAME|JOF_SET|JOF_DETECTING) \
     \
     macro(JSOP_UNUSED138,  138, "unused138",   NULL,         1,  0,  0,  JOF_BYTE) \
@@ -711,9 +868,32 @@
 
 
 
+
+
+
+
+
+
  \
     macro(JSOP_GETINTRINSIC,  143, "getintrinsic",  NULL, 5,  0,  1, JOF_ATOM|JOF_NAME|JOF_TYPESET) \
+    
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_SETINTRINSIC,  144, "setintrinsic",  NULL, 5,  2,  1, JOF_ATOM|JOF_NAME|JOF_SET|JOF_DETECTING) \
+    
+
+
+
+
+
+ \
     macro(JSOP_BINDINTRINSIC, 145, "bindintrinsic", NULL, 5,  0,  1, JOF_ATOM|JOF_NAME|JOF_SET) \
     \
      \
@@ -750,8 +930,27 @@
  \
     macro(JSOP_RETRVAL,       153,"retrval",    NULL,       1,  0,  0,  JOF_BYTE) \
     \
-     \
+    
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_GETGNAME,      154,"getgname",  NULL,       5,  0,  1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_GNAME) \
+    
+
+
+
+
+
+
+
+
+ \
     macro(JSOP_SETGNAME,      155,"setgname",  NULL,       5,  2,  1, JOF_ATOM|JOF_NAME|JOF_SET|JOF_DETECTING|JOF_GNAME) \
     \
     macro(JSOP_UNUSED156,  156, "unused156",   NULL,         1,  0,  0,  JOF_BYTE) \
@@ -792,7 +991,13 @@
     macro(JSOP_UNUSED186,     186,"unused186",  NULL,     1,  0,  0,  JOF_BYTE) \
     macro(JSOP_UNUSED187,     187,"unused187",  NULL,     1,  0,  0,  JOF_BYTE) \
     \
-     \
+    
+
+
+
+
+
+ \
     macro(JSOP_UINT24,        188,"uint24",     NULL,     4,  0,  1, JOF_UINT24) \
     \
     macro(JSOP_UNUSED189,     189,"unused189",   NULL,    1,  0,  0,  JOF_BYTE) \
@@ -826,7 +1031,21 @@
     macro(JSOP_TYPEOFEXPR,    197,"typeofexpr",  NULL,    1,  1,  1, JOF_BYTE|JOF_DETECTING) \
     \
      \
+    
+
+
+
+
+
+ \
     macro(JSOP_PUSHBLOCKSCOPE,198,"pushblockscope", NULL, 5,  0,  0,  JOF_OBJECT) \
+    
+
+
+
+
+
+ \
     macro(JSOP_POPBLOCKSCOPE, 199,"popblockscope", NULL,  1,  0,  0,  JOF_BYTE) \
     
 
@@ -870,10 +1089,32 @@
     macro(JSOP_UNUSED211,     211, "unused211",    NULL,  1,  0,  0,  JOF_BYTE) \
     macro(JSOP_UNUSED212,     212, "unused212",    NULL,  1,  0,  0,  JOF_BYTE) \
     macro(JSOP_UNUSED213,     213, "unused213",    NULL,  1,  0,  0,  JOF_BYTE) \
+    
+
+
+
+
+
+
+
+ \
     macro(JSOP_BINDGNAME,     214, "bindgname",    NULL,  5,  0,  1,  JOF_ATOM|JOF_NAME|JOF_SET|JOF_GNAME) \
     \
-     \
+    
+
+
+
+
+
+ \
     macro(JSOP_INT8,          215, "int8",         NULL,  2,  0,  1, JOF_INT8) \
+    
+
+
+
+
+
+ \
     macro(JSOP_INT32,         216, "int32",        NULL,  5,  0,  1, JOF_INT32) \
     \
      \
