@@ -200,6 +200,20 @@ self.onmessage = function onmessage(event) {
 
 
 
+function setDNS(options) {
+  let ifprops = getIFProperties(options.ifname);
+  let dns1_str = options.dns1_str || ifprops.dns1_str;
+  let dns2_str = options.dns2_str || ifprops.dns2_str;
+  libcutils.property_set("net.dns1", dns1_str);
+  libcutils.property_set("net.dns2", dns2_str);
+  
+  let dnschange = libcutils.property_get("net.dnschange", "0");
+  libcutils.property_set("net.dnschange", (parseInt(dnschange, 10) + 1).toString());
+}
+
+
+
+
 function setDefaultRouteAndDNS(options) {
   if (options.oldIfname) {
     libnetutils.ifc_remove_default_route(options.oldIfname);

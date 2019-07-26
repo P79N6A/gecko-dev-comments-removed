@@ -236,6 +236,8 @@ NetworkManager.prototype = {
               this.addHostRoute(network);
             }
             
+            this.setExtraHostRoute(network);
+            
             
             this.removeDefaultRoute(network.name);
             this.setAndConfigureActive();
@@ -257,8 +259,12 @@ NetworkManager.prototype = {
               this.removeHostRoute(network);
             }
             
+            this.removeExtraHostRoute(network);
+            
             if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
               this.resetRoutingTable(network);
+            } else if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE) {
+              this.removeDefaultRoute(network.name);
             }
             
             CaptivePortalDetectionHelper.notify(CaptivePortalDetectionHelper.EVENT_DISCONNECT, network);
@@ -272,25 +278,13 @@ NetworkManager.prototype = {
         break;
       case TOPIC_INTERFACE_REGISTERED:
         let regNetwork = subject.QueryInterface(Ci.nsINetworkInterface);
-        if (regNetwork.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
-          debug("Network '" + regNetwork.name + "' registered, adding mmsproxy and/or mmsc route");
-	  let mmsHosts = this.resolveHostname(
-	      [ Services.prefs.getCharPref("ril.mms.mmsproxy"),
-                Services.prefs.getCharPref("ril.mms.mmsc") ]
-	    );
-          this.addHostRouteWithResolve(regNetwork, mmsHosts);
-        }
+        
+        this.setExtraHostRoute(regNetwork);
         break;
       case TOPIC_INTERFACE_UNREGISTERED:
         let unregNetwork = subject.QueryInterface(Ci.nsINetworkInterface);
-        if (unregNetwork.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
-          debug("Network '" + unregNetwork.name + "' unregistered, removing mmsproxy and/or mmsc route");
-	  let mmsHosts = this.resolveHostname(
-	      [ Services.prefs.getCharPref("ril.mms.mmsproxy"),
-                Services.prefs.getCharPref("ril.mms.mmsc") ]
-	    );
-          this.removeHostRouteWithResolve(unregNetwork, mmsHosts);
-        }
+        
+        this.removeExtraHostRoute(unregNetwork);
         break;
       case TOPIC_MOZSETTINGS_CHANGED:
         let setting = JSON.parse(data);
@@ -400,9 +394,7 @@ NetworkManager.prototype = {
   },
   set preferredNetworkType(val) {
     if ([Ci.nsINetworkInterface.NETWORK_TYPE_WIFI,
-         Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE,
-         Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS,
-         Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL].indexOf(val) == -1) {
+         Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE].indexOf(val) == -1) {
       throw "Invalid network type";
     }
     this._preferredNetworkType = val;
@@ -415,6 +407,10 @@ NetworkManager.prototype = {
   _activeInfo: null,
 
   overrideActive: function overrideActive(network) {
+    if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
+        network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL) {
+      throw "Invalid network type";
+    }
     this._overriddenActive = network;
     this.setAndConfigureActive();
   },
@@ -460,6 +456,26 @@ NetworkManager.prototype = {
     let callback = this.controlCallbacks[id];
     if (callback) {
       callback.call(this, response);
+    }
+  },
+
+  setExtraHostRoute: function setExtraHostRoute(network) {
+    if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
+      debug("Network '" + network.name + "' registered, adding mmsproxy and/or mmsc route");
+      let mmsHosts = this.resolveHostname(
+                       [Services.prefs.getCharPref("ril.mms.mmsproxy"),
+                        Services.prefs.getCharPref("ril.mms.mmsc")]);
+      this.addHostRouteWithResolve(network, mmsHosts);
+    }
+  },
+
+  removeExtraHostRoute: function removeExtraHostRoute(network) {
+    if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
+      debug("Network '" + network.name + "' unregistered, removing mmsproxy and/or mmsc route");
+      let mmsHosts = this.resolveHostname(
+                       [Services.prefs.getCharPref("ril.mms.mmsproxy"),
+                        Services.prefs.getCharPref("ril.mms.mmsc")]);
+      this.removeHostRouteWithResolve(network, mmsHosts);
     }
   },
 
@@ -519,7 +535,13 @@ NetworkManager.prototype = {
           this.active.type != this.preferredNetworkType) {
         this.active = defaultDataNetwork;
       }
-      this.setDefaultRouteAndDNS(oldActive);
+      
+      if (this.active.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
+          this.active.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL) {
+        this.setDNS(this.active);
+      } else {
+        this.setDefaultRouteAndDNS(oldActive);
+      }
       if (this.active != oldActive) {
         Services.obs.notifyObservers(this.active, TOPIC_ACTIVE_CHANGED, null);
       }
@@ -536,6 +558,17 @@ NetworkManager.prototype = {
       ifname: network.name,
       ip : network.ip,
       netmask: network.netmask,
+    };
+    this.worker.postMessage(options);
+  },
+
+  setDNS: function setDNS(networkInterface) {
+    debug("Going DNS to " + networkInterface.name);
+    let options = {
+      cmd: "setDNS",
+      ifname: networkInterface.name,
+      dns1_str: networkInterface.dns1,
+      dns2_str: networkInterface.dns2
     };
     this.worker.postMessage(options);
   },
