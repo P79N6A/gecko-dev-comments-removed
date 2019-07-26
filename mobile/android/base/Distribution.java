@@ -57,8 +57,14 @@ public final class Distribution {
                 }
 
                 
+                
+                String pathKeyName = context.getPackageName() + ".distribution_path";
+                String distPath = null;
+
+                
                 if (state == STATE_SET) {
-                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Set", ""));
+                    distPath = settings.getString(pathKeyName, null);
+                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Set", distPath));
                     return;
                 }
 
@@ -75,11 +81,16 @@ public final class Distribution {
                     File distDir = new File("/system/" + context.getPackageName() + "/distribution");
                     if (distDir.exists()) {
                         distributionSet = true;
+<<<<<<< local
+                        distPath = distDir.getPath();
+                        settings.edit().putString(pathKeyName, distPath).commit();
+=======
+>>>>>>> other
                     }
                 }
 
                 if (distributionSet) {
-                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Set", ""));
+                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Set", distPath));
                     settings.edit().putInt(keyName, STATE_SET).commit();
                 } else {
                     settings.edit().putInt(keyName, STATE_NONE).commit();
