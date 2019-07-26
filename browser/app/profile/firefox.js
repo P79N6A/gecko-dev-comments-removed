@@ -1081,7 +1081,7 @@ pref("devtools.commands.dir", "");
 
 
 pref("devtools.appmanager.enabled", true);
-pref("devtools.appmanager.firstrun", true);
+pref("devtools.appmanager.lastTab", "help");
 pref("devtools.appmanager.manifestEditor.enabled", false);
 
 
@@ -1209,6 +1209,11 @@ pref("devtools.webconsole.fontSize", 0);
 
 
 pref("devtools.webconsole.persistlog", false);
+
+
+
+
+pref("devtools.webconsole.timestampMessages", false);
 
 
 
