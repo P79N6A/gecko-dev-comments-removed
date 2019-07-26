@@ -1,8 +1,10 @@
 load(libdir + "asm.js");
 
+setIonCheckGraphCoherency(false);
+setCachingEnabled(false);
+
 
 var buf = new ArrayBuffer(4096);
-setIonCheckGraphCoherency(false);
 
 
 assertAsmLinkFail(asmCompile('glob', 'imp', 'b', USE_ASM + 'var arr=new glob.Int8Array(b);  function f() {return arr[0x7fffffff]|0 } return f'), this, null, buf);
