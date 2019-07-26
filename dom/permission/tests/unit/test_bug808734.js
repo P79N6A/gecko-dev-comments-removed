@@ -8,7 +8,7 @@ var gData = [
   permission: "contacts",
   access: READWRITE,
   expected: ["contacts-read", "contacts-create",
-             "contacts-write"] 
+             "contacts-write"]
 },
 
 {
@@ -16,12 +16,12 @@ var gData = [
   access: READWRITE,
   expected: ["settings-read", "settings-write",
              "indexedDB-chrome-settings-read",
-             "indexedDB-chrome-settings-write"] 
+             "indexedDB-chrome-settings-write"]
 },
 
 {
   permission: "storage",
-  expected: ["indexedDB-unlimited", "offline-app", "pin-app",
+  expected: ["indexedDB-unlimited",
              "default-persistent-storage"]
 },
 
