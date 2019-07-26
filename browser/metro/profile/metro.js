@@ -417,6 +417,10 @@ pref("app.update.auto", true);
 pref("app.update.mode", 0);
 
 
+
+pref("app.update.metro.enabled", true);
+
+
 pref("app.update.silent", true);
 
 

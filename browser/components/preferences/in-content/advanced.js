@@ -550,10 +550,21 @@ var gAdvancedPane = {
   {
     var enabledPref = document.getElementById("app.update.enabled");
     var autoPref = document.getElementById("app.update.auto");
+#ifdef XP_WIN
+#ifdef MOZ_METRO
+    var metroEnabledPref = document.getElementById("app.update.metro.enabled");
+#endif
+#endif
     var radiogroup = document.getElementById("updateRadioGroup");
 
     if (!enabledPref.value)   
-      radiogroup.value="manual"     
+      radiogroup.value="manual";    
+#ifdef XP_WIN
+#ifdef MOZ_METRO
+    else if (metroEnabledPref.value)  
+      radiogroup.value="autoMetro"; 
+#endif
+#endif
     else if (autoPref.value)  
       radiogroup.value="auto";      
     else                      
@@ -572,6 +583,11 @@ var gAdvancedPane = {
     
     warnIncompatible.disabled = radiogroup.disabled || modePref.locked ||
                                 !enabledPref.value || !autoPref.value;
+#ifdef XP_WIN
+#ifdef MOZ_METRO
+    warnIncompatible.disabled |= metroEnabledPref.value;
+#endif
+#endif
 
 #ifdef MOZ_MAINTENANCE_SERVICE
     
@@ -601,12 +617,27 @@ var gAdvancedPane = {
   {
     var enabledPref = document.getElementById("app.update.enabled");
     var autoPref = document.getElementById("app.update.auto");
+#ifdef XP_WIN
+#ifdef MOZ_METRO
+    var metroEnabledPref = document.getElementById("app.update.metro.enabled");
+    metroEnabledPref.value = false;
+#endif
+#endif
     var radiogroup = document.getElementById("updateRadioGroup");
     switch (radiogroup.value) {
       case "auto":      
         enabledPref.value = true;
         autoPref.value = true;
         break;
+#ifdef XP_WIN
+#ifdef MOZ_METRO
+      case "autoMetro": 
+        enabledPref.value = true;
+        autoPref.value = true;
+        metroEnabledPref.value = true;
+        break;
+#endif
+#endif
       case "checkOnly": 
         enabledPref.value = true;
         autoPref.value = false;
@@ -621,6 +652,11 @@ var gAdvancedPane = {
     warnIncompatible.disabled = enabledPref.locked || !enabledPref.value ||
                                 autoPref.locked || !autoPref.value ||
                                 modePref.locked;
+#ifdef XP_WIN
+#ifdef MOZ_METRO
+    warnIncompatible.disabled |= metroEnabledPref.value;
+#endif
+#endif
   },
 
   

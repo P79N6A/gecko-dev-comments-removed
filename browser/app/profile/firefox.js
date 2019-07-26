@@ -144,7 +144,16 @@ pref("app.update.auto", true);
 
 
 
-pref("app.update.mode", 1);
+
+pref("app.update.mode", 0);
+
+#ifdef XP_WIN
+#ifdef MOZ_METRO
+
+
+pref("app.update.metro.enabled", true);
+#endif
+#endif
 
 
 pref("app.update.silent", false);
