@@ -45,10 +45,14 @@ class RefCounted
 {
     friend class RefPtr<T>;
 
-  public:
+#ifdef DEBUG
+    static const int dead = 0xffffdead;
+#endif
+  protected:
     RefCounted() : refCnt(0) { }
-    ~RefCounted() { MOZ_ASSERT(refCnt == -0xdead); }
+    ~RefCounted() { MOZ_ASSERT(refCnt == dead); }
 
+  public:
     
     void AddRef() {
       MOZ_ASSERT(refCnt >= 0);
@@ -59,7 +63,7 @@ class RefCounted
       MOZ_ASSERT(refCnt > 0);
       if (0 == --refCnt) {
 #ifdef DEBUG
-        refCnt = -0xdead;
+        refCnt = dead;
 #endif
         delete static_cast<T*>(this);
       }
