@@ -1381,6 +1381,7 @@ var NativeWindow = {
   },
   contextmenus: {
     items: {}, 
+    _nativeItemsSeparator: 0, 
     _contextId: 0, 
 
     init: function() {
@@ -1552,6 +1553,62 @@ var NativeWindow = {
       else this._targetRef = null;
     },
 
+    _addHTMLContextMenuItems: function cm_addContextMenuItems(aMenu, aParent) {
+      for (let i = 0; i < aMenu.childNodes.length; i++) {
+        let item = aMenu.childNodes[i];
+        if (!item.label || item.hasAttribute("hidden"))
+          continue;
+
+        let id = this._contextId++;
+        let menuitem = {
+          id: id,
+          isGroup: false,
+          callback: (function(aTarget, aX, aY) {
+            
+            if (item instanceof Ci.nsIDOMHTMLMenuElement) {
+              this.menuitems = [];
+              this._nativeItemsSeparator = 0;
+
+              this._addHTMLContextMenuItems(item, id);
+              this._innerShow(aTarget, aX, aY);
+            } else {
+              
+              item.click();
+            }
+          }).bind(this),
+
+          getValue: function(aElt) {
+            return {
+              icon: item.icon,
+              label: item.label,
+              id: id,
+              isGroup: false,
+              inGroup: false,
+              disabled: item.disabled,
+              isParent: item instanceof Ci.nsIDOMHTMLMenuElement
+            }
+          }
+        };
+
+        this.menuitems.splice(this._nativeItemsSeparator, 0, menuitem);
+        this._nativeItemsSeparator++;
+      }
+    },
+
+    _getMenuItemForId: function(aId) {
+      if (!this.menuitems)
+        return null;
+
+      for (let i = 0; i < this.menuitems.length; i++) {
+        if (this.menuitems[i].id == aId)
+          return this.menuitems[i];
+      }
+      return null;
+    },
+
+    
+    
+    
     _sendToContent: function(aX, aY) {
       
       
@@ -1566,27 +1623,37 @@ var NativeWindow = {
       
       this._target = target;
 
-      this.menuitems = {};
+      this.menuitems = [];
       let menuitemsSet = false;
 
       
       let element = target;
-
+      this._nativeItemsSeparator = 0;
       while (element) {
-        for each (let item in this.items) {
-          if (!this.menuitems[item.id] && item.matches(element, aX, aY)) {
-            this.menuitems[item.id] = item;
-            menuitemsSet = true;
+        
+        let contextmenu = element.contextMenu;
+        if (contextmenu) {
+          
+          contextmenu.QueryInterface(Components.interfaces.nsIHTMLMenu);
+          contextmenu.sendShowEvent();
+          this._addHTMLContextMenuItems(contextmenu, null);
+        }
+
+        
+         for each (let item in this.items) {
+          if (!this._getMenuItemForId(item.id) && item.matches(element, aX, aY)) {
+            this.menuitems.push(item);
           }
         }
 
+        
         if (this.linkOpenableContext.matches(element) || this.textContext.matches(element))
           break;
         element = element.parentNode;
       }
 
       
-      if (menuitemsSet) {
+      if (this.menuitems.length > 0) {
         let event = target.ownerDocument.createEvent("MouseEvent");
         event.initMouseEvent("contextmenu", true, true, content,
                              0, aX, aY, aX, aY, false, false, false, false,
@@ -1602,21 +1669,26 @@ var NativeWindow = {
       }
     },
 
+    
+    
     _show: function(aEvent) {
       let popupNode = this._target;
       this._target = null;
       if (aEvent.defaultPrevented || !popupNode) {
         return;
       }
+      this._innerShow(popupNode, aEvent.clientX, aEvent.clientY);
+    },
 
+    _innerShow: function(aTarget, aX, aY) {
       Haptic.performSimpleAction(Haptic.LongPress);
 
       
-      let node = popupNode;
+      let node = aTarget;
       let title ="";
       while(node && !title) {
         if (node.hasAttribute && node.hasAttribute("title")) {
-          title = node.getAttribute("title")
+          title = node.getAttribute("title");
         } else if ((node instanceof Ci.nsIDOMHTMLAnchorElement && node.href) ||
                 (node instanceof Ci.nsIDOMHTMLAreaElement && node.href)) {
           title = this._getLinkURL(node);
@@ -1630,8 +1702,8 @@ var NativeWindow = {
 
       
       let itemArray = [];
-      for each (let item in this.menuitems) {
-        itemArray.push(item.getValue(popupNode));
+      for (let i = 0; i < this.menuitems.length; i++) {
+        itemArray.push(this.menuitems[i].getValue(aTarget));
       }
 
       let msg = {
@@ -1643,18 +1715,25 @@ var NativeWindow = {
       };
       let data = JSON.parse(sendMessageToJava(msg));
       let selectedId = itemArray[data.button].id;
-      let selectedItem = this.menuitems[selectedId];
+      let selectedItem = this._getMenuItemForId(selectedId);
 
+      this.menuitems = null;
       if (selectedItem && selectedItem.callback) {
-        while (popupNode) {
-          if (selectedItem.matches(popupNode, aEvent.clientX, aEvent.clientY)) {
-            selectedItem.callback.call(selectedItem, popupNode, aEvent.clientX, aEvent.clientY);
-            break;
+        if (selectedItem.matches) {
+          
+          while (aTarget) {
+            if (selectedItem.matches(aTarget, aX, aY)) {
+              selectedItem.callback.call(selectedItem, aTarget, aX, aY);
+              foundNode = true;
+              break;
+            }
+            aTarget = aTarget.parentNode;
           }
-          popupNode = popupNode.parentNode;
+        } else {
+          
+          selectedItem.callback.call(selectedItem, aTarget, aX, aY);
         }
       }
-      this.menuitems = null;
     },
 
     handleEvent: function(aEvent) {
