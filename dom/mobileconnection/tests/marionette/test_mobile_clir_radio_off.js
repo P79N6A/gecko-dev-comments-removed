@@ -32,5 +32,5 @@ startTestCommon(function() {
     .then(() => testGetClirOnRadioOff())
     
     .then(() => setRadioEnabledAndWait(true),
-          () => setRadioEnabledAnWait(true));
+          () => setRadioEnabledAndWait(true));
 });
