@@ -2555,6 +2555,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 
 
+#main-window[sizemode="fullscreen"] #TabsToolbar::after,
 #main-window:not([tabsintitlebar]) #TabsToolbar::after,
 #TabsToolbar:-moz-lwtheme::after {
   content: '';
