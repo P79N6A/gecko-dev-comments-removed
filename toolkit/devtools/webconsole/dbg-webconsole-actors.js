@@ -24,10 +24,16 @@ XPCOMUtils.defineLazyModuleGetter(this, "PageErrorListener",
 XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPIListener",
                                   "resource://gre/modules/devtools/WebConsoleUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "ConsoleProgressListener",
+                                  "resource://gre/modules/devtools/WebConsoleUtils.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "JSTermHelpers",
                                   "resource://gre/modules/devtools/WebConsoleUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "JSPropertyProvider",
+                                  "resource://gre/modules/devtools/WebConsoleUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "NetworkMonitor",
                                   "resource://gre/modules/devtools/WebConsoleUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPIStorage",
@@ -51,6 +57,11 @@ function WebConsoleActor(aConnection, aTabActor)
 
   this._objectActorsPool = new ActorPool(this.conn);
   this.conn.addActorPool(this._objectActorsPool);
+
+  this._networkEventActorsPool = new ActorPool(this.conn);
+  this.conn.addActorPool(this._networkEventActorsPool);
+
+  this._prefs = {};
 }
 
 WebConsoleActor.prototype =
@@ -69,7 +80,23 @@ WebConsoleActor.prototype =
 
 
 
+
   _objectActorsPool: null,
+
+  
+
+
+
+
+
+  _networkEventActorsPool: null,
+
+  
+
+
+
+
+  _prefs: null,
 
   
 
@@ -107,6 +134,23 @@ WebConsoleActor.prototype =
 
 
   consoleAPIListener: null,
+
+  
+
+
+  networkMonitor: null,
+
+  
+
+
+  consoleProgressListener: null,
+
+  
+
+
+
+  get saveRequestAndResponseBodies()
+    this._prefs["NetworkMonitor.saveRequestAndResponseBodies"],
 
   actorPrefix: "console",
 
@@ -146,8 +190,18 @@ WebConsoleActor.prototype =
       this.consoleAPIListener.destroy();
       this.consoleAPIListener = null;
     }
+    if (this.networkMonitor) {
+      this.networkMonitor.destroy();
+      this.networkMonitor = null;
+    }
+    if (this.consoleProgressListener) {
+      this.consoleProgressListener.destroy();
+      this.consoleProgressListener = null;
+    }
     this.conn.removeActorPool(this._objectActorsPool);
+    this.conn.removeActorPool(this._networkEventActorsPool);
     this._objectActorsPool = null;
+    this._networkEventActorsPool = null;
     this._sandboxLocation = this.sandbox = null;
     this.conn = this._browser = null;
   },
@@ -211,6 +265,21 @@ WebConsoleActor.prototype =
 
 
 
+  releaseNetworkEvent: function WCA_releaseNetworkEvent(aActor)
+  {
+    this._networkEventActorsPool.removeActor(aActor.actorID);
+  },
+
+  
+  
+  
+
+  
+
+
+
+
+
 
 
   onStartListeners: function WCA_onStartListeners(aRequest)
@@ -236,6 +305,30 @@ WebConsoleActor.prototype =
           }
           startedListeners.push(listener);
           break;
+        case "NetworkActivity":
+          if (!this.networkMonitor) {
+            this.networkMonitor =
+              new NetworkMonitor(this.window, this);
+            this.networkMonitor.init();
+          }
+          startedListeners.push(listener);
+          break;
+        case "FileActivity":
+          if (!this.consoleProgressListener) {
+            this.consoleProgressListener =
+              new ConsoleProgressListener(this._browser, this);
+          }
+          this.consoleProgressListener.startMonitor(this.consoleProgressListener.
+                                                    MONITOR_FILE_ACTIVITY);
+          startedListeners.push(listener);
+          break;
+        case "LocationChange":
+          if (!this.consoleProgressListener) {
+            this.consoleProgressListener =
+              new ConsoleProgressListener(this._browser, this);
+          }
+          this.consoleProgressListener.startMonitor(this.consoleProgressListener.
+                                                    MONITOR_LOCATION_CHANGE);
       }
     }
     return {
@@ -259,7 +352,9 @@ WebConsoleActor.prototype =
 
     
     
-    let toDetach = aRequest.listeners || ["PageError", "ConsoleAPI"];
+    let toDetach = aRequest.listeners ||
+                   ["PageError", "ConsoleAPI", "NetworkActivity",
+                    "FileActivity", "LocationChange"];
 
     while (toDetach.length > 0) {
       let listener = toDetach.shift();
@@ -275,6 +370,27 @@ WebConsoleActor.prototype =
           if (this.consoleAPIListener) {
             this.consoleAPIListener.destroy();
             this.consoleAPIListener = null;
+          }
+          stoppedListeners.push(listener);
+          break;
+        case "NetworkActivity":
+          if (this.networkMonitor) {
+            this.networkMonitor.destroy();
+            this.networkMonitor = null;
+          }
+          stoppedListeners.push(listener);
+          break;
+        case "FileActivity":
+          if (this.consoleProgressListener) {
+            this.consoleProgressListener.stopMonitor(this.consoleProgressListener.
+                                                     MONITOR_FILE_ACTIVITY);
+          }
+          stoppedListeners.push(listener);
+          break;
+        case "LocationChange":
+          if (this.consoleProgressListener) {
+            this.consoleProgressListener.stopMonitor(this.consoleProgressListener.
+                                                     MONITOR_LOCATION_CHANGE);
           }
           stoppedListeners.push(listener);
           break;
@@ -413,6 +529,24 @@ WebConsoleActor.prototype =
 
 
 
+
+
+  onSetPreferences: function WCA_onSetPreferences(aRequest)
+  {
+    for (let key in aRequest.preferences) {
+      this._prefs[key] = aRequest.preferences[key];
+    }
+    return { updated: Object.keys(aRequest.preferences) };
+  },
+
+  
+  
+  
+
+  
+
+
+
   _createSandbox: function WCA__createSandbox()
   {
     this._sandboxLocation = this.window.location;
@@ -475,6 +609,10 @@ WebConsoleActor.prototype =
   },
 
   
+  
+  
+
+  
 
 
 
@@ -524,6 +662,7 @@ WebConsoleActor.prototype =
 
 
 
+
   onConsoleAPICall: function WCA_onConsoleAPICall(aMessage)
   {
     let packet = {
@@ -533,6 +672,88 @@ WebConsoleActor.prototype =
     };
     this.conn.send(packet);
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  onNetworkEvent: function WCA_onNetworkEvent(aEvent)
+  {
+    let actor = new NetworkEventActor(aEvent, this);
+    this._networkEventActorsPool.addActor(actor);
+
+    let packet = {
+      from: this.actorID,
+      type: "networkEvent",
+      eventActor: actor.grip(),
+    };
+
+    this.conn.send(packet);
+
+    return actor;
+  },
+
+  
+
+
+
+
+
+
+
+  onFileActivity: function WCA_onFileActivity(aFileURI)
+  {
+    let packet = {
+      from: this.actorID,
+      type: "fileActivity",
+      uri: aFileURI,
+    };
+    this.conn.send(packet);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  onLocationChange: function WCA_onLocationChange(aState, aURI, aTitle)
+  {
+    
+    
+    
+    
+    let packet = {
+      from: this.actorID,
+      type: "locationChange",
+      uri: aURI,
+      title: aTitle,
+      state: aState,
+      nativeConsoleAPI: this.hasNativeConsoleAPI(),
+    };
+    this.conn.send(packet);
+  },
+
+  
+  
+  
 
   
 
@@ -604,6 +825,7 @@ WebConsoleActor.prototype.requestTypes =
   evaluateJS: WebConsoleActor.prototype.onEvaluateJS,
   autocomplete: WebConsoleActor.prototype.onAutocomplete,
   clearMessagesCache: WebConsoleActor.prototype.onClearMessagesCache,
+  setPreferences: WebConsoleActor.prototype.onSetPreferences,
 };
 
 
@@ -676,5 +898,377 @@ WebConsoleObjectActor.prototype.requestTypes =
 {
   "inspectProperties": WebConsoleObjectActor.prototype.onInspectProperties,
   "release": WebConsoleObjectActor.prototype.onRelease,
+};
+
+
+
+
+
+
+
+
+
+
+
+function NetworkEventActor(aNetworkEvent, aWebConsoleActor)
+{
+  this.parent = aWebConsoleActor;
+  this.conn = this.parent.conn;
+
+  this._startedDateTime = aNetworkEvent.startedDateTime;
+
+  this._request = {
+    method: aNetworkEvent.method,
+    url: aNetworkEvent.url,
+    httpVersion: aNetworkEvent.httpVersion,
+    headers: [],
+    cookies: [],
+    headersSize: aNetworkEvent.headersSize,
+    postData: {},
+  };
+
+  this._response = {
+    headers: [],
+    cookies: [],
+    content: {},
+  };
+
+  this._timings = {};
+
+  this._discardRequestBody = aNetworkEvent.discardRequestBody;
+  this._discardResponseBody = aNetworkEvent.discardResponseBody;
+}
+
+NetworkEventActor.prototype =
+{
+  _request: null,
+  _response: null,
+  _timings: null,
+
+  actorPrefix: "netEvent",
+
+  
+
+
+  grip: function NEA_grip()
+  {
+    return {
+      actor: this.actorID,
+      startedDateTime: this._startedDateTime,
+      url: this._request.url,
+      method: this._request.method,
+    };
+  },
+
+  
+
+
+  release: function NEA_release()
+  {
+    this.parent.releaseNetworkEvent(this);
+  },
+
+  
+
+
+  onRelease: function NEA_onRelease()
+  {
+    this.release();
+    return {};
+  },
+
+  
+
+
+
+
+
+  onGetRequestHeaders: function NEA_onGetRequestHeaders()
+  {
+    return {
+      from: this.actorID,
+      headers: this._request.headers,
+      headersSize: this._request.headersSize,
+    };
+  },
+
+  
+
+
+
+
+
+  onGetRequestCookies: function NEA_onGetRequestCookies()
+  {
+    return {
+      from: this.actorID,
+      cookies: this._request.cookies,
+    };
+  },
+
+  
+
+
+
+
+
+  onGetRequestPostData: function NEA_onGetRequestPostData()
+  {
+    return {
+      from: this.actorID,
+      postData: this._request.postData,
+      postDataDiscarded: this._discardRequestBody,
+    };
+  },
+
+  
+
+
+
+
+
+  onGetResponseHeaders: function NEA_onGetResponseHeaders()
+  {
+    return {
+      from: this.actorID,
+      headers: this._response.headers,
+      headersSize: this._response.headersSize,
+    };
+  },
+
+  
+
+
+
+
+
+  onGetResponseCookies: function NEA_onGetResponseCookies()
+  {
+    return {
+      from: this.actorID,
+      cookies: this._response.cookies,
+    };
+  },
+
+  
+
+
+
+
+
+  onGetResponseContent: function NEA_onGetResponseContent()
+  {
+    return {
+      from: this.actorID,
+      content: this._response.content,
+      contentDiscarded: this._discardResponseBody,
+    };
+  },
+
+  
+
+
+
+
+
+  onGetEventTimings: function NEA_onGetEventTimings()
+  {
+    return {
+      from: this.actorID,
+      timings: this._timings,
+      totalTime: this._totalTime,
+    };
+  },
+
+  
+
+
+
+  
+
+
+
+
+
+  addRequestHeaders: function NEA_addRequestHeaders(aHeaders)
+  {
+    this._request.headers = aHeaders;
+
+    let packet = {
+      from: this.actorID,
+      type: "networkEventUpdate",
+      updateType: "requestHeaders",
+      headers: aHeaders.length,
+      headersSize: this._request.headersSize,
+    };
+
+    this.conn.send(packet);
+  },
+
+  
+
+
+
+
+
+  addRequestCookies: function NEA_addRequestCookies(aCookies)
+  {
+    this._request.cookies = aCookies;
+
+    let packet = {
+      from: this.actorID,
+      type: "networkEventUpdate",
+      updateType: "requestCookies",
+      cookies: aCookies.length,
+    };
+
+    this.conn.send(packet);
+  },
+
+  
+
+
+
+
+
+  addRequestPostData: function NEA_addRequestPostData(aPostData)
+  {
+    this._request.postData = aPostData;
+
+    let packet = {
+      from: this.actorID,
+      type: "networkEventUpdate",
+      updateType: "requestPostData",
+      dataSize: aPostData.text.length,
+      discardRequestBody: this._discardRequestBody,
+    };
+
+    this.conn.send(packet);
+  },
+
+  
+
+
+
+
+
+  addResponseStart: function NEA_addResponseStart(aInfo)
+  {
+    this._response.httpVersion = aInfo.httpVersion;
+    this._response.status = aInfo.status;
+    this._response.statusText = aInfo.statusText;
+    this._response.headersSize = aInfo.headersSize;
+    this._discardResponseBody = aInfo.discardResponseBody;
+
+    let packet = {
+      from: this.actorID,
+      type: "networkEventUpdate",
+      updateType: "responseStart",
+      response: aInfo,
+    };
+
+    this.conn.send(packet);
+  },
+
+  
+
+
+
+
+
+  addResponseHeaders: function NEA_addResponseHeaders(aHeaders)
+  {
+    this._response.headers = aHeaders;
+
+    let packet = {
+      from: this.actorID,
+      type: "networkEventUpdate",
+      updateType: "responseHeaders",
+      headers: aHeaders.length,
+      headersSize: this._response.headersSize,
+    };
+
+    this.conn.send(packet);
+  },
+
+  
+
+
+
+
+
+  addResponseCookies: function NEA_addResponseCookies(aCookies)
+  {
+    this._response.cookies = aCookies;
+
+    let packet = {
+      from: this.actorID,
+      type: "networkEventUpdate",
+      updateType: "responseCookies",
+      cookies: aCookies.length,
+    };
+
+    this.conn.send(packet);
+  },
+
+  
+
+
+
+
+
+
+
+  addResponseContent:
+  function NEA_addResponseContent(aContent, aDiscardedResponseBody)
+  {
+    this._response.content = aContent;
+
+    let packet = {
+      from: this.actorID,
+      type: "networkEventUpdate",
+      updateType: "responseContent",
+      mimeType: aContent.mimeType,
+      contentSize: aContent.text.length,
+      discardResponseBody: aDiscardedResponseBody,
+    };
+
+    this.conn.send(packet);
+  },
+
+  
+
+
+
+
+
+
+
+  addEventTimings: function NEA_addEventTimings(aTotal, aTimings)
+  {
+    this._totalTime = aTotal;
+    this._timings = aTimings;
+
+    let packet = {
+      from: this.actorID,
+      type: "networkEventUpdate",
+      updateType: "eventTimings",
+      totalTime: aTotal,
+    };
+
+    this.conn.send(packet);
+  },
+};
+
+NetworkEventActor.prototype.requestTypes =
+{
+  "release": NetworkEventActor.prototype.onRelease,
+  "getRequestHeaders": NetworkEventActor.prototype.onGetRequestHeaders,
+  "getRequestCookies": NetworkEventActor.prototype.onGetRequestCookies,
+  "getRequestPostData": NetworkEventActor.prototype.onGetRequestPostData,
+  "getResponseHeaders": NetworkEventActor.prototype.onGetResponseHeaders,
+  "getResponseCookies": NetworkEventActor.prototype.onGetResponseCookies,
+  "getResponseContent": NetworkEventActor.prototype.onGetResponseContent,
+  "getEventTimings": NetworkEventActor.prototype.onGetEventTimings,
 };
 
