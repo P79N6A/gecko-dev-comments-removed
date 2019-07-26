@@ -16,48 +16,188 @@ _log = logging.getLogger('pymake.process')
 
 _escapednewlines = re.compile(r'\\\n')
 
+def tokens2re(tokens):
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nonescaped = r'(?<!\\)(?:%s)' % '|'.join('(?P<%s>%s)' % (name, value) for name, value in tokens.iteritems())
+    
+    
+    return re.compile('(?:%s|%s)' % (nonescaped, r'(?P<escape>\\\\)'))
 
-_blacklist = re.compile(r'[$><;\[~`|&]' +
-    r'|\${|(?:^|\s){(?:$|\s)')  
+_unquoted_tokens = tokens2re({
+  'whitespace': r'[\t\r\n ]',
+  'quote': r'[\'"]',
+  'comment': '#',
+  'special': r'[<>&|`~(){}$;]',
+  'backslashed': r'\\[^\\]',
+  'glob': r'[\*\?]',
+})
 
+_doubly_quoted_tokens = tokens2re({
+  'quote': '"',
+  'backslashedquote': r'\\"',
+  'special': '\$',
+  'backslashed': r'\\[^\\"]',
+})
 
-_graylist = re.compile(r'[()]')
+class MetaCharacterException(Exception):
+    def __init__(self, char):
+        self.char = char
 
-_needsglob = re.compile(r'[\*\?]')
+class ClineSplitter(list):
+    """
+    Parses a given command line string and creates a list of command
+    and arguments, with wildcard expansion.
+    """
+    def __init__(self, cline, cwd):
+        self.cwd = cwd
+        self.arg = ''
+        self.cline = cline
+        self.glob = False
+        self._parse_unquoted()
 
-def clinetoargv(cline, blacklist_gray):
+    def _push(self, str):
+        """
+        Push the given string as part of the current argument
+        """
+        self.arg += str
+
+    def _next(self):
+        """
+        Finalize current argument, effectively adding it to the list.
+        Perform globbing if needed.
+        """
+        if not self.arg:
+            return
+        if self.glob:
+            if os.path.isabs(self.arg):
+                path = self.arg
+            else:
+                path = os.path.join(self.cwd, self.arg)
+            globbed = glob.glob(path)
+            if not globbed:
+                
+                
+                self.append(self.arg)
+            else:
+                self.extend(f[len(path)-len(self.arg):] for f in globbed)
+            self.glob = False
+        else:
+            self.append(self.arg)
+        self.arg = ''
+
+    def _parse_unquoted(self):
+        """
+        Parse command line remainder in the context of an unquoted string.
+        """
+        while self.cline:
+            
+            m = _unquoted_tokens.search(self.cline)
+            
+            
+            if not m:
+                self._push(self.cline)
+                break
+            
+            
+            self._push(self.cline[:m.start()])
+            self.cline = self.cline[m.end():]
+
+            match = dict([(name, value) for name, value in m.groupdict().items() if value])
+            if 'quote' in match:
+                
+                if match['quote'] == '"':
+                    self._parse_doubly_quoted()
+                else:
+                    self._parse_quoted()
+            elif 'comment' in match:
+                
+                
+                break
+            elif 'special' in match:
+                
+                
+                raise MetaCharacterException, match['special']
+            elif 'whitespace' in match:
+                
+                self._next()
+            elif 'escape' in match:
+                
+                self._push('\\')
+            elif 'backslashed' in match:
+                
+                
+                self._push(match['backslashed'][1])
+            elif 'glob' in match:
+                
+                self.glob = True
+                self._push(m.group(0))
+            else:
+                raise Exception, "Shouldn't reach here"
+        self._next()
+
+    def _parse_quoted(self):
+        
+        index = self.cline.find("'")
+        if index == -1:
+            raise Exception, 'Unterminated quoted string in command'
+        self._push(self.cline[:index])
+        self.cline = self.cline[index+1:]
+
+    def _parse_doubly_quoted(self):
+        if not self.cline:
+            raise Exception, 'Unterminated quoted string in command'
+        while self.cline:
+            m = _doubly_quoted_tokens.search(self.cline)
+            if not m:
+                raise Exception, 'Unterminated quoted string in command'
+            self._push(self.cline[:m.start()])
+            self.cline = self.cline[m.end():]
+            match = dict([(name, value) for name, value in m.groupdict().items() if value])
+            if 'quote' in match:
+                
+                
+                return
+            elif 'special' in match:
+                
+                
+                
+                raise MetaCharacterException, match['special']
+            elif 'escape' in match:
+                
+                self._push('\\')
+            elif 'backslashedquote' in match:
+                
+                self._push('"')
+            elif 'backslashed' in match:
+                
+                self._push(match['backslashed'])
+
+def clinetoargv(cline, cwd):
     """
     If this command line can safely skip the shell, return an argv array.
     @returns argv, badchar
     """
     str = _escapednewlines.sub('', cline)
-    m = _blacklist.search(str)
-    if m is not None:
-        return None, m.group(0)
-    if blacklist_gray:
-        m = _graylist.search(str)
-        if m is not None:
-            return None, m.group(0)
-
-    args = shlex.split(str, comments=True)
+    try:
+        args = ClineSplitter(str, cwd)
+    except MetaCharacterException, e:
+        return None, e.char
 
     if len(args) and args[0].find('=') != -1:
         return None, '='
 
     return args, None
 
-def doglobbing(args, cwd):
-    """
-    Perform any needed globbing on the argument list passed in
-    """
-    globbedargs = []
-    for arg in args:
-        if _needsglob.search(arg):
-            globbedargs.extend(glob.glob(os.path.join(cwd, arg)))
-        else:
-            globbedargs.append(arg)
 
-    return globbedargs
+
 
 shellwords = (':', '.', 'break', 'cd', 'continue', 'exec', 'exit', 'export',
               'getopts', 'hash', 'pwd', 'readonly', 'return', 'shift', 
@@ -65,33 +205,48 @@ shellwords = (':', '.', 'break', 'cd', 'continue', 'exec', 'exit', 'export',
               'set', 'bind', 'builtin', 'caller', 'command', 'declare',
               'echo', 'enable', 'help', 'let', 'local', 'logout', 
               'printf', 'read', 'shopt', 'source', 'type', 'typeset',
-              'ulimit', 'unalias', 'set')
+              'ulimit', 'unalias', 'set', 'find')
 
-def call(cline, env, cwd, loc, cb, context, echo, justprint=False):
+def prepare_command(cline, cwd, loc):
+    """
+    Returns a list of command and arguments for the given command line string.
+    If the command needs to be run through a shell for some reason, the
+    returned list contains the shell invocation.
+    """
+
     
     shell, msys = util.checkmsyscompat()
 
     shellreason = None
+    executable = None
     if msys and cline.startswith('/'):
         shellreason = "command starts with /"
     else:
-        argv, badchar = clinetoargv(cline, blacklist_gray=True)
+        argv, badchar = clinetoargv(cline, cwd)
         if argv is None:
             shellreason = "command contains shell-special character '%s'" % (badchar,)
         elif len(argv) and argv[0] in shellwords:
             shellreason = "command starts with shell primitive '%s'" % (argv[0],)
-        else:
-            argv = doglobbing(argv, cwd)
+        elif argv and (os.sep in argv[0] or os.altsep and os.altsep in argv[0]):
+            executable = util.normaljoin(cwd, argv[0])
+            
+            
+            
+            if sys.platform == 'win32' and os.path.isfile(executable) and open(executable, 'rb').read(2) == "#!":
+                shellreason = "command executable starts with a hashbang"
 
     if shellreason is not None:
         _log.debug("%s: using shell: %s: '%s'", loc, shellreason, cline)
         if msys:
             if len(cline) > 3 and cline[1] == ':' and cline[2] == '/':
                 cline = '/' + cline[0] + cline[2:]
-        cline = [shell, "-c", cline]
-        context.call(cline, shell=False, env=env, cwd=cwd, cb=cb, echo=echo,
-                     justprint=justprint)
-        return
+        argv = [shell, "-c", cline]
+        executable = None
+
+    return executable, argv
+
+def call(cline, env, cwd, loc, cb, context, echo, justprint=False):
+    executable, argv = prepare_command(cline, cwd, loc)
 
     if not len(argv):
         cb(res=0)
@@ -106,17 +261,11 @@ def call(cline, env, cwd, loc, cb, context, echo, justprint=False):
         command.main(argv[2:], env, cwd, cb)
         return
 
-    if argv[0].find('/') != -1:
-        executable = util.normaljoin(cwd, argv[0])
-    else:
-        executable = None
-
     context.call(argv, executable=executable, shell=False, env=env, cwd=cwd, cb=cb,
                  echo=echo, justprint=justprint)
 
 def call_native(module, method, argv, env, cwd, loc, cb, context, echo, justprint=False,
                 pycommandpath=None):
-    argv = doglobbing(argv, cwd)
     context.call_native(module, method, argv, env=env, cwd=cwd, cb=cb,
                         echo=echo, justprint=justprint, pycommandpath=pycommandpath)
 
