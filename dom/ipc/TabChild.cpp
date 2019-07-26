@@ -134,30 +134,32 @@ TabChild::PreloadSlowThings()
 
  already_AddRefed<TabChild>
 TabChild::Create(uint32_t aChromeFlags,
-                 bool aIsBrowserElement, uint32_t aAppId)
+                 uint32_t aOwnOrContainingAppId,
+                 bool aIsBrowserElement)
 {
     if (sPreallocatedTab &&
         sPreallocatedTab->mChromeFlags == aChromeFlags &&
-        (aIsBrowserElement || 
-         aAppId != nsIScriptSecurityManager::NO_APP_ID)) {
+        (aIsBrowserElement ||
+         aOwnOrContainingAppId != nsIScriptSecurityManager::NO_APP_ID)) {
         nsRefPtr<TabChild> child = sPreallocatedTab.get();
         sPreallocatedTab = nullptr;
 
         MOZ_ASSERT(!child->mTriedBrowserInit);
 
-        child->SetAppBrowserConfig(aIsBrowserElement, aAppId);
+        child->SetAppBrowserConfig(aOwnOrContainingAppId, aIsBrowserElement);
 
         return child.forget();
     }
 
-    nsRefPtr<TabChild> iframe = new TabChild(aChromeFlags, aIsBrowserElement,
-                                             aAppId);
+    nsRefPtr<TabChild> iframe =
+        new TabChild(aChromeFlags, aOwnOrContainingAppId, aIsBrowserElement);
     return NS_SUCCEEDED(iframe->Init()) ? iframe.forget() : nullptr;
 }
 
 
-TabChild::TabChild(uint32_t aChromeFlags, bool aIsBrowserElement,
-                   uint32_t aAppId)
+TabChild::TabChild(uint32_t aChromeFlags,
+                   uint32_t aOwnOrContainingAppId,
+                   bool aIsBrowserElement)
   : mRemoteFrame(nullptr)
   , mTabChildGlobal(nullptr)
   , mChromeFlags(aChromeFlags)
@@ -165,9 +167,9 @@ TabChild::TabChild(uint32_t aChromeFlags, bool aIsBrowserElement,
   , mInnerSize(0, 0)
   , mOldViewportWidth(0.0f)
   , mLastBackgroundColor(NS_RGB(255, 255, 255))
-  , mAppId(aAppId)
-  , mDidFakeShow(false)
+  , mOwnOrContainingAppId(aOwnOrContainingAppId)
   , mIsBrowserElement(aIsBrowserElement)
+  , mDidFakeShow(false)
   , mNotified(false)
   , mContentDocumentIsDisplayed(false)
   , mTriedBrowserInit(false)
@@ -530,7 +532,7 @@ TabChild::Init()
   baseWindow->InitWindow(0, mWidget, 0, 0, 0, 0);
   baseWindow->Create();
 
-  SetAppBrowserConfig(mIsBrowserElement, mAppId);
+  SetAppBrowserConfig(mOwnOrContainingAppId, mIsBrowserElement);
 
   
   
@@ -554,18 +556,27 @@ TabChild::Init()
 }
 
 void
-TabChild::SetAppBrowserConfig(bool aIsBrowserElement, uint32_t aAppId)
+TabChild::SetAppBrowserConfig(uint32_t aOwnOrContainingAppId, bool aIsBrowserElement)
 {
+    mOwnOrContainingAppId = aOwnOrContainingAppId;
     mIsBrowserElement = aIsBrowserElement;
-    mAppId = aAppId;
 
     nsCOMPtr<nsIDocShell> docShell = do_GetInterface(mWebNav);
     MOZ_ASSERT(docShell);
 
+    
+    
+    
+    
+    
+
     if (docShell) {
-        docShell->SetAppId(mAppId);
-        if (mIsBrowserElement) {
-            docShell->SetIsBrowserElement();
+        
+        
+        if (aIsBrowserElement) {
+          docShell->SetIsBrowserInsideApp(aOwnOrContainingAppId);
+        } else {
+          docShell->SetIsApp(aOwnOrContainingAppId);
         }
     }
 }
@@ -793,7 +804,7 @@ TabChild::ProvideWindow(nsIDOMWindow* aParent, uint32_t aChromeFlags,
     
     
     nsCOMPtr<nsIDocShell> docshell = do_GetInterface(aParent);
-    if (docshell && docshell->GetIsBelowContentBoundary() &&
+    if (docshell && docshell->GetIsInBrowserOrApp() &&
         !(aChromeFlags & (nsIWebBrowserChrome::CHROME_MODAL |
                           nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
                           nsIWebBrowserChrome::CHROME_OPENAS_CHROME))) {
@@ -829,15 +840,15 @@ TabChild::BrowserFrameProvideWindow(nsIDOMWindow* aOpener,
   *aReturn = nullptr;
 
   uint32_t chromeFlags = 0;
-  nsRefPtr<TabChild> newChild = new TabChild(chromeFlags,
-                                             mIsBrowserElement, mAppId);
+  nsRefPtr<TabChild> newChild =
+      new TabChild(chromeFlags, mOwnOrContainingAppId, mIsBrowserElement);
   if (!NS_SUCCEEDED(newChild->Init())) {
       return NS_ERROR_ABORT;
   }
   unused << Manager()->SendPBrowserConstructor(
       
       nsRefPtr<TabChild>(newChild).forget().get(),
-      chromeFlags, mIsBrowserElement, this);
+      chromeFlags, this, mIsBrowserElement);
   nsAutoCString spec;
   if (aURI) {
     aURI->GetSpec(spec);
@@ -998,9 +1009,10 @@ TabChild::~TabChild()
 void
 TabChild::SetProcessNameToAppName()
 {
-  if (mIsBrowserElement || (mAppId == nsIScriptSecurityManager::NO_APP_ID)) {
+  if (IsBrowserOrApp()) {
     return;
   }
+
   nsCOMPtr<nsIAppsService> appsService =
     do_GetService(APPS_SERVICE_CONTRACTID);
   if (!appsService) {
@@ -1009,7 +1021,7 @@ TabChild::SetProcessNameToAppName()
   }
   nsresult rv;
   nsCOMPtr<mozIDOMApplication> domApp;
-  rv = appsService->GetAppByLocalId(mAppId, getter_AddRefs(domApp));
+  rv = appsService->GetAppByLocalId(mOwnOrContainingAppId, getter_AddRefs(domApp));
   if (NS_FAILED(rv) || !domApp) {
     NS_WARNING("GetAppByLocalId failed");
     return;
@@ -1030,9 +1042,16 @@ TabChild::SetProcessNameToAppName()
 }
 
 bool
+TabChild::IsBrowserOrApp()
+{
+    return mIsBrowserElement ||
+           mOwnOrContainingAppId != nsIScriptSecurityManager::NO_APP_ID;
+}
+
+bool
 TabChild::IsRootContentDocument()
 {
-    if (mIsBrowserElement || mAppId == nsIScriptSecurityManager::NO_APP_ID) {
+    if (IsBrowserOrApp()) {
         
         
         return true;
@@ -1687,7 +1706,7 @@ TabChild::InitTabChildGlobal(FrameScriptLoading aScriptLoading)
     mTriedBrowserInit = true;
     
     
-    if (mIsBrowserElement || mAppId != nsIScriptSecurityManager::NO_APP_ID) {
+    if (IsBrowserOrApp()) {
       RecvLoadRemoteScript(BROWSER_ELEMENT_CHILD_SCRIPT);
     }
   }

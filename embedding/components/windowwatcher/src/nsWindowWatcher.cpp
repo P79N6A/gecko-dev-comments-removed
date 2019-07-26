@@ -1633,12 +1633,8 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
   
   
   nsCOMPtr<nsIDocShell> docshell = do_GetInterface(aParent);
-  if (docshell) {
-    bool belowContentBoundary = false;
-    docshell->GetIsBelowContentBoundary(&belowContentBoundary);
-    if (belowContentBoundary) {
-      chromeFlags &= ~nsIWebBrowserChrome::CHROME_OPENAS_DIALOG;
-    }
+  if (docshell && docshell->GetIsInBrowserOrApp()) {
+    chromeFlags &= ~nsIWebBrowserChrome::CHROME_OPENAS_DIALOG;
   }
 
   return chromeFlags;
