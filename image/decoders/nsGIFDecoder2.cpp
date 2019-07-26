@@ -42,7 +42,6 @@
 
 #include "nsGIFDecoder2.h"
 #include "nsIInputStream.h"
-#include "imgIContainerObserver.h"
 #include "RasterImage.h"
 
 #include "gfxColor.h"
