@@ -96,12 +96,6 @@ public:
 
   
   
-  bool SetChannelDataFromArrayBufferContents(JSContext* aJSContext,
-                                             uint32_t aChannel,
-                                             void* aContents);
-
-  
-  
   
   
   void SetRawChannelContents(JSContext* aJSContext,
