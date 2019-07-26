@@ -166,8 +166,9 @@ def read_from_gyp(config, path, output, vars, non_unified_sources = set()):
             sources = set(mozpath.normpath(mozpath.join(sandbox['SRCDIR'], f))
                 for f in spec.get('sources', [])
                 if mozpath.splitext(f)[-1] != '.h')
+            asm_sources = set(f for f in sources if f.endswith('.S'))
 
-            unified_sources = sources - non_unified_sources
+            unified_sources = sources - non_unified_sources - asm_sources
             sources -= unified_sources
             all_sources |= sources
             
