@@ -29,6 +29,7 @@
 #include "nsDirectoryServiceDefs.h"
 #include "nsITimer.h"
 #include "nsThreadUtils.h"
+#include "mozilla/Preferences.h"
 
 #include "WinUtils.h"
 #include "mozilla/LazyIdleThread.h"
@@ -1097,6 +1098,7 @@ nsDataObj :: GetFileDescriptorInternetShortcutW ( FORMATETC& aFE, STGMEDIUM& aST
 HRESULT
 nsDataObj :: GetFileContentsInternetShortcut ( FORMATETC& aFE, STGMEDIUM& aSTG )
 {
+  static const char * kShellIconPref = "browser.shell.shortcutFavicons";
   nsAutoString url;
   if ( NS_FAILED(ExtractShortcutURL(url)) )
     return E_OUTOFMEMORY;
@@ -1109,22 +1111,34 @@ nsDataObj :: GetFileContentsInternetShortcut ( FORMATETC& aFE, STGMEDIUM& aSTG )
   nsCOMPtr<nsIURI> aUri;
   NS_NewURI(getter_AddRefs(aUri), url);
 
-  nsAutoString aUriHash;
-
-  mozilla::widget::FaviconHelper::ObtainCachedIconFile(aUri, aUriHash, mIOThread, true);
-
-  nsresult rv = mozilla::widget::FaviconHelper::GetOutputIconPath(aUri, icoFile, true);
-  NS_ENSURE_SUCCESS(rv, E_FAIL);
+  const char *shortcutFormatStr;
+  int totalLen;
   nsCString path;
-  rv = icoFile->GetNativePath(path);
-  NS_ENSURE_SUCCESS(rv, E_FAIL);
+  if (!Preferences::GetBool(kShellIconPref, true)) {
+    shortcutFormatStr = "[InternetShortcut]\r\nURL=%s\r\n";
+    const int formatLen = strlen(shortcutFormatStr) - 2;  
+    totalLen = formatLen + asciiUrl.Length();  
+  } else {
+    nsCOMPtr<nsIFile> icoFile;
+    nsCOMPtr<nsIURI> aUri;
+    NS_NewURI(getter_AddRefs(aUri), url);
 
-  static const char* shortcutFormatStr = "[InternetShortcut]\r\nURL=%s\r\n"
-                                         "IDList=\r\nHotKey=0\r\nIconFile=%s\r\n"
-                                         "IconIndex=0\r\n";
-  static const int formatLen = strlen(shortcutFormatStr) - 2*2; 
-  const int totalLen = formatLen + asciiUrl.Length() 
-                       + path.Length(); 
+    nsAutoString aUriHash;
+
+    mozilla::widget::FaviconHelper::ObtainCachedIconFile(aUri, aUriHash, mIOThread, true);
+
+    nsresult rv = mozilla::widget::FaviconHelper::GetOutputIconPath(aUri, icoFile, true);
+    NS_ENSURE_SUCCESS(rv, E_FAIL);
+    rv = icoFile->GetNativePath(path);
+    NS_ENSURE_SUCCESS(rv, E_FAIL);
+
+    shortcutFormatStr = "[InternetShortcut]\r\nURL=%s\r\n"
+                        "IDList=\r\nHotKey=0\r\nIconFile=%s\r\n"
+                        "IconIndex=0\r\n";
+    const int formatLen = strlen(shortcutFormatStr) - 2 * 2; 
+    totalLen = formatLen + asciiUrl.Length() +
+               path.Length(); 
+  }
 
   
   HGLOBAL hGlobalMemory = ::GlobalAlloc(GMEM_SHARE, totalLen);
@@ -1141,8 +1155,13 @@ nsDataObj :: GetFileContentsInternetShortcut ( FORMATETC& aFE, STGMEDIUM& aSTG )
   
   
   
-  _snprintf( contents, totalLen, shortcutFormatStr, asciiUrl.get(), path.get() );
-    
+
+  if (!Preferences::GetBool(kShellIconPref, true)) {
+    _snprintf(contents, totalLen, shortcutFormatStr, asciiUrl.get());
+  } else {
+    _snprintf(contents, totalLen, shortcutFormatStr, asciiUrl.get(), path.get());
+  }
+
   ::GlobalUnlock(hGlobalMemory);
   aSTG.hGlobal = hGlobalMemory;
   aSTG.tymed = TYMED_HGLOBAL;
