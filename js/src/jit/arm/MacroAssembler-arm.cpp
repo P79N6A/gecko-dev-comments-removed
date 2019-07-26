@@ -958,7 +958,7 @@ MacroAssemblerARM::ma_mod_mask(Register src, Register dest, Register hold, int32
     
     ma_sub(dest, Imm32(mask), secondScratchReg_, SetCond);
     
-    ma_mov(secondScratchReg_, dest, NoSetCond, Unsigned);
+    ma_mov(secondScratchReg_, dest, NoSetCond, NotSigned);
     
     as_mov(ScratchRegister, lsr(ScratchRegister, shift), SetCond);
     
@@ -3884,7 +3884,7 @@ MacroAssemblerARMCompat::floor(FloatRegister input, Register output, Label *bail
     
     
     
-    ma_b(bail, Unsigned);
+    ma_b(bail, NotSigned);
 
     bind(&fin);
 }
@@ -3936,7 +3936,7 @@ MacroAssemblerARMCompat::floorf(FloatRegister input, Register output, Label *bai
     
     
     
-    ma_b(bail, Unsigned);
+    ma_b(bail, NotSigned);
 
     bind(&fin);
 }
@@ -4023,7 +4023,7 @@ MacroAssemblerARMCompat::round(FloatRegister input, Register output, Label *bail
     
     
     
-    ma_b(bail, Unsigned);
+    ma_b(bail, NotSigned);
 
     bind(&fin);
 }
