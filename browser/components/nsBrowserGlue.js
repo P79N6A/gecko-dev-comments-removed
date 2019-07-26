@@ -438,11 +438,6 @@ BrowserGlue.prototype = {
     
     if (this._shouldShowRights()) {
       this._showRightsNotification();
-#ifdef MOZ_TELEMETRY_REPORTING
-    } else {
-      
-      this._showTelemetryNotification();
-#endif
     }
 
     
@@ -506,7 +501,7 @@ BrowserGlue.prototype = {
           var win = this.getMostRecentBrowserWindow();
           var brandBundle = win.document.getElementById("bundle_brand");
           var shellBundle = win.document.getElementById("bundle_shell");
-  
+
           var brandShortName = brandBundle.getString("brandShortName");
           var promptTitle = shellBundle.getString("setDefaultBrowserTitle");
           var promptMessage = shellBundle.getFormattedString("setDefaultBrowserMessage",
@@ -856,167 +851,6 @@ BrowserGlue.prototype = {
     catch (e) {
     }
   },
-
-#ifdef MOZ_TELEMETRY_REPORTING
-  _showTelemetryNotification: function BG__showTelemetryNotification() {
-#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-    const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabledPreRelease";
-    const PREF_TELEMETRY_DISPLAYED = "toolkit.telemetry.notifiedOptOut";
-#else
-    const PREF_TELEMETRY_ENABLED  = "toolkit.telemetry.enabled";
-    const PREF_TELEMETRY_DISPLAYED = "toolkit.telemetry.prompted";
-#endif
-    const PREF_TELEMETRY_REJECTED  = "toolkit.telemetry.rejected";
-    const PREF_TELEMETRY_INFOURL  = "toolkit.telemetry.infoURL";
-    const PREF_TELEMETRY_SERVER_OWNER = "toolkit.telemetry.server_owner";
-    
-    const TELEMETRY_DISPLAY_REV = @MOZ_TELEMETRY_DISPLAY_REV@;
-
-    
-    var win = this.getMostRecentBrowserWindow();
-    var tabbrowser = win.gBrowser;
-    var notifyBox = tabbrowser.getNotificationBox();
-
-    var browserBundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
-    var brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
-    var productName = brandBundle.GetStringFromName("brandFullName");
-    var serverOwner = Services.prefs.getCharPref(PREF_TELEMETRY_SERVER_OWNER);
-
-    function appendTelemetryNotification(message, buttons, hideclose) {
-      let notification = notifyBox.appendNotification(message, "telemetry", null,
-                                                      notifyBox.PRIORITY_INFO_LOW,
-                                                      buttons);
-      if (hideclose)
-        notification.setAttribute("hideclose", hideclose);
-      notification.persistence = -1;  
-      return notification;
-    }
-
-    function appendLearnMoreLink(notification) {
-      let XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-      let link = notification.ownerDocument.createElementNS(XULNS, "label");
-      link.className = "text-link telemetry-text-link";
-      link.setAttribute("value", browserBundle.GetStringFromName("telemetryLinkLabel"));
-      let description = notification.ownerDocument.getAnonymousElementByAttribute(notification, "anonid", "messageText");
-      description.appendChild(link);
-      return link;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-    var telemetryDisplayed;
-    try {
-      telemetryDisplayed = Services.prefs.getIntPref(PREF_TELEMETRY_DISPLAYED);
-    } catch(e) {}
-    if (telemetryDisplayed >= TELEMETRY_DISPLAY_REV)
-      return;
-
-#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-    
-
-
-
-
-
-
-
-
-    var telemetryEnabled = Services.prefs.getBoolPref(PREF_TELEMETRY_ENABLED);
-    if (!telemetryEnabled)
-      return;
-
-    
-    
-    var telemetryRejected = false;
-    try {
-      telemetryRejected = Services.prefs.getBoolPref(PREF_TELEMETRY_REJECTED);
-    } catch(e) {}
-    if (telemetryRejected) {
-      Services.prefs.setBoolPref(PREF_TELEMETRY_ENABLED, false);
-      Services.prefs.setIntPref(PREF_TELEMETRY_DISPLAYED, TELEMETRY_DISPLAY_REV);
-      return;
-    }
-
-    
-    
-    var optInTelemetryEnabled = false;
-    try {
-      optInTelemetryEnabled = Services.prefs.getBoolPref("toolkit.telemetry.enabled");
-    } catch(e) {}
-    if (optInTelemetryEnabled && telemetryDisplayed === undefined) {
-      Services.prefs.setBoolPref(PREF_TELEMETRY_REJECTED, false);
-      Services.prefs.setIntPref(PREF_TELEMETRY_DISPLAYED, TELEMETRY_DISPLAY_REV);
-      return;
-    }
-
-    var telemetryPrompt = browserBundle.formatStringFromName("telemetryOptOutPrompt",
-                                                            [productName, serverOwner, productName], 3);
-    var buttons = null;
-    var hideCloseButton = false;
-    function learnModeClickHandler() {
-      
-      var url = Services.urlFormatter.formatURLPref("app.support.baseURL");
-      url += "how-can-i-help-submitting-performance-data";
-      tabbrowser.selectedTab = tabbrowser.addTab(url);
-      
-      notification.parentNode.removeNotification(notification, true);
-    }
-#else
-
-    
-    Services.prefs.clearUserPref(PREF_TELEMETRY_ENABLED);
-    Services.prefs.clearUserPref(PREF_TELEMETRY_REJECTED);
-
-    var telemetryPrompt = browserBundle.formatStringFromName("telemetryOptInPrompt",
-                                                            [productName, serverOwner], 2);
-    var buttons = [
-                    {
-                      label:     browserBundle.GetStringFromName("telemetryYesButtonLabel2"),
-                      accessKey: browserBundle.GetStringFromName("telemetryYesButtonAccessKey"),
-                      popup:     null,
-                      callback:  function(aNotificationBar, aButton) {
-                        Services.prefs.setBoolPref(PREF_TELEMETRY_ENABLED, true);
-                        Services.prefs.setBoolPref(PREF_TELEMETRY_REJECTED, false);
-                      }
-                    },
-                    {
-                      label:     browserBundle.GetStringFromName("telemetryNoButtonLabel"),
-                      accessKey: browserBundle.GetStringFromName("telemetryNoButtonAccessKey"),
-                      popup:     null,
-                      callback:  function(aNotificationBar, aButton) {
-                        Services.prefs.setBoolPref(PREF_TELEMETRY_REJECTED, true);
-                      }
-                    }
-                  ];
-
-    var hideCloseButton = true;
-    function learnModeClickHandler() {
-      
-      win.openUILinkIn(Services.prefs.getCharPref(PREF_TELEMETRY_INFOURL), "tab");
-      
-      notification.parentNode.removeNotification(notification, true);
-      
-      notifyBox = tabbrowser.getNotificationBox();
-      appendTelemetryNotification(telemetryPrompt, buttons, true);
-    }
-#endif
-
-    
-    Services.prefs.setIntPref(PREF_TELEMETRY_DISPLAYED, TELEMETRY_DISPLAY_REV);
-
-    var notification = appendTelemetryNotification(telemetryPrompt, buttons, hideCloseButton);
-    var link = appendLearnMoreLink(notification);
-    link.addEventListener('click', learnModeClickHandler, false);
-  },
-#endif
 
   _showPluginUpdatePage: function BG__showPluginUpdatePage() {
     Services.prefs.setBoolPref(PREF_PLUGINS_NOTIFYUSER, false);
