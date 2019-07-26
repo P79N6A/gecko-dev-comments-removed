@@ -43,7 +43,10 @@ CommandLineHandler.prototype = {
                                           null);
       
       Cu.import("resource://webapprt/modules/Startup.jsm");
-      startup(window);
+      startup(window).then(null, function (aError) {
+        dump("Error: " + aError + "\n");
+        Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
+      });
     }
   },
 
