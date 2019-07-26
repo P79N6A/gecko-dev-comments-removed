@@ -130,6 +130,8 @@ public:
 
   virtual void DidPaintWindow();
 
+  virtual void DidCompositeWindow();
+
   
 
 
