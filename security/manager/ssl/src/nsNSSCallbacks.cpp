@@ -1132,11 +1132,6 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   
   
   
-  bool isResumedSession = !infoObject->IsFullHandshake();
-
-  
-  
-  
   PreliminaryHandshakeDone(fd);
 
   nsSSLIOLayerHelpers& ioLayerHelpers
