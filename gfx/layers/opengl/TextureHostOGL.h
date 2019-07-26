@@ -28,7 +28,6 @@
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
-#include "nsTraceRefcnt.h"              
 #include "OGLShaderProgram.h"           
 #ifdef MOZ_WIDGET_GONK
 #include <ui/GraphicBuffer.h>

@@ -10,8 +10,8 @@
 #include "BasicLayers.h"                
 #include "Layers.h"                     
 #include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
 #include "nsISupportsUtils.h"           
-#include "nsTraceRefcnt.h"              
 struct nsIntRect;
 
 namespace mozilla {

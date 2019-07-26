@@ -19,7 +19,7 @@
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
-#include "nsTraceRefcnt.h"              
+#include "nsISupportsImpl.h"            
 
 namespace mozilla {
 namespace layers {

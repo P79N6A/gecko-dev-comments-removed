@@ -8,7 +8,7 @@
 #include "Layers.h"                     
 #include "gfxContext.h"                 
 #include "nsDebug.h"                    
-#include "nsTraceRefcnt.h"              
+#include "nsISupportsImpl.h"            
 #include "mozilla/gfx/Types.h"
 
 class gfxASurface;

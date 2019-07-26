@@ -26,11 +26,11 @@
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
 #include "nscore.h"                     
 
 namespace mozilla {

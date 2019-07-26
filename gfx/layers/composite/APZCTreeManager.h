@@ -16,8 +16,7 @@
 #include "mozilla/Monitor.h"            
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
-#include "nsISupportsImpl.h"
-#include "nsTraceRefcnt.h"              
+#include "nsISupportsImpl.h"            
 #include "mozilla/Vector.h"             
 #include "nsTArray.h"                   
 

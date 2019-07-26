@@ -17,7 +17,6 @@
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
-#include "nsTraceRefcnt.h"              
 
 using namespace mozilla::gfx;
 

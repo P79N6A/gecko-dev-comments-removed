@@ -25,12 +25,12 @@
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
 #include "nsISupportsUtils.h"           
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
 #include <vector>
 
 namespace mozilla {

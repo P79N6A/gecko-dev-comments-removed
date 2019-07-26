@@ -16,8 +16,8 @@
 #include "mozilla/mozalloc.h"           
 #include "nsDebug.h"                    
 #include "nsIObserver.h"                
+#include "nsISupportsImpl.h"            
 #include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
 #include "nsXULAppAPI.h"                
 #include "FrameLayerBuilder.h"
 

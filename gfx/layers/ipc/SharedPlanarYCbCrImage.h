@@ -10,7 +10,7 @@
 #include "mozilla/ipc/Shmem.h"          
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
-#include "nsTraceRefcnt.h"              
+#include "nsISupportsImpl.h"            
 
 class gfxASurface;
 

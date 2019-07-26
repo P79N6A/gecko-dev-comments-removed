@@ -45,7 +45,6 @@
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
 #define PIXMAN_DONT_DEFINE_STDINT
 #include "pixman.h"                     
 

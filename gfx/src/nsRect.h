@@ -15,9 +15,9 @@
 #include "mozilla/Likely.h"             
 #include "mozilla/gfx/BaseRect.h"       
 #include "nsCoord.h"                    
+#include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
 #include "nsSize.h"                     
-#include "nsTraceRefcnt.h"              
 #include "nscore.h"                     
 
 struct nsIntRect;

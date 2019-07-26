@@ -21,11 +21,11 @@
 #include "mozilla/layers/TextureClient.h"
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
+#include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "gfxReusableSurfaceWrapper.h"
 

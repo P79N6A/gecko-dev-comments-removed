@@ -16,8 +16,8 @@
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
 #include "nsRegion.h"                   
-#include "nsTraceRefcnt.h"              
 
 namespace mozilla {
 namespace layers {
@@ -55,13 +55,6 @@ public:
   virtual void Initialize(const Data& aData);
 
   virtual void RenderLayer();
-
-  virtual void ClearCachedResources()
-  {
-    if (mCanvasClient) {
-      mCanvasClient->Clear();
-    }
-  }
 
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
   {

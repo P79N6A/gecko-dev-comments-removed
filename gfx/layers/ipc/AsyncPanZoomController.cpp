@@ -49,14 +49,13 @@
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsIDOMWindowUtils.h"          
-#include "nsISupportsImpl.h"
+#include "nsISupportsImpl.h"            
 #include "nsMathUtils.h"                
 #include "nsPoint.h"                    
 #include "nsStyleConsts.h"
 #include "nsStyleStruct.h"              
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
-#include "nsTraceRefcnt.h"              
 #include "SharedMemoryBasic.h"          
 
 

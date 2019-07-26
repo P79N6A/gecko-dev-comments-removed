@@ -9,7 +9,7 @@
 #include "Layers.h"                     
 #include "mozilla/Attributes.h"         
 #include "mozilla/layers/LayerManagerComposite.h"  
-#include "nsTraceRefcnt.h"              
+#include "nsISupportsImpl.h"            
 
 struct nsIntPoint;
 struct nsIntRect;

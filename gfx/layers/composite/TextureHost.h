@@ -20,8 +20,8 @@
 #include "mozilla/mozalloc.h"           
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
 #include "nsRegion.h"                   
-#include "nsTraceRefcnt.h"              
 #include "nscore.h"                     
 #include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 

@@ -15,7 +15,7 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/layers/PCompositableChild.h"  
-#include "nsTraceRefcnt.h"              
+#include "nsISupportsImpl.h"            
 #include "gfxASurface.h"                
 
 namespace mozilla {

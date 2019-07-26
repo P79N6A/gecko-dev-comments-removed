@@ -19,7 +19,6 @@
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
 #include "nsSize.h"                     
-#include "nsTraceRefcnt.h"              
 
 
 #define MAX_FRAME_SIZE (16 * 1024 * 1024)

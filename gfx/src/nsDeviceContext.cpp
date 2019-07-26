@@ -25,6 +25,7 @@
 #include "nsIObserverService.h"         
 #include "nsIScreen.h"                  
 #include "nsIScreenManager.h"           
+#include "nsISupportsImpl.h"            
 #include "nsISupportsUtils.h"           
 #include "nsIWidget.h"                  
 #include "nsRect.h"                     
@@ -33,7 +34,6 @@
 #include "nsString.h"               
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
-#include "nsTraceRefcnt.h"              
 
 #if !XP_MACOSX
 #include "gfxPDFSurface.h"

@@ -16,9 +16,9 @@
 #include "mozilla/mozalloc.h"           
 #include "nsAString.h"
 #include "nsAutoPtr.h"                  
+#include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
 #include "nsString.h"                   
-#include "nsTraceRefcnt.h"              
 
 using namespace mozilla;
 using namespace mozilla::layers;

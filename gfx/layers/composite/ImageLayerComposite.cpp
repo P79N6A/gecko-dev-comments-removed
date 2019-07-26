@@ -20,10 +20,10 @@
 #include "nsAString.h"
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
 #include "nsString.h"                   
-#include "nsTraceRefcnt.h"              
 
 using namespace mozilla::gfx;
 

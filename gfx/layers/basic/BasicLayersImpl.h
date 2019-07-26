@@ -18,7 +18,6 @@
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsRegion.h"                   
-#include "nsTraceRefcnt.h"              
 
 namespace mozilla {
 namespace layers {

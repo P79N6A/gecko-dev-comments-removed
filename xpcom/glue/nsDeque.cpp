@@ -4,7 +4,7 @@
 
 
 #include "nsDeque.h"
-#include "nsTraceRefcnt.h"
+#include "nsISupportsImpl.h"
 #include <string.h>
 #ifdef DEBUG_rickg
 #include <stdio.h>

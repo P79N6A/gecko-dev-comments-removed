@@ -23,7 +23,6 @@
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
-#include "nsTraceRefcnt.h"              
 #include "mozilla/gfx/Point.h"          
 
 using namespace mozilla::gfx;

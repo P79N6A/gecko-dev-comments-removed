@@ -7,7 +7,7 @@
 
 #include "nscore.h"
 #include "MainThreadUtils.h"
-#include "nsTraceRefcnt.h"
+#include "nsISupportsImpl.h"
 #include "nsDebug.h"
 
 

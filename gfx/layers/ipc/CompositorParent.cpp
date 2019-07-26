@@ -38,11 +38,11 @@
 #include "mozilla/mozalloc.h"           
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
 #include "nsIWidget.h"                  
 #include "nsRect.h"                     
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
-#include "nsTraceRefcnt.h"              
 #include "nsXULAppAPI.h"                
 #ifdef XP_WIN
 #include "mozilla/layers/CompositorD3D11.h"

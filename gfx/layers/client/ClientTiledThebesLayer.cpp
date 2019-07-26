@@ -14,8 +14,8 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/layers/LayersMessages.h"
 #include "mozilla/mozalloc.h"           
+#include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
-#include "nsTraceRefcnt.h"              
 
 namespace mozilla {
 namespace layers {

@@ -14,8 +14,8 @@
 #include "mozilla/layers/ContentClient.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
 #include "nsRegion.h"                   
-#include "nsTraceRefcnt.h"              
 #include "mozilla/layers/PLayerTransaction.h" 
 
 class gfxContext;

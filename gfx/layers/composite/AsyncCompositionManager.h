@@ -17,7 +17,6 @@
 #include "mozilla/layers/LayersMessages.h"  
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"            
-#include "nsTraceRefcnt.h"              
 
 namespace mozilla {
 namespace layers {

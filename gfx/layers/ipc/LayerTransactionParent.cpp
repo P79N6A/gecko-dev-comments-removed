@@ -37,7 +37,6 @@
 #include "nsMathUtils.h"                
 #include "nsPoint.h"                    
 #include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
 #include "GeckoProfiler.h"
 #include "mozilla/layers/TextureHost.h"
 #include "mozilla/layers/AsyncCompositionManager.h"

@@ -14,7 +14,7 @@
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/LayersTypes.h"  
-#include "nsTraceRefcnt.h"              
+#include "nsISupportsImpl.h"            
 #include "nsRegion.h"
 #include <vector>
 

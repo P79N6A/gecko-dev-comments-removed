@@ -11,10 +11,10 @@
 #include "Layers.h"                     
 #include "gfxPlatform.h"                
 #include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
 #include "nsISupportsUtils.h"           
 #include "nsRegion.h"                   
 #include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
 
 namespace mozilla {
 namespace layers {

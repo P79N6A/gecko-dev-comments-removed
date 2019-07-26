@@ -21,7 +21,6 @@
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
 #include "nsTArray.h"                   
-#include "nsTraceRefcnt.h"              
 #include "nscore.h"                     
 
 class nsIWidget;

@@ -12,7 +12,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Move.h"
 #include "nsDebug.h"
-#include "nsTraceRefcnt.h"
+#include "nsISupportsImpl.h"
 
 
 #undef compress

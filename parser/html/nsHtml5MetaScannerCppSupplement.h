@@ -3,7 +3,7 @@
 
  
 #include "nsEncoderDecoderUtils.h"
-#include "nsTraceRefcnt.h"
+#include "nsISupportsImpl.h"
 
 #include "mozilla/dom/EncodingUtils.h"
 

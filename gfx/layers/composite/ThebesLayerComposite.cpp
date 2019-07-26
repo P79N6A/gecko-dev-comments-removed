@@ -20,12 +20,12 @@
 #include "mozilla/mozalloc.h"           
 #include "nsAString.h"
 #include "nsAutoPtr.h"                  
+#include "nsISupportsImpl.h"            
 #include "nsMathUtils.h"                
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
 #include "nsSize.h"                     
 #include "nsString.h"                   
-#include "nsTraceRefcnt.h"              
 #include "GeckoProfiler.h"
 
 namespace mozilla {

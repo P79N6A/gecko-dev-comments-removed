@@ -21,7 +21,7 @@
 #include "mozilla/layers/SharedPlanarYCbCrImage.h"
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
 #include "nsDebug.h"                    
-#include "nsTraceRefcnt.h"              
+#include "nsISupportsImpl.h"            
 #include "ImageContainer.h"             
 #include "mozilla/gfx/2D.h"
 

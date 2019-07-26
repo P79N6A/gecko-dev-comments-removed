@@ -14,7 +14,7 @@
 #include "mozilla/layers/TextureHost.h"  
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
-#include "nsTraceRefcnt.h"              
+#include "nsISupportsImpl.h"            
 #include "gfxPlatform.h"                
 
 namespace mozilla {
