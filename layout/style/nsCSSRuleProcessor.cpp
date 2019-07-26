@@ -1632,6 +1632,64 @@ static_assert(NS_ARRAY_LENGTH(sPseudoClassStates) ==
               "ePseudoClass_NotPseudoClass is no longer at the end of"
               "sPseudoClassStates");
 
+static bool
+StateSelectorMatches(Element* aElement,
+                     nsCSSSelector* aSelector,
+                     NodeMatchContext& aNodeMatchContext,
+                     TreeMatchContext& aTreeMatchContext,
+                     bool* const aDependence,
+                     nsEventStates aStatesToCheck)
+{
+  NS_PRECONDITION(!aStatesToCheck.IsEmpty(),
+                  "should only need to call StateSelectorMatches if "
+                  "aStatesToCheck is not empty");
+
+  const bool isNegated = aDependence != nullptr;
+
+  
+  if (aStatesToCheck.HasAtLeastOneOfStates(NS_EVENT_STATE_HOVER | NS_EVENT_STATE_ACTIVE) &&
+      aTreeMatchContext.mCompatMode == eCompatibility_NavQuirks &&
+      
+      !aSelector->HasTagSelector() && !aSelector->mIDList &&
+      !aSelector->mClassList && !aSelector->mAttrList &&
+      
+      
+      
+      
+      !isNegated &&
+      
+      aElement->IsHTML() && !nsCSSRuleProcessor::IsLink(aElement) &&
+      !IsQuirkEventSensitive(aElement->Tag())) {
+    
+    
+    return false;
+  }
+
+  if (aTreeMatchContext.mForStyling &&
+      aStatesToCheck.HasAtLeastOneOfStates(NS_EVENT_STATE_HOVER)) {
+    
+    aElement->SetHasRelevantHoverRules();
+  }
+
+  if (aNodeMatchContext.mStateMask.HasAtLeastOneOfStates(aStatesToCheck)) {
+    if (aDependence) {
+      *aDependence = true;
+    }
+  } else {
+    nsEventStates contentState =
+      nsCSSRuleProcessor::GetContentStateForVisitedHandling(
+                                   aElement,
+                                   aTreeMatchContext,
+                                   aTreeMatchContext.VisitedHandling(),
+                                   aNodeMatchContext.mIsRelevantLink);
+    if (!contentState.HasAtLeastOneOfStates(aStatesToCheck)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 
 
 
@@ -2113,43 +2171,10 @@ static bool SelectorMatches(Element* aElement,
         NS_ABORT_IF_FALSE(false, "How did that happen?");
       }
     } else {
-      
-      if (statesToCheck.HasAtLeastOneOfStates(NS_EVENT_STATE_HOVER | NS_EVENT_STATE_ACTIVE) &&
-          aTreeMatchContext.mCompatMode == eCompatibility_NavQuirks &&
-          
-          !aSelector->HasTagSelector() && !aSelector->mIDList && 
-          !aSelector->mClassList && !aSelector->mAttrList &&
-          
-          
-          
-          
-          !isNegated &&
-          
-          aElement->IsHTML() && !nsCSSRuleProcessor::IsLink(aElement) &&
-          !IsQuirkEventSensitive(aElement->Tag())) {
-        
-        
+      if (!StateSelectorMatches(aElement, aSelector, aNodeMatchContext,
+                                aTreeMatchContext, aDependence,
+                                statesToCheck)) {
         return false;
-      } else {
-        if (aTreeMatchContext.mForStyling &&
-            statesToCheck.HasAtLeastOneOfStates(NS_EVENT_STATE_HOVER)) {
-          
-          aElement->SetHasRelevantHoverRules();
-        }
-        if (aNodeMatchContext.mStateMask.HasAtLeastOneOfStates(statesToCheck)) {
-          if (aDependence)
-            *aDependence = true;
-        } else {
-          nsEventStates contentState =
-            nsCSSRuleProcessor::GetContentStateForVisitedHandling(
-                                         aElement,
-                                         aTreeMatchContext,
-                                         aTreeMatchContext.VisitedHandling(),
-                                         aNodeMatchContext.mIsRelevantLink);
-          if (!contentState.HasAtLeastOneOfStates(statesToCheck)) {
-            return false;
-          }
-        }
       }
     }
   }
