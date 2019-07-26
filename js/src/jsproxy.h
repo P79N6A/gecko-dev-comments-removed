@@ -357,7 +357,12 @@ class JS_FRIEND_API(AutoEnterPolicy)
         allow = handler->hasPolicy() ? handler->enter(cx, wrapper, id, act, &rv)
                                      : true;
         recordEnter(cx, wrapper, id);
-        if (!allow && !rv && mayThrow)
+        
+        
+        
+        
+        
+        if (!allow && !rv && mayThrow && !cx->isExceptionPending())
             reportError(cx, id);
     }
 
