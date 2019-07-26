@@ -4,15 +4,15 @@
 
 
 
-#include "nsDOMMutationObserver.h"        
-#include "nsDOMClassInfoID.h"
+#include "nsDOMMutationObserver.h"
+
+#include "mozilla/dom/OwningNonNull.h"
 #include "nsError.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsContentUtils.h"
 #include "nsThreadUtils.h"
 #include "nsIDOMMutationEvent.h"
 #include "nsTextFragment.h"
-#include "jsapi.h"
 #include "nsServiceManagerUtils.h"
 
 nsTArray<nsRefPtr<nsDOMMutationObserver> >*

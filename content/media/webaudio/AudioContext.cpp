@@ -5,12 +5,14 @@
 
 
 #include "AudioContext.h"
+
 #include "nsPIDOMWindow.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/AnalyserNode.h"
 #include "mozilla/dom/AudioContextBinding.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/OfflineAudioContextBinding.h"
+#include "mozilla/dom/OwningNonNull.h"
 #include "MediaStreamGraph.h"
 #include "AudioDestinationNode.h"
 #include "AudioBufferSourceNode.h"
