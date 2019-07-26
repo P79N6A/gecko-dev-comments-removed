@@ -211,6 +211,13 @@ enum MethodStatus
     Method_Compiled
 };
 
+enum AbortReason {
+    AbortReason_Alloc,
+    AbortReason_Inlining,
+    AbortReason_Disable,
+    AbortReason_NoAbort
+};
+
 
 
 
@@ -298,7 +305,7 @@ class CodeGenerator;
 CodeGenerator *CompileBackEnd(MIRGenerator *mir);
 void AttachFinishedCompilations(JSContext *cx);
 void FinishOffThreadBuilder(IonBuilder *builder);
-bool TestIonCompile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *osrPc, bool constructing);
+MethodStatus TestIonCompile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *osrPc, bool constructing);
 
 static inline bool IsEnabled(JSContext *cx)
 {

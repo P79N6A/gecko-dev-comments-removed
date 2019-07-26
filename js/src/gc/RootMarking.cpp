@@ -6,6 +6,7 @@
 
 
 #include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/Util.h"
 
 #include "jsapi.h"
@@ -86,35 +87,6 @@ MarkExactStackRoots(JSTracer *trc)
     }
 }
 #endif 
-
-static inline bool
-InFreeList(ArenaHeader *aheader, uintptr_t addr)
-{
-    if (!aheader->hasFreeThings())
-        return false;
-
-    FreeSpan firstSpan(aheader->getFirstFreeSpan());
-
-    for (const FreeSpan *span = &firstSpan;;) {
-        
-        if (addr < span->first)
-            return false;
-
-        
-
-
-
-
-        if (addr <= span->last)
-            return true;
-
-        
-
-
-
-        span = span->nextSpan();
-    }
-}
 
 enum ConservativeGCTest
 {
@@ -240,7 +212,7 @@ MarkIfGCThingWord(JSTracer *trc, uintptr_t w)
 
 
 
-    if (InFreeList(aheader, uintptr_t(thing)))
+    if (InFreeList(aheader, thing))
         return CGCT_NOTLIVE;
 
     JSGCTraceKind traceKind = MapAllocToTraceKind(thingKind);
@@ -535,7 +507,7 @@ AutoGCRooter::trace(JSTracer *trc)
       case OBJOBJHASHMAP: {
         AutoObjectObjectHashMap::HashMapImpl &map = static_cast<AutoObjectObjectHashMap *>(this)->map;
         for (AutoObjectObjectHashMap::Enum e(map); !e.empty(); e.popFront()) {
-            RawObject key = e.front().key;
+            mozilla::DebugOnly<RawObject> key = e.front().key;
             MarkObjectRoot(trc, (RawObject *) &e.front().key, "AutoObjectObjectHashMap key");
             JS_ASSERT(key == e.front().key);
             MarkObjectRoot(trc, &e.front().value, "AutoObjectObjectHashMap value");
