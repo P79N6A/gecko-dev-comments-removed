@@ -26,6 +26,7 @@
 #include "nsIDOMGeoPositionCallback.h"
 #include "nsIDOMGeoPositionErrorCallback.h"
 #include "nsIDOMNavigatorGeolocation.h"
+#include "nsIGeolocation.h"
 
 #include "nsPIDOMWindow.h"
 
@@ -64,6 +65,7 @@ class nsGeolocationRequest
 
   void SendLocation(nsIDOMGeoPosition* location);
   void MarkCleared();
+  bool WantsHighAccuracy() {return mOptions && mOptions->enableHighAccuracy;}
   bool IsActive() {return !mCleared;}
   bool Allowed() {return mAllowed;}
   void SetTimeoutTimer();
@@ -135,6 +137,7 @@ public:
 
   
   void     SetHigherAccuracy(bool aEnable);
+  bool     HighAccuracyRequested();
 
 private:
 
@@ -164,14 +167,16 @@ private:
 
 
 
-class nsGeolocation MOZ_FINAL : public nsIDOMGeoGeolocation
+class nsGeolocation MOZ_FINAL : public nsIDOMGeoGeolocation,
+                                public nsIGeolocation
 {
 public:
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIDOMGEOGEOLOCATION
+  NS_DECL_NSIGEOLOCATION
 
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsGeolocation)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsGeolocation, nsIDOMGeoGeolocation)
 
   nsGeolocation();
 
@@ -199,16 +204,11 @@ public:
   bool WindowOwnerStillExists();
 
   
-  void ServiceReady();
+  bool HighAccuracyRequested();
 
   
-  nsresult WatchPosition(nsIDOMGeoPositionCallback *callback,
-                         nsIDOMGeoPositionErrorCallback *errorCallback,
-                         mozilla::idl::GeoPositionOptions *options,
-                         int32_t *_retval);
-  nsresult GetCurrentPosition(nsIDOMGeoPositionCallback *callback,
-                              nsIDOMGeoPositionErrorCallback *errorCallback,
-                              mozilla::idl::GeoPositionOptions *options);
+  void ServiceReady();
+
 private:
 
   ~nsGeolocation();
