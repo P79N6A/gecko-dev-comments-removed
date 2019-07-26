@@ -167,19 +167,25 @@ nsEventStatus GestureEventListener::HandleInputEvent(const InputData& aEvent)
       mState = GESTURE_NONE;
     } else if (mState == GESTURE_WAITING_SINGLE_TAP) {
       CancelLongTapTimeoutTask();
-      HandleSingleTapUpEvent(event);
+      nsEventStatus tapupEvent = HandleSingleTapUpEvent(event);
 
-      
-      
-      
-      mState = GESTURE_WAITING_DOUBLE_TAP;
+      if (tapupEvent == nsEventStatus_eIgnore) {
+        
+        
+        
+        mState = GESTURE_WAITING_DOUBLE_TAP;
 
-      mDoubleTapTimeoutTask =
-        NewRunnableMethod(this, &GestureEventListener::TimeoutDoubleTap);
+        mDoubleTapTimeoutTask =
+          NewRunnableMethod(this, &GestureEventListener::TimeoutDoubleTap);
 
-      mAsyncPanZoomController->PostDelayedTask(
-        mDoubleTapTimeoutTask,
-        MAX_TAP_TIME);
+        mAsyncPanZoomController->PostDelayedTask(
+          mDoubleTapTimeoutTask,
+          MAX_TAP_TIME);
+
+      } else if (tapupEvent == nsEventStatus_eConsumeNoDefault) {
+        
+        mState = GESTURE_NONE;
+      }
     }
 
     mLastTapEndTime = event.mTime;
