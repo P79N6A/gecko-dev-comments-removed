@@ -73,6 +73,7 @@ public:
   
   
   bool IsTransferring();
+  void GetAddress(nsAString& aDeviceAddress);
 
   
   void ReceiveSocketData(

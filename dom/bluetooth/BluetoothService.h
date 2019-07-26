@@ -136,6 +136,16 @@ public:
 
 
 
+
+  virtual nsresult
+  GetConnectedDevicePropertiesInternal(uint16_t aProfileId,
+                                       BluetoothReplyRunnable* aRunnable) = 0;
+
+  
+
+
+
+
   virtual nsresult
   StopDiscoveryInternal(BluetoothReplyRunnable* aRunnable) = 0;
 
