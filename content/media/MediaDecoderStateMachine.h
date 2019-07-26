@@ -501,12 +501,6 @@ private:
 
   
   
-  
-  
-  nsresult ScheduleDecodeThread();
-
-  
-  
   nsresult StartAudioThread();
 
   
@@ -528,7 +522,20 @@ private:
 
   void StartWaitForResources();
 
-  void StartDecodeMetadata();
+  
+  
+  
+  nsresult EnqueueDecodeMetadataTask();
+
+  
+  
+  
+  nsresult EnqueueDecodeTask();
+
+  
+  
+  
+  nsresult EnqueueDecodeSeekTask();
 
   
   
@@ -561,9 +568,7 @@ private:
   
   void DecodeLoop();
 
-  
-  
-  void DecodeThreadRun();
+  void CallDecodeMetadata();
 
   
   
