@@ -1907,10 +1907,18 @@ MarionetteServerConnection.prototype = {
     }
   },
 
-  getElementPosition: function MDA_getElementPosition(aRequest) {
+  
+
+
+
+
+
+
+
+
+  getElementLocation: function MDA_getElementLocation(aRequest) {
     this.command_id = this.getCommandId();
-    this.sendAsync("getElementPosition",
-                   { id:aRequest.parameters.id },
+    this.sendAsync("getElementLocation", {id: aRequest.parameters.id},
                    this.command_id);
   },
 
@@ -2376,7 +2384,8 @@ MarionetteServerConnection.prototype.requestTypes = {
   "isElementEnabled": MarionetteServerConnection.prototype.isElementEnabled,
   "isElementSelected": MarionetteServerConnection.prototype.isElementSelected,
   "sendKeysToElement": MarionetteServerConnection.prototype.sendKeysToElement,
-  "getElementPosition": MarionetteServerConnection.prototype.getElementPosition,
+  "getElementLocation": MarionetteServerConnection.protocol.getElementLocation,
+  "getElementPosition": MarionetteServerConnection.prototype.getElementLocation,  
   "clearElement": MarionetteServerConnection.prototype.clearElement,
   "getTitle": MarionetteServerConnection.prototype.getTitle,
   "getWindowType": MarionetteServerConnection.prototype.getWindowType,
