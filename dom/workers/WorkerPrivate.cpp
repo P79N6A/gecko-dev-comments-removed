@@ -4857,19 +4857,23 @@ WorkerPrivate::RunCurrentSyncLoop()
 
         ProcessAllControlRunnablesLocked();
 
-        if (normalRunnablesPending) {
+        
+        
+        if (normalRunnablesPending || loopInfo->mCompleted) {
           break;
         }
       }
     }
 
-    
-    SetGCTimerMode(PeriodicTimer);
+    if (normalRunnablesPending) {
+      
+      SetGCTimerMode(PeriodicTimer);
 
-    MOZ_ALWAYS_TRUE(NS_ProcessNextEvent(thread, false));
+      MOZ_ALWAYS_TRUE(NS_ProcessNextEvent(thread, false));
 
-    
-    JS_MaybeGC(cx);
+      
+      JS_MaybeGC(cx);
+    }
   }
 
   
