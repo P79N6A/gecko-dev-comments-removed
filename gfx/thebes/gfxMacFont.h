@@ -40,10 +40,6 @@ public:
                                gfxContext *aContextForTightBoundingBox,
                                Spacing *aSpacing);
 
-    
-    
-    virtual hb_blob_t *GetFontTable(uint32_t aTag);
-
     virtual mozilla::TemporaryRef<mozilla::gfx::ScaledFont> GetScaledFont(mozilla::gfx::DrawTarget *aTarget);
 
     virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
@@ -72,8 +68,6 @@ protected:
     
     gfxFloat GetCharWidth(CFDataRef aCmap, PRUnichar aUniChar,
                           uint32_t *aGlyphID, gfxFloat aConvFactor);
-
-    static void DestroyBlobFunc(void* aUserData);
 
     
     

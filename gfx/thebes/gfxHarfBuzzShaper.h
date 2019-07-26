@@ -18,6 +18,15 @@ public:
     gfxHarfBuzzShaper(gfxFont *aFont);
     virtual ~gfxHarfBuzzShaper();
 
+    
+
+
+
+    struct FontCallbackData {
+        gfxHarfBuzzShaper *mShaper;
+        gfxContext        *mContext;
+    };
+
     virtual bool ShapeText(gfxContext      *aContext,
                            const PRUnichar *aText,
                            uint32_t         aOffset,
@@ -55,7 +64,13 @@ protected:
                               uint32_t aAppUnitsPerDevUnit);
 
     
+    
     hb_face_t         *mHBFace;
+
+    
+    hb_font_t         *mHBFont;
+
+    FontCallbackData   mCallbackData;
 
     
     
@@ -87,6 +102,8 @@ protected:
     
     
     bool mUseFontGlyphWidths;
+
+    bool mInitialized;
 };
 
 #endif 
