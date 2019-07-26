@@ -22,6 +22,10 @@
 #include "vorbis/codec.h"
 #endif
 
+#ifdef MOZ_OPUS
+#include "OpusParser.h"
+#endif
+
 namespace mozilla {
 
 class WebMBufferedState;
@@ -154,6 +158,11 @@ protected:
                            bool aEOS,
                            int64_t aGranulepos);
 
+#ifdef MOZ_OPUS
+  
+  bool InitOpusDecoder();
+#endif
+
   
   
   
@@ -182,6 +191,14 @@ private:
   uint32_t mPacketCount;
   uint32_t mChannels;
 
+
+#ifdef MOZ_OPUS
+  
+  nsAutoPtr<OpusParser> mOpusParser;
+  OpusMSDecoder *mOpusDecoder;
+  int mSkip;        
+#endif
+
   
   
   WebMPacketQueue mVideoPackets;
@@ -198,6 +215,9 @@ private:
   uint64_t mAudioFrames;
 
   
+  uint64_t mCodecDelay;
+
+  
   
   nsRefPtr<WebMBufferedState> mBufferedState;
 
@@ -211,6 +231,10 @@ private:
   
   bool mHasVideo;
   bool mHasAudio;
+
+  
+  int mAudioCodec;
+
 };
 
 } 
