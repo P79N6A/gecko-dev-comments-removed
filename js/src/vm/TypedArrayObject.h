@@ -146,8 +146,7 @@ class ArrayBufferObject : public JSObject
     static bool stealContents(JSContext *cx, JSObject *obj, void **contents,
                               uint8_t **data);
 
-    static void setElementsHeader(js::ObjectElements *header, uint32_t bytes) {
-        header->flags = 0;
+    static void updateElementsHeader(js::ObjectElements *header, uint32_t bytes) {
         header->initializedLength = bytes;
 
         
@@ -157,6 +156,11 @@ class ArrayBufferObject : public JSObject
         header->capacity = 0;
     }
 
+    static void initElementsHeader(js::ObjectElements *header, uint32_t bytes) {
+        header->flags = 0;
+        updateElementsHeader(header, bytes);
+    }
+
     static uint32_t headerInitializedLength(const js::ObjectElements *header) {
         return header->initializedLength;
     }
@@ -164,21 +168,47 @@ class ArrayBufferObject : public JSObject
     void addView(ArrayBufferViewObject *view);
 
     bool allocateSlots(JSContext *cx, uint32_t size, uint8_t *contents = nullptr);
+
     void changeContents(JSContext *cx, ObjectElements *newHeader);
 
     
 
 
 
-    bool uninlineData(JSContext *cx);
+    bool copyData(JSContext *maybecx);
+
+    
+
+
+
+    bool ensureNonInline(JSContext *maybecx);
 
     uint32_t byteLength() const {
         return getElementsHeader()->initializedLength;
     }
 
+    
+
+
+
+
+
+    ObjectElements *getTransferableContents(JSContext *maybecx, bool *callerOwns);
+
+    
+
+
+    void neuterViews(JSContext *maybecx);
+
     inline uint8_t * dataPointer() const {
         return (uint8_t *) elements;
     }
+
+    
+
+
+
+    void neuter(JSContext *maybecx);
 
     
 
@@ -521,6 +551,7 @@ class DataViewObject : public ArrayBufferViewObject
     static bool fun_setFloat64(JSContext *cx, unsigned argc, Value *vp);
 
     static JSObject *initClass(JSContext *cx);
+    static void neuter(JSObject *view);
     static bool getDataPointer(JSContext *cx, Handle<DataViewObject*> obj,
                                CallArgs args, size_t typeSize, uint8_t **data);
     template<typename NativeType>
