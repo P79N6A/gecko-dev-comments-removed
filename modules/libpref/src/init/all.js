@@ -365,17 +365,9 @@ pref("gfx.font_rendering.graphite.enabled", true);
 
 
 
-#ifdef XP_WIN
-
-
-
-pref("gfx.font_rendering.harfbuzz.scripts", 247);
-#else
-
 
 
 pref("gfx.font_rendering.harfbuzz.scripts", 255);
-#endif
 
 #ifdef XP_WIN
 pref("gfx.font_rendering.directwrite.enabled", false);
