@@ -19,7 +19,7 @@
 #include "cubeb-internal.h"
 
 
-#if !defined(MEMORY_ALLOCATION_ALIGNMENT)
+#ifndef MEMORY_ALLOCATION_ALIGNMENT
 #define MEMORY_ALLOCATION_ALIGNMENT 16
 #endif
 

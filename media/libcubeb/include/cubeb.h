@@ -4,12 +4,12 @@
 
 
 
-#if !defined(CUBEB_c2f983e9_c96f_e71c_72c3_bbf62992a382)
-#define CUBEB_c2f983e9_c96f_e71c_72c3_bbf62992a382
+#ifndef   CUBEB_c2f983e9_c96f_e71c_72c3_bbf62992a382
+#define   CUBEB_c2f983e9_c96f_e71c_72c3_bbf62992a382
 
 #include <cubeb/cubeb-stdint.h>
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -226,7 +226,7 @@ int cubeb_stream_stop(cubeb_stream * stream);
 
 int cubeb_stream_get_position(cubeb_stream * stream, uint64_t * position);
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif
 
