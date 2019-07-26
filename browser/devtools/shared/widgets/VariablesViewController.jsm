@@ -123,7 +123,9 @@ VariablesViewController.prototype = {
     let deferred = Promise.defer();
 
     this._getGripClient(aGrip).getPrototypeAndProperties(aResponse => {
-      let { ownProperties, prototype, safeGetterValues } = aResponse;
+      let { ownProperties, prototype } = aResponse;
+      
+      let safeGetterValues = aResponse.safeGetterValues || {};
       let sortable = VariablesView.isSortable(aGrip.class);
 
       
