@@ -894,6 +894,7 @@ CodeGeneratorX86Shared::visitDivSelfI(LDivSelfI *ins)
     Register output = ToRegister(ins->output());
     MDiv *mir = ins->mir();
 
+    
     JS_ASSERT(mir->canBeDivideByZero());
 
     masm.testl(op, op);
@@ -992,6 +993,39 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
 }
 
 bool
+CodeGeneratorX86Shared::visitModSelfI(LModSelfI *ins)
+{
+    Register op = ToRegister(ins->op());
+    Register output = ToRegister(ins->output());
+    MMod *mir = ins->mir();
+
+    
+    JS_ASSERT(mir->fallible());
+    JS_ASSERT(mir->canBeDivideByZero() || (!mir->isUnsigned() && mir->canBeNegativeDividend()));
+
+    masm.testl(op, op);
+
+    
+    
+    if (!mir->isUnsigned() && mir->canBeNegativeDividend()) {
+        if (!bailoutIf(Assembler::Signed, ins->snapshot()))
+             return false;
+    }
+
+    
+    
+    if (mir->canBeDivideByZero()) {
+        if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+            return false;
+    }
+
+    
+    masm.mov(ImmWord(0), output);
+
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitModPowTwoI(LModPowTwoI *ins)
 {
     Register lhs = ToRegister(ins->getOperand(0));
@@ -1068,16 +1102,11 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
     Register remainder = ToRegister(ins->remainder());
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
-    Register temp = ToRegister(ins->getTemp(0));
 
     
+    JS_ASSERT(lhs == eax);
     JS_ASSERT(remainder == edx);
-    JS_ASSERT(temp == eax);
-
-    if (lhs != temp) {
-        masm.mov(lhs, temp);
-        lhs = temp;
-    }
+    JS_ASSERT(ToRegister(ins->getTemp(0)) == eax);
 
     Label done;
     ReturnZero *ool = nullptr;

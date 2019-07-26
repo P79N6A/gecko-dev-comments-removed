@@ -115,6 +115,25 @@ class LModI : public LBinaryMath<1>
 };
 
 
+class LModSelfI : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(ModSelfI)
+
+    LModSelfI(const LAllocation &op) {
+        setOperand(0, op);
+    }
+
+    const LAllocation *op() {
+        return getOperand(0);
+    }
+
+    MMod *mir() const {
+        return mir_->toMod();
+    }
+};
+
+
 
 class LUDivOrMod : public LBinaryMath<1>
 {
