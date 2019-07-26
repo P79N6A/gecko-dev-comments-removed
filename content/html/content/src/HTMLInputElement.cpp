@@ -2140,7 +2140,15 @@ HTMLInputElement::GetValueIfStepped(int32_t aStep,
     return NS_OK;
   }
 
-  if (GetValidityState(VALIDITY_STATE_STEP_MISMATCH) &&
+  
+  
+  
+  
+  
+  
+  
+  
+  if (HasStepMismatch(true) &&
       value != minimum && value != maximum) {
     if (aStep > 0) {
       value -= NS_floorModulo(value - GetStepBase(), step);
@@ -3644,9 +3652,17 @@ HTMLInputElement::StepNumberControlForUserEvent(int32_t aDirection)
     
     
     
-    UpdateValidityUIBits(true);
-    UpdateState(true);
-    return;
+    nsNumberControlFrame* numberControlFrame =
+      do_QueryFrame(GetPrimaryFrame());
+    if (numberControlFrame &&
+        !numberControlFrame->AnonTextControlIsEmpty()) {
+      
+      
+      
+      UpdateValidityUIBits(true);
+      UpdateState(true);
+      return;
+    }
   }
 
   Decimal newValue = Decimal::nan(); 
@@ -6433,7 +6449,7 @@ HTMLInputElement::IsRangeUnderflow() const
 }
 
 bool
-HTMLInputElement::HasStepMismatch() const
+HTMLInputElement::HasStepMismatch(bool aUseZeroIfValueNaN) const
 {
   if (!DoesStepApply()) {
     return false;
@@ -6441,8 +6457,12 @@ HTMLInputElement::HasStepMismatch() const
 
   Decimal value = GetValueAsDecimal();
   if (value.isNaN()) {
-    
-    return false;
+    if (aUseZeroIfValueNaN) {
+      value = 0;
+    } else {
+      
+      return false;
+    }
   }
 
   Decimal step = GetStep();
