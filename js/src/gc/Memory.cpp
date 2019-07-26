@@ -63,7 +63,7 @@ gc::MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment)
         p = VirtualAlloc(nullptr, size * 2, MEM_RESERVE, PAGE_READWRITE);
         if (!p)
             return nullptr;
-        void *chunkStart = (void *)(uintptr_t(p) + (alignment - (uintptr_t(p) % alignment)));
+        void *chunkStart = (void *)AlignBytes(uintptr_t(p), alignment);
         UnmapPages(rt, p, size * 2);
         p = VirtualAlloc(chunkStart, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
@@ -372,7 +372,7 @@ gc::MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment)
     uintptr_t offset = uintptr_t(region) % alignment;
     JS_ASSERT(offset < reqSize - size);
 
-    void *front = (void *)(uintptr_t(region) + (alignment - offset));
+    void *front = (void *)AlignBytes(uintptr_t(region), alignment);
     void *end = (void *)(uintptr_t(front) + size);
     if (front != region)
         JS_ALWAYS_TRUE(0 == munmap(region, alignment - offset));
