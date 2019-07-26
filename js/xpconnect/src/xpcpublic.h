@@ -102,6 +102,15 @@ IsReflector(JSObject *obj);
 
 bool
 IsXrayWrapper(JSObject *obj);
+
+
+
+
+
+
+JSObject *
+XrayAwareCalleeGlobal(JSObject *fun);
+
 } 
 
 namespace JS {
