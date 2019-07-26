@@ -1631,10 +1631,12 @@ PeerConnectionWrapper.prototype = {
                 if(res.type == "outboundrtp") {
                   ok(rem.type == "inboundrtp", "Rtcp is inbound");
                   ok(rem.packetsReceived !== undefined, "Rtcp packetsReceived");
-                  ok(rem.packetsReceived <= res.packetsSent, "No more than sent");
+                  
+                  
                   ok(rem.packetsLost !== undefined, "Rtcp packetsLost");
                   ok(rem.bytesReceived >= rem.packetsReceived * 8, "Rtcp bytesReceived");
-                  ok(rem.bytesReceived <= res.bytesSent, "No more than sent bytes");
+                  
+                  
                   ok(rem.jitter !== undefined, "Rtcp jitter");
                 } else {
                   ok(rem.type == "outboundrtp", "Rtcp is outbound");
