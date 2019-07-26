@@ -604,7 +604,7 @@ pref("accessibility.typeaheadfind.flashBar", 1);
 pref("pfs.datasource.url", "https://pfs.mozilla.org/plugins/PluginFinderService.php?mimetype=%PLUGIN_MIMETYPE%&appID=%APP_ID%&appVersion=%APP_VERSION%&clientOS=%CLIENT_OS%&chromeLocale=%CHROME_LOCALE%&appRelease=%APP_RELEASE%");
 
 
-pref("plugins.hide_infobar_for_missing_plugin", false);
+pref("plugins.hide_infobar_for_blocked_plugin", false);
 pref("plugins.hide_infobar_for_outdated_plugin", false);
 
 pref("plugins.update.url", "https://www.mozilla.org/%LOCALE%/plugincheck/");

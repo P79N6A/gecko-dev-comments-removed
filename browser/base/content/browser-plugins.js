@@ -935,7 +935,7 @@ var gPluginHandler = {
       return;
 
     if (eventType == "PluginBlocklisted") {
-      if (gPrefService.getBoolPref("plugins.hide_infobar_for_missing_plugin")) 
+      if (gPrefService.getBoolPref("plugins.hide_infobar_for_blocked_plugin"))
         return;
 
       if (blockedNotification)
