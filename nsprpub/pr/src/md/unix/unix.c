@@ -3017,6 +3017,13 @@ PR_Now(void)
     return s;
 }
 
+#if defined(_MD_INTERVAL_USE_GTOD)
+
+
+
+
+
+
 PRIntervalTime _PR_UNIX_GetInterval()
 {
     struct timeval time;
@@ -3032,6 +3039,29 @@ PRIntervalTime _PR_UNIX_TicksPerSecond()
 {
     return 1000;  
 }
+#endif
+
+#if defined(HAVE_CLOCK_MONOTONIC)
+PRIntervalTime _PR_UNIX_GetInterval2()
+{
+    struct timespec time;
+    PRIntervalTime ticks;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &time) != 0) {
+        fprintf(stderr, "clock_gettime failed: %d\n", errno);
+        abort();
+    }
+
+    ticks = (PRUint32)time.tv_sec * PR_MSEC_PER_SEC;
+    ticks += (PRUint32)time.tv_nsec / PR_NSEC_PER_MSEC;
+    return ticks;
+}
+
+PRIntervalTime _PR_UNIX_TicksPerSecond2()
+{
+    return 1000;
+}
+#endif
 
 #if !defined(_PR_PTHREADS)
 

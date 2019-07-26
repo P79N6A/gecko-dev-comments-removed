@@ -247,17 +247,6 @@ NSPR_API(PRStatus) PR_ParseTimeString (
 	PRTime *result);
 
 
-
-
-
-
-
-
-
-
-#ifndef NO_NSPR_10_SUPPORT
-
-
 NSPR_API(PRUint32) PR_FormatTime(char *buf, int buflen, const char *fmt,
                                            const PRExplodedTime *tm);
 
@@ -267,8 +256,6 @@ NSPR_API(PRUint32) PR_FormatTime(char *buf, int buflen, const char *fmt,
 NSPR_API(PRUint32)
 PR_FormatTimeUSEnglish( char* buf, PRUint32 bufSize,
                         const char* format, const PRExplodedTime* tm );
-
-#endif 
 
 PR_END_EXTERN_C
 

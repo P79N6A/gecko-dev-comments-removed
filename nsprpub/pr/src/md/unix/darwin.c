@@ -5,8 +5,43 @@
 
 #include "primpl.h"
 
+#include <mach/mach_time.h>
+
 void _MD_EarlyInit(void)
 {
+}
+
+
+
+
+
+static mach_timebase_info_data_t machTimebaseInfo;
+
+void _PR_Mach_IntervalInit(void)
+{
+    kern_return_t rv;
+
+    rv = mach_timebase_info(&machTimebaseInfo);
+    PR_ASSERT(rv == KERN_SUCCESS);
+}
+
+PRIntervalTime _PR_Mach_GetInterval(void)
+{
+    uint64_t time;
+
+    
+
+
+
+    time = mach_absolute_time();
+    time = time * machTimebaseInfo.numer / machTimebaseInfo.denom /
+           PR_NSEC_PER_MSEC;
+    return (PRIntervalTime)time;
+}  
+
+PRIntervalTime _PR_Mach_TicksPerSecond(void)
+{
+    return 1000;
 }
 
 PRWord *_MD_HomeGCRegisters(PRThread *t, int isCurrent, int *np)

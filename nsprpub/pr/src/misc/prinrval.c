@@ -32,13 +32,6 @@ void _PR_InitClock(void)
 #endif 
 }
 
-
-
-
-
-
-
-
 PR_IMPLEMENT(PRIntervalTime) PR_IntervalNow(void)
 {
     if (!_pr_initialized) _PR_ImplicitInitialization();
