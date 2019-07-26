@@ -11,7 +11,6 @@ import org.mozilla.gecko.db.BrowserContract.Bookmarks;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
-import android.util.Pair;
 import android.view.View;
 
 import java.util.Collections;
@@ -28,6 +27,20 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
     private static final int[] VIEW_TYPES = new int[] { VIEW_TYPE_ITEM, VIEW_TYPE_FOLDER };
     private static final int[] LAYOUT_TYPES = new int[] { R.layout.bookmark_item_row, R.layout.bookmark_folder_row };
 
+    public class FolderInfo {
+        public final int id;
+        public final String title;
+
+        public FolderInfo(int id) {
+            this(id, "");
+        }
+
+        public FolderInfo(int id, String title) {
+            this.id = id;
+            this.title = title;
+        }
+    }
+
     
     
     public static interface OnRefreshFolderListener {
@@ -37,34 +50,34 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
 
     
     
-    private LinkedList<Pair<Integer, String>> mParentStack;
+    private LinkedList<FolderInfo> mParentStack;
 
     
     private OnRefreshFolderListener mListener;
 
-    public BookmarksListAdapter(Context context, Cursor cursor, List<Pair<Integer, String>> parentStack) {
+    public BookmarksListAdapter(Context context, Cursor cursor, List<FolderInfo> parentStack) {
         
         super(context, cursor, VIEW_TYPES, LAYOUT_TYPES);
 
         if (parentStack == null) {
-            mParentStack = new LinkedList<Pair<Integer, String>>();
+            mParentStack = new LinkedList<FolderInfo>();
 
             
-            Pair<Integer, String> rootFolder = new Pair<Integer, String>(Bookmarks.FIXED_ROOT_ID, "");
+            FolderInfo rootFolder = new FolderInfo(Bookmarks.FIXED_ROOT_ID);
             mParentStack.addFirst(rootFolder);
         } else {
-            mParentStack = new LinkedList<Pair<Integer, String>>(parentStack);
+            mParentStack = new LinkedList<FolderInfo>(parentStack);
         }
     }
 
-    public List<Pair<Integer, String>> getParentStack() {
+    public List<FolderInfo> getParentStack() {
         return Collections.unmodifiableList(mParentStack);
     }
 
     
     private void refreshCurrentFolder() {
         if (mListener != null) {
-            mListener.onRefreshFolder(mParentStack.peek().first);
+            mListener.onRefreshFolder(mParentStack.peek().id);
         }
     }
 
@@ -91,8 +104,8 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
 
 
     public void moveToChildFolder(int folderId, String folderTitle) {
-        Pair<Integer, String> folderPair = new Pair<Integer, String>(folderId, folderTitle);
-        mParentStack.addFirst(folderPair);
+        FolderInfo folderInfo = new FolderInfo(folderId, folderTitle);
+        mParentStack.addFirst(folderInfo);
         refreshCurrentFolder();
     }
 
@@ -163,7 +176,7 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
 
 
     public boolean isShowingChildFolder() {
-        return (mParentStack.peek().first != Bookmarks.FIXED_ROOT_ID);
+        return (mParentStack.peek().id != Bookmarks.FIXED_ROOT_ID);
     }
 
     @Override
@@ -194,7 +207,7 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
         } else {
             final BookmarkFolderView row = (BookmarkFolderView) view;
             if (cursor == null) {
-                row.setText(mParentStack.peek().second);
+                row.setText(mParentStack.peek().title);
                 row.open();
             } else {
                 row.setText(getFolderTitle(context, cursor));
