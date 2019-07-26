@@ -85,7 +85,6 @@ class NetworkInformation;
 } 
 
 namespace dom {
-class ScreenOrientationWrapper;
 namespace sms {
 struct SmsFilterData;
 } 
@@ -323,7 +322,7 @@ public:
     enum {
         WINDOW_FORMAT_RGBA_8888          = 1,
         WINDOW_FORMAT_RGBX_8888          = 2,
-        WINDOW_FORMAT_RGB_565            = 4,
+        WINDOW_FORMAT_RGB_565            = 4
     };
 
     bool HasNativeWindowAccess();
@@ -383,10 +382,10 @@ public:
     
     
     
-    void GetScreenOrientation(dom::ScreenOrientationWrapper& aOrientation);
+    uint32_t GetScreenOrientation();
     void EnableScreenOrientationNotifications();
     void DisableScreenOrientationNotifications();
-    void LockScreenOrientation(const dom::ScreenOrientationWrapper& aOrientation);
+    void LockScreenOrientation(uint32_t aOrientation);
     void UnlockScreenOrientation();
 
     void PumpMessageLoop();

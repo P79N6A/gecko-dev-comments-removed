@@ -128,16 +128,51 @@ struct BackbufferClearingStatus {
     enum { NotClearedSinceLastPresented, ClearedToDefaultValues, HasBeenDrawnTo };
 };
 
-struct WebGLTexelFormat {
-    enum { Generic, Auto, RGBA8, RGB8, RGBX8, BGRA8, BGR8, BGRX8, RGBA5551, RGBA4444, RGB565, R8, RA8, A8,
-           RGBA32F, RGB32F, A32F, R32F, RA32F };
+namespace WebGLTexelConversions {
+
+
+
+
+
+
+
+
+
+enum WebGLTexelFormat
+{
+    
+    
+    BadFormat,
+    
+    
+    
+    Auto,
+    
+    R8,
+    A8,
+    R32F, 
+    A32F, 
+    
+    RA8,
+    RA32F,
+    
+    RGB8,
+    BGRX8, 
+    RGB565,
+    RGB32F, 
+    
+    RGBA8,
+    BGRA8, 
+    RGBA5551,
+    RGBA4444,
+    RGBA32F 
 };
 
-struct WebGLTexelPremultiplicationOp {
-    enum { Generic, None, Premultiply, Unmultiply };
-};
+} 
 
-int GetWebGLTexelFormat(GLenum format, GLenum type);
+using WebGLTexelConversions::WebGLTexelFormat;
+
+WebGLTexelFormat GetWebGLTexelFormat(GLenum format, GLenum type);
 
 
 inline bool is_pot_assuming_nonnegative(WebGLsizei x)
@@ -536,6 +571,7 @@ class WebGLContext :
 {
     friend class WebGLMemoryMultiReporterWrapper;
     friend class WebGLExtensionLoseContext;
+    friend class WebGLExtensionCompressedTextureS3TC;
     friend class WebGLContextUserData;
     friend class WebGLMemoryPressureObserver;
 
@@ -1160,7 +1196,8 @@ protected:
         WebGL_OES_texture_float,
         WebGL_OES_standard_derivatives,
         WebGL_EXT_texture_filter_anisotropic,
-        WebGL_MOZ_WEBGL_lose_context,
+        WebGL_WEBGL_lose_context,
+        WebGL_WEBGL_compressed_texture_s3tc,
         WebGLExtensionID_Max
     };
     nsAutoTArray<nsRefPtr<WebGLExtension>, WebGLExtensionID_Max> mEnabledExtensions;
@@ -1169,6 +1206,8 @@ protected:
         return mEnabledExtensions[ext] != nsnull;
     }
     bool IsExtensionSupported(WebGLExtensionID ei);
+
+    nsTArray<WebGLenum> mCompressedTextureFormats;
 
     bool InitAndValidateGL();
     bool ValidateBuffers(PRInt32* maxAllowedCount, const char *info);
@@ -1192,7 +1231,11 @@ protected:
     bool ValidateGLSLCharacter(PRUnichar c);
     bool ValidateGLSLString(const nsAString& string, const char *info);
 
-    static PRUint32 GetTexelSize(WebGLenum format, WebGLenum type);
+    bool ValidateTexImage2DTarget(WebGLenum target, WebGLsizei width, WebGLsizei height, const char* info);
+    bool ValidateCompressedTextureSize(WebGLint level, WebGLenum format, WebGLsizei width, WebGLsizei height, uint32_t byteLength, const char* info);
+    bool ValidateLevelWidthHeightForTarget(WebGLenum target, WebGLint level, WebGLsizei width, WebGLsizei height, const char* info);
+
+    static PRUint32 GetBitsPerTexel(WebGLenum format, WebGLenum type);
 
     void Invalidate();
     void DestroyResourcesAndContext();
@@ -1205,26 +1248,26 @@ protected:
                          WebGLenum format, WebGLenum type,
                          void *data, PRUint32 byteLength,
                          int jsArrayType,
-                         int srcFormat, bool srcPremultiplied);
+                         WebGLTexelFormat srcFormat, bool srcPremultiplied);
     void TexSubImage2D_base(WebGLenum target, WebGLint level,
                             WebGLint xoffset, WebGLint yoffset,
                             WebGLsizei width, WebGLsizei height, WebGLsizei srcStrideOrZero,
                             WebGLenum format, WebGLenum type,
                             void *pixels, PRUint32 byteLength,
                             int jsArrayType,
-                            int srcFormat, bool srcPremultiplied);
+                            WebGLTexelFormat srcFormat, bool srcPremultiplied);
     void TexParameter_base(WebGLenum target, WebGLenum pname,
                            WebGLint *intParamPtr, WebGLfloat *floatParamPtr);
 
     void ConvertImage(size_t width, size_t height, size_t srcStride, size_t dstStride,
                       const PRUint8*src, PRUint8 *dst,
-                      int srcFormat, bool srcPremultiplied,
-                      int dstFormat, bool dstPremultiplied,
+                      WebGLTexelFormat srcFormat, bool srcPremultiplied,
+                      WebGLTexelFormat dstFormat, bool dstPremultiplied,
                       size_t dstTexelSize);
 
     nsresult DOMElementToImageSurface(dom::Element* imageOrCanvas,
                                       gfxImageSurface **imageOut,
-                                      int *format);
+                                      WebGLTexelFormat *format);
 
     void CopyTexSubImage2D_base(WebGLenum target,
                                 WebGLint level,
@@ -1678,8 +1721,8 @@ public:
         PRInt64 MemoryUsage() const {
             if (!mIsDefined)
                 return 0;
-            PRInt64 texelSize = WebGLContext::GetTexelSize(mFormat, mType);
-            return PRInt64(mWidth) * PRInt64(mHeight) * texelSize;
+            PRInt64 texelSizeInBits = WebGLContext::GetBitsPerTexel(mFormat, mType);
+            return PRInt64(mWidth) * PRInt64(mHeight) * texelSizeInBits / 8;
         }
         WebGLenum Format() const { return mFormat; }
         WebGLenum Type() const { return mType; }

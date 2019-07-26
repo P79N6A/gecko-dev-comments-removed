@@ -80,6 +80,7 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/StandardInteger.h"
+#include "mozilla/Util.h"
 #include "FrameLayerBuilder.h"
 #include "nsSMILKeySpline.h"
 #include "nsSubDocumentFrame.h"
@@ -2245,33 +2246,18 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
        (scrollRange.width > 0 || scrollRange.height > 0) &&
        (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument())));
 
-  if (ShouldBuildLayer()) {
-    
-    
-    ScrollLayerWrapper wrapper(mOuter, mScrolledFrame);
-
-    if (usingDisplayport) {
-      
-      
-      
-      wrapper.WrapListsInPlace(aBuilder, mOuter, set);
-    }
-
-    
-    
-    
-    nsDisplayScrollInfoLayer* layerItem = new (aBuilder) nsDisplayScrollInfoLayer(
-      aBuilder, mScrolledFrame, mOuter);
-    set.BorderBackground()->AppendNewToBottom(layerItem);
-  }
-
   nsRect clip;
-  clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
-
   nscoord radii[8];
-  
-  
-  mOuter->GetPaddingBoxBorderRadii(radii);
+
+  if (usingDisplayport) {
+    clip = displayPort + aBuilder->ToReferenceFrame(mOuter);
+    memset(radii, 0, sizeof(nscoord) * ArrayLength(radii));
+  } else {
+    clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
+    
+    
+    mOuter->GetPaddingBoxBorderRadii(radii);
+  }
 
   
   
@@ -2281,6 +2267,26 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   rv = mOuter->OverflowClip(aBuilder, set, aLists, clip, radii,
                             true, mIsRoot);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (ShouldBuildLayer()) {
+    
+    
+    ScrollLayerWrapper wrapper(mOuter, mScrolledFrame);
+
+    if (usingDisplayport) {
+      
+      
+      
+      wrapper.WrapListsInPlace(aBuilder, mOuter, aLists);
+    }
+
+    
+    
+    
+    nsDisplayScrollInfoLayer* layerItem = new (aBuilder) nsDisplayScrollInfoLayer(
+      aBuilder, mScrolledFrame, mOuter);
+    aLists.BorderBackground()->AppendNewToBottom(layerItem);
+  }
 
   
   AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, createLayersForScrollbars,

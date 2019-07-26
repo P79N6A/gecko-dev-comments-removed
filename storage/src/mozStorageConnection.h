@@ -175,6 +175,12 @@ public:
 
   int stepStatement(sqlite3_stmt* aStatement);
 
+  
+
+
+
+  bool isAsyncClosing();
+
 private:
   ~Connection();
 

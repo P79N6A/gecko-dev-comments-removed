@@ -617,7 +617,14 @@ public:
   
   
   
-  static bool IsSitePermAllow(nsIURI* aURI, const char* aType);
+  
+  static bool IsSitePermAllow(nsIPrincipal* aPrincipal, const char* aType);
+
+  
+  
+  
+  
+  static bool IsSitePermDeny(nsIPrincipal* aPrincipal, const char* aType);
 
   static nsILineBreaker* LineBreaker()
   {
@@ -1847,13 +1854,6 @@ public:
 
 
 
-  static bool IsFullScreenKeyInputRestricted();
-
-  
-
-
-
-
 
   static bool HasPluginWithUncontrolledEventDispatch(nsIDocument* aDoc);
 
@@ -2121,7 +2121,6 @@ private:
   static bool sAllowXULXBL_for_file;
   static bool sIsFullScreenApiEnabled;
   static bool sTrustedFullScreenOnly;
-  static bool sFullScreenKeyInputRestricted;
   static PRUint32 sHandlingInputTimeout;
 
   static nsHtml5StringParser* sHTMLFragmentParser;

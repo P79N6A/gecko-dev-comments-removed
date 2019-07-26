@@ -6482,6 +6482,20 @@ nsINode::Length() const
   }
 }
 
+static const char*
+GetFullScreenError(nsIDocument* aDoc)
+{
+  if (!nsContentUtils::IsRequestFullScreenAllowed()) {
+    return "FullScreenDeniedNotInputDriven";
+  }
+  
+  if (nsContentUtils::IsSitePermDeny(aDoc->NodePrincipal(), "fullscreen")) {
+    return "FullScreenDeniedBlocked";
+  }
+
+  return nsnull;
+}
+
 nsresult nsGenericElement::MozRequestFullScreen()
 {
   
@@ -6489,11 +6503,12 @@ nsresult nsGenericElement::MozRequestFullScreen()
   
   
   
-  if (!nsContentUtils::IsRequestFullScreenAllowed()) {
+  const char* error = GetFullScreenError(OwnerDoc());
+  if (error) {
     nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
                                     "DOM", OwnerDoc(),
                                     nsContentUtils::eDOM_PROPERTIES,
-                                    "FullScreenDeniedNotInputDriven");
+                                    error);
     nsRefPtr<nsAsyncDOMEvent> e =
       new nsAsyncDOMEvent(OwnerDoc(),
                           NS_LITERAL_STRING("mozfullscreenerror"),

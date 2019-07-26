@@ -24,6 +24,7 @@ class DeviceManagerADB(DeviceManager):
     self.useZip = False
     self.packageName = None
     self.tempDir = None
+    self.deviceRoot = None
 
     
     self.adbPath = adbPath
@@ -49,6 +50,9 @@ class DeviceManagerADB(DeviceManager):
 
     
     self.verifyDevice()
+
+    
+    self.setupDeviceRoot()
 
     
     try:
@@ -93,7 +97,14 @@ class DeviceManagerADB(DeviceManager):
   def shell(self, cmd, outputfile, env=None, cwd=None):
     
     for (index, arg) in enumerate(cmd):
-      if arg.find(" ") or arg.find("(") or arg.find(")") or arg.find("\""):
+      arg.replace('&', '\&')
+
+      needsQuoting = False
+      for char in [ ' ', '(', ')', '"', '&' ]:
+        if arg.find(char):
+          needsQuoting = True
+          break
+      if needsQuoting:
         cmd[index] = '\'%s\'' % arg
 
     
@@ -171,6 +182,9 @@ class DeviceManagerADB(DeviceManager):
       result = self.runCmdAs(["shell", "mkdir", name]).stdout.read()
       if 'read-only file system' in result.lower():
         return None
+      if 'file exists' in result.lower():
+        return name
+
       self.chmodDir(name)
       return name
     except:
@@ -526,6 +540,26 @@ class DeviceManagerADB(DeviceManager):
     return data.split()[4]
 
   
+  def setupDeviceRoot(self):
+    
+    
+    testRoot = "/data/local/tests"
+    if (self.dirExists(testRoot)):
+      self.deviceRoot = testRoot
+      return
+
+    for (basePath, subPath) in [('/mnt/sdcard', 'tests'),
+                                ('/data/local', 'tests')]:
+      if self.dirExists(basePath):
+        testRoot = os.path.join(basePath, subPath)
+        if self.mkDir(testRoot):
+          self.deviceRoot = testRoot
+          return
+
+    raise DMError("Unable to set up device root as /mnt/sdcard/tests "
+                  "or /data/local/tests")
+
+  
   
   
   
@@ -543,22 +577,7 @@ class DeviceManagerADB(DeviceManager):
   
   
   def getDeviceRoot(self):
-    
-    
-    testRoot = "/data/local/tests"
-    if (self.dirExists(testRoot)):
-      return testRoot
-
-    root = "/mnt/sdcard"
-    if self.dirExists(root):
-      testRoot = root + "/tests"
-      if self.mkDir(testRoot):
-        return testRoot
-
-    testRoot = "/data/local/tests"
-    if (not self.dirExists(testRoot)):
-      self.mkDir(testRoot)
-    return testRoot
+    return self.deviceRoot
 
   
   

@@ -434,7 +434,7 @@ function findChildShell(aDocument, aDocShell, aSoughtURI) {
 
 var gPopupBlockerObserver = {
   _reportButton: null,
-  
+
   onReportButtonClick: function (aEvent)
   {
     if (aEvent.button != 0 || aEvent.target != this._reportButton)
@@ -1674,16 +1674,12 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
   
   
-  window.addEventListener("mozfullscreenchange", onMozFullScreenChange, true);
-
-  
-  
-  window.addEventListener("MozShowFullScreenWarning", onShowFullScreenWarning, true);
+  window.addEventListener("MozEnteredDomFullscreen", onMozEnteredDomFullscreen, true);
 
   if (window.fullScreen)
     onFullScreen();
   if (document.mozFullScreen)
-    onMozFullScreenChange();
+    onMozEnteredDomFullscreen();
 
 #ifdef MOZ_SERVICES_SYNC
   
@@ -2929,12 +2925,8 @@ function onFullScreen(event) {
   FullScreen.toggle(event);
 }
 
-function onMozFullScreenChange(event) {
-  FullScreen.enterDomFullScreen(event);
-}
-
-function onShowFullScreenWarning(event) {
-  FullScreen.showWarning(false);
+function onMozEnteredDomFullscreen(event) {
+  FullScreen.enterDomFullscreen(event);
 }
 
 function getWebNavigation()
@@ -3483,7 +3475,7 @@ const BrowserSearch = {
         }
         win = window.openDialog(getBrowserURL(), "_blank",
                                 "chrome,all,dialog=no", "about:blank");
-        Services.obs.addObserver(observer, "browser-delayed-startup-finished", false); 
+        Services.obs.addObserver(observer, "browser-delayed-startup-finished", false);
       }
       return;
     }
@@ -4019,33 +4011,29 @@ var FullScreen = {
         
         setTimeout(this.exitDomFullScreen.bind(this), 0);
         break;
+      case "transitionend":
+        if (event.propertyName == "opacity")
+          this.cancelWarning();
+        break;
     }
   },
 
-  enterDomFullScreen : function(event) {
-    if (!document.mozFullScreen) {
+  enterDomFullscreen : function(event) {
+    if (!document.mozFullScreen)
       return;
-    }
 
     
     
     
     
     
-    if (event.target != document) {
-      
-      
-      
-      
-      
-      if (event.target.defaultView.top != gBrowser.contentWindow) {
-        document.mozCancelFullScreen();
-      }
+    if (event.target.defaultView.top != gBrowser.contentWindow) {
+      document.mozCancelFullScreen();
       return;
     }
 
-    let focusManger = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
-    if (focusManger.activeWindow != window) {
+    let focusManager = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+    if (focusManager.activeWindow != window) {
       
       
       document.mozCancelFullScreen();
@@ -4059,7 +4047,7 @@ var FullScreen = {
     if (gFindBarInitialized)
       gFindBar.close();
 
-    this.showWarning(true);
+    this.showWarning(event.target);
 
     
     gBrowser.tabContainer.addEventListener("TabOpen", this.exitDomFullScreen);
@@ -4104,9 +4092,8 @@ var FullScreen = {
       gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
-      if (!this.useLionFullScreen) {
+      if (!this.useLionFullScreen)
         window.removeEventListener("deactivate", this);
-      }
     }
   },
 
@@ -4240,81 +4227,116 @@ var FullScreen = {
   },
 
   cancelWarning: function(event) {
-    if (!this.warningBox) {
+    if (!this.warningBox)
       return;
-    }
-    if (this.onWarningHidden) {
-      this.warningBox.removeEventListener("transitionend", this.onWarningHidden, false);
-      this.onWarningHidden = null;
-    }
+    this.fullscreenDocUri = null;
+    this.warningBox.removeEventListener("transitionend", this);
     if (this.warningFadeOutTimeout) {
       clearTimeout(this.warningFadeOutTimeout);
       this.warningFadeOutTimeout = null;
     }
-    if (this.revealBrowserTimeout) {
-      clearTimeout(this.revealBrowserTimeout);
-      this.revealBrowserTimeout = null;
-    }
-    this.warningBox.removeAttribute("fade-warning-out");
-    this.warningBox.removeAttribute("stop-obscuring-browser");
-    this.warningBox.removeAttribute("obscure-browser");
+
+    
+    
+    
+    
+    gBrowser.selectedBrowser.focus();
+
     this.warningBox.setAttribute("hidden", true);
+    this.warningBox.removeAttribute("fade-warning-out");
+    this.warningBox.removeAttribute("obscure-browser");
     this.warningBox = null;
+  },
+
+  setFullscreenAllowed: function(isApproved) {
+    let remember = document.getElementById("full-screen-remember-decision").checked;
+    if (remember)
+      Services.perms.add(this.fullscreenDocUri,
+                         "fullscreen",
+                         isApproved ? Services.perms.ALLOW_ACTION : Services.perms.DENY_ACTION,
+                         Services.perms.EXPIRE_NEVER);
+    else if (isApproved) {
+      
+      
+      
+      Services.perms.add(this.fullscreenDocUri,
+                         "fullscreen",
+                         Services.perms.ALLOW_ACTION,
+                         Services.perms.EXPIRE_SESSION);
+      let host = this.fullscreenDocUri.host;
+      function onFullscreenchange(event) {
+        if (event.target == document && document.mozFullScreenElement == null) {
+          
+          Services.perms.remove(host, "fullscreen");
+          document.removeEventListener("mozfullscreenchange", onFullscreenchange);
+        }
+      }
+      document.addEventListener("mozfullscreenchange", onFullscreenchange);
+    }
+    if (this.warningBox)
+      this.warningBox.setAttribute("fade-warning-out", "true");
+    if (!isApproved)
+      document.mozCancelFullScreen();
   },
 
   warningBox: null,
   warningFadeOutTimeout: null,
-  revealBrowserTimeout: null,  
-  onWarningHidden: null,
+  fullscreenDocUri: null,
 
   
   
-  showWarning: function(obscureBackground) {
-    if (!document.mozFullScreen || !gPrefService.getBoolPref("full-screen-api.warning.enabled")) {
+  
+  showWarning: function(targetDoc) {
+    if (!document.mozFullScreen ||
+        !gPrefService.getBoolPref("full-screen-api.approval-required"))
       return;
-    }
-    if (this.warningBox) {
-      
-      
-      if (this.warningFadeOutTimeout) {
-        clearTimeout(this.warningFadeOutTimeout);
-        this.warningFadeOutTimeout = null;
-      }
-    } else {
+
+    
+    this.fullscreenDocUri = targetDoc.nodePrincipal.URI;
+    let utils = {};
+    Cu.import("resource://gre/modules/DownloadUtils.jsm", utils);
+    let [displayHost, fullHost] = utils.DownloadUtils.getURIHost(this.fullscreenDocUri.spec);
+    let bundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
+    let domainText = bundle.formatStringFromName("fullscreen.entered", [displayHost], 1);
+    document.getElementById("full-screen-domain-text").textContent = domainText;
+    let rememberText = bundle.formatStringFromName("fullscreen.rememberDecision", [displayHost], 1);
+    document.getElementById("full-screen-remember-decision").label = rememberText;
+
+    
+    
+    if (!this.warningBox) {
       this.warningBox = document.getElementById("full-screen-warning-container");
       
-      this.onWarningHidden =
-        function(event) {
-          if (event.propertyName != "opacity")
-            return;
-          this.cancelWarning();
-        }.bind(this);
-      this.warningBox.addEventListener("transitionend", this.onWarningHidden, false);
+      this.warningBox.addEventListener("transitionend", this);
       this.warningBox.removeAttribute("hidden");
     }
 
-    if (obscureBackground) {
+    
+    
+    
+    
+    let isApproved =
+      Services.perms.testPermission(this.fullscreenDocUri, "fullscreen") == Services.perms.ALLOW_ACTION;
+    let authUI = document.getElementById("full-screen-approval-pane");
+    document.getElementById("full-screen-remember-decision").checked = false;
+    if (isApproved)
+      authUI.setAttribute("hidden", "true");
+    else {
       
       this.warningBox.setAttribute("obscure-browser", "true");
-      
-      this.warningBox.removeAttribute("stop-obscuring-browser");
-      this.revealBrowserTimeout =
-        setTimeout(
-          function() {
-            if (this.warningBox)
-              this.warningBox.setAttribute("stop-obscuring-browser", "true");
-          }.bind(this),
-          1250);
+      authUI.removeAttribute("hidden");
     }
 
     
-    this.warningFadeOutTimeout =
-      setTimeout(
-        function() {
-          if (this.warningBox)
-            this.warningBox.setAttribute("fade-warning-out", "true");
-        }.bind(this),
-        3000);
+    
+    if (isApproved)
+      this.warningFadeOutTimeout =
+        setTimeout(
+          function() {
+            if (this.warningBox)
+              this.warningBox.setAttribute("fade-warning-out", "true");
+          }.bind(this),
+          3000);
   },
 
   mouseoverToggle: function(aShow, forceHide)
@@ -4494,7 +4516,8 @@ var XULBrowserWindow = {
   startTime: 0,
   statusText: "",
   isBusy: false,
-  inContentWhitelist: ["about:addons", "about:permissions", "about:sync-progress"],
+  inContentWhitelist: ["about:addons", "about:permissions", 
+                       "about:sync-progress", "about:preferences"],
 
   QueryInterface: function (aIID) {
     if (aIID.equals(Ci.nsIWebProgressListener) ||
@@ -6146,7 +6169,7 @@ function UpdateCharsetDetector(target) {
     prefvalue = gPrefService.getComplexValue("intl.charset.detector", Ci.nsIPrefLocalizedString).data;
   }
   catch (ex) {}
-  
+
   if (!prefvalue)
     prefvalue = "off";
 
@@ -9132,7 +9155,7 @@ function safeModeRestart()
 {
   
   let promptTitle = gNavigatorBundle.getString("safeModeRestartPromptTitle");
-  let promptMessage = 
+  let promptMessage =
     gNavigatorBundle.getString("safeModeRestartPromptMessage");
   let restartText = gNavigatorBundle.getString("safeModeRestartButton");
   let buttonFlags = (Services.prompt.BUTTON_POS_0 *

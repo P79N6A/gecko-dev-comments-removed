@@ -501,6 +501,41 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     }
 #endif
 
+
+#ifdef ANDROID
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!forceEnabled) {
+        GLContext *globalContext = GLContextProvider::GetGlobalContext();
+        if (!globalContext) {
+            
+            
+            NS_RUNTIMEABORT("No global context anymore? Then you need to update "
+                            "this code, or force-enable WebGL.");
+        }
+        int renderer = globalContext->Renderer();
+        if (renderer == gl::GLContext::RendererAdreno200 ||
+            renderer == gl::GLContext::RendererAdreno205)
+        {
+            LogMessage("WebGL blocked on this Adreno driver!");
+            return NS_ERROR_FAILURE;
+        }
+    }
+#endif
+
     
     if (forceOSMesa) {
         gl = gl::GLContextProviderOSMesa::CreateOffscreen(gfxIntSize(width, height), format);
@@ -883,9 +918,12 @@ bool WebGLContext::IsExtensionSupported(WebGLExtensionID ei)
         case WebGL_EXT_texture_filter_anisotropic:
             isSupported = gl->IsExtensionSupported(GLContext::EXT_texture_filter_anisotropic);
             break;
-        case WebGL_MOZ_WEBGL_lose_context:
+        case WebGL_WEBGL_lose_context:
             
             isSupported = true;
+            break;
+        case WebGL_WEBGL_compressed_texture_s3tc:
+            isSupported = gl->IsExtensionSupported(GLContext::EXT_texture_compression_s3tc);
             break;
         default:
             isSupported = false;
@@ -927,8 +965,12 @@ WebGLContext::GetExtension(const nsAString& aName)
             ei = WebGL_EXT_texture_filter_anisotropic;
     }
     else if (aName.EqualsLiteral("MOZ_WEBGL_lose_context")) {
-        if (IsExtensionSupported(WebGL_MOZ_WEBGL_lose_context))
-            ei = WebGL_MOZ_WEBGL_lose_context;
+        if (IsExtensionSupported(WebGL_WEBGL_lose_context))
+            ei = WebGL_WEBGL_lose_context;
+    }
+    else if (aName.EqualsLiteral("MOZ_WEBGL_compressed_texture_s3tc")) {
+        if (IsExtensionSupported(WebGL_WEBGL_compressed_texture_s3tc))
+            ei = WebGL_WEBGL_compressed_texture_s3tc;
     }
 
     if (ei != WebGLExtensionID_Max) {
@@ -940,8 +982,11 @@ WebGLContext::GetExtension(const nsAString& aName)
                 case WebGL_EXT_texture_filter_anisotropic:
                     mEnabledExtensions[ei] = new WebGLExtensionTextureFilterAnisotropic(this);
                     break;
-                case WebGL_MOZ_WEBGL_lose_context:
+                case WebGL_WEBGL_lose_context:
                     mEnabledExtensions[ei] = new WebGLExtensionLoseContext(this);
+                    break;
+                case WebGL_WEBGL_compressed_texture_s3tc:
+                    mEnabledExtensions[ei] = new WebGLExtensionCompressedTextureS3TC(this);
                     break;
                 
                 
@@ -1518,8 +1563,10 @@ WebGLContext::GetSupportedExtensions(Nullable< nsTArray<nsString> > &retval)
         arr.AppendElement(NS_LITERAL_STRING("OES_standard_derivatives"));
     if (IsExtensionSupported(WebGL_EXT_texture_filter_anisotropic))
         arr.AppendElement(NS_LITERAL_STRING("MOZ_EXT_texture_filter_anisotropic"));
-    if (IsExtensionSupported(WebGL_MOZ_WEBGL_lose_context))
+    if (IsExtensionSupported(WebGL_WEBGL_lose_context))
         arr.AppendElement(NS_LITERAL_STRING("MOZ_WEBGL_lose_context"));
+    if (IsExtensionSupported(WebGL_WEBGL_compressed_texture_s3tc))
+        arr.AppendElement(NS_LITERAL_STRING("MOZ_WEBGL_compressed_texture_s3tc"));
 }
 
 NS_IMETHODIMP

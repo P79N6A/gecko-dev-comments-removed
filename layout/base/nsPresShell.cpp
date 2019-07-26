@@ -6227,57 +6227,6 @@ static bool CanHandleContextMenuEvent(nsMouseEvent* aMouseEvent,
   return true;
 }
 
-static bool
-IsFullScreenAndRestrictedKeyEvent(nsIContent* aTarget, const nsEvent* aEvent)
-{
-  NS_ABORT_IF_FALSE(aEvent, "Must have an event to check.");
-
-  
-  
-  nsIDocument *root = nsnull;
-  if (!aTarget ||
-      (aEvent->message != NS_KEY_DOWN &&
-      aEvent->message != NS_KEY_UP &&
-      aEvent->message != NS_KEY_PRESS) ||
-      !(root = nsContentUtils::GetRootDocument(aTarget->OwnerDoc())) ||
-      !root->IsFullScreenDoc() ||
-      !nsContentUtils::IsFullScreenKeyInputRestricted()) {
-    return false;
-  }
-
-  
-  
-  const nsKeyEvent* keyEvent = static_cast<const nsKeyEvent*>(aEvent);
-  int key = keyEvent->keyCode ? keyEvent->keyCode : keyEvent->charCode;
-  switch (key) {
-    case NS_VK_TAB:
-    case NS_VK_SPACE:
-    case NS_VK_PAGE_UP:
-    case NS_VK_PAGE_DOWN:
-    case NS_VK_END:
-    case NS_VK_HOME:
-    case NS_VK_LEFT:
-    case NS_VK_UP:
-    case NS_VK_RIGHT:
-    case NS_VK_DOWN:
-    case NS_VK_SHIFT:
-    case NS_VK_CONTROL:
-    case NS_VK_ALT:
-    case NS_VK_META:
-#ifdef XP_WIN
-    case VK_VOLUME_MUTE:
-    case VK_VOLUME_DOWN:
-    case VK_VOLUME_UP:
-#endif
-      
-      return false;
-    default:
-      
-      
-      return true;
-  }
-}
-
 nsresult
 PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
 {
@@ -6336,18 +6285,10 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
                             NS_EVENT_FLAG_ONLY_CHROME_DISPATCH);
 
           if (aEvent->message == NS_KEY_UP) {
-           
-           
+             
+             
             nsIDocument::ExitFullScreen(true);
           }
-        } else if (IsFullScreenAndRestrictedKeyEvent(mCurrentEventContent, aEvent)) {
-          
-          
-          
-          nsRefPtr<nsAsyncDOMEvent> e =
-            new nsAsyncDOMEvent(doc, NS_LITERAL_STRING("MozShowFullScreenWarning"),
-                                true, true);
-          e->PostDOMEvent();
         }
         
         
