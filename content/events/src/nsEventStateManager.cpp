@@ -1303,7 +1303,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     break;
   case NS_TEXT_TEXT:
     {
-      WidgetTextEvent *textEvent = static_cast<WidgetTextEvent*>(aEvent);
+      WidgetTextEvent *textEvent = aEvent->AsTextEvent();
       if (IsTargetCrossProcess(textEvent)) {
         
         if (GetCrossProcessTarget()->SendTextEvent(*textEvent)) {
