@@ -28,9 +28,9 @@ this.PhoneNumber = (function (dataBase) {
   
   
   const META_DATA_ENCODING = ["region",
-                              "^internationalPrefix",
+                              "^(?:internationalPrefix)",
                               "nationalPrefix",
-                              "^nationalPrefixForParsing",
+                              "^(?:nationalPrefixForParsing)",
                               "nationalPrefixTransformRule",
                               "nationalPrefixFormattingRule",
                               "^possiblePattern$",
