@@ -385,6 +385,8 @@ pref("dom.sms.requestStatusReport", true);
 
 
 pref("dom.mozContacts.enabled", true);
+pref("dom.navigator-property.disable.mozContacts", false);
+pref("dom.global-constructor.disable.mozContact", false);
 
 
 pref("dom.mozAlarms.enabled", true);

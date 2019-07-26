@@ -113,3 +113,8 @@ user_pref("datareporting.healthreport.documentServerURI", "http://%(server)s/hea
 
 
 user_pref("layout.css.report_errors", true);
+
+
+user_pref("dom.mozContacts.enabled", true);
+user_pref("dom.navigator-property.disable.mozContacts", false);
+user_pref("dom.global-constructor.disable.mozContact", false);
