@@ -607,122 +607,123 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(uint32_t aAction,
         return rv;
     }
 
-    rv = CheckXPCPermissions(cx, aObj, jsObject, subjectPrincipal);
 
-    if (NS_FAILED(rv)) 
+    if (SubjectIsPrivileged())
     {
-        nsAutoString stringName;
-        switch(aAction)
-        {
-        case nsIXPCSecurityManager::ACCESS_GET_PROPERTY:
-            stringName.AssignLiteral("GetPropertyDeniedOrigins");
-            break;
-        case nsIXPCSecurityManager::ACCESS_SET_PROPERTY:
-            stringName.AssignLiteral("SetPropertyDeniedOrigins");
-            break;
-        case nsIXPCSecurityManager::ACCESS_CALL_METHOD:
-            stringName.AssignLiteral("CallMethodDeniedOrigins");
-        }
-
-        
-        
-        
-        objectPrincipal = nullptr;
-
-        NS_ConvertUTF8toUTF16 className(classInfoData.GetName());
-        nsAutoCString subjectOrigin;
-        nsAutoCString subjectDomain;
-        if (!nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin) {
-            nsCOMPtr<nsIURI> uri, domain;
-            subjectPrincipal->GetURI(getter_AddRefs(uri));
-            if (uri) { 
-                GetOriginFromURI(uri, subjectOrigin);
-            }
-            subjectPrincipal->GetDomain(getter_AddRefs(domain));
-            if (domain) {
-                GetOriginFromURI(domain, subjectDomain);
-            }
-        } else {
-            subjectOrigin.AssignLiteral("the security manager");
-        }
-        NS_ConvertUTF8toUTF16 subjectOriginUnicode(subjectOrigin);
-        NS_ConvertUTF8toUTF16 subjectDomainUnicode(subjectDomain);
-
-        nsAutoCString objectOrigin;
-        nsAutoCString objectDomain;
-        if (!nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin &&
-            objectPrincipal) {
-            nsCOMPtr<nsIURI> uri, domain;
-            objectPrincipal->GetURI(getter_AddRefs(uri));
-            if (uri) { 
-                GetOriginFromURI(uri, objectOrigin);
-            }
-            objectPrincipal->GetDomain(getter_AddRefs(domain));
-            if (domain) {
-                GetOriginFromURI(domain, objectDomain);
-            }
-        }
-        NS_ConvertUTF8toUTF16 objectOriginUnicode(objectOrigin);
-        NS_ConvertUTF8toUTF16 objectDomainUnicode(objectDomain);
-
-        nsXPIDLString errorMsg;
-        const char16_t *formatStrings[] =
-        {
-            subjectOriginUnicode.get(),
-            className.get(),
-            IDToString(cx, property),
-            objectOriginUnicode.get(),
-            subjectDomainUnicode.get(),
-            objectDomainUnicode.get()
-        };
-
-        uint32_t length = ArrayLength(formatStrings);
-
-        
-        
-        
-        
-        
-        if (nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin ||
-            !objectPrincipal) {
-            stringName.AppendLiteral("OnlySubject");
-            length -= 3;
-        } else {
-            
-            
-            length -= 2;
-            if (!subjectDomainUnicode.IsEmpty()) {
-                stringName.AppendLiteral("SubjectDomain");
-                length += 1;
-            }
-            if (!objectDomainUnicode.IsEmpty()) {
-                stringName.AppendLiteral("ObjectDomain");
-                length += 1;
-                if (length != ArrayLength(formatStrings)) {
-                    
-                    
-                    
-                    formatStrings[length-1] = formatStrings[length];
-                }
-            }
-        }
-        
-        
-        
-        
-        nsresult rv2 = sStrBundle->FormatStringFromName(stringName.get(),
-                                                        formatStrings,
-                                                        length,
-                                                        getter_Copies(errorMsg));
-        if (NS_FAILED(rv2)) {
-            
-            errorMsg = stringName;
-        }
-
-        SetPendingException(cx, errorMsg.get());
+        return NS_OK;
     }
 
-    return rv;
+    
+    nsAutoString stringName;
+    switch(aAction)
+    {
+    case nsIXPCSecurityManager::ACCESS_GET_PROPERTY:
+        stringName.AssignLiteral("GetPropertyDeniedOrigins");
+        break;
+    case nsIXPCSecurityManager::ACCESS_SET_PROPERTY:
+        stringName.AssignLiteral("SetPropertyDeniedOrigins");
+        break;
+    case nsIXPCSecurityManager::ACCESS_CALL_METHOD:
+        stringName.AssignLiteral("CallMethodDeniedOrigins");
+    }
+
+    
+    
+    
+    objectPrincipal = nullptr;
+
+    NS_ConvertUTF8toUTF16 classInfoName(classInfoData.GetName());
+    nsAutoCString subjectOrigin;
+    nsAutoCString subjectDomain;
+    if (!nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin) {
+        nsCOMPtr<nsIURI> uri, domain;
+        subjectPrincipal->GetURI(getter_AddRefs(uri));
+        if (uri) { 
+            GetOriginFromURI(uri, subjectOrigin);
+        }
+        subjectPrincipal->GetDomain(getter_AddRefs(domain));
+        if (domain) {
+            GetOriginFromURI(domain, subjectDomain);
+        }
+    } else {
+        subjectOrigin.AssignLiteral("the security manager");
+    }
+    NS_ConvertUTF8toUTF16 subjectOriginUnicode(subjectOrigin);
+    NS_ConvertUTF8toUTF16 subjectDomainUnicode(subjectDomain);
+
+    nsAutoCString objectOrigin;
+    nsAutoCString objectDomain;
+    if (!nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin &&
+        objectPrincipal) {
+        nsCOMPtr<nsIURI> uri, domain;
+        objectPrincipal->GetURI(getter_AddRefs(uri));
+        if (uri) { 
+            GetOriginFromURI(uri, objectOrigin);
+        }
+        objectPrincipal->GetDomain(getter_AddRefs(domain));
+        if (domain) {
+            GetOriginFromURI(domain, objectDomain);
+        }
+    }
+    NS_ConvertUTF8toUTF16 objectOriginUnicode(objectOrigin);
+    NS_ConvertUTF8toUTF16 objectDomainUnicode(objectDomain);
+
+    nsXPIDLString errorMsg;
+    const char16_t *formatStrings[] =
+    {
+        subjectOriginUnicode.get(),
+        classInfoName.get(),
+        IDToString(cx, property),
+        objectOriginUnicode.get(),
+        subjectDomainUnicode.get(),
+        objectDomainUnicode.get()
+    };
+
+    uint32_t length = ArrayLength(formatStrings);
+
+    
+    
+    
+    
+    
+    if (nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin ||
+        !objectPrincipal) {
+        stringName.AppendLiteral("OnlySubject");
+        length -= 3;
+    } else {
+        
+        
+        length -= 2;
+        if (!subjectDomainUnicode.IsEmpty()) {
+            stringName.AppendLiteral("SubjectDomain");
+            length += 1;
+        }
+        if (!objectDomainUnicode.IsEmpty()) {
+            stringName.AppendLiteral("ObjectDomain");
+            length += 1;
+            if (length != ArrayLength(formatStrings)) {
+                
+                
+                
+                formatStrings[length-1] = formatStrings[length];
+            }
+        }
+    }
+    
+    
+    
+    
+    nsresult rv2 = sStrBundle->FormatStringFromName(stringName.get(),
+                                                    formatStrings,
+                                                    length,
+                                                    getter_Copies(errorMsg));
+    if (NS_FAILED(rv2)) {
+        
+        errorMsg = stringName;
+    }
+
+    SetPendingException(cx, errorMsg.get());
+    return NS_ERROR_DOM_XPCONNECT_ACCESS_DENIED;
 }
 
 
@@ -1493,78 +1494,77 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
         return NS_OK;
     }
 
-    nsresult rv = CheckXPCPermissions(cx, aObj, nullptr, nullptr);
-    if (NS_FAILED(rv))
+    if (SubjectIsPrivileged())
     {
-        
-        NS_ConvertUTF8toUTF16 strName("CreateWrapperDenied");
-        nsAutoCString origin;
-        nsresult rv2;
-        nsIPrincipal* subjectPrincipal = doGetSubjectPrincipal(&rv2);
-        if (NS_SUCCEEDED(rv2) && subjectPrincipal) {
-            GetPrincipalDomainOrigin(subjectPrincipal, origin);
-        }
-        NS_ConvertUTF8toUTF16 originUnicode(origin);
-        NS_ConvertUTF8toUTF16 className(objClassInfo.GetName());
-        const char16_t* formatStrings[] = {
-            className.get(),
-            originUnicode.get()
-        };
-        uint32_t length = ArrayLength(formatStrings);
-        if (originUnicode.IsEmpty()) {
-            --length;
-        } else {
-            strName.AppendLiteral("ForOrigin");
-        }
-        nsXPIDLString errorMsg;
-        
-        
-        
-        rv2 = sStrBundle->FormatStringFromName(strName.get(),
-                                               formatStrings,
-                                               length,
-                                               getter_Copies(errorMsg));
-        NS_ENSURE_SUCCESS(rv2, rv2);
-
-        SetPendingException(cx, errorMsg.get());
+        return NS_OK;
     }
 
-    return rv;
+    
+    NS_ConvertUTF8toUTF16 strName("CreateWrapperDenied");
+    nsAutoCString origin;
+    nsresult rv2;
+    nsIPrincipal* subjectPrincipal = doGetSubjectPrincipal(&rv2);
+    if (NS_SUCCEEDED(rv2) && subjectPrincipal) {
+        GetPrincipalDomainOrigin(subjectPrincipal, origin);
+    }
+    NS_ConvertUTF8toUTF16 originUnicode(origin);
+    NS_ConvertUTF8toUTF16 classInfoName(objClassInfo.GetName());
+    const char16_t* formatStrings[] = {
+        classInfoName.get(),
+        originUnicode.get()
+    };
+    uint32_t length = ArrayLength(formatStrings);
+    if (originUnicode.IsEmpty()) {
+        --length;
+    } else {
+        strName.AppendLiteral("ForOrigin");
+    }
+    nsXPIDLString errorMsg;
+    
+    
+    
+    rv2 = sStrBundle->FormatStringFromName(strName.get(),
+                                           formatStrings,
+                                           length,
+                                           getter_Copies(errorMsg));
+    NS_ENSURE_SUCCESS(rv2, rv2);
+
+    SetPendingException(cx, errorMsg.get());
+    return NS_ERROR_DOM_XPCONNECT_ACCESS_DENIED;
 }
 
 NS_IMETHODIMP
 nsScriptSecurityManager::CanCreateInstance(JSContext *cx,
                                            const nsCID &aCID)
 {
-    nsresult rv = CheckXPCPermissions(cx, nullptr, nullptr, nullptr);
-    if (NS_FAILED(rv))
-    {
-        
-        nsAutoCString errorMsg("Permission denied to create instance of class. CID=");
-        char cidStr[NSID_LENGTH];
-        aCID.ToProvidedString(cidStr);
-        errorMsg.Append(cidStr);
-        SetPendingException(cx, errorMsg.get());
+    if (SubjectIsPrivileged()) {
+        return NS_OK;
     }
-    return rv;
+
+    
+    nsAutoCString errorMsg("Permission denied to create instance of class. CID=");
+    char cidStr[NSID_LENGTH];
+    aCID.ToProvidedString(cidStr);
+    errorMsg.Append(cidStr);
+    SetPendingException(cx, errorMsg.get());
+    return NS_ERROR_DOM_XPCONNECT_ACCESS_DENIED;
 }
 
 NS_IMETHODIMP
 nsScriptSecurityManager::CanGetService(JSContext *cx,
                                        const nsCID &aCID)
 {
-    nsresult rv = CheckXPCPermissions(cx, nullptr, nullptr, nullptr);
-    if (NS_FAILED(rv))
-    {
-        
-        nsAutoCString errorMsg("Permission denied to get service. CID=");
-        char cidStr[NSID_LENGTH];
-        aCID.ToProvidedString(cidStr);
-        errorMsg.Append(cidStr);
-        SetPendingException(cx, errorMsg.get());
+    if (SubjectIsPrivileged()) {
+        return NS_OK;
     }
 
-    return rv;
+    
+    nsAutoCString errorMsg("Permission denied to get service. CID=");
+    char cidStr[NSID_LENGTH];
+    aCID.ToProvidedString(cidStr);
+    errorMsg.Append(cidStr);
+    SetPendingException(cx, errorMsg.get());
+    return NS_ERROR_DOM_XPCONNECT_ACCESS_DENIED;
 }
 
 
@@ -1580,21 +1580,6 @@ nsScriptSecurityManager::CanAccess(uint32_t aAction,
     return CheckPropertyAccessImpl(aAction, aCallContext, cx,
                                    aJSObject, aObj, aClassInfo,
                                    nullptr, aPropertyName);
-}
-
-nsresult
-nsScriptSecurityManager::CheckXPCPermissions(JSContext* cx,
-                                             nsISupports* aObj, JSObject* aJSObject,
-                                             nsIPrincipal* aSubjectPrincipal)
-{
-    MOZ_ASSERT(cx);
-    JS::RootedObject jsObject(cx, aJSObject);
-    
-    if (SubjectIsPrivileged())
-        return NS_OK;
-
-    
-    return NS_ERROR_DOM_XPCONNECT_ACCESS_DENIED;
 }
 
 

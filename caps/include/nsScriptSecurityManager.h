@@ -162,34 +162,6 @@ private:
     nsIPrincipal*
     GetSubjectPrincipal(JSContext* cx, nsresult* rv);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    nsresult
-    CheckXPCPermissions(JSContext* cx,
-                        nsISupports* aObj, JSObject* aJSObject,
-                        nsIPrincipal* aSubjectPrincipal);
-
     nsresult
     Init();
 
