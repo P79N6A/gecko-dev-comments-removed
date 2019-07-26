@@ -21,13 +21,7 @@ public:
   nsHTMLOptionElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLOptionElement();
 
-  
-  static nsHTMLOptionElement* FromContent(nsIContent *aContent)
-  {
-    if (aContent && aContent->IsHTML(nsGkAtoms::option))
-      return static_cast<nsHTMLOptionElement*>(aContent);
-    return nullptr;
-  }
+  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(nsHTMLOptionElement, option)
 
   
   NS_DECL_ISUPPORTS_INHERITED
