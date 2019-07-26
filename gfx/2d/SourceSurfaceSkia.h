@@ -33,14 +33,9 @@ public:
                     int32_t aStride,
                     SurfaceFormat aFormat);
 
-  
-
-
-
-  bool InitWithBitmap(const SkBitmap& aBitmap,
+  bool InitFromCanvas(SkCanvas* aCanvas,
                       SurfaceFormat aFormat,
                       DrawTargetSkia* aOwner);
-
 
   virtual unsigned char *GetData();
 
