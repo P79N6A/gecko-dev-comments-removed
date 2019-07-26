@@ -119,6 +119,7 @@ var DebuggerServer = {
 
   LONG_STRING_LENGTH: 10000,
   LONG_STRING_INITIAL_LENGTH: 1000,
+  LONG_STRING_READ_LENGTH: 1000,
 
   
 
@@ -611,6 +612,13 @@ ActorPool.prototype = {
   
 
 
+  unmanage: function(aActor) {
+    return this.removeActor(aActor);
+  },
+
+  
+
+
   cleanup: function AP_cleanup() {
     for each (let actor in this._cleanups) {
       actor.disconnect();
@@ -705,25 +713,40 @@ DebuggerServerConnection.prototype = {
   
 
 
+  unmanage: function(aActor) {
+    return this.removeActor(aActor);
+  },
+
+  
+
+
 
 
 
 
   getActor: function DSC_getActor(aActorID) {
-    if (this._actorPool.has(aActorID)) {
-      return this._actorPool.get(aActorID);
-    }
-
-    for each (let pool in this._extraPools) {
-      if (pool.has(aActorID)) {
-        return pool.get(aActorID);
-      }
+    let pool = this.poolFor(aActorID);
+    if (pool) {
+      return pool.get(aActorID);
     }
 
     if (aActorID === "root") {
       return this.rootActor;
     }
 
+    return null;
+  },
+
+  poolFor: function DSC_actorPool(aActorID) {
+    if (this._actorPool && this._actorPool.has(aActorID)) {
+      return this._actorPool;
+    }
+
+    for (let pool of this._extraPools) {
+      if (pool.has(aActorID)) {
+        return pool;
+      }
+    }
     return null;
   },
 
@@ -777,11 +800,14 @@ DebuggerServerConnection.prototype = {
     
     if (actor.requestTypes && actor.requestTypes[aPacket.type]) {
       try {
-        ret = actor.requestTypes[aPacket.type].bind(actor)(aPacket);
+        this.currentPacket = aPacket;
+        ret = actor.requestTypes[aPacket.type].bind(actor)(aPacket, this);
       } catch(e) {
         this.transport.send(this._unknownError(
           "error occurred while processing '" + aPacket.type,
           e));
+      } finally {
+        delete this.currentPacket;
       }
     } else {
       ret = { error: "unrecognizedPacketType",

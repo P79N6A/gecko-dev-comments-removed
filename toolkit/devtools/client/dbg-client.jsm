@@ -225,6 +225,7 @@ this.DebuggerClient = function DebuggerClient(aTransport)
   ]);
 
   this.request = this.request.bind(this);
+  this.localTransport = (this._transport instanceof LocalDebuggerTransport);
 
   
 
@@ -601,6 +602,14 @@ DebuggerClient.prototype = {
         return;
       }
 
+      
+      
+      let front = this.getActor(aPacket.from);
+      if (front) {
+        front.onPacket(aPacket);
+        return;
+      }
+
       let onResponse;
       
       
@@ -654,6 +663,36 @@ DebuggerClient.prototype = {
   onClosed: function DC_onClosed(aStatus) {
     this.notify("closed");
   },
+
+  
+
+
+  __pools: null,
+  get _pools() {
+    if (this.__pools) {
+      return this.__pools;
+    }
+    this.__pools = new Set();
+    return this.__pools;
+  },
+
+  addActorPool: function(pool) {
+    this._pools.add(pool);
+  },
+  removeActorPool: function(pool) {
+    this._pools.delete(pool);
+  },
+  getActor: function(actorID) {
+    let pool = this.poolFor(actorID);
+    return pool ? pool.get(actorID) : null;
+  },
+
+  poolFor: function(actorID) {
+    for (let pool of this._pools) {
+      if (pool.has(actorID)) return pool;
+    }
+    return null;
+  }
 }
 
 eventSource(DebuggerClient.prototype);
