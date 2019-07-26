@@ -87,11 +87,8 @@ public:
 
   void SetLineNumber(uint32_t aLineNumber);
   
-  virtual nsresult InstallMember(nsIScriptContext* aContext,
-                                 nsIContent* aBoundElement, 
-                                 JSObject* aScriptObject,
-                                 JSObject* aTargetClassObject,
-                                 const nsCString& aClassStr);
+  virtual nsresult InstallMember(JSContext* aCx,
+                                 JSObject* aTargetClassObject);
   virtual nsresult CompileMember(nsIScriptContext* aContext,
                                  const nsCString& aClassStr,
                                  JSObject* aClassObject);
@@ -139,11 +136,8 @@ public:
   
   
   
-  virtual nsresult InstallMember(nsIScriptContext* aContext,
-                                 nsIContent* aBoundElement, 
-                                 JSObject* aScriptObject,
-                                 JSObject* aTargetClassObject,
-                                 const nsCString& aClassStr) {
+  virtual nsresult InstallMember(JSContext* aCx,
+                                 JSObject* aTargetClassObject) {
     return NS_OK;
   }
 
