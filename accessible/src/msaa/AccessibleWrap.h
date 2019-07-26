@@ -138,11 +138,6 @@ public:
   
     CLSID GetClassID() const;
 
-  
-  virtual HRESULT STDMETHODCALLTYPE QueryService(REFGUID aGuidService,
-                                                 REFIID aIID,
-                                                 void** aInstancePtr);
-
   public: 
     virtual  HRESULT STDMETHODCALLTYPE get_accParent( 
          IDispatch __RPC_FAR *__RPC_FAR *ppdispParent);
