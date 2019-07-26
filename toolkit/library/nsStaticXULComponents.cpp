@@ -3,8 +3,6 @@
 
 
 
-#define XPCOM_TRANSLATE_NSGM_ENTRY_POINT 1
-
 #include "mozilla/Module.h"
 #include "nsXPCOM.h"
 #include "nsStaticComponents.h"
