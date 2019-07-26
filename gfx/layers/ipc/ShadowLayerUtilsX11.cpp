@@ -6,11 +6,8 @@
 
 
 #include "mozilla/layers/PLayerTransaction.h"
-#include "mozilla/layers/LayerManagerComposite.h"
-#include "mozilla/layers/CompositorTypes.h"
-#include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/ShadowLayers.h"
-
+ 
 #include "gfxPlatform.h"
 
 #include "gfxXlibSurface.h"
@@ -187,7 +184,7 @@ ShadowLayerForwarder::PlatformSyncBeforeUpdate()
 }
 
  void
-LayerManagerComposite::PlatformSyncBeforeReplyUpdate()
+ShadowLayerManager::PlatformSyncBeforeReplyUpdate()
 {
   if (UsingXCompositing()) {
     
@@ -200,16 +197,16 @@ LayerManagerComposite::PlatformSyncBeforeReplyUpdate()
 }
 
  already_AddRefed<TextureImage>
-LayerManagerComposite::OpenDescriptorForDirectTexturing(GLContext*,
-                                                        const SurfaceDescriptor&,
-                                                        GLenum)
+ShadowLayerManager::OpenDescriptorForDirectTexturing(GLContext*,
+                                                     const SurfaceDescriptor&,
+                                                     GLenum)
 {
   
   return nullptr;
 }
 
  bool
-LayerManagerComposite::SupportsDirectTexturing()
+ShadowLayerManager::SupportsDirectTexturing()
 {
   return false;
 }
