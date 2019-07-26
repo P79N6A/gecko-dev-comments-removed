@@ -735,18 +735,8 @@ NS_IMETHODIMP nsHTMLMediaElement::Load()
   AbortExistingLoads();
   SetPlaybackRate(mDefaultPlaybackRate);
   QueueSelectResourceTask();
-  ResetState();
   mIsRunningLoadMethod = false;
   return NS_OK;
-}
-
-void nsHTMLMediaElement::ResetState()
-{
-  mMediaSize = nsIntSize(-1, -1);
-  VideoFrameContainer* container = GetVideoFrameContainer();
-  if (container) {
-    container->Reset();
-  }
 }
 
 static bool HasSourceChildren(nsIContent *aElement)
@@ -2608,7 +2598,6 @@ void nsHTMLMediaElement::ProcessMediaFragmentURI()
 void nsHTMLMediaElement::MetadataLoaded(int aChannels,
                                         int aRate,
                                         bool aHasAudio,
-                                        bool aHasVideo,
                                         const MetadataTags* aTags)
 {
   mChannels = aChannels;
@@ -2621,13 +2610,6 @@ void nsHTMLMediaElement::MetadataLoaded(int aChannels,
   if (mDecoder && mDecoder->IsTransportSeekable() && mDecoder->IsMediaSeekable()) {
     ProcessMediaFragmentURI();
     mDecoder->SetFragmentEndTime(mFragmentEnd);
-  }
-
-  
-  
-  
-  if (!aHasVideo) {
-    mVideoFrameContainer = nullptr;
   }
 }
 
@@ -2972,14 +2954,6 @@ void nsHTMLMediaElement::NotifyAutoplayDataReady()
 
 VideoFrameContainer* nsHTMLMediaElement::GetVideoFrameContainer()
 {
-  
-  
-  
-  if (mReadyState >= nsIDOMHTMLMediaElement::HAVE_METADATA &&
-      mMediaSize == nsIntSize(-1, -1)) {
-    return nullptr;
-  }
-
   if (mVideoFrameContainer)
     return mVideoFrameContainer;
 
@@ -3537,14 +3511,12 @@ NS_IMETHODIMP nsHTMLMediaElement::SetPlaybackRate(double aPlaybackRate)
 
   mPlaybackRate = ClampPlaybackRate(aPlaybackRate);
 
-  if (!mMuted) {
-    if (mPlaybackRate < 0 ||
-        mPlaybackRate > THRESHOLD_HIGH_PLAYBACKRATE_AUDIO ||
-        mPlaybackRate < THRESHOLD_LOW_PLAYBACKRATE_AUDIO) {
-      SetMutedInternal(true);
-    } else {
-      SetMutedInternal(false);
-    }
+  if (mPlaybackRate < 0 ||
+      mPlaybackRate > THRESHOLD_HIGH_PLAYBACKRATE_AUDIO ||
+      mPlaybackRate < THRESHOLD_LOW_PLAYBACKRATE_AUDIO) {
+    SetMutedInternal(true);
+  } else {
+    SetMutedInternal(false);
   }
 
   if (mDecoder) {

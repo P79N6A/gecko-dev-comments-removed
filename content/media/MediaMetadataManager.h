@@ -28,8 +28,6 @@ namespace mozilla {
       int mChannels;
       
       bool mHasAudio;
-      
-      bool mHasVideo;
   };
 
   
@@ -55,7 +53,6 @@ namespace mozilla {
                                                   metadata->mChannels,
                                                   metadata->mRate,
                                                   metadata->mHasAudio,
-                                                  metadata->mHasVideo,
                                                   metadata->mTags.forget());
           NS_DispatchToMainThread(metadataUpdatedEvent, NS_DISPATCH_NORMAL);
           mMetadataQueue.popFirst();
