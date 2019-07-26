@@ -1744,7 +1744,7 @@ ReportZoneStats(const JS::ZoneStats &zStats,
         
         
         nsCString escapedString(hugeString);
-        escapedString.ReplaceSubstring("/", "\\/");
+        escapedString.ReplaceSubstring("/", "\\");
 
         ZCREPORT_BYTES2(
             pathPrefix +
