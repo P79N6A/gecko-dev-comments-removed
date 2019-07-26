@@ -76,7 +76,8 @@ add_task(function () {
 
   
   let win = yield promiseNewWindowLoaded();
-  win.messageManager.loadFrameScript(FRAME_SCRIPT, true);
+  let mm = win.getGroupMessageManager("browsers");
+  mm.loadFrameScript(FRAME_SCRIPT, true);
 
   
   let tab = win.gBrowser.addTab("about:mozilla");

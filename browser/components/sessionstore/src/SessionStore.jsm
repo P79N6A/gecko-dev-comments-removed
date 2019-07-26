@@ -764,7 +764,7 @@ let SessionStoreInternal = {
     
     aWindow.__SSi = this._generateWindowID();
 
-    let mm = aWindow.messageManager;
+    let mm = aWindow.getGroupMessageManager("browsers");
     MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
 
     
@@ -1093,7 +1093,7 @@ let SessionStoreInternal = {
     
     DyingWindowCache.set(aWindow, winData);
 
-    let mm = aWindow.messageManager;
+    let mm = aWindow.getGroupMessageManager("browsers");
     MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
 
     delete aWindow.__SSi;
