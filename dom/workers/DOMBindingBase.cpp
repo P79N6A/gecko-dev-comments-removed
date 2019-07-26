@@ -60,8 +60,8 @@ DOMBindingBase::GetJSObject() const
 {
   
   
-  MOZ_ASSERT(GetJSObjectFromBits() == GetWrapperPreserveColor());
-  return GetJSObjectFromBits();
+  MOZ_ASSERT(GetWrapperJSObject() == GetWrapperPreserveColor());
+  return GetWrapperJSObject();
 }
 
 void
@@ -71,10 +71,10 @@ DOMBindingBase::SetJSObject(JSObject* aObject)
   
   SetWrapper(aObject);
 
-  uintptr_t oldWrapperPtrBits = mWrapperPtrBits;
+  uint8_t oldFlags = mFlags;
 
-  SetWrapperBits(aObject);
+  SetWrapperJSObject(aObject);
 
-  MOZ_ASSERT(oldWrapperPtrBits == mWrapperPtrBits);
+  MOZ_ASSERT(oldFlags == mFlags && aObject == mWrapper);
 }
 #endif

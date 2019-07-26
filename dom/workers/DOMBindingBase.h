@@ -49,8 +49,9 @@ public:
   void
   TraceJSObject(JSTracer* aTrc, const char* aName)
   {
-      if (GetJSObject())
-          TraceJSObjectFromBits(aTrc, aName);
+    if (GetJSObject()) {
+      TraceWrapperJSObject(aTrc, aName);
+    }
   }
 
 #ifdef DEBUG
@@ -63,15 +64,13 @@ public:
   JSObject*
   GetJSObject() const
   {
-    
-    return GetJSObjectFromBits();
+    return GetWrapperJSObject();
   }
 
   void
   SetJSObject(JSObject* aObject)
   {
-    
-    SetWrapperBits(aObject);
+    SetWrapperJSObject(aObject);
   }
 #endif
 };

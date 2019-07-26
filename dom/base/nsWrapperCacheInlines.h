@@ -10,16 +10,6 @@
 #include "xpcpublic.h"
 #include "jsapi.h"
 
-
-
-
-
-
-
-MOZ_STATIC_ASSERT(sizeof(js::shadow::Object) % 8 == 0 && sizeof(JS::Value) == 8,
-                  "We want to rely on JSObject being aligned on 8 byte "
-                  "boundaries.");
-
 inline JSObject*
 nsWrapperCache::GetWrapper() const
 {
@@ -58,9 +48,9 @@ nsWrapperCache::IsBlackAndDoesNotNeedTracing(nsISupports* aThis)
 }
 
 inline void
-nsWrapperCache::TraceJSObjectFromBits(JSTracer* aTrc, const char* aName)
+nsWrapperCache::TraceWrapperJSObject(JSTracer* aTrc, const char* aName)
 {
-  JS_CallMaskedObjectTracer(aTrc, &mWrapperPtrBits, kWrapperBitMask, aName);
+  JS_CallObjectTracer(aTrc, &mWrapper, aName);
 }
 
 #endif 
