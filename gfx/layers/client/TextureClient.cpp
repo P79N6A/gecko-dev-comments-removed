@@ -523,7 +523,7 @@ BufferTextureClient::GetAsDrawTarget()
 {
   MOZ_ASSERT(IsValid());
   
-  
+  NS_WARN_IF_FALSE(mLocked, "GetAsDrawTarget should be called on locked textures only");
 
   if (mDrawTarget) {
     return mDrawTarget;
@@ -560,7 +560,8 @@ BufferTextureClient::GetAsDrawTarget()
 bool
 BufferTextureClient::Lock(OpenMode aMode)
 {
-  MOZ_ASSERT(!mLocked);
+  
+  NS_WARN_IF_FALSE(!mLocked, "The TextureClient is already Locked!");
   mOpenMode = aMode;
   mLocked = true;
   return true;
@@ -569,7 +570,8 @@ BufferTextureClient::Lock(OpenMode aMode)
 void
 BufferTextureClient::Unlock()
 {
-  MOZ_ASSERT(mLocked);
+  
+  NS_WARN_IF_FALSE(mLocked, "The TextureClient is already Unlocked!");
   mLocked = false;
   if (!mDrawTarget) {
     mUsingFallbackDrawTarget = false;
