@@ -221,8 +221,7 @@ BaselineCompiler::emitDebugPrologue()
         return true;
 
     
-    masm.movePtr(BaselineFrameReg, R0.scratchReg());
-    masm.subPtr(Imm32(BaselineFrame::Size()), R0.scratchReg());
+    masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
 
     prepareVMCall();
     pushArg(R0.scratchReg());
@@ -1446,6 +1445,33 @@ BaselineCompiler::emit_JSOP_EXCEPTION()
     return true;
 }
 
+typedef bool (*OnDebuggerStatementFn)(JSContext *, BaselineFrame *, jsbytecode *pc, JSBool *);
+static const VMFunction OnDebuggerStatementInfo =
+    FunctionInfo<OnDebuggerStatementFn>(ion::OnDebuggerStatement);
+
+bool
+BaselineCompiler::emit_JSOP_DEBUGGER()
+{
+    prepareVMCall();
+    pushArg(ImmWord(pc));
+
+    masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
+    pushArg(R0.scratchReg());
+
+    if (!callVM(OnDebuggerStatementInfo))
+        return false;
+
+    
+    Label done;
+    masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &done);
+    {
+        masm.loadValue(frame.addressOfReturnValue(), JSReturnOperand);
+        masm.jump(return_);
+    }
+    masm.bind(&done);
+    return true;
+}
+
 typedef bool (*DebugEpilogueFn)(JSContext *, BaselineFrame *, JSBool);
 static const VMFunction DebugEpilogueInfo = FunctionInfo<DebugEpilogueFn>(ion::DebugEpilogue);
 
@@ -1458,8 +1484,8 @@ BaselineCompiler::emitReturn()
         masm.or32(Imm32(BaselineFrame::HAS_RVAL), frame.addressOfFlags());
 
         
-        masm.movePtr(BaselineFrameReg, R0.scratchReg());
-        masm.subPtr(Imm32(BaselineFrame::Size()), R0.scratchReg());
+        frame.syncStack(0);
+        masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
 
         prepareVMCall();
         pushArg(Imm32(1));
