@@ -1105,6 +1105,22 @@ XPCJSRuntime::ActivityCallback(void *arg, JSBool active)
     }
 }
 
+
+
+
+
+
+void
+XPCJSRuntime::CTypesActivityCallback(JSContext *cx, js::CTypesActivityType type)
+{
+  if (type == js::CTYPES_CALLBACK_BEGIN) {
+    if (!Get()->GetJSContextStack()->Push(cx))
+      MOZ_CRASH();
+  } else if (type == js::CTYPES_CALLBACK_END) {
+    Get()->GetJSContextStack()->Pop();
+  }
+}
+
 size_t
 XPCJSRuntime::SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf)
 {
@@ -2638,6 +2654,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
 #endif
     JS_SetAccumulateTelemetryCallback(mJSRuntime, AccumulateTelemetryCallback);
     js::SetActivityCallback(mJSRuntime, ActivityCallback, this);
+    js::SetCTypesActivityCallback(mJSRuntime, CTypesActivityCallback);
 
     
     
