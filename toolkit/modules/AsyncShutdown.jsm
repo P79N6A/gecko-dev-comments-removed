@@ -112,34 +112,6 @@ function err(msg, error = null) {
 
 
 
-function safeGetState(state) {
-  if (!state) {
-    return "(none)";
-  }
-  try {
-    
-    
-    let string = JSON.stringify(state());
-    let data = JSON.parse(string);
-    
-    
-    data.toString = function() {
-      return string;
-    };
-    return data;
-  } catch (ex) {
-    try {
-      return "Error getting state: " + ex;
-    } catch (ex2) {
-      return "Could not display error";
-    }
-  }
-}
-
-
-
-
-
 
 
 
@@ -237,18 +209,11 @@ function getPhase(topic) {
 
 
 
-
-
-
-
-    addBlocker: function(name, condition, state = null) {
+    addBlocker: function(name, condition) {
       if (typeof name != "string") {
         throw new TypeError("Expected a human-readable name as first argument");
       }
-      if (state && typeof state != "function") {
-        throw new TypeError("Expected nothing or a function as third argument");
-      }
-      spinner.addBlocker({name: name, condition: condition, state: state});
+      spinner.addBlocker({name: name, condition: condition});
     }
   });
   gPhases.set(topic, phase);
@@ -309,7 +274,7 @@ Spinner.prototype = {
     
     let allMonitors = [];
 
-    for (let {condition, name, state} of conditions) {
+    for (let {condition, name} of conditions) {
       
 
       try {
@@ -338,15 +303,13 @@ Spinner.prototype = {
           let msg = "A phase completion condition is" +
             " taking too long to complete." +
             " Condition: " + monitor.name +
-            " Phase: " + topic +
-            " State: " + safeGetState(state);
+            " Phase: " + topic;
           warn(msg);
         }, DELAY_WARNING_MS, Ci.nsITimer.TYPE_ONE_SHOT);
 
         let monitor = {
           isFrozen: true,
-          name: name,
-          state: state
+          name: name
         };
         condition = condition.then(function onSuccess() {
             timer.cancel(); 
@@ -357,8 +320,7 @@ Spinner.prototype = {
             let msg = "A completion condition encountered an error" +
                 " while we were spinning the event loop." +
                 " Condition: " + name +
-                " Phase: " + topic +
-                " State: " + safeGetState(state);
+                " Phase: " + topic;
             warn(msg, error);
             monitor.isFrozen = false;
         });
@@ -369,8 +331,7 @@ Spinner.prototype = {
           let msg = "A completion condition encountered an error" +
                 " while we were initializing the phase." +
                 " Condition: " + name +
-                " Phase: " + topic +
-                " State: " + safeGetState(state);
+                " Phase: " + topic;
           warn(msg, error);
       }
 
@@ -401,10 +362,9 @@ Spinner.prototype = {
       function onTimeout() {
         
         let frozen = [];
-        let states = [];
-        for (let {name, isFrozen, state} of allMonitors) {
+        for (let {name, isFrozen} of allMonitors) {
           if (isFrozen) {
-            frozen.push({name: name, state: safeGetState(state)});
+            frozen.push(name);
           }
         }
 
@@ -412,7 +372,7 @@ Spinner.prototype = {
               " within a reasonable amount of time. Causing a crash to" +
               " ensure that we do not leave the user with an unresponsive" +
               " process draining resources." +
-              " Conditions: " + JSON.stringify(frozen) +
+              " Conditions: " + frozen.join(", ") +
               " Phase: " + topic;
         err(msg);
         if (gCrashReporter && gCrashReporter.enabled) {
