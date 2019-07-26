@@ -65,6 +65,7 @@ ComponentFinder<Node>::processNode(Node *v)
         return;
 
     if (v->gcLowLink == v->gcDiscoveryTime) {
+        Node *nextComponent = firstComponent;
         Node *w;
         do {
             JS_ASSERT(stack);
@@ -75,19 +76,10 @@ ComponentFinder<Node>::processNode(Node *v)
 
 
 
-            w->gcLowLink = v->gcDiscoveryTime;
-
-            
-
-
-
             w->gcDiscoveryTime = Finished;
 
             
-            if (firstComponent && firstComponent->gcLowLink == w->gcLowLink)
-                w->gcNextGraphComponent = firstComponent->gcNextGraphComponent;
-            else
-                w->gcNextGraphComponent = firstComponent;
+            w->gcNextGraphComponent = nextComponent;
 
             
 
