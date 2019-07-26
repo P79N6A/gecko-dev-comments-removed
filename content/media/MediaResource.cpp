@@ -607,6 +607,20 @@ nsresult ChannelMediaResource::OpenChannel(nsIStreamListener** aStreamListener)
     *aStreamListener = nullptr;
   }
 
+  if (mByteRange.IsNull()) {
+    
+    
+    
+    
+    nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(mChannel);
+    if (hc) {
+      int64_t cl = -1;
+      if (NS_SUCCEEDED(hc->GetContentLength(&cl)) && cl != -1) {
+        mCacheStream.NotifyDataLength(cl);
+      }
+    }
+  }
+
   mListener = new Listener(this);
   NS_ENSURE_TRUE(mListener, NS_ERROR_OUT_OF_MEMORY);
 
