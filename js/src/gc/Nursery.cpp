@@ -772,19 +772,25 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
     TIME_END(clearNewObjectCache);
 
     
-
-
-
-
-
+    
+    
+    
     TIME_START(collectToFP);
     TenureCountCache tenureCounts;
     collectToFixedPoint(&trc, tenureCounts);
     TIME_END(collectToFP);
 
+    
+    TIME_START(sweepArrayBufferViewList);
+    for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
+        if (c->gcLiveArrayBuffers)
+            ArrayBufferObject::sweep(c);
+    }
+    TIME_END(sweepArrayBufferViewList);
+
+    
     TIME_START(updateJitActivations);
 #ifdef JS_ION
-    
     js::jit::UpdateJitActivationsForMinorGC(rt, &trc);
 #endif
     TIME_END(updateJitActivations);
@@ -798,11 +804,11 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
         shrinkAllocableSpace();
     TIME_END(resize);
 
+    
+    
+    
+    
     TIME_START(pretenure);
-    
-    
-    
-    
     if (pretenureTypes && (promotionRate > 0.8 || reason == JS::gcreason::FULL_STORE_BUFFER)) {
         for (size_t i = 0; i < ArrayLength(tenureCounts.entries); i++) {
             const TenureCount &entry = tenureCounts.entries[i];
@@ -826,10 +832,8 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
     TIME_END(clearStoreBuffer);
 
     
-
-
-
-
+    
+    
     if (rt->gcBytes >= rt->gcMaxBytes)
         disable();
 
@@ -842,13 +846,13 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
         static bool printedHeader = false;
         if (!printedHeader) {
             fprintf(stderr,
-                    "MinorGC: Reason               PRate  Size Time   mkVals mkClls mkSlts mkWCll mkRVal mkRCll mkGnrc ckTbls mkRntm mkDbgr clrNOC collct updtIn resize pretnr frSlts clrSB  sweep\n");
+                    "MinorGC: Reason               PRate  Size Time   mkVals mkClls mkSlts mkWCll mkRVal mkRCll mkGnrc ckTbls mkRntm mkDbgr clrNOC collct swpABO updtIn resize pretnr frSlts clrSB  sweep\n");
             printedHeader = true;
         }
 
 #define FMT " %6" PRIu64
         fprintf(stderr,
-                "MinorGC: %20s %5.1f%% %4d" FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT "\n",
+                "MinorGC: %20s %5.1f%% %4d" FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT "\n",
                 js::gcstats::ExplainReason(reason),
                 promotionRate * 100,
                 numActiveChunks_,
@@ -865,6 +869,7 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
                 TIME_TOTAL(markDebugger),
                 TIME_TOTAL(clearNewObjectCache),
                 TIME_TOTAL(collectToFP),
+                TIME_TOTAL(sweepArrayBufferViewList),
                 TIME_TOTAL(updateJitActivations),
                 TIME_TOTAL(resize),
                 TIME_TOTAL(pretenure),

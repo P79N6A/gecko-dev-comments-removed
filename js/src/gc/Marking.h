@@ -81,16 +81,24 @@ namespace gc {
 
 
 
+
+
+
+
+
+
 #define DeclMarker(base, type)                                                                    \
-void Mark##base(JSTracer *trc, BarrieredPtr<type> *thing, const char *name);                   \
+void Mark##base(JSTracer *trc, BarrieredPtr<type> *thing, const char *name);                      \
 void Mark##base##Root(JSTracer *trc, type **thingp, const char *name);                            \
 void Mark##base##Unbarriered(JSTracer *trc, type **thingp, const char *name);                     \
 void Mark##base##Range(JSTracer *trc, size_t len, HeapPtr<type> *thing, const char *name);        \
 void Mark##base##RootRange(JSTracer *trc, size_t len, type **thing, const char *name);            \
 bool Is##base##Marked(type **thingp);                                                             \
-bool Is##base##Marked(BarrieredPtr<type> *thingp);                                             \
+bool Is##base##Marked(BarrieredPtr<type> *thingp);                                                \
 bool Is##base##AboutToBeFinalized(type **thingp);                                                 \
-bool Is##base##AboutToBeFinalized(BarrieredPtr<type> *thingp);                                 \
+bool Is##base##AboutToBeFinalized(BarrieredPtr<type> *thingp);                                    \
+type *Update##base##IfRelocated(JSRuntime *rt, BarrieredPtr<type> *thingp);                       \
+type *Update##base##IfRelocated(JSRuntime *rt, type **thingp);
 
 DeclMarker(BaseShape, BaseShape)
 DeclMarker(BaseShape, UnownedBaseShape)
