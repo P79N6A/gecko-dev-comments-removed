@@ -119,8 +119,7 @@ protected:
     if (!bufferLen.isValid())
       return false;
 
-    
-    void* data = PR_Realloc(mData, bufferLen.value());
+    void* data = moz_realloc(mData, bufferLen.value());
     if (!data)
       return false;
 
