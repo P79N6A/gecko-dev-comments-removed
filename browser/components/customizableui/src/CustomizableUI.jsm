@@ -1420,6 +1420,24 @@ let CustomizableUIInternal = {
   reset: function() {
     Services.prefs.clearUserPref(kPrefCustomizationState);
     LOG("State reset");
+
+    
+    gPlacements = new Map();
+    
+    gSavedState = null;
+    
+    for (let [area, defaultPlacements] of gDefaultPlacements) {
+      this.restoreStateForArea(area);
+    }
+
+    
+    
+    for (let [areaId, areaNodes] of gBuildAreas) {
+      let placements = gPlacements.get(areaId);
+      for (let areaNode of areaNodes) {
+        this.buildArea(areaId, placements, areaNode);
+      }
+    }
   },
 
   _addParentFlex: function(aElement) {
