@@ -254,7 +254,10 @@ BookmarkImporter.prototype = {
     
     
     
-    if (frame.containerNesting == 0) {
+    
+    
+    
+    if (frame.containerNesting == 0 && this._frames.length > 1) {
       this._frames.pop();
     }
 
