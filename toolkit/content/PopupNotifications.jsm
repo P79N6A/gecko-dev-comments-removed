@@ -471,6 +471,9 @@ PopupNotifications.prototype = {
 
     this._currentAnchorElement = anchorElement;
 
+    
+    
+    this.panel.setAttribute("popupid", this.panel.firstChild.getAttribute("popupid"));
     this.panel.openPopup(anchorElement, "bottomcenter topleft");
     notificationsToShow.forEach(function (n) {
       this._fireCallback(n, NOTIFICATION_EVENT_SHOWN);
