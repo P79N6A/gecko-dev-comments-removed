@@ -110,11 +110,15 @@ var tests = {
     }, function () {
       let badge = statusIcon.getAttribute("badge");
       is(badge, "42", "status value is correct");
+      
+      is(statusIcon.getAttribute("aria-label"), "Test Ambient 1 \u2046 (42)");
 
       ambience.counter = 0;
       Social.provider.setAmbientNotification(ambience);
       badge = statusIcon.getAttribute("badge");
       is(badge, "", "status value is correct");
+      
+      is(statusIcon.getAttribute("aria-label"), "Test Ambient 1 \u2046");
 
       
       if (navigator.platform.contains("Mac"))
