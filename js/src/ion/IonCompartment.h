@@ -9,11 +9,10 @@
 #define jsion_ion_compartment_h__
 
 #include "IonCode.h"
+#include "jsval.h"
 #include "jsweakcache.h"
-#include "js/Value.h"
 #include "vm/Stack.h"
 #include "IonFrames.h"
-#include "CompileInfo.h"
 
 namespace js {
 namespace ion {
@@ -28,74 +27,40 @@ class IonBuilder;
 
 typedef Vector<IonBuilder*, 0, SystemAllocPolicy> OffThreadCompilationVector;
 
-class IonRuntime
+class IonCompartment
 {
-    friend class IonCompartment;
+    typedef WeakCache<const VMFunction *, ReadBarriered<IonCode> > VMWrapperMap;
+    typedef WeakValueCache<uint32_t, ReadBarriered<IonCode> > ICStubCodeMap;
+
+    friend class IonActivation;
 
     
     JSC::ExecutableAllocator *execAlloc_;
 
     
-    IonCode *enterJIT_;
+    ReadBarriered<IonCode> enterJIT_;
 
     
-    Vector<IonCode*, 4, SystemAllocPolicy> bailoutTables_;
+    Vector<ReadBarriered<IonCode>, 4, SystemAllocPolicy> bailoutTables_;
 
     
-    IonCode *bailoutHandler_;
+    ReadBarriered<IonCode> bailoutHandler_;
 
     
     
-    IonCode *argumentsRectifier_;
+    ReadBarriered<IonCode> argumentsRectifier_;
 
     
-    IonCode *parallelArgumentsRectifier_;
+    ReadBarriered<IonCode> invalidator_;
 
     
-    IonCode *invalidator_;
+    ReadBarriered<IonCode> preBarrier_;
 
     
-    IonCode *valuePreBarrier_;
-    IonCode *shapePreBarrier_;
-
-    
-    typedef WeakCache<const VMFunction *, IonCode *> VMWrapperMap;
     VMWrapperMap *functionWrappers_;
 
     
-    AutoFlushCache *flusher_;
-
-  private:
-    IonCode *generateEnterJIT(JSContext *cx);
-    IonCode *generateArgumentsRectifier(JSContext *cx, ExecutionMode mode);
-    IonCode *generateBailoutTable(JSContext *cx, uint32_t frameClass);
-    IonCode *generateBailoutHandler(JSContext *cx);
-    IonCode *generateInvalidator(JSContext *cx);
-    IonCode *generatePreBarrier(JSContext *cx, MIRType type);
-    IonCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
-
-  public:
-    IonRuntime();
-    ~IonRuntime();
-    bool initialize(JSContext *cx);
-
-    static void Mark(JSTracer *trc);
-
-    AutoFlushCache *flusher() {
-        return flusher_;
-    }
-    void setFlusher(AutoFlushCache *fl) {
-        if (!flusher_ || !fl)
-            flusher_ = fl;
-    }
-};
-
-class IonCompartment
-{
-    friend class IonActivation;
-
-    
-    IonRuntime *rt;
+    ICStubCodeMap *stubCodes_;
 
     
     
@@ -103,61 +68,119 @@ class IonCompartment
     
     OffThreadCompilationVector finishedOffThreadCompilations_;
 
+    
+    AutoFlushCache *flusher_;
+
+  private:
+    IonCode *generateEnterJIT(JSContext *cx);
+    IonCode *generateReturnError(JSContext *cx);
+    IonCode *generateArgumentsRectifier(JSContext *cx);
+    IonCode *generateBailoutTable(JSContext *cx, uint32 frameClass);
+    IonCode *generateBailoutHandler(JSContext *cx);
+    IonCode *generateInvalidator(JSContext *cx);
+    IonCode *generatePreBarrier(JSContext *cx);
+
   public:
-    IonCode *getVMWrapper(const VMFunction &f);
+    IonCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
+    IonCode *getStubCode(uint32_t key) {
+        ICStubCodeMap::AddPtr p = stubCodes_->lookupForAdd(key);
+        if (p)
+            return p->value;
+        return NULL;
+    }
+    bool putStubCode(uint32_t key, Handle<IonCode *> stubCode) {
+        
+        
+        
+        JS_ASSERT(!stubCodes_->has(key));
+        ICStubCodeMap::AddPtr p = stubCodes_->lookupForAdd(key);
+        return stubCodes_->add(p, key, stubCode.get());
+    }
 
     OffThreadCompilationVector &finishedOffThreadCompilations() {
         return finishedOffThreadCompilations_;
     }
 
   public:
-    IonCompartment(IonRuntime *rt);
-
     bool initialize(JSContext *cx);
+    IonCompartment();
+    ~IonCompartment();
 
     void mark(JSTracer *trc, JSCompartment *compartment);
     void sweep(FreeOp *fop);
 
     JSC::ExecutableAllocator *execAlloc() {
-        return rt->execAlloc_;
+        return execAlloc_;
     }
 
-    IonCode *getGenericBailoutHandler() {
-        return rt->bailoutHandler_;
+    IonCode *getBailoutTable(JSContext *cx, const FrameSizeClass &frameClass);
+    IonCode *getGenericBailoutHandler(JSContext *cx) {
+        if (!bailoutHandler_) {
+            bailoutHandler_ = generateBailoutHandler(cx);
+            if (!bailoutHandler_)
+                return NULL;
+        }
+        return bailoutHandler_;
     }
 
+    
     IonCode *getBailoutTable(const FrameSizeClass &frameClass);
 
-    IonCode *getArgumentsRectifier(ExecutionMode mode) {
-        switch (mode) {
-          case SequentialExecution: return rt->argumentsRectifier_;
-          case ParallelExecution:   return rt->parallelArgumentsRectifier_;
-          default:                  JS_NOT_REACHED("No such execution mode");
+    
+    IonCode *getArgumentsRectifier(JSContext *cx) {
+        if (!argumentsRectifier_) {
+            argumentsRectifier_ = generateArgumentsRectifier(cx);
+            if (!argumentsRectifier_)
+                return NULL;
         }
+        return argumentsRectifier_;
+    }
+    IonCode **getArgumentsRectifierAddr() {
+        return argumentsRectifier_.unsafeGet();
     }
 
-    IonCode *getInvalidationThunk() {
-        return rt->invalidator_;
+    IonCode *getOrCreateInvalidationThunk(JSContext *cx) {
+        if (!invalidator_) {
+            invalidator_ = generateInvalidator(cx);
+            if (!invalidator_)
+                return NULL;
+        }
+        return invalidator_;
+    }
+    IonCode **getInvalidationThunkAddr() {
+        return invalidator_.unsafeGet();
     }
 
-    EnterIonCode enterJIT() {
-        return rt->enterJIT_->as<EnterIonCode>();
+    EnterIonCode enterJITInfallible() {
+        JS_ASSERT(enterJIT_);
+        return enterJIT_.get()->as<EnterIonCode>();
     }
 
-    IonCode *valuePreBarrier() {
-        return rt->valuePreBarrier_;
+    EnterIonCode enterJIT(JSContext *cx) {
+        if (!enterJIT_) {
+            enterJIT_ = generateEnterJIT(cx);
+            if (!enterJIT_)
+                return NULL;
+        }
+        return enterJIT_.get()->as<EnterIonCode>();
     }
 
-    IonCode *shapePreBarrier() {
-        return rt->shapePreBarrier_;
+    IonCode *preBarrier(JSContext *cx) {
+        if (!preBarrier_) {
+            preBarrier_ = generatePreBarrier(cx);
+            if (!preBarrier_)
+                return NULL;
+        }
+        return preBarrier_;
     }
-
     AutoFlushCache *flusher() {
-        return rt->flusher();
+        return flusher_;
     }
     void setFlusher(AutoFlushCache *fl) {
-        rt->setFlusher(fl);
+        if (!flusher_ || !fl)
+            flusher_ = fl;
     }
+
 };
 
 class BailoutClosure;
@@ -170,7 +193,7 @@ class IonActivation
     IonActivation *prev_;
     StackFrame *entryfp_;
     BailoutClosure *bailout_;
-    uint8_t *prevIonTop_;
+    uint8 *prevIonTop_;
     JSContext *prevIonJSContext_;
 
     
@@ -187,7 +210,7 @@ class IonActivation
     IonActivation *prev() const {
         return prev_;
     }
-    uint8_t *prevIonTop() const {
+    uint8 *prevIonTop() const {
         return prevIonTop_;
     }
     jsbytecode *prevpc() const {
@@ -238,8 +261,8 @@ class IonActivation
 };
 
 
-void InvalidateAll(FreeOp *fop, JS::Zone *zone);
-void FinishInvalidation(FreeOp *fop, RawScript script);
+void InvalidateAll(FreeOp *fop, JSCompartment *comp);
+void FinishInvalidation(FreeOp *fop, JSScript *script);
 
 } 
 } 
