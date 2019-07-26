@@ -34,9 +34,9 @@
       playback.playMedia(false, function () {
         aStream.stop();
         SimpleTest.finish();
-      }, unexpectedCallbackAndFinish(new Error));
+      }, unexpectedCallbackAndFinish());
 
-    }, unexpectedCallbackAndFinish(new Error));
+    }, unexpectedCallbackAndFinish());
 
   });
 

@@ -122,7 +122,7 @@ function runTest(aCallback) {
       aCallback();
     }
     catch (err) {
-      unexpectedCallbackAndFinish(new Error)(err);
+      unexpectedCallbackAndFinish()(err);
     }
   });
 }
@@ -174,18 +174,21 @@ function checkMediaStreamTracks(constraints, mediaStream) {
 
 
 
-function unexpectedCallbackAndFinish(error) {
+function unexpectedCallbackAndFinish(message) {
+  var stack = new Error().stack.split("\n");
+  stack.shift(); 
+
   
 
 
 
-  return function(aObj) {
-    var where = error.fileName + ":" + error.lineNumber;
+  return function (aObj) {
     if (aObj && aObj.name && aObj.message) {
-      ok(false, "Unexpected callback/event from " + where + " with name = '" +
-                aObj.name + "', message = '" + aObj.message + "'");
+      ok(false, "Unexpected callback for '" + aObj.name + "' with message = '" +
+         aObj.message + "' at " + JSON.stringify(stack));
     } else {
-      ok(false, "Unexpected callback/event from " + where + " with " + aObj);
+      ok(false, "Unexpected callback with message = '" + message +
+         "' at: " + JSON.stringify(stack));
     }
     SimpleTest.finish();
   }
@@ -197,8 +200,15 @@ function unexpectedCallbackAndFinish(error) {
 
 
 
-function unexpectedSuccessCallbackAndFinish(error, reason) {
-  return function() {
-    unexpectedCallbackAndFinish(error)(message);
+
+
+function unexpectedEventAndFinish(message, eventName) {
+  var stack = new Error().stack.split("\n");
+  stack.shift(); 
+
+  return function () {
+    ok(false, "Unexpected event '" + eventName + "' fired with message = '" +
+       message + "' at: " + JSON.stringify(stack));
+    SimpleTest.finish();
   }
 }
