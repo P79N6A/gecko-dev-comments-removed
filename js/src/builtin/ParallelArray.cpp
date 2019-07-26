@@ -620,10 +620,15 @@ static JSBool
 ParallelArray_length_getter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
     
-    if (obj->getClass() != &ParallelArrayClass)
-        return false;
+    if (obj->getClass() == &ParallelArrayClass) {
+        
+        vp->setNumber(GetLength(obj));
+    } else {
+        
+        JS_ASSERT(obj->getClass() == &ParallelArrayProtoClass);
+        vp->setInt32(0);
+    }
 
-    vp->setNumber(GetLength(obj));
     return true;
 }
 
