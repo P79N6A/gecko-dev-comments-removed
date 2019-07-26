@@ -378,32 +378,11 @@ class MDefinition : public MNode
     const BytecodeSite &trackedSite() const {
         return trackedSite_;
     }
-    jsbytecode *trackedPc() const {
+    jsbytecode *trackedPc() {
         return trackedSite_.pc();
     }
-    InlineScriptTree *trackedTree() const {
+    InlineScriptTree *trackedTree() {
         return trackedSite_.tree();
-    }
-
-    JSScript *profilerLeaveScript() const {
-        return trackedTree()->outermostCaller()->script();
-    }
-
-    jsbytecode *profilerLeavePc() const {
-        
-        if (trackedTree()->isOutermostCaller())
-            return trackedPc();
-
-        
-        InlineScriptTree *curTree = trackedTree();
-        InlineScriptTree *callerTree = curTree->caller();
-        while (!callerTree->isOutermostCaller()) {
-            curTree = callerTree;
-            callerTree = curTree->caller();
-        }
-
-        
-        return curTree->callerPc();
     }
 
     
