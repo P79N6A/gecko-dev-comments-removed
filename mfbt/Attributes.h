@@ -410,14 +410,28 @@
 
 
 
+
+
+
 #ifdef MOZ_CLANG_PLUGIN
-# define MOZ_MUST_OVERRIDE __attribute__((annotate("moz_must_override")))
-# define MOZ_STACK_CLASS __attribute__((annotate("moz_stack_class")))
-# define MOZ_NONHEAP_CLASS __attribute__((annotate("moz_nonheap_class")))
+#  define MOZ_MUST_OVERRIDE __attribute__((annotate("moz_must_override")))
+#  define MOZ_STACK_CLASS __attribute__((annotate("moz_stack_class")))
+#  define MOZ_NONHEAP_CLASS __attribute__((annotate("moz_nonheap_class")))
+
+
+
+
+
+#  define MOZ_HEAP_ALLOCATOR \
+    _Pragma("clang diagnostic push") \
+    _Pragma("clang diagnostic ignored \"-Wgcc-compat\"") \
+    __attribute__((annotate("moz_heap_allocator"))) \
+    _Pragma("clang diagnostic pop")
 #else
-# define MOZ_MUST_OVERRIDE
-# define MOZ_STACK_CLASS
-# define MOZ_NONHEAP_CLASS
+#  define MOZ_MUST_OVERRIDE
+#  define MOZ_STACK_CLASS
+#  define MOZ_NONHEAP_CLASS
+#  define MOZ_HEAP_ALLOCATOR
 #endif 
 
 
