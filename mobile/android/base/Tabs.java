@@ -411,10 +411,13 @@ public class Tabs implements GeckoEventListener {
                                           message.getInt("parentId"),
                                           message.getString("title"),
                                           message.getBoolean("isPrivate"));
+
+                    
+                    
+                    if (message.getBoolean("selected"))
+                        selectTab(id);
                 }
 
-                if (message.getBoolean("selected"))
-                    selectTab(id);
                 if (message.getBoolean("delayLoad"))
                     tab.setState(Tab.STATE_DELAYED);
                 if (message.getBoolean("desktopMode"))

@@ -2673,6 +2673,7 @@ Tab.prototype = {
     
     
     
+    
     let stub = false;
 
     if (!aParams.zombifying) {
