@@ -8,6 +8,7 @@
 #define mozilla_dom_bluetooth_bluetootheventservice_h__
 
 #include "BluetoothCommon.h"
+#include "BluetoothProfileManagerBase.h"
 #include "mozilla/dom/ipc/Blob.h"
 #include "nsAutoPtr.h"
 #include "nsClassHashtable.h"
@@ -210,14 +211,20 @@ public:
                bool aEncrypt,
                mozilla::ipc::UnixSocketConsumer* aConsumer) = 0;
 
+  
+
+
+
+
+
+
+
+
+
   virtual nsresult
-  GetSocketViaService(const nsAString& aObjectPath,
-                      const nsAString& aService,
-                      BluetoothSocketType aType,
-                      bool aAuth,
-                      bool aEncrypt,
-                      mozilla::ipc::UnixSocketConsumer* aSocketConsumer,
-                      BluetoothReplyRunnable* aRunnable) = 0;
+  GetServiceChannel(const nsAString& aObjectPath,
+                    const nsAString& aServiceUuid,
+                    BluetoothProfileManagerBase* aManager) = 0;
 
   virtual bool
   SetPinCodeInternal(const nsAString& aDeviceAddress, const nsAString& aPinCode,
