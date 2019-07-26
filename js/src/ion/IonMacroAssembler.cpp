@@ -523,7 +523,7 @@ MacroAssembler::parNewGCThing(const Register &result,
                               const Register &threadContextReg,
                               const Register &tempReg1,
                               const Register &tempReg2,
-                              JSObject *templateObject,
+                              gc::AllocKind allocKind,
                               Label *fail)
 {
     
@@ -536,7 +536,6 @@ MacroAssembler::parNewGCThing(const Register &result,
     
     
 
-    gc::AllocKind allocKind = templateObject->tenuredGetAllocKind();
     uint32_t thingSize = (uint32_t)gc::Arena::thingSize(allocKind);
 
     
@@ -570,6 +569,41 @@ MacroAssembler::parNewGCThing(const Register &result,
     
     
     storePtr(tempReg2, Address(tempReg1, offsetof(gc::FreeSpan, first)));
+}
+
+void
+MacroAssembler::parNewGCThing(const Register &result,
+                              const Register &threadContextReg,
+                              const Register &tempReg1,
+                              const Register &tempReg2,
+                              JSObject *templateObject,
+                              Label *fail)
+{
+    gc::AllocKind allocKind = templateObject->tenuredGetAllocKind();
+    JS_ASSERT(allocKind >= gc::FINALIZE_OBJECT0 && allocKind <= gc::FINALIZE_OBJECT_LAST);
+    JS_ASSERT(!templateObject->hasDynamicElements());
+
+    parNewGCThing(result, threadContextReg, tempReg1, tempReg2, allocKind, fail);
+}
+
+void
+MacroAssembler::parNewGCString(const Register &result,
+                               const Register &threadContextReg,
+                               const Register &tempReg1,
+                               const Register &tempReg2,
+                               Label *fail)
+{
+    parNewGCThing(result, threadContextReg, tempReg1, tempReg2, js::gc::FINALIZE_STRING, fail);
+}
+
+void
+MacroAssembler::parNewGCShortString(const Register &result,
+                                    const Register &threadContextReg,
+                                    const Register &tempReg1,
+                                    const Register &tempReg2,
+                                    Label *fail)
+{
+    parNewGCThing(result, threadContextReg, tempReg1, tempReg2, js::gc::FINALIZE_SHORT_STRING, fail);
 }
 
 void
