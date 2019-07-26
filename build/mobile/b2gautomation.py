@@ -168,7 +168,7 @@ class B2GRemoteAutomation(Automation):
         
         
         
-        serial = serial or self._devicemanager.deviceSerial
+        serial = serial or self._devicemanager._deviceSerial
         status = 'unknown'
 
         for line in self._devicemanager._runCmd(['devices']).stdout.readlines():
