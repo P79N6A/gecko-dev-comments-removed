@@ -2808,8 +2808,12 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   if (!mDecoder) {
     rv = InitDecoder( false);
-
     CONTAINER_ENSURE_SUCCESS(rv);
+
+    rv = FinishedSomeDecoding();
+    CONTAINER_ENSURE_SUCCESS(rv);
+
+    MOZ_ASSERT(mDecoder);
   }
 
   
@@ -2907,16 +2911,10 @@ RasterImage::SyncDecode()
   mDecoder->FlushInvalidations();
   mInDecoder = false;
 
-  
-  if (mDecoder && IsDecodeFinished()) {
-    
-    
-    nsRefPtr<DecodeRequest> request = mDecodeRequest;
-    nsresult rv = ShutdownDecoder(eShutdownIntent_Done);
-    CONTAINER_ENSURE_SUCCESS(rv);
-    rv = FinishedSomeDecoding(eShutdownIntent_Done, request);
-    CONTAINER_ENSURE_SUCCESS(rv);
-  } else if (mDecoder) {
+  rv = FinishedSomeDecoding();
+  CONTAINER_ENSURE_SUCCESS(rv);
+
+  if (mDecoder) {
     mDecoder->SetSynchronous(false);
   }
 
