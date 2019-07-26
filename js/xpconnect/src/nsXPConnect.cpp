@@ -328,36 +328,9 @@ nsXPConnect::InitClasses(JSContext * aJSContext, JSObject * aGlobalJSObj)
     return NS_OK;
 }
 
-#ifdef DEBUG
-static void
-VerifyTraceXPCGlobalCalled(JSTracer *trc, void **thingp, JSGCTraceKind kind)
-{
-    
-    
-}
-
-struct VerifyTraceXPCGlobalCalledTracer : public JSTracer
-{
-    bool ok;
-
-    VerifyTraceXPCGlobalCalledTracer(JSRuntime *rt)
-      : JSTracer(rt, VerifyTraceXPCGlobalCalled), ok(false)
-    {}
-};
-#endif
-
 void
 TraceXPCGlobal(JSTracer *trc, JSObject *obj)
 {
-#ifdef DEBUG
-    if (trc->callback == VerifyTraceXPCGlobalCalled) {
-        
-        
-        reinterpret_cast<VerifyTraceXPCGlobalCalledTracer*>(trc)->ok = true;
-        return;
-    }
-#endif
-
     if (js::GetObjectClass(obj)->flags & JSCLASS_DOM_GLOBAL)
         mozilla::dom::TraceProtoAndIfaceCache(trc, obj);
 }
@@ -388,7 +361,7 @@ CreateGlobalObject(JSContext *cx, const JSClass *clasp, nsIPrincipal *principal,
     
     if (!((const js::Class*)clasp)->ext.isWrappedNative)
     {
-        VerifyTraceXPCGlobalCalledTracer trc(JS_GetRuntime(cx));
+        VerifyTraceProtoAndIfaceCacheCalledTracer trc(JS_GetRuntime(cx));
         JS_TraceChildren(&trc, global, JSTRACE_OBJECT);
         MOZ_ASSERT(trc.ok, "Trace hook on global needs to call TraceXPCGlobal for XPConnect compartments.");
     }

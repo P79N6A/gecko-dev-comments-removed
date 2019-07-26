@@ -483,10 +483,34 @@ AllocateProtoAndIfaceCache(JSObject* obj, ProtoAndIfaceCache::Kind aKind)
                       JS::PrivateValue(protoAndIfaceCache));
 }
 
+#ifdef DEBUG
+void
+VerifyTraceProtoAndIfaceCacheCalled(JSTracer *trc, void **thingp,
+                                    JSGCTraceKind kind);
+
+struct VerifyTraceProtoAndIfaceCacheCalledTracer : public JSTracer
+{
+    bool ok;
+
+    VerifyTraceProtoAndIfaceCacheCalledTracer(JSRuntime *rt)
+      : JSTracer(rt, VerifyTraceProtoAndIfaceCacheCalled), ok(false)
+    {}
+};
+#endif
+
 inline void
 TraceProtoAndIfaceCache(JSTracer* trc, JSObject* obj)
 {
   MOZ_ASSERT(js::GetObjectClass(obj)->flags & JSCLASS_DOM_GLOBAL);
+
+#ifdef DEBUG
+  if (trc->callback == VerifyTraceProtoAndIfaceCacheCalled) {
+    
+    
+    static_cast<VerifyTraceProtoAndIfaceCacheCalledTracer*>(trc)->ok = true;
+    return;
+  }
+#endif
 
   if (!HasProtoAndIfaceCache(obj))
     return;
@@ -2563,9 +2587,6 @@ bool
 IsInCertifiedApp(JSContext* aCx, JSObject* aObj);
 
 void
-TraceGlobal(JSTracer* aTrc, JSObject* aObj);
-
-void
 FinalizeGlobal(JSFreeOp* aFop, JSObject* aObj);
 
 bool
@@ -2575,55 +2596,86 @@ ResolveGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
 bool
 EnumerateGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj);
 
-template <class T, JS::Handle<JSObject*> (*ProtoGetter)(JSContext*,
-                                                        JS::Handle<JSObject*>)>
-JSObject*
-CreateGlobal(JSContext* aCx, T* aObject, nsWrapperCache* aCache,
-             const JSClass* aClass, JS::CompartmentOptions& aOptions,
-             JSPrincipals* aPrincipal)
+template <class T>
+struct CreateGlobalOptions
 {
-  MOZ_ASSERT(!NS_IsMainThread());
+  static MOZ_CONSTEXPR_VAR ProtoAndIfaceCache::Kind ProtoAndIfaceCacheKind =
+    ProtoAndIfaceCache::NonWindowLike;
+  
+  
+  static MOZ_CONSTEXPR_VAR bool ForceInitStandardClassesToFalse = true;
+  static void TraceGlobal(JSTracer* aTrc, JSObject* aObj)
+  {
+    mozilla::dom::TraceProtoAndIfaceCache(aTrc, aObj);
+  }
+  static bool PostCreateGlobal(JSContext* aCx, JS::Handle<JSObject*> aGlobal)
+  {
+    MOZ_ALWAYS_TRUE(TryPreserveWrapper(aGlobal));
 
-  aOptions.setTrace(TraceGlobal);
+    return true;
+  }
+};
 
-  JS::Rooted<JSObject*> global(aCx,
-    JS_NewGlobalObject(aCx, aClass, aPrincipal, JS::DontFireOnNewGlobalHook,
-                       aOptions));
-  if (!global) {
+template <>
+struct CreateGlobalOptions<nsGlobalWindow>
+{
+  static MOZ_CONSTEXPR_VAR ProtoAndIfaceCache::Kind ProtoAndIfaceCacheKind =
+    ProtoAndIfaceCache::WindowLike;
+  static MOZ_CONSTEXPR_VAR bool ForceInitStandardClassesToFalse = false;
+  static void TraceGlobal(JSTracer* aTrc, JSObject* aObj);
+  static bool PostCreateGlobal(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
+};
+
+template <class T, ProtoGetter GetProto>
+bool
+CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
+             const JSClass* aClass, JS::CompartmentOptions& aOptions,
+             JSPrincipals* aPrincipal, bool aInitStandardClasses,
+             JS::MutableHandle<JSObject*> aGlobal)
+{
+  aOptions.setTrace(CreateGlobalOptions<T>::TraceGlobal);
+
+  aGlobal.set(JS_NewGlobalObject(aCx, aClass, aPrincipal,
+                                 JS::DontFireOnNewGlobalHook, aOptions));
+  if (!aGlobal) {
     NS_WARNING("Failed to create global");
     return nullptr;
   }
 
-  JSAutoCompartment ac(aCx, global);
+  JSAutoCompartment ac(aCx, aGlobal);
 
-  dom::AllocateProtoAndIfaceCache(global, ProtoAndIfaceCache::WindowLike);
+  {
+    JS::AutoAssertNoGC nogc;
 
-  js::SetReservedSlot(global, DOM_OBJECT_SLOT, PRIVATE_TO_JSVAL(aObject));
-  NS_ADDREF(aObject);
+    
+    js::SetReservedSlot(aGlobal, DOM_OBJECT_SLOT, PRIVATE_TO_JSVAL(aNative));
+    NS_ADDREF(aNative);
 
-  aCache->SetIsDOMBinding();
-  aCache->SetWrapper(global);
+    aCache->SetIsDOMBinding();
+    aCache->SetWrapper(aGlobal);
 
-  
+    dom::AllocateProtoAndIfaceCache(aGlobal,
+                                    CreateGlobalOptions<T>::ProtoAndIfaceCacheKind);
 
-
-
-
-
-
-  JS::Handle<JSObject*> proto = ProtoGetter(aCx, global);
-  NS_ENSURE_TRUE(proto, nullptr);
-
-  if (!JS_SetPrototype(aCx, global, proto)) {
-    NS_WARNING("Failed to set proto");
-    return nullptr;
+    if (!CreateGlobalOptions<T>::PostCreateGlobal(aCx, aGlobal)) {
+      return false;
+    }
   }
 
-  MOZ_ALWAYS_TRUE(TryPreserveWrapper(global));
+  if (aInitStandardClasses &&
+      !CreateGlobalOptions<T>::ForceInitStandardClassesToFalse &&
+      !JS_InitStandardClasses(aCx, aGlobal)) {
+    NS_WARNING("Failed to init standard classes");
+    return false;
+  }
 
-  MOZ_ASSERT(UnwrapDOMObjectToISupports(global));
+  JS::Handle<JSObject*> proto = GetProto(aCx, aGlobal);
+  if (!proto || !JS_SplicePrototype(aCx, aGlobal, proto)) {
+    NS_WARNING("Failed to set proto");
+    return false;
+  }
 
-  return global;
+  return true;
 }
 
 
