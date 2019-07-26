@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "mozilla/GuardObjects.h"
 #include "mozilla/StandardInteger.h"
@@ -41,17 +41,17 @@ JS_FindCompilationScope(JSContext *cx, JSObject *obj_)
 {
     RootedObject obj(cx, obj_);
 
-    /*
-     * We unwrap wrappers here. This is a little weird, but it's what's being
-     * asked of us.
-     */
+    
+
+
+
     if (obj->isWrapper())
         obj = UnwrapObject(obj);
 
-    /*
-     * Innerize the target_obj so that we compile in the correct (inner)
-     * scope.
-     */
+    
+
+
+
     if (JSObjectOp op = obj->getClass()->ext.innerObject)
         obj = op(cx, obj);
     return obj;
@@ -74,18 +74,18 @@ JS_GetGlobalForFrame(JSStackFrame *fp)
 JS_FRIEND_API(JSBool)
 JS_SplicePrototype(JSContext *cx, JSObject *obj, JSObject *proto)
 {
-    /*
-     * Change the prototype of an object which hasn't been used anywhere
-     * and does not share its type with another object. Unlike JS_SetPrototype,
-     * does not nuke type information for the object.
-     */
+    
+
+
+
+
     CHECK_REQUEST(cx);
 
     if (!obj->hasSingletonType()) {
-        /*
-         * We can see non-singleton objects when trying to splice prototypes
-         * due to mutable __proto__ (ugh).
-         */
+        
+
+
+
         return JS_SetPrototype(cx, obj, proto);
     }
 
@@ -164,24 +164,24 @@ JS_GetCompartmentPrincipals(JSCompartment *compartment)
 JS_FRIEND_API(void)
 JS_SetCompartmentPrincipals(JSCompartment *compartment, JSPrincipals *principals)
 {
-    // Short circuit if there's no change.
+    
     if (principals == compartment->principals)
         return;
 
-    // Clear out the old principals, if any.
+    
     if (compartment->principals) {
         JS_DropPrincipals(compartment->rt, compartment->principals);
         compartment->principals = NULL;
     }
 
-    // Set up the new principals.
+    
     if (principals) {
         JS_HoldPrincipals(principals);
         compartment->principals = principals;
     }
 
-    // Any compartment with the trusted principals -- and there can be
-    // multiple -- is a system compartment.
+    
+    
     JSPrincipals *trusted = compartment->rt->trustedPrincipals();
     compartment->isSystemCompartment = principals && principals == trusted;
 }
@@ -268,7 +268,7 @@ AutoSwitchCompartment::AutoSwitchCompartment(JSContext *cx, JSObject *target
 
 AutoSwitchCompartment::~AutoSwitchCompartment()
 {
-    /* The old compartment may have been destroyed, so we can't use cx->setCompartment. */
+    
     cx->compartment = oldCompartment;
 }
 
@@ -422,10 +422,10 @@ js::SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback)
     rt->preserveWrapperCallback = callback;
 }
 
-/*
- * The below code is for temporary telemetry use. It can be removed when
- * sufficient data has been harvested.
- */
+
+
+
+
 
 extern size_t sE4XObjectsCreated;
 
@@ -463,6 +463,23 @@ js::GCThingIsMarkedGray(void *thing)
 {
     JS_ASSERT(thing);
     return reinterpret_cast<gc::Cell *>(thing)->isMarked(gc::GRAY);
+}
+
+JS_FRIEND_API(JSCompartment*)
+js::GetGCThingCompartment(void *thing)
+{
+    JS_ASSERT(thing);
+    return reinterpret_cast<gc::Cell *>(thing)->compartment();
+}
+
+JS_FRIEND_API(void)
+js::VisitGrayWrapperTargets(JSCompartment *comp, GCThingCallback *callback, void *closure)
+{
+    for (WrapperMap::Enum e(comp->crossCompartmentWrappers); !e.empty(); e.popFront()) {
+        gc::Cell *thing = e.front().key.wrapped;
+        if (thing->isMarked(gc::GRAY))
+            callback(closure, thing);
+    }
 }
 
 JS_FRIEND_API(void)
@@ -569,10 +586,10 @@ DumpHeapPushIfNew(JSTracer *trc, void **thingp, JSGCTraceKind kind)
     void *thing = *thingp;
     JSDumpHeapTracer *dtrc = static_cast<JSDumpHeapTracer *>(trc);
 
-    /*
-     * If we're tracing roots, print root information.  Do this even if we've
-     * already seen thing, for complete root information.
-     */
+    
+
+
+
     if (dtrc->rootTracing) {
         fprintf(dtrc->output, "%p %c %s\n", thing, MarkDescriptor(thing),
                 JS_GetTraceEdgeName(dtrc, dtrc->buffer, sizeof(dtrc->buffer)));
@@ -603,12 +620,12 @@ js::DumpHeapComplete(JSRuntime *rt, FILE *fp)
     if (!dtrc.visited.init(10000))
         return;
 
-    /* Store and log the root information. */
+    
     dtrc.rootTracing = true;
     TraceRuntime(&dtrc);
     fprintf(dtrc.output, "==========\n");
 
-    /* Log the graph. */
+    
     dtrc.rootTracing = false;
     dtrc.callback = DumpHeapVisitChild;
 
@@ -835,4 +852,4 @@ GetTestingFunctions(JSContext *cx)
     return obj;
 }
 
-} // namespace js
+} 

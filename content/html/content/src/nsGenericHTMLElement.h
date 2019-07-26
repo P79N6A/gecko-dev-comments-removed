@@ -147,6 +147,11 @@ public:
   nsresult ClearDataset();
   nsresult GetContextMenu(nsIDOMHTMLMenuElement** aContextMenu);
 
+  
+
+
+  nsSize GetWidthHeightForImage(imgIRequest *aImageRequest);
+
 protected:
   nsresult GetMarkup(bool aIncludeSelf, nsAString& aMarkup);
 

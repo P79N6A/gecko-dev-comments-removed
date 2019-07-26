@@ -16,6 +16,7 @@
 #include <gdk/gdkx.h>
 #include <gdk/gdk.h>
 
+#include "gtk2compat.h"
 #include "gtk2xtbin.h"
 
 class nsPluginNativeWindowGtk2 : public nsPluginNativeWindow {
@@ -147,8 +148,8 @@ nsresult nsPluginNativeWindowGtk2::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance>
 
 nsresult nsPluginNativeWindowGtk2::CreateXEmbedWindow() {
   NS_ASSERTION(!mSocketWidget,"Already created a socket widget!");
-
-  GdkWindow *parent_win = gdk_window_lookup((XID)window);
+  GdkDisplay *display = gdk_display_get_default();
+  GdkWindow *parent_win = gdk_x11_window_lookup_for_display(display, (XID)window);
   mSocketWidget = gtk_socket_new();
 
   
@@ -179,7 +180,10 @@ nsresult nsPluginNativeWindowGtk2::CreateXEmbedWindow() {
   
   
   
-  gdk_window_set_back_pixmap(mSocketWidget->window, NULL, FALSE);
+  
+#if (MOZ_WIDGET_GTK == 2)
+  gdk_window_set_back_pixmap(gtk_widget_get_window(mSocketWidget), NULL, FALSE);
+#endif
 
   
   SetAllocation();
@@ -196,11 +200,17 @@ nsresult nsPluginNativeWindowGtk2::CreateXEmbedWindow() {
     return NS_ERROR_FAILURE;
 
   mWsInfo.display = GDK_WINDOW_XDISPLAY(gdkWindow);
+#if (MOZ_WIDGET_GTK == 2)
   mWsInfo.colormap = GDK_COLORMAP_XCOLORMAP(gdk_drawable_get_colormap(gdkWindow));
   GdkVisual* gdkVisual = gdk_drawable_get_visual(gdkWindow);
-  mWsInfo.visual = GDK_VISUAL_XVISUAL(gdkVisual);
   mWsInfo.depth = gdkVisual->depth;
-
+#else
+  mWsInfo.colormap = None;
+  GdkVisual* gdkVisual = gdk_window_get_visual(gdkWindow);
+  mWsInfo.depth = gdk_visual_get_depth(gdkVisual);
+#endif
+  mWsInfo.visual = GDK_VISUAL_XVISUAL(gdkVisual);
+    
   return NS_OK;
 }
 
@@ -223,7 +233,8 @@ nsresult nsPluginNativeWindowGtk2::CreateXtWindow() {
   printf("About to create new xtbin of %i X %i from %p...\n",
          width, height, (void*)window);
 #endif
-  GdkWindow *gdkWindow = gdk_window_lookup((XID)window);
+  GdkDisplay *display = gdk_display_get_default();
+  GdkWindow *gdkWindow = gdk_x11_window_lookup_for_display(display, (XID)window);
   mSocketWidget = gtk_xtbin_new(gdkWindow, 0);
   
   
@@ -270,8 +281,9 @@ socket_unrealize_cb(GtkWidget *widget, gpointer data)
 {
   
   
-  GdkWindow* socket_window = widget->window;
-  Display* display = GDK_DISPLAY();
+  GdkWindow* socket_window =  gtk_widget_get_window(widget);
+  GdkDisplay* gdkDisplay = gdk_display_get_default();
+  Display* display = GDK_DISPLAY_XDISPLAY(gdkDisplay);
 
   
   
@@ -280,13 +292,13 @@ socket_unrealize_cb(GtkWidget *widget, gpointer data)
   Window root, parent;
   Window* children;
   unsigned int nchildren;
-  if (!XQueryTree(display, gdk_x11_drawable_get_xid(socket_window),
+  if (!XQueryTree(display, gdk_x11_window_get_xid(socket_window),
                   &root, &parent, &children, &nchildren))
     return;
 
   for (unsigned int i = 0; i < nchildren; ++i) {
     Window child = children[i];
-    if (!gdk_window_lookup(child)) {
+    if (!gdk_x11_window_lookup_for_display(gdkDisplay, child)) {
       
       XUnmapWindow(display, child);
       XReparentWindow(display, child, DefaultRootWindow(display), 0, 0);

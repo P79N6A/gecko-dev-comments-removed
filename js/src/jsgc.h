@@ -1047,6 +1047,12 @@ extern JS_FRIEND_API(void)
 IterateCells(JSRuntime *rt, JSCompartment *compartment, gc::AllocKind thingKind,
              void *data, IterateCellCallback cellCallback);
 
+
+
+
+extern JS_FRIEND_API(void)
+IterateGrayObjects(JSCompartment *compartment, GCThingCallback *cellCallback, void *data);
+
 } 
 
 extern void

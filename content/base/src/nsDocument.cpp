@@ -8991,6 +8991,7 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
   
   if (!mIsApprovedForFullscreen) {
     mIsApprovedForFullscreen =
+      GetWindow()->IsPartOfApp() ||
       nsContentUtils::IsSitePermAllow(NodePrincipal(), "fullscreen");
   }
 

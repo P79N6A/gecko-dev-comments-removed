@@ -18,72 +18,134 @@ namespace js {
 class DummyFrameGuard;
 
 
-
-
-
-
-class JS_FRIEND_API(AbstractWrapper) : public IndirectProxyHandler
+class JS_FRIEND_API(Wrapper)
 {
     unsigned mFlags;
-  public:
-    unsigned flags() const { return mFlags; }
 
-    explicit AbstractWrapper(unsigned flags);
+  public:
+    enum Action {
+        GET,
+        SET,
+        CALL,
+        PUNCTURE
+    };
+
+    enum Flags {
+        CROSS_COMPARTMENT = 1 << 0,
+        LAST_USED_FLAG = CROSS_COMPARTMENT
+    };
+
+    typedef enum {
+        PermitObjectAccess,
+        PermitPropertyAccess,
+        DenyAccess
+    } Permission;
+
+    static JSObject *New(JSContext *cx, JSObject *obj, JSObject *proto,
+                         JSObject *parent, Wrapper *handler);
+
+    static Wrapper *wrapperHandler(const JSObject *wrapper);
+
+    static JSObject *wrappedObject(const JSObject *wrapper);
+
+    explicit Wrapper(unsigned flags);
+
+    unsigned flags() const {
+        return mFlags;
+    }
 
     
-    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
+
+
+
+
+
+
+
+
+
+
+
+    virtual BaseProxyHandler *toBaseProxyHandler() = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual bool enter(JSContext *cx, JSObject *wrapper, jsid id, Action act,
+                       bool *bp);
+
+    virtual void leave(JSContext *cx, JSObject *wrapper);
+};
+
+
+
+
+
+class JS_FRIEND_API(AbstractWrapper) : public Wrapper,
+                                       public IndirectProxyHandler
+{
+  public:
+    explicit AbstractWrapper(unsigned flags);
+
+    virtual BaseProxyHandler* toBaseProxyHandler() {
+        return this;
+    }
+
+    virtual Wrapper *toWrapper() {
+        return this;
+    }
+
+    
+    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                       jsid id, bool set,
                                        PropertyDescriptor *desc) MOZ_OVERRIDE;
-    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
+    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                          jsid id, bool set,
                                           PropertyDescriptor *desc) MOZ_OVERRIDE;
     virtual bool defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
                                 PropertyDescriptor *desc) MOZ_OVERRIDE;
-    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *wrapper, AutoIdVector &props) MOZ_OVERRIDE;
-    virtual bool delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp) MOZ_OVERRIDE;
-    virtual bool enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props) MOZ_OVERRIDE;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    enum Action { GET, SET, CALL, PUNCTURE };
-    virtual bool enter(JSContext *cx, JSObject *wrapper, jsid id, Action act, bool *bp);
-    virtual void leave(JSContext *cx, JSObject *wrapper);
-
-    static JSObject *wrappedObject(const JSObject *wrapper);
-    static AbstractWrapper *wrapperHandler(const JSObject *wrapper);
+    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *wrapper,
+                                     AutoIdVector &props) MOZ_OVERRIDE;
+    virtual bool delete_(JSContext *cx, JSObject *wrapper, jsid id,
+                         bool *bp) MOZ_OVERRIDE;
+    virtual bool enumerate(JSContext *cx, JSObject *wrapper,
+                           AutoIdVector &props) MOZ_OVERRIDE;
 };
+
+
+
 
 
 class JS_FRIEND_API(DirectWrapper) : public AbstractWrapper
 {
   public:
     explicit DirectWrapper(unsigned flags);
-
-    typedef enum { PermitObjectAccess, PermitPropertyAccess, DenyAccess } Permission;
 
     virtual ~DirectWrapper();
 
@@ -104,29 +166,10 @@ class JS_FRIEND_API(DirectWrapper) : public AbstractWrapper
     virtual JSString *obj_toString(JSContext *cx, JSObject *wrapper) MOZ_OVERRIDE;
     virtual JSString *fun_toString(JSContext *cx, JSObject *wrapper, unsigned indent) MOZ_OVERRIDE;
 
-    using AbstractWrapper::Action;
-
     static DirectWrapper singleton;
-
-    static JSObject *New(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
-                         DirectWrapper *handler);
-
-    using AbstractWrapper::wrappedObject;
-    using AbstractWrapper::wrapperHandler;
-
-    enum {
-        CROSS_COMPARTMENT = 1 << 0,
-        LAST_USED_FLAG = CROSS_COMPARTMENT
-    };
 
     static void *getWrapperFamily();
 };
-
-
-
-
-
-typedef DirectWrapper Wrapper;
 
 
 class JS_FRIEND_API(CrossCompartmentWrapper) : public DirectWrapper

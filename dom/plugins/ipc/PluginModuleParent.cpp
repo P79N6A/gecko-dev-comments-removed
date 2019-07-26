@@ -1,10 +1,10 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: sw=4 ts=4 et :
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef MOZ_WIDGET_GTK2
+
+
+
+
+
+#ifdef MOZ_WIDGET_GTK
 #include <glib.h>
 #elif XP_MACOSX
 #include "PluginInterposeOSX.h"
@@ -61,7 +61,7 @@ struct RunnableMethodTraits<mozilla::plugins::PluginModuleParent>
     static void ReleaseCallee(Class* obj) { }
 };
 
-// static
+
 PluginLibrary*
 PluginModuleParent::LoadModule(const char* aFilePath)
 {
@@ -69,11 +69,11 @@ PluginModuleParent::LoadModule(const char* aFilePath)
 
     PRInt32 prefSecs = Preferences::GetInt(kLaunchTimeoutPref, 0);
 
-    // Block on the child process being launched and initialized.
+    
     nsAutoPtr<PluginModuleParent> parent(new PluginModuleParent(aFilePath));
     bool launched = parent->mSubprocess->Launch(prefSecs * 1000);
     if (!launched) {
-        // Need to set this so the destructor doesn't complain.
+        
         parent->mShutdown = true;
         return nsnull;
     }
@@ -83,7 +83,7 @@ PluginModuleParent::LoadModule(const char* aFilePath)
     TimeoutChanged(kChildTimeoutPref, parent);
 
 #ifdef MOZ_CRASHREPORTER
-    // If this fails, we're having IPC troubles, and we're doomed anyways.
+    
     if (!CrashReporterParent::CreateCrashReporter(parent.get())) {
         parent->mShutdown = true;
         return nsnull;
@@ -137,7 +137,7 @@ PluginModuleParent::WriteExtraDataForMinidump(CrashReporter::AnnotationTable& no
 {
     typedef nsDependentCString CS;
 
-    // Get the plugin filename, try to get just the file leafname
+    
     const std::string& pluginFile = mSubprocess->GetPluginFilePath();
     size_t filePos = pluginFile.rfind(FILE_PATH_SEPARATOR);
     if (filePos == std::string::npos)
@@ -146,8 +146,8 @@ PluginModuleParent::WriteExtraDataForMinidump(CrashReporter::AnnotationTable& no
         filePos++;
     notes.Put(CS("PluginFilename"), CS(pluginFile.substr(filePos).c_str()));
 
-    //TODO: add plugin name and version: bug 539841
-    // (as PluginName, PluginVersion)
+    
+    
     notes.Put(CS("PluginName"), CS(""));
     notes.Put(CS("PluginVersion"), CS(""));
 
@@ -155,20 +155,20 @@ PluginModuleParent::WriteExtraDataForMinidump(CrashReporter::AnnotationTable& no
     if (!hangID.IsEmpty())
         notes.Put(CS("HangID"), NS_ConvertUTF16toUTF8(hangID));
 }
-#endif  // MOZ_CRASHREPORTER
+#endif  
 
 int
 PluginModuleParent::TimeoutChanged(const char* aPref, void* aModule)
 {
     NS_ASSERTION(NS_IsMainThread(), "Wrong thead!");
     if (!strcmp(aPref, kChildTimeoutPref)) {
-      // The timeout value used by the parent for children
+      
       PRInt32 timeoutSecs = Preferences::GetInt(kChildTimeoutPref, 0);
       int32 timeoutMs = (timeoutSecs > 0) ? (1000 * timeoutSecs) :
                         SyncChannel::kNoTimeout;
       static_cast<PluginModuleParent*>(aModule)->SetReplyTimeoutMs(timeoutMs);
     } else if (!strcmp(aPref, kParentTimeoutPref)) {
-      // The timeout value used by the child for its parent
+      
       PRInt32 timeoutSecs = Preferences::GetInt(kParentTimeoutPref, 0);
       unused << static_cast<PluginModuleParent*>(aModule)->SendSetParentHangTimeout(timeoutSecs);
     }
@@ -200,8 +200,8 @@ PluginModuleParent::ShouldContinueFromReplyTimeout()
     }
 #endif
 
-    // this must run before the error notification from the channel,
-    // or not at all
+    
+    
     MessageLoop::current()->PostTask(
         FROM_HERE,
         mTaskFactory.NewRunnableMethod(
@@ -248,8 +248,8 @@ PluginModuleParent::ActorDestroy(ActorDestroyReason why)
 #endif
 
         mShutdown = true;
-        // Defer the PluginCrashed method so that we don't re-enter
-        // and potentially modify the actor child list while enumerating it.
+        
+        
         if (mPlugin)
             MessageLoop::current()->PostTask(
                 FROM_HERE,
@@ -270,7 +270,7 @@ void
 PluginModuleParent::NotifyPluginCrashed()
 {
     if (!OkToCleanup()) {
-        // there's still plugin code on the C++ stack.  try again
+        
         MessageLoop::current()->PostDelayedTask(
             FROM_HERE,
             mTaskFactory.NewRunnableMethod(
@@ -289,7 +289,7 @@ PluginModuleParent::AllocPPluginIdentifier(const nsCString& aString,
 {
     if (aTemporary) {
         NS_ERROR("Plugins don't create temporary identifiers.");
-        return NULL; // should abort the plugin
+        return NULL; 
     }
 
     NPIdentifier npident = aString.IsVoid() ?
@@ -338,7 +338,7 @@ PluginModuleParent::SetPluginFuncs(NPPluginFuncs* aFuncs)
     aFuncs->version = (NP_VERSION_MAJOR << 8) | NP_VERSION_MINOR;
     aFuncs->javaClass = nsnull;
 
-    // Gecko should always call these functions through a PluginLibrary object.
+    
     aFuncs->newp = NULL;
     aFuncs->clearsitedata = NULL;
     aFuncs->getsiteswithdata = NULL;
@@ -359,8 +359,8 @@ PluginModuleParent::SetPluginFuncs(NPPluginFuncs* aFuncs)
     aFuncs->lostfocus = NULL;
     aFuncs->urlredirectnotify = NULL;
 
-    // Provide 'NPP_URLRedirectNotify', 'NPP_ClearSiteData', and
-    // 'NPP_GetSitesWithData' functionality if it is supported by the plugin.
+    
+    
     bool urlRedirectSupported = false;
     unused << CallOptionalFunctionsSupported(&urlRedirectSupported,
                                              &mClearSiteDataSupported,
@@ -372,13 +372,13 @@ PluginModuleParent::SetPluginFuncs(NPPluginFuncs* aFuncs)
 
 NPError
 PluginModuleParent::NPP_Destroy(NPP instance,
-                                NPSavedData** /*saved*/)
+                                NPSavedData** )
 {
-    // FIXME/cjones:
-    //  (1) send a "destroy" message to the child
-    //  (2) the child shuts down its instance
-    //  (3) remove both parent and child IDs from map
-    //  (4) free parent
+    
+    
+    
+    
+    
     PLUGIN_LOG_DEBUG_FUNCTION;
 
     PluginInstanceParent* parentInstance =
@@ -526,7 +526,7 @@ PluginModuleParent::RecvBackUpXResources(const FileDescriptor& aXSocketFd)
 #else
     NS_ABORT_IF_FALSE(0 > mPluginXSocketFdDup.get(),
                       "Already backed up X resources??");
-    int fd = aXSocketFd.fd; // Copy to discard |const| qualifier
+    int fd = aXSocketFd.fd; 
     mPluginXSocketFdDup.forget();
     mPluginXSocketFdDup.reset(fd);
 #endif
@@ -595,8 +595,8 @@ PluginModuleParent::InstCast(NPP instance)
     PluginInstanceParent* ip =
         static_cast<PluginInstanceParent*>(instance->pdata);
 
-    // If the plugin crashed and the PluginInstanceParent was deleted,
-    // instance->pdata will be NULL.
+    
+    
     if (!ip)
         return NULL;
 
@@ -750,8 +750,8 @@ PluginModuleParent::NP_Initialize(NPNetscapeFuncs* bFuncs, NPError* error)
         return NS_ERROR_FAILURE;
 
 #if defined XP_WIN
-    // Send the info needed to join the chrome process's audio session to the
-    // plugin process
+    
+    
     nsID id;
     nsString sessionName;
     nsString iconPath;
@@ -777,10 +777,10 @@ PluginModuleParent::NP_Shutdown(NPError* error)
 
     bool ok = CallNP_Shutdown(error);
 
-    // if NP_Shutdown() is nested within another RPC call, this will
-    // break things.  but lord help us if we're doing that anyway; the
-    // plugin dso will have been unloaded on the other side by the
-    // CallNP_Shutdown() message
+    
+    
+    
+    
     Close();
 
     return ok ? NS_OK : NS_ERROR_FAILURE;
@@ -802,7 +802,7 @@ PluginModuleParent::NP_GetValue(void *future, NPPVariable aVariable,
     PR_LOG(gPluginLog, PR_LOG_WARNING, ("%s Not implemented, requested variable %i", __FUNCTION__,
                                         (int) aVariable));
 
-    //TODO: implement this correctly
+    
     *error = NPERR_GENERIC_ERROR;
     return NS_OK;
 }
@@ -813,9 +813,9 @@ PluginModuleParent::NP_GetEntryPoints(NPPluginFuncs* pFuncs, NPError* error)
 {
     NS_ASSERTION(pFuncs, "Null pointer!");
 
-    // We need to have the child process update its function table
-    // here by actually calling NP_GetEntryPoints since the parent's
-    // function table can reflect NULL entries in the child's table.
+    
+    
+    
     if (!CallNP_GetEntryPoints(error)) {
         return NS_ERROR_FAILURE;
     }
@@ -842,7 +842,7 @@ PluginModuleParent::NPP_New(NPMIMEType pluginType, NPP instance,
         return NS_ERROR_FAILURE;
     }
 
-    // create the instance on the other side
+    
     InfallibleTArray<nsCString> names;
     InfallibleTArray<nsCString> values;
 
@@ -865,11 +865,11 @@ PluginModuleParent::NPP_New(NPMIMEType pluginType, NPP instance,
     if (!CallPPluginInstanceConstructor(parentInstance,
                                         nsDependentCString(pluginType), mode,
                                         names, values, error)) {
-        // |parentInstance| is automatically deleted.
+        
         instance->pdata = nsnull;
-        // if IPC is down, we'll get an immediate "failed" return, but
-        // without *error being set.  So make sure that the error
-        // condition is signaled to nsNPAPIPluginInstance
+        
+        
+        
         if (NPERR_NO_ERROR == *error)
             *error = NPERR_GENERIC_ERROR;
         return NS_ERROR_FAILURE;
@@ -964,7 +964,7 @@ PluginModuleParent::AnswerProcessSomeEvents()
     return true;
 }
 
-#elif !defined(MOZ_WIDGET_GTK2)
+#elif !defined(MOZ_WIDGET_GTK)
 bool
 PluginModuleParent::AnswerProcessSomeEvents()
 {

@@ -681,10 +681,9 @@ struct TraversalTracer : public JSTracer
 };
 
 static void
-NoteJSChild(JSTracer *trc, void **thingp, JSGCTraceKind kind)
+NoteJSChild(JSTracer *trc, void *thing, JSGCTraceKind kind)
 {
     TraversalTracer *tracer = static_cast<TraversalTracer*>(trc);
-    void *thing = *thingp;
 
     
     if (!xpc_IsGrayGCThing(thing) && !tracer->cb.WantAllTraces())
@@ -817,12 +816,19 @@ DescribeGCThing(bool isMarked, void *p, JSGCTraceKind traceKind,
     }
 }
 
+static void
+NoteJSChildTracerShim(JSTracer *trc, void **thingp, JSGCTraceKind kind)
+{
+    NoteJSChild(trc, *thingp, kind);
+}
+
 static inline void
 NoteGCThingJSChildren(JSRuntime *rt, void *p, JSGCTraceKind traceKind,
                       nsCycleCollectionTraversalCallback &cb)
 {
+    MOZ_ASSERT(rt);
     TraversalTracer trc(cb);
-    JS_TracerInit(&trc, rt, NoteJSChild);
+    JS_TracerInit(&trc, rt, NoteJSChildTracerShim);
     trc.eagerlyTraceWeakMaps = false;
     JS_TraceChildren(&trc, p, traceKind);
 }
@@ -862,11 +868,16 @@ NoteGCThingXPCOMChildren(js::Class *clasp, JSObject *obj,
     }
 }
 
-NS_METHOD
-nsXPConnectParticipant::TraverseImpl(nsXPConnectParticipant *that, void *p,
-                                     nsCycleCollectionTraversalCallback &cb)
+enum TraverseSelect {
+    TRAVERSE_CPP,
+    TRAVERSE_FULL
+};
+
+static void
+TraverseGCThing(TraverseSelect ts, void *p, JSGCTraceKind traceKind,
+                nsCycleCollectionTraversalCallback &cb)
 {
-    JSGCTraceKind traceKind = js_GetGCThingTraceKind(p);
+    MOZ_ASSERT(traceKind == js_GetGCThingTraceKind(p));
     JSObject *obj = nsnull;
     js::Class *clasp = nsnull;
 
@@ -896,23 +907,31 @@ nsXPConnectParticipant::TraverseImpl(nsXPConnectParticipant *that, void *p,
 
     bool isMarked = markJSObject || !xpc_IsGrayGCThing(p);
 
-    DescribeGCThing(isMarked, p, traceKind, cb);
+    if (ts == TRAVERSE_FULL)
+        DescribeGCThing(isMarked, p, traceKind, cb);
 
     
     
     
     
     if (isMarked && !cb.WantAllTraces())
-        return NS_OK;
+        return;
 
-    NoteGCThingJSChildren(nsXPConnect::GetRuntimeInstance()->GetJSRuntime(),
-                          p, traceKind, cb);
-
+    if (ts == TRAVERSE_FULL)
+        NoteGCThingJSChildren(nsXPConnect::GetRuntimeInstance()->GetJSRuntime(),
+                              p, traceKind, cb);
+ 
     if (traceKind != JSTRACE_OBJECT || dontTraverse)
-        return NS_OK;
+        return;
 
     NoteGCThingXPCOMChildren(clasp, obj, cb);
+}
 
+NS_METHOD
+nsXPConnectParticipant::TraverseImpl(nsXPConnectParticipant *that, void *p,
+                                     nsCycleCollectionTraversalCallback &cb)
+{
+    TraverseGCThing(TRAVERSE_FULL, p, js_GetGCThingTraceKind(p), cb);
     return NS_OK;
 }
 
@@ -2618,6 +2637,112 @@ SetLocationForGlobal(JSObject *global, nsIURI *locationURI)
 }
 
 } 
+
+static void
+NoteJSChildGrayWrapperShim(void *data, void *thing)
+{
+    TraversalTracer *trc = static_cast<TraversalTracer*>(data);
+    NoteJSChild(trc, thing, js_GetGCThingTraceKind(thing));
+}
+
+static void
+TraverseObjectShim(void *data, void *thing)
+{
+    nsCycleCollectionTraversalCallback *cb =
+        static_cast<nsCycleCollectionTraversalCallback*>(data);
+
+    MOZ_ASSERT(js_GetGCThingTraceKind(thing) == JSTRACE_OBJECT);
+    TraverseGCThing(TRAVERSE_CPP, thing, JSTRACE_OBJECT, *cb);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class JSCompartmentParticipant : public nsCycleCollectionParticipant
+{
+public:
+    static NS_METHOD TraverseImpl(JSCompartmentParticipant *that, void *p,
+                                  nsCycleCollectionTraversalCallback &cb)
+    {
+        MOZ_ASSERT(!cb.WantAllTraces());
+        JSCompartment *c = static_cast<JSCompartment*>(p);
+
+        
+
+
+
+
+
+
+
+
+
+        cb.DescribeGCedNode(false, sizeof(js::shadow::Object), "JS Compartment");
+
+        
+
+
+
+
+
+
+        TraversalTracer trc(cb);
+        JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->GetJSRuntime();
+        JS_TracerInit(&trc, rt, NoteJSChildTracerShim);
+        trc.eagerlyTraceWeakMaps = false;
+        js::VisitGrayWrapperTargets(c, NoteJSChildGrayWrapperShim, &trc);
+
+        
+
+
+
+        js::IterateGrayObjects(c, TraverseObjectShim, &cb);
+
+        return NS_OK;
+    }
+
+    static NS_METHOD RootImpl(void *p)
+    {
+        return NS_OK;
+    }
+    
+    static NS_METHOD UnlinkImpl(void *p)
+    {
+        return NS_OK;
+    }
+
+    static NS_METHOD UnrootImpl(void *p)
+    {
+        return NS_OK;
+    }
+};
+
+static CCParticipantVTable<JSCompartmentParticipant>::Type JSCompartment_cycleCollectorGlobal = {
+    NS_IMPL_CYCLE_COLLECTION_NATIVE_VTABLE(JSCompartmentParticipant)
+};
+
+nsCycleCollectionParticipant *
+xpc_JSCompartmentParticipant()
+{
+    return JSCompartment_cycleCollectorGlobal.GetParticipant();
+}
 
 NS_IMETHODIMP
 nsXPConnect::SetDebugModeWhenPossible(bool mode, bool allowSyncDisable)
