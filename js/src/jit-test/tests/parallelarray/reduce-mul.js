@@ -7,7 +7,7 @@ function testReduce() {
   
   
   function mul(v, p) { return v*p; }
-  var array = range(1, 513);
+  var array = range(1, minItemsTestingThreshold+1);
   compareAgainstArray(array, "reduce", mul, assertAlmostEq);
 }
 

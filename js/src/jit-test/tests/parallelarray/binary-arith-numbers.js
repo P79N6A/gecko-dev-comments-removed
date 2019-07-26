@@ -14,11 +14,11 @@ function theTest() {
 
   
   
-  var jsarray0 = range(0, 1024);
+  var jsarray0 = range(0, minItemsTestingThreshold);
   jsarray0.map(op);
 
   
-  var jsarray1 = range(0, 1024).map(i => i % 10);
+  var jsarray1 = range(0, minItemsTestingThreshold).map(i => i % 10);
   compareAgainstArray(jsarray1, "map", op);
 
   

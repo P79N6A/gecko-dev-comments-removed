@@ -4,8 +4,13 @@ function test() {
   
   
   
+  
   var makeadd1 = function (v) { return [v]; }
-  compareAgainstArray(range(1, 3), "map", makeadd1);
+  var array = range(1, 3);
+  var expected = array.map(makeadd1);
+  var actual = new ParallelArray(array).map(makeadd1);
+  assertStructuralEq(expected, actual);
 }
 
-if (getBuildConfiguration().parallelJS) test();
+if (getBuildConfiguration().parallelJS)
+  test();
