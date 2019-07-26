@@ -82,12 +82,6 @@ public:
   JSObject* GetChannelData(JSContext* aJSContext, uint32_t aChannel,
                            ErrorResult& aRv);
 
-  JSObject* GetChannelData(uint32_t aChannel) const {
-    
-    MOZ_ASSERT(aChannel < mJSChannels.Length());
-    return mJSChannels[aChannel];
-  }
-
   
 
 
