@@ -15,6 +15,7 @@
 
 #include "js/Value.h"
 #include "nscore.h"
+#include "nsStringGlue.h"
 #include "mozilla/Assertions.h"
 
 namespace mozilla {
@@ -144,6 +145,32 @@ private:
   
   ErrorResult(const ErrorResult&) MOZ_DELETE;
 };
+
+
+
+
+
+#define ENSURE_SUCCESS(res, ret)                                          \
+  do {                                                                    \
+    if (res.Failed()) {                                                   \
+      nsCString msg;                                                      \
+      msg.AppendPrintf("ENSURE_SUCCESS(%s, %s) failed with "              \
+                       "result 0x%X", #res, #ret, res.ErrorCode());       \
+      NS_WARNING(msg.get());                                              \
+      return ret;                                                         \
+    }                                                                     \
+  } while(0)
+
+#define ENSURE_SUCCESS_VOID(res)                                          \
+  do {                                                                    \
+    if (res.Failed()) {                                                   \
+      nsCString msg;                                                      \
+      msg.AppendPrintf("ENSURE_SUCCESS_VOID(%s) failed with "             \
+                       "result 0x%X", #res, res.ErrorCode());             \
+      NS_WARNING(msg.get());                                              \
+      return;                                                             \
+    }                                                                     \
+  } while(0)
 
 } 
 
