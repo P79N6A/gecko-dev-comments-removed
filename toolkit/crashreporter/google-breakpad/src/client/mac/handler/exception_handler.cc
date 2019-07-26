@@ -31,9 +31,16 @@
 #include <mach/mig.h>
 #include <pthread.h>
 #include <signal.h>
+#include <dlfcn.h>
 #include <TargetConditionals.h>
 
 #include <map>
+
+#ifdef __x86_64__
+
+
+#define TARGET_OSX_USE_64BIT_EXCEPTIONS 1
+#endif
 
 #include "client/mac/handler/exception_handler.h"
 #include "client/mac/handler/minidump_generator.h"
@@ -83,6 +90,9 @@ using std::map;
 
 
 
+#ifdef  __MigPackStructs
+#pragma pack(4)
+#endif
 struct ExceptionMessage {
   mach_msg_header_t           header;
   mach_msg_body_t             body;
@@ -91,9 +101,16 @@ struct ExceptionMessage {
   NDR_record_t                ndr;
   exception_type_t            exception;
   mach_msg_type_number_t      code_count;
+#if TARGET_OSX_USE_64BIT_EXCEPTIONS
+  int64_t                     code[EXCEPTION_CODE_MAX];
+#else
   integer_t                   code[EXCEPTION_CODE_MAX];
+#endif
   char                        padding[512];
 };
+#ifdef  __MigPackStructs
+#pragma pack()
+#endif
 
 struct ExceptionParameters {
   ExceptionParameters() : count(0) {}
@@ -104,18 +121,24 @@ struct ExceptionParameters {
   thread_state_flavor_t flavors[EXC_TYPES_COUNT];
 };
 
+#ifdef  __MigPackStructs
+#pragma pack(4)
+#endif
 struct ExceptionReplyMessage {
   mach_msg_header_t  header;
   NDR_record_t       ndr;
   kern_return_t      return_code;
 };
+#ifdef  __MigPackStructs
+#pragma pack()
+#endif
 
 
 
 exception_mask_t s_exception_mask = EXC_MASK_BAD_ACCESS |
 EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC | EXC_MASK_BREAKPOINT;
 
-#if !TARGET_OS_IPHONE
+#if !TARGET_OS_IPHONE && !TARGET_OSX_USE_64BIT_EXCEPTIONS
 extern "C" {
   
   boolean_t exc_server(mach_msg_header_t* request,
@@ -136,13 +159,28 @@ extern "C" {
 kern_return_t ForwardException(mach_port_t task,
                                mach_port_t failed_thread,
                                exception_type_t exception,
+#if TARGET_OSX_USE_64BIT_EXCEPTIONS
+                               mach_exception_data_t code,
+#else
                                exception_data_t code,
+#endif
                                mach_msg_type_number_t code_count);
+
+#if TARGET_OS_IPHONE || TARGET_OSX_USE_64BIT_EXCEPTIONS
 
 #if TARGET_OS_IPHONE
 
+#define MACH_EXCEPTION_RAISE_RPC 2401
+#elif TARGET_OSX_USE_64BIT_EXCEPTIONS
+#define MACH_EXCEPTION_RAISE_RPC 2405
+#else
+#error Need a value for MACH_EXCEPTION_RAISE_RPC
+#endif
+
+
 boolean_t breakpad_exc_server(mach_msg_header_t* InHeadP,
-                              mach_msg_header_t* OutHeadP) {
+                              mach_msg_header_t* OutHeadP)
+{
   OutHeadP->msgh_bits =
       MACH_MSGH_BITS(MACH_MSGH_BITS_REMOTE(InHeadP->msgh_bits), 0);
   OutHeadP->msgh_remote_port = InHeadP->msgh_remote_port;
@@ -151,7 +189,7 @@ boolean_t breakpad_exc_server(mach_msg_header_t* InHeadP,
   OutHeadP->msgh_local_port = MACH_PORT_NULL;
   OutHeadP->msgh_id = InHeadP->msgh_id + 100;
 
-  if (InHeadP->msgh_id != 2401) {
+  if (InHeadP->msgh_id != MACH_EXCEPTION_RAISE_RPC) {
     ((mig_reply_error_t*)OutHeadP)->NDR = NDR_record;
     ((mig_reply_error_t*)OutHeadP)->RetCode = MIG_BAD_ID;
     return FALSE;
@@ -170,7 +208,11 @@ boolean_t breakpad_exc_server(mach_msg_header_t* InHeadP,
     NDR_record_t NDR;
     exception_type_t exception;
     mach_msg_type_number_t codeCnt;
+#if TARGET_OSX_USE_64BIT_EXCEPTIONS
+    int64_t code[2];
+#else
     integer_t code[2];
+#endif
     mach_msg_trailer_t trailer;
   } Request;
 
@@ -197,7 +239,93 @@ boolean_t breakpad_exc_server(mach_msg_header_t* InHeadP,
   OutP->NDR = NDR_record;
   return TRUE;
 }
-#else
+
+#if TARGET_OSX_USE_64BIT_EXCEPTIONS
+
+kern_return_t breakpad_exception_raise (mach_port_t exception_port,
+                                        mach_port_t thread,
+                                        mach_port_t task,
+                                        exception_type_t exception,
+                                        mach_exception_data_t code,
+                                        mach_msg_type_number_t codeCnt)
+{
+#ifdef  __MigPackStructs
+#pragma pack(4)
+#endif
+	typedef struct {
+		mach_msg_header_t Head;
+		
+		mach_msg_body_t msgh_body;
+		mach_msg_port_descriptor_t thread;
+		mach_msg_port_descriptor_t task;
+		
+		NDR_record_t NDR;
+		exception_type_t exception;
+		mach_msg_type_number_t codeCnt;
+		int64_t code[2];
+	} Request;
+#ifdef  __MigPackStructs
+#pragma pack()
+#endif
+
+#ifdef  __MigPackStructs
+#pragma pack(4)
+#endif
+	typedef struct {
+		mach_msg_header_t Head;
+		NDR_record_t NDR;
+		kern_return_t RetCode;
+		mach_msg_trailer_t trailer;
+	} Reply;
+#ifdef  __MigPackStructs
+#pragma pack()
+#endif
+
+    Request In;
+	Request *InP = &In;
+
+	mach_msg_return_t msg_result;
+	unsigned int msgh_size;
+
+	InP->msgh_body.msgh_descriptor_count = 2;
+	InP->thread.name = thread;
+	InP->thread.disposition = 19;
+	InP->thread.type = MACH_MSG_PORT_DESCRIPTOR;
+	InP->task.name = task;
+	InP->task.disposition = 19;
+	InP->task.type = MACH_MSG_PORT_DESCRIPTOR;
+	InP->NDR = NDR_record;
+
+	InP->exception = exception;
+
+	if (codeCnt > 2) {
+		{ return MIG_ARRAY_TOO_LARGE; }
+	}
+	(void)memcpy((char *) InP->code, (const char *) code, 8 * codeCnt);
+
+	msgh_size = (mach_msg_size_t)(sizeof(Request) - 16) + ((8 * codeCnt));
+	InP->Head.msgh_bits = MACH_MSGH_BITS_COMPLEX|
+		MACH_MSGH_BITS(19, MACH_MSG_TYPE_MAKE_SEND_ONCE);
+	
+	InP->Head.msgh_remote_port = exception_port;
+	InP->Head.msgh_local_port = mig_get_reply_port();
+	InP->Head.msgh_id = 2405;
+
+	msg_result = mach_msg(&InP->Head, MACH_SEND_MSG|MACH_RCV_MSG|MACH_MSG_OPTION_NONE,
+                          msgh_size, (mach_msg_size_t)sizeof(Reply), InP->Head.msgh_local_port,
+                          MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
+	if (msg_result != MACH_MSG_SUCCESS) {
+		return msg_result;
+	}
+
+	return KERN_SUCCESS;
+}
+#endif
+
+#else 
+
+#define breakpad_exception_raise exception_raise
+
 boolean_t breakpad_exc_server(mach_msg_header_t* request,
                               mach_msg_header_t* reply) {
   return exc_server(request, reply);
@@ -414,7 +542,11 @@ bool ExceptionHandler::WriteMinidumpWithException(int exception_type,
 
 kern_return_t ForwardException(mach_port_t task, mach_port_t failed_thread,
                                exception_type_t exception,
+#if TARGET_OSX_USE_64BIT_EXCEPTIONS
+                               mach_exception_data_t code,
+#else
                                exception_data_t code,
+#endif
                                mach_msg_type_number_t code_count) {
   
   
@@ -448,11 +580,25 @@ kern_return_t ForwardException(mach_port_t task, mach_port_t failed_thread,
   mach_port_t target_port = current.ports[found];
   exception_behavior_t target_behavior = current.behaviors[found];
 
+#if TARGET_OSX_USE_64BIT_EXCEPTIONS
+  boolean_t code64 = (target_behavior & MACH_EXCEPTION_CODES) != 0;
+  target_behavior = target_behavior & ~MACH_EXCEPTION_CODES;
+
+  if (target_behavior == EXCEPTION_DEFAULT && !code64) {
+    
+    
+    
+    
+    fprintf(stderr, "*** EXCEPTION_DEFAULT but without MACH_EXCEPTION_CODES bit, we don't have code to forward this");
+    return KERN_FAILURE;
+  }
+#endif
+
   kern_return_t result;
   switch (target_behavior) {
     case EXCEPTION_DEFAULT:
-      result = exception_raise(target_port, failed_thread, task, exception,
-                               code, code_count);
+      result = breakpad_exception_raise(target_port, failed_thread, task, exception,
+                                        code, code_count);
       break;
 
     default:
@@ -480,24 +626,83 @@ void* ExceptionHandler::WaitForMessage(void* exception_handler_class) {
                                     self->handler_port_,
                                     MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
 
+    if (result != KERN_SUCCESS)
+      continue;
 
-    if (result == KERN_SUCCESS) {
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    if (!receive.exception) {
       
       
-      
+      if (receive.header.msgh_id == kShutdownMessage)
+        return NULL;
+
+      self->SuspendThreads();
+
+#if USE_PROTECTED_ALLOCATIONS
+      if (gBreakpadAllocator)
+        gBreakpadAllocator->Unprotect();
+#endif
+
+      mach_port_t thread = MACH_PORT_NULL;
+      int exception_type = 0;
+      int exception_code = 0;
+      if (receive.header.msgh_id == kWriteDumpWithExceptionMessage) {
+        thread = receive.thread.name;
+        exception_type = EXC_BREAKPOINT;
+#if defined(__i386__) || defined(__x86_64__)
+        exception_code = EXC_I386_BPT;
+#elif defined(__ppc__) || defined(__ppc64__)
+        exception_code = EXC_PPC_BREAKPOINT;
+#elif defined(__arm__)
+        exception_code = EXC_ARM_BREAKPOINT;
+#else
+#error architecture not supported
+#endif
+      }
 
       
+      self->last_minidump_write_result_ =
+        self->WriteMinidumpWithException(exception_type, exception_code,
+                                         0, NULL, thread,
+                                         false, false);
+
+#if USE_PROTECTED_ALLOCATIONS
+      if (gBreakpadAllocator)
+        gBreakpadAllocator->Protect();
+#endif
+
+      self->ResumeThreads();
+
+      if (self->use_minidump_write_mutex_)
+        pthread_mutex_unlock(&self->minidump_write_mutex_);
+    } else {
       
       
       
       
       
       
-      if (!receive.exception) {
-        
-        
-        if (receive.header.msgh_id == kShutdownMessage)
-          return NULL;
+      
+      
+      if (receive.task.name == mach_task_self()) {
+#if TARGET_OSX_USE_64BIT_EXCEPTIONS
+        int64_t subcode = 0;
+#else
+        int subcode = 0;
+#endif
+
+        if (receive.exception == EXC_BAD_ACCESS && receive.code_count > 1)
+          subcode = receive.code[1];
 
         self->SuspendThreads();
 
@@ -506,63 +711,13 @@ void* ExceptionHandler::WaitForMessage(void* exception_handler_class) {
           gBreakpadAllocator->Unprotect();
 #endif
 
-        mach_port_t thread = MACH_PORT_NULL;
-        int exception_type = 0;
-        int exception_code = 0;
-        if (receive.header.msgh_id == kWriteDumpWithExceptionMessage) {
-          thread = receive.thread.name;
-          exception_type = EXC_BREAKPOINT;
-#if defined(__i386__) || defined(__x86_64__)
-          exception_code = EXC_I386_BPT;
-#elif defined(__ppc__) || defined(__ppc64__)
-          exception_code = EXC_PPC_BREAKPOINT;
-#elif defined(__arm__)
-          exception_code = EXC_ARM_BREAKPOINT;
-#else
-#error architecture not supported
-#endif
-        }
-
-        
-        self->last_minidump_write_result_ =
-          self->WriteMinidumpWithException(exception_type, exception_code,
-                                           0, NULL, thread,
-                                           false, false);
-
-#if USE_PROTECTED_ALLOCATIONS
-        if (gBreakpadAllocator)
-          gBreakpadAllocator->Protect();
-#endif
-
-        self->ResumeThreads();
-
-        if (self->use_minidump_write_mutex_)
-          pthread_mutex_unlock(&self->minidump_write_mutex_);
-      } else {
-        
-        
-        
-        
-        
-        
-        
-        
-        if (receive.task.name == mach_task_self()) {
-          self->SuspendThreads();
-
-#if USE_PROTECTED_ALLOCATIONS
-        if (gBreakpadAllocator)
-          gBreakpadAllocator->Unprotect();
-#endif
-
-        int subcode = 0;
-        if (receive.exception == EXC_BAD_ACCESS && receive.code_count > 1)
-          subcode = receive.code[1];
-
         
         self->WriteMinidumpWithException(receive.exception, receive.code[0],
                                          subcode, NULL, receive.thread.name,
                                          true, false);
+
+        
+        
 
 #if USE_PROTECTED_ALLOCATIONS
         
@@ -578,19 +733,20 @@ void* ExceptionHandler::WaitForMessage(void* exception_handler_class) {
         if (gBreakpadAllocator)
           gBreakpadAllocator->Protect();
 #endif
-        }
-        
-        
-        
-        ExceptionReplyMessage reply;
-        if (!breakpad_exc_server(&receive.header, &reply.header))
-          exit(1);
+      } 
 
-        
-        mach_msg(&(reply.header), MACH_SEND_MSG,
-                 reply.header.msgh_size, 0, MACH_PORT_NULL,
-                 MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
+      
+      
+      
+      ExceptionReplyMessage reply;
+      if (!breakpad_exc_server(&receive.header, &reply.header)) {
+        exit(1);
       }
+
+      
+      mach_msg(&(reply.header), MACH_SEND_MSG,
+               reply.header.msgh_size, 0, MACH_PORT_NULL,
+               MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
     }
   }
 
@@ -622,6 +778,7 @@ bool ExceptionHandler::InstallHandler() {
   if (gProtectedData.handler != NULL) {
     return false;
   }
+
 #if TARGET_OS_IPHONE
   if (!IsOutOfProcess()) {
     struct sigaction sa;
@@ -670,7 +827,12 @@ bool ExceptionHandler::InstallHandler() {
   
   if (result == KERN_SUCCESS)
     result = task_set_exception_ports(current_task, s_exception_mask,
-                                      handler_port_, EXCEPTION_DEFAULT,
+                                      handler_port_,
+#if TARGET_OSX_USE_64BIT_EXCEPTIONS
+                                      EXCEPTION_DEFAULT | MACH_EXCEPTION_CODES,
+#else
+                                      EXCEPTION_DEFAULT,
+#endif
                                       THREAD_STATE_NONE);
 
   installed_exception_handler_ = (result == KERN_SUCCESS);
