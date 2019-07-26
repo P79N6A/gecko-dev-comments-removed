@@ -136,12 +136,7 @@ const DownloadsPanel = {
 
     
     
-    
-    if (DownloadsCommon.useJSTransfer) {
-      DownloadsCommon.initializeAllDataLinks();
-    } else {
-      Services.downloads;
-    }
+    DownloadsCommon.initializeAllDataLinks();
 
     
     
@@ -787,26 +782,6 @@ const DownloadsView = {
     
     
     DownloadsPanel.onViewLoadCompleted();
-  },
-
-  
-
-
-
-
-  onDataInvalidated: function DV_onDataInvalidated()
-  {
-    DownloadsCommon.log("Downloads data has been invalidated. Cleaning up",
-                        "DownloadsView.");
-
-    DownloadsPanel.terminate();
-
-    
-    let emptyView = this.richListBox.cloneNode(false);
-    this.richListBox.parentNode.replaceChild(emptyView, this.richListBox);
-    this.richListBox = emptyView;
-    this._viewItems = {};
-    this._dataItems = [];
   },
 
   
@@ -1486,7 +1461,8 @@ DownloadsViewItemController.prototype = {
 
     downloadsCmd_open: function DVIC_downloadsCmd_open()
     {
-      this.dataItem.openLocalFile(window);
+      this.dataItem.openLocalFile();
+
       
       
       

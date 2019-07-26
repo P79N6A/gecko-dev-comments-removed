@@ -316,48 +316,25 @@ Sanitizer.prototype = {
     downloads: {
       clear: function ()
       {
-        if (DownloadsCommon.useJSTransfer) {
-          Task.spawn(function () {
-            let filterByTime = null;
-            if (this.range) {
-              
-              let rangeBeginMs = this.range[0] / 1000;
-              let rangeEndMs = this.range[1] / 1000;
-              filterByTime = download => download.startTime >= rangeBeginMs &&
-                                         download.startTime <= rangeEndMs;
-            }
-
-            
-            let list = yield Downloads.getList(Downloads.ALL);
-            list.removeFinished(filterByTime);
-          }.bind(this)).then(null, Components.utils.reportError);
-        }
-        else {
-          var dlMgr = Components.classes["@mozilla.org/download-manager;1"]
-                                .getService(Components.interfaces.nsIDownloadManager);
-
+        Task.spawn(function () {
+          let filterByTime = null;
           if (this.range) {
             
-            dlMgr.removeDownloadsByTimeframe(this.range[0], this.range[1]);
+            let rangeBeginMs = this.range[0] / 1000;
+            let rangeEndMs = this.range[1] / 1000;
+            filterByTime = download => download.startTime >= rangeBeginMs &&
+                                       download.startTime <= rangeEndMs;
           }
-          else {
-            
-            dlMgr.cleanUp();
-            dlMgr.cleanUpPrivate();
-          }
-        }
+
+          
+          let list = yield Downloads.getList(Downloads.ALL);
+          list.removeFinished(filterByTime);
+        }.bind(this)).then(null, Components.utils.reportError);
       },
 
       canClear : function(aCallback, aArg)
       {
-        if (DownloadsCommon.useJSTransfer) {
-          aCallback("downloads", true, aArg);
-        }
-        else {
-          var dlMgr = Components.classes["@mozilla.org/download-manager;1"]
-                                .getService(Components.interfaces.nsIDownloadManager);
-          aCallback("downloads", dlMgr.canCleanUp || dlMgr.canCleanUpPrivate, aArg);
-        }
+        aCallback("downloads", true, aArg);
         return false;
       }
     },

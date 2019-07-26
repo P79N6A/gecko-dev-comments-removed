@@ -1087,21 +1087,10 @@ var gBrowserInit = {
     
     setTimeout(function() {
       try {
-        let DownloadsCommon =
-          Cu.import("resource:///modules/DownloadsCommon.jsm", {}).DownloadsCommon;
-        if (DownloadsCommon.useJSTransfer) {
-          
-          DownloadsCommon.initializeAllDataLinks();
-          let DownloadsTaskbar =
-            Cu.import("resource:///modules/DownloadsTaskbar.jsm", {}).DownloadsTaskbar;
-          DownloadsTaskbar.registerIndicator(window);
-        } else {
-          
-          Services.downloads;
-          let DownloadTaskbarProgress =
-            Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm", {}).DownloadTaskbarProgress;
-          DownloadTaskbarProgress.onBrowserWindowLoad(window);
-        }
+        Cu.import("resource:///modules/DownloadsCommon.jsm", {})
+          .DownloadsCommon.initializeAllDataLinks();
+        Cu.import("resource:///modules/DownloadsTaskbar.jsm", {})
+          .DownloadsTaskbar.registerIndicator(window);
       } catch (ex) {
         Cu.reportError(ex);
       }

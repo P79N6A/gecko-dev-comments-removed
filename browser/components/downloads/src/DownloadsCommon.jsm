@@ -63,8 +63,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
                                   "resource:///modules/RecentWindow.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
-                                  "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadsLogger",
@@ -74,9 +72,6 @@ const nsIDM = Ci.nsIDownloadManager;
 
 const kDownloadsStringBundleUrl =
   "chrome://browser/locale/downloads/downloads.properties";
-
-const kPrefBdmScanWhenDone =   "browser.download.manager.scanWhenDone";
-const kPrefBdmAlertOnExeOpen = "browser.download.manager.alertOnEXEOpen";
 
 const kDownloadsStringsRequiringFormatting = {
   sizeWithUnits: true,
@@ -238,16 +233,6 @@ this.DownloadsCommon = {
 
 
 
-
-  get useToolkitUI()
-  {
-    return false;
-  },
-
-  
-
-
-
   get animateNotifications()
   {
     return PrefObserver.animateNotifications;
@@ -272,36 +257,9 @@ this.DownloadsCommon = {
 
 
 
-
-
-
-
-
-
-  initializeAllDataLinks: function DC_initializeAllDataLinks(aDownloadManagerService) {
-    DownloadsData.initializeDataLink(aDownloadManagerService);
-    PrivateDownloadsData.initializeDataLink(aDownloadManagerService);
-  },
-
-  
-
-
-
-  terminateAllDataLinks: function DC_terminateAllDataLinks() {
-    DownloadsData.terminateDataLink();
-    PrivateDownloadsData.terminateDataLink();
-  },
-
-  
-
-
-
-
-
-
-  ensureAllPersistentDataLoaded:
-  function DC_ensureAllPersistentDataLoaded(aActiveOnly) {
-    DownloadsData.ensurePersistentDataLoaded(aActiveOnly);
+  initializeAllDataLinks: function () {
+    DownloadsData.initializeDataLink();
+    PrivateDownloadsData.initializeDataLink();
   },
 
   
@@ -571,15 +529,6 @@ XPCOMUtils.defineLazyGetter(DownloadsCommon, "isWinVistaOrHigher", function () {
 
 
 
-XPCOMUtils.defineLazyGetter(DownloadsCommon, "useJSTransfer", function () {
-  return true;
-});
-
-
-
-
-
-
 
 
 
@@ -611,36 +560,21 @@ function DownloadsDataCtor(aPrivate) {
   
   this._views = [];
 
-  if (DownloadsCommon.useJSTransfer) {
-    
-    this._downloadToDataItemMap = new Map();
-  }
+  
+  this._downloadToDataItemMap = new Map();
 }
 
 DownloadsDataCtor.prototype = {
   
 
 
-
-
-
-
-
-
-  initializeDataLink: function DD_initializeDataLink(aDownloadManagerService)
+  initializeDataLink: function ()
   {
-    
-    if (DownloadsCommon.useJSTransfer) {
-      if (!this._dataLinkInitialized) {
-        let promiseList = Downloads.getList(this._isPrivate ? Downloads.PRIVATE
-                                                            : Downloads.PUBLIC);
-        promiseList.then(list => list.addView(this)).then(null, Cu.reportError);
-        this._dataLinkInitialized = true;
-      }
-    } else {
-      aDownloadManagerService.addPrivacyAwareListener(this);
-      Services.obs.addObserver(this, "download-manager-remove-download-guid",
-                               false);
+    if (!this._dataLinkInitialized) {
+      let promiseList = Downloads.getList(this._isPrivate ? Downloads.PRIVATE
+                                                          : Downloads.PUBLIC);
+      promiseList.then(list => list.addView(this)).then(null, Cu.reportError);
+      this._dataLinkInitialized = true;
     }
   },
   _dataLinkInitialized: false,
@@ -648,39 +582,14 @@ DownloadsDataCtor.prototype = {
   
 
 
-  terminateDataLink: function DD_terminateDataLink()
-  {
-    if (DownloadsCommon.useJSTransfer) {
-      Cu.reportError("terminateDataLink not applicable with useJSTransfer");
-      return;
-    }
-
-    this._terminateDataAccess();
-
-    
-    Services.obs.removeObserver(this, "download-manager-remove-download-guid");
-    Services.downloads.removeListener(this);
-  },
-
-  
-
-
   get canRemoveFinished()
   {
-    if (DownloadsCommon.useJSTransfer) {
-      for (let [, dataItem] of Iterator(this.dataItems)) {
-        if (dataItem && !dataItem.inProgress) {
-          return true;
-        }
-      }
-      return false;
-    } else {
-      if (this._isPrivate) {
-        return Services.downloads.canCleanUpPrivate;
-      } else {
-        return Services.downloads.canCleanUp;
+    for (let [, dataItem] of Iterator(this.dataItems)) {
+      if (dataItem && !dataItem.inProgress) {
+        return true;
       }
     }
+    return false;
   },
 
   
@@ -688,18 +597,10 @@ DownloadsDataCtor.prototype = {
 
   removeFinished: function DD_removeFinished()
   {
-    if (DownloadsCommon.useJSTransfer) {
-      let promiseList = Downloads.getList(this._isPrivate ? Downloads.PRIVATE
-                                                          : Downloads.PUBLIC);
-      promiseList.then(list => list.removeFinished())
-                 .then(null, Cu.reportError);
-    } else {
-      if (this._isPrivate) {
-        Services.downloads.cleanUpPrivate();
-      } else {
-        Services.downloads.cleanUp();
-      }
-    }
+    let promiseList = Downloads.getList(this._isPrivate ? Downloads.PRIVATE
+                                                        : Downloads.PUBLIC);
+    promiseList.then(list => list.removeFinished())
+               .then(null, Cu.reportError);
   },
 
   
@@ -753,7 +654,7 @@ DownloadsDataCtor.prototype = {
     let wasInProgress = aDataItem.inProgress;
     let wasDone = aDataItem.done;
 
-    aDataItem.updateFromJSDownload();
+    aDataItem.updateFromDownload();
 
     if (wasInProgress && !aDataItem.inProgress) {
       aDataItem.endTime = Date.now();
@@ -836,392 +737,8 @@ DownloadsDataCtor.prototype = {
     );
 
     
-    if (!this._pendingStatement) {
-      aView.onDataLoadCompleted();
-    }
+    aView.onDataLoadCompleted();
   },
-
-  
-  
-
-  
-
-
-  clear: function DD_clear()
-  {
-    this._terminateDataAccess();
-    this.dataItems = {};
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _getOrAddDataItem: function DD_getOrAddDataItem(aSource, aMayReuseGUID)
-  {
-    let downloadGuid = (aSource instanceof Ci.nsIDownload)
-                       ? aSource.guid
-                       : aSource.getResultByName("guid");
-    if (downloadGuid in this.dataItems) {
-      let existingItem = this.dataItems[downloadGuid];
-      if (existingItem || !aMayReuseGUID) {
-        
-        return existingItem;
-      }
-    }
-    DownloadsCommon.log("Creating a new DownloadsDataItem with downloadGuid =",
-                        downloadGuid);
-    let dataItem = new DownloadsDataItem(aSource);
-    this.dataItems[downloadGuid] = dataItem;
-
-    
-    let addToStartOfList = aSource instanceof Ci.nsIDownload;
-    this._views.forEach(
-      function (view) view.onDataItemAdded(dataItem, addToStartOfList)
-    );
-    return dataItem;
-  },
-
-  
-
-
-
-
-  _removeDataItem: function DD_removeDataItem(aDownloadId)
-  {
-    if (aDownloadId in this.dataItems) {
-      let dataItem = this.dataItems[aDownloadId];
-      this.dataItems[aDownloadId] = null;
-      this._views.forEach(
-        function (view) view.onDataItemRemoved(dataItem)
-      );
-    }
-  },
-
-  
-  
-
-  
-
-
-  _pendingStatement: null,
-
-  
-
-
-
-
-  _loadState: 0,
-
-  
-  get kLoadNone() 0,
-  
-  get kLoadActive() 1,
-  
-  get kLoadAll() 2,
-
-  
-
-
-
-
-
-
-  ensurePersistentDataLoaded:
-  function DD_ensurePersistentDataLoaded(aActiveOnly)
-  {
-    if (this == PrivateDownloadsData) {
-      Cu.reportError("ensurePersistentDataLoaded should not be called on PrivateDownloadsData");
-      return;
-    }
-
-    if (this._pendingStatement) {
-      
-      return;
-    }
-
-    if (aActiveOnly) {
-      if (this._loadState == this.kLoadNone) {
-        DownloadsCommon.log("Loading only active downloads from the persistence database");
-        
-        this._views.forEach(
-          function (view) view.onDataLoadStarting()
-        );
-
-        
-        
-        let downloads = Services.downloads.activeDownloads;
-        while (downloads.hasMoreElements()) {
-          let download = downloads.getNext().QueryInterface(Ci.nsIDownload);
-          this._getOrAddDataItem(download, true);
-        }
-        this._loadState = this.kLoadActive;
-
-        
-        this._views.forEach(
-          function (view) view.onDataLoadCompleted()
-        );
-        DownloadsCommon.log("Active downloads done loading.");
-      }
-    } else {
-      if (this._loadState != this.kLoadAll) {
-        
-        
-        
-        
-        DownloadsCommon.log("Loading all downloads from the persistence database.");
-        let dbConnection = Services.downloads.DBConnection;
-        let statement = dbConnection.createAsyncStatement(
-          "SELECT guid, target, name, source, referrer, state, "
-        +        "startTime, endTime, currBytes, maxBytes "
-        + "FROM moz_downloads "
-        + "ORDER BY startTime DESC"
-        );
-        try {
-          this._pendingStatement = statement.executeAsync(this);
-        } finally {
-          statement.finalize();
-        }
-      }
-    }
-  },
-
-  
-
-
-  _terminateDataAccess: function DD_terminateDataAccess()
-  {
-    if (this._pendingStatement) {
-      this._pendingStatement.cancel();
-      this._pendingStatement = null;
-    }
-
-    
-    
-    Array.slice(this._views, 0).forEach(
-      function (view) view.onDataInvalidated()
-    );
-  },
-
-  
-  
-
-  handleResult: function DD_handleResult(aResultSet)
-  {
-    for (let row = aResultSet.getNextRow();
-         row;
-         row = aResultSet.getNextRow()) {
-      
-      
-      
-      this._getOrAddDataItem(row, false);
-    }
-  },
-
-  handleError: function DD_handleError(aError)
-  {
-    DownloadsCommon.error("Database statement execution error (",
-                          aError.result, "): ", aError.message);
-  },
-
-  handleCompletion: function DD_handleCompletion(aReason)
-  {
-    DownloadsCommon.log("Loading all downloads from database completed with reason:",
-                        aReason);
-    this._pendingStatement = null;
-
-    
-    
-    
-    if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
-      this._loadState = this.kLoadAll;
-    }
-
-    
-    
-    
-    
-    
-    this._views.forEach(
-      function (view) view.onDataLoadCompleted()
-    );
-  },
-
-  
-  
-
-  observe: function DD_observe(aSubject, aTopic, aData)
-  {
-    switch (aTopic) {
-      case "download-manager-remove-download-guid":
-        
-        if (aSubject) {
-            let downloadGuid = aSubject.QueryInterface(Ci.nsISupportsCString).data;
-            DownloadsCommon.log("A single download with id",
-                                downloadGuid, "was removed.");
-          this._removeDataItem(downloadGuid);
-          break;
-        }
-
-        
-        
-        DownloadsCommon.log("Multiple downloads were removed.");
-        for each (let dataItem in this.dataItems) {
-          if (dataItem) {
-            
-            
-            let dataItemBinding = dataItem;
-            Services.downloads.getDownloadByGUID(dataItemBinding.downloadGuid,
-                                                 function(aStatus, aResult) {
-              if (aStatus == Components.results.NS_ERROR_NOT_AVAILABLE) {
-                DownloadsCommon.log("Removing download with id",
-                                    dataItemBinding.downloadGuid);
-                this._removeDataItem(dataItemBinding.downloadGuid);
-              }
-            }.bind(this));
-          }
-        }
-        break;
-    }
-  },
-
-  
-  
-
-  onDownloadStateChange: function DD_onDownloadStateChange(aOldState, aDownload)
-  {
-    if (aDownload.isPrivate != this._isPrivate) {
-      
-      
-      return;
-    }
-
-    
-    
-    
-    let isNew = aOldState == nsIDM.DOWNLOAD_NOTSTARTED ||
-                aOldState == nsIDM.DOWNLOAD_QUEUED;
-
-    let dataItem = this._getOrAddDataItem(aDownload, isNew);
-    if (!dataItem) {
-      return;
-    }
-
-    let wasInProgress = dataItem.inProgress;
-
-    DownloadsCommon.log("A download changed its state to:", aDownload.state);
-    dataItem.state = aDownload.state;
-    dataItem.referrer = aDownload.referrer && aDownload.referrer.spec;
-    dataItem.resumable = aDownload.resumable;
-    dataItem.startTime = Math.round(aDownload.startTime / 1000);
-    dataItem.currBytes = aDownload.amountTransferred;
-    dataItem.maxBytes = aDownload.size;
-
-    if (wasInProgress && !dataItem.inProgress) {
-      dataItem.endTime = Date.now();
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    if (dataItem._download) {
-      dataItem._download = aDownload;
-    }
-
-    for (let view of this._views) {
-      try {
-        view.getViewItem(dataItem).onStateChange(aOldState);
-      } catch (ex) {
-        Cu.reportError(ex);
-      }
-    }
-
-    if (isNew && !dataItem.newDownloadNotified) {
-      dataItem.newDownloadNotified = true;
-      this._notifyDownloadEvent("start");
-    }
-
-    
-    if (dataItem.done) {
-      this._notifyDownloadEvent("finish");
-    }
-
-    
-    
-    if (!this._isPrivate && !dataItem.inProgress) {
-      let downloadMetaData = { state: dataItem.state,
-                               endTime: dataItem.endTime };
-      if (dataItem.done)
-        downloadMetaData.fileSize = dataItem.maxBytes;
-
-      try {
-        PlacesUtils.annotations.setPageAnnotation(
-          NetUtil.newURI(dataItem.uri), "downloads/metaData", JSON.stringify(downloadMetaData), 0,
-          PlacesUtils.annotations.EXPIRE_WITH_HISTORY);
-      }
-      catch(ex) {
-        Cu.reportError(ex);
-      }
-    }
-  },
-
-  onProgressChange: function DD_onProgressChange(aWebProgress, aRequest,
-                                                  aCurSelfProgress,
-                                                  aMaxSelfProgress,
-                                                  aCurTotalProgress,
-                                                  aMaxTotalProgress, aDownload)
-  {
-    if (aDownload.isPrivate != this._isPrivate) {
-      
-      
-      return;
-    }
-
-    let dataItem = this._getOrAddDataItem(aDownload, false);
-    if (!dataItem) {
-      return;
-    }
-
-    dataItem.currBytes = aDownload.amountTransferred;
-    dataItem.maxBytes = aDownload.size;
-    dataItem.speed = aDownload.speed;
-    dataItem.percentComplete = aDownload.percentComplete;
-
-    this._views.forEach(
-      function (view) view.getViewItem(dataItem).onProgressChange()
-    );
-  },
-
-  onStateChange: function () { },
-
-  onSecurityChange: function () { },
 
   
   
@@ -1252,10 +769,6 @@ DownloadsDataCtor.prototype = {
   _notifyDownloadEvent: function DD_notifyDownloadEvent(aType)
   {
     DownloadsCommon.log("Attempting to notify that a new download has started or finished.");
-    if (DownloadsCommon.useToolkitUI) {
-      DownloadsCommon.log("Cancelling notification - we're using the toolkit downloads manager.");
-      return;
-    }
 
     
     let browserWin = RecentWindow.getMostRecentBrowserWindow({ private: this._isPrivate });
@@ -1295,18 +808,17 @@ XPCOMUtils.defineLazyGetter(this, "DownloadsData", function() {
 
 
 
-
-
-
-function DownloadsDataItem(aSource)
+function DownloadsDataItem(aDownload)
 {
-  if (DownloadsCommon.useJSTransfer) {
-    this._initFromJSDownload(aSource);
-  } else if (aSource instanceof Ci.nsIDownload) {
-    this._initFromDownload(aSource);
-  } else {
-    this._initFromDataRow(aSource);
-  }
+  this._download = aDownload;
+
+  this.downloadGuid = "id:" + this._autoIncrementId;
+  this.file = aDownload.target.path;
+  this.target = OS.Path.basename(aDownload.target.path);
+  this.uri = aDownload.source.url;
+  this.endTime = Date.now();
+
+  this.updateFromDownload();
 }
 
 DownloadsDataItem.prototype = {
@@ -1320,28 +832,7 @@ DownloadsDataItem.prototype = {
   
 
 
-
-
-
-
-
-  _initFromJSDownload: function (aDownload)
-  {
-    this._download = aDownload;
-
-    this.downloadGuid = "id:" + this._autoIncrementId;
-    this.file = aDownload.target.path;
-    this.target = OS.Path.basename(aDownload.target.path);
-    this.uri = aDownload.source.url;
-    this.endTime = Date.now();
-
-    this.updateFromJSDownload();
-  },
-
-  
-
-
-  updateFromJSDownload: function ()
+  updateFromDownload: function ()
   {
     
     if (this._download.succeeded) {
@@ -1368,115 +859,6 @@ DownloadsDataItem.prototype = {
     this.resumable = this._download.hasPartialData;
     this.speed = this._download.speed;
     this.percentComplete = this._download.progress;
-  },
-
-  
-
-
-
-
-
-
-
-  _initFromDownload: function DDI_initFromDownload(aDownload)
-  {
-    this._download = aDownload;
-
-    
-    this.downloadGuid = aDownload.guid;
-    this.file = aDownload.target.spec;
-    this.target = aDownload.displayName;
-    this.uri = aDownload.source.spec;
-    this.referrer = aDownload.referrer && aDownload.referrer.spec;
-    this.state = aDownload.state;
-    this.startTime = Math.round(aDownload.startTime / 1000);
-    this.endTime = Date.now();
-    this.currBytes = aDownload.amountTransferred;
-    this.maxBytes = aDownload.size;
-    this.resumable = aDownload.resumable;
-    this.speed = aDownload.speed;
-    this.percentComplete = aDownload.percentComplete;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _initFromDataRow: function DDI_initFromDataRow(aStorageRow)
-  {
-    
-    this._download = null;
-    this.downloadGuid = aStorageRow.getResultByName("guid");
-    this.file = aStorageRow.getResultByName("target");
-    this.target = aStorageRow.getResultByName("name");
-    this.uri = aStorageRow.getResultByName("source");
-    this.referrer = aStorageRow.getResultByName("referrer");
-    this.state = aStorageRow.getResultByName("state");
-    this.startTime = Math.round(aStorageRow.getResultByName("startTime") / 1000);
-    this.endTime = Math.round(aStorageRow.getResultByName("endTime") / 1000);
-    this.currBytes = aStorageRow.getResultByName("currBytes");
-    this.maxBytes = aStorageRow.getResultByName("maxBytes");
-
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    this.resumable = true;
-
-    if (this.state == nsIDM.DOWNLOAD_DOWNLOADING) {
-      this.getDownload(function(aDownload) {
-        this.resumable = aDownload.resumable;
-      }.bind(this));
-    }
-
-    
-    this.speed = 0;
-    this.percentComplete = this.maxBytes <= 0
-                           ? -1
-                           : Math.round(this.currBytes / this.maxBytes * 100);
-  },
-
-  
-
-
-
-
-
-
-
-  getDownload: function DDI_getDownload(aCallback) {
-    if (this._download) {
-      
-      let download = this._download;
-      Services.tm.mainThread.dispatch(function () aCallback(download),
-                                      Ci.nsIThread.DISPATCH_NORMAL);
-    } else {
-      Services.downloads.getDownloadByGUID(this.downloadGuid,
-                                           function(aStatus, aResult) {
-        if (!Components.isSuccessCode(aStatus)) {
-          Cu.reportError(
-            new Components.Exception("Cannot retrieve download for GUID: " +
-                                     this.downloadGuid));
-        } else {
-          this._download = aResult;
-          aCallback(aResult);
-        }
-      }.bind(this));
-    }
   },
 
   
@@ -1601,21 +983,8 @@ DownloadsDataItem.prototype = {
   
 
 
-
-
-
-
-  openLocalFile: function DDI_openLocalFile(aOwnerWindow) {
-    if (DownloadsCommon.useJSTransfer) {
-      this._download.launch().then(null, Cu.reportError);
-      return;
-    }
-
-    this.getDownload(function(aDownload) {
-      DownloadsCommon.openDownloadedFile(this.localFile,
-                                         aDownload.MIMEInfo,
-                                         aOwnerWindow);
-    }.bind(this));
+  openLocalFile: function () {
+    this._download.launch().then(null, Cu.reportError);
   },
 
   
@@ -1630,26 +999,11 @@ DownloadsDataItem.prototype = {
 
 
   togglePauseResume: function DDI_togglePauseResume() {
-    if (DownloadsCommon.useJSTransfer) {
-      if (this._download.stopped) {
-        this._download.start();
-      } else {
-        this._download.cancel();
-      }
-      return;
+    if (this._download.stopped) {
+      this._download.start();
+    } else {
+      this._download.cancel();
     }
-
-    if (!this.inProgress || !this.resumable)
-      throw new Error("The given download cannot be paused or resumed");
-
-    this.getDownload(function(aDownload) {
-      if (this.inProgress) {
-        if (this.paused)
-          aDownload.resume();
-        else
-          aDownload.pause();
-      }
-    }.bind(this));
   },
 
   
@@ -1657,73 +1011,25 @@ DownloadsDataItem.prototype = {
 
 
   retry: function DDI_retry() {
-    if (DownloadsCommon.useJSTransfer) {
-      this._download.start();
-      return;
-    }
-
-    if (!this.canRetry)
-      throw new Error("Cannot retry this download");
-
-    this.getDownload(function(aDownload) {
-      aDownload.retry();
-    });
+    this._download.start();
   },
 
   
-
-
-
-
-  _ensureLocalFileRemoved: function DDI__ensureLocalFileRemoved()
-  {
-    try {
-      let localFile = this.localFile;
-      if (localFile.exists()) {
-        localFile.remove(false);
-      }
-    } catch (ex) { }
-  },
-
-  
-
 
 
   cancel: function() {
-    if (DownloadsCommon.useJSTransfer) {
-      this._download.cancel();
-      this._download.removePartialData().then(null, Cu.reportError);
-      return;
-    }
-
-    if (!this.inProgress)
-      throw new Error("Cannot cancel this download");
-
-    this.getDownload(function (aDownload) {
-      aDownload.cancel();
-      this._ensureLocalFileRemoved();
-    }.bind(this));
+    this._download.cancel();
+    this._download.removePartialData().then(null, Cu.reportError);
   },
 
   
 
 
   remove: function DDI_remove() {
-    if (DownloadsCommon.useJSTransfer) {
-      Downloads.getList(Downloads.ALL)
-               .then(list => list.remove(this._download))
-               .then(() => this._download.finalize(true))
-               .then(null, Cu.reportError);
-      return;
-    }
-
-    this.getDownload(function (aDownload) {
-      if (this.inProgress) {
-        aDownload.cancel();
-        this._ensureLocalFileRemoved();
-      }
-      aDownload.remove();
-    }.bind(this));
+    Downloads.getList(Downloads.ALL)
+             .then(list => list.remove(this._download))
+             .then(() => this._download.finalize(true))
+             .then(null, Cu.reportError);
   }
 };
 
@@ -1845,18 +1151,6 @@ const DownloadsViewPrototype = {
 
 
 
-  onDataInvalidated: function DVP_onDataInvalidated()
-  {
-    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
-  },
-
-  
-
-
-
-
-
-
 
 
 
@@ -1966,16 +1260,6 @@ DownloadsIndicatorDataCtor.prototype = {
   {
     DownloadsViewPrototype.onDataLoadCompleted.call(this);
     this._updateViews();
-  },
-
-  
-
-
-
-
-  onDataInvalidated: function DID_onDataInvalidated()
-  {
-    this._itemCount = 0;
   },
 
   
@@ -2269,11 +1553,6 @@ DownloadsSummaryData.prototype = {
   {
     DownloadsViewPrototype.onDataLoadCompleted.call(this);
     this._updateViews();
-  },
-
-  onDataInvalidated: function DSD_onDataInvalidated()
-  {
-    this._dataItems = [];
   },
 
   onDataItemAdded: function DSD_onDataItemAdded(aDataItem, aNewest)

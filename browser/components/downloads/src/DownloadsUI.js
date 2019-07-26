@@ -9,9 +9,6 @@
 
 
 
-
-
-
 "use strict";
 
 
@@ -40,11 +37,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
 
 function DownloadsUI()
 {
-  XPCOMUtils.defineLazyGetter(this, "_toolkitUI", function () {
-    
-    return Components.classesByID["{7dfdf0d1-aff6-4a34-bad1-d0fe74601642}"]
-                     .getService(Ci.nsIDownloadManagerUI);
-  });
 }
 
 DownloadsUI.prototype = {
@@ -62,11 +54,6 @@ DownloadsUI.prototype = {
 
   show: function DUI_show(aWindowContext, aDownload, aReason, aUsePrivateUI)
   {
-    if (DownloadsCommon.useToolkitUI) {
-      this._toolkitUI.show(aWindowContext, aDownload, aReason, aUsePrivateUI);
-      return;
-    }
-
     if (!aReason) {
       aReason = Ci.nsIDownloadManagerUI.REASON_USER_INTERACTED;
     }
@@ -92,27 +79,17 @@ DownloadsUI.prototype = {
     }
   },
 
-  get visible()
-  {
-    
-    
-    
-    
-    return DownloadsCommon.useToolkitUI ? this._toolkitUI.visible : true;
-  },
+  get visible() true,
 
-  getAttention: function DUI_getAttention()
-  {
-    if (DownloadsCommon.useToolkitUI) {
-      this._toolkitUI.getAttention();
-    }
-  },
+  getAttention: function () {},
+
+  
+  
 
   
 
 
-  _showDownloadManagerUI:
-  function DUI_showDownloadManagerUI(aWindowContext, aUsePrivateUI)
+  _showDownloadManagerUI: function (aWindowContext, aUsePrivateUI)
   {
     
     
