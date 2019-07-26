@@ -344,7 +344,7 @@ FormAssistant.prototype = {
         element = element.ownerDocument.body;
       else if (element instanceof HTMLDocument)
         element = element.body;
-    
+
       while (element && !this._isEditable(element))
         element = element.parentNode;
 
@@ -477,19 +477,22 @@ FormAssistant.prototype = {
   },
 
   
-  _getRect: function _formHelperGetRect() {
+  _getRect: function _formHelperGetRect(aOptions={}) {
     const kDistanceMax = 100;
     let element = this.currentElement;
     let elRect = getBoundingContentRect(element);
-    let labels = this._getLabels();
-    for (let i=0; i<labels.length; i++) {
-      let labelRect = labels[i].rect;
-      if (labelRect.left < elRect.left) {
-        let isClose = Math.abs(labelRect.left - elRect.left) - labelRect.width < kDistanceMax &&
-                      Math.abs(labelRect.top - elRect.top) - labelRect.height < kDistanceMax;
-        if (isClose) {
-          let width = labelRect.width + elRect.width + (elRect.left - labelRect.left - labelRect.width);
-          return new Rect(labelRect.left, labelRect.top, width, elRect.height).expandToIntegers();
+
+    if (aOptions.alignToLabel) {
+      let labels = this._getLabels();
+      for (let i=0; i<labels.length; i++) {
+        let labelRect = labels[i].rect;
+        if (labelRect.left < elRect.left) {
+          let isClose = Math.abs(labelRect.left - elRect.left) - labelRect.width < kDistanceMax &&
+                        Math.abs(labelRect.top - elRect.top) - labelRect.height < kDistanceMax;
+          if (isClose) {
+            let width = labelRect.width + elRect.width + (elRect.left - labelRect.left - labelRect.width);
+            return new Rect(labelRect.left, labelRect.top, width, elRect.height).expandToIntegers();
+          }
         }
       }
     }
