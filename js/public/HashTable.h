@@ -236,6 +236,10 @@ class HashMap
             remove(p);
     }
 
+    
+    HashMap(MoveRef<HashMap> rhs) : impl(Move(rhs->impl)) {}
+    void operator=(MoveRef<HashMap> rhs) { impl = Move(rhs->impl); }
+
   private:
     
     HashMap(const HashMap &hm) MOZ_DELETE;
@@ -425,6 +429,10 @@ class HashSet
         if (Ptr p = lookup(l))
             remove(p);
     }
+
+    
+    HashSet(MoveRef<HashSet> rhs) : impl(Move(rhs->impl)) {}
+    void operator=(MoveRef<HashSet> rhs) { impl = Move(rhs->impl); }
 
   private:
     
@@ -778,6 +786,25 @@ class HashTable : private AllocPolicy
                 table.compactIfUnderloaded();
         }
     };
+
+    
+    HashTable(MoveRef<HashTable> rhs)
+      : AllocPolicy(*rhs)
+    {
+        PodAssign(this, &*rhs);
+        rhs->table = NULL;
+    }
+    void operator=(MoveRef<HashTable> rhs) {
+        if (table)
+            destroyTable(*this, table, capacity());
+        PodAssign(this, &*rhs);
+        rhs->table = NULL;
+    }
+
+  private:
+    
+    HashTable(const HashTable &) MOZ_DELETE;
+    void operator=(const HashTable &) MOZ_DELETE;
 
   private:
     uint32_t    hashShift;      
