@@ -56,6 +56,75 @@ WebConsoleClient.prototype = {
 
 
 
+  inspectObjectProperties:
+  function WCC_inspectObjectProperties(aActor, aOnResponse)
+  {
+    let packet = {
+      to: aActor,
+      type: "inspectProperties",
+    };
+    this._client.request(packet, aOnResponse);
+  },
+
+  
+
+
+
+
+
+
+
+  evaluateJS: function WCC_evaluateJS(aString, aOnResponse)
+  {
+    let packet = {
+      to: this._actor,
+      type: "evaluateJS",
+      text: aString,
+    };
+    this._client.request(packet, aOnResponse);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  autocomplete: function WCC_autocomplete(aString, aCursor, aOnResponse)
+  {
+    let packet = {
+      to: this._actor,
+      type: "autocomplete",
+      text: aString,
+      cursor: aCursor,
+    };
+    this._client.request(packet, aOnResponse);
+  },
+
+  
+
+
+  clearMessagesCache: function WCC_clearMessagesCache()
+  {
+    let packet = {
+      to: this._actor,
+      type: "clearMessagesCache",
+    };
+    this._client.request(packet);
+  },
+
+  
+
+
+
+
+
+
+
 
 
   startListeners: function WCC_startListeners(aListeners, aOnResponse)
