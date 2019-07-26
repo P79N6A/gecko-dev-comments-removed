@@ -1067,8 +1067,7 @@ FragmentOrElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
 void
 FragmentOrElement::GetTextContentInternal(nsAString& aTextContent)
 {
-  if(!nsContentUtils::GetNodeTextContent(this, true, aTextContent))
-    NS_RUNTIMEABORT("OOM");
+  nsContentUtils::GetNodeTextContent(this, true, aTextContent);
 }
 
 void
@@ -1926,16 +1925,6 @@ FragmentOrElement::AppendTextTo(nsAString& aResult)
   
   
   NS_NOTREACHED("called FragmentOrElement::TextLength");
-}
-
-bool
-FragmentOrElement::AppendTextTo(nsAString& aResult, const mozilla::fallible_t&)
-{
-  
-  
-  NS_NOTREACHED("called FragmentOrElement::TextLength");
-
-  return false;
 }
 
 uint32_t
