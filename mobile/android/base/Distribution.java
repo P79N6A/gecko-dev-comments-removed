@@ -9,7 +9,7 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.util.GeckoBackgroundThread;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.Activity;
 import android.content.Context;
@@ -45,7 +45,7 @@ public final class Distribution {
 
     public static void init(final Context context, final String packagePath) {
         
-        GeckoBackgroundThread.getHandler().post(new Runnable() {
+        ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
                 

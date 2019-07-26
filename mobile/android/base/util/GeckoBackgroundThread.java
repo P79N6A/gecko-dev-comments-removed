@@ -9,7 +9,7 @@ import android.os.Looper;
 
 import java.util.concurrent.SynchronousQueue;
 
-public final class GeckoBackgroundThread extends Thread {
+final class GeckoBackgroundThread extends Thread {
     private static final String LOOPER_NAME = "GeckoBackgroundThread";
 
     
@@ -33,7 +33,7 @@ public final class GeckoBackgroundThread extends Thread {
     }
 
     
-    public static synchronized Handler getHandler() {
+     static synchronized Handler getHandler() {
         if (sHandler == null) {
             GeckoBackgroundThread lt = new GeckoBackgroundThread();
             ThreadUtils.setBackgroundThread(lt);
@@ -45,7 +45,7 @@ public final class GeckoBackgroundThread extends Thread {
         return sHandler;
     }
 
-    public static void post(Runnable runnable) {
+     static void post(Runnable runnable) {
         Handler handler = getHandler();
         if (handler == null) {
             throw new IllegalStateException("No handler! Must have been interrupted. Not posting.");

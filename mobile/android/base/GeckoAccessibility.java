@@ -43,7 +43,7 @@ public class GeckoAccessibility {
                 }));
 
     public static void updateAccessibilitySettings () {
-        GeckoAppShell.getHandler().post(new Runnable() {
+        ThreadUtils.postToBackgroundThread(new Runnable() {
                 @Override
                 public void run() {
                     JSONObject ret = new JSONObject();
@@ -130,7 +130,7 @@ public class GeckoAccessibility {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
             
             
-            GeckoAppShell.getHandler().post(new Runnable() {
+            ThreadUtils.postToBackgroundThread(new Runnable() {
                     @Override
                     public void run() {
                         sendDirectAccessibilityEvent(eventType, message);

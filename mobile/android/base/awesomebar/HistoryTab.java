@@ -356,7 +356,7 @@ public class HistoryTab extends AwesomeBarTab {
 
             if (mContentObserver == null) {
                 
-                mContentObserver = new ContentObserver(GeckoAppShell.getHandler()) {
+                mContentObserver = new ContentObserver(ThreadUtils.getBackgroundHandler()) {
                     @Override
                     public void onChange(boolean selfChange) {
                         mQueryTask = new HistoryQueryTask();

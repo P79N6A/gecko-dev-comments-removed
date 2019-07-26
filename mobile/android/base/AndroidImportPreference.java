@@ -5,7 +5,7 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.util.GeckoBackgroundThread;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -85,7 +85,7 @@ class AndroidImportPreference extends MultiChoicePreference {
             }
         };
 
-        GeckoBackgroundThread.getHandler().post(
+        ThreadUtils.postToBackgroundThread(
             
             
             new Runnable() {
