@@ -36,12 +36,19 @@ static NS_DEFINE_CID(kZipReaderCID, NS_ZIPREADER_CID);
 
 
 
+
+
+#ifdef LOG
+#undef LOG
+#endif
+
 #if defined(PR_LOGGING)
 
 
 
 static PRLogModuleInfo *gJarProtocolLog = nullptr;
 #endif
+
 
 #define LOG(args)     PR_LOG(gJarProtocolLog, PR_LOG_DEBUG, args)
 #define LOG_ENABLED() PR_LOG_TEST(gJarProtocolLog, 4)
