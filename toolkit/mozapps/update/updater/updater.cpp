@@ -26,6 +26,13 @@
 
 
 
+
+
+
+
+
+
+
 #include "bspatch.h"
 #include "progressui.h"
 #include "archivereader.h"
@@ -1573,6 +1580,67 @@ AddIfFile::Execute()
 
 void
 AddIfFile::Finish(int status)
+{
+  if (!mTestFile)
+    return;
+
+  AddFile::Finish(status);
+}
+
+class AddIfNotFile : public AddFile
+{
+public:
+  AddIfNotFile() : mTestFile(NULL) { }
+
+  virtual int Parse(NS_tchar *line);
+  virtual int Prepare();
+  virtual int Execute();
+  virtual void Finish(int status);
+
+protected:
+  const NS_tchar *mTestFile;
+};
+
+int
+AddIfNotFile::Parse(NS_tchar *line)
+{
+  
+
+  mTestFile = get_valid_path(&line);
+  if (!mTestFile)
+    return PARSE_ERROR;
+
+  
+  NS_tchar *q = mstrtok(kQuote, &line);
+  if (!q)
+    return PARSE_ERROR;
+
+  return AddFile::Parse(line);
+}
+
+int
+AddIfNotFile::Prepare()
+{
+  
+  if (!NS_taccess(mTestFile, F_OK)) {
+    mTestFile = NULL;
+    return OK;
+  }
+
+  return AddFile::Prepare();
+}
+
+int
+AddIfNotFile::Execute()
+{
+  if (!mTestFile)
+    return OK;
+
+  return AddFile::Execute();
+}
+
+void
+AddIfNotFile::Finish(int status)
 {
   if (!mTestFile)
     return;
@@ -3624,9 +3692,9 @@ int DoUpdate()
   ensure_parent_dir(manifest);
 
   
-  int rv = gArchiveReader.ExtractFile("updatev2.manifest", manifest);
+  int rv = gArchiveReader.ExtractFile("updatev3.manifest", manifest);
   if (rv) {
-    rv = gArchiveReader.ExtractFile("update.manifest", manifest);
+    rv = gArchiveReader.ExtractFile("updatev2.manifest", manifest);
     if (rv) {
       LOG(("DoUpdate: error extracting manifest file"));
       return rv;
@@ -3701,6 +3769,9 @@ int DoUpdate()
     }
     else if (NS_tstrcmp(token, NS_T("add-if")) == 0) { 
       action = new AddIfFile();
+    }
+    else if (NS_tstrcmp(token, NS_T("add-if-not")) == 0) { 
+      action = new AddIfNotFile();
     }
     else if (NS_tstrcmp(token, NS_T("patch-if")) == 0) { 
       action = new PatchIfFile();
