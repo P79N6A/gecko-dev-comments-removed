@@ -44,6 +44,14 @@ let CustomizationHandler = {
     PlacesToolbarHelper.customizeStart();
     BookmarkingUI.customizeStart();
     DownloadsButton.customizeStart();
+
+    
+    
+    let tabContainer = gBrowser.tabContainer;
+    if (tabContainer.getAttribute("overflow") == "true") {
+      let tabstrip = tabContainer.mTabstrip;
+      tabstrip.ensureElementIsVisible(gBrowser.selectedTab, true);
+    }
   },
 
   _customizationEnding: function(aDetails) {
