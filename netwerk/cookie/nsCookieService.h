@@ -289,6 +289,15 @@ class nsCookieService : public nsICookieService
 
     static PLDHashOperator GetCookiesForApp(nsCookieEntry* entry, void* arg);
 
+    
+
+
+
+
+    nsresult Remove(const nsACString& aHost, uint32_t aAppId,
+                    bool aInBrowserElement, const nsACString& aName,
+                    const nsACString& aPath, bool aBlocked);
+
   protected:
     
     nsCOMPtr<nsIObserverService>     mObserverService;
