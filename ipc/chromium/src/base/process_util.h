@@ -273,18 +273,6 @@ class NamedProcessIterator {
 
 
 
-struct WorkingSetKBytes {
-  size_t priv;
-  size_t shareable;
-  size_t shared;
-};
-
-
-
-
-
-
-
 struct CommittedKBytes {
   size_t priv;
   size_t mapped;
@@ -328,9 +316,6 @@ class ProcessMetrics {
   
   
   void GetCommittedKBytes(CommittedKBytes* usage) const;
-  
-  
-  bool GetWorkingSetKBytes(WorkingSetKBytes* ws_usage) const;
 
   
   
