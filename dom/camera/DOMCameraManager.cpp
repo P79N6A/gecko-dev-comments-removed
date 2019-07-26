@@ -44,7 +44,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsDOMCameraManager)
 
 
 
-PRLogModuleInfo* gCameraLog = PR_LOG_DEFINE("Camera");
+PRLogModuleInfo* gCameraLog = PR_NewLogModule("Camera");
 
 
 
