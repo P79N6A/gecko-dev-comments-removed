@@ -9,82 +9,6 @@
 
 #include <time.h>
 
-struct JSContext;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class DSTOffsetCache {
-  public:
-    inline DSTOffsetCache();
-    int64_t getDSTOffsetMilliseconds(int64_t localTimeMilliseconds);
-
-    inline void purge();
-
-  private:
-    int64_t computeDSTOffsetMilliseconds(int64_t localTimeSeconds);
-
-    int64_t offsetMilliseconds;
-    int64_t rangeStartSeconds, rangeEndSeconds;
-
-    int64_t oldOffsetMilliseconds;
-    int64_t oldRangeStartSeconds, oldRangeEndSeconds;
-
-    static const int64_t MAX_UNIX_TIMET = 2145859200; 
-    static const int64_t MILLISECONDS_PER_SECOND = 1000;
-    static const int64_t SECONDS_PER_MINUTE = 60;
-    static const int64_t SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
-    static const int64_t SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
-
-    static const int64_t RANGE_EXPANSION_AMOUNT = 30 * SECONDS_PER_DAY;
-
-  private:
-    void sanityCheck();
-};
-
-typedef struct PRMJTime       PRMJTime;
-
 
 
 
@@ -116,10 +40,6 @@ PRMJ_NowShutdown(void);
 #else
 #define PRMJ_NowShutdown()
 #endif
-
-
-extern int32_t
-PRMJ_LocalGMTDifference(void);
 
 
 extern size_t

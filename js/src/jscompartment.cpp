@@ -109,7 +109,8 @@ JSCompartment::init(JSContext *cx)
 
 
 
-    js_ClearDateCaches();
+    if (cx)
+        cx->runtime->dateTimeInfo.updateTimeZoneAdjustment();
 
     activeAnalysis = activeInference = false;
     types.init(cx);

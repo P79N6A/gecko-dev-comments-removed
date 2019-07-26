@@ -1318,33 +1318,6 @@ js_GetCurrentBytecodePC(JSContext* cx)
     return cx->hasfp() ? cx->regs().pc : NULL;
 }
 
-void
-DSTOffsetCache::purge()
-{
-    
-
-
-
-
-    offsetMilliseconds = 0;
-    rangeStartSeconds = rangeEndSeconds = INT64_MIN;
-    oldOffsetMilliseconds = 0;
-    oldRangeStartSeconds = oldRangeEndSeconds = INT64_MIN;
-
-    sanityCheck();
-}
-
-
-
-
-
-
-
-DSTOffsetCache::DSTOffsetCache()
-{
-    purge();
-}
-
 JSContext::JSContext(JSRuntime *rt)
   : ContextFriendFields(rt),
     defaultVersion(JSVERSION_DEFAULT),
