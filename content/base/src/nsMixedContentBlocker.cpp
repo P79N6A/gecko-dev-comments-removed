@@ -75,7 +75,11 @@ public:
 
 
     if (mType == eMixedScript) {
-      rootDoc->SetHasMixedActiveContentLoaded(true);
+       
+       if (rootDoc->GetHasMixedActiveContentLoaded()) {
+         return NS_OK;
+       }
+       rootDoc->SetHasMixedActiveContentLoaded(true);
 
       
       nsCOMPtr<nsISecurityEventSink> eventSink = do_QueryInterface(docShell);
@@ -88,8 +92,6 @@ public:
           
         }
     }
-
-
 
     return NS_OK;
   }
@@ -362,9 +364,17 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     
     if (allowMixedContent) {
        *aDecision = nsIContentPolicy::ACCEPT;
+       
+       if (rootDoc->GetHasMixedActiveContentLoaded()) {
+         return NS_OK;
+       }
        rootDoc->SetHasMixedActiveContentLoaded(true);
     } else {
        *aDecision = nsIContentPolicy::REJECT_REQUEST;
+       
+       if (rootDoc->GetHasMixedActiveContentBlocked()) {
+         return NS_OK;
+       }
        rootDoc->SetHasMixedActiveContentBlocked(true);
     }
 
