@@ -75,6 +75,8 @@ let RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL = libcutils.property_get("ro.moz.r
 let RILQUIRKS_MODEM_DEFAULTS_TO_EMERGENCY_MODE = libcutils.property_get("ro.moz.ril.emergency_by_default", "false") === "true";
 let RILQUIRKS_SIM_APP_STATE_EXTRA_FIELDS = libcutils.property_get("ro.moz.ril.simstate_extra_field", "false") === "true";
 
+let RILQUIRKS_EXTRA_UINT32_2ND_CALL = libcutils.property_get("ro.moz.ril.extra_int_2nd_call", "false") == "true";
+
 
 let PENDING_NETWORK_TYPE = {};
 
@@ -4366,6 +4368,13 @@ RIL[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length, opti
   let calls = {};
   for (let i = 0; i < calls_length; i++) {
     let call = {};
+
+    
+    
+    if (RILQUIRKS_EXTRA_UINT32_2ND_CALL && i > 0) {
+      Buf.readUint32();
+    }
+
     call.state          = Buf.readUint32(); 
     call.callIndex      = Buf.readUint32(); 
     call.toa            = Buf.readUint32();
