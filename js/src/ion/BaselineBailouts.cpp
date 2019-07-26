@@ -617,18 +617,18 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
         
         
         
-        bool enterMonitorChain = resumeAfter ? !!(js_CodeSpec[op].format & JOF_TYPESET) : false;
-        uint32_t numCallArgs = isCall ? GET_ARGC(pc) : 0;
-
-        
-        
-        if (op == JSOP_NEWARRAY || op == JSOP_NEWOBJECT) {
-#ifdef DEBUG
+        bool enterMonitorChain = false;
+        if (resumeAfter && (js_CodeSpec[op].format & JOF_TYPESET)) {
+            
+            
+            
             ICEntry &icEntry = baselineScript->icEntryFromPCOffset(pcOff);
-            JS_ASSERT(!icEntry.firstStub()->getChainFallback()->isMonitoredFallback());
-#endif
-            enterMonitorChain = false;
+            ICFallbackStub *fallbackStub = icEntry.firstStub()->getChainFallback();
+            if (fallbackStub->isMonitoredFallback())
+                enterMonitorChain = true;
         }
+
+        uint32_t numCallArgs = isCall ? GET_ARGC(pc) : 0;
 
         if (resumeAfter && !enterMonitorChain)
             pc = GetNextPc(pc);
