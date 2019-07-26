@@ -3839,12 +3839,6 @@ extern JS_PUBLIC_API(bool)
 JS_ExecuteScriptVersion(JSContext *cx, JSObject *obj, JSScript *script, jsval *rval,
                         JSVersion version);
 
-
-
-
-
-typedef enum JSExecPart { JSEXEC_PROLOG, JSEXEC_MAIN } JSExecPart;
-
 extern JS_PUBLIC_API(bool)
 JS_EvaluateScript(JSContext *cx, JSObject *obj,
                   const char *bytes, unsigned length,
@@ -3852,55 +3846,10 @@ JS_EvaluateScript(JSContext *cx, JSObject *obj,
                   jsval *rval);
 
 extern JS_PUBLIC_API(bool)
-JS_EvaluateScriptForPrincipals(JSContext *cx, JSObject *obj,
-                               JSPrincipals *principals,
-                               const char *bytes, unsigned length,
-                               const char *filename, unsigned lineno,
-                               jsval *rval);
-
-extern JS_PUBLIC_API(bool)
-JS_EvaluateScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
-                                      JSPrincipals *principals,
-                                      const char *bytes, unsigned length,
-                                      const char *filename, unsigned lineno,
-                                      jsval *rval, JSVersion version);
-
-extern JS_PUBLIC_API(bool)
 JS_EvaluateUCScript(JSContext *cx, JS::Handle<JSObject*> obj,
                     const jschar *chars, unsigned length,
                     const char *filename, unsigned lineno,
                     JS::MutableHandle<JS::Value> rval);
-
-extern JS_PUBLIC_API(bool)
-JS_EvaluateUCScriptForPrincipals(JSContext *cx, JS::Handle<JSObject*> obj,
-                                 JSPrincipals *principals,
-                                 const jschar *chars, unsigned length,
-                                 const char *filename, unsigned lineno,
-                                 JS::MutableHandle<JS::Value> rval);
-
-extern JS_PUBLIC_API(bool)
-JS_EvaluateUCScriptForPrincipalsVersion(JSContext *cx, JS::Handle<JSObject*> obj,
-                                        JSPrincipals *principals,
-                                        const jschar *chars, unsigned length,
-                                        const char *filename, unsigned lineno,
-                                        JS::MutableHandle<JS::Value> rval, JSVersion version);
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_EvaluateUCScriptForPrincipalsVersionOrigin(JSContext *cx, JS::Handle<JSObject*> obj,
-                                              JSPrincipals *principals,
-                                              JSPrincipals *originPrincipals,
-                                              const jschar *chars, unsigned length,
-                                              const char *filename, unsigned lineno,
-                                              JS::MutableHandle<JS::Value> rval,
-                                              JSVersion version);
 
 namespace JS {
 
