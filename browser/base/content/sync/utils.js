@@ -3,6 +3,11 @@
 
 
 
+
+
+const PERMISSIONS_RWUSR = 0x180;
+
+
 let gSyncUtils = {
   get bundle() {
     delete this.bundle;
@@ -157,7 +162,7 @@ let gSyncUtils = {
             aResult == Ci.nsIFilePicker.returnReplace) {
           let stream = Cc["@mozilla.org/network/file-output-stream;1"].
                        createInstance(Ci.nsIFileOutputStream);
-          stream.init(fp.file, -1, 0600, 0);
+          stream.init(fp.file, -1, PERMISSIONS_RWUSR, 0);
 
           let serializer = new XMLSerializer();
           let output = serializer.serializeToString(iframe.contentDocument);
