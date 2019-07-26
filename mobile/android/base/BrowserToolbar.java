@@ -865,7 +865,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
         
         
         
-        if (!isEditing()) {
+        if (!isEditing() || HardwareUtils.isTablet()) {
             mTabsCounter.setCount(count);
 
             mTabs.setContentDescription((count > 1) ?
@@ -879,7 +879,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
         
         
         
-        if (isEditing()) {
+        if (isEditing() && !HardwareUtils.isTablet()) {
             return;
         }
 
@@ -1378,9 +1378,10 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
         if (HardwareUtils.isTablet() || Build.VERSION.SDK_INT < 11) {
             hideUrlEditContainer();
-            updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
 
             if (!HardwareUtils.isTablet()) {
+                updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
+
                 if (mUrlBarRightEdge != null) {
                     ViewHelper.setTranslationX(mUrlBarRightEdge, 0);
                 }
