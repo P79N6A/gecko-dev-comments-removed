@@ -908,6 +908,7 @@ private:
       mPendingBinding(aPendingBinding), mStyleContext(aStyleContext),
       mSuppressWhiteSpaceOptimizations(aSuppressWhiteSpaceOptimizations),
       mIsText(false), mIsGeneratedContent(false),
+      mIsAnonymousContentCreatorContent(false),
       mIsRootPopupgroup(false), mIsAllInline(false), mIsBlock(false),
       mHasInlineEnds(false), mIsPopup(false),
       mIsLineParticipant(false), mIsForSVGAElement(false)
@@ -975,6 +976,8 @@ private:
     
     
     bool mIsGeneratedContent;
+    
+    bool mIsAnonymousContentCreatorContent;
     
     bool mIsRootPopupgroup;
     
@@ -1164,6 +1167,8 @@ private:
 #define ITEM_IS_WITHIN_SVG_TEXT 0x8
   
 #define ITEM_ALLOWS_TEXT_PATH_CHILD 0x10
+  
+#define ITEM_IS_ANONYMOUSCONTENTCREATOR_CONTENT 0x20
   
   
   
