@@ -537,6 +537,11 @@ public:
 
   virtual void GetImageBuffer(uint8_t** aImageBuffer, int32_t* aFormat);
 
+
+  
+  nsString GetHitRegion(const mozilla::gfx::Point& aPoint);
+
+
   
   bool GetHitRegionRect(Element* aElement, nsRect& aRect);
 
