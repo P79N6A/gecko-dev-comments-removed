@@ -106,12 +106,6 @@
 
 namespace js {
 
-class TypeRepresentation;
-class ScalarTypeRepresentation;
-class ReferenceTypeRepresentation;
-class X4TypeRepresentation;
-class StructTypeDescr;
-
 
 
 
@@ -156,18 +150,24 @@ class TypeDescr : public JSObject
         return kind > JS_TYPEREPR_MAX_UNSIZED_KIND;
     }
 
-    JSObject &typeRepresentationOwnerObj() const {
-        return getReservedSlot(JS_DESCR_SLOT_TYPE_REPR).toObject();
+    JSAtom &stringRepr() const {
+        return getReservedSlot(JS_DESCR_SLOT_STRING_REPR).toString()->asAtom();
     }
 
-    TypeRepresentation *typeRepresentation() const;
+    TypeDescr::Kind kind() const {
+        return (TypeDescr::Kind) getReservedSlot(JS_DESCR_SLOT_KIND).toInt32();
+    }
 
-    TypeDescr::Kind kind() const;
+    bool opaque() const {
+        return getReservedSlot(JS_DESCR_SLOT_OPAQUE).toBoolean();
+    }
 
-    bool opaque() const;
+    bool transparent() const {
+        return !opaque();
+    }
 
     size_t alignment() {
-        return getReservedSlot(JS_DESCR_SLOT_ALIGNMENT).toInt32();
+        return (size_t) getReservedSlot(JS_DESCR_SLOT_ALIGNMENT).toInt32();
     }
 };
 
@@ -177,8 +177,11 @@ class SizedTypeDescr : public TypeDescr
 {
   public:
     size_t size() {
-        return getReservedSlot(JS_DESCR_SLOT_SIZE).toInt32();
+        return (size_t) getReservedSlot(JS_DESCR_SLOT_SIZE).toInt32();
     }
+
+    void initInstances(const JSRuntime *rt, uint8_t *mem, size_t length);
+    void traceInstances(JSTracer *trace, uint8_t *mem, size_t length);
 };
 
 typedef Handle<SizedTypeDescr*> HandleSizedTypeDescr;
@@ -213,13 +216,14 @@ class ScalarTypeDescr : public SimpleTypeDescr
     };
     static const int32_t TYPE_MAX = TYPE_UINT8_CLAMPED + 1;
 
-    static size_t size(Type t);
-    static size_t alignment(Type t);
+    static const TypeDescr::Kind Kind = TypeDescr::Scalar;
+    static const bool Opaque = false;
+    static int32_t size(Type t);
+    static int32_t alignment(Type t);
     static const char *typeName(Type type);
 
     static const Class class_;
     static const JSFunctionSpec typeObjectMethods[];
-    typedef ScalarTypeRepresentation TypeRepr;
 
     ScalarTypeDescr::Type type() const {
         return (ScalarTypeDescr::Type) getReservedSlot(JS_DESCR_SLOT_TYPE).toInt32();
@@ -261,12 +265,19 @@ class ReferenceTypeDescr : public SimpleTypeDescr
     static const int32_t TYPE_MAX = TYPE_STRING + 1;
     static const char *typeName(Type type);
 
+    static const TypeDescr::Kind Kind = TypeDescr::Reference;
+    static const bool Opaque = true;
     static const Class class_;
+    static int32_t size(Type t);
+    static int32_t alignment(Type t);
     static const JSFunctionSpec typeObjectMethods[];
-    typedef ReferenceTypeRepresentation TypeRepr;
 
     ReferenceTypeDescr::Type type() const {
         return (ReferenceTypeDescr::Type) getReservedSlot(JS_DESCR_SLOT_TYPE).toInt32();
+    }
+
+    const char *typeName() const {
+        return typeName(type());
     }
 
     static bool call(JSContext *cx, unsigned argc, Value *vp);
@@ -300,8 +311,11 @@ class X4TypeDescr : public ComplexTypeDescr
         TYPE_FLOAT32 = JS_X4TYPEREPR_FLOAT32,
     };
 
+    static const TypeDescr::Kind Kind = TypeDescr::X4;
+    static const bool Opaque = false;
     static const Class class_;
-    typedef X4TypeRepresentation TypeRepr;
+    static int32_t size(Type t);
+    static int32_t alignment(Type t);
 
     X4TypeDescr::Type type() const {
         return (X4TypeDescr::Type) getReservedSlot(JS_DESCR_SLOT_TYPE).toInt32();
@@ -318,9 +332,7 @@ class X4TypeDescr : public ComplexTypeDescr
 bool IsTypedObjectClass(const Class *clasp); 
 bool IsTypedObjectArray(JSObject& obj);
 
-bool InitializeCommonTypeDescriptorProperties(JSContext *cx,
-                                              HandleTypeDescr obj,
-                                              HandleObject typeReprOwnerObj);
+bool CreateUserSizeAndAlignmentProperties(JSContext *cx, HandleTypeDescr obj);
 
 
 
@@ -342,11 +354,13 @@ class ArrayMetaTypeDescr : public JSObject
     
     
     
+    
     template<class T>
     static T *create(JSContext *cx,
                      HandleObject arrayTypePrototype,
-                     HandleObject arrayTypeReprObj,
-                     HandleSizedTypeDescr elementType);
+                     HandleSizedTypeDescr elementType,
+                     HandleAtom stringRepr,
+                     int32_t size);
 
   public:
     
@@ -376,6 +390,7 @@ class UnsizedArrayTypeDescr : public TypeDescr
 {
   public:
     static const Class class_;
+    static const TypeDescr::Kind Kind = TypeDescr::UnsizedArray;
 
     
     
@@ -393,6 +408,7 @@ class SizedArrayTypeDescr : public ComplexTypeDescr
 {
   public:
     static const Class class_;
+    static const TypeDescr::Kind Kind = TypeDescr::SizedArray;
 
     SizedTypeDescr &elementType() {
         return getReservedSlot(JS_DESCR_SLOT_ARRAY_ELEM_TYPE).toObject().as<SizedTypeDescr>();
@@ -413,14 +429,6 @@ class StructMetaTypeDescr : public JSObject
   private:
     static JSObject *create(JSContext *cx, HandleObject structTypeGlobal,
                             HandleObject fields);
-
-    
-
-
-
-    static bool layout(JSContext *cx,
-                       Handle<StructTypeDescr*> structType,
-                       HandleObject fields);
 
   public:
     
@@ -444,8 +452,14 @@ class StructTypeDescr : public ComplexTypeDescr
     static const Class class_;
 
     
+    size_t fieldCount();
+
+    
     
     bool fieldIndex(jsid id, size_t *out);
+
+    
+    JSAtom &fieldName(size_t index);
 
     
     SizedTypeDescr &fieldDescr(size_t index);
@@ -628,10 +642,6 @@ class TypedObject : public ArrayBufferViewObject
 
     TypeDescr &typeDescr() const {
         return getReservedSlot(JS_TYPEDOBJ_SLOT_TYPE_DESCR).toObject().as<TypeDescr>();
-    }
-
-    TypeRepresentation *typeRepresentation() const {
-        return typeDescr().typeRepresentation();
     }
 
     uint8_t *typedMem() const {
