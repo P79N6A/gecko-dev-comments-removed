@@ -156,7 +156,7 @@ nsBaseChannel::ContinueRedirect()
 bool
 nsBaseChannel::HasContentTypeHint() const
 {
-  NS_ASSERTION(!Pending(), "HasContentTypeHint called too late");
+  NS_ASSERTION(!IsPending(), "HasContentTypeHint called too late");
   return !mContentType.EqualsLiteral(UNKNOWN_CONTENT_TYPE);
 }
 
@@ -312,7 +312,7 @@ nsBaseChannel::GetName(nsACString &result)
 NS_IMETHODIMP
 nsBaseChannel::IsPending(bool *result)
 {
-  *result = Pending();
+  *result = IsPending();
   return NS_OK;
 }
 
