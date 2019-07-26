@@ -79,8 +79,15 @@ tests.push({
     
     let profileBookmarksHTMLFile = check_bookmarks_html();
     
-    
-    do_check_neq(profileBookmarksHTMLFile.fileSize, fileSize);
+    let isLinux = ("@mozilla.org/gnome-gconf-service;1" in Cc);
+    if (!isLinux) {
+      
+      let isOSX = ("nsILocalFileMac" in Ci);
+      if (!isOSX) {
+        do_check_true(profileBookmarksHTMLFile.lastModifiedTime > lastMod);
+      }
+      do_check_neq(profileBookmarksHTMLFile.fileSize, fileSize);
+    }
 
     
     do_check_true(ps.getBoolPref(PREF_AUTO_EXPORT_HTML));
