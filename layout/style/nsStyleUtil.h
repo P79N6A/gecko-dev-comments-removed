@@ -57,6 +57,11 @@ public:
   static void AppendFontFeatureSettings(const nsCSSValue& src,
                                         nsAString& aResult);
 
+  static void AppendCSSNumber(float aNumber, nsAString& aResult)
+  {
+    aResult.AppendFloat(aNumber);
+  }
+
   
   static void GetFunctionalAlternatesName(int32_t aFeature,
                                           nsAString& aFeatureName);
