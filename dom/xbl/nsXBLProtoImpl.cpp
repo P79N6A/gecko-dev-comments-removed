@@ -63,9 +63,6 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   MOZ_ASSERT(targetClassObject);
 
   
-  aBinding->SetJSClass(nsXBLJSClass::fromJSClass(JS_GetClass(targetClassObject)));
-
-  
   if (!targetObjectIsNew)
     return NS_OK;
 
@@ -183,6 +180,7 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
   NS_ENSURE_SUCCESS(rv, rv);
 
   JS::Rooted<JSObject*> value(cx, &v.toObject());
+  JSAutoCompartment ac2(cx, value);
 
   
   

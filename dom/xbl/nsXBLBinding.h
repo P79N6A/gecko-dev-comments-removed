@@ -68,11 +68,6 @@ public:
   nsIContent* GetBoundElement() { return mBoundElement; }
   void SetBoundElement(nsIContent *aElement);
 
-  void SetJSClass(nsXBLJSClass *aClass) {
-    MOZ_ASSERT(!mJSClass && aClass);
-    mJSClass = aClass;
-  }
-
   
 
 
@@ -170,9 +165,6 @@ protected:
   nsXBLPrototypeBinding* mPrototypeBinding; 
   nsCOMPtr<nsIContent> mContent; 
   nsRefPtr<nsXBLBinding> mNextBinding; 
-  nsRefPtr<nsXBLJSClass> mJSClass; 
-                                   
-                                   
 
   nsIContent* mBoundElement; 
 

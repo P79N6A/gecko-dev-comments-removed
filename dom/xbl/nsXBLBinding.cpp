@@ -77,7 +77,7 @@ XBLFinalize(JSFreeOp *fop, JSObject *obj)
   nsContentUtils::DeferredFinalize(docInfo);
 
   nsXBLJSClass* c = nsXBLJSClass::fromJSClass(::JS_GetClass(obj));
-  c->Drop();
+  delete c;
 }
 
 static bool
@@ -90,12 +90,7 @@ XBLEnumerate(JSContext *cx, JS::Handle<JSObject*> obj)
   return protoBinding->ResolveAllFields(cx, obj);
 }
 
-uint64_t nsXBLJSClass::sIdCount = 0;
-
-nsXBLJSClass::nsXBLJSClass(const nsAFlatCString& aClassName,
-                           const nsCString& aKey)
-  : mRefCnt(0)
-  , mKey(aKey)
+nsXBLJSClass::nsXBLJSClass(const nsAFlatCString& aClassName)
 {
   memset(static_cast<JSClass*>(this), 0, sizeof(JSClass));
   name = ToNewCString(aClassName);
@@ -121,17 +116,7 @@ nsXBLJSClass::IsXBLJSClass(const JSClass* aClass)
 
 nsXBLJSClass::~nsXBLJSClass()
 {
-  if (nsXBLService::gClassTable) {
-    nsXBLService::gClassTable->Remove(mKey);
-    mKey.Truncate();
-  }
   nsMemory::Free((void*) name);
-}
-
-nsXBLJSClass*
-nsXBLService::getClass(const nsCString& k)
-{
-  return nsXBLService::gClassTable->Get(k);
 }
 
 
@@ -910,6 +895,98 @@ nsXBLBinding::WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc, void* aData)
 
 
 
+
+
+
+
+
+
+
+static JSObject*
+GetOrCreateClassObjectMap(JSContext *cx, JS::Handle<JSObject*> scope, const char *mapName)
+{
+  AssertSameCompartment(cx, scope);
+  MOZ_ASSERT(JS_IsGlobalObject(scope));
+  MOZ_ASSERT(scope == xpc::GetXBLScopeOrGlobal(cx, scope));
+
+  
+  JS::Rooted<JSPropertyDescriptor> desc(cx);
+  if (!JS_GetOwnPropertyDescriptor(cx, scope, mapName, 0, &desc)) {
+    return nullptr;
+  }
+  if (desc.object() && desc.value().isObject() &&
+      JS::IsWeakMapObject(&desc.value().toObject())) {
+    return &desc.value().toObject();
+  }
+
+  
+  JS::Rooted<JSObject*> map(cx, JS::NewWeakMapObject(cx));
+  if (!map || !JS_DefineProperty(cx, scope, mapName,
+                                 JS::ObjectValue(*map),
+                                 JS_PropertyStub, JS_StrictPropertyStub,
+                                 JSPROP_PERMANENT | JSPROP_READONLY))
+  {
+    return nullptr;
+  }
+  return map;
+}
+
+static JSObject*
+GetOrCreateMapEntryForPrototype(JSContext *cx, JS::Handle<JSObject*> proto)
+{
+  AssertSameCompartment(cx, proto);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  const char* name = xpc::IsInXBLScope(proto) ? "__ContentClassObjectMap__"
+                                              : "__XBLClassObjectMap__";
+
+  
+  
+  JS::Rooted<JSObject*> scope(cx, xpc::GetXBLScopeOrGlobal(cx, proto));
+  JS::Rooted<JSObject*> wrappedProto(cx, proto);
+  JSAutoCompartment ac(cx, scope);
+  if (!JS_WrapObject(cx, &wrappedProto)) {
+    return nullptr;
+  }
+
+  
+  JS::Rooted<JSObject*> map(cx, GetOrCreateClassObjectMap(cx, scope, name));
+  if (!map) {
+    return nullptr;
+  }
+
+  
+  JS::Rooted<JS::Value> val(cx);
+  if (!JS::GetWeakMapEntry(cx, map, wrappedProto, &val)) {
+    return nullptr;
+  }
+  if (val.isObject()) {
+    return &val.toObject();
+  }
+
+  
+  JS::Rooted<JSObject*> entry(cx);
+  entry = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), scope);
+  if (!entry) {
+    return nullptr;
+  }
+  JS::Rooted<JS::Value> entryVal(cx, JS::ObjectValue(*entry));
+  if (!JS::SetWeakMapEntry(cx, map, wrappedProto, entryVal)) {
+    return nullptr;
+  }
+  return entry;
+}
+
+
 nsresult
 nsXBLBinding::DoInitJSClass(JSContext *cx,
                             JS::Handle<JSObject*> obj,
@@ -921,92 +998,53 @@ nsXBLBinding::DoInitJSClass(JSContext *cx,
   MOZ_ASSERT(obj);
 
   
-  nsAutoCString className(aClassName);
-  nsAutoCString xblKey(aClassName);
+  
+  
+  
+  
+  
+  JS::Rooted<JSObject*> global(cx, js::GetGlobalForObjectCrossCompartment(obj));
+  JS::Rooted<JSObject*> xblScope(cx, xpc::GetXBLScopeOrGlobal(cx, global));
 
-  
-  
-  
-  
-  
-  
-  JS::RootedObject global(cx, js::GetGlobalForObjectCrossCompartment(obj));
-  JSAutoCompartment ac(cx, global);
-
-  JS::Rooted<JSObject*> parent_proto(cx, nullptr);
-  nsXBLJSClass* c = nullptr;
-
-  
+  JS::Rooted<JSObject*> parent_proto(cx);
   if (!JS_GetPrototype(cx, obj, &parent_proto)) {
     return NS_ERROR_FAILURE;
   }
+
+  
+  
+  
+  JS::Rooted<JSObject*> holder(cx);
   if (parent_proto) {
-    
-    
-    
-    
-    JS::Rooted<jsid> parent_proto_id(cx);
-    if (!::JS_GetObjectId(cx, parent_proto, &parent_proto_id)) {
-      
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    
-    
-    
-    
-    char buf[20];
-    if (sizeof(jsid) == 4) {
-      PR_snprintf(buf, sizeof(buf), " %lx", parent_proto_id.get());
-    } else {
-      MOZ_ASSERT(sizeof(jsid) == 8);
-      PR_snprintf(buf, sizeof(buf), " %llx", parent_proto_id.get());
-    }
-    xblKey.Append(buf);
-
-    c = nsXBLService::getClass(xblKey);
-    if (c) {
-      className.Assign(c->name);
-    } else {
-      char buf[20];
-      PR_snprintf(buf, sizeof(buf), " %llx", nsXBLJSClass::NewId());
-      className.Append(buf);
-    }
-  }
-
-  JS::Rooted<JSObject*> proto(cx);
-  JS::Rooted<JS::Value> val(cx);
-
-  if (!::JS_LookupPropertyWithFlags(cx, global, className.get(), 0, &val))
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  if (val.isObject() && nsXBLJSClass::IsXBLJSClass(JS_GetClass(&val.toObject()))) {
-    *aNew = false;
-    proto = &val.toObject();
+    holder = GetOrCreateMapEntryForPrototype(cx, parent_proto);
   } else {
+    JSAutoCompartment innerAC(cx, xblScope);
+    holder = GetOrCreateClassObjectMap(cx, xblScope, "__ContentClassObjectMap__");
+  }
+  js::AssertSameCompartment(holder, xblScope);
+  JSAutoCompartment ac(cx, holder);
+
+  
+  
+  
+  JS::Rooted<JSObject*> proto(cx);
+  JS::Rooted<JSPropertyDescriptor> desc(cx);
+  if (!JS_GetOwnPropertyDescriptor(cx, holder, aClassName.get(), 0, &desc)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  *aNew = !desc.object();
+  if (desc.object()) {
+    proto = &desc.value().toObject();
+    MOZ_ASSERT(nsXBLJSClass::IsXBLJSClass(JS_GetClass(js::UncheckedUnwrap(proto))));
+  } else {
+
     
-    *aNew = true;
-
-    if (!c) {
-      c = nsXBLService::getClass(xblKey);
-    }
-    if (!c) {
-      
-      c = new nsXBLJSClass(className, xblKey);
-
-      
-      nsXBLService::gClassTable->Put(xblKey, c);
-    }
-
     
-    c->Hold();
-
+    JSAutoCompartment ac2(cx, global);
+    nsXBLJSClass* c = new nsXBLJSClass(aClassName);
     proto = JS_NewObjectWithGivenProto(cx, c, parent_proto, global);
-    if (!proto || !JS_DefineProperty(cx, global, c->name, JS::ObjectValue(*proto),
-                                     JS_PropertyStub, JS_StrictPropertyStub, 0))
-    {
-      nsXBLService::gClassTable->Remove(xblKey);
-      c->Drop();
+    if (!proto) {
+      delete c;
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
@@ -1019,19 +1057,27 @@ nsXBLBinding::DoInitJSClass(JSContext *cx,
     nsXBLDocumentInfo* docInfo = aProtoBinding->XBLDocumentInfo();
     ::JS_SetPrivate(proto, docInfo);
     NS_ADDREF(docInfo);
+    JS_SetReservedSlot(proto, 0, PRIVATE_TO_JSVAL(aProtoBinding));
 
-    ::JS_SetReservedSlot(proto, 0, PRIVATE_TO_JSVAL(aProtoBinding));
-  }
-
-  aClassObject.set(proto);
-
-  if (obj) {
     
-    if (!::JS_SetPrototype(cx, obj, proto)) {
-      return NS_ERROR_FAILURE;
+    
+    JSAutoCompartment ac3(cx, holder);
+    if (!JS_WrapObject(cx, &proto) ||
+        !JS_DefineProperty(cx, holder, aClassName.get(), JS::ObjectValue(*proto),
+                           JS_PropertyStub, JS_StrictPropertyStub,
+                           JSPROP_READONLY | JSPROP_PERMANENT))
+    {
+      return NS_ERROR_OUT_OF_MEMORY;
     }
   }
 
+  
+  
+  JSAutoCompartment ac4(cx, obj);
+  if (!JS_WrapObject(cx, &proto) || !JS_SetPrototype(cx, obj, proto)) {
+    return NS_ERROR_FAILURE;
+  }
+  aClassObject.set(proto);
   return NS_OK;
 }
 
@@ -1121,7 +1167,8 @@ nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
 {
   
   
-  if (!mJSClass) {
+  
+  if (!PrototypeBinding()->HasImplementation()) {
     if (!mNextBinding) {
       return true;
     }
@@ -1132,7 +1179,8 @@ nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
   
   
   JS::Rooted<JS::Value> classObject(aCx);
-  if (!JS_GetProperty(aCx, aXBLScope, mJSClass->name, &classObject)) {
+  if (!JS_GetProperty(aCx, aXBLScope, PrototypeBinding()->ClassName().get(),
+                      &classObject)) {
     return false;
   }
 

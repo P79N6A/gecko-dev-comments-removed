@@ -368,8 +368,6 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
 
 bool nsXBLService::gAllowDataURIs = false;
 
-nsXBLService::ClassTable* nsXBLService::gClassTable = nullptr;
-
 
 NS_IMPL_ISUPPORTS1(nsXBLService, nsISupportsWeakReference)
 
@@ -383,17 +381,11 @@ nsXBLService::Init()
 
 nsXBLService::nsXBLService(void)
 {
-  gClassTable = new ClassTable();
-
   Preferences::AddBoolVarCache(&gAllowDataURIs, "layout.debug.enable_data_xbl");
 }
 
 nsXBLService::~nsXBLService(void)
 {
-  
-  
-  delete gClassTable;
-  gClassTable = nullptr;
 }
 
 
