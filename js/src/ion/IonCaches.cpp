@@ -1547,9 +1547,6 @@ GetElementIC::attachDenseElement(JSContext *cx, IonScript *ion, JSObject *obj, c
     Label failures;
     MacroAssembler masm(cx);
 
-    Register scratchReg = output().scratchReg().gpr();
-    JS_ASSERT(scratchReg != InvalidReg);
-
     
     RootedObject globalObj(cx, &script->global());
     RootedShape shape(cx, obj->lastProperty());
@@ -1621,8 +1618,8 @@ GetElementIC::attachTypedArrayElement(JSContext *cx, IonScript *ion, JSObject *o
 
     
     
-    bool floatOutput = arrayType == TypedArray::TYPE_FLOAT32 ||
-                       arrayType == TypedArray::TYPE_FLOAT64;
+    DebugOnly<bool> floatOutput = arrayType == TypedArray::TYPE_FLOAT32 ||
+                                  arrayType == TypedArray::TYPE_FLOAT64;
     JS_ASSERT_IF(!output().hasValue(), !floatOutput);
 
     Register tmpReg = output().scratchReg().gpr();
