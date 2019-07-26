@@ -284,7 +284,9 @@ CodeGeneratorShared::encode(LSnapshot *snapshot)
                 
                 
                 JS_ASSERT(stackDepth - exprStack <= 1);
-            } else if (JSOp(*bailPC) != JSOP_FUNAPPLY && !IsGetterPC(bailPC) && !IsSetterPC(bailPC)) {
+            } else if (JSOp(*bailPC) != JSOP_FUNAPPLY &&
+                       !IsGetPropPC(bailPC) && !IsSetPropPC(bailPC))
+            {
                 
                 
                 

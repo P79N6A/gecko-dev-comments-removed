@@ -1374,9 +1374,9 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
         if (JSOp(*pc_) == JSOP_FUNCALL) {
             JS_ASSERT(GET_ARGC(pc_) > 0);
             numActualArgs_ = GET_ARGC(pc_) - 1;
-        } else if (IsGetterPC(pc_)) {
+        } else if (IsGetPropPC(pc_)) {
             numActualArgs_ = 0;
-        } else if (IsSetterPC(pc_)) {
+        } else if (IsSetPropPC(pc_)) {
             numActualArgs_ = 1;
         }
 
@@ -1443,7 +1443,7 @@ InlineFrameIteratorMaybeGC<allowGC>::isConstructing() const
         ++parent;
 
         
-        if (IsGetterPC(parent.pc()) || IsSetterPC(parent.pc()))
+        if (IsGetPropPC(parent.pc()) || IsSetPropPC(parent.pc()))
             return false;
 
         
@@ -1472,7 +1472,7 @@ IonFrameIterator::isConstructing() const
         InlineFrameIterator inlinedParent(GetIonContext()->cx, &parent);
 
         
-        if (IsGetterPC(inlinedParent.pc()) || IsSetterPC(inlinedParent.pc()))
+        if (IsGetPropPC(inlinedParent.pc()) || IsSetPropPC(inlinedParent.pc()))
             return false;
 
         JS_ASSERT(IsCallPC(inlinedParent.pc()));
@@ -1485,7 +1485,8 @@ IonFrameIterator::isConstructing() const
         parent.baselineScriptAndPc(NULL, &pc);
 
         
-        if (IsGetterPC(pc) || IsSetterPC(pc))
+        
+        if (IsGetPropPC(pc) || IsSetPropPC(pc) || IsGetElemPC(pc) || IsSetElemPC(pc))
             return false;
 
         JS_ASSERT(IsCallPC(pc));

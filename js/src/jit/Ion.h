@@ -374,7 +374,7 @@ IsIonInlinablePC(jsbytecode *pc) {
     
     
     
-    return IsCallPC(pc) || IsGetterPC(pc) || IsSetterPC(pc);
+    return IsCallPC(pc) || IsGetPropPC(pc) || IsSetPropPC(pc);
 }
 
 void ForbidCompilation(JSContext *cx, JSScript *script);
