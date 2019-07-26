@@ -8,6 +8,7 @@ let Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/PermissionsInstaller.jsm");
 
 function pref(name, value) {
   return {
@@ -42,21 +43,23 @@ let WebAppRT = {
       
       
       let uri = Services.io.newURI(aUrl, null, null);
-      Services.perms.add(uri, "native-intent", Ci.nsIPermissionManager.DENY_ACTION);
-      Services.perms.add(uri, "offline-app", Ci.nsIPermissionManager.ALLOW_ACTION);
-      Services.perms.add(uri, "indexedDB", Ci.nsIPermissionManager.ALLOW_ACTION);
-      Services.perms.add(uri, "indexedDB-unlimited", Ci.nsIPermissionManager.ALLOW_ACTION);
 
       
       let blocklist = Services.prefs.getCharPref("extensions.blocklist.url");
       blocklist = blocklist.replace(/%APP_ID%/g, "webapprt-mobile@mozilla.org");
       Services.prefs.setCharPref("extensions.blocklist.url", blocklist);
+
+      this.getManifestFor(aUrl, function (aManifest, aApp) {
+        if (aManifest) {
+          PermissionsInstaller.installPermissions(aApp, true);
+        }
+      });
     }
 
     this.findManifestUrlFor(aUrl, aCallback);
   },
 
-  findManifestUrlFor: function(aUrl, aCallback) {
+  getManifestFor: function (aUrl, aCallback) {
     let request = navigator.mozApps.mgmt.getAll();
     request.onsuccess = function() {
       let apps = request.result;
@@ -65,32 +68,35 @@ let WebAppRT = {
         let manifest = new ManifestHelper(app.manifest, app.origin);
 
         
-        
-        
-        if (app.manifestURL == aUrl) {
-          BrowserApp.manifest = app.manifest;
-          BrowserApp.manifestUrl = aUrl;
-          aCallback(manifest.fullLaunchPath());
-          return;
-        }
-
-        
-        if (manifest.fullLaunchPath() == aUrl) {
-          BrowserApp.manifest = app.manifest;
-          BrowserApp.manifestUrl = app.manifestURL;
-          aCallback(aUrl);
+        if (app.manifestURL == aUrl || manifest.fullLaunchPath() == aUrl) {
+          aCallback(manifest, app);
           return;
         }
       }
 
       
-      aCallback(aUrl);
+      aCallback(undefined);
     };
 
     request.onerror = function() {
       
-      aCallback(aUrl);
+      aCallback(undefined);
     };
+  },
+
+  findManifestUrlFor: function(aUrl, aCallback) {
+    this.getManifestFor(aUrl, function(aManifest, aApp) {
+      if (!aManifest) {
+        
+        aCallback(aUrl);
+        return;
+      }
+
+      BrowserApp.manifest = aManifest;
+      BrowserApp.manifestUrl = aApp.manifestURL;
+
+      aCallback(aManifest.fullLaunchPath());
+    });
   },
 
   getDefaultPrefs: function() {
@@ -134,7 +140,7 @@ let WebAppRT = {
 
   handleEvent: function(event) {
     let target = event.target;
-  
+
     
     while (target && !(target instanceof HTMLAnchorElement)) {
       target = target.parentNode;
@@ -143,15 +149,15 @@ let WebAppRT = {
     if (!target || target.getAttribute("target") != "_blank") {
       return;
     }
-  
+
     let uri = Services.io.newURI(target.href, target.ownerDocument.characterSet, null);
-  
+
     
     Cc["@mozilla.org/uriloader/external-protocol-service;1"].
       getService(Ci.nsIExternalProtocolService).
       getProtocolHandlerInfo(uri.scheme).
       launchWithURI(uri);
-  
+
     
     
     
