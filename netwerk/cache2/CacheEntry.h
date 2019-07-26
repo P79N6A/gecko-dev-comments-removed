@@ -233,11 +233,6 @@ private:
   
   bool mPreventCallbacks : 1;
   
-  
-  bool mIsRegistered : 1;
-  
-  bool mIsRegistrationAllowed : 1;
-  
   bool mHasMainThreadOnlyCallback : 1;
   
   
@@ -262,6 +257,16 @@ private:
 
   
   EState mState;
+
+  enum ERegistration {
+    NEVERREGISTERED = 0, 
+    REGISTERED = 1,      
+    DEREGISTERED = 2     
+  };
+
+  
+  
+  ERegistration mRegistration;
 
   
   
