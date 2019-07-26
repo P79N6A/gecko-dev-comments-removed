@@ -6,6 +6,7 @@
 
 
 
+
 const TAB_URL = EXAMPLE_URL + "doc_conditional-breakpoints.html";
 
 function test() {
@@ -19,11 +20,6 @@ function test() {
     gDebugger = gPanel.panelWin;
     gSources = gDebugger.DebuggerView.Sources;
     gBreakpoints = gDebugger.DebuggerController.Breakpoints;
-
-    
-    
-    var client = gPanel.target.client;
-    client.mainRoot.traits.conditionalBreakpoints = false;
 
     gLocation = { url: gSources.selectedValue, line: 18 };
 
@@ -62,7 +58,7 @@ function test() {
   function setDummyConditional(aClient) {
     
     
-    aClient.conditionalExpression = "";
+    aClient.condition = "";
   }
 
   function toggleBreakpoint() {
@@ -79,7 +75,7 @@ function test() {
 
   function testConditionalExpressionOnClient() {
     return gBreakpoints._getAdded(gLocation).then(aClient => {
-      if ("conditionalExpression" in aClient) {
+      if ("condition" in aClient) {
         ok(false, "A conditional expression shouldn't have been set.");
       } else {
         ok(true, "The conditional expression wasn't set, as expected.");

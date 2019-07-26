@@ -595,36 +595,42 @@ StackFrames.prototype = {
     let waitForNextPause = false;
     let breakLocation = this._currentBreakpointLocation;
     let watchExpressions = this._currentWatchExpressions;
+    let client = DebuggerController.activeThread.client;
 
     
     
     
     
-    if (breakLocation) {
+    if (!client.mainRoot.traits.conditionalBreakpoints) {
       
-      let breakpointPromise = DebuggerController.Breakpoints._getAdded(breakLocation);
-      if (breakpointPromise) {
-        breakpointPromise.then(({ conditionalExpression: e }) => { if (e) {
-          
-          
-          
-          this.evaluate(e, { depth: 0, meta: FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL });
-          waitForNextPause = true;
-        }});
+      
+      
+      if (breakLocation) {
+        
+        let breakpointPromise = DebuggerController.Breakpoints._getAdded(breakLocation);
+        if (breakpointPromise) {
+          breakpointPromise.then(({ conditionalExpression: e }) => { if (e) {
+            
+            
+            
+            this.evaluate(e, { depth: 0, meta: FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL });
+            waitForNextPause = true;
+          }});
+        }
       }
-    }
-    
-    
-    if (waitForNextPause) {
-      return;
-    }
-    if (this._currentFrameDescription == FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL) {
-      this._currentFrameDescription = FRAME_TYPE.NORMAL;
       
       
-      if (VariablesView.isFalsy({ value: this._currentEvaluation.return })) {
-        this.activeThread.resume(DebuggerController._ensureResumptionOrder);
+      if (waitForNextPause) {
         return;
+      }
+      if (this._currentFrameDescription == FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL) {
+        this._currentFrameDescription = FRAME_TYPE.NORMAL;
+        
+        
+        if (VariablesView.isFalsy({ value: this._currentEvaluation.return })) {
+          this.activeThread.resume(DebuggerController._ensureResumptionOrder);
+          return;
+        }
       }
     }
 
@@ -1827,6 +1833,8 @@ Breakpoints.prototype = {
 
 
 
+
+
   addBreakpoint: function(aLocation, aOptions = {}) {
     
     if (!aLocation) {
@@ -1875,10 +1883,10 @@ Breakpoints.prototype = {
       
       let disabledPromise = this._disabled.get(identifier);
       if (disabledPromise) {
-        disabledPromise.then(({ conditionalExpression: previousValue }) => {
-          
-          if (previousValue) {
-            aBreakpointClient.conditionalExpression = previousValue;
+        disabledPromise.then((aPrevBreakpointClient) => {
+          let condition = aPrevBreakpointClient.getCondition();
+          if (condition) {
+            aBreakpointClient.setCondition(gThreadClient, condition);
           }
         });
         this._disabled.delete(identifier);
@@ -2004,6 +2012,31 @@ Breakpoints.prototype = {
     
     return promise.all(getActiveBreakpoints(this._added)).then(aBreakpointClients => {
       return promise.all(getRemovedBreakpoints(aBreakpointClients));
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  updateCondition: function(aLocation, aCondition) {
+    let addedPromise = this._getAdded(aLocation);
+    if (!addedPromise) {
+      return promise.reject(new Error('breakpoint does not exist ' +
+                                      'in specified location'));
+    }
+
+    return addedPromise.then(aBreakpointClient => {
+      return aBreakpointClient.setCondition(gThreadClient, aCondition);
+    }, err => {
+      DevToolsUtils.reportException("Breakpoints.prototype.updateCondition",
+                                    err);
     });
   },
 

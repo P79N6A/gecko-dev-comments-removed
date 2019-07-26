@@ -20,16 +20,11 @@ function test() {
     gSources = gDebugger.DebuggerView.Sources;
     gBreakpoints = gDebugger.DebuggerController.Breakpoints;
 
-    
-    
-    var client = gPanel.target.client;
-    client.mainRoot.traits.conditionalBreakpoints = false;
-
     gLocation = { url: gSources.selectedValue, line: 18 };
 
     waitForSourceAndCaretAndScopes(gPanel, ".html", 17)
       .then(addBreakpoint)
-      .then(setDummyConditional)
+      .then(setConditional)
       .then(() => {
         let finished = waitForDebuggerEvents(gPanel, gDebugger.EVENTS.BREAKPOINT_REMOVED);
         toggleBreakpoint();
@@ -44,9 +39,9 @@ function test() {
       .then(() => {
         let finished = waitForDebuggerEvents(gPanel, gDebugger.EVENTS.CONDITIONAL_BREAKPOINT_POPUP_SHOWING);
         openConditionalPopup();
-        finished.then(() => ok(false, "The popup shouldn't have opened."));
-        return waitForTime(1000);
+        return finished;
       })
+      .then(testConditionalExpressionInPopup)
       .then(() => resumeDebuggerThenCloseAndFinish(gPanel))
       .then(null, aError => {
         ok(false, "Got an error: " + aError.message + "\n" + aError.stack);
@@ -59,10 +54,8 @@ function test() {
     return gPanel.addBreakpoint(gLocation);
   }
 
-  function setDummyConditional(aClient) {
-    
-    
-    aClient.conditionalExpression = "";
+  function setConditional(aClient) {
+    aClient.condition = "hello";
   }
 
   function toggleBreakpoint() {
@@ -79,11 +72,12 @@ function test() {
 
   function testConditionalExpressionOnClient() {
     return gBreakpoints._getAdded(gLocation).then(aClient => {
-      if ("conditionalExpression" in aClient) {
-        ok(false, "A conditional expression shouldn't have been set.");
-      } else {
-        ok(true, "The conditional expression wasn't set, as expected.");
-      }
+      is(aClient.condition, "hello", "The expression is correct (1).");
     });
+  }
+
+  function testConditionalExpressionInPopup() {
+    let textbox = gDebugger.document.getElementById("conditional-breakpoint-panel-textbox");
+    is(textbox.value, "hello", "The expression is correct (2).")
   }
 }

@@ -28,7 +28,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
-Cu.import("resource://gre/modules/devtools/Console.jsm");
 
 let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
 const { defer, resolve, reject } = promise;
@@ -36,6 +35,9 @@ const { defer, resolve, reject } = promise;
 XPCOMUtils.defineLazyServiceGetter(this, "socketTransportService",
                                    "@mozilla.org/network/socket-transport-service;1",
                                    "nsISocketTransportService");
+
+XPCOMUtils.defineLazyModuleGetter(this, "console",
+                                  "resource://gre/modules/devtools/Console.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "devtools",
                                   "resource://gre/modules/devtools/Loader.jsm");
@@ -1428,9 +1430,13 @@ ThreadClient.prototype = {
         
         
         if (aOnResponse) {
-          let bpClient = new BreakpointClient(this.client,
-                                              aResponse.actor,
-                                              location);
+          let root = this.client.mainRoot;
+          let bpClient = new BreakpointClient(
+            this.client,
+            aResponse.actor,
+            location,
+            root.traits.conditionalBreakpoints ? condition : undefined
+          );
           if (aCallback) {
             aCallback(aOnResponse(aResponse, bpClient));
           } else {
@@ -2182,11 +2188,18 @@ SourceClient.prototype = {
 
 
 
-function BreakpointClient(aClient, aActor, aLocation) {
+
+
+function BreakpointClient(aClient, aActor, aLocation, aCondition) {
   this._client = aClient;
   this._actor = aActor;
   this.location = aLocation;
   this.request = this._client.request;
+
+  
+  if (aCondition) {
+    this.condition = aCondition;
+  }
 }
 
 BreakpointClient.prototype = {
@@ -2203,6 +2216,65 @@ BreakpointClient.prototype = {
   }, {
     telemetry: "DELETE"
   }),
+
+  
+
+
+  hasCondition: function() {
+    let root = this._client.mainRoot;
+    
+    
+    if (root.traits.conditionalBreakpoints) {
+      return "condition" in this;
+    } else {
+      return "conditionalExpression" in this;
+    }
+  },
+
+  
+
+
+
+
+
+
+  getCondition: function() {
+    let root = this._client.mainRoot;
+    if (root.traits.conditionalBreakpoints) {
+      return this.condition;
+    } else {
+      return this.conditionalExpression;
+    }
+  },
+
+  
+
+
+  setCondition: function(gThreadClient, aCondition) {
+    let root = this._client.mainRoot;
+    let deferred = promise.defer();
+
+    if (root.traits.conditionalBreakpoints) {
+      let info = {
+        url: this.location.url,
+        line: this.location.line,
+        condition: aCondition
+      };
+      gThreadClient.setBreakpoint(info, (aResponse, ignoredBreakpoint) => {
+        if(aResponse && aResponse.error) {
+          deferred.reject(aResponse);
+        } else {
+          this.condition = aCondition;
+          deferred.resolve(null);
+        }
+      });
+    } else {
+      this.conditionalExpression = aCondition;
+      deferred.resolve(null);
+    }
+
+    return deferred.promise;
+  }
 };
 
 eventSource(BreakpointClient.prototype);

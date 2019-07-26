@@ -22,11 +22,6 @@ function test() {
     gBreakpointsAdded = gBreakpoints._added;
     gBreakpointsRemoving = gBreakpoints._removing;
 
-    
-    
-    var client = gPanel.target.client;
-    client.mainRoot.traits.conditionalBreakpoints = false;
-
     waitForSourceAndCaretAndScopes(gPanel, ".html", 17)
       .then(() => initialChecks())
       .then(() => addBreakpoint1())
@@ -162,9 +157,9 @@ function test() {
         "The breakpoint's client url is correct");
       is(aBreakpointClient.location.line, aLine,
         "The breakpoint's client line is correct");
-      is(aBreakpointClient.conditionalExpression, aConditionalExpression,
+      is(aBreakpointClient.condition, aConditionalExpression,
         "The breakpoint on line " + aLine + " should have a correct conditional expression.");
-      is("conditionalExpression" in aBreakpointClient, !!aConditionalExpression,
+      is("condition" in aBreakpointClient, !!aConditionalExpression,
         "The breakpoint on line " + aLine + " should have a correct conditional state.");
 
       ok(isCaretPos(gPanel, aLine),
