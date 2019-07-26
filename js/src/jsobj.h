@@ -288,6 +288,10 @@ class JSObject : public js::ObjectImpl
     }
 
     bool isBoundFunction() const {
+        
+        js::AutoThreadSafeAccess ts0(this);
+        js::AutoThreadSafeAccess ts1(lastProperty());
+        js::AutoThreadSafeAccess ts2(lastProperty()->base());
         return lastProperty()->hasObjectFlag(js::BaseShape::BOUND_FUNCTION);
     }
 

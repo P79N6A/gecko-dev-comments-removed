@@ -980,13 +980,15 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     
 
   public:
-    js::TaggedProto getTaggedProto() const {
+    TaggedProto getTaggedProto() const {
+        AutoThreadSafeAccess ts(this);
         return type_->proto();
     }
 
     bool hasTenuredProto() const;
 
     const Class *getClass() const {
+        AutoThreadSafeAccess ts(this);
         return type_->clasp();
     }
 
@@ -1193,6 +1195,12 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
     types::TypeObject *type() const {
         MOZ_ASSERT(!hasLazyType());
+        return typeRaw();
+    }
+
+    types::TypeObject *typeRaw() const {
+        AutoThreadSafeAccess ts0(this);
+        AutoThreadSafeAccess ts1(type_);
         return type_;
     }
 
@@ -1206,13 +1214,19 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
 
 
-    bool hasSingletonType() const { return !!type_->singleton; }
+    bool hasSingletonType() const {
+        AutoThreadSafeAccess ts(this);
+        return !!type_->singleton();
+    }
 
     
 
 
 
-    bool hasLazyType() const { return type_->lazy(); }
+    bool hasLazyType() const {
+        AutoThreadSafeAccess ts(this);
+        return type_->lazy();
+    }
 
     uint32_t slotSpan() const {
         if (inDictionaryMode())
@@ -1540,6 +1554,10 @@ JS_ALWAYS_INLINE Zone *
 BarrieredCell<ObjectImpl>::zoneFromAnyThread() const
 {
     const ObjectImpl* obj = static_cast<const ObjectImpl*>(this);
+
+    
+    AutoThreadSafeAccess ts(obj->shape_);
+
     return obj->shape_->zoneFromAnyThread();
 }
 

@@ -1,6 +1,10 @@
 
 
 
+if (getBuildConfiguration()['generational-gc'])
+    (function f() { f(); })();
+
+
 
 
 

@@ -889,51 +889,61 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
     HeapPtrObject proto_;
 
 #ifdef DEBUG
-    void assertCanAccessProto();
+    void assertCanAccessProto() const;
 #else
-    void assertCanAccessProto() {}
+    void assertCanAccessProto() const {}
 #endif
+
+    
+
+
+
+
+    HeapPtrObject singleton_;
 
   public:
 
-    const Class *clasp() {
+    const Class *clasp() const {
+        AutoThreadSafeAccess ts(this);
         return clasp_;
     }
 
     void setClasp(const Class *clasp) {
         JS_ASSERT(CurrentThreadCanWriteCompilationData());
-        JS_ASSERT(singleton);
+        JS_ASSERT(singleton());
         clasp_ = clasp;
     }
 
-    TaggedProto proto() {
+    TaggedProto proto() const {
+        AutoThreadSafeAccess ts(this);
         assertCanAccessProto();
         return TaggedProto(proto_);
     }
 
-    HeapPtrObject &protoRaw() {
-        
-        return proto_;
+    JSObject *singleton() const {
+        AutoThreadSafeAccess ts(this);
+        return singleton_;
     }
+
+    
+    HeapPtrObject &protoRaw() { return proto_; }
+    HeapPtrObject &singletonRaw() { return singleton_; }
 
     void setProto(JSContext *cx, TaggedProto proto);
     void setProtoUnchecked(TaggedProto proto) {
         proto_ = proto.raw();
     }
 
-    
-
-
-
-
-    HeapPtrObject singleton;
+    void initSingleton(JSObject *singleton) {
+        singleton_ = singleton;
+    }
 
     
 
 
 
     static const size_t LAZY_SINGLETON = 1;
-    bool lazy() const { return singleton == (JSObject *) LAZY_SINGLETON; }
+    bool lazy() const { return singleton() == (JSObject *) LAZY_SINGLETON; }
 
   private:
     
@@ -954,6 +964,7 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
     TypeObjectFlags flags() const {
         JS_ASSERT(CurrentThreadCanReadCompilationData());
+        AutoThreadSafeAccess ts(this);
         return flags_;
     }
 
@@ -969,21 +980,25 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
     bool hasNewScript() const {
         JS_ASSERT(CurrentThreadCanReadCompilationData());
+        AutoThreadSafeAccess ts(this);
         return addendum && addendum->isNewScript();
     }
 
     TypeNewScript *newScript() {
         JS_ASSERT(CurrentThreadCanReadCompilationData());
+        AutoThreadSafeAccess ts(this);
         return addendum->asNewScript();
     }
 
     bool hasTypedObject() {
         JS_ASSERT(CurrentThreadCanReadCompilationData());
+        AutoThreadSafeAccess ts(this);
         return addendum && addendum->isTypedObject();
     }
 
     TypeTypedObject *typedObject() {
         JS_ASSERT(CurrentThreadCanReadCompilationData());
+        AutoThreadSafeAccess ts(this);
         return addendum->asTypedObject();
     }
 

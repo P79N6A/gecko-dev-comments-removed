@@ -1,5 +1,10 @@
 
 
+if (getBuildConfiguration()['generational-gc'])
+    quit();
+
+
+
 
 
 
