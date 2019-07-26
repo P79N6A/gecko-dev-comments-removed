@@ -1025,15 +1025,20 @@ nsDocumentViewer::LoadComplete(nsresult aStatus)
     }
   }
 
-  
-  
-  if (mPresShell && !mStopped) {
-    nsCOMPtr<nsIPresShell> shellDeathGrip(mPresShell);
-    mPresShell->UnsuppressPainting();
+  if (!mStopped) {
+    if (mDocument) {
+      mDocument->ScrollToRef();
+    }
+
+    
     
     if (mPresShell) {
-      mPresShell->ScrollToAnchor();
-      mPresShell->LoadComplete();
+      nsCOMPtr<nsIPresShell> shellDeathGrip(mPresShell);
+      mPresShell->UnsuppressPainting();
+      
+      if (mPresShell) {
+        mPresShell->LoadComplete();
+      }
     }
   }
 
