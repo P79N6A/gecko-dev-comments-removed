@@ -58,7 +58,6 @@ DOMCI_CLASS(File)
 
 DOMCI_CLASS(ModalContentWindow)
 
-DOMCI_CLASS(MozMobileMessageManager)
 DOMCI_CLASS(MozSmsMessage)
 DOMCI_CLASS(MozMmsMessage)
 DOMCI_CLASS(MozSmsFilter)
