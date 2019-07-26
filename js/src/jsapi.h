@@ -3626,6 +3626,11 @@ JS_RemoveScriptRootRT(JSRuntime *rt, JSScript **rp);
 
 
 
+extern JS_FRIEND_API(void)
+js_RemoveRoot(JSRuntime *rt, void *rp);
+
+
+
 
 
 extern JS_NEVER_INLINE JS_PUBLIC_API(void)
