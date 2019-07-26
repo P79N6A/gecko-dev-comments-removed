@@ -276,5 +276,10 @@ TEST(Gfx, RegionSimplify) {
       "regions not merged";
   }
 
+  { 
+    
+    nsRegion r;
+    r.SimplifyOutwardByArea(100);
+  }
 
 }
