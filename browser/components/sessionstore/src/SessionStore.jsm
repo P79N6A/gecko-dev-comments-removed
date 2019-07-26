@@ -30,7 +30,7 @@ const MAX_CONCURRENT_TAB_RESTORES = 3;
 
 
 const OBSERVING = [
-  "domwindowopened", "domwindowclosed",
+  "browser-window-before-show", "domwindowclosed",
   "quit-application-requested", "quit-application-granted",
   "browser-lastwindow-close-granted",
   "quit-application", "browser:purge-session-history",
@@ -540,8 +540,8 @@ let SessionStoreInternal = {
 
   observe: function ssi_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
-      case "domwindowopened": 
-        this.onOpen(aSubject);
+      case "browser-window-before-show": 
+        this.onBeforeBrowserWindowShown(aSubject);
         break;
       case "domwindowclosed": 
         this.onClose(aSubject);
@@ -923,67 +923,55 @@ let SessionStoreInternal = {
 
 
 
-  onOpen: function ssi_onOpen(aWindow) {
-    let onload = () => {
-      aWindow.removeEventListener("load", onload);
+  onBeforeBrowserWindowShown: function (aWindow) {
+    
+    if (this._sessionInitialized) {
+      this.onLoad(aWindow);
+      return;
+    }
 
-      let windowType = aWindow.document.documentElement.getAttribute("windowtype");
+    
+    
+    
+    if (!this._promiseReadyForInitialization) {
+      let deferred = Promise.defer();
 
       
-      if (windowType != "navigator:browser") {
+      Services.obs.addObserver(function obs(subject, topic) {
+        if (aWindow == subject) {
+          Services.obs.removeObserver(obs, topic);
+          deferred.resolve();
+        }
+      }, "browser-delayed-startup-finished", false);
+
+      
+      
+      this._promiseReadyForInitialization =
+        Promise.all([deferred.promise, gSessionStartup.onceInitialized]);
+    }
+
+    
+    
+    
+    
+    
+    
+    this._promiseReadyForInitialization.then(() => {
+      if (aWindow.closed) {
         return;
       }
 
       if (this._sessionInitialized) {
         this.onLoad(aWindow);
-        return;
+      } else {
+        let initialState = this.initSession();
+        this._sessionInitialized = true;
+        this.onLoad(aWindow, initialState);
+
+        
+        this._deferredInitialized.resolve();
       }
-
-      
-      
-      
-      if (!this._promiseReadyForInitialization) {
-        let deferred = Promise.defer();
-
-        
-        Services.obs.addObserver(function obs(subject, topic) {
-          if (aWindow == subject) {
-            Services.obs.removeObserver(obs, topic);
-            deferred.resolve();
-          }
-        }, "browser-delayed-startup-finished", false);
-
-        
-        
-        this._promiseReadyForInitialization =
-          Promise.all([deferred.promise, gSessionStartup.onceInitialized]);
-      }
-
-      
-      
-      
-      
-      
-      
-      this._promiseReadyForInitialization.then(() => {
-        if (aWindow.closed) {
-          return;
-        }
-
-        if (this._sessionInitialized) {
-          this.onLoad(aWindow);
-        } else {
-          let initialState = this.initSession();
-          this._sessionInitialized = true;
-          this.onLoad(aWindow, initialState);
-
-          
-          this._deferredInitialized.resolve();
-        }
-      }, console.error);
-    };
-
-    aWindow.addEventListener("load", onload);
+    }, console.error);
   },
 
   
