@@ -205,6 +205,16 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
     hc->GetResponseHeader(NS_LITERAL_CSTRING("Accept-Ranges"),
                           ranges);
     bool acceptsRanges = ranges.EqualsLiteral("bytes");
+    
+    bool dataIsBounded = false;
+
+    int64_t contentLength = -1;
+    hc->GetContentLength(&contentLength);
+    if (contentLength >= 0 && responseStatus == HTTP_OK_CODE) {
+      
+      
+      dataIsBounded = true;
+    }
 
     if (mOffset == 0) {
       
@@ -231,14 +241,15 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
         double duration = durationText.ToDouble(&ec);
         if (ec == NS_OK && duration >= 0) {
           mDecoder->SetDuration(duration);
-        } else {
-          mDecoder->SetInfinite(true);
+          
+          dataIsBounded = true;
         }
-      } else {
-        mDecoder->SetInfinite(true);
       }
     }
 
+    
+    
+    bool boundedSeekLimit = true;
     
     if (!mByteRange.IsNull() && (responseStatus == HTTP_PARTIAL_RESPONSE_CODE)) {
       
@@ -267,10 +278,10 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
       
       
       
-      if (rangeTotal != -1) {
-        mCacheStream.NotifyDataLength(rangeTotal);
+      if (rangeTotal == -1) {
+        boundedSeekLimit = false;
       } else {
-        mDecoder->SetInfinite(true);
+        mCacheStream.NotifyDataLength(rangeTotal);
       }
       mCacheStream.NotifyDataStarted(rangeStart);
 
@@ -290,13 +301,8 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
     } else if (mOffset == 0 &&
                (responseStatus == HTTP_OK_CODE ||
                 responseStatus == HTTP_PARTIAL_RESPONSE_CODE)) {
-      
-      
-      int64_t cl = -1;
-      hc->GetContentLength(&cl);
-
-      if (cl >= 0) {
-        mCacheStream.NotifyDataLength(cl);
+      if (contentLength >= 0) {
+        mCacheStream.NotifyDataLength(contentLength);
       }
     }
     
@@ -307,10 +313,13 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
     
     seekable =
       responseStatus == HTTP_PARTIAL_RESPONSE_CODE || acceptsRanges;
-
-    if (seekable) {
-      mDecoder->SetInfinite(false);
+    if (seekable && boundedSeekLimit) {
+      
+      
+      dataIsBounded = true;
     }
+
+    mDecoder->SetInfinite(!dataIsBounded);
   }
   mDecoder->SetTransportSeekable(seekable);
   mCacheStream.SetTransportSeekable(seekable);
