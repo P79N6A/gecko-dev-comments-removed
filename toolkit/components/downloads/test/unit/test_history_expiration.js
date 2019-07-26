@@ -26,6 +26,11 @@ function getExpirablePRTime() {
 
 function run_test()
 {
+  run_next_test();
+}
+
+add_task(function test_execute()
+{
   
   
   if (!("@mozilla.org/browser/nav-history-service;1" in Cc))
@@ -79,8 +84,8 @@ function run_test()
   
   let histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
                 getService(Ci.nsINavHistoryService);
-  histsvc.addVisit(theURI, getExpirablePRTime(), null,
-                   histsvc.TRANSITION_DOWNLOAD, false, 0);
+  yield promiseAddVisits({uri: theURI, visitDate: getExpirablePRTime(),
+                          transition: histsvc.TRANSITION_DOWNLOAD});
 
   
   let histobs = dm.QueryInterface(Ci.nsINavHistoryObserver);
@@ -116,4 +121,5 @@ function run_test()
 
   
   do_test_pending();
-}
+});
+

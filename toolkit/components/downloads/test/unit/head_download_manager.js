@@ -14,6 +14,9 @@ do_get_profile();
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/commonjs/promise/core.js");
 
 var downloadUtils = { };
 XPCOMUtils.defineLazyServiceGetter(downloadUtils,
@@ -157,6 +160,70 @@ function getDownloadListener()
     onSecurityChange: function(a, b, c, d) { }
   };
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseAddVisits(aPlaceInfo)
+{
+  let deferred = Promise.defer();
+  let places = [];
+  if (aPlaceInfo instanceof Ci.nsIURI) {
+    places.push({ uri: aPlaceInfo });
+  }
+  else if (Array.isArray(aPlaceInfo)) {
+    places = places.concat(aPlaceInfo);
+  } else {
+    places.push(aPlaceInfo)
+  }
+
+  
+  let now = Date.now();
+  for (let i = 0; i < places.length; i++) {
+    if (!places[i].title) {
+      places[i].title = "test visit for " + places[i].uri.spec;
+    }
+    places[i].visits = [{
+      transitionType: places[i].transition === undefined ? Ci.nsINavHistoryService.TRANSITION_LINK
+                                                         : places[i].transition,
+      visitDate: places[i].visitDate || (now++) * 1000,
+      referrerURI: places[i].referrer
+    }];
+  }
+
+  PlacesUtils.asyncHistory.updatePlaces(
+    places,
+    {
+      handleError: function handleError(aResultCode, aPlaceInfo) {
+        let ex = new Components.Exception("Unexpected error in adding visits.",
+                                          aResultCode);
+        deferred.reject(ex);
+      },
+      handleResult: function () {},
+      handleCompletion: function handleCompletion() {
+        deferred.resolve();
+      }
+    }
+  );
+
+  return deferred.promise;
+}
+
 
 XPCOMUtils.defineLazyGetter(this, "Services", function() {
   Cu.import("resource://gre/modules/Services.jsm");
