@@ -484,7 +484,7 @@ public:
   }
 
   static void DeleteLineList(nsPresContext* aPresContext, nsLineList& aLines,
-                             nsIFrame* aDestructRoot);
+                             nsIFrame* aDestructRoot, nsFrameList* aFrames);
 
   
   
