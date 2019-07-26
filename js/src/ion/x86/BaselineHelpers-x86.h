@@ -36,12 +36,21 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
 }
 
 inline void
-EmitTailCall(IonCode *target, MacroAssembler &masm)
+EmitTailCall(IonCode *target, MacroAssembler &masm, uint32_t argSize)
 {
     
+
+    
     masm.movl(BaselineFrameReg, eax);
+    masm.addl(Imm32(BaselineFrame::FramePointerOffset), eax);
     masm.subl(BaselineStackReg, eax);
-    masm.addl(Imm32(4), eax);
+
+    
+    masm.movl(eax, ebx);
+    masm.subl(Imm32(argSize), ebx);
+    masm.store32(ebx, Operand(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
+
+    
     masm.makeFrameDescriptor(eax, IonFrame_BaselineJS);
     masm.push(eax);
     masm.push(BaselineTailCallReg);

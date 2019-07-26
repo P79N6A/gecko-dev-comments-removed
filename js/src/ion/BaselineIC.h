@@ -362,10 +362,7 @@ class ICStubCompiler
       : cx(cx), kind(kind) {}
 
     
-    IonCode *generateVMWrapper(const VMFunction &fun) {
-        IonCompartment *ion = cx->compartment->ionCompartment();
-        return ion->generateVMWrapper(cx, fun);
-    }
+    bool callVM(const VMFunction &fun, MacroAssembler &masm);
 
   public:
     virtual ICStub *getStub() = 0;

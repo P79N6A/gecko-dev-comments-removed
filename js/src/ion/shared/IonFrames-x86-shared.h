@@ -432,5 +432,40 @@ class InvalidationBailoutStack
 }
 }
 
+
+
+
+
+
+
+
+
+class BaselineFrame
+{
+    uint32_t frameSize;
+
+  public:
+    
+    
+    static const uint32_t FramePointerOffset = sizeof(void *);
+
+    static inline size_t offsetOfArg(size_t index) {
+        return FramePointerOffset + js::ion::IonJSFrameLayout::offsetOfActualArg(index);
+    }
+    static size_t Size() {
+        return sizeof(BaselineFrame);
+    }
+
+    
+    
+    
+    static inline size_t reverseOffsetOfFrameSize() {
+        return -(sizeof(BaselineFrame) - offsetof(BaselineFrame, frameSize));
+    }
+    static inline size_t reverseOffsetOfLocal(size_t index) {
+        return -(sizeof(BaselineFrame) + index * sizeof(js::Value)) - sizeof(js::Value);
+    }
+};
+
 #endif 
 

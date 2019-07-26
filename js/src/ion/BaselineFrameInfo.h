@@ -129,36 +129,6 @@ class StackValue
     }
 };
 
-
-
-
-
-
-
-
-
-class BaselineFrame
-{
-    
-    uint32_t dummy1;
-    uint32_t dummy2;
-
-    
-    
-    static const uint32_t FramePointerOffset = sizeof(void *);
-
-  public:
-    static inline size_t offsetOfLocal(size_t index) {
-        return -(sizeof(BaselineFrame) + index * sizeof(Value)) - sizeof(Value);
-    }
-    static inline size_t offsetOfArg(size_t index) {
-        return FramePointerOffset + IonJSFrameLayout::offsetOfActualArg(index);
-    }
-    static size_t Size() {
-        return sizeof(BaselineFrame);
-    }
-};
-
 class FrameInfo
 {
     JSContext *cx;
@@ -234,7 +204,7 @@ class FrameInfo
     }
     inline Address addressOfLocal(size_t local) const {
         JS_ASSERT(local < nlocals());
-        return Address(BaselineFrameReg, BaselineFrame::offsetOfLocal(local));
+        return Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfLocal(local));
     }
     inline Address addressOfArg(size_t arg) const {
         JS_ASSERT(arg < nargs());
@@ -244,7 +214,7 @@ class FrameInfo
         JS_ASSERT(value->kind() == StackValue::Stack);
         size_t slot = value - &stack[0];
         JS_ASSERT(slot < stackDepth());
-        return Address(BaselineFrameReg, BaselineFrame::offsetOfLocal(nlocals() + slot));
+        return Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfLocal(nlocals() + slot));
     }
 
     void popValue(ValueOperand dest);

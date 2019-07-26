@@ -430,7 +430,7 @@ BaselineCompiler::emit_JSOP_GETLOCAL()
     if (local >= frame.nlocals()) {
         
         frame.syncStack(0);
-        masm.loadValue(Address(BaselineFrameReg, BaselineFrame::offsetOfLocal(local)), R0);
+        masm.loadValue(Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfLocal(local)), R0);
         frame.push(R0);
         return true;
     }
