@@ -77,6 +77,16 @@ function test() {
     return;
   }
 
+  try {
+    
+    
+    var gsettings = Cc["@mozilla.org/gsettings-service;1"].
+                    getService(Ci.nsIGSettingsService).
+                    getCollectionForSchema("org.gnome.desktop.background");
+    todo(false, "This test doesn't work when GSettings is available");
+    return;
+  } catch(e) { }
+
   gBrowser.selectedTab = gBrowser.addTab();
   gBrowser.selectedBrowser.addEventListener("load", onPageLoad, true);
   content.location = "about:logo";
