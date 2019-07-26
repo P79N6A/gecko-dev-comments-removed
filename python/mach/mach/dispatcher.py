@@ -16,6 +16,13 @@ from .base import (
 )
 
 
+class CommandFormatter(argparse.HelpFormatter):
+    """Custom formatter to format just a subcommand."""
+
+    def add_usage(self, *args):
+        pass
+
+
 class CommandAction(argparse.Action):
     """An argparse action that handles mach commands.
 
@@ -160,7 +167,20 @@ class CommandAction(argparse.Action):
         if not handler:
             raise UnknownCommandError(command, 'query')
 
-        group = parser.add_argument_group('Command Arguments')
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        c_parser = argparse.ArgumentParser(formatter_class=CommandFormatter,
+            add_help=False)
+
+        group = c_parser.add_argument_group('Command Arguments')
 
         for arg in handler.arguments:
             group.add_argument(*arg[0], **arg[1])
@@ -173,4 +193,6 @@ class CommandAction(argparse.Action):
         parser.usage = '%(prog)s [global arguments] ' + command + \
             ' [command arguments]'
         parser.print_help()
+        print('')
+        c_parser.print_help()
 
