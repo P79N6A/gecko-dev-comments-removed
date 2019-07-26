@@ -699,6 +699,9 @@ public:
 
 
 
+
+
+
   static nsPoint TransformAncestorPointToFrame(nsIFrame* aFrame,
                                                const nsPoint& aPoint,
                                                nsIFrame* aAncestor);
