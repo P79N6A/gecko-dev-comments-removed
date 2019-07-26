@@ -99,7 +99,8 @@ public:
 
     
     
-    nsresult ClosePersistentConnections();
+    
+    nsresult DoShiftReloadConnectionCleanup(nsHttpConnectionInfo *);
 
     
     
@@ -240,7 +241,7 @@ public:
 
     bool GetConnectionData(nsTArray<mozilla::net::HttpRetParams> *);
 
-    void ResetIPFamillyPreference(nsHttpConnectionInfo *);
+    void ResetIPFamilyPreference(nsHttpConnectionInfo *);
 
 private:
     virtual ~nsHttpConnectionMgr();
@@ -613,7 +614,7 @@ private:
     void OnMsgReclaimConnection    (int32_t, void *);
     void OnMsgCompleteUpgrade      (int32_t, void *);
     void OnMsgUpdateParam          (int32_t, void *);
-    void OnMsgClosePersistentConnections (int32_t, void *);
+    void OnMsgDoShiftReloadConnectionCleanup (int32_t, void *);
     void OnMsgProcessFeedback      (int32_t, void *);
     void OnMsgProcessAllSpdyPendingQ (int32_t, void *);
     void OnMsgUpdateRequestTokenBucket (int32_t, void *);
@@ -641,6 +642,7 @@ private:
     nsCOMPtr<nsITimer> mTimeoutTick;
     bool mTimeoutTickArmed;
 
+    
     
     
     
