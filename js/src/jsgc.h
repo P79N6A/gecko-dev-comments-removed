@@ -168,8 +168,8 @@ IsBackgroundFinalized(AllocKind kind)
         true,      
         false,     
         true,      
-        true,     
-        false,     
+        true,      
+        true,      
         true,      
         true,      
         false,     
@@ -332,6 +332,10 @@ struct ArenaLists {
     bool doneBackgroundFinalize(AllocKind kind) const {
         return backgroundFinalizeState[kind] == BFS_DONE ||
                backgroundFinalizeState[kind] == BFS_JUST_FINISHED;
+    }
+
+    bool needBackgroundFinalizeWait(AllocKind kind) const {
+        return backgroundFinalizeState[kind] != BFS_DONE;
     }
 
     
@@ -1184,6 +1188,10 @@ SetDeterministicGC(JSContext *cx, bool enabled);
 
 void
 SetValidateGC(JSContext *cx, bool enabled);
+
+
+void
+FinishBackgroundFinalize(JSRuntime *rt);
 
 const int ZealPokeValue = 1;
 const int ZealAllocValue = 2;

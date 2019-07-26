@@ -357,13 +357,18 @@ class CellIter : public CellIterImpl
       : lists(&comp->zone()->allocator.arenas),
         kind(kind)
     {
+
         
 
 
 
 
 
-        JS_ASSERT(!IsBackgroundFinalized(kind));
+        if (IsBackgroundFinalized(kind) &&
+            comp->zone()->allocator.arenas.needBackgroundFinalizeWait(kind))
+        {
+            gc::FinishBackgroundFinalize(comp->rt);
+        }
         if (lists->isSynchronizedFreeList(kind)) {
             lists = NULL;
         } else {
