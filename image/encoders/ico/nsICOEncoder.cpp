@@ -158,6 +158,8 @@ nsICOEncoder::AddImageFrame(const uint8_t* aData,
     mImageBufferCurr = mImageBufferStart;
 
     
+    
+    
     mICODirEntry.mBytesInRes = BMPImageBufferSize - BFH_LENGTH + andMaskSize;
 
     
