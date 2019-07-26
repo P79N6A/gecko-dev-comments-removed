@@ -207,21 +207,11 @@ PRMJ_Now()
         MUTEX_UNLOCK(&calibration.data_lock);
 
         
-        double skewThreshold;
-        DWORD timeAdjustment, timeIncrement;
-        BOOL timeAdjustmentDisabled;
-        if (GetSystemTimeAdjustment(&timeAdjustment, &timeIncrement, &timeAdjustmentDisabled)) {
-            if (timeAdjustmentDisabled) {
-                
-                skewThreshold = timeAdjustment / 10.0;
-            } else {
-                
-                skewThreshold = timeIncrement / 10.0;
-            }
-        } else {
-            
-            skewThreshold = 15625.25;
-        }
+        
+        
+        
+        
+        static const double KernelTickInMicroseconds = 15625.25;
 
         
         double diff = lowresTime - highresTime;
@@ -231,7 +221,7 @@ PRMJ_Now()
         
         
         
-        if (mozilla::Abs(diff) <= 2 * skewThreshold) {
+        if (mozilla::Abs(diff) <= 2 * KernelTickInMicroseconds) {
             
             return int64_t(highresTime);
         }
