@@ -949,6 +949,18 @@ GfxInfo::GetGfxDriverInfo()
 
 
     APPEND_TO_DRIVER_BLOCKLIST2( DRIVER_OS_ALL,
+        (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorATI), GfxDriverInfo::allDevices,
+      nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
+      DRIVER_GREATER_THAN_OR_EQUAL, V(14,1,0,0) );
+    APPEND_TO_DRIVER_BLOCKLIST2( DRIVER_OS_ALL,
+        (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAMD), GfxDriverInfo::allDevices,
+      nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
+      DRIVER_GREATER_THAN_OR_EQUAL, V(14,1,0,0) );
+
+    
+
+
+    APPEND_TO_DRIVER_BLOCKLIST2( DRIVER_OS_ALL,
       (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), (GfxDeviceFamily*) GfxDriverInfo::GetDeviceFamily(NvidiaBlockD3D9Layers),
       nsIGfxInfo::FEATURE_DIRECT3D_9_LAYERS, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
       DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions );
