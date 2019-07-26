@@ -385,6 +385,12 @@ GeckoChildProcessHost::Join()
 
   
   base::KillProcess(mChildProcessHandle, 0, true);
+  SetAlreadyDead();
+}
+
+void
+GeckoChildProcessHost::SetAlreadyDead()
+{
   mChildProcessHandle = 0;
 }
 
@@ -896,6 +902,10 @@ GeckoExistingProcessHost(GeckoProcessType aProcessType,
 
 GeckoExistingProcessHost::~GeckoExistingProcessHost()
 {
+  
+  
+  
+  SetAlreadyDead();
 }
 
 bool

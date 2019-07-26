@@ -15,6 +15,11 @@
 # include <sys/resource.h>
 #endif
 
+#ifdef XP_UNIX
+#include <sys/types.h>
+#include <sys/wait.h>
+#endif
+
 #include "chrome/common/process_watcher.h"
 
 #include "AppProcessChecker.h"
@@ -914,10 +919,15 @@ ContentParent::SetPriorityAndCheckIsAlive(ProcessPriority aPriority)
     
     
     
-#ifndef XP_WIN
-    bool exited = false;
-    base::DidProcessCrash(&exited, mSubprocess->GetChildProcessHandle());
-    if (exited) {
+    
+    
+    
+    
+#ifdef XP_UNIX
+    siginfo_t info;
+    info.si_pid = 0;
+    if (waitid(P_PID, Pid(), &info, WNOWAIT | WNOHANG | WEXITED) == 0
+        && info.si_pid != 0) {
         return false;
     }
 #endif
@@ -2387,6 +2397,7 @@ ContentParent::KillHard()
     if (!KillProcess(OtherProcess(), 1, false)) {
         NS_WARNING("failed to kill subprocess!");
     }
+    mSubprocess->SetAlreadyDead();
     XRE_GetIOMessageLoop()->PostTask(
         FROM_HERE,
         NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,

@@ -123,6 +123,9 @@ public:
 
   void Join();
 
+  
+  void SetAlreadyDead();
+
   void SetSandboxEnabled(bool aSandboxEnabled) {
     mSandboxEnabled = aSandboxEnabled;
   }
