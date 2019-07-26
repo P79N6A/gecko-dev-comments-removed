@@ -1220,54 +1220,10 @@ PropertyAccess(JSContext *cx, JSScript *script, jsbytecode *pc, TypeObject *obje
 
 
 
-
-    if (object->singleton && object->singleton->isTypedArray() && JSID_IS_VOID(id)) {
-        if (access != PROPERTY_WRITE) {
-            int arrayKind = object->proto->getClass() - TypedArray::protoClasses;
-            JS_ASSERT(arrayKind >= 0 && arrayKind < TypedArray::TYPE_MAX);
-
-            bool maybeDouble = (arrayKind == TypedArray::TYPE_FLOAT32 ||
-                                arrayKind == TypedArray::TYPE_FLOAT64);
-            target->addType(cx, maybeDouble ? Type::DoubleType() : Type::Int32Type());
-        }
-        return;
-    }
-
-    
-
-
-
-
-
     bool markOwn = access == PROPERTY_WRITE && JSID_IS_VOID(id);
     HeapTypeSet *types = object->getProperty(cx, id, markOwn);
     if (!types)
         return;
-
-    
-
-
-
-
-
-
-
-    if (access != PROPERTY_WRITE) {
-        RootedObject singleton(cx, object->singleton);
-
-        
-
-
-
-        if (!singleton && !types->ownProperty(false))
-            singleton = object->proto;
-
-        if (singleton) {
-            Type type = GetSingletonPropertyType(cx, singleton, id);
-            if (!type.isUnknown())
-                target->addType(cx, type);
-        }
-    }
 
     
     if (access == PROPERTY_WRITE) {
@@ -1337,8 +1293,6 @@ TypeConstraintProp<access>::newType(JSContext *cx, TypeSet *source, Type type)
 
         if (id == JSID_VOID)
             MarkPropertyAccessUnknown(cx, script, pc, target);
-        else
-            target->addType(cx, Type::Int32Type());
         return;
     }
 
@@ -5178,8 +5132,10 @@ AnalyzePoppedThis(JSContext *cx, SSAUseChain *use,
 
 
 
-        analysis->breakTypeBarriersSSA(cx, analysis->poppedValue(calleepc, 0));
-        analysis->breakTypeBarriers(cx, calleepc - script->code, true);
+        if (cx->compartment()->types.compiledInfo.outputIndex == RecompileInfo::NoCompilerRunning) {
+            analysis->breakTypeBarriersSSA(cx, analysis->poppedValue(calleepc, 0));
+            analysis->breakTypeBarriers(cx, calleepc - script->code, true);
+        }
 
         StackTypeSet *funcallTypes = analysis->poppedTypes(pc, GET_ARGC(pc) + 1);
         StackTypeSet *scriptTypes = analysis->poppedTypes(pc, GET_ARGC(pc));
