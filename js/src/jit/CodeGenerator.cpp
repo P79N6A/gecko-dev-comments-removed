@@ -5825,7 +5825,7 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
                      safepoints_.size(), callTargets.length(),
                      patchableBackedges_.length());
     if (!ionScript) {
-        recompileInfo.compilerOutput(cx->compartment()->types)->invalidate();
+        recompileInfo.compilerOutput(cx->zone()->types)->invalidate();
         return false;
     }
 
@@ -5850,7 +5850,7 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
         
         
         js_free(ionScript);
-        recompileInfo.compilerOutput(cx->compartment()->types)->invalidate();
+        recompileInfo.compilerOutput(cx->zone()->types)->invalidate();
         return false;
     }
 
@@ -5871,7 +5871,7 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
                          false,  false))
         {
             js_free(ionScript);
-            recompileInfo.compilerOutput(cx->compartment()->types)->invalidate();
+            recompileInfo.compilerOutput(cx->zone()->types)->invalidate();
             return false;
         }
     }

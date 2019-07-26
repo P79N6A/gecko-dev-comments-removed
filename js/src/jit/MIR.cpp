@@ -3025,7 +3025,7 @@ jit::PropertyReadIsIdempotent(types::CompilerConstraintList *constraints,
 
             
             types::HeapTypeSetKey property = object->property(NameToId(name));
-            if (property.configured(constraints, object))
+            if (property.configured(constraints))
                 return false;
         }
     }
