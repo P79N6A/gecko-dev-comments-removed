@@ -51,12 +51,13 @@ function testCompletion(hud) {
   is(jsterm.completeNode.value.replace(/ /g, ""), "", "'docu' completed");
 
   
-  input.value = "window.O";
-  input.setSelectionRange(8, 8);
+  
+  input.value = "window.Ob";
+  input.setSelectionRange(9, 9);
   jsterm.complete(jsterm.COMPLETE_FORWARD, testNext);
   yield;
 
-  is(input.value, "window.Object", "'window.O' tab completion");
+  is(input.value, "window.Object", "'window.Ob' tab completion");
 
   
   input.value = "document.getElem";
