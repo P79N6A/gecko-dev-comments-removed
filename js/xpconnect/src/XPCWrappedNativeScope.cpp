@@ -8,6 +8,8 @@
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
 #include "jsproxy.h"
+#include "nsContentUtils.h"
+#include "nsPrincipal.h"
 
 #include "mozilla/dom/BindingUtils.h"
 
@@ -106,7 +108,8 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
         mNext(nullptr),
         mGlobalJSObject(nullptr),
         mPrototypeNoHelper(nullptr),
-        mExperimentalBindingsEnabled(XPCJSRuntime::Get()->ExperimentalBindingsEnabled())
+        mExperimentalBindingsEnabled(XPCJSRuntime::Get()->ExperimentalBindingsEnabled()),
+        mIsXBLScope(false)
 {
     
     {   
@@ -172,6 +175,82 @@ XPCWrappedNativeScope::GetComponentsJSObject(XPCCallContext& ccx)
         return nullptr;
     return obj;
 }
+
+JSObject*
+XPCWrappedNativeScope::EnsureXBLScope(JSContext *cx)
+{
+    JSObject *global = GetGlobalJSObject();
+    MOZ_ASSERT(js::IsObjectInContextCompartment(global, cx));
+    MOZ_ASSERT(!mIsXBLScope);
+    MOZ_ASSERT(strcmp(js::GetObjectClass(global)->name,
+                      "nsXBLPrototypeScript compilation scope"));
+
+    
+    if (mXBLScope)
+        return mXBLScope;
+
+    
+    MOZ_ASSERT(!strcmp(js::GetObjectClass(mGlobalJSObject)->name, "Window") ||
+               !strcmp(js::GetObjectClass(mGlobalJSObject)->name, "ChromeWindow") ||
+               !strcmp(js::GetObjectClass(mGlobalJSObject)->name, "ModalContentWindow"));
+
+    
+    
+    nsIPrincipal *principal = GetPrincipal();
+    if (!principal)
+        return nullptr;
+    if (nsContentUtils::IsSystemPrincipal(principal))
+        return global;
+
+    
+    if (!XPCJSRuntime::Get()->XBLScopesEnabled())
+        return global;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    SandboxOptions options;
+    options.wantXrays = true;
+    options.wantComponents = true;
+    options.wantXHRConstructor = false;
+    options.proto = global;
+
+    
+    nsCOMPtr<nsIExpandedPrincipal> ep;
+    MOZ_ASSERT(!(ep = do_QueryInterface(principal)));
+    nsTArray< nsCOMPtr<nsIPrincipal> > principalAsArray(1);
+    principalAsArray.AppendElement(principal);
+    ep = new nsExpandedPrincipal(principalAsArray);
+
+    
+    JSAutoRequest ar(cx);
+    JS::Value v = JS::UndefinedValue();
+    nsresult rv = xpc_CreateSandboxObject(cx, &v, ep, options);
+    NS_ENSURE_SUCCESS(rv, nullptr);
+    mXBLScope = &v.toObject();
+
+    
+    EnsureCompartmentPrivate(js::UnwrapObject(mXBLScope))->scope->mIsXBLScope = true;
+
+    
+    return mXBLScope;
+}
+
+namespace xpc {
+JSObject *GetXBLScope(JSContext *cx, JSObject *contentScope)
+{
+    JSAutoCompartment ac(cx, contentScope);
+    JSObject *scope = EnsureCompartmentPrivate(contentScope)->scope->EnsureXBLScope(cx);
+    scope = js::UnwrapObject(scope);
+    xpc_UnmarkGrayObject(scope);
+    return scope;
+}
+} 
 
 
 
@@ -255,6 +334,7 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope()
     mComponents = nullptr;
 
     JSRuntime *rt = XPCJSRuntime::Get()->GetJSRuntime();
+    mXBLScope.finalize(rt);
     mGlobalJSObject.finalize(rt);
 }
 

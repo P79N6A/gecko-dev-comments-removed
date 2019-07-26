@@ -912,6 +912,10 @@ public:
         return gExperimentalBindingsEnabled;
     }
 
+    bool XBLScopesEnabled() {
+        return gXBLScopesEnabled;
+    }
+
     size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
 
     AutoMarkingPtr**  GetAutoRootsAdr() {return &mAutoRoots;}
@@ -928,6 +932,7 @@ private:
     void ReleaseIncrementally(nsTArray<nsISupports *> &array);
 
     static bool gExperimentalBindingsEnabled;
+    static bool gXBLScopesEnabled;
 
     static const char* mStrings[IDX_TOTAL_COUNT];
     jsid mStrIDs[IDX_TOTAL_COUNT];
@@ -1648,6 +1653,8 @@ public:
         JSObject *obj = GetGlobalJSObjectPreserveColor();
         MOZ_ASSERT(obj);
         JS_CALL_OBJECT_TRACER(trc, obj, "XPCWrappedNativeScope::mGlobalJSObject");
+        if (mXBLScope)
+            JS_CALL_OBJECT_TRACER(trc, mXBLScope, "XPCWrappedNativeScope::mXBLScope");
     }
 
     static void
@@ -1717,9 +1724,16 @@ public:
             mDOMExpandoMap->RemoveEntry(expando);
     }
 
+    
+    
+    
+    JSObject *EnsureXBLScope(JSContext *cx);
+
     XPCWrappedNativeScope(JSContext *cx, JSObject* aGlobal);
 
     nsAutoPtr<JSObject2JSObjectMap> mWaiverWrapperMap;
+
+    bool IsXBLScope() { return mIsXBLScope; }
 
 protected:
     virtual ~XPCWrappedNativeScope();
@@ -1745,6 +1759,11 @@ private:
     js::ObjectPtr                    mGlobalJSObject;
 
     
+    
+    
+    js::ObjectPtr                    mXBLScope;
+
+    
     JSObject*                        mPrototypeNoHelper;
 
     XPCContext*                      mContext;
@@ -1752,6 +1771,7 @@ private:
     nsAutoPtr<DOMExpandoMap> mDOMExpandoMap;
 
     JSBool mExperimentalBindingsEnabled;
+    bool mIsXBLScope;
 };
 
 

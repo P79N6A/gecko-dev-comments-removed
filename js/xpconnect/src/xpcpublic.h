@@ -43,6 +43,15 @@ JSObject *
 TransplantObjectWithWrapper(JSContext *cx,
                             JSObject *origobj, JSObject *origwrapper,
                             JSObject *targetobj, JSObject *targetwrapper);
+
+
+
+
+
+
+JSObject *
+GetXBLScope(JSContext *cx, JSObject *contentScope);
+
 } 
 
 #define XPCONNECT_GLOBAL_FLAGS                                                \

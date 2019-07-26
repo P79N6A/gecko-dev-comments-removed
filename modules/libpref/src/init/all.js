@@ -707,6 +707,9 @@ pref("dom.min_background_timeout_value", 1000);
 pref("dom.experimental_bindings", true);
 
 
+pref("dom.xbl_scopes", false);
+
+
 pref("dom.experimental_forms", false);
 
 
