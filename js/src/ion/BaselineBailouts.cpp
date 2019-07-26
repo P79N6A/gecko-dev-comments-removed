@@ -447,7 +447,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 bool invalidate, BaselineStackBuilder &builder,
                 MutableHandleFunction nextCallee, jsbytecode **callPC)
 {
-    uint32_t exprStackSlots = iter.slots() - (script->nfixed + CountArgSlots(script, fun));
+    uint32_t exprStackSlots = iter.slots() - (script->nfixed + CountArgSlots(fun));
 
     builder.resetFramePushed();
 
@@ -510,23 +510,13 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     JSObject *scopeChain = NULL;
-    ArgumentsObject *argsObj = NULL;
     BailoutKind bailoutKind = iter.bailoutKind();
     if (bailoutKind == Bailout_ArgumentCheck) {
         
         
         
-        
         IonSpew(IonSpew_BaselineBailouts, "      Bailout_ArgumentCheck! (no valid scopeChain)");
         iter.skip();
-
-        
-        if (script->argumentsHasVarBinding()) {
-            IonSpew(IonSpew_BaselineBailouts,
-                    "      Bailout_ArgumentCheck for script with argumentsHasVarBinding!"
-                    "Using empty arguments object");
-            iter.skip();
-        }
     } else {
         Value v = iter.read();
         if (v.isObject()) {
@@ -554,19 +544,9 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 scopeChain = &(script->global());
             }
         }
-
-        
-        if (script->argumentsHasVarBinding()) {
-            v = iter.read();
-            JS_ASSERT(v.isObject() || v.isUndefined());
-            if (v.isObject())
-                argsObj = &v.toObject().asArguments();
-        }
     }
     IonSpew(IonSpew_BaselineBailouts, "      ScopeChain=%p", scopeChain);
     blFrame->setScopeChain(scopeChain);
-    if (argsObj)
-        blFrame->initArgsObjUnchecked(*argsObj);
     
 
     
@@ -586,7 +566,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         size_t thisvOffset = builder.framePushed() + IonJSFrameLayout::offsetOfThis();
         *builder.valuePointerAtStackOffset(thisvOffset) = thisv;
 
-        JS_ASSERT(iter.slots() >= CountArgSlots(script, fun));
+        JS_ASSERT(iter.slots() >= CountArgSlots(fun));
         IonSpew(IonSpew_BaselineBailouts, "      frame slots %u, nargs %u, nfixed %u",
                 iter.slots(), fun->nargs, script->nfixed);
 
@@ -1217,26 +1197,19 @@ ion::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 
         if (iter.isBaselineJS()) {
             BaselineFrame *frame = iter.baselineFrame();
+            JS_ASSERT(!frame->hasArgsObj());
 
-            
-            
-            
-            if (frame->scopeChain() && frame->script()->needsArgsObj()) {
-                ArgumentsObject *argsObj;
-                if (frame->hasArgsObj()) {
-                    argsObj = &frame->argsObj();
-                } else {
-                    argsObj = ArgumentsObject::createExpected(cx, frame);
-                    if (!argsObj)
-                        return false;
-                }
+            if (frame->script()->needsArgsObj()) {
+                ArgumentsObject *argsobj = ArgumentsObject::createExpected(cx, frame);
+                if (!argsobj)
+                    return false;
 
                 
                 
                 
                 
                 RootedScript script(cx, frame->script());
-                SetFrameArgumentsObject(cx, frame, script, argsObj);
+                SetFrameArgumentsObject(cx, frame, script, argsobj);
             }
 
             if (frameno == 0)

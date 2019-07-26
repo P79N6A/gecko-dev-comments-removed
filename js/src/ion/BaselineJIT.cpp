@@ -95,8 +95,7 @@ EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode, bool osr)
     void *calleeToken;
     if (fp->isNonEvalFunctionFrame()) {
         
-        
-        maxArgc = CountArgSlots(fp->script(), fp->fun()) - StartArgSlot(fp->script(), fp->fun());
+        maxArgc = CountArgSlots(fp->fun()) - 1; 
         maxArgv = fp->formals() - 1;            
 
         
