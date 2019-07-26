@@ -1053,40 +1053,66 @@ MmsService.prototype = {
     let savableMessage = this.convertIntermediateToSavable(notification);
 
     gMobileMessageDatabaseService.saveReceivedMessage(savableMessage,
-      (function (rv, domMessage) {
-        let success = Components.isSuccessCode(rv);
-        if (!success) {
-          
-          
-          
-          debug("Could not store MMS " + JSON.stringify(savableMessage) +
-                ", error code " + rv);
-          
-          
-          
-          return;
+        (function (rv, domMessage) {
+      let success = Components.isSuccessCode(rv);
+      if (!success) {
+        
+        
+        
+        debug("Could not store MMS " + JSON.stringify(savableMessage) +
+              ", error code " + rv);
+        
+        
+        
+        return;
+      }
+
+      
+      this.broadcastMmsSystemMessage("sms-received", domMessage);
+
+      
+      Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
+
+      let retrievalMode = RETRIEVAL_MODE_MANUAL;
+      try {
+        retrievalMode = Services.prefs.getCharPref(PREF_RETRIEVAL_MODE);
+      } catch (e) {}
+
+      if (RETRIEVAL_MODE_AUTOMATIC !== retrievalMode) {
+        let mmsStatus = RETRIEVAL_MODE_NEVER === retrievalMode
+                      ? MMS.MMS_PDU_STATUS_REJECTED
+                      : MMS.MMS_PDU_STATUS_DEFERRED;
+
+        
+        let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport,
+                                                  wish);
+
+        let transaction = new NotifyResponseTransaction(transactionId,
+                                                        mmsStatus,
+                                                        reportAllowed);
+        transaction.run();
+        return;
+      }
+
+      
+      this.retrieveMessage(url, (function responseNotify(mmsStatus,
+                                                         retrievedMessage) {
+        debug("retrievedMessage = " + JSON.stringify(retrievedMessage));
+
+        
+        
+        
+        if (wish == null && retrievedMessage) {
+          wish = retrievedMessage.headers["x-mms-delivery-report"];
         }
-
-        
-        this.broadcastMmsSystemMessage("sms-received", domMessage);
-
-        
-        Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
-
-        let retrievalMode = RETRIEVAL_MODE_MANUAL;
-        try {
-          retrievalMode = Services.prefs.getCharPref(PREF_RETRIEVAL_MODE);
-        } catch (e) {}
-
-        if (RETRIEVAL_MODE_AUTOMATIC !== retrievalMode) {
-          let mmsStatus = RETRIEVAL_MODE_NEVER === retrievalMode
-                        ? MMS.MMS_PDU_STATUS_REJECTED
-                        : MMS.MMS_PDU_STATUS_DEFERRED;
-
-          
-          let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport,
+        let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport,
                                                     wish);
 
+        
+        
+        
+        
+        if (MMS.MMS_PDU_STATUS_RETRIEVED !== mmsStatus) {
           let transaction = new NotifyResponseTransaction(transactionId,
                                                           mmsStatus,
                                                           reportAllowed);
@@ -1094,66 +1120,37 @@ MmsService.prototype = {
           return;
         }
 
-        
-        this.retrieveMessage(url, (function responseNotify(mmsStatus,
-                                                           retrievedMessage) {
-          debug("retrievedMessage = " + JSON.stringify(retrievedMessage));
+        savableMessage = this.mergeRetrievalConfirmation(retrievedMessage,
+                                                         savableMessage);
 
-          
-          
-          
-          if (wish == null && retrievedMessage) {
-            wish = retrievedMessage.headers["x-mms-delivery-report"];
-          }
-          let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport,
-                                                    wish);
+        gMobileMessageDatabaseService.saveReceivedMessage(savableMessage,
+            (function (rv, domMessage) {
+          let success = Components.isSuccessCode(rv);
+          let transaction =
+            new NotifyResponseTransaction(transactionId,
+                                          success ? MMS.MMS_PDU_STATUS_RETRIEVED
+                                                  : MMS.MMS_PDU_STATUS_DEFERRED,
+                                          reportAllowed);
+          transaction.run();
 
-          
-          
-          
-          
-          if (MMS.MMS_PDU_STATUS_RETRIEVED !== mmsStatus) {
-            let transaction =
-              new NotifyResponseTransaction(transactionId,
-                                            mmsStatus,
-                                            reportAllowed);
-            transaction.run();
+          if (!success) {
+            
+            
+            
+            
+            debug("Could not store MMS " + domMessage.id +
+                  ", error code " + rv);
             return;
           }
 
-          savableMessage = this.mergeRetrievalConfirmation(retrievedMessage,
-                                                           savableMessage);
+          
+          this.broadcastMmsSystemMessage("sms-received", domMessage);
 
-          gMobileMessageDatabaseService.saveReceivedMessage(savableMessage,
-            (function (rv, domMessage) {
-              let success = Components.isSuccessCode(rv);
-              let transaction =
-                new NotifyResponseTransaction(transactionId,
-                                              success ? MMS.MMS_PDU_STATUS_RETRIEVED
-                                                      : MMS.MMS_PDU_STATUS_DEFERRED,
-                                              reportAllowed);
-              transaction.run();
-
-              if (!success) {
-                
-                
-                
-                
-                debug("Could not store MMS " + domMessage.id +
-                      ", error code " + rv);
-                return;
-              }
-
-              
-              this.broadcastMmsSystemMessage("sms-received", domMessage);
-
-              
-              Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
-            }).bind(this)
-          );
+          
+          Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
         }).bind(this));
-      }).bind(this)
-    );
+      }).bind(this));
+    }).bind(this));
   },
 
   
@@ -1321,6 +1318,80 @@ MmsService.prototype = {
         sendTransactionCb(aDomMessage.id, isSentSuccess);
       });
     });
+  },
+
+  retrieve: function retrieve(id, aRequest) {
+    gMobileMessageDatabaseService.getMessageRecordById(id,
+        (function notifyResult(aRv, aMessageRecord) {
+      if (Ci.nsIMobileMessageCallback.SUCCESS_NO_ERROR != aRv) {
+        debug("Function getMessageRecordById() return error.");
+        aRequest.notifyGetMessageFailed(aRv);
+        return;
+      }
+      if ("mms" != aMessageRecord.type) {
+        debug("Type of message record is not mms");
+        aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+        return;
+      }
+      if (!aMessageRecord.headers ||
+          !aMessageRecord.headers["x-mms-content-location"]) {
+        debug("Can't find mms content url in database.");
+        aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+        return;
+      }
+
+      let url =  aMessageRecord.headers["x-mms-content-location"].uri;
+      
+      let wish = aMessageRecord.headers["x-mms-delivery-report"];
+      this.retrieveMessage(url, (function responseNotify(mmsStatus, retrievedMsg) {
+        
+        
+        if (MMS.MMS_PDU_STATUS_RETRIEVED !== mmsStatus) {
+          debug("RetrieveMessage fail after retry.");
+          aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+          return;
+        }
+        
+        
+        
+        
+        
+        
+        let transactionId = retrievedMsg.headers["x-mms-transaction-id"];
+
+        
+        
+        
+        if (wish == null && retrievedMsg) {
+          wish = retrievedMsg.headers["x-mms-delivery-report"];
+        }
+        let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport,
+                                                  wish);
+
+        debug("retrievedMsg = " + JSON.stringify(retrievedMsg));
+        aMessageRecord = this.mergeRetrievalConfirmation(retrievedMsg, aMessageRecord);
+        gMobileMessageDatabaseService.saveReceivedMessage(aMessageRecord,
+                                                          (function (rv, domMessage) {
+          let success = Components.isSuccessCode(rv);
+          if (!success) {
+            
+            
+            
+            debug("Could not store MMS " + domMessage.id +
+                  ", error code " + rv);
+            aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+            return;
+          }
+          
+          aRequest.notifyMessageGot(domMessage);
+          
+          this.broadcastMmsSystemMessage("sms-received", domMessage);
+          Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
+          let transaction = new AcknowledgeTransaction(transactionId, reportAllowed);
+          transaction.run();
+        }).bind(this));
+      }).bind(this));
+    }).bind(this));
   },
 
   
