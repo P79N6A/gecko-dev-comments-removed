@@ -834,12 +834,15 @@ class nsTSubstring_CharT
           mFlags = dataFlags | (mFlags & 0xFFFF0000);
         }
 
-      void NS_FASTCALL AssignLiteral( const char_type* data, size_type length );
       void NS_FASTCALL ReplaceLiteral( index_type cutStart, size_type cutLength, const char_type* data, size_type length );
 
       static int AppendFunc( void* arg, const char* s, uint32_t len);
 
     public:
+
+      
+      
+      void NS_FASTCALL AssignLiteral( const char_type* data, size_type length );
 
       
       

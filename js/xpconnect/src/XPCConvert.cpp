@@ -516,6 +516,14 @@ XPCConvert::JSData2Native(void* d, HandleValue s,
 
         if (!str) {
             ws->AssignLiteral(MOZ_UTF16("undefined"));
+        } else if (XPCStringConvert::IsDOMString(str)) {
+            
+            
+            nsStringBuffer::FromData((void *)chars)->ToString(length, *ws);
+        } else if (XPCStringConvert::IsLiteral(str)) {
+            
+            
+            ws->AssignLiteral(chars, length);
         } else if (useAllocator && STRING_TO_JSVAL(str) == s) {
             
             
