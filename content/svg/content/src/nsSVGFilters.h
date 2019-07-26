@@ -8,7 +8,6 @@
 
 #include "gfxImageSurface.h"
 #include "gfxRect.h"
-#include "nsIDOMSVGFilters.h"
 #include "nsIFrame.h"
 #include "nsImageLoadingContent.h"
 #include "nsSVGLength2.h"
@@ -54,7 +53,6 @@ typedef nsSVGElement nsSVGFEBase;
 
 
 class nsSVGFE : public nsSVGFEBase
-
 {
   friend class nsSVGFilterInstance;
 
@@ -131,10 +129,9 @@ public:
   virtual bool SubregionIsUnionOfRegions() { return true; }
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_SVG_FE_CID)
-  
+
   
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIDOMSVGFILTERPRIMITIVESTANDARDATTRIBUTES
 
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
@@ -228,7 +225,6 @@ protected:
   
   virtual LengthAttributesInfo GetLengthInfo();
 
-  
   enum { ATTR_X, ATTR_Y, ATTR_WIDTH, ATTR_HEIGHT };
   nsSVGLength2 mLengthAttributes[4];
   static LengthInfo sLengthInfo[4];
@@ -262,9 +258,6 @@ protected:
 public:
   
   NS_DECL_ISUPPORTS_INHERITED
-
-  
-  NS_FORWARD_NSIDOMSVGFILTERPRIMITIVESTANDARDATTRIBUTES(nsSVGFELightingElementBase::)
 
   virtual nsresult Filter(nsSVGFilterInstance* aInstance,
                           const nsTArray<const Image*>& aSources,
