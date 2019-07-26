@@ -471,8 +471,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
     if (overflow) {
       NS_ASSERTION(overflow->OnlyChild(),
                    "must have doc root as canvas frame's only child");
-      nsContainerFrame::ReparentFrameViewList(aPresContext, *overflow,
-                                              prevCanvasFrame, this);
+      nsContainerFrame::ReparentFrameViewList(*overflow, prevCanvasFrame, this);
       
       
       
@@ -531,7 +530,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
       if (!nextFrame) {
         nextFrame = aPresContext->PresShell()->FrameConstructor()->
           CreateContinuingFrame(aPresContext, kidFrame, this);
-        SetOverflowFrames(aPresContext, nsFrameList(nextFrame, nextFrame));
+        SetOverflowFrames(nsFrameList(nextFrame, nextFrame));
         
         
         

@@ -94,8 +94,7 @@ public:
 
 
 
-  nsresult CreateNextInFlow(nsPresContext* aPresContext,
-                            nsIFrame*       aFrame,
+  nsresult CreateNextInFlow(nsIFrame*       aFrame,
                             nsIFrame*&      aNextInFlowResult);
 
   
@@ -104,8 +103,7 @@ public:
 
 
 
-  virtual void DeleteNextInFlowChild(nsPresContext* aPresContext,
-                                     nsIFrame*      aNextInFlow,
+  virtual void DeleteNextInFlowChild(nsIFrame*      aNextInFlow,
                                      bool           aDeletingEmptyFrames);
 
   
@@ -118,13 +116,11 @@ public:
   
   static void PositionFrameView(nsIFrame* aKidFrame);
 
-  static nsresult ReparentFrameView(nsPresContext* aPresContext,
-                                    nsIFrame*       aChildFrame,
+  static nsresult ReparentFrameView(nsIFrame*       aChildFrame,
                                     nsIFrame*       aOldParentFrame,
                                     nsIFrame*       aNewParentFrame);
 
-  static nsresult ReparentFrameViewList(nsPresContext*     aPresContext,
-                                        const nsFrameList& aChildFrameList,
+  static nsresult ReparentFrameViewList(const nsFrameList& aChildFrameList,
                                         nsIFrame*          aOldParentFrame,
                                         nsIFrame*          aNewParentFrame);
 
@@ -322,8 +318,7 @@ public:
 
 
 
-  virtual nsresult StealFrame(nsPresContext* aPresContext,
-                              nsIFrame*      aChild,
+  virtual nsresult StealFrame(nsIFrame*      aChild,
                               bool           aForceNormal = false);
 
   
@@ -448,24 +443,12 @@ protected:
   
 
 
-  void SetOverflowFrames(nsPresContext*  aPresContext,
-                         const nsFrameList& aOverflowFrames);
+  void SetOverflowFrames(const nsFrameList& aOverflowFrames);
 
   
 
 
-  inline void DestroyOverflowList(nsPresContext* aPresContext);
-
-  
-
-
-
-
-
-
-
-
-  bool MoveOverflowToChildList(nsPresContext* aPresContext);
+  inline void DestroyOverflowList();
 
   
 
@@ -476,13 +459,23 @@ protected:
 
 
 
+  bool MoveOverflowToChildList();
+
+  
 
 
 
 
 
-  void PushChildren(nsPresContext*  aPresContext,
-                    nsIFrame*       aFromChild,
+
+
+
+
+
+
+
+
+  void PushChildren(nsIFrame*       aFromChild,
                     nsIFrame*       aPrevSibling);
 
   
@@ -495,22 +488,19 @@ protected:
 
 
 
-  nsFrameList* GetPropTableFrames(nsPresContext*                 aPresContext,
-                                  const FramePropertyDescriptor* aProperty) const;
+  nsFrameList* GetPropTableFrames(const FramePropertyDescriptor* aProperty) const;
 
   
 
 
 
-  nsFrameList* RemovePropTableFrames(nsPresContext*                 aPresContext,
-                                     const FramePropertyDescriptor* aProperty);
+  nsFrameList* RemovePropTableFrames(const FramePropertyDescriptor* aProperty);
 
   
 
 
 
-  void SetPropTableFrames(nsPresContext*                 aPresContext,
-                          nsFrameList*                   aFrameList,
+  void SetPropTableFrames(nsFrameList*                   aFrameList,
                           const FramePropertyDescriptor* aProperty);
 
   
@@ -582,8 +572,7 @@ public:
 
 
 
-  nsOverflowContinuationTracker(nsPresContext*    aPresContext,
-                                nsContainerFrame* aFrame,
+  nsOverflowContinuationTracker(nsContainerFrame* aFrame,
                                 bool              aWalkOOFFrames,
                                 bool              aSkipOverflowContainerChildren = true);
   
@@ -714,11 +703,11 @@ nsContainerFrame::StealOverflowFrames()
 }
 
 inline void
-nsContainerFrame::DestroyOverflowList(nsPresContext* aPresContext)
+nsContainerFrame::DestroyOverflowList()
 {
-  nsFrameList* list = RemovePropTableFrames(aPresContext, OverflowProperty());
+  nsFrameList* list = RemovePropTableFrames(OverflowProperty());
   MOZ_ASSERT(list && list->IsEmpty());
-  list->Delete(aPresContext->PresShell());
+  list->Delete(PresContext()->PresShell());
 }
 
 #endif 

@@ -897,7 +897,7 @@ NS_METHOD nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     
     
-    MoveOverflowToChildList(aPresContext);
+    MoveOverflowToChildList();
   }
 
   

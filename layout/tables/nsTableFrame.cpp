@@ -1705,7 +1705,7 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*           aPresContext,
   aDesiredSize.Width() = aReflowState.AvailableWidth();
 
   
-  MoveOverflowToChildList(aPresContext);
+  MoveOverflowToChildList();
 
   bool haveDesiredHeight = false;
   SetHaveReflowedColGroups(false);
@@ -1949,13 +1949,13 @@ nsTableFrame::PushChildren(const RowGroupArray& aRowGroups,
     }
     
     
-    ReparentFrameViewList(PresContext(), frames, this, nextInFlow);
+    ReparentFrameViewList(frames, this, nextInFlow);
     nextInFlow->mFrames.InsertFrames(nextInFlow, prevSibling,
                                      frames);
   }
   else {
     
-    SetOverflowFrames(PresContext(), frames);
+    SetOverflowFrames(frames);
   }
 }
 

@@ -296,7 +296,7 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
         
         nsOverflowContinuationTracker::AutoFinish fini(aState.mOverflowTracker, mFrame);
         static_cast<nsContainerFrame*>(kidNextInFlow->GetParent())
-          ->DeleteNextInFlowChild(mPresContext, kidNextInFlow, true);
+          ->DeleteNextInFlowChild(kidNextInFlow, true);
       }
     }
   }

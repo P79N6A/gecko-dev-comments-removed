@@ -256,7 +256,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
       if (kidNextInFlow) {
         
         static_cast<nsContainerFrame*>(kidNextInFlow->GetParent())
-          ->DeleteNextInFlowChild(aPresContext, kidNextInFlow, true);
+          ->DeleteNextInFlowChild(kidNextInFlow, true);
       }
     }
     else {
@@ -264,7 +264,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
       
       if (!IsFloating()) {
         nsIFrame* nextInFlow;
-        rv = CreateNextInFlow(aPresContext, kid, nextInFlow);
+        rv = CreateNextInFlow(kid, nextInFlow);
         if (NS_FAILED(rv)) {
           return rv;
         }
@@ -272,7 +272,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
         
         const nsFrameList& overflow = mFrames.RemoveFramesAfter(kid);
         if (overflow.NotEmpty()) {
-          SetOverflowFrames(aPresContext, overflow);
+          SetOverflowFrames(overflow);
         }
       } else if (!kid->GetNextInFlow()) {
         
@@ -353,8 +353,8 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
 
       
       
-      nsContainerFrame::ReparentFrameViewList(aPresContext, *overflowFrames,
-                                              prevInFlow, this);
+      nsContainerFrame::ReparentFrameViewList(*overflowFrames, prevInFlow,
+                                              this);
       mFrames.InsertFrames(this, nullptr, *overflowFrames);
     }
   }

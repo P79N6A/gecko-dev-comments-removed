@@ -881,7 +881,7 @@ nsTableRowGroupFrame::CreateContinuingRowFrame(nsPresContext& aPresContext,
   mFrames.InsertFrame(nullptr, &aRowFrame, *aContRowFrame);
 
   
-  PushChildren(&aPresContext, *aContRowFrame, &aRowFrame);
+  PushChildren(*aContRowFrame, &aRowFrame);
 }
 
 
@@ -1243,7 +1243,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
       if (NS_FRAME_IS_NOT_COMPLETE(aStatus) && !contRow) {
         nsTableRowFrame* nextRow = lastRowThisPage->GetNextRow();
         if (nextRow) {
-          PushChildren(aPresContext, nextRow, lastRowThisPage);
+          PushChildren(nextRow, lastRowThisPage);
         }
       }
       break;
@@ -1254,7 +1254,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
       
       nsTableRowFrame* nextRow = rowFrame->GetNextRow();
       if (nextRow && nsTableFrame::PageBreakAfter(rowFrame, nextRow)) {
-        PushChildren(aPresContext, nextRow, rowFrame);
+        PushChildren(nextRow, rowFrame);
         aStatus = NS_FRAME_NOT_COMPLETE;
         break;
       }
@@ -1297,7 +1297,7 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
-  MoveOverflowToChildList(aPresContext);
+  MoveOverflowToChildList();
 
   
   bool splitDueToPageBreak = false;
