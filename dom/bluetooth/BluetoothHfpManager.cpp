@@ -671,6 +671,7 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
                                        nsAutoPtr<UnixSocketRawData>& aMessage)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aSocket);
 
   nsAutoCString msg((const char*)aMessage->mData.get(), aMessage->mSize);
   msg.StripWhitespace();
@@ -886,23 +887,46 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
 
     mCCWA = atCommandValues[0].EqualsLiteral("1");
   } else if (msg.Find("AT+CKPD") != -1) {
-    
-    switch (mCurrentCallArray[mCurrentCallIndex].mState) {
-      case nsITelephonyProvider::CALL_STATE_INCOMING:
-        NotifyDialer(NS_LITERAL_STRING("ATA"));
-        break;
-      case nsITelephonyProvider::CALL_STATE_CONNECTED:
-      case nsITelephonyProvider::CALL_STATE_DIALING:
-      case nsITelephonyProvider::CALL_STATE_ALERTING:
-        NotifyDialer(NS_LITERAL_STRING("CHUP"));
-        break;
-      case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
-        NotifyDialer(NS_LITERAL_STRING("BLDN"));
-        break;
-      default:
-        NS_WARNING("Not handling state changed");
-        break;
+    BluetoothScoManager* sco = BluetoothScoManager::Get();
+    if (!sco) {
+      NS_WARNING("Couldn't get BluetoothScoManager instance");
+      goto respond_with_ok;
     }
+
+    if (!sStopSendingRingFlag) {
+      
+      
+      
+      
+      NotifyDialer(NS_LITERAL_STRING("ATA"));
+    } else {
+      if (!sco->IsConnected()) {
+        
+        
+        nsAutoString address;
+        mSocket->GetAddress(address);
+        sco->Connect(address);
+      } else if (!mFirstCKPD) {
+        
+        
+        
+        
+        if (mCurrentCallArray.Length() > 1) {
+          NotifyDialer(NS_LITERAL_STRING("CHUP"));
+        } else {
+          sco->Disconnect();
+        }
+      } else {
+        
+        
+        
+        
+        
+        NS_WARNING("AT+CKPD=200: Do nothing");
+      }
+    }
+
+    mFirstCKPD = false;
   } else if (msg.Find("AT+CNUM") != -1) {
     if (!mMsisdn.IsEmpty()) {
       nsAutoCString message("+CNUM: ,\"");
@@ -1372,6 +1396,8 @@ BluetoothHfpManager::OnConnectSuccess(BluetoothSocket* aSocket)
 
     mRunnable.forget();
   }
+
+  mFirstCKPD = true;
 
   
   
