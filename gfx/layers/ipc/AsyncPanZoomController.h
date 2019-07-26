@@ -218,10 +218,6 @@ public:
 
 
   ViewTransform GetCurrentAsyncTransform();
-private:
-  
-  ViewTransform GetCurrentAsyncTransformInternal();
-public:
 
   
 
