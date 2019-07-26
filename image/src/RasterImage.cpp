@@ -2407,6 +2407,10 @@ RasterImage::Discard(bool force)
   mFrames.Clear();
 
   
+  mScaleResult.status = SCALE_INVALID;
+  mScaleResult.frame = nullptr;
+
+  
   mDecoded = false;
 
   
