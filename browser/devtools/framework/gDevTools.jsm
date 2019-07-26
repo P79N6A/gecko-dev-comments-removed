@@ -25,8 +25,8 @@ const FORBIDDEN_IDS = new Set("toolbox", "");
 
 
 this.DevTools = function DevTools() {
-  this._tools = new Map();
-  this._toolboxes = new Map();
+  this._tools = new Map();     
+  this._toolboxes = new Map(); 
 
   
   this.destroy = this.destroy.bind(this);
@@ -86,10 +86,15 @@ DevTools.prototype = {
 
 
 
-  unregisterTool: function DT_unregisterTool(toolId) {
+
+
+
+  unregisterTool: function DT_unregisterTool(toolId, isQuitApplication) {
     this._tools.delete(toolId);
 
-    this.emit("tool-unregistered", toolId);
+    if (!isQuitApplication) {
+      this.emit("tool-unregistered", toolId);
+    }
   },
 
   
@@ -218,8 +223,13 @@ DevTools.prototype = {
   destroy: function() {
     Services.obs.removeObserver(this.destroy, "quit-application");
 
-    delete this._trackedBrowserWindows;
-    delete this._toolboxes;
+    for (let [key, tool] of this._tools) {
+      this.unregisterTool(key, true);
+    }
+
+    
+    
+    
   },
 };
 
@@ -534,10 +544,6 @@ let gDevToolsBrowser = {
 
 
   forgetBrowserWindow: function DT_forgetBrowserWindow(win) {
-    if (!gDevToolsBrowser._trackedBrowserWindows) {
-      return;
-    }
-
     gDevToolsBrowser._trackedBrowserWindows.delete(win);
 
     
@@ -557,7 +563,6 @@ let gDevToolsBrowser = {
 
   destroy: function() {
     Services.obs.removeObserver(gDevToolsBrowser.destroy, "quit-application");
-    delete gDevToolsBrowser._trackedBrowserWindows;
   },
 }
 this.gDevToolsBrowser = gDevToolsBrowser;
