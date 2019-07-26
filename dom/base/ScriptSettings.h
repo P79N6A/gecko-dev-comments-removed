@@ -27,6 +27,12 @@ namespace dom {
 void InitScriptSettings();
 void DestroyScriptSettings();
 
+
+
+
+
+nsIGlobalObject* GetIncumbentGlobal();
+
 class ScriptSettingsStack;
 struct ScriptSettingsStackEntry {
   nsCOMPtr<nsIGlobalObject> mGlobalObject;
@@ -86,6 +92,7 @@ public:
 private:
   dom::ScriptSettingsStack& mStack;
   dom::ScriptSettingsStackEntry mEntry;
+  JS::AutoHideScriptedCaller mCallerOverride;
 };
 
 

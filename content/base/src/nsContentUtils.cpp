@@ -5263,6 +5263,17 @@ nsContentUtils::GetDefaultJSContextForThread()
 }
 
 
+JSContext *
+nsContentUtils::GetCurrentJSContextForThread()
+{
+  if (MOZ_LIKELY(NS_IsMainThread())) {
+    return GetCurrentJSContext();
+  } else {
+    return workers::GetCurrentThreadJSContext();
+  }
+}
+
+
 nsresult
 nsContentUtils::ASCIIToLower(nsAString& aStr)
 {
