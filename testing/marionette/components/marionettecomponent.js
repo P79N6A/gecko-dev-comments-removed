@@ -93,6 +93,12 @@ MarionetteComponent.prototype = {
         if (enabledPref) {
           this.enabled = true;
           this.logger.info("marionette enabled via build flag and pref");
+
+          
+          
+          if (Services.appinfo.inSafeMode) {
+            this.observerService.addObserver(this, "domwindowopened", false);
+          }
         }
         else {
           this.logger.info("marionette not enabled via pref");
@@ -105,11 +111,29 @@ MarionetteComponent.prototype = {
         this.observerService.addObserver(this, "xpcom-shutdown", false);
         this.init();
         break;
+      case "domwindowopened":
+        this.observerService.removeObserver(this, aTopic);
+        this._suppressSafeModeDialog(aSubject);
+        break;
       case "xpcom-shutdown":
         this.observerService.removeObserver(this, "xpcom-shutdown");
         this.uninit();
         break;
     }
+  },
+
+  _suppressSafeModeDialog: function mc_suppressSafeModeDialog(aWindow) {
+    
+    aWindow.addEventListener("load", function onLoad() {
+      aWindow.removeEventListener("load", onLoad);
+
+      if (aWindow.document.getElementById("safeModeDialog")) {
+        aWindow.setTimeout(() => {
+          
+          aWindow.document.documentElement.getButton("accept").click();
+        });
+      }
+    });
   },
 
   init: function mc_init() {
