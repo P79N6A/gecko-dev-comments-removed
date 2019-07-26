@@ -81,6 +81,10 @@ TextTrackCue::TextTrackCue(nsPIDOMWindow* aOwnerWindow,
   }
 }
 
+TextTrackCue::~TextTrackCue()
+{
+}
+
 
 
 
