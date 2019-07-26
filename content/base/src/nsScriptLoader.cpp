@@ -75,7 +75,7 @@ public:
   {
   }
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_THREADSAFE_ISUPPORTS
 
   void FireScriptAvailable(nsresult aResult)
   {
@@ -105,7 +105,7 @@ public:
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS0(nsScriptLoadRequest)
+NS_IMPL_ISUPPORTS0(nsScriptLoadRequest)
 
 
 

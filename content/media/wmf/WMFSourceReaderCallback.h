@@ -73,7 +73,7 @@ private:
   bool mReadFinished;
 
   
-  nsAutoRefCnt mRefCnt;
+  ThreadSafeAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
 
 };

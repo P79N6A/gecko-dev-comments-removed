@@ -162,7 +162,7 @@ private:
   bool mIsShutdown;
 
   
-  nsAutoRefCnt mRefCnt;
+  ThreadSafeAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
 };
 

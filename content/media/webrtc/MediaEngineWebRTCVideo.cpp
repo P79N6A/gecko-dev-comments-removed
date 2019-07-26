@@ -22,7 +22,7 @@ extern PRLogModuleInfo* GetMediaManagerLog();
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(MediaEngineWebRTCVideoSource, nsIRunnable)
+NS_IMPL_ISUPPORTS1(MediaEngineWebRTCVideoSource, nsIRunnable)
 
 
 #ifndef MOZ_B2G_CAMERA
