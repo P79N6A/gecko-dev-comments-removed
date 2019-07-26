@@ -217,8 +217,20 @@ PluginModuleParent::TimeoutChanged(const char* aPref, void* aModule)
 void
 PluginModuleParent::CleanupFromTimeout()
 {
-    if (!mShutdown && OkToCleanup())
-        Close();
+    if (mShutdown) {
+      return;
+    }
+
+    if (!OkToCleanup()) {
+        
+        MessageLoop::current()->PostDelayedTask(
+            FROM_HERE,
+            mTaskFactory.NewRunnableMethod(
+                &PluginModuleParent::CleanupFromTimeout), 10);
+        return;
+    }
+
+    Close();
 }
 
 #ifdef XP_WIN
