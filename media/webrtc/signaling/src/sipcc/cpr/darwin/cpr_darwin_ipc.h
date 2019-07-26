@@ -19,13 +19,6 @@
 
 
 
-struct msgbuffer {
-    int32_t mtype;    
-    void   *msgPtr;   
-    void   *usrPtr;   
-};
-
-
 typedef struct {
     char name[16];
     uint16_t maxCount;
