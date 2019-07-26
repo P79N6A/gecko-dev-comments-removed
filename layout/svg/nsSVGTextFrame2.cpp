@@ -2863,27 +2863,6 @@ SVGTextDrawPathCallbacks::StrokeGeometry()
   }
 }
 
-
-
-
-NS_IMETHODIMP
-GlyphMetricsUpdater::Run()
-{
-  if (mFrame) {
-    Run(mFrame);
-  }
-  return NS_OK;
-}
-
-void
-GlyphMetricsUpdater::Run(nsSVGTextFrame2* aFrame)
-{
-  aFrame->mPositioningDirty = true;
-  nsSVGEffects::InvalidateRenderingObservers(aFrame);
-  nsSVGUtils::ScheduleReflowSVG(aFrame);
-  aFrame->mGlyphMetricsUpdater = nullptr;
-}
-
 }
 
 
@@ -2980,15 +2959,6 @@ nsSVGTextFrame2::Init(nsIContent* aContent,
                NS_FRAME_SVG_LAYOUT | NS_FRAME_IS_SVG_TEXT);
 
   mMutationObserver.StartObserving(this);
-}
-
-void
-nsSVGTextFrame2::DestroyFrom(nsIFrame* aDestructRoot)
-{
-  if (mGlyphMetricsUpdater) {
-    mGlyphMetricsUpdater->Revoke();
-  }
-  nsSVGTextFrame2Base::DestroyFrom(aDestructRoot);
 }
 
 void
@@ -3141,7 +3111,7 @@ nsSVGTextFrame2::MutationObserver::ContentAppended(nsIDocument* aDocument,
                                                    nsIContent* aFirstNewContent,
                                                    int32_t aNewIndexInContainer)
 {
-  mFrame->NotifyGlyphMetricsChange(ePositioningDirtyDueToMutation);
+  mFrame->NotifyGlyphMetricsChange();
 }
 
 void
@@ -3151,7 +3121,7 @@ nsSVGTextFrame2::MutationObserver::ContentInserted(
                                         nsIContent* aChild,
                                         int32_t aIndexInContainer)
 {
-  mFrame->NotifyGlyphMetricsChange(ePositioningDirtyDueToMutation);
+  mFrame->NotifyGlyphMetricsChange();
 }
 
 void
@@ -3162,7 +3132,7 @@ nsSVGTextFrame2::MutationObserver::ContentRemoved(
                                        int32_t aIndexInContainer,
                                        nsIContent* aPreviousSibling)
 {
-  mFrame->NotifyGlyphMetricsChange(ePositioningDirtyDueToMutation);
+  mFrame->NotifyGlyphMetricsChange();
 }
 
 void
@@ -4792,34 +4762,11 @@ nsSVGTextFrame2::ShouldRenderAsPath(nsRenderingContext* aContext,
 }
 
 void
-nsSVGTextFrame2::NotifyGlyphMetricsChange(uint32_t aFlags)
+nsSVGTextFrame2::NotifyGlyphMetricsChange()
 {
-  NS_ASSERTION(!aFlags || aFlags == ePositioningDirtyDueToMutation,
-               "unexpected aFlags value");
-
-  if (aFlags == ePositioningDirtyDueToMutation) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (mGlyphMetricsUpdater) {
-      return;
-    }
-    mGlyphMetricsUpdater = new GlyphMetricsUpdater(this);
-    nsContentUtils::AddScriptRunner(mGlyphMetricsUpdater.get());
-    return;
-  }
-
-  
-  GlyphMetricsUpdater::Run(this);
+  mPositioningDirty = true;
+  nsSVGEffects::InvalidateRenderingObservers(this);
+  nsSVGUtils::ScheduleReflowSVG(this);
 }
 
 void

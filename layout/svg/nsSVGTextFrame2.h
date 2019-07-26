@@ -204,8 +204,6 @@ public:
                     nsIFrame*   aParent,
                     nsIFrame*   aPrevInFlow) MOZ_OVERRIDE;
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
-
   NS_IMETHOD AttributeChanged(int32_t aNamespaceID,
                               nsIAtom* aAttribute,
                               int32_t aModType) MOZ_OVERRIDE;
@@ -279,14 +277,7 @@ public:
 
 
 
-
-
-  void NotifyGlyphMetricsChange(uint32_t aFlags = 0);
-
-  
-
-
-  enum { ePositioningDirtyDueToMutation = 1 };
+  void NotifyGlyphMetricsChange();
 
   
 
@@ -594,12 +585,6 @@ private:
 
 
   MutationObserver mMutationObserver;
-
-  
-
-
-
-  nsRefPtr<GlyphMetricsUpdater> mGlyphMetricsUpdater;
 
   
 
