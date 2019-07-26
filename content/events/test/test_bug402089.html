@@ -1,15 +1,15 @@
 <!DOCTYPE HTML>
 <html>
-<!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=402089
--->
+
+
+
 <head>
   <title>Test for Bug 402089</title>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="text/javascript" src="/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
-<!-- setTimeout so that the test starts after paint suppression ends -->
+
 <body onload="setTimeout(doTest,0);">
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=402089">Mozilla Bug 402089</a>
 <p id="display"></p>
@@ -52,9 +52,7 @@ function clickHandler(e) {
 
 function doTest() {
   window.addEventListener("click", clickHandler, true);
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-  var utils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
-                     getInterface(Components.interfaces.nsIDOMWindowUtils);
+  var utils = SpecialPowers.getDOMWindowUtils(window);
   utils.sendMouseEvent("mousedown", 1, 1, 0, 1, 0);
   utils.sendMouseEvent("mouseup", 1, 1, 0, 1, 0);
 
