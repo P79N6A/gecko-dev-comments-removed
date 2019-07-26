@@ -228,6 +228,20 @@
 
 
 
+
+
+
+
+%ifdef XP_MACOSX
+#main-window[tabsintitlebar][sizemode="maximized"] .tab-background-middle:not([selected=true]),
+%endif
+#main-window[tabsintitlebar]:not([sizemode="maximized"]):not([inFullscreen]) #toolbar-menubar:-moz-any([autohide="true"][inactive], :not([autohide])) + #TabsToolbar .tab-background-middle:not([selected=true]) {
+  clip-path: url(chrome://browser/content/browser.xul#tab-hover-clip-path);
+}
+
+
+
+
 .tabbrowser-tab:hover > .tab-stack > .tab-background:not([selected=true]),
 .tabs-newtab-button:hover {
   background-image: url(chrome://browser/skin/tabbrowser/tab-background-start.png),
