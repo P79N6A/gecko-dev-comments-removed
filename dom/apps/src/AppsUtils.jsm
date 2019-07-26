@@ -209,9 +209,59 @@ this.AppsUtils = {
 
 
 
+  sanitizeManifest: function(aManifest) {
+    let sanitizer = Cc["@mozilla.org/parserutils;1"]
+                      .getService(Ci.nsIParserUtils);
+    if (!sanitizer) {
+      return;
+    }
+
+    function sanitize(aStr) {
+      return sanitizer.convertToPlainText(aStr,
+               Ci.nsIDocumentEncoder.OutputSelectionOnly |
+               Ci.nsIDocumentEncoder.OutputAbsoluteLinks, 0);
+    }
+
+    function sanitizeEntryPoint(aRoot) {
+      aRoot.name = sanitize(aRoot.name);
+
+      if (aRoot.description) {
+        aRoot.description = sanitize(aRoot.description);
+      }
+
+      if (aRoot.developer && aRoot.developer.name) {
+        aRoot.developer.name = sanitize(aRoot.developer.name);
+      }
+
+      if (aRoot.permissions) {
+        for (let permission in aRoot.permissions) {
+          if (aRoot.permissions[permission].description) {
+            aRoot.permissions[permission].description =
+             sanitize(aRoot.permissions[permission].description);
+          }
+        }
+      }
+    }
+
+    
+    sanitizeEntryPoint(aManifest);
+
+    if (aManifest.entry_points) {
+      for (let entry in aManifest.entry_points) {
+        sanitizeEntryPoint(aManifest.entry_points[entry]);
+      }
+    }
+  },
+
+  
+
+
+
   checkManifest: function(aManifest, app) {
     if (aManifest.name == undefined)
       return false;
+
+    this.sanitizeManifest(aManifest);
 
     
     if (aManifest.launch_path && isAbsoluteURI(aManifest.launch_path))
