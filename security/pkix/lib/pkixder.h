@@ -622,35 +622,30 @@ CertificateSerialNumber(Input& input,  SECItem& value)
 
 
 
-MOZILLA_PKIX_ENUM_CLASS Version { v1 = 0, v2 = 1, v3 = 2 };
+enum Version { v1 = 0, v2 = 1, v3 = 2 };
 
 
 
 
 inline Result
-OptionalVersion(Input& input,  Version& version)
+OptionalVersion(Input& input,  uint8_t& version)
 {
-  static const uint8_t TAG = CONTEXT_SPECIFIC | CONSTRUCTED | 0;
-  if (!input.Peek(TAG)) {
-    version = Version::v1;
+  const uint8_t tag = CONTEXT_SPECIFIC | CONSTRUCTED | 0;
+  if (!input.Peek(tag)) {
+    version = v1;
     return Success;
   }
-  Input value;
-  if (ExpectTagAndGetValue(input, TAG, value) != Success) {
+  if (ExpectTagAndLength(input, tag, 3) != Success) {
     return Failure;
   }
-  uint8_t integerValue;
-  if (Integer(value, integerValue) != Success) {
+  if (ExpectTagAndLength(input, INTEGER, 1) != Success) {
     return Failure;
   }
-  if (End(value) != Success) {
+  if (input.Read(version) != Success) {
     return Failure;
   }
-  switch (integerValue) {
-    case static_cast<uint8_t>(Version::v3): version = Version::v3; break;
-    case static_cast<uint8_t>(Version::v2): version = Version::v2; break;
-    default:
-      return Fail(SEC_ERROR_BAD_DER);
+  if (version & 0x80) { 
+    return Fail(SEC_ERROR_BAD_DER);
   }
   return Success;
 }

@@ -312,7 +312,7 @@ DecodeBasicConstraints(der::Input& input,  bool& isCA,
 Result
 CheckBasicConstraints(EndEntityOrCA endEntityOrCA,
                       const SECItem* encodedBasicConstraints,
-                      der::Version version, TrustLevel trustLevel,
+                      const der::Version version, TrustLevel trustLevel,
                       unsigned int subCACount)
 {
   bool isCA = false;
@@ -636,6 +636,14 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
   }
 
   
+  
+  
+  
+  der::Version version = (!cert.GetNSSCert()->version.data &&
+                          !cert.GetNSSCert()->version.len) ? der::Version::v1
+                                                           : der::Version::v3;
+
+  
 
   
 
@@ -667,7 +675,7 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
 
   
   rv = CheckBasicConstraints(endEntityOrCA, cert.encodedBasicConstraints,
-                             cert.version, trustLevel, subCACount);
+                             version, trustLevel, subCACount);
   if (rv != Success) {
     return rv;
   }
