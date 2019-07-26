@@ -18,7 +18,7 @@ const { isPrivateBrowsingSupported } = require('./self');
 const { isWindowPBSupported } = require('./private-browsing/utils');
 const { Class } = require("./core/heritage");
 const { merge } = require("./util/object");
-const { WorkerHost, detach, attach, destroy } = require("./content/utils");
+const { WorkerHost } = require("./content/utils");
 const { Worker } = require("./content/worker");
 const { Disposable } = require("./core/disposable");
 const { WeakReference } = require('./core/reference');
@@ -34,6 +34,8 @@ const { getNodeView, getActiveView } = require("./view/core");
 const { isNil, isObject, isNumber } = require("./lang/type");
 const { getAttachEventType } = require("./content/utils");
 const { number, boolean, object } = require('./deprecated/api-utils');
+const { Style } = require("./stylesheet/style");
+const { attach, detach } = require("./content/mod");
 
 let isRect = ({top, right, bottom, left}) => [top, right, bottom, left].
   some(value => isNumber(value) && !isNaN(value));
@@ -63,7 +65,16 @@ let displayContract = contract({
   position: position
 });
 
-let panelContract = contract(merge({}, displayContract.rules, loaderContract.rules));
+let panelContract = contract(merge({
+  
+  
+  contentStyle: merge(Object.create(loaderContract.rules.contentScript), {
+    msg: 'The `contentStyle` option must be a string or an array of strings.'
+  }),
+  contentStyleFile: merge(Object.create(loaderContract.rules.contentScriptFile), {
+    msg: 'The `contentStyleFile` option must be a local URL or an array of URLs'
+  })
+}, displayContract.rules, loaderContract.rules));
 
 
 function isDisposed(panel) !views.has(panel);
@@ -72,12 +83,13 @@ let panels = new WeakMap();
 let models = new WeakMap();
 let views = new WeakMap();
 let workers = new WeakMap();
+let styles = new WeakMap();
 
-function viewFor(panel) views.get(panel)
-function modelFor(panel) models.get(panel)
-function panelFor(view) panels.get(view)
-function workerFor(panel) workers.get(panel)
-
+const viewFor = (panel) => views.get(panel);
+const modelFor = (panel) => models.get(panel);
+const panelFor = (view) => panels.get(view);
+const workerFor = (panel) => workers.get(panel);
+const styleFor = (panel) => styles.get(panel);
 
 
 
@@ -125,6 +137,12 @@ const Panel = Class({
     }, panelContract(options));
     models.set(this, model);
 
+    if (model.contentStyle || model.contentStyleFile) {
+      styles.set(this, Style({
+        uri: model.contentStyleFile,
+        source: model.contentStyle
+      }));
+    }
 
     
     let view = domPanel.make();
@@ -148,7 +166,8 @@ const Panel = Class({
     this.hide();
     off(this);
 
-    destroy(workerFor(this));
+    workerFor(this).destroy();
+    detach(styleFor(this));
 
     domPanel.dispose(viewFor(this));
 
@@ -177,7 +196,7 @@ const Panel = Class({
     domPanel.setURL(viewFor(this), model.contentURL);
     
     
-    detach(workerFor(this));
+    workerFor(this).detach();
   },
 
   
@@ -263,11 +282,24 @@ let ready = filter(panelEvents, ({type, target}) =>
   getAttachEventType(modelFor(panelFor(target))) === type);
 
 
+
+let start = filter(panelEvents, ({type}) => type === "document-element-inserted");
+
+
 on(shows, "data", ({target}) => emit(panelFor(target), "show"));
 
 on(hides, "data", ({target}) => emit(panelFor(target), "hide"));
 
-on(ready, "data", function({target}) {
-  let worker = workerFor(panelFor(target));
-  attach(worker, domPanel.getContentDocument(target).defaultView);
+on(ready, "data", ({target}) => {
+  let panel = panelFor(target);
+  let window = domPanel.getContentDocument(target).defaultView;
+  
+  workerFor(panel).attach(window);
+});
+
+on(start, "data", ({target}) => {
+  let panel = panelFor(target);
+  let window = domPanel.getContentDocument(target).defaultView;
+  
+  attach(styleFor(panel), window);
 });

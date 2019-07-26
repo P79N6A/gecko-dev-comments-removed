@@ -67,3 +67,8 @@ function load(sandbox, uri) {
   }
 }
 exports.load = load;
+
+
+
+
+exports.nuke = Cu.nukeSandbox

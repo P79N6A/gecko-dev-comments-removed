@@ -201,6 +201,10 @@ function createWorker (mod, window) {
     contentScript: mod.contentScript,
     contentScriptFile: mod.contentScriptFile,
     contentScriptOptions: mod.contentScriptOptions,
+    
+    
+    
+    onError: (e) => emit(mod, 'error', e)
   });
   workers.set(mod, worker);
   pipe(worker, mod);

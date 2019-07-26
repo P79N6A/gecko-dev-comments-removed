@@ -109,17 +109,21 @@ exports.pathFor = function pathFor(id) {
 
 exports.platform = runtime.OS.toLowerCase();
 
-
-
-
-
-exports.architecture = runtime.XPCOMABI.split('_')[0];
+const [, architecture, compiler] = runtime.XPCOMABI ? 
+                                   runtime.XPCOMABI.match(/^([^-]*)-(.*)$/) :
+                                   [, null, null];
 
 
 
 
 
-exports.compiler = runtime.XPCOMABI.split('_')[1];
+exports.architecture = architecture;
+
+
+
+
+
+exports.compiler = compiler;
 
 
 

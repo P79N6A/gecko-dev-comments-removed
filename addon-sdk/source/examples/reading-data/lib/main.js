@@ -1,10 +1,11 @@
 
 
 
+"use strict";
 
 var self = require("sdk/self");
-var panels = require("sdk/panel");
-var widgets = require("sdk/widget");
+var { Panel } = require("sdk/panel");
+var { ToggleButton } = require("sdk/ui");
 
 function replaceMom(html) {
   return html.replace("World", "Mom");
@@ -21,24 +22,32 @@ exports.main = function(options, callbacks) {
   helloHTML = replaceMom(helloHTML);
 
   
-  var myPanel = panels.Panel({
-    contentURL: "data:text/html," + helloHTML
+  var myPanel = Panel({
+    contentURL: "data:text/html," + helloHTML,
+    onHide: handleHide
   });
 
   
-  var iconURL = self.data.url("mom.png");
-
   
-  
-  widgets.Widget({
+  var button = ToggleButton({
     id: "test-widget",
     label: "Mom",
-    contentURL: iconURL,
-    panel: myPanel
+    icon: './mom.png',
+    onChange: handleChange
   });
 
   
   
   if (options.staticArgs.quitWhenDone)
     callbacks.quit();
+}
+
+function handleChange(state) {
+  if (state.checked) {
+    myPanel.show({ position: button });
+  }
+}
+
+function handleHide() {
+  button.state('window', { checked: false });
 }
