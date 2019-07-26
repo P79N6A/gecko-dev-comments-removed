@@ -200,9 +200,10 @@ BrowserRootActor.prototype = {
 
 
 
-  onTabClosed: function BRA_onTabClosed(aEvent) {
+  onTabClosed:
+  makeInfallible(function BRA_onTabClosed(aEvent) {
     this.exitTabActor(aEvent.target.linkedBrowser);
-  },
+  }, "BrowserRootActor.prototype.onTabClosed"),
 
   
 
@@ -273,15 +274,16 @@ BrowserRootActor.prototype = {
 
   onWindowTitleChange: function BRA_onWindowTitleChange(aWindow, aTitle) { },
   onOpenWindow: function BRA_onOpenWindow(aWindow) { },
-  onCloseWindow: function BRA_onCloseWindow(aWindow) {
+  onCloseWindow:
+  makeInfallible(function BRA_onCloseWindow(aWindow) {
     
     
     
     if (aWindow.getBrowser) {
       this.unwatchWindow(aWindow);
     }
-  }
-}
+  }, "BrowserRootActor.prototype.onCloseWindow"),
+};
 
 
 
@@ -583,7 +585,8 @@ BrowserTabActor.prototype = {
 
 
 
-  onWindowCreated: function BTA_onWindowCreated(evt) {
+  onWindowCreated:
+  makeInfallible(function BTA_onWindowCreated(evt) {
     if (evt.target === this.browser.contentDocument) {
       
       
@@ -604,7 +607,7 @@ BrowserTabActor.prototype = {
         this.threadActor.findGlobals();
       }
     }
-  },
+  }, "BrowserTabActor.prototype.onWindowCreated"),
 
   
 
@@ -650,7 +653,7 @@ function DebuggerProgressListener(aBrowserTabActor) {
 
 DebuggerProgressListener.prototype = {
   onStateChange:
-  function DPL_onStateChange(aProgress, aRequest, aFlag, aStatus) {
+  makeInfallible(function DPL_onStateChange(aProgress, aRequest, aFlag, aStatus) {
     let isStart = aFlag & Ci.nsIWebProgressListener.STATE_START;
     let isStop = aFlag & Ci.nsIWebProgressListener.STATE_STOP;
     let isDocument = aFlag & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT;
@@ -698,7 +701,7 @@ DebuggerProgressListener.prototype = {
         state: "stop",
       });
     }
-  },
+  }, "DebuggerProgressListener.prototype.onStateChange"),
 
   
 
