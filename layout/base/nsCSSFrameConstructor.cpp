@@ -1982,26 +1982,63 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
   return newFrame;
 }
 
-nsIFrame*
-nsCSSFrameConstructor::ConstructTableRow(nsFrameConstructorState& aState,
-                                         FrameConstructionItem&   aItem,
-                                         nsIFrame*                aParentFrame,
-                                         const nsStyleDisplay*    aDisplay,
-                                         nsFrameItems&            aFrameItems)
+static void
+MakeTablePartAbsoluteContainingBlockIfNeeded(nsFrameConstructorState&     aState,
+                                             const nsStyleDisplay*        aDisplay,
+                                             nsFrameConstructorSaveState& aAbsSaveState,
+                                             nsIFrame*                    aFrame)
 {
-  NS_PRECONDITION(aDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_ROW,
+  
+  
+  
+  
+  
+  
+  
+  
+  if (aDisplay->IsRelativelyPositionedStyle() ||
+      aDisplay->IsAbsolutelyPositionedStyle() ||
+      aDisplay->HasTransform(aFrame)) {
+    aFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
+    aState.PushAbsoluteContainingBlock(aFrame, aFrame, aAbsSaveState);
+    nsTableFrame::RegisterPositionedTablePart(aFrame);
+  }
+}
+
+nsIFrame*
+nsCSSFrameConstructor::ConstructTableRowOrRowGroup(nsFrameConstructorState& aState,
+                                                   FrameConstructionItem&   aItem,
+                                                   nsIFrame*                aParentFrame,
+                                                   const nsStyleDisplay*    aDisplay,
+                                                   nsFrameItems&            aFrameItems)
+{
+  NS_PRECONDITION(aDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_ROW ||
+                  aDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_ROW_GROUP ||
+                  aDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP ||
+                  aDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_HEADER_GROUP,
                   "Unexpected call");
+  MOZ_ASSERT(aItem.mStyleContext->StyleDisplay() == aDisplay,
+             "Display style doesn't match style context");
   nsIContent* const content = aItem.mContent;
   nsStyleContext* const styleContext = aItem.mStyleContext;
   const uint32_t nameSpaceID = aItem.mNameSpaceID;
 
   nsIFrame* newFrame;
-  if (kNameSpaceID_MathML == nameSpaceID)
-    newFrame = NS_NewMathMLmtrFrame(mPresShell, styleContext);
-  else
-    newFrame = NS_NewTableRowFrame(mPresShell, styleContext);
+  if (aDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_ROW) {
+    if (kNameSpaceID_MathML == nameSpaceID)
+      newFrame = NS_NewMathMLmtrFrame(mPresShell, styleContext);
+    else
+      newFrame = NS_NewTableRowFrame(mPresShell, styleContext);
+  } else {
+    newFrame = NS_NewTableRowGroupFrame(mPresShell, styleContext);
+  }
 
   InitAndRestoreFrame(aState, content, aParentFrame, newFrame);
+
+  nsFrameConstructorSaveState absoluteSaveState;
+  MakeTablePartAbsoluteContainingBlockIfNeeded(aState, aDisplay,
+                                               absoluteSaveState,
+                                               newFrame);
 
   nsFrameItems childItems;
   NS_ASSERTION(aItem.mAnonChildren.IsEmpty(),
@@ -2104,6 +2141,11 @@ nsCSSFrameConstructor::ConstructTableCell(nsFrameConstructorState& aState,
   }
 
   InitAndRestoreFrame(aState, content, newFrame, cellInnerFrame);
+
+  nsFrameConstructorSaveState absoluteSaveState;
+  MakeTablePartAbsoluteContainingBlockIfNeeded(aState, aDisplay,
+                                               absoluteSaveState,
+                                               newFrame);
 
   nsFrameItems childItems;
   NS_ASSERTION(aItem.mAnonChildren.IsEmpty(),
@@ -4375,20 +4417,17 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
                   FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
                   NS_NewTableCaptionFrame) },
     { NS_STYLE_DISPLAY_TABLE_ROW_GROUP,
-      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_DISALLOW_OUT_OF_FLOW |
-                  FCDATA_SKIP_ABSPOS_PUSH |
-                  FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
-                  NS_NewTableRowGroupFrame) },
+      FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART |
+                       FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
+                       &nsCSSFrameConstructor::ConstructTableRowOrRowGroup) },
     { NS_STYLE_DISPLAY_TABLE_HEADER_GROUP,
-      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_DISALLOW_OUT_OF_FLOW |
-                  FCDATA_SKIP_ABSPOS_PUSH |
-                  FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
-                  NS_NewTableRowGroupFrame) },
+      FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART |
+                       FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
+                       &nsCSSFrameConstructor::ConstructTableRowOrRowGroup) },
     { NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP,
-      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_DISALLOW_OUT_OF_FLOW |
-                  FCDATA_SKIP_ABSPOS_PUSH |
-                  FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
-                  NS_NewTableRowGroupFrame) },
+      FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART |
+                       FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
+                       &nsCSSFrameConstructor::ConstructTableRowOrRowGroup) },
     { NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP,
       FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_DISALLOW_OUT_OF_FLOW |
                   FCDATA_SKIP_ABSPOS_PUSH |
@@ -4401,7 +4440,7 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
     { NS_STYLE_DISPLAY_TABLE_ROW,
       FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART |
                        FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRowGroup),
-                       &nsCSSFrameConstructor::ConstructTableRow) },
+                       &nsCSSFrameConstructor::ConstructTableRowOrRowGroup) },
     { NS_STYLE_DISPLAY_TABLE_CELL,
       FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART |
                        FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRow),
@@ -8818,15 +8857,14 @@ nsCSSFrameConstructor::sPseudoParentData[eParentTypeCount] = {
     FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMESET |
                      FCDATA_USE_CHILD_ITEMS |
                      FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRowGroup),
-                     &nsCSSFrameConstructor::ConstructTableRow),
+                     &nsCSSFrameConstructor::ConstructTableRowOrRowGroup),
     &nsCSSAnonBoxes::tableRow
   },
   { 
-    FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMESET |
-                FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_USE_CHILD_ITEMS |
-                FCDATA_SKIP_ABSPOS_PUSH |
-                FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
-                NS_NewTableRowGroupFrame),
+    FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMESET |
+                     FCDATA_USE_CHILD_ITEMS |
+                     FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
+                     &nsCSSFrameConstructor::ConstructTableRowOrRowGroup),
     &nsCSSAnonBoxes::tableRowGroup
   },
   { 
