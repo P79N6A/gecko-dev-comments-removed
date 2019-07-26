@@ -12,6 +12,7 @@
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsPIDOMWindow.h"
+#include "nsWeakReference.h"
 #include "nsWrapperCache.h"
 
 
@@ -24,6 +25,7 @@
 namespace mozilla {
 namespace dom {
 
+class FileSystemBase;
 class Promise;
 
 class Directory MOZ_FINAL
@@ -35,7 +37,10 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Directory)
 
 public:
-  Directory();
+  static already_AddRefed<Promise>
+  GetRoot(FileSystemBase* aFileSystem);
+
+  Directory(FileSystemBase* aFileSystem, const nsAString& aPath);
   ~Directory();
 
   
@@ -56,6 +61,19 @@ public:
   Get(const nsAString& aPath);
 
   
+private:
+  static bool
+  IsValidRelativePath(const nsString& aPath);
+
+  
+
+
+
+  bool
+  DOMPathToRealPath(const nsAString& aPath, nsAString& aRealPath) const;
+
+  nsWeakPtr mFileSystem;
+  nsString mPath;
 };
 
 } 
