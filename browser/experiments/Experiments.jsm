@@ -853,6 +853,30 @@ Experiments.Experiments.prototype = {
 
     this._checkForShutdown();
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let installedExperiments = yield installedExperimentAddons();
+    let expectedAddonIds = new Set([e._addonId for ([,e] of this._experiments)]);
+    let unknownAddons = [a for (a of installedExperiments) if (!expectedAddonIds.has(a.id))];
+    if (unknownAddons.length) {
+      gLogger.warn("Experiments::_evaluateExperiments() - unknown add-ons in AddonManager: " +
+                   [a.id for (a of unknownAddons)].join(", "));
+
+      yield uninstallAddons(unknownAddons);
+    }
+
     let activeExperiment = this._getActiveExperiment();
     let activeChanged = false;
     let now = this._policy.now();
