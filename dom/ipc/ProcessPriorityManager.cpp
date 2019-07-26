@@ -60,7 +60,14 @@ static StaticRefPtr<ProcessPriorityManager> sManager;
 
 
 
-#ifdef PR_LOGGING
+
+#if defined(ANDROID) && 0
+#include <android/log.h>
+#define LOG(fmt, ...) \
+  __android_log_print(ANDROID_LOG_INFO, \
+      "Gecko:ProcessPriorityManager", \
+      fmt, ## __VA_ARGS__)
+#elif defined(PR_LOGGING)
 static PRLogModuleInfo*
 GetPPMLog()
 {
