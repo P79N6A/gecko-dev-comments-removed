@@ -300,11 +300,6 @@ private:
   
   static already_AddRefed<nsPIDOMWindow> GetWindowFromGlobal(JSObject* aGlobal);
 
-  
-  
-  void AddIdleObserver(nsIIdleObserver& aIdleObserver);
-  void RemoveIdleObserver(nsIIdleObserver& aIdleObserver);
-
   nsRefPtr<nsMimeTypeArray> mMimeTypes;
   nsRefPtr<nsPluginArray> mPlugins;
   nsRefPtr<Geolocation> mGeolocation;
