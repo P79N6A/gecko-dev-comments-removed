@@ -49,6 +49,8 @@ WMFVideoOutputSource::WMFVideoOutputSource(mozilla::layers::LayersBackend aLayer
 WMFVideoOutputSource::~WMFVideoOutputSource()
 {
   MOZ_COUNT_DTOR(WMFVideoOutputSource);
+  
+  DeleteOnMainThread(mDXVA2Manager);
 }
 
 class CreateDXVAManagerEvent : public nsRunnable {
