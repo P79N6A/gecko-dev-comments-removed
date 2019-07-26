@@ -449,8 +449,7 @@ MarionetteDriverActor.prototype = {
       let win = this.getCurrentWindow();
       if (!win ||
           (appName == "Firefox" && !win.gBrowser) ||
-          (appName == "Fennec" && !win.BrowserApp) ||
-          (appName == "B2G" && !systemMessageListenerReady)) { 
+          (appName == "Fennec" && !win.BrowserApp)) { 
         checkTimer.initWithCallback(waitForWindow.bind(this), 100, Ci.nsITimer.TYPE_ONE_SHOT);
       }
       else {
@@ -605,6 +604,9 @@ MarionetteDriverActor.prototype = {
         _chromeSandbox[fn] = marionette[fn];
       }
     });
+
+    _chromeSandbox.isSystemMessageListenerReady =
+        function() { return systemMessageListenerReady; }
 
     if (specialPowers == true) {
       loader.loadSubScript("chrome://specialpowers/content/specialpowersAPI.js",
@@ -1389,6 +1391,10 @@ MarionetteDriverActor.prototype = {
     }
   },
 
+  getElementPosition: function MDA_getElementPosition(aRequest) {
+      this.sendAsync("getElementPosition", {element:aRequest.element});
+  },
+
   
 
 
@@ -1685,6 +1691,7 @@ MarionetteDriverActor.prototype.requestTypes = {
   "isElementEnabled": MarionetteDriverActor.prototype.isElementEnabled,
   "isElementSelected": MarionetteDriverActor.prototype.isElementSelected,
   "sendKeysToElement": MarionetteDriverActor.prototype.sendKeysToElement,
+  "getElementPosition": MarionetteDriverActor.prototype.getElementPosition,
   "clearElement": MarionetteDriverActor.prototype.clearElement,
   "getTitle": MarionetteDriverActor.prototype.getTitle,
   "getPageSource": MarionetteDriverActor.prototype.getPageSource,
