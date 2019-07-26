@@ -6374,6 +6374,12 @@ IonBuilder::jsop_getelem_dense()
     
     
     
+    MInitializedLength *initLength = MInitializedLength::New(elements);
+    current->add(initLength);
+
+    
+    
+    
     
     
     
@@ -6390,9 +6396,6 @@ IonBuilder::jsop_getelem_dense()
         objTypes->convertDoubleElements(cx) == types::StackTypeSet::AlwaysConvertToDoubles;
     if (loadDouble)
         elements = addConvertElementsToDoubles(elements);
-
-    MInitializedLength *initLength = MInitializedLength::New(elements);
-    current->add(initLength);
 
     MInstruction *load;
 
