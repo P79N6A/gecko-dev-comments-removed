@@ -38,13 +38,12 @@ public class ButtonToast {
     private final TextView mMessageView;
     private final Button mButton;
     private final Handler mHideHandler = new Handler();
-
-    private final LinkedList<Toast> mQueue = new LinkedList<Toast>();
     private Toast mCurrentToast;
 
     public enum ReasonHidden {
         CLICKED,
         TIMEOUT,
+        REPLACED,
         STARTUP
     }
 
@@ -105,9 +104,9 @@ public class ButtonToast {
 
     private void show(Toast t, boolean immediate) {
         
-        if (mView.getVisibility() == View.VISIBLE) {
-            mQueue.offer(t);
-            return;
+        if (mCurrentToast != null) {
+            hide(true, ReasonHidden.REPLACED);
+            immediate = true;
         }
 
         mCurrentToast = t;
@@ -130,11 +129,6 @@ public class ButtonToast {
     }
 
     public void hide(boolean immediate, ReasonHidden reason) {
-        if (mButton.isPressed() && reason != ReasonHidden.CLICKED) {
-            mHideHandler.postDelayed(mHideRunnable, TOAST_DURATION);
-            return;
-        }
-
         if (mCurrentToast != null && mCurrentToast.listener != null) {
             mCurrentToast.listener.onToastHidden(reason);
         }
@@ -146,7 +140,6 @@ public class ButtonToast {
         mView.clearAnimation();
         if (immediate) {
             mView.setVisibility(View.GONE);
-            showNextInQueue();
         } else {
             
             
@@ -157,25 +150,10 @@ public class ButtonToast {
                 
                 public void onPropertyAnimationEnd() {
                     mView.setVisibility(View.GONE);
-                    showNextInQueue();
                 }
                 public void onPropertyAnimationStart() { }
             });
             animator.start();
-        }
-    }
-
-    public void onSaveInstanceState(Bundle outState) {
-        
-        if (mCurrentToast != null) {
-            mQueue.add(0, mCurrentToast);
-        }
-    }
-
-    private void showNextInQueue() {
-        Toast t = mQueue.poll();
-        if (t != null) {
-            show(t, false);
         }
     }
 
