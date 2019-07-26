@@ -1237,7 +1237,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         
         if (GetCrossProcessTarget()->SendTextEvent(*textEvent)) {
           
-          aEvent->flags |= NS_EVENT_FLAG_STOP_DISPATCH;
+          aEvent->mFlags.mPropagationStopped = true;
         }
       }
     }
@@ -1264,7 +1264,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         
         if (GetCrossProcessTarget()->SendCompositionEvent(*compositionEvent)) {
           
-          aEvent->flags |= NS_EVENT_FLAG_STOP_DISPATCH;
+          aEvent->mFlags.mPropagationStopped = true;
         }
       }
     }
@@ -2155,7 +2155,7 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
                                               targetContent, selection);
         if (dragStarted) {
           sActiveESM = nullptr;
-          aEvent->flags |= NS_EVENT_FLAG_STOP_DISPATCH;
+          aEvent->mFlags.mPropagationStopped = true;
         }
       }
 
@@ -4178,7 +4178,7 @@ nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
         } else if (aEvent->refPoint == sSynthCenteringPoint) {
           
           
-          aEvent->flags |= NS_EVENT_FLAG_STOP_DISPATCH;
+          aEvent->mFlags.mPropagationStopped = true;
           
           
           sSynthCenteringPoint = kInvalidRefPoint;

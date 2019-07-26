@@ -111,7 +111,6 @@ enum nsEventStructType {
 #define NS_EVENT_FLAG_NONE                0x0000
 #define NS_EVENT_FLAG_BUBBLE              0x0002
 #define NS_EVENT_FLAG_CAPTURE             0x0004
-#define NS_EVENT_FLAG_STOP_DISPATCH       0x0008
 #define NS_EVENT_FLAG_NO_DEFAULT          0x0010
 #define NS_PRIV_EVENT_FLAG_SCRIPT         0x0080
 #define NS_EVENT_FLAG_NO_CONTENT_DISPATCH 0x0100
@@ -138,8 +137,6 @@ enum nsEventStructType {
 #define NS_EVENT_FLAG_PREVENT_MULTIPLE_ACTIONS 0x20000
 
 #define NS_EVENT_RETARGET_TO_NON_NATIVE_ANONYMOUS 0x40000
-
-#define NS_EVENT_FLAG_STOP_DISPATCH_IMMEDIATELY 0x80000
 
 #define NS_EVENT_FLAG_DONT_FORWARD_CROSS_PROCESS 0x100000
 
@@ -526,6 +523,13 @@ public:
   
   
   bool    mBubbles : 1;
+  
+  
+  bool    mPropagationStopped : 1;
+  
+  
+  
+  bool    mImmediatePropagationStopped : 1;
 
   
   bool InTargetPhase() const
