@@ -80,6 +80,7 @@ this.TiltVisualizer = function TiltVisualizer(aProperties)
 
 
   this.chromeWindow = aProperties.chromeWindow;
+  this.tab = aProperties.tab;
 
   
 
@@ -99,8 +100,6 @@ this.TiltVisualizer = function TiltVisualizer(aProperties)
     aProperties.onError || null,
     aProperties.onLoad || null);
 
-  this.bindToInspector(aProperties.tab);
-
   
 
 
@@ -115,6 +114,7 @@ TiltVisualizer.prototype = {
   init: function TV_init()
   {
     this.presenter.init();
+    this.bindToInspector(this.tab);
   },
 
   
