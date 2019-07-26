@@ -33,7 +33,8 @@
 
 
 
-class NS_NO_VTABLE nsISupports {
+class NS_NO_VTABLE nsISupports
+{
 public:
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISUPPORTS_IID)

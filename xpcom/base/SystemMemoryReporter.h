@@ -14,9 +14,13 @@ namespace SystemMemoryReporter {
 
 
 #if defined(XP_LINUX)
-void Init();
+void
+Init();
 #else
-void Init() {}
+void
+Init()
+{
+}
 #endif
 
 } 

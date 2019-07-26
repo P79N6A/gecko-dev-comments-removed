@@ -22,7 +22,7 @@ extern "C" {
 
 
 typedef void
-(* NS_WalkStackCallback)(void *aPC, void *aSP, void *aClosure);
+(*NS_WalkStackCallback)(void* aPC, void* aSP, void* aClosure);
 
 
 
@@ -62,10 +62,11 @@ typedef void
 
 XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
-             uint32_t aMaxFrames, void *aClosure, uintptr_t aThread,
-             void *aPlatformData);
+             uint32_t aMaxFrames, void* aClosure, uintptr_t aThread,
+             void* aPlatformData);
 
-typedef struct {
+typedef struct
+{
   
 
 
@@ -96,7 +97,7 @@ typedef struct {
 
 
 XPCOM_API(nsresult)
-NS_DescribeCodeAddress(void *aPC, nsCodeAddressDetails *aDetails);
+NS_DescribeCodeAddress(void* aPC, nsCodeAddressDetails* aDetails);
 
 
 
@@ -116,8 +117,8 @@ NS_DescribeCodeAddress(void *aPC, nsCodeAddressDetails *aDetails);
 
 
 XPCOM_API(nsresult)
-NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
-                            char *aBuffer, uint32_t aBufferSize);
+NS_FormatCodeAddressDetails(void* aPC, const nsCodeAddressDetails* aDetails,
+                            char* aBuffer, uint32_t aBufferSize);
 
 #ifdef __cplusplus
 }

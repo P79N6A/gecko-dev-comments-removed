@@ -251,8 +251,9 @@ public:
   }
   ThisClass& operator=(const ThisClass& aRefToCopy)
   {
-    if (this == &aRefToCopy)
+    if (this == &aRefToCopy) {
       return *this;
+    }
 
     this->SafeRelease();
     SimpleRef::operator=(aRefToCopy);
@@ -291,8 +292,9 @@ protected:
   
   void SafeAddRef()
   {
-    if (this->HaveResource())
+    if (this->HaveResource()) {
       this->AddRef(this->get());
+    }
   }
 };
 
@@ -467,7 +469,10 @@ public:
   
   typedef T* RawRef;
   
-  static RawRef Void() { return nullptr; }
+  static RawRef Void()
+  {
+    return nullptr;
+  }
 };
 
 
@@ -658,8 +663,9 @@ protected:
   
   void SafeRelease()
   {
-    if (this->HaveResource())
+    if (this->HaveResource()) {
       this->Release(this->get());
+    }
   }
 };
 

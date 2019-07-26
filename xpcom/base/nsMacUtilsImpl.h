@@ -1,4 +1,4 @@
-
+  
 
 
 
@@ -16,12 +16,16 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMACUTILS
 
-  nsMacUtilsImpl() {}
+  nsMacUtilsImpl()
+  {
+  }
 
 private:
-  ~nsMacUtilsImpl() {}
+  ~nsMacUtilsImpl()
+  {
+  }
 
-  nsresult GetArchString(nsAString& archString);
+  nsresult GetArchString(nsAString& aArchString);
 
   
   

@@ -41,7 +41,8 @@
 
 
 __attribute__((unused))
-static void nsObjCExceptionLog(NSException* aException)
+static void
+nsObjCExceptionLog(NSException* aException)
 {
   NSLog(@"Mozilla has caught an Obj-C exception [%@: %@]",
         [aException name], [aException reason]);
@@ -50,31 +51,34 @@ static void nsObjCExceptionLog(NSException* aException)
   
   nsCOMPtr<nsICrashReporter> crashReporter =
     do_GetService("@mozilla.org/toolkit/crash-reporter;1");
-  if (crashReporter)
+  if (crashReporter) {
     crashReporter->AppendObjCExceptionInfoToAppNotes(static_cast<void*>(aException));
+  }
 #endif
 
 #ifdef DEBUG
   @try {
     
     
-    NSArray *stackTrace = nil;
+    NSArray* stackTrace = nil;
     if ([aException respondsToSelector:@selector(callStackReturnAddresses)]) {
       NSArray* addresses = (NSArray*)
         [aException performSelector:@selector(callStackReturnAddresses)];
-      if ([addresses count])
+      if ([addresses count]) {
         stackTrace = addresses;
+      }
     }
 
     
     
-    if (!stackTrace)
+    if (!stackTrace) {
       stackTrace = [[aException userInfo] objectForKey:NSStackTraceKey];
+    }
 
     if (stackTrace) {
       
       
-      NSMutableArray *args =
+      NSMutableArray* args =
         [NSMutableArray arrayWithCapacity:[stackTrace count] + 3];
 
       [args addObject:@"-p"];
@@ -91,9 +95,9 @@ static void nsObjCExceptionLog(NSException* aException)
         [args addObject:[NSString stringWithFormat:@"0x%lx", address]];
       }
 
-      NSPipe *outPipe = [NSPipe pipe];
+      NSPipe* outPipe = [NSPipe pipe];
 
-      NSTask *task = [[NSTask alloc] init];
+      NSTask* task = [[NSTask alloc] init];
       [task setLaunchPath:@"/usr/bin/atos"];
       [task setArguments:args];
       [task setStandardOutput:outPipe];
@@ -108,20 +112,19 @@ static void nsObjCExceptionLog(NSException* aException)
       [task waitUntilExit];
       [task release];
 
-      NSData *outData =
+      NSData* outData =
         [[outPipe fileHandleForReading] readDataToEndOfFile];
-      NSString *outString =
+      NSString* outString =
         [[NSString alloc] initWithData:outData encoding:NSUTF8StringEncoding];
 
       NSLog(@"Stack trace:\n%@", outString);
 
       [outString release];
-    }
-    else {
+    } else {
       NSLog(@"<No stack information available for Obj-C exception>");
     }
   }
-  @catch (NSException *exn) {
+  @catch (NSException* exn) {
     NSLog(@"Failed to generate stack trace for Obj-C exception [%@: %@]",
           [exn name], [exn reason]);
   }
@@ -129,7 +132,8 @@ static void nsObjCExceptionLog(NSException* aException)
 }
 
 __attribute__((unused))
-static void nsObjCExceptionAbort()
+static void
+nsObjCExceptionAbort()
 {
   
   
@@ -139,9 +143,10 @@ static void nsObjCExceptionAbort()
 }
 
 __attribute__((unused))
-static void nsObjCExceptionLogAbort(NSException *e)
+static void
+nsObjCExceptionLogAbort(NSException* aException)
 {
-  nsObjCExceptionLog(e);
+  nsObjCExceptionLog(aException);
   nsObjCExceptionAbort();
 }
 

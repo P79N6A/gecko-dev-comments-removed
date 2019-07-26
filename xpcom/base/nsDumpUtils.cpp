@@ -65,7 +65,8 @@ DumpSignalHandler(int aSignum)
 
 NS_IMPL_ISUPPORTS(FdWatcher, nsIObserver);
 
-void FdWatcher::Init()
+void
+FdWatcher::Init()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -80,7 +81,8 @@ void FdWatcher::Init()
 
 
 
-void FdWatcher::StartWatching()
+void
+FdWatcher::StartWatching()
 {
   MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
   MOZ_ASSERT(mFd == -1);
@@ -99,7 +101,8 @@ void FdWatcher::StartWatching()
 
 
 
-void FdWatcher::StopWatching()
+void
+FdWatcher::StopWatching()
 {
   MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
 
@@ -129,8 +132,7 @@ SignalPipeWatcher::RegisterCallback(uint8_t aSignal,
 {
   MutexAutoLock lock(mSignalInfoLock);
 
-  for (SignalInfoArray::index_type i = 0; i < mSignalInfo.Length(); i++)
-  {
+  for (SignalInfoArray::index_type i = 0; i < mSignalInfo.Length(); ++i) {
     if (mSignalInfo[i].mSignal == aSignal) {
       LOG("Register Signal(%d) callback failed! (DUPLICATE)", aSignal);
       return;
@@ -171,7 +173,8 @@ SignalPipeWatcher::~SignalPipeWatcher()
   }
 }
 
-int SignalPipeWatcher::OpenFd()
+int
+SignalPipeWatcher::OpenFd()
 {
   MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
 
@@ -194,7 +197,8 @@ int SignalPipeWatcher::OpenFd()
   return readFd;
 }
 
-void SignalPipeWatcher::StopWatching()
+void
+SignalPipeWatcher::StopWatching()
 {
   MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
 
@@ -211,7 +215,8 @@ void SignalPipeWatcher::StopWatching()
   FdWatcher::StopWatching();
 }
 
-void SignalPipeWatcher::OnFileCanReadWithoutBlocking(int aFd)
+void
+SignalPipeWatcher::OnFileCanReadWithoutBlocking(int aFd)
 {
   MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
 
@@ -226,7 +231,7 @@ void SignalPipeWatcher::OnFileCanReadWithoutBlocking(int aFd)
   {
     MutexAutoLock lock(mSignalInfoLock);
     for (SignalInfoArray::index_type i = 0; i < mSignalInfo.Length(); i++) {
-      if(signum == mSignalInfo[i].mSignal) {
+      if (signum == mSignalInfo[i].mSignal) {
         mSignalInfo[i].mCallback(signum);
         return;
       }
@@ -279,8 +284,7 @@ FifoWatcher::RegisterCallback(const nsCString& aCommand, FifoCallback aCallback)
 {
   MutexAutoLock lock(mFifoInfoLock);
 
-  for (FifoInfoArray::index_type i = 0; i < mFifoInfo.Length(); i++)
-  {
+  for (FifoInfoArray::index_type i = 0; i < mFifoInfo.Length(); ++i) {
     if (mFifoInfo[i].mCommand.Equals(aCommand)) {
       LOG("Register command(%s) callback failed! (DUPLICATE)", aCommand.get());
       return;
@@ -294,7 +298,8 @@ FifoWatcher::~FifoWatcher()
 {
 }
 
-int FifoWatcher::OpenFd()
+int
+FifoWatcher::OpenFd()
 {
   
   
@@ -310,18 +315,21 @@ int FifoWatcher::OpenFd()
     }
   } else {
     rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(file));
-    if (NS_WARN_IF(NS_FAILED(rv)))
+    if (NS_WARN_IF(NS_FAILED(rv))) {
       return -1;
+    }
   }
 
   rv = file->AppendNative(NS_LITERAL_CSTRING("debug_info_trigger"));
-  if (NS_WARN_IF(NS_FAILED(rv)))
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return -1;
+  }
 
   nsAutoCString path;
   rv = file->GetNativePath(path);
-  if (NS_WARN_IF(NS_FAILED(rv)))
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return -1;
+  }
 
   
   
@@ -365,7 +373,8 @@ int FifoWatcher::OpenFd()
   return fd;
 }
 
-void FifoWatcher::OnFileCanReadWithoutBlocking(int aFd)
+void
+FifoWatcher::OnFileCanReadWithoutBlocking(int aFd)
 {
   MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
 
@@ -374,7 +383,7 @@ void FifoWatcher::OnFileCanReadWithoutBlocking(int aFd)
   do {
     
     nread = read(aFd, buf, sizeof(buf));
-  } while(nread == -1 && errno == EINTR);
+  } while (nread == -1 && errno == EINTR);
 
   if (nread == -1) {
     
@@ -409,7 +418,7 @@ void FifoWatcher::OnFileCanReadWithoutBlocking(int aFd)
 
     for (FifoInfoArray::index_type i = 0; i < mFifoInfo.Length(); i++) {
       const nsCString commandStr = mFifoInfo[i].mCommand;
-      if(inputStr == commandStr.get()) {
+      if (inputStr == commandStr.get()) {
         mFifoInfo[i].mCallback(inputStr);
         return;
       }
@@ -431,7 +440,7 @@ nsDumpUtils::OpenTempFile(const nsACString& aFilename, nsIFile** aFile,
   
   
   if (!*aFile) {
-    char *env = PR_GetEnv("DOWNLOADS_DIRECTORY");
+    char* env = PR_GetEnv("DOWNLOADS_DIRECTORY");
     if (env) {
       NS_NewNativeLocalFile(nsCString(env),  true, aFile);
     }
@@ -440,8 +449,9 @@ nsDumpUtils::OpenTempFile(const nsACString& aFilename, nsIFile** aFile,
   nsresult rv;
   if (!*aFile) {
     rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, aFile);
-    if (NS_WARN_IF(NS_FAILED(rv)))
+    if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
+    }
   }
 
 #ifdef ANDROID
@@ -451,8 +461,9 @@ nsDumpUtils::OpenTempFile(const nsACString& aFilename, nsIFile** aFile,
   
   if (aFoldername != EmptyCString()) {
     rv = (*aFile)->AppendNative(aFoldername);
-    if (NS_WARN_IF(NS_FAILED(rv)))
+    if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
+    }
 
     
     
@@ -460,22 +471,27 @@ nsDumpUtils::OpenTempFile(const nsACString& aFilename, nsIFile** aFile,
 
     nsAutoCString dirPath;
     rv = (*aFile)->GetNativePath(dirPath);
-    if (NS_WARN_IF(NS_FAILED(rv)))
+    if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
+    }
 
-    while (chmod(dirPath.get(), 0777) == -1 && errno == EINTR) {}
+    while (chmod(dirPath.get(), 0777) == -1 && errno == EINTR)
+    {
+    }
   }
 #endif
 
   nsCOMPtr<nsIFile> file(*aFile);
 
   rv = file->AppendNative(aFilename);
-  if (NS_WARN_IF(NS_FAILED(rv)))
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
+  }
 
   rv = file->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0666);
-  if (NS_WARN_IF(NS_FAILED(rv)))
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
+  }
 
 #ifdef ANDROID
   
@@ -483,10 +499,13 @@ nsDumpUtils::OpenTempFile(const nsACString& aFilename, nsIFile** aFile,
   
   nsAutoCString path;
   rv = file->GetNativePath(path);
-  if (NS_WARN_IF(NS_FAILED(rv)))
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
+  }
 
-  while (chmod(path.get(), 0666) == -1 && errno == EINTR) {}
+  while (chmod(path.get(), 0666) == -1 && errno == EINTR)
+  {
+  }
 #endif
 
   return NS_OK;

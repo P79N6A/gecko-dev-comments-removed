@@ -306,9 +306,9 @@ typedef MozRefCountType nsrefcnt;
 
 
 
-#define NS_PTR_TO_INT32(x)  ((int32_t)  (intptr_t) (x))
-#define NS_PTR_TO_UINT32(x) ((uint32_t) (intptr_t) (x))
-#define NS_INT32_TO_PTR(x)  ((void *)   (intptr_t) (x))
+#define NS_PTR_TO_INT32(x) ((int32_t)(intptr_t)(x))
+#define NS_PTR_TO_UINT32(x) ((uint32_t)(intptr_t)(x))
+#define NS_INT32_TO_PTR(x) ((void*)(intptr_t)(x))
 
 
 

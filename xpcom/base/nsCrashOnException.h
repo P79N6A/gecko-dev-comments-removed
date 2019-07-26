@@ -14,8 +14,9 @@ namespace mozilla {
 
 
 
-XPCOM_API(LRESULT) CallWindowProcCrashProtected(WNDPROC wndProc, HWND hWnd, UINT msg,
-                                                WPARAM wParam, LPARAM lParam);
+XPCOM_API(LRESULT) CallWindowProcCrashProtected(WNDPROC aWndProc, HWND aHWnd,
+                                                UINT aMsg, WPARAM aWParam,
+                                                LPARAM aLParam);
 
 }
 

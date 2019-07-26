@@ -34,8 +34,9 @@ using namespace mozilla;
 
 
 
-class FdWatcher : public MessageLoopForIO::Watcher
-                , public nsIObserver
+class FdWatcher
+  : public MessageLoopForIO::Watcher
+  , public nsIObserver
 {
 protected:
   MessageLoopForIO::FileDescriptorWatcher mReadWatcher;
@@ -99,7 +100,8 @@ public:
 };
 
 typedef void (* FifoCallback)(const nsCString& inputStr);
-struct FifoInfo {
+struct FifoInfo
+{
   nsCString mCommand;
   FifoCallback mCallback;
 };
@@ -133,14 +135,16 @@ private:
   FifoWatcher(nsCString aPath)
     : mDirPath(aPath)
     , mFifoInfoLock("FifoWatcher.mFifoInfoLock")
-  {}
+  {
+  }
 
   mozilla::Mutex mFifoInfoLock; 
   FifoInfoArray mFifoInfo;
 };
 
 typedef void (* PipeCallback)(const uint8_t recvSig);
-struct SignalInfo {
+struct SignalInfo
+{
   uint8_t mSignal;
   PipeCallback mCallback;
 };

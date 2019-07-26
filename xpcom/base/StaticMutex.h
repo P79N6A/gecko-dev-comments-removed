@@ -73,11 +73,11 @@ private:
   
   
 #ifdef DEBUG
-  StaticMutex(StaticMutex &other);
+  StaticMutex(StaticMutex& other);
 #endif
 
   
-  StaticMutex& operator=(StaticMutex* rhs);
+  StaticMutex& operator=(StaticMutex* aRhs);
   static void* operator new(size_t) CPP_THROW_NEW;
   static void operator delete(void*);
 };

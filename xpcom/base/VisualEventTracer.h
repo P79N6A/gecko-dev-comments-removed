@@ -159,8 +159,8 @@ enum MarkType {
 
 
 
-void Mark(uint32_t aType, void * aItem,
-          const char * aText, const char * aText2 = 0);
+void Mark(uint32_t aType, void* aItem,
+          const char* aText, const char* aText2 = 0);
 
 
 
@@ -176,11 +176,11 @@ void Mark(uint32_t aType, void * aItem,
 class MOZ_STACK_CLASS AutoEventTracer
 {
 public:
-  AutoEventTracer(void * aInstance,
+  AutoEventTracer(void* aInstance,
                   uint32_t aTypeOn, 
                   uint32_t aTypeOff, 
-                  const char * aName,
-                  const char * aName2 = 0
+                  const char* aName,
+                  const char* aName2 = 0
                   MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     : mInstance(aInstance)
     , mName(aName)
@@ -199,9 +199,9 @@ public:
   }
 
 private:
-  void * mInstance;
-  const char * mName;
-  const char * mName2;
+  void* mInstance;
+  const char* mName;
+  const char* mName2;
   uint32_t mTypeOn;
   uint32_t mTypeOff;
 
