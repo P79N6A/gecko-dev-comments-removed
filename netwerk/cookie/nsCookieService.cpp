@@ -10,6 +10,7 @@
 #define FORCE_PR_LOG
 #endif
 
+#include "NSPRFormatTime.h" 
 #include "mozilla/net/CookieServiceChild.h"
 #include "mozilla/net/NeckoCommon.h"
 
@@ -38,7 +39,6 @@
 #include "nsAutoPtr.h"
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
-#include "prtime.h"
 #include "prprf.h"
 #include "nsNetUtil.h"
 #include "nsNetCID.h"

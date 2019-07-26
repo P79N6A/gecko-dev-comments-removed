@@ -3,6 +3,7 @@
 
 
 
+#include "NSPRFormatTime.h" 
 #include "nsTraceRefcntImpl.h"
 
 
@@ -14,7 +15,6 @@
 #include "nsStringStream.h"
 #include "nsXPIDLString.h"
 #include "nsIURI.h"
-#include "prtime.h"
 #include "nsCOMPtr.h"
 #include "nsIFileStreams.h"
 #include "nsNetUtil.h"

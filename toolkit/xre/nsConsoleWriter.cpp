@@ -6,11 +6,11 @@
 #undef NO_NSPR_10_SUPPORT
 #endif
 
+#include "NSPRFormatTime.h" 
 #include "nsAppRunner.h"
 
 #include "prio.h"
 #include "prprf.h"
-#include "prtime.h"
 #include "prenv.h"
 
 #include "nsCRT.h"

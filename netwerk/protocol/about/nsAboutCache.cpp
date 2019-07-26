@@ -3,6 +3,7 @@
 
 
 
+#include "NSPRFormatTime.h" 
 #include "nsAboutCache.h"
 #include "nsIIOService.h"
 #include "nsIServiceManager.h"
@@ -13,7 +14,6 @@
 #include "nsIURI.h"
 #include "nsCOMPtr.h"
 #include "nsNetUtil.h"
-#include "prtime.h"
 #include "nsEscape.h"
 
 #include "nsICacheService.h"
