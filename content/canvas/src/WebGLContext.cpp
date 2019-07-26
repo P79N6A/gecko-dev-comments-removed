@@ -1202,15 +1202,15 @@ WebGLContext::DummyFramebufferOperation(const char *info)
 
 
 
-NS_IMETHODIMP
-WebGLContext::Notify(nsITimer* timer)
+void
+WebGLContext::RobustnessTimerCallback(nsITimer* timer)
 {
     TerminateContextLossTimer();
 
     if (!mCanvasElement) {
         
         
-        return NS_OK;
+        return;
     }
 
     
@@ -1243,7 +1243,7 @@ WebGLContext::Notify(nsITimer* timer)
         
         if (NS_FAILED(SetDimensions(mWidth, mHeight))) {
             SetupContextLossTimer();
-            return NS_OK;
+            return;
         }
         mContextStatus = ContextStable;
         nsContentUtils::DispatchTrustedEvent(mCanvasElement->OwnerDoc(),
@@ -1258,7 +1258,7 @@ WebGLContext::Notify(nsITimer* timer)
     }
 
     MaybeRestoreContext();
-    return NS_OK;
+    return;
 }
 
 void
@@ -1408,7 +1408,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebGLContext)
   NS_INTERFACE_MAP_ENTRY(nsIDOMWebGLRenderingContext)
   NS_INTERFACE_MAP_ENTRY(nsICanvasRenderingContextInternal)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
-  NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
   
   
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports,

@@ -473,7 +473,6 @@ class WebGLContext :
     public nsIDOMWebGLRenderingContext,
     public nsICanvasRenderingContextInternal,
     public nsSupportsWeakReference,
-    public nsITimerCallback,
     public WebGLRectangleObject,
     public nsWrapperCache
 {
@@ -509,8 +508,6 @@ public:
                                  bool *triedToWrap);
 
     NS_DECL_NSIDOMWEBGLRENDERINGCONTEXT
-
-    NS_DECL_NSITIMERCALLBACK
 
     
     NS_IMETHOD SetDimensions(int32_t width, int32_t height);
@@ -607,6 +604,12 @@ public:
         return mMinCapability;
     }
 
+    void RobustnessTimerCallback(nsITimer* timer);
+
+    static void RobustnessTimerCallbackStatic(nsITimer* timer, void *thisPointer) {
+        static_cast<WebGLContext*>(thisPointer)->RobustnessTimerCallback(timer);
+    }
+
     void SetupContextLossTimer() {
         
         
@@ -616,10 +619,11 @@ public:
             mDrawSinceContextLossTimerSet = true;
             return;
         }
-        
-        mContextRestorer->InitWithCallback(static_cast<nsITimerCallback*>(this),
-                                           PR_MillisecondsToInterval(1000),
-                                           nsITimer::TYPE_ONE_SHOT);
+
+        mContextRestorer->InitWithFuncCallback(RobustnessTimerCallbackStatic,
+                                               static_cast<void*>(this),
+                                               PR_MillisecondsToInterval(1000),
+                                               nsITimer::TYPE_ONE_SHOT);
         mContextLossTimerRunning = true;
         mDrawSinceContextLossTimerSet = false;
     }
