@@ -86,8 +86,8 @@ struct BaselineStackBuilder
         bufferTotal_(initialSize),
         bufferAvail_(0),
         bufferUsed_(0),
-        buffer_(NULL),
-        header_(NULL),
+        buffer_(nullptr),
+        header_(nullptr),
         framePushed_(0)
     {
         JS_ASSERT(bufferTotal_ >= HeaderSize());
@@ -114,15 +114,15 @@ struct BaselineStackBuilder
         header_->valueR0 = UndefinedValue();
         header_->setR1 = 0;
         header_->valueR1 = UndefinedValue();
-        header_->resumeFramePtr = NULL;
-        header_->resumeAddr = NULL;
-        header_->monitorStub = NULL;
+        header_->resumeFramePtr = nullptr;
+        header_->resumeAddr = nullptr;
+        header_->monitorStub = nullptr;
         header_->numFrames = 0;
         return true;
     }
 
     bool enlarge() {
-        JS_ASSERT(buffer_ != NULL);
+        JS_ASSERT(buffer_ != nullptr);
         if (bufferTotal_ & mozilla::tl::MulOverflowMask<2>::value)
             return false;
         size_t newSize = bufferTotal_ * 2;
@@ -149,7 +149,7 @@ struct BaselineStackBuilder
 
     BaselineBailoutInfo *takeBuffer() {
         JS_ASSERT(header_ == reinterpret_cast<BaselineBailoutInfo *>(buffer_));
-        buffer_ = NULL;
+        buffer_ = nullptr;
         return header_;
     }
 
@@ -161,7 +161,7 @@ struct BaselineStackBuilder
         return framePushed_;
     }
 
-    bool subtract(size_t size, const char *info=NULL) {
+    bool subtract(size_t size, const char *info = nullptr) {
         
         while (size > bufferAvail_) {
             if (!enlarge())
@@ -319,7 +319,7 @@ struct BaselineStackBuilder
         
         
         if (type == IonFrame_OptimizedJS || type == IonFrame_Entry)
-            return NULL;
+            return nullptr;
 
         
         
@@ -353,7 +353,7 @@ struct BaselineStackBuilder
         
         
         if (priorType == IonFrame_OptimizedJS)
-            return NULL;
+            return nullptr;
 
         
         
@@ -536,8 +536,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     }
 
     
-    JSObject *scopeChain = NULL;
-    ArgumentsObject *argsObj = NULL;
+    JSObject *scopeChain = nullptr;
+    ArgumentsObject *argsObj = nullptr;
     BailoutKind bailoutKind = iter.bailoutKind();
     if (bailoutKind == Bailout_ArgumentCheck) {
         
@@ -823,7 +823,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     if (!iter.moreFrames() || excInfo) {
         
-        *callPC = NULL;
+        *callPC = nullptr;
 
         
         
@@ -920,7 +920,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             
             
             uint8_t *opReturnAddr;
-            if (scopeChain == NULL) {
+            if (scopeChain == nullptr) {
                 
                 
                 JS_ASSERT(fun);
@@ -1182,8 +1182,8 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
                           bool invalidate, BaselineBailoutInfo **bailoutInfo,
                           const ExceptionBailoutInfo *excInfo)
 {
-    JS_ASSERT(bailoutInfo != NULL);
-    JS_ASSERT(*bailoutInfo == NULL);
+    JS_ASSERT(bailoutInfo != nullptr);
+    JS_ASSERT(*bailoutInfo == nullptr);
 
 #if JS_TRACE_LOGGING
     TraceLogging::defaultLogger()->log(TraceLogging::INFO_ENGINE_BASELINE);
@@ -1266,7 +1266,7 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
 
     
     RootedScript caller(cx);
-    jsbytecode *callerPC = NULL;
+    jsbytecode *callerPC = nullptr;
     RootedFunction fun(cx, callee);
     RootedScript scr(cx, iter.script());
     AutoValueVector startFrameFormals(cx);
@@ -1284,11 +1284,11 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
         
         bool handleException = (excInfo && excInfo->frameNo == frameNo);
 
-        jsbytecode *callPC = NULL;
-        RootedFunction nextCallee(cx, NULL);
+        jsbytecode *callPC = nullptr;
+        RootedFunction nextCallee(cx, nullptr);
         if (!InitFromBailout(cx, caller, callerPC, fun, scr, iter.ionScript(),
                              snapIter, invalidate, builder, startFrameFormals,
-                             &nextCallee, &callPC, handleException ? excInfo : NULL))
+                             &nextCallee, &callPC, handleException ? excInfo : nullptr))
         {
             return BAILOUT_RETURN_FATAL_ERROR;
         }
@@ -1417,7 +1417,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 
     
     js_free(bailoutInfo);
-    bailoutInfo = NULL;
+    bailoutInfo = nullptr;
 
     
     
@@ -1428,8 +1428,8 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 
     
     
-    RootedScript innerScript(cx, NULL);
-    RootedScript outerScript(cx, NULL);
+    RootedScript innerScript(cx, nullptr);
+    RootedScript outerScript(cx, nullptr);
 
     JS_ASSERT(cx->currentlyRunningInJit());
     IonFrameIterator iter(cx->mainThread().ionTop);

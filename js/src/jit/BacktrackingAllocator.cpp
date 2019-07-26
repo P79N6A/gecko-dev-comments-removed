@@ -48,7 +48,7 @@ BacktrackingAllocator::init()
 
     LiveInterval *hotcodeInterval = new LiveInterval(0);
 
-    LBlock *backedge = NULL;
+    LBlock *backedge = nullptr;
     for (size_t i = 0; i < graph.numBlocks(); i++) {
         LBlock *block = graph.getBlock(i);
 
@@ -455,7 +455,7 @@ BacktrackingAllocator::processInterval(LiveInterval *interval)
             }
 
             fixed = false;
-            conflict = NULL;
+            conflict = nullptr;
 
             
             
@@ -528,13 +528,13 @@ BacktrackingAllocator::processGroup(VirtualRegisterGroup *group)
     for (size_t attempt = 0;; attempt++) {
         
         fixed = false;
-        conflict = NULL;
+        conflict = nullptr;
         for (size_t i = 0; i < AnyRegister::Total; i++) {
             bool success;
             if (!tryAllocateGroupRegister(registers[i], group, &success, &fixed, &conflict))
                 return false;
             if (success) {
-                conflict = NULL;
+                conflict = nullptr;
                 break;
             }
         }
@@ -631,7 +631,7 @@ BacktrackingAllocator::tryAllocateGroupRegister(PhysicalRegister &r, VirtualRegi
         return true;
 
     bool allocatable = true;
-    LiveInterval *conflicting = NULL;
+    LiveInterval *conflicting = nullptr;
 
     for (size_t i = 0; i < group->registers.length(); i++) {
         VirtualRegister &reg = vregs[group->registers[i]];
@@ -769,7 +769,7 @@ BacktrackingAllocator::distributeUses(LiveInterval *interval,
          iter++)
     {
         CodePosition pos = iter->pos;
-        LiveInterval *addInterval = NULL;
+        LiveInterval *addInterval = nullptr;
         for (size_t i = 0; i < newIntervals.length(); i++) {
             LiveInterval *newInterval = newIntervals[i];
             if (newInterval->covers(pos)) {
@@ -1462,7 +1462,7 @@ BacktrackingAllocator::trySplitAcrossHotcode(LiveInterval *interval, bool *succe
     
     
 
-    const LiveInterval::Range *hotRange = NULL;
+    const LiveInterval::Range *hotRange = nullptr;
 
     for (size_t i = 0; i < interval->numRanges(); i++) {
         AllocatedRange range(interval, interval->getRange(i)), existing;
@@ -1488,7 +1488,7 @@ BacktrackingAllocator::trySplitAcrossHotcode(LiveInterval *interval, bool *succe
         return true;
 
     LiveInterval *hotInterval = new LiveInterval(interval->vreg(), 0);
-    LiveInterval *preInterval = NULL, *postInterval = NULL;
+    LiveInterval *preInterval = nullptr, *postInterval = nullptr;
 
     
     

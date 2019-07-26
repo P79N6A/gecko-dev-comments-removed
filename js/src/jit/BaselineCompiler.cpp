@@ -238,7 +238,7 @@ BaselineCompiler::emitPrologue()
     
     
     if (function())
-        masm.storePtr(ImmPtr(NULL), frame.addressOfScopeChain());
+        masm.storePtr(ImmPtr(nullptr), frame.addressOfScopeChain());
     else
         masm.storePtr(R1.scratchReg(), frame.addressOfScopeChain());
 
@@ -1822,7 +1822,7 @@ BaselineCompiler::emit_JSOP_GETALIASEDVAR()
     Address address = getScopeCoordinateAddress(R0.scratchReg());
     masm.loadValue(address, R0);
 
-    ICTypeMonitor_Fallback::Compiler compiler(cx, (ICMonitoredFallbackStub *) NULL);
+    ICTypeMonitor_Fallback::Compiler compiler(cx, (ICMonitoredFallbackStub *) nullptr);
     if (!emitOpIC(compiler.getStub(&stubSpace_)))
         return false;
 
@@ -2811,7 +2811,7 @@ DoCreateRestParameter(JSContext *cx, BaselineFrame *frame, MutableHandleValue re
     unsigned numRest = numActuals > numFormals ? numActuals - numFormals : 0;
     Value *rest = frame->argv() + numFormals;
 
-    JSObject *obj = NewDenseCopiedArray(cx, numRest, rest, NULL);
+    JSObject *obj = NewDenseCopiedArray(cx, numRest, rest, nullptr);
     if (!obj)
         return false;
     types::FixRestArgumentsType(cx, obj);
