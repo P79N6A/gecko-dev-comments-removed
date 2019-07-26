@@ -1683,6 +1683,12 @@ const UpdateServiceFactory = {
 function UpdateService() {
   LOG("Creating UpdateService");
   Services.obs.addObserver(this, "xpcom-shutdown", false);
+#ifdef MOZ_WIDGET_GONK
+  
+  
+  
+  Services.obs.addObserver(this, "profile-change-net-teardown", false);
+#endif
 }
 
 UpdateService.prototype = {
@@ -1730,8 +1736,11 @@ UpdateService.prototype = {
     case "network:offline-status-changed":
       this._offlineStatusChanged(data);
       break;
+#ifdef MOZ_WIDGET_GONK
+    case "profile-change-net-teardown": 
+#endif
     case "xpcom-shutdown":
-      Services.obs.removeObserver(this, "xpcom-shutdown");
+      Services.obs.removeObserver(this, topic);
 
       if (this._retryTimer) {
         this._retryTimer.cancel();
