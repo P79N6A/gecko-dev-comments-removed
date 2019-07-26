@@ -10,6 +10,7 @@
 #include <sys/types.h>                  
 #include "gfxContext.h"                 
 #include "mozilla/Assertions.h"         
+#include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/UserData.h"       
 #include "nsAutoPtr.h"                  
 #include "nsBoundingMetrics.h"          
@@ -37,6 +38,7 @@ class nsRenderingContext
 {
     typedef mozilla::gfx::UserData UserData;
     typedef mozilla::gfx::UserDataKey UserDataKey;
+    typedef mozilla::gfx::DrawTarget DrawTarget;
 
 public:
     nsRenderingContext() : mP2A(0.) {}
@@ -49,6 +51,7 @@ public:
 
     
     gfxContext *ThebesContext() { return mThebes; }
+    DrawTarget *GetDrawTarget() { return mThebes->GetDrawTarget(); }
     nsDeviceContext *DeviceContext() { return mDeviceContext; }
     int32_t AppUnitsPerDevPixel() { return NSToIntRound(mP2A); }
 
