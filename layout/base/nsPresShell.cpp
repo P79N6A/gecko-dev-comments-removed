@@ -6069,19 +6069,9 @@ private:
 };
 
 void
-PresShell::RestyleShadowRoot(ShadowRoot* aShadowRoot)
+PresShell::RecordShadowStyleChange(ShadowRoot* aShadowRoot)
 {
-  
-  
-  
-  ExplicitChildIterator iterator(aShadowRoot);
-  for (nsIContent* child = iterator.GetNextChild();
-       child;
-       child = iterator.GetNextChild()) {
-    if (child->IsElement()) {
-      mChangedScopeStyleRoots.AppendElement(child->AsElement());
-    }
-  }
+  mChangedScopeStyleRoots.AppendElement(aShadowRoot->GetHost()->AsElement());
 }
 
 void

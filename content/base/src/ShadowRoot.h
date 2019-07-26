@@ -127,8 +127,8 @@ public:
     GetElementsByClassName(const nsAString& aClasses);
   void GetInnerHTML(nsAString& aInnerHTML);
   void SetInnerHTML(const nsAString& aInnerHTML, ErrorResult& aError);
+  void StyleSheetChanged();
 protected:
-  void Restyle();
 
   
   

@@ -317,7 +317,12 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument* aOldDocument,
 
   Element* oldScopeElement = GetScopeElement(mStyleSheet);
 
-  if (mStyleSheet && aOldDocument) {
+  if (mStyleSheet && (aOldDocument || aOldShadowRoot)) {
+    MOZ_ASSERT(!(aOldDocument && aOldShadowRoot),
+               "ShadowRoot content is never in document, thus "
+               "there should not be a old document and old "
+               "ShadowRoot simultaneously.");
+
     
     
     
@@ -342,8 +347,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument* aOldDocument,
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDocument> doc = thisContent->GetDocument();
-
+  nsCOMPtr<nsIDocument> doc = thisContent->GetCrossShadowCurrentDoc();
   if (!doc || !doc->CSSLoader()->GetEnabled()) {
     return NS_OK;
   }

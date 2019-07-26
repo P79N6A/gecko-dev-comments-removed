@@ -542,7 +542,7 @@ public:
   
   
   
-  virtual void RestyleShadowRoot(mozilla::dom::ShadowRoot* aShadowRoot) = 0;
+  virtual void RecordShadowStyleChange(mozilla::dom::ShadowRoot* aShadowRoot) = 0;
 
   
 

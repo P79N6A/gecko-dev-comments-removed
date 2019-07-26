@@ -1202,7 +1202,7 @@ Loader::CreateSheet(nsIURI* aURI,
       
       NS_ASSERTION(aLinkingContent, "Inline stylesheet without linking content?");
       baseURI = aLinkingContent->GetBaseURI();
-      sheetURI = aLinkingContent->GetDocument()->GetDocumentURI();
+      sheetURI = aLinkingContent->OwnerDoc()->GetDocumentURI();
       originalURI = nullptr;
     } else {
       baseURI = aURI;
