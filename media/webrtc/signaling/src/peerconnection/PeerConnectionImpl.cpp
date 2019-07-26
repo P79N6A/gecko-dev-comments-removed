@@ -62,8 +62,6 @@
 #include "nsNetUtil.h"
 #include "nsIDOMDataChannel.h"
 #include "nsIDOMLocation.h"
-#include "nsNullPrincipal.h"
-#include "mozilla/PeerIdentity.h"
 #include "mozilla/dom/RTCConfigurationBinding.h"
 #include "mozilla/dom/RTCStatsReportBinding.h"
 #include "mozilla/dom/RTCPeerConnectionBinding.h"
@@ -477,7 +475,6 @@ PeerConnectionImpl::PeerConnectionImpl(const GlobalObject* aGlobal)
   , mSignalingState(PCImplSignalingState::SignalingStable)
   , mIceConnectionState(PCImplIceConnectionState::New)
   , mIceGatheringState(PCImplIceGatheringState::New)
-  , mDtlsConnected(false)
   , mWindow(nullptr)
   , mIdentity(nullptr)
   , mSTSThread(nullptr)
@@ -545,27 +542,18 @@ PeerConnectionImpl::~PeerConnectionImpl()
 }
 
 already_AddRefed<DOMMediaStream>
-PeerConnectionImpl::MakeMediaStream(uint32_t aHint)
+PeerConnectionImpl::MakeMediaStream(nsPIDOMWindow* aWindow,
+                                    uint32_t aHint)
 {
   nsRefPtr<DOMMediaStream> stream =
-    DOMMediaStream::CreateSourceStream(GetWindow(), aHint);
-
+    DOMMediaStream::CreateSourceStream(aWindow, aHint);
 #ifdef MOZILLA_INTERNAL_API
-  
-  
-  if (mDtlsConnected && !PrivacyRequested()) {
-    nsIDocument* doc = GetWindow()->GetExtantDoc();
-    if (!doc) {
-      return nullptr;
-    }
-    stream->CombineWithPrincipal(doc->NodePrincipal());
-  } else {
-    
-    
-    nsCOMPtr<nsIPrincipal> principal =
-      do_CreateInstance(NS_NULLPRINCIPAL_CONTRACTID);
-    stream->CombineWithPrincipal(principal);
+  nsIDocument* doc = aWindow->GetExtantDoc();
+  if (!doc) {
+    return nullptr;
   }
+  
+  stream->CombineWithPrincipal(doc->NodePrincipal());
 #endif
 
   CSFLogDebug(logTag, "Created media stream %p, inner: %p", stream.get(), stream->GetStream());
@@ -584,7 +572,7 @@ PeerConnectionImpl::CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo
   
   
   
-  nsRefPtr<DOMMediaStream> stream = MakeMediaStream(0);
+  nsRefPtr<DOMMediaStream> stream = MakeMediaStream(mWindow, 0);
   if (!stream) {
     return NS_ERROR_FAILURE;
   }
@@ -748,10 +736,6 @@ PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
   mWindow = aWindow;
   NS_ENSURE_STATE(mWindow);
 
-  if (!aRTCConfiguration->mPeerIdentity.IsEmpty()) {
-    mPeerIdentity = new PeerIdentity(aRTCConfiguration->mPeerIdentity);
-    mPrivacyRequested = true;
-  }
 #endif 
 
   PRTime timestamp = PR_Now();
@@ -943,7 +927,7 @@ PeerConnectionImpl::CreateFakeMediaStream(uint32_t aHint, nsIDOMMediaStream** aR
     aHint &= ~MEDIA_STREAM_MUTE;
   }
 
-  nsRefPtr<DOMMediaStream> stream = MakeMediaStream(aHint);
+  nsRefPtr<DOMMediaStream> stream = MakeMediaStream(mWindow, aHint);
   if (!stream) {
     return NS_ERROR_FAILURE;
   }
@@ -1269,17 +1253,6 @@ PeerConnectionImpl::SetLocalDescription(int32_t aAction, const char* aSDP)
   mTimeCard = nullptr;
   STAMP_TIMECARD(tc, "Set Local Description");
 
-#ifdef MOZILLA_INTERNAL_API
-  nsIDocument* doc = GetWindow()->GetExtantDoc();
-  bool isolated = true;
-  if (doc) {
-    isolated = mMedia->AnyLocalStreamIsolated(doc->NodePrincipal());
-  } else {
-    CSFLogInfo(logTag, "%s - no document, failing safe", __FUNCTION__);
-  }
-  mPrivacyRequested = mPrivacyRequested || isolated;
-#endif
-
   mLocalRequestedSDP = aSDP;
   mInternal->mCall->setLocalDescription((cc_jsep_action_t)aAction,
                                         mLocalRequestedSDP, tc);
@@ -1399,67 +1372,16 @@ PeerConnectionImpl::CloseStreams() {
   return NS_OK;
 }
 
-#ifdef MOZILLA_INTERNAL_API
-nsresult
-PeerConnectionImpl::SetPeerIdentity(const nsAString& aPeerIdentity)
-{
-  PC_AUTO_ENTER_API_CALL(true);
-  MOZ_ASSERT(!aPeerIdentity.IsEmpty());
-
-  
-  if (mPeerIdentity) {
-    if (!mPeerIdentity->Equals(aPeerIdentity)) {
-      return NS_ERROR_FAILURE;
-    }
-  } else {
-    mPeerIdentity = new PeerIdentity(aPeerIdentity);
-    nsIDocument* doc = GetWindow()->GetExtantDoc();
-    if (!doc) {
-      CSFLogInfo(logTag, "Can't update principal on streams; document gone");
-      return NS_ERROR_FAILURE;
-    }
-    mMedia->UpdateSinkIdentity_m(doc->NodePrincipal(), mPeerIdentity);
-  }
-  return NS_OK;
-}
-#endif
-
-nsresult
-PeerConnectionImpl::SetDtlsConnected(bool aPrivacyRequested)
-{
-  PC_AUTO_ENTER_API_CALL(false);
-
-  
-  
-  
-  
-#ifdef MOZILLA_INTERNAL_API
-  if (!mPrivacyRequested && !aPrivacyRequested && !mDtlsConnected) {
-    
-    nsIDocument* doc = GetWindow()->GetExtantDoc();
-    if (!doc) {
-      CSFLogInfo(logTag, "Can't update principal on streams; document gone");
-      return NS_ERROR_FAILURE;
-    }
-    mMedia->UpdateRemoteStreamPrincipals_m(doc->NodePrincipal());
-  }
-#endif
-  mDtlsConnected = true;
-  mPrivacyRequested = mPrivacyRequested || aPrivacyRequested;
-  return NS_OK;
-}
-
-nsresult
+NS_IMETHODIMP
 PeerConnectionImpl::AddStream(DOMMediaStream &aMediaStream,
                               const MediaConstraintsInternal& aConstraints)
 {
   return AddStream(aMediaStream, MediaConstraintsExternal(aConstraints));
 }
 
-nsresult
-PeerConnectionImpl::AddStream(DOMMediaStream &aMediaStream,
-                              const MediaConstraintsExternal& aConstraints)
-{
+NS_IMETHODIMP
+PeerConnectionImpl::AddStream(DOMMediaStream& aMediaStream,
+                              const MediaConstraintsExternal& aConstraints) {
   PC_AUTO_ENTER_API_CALL(true);
 
   uint32_t hints = aMediaStream.GetHintContents();
@@ -1486,9 +1408,8 @@ PeerConnectionImpl::AddStream(DOMMediaStream &aMediaStream,
 
   uint32_t stream_id;
   nsresult res = mMedia->AddStream(&aMediaStream, &stream_id);
-  if (NS_FAILED(res)) {
+  if (NS_FAILED(res))
     return res;
-  }
 
   
   if (hints & DOMMediaStream::HINT_CONTENTS_AUDIO) {

@@ -292,8 +292,8 @@ RTCPeerConnection.prototype = {
     this._trickleIce = Services.prefs.getBoolPref("media.peerconnection.trickle_ice");
     if (!rtcConfig.iceServers ||
         !Services.prefs.getBoolPref("media.peerconnection.use_document_iceservers")) {
-      rtcConfig.iceServers =
-        JSON.parse(Services.prefs.getCharPref("media.peerconnection.default_iceservers"));
+      rtcConfig = {iceServers:
+        JSON.parse(Services.prefs.getCharPref("media.peerconnection.default_iceservers"))};
     }
     this._mustValidateRTCConfiguration(rtcConfig,
         "RTCPeerConnection constructor passed invalid RTCConfiguration");
@@ -346,19 +346,6 @@ RTCPeerConnection.prototype = {
           "RTCPeerConnection is gone (did you enter Offline mode?)");
     }
     return this._pc;
-  },
-
-  callCB: function(callback, arg) {
-    if (callback) {
-      try {
-        callback(arg);
-      } catch(e) {
-        
-        
-        
-        this.reportError(e.message, e.fileName, e.lineNumber);
-      }
-    }
   },
 
   _initIdp: function() {
@@ -673,6 +660,15 @@ RTCPeerConnection.prototype = {
             "Invalid type " + desc.type + " provided to setRemoteDescription");
     }
 
+    try {
+      let processIdentity = this._processIdentity.bind(this);
+      this._remoteIdp.verifyIdentityFromSDP(desc.sdp, processIdentity);
+    } catch (e) {
+      this.reportWarning(e.message, e.fileName, e.lineNumber);
+      
+      
+    }
+
     this._queueOrRun({
       func: this._setRemoteDescription,
       args: [type, desc.sdp, onSuccess, onError],
@@ -681,84 +677,18 @@ RTCPeerConnection.prototype = {
     });
   },
 
-  
-
-
-
-
-
-  _processIdpResult: function(message) {
-    let good = !!message;
-    
-    
-    if (good && this._impl.peerIdentity) {
-      good = (message.identity === this._impl.peerIdentity);
-    }
-    if (good) {
-      this._impl.peerIdentity = message.identity;
+  _processIdentity: function(message) {
+    if (message) {
       this._peerIdentity = new this._win.RTCIdentityAssertion(
-        this._remoteIdp.provider, message.identity);
+          this._remoteIdp.provider, message.identity);
+
+      let args = { peerIdentity: this._peerIdentity };
       this.dispatchEvent(new this._win.Event("peeridentity"));
     }
-    return good;
   },
 
   _setRemoteDescription: function(type, sdp, onSuccess, onError) {
-    let idpComplete = false;
-    let setRemoteComplete = false;
-    let idpError = null;
-
-    
-    
-    
-    let allDone = () => {
-      if (!setRemoteComplete || !idpComplete || !onSuccess) {
-        return;
-      }
-      this._remoteType = this._pendingType;
-      this._pendingType = null;
-      this.callCB(onSuccess);
-      onSuccess = null;
-      this._executeNext();
-    };
-
-    let setRemoteDone = () => {
-      setRemoteComplete = true;
-      allDone();
-    };
-
-    
-    
-    let idpDone;
-    if (!this._impl.peerIdentity) {
-      idpDone = this._processIdpResult.bind(this);
-      idpComplete = true; 
-    } else {
-      idpDone = message => {
-        let idpGood = this._processIdpResult(message);
-        if (!idpGood) {
-          
-          
-          idpError = "Peer Identity mismatch, expected: " +
-            this._impl.peerIdentity;
-          this.callCB(onError, idpError);
-          this.close();
-        } else {
-          idpComplete = true;
-          allDone();
-        }
-      };
-    }
-
-    try {
-      this._remoteIdp.verifyIdentityFromSDP(sdp, idpDone);
-    } catch (e) {
-      
-      this.reportWarning(e.message, e.fileName, e.lineNumber);
-      idpDone(null);
-    }
-
-    this._onSetRemoteDescriptionSuccess = setRemoteDone;
+    this._onSetRemoteDescriptionSuccess = onSuccess;
     this._onSetRemoteDescriptionFailure = onError;
     this._impl.setRemoteDescription(type, sdp);
   },
@@ -777,14 +707,14 @@ RTCPeerConnection.prototype = {
   getIdentityAssertion: function() {
     this._checkClosed();
 
-    var gotAssertion = assertion => {
+    function gotAssertion(assertion) {
       if (assertion) {
         this._gotIdentityAssertion(assertion);
       }
-    };
+    }
 
     this._localIdp.getIdentityAssertion(this._impl.fingerprint,
-                                        gotAssertion);
+                                        gotAssertion.bind(this));
   },
 
   updateIce: function(config, constraints) {
@@ -1038,6 +968,19 @@ PeerConnectionObserver.prototype = {
     this._dompc.dispatchEvent(event);
   },
 
+  callCB: function(callback, arg) {
+    if (callback) {
+      try {
+        callback(arg);
+      } catch(e) {
+        
+        
+        
+        this._dompc.reportError(e.message, e.fileName, e.lineNumber);
+      }
+    }
+  },
+
   onCreateOfferSuccess: function(sdp) {
     let pc = this._dompc;
     let fp = pc._impl.fingerprint;
@@ -1045,15 +988,15 @@ PeerConnectionObserver.prototype = {
       if (assertion) {
         pc._gotIdentityAssertion(assertion);
       }
-      pc.callCB(pc._onCreateOfferSuccess,
-                new pc._win.mozRTCSessionDescription({ type: "offer",
-                                                       sdp: sdp }));
+      this.callCB(pc._onCreateOfferSuccess,
+                  new pc._win.mozRTCSessionDescription({ type: "offer",
+                                                         sdp: sdp }));
       pc._executeNext();
     }.bind(this));
   },
 
   onCreateOfferError: function(code, message) {
-    this._dompc.callCB(this._dompc._onCreateOfferFailure, new RTCError(code, message));
+    this.callCB(this._dompc._onCreateOfferFailure, new RTCError(code, message));
     this._dompc._executeNext();
   },
 
@@ -1064,23 +1007,22 @@ PeerConnectionObserver.prototype = {
       if (assertion) {
         pc._gotIdentityAssertion(assertion);
       }
-      pc.callCB(pc._onCreateAnswerSuccess,
-                new pc._win.mozRTCSessionDescription({ type: "answer",
-                                                       sdp: sdp }));
+      this.callCB (pc._onCreateAnswerSuccess,
+                   new pc._win.mozRTCSessionDescription({ type: "answer",
+                                                          sdp: sdp }));
       pc._executeNext();
     }.bind(this));
   },
 
   onCreateAnswerError: function(code, message) {
-    this._dompc.callCB(this._dompc._onCreateAnswerFailure,
-                       new RTCError(code, message));
+    this.callCB(this._dompc._onCreateAnswerFailure, new RTCError(code, message));
     this._dompc._executeNext();
   },
 
   onSetLocalDescriptionSuccess: function() {
     this._dompc._localType = this._dompc._pendingType;
     this._dompc._pendingType = null;
-    this._dompc.callCB(this._dompc._onSetLocalDescriptionSuccess);
+    this.callCB(this._dompc._onSetLocalDescriptionSuccess);
 
     if (this._dompc._iceGatheringState == "complete") {
         
@@ -1092,33 +1034,35 @@ PeerConnectionObserver.prototype = {
   },
 
   onSetRemoteDescriptionSuccess: function() {
-    this._dompc._onSetRemoteDescriptionSuccess();
+    this._dompc._remoteType = this._dompc._pendingType;
+    this._dompc._pendingType = null;
+    this.callCB(this._dompc._onSetRemoteDescriptionSuccess);
+    this._dompc._executeNext();
   },
 
   onSetLocalDescriptionError: function(code, message) {
     this._dompc._pendingType = null;
-    this._dompc.callCB(this._dompc._onSetLocalDescriptionFailure,
-                       new RTCError(code, message));
+    this.callCB(this._dompc._onSetLocalDescriptionFailure,
+                new RTCError(code, message));
     this._dompc._executeNext();
   },
 
   onSetRemoteDescriptionError: function(code, message) {
     this._dompc._pendingType = null;
-    this._dompc.callCB(this._dompc._onSetRemoteDescriptionFailure,
-                       new RTCError(code, message));
+    this.callCB(this._dompc._onSetRemoteDescriptionFailure,
+                new RTCError(code, message));
     this._dompc._executeNext();
   },
 
   onAddIceCandidateSuccess: function() {
     this._dompc._pendingType = null;
-    this._dompc.callCB(this._dompc._onAddIceCandidateSuccess);
+    this.callCB(this._dompc._onAddIceCandidateSuccess);
     this._dompc._executeNext();
   },
 
   onAddIceCandidateError: function(code, message) {
     this._dompc._pendingType = null;
-    this._dompc.callCB(this._dompc._onAddIceCandidateError,
-                       new RTCError(code, message));
+    this.callCB(this._dompc._onAddIceCandidateError, new RTCError(code, message));
     this._dompc._executeNext();
   },
 
@@ -1218,8 +1162,8 @@ PeerConnectionObserver.prototype = {
   onStateChange: function(state) {
     switch (state) {
       case "SignalingState":
-        this._dompc.callCB(this._dompc.onsignalingstatechange,
-                           this._dompc.signalingState);
+        this.callCB(this._dompc.onsignalingstatechange,
+                    this._dompc.signalingState);
         break;
 
       case "IceConnectionState":
@@ -1253,20 +1197,18 @@ PeerConnectionObserver.prototype = {
     let webidlobj = this._dompc._win.RTCStatsReport._create(this._dompc._win,
                                                             chromeobj);
     chromeobj.makeStatsPublic();
-    this._dompc.callCB(this._dompc._onGetStatsSuccess, webidlobj);
+    this.callCB(this._dompc._onGetStatsSuccess, webidlobj);
     this._dompc._executeNext();
   },
 
   onGetStatsError: function(code, message) {
-    this._dompc.callCB(this._dompc._onGetStatsFailure,
-                       new RTCError(code, message));
+    this.callCB(this._dompc._onGetStatsFailure, new RTCError(code, message));
     this._dompc._executeNext();
   },
 
   onAddStream: function(stream) {
-    let ev = new this._dompc._win.MediaStreamEvent("addstream",
-                                                   { stream: stream });
-    this._dompc.dispatchEvent(ev);
+    this.dispatchEvent(new this._dompc._win.MediaStreamEvent("addstream",
+                                                             { stream: stream }));
   },
 
   onRemoveStream: function(stream, type) {

@@ -23,7 +23,6 @@
 #include "nsIDocument.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "mozilla/PeerIdentity.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/MediaStreamBinding.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
@@ -37,8 +36,6 @@
 #include "nsJSUtils.h"
 #include "nsDOMFile.h"
 #include "nsGlobalWindow.h"
-
-#include "mozilla/Preferences.h"
 
 
 #include "MediaEngineDefault.h"
@@ -90,7 +87,7 @@ using dom::OwningBooleanOrMediaTrackConstraintsInternal;
 
 static nsresult CompareDictionaries(JSContext* aCx, JSObject *aA,
                                     const MediaTrackConstraintSet &aB,
-                                    nsAString &aDifference)
+                                    nsString *aDifference)
 {
   JS::Rooted<JSObject*> a(aCx, aA);
   JSAutoCompartment ac(aCx, aA);
@@ -117,11 +114,11 @@ static nsresult CompareDictionaries(JSContext* aCx, JSObject *aA,
 
       JS::Rooted<JSString*> namestr(aCx, JS::ToString(aCx, nameval));
       NS_ENSURE_TRUE(namestr, NS_ERROR_UNEXPECTED);
-      aDifference.Assign(JS_GetStringCharsZ(aCx, namestr));
+      aDifference->Assign(JS_GetStringCharsZ(aCx, namestr));
       return NS_OK;
     }
   }
-  aDifference.Truncate();
+  aDifference->Truncate();
   return NS_OK;
 }
 
@@ -505,13 +502,11 @@ public:
     uint64_t aWindowID,
     GetUserMediaCallbackMediaStreamListener* aListener,
     MediaEngineSource* aAudioSource,
-    MediaEngineSource* aVideoSource,
-    PeerIdentity* aPeerIdentity)
+    MediaEngineSource* aVideoSource)
     : mAudioSource(aAudioSource)
     , mVideoSource(aVideoSource)
     , mWindowID(aWindowID)
     , mListener(aListener)
-    , mPeerIdentity(aPeerIdentity)
     , mManager(MediaManager::GetInstance())
   {
     mSuccess.swap(aSuccess);
@@ -630,14 +625,7 @@ public:
                reinterpret_cast<uint64_t>(stream.get()),
                reinterpret_cast<int64_t>(trackunion->GetStream()));
 
-    nsCOMPtr<nsIPrincipal> principal;
-    if (mPeerIdentity) {
-      principal = do_CreateInstance("@mozilla.org/nullprincipal;1");
-      trackunion->SetPeerIdentity(mPeerIdentity.forget());
-    } else {
-      principal = window->GetExtantDoc()->NodePrincipal();
-    }
-    trackunion->CombineWithPrincipal(principal);
+    trackunion->CombineWithPrincipal(window->GetExtantDoc()->NodePrincipal());
 
     
     
@@ -680,7 +668,6 @@ private:
   nsRefPtr<MediaEngineSource> mVideoSource;
   uint64_t mWindowID;
   nsRefPtr<GetUserMediaCallbackMediaStreamListener> mListener;
-  nsAutoPtr<PeerIdentity> mPeerIdentity;
   nsRefPtr<MediaManager> mManager; 
 };
 
@@ -1050,14 +1037,9 @@ public:
         return;
       }
     }
-    PeerIdentity* peerIdentity = nullptr;
-    if (!mConstraints.mPeerIdentity.IsEmpty()) {
-      peerIdentity = new PeerIdentity(mConstraints.mPeerIdentity);
-    }
 
     NS_DispatchToMainThread(new GetUserMediaStreamRunnable(
-      mSuccess, mError, mWindowID, mListener, aAudioSource, aVideoSource,
-      peerIdentity
+      mSuccess, mError, mWindowID, mListener, aAudioSource, aVideoSource
     ));
 
     MOZ_ASSERT(!mSuccess);
@@ -1290,8 +1272,8 @@ MediaManager::NotifyRecordingStatusChange(nsPIDOMWindow* aWindow,
   props->SetPropertyAsAString(NS_LITERAL_STRING("requestURL"), requestURL);
 
   obs->NotifyObservers(static_cast<nsIPropertyBag2*>(props),
-                       "recording-device-events",
-                       aMsg.get());
+		       "recording-device-events",
+		       aMsg.get());
 
   
   
@@ -1352,13 +1334,13 @@ MediaManager::GetUserMedia(JSContext* aCx, bool aPrivileged,
   if (audioObj) {
     nsresult rv = CompareDictionaries(aCx, audioObj,
         c.mAudio.GetAsMediaTrackConstraintsInternal().mMandatory,
-        unknownConstraintFound);
+        &unknownConstraintFound);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   if (videoObj) {
     nsresult rv = CompareDictionaries(aCx, videoObj,
         c.mVideo.GetAsMediaTrackConstraintsInternal().mMandatory,
-        unknownConstraintFound);
+        &unknownConstraintFound);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1699,7 +1681,8 @@ MediaManager::RemoveFromWindowList(uint64_t aWindowID,
         
         char windowBuffer[32];
         PR_snprintf(windowBuffer, sizeof(windowBuffer), "%llu", outerID);
-        nsString data = NS_ConvertUTF8toUTF16(windowBuffer);
+        nsAutoString data;
+        data.Append(NS_ConvertUTF8toUTF16(windowBuffer));
 
         nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
         obs->NotifyObservers(nullptr, "recording-window-ended", data.get());
