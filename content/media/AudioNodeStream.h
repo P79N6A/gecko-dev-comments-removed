@@ -132,6 +132,12 @@ public:
 
 
 
+  double TimeFromDestinationTime(AudioNodeStream* aDestination,
+                                 double aSeconds);
+  
+
+
+
   TrackTicks TicksFromDestinationTime(MediaStream* aDestination,
                                       double aSeconds);
   

@@ -56,7 +56,7 @@ public:
   explicit AudioBufferSourceNodeEngine(AudioNode* aNode,
                                        AudioDestinationNode* aDestination) :
     AudioNodeEngine(aNode),
-    mStart(0), mBeginProcessing(0),
+    mStart(0.0), mBeginProcessing(0),
     mStop(TRACK_TICKS_MAX),
     mResampler(nullptr), mRemainingResamplerTail(0),
     mBufferEnd(0),
@@ -95,10 +95,6 @@ public:
   virtual void SetStreamTimeParameter(uint32_t aIndex, TrackTicks aParam)
   {
     switch (aIndex) {
-    case AudioBufferSourceNode::START:
-      MOZ_ASSERT(!mStart, "Another START?");
-      mBeginProcessing = mStart = aParam;
-      break;
     case AudioBufferSourceNode::STOP: mStop = aParam; break;
     default:
       NS_ERROR("Bad AudioBufferSourceNodeEngine StreamTimeParameter");
@@ -107,11 +103,18 @@ public:
   virtual void SetDoubleParameter(uint32_t aIndex, double aParam)
   {
     switch (aIndex) {
-      case AudioBufferSourceNode::DOPPLERSHIFT:
-        mDopplerShift = aParam > 0 && aParam == aParam ? aParam : 1.0;
-        break;
-      default:
-        NS_ERROR("Bad AudioBufferSourceNodeEngine double parameter.");
+    case AudioBufferSourceNode::START:
+      MOZ_ASSERT(!mStart, "Another START?");
+      mStart = mSource->TimeFromDestinationTime(mDestination, aParam) *
+        mSource->SampleRate();
+      
+      mBeginProcessing = mStart + 0.5;
+      break;
+    case AudioBufferSourceNode::DOPPLERSHIFT:
+      mDopplerShift = aParam > 0 && aParam == aParam ? aParam : 1.0;
+      break;
+    default:
+      NS_ERROR("Bad AudioBufferSourceNodeEngine double parameter.");
     };
   }
   virtual void SetInt32Parameter(uint32_t aIndex, int32_t aParam)
@@ -152,7 +155,7 @@ public:
          (aOutRate == mBufferSampleRate && !BegunResampling()))) {
       speex_resampler_destroy(mResampler);
       mResampler = nullptr;
-      mBeginProcessing = mStart;
+      mBeginProcessing = mStart + 0.5;
     }
 
     if (aOutRate == mBufferSampleRate && !mResampler) {
@@ -179,8 +182,16 @@ public:
       
       
       int64_t inputLatency = speex_resampler_get_input_latency(mResampler);
+      uint32_t ratioNum, ratioDen;
+      speex_resampler_get_ratio(mResampler, &ratioNum, &ratioDen);
       
-      mBeginProcessing = mStart - inputLatency * aOutRate / mBufferSampleRate;
+      
+      int64_t subsample = mStart * ratioNum + 0.5;
+      
+      
+      
+      mBeginProcessing =
+        (subsample - inputLatency * ratioDen + ratioNum - 1) / ratioNum;
     }
   }
 
@@ -248,8 +259,11 @@ public:
         
         
         uint32_t skipFracNum = inputLatency * ratioDen;
-        if (*aCurrentPosition < mStart) {
-          skipFracNum -= (mStart - *aCurrentPosition) * ratioNum;
+        double leadTicks = mStart - *aCurrentPosition;
+        if (leadTicks > 0.0) {
+          
+          
+          skipFracNum -= leadTicks * ratioNum + 0.5;
           MOZ_ASSERT(skipFracNum < INT32_MAX, "mBeginProcessing is wrong?");
         }
         speex_resampler_set_skip_frac_num(resampler, skipFracNum);
@@ -468,7 +482,7 @@ public:
     }
   }
 
-  TrackTicks mStart;
+  double mStart; 
   
   
   
@@ -560,7 +574,7 @@ AudioBufferSourceNode::Start(double aWhen, double aOffset,
 
   
   if (aWhen > 0.0) {
-    ns->SetStreamTimeParameter(START, Context(), aWhen);
+    ns->SetDoubleParameter(START, mContext->DOMTimeToStreamTime(aWhen));
   }
 }
 
