@@ -131,6 +131,7 @@ def generate_separated_sources(platform_sources):
     'GrGLCreateNativeInterface',
     'fontconfig',
     '_neon',
+    'SkThreadUtils_pthread_',
     'SkImage_Codec',
     'SkBitmapChecksummer',
     'SkNativeGLContext',
@@ -169,7 +170,6 @@ def generate_separated_sources(platform_sources):
     'android': {
       
       'trunk/src/ports/SkFontHost_cairo.cpp',
-      
       
       
       
