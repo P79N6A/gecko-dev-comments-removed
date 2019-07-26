@@ -3898,6 +3898,9 @@ pref("dom.vibrator.max_vibrate_list_len", 128);
 pref("dom.battery.enabled", true);
 
 
+pref("dom.image.srcset.enabled", false);
+
+
 pref("dom.sms.enabled", false);
 
 
