@@ -1270,7 +1270,7 @@ ion::CanEnterAtBranch(JSContext *cx, HandleScript script, StackFrame *fp, jsbyte
 
     
     JSFunction *fun = fp->isFunctionFrame() ? fp->fun() : NULL;
-    MethodStatus status = Compile(cx, script, fun, pc, false);
+    MethodStatus status = Compile(cx, script, fun, pc, fp->isConstructing());
     if (status != Method_Compiled) {
         if (status == Method_CantCompile)
             ForbidCompilation(cx, script);
