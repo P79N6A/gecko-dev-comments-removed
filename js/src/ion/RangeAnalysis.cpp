@@ -1408,8 +1408,16 @@ MToDouble::isOperandTruncated(size_t index) const
 static bool
 AllUsesTruncate(MInstruction *candidate)
 {
-    for (MUseDefIterator use(candidate); use; use++) {
-        if (!use.def()->isOperandTruncated(use.index()))
+    for (MUseIterator use(candidate->usesBegin()); use != candidate->usesEnd(); use++) {
+        if (!use->consumer()->isDefinition()) {
+            
+            
+            if (candidate->isUseRemoved())
+                return false;
+            continue;
+        }
+
+        if (!use->consumer()->toDefinition()->isOperandTruncated(use->index()))
             return false;
     }
 

@@ -54,7 +54,20 @@ MIRType MIRTypeFromValue(const js::Value &vp)
      * points.
      */                                                                         \
     _(Unused)                                                                   \
-    _(DOMFunction)   
+    _(DOMFunction)           \
+                                                                                \
+    
+
+
+
+
+
+
+
+
+
+                                                                         \
+    _(UseRemoved)
 
 class MDefinition;
 class MInstruction;
