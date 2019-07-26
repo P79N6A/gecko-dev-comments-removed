@@ -75,9 +75,10 @@ SystemMessageManager.prototype = {
     aHandler.handleMessage(wrapped ? aMessage
                                    : ObjectWrapper.wrap(aMessage, this._window));
 
-    Services.obs.notifyObservers( null,
-                                 "SystemMessageManager:HandleMessageDone",
-                                  null);
+    
+    cpmm.sendAsyncMessage("SystemMessageManager:HandleMessageDone",
+                          { type: aType,
+                            message: aMessage });
   },
 
   mozSetMessageHandler: function sysMessMgr_setMessageHandler(aType, aHandler) {

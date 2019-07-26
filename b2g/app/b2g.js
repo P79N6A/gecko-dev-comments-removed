@@ -581,11 +581,6 @@ pref("dom.ipc.processPrelaunch.delayMs", 5000);
 #endif
 
 
-
-
-pref("dom.ipc.systemMessageCPULockTimeoutSec", 30);
-
-
 pref("dom.disable_window_open_dialog_feature", true);
 
 
