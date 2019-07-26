@@ -635,26 +635,29 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       if (NeedToReframeForAddingOrRemovingTransform(frame)) {
         NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
       } else {
-        
-        
-        
-        
-        
-        if (frame->IsPositioned()) {
+        for (nsIFrame *cont = frame; cont;
+             cont = nsLayoutUtils::GetNextContinuationOrSpecialSibling(cont)) {
           
           
           
-          frame->AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
-          if (!frame->IsAbsoluteContainer() &&
-              (frame->GetStateBits() & NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN)) {
-            frame->MarkAsAbsoluteContainingBlock();
-          }
-        } else {
           
           
-          
-          if (frame->IsAbsoluteContainer()) {
-            frame->MarkAsNotAbsoluteContainingBlock();
+          if (cont->IsPositioned()) {
+            
+            
+            
+            cont->AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
+            if (!cont->IsAbsoluteContainer() &&
+                (cont->GetStateBits() & NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN)) {
+              cont->MarkAsAbsoluteContainingBlock();
+            }
+          } else {
+            
+            
+            
+            if (cont->IsAbsoluteContainer()) {
+              cont->MarkAsNotAbsoluteContainingBlock();
+            }
           }
         }
       }
