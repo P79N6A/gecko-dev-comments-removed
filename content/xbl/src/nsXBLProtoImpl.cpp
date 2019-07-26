@@ -158,10 +158,13 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
   nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
   JS::Rooted<JS::Value> v(cx);
 
-  
-  
-  bool defineOnGlobal = dom::XULElementBinding::ConstructorEnabled(cx, global);
-  dom::XULElementBinding::GetConstructorObject(cx, global, defineOnGlobal);
+  {
+    JSAutoCompartment ac(cx, global);
+    
+    
+    bool defineOnGlobal = dom::XULElementBinding::ConstructorEnabled(cx, global);
+    dom::XULElementBinding::GetConstructorObject(cx, global, defineOnGlobal);
+  }
 
   rv = nsContentUtils::WrapNative(cx, global, aBoundElement, v.address(),
                                   getter_AddRefs(wrapper));
