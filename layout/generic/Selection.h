@@ -30,7 +30,7 @@ struct RangeData
   {}
 
   nsRefPtr<nsRange> mRange;
-  nsTextRangeStyle mTextRangeStyle;
+  mozilla::TextRangeStyle mTextRangeStyle;
 };
 
 

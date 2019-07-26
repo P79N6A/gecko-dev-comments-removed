@@ -5,7 +5,7 @@
 
 #include "IMETextTxn.h"
 #include "mozilla/mozalloc.h"           
-#include "mozilla/TextEvents.h"      
+#include "mozilla/TextEvents.h"         
 #include "nsAString.h"                  
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
@@ -24,6 +24,8 @@
 #include "nsITransaction.h"             
 #include "nsRange.h"                    
 #include "nsString.h"                   
+
+using namespace mozilla;
 
 
 
@@ -333,7 +335,7 @@ NS_IMETHODIMP IMETextTxn::CollapseTextSelection(void)
              nsCOMPtr<nsISelectionPrivate> imeSelPriv(
                                              do_QueryInterface(imeSel));
              if (imeSelPriv) {
-               nsTextRangeStyle textRangeStyle;
+               TextRangeStyle textRangeStyle;
                result = textRange->GetRangeStyle(&textRangeStyle);
                NS_ASSERTION(NS_SUCCEEDED(result),
                             "nsIPrivateTextRange::GetRangeStyle failed");
