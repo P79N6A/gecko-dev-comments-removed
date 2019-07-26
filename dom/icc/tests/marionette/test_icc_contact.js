@@ -1,7 +1,7 @@
 
 
 
-MARIONETTE_TIMEOUT = 30000;
+MARIONETTE_TIMEOUT = 60000;
 
 SpecialPowers.addPermission("mobileconnection", true, document);
 
