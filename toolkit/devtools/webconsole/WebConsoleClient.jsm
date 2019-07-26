@@ -292,6 +292,23 @@ WebConsoleClient.prototype = {
 
 
 
+  sendHTTPRequest: function WCC_sendHTTPRequest(aData, aOnResponse) {
+    let packet = {
+      to: this._actor,
+      type: "sendHTTPRequest",
+      request: aData
+    };
+    this._client.request(packet, aOnResponse);
+  },
+
+  
+
+
+
+
+
+
+
 
 
   startListeners: function WCC_startListeners(aListeners, aOnResponse)

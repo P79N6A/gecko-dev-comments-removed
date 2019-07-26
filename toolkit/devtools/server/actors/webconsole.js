@@ -89,6 +89,7 @@ function WebConsoleActor(aConnection, aParentActor)
 
   this._protoChains = new Map();
   this._dbgGlobals = new Map();
+  this._netEvents = new Map();
   this._getDebuggerGlobal(this.window);
 
   this._onObserverNotification = this._onObserverNotification.bind(this);
@@ -146,6 +147,15 @@ WebConsoleActor.prototype =
 
 
   _dbgGlobals: null,
+
+  
+
+
+
+
+
+
+  _netEvents: null,
 
   
 
@@ -252,6 +262,8 @@ WebConsoleActor.prototype =
                                   "last-pb-context-exited");
     }
     this._actorPool = null;
+
+    this._netEvents.clear();
     this._protoChains.clear();
     this._dbgGlobals.clear();
     this._jstermHelpers = null;
@@ -1000,10 +1012,10 @@ WebConsoleActor.prototype =
 
 
 
-  onNetworkEvent: function WCA_onNetworkEvent(aEvent)
+  onNetworkEvent: function WCA_onNetworkEvent(aEvent, aChannel)
   {
-    let actor = new NetworkEventActor(aEvent, this);
-    this._actorPool.addActor(actor);
+    let actor = this.getNetworkEventActor(aChannel);
+    actor.init(aEvent);
 
     let packet = {
       from: this.actorID,
@@ -1014,6 +1026,57 @@ WebConsoleActor.prototype =
     this.conn.send(packet);
 
     return actor;
+  },
+
+  
+
+
+
+
+
+
+  getNetworkEventActor: function WCA_getNetworkEventActor(aChannel) {
+    let actor = this._netEvents.get(aChannel);
+    if (actor) {
+      
+      this._netEvents.delete(aChannel);
+      actor.channel = null;
+      return actor;
+    }
+
+    actor = new NetworkEventActor(aChannel, this);
+    this._actorPool.addActor(actor);
+    return actor;
+  },
+
+  
+
+
+
+
+
+  onSendHTTPRequest: function WCA_onSendHTTPRequest(aMessage)
+  {
+    let details = aMessage.request;
+
+    
+    let request = new this._window.XMLHttpRequest();
+    request.open(details.method, details.url, true);
+
+    for (let {name, value} of details.headers) {
+      request.setRequestHeader(name, value);
+    }
+    request.send(details.body);
+
+    let actor = this.getNetworkEventActor(request.channel);
+
+    
+    this._netEvents.set(request.channel, actor);
+
+    return {
+      from: this.actorID,
+      eventActor: actor.grip()
+    };
   },
 
   
@@ -1113,7 +1176,7 @@ WebConsoleActor.prototype =
         });
         break;
     }
-  },
+  }
 };
 
 WebConsoleActor.prototype.requestTypes =
@@ -1125,6 +1188,7 @@ WebConsoleActor.prototype.requestTypes =
   autocomplete: WebConsoleActor.prototype.onAutocomplete,
   clearMessagesCache: WebConsoleActor.prototype.onClearMessagesCache,
   setPreferences: WebConsoleActor.prototype.onSetPreferences,
+  sendHTTPRequest: WebConsoleActor.prototype.onSendHTTPRequest
 };
 
 
@@ -1136,21 +1200,19 @@ WebConsoleActor.prototype.requestTypes =
 
 
 
-function NetworkEventActor(aNetworkEvent, aWebConsoleActor)
+function NetworkEventActor(aChannel, aWebConsoleActor)
 {
   this.parent = aWebConsoleActor;
   this.conn = this.parent.conn;
-
-  this._startedDateTime = aNetworkEvent.startedDateTime;
-  this._isXHR = aNetworkEvent.isXHR;
+  this.channel = aChannel;
 
   this._request = {
-    method: aNetworkEvent.method,
-    url: aNetworkEvent.url,
-    httpVersion: aNetworkEvent.httpVersion,
+    method: null,
+    url: null,
+    httpVersion: null,
     headers: [],
     cookies: [],
-    headersSize: aNetworkEvent.headersSize,
+    headersSize: null,
     postData: {},
   };
 
@@ -1164,10 +1226,6 @@ function NetworkEventActor(aNetworkEvent, aWebConsoleActor)
 
   
   this._longStringActors = new Set();
-
-  this._discardRequestBody = aNetworkEvent.discardRequestBody;
-  this._discardResponseBody = aNetworkEvent.discardResponseBody;
-  this._private = aNetworkEvent.private;
 }
 
 NetworkEventActor.prototype =
@@ -1206,6 +1264,10 @@ NetworkEventActor.prototype =
       }
     }
     this._longStringActors = new Set();
+
+    if (this.channel) {
+      this.parent._netEvents.delete(this.channel);
+    }
     this.parent.releaseActor(this);
   },
 
@@ -1216,6 +1278,27 @@ NetworkEventActor.prototype =
   {
     this.release();
     return {};
+  },
+
+  
+
+
+
+
+
+
+  init: function NEA_init(aNetworkEvent)
+  {
+    this._startedDateTime = aNetworkEvent.startedDateTime;
+    this._isXHR = aNetworkEvent.isXHR;
+
+    for (let prop of ['method', 'url', 'httpVersion', 'headersSize']) {
+      this._request[prop] = aNetworkEvent[prop];
+    }
+
+    this._discardRequestBody = aNetworkEvent.discardRequestBody;
+    this._discardResponseBody = aNetworkEvent.discardResponseBody;
+    this._private = aNetworkEvent.private;
   },
 
   
@@ -1544,5 +1627,4 @@ NetworkEventActor.prototype.requestTypes =
 
 DebuggerServer.addTabActor(WebConsoleActor, "consoleActor");
 DebuggerServer.addGlobalActor(WebConsoleActor, "consoleActor");
-
 
