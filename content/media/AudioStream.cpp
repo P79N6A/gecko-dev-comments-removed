@@ -412,7 +412,8 @@ AudioStream::Init(int32_t aNumChannels, int32_t aRate,
     
     
     
-    AudioInitTask *init = new AudioInitTask(this, aLatencyRequest, params);
+    
+    RefPtr<AudioInitTask> init = new AudioInitTask(this, aLatencyRequest, params);
     init->Dispatch();
     return NS_OK;
   }
