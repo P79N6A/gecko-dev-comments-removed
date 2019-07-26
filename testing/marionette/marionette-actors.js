@@ -1598,6 +1598,15 @@ MarionetteDriverActor.prototype = {
 
 
 
+  screenShot: function MDA_saveScreenshot(aRequest) {
+    this.sendAsync("screenShot", {element: aRequest.element,
+                                  highlights: aRequest.highlights});
+  },
+
+  
+
+
+
   generateFrameId: function MDA_generateFrameId(id) {
     let uid = id + (appName == "B2G" ? "-b2g" : "");
     return uid;
@@ -1771,7 +1780,8 @@ MarionetteDriverActor.prototype.requestTypes = {
   "importScript": MarionetteDriverActor.prototype.importScript,
   "getAppCacheStatus": MarionetteDriverActor.prototype.getAppCacheStatus,
   "closeWindow": MarionetteDriverActor.prototype.closeWindow,
-  "setTestName": MarionetteDriverActor.prototype.setTestName
+  "setTestName": MarionetteDriverActor.prototype.setTestName,
+  "screenShot": MarionetteDriverActor.prototype.screenShot
 };
 
 

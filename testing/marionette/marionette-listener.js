@@ -120,6 +120,7 @@ function startListeners() {
   addMessageListenerId("Marionette:getAppCacheStatus", getAppCacheStatus);
   addMessageListenerId("Marionette:setTestName", setTestName);
   addMessageListenerId("Marionette:setState", setState);
+  addMessageListenerId("Marionette:screenShot", screenShot);
 }
 
 
@@ -200,6 +201,7 @@ function deleteSession(msg) {
   removeMessageListenerId("Marionette:getAppCacheStatus", getAppCacheStatus);
   removeMessageListenerId("Marionette:setTestName", setTestName);
   removeMessageListenerId("Marionette:setState", setState);
+  removeMessageListenerId("Marionette:screenShot", screenShot);
   this.elementManager.reset();
   
   curWindow = content;
@@ -942,6 +944,88 @@ function importScript(msg) {
   file.write(msg.json.script, msg.json.script.length);
   file.close();
   sendOk();
+}
+
+
+
+
+function screenShot(msg) {
+  let node = null;
+  if (msg.json.element) {
+    try {
+      node = elementManager.getKnownElement(msg.json.element, curWindow)
+    }
+    catch (e) {
+      sendResponse(e.message, e.code, e.stack);
+      return;
+    }
+  }
+  else {
+      node = curWindow;
+  }
+  let highlights = msg.json.highlights;
+
+  var document = curWindow.document;
+  var rect, win, width, height, left, top, needsOffset;
+  
+  if (node == curWindow) {
+    
+    win = node;
+    width = win.innerWidth;
+    height = win.innerHeight;
+    top = 0;
+    left = 0;
+    
+    needsOffset = true;
+  }
+  else {
+    
+    win = node.ownerDocument.defaultView;
+    rect = node.getBoundingClientRect();
+    width = rect.width;
+    height = rect.height;
+    top = rect.top;
+    left = rect.left;
+    
+    needsOffset = false;
+  }
+
+  var canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+  canvas.width = width;
+  canvas.height = height;
+  var ctx = canvas.getContext("2d");
+  
+  ctx.drawWindow(win, left, top, width, height, 'rgb(255,255,255)');
+
+  
+  if (highlights) {
+    ctx.lineWidth = "2";
+    ctx.strokeStyle = "red";
+    ctx.save();
+
+    for (var i = 0; i < highlights.length; ++i) {
+      var elem = highlights[i];
+      rect = elem.getBoundingClientRect();
+
+      var offsetY = 0, offsetX = 0;
+      if (needsOffset) {
+        var offset = getChromeOffset(elem);
+        offsetX = offset.x;
+        offsetY = offset.y;
+      } else {
+        
+        offsetY = -top;
+        offsetX = -left;
+      }
+
+      
+      ctx.strokeRect(rect.left + offsetX, rect.top + offsetY, rect.width, rect.height);
+    }
+  }
+
+  
+  
+  sendResponse({value:canvas.toDataURL("image/png","")});
 }
 
 
