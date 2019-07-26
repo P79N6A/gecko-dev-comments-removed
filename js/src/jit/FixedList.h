@@ -28,7 +28,7 @@ class FixedList
 
   public:
     FixedList()
-      : length_(0), list_(nullptr)
+      : list_(nullptr), length_(0)
     { }
 
     
