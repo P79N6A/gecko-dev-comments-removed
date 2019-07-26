@@ -9,23 +9,15 @@
 
 #include "mozilla/dom/indexedDB/IndexedDatabase.h"
 
-#include "mozilla/Mutex.h"
-
 #include "nsIIndexedDatabaseManager.h"
-#include "nsIObserver.h"
-#include "nsIRunnable.h"
-#include "nsIThread.h"
-#include "nsIURI.h"
 
+#include "mozilla/Mutex.h"
 #include "nsClassHashtable.h"
-#include "nsRefPtrHashtable.h"
 #include "nsHashKeys.h"
 
 #define INDEXEDDB_MANAGER_CONTRACTID "@mozilla.org/dom/indexeddb/manager;1"
 
 class nsIAtom;
-class nsIFile;
-class nsITimer;
 class nsPIDOMWindow;
 class nsEventChainPostVisitor;
 
@@ -35,96 +27,30 @@ class TabContext;
 }
 }
 
-
 BEGIN_INDEXEDDB_NAMESPACE
 
-class AsyncConnectionHelper;
 class FileManager;
-class IDBDatabase;
 
-class IndexedDatabaseManager MOZ_FINAL : public nsIIndexedDatabaseManager,
-                                         public nsIObserver
+class IndexedDatabaseManager MOZ_FINAL : public nsIIndexedDatabaseManager
 {
-  friend class IDBDatabase;
-
 public:
-  static already_AddRefed<IndexedDatabaseManager> GetOrCreate();
-
-  
-  static IndexedDatabaseManager* Get();
-
-  
-  static IndexedDatabaseManager* FactoryCreate();
-
   NS_DECL_ISUPPORTS
   NS_DECL_NSIINDEXEDDATABASEMANAGER
-  NS_DECL_NSIOBSERVER
 
   
-  
-  nsresult WaitForOpenAllowed(const OriginOrPatternString& aOriginOrPattern,
-                              nsIAtom* aId,
-                              nsIRunnable* aRunnable);
-
-  void AllowNextSynchronizedOp(const OriginOrPatternString& aOriginOrPattern,
-                               nsIAtom* aId);
-
-  nsIThread* IOThread()
-  {
-    NS_ASSERTION(mIOThread, "This should never be null!");
-    return mIOThread;
-  }
+  static IndexedDatabaseManager*
+  GetOrCreate();
 
   
-  static bool IsShuttingDown();
-
-  static bool IsClosed();
-
-  typedef void
-  (*WaitingOnDatabasesCallback)(nsTArray<nsRefPtr<IDBDatabase> >&, void*);
+  static IndexedDatabaseManager*
+  Get();
 
   
-  
-  
-  nsresult AcquireExclusiveAccess(IDBDatabase* aDatabase,
-                                  const nsACString& aOrigin,
-                                  AsyncConnectionHelper* aHelper,
-                                  WaitingOnDatabasesCallback aCallback,
-                                  void* aClosure)
-  {
-    NS_ASSERTION(aDatabase, "Need a DB here!");
-    return AcquireExclusiveAccess(aOrigin, aDatabase, aHelper, nullptr,
-                                  aCallback, aClosure);
-  }
+  static IndexedDatabaseManager*
+  FactoryCreate();
 
-  nsresult AcquireExclusiveAccess(const nsACString& aOrigin,
-                                  nsIRunnable* aRunnable,
-                                  WaitingOnDatabasesCallback aCallback,
-                                  void* aClosure)
-  {
-    return AcquireExclusiveAccess(aOrigin, nullptr, nullptr, aRunnable, aCallback,
-                                  aClosure);
-  }
-
-  
-  
-  
-  void AbortCloseDatabasesForWindow(nsPIDOMWindow* aWindow);
-
-  
-  bool HasOpenTransactions(nsPIDOMWindow* aWindow);
-
-  static uint32_t
-  GetIndexedDBQuotaMB();
-
-  nsresult EnsureOriginIsInitialized(const nsACString& aOrigin,
-                                     FactoryPrivilege aPrivilege,
-                                     nsIFile** aDirectory);
-
-  void UninitializeOriginsByPattern(const nsACString& aPattern);
-
-  static nsresult
-  GetASCIIOriginFromWindow(nsPIDOMWindow* aWindow, nsCString& aASCIIOrigin);
+  static bool
+  IsClosed();
 
   static bool
   IsMainProcess()
@@ -143,35 +69,28 @@ public:
   void
   AddFileManager(FileManager* aFileManager);
 
-  void InvalidateFileManagersForPattern(const nsACString& aPattern);
+  void
+  InvalidateAllFileManagers();
 
-  void InvalidateFileManager(const nsACString& aOrigin,
-                             const nsAString& aDatabaseName);
+  void
+  InvalidateFileManagersForPattern(const nsACString& aPattern);
 
-  nsresult AsyncDeleteFile(FileManager* aFileManager,
-                           int64_t aFileId);
-
-  const nsString&
-  GetBaseDirectory() const
-  {
-    return mDatabaseBasePath;
-  }
+  void
+  InvalidateFileManager(const nsACString& aOrigin,
+                        const nsAString& aDatabaseName);
 
   nsresult
-  GetDirectoryForOrigin(const nsACString& aASCIIOrigin,
-                        nsIFile** aDirectory) const;
+  AsyncDeleteFile(FileManager* aFileManager,
+                  int64_t aFileId);
 
-  static mozilla::Mutex& FileMutex()
+  static mozilla::Mutex&
+  FileMutex()
   {
     IndexedDatabaseManager* mgr = Get();
     NS_ASSERTION(mgr, "Must have a manager here!");
 
     return mgr->mFileMutex;
   }
-
-  static already_AddRefed<nsIAtom>
-  GetDatabaseId(const nsACString& aOrigin,
-                const nsAString& aName);
 
   static nsresult
   FireWindowOnError(nsPIDOMWindow* aOwner,
@@ -185,258 +104,11 @@ private:
   IndexedDatabaseManager();
   ~IndexedDatabaseManager();
 
-  nsresult AcquireExclusiveAccess(const nsACString& aOrigin,
-                                  IDBDatabase* aDatabase,
-                                  AsyncConnectionHelper* aHelper,
-                                  nsIRunnable* aRunnable,
-                                  WaitingOnDatabasesCallback aCallback,
-                                  void* aClosure);
+  nsresult
+  Init();
 
-  
-  bool RegisterDatabase(IDBDatabase* aDatabase);
-
-  
-  void UnregisterDatabase(IDBDatabase* aDatabase);
-
-  
-  void OnDatabaseClosed(IDBDatabase* aDatabase);
-
-  nsresult ClearDatabasesForApp(uint32_t aAppId, bool aBrowserOnly);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  class OriginClearRunnable MOZ_FINAL : public nsIRunnable
-  {
-    enum CallbackState {
-      
-      Pending = 0,
-
-      
-      OpenAllowed,
-
-      
-      IO,
-
-      
-      Complete
-    };
-
-  public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIRUNNABLE
-
-    OriginClearRunnable(const OriginOrPatternString& aOriginOrPattern)
-    : mOriginOrPattern(aOriginOrPattern),
-      mCallbackState(Pending)
-    { }
-
-    void AdvanceState()
-    {
-      switch (mCallbackState) {
-        case Pending:
-          mCallbackState = OpenAllowed;
-          return;
-        case OpenAllowed:
-          mCallbackState = IO;
-          return;
-        case IO:
-          mCallbackState = Complete;
-          return;
-        default:
-          NS_NOTREACHED("Can't advance past Complete!");
-      }
-    }
-
-    static void InvalidateOpenedDatabases(
-                                   nsTArray<nsRefPtr<IDBDatabase> >& aDatabases,
-                                   void* aClosure);
-
-    void DeleteFiles(IndexedDatabaseManager* aManager);
-
-  private:
-    OriginOrPatternString mOriginOrPattern;
-    CallbackState mCallbackState;
-  };
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  class AsyncUsageRunnable MOZ_FINAL : public nsIRunnable
-  {
-    enum CallbackState {
-      
-      Pending = 0,
-
-      
-      OpenAllowed,
-
-      
-      IO,
-
-      
-      Complete,
-
-      
-      Shortcut
-    };
-
-  public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIRUNNABLE
-
-    AsyncUsageRunnable(uint32_t aAppId,
-                       bool aInMozBrowserOnly,
-                       const OriginOrPatternString& aOrigin,
-                       nsIURI* aURI,
-                       nsIIndexedDatabaseUsageCallback* aCallback);
-
-    
-    void Cancel();
-
-    void AdvanceState()
-    {
-      switch (mCallbackState) {
-        case Pending:
-          mCallbackState = OpenAllowed;
-          return;
-        case OpenAllowed:
-          mCallbackState = IO;
-          return;
-        case IO:
-          mCallbackState = Complete;
-          return;
-        default:
-          NS_NOTREACHED("Can't advance past Complete!");
-      }
-    }
-
-    nsresult TakeShortcut();
-
-    
-    
-    inline nsresult RunInternal();
-
-    nsresult GetUsageForDirectory(nsIFile* aDirectory,
-                                  uint64_t* aUsage);
-
-    nsCOMPtr<nsIURI> mURI;
-    nsCOMPtr<nsIIndexedDatabaseUsageCallback> mCallback;
-    uint64_t mUsage;
-    uint64_t mFileUsage;
-    uint32_t mAppId;
-    int32_t mCanceled;
-    OriginOrPatternString mOrigin;
-    CallbackState mCallbackState;
-    bool mInMozBrowserOnly;
-  };
-
-  
-  inline void OnUsageCheckComplete(AsyncUsageRunnable* aRunnable);
-
-  
-  
-  
-  struct SynchronizedOp
-  {
-    SynchronizedOp(const OriginOrPatternString& aOriginOrPattern,
-                   nsIAtom* aId);
-    ~SynchronizedOp();
-
-    
-    bool MustWaitFor(const SynchronizedOp& aOp);
-
-    void DelayRunnable(nsIRunnable* aRunnable);
-    void DispatchDelayedRunnables();
-
-    const OriginOrPatternString mOriginOrPattern;
-    nsCOMPtr<nsIAtom> mId;
-    nsRefPtr<AsyncConnectionHelper> mHelper;
-    nsCOMPtr<nsIRunnable> mRunnable;
-    nsTArray<nsCOMPtr<nsIRunnable> > mDelayedRunnables;
-    nsTArray<IDBDatabase*> mDatabases;
-  };
-
-  
-  
-  class WaitForTransactionsToFinishRunnable MOZ_FINAL : public nsIRunnable
-  {
-  public:
-    WaitForTransactionsToFinishRunnable(SynchronizedOp* aOp,
-                                        uint32_t aCountdown)
-    : mOp(aOp), mCountdown(aCountdown)
-    {
-      NS_ASSERTION(mOp, "Why don't we have a runnable?");
-      NS_ASSERTION(mOp->mDatabases.IsEmpty(), "We're here too early!");
-      NS_ASSERTION(mOp->mHelper || mOp->mRunnable,
-                   "What are we supposed to do when we're done?");
-      NS_ASSERTION(mCountdown, "Wrong countdown!");
-    }
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIRUNNABLE
-
-  private:
-    
-    SynchronizedOp* mOp;
-    uint32_t mCountdown;
-  };
-
-  class WaitForLockedFilesToFinishRunnable MOZ_FINAL : public nsIRunnable
-  {
-  public:
-    WaitForLockedFilesToFinishRunnable()
-    : mBusy(true)
-    { }
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIRUNNABLE
-
-    bool IsBusy() const
-    {
-      return mBusy;
-    }
-
-  private:
-    bool mBusy;
-  };
-
-  class AsyncDeleteFileRunnable MOZ_FINAL : public nsIRunnable
-  {
-  public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIRUNNABLE
-    AsyncDeleteFileRunnable(FileManager* aFileManager, int64_t aFileId);
-
-  private:
-    nsRefPtr<FileManager> mFileManager;
-    int64_t mFileId;
-  };
-
-  static nsresult RunSynchronizedOp(IDBDatabase* aDatabase,
-                                    SynchronizedOp* aOp);
-
-  SynchronizedOp* FindSynchronizedOp(const nsACString& aPattern,
-                                     nsIAtom* aId);
-
-  bool IsClearOriginPending(const nsACString& aPattern)
-  {
-    return !!FindSynchronizedOp(aPattern, nullptr);
-  }
-
-  
-  nsClassHashtable<nsCStringHashKey, nsTArray<IDBDatabase*> > mLiveDatabases;
+  void
+  Destroy();
 
   
   
@@ -445,27 +117,8 @@ private:
 
   
   
-  nsAutoTArray<nsRefPtr<AsyncUsageRunnable>, 1> mUsageRunnables;
-
-  
-  nsAutoTArray<nsAutoPtr<SynchronizedOp>, 5> mSynchronizedOps;
-
-  
-  nsCOMPtr<nsIThread> mIOThread;
-
-  
-  nsCOMPtr<nsITimer> mShutdownTimer;
-
-  
-  
-  nsTArray<nsCString> mInitializedOrigins;
-
-  
-  
   
   mozilla::Mutex mFileMutex;
-
-  nsString mDatabaseBasePath;
 
   static bool sIsMainProcess;
 };

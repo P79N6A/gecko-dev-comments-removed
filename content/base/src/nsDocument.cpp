@@ -156,7 +156,7 @@
 #include "mozAutoDocUpdate.h"
 #include "nsGlobalWindow.h"
 #include "mozilla/dom/EncodingUtils.h"
-#include "mozilla/dom/indexedDB/IndexedDatabaseManager.h"
+#include "mozilla/dom/quota/QuotaManager.h"
 #include "nsDOMNavigationTiming.h"
 #include "nsEventStateManager.h"
 
@@ -7639,10 +7639,10 @@ nsDocument::CanSavePresentation(nsIRequest *aNewRequest)
   }
 
   
-  indexedDB::IndexedDatabaseManager* idbManager =
-    win ? indexedDB::IndexedDatabaseManager::Get() : nullptr;
-  if (idbManager && idbManager->HasOpenTransactions(win)) {
-    return false;
+  quota::QuotaManager* quotaManager =
+    win ? quota::QuotaManager::Get() : nullptr;
+  if (quotaManager && quotaManager->HasOpenTransactions(win)) {
+   return false;
   }
 
 #ifdef MOZ_WEBRTC

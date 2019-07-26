@@ -210,8 +210,8 @@ this.ForgetAboutSite = {
     }
 
     
-    let (idbm = Cc["@mozilla.org/dom/indexeddb/manager;1"].
-                getService(Ci.nsIIndexedDatabaseManager)) {
+    let (qm = Cc["@mozilla.org/dom/quota/manager;1"].
+              getService(Ci.nsIQuotaManager)) {
       
       let caUtils = {};
       let scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
@@ -220,8 +220,8 @@ this.ForgetAboutSite = {
                                  caUtils);
       let httpURI = caUtils.makeURI("http://" + aDomain);
       let httpsURI = caUtils.makeURI("https://" + aDomain);
-      idbm.clearDatabasesForURI(httpURI);
-      idbm.clearDatabasesForURI(httpsURI);
+      qm.clearStoragesForURI(httpURI);
+      qm.clearStoragesForURI(httpsURI);
     }
 
     
