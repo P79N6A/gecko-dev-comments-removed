@@ -631,6 +631,7 @@ pref("ui.scrolling.min_scrollable_distance", -1);
 
 
 pref("accessibility.accessfu.activate", 2);
+pref("accessibility.accessfu.quicknav_modes", "Link,Heading,FormElement,ListItem");
 
 
 pref("network.manage-offline-status", true);
