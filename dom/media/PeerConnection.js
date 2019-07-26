@@ -896,7 +896,7 @@ PeerConnectionObserver.prototype = {
     this._dompc._pendingType = null;
     this.callCB(this._dompc._onSetLocalDescriptionSuccess);
 
-    if (this._iceGatheringState == "complete") {
+    if (this._dompc._iceGatheringState == "complete") {
         
         
         this.foundIceCandidate(null);
@@ -948,49 +948,106 @@ PeerConnectionObserver.prototype = {
     ));
   },
 
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
   handleIceStateChanges: function(iceState) {
     var histogram = Services.telemetry.getHistogramById("WEBRTC_ICE_SUCCESS_RATE");
-    switch (iceState) {
-      case Ci.IPeerConnection.kIceWaiting:
-        this._dompc.changeIceConnectionState("new");
-        this.callCB(this._dompc.ongatheringchange, "complete");
-        this.callCB(this._onicechange, "starting");
 
-        if (!this._dompc._trickleIce) {
-          
-          
-          this._dompc._executeNext();
-        }
-        else if (this.localDescription) {
-          
-          
-          
-          this.foundIceCandidate(null);
-        }
-        break;
-      case Ci.IPeerConnection.kIceChecking:
-        this._dompc.changeIceConnectionState("checking");
-        this.callCB(this._onicechange, "checking");
-        break;
-      case Ci.IPeerConnection.kIceGathering:
-        this._dompc.changeIceGatheringState("gathering");
-        this.callCB(this._ongatheringchange, "gathering");
-        break;
-      case Ci.IPeerConnection.kIceConnected:
+    const STATE_MAP = [
+      
+        { gathering: "gathering" },
+      
+        { connection: "new",  gathering: "complete", legacy: "starting" },
+      
+        { connection: "checking", legacy: "checking" },
+      
+        { connection: "connected", legacy: "connected", success: true },
+      
+        { connection: "failed", legacy: "failed", success: false }
+    ];
+
+    if (iceState < 0 || iceState > STATE_MAP.length) {
+      this._dompc.reportWarning("Unhandled ice state: " + iceState, null, 0);
+      return;
+    }
+
+    let transitions = STATE_MAP[iceState];
+
+    if ("connection" in transitions) {
+        this._dompc.changeIceConnectionState(transitions.connection);
+    }
+    if ("gathering" in transitions) {
+      this._dompc.changeIceGatheringState(transitions.gathering);
+      
+      this.callCB(this._dompc.ongatheringchange, transitions.gathering);
+    }
+    
+    if ("legacy" in transitions) {
+      this.callCB(this._onicechange, transitions.legacy);
+    }
+    if ("success" in transitions) {
+      histogram.add(transitions.success);
+    }
+
+    if (iceState == Ci.IPeerConnection.kIceWaiting) {
+      if (!this._dompc._trickleIce) {
         
-        histogram.add(true);
-        this._dompc.changeIceConnectionState("connected");
-        this.callCB(this._onicechange, "connected");
-        break;
-      case Ci.IPeerConnection.kIceFailed:
-        histogram.add(false);
-        this._dompc.changeIceConnectionState("failed");
-        this.callCB(this._onicechange, "failed");
-        break;
-      default:
         
-        this._dompc.reportWarning("Unhandled ice state: " + iceState, null, 0);
-        break;
+        this._dompc._executeNext();
+      }
+      else if (this.localDescription) {
+        
+        
+        
+        this.foundIceCandidate(null);
+      }
     }
   },
 
@@ -1006,6 +1063,10 @@ PeerConnectionObserver.prototype = {
         break;
 
       case Ci.IPeerConnectionObserver.kSdpState:
+        
+        break;
+
+      case Ci.IPeerConnectionObserver.kReadyState:
         
         break;
 
@@ -1029,13 +1090,9 @@ PeerConnectionObserver.prototype = {
                                                              { stream: stream }));
   },
 
-  foundIceCandidate: function(cand, mid, line) {
+  foundIceCandidate: function(cand) {
     this.dispatchEvent(new this._dompc._win.RTCPeerConnectionIceEvent("icecandidate",
-                                                                      {
-                                                                          candidate: cand,
-                                                                          sdpMid: mid,
-                                                                          sdpMLineIndex: line
-                                                                      }));
+                                                                      { candidate: cand } ));
   },
 
   notifyDataChannel: function(channel) {
