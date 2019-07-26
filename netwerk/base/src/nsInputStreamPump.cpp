@@ -353,7 +353,7 @@ nsInputStreamPump::OnInputStreamReady(nsIAsyncInputStream *stream)
 {
     LOG(("nsInputStreamPump::OnInputStreamReady [this=%x]\n", this));
 
-    SAMPLE_LABEL("Input", "nsInputStreamPump::OnInputStreamReady");
+    PROFILER_LABEL("Input", "nsInputStreamPump::OnInputStreamReady");
     
     
 
@@ -400,7 +400,7 @@ nsInputStreamPump::OnInputStreamReady(nsIAsyncInputStream *stream)
 uint32_t
 nsInputStreamPump::OnStateStart()
 {
-    SAMPLE_LABEL("nsInputStreamPump", "OnStateStart");
+    PROFILER_LABEL("nsInputStreamPump", "OnStateStart");
     LOG(("  OnStateStart [this=%x]\n", this));
 
     nsresult rv;
@@ -428,7 +428,7 @@ nsInputStreamPump::OnStateStart()
 uint32_t
 nsInputStreamPump::OnStateTransfer()
 {
-    SAMPLE_LABEL("Input", "nsInputStreamPump::OnStateTransfer");
+    PROFILER_LABEL("Input", "nsInputStreamPump::OnStateTransfer");
     LOG(("  OnStateTransfer [this=%x]\n", this));
 
     
@@ -536,7 +536,7 @@ nsInputStreamPump::OnStateTransfer()
 uint32_t
 nsInputStreamPump::OnStateStop()
 {
-    SAMPLE_LABEL("Input", "nsInputStreamPump::OnStateTransfer");
+    PROFILER_LABEL("Input", "nsInputStreamPump::OnStateTransfer");
     LOG(("  OnStateStop [this=%x status=%x]\n", this, mStatus));
 
     

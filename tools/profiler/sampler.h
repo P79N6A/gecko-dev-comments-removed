@@ -116,7 +116,7 @@ static inline void profile_set_frame_number(int frameNumber) {}
 static inline char* profiler_get_profile() { return nullptr; }
 
 
-static inline JSObject* profiler_get_profile_object() { return nullptr; }
+static inline JSObject* profiler_get_profile_jsobject(JSContext* aCx) { return nullptr; }
 
 
 
