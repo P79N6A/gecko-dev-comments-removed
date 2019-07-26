@@ -94,6 +94,14 @@ this.MMS_PDU_STATUS_INDETERMINATE = 133;
 this.MMS_PDU_STATUS_FORWARDED     = 134;
 this.MMS_PDU_STATUS_UNREACHABLE   = 135;
 
+
+
+this.MMS_MAX_LENGTH_SUBJECT                = 40;
+this.MMS_MAX_LENGTH_RECIPIENT              = 312;
+this.MMS_MAX_TOTAL_RECIPIENTS              = 20;
+this.MMS_MAX_LENGTH_NAME_CONTENT_TYPE      = 40;
+this.MMS_MAX_LENGTH_MAILBOX_PORTION        = 256;
+
 this.ALL_CONST_SYMBOLS = undefined; 
 this.ALL_CONST_SYMBOLS = Object.keys(this);
 

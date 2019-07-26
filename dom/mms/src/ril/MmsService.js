@@ -431,6 +431,83 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function () {
           releaseMmsConnectionAndCallback(0, null);
         }
       }).bind(this, method, url, istream, callback));
+    },
+
+    
+
+
+
+
+
+
+
+    countRecipients: function countRecipients(recipients) {
+      if (recipients && recipients.address) {
+        return 1;
+      }
+      let totalRecipients = 0;
+      if (!Array.isArray(recipients)) {
+        return 0;
+      }
+      totalRecipients += recipients.length;
+      for (let ix = 0; ix < recipients.length; ++ix) {
+        if (recipients[ix].address.length > MMS.MMS_MAX_LENGTH_RECIPIENT) {
+          throw new Error("MMS_MAX_LENGTH_RECIPIENT error");
+        }
+        if (recipients[ix].type === "email") {
+          let found = recipients[ix].address.indexOf("<");
+          let lenMailbox = recipients[ix].address.length - found;
+          if(lenMailbox > MMS.MMS_MAX_LENGTH_MAILBOX_PORTION) {
+            throw new Error("MMS_MAX_LENGTH_MAILBOX_PORTION error");
+          }
+        }
+      }
+      return totalRecipients;
+    },
+
+    
+
+
+
+
+
+
+
+
+    checkMaxValuesParameters: function checkMaxValuesParameters(msg) {
+      let subject = msg.headers["subject"];
+      if (subject && subject.length > MMS.MMS_MAX_LENGTH_SUBJECT) {
+        return false;
+      }
+
+      let totalRecipients = 0;
+      try {
+        totalRecipients += this.countRecipients(msg.headers["to"]);
+        totalRecipients += this.countRecipients(msg.headers["cc"]);
+        totalRecipients += this.countRecipients(msg.headers["bcc"]);
+      } catch (ex) {
+        debug("Exception caught : " + ex);
+        return false;
+      }
+
+      if (totalRecipients < 1 ||
+          totalRecipients > MMS.MMS_MAX_TOTAL_RECIPIENTS) {
+        return false;
+      }
+
+      if (!Array.isArray(msg.parts)) {
+        return true;
+      }
+      for (let i = 0; i < msg.parts.length; i++) {
+        if (msg.parts[i].headers["content-type"] &&
+          msg.parts[i].headers["content-type"].params) {
+          let name = msg.parts[i].headers["content-type"].params["name"];
+          if (name && name.length > MMS.MMS_MAX_LENGTH_NAME_CONTENT_TYPE) {
+            return false;
+          }
+        }
+      }
+      return true;
     }
   };
 });
@@ -557,6 +634,7 @@ RetrieveTransaction.prototype = {
 
 
 
+
 function SendTransaction(msg) {
   msg.headers["x-mms-message-type"] = MMS.MMS_PDU_TYPE_SEND_REQ;
   if (!msg.headers["x-mms-transaction-id"]) {
@@ -576,9 +654,11 @@ function SendTransaction(msg) {
   msg.headers["x-mms-read-report"] = true;
   msg.headers["x-mms-delivery-report"] = true;
 
-  
-  
-
+  if (!gMmsTransactionHelper.checkMaxValuesParameters(msg)) {
+    
+    debug("Check max values parameters fail.");
+    throw new Error("Check max values parameters fail.");
+  }
   let messageSize = 0;
 
   if (msg.content) {
