@@ -207,9 +207,7 @@ PrepareLayerRects(nsIntRect aVisible, const gfxMatrix& aTransform,
     gfxMatrix inverse(aTransform);
     inverse.Invert();
     gfxRect crop = inverse.TransformBounds(visibleRectScreen);
-    
-    crop -= visibleRect.TopLeft();
-    gfxRect bufferRect(aBufferRect);
+
     
     crop.IntersectRect(crop, aBufferRect);
     crop.RoundOut();
@@ -219,10 +217,12 @@ PrepareLayerRects(nsIntRect aVisible, const gfxMatrix& aTransform,
         return false;
     }
 
+    
+    visibleRectScreen = aTransform.TransformBounds(crop);
+    visibleRectScreen.RoundOut();
 
     
-    visibleRectScreen = aTransform.TransformBounds(crop + visibleRect.TopLeft());
-    visibleRectScreen.RoundOut();
+    crop -= aBufferRect.TopLeft();
 
     aSourceCrop->left = crop.x;
     aSourceCrop->top  = crop.y;
@@ -326,11 +326,15 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
 
     nsIntRect bufferRect;
     if (fillColor) {
-        bufferRect = nsIntRect(0, 0, visibleRect.width,
-            visibleRect.height);
+        bufferRect = nsIntRect(visibleRect);
     } else {
-        bufferRect = nsIntRect(0, 0, int(buffer->getWidth()),
-            int(buffer->getHeight()));
+        if(state.mHasOwnOffset) {
+            bufferRect = nsIntRect(state.mOffset.x, state.mOffset.y,
+                int(buffer->getWidth()), int(buffer->getHeight()));
+        } else {
+            bufferRect = nsIntRect(visibleRect.x, visibleRect.y,
+                int(buffer->getWidth()), int(buffer->getHeight()));
+        }
     }
 
     hwc_layer_t& hwcLayer = mList->hwLayers[current];
