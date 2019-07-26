@@ -112,9 +112,12 @@ public class FxAccountUtils {
     byte[] S = FxAccountUtils.KWE("quickStretch", emailUTF8);
     try {
       return NativeCrypto.pbkdf2SHA256(passwordUTF8, S, NUMBER_OF_QUICK_STRETCH_ROUNDS, 32);
-    } catch (Throwable t) {
+    } catch (final LinkageError e) {
       
-      Logger.warn(LOG_TAG, "Got throwable stretching password using native pbkdf2SHA256 implementation; ignoring and using Java implementation.", t);
+      
+      
+      Logger.warn(LOG_TAG, "Got throwable stretching password using native pbkdf2SHA256 " +
+          "implementation; ignoring and using Java implementation.", e);
       return PBKDF2.pbkdf2SHA256(passwordUTF8, S, NUMBER_OF_QUICK_STRETCH_ROUNDS, 32);
     }
   }
