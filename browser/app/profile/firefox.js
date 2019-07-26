@@ -1361,6 +1361,9 @@ pref("network.disable.ipc.security", true);
 pref("browser.uiCustomization.debug", false);
 
 
+pref("browser.uiCustomization.state", "");
+
+
 
 pref("identity.fxaccounts.remote.uri", "https://accounts.firefox.com/?service=sync&context=fx_desktop_v1");
 
