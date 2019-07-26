@@ -41,8 +41,6 @@ WorkerGlobalScope::WorkerGlobalScope(WorkerPrivate* aWorkerPrivate)
 
 WorkerGlobalScope::~WorkerGlobalScope()
 {
-  
-  mozilla::DropJSObjects(this);
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(WorkerGlobalScope)
