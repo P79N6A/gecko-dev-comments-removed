@@ -154,20 +154,21 @@ VariablesView.prototype = {
     if (!this._store.length) {
       return;
     }
+
+    this._store.length = 0;
+    this._itemsByElement.clear();
+    this._prevHierarchy = this._currHierarchy;
+    this._currHierarchy = new Map(); 
+
     
     if (this.lazyEmpty && aTimeout > 0) {
       this._emptySoon(aTimeout);
       return;
     }
 
-    let list = this._list;
-
-    while (list.hasChildNodes()) {
-      list.firstChild.remove();
+    while (this._list.hasChildNodes()) {
+      this._list.firstChild.remove();
     }
-
-    this._store.length = 0;
-    this._itemsByElement.clear();
 
     this._appendEmptyNotice();
     this._toggleSearchVisibility(false);
@@ -191,9 +192,6 @@ VariablesView.prototype = {
   _emptySoon: function(aTimeout) {
     let prevList = this._list;
     let currList = this._list = this.document.createElement("scrollbox");
-
-    this._store.length = 0;
-    this._itemsByElement.clear();
 
     this.window.setTimeout(() => {
       prevList.removeEventListener("keypress", this._onViewKeyPress, false);
@@ -2900,10 +2898,6 @@ VariablesView.prototype.clearHierarchy = function() {
 
 
 
-VariablesView.prototype.createHierarchy = function() {
-  this._prevHierarchy = this._currHierarchy;
-  this._currHierarchy = new Map(); 
-};
 
 
 
