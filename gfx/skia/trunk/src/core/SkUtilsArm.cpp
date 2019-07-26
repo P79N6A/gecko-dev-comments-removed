@@ -20,12 +20,10 @@
 
 
 
-#if !defined(USE_ANDROID_NDK_CPU_FEATURES)
-#  if defined(SK_BUILD_FOR_ANDROID)
-#    define USE_ANDROID_NDK_CPU_FEATURES 1
-#  else
-#    define USE_ANDROID_NDK_CPU_FEATURES 0
-#  endif
+#if defined(SK_BUILD_FOR_ANDROID)
+#  define USE_ANDROID_NDK_CPU_FEATURES 1
+#else
+#  define USE_ANDROID_NDK_CPU_FEATURES 0
 #endif
 
 #if USE_ANDROID_NDK_CPU_FEATURES
