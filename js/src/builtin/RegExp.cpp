@@ -18,13 +18,6 @@ using namespace js::types;
 
 using mozilla::ArrayLength;
 
-static inline bool
-DefinePropertyHelper(JSContext *cx, HandleObject obj, Handle<PropertyName*> name, HandleValue v)
-{
-    return !!baseops::DefineProperty(cx, obj, name, v,
-                                     JS_PropertyStub, JS_StrictPropertyStub, JSPROP_ENUMERATE);
-}
-
 bool
 js::CreateRegExpMatchResult(JSContext *cx, HandleString input_, const jschar *chars, size_t length,
                             MatchPairs &matches, MutableHandleValue rval)
@@ -70,21 +63,35 @@ js::CreateRegExpMatchResult(JSContext *cx, HandleString input_, const jschar *ch
     }
 
     
-    RootedObject array(cx, NewDenseCopiedArray(cx, elements.length(), elements.begin()));
-    if (!array)
+    JSObject *templateObject = cx->compartment()->regExps.getOrCreateMatchResultTemplateObject(cx);
+    if (!templateObject)
         return false;
+
+    
+    RootedObject arr(cx, NewDenseCopiedArrayWithTemplate(cx, elements.length(), elements.begin(),
+                                                         templateObject));
 
     
     RootedValue index(cx, Int32Value(matches[0].start));
-    if (!DefinePropertyHelper(cx, array, cx->names().index, index))
-        return false;
+    arr->nativeSetSlot(0, index);
 
     
     RootedValue inputVal(cx, StringValue(input));
-    if (!DefinePropertyHelper(cx, array, cx->names().input, inputVal))
-        return false;
+    arr->nativeSetSlot(1, inputVal);
 
-    rval.setObject(*array);
+#ifdef DEBUG
+    RootedValue test(cx);
+    RootedId id(cx, NameToId(cx->names().index));
+    if (!baseops::GetProperty(cx, arr, id, &test))
+        return false;
+    JS_ASSERT(test == index);
+    id = NameToId(cx->names().input);
+    if (!baseops::GetProperty(cx, arr, id, &test))
+        return false;
+    JS_ASSERT(test == inputVal);
+#endif
+
+    rval.setObject(*arr);
     return true;
 }
 

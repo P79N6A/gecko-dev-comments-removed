@@ -74,6 +74,13 @@ NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, JSObjec
 
 
 
+extern ArrayObject *
+NewDenseCopiedArrayWithTemplate(JSContext *cx, uint32_t length, const Value *values,
+                                JSObject *templateObject);
+
+
+
+
 
 extern bool
 WouldDefinePastNonwritableLength(ThreadSafeContext *cx,

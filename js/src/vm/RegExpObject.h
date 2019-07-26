@@ -318,6 +318,13 @@ class RegExpCompartment
     typedef HashSet<RegExpShared *, DefaultHasher<RegExpShared*>, RuntimeAllocPolicy> PendingSet;
     PendingSet inUse_;
 
+    
+
+
+
+
+    HeapPtrObject matchResultTemplateObject_;
+
   public:
     RegExpCompartment(JSRuntime *rt);
     ~RegExpCompartment();
@@ -330,6 +337,9 @@ class RegExpCompartment
 
     
     bool get(JSContext *cx, HandleAtom source, JSString *maybeOpt, RegExpGuard *g);
+
+    
+    HeapPtrObject &getOrCreateMatchResultTemplateObject(JSContext *cx);
 
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf);
 };
