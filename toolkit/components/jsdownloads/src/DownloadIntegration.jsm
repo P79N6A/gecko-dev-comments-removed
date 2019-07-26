@@ -29,8 +29,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadStore",
                                   "resource://gre/modules/DownloadStore.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadImport",
                                   "resource://gre/modules/DownloadImport.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadUIHelper",
-                                  "resource://gre/modules/DownloadUIHelper.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
@@ -62,7 +60,6 @@ XPCOMUtils.defineLazyGetter(this, "gParentalControlsService", function() {
   }
   return null;
 });
-
 
 XPCOMUtils.defineLazyGetter(this, "gStringBundle", function() {
   return Services.strings.
@@ -420,24 +417,6 @@ this.DownloadIntegration = {
       
       
       
-      
-      
-      
-      if (file.isExecutable() && !this.dontOpenFileAndFolder) {
-        
-        
-        
-        
-        let shouldLaunch = yield DownloadUIHelper.getPrompter()
-                                   .confirmLaunchExecutable(file.path);
-        if (!shouldLaunch) {
-          return;
-        }
-      }
-
-      
-      
-      
       let fileExtension = null, mimeInfo = null;
       let match = file.leafName.match(/\.([^.]+)$/);
       if (match) {
@@ -581,11 +560,7 @@ this.DownloadIntegration = {
 
   _createDownloadsDirectory: function DI_createDownloadsDirectory(aName) {
     let directory = this._getDirectory(aName);
-
-    
-    
-    
-    directory.append(DownloadUIHelper.strings.downloadsFolder);
+    directory.append(gStringBundle.GetStringFromName("downloadsFolder"));
 
     
     return OS.File.makeDir(directory.path, { ignoreExisting: true }).

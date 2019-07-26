@@ -53,8 +53,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
                                   "resource://gre/modules/Downloads.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadUIHelper",
-                                  "resource://gre/modules/DownloadUIHelper.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
                                   "resource://gre/modules/DownloadUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
@@ -70,8 +68,26 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadsLogger",
 
 const nsIDM = Ci.nsIDownloadManager;
 
+const kDownloadsStringBundleUrl =
+  "chrome://browser/locale/downloads/downloads.properties";
+
 const kPrefBdmScanWhenDone =   "browser.download.manager.scanWhenDone";
 const kPrefBdmAlertOnExeOpen = "browser.download.manager.alertOnEXEOpen";
+
+const kDownloadsStringsRequiringFormatting = {
+  sizeWithUnits: true,
+  shortTimeLeftSeconds: true,
+  shortTimeLeftMinutes: true,
+  shortTimeLeftHours: true,
+  shortTimeLeftDays: true,
+  statusSeparator: true,
+  statusSeparatorBeforeNumber: true,
+  fileExecutableSecurityWarning: true
+};
+
+const kDownloadsStringsRequiringPluralForm = {
+  otherDownloads2: true
+};
 
 XPCOMUtils.defineLazyGetter(this, "DownloadsLocalFileCtor", function () {
   return Components.Constructor("@mozilla.org/file/local;1",
@@ -146,6 +162,41 @@ this.DownloadsCommon = {
       DownloadsLogger.reportError.apply(DownloadsLogger, aMessageArgs);
     }
     this.error.apply(this, aMessageArgs);
+  },
+  
+
+
+
+
+  get strings()
+  {
+    let strings = {};
+    let sb = Services.strings.createBundle(kDownloadsStringBundleUrl);
+    let enumerator = sb.getSimpleEnumeration();
+    while (enumerator.hasMoreElements()) {
+      let string = enumerator.getNext().QueryInterface(Ci.nsIPropertyElement);
+      let stringName = string.key;
+      if (stringName in kDownloadsStringsRequiringFormatting) {
+        strings[stringName] = function () {
+          
+          return sb.formatStringFromName(stringName,
+                                         Array.slice(arguments, 0),
+                                         arguments.length);
+        };
+      } else if (stringName in kDownloadsStringsRequiringPluralForm) {
+        strings[stringName] = function (aCount) {
+          
+          let formattedString = sb.formatStringFromName(stringName,
+                                         Array.slice(arguments, 0),
+                                         arguments.length);
+          return PluralForm.get(aCount, formattedString);
+        };
+      } else {
+        strings[stringName] = string.value;
+      }
+    }
+    delete this.strings;
+    return this.strings = strings;
   },
 
   
@@ -429,44 +480,65 @@ this.DownloadsCommon = {
     if (!(aOwnerWindow instanceof Ci.nsIDOMWindow))
       throw new Error("aOwnerWindow must be a dom-window object");
 
-    let promiseShouldLaunch;
+    
     if (aFile.isExecutable()) {
-      
-      
-      promiseShouldLaunch =
-        DownloadUIHelper.getPrompter(aOwnerWindow)
-                        .confirmLaunchExecutable(aFile.path);
-    } else {
-      promiseShouldLaunch = Promise.resolve(true);
-    }
-
-    promiseShouldLaunch.then(shouldLaunch => {
-      if (!shouldLaunch) {
-        return;
-      }
-  
-      
+      let showAlert = true;
       try {
-        if (aMimeInfo && aMimeInfo.preferredAction == aMimeInfo.useHelperApp) {
-          aMimeInfo.launchWithFile(aFile);
+        showAlert = Services.prefs.getBoolPref(kPrefBdmAlertOnExeOpen);
+      } catch (ex) { }
+
+      
+      
+      if (DownloadsCommon.isWinVistaOrHigher) {
+        try {
+          if (Services.prefs.getBoolPref(kPrefBdmScanWhenDone)) {
+            showAlert = false;
+          }
+        } catch (ex) { }
+      }
+
+      if (showAlert) {
+        let name = aFile.leafName;
+        let message =
+          DownloadsCommon.strings.fileExecutableSecurityWarning(name, name);
+        let title =
+          DownloadsCommon.strings.fileExecutableSecurityWarningTitle;
+        let dontAsk =
+          DownloadsCommon.strings.fileExecutableSecurityWarningDontAsk;
+
+        let checkbox = { value: false };
+        let open = Services.prompt.confirmCheck(aOwnerWindow, title, message,
+                                                dontAsk, checkbox);
+        if (!open) {
           return;
         }
+
+        Services.prefs.setBoolPref(kPrefBdmAlertOnExeOpen,
+                                   !checkbox.value);
       }
-      catch(ex) { }
-  
+    }
+
+    
+    try {
+      if (aMimeInfo && aMimeInfo.preferredAction == aMimeInfo.useHelperApp) {
+        aMimeInfo.launchWithFile(aFile);
+        return;
+      }
+    }
+    catch(ex) { }
+
+    
+    
+    try {
+      aFile.launch();
+    }
+    catch(ex) {
       
       
-      try {
-        aFile.launch();
-      }
-      catch(ex) {
-        
-        
-        Cc["@mozilla.org/uriloader/external-protocol-service;1"]
-          .getService(Ci.nsIExternalProtocolService)
-          .loadUrl(NetUtil.newURI(aFile));
-      }
-    }).then(null, Cu.reportError);
+      Cc["@mozilla.org/uriloader/external-protocol-service;1"]
+        .getService(Ci.nsIExternalProtocolService)
+        .loadUrl(NetUtil.newURI(aFile));
+    }
   },
 
   
@@ -501,15 +573,6 @@ this.DownloadsCommon = {
     }
   }
 };
-
-
-
-
-
-
-XPCOMUtils.defineLazyGetter(DownloadsCommon, "strings", function () {
-  return DownloadUIHelper.strings;
-});
 
 
 
