@@ -2558,6 +2558,15 @@ GetPercentHeight(const nsStyleCoord& aStyle,
     return false;
   }
 
+  
+  
+  
+  
+  
+  if (f->StyleContext()->GetPseudo() == nsCSSAnonBoxes::scrolledContent) {
+    f = f->GetParent();
+  }
+
   const nsStylePosition *pos = f->StylePosition();
   nscoord h;
   if (!GetAbsoluteCoord(pos->mHeight, h) &&
