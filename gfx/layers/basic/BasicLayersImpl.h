@@ -20,9 +20,14 @@
 #include "nsRegion.h"                   
 
 namespace mozilla {
+namespace gfx {
+class DrawTarget;
+}
+
 namespace layers {
 
 class AutoMaskData;
+class AutoMoz2DMaskData;
 class BasicContainerLayer;
 class Layer;
 
@@ -81,15 +86,28 @@ protected:
 
 bool
 GetMaskData(Layer* aMaskLayer, AutoMaskData* aMaskData);
+bool
+GetMaskData(Layer* aMaskLayer, AutoMoz2DMaskData* aMaskData);
 
 
 void
 PaintWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer);
 
 
-
+void FillWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer);
 void
-FillWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer);
+FillRectWithMask(gfx::DrawTarget* aDT,
+                 const gfx::Rect& aRect,
+                 gfx::SourceSurface* aSurface,
+                 gfx::Filter aFilter,
+                 const gfx::DrawOptions& aOptions,
+                 Layer* aMaskLayer);
+void
+FillRectWithMask(gfx::DrawTarget* aDT,
+                 const gfx::Rect& aRect,
+                 const gfx::Color& aColor,
+                 const gfx::DrawOptions& aOptions,
+                 Layer* aMaskLayer);
 
 BasicImplData*
 ToData(Layer* aLayer);
