@@ -6229,8 +6229,14 @@ IonBuilder::jsop_getelem_dense()
 
     
     
+    
+    
+    
+    
     types::StackTypeSet *objTypes = obj->resultTypeSet();
+    ExecutionMode executionMode = info().executionMode();
     bool loadDouble =
+        executionMode == SequentialExecution &&
         !barrier &&
         loopDepth_ &&
         !readOutOfBounds &&
