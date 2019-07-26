@@ -1509,6 +1509,20 @@ let CustomizableUIInternal = {
     }
 
     
+    if (widget.defaultArea) {
+      let area = gAreas.get(widget.defaultArea);
+      if (area) {
+        let defaultPlacements = area.get("defaultPlacements");
+        
+        
+        let widgetIndex = defaultPlacements.indexOf(aWidgetId);
+        if (widgetIndex != -1) {
+          defaultPlacements.splice(widgetIndex, 1);
+        }
+      }
+    }
+
+    
     
     
 
