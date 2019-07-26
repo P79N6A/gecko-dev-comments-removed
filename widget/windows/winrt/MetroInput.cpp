@@ -254,7 +254,7 @@ MetroInput::InputPrecisionLevel MetroInput::sCurrentInputLevel =
 MetroInput::MetroInput(MetroWidget* aWidget,
                        UI::Core::ICoreWindow* aWindow)
               : mWidget(aWidget),
-                mChromeHitTestCacheForTouch(false),
+                mNonApzTargetForTouch(false),
                 mWindow(aWindow)
 {
   LogFunction();
@@ -1353,13 +1353,16 @@ MetroInput::DeliverNextQueuedTouchEvent()
   if (mCancelable && event->message == NS_TOUCH_START) {
     nsRefPtr<Touch> touch = event->touches[0];
     LayoutDeviceIntPoint pt = LayoutDeviceIntPoint::FromUntyped(touch->mRefPoint);
+    
+    
+    
     bool apzIntersect = mWidget->ApzHitTest(mozilla::ScreenIntPoint(pt.x, pt.y));
-    mChromeHitTestCacheForTouch = (apzIntersect && HitTestChrome(pt));
+    mNonApzTargetForTouch = (!apzIntersect || HitTestChrome(pt));
   }
 
   
   
-  if (mChromeHitTestCacheForTouch) {
+  if (mNonApzTargetForTouch) {
     DUMP_TOUCH_IDS("DOM(1)", event);
     mWidget->DispatchEvent(event, status);
     if (mCancelable) {

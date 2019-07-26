@@ -170,7 +170,7 @@ private:
   void UnregisterInputEvents();
 
   
-  bool mChromeHitTestCacheForTouch;
+  bool mNonApzTargetForTouch;
   bool HitTestChrome(const LayoutDeviceIntPoint& pt);
 
   
