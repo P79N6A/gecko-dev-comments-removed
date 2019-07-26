@@ -147,7 +147,6 @@ class B2GRunner(RemoteRunner):
         self.test_script_args = test_script_args
         self.remote_profiles_ini = '/data/b2g/mozilla/profiles.ini'
         self.bundles_dir = '/system/b2g/distribution/bundles'
-        self.user_js = '/data/local/user.js'
 
     @property
     def command(self):
@@ -173,6 +172,11 @@ class B2GRunner(RemoteRunner):
                                 " prior to running before running the automation framework")
 
         self.dm.shellCheckOutput(['stop', 'b2g'])
+
+        
+        
+        self.dm.moveTree(posixpath.join(self.remote_profile, 'user.js'),
+                         posixpath.join(self.remote_profile, 'prefs.js'))
 
         self.kp_kwargs.update({'stream': sys.stdout,
                                'processOutputLine': self.on_output,
@@ -220,6 +224,12 @@ class B2GRunner(RemoteRunner):
 
 
     def start_tests(self):
+        
+        
+        
+        
+        
+
         
         if os.path.isfile(self.test_script):
             script = open(self.test_script, 'r')
@@ -328,11 +338,6 @@ class B2GRunner(RemoteRunner):
 
         self.backup_file(self.remote_profiles_ini)
         self.dm.pushFile(new_profiles_ini.name, self.remote_profiles_ini)
-
-        
-        
-        self.backup_file(self.user_js)
-        self.dm.pushFile(os.path.join(self.profile.profile, "user.js"), self.user_js)
 
     def cleanup(self):
         RemoteRunner.cleanup(self)

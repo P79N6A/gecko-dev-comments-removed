@@ -5,6 +5,7 @@
 import mozcrash
 import threading
 import os
+import posixpath
 import Queue
 import re
 import shutil
@@ -227,6 +228,11 @@ class B2GRemoteAutomation(Automation):
         
         self._devicemanager._runCmd(['shell', 'stop', 'b2g'])
         time.sleep(5)
+
+        
+        
+        self._devicemanager.moveTree(posixpath.join(self._remoteProfile, 'user.js'),
+                                     posixpath.join(self._remoteProfile, 'prefs.js'))
 
         
         instance = self.B2GInstance(self._devicemanager, env=env)
