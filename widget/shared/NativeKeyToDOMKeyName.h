@@ -324,8 +324,66 @@ KEY_MAP_GTK     (Undo, GDK_Undo)
 
 
 
+
+
+KEY_MAP_WIN     (Accept, VK_ACCEPT)
+KEY_MAP_ANDROID (Accept, AKEYCODE_DPAD_CENTER)
+
+
 KEY_MAP_WIN_OTH (Attn, VK_ATTN) 
 KEY_MAP_GTK     (Attn, GDK_3270_Attn) 
+
+
+KEY_MAP_WIN     (Cancel, VK_CANCEL)
+KEY_MAP_GTK     (Cancel, GDK_Cancel)
+KEY_MAP_QT      (Cancel, Qt::Key_Cancel)
+
+
+KEY_MAP_WIN     (Menu, VK_APPS)
+KEY_MAP_COCOA   (Menu, kVK_PC_ContextMenu)
+KEY_MAP_GTK     (Menu, GDK_Menu)
+KEY_MAP_QT      (Menu, Qt::Key_Menu)
+KEY_MAP_ANDROID (Menu, AKEYCODE_MENU)
+
+
+KEY_MAP_WIN     (Esc, VK_ESCAPE)
+KEY_MAP_COCOA   (Esc, kVK_Escape)
+KEY_MAP_GTK     (Esc, GDK_Escape)
+KEY_MAP_QT      (Esc, Qt::Key_Escape)
+KEY_MAP_ANDROID (Esc, AKEYCODE_ESCAPE)
+
+
+KEY_MAP_WIN     (Execute, VK_EXECUTE)
+KEY_MAP_GTK     (Execute, GDK_Execute)
+KEY_MAP_QT      (Execute, Qt::Key_Execute)
+
+
+KEY_MAP_GTK     (Find, GDK_Find)
+
+
+KEY_MAP_WIN     (Help, VK_HELP)
+KEY_MAP_COCOA   (Help, kVK_Help)
+KEY_MAP_GTK     (Help, GDK_Help)
+KEY_MAP_QT      (Help, Qt::Key_Help)
+KEY_MAP_ANDROID (Help, AKEYCODE_ASSIST)
+
+
+KEY_MAP_WIN     (Pause, VK_PAUSE)
+KEY_MAP_GTK     (Pause, GDK_Pause)
+
+KEY_MAP_GTK     (Pause, GDK_Break)
+KEY_MAP_QT      (Pause, Qt::Key_Pause)
+KEY_MAP_ANDROID (Pause, AKEYCODE_BREAK)
+
+
+KEY_MAP_WIN     (Play, VK_PLAY)
+KEY_MAP_GTK     (Play, GDK_3270_Play) 
+KEY_MAP_QT      (Play, Qt::Key_Play)
+
+
+KEY_MAP_WIN     (Select, VK_SELECT)
+KEY_MAP_GTK     (Select, GDK_Select)
+
 
 
 KEY_MAP_ANDROID (Apps, AKEYCODE_APP_SWITCH)
@@ -619,62 +677,7 @@ KEY_MAP_ANDROID (LaunchMail, AKEYCODE_ENVELOPE)
 
 
 
-
-
-KEY_MAP_WIN     (Accept, VK_ACCEPT)
-KEY_MAP_ANDROID (Accept, AKEYCODE_DPAD_CENTER)
-
-
-
-
-KEY_MAP_GTK     (Find, GDK_Find)
-
-
-KEY_MAP_WIN     (Help, VK_HELP)
-KEY_MAP_COCOA   (Help, kVK_Help)
-KEY_MAP_GTK     (Help, GDK_Help)
-KEY_MAP_QT      (Help, Qt::Key_Help)
-KEY_MAP_ANDROID (Help, AKEYCODE_ASSIST)
-
-
 KEY_MAP_ANDROID (Info, AKEYCODE_INFO)
-
-
-KEY_MAP_WIN     (Menu, VK_APPS)
-KEY_MAP_COCOA   (Menu, kVK_PC_ContextMenu)
-KEY_MAP_GTK     (Menu, GDK_Menu)
-KEY_MAP_QT      (Menu, Qt::Key_Menu)
-KEY_MAP_ANDROID (Menu, AKEYCODE_MENU)
-
-
-KEY_MAP_WIN     (Pause, VK_PAUSE)
-KEY_MAP_GTK     (Pause, GDK_Pause)
-
-KEY_MAP_GTK     (Pause, GDK_Break)
-KEY_MAP_QT      (Pause, Qt::Key_Pause)
-KEY_MAP_ANDROID (Pause, AKEYCODE_BREAK)
-
-
-KEY_MAP_WIN     (Play, VK_PLAY)
-KEY_MAP_GTK     (Play, GDK_3270_Play) 
-KEY_MAP_QT      (Play, Qt::Key_Play)
-
-
-KEY_MAP_WIN     (Execute, VK_EXECUTE)
-KEY_MAP_GTK     (Execute, GDK_Execute)
-KEY_MAP_QT      (Execute, Qt::Key_Execute)
-
-
-KEY_MAP_WIN     (Cancel, VK_CANCEL)
-KEY_MAP_GTK     (Cancel, GDK_Cancel)
-KEY_MAP_QT      (Cancel, Qt::Key_Cancel)
-
-
-KEY_MAP_WIN     (Esc, VK_ESCAPE)
-KEY_MAP_COCOA   (Esc, kVK_Escape)
-KEY_MAP_GTK     (Esc, GDK_Escape)
-KEY_MAP_QT      (Esc, Qt::Key_Escape)
-KEY_MAP_ANDROID (Esc, AKEYCODE_ESCAPE)
 
 
 KEY_MAP_ANDROID (Exit, AKEYCODE_HOME)
@@ -761,10 +764,6 @@ KEY_MAP_ANDROID (BrowserForward, AKEYCODE_FORWARD)
 
 
 
-
-
-KEY_MAP_WIN     (Select, VK_SELECT)
-KEY_MAP_GTK     (Select, GDK_Select)
 
 
 KEY_MAP_GTK     (DeadGrave, GDK_dead_grave)
