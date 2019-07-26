@@ -1111,6 +1111,8 @@ ContentParent::OnChannelConnected(int32_t pid)
         NS_WARNING("Can't open handle to child process.");
     }
     else {
+        
+        base::CloseProcessHandle(OtherProcess());
         SetOtherProcess(handle);
 
 #if defined(ANDROID) || defined(LINUX)
@@ -1430,7 +1432,7 @@ ContentParent::ContentParent(mozIApplication* aApp,
     }
     mSubprocess->LaunchAndWaitForProcessHandle(extraArgs);
 
-    Open(mSubprocess->GetChannel(), mSubprocess->GetChildProcessHandle());
+    Open(mSubprocess->GetChannel(), mSubprocess->GetOwnedChildProcessHandle());
 
     
     
@@ -2374,6 +2376,9 @@ ContentParent::KillHard()
         NewRunnableMethod(this, &ContentParent::ShutDownProcess,
                            true),
         3000);
+    
+    
+    SetOtherProcess(0);
 }
 
 bool

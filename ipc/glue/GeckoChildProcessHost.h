@@ -89,8 +89,22 @@ public:
     return GetProcessEvent();
   }
 
+  
+  
   ProcessHandle GetChildProcessHandle() {
     return mChildProcessHandle;
+  }
+
+  
+  
+  ProcessHandle GetOwnedChildProcessHandle() {
+    ProcessHandle handle;
+    
+    
+    bool ok = base::OpenPrivilegedProcessHandle(base::GetProcId(mChildProcessHandle),
+                                                &handle);
+    NS_ASSERTION(ok, "Failed to get owned process handle");
+    return ok ? handle : 0;
   }
 
   GeckoProcessType GetProcessType() {
