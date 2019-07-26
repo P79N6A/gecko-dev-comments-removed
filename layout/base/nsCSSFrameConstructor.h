@@ -31,6 +31,7 @@ struct nsGenConInitializer;
 class nsICSSAnonBoxPseudo;
 class nsPageContentFrame;
 struct PendingBinding;
+class nsGenericDOMDataNode;
 
 class nsFrameConstructorState;
 class nsFrameConstructorSaveState;
@@ -197,6 +198,13 @@ public:
 
   nsresult CharacterDataChanged(nsIContent* aContent,
                                 CharacterDataChangeInfo* aInfo);
+
+  
+  
+  
+  
+  
+  nsIFrame* EnsureFrameForTextNode(nsGenericDOMDataNode* aContent);
 
   
   nsresult GenerateChildFrames(nsIFrame* aFrame);

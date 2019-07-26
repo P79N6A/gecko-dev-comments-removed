@@ -5433,12 +5433,16 @@ nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
     
     
     
+    
+    
+    
     if (AtLineBoundary(aIter) &&
         !styleContext->StyleText()->WhiteSpaceOrNewlineIsSignificant() &&
         aIter.List()->ParentHasNoXBLChildren() &&
         !(aState.mAdditionalStateBits & NS_FRAME_GENERATED_CONTENT) &&
         (item.mFCData->mBits & FCDATA_IS_LINE_PARTICIPANT) &&
         !(item.mFCData->mBits & FCDATA_IS_SVG_TEXT) &&
+        !item.mContent->HasFlag(NS_CREATE_FRAME_FOR_IGNORABLE_WHITESPACE) &&
         item.IsWhitespace(aState))
       return;
 
@@ -7611,6 +7615,22 @@ InvalidateCanvasIfNeeded(nsIPresShell* presShell, nsIContent* node)
 
   nsIFrame* rootFrame = presShell->GetRootFrame();
   rootFrame->InvalidateFrameSubtree();
+}
+
+nsIFrame*
+nsCSSFrameConstructor::EnsureFrameForTextNode(nsGenericDOMDataNode* aContent)
+{
+  if (aContent->HasFlag(NS_CREATE_FRAME_IF_NON_WHITESPACE) &&
+      !aContent->HasFlag(NS_CREATE_FRAME_FOR_IGNORABLE_WHITESPACE)) {
+    
+    
+    aContent->SetFlags(NS_CREATE_FRAME_FOR_IGNORABLE_WHITESPACE);
+    nsAutoScriptBlocker blocker;
+    BeginUpdate();
+    RecreateFramesForContent(aContent, false);
+    EndUpdate();
+  }
+  return aContent->GetPrimaryFrame();
 }
 
 nsresult
