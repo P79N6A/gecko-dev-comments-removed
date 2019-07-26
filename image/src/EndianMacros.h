@@ -6,7 +6,7 @@
 #define MOZILLA_IMAGELIB_ENDIAN_H_
 
 
-#if defined WORDS_BIGENDIAN || defined IS_BIG_ENDIAN
+#if defined WORDS_BIGENDIAN || defined IS_BIG_ENDIAN || defined __BIG_ENDIAN__
 
 
 
