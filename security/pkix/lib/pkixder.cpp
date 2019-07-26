@@ -34,6 +34,8 @@ Fail(PRErrorCode errorCode)
   return Failure;
 }
 
+namespace internal {
+
 
 Result
 ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length)
@@ -85,5 +87,7 @@ ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length)
   
   return input.EnsureLength(length);
 }
+
+} 
 
 } } } 
