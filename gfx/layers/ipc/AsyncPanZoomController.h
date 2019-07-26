@@ -14,6 +14,7 @@
 #include "mozilla/TimeStamp.h"
 #include "InputData.h"
 #include "Axis.h"
+#include "nsContentUtils.h"
 
 #include "base/message_loop.h"
 
@@ -131,6 +132,13 @@ public:
   void ContentReceivedTouch(bool aPreventDefault);
 
   
+
+
+
+
+  void UpdateZoomConstraints(bool aAllowZoom, float aMinScale, float aMaxScale);
+
+  
   
   
 
@@ -188,6 +196,16 @@ public:
 
 
   int GetDPI();
+
+  
+
+
+
+
+
+  static const gfx::Rect CalculatePendingDisplayPort(
+    const FrameMetrics& aFrameMetrics,
+    const gfx::Point& aVelocity);
 
 protected:
   
@@ -346,18 +364,11 @@ protected:
 
 
 
-  const gfx::Rect CalculatePendingDisplayPort();
 
-  
-
-
-
-
-
-
-
-  bool EnlargeDisplayPortAlongAxis(float aCompositionBounds, float aVelocity,
-                                   float* aDisplayPortOffset, float* aDisplayPortLength);
+  static bool EnlargeDisplayPortAlongAxis(float aCompositionBounds,
+                                          float aVelocity,
+                                          float* aDisplayPortOffset,
+                                          float* aDisplayPortLength);
 
   
 
@@ -471,6 +482,15 @@ private:
   AxisX mX;
   AxisY mY;
 
+  
+  
+  
+  bool mAllowZoom;
+  float mMinZoom;
+  float mMaxZoom;
+
+  
+  
   
   
   
