@@ -4567,6 +4567,96 @@ update(ChromeDebuggerActor.prototype, {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+function AddonThreadActor(aConnect, aHooks, aAddonID) {
+  this.addonID = aAddonID;
+  ThreadActor.call(this, aHooks);
+}
+
+AddonThreadActor.prototype = Object.create(ThreadActor.prototype);
+
+update(AddonThreadActor.prototype, {
+  constructor: AddonThreadActor,
+
+  
+  actorPrefix: "addonThread",
+
+  
+
+
+
+
+  _allowSource: (aSourceURL) => !!aSourceURL,
+
+  
+
+
+
+
+
+  globalManager: {
+    findGlobals: function ADA_findGlobals() {
+      for (let global of this.dbg.findAllGlobals()) {
+        if (this._checkGlobal(global)) {
+          this.dbg.addDebuggee(global);
+        }
+      }
+    },
+
+    
+
+
+
+
+
+
+    onNewGlobal: function ADA_onNewGlobal(aGlobal) {
+      if (this._checkGlobal(aGlobal)) {
+        this.addDebuggee(aGlobal);
+        
+        this.conn.send({
+          from: this.actorID,
+          type: "newGlobal",
+          
+          hostAnnotations: aGlobal.hostAnnotations
+        });
+      }
+    }
+  },
+
+  
+
+
+
+
+  _checkGlobal: function ADA_checkGlobal(aGlobal) {
+    let metadata;
+    try {
+      
+      metadata = Cu.getSandboxMetadata(aGlobal.unsafeDereference());
+    } catch (e) {
+    }
+
+    return metadata && metadata.addonID === this.addonID;
+  }
+});
+
+
+
+
+
 function ThreadSources(aThreadActor, aUseSourceMaps, aAllowPredicate,
                        aOnNewSource) {
   this._thread = aThreadActor;
