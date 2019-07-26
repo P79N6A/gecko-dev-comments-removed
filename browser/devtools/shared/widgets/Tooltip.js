@@ -37,7 +37,6 @@ const SPECTRUM_FRAME = "chrome://browser/content/devtools/spectrum-frame.xhtml";
 const ESCAPE_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE;
 const RETURN_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_RETURN;
 const POPUP_EVENTS = ["shown", "hidden", "showing", "hiding"];
-const FONT_FAMILY_PREVIEW_TEXT = "(ABCabc123&@%)";
 
 
 
@@ -638,6 +637,8 @@ Tooltip.prototype = {
 
 
 
+
+
   setImageContent: function(imageUrl, options={}) {
     if (!imageUrl) {
       return;
@@ -656,25 +657,28 @@ Tooltip.prototype = {
     }
     vbox.appendChild(image);
 
-    
-    let label = this.doc.createElement("label");
-    label.classList.add("devtools-tooltip-caption");
-    label.classList.add("theme-comment");
-    if (options.naturalWidth && options.naturalHeight) {
-      label.textContent = this._getImageDimensionLabel(options.naturalWidth,
-        options.naturalHeight);
-    } else {
-      
-      label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
-      let imgObj = new this.doc.defaultView.Image();
-      imgObj.src = imageUrl;
-      imgObj.onload = () => {
-        imgObj.onload = null;
-        label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
-          imgObj.naturalHeight);
+    if (!options.hideDimensionLabel) {
+      let label = this.doc.createElement("label");
+      label.classList.add("devtools-tooltip-caption");
+      label.classList.add("theme-comment");
+
+      if (options.naturalWidth && options.naturalHeight) {
+        label.textContent = this._getImageDimensionLabel(options.naturalWidth,
+          options.naturalHeight);
+      } else {
+        
+        label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
+        let imgObj = new this.doc.defaultView.Image();
+        imgObj.src = imageUrl;
+        imgObj.onload = () => {
+          imgObj.onload = null;
+            label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
+              imgObj.naturalHeight);
+        }
       }
+
+      vbox.appendChild(label);
     }
-    vbox.appendChild(label);
 
     this.content = vbox;
   },
@@ -778,25 +782,29 @@ Tooltip.prototype = {
 
 
 
-  setFontFamilyContent: function(font) {
-    if (!font) {
-      return;
+
+
+
+
+
+  setFontFamilyContent: Task.async(function*(font, nodeFront) {
+    if (!font || !nodeFront) {
+      throw "Missing font";
     }
 
-    
-    let vbox = this.doc.createElement("vbox");
-    vbox.setAttribute("flex", "1");
+    if (typeof nodeFront.getFontFamilyDataURL === "function") {
+      font = font.replace(/"/g, "'");
+      font = font.replace("!important", "");
+      font = font.trim();
 
-    
-    let previewer = this.doc.createElement("description");
-    previewer.setAttribute("flex", "1");
-    previewer.style.fontFamily = font;
-    previewer.classList.add("devtools-tooltip-font-previewer-text");
-    previewer.textContent = FONT_FAMILY_PREVIEW_TEXT;
-    vbox.appendChild(previewer);
+      let fillStyle = (Services.prefs.getCharPref("devtools.theme") === "light") ?
+        "black" : "white";
 
-    this.content = vbox;
-  }
+      let {data, size} = yield nodeFront.getFontFamilyDataURL(font, fillStyle);
+      let str = yield data.string();
+      this.setImageContent(str, { hideDimensionLabel: true, maxDim: size });
+    }
+  })
 };
 
 

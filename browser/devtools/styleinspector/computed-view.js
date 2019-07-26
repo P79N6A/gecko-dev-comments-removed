@@ -545,8 +545,12 @@ CssHtmlTree.prototype = {
 
       
       if (propName.textContent === "font-family") {
-        this.tooltip.setFontFamilyContent(propValue.textContent);
-        return true;
+        let prop = propValue.textContent.toLowerCase();
+
+        if (prop !== "inherit" && prop !== "unset" && prop !== "initial") {
+          return this.tooltip.setFontFamilyContent(propValue.textContent,
+            inspector.selection.nodeFront);
+        }
       }
     }
 

@@ -475,6 +475,22 @@ function hasSideBarTab(inspector, id) {
 
 
 
+let getFontFamilyDataURL = Task.async(function*(font, nodeFront) {
+  let fillStyle = (Services.prefs.getCharPref("devtools.theme") === "light") ?
+      "black" : "white";
+
+  let {data} = yield nodeFront.getFontFamilyDataURL(font, fillStyle);
+  let dataURL = yield data.string();
+  return dataURL;
+});
+
+
+
+
+
+
+
+
 
 
 

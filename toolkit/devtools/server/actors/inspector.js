@@ -63,6 +63,8 @@ const {Class} = require("sdk/core/heritage");
 const {PageStyleActor} = require("devtools/server/actors/styles");
 const {HighlighterActor} = require("devtools/server/actors/highlighter");
 
+const FONT_FAMILY_PREVIEW_TEXT = "The quick brown fox jumps over the lazy dog";
+const FONT_FAMILY_PREVIEW_TEXT_SIZE = 20;
 const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
 const HIDDEN_CLASS = "__fx-devtools-hide-shortcut__";
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
@@ -351,6 +353,42 @@ var NodeActor = exports.NodeActor = protocol.ActorClass({
       modifications: Arg(0, "array:json")
     },
     response: {}
+  }),
+
+  
+
+
+
+
+
+
+  getFontFamilyDataURL: method(function(font, fillStyle="black") {
+    let doc = this.rawNode.ownerDocument;
+    let canvas = doc.createElementNS(XHTML_NS, "canvas");
+    let ctx = canvas.getContext("2d");
+    let fontValue = FONT_FAMILY_PREVIEW_TEXT_SIZE + "px " + font + ", serif";
+
+    
+    ctx.font = fontValue;
+    let textWidth = ctx.measureText(FONT_FAMILY_PREVIEW_TEXT).width;
+    canvas.width = textWidth * 2;
+    canvas.height = FONT_FAMILY_PREVIEW_TEXT_SIZE * 3;
+
+    ctx.font = fontValue;
+    ctx.fillStyle = fillStyle;
+
+    
+    
+    ctx.textBaseline = "top";
+    ctx.scale(2, 2);
+    ctx.fillText(FONT_FAMILY_PREVIEW_TEXT, 0, Math.round(FONT_FAMILY_PREVIEW_TEXT_SIZE / 3));
+
+    let dataURL = canvas.toDataURL("image/png");
+
+    return { data: LongStringActor(this.conn, dataURL), size: textWidth };
+  }, {
+    request: {font: Arg(0, "string"), fillStyle: Arg(1, "nullable:string")},
+    response: RetVal("imageData")
   })
 });
 
