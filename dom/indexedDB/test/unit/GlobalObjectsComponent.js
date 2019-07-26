@@ -3,7 +3,10 @@
 
 
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.importGlobalProperties(["indexedDB"]);
 
 function GlobalObjectsComponent() {
   this.wrappedJSObject = this;
