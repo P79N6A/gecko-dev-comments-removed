@@ -1,5 +1,10 @@
 
 
+'use strict';
+
+
+
+
 
 
 
@@ -117,12 +122,12 @@ var AccessFuTest = {
   runTests: function AccessFuTest_runTests() {
     if (gTestFuncs.length === 0) {
       ok(false, "No tests specified!");
-      simpleTest.finish();
+      SimpleTest.finish();
       return;
     }
 
     
-    gIterator = Iterator(gTestFuncs);
+    gIterator = Iterator(gTestFuncs); 
 
     
     Components.utils.import("resource://gre/modules/accessibility/AccessFu.jsm");
@@ -144,7 +149,7 @@ var AccessFuTest = {
         AccessFuTest.nextTest();
       } else {
         
-        [testFunc() for (testFunc of gTestFuncs)];
+        [testFunc() for (testFunc of gTestFuncs)]; 
         AccessFuTest.finish();
       }
     });
@@ -199,7 +204,7 @@ AccessFuContentTest.prototype = {
     }
 
     aMessageManager.addMessageListener('AccessFu:Present', this);
-    aMessageManager.addMessageListener('AccessFu:Ready', function (aMessage) {
+    aMessageManager.addMessageListener('AccessFu:Ready', function () {
       aMessageManager.addMessageListener('AccessFu:ContentStarted', aCallback);
       aMessageManager.sendAsyncMessage('AccessFu:Start', { buildApp: 'browser' });
     });
@@ -226,7 +231,7 @@ AccessFuContentTest.prototype = {
      }
     } else if (this.finishedCallback) {
       for (var mm of this.mms) {
-       mm.sendAsyncMessage('AccessFu:Stop');
+        mm.sendAsyncMessage('AccessFu:Stop');
       }
       this.finishedCallback();
     }
