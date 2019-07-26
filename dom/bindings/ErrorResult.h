@@ -35,10 +35,15 @@ class ErrorResult {
 public:
   ErrorResult() {
     mResult = NS_OK;
+#ifdef DEBUG
+    mMightHaveUnreportedJSException = false;
+#endif
   }
+
 #ifdef DEBUG
   ~ErrorResult() {
     MOZ_ASSERT_IF(IsTypeError(), !mMessage);
+    MOZ_ASSERT(!mMightHaveUnreportedJSException);
   }
 #endif
 
@@ -46,6 +51,8 @@ public:
     MOZ_ASSERT(NS_FAILED(rv), "Please don't try throwing success");
     MOZ_ASSERT(rv != NS_ERROR_TYPE_ERR, "Use ThrowTypeError()");
     MOZ_ASSERT(!IsTypeError(), "Don't overwite TypeError");
+    MOZ_ASSERT(rv != NS_ERROR_DOM_JS_EXCEPTION, "Use ThrowJSException()");
+    MOZ_ASSERT(!IsJSException(), "Don't overwrite JS exceptions");
     mResult = rv;
   }
 
@@ -57,6 +64,27 @@ public:
   
   
   
+  
+  
+  void ThrowJSException(JSContext* cx, JS::Value exn);
+  void ReportJSException(JSContext* cx);
+  bool IsJSException() const { return ErrorCode() == NS_ERROR_DOM_JS_EXCEPTION; }
+  void MOZ_ALWAYS_INLINE MightThrowJSException()
+  {
+#ifdef DEBUG
+    mMightHaveUnreportedJSException = true;
+#endif
+  }
+  void MOZ_ALWAYS_INLINE WouldReportJSException()
+  {
+#ifdef DEBUG
+    mMightHaveUnreportedJSException = false;
+#endif
+  }
+
+  
+  
+  
 
   
   
@@ -64,6 +92,8 @@ public:
   void operator=(nsresult rv) {
     MOZ_ASSERT(rv != NS_ERROR_TYPE_ERR, "Use ThrowTypeError()");
     MOZ_ASSERT(!IsTypeError(), "Don't overwite TypeError");
+    MOZ_ASSERT(rv != NS_ERROR_DOM_JS_EXCEPTION, "Use ThrowJSException()");
+    MOZ_ASSERT(!IsJSException(), "Don't overwrite JS exceptions");
     mResult = rv;
   }
 
@@ -79,7 +109,19 @@ private:
   nsresult mResult;
   struct Message;
   
-  Message* mMessage;
+  
+  
+  
+  union {
+    Message* mMessage; 
+    JS::Value mJSException; 
+  };
+
+#ifdef DEBUG
+  
+  
+  bool mMightHaveUnreportedJSException;
+#endif
 
   
   

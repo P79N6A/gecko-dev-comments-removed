@@ -61,6 +61,14 @@ ErrorResult::ThrowTypeError(const dom::ErrNum errorNumber, ...)
 {
   va_list ap;
   va_start(ap, errorNumber);
+  if (IsJSException()) {
+    
+    
+    va_end(ap);
+    MOZ_ASSERT(false,
+               "Ignoring ThrowTypeError call because we have a JS exception");
+    return;
+  }
   if (IsTypeError()) {
     delete mMessage;
   }
@@ -105,6 +113,39 @@ ErrorResult::ClearMessage()
     delete mMessage;
     mMessage = nullptr;
   }
+}
+
+void
+ErrorResult::ThrowJSException(JSContext* cx, JS::Value exn)
+{
+  MOZ_ASSERT(mMightHaveUnreportedJSException,
+             "Why didn't you tell us you planned to throw a JS exception?");
+
+  if (IsTypeError()) {
+    delete mMessage;
+  }
+
+  if (!JS_AddNamedValueRoot(cx, &mJSException, "ErrorResult::mJSException")) {
+    
+    
+    mResult = NS_ERROR_OUT_OF_MEMORY;
+  } else {
+    mJSException = exn;
+    mResult = NS_ERROR_DOM_JS_EXCEPTION;
+  }
+}
+
+void
+ErrorResult::ReportJSException(JSContext* cx)
+{
+  MOZ_ASSERT(!mMightHaveUnreportedJSException,
+             "Why didn't you tell us you planned to handle JS exceptions?");
+  if (JS_WrapValue(cx, &mJSException)) {
+    JS_SetPendingException(cx, mJSException);
+  }
+  
+  
+  JS_RemoveValueRoot(cx, &mJSException);
 }
 
 namespace dom {
