@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsScriptSecurityManager_h__
 #define nsScriptSecurityManager_h__
 
@@ -518,7 +519,6 @@ private:
     nsCOMPtr<nsIPrincipal> mSystemPrincipal;
     bool mPrefInitialized;
     bool mIsJavaScriptEnabled;
-    bool mIsWritingPrefs;
     bool mPolicyPrefsChanged;
 
     static bool sStrictFileOriginPolicy;

@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/Util.h"
 
 #include "xpcprivate.h"
@@ -2440,7 +2441,6 @@ nsScriptSecurityManager::nsScriptSecurityManager(void)
       mCapabilities(nullptr),
       mPrefInitialized(false),
       mIsJavaScriptEnabled(false),
-      mIsWritingPrefs(false),
       mPolicyPrefsChanged(true)
 {
     MOZ_STATIC_ASSERT(sizeof(intptr_t) == sizeof(void*),
