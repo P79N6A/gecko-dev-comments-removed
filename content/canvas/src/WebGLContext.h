@@ -244,10 +244,6 @@ public:
     
     void ClearScreen();
 
-    
-    
-    void UpdateWebGLErrorAndClearGLError(GLenum *currentGLError = nullptr);
-
     bool MinCapabilityMode() const { return mMinCapability; }
 
     void RobustnessTimerCallback(nsITimer* timer);
@@ -852,7 +848,12 @@ protected:
     void DeleteWebGLObjectsArray(nsTArray<WebGLObjectType>& array);
 
     GLuint mActiveTexture;
+
+    
+    bool mEmitContextLostErrorOnce;
     GLenum mWebGLError;
+    GLenum mUnderlyingGLError;
+    GLenum GetAndFlushUnderlyingGLErrors();
 
     
     bool mShaderValidation;

@@ -107,13 +107,10 @@ void
 WebGLContext::SynthesizeGLError(GLenum err)
 {
     
-    
-    
-    
 
-    MakeContextCurrent();
 
-    UpdateWebGLErrorAndClearGLError();
+
+
 
     if (!mWebGLError)
         mWebGLError = err;
@@ -234,14 +231,16 @@ WebGLContext::IsTextureFormatCompressed(GLenum format)
     }
 }
 
-void
-WebGLContext::UpdateWebGLErrorAndClearGLError(GLenum *currentGLError)
+GLenum
+WebGLContext::GetAndFlushUnderlyingGLErrors()
 {
     
     GLenum error = gl->GetAndClearError();
-    if (currentGLError)
-        *currentGLError = error;
+
     
-    if (!mWebGLError)
-        mWebGLError = error;
+    
+    if (!mUnderlyingGLError)
+        mUnderlyingGLError = error;
+
+    return error;
 }
