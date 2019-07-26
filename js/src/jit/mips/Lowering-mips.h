@@ -35,6 +35,8 @@ class LIRGeneratorMIPS : public LIRGeneratorShared
         return LDefinition::BogusTemp();
     }
 
+    bool needTempForPostBarrier() { return false; }
+
     
     
     LDefinition tempForDispatchCache(MIRType outputType = MIRType_None) {
