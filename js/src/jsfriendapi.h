@@ -1026,6 +1026,8 @@ typedef uint32_t JSArrayBufferViewType;
 
 
 
+
+
 extern JS_FRIEND_API(JSObject *)
 JS_NewInt8Array(JSContext *cx, uint32_t nelements);
 extern JS_FRIEND_API(JSObject *)
