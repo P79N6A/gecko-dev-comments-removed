@@ -231,6 +231,12 @@ add_test(function test_disabled_install_semantics() {
   server.stop(advance_test);
 });
 
+add_test(function cleanup() {
+  
+  reconciler.stopListening();
+  run_next_test();
+});
+
 function run_test() {
   initTestLogging("Trace");
   Log4Moz.repository.getLogger("Sync.Engine.Addons").level =
@@ -244,6 +250,10 @@ function run_test() {
   new SyncTestingInfrastructure();
 
   reconciler.startListening();
+
+  
+  
+  reconciler._shouldPersist = false;
 
   advance_test();
 }

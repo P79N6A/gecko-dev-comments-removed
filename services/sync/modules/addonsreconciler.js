@@ -112,7 +112,6 @@ this.EXPORTED_SYMBOLS = ["AddonsReconciler", "CHANGE_INSTALLED",
 
 
 
-
 this.AddonsReconciler = function AddonsReconciler() {
   this._log = Log4Moz.repository.getLogger("Sync.AddonsReconciler");
   let level = Svc.Prefs.get("log.logger.addonsreconciler", "Debug");
@@ -128,7 +127,18 @@ AddonsReconciler.prototype = {
 
 
 
+
   _stateLoaded: false,
+
+  
+
+
+
+
+
+
+
+  _shouldPersist: true,
 
   
   _log: null,
@@ -384,7 +394,12 @@ AddonsReconciler.prototype = {
         }
       }
 
-      this.saveState(null, callback);
+      
+      if (this._shouldPersist) {
+        this.saveState(null, callback);
+      } else {
+        callback();
+      }
     }.bind(this));
   },
 
@@ -610,9 +625,12 @@ AddonsReconciler.prototype = {
           }
       }
 
-      let cb = Async.makeSpinningCallback();
-      this.saveState(null, cb);
-      cb.wait();
+      
+      if (this._shouldPersist) {
+        let cb = Async.makeSpinningCallback();
+        this.saveState(null, cb);
+        cb.wait();
+      }
     }
     catch (ex) {
       this._log.warn("Exception: " + Utils.exceptionStr(ex));

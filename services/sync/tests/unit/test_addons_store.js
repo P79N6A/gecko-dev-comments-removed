@@ -73,6 +73,10 @@ function run_test() {
 
   reconciler.startListening();
 
+  
+  
+  reconciler._shouldPersist = false;
+
   run_next_test();
 }
 
@@ -461,3 +465,10 @@ add_test(function test_wipe_and_install() {
   Svc.Prefs.reset("addons.ignoreRepositoryChecking");
   server.stop(run_next_test);
 });
+
+add_test(function cleanup() {
+  
+  reconciler.stopListening();
+  run_next_test();
+});
+
