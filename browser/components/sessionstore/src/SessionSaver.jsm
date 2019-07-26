@@ -194,22 +194,10 @@ let SessionSaverInternal = {
 
     
     for (let i = state.windows.length - 1; i >= 0; i--) {
-      let win = state.windows[i];
-      if (win.isPrivate || false) { 
-         state.windows.splice(i, 1);
-         if (state.selectedWindow >= i) {
-           state.selectedWindow--;
-         }
-        continue;
-      }
-      
-      for (let j = win.tabs.length - 1; j >= 0 ; --j) {
-        let tab = win.tabs[j];
-        if (tab.isPrivate || false) {
-          win.tabs.splice(j, 1);
-          if (win.selected >= j) {
-            win.selected--;
-          }
+      if (state.windows[i].isPrivate) {
+        state.windows.splice(i, 1);
+        if (state.selectedWindow >= i) {
+          state.selectedWindow--;
         }
       }
     }
@@ -220,10 +208,6 @@ let SessionSaverInternal = {
         state._closedWindows.splice(i, 1);
       }
     }
-
-    
-    
-    
 
     
     

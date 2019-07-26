@@ -1321,11 +1321,6 @@ let SessionStoreInternal = {
     let tabState = TabState.collectSync(aTab);
 
     
-    if (tabState.isPrivate || false) {
-      return;
-    }
-
-    
     if (this._shouldSaveTabState(tabState)) {
       let tabTitle = aTab.label;
       let tabbrowser = aWindow.gBrowser;
