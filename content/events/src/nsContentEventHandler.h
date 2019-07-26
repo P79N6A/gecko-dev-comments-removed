@@ -82,6 +82,13 @@ public:
                                       uint32_t aMaxLength = UINT32_MAX);
 protected:
   
+  nsIContent* GetFocusedContent();
+  
+  bool IsPlugin(nsIContent* aContent);
+  
+  nsresult QueryContentRect(nsIContent* aContent,
+                            mozilla::WidgetQueryContentEvent* aEvent);
+  
   
   
   nsresult SetRangeFromFlatTextOffset(nsRange* aRange,
