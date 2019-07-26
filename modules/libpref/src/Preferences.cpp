@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/ContentChild.h"
 
@@ -160,8 +161,6 @@ static nsTArray<nsAutoPtr<CacheData> >* gCacheData = nullptr;
 static nsRefPtrHashtable<ValueObserverHashKey,
                          ValueObserver>* gObserverTable = nullptr;
 
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(PreferencesMallocSizeOf)
-
 static size_t
 SizeOfObserverEntryExcludingThis(ValueObserverHashKey* aKey,
                                  const nsRefPtr<ValueObserver>& aData,
@@ -175,51 +174,55 @@ SizeOfObserverEntryExcludingThis(ValueObserverHashKey* aKey,
 }
 
 
-int64_t
-Preferences::GetPreferencesMemoryUsed()
+
+ int64_t
+Preferences::SizeOfIncludingThisAndOtherStuff(mozilla::MallocSizeOf aMallocSizeOf)
 {
   NS_ENSURE_TRUE(InitStaticMembers(), 0);
 
-  size_t n = 0;
-  n += PreferencesMallocSizeOf(sPreferences);
+  size_t n = aMallocSizeOf(sPreferences);
   if (gHashTable.ops) {
     
     
-    n += PL_DHashTableSizeOfExcludingThis(&gHashTable, nullptr,
-                                          PreferencesMallocSizeOf);
+    n += PL_DHashTableSizeOfExcludingThis(&gHashTable, nullptr, aMallocSizeOf);
   }
   if (gCacheData) {
-    n += gCacheData->SizeOfIncludingThis(PreferencesMallocSizeOf);
+    n += gCacheData->SizeOfIncludingThis(aMallocSizeOf);
     for (uint32_t i = 0, count = gCacheData->Length(); i < count; ++i) {
-      n += PreferencesMallocSizeOf((*gCacheData)[i]);
+      n += aMallocSizeOf((*gCacheData)[i]);
     }
   }
   if (gObserverTable) {
-    n += PreferencesMallocSizeOf(gObserverTable);
+    n += aMallocSizeOf(gObserverTable);
     n += gObserverTable->SizeOfExcludingThis(SizeOfObserverEntryExcludingThis,
-                                             PreferencesMallocSizeOf);
+                                             aMallocSizeOf);
   }
   
   
-  n += pref_SizeOfPrivateData(PreferencesMallocSizeOf);
+  n += pref_SizeOfPrivateData(aMallocSizeOf);
   return n;
 }
 
-NS_MEMORY_REPORTER_IMPLEMENT(Preferences,
-  "explicit/preferences",
-  KIND_HEAP,
-  UNITS_BYTES,
-  Preferences::GetPreferencesMemoryUsed,
-  "Memory used by the preferences system.")
+class PreferencesReporter MOZ_FINAL : public MemoryReporterBase
+{
+public:
+  PreferencesReporter()
+    : MemoryReporterBase("explicit/preferences", KIND_HEAP, UNITS_BYTES,
+                         "Memory used by the preferences system.")
+  {}
+private:
+  int64_t Amount() MOZ_OVERRIDE
+  {
+    return Preferences::SizeOfIncludingThisAndOtherStuff(MallocSizeOf);
+  }
+};
 
 namespace {
 class AddPreferencesMemoryReporterRunnable : public nsRunnable
 {
   NS_IMETHOD Run()
   {
-    nsCOMPtr<nsIMemoryReporter> reporter =
-      new NS_MEMORY_REPORTER_NAME(Preferences);
-    return NS_RegisterMemoryReporter(reporter);
+    return NS_RegisterMemoryReporter(new PreferencesReporter());
   }
 };
 } 
