@@ -385,7 +385,7 @@ nsTHashtable<EntryType>::nsTHashtable(
 {
   
   
-  MOZ_MAKE_MEM_UNDEFINED(&aOther.mTable, sizeof(aOther.mTable));
+  MOZ_MAKE_MEM_UNDEFINED(aOther.mTable, sizeof(aOther.mTable));
 
   
   
