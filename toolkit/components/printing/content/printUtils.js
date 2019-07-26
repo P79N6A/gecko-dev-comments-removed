@@ -218,6 +218,13 @@ var PrintUtils = {
 
     
     
+    var docShell = originalWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                 .getInterface(Ci.nsIWebNavigation)
+                                 .QueryInterface(Ci.nsIDocShell);
+    docShell.isActive = true;
+
+    
+    
     var XUL_NS =
       "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
     printPreviewTB = document.createElementNS(XUL_NS, "toolbar");
