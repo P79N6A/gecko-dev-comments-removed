@@ -2,55 +2,23 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function test() {
   
-  
+
   waitForExplicitFinish();
-  
+
   let rootDir = "http://mochi.test:8888/browser/browser/components/sessionstore/test/";
   let testURL = rootDir + "browser_463205_sample.html";
 
   let doneURL = "done";
 
   let mainURL = testURL;
-  let frame1URL = "data:text/html,<input%20id='original'>";
+  let frame1URL = "data:text/html;charset=utf-8,<input%20id='original'>";
   let frame2URL = rootDir + "browser_463205_helper.html";
-  let frame3URL = "data:text/html,mark2";
+  let frame3URL = "data:text/html;charset=utf-8,mark2";
 
   let frameCount = 0;
-  
+
   let tab = gBrowser.addTab(testURL);
   tab.linkedBrowser.addEventListener("load", function(aEvent) {
     
@@ -82,15 +50,15 @@ function test() {
       return;
     }
     tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
-    
+
     function typeText(aTextField, aValue) {
       aTextField.value = aValue;
-      
+
       let event = aTextField.ownerDocument.createEvent("UIEvents");
       event.initUIEvent("input", true, true, aTextField.ownerDocument.defaultView, 0);
       aTextField.dispatchEvent(event);
     }
-    
+
     let uniqueValue = "Unique: " + Math.random();
     let win = tab.linkedBrowser.contentWindow;
     typeText(win.frames[0].document.getElementById("original"), uniqueValue);
@@ -100,7 +68,7 @@ function test() {
     frame1URL = "http://mochi.test:8888/browser/" +
       "browser/components/sessionstore/test/browser_463205_helper.html";
     frame2URL = rootDir + "browser_463205_helper.html";
-    frame3URL = "data:text/html,mark2";
+    frame3URL = "data:text/html;charset=utf-8,mark2";
 
     frameCount = 0;
 
@@ -144,11 +112,11 @@ function test() {
          "subframes must match URL to get text restored");
       is(win.frames[1].document.getElementById("original").value, uniqueValue,
          "text still gets restored for all other subframes");
-      
+
       
       gBrowser.removeTab(tab2);
       gBrowser.removeTab(tab);
-      
+
       finish();
     }, true);
   }, true);

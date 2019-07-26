@@ -2,7 +2,7 @@
 
 
 let tabState = {
-  entries: [{url: "data:text/html,<input%20id='foo'>", formdata: { id: { "foo": "bar" } } }]
+  entries: [{url: "data:text/html;charset=utf-8,<input%20id='foo'>", formdata: { id: { "foo": "bar" } } }]
 };
 
 function test() {

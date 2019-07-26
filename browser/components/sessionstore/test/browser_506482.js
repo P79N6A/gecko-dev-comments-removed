@@ -33,7 +33,7 @@ function test() {
   }
 
   
-  const TEST_URL = "data:text/html,"
+  const TEST_URL = "data:text/html;charset=utf-8,"
     + "<body style='width: 100000px; height: 100000px;'><p>top</p></body>"
 
   
