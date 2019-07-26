@@ -622,6 +622,8 @@ AsyncPanZoomController::GetGestureEventListener() {
 void
 AsyncPanZoomController::Destroy()
 {
+  CancelAnimation();
+
   { 
     MonitorAutoLock lock(mRefPtrMonitor);
     mGeckoContentController = nullptr;
